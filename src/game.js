@@ -244,12 +244,14 @@ function descend() {
 
 // ---- 戦闘 ----
 function startBattle(enemies, cell) {
-  G.battle = new Battle(G.party, enemies, log);
   G.battleCell = cell;
   G.state = "combat";
   movePad.classList.add("hidden");
   combatMenu.classList.remove("hidden");
   log(`${enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
+  // 素早い敵はここで先制行動する
+  G.battle = new Battle(G.party, enemies, log);
+  if (G.battle.result) { endBattle(); return; }
   renderCombat();
 }
 
@@ -290,9 +292,9 @@ function renderCombatMenu() {
   const b = G.battle;
   combatMenu.innerHTML = "";
   if (b.phase === "input") {
-    const actor = b.currentActor();
+    const actor = b.current;
     highlightActor(actor);
-    combatMenu.appendChild(el("div", "who", `▶ ${actor.name} の行動 (Lv${actor.level})`));
+    combatMenu.appendChild(el("div", "who", `▶ ${actor.name} のターン (Lv${actor.level} / 素早さ${actor.spd})`));
     const row = el("div", "row");
     row.appendChild(btn("⚔ 攻撃", () => act("attack")));
     if (actor.spells.length) row.appendChild(btn("✦ 呪文", () => showSpells(actor)));
