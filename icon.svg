@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0b0b12"/>
+  <rect x="32" y="32" width="448" height="448" rx="40" fill="#15151f" stroke="#c9a227" stroke-width="10"/>
+  <!-- corridor perspective -->
+  <polygon points="156,156 356,156 300,256 212,256" fill="#1d1d2b"/>
+  <polygon points="212,256 300,256 280,360 232,360" fill="#2c2c3d"/>
+  <polygon points="156,156 212,256 232,360 120,360 120,200" fill="#23233a"/>
+  <polygon points="356,156 300,256 280,360 392,360 392,200" fill="#23233a"/>
+  <!-- slime monster -->
+  <g fill="#3fae46">
+    <rect x="232" y="288" width="48" height="40"/>
+    <rect x="240" y="276" width="32" height="12"/>
+  </g>
+  <rect x="242" y="300" width="8" height="8" fill="#0a0a0a"/>
+  <rect x="262" y="300" width="8" height="8" fill="#0a0a0a"/>
+  <text x="256" y="452" font-family="monospace" font-size="48" fill="#c9a227" text-anchor="middle" font-weight="bold">DOS</text>
+</svg>

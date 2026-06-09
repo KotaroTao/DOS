@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0b0b12" />
+  <title>地下迷宮 - Dungeon of Shadows</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header id="topbar">
+      <h1>地下迷宮 <span class="sub">Dungeon of Shadows</span></h1>
+      <div id="floor-info">B1F</div>
+    </header>
+
+    <main id="screen">
+      <!-- 3D ダンジョンビュー -->
+      <canvas id="view" width="480" height="320"></canvas>
+
+      <!-- メッセージ / ミニマップ -->
+      <section id="hud">
+        <canvas id="minimap" width="160" height="160"></canvas>
+        <div id="log" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <!-- パーティステータス -->
+    <section id="party"></section>
+
+    <!-- 操作系 -->
+    <section id="controls">
+      <div id="move-pad">
+        <button class="btn" data-act="turnL">⟲ 左</button>
+        <button class="btn" data-act="forward">▲ 前進</button>
+        <button class="btn" data-act="turnR">右 ⟳</button>
+        <button class="btn" data-act="back">▼ 後退</button>
+      </div>
+      <div id="combat-menu" class="hidden"></div>
+    </section>
+
+    <footer id="hint">
+      矢印キー: 移動 / 回転 ・ 戦闘中は数字キーまたはボタンで選択
+    </footer>
+  </div>
+
+  <script type="module" src="src/game.js"></script>
+</body>
+</html>
