@@ -16,12 +16,11 @@
     </header>
 
     <main id="screen">
-      <!-- 3D ダンジョンビュー -->
+      <!-- カードボード / 戦闘ビュー -->
       <canvas id="view" width="480" height="320"></canvas>
 
-      <!-- メッセージ / ミニマップ -->
+      <!-- メッセージ -->
       <section id="hud">
-        <canvas id="minimap" width="160" height="160"></canvas>
         <div id="log" aria-live="polite"></div>
       </section>
     </main>
@@ -32,16 +31,16 @@
     <!-- 操作系 -->
     <section id="controls">
       <div id="move-pad">
-        <button class="btn" data-act="turnL">⟲ 左</button>
-        <button class="btn" data-act="forward">▲ 前進</button>
-        <button class="btn" data-act="turnR">右 ⟳</button>
-        <button class="btn" data-act="back">▼ 後退</button>
+        <button class="btn" data-act="up">▲ 上</button>
+        <button class="btn" data-act="left">◀ 左</button>
+        <button class="btn" data-act="down">▼ 下</button>
+        <button class="btn" data-act="right">右 ▶</button>
       </div>
       <div id="combat-menu" class="hidden"></div>
     </section>
 
     <footer id="hint">
-      矢印キー: 移動 / 回転 ・ 戦闘中は数字キーまたはボタンで選択
+      矢印キーで隣のカードへ移動 ・ 裏向きのカードはめくられる ・ 戦闘中はボタンで選択
     </footer>
   </div>
 

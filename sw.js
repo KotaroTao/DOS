@@ -1,5 +1,5 @@
 // シンプルなオフラインキャッシュ (PWA / アプリ化用)
-const CACHE = "dos-v1";
+const CACHE = "dos-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -7,8 +7,7 @@ const ASSETS = [
   "./manifest.webmanifest",
   "./icon.svg",
   "./src/game.js",
-  "./src/dungeon.js",
-  "./src/render3d.js",
+  "./src/board.js",
   "./src/sprites.js",
   "./src/combat.js",
 ];

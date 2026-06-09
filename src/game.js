@@ -1,13 +1,10 @@
-// メインゲーム: ダンジョン探索 ⇄ 戦闘 の統合
-import { Dungeon, DIRS } from "./dungeon.js";
-import { renderView, renderMinimap } from "./render3d.js";
-import { drawSprite } from "./sprites.js";
-import { createParty, spawnEnemies, Battle, gainExp, SPELLS } from "./combat.js";
+// メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
+import { makeBoard, COLS, ROWS } from "./board.js";
+import { MONSTERS, HERO, ICONS, drawSprite } from "./sprites.js";
+import { createParty, spawnCardEnemies, spawnBossEnemies, Battle, gainExp, SPELLS } from "./combat.js";
 
 const view = document.getElementById("view");
 const vctx = view.getContext("2d");
-const mini = document.getElementById("minimap");
-const mctx = mini.getContext("2d");
 const logEl = document.getElementById("log");
 const partyEl = document.getElementById("party");
 const movePad = document.getElementById("move-pad");
@@ -17,15 +14,19 @@ const floorInfo = document.getElementById("floor-info");
 const MAX_FLOOR = 3;
 
 const G = {
-  state: "dungeon",   // dungeon | combat | over
+  state: "board",     // board | combat | over
   floor: 1,
-  dungeon: null,
-  px: 1, py: 1, dir: 1,
-  seen: null,
+  board: null,
+  px: 0, py: 0,
+  gold: 0,
   party: createParty(),
   battle: null,
-  stepsSinceFight: 0,
+  battleCell: null,   // 戦闘中のモンスターカード
+  prevPos: null,      // 逃走時の戻り先
+  anim: null,         // { x, y, t0, dur, done }
 };
+
+const rand = (n) => Math.floor(Math.random() * n);
 
 function log(msg, cls = "sys") {
   const div = document.createElement("div");
@@ -36,74 +37,224 @@ function log(msg, cls = "sys") {
   while (logEl.children.length > 80) logEl.removeChild(logEl.firstChild);
 }
 
-function newFloor() {
-  G.dungeon = new Dungeon(13 + G.floor * 2, Date.now() + G.floor);
-  G.px = 1; G.py = 1; G.dir = 1;
-  G.seen = Array.from({ length: G.dungeon.size }, () => Array(G.dungeon.size).fill(false));
-  markSeen();
-  floorInfo.textContent = "B" + G.floor + "F";
-  log(`地下 ${G.floor} 階に降り立った。`, "sys");
+function updateTopbar() {
+  floorInfo.textContent = `B${G.floor}F 💰${G.gold}`;
 }
 
-function markSeen() {
-  const n = G.dungeon.size;
-  for (let dy = -2; dy <= 2; dy++) {
-    for (let dx = -2; dx <= 2; dx++) {
-      const x = G.px + dx, y = G.py + dy;
-      if (x >= 0 && y >= 0 && x < n && y < n) G.seen[y][x] = true;
+function newFloor() {
+  G.board = makeBoard(G.floor);
+  G.px = G.board.start.x;
+  G.py = G.board.start.y;
+  updateTopbar();
+  log(`地下 ${G.floor} 階。カードをめくって階段を探せ！`, "sys");
+}
+
+// ---- ボード描画 ----
+const CARD_W = 60, CARD_H = 56, GAP = 4;
+const OX = Math.floor((480 - (COLS * CARD_W + (COLS - 1) * GAP)) / 2);
+const OY = Math.floor((320 - (ROWS * CARD_H + (ROWS - 1) * GAP)) / 2);
+
+function cellRect(x, y) {
+  return { x: OX + x * (CARD_W + GAP), y: OY + y * (CARD_H + GAP), w: CARD_W, h: CARD_H };
+}
+
+function renderBoard() {
+  // 草原風の市松背景
+  for (let ty = 0; ty < 320 / 16; ty++) {
+    for (let tx = 0; tx < 480 / 16; tx++) {
+      vctx.fillStyle = (tx + ty) % 2 ? "#1e3a1e" : "#234223";
+      vctx.fillRect(tx * 16, ty * 16, 16, 16);
     }
   }
-}
 
-function renderDungeon() {
-  renderView(vctx, G.dungeon, G.px, G.py, G.dir);
-  renderMinimap(mctx, G.dungeon, G.px, G.py, G.dir, G.seen);
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const cell = G.board.cells[y][x];
+      const r = cellRect(x, y);
+      let scaleX = 1;
+      let showBack = !cell.revealed;
+      if (G.anim && G.anim.x === x && G.anim.y === y) {
+        const t = Math.min(1, (performance.now() - G.anim.t0) / G.anim.dur);
+        scaleX = Math.abs(Math.cos(t * Math.PI));
+        showBack = t < 0.5;
+      }
+      drawCard(r, cell, scaleX, showBack);
+    }
+  }
+
+  // プレイヤー
+  const pr = cellRect(G.px, G.py);
+  drawSprite(vctx, HERO, pr.x + pr.w / 2, pr.y + pr.h / 2, 3);
+
   renderParty();
 }
 
-// ---- 移動 ----
-function move(forward) {
-  if (G.state !== "dungeon") return;
-  const d = DIRS[G.dir];
-  const s = forward ? 1 : -1;
-  const nx = G.px + d.dx * s, ny = G.py + d.dy * s;
-  if (G.dungeon.isWall(nx, ny)) { log("壁だ。進めない。", "sys"); renderDungeon(); return; }
-  G.px = nx; G.py = ny;
-  markSeen();
-  renderDungeon();
+function drawCard(r, cell, scaleX, showBack) {
+  vctx.save();
+  vctx.translate(r.x + r.w / 2, r.y + r.h / 2);
+  vctx.scale(Math.max(0.02, scaleX), 1);
+  vctx.translate(-r.w / 2, -r.h / 2);
 
-  if (G.dungeon.isGoal(G.px, G.py)) {
-    startBattle(true);
-    return;
+  if (showBack) {
+    // カード裏面: 金の装飾
+    vctx.fillStyle = "#6b4d12";
+    vctx.fillRect(0, 0, r.w, r.h);
+    vctx.strokeStyle = "#c9a227";
+    vctx.lineWidth = 2;
+    vctx.strokeRect(2, 2, r.w - 4, r.h - 4);
+    vctx.strokeStyle = "#9c7d1c";
+    vctx.lineWidth = 1;
+    vctx.beginPath();
+    vctx.arc(r.w / 2, r.h / 2, 14, 0, Math.PI * 2);
+    vctx.stroke();
+    vctx.fillStyle = "#c9a227";
+    vctx.font = "bold 16px monospace";
+    vctx.textAlign = "center";
+    vctx.textBaseline = "middle";
+    vctx.fillText("?", r.w / 2, r.h / 2 + 1);
+  } else {
+    // 表面: 羊皮紙
+    const cleared = cell.cleared && cell.type !== "stairs" && cell.type !== "start";
+    vctx.fillStyle = cleared ? "#9a916f" : "#d9d0b0";
+    vctx.fillRect(0, 0, r.w, r.h);
+    vctx.strokeStyle = "#7a7050";
+    vctx.lineWidth = 2;
+    vctx.strokeRect(1, 1, r.w - 2, r.h - 2);
+
+    const cx = r.w / 2, cy = r.h / 2;
+    if (cell.type === "monster" && !cell.cleared) {
+      drawSprite(vctx, MONSTERS[cell.monsterKey], cx, cy, 3);
+    } else if (cell.type === "chest" && !cell.cleared) {
+      drawSprite(vctx, ICONS.chest, cx, cy, 3);
+    } else if (cell.type === "trap" && !cell.cleared) {
+      drawSprite(vctx, ICONS.trap, cx, cy, 3);
+    } else if (cell.type === "fountain" && !cell.cleared) {
+      drawSprite(vctx, ICONS.fountain, cx, cy, 3);
+    } else if (cell.type === "stairs") {
+      drawSprite(vctx, ICONS.stairs, cx, cy, 3);
+    } else if (cell.type === "start") {
+      drawSprite(vctx, ICONS.start, cx, cy, 3);
+    }
+    // クリア済みは踏破マーク
+    if (cleared && cell.type !== "empty") {
+      vctx.fillStyle = "rgba(40,40,30,0.35)";
+      vctx.fillRect(0, 0, r.w, r.h);
+    }
   }
-  G.stepsSinceFight++;
-  if (G.stepsSinceFight >= 2 && Math.random() < 0.22) {
-    startBattle(false);
+  vctx.restore();
+}
+
+// ---- 移動とカードめくり ----
+function tryMove(dx, dy) {
+  if (G.state !== "board" || G.anim) return;
+  const nx = G.px + dx, ny = G.py + dy;
+  if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) return;
+  const cell = G.board.cells[ny][nx];
+  G.prevPos = { x: G.px, y: G.py };
+
+  if (!cell.revealed) {
+    // めくる演出 → 効果解決
+    G.anim = { x: nx, y: ny, t0: performance.now(), dur: 280 };
+    const tick = () => {
+      renderBoard();
+      if (performance.now() - G.anim.t0 >= G.anim.dur) {
+        G.anim = null;
+        cell.revealed = true;
+        G.px = nx; G.py = ny;
+        renderBoard();
+        resolveCell(cell);
+      } else {
+        requestAnimationFrame(tick);
+      }
+    };
+    // めくりの途中で表面を見せるため先に revealed 扱いで描く
+    cell.revealed = true;
+    requestAnimationFrame(tick);
+  } else {
+    G.px = nx; G.py = ny;
+    renderBoard();
+    resolveCell(cell);
   }
 }
 
-function turn(delta) {
-  if (G.state !== "dungeon") return;
-  G.dir = (G.dir + delta + 4) % 4;
-  renderDungeon();
+function resolveCell(cell) {
+  switch (cell.type) {
+    case "monster":
+      if (!cell.cleared) {
+        const name = MONSTERS[cell.monsterKey].name;
+        log(`⚔ ${name} のカードだ！`, "dmg");
+        startBattle(spawnCardEnemies(cell.monsterKey, G.floor), cell);
+      }
+      break;
+    case "chest": {
+      if (cell.cleared) break;
+      cell.cleared = true;
+      const g = 10 + G.floor * 10 + rand(25);
+      G.gold += g;
+      updateTopbar();
+      log(`宝箱だ！ ${g} ゴールドを手に入れた。`, "win");
+      renderBoard();
+      break;
+    }
+    case "trap": {
+      if (cell.cleared) break;
+      cell.cleared = true;
+      const victims = G.party.filter((p) => p.alive);
+      const v = victims[rand(victims.length)];
+      const dmg = 4 + G.floor * 3 + rand(7);
+      v.hp = Math.max(0, v.hp - dmg);
+      log(`罠だ！ ${v.name}に ${dmg} ダメージ`, "dmg");
+      if (v.hp === 0) {
+        v.alive = false;
+        log(`${v.name}は倒れた…`, "dmg");
+        if (!G.party.some((p) => p.alive)) { gameOver(); return; }
+      }
+      renderBoard();
+      break;
+    }
+    case "fountain": {
+      if (cell.cleared) break;
+      cell.cleared = true;
+      for (const p of G.party) {
+        if (!p.alive) continue;
+        p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * 0.4));
+        p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * 0.5));
+      }
+      log("癒しの泉だ！ パーティのHPとMPが回復した。", "heal");
+      renderBoard();
+      break;
+    }
+    case "stairs":
+      if (G.floor >= MAX_FLOOR) {
+        log("階段の前に巨大な影が…！", "dmg");
+        startBattle(spawnBossEnemies(), cell);
+      } else {
+        descend();
+      }
+      break;
+  }
+}
+
+function descend() {
+  G.floor++;
+  log("階段を降りていく…", "sys");
+  newFloor();
+  renderBoard();
 }
 
 // ---- 戦闘 ----
-function startBattle(boss) {
-  G.stepsSinceFight = 0;
-  const enemies = spawnEnemies(G.floor, boss);
+function startBattle(enemies, cell) {
   G.battle = new Battle(G.party, enemies, log);
+  G.battleCell = cell;
   G.state = "combat";
   movePad.classList.add("hidden");
   combatMenu.classList.remove("hidden");
-  if (boss) log("⚔ ボスが立ちはだかる！", "win");
-  else log(`⚔ ${enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
+  log(`${enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
   renderCombat();
 }
 
 function renderCombat() {
   const b = G.battle;
-  // 戦闘背景
   vctx.fillStyle = "#07060a";
   vctx.fillRect(0, 0, view.width, view.height);
   const grad = vctx.createRadialGradient(view.width / 2, view.height * 0.4, 30, view.width / 2, view.height * 0.4, view.width * 0.7);
@@ -112,7 +263,6 @@ function renderCombat() {
   vctx.fillStyle = grad;
   vctx.fillRect(0, 0, view.width, view.height);
 
-  // 敵スプライト配置
   const living = b.enemies;
   const n = living.length;
   const slotW = view.width / (n + 1);
@@ -121,12 +271,10 @@ function renderCombat() {
     const cy = view.height * 0.42;
     const size = e.mon.boss ? 14 : 9;
     drawSprite(vctx, e.mon, cx, cy, size, e.alive ? 1 : 0.18);
-    // 名前とHP
     vctx.fillStyle = e.alive ? "#e7e3d4" : "#5a5a66";
     vctx.font = "10px monospace";
     vctx.textAlign = "center";
     vctx.fillText(e.name + (e.asleep ? " 💤" : ""), cx, cy + 78);
-    // HPバー
     const bw = 56, bh = 5, bx = cx - bw / 2, by = cy + 84;
     vctx.fillStyle = "#2a2a3a";
     vctx.fillRect(bx, by, bw, bh);
@@ -144,8 +292,7 @@ function renderCombatMenu() {
   if (b.phase === "input") {
     const actor = b.currentActor();
     highlightActor(actor);
-    const who = el("div", "who", `▶ ${actor.name} の行動 (Lv${actor.level})`);
-    combatMenu.appendChild(who);
+    combatMenu.appendChild(el("div", "who", `▶ ${actor.name} の行動 (Lv${actor.level})`));
     const row = el("div", "row");
     row.appendChild(btn("⚔ 攻撃", () => act("attack")));
     if (actor.spells.length) row.appendChild(btn("✦ 呪文", () => showSpells(actor)));
@@ -154,8 +301,7 @@ function renderCombatMenu() {
     row.appendChild(btn("🏃 逃走", () => act("run")));
     combatMenu.appendChild(row);
   } else if (b.phase === "target") {
-    const who = el("div", "who", "対象を選択");
-    combatMenu.appendChild(who);
+    combatMenu.appendChild(el("div", "who", "対象を選択"));
     const list = el("div", "target-list");
     for (const t of b.targetOptions()) {
       const label = t.side === "enemy"
@@ -198,47 +344,44 @@ function endBattle() {
   renderCombat();
   if (b.result === "win") {
     const { exp, gold } = b.rewards();
+    G.gold += gold;
+    updateTopbar();
     log(`勝利！ 経験値 ${exp} / ${gold} ゴールド を得た。`, "win");
-    for (const p of G.party) {
-      if (!p.alive) continue;
-      gainExp(p, Math.floor(exp / G.party.filter((x) => x.alive).length))
-        .forEach((m) => log(m, "win"));
+    const alive = G.party.filter((x) => x.alive);
+    for (const p of alive) {
+      gainExp(p, Math.floor(exp / alive.length)).forEach((m) => log(m, "win"));
     }
     const wasBoss = b.enemies.some((e) => e.mon.boss);
-    finishToDungeon();
-    if (wasBoss) descend();
+    if (G.battleCell) G.battleCell.cleared = true;
+    finishToBoard();
+    if (wasBoss) { victory(); return; }
   } else if (b.result === "flee") {
-    finishToDungeon();
+    // 逃走: 元のマスへ戻る (カードは表のまま)
+    if (G.prevPos) { G.px = G.prevPos.x; G.py = G.prevPos.y; }
+    finishToBoard();
   } else if (b.result === "lose") {
-    G.state = "over";
-    log("パーティは全滅した… ゲームオーバー", "dmg");
-    movePad.classList.add("hidden");
-    combatMenu.classList.remove("hidden");
-    combatMenu.innerHTML = "";
-    combatMenu.appendChild(el("div", "who", "💀 ゲームオーバー"));
-    combatMenu.appendChild(btn("最初からやり直す", () => location.reload()));
+    gameOver();
   }
 }
 
-function finishToDungeon() {
+function finishToBoard() {
   for (const p of G.party) p._defending = false;
   G.battle = null;
-  G.state = "dungeon";
+  G.battleCell = null;
+  G.state = "board";
   combatMenu.classList.add("hidden");
   movePad.classList.remove("hidden");
-  renderParty();
-  renderDungeon();
+  renderBoard();
 }
 
-function descend() {
-  if (G.floor >= MAX_FLOOR) {
-    victory();
-    return;
-  }
-  G.floor++;
-  log("階段を降りていく…", "sys");
-  newFloor();
-  renderDungeon();
+function gameOver() {
+  G.state = "over";
+  log("パーティは全滅した… ゲームオーバー", "dmg");
+  movePad.classList.add("hidden");
+  combatMenu.classList.remove("hidden");
+  combatMenu.innerHTML = "";
+  combatMenu.appendChild(el("div", "who", "💀 ゲームオーバー"));
+  combatMenu.appendChild(btn("最初からやり直す", () => location.reload()));
 }
 
 function victory() {
@@ -251,7 +394,7 @@ function victory() {
   vctx.fillText("★ 迷宮制覇 ★", view.width / 2, view.height / 2 - 10);
   vctx.fillStyle = "#e7e3d4";
   vctx.font = "13px monospace";
-  vctx.fillText("ドラゴンを倒し、財宝を手にした！", view.width / 2, view.height / 2 + 24);
+  vctx.fillText(`ドラゴンを倒した！ 獲得 ${G.gold} ゴールド`, view.width / 2, view.height / 2 + 24);
   log("おめでとう！ あなたは地下迷宮を制覇した！", "win");
   movePad.classList.add("hidden");
   combatMenu.classList.remove("hidden");
@@ -302,19 +445,19 @@ function btn(label, onClick) {
 movePad.addEventListener("click", (e) => {
   const act = e.target.closest("[data-act]")?.dataset.act;
   if (!act) return;
-  if (act === "forward") move(true);
-  else if (act === "back") move(false);
-  else if (act === "turnL") turn(-1);
-  else if (act === "turnR") turn(1);
+  if (act === "up") tryMove(0, -1);
+  else if (act === "down") tryMove(0, 1);
+  else if (act === "left") tryMove(-1, 0);
+  else if (act === "right") tryMove(1, 0);
 });
 
 document.addEventListener("keydown", (e) => {
-  if (G.state !== "dungeon") return;
+  if (G.state !== "board") return;
   switch (e.key) {
-    case "ArrowUp": case "w": move(true); break;
-    case "ArrowDown": case "s": move(false); break;
-    case "ArrowLeft": case "a": turn(-1); break;
-    case "ArrowRight": case "d": turn(1); break;
+    case "ArrowUp": case "w": tryMove(0, -1); break;
+    case "ArrowDown": case "s": tryMove(0, 1); break;
+    case "ArrowLeft": case "a": tryMove(-1, 0); break;
+    case "ArrowRight": case "d": tryMove(1, 0); break;
     default: return;
   }
   e.preventDefault();
@@ -322,11 +465,10 @@ document.addEventListener("keydown", (e) => {
 
 // ---- 起動 ----
 function init() {
-  log("ようこそ、地下迷宮へ。階段を見つけて深部のドラゴンを討て！", "sys");
+  log("ようこそ、地下迷宮へ。カードをめくり、深部のドラゴンを討て！", "sys");
   newFloor();
-  renderDungeon();
+  renderBoard();
 
-  // PWA: Service Worker 登録(オフライン対応 / アプリ化の足がかり)
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
