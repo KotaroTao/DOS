@@ -1,0 +1,19 @@
+{
+  "name": "地下迷宮 - Dungeon of Shadows",
+  "short_name": "地下迷宮",
+  "description": "ウィザードリィ風 擬似3Dダンジョン探索RPG",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b0b12",
+  "theme_color": "#0b0b12",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
