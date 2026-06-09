@@ -59,48 +59,54 @@ function makeEnemy(key) {
 const rand = (n) => Math.floor(Math.random() * n);
 const variance = (base) => Math.max(1, base + rand(Math.ceil(base * 0.4)) - rand(Math.ceil(base * 0.2)));
 
-// 戦闘の状態機械
+// 戦闘の状態機械: 素早さ順に1人ずつ手番が回る
 export class Battle {
   constructor(party, enemies, log) {
     this.party = party;
     this.enemies = enemies;
     this.log = log;
-    this.commands = [];      // 各味方の行動予約
-    this.actorIdx = 0;       // コマンド入力中の味方
-    this.phase = "input";    // input | target | resolve | done
-    this.pending = null;     // 対象選択待ちの行動
-    this.result = null;      // "win" | "lose" | "flee"
-    this._advanceToLivingActor();
+    this.queue = [];          // このラウンドの行動順 (素早さ順)
+    this.current = null;      // 手番の味方 (入力待ち)
+    this.phase = "input";     // input | target
+    this.pending = null;      // 対象選択待ちの行動
+    this.result = null;       // "win" | "lose" | "flee"
+    this.advance();
   }
 
   livingParty() { return this.party.filter((p) => p.alive); }
   livingEnemies() { return this.enemies.filter((e) => e.alive); }
-  currentActor() { return this.party[this.actorIdx]; }
 
-  _advanceToLivingActor() {
-    while (this.actorIdx < this.party.length && !this.party[this.actorIdx].alive) {
-      this.actorIdx++;
-    }
-    if (this.actorIdx >= this.party.length) {
-      this.resolveRound();
-    } else {
-      this.phase = "input";
+  // 素早さ(+乱数)で行動順を組み直す
+  _startRound() {
+    this.queue = [...this.party, ...this.enemies]
+      .filter((a) => a.alive)
+      .sort((a, b) => (b.spd + rand(4)) - (a.spd + rand(4)));
+  }
+
+  // 次の手番へ。敵は即座に行動し、味方の番が来たら入力待ちで止まる
+  advance() {
+    while (!this.result) {
+      if (this.queue.length === 0) this._startRound();
+      const actor = this.queue.shift();
+      if (!actor.alive) continue;
+      if (actor.side === "party") {
+        actor._defending = false; // 防御は次の自分の手番まで
+        this.current = actor;
+        this.phase = "input";
+        return;
+      }
+      this._exec({
+        actor,
+        action: actor.asleep ? "sleep" : "attack",
+        target: this._randAlive(this.livingParty()),
+      });
+      this._checkEnd();
     }
   }
 
-  // 行動を選択。対象が必要なら target フェーズへ
+  // 手番の味方の行動を選択。対象が必要なら target フェーズへ、不要なら即実行
   chooseAction(action, spellKey = null) {
-    const actor = this.currentActor();
-    if (action === "run") {
-      this.commands.push({ actor, action: "run" });
-      this._nextActor();
-      return;
-    }
-    if (action === "defend") {
-      this.commands.push({ actor, action: "defend" });
-      this._nextActor();
-      return;
-    }
+    const actor = this.current;
     if (action === "attack") {
       this.pending = { actor, action: "attack" };
       this.phase = "target";
@@ -111,12 +117,16 @@ export class Battle {
       if (actor.mp < sp.mp) { this.log("MPが足りない！", "sys"); return; }
       this.pending = { actor, action: "spell", spellKey };
       if (sp.target === "all-enemy") {
-        this.commands.push({ ...this.pending, target: null });
+        const cmd = this.pending;
         this.pending = null;
-        this._nextActor();
+        this._execute(cmd);
       } else {
         this.phase = "target";
       }
+      return;
+    }
+    if (action === "defend" || action === "run") {
+      this._execute({ actor, action });
       return;
     }
   }
@@ -132,9 +142,9 @@ export class Battle {
   }
 
   chooseTarget(target) {
-    this.commands.push({ ...this.pending, target });
+    const cmd = { ...this.pending, target };
     this.pending = null;
-    this._nextActor();
+    this._execute(cmd);
   }
 
   cancelTarget() {
@@ -142,33 +152,11 @@ export class Battle {
     this.phase = "input";
   }
 
-  _nextActor() {
-    this.actorIdx++;
-    this._advanceToLivingActor();
-  }
-
-  // 全員のコマンドが揃ったら解決
-  resolveRound() {
-    this.phase = "resolve";
-    // 敵の行動を生成
-    const enemyActs = this.livingEnemies().map((e) => ({
-      actor: e, action: e.asleep ? "sleep" : "attack",
-      target: this._randAlive(this.livingParty()),
-    }));
-    const all = [...this.commands, ...enemyActs]
-      .filter((c) => c.actor.alive)
-      .sort((a, b) => (b.actor.spd + rand(3)) - (a.actor.spd + rand(3)));
-
-    for (const cmd of all) {
-      if (this.result) break;
-      if (!cmd.actor.alive) continue;
-      this._exec(cmd);
-      this._checkEnd();
-    }
-
-    this.commands = [];
-    this.actorIdx = 0;
-    if (!this.result) this._advanceToLivingActor();
+  // 味方の行動を即時実行し、次の手番へ進める
+  _execute(cmd) {
+    this._exec(cmd);
+    this._checkEnd();
+    if (!this.result) this.advance();
   }
 
   _randAlive(list) {
