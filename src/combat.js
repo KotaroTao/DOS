@@ -35,20 +35,14 @@ export function createParty() {
 }
 
 let _uid = 0;
-export function spawnEnemies(floor, forceBoss = false) {
-  if (forceBoss) {
-    return [makeEnemy("dragon")];
-  }
-  const pool = ["slime", "bat", "kobold", "skeleton", "orc", "wraith"];
-  // 階層が深いほど強い敵が出やすい
-  const count = 1 + Math.floor(Math.random() * 3);
-  const list = [];
-  for (let i = 0; i < count; i++) {
-    const maxIdx = Math.min(pool.length - 1, 1 + floor);
-    const key = pool[Math.floor(Math.random() * (maxIdx + 1))];
-    list.push(makeEnemy(key));
-  }
-  return list;
+// カードでめくったモンスター: 階層が深いほど複数で出やすい
+export function spawnCardEnemies(key, floor) {
+  const count = Math.random() < 0.2 + floor * 0.12 ? 2 : 1;
+  return Array.from({ length: count }, () => makeEnemy(key));
+}
+
+export function spawnBossEnemies() {
+  return [makeEnemy("dragon")];
 }
 
 function makeEnemy(key) {
