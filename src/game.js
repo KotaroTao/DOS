@@ -2472,9 +2472,11 @@ function invRow(p, it, sel) {
 // ステータスタブ (詳細なステータスシート)
 function renderStatTab(p) {
   const info = el("div", "st-statsheet");
+  // 上段: 肖像 + 基本情報 (横並び)
+  const top = el("div", "st-stattop");
   const port = el("div", "st-port");
   port.appendChild(spriteCanvas(HERO, 6));
-  info.appendChild(port);
+  top.appendChild(port);
   const meta = el("div", "st-meta");
   const line1 = p.isDoll
     ? `<div class="st-line">人業 <b>${p.cls}</b>　魂 <b>${dollSouls(p).length}/5</b></div>`
@@ -2483,10 +2485,12 @@ function renderStatTab(p) {
   meta.innerHTML = `
     ${line1}
     <div class="st-line">HP <b>${p.hp}/${p.maxhp}</b>　MP <b>${p.mp}/${p.maxmp}</b></div>
-    <div class="st-line">こうげき <b>${p.atk}</b>　ぼうぎょ <b>${p.def}</b>　すばやさ <b>${p.spd}</b>　AC <b>${p.ac}</b></div>
+    <div class="st-line">こうげき <b>${p.atk}</b>　ぼうぎょ <b>${p.def}</b></div>
+    <div class="st-line">すばやさ <b>${p.spd}</b>　AC <b>${p.ac}</b></div>
     ${p.spells && p.spells.length ? `<div class="st-line">習得: ${p.spells.map((k) => SPELLS[k] ? SPELLS[k].name : k).join("・")}</div>` : ""}
     <div class="st-line ${p.ailment ? "st-bad" : ""}">状態: ${p.ailment === "poison" ? "毒" : (p.alive ? "正常" : "戦闘不能")}</div>`;
-  info.appendChild(meta);
+  top.appendChild(meta);
+  info.appendChild(top);
 
   // ウィザードリィ風の能力値 (STR/IQ/PIE/VIT/AGI/LUK)
   if (p.isDoll && p.attrs) {
