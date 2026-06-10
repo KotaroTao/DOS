@@ -754,3 +754,13 @@ canvas.spr { image-rendering: pixelated; display: block; }
 .tw-recrow { display: flex; justify-content: space-between; background: #140d1e; border: 1px solid #34254a; border-radius: 6px; padding: 6px 10px; }
 .tw-recl { font-size: 11px; color: #9685ad; }
 .tw-recv { font-size: 13px; color: #ffd84a; font-weight: bold; }
+
+/* ===== 装備候補チューザー ===== */
+.eqchooser { max-width: 440px; }
+.eq-cand { gap: 6px; }
+.eq-cand-btn { display: flex; align-items: center; gap: 9px; justify-content: flex-start; text-align: left; min-height: 46px; padding: 7px 10px; }
+.eq-ci { flex: 0 0 auto; display: flex; }
+.eq-ct { display: flex; flex-direction: column; min-width: 0; }
+.eq-cn { font-size: 13px; color: #e7e3d4; }
+.eq-cs { font-size: 10px; color: #8fd6bd; }
+.st-eslot { margin-left: auto; font-size: 10px; color: #6fb89e; }
