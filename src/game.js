@@ -35,6 +35,7 @@ const G = {
   animating: false,   // 戦闘アニメーション中
   enemyPos: {},       // 敵の画面座標 (エフェクト配置用)
   partyFx: null,      // 味方カードの被弾/回復フラッシュ (Map)
+  wallFlash: null,    // ブロックされた壁の赤フラッシュ { x, y, dir, t0 }
   statusOpen: false,  // ステータス画面表示中
   statusIdx: 0,       // ステータス画面で選択中のメンバー
   statusTab: "equip", // ステータス画面のタブ "equip" | "stat"
@@ -122,6 +123,27 @@ function renderBoard() {
     }
   }
 
+  // 公開済みマスの壁をカード境界の上に重ね描き (隣カードの影に紛れないように)
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const cell = G.board.cells[y][x];
+      if (!cell.revealed) continue;
+      if (G.flipAnim && G.flipAnim.x === x && G.flipAnim.y === y) continue; // めくり中は描かない
+      drawWallsOverlay(cell, cellRect(x, y));
+    }
+  }
+  // 進めない方向へ移動を試みた時の赤い壁フラッシュ
+  if (G.wallFlash) {
+    const t = (performance.now() - G.wallFlash.t0) / 350;
+    if (t <= 1) {
+      drawWallBar(cellRect(G.wallFlash.x, G.wallFlash.y), G.wallFlash.dir, {
+        flash: 1 - t,
+      });
+    } else {
+      G.wallFlash = null;
+    }
+  }
+
   // プレイヤー (移動中は前マスから次マスへ補間してスライド)
   let hx, hy;
   if (G.heroAnim) {
@@ -148,38 +170,58 @@ function renderBoard() {
   renderParty();
 }
 
-// マスの辺の壁を描く (ローカル座標 0..w, 0..h)。walls[dir] が true の辺に石壁
-const WALL_T = 6;
-function drawWallEdges(cell, w, h) {
-  const bars = [];
-  if (cell.walls.n) bars.push([0, 0, w, WALL_T]);
-  if (cell.walls.s) bars.push([0, h - WALL_T, w, WALL_T]);
-  if (cell.walls.w) bars.push([0, 0, WALL_T, h]);
-  if (cell.walls.e) bars.push([w - WALL_T, 0, WALL_T, h]);
-  for (const [bx, by, bw, bh] of bars) {
-    // 石壁: グラデーション + ハイライト/シャドウで立体感
-    const g = bw > bh
-      ? vctx.createLinearGradient(bx, by, bx, by + bh)
-      : vctx.createLinearGradient(bx, by, bx + bw, by);
-    g.addColorStop(0, "#6e6e7c");
-    g.addColorStop(0.5, "#565664");
-    g.addColorStop(1, "#3e3e4a");
-    vctx.fillStyle = g;
-    vctx.fillRect(bx, by, bw, bh);
-    // 石の継ぎ目
-    vctx.fillStyle = "#2e2e38";
-    if (bw > bh) {
-      for (let i = 1; i < 4; i++) vctx.fillRect(bx + (bw * i) / 4 - 0.5, by, 1, bh);
-    } else {
-      for (let i = 1; i < 5; i++) vctx.fillRect(bx, by + (bh * i) / 5 - 0.5, bw, 1);
-    }
-    // 上面ハイライト
-    vctx.fillStyle = "rgba(255,255,255,0.16)";
-    if (bw > bh) vctx.fillRect(bx, by, bw, 1.5); else vctx.fillRect(bx, by, 1.5, bh);
-    vctx.strokeStyle = "#1d1d25";
-    vctx.lineWidth = 1;
-    vctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+// マスの辺の壁 (カード境界の上に重ね描き)。絶対座標で太く明るく描く
+const WALL_T = 8;
+
+// 指定セルの壁をすべて描く
+function drawWallsOverlay(cell, r) {
+  for (const d of ["n", "e", "s", "w"]) {
+    if (cell.walls[d]) drawWallBar(r, d, {});
   }
+}
+
+// 1辺ぶんの壁バー。境界(隙間)の中央にまたがるように描く
+function drawWallBar(r, dir, { flash = 0 } = {}) {
+  const half = WALL_T / 2;
+  let bx, by, bw, bh, horiz;
+  if (dir === "n") { bx = r.x - 1; by = r.y - half; bw = r.w + 2; bh = WALL_T; horiz = true; }
+  else if (dir === "s") { bx = r.x - 1; by = r.y + r.h - half; bw = r.w + 2; bh = WALL_T; horiz = true; }
+  else if (dir === "w") { bx = r.x - half; by = r.y - 1; bw = WALL_T; bh = r.h + 2; horiz = false; }
+  else { bx = r.x + r.w - half; by = r.y - 1; bw = WALL_T; bh = r.h + 2; horiz = false; }
+
+  vctx.save();
+  if (flash > 0) {
+    // ブロックされた時の赤フラッシュ
+    vctx.shadowColor = "rgba(255,70,60,0.9)";
+    vctx.shadowBlur = 10 * flash;
+    vctx.fillStyle = `rgba(255,90,80,${0.55 + 0.45 * flash})`;
+    vctx.fillRect(bx, by, bw, bh);
+    vctx.restore();
+    return;
+  }
+  // 石壁: 明るめのグラデーションでカードの影と区別
+  const g = horiz
+    ? vctx.createLinearGradient(bx, by, bx, by + bh)
+    : vctx.createLinearGradient(bx, by, bx + bw, by);
+  g.addColorStop(0, "#a2a2b4");
+  g.addColorStop(0.45, "#7c7c8e");
+  g.addColorStop(1, "#54545f");
+  vctx.fillStyle = g;
+  vctx.fillRect(bx, by, bw, bh);
+  // 石の継ぎ目
+  vctx.fillStyle = "#3a3a46";
+  if (horiz) {
+    for (let i = 1; i < 4; i++) vctx.fillRect(bx + (bw * i) / 4 - 0.5, by + 1, 1, bh - 2);
+  } else {
+    for (let i = 1; i < 5; i++) vctx.fillRect(bx + 1, by + (bh * i) / 5 - 0.5, bw - 2, 1);
+  }
+  // 上面ハイライトと輪郭
+  vctx.fillStyle = "rgba(255,255,255,0.3)";
+  if (horiz) vctx.fillRect(bx, by, bw, 1.5); else vctx.fillRect(bx, by, 1.5, bh);
+  vctx.strokeStyle = "#15151d";
+  vctx.lineWidth = 1;
+  vctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+  vctx.restore();
 }
 
 function drawCard(r, cell, scaleX, showBack) {
@@ -265,8 +307,7 @@ function drawCard(r, cell, scaleX, showBack) {
       vctx.fillStyle = "rgba(40,40,30,0.35)";
       vctx.fillRect(0, 0, r.w, r.h);
     }
-    // マスの辺の壁
-    drawWallEdges(cell, r.w, r.h);
+    // 壁は renderBoard 側で境界上に重ね描きする
   }
   vctx.restore();
 }
@@ -305,6 +346,15 @@ function moveTo(nx, ny) {
     SFX.miss();
     const now = performance.now();
     if (now - (G._lastWallLog || 0) > 700) { log("壁があって進めない。", "sys"); G._lastWallLog = now; }
+    // ブロックした壁を赤くフラッシュして視覚的に知らせる
+    const dir = nx > G.px ? "e" : nx < G.px ? "w" : ny > G.py ? "s" : "n";
+    G.wallFlash = { x: G.px, y: G.py, dir, t0: now };
+    const tick = () => {
+      if (!G.wallFlash) return;
+      renderBoard();
+      if (G.wallFlash) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
     return;
   }
   moveStep(nx, ny);
