@@ -134,6 +134,18 @@ html, body { height: 100%; overflow: hidden; }
 }
 .pc.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 .pc.dead { opacity: 0.4; filter: grayscale(1); }
+.pc.fx-hit { animation: pc-hit 0.36s ease; }
+.pc.fx-heal { animation: pc-heal 0.36s ease; }
+@keyframes pc-hit {
+  0%, 100% { transform: translateX(0); background: var(--panel); }
+  20% { transform: translateX(-4px); background: #4a1e1e; }
+  50% { transform: translateX(4px); background: #5a2222; }
+  80% { transform: translateX(-2px); background: #3a1818; }
+}
+@keyframes pc-heal {
+  0%, 100% { background: var(--panel); }
+  40% { background: #1e4a26; box-shadow: 0 0 0 2px var(--good); }
+}
 .pc .name { font-weight: bold; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pc .cls { color: var(--ink-dim); font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pc .bar { height: 5px; background: #2a2a3a; border-radius: 3px; margin: 2px 0; overflow: hidden; }
@@ -177,6 +189,7 @@ html, body { height: 100%; overflow: hidden; }
 }
 .btn:active { transform: translateY(1px); background: #2c2c40; }
 .btn.primary { border-color: var(--accent); color: var(--accent); }
+.btn.danger { border-color: var(--danger); color: #ff9a98; }
 @media (hover: hover) {
   .btn:hover { background: #29293c; }
 }
