@@ -45,6 +45,8 @@ const G = {
   codex: { mon: {}, item: {} }, // 図鑑 (遭遇したモンスター/入手したアイテム)
   story: 0,           // 王宮ストーリーの進行段階
   dragonSlain: false, // 竜を討ったか
+  runCfg: null,       // 今回の潜入の設定 (迷宮 + 日替わり修飾)
+  stats: { runs: 0, deepest: 0, kills: 0, deaths: 0, soulsFound: 0, bossKills: 0 }, // 戦績
   battle: null,
   battleCell: null,   // 戦闘中のモンスターカード
   prevPos: null,      // 逃走時の戻り先
@@ -72,8 +74,8 @@ function buzz(p) {
 
 // ---- 潜入中の戦利品トラッキング (全滅ペナルティ / Red Soul帰還で使う) ----
 const inDungeon = () => G.state === "board" || G.state === "combat" || G.state === "over";
-function runGainGold(g) { G.gold += g; if (G.run && inDungeon()) G.run.gold += g; }
-function runGainSoulPts(s) { G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; }
+function runGainGold(g) { g = Math.round(g * ((G.runCfg && G.runCfg.goldMul) || 1)); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; return g; }
+function runGainSoulPts(s) { s = Math.round(s * ((G.runCfg && G.runCfg.soulMul) || 1)); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; return s; }
 function runGainItem(owner, item) { owner.items.push(item); if (G.run && inDungeon()) G.run.items.push({ owner, item }); }
 function runGainSoul(soul) { G.souls.push(soul); if (G.run && inDungeon()) G.run.souls.push(soul); }
 
@@ -103,6 +105,7 @@ function forfeitRun() {
 function imprintFallen() {
   for (const d of G.party) {
     if (d.isDoll && !d.alive) {
+      if (!d._imprinted) G.stats.deaths++; // 新たな死を戦績に記録
       const msgs = markFallen(d);
       for (const m of msgs) log(m, "sys");
     }
@@ -129,10 +132,39 @@ function log(msg, cls = "sys") {
 
 // 現在の迷宮設定
 function curDungeon() { return DUNGEONS[G.dungeonIdx] || DUNGEONS[0]; }
-// 迷宮内の階に応じた敵の強さ倍率 (迷宮ベース × 階で微増)
+
+// ===== 日替わり迷宮修飾 (日付シードで全員共通。実装はクライアントのみ) =====
+const DAILY_MODS = [
+  { id: 0, name: "平穏な日", desc: "特別な変化はない。" },
+  { id: 1, name: "満月の夜", desc: "すべての死体があたたかい。", warmChance: 1 },
+  { id: 2, name: "魂の豊穣", desc: "レアな魂が出やすい。", rankBonus: 1 },
+  { id: 3, name: "瘴気の漂う日", desc: "敵が強いが Soul 1.5倍。", enemyMul: 1.25, soulMul: 1.5 },
+  { id: 4, name: "静寂の刻", desc: "罠が消える。", trapRate: 0 },
+  { id: 5, name: "黄金の日", desc: "ゴールドが 1.5倍。", goldMul: 1.5 },
+  { id: 6, name: "亡者の行進", desc: "敵が増えるが良い戦利品。", enemyMul: 1.15, rankBonus: 0.6, soulMul: 1.2 },
+];
+function dailySeed() { const d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
+function getDailyMod() { return DAILY_MODS[dailySeed() % DAILY_MODS.length]; }
+
+// 迷宮設定 + 日替わり修飾をマージした、今回の潜入の実効設定
+function buildRunCfg() {
+  const dn = { ...curDungeon() };
+  const m = getDailyMod();
+  if (m.warmChance != null) dn.warmChance = m.warmChance;
+  if (m.trapRate != null) dn.trapRate = m.trapRate;
+  dn.rankBonus = (dn.rankBonus || 0) + (m.rankBonus || 0);
+  dn.soulMul = m.soulMul || 1;
+  dn.goldMul = m.goldMul || 1;
+  dn.enemyMul = m.enemyMul || 1;
+  dn.modName = m.name;
+  return dn;
+}
+function activeCfg() { return G.runCfg || curDungeon(); }
+
+// 迷宮内の階に応じた敵の強さ倍率 (迷宮ベース × 階で微増 × 日替わり)
 function enemyScale() {
-  const dn = curDungeon();
-  return dn.enemyScale * (1 + (G.floor - 1) * 0.06);
+  const cfg = activeCfg();
+  return (cfg.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * (cfg.enemyMul || 1);
 }
 
 function updateTopbar() {
@@ -141,7 +173,8 @@ function updateTopbar() {
 }
 
 function newFloor() {
-  G.board = makeBoard(G.floor, curDungeon());
+  G.board = makeBoard(G.floor, activeCfg());
+  if (G.floor > G.stats.deepest) G.stats.deepest = G.floor;
   // 酒場の噂を盤面に反映 (潜入直後の階のみ)
   if (G.activeRumor && G.activeRumor.floor === G.floor) applyRumorToBoard(G.board);
   G.px = G.board.start.x;
@@ -704,8 +737,8 @@ function resolveCorpse(cell) {
 
 function collectSoul(cell, clsKey, clsLabel) {
   cell.cleared = true;
-  const dn = curDungeon();
-  const lvl = 1 + dn.soulLevelBonus + (Math.random() < 0.3 ? 1 : 0) + Math.floor(G.floor / 3);
+  const dn = activeCfg();
+  const lvl = 1 + (dn.soulLevelBonus || 0) + (Math.random() < 0.3 ? 1 : 0) + Math.floor(G.floor / 3);
   // 部位はランダム、ランクは抽選 (深い迷宮ほどレア魂が出やすい)
   const soul = makeSoul(clsKey, lvl, null, rollSoulRank(dn.rankBonus));
   acquireSoul(soul, `まだあたたかい死体（${clsLabel}）に宿っていた魂だ。`);
@@ -714,6 +747,7 @@ function collectSoul(cell, clsKey, clsLabel) {
 // 魂の入手処理 (共通): ストック追加・クエスト進捗・ランクに応じた演出
 function acquireSoul(soul, sourceLine) {
   runGainSoul(soul);
+  G.stats.soulsFound++;
   questProgress("soul", null, 1);
   const rank = SOUL_RANKS[soul.rank || "normal"];
   const rare = rank.order >= 1;
@@ -1258,7 +1292,7 @@ function applyImpact(res) {
   if (res.action === "sleep" || res.action === "run") { SFX.miss(); return; }
 
   // 効果音 + 振動
-  if (res.action === "spell") {
+  if (res.action === "spell" && res.spellKind !== "phys") {
     if (res.spellKind === "heal") SFX.heal();
     else if (res.spellName && res.spellName.includes("ハリト")) SFX.fire();
     else SFX.spell();
@@ -1279,9 +1313,9 @@ function applyImpact(res) {
     if (h.target.side === "enemy") {
       const pos = G.enemyPos[h.target.uid];
       if (!pos || h.miss) continue;
-      if (res.action === "spell" && res.spellKind !== "heal") {
+      if (res.action === "spell" && res.spellKind !== "heal" && res.spellKind !== "phys") {
         fx.magic.push({ x: pos.cx, y: pos.cy, t0: now, color: magicColor(res) });
-      } else if (res.action === "attack") {
+      } else if (res.action === "attack" || res.spellKind === "phys") {
         fx.slashes.push({ x: pos.cx, y: pos.cy, t0: now });
       }
       fx.flash[h.target.uid] = { t0: now };
@@ -1329,16 +1363,17 @@ function endBattle() {
       }
     }
     SFX.victory();
-    // 討伐クエストの進捗 (倒した敵を集計)
-    for (const e of b.enemies) { if (!e.alive) questProgress("kill", e.key); }
+    // 討伐クエストの進捗 + 戦績 (倒した敵を集計)
+    for (const e of b.enemies) { if (!e.alive) { questProgress("kill", e.key); G.stats.kills++; } }
     // 人型の敵はまれに魂を落とす (レアドロップ)
     const HUMANOID_SOUL = { kobold: "fighter", orc: "knight", skeleton: "thief", wraith: "mage" };
     for (const e of b.enemies) {
       if (e.alive || !HUMANOID_SOUL[e.key]) continue;
       if (Math.random() < 0.08) {
-        const dn = curDungeon();
-        const s = makeSoul(HUMANOID_SOUL[e.key], 1 + dn.soulLevelBonus + (G.floor >= 2 ? 1 : 0), null, rollSoulRank(dn.rankBonus));
+        const dn = activeCfg();
+        const s = makeSoul(HUMANOID_SOUL[e.key], 1 + (dn.soulLevelBonus || 0) + (G.floor >= 2 ? 1 : 0), null, rollSoulRank(dn.rankBonus || 0));
         runGainSoul(s);
+        G.stats.soulsFound++;
         questProgress("soul", null, 1);
         const rk = SOUL_RANKS[s.rank || "normal"];
         log(`${e.name}が ${soulName(s)} を落とした！`, "win");
@@ -1417,6 +1452,7 @@ function gameOver() {
 function onDungeonCleared() {
   const idx = G.dungeonIdx;
   const dn = DUNGEONS[idx];
+  G.stats.bossKills++;
   G.dragonSlain = G.dragonSlain || idx === DUNGEONS.length - 1;
   const isLastDungeon = idx >= DUNGEONS.length - 1;
   const newlyUnlocked = !isLastDungeon && G.unlockedDungeons <= idx + 1;
@@ -1667,7 +1703,14 @@ function renderTownHub() {
   townEl.appendChild(roster);
 
   // 迷宮の選択 (解放済みのみ。クリアで深い迷宮が増える)
-  roster && townEl.appendChild(el("div", "tw-h", "潜る迷宮を選ぶ"));
+  // 本日の迷宮 (日替わり修飾)
+  const dm = getDailyMod();
+  const dmBox = el("div", "tw-daily");
+  dmBox.appendChild(el("div", "tw-dailyt", `🌙 本日の迷宮: ${dm.name}`));
+  dmBox.appendChild(el("div", "tw-dailyd", dm.desc));
+  townEl.appendChild(dmBox);
+
+  townEl.appendChild(el("div", "tw-h", "潜る迷宮を選ぶ"));
   const dlist = el("div", "tw-mlist");
   DUNGEONS.forEach((dn, i) => {
     const unlocked = i < G.unlockedDungeons;
@@ -2392,6 +2435,20 @@ function renderPalace() {
   itemBtn.addEventListener("click", () => { G.town.facility = "codexItem"; renderCodexItem(); });
   row.appendChild(itemBtn);
   townEl.appendChild(row);
+
+  // 戦績 (ローカル記録)
+  townEl.appendChild(el("div", "tw-h", "王の記録 — 戦績"));
+  const s = G.stats;
+  const rec = el("div", "tw-records");
+  const recRow = (label, val) => { const r = el("div", "tw-recrow"); r.appendChild(el("span", "tw-recl", label)); r.appendChild(el("span", "tw-recv", String(val))); rec.appendChild(r); };
+  recRow("潜入回数", s.runs);
+  recRow("到達最深階", `B${s.deepest}F`);
+  recRow("撃破した敵", s.kills);
+  recRow("倒した迷宮の主", s.bossKills);
+  recRow("回収した魂", s.soulsFound);
+  recRow("砕けた人業", s.deaths);
+  recRow("踏破した迷宮", `${Math.max(0, G.unlockedDungeons - 1)} / ${DUNGEONS.length}`);
+  townEl.appendChild(rec);
 }
 
 function playStoryEvent(ev) {
@@ -2779,6 +2836,8 @@ function tryEnterDungeon() {
   townEl.classList.add("hidden");
   G.town.facility = null; G.town.sub = null;
   G.floor = 1; // 迷宮は常に1階から (街に戻ると入り直し)
+  G.runCfg = buildRunCfg(); // 迷宮 + 日替わり修飾を確定
+  G.stats.runs++;
   // 今回の戦利品トラッキングを初期化
   G.run = { gold: 0, soulPts: 0, items: [], souls: [] };
   // 表示中の噂を確定し、この迷宮で現実化させる
@@ -3025,6 +3084,7 @@ function renderSoulTab(p) {
   head.style.borderColor = dom ? SOUL_CLASSES[dom.clsKey].color : "#34344a";
   head.appendChild(el("div", "st-soulc", p.cls));
   head.appendChild(el("div", "st-soultt",
+    p.tier === "hybrid" ? `混成職「${p.hybrid}」発現 — 3+2 の組み合わせ` :
     p.tier === "advanced" ? "5部位一致 — 上位スキル解放" :
     p.tier === "basic" ? "3部位以上 — 基本スキル習得" : "2部位以下 — スキル未解放"));
   wrap.appendChild(head);
@@ -3073,7 +3133,7 @@ function renderSoulDetail(s) {
   d.appendChild(el("div", "st-sdh", "ステータス"));
   d.appendChild(el("div", "st-sdstat",
     `HP +${st.hp}　MP +${st.mp}　こうげき +${st.atk}　ぼうぎょ +${st.def}　すばやさ +${st.spd}`));
-  if (s.memory > 0) d.appendChild(el("div", "st-sdnote", `戦いの記憶 ×${s.memory} (能力 +${Math.min(5, s.memory) * 8}%)`));
+  if (s.memory > 0) d.appendChild(el("div", "st-sdnote", `⚔ この魂は ${s.memory} 度の死を見届けた (能力 +${Math.min(5, s.memory) * 8}%)`));
   if (rank.order >= 1) d.appendChild(el("div", "st-sdnote", `${rank.label}魂 (能力 ×${rank.mul})`));
 
   // スキル名の表示 (呪文 or パッシブ)
@@ -3573,7 +3633,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py",
   "gold", "soulPts", "redSoul", "dollsPurchased",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quests", "rumor", "activeRumor", "codex", "story", "dragonSlain",
+  "quests", "rumor", "activeRumor", "codex", "story", "dragonSlain", "runCfg", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
 ];
 

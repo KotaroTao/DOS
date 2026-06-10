@@ -739,3 +739,18 @@ canvas.spr { image-rendering: pixelated; display: block; }
 
 /* モーダルが背の高い内容でも収まるように (スクロールはモーダル内のみ) */
 .confirm-overlay .ig-card { max-height: 88vh; overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain; }
+
+/* ===== 日替わり迷宮 ===== */
+.tw-daily {
+  background: linear-gradient(180deg, #1a2230, #121826);
+  border: 1px solid #2f4a6a; border-left: 4px solid #5fb8d6;
+  border-radius: 8px; padding: 8px 11px; margin-top: 6px;
+}
+.tw-dailyt { font-size: 13px; color: #aef0ff; font-weight: bold; }
+.tw-dailyd { font-size: 11px; color: #8fb8c8; margin-top: 2px; }
+
+/* ===== 戦績 ===== */
+.tw-records { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tw-recrow { display: flex; justify-content: space-between; background: #140d1e; border: 1px solid #34254a; border-radius: 6px; padding: 6px 10px; }
+.tw-recl { font-size: 11px; color: #9685ad; }
+.tw-recv { font-size: 13px; color: #ffd84a; font-weight: bold; }
