@@ -1,5 +1,5 @@
 // シンプルなオフラインキャッシュ (PWA / アプリ化用)
-const CACHE = "dos-v13";
+const CACHE = "dos-v14";
 const ASSETS = [
   "./",
   "./index.html",
