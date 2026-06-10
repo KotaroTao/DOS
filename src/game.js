@@ -10,7 +10,6 @@ const view = document.getElementById("view");
 const vctx = view.getContext("2d");
 const logEl = document.getElementById("log");
 const partyEl = document.getElementById("party");
-const movePad = document.getElementById("move-pad");
 const combatMenu = document.getElementById("combat-menu");
 const floorInfo = document.getElementById("floor-info");
 
@@ -711,7 +710,7 @@ function descend() {
 function startBattle(enemies, cell) {
   G.battleCell = cell;
   G.state = "combat";
-  movePad.classList.add("hidden");
+  
   combatMenu.classList.remove("hidden");
   log(`${enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
   playBgm("battle");
@@ -1099,7 +1098,7 @@ function finishToBoard() {
   G.battleCell = null;
   G.state = "board";
   combatMenu.classList.add("hidden");
-  movePad.classList.remove("hidden");
+  
   playBgm("field");
   renderBoard();
 }
@@ -1109,7 +1108,7 @@ function gameOver() {
   playBgm(null);
   SFX.gameover();
   log("パーティは全滅した… ゲームオーバー", "dmg");
-  movePad.classList.add("hidden");
+  
   combatMenu.classList.remove("hidden");
   combatMenu.innerHTML = "";
   combatMenu.appendChild(el("div", "who", "💀 ゲームオーバー"));
@@ -1129,7 +1128,7 @@ function victory() {
   vctx.font = "13px monospace";
   vctx.fillText(`ドラゴンを倒した！ 獲得 ${G.gold} ゴールド`, view.width / 2, view.height / 2 + 24);
   log("おめでとう！ あなたは地下迷宮を制覇した！", "win");
-  movePad.classList.add("hidden");
+  
   combatMenu.classList.remove("hidden");
   combatMenu.innerHTML = "";
   combatMenu.appendChild(btn("もう一度挑戦する", () => location.reload()));
@@ -1613,15 +1612,7 @@ function ensureAudio() {
 }
 document.addEventListener("pointerdown", ensureAudio, { once: true });
 
-movePad.addEventListener("click", (e) => {
-  const act = e.target.closest("[data-act]")?.dataset.act;
-  if (!act) return;
-  SFX.select();
-  if (act === "up") tryMove(0, -1);
-  else if (act === "down") tryMove(0, 1);
-  else if (act === "left") tryMove(-1, 0);
-  else if (act === "right") tryMove(1, 0);
-});
+// movePad は削除済み。方向キー / スワイプで代替。
 
 // タイルクリックで移動: 隣接なら1歩、離れていれば経路探索して自動で歩く
 view.addEventListener("click", (e) => {
@@ -1680,27 +1671,29 @@ function swipeStep(dx, dy) {
   swipeTimer = setTimeout(() => swipeStep(dx, dy), 50);
 }
 
-view.addEventListener("pointerdown", (e) => {
+// スワイプは画面全体で受け付ける。ボタン/モーダル/ステータス画面は除外。
+const SWIPE_IGNORE = "button, a, [role=button], #status-screen, #item-get, .confirm-overlay";
+document.addEventListener("pointerdown", (e) => {
   if (e.pointerType === "mouse") return;
+  if (e.target.closest(SWIPE_IGNORE)) return;
   stopSwipe();
   swipe = { x: e.clientX, y: e.clientY, dir: null };
 });
 
-view.addEventListener("pointermove", (e) => {
-  if (!swipe || swipe.dir) return; // 未タッチ or 方向確定済み
+document.addEventListener("pointermove", (e) => {
+  if (!swipe || swipe.dir) return;
   const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
   if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN) return;
-  // 方向確定 → 連続移動開始
   const mdx = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : -1) : 0;
   const mdy = mdx === 0 ? (dy > 0 ? 1 : -1) : 0;
   swipe.dir = { dx: mdx, dy: mdy };
-  G._swiped = true; // 指を離したときの click を抑制
+  G._swiped = true;
   SFX.select();
   swipeStep(mdx, mdy);
 });
 
-view.addEventListener("pointerup", () => { stopSwipe(); });
-view.addEventListener("pointercancel", () => { stopSwipe(); });
+document.addEventListener("pointerup", () => { stopSwipe(); });
+document.addEventListener("pointercancel", () => { stopSwipe(); });
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "m" || e.key === "M") { updateMuteBtn(toggleMute()); return; }
