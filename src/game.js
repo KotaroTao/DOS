@@ -1,5 +1,5 @@
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
-import { makeBoard, COLS, ROWS } from "./board.js";
+import { makeBoard, COLS, ROWS, DUNGEONS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSprite } from "./sprites.js";
 import { createParty, spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, gainExp, SPELLS, cloneItem } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
@@ -24,7 +24,9 @@ const MAX_FLOOR = 3;
 const G = {
   state: "town",      // town | board | combat | over
   floor: 1,
-  maxFloorReached: 1, // 到達した最深階 (街から再開する基準)
+  maxFloorReached: 1, // 到達した最深階 (表示用)
+  dungeonIdx: 0,      // 現在選択中の迷宮
+  unlockedDungeons: 1,// 解放済みの迷宮数 (クリアで増える)
   board: null,
   px: 0, py: 0,
   gold: 200,          // 初期所持金 (宿屋・商店用)
@@ -125,12 +127,21 @@ function log(msg, cls = "sys") {
   while (logEl.children.length > 80) logEl.removeChild(logEl.firstChild);
 }
 
+// 現在の迷宮設定
+function curDungeon() { return DUNGEONS[G.dungeonIdx] || DUNGEONS[0]; }
+// 迷宮内の階に応じた敵の強さ倍率 (迷宮ベース × 階で微増)
+function enemyScale() {
+  const dn = curDungeon();
+  return dn.enemyScale * (1 + (G.floor - 1) * 0.06);
+}
+
 function updateTopbar() {
-  floorInfo.textContent = G.state === "town" ? `街 💰${G.gold}` : `B${G.floor}F 💰${G.gold}`;
+  if (G.state === "town") { floorInfo.textContent = `街 💰${G.gold}`; return; }
+  floorInfo.textContent = `${curDungeon().short} B${G.floor}F 💰${G.gold}`;
 }
 
 function newFloor() {
-  G.board = makeBoard(G.floor);
+  G.board = makeBoard(G.floor, curDungeon());
   // 酒場の噂を盤面に反映 (潜入直後の階のみ)
   if (G.activeRumor && G.activeRumor.floor === G.floor) applyRumorToBoard(G.board);
   G.px = G.board.start.x;
@@ -358,53 +369,43 @@ function drawCard(r, cell, scaleX, showBack) {
     vctx.fillStyle = "rgba(255,235,170,0.18)";
     vctx.fillRect(2, 2, r.w - 4, 3);
   } else {
-    // 表面: 羊皮紙 (グラデーション + テクスチャ感)
-    const cleared = cell.cleared && cell.type !== "stairs" && cell.type !== "start";
+    // 表面 (探索済み): マス目を見せず、石床として連続的に塗る。
+    // GAP ぶん外側まで塗って隣の開いたマスと繋がり、グリッド線を消す。
     const fg = vctx.createLinearGradient(0, 0, 0, r.h);
-    if (cleared) { fg.addColorStop(0, "#a59c78"); fg.addColorStop(1, "#8d8462"); }
-    else { fg.addColorStop(0, "#e8e0c2"); fg.addColorStop(1, "#cfc5a2"); }
+    fg.addColorStop(0, "#23222c");
+    fg.addColorStop(1, "#191820");
     vctx.fillStyle = fg;
-    vctx.fillRect(0, 0, r.w, r.h);
-    vctx.strokeStyle = "#6e6448";
-    vctx.lineWidth = 2;
-    vctx.strokeRect(1, 1, r.w - 2, r.h - 2);
-    vctx.strokeStyle = "rgba(110,100,72,0.35)";
-    vctx.lineWidth = 1;
-    vctx.strokeRect(3.5, 3.5, r.w - 7, r.h - 7);
+    vctx.fillRect(-GAP, -GAP, r.w + GAP * 2, r.h + GAP * 2);
+    // ごく薄い石目 (決定的)
+    vctx.fillStyle = "rgba(255,255,255,0.02)";
+    vctx.fillRect(2, 2, r.w - 4, 2);
 
     const cx = r.w / 2, cy = r.h / 2;
+    // アイコン選択。倒した敵は何も残さない / 宝箱は開封後に空箱 / 死体は常に表示
     const icon =
       cell.type === "monster" && !cell.cleared ? MONSTERS[cell.monsterKey] :
-      cell.type === "chest" && !cell.cleared ? ICONS.chest :
+      cell.type === "chest" ? (cell.cleared ? ICONS.chestOpen : ICONS.chest) :
       cell.type === "trap" && !cell.cleared ? ICONS.trap :
       cell.type === "fountain" && !cell.cleared ? ICONS.fountain :
-      cell.type === "corpse" && !cell.cleared ? (cell.corpseWarm ? ICONS.corpseWarm : ICONS.corpse) :
+      cell.type === "corpse" ? ICONS.corpse :
       cell.type === "stairs" ? ICONS.stairs :
       cell.type === "start" ? ICONS.upstairs : null;
     if (icon) {
-      // あたたかい死体はうっすら発光させて「魂が宿る」ことを示す
-      if (cell.type === "corpse" && cell.corpseWarm && !cell.cleared) {
-        vctx.save();
-        const pulse = 0.4 + 0.3 * Math.sin(performance.now() * 0.004 + cx);
-        vctx.globalAlpha = pulse;
-        const g = vctx.createRadialGradient(cx, cy, 2, cx, cy, 20);
-        g.addColorStop(0, "rgba(155,232,255,0.9)");
-        g.addColorStop(1, "rgba(155,232,255,0)");
-        vctx.fillStyle = g;
-        vctx.fillRect(cx - 22, cy - 22, 44, 44);
-        vctx.restore();
-      }
       // アイコンの足元影
-      vctx.fillStyle = "rgba(60,50,30,0.3)";
+      vctx.fillStyle = "rgba(0,0,0,0.35)";
       vctx.beginPath();
       vctx.ellipse(cx, cy + 14, 13, 3.5, 0, 0, Math.PI * 2);
       vctx.fill();
       drawSprite(vctx, icon, cx, cy, 3);
-    }
-    // クリア済みは踏破マーク
-    if (cleared && cell.type !== "empty") {
-      vctx.fillStyle = "rgba(40,40,30,0.35)";
-      vctx.fillRect(0, 0, r.w, r.h);
+      // あたたかい死体 (魂未回収) には青い人魂を浮かべる
+      if (cell.type === "corpse" && cell.corpseWarm && !cell.cleared) {
+        const bob = Math.sin(performance.now() * 0.004 + cx) * 2;
+        vctx.save();
+        vctx.shadowColor = "rgba(127,208,255,0.9)";
+        vctx.shadowBlur = 8;
+        drawSprite(vctx, ICONS.wisp, cx + 7, cy - 12 + bob, 1.6);
+        vctx.restore();
+      }
     }
     // 壁は renderBoard 側で境界上に重ね描きする
   }
@@ -593,7 +594,7 @@ function resolveCell(cell) {
       if (!cell.cleared) {
         const name = MONSTERS[cell.monsterKey].name;
         log(`⚔ ${name} のカードだ！`, "dmg");
-        startBattle(spawnCardEnemies(cell.monsterKey, G.floor), cell);
+        startBattle(spawnCardEnemies(cell.monsterKey, G.floor, enemyScale()), cell);
       }
       break;
     case "chest": {
@@ -703,9 +704,10 @@ function resolveCorpse(cell) {
 
 function collectSoul(cell, clsKey, clsLabel) {
   cell.cleared = true;
-  const lvl = 1 + (Math.random() < 0.3 ? 1 : 0) + (G.floor >= 3 ? 1 : 0);
-  // 部位はランダム、ランクは抽選 (優秀/偉大/伝説は激レア)
-  const soul = makeSoul(clsKey, lvl, null, rollSoulRank());
+  const dn = curDungeon();
+  const lvl = 1 + dn.soulLevelBonus + (Math.random() < 0.3 ? 1 : 0) + Math.floor(G.floor / 3);
+  // 部位はランダム、ランクは抽選 (深い迷宮ほどレア魂が出やすい)
+  const soul = makeSoul(clsKey, lvl, null, rollSoulRank(dn.rankBonus));
   acquireSoul(soul, `まだあたたかい死体（${clsLabel}）に宿っていた魂だ。`);
 }
 
@@ -762,20 +764,21 @@ function closePrompt() {
   autosave(true);
 }
 
-// 階段: 降りるか選ぶ
+// 階段: 降りるか選ぶ。最深階の階段はボスへの扉
 function askDescend(cell) {
-  const boss = G.floor >= MAX_FLOOR;
+  const dn = curDungeon();
+  const boss = G.floor >= dn.floors;
   showChoice(
-    boss ? "下り階段だ。奥に巨大な気配…降りる？" : `下り階段を見つけた。地下 ${G.floor + 1} 階へ降りる？`,
+    boss ? `この奥に「${dn.name}」の主が待つ。挑む？` : `下り階段を見つけた。地下 ${G.floor + 1} 階へ降りる？`,
     [
-      { label: boss ? "⚔ 意を決して降りる" : "▼ 降りる", danger: boss, fn: () => {
-        if (boss) { log("階段の先に巨大な影が…！", "dmg"); startBattle(spawnBossEnemies(), cell); }
+      { label: boss ? "⚔ 主に挑む" : "▼ 降りる", danger: boss, fn: () => {
+        if (boss) { log("迷宮の主が立ちはだかる！", "dmg"); startBattle(spawnBossEnemies(dn.boss, dn.bossScale * enemyScale()), cell); }
         else descend();
       } },
       { label: "✋ まだ探索する", fn: () => { renderBoard(); } },
     ],
     ICONS.stairs,
-    boss ? { banner: "⚠ 不穏な気配 ⚠", accent: "#d4504e" } : { banner: "✦ 発見 ✦" }
+    boss ? { banner: "⚠ 迷宮の主 ⚠", accent: "#d4504e" } : { banner: "✦ 発見 ✦" }
   );
 }
 
@@ -803,7 +806,7 @@ function rollChest(cell, allowDanger, done) {
     showEvent({
       sprite: MONSTERS.kobold, title: "ミミックだ！", accent: "#d4504e", banner: "⚠ 危険 ⚠",
       lines: ["宝箱は怪物だった！", "戦闘になる！"], btnLabel: "戦う",
-      onClose: () => startBattle(spawnMimic(G.floor), cell),
+      onClose: () => startBattle(spawnMimic(G.floor, enemyScale()), cell),
     });
     return;
   }
@@ -905,7 +908,7 @@ function startBattle(enemies, cell) {
   combatMenu.classList.remove("hidden");
   log(`${enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
   // ボス戦は専用テーマ。図鑑にも遭遇を記録
-  playBgm(enemies.some((e) => e.mon.boss) ? "boss" : "battle");
+  playBgm(enemies.some((e) => e.boss) ? "boss" : "battle");
   for (const e of enemies) codexSeeMonster(e.key);
   G.battle = new Battle(G.party, enemies, log);
   G.fx = null;
@@ -965,7 +968,7 @@ function renderCombatCanvas() {
         if (Math.floor(dt / 55) % 2 === 0) alpha = 0.35;
       }
     }
-    const size = e.mon.boss ? 14 : 9;
+    const size = e.boss ? 14 : 9;
     // 入力/ターゲット選択中: タップで攻撃できる敵に金のリングとマーカーを表示
     const tappable = !G.animating && e.alive && (b.phase === "target" || b.phase === "input");
     if (tappable) {
@@ -1333,7 +1336,8 @@ function endBattle() {
     for (const e of b.enemies) {
       if (e.alive || !HUMANOID_SOUL[e.key]) continue;
       if (Math.random() < 0.08) {
-        const s = makeSoul(HUMANOID_SOUL[e.key], 1 + (G.floor >= 2 ? 1 : 0), null, rollSoulRank());
+        const dn = curDungeon();
+        const s = makeSoul(HUMANOID_SOUL[e.key], 1 + dn.soulLevelBonus + (G.floor >= 2 ? 1 : 0), null, rollSoulRank(dn.rankBonus));
         runGainSoul(s);
         questProgress("soul", null, 1);
         const rk = SOUL_RANKS[s.rank || "normal"];
@@ -1341,11 +1345,10 @@ function endBattle() {
         setTimeout(() => showToast(`${rk.order >= 2 ? "🌟" : "✦"} ${soulName(s)} を入手`), 600);
       }
     }
-    const wasBoss = b.enemies.some((e) => e.mon.boss);
-    if (wasBoss) G.dragonSlain = true;
+    const wasBoss = b.enemies.some((e) => e.boss);
     if (G.battleCell) G.battleCell.cleared = true;
     finishToBoard();
-    if (wasBoss) { victory(); return; }
+    if (wasBoss) { onDungeonCleared(); return; }
     // 勝利後は必ず宝箱が出現
     setTimeout(battleChest, 350);
   } else if (b.result === "flee") {
@@ -1408,6 +1411,43 @@ function gameOver() {
   });
   retreat.className = "btn danger";
   combatMenu.appendChild(retreat);
+}
+
+// 迷宮の主を撃破: 次の迷宮を解放し、戦利品を持って街へ凱旋
+function onDungeonCleared() {
+  const idx = G.dungeonIdx;
+  const dn = DUNGEONS[idx];
+  G.dragonSlain = G.dragonSlain || idx === DUNGEONS.length - 1;
+  const isLastDungeon = idx >= DUNGEONS.length - 1;
+  const newlyUnlocked = !isLastDungeon && G.unlockedDungeons <= idx + 1;
+  if (newlyUnlocked) G.unlockedDungeons = idx + 2;
+  G.run = null; // クリア = 戦利品確定
+
+  const lines = [`「${dn.name}」を踏破した！`];
+  if (newlyUnlocked) lines.push(`新たな迷宮「${DUNGEONS[idx + 1].name}」が解放された。`);
+  else if (isLastDungeon) lines.push("すべての迷宮を制覇した。あなたは伝説となった。");
+  else lines.push("さらなる深淵が、まだそなたを待っている。");
+
+  G.prompt = true;
+  SFX.victory(); buzz([0, 40, 50, 40, 50, 200]);
+  itemGetEl.innerHTML = "";
+  const card = el("div", "ig-card");
+  card.style.borderColor = "#ffd84a";
+  card.style.boxShadow = "0 0 50px #ffd84a55";
+  card.appendChild(el("div", "ig-banner", "★ 迷宮踏破 ★"));
+  const art = el("div", "ig-art"); art.appendChild(spriteCanvas(ICONS.stairs, 9)); card.appendChild(art);
+  card.appendChild(el("div", "ig-name", dn.name));
+  for (const ln of lines) card.appendChild(el("div", "ig-desc", ln));
+  const ok = btn("街へ凱旋する", () => {
+    itemGetEl.classList.add("hidden"); itemGetEl.innerHTML = "";
+    G.prompt = false;
+    if (townBtn) townBtn.classList.add("hidden");
+    returnToTown();
+  });
+  ok.className = "btn primary ig-ok";
+  card.appendChild(ok);
+  itemGetEl.appendChild(card);
+  itemGetEl.classList.remove("hidden");
 }
 
 function victory() {
@@ -1596,7 +1636,7 @@ function renderTownHub() {
 
   const intro = el("div", "tw-intro");
   intro.appendChild(el("div", "tw-introt", "魂の迷宮 — Dungeon of Souls"));
-  intro.appendChild(el("div", "tw-intros", `深淵 B${G.maxFloorReached}F まで到達`));
+  intro.appendChild(el("div", "tw-intros", `踏破した迷宮 ${Math.max(0, G.unlockedDungeons - 1)} / ${DUNGEONS.length}`));
   townEl.appendChild(intro);
 
   // 施設グリッド
@@ -1625,8 +1665,23 @@ function renderTownHub() {
   roster.appendChild(list);
   townEl.appendChild(roster);
 
-  // 迷宮へ
-  const dive = btn(`🕳 迷宮へ降りる (B${G.maxFloorReached}F)`, tryEnterDungeon);
+  // 迷宮の選択 (解放済みのみ。クリアで深い迷宮が増える)
+  roster && townEl.appendChild(el("div", "tw-h", "潜る迷宮を選ぶ"));
+  const dlist = el("div", "tw-mlist");
+  DUNGEONS.forEach((dn, i) => {
+    const unlocked = i < G.unlockedDungeons;
+    const row = el("div", "tw-dungeon" + (i === G.dungeonIdx ? " sel" : "") + (unlocked ? "" : " locked"));
+    const info = el("div", "tw-chipi");
+    info.appendChild(el("div", "tw-chipn", unlocked ? `${i + 1}. ${dn.name}` : `🔒 ？？？`));
+    info.appendChild(el("div", "tw-chipc", unlocked ? `全${dn.floors}階 ・ ${i === 0 ? "弱い敵・罠少なめ" : "敵が強く良い戦利品"}` : `前の迷宮を踏破すると解放`));
+    row.appendChild(info);
+    if (unlocked) row.addEventListener("click", () => { G.dungeonIdx = i; SFX.select(); renderTown(); });
+    dlist.appendChild(row);
+  });
+  townEl.appendChild(dlist);
+
+  // 迷宮へ (常に1階から)
+  const dive = btn(`🕳 「${curDungeon().name}」へ潜る (B1F)`, tryEnterDungeon);
   dive.className = "btn primary tw-dive";
   townEl.appendChild(dive);
 }
@@ -2563,8 +2618,8 @@ function tryEnterDungeon() {
   // 魂未封印で極端に弱い人業がいたら注意 (任意続行)
   SFX.stairs();
   townEl.classList.add("hidden");
-  G.town.facility = null;
-  G.floor = G.maxFloorReached;
+  G.town.facility = null; G.town.sub = null;
+  G.floor = 1; // 迷宮は常に1階から (街に戻ると入り直し)
   // 今回の戦利品トラッキングを初期化
   G.run = { gold: 0, soulPts: 0, items: [], souls: [] };
   // 表示中の噂を確定し、この迷宮で現実化させる
@@ -3206,7 +3261,7 @@ let audioReady = false;
 // 現在のシーンに合ったBGM名
 function sceneBgm() {
   if (G.state === "town") return "town";
-  if (G.state === "combat") return (G.battle && G.battle.enemies.some((e) => e.mon.boss)) ? "boss" : "battle";
+  if (G.state === "combat") return (G.battle && G.battle.enemies.some((e) => e.boss)) ? "boss" : "battle";
   if (G.state === "board") return "field";
   return null; // over などは無音 (ジングルのみ)
 }
@@ -3359,7 +3414,7 @@ if (muteBtn) {
 const SAVE_KEY = "dos-save-v1";
 // 保存する G のフィールド (アニメーション等の一時状態は除外)
 const SAVE_FIELDS = [
-  "state", "floor", "maxFloorReached", "board", "px", "py",
+  "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py",
   "gold", "soulPts", "redSoul", "dollsPurchased",
   "party", "reserve", "souls", "shopStock", "run", "town",
   "quests", "rumor", "activeRumor", "codex", "story", "dragonSlain",

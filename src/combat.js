@@ -66,21 +66,21 @@ export function cloneItem(id) {
 }
 
 let _uid = 0;
-// カードでめくったモンスター: 階層が深いほど複数で出やすい
-export function spawnCardEnemies(key, floor) {
+// カードでめくったモンスター: 階層が深いほど複数で出やすい。scale で迷宮ごとの強さ調整
+export function spawnCardEnemies(key, floor, scale = 1) {
   const count = Math.random() < 0.2 + floor * 0.12 ? 2 : 1;
-  return Array.from({ length: count }, () => makeEnemy(key));
+  return Array.from({ length: count }, () => makeEnemy(key, scale));
 }
 
-export function spawnBossEnemies() {
-  return [makeEnemy("dragon")];
+export function spawnBossEnemies(key = "dragon", scale = 1) {
+  return [makeEnemy(key, scale, true)];
 }
 
 // 宝箱から出るミミック (通常より手強い)
-export function spawnMimic(floor) {
+export function spawnMimic(floor, scale = 1) {
   const pool = ["kobold", "orc", "wraith"];
   const key = pool[Math.min(pool.length - 1, Math.floor(floor) - 1 + (Math.random() < 0.5 ? 0 : 1))] || "orc";
-  const e = makeEnemy(key);
+  const e = makeEnemy(key, scale);
   e.name = "ミミック";
   e.maxhp = Math.round(e.maxhp * 1.4);
   e.hp = e.maxhp;
@@ -90,13 +90,17 @@ export function spawnMimic(floor) {
   return [e];
 }
 
-function makeEnemy(key) {
+function makeEnemy(key, scale = 1, boss = false) {
   const m = MONSTERS[key];
+  const hp = Math.max(1, Math.round(m.maxhp * scale));
   return {
-    uid: ++_uid, key, mon: m, name: m.name,
-    hp: m.maxhp, maxhp: m.maxhp,
-    atk: m.atk, def: m.def, spd: m.spd,
-    exp: m.exp, gold: m.gold,
+    uid: ++_uid, key, mon: m, name: (boss ? m.name : m.name),
+    hp, maxhp: hp,
+    atk: Math.max(1, Math.round(m.atk * scale)),
+    def: Math.round(m.def * scale),
+    spd: m.spd,
+    exp: Math.round(m.exp * scale), gold: Math.round(m.gold * scale),
+    boss: boss || !!m.boss,
     alive: true, asleep: false, side: "enemy",
   };
 }
