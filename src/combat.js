@@ -1,7 +1,6 @@
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
 import { ITEMS, SLOTS, recalc, equip } from "./items.js";
-import { gainSoulExp } from "./souls.js";
 
 export const SPELLS = {
   HALITO: { name: "ハリト", mp: 2, kind: "atk", power: 10, target: "enemy", desc: "炎の矢" },
@@ -333,15 +332,9 @@ export class Battle {
 
 // レベルアップ判定
 export function gainExp(member, exp) {
-  // 人業は経験値を封印した魂へ配分してレベルアップさせる
-  if (member.isDoll) {
-    const before = member.maxhp;
-    const msgs = gainSoulExp(member, exp);
-    // 最大HP/MPが伸びた分はその場で回復させ、伸びを実感させる
-    if (member.maxhp > before) { member.hp = Math.min(member.maxhp, member.hp + (member.maxhp - before)); }
-    member.mp = Math.min(member.maxmp, member.mp);
-    return msgs;
-  }
+  // 人業の魂は戦闘では成長しない。
+  // 魂のレベルアップは人業の館「魂の強化」で Soul を与えたときのみ。
+  if (member.isDoll) return [];
   member.exp += exp;
   const msgs = [];
   while (member.exp >= member.level * 30) {

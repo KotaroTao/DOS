@@ -1618,6 +1618,7 @@ function renderTown() {
   townEl.classList.remove("hidden");
   townEl.innerHTML = "";
   updateTopbar();
+  townEl.classList.remove("shop-mode"); // 商店専用レイアウトを解除 (商店なら再付与)
   const f = G.town.facility;
   if (f === "mansion") return renderMansion();
   if (f === "altar") return renderAltar();
@@ -2516,23 +2517,31 @@ const SHOP_TABS = [
   { key: "sell", label: "売る", slots: null },
 ];
 let shopTab = "weapon";
+let shopMember = 0; // 取引する編成メンバーの index
 const sellPrice = (it) => Math.max(1, Math.floor((it.price || 10) / 2));
 
+// 商店: 上=在庫 (内部スクロール) / 下=取引相手の選択と所持品。
+// ページ全体は縦スクロールさせず、在庫リストだけが内部でスクロールする。
 function renderShop() {
+  townEl.classList.add("shop-mode");
   townEl.appendChild(townHeader("ボルタック商店"));
 
-  const tabs = el("div", "tw-dolltabs");
+  if (shopMember >= G.party.length) shopMember = 0;
+  const who = G.party[shopMember] || null;
+
+  // カテゴリタブ (「売る」は廃止: 売却は下の所持品タップで行う)
+  const tabs = el("div", "tw-dolltabs shop-tabs");
   for (const t of SHOP_TABS) {
+    if (t.key === "sell") continue;
     const b = btn(t.label, () => { shopTab = t.key; renderTown(); });
     b.className = "tw-dolltab" + (shopTab === t.key ? " active" : "");
     tabs.appendChild(b);
   }
   townEl.appendChild(tabs);
 
-  if (shopTab === "sell") return renderShopSell();
-
-  const tabDef = SHOP_TABS.find((t) => t.key === shopTab);
-  const buy = el("div", "tw-shoplist");
+  // 在庫 (内部スクロール領域)
+  const tabDef = SHOP_TABS.find((t) => t.key === shopTab) || SHOP_TABS[0];
+  const stock = el("div", "shop-stock");
   let any = false;
   for (const id of Object.keys(G.shopStock)) {
     const it = ITEMS[id];
@@ -2549,38 +2558,51 @@ function renderShop() {
     r.appendChild(info);
     const b = btn(`💰${price}`, () => buyItem(id, price));
     b.className = "tw-small";
-    if (G.gold < price) b.disabled = true;
+    if (G.gold < price || !who || !who.alive || who.items.length >= MAX_ITEMS) b.disabled = true;
     r.appendChild(b);
-    buy.appendChild(r);
+    stock.appendChild(r);
   }
-  if (!any) buy.appendChild(el("div", "tw-empty", "この種類の在庫は売り切れだ。"));
-  townEl.appendChild(buy);
-  townEl.appendChild(el("div", "tw-note", "買うと在庫が減る。売った品は在庫に並ぶ (売値は1/2)。"));
-}
+  if (!any) stock.appendChild(el("div", "tw-empty", "この種類の在庫は売り切れだ。"));
+  townEl.appendChild(stock);
 
-function renderShopSell() {
-  const sell = el("div", "tw-shoplist");
-  let any = false;
-  // 編成中の人業の所持品 (装備中は除く) を売却対象に
-  for (const m of G.party) {
-    m.items.forEach((it) => {
-      any = true;
-      const price = sellPrice(it);
-      const r = el("div", "tw-shoprow");
-      const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
-      const info = el("div", "tw-chipi");
-      info.appendChild(el("div", "tw-chipn", it.name));
-      info.appendChild(el("div", "tw-chipc", `${m.name} の所持品`));
-      r.appendChild(info);
-      const b = btn(`💰${price} で売る`, () => sellItem(m, it, price));
-      b.className = "tw-small";
-      r.appendChild(b);
-      sell.appendChild(r);
-    });
+  // ---- 下部: 取引相手の選択 + 所持品 (タップで売却) ----
+  const dock = el("div", "shop-dock");
+  // メンバー選択チップ (横並び)
+  const mrow = el("div", "shop-members");
+  G.party.forEach((m, i) => {
+    const chip = el("div", "shop-member" + (i === shopMember ? " sel" : "") + (m.alive ? "" : " dead"));
+    if (m.dominant) {
+      const o = el("span", "tw-chips");
+      o.style.color = SOUL_CLASSES[m.dominant.clsKey].glow;
+      o.appendChild(spriteCanvas(soulSprite(m.dominant.clsKey), 2));
+      chip.appendChild(o);
+    }
+    chip.appendChild(el("span", "shop-mname", m.name));
+    chip.addEventListener("click", () => { shopMember = i; SFX.select(); renderTown(); });
+    mrow.appendChild(chip);
+  });
+  dock.appendChild(mrow);
+
+  // 選択中メンバーの所持品グリッド (8枠固定)。タップで売る
+  if (who) {
+    dock.appendChild(el("div", "shop-bagh", `${who.name} の所持品 (${who.items.length}/${MAX_ITEMS}) — タップで売る`));
+    const bag = el("div", "shop-bag");
+    for (let i = 0; i < MAX_ITEMS; i++) {
+      const it = who.items[i];
+      const cellEl = el("div", "shop-slot" + (it ? "" : " empty"));
+      if (it) {
+        cellEl.appendChild(spriteCanvas(it, 2));
+        cellEl.appendChild(el("span", "shop-price", `💰${sellPrice(it)}`));
+        cellEl.title = it.name;
+        cellEl.addEventListener("click", () => sellItem(who, it, sellPrice(it)));
+      }
+      bag.appendChild(cellEl);
+    }
+    dock.appendChild(bag);
+  } else {
+    dock.appendChild(el("div", "tw-empty", "編成に人業がいない。"));
   }
-  if (!any) sell.appendChild(el("div", "tw-empty", "売れる品がない (装備中の品は外してから)。"));
-  townEl.appendChild(sell);
-  townEl.appendChild(el("div", "tw-note", "売った装備・道具は商店の在庫に並ぶ。"));
+  townEl.appendChild(dock);
 }
 
 function sellItem(owner, it, price) {
@@ -2591,23 +2613,25 @@ function sellItem(owner, it, price) {
   // 在庫に積む (ボルタック方式)
   if (it.id) G.shopStock[it.id] = (G.shopStock[it.id] || 0) + 1;
   codexSeeItem(it.id);
-  SFX.select();
+  SFX.select(); buzz(10);
   log(`${it.name} を売った (+💰${price})。商店に並んだ。`, "win");
+  showToast(`💰+${price} ${it.name} を売却`);
   renderTown();
 }
 
 function buyItem(id, price) {
   if (G.gold < price) { log("お金が足りない。", "sys"); return; }
   if ((G.shopStock[id] || 0) <= 0) { log("在庫切れだ。", "sys"); return; }
-  const who = G.party.find((m) => m.alive && m.items.length < MAX_ITEMS);
-  if (!who) { log("所持品に空きがない。", "sys"); return; }
+  const who = G.party[shopMember];
+  if (!who || !who.alive) { log("取引する人業を選ぼう。", "sys"); return; }
+  if (who.items.length >= MAX_ITEMS) { log(`${who.name} の所持品がいっぱいだ。`, "sys"); return; }
   const it = cloneItem(id);
   if (!it) return;
   G.gold -= price;
   G.shopStock[id]--;
   who.items.push(it);
   codexSeeItem(id);
-  SFX.select();
+  SFX.itemget(); buzz(10);
   log(`${it.name} を購入した (${who.name})。`, "win");
   renderTown();
 }
@@ -2886,12 +2910,9 @@ function renderSoulTab(p) {
       if (rank.color) nm.style.color = rank.color;
       else if (s.memory > 0) nm.classList.add("mem");
       info.appendChild(nm);
-      // 経験値バー
-      const bar = el("div", "st-soulbar");
-      const ratio = s.level >= SOUL_MAX_LEVEL ? 1 : s.exp / soulExpToNext(s.level);
-      const i = el("i"); i.style.width = Math.round(ratio * 100) + "%"; i.style.background = SOUL_CLASSES[s.clsKey].color;
-      bar.appendChild(i);
-      info.appendChild(bar);
+      // 成長は館の「魂の強化」のみ (戦闘では育たない)
+      info.appendChild(el("div", "st-soulstat",
+        s.level >= SOUL_MAX_LEVEL ? "Lv MAX" : `Lv ${s.level} / ${SOUL_MAX_LEVEL} ・ 強化は館で ✦${soulTrainCost(s.level)}`));
       row.appendChild(info);
       // タップで魂の詳細 (ステータス + 基本/上位スキル) を開閉
       row.addEventListener("click", () => { stSoulSel = selected ? null : s.uid; renderStatus(); });
