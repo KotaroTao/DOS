@@ -16,9 +16,16 @@
       <h1>地下迷宮 <span class="sub">Dungeon of Shadows</span></h1>
       <div class="topbar-right">
         <div id="floor-info">B1F</div>
+        <button id="status-btn" title="ステータス・装備">👤</button>
         <button id="mute-btn" title="音のオン/オフ (M)">🔊</button>
       </div>
     </header>
+
+    <!-- 個別ステータス / 装備画面 (オーバーレイ) -->
+    <div id="status-screen" class="hidden"></div>
+
+    <!-- アイテム入手演出 (オーバーレイ) -->
+    <div id="item-get" class="hidden"></div>
 
     <main id="screen">
       <!-- カードボード / 戦闘ビュー -->
