@@ -1625,6 +1625,7 @@ movePad.addEventListener("click", (e) => {
 
 // タイルクリックで移動: 隣接なら1歩、離れていれば経路探索して自動で歩く
 view.addEventListener("click", (e) => {
+  if (G._swiped) { G._swiped = false; return; } // 直前のスワイプ由来の click は無視
   if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen) return;
   const rect = view.getBoundingClientRect();
   const sx = (e.clientX - rect.left) * (view.width / rect.width);
@@ -1647,6 +1648,27 @@ view.addEventListener("click", (e) => {
   SFX.miss();
   log("そこへはまだ行けない。", "sys");
 });
+
+// スワイプ(フリック)移動: スマホ/タブレットでなぞった方向へ1歩進む。
+// 短いタップは従来のタイルクリックとして扱う (preventDefault しないので click も発火)。
+const SWIPE_MIN = 28; // この距離(px)以上動かしたらスワイプとみなす
+let swipe = null;
+view.addEventListener("pointerdown", (e) => {
+  if (e.pointerType === "mouse") return; // マウスはクリック処理に任せる
+  swipe = { x: e.clientX, y: e.clientY };
+});
+view.addEventListener("pointerup", (e) => {
+  if (!swipe) return;
+  const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+  swipe = null;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN) return; // タップ扱い
+  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen) return;
+  G._swiped = true; // 直後の click を抑制 (タイル移動と二重発火させない)
+  SFX.select();
+  if (Math.abs(dx) > Math.abs(dy)) tryMove(dx > 0 ? 1 : -1, 0);
+  else tryMove(0, dy > 0 ? 1 : -1);
+}, { passive: false });
+view.addEventListener("pointercancel", () => { swipe = null; });
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "m" || e.key === "M") { updateMuteBtn(toggleMute()); return; }
