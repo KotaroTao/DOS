@@ -73,14 +73,29 @@ function cellRect(x, y) {
   return { x: OX + x * (CARD_W + GAP), y: OY + y * (CARD_H + GAP), w: CARD_W, h: CARD_H };
 }
 
-function renderBoard() {
-  // 草原風の市松背景
-  for (let ty = 0; ty < 320 / 16; ty++) {
-    for (let tx = 0; tx < 480 / 16; tx++) {
-      vctx.fillStyle = (tx + ty) % 2 ? "#1e3a1e" : "#234223";
-      vctx.fillRect(tx * 16, ty * 16, 16, 16);
+// 石床のタイル模様 (決定的な乱数で毎回同じ見た目)
+function drawFloor() {
+  vctx.fillStyle = "#121218";
+  vctx.fillRect(0, 0, view.width, view.height);
+  const T = 24;
+  for (let ty = 0; ty < view.height / T; ty++) {
+    for (let tx = 0; tx < view.width / T; tx++) {
+      const n = (tx * 7 + ty * 13) % 5;
+      vctx.fillStyle = n === 0 ? "#17171f" : n === 1 ? "#15151c" : "#131319";
+      vctx.fillRect(tx * T, ty * T, T - 1, T - 1);
     }
   }
+  // 中央が明るく周辺が暗いビネット (たいまつの灯り)
+  const vg = vctx.createRadialGradient(view.width / 2, view.height / 2, 60, view.width / 2, view.height / 2, view.width * 0.62);
+  vg.addColorStop(0, "rgba(255,190,90,0.07)");
+  vg.addColorStop(0.5, "rgba(0,0,0,0)");
+  vg.addColorStop(1, "rgba(0,0,0,0.55)");
+  vctx.fillStyle = vg;
+  vctx.fillRect(0, 0, view.width, view.height);
+}
+
+function renderBoard() {
+  drawFloor();
 
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
@@ -94,11 +109,15 @@ function renderBoard() {
         showBack = t < 0.5;
       }
       drawCard(r, cell, scaleX, showBack);
-      // 移動可能な隣接マスをハイライト (静止中のみ)
+      // 移動可能な隣接マスを光彩つきでハイライト (静止中のみ)
       if (G.state === "board" && !G.anim && !G.walking && isStep(x, y)) {
-        vctx.strokeStyle = "rgba(120,220,255,0.85)";
+        vctx.save();
+        vctx.shadowColor = "rgba(120,220,255,0.9)";
+        vctx.shadowBlur = 8;
+        vctx.strokeStyle = "rgba(150,230,255,0.95)";
         vctx.lineWidth = 2;
         vctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+        vctx.restore();
       }
     }
   }
@@ -117,6 +136,13 @@ function renderBoard() {
     hx = pr.x + pr.w / 2;
     hy = pr.y + pr.h / 2;
   }
+  // 足元の影
+  vctx.save();
+  vctx.fillStyle = "rgba(0,0,0,0.4)";
+  vctx.beginPath();
+  vctx.ellipse(hx, hy + 16, 12, 4, 0, 0, Math.PI * 2);
+  vctx.fill();
+  vctx.restore();
   drawSprite(vctx, HERO, hx, hy, SPR);
 
   renderParty();
@@ -131,66 +157,108 @@ function drawWallEdges(cell, w, h) {
   if (cell.walls.w) bars.push([0, 0, WALL_T, h]);
   if (cell.walls.e) bars.push([w - WALL_T, 0, WALL_T, h]);
   for (const [bx, by, bw, bh] of bars) {
-    vctx.fillStyle = "#5a5a66";
+    // 石壁: グラデーション + ハイライト/シャドウで立体感
+    const g = bw > bh
+      ? vctx.createLinearGradient(bx, by, bx, by + bh)
+      : vctx.createLinearGradient(bx, by, bx + bw, by);
+    g.addColorStop(0, "#6e6e7c");
+    g.addColorStop(0.5, "#565664");
+    g.addColorStop(1, "#3e3e4a");
+    vctx.fillStyle = g;
     vctx.fillRect(bx, by, bw, bh);
-    vctx.fillStyle = "#3c3c46";
     // 石の継ぎ目
+    vctx.fillStyle = "#2e2e38";
     if (bw > bh) {
       for (let i = 1; i < 4; i++) vctx.fillRect(bx + (bw * i) / 4 - 0.5, by, 1, bh);
     } else {
       for (let i = 1; i < 5; i++) vctx.fillRect(bx, by + (bh * i) / 5 - 0.5, bw, 1);
     }
-    vctx.strokeStyle = "#23232b";
+    // 上面ハイライト
+    vctx.fillStyle = "rgba(255,255,255,0.16)";
+    if (bw > bh) vctx.fillRect(bx, by, bw, 1.5); else vctx.fillRect(bx, by, 1.5, bh);
+    vctx.strokeStyle = "#1d1d25";
     vctx.lineWidth = 1;
     vctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
   }
 }
 
 function drawCard(r, cell, scaleX, showBack) {
+  // カードの落ち影 (フリップ中も足元に残す)
+  vctx.save();
+  vctx.fillStyle = "rgba(0,0,0,0.45)";
+  vctx.fillRect(r.x + 2, r.y + 3, r.w - 2, r.h - 1);
+  vctx.restore();
+
   vctx.save();
   vctx.translate(r.x + r.w / 2, r.y + r.h / 2);
   vctx.scale(Math.max(0.02, scaleX), 1);
   vctx.translate(-r.w / 2, -r.h / 2);
 
   if (showBack) {
-    // カード裏面: 金の装飾
-    vctx.fillStyle = "#6b4d12";
+    // カード裏面: 深紅の布地 + 金の縁飾り + ダイヤ紋
+    const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
+    bg.addColorStop(0, "#7a5616");
+    bg.addColorStop(0.5, "#5e420f");
+    bg.addColorStop(1, "#46300a");
+    vctx.fillStyle = bg;
     vctx.fillRect(0, 0, r.w, r.h);
-    vctx.strokeStyle = "#c9a227";
+    // 外枠 (二重)
+    vctx.strokeStyle = "#e3bd45";
     vctx.lineWidth = 2;
-    vctx.strokeRect(2, 2, r.w - 4, r.h - 4);
-    vctx.strokeStyle = "#9c7d1c";
+    vctx.strokeRect(1.5, 1.5, r.w - 3, r.h - 3);
+    vctx.strokeStyle = "#8a6a18";
     vctx.lineWidth = 1;
+    vctx.strokeRect(4.5, 4.5, r.w - 9, r.h - 9);
+    // 中央のダイヤ紋
+    const cx = r.w / 2, cy = r.h / 2;
+    vctx.strokeStyle = "#caa22e";
     vctx.beginPath();
-    vctx.arc(r.w / 2, r.h / 2, 14, 0, Math.PI * 2);
+    vctx.moveTo(cx, cy - 11); vctx.lineTo(cx + 9, cy); vctx.lineTo(cx, cy + 11); vctx.lineTo(cx - 9, cy); vctx.closePath();
     vctx.stroke();
-    vctx.fillStyle = "#c9a227";
-    vctx.font = "bold 16px monospace";
+    // コーナードット
+    vctx.fillStyle = "#caa22e";
+    for (const [dx, dy] of [[7, 7], [r.w - 7, 7], [7, r.h - 7], [r.w - 7, r.h - 7]]) {
+      vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+    }
+    // 「?」
+    vctx.fillStyle = "#f0d069";
+    vctx.font = "bold 15px monospace";
     vctx.textAlign = "center";
     vctx.textBaseline = "middle";
-    vctx.fillText("?", r.w / 2, r.h / 2 + 1);
+    vctx.fillText("?", cx, cy + 1);
+    // 上辺ハイライト
+    vctx.fillStyle = "rgba(255,235,170,0.18)";
+    vctx.fillRect(2, 2, r.w - 4, 3);
   } else {
-    // 表面: 羊皮紙
+    // 表面: 羊皮紙 (グラデーション + テクスチャ感)
     const cleared = cell.cleared && cell.type !== "stairs" && cell.type !== "start";
-    vctx.fillStyle = cleared ? "#9a916f" : "#d9d0b0";
+    const fg = vctx.createLinearGradient(0, 0, 0, r.h);
+    if (cleared) { fg.addColorStop(0, "#a59c78"); fg.addColorStop(1, "#8d8462"); }
+    else { fg.addColorStop(0, "#e8e0c2"); fg.addColorStop(1, "#cfc5a2"); }
+    vctx.fillStyle = fg;
     vctx.fillRect(0, 0, r.w, r.h);
-    vctx.strokeStyle = "#7a7050";
+    vctx.strokeStyle = "#6e6448";
     vctx.lineWidth = 2;
     vctx.strokeRect(1, 1, r.w - 2, r.h - 2);
+    vctx.strokeStyle = "rgba(110,100,72,0.35)";
+    vctx.lineWidth = 1;
+    vctx.strokeRect(3.5, 3.5, r.w - 7, r.h - 7);
 
     const cx = r.w / 2, cy = r.h / 2;
-    if (cell.type === "monster" && !cell.cleared) {
-      drawSprite(vctx, MONSTERS[cell.monsterKey], cx, cy, 3);
-    } else if (cell.type === "chest" && !cell.cleared) {
-      drawSprite(vctx, ICONS.chest, cx, cy, 3);
-    } else if (cell.type === "trap" && !cell.cleared) {
-      drawSprite(vctx, ICONS.trap, cx, cy, 3);
-    } else if (cell.type === "fountain" && !cell.cleared) {
-      drawSprite(vctx, ICONS.fountain, cx, cy, 3);
-    } else if (cell.type === "stairs") {
-      drawSprite(vctx, ICONS.stairs, cx, cy, 3);
-    } else if (cell.type === "start") {
-      drawSprite(vctx, ICONS.start, cx, cy, 3);
+    const icon =
+      cell.type === "monster" && !cell.cleared ? MONSTERS[cell.monsterKey] :
+      cell.type === "chest" && !cell.cleared ? ICONS.chest :
+      cell.type === "trap" && !cell.cleared ? ICONS.trap :
+      cell.type === "fountain" && !cell.cleared ? ICONS.fountain :
+      cell.type === "stairs" ? ICONS.stairs :
+      cell.type === "start" ? ICONS.start : null;
+    if (icon) {
+      // アイコンの足元影
+      vctx.fillStyle = "rgba(60,50,30,0.3)";
+      vctx.beginPath();
+      vctx.ellipse(cx, cy + 14, 13, 3.5, 0, 0, Math.PI * 2);
+      vctx.fill();
+      drawSprite(vctx, icon, cx, cy, 3);
     }
     // クリア済みは踏破マーク
     if (cleared && cell.type !== "empty") {
@@ -377,7 +445,7 @@ function resolveCell(cell) {
         lines.push(`${v.name}は倒れた…`);
       }
       showEvent({
-        sprite: ICONS.trap, title: "罠だ！", lines, accent: "#d4504e",
+        sprite: ICONS.trap, title: "罠だ！", lines, accent: "#d4504e", banner: "⚠ 危険 ⚠",
         onClose: () => {
           if (died) { SFX.die(); if (!G.party.some((p) => p.alive)) { gameOver(); return; } }
           renderBoard();
@@ -399,7 +467,7 @@ function resolveCell(cell) {
       }
       log("癒しの泉だ！ HPとMPが回復し、毒も癒えた。", "heal");
       showEvent({
-        sprite: ICONS.fountain, title: "癒しの泉", accent: "#5fb8d6",
+        sprite: ICONS.fountain, title: "癒しの泉", accent: "#5fb8d6", banner: "✦ 恵み ✦", sparkle: true,
         lines: ["パーティのHPとMPが回復した！", ...(cured ? ["毒も浄化された。"] : [])],
         onClose: () => renderBoard(),
       });
@@ -478,7 +546,7 @@ function rollChest(cell, allowDanger, done) {
     SFX.trap();
     log("宝箱はミミックだった！", "dmg");
     showEvent({
-      sprite: MONSTERS.kobold, title: "ミミックだ！", accent: "#d4504e",
+      sprite: MONSTERS.kobold, title: "ミミックだ！", accent: "#d4504e", banner: "⚠ 危険 ⚠",
       lines: ["宝箱は怪物だった！", "戦闘になる！"], btnLabel: "戦う",
       onClose: () => startBattle(spawnMimic(G.floor), cell),
     });
@@ -498,7 +566,7 @@ function rollChest(cell, allowDanger, done) {
     log(`宝箱は罠だった！ 全員に ${dmg} ダメージ`, "dmg");
     const wiped = !G.party.some((p) => p.alive);
     showEvent({
-      sprite: ICONS.trap, title: "毒針の罠！", accent: "#d4504e",
+      sprite: ICONS.trap, title: "毒針の罠！", accent: "#d4504e", banner: "⚠ 危険 ⚠",
       lines: [`全員に ${dmg} ダメージ！`, ...(poisoned ? ["毒に侵された者も…"] : [])],
       onClose: () => { if (wiped) { gameOver(); return; } if (done) done(); },
     });
@@ -517,7 +585,7 @@ function rollChest(cell, allowDanger, done) {
     updateTopbar();
     log(`宝箱から ${g} ゴールドを手に入れた！`, "win");
     showEvent({
-      sprite: ICONS.gold, title: "ゴールド発見！", accent: "#e8c24a",
+      sprite: ICONS.gold, title: "ゴールド発見！", accent: "#e8c24a", banner: "✦ 宝箱の中身 ✦", sparkle: true,
       lines: [`${g} ゴールドを手に入れた！`], onClose: done || (() => renderBoard()),
     });
   }
@@ -578,13 +646,22 @@ function renderCombatCanvas() {
   const b = G.battle;
   const fx = G.fx;
   const now = performance.now();
-  vctx.fillStyle = "#07060a";
+  // 背景: 闇 + 紫の奥光 + 石床
+  vctx.fillStyle = "#06050a";
   vctx.fillRect(0, 0, view.width, view.height);
-  const grad = vctx.createRadialGradient(view.width / 2, view.height * 0.4, 30, view.width / 2, view.height * 0.4, view.width * 0.7);
-  grad.addColorStop(0, "#1a1322");
-  grad.addColorStop(1, "#07060a");
+  const grad = vctx.createRadialGradient(view.width / 2, view.height * 0.36, 24, view.width / 2, view.height * 0.36, view.width * 0.72);
+  grad.addColorStop(0, "#241733");
+  grad.addColorStop(0.55, "#120c1c");
+  grad.addColorStop(1, "#06050a");
   vctx.fillStyle = grad;
   vctx.fillRect(0, 0, view.width, view.height);
+  // 地面のライン
+  const floorY = view.height * 0.62;
+  const fgr = vctx.createLinearGradient(0, floorY, 0, view.height);
+  fgr.addColorStop(0, "rgba(110,80,140,0.16)");
+  fgr.addColorStop(1, "rgba(0,0,0,0)");
+  vctx.fillStyle = fgr;
+  vctx.fillRect(0, floorY, view.width, view.height - floorY);
 
   const living = b.enemies;
   const n = living.length;
@@ -607,6 +684,14 @@ function renderCombatCanvas() {
       }
     }
     const size = e.mon.boss ? 14 : 9;
+    // 足元の影 (踏み込みに追従)
+    vctx.save();
+    vctx.globalAlpha = e.alive ? 0.45 : 0.15;
+    vctx.fillStyle = "#000";
+    vctx.beginPath();
+    vctx.ellipse(baseX + ox, baseY + size * 5.4, size * 3.4, size * 1.1, 0, 0, Math.PI * 2);
+    vctx.fill();
+    vctx.restore();
     drawSprite(vctx, e.mon, baseX + ox, baseY + oy, size, alpha);
     // 被弾時の白フラッシュ
     if (hf && now - hf.t0 < 200) {
@@ -618,15 +703,35 @@ function renderCombatCanvas() {
       vctx.fill();
       vctx.restore();
     }
-    vctx.fillStyle = e.alive ? "#e7e3d4" : "#5a5a66";
+    // 名前プレート (ダークピル)
+    const label = e.name + (e.asleep ? " 💤" : "");
     vctx.font = "10px monospace";
     vctx.textAlign = "center";
-    vctx.fillText(e.name + (e.asleep ? " 💤" : ""), baseX, baseY + 78);
-    const bw = 56, bh = 5, bx = baseX - bw / 2, by = baseY + 84;
-    vctx.fillStyle = "#2a2a3a";
-    vctx.fillRect(bx, by, bw, bh);
-    vctx.fillStyle = e.alive ? "#d4504e" : "#333";
-    vctx.fillRect(bx, by, bw * Math.max(0, e.hp / e.maxhp), bh);
+    const tw = vctx.measureText(label).width;
+    vctx.fillStyle = "rgba(8,8,14,0.75)";
+    vctx.strokeStyle = e.alive ? "rgba(160,140,180,0.4)" : "rgba(90,90,102,0.3)";
+    vctx.lineWidth = 1;
+    const px = baseX - tw / 2 - 7, py2 = baseY + 70, pw = tw + 14, ph = 14;
+    vctx.beginPath();
+    vctx.roundRect ? vctx.roundRect(px, py2, pw, ph, 7) : vctx.rect(px, py2, pw, ph);
+    vctx.fill();
+    vctx.stroke();
+    vctx.fillStyle = e.alive ? "#e7e3d4" : "#5a5a66";
+    vctx.fillText(label, baseX, py2 + 10);
+    // HPバー (グラデーション + 枠)
+    const bw = 56, bh = 6, bx = baseX - bw / 2, by = baseY + 88;
+    vctx.fillStyle = "#1b1b26";
+    vctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
+    const ratio = Math.max(0, e.hp / e.maxhp);
+    const hg = vctx.createLinearGradient(bx, by, bx, by + bh);
+    if (e.alive) {
+      hg.addColorStop(0, ratio > 0.5 ? "#ff7a72" : "#ffb14a");
+      hg.addColorStop(1, ratio > 0.5 ? "#c23a34" : "#c97a18");
+    } else { hg.addColorStop(0, "#333"); hg.addColorStop(1, "#222"); }
+    vctx.fillStyle = hg;
+    vctx.fillRect(bx, by, bw * ratio, bh);
+    vctx.strokeStyle = "rgba(0,0,0,0.6)";
+    vctx.strokeRect(bx - 0.5, by - 0.5, bw + 1, bh + 1);
   });
 
   if (fx) drawEffects(fx, now);
@@ -1296,37 +1401,42 @@ function closeItemGet(onClose) {
   else renderBoard();
 }
 
-// ---- 汎用イベント表示 (宝箱の中身・罠・泉など、メイン画面上にイラスト付きで) ----
-const eventPopEl = document.getElementById("event-pop");
-
-function showEvent({ sprite, title, lines = [], accent = "#c9a227", btnLabel = "つぎへ", onClose }) {
+// ---- 汎用イベント表示 (宝箱の中身・罠・泉など) ----
+// アイテム獲得演出と同じオーバーレイ/カードデザインで表示する
+function showEvent({ sprite, title, lines = [], accent = "#c9a227", btnLabel = "つぎへ", banner = "✦ イベント ✦", sparkle = false, onClose }) {
   G.prompt = true;
-  eventPopEl.innerHTML = "";
-  const card = el("div", "ev-card");
+  itemGetEl.innerHTML = "";
+  const card = el("div", "ig-card");
   card.style.borderColor = accent;
+  card.style.boxShadow = `0 0 40px ${accent}55`;
+  const bn = el("div", "ig-banner", banner);
+  bn.style.color = accent;
+  card.appendChild(bn);
   if (sprite) {
-    const art = el("div", "ev-art");
+    const art = el("div", "ig-art");
     art.appendChild(spriteCanvas(sprite, 9));
+    if (sparkle) {
+      for (let i = 0; i < 6; i++) {
+        const s = el("span", "ig-spark");
+        s.style.setProperty("--a", (i * 60) + "deg");
+        s.style.animationDelay = (i * 0.08) + "s";
+        art.appendChild(s);
+      }
+    }
     card.appendChild(art);
   }
-  const t = el("div", "ev-title", title);
-  t.style.color = accent;
+  const t = el("div", "ig-name", title);
+  t.style.color = accent === "#c9a227" ? "#fff" : accent;
   card.appendChild(t);
-  for (const ln of lines) card.appendChild(el("div", "ev-line", ln));
-  const ok = btn(btnLabel, () => closeEvent(onClose));
-  ok.className = "btn ev-ok";
+  for (const ln of lines) card.appendChild(el("div", "ig-desc", ln));
+  const ok = btn(btnLabel, () => closeItemGet(onClose));
+  ok.className = "btn primary ig-ok";
+  ok.style.borderColor = accent;
+  ok.style.color = accent;
   card.appendChild(ok);
-  eventPopEl.appendChild(card);
-  eventPopEl.classList.remove("hidden");
-  eventPopEl.onclick = (e) => { if (e.target === eventPopEl) closeEvent(onClose); };
-}
-
-function closeEvent(onClose) {
-  eventPopEl.classList.add("hidden");
-  eventPopEl.innerHTML = "";
-  G.prompt = false;
-  if (onClose) onClose();
-  else renderBoard();
+  itemGetEl.appendChild(card);
+  itemGetEl.classList.remove("hidden");
+  itemGetEl.onclick = (e) => { if (e.target === itemGetEl) closeItemGet(onClose); };
 }
 
 // 毒のダメージ (盤面を1歩進むごと)
