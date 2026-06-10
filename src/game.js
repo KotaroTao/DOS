@@ -283,7 +283,9 @@ function moveStep(nx, ny, onDone) {
   }
 }
 
-// 壁を考慮した最短経路 (現在地 → tx,ty)。歩く順の {x,y} 配列を返す
+// 壁を考慮した最短経路 (現在地 → tx,ty)。歩く順の {x,y} 配列を返す。
+// 途中は「めくり済みのマス」だけを通り、未公開カードは勝手にめくらない。
+// ただし目的地が未公開でも、めくり済み領域に隣接していれば最後の1歩としてめくれる。
 function findPath(tx, ty) {
   if (tx === G.px && ty === G.py) return [];
   const key = (x, y) => x + "," + y;
@@ -296,12 +298,13 @@ function findPath(tx, ty) {
       if (G.board.cells[y][x].walls[d]) continue;
       const nx = x + DIRS_G[d][0], ny = y + DIRS_G[d][1];
       if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) continue;
-      // 自動移動は「めくり済みのマス」だけを通る (未公開のカードを勝手にめくらない)
-      if (!G.board.cells[ny][nx].revealed) continue;
+      const isTarget = nx === tx && ny === ty;
+      // 中間マスはめくり済みのみ。目的地のみ未公開カード(最後の1歩)を許可
+      if (!G.board.cells[ny][nx].revealed && !isTarget) continue;
       if (seen.has(key(nx, ny))) continue;
       seen.add(key(nx, ny));
       prev.set(key(nx, ny), [x, y]);
-      if (nx === tx && ny === ty) {
+      if (isTarget) {
         const path = [];
         let cx = nx, cy = ny;
         while (cx !== G.px || cy !== G.py) {
