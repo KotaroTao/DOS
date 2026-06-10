@@ -24,7 +24,7 @@ html, body {
   font-family: var(--font);
   -webkit-font-smoothing: none;
   image-rendering: pixelated;
-  touch-action: manipulation;
+  touch-action: none;
   -webkit-user-select: none;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -109,6 +109,7 @@ html, body { height: 100%; overflow: hidden; }
 #log {
   flex: 1;
   overflow-y: auto;
+  touch-action: pan-y;
   background: linear-gradient(180deg, #0a0a12, #07070d);
   border: 1px solid #34344a;
   border-radius: 6px;
@@ -233,6 +234,7 @@ canvas.spr { image-rendering: pixelated; display: block; }
   margin: 0 auto;
   padding: calc(var(--safe-top) + 8px) 10px calc(var(--safe-bottom) + 10px);
   overflow-y: auto;
+  touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
 }
 /* ヘッダ */
