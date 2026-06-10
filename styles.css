@@ -693,3 +693,46 @@ canvas.spr { image-rendering: pixelated; display: block; }
 }
 .tw-dungeon.sel { border-left-color: #8a63b8; box-shadow: 0 0 0 1px #8a63b8; background: #20162e; }
 .tw-dungeon.locked { opacity: 0.5; cursor: default; }
+
+/* ===== 商店 (固定レイアウト: ページスクロールなし) ===== */
+#town-screen.shop-mode { overflow: hidden; display: flex; flex-direction: column; }
+.shop-tabs { flex: 0 0 auto; flex-wrap: wrap; }
+.shop-stock {
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch;
+  display: flex; flex-direction: column; gap: 7px;
+  padding: 2px 0 8px;
+}
+.shop-dock {
+  flex: 0 0 auto;
+  border-top: 2px solid #3c2c52;
+  padding-top: 8px;
+  background: linear-gradient(180deg, rgba(30,20,42,0.6), rgba(18,12,26,0.9));
+}
+.shop-members {
+  display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px;
+  touch-action: pan-x; -webkit-overflow-scrolling: touch;
+}
+.shop-member {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 5px;
+  background: #170f22; border: 1px solid #34254a; border-radius: 99px;
+  padding: 5px 12px; cursor: pointer; font-size: 12px; color: #cfc2e2;
+}
+.shop-member.sel { border-color: #8a63b8; box-shadow: 0 0 0 1px #8a63b8; background: #241836; color: #fff; }
+.shop-member.dead { opacity: 0.45; filter: grayscale(0.7); }
+.shop-mname { white-space: nowrap; }
+.shop-bagh { font-size: 10px; color: #9685ad; margin: 2px 0 5px; }
+.shop-bag { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; }
+.shop-slot {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex; align-items: center; justify-content: center;
+  background: #140d1e; border: 1px solid #34254a; border-radius: 8px;
+  cursor: pointer;
+}
+.shop-slot.empty { opacity: 0.35; cursor: default; }
+.shop-slot:not(.empty):active { background: #241836; }
+.shop-price {
+  position: absolute; bottom: 1px; left: 0; right: 0;
+  font-size: 8px; color: #ffd84a; text-align: center; pointer-events: none;
+}
