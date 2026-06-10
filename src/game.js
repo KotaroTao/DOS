@@ -2944,16 +2944,17 @@ function renderStatus() {
   // アイテム選択中は情報パネル (装備/使う/捨てる等の操作) を直下に表示
   if (stSel) statusEl.appendChild(renderItemDetail(p, stSel));
 
-  // 2. 装備 (8スロット)
-  statusEl.appendChild(el("div", "st-h", "装備"));
+  // 2. 装備 (8スロット)。スロットをタップすると装備候補一覧を表示
+  statusEl.appendChild(el("div", "st-h", "装備 — 部位をタップで変更"));
   const eqList = el("div", "st-eqlist");
   for (const slot of SLOTS) {
     const it = p.equip[slot];
-    const row = el("div", "st-eqrow" + (stSel && stSel.from === "equip" && stSel.key === slot ? " sel" : "") + (it ? "" : " empty"));
+    const row = el("div", "st-eqrow" + (it ? "" : " empty"));
     const si = el("span", "st-sicon"); si.appendChild(spriteCanvas(SLOT_ICONS[slot] || SLOT_ICONS.weapon, 2)); row.appendChild(si);
     const ii = el("span", "st-iicon"); if (it) ii.appendChild(spriteCanvas(it, 2)); row.appendChild(ii);
     row.appendChild(el("span", "st-ename", it ? it.name + (it.cursed ? " 🔒" : "") : SLOT_LABEL[slot]));
-    if (it) row.addEventListener("click", () => { stSel = { item: it, from: "equip", key: slot }; renderStatus(); });
+    row.appendChild(el("span", "st-eslot", SLOT_LABEL[slot]));
+    row.addEventListener("click", () => openEquipChooser(p, slot));
     eqList.appendChild(row);
   }
   statusEl.appendChild(eqList);
@@ -3258,6 +3259,93 @@ function doEquip(p, it) {
   const r = equipItem(p, it);
   if (r.msg) log(r.msg, r.ok ? "win" : "sys");
   if (r.ok) SFX.select();
+  stSel = null;
+  renderStatus(); renderParty();
+}
+
+// アイテムが指定スロットに装備可能か (種別の一致)
+function itemFitsSlot(it, slotKey) {
+  if (!it || it.slot === "use") return false;
+  if (slotKey === "acc1" || slotKey === "acc2") return it.slot === "acc";
+  return it.slot === slotKey;
+}
+
+// 装備候補一覧 (この人業の所持品 + 他の人業の所持品/装備品) を表示して付け替える
+function openEquipChooser(p, slotKey) {
+  const cur = p.equip[slotKey];
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card confirm-card eqchooser");
+  card.style.borderColor = "#6b8cff";
+  card.appendChild(el("div", "ig-banner", `${SLOT_LABEL[slotKey]} に装備`));
+
+  const list = el("div", "ig-choices eq-cand");
+
+  // 現在装備中 → 外す
+  if (cur) {
+    const un = btn(cur.cursed ? `${cur.name} は呪われて外せない` : `（外す） ${cur.name}`, () => {
+      if (cur.cursed) return;
+      wrap.remove();
+      const r = unequipItem(p, slotKey);
+      if (r.msg) log(r.msg, "sys");
+      SFX.select(); renderStatus(); renderParty();
+    });
+    if (cur.cursed) un.disabled = true;
+    list.appendChild(un);
+  }
+
+  // 候補収集: 自分の所持品 → 他キャラの所持品 → 他キャラの装備品
+  const cands = [];
+  for (const it of p.items) if (itemFitsSlot(it, slotKey) && canEquip(p, it)) cands.push({ it, owner: p, where: "self" });
+  for (const d of allDolls()) {
+    if (d === p) continue;
+    for (const it of d.items) if (itemFitsSlot(it, slotKey) && canEquip(p, it)) cands.push({ it, owner: d, where: "bag" });
+    for (const sk of SLOTS) {
+      const it = d.equip[sk];
+      if (it && !it.cursed && itemFitsSlot(it, slotKey) && canEquip(p, it)) cands.push({ it, owner: d, where: "equip", srcSlot: sk });
+    }
+  }
+
+  if (!cands.length) list.appendChild(el("div", "tw-empty", "装備できる品がない。"));
+  for (const c of cands) {
+    const isOther = c.owner !== p;
+    const label = c.it.name + (isOther ? `（${c.owner.name}）` : "");
+    const b = btn("", () => { wrap.remove(); equipFromAnywhere(p, slotKey, c); });
+    b.className = "btn eq-cand-btn";
+    b.textContent = "";
+    const ic = el("span", "eq-ci"); ic.appendChild(spriteCanvas(c.it, 2)); b.appendChild(ic);
+    const tx = el("span", "eq-ct");
+    tx.appendChild(el("span", "eq-cn", label));
+    const st = statLines(c.it);
+    if (st) tx.appendChild(el("span", "eq-cs", st));
+    b.appendChild(tx);
+    list.appendChild(b);
+  }
+  card.appendChild(list);
+  list.appendChild(btn("やめる", () => wrap.remove()));
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
+}
+
+// 候補(自分/他キャラの所持品/装備品)を p の slotKey に装備する
+function equipFromAnywhere(p, slotKey, c) {
+  const { it, owner, where, srcSlot } = c;
+  if (owner !== p) {
+    // 他キャラから取り上げる
+    if (where === "bag") { const i = owner.items.indexOf(it); if (i >= 0) owner.items.splice(i, 1); }
+    else if (where === "equip") { owner.equip[srcSlot] = null; recalcDoll(owner); }
+    p.items.push(it); // いったん p の所持品へ
+  }
+  const r = equipItem(p, it);
+  if (r.msg) log(r.msg, r.ok ? "win" : "sys");
+  if (!r.ok && owner !== p) {
+    // 失敗時は取り上げた品を戻す
+    const i = p.items.indexOf(it); if (i >= 0) p.items.splice(i, 1);
+    owner.items.push(it);
+  } else if (r.ok && owner !== p) {
+    log(`${owner.name} から ${it.name} を受け取り装備した。`, "win");
+  }
+  SFX.select(); buzz(10);
   stSel = null;
   renderStatus(); renderParty();
 }
