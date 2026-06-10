@@ -7,8 +7,8 @@
 // classes: 装備可能な職業キー配列 (null=全職)
 // cursed: 呪い (一度装備すると外せない)
 
-// 装備部位 (8か所): 武器・防具・盾・頭・小手・足・装飾x2
-export const SLOTS = ["weapon", "body", "shield", "head", "hands", "feet", "acc1", "acc2"];
+// 装備部位 (8か所): 武器・盾・鎧・頭・小手・足・装飾x2
+export const SLOTS = ["weapon", "shield", "body", "head", "hands", "feet", "acc1", "acc2"];
 export const SLOT_LABEL = {
   weapon: "武器", body: "防具", shield: "盾", head: "頭", hands: "小手", feet: "足", acc1: "装飾1", acc2: "装飾2",
 };
