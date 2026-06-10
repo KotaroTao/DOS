@@ -358,9 +358,10 @@ canvas.spr { image-rendering: pixelated; display: block; }
 .ig-who { font-size: 12px; color: var(--accent); margin-bottom: 12px; }
 .ig-ok { width: 100%; }
 
-/* 選択肢プロンプトのイラスト */
-.choice-icon { display: flex; justify-content: center; margin-bottom: 6px; }
-.choice-icon canvas.spr { animation: ig-float 2.2s ease-in-out infinite; }
+/* 中央カード内の選択肢ボタン */
+.ig-choices { display: grid; gap: 8px; margin-top: 14px; }
+.ig-choices .btn { width: 100%; }
+.ig-card .ig-name { font-size: 16px; line-height: 1.5; }
 
 /* ===== ヒント ===== */
 #hint {
