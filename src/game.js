@@ -1649,26 +1649,58 @@ view.addEventListener("click", (e) => {
   log("そこへはまだ行けない。", "sys");
 });
 
-// スワイプ(フリック)移動: スマホ/タブレットでなぞった方向へ1歩進む。
-// 短いタップは従来のタイルクリックとして扱う (preventDefault しないので click も発火)。
-const SWIPE_MIN = 28; // この距離(px)以上動かしたらスワイプとみなす
-let swipe = null;
-view.addEventListener("pointerdown", (e) => {
-  if (e.pointerType === "mouse") return; // マウスはクリック処理に任せる
-  swipe = { x: e.clientX, y: e.clientY };
-});
-view.addEventListener("pointerup", (e) => {
-  if (!swipe) return;
-  const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+// スワイプ連続移動: 指を押さえたまま方向を決めると、壁にぶつかるか指を離すまで進み続ける。
+// 短いタップは従来のタイルクリックとして扱う。
+const SWIPE_MIN = 28;
+let swipe = null;          // { x, y, dir } ― dir 確定後は非 null
+let swipeTimer = null;     // 連続移動ループのタイマー ID
+
+function stopSwipe() {
   swipe = null;
-  if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN) return; // タップ扱い
-  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen) return;
-  G._swiped = true; // 直後の click を抑制 (タイル移動と二重発火させない)
+  if (swipeTimer !== null) { clearTimeout(swipeTimer); swipeTimer = null; }
+}
+
+// 指を離さずに方向が確定した後、1歩ずつ連続移動するループ
+function swipeStep(dx, dy) {
+  if (!swipe) return; // 指が離れた
+  if (G.state !== "board" || G.prompt || G.statusOpen) { stopSwipe(); return; }
+  if (G.anim || G.walking) {
+    // アニメーション完了待ち。50ms ごとに再チェック
+    swipeTimer = setTimeout(() => swipeStep(dx, dy), 50);
+    return;
+  }
+  const nx = G.px + dx, ny = G.py + dy;
+  if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS || !edgeOpen(nx, ny)) {
+    // 壁 or 端 → 赤フラッシュ出して終了
+    tryMove(dx, dy);
+    stopSwipe();
+    return;
+  }
+  tryMove(dx, dy);
+  swipeTimer = setTimeout(() => swipeStep(dx, dy), 50);
+}
+
+view.addEventListener("pointerdown", (e) => {
+  if (e.pointerType === "mouse") return;
+  stopSwipe();
+  swipe = { x: e.clientX, y: e.clientY, dir: null };
+});
+
+view.addEventListener("pointermove", (e) => {
+  if (!swipe || swipe.dir) return; // 未タッチ or 方向確定済み
+  const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN) return;
+  // 方向確定 → 連続移動開始
+  const mdx = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : -1) : 0;
+  const mdy = mdx === 0 ? (dy > 0 ? 1 : -1) : 0;
+  swipe.dir = { dx: mdx, dy: mdy };
+  G._swiped = true; // 指を離したときの click を抑制
   SFX.select();
-  if (Math.abs(dx) > Math.abs(dy)) tryMove(dx > 0 ? 1 : -1, 0);
-  else tryMove(0, dy > 0 ? 1 : -1);
-}, { passive: false });
-view.addEventListener("pointercancel", () => { swipe = null; });
+  swipeStep(mdx, mdy);
+});
+
+view.addEventListener("pointerup", () => { stopSwipe(); });
+view.addEventListener("pointercancel", () => { stopSwipe(); });
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "m" || e.key === "M") { updateMuteBtn(toggleMute()); return; }
