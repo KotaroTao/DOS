@@ -1,7 +1,10 @@
 // オフライン対応キャッシュ (PWA / アプリ化用)
-// 取得戦略は network-first: オンライン時は常に最新を取得し、
-// 取得できた時だけキャッシュ更新。オフライン時のみキャッシュを使う。
-const CACHE = "dos-v34";
+// 戦略: バージョン一括キャッシュ (atomic versioned cache)。
+// install 時に全アセットを同一バージョンで先読みし、fetch は同バージョンの
+// キャッシュから返す。これにより「新しい game.js + 古い souls.js」のような
+// モジュール混在 (export 不一致で白画面) が構造的に起きない。
+// 新デプロイは CACHE 名の変更で検出され、ページ側が自動リロードする。
+const CACHE = "dos-v35";
 const ASSETS = [
   "./",
   "./index.html",
@@ -18,7 +21,15 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  e.waitUntil(
+    caches.open(CACHE)
+      // 先読みは必ずネットワークから取得し、HTTPキャッシュの古いファイル混入を防ぐ
+      .then((c) => Promise.all(ASSETS.map((u) => fetch(u, { cache: "no-cache" }).then((res) => {
+        if (!res.ok) throw new Error("precache failed: " + u);
+        return c.put(u, res);
+      }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener("activate", (e) => {
@@ -33,14 +44,16 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (url.origin !== self.location.origin) return; // 他オリジンは介入しない
 
-  // network-first: まずネットワーク、失敗時にキャッシュへフォールバック
+  // 同一バージョンのキャッシュを最優先 (整合性保証)。
+  // キャッシュ外のリクエストのみネットワークへ。オフライン時は index にフォールバック
   e.respondWith(
-    fetch(e.request)
-      .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
-        return res;
-      })
-      .catch(() => caches.match(e.request).then((hit) => hit || caches.match("./index.html")))
+    caches.open(CACHE).then((c) =>
+      c.match(e.request, { ignoreSearch: true }).then((hit) =>
+        hit ||
+        fetch(e.request)
+          .then((res) => { c.put(e.request, res.clone()).catch(() => {}); return res; })
+          .catch(() => c.match("./index.html"))
+      )
+    )
   );
 });
