@@ -480,32 +480,37 @@ function resolveCell(cell) {
 }
 
 // ---- 選択肢プロンプト ----
-// 盤面の操作系を一時的に選択肢に差し替える (icon: イラスト sprite を上部に表示)
-function showChoice(title, options, icon) {
+// ゴールド発見などと同じ中央オーバーレイカードに、イラスト+タイトル+選択肢を表示
+function showChoice(title, options, icon, { banner = "✦ 発見 ✦", accent = "#c9a227" } = {}) {
   G.prompt = true;
-  movePad.classList.add("hidden");
-  combatMenu.classList.remove("hidden");
-  combatMenu.innerHTML = "";
+  itemGetEl.innerHTML = "";
+  const card = el("div", "ig-card");
+  card.style.borderColor = accent;
+  card.style.boxShadow = `0 0 40px ${accent}55`;
+  const bn = el("div", "ig-banner", banner);
+  bn.style.color = accent;
+  card.appendChild(bn);
   if (icon) {
-    const ic = el("div", "choice-icon");
-    ic.appendChild(spriteCanvas(icon, 6));
-    combatMenu.appendChild(ic);
+    const art = el("div", "ig-art");
+    art.appendChild(spriteCanvas(icon, 9));
+    card.appendChild(art);
   }
-  combatMenu.appendChild(el("div", "who", title));
-  const list = el("div", "target-list");
+  card.appendChild(el("div", "ig-name", title));
+  const list = el("div", "ig-choices");
   for (const o of options) {
     const b = btn(o.label, () => { closePrompt(); o.fn(); });
     if (o.danger) b.classList.add("danger");
     list.appendChild(b);
   }
-  combatMenu.appendChild(list);
+  card.appendChild(list);
+  itemGetEl.appendChild(card);
+  itemGetEl.classList.remove("hidden");
 }
 
 function closePrompt() {
   G.prompt = false;
-  combatMenu.classList.add("hidden");
-  combatMenu.innerHTML = "";
-  if (G.state === "board") movePad.classList.remove("hidden");
+  itemGetEl.classList.add("hidden");
+  itemGetEl.innerHTML = "";
 }
 
 // 階段: 降りるか選ぶ
@@ -520,7 +525,8 @@ function askDescend(cell) {
       } },
       { label: "✋ まだ探索する", fn: () => { renderBoard(); } },
     ],
-    ICONS.stairs
+    ICONS.stairs,
+    boss ? { banner: "⚠ 不穏な気配 ⚠", accent: "#d4504e" } : { banner: "✦ 発見 ✦" }
   );
 }
 
@@ -593,10 +599,10 @@ function rollChest(cell, allowDanger, done) {
 
 // 戦闘勝利後の宝箱 (必ず出現)。罠やミミックはなしで安全に開封
 function battleChest() {
-  showChoice("⚔ 勝利！ 宝箱が現れた。開ける？", [
+  showChoice("宝箱が現れた！ 開ける？", [
     { label: "🔓 開ける", fn: () => rollChest(null, false, () => { if (G.state === "board") renderBoard(); }) },
     { label: "✋ 開けない", fn: () => { renderBoard(); } },
-  ]);
+  ], ICONS.chest, { banner: "⚔ 勝利 ⚔" });
 }
 
 // 階層に応じた宝のテーブル
