@@ -1206,18 +1206,11 @@ function renderStatus() {
   // ===== 装備タブ: 所持品 / 装備中 / 情報 =====
   const layout = el("div", "st-eqlayout");
 
-  // 所持品 (装備中も含めた一覧。装備品には E バッジ)
+  // 所持品 (装備中の品は所持品から外れ、右の「装備中」にのみ表示される)
   const invCol = el("div", "st-col");
   invCol.appendChild(el("div", "st-h", `所持品 (持ち ${p.items.length}/${MAX_ITEMS})`));
   const invList = el("div", "st-invlist");
-  // 装備中アイテム
-  for (const slot of SLOTS) {
-    const it = p.equip[slot];
-    if (!it) continue;
-    invList.appendChild(invRow(p, it, true, { from: "equip", key: slot }));
-  }
-  // 所持アイテム
-  p.items.forEach((it, i) => invList.appendChild(invRow(p, it, false, { from: "bag", index: i })));
+  p.items.forEach((it, i) => invList.appendChild(invRow(p, it, { from: "bag", index: i })));
   if (!invList.children.length) invList.appendChild(el("div", "st-empty", "(なし)"));
   invCol.appendChild(invList);
   layout.appendChild(invCol);
@@ -1245,17 +1238,12 @@ function renderStatus() {
 }
 
 // 所持品リストの1行
-function invRow(p, it, equipped, sel) {
-  const selected = stSel && (
-    (sel.from === "equip" && stSel.from === "equip" && stSel.key === sel.key) ||
-    (sel.from === "bag" && stSel.from === "bag" && stSel.item === it)
-  );
+function invRow(p, it, sel) {
+  const selected = stSel && stSel.from === "bag" && stSel.item === it;
   const row = el("div", "st-invrow" + (selected ? " sel" : ""));
-  const badge = el("span", "st-badge" + (equipped ? " on" : ""), equipped ? "E" : "");
-  row.appendChild(badge);
   const ic = el("span", "st-iicon"); ic.appendChild(spriteCanvas(it, 2)); row.appendChild(ic);
   row.appendChild(el("span", "st-iname", it.name + (it.cursed ? " 🔒" : "")));
-  row.addEventListener("click", () => { stSel = sel.from === "bag" ? { item: it, from: "bag", index: sel.index } : { item: it, from: "equip", key: sel.key }; renderStatus(); });
+  row.addEventListener("click", () => { stSel = { item: it, from: "bag", index: sel.index }; renderStatus(); });
   return row;
 }
 
@@ -1396,13 +1384,43 @@ function useItem(p, index) {
   if (used) { p.items.splice(index, 1); stSel = null; }
   renderStatus(); renderParty();
 }
+// 捨てる: 取り返しのつかない操作なので確認画面を挟む
 function dropItem(p, index) {
   const it = p.items[index];
   if (!it) return;
-  p.items.splice(index, 1);
-  log(`${it.name}を捨てた`, "sys");
-  stSel = null;
-  renderStatus();
+  showConfirm({
+    title: `${it.name} を捨てる？`,
+    lines: ["捨てたアイテムは二度と戻らない。"],
+    okLabel: "🗑 捨てる",
+    onOk: () => {
+      p.items.splice(index, 1);
+      log(`${it.name}を捨てた`, "sys");
+      stSel = null;
+      renderStatus();
+    },
+  });
+}
+
+// 確認ダイアログ (ステータス画面の上にも出せる軽量モーダル)
+function showConfirm({ title, lines = [], okLabel = "実行する", onOk }) {
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card confirm-card");
+  card.style.borderColor = "#d4504e";
+  card.style.boxShadow = "0 0 40px #d4504e55";
+  const bn = el("div", "ig-banner", "⚠ 確認 ⚠");
+  bn.style.color = "#d4504e";
+  card.appendChild(bn);
+  card.appendChild(el("div", "ig-name", title));
+  for (const ln of lines) card.appendChild(el("div", "ig-desc", ln));
+  const list = el("div", "ig-choices");
+  const okBtn = btn(okLabel, () => { wrap.remove(); onOk(); });
+  okBtn.classList.add("danger");
+  list.appendChild(okBtn);
+  list.appendChild(btn("やめる", () => wrap.remove()));
+  card.appendChild(list);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
 }
 
 // アイテムを入手 (空きのあるメンバーへ)。満杯なら拾えない。{item, who} を返す
