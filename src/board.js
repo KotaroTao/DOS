@@ -9,6 +9,9 @@
 export const COLS = 8;
 export const ROWS = 6;
 
+// 死体に宿る職業の候補 (魂の職業と対応)
+const SOUL_CLASS_KEYS = ["fighter", "knight", "thief", "mage", "priest", "bishop"];
+
 const MONSTER_POOL = {
   1: ["slime", "bat", "kobold"],
   2: ["kobold", "skeleton", "orc"],
@@ -162,9 +165,15 @@ export function makeBoard(floor) {
       if (openCount(c) !== 1) continue;
       if (Math.random() >= 0.5) continue;
       const r = Math.random();
-      if (r < 0.5) { c.type = "monster"; c.monsterKey = pick(pool); c.cleared = false; }
-      else if (r < 0.7) { c.type = "chest"; c.cleared = false; }
-      else if (r < 0.85) { c.type = "trap"; c.cleared = false; }
+      if (r < 0.42) { c.type = "monster"; c.monsterKey = pick(pool); c.cleared = false; }
+      else if (r < 0.60) { c.type = "chest"; c.cleared = false; }
+      else if (r < 0.80) {
+        // 死体: 職業つき。一部は「まだあたたかい死体」で魂が手に入る (光る)
+        c.type = "corpse"; c.cleared = false;
+        c.corpseClass = pick(SOUL_CLASS_KEYS);
+        c.corpseWarm = Math.random() < 0.38;
+      }
+      else if (r < 0.90) { c.type = "trap"; c.cleared = false; }
       else { c.type = "fountain"; c.cleared = false; }
     }
   }
