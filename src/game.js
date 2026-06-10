@@ -3407,6 +3407,7 @@ function refDeserialize(data) {
 }
 
 let _lastSave = 0;
+let _saveWarned = false;
 function autosave(force = false) {
   if (!G.party || !G.party.length) return;
   const now = Date.now();
@@ -3416,7 +3417,14 @@ function autosave(force = false) {
     const snap = {};
     for (const k of SAVE_FIELDS) snap[k] = G[k];
     localStorage.setItem(SAVE_KEY, JSON.stringify(refSerialize(snap)));
-  } catch (e) { /* 容量/直列化失敗は黙殺 */ }
+  } catch (e) {
+    // localStorage が使えない (プライベートブラウズ等) と保存できない → 一度だけ警告
+    if (!_saveWarned) {
+      _saveWarned = true;
+      log("⚠ セーブできません。プライベートブラウズを解除してください。", "dmg");
+      try { showToast("⚠ セーブ不可: プライベートブラウズ?"); } catch {}
+    }
+  }
 }
 
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch {} }
@@ -3517,44 +3525,51 @@ function setupNewGame() {
 
 // ---- 起動 ----
 function init() {
+  // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
+  window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave };
+
   let loaded = false;
   try { loaded = loadGame(); } catch (e) { loaded = false; }
-  try {
-    if (!loaded) {
-      setupNewGame();
-      G.state = "town";
-      log("魂の迷宮へようこそ。人業に魂を宿し、深淵へ挑め。", "sys");
-    } else {
-      log("冒険を再開する。", "sys");
-    }
-    updateTopbar();
-    resumeFromState();
-  } catch (e) {
-    // 壊れたセーブで再開に失敗 → セーブを消して新規開始 (クラッシュループ防止)
-    clearSave();
+  if (!loaded) {
     setupNewGame();
     G.state = "town";
-    updateTopbar();
+    log("魂の迷宮へようこそ。人業に魂を宿し、深淵へ挑め。", "sys");
+  } else {
+    log("冒険を再開する。", "sys");
+    setTimeout(() => { try { showToast("💾 冒険を再開しました"); } catch {} }, 400);
+  }
+  updateTopbar();
+  // 復元描画に失敗してもセーブは絶対に消さない (データ保全優先)。
+  // 失敗時は安全に街表示へフォールバックする。
+  try {
     resumeFromState();
+  } catch (e) {
+    try {
+      G.state = "town"; G.town = { facility: null, sub: null };
+      G.statusOpen = false; G.prompt = false; G.anim = null; G.walking = false;
+      if (statusEl) statusEl.classList.add("hidden");
+      renderTown();
+    } catch (e2) { /* これ以上は何もしない (セーブは温存) */ }
   }
   autosave(true);
 
   if ("serviceWorker" in navigator) {
-    // updateViaCache:none で sw.js を常に最新チェック。更新があれば即時反映してリロード
+    // 新しい SW が制御を奪った瞬間に1度だけ確実にリロード (古いJS混在を防ぐ)
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (reloaded) return; reloaded = true; location.reload();
+    });
     navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
       reg.addEventListener("updatefound", () => {
         const sw = reg.installing;
         if (!sw) return;
         sw.addEventListener("statechange", () => {
-          if (sw.state === "activated" && navigator.serviceWorker.controller) {
-            location.reload(); // 新バージョンが有効化されたら読み直す
+          if (sw.state === "activated" && navigator.serviceWorker.controller && !reloaded) {
+            reloaded = true; location.reload();
           }
         });
       });
     }).catch(() => {});
   }
-
-  // デバッグ/テスト用フック (壁判定の検証に使用)
-  window.__game = { G, edgeOpen, COLS, ROWS };
 }
 init();
