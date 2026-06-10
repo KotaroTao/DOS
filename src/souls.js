@@ -75,12 +75,27 @@ let _soulUid = 0;
 // 魂を生成。clsKey: 職業 / level: 初期レベル
 export function makeSoul(clsKey, level = 1) {
   if (!SOUL_CLASSES[clsKey]) return null;
-  return { uid: ++_soulUid, clsKey, level, exp: 0 };
+  // memory: 宿主の人業が砕けるたびに刻まれる「記憶」。戦闘で鍛えられた証。
+  return { uid: ++_soulUid, clsKey, level, exp: 0, memory: 0 };
 }
 
-// 魂の表示名。例: 「戦士の魂 Lv3」
+// 記憶の称号 (memory の段階で重みづけ)
+export function memoryTitle(memory) {
+  if (memory >= 5) return "亡魂の";
+  if (memory >= 3) return "歴戦の";
+  if (memory >= 1) return "傷を負いし";
+  return "";
+}
+
+// 魂の表示名。例: 「歴戦の戦士の魂 Lv3」
 export function soulName(s) {
-  return `${SOUL_CLASSES[s.clsKey].label}の魂 Lv${s.level}`;
+  const t = memoryTitle(s.memory || 0);
+  return `${t}${SOUL_CLASSES[s.clsKey].label}の魂 Lv${s.level}`;
+}
+
+// 記憶ボーナス係数: memory 1つにつき +8% (最大 +40%)
+function memoryFactor(memory) {
+  return 1 + Math.min(5, memory || 0) * 0.08;
 }
 
 // レベル係数: 1部位の寄与は (1 + (level-1)*0.12) 倍
@@ -142,7 +157,7 @@ export function recalcDoll(doll) {
     const s = doll.parts[p];
     if (!s) continue;
     const st = SOUL_CLASSES[s.clsKey].stat;
-    const f = lvlFactor(s.level);
+    const f = lvlFactor(s.level) * memoryFactor(s.memory);
     hp += st.hp * f; mp += st.mp * f; atk += st.atk * f; def += st.def * f; spd += st.spd * f;
   }
   // 器そのものの最低体力 (魂が少なくても即死しないよう下駄)
@@ -210,7 +225,8 @@ export function gainSoulExp(doll, amount) {
   const each = Math.max(1, Math.floor(amount / souls.length));
   for (const s of souls) {
     if (s.level >= SOUL_MAX_LEVEL) continue;
-    s.exp += each;
+    // 記憶を宿した魂は経験を早く吸収する (戦いを思い出す)
+    s.exp += Math.round(each * memoryFactor(s.memory));
     while (s.level < SOUL_MAX_LEVEL && s.exp >= soulExpToNext(s.level)) {
       s.exp -= soulExpToNext(s.level);
       s.level++;
@@ -219,6 +235,25 @@ export function gainSoulExp(doll, amount) {
   }
   if (msgs.length) recalcDoll(doll);
   return msgs;
+}
+
+// 人業が砕けたとき、封印された魂すべてに「記憶」を刻む。
+// 一度の死につき一度だけ (doll._imprinted で多重防止)。
+// 記憶を得た魂のメッセージ配列を返す。
+export function markFallen(doll) {
+  if (!doll || doll.alive || doll._imprinted) return [];
+  doll._imprinted = true;
+  const msgs = [];
+  for (const s of dollSouls(doll)) {
+    s.memory = (s.memory || 0) + 1;
+    msgs.push(`${SOUL_CLASSES[s.clsKey].label}の魂に戦いの記憶が刻まれた`);
+  }
+  return msgs;
+}
+
+// 蘇生時に死亡フラグを解除 (次の死で再び記憶を刻めるように)
+export function clearFallen(doll) {
+  doll._imprinted = false;
 }
 
 // 部位に魂を封じる。既に封印があれば外して stock へ戻す処理は呼び出し側で。

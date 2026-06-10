@@ -8,6 +8,7 @@ import { ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, recalc, equip as equip
 import {
   PARTS, PART_LABEL, SOUL_CLASSES, makeSoul, makeDoll, soulName, soulSprite,
   dollSouls, dominantClass, recalcDoll, sealSoul, createStartingRoster, SOUL_MAX_LEVEL, soulExpToNext,
+  markFallen, clearFallen, memoryTitle,
 } from "./souls.js";
 
 const view = document.getElementById("view");
@@ -31,6 +32,8 @@ const G = {
   souls: [],          // 未封印の魂ストック
   town: { facility: null }, // 街UIの現在地
   quests: [],         // 受注可能/進行中のクエスト
+  rumor: null,        // 酒場で表示中の噂 (次回潜入で現実化)
+  activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
   codex: { mon: {}, item: {} }, // 図鑑 (遭遇したモンスター/入手したアイテム)
   story: 0,           // 王宮ストーリーの進行段階
   dragonSlain: false, // 竜を討ったか
@@ -59,6 +62,16 @@ function buzz(p) {
   if (navigator.vibrate) { try { navigator.vibrate(p); } catch {} }
 }
 
+// 砕けた人業の魂に「記憶」を刻む (全パーティを走査、一度の死で一度だけ)
+function imprintFallen() {
+  for (const d of G.party) {
+    if (d.isDoll && !d.alive) {
+      const msgs = markFallen(d);
+      for (const m of msgs) log(m, "sys");
+    }
+  }
+}
+
 // 画面シェイク (被弾・クリティカルなどの衝撃表現)
 function shakeScreen(strong = false) {
   view.classList.remove("shake", "shake-strong");
@@ -82,6 +95,8 @@ function updateTopbar() {
 
 function newFloor() {
   G.board = makeBoard(G.floor);
+  // 酒場の噂を盤面に反映 (潜入直後の階のみ)
+  if (G.activeRumor && G.activeRumor.floor === G.floor) applyRumorToBoard(G.board);
   G.px = G.board.start.x;
   G.py = G.board.start.y;
   updateTopbar();
@@ -568,7 +583,7 @@ function resolveCell(cell) {
       showEvent({
         sprite: ICONS.trap, title: "罠だ！", lines, accent: "#d4504e", banner: "⚠ 危険 ⚠",
         onClose: () => {
-          if (died) { SFX.die(); if (!G.party.some((p) => p.alive)) { gameOver(); return; } }
+          if (died) { SFX.die(); imprintFallen(); if (!G.party.some((p) => p.alive)) { gameOver(); return; } }
           renderBoard();
         },
       });
@@ -1240,6 +1255,7 @@ function endBattle() {
 }
 
 function finishToBoard() {
+  imprintFallen(); // 戦闘で砕けた人業の魂に記憶を刻む
   for (const p of G.party) p._defending = false;
   G.battle = null;
   G.battleCell = null;
@@ -1548,9 +1564,12 @@ function createDoll() {
 }
 
 function confirmDisband(d) {
+  const memSouls = dollSouls(d).filter((s) => s.memory > 0);
+  const lines = ["封じた魂はストックに戻る。", "装備していた品も外れる。"];
+  if (!d.alive && memSouls.length) lines.push(`砕けた ${memSouls.length} つの魂は「記憶」を宿し、より強く蘇る。`);
   showConfirm({
     title: `${d.name} を解体する？`,
-    lines: ["封じた魂はストックに戻る。", "装備していた品も外れる。"],
+    lines,
     okLabel: "🔨 解体する",
     onOk: () => {
       // 魂をストックへ返す
@@ -1606,7 +1625,7 @@ function renderAltar() {
       orb.style.color = SOUL_CLASSES[soul.clsKey].glow;
       orb.appendChild(spriteCanvas(soulSprite(soul.clsKey), 3));
       slot.appendChild(orb);
-      slot.appendChild(el("div", "tw-parts2", `${SOUL_CLASSES[soul.clsKey].label}Lv${soul.level}`));
+      slot.appendChild(el("div", "tw-parts2" + (soul.memory > 0 ? " mem" : ""), `${soul.memory > 0 ? "✦" : ""}${SOUL_CLASSES[soul.clsKey].label}Lv${soul.level}`));
     } else {
       orb.appendChild(el("div", "tw-partempty", "空"));
       slot.appendChild(orb);
@@ -1689,9 +1708,67 @@ function questProgress(type, key, n = 1) {
   }
 }
 
+// ---- 酒場の噂話: 次の潜入で必ず起きる「予兆」を生成し、盤面に反映 ----
+const RUMOR_SPEAKERS = ["隻眼の傭兵", "酔った盗掘者", "巡礼の僧", "宿の女将", "傷だらけの斥候", "黒衣の占い師"];
+
+function rollRumor() {
+  const floor = G.maxFloorReached;
+  const speaker = RUMOR_SPEAKERS[rand(RUMOR_SPEAKERS.length)];
+  const roll = Math.random();
+  if (roll < 0.45) {
+    // あたたかい死体 (職業指定) の予兆
+    const clsKey = ["fighter", "knight", "thief", "mage", "priest", "bishop"][rand(6)];
+    const cl = SOUL_CLASSES[clsKey].label;
+    return { type: "warmCorpse", clsKey, floor, speaker,
+      text: `「B${floor}Fで、まだあたたかい〈${cl}〉の死体を見た。魂が宿っているはずだ。」` };
+  } else if (roll < 0.70) {
+    return { type: "soulRich", floor, speaker,
+      text: `「B${floor}Fは死者が多い。あたたかい死体がいくつも転がっているとか…。」` };
+  } else if (roll < 0.90) {
+    return { type: "treasure", floor, speaker,
+      text: `「B${floor}Fの奥で金属の輝きを見たという話だ。宝箱がひとつ余分にあるかもな。」` };
+  }
+  return { type: "fountain", floor, speaker,
+    text: `「B${floor}Fには癒しの泉が湧いているらしい。傷ついたら探すといい。」` };
+}
+
+// 盤面生成後に、予兆 (rumor) を反映する
+function applyRumorToBoard(board) {
+  const r = G.activeRumor;
+  if (!r) return;
+  G.activeRumor = null;
+  // 行き止まり (開いた辺が1つ) のマスを候補にする
+  const deadends = [];
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const c = board.cells[y][x];
+    if (c.type === "start" || c.type === "stairs") continue;
+    let open = 0; for (const d of ["n", "e", "s", "w"]) if (!c.walls[d]) open++;
+    if (open === 1) deadends.push(c);
+  }
+  const pickCell = () => deadends.length ? deadends.splice(rand(deadends.length), 1)[0] : null;
+  const setCorpse = (cls) => { const c = pickCell(); if (c) { c.type = "corpse"; c.cleared = false; c.corpseWarm = true; c.corpseClass = cls; } };
+  if (r.type === "warmCorpse") setCorpse(r.clsKey);
+  else if (r.type === "soulRich") { for (let i = 0; i < 3; i++) setCorpse(["fighter","knight","thief","mage","priest","bishop"][rand(6)]); }
+  else if (r.type === "treasure") { const c = pickCell(); if (c) { c.type = "chest"; c.cleared = false; } }
+  else if (r.type === "fountain") { const c = pickCell(); if (c) { c.type = "fountain"; c.cleared = false; } }
+  log(`噂どおりだ… (${r.speaker}の話)`, "sys");
+}
+
 function renderTavern() {
   townEl.appendChild(townHeader("酒場「沈まぬ灯」"));
-  townEl.appendChild(el("div", "tw-lead", "迷宮帰りの傭兵がたむろする。パーティの編成と、依頼の受注はここで。"));
+  townEl.appendChild(el("div", "tw-lead", "迷宮帰りの傭兵がたむろする。編成・依頼・噂話はここで。"));
+
+  // --- 噂話 ---
+  if (!G.rumor) G.rumor = rollRumor();
+  townEl.appendChild(el("div", "tw-h", "酒場の噂話"));
+  const rb = el("div", "tw-rumor");
+  rb.appendChild(el("div", "tw-rumors", `― ${G.rumor.speaker} ―`));
+  rb.appendChild(el("div", "tw-rumort", G.rumor.text));
+  rb.appendChild(el("div", "tw-note", "この噂は、次に潜る迷宮で現実になる。"));
+  townEl.appendChild(rb);
+  const reroll = btn("🍺 別の噂を聞く", () => { G.rumor = rollRumor(); SFX.select(); renderTown(); });
+  reroll.className = "btn tw-add";
+  townEl.appendChild(reroll);
 
   // --- パーティ編成 ---
   townEl.appendChild(el("div", "tw-h", `編成 (${G.party.length}/6) — タップで控えへ`));
@@ -1971,7 +2048,7 @@ function renderTemple() {
   const cheapest = G.party.filter((p) => !p.alive).sort((a, b) => reviveCost(a) - reviveCost(b))[0];
   if (!anyAlive && cheapest && G.gold < reviveCost(cheapest)) {
     const free = btn(`🕯 ${cheapest.name} に魂の灯をともす (無料)`, () => {
-      cheapest.alive = true; cheapest.hp = 1; cheapest.ailment = null;
+      cheapest.alive = true; cheapest.hp = 1; cheapest.ailment = null; clearFallen(cheapest);
       SFX.levelup(); log(`${cheapest.name} はかろうじて繕われた。`, "win");
       renderTown();
     });
@@ -1989,7 +2066,7 @@ function renderTemple() {
     row.appendChild(el("div", "tw-chipn", `${d.name} †`));
     const b = btn(`蘇生 💰${cost}`, () => {
       if (G.gold < cost) { log("お金が足りない。", "sys"); return; }
-      G.gold -= cost; d.alive = true; d.hp = Math.max(1, Math.floor(d.maxhp * 0.5)); d.ailment = null;
+      G.gold -= cost; d.alive = true; d.hp = Math.max(1, Math.floor(d.maxhp * 0.5)); d.ailment = null; clearFallen(d);
       SFX.levelup(); buzz([0, 30, 40, 30]);
       log(`${d.name} は繕われ、魂が戻った。`, "win");
       renderTown();
@@ -2093,6 +2170,8 @@ function tryEnterDungeon() {
   townEl.classList.add("hidden");
   G.town.facility = null;
   G.floor = G.maxFloorReached;
+  // 表示中の噂を確定し、この迷宮で現実化させる
+  if (G.rumor) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
   G.state = "board";
   playBgm("field");
   if (townBtn) townBtn.classList.remove("hidden");
@@ -2273,7 +2352,9 @@ function renderSoulTab(p) {
     row.appendChild(orb);
     if (s) {
       const info = el("div", "st-soulinfo");
-      info.appendChild(el("div", "st-souln2", `${SOUL_CLASSES[s.clsKey].label}の魂 Lv${s.level}`));
+      const nm = el("div", "st-souln2", soulName(s));
+      if (s.memory > 0) nm.classList.add("mem");
+      info.appendChild(nm);
       // 経験値バー
       const bar = el("div", "st-soulbar");
       const ratio = s.level >= SOUL_MAX_LEVEL ? 1 : s.exp / soulExpToNext(s.level);
@@ -2588,6 +2669,7 @@ function tickPoison() {
     p.hp = Math.max(0, p.hp - 1);
     if (p.hp === 0) { p.alive = false; SFX.die(); log(`${p.name}は毒に倒れた…`, "dmg"); }
   }
+  imprintFallen();
   if (any && !G.party.some((p) => p.alive)) { gameOver(); return true; }
   return false;
 }

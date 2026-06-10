@@ -615,3 +615,16 @@ canvas.spr { image-rendering: pixelated; display: block; }
 .cdx-q { font-size: 24px; color: #4a3c60; font-weight: bold; }
 .cdx-name { font-size: 11px; color: #ece0ff; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cdx-stat { font-size: 9px; color: #9685ad; margin-top: 2px; line-height: 1.4; }
+
+/* ===== 記憶を宿した魂 (歴戦) ===== */
+.st-souln2.mem { color: #ffd27a; text-shadow: 0 0 8px rgba(255,180,80,0.5); }
+.tw-parts2.mem { color: #ffd27a; }
+
+/* ===== 酒場の噂話 ===== */
+.tw-rumor {
+  background: linear-gradient(180deg, #1a1422, #120d18);
+  border: 1px solid #4a3568; border-left: 4px solid #8a63b8;
+  border-radius: 8px; padding: 10px 12px;
+}
+.tw-rumors { font-size: 11px; color: #b49fd2; margin-bottom: 5px; }
+.tw-rumort { font-size: 13px; color: #ece0ff; line-height: 1.6; }
