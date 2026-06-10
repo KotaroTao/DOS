@@ -56,7 +56,7 @@ const G = {
   wallFlash: null,    // ブロックされた壁の赤フラッシュ { x, y, dir, t0 }
   statusOpen: false,  // ステータス画面表示中
   statusIdx: 0,       // ステータス画面で選択中のメンバー
-  statusTab: "equip", // ステータス画面のタブ "equip" | "stat"
+  statusTab: "main",  // ステータス画面のタブ "main"(統合) | "soul"
 };
 
 const rand = (n) => Math.floor(Math.random() * n);
@@ -2406,13 +2406,16 @@ function confirmReturnToTown() {
 const statusEl = document.getElementById("status-screen");
 const statusBtn = document.getElementById("status-btn");
 let stSel = null; // 詳細表示中のアイテム { item, from:"equip"|"bag", key }
+let stSoulSel = null; // 魂タブで詳細表示中の魂 (uid)
 
 function openStatus(idx = 0) {
   if (G.state !== "board" && G.state !== "town") return;
   if (G.anim || G.walking || G.prompt) return;
   G.statusOpen = true;
   G.statusIdx = idx;
+  G.statusTab = "main"; // 初期表示は統合画面 (ステータス/装備/所持品)
   stSel = null;
+  stSoulSel = null;
   statusEl.classList.remove("hidden");
   renderStatus();
 }
@@ -2447,39 +2450,29 @@ function renderStatus() {
   head.appendChild(nav);
   statusEl.appendChild(head);
 
-  // タブ
+  // タブ: ステータス(統合) / 魂
   const tabs = el("div", "st-tabbar");
+  const tMain = btn("ステータス", () => { G.statusTab = "main"; stSel = null; renderStatus(); });
+  tMain.className = "st-tab2" + (G.statusTab !== "soul" ? " active" : "");
+  tabs.appendChild(tMain);
   if (p.isDoll) {
     const tSoul = btn("魂", () => { G.statusTab = "soul"; renderStatus(); });
     tSoul.className = "st-tab2" + (G.statusTab === "soul" ? " active" : "");
     tabs.appendChild(tSoul);
   }
-  const tEquip = btn("所持品・装備", () => { G.statusTab = "equip"; renderStatus(); });
-  tEquip.className = "st-tab2" + (G.statusTab === "equip" ? " active" : "");
-  const tStat = btn("ステータス", () => { G.statusTab = "stat"; renderStatus(); });
-  tStat.className = "st-tab2" + (G.statusTab === "stat" ? " active" : "");
-  tabs.appendChild(tEquip); tabs.appendChild(tStat);
   statusEl.appendChild(tabs);
 
   if (G.statusTab === "soul" && p.isDoll) { statusEl.appendChild(renderSoulTab(p)); return; }
-  if (G.statusTab === "stat") { statusEl.appendChild(renderStatTab(p)); return; }
-  if (G.statusTab === "soul") G.statusTab = "equip"; // 非Dollなら装備へ
 
-  // ===== 装備タブ: 所持品 / 装備中 / 情報 =====
-  const layout = el("div", "st-eqlayout");
+  // ===== 統合タブ: 上から ステータス → 装備 → 所持品 =====
+  // 1. ステータス
+  statusEl.appendChild(renderStatTab(p));
 
-  // 所持品 (装備中の品は所持品から外れ、右の「装備中」にのみ表示される)
-  const invCol = el("div", "st-col");
-  invCol.appendChild(el("div", "st-h", `所持品 (持ち ${p.items.length}/${MAX_ITEMS})`));
-  const invList = el("div", "st-invlist");
-  p.items.forEach((it, i) => invList.appendChild(invRow(p, it, { from: "bag", index: i })));
-  if (!invList.children.length) invList.appendChild(el("div", "st-empty", "(なし)"));
-  invCol.appendChild(invList);
-  layout.appendChild(invCol);
+  // アイテム選択中は情報パネル (装備/使う/捨てる等の操作) を直下に表示
+  if (stSel) statusEl.appendChild(renderItemDetail(p, stSel));
 
-  // 装備中 8スロット
-  const eqCol = el("div", "st-col");
-  eqCol.appendChild(el("div", "st-h center", "装備中"));
+  // 2. 装備 (8スロット)
+  statusEl.appendChild(el("div", "st-h", "装備"));
   const eqList = el("div", "st-eqlist");
   for (const slot of SLOTS) {
     const it = p.equip[slot];
@@ -2490,13 +2483,14 @@ function renderStatus() {
     if (it) row.addEventListener("click", () => { stSel = { item: it, from: "equip", key: slot }; renderStatus(); });
     eqList.appendChild(row);
   }
-  eqCol.appendChild(eqList);
-  layout.appendChild(eqCol);
+  statusEl.appendChild(eqList);
 
-  statusEl.appendChild(layout);
-
-  // 情報パネル
-  statusEl.appendChild(renderItemDetail(p, stSel));
+  // 3. 所持品
+  statusEl.appendChild(el("div", "st-h", `所持品 (持ち ${p.items.length}/${MAX_ITEMS})`));
+  const invList = el("div", "st-invlist");
+  p.items.forEach((it, i) => invList.appendChild(invRow(p, it, { from: "bag", index: i })));
+  if (!invList.children.length) invList.appendChild(el("div", "st-empty", "(なし)"));
+  statusEl.appendChild(invList);
 }
 
 // 所持品リストの1行
@@ -2609,7 +2603,8 @@ function renderSoulTab(p) {
 
   for (const part of PARTS) {
     const s = p.parts[part];
-    const row = el("div", "st-soulrow2");
+    const selected = s && stSoulSel === s.uid;
+    const row = el("div", "st-soulrow2" + (selected ? " sel" : ""));
     row.appendChild(el("div", "st-soulpart", PART_LABEL[part]));
     const orb = el("span", "tw-chips");
     if (s) { orb.style.color = SOUL_CLASSES[s.clsKey].glow; orb.appendChild(spriteCanvas(soulSprite(s.clsKey), 2)); }
@@ -2622,10 +2617,6 @@ function renderSoulTab(p) {
       if (rank.color) nm.style.color = rank.color;
       else if (s.memory > 0) nm.classList.add("mem");
       info.appendChild(nm);
-      // この魂が人業に与えているステータス
-      const st = soulStats(s);
-      info.appendChild(el("div", "st-soulstat",
-        `HP+${st.hp} ${st.mp ? `MP+${st.mp} ` : ""}攻+${st.atk} 防+${st.def} 速+${st.spd}`));
       // 経験値バー
       const bar = el("div", "st-soulbar");
       const ratio = s.level >= SOUL_MAX_LEVEL ? 1 : s.exp / soulExpToNext(s.level);
@@ -2633,12 +2624,58 @@ function renderSoulTab(p) {
       bar.appendChild(i);
       info.appendChild(bar);
       row.appendChild(info);
+      // タップで魂の詳細 (ステータス + 基本/上位スキル) を開閉
+      row.addEventListener("click", () => { stSoulSel = selected ? null : s.uid; renderStatus(); });
+      wrap.appendChild(row);
+      if (selected) wrap.appendChild(renderSoulDetail(s));
     } else {
       row.appendChild(el("div", "st-soulinfo dim", "（魂なし）"));
+      wrap.appendChild(row);
     }
-    wrap.appendChild(row);
   }
   return wrap;
+}
+
+// 魂の詳細パネル: ステータスと、覚える基本スキル/上位スキル
+function renderSoulDetail(s) {
+  const def = SOUL_CLASSES[s.clsKey];
+  const rank = SOUL_RANKS[s.rank || "normal"];
+  const d = el("div", "st-souldetail");
+  if (rank.color) d.style.borderColor = rank.color;
+
+  // ステータス
+  const st = soulStats(s);
+  d.appendChild(el("div", "st-sdh", "ステータス"));
+  d.appendChild(el("div", "st-sdstat",
+    `HP +${st.hp}　MP +${st.mp}　こうげき +${st.atk}　ぼうぎょ +${st.def}　すばやさ +${st.spd}`));
+  if (s.memory > 0) d.appendChild(el("div", "st-sdnote", `戦いの記憶 ×${s.memory} (能力 +${Math.min(5, s.memory) * 8}%)`));
+  if (rank.order >= 1) d.appendChild(el("div", "st-sdnote", `${rank.label}魂 (能力 ×${rank.mul})`));
+
+  // スキル名の表示 (呪文 or パッシブ)
+  const skillLabel = (sk) => {
+    const sp = SPELLS[sk.key];
+    return `${sp ? sp.name : sk.key}${sp ? `（${sp.desc}）` : ""} — 魂Lv${sk.lvl}で習得`;
+  };
+  const learned = (sk) => s.level >= sk.lvl;
+
+  // 基本スキル (同職3部位以上で解放)
+  d.appendChild(el("div", "st-sdh", "基本スキル（同職の魂 3部位以上）"));
+  const basics = [];
+  if (def.passive) basics.push({ passive: true, label: def.passive.label });
+  for (const sk of def.basic) basics.push({ label: skillLabel(sk), on: learned(sk) });
+  if (!basics.length) d.appendChild(el("div", "st-sdnote", "（なし）"));
+  for (const b of basics) {
+    const line = el("div", "st-sdskill" + (b.passive || b.on ? " on" : ""), (b.passive || b.on ? "✦ " : "○ ") + b.label);
+    d.appendChild(line);
+  }
+
+  // 上位スキル (同職5部位 / 伝説魂なら3部位)
+  d.appendChild(el("div", "st-sdh", "上位スキル（同職の魂 5部位" + (rank.order >= 3 ? " ※伝説は3部位" : "") + "）"));
+  if (!def.advanced.length) d.appendChild(el("div", "st-sdnote", "（なし）"));
+  for (const sk of def.advanced) {
+    d.appendChild(el("div", "st-sdskill adv" + (learned(sk) ? " on" : ""), (learned(sk) ? "★ " : "○ ") + skillLabel(sk)));
+  }
+  return d;
 }
 
 function statLines(it) {
