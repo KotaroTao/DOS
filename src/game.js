@@ -7,9 +7,9 @@ import { spriteCanvas } from "./sprites.js";
 import { ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, recalc, equip as equipItem, unequip as unequipItem, canEquip } from "./items.js";
 import {
   PARTS, PART_LABEL, SOUL_CLASSES, makeSoul, makeDoll, soulName, soulSprite,
-  dollSouls, dominantClass, recalcDoll, sealSoul, createStartingRoster, SOUL_MAX_LEVEL, soulExpToNext,
-  markFallen, clearFallen, memoryTitle, ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
-  SOUL_RANKS, rollSoulRank, soulStats,
+  dollSouls, dominantClass, recalcDoll, sealSoul, createStartingRoster,
+  ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
+  SOUL_RANKS, rollSoulRank, soulStats, soulHardCap, ensureSoul,
 } from "./souls.js";
 
 const view = document.getElementById("view");
@@ -100,15 +100,10 @@ function forfeitRun() {
   G.run = null;
 }
 
-// 砕けた人業の魂に「記憶」を刻む (全パーティを走査、一度の死で一度だけ)。
-// あわせて時間経過の復活タイマーもセットする
+// 砕けた人業: 死亡を戦績に記録し、街への連れ帰りタイマーをセット
 function imprintFallen() {
   for (const d of G.party) {
-    if (d.isDoll && !d.alive) {
-      if (!d._imprinted) G.stats.deaths++; // 新たな死を戦績に記録
-      const msgs = markFallen(d);
-      for (const m of msgs) log(m, "sys");
-    }
+    if (d.isDoll && !d.alive && !d._dead) { G.stats.deaths++; d._dead = true; }
   }
   setReviveTimers();
 }
@@ -741,7 +736,22 @@ function collectSoul(cell, clsKey, clsLabel) {
   const lvl = 1 + (dn.soulLevelBonus || 0) + (Math.random() < 0.3 ? 1 : 0) + Math.floor(G.floor / 3);
   // 部位はランダム、ランクは抽選 (深い迷宮ほどレア魂が出やすい)
   const soul = makeSoul(clsKey, lvl, null, rollSoulRank(dn.rankBonus));
+  maybeDropEmptySoul(0.07); // まれに「空の魂」も見つかる
   acquireSoul(soul, `まだあたたかい死体（${clsLabel}）に宿っていた魂だ。`);
+}
+
+// 一定確率で「空の魂」を手の空いた人業へ。入手したらログ表示
+function maybeDropEmptySoul(chance) {
+  if (Math.random() >= chance) return false;
+  const who = G.party.find((m) => m.alive && m.items.length < MAX_ITEMS);
+  if (!who) return false;
+  const it = cloneItem(EMPTY_SOUL_ID);
+  if (!it) return false;
+  runGainItem(who, it);
+  codexSeeItem(EMPTY_SOUL_ID);
+  log(`希少な「空の魂」を見つけた！ (${who.name})`, "win");
+  setTimeout(() => showToast("✦ 空の魂 を入手"), 300);
+  return true;
 }
 
 // 魂の入手処理 (共通): ストック追加・クエスト進捗・ランクに応じた演出
@@ -863,6 +873,16 @@ function rollChest(cell, allowDanger, done) {
       onClose: () => { if (wiped) { gameOver(); return; } if (done) done(); },
     });
     return;
+  }
+  // まれに「空の魂」(魂合成の素材) が宝箱から
+  if (Math.random() < 0.09) {
+    const who = G.party.find((m) => m.alive && m.items.length < MAX_ITEMS);
+    if (who) {
+      const it = cloneItem(EMPTY_SOUL_ID);
+      runGainItem(who, it); codexSeeItem(EMPTY_SOUL_ID);
+      log(`宝箱から希少な「空の魂」を入手！ (${who.name})`, "win");
+      showItemGet(it, who, done); return;
+    }
   }
   // 通常: 宝 (ゴールド or 装備/アイテム)
   if (Math.random() < 0.6) {
@@ -1848,7 +1868,7 @@ function renderMansionEnhance() {
   townEl.appendChild(stock);
 }
 
-// 魂1つの強化行 (ステータス + ✦で鍛えるボタン)
+// 魂1つの強化行 (ステータス + ✦で鍛える + 限界突破)
 function soulEnhanceRow(s, afterLevel) {
   const rank = SOUL_RANKS[s.rank || "normal"];
   const r = el("div", "tw-soulrow" + (rank.order >= 1 ? " rare" : ""));
@@ -1859,12 +1879,12 @@ function soulEnhanceRow(s, afterLevel) {
   const nm = el("div", "tw-souln", soulName(s));
   if (rank.color) nm.style.color = rank.color;
   info.appendChild(nm);
-  const st = soulStats(s);
-  info.appendChild(el("div", "tw-soulst", `HP+${st.hp} ${st.mp ? `MP+${st.mp} ` : ""}攻+${st.atk} 防+${st.def} 速+${st.spd}`));
+  info.appendChild(el("div", "tw-soulst", `Lv ${s.level} / 上限 ${s.cap}`));
   r.appendChild(info);
-  if (s.level >= SOUL_MAX_LEVEL) {
-    r.appendChild(el("div", "tw-chiphp", "MAX"));
-  } else {
+
+  const acts = el("div", "tw-soulacts");
+  if (s.level < s.cap) {
+    // 鍛える (Lv+1)
     const cost = soulTrainCost(s.level);
     const b = btn(`✦${cost}`, () => {
       if (G.soulPts < cost) { log("Soul が足りない。", "sys"); return; }
@@ -1876,17 +1896,69 @@ function soulEnhanceRow(s, afterLevel) {
     });
     b.className = "tw-small primary";
     if (G.soulPts < cost) b.disabled = true;
-    r.appendChild(b);
+    acts.appendChild(b);
+  } else if (s.cap < soulHardCap(s)) {
+    info.children[1].textContent = `Lv ${s.level}（上限）`;
   }
+  // 限界突破 (同部位・同職の魂を素材に上限+5)
+  if (s.cap < soulHardCap(s)) {
+    const need = breakthroughNeed(s);
+    const have = fodderCount(s);
+    const bb = btn(`限界突破 (魂×${need})`, () => doBreakthrough(s, afterLevel));
+    bb.className = "tw-small";
+    if (have < need) { bb.disabled = true; bb.textContent = `限界突破 (魂${have}/${need})`; }
+    acts.appendChild(bb);
+  } else {
+    acts.appendChild(el("div", "tw-chiphp", "極"));
+  }
+  r.appendChild(acts);
   return r;
 }
 
-// 魂合成: 職業×部位 を選び Soul を払って Lv1 の魂を作る
-const SOUL_SYNTH_COST = 40;
+// 限界突破に必要な素材(同部位・同職の魂)数。Lv/ランク/突破回数が高いほど増える
+function breakthroughNeed(s) {
+  const rank = SOUL_RANKS[s.rank || "normal"];
+  const step = Math.floor((s.cap - rank.cap) / 5); // これまでの突破回数 (0始まり)
+  return 1 + step + rank.order + Math.floor(s.level / 10);
+}
+// ストックにある「同部位・同職」の魂の数 (自分自身は除く)
+function fodderCount(target) {
+  return G.souls.filter((x) => x !== target && x.part === target.part && x.clsKey === target.clsKey).length;
+}
+function doBreakthrough(s, afterLevel) {
+  const need = breakthroughNeed(s);
+  const fodder = G.souls.filter((x) => x !== s && x.part === s.part && x.clsKey === s.clsKey);
+  if (fodder.length < need) { log("素材の魂が足りない。", "sys"); return; }
+  // 消費する魂を need 個取り除く (低Lvから消費)
+  fodder.sort((a, b) => a.level - b.level);
+  const consume = fodder.slice(0, need);
+  for (const c of consume) { const i = G.souls.indexOf(c); if (i >= 0) G.souls.splice(i, 1); }
+  s.cap = Math.min(soulHardCap(s), s.cap + 5);
+  if (afterLevel) afterLevel();
+  SFX.itemget(); buzz([0, 40, 50, 40]);
+  log(`${soulName(s)} が限界突破！ レベル上限 ${s.cap} に。(魂 ${need} 個を消費)`, "win");
+  showToast(`🌟 限界突破: 上限 Lv${s.cap}`);
+  renderTown();
+}
+
+// 魂合成: 職業×部位 を選び、大量の Soul と「空の魂」を払って Lv1(通常)の魂を作る
+const SOUL_SYNTH_COST = 200;
+const EMPTY_SOUL_ID = "emptySoul";
 let synthSel = { clsKey: "fighter", part: "head" };
+// パーティ全員の所持から「空の魂」の総数を数える
+function emptySoulCount() { return allDolls().reduce((a, d) => a + d.items.filter((it) => it && it.id === EMPTY_SOUL_ID).length, 0); }
+// 「空の魂」を1つ消費 (誰かの所持から取り除く)。成功なら true
+function consumeEmptySoul() {
+  for (const d of allDolls()) {
+    const i = d.items.findIndex((it) => it && it.id === EMPTY_SOUL_ID);
+    if (i >= 0) { d.items.splice(i, 1); return true; }
+  }
+  return false;
+}
 function renderMansionSynth() {
   townEl.appendChild(townHeader("魂合成", "mansion"));
-  townEl.appendChild(el("div", "tw-lead", `✦${SOUL_SYNTH_COST} Soul を捧げ、職業と部位を選んで魂を生み出す。(所持 ✦${G.soulPts})`));
+  townEl.appendChild(el("div", "tw-lead",
+    `✦${SOUL_SYNTH_COST} Soul と「空の魂」×1 を捧げ、職業と部位を選んで通常ランクの魂を生む。\n(所持 ✦${G.soulPts} ・ 空の魂 ${emptySoulCount()}個 / 優秀以上はダンジョンでのみ入手)`));
 
   // 職業選択
   townEl.appendChild(el("div", "tw-h", "職業"));
@@ -1918,8 +1990,10 @@ function renderMansionSynth() {
   box.appendChild(el("div", "tw-sumst", `HP+${st.hp} ${st.mp ? `MP+${st.mp} ` : ""}攻+${st.atk} 防+${st.def} 速+${st.spd}`));
   townEl.appendChild(box);
 
-  const mk = btn(`🌀 魂を作る (✦${SOUL_SYNTH_COST})`, () => {
+  const canMake = G.soulPts >= SOUL_SYNTH_COST && emptySoulCount() >= 1;
+  const mk = btn(`🌀 魂を作る (✦${SOUL_SYNTH_COST} + 空の魂×1)`, () => {
     if (G.soulPts < SOUL_SYNTH_COST) { log("Soul が足りない。", "sys"); return; }
+    if (!consumeEmptySoul()) { log("「空の魂」がない。ダンジョンで探そう。", "sys"); return; }
     G.soulPts -= SOUL_SYNTH_COST;
     const s = makeSoul(synthSel.clsKey, 1, synthSel.part, "normal");
     G.souls.push(s);
@@ -1929,15 +2003,14 @@ function renderMansionSynth() {
     renderTown();
   });
   mk.className = "btn primary tw-add";
-  if (G.soulPts < SOUL_SYNTH_COST) mk.disabled = true;
+  if (!canMake) mk.disabled = true;
   townEl.appendChild(mk);
 }
 
-// その魂を今のLvまで鍛えるのに要した Soul の総量 (合成費 + 各Lvの強化費)
+// その魂を現Lvまで鍛えるのに要した Soul の総量 (各Lvの強化費 × ランク係数)
 function soulInvested(s) {
-  let total = SOUL_SYNTH_COST; // 器(Lv1)ぶん
+  let total = 20; // 基礎価値
   for (let lv = 1; lv < s.level; lv++) total += soulTrainCost(lv);
-  // ランクの希少さも価値に反映
   total = Math.round(total * (SOUL_RANKS[s.rank || "normal"].mul));
   return total;
 }
@@ -2050,9 +2123,7 @@ function buyEmptyDoll() {
 }
 
 function confirmDisband(d) {
-  const memSouls = dollSouls(d).filter((s) => s.memory > 0);
   const lines = ["宿した魂はストックに戻る。", "装備していた品も外れる。"];
-  if (!d.alive && memSouls.length) lines.push(`砕けた ${memSouls.length} つの魂は「記憶」を宿し、より強く蘇る。`);
   showConfirm({
     title: `${d.name} を解体する？`,
     lines,
@@ -2111,7 +2182,7 @@ function renderAltar() {
       orb.style.color = SOUL_CLASSES[soul.clsKey].glow;
       orb.appendChild(spriteCanvas(soulSprite(soul.clsKey), 3));
       slot.appendChild(orb);
-      const p2 = el("div", "tw-parts2" + (soul.memory > 0 ? " mem" : ""), `${soul.memory > 0 ? "✦" : ""}${SOUL_CLASSES[soul.clsKey].label}Lv${soul.level}`);
+      const p2 = el("div", "tw-parts2", `${SOUL_CLASSES[soul.clsKey].label}Lv${soul.level}`);
       const rkc = SOUL_RANKS[soul.rank || "normal"].color;
       if (rkc) p2.style.color = rkc;
       slot.appendChild(p2);
@@ -2136,8 +2207,8 @@ function renderAltar() {
     if (cur) {
       townEl.appendChild(el("div", "tw-h", `「${PART_LABEL[part]}」の魂を鍛える`));
       const trainBox = el("div", "tw-trainbox");
-      if (cur.level >= SOUL_MAX_LEVEL) {
-        trainBox.appendChild(el("div", "tw-note", `${soulName(cur)} は最大レベルだ。`));
+      if (cur.level >= cur.cap) {
+        trainBox.appendChild(el("div", "tw-note", `${soulName(cur)} は上限 Lv${cur.cap}。館の「魂強化」で限界突破を。`));
       } else {
         const tc = soulTrainCost(cur.level);
         trainBox.appendChild(el("div", "tw-trainn", `${soulName(cur)} → Lv${cur.level + 1}`));
@@ -2201,7 +2272,7 @@ function soulTrainCost(level) { return 15 + level * 12; }
 
 function trainSoul(d, part) {
   const s = d.parts[part];
-  if (!s || s.level >= SOUL_MAX_LEVEL) return;
+  if (!s || s.level >= s.cap) return;
   const cost = soulTrainCost(s.level);
   if (G.soulPts < cost) { log("Soul が足りない。", "sys"); return; }
   G.soulPts -= cost;
@@ -2579,7 +2650,7 @@ function reviveDoll(d, byRedSoul = false) {
   d.hp = Math.max(1, Math.floor(d.maxhp * 0.5));
   d.ailment = null;
   d.reviveAt = null;
-  clearFallen(d);
+  d._dead = false;
   SFX.levelup(); buzz([0, 30, 40, 30]);
   log(`${d.name} が街に連れ戻された。${byRedSoul ? "(赤い魂の力)" : ""}`, "win");
   showToast(`✨ ${d.name} が帰還した`);
@@ -3063,7 +3134,7 @@ function campCast(caster, spellKey) {
       wrap.remove();
       caster.mp -= sp.mp;
       const heal = sp.power + rand(Math.ceil(sp.power * 0.3));
-      if (!t.alive && sp.revive) { t.alive = true; t.ailment = null; t.reviveAt = null; clearFallen(t); t.hp = Math.min(t.maxhp, heal); log(`${sp.name}！ ${t.name}が蘇った (HP ${t.hp})`, "heal"); }
+      if (!t.alive && sp.revive) { t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false; t.hp = Math.min(t.maxhp, heal); log(`${sp.name}！ ${t.name}が蘇った (HP ${t.hp})`, "heal"); }
       else { t.hp = Math.min(t.maxhp, t.hp + heal); log(`${sp.name}！ ${t.name}のHPが ${heal} 回復`, "heal"); }
       SFX.heal(); buzz(15);
       renderStatus(); renderParty();
@@ -3104,11 +3175,10 @@ function renderSoulTab(p) {
       const info = el("div", "st-soulinfo");
       const nm = el("div", "st-souln2", soulName(s));
       if (rank.color) nm.style.color = rank.color;
-      else if (s.memory > 0) nm.classList.add("mem");
       info.appendChild(nm);
-      // 成長は館の「魂の強化」のみ (戦闘では育たない)
+      // 成長・限界突破は館「魂強化」で
       info.appendChild(el("div", "st-soulstat",
-        s.level >= SOUL_MAX_LEVEL ? "Lv MAX" : `Lv ${s.level} / ${SOUL_MAX_LEVEL} ・ 強化は館で ✦${soulTrainCost(s.level)}`));
+        s.level >= s.cap ? `Lv ${s.level}（上限）— 館で限界突破` : `Lv ${s.level} / ${s.cap} ・ 強化は館で ✦${soulTrainCost(s.level)}`));
       row.appendChild(info);
       // タップで魂の詳細 (ステータス + 基本/上位スキル) を開閉
       row.addEventListener("click", () => { stSoulSel = selected ? null : s.uid; renderStatus(); });
@@ -3134,7 +3204,7 @@ function renderSoulDetail(s) {
   d.appendChild(el("div", "st-sdh", "ステータス"));
   d.appendChild(el("div", "st-sdstat",
     `HP +${st.hp}　MP +${st.mp}　こうげき +${st.atk}　ぼうぎょ +${st.def}　すばやさ +${st.spd}`));
-  if (s.memory > 0) d.appendChild(el("div", "st-sdnote", `⚔ この魂は ${s.memory} 度の死を見届けた (能力 +${Math.min(5, s.memory) * 8}%)`));
+  d.appendChild(el("div", "st-sdnote", `レベル上限 ${s.cap}（限界突破で最大 ${soulHardCap(s)}）`));
   if (rank.order >= 1) d.appendChild(el("div", "st-sdnote", `${rank.label}魂 (能力 ×${rank.mul})`));
 
   // スキル名の表示 (呪文 or パッシブ)
@@ -3232,6 +3302,8 @@ function renderItemDetail(p, sel) {
   if (sel.from === "bag") {
     if (it.slot === "use") {
       acts.appendChild(btn("使う", () => useItem(p, sel.index)));
+    } else if (it.slot === "mat") {
+      // 素材 (空の魂など): 装備も使用もできない
     } else {
       const can = canEquip(p, it);
       const b = btn(can ? "装備する" : "装備不可", () => { if (can) doEquip(p, it); });
@@ -3807,9 +3879,13 @@ function loadGame() {
     G.battle.log = log;
     for (const e of (G.battle.enemies || [])) if (e.key && MONSTERS[e.key]) e.mon = MONSTERS[e.key];
   }
+  // 旧セーブの魂に cap を補完 (記憶廃止 + レベル上限導入の移行)
+  for (const s of (G.souls || [])) ensureSoul(s);
   for (const d of [...(G.party || []), ...(G.reserve || [])]) {
+    for (const p of PARTS) if (d.parts && d.parts[p]) ensureSoul(d.parts[p]);
     try { recalcDoll(d); } catch {}
   }
+  if (!G.stats) G.stats = { runs: 0, deepest: 0, kills: 0, deaths: 0, soulsFound: 0, bossKills: 0 };
   return true;
 }
 

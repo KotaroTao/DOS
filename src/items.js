@@ -526,6 +526,25 @@ export const ITEMS = {
       "............",
     ]),
   },
+  // 魂合成に使うレア素材 (slot:"mat" = 装備も使用もできない)
+  emptySoul: {
+    id: "emptySoul", name: "空の魂", slot: "mat", price: 0, classes: null,
+    desc: "何者の記憶も宿していない空の器。魂合成の核になる希少品。",
+    ...sprite([
+      "....cccc....",
+      "..cc.pp.cc..",
+      ".c..pwwp..c.",
+      "c..pw..wp..c",
+      "c.pw....wp.c",
+      "c.pw....wp.c",
+      "c..pw..wp..c",
+      "c...pwwp...c",
+      ".c...pp...c.",
+      "..cc....cc..",
+      "....cccc....",
+      "............",
+    ]),
+  },
 };
 
 // 派生ステータスを装備から再計算
