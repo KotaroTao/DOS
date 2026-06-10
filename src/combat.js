@@ -13,7 +13,13 @@ export const CLASSES = {
   fighter: { label: "戦士", hp: 34, mp: 0, atk: 12, def: 8, spd: 6, spells: [] },
   mage: { label: "魔法使い", hp: 18, mp: 14, atk: 5, def: 3, spd: 7, spells: ["HALITO", "MAHALITO", "KATINO"] },
   priest: { label: "僧侶", hp: 24, mp: 12, atk: 7, def: 5, spd: 5, spells: ["DIOS", "DIAL"] },
+  knight: { label: "騎士", hp: 42, mp: 0, atk: 11, def: 12, spd: 4, spells: [] },
+  thief: { label: "盗賊", hp: 22, mp: 0, atk: 9, def: 5, spd: 11, spells: [] },
+  bishop: { label: "魔導僧", hp: 22, mp: 16, atk: 6, def: 4, spd: 6, spells: ["HALITO", "DIOS", "DIAL"] },
 };
+
+// パーティは最大6人
+export const MAX_PARTY = 6;
 
 export function createParty() {
   const make = (name, clsKey) => {
@@ -29,9 +35,12 @@ export function createParty() {
   };
   return [
     make("アレク", "fighter"),
+    make("ガレス", "knight"),
+    make("ロビン", "thief"),
     make("メリナ", "mage"),
     make("セイル", "priest"),
-  ];
+    make("イルザ", "bishop"),
+  ].slice(0, MAX_PARTY);
 }
 
 let _uid = 0;
