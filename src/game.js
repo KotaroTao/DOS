@@ -27,7 +27,7 @@ const G = {
   maxFloorReached: 1, // 到達した最深階 (街から再開する基準)
   board: null,
   px: 0, py: 0,
-  gold: 200,          // 初期所持金 (宿屋・神殿・商店用)
+  gold: 200,          // 初期所持金 (宿屋・商店用)
   soulPts: 0,         // Soul(魂): 敵/死体から得る。館で魂のレベルアップに使う
   redSoul: 100,       // Red Soul(赤い魂): プレミアム通貨 (空の人業購入・加護)
   dollsPurchased: 0,  // 空の人業を購入した回数 (価格の段階に使う)
@@ -66,7 +66,8 @@ function buzz(p) {
   if (navigator.vibrate) { try { navigator.vibrate(p); } catch {} }
 }
 
-// 砕けた人業の魂に「記憶」を刻む (全パーティを走査、一度の死で一度だけ)
+// 砕けた人業の魂に「記憶」を刻む (全パーティを走査、一度の死で一度だけ)。
+// あわせて時間経過の復活タイマーもセットする
 function imprintFallen() {
   for (const d of G.party) {
     if (d.isDoll && !d.alive) {
@@ -74,6 +75,7 @@ function imprintFallen() {
       for (const m of msgs) log(m, "sys");
     }
   }
+  setReviveTimers();
 }
 
 // 画面シェイク (被弾・クリティカルなどの衝撃表現)
@@ -1326,6 +1328,7 @@ function gameOver() {
   SFX.gameover();
   buzz([0, 90, 70, 90, 70, 250]);
   log("人業はことごとく砕けた…", "dmg");
+  imprintFallen(); // 記憶を刻み、復活タイマーを開始
 
   combatMenu.classList.remove("hidden");
   combatMenu.innerHTML = "";
@@ -1334,7 +1337,7 @@ function gameOver() {
   if (G.redSoul >= GUARDIAN_COST) {
     const guard = btn(`🔴 赤い魂の加護 ×${GUARDIAN_COST} で無傷で帰還`, () => {
       G.redSoul -= GUARDIAN_COST;
-      for (const p of G.party) { p.alive = true; p.hp = p.maxhp; p.mp = p.maxmp; p.ailment = null; clearFallen(p); }
+      for (const p of G.party) { p.alive = true; p.hp = p.maxhp; p.mp = p.maxmp; p.ailment = null; p.reviveAt = null; clearFallen(p); }
       SFX.levelup(); buzz([0, 30, 40, 30]);
       log("赤い魂の加護が人業を満たした。何も失わず街へ帰還する。", "win");
       if (townBtn) townBtn.classList.add("hidden");
@@ -1344,8 +1347,8 @@ function gameOver() {
     guard.className = "btn primary";
     combatMenu.appendChild(guard);
   }
-  // 砕けた人業は神殿で繕える。街へ撤退して立て直す。
-  const retreat = btn("🏚 街へ撤退する (神殿で繕う)", () => {
+  // 砕けた人業は時間経過で復活する。街へ撤退して待つ
+  const retreat = btn("🏚 街へ撤退する (復活を待つ)", () => {
     if (townBtn) townBtn.classList.add("hidden");
     combatMenu.classList.add("hidden");
     returnToTown();
@@ -1488,7 +1491,6 @@ const FACILITIES = [
   { key: "tavern", icon: "🍺", name: "酒場「沈まぬ灯」", desc: "編成とクエスト" },
   { key: "shop", icon: "🏪", name: "商店", desc: "装備・道具の売買" },
   { key: "inn", icon: "🛏", name: "宿屋「臥牢」", desc: "魂を休め、傷を癒す" },
-  { key: "temple", icon: "⛪", name: "神殿", desc: "砕けた人業を繕う" },
   { key: "palace", icon: "👑", name: "王宮", desc: "勅命と図鑑の間" },
   { key: "shrine", icon: "🔴", name: "赤い魂の祠", desc: "Red Soul を授かる" },
 ];
@@ -1527,7 +1529,6 @@ function renderTown() {
   if (f === "altar") return renderAltar();
   if (f === "tavern") return renderTavern();
   if (f === "inn") return renderInn();
-  if (f === "temple") return renderTemple();
   if (f === "shop") return renderShop();
   if (f === "palace") return renderPalace();
   if (f === "shrine") return renderShrine();
@@ -1590,7 +1591,8 @@ function dollChip(d) {
   info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
   info.appendChild(el("div", "tw-chipc", d.cls));
   chip.appendChild(info);
-  chip.appendChild(el("div", "tw-chiphp", `HP ${d.hp}/${d.maxhp}`));
+  chip.appendChild(el("div", "tw-chiphp",
+    d.alive ? `HP ${d.hp}/${d.maxhp}` : `⏳${fmtRemain(Math.max(0, (d.reviveAt || Date.now()) - Date.now()))}`));
   return chip;
 }
 
@@ -2184,46 +2186,73 @@ function renderInn() {
   townEl.appendChild(rest);
 }
 
-// ---- 神殿: 蘇生 ----
-function reviveCost(d) { return 60 + d.level * 20; }
-function renderTemple() {
-  townEl.appendChild(townHeader("神殿"));
-  townEl.appendChild(el("div", "tw-lead", "砕けた人業を繕い、魂を呼び戻す。"));
-  // 全滅 + 資金不足の救済: 1体だけ無料で繕う
-  const anyAlive = G.party.some((p) => p.alive);
-  const cheapest = G.party.filter((p) => !p.alive).sort((a, b) => reviveCost(a) - reviveCost(b))[0];
-  if (!anyAlive && cheapest && G.gold < reviveCost(cheapest)) {
-    const free = btn(`🕯 ${cheapest.name} に魂の灯をともす (無料)`, () => {
-      cheapest.alive = true; cheapest.hp = 1; cheapest.ailment = null; clearFallen(cheapest);
-      SFX.levelup(); log(`${cheapest.name} はかろうじて繕われた。`, "win");
-      renderTown();
-    });
-    free.className = "btn primary";
-    townEl.appendChild(free);
-    townEl.appendChild(el("div", "tw-note", "全滅した者への、神殿の慈悲。"));
-  }
-  const dead = G.party.filter((p) => !p.alive);
-  const list = el("div", "tw-mlist");
-  if (!dead.length) list.appendChild(el("div", "tw-empty", "繕うべき人業はいない。"));
-  G.party.forEach((d, i) => {
-    if (d.alive) return;
-    const cost = reviveCost(d);
-    const row = el("div", "tw-mrow dead");
-    row.appendChild(el("div", "tw-chipn", `${d.name} †`));
-    const b = btn(`蘇生 💰${cost}`, () => {
-      if (G.gold < cost) { log("お金が足りない。", "sys"); return; }
-      G.gold -= cost; d.alive = true; d.hp = Math.max(1, Math.floor(d.maxhp * 0.5)); d.ailment = null; clearFallen(d);
-      SFX.levelup(); buzz([0, 30, 40, 30]);
-      log(`${d.name} は繕われ、魂が戻った。`, "win");
-      renderTown();
-    });
-    b.className = "tw-small";
-    if (G.gold < cost) b.disabled = true;
-    row.appendChild(b);
-    list.appendChild(row);
-  });
-  townEl.appendChild(list);
+// ---- 復活システム: 死亡した人業は時間経過で復活 (Red Soulで即時復活も可) ----
+// 復活時間: 人業レベル(宿した魂の平均) 10まで1時間、以降10レベルごとに+10分、最大4時間
+function reviveDurationMs(d) {
+  const over = Math.max(0, (d.level || 1) - 10);
+  const minutes = Math.min(240, 60 + Math.ceil(over / 10) * 10);
+  return minutes * 60 * 1000;
 }
+
+// 死亡を検知して復活タイマーをセット (死亡処理の各所から imprintFallen 経由で呼ばれる)
+function setReviveTimers() {
+  const now = Date.now();
+  for (const d of allDolls()) {
+    if (d.isDoll && !d.alive && !d.reviveAt) d.reviveAt = now + reviveDurationMs(d);
+  }
+}
+
+// 即時復活に必要な Red Soul (残り時間 20分あたり 1 消費、切り上げ)
+function instantReviveCost(d) {
+  if (!d.reviveAt) return 1;
+  const remainMs = Math.max(0, d.reviveAt - Date.now());
+  return Math.max(1, Math.ceil(remainMs / (20 * 60 * 1000)));
+}
+
+// 残り時間の表示 "1:23:45" / "23:45"
+function fmtRemain(ms) {
+  const s = Math.max(0, Math.ceil(ms / 1000));
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  const mm = String(m).padStart(2, "0"), ss = String(sec).padStart(2, "0");
+  return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
+}
+
+// 復活実行 (タイマー満了 or Red Soul)
+function reviveDoll(d, byRedSoul = false) {
+  d.alive = true;
+  d.hp = Math.max(1, Math.floor(d.maxhp * 0.5));
+  d.ailment = null;
+  d.reviveAt = null;
+  clearFallen(d);
+  SFX.levelup(); buzz([0, 30, 40, 30]);
+  log(`${d.name} の魂が器に戻った。${byRedSoul ? "(赤い魂の力)" : ""}`, "win");
+  showToast(`✨ ${d.name} が復活した`);
+}
+
+// Red Soul による即時復活
+function tryInstantRevive(d) {
+  const cost = instantReviveCost(d);
+  if (G.redSoul < cost) { log(`Red Soul が足りない (必要 🔴${cost})。`, "sys"); return; }
+  G.redSoul -= cost;
+  reviveDoll(d, true);
+  if (G.statusOpen) renderStatus();
+  if (G.state === "town") renderTown();
+  renderParty();
+}
+
+// 復活タイマーの監視 (5秒ごと)。満了した人業を自動復活させる
+setInterval(() => {
+  const now = Date.now();
+  let revived = false;
+  for (const d of allDolls()) {
+    if (d.isDoll && !d.alive && d.reviveAt && now >= d.reviveAt) { reviveDoll(d); revived = true; }
+  }
+  if (revived) {
+    if (G.statusOpen) renderStatus();
+    if (G.state === "town") renderTown();
+    renderParty();
+  }
+}, 5000);
 
 // ---- 赤い魂の祠: Red Soul の入手 (広告/課金) ----
 let _adCooldownUntil = 0;
@@ -2276,7 +2305,7 @@ function renderShrine() {
 
   townEl.appendChild(el("div", "tw-h", "Red Soul の使い道"));
   townEl.appendChild(el("div", "tw-lead",
-    `・空の人業の購入 (人業の館)\n・全滅時、🔴${GUARDIAN_COST} を捧げて無傷で帰還 (何も失わない)`));
+    `・空の人業の購入 (人業の館)\n・砕けた人業の即時復活 (残り時間20分につき🔴1)\n・全滅時、🔴${GUARDIAN_COST} を捧げて無傷で帰還 (何も失わない)`));
 }
 
 // ---- 商店: 装備・道具の売買 ----
@@ -2526,6 +2555,21 @@ function renderStatTab(p) {
   top.appendChild(meta);
   info.appendChild(top);
 
+  // 死亡中: 復活までの残り時間と即時復活 (Red Soul)
+  if (p.isDoll && !p.alive) {
+    if (!p.reviveAt) setReviveTimers();
+    const box = el("div", "st-revive");
+    const remain = Math.max(0, (p.reviveAt || Date.now()) - Date.now());
+    box.appendChild(el("div", "st-revt", `⏳ 復活まで ${fmtRemain(remain)}`));
+    const cost = instantReviveCost(p);
+    const b = btn(`🔴${cost} で今すぐ復活`, () => tryInstantRevive(p));
+    b.className = "btn primary";
+    if (G.redSoul < cost) b.disabled = true;
+    box.appendChild(b);
+    box.appendChild(el("div", "tw-note", "赤い魂は残り時間 20分につき 1 消費"));
+    info.appendChild(box);
+  }
+
   // ウィザードリィ風の能力値 (STR/IQ/PIE/VIT/AGI/LUK)
   if (p.isDoll && p.attrs) {
     const ab = el("div", "st-attrs");
@@ -2575,7 +2619,7 @@ function campCast(caster, spellKey) {
       wrap.remove();
       caster.mp -= sp.mp;
       const heal = sp.power + rand(Math.ceil(sp.power * 0.3));
-      if (!t.alive && sp.revive) { t.alive = true; t.ailment = null; clearFallen(t); t.hp = Math.min(t.maxhp, heal); log(`${sp.name}！ ${t.name}が蘇った (HP ${t.hp})`, "heal"); }
+      if (!t.alive && sp.revive) { t.alive = true; t.ailment = null; t.reviveAt = null; clearFallen(t); t.hp = Math.min(t.maxhp, heal); log(`${sp.name}！ ${t.name}が蘇った (HP ${t.hp})`, "heal"); }
       else { t.hp = Math.min(t.maxhp, t.hp + heal); log(`${sp.name}！ ${t.name}のHPが ${heal} 回復`, "heal"); }
       SFX.heal(); buzz(15);
       renderStatus(); renderParty();

@@ -290,7 +290,7 @@ export class Battle {
       let t = cmd.target || actor;
       if (!t.alive && !sp.revive) t = actor;
       const wasDead = !t.alive;
-      if (wasDead && sp.revive) { t.alive = true; t.ailment = null; }
+      if (wasDead && sp.revive) { t.alive = true; t.ailment = null; t.reviveAt = null; t._imprinted = false; }
       const heal = variance(sp.power);
       t.hp = Math.min(t.maxhp, (t.hp > 0 ? t.hp : 0) + heal);
       if (wasDead && sp.revive) this.log(`${t.name}は蘇った！ HPが ${heal} 回復`, "heal");
