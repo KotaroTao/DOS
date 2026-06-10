@@ -64,6 +64,7 @@ export const SFX = {
   hit() { noise(0.1, 0.08); blip(170, 0.1, "square", 0.05, 0, 80); },
   crit() { noise(0.16, 0.11); blip(140, 0.18, "square", 0.06, 0, 70); blip(330, 0.1, "square", 0.045, 0.05); },
   miss() { blip(320, 0.08, "sine", 0.04, 0, 180); },
+  evade() { blip(900, 0.07, "sine", 0.035, 0, 1700); noise(0.04, 0.02, 0.02); }, // 回避: 風切り音
   spell() { blip(700, 0.12, "sawtooth", 0.045, 0, 1500); blip(900, 0.12, "sawtooth", 0.035, 0.06, 1900); },
   fire() { noise(0.22, 0.06); blip(500, 0.2, "sawtooth", 0.05, 0, 120); blip(800, 0.16, "square", 0.03, 0.05, 200); },
   heal() { blip(523, 0.1, "sine", 0.05); blip(659, 0.1, "sine", 0.05, 0.08); blip(784, 0.15, "sine", 0.05, 0.16); },

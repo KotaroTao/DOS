@@ -8,7 +8,7 @@ import { ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, recalc, equip as equip
 import {
   PARTS, PART_LABEL, SOUL_CLASSES, makeSoul, makeDoll, soulName, soulSprite,
   dollSouls, dominantClass, recalcDoll, sealSoul, createStartingRoster, SOUL_MAX_LEVEL, soulExpToNext,
-  markFallen, clearFallen, memoryTitle,
+  markFallen, clearFallen, memoryTitle, ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
 } from "./souls.js";
 
 const view = document.getElementById("view");
@@ -591,27 +591,15 @@ function resolveCell(cell) {
     }
     case "fountain": {
       if (cell.cleared) break;
-      cell.cleared = true;
-      SFX.heal();
-      let cured = false;
-      for (const p of G.party) {
-        if (!p.alive) continue;
-        p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * 0.4));
-        p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * 0.5));
-        if (p.ailment) cured = true;
-        p.ailment = null; // 毒も浄化
-      }
-      log("癒しの泉だ！ HPとMPが回復し、毒も癒えた。", "heal");
-      showEvent({
-        sprite: ICONS.fountain, title: "癒しの泉", accent: "#5fb8d6", banner: "✦ 恵み ✦", sparkle: true,
-        lines: ["パーティのHPとMPが回復した！", ...(cured ? ["毒も浄化された。"] : [])],
-        onClose: () => renderBoard(),
-      });
+      // 利用するか選べる。今使わなくても泉は残り、後から再訪して使える。
+      showChoice("癒しの泉が湧いている。利用する？", [
+        { label: "💧 泉を利用する", fn: () => useFountain(cell) },
+        { label: "✋ 今はやめておく", fn: () => { log("泉はそのままにした。後で使える。", "sys"); renderBoard(); } },
+      ], ICONS.fountain, { banner: "✦ 癒しの泉 ✦", accent: "#5fb8d6" });
       break;
     }
     case "corpse": {
       if (cell.cleared) break;
-      cell.cleared = true;
       resolveCorpse(cell);
       break;
     }
@@ -621,12 +609,33 @@ function resolveCell(cell) {
   }
 }
 
+// 泉を利用: HP/MP回復・毒浄化。利用したら消える。
+function useFountain(cell) {
+  cell.cleared = true;
+  SFX.heal();
+  let cured = false;
+  for (const p of G.party) {
+    if (!p.alive) continue;
+    p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * 0.4));
+    p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * 0.5));
+    if (p.ailment) cured = true;
+    p.ailment = null;
+  }
+  log("癒しの泉だ！ HPとMPが回復し、毒も癒えた。", "heal");
+  showEvent({
+    sprite: ICONS.fountain, title: "癒しの泉", accent: "#5fb8d6", banner: "✦ 恵み ✦", sparkle: true,
+    lines: ["パーティのHPとMPが回復した！", ...(cured ? ["毒も浄化された。"] : [])],
+    onClose: () => renderBoard(),
+  });
+}
+
 // 死体: 「まだあたたかい死体」からのみ魂を回収できる (死体の職業に応じた魂)
 function resolveCorpse(cell) {
   const clsKey = cell.corpseClass || "fighter";
   const clsLabel = SOUL_CLASSES[clsKey].label;
   if (!cell.corpseWarm) {
-    // 風化した死体: 魂はとうに失われている
+    // 風化した死体: 魂はとうに失われている (見るだけ。踏破済みに)
+    cell.cleared = true;
     log(`風化した死体（${clsLabel}）だ。魂はすでに失われている…`, "sys");
     showEvent({
       sprite: ICONS.corpse, title: `風化した死体（${clsLabel}）`, accent: "#8c866f", banner: "— 亡骸 —",
@@ -635,7 +644,15 @@ function resolveCorpse(cell) {
     });
     return;
   }
-  // あたたかい死体: 職業に応じた魂を1つ獲得 (レベルは階層で微増)
+  // あたたかい死体: 回収するか立ち去るか選べる。立ち去れば死体は残る。
+  showChoice(`まだあたたかい死体（${clsLabel}）。魂が宿っている。`, [
+    { label: "✦ 魂を回収する", fn: () => collectSoul(cell, clsKey, clsLabel) },
+    { label: "🚶 立ち去る", fn: () => { log("死体に手を触れず、立ち去った。", "sys"); renderBoard(); } },
+  ], ICONS.corpseWarm, { banner: "✦ あたたかい死体 ✦", accent: SOUL_CLASSES[clsKey].glow });
+}
+
+function collectSoul(cell, clsKey, clsLabel) {
+  cell.cleared = true;
   const lvl = 1 + (Math.random() < 0.3 ? 1 : 0) + (G.floor >= 3 ? 1 : 0);
   const soul = makeSoul(clsKey, lvl);
   G.souls.push(soul);
@@ -645,7 +662,7 @@ function resolveCorpse(cell) {
   showEvent({
     sprite: soulSprite(clsKey), title: soulName(soul), accent: SOUL_CLASSES[clsKey].glow,
     banner: "✦ 魂を回収 ✦", sparkle: true,
-    lines: [`まだあたたかい死体（${clsLabel}）に宿っていた魂だ。`, "街の祭壇で人業に封じられる。"],
+    lines: [`まだあたたかい死体（${clsLabel}）に宿っていた魂だ。`, "人業の館で部位に封じられる。"],
     onClose: () => renderBoard(),
   });
 }
@@ -1179,7 +1196,11 @@ function applyImpact(res) {
     buzz(20);
   } else {
     const anyHit = res.hits.some((h) => !h.miss);
-    if (!anyHit) SFX.miss();
+    if (!anyHit) {
+      // 回避された場合は風切り音、それ以外は通常の空振り
+      if (res.hits.some((h) => h.evaded)) SFX.evade();
+      else SFX.miss();
+    }
     else if (res.hits.some((h) => h.crit)) { SFX.crit(); buzz([0, 30, 40, 60]); shakeScreen(true); }
     else { SFX.hit(); buzz(25); }
   }
@@ -1482,11 +1503,16 @@ function renderTownHub() {
   }
   townEl.appendChild(grid);
 
-  // パーティ概要
+  // パーティ概要 (タップで個別ステータス画面)
   const roster = el("div", "tw-roster");
-  roster.appendChild(el("div", "tw-h", `編成 (${G.party.length}/6)`));
+  roster.appendChild(el("div", "tw-h", `編成 (${G.party.length}/6) — タップでステータス`));
   const list = el("div", "tw-rlist");
-  G.party.forEach((d) => list.appendChild(dollChip(d)));
+  G.party.forEach((d, i) => {
+    const chip = dollChip(d);
+    chip.style.cursor = "pointer";
+    chip.addEventListener("click", () => openStatus(i));
+    list.appendChild(chip);
+  });
   if (!G.party.length) list.appendChild(el("div", "tw-empty", "人業がいない。館で仕立てよう。"));
   roster.appendChild(list);
   townEl.appendChild(roster);
@@ -1750,7 +1776,12 @@ function applyRumorToBoard(board) {
   if (r.type === "warmCorpse") setCorpse(r.clsKey);
   else if (r.type === "soulRich") { for (let i = 0; i < 3; i++) setCorpse(["fighter","knight","thief","mage","priest","bishop"][rand(6)]); }
   else if (r.type === "treasure") { const c = pickCell(); if (c) { c.type = "chest"; c.cleared = false; } }
-  else if (r.type === "fountain") { const c = pickCell(); if (c) { c.type = "fountain"; c.cleared = false; } }
+  else if (r.type === "fountain") {
+    // 泉は1階層に最大1つ。既にあれば追加しない
+    let hasFountain = false;
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (board.cells[y][x].type === "fountain") hasFountain = true;
+    if (!hasFountain) { const c = pickCell(); if (c) { c.type = "fountain"; c.cleared = false; } }
+  }
   log(`噂どおりだ… (${r.speaker}の話)`, "sys");
 }
 
@@ -2323,12 +2354,72 @@ function renderStatTab(p) {
   meta.innerHTML = `
     ${line1}
     <div class="st-line">HP <b>${p.hp}/${p.maxhp}</b>　MP <b>${p.mp}/${p.maxmp}</b></div>
-    <div class="st-line">こうげき <b>${p.atk}</b>　ぼうぎょ <b>${p.def}</b></div>
-    <div class="st-line">すばやさ <b>${p.spd}</b>　AC <b>${p.ac}</b></div>
+    <div class="st-line">こうげき <b>${p.atk}</b>　ぼうぎょ <b>${p.def}</b>　すばやさ <b>${p.spd}</b>　AC <b>${p.ac}</b></div>
     ${p.spells && p.spells.length ? `<div class="st-line">習得: ${p.spells.map((k) => SPELLS[k] ? SPELLS[k].name : k).join("・")}</div>` : ""}
     <div class="st-line ${p.ailment ? "st-bad" : ""}">状態: ${p.ailment === "poison" ? "毒" : (p.alive ? "正常" : "戦闘不能")}</div>`;
   info.appendChild(meta);
+
+  // ウィザードリィ風の能力値 (STR/IQ/PIE/VIT/AGI/LUK)
+  if (p.isDoll && p.attrs) {
+    const ab = el("div", "st-attrs");
+    for (const k of ATTR_KEYS) {
+      const cell = el("div", "st-attr");
+      cell.appendChild(el("span", "st-attrk", ATTR_LABEL[k]));
+      cell.appendChild(el("span", "st-attrv", String(p.attrs[k])));
+      cell.title = ATTR_NAME[k];
+      ab.appendChild(cell);
+    }
+    info.appendChild(ab);
+  }
+
+  // 野営呪文 (戦闘外の回復/治療/蘇生)。MPを消費して使える
+  const campSpells = (p.spells || []).filter((k) => SPELLS[k] && SPELLS[k].kind === "heal");
+  if (p.isDoll && p.alive && campSpells.length) {
+    info.appendChild(el("div", "st-h2", "呪文 (野営)"));
+    const sl = el("div", "st-camp");
+    for (const k of campSpells) {
+      const sp = SPELLS[k];
+      const b = btn(`${sp.name} (MP${sp.mp})`, () => campCast(p, k));
+      b.className = "tw-small";
+      if (p.mp < sp.mp) b.disabled = true;
+      sl.appendChild(b);
+    }
+    info.appendChild(sl);
+    info.appendChild(el("div", "tw-note", "回復・蘇生は対象を選んで使う。"));
+  }
   return info;
+}
+
+// 戦闘外で回復系呪文を唱える。対象の味方を選び、HP回復/蘇生する
+function campCast(caster, spellKey) {
+  const sp = SPELLS[spellKey];
+  if (caster.mp < sp.mp) { log("MPが足りない。", "sys"); return; }
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card confirm-card");
+  card.style.borderColor = "#46c08f";
+  card.appendChild(el("div", "ig-banner", `✦ ${sp.name} ✦`));
+  card.appendChild(el("div", "ig-name", "誰に唱える？"));
+  const list = el("div", "ig-choices");
+  for (const t of G.party) {
+    const canRevive = sp.revive && !t.alive;
+    if (!t.alive && !canRevive) continue;
+    const label = `${t.name} (HP ${t.hp}/${t.maxhp})${t.alive ? "" : " †"}`;
+    const b = btn(label, () => {
+      wrap.remove();
+      caster.mp -= sp.mp;
+      const heal = sp.power + rand(Math.ceil(sp.power * 0.3));
+      if (!t.alive && sp.revive) { t.alive = true; t.ailment = null; clearFallen(t); t.hp = Math.min(t.maxhp, heal); log(`${sp.name}！ ${t.name}が蘇った (HP ${t.hp})`, "heal"); }
+      else { t.hp = Math.min(t.maxhp, t.hp + heal); log(`${sp.name}！ ${t.name}のHPが ${heal} 回復`, "heal"); }
+      SFX.heal(); buzz(15);
+      renderStatus(); renderParty();
+    });
+    list.appendChild(b);
+  }
+  list.appendChild(btn("やめる", () => wrap.remove()));
+  card.appendChild(list);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
 }
 
 // 魂タブ (人業の5部位と封じた魂の成長を表示)
@@ -2722,11 +2813,14 @@ view.addEventListener("click", (e) => {
       SFX.select(); buzz(10); b.chooseTarget(enemy); runCommitted();
       return;
     }
-    // 入力フェーズ: 敵タップ = その敵に通常攻撃 (ショートカット)
-    if (b.phase === "input" && enemy) {
+    // 入力フェーズ: どこをタップしても通常攻撃。敵の上なら対象指定、
+    // 何もないところなら最寄り/先頭の敵を自動で狙う。
+    if (b.phase === "input") {
+      const tgt = enemy || b.livingEnemies()[0];
+      if (!tgt) return;
       const r = b.chooseAction("attack");
       if (r && r.invalid) { renderCombatMenu(); return; }
-      SFX.select(); buzz(10); b.chooseTarget(enemy); runCommitted();
+      SFX.select(); buzz(10); b.chooseTarget(tgt); runCommitted();
       return;
     }
     return;

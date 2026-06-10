@@ -157,7 +157,9 @@ export function makeBoard(floor) {
   cells[st.y][st.x].cleared = false;
 
   // イベントは行き止まり (開いた辺が1つ) にのみ50%
+  // 回復の泉は 1階層に最大1つ (0 の場合もある)
   const pool = MONSTER_POOL[floor] || MONSTER_POOL[3];
+  let fountainCount = 0;
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
       const c = cells[y][x];
@@ -174,7 +176,8 @@ export function makeBoard(floor) {
         c.corpseWarm = Math.random() < 0.38;
       }
       else if (r < 0.90) { c.type = "trap"; c.cleared = false; }
-      else { c.type = "fountain"; c.cleared = false; }
+      else if (fountainCount < 1) { c.type = "fountain"; c.cleared = false; fountainCount++; }
+      else { c.type = "monster"; c.monsterKey = pick(pool); c.cleared = false; } // 泉が満杯ならモンスターに
     }
   }
 
