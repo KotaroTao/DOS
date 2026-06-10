@@ -23,15 +23,16 @@ export const CLASSES = {
 export const MAX_PARTY = 6;
 
 export function createParty() {
-  const make = (name, clsKey, gear = [], bag = []) => {
+  const make = (name, clsKey, race, align, gear = [], bag = []) => {
     const c = CLASSES[clsKey];
     const m = {
       name, clsKey, cls: c.label,
+      race, align, // 種族・属性 (ウィザードリィ風)
       level: 1, exp: 0,
       hp: c.hp, maxhp: c.hp, mp: c.mp, maxmp: c.mp,
       atk: c.atk, def: c.def, spd: c.spd,
       base: { hp: c.hp, mp: c.mp, atk: c.atk, def: c.def, spd: c.spd }, // 素のステータス
-      equip: { head: null, rhand: null, lhand: null, body: null, feet: null, acc1: null, acc2: null },
+      equip: { weapon: null, body: null, shield: null, head: null, hands: null, feet: null, acc1: null, acc2: null },
       items: [],
       ailment: null,      // null | "poison"
       ac: 10 - c.def,
@@ -46,12 +47,12 @@ export function createParty() {
     return m;
   };
   return [
-    make("アレク", "fighter", ["shortSword", "woodShield", "leatherArmor"], ["herb"]),
-    make("ガレス", "knight", ["battleAxe", "ironHelm"], ["herb"]),
-    make("ロビン", "thief", ["dagger", "leatherBoots"], ["herb", "antidote"]),
-    make("メリナ", "mage", ["magicStaff", "robe"], ["manaDrop"]),
-    make("セイル", "priest", ["warHammer", "cap"], ["herb", "herb"]),
-    make("イルザ", "bishop", ["dagger", "robe"], ["manaDrop"]),
+    make("アレク", "fighter", "人間", "善", ["shortSword", "woodShield", "leatherArmor", "leatherGloves"], ["herb"]),
+    make("ガレス", "knight", "ドワーフ", "善", ["battleAxe", "ironHelm", "ironGauntlets"], ["herb"]),
+    make("ロビン", "thief", "ホビット", "中立", ["dagger", "leatherBoots", "leatherGloves"], ["herb", "antidote"]),
+    make("メリナ", "mage", "エルフ", "中立", ["magicStaff", "robe"], ["manaDrop"]),
+    make("セイル", "priest", "人間", "善", ["warHammer", "cap"], ["herb", "herb"]),
+    make("イルザ", "bishop", "ノーム", "悪", ["dagger", "robe", "silverGloves"], ["manaDrop"]),
   ].slice(0, MAX_PARTY);
 }
 

@@ -4,7 +4,7 @@ import { MONSTERS, HERO, ICONS, drawSprite } from "./sprites.js";
 import { createParty, spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, gainExp, SPELLS, cloneItem } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
 import { spriteCanvas } from "./sprites.js";
-import { ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, recalc, equip as equipItem, unequip as unequipItem, canEquip } from "./items.js";
+import { ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, recalc, equip as equipItem, unequip as unequipItem, canEquip } from "./items.js";
 
 const view = document.getElementById("view");
 const vctx = view.getContext("2d");
@@ -37,6 +37,7 @@ const G = {
   partyFx: null,      // 味方カードの被弾/回復フラッシュ (Map)
   statusOpen: false,  // ステータス画面表示中
   statusIdx: 0,       // ステータス画面で選択中のメンバー
+  statusTab: "equip", // ステータス画面のタブ "equip" | "stat"
 };
 
 const rand = (n) => Math.floor(Math.random() * n);
@@ -445,10 +446,14 @@ function askOpenChest(cell) {
 }
 
 function openChest(cell) {
-  cell.cleared = true;
+  if (cell) cell.cleared = true;
+  rollChest(cell, true, () => { if (G.state === "board") renderBoard(); });
+}
+
+// 宝箱の中身を解決。allowDanger=falseなら罠/ミミックなし。doneは安全終了時のコールバック
+function rollChest(cell, allowDanger, done) {
   const roll = Math.random();
-  // 深いほど危険度UP (生死を分ける選択)
-  const danger = 0.15 + G.floor * 0.07;
+  const danger = allowDanger ? 0.15 + G.floor * 0.07 : 0;
   if (roll < danger * 0.5) {
     // ミミック: いきなり戦闘
     SFX.trap();
@@ -469,23 +474,31 @@ function openChest(cell) {
     }
     if (!G.party.some((p) => p.alive)) { gameOver(); return; }
     log(`全員に ${dmg} ダメージ。毒に侵された者も…`, "dmg");
-    renderBoard();
+    if (done) done();
     return;
   }
   // 通常: 宝 (ゴールド or 装備/アイテム)
   if (Math.random() < 0.6) {
     const got = giveItem(randomLoot(G.floor));
-    if (got) { showItemGet(got.item, got.who); return; } // 演出後に renderBoard
+    if (got) { showItemGet(got.item, got.who, done); return; } // 演出後に done
     SFX.chest();
-    renderBoard();
+    if (done) done();
   } else {
     SFX.chest();
     const g = 10 + G.floor * 12 + rand(30);
     G.gold += g;
     updateTopbar();
     log(`宝箱から ${g} ゴールドを手に入れた！`, "win");
-    renderBoard();
+    if (done) done();
   }
+}
+
+// 戦闘勝利後の宝箱 (必ず出現)。罠やミミックはなしで安全に開封
+function battleChest() {
+  showChoice("⚔ 勝利！ 宝箱が現れた。開ける？", [
+    { label: "🔓 開ける", fn: () => rollChest(null, false, () => { if (G.state === "board") renderBoard(); }) },
+    { label: "✋ 開けない", fn: () => { renderBoard(); } },
+  ]);
 }
 
 // 階層に応じた宝のテーブル
@@ -845,6 +858,8 @@ function endBattle() {
     if (G.battleCell) G.battleCell.cleared = true;
     finishToBoard();
     if (wasBoss) { victory(); return; }
+    // 勝利後は必ず宝箱が出現
+    setTimeout(battleChest, 350);
   } else if (b.result === "flee") {
     // 逃走: 元のマスへ戻る (カードは表のまま)
     if (G.prevPos) { G.px = G.prevPos.x; G.py = G.prevPos.y; }
@@ -969,80 +984,107 @@ function renderStatus() {
   const p = G.party[G.statusIdx];
   statusEl.innerHTML = "";
 
-  // ヘッダ: メンバータブ + 閉じる
+  // ===== ヘッダ: 肖像 + 名前 + 属性-種族-職業 + 前後/閉じる + タブ =====
   const head = el("div", "st-head");
-  const tabs = el("div", "st-tabs");
-  G.party.forEach((m, i) => {
-    const t = btn(statName(m), () => { G.statusIdx = i; stSel = null; renderStatus(); });
-    t.className = "st-tab" + (i === G.statusIdx ? " active" : "") + (m.alive ? "" : " dead");
-    tabs.appendChild(t);
-  });
-  head.appendChild(tabs);
-  const close = btn("✕", closeStatus); close.className = "st-close";
-  head.appendChild(close);
+  const port = el("div", "st-port small");
+  port.appendChild(spriteCanvas(HERO, 4));
+  head.appendChild(port);
+  const idn = el("div", "st-idn");
+  idn.appendChild(el("div", "st-name", p.name + (p.alive ? "" : " †")));
+  idn.appendChild(el("div", "st-sub", `${p.align} - ${p.race} - ${p.cls} Lv${p.level}`));
+  head.appendChild(idn);
+  const nav = el("div", "st-nav");
+  const prev = btn("◀", () => { G.statusIdx = (G.statusIdx + G.party.length - 1) % G.party.length; stSel = null; renderStatus(); }); prev.className = "st-navb";
+  const next = btn("▶", () => { G.statusIdx = (G.statusIdx + 1) % G.party.length; stSel = null; renderStatus(); }); next.className = "st-navb";
+  const close = btn("✕", closeStatus); close.className = "st-navb";
+  nav.appendChild(prev); nav.appendChild(next); nav.appendChild(close);
+  head.appendChild(nav);
   statusEl.appendChild(head);
 
-  const body = el("div", "st-body");
+  // タブ
+  const tabs = el("div", "st-tabbar");
+  const tEquip = btn("所持品・装備", () => { G.statusTab = "equip"; renderStatus(); });
+  tEquip.className = "st-tab2" + (G.statusTab !== "stat" ? " active" : "");
+  const tStat = btn("ステータス", () => { G.statusTab = "stat"; renderStatus(); });
+  tStat.className = "st-tab2" + (G.statusTab === "stat" ? " active" : "");
+  tabs.appendChild(tEquip); tabs.appendChild(tStat);
+  statusEl.appendChild(tabs);
 
-  // 基本情報
-  const info = el("div", "st-info");
+  if (G.statusTab === "stat") { statusEl.appendChild(renderStatTab(p)); return; }
+
+  // ===== 装備タブ: 所持品 / 装備中 / 情報 =====
+  const layout = el("div", "st-eqlayout");
+
+  // 所持品 (装備中も含めた一覧。装備品には E バッジ)
+  const invCol = el("div", "st-col");
+  invCol.appendChild(el("div", "st-h", `所持品 (持ち ${p.items.length}/${MAX_ITEMS})`));
+  const invList = el("div", "st-invlist");
+  // 装備中アイテム
+  for (const slot of SLOTS) {
+    const it = p.equip[slot];
+    if (!it) continue;
+    invList.appendChild(invRow(p, it, true, { from: "equip", key: slot }));
+  }
+  // 所持アイテム
+  p.items.forEach((it, i) => invList.appendChild(invRow(p, it, false, { from: "bag", index: i })));
+  if (!invList.children.length) invList.appendChild(el("div", "st-empty", "(なし)"));
+  invCol.appendChild(invList);
+  layout.appendChild(invCol);
+
+  // 装備中 8スロット
+  const eqCol = el("div", "st-col");
+  eqCol.appendChild(el("div", "st-h center", "装備中"));
+  const eqList = el("div", "st-eqlist");
+  for (const slot of SLOTS) {
+    const it = p.equip[slot];
+    const row = el("div", "st-eqrow" + (stSel && stSel.from === "equip" && stSel.key === slot ? " sel" : "") + (it ? "" : " empty"));
+    const si = el("span", "st-sicon"); si.appendChild(spriteCanvas(SLOT_ICONS[slot] || SLOT_ICONS.weapon, 2)); row.appendChild(si);
+    const ii = el("span", "st-iicon"); if (it) ii.appendChild(spriteCanvas(it, 2)); row.appendChild(ii);
+    row.appendChild(el("span", "st-ename", it ? it.name + (it.cursed ? " 🔒" : "") : SLOT_LABEL[slot]));
+    if (it) row.addEventListener("click", () => { stSel = { item: it, from: "equip", key: slot }; renderStatus(); });
+    eqList.appendChild(row);
+  }
+  eqCol.appendChild(eqList);
+  layout.appendChild(eqCol);
+
+  statusEl.appendChild(layout);
+
+  // 情報パネル
+  statusEl.appendChild(renderItemDetail(p, stSel));
+}
+
+// 所持品リストの1行
+function invRow(p, it, equipped, sel) {
+  const selected = stSel && (
+    (sel.from === "equip" && stSel.from === "equip" && stSel.key === sel.key) ||
+    (sel.from === "bag" && stSel.from === "bag" && stSel.item === it)
+  );
+  const row = el("div", "st-invrow" + (selected ? " sel" : ""));
+  const badge = el("span", "st-badge" + (equipped ? " on" : ""), equipped ? "E" : "");
+  row.appendChild(badge);
+  const ic = el("span", "st-iicon"); ic.appendChild(spriteCanvas(it, 2)); row.appendChild(ic);
+  row.appendChild(el("span", "st-iname", it.name + (it.cursed ? " 🔒" : "")));
+  row.addEventListener("click", () => { stSel = sel.from === "bag" ? { item: it, from: "bag", index: sel.index } : { item: it, from: "equip", key: sel.key }; renderStatus(); });
+  return row;
+}
+
+// ステータスタブ (詳細なステータスシート)
+function renderStatTab(p) {
+  const info = el("div", "st-statsheet");
   const port = el("div", "st-port");
   port.appendChild(spriteCanvas(HERO, 6));
   info.appendChild(port);
   const meta = el("div", "st-meta");
   meta.innerHTML = `
-    <div class="st-name">${p.name} <span class="st-cls">${p.cls} Lv${p.level}</span></div>
+    <div class="st-line">属性 <b>${p.align}</b>　種族 <b>${p.race}</b></div>
+    <div class="st-line">職業 <b>${p.cls}</b>　レベル <b>${p.level}</b></div>
     <div class="st-line">HP <b>${p.hp}/${p.maxhp}</b>　MP <b>${p.mp}/${p.maxmp}</b></div>
     <div class="st-line">こうげき <b>${p.atk}</b>　ぼうぎょ <b>${p.def}</b></div>
     <div class="st-line">すばやさ <b>${p.spd}</b>　AC <b>${p.ac}</b></div>
     <div class="st-line">経験値 ${p.exp} / 次まで ${p.level * 30 - p.exp}</div>
     <div class="st-line ${p.ailment ? "st-bad" : ""}">状態: ${p.ailment === "poison" ? "毒" : (p.alive ? "正常" : "戦闘不能")}</div>`;
   info.appendChild(meta);
-  body.appendChild(info);
-
-  // 装備 7か所
-  const eq = el("div", "st-equip");
-  eq.appendChild(el("div", "st-h", "そうび (7か所)"));
-  const eqgrid = el("div", "st-eqgrid");
-  for (const slot of SLOTS) {
-    const it = p.equip[slot];
-    const cell = el("div", "st-slot" + (stSel && stSel.from === "equip" && stSel.key === slot ? " sel" : ""));
-    cell.appendChild(el("span", "st-slotlabel", SLOT_LABEL[slot]));
-    if (it) {
-      cell.appendChild(spriteCanvas(it, 3));
-      cell.appendChild(el("span", "st-slotname", it.name + (it.cursed ? "🔒" : "")));
-      cell.addEventListener("click", () => { stSel = { item: it, from: "equip", key: slot }; renderStatus(); });
-    } else {
-      cell.classList.add("empty");
-      cell.appendChild(el("span", "st-slotname", "—"));
-    }
-    eqgrid.appendChild(cell);
-  }
-  eq.appendChild(eqgrid);
-  body.appendChild(eq);
-
-  // 所持品 (最大12)
-  const bag = el("div", "st-bag");
-  bag.appendChild(el("div", "st-h", `もちもの (${p.items.length}/${MAX_ITEMS})`));
-  const baggrid = el("div", "st-baggrid");
-  for (let i = 0; i < MAX_ITEMS; i++) {
-    const it = p.items[i];
-    const cell = el("div", "st-item" + (it && stSel && stSel.from === "bag" && stSel.item === it ? " sel" : ""));
-    if (it) {
-      cell.appendChild(spriteCanvas(it, 3));
-      cell.addEventListener("click", () => { stSel = { item: it, from: "bag", index: i }; renderStatus(); });
-    } else {
-      cell.classList.add("empty");
-    }
-    baggrid.appendChild(cell);
-  }
-  bag.appendChild(baggrid);
-  body.appendChild(bag);
-
-  // 詳細 + 操作
-  if (stSel) body.appendChild(renderItemDetail(p, stSel));
-
-  statusEl.appendChild(body);
+  return info;
 }
 
 function statLines(it) {
@@ -1058,17 +1100,53 @@ function statLines(it) {
   return parts.join("　");
 }
 
+// 部位カテゴリ表記
+const CAT_LABEL = { weapon: "武器", shield: "盾", body: "防具", head: "頭防具", hands: "小手", feet: "足防具", acc: "装飾品", use: "消耗品" };
+
+// ウィザードリィ風の情報テキスト行
+function detailLines(it) {
+  const L = [];
+  L.push(CAT_LABEL[it.slot] || "");
+  if (it.slot === "weapon") {
+    const seg = [];
+    if (it.hit != null) seg.push(`命中${it.hit >= 0 ? "+" : ""}${it.hit}`);
+    if (it.dice) seg.push(`${it.dice}ダメージ`);
+    if (it.swings != null) seg.push(`最低攻撃回数: ${it.swings}`);
+    if (seg.length) L.push(seg.join(" / "));
+    const mod = [];
+    if (it.def) mod.push(`ぼうぎょ${it.def >= 0 ? "+" : ""}${it.def}`);
+    if (it.spd) mod.push(`すばやさ${it.spd >= 0 ? "+" : ""}${it.spd}`);
+    if (it.mp) mod.push(`MP${it.mp >= 0 ? "+" : ""}${it.mp}`);
+    if (mod.length) L.push(mod.join(" / "));
+  } else if (it.slot === "use") {
+    if (it.use && it.use.heal) L.push(`HPを ${it.use.heal} 回復`);
+    if (it.use && it.use.mp) L.push(`MPを ${it.use.mp} 回復`);
+    if (it.use && it.use.cure) L.push("毒を治す");
+  } else {
+    const mod = [];
+    if (it.def) mod.push(`ぼうぎょ${it.def >= 0 ? "+" : ""}${it.def}`);
+    if (it.atk) mod.push(`こうげき${it.atk >= 0 ? "+" : ""}${it.atk}`);
+    if (it.spd) mod.push(`すばやさ${it.spd >= 0 ? "+" : ""}${it.spd}`);
+    if (it.hp) mod.push(`HP${it.hp >= 0 ? "+" : ""}${it.hp}`);
+    if (it.mp) mod.push(`MP${it.mp >= 0 ? "+" : ""}${it.mp}`);
+    if (it.def) mod.push(`AC ${-it.def >= 0 ? "+" : ""}${-it.def}`);
+    if (mod.length) L.push(mod.join(" / "));
+  }
+  if (it.classes) L.push("装備可: " + it.classes.map(clsLabel).join("/"));
+  if (it.align) L.push(`${it.align}属性。`);
+  return L;
+}
+
 function renderItemDetail(p, sel) {
-  const it = sel.item;
   const d = el("div", "st-detail");
+  d.appendChild(el("div", "st-h center", "情報"));
+  if (!sel) { d.appendChild(el("div", "st-ddesc", "アイテムを選んでください。")); return d; }
+  const it = sel.item;
   const top = el("div", "st-dtop");
-  const big = spriteCanvas(it, 7);
-  top.appendChild(big);
+  top.appendChild(spriteCanvas(it, 6));
   const dt = el("div", "st-dtext");
   dt.appendChild(el("div", "st-dname", it.name + (it.cursed ? " 🔒呪" : "")));
-  dt.appendChild(el("div", "st-dstat", statLines(it)));
-  const cls = el("div", "st-dstat", it.classes ? "装備可: " + it.classes.map(clsLabel).join("/") : "全職装備可");
-  dt.appendChild(cls);
+  for (const line of detailLines(it)) dt.appendChild(el("div", "st-dstat", line));
   top.appendChild(dt);
   d.appendChild(top);
   d.appendChild(el("div", "st-ddesc", it.desc || ""));
