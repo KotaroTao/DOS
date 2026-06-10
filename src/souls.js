@@ -64,6 +64,45 @@ export const SOUL_CLASSES = {
 
 export const SOUL_KEYS = Object.keys(SOUL_CLASSES);
 
+// ===== 混成職業 (ハイブリッド) =====
+// 5部位を「ある職業3つ + 別の職業2つ」で組むと、特別な上位職が発現する。
+// 発見要素: プレイヤーが自分で組み合わせを見つける楽しみ = ビルド探索の核。
+// キーは "base+sub" (base=3部位の職業 / sub=2部位の職業)。
+// spell: 追加で習得する技 / passive: ステータス倍率と表示名。
+export const HYBRIDS = {
+  "fighter+thief":  { name: "剣豪",     passive: { critBonus: 0.18, spdMul: 1.12, label: "剣豪の冴え (会心/速)" } },
+  "fighter+mage":   { name: "魔法剣士", spell: "HALITO", passive: { atkMul: 1.12, label: "魔剣の理 (攻+)" } },
+  "fighter+priest": { name: "聖戦士",   spell: "DIOS",   passive: { atkMul: 1.08, defMul: 1.08, label: "聖なる闘気" } },
+  "fighter+knight": { name: "重戦士",   passive: { atkMul: 1.12, defMul: 1.10, label: "鉄血 (攻/防)" } },
+  "knight+priest":  { name: "聖騎士",   spell: "DIAL",   passive: { defMul: 1.16, label: "守護の誓い (防++)" } },
+  "knight+fighter": { name: "聖堂騎士", spell: "KYOUGEKI", passive: { defMul: 1.10, atkMul: 1.08, label: "城壁の構え" } },
+  "knight+thief":   { name: "斥候騎士", passive: { defMul: 1.10, spdMul: 1.15, label: "軽装騎士 (防/速)" } },
+  "mage+priest":    { name: "賢者",     spell: "DIAL",   passive: { label: "理を識る者 (全呪文)" } },
+  "mage+thief":     { name: "魔盗賊",   spell: "MAHALITO", passive: { spdMul: 1.18, critBonus: 0.10, label: "影呪 (速/会心)" } },
+  "mage+fighter":   { name: "戦技師",   spell: "KYOUGEKI", passive: { atkMul: 1.10, label: "武装魔導" } },
+  "priest+mage":    { name: "司教",     spell: "MAHALITO", passive: { label: "二道の信徒 (攻呪+)" } },
+  "priest+knight":  { name: "審問官",   spell: "MADIOS",  passive: { defMul: 1.10, label: "断罪の祈り" } },
+  "priest+fighter": { name: "戦僧",     spell: "MIDARE",  passive: { atkMul: 1.12, label: "破邪の拳" } },
+  "thief+mage":     { name: "呪術師",   spell: "HALITO",  passive: { spdMul: 1.18, label: "呪詛 (速++)" } },
+  "thief+fighter":  { name: "野伏",     spell: "KYOUGEKI", passive: { critBonus: 0.14, atkMul: 1.06, label: "不意打ち" } },
+  "thief+priest":   { name: "祓魔師",   spell: "DIOS",    passive: { spdMul: 1.12, critBonus: 0.08, label: "聖盗 (速/会心)" } },
+  "bishop+mage":    { name: "大魔導",   spell: "MAHALITO", passive: { label: "深淵の知識 (攻呪++)" } },
+  "bishop+priest":  { name: "大司教",   spell: "MADIOS",  passive: { label: "聖典の守護者" } },
+};
+
+// 部位タリーから混成職を判定。base(3) と sub(2) のときのみ成立し {key,name,...} を返す
+export function findHybrid(counts) {
+  let baseK = null;
+  for (const k in counts) if (counts[k] === 3) baseK = k;
+  if (!baseK) return null;
+  let subK = null;
+  for (const k in counts) if (k !== baseK && counts[k] === 2) subK = k;
+  if (!subK) return null;
+  const key = baseK + "+" + subK;
+  const h = HYBRIDS[key];
+  return h ? { key, baseK, subK, ...h } : null;
+}
+
 // ウィザードリィ風の能力値: 1部位あたりの寄与 (魂レベル/記憶で増加)
 // STR筋力 / VIT生命 / AGI敏捷 / IQ知力 / PIE信仰 / LUK幸運
 export const ATTR_KEYS = ["str", "vit", "agi", "iq", "pie", "luk"];
@@ -228,7 +267,13 @@ export function recalcDoll(doll) {
   const passives = [];
   let clsLabel = "空の器";
   let clsKey = "fighter";
-  let tier = "none"; // none | basic | advanced
+  let tier = "none"; // none | basic | advanced | hybrid
+
+  // 部位ごとの職業数を集計し、混成職(3+2)を判定
+  const counts = {};
+  for (const p of PARTS) { const s = doll.parts[p]; if (s) counts[s.clsKey] = (counts[s.clsKey] || 0) + 1; }
+  const hybrid = findHybrid(counts);
+  doll.hybrid = hybrid ? hybrid.name : null;
 
   if (dom) {
     clsKey = dom.clsKey;
@@ -262,10 +307,22 @@ export function recalcDoll(doll) {
       if (def0.passive.defMul) def *= 1 + (def0.passive.defMul - 1) * ratio;
       if (def0.passive.spdMul) spd *= 1 + (def0.passive.spdMul - 1) * ratio;
     }
+
+    // 混成職が発現していれば: 名称を上書きし、追加スキル・補正を付与
+    if (hybrid) {
+      tier = "hybrid";
+      clsLabel = hybrid.name;
+      if (hybrid.spell && !spells.includes(hybrid.spell)) spells.push(hybrid.spell);
+      const hp2 = hybrid.passive || {};
+      if (hp2.label) passives.push(hp2.label);
+      if (hp2.atkMul) atk *= hp2.atkMul;
+      if (hp2.defMul) def *= hp2.defMul;
+      if (hp2.spdMul) spd *= hp2.spdMul;
+    }
   }
 
   doll.clsKey = clsKey;
-  doll.cls = clsLabel + (tier === "advanced" ? "(覚醒)" : tier === "basic" ? "(開眼)" : "");
+  doll.cls = clsLabel + (tier === "hybrid" ? "(混成)" : tier === "advanced" ? "(覚醒)" : tier === "basic" ? "(開眼)" : "");
   doll.tier = tier;
   doll.dominant = dom;
   // 人業の「レベル」= 封印した魂の平均レベル (表示用)
@@ -279,9 +336,12 @@ export function recalcDoll(doll) {
   };
   doll.spells = spells;
   doll.passives = passives;
-  // 会心ボーナス (盗賊魂のパッシブ)
-  doll.critBonus = (dom && SOUL_CLASSES[dom.clsKey].passive && SOUL_CLASSES[dom.clsKey].passive.critBonus && tier !== "none")
-    ? SOUL_CLASSES[dom.clsKey].passive.critBonus * (tier === "advanced" ? 1 : 0.5) : 0;
+  // 会心ボーナス (盗賊魂のパッシブ + 混成職)
+  let crit = 0;
+  if (dom && SOUL_CLASSES[dom.clsKey].passive && SOUL_CLASSES[dom.clsKey].passive.critBonus && tier !== "none")
+    crit += SOUL_CLASSES[dom.clsKey].passive.critBonus * (tier === "advanced" ? 1 : 0.5);
+  if (hybrid && hybrid.passive && hybrid.passive.critBonus) crit += hybrid.passive.critBonus;
+  doll.critBonus = crit;
 
   // ウィザードリィ風の能力値を魂から算出 (ランク係数も反映)
   const attrs = { str: 0, vit: 0, agi: 0, iq: 0, pie: 0, luk: 0 };

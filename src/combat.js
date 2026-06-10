@@ -9,6 +9,9 @@ export const SPELLS = {
   DIAL: { name: "ディアル", mp: 4, kind: "heal", power: 28, target: "ally", desc: "大きく回復" },
   KATINO: { name: "カティノ", mp: 3, kind: "sleep", power: 0, target: "all-enemy", desc: "敵を眠らせる" },
   MADIOS: { name: "マディオス", mp: 8, kind: "heal", power: 60, target: "ally", revive: true, desc: "大回復・蘇生" },
+  // 物理技 (攻撃力依存。混成職などが習得)
+  KYOUGEKI: { name: "強撃", mp: 3, kind: "phys", power: 1.8, target: "enemy", desc: "渾身の一撃" },
+  MIDARE: { name: "乱れ斬り", mp: 7, kind: "phys", power: 0.9, target: "all-enemy", desc: "全体を斬る" },
 };
 
 export const CLASSES = {
@@ -277,12 +280,16 @@ export class Battle {
     actor.mp -= sp.mp;
     res.spellName = sp.name;
     res.spellKind = sp.kind;
-    this.log(`${actor.name}は ${sp.name} を唱えた！`, "hit");
-    if (sp.kind === "atk") {
+    const isPhys = sp.kind === "phys";
+    this.log(isPhys ? `${actor.name}の ${sp.name}！` : `${actor.name}は ${sp.name} を唱えた！`, "hit");
+    if (sp.kind === "atk" || isPhys) {
       const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
       for (const t of targets) {
         if (!t.alive) continue;
-        const dmg = Math.max(1, variance(sp.power) - Math.floor(t.def * 0.2));
+        // phys: 攻撃力×倍率 − 防御。atk呪文: 固定power − 防御の一部
+        const base = isPhys ? variance(Math.round(actor.atk * sp.power)) - Math.floor(t.def * 0.5)
+                            : variance(sp.power) - Math.floor(t.def * 0.2);
+        const dmg = Math.max(1, base);
         t.hp -= dmg;
         this.log(`${t.name}に ${dmg} ダメージ`, "dmg");
         if (t.asleep) t.asleep = false;
