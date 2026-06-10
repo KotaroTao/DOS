@@ -87,11 +87,33 @@ export const SOUL_MAX_LEVEL = 9;
 
 let _soulUid = 0;
 
-// 魂を生成。clsKey: 職業 / level: 初期レベル
-export function makeSoul(clsKey, level = 1) {
+// ---- 魂のランク ----
+// 上位ランクほどステータス係数が高く、特別なスキル解放を持つ。
+// 出現率はプレイ時間ベースの目安 (優秀=30分に1つ / 偉大=3時間に1つ / 伝説=10時間に1つ)。
+// 魂の入手ペースを ~20個/時 と想定した確率に変換。
+export const SOUL_RANKS = {
+  normal: { label: "",       mul: 1.0,  color: null,      order: 0 },
+  fine:   { label: "優秀な", mul: 1.25, color: "#7fd0ff", order: 1 },
+  great:  { label: "偉大な", mul: 1.6,  color: "#c08aff", order: 2 },
+  legend: { label: "伝説の", mul: 2.2,  color: "#ffcf4a", order: 3 },
+};
+
+// ランク抽選: legend 0.5% / great 1.7% / fine 10% / それ以外 normal
+export function rollSoulRank() {
+  const r = Math.random();
+  if (r < 0.005) return "legend";
+  if (r < 0.005 + 0.017) return "great";
+  if (r < 0.005 + 0.017 + 0.10) return "fine";
+  return "normal";
+}
+
+// 魂を生成。clsKey: 職業 / level / part: 対応部位 (省略時ランダム) / rank
+export function makeSoul(clsKey, level = 1, part = null, rank = "normal") {
   if (!SOUL_CLASSES[clsKey]) return null;
+  if (!part) part = PARTS[Math.floor(Math.random() * PARTS.length)];
+  if (!SOUL_RANKS[rank]) rank = "normal";
   // memory: 宿主の人業が砕けるたびに刻まれる「記憶」。戦闘で鍛えられた証。
-  return { uid: ++_soulUid, clsKey, level, exp: 0, memory: 0 };
+  return { uid: ++_soulUid, clsKey, part, rank, level, exp: 0, memory: 0 };
 }
 
 // 記憶の称号 (memory の段階で重みづけ)
@@ -102,10 +124,12 @@ export function memoryTitle(memory) {
   return "";
 }
 
-// 魂の表示名。例: 「歴戦の戦士の魂 Lv3」
+// 魂の表示名。例: 「伝説の戦士の魂（頭）Lv3」
 export function soulName(s) {
+  const rank = SOUL_RANKS[s.rank || "normal"].label;
   const t = memoryTitle(s.memory || 0);
-  return `${t}${SOUL_CLASSES[s.clsKey].label}の魂 Lv${s.level}`;
+  const part = s.part ? `（${PART_LABEL[s.part]}）` : "";
+  return `${rank}${t}${SOUL_CLASSES[s.clsKey].label}の魂${part} Lv${s.level}`;
 }
 
 // 記憶ボーナス係数: memory 1つにつき +8% (最大 +40%)
@@ -116,6 +140,24 @@ function memoryFactor(memory) {
 // レベル係数: 1部位の寄与は (1 + (level-1)*0.12) 倍
 function lvlFactor(level) {
   return 1 + (level - 1) * 0.12;
+}
+
+// 魂1つの総合係数 (レベル × 記憶 × ランク)
+function soulFactor(s) {
+  return lvlFactor(s.level) * memoryFactor(s.memory) * SOUL_RANKS[s.rank || "normal"].mul;
+}
+
+// 魂1つが持つステータス (人業のステータスはこれの合計)
+export function soulStats(s) {
+  const st = SOUL_CLASSES[s.clsKey].stat;
+  const f = soulFactor(s);
+  return {
+    hp: Math.round(st.hp * f),
+    mp: Math.round(st.mp * f),
+    atk: Math.round(st.atk * f * 10) / 10,
+    def: Math.round(st.def * f * 10) / 10,
+    spd: Math.round(st.spd * f * 10) / 10,
+  };
 }
 
 let _dollUid = 0;
@@ -166,17 +208,15 @@ export function dominantClass(doll) {
 }
 
 // 人業の合計ステータス・職業・スキルを魂から再計算し、装備補正を適用
+// 人業自体の初期ステータスは 0。宿した魂の合計値がそのまま人業の力になる。
 export function recalcDoll(doll) {
   let hp = 0, mp = 0, atk = 0, def = 0, spd = 0;
   for (const p of PARTS) {
     const s = doll.parts[p];
     if (!s) continue;
-    const st = SOUL_CLASSES[s.clsKey].stat;
-    const f = lvlFactor(s.level) * memoryFactor(s.memory);
-    hp += st.hp * f; mp += st.mp * f; atk += st.atk * f; def += st.def * f; spd += st.spd * f;
+    const st = soulStats(s);
+    hp += st.hp; mp += st.mp; atk += st.atk; def += st.def; spd += st.spd;
   }
-  // 器そのものの最低体力 (魂が少なくても即死しないよう下駄)
-  hp += 6;
 
   const dom = dominantClass(doll);
   const spells = [];
@@ -192,13 +232,24 @@ export function recalcDoll(doll) {
     if (dom.count >= 5) tier = "advanced";
     else if (dom.count >= 3) tier = "basic";
 
+    // 支配職の中で最も高いランクの魂が、スキル解放を引き上げる
+    // 偉大: スキル習得レベル要件 -2 / 伝説: さらに3部位でも上位スキル解放
+    let bestRank = 0;
+    for (const p of PARTS) {
+      const s = doll.parts[p];
+      if (s && s.clsKey === dom.clsKey) bestRank = Math.max(bestRank, SOUL_RANKS[s.rank || "normal"].order);
+    }
+    const lvlEase = bestRank >= 2 ? 2 : 0;       // 偉大+
+    const legendBoost = bestRank >= 3;           // 伝説
+
     if (tier === "basic" || tier === "advanced") {
-      for (const sk of def0.basic) if (dom.maxLevel >= sk.lvl && !spells.includes(sk.key)) spells.push(sk.key);
+      for (const sk of def0.basic) if (dom.maxLevel + lvlEase >= sk.lvl && !spells.includes(sk.key)) spells.push(sk.key);
       if (def0.passive) passives.push(def0.passive.label);
     }
-    if (tier === "advanced") {
-      for (const sk of def0.advanced) if (dom.maxLevel >= sk.lvl && !spells.includes(sk.key)) spells.push(sk.key);
+    if (tier === "advanced" || (tier === "basic" && legendBoost)) {
+      for (const sk of def0.advanced) if (dom.maxLevel + lvlEase >= sk.lvl && !spells.includes(sk.key)) spells.push(sk.key);
     }
+    if (bestRank >= 2) passives.push(bestRank >= 3 ? "伝説の魂の輝き" : "偉大な魂の共鳴");
     // パッシブ補正 (5部位そろい=advanced時のみフル適用、3部位は半分)
     if (def0.passive && (tier === "basic" || tier === "advanced")) {
       const ratio = tier === "advanced" ? 1 : 0.5;
@@ -217,7 +268,8 @@ export function recalcDoll(doll) {
   doll.level = souls.length ? Math.max(1, Math.round(souls.reduce((a, s) => a + s.level, 0) / souls.length)) : 1;
 
   doll.base = {
-    hp: Math.round(hp), mp: Math.round(mp),
+    // 器そのものは 0。魂の合計がそのまま器の力 (HPだけ最低1で即死を防ぐ)
+    hp: Math.max(1, Math.round(hp)), mp: Math.round(mp),
     atk: Math.round(atk), def: Math.round(def), spd: Math.max(1, Math.round(spd)),
   };
   doll.spells = spells;
@@ -226,16 +278,16 @@ export function recalcDoll(doll) {
   doll.critBonus = (dom && SOUL_CLASSES[dom.clsKey].passive && SOUL_CLASSES[dom.clsKey].passive.critBonus && tier !== "none")
     ? SOUL_CLASSES[dom.clsKey].passive.critBonus * (tier === "advanced" ? 1 : 0.5) : 0;
 
-  // ウィザードリィ風の能力値を魂から算出
+  // ウィザードリィ風の能力値を魂から算出 (ランク係数も反映)
   const attrs = { str: 0, vit: 0, agi: 0, iq: 0, pie: 0, luk: 0 };
   for (const p of PARTS) {
     const s = doll.parts[p];
     if (!s) continue;
     const w = SOUL_ATTR[s.clsKey];
-    const f = (1 + (s.level - 1) * 0.06) * memoryFactor(s.memory);
+    const f = (1 + (s.level - 1) * 0.06) * memoryFactor(s.memory) * SOUL_RANKS[s.rank || "normal"].mul;
     for (const k of ATTR_KEYS) attrs[k] += w[k] * f;
   }
-  for (const k of ATTR_KEYS) attrs[k] = Math.min(ATTR_MAX, Math.round(3 + attrs[k]));
+  for (const k of ATTR_KEYS) attrs[k] = Math.min(ATTR_MAX, Math.round(attrs[k]));
   doll.attrs = attrs;
   doll.luk = attrs.luk;
   doll.agi = attrs.agi;
@@ -297,35 +349,35 @@ export function createStartingRoster() {
   const dolls = [];
 
   const garo = makeDoll("ガロ");
-  for (const p of PARTS) garo.parts[p] = makeSoul("fighter", 1);
+  for (const p of PARTS) garo.parts[p] = makeSoul("fighter", 1, p);
   recalcDoll(garo);
   dolls.push(garo);
 
   const saria = makeDoll("サリア");
-  saria.parts.head = makeSoul("mage", 1);
-  saria.parts.rhand = makeSoul("mage", 1);
-  saria.parts.body = makeSoul("mage", 1);
-  saria.parts.lhand = makeSoul("thief", 1);
-  saria.parts.legs = makeSoul("thief", 1);
+  saria.parts.head = makeSoul("mage", 1, "head");
+  saria.parts.rhand = makeSoul("mage", 1, "rhand");
+  saria.parts.body = makeSoul("mage", 1, "body");
+  saria.parts.lhand = makeSoul("thief", 1, "lhand");
+  saria.parts.legs = makeSoul("thief", 1, "legs");
   recalcDoll(saria);
   dolls.push(saria);
 
   const mina = makeDoll("ミナ");
-  mina.parts.head = makeSoul("priest", 1);
-  mina.parts.rhand = makeSoul("priest", 1);
-  mina.parts.body = makeSoul("priest", 1);
-  mina.parts.lhand = makeSoul("knight", 1);
-  mina.parts.legs = makeSoul("knight", 1);
+  mina.parts.head = makeSoul("priest", 1, "head");
+  mina.parts.rhand = makeSoul("priest", 1, "rhand");
+  mina.parts.body = makeSoul("priest", 1, "body");
+  mina.parts.lhand = makeSoul("knight", 1, "lhand");
+  mina.parts.legs = makeSoul("knight", 1, "legs");
   recalcDoll(mina);
   dolls.push(mina);
 
   // 予備の魂 (組み替え・新しい人業づくり用)
   const souls = [
-    makeSoul("fighter", 1), makeSoul("fighter", 1),
-    makeSoul("knight", 1),
-    makeSoul("thief", 1), makeSoul("thief", 1),
-    makeSoul("mage", 1),
-    makeSoul("priest", 1),
+    makeSoul("fighter", 1, "rhand"), makeSoul("fighter", 1, "body"),
+    makeSoul("knight", 1, "head"),
+    makeSoul("thief", 1, "legs"), makeSoul("thief", 1, "lhand"),
+    makeSoul("mage", 1, "head"),
+    makeSoul("priest", 1, "body"),
   ];
 
   return { dolls, souls };

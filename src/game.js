@@ -9,6 +9,7 @@ import {
   PARTS, PART_LABEL, SOUL_CLASSES, makeSoul, makeDoll, soulName, soulSprite,
   dollSouls, dominantClass, recalcDoll, sealSoul, createStartingRoster, SOUL_MAX_LEVEL, soulExpToNext,
   markFallen, clearFallen, memoryTitle, ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
+  SOUL_RANKS, rollSoulRank, soulStats,
 } from "./souls.js";
 
 const view = document.getElementById("view");
@@ -659,15 +660,25 @@ function resolveCorpse(cell) {
 function collectSoul(cell, clsKey, clsLabel) {
   cell.cleared = true;
   const lvl = 1 + (Math.random() < 0.3 ? 1 : 0) + (G.floor >= 3 ? 1 : 0);
-  const soul = makeSoul(clsKey, lvl);
+  // 部位はランダム、ランクは抽選 (優秀/偉大/伝説は激レア)
+  const soul = makeSoul(clsKey, lvl, null, rollSoulRank());
+  acquireSoul(soul, `まだあたたかい死体（${clsLabel}）に宿っていた魂だ。`);
+}
+
+// 魂の入手処理 (共通): ストック追加・クエスト進捗・ランクに応じた演出
+function acquireSoul(soul, sourceLine) {
   G.souls.push(soul);
   questProgress("soul", null, 1);
-  SFX.itemget(); buzz([0, 30, 60, 30]);
-  log(`まだあたたかい死体（${clsLabel}）から ${soulName(soul)} を回収した！`, "win");
+  const rank = SOUL_RANKS[soul.rank || "normal"];
+  const rare = rank.order >= 1;
+  SFX.itemget(); buzz(rare ? [0, 40, 50, 40, 50, 150] : [0, 30, 60, 30]);
+  log(`${soulName(soul)} を手に入れた！`, "win");
+  if (rank.order >= 2) setTimeout(() => showToast(`🌟 ${rank.label}魂を発見！`), 300);
   showEvent({
-    sprite: soulSprite(clsKey), title: soulName(soul), accent: SOUL_CLASSES[clsKey].glow,
-    banner: "✦ 魂を回収 ✦", sparkle: true,
-    lines: [`まだあたたかい死体（${clsLabel}）に宿っていた魂だ。`, "人業の館で部位に宿せる。"],
+    sprite: soulSprite(soul.clsKey), title: soulName(soul),
+    accent: rank.color || SOUL_CLASSES[soul.clsKey].glow,
+    banner: rare ? `★ ${rank.label}魂 ★` : "✦ 魂を回収 ✦", sparkle: true,
+    lines: [sourceLine, "人業の館で同じ部位に宿せる。"],
     onClose: () => renderBoard(),
   });
 }
@@ -1267,6 +1278,19 @@ function endBattle() {
     SFX.victory();
     // 討伐クエストの進捗 (倒した敵を集計)
     for (const e of b.enemies) { if (!e.alive) questProgress("kill", e.key); }
+    // 人型の敵はまれに魂を落とす (レアドロップ)
+    const HUMANOID_SOUL = { kobold: "fighter", orc: "knight", skeleton: "thief", wraith: "mage" };
+    for (const e of b.enemies) {
+      if (e.alive || !HUMANOID_SOUL[e.key]) continue;
+      if (Math.random() < 0.08) {
+        const s = makeSoul(HUMANOID_SOUL[e.key], 1 + (G.floor >= 2 ? 1 : 0), null, rollSoulRank());
+        G.souls.push(s);
+        questProgress("soul", null, 1);
+        const rk = SOUL_RANKS[s.rank || "normal"];
+        log(`${e.name}が ${soulName(s)} を落とした！`, "win");
+        setTimeout(() => showToast(`${rk.order >= 2 ? "🌟" : "✦"} ${soulName(s)} を入手`), 600);
+      }
+    }
     const wasBoss = b.enemies.some((e) => e.mon.boss);
     if (wasBoss) G.dragonSlain = true;
     if (G.battleCell) G.battleCell.cleared = true;
@@ -1694,7 +1718,10 @@ function renderAltar() {
       orb.style.color = SOUL_CLASSES[soul.clsKey].glow;
       orb.appendChild(spriteCanvas(soulSprite(soul.clsKey), 3));
       slot.appendChild(orb);
-      slot.appendChild(el("div", "tw-parts2" + (soul.memory > 0 ? " mem" : ""), `${soul.memory > 0 ? "✦" : ""}${SOUL_CLASSES[soul.clsKey].label}Lv${soul.level}`));
+      const p2 = el("div", "tw-parts2" + (soul.memory > 0 ? " mem" : ""), `${soul.memory > 0 ? "✦" : ""}${SOUL_CLASSES[soul.clsKey].label}Lv${soul.level}`);
+      const rkc = SOUL_RANKS[soul.rank || "normal"].color;
+      if (rkc) p2.style.color = rkc;
+      slot.appendChild(p2);
     } else {
       orb.appendChild(el("div", "tw-partempty", "空"));
       slot.appendChild(orb);
@@ -1735,15 +1762,28 @@ function renderAltar() {
     }
     townEl.appendChild(el("div", "tw-h", `「${PART_LABEL[part]}」に宿す魂を選ぶ`));
     const stock = el("div", "tw-soullist");
-    if (!G.souls.length) stock.appendChild(el("div", "tw-empty", "ストックに魂がない。迷宮の「あたたかい死体」から集めよう。"));
-    G.souls.forEach((s, si) => {
-      const r = el("div", "tw-soulrow");
+    // 魂は対応する部位にしか宿せない
+    const candidates = G.souls
+      .map((s, si) => ({ s, si }))
+      .filter(({ s }) => (s.part || "head") === part);
+    if (!candidates.length) stock.appendChild(el("div", "tw-empty", `この部位の魂がない。迷宮で（${PART_LABEL[part]}）の魂を探そう。`));
+    for (const { s, si } of candidates) {
+      const rank = SOUL_RANKS[s.rank || "normal"];
+      const r = el("div", "tw-soulrow" + (rank.order >= 1 ? " rare" : ""));
+      if (rank.color) r.style.borderColor = rank.color;
       const o = el("span", "tw-chips"); o.style.color = SOUL_CLASSES[s.clsKey].glow; o.appendChild(spriteCanvas(soulSprite(s.clsKey), 2));
       r.appendChild(o);
-      r.appendChild(el("div", "tw-souln", soulName(s)));
+      const info = el("div", "tw-chipi");
+      const nm = el("div", "tw-souln", soulName(s));
+      if (rank.color) nm.style.color = rank.color;
+      info.appendChild(nm);
+      const st = soulStats(s);
+      info.appendChild(el("div", "tw-soulst",
+        `HP+${st.hp} ${st.mp ? `MP+${st.mp} ` : ""}攻+${st.atk} 防+${st.def} 速+${st.spd}`));
+      r.appendChild(info);
       r.addEventListener("click", () => sealFromStock(d, part, si));
       stock.appendChild(r);
-    });
+    }
     townEl.appendChild(stock);
   } else {
     townEl.appendChild(el("div", "tw-note", "部位をタップして、宿す魂を選ぶ。"));
@@ -2575,10 +2615,17 @@ function renderSoulTab(p) {
     if (s) { orb.style.color = SOUL_CLASSES[s.clsKey].glow; orb.appendChild(spriteCanvas(soulSprite(s.clsKey), 2)); }
     row.appendChild(orb);
     if (s) {
+      const rank = SOUL_RANKS[s.rank || "normal"];
+      if (rank.color) row.style.borderColor = rank.color;
       const info = el("div", "st-soulinfo");
       const nm = el("div", "st-souln2", soulName(s));
-      if (s.memory > 0) nm.classList.add("mem");
+      if (rank.color) nm.style.color = rank.color;
+      else if (s.memory > 0) nm.classList.add("mem");
       info.appendChild(nm);
+      // この魂が人業に与えているステータス
+      const st = soulStats(s);
+      info.appendChild(el("div", "st-soulstat",
+        `HP+${st.hp} ${st.mp ? `MP+${st.mp} ` : ""}攻+${st.atk} 防+${st.def} 速+${st.spd}`));
       // 経験値バー
       const bar = el("div", "st-soulbar");
       const ratio = s.level >= SOUL_MAX_LEVEL ? 1 : s.exp / soulExpToNext(s.level);
