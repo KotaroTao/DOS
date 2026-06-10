@@ -365,8 +365,9 @@ canvas.spr { image-rendering: pixelated; display: block; }
 .st-acts .btn { flex: 1; }
 .btn:disabled { opacity: 0.4; }
 
-/* ステータスタブ */
-.st-statsheet { display: flex; gap: 12px; margin-top: 10px; background: #0c1712; border: 1px solid #2c5a4a; border-radius: 8px; padding: 10px; }
+/* ステータスタブ: 上段(肖像+基本情報) → 能力値 → 野営呪文 の縦積み */
+.st-statsheet { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; background: #0c1712; border: 1px solid #2c5a4a; border-radius: 8px; padding: 10px; }
+.st-stattop { display: flex; gap: 12px; align-items: flex-start; }
 .st-meta { flex: 1; min-width: 0; font-size: 13px; line-height: 1.9; }
 .st-line b { color: #eafff4; }
 .st-bad { color: var(--danger); }
