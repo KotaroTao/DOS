@@ -9,7 +9,13 @@ export const SPELLS = {
   DIAL: { name: "ディアル", mp: 4, kind: "heal", power: 28, target: "ally", desc: "大きく回復" },
   KATINO: { name: "カティノ", mp: 3, kind: "sleep", power: 0, target: "all-enemy", desc: "敵を眠らせる" },
   MADIOS: { name: "マディオス", mp: 8, kind: "heal", power: 60, target: "ally", revive: true, desc: "大回復・蘇生" },
-  // 物理技 (攻撃力依存。混成職などが習得)
+  // 僧侶系の上位回復・蘇生
+  DIOSALL: { name: "ヒールオール", mp: 6, kind: "heal", power: 18, target: "all-ally", desc: "味方全員を回復" },
+  REVIVE: { name: "リバイブ", mp: 8, kind: "heal", power: 0, target: "ally", revive: true, revivePct: 0.5, desc: "戦闘不能をHP50%で蘇生" },
+  RESURRECT: { name: "リザレクション", mp: 14, kind: "heal", power: 0, target: "ally", revive: true, revivePct: 1.0, desc: "戦闘不能をHP100%で蘇生" },
+  // 攻撃呪文の頂点
+  TILTOWAIT: { name: "ティルトウェイト", mp: 16, kind: "atk", power: 48, target: "all-enemy", desc: "全体を消し飛ばす業火" },
+  // 物理技 (攻撃力依存)
   KYOUGEKI: { name: "強撃", mp: 3, kind: "phys", power: 1.8, target: "enemy", desc: "渾身の一撃" },
   MIDARE: { name: "乱れ斬り", mp: 7, kind: "phys", power: 0.9, target: "all-enemy", desc: "全体を斬る" },
 };
@@ -122,6 +128,8 @@ export class Battle {
     this.phase = "input";     // input | target | resolve | enemy | done
     this.pending = null;      // 対象選択待ちの行動
     this.result = null;       // "win" | "lose" | "flee"
+    this._blessingUsed = false;
+    for (const p of party) p._enduredThisBattle = false; // 不屈を戦闘ごとにリセット
     this.advance();
   }
 
@@ -165,7 +173,7 @@ export class Battle {
       const sp = SPELLS[spellKey];
       if (actor.mp < sp.mp) { this.log("MPが足りない！", "sys"); return { invalid: true }; }
       this.pending = { actor, action: "spell", spellKey };
-      if (sp.target === "all-enemy") { this.phase = "resolve"; return { needTarget: false }; }
+      if (sp.target === "all-enemy" || sp.target === "all-ally") { this.phase = "resolve"; return { needTarget: false }; }
       this.phase = "target";
       return { needTarget: true };
     }
@@ -283,12 +291,13 @@ export class Battle {
     const isPhys = sp.kind === "phys";
     this.log(isPhys ? `${actor.name}の ${sp.name}！` : `${actor.name}は ${sp.name} を唱えた！`, "hit");
     if (sp.kind === "atk" || isPhys) {
+      const spMul = (!isPhys && actor.spellMaster) ? 1.25 : 1; // 大賢者/賢者王: 攻撃呪文+25%
       const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
       for (const t of targets) {
         if (!t.alive) continue;
         // phys: 攻撃力×倍率 − 防御。atk呪文: 固定power − 防御の一部
         const base = isPhys ? variance(Math.round(actor.atk * sp.power)) - Math.floor(t.def * 0.5)
-                            : variance(sp.power) - Math.floor(t.def * 0.2);
+                            : Math.round(variance(sp.power) * spMul) - Math.floor(t.def * 0.2);
         const dmg = Math.max(1, base);
         t.hp -= dmg;
         this.log(`${t.name}に ${dmg} ダメージ`, "dmg");
@@ -296,16 +305,28 @@ export class Battle {
         res.hits.push({ target: t, dmg, died: this._die(t) });
       }
     } else if (sp.kind === "heal") {
-      // 蘇生呪文は戦闘不能の味方も対象にできる
-      let t = cmd.target || actor;
-      if (!t.alive && !sp.revive) t = actor;
-      const wasDead = !t.alive;
-      if (wasDead && sp.revive) { t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false; }
-      const heal = variance(sp.power);
-      t.hp = Math.min(t.maxhp, (t.hp > 0 ? t.hp : 0) + heal);
-      if (wasDead && sp.revive) this.log(`${t.name}は蘇った！ HPが ${heal} 回復`, "heal");
-      else this.log(`${t.name}のHPが ${heal} 回復`, "heal");
-      res.hits.push({ target: t, heal, revived: wasDead && sp.revive });
+      // 全体回復
+      if (sp.target === "all-ally") {
+        for (const t of this.party) {
+          if (!t.alive) continue;
+          const heal = variance(sp.power);
+          t.hp = Math.min(t.maxhp, t.hp + heal);
+          res.hits.push({ target: t, heal });
+        }
+        this.log(`味方全員のHPが回復した`, "heal");
+      } else {
+        // 蘇生呪文は戦闘不能の味方も対象にできる
+        let t = cmd.target || actor;
+        if (!t.alive && !sp.revive) t = actor;
+        const wasDead = !t.alive;
+        if (wasDead && sp.revive) { t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false; }
+        // revivePct があれば最大HPの割合で蘇生、それ以外は power 回復
+        const heal = sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : variance(sp.power);
+        t.hp = Math.min(t.maxhp, (t.hp > 0 ? t.hp : 0) + heal);
+        if (wasDead && sp.revive) this.log(`${t.name}は蘇った！ HP ${t.hp}`, "heal");
+        else this.log(`${t.name}のHPが ${heal} 回復`, "heal");
+        res.hits.push({ target: t, heal, revived: wasDead && sp.revive });
+      }
     } else if (sp.kind === "sleep") {
       for (const t of this.livingEnemies()) {
         if (Math.random() < 0.6) { t.asleep = true; this.log(`${t.name}は眠った`, "sys"); res.hits.push({ target: t, sleep: true }); }
@@ -316,6 +337,12 @@ export class Battle {
 
   _die(t) {
     if (t.hp <= 0 && t.alive) {
+      // 不屈 (聖堂騎士長): 致死を1回だけ HP1 で耐える
+      if (t.side === "party" && t.endure && !t._enduredThisBattle) {
+        t._enduredThisBattle = true; t.hp = 1;
+        this.log(`${t.name}は不屈で持ちこたえた！ (HP1)`, "heal");
+        return false;
+      }
       t.hp = 0; t.alive = false;
       this.log(`${t.name}を倒した！`, t.side === "enemy" ? "win" : "dmg");
       return true;
@@ -325,8 +352,18 @@ export class Battle {
 
   _checkEnd() {
     if (this.result) return;
-    if (this.livingEnemies().length === 0) this.result = "win";
-    else if (this.livingParty().length === 0) this.result = "lose";
+    if (this.livingEnemies().length === 0) { this.result = "win"; return; }
+    if (this.livingParty().length === 0) {
+      // 聖者の祝福: 全滅時、1回だけ全員HP1で復活 (祝福持ちが編成にいれば)
+      if (!this._blessingUsed && this.party.some((p) => p.blessing)) {
+        this._blessingUsed = true;
+        for (const p of this.party) { p.alive = true; p.hp = 1; p.ailment = null; p.reviveAt = null; p._dead = false; }
+        this.log("聖者の祝福！ 倒れた仲間が HP1 で立ち上がった！", "win");
+        this._blessingFired = true;
+        return;
+      }
+      this.result = "lose";
+    }
   }
 
   // 戦闘後: 防御フラグ解除・報酬計算

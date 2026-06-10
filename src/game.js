@@ -10,6 +10,7 @@ import {
   dollSouls, dominantClass, recalcDoll, sealSoul, createStartingRoster,
   ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
   SOUL_RANKS, rollSoulRank, soulStats, soulHardCap, ensureSoul,
+  JOB_RANKS, jobRankOf,
 } from "./souls.js";
 
 const view = document.getElementById("view");
@@ -1261,6 +1262,13 @@ function runCommitted() {
 // 行動の結果を演出し、終わったら次へ
 function postResolve() {
   const b = G.battle;
+  // 聖者の祝福が発動したら派手に知らせる
+  if (b._blessingFired && !b._blessingShown) {
+    b._blessingShown = true;
+    SFX.levelup(); buzz([0, 40, 50, 40, 50, 200]); shakeScreen(true);
+    showToast("🕊 聖者の祝福！ 全員復活");
+    renderParty();
+  }
   if (b.result) { G.animating = false; setTimeout(endBattle, 300); return; }
   b.advance();
   autosave(true);
@@ -2164,7 +2172,7 @@ function renderAltar() {
   const dom = d.dominant;
   sum.style.borderColor = dom ? SOUL_CLASSES[dom.clsKey].color : "#34344a";
   sum.appendChild(el("div", "tw-sumc", d.cls));
-  const tierTxt = d.tier === "advanced" ? "5部位一致 — 上位スキル解放" : d.tier === "basic" ? "3部位以上 — 基本スキル" : "2部位以下 — スキルなし";
+  const tierTxt = d.jobRank ? `職業ランク ${d.jobRank} / 5${d.hybrid ? "（混成職）" : ""}` : "同職3部位未満 — 職業未発現";
   sum.appendChild(el("div", "tw-sumt", tierTxt));
   sum.appendChild(el("div", "tw-sumst", `HP${d.maxhp} MP${d.maxmp} 攻${d.atk} 防${d.def} 速${d.spd}`));
   if (d.spells.length) sum.appendChild(el("div", "tw-sumsk", "習得: " + d.spells.map((k) => SPELLS[k] ? SPELLS[k].name : k).join("・")));
@@ -3133,8 +3141,9 @@ function campCast(caster, spellKey) {
     const b = btn(label, () => {
       wrap.remove();
       caster.mp -= sp.mp;
-      const heal = sp.power + rand(Math.ceil(sp.power * 0.3));
-      if (!t.alive && sp.revive) { t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false; t.hp = Math.min(t.maxhp, heal); log(`${sp.name}！ ${t.name}が蘇った (HP ${t.hp})`, "heal"); }
+      // 蘇生は revivePct(最大HP割合) を優先。それ以外は power 回復
+      const heal = sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : sp.power + rand(Math.ceil(sp.power * 0.3));
+      if (!t.alive && sp.revive) { t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false; t.hp = Math.max(1, Math.min(t.maxhp, heal)); log(`${sp.name}！ ${t.name}が蘇った (HP ${t.hp})`, "heal"); }
       else { t.hp = Math.min(t.maxhp, t.hp + heal); log(`${sp.name}！ ${t.name}のHPが ${heal} 回復`, "heal"); }
       SFX.heal(); buzz(15);
       renderStatus(); renderParty();
@@ -3156,9 +3165,7 @@ function renderSoulTab(p) {
   head.style.borderColor = dom ? SOUL_CLASSES[dom.clsKey].color : "#34344a";
   head.appendChild(el("div", "st-soulc", p.cls));
   head.appendChild(el("div", "st-soultt",
-    p.tier === "hybrid" ? `混成職「${p.hybrid}」発現 — 3+2 の組み合わせ` :
-    p.tier === "advanced" ? "5部位一致 — 上位スキル解放" :
-    p.tier === "basic" ? "3部位以上 — 基本スキル習得" : "2部位以下 — スキル未解放"));
+    p.jobRank ? `職業ランク ${p.jobRank} / 5${p.hybrid ? `（混成職「${p.hybrid}」）` : ""}` : "同職3部位未満 — 職業未発現"));
   wrap.appendChild(head);
 
   for (const part of PARTS) {
@@ -3207,30 +3214,24 @@ function renderSoulDetail(s) {
   d.appendChild(el("div", "st-sdnote", `レベル上限 ${s.cap}（限界突破で最大 ${soulHardCap(s)}）`));
   if (rank.order >= 1) d.appendChild(el("div", "st-sdnote", `${rank.label}魂 (能力 ×${rank.mul})`));
 
-  // スキル名の表示 (呪文 or パッシブ)
-  const skillLabel = (sk) => {
-    const sp = SPELLS[sk.key];
-    return `${sp ? sp.name : sk.key}${sp ? `（${sp.desc}）` : ""} — 魂Lv${sk.lvl}で習得`;
-  };
-  const learned = (sk) => s.level >= sk.lvl;
-
-  // 基本スキル (同職3部位以上で解放)
-  d.appendChild(el("div", "st-sdh", "基本スキル（同職の魂 3部位以上）"));
-  const basics = [];
-  if (def.passive) basics.push({ passive: true, label: def.passive.label });
-  for (const sk of def.basic) basics.push({ label: skillLabel(sk), on: learned(sk) });
-  if (!basics.length) d.appendChild(el("div", "st-sdnote", "（なし）"));
-  for (const b of basics) {
-    const line = el("div", "st-sdskill" + (b.passive || b.on ? " on" : ""), (b.passive || b.on ? "✦ " : "○ ") + b.label);
-    d.appendChild(line);
+  // この魂の職業の「職業ランク表」を表示。宿している人業の現ランクを強調。
+  d.appendChild(el("div", "st-sdh", `${def.label}の職業ランク (上位ほど強力)`));
+  const ladder = JOB_RANKS[s.clsKey] || [];
+  // この魂を宿している人業の現在ランク (あれば)
+  let curRank = 0;
+  for (const dd of allDolls()) {
+    for (const p of PARTS) if (dd.parts[p] === s) { curRank = dd.jobRank || 0; }
   }
-
-  // 上位スキル (同職5部位 / 伝説魂なら3部位)
-  d.appendChild(el("div", "st-sdh", "上位スキル（同職の魂 5部位" + (rank.order >= 3 ? " ※伝説は3部位" : "") + "）"));
-  if (!def.advanced.length) d.appendChild(el("div", "st-sdnote", "（なし）"));
-  for (const sk of def.advanced) {
-    d.appendChild(el("div", "st-sdskill adv" + (learned(sk) ? " on" : ""), (learned(sk) ? "★ " : "○ ") + skillLabel(sk)));
-  }
+  ladder.forEach((rk, i) => {
+    const lv = i + 1;
+    const skills = rk.skills.map((k) => SPELLS[k] ? `${SPELLS[k].name}（${SPELLS[k].desc}）` : k);
+    if (rk.flag === "blessing") skills.push("聖者の祝福（全滅時HP1で1回全員復活）");
+    if (rk.flag === "endure") skills.push("不屈（致死を1回HP1で耐える）");
+    if (rk.flag === "spellMaster") skills.push("攻撃呪文+25%");
+    if (rk.passive) skills.push("能力強化");
+    const on = lv <= curRank;
+    d.appendChild(el("div", "st-sdskill" + (on ? " on" : ""), `${on ? "★" : "○"} ランク${lv} ${rk.name}: ${skills.join(" / ") || "—"}`));
+  });
   return d;
 }
 
