@@ -589,3 +589,29 @@ canvas.spr { image-rendering: pixelated; display: block; }
 .st-souln2 { font-size: 12px; color: #e6fff5; }
 .st-soulbar { height: 5px; background: #16261f; border-radius: 3px; margin-top: 4px; overflow: hidden; }
 .st-soulbar > i { display: block; height: 100%; background: #46c08f; }
+
+/* ===== 酒場: クエスト掲示板 ===== */
+.tw-quest {
+  display: flex; align-items: center; gap: 9px;
+  background: #170f22; border: 1px solid #34254a; border-left: 4px solid #6a4d90;
+  border-radius: 8px; padding: 8px 10px;
+}
+.tw-quest.done { border-left-color: #46c08f; box-shadow: 0 0 10px rgba(70,192,143,0.25); }
+.tw-small.primary { border-color: var(--accent); color: #ffd84a; }
+
+/* ===== 王宮: ストーリーイベント ===== */
+.story-card { max-width: 420px; }
+.story-line { font-size: 13px; color: #e8dfc8; line-height: 1.8; margin: 7px 0; text-align: left; }
+.story-reward { font-size: 12px; color: var(--accent); margin-top: 10px; font-weight: bold; }
+
+/* ===== 図鑑 ===== */
+.cdx-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.cdx-card {
+  background: #140d1e; border: 1px solid #34254a; border-radius: 8px;
+  padding: 8px 4px; text-align: center; min-width: 0;
+}
+.cdx-card.unknown { opacity: 0.5; }
+.cdx-art { display: flex; align-items: center; justify-content: center; height: 44px; }
+.cdx-q { font-size: 24px; color: #4a3c60; font-weight: bold; }
+.cdx-name { font-size: 11px; color: #ece0ff; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cdx-stat { font-size: 9px; color: #9685ad; margin-top: 2px; line-height: 1.4; }
