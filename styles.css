@@ -363,6 +363,20 @@ canvas.spr { image-rendering: pixelated; display: block; }
 .ig-choices .btn { width: 100%; }
 .ig-card .ig-name { font-size: 16px; line-height: 1.5; }
 
+/* 確認ダイアログ (ステータス画面より前面) */
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(4, 4, 10, 0.78);
+  animation: ig-fade 0.2s ease;
+}
+.confirm-card { max-width: 300px; }
+
 /* ===== ヒント ===== */
 #hint {
   flex: 0 0 auto;
