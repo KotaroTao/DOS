@@ -1374,6 +1374,10 @@ function renderItemDetail(p, sel) {
       acts.appendChild(b);
     }
     acts.appendChild(makeDanger("捨てる", () => dropItem(p, sel.index)));
+    // 他のメンバーへ渡す (生存者が2人以上いるときのみ)
+    if (G.party.filter((m) => m.alive).length > 1) {
+      acts.appendChild(btn("渡す", () => transferItem(p, sel.index)));
+    }
   } else if (sel.from === "equip") {
     const b = makeDanger("外す", () => doUnequip(p, sel.key));
     if (it.cursed) { b.disabled = true; b.textContent = "外せない(呪)"; }
@@ -1432,6 +1436,43 @@ function dropItem(p, index) {
       renderStatus();
     },
   });
+}
+
+// 他のメンバーへアイテムを渡す。渡し先を選ぶモーダルを出す
+function transferItem(p, index) {
+  const it = p.items[index];
+  if (!it) return;
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card confirm-card");
+  card.style.borderColor = "#5fb8d6";
+  card.style.boxShadow = "0 0 40px #5fb8d655";
+  const bn = el("div", "ig-banner", "🎁 渡す");
+  bn.style.color = "#5fb8d6";
+  card.appendChild(bn);
+  card.appendChild(el("div", "ig-name", `${it.name} を誰に渡す？`));
+  const list = el("div", "ig-choices");
+  // 自分以外の生存メンバーを並べる。満杯の相手は選べない
+  G.party.forEach((m) => {
+    if (m === p || !m.alive) return;
+    const full = m.items.length >= MAX_ITEMS;
+    const label = `${m.name} (持ち ${m.items.length}/${MAX_ITEMS})` + (full ? " 満杯" : "");
+    const b = btn(label, () => {
+      wrap.remove();
+      p.items.splice(index, 1);
+      m.items.push(it);
+      log(`${it.name} を ${p.name} → ${m.name} に渡した`, "win");
+      SFX.select();
+      stSel = null;
+      renderStatus(); renderParty();
+    });
+    if (full) b.disabled = true;
+    list.appendChild(b);
+  });
+  list.appendChild(btn("やめる", () => wrap.remove()));
+  card.appendChild(list);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
 }
 
 // 確認ダイアログ (ステータス画面の上にも出せる軽量モーダル)

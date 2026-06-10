@@ -1,7 +1,7 @@
 // オフライン対応キャッシュ (PWA / アプリ化用)
 // 取得戦略は network-first: オンライン時は常に最新を取得し、
 // 取得できた時だけキャッシュ更新。オフライン時のみキャッシュを使う。
-const CACHE = "dos-v21";
+const CACHE = "dos-v22";
 const ASSETS = [
   "./",
   "./index.html",
