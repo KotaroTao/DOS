@@ -1,6 +1,7 @@
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
 import { ITEMS, SLOTS, recalc, equip } from "./items.js";
+import { gainSoulExp } from "./souls.js";
 
 export const SPELLS = {
   HALITO: { name: "ハリト", mp: 2, kind: "atk", power: 10, target: "enemy", desc: "炎の矢" },
@@ -8,6 +9,7 @@ export const SPELLS = {
   DIOS: { name: "ディオス", mp: 2, kind: "heal", power: 14, target: "ally", desc: "傷を癒す" },
   DIAL: { name: "ディアル", mp: 4, kind: "heal", power: 28, target: "ally", desc: "大きく回復" },
   KATINO: { name: "カティノ", mp: 3, kind: "sleep", power: 0, target: "all-enemy", desc: "敵を眠らせる" },
+  MADIOS: { name: "マディオス", mp: 8, kind: "heal", power: 60, target: "ally", revive: true, desc: "大回復・蘇生" },
 };
 
 export const CLASSES = {
@@ -253,7 +255,7 @@ export class Battle {
     }
     let dmg = variance(actor.atk) - Math.floor(tgt.def * 0.5);
     if (tgt._defending) dmg = Math.floor(dmg * 0.5);
-    const crit = Math.random() < 0.08;
+    const crit = Math.random() < 0.08 + (actor.critBonus || 0);
     if (crit) dmg = Math.floor(dmg * 1.85);
     dmg = Math.max(1, dmg);
     tgt.hp -= dmg;
@@ -280,11 +282,16 @@ export class Battle {
         res.hits.push({ target: t, dmg, died: this._die(t) });
       }
     } else if (sp.kind === "heal") {
-      const t = cmd.target && cmd.target.alive ? cmd.target : actor;
+      // 蘇生呪文は戦闘不能の味方も対象にできる
+      let t = cmd.target || actor;
+      if (!t.alive && !sp.revive) t = actor;
+      const wasDead = !t.alive;
+      if (wasDead && sp.revive) { t.alive = true; t.ailment = null; }
       const heal = variance(sp.power);
-      t.hp = Math.min(t.maxhp, t.hp + heal);
-      this.log(`${t.name}のHPが ${heal} 回復`, "heal");
-      res.hits.push({ target: t, heal });
+      t.hp = Math.min(t.maxhp, (t.hp > 0 ? t.hp : 0) + heal);
+      if (wasDead && sp.revive) this.log(`${t.name}は蘇った！ HPが ${heal} 回復`, "heal");
+      else this.log(`${t.name}のHPが ${heal} 回復`, "heal");
+      res.hits.push({ target: t, heal, revived: wasDead && sp.revive });
     } else if (sp.kind === "sleep") {
       for (const t of this.livingEnemies()) {
         if (Math.random() < 0.6) { t.asleep = true; this.log(`${t.name}は眠った`, "sys"); res.hits.push({ target: t, sleep: true }); }
@@ -318,6 +325,15 @@ export class Battle {
 
 // レベルアップ判定
 export function gainExp(member, exp) {
+  // 人業は経験値を封印した魂へ配分してレベルアップさせる
+  if (member.isDoll) {
+    const before = member.maxhp;
+    const msgs = gainSoulExp(member, exp);
+    // 最大HP/MPが伸びた分はその場で回復させ、伸びを実感させる
+    if (member.maxhp > before) { member.hp = Math.min(member.maxhp, member.hp + (member.maxhp - before)); }
+    member.mp = Math.min(member.maxmp, member.mp);
+    return msgs;
+  }
   member.exp += exp;
   const msgs = [];
   while (member.exp >= member.level * 30) {

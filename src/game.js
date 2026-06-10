@@ -5,6 +5,10 @@ import { createParty, spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, ga
 import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
 import { spriteCanvas } from "./sprites.js";
 import { ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, recalc, equip as equipItem, unequip as unequipItem, canEquip } from "./items.js";
+import {
+  PARTS, PART_LABEL, SOUL_CLASSES, makeSoul, makeDoll, soulName, soulSprite,
+  dollSouls, dominantClass, recalcDoll, sealSoul, createStartingRoster, SOUL_MAX_LEVEL, soulExpToNext,
+} from "./souls.js";
 
 const view = document.getElementById("view");
 const vctx = view.getContext("2d");
@@ -16,12 +20,15 @@ const floorInfo = document.getElementById("floor-info");
 const MAX_FLOOR = 3;
 
 const G = {
-  state: "board",     // board | combat | over
+  state: "town",      // town | board | combat | over
   floor: 1,
+  maxFloorReached: 1, // 到達した最深階 (街から再開する基準)
   board: null,
   px: 0, py: 0,
-  gold: 0,
-  party: createParty(),
+  gold: 200,          // 初期所持金 (宿屋・神殿・商店用)
+  party: [],          // 迷宮に連れて行く人業 (最大6体)
+  souls: [],          // 未封印の魂ストック
+  town: { facility: null }, // 街UIの現在地
   battle: null,
   battleCell: null,   // 戦闘中のモンスターカード
   prevPos: null,      // 逃走時の戻り先
@@ -65,7 +72,7 @@ function log(msg, cls = "sys") {
 }
 
 function updateTopbar() {
-  floorInfo.textContent = `B${G.floor}F 💰${G.gold}`;
+  floorInfo.textContent = G.state === "town" ? `街 💰${G.gold}` : `B${G.floor}F 💰${G.gold}`;
 }
 
 function newFloor() {
@@ -315,9 +322,22 @@ function drawCard(r, cell, scaleX, showBack) {
       cell.type === "chest" && !cell.cleared ? ICONS.chest :
       cell.type === "trap" && !cell.cleared ? ICONS.trap :
       cell.type === "fountain" && !cell.cleared ? ICONS.fountain :
+      cell.type === "corpse" && !cell.cleared ? (cell.corpseWarm ? ICONS.corpseWarm : ICONS.corpse) :
       cell.type === "stairs" ? ICONS.stairs :
       cell.type === "start" ? ICONS.start : null;
     if (icon) {
+      // あたたかい死体はうっすら発光させて「魂が宿る」ことを示す
+      if (cell.type === "corpse" && cell.corpseWarm && !cell.cleared) {
+        vctx.save();
+        const pulse = 0.4 + 0.3 * Math.sin(performance.now() * 0.004 + cx);
+        vctx.globalAlpha = pulse;
+        const g = vctx.createRadialGradient(cx, cy, 2, cx, cy, 20);
+        g.addColorStop(0, "rgba(155,232,255,0.9)");
+        g.addColorStop(1, "rgba(155,232,255,0)");
+        vctx.fillStyle = g;
+        vctx.fillRect(cx - 22, cy - 22, 44, 44);
+        vctx.restore();
+      }
       // アイコンの足元影
       vctx.fillStyle = "rgba(60,50,30,0.3)";
       vctx.beginPath();
@@ -569,10 +589,44 @@ function resolveCell(cell) {
       });
       break;
     }
+    case "corpse": {
+      if (cell.cleared) break;
+      cell.cleared = true;
+      resolveCorpse(cell);
+      break;
+    }
     case "stairs":
       askDescend(cell);
       break;
   }
+}
+
+// 死体: 「まだあたたかい死体」からのみ魂を回収できる (死体の職業に応じた魂)
+function resolveCorpse(cell) {
+  const clsKey = cell.corpseClass || "fighter";
+  const clsLabel = SOUL_CLASSES[clsKey].label;
+  if (!cell.corpseWarm) {
+    // 風化した死体: 魂はとうに失われている
+    log(`風化した死体（${clsLabel}）だ。魂はすでに失われている…`, "sys");
+    showEvent({
+      sprite: ICONS.corpse, title: `風化した死体（${clsLabel}）`, accent: "#8c866f", banner: "— 亡骸 —",
+      lines: ["魂はとうに抜け落ちている。", "回収できるものは何もない。"],
+      onClose: () => renderBoard(),
+    });
+    return;
+  }
+  // あたたかい死体: 職業に応じた魂を1つ獲得 (レベルは階層で微増)
+  const lvl = 1 + (Math.random() < 0.3 ? 1 : 0) + (G.floor >= 3 ? 1 : 0);
+  const soul = makeSoul(clsKey, lvl);
+  G.souls.push(soul);
+  SFX.itemget(); buzz([0, 30, 60, 30]);
+  log(`まだあたたかい死体（${clsLabel}）から ${soulName(soul)} を回収した！`, "win");
+  showEvent({
+    sprite: soulSprite(clsKey), title: soulName(soul), accent: SOUL_CLASSES[clsKey].glow,
+    banner: "✦ 魂を回収 ✦", sparkle: true,
+    lines: [`まだあたたかい死体（${clsLabel}）に宿っていた魂だ。`, "街の祭壇で人業に封じられる。"],
+    onClose: () => renderBoard(),
+  });
 }
 
 // ---- 選択肢プロンプト ----
@@ -1188,11 +1242,19 @@ function gameOver() {
   playBgm(null);
   SFX.gameover();
   buzz([0, 90, 70, 90, 70, 250]);
-  log("パーティは全滅した… ゲームオーバー", "dmg");
-  
+  log("人業はことごとく砕けた…", "dmg");
+
   combatMenu.classList.remove("hidden");
   combatMenu.innerHTML = "";
-  combatMenu.appendChild(el("div", "who", "💀 ゲームオーバー"));
+  combatMenu.appendChild(el("div", "who", "💀 全滅"));
+  // 砕けた人業は神殿で繕える。街へ撤退して立て直す。
+  const retreat = btn("🏚 街へ撤退する (神殿で繕う)", () => {
+    if (townBtn) townBtn.classList.add("hidden");
+    combatMenu.classList.add("hidden");
+    returnToTown();
+  });
+  retreat.className = "btn primary";
+  combatMenu.appendChild(retreat);
   combatMenu.appendChild(btn("最初からやり直す", () => location.reload()));
 }
 
@@ -1312,13 +1374,410 @@ function btn(label, onClick) {
   return b;
 }
 
+// ================= 街 (拠点) =================
+const townEl = document.getElementById("town-screen");
+const townBtn = document.getElementById("town-btn");
+let altarSel = null; // 祭壇で選択中 { dollIdx, part }
+
+const FACILITIES = [
+  { key: "mansion", icon: "🏚", name: "人業の館", desc: "人業を仕立て、魂を組む" },
+  { key: "altar", icon: "⛓", name: "魂封じの祭壇", desc: "部位に魂を封じる" },
+  { key: "inn", icon: "🛏", name: "宿屋「臥牢」", desc: "魂を休め、傷を癒す" },
+  { key: "temple", icon: "⛪", name: "神殿", desc: "砕けた人業を繕う" },
+  { key: "shop", icon: "🏪", name: "道具屋", desc: "消耗品の売買" },
+];
+
+function townHeader(title, withBack = true) {
+  const head = el("div", "tw-head");
+  if (withBack) {
+    const back = btn("← 広場へ", () => { G.town.facility = null; altarSel = null; renderTown(); });
+    back.className = "tw-back";
+    head.appendChild(back);
+  } else {
+    head.appendChild(el("div", "tw-back ghost", ""));
+  }
+  head.appendChild(el("div", "tw-title", title));
+  head.appendChild(el("div", "tw-gold", `💰 ${G.gold}`));
+  return head;
+}
+
+function renderTown() {
+  townEl.classList.remove("hidden");
+  townEl.innerHTML = "";
+  updateTopbar();
+  const f = G.town.facility;
+  if (f === "mansion") return renderMansion();
+  if (f === "altar") return renderAltar();
+  if (f === "inn") return renderInn();
+  if (f === "temple") return renderTemple();
+  if (f === "shop") return renderShop();
+  renderTownHub();
+}
+
+function renderTownHub() {
+  townEl.appendChild(townHeader("辺境の街 ロアダル", false));
+
+  const intro = el("div", "tw-intro");
+  intro.appendChild(el("div", "tw-introt", "魂の迷宮 — Dungeon of Souls"));
+  intro.appendChild(el("div", "tw-intros", `深淵 B${G.maxFloorReached}F まで到達`));
+  townEl.appendChild(intro);
+
+  // 施設グリッド
+  const grid = el("div", "tw-grid");
+  for (const fac of FACILITIES) {
+    const c = el("div", "tw-fac");
+    c.appendChild(el("div", "tw-faci", fac.icon));
+    c.appendChild(el("div", "tw-facn", fac.name));
+    c.appendChild(el("div", "tw-facd", fac.desc));
+    c.addEventListener("click", () => { SFX.select(); G.town.facility = fac.key; renderTown(); });
+    grid.appendChild(c);
+  }
+  townEl.appendChild(grid);
+
+  // パーティ概要
+  const roster = el("div", "tw-roster");
+  roster.appendChild(el("div", "tw-h", `編成 (${G.party.length}/6)`));
+  const list = el("div", "tw-rlist");
+  G.party.forEach((d) => list.appendChild(dollChip(d)));
+  if (!G.party.length) list.appendChild(el("div", "tw-empty", "人業がいない。館で仕立てよう。"));
+  roster.appendChild(list);
+  townEl.appendChild(roster);
+
+  // 迷宮へ
+  const dive = btn(`🕳 迷宮へ降りる (B${G.maxFloorReached}F)`, tryEnterDungeon);
+  dive.className = "btn primary tw-dive";
+  townEl.appendChild(dive);
+}
+
+// 人業の小カード (名前/職業/HP)
+function dollChip(d) {
+  const chip = el("div", "tw-chip" + (d.alive ? "" : " dead"));
+  const dom = d.dominant;
+  if (dom) {
+    const s = el("span", "tw-chips");
+    s.style.color = SOUL_CLASSES[dom.clsKey].glow;
+    s.appendChild(spriteCanvas(soulSprite(dom.clsKey), 2));
+    chip.appendChild(s);
+  }
+  const info = el("div", "tw-chipi");
+  info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
+  info.appendChild(el("div", "tw-chipc", d.cls));
+  chip.appendChild(info);
+  chip.appendChild(el("div", "tw-chiphp", `HP ${d.hp}/${d.maxhp}`));
+  return chip;
+}
+
+// ---- 人業の館: ロスター管理 + 新規作成 ----
+function renderMansion() {
+  townEl.appendChild(townHeader("人業の館"));
+  townEl.appendChild(el("div", "tw-lead", "人型の器「人業（Doll）」に魂を封じて仲間を仕立てる。"));
+
+  const list = el("div", "tw-mlist");
+  G.party.forEach((d, i) => {
+    const row = el("div", "tw-mrow" + (d.alive ? "" : " dead"));
+    const s = el("span", "tw-chips");
+    if (d.dominant) { s.style.color = SOUL_CLASSES[d.dominant.clsKey].glow; s.appendChild(spriteCanvas(soulSprite(d.dominant.clsKey), 2)); }
+    row.appendChild(s);
+    const info = el("div", "tw-chipi");
+    info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
+    info.appendChild(el("div", "tw-chipc", `${d.cls} ・ 魂 ${dollSouls(d).length}/5`));
+    row.appendChild(info);
+    const edit = btn("魂を組む", () => { altarSel = { dollIdx: i, part: null }; G.town.facility = "altar"; renderTown(); });
+    edit.className = "tw-small";
+    row.appendChild(edit);
+    const del = btn("解体", () => confirmDisband(i));
+    del.className = "tw-small danger";
+    row.appendChild(del);
+    list.appendChild(row);
+  });
+  townEl.appendChild(list);
+
+  if (G.party.length < 6) {
+    const add = btn("＋ 新しい人業を仕立てる", createDoll);
+    add.className = "btn tw-add";
+    townEl.appendChild(add);
+  } else {
+    townEl.appendChild(el("div", "tw-note", "編成は満員 (6体)"));
+  }
+  townEl.appendChild(el("div", "tw-note", `魂ストック: ${G.souls.length} 個`));
+}
+
+function createDoll() {
+  if (G.party.length >= 6) return;
+  const n = G.party.length + 1;
+  const name = "人業" + "ＡＢＣＤＥＦＧＨ".charAt(Math.max(0, n - 1));
+  const d = makeDoll(name);
+  recalcDoll(d);
+  d.hp = d.maxhp; d.mp = d.maxmp;
+  G.party.push(d);
+  SFX.select();
+  log(`新しい人業「${d.name}」を仕立てた。魂を封じよう。`, "sys");
+  altarSel = { dollIdx: G.party.length - 1, part: null };
+  G.town.facility = "altar";
+  renderTown();
+}
+
+function confirmDisband(i) {
+  const d = G.party[i];
+  showConfirm({
+    title: `${d.name} を解体する？`,
+    lines: ["封じた魂はストックに戻る。", "装備していた品も外れる。"],
+    okLabel: "🔨 解体する",
+    onOk: () => {
+      // 魂をストックへ返す
+      for (const part of PARTS) { if (d.parts[part]) { G.souls.push(d.parts[part]); d.parts[part] = null; } }
+      // 装備品とアイテムは破棄 (簡略化)。人業を編成から外す
+      G.party.splice(i, 1);
+      log(`${d.name} を解体した。`, "sys");
+      renderTown();
+    },
+  });
+}
+
+// ---- 魂封じの祭壇: 5部位に魂を封じる ----
+function renderAltar() {
+  if (!altarSel || !G.party[altarSel.dollIdx]) altarSel = { dollIdx: 0, part: null };
+  if (!G.party.length) { townEl.appendChild(townHeader("魂封じの祭壇")); townEl.appendChild(el("div", "tw-empty", "人業がいない。")); return; }
+  const d = G.party[altarSel.dollIdx];
+
+  townEl.appendChild(townHeader("魂封じの祭壇"));
+
+  // 人業セレクタ
+  const sel = el("div", "tw-dolltabs");
+  G.party.forEach((dd, i) => {
+    const t = btn(dd.name, () => { altarSel = { dollIdx: i, part: null }; renderTown(); });
+    t.className = "tw-dolltab" + (i === altarSel.dollIdx ? " active" : "");
+    sel.appendChild(t);
+  });
+  townEl.appendChild(sel);
+
+  // 職業・スキル サマリ
+  const sum = el("div", "tw-summary");
+  const dom = d.dominant;
+  sum.style.borderColor = dom ? SOUL_CLASSES[dom.clsKey].color : "#34344a";
+  sum.appendChild(el("div", "tw-sumc", d.cls));
+  const tierTxt = d.tier === "advanced" ? "5部位一致 — 上位スキル解放" : d.tier === "basic" ? "3部位以上 — 基本スキル" : "2部位以下 — スキルなし";
+  sum.appendChild(el("div", "tw-sumt", tierTxt));
+  sum.appendChild(el("div", "tw-sumst", `HP${d.maxhp} MP${d.maxmp} 攻${d.atk} 防${d.def} 速${d.spd}`));
+  if (d.spells.length) sum.appendChild(el("div", "tw-sumsk", "習得: " + d.spells.map((k) => SPELLS[k] ? SPELLS[k].name : k).join("・")));
+  if (d.passives.length) sum.appendChild(el("div", "tw-sumsk", d.passives.join(" / ")));
+  townEl.appendChild(sum);
+
+  // 5部位
+  const body = el("div", "tw-parts");
+  for (const part of PARTS) {
+    const slot = el("div", "tw-part" + (altarSel.part === part ? " sel" : ""));
+    slot.appendChild(el("div", "tw-partl", PART_LABEL[part]));
+    const soul = d.parts[part];
+    const orb = el("div", "tw-partorb");
+    if (soul) {
+      orb.style.color = SOUL_CLASSES[soul.clsKey].glow;
+      orb.appendChild(spriteCanvas(soulSprite(soul.clsKey), 3));
+      slot.appendChild(orb);
+      slot.appendChild(el("div", "tw-parts2", `${SOUL_CLASSES[soul.clsKey].label}Lv${soul.level}`));
+    } else {
+      orb.appendChild(el("div", "tw-partempty", "空"));
+      slot.appendChild(orb);
+      slot.appendChild(el("div", "tw-parts2", "—"));
+    }
+    slot.addEventListener("click", () => {
+      altarSel = { dollIdx: altarSel.dollIdx, part: altarSel.part === part ? null : part };
+      renderTown();
+    });
+    body.appendChild(slot);
+  }
+  townEl.appendChild(body);
+
+  // 選択した部位への操作 (取り外し / ストックから封印)
+  if (altarSel.part) {
+    const part = altarSel.part;
+    townEl.appendChild(el("div", "tw-h", `「${PART_LABEL[part]}」に封じる魂を選ぶ`));
+    if (d.parts[part]) {
+      const un = btn(`${PART_LABEL[part]} の魂を外す`, () => {
+        G.souls.push(d.parts[part]); d.parts[part] = null; recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); SFX.select(); renderTown();
+      });
+      un.className = "btn danger tw-un";
+      townEl.appendChild(un);
+    }
+    const stock = el("div", "tw-soullist");
+    if (!G.souls.length) stock.appendChild(el("div", "tw-empty", "ストックに魂がない。迷宮の「あたたかい死体」から集めよう。"));
+    G.souls.forEach((s, si) => {
+      const r = el("div", "tw-soulrow");
+      const o = el("span", "tw-chips"); o.style.color = SOUL_CLASSES[s.clsKey].glow; o.appendChild(spriteCanvas(soulSprite(s.clsKey), 2));
+      r.appendChild(o);
+      r.appendChild(el("div", "tw-souln", soulName(s)));
+      r.addEventListener("click", () => sealFromStock(d, part, si));
+      stock.appendChild(r);
+    });
+    townEl.appendChild(stock);
+  } else {
+    townEl.appendChild(el("div", "tw-note", "部位をタップして、封じる魂を選ぶ。"));
+  }
+}
+
+function sealFromStock(d, part, stockIdx) {
+  const s = G.souls[stockIdx];
+  if (!s) return;
+  // 既存の魂はストックへ戻す
+  if (d.parts[part]) G.souls.push(d.parts[part]);
+  G.souls.splice(stockIdx, 1);
+  sealSoul(d, part, s);
+  d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp);
+  SFX.select(); buzz(15);
+  log(`${d.name} の${PART_LABEL[part]}に ${soulName(s)} を封じた。`, "win");
+  renderTown();
+}
+
+// ---- 宿屋: 全回復 ----
+function innCost() { return G.party.length * 12 + G.maxFloorReached * 6; }
+function renderInn() {
+  townEl.appendChild(townHeader("宿屋「臥牢」"));
+  townEl.appendChild(el("div", "tw-lead", "一晩の休息で、生きた人業のHP・MPが全快する。"));
+  const cost = innCost();
+  const need = G.party.filter((p) => p.alive && (p.hp < p.maxhp || p.mp < p.maxmp));
+  const info = el("div", "tw-innbox");
+  info.appendChild(el("div", "tw-innc", `宿賃 💰${cost}`));
+  info.appendChild(el("div", "tw-note", need.length ? `${need.length}体が休息を必要としている` : "全員すこぶる元気だ"));
+  townEl.appendChild(info);
+  const rest = btn(`🛏 泊まる (💰${cost})`, () => {
+    if (G.gold < cost) { log("お金が足りない。", "sys"); return; }
+    G.gold -= cost;
+    for (const p of G.party) { if (p.alive) { p.hp = p.maxhp; p.mp = p.maxmp; p.ailment = null; } }
+    SFX.heal(); buzz(20);
+    log("ぐっすり眠った。HPとMPが全快した。", "heal");
+    renderTown();
+  });
+  rest.className = "btn primary";
+  if (G.gold < cost || !need.length) rest.disabled = true;
+  townEl.appendChild(rest);
+}
+
+// ---- 神殿: 蘇生 ----
+function reviveCost(d) { return 60 + d.level * 20; }
+function renderTemple() {
+  townEl.appendChild(townHeader("神殿"));
+  townEl.appendChild(el("div", "tw-lead", "砕けた人業を繕い、魂を呼び戻す。"));
+  // 全滅 + 資金不足の救済: 1体だけ無料で繕う
+  const anyAlive = G.party.some((p) => p.alive);
+  const cheapest = G.party.filter((p) => !p.alive).sort((a, b) => reviveCost(a) - reviveCost(b))[0];
+  if (!anyAlive && cheapest && G.gold < reviveCost(cheapest)) {
+    const free = btn(`🕯 ${cheapest.name} に魂の灯をともす (無料)`, () => {
+      cheapest.alive = true; cheapest.hp = 1; cheapest.ailment = null;
+      SFX.levelup(); log(`${cheapest.name} はかろうじて繕われた。`, "win");
+      renderTown();
+    });
+    free.className = "btn primary";
+    townEl.appendChild(free);
+    townEl.appendChild(el("div", "tw-note", "全滅した者への、神殿の慈悲。"));
+  }
+  const dead = G.party.filter((p) => !p.alive);
+  const list = el("div", "tw-mlist");
+  if (!dead.length) list.appendChild(el("div", "tw-empty", "繕うべき人業はいない。"));
+  G.party.forEach((d, i) => {
+    if (d.alive) return;
+    const cost = reviveCost(d);
+    const row = el("div", "tw-mrow dead");
+    row.appendChild(el("div", "tw-chipn", `${d.name} †`));
+    const b = btn(`蘇生 💰${cost}`, () => {
+      if (G.gold < cost) { log("お金が足りない。", "sys"); return; }
+      G.gold -= cost; d.alive = true; d.hp = Math.max(1, Math.floor(d.maxhp * 0.5)); d.ailment = null;
+      SFX.levelup(); buzz([0, 30, 40, 30]);
+      log(`${d.name} は繕われ、魂が戻った。`, "win");
+      renderTown();
+    });
+    b.className = "tw-small";
+    if (G.gold < cost) b.disabled = true;
+    row.appendChild(b);
+    list.appendChild(row);
+  });
+  townEl.appendChild(list);
+}
+
+// ---- 道具屋: 消耗品の売買 ----
+const SHOP_STOCK = ["herb", "antidote", "manaDrop", "woodShield", "cap", "leatherGloves"];
+function renderShop() {
+  townEl.appendChild(townHeader("道具屋"));
+  // 購入
+  townEl.appendChild(el("div", "tw-h", "仕入れ品"));
+  const buy = el("div", "tw-shoplist");
+  for (const id of SHOP_STOCK) {
+    const it = ITEMS[id];
+    if (!it) continue;
+    const price = it.price || 30;
+    const r = el("div", "tw-shoprow");
+    const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
+    const info = el("div", "tw-chipi");
+    info.appendChild(el("div", "tw-chipn", it.name));
+    info.appendChild(el("div", "tw-chipc", it.desc || ""));
+    r.appendChild(info);
+    const b = btn(`💰${price}`, () => buyItem(id, price));
+    b.className = "tw-small";
+    if (G.gold < price) b.disabled = true;
+    r.appendChild(b);
+    buy.appendChild(r);
+  }
+  townEl.appendChild(buy);
+  townEl.appendChild(el("div", "tw-note", "買った品は手の空いた人業の所持品へ入る。"));
+}
+
+function buyItem(id, price) {
+  if (G.gold < price) { log("お金が足りない。", "sys"); return; }
+  const who = G.party.find((m) => m.alive && m.items.length < MAX_ITEMS);
+  if (!who) { log("所持品に空きがない。", "sys"); return; }
+  const it = cloneItem(id);
+  if (!it) return;
+  G.gold -= price;
+  who.items.push(it);
+  SFX.select();
+  log(`${it.name} を購入した (${who.name})。`, "win");
+  renderTown();
+}
+
+// ---- 街 ⇄ 迷宮 の出入り ----
+function tryEnterDungeon() {
+  if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); return; }
+  // 魂未封印で極端に弱い人業がいたら注意 (任意続行)
+  SFX.stairs();
+  townEl.classList.add("hidden");
+  G.town.facility = null;
+  G.floor = G.maxFloorReached;
+  G.state = "board";
+  if (townBtn) townBtn.classList.remove("hidden");
+  newFloor();
+  renderBoard();
+}
+
+function returnToTown() {
+  G.state = "town";
+  G.battle = null; G.battleCell = null;
+  combatMenu.classList.add("hidden");
+  if (townBtn) townBtn.classList.add("hidden");
+  G.maxFloorReached = Math.max(G.maxFloorReached, G.floor);
+  playBgm("field");
+  updateTopbar();
+  log("街へ帰還した。", "sys");
+  G.town.facility = null;
+  renderTown();
+}
+
+function confirmReturnToTown() {
+  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen) return;
+  showConfirm({
+    title: "街へ帰還する？",
+    lines: ["今いる階の探索は中断される。", "集めた魂・お金・アイテムは持ち帰れる。"],
+    okLabel: "🏚 帰還する",
+    onOk: returnToTown,
+  });
+}
+
 // ---- 個別ステータス / 装備画面 ----
 const statusEl = document.getElementById("status-screen");
 const statusBtn = document.getElementById("status-btn");
 let stSel = null; // 詳細表示中のアイテム { item, from:"equip"|"bag", key }
 
 function openStatus(idx = 0) {
-  if (G.state !== "board" || G.anim || G.walking || G.prompt) return;
+  if (G.state !== "board" && G.state !== "town") return;
+  if (G.anim || G.walking || G.prompt) return;
   G.statusOpen = true;
   G.statusIdx = idx;
   stSel = null;
@@ -1346,7 +1805,7 @@ function renderStatus() {
   head.appendChild(port);
   const idn = el("div", "st-idn");
   idn.appendChild(el("div", "st-name", p.name + (p.alive ? "" : " †")));
-  idn.appendChild(el("div", "st-sub", `${p.align} - ${p.race} - ${p.cls} Lv${p.level}`));
+  idn.appendChild(el("div", "st-sub", p.isDoll ? `人業 ・ ${p.cls} ・ 魂Lv${p.level}` : `${p.align} - ${p.race} - ${p.cls} Lv${p.level}`));
   head.appendChild(idn);
   const nav = el("div", "st-nav");
   const prev = btn("◀", () => { G.statusIdx = (G.statusIdx + G.party.length - 1) % G.party.length; stSel = null; renderStatus(); }); prev.className = "st-navb";
@@ -1358,14 +1817,21 @@ function renderStatus() {
 
   // タブ
   const tabs = el("div", "st-tabbar");
+  if (p.isDoll) {
+    const tSoul = btn("魂", () => { G.statusTab = "soul"; renderStatus(); });
+    tSoul.className = "st-tab2" + (G.statusTab === "soul" ? " active" : "");
+    tabs.appendChild(tSoul);
+  }
   const tEquip = btn("所持品・装備", () => { G.statusTab = "equip"; renderStatus(); });
-  tEquip.className = "st-tab2" + (G.statusTab !== "stat" ? " active" : "");
+  tEquip.className = "st-tab2" + (G.statusTab === "equip" ? " active" : "");
   const tStat = btn("ステータス", () => { G.statusTab = "stat"; renderStatus(); });
   tStat.className = "st-tab2" + (G.statusTab === "stat" ? " active" : "");
   tabs.appendChild(tEquip); tabs.appendChild(tStat);
   statusEl.appendChild(tabs);
 
+  if (G.statusTab === "soul" && p.isDoll) { statusEl.appendChild(renderSoulTab(p)); return; }
   if (G.statusTab === "stat") { statusEl.appendChild(renderStatTab(p)); return; }
+  if (G.statusTab === "soul") G.statusTab = "equip"; // 非Dollなら装備へ
 
   // ===== 装備タブ: 所持品 / 装備中 / 情報 =====
   const layout = el("div", "st-eqlayout");
@@ -1418,16 +1884,56 @@ function renderStatTab(p) {
   port.appendChild(spriteCanvas(HERO, 6));
   info.appendChild(port);
   const meta = el("div", "st-meta");
+  const line1 = p.isDoll
+    ? `<div class="st-line">人業 <b>${p.cls}</b>　魂 <b>${dollSouls(p).length}/5</b></div>`
+    : `<div class="st-line">属性 <b>${p.align}</b>　種族 <b>${p.race}</b></div>
+       <div class="st-line">職業 <b>${p.cls}</b>　レベル <b>${p.level}</b></div>`;
   meta.innerHTML = `
-    <div class="st-line">属性 <b>${p.align}</b>　種族 <b>${p.race}</b></div>
-    <div class="st-line">職業 <b>${p.cls}</b>　レベル <b>${p.level}</b></div>
+    ${line1}
     <div class="st-line">HP <b>${p.hp}/${p.maxhp}</b>　MP <b>${p.mp}/${p.maxmp}</b></div>
     <div class="st-line">こうげき <b>${p.atk}</b>　ぼうぎょ <b>${p.def}</b></div>
     <div class="st-line">すばやさ <b>${p.spd}</b>　AC <b>${p.ac}</b></div>
-    <div class="st-line">経験値 ${p.exp} / 次まで ${p.level * 30 - p.exp}</div>
+    ${p.spells && p.spells.length ? `<div class="st-line">習得: ${p.spells.map((k) => SPELLS[k] ? SPELLS[k].name : k).join("・")}</div>` : ""}
     <div class="st-line ${p.ailment ? "st-bad" : ""}">状態: ${p.ailment === "poison" ? "毒" : (p.alive ? "正常" : "戦闘不能")}</div>`;
   info.appendChild(meta);
   return info;
+}
+
+// 魂タブ (人業の5部位と封じた魂の成長を表示)
+function renderSoulTab(p) {
+  const wrap = el("div", "st-soultab");
+  const dom = p.dominant;
+  const head = el("div", "st-soulsum");
+  head.style.borderColor = dom ? SOUL_CLASSES[dom.clsKey].color : "#34344a";
+  head.appendChild(el("div", "st-soulc", p.cls));
+  head.appendChild(el("div", "st-soultt",
+    p.tier === "advanced" ? "5部位一致 — 上位スキル解放" :
+    p.tier === "basic" ? "3部位以上 — 基本スキル習得" : "2部位以下 — スキル未解放"));
+  wrap.appendChild(head);
+
+  for (const part of PARTS) {
+    const s = p.parts[part];
+    const row = el("div", "st-soulrow2");
+    row.appendChild(el("div", "st-soulpart", PART_LABEL[part]));
+    const orb = el("span", "tw-chips");
+    if (s) { orb.style.color = SOUL_CLASSES[s.clsKey].glow; orb.appendChild(spriteCanvas(soulSprite(s.clsKey), 2)); }
+    row.appendChild(orb);
+    if (s) {
+      const info = el("div", "st-soulinfo");
+      info.appendChild(el("div", "st-souln2", `${SOUL_CLASSES[s.clsKey].label}の魂 Lv${s.level}`));
+      // 経験値バー
+      const bar = el("div", "st-soulbar");
+      const ratio = s.level >= SOUL_MAX_LEVEL ? 1 : s.exp / soulExpToNext(s.level);
+      const i = el("i"); i.style.width = Math.round(ratio * 100) + "%"; i.style.background = SOUL_CLASSES[s.clsKey].color;
+      bar.appendChild(i);
+      info.appendChild(bar);
+      row.appendChild(info);
+    } else {
+      row.appendChild(el("div", "st-soulinfo dim", "（魂なし）"));
+    }
+    wrap.appendChild(row);
+  }
+  return wrap;
 }
 
 function statLines(it) {
@@ -1733,6 +2239,7 @@ function tickPoison() {
 }
 
 if (statusBtn) statusBtn.addEventListener("click", () => { if (G.statusOpen) closeStatus(); else openStatus(G.statusIdx || 0); });
+if (townBtn) townBtn.addEventListener("click", confirmReturnToTown);
 
 // ---- 入力 ----
 // 最初のユーザー操作で音声を起動 (ブラウザの自動再生制限対策)
@@ -1824,7 +2331,7 @@ function swipeStep(dx, dy) {
 }
 
 // スワイプは画面全体で受け付ける。ボタン/モーダル/ステータス画面は除外。
-const SWIPE_IGNORE = "button, a, [role=button], #status-screen, #item-get, .confirm-overlay";
+const SWIPE_IGNORE = "button, a, [role=button], #status-screen, #town-screen, #item-get, .confirm-overlay";
 document.addEventListener("pointerdown", (e) => {
   if (e.pointerType === "mouse") return;
   if (e.target.closest(SWIPE_IGNORE)) return;
@@ -1868,11 +2375,33 @@ if (muteBtn) {
   muteBtn.addEventListener("click", () => { ensureAudio(); updateMuteBtn(toggleMute()); });
 }
 
+// 新規プレイの初期化: 人業ロスター・魂ストック・初期装備を整える
+function setupNewGame() {
+  const { dolls, souls } = createStartingRoster();
+  // 初期装備 (器を最低限戦えるようにする)
+  const gearByName = {
+    ガロ: ["shortSword", "leatherArmor"],
+    サリア: ["magicStaff", "robe"],
+    ミナ: ["warHammer", "cap"],
+  };
+  for (const d of dolls) {
+    for (const id of (gearByName[d.name] || [])) {
+      const it = cloneItem(id);
+      if (it) { d.items.push(it); equipItem(d, it); }
+    }
+    d.items.push(cloneItem("herb"));
+    recalcDoll(d);
+    d.hp = d.maxhp; d.mp = d.maxmp;
+  }
+  G.party = dolls;
+  G.souls = souls;
+}
+
 // ---- 起動 ----
 function init() {
-  log("ようこそ、地下迷宮へ。カードをめくり、深部のドラゴンを討て！", "sys");
-  newFloor();
-  renderBoard();
+  setupNewGame();
+  log("魂の迷宮へようこそ。人業に魂を封じ、深淵へ挑め。", "sys");
+  renderTown();
 
   if ("serviceWorker" in navigator) {
     // updateViaCache:none で sw.js を常に最新チェック。更新があれば即時反映してリロード
