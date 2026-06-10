@@ -164,22 +164,88 @@ html, body { height: 100%; overflow: hidden; }
 .pc .mp > i { background: var(--accent-2); }
 .pc .nums { color: var(--ink-dim); font-size: 9px; }
 
+/* 瀕死 (HP25%以下) は赤くゆっくり明滅して危険を知らせる */
+.pc.low { animation: pc-low 1.2s ease-in-out infinite; }
+@keyframes pc-low {
+  0%, 100% { border-color: #34344a; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }
+  50% { border-color: var(--danger); box-shadow: 0 0 10px rgba(212, 80, 78, 0.55); }
+}
+
 /* ===== 操作系 ===== */
 #controls { flex: 0 0 auto; padding: 6px 10px 8px; }
 
-/* 十字キー (親指で押しやすい D-pad) */
-#move-pad {
-  display: grid;
-  grid-template-columns: repeat(3, 64px);
-  grid-template-rows: repeat(3, 48px);
-  gap: 6px;
-  justify-content: center;
+/* ===== 画面シェイク (被弾・クリティカル) ===== */
+@keyframes shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-3px, 2px); }
+  40% { transform: translate(3px, -2px); }
+  60% { transform: translate(-2px, -1px); }
+  80% { transform: translate(2px, 1px); }
 }
-#move-pad .dpad { padding: 0; font-size: 20px; }
-#move-pad .dpad[data-act="up"] { grid-area: 1 / 2; }
-#move-pad .dpad[data-act="left"] { grid-area: 2 / 1; }
-#move-pad .dpad[data-act="right"] { grid-area: 2 / 3; }
-#move-pad .dpad[data-act="down"] { grid-area: 3 / 2; }
+@keyframes shake-strong {
+  0%, 100% { transform: translate(0, 0); }
+  15% { transform: translate(-6px, 4px); }
+  30% { transform: translate(6px, -4px); }
+  45% { transform: translate(-5px, -3px); }
+  60% { transform: translate(5px, 3px); }
+  80% { transform: translate(-3px, 2px); }
+}
+#view.shake { animation: shake 0.32s ease; }
+#view.shake-strong { animation: shake-strong 0.38s ease; }
+
+/* ===== 階移動の暗転演出 ===== */
+.floor-trans {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  animation: ft-in 0.6s ease forwards;
+  opacity: 0;
+}
+.floor-trans.out { animation: ft-out 0.5s ease forwards; }
+@keyframes ft-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ft-out { from { opacity: 1; } to { opacity: 0; } }
+.ft-floor {
+  font-size: 44px;
+  font-weight: bold;
+  color: var(--accent);
+  letter-spacing: 6px;
+  text-shadow: 0 0 24px rgba(201, 162, 39, 0.6);
+  animation: ft-rise 1.2s ease 0.3s both;
+}
+.ft-sub { font-size: 12px; color: var(--ink-dim); letter-spacing: 3px; animation: ft-rise 1.2s ease 0.55s both; }
+@keyframes ft-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== トースト (レベルアップ等の祝福) ===== */
+.toast {
+  position: fixed;
+  top: calc(var(--safe-top) + 52px);
+  left: 50%;
+  transform: translate(-50%, -16px);
+  z-index: 85;
+  background: linear-gradient(180deg, #2b2410, #1c1808);
+  color: #ffd84a;
+  border: 1px solid var(--accent);
+  border-radius: 99px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: bold;
+  font-family: var(--font);
+  white-space: nowrap;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.6), 0 0 22px rgba(201,162,39,0.35);
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
 
 .btn {
   font-family: var(--font);
@@ -394,7 +460,6 @@ canvas.spr { image-rendering: pixelated; display: block; }
 @media (max-height: 680px) {
   #hint { display: none; }
   #log { height: 52px; }
-  #move-pad { grid-template-rows: repeat(3, 44px); }
 }
 
 /* 広い画面 (デスクトップ) では中央寄せのまま余白を持たせる */

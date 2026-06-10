@@ -42,6 +42,19 @@ const G = {
 
 const rand = (n) => Math.floor(Math.random() * n);
 
+// ハプティクス (対応端末のみ)。パターン: 数値 or [待ち,振動,待ち,振動...]
+function buzz(p) {
+  if (navigator.vibrate) { try { navigator.vibrate(p); } catch {} }
+}
+
+// 画面シェイク (被弾・クリティカルなどの衝撃表現)
+function shakeScreen(strong = false) {
+  view.classList.remove("shake", "shake-strong");
+  void view.offsetWidth; // リフロー挟んでアニメ再発火
+  view.classList.add(strong ? "shake-strong" : "shake");
+  setTimeout(() => view.classList.remove("shake", "shake-strong"), 380);
+}
+
 function log(msg, cls = "sys") {
   const div = document.createElement("div");
   div.className = "l-" + cls;
@@ -421,6 +434,7 @@ function moveStep(nx, ny, onDone) {
 
   if (!cell.revealed) {
     SFX.flip();
+    buzz(12);
     cell.revealed = true; // めくり途中に表面を見せる
     G.flipAnim = { x: nx, y: ny, t0: performance.now(), dur: 240 };
     const ftick = () => {
@@ -513,7 +527,7 @@ function resolveCell(cell) {
     case "trap": {
       if (cell.cleared) break;
       cell.cleared = true;
-      SFX.trap();
+      SFX.trap(); buzz([0, 60, 40, 60]);
       const victims = G.party.filter((p) => p.alive);
       const v = victims[rand(victims.length)];
       const dmg = 4 + G.floor * 3 + rand(7);
@@ -631,7 +645,7 @@ function rollChest(cell, allowDanger, done) {
   const danger = allowDanger ? 0.15 + G.floor * 0.07 : 0;
   if (roll < danger * 0.5) {
     // ミミック: 演出 → 戦闘
-    SFX.trap();
+    SFX.trap(); buzz([0, 60, 40, 60]);
     log("宝箱はミミックだった！", "dmg");
     showEvent({
       sprite: MONSTERS.kobold, title: "ミミックだ！", accent: "#d4504e", banner: "⚠ 危険 ⚠",
@@ -642,7 +656,7 @@ function rollChest(cell, allowDanger, done) {
   }
   if (roll < danger) {
     // 毒針の罠: パーティ全員にダメージ + 一部に毒
-    SFX.trap();
+    SFX.trap(); buzz([0, 60, 40, 60]);
     const dmg = 6 + G.floor * 4 + rand(8);
     let poisoned = false;
     for (const p of G.party) {
@@ -700,10 +714,31 @@ function randomLoot(floor) {
 
 function descend() {
   SFX.stairs();
+  buzz([0, 20, 80, 20]);
   G.floor++;
   log("階段を降りていく…", "sys");
-  newFloor();
-  renderBoard();
+  // 暗転 → 階数タイトル → 明転 の演出
+  G.prompt = true;
+  const ov = el("div", "floor-trans");
+  ov.appendChild(el("div", "ft-floor", `B${G.floor}F`));
+  ov.appendChild(el("div", "ft-sub", "— さらに深く潜る —"));
+  document.body.appendChild(ov);
+  setTimeout(() => {
+    newFloor();
+    renderBoard();
+  }, 600); // 完全に暗転したタイミングで盤面を切替
+  setTimeout(() => {
+    ov.classList.add("out");
+    setTimeout(() => { ov.remove(); G.prompt = false; }, 500);
+  }, 1500);
+}
+
+// 軽量トースト通知 (レベルアップなどの祝福演出)
+function showToast(text) {
+  const t = el("div", "toast", text);
+  document.body.appendChild(t);
+  setTimeout(() => t.classList.add("show"), 20);
+  setTimeout(() => { t.classList.remove("show"); setTimeout(() => t.remove(), 400); }, 2200);
 }
 
 // ---- 戦闘 ----
@@ -772,6 +807,22 @@ function renderCombatCanvas() {
       }
     }
     const size = e.mon.boss ? 14 : 9;
+    // ターゲット選択中: 選択可能な敵に金のリングとマーカーを表示
+    if (b.phase === "target" && !G.animating && e.alive) {
+      vctx.save();
+      vctx.strokeStyle = "#ffd84a";
+      vctx.lineWidth = 2;
+      vctx.setLineDash([6, 4]);
+      vctx.beginPath();
+      vctx.ellipse(baseX, baseY + size * 5.4, size * 3.8, size * 1.4, 0, 0, Math.PI * 2);
+      vctx.stroke();
+      vctx.setLineDash([]);
+      vctx.fillStyle = "#ffd84a";
+      vctx.font = "12px monospace";
+      vctx.textAlign = "center";
+      vctx.fillText("▼", baseX, baseY - size * 6.2);
+      vctx.restore();
+    }
     // 足元の影 (踏み込みに追従)
     vctx.save();
     vctx.globalAlpha = e.alive ? 0.45 : 0.15;
@@ -908,7 +959,7 @@ function renderCombatMenu() {
     row.appendChild(btn("🏃 逃走", () => act("run")));
     combatMenu.appendChild(row);
   } else if (b.phase === "target") {
-    combatMenu.appendChild(el("div", "who", "対象を選択"));
+    combatMenu.appendChild(el("div", "who", "対象を選択 (敵を直接タップでもOK)"));
     const list = el("div", "target-list");
     for (const t of b.targetOptions()) {
       const label = t.side === "enemy"
@@ -1020,16 +1071,17 @@ function applyImpact(res) {
   if (res.action === "defend") { SFX.select(); return; }
   if (res.action === "sleep" || res.action === "run") { SFX.miss(); return; }
 
-  // 効果音
+  // 効果音 + 振動
   if (res.action === "spell") {
     if (res.spellKind === "heal") SFX.heal();
     else if (res.spellName && res.spellName.includes("ハリト")) SFX.fire();
     else SFX.spell();
+    buzz(20);
   } else {
     const anyHit = res.hits.some((h) => !h.miss);
     if (!anyHit) SFX.miss();
-    else if (res.hits.some((h) => h.crit)) SFX.crit();
-    else SFX.hit();
+    else if (res.hits.some((h) => h.crit)) { SFX.crit(); buzz([0, 30, 40, 60]); shakeScreen(true); }
+    else { SFX.hit(); buzz(25); }
   }
 
   let partyHit = false, anyDeath = false;
@@ -1058,7 +1110,7 @@ function applyImpact(res) {
       }
     }
   }
-  if (partyHit) fx.screen = { color: "#d4504e", t0: now };
+  if (partyHit) { fx.screen = { color: "#d4504e", t0: now }; buzz([0, 50, 50, 50]); shakeScreen(true); }
   if (anyDeath) setTimeout(() => SFX.die(), 200);
 }
 
@@ -1071,10 +1123,17 @@ function endBattle() {
     updateTopbar();
     log(`勝利！ 経験値 ${exp} / ${gold} ゴールド を得た。`, "win");
     const alive = G.party.filter((x) => x.alive);
+    let lvDelay = 0;
     for (const p of alive) {
       const msgs = gainExp(p, Math.floor(exp / alive.length));
       msgs.forEach((m) => log(m, "win"));
-      if (msgs.length) SFX.levelup();
+      if (msgs.length) {
+        SFX.levelup();
+        buzz([0, 30, 40, 30, 40, 120]);
+        const lvl = p.level;
+        setTimeout(() => showToast(`⬆ LEVEL UP!  ${p.name} は Lv${lvl} になった！`), 400 + lvDelay);
+        lvDelay += 1000;
+      }
     }
     SFX.victory();
     const wasBoss = b.enemies.some((e) => e.mon.boss);
@@ -1107,6 +1166,7 @@ function gameOver() {
   G.state = "over";
   playBgm(null);
   SFX.gameover();
+  buzz([0, 90, 70, 90, 70, 250]);
   log("パーティは全滅した… ゲームオーバー", "dmg");
   
   combatMenu.classList.remove("hidden");
@@ -1118,20 +1178,70 @@ function gameOver() {
 function victory() {
   G.state = "over";
   playBgm(null);
-  vctx.fillStyle = "#07060a";
-  vctx.fillRect(0, 0, view.width, view.height);
-  vctx.fillStyle = "#c9a227";
-  vctx.font = "bold 28px monospace";
-  vctx.textAlign = "center";
-  vctx.fillText("★ 迷宮制覇 ★", view.width / 2, view.height / 2 - 10);
-  vctx.fillStyle = "#e7e3d4";
-  vctx.font = "13px monospace";
-  vctx.fillText(`ドラゴンを倒した！ 獲得 ${G.gold} ゴールド`, view.width / 2, view.height / 2 + 24);
+  buzz([0, 40, 50, 40, 50, 40, 50, 200]);
   log("おめでとう！ あなたは地下迷宮を制覇した！", "win");
-  
+
   combatMenu.classList.remove("hidden");
   combatMenu.innerHTML = "";
   combatMenu.appendChild(btn("もう一度挑戦する", () => location.reload()));
+
+  // 金貨の紙吹雪が舞い続ける勝利画面
+  const t0 = performance.now();
+  const parts = [];
+  for (let i = 0; i < 70; i++) {
+    parts.push({
+      x: Math.random() * view.width,
+      y: -20 - Math.random() * view.height,
+      vy: 0.6 + Math.random() * 1.4,
+      vx: (Math.random() - 0.5) * 0.5,
+      r: 2 + Math.random() * 3,
+      sp: Math.random() * Math.PI * 2, // 回転位相
+      gold: Math.random() < 0.8,
+    });
+  }
+  const tick = () => {
+    if (G.state !== "over") return;
+    const now = performance.now();
+    vctx.fillStyle = "#07060a";
+    vctx.fillRect(0, 0, view.width, view.height);
+    // 背後の金色グロー
+    const g = vctx.createRadialGradient(view.width / 2, view.height / 2, 20, view.width / 2, view.height / 2, view.width / 2);
+    g.addColorStop(0, "rgba(201,162,39,0.18)");
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    vctx.fillStyle = g;
+    vctx.fillRect(0, 0, view.width, view.height);
+    // 金貨たち
+    for (const p of parts) {
+      p.y += p.vy; p.x += p.vx;
+      if (p.y > view.height + 10) { p.y = -10; p.x = Math.random() * view.width; }
+      const wob = Math.abs(Math.sin(now * 0.004 + p.sp)); // コインの回転 (横幅が伸縮)
+      vctx.fillStyle = p.gold ? "#f2d24e" : "#fff0a0";
+      vctx.beginPath();
+      vctx.ellipse(p.x, p.y, p.r * (0.3 + wob * 0.7), p.r, 0, 0, Math.PI * 2);
+      vctx.fill();
+    }
+    // タイトル (ゆっくり明滅)
+    const pulse = 0.85 + Math.sin(now * 0.003) * 0.15;
+    vctx.save();
+    vctx.globalAlpha = pulse;
+    vctx.fillStyle = "#ffd84a";
+    vctx.font = "bold 30px monospace";
+    vctx.textAlign = "center";
+    vctx.shadowColor = "#c9a227";
+    vctx.shadowBlur = 18;
+    vctx.fillText("★ 迷宮制覇 ★", view.width / 2, view.height / 2 - 14);
+    vctx.restore();
+    vctx.fillStyle = "#e7e3d4";
+    vctx.font = "13px monospace";
+    vctx.textAlign = "center";
+    vctx.fillText(`ドラゴンを倒した！ 獲得 ${G.gold} ゴールド`, view.width / 2, view.height / 2 + 24);
+    const survivors = G.party.filter((p) => p.alive).length;
+    vctx.fillStyle = "#9b97a8";
+    vctx.font = "11px monospace";
+    vctx.fillText(`生還者 ${survivors}/${G.party.length} 人`, view.width / 2, view.height / 2 + 46);
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
 
 // ---- パーティ表示 ----
@@ -1147,6 +1257,7 @@ function renderParty() {
   G.party.forEach((p, idx) => {
     const card = document.createElement("div");
     let cls = "pc" + (p.alive ? "" : " dead");
+    if (p.alive && p.hp / p.maxhp <= 0.25) cls += " low"; // 瀕死警告
     if (fx && fx.has(p)) cls += " fx-" + fx.get(p); // fx-hit / fx-heal
     card.className = cls;
     if (G.state === "board") {
@@ -1513,6 +1624,7 @@ const itemGetEl = document.getElementById("item-get");
 function showItemGet(item, who, onClose) {
   G.prompt = true; // 入力をブロック
   SFX.itemget();
+  buzz([0, 30, 60, 30]);
   itemGetEl.innerHTML = "";
   const card = el("div", "ig-card");
   card.appendChild(el("div", "ig-banner", "✦ アイテム発見！ ✦"));
@@ -1617,10 +1729,23 @@ document.addEventListener("pointerdown", ensureAudio, { once: true });
 // タイルクリックで移動: 隣接なら1歩、離れていれば経路探索して自動で歩く
 view.addEventListener("click", (e) => {
   if (G._swiped) { G._swiped = false; return; } // 直前のスワイプ由来の click は無視
-  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen) return;
   const rect = view.getBoundingClientRect();
   const sx = (e.clientX - rect.left) * (view.width / rect.width);
   const sy = (e.clientY - rect.top) * (view.height / rect.height);
+  // 戦闘中: ターゲット選択フェーズなら敵スプライトを直接タップで選べる
+  if (G.state === "combat" && G.battle && !G.animating && G.battle.phase === "target") {
+    let best = null, bestD = 1e9;
+    for (const t of G.battle.targetOptions()) {
+      if (t.side !== "enemy") continue;
+      const pos = G.enemyPos[t.uid];
+      if (!pos) continue;
+      const d = Math.hypot(sx - pos.cx, sy - pos.cy);
+      if (d < bestD) { bestD = d; best = t; }
+    }
+    if (best && bestD < 70) { SFX.select(); buzz(10); G.battle.chooseTarget(best); runCommitted(); }
+    return;
+  }
+  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen) return;
   const cx = Math.floor((sx - OX) / (CARD_W + GAP));
   const cy = Math.floor((sy - OY) / (CARD_H + GAP));
   if (cx < 0 || cy < 0 || cx >= COLS || cy >= ROWS) return;
