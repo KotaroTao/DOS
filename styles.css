@@ -639,3 +639,19 @@ canvas.spr { image-rendering: pixelated; display: block; }
 .st-attrv { font-size: 16px; font-weight: bold; color: #d9fff0; }
 .st-h2 { font-size: 12px; color: #8fd6bd; letter-spacing: 1px; margin: 12px 0 6px; border-left: 3px solid #46c08f; padding-left: 7px; }
 .st-camp { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ===== 通貨表示 (街ヘッダ) ===== */
+.tw-cur { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; font-size: 11px; font-weight: bold; white-space: nowrap; }
+.tw-c-gold { color: var(--accent); }
+.tw-c-soul { color: #aef0ff; }
+.tw-c-red { color: #ff5b6e; }
+
+/* 複数行のリード文 */
+.tw-lead { white-space: pre-line; }
+
+/* 魂を鍛える */
+.tw-trainbox { background: #140d1e; border: 1px solid #34254a; border-radius: 8px; padding: 9px 11px; margin-bottom: 8px; }
+.tw-trainn { font-size: 12px; color: #ece0ff; margin-bottom: 6px; }
+
+/* 祠の Red Soul 残高 */
+.tw-innc.red { color: #ff5b6e; }
