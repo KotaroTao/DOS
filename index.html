@@ -54,6 +54,49 @@
     </footer>
   </div>
 
+  <!-- 起動エラーの可視化と自己修復 (白画面のまま固まらないように) -->
+  <script>
+    (function () {
+      var shown = false;
+      function showFatal(msg) {
+        if (shown) return; shown = true;
+        var d = document.createElement("div");
+        d.style.cssText = "position:fixed;inset:0;z-index:9999;background:#0b0b12;color:#e7e3d4;" +
+          "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;" +
+          "padding:24px;text-align:center;font-family:monospace";
+        var h = document.createElement("div");
+        h.textContent = "⚠ 読み込みに失敗しました";
+        h.style.cssText = "font-size:18px;color:#ff9a98;font-weight:bold";
+        var m = document.createElement("div");
+        m.textContent = msg || "";
+        m.style.cssText = "font-size:11px;color:#9b97a8;max-width:420px;word-break:break-all";
+        var b = document.createElement("button");
+        b.textContent = "キャッシュを消して再読み込み";
+        b.style.cssText = "font-size:15px;padding:14px 22px;border-radius:8px;border:1px solid #c9a227;" +
+          "background:#1d1d2b;color:#ffd84a;font-family:monospace";
+        b.onclick = function () {
+          b.disabled = true; b.textContent = "修復中…";
+          var work = [];
+          if (window.caches && caches.keys) work.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
+          if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) work.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
+          Promise.all(work).catch(function () {}).then(function () { location.reload(); });
+        };
+        d.appendChild(h); d.appendChild(m); d.appendChild(b);
+        document.body.appendChild(d);
+      }
+      // モジュール読み込み失敗 (export不一致など) は error イベントに乗る
+      window.addEventListener("error", function (ev) {
+        var msg = ev.message || (ev.error && ev.error.message) || "";
+        // ゲームが一度でも起動していれば軽微なエラーは握りつぶさない (ログのみ)
+        if (!window.__game) showFatal(msg);
+      });
+      window.addEventListener("unhandledrejection", function (ev) {
+        if (!window.__game) showFatal(ev.reason && ev.reason.message ? ev.reason.message : String(ev.reason || ""));
+      });
+      // 5秒たっても起動フックが立たない場合も修復画面を出す
+      setTimeout(function () { if (!window.__game) showFatal("起動がタイムアウトしました (キャッシュ不整合の可能性)"); }, 5000);
+    })();
+  </script>
   <script type="module" src="src/game.js"></script>
 </body>
 </html>
