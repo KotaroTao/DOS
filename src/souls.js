@@ -64,6 +64,21 @@ export const SOUL_CLASSES = {
 
 export const SOUL_KEYS = Object.keys(SOUL_CLASSES);
 
+// ウィザードリィ風の能力値: 1部位あたりの寄与 (魂レベル/記憶で増加)
+// STR筋力 / VIT生命 / AGI敏捷 / IQ知力 / PIE信仰 / LUK幸運
+export const ATTR_KEYS = ["str", "vit", "agi", "iq", "pie", "luk"];
+export const ATTR_LABEL = { str: "STR", vit: "VIT", agi: "AGI", iq: "IQ", pie: "PIE", luk: "LUK" };
+export const ATTR_NAME = { str: "筋力", vit: "生命力", agi: "敏捷", iq: "知力", pie: "信仰", luk: "幸運" };
+const SOUL_ATTR = {
+  fighter: { str: 2.6, vit: 1.8, agi: 1.2, iq: 0.3, pie: 0.4, luk: 1.0 },
+  knight:  { str: 2.0, vit: 2.6, agi: 0.7, iq: 0.4, pie: 0.8, luk: 0.9 },
+  thief:   { str: 1.4, vit: 1.0, agi: 2.6, iq: 0.8, pie: 0.4, luk: 2.0 },
+  mage:    { str: 0.5, vit: 0.8, agi: 1.2, iq: 2.8, pie: 0.8, luk: 1.0 },
+  priest:  { str: 1.0, vit: 1.4, agi: 0.9, iq: 0.9, pie: 2.8, luk: 1.1 },
+  bishop:  { str: 0.7, vit: 1.0, agi: 1.0, iq: 2.0, pie: 2.0, luk: 1.0 },
+};
+const ATTR_MAX = 18; // ウィザードリィ流の上限
+
 // 魂レベル → 必要経験値 (累積はせず、各レベルで gainSoulExp 内で消費)
 export function soulExpToNext(level) {
   return 20 + (level - 1) * 24;
@@ -210,6 +225,20 @@ export function recalcDoll(doll) {
   // 会心ボーナス (盗賊魂のパッシブ)
   doll.critBonus = (dom && SOUL_CLASSES[dom.clsKey].passive && SOUL_CLASSES[dom.clsKey].passive.critBonus && tier !== "none")
     ? SOUL_CLASSES[dom.clsKey].passive.critBonus * (tier === "advanced" ? 1 : 0.5) : 0;
+
+  // ウィザードリィ風の能力値を魂から算出
+  const attrs = { str: 0, vit: 0, agi: 0, iq: 0, pie: 0, luk: 0 };
+  for (const p of PARTS) {
+    const s = doll.parts[p];
+    if (!s) continue;
+    const w = SOUL_ATTR[s.clsKey];
+    const f = (1 + (s.level - 1) * 0.06) * memoryFactor(s.memory);
+    for (const k of ATTR_KEYS) attrs[k] += w[k] * f;
+  }
+  for (const k of ATTR_KEYS) attrs[k] = Math.min(ATTR_MAX, Math.round(3 + attrs[k]));
+  doll.attrs = attrs;
+  doll.luk = attrs.luk;
+  doll.agi = attrs.agi;
 
   // 装備補正を base に重ねて最終ステータス確定 (items.js の recalc を流用)
   recalc(doll);

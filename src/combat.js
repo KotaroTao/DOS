@@ -249,13 +249,17 @@ export class Battle {
   }
 
   _physical(actor, tgt) {
-    if (Math.random() < 0.08) {
-      this.log(`${actor.name}の攻撃は外れた`, "sys");
-      return { target: tgt, miss: true };
+    // 命中判定: 素の命中漏れ + 対象の敏捷(AGI)による回避
+    const evade = Math.min(0.4, Math.max(0, ((tgt.agi || 6) - 6) * 0.012));
+    if (Math.random() < 0.06 + evade) {
+      this.log(`${tgt.name}は攻撃をかわした！`, "sys");
+      return { target: tgt, miss: true, evaded: true };
     }
     let dmg = variance(actor.atk) - Math.floor(tgt.def * 0.5);
     if (tgt._defending) dmg = Math.floor(dmg * 0.5);
-    const crit = Math.random() < 0.08 + (actor.critBonus || 0);
+    // 会心: 基礎 + 盗賊パッシブ + 幸運(LUK)
+    const luckCrit = Math.max(0, ((actor.luk || 8) - 8)) * 0.005;
+    const crit = Math.random() < 0.06 + (actor.critBonus || 0) + luckCrit;
     if (crit) dmg = Math.floor(dmg * 1.85);
     dmg = Math.max(1, dmg);
     tgt.hp -= dmg;

@@ -628,3 +628,14 @@ canvas.spr { image-rendering: pixelated; display: block; }
 }
 .tw-rumors { font-size: 11px; color: #b49fd2; margin-bottom: 5px; }
 .tw-rumort { font-size: 13px; color: #ece0ff; line-height: 1.6; }
+
+/* ===== ウィザードリィ風 能力値 ===== */
+.st-attrs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+.st-attr {
+  display: flex; align-items: center; justify-content: space-between;
+  background: #0c1712; border: 1px solid #1f4438; border-radius: 6px; padding: 6px 9px;
+}
+.st-attrk { font-size: 11px; color: #6fb89e; letter-spacing: 1px; }
+.st-attrv { font-size: 16px; font-weight: bold; color: #d9fff0; }
+.st-h2 { font-size: 12px; color: #8fd6bd; letter-spacing: 1px; margin: 12px 0 6px; border-left: 3px solid #46c08f; padding-left: 7px; }
+.st-camp { display: flex; flex-wrap: wrap; gap: 6px; }
