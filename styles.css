@@ -656,3 +656,8 @@ canvas.spr { image-rendering: pixelated; display: block; }
 
 /* 祠の Red Soul 残高 */
 .tw-innc.red { color: #ff5b6e; }
+
+/* ===== 魂のランク/個別ステータス表示 ===== */
+.tw-soulrow.rare { box-shadow: 0 0 10px rgba(160,140,255,0.25); }
+.tw-soulst, .st-soulstat { font-size: 10px; color: #9685ad; margin-top: 2px; }
+.st-soulstat { color: #6fb89e; }
