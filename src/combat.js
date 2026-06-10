@@ -61,10 +61,11 @@ const variance = (base) => Math.max(1, base + rand(Math.ceil(base * 0.4)) - rand
 
 // 戦闘の状態機械: 素早さ順に1人ずつ手番が回る
 export class Battle {
-  constructor(party, enemies, log) {
+  constructor(party, enemies, log, sfx = () => {}) {
     this.party = party;
     this.enemies = enemies;
     this.log = log;
+    this.sfx = sfx;
     this.queue = [];          // このラウンドの行動順 (素早さ順)
     this.current = null;      // 手番の味方 (入力待ち)
     this.phase = "input";     // input | target
@@ -195,12 +196,13 @@ export class Battle {
 
   _physical(actor, tgt) {
     const hitRoll = Math.random();
-    if (hitRoll < 0.1) { this.log(`${actor.name}の攻撃は外れた`, "sys"); return; }
+    if (hitRoll < 0.1) { this.sfx("miss"); this.log(`${actor.name}の攻撃は外れた`, "sys"); return; }
     let dmg = variance(actor.atk) - Math.floor(tgt.def * 0.5);
     if (tgt._defending) dmg = Math.floor(dmg * 0.5);
     const crit = Math.random() < 0.08;
     if (crit) dmg = Math.floor(dmg * 1.8);
     dmg = Math.max(1, dmg);
+    this.sfx("hit");
     tgt.hp -= dmg;
     this.log(`${actor.name}の攻撃！ ${tgt.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}`,
       actor.side === "party" ? "hit" : "dmg");
@@ -212,6 +214,7 @@ export class Battle {
     const sp = SPELLS[cmd.spellKey];
     actor.mp -= sp.mp;
     this.log(`${actor.name}は ${sp.name} を唱えた！`, "hit");
+    this.sfx(sp.kind === "heal" ? "heal" : "spell");
     if (sp.kind === "atk") {
       const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
       for (const t of targets) {
@@ -238,6 +241,7 @@ export class Battle {
   _die(t) {
     if (t.hp <= 0 && t.alive) {
       t.hp = 0; t.alive = false;
+      this.sfx("die");
       this.log(`${t.name}を倒した！`, t.side === "enemy" ? "win" : "dmg");
     }
   }

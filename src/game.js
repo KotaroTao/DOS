@@ -2,6 +2,7 @@
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSprite } from "./sprites.js";
 import { createParty, spawnCardEnemies, spawnBossEnemies, Battle, gainExp, SPELLS } from "./combat.js";
+import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
 
 const view = document.getElementById("view");
 const vctx = view.getContext("2d");
@@ -50,9 +51,10 @@ function newFloor() {
 }
 
 // ---- ボード描画 ----
-const CARD_W = 60, CARD_H = 56, GAP = 4;
+const CARD_W = 48, CARD_H = 42, GAP = 2;
 const OX = Math.floor((480 - (COLS * CARD_W + (COLS - 1) * GAP)) / 2);
 const OY = Math.floor((320 - (ROWS * CARD_H + (ROWS - 1) * GAP)) / 2);
+const SPR = 3; // スプライト拡大率
 
 function cellRect(x, y) {
   return { x: OX + x * (CARD_W + GAP), y: OY + y * (CARD_H + GAP), w: CARD_W, h: CARD_H };
@@ -79,14 +81,41 @@ function renderBoard() {
         showBack = t < 0.5;
       }
       drawCard(r, cell, scaleX, showBack);
+      // 移動可能な隣接マスをハイライト
+      if (G.state === "board" && !G.anim && isStep(x, y)) {
+        vctx.strokeStyle = "rgba(120,220,255,0.85)";
+        vctx.lineWidth = 2;
+        vctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+      }
     }
   }
 
   // プレイヤー
   const pr = cellRect(G.px, G.py);
-  drawSprite(vctx, HERO, pr.x + pr.w / 2, pr.y + pr.h / 2, 3);
+  drawSprite(vctx, HERO, pr.x + pr.w / 2, pr.y + pr.h / 2, SPR);
 
   renderParty();
+}
+
+// めくった壁の中身: マス内に石壁を描く (ローカル座標 0..w, 0..h)
+function drawWallFace(w, h) {
+  vctx.fillStyle = "#3a3a44";
+  vctx.fillRect(0, 0, w, h);
+  vctx.strokeStyle = "#23232b";
+  vctx.lineWidth = 1;
+  const bh = h / 3;
+  for (let i = 0; i < 3; i++) {
+    const yy = i * bh;
+    vctx.strokeRect(0, yy, w, bh);
+    const off = i % 2 ? w / 2 : 0;
+    vctx.beginPath();
+    vctx.moveTo(off, yy);
+    vctx.lineTo(off, yy + bh);
+    vctx.stroke();
+  }
+  vctx.strokeStyle = "#55555f";
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1, 1, w - 2, h - 2);
 }
 
 function drawCard(r, cell, scaleX, showBack) {
@@ -112,6 +141,9 @@ function drawCard(r, cell, scaleX, showBack) {
     vctx.textAlign = "center";
     vctx.textBaseline = "middle";
     vctx.fillText("?", r.w / 2, r.h / 2 + 1);
+  } else if (cell.type === "wall") {
+    // めくった壁: マス内に石壁を表示 (通行不可)
+    drawWallFace(r.w, r.h);
   } else {
     // 表面: 羊皮紙
     const cleared = cell.cleared && cell.type !== "stairs" && cell.type !== "start";
@@ -145,24 +177,48 @@ function drawCard(r, cell, scaleX, showBack) {
 }
 
 // ---- 移動とカードめくり ----
+// (x,y) が移動先候補か: 隣接していて「未公開(めくれる)」または「公開済みで壁でない」
+function isStep(x, y) {
+  const d = Math.abs(x - G.px) + Math.abs(y - G.py);
+  if (d !== 1) return false;
+  const cell = G.board.cells[y][x];
+  return !cell.revealed || cell.type !== "wall";
+}
+
 function tryMove(dx, dy) {
+  moveTo(G.px + dx, G.py + dy);
+}
+
+// 隣接マスへ。未公開ならめくり、壁でなければ進む。タイルクリックと方向キー共通
+function moveTo(nx, ny) {
   if (G.state !== "board" || G.anim) return;
-  const nx = G.px + dx, ny = G.py + dy;
   if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) return;
+  if (Math.abs(nx - G.px) + Math.abs(ny - G.py) !== 1) return;
   const cell = G.board.cells[ny][nx];
+  // 公開済みの壁: 通れない
+  if (cell.revealed && cell.type === "wall") { SFX.miss(); return; }
   G.prevPos = { x: G.px, y: G.py };
 
   if (!cell.revealed) {
-    // めくる演出 → 効果解決
+    SFX.flip();
+    // めくる演出 → 中身を解決
     G.anim = { x: nx, y: ny, t0: performance.now(), dur: 280 };
     const tick = () => {
       renderBoard();
       if (performance.now() - G.anim.t0 >= G.anim.dur) {
         G.anim = null;
         cell.revealed = true;
-        G.px = nx; G.py = ny;
-        renderBoard();
-        resolveCell(cell);
+        if (cell.type === "wall") {
+          // 壁が出た: めくるが進めない
+          SFX.miss();
+          log("壁が現れた。通れない。", "sys");
+          renderBoard();
+        } else {
+          SFX.step();
+          G.px = nx; G.py = ny;
+          renderBoard();
+          resolveCell(cell);
+        }
       } else {
         requestAnimationFrame(tick);
       }
@@ -171,6 +227,7 @@ function tryMove(dx, dy) {
     cell.revealed = true;
     requestAnimationFrame(tick);
   } else {
+    SFX.step();
     G.px = nx; G.py = ny;
     renderBoard();
     resolveCell(cell);
@@ -189,6 +246,7 @@ function resolveCell(cell) {
     case "chest": {
       if (cell.cleared) break;
       cell.cleared = true;
+      SFX.chest();
       const g = 10 + G.floor * 10 + rand(25);
       G.gold += g;
       updateTopbar();
@@ -199,6 +257,7 @@ function resolveCell(cell) {
     case "trap": {
       if (cell.cleared) break;
       cell.cleared = true;
+      SFX.trap();
       const victims = G.party.filter((p) => p.alive);
       const v = victims[rand(victims.length)];
       const dmg = 4 + G.floor * 3 + rand(7);
@@ -206,6 +265,7 @@ function resolveCell(cell) {
       log(`罠だ！ ${v.name}に ${dmg} ダメージ`, "dmg");
       if (v.hp === 0) {
         v.alive = false;
+        SFX.die();
         log(`${v.name}は倒れた…`, "dmg");
         if (!G.party.some((p) => p.alive)) { gameOver(); return; }
       }
@@ -215,6 +275,7 @@ function resolveCell(cell) {
     case "fountain": {
       if (cell.cleared) break;
       cell.cleared = true;
+      SFX.heal();
       for (const p of G.party) {
         if (!p.alive) continue;
         p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * 0.4));
@@ -236,6 +297,7 @@ function resolveCell(cell) {
 }
 
 function descend() {
+  SFX.stairs();
   G.floor++;
   log("階段を降りていく…", "sys");
   newFloor();
@@ -249,8 +311,9 @@ function startBattle(enemies, cell) {
   movePad.classList.add("hidden");
   combatMenu.classList.remove("hidden");
   log(`${enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
+  playBgm("battle");
   // 素早い敵はここで先制行動する
-  G.battle = new Battle(G.party, enemies, log);
+  G.battle = new Battle(G.party, enemies, log, (k) => SFX[k] && SFX[k]());
   if (G.battle.result) { endBattle(); return; }
   renderCombat();
 }
@@ -351,8 +414,11 @@ function endBattle() {
     log(`勝利！ 経験値 ${exp} / ${gold} ゴールド を得た。`, "win");
     const alive = G.party.filter((x) => x.alive);
     for (const p of alive) {
-      gainExp(p, Math.floor(exp / alive.length)).forEach((m) => log(m, "win"));
+      const msgs = gainExp(p, Math.floor(exp / alive.length));
+      msgs.forEach((m) => log(m, "win"));
+      if (msgs.length) SFX.levelup();
     }
+    SFX.victory();
     const wasBoss = b.enemies.some((e) => e.mon.boss);
     if (G.battleCell) G.battleCell.cleared = true;
     finishToBoard();
@@ -373,11 +439,14 @@ function finishToBoard() {
   G.state = "board";
   combatMenu.classList.add("hidden");
   movePad.classList.remove("hidden");
+  playBgm("field");
   renderBoard();
 }
 
 function gameOver() {
   G.state = "over";
+  playBgm(null);
+  SFX.gameover();
   log("パーティは全滅した… ゲームオーバー", "dmg");
   movePad.classList.add("hidden");
   combatMenu.classList.remove("hidden");
@@ -388,6 +457,7 @@ function gameOver() {
 
 function victory() {
   G.state = "over";
+  playBgm(null);
   vctx.fillStyle = "#07060a";
   vctx.fillRect(0, 0, view.width, view.height);
   vctx.fillStyle = "#c9a227";
@@ -444,16 +514,43 @@ function btn(label, onClick) {
 }
 
 // ---- 入力 ----
+// 最初のユーザー操作で音声を起動 (ブラウザの自動再生制限対策)
+let audioReady = false;
+function ensureAudio() {
+  if (audioReady) return;
+  audioReady = true;
+  initAudio();
+  playBgm(G.state === "combat" ? "battle" : "field");
+}
+document.addEventListener("pointerdown", ensureAudio, { once: true });
+
 movePad.addEventListener("click", (e) => {
   const act = e.target.closest("[data-act]")?.dataset.act;
   if (!act) return;
+  SFX.select();
   if (act === "up") tryMove(0, -1);
   else if (act === "down") tryMove(0, 1);
   else if (act === "left") tryMove(-1, 0);
   else if (act === "right") tryMove(1, 0);
 });
 
+// タイルクリックで移動: 画面座標 → セル → 隣接なら進む
+view.addEventListener("click", (e) => {
+  if (G.state !== "board" || G.anim) return;
+  const rect = view.getBoundingClientRect();
+  const sx = (e.clientX - rect.left) * (view.width / rect.width);
+  const sy = (e.clientY - rect.top) * (view.height / rect.height);
+  const cx = Math.floor((sx - OX) / (CARD_W + GAP));
+  const cy = Math.floor((sy - OY) / (CARD_H + GAP));
+  if (cx < 0 || cy < 0 || cx >= COLS || cy >= ROWS) return;
+  // セル内 (隙間クリックは無視)
+  const r = cellRect(cx, cy);
+  if (sx > r.x + r.w || sy > r.y + r.h) return;
+  moveTo(cx, cy);
+});
+
 document.addEventListener("keydown", (e) => {
+  if (e.key === "m" || e.key === "M") { updateMuteBtn(toggleMute()); return; }
   if (G.state !== "board") return;
   switch (e.key) {
     case "ArrowUp": case "w": tryMove(0, -1); break;
@@ -464,6 +561,13 @@ document.addEventListener("keydown", (e) => {
   }
   e.preventDefault();
 });
+
+// ミュートボタン
+const muteBtn = document.getElementById("mute-btn");
+function updateMuteBtn(m) { if (muteBtn) muteBtn.textContent = m ? "🔇" : "🔊"; }
+if (muteBtn) {
+  muteBtn.addEventListener("click", () => { ensureAudio(); updateMuteBtn(toggleMute()); });
+}
 
 // ---- 起動 ----
 function init() {
