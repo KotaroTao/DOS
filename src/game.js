@@ -368,28 +368,41 @@ function resolveCell(cell) {
       const v = victims[rand(victims.length)];
       const dmg = 4 + G.floor * 3 + rand(7);
       v.hp = Math.max(0, v.hp - dmg);
+      const lines = [`${v.name}に ${dmg} ダメージ！`];
       log(`罠だ！ ${v.name}に ${dmg} ダメージ`, "dmg");
+      let died = false;
       if (v.hp === 0) {
-        v.alive = false;
-        SFX.die();
+        v.alive = false; died = true;
         log(`${v.name}は倒れた…`, "dmg");
-        if (!G.party.some((p) => p.alive)) { gameOver(); return; }
+        lines.push(`${v.name}は倒れた…`);
       }
-      renderBoard();
+      showEvent({
+        sprite: ICONS.trap, title: "罠だ！", lines, accent: "#d4504e",
+        onClose: () => {
+          if (died) { SFX.die(); if (!G.party.some((p) => p.alive)) { gameOver(); return; } }
+          renderBoard();
+        },
+      });
       break;
     }
     case "fountain": {
       if (cell.cleared) break;
       cell.cleared = true;
       SFX.heal();
+      let cured = false;
       for (const p of G.party) {
         if (!p.alive) continue;
         p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * 0.4));
         p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * 0.5));
+        if (p.ailment) cured = true;
         p.ailment = null; // 毒も浄化
       }
       log("癒しの泉だ！ HPとMPが回復し、毒も癒えた。", "heal");
-      renderBoard();
+      showEvent({
+        sprite: ICONS.fountain, title: "癒しの泉", accent: "#5fb8d6",
+        lines: ["パーティのHPとMPが回復した！", ...(cured ? ["毒も浄化された。"] : [])],
+        onClose: () => renderBoard(),
+      });
       break;
     }
     case "stairs":
@@ -399,12 +412,17 @@ function resolveCell(cell) {
 }
 
 // ---- 選択肢プロンプト ----
-// 盤面の操作系を一時的に選択肢に差し替える
-function showChoice(title, options) {
+// 盤面の操作系を一時的に選択肢に差し替える (icon: イラスト sprite を上部に表示)
+function showChoice(title, options, icon) {
   G.prompt = true;
   movePad.classList.add("hidden");
   combatMenu.classList.remove("hidden");
   combatMenu.innerHTML = "";
+  if (icon) {
+    const ic = el("div", "choice-icon");
+    ic.appendChild(spriteCanvas(icon, 6));
+    combatMenu.appendChild(ic);
+  }
   combatMenu.appendChild(el("div", "who", title));
   const list = el("div", "target-list");
   for (const o of options) {
@@ -433,16 +451,17 @@ function askDescend(cell) {
         else descend();
       } },
       { label: "✋ まだ探索する", fn: () => { renderBoard(); } },
-    ]
+    ],
+    ICONS.stairs
   );
 }
 
 // 宝箱: 開けるか選ぶ (リスクあり: 罠 / ミミック)
 function askOpenChest(cell) {
-  showChoice("宝箱を見つけた。開ける？", [
+  showChoice("宝箱が現れた！ 開ける？", [
     { label: "🔓 開ける", fn: () => openChest(cell) },
     { label: "✋ 開けない", fn: () => { renderBoard(); } },
-  ]);
+  ], ICONS.chest);
 }
 
 function openChest(cell) {
@@ -455,26 +474,34 @@ function rollChest(cell, allowDanger, done) {
   const roll = Math.random();
   const danger = allowDanger ? 0.15 + G.floor * 0.07 : 0;
   if (roll < danger * 0.5) {
-    // ミミック: いきなり戦闘
+    // ミミック: 演出 → 戦闘
     SFX.trap();
     log("宝箱はミミックだった！", "dmg");
-    startBattle(spawnMimic(G.floor), cell);
+    showEvent({
+      sprite: MONSTERS.kobold, title: "ミミックだ！", accent: "#d4504e",
+      lines: ["宝箱は怪物だった！", "戦闘になる！"], btnLabel: "戦う",
+      onClose: () => startBattle(spawnMimic(G.floor), cell),
+    });
     return;
   }
   if (roll < danger) {
     // 毒針の罠: パーティ全員にダメージ + 一部に毒
     SFX.trap();
     const dmg = 6 + G.floor * 4 + rand(8);
-    log(`宝箱は罠だった！ 毒針が飛び出す！`, "dmg");
+    let poisoned = false;
     for (const p of G.party) {
       if (!p.alive) continue;
       p.hp = Math.max(0, p.hp - dmg);
       if (p.hp === 0) { p.alive = false; log(`${p.name}は倒れた…`, "dmg"); }
-      else if (Math.random() < 0.5) p.ailment = "poison";
+      else if (Math.random() < 0.5) { p.ailment = "poison"; poisoned = true; }
     }
-    if (!G.party.some((p) => p.alive)) { gameOver(); return; }
-    log(`全員に ${dmg} ダメージ。毒に侵された者も…`, "dmg");
-    if (done) done();
+    log(`宝箱は罠だった！ 全員に ${dmg} ダメージ`, "dmg");
+    const wiped = !G.party.some((p) => p.alive);
+    showEvent({
+      sprite: ICONS.trap, title: "毒針の罠！", accent: "#d4504e",
+      lines: [`全員に ${dmg} ダメージ！`, ...(poisoned ? ["毒に侵された者も…"] : [])],
+      onClose: () => { if (wiped) { gameOver(); return; } if (done) done(); },
+    });
     return;
   }
   // 通常: 宝 (ゴールド or 装備/アイテム)
@@ -489,7 +516,10 @@ function rollChest(cell, allowDanger, done) {
     G.gold += g;
     updateTopbar();
     log(`宝箱から ${g} ゴールドを手に入れた！`, "win");
-    if (done) done();
+    showEvent({
+      sprite: ICONS.gold, title: "ゴールド発見！", accent: "#e8c24a",
+      lines: [`${g} ゴールドを手に入れた！`], onClose: done || (() => renderBoard()),
+    });
   }
 }
 
@@ -1261,6 +1291,39 @@ function showItemGet(item, who, onClose) {
 function closeItemGet(onClose) {
   itemGetEl.classList.add("hidden");
   itemGetEl.innerHTML = "";
+  G.prompt = false;
+  if (onClose) onClose();
+  else renderBoard();
+}
+
+// ---- 汎用イベント表示 (宝箱の中身・罠・泉など、メイン画面上にイラスト付きで) ----
+const eventPopEl = document.getElementById("event-pop");
+
+function showEvent({ sprite, title, lines = [], accent = "#c9a227", btnLabel = "つぎへ", onClose }) {
+  G.prompt = true;
+  eventPopEl.innerHTML = "";
+  const card = el("div", "ev-card");
+  card.style.borderColor = accent;
+  if (sprite) {
+    const art = el("div", "ev-art");
+    art.appendChild(spriteCanvas(sprite, 9));
+    card.appendChild(art);
+  }
+  const t = el("div", "ev-title", title);
+  t.style.color = accent;
+  card.appendChild(t);
+  for (const ln of lines) card.appendChild(el("div", "ev-line", ln));
+  const ok = btn(btnLabel, () => closeEvent(onClose));
+  ok.className = "btn ev-ok";
+  card.appendChild(ok);
+  eventPopEl.appendChild(card);
+  eventPopEl.classList.remove("hidden");
+  eventPopEl.onclick = (e) => { if (e.target === eventPopEl) closeEvent(onClose); };
+}
+
+function closeEvent(onClose) {
+  eventPopEl.classList.add("hidden");
+  eventPopEl.innerHTML = "";
   G.prompt = false;
   if (onClose) onClose();
   else renderBoard();
