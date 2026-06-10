@@ -118,24 +118,19 @@ const SOUL_ATTR = {
 };
 const ATTR_MAX = 18; // ウィザードリィ流の上限
 
-// 魂レベル → 必要経験値 (累積はせず、各レベルで gainSoulExp 内で消費)
-export function soulExpToNext(level) {
-  return 20 + (level - 1) * 24;
-}
-export const SOUL_MAX_LEVEL = 9;
-
 let _soulUid = 0;
 
 // ---- 魂のランク ----
-// 上位ランクほどステータス係数が高く、特別なスキル解放を持つ。
-// 出現率はプレイ時間ベースの目安 (優秀=30分に1つ / 偉大=3時間に1つ / 伝説=10時間に1つ)。
-// 魂の入手ペースを ~20個/時 と想定した確率に変換。
+// 上位ランクほどステータス係数が高く、初期レベル上限(cap)も高い。
+// 優秀以上はダンジョンでのみ入手 (合成では作れない)。
 export const SOUL_RANKS = {
-  normal: { label: "",       mul: 1.0,  color: null,      order: 0 },
-  fine:   { label: "優秀な", mul: 1.25, color: "#7fd0ff", order: 1 },
-  great:  { label: "偉大な", mul: 1.6,  color: "#c08aff", order: 2 },
-  legend: { label: "伝説の", mul: 2.2,  color: "#ffcf4a", order: 3 },
+  normal: { label: "",       mul: 1.0,  color: null,      order: 0, cap: 10 },
+  fine:   { label: "優秀な", mul: 1.25, color: "#7fd0ff", order: 1, cap: 20 },
+  great:  { label: "偉大な", mul: 1.6,  color: "#c08aff", order: 2, cap: 30 },
+  legend: { label: "伝説の", mul: 2.2,  color: "#ffcf4a", order: 3, cap: 50 },
 };
+// 限界突破で到達できる上限 (初期cap + 40)
+export function soulHardCap(s) { return SOUL_RANKS[s.rank || "normal"].cap + 40; }
 
 // ランク抽選: legend 0.5% / great 1.7% / fine 10% / それ以外 normal
 // bonus(0〜): 深い迷宮ほどレア魂が出やすくなる倍率加算
@@ -156,29 +151,24 @@ export function makeSoul(clsKey, level = 1, part = null, rank = "normal") {
   if (!SOUL_CLASSES[clsKey]) return null;
   if (!part) part = PARTS[Math.floor(Math.random() * PARTS.length)];
   if (!SOUL_RANKS[rank]) rank = "normal";
-  // memory: 宿主の人業が砕けるたびに刻まれる「記憶」。戦闘で鍛えられた証。
-  return { uid: ++_soulUid, clsKey, part, rank, level, exp: 0, memory: 0 };
+  const cap = SOUL_RANKS[rank].cap;
+  return { uid: ++_soulUid, clsKey, part, rank, level: Math.min(level, cap), cap };
 }
 
-// 記憶の称号 (memory の段階で重みづけ)
-export function memoryTitle(memory) {
-  if (memory >= 5) return "亡魂の";
-  if (memory >= 3) return "歴戦の";
-  if (memory >= 1) return "傷を負いし";
-  return "";
+// 旧セーブ等で cap 未設定の魂を補正する
+export function ensureSoul(s) {
+  if (!s) return s;
+  if (s.cap == null) s.cap = SOUL_RANKS[s.rank || "normal"].cap;
+  if (s.level == null) s.level = 1;
+  if (s.level > s.cap) s.level = s.cap;
+  return s;
 }
 
 // 魂の表示名。例: 「伝説の戦士の魂（頭）Lv3」
 export function soulName(s) {
   const rank = SOUL_RANKS[s.rank || "normal"].label;
-  const t = memoryTitle(s.memory || 0);
   const part = s.part ? `（${PART_LABEL[s.part]}）` : "";
-  return `${rank}${t}${SOUL_CLASSES[s.clsKey].label}の魂${part} Lv${s.level}`;
-}
-
-// 記憶ボーナス係数: memory 1つにつき +8% (最大 +40%)
-function memoryFactor(memory) {
-  return 1 + Math.min(5, memory || 0) * 0.08;
+  return `${rank}${SOUL_CLASSES[s.clsKey].label}の魂${part} Lv${s.level}`;
 }
 
 // レベル係数: 1部位の寄与は (1 + (level-1)*0.12) 倍
@@ -186,9 +176,9 @@ function lvlFactor(level) {
   return 1 + (level - 1) * 0.12;
 }
 
-// 魂1つの総合係数 (レベル × 記憶 × ランク)
+// 魂1つの総合係数 (レベル × ランク)
 function soulFactor(s) {
-  return lvlFactor(s.level) * memoryFactor(s.memory) * SOUL_RANKS[s.rank || "normal"].mul;
+  return lvlFactor(s.level) * SOUL_RANKS[s.rank || "normal"].mul;
 }
 
 // 魂1つが持つステータス (人業のステータスはこれの合計)
@@ -349,7 +339,7 @@ export function recalcDoll(doll) {
     const s = doll.parts[p];
     if (!s) continue;
     const w = SOUL_ATTR[s.clsKey];
-    const f = (1 + (s.level - 1) * 0.06) * memoryFactor(s.memory) * SOUL_RANKS[s.rank || "normal"].mul;
+    const f = (1 + (s.level - 1) * 0.06) * SOUL_RANKS[s.rank || "normal"].mul;
     for (const k of ATTR_KEYS) attrs[k] += w[k] * f;
   }
   for (const k of ATTR_KEYS) attrs[k] = Math.min(ATTR_MAX, Math.round(attrs[k]));
@@ -360,46 +350,6 @@ export function recalcDoll(doll) {
   // 装備補正を base に重ねて最終ステータス確定 (items.js の recalc を流用)
   recalc(doll);
   return doll;
-}
-
-// 戦闘経験を魂に配分してレベルアップ判定。
-// 封印中の各魂に exp を与え、上がった魂の通知メッセージ配列を返す。
-export function gainSoulExp(doll, amount) {
-  const msgs = [];
-  const souls = dollSouls(doll);
-  if (!souls.length) return msgs;
-  const each = Math.max(1, Math.floor(amount / souls.length));
-  for (const s of souls) {
-    if (s.level >= SOUL_MAX_LEVEL) continue;
-    // 記憶を宿した魂は経験を早く吸収する (戦いを思い出す)
-    s.exp += Math.round(each * memoryFactor(s.memory));
-    while (s.level < SOUL_MAX_LEVEL && s.exp >= soulExpToNext(s.level)) {
-      s.exp -= soulExpToNext(s.level);
-      s.level++;
-      msgs.push(`${SOUL_CLASSES[s.clsKey].label}の魂が Lv${s.level} に成長した`);
-    }
-  }
-  if (msgs.length) recalcDoll(doll);
-  return msgs;
-}
-
-// 人業が砕けたとき、封印された魂すべてに「記憶」を刻む。
-// 一度の死につき一度だけ (doll._imprinted で多重防止)。
-// 記憶を得た魂のメッセージ配列を返す。
-export function markFallen(doll) {
-  if (!doll || doll.alive || doll._imprinted) return [];
-  doll._imprinted = true;
-  const msgs = [];
-  for (const s of dollSouls(doll)) {
-    s.memory = (s.memory || 0) + 1;
-    msgs.push(`${SOUL_CLASSES[s.clsKey].label}の魂に戦いの記憶が刻まれた`);
-  }
-  return msgs;
-}
-
-// 蘇生時に死亡フラグを解除 (次の死で再び記憶を刻めるように)
-export function clearFallen(doll) {
-  doll._imprinted = false;
 }
 
 // 部位に魂を封じる。既に封印があれば外して stock へ戻す処理は呼び出し側で。
