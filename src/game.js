@@ -807,20 +807,26 @@ function renderCombatCanvas() {
       }
     }
     const size = e.mon.boss ? 14 : 9;
-    // ターゲット選択中: 選択可能な敵に金のリングとマーカーを表示
-    if (b.phase === "target" && !G.animating && e.alive) {
+    // 入力/ターゲット選択中: タップで攻撃できる敵に金のリングとマーカーを表示
+    const tappable = !G.animating && e.alive && (b.phase === "target" || b.phase === "input");
+    if (tappable) {
+      const strong = b.phase === "target"; // 対象選択中はくっきり、入力中は控えめ
       vctx.save();
+      vctx.globalAlpha = strong ? 1 : 0.5;
       vctx.strokeStyle = "#ffd84a";
       vctx.lineWidth = 2;
       vctx.setLineDash([6, 4]);
+      vctx.lineDashOffset = -now * 0.02; // リングが回転して目立たせる
       vctx.beginPath();
       vctx.ellipse(baseX, baseY + size * 5.4, size * 3.8, size * 1.4, 0, 0, Math.PI * 2);
       vctx.stroke();
       vctx.setLineDash([]);
-      vctx.fillStyle = "#ffd84a";
-      vctx.font = "12px monospace";
-      vctx.textAlign = "center";
-      vctx.fillText("▼", baseX, baseY - size * 6.2);
+      if (strong) {
+        vctx.fillStyle = "#ffd84a";
+        vctx.font = "12px monospace";
+        vctx.textAlign = "center";
+        vctx.fillText("▼", baseX, baseY - size * 6.2);
+      }
       vctx.restore();
     }
     // 足元の影 (踏み込みに追従)
@@ -943,6 +949,21 @@ function drawEffects(fx, now) {
   }
 }
 
+// キャンバス座標(sx,sy)に最も近い生存中の敵を返す (一定距離以内のみ)
+function nearestEnemyAt(sx, sy) {
+  const b = G.battle;
+  if (!b) return null;
+  let best = null, bestD = 1e9;
+  for (const e of b.enemies) {
+    if (!e.alive) continue;
+    const pos = G.enemyPos[e.uid];
+    if (!pos) continue;
+    const d = Math.hypot(sx - pos.cx, sy - pos.cy);
+    if (d < bestD) { bestD = d; best = e; }
+  }
+  return bestD < 70 ? best : null;
+}
+
 function renderCombatMenu() {
   const b = G.battle;
   combatMenu.innerHTML = "";
@@ -950,7 +971,7 @@ function renderCombatMenu() {
   if (b.phase === "input") {
     const actor = b.current;
     highlightActor(actor);
-    combatMenu.appendChild(el("div", "who", `▶ ${actor.name} のターン (Lv${actor.level} / 素早さ${actor.spd})`));
+    combatMenu.appendChild(el("div", "who", `▶ ${actor.name} のターン ・ 敵タップで攻撃`));
     const row = el("div", "row");
     row.appendChild(btn("⚔ 攻撃", () => act("attack")));
     if (actor.spells.length) row.appendChild(btn("✦ 呪文", () => showSpells(actor)));
@@ -1732,17 +1753,23 @@ view.addEventListener("click", (e) => {
   const rect = view.getBoundingClientRect();
   const sx = (e.clientX - rect.left) * (view.width / rect.width);
   const sy = (e.clientY - rect.top) * (view.height / rect.height);
-  // 戦闘中: ターゲット選択フェーズなら敵スプライトを直接タップで選べる
-  if (G.state === "combat" && G.battle && !G.animating && G.battle.phase === "target") {
-    let best = null, bestD = 1e9;
-    for (const t of G.battle.targetOptions()) {
-      if (t.side !== "enemy") continue;
-      const pos = G.enemyPos[t.uid];
-      if (!pos) continue;
-      const d = Math.hypot(sx - pos.cx, sy - pos.cy);
-      if (d < bestD) { bestD = d; best = t; }
+  // 戦闘中: 敵スプライトを直接タップ
+  if (G.state === "combat" && G.battle && !G.animating) {
+    const b = G.battle;
+    const enemy = nearestEnemyAt(sx, sy);
+    // ターゲット選択フェーズ: タップで対象決定
+    if (b.phase === "target" && enemy) {
+      if (b.pending && b.pending.action !== "attack" && b.targetOptions().every((t) => t.side !== "enemy")) return;
+      SFX.select(); buzz(10); b.chooseTarget(enemy); runCommitted();
+      return;
     }
-    if (best && bestD < 70) { SFX.select(); buzz(10); G.battle.chooseTarget(best); runCommitted(); }
+    // 入力フェーズ: 敵タップ = その敵に通常攻撃 (ショートカット)
+    if (b.phase === "input" && enemy) {
+      const r = b.chooseAction("attack");
+      if (r && r.invalid) { renderCombatMenu(); return; }
+      SFX.select(); buzz(10); b.chooseTarget(enemy); runCommitted();
+      return;
+    }
     return;
   }
   if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen) return;
