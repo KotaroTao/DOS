@@ -24,7 +24,10 @@ const G = {
   battle: null,
   battleCell: null,   // 戦闘中のモンスターカード
   prevPos: null,      // 逃走時の戻り先
-  anim: null,         // { x, y, t0, dur, done }
+  anim: null,         // アニメーション中フラグ (入力ブロック用)
+  flipAnim: null,     // カードめくり演出 { x, y, t0, dur }
+  heroAnim: null,     // キャラのスライド { fromX, fromY, toX, toY, t0, dur }
+  walking: false,     // 経路自動移動中
 };
 
 const rand = (n) => Math.floor(Math.random() * n);
@@ -75,14 +78,14 @@ function renderBoard() {
       const r = cellRect(x, y);
       let scaleX = 1;
       let showBack = !cell.revealed;
-      if (G.anim && G.anim.x === x && G.anim.y === y) {
-        const t = Math.min(1, (performance.now() - G.anim.t0) / G.anim.dur);
+      if (G.flipAnim && G.flipAnim.x === x && G.flipAnim.y === y) {
+        const t = Math.min(1, (performance.now() - G.flipAnim.t0) / G.flipAnim.dur);
         scaleX = Math.abs(Math.cos(t * Math.PI));
         showBack = t < 0.5;
       }
       drawCard(r, cell, scaleX, showBack);
-      // 移動可能な隣接マスをハイライト
-      if (G.state === "board" && !G.anim && isStep(x, y)) {
+      // 移動可能な隣接マスをハイライト (静止中のみ)
+      if (G.state === "board" && !G.anim && !G.walking && isStep(x, y)) {
         vctx.strokeStyle = "rgba(120,220,255,0.85)";
         vctx.lineWidth = 2;
         vctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
@@ -90,9 +93,21 @@ function renderBoard() {
     }
   }
 
-  // プレイヤー
-  const pr = cellRect(G.px, G.py);
-  drawSprite(vctx, HERO, pr.x + pr.w / 2, pr.y + pr.h / 2, SPR);
+  // プレイヤー (移動中は前マスから次マスへ補間してスライド)
+  let hx, hy;
+  if (G.heroAnim) {
+    const a = G.heroAnim;
+    let t = Math.min(1, (performance.now() - a.t0) / a.dur);
+    t = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // ease-in-out
+    const from = cellRect(a.fromX, a.fromY), to = cellRect(a.toX, a.toY);
+    hx = (from.x + from.w / 2) + ((to.x + to.w / 2) - (from.x + from.w / 2)) * t;
+    hy = (from.y + from.h / 2) + ((to.y + to.h / 2) - (from.y + from.h / 2)) * t;
+  } else {
+    const pr = cellRect(G.px, G.py);
+    hx = pr.x + pr.w / 2;
+    hy = pr.y + pr.h / 2;
+  }
+  drawSprite(vctx, HERO, hx, hy, SPR);
 
   renderParty();
 }
@@ -196,46 +211,117 @@ function isStep(x, y) {
   return edgeOpen(x, y);
 }
 
+const DIRS_G = { n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0] };
+
 function tryMove(dx, dy) {
   moveTo(G.px + dx, G.py + dy);
 }
 
-// 隣接マスへ。辺に壁があれば進めない。未公開ならめくってから進む
+// 単発移動 (方向キー/ボタン/隣接クリック)。ガード後に1歩進む
 function moveTo(nx, ny) {
-  if (G.state !== "board" || G.anim) return;
+  if (G.state !== "board" || G.anim || G.walking) return;
   if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) return;
   if (Math.abs(nx - G.px) + Math.abs(ny - G.py) !== 1) return;
   // 辺が壁で塞がれている: 進めない (壁の通り抜けは不可)
   if (!edgeOpen(nx, ny)) { SFX.miss(); log("壁があって進めない。", "sys"); return; }
+  moveStep(nx, ny);
+}
+
+// 隣接マスへ1歩進む実体。未公開ならめくり→スライド、完了後に onDone
+function moveStep(nx, ny, onDone) {
   const cell = G.board.cells[ny][nx];
   G.prevPos = { x: G.px, y: G.py };
+  G.anim = { busy: true };
 
-  if (!cell.revealed) {
-    SFX.flip();
-    // めくる演出 → 中身を解決
-    G.anim = { x: nx, y: ny, t0: performance.now(), dur: 280 };
+  // キャラが現在地から次マスへスライド → 中身を解決
+  const slide = () => {
+    G.heroAnim = { fromX: G.px, fromY: G.py, toX: nx, toY: ny, t0: performance.now(), dur: 150 };
     const tick = () => {
       renderBoard();
-      if (performance.now() - G.anim.t0 >= G.anim.dur) {
+      if (performance.now() - G.heroAnim.t0 >= G.heroAnim.dur) {
+        G.heroAnim = null;
         G.anim = null;
-        cell.revealed = true;
-        SFX.step();
         G.px = nx; G.py = ny;
         renderBoard();
         resolveCell(cell);
+        if (onDone) onDone();
       } else {
         requestAnimationFrame(tick);
       }
     };
-    // めくりの途中で表面を見せるため先に revealed 扱いで描く
-    cell.revealed = true;
     requestAnimationFrame(tick);
+  };
+
+  if (!cell.revealed) {
+    SFX.flip();
+    cell.revealed = true; // めくり途中に表面を見せる
+    G.flipAnim = { x: nx, y: ny, t0: performance.now(), dur: 240 };
+    const ftick = () => {
+      renderBoard();
+      if (performance.now() - G.flipAnim.t0 >= G.flipAnim.dur) {
+        G.flipAnim = null;
+        SFX.step();
+        slide();
+      } else {
+        requestAnimationFrame(ftick);
+      }
+    };
+    requestAnimationFrame(ftick);
   } else {
     SFX.step();
-    G.px = nx; G.py = ny;
-    renderBoard();
-    resolveCell(cell);
+    slide();
   }
+}
+
+// 壁を考慮した最短経路 (現在地 → tx,ty)。歩く順の {x,y} 配列を返す
+function findPath(tx, ty) {
+  if (tx === G.px && ty === G.py) return [];
+  const key = (x, y) => x + "," + y;
+  const prev = new Map();
+  const seen = new Set([key(G.px, G.py)]);
+  const q = [[G.px, G.py]];
+  while (q.length) {
+    const [x, y] = q.shift();
+    for (const d in DIRS_G) {
+      if (G.board.cells[y][x].walls[d]) continue;
+      const nx = x + DIRS_G[d][0], ny = y + DIRS_G[d][1];
+      if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) continue;
+      if (seen.has(key(nx, ny))) continue;
+      seen.add(key(nx, ny));
+      prev.set(key(nx, ny), [x, y]);
+      if (nx === tx && ny === ty) {
+        const path = [];
+        let cx = nx, cy = ny;
+        while (cx !== G.px || cy !== G.py) {
+          path.push({ x: cx, y: cy });
+          [cx, cy] = prev.get(key(cx, cy));
+        }
+        return path.reverse();
+      }
+      q.push([nx, ny]);
+    }
+  }
+  return []; // 連結保証されているので通常到達する
+}
+
+// 経路に沿って1歩ずつ自動で歩く。戦闘や階段で中断
+function autoWalk(path) {
+  if (!path.length) return;
+  G.walking = true;
+  const next = () => {
+    if (G.state !== "board" || !path.length) { G.walking = false; renderBoard(); return; }
+    const { x, y } = path.shift();
+    // 念のため隣接・開通を確認
+    if (Math.abs(x - G.px) + Math.abs(y - G.py) !== 1 || !edgeOpen(x, y)) {
+      G.walking = false; renderBoard(); return;
+    }
+    moveStep(x, y, () => {
+      if (G.state !== "board") { G.walking = false; return; } // 戦闘/階段で中断
+      if (path.length) setTimeout(next, 110);
+      else { G.walking = false; renderBoard(); }
+    });
+  };
+  next();
 }
 
 function resolveCell(cell) {
@@ -538,9 +624,9 @@ movePad.addEventListener("click", (e) => {
   else if (act === "right") tryMove(1, 0);
 });
 
-// タイルクリックで移動: 画面座標 → セル → 隣接なら進む
+// タイルクリックで移動: 隣接なら1歩、離れていれば経路探索して自動で歩く
 view.addEventListener("click", (e) => {
-  if (G.state !== "board" || G.anim) return;
+  if (G.state !== "board" || G.anim || G.walking) return;
   const rect = view.getBoundingClientRect();
   const sx = (e.clientX - rect.left) * (view.width / rect.width);
   const sy = (e.clientY - rect.top) * (view.height / rect.height);
@@ -550,7 +636,12 @@ view.addEventListener("click", (e) => {
   // セル内 (隙間クリックは無視)
   const r = cellRect(cx, cy);
   if (sx > r.x + r.w || sy > r.y + r.h) return;
-  moveTo(cx, cy);
+  if (cx === G.px && cy === G.py) return;
+  const dist = Math.abs(cx - G.px) + Math.abs(cy - G.py);
+  if (dist === 1) { SFX.select(); moveTo(cx, cy); return; }
+  // 離れたマス: 最短経路をたどって自動移動
+  const path = findPath(cx, cy);
+  if (path.length) { SFX.select(); autoWalk(path); }
 });
 
 document.addEventListener("keydown", (e) => {
