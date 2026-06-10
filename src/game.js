@@ -1545,10 +1545,15 @@ view.addEventListener("click", (e) => {
   if (sx > r.x + r.w || sy > r.y + r.h) return;
   if (cx === G.px && cy === G.py) return;
   const dist = Math.abs(cx - G.px) + Math.abs(cy - G.py);
-  if (dist === 1) { SFX.select(); moveTo(cx, cy); return; }
-  // 離れたマス: 最短経路をたどって自動移動
+  // 隣接かつ辺が開いていれば1歩で移動
+  if (dist === 1 && edgeOpen(cx, cy)) { SFX.select(); moveTo(cx, cy); return; }
+  // 離れたマス、または壁ごしの隣接マス: 迂回ルートを探索して自動移動
   const path = findPath(cx, cy);
-  if (path.length) { SFX.select(); autoWalk(path); }
+  if (path.length) { SFX.select(); autoWalk(path); return; }
+  // 到達ルートなし: フィードバック (隣接なら壁の赤フラッシュ)
+  if (dist === 1) { moveTo(cx, cy); return; }
+  SFX.miss();
+  log("そこへはまだ行けない。", "sys");
 });
 
 document.addEventListener("keydown", (e) => {
