@@ -7,19 +7,20 @@
 // classes: 装備可能な職業キー配列 (null=全職)
 // cursed: 呪い (一度装備すると外せない)
 
-// 装備部位 (7か所)
-export const SLOTS = ["head", "rhand", "lhand", "body", "feet", "acc1", "acc2"];
+// 装備部位 (8か所): 武器・防具・盾・頭・小手・足・装飾x2
+export const SLOTS = ["weapon", "body", "shield", "head", "hands", "feet", "acc1", "acc2"];
 export const SLOT_LABEL = {
-  head: "頭", rhand: "右手", lhand: "左手", body: "体", feet: "足", acc1: "装飾1", acc2: "装飾2",
+  weapon: "武器", body: "防具", shield: "盾", head: "頭", hands: "小手", feet: "足", acc1: "装飾1", acc2: "装飾2",
 };
 export const MAX_ITEMS = 12;
 
 // slot種別 → 装備キー
 export function slotKeyFor(item, member) {
-  if (item.slot === "head") return "head";
-  if (item.slot === "weapon") return "rhand";
-  if (item.slot === "shield") return "lhand";
+  if (item.slot === "weapon") return "weapon";
+  if (item.slot === "shield") return "shield";
   if (item.slot === "body") return "body";
+  if (item.slot === "head") return "head";
+  if (item.slot === "hands") return "hands";
   if (item.slot === "feet") return "feet";
   if (item.slot === "acc") return member.equip.acc1 ? (member.equip.acc2 ? "acc1" : "acc2") : "acc1";
   return null;
@@ -50,7 +51,7 @@ const sprite = (art) => ({ art, palette: P });
 export const ITEMS = {
   // ===== 武器 =====
   dagger: {
-    id: "dagger", name: "ダガー", slot: "weapon", atk: 3, price: 30, classes: null,
+    id: "dagger", name: "ダガー", slot: "weapon", atk: 3, hit: 1, dice: "1d4", swings: 1, price: 30, classes: null,
     desc: "軽く短い両刃の短剣。どの職業でも扱える基本の武器。",
     ...sprite([
       "....k.......",
@@ -68,7 +69,7 @@ export const ITEMS = {
     ]),
   },
   shortSword: {
-    id: "shortSword", name: "ショートソード", slot: "weapon", atk: 6, price: 120,
+    id: "shortSword", name: "ショートソード", slot: "weapon", atk: 6, hit: 2, dice: "1d6+1", swings: 1, price: 120,
     classes: ["fighter", "knight", "thief", "priest", "bishop"],
     desc: "標準的な片手剣。前衛に十分な切れ味を持つ。",
     ...sprite([
@@ -87,7 +88,7 @@ export const ITEMS = {
     ]),
   },
   battleAxe: {
-    id: "battleAxe", name: "バトルアックス", slot: "weapon", atk: 13, twoHanded: true, price: 480,
+    id: "battleAxe", name: "バトルアックス", slot: "weapon", atk: 13, hit: 3, dice: "2d6", swings: 1, twoHanded: true, price: 480,
     classes: ["fighter", "knight"],
     desc: "両手で振るう戦斧。絶大な威力だが盾は持てない。",
     ...sprite([
@@ -106,7 +107,7 @@ export const ITEMS = {
     ]),
   },
   warHammer: {
-    id: "warHammer", name: "ウォーハンマー", slot: "weapon", atk: 9, price: 300,
+    id: "warHammer", name: "ウォーハンマー", slot: "weapon", atk: 9, hit: 2, dice: "1d8+1", swings: 1, price: 300,
     classes: ["fighter", "knight", "priest"],
     desc: "鈍器。聖職者でも振るえる。骨ある敵に有効。",
     ...sprite([
@@ -125,7 +126,7 @@ export const ITEMS = {
     ]),
   },
   magicStaff: {
-    id: "magicStaff", name: "魔法の杖", slot: "weapon", atk: 4, mp: 4, price: 260,
+    id: "magicStaff", name: "魔法の杖", slot: "weapon", atk: 4, hit: 0, dice: "1d4", swings: 1, mp: 4, price: 260,
     classes: ["mage", "bishop", "priest"],
     desc: "蒼い宝玉を戴いた杖。魔力(MP)を高める。",
     ...sprite([
@@ -320,6 +321,63 @@ export const ITEMS = {
     ]),
   },
 
+  // ===== 小手 =====
+  leatherGloves: {
+    id: "leatherGloves", name: "革の手袋", slot: "hands", def: 1, price: 50, classes: null,
+    desc: "しなやかな革の手袋。手元をわずかに守る。",
+    ...sprite([
+      ".kl k.klk...",
+      ".klk.klk....",
+      ".kllkllk....",
+      ".kdlllldk...",
+      "..klllk.....",
+      "..kkkkk.....",
+      "............",
+      "............",
+      "............",
+      "............",
+      "............",
+      "............",
+    ]),
+  },
+  silverGloves: {
+    id: "silverGloves", name: "銀の小手", slot: "hands", def: 3, atk: 1, price: 280, classes: null,
+    desc: "銀細工の籠手。守りを固めつつ拳撃にも冴える。",
+    ...sprite([
+      ".kwk.kwk....",
+      ".kwwkwwk....",
+      ".kwcwcwk....",
+      ".kgwwwgk....",
+      "..kwwwk.....",
+      "..kkkkk.....",
+      "............",
+      "............",
+      "............",
+      "............",
+      "............",
+      "............",
+    ]),
+  },
+  ironGauntlets: {
+    id: "ironGauntlets", name: "鉄の籠手", slot: "hands", def: 4, spd: -1, price: 240,
+    classes: ["fighter", "knight"],
+    desc: "重厚な鉄の籠手。守りは固いが少し動きが鈍る。",
+    ...sprite([
+      ".kwk.kwk....",
+      ".kgwkgwk....",
+      ".kwgwgwk....",
+      ".kggwggk....",
+      "..kgggk.....",
+      "..kkkkk.....",
+      "............",
+      "............",
+      "............",
+      "............",
+      "............",
+      "............",
+    ]),
+  },
+
   // ===== アクセサリ =====
   powerRing: {
     id: "powerRing", name: "力の指輪", slot: "acc", atk: 3, price: 220, classes: null,
@@ -394,9 +452,9 @@ export const ITEMS = {
     ]),
   },
   cursedBlade: {
-    id: "cursedBlade", name: "妖刀ムラマサ", slot: "weapon", atk: 18, def: -3, cursed: true, price: 0,
+    id: "cursedBlade", name: "妖刀ムラマサ", slot: "weapon", atk: 18, def: -3, hit: 7, dice: "1d10+3", swings: 4, align: "悪", cursed: true, price: 0,
     classes: ["fighter", "knight", "thief"],
-    desc: "凄まじい斬れ味を持つ呪われた刀。一度握れば手放せぬ…。攻撃は跳ね上がるが身を守れなくなる。",
+    desc: "凄まじい斬れ味を持つ呪われた刀。一度握れば手放せぬ…。攻撃は跳ね上がるが身を守れなくなる。悪属性。",
     ...sprite([
       ".........kp.",
       "........kpk.",
@@ -497,6 +555,10 @@ export function recalc(member) {
 }
 
 export function canEquip(member, item) {
+  // 属性制限: 悪の装備は善のキャラに装備できない (逆も同様)
+  if (item.align && member.align && item.align !== "中立" && member.align !== "中立" && item.align !== member.align) {
+    return false;
+  }
   if (!item.classes) return true;
   return item.classes.includes(member.clsKey);
 }
@@ -512,19 +574,18 @@ export function equip(member, item) {
   if (idx >= 0) member.items.splice(idx, 1);
 
   const removed = [];
-  // 両手武器: 右手と左手を空ける
-  if (item.slot === "weapon" && item.twoHanded) {
-    if (member.equip.lhand) removed.push(member.equip.lhand);
-    member.equip.lhand = null;
+  // 両手武器: 盾を外す
+  if (item.slot === "weapon" && item.twoHanded && member.equip.shield) {
+    removed.push(member.equip.shield);
+    member.equip.shield = null;
   }
-  // 盾は両手武器と併用不可
-  if (item.slot === "shield" && member.equip.rhand && member.equip.rhand.twoHanded) {
-    removed.push(member.equip.rhand);
-    member.equip.rhand = null;
+  // 盾は両手武器と併用不可 → 武器を外す
+  if (item.slot === "shield" && member.equip.weapon && member.equip.weapon.twoHanded) {
+    removed.push(member.equip.weapon);
+    member.equip.weapon = null;
   }
   if (member.equip[key]) removed.push(member.equip[key]);
   member.equip[key] = item;
-  if (item.twoHanded) member.equip.lhand = item; // 表示上ふさぐ
   for (const r of removed) if (r && r !== item) member.items.push(r);
   recalc(member);
   return { ok: true, msg: `${member.name}は ${item.name} を装備した` };
@@ -536,11 +597,19 @@ export function unequip(member, key) {
   if (it.cursed) return { ok: false, msg: `${it.name}は呪われていて外せない！` };
   if (member.items.length >= MAX_ITEMS) return { ok: false, msg: "持ち物がいっぱいだ" };
   member.equip[key] = null;
-  if (it.twoHanded && member.equip.lhand === it) member.equip.lhand = null;
-  if (key === "lhand" && member.equip.rhand && member.equip.rhand.twoHanded) {
-    // 両手武器の左手表示を外す = 武器も外す
-  }
   member.items.push(it);
   recalc(member);
   return { ok: true, msg: `${member.name}は ${it.name} を外した` };
 }
+
+// 部位アイコン (装備中リストの左側に出す小アイコン)
+export const SLOT_ICONS = {
+  weapon: sprite(["....k.......", "...kwk......", "...kwk......", "...kwk......", "..kkykk.....", "...knk......", "...ksk......", "............", "............", "............", "............", "............"]),
+  body: sprite(["..kkkk......", ".kggggk.....", "kgwggwgk....", "kggwwggk....", ".kgwwgk.....", ".kggwggk....", "..kggwk.....", "..kk.kk.....", "............", "............", "............", "............"]),
+  shield: sprite(["..kkkk......", ".kggggk.....", ".kgyygk.....", ".kgyygk.....", ".kggggk.....", "..kggk......", "...kk.......", "............", "............", "............", "............", "............"]),
+  head: sprite(["..kkkk......", ".kwggwk.....", ".kwwwwk.....", ".kwkkwk.....", "..kwwk......", "...kk.......", "............", "............", "............", "............", "............", "............"]),
+  hands: sprite([".kwk.kwk....", ".kwwkwwk....", ".kwwwwwk....", ".kgwwwgk....", "..kwwwk.....", "..kkkkk.....", "............", "............", "............", "............", "............", "............"]),
+  feet: sprite([".kk...kk....", ".kwk..kwk...", ".kwk..kwk...", ".kwwk.kwwk..", ".kwwwkwwwk..", ".kkkkkkkk...", "............", "............", "............", "............", "............", "............"]),
+  acc1: sprite(["...kkk......", "..kyyyk.....", ".ky.k.yk....", ".ky.c.yk....", ".ky...yk....", "..ky.yk.....", "...kyk......", "............", "............", "............", "............", "............"]),
+  acc2: sprite(["...kkk......", "..kyyyk.....", ".ky.k.yk....", ".ky.c.yk....", ".ky...yk....", "..ky.yk.....", "...kyk......", "............", "............", "............", "............", "............"]),
+};
