@@ -123,6 +123,57 @@ export function jobRankOf(doll) {
 
 export const SOUL_KEYS = Object.keys(SOUL_CLASSES);
 
+// ===== 部位ごとの魂スキル =====
+// 各魂は「職業 × 部位」でスキル表を持つ。魂レベルが閾値に達すると習得。
+//  head : アクションスキル(技/呪文)。3部位以上同職のとき使用可能になる。
+//  rhand/lhand/body/legs : パッシブ(能力強化)。1部位でも常時発動。
+// パッシブ add: 能力値(str/vit/agi/iq/pie/luk) や 直接ステ(hp/mp/atk/def/spd/crit)。
+//   str→攻撃, vit→HP, agi→素早さ, iq+pie→MP, luk→会心 に自動換算される。
+export const PART_SKILLS = {
+  priest: {
+    head: [{ lvl: 1, skill: "DIOS" }, { lvl: 3, skill: "CURE" }, { lvl: 5, skill: "BLESS" }, { lvl: 7, skill: "PROTECT" }, { lvl: 10, skill: "DISPEL" }],
+    rhand: [{ lvl: 1, add: { str: 2 } }, { lvl: 3, add: { pie: 2 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { str: 3 } }, { lvl: 10, add: { pie: 5 } }],
+    lhand: [{ lvl: 1, add: { pie: 2 } }, { lvl: 3, add: { def: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { pie: 3 } }, { lvl: 10, add: { def: 3 } }],
+    body:  [{ lvl: 1, add: { hp: 8 } }, { lvl: 3, add: { vit: 2 } }, { lvl: 5, add: { hp: 14 } }, { lvl: 7, add: { pie: 2 } }, { lvl: 10, add: { hp: 24 } }],
+    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { spd: 1 } }, { lvl: 5, add: { mp: 2 } }, { lvl: 7, add: { agi: 2 } }, { lvl: 10, add: { spd: 3 } }],
+  },
+  mage: {
+    head: [{ lvl: 1, skill: "HALITO" }, { lvl: 3, skill: "KATINO" }, { lvl: 5, skill: "MAHALITO" }, { lvl: 7, skill: "MADALT" }, { lvl: 10, skill: "TILTOWAIT" }],
+    rhand: [{ lvl: 1, add: { iq: 2 } }, { lvl: 3, add: { mp: 3 } }, { lvl: 5, add: { iq: 3 } }, { lvl: 7, add: { mp: 4 } }, { lvl: 10, add: { iq: 5 } }],
+    lhand: [{ lvl: 1, add: { mp: 3 } }, { lvl: 3, add: { iq: 2 } }, { lvl: 5, add: { mp: 4 } }, { lvl: 7, add: { iq: 2 } }, { lvl: 10, add: { mp: 6 } }],
+    body:  [{ lvl: 1, add: { hp: 4 } }, { lvl: 3, add: { vit: 1 } }, { lvl: 5, add: { hp: 8 } }, { lvl: 7, add: { iq: 2 } }, { lvl: 10, add: { hp: 12 } }],
+    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { spd: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { agi: 2 } }, { lvl: 10, add: { spd: 2 } }],
+  },
+  bishop: {
+    head: [{ lvl: 1, skill: "HALITO" }, { lvl: 3, skill: "DIOS" }, { lvl: 5, skill: "MAHALITO" }, { lvl: 7, skill: "DIAL" }, { lvl: 10, skill: "RESURRECT" }],
+    rhand: [{ lvl: 1, add: { iq: 1 } }, { lvl: 3, add: { pie: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { iq: 2 } }, { lvl: 10, add: { pie: 3 } }],
+    lhand: [{ lvl: 1, add: { pie: 1 } }, { lvl: 3, add: { iq: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { pie: 2 } }, { lvl: 10, add: { iq: 3 } }],
+    body:  [{ lvl: 1, add: { hp: 5 } }, { lvl: 3, add: { vit: 1 } }, { lvl: 5, add: { hp: 9 } }, { lvl: 7, add: { mp: 3 } }, { lvl: 10, add: { hp: 14 } }],
+    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { mp: 2 } }, { lvl: 5, add: { spd: 1 } }, { lvl: 7, add: { iq: 1 } }, { lvl: 10, add: { mp: 4 } }],
+  },
+  fighter: {
+    head: [{ lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "DOUBLE" }, { lvl: 5, skill: "MIDARE" }, { lvl: 7, skill: "WARCRY" }, { lvl: 10, skill: "ISSEN" }],
+    rhand: [{ lvl: 1, add: { str: 2 } }, { lvl: 3, add: { atk: 1 } }, { lvl: 5, add: { str: 3 } }, { lvl: 7, add: { atk: 2 } }, { lvl: 10, add: { str: 5 } }],
+    lhand: [{ lvl: 1, add: { def: 1 } }, { lvl: 3, add: { str: 1 } }, { lvl: 5, add: { def: 2 } }, { lvl: 7, add: { crit: 0.04 } }, { lvl: 10, add: { def: 3 } }],
+    body:  [{ lvl: 1, add: { hp: 10 } }, { lvl: 3, add: { vit: 2 } }, { lvl: 5, add: { hp: 16 } }, { lvl: 7, add: { hp: 20 } }, { lvl: 10, add: { vit: 4 } }],
+    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { spd: 1 } }, { lvl: 5, add: { agi: 2 } }, { lvl: 7, add: { spd: 2 } }, { lvl: 10, add: { spd: 3 } }],
+  },
+  knight: {
+    head: [{ lvl: 1, skill: "SHIELDBASH" }, { lvl: 3, skill: "GUARDALL" }, { lvl: 5, skill: "KYOUGEKI" }, { lvl: 7, skill: "IRONWALL" }, { lvl: 10, skill: "MIDARE" }],
+    rhand: [{ lvl: 1, add: { str: 1 } }, { lvl: 3, add: { def: 2 } }, { lvl: 5, add: { str: 2 } }, { lvl: 7, add: { def: 3 } }, { lvl: 10, add: { str: 3 } }],
+    lhand: [{ lvl: 1, add: { def: 2 } }, { lvl: 3, add: { def: 2 } }, { lvl: 5, add: { hp: 12 } }, { lvl: 7, add: { def: 3 } }, { lvl: 10, add: { def: 5 } }],
+    body:  [{ lvl: 1, add: { hp: 14 } }, { lvl: 3, add: { vit: 3 } }, { lvl: 5, add: { hp: 22 } }, { lvl: 7, add: { vit: 3 } }, { lvl: 10, add: { hp: 30 } }],
+    legs:  [{ lvl: 1, add: { def: 1 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { def: 2 } }, { lvl: 7, add: { spd: 1 } }, { lvl: 10, add: { def: 3 } }],
+  },
+  thief: {
+    head: [{ lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "POISONSTAB" }, { lvl: 5, skill: "BLIND" }, { lvl: 7, skill: "ASSASSINATE" }, { lvl: 10, skill: "MIDARE" }],
+    rhand: [{ lvl: 1, add: { agi: 2 } }, { lvl: 3, add: { atk: 1 } }, { lvl: 5, add: { crit: 0.04 } }, { lvl: 7, add: { agi: 3 } }, { lvl: 10, add: { atk: 2 } }],
+    lhand: [{ lvl: 1, add: { luk: 2 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { luk: 3 } }, { lvl: 7, add: { crit: 0.05 } }, { lvl: 10, add: { luk: 4 } }],
+    body:  [{ lvl: 1, add: { hp: 6 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { hp: 10 } }, { lvl: 7, add: { vit: 1 } }, { lvl: 10, add: { hp: 16 } }],
+    legs:  [{ lvl: 1, add: { spd: 2 } }, { lvl: 3, add: { agi: 2 } }, { lvl: 5, add: { spd: 3 } }, { lvl: 7, add: { agi: 3 } }, { lvl: 10, add: { spd: 5 } }],
+  },
+};
+
 // ===== 混成職業 (ハイブリッド) =====
 // 5部位を「ある職業3つ + 別の職業2つ」で組むと、特別な上位職が発現する。
 // 発見要素: プレイヤーが自分で組み合わせを見つける楽しみ = ビルド探索の核。
@@ -325,17 +376,32 @@ export function recalcDoll(doll) {
   const hybrid = findHybrid(counts);
   doll.hybrid = hybrid ? hybrid.name : null;
 
-  // 職業ランク判定 (支配職が3部位以上で発現)
+  // 職業ランク判定 (支配職が3部位以上で発現) — 称号(cls名)に使う
   const jr = jobRankOf(doll);
   doll.jobRank = jr ? jr.rank : 0;
 
+  // パッシブ集計 (頭以外の各部位の魂のスキル表から、魂レベルに応じて累積)
+  const pAdd = { str: 0, vit: 0, agi: 0, iq: 0, pie: 0, luk: 0, hp: 0, mp: 0, atk: 0, def: 0, spd: 0, crit: 0 };
+  for (const part of ["rhand", "lhand", "body", "legs"]) {
+    const s = doll.parts[part];
+    if (!s) continue;
+    const tbl = PART_SKILLS[s.clsKey] && PART_SKILLS[s.clsKey][part];
+    if (!tbl) continue;
+    for (const e of tbl) if (s.level >= e.lvl && e.add) for (const k in e.add) pAdd[k] += e.add[k];
+  }
+  // パッシブを反映: 能力値→ステへ自動換算
+  hp  += pAdd.hp  + pAdd.vit * 1.5;
+  mp  += pAdd.mp  + (pAdd.iq + pAdd.pie) * 0.5;
+  atk += pAdd.atk + pAdd.str * 0.5;
+  def += pAdd.def;
+  spd += pAdd.spd + pAdd.agi * 0.4;
+  crit += pAdd.crit + pAdd.luk * 0.004;
+
+  // 職業の素のパッシブ倍率 (発現=同職3部位以上のときフル適用)
   if (jr) {
     clsKey = jr.clsKey;
+    clsLabel = JOB_RANKS[clsKey][jr.rank - 1].name;
     const def0 = SOUL_CLASSES[clsKey];
-    const ladder = JOB_RANKS[clsKey];
-    clsLabel = ladder[jr.rank - 1].name;
-
-    // 職業の素のパッシブ (発現でフル適用)
     if (def0.passive) {
       passives.push(def0.passive.label);
       if (def0.passive.atkMul) atk *= def0.passive.atkMul;
@@ -343,41 +409,38 @@ export function recalcDoll(doll) {
       if (def0.passive.spdMul) spd *= def0.passive.spdMul;
       if (def0.passive.critBonus) crit += def0.passive.critBonus;
     }
-
-    // 各ランク(1..jr.rank)のスキル・パッシブ・フラグを累積適用
-    for (let k = 0; k < jr.rank; k++) {
-      const rk = ladder[k];
-      for (const sk of rk.skills) if (!spells.includes(sk)) spells.push(sk);
-      if (rk.passive) {
-        if (rk.passive.atkMul) atk *= rk.passive.atkMul;
-        if (rk.passive.defMul) def *= rk.passive.defMul;
-        if (rk.passive.spdMul) spd *= rk.passive.spdMul;
-        if (rk.passive.critBonus) crit += rk.passive.critBonus;
-      }
-      if (rk.flag) flags[rk.flag] = true;
-    }
     passives.push(`職業ランク${jr.rank}: ${clsLabel}`);
+  }
 
-    // 混成職が発現していれば名称を上書きし、追加スキル・補正を付与
-    if (hybrid) {
-      clsLabel = hybrid.name;
-      if (hybrid.spell && !spells.includes(hybrid.spell)) spells.push(hybrid.spell);
-      const hp2 = hybrid.passive || {};
-      if (hp2.label) passives.push(hp2.label);
-      if (hp2.atkMul) atk *= hp2.atkMul;
-      if (hp2.defMul) def *= hp2.defMul;
-      if (hp2.spdMul) spd *= hp2.spdMul;
-      if (hp2.critBonus) crit += hp2.critBonus;
+  // アクションスキル: 頭の魂の職業が3部位以上のとき、その頭スキルを習得
+  const head = doll.parts.head;
+  if (head) {
+    const J = head.clsKey;
+    const tbl = PART_SKILLS[J] && PART_SKILLS[J].head;
+    if (tbl && (counts[J] || 0) >= 3) {
+      for (const e of tbl) if (head.level >= e.lvl && e.skill && !spells.includes(e.skill)) spells.push(e.skill);
     }
+  }
+
+  // 混成職が発現していれば名称を上書きし、追加スキル・補正を付与
+  if (hybrid) {
+    clsLabel = hybrid.name;
+    if (hybrid.spell && !spells.includes(hybrid.spell) && doll.parts.head && counts[hybrid.baseK] >= 3) spells.push(hybrid.spell);
+    const hp2 = hybrid.passive || {};
+    if (hp2.label) passives.push(hp2.label);
+    if (hp2.atkMul) atk *= hp2.atkMul;
+    if (hp2.defMul) def *= hp2.defMul;
+    if (hp2.spdMul) spd *= hp2.spdMul;
+    if (hp2.critBonus) crit += hp2.critBonus;
   }
 
   doll.clsKey = clsKey;
   doll.cls = clsLabel + (hybrid ? "(混成)" : jr ? `・ランク${jr.rank}` : "");
   doll.tier = jr ? (hybrid ? "hybrid" : "rank" + jr.rank) : "none";
   doll.dominant = dom;
-  doll.blessing = !!flags.blessing;   // 聖者の祝福 (全滅時1回全員復活)
-  doll.endure = !!flags.endure;       // 不屈 (致死を1回HP1で耐える)
-  doll.spellMaster = !!flags.spellMaster; // 攻撃呪文ダメージ +25%
+  doll.blessing = false;
+  doll.endure = false;
+  doll.spellMaster = false;
   // 人業の「レベル」= 封印した魂の平均レベル (表示用)
   const souls = dollSouls(doll);
   doll.level = souls.length ? Math.max(1, Math.round(souls.reduce((a, s) => a + s.level, 0) / souls.length)) : 1;
@@ -390,6 +453,7 @@ export function recalcDoll(doll) {
   doll.spells = spells;
   doll.passives = passives;
   doll.critBonus = crit;
+  doll._pAdd = pAdd; // 能力値表示用 (attrs へ加算)
 
   // ウィザードリィ風の能力値を魂から算出 (ランク係数も反映)
   const attrs = { str: 0, vit: 0, agi: 0, iq: 0, pie: 0, luk: 0 };
@@ -400,7 +464,8 @@ export function recalcDoll(doll) {
     const f = (1 + (s.level - 1) * 0.06) * SOUL_RANKS[s.rank || "normal"].mul;
     for (const k of ATTR_KEYS) attrs[k] += w[k] * f;
   }
-  for (const k of ATTR_KEYS) attrs[k] = Math.min(ATTR_MAX, Math.round(attrs[k]));
+  // パッシブスキルの能力値ボーナスを加算
+  for (const k of ATTR_KEYS) attrs[k] = Math.round(attrs[k] + (pAdd[k] || 0));
   doll.attrs = attrs;
   doll.luk = attrs.luk;
   doll.agi = attrs.agi;

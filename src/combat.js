@@ -15,9 +15,24 @@ export const SPELLS = {
   RESURRECT: { name: "リザレクション", mp: 14, kind: "heal", power: 0, target: "ally", revive: true, revivePct: 1.0, desc: "戦闘不能をHP100%で蘇生" },
   // 攻撃呪文の頂点
   TILTOWAIT: { name: "ティルトウェイト", mp: 16, kind: "atk", power: 48, target: "all-enemy", desc: "全体を消し飛ばす業火" },
-  // 物理技 (攻撃力依存)
+  MADALT: { name: "マダルト", mp: 10, kind: "atk", power: 34, target: "all-enemy", desc: "全体を貫く氷嵐" },
+  // 支援・治療・弱体
+  CURE: { name: "キュア", mp: 3, kind: "cure", target: "ally", desc: "毒・麻痺を治す" },
+  BLESS: { name: "ブレス", mp: 4, kind: "buff", buff: { atk: 1.3 }, target: "ally", desc: "味方単体の攻撃UP" },
+  PROTECT: { name: "プロテクション", mp: 4, kind: "buff", buff: { def: 1.3 }, target: "ally", desc: "味方単体の防御UP" },
+  DISPEL: { name: "ディスペル", mp: 5, kind: "debuff", debuff: { atk: 0.75, def: 0.8 }, target: "all-enemy", desc: "敵全体の能力DOWN" },
+  WARCRY: { name: "武者震い", mp: 5, kind: "buff", buff: { atk: 1.4 }, target: "self", desc: "自身の攻撃大UP" },
+  GUARDALL: { name: "守りの号令", mp: 6, kind: "buff", buff: { def: 1.25 }, target: "all-ally", desc: "味方全体の防御UP" },
+  IRONWALL: { name: "鉄壁", mp: 5, kind: "buff", buff: { def: 1.6 }, target: "self", desc: "自身の防御大UP" },
+  BLIND: { name: "目くらまし", mp: 4, kind: "debuff", debuff: { atk: 0.7 }, target: "enemy", desc: "敵単体の攻撃DOWN" },
+  // 物理技 (攻撃力依存)。hits=多段, critBonus=会心率加算, debuff=命中時に弱体
   KYOUGEKI: { name: "強撃", mp: 3, kind: "phys", power: 1.8, target: "enemy", desc: "渾身の一撃" },
   MIDARE: { name: "乱れ斬り", mp: 7, kind: "phys", power: 0.9, target: "all-enemy", desc: "全体を斬る" },
+  DOUBLE: { name: "二段斬り", mp: 4, kind: "phys", power: 1.0, hits: 2, target: "enemy", desc: "2回連続で斬る" },
+  ISSEN: { name: "一閃", mp: 8, kind: "phys", power: 3.0, target: "enemy", desc: "必殺の一撃" },
+  SHIELDBASH: { name: "シールドバッシュ", mp: 3, kind: "phys", power: 1.4, target: "enemy", desc: "盾で打ち据える" },
+  POISONSTAB: { name: "毒刃", mp: 4, kind: "phys", power: 1.2, debuff: { atk: 0.85 }, target: "enemy", desc: "毒の刃で弱らせる" },
+  ASSASSINATE: { name: "急所突き", mp: 6, kind: "phys", power: 1.6, critBonus: 0.5, target: "enemy", desc: "会心率の高い一撃" },
 };
 
 export const CLASSES = {
@@ -129,7 +144,7 @@ export class Battle {
     this.pending = null;      // 対象選択待ちの行動
     this.result = null;       // "win" | "lose" | "flee"
     this._blessingUsed = false;
-    for (const p of party) p._enduredThisBattle = false; // 不屈を戦闘ごとにリセット
+    for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, def: 1, spd: 1 }; a._enduredThisBattle = false; }
     this.advance();
   }
 
@@ -138,9 +153,10 @@ export class Battle {
 
   // 素早さ(+乱数)で行動順を組み直す
   _startRound() {
+    const espd = (a) => a.spd * ((a.buffs && a.buffs.spd) || 1);
     this.queue = [...this.party, ...this.enemies]
       .filter((a) => a.alive)
-      .sort((a, b) => (b.spd + rand(4)) - (a.spd + rand(4)));
+      .sort((a, b) => (espd(b) + rand(4)) - (espd(a) + rand(4)));
   }
 
   // 次の手番へ。味方なら input、敵なら enemy フェーズで止まる (実行はしない)
@@ -173,7 +189,7 @@ export class Battle {
       const sp = SPELLS[spellKey];
       if (actor.mp < sp.mp) { this.log("MPが足りない！", "sys"); return { invalid: true }; }
       this.pending = { actor, action: "spell", spellKey };
-      if (sp.target === "all-enemy" || sp.target === "all-ally") { this.phase = "resolve"; return { needTarget: false }; }
+      if (sp.target === "all-enemy" || sp.target === "all-ally" || sp.target === "self") { this.phase = "resolve"; return { needTarget: false }; }
       this.phase = "target";
       return { needTarget: true };
     }
@@ -191,7 +207,7 @@ export class Battle {
     if (p.action === "attack") return this.livingEnemies();
     const sp = SPELLS[p.spellKey];
     if (sp.target === "enemy") return this.livingEnemies();
-    if (sp.target === "ally") return this.party; // 死者も蘇生対象外だが選択可
+    if (sp.target === "ally") return sp.kind === "heal" ? this.party : this.livingParty(); // 回復系は死者も選べる(蘇生)
     return [];
   }
 
@@ -262,24 +278,31 @@ export class Battle {
     return res;
   }
 
-  _physical(actor, tgt) {
+  // バフ込みの実効攻撃力・防御力
+  _eatk(a) { return Math.max(1, Math.round(a.atk * ((a.buffs && a.buffs.atk) || 1))); }
+  _edef(t) { return Math.round((t.def || 0) * ((t.buffs && t.buffs.def) || 1)); }
+
+  _physical(actor, tgt, opt = {}) {
     // 命中判定: 素の命中漏れ + 対象の敏捷(AGI)による回避
     const evade = Math.min(0.4, Math.max(0, ((tgt.agi || 6) - 6) * 0.012));
     if (Math.random() < 0.06 + evade) {
       this.log(`${tgt.name}は攻撃をかわした！`, "sys");
       return { target: tgt, miss: true, evaded: true };
     }
-    let dmg = variance(actor.atk) - Math.floor(tgt.def * 0.5);
+    const power = opt.power || 1;       // 技の倍率 (通常攻撃は1)
+    let dmg = variance(Math.round(this._eatk(actor) * power)) - Math.floor(this._edef(tgt) * 0.5);
     if (tgt._defending) dmg = Math.floor(dmg * 0.5);
-    // 会心: 基礎 + 盗賊パッシブ + 幸運(LUK)
+    // 会心: 基礎 + 盗賊パッシブ + 幸運(LUK) + 技の会心補正
     const luckCrit = Math.max(0, ((actor.luk || 8) - 8)) * 0.005;
-    const crit = Math.random() < 0.06 + (actor.critBonus || 0) + luckCrit;
+    const crit = Math.random() < 0.06 + (actor.critBonus || 0) + luckCrit + (opt.critBonus || 0);
     if (crit) dmg = Math.floor(dmg * 1.85);
     dmg = Math.max(1, dmg);
     tgt.hp -= dmg;
-    this.log(`${actor.name}の攻撃！ ${tgt.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}`,
+    this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}`,
       actor.side === "party" ? "hit" : "dmg");
     if (tgt.asleep) tgt.asleep = false;
+    // 命中時の弱体 (毒刃など)
+    if (opt.debuff && tgt.alive) { tgt.buffs = tgt.buffs || { atk: 1, def: 1, spd: 1 }; for (const k in opt.debuff) tgt.buffs[k] *= opt.debuff[k]; }
     return { target: tgt, dmg, crit, died: this._die(tgt) };
   }
 
@@ -290,20 +313,50 @@ export class Battle {
     res.spellKind = sp.kind;
     const isPhys = sp.kind === "phys";
     this.log(isPhys ? `${actor.name}の ${sp.name}！` : `${actor.name}は ${sp.name} を唱えた！`, "hit");
-    if (sp.kind === "atk" || isPhys) {
-      const spMul = (!isPhys && actor.spellMaster) ? 1.25 : 1; // 大賢者/賢者王: 攻撃呪文+25%
+    if (isPhys) {
+      // 物理技は通常攻撃と同じ計算系 (倍率/多段/会心/弱体)
+      const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
+      const hits = sp.hits || 1;
+      for (const t of targets) {
+        for (let h = 0; h < hits; h++) {
+          if (!t.alive) break;
+          res.hits.push(this._physical(actor, t, { power: sp.power, critBonus: sp.critBonus, debuff: sp.debuff, name: sp.name }));
+        }
+      }
+    } else if (sp.kind === "atk") {
+      const spMul = actor.spellMaster ? 1.25 : 1; // 大賢者/賢者王: 攻撃呪文+25%
       const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
       for (const t of targets) {
         if (!t.alive) continue;
-        // phys: 攻撃力×倍率 − 防御。atk呪文: 固定power − 防御の一部
-        const base = isPhys ? variance(Math.round(actor.atk * sp.power)) - Math.floor(t.def * 0.5)
-                            : Math.round(variance(sp.power) * spMul) - Math.floor(t.def * 0.2);
-        const dmg = Math.max(1, base);
+        const dmg = Math.max(1, Math.round(variance(sp.power) * spMul) - Math.floor(this._edef(t) * 0.2));
         t.hp -= dmg;
         this.log(`${t.name}に ${dmg} ダメージ`, "dmg");
         if (t.asleep) t.asleep = false;
         res.hits.push({ target: t, dmg, died: this._die(t) });
       }
+    } else if (sp.kind === "buff") {
+      const targets = sp.target === "self" ? [actor] : sp.target === "all-ally" ? this.livingParty() : [cmd.target || actor].filter(Boolean);
+      for (const t of targets) {
+        t.buffs = t.buffs || { atk: 1, def: 1, spd: 1 };
+        for (const k in sp.buff) t.buffs[k] = Math.min(3, (t.buffs[k] || 1) * sp.buff[k]);
+        res.hits.push({ target: t, buff: true });
+      }
+      this.log(`${sp.name}の効果！`, "heal");
+    } else if (sp.kind === "debuff") {
+      const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
+      for (const t of targets) {
+        if (!t.alive) continue;
+        t.buffs = t.buffs || { atk: 1, def: 1, spd: 1 };
+        for (const k in sp.debuff) t.buffs[k] = Math.max(0.3, (t.buffs[k] || 1) * sp.debuff[k]);
+        res.hits.push({ target: t, debuff: true });
+      }
+      this.log(`${sp.name}！ 敵の力が削がれた`, "hit");
+    } else if (sp.kind === "cure") {
+      const t = (cmd.target && cmd.target.alive) ? cmd.target : actor;
+      const had = t.ailment;
+      t.ailment = null;
+      this.log(had ? `${sp.name}！ ${t.name}の状態異常が治った` : `${sp.name}…効果がなかった`, "heal");
+      res.hits.push({ target: t, cured: !!had });
     } else if (sp.kind === "heal") {
       // 全体回復
       if (sp.target === "all-ally") {

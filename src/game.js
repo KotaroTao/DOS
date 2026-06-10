@@ -10,7 +10,7 @@ import {
   dollSouls, dominantClass, recalcDoll, sealSoul, createStartingRoster,
   ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
   SOUL_RANKS, rollSoulRank, soulStats, soulHardCap, ensureSoul,
-  JOB_RANKS, jobRankOf,
+  JOB_RANKS, jobRankOf, PART_SKILLS,
 } from "./souls.js";
 
 const view = document.getElementById("view");
@@ -1321,7 +1321,7 @@ function applyImpact(res) {
 
   // 効果音 + 振動
   if (res.action === "spell" && res.spellKind !== "phys") {
-    if (res.spellKind === "heal") SFX.heal();
+    if (res.spellKind === "heal" || res.spellKind === "cure" || res.spellKind === "buff") SFX.heal();
     else if (res.spellName && res.spellName.includes("ハリト")) SFX.fire();
     else SFX.spell();
     buzz(20);
@@ -3199,6 +3199,13 @@ function renderSoulTab(p) {
   return wrap;
 }
 
+// パッシブの加算オブジェクトを表示用ラベルに ("STR+2" など)
+const PASSIVE_LABEL = { str: "STR", vit: "VIT", agi: "AGI", iq: "IQ", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP", atk: "攻撃", def: "防御", spd: "速さ", crit: "会心" };
+function passiveLabel(add) {
+  if (!add) return "—";
+  return Object.keys(add).map((k) => k === "crit" ? `会心+${Math.round(add[k] * 100)}%` : `${PASSIVE_LABEL[k] || k}+${add[k]}`).join(" / ");
+}
+
 // 魂の詳細パネル: ステータスと、覚える基本スキル/上位スキル
 function renderSoulDetail(s) {
   const def = SOUL_CLASSES[s.clsKey];
@@ -3214,24 +3221,19 @@ function renderSoulDetail(s) {
   d.appendChild(el("div", "st-sdnote", `レベル上限 ${s.cap}（限界突破で最大 ${soulHardCap(s)}）`));
   if (rank.order >= 1) d.appendChild(el("div", "st-sdnote", `${rank.label}魂 (能力 ×${rank.mul})`));
 
-  // この魂の職業の「職業ランク表」を表示。宿している人業の現ランクを強調。
-  d.appendChild(el("div", "st-sdh", `${def.label}の職業ランク (上位ほど強力)`));
-  const ladder = JOB_RANKS[s.clsKey] || [];
-  // この魂を宿している人業の現在ランク (あれば)
-  let curRank = 0;
-  for (const dd of allDolls()) {
-    for (const p of PARTS) if (dd.parts[p] === s) { curRank = dd.jobRank || 0; }
+  // この魂(職業×部位)のスキル表を表示。s.level で習得済みを強調。
+  const isHead = s.part === "head";
+  d.appendChild(el("div", "st-sdh", isHead
+    ? `アクションスキル（頭・同職3部位で使用可）`
+    : `パッシブスキル（${PART_LABEL[s.part]}・1部位でも発動）`));
+  const tbl = (PART_SKILLS[s.clsKey] && PART_SKILLS[s.clsKey][s.part]) || [];
+  for (const e of tbl) {
+    const on = s.level >= e.lvl;
+    let txt;
+    if (e.skill) { const sp = SPELLS[e.skill]; txt = sp ? `${sp.name}（${sp.desc}）` : e.skill; }
+    else txt = passiveLabel(e.add);
+    d.appendChild(el("div", "st-sdskill" + (on ? " on" : ""), `${on ? "★" : "○"} Lv${e.lvl}: ${txt}`));
   }
-  ladder.forEach((rk, i) => {
-    const lv = i + 1;
-    const skills = rk.skills.map((k) => SPELLS[k] ? `${SPELLS[k].name}（${SPELLS[k].desc}）` : k);
-    if (rk.flag === "blessing") skills.push("聖者の祝福（全滅時HP1で1回全員復活）");
-    if (rk.flag === "endure") skills.push("不屈（致死を1回HP1で耐える）");
-    if (rk.flag === "spellMaster") skills.push("攻撃呪文+25%");
-    if (rk.passive) skills.push("能力強化");
-    const on = lv <= curRank;
-    d.appendChild(el("div", "st-sdskill" + (on ? " on" : ""), `${on ? "★" : "○"} ランク${lv} ${rk.name}: ${skills.join(" / ") || "—"}`));
-  });
   return d;
 }
 
