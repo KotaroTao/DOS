@@ -116,30 +116,31 @@ html, body { height: 100%; overflow: hidden; }
 #log .l-heal { color: var(--good); }
 #log .l-win { color: var(--accent); font-weight: bold; }
 
-/* ===== パーティ ===== */
+/* ===== パーティ (最大6人。3列×2段でコンパクトに) ===== */
 #party {
   flex: 0 0 auto;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 6px;
-  padding: 8px 10px 4px;
+  gap: 5px;
+  padding: 6px 10px 2px;
 }
 .pc {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 5px 6px;
-  font-size: 11px;
+  padding: 4px 6px;
+  font-size: 10px;
+  min-width: 0;
 }
 .pc.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
 .pc.dead { opacity: 0.4; filter: grayscale(1); }
-.pc .name { font-weight: bold; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pc .cls { color: var(--ink-dim); font-size: 9px; }
-.pc .bar { height: 6px; background: #2a2a3a; border-radius: 3px; margin: 3px 0; overflow: hidden; }
+.pc .name { font-weight: bold; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc .cls { color: var(--ink-dim); font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pc .bar { height: 5px; background: #2a2a3a; border-radius: 3px; margin: 2px 0; overflow: hidden; }
 .pc .bar > i { display: block; height: 100%; }
 .pc .hp > i { background: var(--good); }
 .pc .mp > i { background: var(--accent-2); }
-.pc .nums { color: var(--ink-dim); font-size: 10px; }
+.pc .nums { color: var(--ink-dim); font-size: 9px; }
 
 /* ===== 操作系 ===== */
 #controls { flex: 0 0 auto; padding: 6px 10px 8px; }
