@@ -380,7 +380,7 @@ function drawCard(r, cell, scaleX, showBack) {
       cell.type === "fountain" && !cell.cleared ? ICONS.fountain :
       cell.type === "corpse" && !cell.cleared ? (cell.corpseWarm ? ICONS.corpseWarm : ICONS.corpse) :
       cell.type === "stairs" ? ICONS.stairs :
-      cell.type === "start" ? ICONS.start : null;
+      cell.type === "start" ? ICONS.upstairs : null;
     if (icon) {
       // あたたかい死体はうっすら発光させて「魂が宿る」ことを示す
       if (cell.type === "corpse" && cell.corpseWarm && !cell.cleared) {
@@ -643,7 +643,18 @@ function resolveCell(cell) {
     case "stairs":
       askDescend(cell);
       break;
+    case "start":
+      askReturnFromStairs();
+      break;
   }
+}
+
+// 登り階段 (入口/降りてきたマス): 街へ戻るか選ぶ
+function askReturnFromStairs() {
+  showChoice("登り階段だ。街へ戻る？", [
+    { label: "🏚 街へ戻る", fn: () => returnToTown() },
+    { label: "✋ 探索を続ける", fn: () => { renderBoard(); } },
+  ], ICONS.upstairs, { banner: "↑ 登り階段 ↑", accent: "#7fd0ff" });
 }
 
 // 泉を利用: HP/MP回復・毒浄化。利用したら消える。
@@ -3478,8 +3489,6 @@ function resumeCombat() {
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") autosave(true); });
 window.addEventListener("pagehide", () => autosave(true));
 window.addEventListener("beforeunload", () => autosave(true));
-// 取りこぼし対策の定期保存
-setInterval(() => autosave(), 3000);
 
 // 新規プレイの初期化: 人業ロスター・魂ストック・初期装備を整える
 function setupNewGame() {
