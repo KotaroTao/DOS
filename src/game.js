@@ -1,7 +1,7 @@
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSprite } from "./sprites.js";
-import { createParty, spawnCardEnemies, spawnBossEnemies, Battle, gainExp, SPELLS } from "./combat.js";
+import { createParty, spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, gainExp, SPELLS } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
 
 const view = document.getElementById("view");
@@ -28,6 +28,11 @@ const G = {
   flipAnim: null,     // カードめくり演出 { x, y, t0, dur }
   heroAnim: null,     // キャラのスライド { fromX, fromY, toX, toY, t0, dur }
   walking: false,     // 経路自動移動中
+  prompt: false,      // 選択肢プロンプト表示中
+  fx: null,           // 戦闘エフェクト
+  animating: false,   // 戦闘アニメーション中
+  enemyPos: {},       // 敵の画面座標 (エフェクト配置用)
+  partyFx: null,      // 味方カードの被弾/回復フラッシュ (Map)
 };
 
 const rand = (n) => Math.floor(Math.random() * n);
@@ -219,11 +224,16 @@ function tryMove(dx, dy) {
 
 // 単発移動 (方向キー/ボタン/隣接クリック)。ガード後に1歩進む
 function moveTo(nx, ny) {
-  if (G.state !== "board" || G.anim || G.walking) return;
+  if (G.state !== "board" || G.anim || G.walking || G.prompt) return;
   if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) return;
   if (Math.abs(nx - G.px) + Math.abs(ny - G.py) !== 1) return;
-  // 辺が壁で塞がれている: 進めない (壁の通り抜けは不可)
-  if (!edgeOpen(nx, ny)) { SFX.miss(); log("壁があって進めない。", "sys"); return; }
+  // 辺が壁で塞がれている: 進めない (壁の通り抜けは不可)。連続表示は抑制
+  if (!edgeOpen(nx, ny)) {
+    SFX.miss();
+    const now = performance.now();
+    if (now - (G._lastWallLog || 0) > 700) { log("壁があって進めない。", "sys"); G._lastWallLog = now; }
+    return;
+  }
   moveStep(nx, ny);
 }
 
@@ -286,6 +296,8 @@ function findPath(tx, ty) {
       if (G.board.cells[y][x].walls[d]) continue;
       const nx = x + DIRS_G[d][0], ny = y + DIRS_G[d][1];
       if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) continue;
+      // 自動移動は「めくり済みのマス」だけを通る (未公開のカードを勝手にめくらない)
+      if (!G.board.cells[ny][nx].revealed) continue;
       if (seen.has(key(nx, ny))) continue;
       seen.add(key(nx, ny));
       prev.set(key(nx, ny), [x, y]);
@@ -309,14 +321,14 @@ function autoWalk(path) {
   if (!path.length) return;
   G.walking = true;
   const next = () => {
-    if (G.state !== "board" || !path.length) { G.walking = false; renderBoard(); return; }
+    if (G.state !== "board" || G.prompt || !path.length) { G.walking = false; renderBoard(); return; }
     const { x, y } = path.shift();
     // 念のため隣接・開通を確認
     if (Math.abs(x - G.px) + Math.abs(y - G.py) !== 1 || !edgeOpen(x, y)) {
       G.walking = false; renderBoard(); return;
     }
     moveStep(x, y, () => {
-      if (G.state !== "board") { G.walking = false; return; } // 戦闘/階段で中断
+      if (G.state !== "board" || G.prompt) { G.walking = false; return; } // 戦闘/選択で中断
       if (path.length) setTimeout(next, 110);
       else { G.walking = false; renderBoard(); }
     });
@@ -335,13 +347,7 @@ function resolveCell(cell) {
       break;
     case "chest": {
       if (cell.cleared) break;
-      cell.cleared = true;
-      SFX.chest();
-      const g = 10 + G.floor * 10 + rand(25);
-      G.gold += g;
-      updateTopbar();
-      log(`宝箱だ！ ${g} ゴールドを手に入れた。`, "win");
-      renderBoard();
+      askOpenChest(cell);
       break;
     }
     case "trap": {
@@ -376,14 +382,92 @@ function resolveCell(cell) {
       break;
     }
     case "stairs":
-      if (G.floor >= MAX_FLOOR) {
-        log("階段の前に巨大な影が…！", "dmg");
-        startBattle(spawnBossEnemies(), cell);
-      } else {
-        descend();
-      }
+      askDescend(cell);
       break;
   }
+}
+
+// ---- 選択肢プロンプト ----
+// 盤面の操作系を一時的に選択肢に差し替える
+function showChoice(title, options) {
+  G.prompt = true;
+  movePad.classList.add("hidden");
+  combatMenu.classList.remove("hidden");
+  combatMenu.innerHTML = "";
+  combatMenu.appendChild(el("div", "who", title));
+  const list = el("div", "target-list");
+  for (const o of options) {
+    const b = btn(o.label, () => { closePrompt(); o.fn(); });
+    if (o.danger) b.classList.add("danger");
+    list.appendChild(b);
+  }
+  combatMenu.appendChild(list);
+}
+
+function closePrompt() {
+  G.prompt = false;
+  combatMenu.classList.add("hidden");
+  combatMenu.innerHTML = "";
+  if (G.state === "board") movePad.classList.remove("hidden");
+}
+
+// 階段: 降りるか選ぶ
+function askDescend(cell) {
+  const boss = G.floor >= MAX_FLOOR;
+  showChoice(
+    boss ? "下り階段だ。奥に巨大な気配…降りる？" : `下り階段を見つけた。地下 ${G.floor + 1} 階へ降りる？`,
+    [
+      { label: boss ? "⚔ 意を決して降りる" : "▼ 降りる", danger: boss, fn: () => {
+        if (boss) { log("階段の先に巨大な影が…！", "dmg"); startBattle(spawnBossEnemies(), cell); }
+        else descend();
+      } },
+      { label: "✋ まだ探索する", fn: () => { renderBoard(); } },
+    ]
+  );
+}
+
+// 宝箱: 開けるか選ぶ (リスクあり: 罠 / ミミック)
+function askOpenChest(cell) {
+  showChoice("宝箱を見つけた。開ける？", [
+    { label: "🔓 開ける", fn: () => openChest(cell) },
+    { label: "✋ 開けない", fn: () => { renderBoard(); } },
+  ]);
+}
+
+function openChest(cell) {
+  cell.cleared = true;
+  const roll = Math.random();
+  // 深いほど危険度UP (生死を分ける選択)
+  const danger = 0.15 + G.floor * 0.07;
+  if (roll < danger * 0.5) {
+    // ミミック: いきなり戦闘
+    SFX.trap();
+    log("宝箱はミミックだった！", "dmg");
+    startBattle(spawnMimic(G.floor), cell);
+    return;
+  }
+  if (roll < danger) {
+    // 毒針の罠: パーティ全員にダメージ
+    SFX.trap();
+    const dmg = 6 + G.floor * 4 + rand(8);
+    log(`宝箱は罠だった！ 毒針が飛び出す！`, "dmg");
+    for (const p of G.party) {
+      if (!p.alive) continue;
+      p.hp = Math.max(0, p.hp - dmg);
+      if (p.hp === 0) { p.alive = false; log(`${p.name}は倒れた…`, "dmg"); }
+    }
+    if (!G.party.some((p) => p.alive)) { gameOver(); return; }
+    log(`全員に ${dmg} ダメージ`, "dmg");
+    renderBoard();
+    return;
+  }
+  // 通常: 宝
+  SFX.chest();
+  const g = 10 + G.floor * 12 + rand(30);
+  G.gold += g;
+  updateTopbar();
+  log(`宝箱から ${g} ゴールドを手に入れた！`, "win");
+  renderBoard();
 }
 
 function descend() {
@@ -402,14 +486,26 @@ function startBattle(enemies, cell) {
   combatMenu.classList.remove("hidden");
   log(`${enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
   playBgm("battle");
-  // 素早い敵はここで先制行動する
-  G.battle = new Battle(G.party, enemies, log, (k) => SFX[k] && SFX[k]());
-  if (G.battle.result) { endBattle(); return; }
-  renderCombat();
+  G.battle = new Battle(G.party, enemies, log);
+  G.fx = null;
+  G.animating = false;
+  G.enemyPos = {};
+  if (G.partyFx) G.partyFx.clear();
+  combatStep(); // 素早い敵が先手なら自動で動く
 }
 
+// 全体描画 (キャンバス + パーティ + メニュー)
 function renderCombat() {
+  renderCombatCanvas();
+  renderParty();
+  renderCombatMenu();
+}
+
+// キャンバスのみ (アニメーション毎フレーム用)
+function renderCombatCanvas() {
   const b = G.battle;
+  const fx = G.fx;
+  const now = performance.now();
   vctx.fillStyle = "#07060a";
   vctx.fillRect(0, 0, view.width, view.height);
   const grad = vctx.createRadialGradient(view.width / 2, view.height * 0.4, 30, view.width / 2, view.height * 0.4, view.width * 0.7);
@@ -421,29 +517,120 @@ function renderCombat() {
   const living = b.enemies;
   const n = living.length;
   const slotW = view.width / (n + 1);
+  G.enemyPos = {};
   living.forEach((e, i) => {
-    const cx = slotW * (i + 1);
-    const cy = view.height * 0.42;
+    const baseX = slotW * (i + 1);
+    const baseY = view.height * 0.40;
+    G.enemyPos[e.uid] = { cx: baseX, cy: baseY };
+    let ox = 0, oy = 0, alpha = e.alive ? 1 : 0.18;
+    // 攻撃側の踏み込み (こちらへ前進)
+    if (fx && fx.lunge && fx.lunge.uid === e.uid) oy = (fx.lunge.p || 0) * 22;
+    // 被弾フラッシュ: 点滅 + 横揺れ
+    const hf = fx && fx.flash && fx.flash[e.uid];
+    if (hf) {
+      const dt = now - hf.t0;
+      if (dt < 260) {
+        ox = Math.sin(dt * 0.07) * 4;
+        if (Math.floor(dt / 55) % 2 === 0) alpha = 0.35;
+      }
+    }
     const size = e.mon.boss ? 14 : 9;
-    drawSprite(vctx, e.mon, cx, cy, size, e.alive ? 1 : 0.18);
+    drawSprite(vctx, e.mon, baseX + ox, baseY + oy, size, alpha);
+    // 被弾時の白フラッシュ
+    if (hf && now - hf.t0 < 200) {
+      vctx.save();
+      vctx.globalAlpha = 0.5 * (1 - (now - hf.t0) / 200);
+      vctx.fillStyle = "#ffffff";
+      vctx.beginPath();
+      vctx.arc(baseX + ox, baseY + oy, size * 3.2, 0, Math.PI * 2);
+      vctx.fill();
+      vctx.restore();
+    }
     vctx.fillStyle = e.alive ? "#e7e3d4" : "#5a5a66";
     vctx.font = "10px monospace";
     vctx.textAlign = "center";
-    vctx.fillText(e.name + (e.asleep ? " 💤" : ""), cx, cy + 78);
-    const bw = 56, bh = 5, bx = cx - bw / 2, by = cy + 84;
+    vctx.fillText(e.name + (e.asleep ? " 💤" : ""), baseX, baseY + 78);
+    const bw = 56, bh = 5, bx = baseX - bw / 2, by = baseY + 84;
     vctx.fillStyle = "#2a2a3a";
     vctx.fillRect(bx, by, bw, bh);
     vctx.fillStyle = e.alive ? "#d4504e" : "#333";
     vctx.fillRect(bx, by, bw * Math.max(0, e.hp / e.maxhp), bh);
   });
 
-  renderParty();
-  renderCombatMenu();
+  if (fx) drawEffects(fx, now);
+}
+
+// 攻撃/魔法/被弾エフェクトの描画
+function drawEffects(fx, now) {
+  // 斬撃 (白い斜線が走る)
+  for (const s of fx.slashes) {
+    const t = (now - s.t0) / 240;
+    if (t > 1) continue;
+    vctx.save();
+    vctx.globalAlpha = 1 - t;
+    vctx.strokeStyle = "#ffffff";
+    vctx.lineWidth = 3;
+    for (let k = 0; k < 3; k++) {
+      const off = (k - 1) * 12;
+      vctx.beginPath();
+      vctx.moveTo(s.x - 26 + off, s.y - 26);
+      vctx.lineTo(s.x + 26 + off, s.y + 26);
+      vctx.stroke();
+    }
+    vctx.restore();
+  }
+  // 魔法 (色付きリングが広がる + 火花)
+  for (const m of fx.magic) {
+    const t = (now - m.t0) / 360;
+    if (t > 1) continue;
+    vctx.save();
+    vctx.globalAlpha = 1 - t;
+    vctx.strokeStyle = m.color;
+    vctx.lineWidth = 4;
+    vctx.beginPath();
+    vctx.arc(m.x, m.y, 6 + t * 34, 0, Math.PI * 2);
+    vctx.stroke();
+    vctx.fillStyle = m.color;
+    for (let k = 0; k < 6; k++) {
+      const a = (k / 6) * Math.PI * 2 + t * 3;
+      const r = 8 + t * 30;
+      vctx.fillRect(m.x + Math.cos(a) * r - 2, m.y + Math.sin(a) * r - 2, 4, 4);
+    }
+    vctx.restore();
+  }
+  // 画面フラッシュ (味方被弾=赤)
+  if (fx.screen) {
+    const t = (now - fx.screen.t0) / 260;
+    if (t <= 1) {
+      vctx.save();
+      vctx.globalAlpha = 0.4 * (1 - t);
+      vctx.fillStyle = fx.screen.color;
+      vctx.fillRect(0, 0, view.width, view.height);
+      vctx.restore();
+    }
+  }
+  // ダメージ数値 (浮き上がって消える)
+  vctx.textAlign = "center";
+  for (const f of fx.floats) {
+    const t = (now - f.t0) / 700;
+    if (t > 1) continue;
+    vctx.save();
+    vctx.globalAlpha = 1 - t;
+    vctx.fillStyle = f.color;
+    vctx.strokeStyle = "#000";
+    vctx.lineWidth = 3;
+    vctx.font = "bold 18px monospace";
+    const yy = f.y - t * 26;
+    vctx.strokeText(f.text, f.x, yy);
+    vctx.fillText(f.text, f.x, yy);
+    vctx.restore();
+  }
 }
 
 function renderCombatMenu() {
   const b = G.battle;
   combatMenu.innerHTML = "";
+  if (G.animating) return; // アニメーション中は操作不可
   if (b.phase === "input") {
     const actor = b.current;
     highlightActor(actor);
@@ -462,7 +649,7 @@ function renderCombatMenu() {
       const label = t.side === "enemy"
         ? `${t.name} (HP ${t.hp})`
         : `${t.name} (HP ${t.hp}/${t.maxhp})${t.alive ? "" : " [気絶]"}`;
-      list.appendChild(btn(label, () => { b.chooseTarget(t); afterAction(); }));
+      list.appendChild(btn(label, () => { b.chooseTarget(t); runCommitted(); }));
     }
     combatMenu.appendChild(list);
     combatMenu.appendChild(btn("← 戻る", () => { b.cancelTarget(); renderCombatMenu(); }));
@@ -483,15 +670,131 @@ function showSpells(actor) {
   combatMenu.appendChild(btn("← 戻る", () => renderCombatMenu()));
 }
 
-function act(action, spellKey) {
-  G.battle.chooseAction(action, spellKey);
-  afterAction();
-}
-
-function afterAction() {
+// ---- 戦闘ループ駆動 (1手ずつ・演出付き) ----
+function combatStep() {
   const b = G.battle;
   if (b.result) { endBattle(); return; }
-  renderCombat();
+  if (b.phase === "input") { G.animating = false; renderCombat(); return; }
+  if (b.phase === "enemy") {
+    G.animating = true;
+    combatMenu.innerHTML = "";
+    renderCombatCanvas();
+    // 一瞬の間を置いてから敵が動く (ドラクエ風)
+    setTimeout(() => {
+      const res = b.enemyAct();
+      animateResult(res, postResolve);
+    }, 260);
+  }
+}
+
+// 味方コマンド選択
+function act(action, spellKey) {
+  const r = G.battle.chooseAction(action, spellKey);
+  if (r && r.invalid) { renderCombatMenu(); return; }
+  if (G.battle.phase === "target") { renderCombatMenu(); return; }
+  runCommitted();
+}
+
+// 予約済みの味方行動を実行 → 演出 → 次の手番
+function runCommitted() {
+  G.animating = true;
+  combatMenu.innerHTML = "";
+  const res = G.battle.commit();
+  animateResult(res, postResolve);
+}
+
+// 行動の結果を演出し、終わったら次へ
+function postResolve() {
+  const b = G.battle;
+  if (b.result) { G.animating = false; setTimeout(endBattle, 300); return; }
+  b.advance();
+  setTimeout(combatStep, 150);
+}
+
+// 結果オブジェクトを演出 (踏み込み → 着弾 → 余韻)
+function animateResult(res, done) {
+  const t0 = performance.now();
+  const WIND = res.side === "enemy" ? 170 : 90;
+  const TOTAL = WIND + 360;
+  G.fx = { lunge: res.side === "enemy" ? { uid: res.actor.uid, p: 0 } : null,
+           slashes: [], magic: [], floats: [], screen: null, flash: {} };
+  G.partyFx = G.partyFx || new Map();
+  let impacted = false;
+  const tick = () => {
+    const t = performance.now() - t0;
+    if (G.fx.lunge) G.fx.lunge.p = Math.sin(Math.min(1, t / WIND) * Math.PI);
+    if (!impacted && t >= WIND) {
+      impacted = true;
+      applyImpact(res);
+      renderParty(); // HP反映 + 被弾フラッシュ
+    }
+    renderCombatCanvas();
+    if (t >= TOTAL) {
+      G.fx = null;
+      G.partyFx.clear();
+      renderCombat();
+      done();
+    } else {
+      requestAnimationFrame(tick);
+    }
+  };
+  requestAnimationFrame(tick);
+}
+
+function magicColor(res) {
+  const n = res.spellName || "";
+  if (n.includes("ハリト")) return "#ff8a3c"; // 炎系
+  if (res.spellKind === "sleep") return "#9ad1ff";
+  return "#b06bff";
+}
+
+// 着弾の瞬間: 効果音・エフェクト生成・ダメージ表示
+function applyImpact(res) {
+  const fx = G.fx;
+  const now = performance.now();
+  if (res.action === "defend") { SFX.select(); return; }
+  if (res.action === "sleep" || res.action === "run") { SFX.miss(); return; }
+
+  // 効果音
+  if (res.action === "spell") {
+    if (res.spellKind === "heal") SFX.heal();
+    else if (res.spellName && res.spellName.includes("ハリト")) SFX.fire();
+    else SFX.spell();
+  } else {
+    const anyHit = res.hits.some((h) => !h.miss);
+    if (!anyHit) SFX.miss();
+    else if (res.hits.some((h) => h.crit)) SFX.crit();
+    else SFX.hit();
+  }
+
+  let partyHit = false, anyDeath = false;
+  for (const h of res.hits) {
+    if (h.target.side === "enemy") {
+      const pos = G.enemyPos[h.target.uid];
+      if (!pos || h.miss) continue;
+      if (res.action === "spell" && res.spellKind !== "heal") {
+        fx.magic.push({ x: pos.cx, y: pos.cy, t0: now, color: magicColor(res) });
+      } else if (res.action === "attack") {
+        fx.slashes.push({ x: pos.cx, y: pos.cy, t0: now });
+      }
+      fx.flash[h.target.uid] = { t0: now };
+      if (h.dmg != null) fx.floats.push({ x: pos.cx, y: pos.cy - 18, text: String(h.dmg) + (h.crit ? "!" : ""), color: h.crit ? "#ffd84a" : "#fff", t0: now });
+      if (h.died) anyDeath = true;
+    } else {
+      // 味方が対象
+      if (h.heal != null) {
+        G.partyFx.set(h.target, "heal");
+        fx.floats.push({ x: view.width / 2, y: view.height - 26, text: "+" + h.heal, color: "#7CFC7C", t0: now });
+      } else if (!h.miss) {
+        partyHit = true;
+        G.partyFx.set(h.target, "hit");
+        fx.floats.push({ x: view.width / 2, y: view.height - 26, text: String(h.dmg), color: "#ff6b6b", t0: now });
+        if (h.died) anyDeath = true;
+      }
+    }
+  }
+  if (partyHit) fx.screen = { color: "#d4504e", t0: now };
+  if (anyDeath) setTimeout(() => SFX.die(), 200);
 }
 
 function endBattle() {
@@ -573,9 +876,12 @@ function highlightActor(actor) {
 
 function renderParty() {
   partyEl.innerHTML = "";
+  const fx = G.partyFx;
   for (const p of G.party) {
     const card = document.createElement("div");
-    card.className = "pc" + (p.alive ? "" : " dead");
+    let cls = "pc" + (p.alive ? "" : " dead");
+    if (fx && fx.has(p)) cls += " fx-" + fx.get(p); // fx-hit / fx-heal
+    card.className = cls;
     card.innerHTML = `
       <div class="name">${p.name}</div>
       <div class="cls">${p.cls} Lv${p.level}</div>
@@ -626,7 +932,7 @@ movePad.addEventListener("click", (e) => {
 
 // タイルクリックで移動: 隣接なら1歩、離れていれば経路探索して自動で歩く
 view.addEventListener("click", (e) => {
-  if (G.state !== "board" || G.anim || G.walking) return;
+  if (G.state !== "board" || G.anim || G.walking || G.prompt) return;
   const rect = view.getBoundingClientRect();
   const sx = (e.clientX - rect.left) * (view.width / rect.width);
   const sy = (e.clientY - rect.top) * (view.height / rect.height);
@@ -646,7 +952,7 @@ view.addEventListener("click", (e) => {
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "m" || e.key === "M") { updateMuteBtn(toggleMute()); return; }
-  if (G.state !== "board") return;
+  if (G.state !== "board" || G.prompt) return;
   switch (e.key) {
     case "ArrowUp": case "w": tryMove(0, -1); break;
     case "ArrowDown": case "s": tryMove(0, 1); break;

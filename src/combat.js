@@ -54,6 +54,20 @@ export function spawnBossEnemies() {
   return [makeEnemy("dragon")];
 }
 
+// 宝箱から出るミミック (通常より手強い)
+export function spawnMimic(floor) {
+  const pool = ["kobold", "orc", "wraith"];
+  const key = pool[Math.min(pool.length - 1, Math.floor(floor) - 1 + (Math.random() < 0.5 ? 0 : 1))] || "orc";
+  const e = makeEnemy(key);
+  e.name = "ミミック";
+  e.maxhp = Math.round(e.maxhp * 1.4);
+  e.hp = e.maxhp;
+  e.atk = Math.round(e.atk * 1.25);
+  e.gold = Math.round(e.gold * 2);
+  e.exp = Math.round(e.exp * 1.5);
+  return [e];
+}
+
 function makeEnemy(key) {
   const m = MONSTERS[key];
   return {
@@ -68,16 +82,16 @@ function makeEnemy(key) {
 const rand = (n) => Math.floor(Math.random() * n);
 const variance = (base) => Math.max(1, base + rand(Math.ceil(base * 0.4)) - rand(Math.ceil(base * 0.2)));
 
-// 戦闘の状態機械: 素早さ順に1人ずつ手番が回る
+// 戦闘の状態機械: 素早さ順に1人ずつ手番が回る。
+// 1手ずつ進め、各行動は結果オブジェクトを返す (演出は game.js 側で行う)。
 export class Battle {
-  constructor(party, enemies, log, sfx = () => {}) {
+  constructor(party, enemies, log) {
     this.party = party;
     this.enemies = enemies;
     this.log = log;
-    this.sfx = sfx;
     this.queue = [];          // このラウンドの行動順 (素早さ順)
-    this.current = null;      // 手番の味方 (入力待ち)
-    this.phase = "input";     // input | target
+    this.current = null;      // 手番のキャラ
+    this.phase = "input";     // input | target | resolve | enemy | done
     this.pending = null;      // 対象選択待ちの行動
     this.result = null;       // "win" | "lose" | "flee"
     this.advance();
@@ -93,52 +107,46 @@ export class Battle {
       .sort((a, b) => (b.spd + rand(4)) - (a.spd + rand(4)));
   }
 
-  // 次の手番へ。敵は即座に行動し、味方の番が来たら入力待ちで止まる
+  // 次の手番へ。味方なら input、敵なら enemy フェーズで止まる (実行はしない)
   advance() {
-    while (!this.result) {
+    if (this.result) { this.phase = "done"; return; }
+    while (true) {
       if (this.queue.length === 0) this._startRound();
       const actor = this.queue.shift();
-      if (!actor.alive) continue;
+      if (!actor || !actor.alive) continue;
+      this.current = actor;
       if (actor.side === "party") {
         actor._defending = false; // 防御は次の自分の手番まで
-        this.current = actor;
         this.phase = "input";
-        return;
+      } else {
+        this.phase = "enemy";
       }
-      this._exec({
-        actor,
-        action: actor.asleep ? "sleep" : "attack",
-        target: this._randAlive(this.livingParty()),
-      });
-      this._checkEnd();
+      return;
     }
   }
 
-  // 手番の味方の行動を選択。対象が必要なら target フェーズへ、不要なら即実行
+  // 手番の味方の行動を選択。{ needTarget } を返す
   chooseAction(action, spellKey = null) {
     const actor = this.current;
     if (action === "attack") {
       this.pending = { actor, action: "attack" };
       this.phase = "target";
-      return;
+      return { needTarget: true };
     }
     if (action === "spell") {
       const sp = SPELLS[spellKey];
-      if (actor.mp < sp.mp) { this.log("MPが足りない！", "sys"); return; }
+      if (actor.mp < sp.mp) { this.log("MPが足りない！", "sys"); return { invalid: true }; }
       this.pending = { actor, action: "spell", spellKey };
-      if (sp.target === "all-enemy") {
-        const cmd = this.pending;
-        this.pending = null;
-        this._execute(cmd);
-      } else {
-        this.phase = "target";
-      }
-      return;
+      if (sp.target === "all-enemy") { this.phase = "resolve"; return { needTarget: false }; }
+      this.phase = "target";
+      return { needTarget: true };
     }
     if (action === "defend" || action === "run") {
-      this._execute({ actor, action });
-      return;
+      this.pending = { actor, action };
+      this.phase = "resolve";
+      return { needTarget: false };
     }
+    return { invalid: true };
   }
 
   targetOptions() {
@@ -152,9 +160,8 @@ export class Battle {
   }
 
   chooseTarget(target) {
-    const cmd = { ...this.pending, target };
-    this.pending = null;
-    this._execute(cmd);
+    this.pending = { ...this.pending, target };
+    this.phase = "resolve";
   }
 
   cancelTarget() {
@@ -162,11 +169,25 @@ export class Battle {
     this.phase = "input";
   }
 
-  // 味方の行動を即時実行し、次の手番へ進める
-  _execute(cmd) {
-    this._exec(cmd);
+  // 味方の予約済み行動を実行し結果を返す (advance はしない)
+  commit() {
+    const res = this._exec(this.pending);
+    this.pending = null;
     this._checkEnd();
-    if (!this.result) this.advance();
+    return res;
+  }
+
+  // 敵の手番を実行し結果を返す
+  enemyAct() {
+    const actor = this.current;
+    const cmd = {
+      actor,
+      action: actor.asleep ? "sleep" : "attack",
+      target: this._randAlive(this.livingParty()),
+    };
+    const res = this._exec(cmd);
+    this._checkEnd();
+    return res;
   }
 
   _randAlive(list) {
@@ -174,56 +195,60 @@ export class Battle {
     return a[rand(a.length)] || null;
   }
 
+  // 行動を実行し、演出用の結果 { actor, action, side, hits:[{target,dmg,crit,miss,heal,sleep,died}] } を返す
   _exec(cmd) {
     const { actor, action } = cmd;
+    const res = { actor, action, side: actor.side, hits: [] };
     if (action === "sleep") {
-      if (Math.random() < 0.45) { cmd.actor.asleep = false; this.log(`${actor.name}は目を覚ました`, "sys"); }
-      else this.log(`${actor.name}は眠っている…`, "sys");
-      return;
+      if (Math.random() < 0.45) { actor.asleep = false; this.log(`${actor.name}は目を覚ました`, "sys"); res.woke = true; }
+      else { this.log(`${actor.name}は眠っている…`, "sys"); res.asleep = true; }
+      return res;
     }
     if (action === "defend") {
       actor._defending = true;
       this.log(`${actor.name}は身を守っている`, "sys");
-      return;
+      return res;
     }
     if (action === "run") {
-      if (Math.random() < 0.6) { this.result = "flee"; this.log("うまく逃げ出した！", "sys"); }
-      else this.log(`${actor.name}は逃げられなかった`, "sys");
-      return;
+      if (Math.random() < 0.55) { this.result = "flee"; this.log("うまく逃げ出した！", "sys"); res.fled = true; }
+      else { this.log(`${actor.name}は逃げられなかった！`, "dmg"); res.fledFail = true; }
+      return res;
     }
     if (action === "attack") {
       const tgt = (cmd.target && cmd.target.alive) ? cmd.target : this._randAlive(actor.side === "party" ? this.enemies : this.party);
-      if (!tgt) return;
-      this._physical(actor, tgt);
-      return;
+      if (tgt) res.hits.push(this._physical(actor, tgt));
+      return res;
     }
     if (action === "spell") {
-      this._cast(actor, cmd);
-      return;
+      this._cast(actor, cmd, res);
+      return res;
     }
+    return res;
   }
 
   _physical(actor, tgt) {
-    const hitRoll = Math.random();
-    if (hitRoll < 0.1) { this.sfx("miss"); this.log(`${actor.name}の攻撃は外れた`, "sys"); return; }
+    if (Math.random() < 0.08) {
+      this.log(`${actor.name}の攻撃は外れた`, "sys");
+      return { target: tgt, miss: true };
+    }
     let dmg = variance(actor.atk) - Math.floor(tgt.def * 0.5);
     if (tgt._defending) dmg = Math.floor(dmg * 0.5);
     const crit = Math.random() < 0.08;
-    if (crit) dmg = Math.floor(dmg * 1.8);
+    if (crit) dmg = Math.floor(dmg * 1.85);
     dmg = Math.max(1, dmg);
-    this.sfx("hit");
     tgt.hp -= dmg;
     this.log(`${actor.name}の攻撃！ ${tgt.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}`,
       actor.side === "party" ? "hit" : "dmg");
     if (tgt.asleep) tgt.asleep = false;
-    this._die(tgt);
+    return { target: tgt, dmg, crit, died: this._die(tgt) };
   }
 
-  _cast(actor, cmd) {
+  _cast(actor, cmd, res) {
     const sp = SPELLS[cmd.spellKey];
     actor.mp -= sp.mp;
+    res.spellName = sp.name;
+    res.spellKind = sp.kind;
     this.log(`${actor.name}は ${sp.name} を唱えた！`, "hit");
-    this.sfx(sp.kind === "heal" ? "heal" : "spell");
     if (sp.kind === "atk") {
       const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
       for (const t of targets) {
@@ -232,16 +257,17 @@ export class Battle {
         t.hp -= dmg;
         this.log(`${t.name}に ${dmg} ダメージ`, "dmg");
         if (t.asleep) t.asleep = false;
-        this._die(t);
+        res.hits.push({ target: t, dmg, died: this._die(t) });
       }
     } else if (sp.kind === "heal") {
       const t = cmd.target && cmd.target.alive ? cmd.target : actor;
       const heal = variance(sp.power);
       t.hp = Math.min(t.maxhp, t.hp + heal);
       this.log(`${t.name}のHPが ${heal} 回復`, "heal");
+      res.hits.push({ target: t, heal });
     } else if (sp.kind === "sleep") {
       for (const t of this.livingEnemies()) {
-        if (Math.random() < 0.6) { t.asleep = true; this.log(`${t.name}は眠った`, "sys"); }
+        if (Math.random() < 0.6) { t.asleep = true; this.log(`${t.name}は眠った`, "sys"); res.hits.push({ target: t, sleep: true }); }
         else this.log(`${t.name}には効かない`, "sys");
       }
     }
@@ -250,9 +276,10 @@ export class Battle {
   _die(t) {
     if (t.hp <= 0 && t.alive) {
       t.hp = 0; t.alive = false;
-      this.sfx("die");
       this.log(`${t.name}を倒した！`, t.side === "enemy" ? "win" : "dmg");
+      return true;
     }
+    return false;
   }
 
   _checkEnd() {
