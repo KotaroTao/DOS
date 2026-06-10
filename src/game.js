@@ -98,6 +98,10 @@ function drawFloor() {
 function renderBoard() {
   drawFloor();
 
+  // 到達可能マスを事前計算 (静止中のみ)
+  const reachable = (G.state === "board" && !G.anim && !G.walking)
+    ? getReachableCells() : null;
+
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
       const cell = G.board.cells[y][x];
@@ -110,13 +114,20 @@ function renderBoard() {
         showBack = t < 0.5;
       }
       drawCard(r, cell, scaleX, showBack);
-      // 移動可能な隣接マスを光彩つきでハイライト (静止中のみ)
-      if (G.state === "board" && !G.anim && !G.walking && isStep(x, y)) {
+      // 到達可能マスをハイライト: 隣接(1歩)は明るいグロー、遠隔は薄い枠
+      if (reachable && reachable.has(x + "," + y)) {
         vctx.save();
-        vctx.shadowColor = "rgba(120,220,255,0.9)";
-        vctx.shadowBlur = 8;
-        vctx.strokeStyle = "rgba(150,230,255,0.95)";
-        vctx.lineWidth = 2;
+        if (isStep(x, y)) {
+          vctx.shadowColor = "rgba(120,220,255,0.9)";
+          vctx.shadowBlur = 8;
+          vctx.strokeStyle = "rgba(150,230,255,0.95)";
+          vctx.lineWidth = 2;
+        } else {
+          vctx.shadowColor = "rgba(80,160,255,0.4)";
+          vctx.shadowBlur = 4;
+          vctx.strokeStyle = "rgba(100,180,255,0.55)";
+          vctx.lineWidth = 1.5;
+        }
         vctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
         vctx.restore();
       }
@@ -331,6 +342,28 @@ function isStep(x, y) {
 }
 
 const DIRS_G = { n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0] };
+
+// 自動移動で到達できるすべてのマスのキー集合を返す
+// (公開済みマスを中間路として、未公開マスは最終1歩だけ許可)
+function getReachableCells() {
+  const key = (x, y) => x + "," + y;
+  const reachable = new Set();
+  const seen = new Set([key(G.px, G.py)]);
+  const q = [[G.px, G.py]];
+  while (q.length) {
+    const [x, y] = q.shift();
+    for (const d in DIRS_G) {
+      if (G.board.cells[y][x].walls[d]) continue;
+      const nx = x + DIRS_G[d][0], ny = y + DIRS_G[d][1];
+      if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) continue;
+      if (seen.has(key(nx, ny))) continue;
+      seen.add(key(nx, ny));
+      reachable.add(key(nx, ny));
+      if (G.board.cells[ny][nx].revealed) q.push([nx, ny]);
+    }
+  }
+  return reachable;
+}
 
 function tryMove(dx, dy) {
   moveTo(G.px + dx, G.py + dy);
@@ -1341,6 +1374,10 @@ function renderItemDetail(p, sel) {
       acts.appendChild(b);
     }
     acts.appendChild(makeDanger("捨てる", () => dropItem(p, sel.index)));
+    // 他のメンバーへ渡す (生存者が2人以上いるときのみ)
+    if (G.party.filter((m) => m.alive).length > 1) {
+      acts.appendChild(btn("渡す", () => transferItem(p, sel.index)));
+    }
   } else if (sel.from === "equip") {
     const b = makeDanger("外す", () => doUnequip(p, sel.key));
     if (it.cursed) { b.disabled = true; b.textContent = "外せない(呪)"; }
@@ -1399,6 +1436,43 @@ function dropItem(p, index) {
       renderStatus();
     },
   });
+}
+
+// 他のメンバーへアイテムを渡す。渡し先を選ぶモーダルを出す
+function transferItem(p, index) {
+  const it = p.items[index];
+  if (!it) return;
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card confirm-card");
+  card.style.borderColor = "#5fb8d6";
+  card.style.boxShadow = "0 0 40px #5fb8d655";
+  const bn = el("div", "ig-banner", "🎁 渡す");
+  bn.style.color = "#5fb8d6";
+  card.appendChild(bn);
+  card.appendChild(el("div", "ig-name", `${it.name} を誰に渡す？`));
+  const list = el("div", "ig-choices");
+  // 自分以外の生存メンバーを並べる。満杯の相手は選べない
+  G.party.forEach((m) => {
+    if (m === p || !m.alive) return;
+    const full = m.items.length >= MAX_ITEMS;
+    const label = `${m.name} (持ち ${m.items.length}/${MAX_ITEMS})` + (full ? " 満杯" : "");
+    const b = btn(label, () => {
+      wrap.remove();
+      p.items.splice(index, 1);
+      m.items.push(it);
+      log(`${it.name} を ${p.name} → ${m.name} に渡した`, "win");
+      SFX.select();
+      stSel = null;
+      renderStatus(); renderParty();
+    });
+    if (full) b.disabled = true;
+    list.appendChild(b);
+  });
+  list.appendChild(btn("やめる", () => wrap.remove()));
+  card.appendChild(list);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
 }
 
 // 確認ダイアログ (ステータス画面の上にも出せる軽量モーダル)
@@ -1551,6 +1625,7 @@ movePad.addEventListener("click", (e) => {
 
 // タイルクリックで移動: 隣接なら1歩、離れていれば経路探索して自動で歩く
 view.addEventListener("click", (e) => {
+  if (G._swiped) { G._swiped = false; return; } // 直前のスワイプ由来の click は無視
   if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen) return;
   const rect = view.getBoundingClientRect();
   const sx = (e.clientX - rect.left) * (view.width / rect.width);
@@ -1573,6 +1648,59 @@ view.addEventListener("click", (e) => {
   SFX.miss();
   log("そこへはまだ行けない。", "sys");
 });
+
+// スワイプ連続移動: 指を押さえたまま方向を決めると、壁にぶつかるか指を離すまで進み続ける。
+// 短いタップは従来のタイルクリックとして扱う。
+const SWIPE_MIN = 28;
+let swipe = null;          // { x, y, dir } ― dir 確定後は非 null
+let swipeTimer = null;     // 連続移動ループのタイマー ID
+
+function stopSwipe() {
+  swipe = null;
+  if (swipeTimer !== null) { clearTimeout(swipeTimer); swipeTimer = null; }
+}
+
+// 指を離さずに方向が確定した後、1歩ずつ連続移動するループ
+function swipeStep(dx, dy) {
+  if (!swipe) return; // 指が離れた
+  if (G.state !== "board" || G.prompt || G.statusOpen) { stopSwipe(); return; }
+  if (G.anim || G.walking) {
+    // アニメーション完了待ち。50ms ごとに再チェック
+    swipeTimer = setTimeout(() => swipeStep(dx, dy), 50);
+    return;
+  }
+  const nx = G.px + dx, ny = G.py + dy;
+  if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS || !edgeOpen(nx, ny)) {
+    // 壁 or 端 → 赤フラッシュ出して終了
+    tryMove(dx, dy);
+    stopSwipe();
+    return;
+  }
+  tryMove(dx, dy);
+  swipeTimer = setTimeout(() => swipeStep(dx, dy), 50);
+}
+
+view.addEventListener("pointerdown", (e) => {
+  if (e.pointerType === "mouse") return;
+  stopSwipe();
+  swipe = { x: e.clientX, y: e.clientY, dir: null };
+});
+
+view.addEventListener("pointermove", (e) => {
+  if (!swipe || swipe.dir) return; // 未タッチ or 方向確定済み
+  const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN) return;
+  // 方向確定 → 連続移動開始
+  const mdx = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : -1) : 0;
+  const mdy = mdx === 0 ? (dy > 0 ? 1 : -1) : 0;
+  swipe.dir = { dx: mdx, dy: mdy };
+  G._swiped = true; // 指を離したときの click を抑制
+  SFX.select();
+  swipeStep(mdx, mdy);
+});
+
+view.addEventListener("pointerup", () => { stopSwipe(); });
+view.addEventListener("pointercancel", () => { stopSwipe(); });
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "m" || e.key === "M") { updateMuteBtn(toggleMute()); return; }
