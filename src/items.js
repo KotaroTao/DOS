@@ -12,7 +12,7 @@ export const SLOTS = ["weapon", "shield", "body", "head", "hands", "feet", "acc1
 export const SLOT_LABEL = {
   weapon: "武器", body: "防具", shield: "盾", head: "頭", hands: "小手", feet: "足", acc1: "装飾1", acc2: "装飾2",
 };
-export const MAX_ITEMS = 12;
+export const MAX_ITEMS = 8;
 
 // slot種別 → 装備キー
 export function slotKeyFor(item, member) {

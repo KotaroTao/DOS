@@ -98,6 +98,10 @@ function drawFloor() {
 function renderBoard() {
   drawFloor();
 
+  // 到達可能マスを事前計算 (静止中のみ)
+  const reachable = (G.state === "board" && !G.anim && !G.walking)
+    ? getReachableCells() : null;
+
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
       const cell = G.board.cells[y][x];
@@ -110,13 +114,20 @@ function renderBoard() {
         showBack = t < 0.5;
       }
       drawCard(r, cell, scaleX, showBack);
-      // 移動可能な隣接マスを光彩つきでハイライト (静止中のみ)
-      if (G.state === "board" && !G.anim && !G.walking && isStep(x, y)) {
+      // 到達可能マスをハイライト: 隣接(1歩)は明るいグロー、遠隔は薄い枠
+      if (reachable && reachable.has(x + "," + y)) {
         vctx.save();
-        vctx.shadowColor = "rgba(120,220,255,0.9)";
-        vctx.shadowBlur = 8;
-        vctx.strokeStyle = "rgba(150,230,255,0.95)";
-        vctx.lineWidth = 2;
+        if (isStep(x, y)) {
+          vctx.shadowColor = "rgba(120,220,255,0.9)";
+          vctx.shadowBlur = 8;
+          vctx.strokeStyle = "rgba(150,230,255,0.95)";
+          vctx.lineWidth = 2;
+        } else {
+          vctx.shadowColor = "rgba(80,160,255,0.4)";
+          vctx.shadowBlur = 4;
+          vctx.strokeStyle = "rgba(100,180,255,0.55)";
+          vctx.lineWidth = 1.5;
+        }
         vctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
         vctx.restore();
       }
@@ -331,6 +342,28 @@ function isStep(x, y) {
 }
 
 const DIRS_G = { n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0] };
+
+// 自動移動で到達できるすべてのマスのキー集合を返す
+// (公開済みマスを中間路として、未公開マスは最終1歩だけ許可)
+function getReachableCells() {
+  const key = (x, y) => x + "," + y;
+  const reachable = new Set();
+  const seen = new Set([key(G.px, G.py)]);
+  const q = [[G.px, G.py]];
+  while (q.length) {
+    const [x, y] = q.shift();
+    for (const d in DIRS_G) {
+      if (G.board.cells[y][x].walls[d]) continue;
+      const nx = x + DIRS_G[d][0], ny = y + DIRS_G[d][1];
+      if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) continue;
+      if (seen.has(key(nx, ny))) continue;
+      seen.add(key(nx, ny));
+      reachable.add(key(nx, ny));
+      if (G.board.cells[ny][nx].revealed) q.push([nx, ny]);
+    }
+  }
+  return reachable;
+}
 
 function tryMove(dx, dy) {
   moveTo(G.px + dx, G.py + dy);
