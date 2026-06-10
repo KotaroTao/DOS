@@ -1413,7 +1413,18 @@ function init() {
   renderBoard();
 
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js").catch(() => {});
+    // updateViaCache:none で sw.js を常に最新チェック。更新があれば即時反映してリロード
+    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
+      reg.addEventListener("updatefound", () => {
+        const sw = reg.installing;
+        if (!sw) return;
+        sw.addEventListener("statechange", () => {
+          if (sw.state === "activated" && navigator.serviceWorker.controller) {
+            location.reload(); // 新バージョンが有効化されたら読み直す
+          }
+        });
+      });
+    }).catch(() => {});
   }
 
   // デバッグ/テスト用フック (壁判定の検証に使用)

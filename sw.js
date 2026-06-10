@@ -1,5 +1,7 @@
-// シンプルなオフラインキャッシュ (PWA / アプリ化用)
-const CACHE = "dos-v14";
+// オフライン対応キャッシュ (PWA / アプリ化用)
+// 取得戦略は network-first: オンライン時は常に最新を取得し、
+// 取得できた時だけキャッシュ更新。オフライン時のみキャッシュを使う。
+const CACHE = "dos-v15";
 const ASSETS = [
   "./",
   "./index.html",
@@ -27,11 +29,17 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
+  const url = new URL(e.request.url);
+  if (url.origin !== self.location.origin) return; // 他オリジンは介入しない
+
+  // network-first: まずネットワーク、失敗時にキャッシュへフォールバック
   e.respondWith(
-    caches.match(e.request).then((hit) => hit || fetch(e.request).then((res) => {
-      const copy = res.clone();
-      caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
-      return res;
-    }).catch(() => caches.match("./index.html")))
+    fetch(e.request)
+      .then((res) => {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(e.request, copy)).catch(() => {});
+        return res;
+      })
+      .catch(() => caches.match(e.request).then((hit) => hit || caches.match("./index.html")))
   );
 });
