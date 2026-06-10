@@ -34,7 +34,9 @@ const G = {
   party: [],          // 迷宮に連れて行く人業 (最大6体)
   reserve: [],        // 酒場で待機中の人業
   souls: [],          // 未封印の魂ストック
-  town: { facility: null }, // 街UIの現在地
+  shopStock: null,    // 商店の在庫 { itemId: 個数 } (初回 setupNewGame で初期化)
+  run: null,          // 今回の潜入で得た戦利品 { gold, soulPts, items:[{owner,item}], souls:[] }
+  town: { facility: null, sub: null }, // 街UIの現在地 (sub: 館などのサブメニュー)
   quests: [],         // 受注可能/進行中のクエスト
   rumor: null,        // 酒場で表示中の噂 (次回潜入で現実化)
   activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
@@ -64,6 +66,34 @@ const rand = (n) => Math.floor(Math.random() * n);
 // ハプティクス (対応端末のみ)。パターン: 数値 or [待ち,振動,待ち,振動...]
 function buzz(p) {
   if (navigator.vibrate) { try { navigator.vibrate(p); } catch {} }
+}
+
+// ---- 潜入中の戦利品トラッキング (全滅ペナルティ / Red Soul帰還で使う) ----
+const inDungeon = () => G.state === "board" || G.state === "combat" || G.state === "over";
+function runGainGold(g) { G.gold += g; if (G.run && inDungeon()) G.run.gold += g; }
+function runGainSoulPts(s) { G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; }
+function runGainItem(owner, item) { owner.items.push(item); if (G.run && inDungeon()) G.run.items.push({ owner, item }); }
+function runGainSoul(soul) { G.souls.push(soul); if (G.run && inDungeon()) G.run.souls.push(soul); }
+
+// 全滅して Red Soul を使わなかった場合: 今回の戦利品をすべて失う
+function forfeitRun() {
+  const r = G.run;
+  if (!r) return;
+  G.gold = Math.max(0, G.gold - r.gold);
+  G.soulPts = Math.max(0, G.soulPts - r.soulPts);
+  // 入手したアイテム/装備を所有者から除去 (装備中なら外す)
+  for (const { owner, item } of r.items) {
+    const bi = owner.items.indexOf(item);
+    if (bi >= 0) { owner.items.splice(bi, 1); continue; }
+    for (const slot of SLOTS) if (owner.equip[slot] === item) { owner.equip[slot] = null; recalcDoll ? recalcDoll(owner) : recalc(owner); }
+  }
+  // 入手した魂を除去 (ストック or 宿し済みの両方を走査)
+  for (const soul of r.souls) {
+    const si = G.souls.indexOf(soul);
+    if (si >= 0) { G.souls.splice(si, 1); continue; }
+    for (const d of allDolls()) for (const part of PARTS) if (d.parts[part] === soul) { d.parts[part] = null; recalcDoll(d); }
+  }
+  G.run = null;
 }
 
 // 砕けた人業の魂に「記憶」を刻む (全パーティを走査、一度の死で一度だけ)。
@@ -643,7 +673,7 @@ function resolveCorpse(cell) {
     // 風化した死体: 魂(オブジェクト)は失われているが、残り滓から Soul を得られる
     cell.cleared = true;
     const essence = 6 + G.floor * 3 + rand(6);
-    G.soulPts += essence;
+    runGainSoulPts(essence);
     log(`風化した死体（${clsLabel}）から ✦${essence} Soul を集めた。`, "win");
     showEvent({
       sprite: ICONS.corpse, title: `風化した死体（${clsLabel}）`, accent: "#8c866f", banner: "— 亡骸 —",
@@ -669,7 +699,7 @@ function collectSoul(cell, clsKey, clsLabel) {
 
 // 魂の入手処理 (共通): ストック追加・クエスト進捗・ランクに応じた演出
 function acquireSoul(soul, sourceLine) {
-  G.souls.push(soul);
+  runGainSoul(soul);
   questProgress("soul", null, 1);
   const rank = SOUL_RANKS[soul.rank || "normal"];
   const rare = rank.order >= 1;
@@ -793,7 +823,7 @@ function rollChest(cell, allowDanger, done) {
   } else {
     SFX.chest();
     const g = 10 + G.floor * 12 + rand(30);
-    G.gold += g;
+    runGainGold(g);
     updateTopbar();
     log(`宝箱から ${g} ゴールドを手に入れた！`, "win");
     showEvent({
@@ -1258,10 +1288,10 @@ function endBattle() {
   renderCombat();
   if (b.result === "win") {
     const { exp, gold } = b.rewards();
-    G.gold += gold;
+    runGainGold(gold);
     // 倒した敵から Soul(魂) を得る (館で魂のレベルアップに使える)
     const essence = b.enemies.reduce((a, e) => a + (e.alive ? 0 : Math.max(1, Math.round(e.exp * 0.6))), 0);
-    G.soulPts += essence;
+    runGainSoulPts(essence);
     updateTopbar();
     log(`勝利！ ${gold} ゴールド と ✦${essence} Soul を得た。`, "win");
     const alive = G.party.filter((x) => x.alive);
@@ -1286,7 +1316,7 @@ function endBattle() {
       if (e.alive || !HUMANOID_SOUL[e.key]) continue;
       if (Math.random() < 0.08) {
         const s = makeSoul(HUMANOID_SOUL[e.key], 1 + (G.floor >= 2 ? 1 : 0), null, rollSoulRank());
-        G.souls.push(s);
+        runGainSoul(s);
         questProgress("soul", null, 1);
         const rk = SOUL_RANKS[s.rank || "normal"];
         log(`${e.name}が ${soulName(s)} を落とした！`, "win");
@@ -1321,41 +1351,44 @@ function finishToBoard() {
   renderBoard();
 }
 
-const GUARDIAN_COST = 20; // 全滅時に無傷帰還するための Red Soul
+const GUARDIAN_COST = 20; // 全滅時、戦利品を守って帰還するための Red Soul
 function gameOver() {
   G.state = "over";
   playBgm(null);
   SFX.gameover();
   buzz([0, 90, 70, 90, 70, 250]);
   log("人業はことごとく砕けた…", "dmg");
-  imprintFallen(); // 記憶を刻み、復活タイマーを開始
+  imprintFallen(); // 記憶を刻み、連れ帰りタイマーを開始
 
+  const r = G.run || { gold: 0, soulPts: 0, items: [], souls: [] };
   combatMenu.classList.remove("hidden");
   combatMenu.innerHTML = "";
   combatMenu.appendChild(el("div", "who", "💀 全滅"));
-  // Red Soul の加護: 一定量を捧げ、全員無傷で街へ帰還 (何も失わない)
+  combatMenu.appendChild(el("div", "who", `今回の戦利品: 💰${r.gold} ✦${r.soulPts} ・ 装備/アイテム ${r.items.length} ・ 魂 ${r.souls.length}`));
+
+  // 共通: 街へ戻る (死亡人業は連れ帰りを待つ)
+  const goTown = () => { if (townBtn) townBtn.classList.add("hidden"); combatMenu.classList.add("hidden"); returnToTown(); };
+
+  // Red Soul の加護: 戦利品を守って帰還 (人業は復活せず、連れ帰りを待つ)
   if (G.redSoul >= GUARDIAN_COST) {
-    const guard = btn(`🔴 赤い魂の加護 ×${GUARDIAN_COST} で無傷で帰還`, () => {
+    const guard = btn(`🔴 赤い魂 ×${GUARDIAN_COST} で戦利品を守って帰還`, () => {
       G.redSoul -= GUARDIAN_COST;
-      for (const p of G.party) { p.alive = true; p.hp = p.maxhp; p.mp = p.maxmp; p.ailment = null; p.reviveAt = null; clearFallen(p); }
+      G.run = null; // 戦利品を確定 (没収しない)
       SFX.levelup(); buzz([0, 30, 40, 30]);
-      log("赤い魂の加護が人業を満たした。何も失わず街へ帰還する。", "win");
-      if (townBtn) townBtn.classList.add("hidden");
-      combatMenu.classList.add("hidden");
-      returnToTown();
+      log("赤い魂が戦利品を守った。死した人業は連れ帰りを待つ。", "win");
+      goTown();
     });
     guard.className = "btn primary";
     combatMenu.appendChild(guard);
   }
-  // 砕けた人業は時間経過で復活する。街へ撤退して待つ
-  const retreat = btn("🏚 街へ撤退する (復活を待つ)", () => {
-    if (townBtn) townBtn.classList.add("hidden");
-    combatMenu.classList.add("hidden");
-    returnToTown();
+  // そのまま撤退: 今回の戦利品をすべて失う
+  const retreat = btn("🏚 撤退する (今回の戦利品を失う)", () => {
+    forfeitRun();
+    log("今回の探索で得たものはすべて失われた…", "dmg");
+    goTown();
   });
-  retreat.className = "btn";
+  retreat.className = "btn danger";
   combatMenu.appendChild(retreat);
-  combatMenu.appendChild(btn("最初からやり直す", () => location.reload()));
 }
 
 function victory() {
@@ -1503,6 +1536,7 @@ function townHeader(title, backTo = "hub") {
   if (backTo) {
     const back = btn(backTo === "hub" ? "← 広場へ" : "← 戻る", () => {
       G.town.facility = backTo === "hub" ? null : backTo;
+      G.town.sub = null; // サブメニュー (館の中など) を抜ける
       altarSel = null;
       renderTown();
     });
@@ -1596,10 +1630,138 @@ function dollChip(d) {
   return chip;
 }
 
-// ---- 人業の館 (訓練所): 人業の仕立て・魂を宿す・解体 ----
+// ---- 人業の館: 4つのメニュー (編成 / 魂を宿す / 魂の強化・管理 / 人業作成・管理) ----
+const MANSION_MENU = [
+  { key: "party", icon: "🛡", name: "パーティ編成", desc: "迷宮へ連れて行く6体を選ぶ" },
+  { key: "altar", icon: "⛓", name: "魂を宿す", desc: "5部位に魂を宿す" },
+  { key: "enhance", icon: "✦", name: "魂の強化 / 管理", desc: "Soulで魂を鍛える・確認" },
+  { key: "manage", icon: "🏚", name: "人業 作成 / 管理", desc: "空の人業を購入・解体" },
+];
+
 function renderMansion() {
+  const sub = G.town.sub;
+  if (sub === "party") return renderMansionParty();
+  if (sub === "altar") return renderAltar();
+  if (sub === "enhance") return renderMansionEnhance();
+  if (sub === "manage") return renderMansionManage();
+
   townEl.appendChild(townHeader("人業の館"));
   townEl.appendChild(el("div", "tw-lead", "人型の器「人業（Doll）」を仕立て、5部位に魂を宿して鍛える訓練所。"));
+  const grid = el("div", "tw-grid");
+  for (const m of MANSION_MENU) {
+    const c = el("div", "tw-fac");
+    c.appendChild(el("div", "tw-faci", m.icon));
+    c.appendChild(el("div", "tw-facn", m.name));
+    c.appendChild(el("div", "tw-facd", m.desc));
+    c.addEventListener("click", () => { SFX.select(); G.town.sub = m.key; altarSel = null; renderTown(); });
+    grid.appendChild(c);
+  }
+  townEl.appendChild(grid);
+}
+
+// 館サブ: パーティ編成 (編成 ⇄ 控え の入れ替え)
+function renderMansionParty() {
+  townEl.appendChild(townHeader("パーティ編成", "mansion"));
+  townEl.appendChild(el("div", "tw-lead", "迷宮へ連れて行く人業は最大6体。タップで編成⇄控えを入れ替え。"));
+
+  townEl.appendChild(el("div", "tw-h", `編成 (${G.party.length}/6) — タップで控えへ`));
+  const pl = el("div", "tw-mlist");
+  if (!G.party.length) pl.appendChild(el("div", "tw-empty", "誰もいない。控えから加えよう。"));
+  G.party.forEach((d) => pl.appendChild(rosterRow(d, () => {
+    G.party.splice(G.party.indexOf(d), 1); G.reserve.push(d); SFX.select(); renderTown();
+  })));
+  townEl.appendChild(pl);
+
+  townEl.appendChild(el("div", "tw-h", `控え (${G.reserve.length}) — タップで編成へ`));
+  const rl = el("div", "tw-mlist");
+  if (!G.reserve.length) rl.appendChild(el("div", "tw-empty", "控えはいない。"));
+  G.reserve.forEach((d) => rl.appendChild(rosterRow(d, () => {
+    if (G.party.length >= 6) { log("編成は満員だ (6体まで)。", "sys"); return; }
+    G.reserve.splice(G.reserve.indexOf(d), 1); G.party.push(d); SFX.select(); renderTown();
+  })));
+  townEl.appendChild(rl);
+}
+
+// 編成行 (タップでトグル)
+function rosterRow(d, onClick) {
+  const row = el("div", "tw-mrow" + (d.alive ? "" : " dead"));
+  const s = el("span", "tw-chips");
+  if (d.dominant) { s.style.color = SOUL_CLASSES[d.dominant.clsKey].glow; s.appendChild(spriteCanvas(soulSprite(d.dominant.clsKey), 2)); }
+  row.appendChild(s);
+  const info = el("div", "tw-chipi");
+  info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
+  info.appendChild(el("div", "tw-chipc", d.cls));
+  row.appendChild(info);
+  row.appendChild(el("div", "tw-chiphp",
+    d.alive ? `HP ${d.hp}/${d.maxhp}` : `⏳${fmtRemain(Math.max(0, (d.reviveAt || Date.now()) - Date.now()))}`));
+  row.addEventListener("click", onClick);
+  return row;
+}
+
+// 館サブ: 魂の強化・管理 (ストックの魂を一覧、Soulで鍛える)
+function renderMansionEnhance() {
+  townEl.appendChild(townHeader("魂の強化 / 管理", "mansion"));
+  townEl.appendChild(el("div", "tw-lead", `✦${G.soulPts} Soul で、ストックの魂や人業に宿した魂を鍛えられる。`));
+
+  // 宿している魂 (人業ごと)
+  for (const d of allDolls()) {
+    const souls = dollSouls(d);
+    if (!souls.length) continue;
+    townEl.appendChild(el("div", "tw-h", `${d.name} に宿した魂`));
+    const list = el("div", "tw-soullist");
+    for (const part of PARTS) {
+      const s = d.parts[part];
+      if (!s) continue;
+      list.appendChild(soulEnhanceRow(s, () => { recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); }));
+    }
+    townEl.appendChild(list);
+  }
+
+  // ストックの魂
+  townEl.appendChild(el("div", "tw-h", `魂ストック (${G.souls.length})`));
+  const stock = el("div", "tw-soullist");
+  if (!G.souls.length) stock.appendChild(el("div", "tw-empty", "ストックに魂がない。迷宮で集めよう。"));
+  for (const s of G.souls) stock.appendChild(soulEnhanceRow(s, null));
+  townEl.appendChild(stock);
+}
+
+// 魂1つの強化行 (ステータス + ✦で鍛えるボタン)
+function soulEnhanceRow(s, afterLevel) {
+  const rank = SOUL_RANKS[s.rank || "normal"];
+  const r = el("div", "tw-soulrow" + (rank.order >= 1 ? " rare" : ""));
+  if (rank.color) r.style.borderColor = rank.color;
+  const o = el("span", "tw-chips"); o.style.color = SOUL_CLASSES[s.clsKey].glow; o.appendChild(spriteCanvas(soulSprite(s.clsKey), 2));
+  r.appendChild(o);
+  const info = el("div", "tw-chipi");
+  const nm = el("div", "tw-souln", soulName(s));
+  if (rank.color) nm.style.color = rank.color;
+  info.appendChild(nm);
+  const st = soulStats(s);
+  info.appendChild(el("div", "tw-soulst", `HP+${st.hp} ${st.mp ? `MP+${st.mp} ` : ""}攻+${st.atk} 防+${st.def} 速+${st.spd}`));
+  r.appendChild(info);
+  if (s.level >= SOUL_MAX_LEVEL) {
+    r.appendChild(el("div", "tw-chiphp", "MAX"));
+  } else {
+    const cost = soulTrainCost(s.level);
+    const b = btn(`✦${cost}`, () => {
+      if (G.soulPts < cost) { log("Soul が足りない。", "sys"); return; }
+      G.soulPts -= cost; s.level++;
+      if (afterLevel) afterLevel();
+      SFX.levelup(); buzz([0, 30, 40, 30]);
+      log(`${SOUL_CLASSES[s.clsKey].label}の魂が Lv${s.level} に成長した！`, "win");
+      renderTown();
+    });
+    b.className = "tw-small primary";
+    if (G.soulPts < cost) b.disabled = true;
+    r.appendChild(b);
+  }
+  return r;
+}
+
+// 館サブ: 人業の作成・管理 (購入・解体)
+function renderMansionManage() {
+  townEl.appendChild(townHeader("人業 作成 / 管理", "mansion"));
+  townEl.appendChild(el("div", "tw-lead", "空の人業を仕立て、不要な人業は解体して魂を回収できる。"));
 
   const list = el("div", "tw-mlist");
   allDolls().forEach((d) => {
@@ -1612,7 +1774,7 @@ function renderMansion() {
     info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †") + (inParty ? "" : " (控え)")));
     info.appendChild(el("div", "tw-chipc", `${d.cls} ・ 魂 ${dollSouls(d).length}/5`));
     row.appendChild(info);
-    const edit = btn("魂を宿す", () => { altarSel = { doll: d, part: null }; G.town.facility = "altar"; renderTown(); });
+    const edit = btn("魂を宿す", () => { altarSel = { doll: d, part: null }; G.town.sub = "altar"; renderTown(); });
     edit.className = "tw-small";
     row.appendChild(edit);
     const del = btn("解体", () => confirmDisband(d));
@@ -1628,7 +1790,7 @@ function renderMansion() {
   if (G.redSoul < cost) add.disabled = true;
   townEl.appendChild(add);
   townEl.appendChild(el("div", "tw-note",
-    `空の人業: 1体目 🔴30 / 2体目 🔴50 / 3体目以降 🔴100 ・ 魂ストック ${G.souls.length} 個`));
+    `空の人業: 1体目 🔴30 / 2体目 🔴50 / 3体目以降 🔴100`));
 }
 
 // 空の人業の価格 (購入回数で段階的に上昇)
@@ -1654,7 +1816,7 @@ function buyEmptyDoll() {
   SFX.itemget(); buzz([0, 30, 60, 30]);
   log(`空の人業「${d.name}」を購入した (🔴${cost})。魂を宿そう。`, "win");
   altarSel = { doll: d, part: null };
-  G.town.facility = "altar";
+  G.town.facility = "mansion"; G.town.sub = "altar";
   renderTown();
 }
 
@@ -1904,7 +2066,7 @@ function applyRumorToBoard(board) {
 
 function renderTavern() {
   townEl.appendChild(townHeader("酒場「沈まぬ灯」"));
-  townEl.appendChild(el("div", "tw-lead", "迷宮帰りの傭兵がたむろする。編成・依頼・噂話はここで。"));
+  townEl.appendChild(el("div", "tw-lead", "迷宮帰りの傭兵がたむろする。依頼の受注と噂話はここで。(編成は人業の館)"));
 
   // --- 噂話 ---
   if (!G.rumor) G.rumor = rollRumor();
@@ -1917,51 +2079,6 @@ function renderTavern() {
   const reroll = btn("🍺 別の噂を聞く", () => { G.rumor = rollRumor(); SFX.select(); renderTown(); });
   reroll.className = "btn tw-add";
   townEl.appendChild(reroll);
-
-  // --- パーティ編成 ---
-  townEl.appendChild(el("div", "tw-h", `編成 (${G.party.length}/6) — タップで控えへ`));
-  const pl = el("div", "tw-mlist");
-  if (!G.party.length) pl.appendChild(el("div", "tw-empty", "誰もいない。控えから加えよう。"));
-  G.party.forEach((d) => {
-    const row = el("div", "tw-mrow" + (d.alive ? "" : " dead"));
-    const s = el("span", "tw-chips");
-    if (d.dominant) { s.style.color = SOUL_CLASSES[d.dominant.clsKey].glow; s.appendChild(spriteCanvas(soulSprite(d.dominant.clsKey), 2)); }
-    row.appendChild(s);
-    const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
-    info.appendChild(el("div", "tw-chipc", d.cls));
-    row.appendChild(info);
-    row.appendChild(el("div", "tw-chiphp", `HP ${d.hp}/${d.maxhp}`));
-    row.addEventListener("click", () => {
-      G.party.splice(G.party.indexOf(d), 1);
-      G.reserve.push(d);
-      SFX.select(); renderTown();
-    });
-    pl.appendChild(row);
-  });
-  townEl.appendChild(pl);
-
-  townEl.appendChild(el("div", "tw-h", `控え (${G.reserve.length}) — タップで編成へ`));
-  const rl = el("div", "tw-mlist");
-  if (!G.reserve.length) rl.appendChild(el("div", "tw-empty", "控えはいない。"));
-  G.reserve.forEach((d) => {
-    const row = el("div", "tw-mrow" + (d.alive ? "" : " dead"));
-    const s = el("span", "tw-chips");
-    if (d.dominant) { s.style.color = SOUL_CLASSES[d.dominant.clsKey].glow; s.appendChild(spriteCanvas(soulSprite(d.dominant.clsKey), 2)); }
-    row.appendChild(s);
-    const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
-    info.appendChild(el("div", "tw-chipc", d.cls));
-    row.appendChild(info);
-    row.addEventListener("click", () => {
-      if (G.party.length >= 6) { log("編成は満員だ (6体まで)。", "sys"); return; }
-      G.reserve.splice(G.reserve.indexOf(d), 1);
-      G.party.push(d);
-      SFX.select(); renderTown();
-    });
-    rl.appendChild(row);
-  });
-  townEl.appendChild(rl);
 
   // --- クエスト掲示板 ---
   townEl.appendChild(el("div", "tw-h", "依頼の掲示板"));
@@ -2186,27 +2303,23 @@ function renderInn() {
   townEl.appendChild(rest);
 }
 
-// ---- 復活システム: 死亡した人業は時間経過で復活 (Red Soulで即時復活も可) ----
-// 復活時間: 人業レベル(宿した魂の平均) 10まで1時間、以降10レベルごとに+10分、最大4時間
-function reviveDurationMs(d) {
-  const over = Math.max(0, (d.level || 1) - 10);
-  const minutes = Math.min(240, 60 + Math.ceil(over / 10) * 10);
+// ---- 帰還システム: 死亡した人業は他の冒険者が街へ連れ帰る (時間経過 or Red Soul短縮) ----
+// 連れ帰り時間: 死亡した階層が深いほど長い。
+//   1〜5階=5分 / 6〜10階=10分 / … 5階ごとに+5分、最大120分
+function rescueDurationMs(floor) {
+  const minutes = Math.min(120, Math.ceil((floor || 1) / 5) * 5);
   return minutes * 60 * 1000;
 }
 
-// 死亡を検知して復活タイマーをセット (死亡処理の各所から imprintFallen 経由で呼ばれる)
+// 死亡を検知して連れ帰りタイマーをセット (imprintFallen から呼ばれる)
 function setReviveTimers() {
   const now = Date.now();
   for (const d of allDolls()) {
-    if (d.isDoll && !d.alive && !d.reviveAt) d.reviveAt = now + reviveDurationMs(d);
+    if (d.isDoll && !d.alive && !d.reviveAt) {
+      d.diedFloor = G.floor;
+      d.reviveAt = now + rescueDurationMs(G.floor);
+    }
   }
-}
-
-// 即時復活に必要な Red Soul (残り時間 20分あたり 1 消費、切り上げ)
-function instantReviveCost(d) {
-  if (!d.reviveAt) return 1;
-  const remainMs = Math.max(0, d.reviveAt - Date.now());
-  return Math.max(1, Math.ceil(remainMs / (20 * 60 * 1000)));
 }
 
 // 残り時間の表示 "1:23:45" / "23:45"
@@ -2217,7 +2330,7 @@ function fmtRemain(ms) {
   return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
 }
 
-// 復活実行 (タイマー満了 or Red Soul)
+// 復活実行 (連れ帰り完了)
 function reviveDoll(d, byRedSoul = false) {
   d.alive = true;
   d.hp = Math.max(1, Math.floor(d.maxhp * 0.5));
@@ -2225,22 +2338,24 @@ function reviveDoll(d, byRedSoul = false) {
   d.reviveAt = null;
   clearFallen(d);
   SFX.levelup(); buzz([0, 30, 40, 30]);
-  log(`${d.name} の魂が器に戻った。${byRedSoul ? "(赤い魂の力)" : ""}`, "win");
-  showToast(`✨ ${d.name} が復活した`);
+  log(`${d.name} が街に連れ戻された。${byRedSoul ? "(赤い魂の力)" : ""}`, "win");
+  showToast(`✨ ${d.name} が帰還した`);
 }
 
-// Red Soul による即時復活
-function tryInstantRevive(d) {
-  const cost = instantReviveCost(d);
-  if (G.redSoul < cost) { log(`Red Soul が足りない (必要 🔴${cost})。`, "sys"); return; }
-  G.redSoul -= cost;
-  reviveDoll(d, true);
+// Red Soul で連れ帰り時間を 20分短縮 (1消費)。残り20分以下なら即帰還
+const RESCUE_SHORTEN_MS = 20 * 60 * 1000;
+function tryHastenRescue(d) {
+  if (G.redSoul < 1) { log("Red Soul が足りない。", "sys"); return; }
+  G.redSoul -= 1;
+  d.reviveAt -= RESCUE_SHORTEN_MS;
+  if (d.reviveAt <= Date.now()) reviveDoll(d, true);
+  else { SFX.select(); buzz(15); log(`${d.name} の帰還を早めた (-20分)。`, "sys"); }
   if (G.statusOpen) renderStatus();
   if (G.state === "town") renderTown();
   renderParty();
 }
 
-// 復活タイマーの監視 (5秒ごと)。満了した人業を自動復活させる
+// 連れ帰りタイマーの監視 (5秒ごと)。満了した人業を自動帰還させる
 setInterval(() => {
   const now = Date.now();
   let revived = false;
@@ -2305,85 +2420,116 @@ function renderShrine() {
 
   townEl.appendChild(el("div", "tw-h", "Red Soul の使い道"));
   townEl.appendChild(el("div", "tw-lead",
-    `・空の人業の購入 (人業の館)\n・砕けた人業の即時復活 (残り時間20分につき🔴1)\n・全滅時、🔴${GUARDIAN_COST} を捧げて無傷で帰還 (何も失わない)`));
+    `・空の人業の購入 (人業の館)\n・死亡人業の帰還を早める (🔴1で-20分)\n・全滅時、🔴${GUARDIAN_COST} で戦利品を守って帰還`));
 }
 
 // ---- 商店: 装備・道具の売買 ----
-const SHOP_STOCK = [
-  "herb", "antidote", "manaDrop",
-  "dagger", "shortSword", "warHammer", "magicStaff",
-  "woodShield", "leatherArmor", "robe", "cap", "leatherBoots", "leatherGloves",
+// 商店の初期在庫 (個数つき)。ダンジョン産を売ると在庫に積まれ、買い直せる (ボルタック方式)
+const SHOP_INIT_STOCK = {
+  herb: 5, antidote: 5, manaDrop: 3,
+  dagger: 2, shortSword: 1, magicStaff: 1, warHammer: 1,
+  woodShield: 1, leatherArmor: 1, robe: 1, cap: 2, leatherBoots: 2, leatherGloves: 2,
+};
+// 商店タブ: スロット種別ごとに切り替え
+const SHOP_TABS = [
+  { key: "use", label: "道具", slots: ["use"] },
+  { key: "weapon", label: "武器", slots: ["weapon"] },
+  { key: "shield", label: "盾", slots: ["shield"] },
+  { key: "body", label: "防具", slots: ["body"] },
+  { key: "gear", label: "頭/小手/足", slots: ["head", "hands", "feet"] },
+  { key: "acc", label: "装飾", slots: ["acc"] },
+  { key: "sell", label: "売る", slots: null },
 ];
-let shopTab = "buy";
+let shopTab = "weapon";
+const sellPrice = (it) => Math.max(1, Math.floor((it.price || 10) / 2));
+
 function renderShop() {
-  townEl.appendChild(townHeader("商店"));
+  townEl.appendChild(townHeader("ボルタック商店"));
 
   const tabs = el("div", "tw-dolltabs");
-  const tb = btn("買う", () => { shopTab = "buy"; renderTown(); });
-  tb.className = "tw-dolltab" + (shopTab === "buy" ? " active" : "");
-  const ts = btn("売る", () => { shopTab = "sell"; renderTown(); });
-  ts.className = "tw-dolltab" + (shopTab === "sell" ? " active" : "");
-  tabs.appendChild(tb); tabs.appendChild(ts);
+  for (const t of SHOP_TABS) {
+    const b = btn(t.label, () => { shopTab = t.key; renderTown(); });
+    b.className = "tw-dolltab" + (shopTab === t.key ? " active" : "");
+    tabs.appendChild(b);
+  }
   townEl.appendChild(tabs);
 
-  if (shopTab === "buy") {
-    const buy = el("div", "tw-shoplist");
-    for (const id of SHOP_STOCK) {
-      const it = ITEMS[id];
-      if (!it) continue;
-      const price = it.price || 30;
+  if (shopTab === "sell") return renderShopSell();
+
+  const tabDef = SHOP_TABS.find((t) => t.key === shopTab);
+  const buy = el("div", "tw-shoplist");
+  let any = false;
+  for (const id of Object.keys(G.shopStock)) {
+    const it = ITEMS[id];
+    if (!it || !tabDef.slots.includes(it.slot)) continue;
+    const count = G.shopStock[id];
+    if (count <= 0) continue;
+    any = true;
+    const price = it.price || 30;
+    const r = el("div", "tw-shoprow");
+    const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
+    const info = el("div", "tw-chipi");
+    info.appendChild(el("div", "tw-chipn", `${it.name} ×${count}`));
+    info.appendChild(el("div", "tw-chipc", it.desc || ""));
+    r.appendChild(info);
+    const b = btn(`💰${price}`, () => buyItem(id, price));
+    b.className = "tw-small";
+    if (G.gold < price) b.disabled = true;
+    r.appendChild(b);
+    buy.appendChild(r);
+  }
+  if (!any) buy.appendChild(el("div", "tw-empty", "この種類の在庫は売り切れだ。"));
+  townEl.appendChild(buy);
+  townEl.appendChild(el("div", "tw-note", "買うと在庫が減る。売った品は在庫に並ぶ (売値は1/2)。"));
+}
+
+function renderShopSell() {
+  const sell = el("div", "tw-shoplist");
+  let any = false;
+  // 編成中の人業の所持品 (装備中は除く) を売却対象に
+  for (const m of G.party) {
+    m.items.forEach((it) => {
+      any = true;
+      const price = sellPrice(it);
       const r = el("div", "tw-shoprow");
       const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
       const info = el("div", "tw-chipi");
       info.appendChild(el("div", "tw-chipn", it.name));
-      info.appendChild(el("div", "tw-chipc", it.desc || ""));
+      info.appendChild(el("div", "tw-chipc", `${m.name} の所持品`));
       r.appendChild(info);
-      const b = btn(`💰${price}`, () => buyItem(id, price));
+      const b = btn(`💰${price} で売る`, () => sellItem(m, it, price));
       b.className = "tw-small";
-      if (G.gold < price) b.disabled = true;
       r.appendChild(b);
-      buy.appendChild(r);
-    }
-    townEl.appendChild(buy);
-    townEl.appendChild(el("div", "tw-note", "買った品は手の空いた人業の所持品へ入る。"));
-  } else {
-    // 売却: 編成中の人業の所持品 (装備中は除く) を半額で買い取り
-    const sell = el("div", "tw-shoplist");
-    let any = false;
-    for (const m of G.party) {
-      m.items.forEach((it, idx) => {
-        any = true;
-        const price = Math.max(1, Math.floor((it.price || 10) / 2));
-        const r = el("div", "tw-shoprow");
-        const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
-        const info = el("div", "tw-chipi");
-        info.appendChild(el("div", "tw-chipn", it.name));
-        info.appendChild(el("div", "tw-chipc", `${m.name} の所持品`));
-        r.appendChild(info);
-        const b = btn(`💰${price} で売る`, () => {
-          m.items.splice(idx, 1);
-          G.gold += price;
-          SFX.select();
-          log(`${it.name} を売った (+💰${price})`, "win");
-          renderTown();
-        });
-        b.className = "tw-small";
-        r.appendChild(b);
-        sell.appendChild(r);
-      });
-    }
-    if (!any) sell.appendChild(el("div", "tw-empty", "売れる品がない (装備中の品は外してから)。"));
-    townEl.appendChild(sell);
+      sell.appendChild(r);
+    });
   }
+  if (!any) sell.appendChild(el("div", "tw-empty", "売れる品がない (装備中の品は外してから)。"));
+  townEl.appendChild(sell);
+  townEl.appendChild(el("div", "tw-note", "売った装備・道具は商店の在庫に並ぶ。"));
+}
+
+function sellItem(owner, it, price) {
+  const idx = owner.items.indexOf(it);
+  if (idx < 0) return;
+  owner.items.splice(idx, 1);
+  G.gold += price;
+  // 在庫に積む (ボルタック方式)
+  if (it.id) G.shopStock[it.id] = (G.shopStock[it.id] || 0) + 1;
+  codexSeeItem(it.id);
+  SFX.select();
+  log(`${it.name} を売った (+💰${price})。商店に並んだ。`, "win");
+  renderTown();
 }
 
 function buyItem(id, price) {
   if (G.gold < price) { log("お金が足りない。", "sys"); return; }
+  if ((G.shopStock[id] || 0) <= 0) { log("在庫切れだ。", "sys"); return; }
   const who = G.party.find((m) => m.alive && m.items.length < MAX_ITEMS);
   if (!who) { log("所持品に空きがない。", "sys"); return; }
   const it = cloneItem(id);
   if (!it) return;
   G.gold -= price;
+  G.shopStock[id]--;
   who.items.push(it);
   codexSeeItem(id);
   SFX.select();
@@ -2399,6 +2545,8 @@ function tryEnterDungeon() {
   townEl.classList.add("hidden");
   G.town.facility = null;
   G.floor = G.maxFloorReached;
+  // 今回の戦利品トラッキングを初期化
+  G.run = { gold: 0, soulPts: 0, items: [], souls: [] };
   // 表示中の噂を確定し、この迷宮で現実化させる
   if (G.rumor) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
   G.state = "board";
@@ -2408,16 +2556,18 @@ function tryEnterDungeon() {
   renderBoard();
 }
 
+// 街へ無事帰還 (戦利品は保持)。keepRun=true で run を確定 (戦利品維持)
 function returnToTown() {
   G.state = "town";
   G.battle = null; G.battleCell = null;
   combatMenu.classList.add("hidden");
   if (townBtn) townBtn.classList.add("hidden");
   G.maxFloorReached = Math.max(G.maxFloorReached, G.floor);
+  G.run = null; // 無事帰還 = 戦利品は確定
   playBgm("town");
   updateTopbar();
   log("街へ帰還した。", "sys");
-  G.town.facility = null;
+  G.town.facility = null; G.town.sub = null;
   renderTown();
 }
 
@@ -2555,18 +2705,17 @@ function renderStatTab(p) {
   top.appendChild(meta);
   info.appendChild(top);
 
-  // 死亡中: 復活までの残り時間と即時復活 (Red Soul)
+  // 死亡中: 街へ連れ帰られるまでの残り時間と、Red Soulによる短縮
   if (p.isDoll && !p.alive) {
     if (!p.reviveAt) setReviveTimers();
     const box = el("div", "st-revive");
     const remain = Math.max(0, (p.reviveAt || Date.now()) - Date.now());
-    box.appendChild(el("div", "st-revt", `⏳ 復活まで ${fmtRemain(remain)}`));
-    const cost = instantReviveCost(p);
-    const b = btn(`🔴${cost} で今すぐ復活`, () => tryInstantRevive(p));
+    box.appendChild(el("div", "st-revt", `⏳ 帰還まで ${fmtRemain(remain)}`));
+    box.appendChild(el("div", "tw-note", "他の冒険者が捜索・救出している…"));
+    const b = btn(`🔴1 で帰還を早める (-20分)`, () => tryHastenRescue(p));
     b.className = "btn primary";
-    if (G.redSoul < cost) b.disabled = true;
+    if (G.redSoul < 1) b.disabled = true;
     box.appendChild(b);
-    box.appendChild(el("div", "tw-note", "赤い魂は残り時間 20分につき 1 消費"));
     info.appendChild(box);
   }
 
@@ -2926,7 +3075,7 @@ function giveItem(id) {
   if (!it) return null;
   const who = G.party.find((m) => m.items.length < MAX_ITEMS);
   if (!who) { log(`${it.name}を見つけたが、誰も持てない…`, "sys"); return null; }
-  who.items.push(it);
+  runGainItem(who, it);
   codexSeeItem(id);
   log(`${it.name} を手に入れた！ (${who.name})`, "win");
   return { item: it, who };
@@ -3203,6 +3352,7 @@ function setupNewGame() {
   }
   G.party = dolls;
   G.souls = souls;
+  G.shopStock = { ...SHOP_INIT_STOCK };
   initQuests();
 }
 
