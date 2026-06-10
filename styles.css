@@ -46,7 +46,19 @@ html, body {
 }
 #topbar h1 { font-size: 18px; margin: 0; letter-spacing: 2px; }
 #topbar .sub { font-size: 10px; color: var(--ink-dim); letter-spacing: 1px; }
+.topbar-right { display: flex; align-items: center; gap: 10px; }
 #floor-info { font-size: 14px; color: var(--accent); font-weight: bold; }
+#mute-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--ink);
+  font-size: 14px;
+  padding: 2px 6px;
+  cursor: pointer;
+  line-height: 1;
+}
+#mute-btn:active { background: #2a2a3a; }
 
 #screen { padding: 10px 12px 4px; }
 

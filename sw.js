@@ -1,5 +1,5 @@
 // シンプルなオフラインキャッシュ (PWA / アプリ化用)
-const CACHE = "dos-v2";
+const CACHE = "dos-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -10,6 +10,7 @@ const ASSETS = [
   "./src/board.js",
   "./src/sprites.js",
   "./src/combat.js",
+  "./src/audio.js",
 ];
 
 self.addEventListener("install", (e) => {
