@@ -23,19 +23,19 @@ export const DUNGEONS = [
   { name: "忘れられた地下牢", short: "地下牢", floors: 3,
     pool: ["slime", "bat", "kobold"], deepPool: ["kobold", "skeleton"],
     boss: "orc", bossScale: 0.9, enemyScale: 0.8, trapRate: 0.05, warmChance: 0.4,
-    soulLevelBonus: 0, rankBonus: 0, lootTier: 0 },
+    soulLevelBonus: 0, rankBonus: 0, lootTier: 0, rank: 1 },
   { name: "朽ちた城砦", short: "城砦", floors: 5,
     pool: ["kobold", "bat", "skeleton"], deepPool: ["skeleton", "orc", "wraith"],
     boss: "wraith", bossScale: 1.2, enemyScale: 1.3, trapRate: 0.10, warmChance: 0.42,
-    soulLevelBonus: 1, rankBonus: 0.6, lootTier: 1 },
+    soulLevelBonus: 1, rankBonus: 0.6, lootTier: 1, rank: 2 },
   { name: "奈落の回廊", short: "奈落", floors: 7,
     pool: ["skeleton", "orc", "wraith"], deepPool: ["orc", "wraith"],
     boss: "dragon", bossScale: 1.0, enemyScale: 1.9, trapRate: 0.12, warmChance: 0.45,
-    soulLevelBonus: 2, rankBonus: 1.2, lootTier: 2 },
+    soulLevelBonus: 2, rankBonus: 1.2, lootTier: 2, rank: 3 },
   { name: "竜の墓所", short: "墓所", floors: 9,
     pool: ["orc", "wraith", "skeleton"], deepPool: ["wraith", "orc"],
     boss: "dragon", bossScale: 1.7, enemyScale: 2.6, trapRate: 0.14, warmChance: 0.5,
-    soulLevelBonus: 3, rankBonus: 1.8, lootTier: 3 },
+    soulLevelBonus: 3, rankBonus: 1.8, lootTier: 3, rank: 4 },
 ];
 
 const MONSTER_POOL = {

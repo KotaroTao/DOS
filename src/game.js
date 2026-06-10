@@ -5,6 +5,7 @@ import { createParty, spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, ga
 import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
 import { spriteCanvas } from "./sprites.js";
 import { ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, recalc, equip as equipItem, unequip as unequipItem, canEquip } from "./items.js";
+import { generateItems, generateMonsters, RANK_NAME, RANK_COLOR, monstersForDungeon } from "./content.js";
 import {
   PARTS, PART_LABEL, SOUL_CLASSES, makeSoul, makeDoll, soulName, soulSprite,
   dollSouls, dominantClass, recalcDoll, sealSoul, createStartingRoster,
@@ -12,6 +13,34 @@ import {
   SOUL_RANKS, rollSoulRank, soulStats, soulHardCap, ensureSoul,
   JOB_RANKS, jobRankOf, PART_SKILLS,
 } from "./souls.js";
+
+// ===== 生成コンテンツの取り込み (アイテム1000+ / モンスター500+) =====
+const GEN_ITEMS = generateItems();
+const GEN_MON = generateMonsters();
+Object.assign(ITEMS, GEN_ITEMS);
+Object.assign(MONSTERS, GEN_MON);
+// 既存の手作りアイテムにも rank を付与 (価格帯から推定)
+for (const id in ITEMS) {
+  const it = ITEMS[id];
+  if (it.rank == null) it.rank = Math.max(1, Math.min(6, 1 + Math.floor((it.price || 0) / 150)));
+}
+// rank → そのランクの装備アイテムidの配列 (宝箱抽選用。素材/空の魂は除外)
+const ITEMS_BY_RANK = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
+for (const id in ITEMS) {
+  const it = ITEMS[id];
+  if (it.slot === "mat") continue;
+  (ITEMS_BY_RANK[it.rank] || ITEMS_BY_RANK[1]).push(id);
+}
+// 指定ランク(なければ近傍)の装備/道具を1つ選ぶ
+function pickItemByRank(rank) {
+  for (let d = 0; d <= 5; d++) {
+    for (const rr of [rank - d, rank + d]) {
+      const pool = ITEMS_BY_RANK[rr];
+      if (pool && pool.length) return pool[rand(pool.length)];
+    }
+  }
+  return "herb";
+}
 
 const view = document.getElementById("view");
 const vctx = view.getContext("2d");
@@ -38,6 +67,7 @@ const G = {
   reserve: [],        // 酒場で待機中の人業
   souls: [],          // 未封印の魂ストック
   shopStock: null,    // 商店の在庫 { itemId: 個数 } (初回 setupNewGame で初期化)
+  lastEmptyClaim: 0,  // 「空の魂」を商店で無料受領した日付シード
   run: null,          // 今回の潜入で得た戦利品 { gold, soulPts, items:[{owner,item}], souls:[] }
   town: { facility: null, sub: null }, // 街UIの現在地 (sub: 館などのサブメニュー)
   quests: [],         // 受注可能/進行中のクエスト
@@ -169,7 +199,13 @@ function updateTopbar() {
 }
 
 function newFloor() {
-  G.board = makeBoard(G.floor, activeCfg());
+  // 生成モンスター(500+)からダンジョンランク・階に応じた出現プールを作る
+  const cfg = { ...activeCfg() };
+  const dRank = cfg.rank || 1;
+  const fr = (G.floor - 1) / Math.max(1, (cfg.floors || 3) - 1); // 0..1 階の進行
+  cfg.pool = monstersForDungeon(GEN_MON, dRank, Math.min(0.5, fr));
+  cfg.deepPool = monstersForDungeon(GEN_MON, dRank, Math.max(0.5, fr));
+  G.board = makeBoard(G.floor, cfg);
   if (G.floor > G.stats.deepest) G.stats.deepest = G.floor;
   // 酒場の噂を盤面に反映 (潜入直後の階のみ)
   if (G.activeRumor && G.activeRumor.floor === G.floor) applyRumorToBoard(G.board);
@@ -885,9 +921,10 @@ function rollChest(cell, allowDanger, done) {
       showItemGet(it, who, done); return;
     }
   }
-  // 通常: 宝 (ゴールド or 装備/アイテム)
-  if (Math.random() < 0.6) {
-    const got = giveItem(randomLoot(G.floor));
+  // 通常: 宝 (ゴールド or 装備/アイテム)。宝箱ランク→アイテムランク
+  if (Math.random() < 0.65) {
+    const chestRank = rollChestRank();
+    const got = giveItem(pickItemByRank(chestRank));
     if (got) { showItemGet(got.item, got.who, done); return; } // 演出後に done
     SFX.chest();
     if (done) done();
@@ -913,6 +950,20 @@ function battleChest() {
 }
 
 // 階層に応じた宝のテーブル
+// 宝箱ランク抽選: ダンジョンランク(隠し)が高いほど高ランク宝箱が出やすい。
+// 階の進行でも少し上がる。返り値 1-6。
+function rollChestRank() {
+  const cfg = activeCfg();
+  const dRank = cfg.rank || 1;
+  const floorBonus = (G.floor - 1) / Math.max(1, (cfg.floors || 3) - 1); // 0..1
+  // 期待ランク = ダンジョンランク + 階ボーナス。±1 のばらつき
+  const center = dRank + floorBonus * 1.5;
+  let r = center + (Math.random() * 2 - 1) * 1.4;
+  // まれに大当たり (+2)
+  if (Math.random() < 0.05) r += 2;
+  return Math.max(1, Math.min(6, Math.round(r)));
+}
+
 function randomLoot(floor) {
   const common = ["herb", "antidote", "manaDrop", "dagger", "cap", "leatherBoots", "powerRing", "guardAmulet", "woodShield"];
   const rare = ["shortSword", "warHammer", "magicStaff", "leatherArmor", "ironHelm", "swiftRing", "lifeAmulet", "kiteShield"];
@@ -2504,13 +2555,13 @@ function renderPalace() {
   const monBtn = el("div", "tw-fac");
   monBtn.appendChild(el("div", "tw-faci", "🐉"));
   monBtn.appendChild(el("div", "tw-facn", "モンスター図鑑"));
-  monBtn.appendChild(el("div", "tw-facd", `${Object.keys(G.codex.mon).length}/${Object.keys(MONSTERS).length} 種`));
+  monBtn.appendChild(el("div", "tw-facd", `発見 ${Object.keys(G.codex.mon).length} 体`));
   monBtn.addEventListener("click", () => { G.town.facility = "codexMon"; renderCodexMon(); });
   row.appendChild(monBtn);
   const itemBtn = el("div", "tw-fac");
   itemBtn.appendChild(el("div", "tw-faci", "⚔"));
   itemBtn.appendChild(el("div", "tw-facn", "アイテム図鑑"));
-  itemBtn.appendChild(el("div", "tw-facd", `${Object.keys(G.codex.item).length}/${Object.keys(ITEMS).length} 種`));
+  itemBtn.appendChild(el("div", "tw-facd", `発見 ${Object.keys(G.codex.item).length} 種`));
   itemBtn.addEventListener("click", () => { G.town.facility = "codexItem"; renderCodexItem(); });
   row.appendChild(itemBtn);
   townEl.appendChild(row);
@@ -2566,38 +2617,39 @@ function codexSeeItem(id) { if (id) G.codex.item[id] = true; }
 function renderCodexMon() {
   townEl.innerHTML = "";
   townEl.appendChild(townHeader("モンスター図鑑", "palace"));
+  // 出会ったものだけ表示 (総数は伏せる)
+  const seenKeys = Object.keys(G.codex.mon).filter((k) => MONSTERS[k]);
+  townEl.appendChild(el("div", "tw-note", `発見済み ${seenKeys.length} 体`));
   const grid = el("div", "cdx-grid");
-  for (const key of Object.keys(MONSTERS)) {
+  for (const key of seenKeys) {
     const m = MONSTERS[key];
-    const seen = G.codex.mon[key];
-    const c = el("div", "cdx-card" + (seen ? "" : " unknown"));
-    const art = el("div", "cdx-art");
-    if (seen) art.appendChild(spriteCanvas(m, 3));
-    else art.appendChild(el("div", "cdx-q", "?"));
-    c.appendChild(art);
-    c.appendChild(el("div", "cdx-name", seen ? m.name : "？？？"));
-    if (seen) c.appendChild(el("div", "cdx-stat", `HP${m.maxhp} 攻${m.atk} 防${m.def} 速${m.spd}`));
+    const c = el("div", "cdx-card");
+    if (m.rank) c.style.borderColor = RANK_COLOR[m.rank];
+    const art = el("div", "cdx-art"); art.appendChild(spriteCanvas(m, 3)); c.appendChild(art);
+    c.appendChild(el("div", "cdx-name", m.name));
+    c.appendChild(el("div", "cdx-stat", `HP${m.maxhp} 攻${m.atk} 防${m.def} 速${m.spd}`));
     grid.appendChild(c);
   }
+  if (!seenKeys.length) grid.appendChild(el("div", "tw-empty", "まだ何も見ていない。迷宮へ。"));
   townEl.appendChild(grid);
 }
 
 function renderCodexItem() {
   townEl.innerHTML = "";
   townEl.appendChild(townHeader("アイテム図鑑", "palace"));
+  const seenIds = Object.keys(G.codex.item).filter((id) => ITEMS[id]);
+  townEl.appendChild(el("div", "tw-note", `発見済み ${seenIds.length} 種`));
   const grid = el("div", "cdx-grid");
-  for (const id of Object.keys(ITEMS)) {
+  for (const id of seenIds) {
     const it = ITEMS[id];
-    const seen = G.codex.item[id];
-    const c = el("div", "cdx-card" + (seen ? "" : " unknown"));
-    const art = el("div", "cdx-art");
-    if (seen) art.appendChild(spriteCanvas(it, 3));
-    else art.appendChild(el("div", "cdx-q", "?"));
-    c.appendChild(art);
-    c.appendChild(el("div", "cdx-name", seen ? it.name : "？？？"));
-    if (seen && it.desc) c.appendChild(el("div", "cdx-stat", it.desc));
+    const c = el("div", "cdx-card");
+    if (it.rank) c.style.borderColor = RANK_COLOR[it.rank];
+    const art = el("div", "cdx-art"); art.appendChild(spriteCanvas(it, 3)); c.appendChild(art);
+    c.appendChild(el("div", "cdx-name", it.name));
+    c.appendChild(el("div", "cdx-stat", it.desc || ""));
     grid.appendChild(c);
   }
+  if (!seenIds.length) grid.appendChild(el("div", "tw-empty", "まだ何も手にしていない。"));
   townEl.appendChild(grid);
 }
 
@@ -2774,6 +2826,23 @@ function renderShop() {
 
   if (shopMember >= G.party.length) shopMember = 0;
   const who = G.party[shopMember] || null;
+
+  // 本日の無料配布: 空の魂 ×1 (1日1回)
+  const claimed = G.lastEmptyClaim === dailySeed();
+  const free = btn(claimed ? "🎁 本日の「空の魂」は受領済み" : "🎁 本日の無料配布: 空の魂 ×1 を受け取る", () => {
+    if (G.lastEmptyClaim === dailySeed()) return;
+    const w = G.party[shopMember] || G.party.find((m) => m.items.length < MAX_ITEMS);
+    if (!w || w.items.length >= MAX_ITEMS) { log("所持品に空きがない。", "sys"); return; }
+    w.items.push(cloneItem(EMPTY_SOUL_ID));
+    G.lastEmptyClaim = dailySeed();
+    codexSeeItem(EMPTY_SOUL_ID);
+    SFX.itemget(); buzz([0, 30, 60, 30]);
+    log(`本日の無料配布「空の魂」を受け取った (${w.name})。`, "win");
+    renderTown();
+  });
+  free.className = "btn tw-add shop-free";
+  if (claimed) free.disabled = true;
+  townEl.appendChild(free);
 
   // カテゴリタブ (「売る」は廃止: 売却は下の所持品タップで行う)
   const tabs = el("div", "tw-dolltabs shop-tabs");
@@ -3545,7 +3614,11 @@ function showItemGet(item, who, onClose) {
   buzz([0, 30, 60, 30]);
   itemGetEl.innerHTML = "";
   const card = el("div", "ig-card");
-  card.appendChild(el("div", "ig-banner", "✦ アイテム発見！ ✦"));
+  const rc = item.rank ? RANK_COLOR[item.rank] : null;
+  if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
+  const ban = el("div", "ig-banner", item.rank >= 4 ? `★ ${RANK_NAME[item.rank]}級アイテム発見！ ★` : "✦ アイテム発見！ ✦");
+  if (rc) ban.style.color = rc;
+  card.appendChild(ban);
   const art = el("div", "ig-art");
   art.appendChild(spriteCanvas(item, 11)); // 大きめのイラスト
   // きらめき
@@ -3795,7 +3868,7 @@ const SAVE_KEY = "dos-save-v1";
 const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py",
   "gold", "soulPts", "redSoul", "dollsPurchased",
-  "party", "reserve", "souls", "shopStock", "run", "town",
+  "party", "reserve", "souls", "shopStock", "lastEmptyClaim", "run", "town",
   "quests", "rumor", "activeRumor", "codex", "story", "dragonSlain", "runCfg", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
 ];
