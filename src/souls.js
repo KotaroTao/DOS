@@ -19,48 +19,107 @@ export const PART_LABEL = { head: "頭", rhand: "右手", lhand: "左手", body:
 // 魂の職業定義。stat は「1部位あたり / 魂レベル1」の寄与量。
 // 5部位そろえた時に従来のプリメイド職とおおよそ釣り合うよう調整。
 // basic: 3部位以上で解放 / advanced: 5部位で解放。
-// 各スキルは封じた同職魂の「最高レベル」が lvl 以上で習得。
+// 各職業の基本データ。stat は1部位/Lv1あたりの寄与。
+// passive: 職業が発現したとき(職業ランク1以上)に効くステータス倍率。
+// 武術系にも少量のMP(気力)を持たせ、技を使えるようにする。
 export const SOUL_CLASSES = {
   fighter: {
     label: "戦士", color: "#d4504e", glow: "#ff7a72",
-    stat: { hp: 7.0, mp: 0.0, atk: 2.4, def: 1.6, spd: 1.2 },
-    basic: [],                       // 戦士は技ではなく身体能力で戦う
-    advanced: [],
+    stat: { hp: 7.0, mp: 0.7, atk: 2.4, def: 1.6, spd: 1.2 },
     passive: { atkMul: 1.18, label: "鬼神の膂力 (攻撃+18%)" },
   },
   knight: {
     label: "騎士", color: "#7c93c8", glow: "#a9c0ff",
-    stat: { hp: 8.4, mp: 0.0, atk: 2.2, def: 2.4, spd: 0.8 },
-    basic: [],
-    advanced: [],
+    stat: { hp: 8.4, mp: 0.6, atk: 2.2, def: 2.4, spd: 0.8 },
     passive: { defMul: 1.20, label: "鉄壁の構え (防御+20%)" },
   },
   thief: {
     label: "盗賊", color: "#6fae46", glow: "#9be88a",
-    stat: { hp: 4.4, mp: 0.0, atk: 1.8, def: 1.0, spd: 2.4 },
-    basic: [],
-    advanced: [],
+    stat: { hp: 4.4, mp: 0.8, atk: 1.8, def: 1.0, spd: 2.4 },
     passive: { spdMul: 1.25, critBonus: 0.12, label: "影駆け (素早さ+25%/会心+)" },
   },
   mage: {
     label: "魔術師", color: "#b06bff", glow: "#d3a8ff",
     stat: { hp: 3.6, mp: 2.8, atk: 1.0, def: 0.6, spd: 1.4 },
-    basic: [{ key: "HALITO", lvl: 1 }, { key: "KATINO", lvl: 3 }],
-    advanced: [{ key: "MAHALITO", lvl: 5 }],
   },
   priest: {
     label: "僧侶", color: "#e8c47a", glow: "#ffe2a0",
     stat: { hp: 4.8, mp: 2.4, atk: 1.4, def: 1.0, spd: 1.0 },
-    basic: [{ key: "DIOS", lvl: 1 }, { key: "DIAL", lvl: 3 }],
-    advanced: [{ key: "MADIOS", lvl: 5 }],
   },
   bishop: {
     label: "魔導僧", color: "#5fb8d6", glow: "#aef0ff",
     stat: { hp: 4.4, mp: 3.2, atk: 1.2, def: 0.8, spd: 1.2 },
-    basic: [{ key: "HALITO", lvl: 1 }, { key: "DIOS", lvl: 2 }],
-    advanced: [{ key: "DIAL", lvl: 4 }, { key: "MAHALITO", lvl: 6 }],
   },
 };
+
+// ===== 職業ランク (1〜5) =====
+// 上位ランクほど強力なスキルを覚える。各ランクで skills(その段で追加習得する技)、
+// passive(発動するパッシブフラグ)、name(称号) を定義。スキルは累積。
+export const JOB_RANKS = {
+  priest: [
+    { name: "見習い僧侶", skills: ["DIOS"] },
+    { name: "僧侶",       skills: ["DIOSALL"] },
+    { name: "神官",       skills: ["REVIVE"] },
+    { name: "聖職者",     skills: ["RESURRECT"] },
+    { name: "聖者",       skills: [], flag: "blessing" }, // 全滅時HP1で1回だけ全員復活
+  ],
+  mage: [
+    { name: "見習い魔術師", skills: ["HALITO"] },
+    { name: "魔術師",       skills: ["KATINO"] },
+    { name: "魔導師",       skills: ["MAHALITO"] },
+    { name: "大魔導師",     skills: ["TILTOWAIT"] },
+    { name: "大賢者",       skills: [], passive: { spdMul: 1.1 }, flag: "spellMaster" }, // 攻撃呪文+25%
+  ],
+  bishop: [
+    { name: "見習い導師", skills: ["HALITO"] },
+    { name: "魔導僧",     skills: ["DIOS"] },
+    { name: "導師",       skills: ["MAHALITO"] },
+    { name: "大導師",     skills: ["DIAL"] },
+    { name: "賢者王",     skills: ["RESURRECT", "TILTOWAIT"], flag: "spellMaster" },
+  ],
+  fighter: [
+    { name: "見習い戦士", skills: ["KYOUGEKI"] },
+    { name: "戦士",       skills: ["MIDARE"] },
+    { name: "剣士",       skills: [], passive: { critBonus: 0.10 } },
+    { name: "剣豪",       skills: [], passive: { atkMul: 1.12 } },
+    { name: "剣聖",       skills: [], passive: { atkMul: 1.15, critBonus: 0.12 } },
+  ],
+  knight: [
+    { name: "見習い騎士", skills: [], passive: { defMul: 1.05 } },
+    { name: "騎士",       skills: ["KYOUGEKI"] },
+    { name: "重騎士",     skills: [], passive: { defMul: 1.10, atkMul: 1.06 } },
+    { name: "騎士団長",   skills: ["MIDARE"] },
+    { name: "聖堂騎士長", skills: [], passive: { defMul: 1.15 }, flag: "endure" }, // 致死を1回HP1で耐える
+  ],
+  thief: [
+    { name: "見習い盗賊", skills: [], passive: { spdMul: 1.06 } },
+    { name: "盗賊",       skills: ["KYOUGEKI"] },
+    { name: "ローグ",     skills: [], passive: { spdMul: 1.10, critBonus: 0.08 } },
+    { name: "アサシン",   skills: [], passive: { critBonus: 0.16 } },
+    { name: "夜刃",       skills: ["MIDARE"], passive: { spdMul: 1.12, critBonus: 0.10 } },
+  ],
+};
+
+// 魂ランク → 数値 (通常1 / 優秀2 / 偉大3 / 伝説4)
+function soulRankNum(s) { return SOUL_RANKS[s.rank || "normal"].order + 1; }
+
+// 人業の支配職の「職業ランク」を判定する。{ clsKey, rank(1-5), count } または null
+export function jobRankOf(doll) {
+  const dom = dominantClass(doll);
+  if (!dom || dom.count < 3) return null;
+  const J = dom.clsKey;
+  if (!JOB_RANKS[J]) return null;
+  // 支配職の各部位の魂ランク(1-4)
+  const ranks = [];
+  for (const p of PARTS) { const s = doll.parts[p]; if (s && s.clsKey === J) ranks.push(soulRankNum(s)); }
+  // base = 「魂ランク>=K の部位が3つ以上」を満たす最大の K (1始まり)
+  let base = 1;
+  for (let K = 2; K <= 4; K++) if (ranks.filter((r) => r >= K).length >= 3) base = K;
+  // 5部位すべて同職なら +1
+  const all5 = ranks.length === 5;
+  const rank = Math.max(1, Math.min(5, base + (all5 ? 1 : 0)));
+  return { clsKey: J, rank, count: dom.count, all5 };
+}
 
 export const SOUL_KEYS = Object.keys(SOUL_CLASSES);
 
@@ -255,9 +314,10 @@ export function recalcDoll(doll) {
   const dom = dominantClass(doll);
   const spells = [];
   const passives = [];
+  const flags = {};        // blessing / endure / spellMaster
+  let crit = 0;
   let clsLabel = "空の器";
   let clsKey = "fighter";
-  let tier = "none"; // none | basic | advanced | hybrid
 
   // 部位ごとの職業数を集計し、混成職(3+2)を判定
   const counts = {};
@@ -265,42 +325,41 @@ export function recalcDoll(doll) {
   const hybrid = findHybrid(counts);
   doll.hybrid = hybrid ? hybrid.name : null;
 
-  if (dom) {
-    clsKey = dom.clsKey;
-    const def0 = SOUL_CLASSES[dom.clsKey];
-    clsLabel = def0.label;
-    if (dom.count >= 5) tier = "advanced";
-    else if (dom.count >= 3) tier = "basic";
+  // 職業ランク判定 (支配職が3部位以上で発現)
+  const jr = jobRankOf(doll);
+  doll.jobRank = jr ? jr.rank : 0;
 
-    // 支配職の中で最も高いランクの魂が、スキル解放を引き上げる
-    // 偉大: スキル習得レベル要件 -2 / 伝説: さらに3部位でも上位スキル解放
-    let bestRank = 0;
-    for (const p of PARTS) {
-      const s = doll.parts[p];
-      if (s && s.clsKey === dom.clsKey) bestRank = Math.max(bestRank, SOUL_RANKS[s.rank || "normal"].order);
-    }
-    const lvlEase = bestRank >= 2 ? 2 : 0;       // 偉大+
-    const legendBoost = bestRank >= 3;           // 伝説
+  if (jr) {
+    clsKey = jr.clsKey;
+    const def0 = SOUL_CLASSES[clsKey];
+    const ladder = JOB_RANKS[clsKey];
+    clsLabel = ladder[jr.rank - 1].name;
 
-    if (tier === "basic" || tier === "advanced") {
-      for (const sk of def0.basic) if (dom.maxLevel + lvlEase >= sk.lvl && !spells.includes(sk.key)) spells.push(sk.key);
-      if (def0.passive) passives.push(def0.passive.label);
-    }
-    if (tier === "advanced" || (tier === "basic" && legendBoost)) {
-      for (const sk of def0.advanced) if (dom.maxLevel + lvlEase >= sk.lvl && !spells.includes(sk.key)) spells.push(sk.key);
-    }
-    if (bestRank >= 2) passives.push(bestRank >= 3 ? "伝説の魂の輝き" : "偉大な魂の共鳴");
-    // パッシブ補正 (5部位そろい=advanced時のみフル適用、3部位は半分)
-    if (def0.passive && (tier === "basic" || tier === "advanced")) {
-      const ratio = tier === "advanced" ? 1 : 0.5;
-      if (def0.passive.atkMul) atk *= 1 + (def0.passive.atkMul - 1) * ratio;
-      if (def0.passive.defMul) def *= 1 + (def0.passive.defMul - 1) * ratio;
-      if (def0.passive.spdMul) spd *= 1 + (def0.passive.spdMul - 1) * ratio;
+    // 職業の素のパッシブ (発現でフル適用)
+    if (def0.passive) {
+      passives.push(def0.passive.label);
+      if (def0.passive.atkMul) atk *= def0.passive.atkMul;
+      if (def0.passive.defMul) def *= def0.passive.defMul;
+      if (def0.passive.spdMul) spd *= def0.passive.spdMul;
+      if (def0.passive.critBonus) crit += def0.passive.critBonus;
     }
 
-    // 混成職が発現していれば: 名称を上書きし、追加スキル・補正を付与
+    // 各ランク(1..jr.rank)のスキル・パッシブ・フラグを累積適用
+    for (let k = 0; k < jr.rank; k++) {
+      const rk = ladder[k];
+      for (const sk of rk.skills) if (!spells.includes(sk)) spells.push(sk);
+      if (rk.passive) {
+        if (rk.passive.atkMul) atk *= rk.passive.atkMul;
+        if (rk.passive.defMul) def *= rk.passive.defMul;
+        if (rk.passive.spdMul) spd *= rk.passive.spdMul;
+        if (rk.passive.critBonus) crit += rk.passive.critBonus;
+      }
+      if (rk.flag) flags[rk.flag] = true;
+    }
+    passives.push(`職業ランク${jr.rank}: ${clsLabel}`);
+
+    // 混成職が発現していれば名称を上書きし、追加スキル・補正を付与
     if (hybrid) {
-      tier = "hybrid";
       clsLabel = hybrid.name;
       if (hybrid.spell && !spells.includes(hybrid.spell)) spells.push(hybrid.spell);
       const hp2 = hybrid.passive || {};
@@ -308,13 +367,17 @@ export function recalcDoll(doll) {
       if (hp2.atkMul) atk *= hp2.atkMul;
       if (hp2.defMul) def *= hp2.defMul;
       if (hp2.spdMul) spd *= hp2.spdMul;
+      if (hp2.critBonus) crit += hp2.critBonus;
     }
   }
 
   doll.clsKey = clsKey;
-  doll.cls = clsLabel + (tier === "hybrid" ? "(混成)" : tier === "advanced" ? "(覚醒)" : tier === "basic" ? "(開眼)" : "");
-  doll.tier = tier;
+  doll.cls = clsLabel + (hybrid ? "(混成)" : jr ? `・ランク${jr.rank}` : "");
+  doll.tier = jr ? (hybrid ? "hybrid" : "rank" + jr.rank) : "none";
   doll.dominant = dom;
+  doll.blessing = !!flags.blessing;   // 聖者の祝福 (全滅時1回全員復活)
+  doll.endure = !!flags.endure;       // 不屈 (致死を1回HP1で耐える)
+  doll.spellMaster = !!flags.spellMaster; // 攻撃呪文ダメージ +25%
   // 人業の「レベル」= 封印した魂の平均レベル (表示用)
   const souls = dollSouls(doll);
   doll.level = souls.length ? Math.max(1, Math.round(souls.reduce((a, s) => a + s.level, 0) / souls.length)) : 1;
@@ -326,11 +389,6 @@ export function recalcDoll(doll) {
   };
   doll.spells = spells;
   doll.passives = passives;
-  // 会心ボーナス (盗賊魂のパッシブ + 混成職)
-  let crit = 0;
-  if (dom && SOUL_CLASSES[dom.clsKey].passive && SOUL_CLASSES[dom.clsKey].passive.critBonus && tier !== "none")
-    crit += SOUL_CLASSES[dom.clsKey].passive.critBonus * (tier === "advanced" ? 1 : 0.5);
-  if (hybrid && hybrid.passive && hybrid.passive.critBonus) crit += hybrid.passive.critBonus;
   doll.critBonus = crit;
 
   // ウィザードリィ風の能力値を魂から算出 (ランク係数も反映)
