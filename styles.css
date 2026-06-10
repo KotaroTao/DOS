@@ -661,3 +661,19 @@ canvas.spr { image-rendering: pixelated; display: block; }
 .tw-soulrow.rare { box-shadow: 0 0 10px rgba(160,140,255,0.25); }
 .tw-soulst, .st-soulstat { font-size: 10px; color: #9685ad; margin-top: 2px; }
 .st-soulstat { color: #6fb89e; }
+
+/* ===== 魂の詳細パネル (タップで開閉) ===== */
+.st-soulrow2 { cursor: pointer; }
+.st-soulrow2.sel { box-shadow: 0 0 0 1px #46c08f; }
+.st-souldetail {
+  background: #0a130f;
+  border: 1px solid #2c5a4a; border-left-width: 4px;
+  border-radius: 8px; padding: 9px 12px; margin: -2px 0 4px;
+}
+.st-sdh { font-size: 11px; color: #6fb89e; letter-spacing: 1px; margin: 8px 0 4px; }
+.st-sdh:first-child { margin-top: 0; }
+.st-sdstat { font-size: 12px; color: #d9fff0; }
+.st-sdnote { font-size: 10px; color: #8a9a92; margin-top: 2px; }
+.st-sdskill { font-size: 12px; color: #5a6c64; line-height: 1.7; }
+.st-sdskill.on { color: #c9ffe9; }
+.st-sdskill.adv.on { color: #ffd84a; }
