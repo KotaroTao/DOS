@@ -205,8 +205,8 @@ function moveTo(nx, ny) {
   if (G.state !== "board" || G.anim) return;
   if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) return;
   if (Math.abs(nx - G.px) + Math.abs(ny - G.py) !== 1) return;
-  // 辺が壁で塞がれている: 進めない
-  if (!edgeOpen(nx, ny)) { SFX.miss(); return; }
+  // 辺が壁で塞がれている: 進めない (壁の通り抜けは不可)
+  if (!edgeOpen(nx, ny)) { SFX.miss(); log("壁があって進めない。", "sys"); return; }
   const cell = G.board.cells[ny][nx];
   G.prevPos = { x: G.px, y: G.py };
 
@@ -582,5 +582,8 @@ function init() {
   if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
+
+  // デバッグ/テスト用フック (壁判定の検証に使用)
+  window.__game = { G, edgeOpen, COLS, ROWS };
 }
 init();

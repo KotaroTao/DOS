@@ -16,7 +16,7 @@ const MONSTER_POOL = {
 };
 
 const DIRS = { n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0] };
-const OPP = { n: "s", e: "w", s: "e", w: "n" };
+const OPP = { n: "s", s: "n", e: "w", w: "e" };
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 // 成長木法 (ランダム選択 = Prim風) で完全迷路を掘る。
@@ -74,6 +74,45 @@ function openCount(cell) {
   return ["n", "e", "s", "w"].filter((d) => !cell.walls[d]).length;
 }
 
+// 不変条件を保証する:
+//  1. 壁は隣接マスと対称 (片側だけ壁という"すり抜け"を防ぐ)
+//  2. 外周は必ず壁
+//  3. 4方を壁に囲まれたマスは作らない (最低1方向は開ける)
+function ensureInvariants(cells) {
+  // 壁の対称化 + 外周封鎖
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      const c = cells[y][x];
+      for (const d in DIRS) {
+        const nx = x + DIRS[d][0], ny = y + DIRS[d][1];
+        if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) {
+          c.walls[d] = true; // 盤外: 必ず壁
+        } else {
+          // どちらかが壁なら両側を壁に揃える (すり抜け禁止)
+          const wall = c.walls[d] || cells[ny][nx].walls[OPP[d]];
+          c.walls[d] = wall;
+          cells[ny][nx].walls[OPP[d]] = wall;
+        }
+      }
+    }
+  }
+  // 全方位閉塞マスを解消: 盤内の隣へ1辺開ける
+  for (let y = 0; y < ROWS; y++) {
+    for (let x = 0; x < COLS; x++) {
+      if (openCount(cells[y][x]) > 0) continue;
+      const cand = [];
+      for (const d in DIRS) {
+        const nx = x + DIRS[d][0], ny = y + DIRS[d][1];
+        if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) continue;
+        cand.push([d, nx, ny]);
+      }
+      const [d, nx, ny] = pick(cand);
+      cells[y][x].walls[d] = false;
+      cells[ny][nx].walls[OPP[d]] = false;
+    }
+  }
+}
+
 export function makeBoard(floor) {
   const sx = 0, sy = Math.floor(ROWS / 2);
   // 階段を必ず「10歩より遠く」に置けるよう、最遠マスが10歩超になる迷路を引く
@@ -96,6 +135,9 @@ export function makeBoard(floor) {
   );
   cells[sy][sx].type = "start";
   cells[sy][sx].revealed = true;
+
+  // 壁の対称性・外周封鎖・全方位閉塞マスの排除を保証
+  ensureInvariants(cells);
 
   // 階段: スタートから10歩より遠いマスから選ぶ (行き止まりとは限らない)
   const far = [];
