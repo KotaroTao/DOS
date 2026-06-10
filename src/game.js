@@ -27,8 +27,13 @@ const G = {
   px: 0, py: 0,
   gold: 200,          // 初期所持金 (宿屋・神殿・商店用)
   party: [],          // 迷宮に連れて行く人業 (最大6体)
+  reserve: [],        // 酒場で待機中の人業
   souls: [],          // 未封印の魂ストック
   town: { facility: null }, // 街UIの現在地
+  quests: [],         // 受注可能/進行中のクエスト
+  codex: { mon: {}, item: {} }, // 図鑑 (遭遇したモンスター/入手したアイテム)
+  story: 0,           // 王宮ストーリーの進行段階
+  dragonSlain: false, // 竜を討ったか
   battle: null,
   battleCell: null,   // 戦闘中のモンスターカード
   prevPos: null,      // 逃走時の戻り先
@@ -619,6 +624,7 @@ function resolveCorpse(cell) {
   const lvl = 1 + (Math.random() < 0.3 ? 1 : 0) + (G.floor >= 3 ? 1 : 0);
   const soul = makeSoul(clsKey, lvl);
   G.souls.push(soul);
+  questProgress("soul", null, 1);
   SFX.itemget(); buzz([0, 30, 60, 30]);
   log(`まだあたたかい死体（${clsLabel}）から ${soulName(soul)} を回収した！`, "win");
   showEvent({
@@ -770,6 +776,8 @@ function descend() {
   SFX.stairs();
   buzz([0, 20, 80, 20]);
   G.floor++;
+  G.maxFloorReached = Math.max(G.maxFloorReached, G.floor);
+  questProgress("floor", G.floor);
   log("階段を降りていく…", "sys");
   // 暗転 → 階数タイトル → 明転 の演出
   G.prompt = true;
@@ -802,7 +810,9 @@ function startBattle(enemies, cell) {
   
   combatMenu.classList.remove("hidden");
   log(`${enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
-  playBgm("battle");
+  // ボス戦は専用テーマ。図鑑にも遭遇を記録
+  playBgm(enemies.some((e) => e.mon.boss) ? "boss" : "battle");
+  for (const e of enemies) codexSeeMonster(e.key);
   G.battle = new Battle(G.party, enemies, log);
   G.fx = null;
   G.animating = false;
@@ -1211,7 +1221,10 @@ function endBattle() {
       }
     }
     SFX.victory();
+    // 討伐クエストの進捗 (倒した敵を集計)
+    for (const e of b.enemies) { if (!e.alive) questProgress("kill", e.key); }
     const wasBoss = b.enemies.some((e) => e.mon.boss);
+    if (wasBoss) G.dragonSlain = true;
     if (G.battleCell) G.battleCell.cleared = true;
     finishToBoard();
     if (wasBoss) { victory(); return; }
@@ -1266,6 +1279,13 @@ function victory() {
 
   combatMenu.classList.remove("hidden");
   combatMenu.innerHTML = "";
+  // 凱旋: 王宮で最終ストーリーが待つ
+  const home = btn("🏚 街へ凱旋する (王宮で報告を)", () => {
+    combatMenu.classList.add("hidden");
+    returnToTown();
+  });
+  home.className = "btn primary";
+  combatMenu.appendChild(home);
   combatMenu.appendChild(btn("もう一度挑戦する", () => location.reload()));
 
   // 金貨の紙吹雪が舞い続ける勝利画面
@@ -1377,20 +1397,28 @@ function btn(label, onClick) {
 // ================= 街 (拠点) =================
 const townEl = document.getElementById("town-screen");
 const townBtn = document.getElementById("town-btn");
-let altarSel = null; // 祭壇で選択中 { dollIdx, part }
+let altarSel = null; // 訓練所で選択中 { doll, part }
 
 const FACILITIES = [
   { key: "mansion", icon: "🏚", name: "人業の館", desc: "人業を仕立て、魂を組む" },
-  { key: "altar", icon: "⛓", name: "魂封じの祭壇", desc: "部位に魂を封じる" },
+  { key: "tavern", icon: "🍺", name: "酒場「沈まぬ灯」", desc: "編成とクエスト" },
+  { key: "shop", icon: "🏪", name: "商店", desc: "装備・道具の売買" },
   { key: "inn", icon: "🛏", name: "宿屋「臥牢」", desc: "魂を休め、傷を癒す" },
   { key: "temple", icon: "⛪", name: "神殿", desc: "砕けた人業を繕う" },
-  { key: "shop", icon: "🏪", name: "道具屋", desc: "消耗品の売買" },
+  { key: "palace", icon: "👑", name: "王宮", desc: "勅命と図鑑の間" },
 ];
 
-function townHeader(title, withBack = true) {
+// 編成 + 控えの全人業
+function allDolls() { return [...G.party, ...G.reserve]; }
+
+function townHeader(title, backTo = "hub") {
   const head = el("div", "tw-head");
-  if (withBack) {
-    const back = btn("← 広場へ", () => { G.town.facility = null; altarSel = null; renderTown(); });
+  if (backTo) {
+    const back = btn(backTo === "hub" ? "← 広場へ" : "← 戻る", () => {
+      G.town.facility = backTo === "hub" ? null : backTo;
+      altarSel = null;
+      renderTown();
+    });
     back.className = "tw-back";
     head.appendChild(back);
   } else {
@@ -1408,9 +1436,13 @@ function renderTown() {
   const f = G.town.facility;
   if (f === "mansion") return renderMansion();
   if (f === "altar") return renderAltar();
+  if (f === "tavern") return renderTavern();
   if (f === "inn") return renderInn();
   if (f === "temple") return renderTemple();
   if (f === "shop") return renderShop();
+  if (f === "palace") return renderPalace();
+  if (f === "codexMon") return renderCodexMon();
+  if (f === "codexItem") return renderCodexItem();
   renderTownHub();
 }
 
@@ -1467,58 +1499,55 @@ function dollChip(d) {
   return chip;
 }
 
-// ---- 人業の館: ロスター管理 + 新規作成 ----
+// ---- 人業の館 (訓練所): 人業の仕立て・魂組み・解体 ----
 function renderMansion() {
   townEl.appendChild(townHeader("人業の館"));
-  townEl.appendChild(el("div", "tw-lead", "人型の器「人業（Doll）」に魂を封じて仲間を仕立てる。"));
+  townEl.appendChild(el("div", "tw-lead", "人型の器「人業（Doll）」を仕立て、5部位に魂を封じて鍛える訓練所。"));
 
   const list = el("div", "tw-mlist");
-  G.party.forEach((d, i) => {
+  allDolls().forEach((d) => {
+    const inParty = G.party.includes(d);
     const row = el("div", "tw-mrow" + (d.alive ? "" : " dead"));
     const s = el("span", "tw-chips");
     if (d.dominant) { s.style.color = SOUL_CLASSES[d.dominant.clsKey].glow; s.appendChild(spriteCanvas(soulSprite(d.dominant.clsKey), 2)); }
     row.appendChild(s);
     const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
+    info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †") + (inParty ? "" : " (控え)")));
     info.appendChild(el("div", "tw-chipc", `${d.cls} ・ 魂 ${dollSouls(d).length}/5`));
     row.appendChild(info);
-    const edit = btn("魂を組む", () => { altarSel = { dollIdx: i, part: null }; G.town.facility = "altar"; renderTown(); });
+    const edit = btn("魂を組む", () => { altarSel = { doll: d, part: null }; G.town.facility = "altar"; renderTown(); });
     edit.className = "tw-small";
     row.appendChild(edit);
-    const del = btn("解体", () => confirmDisband(i));
+    const del = btn("解体", () => confirmDisband(d));
     del.className = "tw-small danger";
     row.appendChild(del);
     list.appendChild(row);
   });
   townEl.appendChild(list);
 
-  if (G.party.length < 6) {
-    const add = btn("＋ 新しい人業を仕立てる", createDoll);
-    add.className = "btn tw-add";
-    townEl.appendChild(add);
-  } else {
-    townEl.appendChild(el("div", "tw-note", "編成は満員 (6体)"));
-  }
-  townEl.appendChild(el("div", "tw-note", `魂ストック: ${G.souls.length} 個`));
+  const add = btn("＋ 新しい人業を仕立てる", createDoll);
+  add.className = "btn tw-add";
+  townEl.appendChild(add);
+  townEl.appendChild(el("div", "tw-note", `魂ストック: ${G.souls.length} 個 ・ 編成は酒場で行う`));
 }
 
+let _dollNameSeq = 0;
 function createDoll() {
-  if (G.party.length >= 6) return;
-  const n = G.party.length + 1;
-  const name = "人業" + "ＡＢＣＤＥＦＧＨ".charAt(Math.max(0, n - 1));
+  const name = "人業" + "ＡＢＣＤＥＦＧＨＩＪＫＬ".charAt(_dollNameSeq++ % 12);
   const d = makeDoll(name);
   recalcDoll(d);
   d.hp = d.maxhp; d.mp = d.maxmp;
-  G.party.push(d);
+  // 編成に空きがあれば編成へ、なければ酒場の控えへ
+  if (G.party.length < 6) G.party.push(d);
+  else { G.reserve.push(d); log(`${d.name} は酒場で待機する。`, "sys"); }
   SFX.select();
   log(`新しい人業「${d.name}」を仕立てた。魂を封じよう。`, "sys");
-  altarSel = { dollIdx: G.party.length - 1, part: null };
+  altarSel = { doll: d, part: null };
   G.town.facility = "altar";
   renderTown();
 }
 
-function confirmDisband(i) {
-  const d = G.party[i];
+function confirmDisband(d) {
   showConfirm({
     title: `${d.name} を解体する？`,
     lines: ["封じた魂はストックに戻る。", "装備していた品も外れる。"],
@@ -1526,27 +1555,30 @@ function confirmDisband(i) {
     onOk: () => {
       // 魂をストックへ返す
       for (const part of PARTS) { if (d.parts[part]) { G.souls.push(d.parts[part]); d.parts[part] = null; } }
-      // 装備品とアイテムは破棄 (簡略化)。人業を編成から外す
-      G.party.splice(i, 1);
+      const pi = G.party.indexOf(d);
+      if (pi >= 0) G.party.splice(pi, 1);
+      const ri = G.reserve.indexOf(d);
+      if (ri >= 0) G.reserve.splice(ri, 1);
       log(`${d.name} を解体した。`, "sys");
       renderTown();
     },
   });
 }
 
-// ---- 魂封じの祭壇: 5部位に魂を封じる ----
+// ---- 魂組みの間 (人業の館の奥): 5部位に魂を封じる ----
 function renderAltar() {
-  if (!altarSel || !G.party[altarSel.dollIdx]) altarSel = { dollIdx: 0, part: null };
-  if (!G.party.length) { townEl.appendChild(townHeader("魂封じの祭壇")); townEl.appendChild(el("div", "tw-empty", "人業がいない。")); return; }
-  const d = G.party[altarSel.dollIdx];
+  const dolls = allDolls();
+  if (!altarSel || !dolls.includes(altarSel.doll)) altarSel = { doll: dolls[0], part: null };
+  if (!dolls.length) { townEl.appendChild(townHeader("魂組みの間", "mansion")); townEl.appendChild(el("div", "tw-empty", "人業がいない。")); return; }
+  const d = altarSel.doll;
 
-  townEl.appendChild(townHeader("魂封じの祭壇"));
+  townEl.appendChild(townHeader("魂組みの間", "mansion"));
 
   // 人業セレクタ
   const sel = el("div", "tw-dolltabs");
-  G.party.forEach((dd, i) => {
-    const t = btn(dd.name, () => { altarSel = { dollIdx: i, part: null }; renderTown(); });
-    t.className = "tw-dolltab" + (i === altarSel.dollIdx ? " active" : "");
+  dolls.forEach((dd) => {
+    const t = btn(dd.name, () => { altarSel = { doll: dd, part: null }; renderTown(); });
+    t.className = "tw-dolltab" + (dd === d ? " active" : "");
     sel.appendChild(t);
   });
   townEl.appendChild(sel);
@@ -1581,7 +1613,7 @@ function renderAltar() {
       slot.appendChild(el("div", "tw-parts2", "—"));
     }
     slot.addEventListener("click", () => {
-      altarSel = { dollIdx: altarSel.dollIdx, part: altarSel.part === part ? null : part };
+      altarSel = { doll: d, part: altarSel.part === part ? null : part };
       renderTown();
     });
     body.appendChild(slot);
@@ -1626,6 +1658,283 @@ function sealFromStock(d, part, stockIdx) {
   SFX.select(); buzz(15);
   log(`${d.name} の${PART_LABEL[part]}に ${soulName(s)} を封じた。`, "win");
   renderTown();
+}
+
+// ---- 酒場「沈まぬ灯」: パーティ編成 + クエスト ----
+const QUEST_DEFS = [
+  { id: "q_slime", name: "ぬめる脅威", desc: "スライムを 3体 倒す", type: "kill", key: "slime", goal: 3, reward: { gold: 80 } },
+  { id: "q_bat", name: "夜翼の駆除", desc: "ジャイアントバットを 3体 倒す", type: "kill", key: "bat", goal: 3, reward: { gold: 100 } },
+  { id: "q_souls", name: "魂の回収者", desc: "死体から魂を 3個 回収する", type: "soul", goal: 3, reward: { gold: 150 } },
+  { id: "q_b2", name: "深淵への一歩", desc: "地下2階に到達する", type: "floor", goal: 2, reward: { gold: 150, soul: "priest" } },
+  { id: "q_skel", name: "骸の掃除", desc: "スケルトンを 2体 倒す", type: "kill", key: "skeleton", goal: 2, reward: { gold: 180, soul: "knight" } },
+  { id: "q_dragon", name: "竜殺し", desc: "深淵の主ドラゴンを討つ", type: "kill", key: "dragon", goal: 1, reward: { gold: 1000 } },
+];
+
+function initQuests() {
+  G.quests = QUEST_DEFS.map((q) => ({ ...q, state: "avail", progress: 0 }));
+}
+
+// 進行中クエストへ進捗を加算。達成したら通知
+function questProgress(type, key, n = 1) {
+  for (const q of G.quests) {
+    if (q.state !== "active" || q.type !== type) continue;
+    if (q.type === "kill" && q.key !== key) continue;
+    if (q.type === "floor") { q.progress = Math.max(q.progress, key); }
+    else q.progress += n;
+    if (q.progress >= q.goal && q.state === "active") {
+      q.state = "done";
+      log(`クエスト達成！「${q.name}」— 酒場で報告しよう`, "win");
+      showToast(`📜 クエスト達成: ${q.name}`);
+    }
+  }
+}
+
+function renderTavern() {
+  townEl.appendChild(townHeader("酒場「沈まぬ灯」"));
+  townEl.appendChild(el("div", "tw-lead", "迷宮帰りの傭兵がたむろする。パーティの編成と、依頼の受注はここで。"));
+
+  // --- パーティ編成 ---
+  townEl.appendChild(el("div", "tw-h", `編成 (${G.party.length}/6) — タップで控えへ`));
+  const pl = el("div", "tw-mlist");
+  if (!G.party.length) pl.appendChild(el("div", "tw-empty", "誰もいない。控えから加えよう。"));
+  G.party.forEach((d) => {
+    const row = el("div", "tw-mrow" + (d.alive ? "" : " dead"));
+    const s = el("span", "tw-chips");
+    if (d.dominant) { s.style.color = SOUL_CLASSES[d.dominant.clsKey].glow; s.appendChild(spriteCanvas(soulSprite(d.dominant.clsKey), 2)); }
+    row.appendChild(s);
+    const info = el("div", "tw-chipi");
+    info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
+    info.appendChild(el("div", "tw-chipc", d.cls));
+    row.appendChild(info);
+    row.appendChild(el("div", "tw-chiphp", `HP ${d.hp}/${d.maxhp}`));
+    row.addEventListener("click", () => {
+      G.party.splice(G.party.indexOf(d), 1);
+      G.reserve.push(d);
+      SFX.select(); renderTown();
+    });
+    pl.appendChild(row);
+  });
+  townEl.appendChild(pl);
+
+  townEl.appendChild(el("div", "tw-h", `控え (${G.reserve.length}) — タップで編成へ`));
+  const rl = el("div", "tw-mlist");
+  if (!G.reserve.length) rl.appendChild(el("div", "tw-empty", "控えはいない。"));
+  G.reserve.forEach((d) => {
+    const row = el("div", "tw-mrow" + (d.alive ? "" : " dead"));
+    const s = el("span", "tw-chips");
+    if (d.dominant) { s.style.color = SOUL_CLASSES[d.dominant.clsKey].glow; s.appendChild(spriteCanvas(soulSprite(d.dominant.clsKey), 2)); }
+    row.appendChild(s);
+    const info = el("div", "tw-chipi");
+    info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
+    info.appendChild(el("div", "tw-chipc", d.cls));
+    row.appendChild(info);
+    row.addEventListener("click", () => {
+      if (G.party.length >= 6) { log("編成は満員だ (6体まで)。", "sys"); return; }
+      G.reserve.splice(G.reserve.indexOf(d), 1);
+      G.party.push(d);
+      SFX.select(); renderTown();
+    });
+    rl.appendChild(row);
+  });
+  townEl.appendChild(rl);
+
+  // --- クエスト掲示板 ---
+  townEl.appendChild(el("div", "tw-h", "依頼の掲示板"));
+  const ql = el("div", "tw-mlist");
+  for (const q of G.quests) {
+    if (q.state === "claimed") continue;
+    const row = el("div", "tw-quest" + (q.state === "done" ? " done" : ""));
+    const info = el("div", "tw-chipi");
+    info.appendChild(el("div", "tw-chipn", "📜 " + q.name));
+    info.appendChild(el("div", "tw-chipc", q.desc));
+    const rw = [`💰${q.reward.gold}`];
+    if (q.reward.soul) rw.push(`${SOUL_CLASSES[q.reward.soul].label}の魂`);
+    info.appendChild(el("div", "tw-chipc", "報酬: " + rw.join(" + ") +
+      (q.state !== "avail" ? ` ・ 進捗 ${Math.min(q.progress, q.goal)}/${q.goal}` : "")));
+    row.appendChild(info);
+    if (q.state === "avail") {
+      const b = btn("受注", () => { q.state = "active"; SFX.select(); log(`クエスト「${q.name}」を受注した。`, "sys"); renderTown(); });
+      b.className = "tw-small";
+      row.appendChild(b);
+    } else if (q.state === "active") {
+      row.appendChild(el("div", "tw-chiphp", "進行中"));
+    } else if (q.state === "done") {
+      const b = btn("報告する", () => claimQuest(q));
+      b.className = "tw-small primary";
+      row.appendChild(b);
+    }
+    ql.appendChild(row);
+  }
+  if (![...ql.children].length) ql.appendChild(el("div", "tw-empty", "依頼はすべて果たされた。"));
+  townEl.appendChild(ql);
+}
+
+function claimQuest(q) {
+  q.state = "claimed";
+  G.gold += q.reward.gold;
+  let msg = `報酬 💰${q.reward.gold}`;
+  if (q.reward.soul) {
+    const s = makeSoul(q.reward.soul, 2);
+    G.souls.push(s);
+    msg += ` と ${soulName(s)}`;
+  }
+  SFX.itemget(); buzz([0, 30, 60, 30]);
+  log(`「${q.name}」を報告した。${msg} を受け取った！`, "win");
+  showToast(`✅ ${q.name} — ${msg}`);
+  renderTown();
+}
+
+// ---- 王宮: 勅命 (メインストーリー) + 図鑑 ----
+const STORY_EVENTS = [
+  {
+    title: "王の勅命",
+    cond: () => true,
+    text: [
+      "「よくぞ参った、魂繰りの者よ。」",
+      "「この地の底に巣食う迷宮は、死者の魂を喰らい肥え続けておる。」",
+      "「人業の軍を率い、深淵の主を討て。報酬は望むままに。」",
+    ],
+    reward: { gold: 100 },
+  },
+  {
+    title: "深淵のざわめき",
+    cond: () => G.maxFloorReached >= 2,
+    text: [
+      "「地下2階まで達したか。見事なものよ。」",
+      "「だが斥候によれば、さらに下の層では骸が独りでに立ち上がるという。」",
+      "「気をつけよ。新しき魂ほど、迷宮は欲しがる。」",
+    ],
+    reward: { gold: 200 },
+  },
+  {
+    title: "竜の影",
+    cond: () => G.maxFloorReached >= 3,
+    text: [
+      "「最深部に巨大な竜の気配があるそうだな。」",
+      "「あれこそ迷宮の主。喰らった魂で幾百年を生きた怪物だ。」",
+      "「これを討てば、そなたの名はこの国の歴史に刻まれよう。」",
+    ],
+    reward: { gold: 300, soul: "fighter" },
+  },
+  {
+    title: "魂の解放",
+    cond: () => G.dragonSlain,
+    text: [
+      "「……討ったか。本当に、討ちおったか！」",
+      "「迷宮に囚われし幾千の魂は、これで安らかに巡るだろう。」",
+      "「礼を言うぞ、英雄よ。この国はそなたの剣に救われた。」",
+    ],
+    reward: { gold: 2000 },
+  },
+];
+
+function renderPalace() {
+  townEl.appendChild(townHeader("王宮"));
+  townEl.appendChild(el("div", "tw-lead", "玉座の間。王の勅命を聞き、書庫で迷宮の記録を紐解ける。"));
+
+  // ストーリー進行
+  townEl.appendChild(el("div", "tw-h", "玉座の間 — 勅命"));
+  const ev = STORY_EVENTS[G.story];
+  if (ev && ev.cond()) {
+    const b = btn(`👑 謁見する 「${ev.title}」`, () => playStoryEvent(ev));
+    b.className = "btn primary tw-add";
+    townEl.appendChild(b);
+  } else if (ev) {
+    townEl.appendChild(el("div", "tw-note",
+      G.story === 1 ? "「地下2階に到達したら、また参れ」" :
+      G.story === 2 ? "「地下3階に到達したら、また参れ」" :
+      "「深淵の主を討ち果たしたら、また参れ」"));
+  } else {
+    townEl.appendChild(el("div", "tw-note", "「そなたに語るべきことは、もう何もない。良き旅を。」"));
+  }
+
+  // 図鑑
+  townEl.appendChild(el("div", "tw-h", "王宮書庫 — 図鑑"));
+  const row = el("div", "tw-grid");
+  const monBtn = el("div", "tw-fac");
+  monBtn.appendChild(el("div", "tw-faci", "🐉"));
+  monBtn.appendChild(el("div", "tw-facn", "モンスター図鑑"));
+  monBtn.appendChild(el("div", "tw-facd", `${Object.keys(G.codex.mon).length}/${Object.keys(MONSTERS).length} 種`));
+  monBtn.addEventListener("click", () => { G.town.facility = "codexMon"; renderCodexMon(); });
+  row.appendChild(monBtn);
+  const itemBtn = el("div", "tw-fac");
+  itemBtn.appendChild(el("div", "tw-faci", "⚔"));
+  itemBtn.appendChild(el("div", "tw-facn", "アイテム図鑑"));
+  itemBtn.appendChild(el("div", "tw-facd", `${Object.keys(G.codex.item).length}/${Object.keys(ITEMS).length} 種`));
+  itemBtn.addEventListener("click", () => { G.town.facility = "codexItem"; renderCodexItem(); });
+  row.appendChild(itemBtn);
+  townEl.appendChild(row);
+}
+
+function playStoryEvent(ev) {
+  G.prompt = true;
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card story-card");
+  card.style.borderColor = "#c9a227";
+  card.style.boxShadow = "0 0 50px #c9a22755";
+  const bn = el("div", "ig-banner", "👑 " + ev.title + " 👑");
+  bn.style.color = "#ffd84a";
+  card.appendChild(bn);
+  for (const t of ev.text) card.appendChild(el("div", "story-line", t));
+  const rw = [`💰${ev.reward.gold}`];
+  if (ev.reward.soul) rw.push(`${SOUL_CLASSES[ev.reward.soul].label}の魂`);
+  card.appendChild(el("div", "story-reward", "下賜: " + rw.join(" + ")));
+  const ok = btn("拝命する", () => {
+    wrap.remove();
+    G.prompt = false;
+    G.gold += ev.reward.gold;
+    if (ev.reward.soul) G.souls.push(makeSoul(ev.reward.soul, 2));
+    G.story++;
+    SFX.itemget(); buzz([0, 30, 60, 30]);
+    log(`勅命「${ev.title}」を拝命した。`, "win");
+    renderTown();
+  });
+  ok.className = "btn primary ig-ok";
+  card.appendChild(ok);
+  wrap.appendChild(card);
+  document.body.appendChild(wrap);
+}
+
+// ---- 図鑑 (王宮書庫) ----
+function codexSeeMonster(key) { if (key) G.codex.mon[key] = true; }
+function codexSeeItem(id) { if (id) G.codex.item[id] = true; }
+
+function renderCodexMon() {
+  townEl.innerHTML = "";
+  townEl.appendChild(townHeader("モンスター図鑑", "palace"));
+  const grid = el("div", "cdx-grid");
+  for (const key of Object.keys(MONSTERS)) {
+    const m = MONSTERS[key];
+    const seen = G.codex.mon[key];
+    const c = el("div", "cdx-card" + (seen ? "" : " unknown"));
+    const art = el("div", "cdx-art");
+    if (seen) art.appendChild(spriteCanvas(m, 3));
+    else art.appendChild(el("div", "cdx-q", "?"));
+    c.appendChild(art);
+    c.appendChild(el("div", "cdx-name", seen ? m.name : "？？？"));
+    if (seen) c.appendChild(el("div", "cdx-stat", `HP${m.maxhp} 攻${m.atk} 防${m.def} 速${m.spd}`));
+    grid.appendChild(c);
+  }
+  townEl.appendChild(grid);
+}
+
+function renderCodexItem() {
+  townEl.innerHTML = "";
+  townEl.appendChild(townHeader("アイテム図鑑", "palace"));
+  const grid = el("div", "cdx-grid");
+  for (const id of Object.keys(ITEMS)) {
+    const it = ITEMS[id];
+    const seen = G.codex.item[id];
+    const c = el("div", "cdx-card" + (seen ? "" : " unknown"));
+    const art = el("div", "cdx-art");
+    if (seen) art.appendChild(spriteCanvas(it, 3));
+    else art.appendChild(el("div", "cdx-q", "?"));
+    c.appendChild(art);
+    c.appendChild(el("div", "cdx-name", seen ? it.name : "？？？"));
+    if (seen && it.desc) c.appendChild(el("div", "cdx-stat", it.desc));
+    grid.appendChild(c);
+  }
+  townEl.appendChild(grid);
 }
 
 // ---- 宿屋: 全回復 ----
@@ -1693,31 +2002,73 @@ function renderTemple() {
   townEl.appendChild(list);
 }
 
-// ---- 道具屋: 消耗品の売買 ----
-const SHOP_STOCK = ["herb", "antidote", "manaDrop", "woodShield", "cap", "leatherGloves"];
+// ---- 商店: 装備・道具の売買 ----
+const SHOP_STOCK = [
+  "herb", "antidote", "manaDrop",
+  "dagger", "shortSword", "warHammer", "magicStaff",
+  "woodShield", "leatherArmor", "robe", "cap", "leatherBoots", "leatherGloves",
+];
+let shopTab = "buy";
 function renderShop() {
-  townEl.appendChild(townHeader("道具屋"));
-  // 購入
-  townEl.appendChild(el("div", "tw-h", "仕入れ品"));
-  const buy = el("div", "tw-shoplist");
-  for (const id of SHOP_STOCK) {
-    const it = ITEMS[id];
-    if (!it) continue;
-    const price = it.price || 30;
-    const r = el("div", "tw-shoprow");
-    const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
-    const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", it.name));
-    info.appendChild(el("div", "tw-chipc", it.desc || ""));
-    r.appendChild(info);
-    const b = btn(`💰${price}`, () => buyItem(id, price));
-    b.className = "tw-small";
-    if (G.gold < price) b.disabled = true;
-    r.appendChild(b);
-    buy.appendChild(r);
+  townEl.appendChild(townHeader("商店"));
+
+  const tabs = el("div", "tw-dolltabs");
+  const tb = btn("買う", () => { shopTab = "buy"; renderTown(); });
+  tb.className = "tw-dolltab" + (shopTab === "buy" ? " active" : "");
+  const ts = btn("売る", () => { shopTab = "sell"; renderTown(); });
+  ts.className = "tw-dolltab" + (shopTab === "sell" ? " active" : "");
+  tabs.appendChild(tb); tabs.appendChild(ts);
+  townEl.appendChild(tabs);
+
+  if (shopTab === "buy") {
+    const buy = el("div", "tw-shoplist");
+    for (const id of SHOP_STOCK) {
+      const it = ITEMS[id];
+      if (!it) continue;
+      const price = it.price || 30;
+      const r = el("div", "tw-shoprow");
+      const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
+      const info = el("div", "tw-chipi");
+      info.appendChild(el("div", "tw-chipn", it.name));
+      info.appendChild(el("div", "tw-chipc", it.desc || ""));
+      r.appendChild(info);
+      const b = btn(`💰${price}`, () => buyItem(id, price));
+      b.className = "tw-small";
+      if (G.gold < price) b.disabled = true;
+      r.appendChild(b);
+      buy.appendChild(r);
+    }
+    townEl.appendChild(buy);
+    townEl.appendChild(el("div", "tw-note", "買った品は手の空いた人業の所持品へ入る。"));
+  } else {
+    // 売却: 編成中の人業の所持品 (装備中は除く) を半額で買い取り
+    const sell = el("div", "tw-shoplist");
+    let any = false;
+    for (const m of G.party) {
+      m.items.forEach((it, idx) => {
+        any = true;
+        const price = Math.max(1, Math.floor((it.price || 10) / 2));
+        const r = el("div", "tw-shoprow");
+        const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
+        const info = el("div", "tw-chipi");
+        info.appendChild(el("div", "tw-chipn", it.name));
+        info.appendChild(el("div", "tw-chipc", `${m.name} の所持品`));
+        r.appendChild(info);
+        const b = btn(`💰${price} で売る`, () => {
+          m.items.splice(idx, 1);
+          G.gold += price;
+          SFX.select();
+          log(`${it.name} を売った (+💰${price})`, "win");
+          renderTown();
+        });
+        b.className = "tw-small";
+        r.appendChild(b);
+        sell.appendChild(r);
+      });
+    }
+    if (!any) sell.appendChild(el("div", "tw-empty", "売れる品がない (装備中の品は外してから)。"));
+    townEl.appendChild(sell);
   }
-  townEl.appendChild(buy);
-  townEl.appendChild(el("div", "tw-note", "買った品は手の空いた人業の所持品へ入る。"));
 }
 
 function buyItem(id, price) {
@@ -1728,6 +2079,7 @@ function buyItem(id, price) {
   if (!it) return;
   G.gold -= price;
   who.items.push(it);
+  codexSeeItem(id);
   SFX.select();
   log(`${it.name} を購入した (${who.name})。`, "win");
   renderTown();
@@ -1742,6 +2094,7 @@ function tryEnterDungeon() {
   G.town.facility = null;
   G.floor = G.maxFloorReached;
   G.state = "board";
+  playBgm("field");
   if (townBtn) townBtn.classList.remove("hidden");
   newFloor();
   renderBoard();
@@ -1753,7 +2106,7 @@ function returnToTown() {
   combatMenu.classList.add("hidden");
   if (townBtn) townBtn.classList.add("hidden");
   G.maxFloorReached = Math.max(G.maxFloorReached, G.floor);
-  playBgm("field");
+  playBgm("town");
   updateTopbar();
   log("街へ帰還した。", "sys");
   G.town.facility = null;
@@ -2141,6 +2494,7 @@ function giveItem(id) {
   const who = G.party.find((m) => m.items.length < MAX_ITEMS);
   if (!who) { log(`${it.name}を見つけたが、誰も持てない…`, "sys"); return null; }
   who.items.push(it);
+  codexSeeItem(id);
   log(`${it.name} を手に入れた！ (${who.name})`, "win");
   return { item: it, who };
 }
@@ -2244,13 +2598,29 @@ if (townBtn) townBtn.addEventListener("click", confirmReturnToTown);
 // ---- 入力 ----
 // 最初のユーザー操作で音声を起動 (ブラウザの自動再生制限対策)
 let audioReady = false;
+// 現在のシーンに合ったBGM名
+function sceneBgm() {
+  if (G.state === "town") return "town";
+  if (G.state === "combat") return (G.battle && G.battle.enemies.some((e) => e.mon.boss)) ? "boss" : "battle";
+  if (G.state === "board") return "field";
+  return null; // over などは無音 (ジングルのみ)
+}
 function ensureAudio() {
   if (audioReady) return;
   audioReady = true;
   initAudio();
-  playBgm(G.state === "combat" ? "battle" : "field");
+  playBgm(sceneBgm());
 }
 document.addEventListener("pointerdown", ensureAudio, { once: true });
+
+// ---- ズーム禁止 (ゲーム画面の拡大縮小を防ぐ) ----
+// iOS Safari のピンチズーム
+document.addEventListener("gesturestart", (e) => e.preventDefault());
+document.addEventListener("gesturechange", (e) => e.preventDefault());
+// PC の Ctrl+ホイール / Ctrl+± ズーム
+document.addEventListener("wheel", (e) => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+// ダブルタップズーム (touch-action で大半は防げるが保険)
+document.addEventListener("dblclick", (e) => e.preventDefault());
 
 // movePad は削除済み。方向キー / スワイプで代替。
 
@@ -2387,14 +2757,16 @@ function setupNewGame() {
   for (const d of dolls) {
     for (const id of (gearByName[d.name] || [])) {
       const it = cloneItem(id);
-      if (it) { d.items.push(it); equipItem(d, it); }
+      if (it) { d.items.push(it); equipItem(d, it); codexSeeItem(id); }
     }
     d.items.push(cloneItem("herb"));
+    codexSeeItem("herb");
     recalcDoll(d);
     d.hp = d.maxhp; d.mp = d.maxmp;
   }
   G.party = dolls;
   G.souls = souls;
+  initQuests();
 }
 
 // ---- 起動 ----
