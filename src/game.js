@@ -500,6 +500,7 @@ function moveStep(nx, ny, onDone) {
         resolveCell(cell);
         // 毒は1歩ごとに蝕む (戦闘/選択へ移っていなければ)
         if (G.state === "board" && !G.prompt) tickPoison();
+        autosave(true); // 1歩進むたびに保存 (やり直し不可)
         if (onDone) onDone();
       } else {
         requestAnimationFrame(tick);
@@ -747,6 +748,7 @@ function closePrompt() {
   G.prompt = false;
   itemGetEl.classList.add("hidden");
   itemGetEl.innerHTML = "";
+  autosave(true);
 }
 
 // 階段: 降りるか選ぶ
@@ -868,6 +870,7 @@ function descend() {
   setTimeout(() => {
     newFloor();
     renderBoard();
+    autosave(true); // 新フロアを保存
   }, 600); // 完全に暗転したタイミングで盤面を切替
   setTimeout(() => {
     ov.classList.add("out");
@@ -898,6 +901,7 @@ function startBattle(enemies, cell) {
   G.animating = false;
   G.enemyPos = {};
   if (G.partyFx) G.partyFx.clear();
+  autosave(true); // 戦闘開始を保存
   combatStep(); // 素早い敵が先手なら自動で動く
 }
 
@@ -1160,6 +1164,7 @@ function combatStep() {
     G.animating = true;
     combatMenu.innerHTML = "";
     renderCombatCanvas();
+    autosave(true); // 敵の手番を確定 (やり直し不可)
     // 一瞬の間を置いてから敵が動く (ドラクエ風)
     setTimeout(() => {
       const res = b.enemyAct();
@@ -1172,12 +1177,13 @@ function combatStep() {
 function act(action, spellKey) {
   const r = G.battle.chooseAction(action, spellKey);
   if (r && r.invalid) { renderCombatMenu(); return; }
-  if (G.battle.phase === "target") { renderCombatMenu(); return; }
+  if (G.battle.phase === "target") { autosave(); renderCombatMenu(); return; }
   runCommitted();
 }
 
 // 予約済みの味方行動を実行 → 演出 → 次の手番
 function runCommitted() {
+  autosave(true); // 行動確定の瞬間に保存。以降この選択はやり直せない
   G.animating = true;
   combatMenu.innerHTML = "";
   const res = G.battle.commit();
@@ -1189,6 +1195,7 @@ function postResolve() {
   const b = G.battle;
   if (b.result) { G.animating = false; setTimeout(endBattle, 300); return; }
   b.advance();
+  autosave(true);
   setTimeout(combatStep, 150);
 }
 
@@ -1346,9 +1353,10 @@ function finishToBoard() {
   G.battleCell = null;
   G.state = "board";
   combatMenu.classList.add("hidden");
-  
+
   playBgm("field");
   renderBoard();
+  autosave(true);
 }
 
 const GUARDIAN_COST = 20; // 全滅時、戦利品を守って帰還するための Red Soul
@@ -1555,6 +1563,7 @@ function townHeader(title, backTo = "hub") {
 }
 
 function renderTown() {
+  autosave(); // 街での操作のたびに保存 (描画はアクション後に呼ばれる)
   townEl.classList.remove("hidden");
   townEl.innerHTML = "";
   updateTopbar();
@@ -2609,6 +2618,7 @@ function statName(p) {
 }
 
 function renderStatus() {
+  autosave(); // 装備変更・呪文使用などのたびに保存
   const p = G.party[G.statusIdx];
   statusEl.innerHTML = "";
 
@@ -3121,6 +3131,7 @@ function closeItemGet(onClose) {
   G.prompt = false;
   if (onClose) onClose();
   else renderBoard();
+  autosave(true);
 }
 
 // ---- 汎用イベント表示 (宝箱の中身・罠・泉など) ----
@@ -3331,6 +3342,145 @@ if (muteBtn) {
   muteBtn.addEventListener("click", () => { ensureAudio(); updateMuteBtn(toggleMute()); });
 }
 
+// ================= オートセーブ (ウィザードリィ3風: 常時保存・やり直し不可) =================
+// 一度選択した行動は取り消せない。タスクキルされても直前の状態 (戦闘なら確定済みの
+// 行動が実行される直前) から再開する。
+const SAVE_KEY = "dos-save-v1";
+// 保存する G のフィールド (アニメーション等の一時状態は除外)
+const SAVE_FIELDS = [
+  "state", "floor", "maxFloorReached", "board", "px", "py",
+  "gold", "soulPts", "redSoul", "dollsPurchased",
+  "party", "reserve", "souls", "shopStock", "run", "town",
+  "quests", "rumor", "activeRumor", "codex", "story", "dragonSlain",
+  "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
+];
+
+// 参照保持シリアライズ: 共有オブジェクト/循環参照を {$r:index} で表現し、
+// ロード時に同一性 (魂が複数箇所から参照される等) を完全に復元する。関数は無視。
+function refSerialize(root) {
+  const heap = [];
+  const map = new Map();
+  function enc(v) {
+    if (v === null || v === undefined) return null;
+    const t = typeof v;
+    if (t === "number" || t === "string" || t === "boolean") return v;
+    if (t !== "object") return null; // 関数など
+    if (map.has(v)) return { $r: map.get(v) };
+    const idx = heap.length;
+    map.set(v, idx);
+    if (Array.isArray(v)) {
+      const arr = []; heap.push({ a: arr });
+      for (const x of v) arr.push(enc(x));
+    } else {
+      const obj = {}; heap.push({ o: obj });
+      for (const k in v) {
+        if (!Object.prototype.hasOwnProperty.call(v, k)) continue;
+        if (typeof v[k] === "function") continue;
+        obj[k] = enc(v[k]);
+      }
+    }
+    return { $r: idx };
+  }
+  return { root: enc(root), heap };
+}
+
+function refDeserialize(data) {
+  const heap = data.heap || [];
+  const objs = heap.map((n) => (n.a ? [] : {}));
+  const dec = (v) => (v !== null && typeof v === "object" && "$r" in v) ? objs[v.$r] : v;
+  heap.forEach((n, i) => {
+    if (n.a) for (const x of n.a) objs[i].push(dec(x));
+    else for (const k in n.o) objs[i][k] = dec(n.o[k]);
+  });
+  return dec(data.root);
+}
+
+let _lastSave = 0;
+function autosave(force = false) {
+  if (!G.party || !G.party.length) return;
+  const now = Date.now();
+  if (!force && now - _lastSave < 200) return;
+  _lastSave = now;
+  try {
+    const snap = {};
+    for (const k of SAVE_FIELDS) snap[k] = G[k];
+    localStorage.setItem(SAVE_KEY, JSON.stringify(refSerialize(snap)));
+  } catch (e) { /* 容量/直列化失敗は黙殺 */ }
+}
+
+function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch {} }
+
+// 保存データを読み込み、G を復元する。成功なら true
+function loadGame() {
+  let raw;
+  try { raw = localStorage.getItem(SAVE_KEY); } catch { return false; }
+  if (!raw) return false;
+  let snap;
+  try { snap = refDeserialize(JSON.parse(raw)); } catch (e) { return false; }
+  if (!snap || !snap.party || !snap.party.length) return false;
+  for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
+  // 一時状態はリセット
+  G.anim = null; G.flipAnim = null; G.heroAnim = null; G.walking = false; G.prompt = false;
+  G.fx = null; G.animating = false; G.enemyPos = {}; G.partyFx = new Map(); G.wallFlash = null;
+  G.statusOpen = false;
+  // クラス/参照の再リンク (Battleのメソッド・敵のmon・派生値)
+  if (G.battle) {
+    Object.setPrototypeOf(G.battle, Battle.prototype);
+    G.battle.log = log;
+    for (const e of (G.battle.enemies || [])) if (e.key && MONSTERS[e.key]) e.mon = MONSTERS[e.key];
+  }
+  for (const d of [...(G.party || []), ...(G.reserve || [])]) {
+    try { recalcDoll(d); } catch {}
+  }
+  return true;
+}
+
+// 復元した状態に応じて画面を再構築 (やり直し不可の再開)
+function resumeFromState() {
+  if (!G.state || G.state === "town") {
+    G.state = "town";
+    if (townBtn) townBtn.classList.add("hidden");
+    renderTown();
+    return;
+  }
+  if (G.state === "board") {
+    if (townBtn) townBtn.classList.remove("hidden");
+    if (!G.board) newFloor();
+    renderBoard();
+    return;
+  }
+  if (G.state === "combat") {
+    if (townBtn) townBtn.classList.remove("hidden");
+    combatMenu.classList.remove("hidden");
+    resumeCombat();
+    return;
+  }
+  if (G.state === "over") {
+    gameOver(); // 全滅画面を再表示 (選択は未確定なので再度迫る)
+    return;
+  }
+}
+
+// 戦闘の再開: 確定済み (やり直し不可) の行動があれば即実行する
+function resumeCombat() {
+  const b = G.battle;
+  if (!b) { finishToBoard(); return; }
+  G.animating = false; G.fx = null; G.partyFx = new Map(); G.enemyPos = {};
+  renderCombat();
+  if (b.result) { setTimeout(endBattle, 200); return; }
+  // resolve フェーズ = 行動が確定済み → そのまま実行 (取り消せない)
+  if (b.phase === "resolve" && b.pending) { runCommitted(); return; }
+  if (b.phase === "enemy") { combatStep(); return; }
+  // input / target = まだ選択中 → メニュー/対象選択を再表示 (renderCombat 済み)
+}
+
+// アプリが裏に回る/閉じられる瞬間に確実に保存
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") autosave(true); });
+window.addEventListener("pagehide", () => autosave(true));
+window.addEventListener("beforeunload", () => autosave(true));
+// 取りこぼし対策の定期保存
+setInterval(() => autosave(), 3000);
+
 // 新規プレイの初期化: 人業ロスター・魂ストック・初期装備を整える
 function setupNewGame() {
   const { dolls, souls } = createStartingRoster();
@@ -3358,9 +3508,27 @@ function setupNewGame() {
 
 // ---- 起動 ----
 function init() {
-  setupNewGame();
-  log("魂の迷宮へようこそ。人業に魂を宿し、深淵へ挑め。", "sys");
-  renderTown();
+  let loaded = false;
+  try { loaded = loadGame(); } catch (e) { loaded = false; }
+  try {
+    if (!loaded) {
+      setupNewGame();
+      G.state = "town";
+      log("魂の迷宮へようこそ。人業に魂を宿し、深淵へ挑め。", "sys");
+    } else {
+      log("冒険を再開する。", "sys");
+    }
+    updateTopbar();
+    resumeFromState();
+  } catch (e) {
+    // 壊れたセーブで再開に失敗 → セーブを消して新規開始 (クラッシュループ防止)
+    clearSave();
+    setupNewGame();
+    G.state = "town";
+    updateTopbar();
+    resumeFromState();
+  }
+  autosave(true);
 
   if ("serviceWorker" in navigator) {
     // updateViaCache:none で sw.js を常に最新チェック。更新があれば即時反映してリロード

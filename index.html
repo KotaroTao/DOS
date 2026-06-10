@@ -77,6 +77,7 @@
         b.onclick = function () {
           b.disabled = true; b.textContent = "修復中…";
           var work = [];
+          try { localStorage.removeItem("dos-save-v1"); } catch (e) {}
           if (window.caches && caches.keys) work.push(caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }));
           if (navigator.serviceWorker && navigator.serviceWorker.getRegistrations) work.push(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }));
           Promise.all(work).catch(function () {}).then(function () { location.reload(); });
