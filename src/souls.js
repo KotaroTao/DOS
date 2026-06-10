@@ -99,11 +99,16 @@ export const SOUL_RANKS = {
 };
 
 // ランク抽選: legend 0.5% / great 1.7% / fine 10% / それ以外 normal
-export function rollSoulRank() {
+// bonus(0〜): 深い迷宮ほどレア魂が出やすくなる倍率加算
+export function rollSoulRank(bonus = 0) {
+  const m = 1 + Math.max(0, bonus);
+  const pLegend = 0.005 * m;
+  const pGreat = 0.017 * m;
+  const pFine = Math.min(0.6, 0.10 * (1 + bonus * 0.5));
   const r = Math.random();
-  if (r < 0.005) return "legend";
-  if (r < 0.005 + 0.017) return "great";
-  if (r < 0.005 + 0.017 + 0.10) return "fine";
+  if (r < pLegend) return "legend";
+  if (r < pLegend + pGreat) return "great";
+  if (r < pLegend + pGreat + pFine) return "fine";
   return "normal";
 }
 

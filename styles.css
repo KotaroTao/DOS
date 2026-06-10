@@ -684,3 +684,12 @@ canvas.spr { image-rendering: pixelated; display: block; }
   background: #160d12; border: 1px solid #5a2a3a; border-radius: 8px; padding: 10px 12px;
 }
 .st-revt { font-size: 14px; color: #ff9a98; font-weight: bold; }
+
+/* ===== 迷宮選択 ===== */
+.tw-dungeon {
+  display: flex; align-items: center; gap: 9px;
+  background: #170f22; border: 1px solid #34254a; border-left: 4px solid #4a3568;
+  border-radius: 8px; padding: 8px 11px; cursor: pointer;
+}
+.tw-dungeon.sel { border-left-color: #8a63b8; box-shadow: 0 0 0 1px #8a63b8; background: #20162e; }
+.tw-dungeon.locked { opacity: 0.5; cursor: default; }
