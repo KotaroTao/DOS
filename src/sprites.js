@@ -288,3 +288,14 @@ export function drawSprite(ctx, mon, cx, cy, size, alpha = 1) {
 export function spriteList() {
   return Object.keys(MONSTERS);
 }
+
+// スプライトを描いた canvas 要素を返す (DOM のアイコン用)
+export function spriteCanvas(spr, scale = 4, box = 12) {
+  const c = document.createElement("canvas");
+  c.width = box * scale;
+  c.height = box * scale;
+  c.className = "spr";
+  const ctx = c.getContext("2d");
+  drawSprite(ctx, spr, c.width / 2, c.height / 2, scale);
+  return c;
+}

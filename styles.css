@@ -203,6 +203,129 @@ html, body { height: 100%; overflow: hidden; }
 
 .hidden { display: none !important; }
 
+.pc .ail { color: var(--danger); }
+canvas.spr { image-rendering: pixelated; display: block; }
+
+/* ===== 個別ステータス / 装備画面 ===== */
+#status-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(6, 6, 12, 0.97);
+  display: flex;
+  flex-direction: column;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: calc(var(--safe-top) + 6px) 10px calc(var(--safe-bottom) + 10px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.st-head { display: flex; align-items: center; gap: 6px; }
+.st-tabs { display: flex; gap: 4px; flex: 1; flex-wrap: wrap; }
+.st-tab {
+  flex: 1 1 auto; min-width: 0; min-height: 38px;
+  font-size: 12px; padding: 6px 4px;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px;
+  color: var(--ink); font-family: var(--font); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.st-tab.active { border-color: var(--accent); color: var(--accent); }
+.st-tab.dead { opacity: 0.45; }
+.st-close { min-width: 40px; min-height: 38px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; color: var(--ink); font-size: 16px; }
+.st-body { margin-top: 8px; }
+
+.st-info { display: flex; gap: 10px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+.st-port { flex: 0 0 auto; background: #0c0c14; border: 1px solid var(--border); border-radius: 6px; padding: 4px; align-self: flex-start; }
+.st-meta { flex: 1; min-width: 0; font-size: 12px; line-height: 1.7; }
+.st-name { font-size: 15px; font-weight: bold; }
+.st-cls { font-size: 11px; color: var(--ink-dim); font-weight: normal; }
+.st-line b { color: var(--ink); }
+.st-bad { color: var(--danger); }
+
+.st-h { font-size: 12px; color: var(--accent); margin: 10px 2px 4px; }
+.st-eqgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
+.st-slot {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 4px 6px; min-height: 40px;
+}
+.st-slot.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.st-slot.empty { opacity: 0.5; }
+.st-slotlabel { flex: 0 0 34px; font-size: 10px; color: var(--ink-dim); }
+.st-slotname { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+
+.st-baggrid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+.st-item {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+}
+.st-item.sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.st-item.empty { background: #0c0c12; border-style: dashed; }
+
+.st-detail { margin-top: 10px; background: var(--panel); border: 1px solid var(--accent); border-radius: 8px; padding: 8px; }
+.st-dtop { display: flex; gap: 10px; align-items: center; }
+.st-dtext { flex: 1; min-width: 0; }
+.st-dname { font-size: 14px; font-weight: bold; }
+.st-dstat { font-size: 11px; color: var(--accent-2); margin-top: 2px; }
+.st-ddesc { font-size: 12px; color: var(--ink-dim); margin: 8px 0; line-height: 1.6; }
+.st-acts { display: flex; gap: 8px; }
+.st-acts .btn { flex: 1; }
+.btn:disabled { opacity: 0.4; }
+
+/* ===== アイテム入手演出 ===== */
+#item-get {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(4, 4, 10, 0.78);
+  animation: ig-fade 0.25s ease;
+}
+@keyframes ig-fade { from { opacity: 0; } to { opacity: 1; } }
+.ig-card {
+  width: 100%;
+  max-width: 340px;
+  background: linear-gradient(180deg, #20202e, #14141d);
+  border: 2px solid var(--accent);
+  border-radius: 14px;
+  box-shadow: 0 0 40px rgba(201, 162, 39, 0.4);
+  padding: 16px 18px 18px;
+  text-align: center;
+  animation: ig-pop 0.4s cubic-bezier(0.2, 1.4, 0.5, 1);
+}
+@keyframes ig-pop { 0% { transform: scale(0.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+.ig-banner { color: var(--accent); font-size: 14px; letter-spacing: 1px; margin-bottom: 8px; }
+.ig-art {
+  position: relative;
+  display: inline-block;
+  padding: 14px;
+  margin: 4px auto 10px;
+  background: radial-gradient(circle, rgba(201,162,39,0.25), transparent 70%);
+}
+.ig-art canvas.spr { animation: ig-float 2s ease-in-out infinite; }
+@keyframes ig-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+.ig-spark {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 6px; height: 6px;
+  margin: -3px;
+  background: #fff7cf;
+  border-radius: 50%;
+  transform: rotate(var(--a)) translateX(46px) scale(0);
+  animation: ig-spark 1.4s ease-out infinite;
+}
+@keyframes ig-spark {
+  0% { transform: rotate(var(--a)) translateX(20px) scale(0); opacity: 0; }
+  40% { transform: rotate(var(--a)) translateX(52px) scale(1); opacity: 1; }
+  100% { transform: rotate(var(--a)) translateX(66px) scale(0); opacity: 0; }
+}
+.ig-name { font-size: 19px; font-weight: bold; color: #fff; }
+.ig-stat { font-size: 12px; color: var(--accent-2); margin-top: 4px; }
+.ig-desc { font-size: 12px; color: var(--ink-dim); line-height: 1.6; margin: 10px 4px; }
+.ig-who { font-size: 12px; color: var(--accent); margin-bottom: 12px; }
+.ig-ok { width: 100%; }
+
 /* ===== ヒント ===== */
 #hint {
   flex: 0 0 auto;

@@ -1,5 +1,6 @@
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
+import { ITEMS, SLOTS, recalc, equip } from "./items.js";
 
 export const SPELLS = {
   HALITO: { name: "ハリト", mp: 2, kind: "atk", power: 10, target: "enemy", desc: "炎の矢" },
@@ -22,25 +23,43 @@ export const CLASSES = {
 export const MAX_PARTY = 6;
 
 export function createParty() {
-  const make = (name, clsKey) => {
+  const make = (name, clsKey, gear = [], bag = []) => {
     const c = CLASSES[clsKey];
-    return {
+    const m = {
       name, clsKey, cls: c.label,
       level: 1, exp: 0,
       hp: c.hp, maxhp: c.hp, mp: c.mp, maxmp: c.mp,
       atk: c.atk, def: c.def, spd: c.spd,
+      base: { hp: c.hp, mp: c.mp, atk: c.atk, def: c.def, spd: c.spd }, // 素のステータス
+      equip: { head: null, rhand: null, lhand: null, body: null, feet: null, acc1: null, acc2: null },
+      items: [],
+      ailment: null,      // null | "poison"
+      ac: 10 - c.def,
       spells: c.spells.slice(),
       alive: true, side: "party",
     };
+    // 初期所持品 → 装備
+    for (const id of gear) { const it = cloneItem(id); if (it) { m.items.push(it); equip(m, it); } }
+    for (const id of bag) { const it = cloneItem(id); if (it) m.items.push(it); }
+    recalc(m);
+    m.hp = m.maxhp; m.mp = m.maxmp;
+    return m;
   };
   return [
-    make("アレク", "fighter"),
-    make("ガレス", "knight"),
-    make("ロビン", "thief"),
-    make("メリナ", "mage"),
-    make("セイル", "priest"),
-    make("イルザ", "bishop"),
+    make("アレク", "fighter", ["shortSword", "woodShield", "leatherArmor"], ["herb"]),
+    make("ガレス", "knight", ["battleAxe", "ironHelm"], ["herb"]),
+    make("ロビン", "thief", ["dagger", "leatherBoots"], ["herb", "antidote"]),
+    make("メリナ", "mage", ["magicStaff", "robe"], ["manaDrop"]),
+    make("セイル", "priest", ["warHammer", "cap"], ["herb", "herb"]),
+    make("イルザ", "bishop", ["dagger", "robe"], ["manaDrop"]),
   ].slice(0, MAX_PARTY);
+}
+
+// アイテムは個体ごとに複製して持たせる (装備状態を個別管理するため)
+export function cloneItem(id) {
+  const t = ITEMS[id];
+  if (!t) return null;
+  return { ...t };
 }
 
 let _uid = 0;
@@ -304,10 +323,13 @@ export function gainExp(member, exp) {
     member.exp -= member.level * 30;
     member.level++;
     const c = CLASSES[member.clsKey];
-    member.maxhp += 6 + rand(5);
-    member.maxmp += c.mp > 0 ? 2 + rand(3) : 0;
-    member.atk += 2 + rand(2);
-    member.def += 1 + rand(2);
+    // 素のステータスを成長させ、装備込みで再計算
+    const b = member.base;
+    b.hp += 6 + rand(5);
+    b.mp += c.mp > 0 ? 2 + rand(3) : 0;
+    b.atk += 2 + rand(2);
+    b.def += 1 + rand(2);
+    recalc(member);
     member.hp = member.maxhp;
     member.mp = member.maxmp;
     msgs.push(`${member.name}はレベル${member.level}になった！`);

@@ -72,6 +72,7 @@ export const SFX = {
   stairs() { blip(392, 0.1, "triangle", 0.05); blip(330, 0.1, "triangle", 0.05, 0.1); blip(262, 0.2, "triangle", 0.05, 0.2); },
   die() { blip(200, 0.3, "square", 0.05, 0, 55); },
   levelup() { [523, 659, 784, 1047].forEach((f, i) => blip(f, 0.12, "square", 0.05, i * 0.09)); },
+  itemget() { [523, 659, 784, 1047, 1319].forEach((f, i) => blip(f, 0.13, "square", 0.05, i * 0.07)); blip(1047, 0.3, "triangle", 0.04, 0.4); },
   victory() { [523, 523, 523, 659, 784, 1047].forEach((f, i) => blip(f, 0.16, "square", 0.055, i * 0.14)); },
   gameover() { [392, 370, 349, 330].forEach((f, i) => blip(f, 0.32, "triangle", 0.055, i * 0.26)); },
 };

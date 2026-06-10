@@ -1,8 +1,10 @@
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSprite } from "./sprites.js";
-import { createParty, spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, gainExp, SPELLS } from "./combat.js";
+import { createParty, spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, gainExp, SPELLS, cloneItem } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
+import { spriteCanvas } from "./sprites.js";
+import { ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, recalc, equip as equipItem, unequip as unequipItem, canEquip } from "./items.js";
 
 const view = document.getElementById("view");
 const vctx = view.getContext("2d");
@@ -33,6 +35,8 @@ const G = {
   animating: false,   // 戦闘アニメーション中
   enemyPos: {},       // 敵の画面座標 (エフェクト配置用)
   partyFx: null,      // 味方カードの被弾/回復フラッシュ (Map)
+  statusOpen: false,  // ステータス画面表示中
+  statusIdx: 0,       // ステータス画面で選択中のメンバー
 };
 
 const rand = (n) => Math.floor(Math.random() * n);
@@ -224,7 +228,7 @@ function tryMove(dx, dy) {
 
 // 単発移動 (方向キー/ボタン/隣接クリック)。ガード後に1歩進む
 function moveTo(nx, ny) {
-  if (G.state !== "board" || G.anim || G.walking || G.prompt) return;
+  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen) return;
   if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) return;
   if (Math.abs(nx - G.px) + Math.abs(ny - G.py) !== 1) return;
   // 辺が壁で塞がれている: 進めない (壁の通り抜けは不可)。連続表示は抑制
@@ -254,6 +258,8 @@ function moveStep(nx, ny, onDone) {
         G.px = nx; G.py = ny;
         renderBoard();
         resolveCell(cell);
+        // 毒は1歩ごとに蝕む (戦闘/選択へ移っていなければ)
+        if (G.state === "board" && !G.prompt) tickPoison();
         if (onDone) onDone();
       } else {
         requestAnimationFrame(tick);
@@ -379,8 +385,9 @@ function resolveCell(cell) {
         if (!p.alive) continue;
         p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * 0.4));
         p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * 0.5));
+        p.ailment = null; // 毒も浄化
       }
-      log("癒しの泉だ！ パーティのHPとMPが回復した。", "heal");
+      log("癒しの泉だ！ HPとMPが回復し、毒も癒えた。", "heal");
       renderBoard();
       break;
     }
@@ -450,7 +457,7 @@ function openChest(cell) {
     return;
   }
   if (roll < danger) {
-    // 毒針の罠: パーティ全員にダメージ
+    // 毒針の罠: パーティ全員にダメージ + 一部に毒
     SFX.trap();
     const dmg = 6 + G.floor * 4 + rand(8);
     log(`宝箱は罠だった！ 毒針が飛び出す！`, "dmg");
@@ -458,19 +465,38 @@ function openChest(cell) {
       if (!p.alive) continue;
       p.hp = Math.max(0, p.hp - dmg);
       if (p.hp === 0) { p.alive = false; log(`${p.name}は倒れた…`, "dmg"); }
+      else if (Math.random() < 0.5) p.ailment = "poison";
     }
     if (!G.party.some((p) => p.alive)) { gameOver(); return; }
-    log(`全員に ${dmg} ダメージ`, "dmg");
+    log(`全員に ${dmg} ダメージ。毒に侵された者も…`, "dmg");
     renderBoard();
     return;
   }
-  // 通常: 宝
-  SFX.chest();
-  const g = 10 + G.floor * 12 + rand(30);
-  G.gold += g;
-  updateTopbar();
-  log(`宝箱から ${g} ゴールドを手に入れた！`, "win");
-  renderBoard();
+  // 通常: 宝 (ゴールド or 装備/アイテム)
+  if (Math.random() < 0.6) {
+    const got = giveItem(randomLoot(G.floor));
+    if (got) { showItemGet(got.item, got.who); return; } // 演出後に renderBoard
+    SFX.chest();
+    renderBoard();
+  } else {
+    SFX.chest();
+    const g = 10 + G.floor * 12 + rand(30);
+    G.gold += g;
+    updateTopbar();
+    log(`宝箱から ${g} ゴールドを手に入れた！`, "win");
+    renderBoard();
+  }
+}
+
+// 階層に応じた宝のテーブル
+function randomLoot(floor) {
+  const common = ["herb", "antidote", "manaDrop", "dagger", "cap", "leatherBoots", "powerRing", "guardAmulet", "woodShield"];
+  const rare = ["shortSword", "warHammer", "magicStaff", "leatherArmor", "ironHelm", "swiftRing", "lifeAmulet", "kiteShield"];
+  const epic = ["battleAxe", "plateArmor", "ironGreaves", "cursedBlade"];
+  const r = Math.random();
+  if (floor >= 2 && r < 0.18) return epic[rand(epic.length)];
+  if (r < 0.45) return rare[rand(rare.length)];
+  return common[rand(common.length)];
 }
 
 function descend() {
@@ -880,13 +906,17 @@ function highlightActor(actor) {
 function renderParty() {
   partyEl.innerHTML = "";
   const fx = G.partyFx;
-  for (const p of G.party) {
+  G.party.forEach((p, idx) => {
     const card = document.createElement("div");
     let cls = "pc" + (p.alive ? "" : " dead");
     if (fx && fx.has(p)) cls += " fx-" + fx.get(p); // fx-hit / fx-heal
     card.className = cls;
+    if (G.state === "board") {
+      card.style.cursor = "pointer";
+      card.addEventListener("click", () => openStatus(idx));
+    }
     card.innerHTML = `
-      <div class="name">${p.name}</div>
+      <div class="name">${p.name}${p.ailment === "poison" ? ' <span class="ail">☠</span>' : ""}</div>
       <div class="cls">${p.cls} Lv${p.level}</div>
       <div class="bar hp"><i style="width:${(p.hp / p.maxhp) * 100}%"></i></div>
       <div class="nums">HP ${p.hp}/${p.maxhp}</div>
@@ -894,7 +924,7 @@ function renderParty() {
       <div class="nums">MP ${p.mp}/${p.maxmp}</div>` : ""}
     `;
     partyEl.appendChild(card);
-  }
+  });
 }
 
 // ---- DOM ヘルパ ----
@@ -911,6 +941,267 @@ function btn(label, onClick) {
   b.addEventListener("click", onClick);
   return b;
 }
+
+// ---- 個別ステータス / 装備画面 ----
+const statusEl = document.getElementById("status-screen");
+const statusBtn = document.getElementById("status-btn");
+let stSel = null; // 詳細表示中のアイテム { item, from:"equip"|"bag", key }
+
+function openStatus(idx = 0) {
+  if (G.state !== "board" || G.anim || G.walking || G.prompt) return;
+  G.statusOpen = true;
+  G.statusIdx = idx;
+  stSel = null;
+  statusEl.classList.remove("hidden");
+  renderStatus();
+}
+function closeStatus() {
+  G.statusOpen = false;
+  stSel = null;
+  statusEl.classList.add("hidden");
+}
+
+function statName(p) {
+  return p.alive ? p.name : `${p.name}†`;
+}
+
+function renderStatus() {
+  const p = G.party[G.statusIdx];
+  statusEl.innerHTML = "";
+
+  // ヘッダ: メンバータブ + 閉じる
+  const head = el("div", "st-head");
+  const tabs = el("div", "st-tabs");
+  G.party.forEach((m, i) => {
+    const t = btn(statName(m), () => { G.statusIdx = i; stSel = null; renderStatus(); });
+    t.className = "st-tab" + (i === G.statusIdx ? " active" : "") + (m.alive ? "" : " dead");
+    tabs.appendChild(t);
+  });
+  head.appendChild(tabs);
+  const close = btn("✕", closeStatus); close.className = "st-close";
+  head.appendChild(close);
+  statusEl.appendChild(head);
+
+  const body = el("div", "st-body");
+
+  // 基本情報
+  const info = el("div", "st-info");
+  const port = el("div", "st-port");
+  port.appendChild(spriteCanvas(HERO, 6));
+  info.appendChild(port);
+  const meta = el("div", "st-meta");
+  meta.innerHTML = `
+    <div class="st-name">${p.name} <span class="st-cls">${p.cls} Lv${p.level}</span></div>
+    <div class="st-line">HP <b>${p.hp}/${p.maxhp}</b>　MP <b>${p.mp}/${p.maxmp}</b></div>
+    <div class="st-line">こうげき <b>${p.atk}</b>　ぼうぎょ <b>${p.def}</b></div>
+    <div class="st-line">すばやさ <b>${p.spd}</b>　AC <b>${p.ac}</b></div>
+    <div class="st-line">経験値 ${p.exp} / 次まで ${p.level * 30 - p.exp}</div>
+    <div class="st-line ${p.ailment ? "st-bad" : ""}">状態: ${p.ailment === "poison" ? "毒" : (p.alive ? "正常" : "戦闘不能")}</div>`;
+  info.appendChild(meta);
+  body.appendChild(info);
+
+  // 装備 7か所
+  const eq = el("div", "st-equip");
+  eq.appendChild(el("div", "st-h", "そうび (7か所)"));
+  const eqgrid = el("div", "st-eqgrid");
+  for (const slot of SLOTS) {
+    const it = p.equip[slot];
+    const cell = el("div", "st-slot" + (stSel && stSel.from === "equip" && stSel.key === slot ? " sel" : ""));
+    cell.appendChild(el("span", "st-slotlabel", SLOT_LABEL[slot]));
+    if (it) {
+      cell.appendChild(spriteCanvas(it, 3));
+      cell.appendChild(el("span", "st-slotname", it.name + (it.cursed ? "🔒" : "")));
+      cell.addEventListener("click", () => { stSel = { item: it, from: "equip", key: slot }; renderStatus(); });
+    } else {
+      cell.classList.add("empty");
+      cell.appendChild(el("span", "st-slotname", "—"));
+    }
+    eqgrid.appendChild(cell);
+  }
+  eq.appendChild(eqgrid);
+  body.appendChild(eq);
+
+  // 所持品 (最大12)
+  const bag = el("div", "st-bag");
+  bag.appendChild(el("div", "st-h", `もちもの (${p.items.length}/${MAX_ITEMS})`));
+  const baggrid = el("div", "st-baggrid");
+  for (let i = 0; i < MAX_ITEMS; i++) {
+    const it = p.items[i];
+    const cell = el("div", "st-item" + (it && stSel && stSel.from === "bag" && stSel.item === it ? " sel" : ""));
+    if (it) {
+      cell.appendChild(spriteCanvas(it, 3));
+      cell.addEventListener("click", () => { stSel = { item: it, from: "bag", index: i }; renderStatus(); });
+    } else {
+      cell.classList.add("empty");
+    }
+    baggrid.appendChild(cell);
+  }
+  bag.appendChild(baggrid);
+  body.appendChild(bag);
+
+  // 詳細 + 操作
+  if (stSel) body.appendChild(renderItemDetail(p, stSel));
+
+  statusEl.appendChild(body);
+}
+
+function statLines(it) {
+  const parts = [];
+  if (it.atk) parts.push(`こうげき ${it.atk > 0 ? "+" : ""}${it.atk}`);
+  if (it.def) parts.push(`ぼうぎょ ${it.def > 0 ? "+" : ""}${it.def}`);
+  if (it.spd) parts.push(`すばやさ ${it.spd > 0 ? "+" : ""}${it.spd}`);
+  if (it.hp) parts.push(`HP ${it.hp > 0 ? "+" : ""}${it.hp}`);
+  if (it.mp) parts.push(`MP ${it.mp > 0 ? "+" : ""}${it.mp}`);
+  if (it.use && it.use.heal) parts.push(`HP +${it.use.heal}`);
+  if (it.use && it.use.mp) parts.push(`MP +${it.use.mp}`);
+  if (it.use && it.use.cure) parts.push(`毒を治す`);
+  return parts.join("　");
+}
+
+function renderItemDetail(p, sel) {
+  const it = sel.item;
+  const d = el("div", "st-detail");
+  const top = el("div", "st-dtop");
+  const big = spriteCanvas(it, 7);
+  top.appendChild(big);
+  const dt = el("div", "st-dtext");
+  dt.appendChild(el("div", "st-dname", it.name + (it.cursed ? " 🔒呪" : "")));
+  dt.appendChild(el("div", "st-dstat", statLines(it)));
+  const cls = el("div", "st-dstat", it.classes ? "装備可: " + it.classes.map(clsLabel).join("/") : "全職装備可");
+  dt.appendChild(cls);
+  top.appendChild(dt);
+  d.appendChild(top);
+  d.appendChild(el("div", "st-ddesc", it.desc || ""));
+
+  const acts = el("div", "st-acts");
+  if (sel.from === "bag") {
+    if (it.slot === "use") {
+      acts.appendChild(btn("使う", () => useItem(p, sel.index)));
+    } else {
+      const can = canEquip(p, it);
+      const b = btn(can ? "装備する" : "装備不可", () => { if (can) doEquip(p, it); });
+      if (!can) b.disabled = true;
+      acts.appendChild(b);
+    }
+    acts.appendChild(makeDanger("捨てる", () => dropItem(p, sel.index)));
+  } else if (sel.from === "equip") {
+    const b = makeDanger("外す", () => doUnequip(p, sel.key));
+    if (it.cursed) { b.disabled = true; b.textContent = "外せない(呪)"; }
+    acts.appendChild(b);
+  }
+  d.appendChild(acts);
+  return d;
+}
+
+function makeDanger(label, fn) { const b = btn(label, fn); b.classList.add("danger"); return b; }
+function clsLabel(k) { return ({ fighter: "戦", knight: "騎", thief: "盗", mage: "魔", priest: "僧", bishop: "導" })[k] || k; }
+
+function doEquip(p, it) {
+  const r = equipItem(p, it);
+  if (r.msg) log(r.msg, r.ok ? "win" : "sys");
+  if (r.ok) SFX.select();
+  stSel = null;
+  renderStatus(); renderParty();
+}
+function doUnequip(p, key) {
+  const r = unequipItem(p, key);
+  if (r.msg) log(r.msg, r.ok ? "sys" : "dmg");
+  if (r.ok) SFX.select();
+  stSel = null;
+  renderStatus(); renderParty();
+}
+function useItem(p, index) {
+  const it = p.items[index];
+  if (!it || it.slot !== "use") return;
+  let used = false;
+  if (it.use.heal) {
+    if (p.hp >= p.maxhp) { log(`${p.name}のHPは満タンだ`, "sys"); }
+    else { p.hp = Math.min(p.maxhp, p.hp + it.use.heal); log(`${p.name}は${it.name}を使った。HP回復！`, "heal"); SFX.heal(); used = true; }
+  } else if (it.use.mp) {
+    if (p.mp >= p.maxmp) { log(`${p.name}のMPは満タンだ`, "sys"); }
+    else { p.mp = Math.min(p.maxmp, p.mp + it.use.mp); log(`${p.name}は${it.name}を使った。MP回復！`, "heal"); SFX.heal(); used = true; }
+  } else if (it.use.cure) {
+    if (p.ailment === it.use.cure) { p.ailment = null; log(`${p.name}の毒が治った`, "heal"); SFX.heal(); used = true; }
+    else { log(`効果がなかった`, "sys"); }
+  }
+  if (used) { p.items.splice(index, 1); stSel = null; }
+  renderStatus(); renderParty();
+}
+function dropItem(p, index) {
+  const it = p.items[index];
+  if (!it) return;
+  p.items.splice(index, 1);
+  log(`${it.name}を捨てた`, "sys");
+  stSel = null;
+  renderStatus();
+}
+
+// アイテムを入手 (空きのあるメンバーへ)。満杯なら拾えない。{item, who} を返す
+function giveItem(id) {
+  const it = cloneItem(id);
+  if (!it) return null;
+  const who = G.party.find((m) => m.items.length < MAX_ITEMS);
+  if (!who) { log(`${it.name}を見つけたが、誰も持てない…`, "sys"); return null; }
+  who.items.push(it);
+  log(`${it.name} を手に入れた！ (${who.name})`, "win");
+  return { item: it, who };
+}
+
+// ---- アイテム入手演出 (イラスト込みの感動的な表示) ----
+const itemGetEl = document.getElementById("item-get");
+
+function showItemGet(item, who, onClose) {
+  G.prompt = true; // 入力をブロック
+  SFX.itemget();
+  itemGetEl.innerHTML = "";
+  const card = el("div", "ig-card");
+  card.appendChild(el("div", "ig-banner", "✦ アイテム発見！ ✦"));
+  const art = el("div", "ig-art");
+  art.appendChild(spriteCanvas(item, 11)); // 大きめのイラスト
+  // きらめき
+  for (let i = 0; i < 6; i++) {
+    const s = el("span", "ig-spark");
+    s.style.setProperty("--a", (i * 60) + "deg");
+    s.style.animationDelay = (i * 0.08) + "s";
+    art.appendChild(s);
+  }
+  card.appendChild(art);
+  card.appendChild(el("div", "ig-name", item.name));
+  const stat = statLines(item);
+  if (stat) card.appendChild(el("div", "ig-stat", stat));
+  card.appendChild(el("div", "ig-desc", item.desc || ""));
+  card.appendChild(el("div", "ig-who", `${who.name} が手に入れた`));
+  const ok = btn("受け取る", () => closeItemGet(onClose));
+  ok.className = "btn primary ig-ok";
+  card.appendChild(ok);
+  itemGetEl.appendChild(card);
+  itemGetEl.classList.remove("hidden");
+  // 画面どこでも閉じられる
+  itemGetEl.onclick = (e) => { if (e.target === itemGetEl) closeItemGet(onClose); };
+}
+
+function closeItemGet(onClose) {
+  itemGetEl.classList.add("hidden");
+  itemGetEl.innerHTML = "";
+  G.prompt = false;
+  if (onClose) onClose();
+  else renderBoard();
+}
+
+// 毒のダメージ (盤面を1歩進むごと)
+function tickPoison() {
+  let any = false;
+  for (const p of G.party) {
+    if (!p.alive || p.ailment !== "poison") continue;
+    any = true;
+    p.hp = Math.max(0, p.hp - 1);
+    if (p.hp === 0) { p.alive = false; SFX.die(); log(`${p.name}は毒に倒れた…`, "dmg"); }
+  }
+  if (any && !G.party.some((p) => p.alive)) { gameOver(); return true; }
+  return false;
+}
+
+if (statusBtn) statusBtn.addEventListener("click", () => { if (G.statusOpen) closeStatus(); else openStatus(G.statusIdx || 0); });
 
 // ---- 入力 ----
 // 最初のユーザー操作で音声を起動 (ブラウザの自動再生制限対策)
@@ -935,7 +1226,7 @@ movePad.addEventListener("click", (e) => {
 
 // タイルクリックで移動: 隣接なら1歩、離れていれば経路探索して自動で歩く
 view.addEventListener("click", (e) => {
-  if (G.state !== "board" || G.anim || G.walking || G.prompt) return;
+  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen) return;
   const rect = view.getBoundingClientRect();
   const sx = (e.clientX - rect.left) * (view.width / rect.width);
   const sy = (e.clientY - rect.top) * (view.height / rect.height);
@@ -955,7 +1246,8 @@ view.addEventListener("click", (e) => {
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "m" || e.key === "M") { updateMuteBtn(toggleMute()); return; }
-  if (G.state !== "board" || G.prompt) return;
+  if (e.key === "Escape" && G.statusOpen) { closeStatus(); return; }
+  if (G.state !== "board" || G.prompt || G.statusOpen) return;
   switch (e.key) {
     case "ArrowUp": case "w": tryMove(0, -1); break;
     case "ArrowDown": case "s": tryMove(0, 1); break;
