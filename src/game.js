@@ -51,7 +51,7 @@ function newFloor() {
 }
 
 // ---- ボード描画 ----
-const CARD_W = 48, CARD_H = 42, GAP = 2;
+const CARD_W = 56, CARD_H = 50, GAP = 2;
 const OX = Math.floor((480 - (COLS * CARD_W + (COLS - 1) * GAP)) / 2);
 const OY = Math.floor((320 - (ROWS * CARD_H + (ROWS - 1) * GAP)) / 2);
 const SPR = 3; // スプライト拡大率
@@ -97,25 +97,28 @@ function renderBoard() {
   renderParty();
 }
 
-// めくった壁の中身: マス内に石壁を描く (ローカル座標 0..w, 0..h)
-function drawWallFace(w, h) {
-  vctx.fillStyle = "#3a3a44";
-  vctx.fillRect(0, 0, w, h);
-  vctx.strokeStyle = "#23232b";
-  vctx.lineWidth = 1;
-  const bh = h / 3;
-  for (let i = 0; i < 3; i++) {
-    const yy = i * bh;
-    vctx.strokeRect(0, yy, w, bh);
-    const off = i % 2 ? w / 2 : 0;
-    vctx.beginPath();
-    vctx.moveTo(off, yy);
-    vctx.lineTo(off, yy + bh);
-    vctx.stroke();
+// マスの辺の壁を描く (ローカル座標 0..w, 0..h)。walls[dir] が true の辺に石壁
+const WALL_T = 6;
+function drawWallEdges(cell, w, h) {
+  const bars = [];
+  if (cell.walls.n) bars.push([0, 0, w, WALL_T]);
+  if (cell.walls.s) bars.push([0, h - WALL_T, w, WALL_T]);
+  if (cell.walls.w) bars.push([0, 0, WALL_T, h]);
+  if (cell.walls.e) bars.push([w - WALL_T, 0, WALL_T, h]);
+  for (const [bx, by, bw, bh] of bars) {
+    vctx.fillStyle = "#5a5a66";
+    vctx.fillRect(bx, by, bw, bh);
+    vctx.fillStyle = "#3c3c46";
+    // 石の継ぎ目
+    if (bw > bh) {
+      for (let i = 1; i < 4; i++) vctx.fillRect(bx + (bw * i) / 4 - 0.5, by, 1, bh);
+    } else {
+      for (let i = 1; i < 5; i++) vctx.fillRect(bx, by + (bh * i) / 5 - 0.5, bw, 1);
+    }
+    vctx.strokeStyle = "#23232b";
+    vctx.lineWidth = 1;
+    vctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
   }
-  vctx.strokeStyle = "#55555f";
-  vctx.lineWidth = 2;
-  vctx.strokeRect(1, 1, w - 2, h - 2);
 }
 
 function drawCard(r, cell, scaleX, showBack) {
@@ -141,9 +144,6 @@ function drawCard(r, cell, scaleX, showBack) {
     vctx.textAlign = "center";
     vctx.textBaseline = "middle";
     vctx.fillText("?", r.w / 2, r.h / 2 + 1);
-  } else if (cell.type === "wall") {
-    // めくった壁: マス内に石壁を表示 (通行不可)
-    drawWallFace(r.w, r.h);
   } else {
     // 表面: 羊皮紙
     const cleared = cell.cleared && cell.type !== "stairs" && cell.type !== "start";
@@ -172,31 +172,42 @@ function drawCard(r, cell, scaleX, showBack) {
       vctx.fillStyle = "rgba(40,40,30,0.35)";
       vctx.fillRect(0, 0, r.w, r.h);
     }
+    // マスの辺の壁
+    drawWallEdges(cell, r.w, r.h);
   }
   vctx.restore();
 }
 
 // ---- 移動とカードめくり ----
-// (x,y) が移動先候補か: 隣接していて「未公開(めくれる)」または「公開済みで壁でない」
+// 現在地から (x,y) への辺が壁で塞がれていないか
+function edgeOpen(x, y) {
+  const dx = x - G.px, dy = y - G.py;
+  const cur = G.board.cells[G.py][G.px];
+  if (dx === 1) return !cur.walls.e;
+  if (dx === -1) return !cur.walls.w;
+  if (dy === 1) return !cur.walls.s;
+  if (dy === -1) return !cur.walls.n;
+  return false;
+}
+
+// (x,y) が移動先候補か: 隣接していて辺に壁がない
 function isStep(x, y) {
-  const d = Math.abs(x - G.px) + Math.abs(y - G.py);
-  if (d !== 1) return false;
-  const cell = G.board.cells[y][x];
-  return !cell.revealed || cell.type !== "wall";
+  if (Math.abs(x - G.px) + Math.abs(y - G.py) !== 1) return false;
+  return edgeOpen(x, y);
 }
 
 function tryMove(dx, dy) {
   moveTo(G.px + dx, G.py + dy);
 }
 
-// 隣接マスへ。未公開ならめくり、壁でなければ進む。タイルクリックと方向キー共通
+// 隣接マスへ。辺に壁があれば進めない。未公開ならめくってから進む
 function moveTo(nx, ny) {
   if (G.state !== "board" || G.anim) return;
   if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) return;
   if (Math.abs(nx - G.px) + Math.abs(ny - G.py) !== 1) return;
+  // 辺が壁で塞がれている: 進めない
+  if (!edgeOpen(nx, ny)) { SFX.miss(); return; }
   const cell = G.board.cells[ny][nx];
-  // 公開済みの壁: 通れない
-  if (cell.revealed && cell.type === "wall") { SFX.miss(); return; }
   G.prevPos = { x: G.px, y: G.py };
 
   if (!cell.revealed) {
@@ -208,17 +219,10 @@ function moveTo(nx, ny) {
       if (performance.now() - G.anim.t0 >= G.anim.dur) {
         G.anim = null;
         cell.revealed = true;
-        if (cell.type === "wall") {
-          // 壁が出た: めくるが進めない
-          SFX.miss();
-          log("壁が現れた。通れない。", "sys");
-          renderBoard();
-        } else {
-          SFX.step();
-          G.px = nx; G.py = ny;
-          renderBoard();
-          resolveCell(cell);
-        }
+        SFX.step();
+        G.px = nx; G.py = ny;
+        renderBoard();
+        resolveCell(cell);
       } else {
         requestAnimationFrame(tick);
       }
