@@ -736,3 +736,6 @@ canvas.spr { image-rendering: pixelated; display: block; }
   position: absolute; bottom: 1px; left: 0; right: 0;
   font-size: 8px; color: #ffd84a; text-align: center; pointer-events: none;
 }
+
+/* モーダルが背の高い内容でも収まるように (スクロールはモーダル内のみ) */
+.confirm-overlay .ig-card { max-height: 88vh; overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain; }

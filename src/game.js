@@ -1710,7 +1710,9 @@ function dollChip(d) {
 const MANSION_MENU = [
   { key: "party", icon: "🛡", name: "パーティ編成", desc: "迷宮へ連れて行く6体を選ぶ" },
   { key: "altar", icon: "⛓", name: "魂を宿す", desc: "5部位に魂を宿す" },
-  { key: "enhance", icon: "✦", name: "魂の強化 / 管理", desc: "Soulで魂を鍛える・確認" },
+  { key: "enhance", icon: "✦", name: "魂強化", desc: "Soulで魂を鍛える" },
+  { key: "synth", icon: "🌀", name: "魂合成", desc: "Soulで魂を作る" },
+  { key: "break", icon: "💥", name: "魂分解", desc: "魂を砕いてSoulに" },
   { key: "manage", icon: "🏚", name: "人業 作成 / 管理", desc: "空の人業を購入・解体" },
 ];
 
@@ -1719,6 +1721,8 @@ function renderMansion() {
   if (sub === "party") return renderMansionParty();
   if (sub === "altar") return renderAltar();
   if (sub === "enhance") return renderMansionEnhance();
+  if (sub === "synth") return renderMansionSynth();
+  if (sub === "break") return renderMansionBreak();
   if (sub === "manage") return renderMansionManage();
 
   townEl.appendChild(townHeader("人業の館"));
@@ -1776,7 +1780,7 @@ function rosterRow(d, onClick) {
 
 // 館サブ: 魂の強化・管理 (ストックの魂を一覧、Soulで鍛える)
 function renderMansionEnhance() {
-  townEl.appendChild(townHeader("魂の強化 / 管理", "mansion"));
+  townEl.appendChild(townHeader("魂強化", "mansion"));
   townEl.appendChild(el("div", "tw-lead", `✦${G.soulPts} Soul で、ストックの魂や人業に宿した魂を鍛えられる。`));
 
   // 宿している魂 (人業ごと)
@@ -1832,6 +1836,112 @@ function soulEnhanceRow(s, afterLevel) {
     r.appendChild(b);
   }
   return r;
+}
+
+// 魂合成: 職業×部位 を選び Soul を払って Lv1 の魂を作る
+const SOUL_SYNTH_COST = 40;
+let synthSel = { clsKey: "fighter", part: "head" };
+function renderMansionSynth() {
+  townEl.appendChild(townHeader("魂合成", "mansion"));
+  townEl.appendChild(el("div", "tw-lead", `✦${SOUL_SYNTH_COST} Soul を捧げ、職業と部位を選んで魂を生み出す。(所持 ✦${G.soulPts})`));
+
+  // 職業選択
+  townEl.appendChild(el("div", "tw-h", "職業"));
+  const cls = el("div", "tw-dolltabs");
+  for (const k of Object.keys(SOUL_CLASSES)) {
+    const b = btn(SOUL_CLASSES[k].label, () => { synthSel.clsKey = k; renderTown(); });
+    b.className = "tw-dolltab" + (synthSel.clsKey === k ? " active" : "");
+    b.style.borderColor = SOUL_CLASSES[k].color;
+    cls.appendChild(b);
+  }
+  townEl.appendChild(cls);
+
+  // 部位選択
+  townEl.appendChild(el("div", "tw-h", "部位"));
+  const prt = el("div", "tw-dolltabs");
+  for (const p of PARTS) {
+    const b = btn(PART_LABEL[p], () => { synthSel.part = p; renderTown(); });
+    b.className = "tw-dolltab" + (synthSel.part === p ? " active" : "");
+    prt.appendChild(b);
+  }
+  townEl.appendChild(prt);
+
+  // プレビュー + 作成
+  const preview = makeSoul(synthSel.clsKey, 1, synthSel.part, "normal");
+  const box = el("div", "tw-summary");
+  box.style.borderColor = SOUL_CLASSES[synthSel.clsKey].color;
+  box.appendChild(el("div", "tw-sumc", soulName(preview)));
+  const st = soulStats(preview);
+  box.appendChild(el("div", "tw-sumst", `HP+${st.hp} ${st.mp ? `MP+${st.mp} ` : ""}攻+${st.atk} 防+${st.def} 速+${st.spd}`));
+  townEl.appendChild(box);
+
+  const mk = btn(`🌀 魂を作る (✦${SOUL_SYNTH_COST})`, () => {
+    if (G.soulPts < SOUL_SYNTH_COST) { log("Soul が足りない。", "sys"); return; }
+    G.soulPts -= SOUL_SYNTH_COST;
+    const s = makeSoul(synthSel.clsKey, 1, synthSel.part, "normal");
+    G.souls.push(s);
+    SFX.itemget(); buzz([0, 30, 60, 30]);
+    log(`${soulName(s)} を合成した。`, "win");
+    showToast(`🌀 ${soulName(s)} を作成`);
+    renderTown();
+  });
+  mk.className = "btn primary tw-add";
+  if (G.soulPts < SOUL_SYNTH_COST) mk.disabled = true;
+  townEl.appendChild(mk);
+}
+
+// その魂を今のLvまで鍛えるのに要した Soul の総量 (合成費 + 各Lvの強化費)
+function soulInvested(s) {
+  let total = SOUL_SYNTH_COST; // 器(Lv1)ぶん
+  for (let lv = 1; lv < s.level; lv++) total += soulTrainCost(lv);
+  // ランクの希少さも価値に反映
+  total = Math.round(total * (SOUL_RANKS[s.rank || "normal"].mul));
+  return total;
+}
+// 分解で得られる Soul (投入量の半分)
+function soulBreakRefund(s) { return Math.max(1, Math.floor(soulInvested(s) / 2)); }
+
+// 魂分解: ストックの魂を砕いて Soul を得る (Lvが高いほど多い)
+function renderMansionBreak() {
+  townEl.appendChild(townHeader("魂分解", "mansion"));
+  townEl.appendChild(el("div", "tw-lead", "ストックの魂を砕いて Soul を取り戻す。レベルが高い魂ほど多く得られる。"));
+  const list = el("div", "tw-soullist");
+  if (!G.souls.length) list.appendChild(el("div", "tw-empty", "ストックに魂がない。(宿している魂は外してから)"));
+  G.souls.forEach((s) => {
+    const rank = SOUL_RANKS[s.rank || "normal"];
+    const r = el("div", "tw-soulrow" + (rank.order >= 1 ? " rare" : ""));
+    if (rank.color) r.style.borderColor = rank.color;
+    const o = el("span", "tw-chips"); o.style.color = SOUL_CLASSES[s.clsKey].glow; o.appendChild(spriteCanvas(soulSprite(s.clsKey), 2));
+    r.appendChild(o);
+    const info = el("div", "tw-chipi");
+    const nm = el("div", "tw-souln", soulName(s)); if (rank.color) nm.style.color = rank.color;
+    info.appendChild(nm);
+    info.appendChild(el("div", "tw-soulst", `分解で ✦${soulBreakRefund(s)} を得る`));
+    r.appendChild(info);
+    const b = btn(`💥 分解`, () => confirmBreakSoul(s));
+    b.className = "tw-small danger";
+    r.appendChild(b);
+    list.appendChild(r);
+  });
+  townEl.appendChild(list);
+}
+
+function confirmBreakSoul(s) {
+  const refund = soulBreakRefund(s);
+  showConfirm({
+    title: `${soulName(s)} を分解する？`,
+    lines: [`✦${refund} Soul を得る。`, "分解した魂は戻らない。"],
+    okLabel: "💥 分解する",
+    onOk: () => {
+      const i = G.souls.indexOf(s);
+      if (i < 0) return;
+      G.souls.splice(i, 1);
+      G.soulPts += refund;
+      SFX.crit(); buzz([0, 40, 40, 40]);
+      log(`${soulName(s)} を分解し ✦${refund} を得た。`, "win");
+      renderTown();
+    },
+  });
 }
 
 // 館サブ: 人業の作成・管理 (購入・解体)
@@ -2585,7 +2695,7 @@ function renderShop() {
 
   // 選択中メンバーの所持品グリッド (8枠固定)。タップで売る
   if (who) {
-    dock.appendChild(el("div", "shop-bagh", `${who.name} の所持品 (${who.items.length}/${MAX_ITEMS}) — タップで売る`));
+    dock.appendChild(el("div", "shop-bagh", `${who.name} の所持品 (${who.items.length}/${MAX_ITEMS}) — タップで詳細`));
     const bag = el("div", "shop-bag");
     for (let i = 0; i < MAX_ITEMS; i++) {
       const it = who.items[i];
@@ -2594,7 +2704,7 @@ function renderShop() {
         cellEl.appendChild(spriteCanvas(it, 2));
         cellEl.appendChild(el("span", "shop-price", `💰${sellPrice(it)}`));
         cellEl.title = it.name;
-        cellEl.addEventListener("click", () => sellItem(who, it, sellPrice(it)));
+        cellEl.addEventListener("click", () => showSellPrompt(who, it));
       }
       bag.appendChild(cellEl);
     }
@@ -2603,6 +2713,31 @@ function renderShop() {
     dock.appendChild(el("div", "tw-empty", "編成に人業がいない。"));
   }
   townEl.appendChild(dock);
+}
+
+// 商店: アイテム情報を表示し、売却するか選ぶ (宝箱演出と同じカード)
+function showSellPrompt(owner, it) {
+  const price = sellPrice(it);
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card");
+  card.style.borderColor = "#c9a227";
+  card.style.boxShadow = "0 0 40px #c9a22755";
+  card.appendChild(el("div", "ig-banner", "🛒 売却の確認"));
+  const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 9)); card.appendChild(art);
+  card.appendChild(el("div", "ig-name", it.name + (it.cursed ? " 🔒" : "")));
+  // 性能・説明
+  for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
+  if (it.desc) card.appendChild(el("div", "ig-desc", it.desc));
+  card.appendChild(el("div", "ig-who", `売値 💰${price} (在庫に並びます)`));
+  const list = el("div", "ig-choices");
+  const sell = btn(`💰${price} で売る`, () => { wrap.remove(); sellItem(owner, it, price); });
+  sell.classList.add("danger");
+  list.appendChild(sell);
+  list.appendChild(btn("やめる", () => wrap.remove()));
+  card.appendChild(list);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
 }
 
 function sellItem(owner, it, price) {
