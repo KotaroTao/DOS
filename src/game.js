@@ -2611,7 +2611,7 @@ function renderAltar() {
   sum.appendChild(el("div", "tw-sumt", tierTxt));
   sum.appendChild(el("div", "tw-sumst",
     `HP${d.maxhp} MP${d.maxmp} ATK${d.atk} VIT${d.vit} AGI${d.agi} INT${d.int} PIE${d.pie} LUK${d.luk}`));
-  if (d.spells.length) sum.appendChild(el("div", "tw-sumsk", "習得: " + d.spells.map((k) => SPELLS[k] ? SPELLS[k].name : k).join("・")));
+  if (d.spells.length) { const sk = skillChips(d.spells, "習得:"); sk.classList.add("tw-sumsk"); sum.appendChild(sk); }
   if (d.passives.length) sum.appendChild(el("div", "tw-sumsk", d.passives.join(" / ")));
   townEl.appendChild(sum);
 
@@ -3720,6 +3720,8 @@ function showCodexJobDetail(key) {
     if (reached >= e.lvl && sp) {
       r.appendChild(el("span", "cdx-dn", sp.name));
       r.appendChild(el("span", "cdx-skd", `${sp.desc} (MP${sp.mp})`));
+      r.classList.add("cdx-sktap");
+      r.addEventListener("click", () => showSkillPopup(e.skill));
     } else {
       r.appendChild(el("span", "cdx-dn dim", "？？？"));
     }
@@ -4233,8 +4235,8 @@ function renderStatTab(p) {
     ${line1}
     <div class="st-line">HP <b>${p.hp}/${p.maxhp}</b>　MP <b>${p.mp}/${p.maxmp}</b></div>
     <div class="st-line">属性攻撃 ${elemStatChip(p.elemAtk)}　属性防御 ${elemStatChip(p.elemDef)}</div>
-    ${p.spells && p.spells.length ? `<div class="st-line">習得: ${p.spells.map((k) => SPELLS[k] ? SPELLS[k].name : k).join("・")}</div>` : ""}
     <div class="st-line ${p.ailment ? "st-bad" : ""}">状態: ${p.ailment ? (AIL_NAME[p.ailment] || p.ailment) : (p.alive ? "正常" : "戦闘不能")}</div>`;
+  if (p.spells && p.spells.length) meta.appendChild(skillChips(p.spells, "習得:"));
   top.appendChild(meta);
   info.appendChild(top);
 
@@ -4423,6 +4425,67 @@ function elemStatChip(e) {
   if (!e || !e.el) return "<b>—</b>";
   const d = ELEMENTS[e.el] || ELEMENTS.none;
   return `<b style="color:${d.color}">${d.label}${e.lv >= 2 ? "◎" : "◯"}</b>`;
+}
+
+// ===== スキル詳細ポップアップ =====
+const SPELL_KIND_LABEL = { atk: "攻撃呪文", heal: "回復呪文", phys: "物理技", buff: "支援", debuff: "弱体", sleep: "状態異常", cure: "治療" };
+const SPELL_TARGET_LABEL = { enemy: "敵単体", "all-enemy": "敵全体", ally: "味方単体", "all-ally": "味方全体", self: "自分" };
+const SPELL_KIND_COLOR = { atk: "#e0743f", heal: "#46c08f", phys: "#d8b04a", buff: "#5fa8e0", debuff: "#a06fd6", sleep: "#a06fd6", cure: "#46c08f" };
+
+// スキルの効果をくわしい行に展開する
+function skillDetailLines(sp) {
+  const lines = [];
+  lines.push(`種別: ${SPELL_KIND_LABEL[sp.kind] || sp.kind}　対象: ${SPELL_TARGET_LABEL[sp.target] || sp.target}`);
+  if (sp.element && sp.element !== "none" && ELEMENTS[sp.element]) lines.push(`属性: ${ELEMENTS[sp.element].label}`);
+  if (sp.kind === "atk") lines.push(`威力 ${sp.power}（術者のINTで伸びる）`);
+  if (sp.kind === "heal" && sp.power) lines.push(`回復量 ${sp.power}（術者のPIEで伸びる）`);
+  if (sp.revive) lines.push(sp.revivePct ? `戦闘不能をHP${Math.round(sp.revivePct * 100)}%で蘇生する` : "戦闘不能も蘇生できる");
+  if (sp.kind === "phys") {
+    lines.push(`威力 攻撃力の${sp.power}倍${sp.hits ? ` × ${sp.hits}回` : ""}`);
+    if (sp.critBonus) lines.push(`会心率 +${Math.round(sp.critBonus * 100)}%`);
+  }
+  const fx = (obj) => Object.entries(obj).map(([k, v]) => `${ATTR_LABEL[k] || k.toUpperCase()} ×${v}`).join("・");
+  if (sp.buff) lines.push(`強化: ${fx(sp.buff)}`);
+  if (sp.debuff) lines.push(`弱体: ${fx(sp.debuff)}`);
+  return lines;
+}
+
+// スキル名タップで開く詳細カード
+function showSkillPopup(key) {
+  const sp = SPELLS[key];
+  if (!sp) return;
+  const accent = SPELL_KIND_COLOR[sp.kind] || "#c9a227";
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card confirm-card");
+  card.style.borderColor = accent;
+  const banner = el("div", "ig-banner", "✦ スキル ✦");
+  banner.style.color = accent;
+  card.appendChild(banner);
+  card.appendChild(el("div", "ig-name", sp.name));
+  card.appendChild(el("div", "sk-mp", `消費MP ${sp.mp}`));
+  card.appendChild(el("div", "ig-desc", sp.desc));
+  const box = el("div", "sk-lines");
+  for (const ln of skillDetailLines(sp)) box.appendChild(el("div", "sk-line", ln));
+  card.appendChild(box);
+  const ok = btn("閉じる", () => wrap.remove());
+  ok.className = "btn primary ig-ok";
+  card.appendChild(ok);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
+}
+
+// 習得スキルのタップ可能なチップ列
+function skillChips(keys, label) {
+  const row = el("div", "sk-chips");
+  if (label) row.appendChild(el("span", "sk-chipl", label));
+  for (const k of keys) {
+    const sp = SPELLS[k];
+    const c = el("span", "sk-chip", sp ? sp.name : k);
+    if (sp) c.addEventListener("click", () => showSkillPopup(k));
+    row.appendChild(c);
+  }
+  return row;
 }
 
 function statLines(it) {
