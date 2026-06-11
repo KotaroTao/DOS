@@ -3,7 +3,7 @@
 // 完全迷路なのでどのマスへもいずれかのルートで到達できる。
 //
 // セル: { type, revealed, cleared, walls:{n,e,s,w}, monsterKey? }
-// type: start | empty | monster | chest | trap | fountain | stairs
+// type: start | empty | monster | chest | trap | poison | fountain | stairs
 // walls: その辺に壁があれば true (隣接セルと共有)
 
 export const COLS = 8;
@@ -186,6 +186,19 @@ export function makeBoard(floor, cfg = null) {
       }
       else if (fountainCount < 1) { c.type = "fountain"; c.cleared = false; fountainCount++; }
       else { c.type = "monster"; c.monsterKey = pick(pool); c.cleared = false; }
+    }
+  }
+
+  // 毒の床: 行き止まり以外の「通路」にも危険を敷く新地形 (ランク3帯以降の迷宮)。
+  // 踏むたびに隊全体を蝕む。盗賊系の毒床耐性で軽減/無効化できる
+  const poisonRate = dn.poisonRate || 0;
+  if (poisonRate > 0) {
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        const c = cells[y][x];
+        if (c.type !== "empty" || openCount(c) < 2) continue;
+        if (Math.random() < poisonRate) { c.type = "poison"; c.cleared = false; }
+      }
     }
   }
 
