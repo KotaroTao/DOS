@@ -880,6 +880,8 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .eq-ct { display: flex; flex-direction: column; min-width: 0; }
 .eq-cn { font-size: 13px; color: #e7e3d4; }
 .eq-cs { font-size: 10px; color: #8fd6bd; }
+.eq-ccls { font-size: 10px; color: #c9a227; }
+.eq-cdesc { font-size: 10px; color: var(--ink-dim); white-space: normal; line-height: 1.4; margin-top: 2px; }
 .eq-cd { font-size: 10px; margin-top: 2px; display: flex; flex-wrap: wrap; gap: 3px 8px; align-items: baseline; }
 .eq-cd-lab { color: var(--ink-dim); }
 .eq-cd-seg.up { color: var(--good); }
