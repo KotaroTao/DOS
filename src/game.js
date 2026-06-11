@@ -2194,7 +2194,6 @@ function renderTownHub() {
   townEl.appendChild(townHeader("辺境の街 ロアダル", false));
 
   const intro = el("div", "tw-intro");
-  intro.appendChild(el("div", "tw-introt", "百の迷宮と 魂の王 — Hundred Labyrinths: Rise of the Soul King"));
   intro.appendChild(el("div", "tw-intros", `踏破した迷宮 ${clearedDungeonCount()} / ${DUNGEONS.length}`));
   townEl.appendChild(intro);
 
