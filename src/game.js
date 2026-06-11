@@ -160,6 +160,7 @@ const G = {
   fastAnim: false,    // 戦闘演出の倍速設定 (永続)
   autoCombat: false,  // オート戦闘中 (セッション内のみ)
   rumor: null,        // 酒場で表示中の噂 (次回潜入で現実化)
+  rumorCooldown: 0,   // 次の噂を聞けるUNIXタイムスタンプ(ms) — 30分クールダウン
   activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
   codex: { mon: {}, item: {}, job: {} }, // 図鑑 (モンスター/アイテム/職業)
   story: 0,           // 王宮ストーリーの進行段階
@@ -3189,6 +3190,17 @@ function rollRumor() {
   const floor = G.maxFloorReached;
   const speaker = RUMOR_SPEAKERS[rand(RUMOR_SPEAKERS.length)];
   const roll = Math.random();
+  // 2% で未発見の混成職ヒント
+  if (roll < 0.02) {
+    const undiscovered = Object.keys(HYBRIDS).filter((k) => !(G.codex.job && G.codex.job[k]));
+    if (undiscovered.length) {
+      const key = undiscovered[rand(undiscovered.length)];
+      const [baseK, subK] = key.split("+");
+      const bn = SOUL_CLASSES[baseK].label, sn = SOUL_CLASSES[subK].label;
+      return { type: "hybridHint", hybridKey: key, floor, speaker,
+        text: `「〈${bn}〉の魂を多く宿し、〈${sn}〉の魂を添えると……奇妙な力が宿るらしい。眉唾だがな。」` };
+    }
+  }
   if (roll < 0.45) {
     // あたたかい死体 (職業指定) の予兆
     const clsKey = ["fighter", "knight", "thief", "mage", "priest", "bishop"][rand(6)];
@@ -3238,16 +3250,40 @@ function renderTavern() {
   townEl.appendChild(el("div", "tw-lead", "迷宮帰りの傭兵がたむろする。依頼の受注と噂話はここで。(編成は人業の館)"));
 
   // --- 噂話 ---
-  if (!G.rumor) G.rumor = rollRumor();
   townEl.appendChild(el("div", "tw-h", "酒場の噂話"));
-  const rb = el("div", "tw-rumor");
-  rb.appendChild(el("div", "tw-rumors", `― ${G.rumor.speaker} ―`));
-  rb.appendChild(el("div", "tw-rumort", G.rumor.text));
-  rb.appendChild(el("div", "tw-note", "この噂は、次に潜る迷宮で現実になる。"));
-  townEl.appendChild(rb);
-  const reroll = btn("🍺 別の噂を聞く", () => { G.rumor = rollRumor(); SFX.select(); renderTown(); });
-  reroll.className = "btn tw-add";
-  townEl.appendChild(reroll);
+  if (G.rumor) {
+    const rb = el("div", "tw-rumor");
+    rb.appendChild(el("div", "tw-rumors", `― ${G.rumor.speaker} ―`));
+    rb.appendChild(el("div", "tw-rumort", G.rumor.text));
+    const noteText = G.rumor.type === "hybridHint"
+      ? "これは迷宮で現実になる話ではないが……真偽はお前が確かめるしかない。"
+      : "この噂は、次に潜る迷宮で現実になる。";
+    rb.appendChild(el("div", "tw-note", noteText));
+    townEl.appendChild(rb);
+  } else {
+    const now = Date.now();
+    const coolLeft = (G.rumorCooldown || 0) - now;
+    if (coolLeft > 0) {
+      const mins = Math.ceil(coolLeft / 60000);
+      const coolBox = el("div", "tw-rumor");
+      coolBox.appendChild(el("div", "tw-rumors", "― しばらく待て ―"));
+      coolBox.appendChild(el("div", "tw-rumort", `情報屋はまだ動いていない。あと約 ${mins} 分後に話せる。`));
+      townEl.appendChild(coolBox);
+    } else {
+      townEl.appendChild(el("div", "tw-note", "100ゴールドで噂話を一つ聞ける。迷宮に潜れば現実になるという…。"));
+      const listenBtn = btn("🍺 噂を聞く (💰100)", () => {
+        if (G.gold < 100) { log("ゴールドが足りない。", "bad"); SFX.ng(); return; }
+        G.gold -= 100;
+        G.rumor = rollRumor();
+        G.rumorCooldown = Date.now() + 30 * 60 * 1000;
+        SFX.select();
+        save();
+        renderTown();
+      });
+      listenBtn.className = "btn tw-add";
+      townEl.appendChild(listenBtn);
+    }
+  }
 
   // --- クエスト掲示板 (常設 + 日替わり) ---
   const questRow = (q) => {
@@ -5561,7 +5597,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py",
   "gold", "soulPts", "redSoul", "dollsPurchased", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "lastEmptyClaim", "run", "town",
-  "quests", "dailyQuests", "subQuests", "msq", "ach", "fastAnim", "rumor", "activeRumor", "codex", "story", "dragonSlain", "runCfg", "stats",
+  "quests", "dailyQuests", "subQuests", "msq", "ach", "fastAnim", "rumor", "rumorCooldown", "activeRumor", "codex", "story", "dragonSlain", "runCfg", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
 ];
 
