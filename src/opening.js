@@ -163,10 +163,10 @@ export function showOpening(onDone) {
     }
 
     if (sc.last) {
-      const tt = div("op-title", "魂の迷宮");
+      const tt = div("op-title", "百の迷宮と 魂の王");
       tt.style.animationDelay = (delay + 0.6).toFixed(2) + "s";
       stage.appendChild(tt);
-      const ts = div("op-subtitle", "— Dungeon of Souls —");
+      const ts = div("op-subtitle", "— Hundred Labyrinths: Rise of the Soul King —");
       ts.style.animationDelay = (delay + 1.4).toFixed(2) + "s";
       stage.appendChild(ts);
       delay += 1.8;

@@ -2194,7 +2194,7 @@ function renderTownHub() {
   townEl.appendChild(townHeader("辺境の街 ロアダル", false));
 
   const intro = el("div", "tw-intro");
-  intro.appendChild(el("div", "tw-introt", "魂の迷宮 — Dungeon of Souls"));
+  intro.appendChild(el("div", "tw-introt", "百の迷宮と 魂の王 — Hundred Labyrinths: Rise of the Soul King"));
   intro.appendChild(el("div", "tw-intros", `踏破した迷宮 ${clearedDungeonCount()} / ${DUNGEONS.length}`));
   townEl.appendChild(intro);
 
@@ -5507,7 +5507,7 @@ function init() {
   if (!loaded) {
     setupNewGame();
     G.state = "town";
-    log("魂の迷宮へようこそ。人業に魂を宿し、深淵へ挑め。", "sys");
+    log("百の迷宮と 魂の王へようこそ。人業に魂を宿し、深淵へ挑め。", "sys");
   } else {
     log("冒険を再開する。", "sys");
     setTimeout(() => { try { showToast("💾 冒険を再開しました"); } catch {} }, 400);
