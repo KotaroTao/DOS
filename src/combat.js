@@ -18,7 +18,7 @@ export const SPELLS = {
   TILTOWAIT: { name: "ティルトウェイト", mp: 16, kind: "atk", power: 48, element: "fire", target: "all-enemy", desc: "全体を消し飛ばす業火" },
   MADALT: { name: "マダルト", mp: 10, kind: "atk", power: 34, element: "water", target: "all-enemy", desc: "全体を貫く氷嵐" },
   // 支援・治療・弱体 (バフ/デバフは六大ステ atk/vit/agi への倍率)
-  CURE: { name: "キュア", mp: 3, kind: "cure", target: "ally", desc: "毒・麻痺を治す" },
+  CURE: { name: "キュア", mp: 3, kind: "cure", target: "ally", desc: "毒・麻痺・石化を治す" },
   BLESS: { name: "ブレス", mp: 4, kind: "buff", buff: { atk: 1.3 }, target: "ally", desc: "味方単体のATK UP" },
   PROTECT: { name: "プロテクション", mp: 4, kind: "buff", buff: { vit: 1.3 }, target: "ally", desc: "味方単体のVIT UP" },
   DISPEL: { name: "ディスペル", mp: 5, kind: "debuff", debuff: { atk: 0.75, vit: 0.8 }, target: "all-enemy", desc: "敵全体の能力DOWN" },
@@ -34,6 +34,17 @@ export const SPELLS = {
   SHIELDBASH: { name: "シールドバッシュ", mp: 3, kind: "phys", power: 1.4, target: "enemy", desc: "盾で打ち据える" },
   POISONSTAB: { name: "毒刃", mp: 4, kind: "phys", power: 1.2, debuff: { atk: 0.85 }, target: "enemy", desc: "毒の刃で弱らせる" },
   ASSASSINATE: { name: "急所突き", mp: 6, kind: "phys", power: 1.6, critBonus: 0.5, target: "enemy", desc: "会心率の高い一撃" },
+
+  // ---- 職業Lv 28-50 帯の上位スキル ----
+  GOUZAN: { name: "豪斬", mp: 10, kind: "phys", power: 2.4, target: "enemy", desc: "鎧ごと断ち割る重い一刀" },
+  SENPUU: { name: "旋風斬", mp: 12, kind: "phys", power: 1.3, target: "all-enemy", desc: "竜巻のごとき回転斬り" },
+  ZANTETSU: { name: "斬鉄", mp: 16, kind: "phys", power: 4.2, target: "enemy", desc: "鉄をも両断する奥義の一閃" },
+  BOUJIN: { name: "防陣", mp: 10, kind: "buff", buff: { vit: 1.4 }, target: "all-ally", desc: "隊列を固める鉄の陣形" },
+  JOUMON: { name: "城門崩し", mp: 14, kind: "phys", power: 3.0, debuff: { vit: 0.8 }, target: "enemy", desc: "城門すら砕く渾身の盾撃" },
+  KAGENUI: { name: "影縫い", mp: 9, kind: "debuff", debuff: { agi: 0.6 }, target: "all-enemy", desc: "影を縫い止め敵全体を鈍らせる" },
+  ZETSUEI: { name: "絶影", mp: 14, kind: "phys", power: 1.1, hits: 3, critBonus: 0.25, target: "enemy", desc: "残像すら斬る神速の三連撃" },
+  LAHALITO: { name: "ラハリト", mp: 11, kind: "atk", power: 36, element: "fire", target: "enemy", desc: "一体を焼き尽くす灼熱の業炎" },
+  SEISAI: { name: "星砕", mp: 22, kind: "atk", power: 64, target: "all-enemy", desc: "天より墜ちる星々が戦場を砕く" },
 };
 
 // 旧プリメイド職テーブル (現行のパーティは人業=souls.js 経由で作られる)。六大ステで定義。
@@ -127,6 +138,7 @@ function makeEnemy(key, scale = 1, boss = false) {
     agi: m.spd,
     soul: Math.round(m.soul * scale), gold: Math.round(m.gold * scale),
     boss: boss || !!m.boss,
+    ability: m.ability || null, // 特殊能力 (毒/麻痺/石化/即死/窃盗/ドレイン/ブレス)
     alive: true, asleep: false, side: "enemy",
   };
 }
@@ -154,23 +166,33 @@ export class Battle {
   livingParty() { return this.party.filter((p) => p.alive); }
   livingEnemies() { return this.enemies.filter((e) => e.alive); }
 
-  // AGI(+乱数)で行動順を組み直す
+  // AGI(+乱数)で行動順を組み直す。ラウンド開始時に毒のダメージが入る
   _startRound() {
+    for (const a of [...this.party, ...this.enemies]) {
+      if (!a.alive || a.ailment !== "poison") continue;
+      const d = Math.max(1, Math.round(a.maxhp * 0.05));
+      a.hp -= d;
+      this.log(`${a.name}は毒に蝕まれた (${d})`, "dmg");
+      this._die(a);
+    }
+    this._checkEnd();
     const eagi = (a) => (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1);
     this.queue = [...this.party, ...this.enemies]
       .filter((a) => a.alive)
       .sort((a, b) => (eagi(b) + rand(4)) - (eagi(a) + rand(4)));
   }
 
-  // 次の手番へ。味方なら input、敵なら enemy フェーズで止まる (実行はしない)
+  // 次の手番へ。味方なら input (行動不能なら stunned)、敵なら enemy フェーズで止まる
   advance() {
     if (this.result) { this.phase = "done"; return; }
     while (true) {
       if (this.queue.length === 0) this._startRound();
+      if (this.result) { this.phase = "done"; return; }
       const actor = this.queue.shift();
       if (!actor || !actor.alive) continue;
       this.current = actor;
       if (actor.side === "party") {
+        if (actor.asleep || actor.ailment === "paralyze" || actor.ailment === "stone") { this.phase = "stunned"; return; }
         actor._defending = false; // 防御は次の自分の手番まで
         this.phase = "input";
       } else {
@@ -178,6 +200,22 @@ export class Battle {
       }
       return;
     }
+  }
+
+  // 行動不能の味方の手番 (睡眠/麻痺/石化)。麻痺・睡眠は毎ターン回復判定がある
+  stunnedAct() {
+    const a = this.current;
+    const res = { actor: a, action: "stunned", side: a.side, hits: [] };
+    if (a.ailment === "stone") this.log(`${a.name}は石化して動けない…`, "sys");
+    else if (a.ailment === "paralyze") {
+      if (Math.random() < 0.35) { a.ailment = null; this.log(`${a.name}の麻痺が解けた！`, "heal"); }
+      else this.log(`${a.name}は痺れて動けない…`, "sys");
+    } else if (a.asleep) {
+      if (Math.random() < 0.45) { a.asleep = false; this.log(`${a.name}は目を覚ました`, "sys"); }
+      else this.log(`${a.name}は眠っている…`, "sys");
+    }
+    this._checkEnd();
+    return res;
   }
 
   // 手番の味方の行動を選択。{ needTarget } を返す
@@ -232,14 +270,20 @@ export class Battle {
     return res;
   }
 
-  // 敵の手番を実行し結果を返す
+  // 敵の手番を実行し結果を返す。特殊能力 (ability) 持ちは一定確率で使う
   enemyAct() {
     const actor = this.current;
-    const cmd = {
-      actor,
-      action: actor.asleep ? "sleep" : "attack",
-      target: this._randAlive(this.livingParty()),
-    };
+    let cmd;
+    if (actor.asleep) {
+      cmd = { actor, action: "sleep" };
+    } else {
+      const ab = actor.ability;
+      if (ab && Math.random() < (ab === "breath" ? 0.30 : 0.25)) {
+        cmd = { actor, action: ab === "breath" ? "breath" : "special", kind: ab, target: this._randAlive(this.livingParty()) };
+      } else {
+        cmd = { actor, action: "attack", target: this._randAlive(this.livingParty()) };
+      }
+    }
     const res = this._exec(cmd);
     this._checkEnd();
     return res;
@@ -276,6 +320,61 @@ export class Battle {
     }
     if (action === "spell") {
       this._cast(actor, cmd, res);
+      return res;
+    }
+    if (action === "breath") {
+      // ブレス: 味方全体への属性ダメージ (回避不可・VITで微減)
+      this.log(`${actor.name}は${actor.boss ? "業炎の" : ""}ブレスを吐いた！`, "dmg");
+      res.breath = true;
+      for (const t of this.livingParty()) {
+        const em = elemDmgMult(actor.element || "none", 1, t.element || "none", t.elemDef);
+        let dmg = Math.max(1, Math.round(variance(this._eatk(actor) * 0.85) - this._evit(t) * 0.25));
+        if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
+        if (t._defending) dmg = Math.ceil(dmg * 0.5);
+        t.hp -= dmg;
+        this.log(`${t.name}に ${dmg} ダメージ${em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : ""}`, "dmg");
+        if (t.asleep) t.asleep = false;
+        res.hits.push({ target: t, dmg, died: this._die(t) });
+      }
+      return res;
+    }
+    if (action === "special") {
+      // 敵の特殊行動。状態異常の付与や窃盗。控除系 (steal/drain) の実処理は game.js 側
+      const t = (cmd.target && cmd.target.alive) ? cmd.target : this._randAlive(this.party);
+      if (!t) return res;
+      const k = cmd.kind;
+      if (k === "poison" || k === "paralyze") {
+        const h = this._physical(actor, t, { power: 0.9, name: k === "poison" ? "毒の牙" : "麻痺の爪" });
+        res.hits.push(h);
+        if (!h.miss && t.alive && !t.ailment && Math.random() < 0.4) {
+          t.ailment = k;
+          h.ailment = k;
+          this.log(`${t.name}は${k === "poison" ? "毒" : "麻痺"}に侵された！`, "dmg");
+        }
+      } else if (k === "stone") {
+        this.log(`${actor.name}の石化の凝視！`, "dmg");
+        if (t.ailment || Math.random() >= 0.32) { this.log(`${t.name}は目を逸らした`, "sys"); res.hits.push({ target: t, miss: true }); }
+        else { t.ailment = "stone"; this.log(`${t.name}は石になった！`, "dmg"); res.hits.push({ target: t, stoned: true }); }
+      } else if (k === "critical") {
+        const h = this._physical(actor, t, { power: 1.1, name: "死神の一撃" });
+        res.hits.push(h);
+        if (!h.miss && t.alive && Math.random() < 0.15) {
+          this.log(`${actor.name}は${t.name}の急所を貫いた！`, "dmg");
+          t.hp = 0;
+          h.fatal = true;
+          h.died = this._die(t) || h.died; // 不屈持ちはHP1で耐える
+        }
+      } else if (k === "goldSteal" || k === "soulSteal") {
+        if (Math.random() < 0.35) { this.log(`${actor.name}は${t.name}の懐を狙ったが、躱された！`, "sys"); res.hits.push({ target: t, miss: true }); }
+        else {
+          const amt = k === "goldSteal" ? 5 + Math.round((actor.gold || 10) * 0.5) : 3 + Math.round((actor.soul || 5) * 0.6);
+          res.hits.push({ target: t, steal: k, stealAmt: amt });
+        }
+      } else if (k === "drain") {
+        const h = this._physical(actor, t, { power: 0.8, name: "魂喰らい" });
+        res.hits.push(h);
+        if (!h.miss && t.alive && Math.random() < 0.35) h.drain = true; // 魂レベルの控除は game.js 側
+      }
       return res;
     }
     return res;
@@ -424,12 +523,24 @@ export class Battle {
 
   _checkEnd() {
     if (this.result) return;
+    // ボスの発狂: HPが半分を切ると一度だけ怒り、攻撃力が上がる
+    for (const e of this.enemies) {
+      if (e.boss && e.alive && !e._enraged && e.hp <= e.maxhp / 2) {
+        e._enraged = true;
+        e.buffs = e.buffs || { atk: 1, vit: 1, agi: 1 };
+        e.buffs.atk = Math.min(3, (e.buffs.atk || 1) * 1.3);
+        this.log(`${e.name}は怒り狂っている！ (攻撃力上昇)`, "dmg");
+        this._enrageFx = true; // game.js が演出に使う
+      }
+    }
     if (this.livingEnemies().length === 0) { this.result = "win"; return; }
-    if (this.livingParty().length === 0) {
+    // 全滅 = 生存者ゼロ、または生存者全員が石化
+    const living = this.livingParty();
+    if (living.length === 0 || living.every((p) => p.ailment === "stone")) {
       // 聖者の祝福: 全滅時、1回だけ全員HP1で復活 (祝福持ちが編成にいれば)
       if (!this._blessingUsed && this.party.some((p) => p.blessing)) {
         this._blessingUsed = true;
-        for (const p of this.party) { p.alive = true; p.hp = 1; p.ailment = null; p.reviveAt = null; p._dead = false; }
+        for (const p of this.party) { p.alive = true; p.hp = Math.max(1, p.hp); p.ailment = null; p.reviveAt = null; p._dead = false; }
         this.log("聖者の祝福！ 倒れた仲間が HP1 で立ち上がった！", "win");
         this._blessingFired = true;
         return;

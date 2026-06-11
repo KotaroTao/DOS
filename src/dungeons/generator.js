@@ -38,11 +38,17 @@ export function generateDungeon(n) {
   if (pos > 0.5 && r < 10) deep.push(pick(next.regular, n, 53, 1)[0]);
   else deep.push(pick(cur.regular, n, 53, 1)[0]);
 
+  // 迷宮の属性気配: 約2/3の迷宮はいずれかの属性を帯び、その属性の敵が出やすい。
+  // 属性攻撃/防御の装備を迷宮に合わせて組み替える動機になる
+  const ELS = ["fire", "water", "wind", "earth", "light", "dark"];
+  const element = n % 3 === 0 ? null : ELS[(hash(n, 91) >>> 0) % ELS.length]; // hash は最終XORで負になりうる
+
   return {
     id: "g" + String(n).padStart(3, "0"),
     name: ADJ[(n - 1) % 10] + PLACE[r - 1],
     short: SHORT[r - 1] + ((n - 1) % 10 + 1),
     rank: r,
+    element,
     floors: Math.min(12, 3 + Math.floor((n - 1) / 9)),
     pool,
     deepPool: deep,

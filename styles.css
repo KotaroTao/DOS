@@ -637,6 +637,22 @@ canvas.spr { image-rendering: pixelated; display: block; }
 .cdx-dn.dim, .cdx-dun.dim { color: #6a5a80; }
 .cdx-dun { font-size: 12px; color: #d8cdea; margin: 2px 0; }
 
+/* ===== 魂図鑑/職業図鑑 (王宮書庫) ===== */
+.cdx-soulhead { display: flex; align-items: center; gap: 8px; margin: 10px 2px 2px; }
+.cdx-souln { font-size: 14px; letter-spacing: 1px; font-weight: bold; }
+.cdx-sklist { display: flex; flex-direction: column; gap: 4px; }
+.cdx-skrow { display: flex; align-items: baseline; gap: 8px; background: #170f22; border: 1px solid #34254a; border-radius: 8px; padding: 6px 10px; }
+.cdx-skrow.dim { opacity: 0.7; }
+.cdx-sklv { font-size: 10px; color: #b49fd2; min-width: 34px; }
+.cdx-skn { font-size: 12px; color: #ece0ff; }
+.cdx-skn.dim { color: #6a5a80; }
+.cdx-skd { font-size: 10px; color: #9685ad; }
+.cdx-tips { color: #b9d6a8; }
+
+/* 画面フラッシュ (ボス撃破/伝説の魂/呪い) */
+.screen-flash { position: fixed; inset: 0; z-index: 300; pointer-events: none; opacity: 0.55; transition: opacity 0.6s ease-out; }
+.screen-flash.out { opacity: 0; }
+
 /* ===== 記憶を宿した魂 (歴戦) ===== */
 .st-souln2.mem { color: #ffd27a; text-shadow: 0 0 8px rgba(255,180,80,0.5); }
 .tw-parts2.mem { color: #ffd27a; }
