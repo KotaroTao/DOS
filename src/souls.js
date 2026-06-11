@@ -307,7 +307,7 @@ export function makeDoll(name) {
     parts: { head: null, rhand: null, lhand: null, body: null, legs: null },
     // --- 以下は recalcDoll が埋める従来メンバー互換フィールド ---
     clsKey: "fighter", cls: "無職",
-    level: 1, exp: 0,
+    level: 1,
     hp: 1, maxhp: 1, mp: 0, maxmp: 0,
     atk: 0, vit: 0, agi: 1, int: 0, pie: 0, luk: 0,
     base: { hp: 1, mp: 0, atk: 0, vit: 0, agi: 1, int: 0, pie: 0, luk: 0 },

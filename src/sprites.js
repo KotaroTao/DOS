@@ -5,7 +5,7 @@
 export const MONSTERS = {
   slime: {
     name: "スライム",
-    maxhp: 14, atk: 5, def: 1, spd: 4, exp: 6, gold: 4,
+    maxhp: 14, atk: 5, def: 1, spd: 4, soul: 6, gold: 4,
     palette: { "0": "#15431a", "1": "#3fae46", "2": "#9be88a", "3": "#0a0a0a", "4": "#ffffff" },
     art: [
       "....0000....",
@@ -25,7 +25,7 @@ export const MONSTERS = {
 
   bat: {
     name: "ジャイアントバット",
-    maxhp: 11, atk: 6, def: 2, spd: 9, exp: 7, gold: 3,
+    maxhp: 11, atk: 6, def: 2, spd: 9, soul: 7, gold: 3,
     palette: { "0": "#2a1638", "1": "#6b3fa0", "2": "#b07be0", "3": "#ff3b3b", "4": "#0a0a0a" },
     art: [
       "0..........0",
@@ -45,7 +45,7 @@ export const MONSTERS = {
 
   kobold: {
     name: "コボルド",
-    maxhp: 18, atk: 9, def: 3, spd: 6, exp: 11, gold: 9,
+    maxhp: 18, atk: 9, def: 3, spd: 6, soul: 11, gold: 9,
     palette: { "0": "#3a2410", "1": "#8a5a2b", "2": "#c98c4a", "3": "#0a0a0a", "4": "#d4504e", "5": "#b8b8c8" },
     art: [
       "..0......0..",
@@ -65,7 +65,7 @@ export const MONSTERS = {
 
   skeleton: {
     name: "スケルトン",
-    maxhp: 22, atk: 11, def: 4, spd: 7, exp: 16, gold: 12,
+    maxhp: 22, atk: 11, def: 4, spd: 7, soul: 16, gold: 12,
     palette: { "0": "#3d3d2a", "1": "#d9d4bf", "2": "#ffffff", "3": "#0a0a0a", "4": "#8a8470" },
     art: [
       "...000000...",
@@ -85,7 +85,7 @@ export const MONSTERS = {
 
   orc: {
     name: "オーク戦士",
-    maxhp: 30, atk: 14, def: 6, spd: 5, exp: 24, gold: 20,
+    maxhp: 30, atk: 14, def: 6, spd: 5, soul: 24, gold: 20,
     palette: { "0": "#1f3315", "1": "#4f7a3a", "2": "#79a857", "3": "#0a0a0a", "4": "#d4504e", "5": "#8a8a9a", "6": "#5a3a1a" },
     art: [
       "..2......2..",
@@ -105,7 +105,7 @@ export const MONSTERS = {
 
   wraith: {
     name: "レイス",
-    maxhp: 26, atk: 13, def: 5, spd: 10, exp: 22, gold: 18,
+    maxhp: 26, atk: 13, def: 5, spd: 10, soul: 22, gold: 18,
     palette: { "0": "#10202e", "1": "#2b5f7a", "2": "#5fb8d6", "3": "#aef0ff", "4": "#0a0a0a", "5": "#ff5577" },
     art: [
       "....0000....",
@@ -126,7 +126,7 @@ export const MONSTERS = {
   dragon: {
     name: "ヤング・ドラゴン",
     boss: true,
-    maxhp: 90, atk: 22, def: 10, spd: 8, exp: 200, gold: 300,
+    maxhp: 90, atk: 22, def: 10, spd: 8, soul: 200, gold: 300,
     palette: { "0": "#3a0d0d", "1": "#9c2a2a", "2": "#d65a3a", "3": "#f2c14e", "4": "#0a0a0a", "5": "#ffd24a", "6": "#6b1414" },
     art: [
       "0..........0",
