@@ -18,7 +18,7 @@ import {
   dollSouls, dominantClass, recalcDoll, sealSoul,
   ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
   SOUL_RANKS, rollSoulRank, soulStats, soulHardCap, ensureSoul,
-  jobRankOf, PART_SKILLS, HYBRIDS, findHybrid, JOB_LORE,
+  jobRankOf, PART_SKILLS, HYBRIDS, findHybrid, JOB_LORE, jobRankCondText,
   jobSkillTable, jobLevelOf, jobRankName, jobPassiveTable, pLv,
 } from "./souls.js";
 import { showOpening } from "./opening.js";
@@ -2511,7 +2511,7 @@ function renderMansionEnhance() {
     for (const part of PARTS) {
       const s = d.parts[part];
       if (!s) continue;
-      list.appendChild(soulEnhanceRow(s, () => { recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); }));
+      list.appendChild(soulEnhanceRow(s, () => { recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); }, d));
     }
     townEl.appendChild(list);
   }
@@ -2524,8 +2524,8 @@ function renderMansionEnhance() {
   townEl.appendChild(stock);
 }
 
-// 魂1つの強化行 (ステータス + ✦で鍛える + 限界突破)
-function soulEnhanceRow(s, afterLevel) {
+// 魂1つの強化行 (ステータス + ✦で鍛える + 限界突破)。owner = 魂を宿している人業 (ストックなら null)
+function soulEnhanceRow(s, afterLevel, owner) {
   const rank = SOUL_RANKS[s.rank || "normal"];
   const r = el("div", "tw-soulrow" + (rank.order >= 1 ? " rare" : ""));
   if (rank.color) r.style.borderColor = rank.color;
@@ -2547,10 +2547,12 @@ function soulEnhanceRow(s, afterLevel) {
     const cost = soulTrainCost(s.level);
     const b = btn(`✦${cost}`, () => {
       if (G.soulPts < cost) { log("Soul が足りない。", "sys"); return; }
+      const before = owner ? (owner.spells || []).slice() : null;
       G.soulPts -= cost; s.level++;
       if (afterLevel) afterLevel();
       SFX.levelup(); buzz([0, 30, 40, 30]);
       log(`${SOUL_CLASSES[s.clsKey].label}の魂が Lv${s.level} に成長した！`, "win");
+      if (owner) notifyNewSkills(owner, before);
       renderTown();
     });
     b.className = "tw-small primary";
@@ -2594,6 +2596,51 @@ function showSoulInfo(s) {
     accent: rank.color || SOUL_CLASSES[s.clsKey].glow,
     banner: "✦ 魂の力 ✦", btnLabel: "閉じる", lines,
   });
+}
+
+// 魂の成長で職業スキルが新たに解放されたら、お知らせポップアップを出す。
+// before = 強化前の習得スキル一覧 (recalcDoll 済みの owner.spells と比較する)
+function notifyNewSkills(d, before) {
+  if (!before) return;
+  const gained = (d.spells || []).filter((k) => !before.includes(k));
+  if (gained.length) showSkillUnlockPopup(d, gained);
+}
+
+// 新スキル習得のお知らせカード: 使えるようになった技の名前と説明を一覧する
+function showSkillUnlockPopup(d, keys) {
+  const accent = "#ffcf4a";
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card cdx-detail");
+  card.style.borderColor = accent;
+  card.style.boxShadow = `0 0 40px ${accent}55`;
+  const ban = el("div", "ig-banner", "✦ 新スキル習得 ✦");
+  ban.style.color = accent;
+  card.appendChild(ban);
+  const art = el("div", "ig-art");
+  const spriteK = (d.jobKey ? d.jobKey.split("+")[0] : d.clsKey) || "fighter";
+  art.appendChild(spriteCanvas(soulSprite(spriteK), 9));
+  card.appendChild(art);
+  card.appendChild(el("div", "ig-name", d.name));
+  card.appendChild(el("div", "cdx-elem", `${d.cls} 職業Lv${d.jobLv || 1}`));
+  card.appendChild(el("div", "ig-desc", "魂の成長により、新たな技に目覚めた！"));
+  const box = el("div", "cdx-drops");
+  for (const k of keys) {
+    const sp = SPELLS[k];
+    if (!sp) continue;
+    const r = el("div", "cdx-drow cdx-sktap");
+    r.appendChild(el("span", "cdx-dn", sp.name));
+    r.appendChild(el("span", "cdx-skd", `${sp.desc} (MP${sp.mp})`));
+    r.addEventListener("click", () => showSkillPopup(k));
+    box.appendChild(r);
+  }
+  card.appendChild(box);
+  card.appendChild(el("div", "cdx-dun dim", "・技名をタップすると詳しい効果を確認できる"));
+  const ok = btn("閉じる", () => wrap.remove());
+  ok.className = "btn primary ig-ok";
+  card.appendChild(ok);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
 }
 
 // 限界突破の確認ポップアップ: 必要な素材 (同部位・同職の魂) の種類と数を示す
@@ -3051,12 +3098,14 @@ function trainSoul(d, part) {
   if (!s || s.level >= s.cap) return;
   const cost = soulTrainCost(s.level);
   if (G.soulPts < cost) { log("Soul が足りない。", "sys"); return; }
+  const before = (d.spells || []).slice();
   G.soulPts -= cost;
   s.level++;
   recalcDoll(d);
   d.hp = Math.min(d.hp, d.maxhp);
   SFX.levelup(); buzz([0, 30, 40, 30]);
   log(`${SOUL_CLASSES[s.clsKey].label}の魂が Lv${s.level} に成長した！ (✦${cost})`, "win");
+  notifyNewSkills(d, before);
   renderTown();
 }
 
@@ -3736,23 +3785,25 @@ function codexSeeItem(id) { if (id) G.codex.item[id] = true; }
 
 // ---- 職業図鑑の記録 ----
 // 人業に職業 (基本職/混成職) が発現した時点で「発見」とし、スキル解放の
-// 到達レベル (ランク上限でキャップした職業Lv) の最高値を {lv} に記録する。
-// 図鑑のスキル表は、この到達Lvまでの技だけ内容を開示する。
+// 到達レベル (ランク上限でキャップした職業Lv) の最高値を {lv} に、
+// 到達した職業ランクの最高値を {rank} に記録する。
+// 図鑑はランク別に称号を列挙し、スキル表は到達Lvまでの技だけ内容を開示する。
 function codexSeeJobs(doll) {
   if (!doll || !doll.parts) return;
-  const rec = (key, lv) => {
+  const rec = (key, lv, rank) => {
     const e = G.codex.job[key];
-    const prev = e && typeof e === "object" ? (e.lv || 0) : 0;
-    G.codex.job[key] = { lv: Math.max(prev, lv) };
+    const prevLv = e && typeof e === "object" ? (e.lv || 0) : 0;
+    const prevRank = e && typeof e === "object" ? (e.rank || 0) : 0;
+    G.codex.job[key] = { lv: Math.max(prevLv, lv), rank: Math.max(prevRank, rank) };
   };
   const jr = jobRankOf(doll);
   if (!jr) return;
   const cap = jr.rank * 10;
-  rec(jr.clsKey, Math.min(cap, jobLevelOf(doll, [jr.clsKey])));
+  rec(jr.clsKey, Math.min(cap, jobLevelOf(doll, [jr.clsKey])), jr.rank);
   const counts = {};
   for (const p of PARTS) { const s = doll.parts[p]; if (s) counts[s.clsKey] = (counts[s.clsKey] || 0) + 1; }
   const hy = findHybrid(counts);
-  if (hy) rec(hy.key, Math.min(cap, jobLevelOf(doll, [hy.baseK, hy.subK])));
+  if (hy) rec(hy.key, Math.min(cap, jobLevelOf(doll, [hy.baseK, hy.subK])), jr.rank);
 }
 // 全人業を走査して職業図鑑を更新する。封印・強化の経路が多岐にわたるため、
 // 個別フックではなくオートセーブのたびに全走査する (件数は僅少)。
@@ -3972,36 +4023,39 @@ function renderCodexJob() {
     townEl.appendChild(el("div", "tw-empty", "まだ職業が発現していない。同じ職業の魂を3部位以上に宿すと、職業が発現する。"));
     return;
   }
-  townEl.appendChild(el("div", "tw-note", "人業に発現した職業のみ、ここに記される。"));
-  if (baseKn.length) {
-    townEl.appendChild(el("div", "tw-h", "基本職"));
+  townEl.appendChild(el("div", "tw-note", "人業に発現した職業が、到達した位階 (ランク) ごとに記される。"));
+  // 到達した職業ランク (魂の品質で決まる位階)。各ランクの称号を別個の項として列挙する
+  const attained = (k) => Math.max(1, (G.codex.job[k] && G.codex.job[k].rank) || 1);
+  for (let r = 1; r <= 5; r++) {
+    const bs = baseKn.filter((k) => attained(k) >= r);
+    const hy = hyKn.filter((k) => attained(k) >= r);
+    if (!bs.length && !hy.length) continue;
+    townEl.appendChild(el("div", "tw-h", `ランク${r}`));
     const list = el("div", "cdx-sklist");
-    for (const k of baseKn) list.appendChild(jobRow(SOUL_CLASSES[k].label, soulSprite(k), SOUL_CLASSES[k].glow, () => showCodexJobDetail(k)));
-    townEl.appendChild(list);
-  }
-  if (hyKn.length) {
-    townEl.appendChild(el("div", "tw-h", `混成職 — 発現 ${hyKn.length} 種`));
-    const list = el("div", "cdx-sklist");
-    for (const k of hyKn) {
+    for (const k of bs) list.appendChild(jobRow(jobRankName(k, r), soulSprite(k), SOUL_CLASSES[k].glow, () => showCodexJobDetail(k, r)));
+    for (const k of hy) {
       const bk = k.split("+")[0];
-      list.appendChild(jobRow(HYBRIDS[k].name, soulSprite(bk), SOUL_CLASSES[bk].glow, () => showCodexJobDetail(k)));
+      list.appendChild(jobRow(`${jobRankName(k, r)}（混成）`, soulSprite(bk), SOUL_CLASSES[bk].glow, () => showCodexJobDetail(k, r)));
     }
     townEl.appendChild(list);
   }
   townEl.appendChild(el("div", "tw-note", "魂の組み合わせ次第で、いまだ知られぬ混成職が眠っているという……"));
 }
 
-// 職業図鑑: 詳細カード (基本職=解説/活用/ランク表、混成職=構成/専用スキル)
-function showCodexJobDetail(key) {
+// 職業図鑑: 詳細カード (解説/活用/発現条件/スキル表/ランク表)。
+// rank = 図鑑で選んだ位階。称号・発現条件・スキル解放上限はこのランク視点で表示する。
+function showCodexJobDetail(key, rank) {
   const isHybrid = !!HYBRIDS[key];
   const baseK = isHybrid ? key.split("+")[0] : key;
   if (!SOUL_CLASSES[baseK]) return;
+  const rec = G.codex.job[key];
+  rank = Math.max(1, Math.min(5, rank || (rec && rec.rank) || 1));
   const color = SOUL_CLASSES[baseK].glow;
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card cdx-detail");
   card.style.borderColor = color;
   card.style.boxShadow = `0 0 40px ${color}44`;
-  const ban = el("div", "ig-banner", isHybrid ? "混成職" : "基本職");
+  const ban = el("div", "ig-banner", `${isHybrid ? "混成職" : "基本職"} ランク${rank}`);
   ban.style.color = color;
   card.appendChild(ban);
   const art = el("div", "ig-art");
@@ -4015,31 +4069,38 @@ function showCodexJobDetail(key) {
     return r;
   };
 
+  card.appendChild(el("div", "ig-name", jobRankName(key, rank)));
   if (isHybrid) {
     const h = HYBRIDS[key];
-    const subK = key.split("+")[1];
-    card.appendChild(el("div", "ig-name", h.name));
-    card.appendChild(el("div", "cdx-elem", `${SOUL_CLASSES[baseK].label}の魂×3 + ${SOUL_CLASSES[subK].label}の魂×2`));
+    card.appendChild(el("div", "cdx-elem", `${h.name}系 (${SOUL_CLASSES[baseK].label}×3 + ${SOUL_CLASSES[key.split("+")[1]].label}×2)`));
     if (h.desc) card.appendChild(el("div", "ig-desc", h.desc));
+    if (h.tips) card.appendChild(el("div", "ig-desc cdx-tips", "活用: " + h.tips));
   } else {
-    const cls = SOUL_CLASSES[key];
     const lore = JOB_LORE[key] || {};
-    card.appendChild(el("div", "ig-name", cls.label));
+    card.appendChild(el("div", "cdx-elem", `${SOUL_CLASSES[key].label}系`));
     if (lore.desc) card.appendChild(el("div", "ig-desc", lore.desc));
     if (lore.tips) card.appendChild(el("div", "ig-desc cdx-tips", "活用: " + lore.tips));
   }
 
-  // 職業スキル表 (職業Lvで習得)。実際に到達したLvまでの技だけ開示する
-  const reached = (G.codex.job[key] && typeof G.codex.job[key] === "object" && G.codex.job[key].lv) || 0;
+  // 発現の条件 (この位階に到達するための魂の組み合わせと品質)
+  const cbox = el("div", "cdx-drops");
+  cbox.appendChild(el("div", "cdx-h", "発現の条件"));
+  cbox.appendChild(el("div", "cdx-dun", `・${jobRankCondText(key, rank)}`));
+  if (rank >= 2) cbox.appendChild(el("div", "cdx-dun dim", "・ボーナス条件: 5部位すべて同職、または混成(3+2)でサブ2部位の品質も同等以上"));
+  card.appendChild(cbox);
+
+  // 職業スキル表 (職業Lvで習得)。実際に到達したLvまでの技だけ開示し、
+  // このランクの解放上限 (Lv ランク×10) を超える技には必要ランクを添える
+  const reached = (rec && typeof rec === "object" && rec.lv) || 0;
   const sbox = el("div", "cdx-drops");
-  sbox.appendChild(el("div", "cdx-h", "職業スキル (職業Lvで習得・ランクが解放上限)"));
+  sbox.appendChild(el("div", "cdx-h", `職業スキル (職業Lvで習得 / ランク${rank}は Lv${rank * 10} まで解放)`));
   for (const e of jobSkillTable(key)) {
     const sp = SPELLS[e.skill];
     const r = el("div", "cdx-drow");
     r.appendChild(el("span", "cdx-sklv", `Lv${e.lvl}`));
     if (reached >= e.lvl && sp) {
       r.appendChild(el("span", "cdx-dn", sp.name));
-      r.appendChild(el("span", "cdx-skd", `${sp.desc} (MP${sp.mp})`));
+      r.appendChild(el("span", "cdx-skd", `${sp.desc} (MP${sp.mp})${e.lvl > rank * 10 ? ` 〔要ランク${Math.ceil(e.lvl / 10)}〕` : ""}`));
       r.classList.add("cdx-sktap");
       r.addEventListener("click", () => showSkillPopup(e.skill));
     } else {
@@ -4059,7 +4120,7 @@ function showCodexJobDetail(key) {
     const fx = [`スキル解放 Lv${r * 10} まで`];
     if (r === 1) fx.push("パッシブなし");
     else if (pTbl[r - 2]) fx.push(`${pTbl[r - 2].name}: ${pTbl[r - 2].desc}`);
-    rbox.appendChild(line(`ランク${r} ${jobRankName(key, r)}`, fx.join(" / ")));
+    rbox.appendChild(line(`${r === rank ? "▶ " : ""}ランク${r} ${jobRankName(key, r)}`, fx.join(" / ")));
   }
   rbox.appendChild(el("div", "cdx-dun", "・上位ランクは下位のパッシブをすべて発動 (同名のLv効果は最高Lvのみ)"));
   card.appendChild(rbox);
@@ -5643,9 +5704,14 @@ function loadGame() {
       G.codex.mon[k] = { kills: v === true ? 1 : 0, normal: false, rare: false, dungeons: {} };
     } else if (!v.dungeons) { v.dungeons = {}; }
   }
-  // 職業図鑑 (後付け): 旧形式 (true) を {lv} へ移行し、現在の人業から復元する
+  // 職業図鑑 (後付け): 旧形式 (true) を {lv} へ移行し、現在の人業から復元する。
+  // rank 未記録の旧セーブは到達Lvから推定する (到達Lvはランク×10でキャップ済み)
   if (!G.codex.job) G.codex.job = {};
-  for (const k in G.codex.job) if (typeof G.codex.job[k] !== "object") G.codex.job[k] = { lv: 0 };
+  for (const k in G.codex.job) {
+    if (typeof G.codex.job[k] !== "object") G.codex.job[k] = { lv: 0 };
+    const e = G.codex.job[k];
+    if (!e.rank) e.rank = Math.max(1, Math.min(5, Math.ceil((e.lv || 0) / 10)));
+  }
   delete G.codex.soul; // 魂図鑑は廃止 (スキルが職業帰属になったため)
   codexSweepJobs();
   return true;
