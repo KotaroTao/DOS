@@ -290,8 +290,9 @@ function renderBoard() {
         showBack = t < 0.5;
       }
       drawCard(r, cell, scaleX, showBack);
-      // 到達可能マスをハイライト: 隣接(1歩)は明るいグロー、遠隔は薄い枠
-      if (reachable && reachable.has(x + "," + y)) {
+      // めくれる未公開カードのみハイライト: 隣接(1歩)は明るいグロー、遠隔は薄い枠
+      // (めくり済みマスは移動可能でも枠を出さない)
+      if (reachable && !cell.revealed && reachable.has(x + "," + y)) {
         vctx.save();
         if (isStep(x, y)) {
           vctx.shadowColor = "rgba(120,220,255,0.9)";
