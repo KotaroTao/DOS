@@ -4,7 +4,7 @@ import { MONSTERS, HERO, ICONS, drawSprite } from "./sprites.js";
 import { createParty, spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, gainExp, SPELLS, cloneItem } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
 import { spriteCanvas } from "./sprites.js";
-import { ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, recalc, equip as equipItem, unequip as unequipItem, canEquip } from "./items.js";
+import { ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, recalc, equip as equipItem, unequip as unequipItem, canEquip, slotKeyFor } from "./items.js";
 import { generateItems, RANK_NAME, RANK_COLOR } from "./content.js";
 import { DUNGEONS, DUNGEON_MONSTERS, MON_RACES, RACE_LABEL, ELEMENTS } from "./dungeons/index.js";
 import {
@@ -3610,6 +3610,43 @@ function statLines(it) {
   return parts.join("　");
 }
 
+// 候補 cand を p に装備した場合の最終ステータス増減 {atk,def,spd,hp,mp} を返す。
+// items.js の recalc を仮の装備マップに流用するので、両手武器⇄盾の付け替え分も反映される。
+function equipPreviewDelta(p, cand) {
+  const key = slotKeyFor(cand, p);
+  if (!key) return null;
+  const eq = { ...p.equip };
+  // equip() と同じ付け替え規則: 両手武器は盾を、盾は両手武器を外す
+  if (cand.slot === "weapon" && cand.twoHanded) eq.shield = null;
+  if (cand.slot === "shield" && eq.weapon && eq.weapon.twoHanded) eq.weapon = null;
+  eq[key] = cand;
+  const fake = { base: p.base, equip: eq, hp: p.hp, mp: p.mp };
+  recalc(fake);
+  return {
+    atk: fake.atk - p.atk,
+    def: fake.def - p.def,
+    spd: fake.spd - p.spd,
+    hp: fake.maxhp - p.maxhp,
+    mp: fake.maxmp - p.maxmp,
+  };
+}
+
+// 装備候補の「装備中と比べた増減」行 (増・緑/減・赤)。何かを付け替えるときだけ呼ぶ。
+function equipCompareEl(p, cand) {
+  const d = equipPreviewDelta(p, cand);
+  const row = el("span", "eq-cd");
+  row.appendChild(el("span", "eq-cd-lab", "装備すると"));
+  let any = false;
+  if (d) for (const [label, k] of [["こうげき", "atk"], ["ぼうぎょ", "def"], ["すばやさ", "spd"], ["HP", "hp"], ["MP", "mp"]]) {
+    const v = d[k];
+    if (!v) continue;
+    any = true;
+    row.appendChild(el("span", "eq-cd-seg " + (v > 0 ? "up" : "down"), `${label} ${v > 0 ? "▲+" + v : "▼" + v}`));
+  }
+  if (!any) row.appendChild(el("span", "eq-cd-same", "変化なし"));
+  return row;
+}
+
 // 部位カテゴリ表記
 const CAT_LABEL = { weapon: "武器", shield: "盾", body: "防具", head: "頭防具", hands: "小手", feet: "足防具", acc: "装飾品", use: "消耗品" };
 
@@ -3748,6 +3785,11 @@ function openEquipChooser(p, slotKey) {
     tx.appendChild(el("span", "eq-cn", label));
     const st = statLines(c.it);
     if (st) tx.appendChild(el("span", "eq-cs", st));
+    // 装備中の品と付け替える(または両手武器で盾が外れる)場合だけ、現在との増減を出す
+    const tk = slotKeyFor(c.it, p);
+    const dropShield = c.it.slot === "weapon" && c.it.twoHanded && p.equip.shield;
+    const dropWeapon = c.it.slot === "shield" && p.equip.weapon && p.equip.weapon.twoHanded;
+    if ((tk && p.equip[tk]) || dropShield || dropWeapon) tx.appendChild(equipCompareEl(p, c.it));
     b.appendChild(tx);
     list.appendChild(b);
   }

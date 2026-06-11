@@ -783,4 +783,9 @@ canvas.spr { image-rendering: pixelated; display: block; }
 .eq-ct { display: flex; flex-direction: column; min-width: 0; }
 .eq-cn { font-size: 13px; color: #e7e3d4; }
 .eq-cs { font-size: 10px; color: #8fd6bd; }
+.eq-cd { font-size: 10px; margin-top: 2px; display: flex; flex-wrap: wrap; gap: 3px 8px; align-items: baseline; }
+.eq-cd-lab { color: var(--ink-dim); }
+.eq-cd-seg.up { color: var(--good); }
+.eq-cd-seg.down { color: var(--danger); }
+.eq-cd-same { color: var(--ink-dim); }
 .st-eslot { margin-left: auto; font-size: 10px; color: #6fb89e; }
