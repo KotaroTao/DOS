@@ -68,7 +68,7 @@ html, body { height: 100%; overflow: hidden; }
 }
 .topbar-right { display: flex; align-items: center; gap: 10px; }
 #floor-info { font-size: 14px; color: var(--accent); font-weight: bold; white-space: nowrap; }
-#mute-btn {
+#mute-btn, #settings-btn {
   background: none;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -80,7 +80,7 @@ html, body { height: 100%; overflow: hidden; }
   min-width: 40px;
   min-height: 36px;
 }
-#mute-btn:active { background: #2a2a3a; }
+#mute-btn:active, #settings-btn:active { background: #2a2a3a; }
 
 /* ===== 盤面 (主役。横幅いっぱい、上部に固定) ===== */
 #screen {
@@ -624,7 +624,6 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .tw-shoprow { display: flex; align-items: center; gap: 9px; background: #170f22; border: 1px solid #34254a; border-radius: 8px; padding: 7px 9px; }
 .tw-small { min-height: 34px; padding: 6px 10px; font-size: 11px; background: #221833; border: 1px solid #4a3568; border-radius: 6px; color: #e0d2f4; white-space: nowrap; }
 .tw-small.danger { border-color: var(--danger); color: #ff9a98; }
-.tw-reset { display: block; margin: 18px auto 4px; opacity: 0.75; }
 .tw-add { margin-top: 10px; min-height: 46px; }
 
 /* 魂封じの祭壇 */
@@ -838,6 +837,15 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 }
 .tw-dungeon.sel { border-left-color: #8a63b8; box-shadow: 0 0 0 1px #8a63b8; background: #20162e; }
 .tw-dungeon.locked { opacity: 0.5; cursor: default; }
+.tw-dungeon.cleared { border-left-color: #8a7227; }
+.tw-dunhelp { font-size: 10px; color: #8a7ca0; margin: -2px 0 8px; line-height: 1.5; }
+/* 踏破状態バッジ (★踏破済 / ❗勅命 / 未踏破) */
+.tw-dunst {
+  flex: 0 0 auto; font-size: 10px; font-weight: bold; white-space: nowrap;
+  padding: 3px 8px; border-radius: 99px; border: 1px solid #4a3568; color: #9685ad;
+}
+.tw-dunst.done { color: #ffd84a; border-color: #8a7227; background: rgba(201, 162, 39, 0.08); }
+.tw-dunst.quest { color: #ff9a98; border-color: #7a3a48; background: rgba(228, 85, 79, 0.1); }
 
 /* ===== 商店 (固定レイアウト: ページスクロールなし) ===== */
 #town-screen.shop-mode { overflow: hidden; display: flex; flex-direction: column; }
@@ -884,6 +892,33 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 
 /* モーダルが背の高い内容でも収まるように (スクロールはモーダル内のみ) */
 .confirm-overlay .ig-card { max-height: 88vh; overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain; }
+
+/* ===== 設定画面 (⚙) ===== */
+#settings-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 75; /* 街(70)の上・確認ダイアログ #item-get(76) の下。ステータス(75)とは排他 */
+  background:
+    radial-gradient(120% 80% at 50% -10%, #2a1d2e 0%, rgba(0,0,0,0) 55%),
+    linear-gradient(170deg, #14101a, #07060b 65%);
+  display: flex; flex-direction: column; gap: 9px;
+  padding: calc(var(--safe-top) + 12px) 14px calc(var(--safe-bottom) + 14px);
+  overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch;
+}
+.set-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.set-title { font-size: 16px; font-weight: bold; color: #f3e9c8; letter-spacing: 1px; text-shadow: 0 0 8px rgba(201, 162, 39, 0.4); }
+.set-h { font-size: 12px; color: #b49fd2; letter-spacing: 1px; margin: 12px 0 0; border-left: 3px solid #6a4d90; padding-left: 7px; }
+.set-row {
+  display: flex; align-items: center; gap: 10px;
+  background: #170f22; border: 1px solid #34254a; border-radius: 8px; padding: 10px 12px;
+}
+.set-row.danger { border-color: #5a2a3a; background: #160d12; }
+.set-rowi { flex: 1; min-width: 0; }
+.set-rown { font-size: 13px; font-weight: bold; color: #ede2ff; }
+.set-row.danger .set-rown { color: #ff9a98; }
+.set-rowd { font-size: 10px; color: #9685ad; margin-top: 2px; line-height: 1.5; }
+.set-toggle { flex: 0 0 auto; min-width: 76px; }
+.set-toggle.on { border-color: #8a63b8; color: #f0e2ff; box-shadow: 0 0 0 1px #8a63b8; background: #241836; }
 
 /* ===== 日替わり迷宮 ===== */
 .tw-daily {
