@@ -516,7 +516,29 @@ canvas.spr { image-rendering: pixelated; display: block; }
 .tw-facn { font-size: 13px; font-weight: bold; color: #ece0ff; margin-top: 6px; }
 .tw-facd { font-size: 10px; color: #8a7ca0; margin-top: 3px; }
 
-.tw-dive { margin-top: 14px; min-height: 54px; font-size: 16px; }
+/* 潜るボタン: スクロール位置に関わらず画面下部に固定表示 */
+.tw-divebar {
+  position: sticky;
+  bottom: calc(-1 * (var(--safe-bottom) + 14px)); /* 親のpadding-bottom分まで沈めて画面端に密着 */
+  z-index: 5;
+  margin: 14px -12px calc(-1 * (var(--safe-bottom) + 14px));
+  padding: 10px 12px calc(var(--safe-bottom) + 10px);
+  background: linear-gradient(180deg, rgba(7,6,11,0), #07060b 35%);
+}
+.tw-dive { width: 100%; min-height: 54px; font-size: 16px; }
+
+/* 迷宮選択: 10迷宮ごとの層域アコーディオン */
+.tw-band { border: 1px solid #34254a; border-radius: 8px; background: #140d1e; margin-bottom: 8px; overflow: hidden; }
+.tw-bandh { padding: 10px 11px; font-size: 12px; color: #c8b6e0; letter-spacing: 0.5px; cursor: pointer; list-style: none; user-select: none; -webkit-user-select: none; }
+summary.tw-bandh::-webkit-details-marker { display: none; }
+summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
+.tw-band[open] > summary.tw-bandh::before { content: "▾ "; }
+.tw-band .tw-mlist { padding: 0 8px 8px; }
+.tw-band.lockedband { opacity: 0.55; }
+.tw-band.lockedband .tw-bandh { cursor: default; }
+
+/* 施設バッジ (王宮の勅命など) */
+.tw-facb { font-size: 10px; color: #ffd84a; margin-top: 4px; font-weight: bold; text-shadow: 0 0 6px rgba(255,216,74,0.5); }
 
 /* ロスター概要 */
 .tw-roster { margin-top: 14px; }
