@@ -447,6 +447,27 @@ canvas.spr { image-rendering: pixelated; display: block; }
 }
 .confirm-card { max-width: 300px; }
 
+/* ===== スキル詳細ポップアップ / スキルチップ ===== */
+.sk-mp { font-size: 12px; color: var(--accent-2); margin-top: 4px; }
+.sk-lines { text-align: left; margin: 4px 4px 10px; }
+.sk-line { font-size: 12px; color: var(--ink-dim); line-height: 1.7; }
+.sk-chips { margin-top: 3px; }
+.sk-chipl { font-size: 11px; color: var(--ink-dim); margin-right: 4px; }
+.sk-chip {
+  display: inline-block;
+  padding: 1px 8px;
+  margin: 2px 4px 2px 0;
+  border: 1px solid #46466a;
+  border-radius: 9px;
+  background: #23233a;
+  color: #cfd2ff;
+  font-size: 11px;
+  cursor: pointer;
+}
+.sk-chip:active { background: #33335a; }
+.cdx-sktap { cursor: pointer; }
+.cdx-sktap:active { background: #23233a; }
+
 /* ===== ヒント ===== */
 #hint {
   flex: 0 0 auto;
