@@ -4,8 +4,12 @@ import { MONSTERS, HERO, ICONS, drawSprite } from "./sprites.js";
 import { createParty, spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, gainExp, SPELLS, cloneItem } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
 import { spriteCanvas } from "./sprites.js";
-import { ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, recalc, equip as equipItem, unequip as unequipItem, canEquip } from "./items.js";
-import { generateItems, RANK_NAME, RANK_COLOR } from "./content.js";
+import {
+  ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, recalc, equip as equipItem, unequip as unequipItem, canEquip,
+  ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, lvToRank,
+} from "./items.js";
+import { RANK_NAME, RANK_COLOR } from "./content.js";
+import { CATALOG_ITEMS } from "./catalog/index.js";
 import { DUNGEONS, DUNGEON_MONSTERS, MON_RACES, RACE_LABEL, ELEMENTS } from "./dungeons/index.js";
 import {
   PARTS, PART_LABEL, SOUL_CLASSES, makeSoul, makeDoll, soulName, soulSprite,
@@ -16,57 +20,76 @@ import {
 } from "./souls.js";
 
 // ===== コンテンツの取り込み =====
-// アイテム: 手続き生成 (種類が多くても定義は少数のベースから派生)。
+// アイテム: 一点物の手作りカタログ (src/catalog/)。二つ名つきの量産品は廃止。
 // モンスター: ダンジョン単位で手作りした図鑑 (src/dungeons/) を統合。
-const GEN_ITEMS = generateItems();
-Object.assign(ITEMS, GEN_ITEMS);
+Object.assign(ITEMS, CATALOG_ITEMS);
 Object.assign(MONSTERS, DUNGEON_MONSTERS);
-// 既存の手作りアイテムにも rank を付与 (価格帯から推定)
+// 隠しレベル lv (1-50) と表示ランクの補完 (カタログ品は定義済み)
 for (const id in ITEMS) {
   const it = ITEMS[id];
-  if (it.rank == null) it.rank = Math.max(1, Math.min(6, 1 + Math.floor((it.price || 0) / 150)));
+  if (it.lv == null) it.lv = 1;
+  if (it.rank == null) it.rank = lvToRank(it.lv);
 }
-// rank → そのランクの装備アイテムidの配列 (宝箱抽選用。素材/空の魂は除外)
-const ITEMS_BY_RANK = { 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] };
-for (const id in ITEMS) {
-  const it = ITEMS[id];
-  if (it.slot === "mat") continue;
-  (ITEMS_BY_RANK[it.rank] || ITEMS_BY_RANK[1]).push(id);
+
+// ===== 出現テーブル (隠しレベル) =====
+// 全アイテムは隠しレベル lv を持つ。迷宮ごとの lootLv 帯 (＋階の深さ) を中心に、
+// レベルの近い品だけが出現する。中心より高レベルの品ほど出現率が急減するうえ、
+// 全体補正でも高レベル品ほど稀になる (= 強い装備は深い迷宮でしか、稀にしか出ない)。
+const LOOT_IDS = Object.keys(ITEMS).filter((id) => ITEMS[id].slot !== "mat").sort();
+function lootWeight(lv, center) {
+  const d = lv - center;
+  if (d > 8 || d < -16) return 0;                       // 出現窓: 中心+8 〜 中心-16
+  return Math.exp(-(d * d) / 20) * Math.pow(0.95, Math.max(0, lv - 1));
 }
-// 指定ランク(なければ近傍)の装備/道具を1つ選ぶ
-function pickItemByRank(rank) {
-  for (let d = 0; d <= 5; d++) {
-    for (const rr of [rank - d, rank + d]) {
-      const pool = ITEMS_BY_RANK[rr];
-      if (pool && pool.length) return pool[rand(pool.length)];
-    }
+// 中心レベル center 付近のアイテムを重み抽選で1つ選ぶ
+function pickItemByLv(center) {
+  let total = 0;
+  const acc = [];
+  for (const id of LOOT_IDS) {
+    const w = lootWeight(ITEMS[id].lv, center);
+    if (w <= 0) continue;
+    total += w;
+    acc.push([id, total]);
   }
-  return "herb";
+  if (!total) return "herb";
+  const r = Math.random() * total;
+  for (const [id, t] of acc) if (r <= t) return id;
+  return acc[acc.length - 1][0];
+}
+// 現在の迷宮+階のアイテムレベル (中心値)。迷宮の lootLv 帯を階の深さで補間
+function lootLvAt() {
+  const cfg = activeCfg();
+  const band = cfg.lootLv || [1, 8];
+  const floors = Math.max(1, cfg.floors || 3);
+  const t = floors > 1 ? Math.min(1, (G.floor - 1) / (floors - 1)) : 0;
+  let c = band[0] + (band[1] - band[0]) * t;
+  if (Math.random() < 0.05) c += 8; // まれな大当たり: ワンランク上の帯から出る
+  return c;
 }
 
 // ===== モンスターの戦利品テーブル =====
 // 各モンスターに「通常ドロップ」「レアドロップ」を決定的に割り当てる。
+// モンスターのランク → アイテムレベル帯に対応させる (レアは一段深い帯から)。
 // 図鑑では実際に落とすまで ？？？ で伏せられる。
 function _hashStr(s) {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
   return h >>> 0;
 }
-function _poolAt(rank) {
-  for (let d = 0; d <= 5; d++) {
-    for (const rr of [rank - d, rank + d]) {
-      if (ITEMS_BY_RANK[rr] && ITEMS_BY_RANK[rr].length) return ITEMS_BY_RANK[rr];
-    }
+function _dropPoolAt(centerLv) {
+  for (let win = 6; win <= 50; win += 6) {
+    const ids = LOOT_IDS.filter((id) => Math.abs(ITEMS[id].lv - centerLv) <= win);
+    if (ids.length) return ids;
   }
-  return ITEMS_BY_RANK[1];
+  return ["herb"];
 }
 for (const k in MONSTERS) {
   const m = MONSTERS[k];
   if (m.dropNormal && m.dropRare) continue;
   const h = _hashStr(String(m.key || k));
-  const rank = Math.max(1, Math.min(6, m.rank || 1));
-  const np = _poolAt(rank);
-  const rp = _poolAt(Math.min(6, rank + 1));
+  const lvC = Math.max(2, Math.min(44, (m.rank || 1) * 7));
+  const np = _dropPoolAt(lvC);
+  const rp = _dropPoolAt(Math.min(48, lvC + 8));
   m.dropNormal = m.dropNormal || np[h % np.length];
   m.dropRare = m.dropRare || rp[(h >> 5) % rp.length];
 }
@@ -809,7 +832,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   cell.cleared = true;
   // 50%: 装備品が見つかる
   if (Math.random() < 0.5) {
-    const id = pickItemByRank(rollChestRank());
+    const id = pickItemByLv(lootLvAt());
     const who = G.party.find((p) => p.alive && p.items.length < MAX_ITEMS)
       || G.party.find((p) => p.items.length < MAX_ITEMS);
     if (who && ITEMS[id]) {
@@ -983,10 +1006,9 @@ function rollChest(cell, allowDanger, done) {
       showItemGet(it, who, done); return;
     }
   }
-  // 通常: 宝 (ゴールド or 装備/アイテム)。宝箱ランク→アイテムランク
+  // 通常: 宝 (ゴールド or 装備/アイテム)。迷宮のアイテムレベル帯から抽選
   if (Math.random() < 0.65) {
-    const chestRank = rollChestRank();
-    const got = giveItem(pickItemByRank(chestRank));
+    const got = giveItem(pickItemByLv(lootLvAt()));
     if (got) { showItemGet(got.item, got.who, done); return; } // 演出後に done
     SFX.chest();
     if (done) done();
@@ -1009,31 +1031,6 @@ function battleChest() {
     { label: "🔓 開ける", fn: () => rollChest(null, false, () => { if (G.state === "board") renderBoard(); }) },
     { label: "✋ 開けない", fn: () => { renderBoard(); } },
   ], ICONS.chest, { banner: "⚔ 勝利 ⚔" });
-}
-
-// 階層に応じた宝のテーブル
-// 宝箱ランク抽選: ダンジョンランク(隠し)が高いほど高ランク宝箱が出やすい。
-// 階の進行でも少し上がる。返り値 1-6。
-function rollChestRank() {
-  const cfg = activeCfg();
-  const dRank = cfg.rank || 1;
-  const floorBonus = (G.floor - 1) / Math.max(1, (cfg.floors || 3) - 1); // 0..1
-  // 期待ランク = ダンジョンランク + 階ボーナス。±1 のばらつき
-  const center = dRank + floorBonus * 1.5;
-  let r = center + (Math.random() * 2 - 1) * 1.4;
-  // まれに大当たり (+2)
-  if (Math.random() < 0.05) r += 2;
-  return Math.max(1, Math.min(6, Math.round(r)));
-}
-
-function randomLoot(floor) {
-  const common = ["herb", "antidote", "manaDrop", "dagger", "cap", "leatherBoots", "powerRing", "guardAmulet", "woodShield"];
-  const rare = ["shortSword", "warHammer", "magicStaff", "leatherArmor", "ironHelm", "swiftRing", "lifeAmulet", "kiteShield"];
-  const epic = ["battleAxe", "plateArmor", "ironGreaves", "cursedBlade"];
-  const r = Math.random();
-  if (floor >= 2 && r < 0.18) return epic[rand(epic.length)];
-  if (r < 0.45) return rare[rand(rare.length)];
-  return common[rand(common.length)];
 }
 
 function descend() {
@@ -2737,7 +2734,8 @@ function rollMonsterDrop(enemy) {
 function codexSeeItem(id) { if (id) G.codex.item[id] = true; }
 
 let codexMonRace = "amorph"; // モンスター図鑑の選択中タブ (種族)
-let codexItemTab = "weapon"; // アイテム図鑑の選択中タブ (スロット種別)
+let codexItemTab = "weapon"; // アイテム図鑑の選択中タブ (分類)
+let codexWeaponCat = "all";  // 武器タブのサブカテゴリ (長剣/短剣/弓/杖…)
 
 function renderCodexMon() {
   townEl.innerHTML = "";
@@ -2778,8 +2776,8 @@ function renderCodexItem() {
   const seenIds = Object.keys(G.codex.item).filter((id) => ITEMS[id]);
   townEl.appendChild(el("div", "tw-note", `発見済み ${seenIds.length} 種`));
 
-  // スロット種別タブ (商店と同じ区分。「売る」は除外)
-  const tabDefs = SHOP_TABS.filter((t) => t.key !== "sell");
+  // 分類タブ (商店と同じ区分 + その他/貴重品)
+  const tabDefs = ITEM_CATS;
   const tabs = el("div", "tw-dolltabs shop-tabs cdx-tabs");
   for (const t of tabDefs) {
     const b = btn(t.label, () => { codexItemTab = t.key; renderCodexItem(); });
@@ -2790,7 +2788,19 @@ function renderCodexItem() {
 
   const def = tabDefs.find((t) => t.key === codexItemTab) || tabDefs[0];
   const slotSet = new Set(def.slots || []);
-  const ids = seenIds.filter((id) => slotSet.has(ITEMS[id].slot));
+  let ids = seenIds.filter((id) => slotSet.has(ITEMS[id].slot));
+
+  // 武器はさらにサブカテゴリ (長剣/短剣/弓/杖…) で絞り込める
+  if (def.key === "weapon") {
+    const subs = el("div", "tw-dolltabs shop-tabs cdx-tabs");
+    for (const c of [{ key: "all", label: "すべて" }, ...WEAPON_CATS]) {
+      const b = btn(c.label, () => { codexWeaponCat = c.key; renderCodexItem(); });
+      b.className = "tw-dolltab" + (codexWeaponCat === c.key ? " active" : "");
+      subs.appendChild(b);
+    }
+    townEl.appendChild(subs);
+    if (codexWeaponCat !== "all") ids = ids.filter((id) => ITEMS[id].cat === codexWeaponCat);
+  }
   const grid = el("div", "cdx-grid");
   for (const id of ids) {
     const it = ITEMS[id];
@@ -2818,6 +2828,7 @@ function showCodexItemDetail(id) {
   card.appendChild(ban);
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 11)); card.appendChild(art);
   card.appendChild(el("div", "ig-name", it.name));
+  card.appendChild(el("div", "cdx-elem", itemCatText(it)));
   const st = statLines(it);
   if (st) card.appendChild(el("div", "ig-stat", st));
   card.appendChild(el("div", "ig-desc", it.desc || ""));
@@ -3095,16 +3106,8 @@ const SHOP_INIT_STOCK = {
   dagger: 2, shortSword: 1, magicStaff: 1, warHammer: 1,
   woodShield: 1, leatherArmor: 1, robe: 1, cap: 2, leatherBoots: 2, leatherGloves: 2,
 };
-// 商店タブ: スロット種別ごとに切り替え
-const SHOP_TABS = [
-  { key: "use", label: "道具", slots: ["use"] },
-  { key: "weapon", label: "武器", slots: ["weapon"] },
-  { key: "shield", label: "盾", slots: ["shield"] },
-  { key: "body", label: "防具", slots: ["body"] },
-  { key: "gear", label: "頭/小手/足", slots: ["head", "hands", "feet"] },
-  { key: "acc", label: "装飾", slots: ["acc"] },
-  { key: "sell", label: "売る", slots: null },
-];
+// 商店タブ: アイテム分類 (items.js の ITEM_CATS) ごとに切り替え
+const SHOP_TABS = ITEM_CATS;
 let shopTab = "weapon";
 let shopMember = 0; // 取引する編成メンバーの index
 const sellPrice = (it) => Math.max(1, Math.floor((it.price || 10) / 2));
@@ -3135,10 +3138,9 @@ function renderShop() {
   if (claimed) free.disabled = true;
   townEl.appendChild(free);
 
-  // カテゴリタブ (「売る」は廃止: 売却は下の所持品タップで行う)
+  // カテゴリタブ (売却は下の所持品タップで行う)
   const tabs = el("div", "tw-dolltabs shop-tabs");
   for (const t of SHOP_TABS) {
-    if (t.key === "sell") continue;
     const b = btn(t.label, () => { shopTab = t.key; renderTown(); });
     b.className = "tw-dolltab" + (shopTab === t.key ? " active" : "");
     tabs.appendChild(b);
@@ -3434,6 +3436,7 @@ function renderStatTab(p) {
     <div class="st-line">HP <b>${p.hp}/${p.maxhp}</b>　MP <b>${p.mp}/${p.maxmp}</b></div>
     <div class="st-line">こうげき <b>${p.atk}</b>　ぼうぎょ <b>${p.def}</b></div>
     <div class="st-line">すばやさ <b>${p.spd}</b>　AC <b>${p.ac}</b></div>
+    <div class="st-line">属性攻撃 ${elemStatChip(p.elemAtk)}　属性防御 ${elemStatChip(p.elemDef)}</div>
     ${p.spells && p.spells.length ? `<div class="st-line">習得: ${p.spells.map((k) => SPELLS[k] ? SPELLS[k].name : k).join("・")}</div>` : ""}
     <div class="st-line ${p.ailment ? "st-bad" : ""}">状態: ${p.ailment === "poison" ? "毒" : (p.alive ? "正常" : "戦闘不能")}</div>`;
   top.appendChild(meta);
@@ -3597,6 +3600,35 @@ function renderSoulDetail(s) {
   return d;
 }
 
+// ===== 属性攻撃/属性防御の表示ヘルパ =====
+// 各属性の [強い相手, 弱い相手] (表示用)。光↔闇は相互有利で弱点なし
+const ELEM_ADV = {
+  fire: ["wind", "water"], wind: ["earth", "fire"], earth: ["water", "wind"], water: ["fire", "earth"],
+  light: ["dark", null], dark: ["light", null],
+};
+function elemName(el) { return (ELEMENTS[el] || ELEMENTS.none).label; }
+// "火属性攻撃+1 ◯" のような短い表記。e = {el, lv}
+function elemStatText(kind, e) {
+  if (!e || !e.el) return null;
+  return `${elemName(e.el)}属性${kind}+${Math.min(2, e.lv)} ${e.lv >= 2 ? "◎" : "◯"}`;
+}
+// 相性のくわしい説明行
+function elemAdvText(kind, e) {
+  if (!e || !e.el || !ELEM_ADV[e.el]) return null;
+  const [adv, weak] = ELEM_ADV[e.el];
+  const pct = e.lv >= 2 ? 100 : 50;
+  if (kind === "攻撃") {
+    return `${elemName(adv)}の魔物へのダメージ+${pct}%` + (weak ? ` / ${elemName(weak)}へは-${pct}%` : "");
+  }
+  return `${elemName(adv)}属性の攻撃を-${pct}%` + (weak ? ` / ${elemName(weak)}属性からは+${pct}%` : "");
+}
+// ステータス画面用の色付きチップ ("火◯" / "—")
+function elemStatChip(e) {
+  if (!e || !e.el) return "<b>—</b>";
+  const d = ELEMENTS[e.el] || ELEMENTS.none;
+  return `<b style="color:${d.color}">${d.label}${e.lv >= 2 ? "◎" : "◯"}</b>`;
+}
+
 function statLines(it) {
   const parts = [];
   if (it.atk) parts.push(`こうげき ${it.atk > 0 ? "+" : ""}${it.atk}`);
@@ -3604,6 +3636,10 @@ function statLines(it) {
   if (it.spd) parts.push(`すばやさ ${it.spd > 0 ? "+" : ""}${it.spd}`);
   if (it.hp) parts.push(`HP ${it.hp > 0 ? "+" : ""}${it.hp}`);
   if (it.mp) parts.push(`MP ${it.mp > 0 ? "+" : ""}${it.mp}`);
+  const ea = elemStatText("攻撃", it.eAtk);
+  const ed = elemStatText("防御", it.eDef);
+  if (ea) parts.push(ea);
+  if (ed) parts.push(ed);
   if (it.use && it.use.heal) parts.push(`HP +${it.use.heal}`);
   if (it.use && it.use.mp) parts.push(`MP +${it.use.mp}`);
   if (it.use && it.use.cure) parts.push(`毒を治す`);
@@ -3611,12 +3647,17 @@ function statLines(it) {
 }
 
 // 部位カテゴリ表記
-const CAT_LABEL = { weapon: "武器", shield: "盾", body: "防具", head: "頭防具", hands: "小手", feet: "足防具", acc: "装飾品", use: "消耗品" };
+const CAT_LABEL = { weapon: "武器", shield: "盾", body: "防具", head: "頭防具", hands: "小手", feet: "足防具", acc: "装飾品", use: "消耗品", misc: "その他（戦利品）", mat: "貴重品" };
+// アイテムの分類表記 (武器はサブカテゴリつき: 「武器（長剣）」)
+function itemCatText(it) {
+  if (it.slot === "weapon" && it.cat) return `武器（${WEAPON_CAT_LABEL[it.cat] || "その他"}）`;
+  return CAT_LABEL[it.slot] || "";
+}
 
 // ウィザードリィ風の情報テキスト行
 function detailLines(it) {
   const L = [];
-  L.push(CAT_LABEL[it.slot] || "");
+  L.push(itemCatText(it));
   if (it.slot === "weapon") {
     const seg = [];
     if (it.hit != null) seg.push(`命中${it.hit >= 0 ? "+" : ""}${it.hit}`);
@@ -3632,6 +3673,10 @@ function detailLines(it) {
     if (it.use && it.use.heal) L.push(`HPを ${it.use.heal} 回復`);
     if (it.use && it.use.mp) L.push(`MPを ${it.use.mp} 回復`);
     if (it.use && it.use.cure) L.push("毒を治す");
+  } else if (it.slot === "misc") {
+    L.push("商店で売って金にする戦利品");
+  } else if (it.slot === "mat") {
+    L.push("用途は街で見つかるかもしれない");
   } else {
     const mod = [];
     if (it.def) mod.push(`ぼうぎょ${it.def >= 0 ? "+" : ""}${it.def}`);
@@ -3642,6 +3687,11 @@ function detailLines(it) {
     if (it.def) mod.push(`AC ${-it.def >= 0 ? "+" : ""}${-it.def}`);
     if (mod.length) L.push(mod.join(" / "));
   }
+  // 属性攻撃/属性防御 (短い表記 + 相性の説明)
+  const ea = it.eAtk ? elemStatText("攻撃", it.eAtk) : null;
+  if (ea) L.push(`${ea} — ${elemAdvText("攻撃", it.eAtk)}`);
+  const ed = it.eDef ? elemStatText("防御", it.eDef) : null;
+  if (ed) L.push(`${ed} — ${elemAdvText("防御", it.eDef)}`);
   if (it.classes) L.push("装備可: " + it.classes.map(clsLabel).join("/"));
   if (it.align) L.push(`${it.align}属性。`);
   return L;
@@ -3665,8 +3715,8 @@ function renderItemDetail(p, sel) {
   if (sel.from === "bag") {
     if (it.slot === "use") {
       acts.appendChild(btn("使う", () => useItem(p, sel.index)));
-    } else if (it.slot === "mat") {
-      // 素材 (空の魂など): 装備も使用もできない
+    } else if (it.slot === "mat" || it.slot === "misc") {
+      // 貴重品/戦利品: 装備も使用もできない (売却・譲渡のみ)
     } else {
       const can = canEquip(p, it);
       const b = btn(can ? "装備する" : "装備不可", () => { if (can) doEquip(p, it); });

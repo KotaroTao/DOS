@@ -34,8 +34,9 @@ There is no test suite. To sanity-check JS edits, use Node:
 - **`board.js`** — maze generation. Edge-walls (walls live on the *boundary* between cells, not as cells), dead-end event placement, stair placement.
 - **`combat.js`** — pure combat logic: `Battle` state machine (per-actor speed-ordered turns), `SPELLS`, `CLASSES`, party/enemy construction, `gainExp`. Returns plain result objects; **all animation/SFX lives in `game.js`** (`combatStep` drives `Battle` and renders the results).
 - **`sprites.js`** — `MONSTERS`, `HERO`, `ICONS` pixel-art definitions and `drawSprite`. `MONSTERS` starts with a base set and is **augmented at load time** by `Object.assign(MONSTERS, DUNGEON_MONSTERS)` in `game.js`.
-- **`items.js`** — equipment/consumable catalog, 8-slot equip logic (`recalc`, `equip`), restrictions (alignment/class/two-handed/cursed).
-- **`souls.js`**, **`content.js`** — souls system data/logic and misc content (quests/rumors/flavor).
+- **`items.js`** — base equipment/consumable items, item categories (`ITEM_CATS`, `WEAPON_CATS`), 8-slot equip logic (`recalc`, `equip` — `recalc` also aggregates elemental attack/defense from gear), restrictions (alignment/class/two-handed/cursed).
+- **`souls.js`** — souls system data/logic.
+- **`content.js`** — rank display definitions only (`RANK_NAME`/`RANK_COLOR`). The old procedural item generation (rank-prefix "二つ名" items) was removed in favor of `src/catalog/`.
 - **`audio.js`** — Web Audio chiptune SFX + BGM, generated in code (no audio files).
 
 ### Dungeon registry (`src/dungeons/`) — the additive-by-design subsystem
@@ -49,8 +50,17 @@ There is no test suite. To sanity-check JS edits, use Node:
 - **Adding a dungeon = add one `import` + one entry to `MODULES` in `index.js`.** Nothing else references the files directly.
 - Every monster needs a valid `artKey` (one of `ARTS`) — `defMonster` throws otherwise. Give visual variety via `palette`/`tint`, not new art.
 
+### Item catalog (`src/catalog/`) — unique items, additive-by-design
+- **`defs.js`** — shared item `ARTS` (12x12 shapes per weapon subcategory / armor type / misc trinket) and builders `W/S/A/H/F/M/U` (weapon/shield/body/head/feet/misc/usable). Builders derive atk/def/price/rank from the hidden item level and validate input (throw on bad cat/shape/lv/desc).
+- **`weapons.js`/`armor.js`/`gear.js`/`misc.js`** — the hand-written unique-item catalogs (100 weapons, 50 shields, 50 body, 50 head, 50 feet, 50 misc loot, plus a few potions). **`index.js`** merges them into `CATALOG_ITEMS` (throws on duplicate IDs); `game.js` does `Object.assign(ITEMS, CATALOG_ITEMS)` at load.
+- Item IDs are prefixed (`w_`/`s_`/`a_`/`h_`/`f_`/`m_`/`u_`) and **append-only** (saves/codex reference them). Names are unique one-offs — there are no rank-prefix "二つ名" items anymore.
+- Every item has a **hidden level `lv` (1-50)**: dungeons define a `lootLv: [min, max]` band (interpolated by floor depth) and `game.js` rolls loot with a gaussian window around that center plus a global decay, so higher-lv items are rarer everywhere. Monster drops are assigned deterministically from the lv band matching the monster's rank. Display rank/border color derives from lv via `lvToRank`.
+- Slots `misc` (その他: sellable loot) and `mat` (貴重品: event items like 空の魂) can't be equipped or used; they exist for the codex/shop categories.
+
 ### Element / affinity system
-Six elements + `none`, defined in `schema.js`. Advantage cycle is **火→風→土→水→火** (fire→wind→earth→water→fire); **light↔dark are mutually advantageous**. `elemMult(atk, def)` returns 1.5 (advantage), 0.5 (disadvantage), or 1.0 (neutral / anything involving `none`). For light/dark both directions return 1.5 (no 0.5 reduction). Applied in `combat.js` `_physical` and the `atk`-spell branch; offensive spells carry an `element`, enemies carry `element` from their monster def.
+Six elements + `none`, defined in `schema.js`. Advantage cycle is **火→風→土→水→火** (fire→wind→earth→water→fire); **light↔dark are mutually advantageous**. Offensive spells carry an `element`, enemies carry `element` from their monster def.
+
+**Elemental attack/defense stats (属性攻撃/属性防御):** items can carry `eAtk`/`eDef` (`{el, lv}`); `recalc` aggregates them per member into `member.elemAtk`/`member.elemDef` (same element stacks, capped at Lv2=◎; different elements don't mix — strongest wins). `elemDmgMult(aE, aLv, tgtElem, tgtDef)` in `schema.js` is the single damage-multiplier entry point used by `combat.js` (`_physical` and the `atk`-spell branch): the attack side compares the attack element vs the target's innate element (Lv1=◯ ±50%, Lv2=◎ ±100%), the defense side compares the defender's `elemDef` vs the incoming attack element (same magnitudes, reduction when the defense element has the advantage). Spells act as Lv1 unless the caster's `elemAtk` matches the spell element. The legacy flat `elemMult` remains for reference but combat uses `elemDmgMult`.
 
 ### State & persistence
 - All runtime state hangs off the single global `G` in `game.js`. `state` field switches the active screen (`town`/`board`/`battle`/`over`).

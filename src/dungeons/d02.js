@@ -31,4 +31,5 @@ export const dungeon = {
   deepPool: ["d02_soldier", "d02_imp", "d02_lizard"],
   boss: "d02_lord", bossScale: 1.0, enemyScale: 1.3,
   trapRate: 0.10, warmChance: 0.42, soulLevelBonus: 1, rankBonus: 0.6, lootTier: 1,
+  lootLv: [7, 18], // 出現アイテムの隠しレベル帯 (入口→最深部)
 };

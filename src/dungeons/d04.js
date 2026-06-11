@@ -28,4 +28,5 @@ export const dungeon = {
   deepPool: ["d04_revenant", "d04_grudge", "d04_ogre"],
   boss: "d04_vritra", bossScale: 1.0, enemyScale: 2.4,
   trapRate: 0.14, warmChance: 0.5, soulLevelBonus: 3, rankBonus: 1.8, lootTier: 3,
+  lootLv: [22, 42], // 出現アイテムの隠しレベル帯 (入口→最深部)
 };

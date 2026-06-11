@@ -29,4 +29,5 @@ export const dungeon = {
   deepPool: ["d03_mandrake", "d03_sentinel", "d03_orc"],
   boss: "d03_whelp", bossScale: 1.0, enemyScale: 1.7,
   trapRate: 0.12, warmChance: 0.45, soulLevelBonus: 2, rankBonus: 1.2, lootTier: 2,
+  lootLv: [14, 28], // 出現アイテムの隠しレベル帯 (入口→最深部)
 };
