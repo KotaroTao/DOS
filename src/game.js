@@ -1,7 +1,7 @@
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSprite } from "./sprites.js";
-import { createParty, spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, gainExp, SPELLS, cloneItem } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, SPELLS, cloneItem } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
 import { spriteCanvas } from "./sprites.js";
 import { ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, recalc, equip as equipItem, unequip as unequipItem, canEquip, slotKeyFor } from "./items.js";
@@ -89,7 +89,7 @@ const G = {
   board: null,
   px: 0, py: 0,
   gold: 200,          // 初期所持金 (宿屋・商店用)
-  soulPts: 0,         // Soul(魂): 敵/死体から得る。館で魂のレベルアップに使う
+  soulPts: 0,         // Soul(魂): 敵/死体から得る。経験値の役割を兼ね、館で魂のレベルアップに使う
   redSoul: 100,       // Red Soul(赤い魂): プレミアム通貨 (空の人業購入・加護)
   dollsPurchased: 0,  // 空の人業を購入した回数 (価格の段階に使う)
   party: [],          // 迷宮に連れて行く人業 (最大6体)
@@ -974,8 +974,21 @@ function rollChest(cell, allowDanger, done) {
     });
     return;
   }
-  // まれに「空の魂」(魂合成の素材) が宝箱から
-  if (Math.random() < 0.09) {
+  // 中身の抽選 (ダンジョンレベルに応じる): ゴールド50% / ゴールド以外のアイテム50%
+  if (Math.random() < 0.5) {
+    SFX.chest();
+    const dRank = activeCfg().rank || 1;
+    const g = runGainGold(Math.round((10 + G.floor * 12 + rand(30)) * (1 + (dRank - 1) * 0.5)));
+    updateTopbar();
+    log(`宝箱から ${g} ゴールドを手に入れた！`, "win");
+    showEvent({
+      sprite: ICONS.gold, title: "ゴールド発見！", accent: "#e8c24a", banner: "✦ 宝箱の中身 ✦", sparkle: true,
+      lines: [`${g} ゴールドを手に入れた！`], onClose: done || (() => renderBoard()),
+    });
+    return;
+  }
+  // アイテム: まれに「空の魂」(魂合成の素材)、通常は宝箱ランク→アイテムランク
+  if (Math.random() < 0.18) {
     const who = G.party.find((m) => m.alive && m.items.length < MAX_ITEMS);
     if (who) {
       const it = cloneItem(EMPTY_SOUL_ID);
@@ -984,32 +997,43 @@ function rollChest(cell, allowDanger, done) {
       showItemGet(it, who, done); return;
     }
   }
-  // 通常: 宝 (ゴールド or 装備/アイテム)。宝箱ランク→アイテムランク
-  if (Math.random() < 0.65) {
-    const chestRank = rollChestRank();
-    const got = giveItem(pickItemByRank(chestRank));
-    if (got) { showItemGet(got.item, got.who, done); return; } // 演出後に done
-    SFX.chest();
-    if (done) done();
-  } else {
-    SFX.chest();
-    const g = 10 + G.floor * 12 + rand(30);
-    runGainGold(g);
-    updateTopbar();
-    log(`宝箱から ${g} ゴールドを手に入れた！`, "win");
-    showEvent({
-      sprite: ICONS.gold, title: "ゴールド発見！", accent: "#e8c24a", banner: "✦ 宝箱の中身 ✦", sparkle: true,
-      lines: [`${g} ゴールドを手に入れた！`], onClose: done || (() => renderBoard()),
-    });
-  }
+  const chestRank = rollChestRank();
+  const got = giveItem(pickItemByRank(chestRank));
+  if (got) { showItemGet(got.item, got.who, done); return; } // 演出後に done
+  SFX.chest();
+  if (done) done();
 }
 
-// 戦闘勝利後の宝箱 (必ず出現)。罠やミミックはなしで安全に開封
-function battleChest() {
+// 戦闘勝利後の宝箱 (出現判定は endBattle 側)。罠やミミックはなしで安全に開封。
+// 敵がアイテムを落としていれば中身はそれ。なければダンジョンレベル準拠の抽選。
+// after: 終了後に呼ぶ (ボス撃破時は踏破演出へつなぐ)
+function battleChest(drops, after) {
+  const done = () => { if (after) after(); else if (G.state === "board") renderBoard(); };
   showChoice("宝箱が現れた！ 開ける？", [
-    { label: "🔓 開ける", fn: () => rollChest(null, false, () => { if (G.state === "board") renderBoard(); }) },
-    { label: "✋ 開けない", fn: () => { renderBoard(); } },
+    { label: "🔓 開ける", fn: () => {
+      if (drops && drops.length) giveDropsFromChest(drops, 0, done);
+      else rollChest(null, false, done);
+    } },
+    { label: "✋ 開けない", fn: done },
   ], ICONS.chest, { banner: "⚔ 勝利 ⚔" });
+}
+
+// 宝箱から敵のドロップ品を順に取り出す。図鑑への開示も実際に手にした時に行う
+function giveDropsFromChest(drops, i, done) {
+  if (i >= drops.length) { done(); return; }
+  const d = drops[i];
+  const next = () => giveDropsFromChest(drops, i + 1, done);
+  const who = G.party.find((p) => p.alive && p.items.length < MAX_ITEMS)
+    || G.party.find((p) => p.items.length < MAX_ITEMS);
+  if (!who) { log(`${d.item.name}を見つけたが、誰も持てない…`, "sys"); next(); return; }
+  const ce = codexMonEntry(d.key);
+  if (d.rare) ce.rare = true; else ce.normal = true;
+  codexSeeItem(d.id);
+  runGainItem(who, d.item);
+  SFX.chest();
+  log(`宝箱から ${d.name}の落とした ${d.item.name} を手に入れた！`, d.rare ? "win" : "sys");
+  if (d.rare) setTimeout(() => showToast(`🌟レアドロップ ${d.item.name}`), 500);
+  showItemGet(d.item, who, next);
 }
 
 // 階層に応じた宝のテーブル
@@ -1483,34 +1507,23 @@ function endBattle() {
   const b = G.battle;
   renderCombat();
   if (b.result === "win") {
-    const { exp, gold } = b.rewards();
-    runGainGold(gold);
-    // 倒した敵から Soul(魂) を得る (館で魂のレベルアップに使える)
-    const essence = b.enemies.reduce((a, e) => a + (e.alive ? 0 : Math.max(1, Math.round(e.exp * 0.6))), 0);
-    runGainSoulPts(essence);
+    // 倒した敵から Soul(魂) を回収する。Soul が経験値の役割を兼ね、館での魂の強化に使う
+    const { soul, gold } = b.rewards();
+    const goldGot = runGainGold(gold);
+    const soulGot = runGainSoulPts(soul);
     updateTopbar();
-    log(`勝利！ ${gold} ゴールド と ✦${essence} Soul を得た。`, "win");
-    const alive = G.party.filter((x) => x.alive);
-    let lvDelay = 0;
-    for (const p of alive) {
-      const msgs = gainExp(p, Math.floor(exp / alive.length));
-      msgs.forEach((m) => log(m, "win"));
-      if (msgs.length) {
-        SFX.levelup();
-        buzz([0, 30, 40, 30, 40, 120]);
-        const lvl = p.level;
-        setTimeout(() => showToast(`⬆ LEVEL UP!  ${p.name} は Lv${lvl} になった！`), 400 + lvDelay);
-        lvDelay += 1000;
-      }
-    }
+    log(`勝利！ ${goldGot} ゴールド と ✦${soulGot} Soul を得た。`, "win");
     SFX.victory();
-    // 討伐クエストの進捗 + 戦績 + 図鑑記録 (倒した敵を集計)
+    // 討伐クエストの進捗 + 戦績 + 図鑑記録 (倒した敵を集計)。
+    // 戦利品はここでは抽選のみ。実物は勝利後の宝箱から取り出す
+    const drops = [];
     for (const e of b.enemies) {
       if (e.alive) continue;
       questProgress("kill", e.key);
       G.stats.kills++;
       recordMonsterKill(e.key, G.dungeonIdx); // 図鑑は「倒した時」に記録
-      rollMonsterDrop(e);                       // 戦利品抽選 (落とせば図鑑に開示)
+      const d = rollMonsterDrop(e);
+      if (d) drops.push(d);
     }
     // soulClass を持つ敵 (人型・騎士など) はまれに魂を落とす (レアドロップ)
     for (const e of b.enemies) {
@@ -1530,14 +1543,19 @@ function endBattle() {
     const wasBoss = b.enemies.some((e) => e.boss);
     if (G.battleCell) G.battleCell.cleared = true;
     finishToBoard();
-    // 勝利の余韻: まず勝利ポップアップ(EXP/Gold/Soul)を表示し、閉じてから宝箱を出す
+    // 勝利の余韻: まず勝利ポップアップ(Gold/Soul)を表示し、閉じてから宝箱を出す。
+    // 宝箱はドロップ品があれば必ず、なければ50%で出現。ボスは宝箱のあとに踏破演出へ
     const afterVictory = () => {
-      if (wasBoss) { onDungeonCleared(); return; } // ボスは踏破演出へ
-      setTimeout(battleChest, 200);
+      const after = wasBoss ? onDungeonCleared : null;
+      if (drops.length || Math.random() < 0.5) {
+        setTimeout(() => battleChest(drops, after), 200);
+        return;
+      }
+      if (after) after();
     };
     showEvent({
       banner: "⚔ 勝利 ⚔", title: "戦いに勝利した！", accent: "#ffd84a", sparkle: true,
-      lines: [`獲得 EXP ${exp}`, `獲得 ゴールド 💰${gold}`, `回収した Soul ✦${essence}`],
+      lines: [`獲得 ゴールド 💰${goldGot}`, `回収した Soul ✦${soulGot}`],
       btnLabel: "つぎへ", onClose: afterVictory,
     });
     return;
@@ -2708,26 +2726,18 @@ function recordMonsterKill(key, dungeonIdx) {
   e.kills++;
   if (dungeonIdx != null) e.dungeons[dungeonIdx] = true;
 }
-// 撃破時の戦利品抽選 (通常30% / レア4%)。落としたら図鑑に開示し所持品へ
+// 撃破時の戦利品抽選 (通常30% / レア4%)。ここでは抽選のみで、
+// 実物は勝利後の宝箱から取り出す (giveDropsFromChest)
 function rollMonsterDrop(enemy) {
   const mon = MONSTERS[enemy.key];
-  if (!mon) return;
-  const e = codexMonEntry(enemy.key);
+  if (!mon) return null;
   let dropId = null, rare = false;
   if (mon.dropRare && Math.random() < 0.04) { dropId = mon.dropRare; rare = true; }
   else if (mon.dropNormal && Math.random() < 0.30) { dropId = mon.dropNormal; rare = false; }
-  if (!dropId) return;
-  if (rare) e.rare = true; else e.normal = true;
-  codexSeeItem(dropId);
+  if (!dropId) return null;
   const it = cloneItem(dropId);
-  if (!it) return;
-  const who = G.party.find((p) => p.alive && p.items.length < MAX_ITEMS)
-    || G.party.find((p) => p.items.length < MAX_ITEMS);
-  if (who) {
-    runGainItem(who, it);
-    log(`${enemy.name} が ${it.name} を落とした！`, rare ? "win" : "sys");
-    setTimeout(() => showToast(`${rare ? "🌟レアドロップ" : "✦ドロップ"} ${it.name}`), 500);
-  }
+  if (!it) return null;
+  return { key: enemy.key, name: enemy.name, id: dropId, item: it, rare };
 }
 function codexSeeItem(id) { if (id) G.codex.item[id] = true; }
 
@@ -2812,7 +2822,7 @@ function showCodexMonDetail(key) {
 
   const info = el("div", "cdx-info");
   info.appendChild(el("div", "cdx-kills", `討伐数 ${e.kills || 0}`));
-  info.appendChild(el("div", "cdx-stat", `HP${m.maxhp}  ATK${m.atk}  VIT${m.def}  AGI${m.spd}  ✦${m.exp}  💰${m.gold}`));
+  info.appendChild(el("div", "cdx-stat", `HP${m.maxhp}  ATK${m.atk}  VIT${m.def}  AGI${m.spd}  ✦${m.soul}  💰${m.gold}`));
   card.appendChild(info);
 
   // ドロップ (実際に落とすまで ？？？)
