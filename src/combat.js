@@ -45,6 +45,25 @@ export const SPELLS = {
   ZETSUEI: { name: "絶影", mp: 14, kind: "phys", power: 1.1, hits: 3, critBonus: 0.25, target: "enemy", desc: "残像すら斬る神速の三連撃" },
   LAHALITO: { name: "インフェルノ", mp: 11, kind: "atk", power: 36, element: "fire", target: "enemy", desc: "一体を焼き尽くす灼熱の業炎" },
   SEISAI: { name: "星砕", mp: 22, kind: "atk", power: 64, target: "all-enemy", desc: "天より墜ちる星々が戦場を砕く" },
+
+  // ---- 職業スキル拡充 (Lv3/5/7/10/25/30/40 帯を埋める中間スキル) ----
+  // 物理技
+  TATEWARI: { name: "兜割り", mp: 4, kind: "phys", power: 1.3, debuff: { vit: 0.85 }, target: "enemy", desc: "兜ごと打ち据えてVITを下げる" },
+  NAGIHARAI: { name: "薙ぎ払い", mp: 6, kind: "phys", power: 0.7, target: "all-enemy", desc: "敵全体を薙ぎ払う" },
+  KIKOKU: { name: "鬼哭斬", mp: 13, kind: "phys", power: 3.4, target: "enemy", desc: "鬼すら哭かせる怒涛の一刀" },
+  KOTE: { name: "小手打ち", mp: 4, kind: "phys", power: 1.2, debuff: { atk: 0.85 }, target: "enemy", desc: "腕を打ちATKを下げる" },
+  KASUMEGIRI: { name: "霞斬り", mp: 4, kind: "phys", power: 1.0, debuff: { agi: 0.8 }, target: "enemy", desc: "足を裂きAGIを下げる" },
+  TSUJIKAZE: { name: "辻風", mp: 10, kind: "phys", power: 1.0, critBonus: 0.15, target: "all-enemy", desc: "旋風のごとく全体を斬り抜ける" },
+  OBORO: { name: "朧抜き", mp: 12, kind: "phys", power: 2.8, critBonus: 0.4, target: "enemy", desc: "朧の太刀筋で急所を抉る" },
+  // 攻撃呪文 (属性のバリエーション)
+  ICENEEDLE: { name: "アイスニードル", mp: 3, kind: "atk", power: 13, element: "water", target: "enemy", desc: "氷の針" },
+  KAMAITACHI: { name: "かまいたち", mp: 4, kind: "atk", power: 17, element: "wind", target: "enemy", desc: "真空の刃" },
+  ROCKBLAST: { name: "ストーンブラスト", mp: 8, kind: "atk", power: 30, element: "earth", target: "enemy", desc: "岩塊の弾丸" },
+  HOLYRAY: { name: "聖光", mp: 3, kind: "atk", power: 14, element: "light", target: "enemy", desc: "聖なる光条" },
+  SAINTRAY: { name: "聖閃", mp: 9, kind: "atk", power: 24, element: "light", target: "all-enemy", desc: "敵全体を貫く浄化の閃光" },
+  // 回復・支援
+  DIALALL: { name: "リカバーオール", mp: 12, kind: "heal", power: 40, target: "all-ally", desc: "味方全員を大きく回復" },
+  OUJOU: { name: "王城の構え", mp: 18, kind: "buff", buff: { vit: 1.7 }, target: "all-ally", desc: "隊全体を城壁と化す究極の守り" },
 };
 
 // 旧プリメイド職テーブル (現行のパーティは人業=souls.js 経由で作られる)。六大ステで定義。

@@ -264,42 +264,56 @@ export function jobRankName(jobKey, rank) {
 // アクションスキルは魂ではなく「職業」に帰属する。職業Lv (構成魂の3番目に
 // 高いレベル) が閾値に達し、かつ職業ランクの解放上限 (ランクN → Lv N*10)
 // 以内のスキルを習得する。Lv50 は各職の奥義 (= ランク5 でのみ届く)。
+// 習得レベルは全職共通: Lv1/3/5/7/10/15/20/25/30/40/50 の11枠。
+export const SKILL_LEVELS = [1, 3, 5, 7, 10, 15, 20, 25, 30, 40, 50];
 export const JOB_SKILLS = {
   fighter: [
-    { lvl: 1, skill: "KYOUGEKI" }, { lvl: 8, skill: "DOUBLE" },
-    { lvl: 15, skill: "WARCRY" }, { lvl: 20, skill: "MIDARE" },
-    { lvl: 28, skill: "ISSEN" }, { lvl: 35, skill: "GOUZAN" },
-    { lvl: 40, skill: "SENPUU" }, { lvl: 50, skill: "ZANTETSU" },
+    { lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "TATEWARI" },
+    { lvl: 5, skill: "DOUBLE" }, { lvl: 7, skill: "WARCRY" },
+    { lvl: 10, skill: "NAGIHARAI" }, { lvl: 15, skill: "MIDARE" },
+    { lvl: 20, skill: "GOUZAN" }, { lvl: 25, skill: "ISSEN" },
+    { lvl: 30, skill: "SENPUU" }, { lvl: 40, skill: "KIKOKU" },
+    { lvl: 50, skill: "ZANTETSU" },
   ],
   knight: [
-    { lvl: 1, skill: "SHIELDBASH" }, { lvl: 8, skill: "PROTECT" },
-    { lvl: 15, skill: "GUARDALL" }, { lvl: 20, skill: "KYOUGEKI" },
-    { lvl: 28, skill: "IRONWALL" }, { lvl: 35, skill: "MIDARE" },
-    { lvl: 40, skill: "BOUJIN" }, { lvl: 50, skill: "JOUMON" },
+    { lvl: 1, skill: "SHIELDBASH" }, { lvl: 3, skill: "PROTECT" },
+    { lvl: 5, skill: "KYOUGEKI" }, { lvl: 7, skill: "KOTE" },
+    { lvl: 10, skill: "IRONWALL" }, { lvl: 15, skill: "GUARDALL" },
+    { lvl: 20, skill: "MIDARE" }, { lvl: 25, skill: "GOUZAN" },
+    { lvl: 30, skill: "BOUJIN" }, { lvl: 40, skill: "JOUMON" },
+    { lvl: 50, skill: "OUJOU" },
   ],
   thief: [
-    { lvl: 1, skill: "KYOUGEKI" }, { lvl: 8, skill: "POISONSTAB" },
-    { lvl: 15, skill: "BLIND" }, { lvl: 20, skill: "DOUBLE" },
-    { lvl: 28, skill: "ASSASSINATE" }, { lvl: 35, skill: "MIDARE" },
-    { lvl: 40, skill: "KAGENUI" }, { lvl: 50, skill: "ZETSUEI" },
+    { lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "POISONSTAB" },
+    { lvl: 5, skill: "BLIND" }, { lvl: 7, skill: "DOUBLE" },
+    { lvl: 10, skill: "KASUMEGIRI" }, { lvl: 15, skill: "ASSASSINATE" },
+    { lvl: 20, skill: "MIDARE" }, { lvl: 25, skill: "KAGENUI" },
+    { lvl: 30, skill: "TSUJIKAZE" }, { lvl: 40, skill: "OBORO" },
+    { lvl: 50, skill: "ZETSUEI" },
   ],
   mage: [
-    { lvl: 1, skill: "HALITO" }, { lvl: 8, skill: "KATINO" },
-    { lvl: 15, skill: "MAHALITO" }, { lvl: 20, skill: "MADALT" },
-    { lvl: 28, skill: "LAHALITO" }, { lvl: 35, skill: "DISPEL" },
-    { lvl: 40, skill: "TILTOWAIT" }, { lvl: 50, skill: "SEISAI" },
+    { lvl: 1, skill: "HALITO" }, { lvl: 3, skill: "ICENEEDLE" },
+    { lvl: 5, skill: "KATINO" }, { lvl: 7, skill: "KAMAITACHI" },
+    { lvl: 10, skill: "MAHALITO" }, { lvl: 15, skill: "ROCKBLAST" },
+    { lvl: 20, skill: "MADALT" }, { lvl: 25, skill: "DISPEL" },
+    { lvl: 30, skill: "LAHALITO" }, { lvl: 40, skill: "TILTOWAIT" },
+    { lvl: 50, skill: "SEISAI" },
   ],
   priest: [
-    { lvl: 1, skill: "DIOS" }, { lvl: 8, skill: "CURE" },
-    { lvl: 15, skill: "DIOSALL" }, { lvl: 20, skill: "BLESS" },
-    { lvl: 28, skill: "DIAL" }, { lvl: 35, skill: "REVIVE" },
-    { lvl: 40, skill: "MADIOS" }, { lvl: 50, skill: "RESURRECT" },
+    { lvl: 1, skill: "DIOS" }, { lvl: 3, skill: "CURE" },
+    { lvl: 5, skill: "BLESS" }, { lvl: 7, skill: "HOLYRAY" },
+    { lvl: 10, skill: "DIOSALL" }, { lvl: 15, skill: "DIAL" },
+    { lvl: 20, skill: "SAINTRAY" }, { lvl: 25, skill: "REVIVE" },
+    { lvl: 30, skill: "MADIOS" }, { lvl: 40, skill: "DIALALL" },
+    { lvl: 50, skill: "RESURRECT" },
   ],
   bishop: [
-    { lvl: 1, skill: "HALITO" }, { lvl: 8, skill: "DIOS" },
-    { lvl: 15, skill: "DIAL" }, { lvl: 20, skill: "MAHALITO" },
-    { lvl: 28, skill: "DISPEL" }, { lvl: 35, skill: "MADALT" },
-    { lvl: 40, skill: "MADIOS" }, { lvl: 50, skill: "TILTOWAIT" },
+    { lvl: 1, skill: "HALITO" }, { lvl: 3, skill: "DIOS" },
+    { lvl: 5, skill: "ICENEEDLE" }, { lvl: 7, skill: "CURE" },
+    { lvl: 10, skill: "DIAL" }, { lvl: 15, skill: "MAHALITO" },
+    { lvl: 20, skill: "DIOSALL" }, { lvl: 25, skill: "DISPEL" },
+    { lvl: 30, skill: "MADALT" }, { lvl: 40, skill: "MADIOS" },
+    { lvl: 50, skill: "TILTOWAIT" },
   ],
 };
 
@@ -316,9 +330,9 @@ export function jobLevelOf(doll, clsKeys) {
   return lvs.length >= 3 ? lvs[2] : 0;
 }
 
-// 職業のスキル表を返す。基本職は JOB_SKILLS。混成職はベース職の序盤3枠
-// + サブ職から未修得の技2枠 + 固有技 (Lv38) を合成する。
-// Lv40超の奥義は基本職だけが持つ — 混成は広く、純職は深く。
+// 職業のスキル表を返す。基本職は JOB_SKILLS。混成職はベース職の序盤5枠と
+// サブ職から未修得の技4枠を交互に並べ、Lv40 に固有技を置いて合成する。
+// Lv50 の奥義は基本職だけが持つ — 混成は広く、純職は深く。
 const _hybTables = {};
 export function jobSkillTable(jobKey) {
   if (JOB_SKILLS[jobKey]) return JOB_SKILLS[jobKey];
@@ -332,11 +346,15 @@ export function jobSkillTable(jobKey) {
   const add = (lvl, id) => { if (id && !out.some((e) => e.skill === id)) out.push({ lvl, skill: id }); };
   const novel = () => { const e = sub.find((x) => !out.some((o) => o.skill === x.skill)); return e && e.skill; };
   add(1, base[0] && base[0].skill);
-  add(8, base[1] && base[1].skill);
-  add(15, novel());
-  add(22, base[2] && base[2].skill);
+  add(3, base[1] && base[1].skill);
+  add(5, novel());
+  add(7, base[2] && base[2].skill);
+  add(10, novel());
+  add(15, base[3] && base[3].skill);
+  add(20, novel());
+  add(25, base[4] && base[4].skill);
   add(30, novel());
-  add(38, h.spell);
+  add(40, h.spell);
   _hybTables[jobKey] = out;
   return out;
 }
@@ -430,47 +448,47 @@ export const PART_SKILLS = {
 // 5部位を「ある職業3つ + 別の職業2つ」で組むと、特別な上位職が発現する。
 // 発見要素: プレイヤーが自分で組み合わせを見つける楽しみ = ビルド探索の核。
 // キーは "base+sub" (base=3部位の職業 / sub=2部位の職業)。全30通り (6職×5) を網羅。
-// spell: スキル表の固有技 (Lv38 枠) / name: 代表名 (図鑑用) /
-// ranks: 職業ランク1〜5の称号 / desc: 職業図鑑の解説文。
+// spell: スキル表の固有技 (Lv40 枠) / name: 代表名 (図鑑用) /
+// ranks: 職業ランク1〜5の称号 / desc: 職業図鑑の解説文 / tips: 活用指針。
 // ランクパッシブは JOB_PASSIVES に "base+sub" キーで定義する。
 // スキル表そのものは jobSkillTable() がベース職+サブ職から合成する。
 export const HYBRIDS = {
   // --- 戦士ベース ---
-  "fighter+thief":  { name: "侍",       spell: "ISSEN",    ranks: ["浪人", "侍", "剣客", "侍大将", "剣神"], desc: "斬撃に影の足捌きを織り込んだ異国の剣士。抜き打ちの一閃が戦いの口火を切る。" },
-  "fighter+mage":   { name: "魔法剣士", spell: "MAHALITO", ranks: ["魔剣の徒", "魔法剣士", "魔刃士", "大魔剣士", "魔剣聖"], desc: "刃に呪文を纏わせる戦い方。剣で攻めながら、届かぬ敵は業火で焼く。" },
-  "fighter+priest": { name: "聖戦士",   spell: "DIAL",     ranks: ["聖戦の徒", "聖戦士", "聖剣士", "聖戦将", "神威の剣"], desc: "祈りを力に変える戦士。魔を祓いながら、自らの傷を癒して戦い続ける。" },
-  "fighter+knight": { name: "重戦士",   spell: "GOUZAN",   ranks: ["重兵", "重戦士", "重装闘士", "重戦将", "鬼神将"], desc: "攻めの剛力と守りの錬度を兼ね備えた、純粋な前衛の完成形。受けた刃は倍にして返す。" },
-  "fighter+bishop": { name: "魔闘士",   spell: "DISPEL",   ranks: ["闘僧", "魔闘士", "闘法士", "大魔闘士", "闘神"], desc: "拳に法力を纏う異端の闘士。斬り込みながら魔を祓い、癒しの理にも通じる。" },
+  "fighter+thief":  { name: "侍",       spell: "ISSEN",    ranks: ["浪人", "侍", "剣客", "侍大将", "剣神"], desc: "斬撃に影の足捌きを織り込んだ異国の剣士。抜き打ちの一閃が戦いの口火を切る。", tips: "居合の自動攻撃で口火を切り、残心の追撃で敵の数を減らす。AGIを盛るほど先手の型が冴える。" },
+  "fighter+mage":   { name: "魔法剣士", spell: "MAHALITO", ranks: ["魔剣の徒", "魔法剣士", "魔刃士", "大魔剣士", "魔剣聖"], desc: "刃に呪文を纏わせる戦い方。剣で攻めながら、届かぬ敵は業火で焼く。", tips: "魔力撃でINTが通常攻撃に乗るため、ATKとINTを両方育てたい。剣魔合一は呪文→剣の順で会心が確定する。" },
+  "fighter+priest": { name: "聖戦士",   spell: "DIAL",     ranks: ["聖戦の徒", "聖戦士", "聖剣士", "聖戦将", "神威の剣"], desc: "祈りを力に変える戦士。魔を祓いながら、自らの傷を癒して戦い続ける。", tips: "破邪で不死・幽鬼・悪魔に滅法強い。戦闘後回復で消耗が少なく、長丁場の深層探索の先頭に向く。" },
+  "fighter+knight": { name: "重戦士",   spell: "GOUZAN",   ranks: ["重兵", "重戦士", "重装闘士", "重戦将", "鬼神将"], desc: "攻めの剛力と守りの錬度を兼ね備えた、純粋な前衛の完成形。受けた刃は倍にして返す。", tips: "挑発で敵の単体攻撃を引き受け、反撃で被弾を火力に変える。重装備で固めるほど強気に立ち回れる。" },
+  "fighter+bishop": { name: "魔闘士",   spell: "DISPEL",   ranks: ["闘僧", "魔闘士", "闘法士", "大魔闘士", "闘神"], desc: "拳に法力を纏う異端の闘士。斬り込みながら魔を祓い、癒しの理にも通じる。", tips: "金剛身の魔障壁と異常耐性で術師戦に強い。勝つたびMPが戻るので、技を惜しまず回していける。" },
   // --- 騎士ベース ---
-  "knight+priest":  { name: "聖騎士",   spell: "DIAL",     ranks: ["聖騎士見習い", "聖騎士", "聖堂守護", "聖騎士長", "神盾公"], desc: "守護の誓いに聖句を重ねた生ける盾。倒れてなお、その祈りは仲間を癒す。" },
-  "knight+fighter": { name: "聖堂騎士", spell: "IRONWALL", ranks: ["城門衛士", "聖堂騎士", "城塞騎士", "大聖堂騎士", "不落の城壁"], desc: "城壁の如き構えから強撃を放つ、攻防一体の重装騎士。" },
-  "knight+thief":   { name: "斥候騎士", spell: "KAGENUI",  ranks: ["斥候", "斥候騎士", "遊撃騎士", "疾風騎士", "影鎧公"], desc: "重装ながら身軽さを失わぬ偵察騎士。隊の目となり、奇襲の芽を摘む。" },
-  "knight+mage":    { name: "魔騎士",   spell: "MADALT",   ranks: ["魔盾兵", "魔騎士", "呪鎧騎士", "大魔騎士", "魔城公"], desc: "障壁の呪文理論を盾に編み込んだ騎士。魔をもって魔を防ぎ、撥ね返す。" },
-  "knight+bishop":  { name: "神殿騎士", spell: "DIOSALL",  ranks: ["神殿衛士", "神殿騎士", "聖蹟守護", "神殿騎士長", "法城の盾"], desc: "神殿の最奥を守る誓いの騎士。その聖域に病毒は近寄れない。" },
+  "knight+priest":  { name: "聖騎士",   spell: "DIAL",     ranks: ["聖騎士見習い", "聖騎士", "聖堂守護", "聖騎士長", "神盾公"], desc: "守護の誓いに聖句を重ねた生ける盾。倒れてなお、その祈りは仲間を癒す。", tips: "かばうで瀕死の仲間を守り抜く守護の要。自分も回復を持つため崩れにくく、殉教の祈りが最後の保険になる。" },
+  "knight+fighter": { name: "聖堂騎士", spell: "IRONWALL", ranks: ["城門衛士", "聖堂騎士", "城塞騎士", "大聖堂騎士", "不落の城壁"], desc: "城壁の如き構えから強撃を放つ、攻防一体の重装騎士。", tips: "城壁の構えにより防御するだけで隊全体の被ダメージが減る。挑発で集めて耐え、反撃と不屈で粘り勝つ。" },
+  "knight+thief":   { name: "斥候騎士", spell: "KAGENUI",  ranks: ["斥候", "斥候騎士", "遊撃騎士", "疾風騎士", "影鎧公"], desc: "重装ながら身軽さを失わぬ偵察騎士。隊の目となり、奇襲の芽を摘む。", tips: "周囲警戒と敵感知で隊の目を担う前衛。奇襲対策が一人で完結し、初見の迷宮を安全に進める。" },
+  "knight+mage":    { name: "魔騎士",   spell: "MADALT",   ranks: ["魔盾兵", "魔騎士", "呪鎧騎士", "大魔騎士", "魔城公"], desc: "障壁の呪文理論を盾に編み込んだ騎士。魔をもって魔を防ぎ、撥ね返す。", tips: "魔障壁と魔力反射でブレス・呪文の受けに無類。竜や術師が相手の時こそ前に出したい対魔の壁。" },
+  "knight+bishop":  { name: "神殿騎士", spell: "DIOSALL",  ranks: ["神殿衛士", "神殿騎士", "聖蹟守護", "神殿騎士長", "法城の盾"], desc: "神殿の最奥を守る誓いの騎士。その聖域に病毒は近寄れない。", tips: "聖域で隊全体に異常耐性を配れる。毒や麻痺をばら撒く魔物の巣窟で真価を発揮する守りの柱。" },
   // --- 盗賊ベース ---
-  "thief+fighter":  { name: "野伏",     spell: "MIDARE",   ranks: ["狩人", "野伏", "獣狩り", "首狩り", "修羅"], desc: "野に生きる狩人。不意打ちと会心で、確実に獲物を仕留める。" },
-  "thief+knight":   { name: "義賊",     spell: "IRONWALL", ranks: ["小盗", "義賊", "侠盗", "大侠盗", "伝説の義賊"], desc: "奪った力を弱きに配る無頼。金に聡く、仲間の盾になることを厭わない。" },
-  "thief+mage":     { name: "呪術師",   spell: "LAHALITO", ranks: ["呪い屋", "呪術師", "蠱毒師", "大呪術師", "禍津神"], desc: "盗賊の業に呪詛を混ぜた異端者。毒に冒された獲物を嬲り尽くす。" },
-  "thief+priest":   { name: "祓魔師",   spell: "DISPEL",   ranks: ["祓い屋", "祓魔師", "聖影", "大祓魔師", "宵闇の聖者"], desc: "聖印を帯びた影。誰よりも速く動き、不浄なるものを刃で祓う。" },
-  "thief+bishop":   { name: "影法師",   spell: "KATINO",   ranks: ["影走り", "影法師", "宵渡り", "影渡りの導師", "無明"], desc: "影から影へ渡り歩く沈黙の伝道者。闇の祝詞で敵を眠らせ、寝首を掻く。" },
+  "thief+fighter":  { name: "野伏",     spell: "MIDARE",   ranks: ["狩人", "野伏", "獣狩り", "首狩り", "修羅"], desc: "野に生きる狩人。不意打ちと会心で、確実に獲物を仕留める。", tips: "先制からの不意打ち会心が必殺。急所読みで会心ダメージも伸び、LUKを盛るほど一撃の期待値が跳ねる。" },
+  "thief+knight":   { name: "義賊",     spell: "IRONWALL", ranks: ["小盗", "義賊", "侠盗", "大侠盗", "伝説の義賊"], desc: "奪った力を弱きに配る無頼。金に聡く、仲間の盾になることを厭わない。", tips: "金運で稼ぎながら、かばうで前も張れる万能型。仁義の盾はかばった相手への攻撃に反撃まで返す。金策周回のお供に。" },
+  "thief+mage":     { name: "呪術師",   spell: "LAHALITO", ranks: ["呪い屋", "呪術師", "蠱毒師", "大呪術師", "禍津神"], desc: "盗賊の業に呪詛を混ぜた異端者。毒に冒された獲物を嬲り尽くす。", tips: "毒刃で蝕み、蠱毒で毒の敵への与ダメージを伸ばす継戦型。硬い大物ほど毒の積み重ねが効いてくる。" },
+  "thief+priest":   { name: "祓魔師",   spell: "DISPEL",   ranks: ["祓い屋", "祓魔師", "聖影", "大祓魔師", "宵闇の聖者"], desc: "聖印を帯びた影。誰よりも速く動き、不浄なるものを刃で祓う。", tips: "聖刃の会心で不死・幽鬼・悪魔を狩る遊撃手。浄化が隊の毒・麻痺も拭うので、墓所や霊廟の探索に強い。" },
+  "thief+bishop":   { name: "影法師",   spell: "KATINO",   ranks: ["影走り", "影法師", "宵渡り", "影渡りの導師", "無明"], desc: "影から影へ渡り歩く沈黙の伝道者。闇の祝詞で敵を眠らせ、寝首を掻く。", tips: "スリープで眠らせ、寝込み襲いの確定会心で刈り取るのが基本の型。財宝感知と魂寄せで探索の実入りも増える。" },
   // --- 魔術師ベース ---
-  "mage+priest":    { name: "賢者",     spell: "DIAL",     ranks: ["見習い賢者", "賢者", "碩学", "賢人", "全知者"], desc: "魔と聖、二つの理をともに識る者。森羅万象を識り、呪文に淀みがない。" },
-  "mage+thief":     { name: "魔盗賊",   spell: "ASSASSINATE", ranks: ["魔盗り", "魔盗賊", "幻影盗", "宵闇の魔手", "霧の大盗"], desc: "影に潜んで呪文を放つ異形の術士。戦いの口火はいつも彼らの呪撃だ。" },
-  "mage+fighter":   { name: "戦技師",   spell: "WARCRY",   ranks: ["武学徒", "戦技師", "闘術士", "武芸魔導", "軍神の杖"], desc: "肉体を鍛え上げた魔術師。杖の一振りに理力を乗せ、追撃の呪文を放つ。" },
-  "mage+knight":    { name: "護法師",   spell: "GUARDALL", ranks: ["護法見習い", "護法師", "結界師", "大結界師", "法城の賢者"], desc: "守りの法陣を究めた魔術師。大結界は隊を包み、災厄を半ばに断つ。" },
-  "mage+bishop":    { name: "秘術師",   spell: "MADIOS",   ranks: ["写本師", "秘術師", "秘文士", "秘奥導師", "深淵の秘術師"], desc: "公にされぬ秘術を蒐集する求道者。呪文の冴えは司教をも凌ぐ。" },
+  "mage+priest":    { name: "賢者",     spell: "DIAL",     ranks: ["見習い賢者", "賢者", "碩学", "賢人", "全知者"], desc: "魔と聖、二つの理をともに識る者。森羅万象を識り、呪文に淀みがない。", tips: "森羅万象で属性の不利が消え、どの迷宮でも呪文が安定して通る。攻守の呪文を一人で賄う後衛の完成形。" },
+  "mage+thief":     { name: "魔盗賊",   spell: "ASSASSINATE", ranks: ["魔盗り", "魔盗賊", "幻影盗", "宵闇の魔手", "霧の大盗"], desc: "影に潜んで呪文を放つ異形の術士。戦いの口火はいつも彼らの呪撃だ。", tips: "開幕呪撃が無消費で先手を取り、先制の心得で開幕の主導権を握る。短期決戦と雑魚散らしの鬼。" },
+  "mage+fighter":   { name: "戦技師",   spell: "WARCRY",   ranks: ["武学徒", "戦技師", "闘術士", "武芸魔導", "軍神の杖"], desc: "肉体を鍛え上げた魔術師。杖の一振りに理力を乗せ、追撃の呪文を放つ。", tips: "魔力撃と二刀の理で通常攻撃が呪文火力を帯びる。MPが尽きても殴りで戦える、息の長い術士。" },
+  "mage+knight":    { name: "護法師",   spell: "GUARDALL", ranks: ["護法見習い", "護法師", "結界師", "大結界師", "法城の賢者"], desc: "守りの法陣を究めた魔術師。大結界は隊を包み、災厄を半ばに断つ。", tips: "大結界が敵の全体攻撃を隊全体で半減する。全体技を連発する深層のボス戦で隊の生存率を一変させる。" },
+  "mage+bishop":    { name: "秘術師",   spell: "MADIOS",   ranks: ["写本師", "秘術師", "秘文士", "秘奥導師", "深淵の秘術師"], desc: "公にされぬ秘術を蒐集する求道者。呪文の冴えは司教をも凌ぐ。", tips: "呪文会心と省詠唱を併せ持つ攻撃呪文の特化型。燃費がよく、長い探索でも火力が衰えない。" },
   // --- 僧侶ベース ---
-  "priest+mage":    { name: "司教",     spell: "MAHALITO", ranks: ["助祭", "司教", "主教", "府主教", "教父"], desc: "聖職にありながら攻撃呪文を修めた二道の信徒。その祈りは死者にも届く。" },
-  "priest+knight":  { name: "審問官",   spell: "MADIOS",   ranks: ["修道士", "審問官", "断罪官", "大審問官", "神罰の執行者"], desc: "断罪の祈りで身を固めた聖職者。振るわれた暴力には神罰をもって応える。" },
-  "priest+fighter": { name: "戦僧",     spell: "MIDARE",   ranks: ["行者", "戦僧", "武僧", "大戦僧", "金剛力士"], desc: "拳と祈りで戦う破戒の僧。金剛の構えは死すら一度は撥ね除ける。" },
-  "priest+thief":   { name: "隠修士",   spell: "BLIND",    ranks: ["庵主", "隠修士", "山隠れ", "深山の隠者", "霞の聖人"], desc: "俗世を離れ、影に祈りを隠した修道者。身軽に動き、癒し、そして消える。" },
-  "priest+bishop":  { name: "枢機卿",   spell: "MADIOS",   ranks: ["司祭", "高位司祭", "枢機卿", "大枢機卿", "教皇"], desc: "教団の頂に座す聖職者。その祈りは一人のためでなく、隊のすべてに注がれる。" },
+  "priest+mage":    { name: "司教",     spell: "MAHALITO", ranks: ["助祭", "司教", "主教", "府主教", "教父"], desc: "聖職にありながら攻撃呪文を修めた二道の信徒。その祈りは死者にも届く。", tips: "回復を軸に攻撃呪文も撃てる後衛。慈悲の祈りが倒れた仲間を自動で引き起こす、立て直しの達人。" },
+  "priest+knight":  { name: "審問官",   spell: "MADIOS",   ranks: ["修道士", "審問官", "断罪官", "大審問官", "神罰の執行者"], desc: "断罪の祈りで身を固めた聖職者。振るわれた暴力には神罰をもって応える。", tips: "異常耐性とかばうで崩れにくく、被弾には神罰の鉄槌で反撃する。前衛に置ける珍しい回復役。" },
+  "priest+fighter": { name: "戦僧",     spell: "MIDARE",   ranks: ["行者", "戦僧", "武僧", "大戦僧", "金剛力士"], desc: "拳と祈りで戦う破戒の僧。金剛の構えは死すら一度は撥ね除ける。", tips: "破邪を帯びた拳で殴れる回復役。金剛の構えで致死の一撃を一度耐え、その場で立て直せる。" },
+  "priest+thief":   { name: "隠修士",   spell: "BLIND",    ranks: ["庵主", "隠修士", "山隠れ", "深山の隠者", "霞の聖人"], desc: "俗世を離れ、影に祈りを隠した修道者。身軽に動き、癒し、そして消える。", tips: "隠形で奇襲を受けず、逃げ足も速い低リスクの癒し手。毒床耐性もあり、危険地帯の踏破に向く。" },
+  "priest+bishop":  { name: "枢機卿",   spell: "MADIOS",   ranks: ["司祭", "高位司祭", "枢機卿", "大枢機卿", "教皇"], desc: "教団の頂に座す聖職者。その祈りは一人のためでなく、隊のすべてに注がれる。", tips: "教皇の祈りで戦闘後回復が隊全体に及ぶ。連戦の消耗を丸ごと癒し、宿に帰らず潜り続けられる。" },
   // --- 魔導僧ベース ---
-  "bishop+mage":    { name: "大魔導",   spell: "LAHALITO", ranks: ["魔導士", "上級魔導士", "大魔導", "魔導皇", "深淵王"], desc: "深淵の知識に到達した導師。攻撃呪文の極みに立つ者。" },
-  "bishop+priest":  { name: "大司教",   spell: "MADIOS",   ranks: ["修道院長", "大司教", "首座大司教", "総大司教", "聖座の代行者"], desc: "聖典の守護者にして教団の柱。聖典の加護が死の淵から引き戻す。" },
-  "bishop+fighter": { name: "修験者",   spell: "WARCRY",   ranks: ["行人", "修験者", "山伏", "大先達", "権現"], desc: "山野で身体と法力をともに鍛える行者。窮地でこそ、その荒行が実を結ぶ。" },
-  "bishop+knight":  { name: "護教官",   spell: "GUARDALL", ranks: ["衛教兵", "護教官", "護教騎士", "護教総監", "教皇の盾"], desc: "異端から教えを守る武装聖職者。聖盾は刃も業火もひとしく受け止める。" },
-  "bishop+thief":   { name: "暗導師",   spell: "KAGENUI",  ranks: ["闇読み", "暗導師", "闇説師", "闇経の導師", "冥導王"], desc: "禁じられた経典を闇で読み解く導師。喰らった魂は法力の糧となる。" },
+  "bishop+mage":    { name: "大魔導",   spell: "LAHALITO", ranks: ["魔導士", "上級魔導士", "大魔導", "魔導皇", "深淵王"], desc: "深淵の知識に到達した導師。攻撃呪文の極みに立つ者。", tips: "深淵の理で燃費と弱点看破を両立した呪文砲台。敵の属性を見ながら最適の呪文を撃ち分けたい。" },
+  "bishop+priest":  { name: "大司教",   spell: "MADIOS",   ranks: ["修道院長", "大司教", "首座大司教", "総大司教", "聖座の代行者"], desc: "聖典の守護者にして教団の柱。聖典の加護が死の淵から引き戻す。", tips: "聖典の加護が瀕死で自動発動する、倒れにくい回復の柱。自浄も持ち、状態異常戦でも祈りが途切れない。" },
+  "bishop+fighter": { name: "修験者",   spell: "WARCRY",   ranks: ["行人", "修験者", "山伏", "大先達", "権現"], desc: "山野で身体と法力をともに鍛える行者。窮地でこそ、その荒行が実を結ぶ。", tips: "荒行の果てがHP30%以下で与ダメージと回復量を底上げする背水の行者。毒床にも強く、険路に向く。" },
+  "bishop+knight":  { name: "護教官",   spell: "GUARDALL", ranks: ["衛教兵", "護教官", "護教騎士", "護教総監", "教皇の盾"], desc: "異端から教えを守る武装聖職者。聖盾は刃も業火もひとしく受け止める。", tips: "聖盾によりブレスや呪文まで肩代わりできる唯一の存在。守りながら癒す、対ボスの守護聖職者。" },
+  "bishop+thief":   { name: "暗導師",   spell: "KAGENUI",  ranks: ["闇読み", "暗導師", "闇説師", "闇経の導師", "冥導王"], desc: "禁じられた経典を闇で読み解く導師。喰らった魂は法力の糧となる。", tips: "魂寄せでSoulを稼ぎ、魂喰いで敵を倒すたびMPが戻る。魂集めの周回効率を一変させる育成の友。" },
 };
 
 // ===== 職業図鑑 (王宮書庫) 用の解説文 =====
@@ -501,6 +519,25 @@ export const JOB_LORE = {
     tips: "攻撃呪文と回復呪文を兼ね、一人で二役をこなす。賢者王に至ればリザレクションとエクスプロージョンを併せ持つ。",
   },
 };
+
+// ===== 職業ランクの発現条件 (図鑑表示用) =====
+// jobRankOf のロジックの文章化。基本職ランクN = 「品質ランクN以上の魂×3部位」、
+// または「品質ランクN-1以上×3部位 + ボーナス」。ボーナス = 5部位すべて同職、
+// または混成 (3+2) でサブ2部位の品質もベース3部位と同等以上。
+const QUALITY_NAME = ["通常", "優秀", "偉大", "伝説"];
+export function jobRankCondText(jobKey, rank) {
+  const isHybrid = !!HYBRIDS[jobKey];
+  const [baseK, subK] = jobKey.split("+");
+  const baseL = SOUL_CLASSES[baseK] ? SOUL_CLASSES[baseK].label : jobKey;
+  const comp = isHybrid
+    ? `${baseL}の魂×3部位 + ${SOUL_CLASSES[subK].label}の魂×2部位を宿す`
+    : `${baseL}の魂を3部位以上に宿す`;
+  if (rank <= 1) return comp;
+  if (rank >= 5) return `伝説の${baseL}の魂×3部位 + ボーナス条件`;
+  const q = QUALITY_NAME[rank - 1];
+  const qPrev = QUALITY_NAME[rank - 2];
+  return `${q}以上の${baseL}の魂×3部位 (または ${qPrev}以上×3部位 + ボーナス条件)`;
+}
 
 // 部位タリーから混成職を判定。base(3) と sub(2) のときのみ成立し {key,name,...} を返す
 export function findHybrid(counts) {
