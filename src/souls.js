@@ -21,23 +21,21 @@ export const PART_LABEL = { head: "頭", rhand: "右手", lhand: "左手", body:
 // 魂の職業定義。stat は「1部位あたり / 魂レベル1」の寄与量。
 // 5部位そろえた時に従来のプリメイド職とおおよそ釣り合うよう調整。
 // stat キーは hp/mp + 六大ステ (atk/vit/agi/int/pie/luk)。
-// passive: 職業が発現したとき(職業ランク1以上)に効くステータス倍率。
+// 職業パッシブは単なるステ倍率ではなく、ランク2以降に解放される
+// ユニーク効果 (JOB_PASSIVES / PASSIVES) に統一した。
 // 武術系にも少量のMP(気力)を持たせ、技を使えるようにする。
 export const SOUL_CLASSES = {
   fighter: {
     label: "戦士", color: "#d4504e", glow: "#ff7a72",
     stat: { hp: 7.0, mp: 0.7, atk: 2.4, vit: 1.6, agi: 1.2, int: 0.3, pie: 0.4, luk: 1.0 },
-    passive: { atkMul: 1.18, label: "鬼神の膂力 (ATK+18%)" },
   },
   knight: {
     label: "騎士", color: "#7c93c8", glow: "#a9c0ff",
     stat: { hp: 8.4, mp: 0.6, atk: 2.2, vit: 2.4, agi: 0.8, int: 0.4, pie: 0.8, luk: 0.9 },
-    passive: { vitMul: 1.20, label: "鉄壁の構え (VIT+20%)" },
   },
   thief: {
     label: "盗賊", color: "#6fae46", glow: "#9be88a",
     stat: { hp: 4.4, mp: 0.8, atk: 1.8, vit: 1.0, agi: 2.4, int: 0.8, pie: 0.4, luk: 2.0 },
-    passive: { agiMul: 1.25, critBonus: 0.12, label: "影駆け (AGI+25%/会心+)" },
   },
   mage: {
     label: "魔術師", color: "#b06bff", glow: "#d3a8ff",
@@ -55,52 +53,212 @@ export const SOUL_CLASSES = {
 
 // ===== 職業ランク (1〜5) =====
 // 魂の品質 (魂ランク) で決まる職業の位階。称号 (name) のほか、ランクN は
-// 職業スキルの解放上限 (職業Lv N*10 まで) を定める。passive は現ランクで
-// 効く倍率 (上位が下位を内包する絶対値)、flag は特殊効果。
+// 職業スキルの解放上限 (職業Lv N*10 まで) と、解放されるユニークパッシブ
+// (JOB_PASSIVES — ランク2〜5で1つずつ追加、上位は下位を内包) を定める。
 export const JOB_RANKS = {
   priest: [
     { name: "見習い僧侶" },
     { name: "僧侶" },
     { name: "神官" },
     { name: "聖職者" },
-    { name: "聖者", flag: "blessing" }, // 全滅時HP1で1回だけ全員復活
+    { name: "聖者" },
   ],
   mage: [
     { name: "見習い魔術師" },
     { name: "魔術師" },
     { name: "魔導師" },
     { name: "大魔導師" },
-    { name: "大賢者", passive: { agiMul: 1.1 }, flag: "spellMaster" }, // 攻撃呪文+25%
+    { name: "大賢者" },
   ],
   bishop: [
     { name: "見習い導師" },
     { name: "魔導僧" },
     { name: "導師" },
     { name: "大導師" },
-    { name: "賢者王", flag: "spellMaster" },
+    { name: "賢者王" },
   ],
   fighter: [
     { name: "見習い戦士" },
     { name: "戦士" },
-    { name: "剣士",   passive: { critBonus: 0.10 } },
-    { name: "剣豪",   passive: { atkMul: 1.12 } },
-    { name: "剣聖",   passive: { atkMul: 1.15, critBonus: 0.12 } },
+    { name: "剣士" },
+    { name: "剣豪" },
+    { name: "剣聖" },
   ],
   knight: [
-    { name: "見習い騎士", passive: { vitMul: 1.05 } },
+    { name: "見習い騎士" },
     { name: "騎士" },
-    { name: "重騎士",     passive: { vitMul: 1.10, atkMul: 1.06 } },
+    { name: "重騎士" },
     { name: "騎士団長" },
-    { name: "聖堂騎士長", passive: { vitMul: 1.15 }, flag: "endure" }, // 致死を1回HP1で耐える
+    { name: "聖堂騎士長" },
   ],
   thief: [
-    { name: "見習い盗賊", passive: { agiMul: 1.06 } },
+    { name: "見習い盗賊" },
     { name: "盗賊" },
-    { name: "ローグ",     passive: { agiMul: 1.10, critBonus: 0.08 } },
-    { name: "アサシン",   passive: { critBonus: 0.16 } },
-    { name: "夜刃",       passive: { agiMul: 1.12, critBonus: 0.10 } },
+    { name: "ローグ" },
+    { name: "アサシン" },
+    { name: "夜刃" },
   ],
 };
+
+// ===== ユニークパッシブのカタログ =====
+// 職業ランク2〜5で解放される常時効果。Lv付きの効果 (lv 配列が複数) は
+// 重複せず「最高Lvのみ」が効く (同一人形内でも、隊全体効果が複数人形に
+// あっても同様)。scope: "self"=その人形 / "party"=隊全体 (探索・隊効果)。
+// 数値そのもの (確率・倍率) は combat.js / game.js 側が key で参照する。
+export const PASSIVES = {
+  // --- 勝利後の回復系 ---
+  afterHeal:  { label: "戦闘後回復", scope: "self", lv: ["戦闘勝利後、HP5%回復", "戦闘勝利後、HP10%回復", "戦闘勝利後、HP20%回復", "戦闘勝利後、HP30%回復"] },
+  afterMp:    { label: "魔力回路", scope: "self", lv: ["戦闘勝利後、MP5%回復", "戦闘勝利後、MP10%回復"] },
+  afterBoth:  { label: "法力の灯", scope: "self", lv: ["戦闘勝利後、HP3%とMP3%回復", "戦闘勝利後、HP8%とMP8%回復"] },
+  purify:     { label: "浄化", scope: "party", lv: ["戦闘勝利後、隊全体の毒・麻痺を治す"] },
+  selfPurify: { label: "自浄", scope: "self", lv: ["戦闘勝利後、自分の毒・麻痺を治す"] },
+  mercy:      { label: "慈悲の祈り", scope: "party", lv: ["戦闘勝利後、倒れた味方1人をHP10%で蘇生 (1探索1回)"] },
+  popePrayer: { label: "教皇の祈り", scope: "party", lv: ["自分の戦闘後回復を隊全体に適用する"] },
+  soulEater:  { label: "魂喰い", scope: "self", lv: ["敵を倒した時、MP5%回復"] },
+  // --- 探索系 ---
+  vigilance:  { label: "周囲警戒", scope: "party", lv: ["奇襲される確率が半減", "奇襲を受けなくなる"] },
+  senseEnemy: { label: "敵感知", scope: "party", lv: ["まだめくっていないカードの敵の気配が見える"] },
+  senseTreasure: { label: "財宝感知", scope: "party", lv: ["まだめくっていないカードの財宝の気配が見える"] },
+  initiative: { label: "先制の心得", scope: "party", lv: ["先制攻撃の発生率+15%"] },
+  poisonFloor: { label: "毒床耐性", scope: "party", lv: ["毒の床から受けるダメージ半減", "毒の床のダメージを無効化"] },
+  fleetFoot:  { label: "逃げ足", scope: "party", lv: ["逃走の成功率+30%"] },
+  goldLuck:   { label: "金運", scope: "party", lv: ["戦闘で得るゴールド+15%", "戦闘で得るゴールド+30%"] },
+  soulLure:   { label: "魂寄せ", scope: "party", lv: ["戦闘で得るSoul+10%", "戦闘で得るSoul+20%"] },
+  appraise:   { label: "目利き", scope: "party", lv: ["敵の戦利品ドロップ率+15%"] },
+  // --- 攻撃系 ---
+  extraHit:   { label: "連撃", scope: "self", lv: ["通常攻撃が10%で2撃目を放つ (威力60%)", "通常攻撃が20%で2撃目を放つ (威力60%)"] },
+  fightSpirit: { label: "闘魂", scope: "self", lv: ["HP30%以下の時、ATK+25%", "HP30%以下の時、ATK+40%・会心+15%"] },
+  spellBlade: { label: "魔力撃", scope: "self", lv: ["通常攻撃にINTの50%を上乗せ", "通常攻撃にINTの100%を上乗せ"] },
+  venomBlade: { label: "毒刃", scope: "self", lv: ["通常攻撃が15%で敵を毒にする", "通常攻撃が30%で敵を毒にする"] },
+  flinch:     { label: "怯ませ", scope: "self", lv: ["通常攻撃が10%で敵を怯ませる (主には効かない)"] },
+  smite:      { label: "破邪", scope: "self", lv: ["不死・幽鬼・悪魔へのダメージ+30%"] },
+  holyEdge:   { label: "聖刃", scope: "self", lv: ["不死・幽鬼・悪魔への会心率+15%"] },
+  vitalEye:   { label: "急所読み", scope: "self", lv: ["会心ダメージ+25%"] },
+  gokudoku:   { label: "蠱毒", scope: "self", lv: ["毒状態の敵への与ダメージ+30%"] },
+  sleepKill:  { label: "寝込み襲い", scope: "self", lv: ["睡眠・麻痺中の敵への攻撃が必ず会心"] },
+  ambushCrit: { label: "不意打ち", scope: "self", lv: ["先制時、最初の通常攻撃が必ず会心"] },
+  kenma:      { label: "剣魔合一", scope: "self", lv: ["呪文を唱えた次の通常攻撃が必ず会心"] },
+  zanshin:    { label: "残心", scope: "self", lv: ["敵を倒した時25%で追加攻撃 (1ラウンド1回)"] },
+  twinArts:   { label: "二刀の理", scope: "self", lv: ["通常攻撃の後30%でINT×0.6の追撃呪文"] },
+  iai:        { label: "居合", scope: "self", lv: ["戦闘開始時、敵1体へ自動で抜き打ち (奇襲時は不発)"] },
+  openSpell:  { label: "開幕呪撃", scope: "self", lv: ["戦闘開始時、敵1体へ無消費の呪撃INT×1.2 (奇襲時は不発)"] },
+  asceticism: { label: "荒行の果て", scope: "self", lv: ["HP30%以下の間、与ダメージ・回復量+30%"] },
+  // --- 防御・反応系 ---
+  taunt:      { label: "挑発", scope: "self", lv: ["敵の単体攻撃が自分に向かいやすくなる"] },
+  cover:      { label: "かばう", scope: "party", lv: ["瀕死(HP25%以下)の味方への攻撃を肩代わり (1戦闘1回)", "肩代わりが1戦闘2回になり、その被ダメ-30%"] },
+  parry:      { label: "見切り", scope: "self", lv: ["敵の物理攻撃を10%で完全回避", "敵の物理攻撃を15%で完全回避"] },
+  counter:    { label: "反撃", scope: "self", lv: ["物理被弾時15%でATK×0.5の反撃", "物理被弾時25%でATK×0.7の反撃", "物理被弾時35%でATK×1.0の反撃 (会心あり)"] },
+  endure:     { label: "不屈", scope: "self", lv: ["致死ダメージをHP1で耐える (1戦闘1回)"] },
+  barrier:    { label: "魔障壁", scope: "self", lv: ["ブレス・呪文の被ダメージ半減 (1戦闘1回)", "ブレス・呪文の被ダメージ半減 (1戦闘2回)"] },
+  reflect:    { label: "魔力反射", scope: "self", lv: ["魔障壁で防いだ分のダメージを相手に返す"] },
+  bigBarrier: { label: "大結界", scope: "party", lv: ["敵の全体攻撃を隊全体で半減 (1戦闘1回・自動)"] },
+  holyCover:  { label: "聖盾", scope: "party", lv: ["かばうがブレス等の攻撃も肩代わりできる"] },
+  bastion:    { label: "城壁の構え", scope: "party", lv: ["自分が防御中、隊全体の被ダメージ-10%"] },
+  resistAilment: { label: "異常耐性", scope: "self", lv: ["毒・麻痺・睡眠の付与率-30%", "毒・麻痺・睡眠-60%、石化・即死-30%"] },
+  sanctuary:  { label: "聖域", scope: "party", lv: ["隊全体に異常耐性Lv1を付与"] },
+  martyr:     { label: "殉教の祈り", scope: "party", lv: ["自分が倒れた時、味方全体をPIE×1.0回復 (1戦闘1回)"] },
+  divineCounter: { label: "神罰の鉄槌", scope: "self", lv: ["物理被弾時20%でPIE×0.8の聖なる反撃"] },
+  scripture:  { label: "聖典の加護", scope: "self", lv: ["HP30%以下になった時、PIE×1.2を自動回復 (1戦闘1回)"] },
+  // --- 呪文系 ---
+  chant:      { label: "省詠唱", scope: "self", lv: ["呪文・技の消費MP-15%", "呪文・技の消費MP-30%"] },
+  spellCrit:  { label: "呪文会心", scope: "self", lv: ["攻撃呪文が10%で会心 (×1.5)", "攻撃呪文が18%で会心 (×1.5)"] },
+  scan:       { label: "弱点看破", scope: "party", lv: ["戦闘中、敵の属性が見える"] },
+  elemFloor:  { label: "森羅の理", scope: "self", lv: ["自分の攻撃呪文に属性の不利が出なくなる"] },
+};
+
+// パッシブの表示名 (Lv付きは「名前LvN」)
+export function passiveName(key, lv = 1) {
+  const def = PASSIVES[key];
+  if (!def) return key;
+  return def.lv.length > 1 ? `${def.label}Lv${lv}` : def.label;
+}
+export function passiveDesc(key, lv = 1) {
+  const def = PASSIVES[key];
+  if (!def) return "";
+  return def.lv[Math.min(lv, def.lv.length) - 1] || "";
+}
+
+// ランクエントリのビルダー: P("afterHeal", 2) = 単独効果 / U("金剛身", "...", {barrier:2}) = 複合
+const P = (key, lv = 1) => ({ name: passiveName(key, lv), desc: passiveDesc(key, lv), grants: { [key]: lv } });
+const U = (name, desc, grants) => ({ name, desc, grants });
+
+// ===== 職業ごとのランクパッシブ表 =====
+// 各職業 (基本職キー / 混成職 "base+sub" キー) → [ランク2, 3, 4, 5] の効果。
+// ランク1はパッシブなし。上位ランクは下位のパッシブをすべて内包する。
+// Lv付きの同名効果は重複せず、最高Lvのみが効く。
+export const JOB_PASSIVES = {
+  // --- 基本職 ---
+  fighter: [P("extraHit", 1), P("fightSpirit", 1), P("extraHit", 2), P("fightSpirit", 2)],
+  knight:  [P("taunt"), P("cover", 1), P("cover", 2), P("endure")],
+  thief:   [P("vigilance", 1), P("senseEnemy"), P("poisonFloor", 1), P("poisonFloor", 2)],
+  mage:    [P("afterMp", 1), P("chant", 1), P("afterMp", 2), P("spellCrit", 2)],
+  priest:  [P("afterHeal", 1), P("afterHeal", 2), P("afterHeal", 3), P("afterHeal", 4)],
+  bishop:  [P("afterBoth", 1), P("scan"), P("afterBoth", 2), P("purify")],
+  // --- 戦士ベース混成 ---
+  "fighter+thief":  [P("initiative"), P("parry", 1), P("iai"), P("zanshin")],
+  "fighter+mage":   [P("spellBlade", 1), P("chant", 1), P("spellBlade", 2), P("kenma")],
+  "fighter+priest": [P("afterHeal", 1), P("smite"), P("afterHeal", 2), U("神威の加護", "毒・麻痺・睡眠-60%、石化・即死-30%", { resistAilment: 2 })],
+  "fighter+knight": [P("counter", 1), P("taunt"), P("counter", 2), U("鬼神の反撃", "物理被弾時35%でATK×1.0の反撃 (会心あり)", { counter: 3 })],
+  "fighter+bishop": [P("afterMp", 1), P("flinch"), P("afterMp", 2), U("金剛身", "魔障壁Lv2と異常耐性Lv1を得る", { barrier: 2, resistAilment: 1 })],
+  // --- 騎士ベース混成 ---
+  "knight+priest":  [P("afterHeal", 1), P("cover", 1), P("cover", 2), P("martyr")],
+  "knight+fighter": [P("taunt"), P("counter", 1), P("bastion"), P("endure")],
+  "knight+thief":   [P("vigilance", 1), P("cover", 1), P("senseEnemy"), P("vigilance", 2)],
+  "knight+mage":    [P("barrier", 1), P("cover", 1), P("barrier", 2), P("reflect")],
+  "knight+bishop":  [P("afterHeal", 1), P("selfPurify"), P("cover", 1), P("sanctuary")],
+  // --- 盗賊ベース混成 ---
+  "thief+fighter":  [P("ambushCrit"), P("extraHit", 1), P("vitalEye"), P("extraHit", 2)],
+  "thief+knight":   [P("goldLuck", 1), P("cover", 1), P("goldLuck", 2), U("仁義の盾", "かばうLv2を得て、かばった時に反撃する", { cover: 2, counter: 1 })],
+  "thief+mage":     [P("venomBlade", 1), P("resistAilment", 1), P("venomBlade", 2), P("gokudoku")],
+  "thief+priest":   [P("vigilance", 1), P("afterHeal", 1), P("holyEdge"), P("purify")],
+  "thief+bishop":   [P("senseTreasure"), P("initiative"), P("soulLure", 1), P("sleepKill")],
+  // --- 魔術師ベース混成 ---
+  "mage+priest":    [P("afterMp", 1), P("scan"), P("chant", 1), U("森羅万象", "消費MP-30%、攻撃呪文に属性の不利が出ない", { chant: 2, elemFloor: 1 })],
+  "mage+thief":     [P("initiative"), P("chant", 1), P("appraise"), P("openSpell")],
+  "mage+fighter":   [P("spellBlade", 1), P("flinch"), P("spellBlade", 2), P("twinArts")],
+  "mage+knight":    [P("barrier", 1), P("cover", 1), P("barrier", 2), P("bigBarrier")],
+  "mage+bishop":    [P("afterMp", 1), P("spellCrit", 1), P("chant", 1), P("spellCrit", 2)],
+  // --- 僧侶ベース混成 ---
+  "priest+mage":    [P("afterHeal", 1), P("afterMp", 1), P("afterHeal", 2), P("mercy")],
+  "priest+knight":  [P("afterHeal", 1), P("resistAilment", 1), P("cover", 1), P("divineCounter")],
+  "priest+fighter": [P("afterHeal", 1), P("afterMp", 1), P("smite"), U("金剛の構え", "致死ダメージをHP1で耐える (1戦闘1回)", { endure: 1 })],
+  "priest+thief":   [P("vigilance", 1), P("afterHeal", 1), P("poisonFloor", 1), U("隠形", "奇襲を受けず、逃走の成功率+30%", { vigilance: 2, fleetFoot: 1 })],
+  "priest+bishop":  [P("afterHeal", 1), P("afterMp", 1), P("afterHeal", 2), P("popePrayer")],
+  // --- 魔導僧ベース混成 ---
+  "bishop+mage":    [P("afterMp", 1), P("chant", 1), P("spellCrit", 1), U("深淵の理", "消費MP-30%、敵の属性が見える", { chant: 2, scan: 1 })],
+  "bishop+priest":  [P("afterHeal", 1), P("selfPurify"), P("afterMp", 1), P("scripture")],
+  "bishop+fighter": [P("afterMp", 1), P("poisonFloor", 1), P("barrier", 1), P("asceticism")],
+  "bishop+knight":  [P("cover", 1), P("barrier", 1), P("resistAilment", 1), U("聖盾", "かばうLv2を得て、ブレス等もかばえる", { cover: 2, holyCover: 1 })],
+  "bishop+thief":   [P("soulLure", 1), P("venomBlade", 1), P("soulLure", 2), P("soulEater")],
+};
+
+// 職業のランク2〜5パッシブ表 (ランク順の配列) を返す
+export function jobPassiveTable(jobKey) { return JOB_PASSIVES[jobKey] || []; }
+
+// 職業×ランクから有効なパッシブの集合 {key: lv} を作る。
+// 上位ランクは下位を内包し、同名Lvは最高のみ残す。
+export function passivesUpTo(jobKey, rank) {
+  const map = {};
+  const tbl = JOB_PASSIVES[jobKey] || [];
+  for (let r = 2; r <= rank; r++) {
+    const e = tbl[r - 2];
+    if (!e) continue;
+    for (const k in e.grants) map[k] = Math.max(map[k] || 0, e.grants[k]);
+  }
+  return map;
+}
+
+// メンバーのパッシブLvを引く (持っていなければ 0)
+export function pLv(m, key) { return (m && m.passiveMap && m.passiveMap[key]) || 0; }
+
+// 職業×ランクの称号。基本職は JOB_RANKS、混成職は HYBRIDS.ranks から引く
+export function jobRankName(jobKey, rank) {
+  const r = Math.max(1, Math.min(5, rank || 1));
+  if (JOB_RANKS[jobKey]) return JOB_RANKS[jobKey][r - 1].name;
+  const h = HYBRIDS[jobKey];
+  if (h && h.ranks) return h.ranks[r - 1];
+  return h ? h.name : "";
+}
 
 // ===== 職業スキル表 =====
 // アクションスキルは魂ではなく「職業」に帰属する。職業Lv (構成魂の3番目に
@@ -183,17 +341,6 @@ export function jobSkillTable(jobKey) {
   return out;
 }
 
-// パッシブ倍率 ({atkMul:1.12, critBonus:0.1}) の表示用テキスト
-export function passiveText(p) {
-  if (!p) return "";
-  const out = [];
-  if (p.atkMul) out.push(`ATK+${Math.round((p.atkMul - 1) * 100)}%`);
-  if (p.vitMul) out.push(`VIT+${Math.round((p.vitMul - 1) * 100)}%`);
-  if (p.agiMul) out.push(`AGI+${Math.round((p.agiMul - 1) * 100)}%`);
-  if (p.critBonus) out.push(`会心+${Math.round(p.critBonus * 100)}%`);
-  return out.join(" / ");
-}
-
 // 魂ランク → 数値 (通常1 / 優秀2 / 偉大3 / 伝説4)
 function soulRankNum(s) { return SOUL_RANKS[s.rank || "normal"].order + 1; }
 
@@ -209,9 +356,21 @@ export function jobRankOf(doll) {
   // base = 「魂ランク>=K の部位が3つ以上」を満たす最大の K (1始まり)
   let base = 1;
   for (let K = 2; K <= 4; K++) if (ranks.filter((r) => r >= K).length >= 3) base = K;
-  // 5部位すべて同職なら +1
+  // +1 ボーナス: 5部位すべて同職、または混成 (3+2) でサブ2部位の品質も base 以上
   const all5 = ranks.length === 5;
-  const rank = Math.max(1, Math.min(5, base + (all5 ? 1 : 0)));
+  let bonus = all5 ? 1 : 0;
+  if (!bonus && dom.count === 3) {
+    const counts = {};
+    const others = [];
+    for (const p of PARTS) {
+      const s = doll.parts[p];
+      if (!s) continue;
+      counts[s.clsKey] = (counts[s.clsKey] || 0) + 1;
+      if (s.clsKey !== J) others.push(soulRankNum(s));
+    }
+    if (findHybrid(counts) && others.every((r) => r >= base)) bonus = 1;
+  }
+  const rank = Math.max(1, Math.min(5, base + bonus));
   return { clsKey: J, rank, count: dom.count, all5 };
 }
 
@@ -271,45 +430,47 @@ export const PART_SKILLS = {
 // 5部位を「ある職業3つ + 別の職業2つ」で組むと、特別な上位職が発現する。
 // 発見要素: プレイヤーが自分で組み合わせを見つける楽しみ = ビルド探索の核。
 // キーは "base+sub" (base=3部位の職業 / sub=2部位の職業)。全30通り (6職×5) を網羅。
-// spell: スキル表の固有技 (Lv38 枠) / passive: ステータス倍率と表示名 / desc: 職業図鑑の解説文。
+// spell: スキル表の固有技 (Lv38 枠) / name: 代表名 (図鑑用) /
+// ranks: 職業ランク1〜5の称号 / desc: 職業図鑑の解説文。
+// ランクパッシブは JOB_PASSIVES に "base+sub" キーで定義する。
 // スキル表そのものは jobSkillTable() がベース職+サブ職から合成する。
 export const HYBRIDS = {
   // --- 戦士ベース ---
-  "fighter+thief":  { name: "剣豪",     spell: "ISSEN",    passive: { critBonus: 0.18, agiMul: 1.12, label: "剣豪の冴え (会心/AGI)" }, desc: "斬撃に影の足捌きを織り込んだ剣の極み。研ぎ澄まされた会心で敵を斬り伏せる。" },
-  "fighter+mage":   { name: "魔法剣士", spell: "MAHALITO", passive: { atkMul: 1.12, label: "魔剣の理 (ATK+)" }, desc: "刃に呪文を纏わせる戦い方。剣で攻めながら、届かぬ敵は業火で焼く。" },
-  "fighter+priest": { name: "聖戦士",   spell: "DIAL",     passive: { atkMul: 1.08, vitMul: 1.08, label: "聖なる闘気" }, desc: "祈りを力に変える戦士。攻守を高めつつ、自らの傷を癒して戦い続ける。" },
-  "fighter+knight": { name: "重戦士",   spell: "GOUZAN",   passive: { atkMul: 1.12, vitMul: 1.10, label: "鉄血 (ATK/VIT)" }, desc: "攻めの剛力と守りの錬度を兼ね備えた、純粋な前衛の完成形。" },
-  "fighter+bishop": { name: "魔闘士",   spell: "DISPEL",   passive: { atkMul: 1.08, label: "闘気と法力 (ATK+)" }, desc: "拳に法力を纏う異端の闘士。斬り込みながら魔を祓い、癒しの理にも通じる。" },
+  "fighter+thief":  { name: "侍",       spell: "ISSEN",    ranks: ["浪人", "侍", "剣客", "侍大将", "剣神"], desc: "斬撃に影の足捌きを織り込んだ異国の剣士。抜き打ちの一閃が戦いの口火を切る。" },
+  "fighter+mage":   { name: "魔法剣士", spell: "MAHALITO", ranks: ["魔剣の徒", "魔法剣士", "魔刃士", "大魔剣士", "魔剣聖"], desc: "刃に呪文を纏わせる戦い方。剣で攻めながら、届かぬ敵は業火で焼く。" },
+  "fighter+priest": { name: "聖戦士",   spell: "DIAL",     ranks: ["聖戦の徒", "聖戦士", "聖剣士", "聖戦将", "神威の剣"], desc: "祈りを力に変える戦士。魔を祓いながら、自らの傷を癒して戦い続ける。" },
+  "fighter+knight": { name: "重戦士",   spell: "GOUZAN",   ranks: ["重兵", "重戦士", "重装闘士", "重戦将", "鬼神将"], desc: "攻めの剛力と守りの錬度を兼ね備えた、純粋な前衛の完成形。受けた刃は倍にして返す。" },
+  "fighter+bishop": { name: "魔闘士",   spell: "DISPEL",   ranks: ["闘僧", "魔闘士", "闘法士", "大魔闘士", "闘神"], desc: "拳に法力を纏う異端の闘士。斬り込みながら魔を祓い、癒しの理にも通じる。" },
   // --- 騎士ベース ---
-  "knight+priest":  { name: "聖騎士",   spell: "DIAL",     passive: { vitMul: 1.16, label: "守護の誓い (VIT++)" }, desc: "守護の誓いに聖句を重ねた生ける盾。最も堅く、傷を癒す術も持つ。" },
-  "knight+fighter": { name: "聖堂騎士", spell: "IRONWALL", passive: { vitMul: 1.10, atkMul: 1.08, label: "城壁の構え" }, desc: "城壁の如き構えから強撃を放つ、攻防一体の重装騎士。" },
-  "knight+thief":   { name: "斥候騎士", spell: "KAGENUI",  passive: { vitMul: 1.10, agiMul: 1.15, label: "軽装騎士 (VIT/AGI)" }, desc: "重装ながら身軽さを失わぬ偵察騎士。守りを固めつつ先手を取る。" },
-  "knight+mage":    { name: "魔騎士",   spell: "MADALT",   passive: { vitMul: 1.12, label: "魔障壁 (VIT+)" }, desc: "障壁の呪文理論を盾に編み込んだ騎士。魔をもって魔を防ぐ。" },
-  "knight+bishop":  { name: "神殿騎士", spell: "DIOSALL",  passive: { vitMul: 1.12, label: "神威の守り (VIT+)" }, desc: "神殿の最奥を守る誓いの騎士。祈りと盾を等しく掲げる。" },
+  "knight+priest":  { name: "聖騎士",   spell: "DIAL",     ranks: ["聖騎士見習い", "聖騎士", "聖堂守護", "聖騎士長", "神盾公"], desc: "守護の誓いに聖句を重ねた生ける盾。倒れてなお、その祈りは仲間を癒す。" },
+  "knight+fighter": { name: "聖堂騎士", spell: "IRONWALL", ranks: ["城門衛士", "聖堂騎士", "城塞騎士", "大聖堂騎士", "不落の城壁"], desc: "城壁の如き構えから強撃を放つ、攻防一体の重装騎士。" },
+  "knight+thief":   { name: "斥候騎士", spell: "KAGENUI",  ranks: ["斥候", "斥候騎士", "遊撃騎士", "疾風騎士", "影鎧公"], desc: "重装ながら身軽さを失わぬ偵察騎士。隊の目となり、奇襲の芽を摘む。" },
+  "knight+mage":    { name: "魔騎士",   spell: "MADALT",   ranks: ["魔盾兵", "魔騎士", "呪鎧騎士", "大魔騎士", "魔城公"], desc: "障壁の呪文理論を盾に編み込んだ騎士。魔をもって魔を防ぎ、撥ね返す。" },
+  "knight+bishop":  { name: "神殿騎士", spell: "DIOSALL",  ranks: ["神殿衛士", "神殿騎士", "聖蹟守護", "神殿騎士長", "法城の盾"], desc: "神殿の最奥を守る誓いの騎士。その聖域に病毒は近寄れない。" },
   // --- 盗賊ベース ---
-  "thief+fighter":  { name: "野伏",     spell: "MIDARE",   passive: { critBonus: 0.14, atkMul: 1.06, label: "不意打ち" }, desc: "野に生きる狩人。不意打ちと会心で、確実に獲物を仕留める。" },
-  "thief+knight":   { name: "義賊",     spell: "IRONWALL", passive: { agiMul: 1.12, vitMul: 1.06, label: "義侠の構え" }, desc: "奪った力を弱きに配る無頼。打たれ強く、そして誰よりも速い。" },
-  "thief+mage":     { name: "呪術師",   spell: "LAHALITO", passive: { agiMul: 1.18, label: "呪詛 (AGI++)" }, desc: "盗賊の業に呪詛を混ぜた異端者。圧倒的な素早さで敵を翻弄する。" },
-  "thief+priest":   { name: "祓魔師",   spell: "DISPEL",   passive: { agiMul: 1.12, critBonus: 0.08, label: "聖盗 (AGI/会心)" }, desc: "聖印を帯びた影。誰よりも速く動き、傷ついた仲間に癒しを届ける。" },
-  "thief+bishop":   { name: "影法師",   spell: "KATINO",   passive: { agiMul: 1.15, label: "影渡り (AGI++)" }, desc: "影から影へ渡り歩く沈黙の伝道者。闇の祝詞で敵を眠らせる。" },
+  "thief+fighter":  { name: "野伏",     spell: "MIDARE",   ranks: ["狩人", "野伏", "獣狩り", "首狩り", "修羅"], desc: "野に生きる狩人。不意打ちと会心で、確実に獲物を仕留める。" },
+  "thief+knight":   { name: "義賊",     spell: "IRONWALL", ranks: ["小盗", "義賊", "侠盗", "大侠盗", "伝説の義賊"], desc: "奪った力を弱きに配る無頼。金に聡く、仲間の盾になることを厭わない。" },
+  "thief+mage":     { name: "呪術師",   spell: "LAHALITO", ranks: ["呪い屋", "呪術師", "蠱毒師", "大呪術師", "禍津神"], desc: "盗賊の業に呪詛を混ぜた異端者。毒に冒された獲物を嬲り尽くす。" },
+  "thief+priest":   { name: "祓魔師",   spell: "DISPEL",   ranks: ["祓い屋", "祓魔師", "聖影", "大祓魔師", "宵闇の聖者"], desc: "聖印を帯びた影。誰よりも速く動き、不浄なるものを刃で祓う。" },
+  "thief+bishop":   { name: "影法師",   spell: "KATINO",   ranks: ["影走り", "影法師", "宵渡り", "影渡りの導師", "無明"], desc: "影から影へ渡り歩く沈黙の伝道者。闇の祝詞で敵を眠らせ、寝首を掻く。" },
   // --- 魔術師ベース ---
-  "mage+priest":    { name: "賢者",     spell: "DIAL",     passive: { label: "理を識る者 (全呪文)" }, desc: "魔と聖、二つの理をともに識る者。あらゆる呪文に通じる万能の術士。" },
-  "mage+thief":     { name: "魔盗賊",   spell: "ASSASSINATE", passive: { agiMul: 1.18, critBonus: 0.10, label: "影呪 (AGI/会心)" }, desc: "影に潜んで呪文を放つ異形の術士。素早さと会心が術士の脆さを補う。" },
-  "mage+fighter":   { name: "戦技師",   spell: "WARCRY",   passive: { atkMul: 1.10, label: "武装魔導 (ATK+)" }, desc: "肉体を鍛え上げた魔術師。前線で杖を振るい、武技すら使いこなす。" },
-  "mage+knight":    { name: "護法師",   spell: "GUARDALL", passive: { vitMul: 1.10, label: "護法の理 (VIT+)" }, desc: "守りの法陣を究めた魔術師。脆さを理力で補い、前線に立つ。" },
-  "mage+bishop":    { name: "秘術師",   spell: "MADIOS",   passive: { critBonus: 0.08, label: "秘術の冴え (会心+)" }, desc: "公にされぬ秘術を蒐集する求道者。呪文の冴えは司教をも凌ぐ。" },
+  "mage+priest":    { name: "賢者",     spell: "DIAL",     ranks: ["見習い賢者", "賢者", "碩学", "賢人", "全知者"], desc: "魔と聖、二つの理をともに識る者。森羅万象を識り、呪文に淀みがない。" },
+  "mage+thief":     { name: "魔盗賊",   spell: "ASSASSINATE", ranks: ["魔盗り", "魔盗賊", "幻影盗", "宵闇の魔手", "霧の大盗"], desc: "影に潜んで呪文を放つ異形の術士。戦いの口火はいつも彼らの呪撃だ。" },
+  "mage+fighter":   { name: "戦技師",   spell: "WARCRY",   ranks: ["武学徒", "戦技師", "闘術士", "武芸魔導", "軍神の杖"], desc: "肉体を鍛え上げた魔術師。杖の一振りに理力を乗せ、追撃の呪文を放つ。" },
+  "mage+knight":    { name: "護法師",   spell: "GUARDALL", ranks: ["護法見習い", "護法師", "結界師", "大結界師", "法城の賢者"], desc: "守りの法陣を究めた魔術師。大結界は隊を包み、災厄を半ばに断つ。" },
+  "mage+bishop":    { name: "秘術師",   spell: "MADIOS",   ranks: ["写本師", "秘術師", "秘文士", "秘奥導師", "深淵の秘術師"], desc: "公にされぬ秘術を蒐集する求道者。呪文の冴えは司教をも凌ぐ。" },
   // --- 僧侶ベース ---
-  "priest+mage":    { name: "司教",     spell: "MAHALITO", passive: { label: "二道の信徒 (攻呪+)" }, desc: "聖職にありながら攻撃呪文を修めた二道の信徒。癒しと業火を併せ持つ。" },
-  "priest+knight":  { name: "審問官",   spell: "MADIOS",   passive: { vitMul: 1.10, label: "断罪の祈り" }, desc: "断罪の祈りで身を固めた聖職者。打たれ強く、大いなる回復をも担う。" },
-  "priest+fighter": { name: "戦僧",     spell: "MIDARE",   passive: { atkMul: 1.12, label: "破邪の拳 (ATK+)" }, desc: "拳と祈りで戦う破戒の僧。乱れ斬りの如き連撃で魔を祓う。" },
-  "priest+thief":   { name: "隠修士",   spell: "BLIND",    passive: { agiMul: 1.12, label: "隠者の身軽さ (AGI+)" }, desc: "俗世を離れ、影に祈りを隠した修道者。身軽に動き、癒し、そして消える。" },
-  "priest+bishop":  { name: "枢機卿",   spell: "MADIOS",   passive: { vitMul: 1.08, label: "教権の威光" }, desc: "教団の頂に座す聖職者。その祈りは死の淵にも届く。" },
+  "priest+mage":    { name: "司教",     spell: "MAHALITO", ranks: ["助祭", "司教", "主教", "府主教", "教父"], desc: "聖職にありながら攻撃呪文を修めた二道の信徒。その祈りは死者にも届く。" },
+  "priest+knight":  { name: "審問官",   spell: "MADIOS",   ranks: ["修道士", "審問官", "断罪官", "大審問官", "神罰の執行者"], desc: "断罪の祈りで身を固めた聖職者。振るわれた暴力には神罰をもって応える。" },
+  "priest+fighter": { name: "戦僧",     spell: "MIDARE",   ranks: ["行者", "戦僧", "武僧", "大戦僧", "金剛力士"], desc: "拳と祈りで戦う破戒の僧。金剛の構えは死すら一度は撥ね除ける。" },
+  "priest+thief":   { name: "隠修士",   spell: "BLIND",    ranks: ["庵主", "隠修士", "山隠れ", "深山の隠者", "霞の聖人"], desc: "俗世を離れ、影に祈りを隠した修道者。身軽に動き、癒し、そして消える。" },
+  "priest+bishop":  { name: "枢機卿",   spell: "MADIOS",   ranks: ["司祭", "高位司祭", "枢機卿", "大枢機卿", "教皇"], desc: "教団の頂に座す聖職者。その祈りは一人のためでなく、隊のすべてに注がれる。" },
   // --- 魔導僧ベース ---
-  "bishop+mage":    { name: "大魔導",   spell: "LAHALITO", passive: { label: "深淵の知識 (攻呪++)" }, desc: "深淵の知識に到達した導師。攻撃呪文の極みに立つ者。" },
-  "bishop+priest":  { name: "大司教",   spell: "MADIOS",   passive: { label: "聖典の守護者" }, desc: "聖典の守護者にして教団の柱。魔導僧の頂に立つ。" },
-  "bishop+fighter": { name: "修験者",   spell: "WARCRY",   passive: { atkMul: 1.08, label: "練気の行 (ATK+)" }, desc: "山野で身体と法力をともに鍛える行者。練り上げた気は刃にも勝る。" },
-  "bishop+knight":  { name: "護教官",   spell: "GUARDALL", passive: { vitMul: 1.12, label: "護教の盾 (VIT+)" }, desc: "異端から教えを守る武装聖職者。法力の盾は城壁に等しい。" },
-  "bishop+thief":   { name: "暗導師",   spell: "KAGENUI",  passive: { agiMul: 1.10, critBonus: 0.06, label: "闇の祝詞" }, desc: "禁じられた経典を闇で読み解く導師。その祝詞は毒よりも静かに回る。" },
+  "bishop+mage":    { name: "大魔導",   spell: "LAHALITO", ranks: ["魔導士", "上級魔導士", "大魔導", "魔導皇", "深淵王"], desc: "深淵の知識に到達した導師。攻撃呪文の極みに立つ者。" },
+  "bishop+priest":  { name: "大司教",   spell: "MADIOS",   ranks: ["修道院長", "大司教", "首座大司教", "総大司教", "聖座の代行者"], desc: "聖典の守護者にして教団の柱。聖典の加護が死の淵から引き戻す。" },
+  "bishop+fighter": { name: "修験者",   spell: "WARCRY",   ranks: ["行人", "修験者", "山伏", "大先達", "権現"], desc: "山野で身体と法力をともに鍛える行者。窮地でこそ、その荒行が実を結ぶ。" },
+  "bishop+knight":  { name: "護教官",   spell: "GUARDALL", ranks: ["衛教兵", "護教官", "護教騎士", "護教総監", "教皇の盾"], desc: "異端から教えを守る武装聖職者。聖盾は刃も業火もひとしく受け止める。" },
+  "bishop+thief":   { name: "暗導師",   spell: "KAGENUI",  ranks: ["闇読み", "暗導師", "闇説師", "闇経の導師", "冥導王"], desc: "禁じられた経典を闇で読み解く導師。喰らった魂は法力の糧となる。" },
 };
 
 // ===== 職業図鑑 (王宮書庫) 用の解説文 =====
@@ -339,13 +500,6 @@ export const JOB_LORE = {
     desc: "魔と聖、二つの道を同時に究めようとした異端者の魂。教会は彼らを破門し、迷宮は彼らを歓迎した。",
     tips: "攻撃呪文と回復呪文を兼ね、一人で二役をこなす。賢者王に至ればリザレクションとエクスプロージョンを併せ持つ。",
   },
-};
-
-// 職業ランクの特殊効果 (flag) の説明文
-export const FLAG_DESC = {
-  blessing: "聖者の加護: 全滅時、一度だけ全員がHP1で踏みとどまる",
-  endure: "不屈: 致死のダメージを一度だけHP1で耐える",
-  spellMaster: "魔道の極み: 攻撃呪文の威力+25%",
 };
 
 // 部位タリーから混成職を判定。base(3) と sub(2) のときのみ成立し {key,name,...} を返す
@@ -507,7 +661,6 @@ export function recalcDoll(doll) {
   const dom = dominantClass(doll);
   const spells = [];
   const passives = [];
-  const flags = {};        // blessing / endure / spellMaster
   let crit = 0;
   let clsLabel = "空の器";
   let clsKey = "fighter";
@@ -542,29 +695,11 @@ export function recalcDoll(doll) {
   luk += pAdd.luk;
   crit += pAdd.crit;
 
-  // 職業の素のパッシブ倍率 + ランク固有の補正・特殊効果 (発現=同職3部位以上)
+  // 職業の称号 (発現=同職3部位以上)。ステータス倍率パッシブは廃止し、
+  // ランク2以降のユニークパッシブ (JOB_PASSIVES) に一本化した。
   if (jr) {
     clsKey = jr.clsKey;
-    const rk = JOB_RANKS[clsKey][jr.rank - 1];
-    clsLabel = rk.name;
-    const def0 = SOUL_CLASSES[clsKey];
-    if (def0.passive) {
-      passives.push(def0.passive.label);
-      if (def0.passive.atkMul) atk *= def0.passive.atkMul;
-      if (def0.passive.vitMul) vit *= def0.passive.vitMul;
-      if (def0.passive.agiMul) agi *= def0.passive.agiMul;
-      if (def0.passive.critBonus) crit += def0.passive.critBonus;
-    }
-    // 現ランクの補正 (上位が下位を内包する絶対値) と特殊効果フラグ
-    if (rk.passive) {
-      if (rk.passive.atkMul) atk *= rk.passive.atkMul;
-      if (rk.passive.vitMul) vit *= rk.passive.vitMul;
-      if (rk.passive.agiMul) agi *= rk.passive.agiMul;
-      if (rk.passive.critBonus) crit += rk.passive.critBonus;
-      passives.push(`${rk.name}: ${passiveText(rk.passive)}`);
-    }
-    if (rk.flag) { flags[rk.flag] = true; passives.push(FLAG_DESC[rk.flag] || rk.flag); }
-    passives.push(`職業ランク${jr.rank}: ${clsLabel}`);
+    clsLabel = JOB_RANKS[clsKey][jr.rank - 1].name;
   }
 
   // アクションスキル: 職業 (基本職/混成職) のスキル表から習得する。
@@ -580,24 +715,25 @@ export function recalcDoll(doll) {
     }
   }
 
-  // 混成職が発現していれば名称を上書きし、補正を付与 (固有技はスキル表に含まれる)
-  if (hybrid) {
-    clsLabel = hybrid.name;
-    const hp2 = hybrid.passive || {};
-    if (hp2.label) passives.push(hp2.label);
-    if (hp2.atkMul) atk *= hp2.atkMul;
-    if (hp2.vitMul) vit *= hp2.vitMul;
-    if (hp2.agiMul) agi *= hp2.agiMul;
-    if (hp2.critBonus) crit += hp2.critBonus;
+  // 混成職が発現していれば称号を混成職のランク称号に置き換える
+  if (hybrid && jr) clsLabel = jobRankName(hybrid.key, jr.rank);
+
+  // ランクパッシブの確定: 職業 (混成優先) × ランクから {key: lv} を合成
+  const jobKey = hybrid ? hybrid.key : jr ? jr.clsKey : null;
+  const pMap = jobKey && jr ? passivesUpTo(jobKey, jr.rank) : {};
+  doll.passiveMap = pMap;
+  if (jobKey && jr) {
+    const tbl = JOB_PASSIVES[jobKey] || [];
+    for (let r = 2; r <= jr.rank; r++) if (tbl[r - 2]) passives.push(tbl[r - 2].name);
   }
 
   doll.clsKey = clsKey;
   doll.cls = clsLabel + (hybrid ? "(混成)" : jr ? `・ランク${jr.rank}` : "");
   doll.tier = jr ? (hybrid ? "hybrid" : "rank" + jr.rank) : "none";
   doll.dominant = dom;
-  doll.blessing = !!flags.blessing;
-  doll.endure = !!flags.endure;
-  doll.spellMaster = !!flags.spellMaster;
+  doll.blessing = false;            // 旧フラグ (聖者の祝福) は廃止
+  doll.endure = (pMap.endure || 0) > 0;
+  doll.spellMaster = false;         // 旧フラグ (魔道の極み) は廃止
   // 人業の「レベル」= 封印した魂の平均レベル (表示用)
   const souls = dollSouls(doll);
   doll.level = souls.length ? Math.max(1, Math.round(souls.reduce((a, s) => a + s.level, 0) / souls.length)) : 1;

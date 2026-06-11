@@ -1,7 +1,7 @@
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSprite } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, SPELLS, cloneItem } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, SPELLS, cloneItem, spellCost } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
 import { spriteCanvas } from "./sprites.js";
 import {
@@ -18,8 +18,8 @@ import {
   dollSouls, dominantClass, recalcDoll, sealSoul,
   ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
   SOUL_RANKS, rollSoulRank, soulStats, soulHardCap, ensureSoul,
-  JOB_RANKS, jobRankOf, PART_SKILLS, HYBRIDS, findHybrid, JOB_LORE, FLAG_DESC,
-  jobSkillTable, jobLevelOf, passiveText,
+  jobRankOf, PART_SKILLS, HYBRIDS, findHybrid, JOB_LORE,
+  jobSkillTable, jobLevelOf, jobRankName, jobPassiveTable, pLv,
 } from "./souls.js";
 import { showOpening } from "./opening.js";
 
@@ -276,6 +276,13 @@ function buildRunCfg() {
 }
 function activeCfg() { return G.runCfg || curDungeon(); }
 
+// 生存パーティが持つ職業ランクパッシブの最高Lv (隊全体効果の判定用。重複しない)
+function partyPassiveLv(key) {
+  let lv = 0;
+  for (const p of G.party || []) if (p.alive) lv = Math.max(lv, pLv(p, key));
+  return lv;
+}
+
 // 迷宮内の階に応じた敵の強さ倍率 (迷宮ベース × 階で微増 × 日替わり)
 function enemyScale() {
   const cfg = activeCfg();
@@ -338,6 +345,10 @@ function renderBoard() {
   const reachable = (G.state === "board" && !G.anim && !G.walking)
     ? getReachableCells() : null;
 
+  // 感知パッシブ: 未公開カードに敵 (敵感知) / 財宝 (財宝感知) の気配を浮かべる
+  const senseE = partyPassiveLv("senseEnemy") > 0;
+  const senseT = partyPassiveLv("senseTreasure") > 0;
+
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
       const cell = G.board.cells[y][x];
@@ -350,6 +361,21 @@ function renderBoard() {
         showBack = t < 0.5;
       }
       drawCard(r, cell, scaleX, showBack);
+      if (!cell.revealed && !cell.cleared) {
+        const mark = senseE && cell.type === "monster" ? { text: "!", color: "#ff6b5e" }
+          : senseT && cell.type === "chest" ? { text: "✦", color: "#ffd84a" } : null;
+        if (mark) {
+          vctx.save();
+          vctx.shadowColor = mark.color;
+          vctx.shadowBlur = 6;
+          vctx.fillStyle = mark.color;
+          vctx.font = "bold 11px monospace";
+          vctx.textAlign = "center";
+          const bob = Math.sin(performance.now() * 0.003 + x * 2 + y) * 1.5;
+          vctx.fillText(mark.text, r.x + r.w - 9, r.y + 12 + bob);
+          vctx.restore();
+        }
+      }
       // めくれる未公開カードのみハイライト: 隣接(1歩)は明るいグロー、遠隔は薄い枠
       // (めくり済みマスは移動可能でも枠を出さない)
       if (reachable && !cell.revealed && reachable.has(x + "," + y)) {
@@ -532,6 +558,28 @@ function drawCard(r, cell, scaleX, showBack) {
     vctx.fillRect(2, 2, r.w - 4, 2);
 
     const cx = r.w / 2, cy = r.h / 2;
+    // 毒の床: 緑の毒だまりを描く (アイコンではなく地形として)
+    if (cell.type === "poison") {
+      vctx.save();
+      vctx.fillStyle = "rgba(90,150,40,0.45)";
+      vctx.beginPath();
+      vctx.ellipse(cx, cy + 4, r.w * 0.36, r.h * 0.26, 0, 0, Math.PI * 2);
+      vctx.fill();
+      vctx.fillStyle = "rgba(150,220,70,0.5)";
+      const t = performance.now() * 0.002;
+      for (let i = 0; i < 3; i++) {
+        const bx = cx + Math.sin(t + i * 2.1) * 10;
+        const by = cy + 2 + Math.cos(t * 1.3 + i * 1.7) * 5;
+        vctx.beginPath();
+        vctx.arc(bx, by, 2 + (i % 2), 0, Math.PI * 2);
+        vctx.fill();
+      }
+      vctx.fillStyle = "rgba(190,255,120,0.8)";
+      vctx.font = "9px monospace";
+      vctx.textAlign = "center";
+      vctx.fillText("☠", cx, cy - 8);
+      vctx.restore();
+    }
     // アイコン選択。倒した敵は何も残さない / 宝箱は開封後に空箱 / 死体は常に表示
     const icon =
       cell.type === "monster" && !cell.cleared ? MONSTERS[cell.monsterKey] :
@@ -776,6 +824,29 @@ function resolveCell(cell) {
           renderBoard();
         },
       });
+      break;
+    }
+    case "poison": {
+      // 毒の床: 踏むたびに隊全体を蝕む。毒床耐性 (盗賊系) で半減/無効
+      const resist = partyPassiveLv("poisonFloor");
+      if (resist >= 2) {
+        log("毒の床だ。だが足音ひとつ立てず無傷で渡った。", "sys");
+        break;
+      }
+      SFX.trap(); buzz([0, 40, 30, 40]);
+      flashScreen("#5a8a2a");
+      let anyDeath = false;
+      for (const p of G.party) {
+        if (!p.alive) continue;
+        let dmg = Math.max(1, Math.ceil(p.maxhp * 0.05));
+        if (resist === 1) dmg = Math.max(1, Math.ceil(dmg * 0.5));
+        p.hp = Math.max(0, p.hp - dmg);
+        if (p.hp === 0) { p.alive = false; anyDeath = true; log(`${p.name}は毒に沈んだ…`, "dmg"); }
+      }
+      log(`毒の床だ！ 隊全体が蝕まれた${resist === 1 ? " (耐性で半減)" : ""}`, "dmg");
+      renderParty();
+      if (anyDeath) { SFX.die(); imprintFallen(); if (!G.party.some((p) => p.alive)) { gameOver(); break; } }
+      renderBoard();
       break;
     }
     case "fountain": {
@@ -1233,9 +1304,23 @@ function startBattle(enemies, cell) {
 
   combatMenu.classList.remove("hidden");
   log(`${enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
+  // 先制・奇襲の判定 (ボス戦では発生しない)。
+  // 周囲警戒 (vigilance) が奇襲を抑え、先制の心得 (initiative) が先制を伸ばす
+  const isBoss = enemies.some((e) => e.boss);
+  let opening = null;
+  if (!isBoss) {
+    const vig = partyPassiveLv("vigilance");
+    const amb = 0.08 * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1);
+    const pre = 0.08 + (partyPassiveLv("initiative") ? 0.15 : 0);
+    const r = Math.random();
+    if (r < amb) opening = "ambush";
+    else if (r < amb + pre) opening = "preempt";
+  }
+  if (opening === "preempt") { log("先手を取った！", "win"); showToast("⚡ 先制攻撃！"); }
+  else if (opening === "ambush") { log("奇襲された！", "dmg"); showToast("⚠ 奇襲された！"); buzz([0, 60, 40, 60]); }
   // ボス戦は専用テーマ。図鑑への記録は「倒した時」に行う (endBattle)
-  playBgm(enemies.some((e) => e.boss) ? "boss" : "battle");
-  G.battle = new Battle(G.party, enemies, log);
+  playBgm(isBoss ? "boss" : "battle");
+  G.battle = new Battle(G.party, enemies, log, { opening });
   G.fx = null;
   G.animating = false;
   G.enemyPos = {};
@@ -1335,8 +1420,10 @@ function renderCombatCanvas() {
       vctx.fill();
       vctx.restore();
     }
-    // 名前プレート (ダークピル)
-    const label = e.name + (e.asleep ? " 💤" : "");
+    // 名前プレート (ダークピル)。弱点看破 (scan) 持ちがいれば敵の属性を開示する
+    const scanTag = partyPassiveLv("scan") && e.alive && e.element && e.element !== "none"
+      ? `【${(ELEMENTS[e.element] || {}).label || ""}】` : "";
+    const label = e.name + scanTag + (e.asleep ? " 💤" : "") + (e._flinch ? " 💫" : "");
     vctx.font = "10px monospace";
     vctx.textAlign = "center";
     const tw = vctx.measureText(label).width;
@@ -1510,8 +1597,9 @@ function showSpells(actor) {
   const list = el("div", "target-list");
   for (const key of actor.spells) {
     const sp = SPELLS[key];
-    const b = btn(`${sp.name} (MP${sp.mp}) - ${sp.desc}`, () => { act("spell", key); });
-    if (actor.mp < sp.mp) b.style.opacity = "0.4";
+    const cost = spellCost(actor, sp); // 省詠唱 (chant) 持ちは消費が軽い
+    const b = btn(`${sp.name} (MP${cost}) - ${sp.desc}`, () => { act("spell", key); });
+    if (actor.mp < cost) b.style.opacity = "0.4";
     list.appendChild(b);
   }
   combatMenu.appendChild(list);
@@ -1721,9 +1809,12 @@ function endBattle() {
   renderCombat();
   if (b.result === "win") {
     // 倒した敵から Soul(魂) を回収する。Soul が経験値の役割を兼ね、館での魂の強化に使う
+    // 金運 (goldLuck) / 魂寄せ (soulLure) は戦闘報酬を底上げする (隊内最高Lvのみ)
     const { soul, gold } = b.rewards();
-    const goldGot = runGainGold(gold);
-    const soulGot = runGainSoulPts(soul);
+    const gl = partyPassiveLv("goldLuck"), sl = partyPassiveLv("soulLure");
+    const goldGot = runGainGold(Math.round(gold * (gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)));
+    const soulGot = runGainSoulPts(Math.round(soul * (sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1)));
+    applyVictoryPassives();
     updateTopbar();
     log(`勝利！ ${goldGot} ゴールド と ✦${soulGot} Soul を得た。`, "win");
     SFX.victory();
@@ -1779,6 +1870,47 @@ function endBattle() {
     finishToBoard();
   } else if (b.result === "lose") {
     gameOver();
+  }
+}
+
+// 戦闘勝利後の常時効果: 戦闘後回復/魔力回路/法力の灯/浄化/慈悲の祈り。
+// Lv付きは最高Lvのみ。教皇の祈り (popePrayer) は持ち主の戦闘後回復を隊全体へ広げる
+function applyVictoryPassives() {
+  let pope = 0;
+  for (const p of G.party) if (p.alive && pLv(p, "popePrayer")) pope = Math.max(pope, pLv(p, "afterHeal"));
+  const HEAL_PCT = [0, 0.05, 0.10, 0.20, 0.30];
+  let healed = false;
+  for (const p of G.party) {
+    if (!p.alive) continue;
+    const bl = pLv(p, "afterBoth");
+    const hpct = HEAL_PCT[Math.max(pLv(p, "afterHeal"), pope)] + (bl >= 2 ? 0.08 : bl === 1 ? 0.03 : 0);
+    const ml = pLv(p, "afterMp");
+    const mpct = (ml >= 2 ? 0.10 : ml === 1 ? 0.05 : 0) + (bl >= 2 ? 0.08 : bl === 1 ? 0.03 : 0);
+    if (hpct > 0 && p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * hpct)); healed = true; }
+    if (mpct > 0 && p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * mpct)); healed = true; }
+  }
+  if (healed) log("勝利の余韻が隊を癒した。", "heal");
+  // 浄化 (隊全体) / 自浄 (自分): 毒・麻痺を治す (石化は対象外)
+  const hasPurify = G.party.some((p) => p.alive && pLv(p, "purify"));
+  let cured = false;
+  for (const p of G.party) {
+    if (!p.alive || (p.ailment !== "poison" && p.ailment !== "paralyze")) continue;
+    if (hasPurify || pLv(p, "selfPurify")) { p.ailment = null; cured = true; }
+  }
+  if (cured) log("浄化の祈りが穢れを払った。", "heal");
+  // 慈悲の祈り: 倒れた味方1人をHP10%で蘇生 (1探索1回)
+  if (G.party.some((p) => p.alive && pLv(p, "mercy")) && G.run && !G.run.mercyUsed) {
+    const dead = G.party.find((p) => !p.alive);
+    if (dead) {
+      G.run.mercyUsed = true;
+      dead.alive = true;
+      dead.hp = Math.max(1, Math.ceil(dead.maxhp * 0.10));
+      dead.ailment = null;
+      dead.reviveAt = null;
+      dead._dead = false;
+      log(`慈悲の祈り！ ${dead.name}が立ち上がった`, "win");
+      setTimeout(() => showToast(`🕊 慈悲の祈り: ${dead.name} 蘇生`), 400);
+    }
   }
 }
 
@@ -3390,8 +3522,9 @@ function rollMonsterDrop(enemy) {
   const mon = MONSTERS[enemy.key];
   if (!mon) return null;
   let dropId = null, rare = false;
-  if (mon.dropRare && Math.random() < 0.04) { dropId = mon.dropRare; rare = true; }
-  else if (mon.dropNormal && Math.random() < 0.30) { dropId = mon.dropNormal; rare = false; }
+  const ap = partyPassiveLv("appraise") ? 1.15 : 1; // 目利き: ドロップ率+15%
+  if (mon.dropRare && Math.random() < 0.04 * ap) { dropId = mon.dropRare; rare = true; }
+  else if (mon.dropNormal && Math.random() < 0.30 * ap) { dropId = mon.dropNormal; rare = false; }
   if (!dropId) return null;
   const it = cloneItem(dropId);
   if (!it) return null;
@@ -3688,24 +3821,12 @@ function showCodexJobDetail(key) {
     card.appendChild(el("div", "ig-name", h.name));
     card.appendChild(el("div", "cdx-elem", `${SOUL_CLASSES[baseK].label}の魂×3 + ${SOUL_CLASSES[subK].label}の魂×2`));
     if (h.desc) card.appendChild(el("div", "ig-desc", h.desc));
-    if (h.passive) {
-      const pbox = el("div", "cdx-drops");
-      pbox.appendChild(el("div", "cdx-h", "常時効果"));
-      pbox.appendChild(line(h.passive.label || "常時効果", passiveText(h.passive)));
-      card.appendChild(pbox);
-    }
   } else {
     const cls = SOUL_CLASSES[key];
     const lore = JOB_LORE[key] || {};
     card.appendChild(el("div", "ig-name", cls.label));
     if (lore.desc) card.appendChild(el("div", "ig-desc", lore.desc));
     if (lore.tips) card.appendChild(el("div", "ig-desc cdx-tips", "活用: " + lore.tips));
-    if (cls.passive) {
-      const pbox = el("div", "cdx-drops");
-      pbox.appendChild(el("div", "cdx-h", "職業パッシブ (3部位以上で発現)"));
-      pbox.appendChild(line(cls.passive.label, passiveText(cls.passive)));
-      card.appendChild(pbox);
-    }
   }
 
   // 職業スキル表 (職業Lvで習得)。実際に到達したLvまでの技だけ開示する
@@ -3728,21 +3849,19 @@ function showCodexJobDetail(key) {
   }
   card.appendChild(sbox);
 
-  // 職業ランク (位階): ランクN → 職業Lv N*10 までのスキルを解放
+  // 職業ランク (位階): 称号とランクパッシブ。ランクN → 職業Lv N*10 までのスキルを解放。
+  // 上位ランクは下位のパッシブをすべて内包する (Lv付きは最高Lvのみ)
   const rbox = el("div", "cdx-drops");
-  if (isHybrid) {
-    rbox.appendChild(el("div", "cdx-h", "職業ランク"));
-    rbox.appendChild(el("div", "cdx-dun", `・ベース職 (${SOUL_CLASSES[baseK].label}) の魂の品質に従う`));
-    rbox.appendChild(el("div", "cdx-dun", "・ランクN で職業Lv N×10 までのスキルを解放"));
-  } else {
-    rbox.appendChild(el("div", "cdx-h", "職業ランク (魂の品質で決まる位階)"));
-    (JOB_RANKS[key] || []).forEach((rk, i) => {
-      const fx = [`スキル解放 Lv${(i + 1) * 10} まで`];
-      if (rk.passive) fx.push(passiveText(rk.passive));
-      if (rk.flag && FLAG_DESC[rk.flag]) fx.push(FLAG_DESC[rk.flag]);
-      rbox.appendChild(line(`ランク${i + 1} ${rk.name}`, fx.join(" / ")));
-    });
+  rbox.appendChild(el("div", "cdx-h", "職業ランク (魂の品質で決まる位階)"));
+  if (isHybrid) rbox.appendChild(el("div", "cdx-dun", `・ベース職 (${SOUL_CLASSES[baseK].label}) の魂の品質に従う`));
+  const pTbl = jobPassiveTable(key);
+  for (let r = 1; r <= 5; r++) {
+    const fx = [`スキル解放 Lv${r * 10} まで`];
+    if (r === 1) fx.push("パッシブなし");
+    else if (pTbl[r - 2]) fx.push(`${pTbl[r - 2].name}: ${pTbl[r - 2].desc}`);
+    rbox.appendChild(line(`ランク${r} ${jobRankName(key, r)}`, fx.join(" / ")));
   }
+  rbox.appendChild(el("div", "cdx-dun", "・上位ランクは下位のパッシブをすべて発動 (同名のLv効果は最高Lvのみ)"));
   card.appendChild(rbox);
 
   const ok = btn("閉じる", () => wrap.remove());
@@ -4271,9 +4390,10 @@ function renderStatTab(p) {
     const sl = el("div", "st-camp");
     for (const k of campSpells) {
       const sp = SPELLS[k];
-      const b = btn(`${sp.name} (MP${sp.mp})`, () => campCast(p, k));
+      const cost = spellCost(p, sp);
+      const b = btn(`${sp.name} (MP${cost})`, () => campCast(p, k));
       b.className = "tw-small";
-      if (p.mp < sp.mp) b.disabled = true;
+      if (p.mp < cost) b.disabled = true;
       sl.appendChild(b);
     }
     info.appendChild(sl);
@@ -4285,7 +4405,7 @@ function renderStatTab(p) {
 // 戦闘外で回復系呪文を唱える。対象の味方を選び、HP回復/蘇生する
 function campCast(caster, spellKey) {
   const sp = SPELLS[spellKey];
-  if (caster.mp < sp.mp) { log("MPが足りない。", "sys"); return; }
+  if (caster.mp < spellCost(caster, sp)) { log("MPが足りない。", "sys"); return; }
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card confirm-card");
   card.style.borderColor = "#46c08f";
@@ -4298,7 +4418,7 @@ function campCast(caster, spellKey) {
     const label = `${t.name} (HP ${t.hp}/${t.maxhp})${t.alive ? "" : " †"}`;
     const b = btn(label, () => {
       wrap.remove();
-      caster.mp -= sp.mp;
+      caster.mp -= spellCost(caster, sp);
       // 蘇生は revivePct(最大HP割合) を優先。それ以外は power 回復 (術者の PIE で伸びる)
       const power = sp.power + Math.round((caster.pie || 0) * 0.5);
       const heal = sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : power + rand(Math.ceil(power * 0.3));

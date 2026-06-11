@@ -56,6 +56,8 @@ export function generateDungeon(n) {
     bossScale: 1.0,
     enemyScale: Math.round((0.7 + pos) * 100) / 100,
     trapRate: Math.min(0.25, 0.04 + n * 0.002),
+    // 毒の床: ランク3帯 (n>20) から通路に現れる新地形。深いほど僅かに増える
+    poisonRate: n > 20 ? Math.min(0.10, 0.04 + n * 0.0006) : 0,
     warmChance: Math.min(0.7, 0.38 + n * 0.0032),
     // 魂: レベル下駄は √n で緩やかに、レアランク補正は対数で (最深部でも伝説≒3.6%)
     soulLevelBonus: Math.floor((Math.sqrt(n) - 1) * 1.6),
