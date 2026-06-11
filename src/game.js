@@ -1004,7 +1004,7 @@ function rollChest(cell, allowDanger, done) {
   if (done) done();
 }
 
-// 戦闘勝利後の宝箱 (必ず出現)。罠やミミックはなしで安全に開封。
+// 戦闘勝利後の宝箱 (出現判定は endBattle 側)。罠やミミックはなしで安全に開封。
 // 敵がアイテムを落としていれば中身はそれ。なければダンジョンレベル準拠の抽選。
 // after: 終了後に呼ぶ (ボス撃破時は踏破演出へつなぐ)
 function battleChest(drops, after) {
@@ -1544,9 +1544,14 @@ function endBattle() {
     if (G.battleCell) G.battleCell.cleared = true;
     finishToBoard();
     // 勝利の余韻: まず勝利ポップアップ(Gold/Soul)を表示し、閉じてから宝箱を出す。
-    // ボスは宝箱を開けたあとに踏破演出へ
+    // 宝箱はドロップ品があれば必ず、なければ50%で出現。ボスは宝箱のあとに踏破演出へ
     const afterVictory = () => {
-      setTimeout(() => battleChest(drops, wasBoss ? onDungeonCleared : null), 200);
+      const after = wasBoss ? onDungeonCleared : null;
+      if (drops.length || Math.random() < 0.5) {
+        setTimeout(() => battleChest(drops, after), 200);
+        return;
+      }
+      if (after) after();
     };
     showEvent({
       banner: "⚔ 勝利 ⚔", title: "戦いに勝利した！", accent: "#ffd84a", sparkle: true,
