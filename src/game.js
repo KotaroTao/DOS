@@ -1446,7 +1446,8 @@ function renderCombatCanvas() {
     const baseX = slotW * (i + 1);
     const baseY = view.height * 0.40;
     G.enemyPos[e.uid] = { cx: baseX, cy: baseY };
-    let ox = 0, oy = 0, alpha = e.alive ? 1 : 0.18;
+    if (!e.alive) return; // 倒した敵は完全に消す (薄い残像を残さない)
+    let ox = 0, oy = 0, alpha = 1;
     // 攻撃側の踏み込み (こちらへ前進)
     if (fx && fx.lunge && fx.lunge.uid === e.uid) oy = (fx.lunge.p || 0) * 22;
     // 被弾フラッシュ: 点滅 + 横揺れ
