@@ -1186,46 +1186,78 @@ function rollChest(cell, allowDanger, done, opener) {
       askCursedChest(done);
       return;
     }
-    // 罠: 70%の確率で仕掛けられている。開けた者が解除を試みる
-    if (Math.random() < 0.70) {
-      const who = opener || bestDisarmer();
-      if (who && Math.random() < disarmChance(who)) {
-        SFX.chest();
-        log(`宝箱の罠を ${who.name}が解除した！`, "sys");
-        showEvent({
-          sprite: ICONS.trap, title: "罠解除！", accent: "#9be88a", banner: "✦ 罠解除 ✦", sparkle: true,
-          lines: ["宝箱には罠が仕掛けられていた。", `${who.name}が見抜き、解除した！`],
-          onClose: () => chestContents(cell, done),
-        });
-        return;
-      }
-      springChestTrap(cell, done);
-      return;
-    }
+    // 罠フェーズ: 70%で罠。解除/発動/罠なしの演出を経て中身へ
+    chestTrapPhase(opener, () => chestContents(cell, done));
+    return;
   }
   chestContents(cell, done);
 }
 
-// 毒針の罠が発動: パーティ全員にダメージ + 一部に毒。生き残れば中身は手に入る
-function springChestTrap(cell, done) {
+// 罠フェーズ (盤面・戦闘後の宝箱共通): 70%の確率で罠が仕掛けられている。
+// 開けた者が解除を試み、成功または罠なしならその旨を告げてから contents() へ進む
+function chestTrapPhase(opener, contents) {
+  if (Math.random() < 0.70) {
+    const who = opener || bestDisarmer();
+    if (who && Math.random() < disarmChance(who)) {
+      SFX.chest();
+      log(`宝箱の罠を ${who.name}が解除した！`, "sys");
+      showEvent({
+        sprite: ICONS.trap, title: "罠解除！", accent: "#9be88a", banner: "✦ 罠解除 ✦", sparkle: true,
+        lines: ["宝箱には罠が仕掛けられていた。", `${who.name}が見抜き、解除した！`],
+        onClose: contents,
+      });
+      return;
+    }
+    springChestTrap(who, contents);
+    return;
+  }
+  SFX.chest();
+  log("宝箱に罠はなかった。", "sys");
+  showEvent({
+    sprite: ICONS.chest, title: "罠はない", accent: "#9be88a", banner: "✦ 安全 ✦",
+    lines: ["宝箱に罠は仕掛けられていなかった。"],
+    onClose: contents,
+  });
+}
+
+// 宝箱の罠の種類: 単体罠 (one) は開けた者だけが受け、全体罠 (all) は隊全員が受ける
+const CHEST_TRAPS = [
+  { name: "毒針", target: "one", mult: 1.0, ailment: "poison" },
+  { name: "麻痺針", target: "one", mult: 0.8, ailment: "paralyze" },
+  { name: "仕込み弩", target: "one", mult: 1.6 },
+  { name: "毒ガス", target: "all", mult: 0.7, ailment: "poison" },
+  { name: "爆発", target: "all", mult: 1.0 },
+];
+
+// 罠が発動: 種類を抽選し、単体罠は開けた者 (opener) が、全体罠は全員が受ける。
+// 生き残れば中身 (after) は手に入る
+function springChestTrap(opener, after) {
   SFX.trap(); buzz([0, 60, 40, 60]);
-  const dmg = 6 + G.floor * 4 + rand(8);
-  let poisoned = false;
-  for (const p of G.party) {
-    if (!p.alive) continue;
+  const trap = CHEST_TRAPS[rand(CHEST_TRAPS.length)];
+  const dmg = Math.max(1, Math.round((6 + G.floor * 4 + rand(8)) * trap.mult));
+  const victims = trap.target === "one" && opener && opener.alive
+    ? [opener] : G.party.filter((p) => p.alive);
+  let ailed = false;
+  for (const p of victims) {
     p.hp = Math.max(0, p.hp - dmg);
     if (p.hp === 0) { p.alive = false; log(`${p.name}は倒れた…`, "dmg"); }
-    else if (Math.random() < 0.5) { p.ailment = "poison"; poisoned = true; }
+    else if (trap.ailment && !p.ailment && Math.random() < 0.5) { p.ailment = trap.ailment; ailed = true; }
   }
-  log(`罠の解除に失敗！ 全員に ${dmg} ダメージ`, "dmg");
+  const tgtTxt = trap.target === "one" ? `${victims[0].name}に` : "全員に";
+  log(`罠の解除に失敗！ ${trap.name}の罠が発動、${tgtTxt} ${dmg} ダメージ`, "dmg");
   const wiped = !G.party.some((p) => p.alive);
+  const ailTxt = trap.ailment === "paralyze" ? "麻痺" : "毒";
   showEvent({
-    sprite: ICONS.trap, title: "毒針の罠！", accent: "#d4504e", banner: "⚠ 危険 ⚠",
-    lines: ["解除に失敗し、罠が発動した！", `全員に ${dmg} ダメージ！`, ...(poisoned ? ["毒に侵された者も…"] : [])],
+    sprite: ICONS.trap, title: `${trap.name}の罠！`, accent: "#d4504e", banner: "⚠ 危険 ⚠",
+    lines: [
+      `解除に失敗し、${trap.name}の罠が発動した！`,
+      `${tgtTxt} ${dmg} ダメージ！`,
+      ...(ailed ? [trap.target === "one" ? `${victims[0].name}は${ailTxt}に侵された…` : `${ailTxt}に侵された者も…`] : []),
+    ],
     onClose: () => {
       if (wiped) { gameOver(); return; }
       imprintFallen();
-      chestContents(cell, done); // 痛手は負ったが、中身は手に入る
+      after(); // 痛手は負ったが、中身は手に入る
     },
   });
 }
@@ -1297,18 +1329,22 @@ function askCursedChest(done) {
   ], ICONS.chest, { banner: "⚠ 黒い宝箱 ⚠", accent: "#8a2be2" });
 }
 
-// 戦闘勝利後の宝箱 (出現判定は endBattle 側)。罠やミミックはなしで安全に開封。
+// 戦闘勝利後の宝箱 (出現判定は endBattle 側)。ミミックはいないが罠は70%で仕掛けられており、
+// 開ける者を選んでその者の解除値で判定する (盤面の宝箱と同じ罠フェーズを通る)。
 // 敵がアイテムを落としていれば中身はそれ。なければダンジョンレベル準拠の抽選。
 // after: 終了後に呼ぶ (ボス撃破時は踏破演出へつなぐ)
 function battleChest(drops, after) {
   const done = () => { if (after) after(); else if (G.state === "board") renderBoard(); };
-  showChoice("宝箱が現れた！ 開ける？", [
-    { label: "🔓 開ける", fn: () => {
-      if (drops && drops.length) giveDropsFromChest(drops, 0, done);
-      else rollChest(null, false, done);
-    } },
-    { label: "✋ 開けない", fn: done },
-  ], ICONS.chest, { banner: "⚔ 勝利 ⚔" });
+  const contents = () => {
+    if (drops && drops.length) giveDropsFromChest(drops, 0, done);
+    else rollChest(null, false, done);
+  };
+  const opts = G.party.filter((p) => p.alive).map((p) => ({
+    label: `🔓 ${p.name} (解除 ${Math.round(disarmChance(p) * 100)}%)`,
+    fn: () => chestTrapPhase(p, contents),
+  }));
+  opts.push({ label: "✋ 開けない", fn: done });
+  showChoice("宝箱が現れた！ 罠があるかもしれない。誰が開ける？", opts, ICONS.chest, { banner: "⚔ 勝利 ⚔" });
 }
 
 // 宝箱から敵のドロップ品を順に取り出す。図鑑への開示も実際に手にした時に行う
