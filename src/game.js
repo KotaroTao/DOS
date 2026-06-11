@@ -9,6 +9,8 @@ import {
   ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, lvToRank,
 } from "./items.js";
 import { RANK_NAME, RANK_COLOR } from "./content.js";
+import { dungeonSubQuests } from "./subquests.js";
+import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS } from "./dungeons/index.js";
 import {
@@ -150,6 +152,8 @@ const G = {
   town: { facility: null, sub: null }, // 街UIの現在地 (sub: 館などのサブメニュー)
   quests: [],         // 受注可能/進行中のクエスト
   dailyQuests: null,  // 日替わりクエスト { seed, list:[] } (日付が変わると再生成)
+  subQuests: {},      // 受注済みサブクエスト { id: {…def, state, progress} } (定義は決定的に再生成可能)
+  msq: null,          // メインストーリー { n: 章=迷宮番号(1-100), state: "active"|"report"|"offer"|"end" }
   ach: {},            // 受領済みの勲章 (実績) { id: true }
   fastAnim: false,    // 戦闘演出の倍速設定 (永続)
   autoCombat: false,  // オート戦闘中 (セッション内のみ)
@@ -1032,6 +1036,7 @@ function askOpenChest(cell) {
 
 function openChest(cell) {
   if (cell) cell.cleared = true;
+  questProgress("chest", null, 1); // 盤面の宝箱を開けた (サブクエスト用)
   rollChest(cell, true, () => { if (G.state === "board") renderBoard(); });
 }
 
@@ -1835,14 +1840,14 @@ function onDungeonCleared() {
   G.stats.bossKills++;
   questProgress("boss", null, 1);
   G.dragonSlain = G.dragonSlain || idx === DUNGEONS.length - 1;
-  const isLastDungeon = idx >= DUNGEONS.length - 1;
-  const newlyUnlocked = !isLastDungeon && G.unlockedDungeons <= idx + 1;
-  if (newlyUnlocked) G.unlockedDungeons = idx + 2;
+  // 新迷宮の解放は王宮の勅命ループが担う: 勅命対象を踏破 → 王宮で報告 → 次章拝命で解放
+  const isStoryTarget = G.msq && G.msq.state === "active" && idx + 1 === G.msq.n;
+  if (isStoryTarget) G.msq.state = "report";
   G.run = null; // クリア = 戦利品確定
 
   const lines = [`「${dn.name}」を踏破した！`];
-  if (newlyUnlocked) lines.push(`新たな迷宮「${DUNGEONS[idx + 1].name}」が解放された。`);
-  else if (isLastDungeon) lines.push("すべての迷宮を制覇した。あなたは伝説となった。");
+  if (isStoryTarget) lines.push("勅命を果たした。王宮へ戻り、王に報告せよ。");
+  else if (idx >= DUNGEONS.length - 1) lines.push("すべての迷宮を制覇した。あなたは伝説となった。");
   else lines.push("さらなる深淵が、まだそなたを待っている。");
 
   G.prompt = true;
@@ -2701,9 +2706,12 @@ function ensureDailyQuests() {
 
 // 進行中クエストへ進捗を加算。達成したら通知
 function questProgress(type, key, n = 1) {
-  const all = [...G.quests, ...((G.dailyQuests && G.dailyQuests.list) || [])];
+  const all = [...G.quests, ...((G.dailyQuests && G.dailyQuests.list) || []), ...Object.values(G.subQuests || {})];
   for (const q of all) {
     if (q.state !== "active" || q.type !== type) continue;
+    // サブクエストは「その迷宮 (と、指定があればその階)」でのみ進む
+    if (q.dunIdx != null && G.dungeonIdx !== q.dunIdx) continue;
+    if (q.floorReq != null && G.floor !== q.floorReq) continue;
     // kill: q.race 指定なら倒した敵の種族で判定 / それ以外は従来のキー一致
     if (q.type === "kill") {
       if (q.race) { const m = MONSTERS[key]; if (!m || m.race !== q.race) continue; }
@@ -2832,6 +2840,45 @@ function renderTavern() {
   }
   if (![...ql.children].length) ql.appendChild(el("div", "tw-empty", "依頼はすべて果たされた。"));
   townEl.appendChild(ql);
+
+  // --- 酒場の依頼人 (サブクエスト): 選択中の迷宮の階ごとに1件 ---
+  const sdn = curDungeon();
+  townEl.appendChild(el("div", "tw-h", `酒場の依頼人 — ${sdn.name}`));
+  townEl.appendChild(el("div", "tw-note", "選んだ迷宮の階ごとに、事情を抱えた誰かが待っている。果たした依頼は酒場から消える。"));
+  const sql = el("div", "tw-mlist");
+  for (const def of dungeonSubQuests(G.dungeonIdx)) {
+    const st = G.subQuests[def.id];
+    if (st && st.state === "claimed") continue;
+    const row = el("div", "tw-quest" + (st && st.state === "done" ? " done" : ""));
+    const info = el("div", "tw-chipi");
+    info.appendChild(el("div", "tw-chipn", `🕯 B${def.floor}F 「${def.name}」`));
+    info.appendChild(el("div", "tw-chipc", `― ${def.npc.name} (${def.npc.title})`));
+    info.appendChild(el("div", "tw-chipc", def.text));
+    const rw = [`💰${def.reward.gold}`, `✦${def.reward.soulPts}`];
+    if (def.reward.redSoul) rw.push(`🔴${def.reward.redSoul}`);
+    info.appendChild(el("div", "tw-chipc", "報酬: " + rw.join(" + ") +
+      (st ? ` ・ 進捗 ${Math.min(st.progress, def.goal)}/${def.goal}` : "")));
+    row.appendChild(info);
+    if (!st) {
+      const b = btn("受ける", () => {
+        G.subQuests[def.id] = { ...def, state: "active", progress: 0 };
+        SFX.select();
+        log(`${def.npc.name}の依頼「${def.name}」を受けた。`, "sys");
+        renderTown();
+      });
+      b.className = "tw-small";
+      row.appendChild(b);
+    } else if (st.state === "active") {
+      row.appendChild(el("div", "tw-chiphp", "進行中"));
+    } else if (st.state === "done") {
+      const b = btn("報告する", () => claimQuest(st));
+      b.className = "tw-small primary";
+      row.appendChild(b);
+    }
+    sql.appendChild(row);
+  }
+  if (![...sql.children].length) sql.appendChild(el("div", "tw-empty", "この迷宮の依頼は、すべて果たされた。"));
+  townEl.appendChild(sql);
 }
 
 function claimQuest(q) {
@@ -2853,35 +2900,122 @@ function claimQuest(q) {
 }
 
 // ---- 実績 (勲章) ----
-// 戦績・図鑑・職業発見に紐づく称号。達成すると王宮で報酬を受け取れる。
-// cond は毎回評価する純粋関数なので、追跡用の状態は不要 (G.ach は受領済みのみ記録)
-const ACHIEVEMENTS = [
-  { id: "run1",    name: "初陣",           desc: "迷宮に 1回 潜る", cond: () => G.stats.runs >= 1, reward: { gold: 50 } },
-  { id: "run10",   name: "迷宮通い",       desc: "迷宮に 10回 潜る", cond: () => G.stats.runs >= 10, reward: { gold: 200, redSoul: 5 } },
-  { id: "run50",   name: "深淵の常連",     desc: "迷宮に 50回 潜る", cond: () => G.stats.runs >= 50, reward: { gold: 800, redSoul: 15 } },
-  { id: "kill50",  name: "首狩り",         desc: "敵を 50体 倒す", cond: () => G.stats.kills >= 50, reward: { gold: 150 } },
-  { id: "kill500", name: "百戦錬磨",       desc: "敵を 500体 倒す", cond: () => G.stats.kills >= 500, reward: { gold: 600, redSoul: 10 } },
-  { id: "kill5k",  name: "千殺の魂繰り",   desc: "敵を 5000体 倒す", cond: () => G.stats.kills >= 5000, reward: { gold: 3000, redSoul: 40 } },
-  { id: "boss1",   name: "主殺し",         desc: "迷宮の主を 1体 討つ", cond: () => G.stats.bossKills >= 1, reward: { gold: 100 } },
-  { id: "boss10",  name: "玉座の簒奪者",   desc: "迷宮の主を 10体 討つ", cond: () => G.stats.bossKills >= 10, reward: { gold: 500, redSoul: 10 } },
-  { id: "boss30",  name: "深淵の死神",     desc: "迷宮の主を 30体 討つ", cond: () => G.stats.bossKills >= 30, reward: { gold: 1500, redSoul: 25 } },
-  { id: "deep5",   name: "底知らず",       desc: "地下 5階 に到達する", cond: () => G.stats.deepest >= 5, reward: { gold: 300 } },
-  { id: "deep10",  name: "奈落の踏破者",   desc: "地下 10階 に到達する", cond: () => G.stats.deepest >= 10, reward: { gold: 1000, redSoul: 15 } },
-  { id: "soul10",  name: "魂集め",         desc: "魂を 10個 回収する", cond: () => G.stats.soulsFound >= 10, reward: { gold: 200 } },
-  { id: "soul100", name: "千魂の器",       desc: "魂を 100個 回収する", cond: () => G.stats.soulsFound >= 100, reward: { gold: 1000, redSoul: 15 } },
-  { id: "death10", name: "不撓不屈",       desc: "人業が 10体 砕ける (敗北の数だけ強くなる)", cond: () => G.stats.deaths >= 10, reward: { redSoul: 20 } },
-  { id: "dun11",   name: "第二の門",       desc: "迷宮を 10 踏破する", cond: () => G.unlockedDungeons >= 11, reward: { gold: 500, redSoul: 10 } },
-  { id: "dun31",   name: "中層の覇者",     desc: "迷宮を 30 踏破する", cond: () => G.unlockedDungeons >= 31, reward: { gold: 1500, redSoul: 20 } },
-  { id: "dun61",   name: "深層の覇者",     desc: "迷宮を 60 踏破する", cond: () => G.unlockedDungeons >= 61, reward: { gold: 3000, redSoul: 30 } },
-  { id: "dragon",  name: "竜殺しの伝説",   desc: "竜の玄室の主を討つ", cond: () => G.dragonSlain, reward: { gold: 5000, redSoul: 50 } },
-  { id: "mon30",   name: "魔物の目利き",   desc: "モンスター図鑑 30種", cond: () => Object.keys(G.codex.mon).filter((k) => MONSTERS[k]).length >= 30, reward: { gold: 400 } },
-  { id: "mon100",  name: "深淵の博物学者", desc: "モンスター図鑑 100種", cond: () => Object.keys(G.codex.mon).filter((k) => MONSTERS[k]).length >= 100, reward: { gold: 1500, redSoul: 15 } },
-  { id: "item50",  name: "蒐集家",         desc: "アイテム図鑑 50種", cond: () => Object.keys(G.codex.item).filter((k) => ITEMS[k]).length >= 50, reward: { gold: 400 } },
-  { id: "item150", name: "宝物庫の主",     desc: "アイテム図鑑 150種", cond: () => Object.keys(G.codex.item).filter((k) => ITEMS[k]).length >= 150, reward: { gold: 1500, redSoul: 15 } },
-  { id: "hyb5",    name: "混成の探求者",   desc: "混成職を 5種 発現させる", cond: () => Object.keys(G.codex.job).filter((k) => HYBRIDS[k]).length >= 5, reward: { gold: 300 } },
-  { id: "hyb15",   name: "魂の練金術師",   desc: "混成職を 15種 発現させる", cond: () => Object.keys(G.codex.job).filter((k) => HYBRIDS[k]).length >= 15, reward: { gold: 1000, redSoul: 15 } },
-  { id: "hyb30",   name: "全職業の支配者", desc: "混成職を 全30種 発現させる", cond: () => Object.keys(G.codex.job).filter((k) => HYBRIDS[k]).length >= 30, reward: { gold: 3000, redSoul: 50 } },
-];
+// 戦績・図鑑・職業発見・育成に紐づく称号 (100種以上)。達成すると王宮で報酬を受け取れる。
+// 「カテゴリ × 段階表」から一括登録する。cond は毎回評価する純粋関数なので
+// 追跡用の状態は不要 (G.ach は受領済みのみ記録)。ID はセーブに残るため変更禁止。
+const ACHIEVEMENTS = [];
+{
+  const push = (id, name, desc, cond, gold, redSoul) => {
+    const reward = {};
+    if (gold) reward.gold = gold;
+    if (redSoul) reward.redSoul = redSoul;
+    ACHIEVEMENTS.push({ id, name, desc, cond, reward });
+  };
+  // 段階表: rows = [しきい値, 称号, gold, redSoul][]
+  const tiers = (idOf, rows, descOf, condOf) =>
+    rows.forEach(([v, name, gold, redSoul]) => push(idOf(v), name, descOf(v), () => condOf(v), gold, redSoul));
+  const allDolls = () => [...(G.party || []), ...(G.reserve || [])];
+  const allSouls = () => {
+    const out = [...(G.souls || [])];
+    for (const d of allDolls()) if (d.parts) for (const p of PARTS) if (d.parts[p]) out.push(d.parts[p]);
+    return out;
+  };
+  const monSeen = () => Object.keys(G.codex.mon).filter((k) => MONSTERS[k]).length;
+  const itemSeen = () => Object.keys(G.codex.item).filter((k) => ITEMS[k]).length;
+  const hybSeen = () => Object.keys(G.codex.job).filter((k) => HYBRIDS[k]).length;
+
+  // 潜入回数 (8)
+  tiers((v) => `run${v}`, [
+    [1, "初陣", 50], [5, "駆け出しの探索者", 100], [10, "迷宮通い", 200, 5], [25, "迷宮の住人", 400, 5],
+    [50, "深淵の常連", 800, 15], [100, "百度参り", 1500, 20], [200, "迷宮に魅入られた者", 3000, 30], [500, "帰らずの探索者", 8000, 50],
+  ], (v) => `迷宮に ${v}回 潜る`, (v) => G.stats.runs >= v);
+
+  // 撃破数 (9)
+  tiers((v) => (v === 5000 ? "kill5k" : `kill${v}`), [
+    [10, "血振るい", 80], [50, "首狩り", 150], [100, "百人斬り", 300, 5], [250, "戦場の影", 500, 5],
+    [500, "百戦錬磨", 600, 10], [1000, "千の骸", 1500, 15], [2500, "屍山血河", 3000, 25],
+    [5000, "千殺の魂繰り", 5000, 40], [10000, "万骨の上に立つ者", 10000, 80],
+  ], (v) => `敵を ${v}体 倒す`, (v) => G.stats.kills >= v);
+
+  // 主討伐 (7)
+  tiers((v) => `boss${v}`, [
+    [1, "主殺し", 100], [5, "玉座荒らし", 300, 5], [10, "玉座の簒奪者", 500, 10], [20, "主喰らい", 1000, 15],
+    [30, "深淵の死神", 1500, 25], [50, "王なき迷宮", 3000, 40], [100, "全ての主を屠る者", 8000, 80],
+  ], (v) => `迷宮の主を ${v}体 討つ`, (v) => G.stats.bossKills >= v);
+
+  // 到達最深階 (11)
+  tiers((v) => `deep${v}`, [
+    [2, "一歩 下へ", 50], [3, "地の底へ", 100], [4, "暗闇に慣れた者", 150], [5, "底知らず", 300],
+    [6, "深層の旅人", 400, 5], [7, "闇の淵", 500, 5], [8, "奈落のふち", 700, 10], [9, "静寂の領域", 900, 10],
+    [10, "奈落の踏破者", 1000, 15], [11, "光の届かぬ場所", 1500, 20], [12, "最深への到達者", 2500, 30],
+  ], (v) => `地下 ${v}階 に到達する`, (v) => G.stats.deepest >= v);
+
+  // 魂の回収 (8)
+  tiers((v) => `soul${v}`, [
+    [5, "魂拾い", 100], [10, "魂集め", 200], [25, "魂の籠", 350, 5], [50, "魂の商人", 600, 10],
+    [100, "千魂の器", 1000, 15], [250, "魂の蒐集家", 2000, 20], [500, "魂の大河", 4000, 35], [1000, "魂の海", 8000, 60],
+  ], (v) => `魂を ${v}個 回収する`, (v) => G.stats.soulsFound >= v);
+
+  // 喪失 (5) — 敗北の数だけ強くなる
+  tiers((v) => `death${v}`, [
+    [1, "初めての喪失", 50], [10, "不撓不屈", 0, 20], [25, "砕けても なお", 500, 25],
+    [50, "屍を越えて", 1000, 35], [100, "喪失の果てに", 2000, 50],
+  ], (v) => `人業が ${v}体 砕ける`, (v) => G.stats.deaths >= v);
+
+  // 迷宮踏破 (13)。旧ID互換のため id は dun{踏破数+1}
+  tiers((v) => `dun${v + 1}`, [
+    [1, "最初の踏破", 100], [5, "五つの迷宮", 300, 5], [10, "第二の門", 500, 10], [20, "異界の旅人", 800, 10],
+    [30, "中層の覇者", 1500, 20], [40, "迷宮の地図屋", 2000, 20], [50, "折り返しの碑", 2500, 25],
+    [60, "深層の覇者", 3000, 30], [70, "終わりの始まり", 4000, 35], [80, "終末の歩み", 5000, 40],
+    [90, "冥府の門前", 6000, 45], [95, "残り五つ", 7000, 50], [99, "全踏破まで あと一つ", 8000, 60],
+  ], (v) => `迷宮を ${v} 踏破する`, (v) => G.unlockedDungeons >= v + 1);
+
+  // モンスター図鑑 (5)
+  tiers((v) => `mon${v}`, [
+    [10, "魔物の観察者", 150], [30, "魔物の目利き", 400], [60, "魔物学の徒", 700, 10],
+    [100, "深淵の博物学者", 1500, 15], [150, "全てを見た者", 3000, 30],
+  ], (v) => `モンスター図鑑 ${v}種`, (v) => monSeen() >= v);
+
+  // アイテム図鑑 (7)
+  tiers((v) => `item${v}`, [
+    [10, "目利き見習い", 150], [25, "道具屋の常連", 300], [50, "蒐集家", 400], [100, "蔵の主", 800, 10],
+    [150, "宝物庫の主", 1500, 15], [250, "伝説の蒐集家", 3000, 30], [350, "全てを手にした者", 8000, 60],
+  ], (v) => `アイテム図鑑 ${v}種`, (v) => itemSeen() >= v);
+
+  // 混成職の発現 (8)
+  tiers((v) => `hyb${v}`, [
+    [1, "最初の混成", 100], [3, "魂の配合師", 200], [5, "混成の探求者", 300], [10, "職業の織り手", 600, 10],
+    [15, "魂の錬金術師", 1000, 15], [20, "異端の指導者", 1500, 20], [25, "万職の祖", 2000, 30], [30, "全職業の支配者", 3000, 50],
+  ], (v) => `混成職を ${v}種 発現させる`, (v) => hybSeen() >= v);
+
+  // 蓄財 (4) — 受領時にも所持金を再判定する
+  tiers((v) => `gold${v}`, [
+    [1000, "小金持ち", 0, 5], [5000, "商人の財布", 0, 10], [20000, "貴族の財", 0, 20], [100000, "王より富める者", 0, 50],
+  ], (v) => `所持金 ${v}G を貯める`, (v) => G.gold >= v);
+
+  // Soul・赤い魂の貯蔵 (4)
+  tiers((v) => `sp${v}`, [[500, "魂の貯蔵庫", 100], [5000, "魂の泉", 1000, 15]],
+    (v) => `✦Soul を ${v} 貯める`, (v) => G.soulPts >= v);
+  tiers((v) => `rs${v}`, [[100, "赤の収集者", 500], [500, "緋色の王", 3000]],
+    (v) => `赤い魂を ${v} 集める`, (v) => G.redSoul >= v);
+
+  // 育成: 職業ランク / 職業Lv / 魂レベル / 魂ランク (14)
+  tiers((v) => `jrank${v}`, [[3, "位階を昇る者", 300, 5], [4, "高位の魂繰り", 800, 10], [5, "極みに至る者", 2000, 30]],
+    (v) => `職業ランク ${v} の人業を持つ`, (v) => allDolls().some((d) => (d.jobRank || 0) >= v));
+  tiers((v) => `jlv${v}`, [
+    [10, "駆け出しの職人", 150], [20, "熟練の域", 400, 5], [30, "達人の域", 800, 10],
+    [40, "名人の域", 1500, 20], [50, "神域", 3000, 40],
+  ], (v) => `職業Lv ${v} に到達する`, (v) => allDolls().some((d) => (d.jobLv || 0) >= v));
+  tiers((v) => `slv${v}`, [
+    [20, "魂を磨く者", 200], [50, "魂を鍛える者", 800, 10], [70, "限界の先へ", 1500, 20], [100, "魂の極致", 3000, 40],
+  ], (v) => `Lv${v} の魂を育てる`, (v) => allSouls().some((s) => (s.level || 1) >= v));
+  tiers((v) => `srank${v}`, [[2, "偉大なる魂", 300, 5], [3, "伝説との邂逅", 1000, 20]],
+    (v) => `${v === 3 ? "伝説の" : "偉大な"}魂を手に入れる`, (v) => allSouls().some((s) => SOUL_RANKS[s.rank || "normal"].order >= v));
+
+  // 一点物 (2)
+  push("party6", "六人の隊列", "人業 6体 で編成する", () => G.party.length >= 6, 200);
+  push("dragon", "竜殺しの伝説", "竜の玄室の主を討つ", () => G.dragonSlain, 5000, 50);
+}
 
 function claimAchievement(a) {
   if (G.ach[a.id] || !a.cond()) return;
@@ -2898,68 +3032,98 @@ function claimAchievement(a) {
   renderTown();
 }
 
-// ---- 王宮: 勅命 (メインストーリー) + 図鑑 ----
-const STORY_EVENTS = [
-  {
-    title: "王の勅命",
-    cond: () => true,
-    text: [
-      "「よくぞ参った、魂繰りの者よ。」",
-      "「この地の底に巣食う迷宮は、死者の魂を喰らい肥え続けておる。」",
-      "「人業の軍を率い、深淵の主を討て。報酬は望むままに。」",
-    ],
-    reward: { gold: 100 },
-  },
-  {
-    title: "深淵のざわめき",
-    cond: () => G.maxFloorReached >= 2,
-    text: [
-      "「地下2階まで達したか。見事なものよ。」",
-      "「だが斥候によれば、さらに下の層では骸が独りでに立ち上がるという。」",
-      "「気をつけよ。新しき魂ほど、迷宮は欲しがる。」",
-    ],
-    reward: { gold: 200 },
-  },
-  {
-    title: "竜の影",
-    cond: () => G.maxFloorReached >= 3,
-    text: [
-      "「最深部に巨大な竜の気配があるそうだな。」",
-      "「あれこそ迷宮の主。喰らった魂で幾百年を生きた怪物だ。」",
-      "「これを討てば、そなたの名はこの国の歴史に刻まれよう。」",
-    ],
-    reward: { gold: 300, soul: "fighter" },
-  },
-  {
-    title: "魂の解放",
-    cond: () => G.dragonSlain,
-    text: [
-      "「……討ったか。本当に、討ちおったか！」",
-      "「迷宮に囚われし幾千の魂は、これで安らかに巡るだろう。」",
-      "「礼を言うぞ、英雄よ。この国はそなたの剣に救われた。」",
-    ],
-    reward: { gold: 2000 },
-  },
-];
+// ---- 王宮: メインストーリー「百の迷宮と、魂の王」 ----
+// 勅命を受ける → 対象迷宮が出現 → 踏破 → 王宮で報告し報酬 → 次の勅命、のループ。
+// 章テキスト/報酬は story.js (10幕構成・各章=迷宮1つ)。
+// G.msq = { n: 章 (1-100), state: "active"(攻略中) | "report"(報告可) | "offer"(次章待ち) | "end" }
+
+// 勅命シーン: 金縁のカードで台詞を流す
+function showStoryScene(title, lines, rewardText, onClose, btnLabel = "御意") {
+  G.prompt = true;
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card story-card");
+  card.style.borderColor = "#c9a227";
+  card.style.boxShadow = "0 0 50px #c9a22755";
+  const bn = el("div", "ig-banner", "👑 " + title + " 👑");
+  bn.style.color = "#ffd84a";
+  card.appendChild(bn);
+  for (const t of lines) card.appendChild(el("div", "story-line", t));
+  if (rewardText) card.appendChild(el("div", "story-reward", rewardText));
+  const ok = btn(btnLabel, () => { wrap.remove(); G.prompt = false; if (onClose) onClose(); });
+  ok.className = "btn primary ig-ok";
+  card.appendChild(ok);
+  wrap.appendChild(card);
+  document.body.appendChild(wrap);
+}
+
+// 踏破報告: 報酬を下賜し、次章の謁見が可能になる。第100章ならエピローグへ
+function reportMainQuest() {
+  const ms = G.msq;
+  const n = ms.n;
+  const r = msqReward(n);
+  const rwText = `下賜: 💰${r.gold} + ✦${r.soulPts}` + (r.redSoul ? ` + 🔴${r.redSoul}` : "");
+  showStoryScene(`第${n}章 完遂`, msqReportLines(n), rwText, () => {
+    G.gold += r.gold;
+    G.soulPts += r.soulPts;
+    G.redSoul += r.redSoul || 0;
+    SFX.itemget(); buzz([0, 30, 60, 30]);
+    log(`勅命「第${n}章」の完遂を報告した。`, "win");
+    updateTopbar();
+    if (n >= 100) {
+      G.msq = { n: 101, state: "end" };
+      flashScreen("#ffd84a");
+      setTimeout(() => showStoryScene("終章 — 最後の魂繰り", EPILOGUE, null, () => renderTown(), "物語を閉じる"), 400);
+      return;
+    }
+    ms.state = "offer";
+    autosave(true);
+    renderTown();
+  });
+}
+
+// 次章の勅命を拝命: 新たな迷宮が地図に現れる
+function acceptMainQuest() {
+  const ms = G.msq;
+  ms.n += 1;
+  ms.state = "active";
+  G.unlockedDungeons = Math.max(G.unlockedDungeons, ms.n);
+  const dn = DUNGEONS[ms.n - 1];
+  showStoryScene(`第${ms.n}章 「${ACTS[actOf(ms.n) - 1].title}」`, msqOrderLines(ms.n), null, () => {
+    SFX.itemget(); buzz([0, 30, 60, 30]);
+    log(`新たな勅命を拝命した。「${dn.name}」が地図に記された。`, "win");
+    showToast(`🗺 新たな迷宮「${dn.short}」出現`);
+    autosave(true);
+    renderTown();
+  });
+}
 
 function renderPalace() {
   townEl.appendChild(townHeader("王宮"));
   townEl.appendChild(el("div", "tw-lead", "玉座の間。王の勅命を聞き、書庫で迷宮の記録を紐解ける。"));
 
-  // ストーリー進行
+  // メインストーリー (勅命ループ)
   townEl.appendChild(el("div", "tw-h", "玉座の間 — 勅命"));
-  const ev = STORY_EVENTS[G.story];
-  if (ev && ev.cond()) {
-    const b = btn(`👑 謁見する 「${ev.title}」`, () => playStoryEvent(ev));
+  const ms = G.msq;
+  if (!ms || ms.state === "end" || ms.n > 100) {
+    townEl.appendChild(el("div", "tw-note", "「百の迷宮は解き放たれた。…余の葬列には、来ずともよいぞ。」"));
+  } else if (ms.state === "active") {
+    const tdn = DUNGEONS[ms.n - 1];
+    const box = el("div", "tw-rumor");
+    box.appendChild(el("div", "tw-rumors", `第${ms.n}章 「${ACTS[actOf(ms.n) - 1].title}」`));
+    box.appendChild(el("div", "tw-rumort", `勅命: 「${tdn.name}」を踏破し、その主を討て。`));
+    box.appendChild(el("div", "tw-note", "果たしたら王宮へ戻り、報告せよ。"));
+    townEl.appendChild(box);
+    const re = btn("👑 勅命を聞き直す", () => showStoryScene(`第${ms.n}章 「${ACTS[actOf(ms.n) - 1].title}」`, msqOrderLines(ms.n), null, null));
+    re.className = "btn tw-add";
+    townEl.appendChild(re);
+  } else if (ms.state === "report") {
+    const b = btn(`👑 報告する — 「${DUNGEONS[ms.n - 1].name}」踏破`, () => reportMainQuest());
     b.className = "btn primary tw-add";
     townEl.appendChild(b);
-  } else if (ev) {
-    townEl.appendChild(el("div", "tw-note",
-      G.story === 1 ? "「地下2階に到達したら、また参れ」" :
-      G.story === 2 ? "「地下3階に到達したら、また参れ」" :
-      "「深淵の主を討ち果たしたら、また参れ」"));
-  } else {
-    townEl.appendChild(el("div", "tw-note", "「そなたに語るべきことは、もう何もない。良き旅を。」"));
+  } else if (ms.state === "offer") {
+    const b = btn(`👑 謁見する — 新たな勅命 (第${ms.n + 1}章)`, () => acceptMainQuest());
+    b.className = "btn primary tw-add";
+    townEl.appendChild(b);
   }
 
   // 図鑑
@@ -2999,11 +3163,14 @@ function renderPalace() {
   recRow("踏破した迷宮", `${Math.max(0, G.unlockedDungeons - 1)} / ${DUNGEONS.length}`);
   townEl.appendChild(rec);
 
-  // 勲章 (実績): 達成済みは受領でき、未達成は条件のみ見える
+  // 勲章 (実績): 達成済みは受領でき、未達成は条件のみ見える。
+  // 件数が多いため「受領可 → 未達成 → 受領済」の順に並べる
   const claimable = ACHIEVEMENTS.filter((a) => !G.ach[a.id] && a.cond()).length;
   townEl.appendChild(el("div", "tw-h", `王の勲章 — 実績 (${Object.keys(G.ach).length}/${ACHIEVEMENTS.length})${claimable ? ` ・ 受領可 ${claimable}` : ""}`));
   const al = el("div", "tw-mlist");
-  for (const a of ACHIEVEMENTS) {
+  const achOrd = (a) => (G.ach[a.id] ? 2 : a.cond() ? 0 : 1);
+  const achSorted = [...ACHIEVEMENTS].sort((a, b) => achOrd(a) - achOrd(b));
+  for (const a of achSorted) {
     const got = !!G.ach[a.id];
     const ready = !got && a.cond();
     const row = el("div", "tw-quest" + (ready ? " done" : ""));
@@ -3026,35 +3193,6 @@ function renderPalace() {
     al.appendChild(row);
   }
   townEl.appendChild(al);
-}
-
-function playStoryEvent(ev) {
-  G.prompt = true;
-  const wrap = el("div", "confirm-overlay");
-  const card = el("div", "ig-card story-card");
-  card.style.borderColor = "#c9a227";
-  card.style.boxShadow = "0 0 50px #c9a22755";
-  const bn = el("div", "ig-banner", "👑 " + ev.title + " 👑");
-  bn.style.color = "#ffd84a";
-  card.appendChild(bn);
-  for (const t of ev.text) card.appendChild(el("div", "story-line", t));
-  const rw = [`💰${ev.reward.gold}`];
-  if (ev.reward.soul) rw.push(`${SOUL_CLASSES[ev.reward.soul].label}の魂`);
-  card.appendChild(el("div", "story-reward", "下賜: " + rw.join(" + ")));
-  const ok = btn("拝命する", () => {
-    wrap.remove();
-    G.prompt = false;
-    G.gold += ev.reward.gold;
-    if (ev.reward.soul) G.souls.push(makeSoul(ev.reward.soul, 2));
-    G.story++;
-    SFX.itemget(); buzz([0, 30, 60, 30]);
-    log(`勅命「${ev.title}」を拝命した。`, "win");
-    renderTown();
-  });
-  ok.className = "btn primary ig-ok";
-  card.appendChild(ok);
-  wrap.appendChild(card);
-  document.body.appendChild(wrap);
 }
 
 // ---- 図鑑 (王宮書庫) ----
@@ -4730,7 +4868,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py",
   "gold", "soulPts", "redSoul", "dollsPurchased",
   "party", "reserve", "souls", "shopStock", "lastEmptyClaim", "run", "town",
-  "quests", "dailyQuests", "ach", "fastAnim", "rumor", "activeRumor", "codex", "story", "dragonSlain", "runCfg", "stats",
+  "quests", "dailyQuests", "subQuests", "msq", "ach", "fastAnim", "rumor", "activeRumor", "codex", "story", "dragonSlain", "runCfg", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
 ];
 
@@ -4861,6 +4999,13 @@ function loadGame() {
   }
   if (!G.stats) G.stats = { runs: 0, deepest: 0, kills: 0, deaths: 0, soulsFound: 0, bossKills: 0 };
   if (!G.ach) G.ach = {}; // 勲章 (後付け)
+  if (!G.subQuests) G.subQuests = {}; // サブクエスト (後付け)
+  // メインストーリー (後付け): 解放済みの最前線の迷宮を現在章とみなす。
+  // 既に最後の迷宮まで終えたセーブは、第100章の報告から再開できる
+  if (!G.msq) {
+    const n = Math.min(100, Math.max(1, G.unlockedDungeons || 1));
+    G.msq = (G.dragonSlain && n >= 100) ? { n: 100, state: "report" } : { n, state: "active" };
+  }
   G.autoCombat = false;   // オート戦闘は再開時に解除 (誤動作防止)
   // 図鑑の移行: 旧形式 (mon[key]=true) を {kills,normal,rare,dungeons} に変換
   if (!G.codex) G.codex = { mon: {}, item: {} };
@@ -4946,6 +5091,7 @@ function setupNewGame() {
   G.party = dolls;
   G.souls = souls;
   G.shopStock = { ...SHOP_INIT_STOCK };
+  G.msq = { n: 1, state: "active" }; // 第1章は着任時に拝命済み (王宮で聞き直せる)
   codexSweepJobs();
   initQuests();
 }
@@ -4953,7 +5099,7 @@ function setupNewGame() {
 // ---- 起動 ----
 function init() {
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
-  window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown };
+  window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACHIEVEMENTS, questProgress };
 
   let loaded = false;
   try { loaded = loadGame(); } catch (e) { loaded = false; }
