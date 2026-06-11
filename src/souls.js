@@ -705,7 +705,8 @@ export function recalcDoll(doll) {
   // アクションスキル: 職業 (基本職/混成職) のスキル表から習得する。
   // 職業Lv = 構成魂の3番目に高いレベル。職業ランクが解放上限 (ランクN → Lv N*10)。
   let jobLv = 0;
-  if (hybrid) jobLv = jobLevelOf(doll, [hybrid.baseK, hybrid.subK]);
+  // 混成職は「3部位ある職業 (ベース職) の魂の3番目のLv」がキャラLvになる
+  if (hybrid) jobLv = jobLevelOf(doll, [hybrid.baseK]);
   else if (jr) jobLv = jobLevelOf(doll, [jr.clsKey]);
   doll.jobLv = jobLv;
   if (jr) {
@@ -720,6 +721,7 @@ export function recalcDoll(doll) {
 
   // ランクパッシブの確定: 職業 (混成優先) × ランクから {key: lv} を合成
   const jobKey = hybrid ? hybrid.key : jr ? jr.clsKey : null;
+  doll.jobKey = jobKey; // 発現中の職業キー ("thief" / "fighter+thief" 等)。盗賊系判定などに使う
   const pMap = jobKey && jr ? passivesUpTo(jobKey, jr.rank) : {};
   doll.passiveMap = pMap;
   if (jobKey && jr) {
@@ -728,7 +730,8 @@ export function recalcDoll(doll) {
   }
 
   doll.clsKey = clsKey;
-  doll.cls = clsLabel + (hybrid ? "(混成)" : jr ? `・ランク${jr.rank}` : "");
+  // ランクは隠しパラメータなので称号に含めない (称号自体がランクで変わる)
+  doll.cls = clsLabel + (hybrid ? "(混成)" : "");
   doll.tier = jr ? (hybrid ? "hybrid" : "rank" + jr.rank) : "none";
   doll.dominant = dom;
   doll.blessing = false;            // 旧フラグ (聖者の祝福) は廃止

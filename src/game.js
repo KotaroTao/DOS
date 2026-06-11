@@ -805,6 +805,18 @@ function resolveCell(cell) {
     case "trap": {
       if (cell.cleared) break;
       cell.cleared = true;
+      // 罠解除判定: パーティで最も解除値 (AGI+LUK・盗賊系1.5倍) が高い者が試みる
+      const best = bestDisarmer();
+      if (best && Math.random() < disarmChance(best)) {
+        SFX.chest();
+        log(`床の罠を ${best.name}が見抜き、解除した！`, "sys");
+        showEvent({
+          sprite: ICONS.trap, title: "罠を解除！", accent: "#9be88a", banner: "✦ 罠解除 ✦", sparkle: true,
+          lines: ["床に罠が仕掛けられていた。", `${best.name}が見抜き、解除した！`],
+          onClose: () => renderBoard(),
+        });
+        break;
+      }
       SFX.trap(); buzz([0, 60, 40, 60]);
       const victims = G.party.filter((p) => p.alive);
       const v = victims[rand(victims.length)];
@@ -837,17 +849,24 @@ function resolveCell(cell) {
       SFX.trap(); buzz([0, 40, 30, 40]);
       flashScreen("#5a8a2a");
       let anyDeath = false;
+      const fallen = [];
       for (const p of G.party) {
         if (!p.alive) continue;
         let dmg = Math.max(1, Math.ceil(p.maxhp * 0.05));
         if (resist === 1) dmg = Math.max(1, Math.ceil(dmg * 0.5));
         p.hp = Math.max(0, p.hp - dmg);
-        if (p.hp === 0) { p.alive = false; anyDeath = true; log(`${p.name}は毒に沈んだ…`, "dmg"); }
+        if (p.hp === 0) { p.alive = false; anyDeath = true; fallen.push(p.name); log(`${p.name}は毒に沈んだ…`, "dmg"); }
       }
       log(`毒の床だ！ 隊全体が蝕まれた${resist === 1 ? " (耐性で半減)" : ""}`, "dmg");
       renderParty();
-      if (anyDeath) { SFX.die(); imprintFallen(); if (!G.party.some((p) => p.alive)) { gameOver(); break; } }
-      renderBoard();
+      showEvent({
+        sprite: ICONS.poison, title: "毒の床！", accent: "#5a8a2a", banner: "⚠ 危険 ⚠",
+        lines: [`隊全体が蝕まれた${resist === 1 ? " (耐性で半減)" : ""}…`, ...fallen.map((n) => `${n}は毒に沈んだ…`)],
+        onClose: () => {
+          if (anyDeath) { SFX.die(); imprintFallen(); if (!G.party.some((p) => p.alive)) { gameOver(); return; } }
+          renderBoard();
+        },
+      });
       break;
     }
     case "fountain": {
@@ -1048,7 +1067,7 @@ function acquireSoul(soul, sourceLine) {
 
 // ---- 選択肢プロンプト ----
 // ゴールド発見などと同じ中央オーバーレイカードに、イラスト+タイトル+選択肢を表示
-function showChoice(title, options, icon, { banner = "✦ 発見 ✦", accent = "#c9a227" } = {}) {
+function showChoice(title, options, icon, { banner = "✦ 発見 ✦", accent = "#c9a227", lines = [] } = {}) {
   G.prompt = true;
   itemGetEl.innerHTML = "";
   const card = el("div", "ig-card");
@@ -1063,6 +1082,7 @@ function showChoice(title, options, icon, { banner = "✦ 発見 ✦", accent = 
     card.appendChild(art);
   }
   card.appendChild(el("div", "ig-name", title));
+  for (const ln of lines) card.appendChild(el("div", "ig-desc", ln));
   const list = el("div", "ig-choices");
   for (const o of options) {
     const b = btn(o.label, () => { closePrompt(); o.fn(); });
@@ -1099,60 +1119,118 @@ function askDescend(cell) {
   );
 }
 
-// 宝箱: 開けるか選ぶ (リスクあり: 罠 / ミミック)
-function askOpenChest(cell) {
-  showChoice("宝箱が現れた！ 開ける？", [
-    { label: "🔓 開ける", fn: () => openChest(cell) },
-    { label: "✋ 開けない", fn: () => { renderBoard(); } },
-  ], ICONS.chest);
+// ===== 罠解除 (宝箱・罠マス共通) =====
+// 解除値 = AGI + LUK。盗賊系の職業 (基本職/混成職に盗賊を含む) は1.5倍のボーナス
+function disarmPower(m) {
+  let v = (m.agi || 0) + (m.luk || 0);
+  if (m.jobKey && m.jobKey.split("+").includes("thief")) v *= 1.5;
+  return Math.round(v);
 }
 
-function openChest(cell) {
+// 解除難度: 迷宮の魂レベル帯とランクから「適正パーティの AGI+LUK」を見積もる。
+// 適正レベルの盗賊系で約95% (上限)、それ以外で70〜80% になるよう調整している
+function disarmNeed() {
+  const cfg = activeCfg();
+  const L = 2 + (cfg.soulLevelBonus || 0) * 2.4;        // 適正な魂レベルの目安 (強化込み)
+  const f = 1 + (L - 1) * 0.12;                          // souls.js の lvlFactor と同式
+  const q = 1 + ((cfg.rank || 1) - 1) * 0.12;            // 深部は高ランク魂が前提
+  return 14 * f * q * (1 + (G.floor - 1) * 0.03);
+}
+
+function disarmChance(m) {
+  return Math.max(0.05, Math.min(0.95, disarmPower(m) / disarmNeed()));
+}
+
+// パーティで最も罠解除が高い生存メンバー (罠マスの判定に使う)
+function bestDisarmer() {
+  const alive = G.party.filter((p) => p.alive);
+  let best = alive[0];
+  for (const p of alive) if (disarmPower(p) > disarmPower(best)) best = p;
+  return best;
+}
+
+// 宝箱: 開ける人業を1人選ぶ。70%で罠が仕掛けられており、選んだ者の解除値で判定する
+function askOpenChest(cell) {
+  const opts = G.party.filter((p) => p.alive).map((p) => ({
+    label: `🔓 ${p.name} (解除 ${Math.round(disarmChance(p) * 100)}%)`,
+    fn: () => openChest(cell, p),
+  }));
+  opts.push({ label: "✋ 開けない", fn: () => { renderBoard(); } });
+  showChoice("宝箱が現れた！ 罠があるかもしれない。誰が開ける？", opts, ICONS.chest);
+}
+
+function openChest(cell, opener) {
   if (cell) cell.cleared = true;
   questProgress("chest", null, 1); // 盤面の宝箱を開けた (サブクエスト用)
-  rollChest(cell, true, () => { if (G.state === "board") renderBoard(); });
+  rollChest(cell, true, () => { if (G.state === "board") renderBoard(); }, opener);
 }
 
-// 宝箱の中身を解決。allowDanger=falseなら罠/ミミックなし。doneは安全終了時のコールバック
-function rollChest(cell, allowDanger, done) {
-  const roll = Math.random();
-  const danger = allowDanger ? 0.15 + G.floor * 0.07 : 0;
-  if (roll < danger * 0.5) {
-    // ミミック: 演出 → 戦闘
-    SFX.trap(); buzz([0, 60, 40, 60]);
-    log("宝箱はミミックだった！", "dmg");
-    showEvent({
-      sprite: MONSTERS.kobold, title: "ミミックだ！", accent: "#d4504e", banner: "⚠ 危険 ⚠",
-      lines: ["宝箱は怪物だった！", "戦闘になる！"], btnLabel: "戦う",
-      onClose: () => startBattle(spawnMimic(activeCfg().rank || 1, enemyScale()), cell),
-    });
-    return;
-  }
-  if (roll < danger) {
-    // 毒針の罠: パーティ全員にダメージ + 一部に毒
-    SFX.trap(); buzz([0, 60, 40, 60]);
-    const dmg = 6 + G.floor * 4 + rand(8);
-    let poisoned = false;
-    for (const p of G.party) {
-      if (!p.alive) continue;
-      p.hp = Math.max(0, p.hp - dmg);
-      if (p.hp === 0) { p.alive = false; log(`${p.name}は倒れた…`, "dmg"); }
-      else if (Math.random() < 0.5) { p.ailment = "poison"; poisoned = true; }
+// 宝箱の中身を解決。allowDanger=falseなら罠/ミミックなし (戦闘後の宝箱)。
+// opener: 開けると選ばれた人業 (罠解除判定に使う)。done は安全終了時のコールバック
+function rollChest(cell, allowDanger, done, opener) {
+  if (allowDanger) {
+    if (Math.random() < 0.06 + G.floor * 0.03) {
+      // ミミック: 演出 → 戦闘
+      SFX.trap(); buzz([0, 60, 40, 60]);
+      log("宝箱はミミックだった！", "dmg");
+      showEvent({
+        sprite: MONSTERS.kobold, title: "ミミックだ！", accent: "#d4504e", banner: "⚠ 危険 ⚠",
+        lines: ["宝箱は怪物だった！", "戦闘になる！"], btnLabel: "戦う",
+        onClose: () => startBattle(spawnMimic(activeCfg().rank || 1, enemyScale()), cell),
+      });
+      return;
     }
-    log(`宝箱は罠だった！ 全員に ${dmg} ダメージ`, "dmg");
-    const wiped = !G.party.some((p) => p.alive);
-    showEvent({
-      sprite: ICONS.trap, title: "毒針の罠！", accent: "#d4504e", banner: "⚠ 危険 ⚠",
-      lines: [`全員に ${dmg} ダメージ！`, ...(poisoned ? ["毒に侵された者も…"] : [])],
-      onClose: () => { if (wiped) { gameOver(); return; } if (done) done(); },
-    });
-    return;
+    // 黒い宝箱: 一段上のレベル帯の品が眠るが、開けると呪いの危険を伴う (任意の賭け)
+    if (Math.random() < 0.10) {
+      askCursedChest(done);
+      return;
+    }
+    // 罠: 70%の確率で仕掛けられている。開けた者が解除を試みる
+    if (Math.random() < 0.70) {
+      const who = opener || bestDisarmer();
+      if (who && Math.random() < disarmChance(who)) {
+        SFX.chest();
+        log(`宝箱の罠を ${who.name}が解除した！`, "sys");
+        showEvent({
+          sprite: ICONS.trap, title: "罠解除！", accent: "#9be88a", banner: "✦ 罠解除 ✦", sparkle: true,
+          lines: ["宝箱には罠が仕掛けられていた。", `${who.name}が見抜き、解除した！`],
+          onClose: () => chestContents(cell, done),
+        });
+        return;
+      }
+      springChestTrap(cell, done);
+      return;
+    }
   }
-  // 黒い宝箱: 一段上のレベル帯の品が眠るが、開けると呪いの危険を伴う (任意の賭け)
-  if (allowDanger && roll >= danger && Math.random() < 0.10) {
-    askCursedChest(done);
-    return;
+  chestContents(cell, done);
+}
+
+// 毒針の罠が発動: パーティ全員にダメージ + 一部に毒。生き残れば中身は手に入る
+function springChestTrap(cell, done) {
+  SFX.trap(); buzz([0, 60, 40, 60]);
+  const dmg = 6 + G.floor * 4 + rand(8);
+  let poisoned = false;
+  for (const p of G.party) {
+    if (!p.alive) continue;
+    p.hp = Math.max(0, p.hp - dmg);
+    if (p.hp === 0) { p.alive = false; log(`${p.name}は倒れた…`, "dmg"); }
+    else if (Math.random() < 0.5) { p.ailment = "poison"; poisoned = true; }
   }
+  log(`罠の解除に失敗！ 全員に ${dmg} ダメージ`, "dmg");
+  const wiped = !G.party.some((p) => p.alive);
+  showEvent({
+    sprite: ICONS.trap, title: "毒針の罠！", accent: "#d4504e", banner: "⚠ 危険 ⚠",
+    lines: ["解除に失敗し、罠が発動した！", `全員に ${dmg} ダメージ！`, ...(poisoned ? ["毒に侵された者も…"] : [])],
+    onClose: () => {
+      if (wiped) { gameOver(); return; }
+      imprintFallen();
+      chestContents(cell, done); // 痛手は負ったが、中身は手に入る
+    },
+  });
+}
+
+// 宝箱の中身 (ゴールド/空の魂/装備品)
+function chestContents(cell, done) {
   // 中身の抽選 (ダンジョンレベルに応じる): ゴールド50% / ゴールド以外のアイテム50%
   if (Math.random() < 0.5) {
     SFX.chest();
@@ -1807,6 +1885,9 @@ function applyImpact(res) {
 
 function endBattle() {
   const b = G.battle;
+  // オート戦闘は戦闘ごとに解除 (次の戦闘に持ち越さない)
+  G.autoCombat = false;
+  if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
   renderCombat();
   if (b.result === "win") {
     // 倒した敵から Soul(魂) を回収する。Soul が経験値の役割を兼ね、館での魂の強化に使う
@@ -2103,7 +2184,7 @@ function renderParty() {
     }
     card.innerHTML = `
       <div class="name">${p.name}${p.ailment ? ` <span class="ail">${AIL_ICON[p.ailment] || "☠"}</span>` : ""}</div>
-      <div class="cls">${p.cls} Lv${p.level}</div>
+      <div class="cls">${p.cls} Lv${p.isDoll ? (p.jobLv || 1) : p.level}</div>
       <div class="bar hp"><i style="width:${(p.hp / p.maxhp) * 100}%"></i></div>
       <div class="nums">HP ${p.hp}/${p.maxhp}</div>
       ${p.maxmp > 0 ? `<div class="bar mp"><i style="width:${(p.mp / p.maxmp) * 100}%"></i></div>
@@ -2336,7 +2417,7 @@ function dollChip(d) {
   }
   const info = el("div", "tw-chipi");
   info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
-  info.appendChild(el("div", "tw-chipc", d.cls));
+  info.appendChild(el("div", "tw-chipc", `${d.cls} Lv${d.jobLv || 1}`));
   chip.appendChild(info);
   chip.appendChild(el("div", "tw-chiphp",
     d.alive ? `HP ${d.hp}/${d.maxhp}` : `⏳${fmtRemain(Math.max(0, (d.reviveAt || Date.now()) - Date.now()))}`));
@@ -2409,7 +2490,7 @@ function rosterRow(d, onClick) {
   row.appendChild(s);
   const info = el("div", "tw-chipi");
   info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
-  info.appendChild(el("div", "tw-chipc", d.cls));
+  info.appendChild(el("div", "tw-chipc", `${d.cls} Lv${d.jobLv || 1}`));
   row.appendChild(info);
   row.appendChild(el("div", "tw-chiphp",
     d.alive ? `HP ${d.hp}/${d.maxhp}` : `⏳${fmtRemain(Math.max(0, (d.reviveAt || Date.now()) - Date.now()))}`));
@@ -2456,6 +2537,9 @@ function soulEnhanceRow(s, afterLevel) {
   if (rank.color) nm.style.color = rank.color;
   info.appendChild(nm);
   info.appendChild(el("div", "tw-soulst", `Lv ${s.level} / 上限 ${s.cap}`));
+  // タップでステータスと強化時の伸びをポップアップ表示
+  info.style.cursor = "pointer";
+  info.addEventListener("click", () => { SFX.select(); showSoulInfo(s); });
   r.appendChild(info);
 
   const acts = el("div", "tw-soulacts");
@@ -2476,19 +2560,61 @@ function soulEnhanceRow(s, afterLevel) {
   } else if (s.cap < soulHardCap(s)) {
     info.children[1].textContent = `Lv ${s.level}（上限）`;
   }
-  // 限界突破 (同部位・同職の魂を素材に上限+5)
+  // 限界突破 (同部位・同職の魂を素材に上限+5)。押すと必要素材をポップアップで確認
   if (s.cap < soulHardCap(s)) {
     const need = breakthroughNeed(s);
     const have = fodderCount(s);
-    const bb = btn(`限界突破 (魂×${need})`, () => doBreakthrough(s, afterLevel));
+    const bb = btn(have >= need ? `限界突破 (魂×${need})` : `限界突破 (魂${have}/${need})`, () => askBreakthrough(s, afterLevel));
     bb.className = "tw-small";
-    if (have < need) { bb.disabled = true; bb.textContent = `限界突破 (魂${have}/${need})`; }
     acts.appendChild(bb);
   } else {
     acts.appendChild(el("div", "tw-chiphp", "極"));
   }
   r.appendChild(acts);
   return r;
+}
+
+// 魂の詳細ポップアップ: 現在のステータスと、強化 (Lv+1) でどれだけ伸びるか
+function showSoulInfo(s) {
+  const cur = soulStats(s);
+  const lines = [`Lv ${s.level} / 上限 ${s.cap}`, `現在: ${soulStatText(cur) || "—"}`];
+  if (s.level < s.cap) {
+    const nxt = soulStats({ ...s, level: s.level + 1 });
+    const d = {};
+    for (const k in cur) d[k] = Math.round((nxt[k] - cur[k]) * 10) / 10;
+    lines.push(`✦${soulTrainCost(s.level)} で Lv${s.level + 1} に強化すると:`);
+    lines.push(soulStatText(d) || "変化なし");
+  } else if (s.cap < soulHardCap(s)) {
+    lines.push("レベル上限に到達。限界突破でさらに鍛えられる。");
+  } else {
+    lines.push("極まった魂。これ以上は鍛えられない。");
+  }
+  const rank = SOUL_RANKS[s.rank || "normal"];
+  showEvent({
+    sprite: soulSprite(s.clsKey), title: soulName(s),
+    accent: rank.color || SOUL_CLASSES[s.clsKey].glow,
+    banner: "✦ 魂の力 ✦", btnLabel: "閉じる", lines,
+  });
+}
+
+// 限界突破の確認ポップアップ: 必要な素材 (同部位・同職の魂) の種類と数を示す
+function askBreakthrough(s, afterLevel) {
+  const need = breakthroughNeed(s);
+  const have = fodderCount(s);
+  const matName = `${SOUL_CLASSES[s.clsKey].label}の魂（${PART_LABEL[s.part]}）`;
+  const rank = SOUL_RANKS[s.rank || "normal"];
+  const opts = [];
+  if (have >= need) opts.push({ label: `🌟 突破する (魂×${need} を消費)`, fn: () => doBreakthrough(s, afterLevel) });
+  opts.push({ label: have >= need ? "やめる" : "閉じる (素材が足りない)", fn: () => {} });
+  showChoice(`${soulName(s)} の限界突破`, opts, soulSprite(s.clsKey), {
+    banner: "🌟 限界突破 🌟", accent: rank.color || SOUL_CLASSES[s.clsKey].glow,
+    lines: [
+      `必要な素材: ${matName} × ${need}（ランク不問）`,
+      `ストックの所持数: ${have} 個`,
+      `成功するとレベル上限 +5（${s.cap} → ${Math.min(soulHardCap(s), s.cap + 5)}）`,
+      "素材はレベルの低い魂から消費される。",
+    ],
+  });
 }
 
 // 限界突破に必要な素材(同部位・同職の魂)数。Lv/ランク/突破回数が高いほど増える
@@ -2650,7 +2776,7 @@ function renderMansionManage() {
     row.appendChild(s);
     const info = el("div", "tw-chipi");
     info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †") + (inParty ? "" : " (控え)")));
-    info.appendChild(el("div", "tw-chipc", `${d.cls} ・ 魂 ${dollSouls(d).length}/5`));
+    info.appendChild(el("div", "tw-chipc", `${d.cls} Lv${d.jobLv || 1} ・ 魂 ${dollSouls(d).length}/5`));
     row.appendChild(info);
     const ren = btn("名前を変える", () => showRenameInput(d));
     ren.className = "tw-small";
@@ -2809,7 +2935,7 @@ function renderAltar() {
   sum.style.borderColor = dom ? SOUL_CLASSES[dom.clsKey].color : "#34344a";
   sum.appendChild(el("div", "tw-sumc", d.cls));
   const tierTxt = d.jobRank
-    ? `職業Lv ${d.jobLv || 0}・ランク ${d.jobRank}/5（スキル解放 Lv${d.jobRank * 10} まで）${d.hybrid ? "（混成職）" : ""}`
+    ? `職業Lv ${d.jobLv || 0}（スキル解放 Lv${d.jobRank * 10} まで）${d.hybrid ? "（混成職）" : ""}`
     : "同職3部位未満 — 職業未発現";
   sum.appendChild(el("div", "tw-sumt", tierTxt));
   sum.appendChild(el("div", "tw-sumst",
@@ -3789,13 +3915,11 @@ function renderCodexDungeon() {
   const unlocked = Math.max(1, G.unlockedDungeons || 1);
   if (codexDungeonIdx >= unlocked) codexDungeonIdx = 0;
 
-  // ダンジョン選択タブ
+  // ダンジョン選択タブ (未解放のダンジョンは一切表示しない)
   const tabs = el("div", "tw-dolltabs shop-tabs cdx-tabs");
-  for (let i = 0; i < DUNGEONS.length; i++) {
-    const open = i < unlocked;
-    const b = btn(open ? DUNGEONS[i].short : "？？", () => { if (open) { codexDungeonIdx = i; renderCodexDungeon(); } });
+  for (let i = 0; i < unlocked && i < DUNGEONS.length; i++) {
+    const b = btn(DUNGEONS[i].short, () => { codexDungeonIdx = i; renderCodexDungeon(); });
     b.className = "tw-dolltab" + (codexDungeonIdx === i ? " active" : "");
-    if (!open) b.disabled = true;
     tabs.appendChild(b);
   }
   townEl.appendChild(tabs);
@@ -4348,7 +4472,7 @@ function renderStatus() {
   head.appendChild(port);
   const idn = el("div", "st-idn");
   idn.appendChild(el("div", "st-name", p.name + (p.alive ? "" : " †")));
-  idn.appendChild(el("div", "st-sub", p.isDoll ? `人業 ・ ${p.cls} ・ 魂Lv${p.level}` : `${p.align} - ${p.race} - ${p.cls} Lv${p.level}`));
+  idn.appendChild(el("div", "st-sub", p.isDoll ? `人業 ・ ${p.cls} Lv${p.jobLv || 1}` : `${p.align} - ${p.race} - ${p.cls} Lv${p.level}`));
   head.appendChild(idn);
   const nav = el("div", "st-nav");
   const prev = btn("◀", () => { G.statusIdx = (G.statusIdx + G.party.length - 1) % G.party.length; stSel = null; renderStatus(); }); prev.className = "st-navb";
@@ -4478,7 +4602,7 @@ function renderStatTab(p) {
   top.appendChild(port);
   const meta = el("div", "st-meta");
   const line1 = p.isDoll
-    ? `<div class="st-line">人業 <b>${p.cls}</b>　魂 <b>${dollSouls(p).length}/5</b></div>`
+    ? `<div class="st-line">人業 <b>${p.cls} Lv${p.jobLv || 1}</b>　魂 <b>${dollSouls(p).length}/5</b></div>`
     : `<div class="st-line">属性 <b>${p.align}</b>　種族 <b>${p.race}</b></div>
        <div class="st-line">職業 <b>${p.cls}</b>　レベル <b>${p.level}</b></div>`;
   meta.innerHTML = `
@@ -4576,7 +4700,7 @@ function renderSoulTab(p) {
   head.style.borderColor = dom ? SOUL_CLASSES[dom.clsKey].color : "#34344a";
   head.appendChild(el("div", "st-soulc", p.cls));
   head.appendChild(el("div", "st-soultt",
-    p.jobRank ? `職業Lv ${p.jobLv || 0}・ランク ${p.jobRank}/5（スキル解放 Lv${p.jobRank * 10} まで）${p.hybrid ? `（混成職「${p.hybrid}」）` : ""}` : "同職3部位未満 — 職業未発現"));
+    p.jobRank ? `職業Lv ${p.jobLv || 0}（スキル解放 Lv${p.jobRank * 10} まで）${p.hybrid ? `（混成職「${p.hybrid}」）` : ""}` : "同職3部位未満 — 職業未発現"));
   wrap.appendChild(head);
 
   for (const part of PARTS) {
@@ -4770,8 +4894,11 @@ function equipPreviewDelta(p, cand) {
   recalc(fake);
   return {
     atk: fake.atk - p.atk,
-    def: fake.def - p.def,
-    spd: fake.spd - p.spd,
+    vit: fake.vit - p.vit,
+    agi: fake.agi - p.agi,
+    int: fake.int - p.int,
+    pie: fake.pie - p.pie,
+    luk: fake.luk - p.luk,
     hp: fake.maxhp - p.maxhp,
     mp: fake.maxmp - p.maxmp,
   };
@@ -4783,7 +4910,7 @@ function equipCompareEl(p, cand) {
   const row = el("span", "eq-cd");
   row.appendChild(el("span", "eq-cd-lab", "装備すると"));
   let any = false;
-  if (d) for (const [label, k] of [["こうげき", "atk"], ["ぼうぎょ", "def"], ["すばやさ", "spd"], ["HP", "hp"], ["MP", "mp"]]) {
+  if (d) for (const [label, k] of [["ATK", "atk"], ["VIT", "vit"], ["AGI", "agi"], ["INT", "int"], ["PIE", "pie"], ["LUK", "luk"], ["HP", "hp"], ["MP", "mp"]]) {
     const v = d[k];
     if (!v) continue;
     any = true;
@@ -4835,7 +4962,7 @@ function detailLines(it) {
   if (ea) L.push(`${ea} — ${elemAdvText("攻撃", it.eAtk)}`);
   const ed = it.eDef ? elemStatText("防御", it.eDef) : null;
   if (ed) L.push(`${ed} — ${elemAdvText("防御", it.eDef)}`);
-  if (it.classes) L.push("装備可: " + it.classes.map(clsLabel).join("/"));
+  if (it.classes) L.push(equipClassText(it));
   if (it.align) L.push(`${it.align}属性。`);
   return L;
 }
@@ -4882,6 +5009,13 @@ function renderItemDetail(p, sel) {
 
 function makeDanger(label, fn) { const b = btn(label, fn); b.classList.add("danger"); return b; }
 function clsLabel(k) { return ({ fighter: "戦", knight: "騎", thief: "盗", mage: "魔", priest: "僧", bishop: "導" })[k] || k; }
+
+// 装備可能職業の表示。未発見の職業は名前を出さず「？」で伏せる (職業図鑑の発見状況に従う)
+function equipClassText(it) {
+  if (!it.classes) return "装備可: 全職";
+  const seen = (k) => G.codex && G.codex.job && G.codex.job[k];
+  return "装備可: " + it.classes.map((k) => (seen(k) ? clsLabel(k) : "？")).join("/");
+}
 
 function doEquip(p, it) {
   const r = equipItem(p, it);
@@ -4941,6 +5075,9 @@ function openEquipChooser(p, slotKey) {
     tx.appendChild(el("span", "eq-cn", label));
     const st = statLines(c.it);
     if (st) tx.appendChild(el("span", "eq-cs", st));
+    // 装備可能職業 (未発見職は伏せる) と説明文
+    if (c.it.slot !== "use") tx.appendChild(el("span", "eq-ccls", equipClassText(c.it)));
+    if (c.it.desc) tx.appendChild(el("span", "eq-cdesc", c.it.desc));
     // 装備中の品と付け替える(または両手武器で盾が外れる)場合だけ、現在との増減を出す
     const tk = slotKeyFor(c.it, p);
     const dropShield = c.it.slot === "weapon" && c.it.twoHanded && p.equip.shield;
