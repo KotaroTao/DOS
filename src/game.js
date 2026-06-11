@@ -136,7 +136,7 @@ const G = {
   floor: 1,
   maxFloorReached: 1, // 到達した最深階 (表示用)
   dungeonIdx: 0,      // 現在選択中の迷宮
-  unlockedDungeons: 1,// 解放済みの迷宮数 (クリアで増える)
+  unlockedDungeons: 1,// 解放済みの迷宮数 (王宮で勅命を受けると増える)
   board: null,
   px: 0, py: 0,
   gold: 200,          // 初期所持金 (宿屋・商店用)
@@ -1833,7 +1833,7 @@ function gameOver() {
   showChoice(lootLine, opts, ICONS.corpse, { banner: "💀 全滅 💀", accent: "#d4504e" });
 }
 
-// 迷宮の主を撃破: 次の迷宮を解放し、戦利品を持って街へ凱旋
+// 迷宮の主を撃破: 踏破を記録し、戦利品を持って街へ凱旋 (次の迷宮は王宮の勅命で解放)
 function onDungeonCleared() {
   const idx = G.dungeonIdx;
   const dn = DUNGEONS[idx];
@@ -2056,21 +2056,24 @@ function renderTown() {
   renderTownHub();
 }
 
+let townBandOpen = null; // 迷宮選択で開いている層域 (null = 選択中の迷宮の層域)
+
 function renderTownHub() {
   townEl.appendChild(townHeader("辺境の街 ロアダル", false));
 
   const intro = el("div", "tw-intro");
   intro.appendChild(el("div", "tw-introt", "魂の迷宮 — Dungeon of Souls"));
-  intro.appendChild(el("div", "tw-intros", `踏破した迷宮 ${Math.max(0, G.unlockedDungeons - 1)} / ${DUNGEONS.length}`));
+  intro.appendChild(el("div", "tw-intros", `踏破した迷宮 ${clearedDungeonCount()} / ${DUNGEONS.length}`));
   townEl.appendChild(intro);
 
-  // 施設グリッド
+  // 施設グリッド (受けられる勅命があれば王宮に印)
   const grid = el("div", "tw-grid");
   for (const fac of FACILITIES) {
     const c = el("div", "tw-fac");
     c.appendChild(el("div", "tw-faci", fac.icon));
     c.appendChild(el("div", "tw-facn", fac.name));
     c.appendChild(el("div", "tw-facd", fac.desc));
+    if (fac.key === "palace" && palaceCallReady()) c.appendChild(el("div", "tw-facb", G.msq.state === "report" ? "❗ 踏破を報告" : "❗ 新たな勅命"));
     c.addEventListener("click", () => { SFX.select(); G.town.facility = fac.key; renderTown(); });
     grid.appendChild(c);
   }
@@ -2098,30 +2101,60 @@ function renderTownHub() {
   dmBox.appendChild(el("div", "tw-dailyd", dm.desc));
   townEl.appendChild(dmBox);
 
+  // 迷宮の選択 — 10迷宮ごとの「層域」アコーディオン (数が増えても一覧が伸びすぎない)
   townEl.appendChild(el("div", "tw-h", "潜る迷宮を選ぶ"));
-  const dlist = el("div", "tw-mlist");
-  DUNGEONS.forEach((dn, i) => {
-    const unlocked = i < G.unlockedDungeons;
-    const row = el("div", "tw-dungeon" + (i === G.dungeonIdx ? " sel" : "") + (unlocked ? "" : " locked"));
-    const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", unlocked ? `${i + 1}. ${dn.name}` : `🔒 ？？？`));
-    const elTag = dn.element && ELEMENTS[dn.element] ? ` ・${ELEMENTS[dn.element].label}の気配` : "";
-    info.appendChild(el("div", "tw-chipc", unlocked ? `全${dn.floors}階 ・ ${i === 0 ? "弱い敵・罠少なめ" : "敵が強く良い戦利品"}${elTag}` : `前の迷宮を踏破すると解放`));
-    row.appendChild(info);
-    if (unlocked) row.addEventListener("click", () => { G.dungeonIdx = i; SFX.select(); renderTown(); });
-    dlist.appendChild(row);
-  });
-  townEl.appendChild(dlist);
-
-  // 迷宮へ (常に1階から)
-  const dive = btn(`🕳 「${curDungeon().name}」へ潜る (B1F)`, tryEnterDungeon);
-  dive.className = "btn primary tw-dive";
-  townEl.appendChild(dive);
+  const bandCount = Math.ceil(DUNGEONS.length / 10);
+  const openBand = (townBandOpen != null) ? townBandOpen : Math.floor(G.dungeonIdx / 10);
+  const maxBand = Math.floor((G.unlockedDungeons - 1) / 10); // 解放済み迷宮が属する最後の層域
+  for (let b = 0; b < bandCount; b++) {
+    const s = b * 10, e = Math.min(DUNGEONS.length, s + 10);
+    if (b > maxBand) {
+      // 未到達の層域は次のひとつだけ「封印中」として見せる
+      if (b === maxBand + 1) {
+        const lockBox = el("div", "tw-band lockedband");
+        lockBox.appendChild(el("div", "tw-bandh", `🔒 第${b + 1}層域 — 迷宮 ${s + 1}〜${e} (封印中)`));
+        townEl.appendChild(lockBox);
+      }
+      continue;
+    }
+    const det = el("details", "tw-band");
+    if (b === openBand) det.open = true;
+    const sum = el("summary", "tw-bandh");
+    const clearedIn = Math.max(0, Math.min(clearedDungeonCount() - s, e - s));
+    sum.textContent = `第${b + 1}層域 — 迷宮 ${s + 1}〜${e} (踏破 ${clearedIn}/${e - s})`;
+    det.appendChild(sum);
+    det.addEventListener("toggle", () => {
+      if (det.open) townBandOpen = b;
+      else if (townBandOpen === b) townBandOpen = null;
+    });
+    const dlist = el("div", "tw-mlist");
+    for (let i = s; i < e; i++) {
+      const dn = DUNGEONS[i];
+      const unlocked = i < G.unlockedDungeons;
+      const row = el("div", "tw-dungeon" + (i === G.dungeonIdx ? " sel" : "") + (unlocked ? "" : " locked"));
+      const info = el("div", "tw-chipi");
+      info.appendChild(el("div", "tw-chipn", unlocked ? `${i + 1}. ${dn.name}` : `🔒 ？？？`));
+      const elTag = dn.element && ELEMENTS[dn.element] ? ` ・${ELEMENTS[dn.element].label}の気配` : "";
+      info.appendChild(el("div", "tw-chipc", unlocked ? `全${dn.floors}階 ・ ${i === 0 ? "弱い敵・罠少なめ" : "敵が強く良い戦利品"}${elTag}` : `前の迷宮を踏破し、王宮で勅命を受けると解放`));
+      row.appendChild(info);
+      if (unlocked) row.addEventListener("click", () => { G.dungeonIdx = i; SFX.select(); renderTown(); });
+      dlist.appendChild(row);
+    }
+    det.appendChild(dlist);
+    townEl.appendChild(det);
+  }
 
   // データ削除 (はじめから) — 誤タップ防止に二重確認
   const reset = btn("🗑 はじめから (全データ削除)", confirmReset);
   reset.className = "tw-small danger tw-reset";
   townEl.appendChild(reset);
+
+  // 迷宮へ (常に1階から) — スクロール位置に関わらず押せるよう画面下部に固定表示
+  const divebar = el("div", "tw-divebar");
+  const dive = btn(`🕳 「${curDungeon().name}」へ潜る (B1F)`, tryEnterDungeon);
+  dive.className = "btn primary tw-dive";
+  divebar.appendChild(dive);
+  townEl.appendChild(divebar);
 }
 
 // セーブを消して最初からやり直す。autosave (visibilitychange/pagehide 含む) が
@@ -3110,6 +3143,8 @@ function acceptMainQuest() {
   ms.n += 1;
   ms.state = "active";
   G.unlockedDungeons = Math.max(G.unlockedDungeons, ms.n);
+  G.dungeonIdx = ms.n - 1;  // 新しい迷宮を選択しておく
+  townBandOpen = null;      // 迷宮選択は新迷宮の層域を開いた状態に戻す
   const dn = DUNGEONS[ms.n - 1];
   showStoryScene(`第${ms.n}章 「${ACTS[actOf(ms.n) - 1].title}」`, msqOrderLines(ms.n), null, () => {
     SFX.itemget(); buzz([0, 30, 60, 30]);
@@ -3118,6 +3153,20 @@ function acceptMainQuest() {
     autosave(true);
     renderTown();
   });
+}
+
+// 踏破済みの迷宮数 (メインストーリー基準: 第n章攻略中 = n-1 踏破)
+function clearedDungeonCount() {
+  const ms = G.msq;
+  if (!ms) return Math.max(0, (G.unlockedDungeons || 1) - 1);
+  if (ms.state === "active") return ms.n - 1;
+  return Math.min(DUNGEONS.length, ms.n); // report/offer/end は第n章を踏破済み
+}
+
+// 王宮に用があるか (踏破の報告 or 次章の拝命)
+function palaceCallReady() {
+  const ms = G.msq;
+  return !!ms && (ms.state === "report" || ms.state === "offer");
 }
 
 function renderPalace() {
@@ -3183,7 +3232,7 @@ function renderPalace() {
   recRow("倒した迷宮の主", s.bossKills);
   recRow("回収した魂", s.soulsFound);
   recRow("砕けた人業", s.deaths);
-  recRow("踏破した迷宮", `${Math.max(0, G.unlockedDungeons - 1)} / ${DUNGEONS.length}`);
+  recRow("踏破した迷宮", `${clearedDungeonCount()} / ${DUNGEONS.length}`);
   townEl.appendChild(rec);
 
   // 勲章 (実績): 達成済みは受領でき、未達成は条件のみ見える。
