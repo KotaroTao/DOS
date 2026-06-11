@@ -1807,6 +1807,9 @@ function applyImpact(res) {
 
 function endBattle() {
   const b = G.battle;
+  // オート戦闘は戦闘ごとに解除 (次の戦闘に持ち越さない)
+  G.autoCombat = false;
+  if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
   renderCombat();
   if (b.result === "win") {
     // 倒した敵から Soul(魂) を回収する。Soul が経験値の役割を兼ね、館での魂の強化に使う
