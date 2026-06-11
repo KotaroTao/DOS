@@ -2117,6 +2117,29 @@ function renderTownHub() {
   const dive = btn(`🕳 「${curDungeon().name}」へ潜る (B1F)`, tryEnterDungeon);
   dive.className = "btn primary tw-dive";
   townEl.appendChild(dive);
+
+  // データ削除 (はじめから) — 誤タップ防止に二重確認
+  const reset = btn("🗑 はじめから (全データ削除)", confirmReset);
+  reset.className = "tw-small danger tw-reset";
+  townEl.appendChild(reset);
+}
+
+// セーブを消して最初からやり直す。autosave (visibilitychange/pagehide 含む) が
+// リロード前に書き戻さないよう _resetting で保存を止めてから消す。
+function confirmReset() {
+  showChoice("全データを削除して最初から始めますか？", [
+    { label: "やめておく", fn: () => {} },
+    { label: "削除する", danger: true, fn: () => {
+      showChoice("本当に？ 人業・魂・図鑑・進行度がすべて失われます。", [
+        { label: "やめておく", fn: () => {} },
+        { label: "すべて削除して はじめから", danger: true, fn: () => {
+          _resetting = true;
+          clearSave();
+          location.reload();
+        } },
+      ], null, { banner: "⚠ 最終確認 ⚠", accent: "#e4554f" });
+    } },
+  ], null, { banner: "⚠ 警告 ⚠", accent: "#e4554f" });
 }
 
 // 人業の小カード (名前/職業/HP)
@@ -4914,7 +4937,9 @@ function refDeserialize(data) {
 
 let _lastSave = 0;
 let _saveWarned = false;
+let _resetting = false; // データ削除→リロードの間に autosave が書き戻すのを防ぐ
 function autosave(force = false) {
+  if (_resetting) return;
   if (!G.party || !G.party.length) return;
   const now = Date.now();
   if (!force && now - _lastSave < 200) return;
