@@ -144,7 +144,7 @@ const G = {
   soulPts: 0,         // Soul(魂): 敵/死体から得る。経験値の役割を兼ね、館で魂のレベルアップに使う
   redSoul: 100,       // Red Soul(赤い魂): プレミアム通貨 (空の人業購入・加護)
   dollsPurchased: 0,  // 空の人業を購入した回数 (価格の段階に使う)
-  pendingDoll: null,  // 購入済みだがまだ生成されていない人業 (5部位未封印)
+  pendingDoll: null,  // (旧形式) 未生成の人業。現在は「空の人形」(isEmpty) として reserve に残る (ロード時に移行)
   party: [],          // 迷宮に連れて行く人業 (最大6体)
   reserve: [],        // 酒場で待機中の人業
   souls: [],          // 未封印の魂ストック
@@ -1434,8 +1434,8 @@ function startBattle(enemies, cell) {
   }
   if (opening === "preempt") { log("先手を取った！", "win"); showToast("⚡ 先制攻撃！"); }
   else if (opening === "ambush") { log("奇襲された！", "dmg"); showToast("⚠ 奇襲された！"); buzz([0, 60, 40, 60]); }
-  // ボス戦は専用テーマ。図鑑への記録は「倒した時」に行う (endBattle)
-  playBgm(isBoss ? "boss" : "battle");
+  // ランク帯ごとの戦闘テーマ (ボスは専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
+  playBgm(battleBgm(isBoss));
   G.battle = new Battle(G.party, enemies, log, { opening });
   G.fx = null;
   G.animating = false;
@@ -2000,6 +2000,7 @@ function endBattle() {
     return;
   } else if (b.result === "flee") {
     // 逃走: 元のマスへ戻る (カードは表のまま)
+    SFX.flee();
     if (G.prevPos) { G.px = G.prevPos.x; G.py = G.prevPos.y; }
     finishToBoard();
   } else if (b.result === "lose") {
@@ -2056,7 +2057,7 @@ function finishToBoard() {
   G.state = "board";
   combatMenu.classList.add("hidden");
 
-  playBgm("field");
+  playBgm(fieldBgm());
   renderBoard();
   autosave(true);
 }
@@ -2501,7 +2502,8 @@ function renderMansion() {
   const tutM = G.msq && G.msq.n === 0 && G.msq.state === "active";
   const grid = el("div", "tw-grid");
   for (const m of MANSION_MENU) {
-    const locked = tutM && m.key !== "manage";
+    // 第0章中は「作成/管理」のみ。空の人形がいる間は「魂を宿す」も開放 (戻れないと詰むため)
+    const locked = tutM && m.key !== "manage" && !(m.key === "altar" && allDolls().some((d) => d.isEmpty));
     const c = el("div", "tw-fac" + (locked ? " locked" : ""));
     c.appendChild(el("div", "tw-faci", locked ? "🔒" : m.icon));
     c.appendChild(el("div", "tw-facn", m.name));
@@ -2529,6 +2531,7 @@ function renderMansionParty() {
   const rl = el("div", "tw-mlist");
   if (!G.reserve.length) rl.appendChild(el("div", "tw-empty", "控えはいない。"));
   G.reserve.forEach((d) => rl.appendChild(rosterRow(d, () => {
+    if (d.isEmpty) { log("空の人形はまだ編成できない。「魂を宿す」で5部位に魂を宿し、人業を生成しよう。", "sys"); SFX.ng(); return; }
     if (G.party.length >= 6) { log("編成は満員だ (6体まで)。", "sys"); return; }
     G.reserve.splice(G.reserve.indexOf(d), 1); G.party.push(d); SFX.select(); renderTown();
   })));
@@ -2543,9 +2546,10 @@ function rosterRow(d, onClick) {
   row.appendChild(s);
   const info = el("div", "tw-chipi");
   info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
-  info.appendChild(el("div", "tw-chipc", `${d.cls} Lv${d.jobLv || 1}`));
+  info.appendChild(el("div", "tw-chipc", d.isEmpty ? `空の人形 ・ 魂 ${dollSouls(d).length}/5` : `${d.cls} Lv${d.jobLv || 1}`));
   row.appendChild(info);
   row.appendChild(el("div", "tw-chiphp",
+    d.isEmpty ? "編成不可" :
     d.alive ? `HP ${d.hp}/${d.maxhp}` : `⏳${fmtRemain(Math.max(0, (d.reviveAt || Date.now()) - Date.now()))}`));
   row.addEventListener("click", onClick);
   return row;
@@ -2875,8 +2879,10 @@ function renderMansionManage() {
     if (d.dominant) { s.style.color = SOUL_CLASSES[d.dominant.clsKey].glow; s.appendChild(spriteCanvas(soulSprite(d.dominant.clsKey), 2)); }
     row.appendChild(s);
     const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †") + (inParty ? "" : " (控え)")));
-    info.appendChild(el("div", "tw-chipc", `${d.cls} Lv${d.jobLv || 1} ・ 魂 ${dollSouls(d).length}/5`));
+    info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †") + (d.isEmpty ? "（未生成）" : inParty ? "" : " (控え)")));
+    info.appendChild(el("div", "tw-chipc", d.isEmpty
+      ? `魂 ${dollSouls(d).length}/5 — 5部位に宿すと人業として生成できる`
+      : `${d.cls} Lv${d.jobLv || 1} ・ 魂 ${dollSouls(d).length}/5`));
     row.appendChild(info);
     const ren = btn("名前を変える", () => showRenameInput(d));
     ren.className = "tw-small";
@@ -2903,18 +2909,21 @@ function emptyDollCost() {
 function buyEmptyDoll() {
   const cost = emptyDollCost();
   if (G.redSoul < cost) { log("Red Soul が足りない。", "sys"); return; }
-  if (G.party.length >= 6 && G.reserve.length >= 12) { log("これ以上は仕立てられない。", "sys"); return; }
-  if (G.pendingDoll) { log("まだ生成されていない人業がいる。先に5部位を揃えて生成しよう。", "sys"); return; }
+  if (G.reserve.length >= 12) { log("控えが満員で、これ以上は仕立てられない。", "sys"); return; }
   G.redSoul -= cost;
   G.dollsPurchased++;
-  const d = makeDoll("（未生成）");
+  // 購入した器は「空の人形」として控えに残る (消えない)。
+  // 5部位に魂を宿して生成するまでパーティ編成はできない。
+  const d = makeDoll("空の人形");
+  d.isEmpty = true;
   recalcDoll(d);
   d.hp = d.maxhp; d.mp = d.maxmp;
-  G.pendingDoll = d;
+  G.reserve.push(d);
   SFX.itemget(); buzz([0, 30, 60, 30]);
   log(`空の人業を購入した (🔴${cost})。5部位に魂を宿して生成しよう。`, "win");
   altarSel = { doll: d, part: null };
   G.town.facility = "mansion"; G.town.sub = "altar";
+  autosave(true);
   renderTown();
 }
 
@@ -2998,9 +3007,11 @@ function showGenerateDollPopup(d) {
     confirmLabel: "生成する",
     onConfirm: (name) => {
       d.name = name;
+      d.isEmpty = false;
+      const ri = G.reserve.indexOf(d);
+      if (ri >= 0) G.reserve.splice(ri, 1);
       if (G.party.length < 6) G.party.push(d);
       else { G.reserve.push(d); log(`${d.name} は酒場で待機する。`, "sys"); }
-      G.pendingDoll = null;
       SFX.itemget(); buzz([0, 30, 60, 30]);
       log(`人業「${d.name}」が生まれた！`, "win");
       showToast(`✦ 人業「${d.name}」誕生`);
@@ -3012,7 +3023,7 @@ function showGenerateDollPopup(d) {
 
 // ---- 魂を宿す間 (人業の館の奥): 5部位に魂を宿す ----
 function renderAltar() {
-  const dolls = G.pendingDoll ? [G.pendingDoll, ...allDolls()] : allDolls();
+  const dolls = allDolls();
   if (!altarSel || !dolls.includes(altarSel.doll)) altarSel = { doll: dolls[0] || null, part: null };
   if (!dolls.length) { townEl.appendChild(townHeader("魂を宿す間", "mansion")); townEl.appendChild(el("div", "tw-empty", "人業がいない。")); return; }
   const d = altarSel.doll;
@@ -3022,12 +3033,24 @@ function renderAltar() {
   // 人業セレクタ
   const sel = el("div", "tw-dolltabs");
   dolls.forEach((dd) => {
-    const label = dd === G.pendingDoll ? `${dd.name}（未生成）` : dd.name;
+    const label = dd.isEmpty ? `${dd.name}（未生成）` : dd.name;
     const t = btn(label, () => { altarSel = { doll: dd, part: null }; renderTown(); });
-    t.className = "tw-dolltab" + (dd === d ? " active" : "") + (dd === G.pendingDoll ? " pending" : "");
+    t.className = "tw-dolltab" + (dd === d ? " active" : "") + (dd.isEmpty ? " pending" : "");
     sel.appendChild(t);
   });
   townEl.appendChild(sel);
+
+  // 空の人形: 5部位すべて揃えば生成できる (揃うまでは編成不可のまま控えに残る)
+  if (d.isEmpty) {
+    if (PARTS.every((p) => d.parts[p])) {
+      const gen = btn("✦ 人業を生成する (名前を与える)", () => showGenerateDollPopup(d));
+      gen.className = "btn primary tw-add";
+      townEl.appendChild(gen);
+    } else {
+      townEl.appendChild(el("div", "tw-note",
+        `空の人形 — 魂 ${dollSouls(d).length}/5。5部位すべてに魂を宿すと人業として生成され、パーティに編成できるようになる。`));
+    }
+  }
 
   // 職業・スキル サマリ
   const sum = el("div", "tw-summary");
@@ -3136,8 +3159,8 @@ function sealFromStock(d, part, stockIdx) {
   d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp);
   SFX.select(); buzz(15);
   log(`${PART_LABEL[part]}に ${soulName(s)} を宿した。`, "win");
-  // pendingDoll: 5部位すべて揃ったら生成ポップアップ
-  if (G.pendingDoll === d && PARTS.every(p => d.parts[p])) {
+  // 空の人形: 5部位すべて揃ったら生成ポップアップ
+  if (d.isEmpty && PARTS.every(p => d.parts[p])) {
     showGenerateDollPopup(d);
     return;
   }
@@ -3712,7 +3735,7 @@ function clearedDungeonCount() {
 function palaceCallReady() {
   const ms = G.msq;
   if (!ms) return false;
-  if (ms.n === 0 && ms.state === "active") return !ms.granted || allDolls().length >= 4;
+  if (ms.n === 0 && ms.state === "active") return !ms.granted || allDolls().filter((d) => !d.isEmpty).length >= 4;
   return ms.state === "report" || ms.state === "offer";
 }
 
@@ -3733,7 +3756,7 @@ function renderPalace() {
         showStoryScene("勅命 「人業の生成」", TUT_INTRO, "下賜: 見習いの人業3体 + 🔴100 + 盗賊の魂×5", () => grantTutorialGift()));
       b.className = "btn tw-add tw-msq";
       townEl.appendChild(b);
-    } else if (allDolls().length >= 4) {
+    } else if (allDolls().filter((d) => !d.isEmpty).length >= 4) {
       const b = btn("👑 報告する — 「人業の生成」完遂", () => reportTutorialQuest());
       b.className = "btn tw-add tw-msq";
       townEl.appendChild(b);
@@ -4583,7 +4606,7 @@ function tryEnterDungeon() {
   // 表示中の噂を確定し、この迷宮で現実化させる
   if (G.rumor) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
   G.state = "board";
-  playBgm("field");
+  playBgm(fieldBgm());
   if (townBtn) townBtn.classList.remove("hidden");
   newFloor();
   renderBoard();
@@ -5527,12 +5550,23 @@ const FACILITY_BGM = {
   shrine: "shrine",
 };
 let openingActive = false; // オープニング演出中は専用テーマ
+// 探索BGM: 迷宮のランク帯 (1-10) ごとに専用テーマ (墓地/坑道/砦/森/神殿/灼洞/氷廊/尖塔/冥門/玄室)
+function fieldBgm() {
+  const r = Math.max(1, Math.min(10, activeCfg().rank || 1));
+  return r === 1 ? "field" : `field${r}`;
+}
+// 戦闘BGM: ランク帯で激しさが3段階。深層 (ランク9-10) のボスは終末のテーマ
+function battleBgm(isBoss) {
+  const r = activeCfg().rank || 1;
+  if (isBoss) return r >= 9 ? "boss2" : "boss";
+  return r >= 7 ? "battle3" : r >= 4 ? "battle2" : "battle";
+}
 // 現在のシーンに合ったBGM名
 function sceneBgm() {
   if (openingActive) return "opening";
   if (G.state === "town") return FACILITY_BGM[G.town.facility] || "town";
-  if (G.state === "combat") return (G.battle && G.battle.enemies.some((e) => e.boss)) ? "boss" : "battle";
-  if (G.state === "board") return "field";
+  if (G.state === "combat") return battleBgm(G.battle && G.battle.enemies.some((e) => e.boss));
+  if (G.state === "board") return fieldBgm();
   return null; // over などは無音 (ジングルのみ)
 }
 function ensureAudio() {
@@ -5814,6 +5848,14 @@ function loadGame() {
     Object.setPrototypeOf(G.battle, Battle.prototype);
     G.battle.log = log;
     for (const e of (G.battle.enemies || [])) if (e.key && MONSTERS[e.key]) e.mon = MONSTERS[e.key];
+  }
+  // 旧形式: 未生成の pendingDoll は「空の人形」として控えへ移す (生成前でも消えない)
+  if (G.pendingDoll) {
+    const pd = G.pendingDoll;
+    pd.isEmpty = true;
+    if (!pd.name || pd.name === "（未生成）") pd.name = "空の人形";
+    G.reserve.push(pd);
+    G.pendingDoll = null;
   }
   // 旧セーブの魂に cap を補完 (記憶廃止 + レベル上限導入の移行)
   for (const s of (G.souls || [])) ensureSoul(s);
