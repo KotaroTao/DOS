@@ -2269,6 +2269,7 @@ function renderTown() {
   if (f === "codexItem") return renderCodexItem();
   if (f === "codexDungeon") return renderCodexDungeon();
   if (f === "codexJob") return renderCodexJob();
+  if (f === "codexAch") return renderCodexAch();
   renderTownHub();
 }
 
@@ -3396,15 +3397,16 @@ function claimQuest(q) {
 // 追跡用の状態は不要 (G.ach は受領済みのみ記録)。ID はセーブに残るため変更禁止。
 const ACHIEVEMENTS = [];
 {
-  const push = (id, name, desc, cond, gold, redSoul) => {
+  const push = (id, name, desc, cond, gold, redSoul, series) => {
     const reward = {};
     if (gold) reward.gold = gold;
     if (redSoul) reward.redSoul = redSoul;
-    ACHIEVEMENTS.push({ id, name, desc, cond, reward });
+    ACHIEVEMENTS.push({ id, name, desc, cond, reward, series: series || id });
   };
   // 段階表: rows = [しきい値, 称号, gold, redSoul][]
+  // 同じ段階表の勲章は series で束ね、勲章の間では「次の段階」だけを1枠に表示する
   const tiers = (idOf, rows, descOf, condOf) =>
-    rows.forEach(([v, name, gold, redSoul]) => push(idOf(v), name, descOf(v), () => condOf(v), gold, redSoul));
+    rows.forEach(([v, name, gold, redSoul]) => push(idOf(v), name, descOf(v), () => condOf(v), gold, redSoul, idOf(rows[0][0])));
   const allDolls = () => [...(G.party || []), ...(G.reserve || [])];
   const allSouls = () => {
     const out = [...(G.souls || [])];
@@ -3678,11 +3680,11 @@ function renderPalace() {
       townEl.appendChild(el("div", "tw-note", "玉座の老王が、新しき魂繰りの到着を待っている。"));
       const b = btn("👑 謁見する — 着任の挨拶", () =>
         showStoryScene("勅命 「人業の生成」", TUT_INTRO, "下賜: 見習いの人業3体 + 🔴100 + 盗賊の魂×5", () => grantTutorialGift()));
-      b.className = "btn primary tw-add";
+      b.className = "btn tw-add tw-msq";
       townEl.appendChild(b);
     } else if (allDolls().length >= 4) {
       const b = btn("👑 報告する — 「人業の生成」完遂", () => reportTutorialQuest());
-      b.className = "btn primary tw-add";
+      b.className = "btn tw-add tw-msq";
       townEl.appendChild(b);
     } else {
       const box = el("div", "tw-rumor");
@@ -3706,11 +3708,11 @@ function renderPalace() {
     townEl.appendChild(re);
   } else if (ms.state === "report") {
     const b = btn(`👑 報告する — 「${DUNGEONS[ms.n - 1].name}」踏破`, () => reportMainQuest());
-    b.className = "btn primary tw-add";
+    b.className = "btn tw-add tw-msq";
     townEl.appendChild(b);
   } else if (ms.state === "offer") {
     const b = btn(`👑 謁見する — 新たな勅命 (第${ms.n + 1}章)`, () => acceptMainQuest());
-    b.className = "btn primary tw-add";
+    b.className = "btn tw-add tw-msq";
     townEl.appendChild(b);
   }
 
@@ -3751,36 +3753,69 @@ function renderPalace() {
   recRow("踏破した迷宮", `${clearedDungeonCount()} / ${DUNGEONS.length}`);
   townEl.appendChild(rec);
 
-  // 勲章 (実績): 達成済みは受領でき、未達成は条件のみ見える。
-  // 件数が多いため「受領可 → 未達成 → 受領済」の順に並べる
+  // 勲章 (実績): 一覧は別室「勲章の間」へ。受領できる勲章があれば印を出す
   const claimable = ACHIEVEMENTS.filter((a) => !G.ach[a.id] && a.cond()).length;
-  townEl.appendChild(el("div", "tw-h", `王の勲章 — 実績 (${Object.keys(G.ach).length}/${ACHIEVEMENTS.length})${claimable ? ` ・ 受領可 ${claimable}` : ""}`));
-  const al = el("div", "tw-mlist");
-  const achOrd = (a) => (G.ach[a.id] ? 2 : a.cond() ? 0 : 1);
-  const achSorted = [...ACHIEVEMENTS].sort((a, b) => achOrd(a) - achOrd(b));
-  for (const a of achSorted) {
-    const got = !!G.ach[a.id];
-    const ready = !got && a.cond();
-    const row = el("div", "tw-quest" + (ready ? " done" : ""));
-    if (got) row.style.opacity = "0.55";
-    const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", `${got ? "🏅" : ready ? "✨" : "🔘"} ${a.name}`));
-    info.appendChild(el("div", "tw-chipc", a.desc));
-    const rw = [];
-    if (a.reward.gold) rw.push(`💰${a.reward.gold}`);
-    if (a.reward.redSoul) rw.push(`🔴${a.reward.redSoul}`);
-    info.appendChild(el("div", "tw-chipc", "下賜: " + rw.join(" + ")));
-    row.appendChild(info);
-    if (ready) {
-      const b = btn("拝受する", () => claimAchievement(a));
-      b.className = "tw-small primary";
-      row.appendChild(b);
-    } else if (got) {
-      row.appendChild(el("div", "tw-chiphp", "受領済"));
-    }
-    al.appendChild(row);
+  townEl.appendChild(el("div", "tw-h", "王の勲章 — 実績"));
+  const arow = el("div", "tw-grid");
+  const achBtn = el("div", "tw-fac");
+  achBtn.appendChild(el("div", "tw-faci", "🏅"));
+  achBtn.appendChild(el("div", "tw-facn", "勲章の間"));
+  achBtn.appendChild(el("div", "tw-facd", `受領 ${Object.keys(G.ach).length} / ${ACHIEVEMENTS.length}`));
+  if (claimable) achBtn.appendChild(el("div", "tw-facb", `❗ 受領可 ${claimable}`));
+  achBtn.addEventListener("click", () => { G.town.facility = "codexAch"; renderCodexAch(); });
+  arow.appendChild(achBtn);
+  townEl.appendChild(arow);
+}
+
+// ---- 勲章の間 (実績一覧) ----
+// 段階表 (series) の勲章は1枠に集約し、受領済みの次の段階だけを表示する。
+// 全段階を受領し終えた series は最終段階を「受領済」として残す。
+function renderCodexAch() {
+  townEl.innerHTML = "";
+  townEl.appendChild(townHeader("勲章の間", "palace"));
+  // 定義順を保ったまま series ごとに束ねる
+  const groups = [];
+  const byKey = {};
+  for (const a of ACHIEVEMENTS) {
+    let g = byKey[a.series];
+    if (!g) { g = []; byKey[a.series] = g; groups.push(g); }
+    g.push(a);
   }
-  townEl.appendChild(al);
+  const cards = groups.map((g) => {
+    const idx = g.findIndex((a) => !G.ach[a.id]);
+    const allDone = idx < 0;
+    const a = allDone ? g[g.length - 1] : g[idx];
+    return { a, tier: allDone ? g.length : idx + 1, total: g.length, allDone, ready: !allDone && a.cond() };
+  });
+  const claimable = cards.filter((c) => c.ready).length;
+  townEl.appendChild(el("div", "tw-note",
+    `受領した勲章 ${Object.keys(G.ach).length} / ${ACHIEVEMENTS.length}${claimable ? ` ・ 受領可 ${claimable}` : ""}`));
+  // 「受領可 → 未達成 → 全段階受領済」の順 (同順位は定義順)
+  const ord = (c) => (c.allDone ? 2 : c.ready ? 0 : 1);
+  cards.sort((x, y) => ord(x) - ord(y));
+  const grid = el("div", "cdx-grid");
+  for (const c of cards) {
+    const card = el("div", "cdx-card ach-card" + (c.ready ? " ready" : c.allDone ? " done" : ""));
+    card.appendChild(el("div", "ach-icon", c.allDone ? "🏅" : c.ready ? "✨" : "🔘"));
+    card.appendChild(el("div", "cdx-name", c.a.name));
+    card.appendChild(el("div", "cdx-stat ach-desc", c.a.desc));
+    if (c.total > 1) card.appendChild(el("div", "cdx-stat", `段階 ${c.tier} / ${c.total}`));
+    if (c.allDone) {
+      card.appendChild(el("div", "cdx-stat ach-got", "受領済"));
+    } else {
+      const rw = [];
+      if (c.a.reward.gold) rw.push(`💰${c.a.reward.gold}`);
+      if (c.a.reward.redSoul) rw.push(`🔴${c.a.reward.redSoul}`);
+      card.appendChild(el("div", "cdx-stat", "下賜: " + rw.join(" + ")));
+    }
+    if (c.ready) {
+      const b = btn("拝受する", () => claimAchievement(c.a));
+      b.className = "tw-small primary ach-claim";
+      card.appendChild(b);
+    }
+    grid.appendChild(card);
+  }
+  townEl.appendChild(grid);
 }
 
 // ---- 図鑑 (王宮書庫) ----
