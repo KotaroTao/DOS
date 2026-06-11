@@ -17,15 +17,15 @@ export const SPELLS = {
   // 攻撃呪文の頂点
   TILTOWAIT: { name: "ティルトウェイト", mp: 16, kind: "atk", power: 48, element: "fire", target: "all-enemy", desc: "全体を消し飛ばす業火" },
   MADALT: { name: "マダルト", mp: 10, kind: "atk", power: 34, element: "water", target: "all-enemy", desc: "全体を貫く氷嵐" },
-  // 支援・治療・弱体
+  // 支援・治療・弱体 (バフ/デバフは六大ステ atk/vit/agi への倍率)
   CURE: { name: "キュア", mp: 3, kind: "cure", target: "ally", desc: "毒・麻痺を治す" },
-  BLESS: { name: "ブレス", mp: 4, kind: "buff", buff: { atk: 1.3 }, target: "ally", desc: "味方単体の攻撃UP" },
-  PROTECT: { name: "プロテクション", mp: 4, kind: "buff", buff: { def: 1.3 }, target: "ally", desc: "味方単体の防御UP" },
-  DISPEL: { name: "ディスペル", mp: 5, kind: "debuff", debuff: { atk: 0.75, def: 0.8 }, target: "all-enemy", desc: "敵全体の能力DOWN" },
-  WARCRY: { name: "武者震い", mp: 5, kind: "buff", buff: { atk: 1.4 }, target: "self", desc: "自身の攻撃大UP" },
-  GUARDALL: { name: "守りの号令", mp: 6, kind: "buff", buff: { def: 1.25 }, target: "all-ally", desc: "味方全体の防御UP" },
-  IRONWALL: { name: "鉄壁", mp: 5, kind: "buff", buff: { def: 1.6 }, target: "self", desc: "自身の防御大UP" },
-  BLIND: { name: "目くらまし", mp: 4, kind: "debuff", debuff: { atk: 0.7 }, target: "enemy", desc: "敵単体の攻撃DOWN" },
+  BLESS: { name: "ブレス", mp: 4, kind: "buff", buff: { atk: 1.3 }, target: "ally", desc: "味方単体のATK UP" },
+  PROTECT: { name: "プロテクション", mp: 4, kind: "buff", buff: { vit: 1.3 }, target: "ally", desc: "味方単体のVIT UP" },
+  DISPEL: { name: "ディスペル", mp: 5, kind: "debuff", debuff: { atk: 0.75, vit: 0.8 }, target: "all-enemy", desc: "敵全体の能力DOWN" },
+  WARCRY: { name: "武者震い", mp: 5, kind: "buff", buff: { atk: 1.4 }, target: "self", desc: "自身のATK大UP" },
+  GUARDALL: { name: "守りの号令", mp: 6, kind: "buff", buff: { vit: 1.25 }, target: "all-ally", desc: "味方全体のVIT UP" },
+  IRONWALL: { name: "鉄壁", mp: 5, kind: "buff", buff: { vit: 1.6 }, target: "self", desc: "自身のVIT大UP" },
+  BLIND: { name: "目くらまし", mp: 4, kind: "debuff", debuff: { atk: 0.7 }, target: "enemy", desc: "敵単体のATK DOWN" },
   // 物理技 (攻撃力依存)。hits=多段, critBonus=会心率加算, debuff=命中時に弱体
   KYOUGEKI: { name: "強撃", mp: 3, kind: "phys", power: 1.8, target: "enemy", desc: "渾身の一撃" },
   MIDARE: { name: "乱れ斬り", mp: 7, kind: "phys", power: 0.9, target: "all-enemy", desc: "全体を斬る" },
@@ -36,13 +36,14 @@ export const SPELLS = {
   ASSASSINATE: { name: "急所突き", mp: 6, kind: "phys", power: 1.6, critBonus: 0.5, target: "enemy", desc: "会心率の高い一撃" },
 };
 
+// 旧プリメイド職テーブル (現行のパーティは人業=souls.js 経由で作られる)。六大ステで定義。
 export const CLASSES = {
-  fighter: { label: "戦士", hp: 34, mp: 0, atk: 12, def: 8, spd: 6, spells: [] },
-  mage: { label: "魔法使い", hp: 18, mp: 14, atk: 5, def: 3, spd: 7, spells: ["HALITO", "MAHALITO", "KATINO"] },
-  priest: { label: "僧侶", hp: 24, mp: 12, atk: 7, def: 5, spd: 5, spells: ["DIOS", "DIAL"] },
-  knight: { label: "騎士", hp: 42, mp: 0, atk: 11, def: 12, spd: 4, spells: [] },
-  thief: { label: "盗賊", hp: 22, mp: 0, atk: 9, def: 5, spd: 11, spells: [] },
-  bishop: { label: "魔導僧", hp: 22, mp: 16, atk: 6, def: 4, spd: 6, spells: ["HALITO", "DIOS", "DIAL"] },
+  fighter: { label: "戦士", hp: 34, mp: 0, atk: 12, vit: 8, agi: 6, int: 2, pie: 2, luk: 5, spells: [] },
+  mage: { label: "魔法使い", hp: 18, mp: 14, atk: 5, vit: 3, agi: 7, int: 12, pie: 4, luk: 6, spells: ["HALITO", "MAHALITO", "KATINO"] },
+  priest: { label: "僧侶", hp: 24, mp: 12, atk: 7, vit: 5, agi: 5, int: 4, pie: 12, luk: 6, spells: ["DIOS", "DIAL"] },
+  knight: { label: "騎士", hp: 42, mp: 0, atk: 11, vit: 12, agi: 4, int: 2, pie: 4, luk: 5, spells: [] },
+  thief: { label: "盗賊", hp: 22, mp: 0, atk: 9, vit: 5, agi: 11, int: 4, pie: 2, luk: 10, spells: [] },
+  bishop: { label: "魔導僧", hp: 22, mp: 16, atk: 6, vit: 4, agi: 6, int: 9, pie: 9, luk: 6, spells: ["HALITO", "DIOS", "DIAL"] },
 };
 
 // パーティは最大6人
@@ -56,12 +57,11 @@ export function createParty() {
       race, align, // 種族・属性 (ウィザードリィ風)
       level: 1, exp: 0,
       hp: c.hp, maxhp: c.hp, mp: c.mp, maxmp: c.mp,
-      atk: c.atk, def: c.def, spd: c.spd,
-      base: { hp: c.hp, mp: c.mp, atk: c.atk, def: c.def, spd: c.spd }, // 素のステータス
+      atk: c.atk, vit: c.vit, agi: c.agi, int: c.int, pie: c.pie, luk: c.luk,
+      base: { hp: c.hp, mp: c.mp, atk: c.atk, vit: c.vit, agi: c.agi, int: c.int, pie: c.pie, luk: c.luk }, // 素のステータス
       equip: { weapon: null, body: null, shield: null, head: null, hands: null, feet: null, acc1: null, acc2: null },
       items: [],
       ailment: null,      // null | "poison"
-      ac: 10 - c.def,
       spells: c.spells.slice(),
       alive: true, side: "party",
     };
@@ -121,9 +121,10 @@ function makeEnemy(key, scale = 1, boss = false) {
     uid: ++_uid, key, mon: m, name: (boss ? m.name : m.name),
     element: m.element || "none",
     hp, maxhp: hp,
+    // モンスター定義の atk/def/spd を六大ステへ写像 (def→VIT, spd→AGI)
     atk: Math.max(1, Math.round(m.atk * scale)),
-    def: Math.round(m.def * scale),
-    spd: m.spd,
+    vit: Math.round(m.def * scale),
+    agi: m.spd,
     exp: Math.round(m.exp * scale), gold: Math.round(m.gold * scale),
     boss: boss || !!m.boss,
     alive: true, asleep: false, side: "enemy",
@@ -133,32 +134,32 @@ function makeEnemy(key, scale = 1, boss = false) {
 const rand = (n) => Math.floor(Math.random() * n);
 const variance = (base) => Math.max(1, base + rand(Math.ceil(base * 0.4)) - rand(Math.ceil(base * 0.2)));
 
-// 戦闘の状態機械: 素早さ順に1人ずつ手番が回る。
+// 戦闘の状態機械: AGI順に1人ずつ手番が回る。
 // 1手ずつ進め、各行動は結果オブジェクトを返す (演出は game.js 側で行う)。
 export class Battle {
   constructor(party, enemies, log) {
     this.party = party;
     this.enemies = enemies;
     this.log = log;
-    this.queue = [];          // このラウンドの行動順 (素早さ順)
+    this.queue = [];          // このラウンドの行動順 (AGI順)
     this.current = null;      // 手番のキャラ
     this.phase = "input";     // input | target | resolve | enemy | done
     this.pending = null;      // 対象選択待ちの行動
     this.result = null;       // "win" | "lose" | "flee"
     this._blessingUsed = false;
-    for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, def: 1, spd: 1 }; a._enduredThisBattle = false; }
+    for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a._enduredThisBattle = false; }
     this.advance();
   }
 
   livingParty() { return this.party.filter((p) => p.alive); }
   livingEnemies() { return this.enemies.filter((e) => e.alive); }
 
-  // 素早さ(+乱数)で行動順を組み直す
+  // AGI(+乱数)で行動順を組み直す
   _startRound() {
-    const espd = (a) => a.spd * ((a.buffs && a.buffs.spd) || 1);
+    const eagi = (a) => (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1);
     this.queue = [...this.party, ...this.enemies]
       .filter((a) => a.alive)
-      .sort((a, b) => (espd(b) + rand(4)) - (espd(a) + rand(4)));
+      .sort((a, b) => (eagi(b) + rand(4)) - (eagi(a) + rand(4)));
   }
 
   // 次の手番へ。味方なら input、敵なら enemy フェーズで止まる (実行はしない)
@@ -280,9 +281,9 @@ export class Battle {
     return res;
   }
 
-  // バフ込みの実効攻撃力・防御力
+  // バフ込みの実効ATK・VIT
   _eatk(a) { return Math.max(1, Math.round(a.atk * ((a.buffs && a.buffs.atk) || 1))); }
-  _edef(t) { return Math.round((t.def || 0) * ((t.buffs && t.buffs.def) || 1)); }
+  _evit(t) { return Math.round((t.vit || 0) * ((t.buffs && t.buffs.vit) || 1)); }
 
   _physical(actor, tgt, opt = {}) {
     // 命中判定: 素の命中漏れ + 対象の敏捷(AGI)による回避
@@ -292,7 +293,8 @@ export class Battle {
       return { target: tgt, miss: true, evaded: true };
     }
     const power = opt.power || 1;       // 技の倍率 (通常攻撃は1)
-    let dmg = variance(Math.round(this._eatk(actor) * power)) - Math.floor(this._edef(tgt) * 0.5);
+    // ダメージ = ATK×倍率 − VIT/2 (VITが被ダメージ軽減を担う)
+    let dmg = variance(Math.round(this._eatk(actor) * power)) - Math.floor(this._evit(tgt) * 0.5);
     if (tgt._defending) dmg = Math.floor(dmg * 0.5);
     // 属性相性: 攻撃属性 (技 > 装備の属性攻撃 > 固有属性) × 対象の固有属性/属性防御
     const aE = opt.element || (actor.elemAtk && actor.elemAtk.el) || actor.element || "none";
@@ -310,7 +312,7 @@ export class Battle {
       actor.side === "party" ? "hit" : "dmg");
     if (tgt.asleep) tgt.asleep = false;
     // 命中時の弱体 (毒刃など)
-    if (opt.debuff && tgt.alive) { tgt.buffs = tgt.buffs || { atk: 1, def: 1, spd: 1 }; for (const k in opt.debuff) tgt.buffs[k] *= opt.debuff[k]; }
+    if (opt.debuff && tgt.alive) { tgt.buffs = tgt.buffs || { atk: 1, vit: 1, agi: 1 }; for (const k in opt.debuff) tgt.buffs[k] *= opt.debuff[k]; }
     return { target: tgt, dmg, crit, died: this._die(tgt) };
   }
 
@@ -339,7 +341,9 @@ export class Battle {
         // 呪文の属性は Lv1 扱い。同属性の属性攻撃を装備していれば、そのレベルで増幅される
         const aLv = (actor.elemAtk && actor.elemAtk.el === sp.element) ? Math.max(1, actor.elemAtk.lv) : 1;
         const em = elemDmgMult(sp.element || "none", aLv, t.element || "none", t.elemDef);
-        let dmg = Math.max(1, Math.round(variance(sp.power) * spMul) - Math.floor(this._edef(t) * 0.2));
+        // 攻撃呪文の威力は術者の INT で伸びる
+        const power = sp.power + (actor.int || 0) * 0.5;
+        let dmg = Math.max(1, Math.round(variance(power) * spMul) - Math.floor(this._evit(t) * 0.2));
         if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
         t.hp -= dmg;
         const eff = em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : "";
@@ -350,7 +354,7 @@ export class Battle {
     } else if (sp.kind === "buff") {
       const targets = sp.target === "self" ? [actor] : sp.target === "all-ally" ? this.livingParty() : [cmd.target || actor].filter(Boolean);
       for (const t of targets) {
-        t.buffs = t.buffs || { atk: 1, def: 1, spd: 1 };
+        t.buffs = t.buffs || { atk: 1, vit: 1, agi: 1 };
         for (const k in sp.buff) t.buffs[k] = Math.min(3, (t.buffs[k] || 1) * sp.buff[k]);
         res.hits.push({ target: t, buff: true });
       }
@@ -359,7 +363,7 @@ export class Battle {
       const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
       for (const t of targets) {
         if (!t.alive) continue;
-        t.buffs = t.buffs || { atk: 1, def: 1, spd: 1 };
+        t.buffs = t.buffs || { atk: 1, vit: 1, agi: 1 };
         for (const k in sp.debuff) t.buffs[k] = Math.max(0.3, (t.buffs[k] || 1) * sp.debuff[k]);
         res.hits.push({ target: t, debuff: true });
       }
@@ -371,11 +375,13 @@ export class Battle {
       this.log(had ? `${sp.name}！ ${t.name}の状態異常が治った` : `${sp.name}…効果がなかった`, "heal");
       res.hits.push({ target: t, cured: !!had });
     } else if (sp.kind === "heal") {
+      // 回復量は術者の PIE で伸びる
+      const healPower = sp.power + (actor.pie || 0) * 0.5;
       // 全体回復
       if (sp.target === "all-ally") {
         for (const t of this.party) {
           if (!t.alive) continue;
-          const heal = variance(sp.power);
+          const heal = variance(healPower);
           t.hp = Math.min(t.maxhp, t.hp + heal);
           res.hits.push({ target: t, heal });
         }
@@ -387,7 +393,7 @@ export class Battle {
         const wasDead = !t.alive;
         if (wasDead && sp.revive) { t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false; }
         // revivePct があれば最大HPの割合で蘇生、それ以外は power 回復
-        const heal = sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : variance(sp.power);
+        const heal = sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : variance(healPower);
         t.hp = Math.min(t.maxhp, (t.hp > 0 ? t.hp : 0) + heal);
         if (wasDead && sp.revive) this.log(`${t.name}は蘇った！ HP ${t.hp}`, "heal");
         else this.log(`${t.name}のHPが ${heal} 回復`, "heal");
@@ -456,7 +462,7 @@ export function gainExp(member, exp) {
     b.hp += 6 + rand(5);
     b.mp += c.mp > 0 ? 2 + rand(3) : 0;
     b.atk += 2 + rand(2);
-    b.def += 1 + rand(2);
+    b.vit = (b.vit || 0) + 1 + rand(2);
     recalc(member);
     member.hp = member.maxhp;
     member.mp = member.maxmp;

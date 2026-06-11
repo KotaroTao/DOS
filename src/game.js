@@ -313,8 +313,9 @@ function renderBoard() {
         showBack = t < 0.5;
       }
       drawCard(r, cell, scaleX, showBack);
-      // 到達可能マスをハイライト: 隣接(1歩)は明るいグロー、遠隔は薄い枠
-      if (reachable && reachable.has(x + "," + y)) {
+      // めくれる未公開カードのみハイライト: 隣接(1歩)は明るいグロー、遠隔は薄い枠
+      // (めくり済みマスは移動可能でも枠を出さない)
+      if (reachable && !cell.revealed && reachable.has(x + "," + y)) {
         vctx.save();
         if (isStep(x, y)) {
           vctx.shadowColor = "rgba(120,220,255,0.9)";
@@ -2117,7 +2118,7 @@ function renderMansionSynth() {
   box.style.borderColor = SOUL_CLASSES[synthSel.clsKey].color;
   box.appendChild(el("div", "tw-sumc", soulName(preview)));
   const st = soulStats(preview);
-  box.appendChild(el("div", "tw-sumst", `HP+${st.hp} ${st.mp ? `MP+${st.mp} ` : ""}攻+${st.atk} 防+${st.def} 速+${st.spd}`));
+  box.appendChild(el("div", "tw-sumst", soulStatText(st)));
   townEl.appendChild(box);
 
   const canMake = G.soulPts >= SOUL_SYNTH_COST && emptySoulCount() >= 1;
@@ -2296,7 +2297,8 @@ function renderAltar() {
   sum.appendChild(el("div", "tw-sumc", d.cls));
   const tierTxt = d.jobRank ? `職業ランク ${d.jobRank} / 5${d.hybrid ? "（混成職）" : ""}` : "同職3部位未満 — 職業未発現";
   sum.appendChild(el("div", "tw-sumt", tierTxt));
-  sum.appendChild(el("div", "tw-sumst", `HP${d.maxhp} MP${d.maxmp} 攻${d.atk} 防${d.def} 速${d.spd}`));
+  sum.appendChild(el("div", "tw-sumst",
+    `HP${d.maxhp} MP${d.maxmp} ATK${d.atk} VIT${d.vit} AGI${d.agi} INT${d.int} PIE${d.pie} LUK${d.luk}`));
   if (d.spells.length) sum.appendChild(el("div", "tw-sumsk", "習得: " + d.spells.map((k) => SPELLS[k] ? SPELLS[k].name : k).join("・")));
   if (d.passives.length) sum.appendChild(el("div", "tw-sumsk", d.passives.join(" / ")));
   townEl.appendChild(sum);
@@ -2372,8 +2374,7 @@ function renderAltar() {
       if (rank.color) nm.style.color = rank.color;
       info.appendChild(nm);
       const st = soulStats(s);
-      info.appendChild(el("div", "tw-soulst",
-        `HP+${st.hp} ${st.mp ? `MP+${st.mp} ` : ""}攻+${st.atk} 防+${st.def} 速+${st.spd}`));
+      info.appendChild(el("div", "tw-soulst", soulStatText(st)));
       r.appendChild(info);
       r.addEventListener("click", () => sealFromStock(d, part, si));
       stock.appendChild(r);
@@ -2862,7 +2863,7 @@ function showCodexMonDetail(key) {
 
   const info = el("div", "cdx-info");
   info.appendChild(el("div", "cdx-kills", `討伐数 ${e.kills || 0}`));
-  info.appendChild(el("div", "cdx-stat", `HP${m.maxhp}  攻${m.atk}  防${m.def}  速${m.spd}  ✦${m.exp}  💰${m.gold}`));
+  info.appendChild(el("div", "cdx-stat", `HP${m.maxhp}  ATK${m.atk}  VIT${m.def}  AGI${m.spd}  ✦${m.exp}  💰${m.gold}`));
   card.appendChild(info);
 
   // ドロップ (実際に落とすまで ？？？)
@@ -3434,8 +3435,6 @@ function renderStatTab(p) {
   meta.innerHTML = `
     ${line1}
     <div class="st-line">HP <b>${p.hp}/${p.maxhp}</b>　MP <b>${p.mp}/${p.maxmp}</b></div>
-    <div class="st-line">こうげき <b>${p.atk}</b>　ぼうぎょ <b>${p.def}</b></div>
-    <div class="st-line">すばやさ <b>${p.spd}</b>　AC <b>${p.ac}</b></div>
     <div class="st-line">属性攻撃 ${elemStatChip(p.elemAtk)}　属性防御 ${elemStatChip(p.elemDef)}</div>
     ${p.spells && p.spells.length ? `<div class="st-line">習得: ${p.spells.map((k) => SPELLS[k] ? SPELLS[k].name : k).join("・")}</div>` : ""}
     <div class="st-line ${p.ailment ? "st-bad" : ""}">状態: ${p.ailment === "poison" ? "毒" : (p.alive ? "正常" : "戦闘不能")}</div>`;
@@ -3456,18 +3455,16 @@ function renderStatTab(p) {
     info.appendChild(box);
   }
 
-  // ウィザードリィ風の能力値 (STR/IQ/PIE/VIT/AGI/LUK)
-  if (p.isDoll && p.attrs) {
-    const ab = el("div", "st-attrs");
-    for (const k of ATTR_KEYS) {
-      const cell = el("div", "st-attr");
-      cell.appendChild(el("span", "st-attrk", ATTR_LABEL[k]));
-      cell.appendChild(el("span", "st-attrv", String(p.attrs[k])));
-      cell.title = ATTR_NAME[k];
-      ab.appendChild(cell);
-    }
-    info.appendChild(ab);
+  // 六大ステータス (ATK/VIT/AGI/INT/PIE/LUK)。装備・魂込みの実効値で、武具によって変動する
+  const ab = el("div", "st-attrs");
+  for (const k of ATTR_KEYS) {
+    const cell = el("div", "st-attr");
+    cell.appendChild(el("span", "st-attrk", ATTR_LABEL[k]));
+    cell.appendChild(el("span", "st-attrv", String(Math.round(p[k] || 0))));
+    cell.title = ATTR_NAME[k];
+    ab.appendChild(cell);
   }
+  info.appendChild(ab);
 
   // 野営呪文 (戦闘外の回復/治療/蘇生)。MPを消費して使える
   const campSpells = (p.spells || []).filter((k) => SPELLS[k] && SPELLS[k].kind === "heal");
@@ -3504,8 +3501,9 @@ function campCast(caster, spellKey) {
     const b = btn(label, () => {
       wrap.remove();
       caster.mp -= sp.mp;
-      // 蘇生は revivePct(最大HP割合) を優先。それ以外は power 回復
-      const heal = sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : sp.power + rand(Math.ceil(sp.power * 0.3));
+      // 蘇生は revivePct(最大HP割合) を優先。それ以外は power 回復 (術者の PIE で伸びる)
+      const power = sp.power + Math.round((caster.pie || 0) * 0.5);
+      const heal = sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : power + rand(Math.ceil(power * 0.3));
       if (!t.alive && sp.revive) { t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false; t.hp = Math.max(1, Math.min(t.maxhp, heal)); log(`${sp.name}！ ${t.name}が蘇った (HP ${t.hp})`, "heal"); }
       else { t.hp = Math.min(t.maxhp, t.hp + heal); log(`${sp.name}！ ${t.name}のHPが ${heal} 回復`, "heal"); }
       SFX.heal(); buzz(15);
@@ -3562,11 +3560,18 @@ function renderSoulTab(p) {
   return wrap;
 }
 
-// パッシブの加算オブジェクトを表示用ラベルに ("STR+2" など)
-const PASSIVE_LABEL = { str: "STR", vit: "VIT", agi: "AGI", iq: "IQ", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP", atk: "攻撃", def: "防御", spd: "速さ", crit: "会心" };
+// パッシブの加算オブジェクトを表示用ラベルに ("ATK+2" など)
+const PASSIVE_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP", crit: "会心" };
 function passiveLabel(add) {
   if (!add) return "—";
   return Object.keys(add).map((k) => k === "crit" ? `会心+${Math.round(add[k] * 100)}%` : `${PASSIVE_LABEL[k] || k}+${add[k]}`).join(" / ");
+}
+
+// 魂のステータス寄与を「HP+7 ATK+2.4 …」形式で列挙 (0は省略)
+function soulStatText(st, sep = " ") {
+  const keys = ["hp", "mp", "atk", "vit", "agi", "int", "pie", "luk"];
+  const lbl = { hp: "HP", mp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
+  return keys.filter((k) => st[k]).map((k) => `${lbl[k]}+${st[k]}`).join(sep);
 }
 
 // 魂の詳細パネル: ステータスと、覚える基本スキル/上位スキル
@@ -3579,8 +3584,7 @@ function renderSoulDetail(s) {
   // ステータス
   const st = soulStats(s);
   d.appendChild(el("div", "st-sdh", "ステータス"));
-  d.appendChild(el("div", "st-sdstat",
-    `HP +${st.hp}　MP +${st.mp}　こうげき +${st.atk}　ぼうぎょ +${st.def}　すばやさ +${st.spd}`));
+  d.appendChild(el("div", "st-sdstat", soulStatText(st, "　")));
   d.appendChild(el("div", "st-sdnote", `レベル上限 ${s.cap}（限界突破で最大 ${soulHardCap(s)}）`));
   if (rank.order >= 1) d.appendChild(el("div", "st-sdnote", `${rank.label}魂 (能力 ×${rank.mul})`));
 
@@ -3631,11 +3635,11 @@ function elemStatChip(e) {
 
 function statLines(it) {
   const parts = [];
-  if (it.atk) parts.push(`こうげき ${it.atk > 0 ? "+" : ""}${it.atk}`);
-  if (it.def) parts.push(`ぼうぎょ ${it.def > 0 ? "+" : ""}${it.def}`);
-  if (it.spd) parts.push(`すばやさ ${it.spd > 0 ? "+" : ""}${it.spd}`);
-  if (it.hp) parts.push(`HP ${it.hp > 0 ? "+" : ""}${it.hp}`);
-  if (it.mp) parts.push(`MP ${it.mp > 0 ? "+" : ""}${it.mp}`);
+  const f = (label, v) => { if (v) parts.push(`${label} ${v > 0 ? "+" : ""}${v}`); };
+  f("ATK", it.atk); f("VIT", it.vit); f("AGI", it.agi);
+  f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
+  f("HP", it.hp); f("MP", it.mp);
+  if (it.crit) parts.push(`会心 +${Math.round(it.crit * 100)}%`);
   const ea = elemStatText("攻撃", it.eAtk);
   const ed = elemStatText("防御", it.eDef);
   if (ea) parts.push(ea);
@@ -3658,18 +3662,7 @@ function itemCatText(it) {
 function detailLines(it) {
   const L = [];
   L.push(itemCatText(it));
-  if (it.slot === "weapon") {
-    const seg = [];
-    if (it.hit != null) seg.push(`命中${it.hit >= 0 ? "+" : ""}${it.hit}`);
-    if (it.dice) seg.push(`${it.dice}ダメージ`);
-    if (it.swings != null) seg.push(`最低攻撃回数: ${it.swings}`);
-    if (seg.length) L.push(seg.join(" / "));
-    const mod = [];
-    if (it.def) mod.push(`ぼうぎょ${it.def >= 0 ? "+" : ""}${it.def}`);
-    if (it.spd) mod.push(`すばやさ${it.spd >= 0 ? "+" : ""}${it.spd}`);
-    if (it.mp) mod.push(`MP${it.mp >= 0 ? "+" : ""}${it.mp}`);
-    if (mod.length) L.push(mod.join(" / "));
-  } else if (it.slot === "use") {
+  if (it.slot === "use") {
     if (it.use && it.use.heal) L.push(`HPを ${it.use.heal} 回復`);
     if (it.use && it.use.mp) L.push(`MPを ${it.use.mp} 回復`);
     if (it.use && it.use.cure) L.push("毒を治す");
@@ -3678,13 +3671,20 @@ function detailLines(it) {
   } else if (it.slot === "mat") {
     L.push("用途は街で見つかるかもしれない");
   } else {
+    if (it.slot === "weapon") {
+      const seg = [];
+      if (it.hit != null) seg.push(`命中${it.hit >= 0 ? "+" : ""}${it.hit}`);
+      if (it.dice) seg.push(`${it.dice}ダメージ`);
+      if (it.swings != null) seg.push(`最低攻撃回数: ${it.swings}`);
+      if (seg.length) L.push(seg.join(" / "));
+    }
+    // 六大ステ (ATK/VIT/AGI/INT/PIE/LUK) への補正
     const mod = [];
-    if (it.def) mod.push(`ぼうぎょ${it.def >= 0 ? "+" : ""}${it.def}`);
-    if (it.atk) mod.push(`こうげき${it.atk >= 0 ? "+" : ""}${it.atk}`);
-    if (it.spd) mod.push(`すばやさ${it.spd >= 0 ? "+" : ""}${it.spd}`);
-    if (it.hp) mod.push(`HP${it.hp >= 0 ? "+" : ""}${it.hp}`);
-    if (it.mp) mod.push(`MP${it.mp >= 0 ? "+" : ""}${it.mp}`);
-    if (it.def) mod.push(`AC ${-it.def >= 0 ? "+" : ""}${-it.def}`);
+    const f = (label, v) => { if (v) mod.push(`${label}${v >= 0 ? "+" : ""}${v}`); };
+    f("ATK", it.atk); f("VIT", it.vit); f("AGI", it.agi);
+    f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
+    f("HP", it.hp); f("MP", it.mp);
+    if (it.crit) mod.push(`会心+${Math.round(it.crit * 100)}%`);
     if (mod.length) L.push(mod.join(" / "));
   }
   // 属性攻撃/属性防御 (短い表記 + 相性の説明)
@@ -4273,6 +4273,39 @@ function autosave(force = false) {
 
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch {} }
 
+// 旧ステータス体系 (こうげき/ぼうぎょ/すばやさ/AC) のセーブを六大ステへ移行する。
+// 装備品 (slot を持つ) と戦闘アクター (side を持つ) の def→vit / spd→agi を付け替え、
+// AC と旧表示用能力値 (attrs: STR/IQ…) を破棄する。人業の base は後段の recalcDoll が再計算する。
+function migrateLegacyStats(root) {
+  const ren = (o, from, to) => {
+    if (!o || typeof o !== "object") return;
+    if (o[to] == null && o[from] != null) o[to] = o[from];
+    delete o[from];
+  };
+  const seen = new Set();
+  const walk = (v) => {
+    if (!v || typeof v !== "object" || seen.has(v)) return;
+    seen.add(v);
+    if (Array.isArray(v)) { for (const x of v) walk(x); return; }
+    const isItem = typeof v.slot === "string";
+    const isActor = v.side === "party" || v.side === "enemy";
+    if (isItem || isActor) {
+      ren(v, "def", "vit");
+      ren(v, "spd", "agi");
+      delete v.ac;
+    }
+    if (isActor) {
+      ren(v.base, "def", "vit");
+      ren(v.base, "spd", "agi");
+      ren(v.buffs, "def", "vit");
+      ren(v.buffs, "spd", "agi");
+      delete v.attrs;
+    }
+    for (const k in v) walk(v[k]);
+  };
+  walk(root);
+}
+
 // 保存データを読み込み、G を復元する。成功なら true
 function loadGame() {
   let raw;
@@ -4282,6 +4315,9 @@ function loadGame() {
   try { snap = refDeserialize(JSON.parse(raw)); } catch (e) { return false; }
   if (!snap || !snap.party || !snap.party.length) return false;
   for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
+  // 旧ステータス体系のセーブを六大ステ (ATK/VIT/AGI/INT/PIE/LUK) へ移行
+  // (battle の敵の mon はこの後 MONSTERS の生定義に差し替えられるため触れても無害)
+  migrateLegacyStats(snap);
   // 一時状態はリセット
   G.anim = null; G.flipAnim = null; G.heroAnim = null; G.walking = false; G.prompt = false;
   G.fx = null; G.animating = false; G.enemyPos = {}; G.partyFx = new Map(); G.wallFlash = null;

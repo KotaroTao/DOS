@@ -141,6 +141,8 @@ export const ARTS = {
 // すべてのモンスターはここを通る。スキーマ:
 // { id, key, name, race, rank, desc, maxhp, hp, atk, def, spd, exp, gold,
 //   art, palette, boss?, dropNormal?, dropRare?, soulClass? }
+// 注: def/spd は定義用の名前のまま。出現時に六大ステへ写像される
+//     (combat.js makeEnemy: atk→ATK, def→VIT, spd→AGI)。
 // dropNormal/dropRare は省略可 (省略時は game.js がランクから決定的に割り当てる)。
 // soulClass を持つ人型は撃破時にまれに魂を落とす。
 export function defMonster(def) {

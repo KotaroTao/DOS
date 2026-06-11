@@ -164,6 +164,8 @@ const priceOf = (lv) => round(16 + lv * lv * 1.55 + lv * 7);
 function chk(cond, msg) { if (!cond) throw new Error("catalog: " + msg); }
 
 // 共通フィールドを組み立てる
+// 性能キーは六大ステ (atk/vit/agi/int/pie/luk) + hp/mp。ビルダーの opt は
+// 直感的な別名 (def=VIT, spd=AGI, atkB=ATK) を受け、ここで変換する。
 function base(id, name, slot, lv, artKey, opt) {
   chk(id && name, "id/name required");
   chk(lv >= 1 && lv <= 50, "lv out of range (1-50): " + id);
@@ -177,10 +179,15 @@ function base(id, name, slot, lv, artKey, opt) {
   };
   if (opt.eAtk) { chk(ELEM_KEYS.includes(opt.eAtk[0]), "bad eAtk element: " + id); it.eAtk = { el: opt.eAtk[0], lv: opt.eAtk[1] || 1 }; }
   if (opt.eDef) { chk(ELEM_KEYS.includes(opt.eDef[0]), "bad eDef element: " + id); it.eDef = { el: opt.eDef[0], lv: opt.eDef[1] || 1 }; }
-  if (opt.spd) it.spd = opt.spd;
+  if (opt.spd) it.agi = opt.spd;       // 旧称 spd → AGI
+  if (opt.agi) it.agi = (it.agi || 0) + opt.agi;
   if (opt.hp) it.hp = opt.hp;
   if (opt.mp != null) it.mp = opt.mp;
-  if (opt.atkB) it.atk = opt.atkB; // 防具などの攻撃ボーナス
+  if (opt.int) it.int = opt.int;
+  if (opt.pie) it.pie = opt.pie;
+  if (opt.luk) it.luk = opt.luk;
+  if (opt.crit) it.crit = opt.crit;
+  if (opt.atkB) it.atk = opt.atkB;     // 防具などの攻撃ボーナス
   if (opt.cursed) it.cursed = true;
   if (opt.align) it.align = opt.align;
   // 絵: 原型 × 染め色 (属性があれば属性色が既定)
@@ -204,40 +211,46 @@ export function W(id, name, cat, lv, opt = {}) {
   it.hit = opt.hit != null ? opt.hit : 1 + Math.floor(lv / 7);
   it.dice = opt.dice || ("1d" + (4 + Math.floor(lv / 7)) + (lv >= 10 ? "+" + Math.floor(lv / 10) : ""));
   it.swings = opt.swings || 1;
-  if (cat === "st" && it.mp == null) it.mp = 3 + Math.floor(lv / 4); // 杖は魔力の触媒
-  if (cat === "dg" && it.spd == null) it.spd = 1;                    // 短剣は取り回しが軽い
+  if (cat === "st") {                                                // 杖は魔力の触媒
+    if (it.mp == null) it.mp = 3 + Math.floor(lv / 4);
+    if (it.int == null) it.int = Math.max(1, Math.floor(lv / 6));    // INT (攻撃呪文の威力) も伸ばす
+  }
+  if (cat === "dg" && it.agi == null) it.agi = 1;                    // 短剣は取り回しが軽い
   return it;
 }
 
-// 盾: S(id, 名, lv, opt) — opt.shape: "kite"(既定) | "round"
+// 盾: S(id, 名, lv, opt) — opt.shape: "kite"(既定) | "round"。opt.def は VIT の上書き
 export function S(id, name, lv, opt = {}) {
   const it = base(id, name, "shield", lv, opt.shape || "kite", {
     cls: opt.cls !== undefined ? opt.cls : ["fighter", "knight", "thief", "priest", "bishop"], ...opt,
   });
-  it.def = opt.def != null ? opt.def : Math.max(1, round(2 + lv * 0.42));
+  it.vit = opt.def != null ? opt.def : Math.max(1, round(2 + lv * 0.42));
   return it;
 }
 
-// 鎧: A(id, 名, lv, opt) — opt.shape: "plate"(既定) | "robe"
+// 鎧: A(id, 名, lv, opt) — opt.shape: "plate"(既定) | "robe"。opt.def は VIT の上書き
 export function A(id, name, lv, opt = {}) {
   const robe = opt.shape === "robe";
   const it = base(id, name, "body", lv, robe ? "robe" : "plate", opt);
-  it.def = opt.def != null ? opt.def : Math.max(1, round((3 + lv * 0.5) * (robe ? 0.5 : 1)));
-  if (robe && it.mp == null) it.mp = 2 + Math.floor(lv / 4);
+  it.vit = opt.def != null ? opt.def : Math.max(1, round((3 + lv * 0.5) * (robe ? 0.5 : 1)));
+  if (robe) {
+    if (it.mp == null) it.mp = 2 + Math.floor(lv / 4);
+    if (it.pie == null) it.pie = Math.max(1, Math.floor(lv / 8)); // 法衣は祈りの器
+  }
   return it;
 }
 
-// 頭: H(id, 名, lv, opt) — opt.shape: "helm"(既定) | "hat" | "circlet"
+// 頭: H(id, 名, lv, opt) — opt.shape: "helm"(既定) | "hat" | "circlet"。opt.def は VIT の上書き
 export function H(id, name, lv, opt = {}) {
   const it = base(id, name, "head", lv, opt.shape || "helm", opt);
-  it.def = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.32));
+  it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.32));
   return it;
 }
 
-// 足: F(id, 名, lv, opt) — opt.shape: "boots"(既定) | "greaves"
+// 足: F(id, 名, lv, opt) — opt.shape: "boots"(既定) | "greaves"。opt.def は VIT の上書き
 export function F(id, name, lv, opt = {}) {
   const it = base(id, name, "feet", lv, opt.shape || "boots", opt);
-  it.def = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.28));
+  it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.28));
   return it;
 }
 
