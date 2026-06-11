@@ -40,22 +40,23 @@ There is no test suite. To sanity-check JS edits, use Node:
 - **`content.js`** — rank display definitions only (`RANK_NAME`/`RANK_COLOR`). The old procedural item generation (rank-prefix "二つ名" items) was removed in favor of `src/catalog/`.
 - **`audio.js`** — Web Audio chiptune SFX + BGM, generated in code (no audio files).
 
-### Dungeon registry (`src/dungeons/`) — the additive-by-design subsystem
-- **`schema.js`** — shared definitions: `defMonster`/`defMonsters` (validates `artKey`, applies `palette`/`tint`, fills defaults), `ARTS` art prototypes, `MON_RACES`/`RACE_LABEL`, and the **element system** (`ELEMENTS`, `elemBeats`, `elemMult`).
-- **`index.js`** — the single aggregation window. `MODULES = [d01, d02, d03, d04]`; **registration order = in-game unlock order.** Exposes `DUNGEONS` (configs) and `DUNGEON_MONSTERS` (merged dict). It throws on duplicate monster IDs.
-- **`d01.js`…`d04.js`** — one file per dungeon. Each exports `monsters` (via `defMonsters`) and a `dungeon` config (`pool`, `deepPool`, `boss`, `enemyScale`, rates, etc.).
-- **`common.js`** — shared low-level monsters (`cm_*`) reused across dungeons.
+### Dungeon registry (`src/dungeons/`) — generated dungeons + rank-tiered bestiary
+- **`schema.js`** — shared definitions: `defMonster`/`defMonsters` (validates `artKey`, applies `palette`/`tint`, fills defaults), `ARTS` art prototypes, `MON_RACES`/`RACE_LABEL`, **`monStats(rank, boss)`** (the single balance point: rank 1-10 → hp/atk/def/spd/soul/gold curves), and the **element system** (`ELEMENTS`, `elemBeats`, `elemMult`).
+- **`bestiary.js`** — ALL monsters, organized by **rank 1-10**. Legacy monsters (`cm_*`, `d01_*`…`d04_*`, defined in `common.js`/`d01.js`…`d04.js`, ids preserved) are rank-remapped and re-statted via `monStats` at load; new monsters use the `bs_` prefix. Exports `BESTIARY` (id→def) and `RANK_POOLS` (rank→{regular, boss}); throws if any rank 1-10 lacks regulars or a boss.
+- **`generator.js`** — generates all **100 dungeon configs** deterministically from the dungeon number n (1-100): rank = `ceil(n/10)`, name from ADJ×PLACE tables, pools from `RANK_POOLS`, `enemyScale` ramps 0.7→1.7 within each 10-dungeon band, `lootLv = [n*1.5, n*2]`, `rankBonus` is logarithmic (legend souls stay ~3.6% even at n=100), `soulLevelBonus = floor((√n-1)*1.6)`.
+- **`index.js`** — the aggregation window: re-exports `DUNGEONS` (from generator) and `DUNGEON_MONSTERS` (= `BESTIARY`).
+- **`d01.js`…`d04.js`/`common.js`** — kept only as monster-definition sources for bestiary.js; their `dungeon` config exports are no longer used.
 
 **Conventions when adding content here:**
-- Monster IDs are **namespaced** (`d02_harpy`, `cm_slime`) and treated as **append-only** — IDs are persisted in saves and codex, so renaming/removing them breaks existing saves. Add new IDs rather than repurposing old ones.
-- **Adding a dungeon = add one `import` + one entry to `MODULES` in `index.js`.** Nothing else references the files directly.
-- Every monster needs a valid `artKey` (one of `ARTS`) — `defMonster` throws otherwise. Give visual variety via `palette`/`tint`, not new art.
+- Monster IDs are **namespaced** (`bs_troll`, `cm_slime`) and treated as **append-only** — IDs are persisted in saves and codex, so renaming/removing them breaks existing saves. Add new IDs rather than repurposing old ones.
+- **Adding a monster = append one entry to `bestiary.js` with a `rank` (1-10).** It automatically appears in every dungeon of that rank band. Don't hand-write hp/atk — stats come from `monStats`.
+- Every monster needs a valid `artKey` (one of `ARTS`) — `defMonster` throws otherwise. New 12x12 art prototypes can be added to `ARTS`; otherwise differentiate via `palette`/`tint`.
 
 ### Item catalog (`src/catalog/`) — unique items, additive-by-design
 - **`defs.js`** — shared item `ARTS` (12x12 shapes per weapon subcategory / armor type / misc trinket) and builders `W/S/A/H/F/M/U` (weapon/shield/body/head/feet/misc/usable). Builders derive atk/def/price/rank from the hidden item level and validate input (throw on bad cat/shape/lv/desc).
-- **`weapons.js`/`armor.js`/`gear.js`/`misc.js`** — the hand-written unique-item catalogs (100 weapons, 50 shields, 50 body, 50 head, 50 feet, 50 misc loot, plus a few potions). **`index.js`** merges them into `CATALOG_ITEMS` (throws on duplicate IDs); `game.js` does `Object.assign(ITEMS, CATALOG_ITEMS)` at load.
+- **`weapons.js`/`armor.js`/`gear.js`/`misc.js`/`legends.js`** — the hand-written unique-item catalogs (100 weapons, 50 shields, 50 body, 50 head, 50 feet, 50 misc loot, a few potions, plus 11 mythic legends at lv165-200). **`index.js`** merges them into `CATALOG_ITEMS` (throws on duplicate IDs); `game.js` does `Object.assign(ITEMS, CATALOG_ITEMS)` at load.
 - Item IDs are prefixed (`w_`/`s_`/`a_`/`h_`/`f_`/`m_`/`u_`) and **append-only** (saves/codex reference them). Names are unique one-offs — there are no rank-prefix "二つ名" items anymore.
-- Every item has a **hidden level `lv` (1-50)**: dungeons define a `lootLv: [min, max]` band (interpolated by floor depth) and `game.js` rolls loot with a gaussian window around that center plus a global decay, so higher-lv items are rarer everywhere. Monster drops are assigned deterministically from the lv band matching the monster's rank. Display rank/border color derives from lv via `lvToRank`.
+- Every item has a **hidden level `lv` (1-200)** matching the 100-dungeon `lootLv` bands (lv1-20 = mundane gear, 165-200 = mythic): dungeons define a `lootLv: [min, max]` band (interpolated by floor depth) and `game.js` rolls loot with a gaussian window around that center plus a global decay, so higher-lv items are rarer everywhere. Monster drops are assigned deterministically from the lv band matching the monster's rank (`rank*19`). Display rank (R1-R6) derives from lv via `lvToRank` (thresholds 20/45/80/120/165). When adding items, keep every ~20-lv bucket populated or loot rolls in that band degrade to the `herb` fallback.
 - Slots `misc` (その他: sellable loot) and `mat` (貴重品: event items like 空の魂) can't be equipped or used; they exist for the codex/shop categories.
 
 ### Element / affinity system
@@ -65,7 +66,7 @@ Six elements + `none`, defined in `schema.js`. Advantage cycle is **火→風→
 
 ### State & persistence
 - All runtime state hangs off the single global `G` in `game.js`. `state` field switches the active screen (`town`/`board`/`battle`/`over`).
-- Save key: `dos-save-v1` in `localStorage`. Only the fields in `SAVE_FIELDS` are persisted (transient animation state is excluded).
+- Save key: `dos-save-v2` in `localStorage` (v1 saves are intentionally orphaned — the v2 content reset re-scaled all item levels and soul caps). Only the fields in `SAVE_FIELDS` are persisted (transient animation state is excluded).
 - Saving uses **`refSerialize`/ref-hydrate**: a custom serializer that encodes shared/circular object references as `{$r: index}` so object **identity is preserved** on load (a single soul object referenced from multiple places stays the same instance). When adding state that relies on shared references, keep it inside this graph rather than re-cloning.
 
 ### UI/overlay pattern

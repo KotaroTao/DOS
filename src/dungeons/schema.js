@@ -137,6 +137,32 @@ export const ARTS = {
     art: ["...02220....", "..0222220...", "..0232320...", "..0222220...", ".5022222205", ".5022222205", "..02222220..", "..02222220..", "..02.0.020..", "..02...020..", ".022...0220.", ".022...0220."] },
 };
 
+// ===== ランク基準ステータス =====
+// モンスターランク (1-10) から基準ステータスを算出する。全100迷宮のバランスの
+// 単一の調整点。個体差は mul (hp/atk などの倍率) で付ける。
+// ・hp はプレイヤーの攻撃力カーブ (魂×5部位+武器) に対し通常2-3撃で倒せる量
+// ・atk はプレイヤーの VIT 半減則 (combat.js) を踏まえた貫通量
+export function monStats(rank, boss = false) {
+  const r = Math.max(1, Math.min(10, rank));
+  const s = {
+    hp: Math.round(30 * Math.pow(r, 1.8)),
+    atk: Math.round(12 + 3.2 * r * r),
+    def: Math.round(2 * Math.pow(r, 1.5)),
+    spd: 4 + Math.round(r * 0.9),
+    soul: Math.round(10 * Math.pow(1.65, r - 1)),
+    gold: Math.round(8 * Math.pow(1.7, r - 1)),
+  };
+  if (boss) {
+    s.hp = Math.round(s.hp * 3.2);
+    s.atk = Math.round(s.atk * 1.3);
+    s.def = Math.round(s.def * 1.2);
+    s.spd += 2;
+    s.soul *= 8;
+    s.gold *= 10;
+  }
+  return s;
+}
+
 // ===== モンスター定義ヘルパー =====
 // すべてのモンスターはここを通る。スキーマ:
 // { id, key, name, race, rank, desc, maxhp, hp, atk, def, spd, soul, gold,

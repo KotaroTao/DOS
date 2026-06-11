@@ -1,27 +1,14 @@
-// ダンジョン・レジストリ: 各ダンジョン・モジュールを集約する単一の窓口。
-// 新ダンジョン追加 = ここに import を1行足すだけ (IDは名前空間化済みなので衝突しない)。
-import { COMMON_MONSTERS } from "./common.js";
-import * as d01 from "./d01.js";
-import * as d02 from "./d02.js";
-import * as d03 from "./d03.js";
-import * as d04 from "./d04.js";
+// ダンジョン・レジストリ: ゲーム本体へモンスター辞書と迷宮設定を供給する単一の窓口。
+// ・迷宮は generator.js が番号 (1-100) から決定的に生成する (手書き設定は廃止)
+// ・モンスターは bestiary.js がランク1-10で束ねる (旧 d01-d04 の個体は id を保ったまま吸収)
+// ・モンスター追加 = bestiary.js に追記するだけ。該当ランクの迷宮に自動で出現する
+import { BESTIARY } from "./bestiary.js";
+import { DUNGEONS as GENERATED } from "./generator.js";
 
 export { MON_RACES, RACE_LABEL, ELEMENTS, elemMult, elemBeats, elemDmgMult } from "./schema.js";
 
-// 登録順がそのままゲーム内の解放順になる
-const MODULES = [d01, d02, d03, d04];
+// 全ダンジョン設定 (並び順 = ゲーム内の解放順)
+export const DUNGEONS = GENERATED;
 
-// 全ダンジョン設定 (board.js の旧 DUNGEONS 配列を置き換える)
-export const DUNGEONS = MODULES.map((m) => m.dungeon);
-
-// 全モンスター辞書 (共通 + 各ダンジョン固有)。sprites.js の MONSTERS に統合する
-export const DUNGEON_MONSTERS = (() => {
-  const out = { ...COMMON_MONSTERS };
-  for (const m of MODULES) {
-    for (const id in m.monsters) {
-      if (out[id]) throw new Error("duplicate monster id across dungeons: " + id);
-      out[id] = m.monsters[id];
-    }
-  }
-  return out;
-})();
+// 全モンスター辞書。sprites.js の MONSTERS に統合する
+export const DUNGEON_MONSTERS = BESTIARY;

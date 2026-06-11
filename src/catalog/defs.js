@@ -5,7 +5,8 @@
 //
 // 共通ルール:
 //  - id は append-only (セーブ/図鑑が参照するため、改名・削除は禁止。増やすのみ)
-//  - lv: 隠しレベル (1-50)。出現する迷宮帯・出現率・性能・価格の自動算出に使う
+//  - lv: 隠しレベル (1-200)。出現する迷宮帯・出現率・性能・価格の自動算出に使う
+//    (lv1-20=粗末な品 / 165-200=神話級。全100迷宮の lootLv 帯に対応する)
 //  - eAtk/eDef: 属性攻撃/属性防御 ["fire",1] 形式 → {el,lv} に変換される
 //    Lv1=◯ (有利+50%/不利-50%), Lv2=◎ (有利+100%/不利-100%)
 //  - 絵は形の原型 (ARTS) × 色 (属性色 or tint指定) で描き分ける
@@ -159,7 +160,7 @@ const W_CLS = {
 };
 
 const round = Math.round;
-const priceOf = (lv) => round(16 + lv * lv * 1.55 + lv * 7);
+const priceOf = (lv) => round(10 + lv * lv * 0.30 + lv * 5);
 
 function chk(cond, msg) { if (!cond) throw new Error("catalog: " + msg); }
 
@@ -168,7 +169,7 @@ function chk(cond, msg) { if (!cond) throw new Error("catalog: " + msg); }
 // 直感的な別名 (def=VIT, spd=AGI, atkB=ATK) を受け、ここで変換する。
 function base(id, name, slot, lv, artKey, opt) {
   chk(id && name, "id/name required");
-  chk(lv >= 1 && lv <= 50, "lv out of range (1-50): " + id);
+  chk(lv >= 1 && lv <= 200, "lv out of range (1-200): " + id);
   chk(ARTS[artKey], "unknown art: " + artKey + " (" + id + ")");
   chk(typeof opt.desc === "string" && opt.desc.length >= 24, "desc too short: " + id);
   const it = {
@@ -208,12 +209,12 @@ export function W(id, name, cat, lv, opt = {}) {
   const two = !!opt.two || cat === "bw"; // 弓は常に両手
   if (two) it.twoHanded = true;
   it.atk = opt.atk != null ? opt.atk : Math.max(1, round((3 + lv * 0.95) * W_MUL[cat] * (two && cat !== "bw" ? 1.25 : 1)));
-  it.hit = opt.hit != null ? opt.hit : 1 + Math.floor(lv / 7);
-  it.dice = opt.dice || ("1d" + (4 + Math.floor(lv / 7)) + (lv >= 10 ? "+" + Math.floor(lv / 10) : ""));
+  it.hit = opt.hit != null ? opt.hit : 1 + Math.floor(lv / 25);
+  it.dice = opt.dice || ("1d" + (4 + Math.min(20, Math.floor(lv / 9))) + (lv >= 30 ? "+" + Math.min(15, Math.floor(lv / 13)) : ""));
   it.swings = opt.swings || 1;
   if (cat === "st") {                                                // 杖は魔力の触媒
-    if (it.mp == null) it.mp = 3 + Math.floor(lv / 4);
-    if (it.int == null) it.int = Math.max(1, Math.floor(lv / 6));    // INT (攻撃呪文の威力) も伸ばす
+    if (it.mp == null) it.mp = 3 + Math.floor(lv / 14);
+    if (it.int == null) it.int = Math.max(1, Math.floor(lv / 22));   // INT (攻撃呪文の威力) も伸ばす
   }
   if (cat === "dg" && it.agi == null) it.agi = 1;                    // 短剣は取り回しが軽い
   return it;
@@ -224,7 +225,7 @@ export function S(id, name, lv, opt = {}) {
   const it = base(id, name, "shield", lv, opt.shape || "kite", {
     cls: opt.cls !== undefined ? opt.cls : ["fighter", "knight", "thief", "priest", "bishop"], ...opt,
   });
-  it.vit = opt.def != null ? opt.def : Math.max(1, round(2 + lv * 0.42));
+  it.vit = opt.def != null ? opt.def : Math.max(1, round(2 + lv * 0.20));
   return it;
 }
 
@@ -232,10 +233,10 @@ export function S(id, name, lv, opt = {}) {
 export function A(id, name, lv, opt = {}) {
   const robe = opt.shape === "robe";
   const it = base(id, name, "body", lv, robe ? "robe" : "plate", opt);
-  it.vit = opt.def != null ? opt.def : Math.max(1, round((3 + lv * 0.5) * (robe ? 0.5 : 1)));
+  it.vit = opt.def != null ? opt.def : Math.max(1, round((3 + lv * 0.26) * (robe ? 0.5 : 1)));
   if (robe) {
-    if (it.mp == null) it.mp = 2 + Math.floor(lv / 4);
-    if (it.pie == null) it.pie = Math.max(1, Math.floor(lv / 8)); // 法衣は祈りの器
+    if (it.mp == null) it.mp = 2 + Math.floor(lv / 14);
+    if (it.pie == null) it.pie = Math.max(1, Math.floor(lv / 28)); // 法衣は祈りの器
   }
   return it;
 }
@@ -243,21 +244,21 @@ export function A(id, name, lv, opt = {}) {
 // 頭: H(id, 名, lv, opt) — opt.shape: "helm"(既定) | "hat" | "circlet"。opt.def は VIT の上書き
 export function H(id, name, lv, opt = {}) {
   const it = base(id, name, "head", lv, opt.shape || "helm", opt);
-  it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.32));
+  it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.15));
   return it;
 }
 
 // 足: F(id, 名, lv, opt) — opt.shape: "boots"(既定) | "greaves"。opt.def は VIT の上書き
 export function F(id, name, lv, opt = {}) {
   const it = base(id, name, "feet", lv, opt.shape || "boots", opt);
-  it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.28));
+  it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.13));
   return it;
 }
 
 // その他 (換金品・戦利品): M(id, 名, 形, lv, opt) — 装備も使用もできず、商店で金になる
 export function M(id, name, shape, lv, opt = {}) {
   const it = base(id, name, "misc", lv, shape, opt);
-  it.price = opt.price != null ? opt.price : round(8 + lv * lv * 1.25 + lv * 5);
+  it.price = opt.price != null ? opt.price : round(8 + lv * lv * 0.25 + lv * 4);
   return it;
 }
 
@@ -265,6 +266,6 @@ export function M(id, name, shape, lv, opt = {}) {
 export function U(id, name, lv, use, opt = {}) {
   const it = base(id, name, "use", lv, opt.shape || "vial", opt);
   it.use = use;
-  if (opt.price == null) it.price = round(14 + lv * lv * 0.9 + lv * 8);
+  if (opt.price == null) it.price = round(14 + lv * lv * 0.30 + lv * 6);
   return it;
 }
