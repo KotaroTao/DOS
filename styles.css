@@ -612,10 +612,29 @@ canvas.spr { image-rendering: pixelated; display: block; }
   padding: 8px 4px; text-align: center; min-width: 0;
 }
 .cdx-card.unknown { opacity: 0.5; }
+.cdx-card { cursor: pointer; transition: transform 0.08s, box-shadow 0.12s; }
+.cdx-card:active { transform: scale(0.96); }
 .cdx-art { display: flex; align-items: center; justify-content: center; height: 44px; }
 .cdx-q { font-size: 24px; color: #4a3c60; font-weight: bold; }
 .cdx-name { font-size: 11px; color: #ece0ff; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cdx-stat { font-size: 9px; color: #9685ad; margin-top: 2px; line-height: 1.4; }
+.cdx-tabs { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+.cdx-tabs .tw-dolltab { flex: 0 0 auto; }
+
+/* 図鑑: 詳細オーバーレイ */
+.cdx-detail { max-width: 340px; }
+.cdx-info { margin: 8px 0; }
+.cdx-kills { font-size: 12px; color: var(--accent); font-weight: bold; margin-bottom: 4px; }
+.cdx-drops { text-align: left; margin: 8px 4px 0; padding-top: 6px; border-top: 1px solid #34254a; }
+.cdx-h { font-size: 10px; color: #9685ad; margin-bottom: 4px; letter-spacing: 1px; }
+.cdx-drow { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+.cdx-dlabel { font-size: 10px; padding: 1px 6px; border-radius: 4px; }
+.cdx-dlabel.normal { background: #2a3a4a; color: #9fd6e6; }
+.cdx-dlabel.rare { background: #4a2a1a; color: #f2c14e; }
+.cdx-di { display: inline-flex; }
+.cdx-dn { font-size: 12px; color: #ece0ff; }
+.cdx-dn.dim, .cdx-dun.dim { color: #6a5a80; }
+.cdx-dun { font-size: 12px; color: #d8cdea; margin: 2px 0; }
 
 /* ===== 記憶を宿した魂 (歴戦) ===== */
 .st-souln2.mem { color: #ffd27a; text-shadow: 0 0 8px rgba(255,180,80,0.5); }

@@ -5,7 +5,7 @@ import { createParty, spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, ga
 import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
 import { spriteCanvas } from "./sprites.js";
 import { ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, recalc, equip as equipItem, unequip as unequipItem, canEquip } from "./items.js";
-import { generateItems, generateMonsters, RANK_NAME, RANK_COLOR, monstersForDungeon } from "./content.js";
+import { generateItems, generateMonsters, RANK_NAME, RANK_COLOR, monstersForDungeon, MON_RACES, ARCH_RACE, RACE_LABEL } from "./content.js";
 import {
   PARTS, PART_LABEL, SOUL_CLASSES, makeSoul, makeDoll, soulName, soulSprite,
   dollSouls, dominantClass, recalcDoll, sealSoul, createStartingRoster,
@@ -40,6 +40,33 @@ function pickItemByRank(rank) {
     }
   }
   return "herb";
+}
+
+// ===== モンスターの戦利品テーブル =====
+// 各モンスターに「通常ドロップ」「レアドロップ」を決定的に割り当てる。
+// 図鑑では実際に落とすまで ？？？ で伏せられる。
+function _hashStr(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function _poolAt(rank) {
+  for (let d = 0; d <= 5; d++) {
+    for (const rr of [rank - d, rank + d]) {
+      if (ITEMS_BY_RANK[rr] && ITEMS_BY_RANK[rr].length) return ITEMS_BY_RANK[rr];
+    }
+  }
+  return ITEMS_BY_RANK[1];
+}
+for (const k in MONSTERS) {
+  const m = MONSTERS[k];
+  if (m.dropNormal && m.dropRare) continue;
+  const h = _hashStr(String(m.key || k));
+  const rank = Math.max(1, Math.min(6, m.rank || 1));
+  const np = _poolAt(rank);
+  const rp = _poolAt(Math.min(6, rank + 1));
+  m.dropNormal = m.dropNormal || np[h % np.length];
+  m.dropRare = m.dropRare || rp[(h >> 5) % rp.length];
 }
 
 const view = document.getElementById("view");
@@ -1013,9 +1040,8 @@ function startBattle(enemies, cell) {
   
   combatMenu.classList.remove("hidden");
   log(`${enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
-  // ボス戦は専用テーマ。図鑑にも遭遇を記録
+  // ボス戦は専用テーマ。図鑑への記録は「倒した時」に行う (endBattle)
   playBgm(enemies.some((e) => e.boss) ? "boss" : "battle");
-  for (const e of enemies) codexSeeMonster(e.key);
   G.battle = new Battle(G.party, enemies, log);
   G.fx = null;
   G.animating = false;
@@ -1442,8 +1468,14 @@ function endBattle() {
       }
     }
     SFX.victory();
-    // 討伐クエストの進捗 + 戦績 (倒した敵を集計)
-    for (const e of b.enemies) { if (!e.alive) { questProgress("kill", e.key); G.stats.kills++; } }
+    // 討伐クエストの進捗 + 戦績 + 図鑑記録 (倒した敵を集計)
+    for (const e of b.enemies) {
+      if (e.alive) continue;
+      questProgress("kill", e.key);
+      G.stats.kills++;
+      recordMonsterKill(e.key, G.dungeonIdx); // 図鑑は「倒した時」に記録
+      rollMonsterDrop(e);                       // 戦利品抽選 (落とせば図鑑に開示)
+    }
     // 人型の敵はまれに魂を落とす (レアドロップ)
     const HUMANOID_SOUL = { kobold: "fighter", orc: "knight", skeleton: "thief", wraith: "mage" };
     for (const e of b.enemies) {
@@ -2555,7 +2587,7 @@ function renderPalace() {
   const monBtn = el("div", "tw-fac");
   monBtn.appendChild(el("div", "tw-faci", "🐉"));
   monBtn.appendChild(el("div", "tw-facn", "モンスター図鑑"));
-  monBtn.appendChild(el("div", "tw-facd", `発見 ${Object.keys(G.codex.mon).length} 体`));
+  monBtn.appendChild(el("div", "tw-facd", `討伐 ${Object.keys(G.codex.mon).length} 種`));
   monBtn.addEventListener("click", () => { G.town.facility = "codexMon"; renderCodexMon(); });
   row.appendChild(monBtn);
   const itemBtn = el("div", "tw-fac");
@@ -2611,26 +2643,79 @@ function playStoryEvent(ev) {
 }
 
 // ---- 図鑑 (王宮書庫) ----
-function codexSeeMonster(key) { if (key) G.codex.mon[key] = true; }
+// モンスター図鑑の記録単位: { kills, normal, rare, dungeons:{idx:true} }
+// 記録されるのは「倒した時」のみ。落としたドロップ(通常/レア)も実際に落として初めて開示。
+function codexMonEntry(key) {
+  let e = G.codex.mon[key];
+  if (!e || typeof e !== "object") {
+    e = { kills: e === true ? 1 : 0, normal: false, rare: false, dungeons: {} };
+    G.codex.mon[key] = e;
+  }
+  if (!e.dungeons) e.dungeons = {};
+  return e;
+}
+function recordMonsterKill(key, dungeonIdx) {
+  if (!key) return;
+  const e = codexMonEntry(key);
+  e.kills++;
+  if (dungeonIdx != null) e.dungeons[dungeonIdx] = true;
+}
+// 撃破時の戦利品抽選 (通常30% / レア4%)。落としたら図鑑に開示し所持品へ
+function rollMonsterDrop(enemy) {
+  const mon = MONSTERS[enemy.key];
+  if (!mon) return;
+  const e = codexMonEntry(enemy.key);
+  let dropId = null, rare = false;
+  if (mon.dropRare && Math.random() < 0.04) { dropId = mon.dropRare; rare = true; }
+  else if (mon.dropNormal && Math.random() < 0.30) { dropId = mon.dropNormal; rare = false; }
+  if (!dropId) return;
+  if (rare) e.rare = true; else e.normal = true;
+  codexSeeItem(dropId);
+  const it = cloneItem(dropId);
+  if (!it) return;
+  const who = G.party.find((p) => p.alive && p.items.length < MAX_ITEMS)
+    || G.party.find((p) => p.items.length < MAX_ITEMS);
+  if (who) {
+    runGainItem(who, it);
+    log(`${enemy.name} が ${it.name} を落とした！`, rare ? "win" : "sys");
+    setTimeout(() => showToast(`${rare ? "🌟レアドロップ" : "✦ドロップ"} ${it.name}`), 500);
+  }
+}
 function codexSeeItem(id) { if (id) G.codex.item[id] = true; }
+
+let codexMonRace = "amorph"; // モンスター図鑑の選択中タブ (種族)
+let codexItemTab = "weapon"; // アイテム図鑑の選択中タブ (スロット種別)
 
 function renderCodexMon() {
   townEl.innerHTML = "";
   townEl.appendChild(townHeader("モンスター図鑑", "palace"));
-  // 出会ったものだけ表示 (総数は伏せる)
+  // 倒したものだけ表示 (総数は伏せる)
   const seenKeys = Object.keys(G.codex.mon).filter((k) => MONSTERS[k]);
-  townEl.appendChild(el("div", "tw-note", `発見済み ${seenKeys.length} 体`));
+  townEl.appendChild(el("div", "tw-note", `討伐済み ${seenKeys.length} 種`));
+
+  // 種族タブ
+  const tabs = el("div", "tw-dolltabs shop-tabs cdx-tabs");
+  for (const r of MON_RACES) {
+    const b = btn(r.label, () => { codexMonRace = r.key; renderCodexMon(); });
+    b.className = "tw-dolltab" + (codexMonRace === r.key ? " active" : "");
+    tabs.appendChild(b);
+  }
+  townEl.appendChild(tabs);
+
+  const keys = seenKeys.filter((k) => (MONSTERS[k].race || ARCH_RACE[MONSTERS[k].archetype]) === codexMonRace);
   const grid = el("div", "cdx-grid");
-  for (const key of seenKeys) {
+  for (const key of keys) {
     const m = MONSTERS[key];
+    const e = G.codex.mon[key];
     const c = el("div", "cdx-card");
     if (m.rank) c.style.borderColor = RANK_COLOR[m.rank];
     const art = el("div", "cdx-art"); art.appendChild(spriteCanvas(m, 3)); c.appendChild(art);
     c.appendChild(el("div", "cdx-name", m.name));
-    c.appendChild(el("div", "cdx-stat", `HP${m.maxhp} 攻${m.atk} 防${m.def} 速${m.spd}`));
+    c.appendChild(el("div", "cdx-stat", `討伐 ${(e && e.kills) || 0}`));
+    c.addEventListener("click", () => { SFX.select(); showCodexMonDetail(key); });
     grid.appendChild(c);
   }
-  if (!seenKeys.length) grid.appendChild(el("div", "tw-empty", "まだ何も見ていない。迷宮へ。"));
+  if (!keys.length) grid.appendChild(el("div", "tw-empty", "この種族はまだ討伐していない。"));
   townEl.appendChild(grid);
 }
 
@@ -2639,18 +2724,115 @@ function renderCodexItem() {
   townEl.appendChild(townHeader("アイテム図鑑", "palace"));
   const seenIds = Object.keys(G.codex.item).filter((id) => ITEMS[id]);
   townEl.appendChild(el("div", "tw-note", `発見済み ${seenIds.length} 種`));
+
+  // スロット種別タブ (商店と同じ区分。「売る」は除外)
+  const tabDefs = SHOP_TABS.filter((t) => t.key !== "sell");
+  const tabs = el("div", "tw-dolltabs shop-tabs cdx-tabs");
+  for (const t of tabDefs) {
+    const b = btn(t.label, () => { codexItemTab = t.key; renderCodexItem(); });
+    b.className = "tw-dolltab" + (codexItemTab === t.key ? " active" : "");
+    tabs.appendChild(b);
+  }
+  townEl.appendChild(tabs);
+
+  const def = tabDefs.find((t) => t.key === codexItemTab) || tabDefs[0];
+  const slotSet = new Set(def.slots || []);
+  const ids = seenIds.filter((id) => slotSet.has(ITEMS[id].slot));
   const grid = el("div", "cdx-grid");
-  for (const id of seenIds) {
+  for (const id of ids) {
     const it = ITEMS[id];
     const c = el("div", "cdx-card");
     if (it.rank) c.style.borderColor = RANK_COLOR[it.rank];
     const art = el("div", "cdx-art"); art.appendChild(spriteCanvas(it, 3)); c.appendChild(art);
     c.appendChild(el("div", "cdx-name", it.name));
-    c.appendChild(el("div", "cdx-stat", it.desc || ""));
+    c.addEventListener("click", () => { SFX.select(); showCodexItemDetail(id); });
     grid.appendChild(c);
   }
-  if (!seenIds.length) grid.appendChild(el("div", "tw-empty", "まだ何も手にしていない。"));
+  if (!ids.length) grid.appendChild(el("div", "tw-empty", "この区分の品はまだ手にしていない。"));
   townEl.appendChild(grid);
+}
+
+// 図鑑: アイテム詳細を宝箱出現時と同じ大きさでメイン画面に表示
+function showCodexItemDetail(id) {
+  const it = ITEMS[id];
+  if (!it) return;
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card cdx-detail");
+  const rc = it.rank ? RANK_COLOR[it.rank] : null;
+  if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
+  const ban = el("div", "ig-banner", it.rank ? `${RANK_NAME[it.rank]}級アイテム` : "アイテム");
+  if (rc) ban.style.color = rc;
+  card.appendChild(ban);
+  const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 11)); card.appendChild(art);
+  card.appendChild(el("div", "ig-name", it.name));
+  const st = statLines(it);
+  if (st) card.appendChild(el("div", "ig-stat", st));
+  card.appendChild(el("div", "ig-desc", it.desc || ""));
+  const ok = btn("閉じる", () => wrap.remove());
+  ok.className = "btn primary ig-ok";
+  card.appendChild(ok);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
+}
+
+// 図鑑: モンスター詳細 (説明・討伐数・ステータス・ドロップ・出現ダンジョン)
+function showCodexMonDetail(key) {
+  const m = MONSTERS[key];
+  if (!m) return;
+  const e = codexMonEntry(key);
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card cdx-detail");
+  const rc = m.rank ? RANK_COLOR[m.rank] : null;
+  if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
+  const raceKey = m.race || ARCH_RACE[m.archetype];
+  const ban = el("div", "ig-banner", `${RACE_LABEL[raceKey] || "魔物"}${m.rank ? "・" + RANK_NAME[m.rank] + "級" : ""}`);
+  if (rc) ban.style.color = rc;
+  card.appendChild(ban);
+  const art = el("div", "ig-art"); art.appendChild(spriteCanvas(m, 9)); card.appendChild(art);
+  card.appendChild(el("div", "ig-name", m.name));
+  card.appendChild(el("div", "ig-desc", m.desc || ""));
+
+  const info = el("div", "cdx-info");
+  info.appendChild(el("div", "cdx-kills", `討伐数 ${e.kills || 0}`));
+  info.appendChild(el("div", "cdx-stat", `HP${m.maxhp}  攻${m.atk}  防${m.def}  速${m.spd}  ✦${m.exp}  💰${m.gold}`));
+  card.appendChild(info);
+
+  // ドロップ (実際に落とすまで ？？？)
+  const dropBox = el("div", "cdx-drops");
+  dropBox.appendChild(el("div", "cdx-h", "落とすもの"));
+  const dropRow = (label, itemId, revealed, cls) => {
+    const r = el("div", "cdx-drow");
+    r.appendChild(el("span", "cdx-dlabel " + cls, label));
+    if (revealed && ITEMS[itemId]) {
+      const ic = el("span", "cdx-di"); ic.appendChild(spriteCanvas(ITEMS[itemId], 2)); r.appendChild(ic);
+      r.appendChild(el("span", "cdx-dn", ITEMS[itemId].name));
+    } else {
+      r.appendChild(el("span", "cdx-dn dim", "？？？"));
+    }
+    return r;
+  };
+  dropBox.appendChild(dropRow("通常", m.dropNormal, e.normal, "normal"));
+  dropBox.appendChild(dropRow("レア", m.dropRare, e.rare, "rare"));
+  card.appendChild(dropBox);
+
+  // 出現ダンジョン (倒したダンジョンのみ記載)
+  const dunBox = el("div", "cdx-drops");
+  dunBox.appendChild(el("div", "cdx-h", "出現したダンジョン"));
+  const idxs = Object.keys(e.dungeons || {}).map(Number).filter((i) => DUNGEONS[i]);
+  if (idxs.length) {
+    for (const i of idxs) dunBox.appendChild(el("div", "cdx-dun", `・${DUNGEONS[i].name}`));
+  } else {
+    dunBox.appendChild(el("div", "cdx-dun dim", "・記録なし"));
+  }
+  card.appendChild(dunBox);
+
+  const ok = btn("閉じる", () => wrap.remove());
+  ok.className = "btn primary ig-ok";
+  card.appendChild(ok);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (ev) => { if (ev.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
 }
 
 // ---- 宿屋: 全回復 ----
@@ -3437,16 +3619,12 @@ function openEquipChooser(p, slotKey) {
     list.appendChild(un);
   }
 
-  // 候補収集: 自分の所持品 → 他キャラの所持品 → 他キャラの装備品
+  // 候補収集: 自分の所持品 → 他キャラの所持品 (他キャラが装備中の品は除外)
   const cands = [];
   for (const it of p.items) if (itemFitsSlot(it, slotKey) && canEquip(p, it)) cands.push({ it, owner: p, where: "self" });
   for (const d of allDolls()) {
     if (d === p) continue;
     for (const it of d.items) if (itemFitsSlot(it, slotKey) && canEquip(p, it)) cands.push({ it, owner: d, where: "bag" });
-    for (const sk of SLOTS) {
-      const it = d.equip[sk];
-      if (it && !it.cursed && itemFitsSlot(it, slotKey) && canEquip(p, it)) cands.push({ it, owner: d, where: "equip", srcSlot: sk });
-    }
   }
 
   if (!cands.length) list.appendChild(el("div", "tw-empty", "装備できる品がない。"));
@@ -3962,6 +4140,16 @@ function loadGame() {
     try { recalcDoll(d); } catch {}
   }
   if (!G.stats) G.stats = { runs: 0, deepest: 0, kills: 0, deaths: 0, soulsFound: 0, bossKills: 0 };
+  // 図鑑の移行: 旧形式 (mon[key]=true) を {kills,normal,rare,dungeons} に変換
+  if (!G.codex) G.codex = { mon: {}, item: {} };
+  if (!G.codex.mon) G.codex.mon = {};
+  if (!G.codex.item) G.codex.item = {};
+  for (const k in G.codex.mon) {
+    const v = G.codex.mon[k];
+    if (!v || typeof v !== "object") {
+      G.codex.mon[k] = { kills: v === true ? 1 : 0, normal: false, rare: false, dungeons: {} };
+    } else if (!v.dungeons) { v.dungeons = {}; }
+  }
   return true;
 }
 
