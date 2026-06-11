@@ -376,7 +376,7 @@ canvas.spr { image-rendering: pixelated; display: block; }
 #item-get {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 76; /* 街(70)/ステータス(75)の上に出す (はじめからの確認等)。confirm-overlay(80)より下 */
   display: flex;
   align-items: center;
   justify-content: center;
