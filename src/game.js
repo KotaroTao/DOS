@@ -3788,13 +3788,11 @@ function renderCodexDungeon() {
   const unlocked = Math.max(1, G.unlockedDungeons || 1);
   if (codexDungeonIdx >= unlocked) codexDungeonIdx = 0;
 
-  // ダンジョン選択タブ
+  // ダンジョン選択タブ (未解放のダンジョンは一切表示しない)
   const tabs = el("div", "tw-dolltabs shop-tabs cdx-tabs");
-  for (let i = 0; i < DUNGEONS.length; i++) {
-    const open = i < unlocked;
-    const b = btn(open ? DUNGEONS[i].short : "？？", () => { if (open) { codexDungeonIdx = i; renderCodexDungeon(); } });
+  for (let i = 0; i < unlocked && i < DUNGEONS.length; i++) {
+    const b = btn(DUNGEONS[i].short, () => { codexDungeonIdx = i; renderCodexDungeon(); });
     b.className = "tw-dolltab" + (codexDungeonIdx === i ? " active" : "");
-    if (!open) b.disabled = true;
     tabs.appendChild(b);
   }
   townEl.appendChild(tabs);
