@@ -4459,7 +4459,7 @@ function renderShop() {
     const r = el("div", "tw-shoprow");
     const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
     const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", `${it.name} ×${count}`));
+    info.appendChild(el("div", "tw-chipn", `${it.name} 在庫 : ${count}`));
     info.appendChild(el("div", "tw-chipc", it.desc || ""));
     r.appendChild(info);
     const b = btn(`💰${price}`, () => buyItem(id, price));
