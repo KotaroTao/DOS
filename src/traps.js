@@ -62,10 +62,11 @@ for (const t of TRAPS) {
 
 // 迷宮ランク (1-10) に応じて罠を1つ抽選する。
 // 罠ランク <= min(3, 迷宮ランク) が出現対象 (= 迷宮21以降は全種)。
-// 重み: 深い迷宮ほど高ランクの罠へ指数的に寄る (最深部では大半が致命的な罠)
-export function pickTrap(dungeonRank, rng = Math.random) {
+// 重み: 深い迷宮ほど高ランクの罠へ指数的に寄る (最深部では大半が致命的な罠)。
+// excludeKinds: 出現させない型 (例: 続きの処理が戦闘で途切れる場面では "alarm" を除く)
+export function pickTrap(dungeonRank, rng = Math.random, excludeKinds = null) {
   const cap = Math.min(3, Math.max(1, dungeonRank || 1));
-  const pool = TRAPS.filter((t) => t.rank <= cap);
+  const pool = TRAPS.filter((t) => t.rank <= cap && (!excludeKinds || !excludeKinds.includes(t.kind)));
   const w = pool.map((t) => Math.pow(1 + 0.35 * ((dungeonRank || 1) - 1), t.rank - 1));
   let total = 0;
   for (const x of w) total += x;

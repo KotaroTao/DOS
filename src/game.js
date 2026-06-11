@@ -1166,10 +1166,11 @@ function openChest(cell, opener) {
   rollChest(cell, true, () => { if (G.state === "board") renderBoard(); }, opener);
 }
 
-// 宝箱の中身を解決。allowDanger=falseなら罠/ミミックなし (戦闘後の宝箱、ランク1扱い)。
-// opener: 開けると選ばれた人業 (罠解除判定に使う)。done は安全終了時のコールバック
-function rollChest(cell, allowDanger, done, opener) {
-  const cRank = allowDanger ? chestRankOf(cell) : 1;
+// 宝箱の中身を解決。allowDanger=falseなら罠/ミミックなし (戦闘後の宝箱。罠フェーズは battleChest 側)。
+// opener: 開けると選ばれた人業 (罠解除判定に使う)。done は安全終了時のコールバック。
+// cRankIn: 宝箱ランクの引き継ぎ (戦闘後の宝箱はセルがないため明示的に渡す)
+function rollChest(cell, allowDanger, done, opener, cRankIn) {
+  const cRank = cRankIn || (allowDanger ? chestRankOf(cell) : 1);
   if (allowDanger) {
     if (Math.random() < 0.06 + G.floor * 0.03) {
       // ミミック: 演出 → 戦闘
@@ -1187,27 +1188,43 @@ function rollChest(cell, allowDanger, done, opener) {
       askCursedChest(done);
       return;
     }
-    // 罠: 70%の確率で仕掛けられている。迷宮ランクに応じた罠を抽選し、
-    // 開けた者が解除を試みる (難度はダンジョンランク×宝箱ランク)
-    if (Math.random() < 0.70) {
-      const trap = pickTrap(activeCfg().rank || 1);
-      const who = opener || bestDisarmer();
-      if (who && Math.random() < disarmChance(who, cRank)) {
-        SFX.chest();
-        log(`宝箱の罠「${trap.name}」を ${who.name}が解除した！`, "sys");
-        showEvent({
-          sprite: ICONS.trap, title: "罠解除！", accent: "#9be88a", banner: "✦ 罠解除 ✦", sparkle: true,
-          lines: [`宝箱には「${trap.name}」が仕掛けられていた。`, `${who.name}が見抜き、解除した！`],
-          onClose: () => chestContents(cell, done, cRank),
-        });
-        return;
-      }
-      // 解除失敗: 罠が発動。生き残れば中身は手に入る (テレポーター/警報は中身を失う)
-      springTrap(trap, who, { chest: true, proceed: () => chestContents(cell, done, cRank), abort: done });
-      return;
-    }
+    // 罠フェーズ: 70%で罠。解除/発動/罠なしの演出を経て中身へ
+    chestTrapPhase(opener, () => chestContents(cell, done, cRank), cRank, done);
+    return;
   }
   chestContents(cell, done, cRank);
+}
+
+// 罠フェーズ (盤面・戦闘後の宝箱共通): 70%の確率で罠が仕掛けられている。
+// 迷宮ランクに応じた罠を抽選し、開けた者が解除を試みる (難度はダンジョンランク×宝箱ランク)。
+// 成功または罠なしならその旨を告げてから contents() へ進む。
+// abort: テレポーター/警報で中身を失った時の終了処理 (省略時は盤面へ)。
+// excludeKinds: 出現させない罠の型 (踏破演出など、戦闘で続きが途切れる場面で使う)
+function chestTrapPhase(opener, contents, cRank = 1, abort, excludeKinds) {
+  if (Math.random() < 0.70) {
+    const trap = pickTrap(activeCfg().rank || 1, Math.random, excludeKinds);
+    const who = opener || bestDisarmer();
+    if (who && Math.random() < disarmChance(who, cRank)) {
+      SFX.chest();
+      log(`宝箱の罠「${trap.name}」を ${who.name}が解除した！`, "sys");
+      showEvent({
+        sprite: ICONS.trap, title: "罠解除！", accent: "#9be88a", banner: "✦ 罠解除 ✦", sparkle: true,
+        lines: [`宝箱には「${trap.name}」が仕掛けられていた。`, `${who.name}が見抜き、解除した！`],
+        onClose: contents,
+      });
+      return;
+    }
+    // 解除失敗: 罠が発動。生き残れば中身は手に入る (テレポーター/警報は中身を失う)
+    springTrap(trap, who, { chest: true, proceed: contents, abort });
+    return;
+  }
+  SFX.chest();
+  log("宝箱に罠はなかった。", "sys");
+  showEvent({
+    sprite: ICONS.chest, title: "罠はない", accent: "#9be88a", banner: "✦ 安全 ✦",
+    lines: ["宝箱に罠は仕掛けられていなかった。"],
+    onClose: contents,
+  });
 }
 
 // ===== 罠の発動 (床罠・宝箱罠共通) =====
@@ -1430,18 +1447,26 @@ function askCursedChest(done) {
   ], ICONS.chest, { banner: "⚠ 黒い宝箱 ⚠", accent: "#8a2be2" });
 }
 
-// 戦闘勝利後の宝箱 (出現判定は endBattle 側)。罠やミミックはなしで安全に開封。
+// 戦闘勝利後の宝箱 (出現判定は endBattle 側)。ミミックはいないが罠は70%で仕掛けられており、
+// 開ける者を選んでその者の解除値で判定する (盤面の宝箱と同じ罠フェーズを通る)。
 // 敵がアイテムを落としていれば中身はそれ。なければダンジョンレベル準拠の抽選。
 // after: 終了後に呼ぶ (ボス撃破時は踏破演出へつなぐ)
 function battleChest(drops, after) {
   const done = () => { if (after) after(); else if (G.state === "board") renderBoard(); };
-  showChoice("宝箱が現れた！ 開ける？", [
-    { label: "🔓 開ける", fn: () => {
-      if (drops && drops.length) giveDropsFromChest(drops, 0, done);
-      else rollChest(null, false, done);
-    } },
-    { label: "✋ 開けない", fn: done },
-  ], ICONS.chest, { banner: "⚔ 勝利 ⚔" });
+  const cRank = chestRankOf(null);
+  const contents = () => {
+    if (drops && drops.length) giveDropsFromChest(drops, 0, done);
+    else rollChest(null, false, done, null, cRank);
+  };
+  // 踏破演出など続きの処理 (after) がある時は、戦闘へ突入する警報系の罠を出さない
+  // (戦闘を挟むと after が呼ばれなくなるため)
+  const exclude = after ? ["alarm"] : null;
+  const opts = G.party.filter((p) => p.alive).map((p) => ({
+    label: `🔓 ${p.name} (解除 ${Math.round(disarmChance(p, cRank) * 100)}%)`,
+    fn: () => chestTrapPhase(p, contents, cRank, done, exclude),
+  }));
+  opts.push({ label: "✋ 開けない", fn: done });
+  showChoice(`${CHEST_RANKS[cRank]}宝箱が現れた！ 罠があるかもしれない。誰が開ける？`, opts, ICONS.chest, { banner: "⚔ 勝利 ⚔" });
 }
 
 // 宝箱から敵のドロップ品を順に取り出す。図鑑への開示も実際に手にした時に行う
@@ -4556,7 +4581,7 @@ function renderShop() {
     const r = el("div", "tw-shoprow");
     const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
     const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", `${it.name} ×${count}`));
+    info.appendChild(el("div", "tw-chipn", `${it.name} 在庫 : ${count}`));
     info.appendChild(el("div", "tw-chipc", it.desc || ""));
     r.appendChild(info);
     const b = btn(`💰${price}`, () => buyItem(id, price));
