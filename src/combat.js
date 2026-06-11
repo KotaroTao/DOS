@@ -1,10 +1,11 @@
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
 import { ITEMS, SLOTS, recalc, equip } from "./items.js";
+import { elemMult } from "./dungeons/schema.js";
 
 export const SPELLS = {
-  HALITO: { name: "ハリト", mp: 2, kind: "atk", power: 10, target: "enemy", desc: "炎の矢" },
-  MAHALITO: { name: "マハリト", mp: 6, kind: "atk", power: 22, target: "all-enemy", desc: "業火" },
+  HALITO: { name: "ハリト", mp: 2, kind: "atk", power: 10, element: "fire", target: "enemy", desc: "炎の矢" },
+  MAHALITO: { name: "マハリト", mp: 6, kind: "atk", power: 22, element: "fire", target: "all-enemy", desc: "業火" },
   DIOS: { name: "ディオス", mp: 2, kind: "heal", power: 14, target: "ally", desc: "傷を癒す" },
   DIAL: { name: "ディアル", mp: 4, kind: "heal", power: 28, target: "ally", desc: "大きく回復" },
   KATINO: { name: "カティノ", mp: 3, kind: "sleep", power: 0, target: "all-enemy", desc: "敵を眠らせる" },
@@ -14,8 +15,8 @@ export const SPELLS = {
   REVIVE: { name: "リバイブ", mp: 8, kind: "heal", power: 0, target: "ally", revive: true, revivePct: 0.5, desc: "戦闘不能をHP50%で蘇生" },
   RESURRECT: { name: "リザレクション", mp: 14, kind: "heal", power: 0, target: "ally", revive: true, revivePct: 1.0, desc: "戦闘不能をHP100%で蘇生" },
   // 攻撃呪文の頂点
-  TILTOWAIT: { name: "ティルトウェイト", mp: 16, kind: "atk", power: 48, target: "all-enemy", desc: "全体を消し飛ばす業火" },
-  MADALT: { name: "マダルト", mp: 10, kind: "atk", power: 34, target: "all-enemy", desc: "全体を貫く氷嵐" },
+  TILTOWAIT: { name: "ティルトウェイト", mp: 16, kind: "atk", power: 48, element: "fire", target: "all-enemy", desc: "全体を消し飛ばす業火" },
+  MADALT: { name: "マダルト", mp: 10, kind: "atk", power: 34, element: "water", target: "all-enemy", desc: "全体を貫く氷嵐" },
   // 支援・治療・弱体
   CURE: { name: "キュア", mp: 3, kind: "cure", target: "ally", desc: "毒・麻痺を治す" },
   BLESS: { name: "ブレス", mp: 4, kind: "buff", buff: { atk: 1.3 }, target: "ally", desc: "味方単体の攻撃UP" },
@@ -118,6 +119,7 @@ function makeEnemy(key, scale = 1, boss = false) {
   const hp = Math.max(1, Math.round(m.maxhp * scale));
   return {
     uid: ++_uid, key, mon: m, name: (boss ? m.name : m.name),
+    element: m.element || "none",
     hp, maxhp: hp,
     atk: Math.max(1, Math.round(m.atk * scale)),
     def: Math.round(m.def * scale),
@@ -292,13 +294,17 @@ export class Battle {
     const power = opt.power || 1;       // 技の倍率 (通常攻撃は1)
     let dmg = variance(Math.round(this._eatk(actor) * power)) - Math.floor(this._edef(tgt) * 0.5);
     if (tgt._defending) dmg = Math.floor(dmg * 0.5);
+    // 属性相性 (攻撃属性 = 技 or 行動者。通常攻撃や無属性は等倍)
+    const em = elemMult(opt.element || actor.element || "none", tgt.element || "none");
+    if (em !== 1) dmg = Math.round(dmg * em);
     // 会心: 基礎 + 盗賊パッシブ + 幸運(LUK) + 技の会心補正
     const luckCrit = Math.max(0, ((actor.luk || 8) - 8)) * 0.005;
     const crit = Math.random() < 0.06 + (actor.critBonus || 0) + luckCrit + (opt.critBonus || 0);
     if (crit) dmg = Math.floor(dmg * 1.85);
     dmg = Math.max(1, dmg);
     tgt.hp -= dmg;
-    this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}`,
+    const eff = em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : "";
+    this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}${eff}`,
       actor.side === "party" ? "hit" : "dmg");
     if (tgt.asleep) tgt.asleep = false;
     // 命中時の弱体 (毒刃など)
@@ -328,11 +334,14 @@ export class Battle {
       const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
       for (const t of targets) {
         if (!t.alive) continue;
-        const dmg = Math.max(1, Math.round(variance(sp.power) * spMul) - Math.floor(this._edef(t) * 0.2));
+        const em = elemMult(sp.element || "none", t.element || "none");
+        let dmg = Math.max(1, Math.round(variance(sp.power) * spMul) - Math.floor(this._edef(t) * 0.2));
+        if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
         t.hp -= dmg;
-        this.log(`${t.name}に ${dmg} ダメージ`, "dmg");
+        const eff = em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : "";
+        this.log(`${t.name}に ${dmg} ダメージ${eff}`, "dmg");
         if (t.asleep) t.asleep = false;
-        res.hits.push({ target: t, dmg, died: this._die(t) });
+        res.hits.push({ target: t, dmg, eff: em > 1 ? "weak" : em < 1 ? "resist" : null, died: this._die(t) });
       }
     } else if (sp.kind === "buff") {
       const targets = sp.target === "self" ? [actor] : sp.target === "all-ally" ? this.livingParty() : [cmd.target || actor].filter(Boolean);
