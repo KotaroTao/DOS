@@ -1621,8 +1621,7 @@ function animateResult(res, done) {
 }
 
 function magicColor(res) {
-  const n = res.spellName || "";
-  if (n.includes("ハリト")) return "#ff8a3c"; // 炎系
+  if (res.spellElement === "fire") return "#ff8a3c"; // 炎系
   if (res.spellKind === "sleep") return "#9ad1ff";
   return "#b06bff";
 }
@@ -1639,7 +1638,7 @@ function applyImpact(res) {
     SFX.fire(); buzz([0, 50, 40, 80]); shakeScreen(true);
   } else if (res.action === "spell" && res.spellKind !== "phys") {
     if (res.spellKind === "heal" || res.spellKind === "cure" || res.spellKind === "buff") SFX.heal();
-    else if (res.spellName && res.spellName.includes("ハリト")) SFX.fire();
+    else if (res.spellElement === "fire") SFX.fire();
     else SFX.spell();
     buzz(20);
   } else {
