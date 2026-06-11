@@ -15,12 +15,13 @@ import { CATALOG_ITEMS } from "./catalog/index.js";
 import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS } from "./dungeons/index.js";
 import {
   PARTS, PART_LABEL, SOUL_CLASSES, makeSoul, makeDoll, soulName, soulSprite,
-  dollSouls, dominantClass, recalcDoll, sealSoul, createStartingRoster,
+  dollSouls, dominantClass, recalcDoll, sealSoul,
   ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
   SOUL_RANKS, rollSoulRank, soulStats, soulHardCap, ensureSoul,
   JOB_RANKS, jobRankOf, PART_SKILLS, HYBRIDS, findHybrid, JOB_LORE, FLAG_DESC,
   jobSkillTable, jobLevelOf, passiveText,
 } from "./souls.js";
+import { showOpening } from "./opening.js";
 
 // ===== コンテンツの取り込み =====
 // アイテム: 一点物の手作りカタログ (src/catalog/)。二つ名つきの量産品は廃止。
@@ -2064,14 +2065,20 @@ function renderTownHub() {
   intro.appendChild(el("div", "tw-intros", `踏破した迷宮 ${Math.max(0, G.unlockedDungeons - 1)} / ${DUNGEONS.length}`));
   townEl.appendChild(intro);
 
+  // 第0章 (人業の生成) の間は、王宮 (+下賜後は人業の館) 以外を閉ざす
+  const tut = G.msq && G.msq.n === 0 && G.msq.state === "active";
+  const tutAllowed = tut ? (G.msq.granted ? ["palace", "mansion"] : ["palace"]) : null;
+
   // 施設グリッド
   const grid = el("div", "tw-grid");
   for (const fac of FACILITIES) {
-    const c = el("div", "tw-fac");
-    c.appendChild(el("div", "tw-faci", fac.icon));
+    const locked = tutAllowed && !tutAllowed.includes(fac.key);
+    const c = el("div", "tw-fac" + (locked ? " locked" : ""));
+    c.appendChild(el("div", "tw-faci", locked ? "🔒" : fac.icon));
     c.appendChild(el("div", "tw-facn", fac.name));
-    c.appendChild(el("div", "tw-facd", fac.desc));
-    c.addEventListener("click", () => { SFX.select(); G.town.facility = fac.key; renderTown(); });
+    c.appendChild(el("div", "tw-facd", locked ? "王命を果たすまで閉ざされている" : fac.desc));
+    if (locked) c.style.opacity = "0.45";
+    else c.addEventListener("click", () => { SFX.select(); G.town.facility = fac.key; renderTown(); });
     grid.appendChild(c);
   }
   townEl.appendChild(grid);
@@ -2086,10 +2093,16 @@ function renderTownHub() {
     chip.addEventListener("click", () => openStatus(i));
     list.appendChild(chip);
   });
-  if (!G.party.length) list.appendChild(el("div", "tw-empty", "人業がいない。館で仕立てよう。"));
+  if (!G.party.length) list.appendChild(el("div", "tw-empty",
+    tut ? "人業がいない。まずは王宮で王に謁見しよう。" : "人業がいない。館で仕立てよう。"));
   roster.appendChild(list);
   townEl.appendChild(roster);
 
+  // 迷宮 (勅命第1章を拝命するまで、場所は明かされない)
+  if (G.unlockedDungeons < 1) {
+    townEl.appendChild(el("div", "tw-h", "迷宮"));
+    townEl.appendChild(el("div", "tw-note", "王の勅命を受けるまで、迷宮の在処は明かされない。"));
+  } else {
   // 迷宮の選択 (解放済みのみ。クリアで深い迷宮が増える)
   // 本日の迷宮 (日替わり修飾)
   const dm = getDailyMod();
@@ -2117,6 +2130,7 @@ function renderTownHub() {
   const dive = btn(`🕳 「${curDungeon().name}」へ潜る (B1F)`, tryEnterDungeon);
   dive.className = "btn primary tw-dive";
   townEl.appendChild(dive);
+  }
 
   // データ削除 (はじめから) — 誤タップ防止に二重確認
   const reset = btn("🗑 はじめから (全データ削除)", confirmReset);
@@ -3120,6 +3134,66 @@ function acceptMainQuest() {
   });
 }
 
+// ---- 第0章「人業の生成」(チュートリアル勅命) ----
+const TUT_INTRO = [
+  "「よくぞ参った、新しき魂繰りよ。…生身のまま、よくぞ辺境まで辿り着いた。」",
+  "「だが言うておく。生身で迷宮に入ってはならぬ。深淵は、生きた魂から順に喰らう。」",
+  "「先代の魂繰りが遺した人業が三体、武具庫で埃を被っておる。見習いの魂が入ったままだがな。──くれてやろう。」",
+  "「それと赤い魂を百。先日回収された盗賊の魂を五つ──頭、両の腕、胴、足の分だ。」",
+  "「人業の館へゆけ。空の器を仕立て、五つの魂を封じ、四体目の同胞をおのれの手で生み出すのだ。」",
+  "「それがそなたの最初の勅命である。果たしたら、戻って報告せよ。」",
+];
+const TUT_FINALE = [
+  "「…ほう。良い面構えの人業ではないか。初仕事にしては上出来よ。」",
+  "「覚えておけ、魂繰り。人業は道具ではない。死者に与えられた、二度目の生だ。」",
+  "「粗末に扱えば、魂は器の中で錆びる。労り、鍛え、共に深淵を渡れ。」",
+  "「これでそなたも一人前。次は、まことの勅命を授けよう。」",
+];
+
+// 着任の謁見: 見習いの人業3体 + 赤い魂100 + 盗賊の魂×5部位 を下賜する
+function grantTutorialGift() {
+  const ms = G.msq;
+  if (!ms || ms.granted) return;
+  ms.granted = true;
+  const mk = (name, clsKey, gear) => {
+    const d = makeDoll(name);
+    for (const p of PARTS) d.parts[p] = makeSoul(clsKey, 1, p);
+    for (const id of gear) {
+      const it = cloneItem(id);
+      if (it) { d.items.push(it); equipItem(d, it); codexSeeItem(id); }
+    }
+    d.items.push(cloneItem("herb")); codexSeeItem("herb");
+    recalcDoll(d);
+    d.hp = d.maxhp; d.mp = d.maxmp;
+    G.party.push(d);
+  };
+  mk("見習い戦士", "fighter", ["shortSword", "leatherArmor"]);
+  mk("見習い僧侶", "priest", ["warHammer", "cap"]);
+  mk("見習い魔術師", "mage", ["magicStaff", "robe"]);
+  G.redSoul += 100;
+  for (const p of PARTS) G.souls.push(makeSoul("thief", 1, p));
+  codexSweepJobs();
+  SFX.itemget(); buzz([0, 30, 60, 30]);
+  log("見習いの人業3体・🔴100・盗賊の魂×5 を拝受した。", "win");
+  showToast("👑 人業3体と赤い魂を拝受した");
+  autosave(true);
+  renderTown();
+}
+
+// 第0章の報告: 報酬を下賜し、第1章の謁見 (offer) へ繋ぐ
+function reportTutorialQuest() {
+  showStoryScene("勅命「人業の生成」完遂", TUT_FINALE, "下賜: 💰100 + ✦30", () => {
+    G.gold += 100;
+    G.soulPts += 30;
+    SFX.itemget(); buzz([0, 30, 60, 30]);
+    log("最初の勅命「人業の生成」を果たした。", "win");
+    G.msq.state = "offer";
+    updateTopbar();
+    autosave(true);
+    renderTown();
+  });
+}
+
 function renderPalace() {
   townEl.appendChild(townHeader("王宮"));
   townEl.appendChild(el("div", "tw-lead", "玉座の間。王の勅命を聞き、書庫で迷宮の記録を紐解ける。"));
@@ -3129,6 +3203,28 @@ function renderPalace() {
   const ms = G.msq;
   if (!ms || ms.state === "end" || ms.n > 100) {
     townEl.appendChild(el("div", "tw-note", "「百の迷宮は解き放たれた。…余の葬列には、来ずともよいぞ。」"));
+  } else if (ms.n === 0 && ms.state === "active") {
+    // 第0章「人業の生成」
+    if (!ms.granted) {
+      townEl.appendChild(el("div", "tw-note", "玉座の老王が、新しき魂繰りの到着を待っている。"));
+      const b = btn("👑 謁見する — 着任の挨拶", () =>
+        showStoryScene("勅命 「人業の生成」", TUT_INTRO, "下賜: 見習いの人業3体 + 🔴100 + 盗賊の魂×5", () => grantTutorialGift()));
+      b.className = "btn primary tw-add";
+      townEl.appendChild(b);
+    } else if (allDolls().length >= 4) {
+      const b = btn("👑 報告する — 「人業の生成」完遂", () => reportTutorialQuest());
+      b.className = "btn primary tw-add";
+      townEl.appendChild(b);
+    } else {
+      const box = el("div", "tw-rumor");
+      box.appendChild(el("div", "tw-rumors", "勅命 「人業の生成」"));
+      box.appendChild(el("div", "tw-rumort", "人業の館で空の人業を仕立て (🔴30)、盗賊の魂を五部位に封じよ。"));
+      box.appendChild(el("div", "tw-note", "4体目の人業が立ち上がったら、王宮へ戻り報告せよ。"));
+      townEl.appendChild(box);
+      const re = btn("👑 勅命を聞き直す", () => showStoryScene("勅命 「人業の生成」", TUT_INTRO, null, null));
+      re.className = "btn tw-add";
+      townEl.appendChild(re);
+    }
   } else if (ms.state === "active") {
     const tdn = DUNGEONS[ms.n - 1];
     const box = el("div", "tw-rumor");
@@ -3919,6 +4015,7 @@ function buyItem(id, price) {
 
 // ---- 街 ⇄ 迷宮 の出入り ----
 function tryEnterDungeon() {
+  if (G.unlockedDungeons < 1) { log("王の勅命を受けるまで、迷宮には入れない。", "sys"); return; }
   if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); return; }
   // 魂未封印で極端に弱い人業がいたら注意 (任意続行)
   SFX.stairs();
@@ -5096,27 +5193,15 @@ window.addEventListener("beforeunload", () => autosave(true));
 
 // 新規プレイの初期化: 人業ロスター・魂ストック・初期装備を整える
 function setupNewGame() {
-  const { dolls, souls } = createStartingRoster();
-  // 初期装備 (器を最低限戦えるようにする)
-  const gearByName = {
-    ガロ: ["shortSword", "leatherArmor"],
-    サリア: ["magicStaff", "robe"],
-    ミナ: ["warHammer", "cap"],
-  };
-  for (const d of dolls) {
-    for (const id of (gearByName[d.name] || [])) {
-      const it = cloneItem(id);
-      if (it) { d.items.push(it); equipItem(d, it); codexSeeItem(id); }
-    }
-    d.items.push(cloneItem("herb"));
-    codexSeeItem("herb");
-    recalcDoll(d);
-    d.hp = d.maxhp; d.mp = d.maxmp;
-  }
-  G.party = dolls;
-  G.souls = souls;
+  // 何も持たずに着任する。人業も魂も赤い魂も、まず王宮で拝受する (第0章)
+  G.party = [];
+  G.reserve = [];
+  G.souls = [];
+  G.redSoul = 0;
+  G.unlockedDungeons = 0; // 勅命 (第1章) を受けるまで、迷宮の場所は明かされない
   G.shopStock = { ...SHOP_INIT_STOCK };
-  G.msq = { n: 1, state: "active" }; // 第1章は着任時に拝命済み (王宮で聞き直せる)
+  // 第0章「人業の生成」: 王宮で謁見 → 下賜品を受ける (granted) → 館で4体目を仕立て → 報告
+  G.msq = { n: 0, state: "active", granted: false };
   codexSweepJobs();
   initQuests();
 }
@@ -5150,6 +5235,14 @@ function init() {
     } catch (e2) { /* これ以上は何もしない (セーブは温存) */ }
   }
   autosave(true);
+
+  // 初回起動 (新規ゲーム) のみ: オープニングを流してから街へ
+  if (!loaded) {
+    G.prompt = true;
+    try {
+      showOpening(() => { G.prompt = false; });
+    } catch (e) { G.prompt = false; }
+  }
 
   if ("serviceWorker" in navigator) {
     // 新しい SW が制御を奪った瞬間に1度だけ確実にリロード (古いJS混在を防ぐ)
