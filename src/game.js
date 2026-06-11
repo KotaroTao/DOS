@@ -4265,7 +4265,7 @@ function renderStatus() {
   const p = G.party[G.statusIdx];
   statusEl.innerHTML = "";
 
-  // ===== ヘッダ: 肖像 + 名前 + 属性-種族-職業 + 前後/閉じる + タブ =====
+  // ===== ヘッダ: 肖像 + 名前 + 属性-種族-職業 + 前後/閉じる =====
   const head = el("div", "st-head");
   const port = el("div", "st-port small");
   port.appendChild(spriteCanvas(HERO, 4));
@@ -4282,29 +4282,62 @@ function renderStatus() {
   head.appendChild(nav);
   statusEl.appendChild(head);
 
-  // タブ: ステータス(統合) / 魂
-  const tabs = el("div", "st-tabbar");
-  const tMain = btn("ステータス", () => { G.statusTab = "main"; stSel = null; renderStatus(); });
-  tMain.className = "st-tab2" + (G.statusTab !== "soul" ? " active" : "");
-  tabs.appendChild(tMain);
+  // タブ: ステータス(統合) / 魂 (人業キャラのみ)
   if (p.isDoll) {
+    const tabs = el("div", "st-tabbar");
+    const tMain = btn("ステータス", () => { G.statusTab = "main"; stSel = null; renderStatus(); });
+    tMain.className = "st-tab2" + (G.statusTab !== "soul" ? " active" : "");
+    tabs.appendChild(tMain);
     const tSoul = btn("魂", () => { G.statusTab = "soul"; renderStatus(); });
     tSoul.className = "st-tab2" + (G.statusTab === "soul" ? " active" : "");
     tabs.appendChild(tSoul);
+    statusEl.appendChild(tabs);
+    if (G.statusTab === "soul") { statusEl.appendChild(renderSoulTab(p)); return; }
   }
-  statusEl.appendChild(tabs);
 
-  if (G.statusTab === "soul" && p.isDoll) { statusEl.appendChild(renderSoulTab(p)); return; }
+  // ===== コンパクト1画面レイアウト =====
 
-  // ===== 統合タブ: 上から ステータス → 装備 → 所持品 =====
-  // 1. ステータス
-  statusEl.appendChild(renderStatTab(p));
+  // 1. ステータスバー (HP/MP/状態/属性/呪文)
+  const bar = el("div", "st-statbar");
+  const ail = p.ailment === "poison" ? "毒" : (p.alive ? "正常" : "戦闘不能");
+  const ailCls = (p.ailment || !p.alive) ? "st-bad" : "";
+  const spellLine = p.spells && p.spells.length
+    ? `<span class="st-bar-spells">呪文: ${p.spells.map((k) => SPELLS[k] ? SPELLS[k].name : k).join("・")}</span>`
+    : "";
+  bar.innerHTML = `<span>HP <b>${p.hp}/${p.maxhp}</b></span><span>MP <b>${p.mp}/${p.maxmp}</b></span><span class="${ailCls}">状態: <b>${ail}</b></span><span>属性攻 ${elemStatChip(p.elemAtk)}</span><span>属性防 ${elemStatChip(p.elemDef)}</span>${spellLine}`;
+  statusEl.appendChild(bar);
 
-  // アイテム選択中は情報パネル (装備/使う/捨てる等の操作) を直下に表示
-  if (stSel) statusEl.appendChild(renderItemDetail(p, stSel));
+  // 死亡中の帰還タイマー
+  if (p.isDoll && !p.alive) {
+    if (!p.reviveAt) setReviveTimers();
+    const box = el("div", "st-revive");
+    const remain = Math.max(0, (p.reviveAt || Date.now()) - Date.now());
+    box.appendChild(el("div", "st-revt", `⏳ 帰還まで ${fmtRemain(remain)}`));
+    box.appendChild(el("div", "tw-note", "他の冒険者が捜索・救出している…"));
+    const b = btn(`🔴1 で帰還を早める (-20分)`, () => tryHastenRescue(p));
+    b.className = "btn primary";
+    if (G.redSoul < 1) b.disabled = true;
+    box.appendChild(b);
+    statusEl.appendChild(box);
+  }
 
-  // 2. 装備 (8スロット)。スロットをタップすると装備候補一覧を表示
-  statusEl.appendChild(el("div", "st-h", "装備 — 部位をタップで変更"));
+  // 2. 能力値 (6列1行)
+  const ab = el("div", "st-attrs6");
+  for (const k of ATTR_KEYS) {
+    const cell = el("div", "st-attr6");
+    cell.appendChild(el("span", "st-attrk", ATTR_LABEL[k]));
+    cell.appendChild(el("span", "st-attrv", String(Math.round(p[k] || 0))));
+    cell.title = ATTR_NAME[k];
+    ab.appendChild(cell);
+  }
+  statusEl.appendChild(ab);
+
+  // 3. 装備 + 所持品 (2カラム横並び)
+  const grid = el("div", "st-bottom-grid");
+
+  // 左列: 装備 (タップで変更)
+  const eqCol = el("div", "st-col");
+  eqCol.appendChild(el("div", "st-h", "装備 — タップで変更"));
   const eqList = el("div", "st-eqlist");
   for (const slot of SLOTS) {
     const it = p.equip[slot];
@@ -4312,18 +4345,41 @@ function renderStatus() {
     const si = el("span", "st-sicon"); si.appendChild(spriteCanvas(SLOT_ICONS[slot] || SLOT_ICONS.weapon, 2)); row.appendChild(si);
     const ii = el("span", "st-iicon"); if (it) ii.appendChild(spriteCanvas(it, 2)); row.appendChild(ii);
     row.appendChild(el("span", "st-ename", it ? it.name + (it.cursed ? " 🔒" : "") : SLOT_LABEL[slot]));
-    row.appendChild(el("span", "st-eslot", SLOT_LABEL[slot]));
     row.addEventListener("click", () => openEquipChooser(p, slot));
     eqList.appendChild(row);
   }
-  statusEl.appendChild(eqList);
+  eqCol.appendChild(eqList);
+  grid.appendChild(eqCol);
 
-  // 3. 所持品
-  statusEl.appendChild(el("div", "st-h", `所持品 (持ち ${p.items.length}/${MAX_ITEMS})`));
+  // 右列: 所持品
+  const invCol = el("div", "st-col");
+  invCol.appendChild(el("div", "st-h", `所持 ${p.items.length}/${MAX_ITEMS}`));
   const invList = el("div", "st-invlist");
   p.items.forEach((it, i) => invList.appendChild(invRow(p, it, { from: "bag", index: i })));
   if (!invList.children.length) invList.appendChild(el("div", "st-empty", "(なし)"));
-  statusEl.appendChild(invList);
+  invCol.appendChild(invList);
+  grid.appendChild(invCol);
+
+  statusEl.appendChild(grid);
+
+  // アイテム選択中は情報パネル
+  if (stSel) statusEl.appendChild(renderItemDetail(p, stSel));
+
+  // 野営呪文 (ある場合のみ)
+  const campSpells = (p.spells || []).filter((k) => SPELLS[k] && SPELLS[k].kind === "heal");
+  if (p.isDoll && p.alive && campSpells.length) {
+    statusEl.appendChild(el("div", "st-h2", "呪文 (野営)"));
+    const sl = el("div", "st-camp");
+    for (const k of campSpells) {
+      const sp = SPELLS[k];
+      const b = btn(`${sp.name} (MP${sp.mp})`, () => campCast(p, k));
+      b.className = "tw-small";
+      if (p.mp < sp.mp) b.disabled = true;
+      sl.appendChild(b);
+    }
+    statusEl.appendChild(sl);
+    statusEl.appendChild(el("div", "tw-note", "回復・蘇生は対象を選んで使う。"));
+  }
 }
 
 // 所持品リストの1行

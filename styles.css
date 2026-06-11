@@ -298,7 +298,7 @@ canvas.spr { image-rendering: pixelated; display: block; }
   flex-direction: column;
   max-width: 520px;
   margin: 0 auto;
-  padding: calc(var(--safe-top) + 8px) 10px calc(var(--safe-bottom) + 10px);
+  padding: calc(var(--safe-top) + 6px) 8px calc(var(--safe-bottom) + 6px);
   overflow-y: auto;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
@@ -308,67 +308,85 @@ canvas.spr { image-rendering: pixelated; display: block; }
 .st-port { flex: 0 0 auto; background: #0c1410; border: 1px solid #2c5a4a; border-radius: 6px; padding: 4px; }
 .st-port.small { padding: 3px; }
 .st-idn { flex: 1; min-width: 0; }
-.st-name { font-size: 18px; font-weight: bold; color: #eafff4; letter-spacing: 1px; }
-.st-sub { font-size: 11px; color: #6fb89e; letter-spacing: 1px; margin-top: 2px; }
-.st-nav { display: flex; gap: 5px; }
-.st-navb { min-width: 38px; min-height: 36px; background: #102019; border: 1px solid #2c5a4a; border-radius: 6px; color: #cfeee0; font-size: 14px; }
-.st-navb:active { background: #16302600; background: #173026; }
+.st-name { font-size: 16px; font-weight: bold; color: #eafff4; letter-spacing: 1px; }
+.st-sub { font-size: 10px; color: #6fb89e; letter-spacing: 1px; margin-top: 1px; }
+.st-nav { display: flex; gap: 4px; }
+.st-navb { min-width: 34px; min-height: 32px; background: #102019; border: 1px solid #2c5a4a; border-radius: 6px; color: #cfeee0; font-size: 13px; }
+.st-navb:active { background: #173026; }
 
-/* タブ */
-.st-tabbar { display: flex; gap: 6px; margin-top: 8px; border-bottom: 1px solid #1f4438; padding-bottom: 6px; }
+/* タブ (人業キャラのみ表示) */
+.st-tabbar { display: flex; gap: 6px; margin-top: 6px; border-bottom: 1px solid #1f4438; padding-bottom: 5px; }
 .st-tab2 {
-  flex: 1; min-height: 38px; font-size: 13px;
+  flex: 1; min-height: 32px; font-size: 12px;
   background: transparent; border: 1px solid #25503f; border-radius: 6px;
   color: #8fd6bd; font-family: var(--font);
 }
 .st-tab2.active { background: #12241c; border-color: #46c08f; color: #c9ffe9; box-shadow: 0 0 0 1px #46c08f; }
 
-/* 装備タブのレイアウト: 所持品 + 装備中 (狭い画面では縦積み) */
-.st-eqlayout { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
-@media (max-width: 460px) { .st-eqlayout { grid-template-columns: 1fr; } }
-.st-col { min-width: 0; }
-.st-h { font-size: 12px; color: #6fb89e; margin: 4px 2px 5px; letter-spacing: 1px; }
-.st-h.center { text-align: center; color: #46c08f; }
-.st-empty { font-size: 12px; color: var(--ink-dim); padding: 6px; }
+/* コンパクトステータスバー */
+.st-statbar {
+  display: flex; flex-wrap: wrap; gap: 2px 10px;
+  background: #0c1712; border: 1px solid #2c5a4a; border-radius: 8px;
+  padding: 6px 10px; font-size: 11px; line-height: 1.7; margin-top: 5px;
+}
+.st-statbar b { color: #eafff4; }
+.st-bar-spells { color: #8fd6bd; width: 100%; }
 
-/* 所持品リスト */
-.st-invlist { display: flex; flex-direction: column; gap: 4px; }
+/* 能力値 6列グリッド */
+.st-attrs6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-top: 5px; }
+.st-attr6 {
+  background: #0c1712; border: 1px solid #1f4438; border-radius: 5px;
+  padding: 3px 2px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 0;
+}
+.st-attr6 .st-attrk { font-size: 9px; color: #6fb89e; letter-spacing: 0; }
+.st-attr6 .st-attrv { font-size: 14px; font-weight: bold; color: #d9fff0; }
+
+/* 装備 + 所持品: 2カラム横並び */
+.st-bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 5px; }
+.st-col { min-width: 0; }
+.st-h { font-size: 11px; color: #6fb89e; margin: 3px 1px 4px; letter-spacing: 1px; }
+.st-h.center { text-align: center; color: #46c08f; }
+.st-empty { font-size: 11px; color: var(--ink-dim); padding: 4px; }
+
+/* 所持品リスト (コンパクト) */
+.st-invlist { display: flex; flex-direction: column; gap: 2px; }
 .st-invrow {
-  display: flex; align-items: center; gap: 6px;
-  background: #0d1813; border: 1px solid #1f4438; border-radius: 8px; padding: 4px 6px; min-height: 40px;
+  display: flex; align-items: center; gap: 4px;
+  background: #0d1813; border: 1px solid #1f4438; border-radius: 6px; padding: 2px 5px; min-height: 28px;
 }
 .st-invrow.sel { border-color: #46c08f; box-shadow: 0 0 0 1px #46c08f; background: #11241b; }
 .st-badge { flex: 0 0 16px; width: 16px; height: 16px; border-radius: 50%; font-size: 10px; line-height: 16px; text-align: center; color: transparent; }
 .st-badge.on { background: #2f7d5e; color: #eafff4; border: 1px solid #46c08f; }
 .st-iicon { flex: 0 0 auto; display: flex; }
-.st-iname { font-size: 12px; color: #dff5ec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+.st-iname { font-size: 11px; color: #dff5ec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
 
-/* 装備中リスト */
-.st-eqlist { display: flex; flex-direction: column; gap: 4px; }
+/* 装備中リスト (コンパクト) */
+.st-eqlist { display: flex; flex-direction: column; gap: 2px; }
 .st-eqrow {
-  display: flex; align-items: center; gap: 6px;
-  background: #0d1813; border: 1px solid #1f4438; border-radius: 8px; padding: 4px 6px; min-height: 40px;
+  display: flex; align-items: center; gap: 4px;
+  background: #0d1813; border: 1px solid #1f4438; border-radius: 6px; padding: 2px 5px; min-height: 28px;
 }
 .st-eqrow.sel { border-color: #46c08f; box-shadow: 0 0 0 1px #46c08f; background: #11241b; }
 .st-eqrow.empty .st-ename { color: #4f7a6a; }
 .st-sicon { flex: 0 0 auto; opacity: 0.7; }
-.st-ename { font-size: 12px; color: #dff5ec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; text-align: center; }
+.st-ename { font-size: 11px; color: #dff5ec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
 
 /* 情報パネル */
-.st-detail { margin-top: 10px; background: #0c1712; border: 1px solid #2c5a4a; border-radius: 8px; padding: 10px; }
-.st-dtop { display: flex; gap: 12px; align-items: center; }
+.st-detail { margin-top: 8px; background: #0c1712; border: 1px solid #2c5a4a; border-radius: 8px; padding: 8px; }
+.st-dtop { display: flex; gap: 10px; align-items: center; }
 .st-dtext { flex: 1; min-width: 0; }
-.st-dname { font-size: 15px; font-weight: bold; color: #eafff4; }
-.st-dstat { font-size: 12px; color: #8fd6bd; margin-top: 3px; }
-.st-ddesc { font-size: 12px; color: var(--ink-dim); margin: 8px 2px; line-height: 1.6; }
-.st-acts { display: flex; gap: 8px; }
-.st-acts .btn { flex: 1; }
+.st-dname { font-size: 14px; font-weight: bold; color: #eafff4; }
+.st-dstat { font-size: 11px; color: #8fd6bd; margin-top: 2px; }
+.st-ddesc { font-size: 11px; color: var(--ink-dim); margin: 6px 2px; line-height: 1.5; }
+.st-acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.st-acts .btn { flex: 1; min-width: 60px; }
 .btn:disabled { opacity: 0.4; }
 
-/* ステータスタブ: 上段(肖像+基本情報) → 能力値 → 野営呪文 の縦積み */
-.st-statsheet { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; background: #0c1712; border: 1px solid #2c5a4a; border-radius: 8px; padding: 10px; }
-.st-stattop { display: flex; gap: 12px; align-items: flex-start; }
-.st-meta { flex: 1; min-width: 0; font-size: 13px; line-height: 1.9; }
+/* ステータスシート (旧レイアウト用、魂タブ等で参照される可能性があるため残す) */
+.st-statsheet { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; background: #0c1712; border: 1px solid #2c5a4a; border-radius: 8px; padding: 8px; }
+.st-stattop { display: flex; gap: 10px; align-items: flex-start; }
+.st-meta { flex: 1; min-width: 0; font-size: 12px; line-height: 1.7; }
 .st-line b { color: #eafff4; }
 .st-bad { color: var(--danger); }
 
@@ -376,7 +394,7 @@ canvas.spr { image-rendering: pixelated; display: block; }
 #item-get {
   position: fixed;
   inset: 0;
-  z-index: 60;
+  z-index: 76; /* 街(70)/ステータス(75)の上に出す (はじめからの確認等)。confirm-overlay(80)より下 */
   display: flex;
   align-items: center;
   justify-content: center;
