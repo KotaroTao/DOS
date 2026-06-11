@@ -6,8 +6,8 @@
 // ・5部位すべてを同じ職業で揃えると、さらに【上位スキル】が解放される。
 // 魂にはレベルがあり、レベルが上がるほど高位のスキルを覚える。
 //
-// 既存の戦闘/装備/ステータス画面と互換を保つため、Doll は従来の
-// メンバーオブジェクト(hp,maxhp,mp,atk,def,spd,spells,equip,items,alive...)を
+// ステータスは六大ステ (ATK/VIT/AGI/INT/PIE/LUK) に統一。Doll はメンバー
+// オブジェクト(hp,maxhp,mp,atk,vit,agi,int,pie,luk,spells,equip,items,alive...)を
 // そのまま持ち、recalcDoll() が souls(parts) から base ステータスを算出する。
 
 import { recalc } from "./items.js";
@@ -18,37 +18,36 @@ export const PART_LABEL = { head: "頭", rhand: "右手", lhand: "左手", body:
 
 // 魂の職業定義。stat は「1部位あたり / 魂レベル1」の寄与量。
 // 5部位そろえた時に従来のプリメイド職とおおよそ釣り合うよう調整。
-// basic: 3部位以上で解放 / advanced: 5部位で解放。
-// 各職業の基本データ。stat は1部位/Lv1あたりの寄与。
+// stat キーは hp/mp + 六大ステ (atk/vit/agi/int/pie/luk)。
 // passive: 職業が発現したとき(職業ランク1以上)に効くステータス倍率。
 // 武術系にも少量のMP(気力)を持たせ、技を使えるようにする。
 export const SOUL_CLASSES = {
   fighter: {
     label: "戦士", color: "#d4504e", glow: "#ff7a72",
-    stat: { hp: 7.0, mp: 0.7, atk: 2.4, def: 1.6, spd: 1.2 },
-    passive: { atkMul: 1.18, label: "鬼神の膂力 (攻撃+18%)" },
+    stat: { hp: 7.0, mp: 0.7, atk: 2.4, vit: 1.6, agi: 1.2, int: 0.3, pie: 0.4, luk: 1.0 },
+    passive: { atkMul: 1.18, label: "鬼神の膂力 (ATK+18%)" },
   },
   knight: {
     label: "騎士", color: "#7c93c8", glow: "#a9c0ff",
-    stat: { hp: 8.4, mp: 0.6, atk: 2.2, def: 2.4, spd: 0.8 },
-    passive: { defMul: 1.20, label: "鉄壁の構え (防御+20%)" },
+    stat: { hp: 8.4, mp: 0.6, atk: 2.2, vit: 2.4, agi: 0.8, int: 0.4, pie: 0.8, luk: 0.9 },
+    passive: { vitMul: 1.20, label: "鉄壁の構え (VIT+20%)" },
   },
   thief: {
     label: "盗賊", color: "#6fae46", glow: "#9be88a",
-    stat: { hp: 4.4, mp: 0.8, atk: 1.8, def: 1.0, spd: 2.4 },
-    passive: { spdMul: 1.25, critBonus: 0.12, label: "影駆け (素早さ+25%/会心+)" },
+    stat: { hp: 4.4, mp: 0.8, atk: 1.8, vit: 1.0, agi: 2.4, int: 0.8, pie: 0.4, luk: 2.0 },
+    passive: { agiMul: 1.25, critBonus: 0.12, label: "影駆け (AGI+25%/会心+)" },
   },
   mage: {
     label: "魔術師", color: "#b06bff", glow: "#d3a8ff",
-    stat: { hp: 3.6, mp: 2.8, atk: 1.0, def: 0.6, spd: 1.4 },
+    stat: { hp: 3.6, mp: 2.8, atk: 1.0, vit: 0.6, agi: 1.4, int: 2.8, pie: 0.8, luk: 1.0 },
   },
   priest: {
     label: "僧侶", color: "#e8c47a", glow: "#ffe2a0",
-    stat: { hp: 4.8, mp: 2.4, atk: 1.4, def: 1.0, spd: 1.0 },
+    stat: { hp: 4.8, mp: 2.4, atk: 1.4, vit: 1.0, agi: 1.0, int: 0.9, pie: 2.8, luk: 1.1 },
   },
   bishop: {
     label: "魔導僧", color: "#5fb8d6", glow: "#aef0ff",
-    stat: { hp: 4.4, mp: 3.2, atk: 1.2, def: 0.8, spd: 1.2 },
+    stat: { hp: 4.4, mp: 3.2, atk: 1.2, vit: 0.8, agi: 1.2, int: 2.0, pie: 2.0, luk: 1.0 },
   },
 };
 
@@ -68,7 +67,7 @@ export const JOB_RANKS = {
     { name: "魔術師",       skills: ["KATINO"] },
     { name: "魔導師",       skills: ["MAHALITO"] },
     { name: "大魔導師",     skills: ["TILTOWAIT"] },
-    { name: "大賢者",       skills: [], passive: { spdMul: 1.1 }, flag: "spellMaster" }, // 攻撃呪文+25%
+    { name: "大賢者",       skills: [], passive: { agiMul: 1.1 }, flag: "spellMaster" }, // 攻撃呪文+25%
   ],
   bishop: [
     { name: "見習い導師", skills: ["HALITO"] },
@@ -85,18 +84,18 @@ export const JOB_RANKS = {
     { name: "剣聖",       skills: [], passive: { atkMul: 1.15, critBonus: 0.12 } },
   ],
   knight: [
-    { name: "見習い騎士", skills: [], passive: { defMul: 1.05 } },
+    { name: "見習い騎士", skills: [], passive: { vitMul: 1.05 } },
     { name: "騎士",       skills: ["KYOUGEKI"] },
-    { name: "重騎士",     skills: [], passive: { defMul: 1.10, atkMul: 1.06 } },
+    { name: "重騎士",     skills: [], passive: { vitMul: 1.10, atkMul: 1.06 } },
     { name: "騎士団長",   skills: ["MIDARE"] },
-    { name: "聖堂騎士長", skills: [], passive: { defMul: 1.15 }, flag: "endure" }, // 致死を1回HP1で耐える
+    { name: "聖堂騎士長", skills: [], passive: { vitMul: 1.15 }, flag: "endure" }, // 致死を1回HP1で耐える
   ],
   thief: [
-    { name: "見習い盗賊", skills: [], passive: { spdMul: 1.06 } },
+    { name: "見習い盗賊", skills: [], passive: { agiMul: 1.06 } },
     { name: "盗賊",       skills: ["KYOUGEKI"] },
-    { name: "ローグ",     skills: [], passive: { spdMul: 1.10, critBonus: 0.08 } },
+    { name: "ローグ",     skills: [], passive: { agiMul: 1.10, critBonus: 0.08 } },
     { name: "アサシン",   skills: [], passive: { critBonus: 0.16 } },
-    { name: "夜刃",       skills: ["MIDARE"], passive: { spdMul: 1.12, critBonus: 0.10 } },
+    { name: "夜刃",       skills: ["MIDARE"], passive: { agiMul: 1.12, critBonus: 0.10 } },
   ],
 };
 
@@ -127,50 +126,49 @@ export const SOUL_KEYS = Object.keys(SOUL_CLASSES);
 // 各魂は「職業 × 部位」でスキル表を持つ。魂レベルが閾値に達すると習得。
 //  head : アクションスキル(技/呪文)。3部位以上同職のとき使用可能になる。
 //  rhand/lhand/body/legs : パッシブ(能力強化)。1部位でも常時発動。
-// パッシブ add: 能力値(str/vit/agi/iq/pie/luk) や 直接ステ(hp/mp/atk/def/spd/crit)。
-//   str→攻撃, vit→HP, agi→素早さ, iq+pie→MP, luk→会心 に自動換算される。
+// パッシブ add: 六大ステ(atk/vit/agi/int/pie/luk) と hp/mp/crit(会心率) を直接加算。
 export const PART_SKILLS = {
   priest: {
     head: [{ lvl: 1, skill: "DIOS" }, { lvl: 3, skill: "CURE" }, { lvl: 5, skill: "BLESS" }, { lvl: 7, skill: "PROTECT" }, { lvl: 10, skill: "DISPEL" }],
-    rhand: [{ lvl: 1, add: { str: 2 } }, { lvl: 3, add: { pie: 2 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { str: 3 } }, { lvl: 10, add: { pie: 5 } }],
-    lhand: [{ lvl: 1, add: { pie: 2 } }, { lvl: 3, add: { def: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { pie: 3 } }, { lvl: 10, add: { def: 3 } }],
+    rhand: [{ lvl: 1, add: { atk: 1 } }, { lvl: 3, add: { pie: 2 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { atk: 2 } }, { lvl: 10, add: { pie: 5 } }],
+    lhand: [{ lvl: 1, add: { pie: 2 } }, { lvl: 3, add: { vit: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { pie: 3 } }, { lvl: 10, add: { vit: 3 } }],
     body:  [{ lvl: 1, add: { hp: 8 } }, { lvl: 3, add: { vit: 2 } }, { lvl: 5, add: { hp: 14 } }, { lvl: 7, add: { pie: 2 } }, { lvl: 10, add: { hp: 24 } }],
-    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { spd: 1 } }, { lvl: 5, add: { mp: 2 } }, { lvl: 7, add: { agi: 2 } }, { lvl: 10, add: { spd: 3 } }],
+    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { mp: 2 } }, { lvl: 7, add: { agi: 2 } }, { lvl: 10, add: { agi: 3 } }],
   },
   mage: {
     head: [{ lvl: 1, skill: "HALITO" }, { lvl: 3, skill: "KATINO" }, { lvl: 5, skill: "MAHALITO" }, { lvl: 7, skill: "MADALT" }, { lvl: 10, skill: "TILTOWAIT" }],
-    rhand: [{ lvl: 1, add: { iq: 2 } }, { lvl: 3, add: { mp: 3 } }, { lvl: 5, add: { iq: 3 } }, { lvl: 7, add: { mp: 4 } }, { lvl: 10, add: { iq: 5 } }],
-    lhand: [{ lvl: 1, add: { mp: 3 } }, { lvl: 3, add: { iq: 2 } }, { lvl: 5, add: { mp: 4 } }, { lvl: 7, add: { iq: 2 } }, { lvl: 10, add: { mp: 6 } }],
-    body:  [{ lvl: 1, add: { hp: 4 } }, { lvl: 3, add: { vit: 1 } }, { lvl: 5, add: { hp: 8 } }, { lvl: 7, add: { iq: 2 } }, { lvl: 10, add: { hp: 12 } }],
-    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { spd: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { agi: 2 } }, { lvl: 10, add: { spd: 2 } }],
+    rhand: [{ lvl: 1, add: { int: 2 } }, { lvl: 3, add: { mp: 3 } }, { lvl: 5, add: { int: 3 } }, { lvl: 7, add: { mp: 4 } }, { lvl: 10, add: { int: 5 } }],
+    lhand: [{ lvl: 1, add: { mp: 3 } }, { lvl: 3, add: { int: 2 } }, { lvl: 5, add: { mp: 4 } }, { lvl: 7, add: { int: 2 } }, { lvl: 10, add: { mp: 6 } }],
+    body:  [{ lvl: 1, add: { hp: 4 } }, { lvl: 3, add: { vit: 1 } }, { lvl: 5, add: { hp: 8 } }, { lvl: 7, add: { int: 2 } }, { lvl: 10, add: { hp: 12 } }],
+    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { agi: 2 } }, { lvl: 10, add: { agi: 2 } }],
   },
   bishop: {
     head: [{ lvl: 1, skill: "HALITO" }, { lvl: 3, skill: "DIOS" }, { lvl: 5, skill: "MAHALITO" }, { lvl: 7, skill: "DIAL" }, { lvl: 10, skill: "RESURRECT" }],
-    rhand: [{ lvl: 1, add: { iq: 1 } }, { lvl: 3, add: { pie: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { iq: 2 } }, { lvl: 10, add: { pie: 3 } }],
-    lhand: [{ lvl: 1, add: { pie: 1 } }, { lvl: 3, add: { iq: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { pie: 2 } }, { lvl: 10, add: { iq: 3 } }],
+    rhand: [{ lvl: 1, add: { int: 1 } }, { lvl: 3, add: { pie: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { int: 2 } }, { lvl: 10, add: { pie: 3 } }],
+    lhand: [{ lvl: 1, add: { pie: 1 } }, { lvl: 3, add: { int: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { pie: 2 } }, { lvl: 10, add: { int: 3 } }],
     body:  [{ lvl: 1, add: { hp: 5 } }, { lvl: 3, add: { vit: 1 } }, { lvl: 5, add: { hp: 9 } }, { lvl: 7, add: { mp: 3 } }, { lvl: 10, add: { hp: 14 } }],
-    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { mp: 2 } }, { lvl: 5, add: { spd: 1 } }, { lvl: 7, add: { iq: 1 } }, { lvl: 10, add: { mp: 4 } }],
+    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { mp: 2 } }, { lvl: 5, add: { agi: 1 } }, { lvl: 7, add: { int: 1 } }, { lvl: 10, add: { mp: 4 } }],
   },
   fighter: {
     head: [{ lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "DOUBLE" }, { lvl: 5, skill: "MIDARE" }, { lvl: 7, skill: "WARCRY" }, { lvl: 10, skill: "ISSEN" }],
-    rhand: [{ lvl: 1, add: { str: 2 } }, { lvl: 3, add: { atk: 1 } }, { lvl: 5, add: { str: 3 } }, { lvl: 7, add: { atk: 2 } }, { lvl: 10, add: { str: 5 } }],
-    lhand: [{ lvl: 1, add: { def: 1 } }, { lvl: 3, add: { str: 1 } }, { lvl: 5, add: { def: 2 } }, { lvl: 7, add: { crit: 0.04 } }, { lvl: 10, add: { def: 3 } }],
+    rhand: [{ lvl: 1, add: { atk: 1 } }, { lvl: 3, add: { atk: 1 } }, { lvl: 5, add: { atk: 2 } }, { lvl: 7, add: { atk: 2 } }, { lvl: 10, add: { atk: 3 } }],
+    lhand: [{ lvl: 1, add: { vit: 1 } }, { lvl: 3, add: { atk: 1 } }, { lvl: 5, add: { vit: 2 } }, { lvl: 7, add: { crit: 0.04 } }, { lvl: 10, add: { vit: 3 } }],
     body:  [{ lvl: 1, add: { hp: 10 } }, { lvl: 3, add: { vit: 2 } }, { lvl: 5, add: { hp: 16 } }, { lvl: 7, add: { hp: 20 } }, { lvl: 10, add: { vit: 4 } }],
-    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { spd: 1 } }, { lvl: 5, add: { agi: 2 } }, { lvl: 7, add: { spd: 2 } }, { lvl: 10, add: { spd: 3 } }],
+    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { agi: 2 } }, { lvl: 7, add: { agi: 2 } }, { lvl: 10, add: { agi: 3 } }],
   },
   knight: {
     head: [{ lvl: 1, skill: "SHIELDBASH" }, { lvl: 3, skill: "GUARDALL" }, { lvl: 5, skill: "KYOUGEKI" }, { lvl: 7, skill: "IRONWALL" }, { lvl: 10, skill: "MIDARE" }],
-    rhand: [{ lvl: 1, add: { str: 1 } }, { lvl: 3, add: { def: 2 } }, { lvl: 5, add: { str: 2 } }, { lvl: 7, add: { def: 3 } }, { lvl: 10, add: { str: 3 } }],
-    lhand: [{ lvl: 1, add: { def: 2 } }, { lvl: 3, add: { def: 2 } }, { lvl: 5, add: { hp: 12 } }, { lvl: 7, add: { def: 3 } }, { lvl: 10, add: { def: 5 } }],
+    rhand: [{ lvl: 1, add: { atk: 1 } }, { lvl: 3, add: { vit: 2 } }, { lvl: 5, add: { atk: 1 } }, { lvl: 7, add: { vit: 3 } }, { lvl: 10, add: { atk: 2 } }],
+    lhand: [{ lvl: 1, add: { vit: 2 } }, { lvl: 3, add: { vit: 2 } }, { lvl: 5, add: { hp: 12 } }, { lvl: 7, add: { vit: 3 } }, { lvl: 10, add: { vit: 5 } }],
     body:  [{ lvl: 1, add: { hp: 14 } }, { lvl: 3, add: { vit: 3 } }, { lvl: 5, add: { hp: 22 } }, { lvl: 7, add: { vit: 3 } }, { lvl: 10, add: { hp: 30 } }],
-    legs:  [{ lvl: 1, add: { def: 1 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { def: 2 } }, { lvl: 7, add: { spd: 1 } }, { lvl: 10, add: { def: 3 } }],
+    legs:  [{ lvl: 1, add: { vit: 1 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { vit: 2 } }, { lvl: 7, add: { agi: 1 } }, { lvl: 10, add: { vit: 3 } }],
   },
   thief: {
     head: [{ lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "POISONSTAB" }, { lvl: 5, skill: "BLIND" }, { lvl: 7, skill: "ASSASSINATE" }, { lvl: 10, skill: "MIDARE" }],
     rhand: [{ lvl: 1, add: { agi: 2 } }, { lvl: 3, add: { atk: 1 } }, { lvl: 5, add: { crit: 0.04 } }, { lvl: 7, add: { agi: 3 } }, { lvl: 10, add: { atk: 2 } }],
     lhand: [{ lvl: 1, add: { luk: 2 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { luk: 3 } }, { lvl: 7, add: { crit: 0.05 } }, { lvl: 10, add: { luk: 4 } }],
     body:  [{ lvl: 1, add: { hp: 6 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { hp: 10 } }, { lvl: 7, add: { vit: 1 } }, { lvl: 10, add: { hp: 16 } }],
-    legs:  [{ lvl: 1, add: { spd: 2 } }, { lvl: 3, add: { agi: 2 } }, { lvl: 5, add: { spd: 3 } }, { lvl: 7, add: { agi: 3 } }, { lvl: 10, add: { spd: 5 } }],
+    legs:  [{ lvl: 1, add: { agi: 2 } }, { lvl: 3, add: { agi: 2 } }, { lvl: 5, add: { agi: 3 } }, { lvl: 7, add: { agi: 3 } }, { lvl: 10, add: { agi: 5 } }],
   },
 };
 
@@ -180,22 +178,22 @@ export const PART_SKILLS = {
 // キーは "base+sub" (base=3部位の職業 / sub=2部位の職業)。
 // spell: 追加で習得する技 / passive: ステータス倍率と表示名。
 export const HYBRIDS = {
-  "fighter+thief":  { name: "剣豪",     passive: { critBonus: 0.18, spdMul: 1.12, label: "剣豪の冴え (会心/速)" } },
-  "fighter+mage":   { name: "魔法剣士", spell: "HALITO", passive: { atkMul: 1.12, label: "魔剣の理 (攻+)" } },
-  "fighter+priest": { name: "聖戦士",   spell: "DIOS",   passive: { atkMul: 1.08, defMul: 1.08, label: "聖なる闘気" } },
-  "fighter+knight": { name: "重戦士",   passive: { atkMul: 1.12, defMul: 1.10, label: "鉄血 (攻/防)" } },
-  "knight+priest":  { name: "聖騎士",   spell: "DIAL",   passive: { defMul: 1.16, label: "守護の誓い (防++)" } },
-  "knight+fighter": { name: "聖堂騎士", spell: "KYOUGEKI", passive: { defMul: 1.10, atkMul: 1.08, label: "城壁の構え" } },
-  "knight+thief":   { name: "斥候騎士", passive: { defMul: 1.10, spdMul: 1.15, label: "軽装騎士 (防/速)" } },
+  "fighter+thief":  { name: "剣豪",     passive: { critBonus: 0.18, agiMul: 1.12, label: "剣豪の冴え (会心/AGI)" } },
+  "fighter+mage":   { name: "魔法剣士", spell: "HALITO", passive: { atkMul: 1.12, label: "魔剣の理 (ATK+)" } },
+  "fighter+priest": { name: "聖戦士",   spell: "DIOS",   passive: { atkMul: 1.08, vitMul: 1.08, label: "聖なる闘気" } },
+  "fighter+knight": { name: "重戦士",   passive: { atkMul: 1.12, vitMul: 1.10, label: "鉄血 (ATK/VIT)" } },
+  "knight+priest":  { name: "聖騎士",   spell: "DIAL",   passive: { vitMul: 1.16, label: "守護の誓い (VIT++)" } },
+  "knight+fighter": { name: "聖堂騎士", spell: "KYOUGEKI", passive: { vitMul: 1.10, atkMul: 1.08, label: "城壁の構え" } },
+  "knight+thief":   { name: "斥候騎士", passive: { vitMul: 1.10, agiMul: 1.15, label: "軽装騎士 (VIT/AGI)" } },
   "mage+priest":    { name: "賢者",     spell: "DIAL",   passive: { label: "理を識る者 (全呪文)" } },
-  "mage+thief":     { name: "魔盗賊",   spell: "MAHALITO", passive: { spdMul: 1.18, critBonus: 0.10, label: "影呪 (速/会心)" } },
+  "mage+thief":     { name: "魔盗賊",   spell: "MAHALITO", passive: { agiMul: 1.18, critBonus: 0.10, label: "影呪 (AGI/会心)" } },
   "mage+fighter":   { name: "戦技師",   spell: "KYOUGEKI", passive: { atkMul: 1.10, label: "武装魔導" } },
   "priest+mage":    { name: "司教",     spell: "MAHALITO", passive: { label: "二道の信徒 (攻呪+)" } },
-  "priest+knight":  { name: "審問官",   spell: "MADIOS",  passive: { defMul: 1.10, label: "断罪の祈り" } },
+  "priest+knight":  { name: "審問官",   spell: "MADIOS",  passive: { vitMul: 1.10, label: "断罪の祈り" } },
   "priest+fighter": { name: "戦僧",     spell: "MIDARE",  passive: { atkMul: 1.12, label: "破邪の拳" } },
-  "thief+mage":     { name: "呪術師",   spell: "HALITO",  passive: { spdMul: 1.18, label: "呪詛 (速++)" } },
+  "thief+mage":     { name: "呪術師",   spell: "HALITO",  passive: { agiMul: 1.18, label: "呪詛 (AGI++)" } },
   "thief+fighter":  { name: "野伏",     spell: "KYOUGEKI", passive: { critBonus: 0.14, atkMul: 1.06, label: "不意打ち" } },
-  "thief+priest":   { name: "祓魔師",   spell: "DIOS",    passive: { spdMul: 1.12, critBonus: 0.08, label: "聖盗 (速/会心)" } },
+  "thief+priest":   { name: "祓魔師",   spell: "DIOS",    passive: { agiMul: 1.12, critBonus: 0.08, label: "聖盗 (AGI/会心)" } },
   "bishop+mage":    { name: "大魔導",   spell: "MAHALITO", passive: { label: "深淵の知識 (攻呪++)" } },
   "bishop+priest":  { name: "大司教",   spell: "MADIOS",  passive: { label: "聖典の守護者" } },
 };
@@ -213,20 +211,14 @@ export function findHybrid(counts) {
   return h ? { key, baseK, subK, ...h } : null;
 }
 
-// ウィザードリィ風の能力値: 1部位あたりの寄与 (魂レベル/記憶で増加)
-// STR筋力 / VIT生命 / AGI敏捷 / IQ知力 / PIE信仰 / LUK幸運
-export const ATTR_KEYS = ["str", "vit", "agi", "iq", "pie", "luk"];
-export const ATTR_LABEL = { str: "STR", vit: "VIT", agi: "AGI", iq: "IQ", pie: "PIE", luk: "LUK" };
-export const ATTR_NAME = { str: "筋力", vit: "生命力", agi: "敏捷", iq: "知力", pie: "信仰", luk: "幸運" };
-const SOUL_ATTR = {
-  fighter: { str: 2.6, vit: 1.8, agi: 1.2, iq: 0.3, pie: 0.4, luk: 1.0 },
-  knight:  { str: 2.0, vit: 2.6, agi: 0.7, iq: 0.4, pie: 0.8, luk: 0.9 },
-  thief:   { str: 1.4, vit: 1.0, agi: 2.6, iq: 0.8, pie: 0.4, luk: 2.0 },
-  mage:    { str: 0.5, vit: 0.8, agi: 1.2, iq: 2.8, pie: 0.8, luk: 1.0 },
-  priest:  { str: 1.0, vit: 1.4, agi: 0.9, iq: 0.9, pie: 2.8, luk: 1.1 },
-  bishop:  { str: 0.7, vit: 1.0, agi: 1.0, iq: 2.0, pie: 2.0, luk: 1.0 },
+// 六大ステータス (これが唯一のステータス体系。派生値 こうげき/ぼうぎょ/AC は廃止)
+// ATK攻撃 / VIT体力(被ダメ軽減) / AGI敏捷(行動順・回避) / INT知力(呪文威力) / PIE信仰(回復量) / LUK幸運(会心)
+export const ATTR_KEYS = ["atk", "vit", "agi", "int", "pie", "luk"];
+export const ATTR_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
+export const ATTR_NAME = {
+  atk: "攻撃力", vit: "体力 (被ダメージ軽減)", agi: "敏捷 (行動順・回避)",
+  int: "知力 (攻撃呪文の威力)", pie: "信仰 (回復呪文の威力)", luk: "幸運 (会心率)",
 };
-const ATTR_MAX = 18; // ウィザードリィ流の上限
 
 let _soulUid = 0;
 
@@ -295,12 +287,12 @@ function soulFactor(s) {
 export function soulStats(s) {
   const st = SOUL_CLASSES[s.clsKey].stat;
   const f = soulFactor(s);
+  const r1 = (v) => Math.round((v || 0) * f * 10) / 10;
   return {
     hp: Math.round(st.hp * f),
     mp: Math.round(st.mp * f),
-    atk: Math.round(st.atk * f * 10) / 10,
-    def: Math.round(st.def * f * 10) / 10,
-    spd: Math.round(st.spd * f * 10) / 10,
+    atk: r1(st.atk), vit: r1(st.vit), agi: r1(st.agi),
+    int: r1(st.int), pie: r1(st.pie), luk: r1(st.luk),
   };
 }
 
@@ -317,12 +309,11 @@ export function makeDoll(name) {
     clsKey: "fighter", cls: "無職",
     level: 1, exp: 0,
     hp: 1, maxhp: 1, mp: 0, maxmp: 0,
-    atk: 0, def: 0, spd: 0,
-    base: { hp: 1, mp: 0, atk: 0, def: 0, spd: 0 },
+    atk: 0, vit: 0, agi: 1, int: 0, pie: 0, luk: 0,
+    base: { hp: 1, mp: 0, atk: 0, vit: 0, agi: 1, int: 0, pie: 0, luk: 0 },
     equip: { weapon: null, body: null, shield: null, head: null, hands: null, feet: null, acc1: null, acc2: null },
     items: [],
     ailment: null,
-    ac: 10,
     spells: [],
     passives: [],
     alive: true, side: "party",
@@ -354,12 +345,13 @@ export function dominantClass(doll) {
 // 人業の合計ステータス・職業・スキルを魂から再計算し、装備補正を適用
 // 人業自体の初期ステータスは 0。宿した魂の合計値がそのまま人業の力になる。
 export function recalcDoll(doll) {
-  let hp = 0, mp = 0, atk = 0, def = 0, spd = 0;
+  let hp = 0, mp = 0, atk = 0, vit = 0, agi = 0, int = 0, pie = 0, luk = 0;
   for (const p of PARTS) {
     const s = doll.parts[p];
     if (!s) continue;
     const st = soulStats(s);
-    hp += st.hp; mp += st.mp; atk += st.atk; def += st.def; spd += st.spd;
+    hp += st.hp; mp += st.mp; atk += st.atk; vit += st.vit; agi += st.agi;
+    int += st.int; pie += st.pie; luk += st.luk;
   }
 
   const dom = dominantClass(doll);
@@ -381,7 +373,7 @@ export function recalcDoll(doll) {
   doll.jobRank = jr ? jr.rank : 0;
 
   // パッシブ集計 (頭以外の各部位の魂のスキル表から、魂レベルに応じて累積)
-  const pAdd = { str: 0, vit: 0, agi: 0, iq: 0, pie: 0, luk: 0, hp: 0, mp: 0, atk: 0, def: 0, spd: 0, crit: 0 };
+  const pAdd = { atk: 0, vit: 0, agi: 0, int: 0, pie: 0, luk: 0, hp: 0, mp: 0, crit: 0 };
   for (const part of ["rhand", "lhand", "body", "legs"]) {
     const s = doll.parts[part];
     if (!s) continue;
@@ -389,13 +381,16 @@ export function recalcDoll(doll) {
     if (!tbl) continue;
     for (const e of tbl) if (s.level >= e.lvl && e.add) for (const k in e.add) pAdd[k] += e.add[k];
   }
-  // パッシブを反映: 能力値→ステへ自動換算
-  hp  += pAdd.hp  + pAdd.vit * 1.5;
-  mp  += pAdd.mp  + (pAdd.iq + pAdd.pie) * 0.5;
-  atk += pAdd.atk + pAdd.str * 0.5;
-  def += pAdd.def;
-  spd += pAdd.spd + pAdd.agi * 0.4;
-  crit += pAdd.crit + pAdd.luk * 0.004;
+  // パッシブを反映 (六大ステ/hp/mp/crit を直接加算)
+  hp  += pAdd.hp;
+  mp  += pAdd.mp;
+  atk += pAdd.atk;
+  vit += pAdd.vit;
+  agi += pAdd.agi;
+  int += pAdd.int;
+  pie += pAdd.pie;
+  luk += pAdd.luk;
+  crit += pAdd.crit;
 
   // 職業の素のパッシブ倍率 (発現=同職3部位以上のときフル適用)
   if (jr) {
@@ -405,8 +400,8 @@ export function recalcDoll(doll) {
     if (def0.passive) {
       passives.push(def0.passive.label);
       if (def0.passive.atkMul) atk *= def0.passive.atkMul;
-      if (def0.passive.defMul) def *= def0.passive.defMul;
-      if (def0.passive.spdMul) spd *= def0.passive.spdMul;
+      if (def0.passive.vitMul) vit *= def0.passive.vitMul;
+      if (def0.passive.agiMul) agi *= def0.passive.agiMul;
       if (def0.passive.critBonus) crit += def0.passive.critBonus;
     }
     passives.push(`職業ランク${jr.rank}: ${clsLabel}`);
@@ -429,8 +424,8 @@ export function recalcDoll(doll) {
     const hp2 = hybrid.passive || {};
     if (hp2.label) passives.push(hp2.label);
     if (hp2.atkMul) atk *= hp2.atkMul;
-    if (hp2.defMul) def *= hp2.defMul;
-    if (hp2.spdMul) spd *= hp2.spdMul;
+    if (hp2.vitMul) vit *= hp2.vitMul;
+    if (hp2.agiMul) agi *= hp2.agiMul;
     if (hp2.critBonus) crit += hp2.critBonus;
   }
 
@@ -448,27 +443,13 @@ export function recalcDoll(doll) {
   doll.base = {
     // 器そのものは 0。魂の合計がそのまま器の力 (HPだけ最低1で即死を防ぐ)
     hp: Math.max(1, Math.round(hp)), mp: Math.round(mp),
-    atk: Math.round(atk), def: Math.round(def), spd: Math.max(1, Math.round(spd)),
+    atk: Math.round(atk), vit: Math.round(vit), agi: Math.max(1, Math.round(agi)),
+    int: Math.round(int), pie: Math.round(pie), luk: Math.round(luk),
+    crit, // 会心率ボーナス (recalc が装備分と合算して critBonus にする)
   };
   doll.spells = spells;
   doll.passives = passives;
-  doll.critBonus = crit;
-  doll._pAdd = pAdd; // 能力値表示用 (attrs へ加算)
-
-  // ウィザードリィ風の能力値を魂から算出 (ランク係数も反映)
-  const attrs = { str: 0, vit: 0, agi: 0, iq: 0, pie: 0, luk: 0 };
-  for (const p of PARTS) {
-    const s = doll.parts[p];
-    if (!s) continue;
-    const w = SOUL_ATTR[s.clsKey];
-    const f = (1 + (s.level - 1) * 0.06) * SOUL_RANKS[s.rank || "normal"].mul;
-    for (const k of ATTR_KEYS) attrs[k] += w[k] * f;
-  }
-  // パッシブスキルの能力値ボーナスを加算
-  for (const k of ATTR_KEYS) attrs[k] = Math.round(attrs[k] + (pAdd[k] || 0));
-  doll.attrs = attrs;
-  doll.luk = attrs.luk;
-  doll.agi = attrs.agi;
+  delete doll.attrs; // 旧体系の表示用能力値 (廃止。六大ステに統一)
 
   // 装備補正を base に重ねて最終ステータス確定 (items.js の recalc を流用)
   recalc(doll);

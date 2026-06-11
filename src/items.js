@@ -3,6 +3,7 @@
 //
 // slot: head | weapon | shield | body | feet | acc | use
 //   weapon→右手, shield→左手, head/body/feet, acc→アクセサリ枠(2), use→消耗品
+// 性能キー: atk/vit/agi/int/pie/luk (六大ステ加算) / hp/mp (最大値加算) / crit (会心率加算)
 // twoHanded: 両手武器 (左手をふさぐ)
 // classes: 装備可能な職業キー配列 (null=全職)
 // cursed: 呪い (一度装備すると外せない)
@@ -107,7 +108,7 @@ export const ITEMS = {
     ]),
   },
   warHammer: {
-    id: "warHammer", name: "ウォーハンマー", slot: "weapon", atk: 9, hit: 2, dice: "1d8+1", swings: 1, price: 300,
+    id: "warHammer", name: "ウォーハンマー", slot: "weapon", atk: 9, pie: 1, hit: 2, dice: "1d8+1", swings: 1, price: 300,
     classes: ["fighter", "knight", "priest"],
     desc: "鈍器。聖職者でも振るえる。骨ある敵に有効。",
     ...sprite([
@@ -126,9 +127,9 @@ export const ITEMS = {
     ]),
   },
   magicStaff: {
-    id: "magicStaff", name: "魔法の杖", slot: "weapon", atk: 4, hit: 0, dice: "1d4", swings: 1, mp: 4, price: 260,
+    id: "magicStaff", name: "魔法の杖", slot: "weapon", atk: 4, int: 2, hit: 0, dice: "1d4", swings: 1, mp: 4, price: 260,
     classes: ["mage", "bishop", "priest"],
-    desc: "蒼い宝玉を戴いた杖。魔力(MP)を高める。",
+    desc: "蒼い宝玉を戴いた杖。MPとINTを高める。",
     ...sprite([
       "....kbk.....",
       "...kbck.....",
@@ -147,7 +148,7 @@ export const ITEMS = {
 
   // ===== 盾 =====
   woodShield: {
-    id: "woodShield", name: "木の盾", slot: "shield", def: 3, price: 80,
+    id: "woodShield", name: "木の盾", slot: "shield", vit: 3, price: 80,
     classes: ["fighter", "knight", "thief", "priest", "bishop"],
     desc: "頑丈な木製の小盾。最低限の備え。",
     ...sprite([
@@ -166,7 +167,7 @@ export const ITEMS = {
     ]),
   },
   kiteShield: {
-    id: "kiteShield", name: "カイトシールド", slot: "shield", def: 6, price: 240,
+    id: "kiteShield", name: "カイトシールド", slot: "shield", vit: 6, price: 240,
     classes: ["fighter", "knight"],
     desc: "騎士の大盾。広い防御範囲で前衛を守る。",
     ...sprite([
@@ -187,8 +188,8 @@ export const ITEMS = {
 
   // ===== 体 =====
   robe: {
-    id: "robe", name: "ローブ", slot: "body", def: 1, mp: 3, price: 90, classes: null,
-    desc: "魔法の刺繍が施された外套。魔力を少し高める。",
+    id: "robe", name: "ローブ", slot: "body", vit: 1, int: 1, mp: 3, price: 90, classes: null,
+    desc: "魔法の刺繍が施された外套。MPとINTを少し高める。",
     ...sprite([
       "...kkkk.....",
       "..kppppk....",
@@ -205,7 +206,7 @@ export const ITEMS = {
     ]),
   },
   leatherArmor: {
-    id: "leatherArmor", name: "革の鎧", slot: "body", def: 4, price: 160,
+    id: "leatherArmor", name: "革の鎧", slot: "body", vit: 4, price: 160,
     classes: ["fighter", "knight", "thief", "priest", "bishop"],
     desc: "なめし革の鎧。軽くて動きやすい。",
     ...sprite([
@@ -224,7 +225,7 @@ export const ITEMS = {
     ]),
   },
   plateArmor: {
-    id: "plateArmor", name: "プレートアーマー", slot: "body", def: 11, spd: -1, price: 600,
+    id: "plateArmor", name: "プレートアーマー", slot: "body", vit: 11, agi: -1, price: 600,
     classes: ["fighter", "knight"],
     desc: "全身を鋼で固めた重鎧。鉄壁だが少し鈍重になる。",
     ...sprite([
@@ -245,7 +246,7 @@ export const ITEMS = {
 
   // ===== 頭 =====
   cap: {
-    id: "cap", name: "布の帽子", slot: "head", def: 1, price: 30, classes: null,
+    id: "cap", name: "布の帽子", slot: "head", vit: 1, price: 30, classes: null,
     desc: "簡素な布の帽子。ないよりはまし。",
     ...sprite([
       "............",
@@ -263,7 +264,7 @@ export const ITEMS = {
     ]),
   },
   ironHelm: {
-    id: "ironHelm", name: "鉄兜", slot: "head", def: 3, price: 150,
+    id: "ironHelm", name: "鉄兜", slot: "head", vit: 3, price: 150,
     classes: ["fighter", "knight", "priest"],
     desc: "面頬つきの鉄兜。頭部をしっかり守る。",
     ...sprite([
@@ -284,8 +285,8 @@ export const ITEMS = {
 
   // ===== 足 =====
   leatherBoots: {
-    id: "leatherBoots", name: "革のブーツ", slot: "feet", def: 1, spd: 1, price: 70, classes: null,
-    desc: "丈夫な革靴。素早さがわずかに上がる。",
+    id: "leatherBoots", name: "革のブーツ", slot: "feet", vit: 1, agi: 1, price: 70, classes: null,
+    desc: "丈夫な革靴。AGIがわずかに上がる。",
     ...sprite([
       "............",
       "..kk...kk...",
@@ -302,7 +303,7 @@ export const ITEMS = {
     ]),
   },
   ironGreaves: {
-    id: "ironGreaves", name: "鉄の脚甲", slot: "feet", def: 3, price: 180,
+    id: "ironGreaves", name: "鉄の脚甲", slot: "feet", vit: 3, price: 180,
     classes: ["fighter", "knight"],
     desc: "鋼の脛当て。蹴撃にも踏みこみにも強い。",
     ...sprite([
@@ -323,7 +324,7 @@ export const ITEMS = {
 
   // ===== 小手 =====
   leatherGloves: {
-    id: "leatherGloves", name: "革の手袋", slot: "hands", def: 1, price: 50, classes: null,
+    id: "leatherGloves", name: "革の手袋", slot: "hands", vit: 1, price: 50, classes: null,
     desc: "しなやかな革の手袋。手元をわずかに守る。",
     ...sprite([
       ".kl k.klk...",
@@ -341,7 +342,7 @@ export const ITEMS = {
     ]),
   },
   silverGloves: {
-    id: "silverGloves", name: "銀の小手", slot: "hands", def: 3, atk: 1, price: 280, classes: null,
+    id: "silverGloves", name: "銀の小手", slot: "hands", vit: 3, atk: 1, price: 280, classes: null,
     desc: "銀細工の籠手。守りを固めつつ拳撃にも冴える。",
     ...sprite([
       ".kwk.kwk....",
@@ -359,7 +360,7 @@ export const ITEMS = {
     ]),
   },
   ironGauntlets: {
-    id: "ironGauntlets", name: "鉄の籠手", slot: "hands", def: 4, spd: -1, price: 240,
+    id: "ironGauntlets", name: "鉄の籠手", slot: "hands", vit: 4, agi: -1, price: 240,
     classes: ["fighter", "knight"],
     desc: "重厚な鉄の籠手。守りは固いが少し動きが鈍る。",
     ...sprite([
@@ -381,7 +382,7 @@ export const ITEMS = {
   // ===== アクセサリ =====
   powerRing: {
     id: "powerRing", name: "力の指輪", slot: "acc", atk: 3, price: 220, classes: null,
-    desc: "腕力を漲らせる指輪。攻撃力が上がる。",
+    desc: "腕力を漲らせる指輪。ATKが上がる。",
     ...sprite([
       "............",
       "....kkk.....",
@@ -398,8 +399,8 @@ export const ITEMS = {
     ]),
   },
   guardAmulet: {
-    id: "guardAmulet", name: "守りの護符", slot: "acc", def: 3, price: 220, classes: null,
-    desc: "聖なる加護を宿す護符。防御力が上がる。",
+    id: "guardAmulet", name: "守りの護符", slot: "acc", vit: 3, price: 220, classes: null,
+    desc: "聖なる加護を宿す護符。VITが上がる。",
     ...sprite([
       "....kk......",
       "...kbbk.....",
@@ -416,8 +417,8 @@ export const ITEMS = {
     ]),
   },
   swiftRing: {
-    id: "swiftRing", name: "俊足の指輪", slot: "acc", spd: 3, price: 260, classes: null,
-    desc: "風の精が宿る指輪。素早さが上がる。",
+    id: "swiftRing", name: "俊足の指輪", slot: "acc", agi: 3, price: 260, classes: null,
+    desc: "風の精が宿る指輪。AGIが上がる。",
     ...sprite([
       "............",
       "....kkk.....",
@@ -452,7 +453,7 @@ export const ITEMS = {
     ]),
   },
   cursedBlade: {
-    id: "cursedBlade", name: "妖刀ムラマサ", slot: "weapon", atk: 18, def: -3, hit: 7, dice: "1d10+3", swings: 4, align: "悪", cursed: true, price: 0,
+    id: "cursedBlade", name: "妖刀ムラマサ", slot: "weapon", atk: 18, vit: -3, hit: 7, dice: "1d10+3", swings: 4, align: "悪", cursed: true, price: 0,
     classes: ["fighter", "knight", "thief"],
     desc: "凄まじい斬れ味を持つ呪われた刀。一度握れば手放せぬ…。攻撃は跳ね上がるが身を守れなくなる。悪属性。",
     ...sprite([
@@ -547,30 +548,40 @@ export const ITEMS = {
   },
 };
 
-// 派生ステータスを装備から再計算
+// 六大ステ (ATK/VIT/AGI/INT/PIE/LUK) を base + 装備から再計算
 export function recalc(member) {
   const base = member.base;
-  let atk = base.atk, def = base.def, spd = base.spd, hpBonus = 0, mpBonus = 0;
+  let atk = base.atk || 0, vit = base.vit || 0, agi = base.agi || 0;
+  let int = base.int || 0, pie = base.pie || 0, luk = base.luk || 0;
+  let hpBonus = 0, mpBonus = 0, crit = base.crit || 0;
   const counted = new Set();
   for (const slot of SLOTS) {
     const it = member.equip[slot];
     if (!it || counted.has(it)) continue;
     counted.add(it);
     atk += it.atk || 0;
-    def += it.def || 0;
-    spd += it.spd || 0;
+    vit += (it.vit != null ? it.vit : it.def) || 0; // def/spd は旧セーブ装備の互換読み
+    agi += (it.agi != null ? it.agi : it.spd) || 0;
+    int += it.int || 0;
+    pie += it.pie || 0;
+    luk += it.luk || 0;
+    crit += it.crit || 0;
     hpBonus += it.hp || 0;
     mpBonus += it.mp || 0;
   }
-  member.atk = Math.max(1, atk);
-  member.def = Math.max(0, def);
-  member.spd = Math.max(1, spd);
+  member.atk = Math.max(1, Math.round(atk));
+  member.vit = Math.max(0, Math.round(vit));
+  member.agi = Math.max(1, Math.round(agi));
+  member.int = Math.max(0, Math.round(int));
+  member.pie = Math.max(0, Math.round(pie));
+  member.luk = Math.max(0, Math.round(luk));
+  member.critBonus = crit;
   member.maxhp = base.hp + hpBonus;
   member.maxmp = base.mp + mpBonus;
   if (member.hp > member.maxhp) member.hp = member.maxhp;
   if (member.mp > member.maxmp) member.mp = member.maxmp;
-  // AC(アーマークラス): 低いほど堅い (ウィザードリィ風表示用)
-  member.ac = 10 - member.def;
+  // 旧体系の派生値 (こうげき/ぼうぎょ/すばやさ/AC) は廃止
+  delete member.def; delete member.spd; delete member.ac;
 }
 
 export function canEquip(member, item) {
