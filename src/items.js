@@ -9,7 +9,7 @@
 // classes: 装備可能な職業キー配列 (null=全職)
 // cursed: 呪い (一度装備すると外せない)
 // 性能キー: atk/vit/agi/int/pie/luk (六大ステ加算) / hp/mp (最大値加算) / crit (会心率加算)
-// lv: 隠しレベル (1-50)。迷宮の出現帯・出現率・表示ランクを決める
+// lv: 隠しレベル (1-200)。迷宮の出現帯・出現率・表示ランクを決める
 // cat: 武器のみ。サブカテゴリ (WEAPON_CATS のキー)
 // eAtk/eDef: 属性攻撃/属性防御 { el, lv } (lv1=◯ ±50%, lv2=◎ ±100%)
 
@@ -51,8 +51,9 @@ export const WEAPON_CAT_LABEL = (() => {
 })();
 
 // 隠しレベル → 表示ランク (図鑑の枠色・発見演出に使う)
+// lv は 1-200 (全100迷宮の lootLv 帯に対応)。R6 は最深部の神話級のみ。
 export function lvToRank(lv) {
-  return lv < 8 ? 1 : lv < 15 ? 2 : lv < 23 ? 3 : lv < 31 ? 4 : lv < 40 ? 5 : 6;
+  return lv < 20 ? 1 : lv < 45 ? 2 : lv < 80 ? 3 : lv < 120 ? 4 : lv < 165 ? 5 : 6;
 }
 
 // slot種別 → 装備キー
@@ -421,7 +422,7 @@ export const ITEMS = {
 
   // ===== アクセサリ =====
   powerRing: {
-    id: "powerRing", name: "力の指輪", slot: "acc", lv: 6, atk: 3, price: 220, classes: null,
+    id: "powerRing", name: "力の指輪", slot: "acc", lv: 20, atk: 4, price: 240, classes: null,
     desc: "嵌めた瞬間、自分のものではない怒りが血管を駆け抜ける指輪。腕力が漲り、攻撃力が上がる。",
     ...sprite([
       "............",
@@ -439,7 +440,7 @@ export const ITEMS = {
     ]),
   },
   guardAmulet: {
-    id: "guardAmulet", name: "守りの護符", slot: "acc", lv: 6, vit: 3, price: 220, classes: null,
+    id: "guardAmulet", name: "守りの護符", slot: "acc", lv: 20, vit: 4, price: 240, classes: null,
     desc: "崩落した聖堂から唯一無傷で掘り出された護符。宿された加護はまだ生きている。防御力が上がる。",
     ...sprite([
       "....kk......",
@@ -457,7 +458,7 @@ export const ITEMS = {
     ]),
   },
   swiftRing: {
-    id: "swiftRing", name: "俊足の指輪", slot: "acc", lv: 8, agi: 3, price: 260, classes: null,
+    id: "swiftRing", name: "俊足の指輪", slot: "acc", lv: 28, agi: 4, price: 390, classes: null,
     desc: "風の精が封じられた指輪。耳元で絶えず微かな囁きがする。聞き取れた者はいない。素早さが上がる。",
     ...sprite([
       "............",
@@ -475,7 +476,7 @@ export const ITEMS = {
     ]),
   },
   lifeAmulet: {
-    id: "lifeAmulet", name: "生命の護符", slot: "acc", lv: 9, hp: 12, price: 320, classes: null,
+    id: "lifeAmulet", name: "生命の護符", slot: "acc", lv: 32, hp: 16, price: 480, classes: null,
     desc: "今も微かに鼓動を続ける宝玉の護符。元が誰の心臓だったのかは、考えない方がいい。最大HPが上がる。",
     ...sprite([
       "....kk......",
@@ -493,7 +494,7 @@ export const ITEMS = {
     ]),
   },
   amberTalisman: {
-    id: "amberTalisman", name: "琥珀の守符", slot: "acc", lv: 12, vit: 4, mp: 4, price: 480, classes: null,
+    id: "amberTalisman", name: "琥珀の守符", slot: "acc", lv: 44, vit: 6, mp: 6, price: 800, classes: null,
     eDef: { el: "earth", lv: 1 },
     desc: "太古の樹液に名も知れぬ羽虫が封じられた琥珀。幾万年を閉じ込めた静けさが、土の理から持ち主を匿う。",
     ...sprite([
@@ -512,7 +513,7 @@ export const ITEMS = {
     ]),
   },
   emberRing: {
-    id: "emberRing", name: "燼火の指輪", slot: "acc", lv: 18, atk: 2, price: 760, classes: null,
+    id: "emberRing", name: "燼火の指輪", slot: "acc", lv: 67, atk: 5, price: 1700, classes: null,
     eAtk: { el: "fire", lv: 1 },
     desc: "決して冷めない熾火を嵌め込んだ指輪。指先に伝う熱が、振るう得物の先にまで燃え移る。",
     ...sprite([
@@ -531,7 +532,7 @@ export const ITEMS = {
     ]),
   },
   tideBead: {
-    id: "tideBead", name: "潮霊の数珠", slot: "acc", lv: 22, mp: 8, price: 980, classes: null,
+    id: "tideBead", name: "潮霊の数珠", slot: "acc", lv: 83, mp: 12, price: 2500, classes: null,
     eDef: { el: "water", lv: 1 },
     desc: "溺死者の眠る入江で拾い集められた青珠の連なり。耳を澄ますと遠い潮騒が聞こえ、火の災いを波が払う。",
     ...sprite([
@@ -550,7 +551,7 @@ export const ITEMS = {
     ]),
   },
   galeAnklet: {
-    id: "galeAnklet", name: "風切りの足環", slot: "acc", lv: 26, agi: 5, price: 1240, classes: null,
+    id: "galeAnklet", name: "風切りの足環", slot: "acc", lv: 99, agi: 7, price: 3460, classes: null,
     desc: "墜ちたハーピーの風切羽を編み込んだ足環。一歩ごとに体が軽くなり、踏んだ床の軋みすら置き去りにする。",
     ...sprite([
       "............",
@@ -568,7 +569,7 @@ export const ITEMS = {
     ]),
   },
   gravewardBell: {
-    id: "gravewardBell", name: "墓守の鈴", slot: "acc", lv: 30, hp: 25, price: 1560, classes: null,
+    id: "gravewardBell", name: "墓守の鈴", slot: "acc", lv: 114, hp: 40, price: 4480, classes: null,
     eDef: { el: "dark", lv: 1 },
     desc: "亡者の徘徊を報せるために墓地に吊るされていた銀鈴。音は生者にしか聞こえず、鳴る間は闇の爪が届かない。",
     ...sprite([
@@ -587,7 +588,7 @@ export const ITEMS = {
     ]),
   },
   dawnMedal: {
-    id: "dawnMedal", name: "暁光の勲章", slot: "acc", lv: 36, atk: 4, vit: 4, price: 2080, classes: null,
+    id: "dawnMedal", name: "暁光の勲章", slot: "acc", lv: 137, atk: 9, vit: 9, price: 6330, classes: null,
     eAtk: { el: "light", lv: 1 },
     desc: "夜明けを取り戻した英雄に授けられたという勲章。授与の記録は焼け、功績だけが金属の中で燃え続けている。",
     ...sprite([
@@ -606,7 +607,7 @@ export const ITEMS = {
     ]),
   },
   abyssEye: {
-    id: "abyssEye", name: "深淵の瞳", slot: "acc", lv: 42, mp: 15, price: 2680, classes: null,
+    id: "abyssEye", name: "深淵の瞳", slot: "acc", lv: 161, mp: 24, price: 8600, classes: null,
     eAtk: { el: "dark", lv: 1 },
     desc: "覗いた者を覗き返すという、正体不明の眼球の剥製。瞼のない瞳は瞬きの代わりに、持ち主の敵を見据える。",
     ...sprite([
@@ -625,7 +626,7 @@ export const ITEMS = {
     ]),
   },
   dragonboneRing: {
-    id: "dragonboneRing", name: "竜骨の指輪", slot: "acc", lv: 46, atk: 6, hp: 20, price: 3420, classes: null,
+    id: "dragonboneRing", name: "竜骨の指輪", slot: "acc", lv: 177, atk: 14, hp: 45, price: 10300, classes: null,
     eDef: { el: "fire", lv: 1 },
     desc: "古竜の指骨を削り出した白い環。骨髄に残った竜の体温がじんわりと巡り、嵌めた者の血潮を猛らせる。",
     ...sprite([
@@ -644,7 +645,7 @@ export const ITEMS = {
     ]),
   },
   cursedBlade: {
-    id: "cursedBlade", name: "妖刀ムラマサ", slot: "weapon", cat: "kt", lv: 20, atk: 18, vit: -3, hit: 7, dice: "1d10+3", swings: 4, align: "悪", cursed: true, price: 0,
+    id: "cursedBlade", name: "妖刀ムラマサ", slot: "weapon", cat: "kt", lv: 175, atk: 152, vit: -12, hit: 9, dice: "2d12+10", swings: 4, align: "悪", cursed: true, price: 0,
     eAtk: { el: "dark", lv: 1 },
     classes: ["fighter", "knight", "thief"],
     desc: "鞘の中から啜り泣きが聞こえる呪われた刀。凄まじい斬れ味と引き換えに、一度握った者の血を忘れない。攻撃は跳ね上がるが身を守れなくなる。悪属性。",

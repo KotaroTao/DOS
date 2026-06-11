@@ -39,7 +39,7 @@ const LOOT_IDS = Object.keys(ITEMS).filter((id) => ITEMS[id].slot !== "mat").sor
 function lootWeight(lv, center) {
   const d = lv - center;
   if (d > 8 || d < -16) return 0;                       // 出現窓: 中心+8 〜 中心-16
-  return Math.exp(-(d * d) / 20) * Math.pow(0.95, Math.max(0, lv - 1));
+  return Math.exp(-(d * d) / 20) * Math.pow(0.97, Math.max(0, lv - 1));
 }
 // 中心レベル center 付近のアイテムを重み抽選で1つ選ぶ
 function pickItemByLv(center) {
@@ -63,8 +63,8 @@ function lootLvAt() {
   const floors = Math.max(1, cfg.floors || 3);
   const t = floors > 1 ? Math.min(1, (G.floor - 1) / (floors - 1)) : 0;
   let c = band[0] + (band[1] - band[0]) * t;
-  if (Math.random() < 0.05) c += 8; // まれな大当たり: ワンランク上の帯から出る
-  return c;
+  if (Math.random() < 0.05) c += 12; // まれな大当たり: ワンランク上の帯から出る
+  return Math.min(200, c);
 }
 
 // ===== モンスターの戦利品テーブル =====
@@ -87,9 +87,10 @@ for (const k in MONSTERS) {
   const m = MONSTERS[k];
   if (m.dropNormal && m.dropRare) continue;
   const h = _hashStr(String(m.key || k));
-  const lvC = Math.max(2, Math.min(44, (m.rank || 1) * 7));
+  // ランク (1-10) → アイテムレベル帯。rank*19 ≒ そのランクの迷宮の lootLv 中心
+  const lvC = Math.max(2, Math.min(192, (m.rank || 1) * 19));
   const np = _dropPoolAt(lvC);
-  const rp = _dropPoolAt(Math.min(48, lvC + 8));
+  const rp = _dropPoolAt(Math.min(198, lvC + 14));
   m.dropNormal = m.dropNormal || np[h % np.length];
   m.dropRare = m.dropRare || rp[(h >> 5) % rp.length];
 }
@@ -973,7 +974,7 @@ function rollChest(cell, allowDanger, done) {
     showEvent({
       sprite: MONSTERS.kobold, title: "ミミックだ！", accent: "#d4504e", banner: "⚠ 危険 ⚠",
       lines: ["宝箱は怪物だった！", "戦闘になる！"], btnLabel: "戦う",
-      onClose: () => startBattle(spawnMimic(G.floor, enemyScale()), cell),
+      onClose: () => startBattle(spawnMimic(activeCfg().rank || 1, enemyScale()), cell),
     });
     return;
   }
@@ -4214,7 +4215,8 @@ if (muteBtn) {
 // ================= オートセーブ (ウィザードリィ3風: 常時保存・やり直し不可) =================
 // 一度選択した行動は取り消せない。タスクキルされても直前の状態 (戦闘なら確定済みの
 // 行動が実行される直前) から再開する。
-const SAVE_KEY = "dos-save-v1";
+// v2: 全コンテンツ再編 (隠しレベル1-200 / 迷宮100 / 魂cap拡張)。v1セーブとは互換しない
+const SAVE_KEY = "dos-save-v2";
 // 保存する G のフィールド (アニメーション等の一時状態は除外)
 const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py",

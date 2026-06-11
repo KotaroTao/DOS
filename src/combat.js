@@ -100,10 +100,10 @@ export function spawnBossEnemies(key = "dragon", scale = 1) {
   return [makeEnemy(key, scale, true)];
 }
 
-// 宝箱から出るミミック (通常より手強い)
-export function spawnMimic(floor, scale = 1) {
-  const pool = ["d01_kobold", "d02_armkobold", "d03_orc"];
-  const key = pool[Math.min(pool.length - 1, Math.floor(floor) - 1 + (Math.random() < 0.5 ? 0 : 1))] || "d03_orc";
+// 宝箱から出るミミック (通常より手強い)。迷宮のランクに合った個体に化ける
+export function spawnMimic(rank, scale = 1) {
+  const pool = Object.keys(MONSTERS).filter((k) => MONSTERS[k].rank === rank && !MONSTERS[k].boss);
+  const key = pool.length ? pool[rand(pool.length)] : "cm_slime";
   const e = makeEnemy(key, scale);
   e.name = "ミミック";
   e.maxhp = Math.round(e.maxhp * 1.4);

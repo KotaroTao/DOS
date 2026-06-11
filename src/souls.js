@@ -226,13 +226,13 @@ let _soulUid = 0;
 // 上位ランクほどステータス係数が高く、初期レベル上限(cap)も高い。
 // 優秀以上はダンジョンでのみ入手 (合成では作れない)。
 export const SOUL_RANKS = {
-  normal: { label: "",       mul: 1.0,  color: null,      order: 0, cap: 10 },
-  fine:   { label: "優秀な", mul: 1.25, color: "#7fd0ff", order: 1, cap: 20 },
-  great:  { label: "偉大な", mul: 1.6,  color: "#c08aff", order: 2, cap: 30 },
-  legend: { label: "伝説の", mul: 2.2,  color: "#ffcf4a", order: 3, cap: 50 },
+  normal: { label: "",       mul: 1.0,  color: null,      order: 0, cap: 20 },
+  fine:   { label: "優秀な", mul: 1.25, color: "#7fd0ff", order: 1, cap: 40 },
+  great:  { label: "偉大な", mul: 1.6,  color: "#c08aff", order: 2, cap: 60 },
+  legend: { label: "伝説の", mul: 2.2,  color: "#ffcf4a", order: 3, cap: 100 },
 };
-// 限界突破で到達できる上限 (初期cap + 40)
-export function soulHardCap(s) { return SOUL_RANKS[s.rank || "normal"].cap + 40; }
+// 限界突破で到達できる上限 (初期cap + 50)
+export function soulHardCap(s) { return SOUL_RANKS[s.rank || "normal"].cap + 50; }
 
 // ランク抽選: legend 0.5% / great 1.7% / fine 10% / それ以外 normal
 // bonus(0〜): 深い迷宮ほどレア魂が出やすくなる倍率加算
