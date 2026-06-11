@@ -101,8 +101,8 @@ export function spawnBossEnemies(key = "dragon", scale = 1) {
 
 // 宝箱から出るミミック (通常より手強い)
 export function spawnMimic(floor, scale = 1) {
-  const pool = ["kobold", "orc", "wraith"];
-  const key = pool[Math.min(pool.length - 1, Math.floor(floor) - 1 + (Math.random() < 0.5 ? 0 : 1))] || "orc";
+  const pool = ["d01_kobold", "d02_armkobold", "d03_orc"];
+  const key = pool[Math.min(pool.length - 1, Math.floor(floor) - 1 + (Math.random() < 0.5 ? 0 : 1))] || "d03_orc";
   const e = makeEnemy(key, scale);
   e.name = "ミミック";
   e.maxhp = Math.round(e.maxhp * 1.4);

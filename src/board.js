@@ -13,36 +13,10 @@ export const ROWS = 6;
 const SOUL_CLASS_KEYS = ["fighter", "knight", "thief", "mage", "priest", "bishop"];
 
 // ===== 迷宮の種類 =====
-// クリア(ボス撃破)するごとに次の迷宮が解放される。深いほど敵が強く、
-// 罠が多く、より高レベル/高ランクの魂や良い装備が手に入る。
-// floors: 階層数 (最深階の階段でボス戦) / enemyScale: 敵能力倍率
-// trapRate: 行き止まりイベントが罠になる確率 / warmChance: 死体が「あたたかい」確率
-// soulLevelBonus: 入手する魂の初期Lv加算 / rankBonus: レア魂の出やすさ加算
-// boss/bossScale: ボスのモンスターと能力倍率 / lootTier: 宝箱の質
-export const DUNGEONS = [
-  { name: "忘れられた地下牢", short: "地下牢", floors: 3,
-    pool: ["slime", "bat", "kobold"], deepPool: ["kobold", "skeleton"],
-    boss: "orc", bossScale: 0.9, enemyScale: 0.8, trapRate: 0.05, warmChance: 0.4,
-    soulLevelBonus: 0, rankBonus: 0, lootTier: 0, rank: 1 },
-  { name: "朽ちた城砦", short: "城砦", floors: 5,
-    pool: ["kobold", "bat", "skeleton"], deepPool: ["skeleton", "orc", "wraith"],
-    boss: "wraith", bossScale: 1.2, enemyScale: 1.3, trapRate: 0.10, warmChance: 0.42,
-    soulLevelBonus: 1, rankBonus: 0.6, lootTier: 1, rank: 2 },
-  { name: "奈落の回廊", short: "奈落", floors: 7,
-    pool: ["skeleton", "orc", "wraith"], deepPool: ["orc", "wraith"],
-    boss: "dragon", bossScale: 1.0, enemyScale: 1.9, trapRate: 0.12, warmChance: 0.45,
-    soulLevelBonus: 2, rankBonus: 1.2, lootTier: 2, rank: 3 },
-  { name: "竜の墓所", short: "墓所", floors: 9,
-    pool: ["orc", "wraith", "skeleton"], deepPool: ["wraith", "orc"],
-    boss: "dragon", bossScale: 1.7, enemyScale: 2.6, trapRate: 0.14, warmChance: 0.5,
-    soulLevelBonus: 3, rankBonus: 1.8, lootTier: 3, rank: 4 },
-];
-
-const MONSTER_POOL = {
-  1: ["slime", "bat", "kobold"],
-  2: ["kobold", "skeleton", "orc"],
-  3: ["skeleton", "orc", "wraith"],
-};
+// 迷宮の定義 (名前/階数/出現プール/ボス等) は src/dungeons/ 配下のモジュールへ移管。
+// 1ダンジョン1モジュールで管理し、レジストリ (dungeons/index.js) が DUNGEONS を組み立てる。
+// makeBoard には game.js から該当ダンジョンの cfg を渡す。
+// cfg に必要なフィールド: floors, pool[], deepPool[], trapRate, warmChance
 
 const DIRS = { n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0] };
 const OPP = { n: "s", s: "n", e: "w", w: "e" };
@@ -143,8 +117,8 @@ function ensureInvariants(cells) {
 }
 
 export function makeBoard(floor, cfg = null) {
-  // cfg: 迷宮設定 (省略時は地下牢相当)。floor は迷宮内の階 (1始まり)
-  const dn = cfg || DUNGEONS[0];
+  // cfg: 迷宮設定 (game.js から必ず渡す)。floor は迷宮内の階 (1始まり)
+  const dn = cfg || { floors: 3, pool: ["cm_slime"], deepPool: ["cm_slime"], trapRate: 0.05, warmChance: 0.4 };
   const sx = 0, sy = Math.floor(ROWS / 2);
   // 階段を必ず「10歩より遠く」に置けるよう、最遠マスが10歩超になる迷路を引く
   let grid, dist, maxD;
