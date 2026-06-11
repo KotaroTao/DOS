@@ -465,6 +465,25 @@ canvas.spr { image-rendering: pixelated; display: block; }
 }
 .confirm-card { max-width: 300px; }
 
+/* 名前入力フィールド */
+.name-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #1a1a2e;
+  border: 1px solid #555;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 16px;
+  font-family: inherit;
+  outline: none;
+}
+.name-input:focus { border-color: #c9a227; }
+
+/* 未生成タブ */
+.tw-dolltab.pending { color: #aaa; font-style: italic; }
+
 /* ===== スキル詳細ポップアップ / スキルチップ ===== */
 .sk-mp { font-size: 12px; color: var(--accent-2); margin-top: 4px; }
 .sk-lines { text-align: left; margin: 4px 4px 10px; }
