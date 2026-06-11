@@ -1281,7 +1281,7 @@ function springTrap(trap, opener, fin) {
       sprite: ICONS.trap, title: `${trap.name}！`, accent: "#d4504e", banner: "⚠ 危険 ⚠",
       lines: [trap.flavor, trap.horde ? "怪物の群れが雪崩れ込んでくる！" : "怪物が呼び寄せられた！", ...(fin.chest ? ["宝箱を検める暇はない！"] : [])],
       btnLabel: "戦う",
-      onClose: () => startBattle(spawnCardEnemies(key, G.floor, enemyScale() * (trap.horde ? 1.25 : 1)), null),
+      onClose: () => startBattle(spawnCardEnemies(key, G.floor, enemyScale() * (trap.horde ? 1.25 : 1), trap.horde ? { min: 4 } : null), null),
     });
     return;
   }
@@ -1541,7 +1541,9 @@ function startBattle(enemies, cell) {
   G.state = "combat";
 
   combatMenu.classList.remove("hidden");
-  log(`${enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
+  // 同種の群れは「ゴブリン ×4」とまとめて告げる (個体名は A/B/C… 付き)
+  const sameKind = enemies.length > 1 && enemies.every((e) => e.key === enemies[0].key);
+  log(`${sameKind ? `${enemies[0].mon.name} ×${enemies.length}` : enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
   // 先制・奇襲の判定 (ボス戦では発生しない)。
   // 周囲警戒 (vigilance) が奇襲を抑え、先制の心得 (initiative) が先制を伸ばす
   const isBoss = enemies.some((e) => e.boss);
@@ -1596,13 +1598,17 @@ function renderCombatCanvas() {
   vctx.fillStyle = fgr;
   vctx.fillRect(0, floorY, view.width, view.height - floorY);
 
-  const living = b.enemies;
-  const n = living.length;
-  const slotW = view.width / (n + 1);
+  // 隊列: 4体以上は前衛(先頭3体)・後衛(4体目以降)の2列に分かれる。
+  // 奥に立つ後衛から先に描き、前衛を手前に重ねて遠近を出す
+  const frontRow = b.enemies.slice(0, 3);
+  const backRow = b.enemies.slice(3);
+  const rows = backRow.length
+    ? [{ list: backRow, y: view.height * 0.30, back: true }, { list: frontRow, y: view.height * 0.49, back: false }]
+    : [{ list: frontRow, y: view.height * 0.40, back: false }];
   G.enemyPos = {};
-  living.forEach((e, i) => {
-    const baseX = slotW * (i + 1);
-    const baseY = view.height * 0.40;
+  for (const row of rows) row.list.forEach((e, i) => {
+    const baseX = (view.width / (row.list.length + 1)) * (i + 1);
+    const baseY = row.y;
     G.enemyPos[e.uid] = { cx: baseX, cy: baseY };
     if (!e.alive) return; // 倒した敵は完全に消す (薄い残像を残さない)
     let ox = 0, oy = 0, alpha = 1;
@@ -1617,7 +1623,7 @@ function renderCombatCanvas() {
         if (Math.floor(dt / 55) % 2 === 0) alpha = 0.35;
       }
     }
-    const size = e.boss ? 14 : 9;
+    const size = e.boss ? 14 : row.back ? 8 : 9; // 後衛は奥にいるぶん少し小さい
     // 入力/ターゲット選択中: タップで攻撃できる敵に金のリングとマーカーを表示
     const tappable = !G.animating && e.alive && (b.phase === "target" || b.phase === "input");
     if (tappable) {
@@ -1636,7 +1642,7 @@ function renderCombatCanvas() {
         vctx.fillStyle = "#ffd84a";
         vctx.font = "12px monospace";
         vctx.textAlign = "center";
-        vctx.fillText("▼", baseX, baseY - size * 6.2);
+        vctx.fillText("▼", baseX, row.back ? baseY - 82 : baseY - size * 6.2); // 後衛はプレートのさらに上
       }
       vctx.restore();
     }
@@ -1669,7 +1675,8 @@ function renderCombatCanvas() {
     vctx.fillStyle = "rgba(8,8,14,0.75)";
     vctx.strokeStyle = e.alive ? "rgba(160,140,180,0.4)" : "rgba(90,90,102,0.3)";
     vctx.lineWidth = 1;
-    const px = baseX - tw / 2 - 7, py2 = baseY + 70, pw = tw + 14, ph = 14;
+    // 後衛のプレート/HPバーは頭上に出す (足元は前衛に隠れるため)
+    const px = baseX - tw / 2 - 7, py2 = baseY + (row.back ? -76 : 70), pw = tw + 14, ph = 14;
     vctx.beginPath();
     vctx.roundRect ? vctx.roundRect(px, py2, pw, ph, 7) : vctx.rect(px, py2, pw, ph);
     vctx.fill();
@@ -1677,7 +1684,7 @@ function renderCombatCanvas() {
     vctx.fillStyle = e.alive ? "#e7e3d4" : "#5a5a66";
     vctx.fillText(label, baseX, py2 + 10);
     // HPバー (グラデーション + 枠)
-    const bw = 56, bh = 6, bx = baseX - bw / 2, by = baseY + 88;
+    const bw = 56, bh = 6, bx = baseX - bw / 2, by = baseY + (row.back ? -58 : 88);
     vctx.fillStyle = "#1b1b26";
     vctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
     const ratio = Math.max(0, e.hp / e.maxhp);
@@ -1832,8 +1839,10 @@ function renderCombatMenu() {
     combatMenu.appendChild(row2);
   } else if (b.phase === "target") {
     combatMenu.appendChild(el("div", "who", "対象を選択 (敵を直接タップでもOK)"));
-    const list = el("div", "target-list");
-    for (const t of b.targetOptions()) {
+    const opts = b.targetOptions();
+    // 対象が多い時 (敵の群れなど) は2列に並べて縦に伸びすぎないようにする
+    const list = el("div", "target-list" + (opts.length > 3 ? " cols2" : ""));
+    for (const t of opts) {
       const label = t.side === "enemy"
         ? `${t.name} (HP ${t.hp})`
         : `${t.name} (HP ${t.hp}/${t.maxhp})${t.alive ? "" : " [気絶]"}`;
@@ -2085,6 +2094,9 @@ function endBattle() {
       const d = rollMonsterDrop(e);
       if (d) drops.push(d);
     }
+    // 宝箱は1つしか現れないので中身も1品まで: 複数体が同時に落とした時はレア優先で1つに絞る
+    // (同種2体が同じ品を落とし、1つの宝箱からアイテムが2つ出てしまうのを防ぐ)
+    const drop = drops.find((d) => d.rare) || drops[0] || null;
     // soulClass を持つ敵 (人型・騎士など) はまれに魂を落とす (レアドロップ)
     for (const e of b.enemies) {
       const sc = e.alive ? null : (e.mon && e.mon.soulClass) || (MONSTERS[e.key] && MONSTERS[e.key].soulClass);
@@ -2108,8 +2120,8 @@ function endBattle() {
     // 宝箱はドロップ品があれば必ず、なければ50%で出現。ボスは宝箱のあとに踏破演出へ
     const afterVictory = () => {
       const after = wasBoss ? onDungeonCleared : null;
-      if (drops.length || Math.random() < 0.5) {
-        setTimeout(() => battleChest(drops, after), 200);
+      if (drop || Math.random() < 0.5) {
+        setTimeout(() => battleChest(drop ? [drop] : [], after), 200);
         return;
       }
       if (after) after();

@@ -280,6 +280,7 @@ html, body { height: 100%; overflow: hidden; }
 #combat-menu .row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 #combat-menu .who { font-size: 13px; color: var(--accent); margin-bottom: 2px; text-align: center; }
 #combat-menu .target-list { display: grid; gap: 6px; }
+#combat-menu .target-list.cols2 { grid-template-columns: 1fr 1fr; } /* 敵が4体以上の対象選択 */
 #combat-menu .btn { min-height: 52px; font-size: 15px; }
 
 .hidden { display: none !important; }
