@@ -2040,6 +2040,7 @@ function renderTown() {
   townEl.classList.remove("hidden");
   townEl.innerHTML = "";
   updateTopbar();
+  playBgm(sceneBgm()); // 施設ごとのBGMへ切替 (同じ曲なら鳴らし直さない)
   townEl.classList.remove("shop-mode"); // 商店専用レイアウトを解除 (商店なら再付与)
   const f = G.town.facility;
   if (f === "mansion") return renderMansion();
@@ -4097,7 +4098,6 @@ function returnToTown() {
   if (townBtn) townBtn.classList.add("hidden");
   G.maxFloorReached = Math.max(G.maxFloorReached, G.floor);
   G.run = null; // 無事帰還 = 戦利品は確定
-  playBgm("town");
   updateTopbar();
   log("街へ帰還した。", "sys");
   G.town.facility = null; G.town.sub = null;
@@ -4999,9 +4999,17 @@ if (townBtn) townBtn.addEventListener("click", confirmReturnToTown);
 // ---- 入力 ----
 // 最初のユーザー操作で音声を起動 (ブラウザの自動再生制限対策)
 let audioReady = false;
+// 街の施設ごとのBGM (未掲載の施設は広場の曲。図鑑の間は王宮の一部)
+const FACILITY_BGM = {
+  mansion: "mansion", altar: "mansion",
+  tavern: "tavern", shop: "shop", inn: "inn", shrine: "shrine",
+  palace: "palace", codexMon: "palace", codexItem: "palace", codexDungeon: "palace", codexJob: "palace",
+};
+let openingActive = false; // オープニング上映中は専用曲を流す
 // 現在のシーンに合ったBGM名
 function sceneBgm() {
-  if (G.state === "town") return "town";
+  if (openingActive) return "opening";
+  if (G.state === "town") return FACILITY_BGM[G.town.facility] || "town";
   if (G.state === "combat") return (G.battle && G.battle.enemies.some((e) => e.boss)) ? "boss" : "battle";
   if (G.state === "board") return "field";
   return null; // over などは無音 (ジングルのみ)
@@ -5410,9 +5418,10 @@ function init() {
   // 初回起動 (新規ゲーム) のみ: オープニングを流してから街へ
   if (!loaded) {
     G.prompt = true;
+    openingActive = true;
     try {
-      showOpening(() => { G.prompt = false; });
-    } catch (e) { G.prompt = false; }
+      showOpening(() => { G.prompt = false; openingActive = false; playBgm(sceneBgm()); });
+    } catch (e) { G.prompt = false; openingActive = false; }
   }
 
   if ("serviceWorker" in navigator) {
