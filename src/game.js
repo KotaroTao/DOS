@@ -1,11 +1,12 @@
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
-import { makeBoard, COLS, ROWS, DUNGEONS } from "./board.js";
+import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSprite } from "./sprites.js";
 import { createParty, spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, gainExp, SPELLS, cloneItem } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
 import { spriteCanvas } from "./sprites.js";
 import { ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, recalc, equip as equipItem, unequip as unequipItem, canEquip } from "./items.js";
-import { generateItems, generateMonsters, RANK_NAME, RANK_COLOR, monstersForDungeon, MON_RACES, ARCH_RACE, RACE_LABEL } from "./content.js";
+import { generateItems, RANK_NAME, RANK_COLOR } from "./content.js";
+import { DUNGEONS, DUNGEON_MONSTERS, MON_RACES, RACE_LABEL } from "./dungeons/index.js";
 import {
   PARTS, PART_LABEL, SOUL_CLASSES, makeSoul, makeDoll, soulName, soulSprite,
   dollSouls, dominantClass, recalcDoll, sealSoul, createStartingRoster,
@@ -14,11 +15,12 @@ import {
   JOB_RANKS, jobRankOf, PART_SKILLS,
 } from "./souls.js";
 
-// ===== 生成コンテンツの取り込み (アイテム1000+ / モンスター500+) =====
+// ===== コンテンツの取り込み =====
+// アイテム: 手続き生成 (種類が多くても定義は少数のベースから派生)。
+// モンスター: ダンジョン単位で手作りした図鑑 (src/dungeons/) を統合。
 const GEN_ITEMS = generateItems();
-const GEN_MON = generateMonsters();
 Object.assign(ITEMS, GEN_ITEMS);
-Object.assign(MONSTERS, GEN_MON);
+Object.assign(MONSTERS, DUNGEON_MONSTERS);
 // 既存の手作りアイテムにも rank を付与 (価格帯から推定)
 for (const id in ITEMS) {
   const it = ITEMS[id];
@@ -226,12 +228,8 @@ function updateTopbar() {
 }
 
 function newFloor() {
-  // 生成モンスター(500+)からダンジョンランク・階に応じた出現プールを作る
-  const cfg = { ...activeCfg() };
-  const dRank = cfg.rank || 1;
-  const fr = (G.floor - 1) / Math.max(1, (cfg.floors || 3) - 1); // 0..1 階の進行
-  cfg.pool = monstersForDungeon(GEN_MON, dRank, Math.min(0.5, fr));
-  cfg.deepPool = monstersForDungeon(GEN_MON, dRank, Math.max(0.5, fr));
+  // ダンジョンが自前で持つ出現プール (pool=浅階 / deepPool=深階) を使う
+  const cfg = activeCfg();
   G.board = makeBoard(G.floor, cfg);
   if (G.floor > G.stats.deepest) G.stats.deepest = G.floor;
   // 酒場の噂を盤面に反映 (潜入直後の階のみ)
@@ -1476,13 +1474,13 @@ function endBattle() {
       recordMonsterKill(e.key, G.dungeonIdx); // 図鑑は「倒した時」に記録
       rollMonsterDrop(e);                       // 戦利品抽選 (落とせば図鑑に開示)
     }
-    // 人型の敵はまれに魂を落とす (レアドロップ)
-    const HUMANOID_SOUL = { kobold: "fighter", orc: "knight", skeleton: "thief", wraith: "mage" };
+    // soulClass を持つ敵 (人型・騎士など) はまれに魂を落とす (レアドロップ)
     for (const e of b.enemies) {
-      if (e.alive || !HUMANOID_SOUL[e.key]) continue;
+      const sc = e.alive ? null : (e.mon && e.mon.soulClass) || (MONSTERS[e.key] && MONSTERS[e.key].soulClass);
+      if (!sc) continue;
       if (Math.random() < 0.08) {
         const dn = activeCfg();
-        const s = makeSoul(HUMANOID_SOUL[e.key], 1 + (dn.soulLevelBonus || 0) + (G.floor >= 2 ? 1 : 0), null, rollSoulRank(dn.rankBonus || 0));
+        const s = makeSoul(sc, 1 + (dn.soulLevelBonus || 0) + (G.floor >= 2 ? 1 : 0), null, rollSoulRank(dn.rankBonus || 0));
         runGainSoul(s);
         G.stats.soulsFound++;
         questProgress("soul", null, 1);
@@ -2376,13 +2374,14 @@ function trainSoul(d, part) {
 }
 
 // ---- 酒場「沈まぬ灯」: パーティ編成 + クエスト ----
+// kill クエストは種族(race)で判定する (ダンジョン毎にモンスターIDが異なるため)
 const QUEST_DEFS = [
-  { id: "q_slime", name: "ぬめる脅威", desc: "スライムを 3体 倒す", type: "kill", key: "slime", goal: 3, reward: { gold: 80 } },
-  { id: "q_bat", name: "夜翼の駆除", desc: "ジャイアントバットを 3体 倒す", type: "kill", key: "bat", goal: 3, reward: { gold: 100 } },
+  { id: "q_slime", name: "ぬめる脅威", desc: "不定形の魔物を 3体 倒す", type: "kill", race: "amorph", goal: 3, reward: { gold: 80 } },
+  { id: "q_bat", name: "夜翼の駆除", desc: "飛獣を 3体 倒す", type: "kill", race: "wing", goal: 3, reward: { gold: 100 } },
   { id: "q_souls", name: "魂の回収者", desc: "死体から魂を 3個 回収する", type: "soul", goal: 3, reward: { gold: 150 } },
   { id: "q_b2", name: "深淵への一歩", desc: "地下2階に到達する", type: "floor", goal: 2, reward: { gold: 150, soul: "priest" } },
-  { id: "q_skel", name: "骸の掃除", desc: "スケルトンを 2体 倒す", type: "kill", key: "skeleton", goal: 2, reward: { gold: 180, soul: "knight" } },
-  { id: "q_dragon", name: "竜殺し", desc: "深淵の主ドラゴンを討つ", type: "kill", key: "dragon", goal: 1, reward: { gold: 1000 } },
+  { id: "q_skel", name: "骸の掃除", desc: "不死者を 2体 倒す", type: "kill", race: "undead", goal: 2, reward: { gold: 180, soul: "knight" } },
+  { id: "q_dragon", name: "竜殺し", desc: "竜を討つ", type: "kill", race: "dragon", goal: 1, reward: { gold: 1000 } },
 ];
 
 function initQuests() {
@@ -2393,7 +2392,11 @@ function initQuests() {
 function questProgress(type, key, n = 1) {
   for (const q of G.quests) {
     if (q.state !== "active" || q.type !== type) continue;
-    if (q.type === "kill" && q.key !== key) continue;
+    // kill: q.race 指定なら倒した敵の種族で判定 / それ以外は従来のキー一致
+    if (q.type === "kill") {
+      if (q.race) { const m = MONSTERS[key]; if (!m || m.race !== q.race) continue; }
+      else if (q.key !== key) continue;
+    }
     if (q.type === "floor") { q.progress = Math.max(q.progress, key); }
     else q.progress += n;
     if (q.progress >= q.goal && q.state === "active") {
@@ -2702,7 +2705,7 @@ function renderCodexMon() {
   }
   townEl.appendChild(tabs);
 
-  const keys = seenKeys.filter((k) => (MONSTERS[k].race || ARCH_RACE[MONSTERS[k].archetype]) === codexMonRace);
+  const keys = seenKeys.filter((k) => MONSTERS[k].race === codexMonRace);
   const grid = el("div", "cdx-grid");
   for (const key of keys) {
     const m = MONSTERS[key];
@@ -2785,8 +2788,7 @@ function showCodexMonDetail(key) {
   const card = el("div", "ig-card cdx-detail");
   const rc = m.rank ? RANK_COLOR[m.rank] : null;
   if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
-  const raceKey = m.race || ARCH_RACE[m.archetype];
-  const ban = el("div", "ig-banner", `${RACE_LABEL[raceKey] || "魔物"}${m.rank ? "・" + RANK_NAME[m.rank] + "級" : ""}`);
+  const ban = el("div", "ig-banner", `${RACE_LABEL[m.race] || "魔物"}${m.rank ? "・" + RANK_NAME[m.rank] + "級" : ""}`);
   if (rc) ban.style.color = rc;
   card.appendChild(ban);
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(m, 9)); card.appendChild(art);
