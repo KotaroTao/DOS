@@ -661,7 +661,7 @@ function tryMove(dx, dy) {
 
 // 単発移動 (方向キー/ボタン/隣接クリック)。ガード後に1歩進む
 function moveTo(nx, ny) {
-  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen) return;
+  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen || G.settingsOpen) return;
   if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) return;
   if (Math.abs(nx - G.px) + Math.abs(ny - G.py) !== 1) return;
   // 辺が壁で塞がれている: 進めない (壁の通り抜けは不可)。連続表示は抑制
@@ -2383,6 +2383,10 @@ function renderTownHub() {
 
     // 迷宮の選択 — 10迷宮ごとの「層域」アコーディオン (数が増えても一覧が伸びすぎない)
     townEl.appendChild(el("div", "tw-h", "潜る迷宮を選ぶ"));
+    townEl.appendChild(el("div", "tw-dunhelp", "★踏破済みの迷宮には何度でも再挑戦できる — 戦利品・魂・図鑑集めに。"));
+    const clearedCnt = clearedDungeonCount();
+    // 勅命の対象迷宮 (攻略中の章のみ ❗ を付ける)
+    const targetIdx = G.msq && G.msq.state === "active" && G.msq.n >= 1 ? G.msq.n - 1 : -1;
     const bandCount = Math.ceil(DUNGEONS.length / 10);
     const openBand = (townBandOpen != null) ? townBandOpen : Math.floor(G.dungeonIdx / 10);
     const maxBand = Math.floor((G.unlockedDungeons - 1) / 10); // 解放済み迷宮が属する最後の層域
@@ -2400,8 +2404,8 @@ function renderTownHub() {
       const det = el("details", "tw-band");
       if (b === openBand) det.open = true;
       const sum = el("summary", "tw-bandh");
-      const clearedIn = Math.max(0, Math.min(clearedDungeonCount() - s, e - s));
-      sum.textContent = `第${b + 1}層域 — 迷宮 ${s + 1}〜${e} (踏破 ${clearedIn}/${e - s})`;
+      const clearedIn = Math.max(0, Math.min(clearedCnt - s, e - s));
+      sum.textContent = `${clearedIn >= e - s ? "★ " : ""}第${b + 1}層域 — 迷宮 ${s + 1}〜${e} (踏破 ${clearedIn}/${e - s})`;
       det.appendChild(sum);
       det.addEventListener("toggle", () => {
         if (det.open) townBandOpen = b;
@@ -2411,13 +2415,20 @@ function renderTownHub() {
       for (let i = s; i < e; i++) {
         const dn = DUNGEONS[i];
         const unlocked = i < G.unlockedDungeons;
-        const row = el("div", "tw-dungeon" + (i === G.dungeonIdx ? " sel" : "") + (unlocked ? "" : " locked"));
+        const cleared = i < clearedCnt;
+        const row = el("div", "tw-dungeon" + (i === G.dungeonIdx ? " sel" : "") + (unlocked ? "" : " locked") + (cleared ? " cleared" : ""));
         const info = el("div", "tw-chipi");
         info.appendChild(el("div", "tw-chipn", unlocked ? `${i + 1}. ${dn.name}` : `🔒 ？？？`));
         const elTag = dn.element && ELEMENTS[dn.element] ? ` ・${ELEMENTS[dn.element].label}の気配` : "";
-        info.appendChild(el("div", "tw-chipc", unlocked ? `全${dn.floors}階 ・ ${i === 0 ? "弱い敵・罠少なめ" : "敵が強く良い戦利品"}${elTag}` : `前の迷宮を踏破し、王宮で勅命を受けると解放`));
+        info.appendChild(el("div", "tw-chipc", unlocked ? `全${dn.floors}階 ・ 敵ランク${dn.rank}${elTag}` : `前の迷宮を踏破し、王宮で勅命を受けると解放`));
         row.appendChild(info);
-        if (unlocked) row.addEventListener("click", () => { G.dungeonIdx = i; SFX.select(); renderTown(); });
+        if (unlocked) {
+          // 踏破状態バッジ (★踏破済=再挑戦可 / ❗勅命=攻略対象 / 未踏破)
+          const st = el("div", "tw-dunst" + (cleared ? " done" : i === targetIdx ? " quest" : ""));
+          st.textContent = cleared ? "★ 踏破済" : i === targetIdx ? "❗ 勅命" : "未踏破";
+          row.appendChild(st);
+          row.addEventListener("click", () => { G.dungeonIdx = i; SFX.select(); renderTown(); });
+        }
         dlist.appendChild(row);
       }
       det.appendChild(dlist);
@@ -2425,15 +2436,11 @@ function renderTownHub() {
     }
   }
 
-  // データ削除 (はじめから) — 誤タップ防止に二重確認
-  const reset = btn("🗑 はじめから (全データ削除)", confirmReset);
-  reset.className = "tw-small danger tw-reset";
-  townEl.appendChild(reset);
-
   // 迷宮へ (常に1階から) — スクロール位置に関わらず押せるよう画面下部に固定表示
   if (G.unlockedDungeons >= 1) {
     const divebar = el("div", "tw-divebar");
-    const dive = btn(`🕳 「${curDungeon().name}」へ潜る (B1F)`, tryEnterDungeon);
+    const again = G.dungeonIdx < clearedDungeonCount(); // 踏破済みへの再挑戦
+    const dive = btn(`${again ? "⚔" : "🕳"} 「${curDungeon().name}」へ${again ? "再挑戦" : "潜る"} (B1F)`, tryEnterDungeon);
     dive.className = "btn primary tw-dive";
     divebar.appendChild(dive);
     townEl.appendChild(divebar);
@@ -4604,7 +4611,7 @@ function returnToTown() {
 }
 
 function confirmReturnToTown() {
-  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen) return;
+  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen || G.settingsOpen) return;
   showConfirm({
     title: "街へ帰還する？",
     lines: ["今いる階の探索は中断される。", "集めた魂・お金・アイテムは持ち帰れる。"],
@@ -4622,6 +4629,7 @@ let stSoulSel = null; // 魂タブで詳細表示中の魂 (uid)
 function openStatus(idx = 0) {
   if (G.state !== "board" && G.state !== "town") return;
   if (G.anim || G.walking || G.prompt) return;
+  if (G.settingsOpen) closeSettings();
   G.statusOpen = true;
   G.statusIdx = idx;
   G.statusTab = "main"; // 初期表示は統合画面 (ステータス/装備/所持品)
@@ -5579,7 +5587,7 @@ view.addEventListener("click", (e) => {
     }
     return;
   }
-  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen) return;
+  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen || G.settingsOpen) return;
   const cx = Math.floor((sx - OX) / (CARD_W + GAP));
   const cy = Math.floor((sy - OY) / (CARD_H + GAP));
   if (cx < 0 || cy < 0 || cx >= COLS || cy >= ROWS) return;
@@ -5613,7 +5621,7 @@ function stopSwipe() {
 // 指を離さずに方向が確定した後、1歩ずつ連続移動するループ
 function swipeStep(dx, dy) {
   if (!swipe) return; // 指が離れた
-  if (G.state !== "board" || G.prompt || G.statusOpen) { stopSwipe(); return; }
+  if (G.state !== "board" || G.prompt || G.statusOpen || G.settingsOpen) { stopSwipe(); return; }
   if (G.anim || G.walking) {
     // アニメーション完了待ち。50ms ごとに再チェック
     swipeTimer = setTimeout(() => swipeStep(dx, dy), 50);
@@ -5656,8 +5664,9 @@ document.addEventListener("pointercancel", () => { stopSwipe(); });
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "m" || e.key === "M") { updateMuteBtn(toggleMute()); return; }
+  if (e.key === "Escape" && G.settingsOpen) { closeSettings(); return; }
   if (e.key === "Escape" && G.statusOpen) { closeStatus(); return; }
-  if (G.state !== "board" || G.prompt || G.statusOpen) return;
+  if (G.state !== "board" || G.prompt || G.statusOpen || G.settingsOpen) return;
   switch (e.key) {
     case "ArrowUp": case "w": tryMove(0, -1); break;
     case "ArrowDown": case "s": tryMove(0, 1); break;
@@ -5670,10 +5679,71 @@ document.addEventListener("keydown", (e) => {
 
 // ミュートボタン
 const muteBtn = document.getElementById("mute-btn");
-function updateMuteBtn(m) { if (muteBtn) muteBtn.textContent = m ? "🔇" : "🔊"; }
+function updateMuteBtn(m) { if (muteBtn) muteBtn.textContent = m ? "🔇" : "🔊"; if (G.settingsOpen) renderSettings(); }
 if (muteBtn) {
   muteBtn.addEventListener("click", () => { ensureAudio(); updateMuteBtn(toggleMute()); });
 }
+
+// ================= 設定画面 (⚙) =================
+const settingsEl = document.getElementById("settings-screen");
+const settingsBtn = document.getElementById("settings-btn");
+
+function openSettings() {
+  if (G.state !== "board" && G.state !== "town") return;
+  if (G.anim || G.walking || G.prompt) return;
+  if (G.statusOpen) closeStatus();
+  G.settingsOpen = true;
+  settingsEl.classList.remove("hidden");
+  renderSettings();
+}
+function closeSettings() {
+  G.settingsOpen = false;
+  settingsEl.classList.add("hidden");
+}
+
+// 設定の1行 (名前 + 説明 + 右端の操作ボタン)
+function settingRow(name, desc, button, danger = false) {
+  const row = el("div", "set-row" + (danger ? " danger" : ""));
+  const info = el("div", "set-rowi");
+  info.appendChild(el("div", "set-rown", name));
+  info.appendChild(el("div", "set-rowd", desc));
+  row.appendChild(info);
+  row.appendChild(button);
+  return row;
+}
+
+function renderSettings() {
+  if (!settingsEl) return;
+  settingsEl.innerHTML = "";
+  const head = el("div", "set-head");
+  head.appendChild(el("div", "set-title", "⚙ 設定"));
+  const close = btn("✕ 閉じる", () => { SFX.select(); closeSettings(); });
+  close.className = "tw-small set-close";
+  head.appendChild(close);
+  settingsEl.appendChild(head);
+
+  // サウンド (ミュートはトップバーの🔊/Mキーと共通)
+  const snd = btn(isMuted() ? "🔇 OFF" : "🔊 ON", () => { ensureAudio(); updateMuteBtn(toggleMute()); }); // updateMuteBtn が設定画面も再描画する
+  snd.className = "tw-small set-toggle" + (isMuted() ? "" : " on");
+  settingsEl.appendChild(settingRow("サウンド", "効果音とBGMのオン/オフ (Mキー)", snd));
+
+  // 戦闘演出の倍速 (戦闘メニューの倍速ボタンと共通の設定)
+  const spd = btn(G.fastAnim ? "▶▶ ON" : "▶ OFF", () => { SFX.select(); G.fastAnim = !G.fastAnim; autosave(); renderSettings(); });
+  spd.className = "tw-small set-toggle" + (G.fastAnim ? " on" : "");
+  settingsEl.appendChild(settingRow("戦闘演出 倍速", "戦闘のアニメーションを速める", spd));
+
+  // データ削除 (はじめから) — 二重確認は confirmReset 側
+  settingsEl.appendChild(el("div", "set-h", "データ"));
+  const reset = btn("🗑 削除", confirmReset);
+  reset.className = "tw-small danger";
+  settingsEl.appendChild(settingRow("はじめから (全データ削除)", "人業・魂・図鑑・進行度がすべて失われる", reset, true));
+}
+
+if (settingsBtn) settingsBtn.addEventListener("click", () => {
+  SFX.select();
+  if (G.settingsOpen) closeSettings();
+  else openSettings();
+});
 
 // ================= オートセーブ (ウィザードリィ3風: 常時保存・やり直し不可) =================
 // 一度選択した行動は取り消せない。タスクキルされても直前の状態 (戦闘なら確定済みの
@@ -5803,7 +5873,7 @@ function loadGame() {
   // 一時状態はリセット
   G.anim = null; G.flipAnim = null; G.heroAnim = null; G.walking = false; G.prompt = false;
   G.fx = null; G.animating = false; G.enemyPos = {}; G.partyFx = new Map(); G.wallFlash = null;
-  G.statusOpen = false;
+  G.statusOpen = false; G.settingsOpen = false;
   // クラス/参照の再リンク (Battleのメソッド・敵のmon・派生値)
   if (G.battle) {
     Object.setPrototypeOf(G.battle, Battle.prototype);
@@ -5931,8 +6001,9 @@ function init() {
   } catch (e) {
     try {
       G.state = "town"; G.town = { facility: null, sub: null };
-      G.statusOpen = false; G.prompt = false; G.anim = null; G.walking = false;
+      G.statusOpen = false; G.settingsOpen = false; G.prompt = false; G.anim = null; G.walking = false;
       if (statusEl) statusEl.classList.add("hidden");
+      if (settingsEl) settingsEl.classList.add("hidden");
       renderTown();
     } catch (e2) { /* これ以上は何もしない (セーブは温存) */ }
   }
