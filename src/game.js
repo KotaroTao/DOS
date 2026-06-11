@@ -1398,8 +1398,8 @@ function startBattle(enemies, cell) {
   }
   if (opening === "preempt") { log("先手を取った！", "win"); showToast("⚡ 先制攻撃！"); }
   else if (opening === "ambush") { log("奇襲された！", "dmg"); showToast("⚠ 奇襲された！"); buzz([0, 60, 40, 60]); }
-  // ボス戦は専用テーマ。図鑑への記録は「倒した時」に行う (endBattle)
-  playBgm(isBoss ? "boss" : "battle");
+  // ランク帯ごとの戦闘テーマ (ボスは専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
+  playBgm(battleBgm(isBoss));
   G.battle = new Battle(G.party, enemies, log, { opening });
   G.fx = null;
   G.animating = false;
@@ -1949,6 +1949,7 @@ function endBattle() {
     return;
   } else if (b.result === "flee") {
     // 逃走: 元のマスへ戻る (カードは表のまま)
+    SFX.flee();
     if (G.prevPos) { G.px = G.prevPos.x; G.py = G.prevPos.y; }
     finishToBoard();
   } else if (b.result === "lose") {
@@ -2005,7 +2006,7 @@ function finishToBoard() {
   G.state = "board";
   combatMenu.classList.add("hidden");
 
-  playBgm("field");
+  playBgm(fieldBgm());
   renderBoard();
   autosave(true);
 }
@@ -4497,7 +4498,7 @@ function tryEnterDungeon() {
   // 表示中の噂を確定し、この迷宮で現実化させる
   if (G.rumor) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
   G.state = "board";
-  playBgm("field");
+  playBgm(fieldBgm());
   if (townBtn) townBtn.classList.remove("hidden");
   newFloor();
   renderBoard();
@@ -5436,12 +5437,23 @@ const FACILITY_BGM = {
   shrine: "shrine",
 };
 let openingActive = false; // オープニング演出中は専用テーマ
+// 探索BGM: 迷宮のランク帯 (1-10) ごとに専用テーマ (墓地/坑道/砦/森/神殿/灼洞/氷廊/尖塔/冥門/玄室)
+function fieldBgm() {
+  const r = Math.max(1, Math.min(10, activeCfg().rank || 1));
+  return r === 1 ? "field" : `field${r}`;
+}
+// 戦闘BGM: ランク帯で激しさが3段階。深層 (ランク9-10) のボスは終末のテーマ
+function battleBgm(isBoss) {
+  const r = activeCfg().rank || 1;
+  if (isBoss) return r >= 9 ? "boss2" : "boss";
+  return r >= 7 ? "battle3" : r >= 4 ? "battle2" : "battle";
+}
 // 現在のシーンに合ったBGM名
 function sceneBgm() {
   if (openingActive) return "opening";
   if (G.state === "town") return FACILITY_BGM[G.town.facility] || "town";
-  if (G.state === "combat") return (G.battle && G.battle.enemies.some((e) => e.boss)) ? "boss" : "battle";
-  if (G.state === "board") return "field";
+  if (G.state === "combat") return battleBgm(G.battle && G.battle.enemies.some((e) => e.boss));
+  if (G.state === "board") return fieldBgm();
   return null; // over などは無音 (ジングルのみ)
 }
 function ensureAudio() {
