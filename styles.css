@@ -680,6 +680,34 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .tw-quest.done { border-left-color: #46c08f; box-shadow: 0 0 10px rgba(70,192,143,0.25); }
 .tw-small.primary { border-color: var(--accent); color: #ffd84a; }
 
+/* ===== 王宮: 勅命 (メインクエスト) の大ボタン ===== */
+.tw-msq {
+  display: block; width: 100%; min-height: 64px;
+  font-size: 16px; font-weight: bold; letter-spacing: 1px;
+  color: #1a1206;
+  background: linear-gradient(180deg, #ffe98a, #c9a227);
+  border: 2px solid #ffe98a; border-radius: 12px;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.35);
+  animation: msq-glow 1.6s ease-in-out infinite alternate;
+}
+.tw-msq:active { background: linear-gradient(180deg, #e3c455, #ad8a1e); transform: translateY(1px); }
+@media (hover: hover) { .tw-msq:hover { background: linear-gradient(180deg, #fff0a6, #d4ad33); } }
+@keyframes msq-glow {
+  from { box-shadow: 0 0 10px rgba(255, 216, 74, 0.35), 0 3px 10px rgba(0,0,0,0.5); }
+  to   { box-shadow: 0 0 26px rgba(255, 216, 74, 0.75), 0 3px 10px rgba(0,0,0,0.5); }
+}
+
+/* ===== 王宮: 勲章の間 (実績) ===== */
+.ach-card { cursor: default; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ach-card:active { transform: none; }
+.ach-card.ready { border-color: var(--accent); box-shadow: 0 0 10px rgba(201, 162, 39, 0.3); }
+.ach-card.done { opacity: 0.55; }
+.ach-icon { font-size: 22px; line-height: 1.2; }
+.ach-card .cdx-name { width: 100%; }
+.ach-desc { min-height: 24px; }
+.ach-got { color: #c0a0a0; }
+.ach-claim { margin-top: 5px; }
+
 /* ===== 王宮: ストーリーイベント ===== */
 .story-card { max-width: 420px; }
 .story-line { font-size: 13px; color: #e8dfc8; line-height: 1.8; margin: 7px 0; text-align: left; }
