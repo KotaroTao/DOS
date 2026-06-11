@@ -6,7 +6,7 @@ import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
 import { spriteCanvas } from "./sprites.js";
 import { ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, recalc, equip as equipItem, unequip as unequipItem, canEquip } from "./items.js";
 import { generateItems, RANK_NAME, RANK_COLOR } from "./content.js";
-import { DUNGEONS, DUNGEON_MONSTERS, MON_RACES, RACE_LABEL, ELEMENTS } from "./dungeons/index.js";
+import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS } from "./dungeons/index.js";
 import {
   PARTS, PART_LABEL, SOUL_CLASSES, makeSoul, makeDoll, soulName, soulSprite,
   dollSouls, dominantClass, recalcDoll, sealSoul, createStartingRoster,
@@ -1816,7 +1816,7 @@ function renderTown() {
   if (f === "shop") return renderShop();
   if (f === "palace") return renderPalace();
   if (f === "shrine") return renderShrine();
-  if (f === "codexMon") return renderCodexMon();
+  if (f === "codexMon") return renderCodexDungeon(); // 旧モンスター図鑑は廃止 (旧セーブ互換)
   if (f === "codexItem") return renderCodexItem();
   if (f === "codexDungeon") return renderCodexDungeon();
   renderTownHub();
@@ -2632,12 +2632,6 @@ function renderPalace() {
   // 図鑑
   townEl.appendChild(el("div", "tw-h", "王宮書庫 — 図鑑"));
   const row = el("div", "tw-grid");
-  const monBtn = el("div", "tw-fac");
-  monBtn.appendChild(el("div", "tw-faci", "🐉"));
-  monBtn.appendChild(el("div", "tw-facn", "モンスター図鑑"));
-  monBtn.appendChild(el("div", "tw-facd", `討伐 ${Object.keys(G.codex.mon).length} 種`));
-  monBtn.addEventListener("click", () => { G.town.facility = "codexMon"; renderCodexMon(); });
-  row.appendChild(monBtn);
   const itemBtn = el("div", "tw-fac");
   itemBtn.appendChild(el("div", "tw-faci", "⚔"));
   itemBtn.appendChild(el("div", "tw-facn", "アイテム図鑑"));
@@ -2645,9 +2639,9 @@ function renderPalace() {
   itemBtn.addEventListener("click", () => { G.town.facility = "codexItem"; renderCodexItem(); });
   row.appendChild(itemBtn);
   const dunBtn = el("div", "tw-fac");
-  dunBtn.appendChild(el("div", "tw-faci", "🗺"));
-  dunBtn.appendChild(el("div", "tw-facn", "ダンジョン図鑑"));
-  dunBtn.appendChild(el("div", "tw-facd", `踏破 ${Math.max(0, (G.unlockedDungeons || 1) - 1)} / ${DUNGEONS.length}`));
+  dunBtn.appendChild(el("div", "tw-faci", "🐉"));
+  dunBtn.appendChild(el("div", "tw-facn", "モンスター図鑑"));
+  dunBtn.appendChild(el("div", "tw-facd", `発見 ${Object.keys(G.codex.mon).filter((k) => MONSTERS[k]).length} 種`));
   dunBtn.addEventListener("click", () => { G.town.facility = "codexDungeon"; renderCodexDungeon(); });
   row.appendChild(dunBtn);
   townEl.appendChild(row);
@@ -2737,41 +2731,7 @@ function rollMonsterDrop(enemy) {
 }
 function codexSeeItem(id) { if (id) G.codex.item[id] = true; }
 
-let codexMonRace = "amorph"; // モンスター図鑑の選択中タブ (種族)
 let codexItemTab = "weapon"; // アイテム図鑑の選択中タブ (スロット種別)
-
-function renderCodexMon() {
-  townEl.innerHTML = "";
-  townEl.appendChild(townHeader("モンスター図鑑", "palace"));
-  // 倒したものだけ表示 (総数は伏せる)
-  const seenKeys = Object.keys(G.codex.mon).filter((k) => MONSTERS[k]);
-  townEl.appendChild(el("div", "tw-note", `討伐済み ${seenKeys.length} 種`));
-
-  // 種族タブ
-  const tabs = el("div", "tw-dolltabs shop-tabs cdx-tabs");
-  for (const r of MON_RACES) {
-    const b = btn(r.label, () => { codexMonRace = r.key; renderCodexMon(); });
-    b.className = "tw-dolltab" + (codexMonRace === r.key ? " active" : "");
-    tabs.appendChild(b);
-  }
-  townEl.appendChild(tabs);
-
-  const keys = seenKeys.filter((k) => MONSTERS[k].race === codexMonRace);
-  const grid = el("div", "cdx-grid");
-  for (const key of keys) {
-    const m = MONSTERS[key];
-    const e = G.codex.mon[key];
-    const c = el("div", "cdx-card");
-    if (m.rank) c.style.borderColor = RANK_COLOR[m.rank];
-    const art = el("div", "cdx-art"); art.appendChild(spriteCanvas(m, 3)); c.appendChild(art);
-    c.appendChild(el("div", "cdx-name", m.name));
-    c.appendChild(el("div", "cdx-stat", `討伐 ${(e && e.kills) || 0}`));
-    c.addEventListener("click", () => { SFX.select(); showCodexMonDetail(key); });
-    grid.appendChild(c);
-  }
-  if (!keys.length) grid.appendChild(el("div", "tw-empty", "この種族はまだ討伐していない。"));
-  townEl.appendChild(grid);
-}
 
 function renderCodexItem() {
   townEl.innerHTML = "";
@@ -2902,10 +2862,10 @@ function dungeonRoster(dn) {
   return out;
 }
 
-let codexDungeonIdx = 0; // ダンジョン図鑑の選択中ダンジョン
+let codexDungeonIdx = 0; // モンスター図鑑の選択中ダンジョン
 function renderCodexDungeon() {
   townEl.innerHTML = "";
-  townEl.appendChild(townHeader("ダンジョン図鑑", "palace"));
+  townEl.appendChild(townHeader("モンスター図鑑", "palace"));
   // 解放済みのダンジョンのみ閲覧可能
   const unlocked = Math.max(1, G.unlockedDungeons || 1);
   if (codexDungeonIdx >= unlocked) codexDungeonIdx = 0;
