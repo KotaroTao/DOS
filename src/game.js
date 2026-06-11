@@ -2255,6 +2255,7 @@ function renderTown() {
   townEl.innerHTML = "";
   updateTopbar();
   townEl.classList.remove("shop-mode"); // 商店専用レイアウトを解除 (商店なら再付与)
+  playBgm(sceneBgm()); // 施設ごとのBGM (同じ曲なら継続)
   const f = G.town.facility;
   if (f === "mansion") return renderMansion();
   if (f === "altar") return renderAltar();
@@ -4415,8 +4416,7 @@ function returnToTown() {
   combatMenu.classList.add("hidden");
   if (townBtn) townBtn.classList.add("hidden");
   G.maxFloorReached = Math.max(G.maxFloorReached, G.floor);
-  G.run = null; // 無事帰還 = 戦利品は確定
-  playBgm("town");
+  G.run = null; // 無事帰還 = 戦利品は確定 (BGMは renderTown が施設に応じて切替)
   updateTopbar();
   log("街へ帰還した。", "sys");
   G.town.facility = null; G.town.sub = null;
@@ -5332,9 +5332,20 @@ if (townBtn) townBtn.addEventListener("click", confirmReturnToTown);
 // ---- 入力 ----
 // 最初のユーザー操作で音声を起動 (ブラウザの自動再生制限対策)
 let audioReady = false;
+// 街の施設ごとのBGMテーマ (未指定の施設は広場のテーマ)
+const FACILITY_BGM = {
+  mansion: "mansion", altar: "mansion",
+  tavern: "tavern",
+  shop: "shop",
+  inn: "inn",
+  palace: "palace", codexMon: "palace", codexItem: "palace", codexDungeon: "palace", codexJob: "palace", // 図鑑は王宮の間
+  shrine: "shrine",
+};
+let openingActive = false; // オープニング演出中は専用テーマ
 // 現在のシーンに合ったBGM名
 function sceneBgm() {
-  if (G.state === "town") return "town";
+  if (openingActive) return "opening";
+  if (G.state === "town") return FACILITY_BGM[G.town.facility] || "town";
   if (G.state === "combat") return (G.battle && G.battle.enemies.some((e) => e.boss)) ? "boss" : "battle";
   if (G.state === "board") return "field";
   return null; // over などは無音 (ジングルのみ)
@@ -5743,9 +5754,11 @@ function init() {
   // 初回起動 (新規ゲーム) のみ: オープニングを流してから街へ
   if (!loaded) {
     G.prompt = true;
+    openingActive = true;
+    playBgm("opening"); // 音声起動前なら初回タップ時に開始される
     try {
-      showOpening(() => { G.prompt = false; });
-    } catch (e) { G.prompt = false; }
+      showOpening(() => { G.prompt = false; openingActive = false; playBgm(sceneBgm()); });
+    } catch (e) { G.prompt = false; openingActive = false; }
   }
 
   if ("serviceWorker" in navigator) {
