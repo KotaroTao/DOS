@@ -2085,6 +2085,9 @@ function endBattle() {
       const d = rollMonsterDrop(e);
       if (d) drops.push(d);
     }
+    // 宝箱は1つしか現れないので中身も1品まで: 複数体が同時に落とした時はレア優先で1つに絞る
+    // (同種2体が同じ品を落とし、1つの宝箱からアイテムが2つ出てしまうのを防ぐ)
+    const drop = drops.find((d) => d.rare) || drops[0] || null;
     // soulClass を持つ敵 (人型・騎士など) はまれに魂を落とす (レアドロップ)
     for (const e of b.enemies) {
       const sc = e.alive ? null : (e.mon && e.mon.soulClass) || (MONSTERS[e.key] && MONSTERS[e.key].soulClass);
@@ -2108,8 +2111,8 @@ function endBattle() {
     // 宝箱はドロップ品があれば必ず、なければ50%で出現。ボスは宝箱のあとに踏破演出へ
     const afterVictory = () => {
       const after = wasBoss ? onDungeonCleared : null;
-      if (drops.length || Math.random() < 0.5) {
-        setTimeout(() => battleChest(drops, after), 200);
+      if (drop || Math.random() < 0.5) {
+        setTimeout(() => battleChest(drop ? [drop] : [], after), 200);
         return;
       }
       if (after) after();
