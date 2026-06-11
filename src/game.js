@@ -1793,6 +1793,14 @@ const FACILITIES = [
   { key: "shrine", icon: "🔴", name: "赤い魂の祠", desc: "Red Soul を授かる" },
 ];
 
+// 施設ごとのBGM (広場は "town")。館の奥 (altar) は館、図鑑の間は王宮の曲を引き継ぐ
+const FACILITY_BGM = {
+  mansion: "mansion", altar: "mansion",
+  tavern: "tavern", shop: "shop", inn: "inn",
+  palace: "palace", codexMon: "palace", codexItem: "palace", codexDungeon: "palace",
+  shrine: "shrine",
+};
+
 // 編成 + 控えの全人業
 function allDolls() { return [...G.party, ...G.reserve]; }
 
@@ -1826,6 +1834,7 @@ function renderTown() {
   updateTopbar();
   townEl.classList.remove("shop-mode"); // 商店専用レイアウトを解除 (商店なら再付与)
   const f = G.town.facility;
+  playBgm(FACILITY_BGM[f] || "town"); // 施設に応じたBGM (同じ曲なら継続)
   if (f === "mansion") return renderMansion();
   if (f === "altar") return renderAltar();
   if (f === "tavern") return renderTavern();
@@ -4063,7 +4072,7 @@ if (townBtn) townBtn.addEventListener("click", confirmReturnToTown);
 let audioReady = false;
 // 現在のシーンに合ったBGM名
 function sceneBgm() {
-  if (G.state === "town") return "town";
+  if (G.state === "town") return FACILITY_BGM[G.town.facility] || "town";
   if (G.state === "combat") return (G.battle && G.battle.enemies.some((e) => e.boss)) ? "boss" : "battle";
   if (G.state === "board") return "field";
   return null; // over などは無音 (ジングルのみ)
