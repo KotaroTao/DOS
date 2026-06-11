@@ -16,7 +16,7 @@ import {
   dollSouls, dominantClass, recalcDoll, sealSoul, createStartingRoster,
   ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
   SOUL_RANKS, rollSoulRank, soulStats, soulHardCap, ensureSoul,
-  JOB_RANKS, jobRankOf, PART_SKILLS,
+  JOB_RANKS, jobRankOf, PART_SKILLS, HYBRIDS, findHybrid, JOB_LORE, FLAG_DESC,
 } from "./souls.js";
 
 // ===== コンテンツの取り込み =====
@@ -126,7 +126,7 @@ const G = {
   quests: [],         // 受注可能/進行中のクエスト
   rumor: null,        // 酒場で表示中の噂 (次回潜入で現実化)
   activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
-  codex: { mon: {}, item: {} }, // 図鑑 (遭遇したモンスター/入手したアイテム)
+  codex: { mon: {}, item: {}, soul: {}, job: {} }, // 図鑑 (モンスター/アイテム/魂/職業)
   story: 0,           // 王宮ストーリーの進行段階
   dragonSlain: false, // 竜を討ったか
   runCfg: null,       // 今回の潜入の設定 (迷宮 + 日替わり修飾)
@@ -1837,6 +1837,8 @@ function renderTown() {
   if (f === "codexMon") return renderCodexDungeon(); // 旧モンスター図鑑は廃止 (旧セーブ互換)
   if (f === "codexItem") return renderCodexItem();
   if (f === "codexDungeon") return renderCodexDungeon();
+  if (f === "codexSoul") return renderCodexSoul();
+  if (f === "codexJob") return renderCodexJob();
   renderTownHub();
 }
 
@@ -2662,6 +2664,18 @@ function renderPalace() {
   dunBtn.appendChild(el("div", "tw-facd", `発見 ${Object.keys(G.codex.mon).filter((k) => MONSTERS[k]).length} 種`));
   dunBtn.addEventListener("click", () => { G.town.facility = "codexDungeon"; renderCodexDungeon(); });
   row.appendChild(dunBtn);
+  const soulBtn = el("div", "tw-fac");
+  soulBtn.appendChild(el("div", "tw-faci", "🔮"));
+  soulBtn.appendChild(el("div", "tw-facn", "魂図鑑"));
+  soulBtn.appendChild(el("div", "tw-facd", `取得 ${Object.keys(G.codex.soul).filter((k) => SOUL_CLASSES[k]).length} 職`));
+  soulBtn.addEventListener("click", () => { G.town.facility = "codexSoul"; renderCodexSoul(); });
+  row.appendChild(soulBtn);
+  const jobBtn = el("div", "tw-fac");
+  jobBtn.appendChild(el("div", "tw-faci", "📜"));
+  jobBtn.appendChild(el("div", "tw-facn", "職業図鑑"));
+  jobBtn.appendChild(el("div", "tw-facd", `発現 ${Object.keys(G.codex.job).filter((k) => SOUL_CLASSES[k] || HYBRIDS[k]).length} 種`));
+  jobBtn.addEventListener("click", () => { G.town.facility = "codexJob"; renderCodexJob(); });
+  row.appendChild(jobBtn);
   townEl.appendChild(row);
 
   // 戦績 (ローカル記録)
@@ -2740,6 +2754,36 @@ function rollMonsterDrop(enemy) {
   return { key: enemy.key, name: enemy.name, id: dropId, item: it, rare };
 }
 function codexSeeItem(id) { if (id) G.codex.item[id] = true; }
+
+// ---- 魂図鑑/職業図鑑の記録 ----
+// 魂図鑑: 職業×部位ごとに「到達した最高レベル」を記録する。スキルは実際に
+// そのレベルへ達するまで ？？？ 表示。未取得の職業は図鑑に一切現れない。
+function codexSeeSoul(s) {
+  if (!s || !SOUL_CLASSES[s.clsKey]) return;
+  const e = (G.codex.soul[s.clsKey] = G.codex.soul[s.clsKey] || {});
+  if (s.part) e[s.part] = Math.max(e[s.part] || 0, s.level || 1);
+}
+// 職業図鑑: 人業に職業 (基本職/混成職) が発現した時点で「発見」とする
+function codexSeeJobs(doll) {
+  if (!doll || !doll.parts) return;
+  const jr = jobRankOf(doll);
+  if (jr) G.codex.job[jr.clsKey] = true;
+  const counts = {};
+  for (const p of PARTS) { const s = doll.parts[p]; if (s) counts[s.clsKey] = (counts[s.clsKey] || 0) + 1; }
+  const hy = findHybrid(counts);
+  if (hy) G.codex.job[hy.key] = true;
+}
+// 所持している全魂と全人業を走査して図鑑を更新する。入手・強化・封印の経路が
+// 多岐にわたるため、個別フックではなくオートセーブのたびに全走査する (件数は僅少)。
+function codexSweepSouls() {
+  if (!G.codex || !G.codex.soul || !G.codex.job) return;
+  for (const s of (G.souls || [])) codexSeeSoul(s);
+  for (const d of [...(G.party || []), ...(G.reserve || [])]) {
+    if (!d || !d.parts) continue;
+    for (const p of PARTS) codexSeeSoul(d.parts[p]);
+    codexSeeJobs(d);
+  }
+}
 
 let codexItemTab = "weapon"; // アイテム図鑑の選択中タブ (分類)
 let codexWeaponCat = "all";  // 武器タブのサブカテゴリ (長剣/短剣/弓/杖…)
@@ -2927,6 +2971,196 @@ function renderCodexDungeon() {
   }
   if (!roster.length) grid.appendChild(el("div", "tw-empty", "記録なし。"));
   townEl.appendChild(grid);
+}
+
+// ---- 魂図鑑 ----
+// 取得したことのある職業の魂のみ表示。各部位のスキル表は習得レベルだけ常に見え、
+// 内容は実際にそのレベルへ到達するまで ？？？ で伏せられる。
+let codexSoulTab = null; // 魂図鑑の選択中職業
+
+// 部位パッシブの add ({atk:2, hp:8, crit:0.04}) を表示用テキストに変換
+function addText(add) {
+  const out = [];
+  for (const k in add) {
+    const v = add[k];
+    if (k === "crit") out.push(`会心+${Math.round(v * 100)}%`);
+    else out.push(`${ATTR_LABEL[k] || k.toUpperCase()}+${v}`);
+  }
+  return out.join(" / ");
+}
+// パッシブ倍率 ({atkMul:1.12, critBonus:0.1}) を表示用テキストに変換
+function passiveText(p) {
+  if (!p) return "";
+  const out = [];
+  if (p.atkMul) out.push(`ATK+${Math.round((p.atkMul - 1) * 100)}%`);
+  if (p.vitMul) out.push(`VIT+${Math.round((p.vitMul - 1) * 100)}%`);
+  if (p.agiMul) out.push(`AGI+${Math.round((p.agiMul - 1) * 100)}%`);
+  if (p.critBonus) out.push(`会心+${Math.round(p.critBonus * 100)}%`);
+  return out.join(" / ");
+}
+
+function renderCodexSoul() {
+  townEl.innerHTML = "";
+  townEl.appendChild(townHeader("魂図鑑", "palace"));
+  const known = Object.keys(SOUL_CLASSES).filter((k) => G.codex.soul[k]);
+  if (!known.length) {
+    townEl.appendChild(el("div", "tw-empty", "まだ魂を手にしていない。迷宮の死体から魂を回収しよう。"));
+    return;
+  }
+  townEl.appendChild(el("div", "tw-note", `取得した魂 ${known.length} 職。スキルは実際に覚えるまで伏せられる。`));
+  if (!known.includes(codexSoulTab)) codexSoulTab = known[0];
+  const tabs = el("div", "tw-dolltabs shop-tabs cdx-tabs");
+  for (const k of known) {
+    const b = btn(SOUL_CLASSES[k].label, () => { codexSoulTab = k; renderCodexSoul(); });
+    b.className = "tw-dolltab" + (codexSoulTab === k ? " active" : "");
+    if (codexSoulTab === k) b.style.color = SOUL_CLASSES[k].glow;
+    tabs.appendChild(b);
+  }
+  townEl.appendChild(tabs);
+
+  const cls = SOUL_CLASSES[codexSoulTab];
+  const seen = G.codex.soul[codexSoulTab] || {};
+  const head = el("div", "cdx-soulhead");
+  head.appendChild(spriteCanvas(soulSprite(codexSoulTab), 4));
+  const hn = el("div", "cdx-souln", `${cls.label}の魂`);
+  hn.style.color = cls.glow;
+  head.appendChild(hn);
+  townEl.appendChild(head);
+
+  for (const part of PARTS) {
+    const tbl = PART_SKILLS[codexSoulTab] && PART_SKILLS[codexSoulTab][part];
+    if (!tbl) continue;
+    townEl.appendChild(el("div", "tw-h",
+      `${PART_LABEL[part]}の魂 ${part === "head" ? "— 技 (同職3部位で使用可)" : "— 常時効果"}`));
+    const box = el("div", "cdx-sklist");
+    for (const e of tbl) {
+      const learned = (seen[part] || 0) >= e.lvl;
+      const r = el("div", "cdx-skrow" + (learned ? "" : " dim"));
+      r.appendChild(el("span", "cdx-sklv", `Lv${e.lvl}`));
+      if (!learned) {
+        r.appendChild(el("span", "cdx-skn dim", "？？？"));
+      } else if (e.skill) {
+        const sp = SPELLS[e.skill];
+        r.appendChild(el("span", "cdx-skn", sp ? sp.name : e.skill));
+        if (sp) r.appendChild(el("span", "cdx-skd", `${sp.desc} (MP${sp.mp})`));
+      } else if (e.add) {
+        r.appendChild(el("span", "cdx-skn", addText(e.add)));
+      }
+      box.appendChild(r);
+    }
+    townEl.appendChild(box);
+  }
+}
+
+// ---- 職業図鑑 ----
+// 人業に発現したことのある職業 (基本職/混成職) のみ表示。未発見は一切載せない。
+function jobRow(name, sprite, color, onClick) {
+  const r = el("div", "tw-soulrow");
+  const o = el("span", "tw-chips");
+  o.appendChild(spriteCanvas(sprite, 2));
+  r.appendChild(o);
+  const info = el("div", "tw-chipi");
+  const nm = el("div", "tw-souln", name);
+  nm.style.color = color;
+  info.appendChild(nm);
+  r.appendChild(info);
+  r.addEventListener("click", () => { SFX.select(); onClick(); });
+  return r;
+}
+
+function renderCodexJob() {
+  townEl.innerHTML = "";
+  townEl.appendChild(townHeader("職業図鑑", "palace"));
+  const baseKn = Object.keys(SOUL_CLASSES).filter((k) => G.codex.job[k]);
+  const hyKn = Object.keys(HYBRIDS).filter((k) => G.codex.job[k]);
+  if (!baseKn.length && !hyKn.length) {
+    townEl.appendChild(el("div", "tw-empty", "まだ職業が発現していない。同じ職業の魂を3部位以上に宿すと、職業が発現する。"));
+    return;
+  }
+  townEl.appendChild(el("div", "tw-note", "人業に発現した職業のみ、ここに記される。"));
+  if (baseKn.length) {
+    townEl.appendChild(el("div", "tw-h", "基本職"));
+    const list = el("div", "cdx-sklist");
+    for (const k of baseKn) list.appendChild(jobRow(SOUL_CLASSES[k].label, soulSprite(k), SOUL_CLASSES[k].glow, () => showCodexJobDetail(k)));
+    townEl.appendChild(list);
+  }
+  if (hyKn.length) {
+    townEl.appendChild(el("div", "tw-h", `混成職 — 発現 ${hyKn.length} 種`));
+    const list = el("div", "cdx-sklist");
+    for (const k of hyKn) {
+      const bk = k.split("+")[0];
+      list.appendChild(jobRow(HYBRIDS[k].name, soulSprite(bk), SOUL_CLASSES[bk].glow, () => showCodexJobDetail(k)));
+    }
+    townEl.appendChild(list);
+  }
+  townEl.appendChild(el("div", "tw-note", "魂の組み合わせ次第で、いまだ知られぬ混成職が眠っているという……"));
+}
+
+// 職業図鑑: 詳細カード (基本職=解説/活用/ランク表、混成職=構成/専用スキル)
+function showCodexJobDetail(key) {
+  const isHybrid = !!HYBRIDS[key];
+  const baseK = isHybrid ? key.split("+")[0] : key;
+  if (!SOUL_CLASSES[baseK]) return;
+  const color = SOUL_CLASSES[baseK].glow;
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card cdx-detail");
+  card.style.borderColor = color;
+  card.style.boxShadow = `0 0 40px ${color}44`;
+  const ban = el("div", "ig-banner", isHybrid ? "混成職" : "基本職");
+  ban.style.color = color;
+  card.appendChild(ban);
+  const art = el("div", "ig-art");
+  art.appendChild(spriteCanvas(soulSprite(baseK), 9));
+  card.appendChild(art);
+
+  const line = (name, desc) => {
+    const r = el("div", "cdx-drow");
+    r.appendChild(el("span", "cdx-dn", name));
+    if (desc) r.appendChild(el("span", "cdx-skd", desc));
+    return r;
+  };
+
+  if (isHybrid) {
+    const h = HYBRIDS[key];
+    const subK = key.split("+")[1];
+    card.appendChild(el("div", "ig-name", h.name));
+    card.appendChild(el("div", "cdx-elem", `${SOUL_CLASSES[baseK].label}の魂×3 + ${SOUL_CLASSES[subK].label}の魂×2`));
+    if (h.desc) card.appendChild(el("div", "ig-desc", h.desc));
+    const box = el("div", "cdx-drops");
+    box.appendChild(el("div", "cdx-h", "専用スキル"));
+    if (h.spell && SPELLS[h.spell]) box.appendChild(line(`習得技: ${SPELLS[h.spell].name}`, `${SPELLS[h.spell].desc} (MP${SPELLS[h.spell].mp})`));
+    if (h.passive) box.appendChild(line(h.passive.label || "常時効果", passiveText(h.passive)));
+    card.appendChild(box);
+  } else {
+    const cls = SOUL_CLASSES[key];
+    const lore = JOB_LORE[key] || {};
+    card.appendChild(el("div", "ig-name", cls.label));
+    if (lore.desc) card.appendChild(el("div", "ig-desc", lore.desc));
+    if (lore.tips) card.appendChild(el("div", "ig-desc cdx-tips", "活用: " + lore.tips));
+    if (cls.passive) {
+      const pbox = el("div", "cdx-drops");
+      pbox.appendChild(el("div", "cdx-h", "職業パッシブ (3部位以上で発現)"));
+      pbox.appendChild(line(cls.passive.label, passiveText(cls.passive)));
+      card.appendChild(pbox);
+    }
+    const box = el("div", "cdx-drops");
+    box.appendChild(el("div", "cdx-h", "職業ランクと専用スキル"));
+    (JOB_RANKS[key] || []).forEach((rk, i) => {
+      const fx = [];
+      for (const sid of (rk.skills || [])) if (SPELLS[sid]) fx.push(SPELLS[sid].name);
+      if (rk.passive) fx.push(passiveText(rk.passive));
+      if (rk.flag && FLAG_DESC[rk.flag]) fx.push(FLAG_DESC[rk.flag]);
+      box.appendChild(line(`ランク${i + 1} ${rk.name}`, fx.join(" / ") || "—"));
+    });
+    card.appendChild(box);
+  }
+
+  const ok = btn("閉じる", () => wrap.remove());
+  ok.className = "btn primary ig-ok";
+  card.appendChild(ok);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
 }
 
 // ---- 宿屋: 全回復 ----
@@ -4274,6 +4508,7 @@ function autosave(force = false) {
   if (!force && now - _lastSave < 200) return;
   _lastSave = now;
   try {
+    codexSweepSouls(); // 魂/職業図鑑の発見状況を保存前に最新化
     const snap = {};
     for (const k of SAVE_FIELDS) snap[k] = G[k];
     localStorage.setItem(SAVE_KEY, JSON.stringify(refSerialize(snap)));
@@ -4361,6 +4596,10 @@ function loadGame() {
       G.codex.mon[k] = { kills: v === true ? 1 : 0, normal: false, rare: false, dungeons: {} };
     } else if (!v.dungeons) { v.dungeons = {}; }
   }
+  // 魂図鑑/職業図鑑 (後付け): 旧セーブには無いので、所持中の魂・人業から復元する
+  if (!G.codex.soul) G.codex.soul = {};
+  if (!G.codex.job) G.codex.job = {};
+  codexSweepSouls();
   return true;
 }
 
@@ -4430,13 +4669,14 @@ function setupNewGame() {
   G.party = dolls;
   G.souls = souls;
   G.shopStock = { ...SHOP_INIT_STOCK };
+  codexSweepSouls();
   initQuests();
 }
 
 // ---- 起動 ----
 function init() {
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
-  window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave };
+  window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown };
 
   let loaded = false;
   try { loaded = loadGame(); } catch (e) { loaded = false; }

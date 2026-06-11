@@ -176,26 +176,62 @@ export const PART_SKILLS = {
 // 5部位を「ある職業3つ + 別の職業2つ」で組むと、特別な上位職が発現する。
 // 発見要素: プレイヤーが自分で組み合わせを見つける楽しみ = ビルド探索の核。
 // キーは "base+sub" (base=3部位の職業 / sub=2部位の職業)。
-// spell: 追加で習得する技 / passive: ステータス倍率と表示名。
+// spell: 追加で習得する技 / passive: ステータス倍率と表示名 / desc: 職業図鑑の解説文。
 export const HYBRIDS = {
-  "fighter+thief":  { name: "剣豪",     passive: { critBonus: 0.18, agiMul: 1.12, label: "剣豪の冴え (会心/AGI)" } },
-  "fighter+mage":   { name: "魔法剣士", spell: "HALITO", passive: { atkMul: 1.12, label: "魔剣の理 (ATK+)" } },
-  "fighter+priest": { name: "聖戦士",   spell: "DIOS",   passive: { atkMul: 1.08, vitMul: 1.08, label: "聖なる闘気" } },
-  "fighter+knight": { name: "重戦士",   passive: { atkMul: 1.12, vitMul: 1.10, label: "鉄血 (ATK/VIT)" } },
-  "knight+priest":  { name: "聖騎士",   spell: "DIAL",   passive: { vitMul: 1.16, label: "守護の誓い (VIT++)" } },
-  "knight+fighter": { name: "聖堂騎士", spell: "KYOUGEKI", passive: { vitMul: 1.10, atkMul: 1.08, label: "城壁の構え" } },
-  "knight+thief":   { name: "斥候騎士", passive: { vitMul: 1.10, agiMul: 1.15, label: "軽装騎士 (VIT/AGI)" } },
-  "mage+priest":    { name: "賢者",     spell: "DIAL",   passive: { label: "理を識る者 (全呪文)" } },
-  "mage+thief":     { name: "魔盗賊",   spell: "MAHALITO", passive: { agiMul: 1.18, critBonus: 0.10, label: "影呪 (AGI/会心)" } },
-  "mage+fighter":   { name: "戦技師",   spell: "KYOUGEKI", passive: { atkMul: 1.10, label: "武装魔導" } },
-  "priest+mage":    { name: "司教",     spell: "MAHALITO", passive: { label: "二道の信徒 (攻呪+)" } },
-  "priest+knight":  { name: "審問官",   spell: "MADIOS",  passive: { vitMul: 1.10, label: "断罪の祈り" } },
-  "priest+fighter": { name: "戦僧",     spell: "MIDARE",  passive: { atkMul: 1.12, label: "破邪の拳" } },
-  "thief+mage":     { name: "呪術師",   spell: "HALITO",  passive: { agiMul: 1.18, label: "呪詛 (AGI++)" } },
-  "thief+fighter":  { name: "野伏",     spell: "KYOUGEKI", passive: { critBonus: 0.14, atkMul: 1.06, label: "不意打ち" } },
-  "thief+priest":   { name: "祓魔師",   spell: "DIOS",    passive: { agiMul: 1.12, critBonus: 0.08, label: "聖盗 (AGI/会心)" } },
-  "bishop+mage":    { name: "大魔導",   spell: "MAHALITO", passive: { label: "深淵の知識 (攻呪++)" } },
-  "bishop+priest":  { name: "大司教",   spell: "MADIOS",  passive: { label: "聖典の守護者" } },
+  "fighter+thief":  { name: "剣豪",     passive: { critBonus: 0.18, agiMul: 1.12, label: "剣豪の冴え (会心/AGI)" }, desc: "斬撃に影の足捌きを織り込んだ剣の極み。研ぎ澄まされた会心で敵を斬り伏せる。" },
+  "fighter+mage":   { name: "魔法剣士", spell: "HALITO", passive: { atkMul: 1.12, label: "魔剣の理 (ATK+)" }, desc: "刃に呪文を纏わせる戦い方。剣で攻めながら、届かぬ敵は炎で焼く。" },
+  "fighter+priest": { name: "聖戦士",   spell: "DIOS",   passive: { atkMul: 1.08, vitMul: 1.08, label: "聖なる闘気" }, desc: "祈りを力に変える戦士。攻守を高めつつ、自らの傷を癒して戦い続ける。" },
+  "fighter+knight": { name: "重戦士",   passive: { atkMul: 1.12, vitMul: 1.10, label: "鉄血 (ATK/VIT)" }, desc: "攻めの剛力と守りの錬度を兼ね備えた、純粋な前衛の完成形。" },
+  "knight+priest":  { name: "聖騎士",   spell: "DIAL",   passive: { vitMul: 1.16, label: "守護の誓い (VIT++)" }, desc: "守護の誓いに聖句を重ねた生ける盾。最も堅く、傷を癒す術も持つ。" },
+  "knight+fighter": { name: "聖堂騎士", spell: "KYOUGEKI", passive: { vitMul: 1.10, atkMul: 1.08, label: "城壁の構え" }, desc: "城壁の如き構えから強撃を放つ、攻防一体の重装騎士。" },
+  "knight+thief":   { name: "斥候騎士", passive: { vitMul: 1.10, agiMul: 1.15, label: "軽装騎士 (VIT/AGI)" }, desc: "重装ながら身軽さを失わぬ偵察騎士。守りを固めつつ先手を取る。" },
+  "mage+priest":    { name: "賢者",     spell: "DIAL",   passive: { label: "理を識る者 (全呪文)" }, desc: "魔と聖、二つの理をともに識る者。あらゆる呪文に通じる万能の術士。" },
+  "mage+thief":     { name: "魔盗賊",   spell: "MAHALITO", passive: { agiMul: 1.18, critBonus: 0.10, label: "影呪 (AGI/会心)" }, desc: "影に潜んで呪文を放つ異形の術士。素早さと会心が術士の脆さを補う。" },
+  "mage+fighter":   { name: "戦技師",   spell: "KYOUGEKI", passive: { atkMul: 1.10, label: "武装魔導" }, desc: "肉体を鍛え上げた魔術師。前線で杖を振るい、武技すら使いこなす。" },
+  "priest+mage":    { name: "司教",     spell: "MAHALITO", passive: { label: "二道の信徒 (攻呪+)" }, desc: "聖職にありながら攻撃呪文を修めた二道の信徒。癒しと業火を併せ持つ。" },
+  "priest+knight":  { name: "審問官",   spell: "MADIOS",  passive: { vitMul: 1.10, label: "断罪の祈り" }, desc: "断罪の祈りで身を固めた聖職者。打たれ強く、大いなる回復をも担う。" },
+  "priest+fighter": { name: "戦僧",     spell: "MIDARE",  passive: { atkMul: 1.12, label: "破邪の拳" }, desc: "拳と祈りで戦う破戒の僧。乱れ斬りの如き連撃で魔を祓う。" },
+  "thief+mage":     { name: "呪術師",   spell: "HALITO",  passive: { agiMul: 1.18, label: "呪詛 (AGI++)" }, desc: "盗賊の業に呪詛を混ぜた異端者。圧倒的な素早さで敵を翻弄する。" },
+  "thief+fighter":  { name: "野伏",     spell: "KYOUGEKI", passive: { critBonus: 0.14, atkMul: 1.06, label: "不意打ち" }, desc: "野に生きる狩人。不意打ちと会心で、確実に獲物を仕留める。" },
+  "thief+priest":   { name: "祓魔師",   spell: "DIOS",    passive: { agiMul: 1.12, critBonus: 0.08, label: "聖盗 (AGI/会心)" }, desc: "聖印を帯びた影。誰よりも速く動き、傷ついた仲間に癒しを届ける。" },
+  "bishop+mage":    { name: "大魔導",   spell: "MAHALITO", passive: { label: "深淵の知識 (攻呪++)" }, desc: "深淵の知識に到達した導師。攻撃呪文の極みに立つ者。" },
+  "bishop+priest":  { name: "大司教",   spell: "MADIOS",  passive: { label: "聖典の守護者" }, desc: "聖典の守護者にして教団の柱。魔導僧の頂に立つ。" },
+};
+
+// ===== 職業図鑑 (王宮書庫) 用の解説文 =====
+// 各基本職の由来 (desc) と活用指針 (tips)。発見した職業のみ閲覧できる。
+export const JOB_LORE = {
+  fighter: {
+    desc: "戦場の記憶を宿す魂。剣を握って生き、剣を握って死んだ者たちの執念が、人業の腕に力を与える。",
+    tips: "高いATKとHPで前衛の軸となる。頭に宿せば強撃や乱れ斬りで攻め立て、職業ランクが上がるほど会心の刃が冴える。",
+  },
+  knight: {
+    desc: "守りの誓いを抱いたまま朽ちた騎士の魂。盾の重みを、誇りの重みとして覚えている。",
+    tips: "随一のHPとVITで仲間の盾となる。守りの号令や鉄壁で隊全体を支え、極まれば致死の一撃すら一度は耐え抜く。",
+  },
+  thief: {
+    desc: "影に生き、影に消えた者の魂。錠前と急所、そして逃げ道の在り処を知り尽くしている。",
+    tips: "AGIとLUKで先手と会心を取る遊撃手。毒刃や急所突きで厄介な敵を素早く仕留める。",
+  },
+  mage: {
+    desc: "禁書とともに焼かれた魔術師の魂。灰の中でなお、呪文の韻だけは忘れなかった。",
+    tips: "INTが攻撃呪文の威力を決める。マハリトで敵陣を薙ぎ、ティルトウェイトで戦場ごと消し飛ばす。MPの管理が肝要。",
+  },
+  priest: {
+    desc: "祈りの果てに神の沈黙を知った聖職者の魂。それでも祈ることをやめなかった者だけが、癒しの力を残す。",
+    tips: "PIEが回復量を決める。蘇生の秘蹟を扱える唯一の系譜であり、聖者に至れば全滅の淵から一度だけ皆を引き戻す。",
+  },
+  bishop: {
+    desc: "魔と聖、二つの道を同時に究めようとした異端者の魂。教会は彼らを破門し、迷宮は彼らを歓迎した。",
+    tips: "攻撃呪文と回復呪文を兼ね、一人で二役をこなす。賢者王に至ればリザレクションとティルトウェイトを併せ持つ。",
+  },
+};
+
+// 職業ランクの特殊効果 (flag) の説明文
+export const FLAG_DESC = {
+  blessing: "聖者の加護: 全滅時、一度だけ全員がHP1で踏みとどまる",
+  endure: "不屈: 致死のダメージを一度だけHP1で耐える",
+  spellMaster: "魔道の極み: 攻撃呪文の威力+25%",
 };
 
 // 部位タリーから混成職を判定。base(3) と sub(2) のときのみ成立し {key,name,...} を返す
