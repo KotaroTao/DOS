@@ -1,4 +1,4 @@
-# 地下迷宮 - Dungeon of Shadows
+# 百の迷宮と 魂の王 - Hundred Labyrinths: Rise of the Soul King
 
 ウィザードリィ風の擬似3DダンジョンRPG。HTML + JavaScript + Canvas だけで動く、ビルド不要の単一Webゲームです。モンスターのイラストは外部素材を使わず、Canvas にドット絵をプログラム描画しています。
 

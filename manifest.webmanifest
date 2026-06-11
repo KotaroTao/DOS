@@ -1,6 +1,6 @@
 {
-  "name": "地下迷宮 - Dungeon of Shadows",
-  "short_name": "地下迷宮",
+  "name": "百の迷宮と 魂の王 - Hundred Labyrinths: Rise of the Soul King",
+  "short_name": "百の迷宮",
   "description": "ウィザードリィ風 擬似3Dダンジョン探索RPG",
   "start_url": "./index.html",
   "scope": "./",
