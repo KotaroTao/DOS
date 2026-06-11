@@ -1618,19 +1618,33 @@ function nearestEnemyAt(sx, sy) {
   return bestD < 70 ? best : null;
 }
 
+// オート戦闘の解除 (解除ボタン / 戦闘画面タップの共通処理)
+function stopAutoCombat() {
+  if (!G.autoCombat) return;
+  G.autoCombat = false;
+  if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
+  showToast("⏹ オート戦闘を解除した");
+  if (G.animating) combatMenu.innerHTML = ""; // 演出が終わると通常メニューに戻る
+  else renderCombatMenu();
+}
+
+// オート戦闘中の常設バナー: 演出中も表示し続け、いつでも解除できる
+function renderAutoBanner(actor) {
+  combatMenu.innerHTML = "";
+  combatMenu.appendChild(el("div", "who", actor ? `▶ ${actor.name} (⚡オート戦闘中)` : "⚡ オート戦闘中"));
+  combatMenu.appendChild(btn("⏹ オート解除 (画面タップでもOK)", stopAutoCombat));
+}
+
 function renderCombatMenu() {
   const b = G.battle;
   combatMenu.innerHTML = "";
-  if (G.animating) return; // アニメーション中は操作不可
+  if (G.animating) { if (G.autoCombat) renderAutoBanner(); return; } // アニメーション中は解除のみ可
   if (b.phase === "input") {
     const actor = b.current;
     highlightActor(actor);
-    // オート戦闘: 全員が手近な敵を通常攻撃し続ける (周回用)。タップで解除
+    // オート戦闘: 全員が手近な敵を通常攻撃し続ける (周回用)。解除ボタンか画面タップで解除
     if (G.autoCombat) {
-      combatMenu.appendChild(el("div", "who", `▶ ${actor.name} (オート戦闘中)`));
-      const stop = btn("⏹ オート解除", () => { G.autoCombat = false; if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; } renderCombatMenu(); });
-      stop.className = "btn";
-      combatMenu.appendChild(stop);
+      renderAutoBanner(actor);
       if (!G._autoTimer) {
         G._autoTimer = setTimeout(() => {
           G._autoTimer = null;
@@ -1697,7 +1711,7 @@ function combatStep() {
   if (b.phase === "stunned") {
     // 行動不能の味方 (睡眠/麻痺/石化) の手番を自動消化
     G.animating = true;
-    combatMenu.innerHTML = "";
+    if (G.autoCombat) renderAutoBanner(); else combatMenu.innerHTML = "";
     renderCombatCanvas();
     autosave(true);
     setTimeout(() => {
@@ -1708,7 +1722,7 @@ function combatStep() {
   }
   if (b.phase === "enemy") {
     G.animating = true;
-    combatMenu.innerHTML = "";
+    if (G.autoCombat) renderAutoBanner(); else combatMenu.innerHTML = "";
     renderCombatCanvas();
     autosave(true); // 敵の手番を確定 (やり直し不可)
     // 一瞬の間を置いてから敵が動く (ドラクエ風)
@@ -1731,7 +1745,7 @@ function act(action, spellKey) {
 function runCommitted() {
   autosave(true); // 行動確定の瞬間に保存。以降この選択はやり直せない
   G.animating = true;
-  combatMenu.innerHTML = "";
+  if (G.autoCombat) renderAutoBanner(); else combatMenu.innerHTML = "";
   const res = G.battle.commit();
   animateResult(res, postResolve);
 }
@@ -5504,6 +5518,8 @@ view.addEventListener("click", (e) => {
   const rect = view.getBoundingClientRect();
   const sx = (e.clientX - rect.left) * (view.width / rect.width);
   const sy = (e.clientY - rect.top) * (view.height / rect.height);
+  // 戦闘中にオート戦闘なら、画面のどこをタップしても解除 (演出中もOK)
+  if (G.state === "combat" && G.autoCombat) { buzz(10); stopAutoCombat(); return; }
   // 戦闘中: 敵スプライトを直接タップ
   if (G.state === "combat" && G.battle && !G.animating) {
     const b = G.battle;
