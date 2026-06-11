@@ -649,6 +649,10 @@ canvas.spr { image-rendering: pixelated; display: block; }
 .cdx-skd { font-size: 10px; color: #9685ad; }
 .cdx-tips { color: #b9d6a8; }
 
+/* 画面フラッシュ (ボス撃破/伝説の魂/呪い) */
+.screen-flash { position: fixed; inset: 0; z-index: 300; pointer-events: none; opacity: 0.55; transition: opacity 0.6s ease-out; }
+.screen-flash.out { opacity: 0; }
+
 /* ===== 記憶を宿した魂 (歴戦) ===== */
 .st-souln2.mem { color: #ffd27a; text-shadow: 0 0 8px rgba(255,180,80,0.5); }
 .tw-parts2.mem { color: #ffd27a; }
