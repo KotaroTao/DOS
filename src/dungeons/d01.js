@@ -20,4 +20,5 @@ export const dungeon = {
   deepPool: ["d01_kobold", "cm_caverat", "d01_skeleton"],
   boss: "d01_gaoler", bossScale: 1.0, enemyScale: 0.8,
   trapRate: 0.05, warmChance: 0.4, soulLevelBonus: 0, rankBonus: 0, lootTier: 0,
+  lootLv: [1, 9], // 出現アイテムの隠しレベル帯 (入口→最深部)
 };

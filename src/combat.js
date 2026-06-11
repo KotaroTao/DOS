@@ -1,7 +1,7 @@
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
 import { ITEMS, SLOTS, recalc, equip } from "./items.js";
-import { elemMult } from "./dungeons/schema.js";
+import { elemDmgMult } from "./dungeons/schema.js";
 
 export const SPELLS = {
   HALITO: { name: "ハリト", mp: 2, kind: "atk", power: 10, element: "fire", target: "enemy", desc: "炎の矢" },
@@ -296,8 +296,10 @@ export class Battle {
     // ダメージ = ATK×倍率 − VIT/2 (VITが被ダメージ軽減を担う)
     let dmg = variance(Math.round(this._eatk(actor) * power)) - Math.floor(this._evit(tgt) * 0.5);
     if (tgt._defending) dmg = Math.floor(dmg * 0.5);
-    // 属性相性 (攻撃属性 = 技 or 行動者。通常攻撃や無属性は等倍)
-    const em = elemMult(opt.element || actor.element || "none", tgt.element || "none");
+    // 属性相性: 攻撃属性 (技 > 装備の属性攻撃 > 固有属性) × 対象の固有属性/属性防御
+    const aE = opt.element || (actor.elemAtk && actor.elemAtk.el) || actor.element || "none";
+    const aLv = (actor.elemAtk && actor.elemAtk.el === aE) ? Math.max(1, actor.elemAtk.lv) : 1;
+    const em = elemDmgMult(aE, aLv, tgt.element || "none", tgt.elemDef);
     if (em !== 1) dmg = Math.round(dmg * em);
     // 会心: 基礎 + 盗賊パッシブ + 幸運(LUK) + 技の会心補正
     const luckCrit = Math.max(0, ((actor.luk || 8) - 8)) * 0.005;
@@ -336,7 +338,9 @@ export class Battle {
       const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
       for (const t of targets) {
         if (!t.alive) continue;
-        const em = elemMult(sp.element || "none", t.element || "none");
+        // 呪文の属性は Lv1 扱い。同属性の属性攻撃を装備していれば、そのレベルで増幅される
+        const aLv = (actor.elemAtk && actor.elemAtk.el === sp.element) ? Math.max(1, actor.elemAtk.lv) : 1;
+        const em = elemDmgMult(sp.element || "none", aLv, t.element || "none", t.elemDef);
         // 攻撃呪文の威力は術者の INT で伸びる
         const power = sp.power + (actor.int || 0) * 0.5;
         let dmg = Math.max(1, Math.round(variance(power) * spMul) - Math.floor(this._evit(t) * 0.2));

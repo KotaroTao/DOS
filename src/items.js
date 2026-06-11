@@ -1,12 +1,17 @@
-// 武器・防具・アクセサリ・消耗品のカタログ
+// 武器・防具・アクセサリ・消耗品のカタログ (基本品)
+// 大量の一点物は src/catalog/ で定義され、game.js が ITEMS に統合する。
 // 各アイテムは art(12x12) + 共有パレット P で描く。説明文・性能・職業制限つき。
 //
-// slot: head | weapon | shield | body | feet | acc | use
+// slot: head | weapon | shield | body | feet | acc | use | misc | mat
 //   weapon→右手, shield→左手, head/body/feet, acc→アクセサリ枠(2), use→消耗品
-// 性能キー: atk/vit/agi/int/pie/luk (六大ステ加算) / hp/mp (最大値加算) / crit (会心率加算)
+//   misc→その他(換金品・戦利品。装備/使用不可), mat→貴重品(イベント品。装備/使用不可)
 // twoHanded: 両手武器 (左手をふさぐ)
 // classes: 装備可能な職業キー配列 (null=全職)
 // cursed: 呪い (一度装備すると外せない)
+// 性能キー: atk/vit/agi/int/pie/luk (六大ステ加算) / hp/mp (最大値加算) / crit (会心率加算)
+// lv: 隠しレベル (1-50)。迷宮の出現帯・出現率・表示ランクを決める
+// cat: 武器のみ。サブカテゴリ (WEAPON_CATS のキー)
+// eAtk/eDef: 属性攻撃/属性防御 { el, lv } (lv1=◯ ±50%, lv2=◎ ±100%)
 
 // 装備部位 (8か所): 武器・盾・鎧・頭・小手・足・装飾x2
 export const SLOTS = ["weapon", "shield", "body", "head", "hands", "feet", "acc1", "acc2"];
@@ -14,6 +19,41 @@ export const SLOT_LABEL = {
   weapon: "武器", body: "防具", shield: "盾", head: "頭", hands: "小手", feet: "足", acc1: "装飾1", acc2: "装飾2",
 };
 export const MAX_ITEMS = 8;
+
+// ===== アイテム分類 (商店・図鑑のタブ) =====
+export const ITEM_CATS = [
+  { key: "use", label: "道具", slots: ["use"] },
+  { key: "weapon", label: "武器", slots: ["weapon"] },
+  { key: "shield", label: "盾", slots: ["shield"] },
+  { key: "body", label: "防具", slots: ["body"] },
+  { key: "head", label: "頭", slots: ["head"] },
+  { key: "hands", label: "小手", slots: ["hands"] },
+  { key: "feet", label: "足", slots: ["feet"] },
+  { key: "acc", label: "装飾", slots: ["acc"] },
+  { key: "misc", label: "その他", slots: ["misc"] },
+  { key: "mat", label: "貴重品", slots: ["mat"] },
+];
+// 武器サブカテゴリ (図鑑の武器タブをさらに分ける)
+export const WEAPON_CATS = [
+  { key: "ls", label: "長剣" },
+  { key: "dg", label: "短剣" },
+  { key: "kt", label: "刀" },
+  { key: "ax", label: "斧" },
+  { key: "mc", label: "槌" },
+  { key: "sp", label: "槍" },
+  { key: "bw", label: "弓" },
+  { key: "st", label: "杖" },
+];
+export const WEAPON_CAT_LABEL = (() => {
+  const m = {};
+  for (const c of WEAPON_CATS) m[c.key] = c.label;
+  return m;
+})();
+
+// 隠しレベル → 表示ランク (図鑑の枠色・発見演出に使う)
+export function lvToRank(lv) {
+  return lv < 8 ? 1 : lv < 15 ? 2 : lv < 23 ? 3 : lv < 31 ? 4 : lv < 40 ? 5 : 6;
+}
 
 // slot種別 → 装備キー
 export function slotKeyFor(item, member) {
@@ -52,8 +92,8 @@ const sprite = (art) => ({ art, palette: P });
 export const ITEMS = {
   // ===== 武器 =====
   dagger: {
-    id: "dagger", name: "ダガー", slot: "weapon", atk: 3, hit: 1, dice: "1d4", swings: 1, price: 30, classes: null,
-    desc: "軽く短い両刃の短剣。どの職業でも扱える基本の武器。",
+    id: "dagger", name: "ダガー", slot: "weapon", cat: "dg", lv: 1, atk: 3, hit: 1, dice: "1d4", swings: 1, price: 30, classes: null,
+    desc: "行き倒れの傭兵が最後まで手放さなかったような、ありふれた両刃の短剣。血脂を吸った柄革は黒ずみ、誰の手にも妙に馴染む。",
     ...sprite([
       "....k.......",
       "...kwk......",
@@ -70,9 +110,9 @@ export const ITEMS = {
     ]),
   },
   shortSword: {
-    id: "shortSword", name: "ショートソード", slot: "weapon", atk: 6, hit: 2, dice: "1d6+1", swings: 1, price: 120,
+    id: "shortSword", name: "ショートソード", slot: "weapon", cat: "ls", lv: 3, atk: 6, hit: 2, dice: "1d6+1", swings: 1, price: 120,
     classes: ["fighter", "knight", "thief", "priest", "bishop"],
-    desc: "標準的な片手剣。前衛に十分な切れ味を持つ。",
+    desc: "兵士崩れの亡骸からよく見つかる、無銘の片手剣。鍛えは確かで、迷宮の闇の中で数多の持ち主を看取ってきた。",
     ...sprite([
       "....k.......",
       "...kwk......",
@@ -89,9 +129,9 @@ export const ITEMS = {
     ]),
   },
   battleAxe: {
-    id: "battleAxe", name: "バトルアックス", slot: "weapon", atk: 13, hit: 3, dice: "2d6", swings: 1, twoHanded: true, price: 480,
+    id: "battleAxe", name: "バトルアックス", slot: "weapon", cat: "ax", lv: 8, atk: 13, hit: 3, dice: "2d6", swings: 1, twoHanded: true, price: 480,
     classes: ["fighter", "knight"],
-    desc: "両手で振るう戦斧。絶大な威力だが盾は持てない。",
+    desc: "骨ごと断つことしか考えられていない、無骨な両手斧。刃こぼれの一つ一つが誰かの最期だ。絶大な威力だが盾は持てない。",
     ...sprite([
       ".....kn.....",
       "...kkwwn....",
@@ -108,9 +148,9 @@ export const ITEMS = {
     ]),
   },
   warHammer: {
-    id: "warHammer", name: "ウォーハンマー", slot: "weapon", atk: 9, pie: 1, hit: 2, dice: "1d8+1", swings: 1, price: 300,
+    id: "warHammer", name: "ウォーハンマー", slot: "weapon", cat: "mc", lv: 6, atk: 9, pie: 1, hit: 2, dice: "1d8+1", swings: 1, price: 300,
     classes: ["fighter", "knight", "priest"],
-    desc: "鈍器。聖職者でも振るえる。骨ある敵に有効。",
+    desc: "柄に祈りの文句が刻まれた戦槌。刃を禁じられた聖職者が、骸を「鎮める」ために編み出した得物だという。骨ある敵に重く響く。",
     ...sprite([
       "..kkkkkk....",
       ".kggwwggk...",
@@ -127,9 +167,9 @@ export const ITEMS = {
     ]),
   },
   magicStaff: {
-    id: "magicStaff", name: "魔法の杖", slot: "weapon", atk: 4, int: 2, hit: 0, dice: "1d4", swings: 1, mp: 4, price: 260,
+    id: "magicStaff", name: "魔法の杖", slot: "weapon", cat: "st", lv: 5, atk: 4, int: 2, hit: 0, dice: "1d4", swings: 1, mp: 4, price: 260,
     classes: ["mage", "bishop", "priest"],
-    desc: "蒼い宝玉を戴いた杖。MPとINTを高める。",
+    desc: "蒼い宝玉を戴いた杖。玉の奥では囚われた精霊の光がゆっくりと脈打ち、握る者の魔力と知性を研ぎ澄ます。",
     ...sprite([
       "....kbk.....",
       "...kbck.....",
@@ -148,9 +188,9 @@ export const ITEMS = {
 
   // ===== 盾 =====
   woodShield: {
-    id: "woodShield", name: "木の盾", slot: "shield", vit: 3, price: 80,
+    id: "woodShield", name: "木の盾", slot: "shield", lv: 2, vit: 3, price: 80,
     classes: ["fighter", "knight", "thief", "priest", "bishop"],
-    desc: "頑丈な木製の小盾。最低限の備え。",
+    desc: "樫の板を鋲で重ねた小盾。表面には先代の持ち主のものらしい爪痕が走るが、まだ十分に矢と牙を受け止められる。",
     ...sprite([
       "..kkkkkk....",
       ".knnnnnnk...",
@@ -167,9 +207,9 @@ export const ITEMS = {
     ]),
   },
   kiteShield: {
-    id: "kiteShield", name: "カイトシールド", slot: "shield", vit: 6, price: 240,
+    id: "kiteShield", name: "カイトシールド", slot: "shield", lv: 7, vit: 6, price: 240,
     classes: ["fighter", "knight"],
-    desc: "騎士の大盾。広い防御範囲で前衛を守る。",
+    desc: "騎士団の紋章が剥げ落ちた大盾。掲げた誓いは廃れても、鋼の守りは廃れていない。前衛の半身を覆って守る。",
     ...sprite([
       "..kkkkkk....",
       ".kwggggwk...",
@@ -188,8 +228,8 @@ export const ITEMS = {
 
   // ===== 体 =====
   robe: {
-    id: "robe", name: "ローブ", slot: "body", vit: 1, int: 1, mp: 3, price: 90, classes: null,
-    desc: "魔法の刺繍が施された外套。MPとINTを少し高める。",
+    id: "robe", name: "ローブ", slot: "body", lv: 2, vit: 1, int: 1, mp: 3, price: 90, classes: null,
+    desc: "魔除けの紋様を縫い込んだ外套。糸は月のない夜に紡がれたといい、まとう者の魔力を少しだけ高める。",
     ...sprite([
       "...kkkk.....",
       "..kppppk....",
@@ -206,9 +246,9 @@ export const ITEMS = {
     ]),
   },
   leatherArmor: {
-    id: "leatherArmor", name: "革の鎧", slot: "body", vit: 4, price: 160,
+    id: "leatherArmor", name: "革の鎧", slot: "body", lv: 4, vit: 4, price: 160,
     classes: ["fighter", "knight", "thief", "priest", "bishop"],
-    desc: "なめし革の鎧。軽くて動きやすい。",
+    desc: "魔獣の革をなめした軽鎧。幾針もの縫い直しの跡は、これを着て生き延びた者たちの記録だ。軽くて動きやすい。",
     ...sprite([
       "..kkkkkk....",
       ".kllllllk...",
@@ -225,9 +265,9 @@ export const ITEMS = {
     ]),
   },
   plateArmor: {
-    id: "plateArmor", name: "プレートアーマー", slot: "body", vit: 11, agi: -1, price: 600,
+    id: "plateArmor", name: "プレートアーマー", slot: "body", lv: 12, vit: 11, agi: -1, price: 600,
     classes: ["fighter", "knight"],
-    desc: "全身を鋼で固めた重鎧。鉄壁だが少し鈍重になる。",
+    desc: "全身を鋼で固めた重鎧。継ぎ目の奥に沈む黒ずみは錆か、それとも前の持ち主の名残か。鉄壁だが少し鈍重になる。",
     ...sprite([
       "..kkkkkk....",
       ".kwggggwk...",
@@ -246,8 +286,8 @@ export const ITEMS = {
 
   // ===== 頭 =====
   cap: {
-    id: "cap", name: "布の帽子", slot: "head", vit: 1, price: 30, classes: null,
-    desc: "簡素な布の帽子。ないよりはまし。",
+    id: "cap", name: "布の帽子", slot: "head", lv: 1, vit: 1, price: 30, classes: null,
+    desc: "擦り切れた布の帽子。墓土の冷たさと滴る汚水からは守ってくれる。ないよりはまし、と誰もが言う。",
     ...sprite([
       "............",
       "...kkkk.....",
@@ -264,9 +304,9 @@ export const ITEMS = {
     ]),
   },
   ironHelm: {
-    id: "ironHelm", name: "鉄兜", slot: "head", vit: 3, price: 150,
+    id: "ironHelm", name: "鉄兜", slot: "head", lv: 5, vit: 3, price: 150,
     classes: ["fighter", "knight", "priest"],
-    desc: "面頬つきの鉄兜。頭部をしっかり守る。",
+    desc: "面頬つきの鉄兜。覗き穴の奥は常に闇で、かぶった者の顔を誰にも思い出させない。頭部をしっかり守る。",
     ...sprite([
       "...kkkk.....",
       "..kwggwk....",
@@ -285,8 +325,8 @@ export const ITEMS = {
 
   // ===== 足 =====
   leatherBoots: {
-    id: "leatherBoots", name: "革のブーツ", slot: "feet", vit: 1, agi: 1, price: 70, classes: null,
-    desc: "丈夫な革靴。AGIがわずかに上がる。",
+    id: "leatherBoots", name: "革のブーツ", slot: "feet", lv: 2, vit: 1, agi: 1, price: 70, classes: null,
+    desc: "丈夫な革の長靴。底に染みた泥は幾層にも重なり、どの層がどの迷宮のものかもう分からない。素早さがわずかに上がる。",
     ...sprite([
       "............",
       "..kk...kk...",
@@ -303,9 +343,9 @@ export const ITEMS = {
     ]),
   },
   ironGreaves: {
-    id: "ironGreaves", name: "鉄の脚甲", slot: "feet", vit: 3, price: 180,
+    id: "ironGreaves", name: "鉄の脚甲", slot: "feet", lv: 6, vit: 3, price: 180,
     classes: ["fighter", "knight"],
-    desc: "鋼の脛当て。蹴撃にも踏みこみにも強い。",
+    desc: "鋼の脛当て。骨の散らばる床を踏み砕いて進むためのものであり、自分が踏み砕かれないためのものでもある。",
     ...sprite([
       "............",
       "..kk...kk...",
@@ -324,8 +364,8 @@ export const ITEMS = {
 
   // ===== 小手 =====
   leatherGloves: {
-    id: "leatherGloves", name: "革の手袋", slot: "hands", vit: 1, price: 50, classes: null,
-    desc: "しなやかな革の手袋。手元をわずかに守る。",
+    id: "leatherGloves", name: "革の手袋", slot: "hands", lv: 1, vit: 1, price: 50, classes: null,
+    desc: "しなやかな革の手袋。罠の毒針から指先を、冷たい亡者の握手から手首を、わずかながら守ってくれる。",
     ...sprite([
       ".kl k.klk...",
       ".klk.klk....",
@@ -342,8 +382,8 @@ export const ITEMS = {
     ]),
   },
   silverGloves: {
-    id: "silverGloves", name: "銀の小手", slot: "hands", vit: 3, atk: 1, price: 280, classes: null,
-    desc: "銀細工の籠手。守りを固めつつ拳撃にも冴える。",
+    id: "silverGloves", name: "銀の小手", slot: "hands", lv: 7, vit: 3, atk: 1, price: 280, classes: null,
+    desc: "銀細工の籠手。銀は穢れた者に触れると鈍く曇り、持ち主に警告するという。守りを固めつつ拳撃にも冴える。",
     ...sprite([
       ".kwk.kwk....",
       ".kwwkwwk....",
@@ -360,9 +400,9 @@ export const ITEMS = {
     ]),
   },
   ironGauntlets: {
-    id: "ironGauntlets", name: "鉄の籠手", slot: "hands", vit: 4, agi: -1, price: 240,
+    id: "ironGauntlets", name: "鉄の籠手", slot: "hands", lv: 6, vit: 4, agi: -1, price: 240,
     classes: ["fighter", "knight"],
-    desc: "重厚な鉄の籠手。守りは固いが少し動きが鈍る。",
+    desc: "重厚な鉄の籠手。指の自由と引き換えに、握った得物ごと腕を守り抜く。少し動きが鈍る。",
     ...sprite([
       ".kwk.kwk....",
       ".kgwkgwk....",
@@ -381,8 +421,8 @@ export const ITEMS = {
 
   // ===== アクセサリ =====
   powerRing: {
-    id: "powerRing", name: "力の指輪", slot: "acc", atk: 3, price: 220, classes: null,
-    desc: "腕力を漲らせる指輪。ATKが上がる。",
+    id: "powerRing", name: "力の指輪", slot: "acc", lv: 6, atk: 3, price: 220, classes: null,
+    desc: "嵌めた瞬間、自分のものではない怒りが血管を駆け抜ける指輪。腕力が漲り、攻撃力が上がる。",
     ...sprite([
       "............",
       "....kkk.....",
@@ -399,8 +439,8 @@ export const ITEMS = {
     ]),
   },
   guardAmulet: {
-    id: "guardAmulet", name: "守りの護符", slot: "acc", vit: 3, price: 220, classes: null,
-    desc: "聖なる加護を宿す護符。VITが上がる。",
+    id: "guardAmulet", name: "守りの護符", slot: "acc", lv: 6, vit: 3, price: 220, classes: null,
+    desc: "崩落した聖堂から唯一無傷で掘り出された護符。宿された加護はまだ生きている。防御力が上がる。",
     ...sprite([
       "....kk......",
       "...kbbk.....",
@@ -417,8 +457,8 @@ export const ITEMS = {
     ]),
   },
   swiftRing: {
-    id: "swiftRing", name: "俊足の指輪", slot: "acc", agi: 3, price: 260, classes: null,
-    desc: "風の精が宿る指輪。AGIが上がる。",
+    id: "swiftRing", name: "俊足の指輪", slot: "acc", lv: 8, agi: 3, price: 260, classes: null,
+    desc: "風の精が封じられた指輪。耳元で絶えず微かな囁きがする。聞き取れた者はいない。素早さが上がる。",
     ...sprite([
       "............",
       "....kkk.....",
@@ -435,8 +475,8 @@ export const ITEMS = {
     ]),
   },
   lifeAmulet: {
-    id: "lifeAmulet", name: "生命の護符", slot: "acc", hp: 12, price: 320, classes: null,
-    desc: "鼓動する宝玉の護符。最大HPが上がる。",
+    id: "lifeAmulet", name: "生命の護符", slot: "acc", lv: 9, hp: 12, price: 320, classes: null,
+    desc: "今も微かに鼓動を続ける宝玉の護符。元が誰の心臓だったのかは、考えない方がいい。最大HPが上がる。",
     ...sprite([
       "....kk......",
       "...krrk.....",
@@ -452,10 +492,162 @@ export const ITEMS = {
       "............",
     ]),
   },
+  amberTalisman: {
+    id: "amberTalisman", name: "琥珀の守符", slot: "acc", lv: 12, vit: 4, mp: 4, price: 480, classes: null,
+    eDef: { el: "earth", lv: 1 },
+    desc: "太古の樹液に名も知れぬ羽虫が封じられた琥珀。幾万年を閉じ込めた静けさが、土の理から持ち主を匿う。",
+    ...sprite([
+      "....kk......",
+      "...kyok.....",
+      "..ko..yk....",
+      "..ky..ok....",
+      "...koyk.....",
+      "..kyooyk....",
+      ".kyooooyk...",
+      ".kyoooyok...",
+      ".kyyooyyk...",
+      "..kyyyyk....",
+      "...kkkk.....",
+      "............",
+    ]),
+  },
+  emberRing: {
+    id: "emberRing", name: "燼火の指輪", slot: "acc", lv: 18, atk: 2, price: 760, classes: null,
+    eAtk: { el: "fire", lv: 1 },
+    desc: "決して冷めない熾火を嵌め込んだ指輪。指先に伝う熱が、振るう得物の先にまで燃え移る。",
+    ...sprite([
+      "............",
+      "....kkk.....",
+      "...krrrk....",
+      "..kr.k.rk...",
+      "..kr.r.rk...",
+      "..kr...rk...",
+      "...kr.rk....",
+      "....krk.....",
+      ".....k......",
+      "............",
+      "............",
+      "............",
+    ]),
+  },
+  tideBead: {
+    id: "tideBead", name: "潮霊の数珠", slot: "acc", lv: 22, mp: 8, price: 980, classes: null,
+    eDef: { el: "water", lv: 1 },
+    desc: "溺死者の眠る入江で拾い集められた青珠の連なり。耳を澄ますと遠い潮騒が聞こえ、火の災いを波が払う。",
+    ...sprite([
+      "....kk......",
+      "...kbbk.....",
+      "..kb..bk....",
+      "..kb..bk....",
+      "...kbbk.....",
+      "..kbccbk....",
+      ".kbcbbcbk...",
+      ".kbcbbcbk...",
+      ".kbccccbk...",
+      "..kbbbbk....",
+      "...kkkk.....",
+      "............",
+    ]),
+  },
+  galeAnklet: {
+    id: "galeAnklet", name: "風切りの足環", slot: "acc", lv: 26, agi: 5, price: 1240, classes: null,
+    desc: "墜ちたハーピーの風切羽を編み込んだ足環。一歩ごとに体が軽くなり、踏んだ床の軋みすら置き去りにする。",
+    ...sprite([
+      "............",
+      "....kkk.....",
+      "...kGGGk....",
+      "..kG.k.Gk...",
+      "..kG.G.Gk...",
+      "..kG...Gk...",
+      "...kG.Gk....",
+      "....kGk.....",
+      ".....k......",
+      "............",
+      "............",
+      "............",
+    ]),
+  },
+  gravewardBell: {
+    id: "gravewardBell", name: "墓守の鈴", slot: "acc", lv: 30, hp: 25, price: 1560, classes: null,
+    eDef: { el: "dark", lv: 1 },
+    desc: "亡者の徘徊を報せるために墓地に吊るされていた銀鈴。音は生者にしか聞こえず、鳴る間は闇の爪が届かない。",
+    ...sprite([
+      "....kk......",
+      "...kwwk.....",
+      "...kwwk.....",
+      "..kwwwwk....",
+      "..kwggwk....",
+      ".kwwwwwwk...",
+      ".kwggggwk...",
+      ".kkkkkkkk...",
+      "...kggk.....",
+      "............",
+      "............",
+      "............",
+    ]),
+  },
+  dawnMedal: {
+    id: "dawnMedal", name: "暁光の勲章", slot: "acc", lv: 36, atk: 4, vit: 4, price: 2080, classes: null,
+    eAtk: { el: "light", lv: 1 },
+    desc: "夜明けを取り戻した英雄に授けられたという勲章。授与の記録は焼け、功績だけが金属の中で燃え続けている。",
+    ...sprite([
+      "...kkkkk....",
+      "..ky.y.yk...",
+      "...kyyyk....",
+      "....kyk.....",
+      "...kyyyk....",
+      "..kyyyyyk...",
+      ".kyyoyoyyk..",
+      ".kyoyyyoyk..",
+      ".kyyoyoyyk..",
+      "..kyyyyyk...",
+      "...kkkkk....",
+      "............",
+    ]),
+  },
+  abyssEye: {
+    id: "abyssEye", name: "深淵の瞳", slot: "acc", lv: 42, mp: 15, price: 2680, classes: null,
+    eAtk: { el: "dark", lv: 1 },
+    desc: "覗いた者を覗き返すという、正体不明の眼球の剥製。瞼のない瞳は瞬きの代わりに、持ち主の敵を見据える。",
+    ...sprite([
+      "............",
+      "...kkkk.....",
+      "..kpppppk...",
+      ".kppwwppk...",
+      ".kpwkkwpk...",
+      ".kpwkkwpk...",
+      ".kppwwppk...",
+      "..kpppppk...",
+      "...kkkk.....",
+      "............",
+      "............",
+      "............",
+    ]),
+  },
+  dragonboneRing: {
+    id: "dragonboneRing", name: "竜骨の指輪", slot: "acc", lv: 46, atk: 6, hp: 20, price: 3420, classes: null,
+    eDef: { el: "fire", lv: 1 },
+    desc: "古竜の指骨を削り出した白い環。骨髄に残った竜の体温がじんわりと巡り、嵌めた者の血潮を猛らせる。",
+    ...sprite([
+      "............",
+      "....kkk.....",
+      "...kwwwk....",
+      "..kw.k.wk...",
+      "..kw.w.wk...",
+      "..kw...wk...",
+      "...kw.wk....",
+      "....kwk.....",
+      ".....k......",
+      "............",
+      "............",
+      "............",
+    ]),
+  },
   cursedBlade: {
-    id: "cursedBlade", name: "妖刀ムラマサ", slot: "weapon", atk: 18, vit: -3, hit: 7, dice: "1d10+3", swings: 4, align: "悪", cursed: true, price: 0,
+    id: "cursedBlade", name: "妖刀ムラマサ", slot: "weapon", cat: "kt", lv: 20, atk: 18, vit: -3, hit: 7, dice: "1d10+3", swings: 4, align: "悪", cursed: true, price: 0,
+    eAtk: { el: "dark", lv: 1 },
     classes: ["fighter", "knight", "thief"],
-    desc: "凄まじい斬れ味を持つ呪われた刀。一度握れば手放せぬ…。攻撃は跳ね上がるが身を守れなくなる。悪属性。",
+    desc: "鞘の中から啜り泣きが聞こえる呪われた刀。凄まじい斬れ味と引き換えに、一度握った者の血を忘れない。攻撃は跳ね上がるが身を守れなくなる。悪属性。",
     ...sprite([
       ".........kp.",
       "........kpk.",
@@ -474,8 +666,8 @@ export const ITEMS = {
 
   // ===== 消耗品 =====
   herb: {
-    id: "herb", name: "薬草", slot: "use", use: { heal: 30 }, price: 20, classes: null,
-    desc: "傷に効く薬草。HPを30回復する。",
+    id: "herb", name: "薬草", slot: "use", lv: 1, use: { heal: 30 }, price: 20, classes: null,
+    desc: "迷宮の死地にも根づく生命力の強い薬草。噛み潰せば、苦みが傷の熱を奪っていく。HPを30回復する。",
     ...sprite([
       "............",
       ".....GG.....",
@@ -492,8 +684,8 @@ export const ITEMS = {
     ]),
   },
   antidote: {
-    id: "antidote", name: "毒消し草", slot: "use", use: { cure: "poison" }, price: 30, classes: null,
-    desc: "毒を中和する薬。毒状態を治す。",
+    id: "antidote", name: "毒消し草", slot: "use", lv: 1, use: { cure: "poison" }, price: 30, classes: null,
+    desc: "死した毒蛇の巣にだけ群生するという解毒草。青臭い汁が血に巡る毒を絡め取る。毒状態を治す。",
     ...sprite([
       "....kk......",
       "...kck......",
@@ -510,8 +702,8 @@ export const ITEMS = {
     ]),
   },
   manaDrop: {
-    id: "manaDrop", name: "マナの雫", slot: "use", use: { mp: 20 }, price: 60, classes: null,
-    desc: "輝く魔力の雫。MPを20回復する。",
+    id: "manaDrop", name: "マナの雫", slot: "use", lv: 3, use: { mp: 20 }, price: 60, classes: null,
+    desc: "地脈の傷口から滲み出した魔力の雫。飲み干せば、冷たい光が喉を伝い落ちていく。MPを20回復する。",
     ...sprite([
       "............",
       "....kk......",
@@ -527,10 +719,10 @@ export const ITEMS = {
       "............",
     ]),
   },
-  // 魂合成に使うレア素材 (slot:"mat" = 装備も使用もできない)
+  // 魂合成に使うレア素材 (slot:"mat" = 貴重品。装備も使用もできない)
   emptySoul: {
-    id: "emptySoul", name: "空の魂", slot: "mat", price: 0, classes: null,
-    desc: "何者の記憶も宿していない空の器。魂合成の核になる希少品。",
+    id: "emptySoul", name: "空の魂", slot: "mat", lv: 1, price: 0, classes: null,
+    desc: "何者の記憶も宿していない、空の器。覗き込むと、底のない静寂がこちらを見つめ返してくる。魂合成の核になる希少品。",
     ...sprite([
       "....cccc....",
       "..cc.pp.cc..",
@@ -548,12 +740,26 @@ export const ITEMS = {
   },
 };
 
+// 属性集計の優先順 (同レベルなら先のものが発現)
+const ELEM_ORDER = ["fire", "water", "wind", "earth", "light", "dark"];
+// 部位ごとの属性レベル合計から、発現する属性を1つ選ぶ ({el, lv} or null)
+// 同属性の装備は加算で重なる (最大Lv2=◎)。異なる属性は混ざらず、最も高いものだけが発現する。
+function topElemStat(sums) {
+  let best = null;
+  for (const el of ELEM_ORDER) {
+    const lv = sums[el] || 0;
+    if (lv > 0 && (!best || lv > best.lv)) best = { el, lv: Math.min(2, lv) };
+  }
+  return best;
+}
+
 // 六大ステ (ATK/VIT/AGI/INT/PIE/LUK) を base + 装備から再計算
 export function recalc(member) {
   const base = member.base;
   let atk = base.atk || 0, vit = base.vit || 0, agi = base.agi || 0;
   let int = base.int || 0, pie = base.pie || 0, luk = base.luk || 0;
   let hpBonus = 0, mpBonus = 0, crit = base.crit || 0;
+  const ea = {}, ed = {}; // 属性攻撃/属性防御のレベル合計 (属性ごと)
   const counted = new Set();
   for (const slot of SLOTS) {
     const it = member.equip[slot];
@@ -568,6 +774,8 @@ export function recalc(member) {
     crit += it.crit || 0;
     hpBonus += it.hp || 0;
     mpBonus += it.mp || 0;
+    if (it.eAtk && it.eAtk.el) ea[it.eAtk.el] = (ea[it.eAtk.el] || 0) + (it.eAtk.lv || 1);
+    if (it.eDef && it.eDef.el) ed[it.eDef.el] = (ed[it.eDef.el] || 0) + (it.eDef.lv || 1);
   }
   member.atk = Math.max(1, Math.round(atk));
   member.vit = Math.max(0, Math.round(vit));
@@ -580,6 +788,9 @@ export function recalc(member) {
   member.maxmp = base.mp + mpBonus;
   if (member.hp > member.maxhp) member.hp = member.maxhp;
   if (member.mp > member.maxmp) member.mp = member.maxmp;
+  // 属性攻撃/属性防御 (装備由来。Lv1=◯, Lv2=◎)
+  member.elemAtk = topElemStat(ea);
+  member.elemDef = topElemStat(ed);
   // 旧体系の派生値 (こうげき/ぼうぎょ/すばやさ/AC) は廃止
   delete member.def; delete member.spd; delete member.ac;
 }
