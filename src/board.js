@@ -189,5 +189,34 @@ export function makeBoard(floor, cfg = null) {
     }
   }
 
+  // 扉: 20%の確率でフロアに最大1つ配置。
+  // 条件: 宝箱へのアプローチセル (宝箱の1マス手前、左右が壁の直線廊下) にのみ配置。
+  const PERP = { n: ["e", "w"], s: ["e", "w"], e: ["n", "s"], w: ["n", "s"] };
+  if (Math.random() < 0.2) {
+    const doorCandidates = [];
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        const c = cells[y][x];
+        if (c.type !== "chest") continue;
+        const openDir = ["n", "e", "s", "w"].find((d) => !c.walls[d]);
+        if (!openDir) continue;
+        const ax = x + DIRS[openDir][0], ay = y + DIRS[openDir][1];
+        if (ax < 0 || ay < 0 || ax >= COLS || ay >= ROWS) continue;
+        const ac = cells[ay][ax];
+        if (ac.type !== "empty") continue;
+        const [p1, p2] = PERP[openDir];
+        if (ac.walls[p1] && ac.walls[p2]) doorCandidates.push({ ax, ay });
+      }
+    }
+    if (doorCandidates.length) {
+      const { ax, ay } = pick(doorCandidates);
+      const r = Math.random();
+      const doorTier = r < 0.50 ? "copper" : r < 0.80 ? "iron" : r < 0.95 ? "silver" : "gold";
+      cells[ay][ax].type = "door";
+      cells[ay][ax].doorTier = doorTier;
+      cells[ay][ax].cleared = false;
+    }
+  }
+
   return { cells, start: { x: sx, y: sy }, floor };
 }

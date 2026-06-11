@@ -35,7 +35,7 @@ for (const id in ITEMS) {
 // 全アイテムは隠しレベル lv を持つ。迷宮ごとの lootLv 帯 (＋階の深さ) を中心に、
 // レベルの近い品だけが出現する。中心より高レベルの品ほど出現率が急減するうえ、
 // 全体補正でも高レベル品ほど稀になる (= 強い装備は深い迷宮でしか、稀にしか出ない)。
-const LOOT_IDS = Object.keys(ITEMS).filter((id) => ITEMS[id].slot !== "mat").sort();
+const LOOT_IDS = Object.keys(ITEMS).filter((id) => ITEMS[id].slot !== "mat" && !ITEMS[id].keyTier).sort();
 function lootWeight(lv, center) {
   const d = lv - center;
   if (d > 8 || d < -16) return 0;                       // 出現窓: 中心+8 〜 中心-16
@@ -43,6 +43,7 @@ function lootWeight(lv, center) {
 }
 // 中心レベル center 付近のアイテムを重み抽選で1つ選ぶ
 function pickItemByLv(center) {
+  if (Math.random() < 0.03) return pickRandomKey();
   let total = 0;
   const acc = [];
   for (const id of LOOT_IDS) {
@@ -56,6 +57,12 @@ function pickItemByLv(center) {
   for (const [id, t] of acc) if (r <= t) return id;
   return acc[acc.length - 1][0];
 }
+
+// 鍵のみを tier 比率で1つ選ぶ (銅50/鉄30/銀15/金5)
+function pickRandomKey() {
+  const r = Math.random();
+  return r < 0.50 ? "k_copper_key" : r < 0.80 ? "k_iron_key" : r < 0.95 ? "k_silver_key" : "k_gold_key";
+}
 // 現在の迷宮+階のアイテムレベル (中心値)。迷宮の lootLv 帯を階の深さで補間
 function lootLvAt() {
   const cfg = activeCfg();
@@ -65,6 +72,12 @@ function lootLvAt() {
   let c = band[0] + (band[1] - band[0]) * t;
   if (Math.random() < 0.05) c += 8; // まれな大当たり: ワンランク上の帯から出る
   return c;
+}
+
+// 現在の迷宮の lootLv 上限 (扉の報酬算出用)
+function lootLvMax() {
+  const cfg = activeCfg();
+  return (cfg.lootLv || [1, 8])[1];
 }
 
 // ===== モンスターの戦利品テーブル =====
@@ -499,6 +512,7 @@ function drawCard(r, cell, scaleX, showBack) {
     const icon =
       cell.type === "monster" && !cell.cleared ? MONSTERS[cell.monsterKey] :
       cell.type === "chest" ? (cell.cleared ? ICONS.chestOpen : ICONS.chest) :
+      cell.type === "door" && !cell.cleared ? ICONS.door :
       cell.type === "trap" && !cell.cleared ? ICONS.trap :
       cell.type === "fountain" && !cell.cleared ? ICONS.fountain :
       cell.type === "corpse" ? ICONS.corpse :
@@ -750,6 +764,10 @@ function resolveCell(cell) {
       ], ICONS.fountain, { banner: "✦ 癒しの泉 ✦", accent: "#5fb8d6" });
       break;
     }
+    case "door": {
+      if (!cell.cleared) resolveDoor(cell);
+      break;
+    }
     case "corpse": {
       if (cell.cleared) break;
       resolveCorpse(cell);
@@ -790,6 +808,57 @@ function useFountain(cell) {
     lines: ["パーティのHPとMPが回復した！", ...(cured ? ["毒も浄化された。"] : [])],
     onClose: () => renderBoard(),
   });
+}
+
+// ===== 施錠された扉 =====
+const DOOR_TIER_NUM  = { copper: 1, iron: 2, silver: 3, gold: 4 };
+const DOOR_TIER_NAME = { copper: "銅", iron: "鉄", silver: "銀", gold: "金" };
+const DOOR_TIER_COLOR = { copper: "#a9672a", iron: "#8a93a0", silver: "#c8d4e0", gold: "#e8c24a" };
+const DOOR_LOOT_RANGE = { copper: [1, 5], iron: [1, 10], silver: [5, 10], gold: [10, 15] };
+
+function findKeyForDoor(doorTier) {
+  const need = DOOR_TIER_NUM[doorTier] || 1;
+  for (const m of G.party) {
+    if (!m.alive) continue;
+    const idx = m.items.findIndex((it) => it.keyTier && it.keyTier >= need);
+    if (idx >= 0) return { member: m, idx };
+  }
+  return null;
+}
+
+function resolveDoor(cell) {
+  const tname = DOOR_TIER_NAME[cell.doorTier] || "?";
+  const tcolor = DOOR_TIER_COLOR[cell.doorTier] || "#8a5a30";
+  const found = findKeyForDoor(cell.doorTier);
+  if (!found) {
+    showEvent({
+      sprite: ICONS.door, title: `${tname}の扉`, accent: tcolor,
+      banner: "🔒 施錠 🔒",
+      lines: ["堅く施錠されている。", `${tname}以上の鍵が必要だ。`],
+      onClose: () => renderBoard(),
+    });
+    return;
+  }
+  const key = found.member.items[found.idx];
+  showChoice(`${tname}の扉だ。${key.name}で開けるか？`, [
+    { label: "🗝 扉を開ける", fn: () => openDoor(cell, found.member, found.idx) },
+    { label: "✋ 通り抜ける",  fn: () => { renderBoard(); } },
+  ], ICONS.door, { banner: `🔒 ${tname}の扉 🔒`, accent: tcolor });
+}
+
+function openDoor(cell, member, keyIdx) {
+  cell.cleared = true;
+  member.items.splice(keyIdx, 1);
+  SFX.chest(); buzz([0, 30, 60, 90, 60]);
+  const [lo, hi] = DOOR_LOOT_RANGE[cell.doorTier];
+  const bonusLv = lo + rand(hi - lo + 1);
+  const center = lootLvMax() + bonusLv;
+  log(`${DOOR_TIER_NAME[cell.doorTier]}の扉が開いた！ 奥から光が漏れる…`, "win");
+  // ゴールドなし: アイテムのみ (鍵が出た場合もそのまま受け取る)
+  const done = () => { if (G.state === "board") renderBoard(); };
+  const got = giveItem(pickItemByLv(center));
+  if (got) { showItemGet(got.item, got.who, done); }
+  else { done(); }
 }
 
 // 死体: 「まだあたたかい死体」からのみ魂を回収できる (死体の職業に応じた魂)
@@ -1147,7 +1216,8 @@ function renderCombatCanvas() {
     const baseX = slotW * (i + 1);
     const baseY = view.height * 0.40;
     G.enemyPos[e.uid] = { cx: baseX, cy: baseY };
-    let ox = 0, oy = 0, alpha = e.alive ? 1 : 0.18;
+    if (!e.alive) return; // 撃破済みは非表示
+    let ox = 0, oy = 0, alpha = 1;
     // 攻撃側の踏み込み (こちらへ前進)
     if (fx && fx.lunge && fx.lunge.uid === e.uid) oy = (fx.lunge.p || 0) * 22;
     // 被弾フラッシュ: 点滅 + 横揺れ
@@ -1184,7 +1254,7 @@ function renderCombatCanvas() {
     }
     // 足元の影 (踏み込みに追従)
     vctx.save();
-    vctx.globalAlpha = e.alive ? 0.45 : 0.15;
+    vctx.globalAlpha = 0.45;
     vctx.fillStyle = "#000";
     vctx.beginPath();
     vctx.ellipse(baseX + ox, baseY + size * 5.4, size * 3.4, size * 1.1, 0, 0, Math.PI * 2);
@@ -1207,14 +1277,14 @@ function renderCombatCanvas() {
     vctx.textAlign = "center";
     const tw = vctx.measureText(label).width;
     vctx.fillStyle = "rgba(8,8,14,0.75)";
-    vctx.strokeStyle = e.alive ? "rgba(160,140,180,0.4)" : "rgba(90,90,102,0.3)";
+    vctx.strokeStyle = "rgba(160,140,180,0.4)";
     vctx.lineWidth = 1;
     const px = baseX - tw / 2 - 7, py2 = baseY + 70, pw = tw + 14, ph = 14;
     vctx.beginPath();
     vctx.roundRect ? vctx.roundRect(px, py2, pw, ph, 7) : vctx.rect(px, py2, pw, ph);
     vctx.fill();
     vctx.stroke();
-    vctx.fillStyle = e.alive ? "#e7e3d4" : "#5a5a66";
+    vctx.fillStyle = "#e7e3d4";
     vctx.fillText(label, baseX, py2 + 10);
     // HPバー (グラデーション + 枠)
     const bw = 56, bh = 6, bx = baseX - bw / 2, by = baseY + 88;
@@ -1222,10 +1292,8 @@ function renderCombatCanvas() {
     vctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
     const ratio = Math.max(0, e.hp / e.maxhp);
     const hg = vctx.createLinearGradient(bx, by, bx, by + bh);
-    if (e.alive) {
-      hg.addColorStop(0, ratio > 0.5 ? "#ff7a72" : "#ffb14a");
-      hg.addColorStop(1, ratio > 0.5 ? "#c23a34" : "#c97a18");
-    } else { hg.addColorStop(0, "#333"); hg.addColorStop(1, "#222"); }
+    hg.addColorStop(0, ratio > 0.5 ? "#ff7a72" : "#ffb14a");
+    hg.addColorStop(1, ratio > 0.5 ? "#c23a34" : "#c97a18");
     vctx.fillStyle = hg;
     vctx.fillRect(bx, by, bw * ratio, bh);
     vctx.strokeStyle = "rgba(0,0,0,0.6)";
@@ -2227,7 +2295,7 @@ function renderMansionManage() {
     info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †") + (inParty ? "" : " (控え)")));
     info.appendChild(el("div", "tw-chipc", `${d.cls} ・ 魂 ${dollSouls(d).length}/5`));
     row.appendChild(info);
-    const edit = btn("魂を宿す", () => { altarSel = { doll: d, part: null }; G.town.sub = "altar"; renderTown(); });
+    const edit = btn("名前を変える", () => renameDoll(d));
     edit.className = "tw-small";
     row.appendChild(edit);
     const del = btn("解体", () => confirmDisband(d));
@@ -2271,6 +2339,41 @@ function buyEmptyDoll() {
   altarSel = { doll: d, part: null };
   G.town.facility = "mansion"; G.town.sub = "altar";
   renderTown();
+}
+
+function renameDoll(d) {
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card confirm-card");
+  card.style.borderColor = "#5fb8d6";
+  card.style.boxShadow = "0 0 40px #5fb8d655";
+  const bn = el("div", "ig-banner", "✏ 改名 ✏");
+  bn.style.color = "#5fb8d6";
+  card.appendChild(bn);
+  card.appendChild(el("div", "ig-name", `「${d.name}」の名前を変える`));
+  const inp = document.createElement("input");
+  inp.type = "text";
+  inp.value = d.name;
+  inp.maxLength = 10;
+  inp.style.cssText = "width:100%;box-sizing:border-box;margin:8px 0;padding:6px;background:#1a1828;color:#e7e3d4;border:1px solid #5fb8d6;border-radius:4px;font:inherit;font-size:14px;text-align:center;outline:none;";
+  card.appendChild(inp);
+  const list = el("div", "ig-choices");
+  const okBtn = btn("✏ 変更する", () => {
+    const name = inp.value.trim();
+    if (!name) return;
+    const old = d.name;
+    d.name = name;
+    log(`「${old}」→「${name}」に改名した。`, "sys");
+    autosave();
+    wrap.remove();
+    renderTown();
+  });
+  list.appendChild(okBtn);
+  list.appendChild(btn("やめる", () => wrap.remove()));
+  card.appendChild(list);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
+  setTimeout(() => inp.focus(), 50);
 }
 
 function confirmDisband(d) {
