@@ -33,6 +33,32 @@ export const RACE_LABEL = (() => {
   return m;
 })();
 
+// ===== 属性 (エレメント) =====
+// 6属性 + 無属性。循環: 火→風→土→水→火。光↔闇は相互に有利。
+export const ELEMENTS = {
+  none:  { label: "無", color: "#9aa0ac" },
+  fire:  { label: "火", color: "#ff6b3a" },
+  water: { label: "水", color: "#4aa3ff" },
+  wind:  { label: "風", color: "#5fd08a" },
+  earth: { label: "土", color: "#c89a4a" },
+  light: { label: "光", color: "#ffe27a" },
+  dark:  { label: "闇", color: "#9b6bd0" },
+};
+// A が有利を取る相手 B のリスト
+const ELEM_BEATS = {
+  fire: ["wind"], wind: ["earth"], earth: ["water"], water: ["fire"],
+  light: ["dark"], dark: ["light"],
+};
+export function elemBeats(a, b) { return !!(ELEM_BEATS[a] && ELEM_BEATS[a].includes(b)); }
+// 攻撃属性 atk が 防御属性 def に与えるダメージ倍率
+// 有利: 1.5倍 / 不利(相手が有利): 0.5倍 / それ以外: 1.0倍。無属性が絡めば常に1.0
+export function elemMult(atk, def) {
+  if (!atk || atk === "none" || !def || def === "none") return 1;
+  if (elemBeats(atk, def)) return 1.5;   // 光↔闇は双方ここで 1.5 になる
+  if (elemBeats(def, atk)) return 0.5;
+  return 1;
+}
+
 // ===== 色ユーティリティ (パレットの部分差し替え用) =====
 function hex(n) { return Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0"); }
 function parseHex(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
@@ -102,6 +128,7 @@ export function defMonster(def) {
     id: def.id, key: def.id,
     name: def.name || "???",
     race: def.race || "beast",
+    element: def.element || "none",
     rank: def.rank || 1,
     desc: def.desc || "",
     maxhp: def.hp || 10, hp: def.hp || 10,

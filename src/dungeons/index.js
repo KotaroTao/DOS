@@ -6,7 +6,7 @@ import * as d02 from "./d02.js";
 import * as d03 from "./d03.js";
 import * as d04 from "./d04.js";
 
-export { MON_RACES, RACE_LABEL } from "./schema.js";
+export { MON_RACES, RACE_LABEL, ELEMENTS, elemMult, elemBeats } from "./schema.js";
 
 // 登録順がそのままゲーム内の解放順になる
 const MODULES = [d01, d02, d03, d04];

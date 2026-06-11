@@ -6,7 +6,7 @@ import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
 import { spriteCanvas } from "./sprites.js";
 import { ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, recalc, equip as equipItem, unequip as unequipItem, canEquip } from "./items.js";
 import { generateItems, RANK_NAME, RANK_COLOR } from "./content.js";
-import { DUNGEONS, DUNGEON_MONSTERS, MON_RACES, RACE_LABEL } from "./dungeons/index.js";
+import { DUNGEONS, DUNGEON_MONSTERS, MON_RACES, RACE_LABEL, ELEMENTS } from "./dungeons/index.js";
 import {
   PARTS, PART_LABEL, SOUL_CLASSES, makeSoul, makeDoll, soulName, soulSprite,
   dollSouls, dominantClass, recalcDoll, sealSoul, createStartingRoster,
@@ -773,16 +773,11 @@ function resolveCorpse(cell) {
   const clsKey = cell.corpseClass || "fighter";
   const clsLabel = SOUL_CLASSES[clsKey].label;
   if (!cell.corpseWarm) {
-    // 風化した死体: 魂(オブジェクト)は失われているが、残り滓から Soul を得られる
-    cell.cleared = true;
-    const essence = 6 + G.floor * 3 + rand(6);
-    runGainSoulPts(essence);
-    log(`風化した死体（${clsLabel}）から ✦${essence} Soul を集めた。`, "win");
-    showEvent({
-      sprite: ICONS.corpse, title: `風化した死体（${clsLabel}）`, accent: "#8c866f", banner: "— 亡骸 —",
-      lines: ["宿っていた魂はとうに抜け落ちている。", `残り滓から ✦${essence} Soul を集めた。`],
-      onClose: () => renderBoard(),
-    });
+    // 風化した死体: 調べるか立ち去るかを選ぶ (宝箱と同じポップアップ)
+    showChoice(`風化した死体（${clsLabel}）が横たわっている。調べてみるか？`, [
+      { label: "🔍 調べる", fn: () => investigateCorpse(cell, clsKey, clsLabel) },
+      { label: "🚶 立ち去る", fn: () => { log("死体には触れず、立ち去った。", "sys"); renderBoard(); } },
+    ], ICONS.corpse, { banner: "— 風化した死体 —", accent: "#8c866f" });
     return;
   }
   // あたたかい死体: 回収するか立ち去るか選べる。立ち去れば死体は残る。
@@ -790,6 +785,48 @@ function resolveCorpse(cell) {
     { label: "✦ 魂を回収する", fn: () => collectSoul(cell, clsKey, clsLabel) },
     { label: "🚶 立ち去る", fn: () => { log("死体に手を触れず、立ち去った。", "sys"); renderBoard(); } },
   ], ICONS.corpseWarm, { banner: "✦ あたたかい死体 ✦", accent: SOUL_CLASSES[clsKey].glow });
+}
+
+// 現在のダンジョンに出るアンデッド種のキー (なければ全体から、最終的に地下牢の骸)
+function undeadKeyForDungeon() {
+  const cfg = activeCfg();
+  const local = [...(cfg.pool || []), ...(cfg.deepPool || [])]
+    .filter((k) => MONSTERS[k] && MONSTERS[k].race === "undead");
+  if (local.length) return local[rand(local.length)];
+  const all = Object.keys(MONSTERS).filter((k) => MONSTERS[k].race === "undead");
+  return all.length ? all[rand(all.length)] : "d01_skeleton";
+}
+
+// 風化した死体を調べる: 20%で死体が起き上がりアンデッド戦、それ以外は装備 or 魂
+function investigateCorpse(cell, clsKey, clsLabel) {
+  if (Math.random() < 0.20) {
+    // 死体が起き上がる: アンデッドとの戦闘 (勝てば battleCell が cleared)
+    log("風化した死体が、軋みながら起き上がった！", "dmg");
+    SFX.die(); buzz([0, 40, 60, 40]);
+    startBattle(spawnCardEnemies(undeadKeyForDungeon(), G.floor, enemyScale()), cell);
+    return;
+  }
+  cell.cleared = true;
+  // 50%: 装備品が見つかる
+  if (Math.random() < 0.5) {
+    const id = pickItemByRank(rollChestRank());
+    const who = G.party.find((p) => p.alive && p.items.length < MAX_ITEMS)
+      || G.party.find((p) => p.items.length < MAX_ITEMS);
+    if (who && ITEMS[id]) {
+      const it = cloneItem(id);
+      runGainItem(who, it);
+      codexSeeItem(id);
+      log(`風化した死体の傍らに ${it.name} が遺されていた。`, "win");
+      showItemGet(it, who, () => renderBoard());
+      return;
+    }
+    // 所持品に空きがなければ魂にフォールバック
+  }
+  // 残り: 職能の記憶を宿した魂
+  const dn = activeCfg();
+  const lvl = 1 + (dn.soulLevelBonus || 0) + Math.floor(G.floor / 3);
+  const soul = makeSoul(clsKey, lvl, null, rollSoulRank(dn.rankBonus));
+  acquireSoul(soul, `風化した死体（${clsLabel}）の残滓に、まだ職能の記憶が宿っていた。`);
 }
 
 function collectSoul(cell, clsKey, clsLabel) {
@@ -1492,9 +1529,17 @@ function endBattle() {
     const wasBoss = b.enemies.some((e) => e.boss);
     if (G.battleCell) G.battleCell.cleared = true;
     finishToBoard();
-    if (wasBoss) { onDungeonCleared(); return; }
-    // 勝利後は必ず宝箱が出現
-    setTimeout(battleChest, 350);
+    // 勝利の余韻: まず勝利ポップアップ(EXP/Gold/Soul)を表示し、閉じてから宝箱を出す
+    const afterVictory = () => {
+      if (wasBoss) { onDungeonCleared(); return; } // ボスは踏破演出へ
+      setTimeout(battleChest, 200);
+    };
+    showEvent({
+      banner: "⚔ 勝利 ⚔", title: "戦いに勝利した！", accent: "#ffd84a", sparkle: true,
+      lines: [`獲得 EXP ${exp}`, `獲得 ゴールド 💰${gold}`, `回収した Soul ✦${essence}`],
+      btnLabel: "つぎへ", onClose: afterVictory,
+    });
+    return;
   } else if (b.result === "flee") {
     // 逃走: 元のマスへ戻る (カードは表のまま)
     if (G.prevPos) { G.px = G.prevPos.x; G.py = G.prevPos.y; }
@@ -1526,35 +1571,33 @@ function gameOver() {
   log("人業はことごとく砕けた…", "dmg");
   imprintFallen(); // 記憶を刻み、連れ帰りタイマーを開始
 
+  combatMenu.classList.add("hidden");
   const r = G.run || { gold: 0, soulPts: 0, items: [], souls: [] };
-  combatMenu.classList.remove("hidden");
-  combatMenu.innerHTML = "";
-  combatMenu.appendChild(el("div", "who", "💀 全滅"));
-  combatMenu.appendChild(el("div", "who", `今回の戦利品: 💰${r.gold} ✦${r.soulPts} ・ 装備/アイテム ${r.items.length} ・ 魂 ${r.souls.length}`));
 
-  // 共通: 街へ戻る (死亡人業は連れ帰りを待つ)
+  // 街へ戻る (死亡人業は連れ帰りを待つ)
   const goTown = () => { if (townBtn) townBtn.classList.add("hidden"); combatMenu.classList.add("hidden"); returnToTown(); };
 
-  // Red Soul の加護: 戦利品を守って帰還 (人業は復活せず、連れ帰りを待つ)
+  const opts = [];
+  // 赤い魂を使う: 戦利品を失わず街へ即時帰還 (人業は復活せず連れ帰りを待つ)
   if (G.redSoul >= GUARDIAN_COST) {
-    const guard = btn(`🔴 赤い魂 ×${GUARDIAN_COST} で戦利品を守って帰還`, () => {
+    opts.push({ label: `🔴 赤い魂 ×${GUARDIAN_COST} を使う（戦利品を守り即時帰還）`, fn: () => {
       G.redSoul -= GUARDIAN_COST;
       G.run = null; // 戦利品を確定 (没収しない)
       SFX.levelup(); buzz([0, 30, 40, 30]);
       log("赤い魂が戦利品を守った。死した人業は連れ帰りを待つ。", "win");
       goTown();
-    });
-    guard.className = "btn primary";
-    combatMenu.appendChild(guard);
+    } });
   }
-  // そのまま撤退: 今回の戦利品をすべて失う
-  const retreat = btn("🏚 撤退する (今回の戦利品を失う)", () => {
+  // あきらめる: 今回の戦利品をすべて失い、救出を待つ
+  opts.push({ label: "🏚 あきらめる（戦利品を失い救出を待つ）", danger: true, fn: () => {
     forfeitRun();
     log("今回の探索で得たものはすべて失われた…", "dmg");
     goTown();
-  });
-  retreat.className = "btn danger";
-  combatMenu.appendChild(retreat);
+  } });
+
+  const lootLine = `戦利品 💰${r.gold} ✦${r.soulPts}・装備${r.items.length}・魂${r.souls.length}`
+    + (G.redSoul >= GUARDIAN_COST ? "" : `（赤い魂は ${GUARDIAN_COST} 必要・所持 ${G.redSoul}）`);
+  showChoice(lootLine, opts, ICONS.corpse, { banner: "💀 全滅 💀", accent: "#d4504e" });
 }
 
 // 迷宮の主を撃破: 次の迷宮を解放し、戦利品を持って街へ凱旋
@@ -1774,6 +1817,7 @@ function renderTown() {
   if (f === "shrine") return renderShrine();
   if (f === "codexMon") return renderCodexMon();
   if (f === "codexItem") return renderCodexItem();
+  if (f === "codexDungeon") return renderCodexDungeon();
   renderTownHub();
 }
 
@@ -2599,6 +2643,12 @@ function renderPalace() {
   itemBtn.appendChild(el("div", "tw-facd", `発見 ${Object.keys(G.codex.item).length} 種`));
   itemBtn.addEventListener("click", () => { G.town.facility = "codexItem"; renderCodexItem(); });
   row.appendChild(itemBtn);
+  const dunBtn = el("div", "tw-fac");
+  dunBtn.appendChild(el("div", "tw-faci", "🗺"));
+  dunBtn.appendChild(el("div", "tw-facn", "ダンジョン図鑑"));
+  dunBtn.appendChild(el("div", "tw-facd", `踏破 ${Math.max(0, (G.unlockedDungeons || 1) - 1)} / ${DUNGEONS.length}`));
+  dunBtn.addEventListener("click", () => { G.town.facility = "codexDungeon"; renderCodexDungeon(); });
+  row.appendChild(dunBtn);
   townEl.appendChild(row);
 
   // 戦績 (ローカル記録)
@@ -2788,11 +2838,15 @@ function showCodexMonDetail(key) {
   const card = el("div", "ig-card cdx-detail");
   const rc = m.rank ? RANK_COLOR[m.rank] : null;
   if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
+  const elm = ELEMENTS[m.element] || ELEMENTS.none;
   const ban = el("div", "ig-banner", `${RACE_LABEL[m.race] || "魔物"}${m.rank ? "・" + RANK_NAME[m.rank] + "級" : ""}`);
   if (rc) ban.style.color = rc;
   card.appendChild(ban);
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(m, 9)); card.appendChild(art);
   card.appendChild(el("div", "ig-name", m.name));
+  const elBadge = el("div", "cdx-elem", `属性: ${elm.label}`);
+  elBadge.style.color = elm.color;
+  card.appendChild(elBadge);
   card.appendChild(el("div", "ig-desc", m.desc || ""));
 
   const info = el("div", "cdx-info");
@@ -2835,6 +2889,59 @@ function showCodexMonDetail(key) {
   wrap.appendChild(card);
   wrap.addEventListener("click", (ev) => { if (ev.target === wrap) wrap.remove(); });
   document.body.appendChild(wrap);
+}
+
+// ダンジョンに出現しうるモンスターのキー一覧 (pool + deepPool + boss、重複排除)
+function dungeonRoster(dn) {
+  const seen = new Set();
+  const out = [];
+  for (const k of [...(dn.pool || []), ...(dn.deepPool || []), dn.boss]) {
+    if (k && MONSTERS[k] && !seen.has(k)) { seen.add(k); out.push(k); }
+  }
+  return out;
+}
+
+let codexDungeonIdx = 0; // ダンジョン図鑑の選択中ダンジョン
+function renderCodexDungeon() {
+  townEl.innerHTML = "";
+  townEl.appendChild(townHeader("ダンジョン図鑑", "palace"));
+  // 解放済みのダンジョンのみ閲覧可能
+  const unlocked = Math.max(1, G.unlockedDungeons || 1);
+  if (codexDungeonIdx >= unlocked) codexDungeonIdx = 0;
+
+  // ダンジョン選択タブ
+  const tabs = el("div", "tw-dolltabs shop-tabs cdx-tabs");
+  for (let i = 0; i < DUNGEONS.length; i++) {
+    const open = i < unlocked;
+    const b = btn(open ? DUNGEONS[i].short : "？？", () => { if (open) { codexDungeonIdx = i; renderCodexDungeon(); } });
+    b.className = "tw-dolltab" + (codexDungeonIdx === i ? " active" : "");
+    if (!open) b.disabled = true;
+    tabs.appendChild(b);
+  }
+  townEl.appendChild(tabs);
+
+  const dn = DUNGEONS[codexDungeonIdx];
+  townEl.appendChild(el("div", "tw-note", `${dn.name} — 出現する魔物 (未討伐は ？？？)`));
+
+  const roster = dungeonRoster(dn);
+  const grid = el("div", "cdx-grid");
+  for (const key of roster) {
+    const m = MONSTERS[key];
+    const killed = !!G.codex.mon[key];
+    const c = el("div", "cdx-card" + (killed ? "" : " unknown"));
+    if (killed && m.rank) c.style.borderColor = RANK_COLOR[m.rank];
+    const art = el("div", "cdx-art");
+    if (killed) art.appendChild(spriteCanvas(m, 3));
+    else art.appendChild(el("div", "cdx-q", "？"));
+    c.appendChild(art);
+    c.appendChild(el("div", "cdx-name", killed ? m.name + (m.boss ? "（主）" : "") : "？？？"));
+    if (killed) {
+      c.addEventListener("click", () => { SFX.select(); showCodexMonDetail(key); });
+    }
+    grid.appendChild(c);
+  }
+  if (!roster.length) grid.appendChild(el("div", "tw-empty", "記録なし。"));
+  townEl.appendChild(grid);
 }
 
 // ---- 宿屋: 全回復 ----
