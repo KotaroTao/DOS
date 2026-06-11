@@ -1,7 +1,7 @@
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSprite } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, SPELLS, cloneItem, spellCost } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, SPELLS, CLASSES, cloneItem, spellCost } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
 import { spriteCanvas } from "./sprites.js";
 import {
@@ -5060,6 +5060,14 @@ function statLines(it) {
   return parts.join("　");
 }
 
+// 装備可能職業の表示テキスト (装備品のみ。null=全職)。装備不可の品は null を返す。
+const EQUIPPABLE_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
+function equipClassText(it) {
+  if (!EQUIPPABLE_SLOTS.has(it.slot)) return null;
+  if (!it.classes) return "全職業";
+  return it.classes.map((k) => (CLASSES[k] ? CLASSES[k].label : k)).join("・");
+}
+
 // 候補 cand を p に装備した場合の最終ステータス増減 {atk,def,spd,hp,mp} を返す。
 // items.js の recalc を仮の装備マップに流用するので、両手武器⇄盾の付け替え分も反映される。
 function equipPreviewDelta(p, cand) {
@@ -5434,6 +5442,8 @@ function showItemGet(item, who, onClose) {
   card.appendChild(el("div", "ig-name", item.name));
   const stat = statLines(item);
   if (stat) card.appendChild(el("div", "ig-stat", stat));
+  const cls = equipClassText(item);
+  if (cls) card.appendChild(el("div", "ig-class", `装備可能: ${cls}`));
   card.appendChild(el("div", "ig-desc", item.desc || ""));
   card.appendChild(el("div", "ig-who", `${who.name} が手に入れた`));
   const ok = btn("受け取る", () => closeItemGet(onClose));
