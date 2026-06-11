@@ -3530,9 +3530,8 @@ function reportMainQuest() {
       setTimeout(() => showStoryScene("終章 — 最後の魂繰り", EPILOGUE, null, () => renderTown(), "物語を閉じる"), 400);
       return;
     }
-    ms.state = "offer";
     autosave(true);
-    renderTown();
+    acceptMainQuest(); // 踏破報告と同時に次の勅命を自動拝命
   });
 }
 
@@ -3607,10 +3606,8 @@ function reportTutorialQuest() {
     G.soulPts += 30;
     SFX.itemget(); buzz([0, 30, 60, 30]);
     log("最初の勅命「人業の生成」を果たした。", "win");
-    G.msq.state = "offer";
-    updateTopbar();
     autosave(true);
-    renderTown();
+    acceptMainQuest(); // チュートリアル完了後も自動で第1章を拝命
   });
 }
 
