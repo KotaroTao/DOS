@@ -139,8 +139,9 @@ export const ARTS = {
 
 // ===== モンスター定義ヘルパー =====
 // すべてのモンスターはここを通る。スキーマ:
-// { id, key, name, race, rank, desc, maxhp, hp, atk, def, spd, exp, gold,
+// { id, key, name, race, rank, desc, maxhp, hp, atk, def, spd, soul, gold,
 //   art, palette, boss?, dropNormal?, dropRare?, soulClass? }
+// soul は撃破時に回収できる Soul 量 (経験値の役割を兼ねる)。
 // 注: def/spd は定義用の名前のまま。出現時に六大ステへ写像される
 //     (combat.js makeEnemy: atk→ATK, def→VIT, spd→AGI)。
 // dropNormal/dropRare は省略可 (省略時は game.js がランクから決定的に割り当てる)。
@@ -158,7 +159,7 @@ export function defMonster(def) {
     desc: def.desc || "",
     maxhp: def.hp || 10, hp: def.hp || 10,
     atk: def.atk || 1, def: def.def || 0, spd: def.spd || 5,
-    exp: def.exp || 5, gold: def.gold || 3,
+    soul: def.soul || 5, gold: def.gold || 3,
     art: def.art || base.art,
     palette: def.palette || base.palette,
     boss: !!def.boss,

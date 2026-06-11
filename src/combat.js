@@ -55,7 +55,7 @@ export function createParty() {
     const m = {
       name, clsKey, cls: c.label,
       race, align, // 種族・属性 (ウィザードリィ風)
-      level: 1, exp: 0,
+      level: 1,
       hp: c.hp, maxhp: c.hp, mp: c.mp, maxmp: c.mp,
       atk: c.atk, vit: c.vit, agi: c.agi, int: c.int, pie: c.pie, luk: c.luk,
       base: { hp: c.hp, mp: c.mp, atk: c.atk, vit: c.vit, agi: c.agi, int: c.int, pie: c.pie, luk: c.luk }, // 素のステータス
@@ -110,7 +110,7 @@ export function spawnMimic(floor, scale = 1) {
   e.hp = e.maxhp;
   e.atk = Math.round(e.atk * 1.25);
   e.gold = Math.round(e.gold * 2);
-  e.exp = Math.round(e.exp * 1.5);
+  e.soul = Math.round(e.soul * 1.5);
   return [e];
 }
 
@@ -125,7 +125,7 @@ function makeEnemy(key, scale = 1, boss = false) {
     atk: Math.max(1, Math.round(m.atk * scale)),
     vit: Math.round(m.def * scale),
     agi: m.spd,
-    exp: Math.round(m.exp * scale), gold: Math.round(m.gold * scale),
+    soul: Math.round(m.soul * scale), gold: Math.round(m.gold * scale),
     boss: boss || !!m.boss,
     alive: true, asleep: false, side: "enemy",
   };
@@ -438,35 +438,11 @@ export class Battle {
     }
   }
 
-  // 戦闘後: 防御フラグ解除・報酬計算
+  // 戦闘後の報酬計算。Soul が経験値の役割を兼ねる (魂の成長は館の「魂の強化」で行う)。
+  // 旧セーブの戦闘中データは soul を持たないため exp を引き継ぐ
   rewards() {
-    const exp = this.enemies.reduce((s, e) => s + (e.alive ? 0 : e.exp), 0);
+    const soul = this.enemies.reduce((s, e) => s + (e.alive ? 0 : ((e.soul != null ? e.soul : e.exp) || 0)), 0);
     const gold = this.enemies.reduce((s, e) => s + (e.alive ? 0 : e.gold), 0);
-    return { exp, gold };
+    return { soul, gold };
   }
-}
-
-// レベルアップ判定
-export function gainExp(member, exp) {
-  // 人業の魂は戦闘では成長しない。
-  // 魂のレベルアップは人業の館「魂の強化」で Soul を与えたときのみ。
-  if (member.isDoll) return [];
-  member.exp += exp;
-  const msgs = [];
-  while (member.exp >= member.level * 30) {
-    member.exp -= member.level * 30;
-    member.level++;
-    const c = CLASSES[member.clsKey];
-    // 素のステータスを成長させ、装備込みで再計算
-    const b = member.base;
-    b.hp += 6 + rand(5);
-    b.mp += c.mp > 0 ? 2 + rand(3) : 0;
-    b.atk += 2 + rand(2);
-    b.vit = (b.vit || 0) + 1 + rand(2);
-    recalc(member);
-    member.hp = member.maxhp;
-    member.mp = member.maxmp;
-    msgs.push(`${member.name}はレベル${member.level}になった！`);
-  }
-  return msgs;
 }
