@@ -22,6 +22,7 @@ import {
   jobSkillTable, jobLevelOf, jobRankName, jobPassiveTable, pLv,
 } from "./souls.js";
 import { showOpening } from "./opening.js";
+import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 
 // ===== コンテンツの取り込み =====
 // アイテム: 一点物の手作りカタログ (src/catalog/)。二つ名つきの量産品は廃止。
@@ -806,38 +807,20 @@ function resolveCell(cell) {
     case "trap": {
       if (cell.cleared) break;
       cell.cleared = true;
-      // 罠解除判定: パーティで最も解除値 (AGI+LUK・盗賊系1.5倍) が高い者が試みる
+      // 迷宮ランクに応じた罠を抽選し、パーティで最も解除値 (AGI+LUK・盗賊系1.5倍) が高い者が解除を試みる
+      const trap = pickTrap(activeCfg().rank || 1);
       const best = bestDisarmer();
       if (best && Math.random() < disarmChance(best)) {
         SFX.chest();
-        log(`床の罠を ${best.name}が見抜き、解除した！`, "sys");
+        log(`床の罠「${trap.name}」を ${best.name}が見抜き、解除した！`, "sys");
         showEvent({
           sprite: ICONS.trap, title: "罠を解除！", accent: "#9be88a", banner: "✦ 罠解除 ✦", sparkle: true,
-          lines: ["床に罠が仕掛けられていた。", `${best.name}が見抜き、解除した！`],
+          lines: [`床に「${trap.name}」が仕掛けられていた。`, `${best.name}が見抜き、解除した！`],
           onClose: () => renderBoard(),
         });
         break;
       }
-      SFX.trap(); buzz([0, 60, 40, 60]);
-      const victims = G.party.filter((p) => p.alive);
-      const v = victims[rand(victims.length)];
-      const dmg = 4 + G.floor * 3 + rand(7);
-      v.hp = Math.max(0, v.hp - dmg);
-      const lines = [`${v.name}に ${dmg} ダメージ！`];
-      log(`罠だ！ ${v.name}に ${dmg} ダメージ`, "dmg");
-      let died = false;
-      if (v.hp === 0) {
-        v.alive = false; died = true;
-        log(`${v.name}は倒れた…`, "dmg");
-        lines.push(`${v.name}は倒れた…`);
-      }
-      showEvent({
-        sprite: ICONS.trap, title: "罠だ！", lines, accent: "#d4504e", banner: "⚠ 危険 ⚠",
-        onClose: () => {
-          if (died) { SFX.die(); imprintFallen(); if (!G.party.some((p) => p.alive)) { gameOver(); return; } }
-          renderBoard();
-        },
-      });
+      springTrap(trap, best, { proceed: () => renderBoard() });
       break;
     }
     case "poison": {
@@ -1128,18 +1111,33 @@ function disarmPower(m) {
   return Math.round(v);
 }
 
-// 解除難度: 迷宮の魂レベル帯とランクから「適正パーティの AGI+LUK」を見積もる。
-// 適正レベルの盗賊系で約95% (上限)、それ以外で70〜80% になるよう調整している
-function disarmNeed() {
+// 解除難度: ダンジョンランクと宝箱ランクで決まる。
+// 迷宮の魂レベル帯 (これも迷宮ランクの関数) から「適正パーティの AGI+LUK」を見積もり、
+// 適正レベルの盗賊系で約95% (上限)、それ以外で70〜80% になるよう調整している。
+// cRank: 宝箱ランク (1-5)。床罠は1扱い
+function disarmNeed(cRank = 1) {
   const cfg = activeCfg();
   const L = 2 + (cfg.soulLevelBonus || 0) * 2.4;        // 適正な魂レベルの目安 (強化込み)
   const f = 1 + (L - 1) * 0.12;                          // souls.js の lvlFactor と同式
-  const q = 1 + ((cfg.rank || 1) - 1) * 0.12;            // 深部は高ランク魂が前提
-  return 14 * f * q * (1 + (G.floor - 1) * 0.03);
+  const q = 1 + ((cfg.rank || 1) - 1) * 0.14;            // ダンジョンランク: 深部は高ランク魂が前提
+  const c = 1 + ((cRank || 1) - 1) * 0.16;               // 宝箱ランク: 上等な箱ほど狡猾な錠前
+  return 14 * f * q * c;
 }
 
-function disarmChance(m) {
-  return Math.max(0.05, Math.min(0.95, disarmPower(m) / disarmNeed()));
+function disarmChance(m, cRank = 1) {
+  return Math.max(0.05, Math.min(0.95, disarmPower(m) / disarmNeed(cRank)));
+}
+
+// 宝箱ランク (1-5) を取得。セルに未設定ならその場で抽選して保存する
+// (出現%表示と実際の判定がぶれないよう、同じ宝箱では固定)
+function chestRankOf(cell) {
+  if (cell && cell.cRank) return cell.cRank;
+  const cfg = activeCfg();
+  const floors = Math.max(1, cfg.floors || 3);
+  const depth = floors > 1 ? Math.min(1, (G.floor - 1) / (floors - 1)) : 0;
+  const r = rollChestRank(depth, cfg.rank || 1);
+  if (cell) cell.cRank = r;
+  return r;
 }
 
 // パーティで最も罠解除が高い生存メンバー (罠マスの判定に使う)
@@ -1150,14 +1148,16 @@ function bestDisarmer() {
   return best;
 }
 
-// 宝箱: 開ける人業を1人選ぶ。70%で罠が仕掛けられており、選んだ者の解除値で判定する
+// 宝箱: 開ける人業を1人選ぶ。70%で罠が仕掛けられており、選んだ者の解除値で判定する。
+// 宝箱にはランク (1-5) があり、高ランクほど中身が豪華だが解除難度が上がる
 function askOpenChest(cell) {
+  const cRank = chestRankOf(cell);
   const opts = G.party.filter((p) => p.alive).map((p) => ({
-    label: `🔓 ${p.name} (解除 ${Math.round(disarmChance(p) * 100)}%)`,
+    label: `🔓 ${p.name} (解除 ${Math.round(disarmChance(p, cRank) * 100)}%)`,
     fn: () => openChest(cell, p),
   }));
   opts.push({ label: "✋ 開けない", fn: () => { renderBoard(); } });
-  showChoice("宝箱が現れた！ 罠があるかもしれない。誰が開ける？", opts, ICONS.chest);
+  showChoice(`${CHEST_RANKS[cRank]}宝箱が現れた！ 罠があるかもしれない。誰が開ける？`, opts, ICONS.chest);
 }
 
 function openChest(cell, opener) {
@@ -1166,9 +1166,10 @@ function openChest(cell, opener) {
   rollChest(cell, true, () => { if (G.state === "board") renderBoard(); }, opener);
 }
 
-// 宝箱の中身を解決。allowDanger=falseなら罠/ミミックなし (戦闘後の宝箱)。
+// 宝箱の中身を解決。allowDanger=falseなら罠/ミミックなし (戦闘後の宝箱、ランク1扱い)。
 // opener: 開けると選ばれた人業 (罠解除判定に使う)。done は安全終了時のコールバック
 function rollChest(cell, allowDanger, done, opener) {
+  const cRank = allowDanger ? chestRankOf(cell) : 1;
   if (allowDanger) {
     if (Math.random() < 0.06 + G.floor * 0.03) {
       // ミミック: 演出 → 戦闘
@@ -1186,57 +1187,189 @@ function rollChest(cell, allowDanger, done, opener) {
       askCursedChest(done);
       return;
     }
-    // 罠: 70%の確率で仕掛けられている。開けた者が解除を試みる
+    // 罠: 70%の確率で仕掛けられている。迷宮ランクに応じた罠を抽選し、
+    // 開けた者が解除を試みる (難度はダンジョンランク×宝箱ランク)
     if (Math.random() < 0.70) {
+      const trap = pickTrap(activeCfg().rank || 1);
       const who = opener || bestDisarmer();
-      if (who && Math.random() < disarmChance(who)) {
+      if (who && Math.random() < disarmChance(who, cRank)) {
         SFX.chest();
-        log(`宝箱の罠を ${who.name}が解除した！`, "sys");
+        log(`宝箱の罠「${trap.name}」を ${who.name}が解除した！`, "sys");
         showEvent({
           sprite: ICONS.trap, title: "罠解除！", accent: "#9be88a", banner: "✦ 罠解除 ✦", sparkle: true,
-          lines: ["宝箱には罠が仕掛けられていた。", `${who.name}が見抜き、解除した！`],
-          onClose: () => chestContents(cell, done),
+          lines: [`宝箱には「${trap.name}」が仕掛けられていた。`, `${who.name}が見抜き、解除した！`],
+          onClose: () => chestContents(cell, done, cRank),
         });
         return;
       }
-      springChestTrap(cell, done);
+      // 解除失敗: 罠が発動。生き残れば中身は手に入る (テレポーター/警報は中身を失う)
+      springTrap(trap, who, { chest: true, proceed: () => chestContents(cell, done, cRank), abort: done });
       return;
     }
   }
-  chestContents(cell, done);
+  chestContents(cell, done, cRank);
 }
 
-// 毒針の罠が発動: パーティ全員にダメージ + 一部に毒。生き残れば中身は手に入る
-function springChestTrap(cell, done) {
+// ===== 罠の発動 (床罠・宝箱罠共通) =====
+// 罠ダメージの基準値。disarmNeed と同じく迷宮の魂レベル帯×ランクに比例させ、
+// 深い迷宮ほど罠そのものが重くなる。実ダメージは罠ごとの mult を掛けた値
+function trapBaseDmg() {
+  const cfg = activeCfg();
+  const L = 2 + (cfg.soulLevelBonus || 0) * 2.4;
+  const f = 1 + (L - 1) * 0.12;
+  const q = 1 + ((cfg.rank || 1) - 1) * 0.12;
+  return (5 + G.floor * 3 + rand(6)) * f * q;
+}
+
+// 罠を発動させる。opener: 開けた者/先頭の解除役 (opener型の罠が狙う)。
+// fin.proceed: 生存時の続き (宝箱なら中身の取得、床罠なら盤面へ戻る)。
+// fin.abort: テレポーター/警報で中身を失った時の終了処理 (省略時は盤面へ)。
+// fin.chest: 宝箱の罠かどうか (演出の文言に使う)
+function springTrap(trap, opener, fin) {
   SFX.trap(); buzz([0, 60, 40, 60]);
-  const dmg = 6 + G.floor * 4 + rand(8);
-  let poisoned = false;
-  for (const p of G.party) {
-    if (!p.alive) continue;
-    p.hp = Math.max(0, p.hp - dmg);
-    if (p.hp === 0) { p.alive = false; log(`${p.name}は倒れた…`, "dmg"); }
-    else if (Math.random() < 0.5) { p.ailment = "poison"; poisoned = true; }
+  log(`罠だ！ 「${trap.name}」が発動した！`, "dmg");
+  const alive = () => G.party.filter((p) => p.alive);
+
+  // テレポーター: 同じ階の別の場所へ飛ばされる。宝箱の中身は失われる
+  if (trap.kind === "teleport") {
+    showEvent({
+      sprite: ICONS.trap, title: `${trap.name}！`, accent: "#8a2be2", banner: "⚠ 危険 ⚠",
+      lines: [trap.flavor, "隊は見知らぬ場所へ飛ばされた！", ...(fin.chest ? ["宝箱は闇の彼方に消えた…"] : [])],
+      onClose: () => {
+        const spots = [];
+        for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+          const c = G.board.cells[y][x];
+          if (c.cleared && c.type !== "stairs" && !(x === G.px && y === G.py)) spots.push({ x, y });
+        }
+        if (spots.length) {
+          const s = spots[rand(spots.length)];
+          G.px = s.x; G.py = s.y;
+          G.board.cells[s.y][s.x].revealed = true;
+        }
+        flashScreen("#8a2be2");
+        SFX.stairs();
+        if (fin.abort) fin.abort(); else renderBoard();
+      },
+    });
+    return;
   }
-  log(`罠の解除に失敗！ 全員に ${dmg} ダメージ`, "dmg");
+
+  // 警報: 怪物を呼び寄せ戦闘になる。宝箱の中身を検める暇はない
+  if (trap.kind === "alarm") {
+    const cfg = activeCfg();
+    const deep = G.floor > (cfg.floors || 3) / 2;
+    const pool = ((trap.horde || deep) ? cfg.deepPool : cfg.pool) || cfg.pool || ["cm_slime"];
+    const key = pool[rand(pool.length)];
+    showEvent({
+      sprite: ICONS.trap, title: `${trap.name}！`, accent: "#d4504e", banner: "⚠ 危険 ⚠",
+      lines: [trap.flavor, trap.horde ? "怪物の群れが雪崩れ込んでくる！" : "怪物が呼び寄せられた！", ...(fin.chest ? ["宝箱を検める暇はない！"] : [])],
+      btnLabel: "戦う",
+      onClose: () => startBattle(spawnCardEnemies(key, G.floor, enemyScale() * (trap.horde ? 1.25 : 1)), null),
+    });
+    return;
+  }
+
+  // 残りはダメージ/吸収系: 効果を適用して結果をまとめて表示する
+  const lines = [trap.flavor];
+  const fallen = [];
+  const hurt = (p, mult) => {
+    const dmg = Math.max(1, Math.round(trapBaseDmg() * mult));
+    p.hp = Math.max(0, p.hp - dmg);
+    lines.push(`${p.name}に ${dmg} ダメージ！`);
+    if (p.hp === 0) {
+      p.alive = false; fallen.push(p);
+      lines.push(`${p.name}は倒れた…`);
+      log(`${p.name}は倒れた…`, "dmg");
+    }
+    return p.alive;
+  };
+  const afflict = (p, ail, chance) => {
+    if (!ail || !p.alive || p.ailment || Math.random() >= chance) return;
+    p.ailment = ail;
+    lines.push(`${p.name}は${AIL_NAME[ail]}に侵された！`);
+  };
+  switch (trap.kind) {
+    case "opener":
+    case "one": {
+      const pool = alive();
+      if (!pool.length) break;
+      const t = (trap.kind === "opener" && opener && opener.alive) ? opener : pool[rand(pool.length)];
+      if (trap.dieChance && Math.random() < trap.dieChance) {
+        t.hp = 0; t.alive = false; fallen.push(t);
+        lines.push(`${t.name}は罠の直撃を受け、倒れた…`);
+        log(`${t.name}は倒れた…`, "dmg");
+      } else if (hurt(t, trap.mult)) {
+        afflict(t, trap.ail, trap.ailChance || 1);
+      }
+      break;
+    }
+    case "multi": {
+      for (let i = 0; i < (trap.hits || 2); i++) {
+        const pool = alive();
+        if (!pool.length) break;
+        const t = pool[rand(pool.length)];
+        if (hurt(t, trap.mult)) afflict(t, trap.ail, trap.ailChance || 1);
+      }
+      break;
+    }
+    case "party": {
+      for (const p of alive()) if (hurt(p, trap.mult)) afflict(p, trap.ail, trap.ailChance || 1);
+      break;
+    }
+    case "pct": {
+      for (const p of alive()) {
+        const dmg = Math.max(1, Math.ceil(p.maxhp * trap.pct));
+        p.hp = Math.max(0, p.hp - dmg);
+        lines.push(`${p.name}は生気を ${dmg} 吸われた！`);
+        if (p.hp === 0) { p.alive = false; fallen.push(p); lines.push(`${p.name}は倒れた…`); log(`${p.name}は倒れた…`, "dmg"); }
+      }
+      break;
+    }
+    case "mp": {
+      for (const p of alive()) {
+        p.mp = Math.max(0, p.mp - Math.ceil(p.maxmp * 0.4));
+        hurt(p, trap.mult || 0.25);
+      }
+      lines.push("隊の魔力が吸い取られた…");
+      break;
+    }
+    case "gold": {
+      const loss = Math.min(G.gold, Math.round(G.gold * 0.15) + 10);
+      G.gold = Math.max(0, G.gold - loss);
+      updateTopbar();
+      lines.push(`${loss} ゴールドが溶かされた…`);
+      log(`${loss} ゴールドを失った…`, "dmg");
+      break;
+    }
+    case "soul": {
+      const loss = Math.min(G.soulPts, Math.round(G.soulPts * 0.10) + 5);
+      G.soulPts = Math.max(0, G.soulPts - loss);
+      updateTopbar();
+      lines.push(`✦${loss} Soul を吸い取られた…`);
+      log(`✦${loss} Soul を失った…`, "dmg");
+      break;
+    }
+  }
   const wiped = !G.party.some((p) => p.alive);
   showEvent({
-    sprite: ICONS.trap, title: "毒針の罠！", accent: "#d4504e", banner: "⚠ 危険 ⚠",
-    lines: ["解除に失敗し、罠が発動した！", `全員に ${dmg} ダメージ！`, ...(poisoned ? ["毒に侵された者も…"] : [])],
+    sprite: ICONS.trap, title: `${trap.name}！`, lines, accent: "#d4504e", banner: "⚠ 危険 ⚠",
     onClose: () => {
       if (wiped) { gameOver(); return; }
+      if (fallen.length) SFX.die();
       imprintFallen();
-      chestContents(cell, done); // 痛手は負ったが、中身は手に入る
+      fin.proceed(); // 痛手は負ったが、先へ進める (宝箱なら中身は手に入る)
     },
   });
 }
 
-// 宝箱の中身 (ゴールド/空の魂/装備品)
-function chestContents(cell, done) {
+// 宝箱の中身 (ゴールド/空の魂/装備品)。cRank: 宝箱ランク (1-5、高いほど豪華)
+function chestContents(cell, done, cRank = 1) {
+  const rankMul = 1 + ((cRank || 1) - 1) * 0.3;
   // 中身の抽選 (ダンジョンレベルに応じる): ゴールド50% / ゴールド以外のアイテム50%
   if (Math.random() < 0.5) {
     SFX.chest();
     const dRank = activeCfg().rank || 1;
-    const g = runGainGold(Math.round((10 + G.floor * 12 + rand(30)) * (1 + (dRank - 1) * 0.5)));
+    const g = runGainGold(Math.round((10 + G.floor * 12 + rand(30)) * (1 + (dRank - 1) * 0.5) * rankMul));
     updateTopbar();
     log(`宝箱から ${g} ゴールドを手に入れた！`, "win");
     showEvent({
@@ -1255,8 +1388,8 @@ function chestContents(cell, done) {
       showItemGet(it, who, done); return;
     }
   }
-  // 宝: 装備/アイテム (迷宮のアイテムレベル帯から抽選)
-  const got = giveItem(pickItemByLv(lootLvAt()));
+  // 宝: 装備/アイテム (迷宮のアイテムレベル帯から抽選。高ランクの宝箱は一段上の帯)
+  const got = giveItem(pickItemByLv(Math.min(200, lootLvAt() + ((cRank || 1) - 1) * 4)));
   if (got) { showItemGet(got.item, got.who, done); return; } // 演出後に done
   SFX.chest();
   if (done) done();
