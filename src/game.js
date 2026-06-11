@@ -1482,7 +1482,8 @@ function renderCombatCanvas() {
     const baseX = slotW * (i + 1);
     const baseY = view.height * 0.40;
     G.enemyPos[e.uid] = { cx: baseX, cy: baseY };
-    let ox = 0, oy = 0, alpha = e.alive ? 1 : 0.18;
+    if (!e.alive) return; // 倒した敵は完全に消す (薄い残像を残さない)
+    let ox = 0, oy = 0, alpha = 1;
     // 攻撃側の踏み込み (こちらへ前進)
     if (fx && fx.lunge && fx.lunge.uid === e.uid) oy = (fx.lunge.p || 0) * 22;
     // 被弾フラッシュ: 点滅 + 横揺れ
@@ -1654,19 +1655,33 @@ function nearestEnemyAt(sx, sy) {
   return bestD < 70 ? best : null;
 }
 
+// オート戦闘の解除 (解除ボタン / 戦闘画面タップの共通処理)
+function stopAutoCombat() {
+  if (!G.autoCombat) return;
+  G.autoCombat = false;
+  if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
+  showToast("⏹ オート戦闘を解除した");
+  if (G.animating) combatMenu.innerHTML = ""; // 演出が終わると通常メニューに戻る
+  else renderCombatMenu();
+}
+
+// オート戦闘中の常設バナー: 演出中も表示し続け、いつでも解除できる
+function renderAutoBanner(actor) {
+  combatMenu.innerHTML = "";
+  combatMenu.appendChild(el("div", "who", actor ? `▶ ${actor.name} (⚡オート戦闘中)` : "⚡ オート戦闘中"));
+  combatMenu.appendChild(btn("⏹ オート解除 (画面タップでもOK)", stopAutoCombat));
+}
+
 function renderCombatMenu() {
   const b = G.battle;
   combatMenu.innerHTML = "";
-  if (G.animating) return; // アニメーション中は操作不可
+  if (G.animating) { if (G.autoCombat) renderAutoBanner(); return; } // アニメーション中は解除のみ可
   if (b.phase === "input") {
     const actor = b.current;
     highlightActor(actor);
-    // オート戦闘: 全員が手近な敵を通常攻撃し続ける (周回用)。タップで解除
+    // オート戦闘: 全員が手近な敵を通常攻撃し続ける (周回用)。解除ボタンか画面タップで解除
     if (G.autoCombat) {
-      combatMenu.appendChild(el("div", "who", `▶ ${actor.name} (オート戦闘中)`));
-      const stop = btn("⏹ オート解除", () => { G.autoCombat = false; if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; } renderCombatMenu(); });
-      stop.className = "btn";
-      combatMenu.appendChild(stop);
+      renderAutoBanner(actor);
       if (!G._autoTimer) {
         G._autoTimer = setTimeout(() => {
           G._autoTimer = null;
@@ -1733,7 +1748,7 @@ function combatStep() {
   if (b.phase === "stunned") {
     // 行動不能の味方 (睡眠/麻痺/石化) の手番を自動消化
     G.animating = true;
-    combatMenu.innerHTML = "";
+    if (G.autoCombat) renderAutoBanner(); else combatMenu.innerHTML = "";
     renderCombatCanvas();
     autosave(true);
     setTimeout(() => {
@@ -1744,7 +1759,7 @@ function combatStep() {
   }
   if (b.phase === "enemy") {
     G.animating = true;
-    combatMenu.innerHTML = "";
+    if (G.autoCombat) renderAutoBanner(); else combatMenu.innerHTML = "";
     renderCombatCanvas();
     autosave(true); // 敵の手番を確定 (やり直し不可)
     // 一瞬の間を置いてから敵が動く (ドラクエ風)
@@ -1767,7 +1782,7 @@ function act(action, spellKey) {
 function runCommitted() {
   autosave(true); // 行動確定の瞬間に保存。以降この選択はやり直せない
   G.animating = true;
-  combatMenu.innerHTML = "";
+  if (G.autoCombat) renderAutoBanner(); else combatMenu.innerHTML = "";
   const res = G.battle.commit();
   animateResult(res, postResolve);
 }
@@ -2305,6 +2320,7 @@ function renderTown() {
   if (f === "codexItem") return renderCodexItem();
   if (f === "codexDungeon") return renderCodexDungeon();
   if (f === "codexJob") return renderCodexJob();
+  if (f === "codexAch") return renderCodexAch();
   renderTownHub();
 }
 
@@ -3432,15 +3448,16 @@ function claimQuest(q) {
 // 追跡用の状態は不要 (G.ach は受領済みのみ記録)。ID はセーブに残るため変更禁止。
 const ACHIEVEMENTS = [];
 {
-  const push = (id, name, desc, cond, gold, redSoul) => {
+  const push = (id, name, desc, cond, gold, redSoul, series) => {
     const reward = {};
     if (gold) reward.gold = gold;
     if (redSoul) reward.redSoul = redSoul;
-    ACHIEVEMENTS.push({ id, name, desc, cond, reward });
+    ACHIEVEMENTS.push({ id, name, desc, cond, reward, series: series || id });
   };
   // 段階表: rows = [しきい値, 称号, gold, redSoul][]
+  // 同じ段階表の勲章は series で束ね、勲章の間では「次の段階」だけを1枠に表示する
   const tiers = (idOf, rows, descOf, condOf) =>
-    rows.forEach(([v, name, gold, redSoul]) => push(idOf(v), name, descOf(v), () => condOf(v), gold, redSoul));
+    rows.forEach(([v, name, gold, redSoul]) => push(idOf(v), name, descOf(v), () => condOf(v), gold, redSoul, idOf(rows[0][0])));
   const allDolls = () => [...(G.party || []), ...(G.reserve || [])];
   const allSouls = () => {
     const out = [...(G.souls || [])];
@@ -3714,11 +3731,11 @@ function renderPalace() {
       townEl.appendChild(el("div", "tw-note", "玉座の老王が、新しき魂繰りの到着を待っている。"));
       const b = btn("👑 謁見する — 着任の挨拶", () =>
         showStoryScene("勅命 「人業の生成」", TUT_INTRO, "下賜: 見習いの人業3体 + 🔴100 + 盗賊の魂×5", () => grantTutorialGift()));
-      b.className = "btn primary tw-add";
+      b.className = "btn tw-add tw-msq";
       townEl.appendChild(b);
     } else if (allDolls().length >= 4) {
       const b = btn("👑 報告する — 「人業の生成」完遂", () => reportTutorialQuest());
-      b.className = "btn primary tw-add";
+      b.className = "btn tw-add tw-msq";
       townEl.appendChild(b);
     } else {
       const box = el("div", "tw-rumor");
@@ -3742,11 +3759,11 @@ function renderPalace() {
     townEl.appendChild(re);
   } else if (ms.state === "report") {
     const b = btn(`👑 報告する — 「${DUNGEONS[ms.n - 1].name}」踏破`, () => reportMainQuest());
-    b.className = "btn primary tw-add";
+    b.className = "btn tw-add tw-msq";
     townEl.appendChild(b);
   } else if (ms.state === "offer") {
     const b = btn(`👑 謁見する — 新たな勅命 (第${ms.n + 1}章)`, () => acceptMainQuest());
-    b.className = "btn primary tw-add";
+    b.className = "btn tw-add tw-msq";
     townEl.appendChild(b);
   }
 
@@ -3787,36 +3804,69 @@ function renderPalace() {
   recRow("踏破した迷宮", `${clearedDungeonCount()} / ${DUNGEONS.length}`);
   townEl.appendChild(rec);
 
-  // 勲章 (実績): 達成済みは受領でき、未達成は条件のみ見える。
-  // 件数が多いため「受領可 → 未達成 → 受領済」の順に並べる
+  // 勲章 (実績): 一覧は別室「勲章の間」へ。受領できる勲章があれば印を出す
   const claimable = ACHIEVEMENTS.filter((a) => !G.ach[a.id] && a.cond()).length;
-  townEl.appendChild(el("div", "tw-h", `王の勲章 — 実績 (${Object.keys(G.ach).length}/${ACHIEVEMENTS.length})${claimable ? ` ・ 受領可 ${claimable}` : ""}`));
-  const al = el("div", "tw-mlist");
-  const achOrd = (a) => (G.ach[a.id] ? 2 : a.cond() ? 0 : 1);
-  const achSorted = [...ACHIEVEMENTS].sort((a, b) => achOrd(a) - achOrd(b));
-  for (const a of achSorted) {
-    const got = !!G.ach[a.id];
-    const ready = !got && a.cond();
-    const row = el("div", "tw-quest" + (ready ? " done" : ""));
-    if (got) row.style.opacity = "0.55";
-    const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", `${got ? "🏅" : ready ? "✨" : "🔘"} ${a.name}`));
-    info.appendChild(el("div", "tw-chipc", a.desc));
-    const rw = [];
-    if (a.reward.gold) rw.push(`💰${a.reward.gold}`);
-    if (a.reward.redSoul) rw.push(`🔴${a.reward.redSoul}`);
-    info.appendChild(el("div", "tw-chipc", "下賜: " + rw.join(" + ")));
-    row.appendChild(info);
-    if (ready) {
-      const b = btn("拝受する", () => claimAchievement(a));
-      b.className = "tw-small primary";
-      row.appendChild(b);
-    } else if (got) {
-      row.appendChild(el("div", "tw-chiphp", "受領済"));
-    }
-    al.appendChild(row);
+  townEl.appendChild(el("div", "tw-h", "王の勲章 — 実績"));
+  const arow = el("div", "tw-grid");
+  const achBtn = el("div", "tw-fac");
+  achBtn.appendChild(el("div", "tw-faci", "🏅"));
+  achBtn.appendChild(el("div", "tw-facn", "勲章の間"));
+  achBtn.appendChild(el("div", "tw-facd", `受領 ${Object.keys(G.ach).length} / ${ACHIEVEMENTS.length}`));
+  if (claimable) achBtn.appendChild(el("div", "tw-facb", `❗ 受領可 ${claimable}`));
+  achBtn.addEventListener("click", () => { G.town.facility = "codexAch"; renderCodexAch(); });
+  arow.appendChild(achBtn);
+  townEl.appendChild(arow);
+}
+
+// ---- 勲章の間 (実績一覧) ----
+// 段階表 (series) の勲章は1枠に集約し、受領済みの次の段階だけを表示する。
+// 全段階を受領し終えた series は最終段階を「受領済」として残す。
+function renderCodexAch() {
+  townEl.innerHTML = "";
+  townEl.appendChild(townHeader("勲章の間", "palace"));
+  // 定義順を保ったまま series ごとに束ねる
+  const groups = [];
+  const byKey = {};
+  for (const a of ACHIEVEMENTS) {
+    let g = byKey[a.series];
+    if (!g) { g = []; byKey[a.series] = g; groups.push(g); }
+    g.push(a);
   }
-  townEl.appendChild(al);
+  const cards = groups.map((g) => {
+    const idx = g.findIndex((a) => !G.ach[a.id]);
+    const allDone = idx < 0;
+    const a = allDone ? g[g.length - 1] : g[idx];
+    return { a, tier: allDone ? g.length : idx + 1, total: g.length, allDone, ready: !allDone && a.cond() };
+  });
+  const claimable = cards.filter((c) => c.ready).length;
+  townEl.appendChild(el("div", "tw-note",
+    `受領した勲章 ${Object.keys(G.ach).length} / ${ACHIEVEMENTS.length}${claimable ? ` ・ 受領可 ${claimable}` : ""}`));
+  // 「受領可 → 未達成 → 全段階受領済」の順 (同順位は定義順)
+  const ord = (c) => (c.allDone ? 2 : c.ready ? 0 : 1);
+  cards.sort((x, y) => ord(x) - ord(y));
+  const grid = el("div", "cdx-grid");
+  for (const c of cards) {
+    const card = el("div", "cdx-card ach-card" + (c.ready ? " ready" : c.allDone ? " done" : ""));
+    card.appendChild(el("div", "ach-icon", c.allDone ? "🏅" : c.ready ? "✨" : "🔘"));
+    card.appendChild(el("div", "cdx-name", c.a.name));
+    card.appendChild(el("div", "cdx-stat ach-desc", c.a.desc));
+    if (c.total > 1) card.appendChild(el("div", "cdx-stat", `段階 ${c.tier} / ${c.total}`));
+    if (c.allDone) {
+      card.appendChild(el("div", "cdx-stat ach-got", "受領済"));
+    } else {
+      const rw = [];
+      if (c.a.reward.gold) rw.push(`💰${c.a.reward.gold}`);
+      if (c.a.reward.redSoul) rw.push(`🔴${c.a.reward.redSoul}`);
+      card.appendChild(el("div", "cdx-stat", "下賜: " + rw.join(" + ")));
+    }
+    if (c.ready) {
+      const b = btn("拝受する", () => claimAchievement(c.a));
+      b.className = "tw-small primary ach-claim";
+      card.appendChild(b);
+    }
+    grid.appendChild(card);
+  }
+  townEl.appendChild(grid);
 }
 
 // ---- 図鑑 (王宮書庫) ----
@@ -5505,6 +5555,8 @@ view.addEventListener("click", (e) => {
   const rect = view.getBoundingClientRect();
   const sx = (e.clientX - rect.left) * (view.width / rect.width);
   const sy = (e.clientY - rect.top) * (view.height / rect.height);
+  // 戦闘中にオート戦闘なら、画面のどこをタップしても解除 (演出中もOK)
+  if (G.state === "combat" && G.autoCombat) { buzz(10); stopAutoCombat(); return; }
   // 戦闘中: 敵スプライトを直接タップ
   if (G.state === "combat" && G.battle && !G.animating) {
     const b = G.battle;
