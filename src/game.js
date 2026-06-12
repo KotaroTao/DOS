@@ -5850,20 +5850,70 @@ function renderSoulTab(p) {
   return wrap;
 }
 
-// 魂の詳細をポップアップで表示 (折りたたみではなくモーダル)
+// 魂の詳細をポップアップで表示 (図鑑と同じ cdx-detail カードデザイン)。
+// 職業の系列・レア度・部位、成長 (Lv/上限/次のLvまで)、ステータス寄与、職業発現の条件を載せる
 function showSoulDetailPopup(s) {
+  const cls = SOUL_CLASSES[s.clsKey] || SOUL_CLASSES.fighter;
   const rank = SOUL_RANKS[s.rank] || SOUL_RANKS[1];
-  const accent = rank.color || (SOUL_CLASSES[s.clsKey] || {}).color || "#c9a227";
+  const accent = rank.color || cls.color || "#c9a227";
   const wrap = el("div", "confirm-overlay");
-  const card = el("div", "ig-card confirm-card");
+  const card = el("div", "ig-card cdx-detail");
   card.style.borderColor = accent;
-  const banner = el("div", "ig-banner", "✦ 魂 ✦");
+  card.style.boxShadow = `0 0 40px ${accent}44`;
+  const banner = el("div", "ig-banner", `✦ ランク${s.rank}の魂 ✦`);
   banner.style.color = accent;
   card.appendChild(banner);
-  const nm = el("div", "ig-name", soulName(s));
+
+  // 魂の姿 (職業スプライト)
+  const art = el("div", "ig-art");
+  art.appendChild(spriteCanvas(soulSprite(s.clsKey), 9));
+  card.appendChild(art);
+
+  // 位階の名 + 系列・レア度・宿る部位
+  const nm = el("div", "ig-name", `${jobRankName(s.clsKey, s.rank)}の魂${s.fusionBonus ? ` +${s.fusionBonus}` : ""}`);
   nm.style.color = accent;
   card.appendChild(nm);
-  card.appendChild(renderSoulDetail(s));
+  const rarityLabel = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド" }[cls.rarity] || cls.rarity;
+  const lineage = el("div", "cdx-elem", `${cls.label}系 ・ ${rarityLabel} ・ 部位: ${PART_LABEL[s.part] || "？"}`);
+  lineage.style.color = cls.glow || cls.color;
+  card.appendChild(lineage);
+
+  // 成長 (Lv / 上限と、次のLvへの蓄積)
+  const gbox = el("div", "cdx-drops");
+  gbox.appendChild(el("div", "cdx-h", "成長"));
+  const atCap = s.level >= s.cap;
+  gbox.appendChild(el("div", "cdx-dun", `・レベル: Lv${s.level} / ${s.cap}${atCap ? "（上限）" : ""}`));
+  if (atCap) {
+    gbox.appendChild(el("div", "cdx-dun dim", "・融合でランクアップすると上限が上昇する"));
+  } else {
+    const need = soulTrainCost(s.level);
+    const have = Math.max(0, Math.min(need, s.exp || 0));
+    const bar = el("div", "st-soulbar");
+    const fill = el("i");
+    fill.style.width = `${Math.round((need ? have / need : 0) * 100)}%`;
+    bar.appendChild(fill);
+    gbox.appendChild(bar);
+    gbox.appendChild(el("div", "cdx-dun dim", `・次のLvまで Soul ${have} / ${need}（戦闘勝利と館の強化で貯まる）`));
+  }
+  card.appendChild(gbox);
+
+  // ステータス寄与
+  const sbox = el("div", "cdx-drops");
+  sbox.appendChild(el("div", "cdx-h", "ステータス寄与"));
+  sbox.appendChild(el("div", "cdx-dun", soulStatText(soulStats(s), "　")));
+  const mods = [];
+  if (rank.mul && rank.mul !== 1) mods.push(`ランク${s.rank}補正 ×${rank.mul}`);
+  if (s.fusionBonus) mods.push(`融合強化 +${s.fusionBonus}`);
+  if (mods.length) sbox.appendChild(el("div", "cdx-dun dim", "・" + mods.join(" ・ ")));
+  card.appendChild(sbox);
+
+  // 職業発現の条件 (上位ランクは下位の代替になる)
+  const jbox = el("div", "cdx-drops");
+  jbox.appendChild(el("div", "cdx-h", "職業発現"));
+  jbox.appendChild(el("div", "cdx-dun dim",
+    `・${cls.label}系の魂（ランク${s.rank}以上）を3部位そろえると「${jobRankName(s.clsKey, s.rank)}」が発現`));
+  card.appendChild(jbox);
+
   const ok = btn("閉じる", () => wrap.remove());
   ok.className = "btn primary ig-ok";
   card.appendChild(ok);
@@ -5877,22 +5927,6 @@ function soulStatText(st, sep = " ") {
   const keys = ["hp", "mp", "atk", "vit", "agi", "int", "pie", "luk"];
   const lbl = { hp: "HP", mp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
   return keys.filter((k) => st[k]).map((k) => `${lbl[k]}+${st[k]}`).join(sep);
-}
-
-// 魂の詳細パネル: ステータスのみ (パッシブスキルは廃止)
-function renderSoulDetail(s) {
-  const rank = SOUL_RANKS[s.rank] || SOUL_RANKS[1];
-  const d = el("div", "st-souldetail");
-  if (rank.color) d.style.borderColor = rank.color;
-
-  // ステータス
-  const st = soulStats(s);
-  d.appendChild(el("div", "st-sdh", "ステータス"));
-  d.appendChild(el("div", "st-sdstat", soulStatText(st, "　")));
-  d.appendChild(el("div", "st-sdnote", `レベル上限 ${s.cap}（融合でランクアップすると上限が上昇）`));
-  if (rank.order >= 1) d.appendChild(el("div", "st-sdnote", `${rank.label}魂 (能力 ×${rank.mul})`));
-
-  return d;
 }
 
 // ===== 属性攻撃/属性防御の表示ヘルパ =====
