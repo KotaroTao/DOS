@@ -133,7 +133,7 @@ export function rollSoulRank(bonus = 0) {
   return 1;
 }
 
-// 職業ドロップ: レア度重み (common 96.78% / rare 3% / epic 0.2% / legend 0.02%)
+// 職業ドロップ: レア度重み (common ~90.9% / rare 8% / epic 1% / legend 0.1%)
 const _rarityPools = {};
 function rarityPool(r) {
   if (!_rarityPools[r]) _rarityPools[r] = SOUL_KEYS.filter((k) => SOUL_CLASSES[k].rarity === r);
@@ -142,9 +142,9 @@ function rarityPool(r) {
 export function rollJobClass() {
   const r = Math.random();
   let pool;
-  if (r < 0.0002)      pool = rarityPool("legend");
-  else if (r < 0.0022) pool = rarityPool("epic");
-  else if (r < 0.0322) pool = rarityPool("rare");
+  if (r < 0.001)       pool = rarityPool("legend");
+  else if (r < 0.011)  pool = rarityPool("epic");
+  else if (r < 0.091)  pool = rarityPool("rare");
   else                  pool = rarityPool("common");
   return pool[Math.floor(Math.random() * pool.length)];
 }
