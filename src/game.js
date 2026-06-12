@@ -18,7 +18,7 @@ import {
   dollSouls, dominantClass, recalcDoll, sealSoul,
   ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
   SOUL_RANKS, rollSoulRank, rollJobClass, soulStats, soulHardCap, ensureSoul,
-  jobRankOf, PART_SKILLS, HYBRIDS, findHybrid, JOB_LORE, jobRankCondText,
+  jobRankOf, HYBRIDS, findHybrid, JOB_LORE, jobRankCondText,
   jobSkillTable, charLevelOf, jobRankName, jobPassiveTable, pLv,
   RARITY_SYNTH_COST, FUSION_STAT_BONUS, FIVE_PART_BONUS, fuseSouls, JOB_GEAR,
 } from "./souls.js";
@@ -5531,13 +5531,6 @@ function showSoulDetailPopup(s) {
   document.body.appendChild(wrap);
 }
 
-// パッシブの加算オブジェクトを表示用ラベルに ("ATK+2" など)
-const PASSIVE_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP", crit: "会心" };
-function passiveLabel(add) {
-  if (!add) return "—";
-  return Object.keys(add).map((k) => k === "crit" ? `会心+${Math.round(add[k] * 100)}%` : `${PASSIVE_LABEL[k] || k}+${add[k]}`).join(" / ");
-}
-
 // 魂のステータス寄与を「HP+7 ATK+2.4 …」形式で列挙 (0は省略)
 function soulStatText(st, sep = " ") {
   const keys = ["hp", "mp", "atk", "vit", "agi", "int", "pie", "luk"];
@@ -5545,9 +5538,8 @@ function soulStatText(st, sep = " ") {
   return keys.filter((k) => st[k]).map((k) => `${lbl[k]}+${st[k]}`).join(sep);
 }
 
-// 魂の詳細パネル: ステータスと、覚える基本スキル/上位スキル
+// 魂の詳細パネル: ステータスのみ (パッシブスキルは廃止)
 function renderSoulDetail(s) {
-  const def = SOUL_CLASSES[s.clsKey];
   const rank = SOUL_RANKS[s.rank] || SOUL_RANKS[1];
   const d = el("div", "st-souldetail");
   if (rank.color) d.style.borderColor = rank.color;
@@ -5559,14 +5551,6 @@ function renderSoulDetail(s) {
   d.appendChild(el("div", "st-sdnote", `レベル上限 ${s.cap}（融合でランクアップすると上限が上昇）`));
   if (rank.order >= 1) d.appendChild(el("div", "st-sdnote", `${rank.label}魂 (能力 ×${rank.mul})`));
 
-  // この魂(職業×部位)のパッシブ表を表示。s.level で発動済みを強調。
-  // アクションスキルは魂ではなく職業に帰属する (職業図鑑参照)。
-  d.appendChild(el("div", "st-sdh", `パッシブスキル（${PART_LABEL[s.part]}・常時発動）`));
-  const tbl = (PART_SKILLS[s.clsKey] && PART_SKILLS[s.clsKey][s.part]) || [];
-  for (const e of tbl) {
-    const on = s.level >= e.lvl;
-    d.appendChild(el("div", "st-sdskill" + (on ? " on" : ""), `${on ? "★" : "○"} Lv${e.lvl}: ${passiveLabel(e.add)}`));
-  }
   return d;
 }
 

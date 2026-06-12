@@ -560,52 +560,6 @@ export function charLevelOf(doll) {
   return Math.max(1, Math.round(souls.reduce((a, s) => a + (s.level || 1), 0) / souls.length));
 }
 
-// 部位スキル (base 6 のみ。新職はスキル表の選択でステ差別化)
-export const PART_SKILLS = {
-  priest:  {
-    head:  [{ lvl: 1, add: { pie: 2 } }, { lvl: 3, add: { mp: 2 } }, { lvl: 5, add: { pie: 3 } }, { lvl: 7, add: { mp: 4 } }, { lvl: 10, add: { pie: 5 } }],
-    rhand: [{ lvl: 1, add: { atk: 1 } }, { lvl: 3, add: { pie: 2 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { atk: 2 } }, { lvl: 10, add: { pie: 5 } }],
-    lhand: [{ lvl: 1, add: { pie: 2 } }, { lvl: 3, add: { vit: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { pie: 3 } }, { lvl: 10, add: { vit: 3 } }],
-    body:  [{ lvl: 1, add: { hp: 8 } }, { lvl: 3, add: { vit: 2 } }, { lvl: 5, add: { hp: 14 } }, { lvl: 7, add: { pie: 2 } }, { lvl: 10, add: { hp: 24 } }],
-    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { mp: 2 } }, { lvl: 7, add: { agi: 2 } }, { lvl: 10, add: { agi: 3 } }],
-  },
-  mage: {
-    head:  [{ lvl: 1, add: { int: 2 } }, { lvl: 3, add: { mp: 2 } }, { lvl: 5, add: { int: 3 } }, { lvl: 7, add: { mp: 4 } }, { lvl: 10, add: { int: 5 } }],
-    rhand: [{ lvl: 1, add: { int: 2 } }, { lvl: 3, add: { mp: 3 } }, { lvl: 5, add: { int: 3 } }, { lvl: 7, add: { mp: 4 } }, { lvl: 10, add: { int: 5 } }],
-    lhand: [{ lvl: 1, add: { mp: 3 } }, { lvl: 3, add: { int: 2 } }, { lvl: 5, add: { mp: 4 } }, { lvl: 7, add: { int: 2 } }, { lvl: 10, add: { mp: 6 } }],
-    body:  [{ lvl: 1, add: { hp: 4 } }, { lvl: 3, add: { vit: 1 } }, { lvl: 5, add: { hp: 8 } }, { lvl: 7, add: { int: 2 } }, { lvl: 10, add: { hp: 12 } }],
-    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { agi: 2 } }, { lvl: 10, add: { agi: 2 } }],
-  },
-  bishop: {
-    head:  [{ lvl: 1, add: { int: 1, pie: 1 } }, { lvl: 3, add: { mp: 3 } }, { lvl: 5, add: { int: 2 } }, { lvl: 7, add: { pie: 3 } }, { lvl: 10, add: { mp: 5 } }],
-    rhand: [{ lvl: 1, add: { int: 1 } }, { lvl: 3, add: { pie: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { int: 2 } }, { lvl: 10, add: { pie: 3 } }],
-    lhand: [{ lvl: 1, add: { pie: 1 } }, { lvl: 3, add: { int: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { pie: 2 } }, { lvl: 10, add: { int: 3 } }],
-    body:  [{ lvl: 1, add: { hp: 5 } }, { lvl: 3, add: { vit: 1 } }, { lvl: 5, add: { hp: 9 } }, { lvl: 7, add: { mp: 3 } }, { lvl: 10, add: { hp: 14 } }],
-    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { mp: 2 } }, { lvl: 5, add: { agi: 1 } }, { lvl: 7, add: { int: 1 } }, { lvl: 10, add: { mp: 4 } }],
-  },
-  fighter: {
-    head:  [{ lvl: 1, add: { atk: 1 } }, { lvl: 3, add: { crit: 0.03 } }, { lvl: 5, add: { atk: 2 } }, { lvl: 7, add: { hp: 12 } }, { lvl: 10, add: { crit: 0.05 } }],
-    rhand: [{ lvl: 1, add: { atk: 1 } }, { lvl: 3, add: { atk: 1 } }, { lvl: 5, add: { atk: 2 } }, { lvl: 7, add: { atk: 2 } }, { lvl: 10, add: { atk: 3 } }],
-    lhand: [{ lvl: 1, add: { vit: 1 } }, { lvl: 3, add: { atk: 1 } }, { lvl: 5, add: { vit: 2 } }, { lvl: 7, add: { crit: 0.04 } }, { lvl: 10, add: { vit: 3 } }],
-    body:  [{ lvl: 1, add: { hp: 10 } }, { lvl: 3, add: { vit: 2 } }, { lvl: 5, add: { hp: 16 } }, { lvl: 7, add: { hp: 20 } }, { lvl: 10, add: { vit: 4 } }],
-    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { agi: 2 } }, { lvl: 7, add: { agi: 2 } }, { lvl: 10, add: { agi: 3 } }],
-  },
-  knight: {
-    head:  [{ lvl: 1, add: { vit: 1 } }, { lvl: 3, add: { hp: 8 } }, { lvl: 5, add: { vit: 2 } }, { lvl: 7, add: { hp: 14 } }, { lvl: 10, add: { vit: 4 } }],
-    rhand: [{ lvl: 1, add: { atk: 1 } }, { lvl: 3, add: { vit: 2 } }, { lvl: 5, add: { atk: 1 } }, { lvl: 7, add: { vit: 3 } }, { lvl: 10, add: { atk: 2 } }],
-    lhand: [{ lvl: 1, add: { vit: 2 } }, { lvl: 3, add: { vit: 2 } }, { lvl: 5, add: { hp: 12 } }, { lvl: 7, add: { vit: 3 } }, { lvl: 10, add: { vit: 5 } }],
-    body:  [{ lvl: 1, add: { hp: 14 } }, { lvl: 3, add: { vit: 3 } }, { lvl: 5, add: { hp: 22 } }, { lvl: 7, add: { vit: 3 } }, { lvl: 10, add: { hp: 30 } }],
-    legs:  [{ lvl: 1, add: { vit: 1 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { vit: 2 } }, { lvl: 7, add: { agi: 1 } }, { lvl: 10, add: { vit: 3 } }],
-  },
-  thief: {
-    head:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { luk: 2 } }, { lvl: 5, add: { crit: 0.04 } }, { lvl: 7, add: { agi: 3 } }, { lvl: 10, add: { luk: 4 } }],
-    rhand: [{ lvl: 1, add: { agi: 2 } }, { lvl: 3, add: { atk: 1 } }, { lvl: 5, add: { crit: 0.04 } }, { lvl: 7, add: { agi: 3 } }, { lvl: 10, add: { atk: 2 } }],
-    lhand: [{ lvl: 1, add: { luk: 2 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { luk: 3 } }, { lvl: 7, add: { crit: 0.05 } }, { lvl: 10, add: { luk: 4 } }],
-    body:  [{ lvl: 1, add: { hp: 6 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { hp: 10 } }, { lvl: 7, add: { vit: 1 } }, { lvl: 10, add: { hp: 16 } }],
-    legs:  [{ lvl: 1, add: { agi: 2 } }, { lvl: 3, add: { agi: 2 } }, { lvl: 5, add: { agi: 3 } }, { lvl: 7, add: { agi: 3 } }, { lvl: 10, add: { agi: 5 } }],
-  },
-};
-
 // ===== recalcDoll =====
 export function recalcDoll(doll) {
   let hp = 0, mp = 0, atk = 0, vit = 0, agi = 0, int = 0, pie = 0, luk = 0;
@@ -619,19 +573,7 @@ export function recalcDoll(doll) {
   const dom = dominantClass(doll);
   const spells = [];
   const passives = [];
-  let crit = 0;
-
-  // 部位スキルボーナス
-  const pAdd = { atk: 0, vit: 0, agi: 0, int: 0, pie: 0, luk: 0, hp: 0, mp: 0, crit: 0 };
-  for (const part of PARTS) {
-    const s = doll.parts[part]; if (!s) continue;
-    const tbl = PART_SKILLS[s.clsKey] && PART_SKILLS[s.clsKey][part];
-    if (!tbl) continue;
-    for (const e of tbl) if (s.level >= e.lvl && e.add) for (const k in e.add) pAdd[k] += e.add[k];
-  }
-  hp += pAdd.hp; mp += pAdd.mp; atk += pAdd.atk; vit += pAdd.vit;
-  agi += pAdd.agi; int += pAdd.int; pie += pAdd.pie; luk += pAdd.luk;
-  crit += pAdd.crit;
+  const crit = 0;
 
   // 職業発現判定 (3部位以上 同clsKey・同rank)
   const jr = jobRankOf(doll);
