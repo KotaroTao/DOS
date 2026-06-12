@@ -1293,22 +1293,12 @@ function undeadKeyForDungeon() {
   return all.length ? all[rand(all.length)] : "d01_skeleton";
 }
 
-// 風化した死体を調べる: 魂50% / Gold30% / 装備20% (戦闘は起きない)
+// 風化した死体を調べる: Gold 60% / 装備 40% (戦闘は起きない。風化した死体から魂は出ない)
 function investigateCorpse(cell, clsKey, clsLabel) {
   cell.cleared = true;
-  const dn = activeCfg();
-  const roll = Math.random();
 
-  // 50%: 職能の記憶を宿した魂
-  if (roll < 0.50) {
-    const lvl = 1 + (dn.soulLevelBonus || 0) + Math.floor(G.floor / 3);
-    const soul = makeSoul(clsKey, lvl, null, rollSoulRank(dn.rankBonus));
-    acquireSoul(soul, `風化した死体の残りかすに、まだ職能の記憶が宿っていた。`);
-    return;
-  }
-
-  // 30%: 懐に残された金品 (Gold)
-  if (roll < 0.80) {
+  // 懐に残された金品 (Gold) を渡す処理 (装備を渡せない時のフォールバックにも使う)
+  const giveGold = () => {
     const g = runGainGold(Math.round((18 + G.floor * 9) * (0.7 + Math.random() * 0.6)));
     SFX.itemget(); buzz([0, 30, 60, 30]);
     log(`風化した死体の懐から ${g} ゴールドを見つけた。`, "win");
@@ -1319,10 +1309,12 @@ function investigateCorpse(cell, clsKey, clsLabel) {
       lines: [`風化した死体の懐に遺されていた金品だ。`],
       onClose: () => renderBoard(),
     });
-    return;
-  }
+  };
 
-  // 20%: 傍らに遺された装備品
+  // 60%: 懐に残された金品
+  if (Math.random() < 0.60) { giveGold(); return; }
+
+  // 40%: 傍らに遺された装備品 (渡せなければ金品にフォールバック)
   const id = pickItemByLv(lootLvAt());
   const who = G.party.find((p) => p.alive && p.items.length < MAX_ITEMS)
     || G.party.find((p) => p.items.length < MAX_ITEMS);
@@ -1334,10 +1326,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
     showItemGet(it, who, () => renderBoard());
     return;
   }
-  // 所持品に空きがない等で装備を渡せない時は魂にフォールバック
-  const lvl = 1 + (dn.soulLevelBonus || 0) + Math.floor(G.floor / 3);
-  acquireSoul(makeSoul(clsKey, lvl, null, rollSoulRank(dn.rankBonus)),
-    `風化した死体に、まだ職能の記憶が宿っていた。`);
+  giveGold();
 }
 
 function collectSoul(cell, clsKey, clsLabel) {
