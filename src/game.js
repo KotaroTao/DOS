@@ -2735,7 +2735,7 @@ const FACILITIES = [
   { key: "mansion", icon: "🏚", name: "人業の館", desc: "人業を仕立て、魂を宿す" },
   { key: "tavern", icon: "🍺", name: "酒場「沈まぬ灯」", desc: "編成とクエスト" },
   { key: "shop", icon: "🏪", name: "商店", desc: "装備・道具の売買" },
-  { key: "inn", icon: "🛏", name: "宿屋「がろう」", desc: "魂を休め、傷を癒す" },
+  { key: "inn", icon: "🛏", name: "宿屋「白狼」", desc: "魂を休め、傷を癒す" },
   { key: "palace", icon: "👑", name: "王宮", desc: "勅命と図鑑の間" },
   { key: "shrine", icon: "🔴", name: "赤い魂の祠", desc: "Red Soul を授かる" },
 ];
@@ -4892,7 +4892,7 @@ function showCodexJobDetail(key, rank) {
 // ---- 宿屋: 全回復 ----
 function innCost() { return G.party.length * 12 + G.maxFloorReached * 6; }
 function renderInn() {
-  townEl.appendChild(townHeader("宿屋「がろう」"));
+  townEl.appendChild(townHeader("宿屋「白狼」"));
   townEl.appendChild(el("div", "tw-lead", "一晩の休息で、生きた人業のHP・MPが全快する。"));
   const cost = innCost();
   const need = G.party.filter((p) => p.alive && (p.hp < p.maxhp || p.mp < p.maxmp));
