@@ -134,9 +134,23 @@ export function spawnCardEnemies(key, floor, scale = 1, opts = {}) {
   let count = 1;
   while (count < MAX_ENEMIES && Math.random() < p) count++;
   if (opts && opts.min) count = Math.max(count, Math.min(MAX_ENEMIES, opts.min));
-  const list = Array.from({ length: count }, () => makeEnemy(key, scale));
+  let list;
+  const m = MONSTERS[key];
+  // 役割持ち (role) の群れ: 本体1体 + 取り巻き (escort)。回復役・呼び手は後衛
+  // (index 3+) に立つので、長射程の武器か呪文がないと直接は狙えない。
+  // 護り手 (guard) は前衛に立ち、取り巻きへの攻撃を肩代わりする。
+  if (m && m.role && m.escort && MONSTERS[m.escort]) {
+    const back = m.role !== "guard";
+    count = Math.max(count, back ? 4 : 3); // 後衛役は前衛3体が必要なので最低4体
+    const escorts = Array.from({ length: count - 1 }, () => makeEnemy(m.escort, scale));
+    list = back ? [...escorts, makeEnemy(key, scale)] : [makeEnemy(key, scale), ...escorts];
+  } else {
+    list = Array.from({ length: count }, () => makeEnemy(key, scale));
+  }
   // 同種の群れは A/B/C… で呼び分ける (ログ・対象選択の判別用)
-  if (list.length > 1) list.forEach((e, i) => { e.name += String.fromCharCode(65 + i); });
+  const byKey = {};
+  for (const e of list) (byKey[e.key] = byKey[e.key] || []).push(e);
+  for (const k in byKey) if (byKey[k].length > 1) byKey[k].forEach((e, i) => { e.name += String.fromCharCode(65 + i); });
   return list;
 }
 
@@ -186,6 +200,9 @@ function makeEnemy(key, scale = 1, boss = false) {
     soul: Math.round(m.soul * scale), gold: Math.round(m.gold * scale),
     boss: boss || !!m.boss,
     ability: m.ability || null, // 特殊能力 (毒/麻痺/石化/即死/窃盗/ドレイン/ブレス)
+    // 役割 (healer=回復役 / guard=護り手 / summoner=呼び手)。_scale は召喚の強さ引き継ぎ用
+    role: m.role || null, summonKey: m.summonKey || null, _scale: scale,
+    _guardLeft: m.role === "guard" ? 3 : 0, // 護り手が肩代わりできる残り回数
     alive: true, asleep: false, side: "enemy",
   };
 }
@@ -220,6 +237,7 @@ export class Battle {
     this.pending = null;      // 対象選択待ちの行動
     this.result = null;       // "win" | "lose" | "flee"
     this.opening = opts.opening || null;
+    this.noFlee = !!opts.noFlee; // 迷宮の異変「閉ざされた退路」: 逃走不可
     this._roundNo = 0;
     this._bigBarrierUsed = false;
     for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a._enduredThisBattle = false; a._grantEndure = false; }
@@ -435,11 +453,20 @@ export class Battle {
     if (actor.asleep) {
       cmd = { actor, action: "sleep" };
     } else {
-      const ab = actor.ability;
-      if (ab && Math.random() < (ab === "breath" ? 0.30 : 0.25)) {
-        cmd = { actor, action: ab === "breath" ? "breath" : "special", kind: ab, target: this._pickPartyTarget() };
-      } else {
-        cmd = { actor, action: "attack", target: this._pickPartyTarget() };
+      // 役割持ちの行動 (通常攻撃より優先): 回復役は傷ついた仲間を癒し、呼び手は仲間を呼ぶ
+      if (actor.role === "healer") {
+        const t = this._woundedAlly(actor);
+        if (t && Math.random() < 0.70) cmd = { actor, action: "eheal", target: t };
+      } else if (actor.role === "summoner") {
+        if (this.livingEnemies().length < MAX_ENEMIES && Math.random() < 0.50) cmd = { actor, action: "summon" };
+      }
+      if (!cmd) {
+        const ab = actor.ability;
+        if (ab && Math.random() < (ab === "breath" ? 0.30 : 0.25)) {
+          cmd = { actor, action: ab === "breath" ? "breath" : "special", kind: ab, target: this._pickPartyTarget() };
+        } else {
+          cmd = { actor, action: "attack", target: this._pickPartyTarget() };
+        }
       }
     }
     const res = this._exec(cmd);
@@ -450,6 +477,29 @@ export class Battle {
   _randAlive(list) {
     const a = list.filter((x) => x.alive);
     return a[rand(a.length)] || null;
+  }
+
+  // 回復役の標的: 最もHP割合の低い負傷した仲間 (HP65%未満)
+  _woundedAlly(actor) {
+    let best = null;
+    for (const e of this.livingEnemies()) {
+      if (e.hp >= e.maxhp * 0.65) continue;
+      if (!best || e.hp / e.maxhp < best.hp / best.maxhp) best = e;
+    }
+    return best;
+  }
+
+  // 護り手 (guard): 仲間への物理攻撃を一定確率で肩代わりする (回数制)。
+  // 護り手を先に倒すか、呪文 (肩代わり不可) で本命を狙うのが対策になる
+  _enemyGuardFor(tgt) {
+    if (tgt.role === "guard") return null;
+    for (const e of this.livingEnemies()) {
+      if (e === tgt || e.role !== "guard" || !(e._guardLeft > 0)) continue;
+      if (e.asleep || e._flinch) continue;
+      if (Math.random() < 0.60) return e;
+      return null;
+    }
+    return null;
   }
 
   // 敵の単体行動の標的選び。前衛は狙われやすく (重み3)、後衛は狙われにくい (重み1)。
@@ -480,6 +530,12 @@ export class Battle {
       return res;
     }
     if (action === "run") {
+      // 迷宮の異変「閉ざされた退路」: 逃走そのものが封じられている
+      if (this.noFlee) {
+        this.log("迷宮の異変が退路を閉ざしている！ 逃げられない！", "dmg");
+        res.fledFail = true;
+        return res;
+      }
       // 逃げ足 (fleetFoot): 隊に持ち主がいれば成功率+30%
       const fleet = this.party.some((p) => p.alive && pv(p, "fleetFoot"));
       if (Math.random() < Math.min(0.95, 0.55 + (fleet ? 0.30 : 0))) { this.result = "flee"; this.log("うまく逃げ出した！", "sys"); res.fled = true; }
@@ -499,6 +555,38 @@ export class Battle {
     }
     if (action === "spell") {
       this._cast(actor, cmd, res);
+      return res;
+    }
+    if (action === "eheal") {
+      // 敵の回復役: 傷ついた仲間を癒す (演出は味方の回復呪文と同系統で流用)
+      res.action = "spell"; res.spellKind = "heal"; res.spellName = "癒しの詠唱";
+      const t = (cmd.target && cmd.target.alive) ? cmd.target : this._woundedAlly(actor);
+      if (t) {
+        const heal = Math.max(1, variance(Math.round(t.maxhp * 0.22)));
+        t.hp = Math.min(t.maxhp, t.hp + heal);
+        this.log(`${actor.name}の妖しい詠唱！ ${t.name}のHPが ${heal} 回復した`, "dmg");
+        res.hits.push({ target: t, heal });
+      }
+      return res;
+    }
+    if (action === "summon") {
+      // 敵の呼び手: 仲間を1体呼び寄せる (最大6体)
+      res.action = "spell"; res.spellKind = "summon"; res.spellName = "召喚";
+      const key = actor.summonKey;
+      if (key && MONSTERS[key] && this.livingEnemies().length < MAX_ENEMIES) {
+        const e = makeEnemy(key, actor._scale || 1);
+        // ロード復元後の uid 重複を防ぐ (uid カウンタはリロードでリセットされる)
+        e.uid = [...this.party, ...this.enemies].reduce((mx, x) => Math.max(mx, x.uid || 0), 0) + 1;
+        e.buffs = { atk: 1, vit: 1, agi: 1 };
+        // 同種が既にいるなら A/B/C… の続きで呼び分ける
+        const same = this.enemies.filter((x) => x.key === key).length;
+        if (same) e.name += String.fromCharCode(65 + same);
+        this.enemies.push(e);
+        this.log(`${actor.name}は ${e.mon.name} を呼び寄せた！`, "dmg");
+        res.summoned = e;
+      } else {
+        this.log(`${actor.name}は何かを呼ぼうとしたが、応えはなかった。`, "sys");
+      }
       return res;
     }
     if (action === "breath") {
@@ -692,6 +780,15 @@ export class Battle {
         g._coverLeft--;
         this.log(`${g.name}は${tgt.name}をかばった！`, "sys");
         if (pv(g, "cover") >= 2) coverMul = 0.7;
+        tgt = g;
+      }
+    }
+    // 敵側の護り手 (guard): 仲間への物理攻撃を肩代わりする (呪文・ブレスは防げない)
+    if (actor.side === "party" && tgt.side === "enemy") {
+      const g = this._enemyGuardFor(tgt);
+      if (g) {
+        g._guardLeft--;
+        this.log(`${g.name}が${tgt.name}を庇った！`, "dmg");
         tgt = g;
       }
     }

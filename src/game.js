@@ -105,6 +105,7 @@ function lootLvAt() {
   const t = floors > 1 ? Math.min(1, (G.floor - 1) / (floors - 1)) : 0;
   let c = band[0] + (band[1] - band[0]) * t;
   if (Math.random() < 0.05) c += 12; // まれな大当たり: ワンランク上の帯から出る
+  c += mutNum("lootBonusLv", 0); // 迷宮の異変 (深淵の脈動): 装備の質が上がる
   return Math.min(200, c);
 }
 
@@ -221,6 +222,7 @@ const G = {
   statusTab: "main",  // ステータス画面のタブ "main"(統合) | "soul"
   eliteFloor: false,  // 現在のフロアが強敵階か (3F以降、10%の確率で発生)
   specialFloor: null, // 現在のフロアの特別階id (SPECIAL_FLOORS 参照。2F以降に低確率で発生)
+  mutator: null,      // 今回の潜入に適用中の「迷宮の異変」id (MUTATORS 参照。潜入時に任意で受諾)
 };
 
 const rand = (n) => Math.floor(Math.random() * n);
@@ -232,8 +234,8 @@ function buzz(p) {
 
 // ---- 潜入中の戦利品トラッキング (全滅ペナルティ / Red Soul帰還で使う) ----
 const inDungeon = () => G.state === "board" || G.state === "combat" || G.state === "over";
-function runGainGold(g) { g = Math.round(g * sfNum("goldMul", 1)); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; return g; }
-function runGainSoulPts(s) { s = Math.round(s * sfNum("soulMul", 1)); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; return s; }
+function runGainGold(g) { g = Math.round(g * sfNum("goldMul", 1) * mutNum("goldMul", 1)); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; return g; }
+function runGainSoulPts(s) { s = Math.round(s * sfNum("soulMul", 1) * mutNum("soulMul", 1)); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; return s; }
 function runGainItem(owner, item) { owner.items.push(item); if (G.run && inDungeon()) G.run.items.push({ owner, item }); }
 function runGainSoul(soul) { G.souls.push(soul); if (G.run && inDungeon()) G.run.souls.push(soul); }
 
@@ -370,6 +372,40 @@ function specialDef() { return G.specialFloor ? SPECIAL_FLOORS.find((s) => s.id 
 // 特別階の効果値の取り出し (効果なしなら既定値)
 function sfNum(key, dflt) { const sp = specialDef(); return sp && sp[key] != null ? sp[key] : dflt; }
 
+// ===== 迷宮の異変 (潜入単位のミューテーター) =====
+// 潜入時に一定確率で迷宮全体に「異変」が起きている。受け入れて潜るか、避けて
+// 普通に潜るかを選べる (リスクと引き換えに見返りが大きい)。効果は特別階と同じ
+// キー (enemyMul/goldMul/soulMul/…) を使い、特別階の効果とは独立に重ね掛けされる。
+const MUTATORS = [
+  { id: "bloodTide", name: "血の満潮", sym: "🩸", accent: "#d4504e", enemyMul: 1.3, soulMul: 2,
+    risk: "魔物どもが昂ぶり、強くなっている (敵の力 1.3倍)",
+    gain: "得られる Soul が 2倍 になる" },
+  { id: "goldRush", name: "黄金熱", sym: "💰", accent: "#ffd84a", enemyMul: 1.25, goldMul: 2,
+    risk: "財の気配に魔物が殺気立っている (敵の力 1.25倍)",
+    gain: "得られるゴールドが 2倍 になる" },
+  { id: "sealedExit", name: "閉ざされた退路", sym: "⛓", accent: "#9aa0ac", noFlee: true, chestRankUp: 1,
+    risk: "すべての戦闘から逃げられない",
+    gain: "宝箱がすべて 1ランク上等になる" },
+  { id: "hungryPack", name: "飢えた狩場", sym: "Ψ", accent: "#c08a4a", packMin: 3, rareDropRate: 0.15,
+    risk: "敵が常に群れで現れる (3体以上)",
+    gain: "敵のレアドロップ率が 15% になる" },
+  { id: "nightHunt", name: "闇討ちの宴", sym: "🌘", accent: "#7a5ad0", ambushMul: 4, goldMul: 1.5, soulMul: 1.3,
+    risk: "奇襲を受けやすくなる",
+    gain: "ゴールド 1.5倍・Soul 1.3倍" },
+  { id: "elemRage", name: "属性の暴走", sym: "✺", accent: "#ff9a4a", elemAll: true, soulMul: 1.5, cond: (cfg) => !!cfg.element,
+    risk: "すべての敵が迷宮の属性を帯びる (属性装備がないと危険)",
+    gain: "得られる Soul が 1.5倍 になる" },
+  { id: "mimicMarch", name: "ミミックの行進", sym: "‽", accent: "#e07840", mimicRate: 0.30, chestRankUp: 1,
+    risk: "宝箱の3割はミミックだ",
+    gain: "宝箱が 1ランク上等になり、ミミックは上質な宝箱を残す" },
+  { id: "abyssalSurge", name: "深淵の脈動", sym: "☠", accent: "#8a2be2", enemyMul: 1.5, soulMul: 2, goldMul: 1.5, lootBonusLv: 8,
+    risk: "迷宮中の敵が大幅に強くなっている (敵の力 1.5倍)",
+    gain: "Soul 2倍・ゴールド 1.5倍・落ちている装備の質が上がる" },
+];
+// 適用中の異変の定義 (なければ null) / 効果値の取り出し
+function mutDef() { return G.mutator ? MUTATORS.find((m) => m.id === G.mutator) || null : null; }
+function mutNum(key, dflt) { const m = mutDef(); return m && m[key] != null ? m[key] : dflt; }
+
 const pickFrom = (arr) => arr[rand(arr.length)];
 function sfEachCell(b, fn) { for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) fn(b.cells[y][x]); }
 function sfOpenCount(c) { return ["n", "e", "s", "w"].filter((d) => !c.walls[d]).length; }
@@ -405,10 +441,10 @@ function partyPassiveLv(key) {
   return lv;
 }
 
-// 迷宮内の階に応じた敵の強さ倍率 (迷宮ベース × 階で微増 × 特別階)
+// 迷宮内の階に応じた敵の強さ倍率 (迷宮ベース × 階で微増 × 特別階 × 迷宮の異変)
 function enemyScale() {
   const cfg = activeCfg();
-  return (cfg.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * sfNum("enemyMul", 1);
+  return (cfg.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
 }
 
 // ミミックの強さ参照: 現在地より ahead 先のダンジョン (末尾でクランプ) の rank と
@@ -416,7 +452,7 @@ function enemyScale() {
 // 階層補正・特別階補正は現在地のものを掛ける。
 function mimicRef(ahead) {
   const ref = DUNGEONS[Math.min(DUNGEONS.length - 1, G.dungeonIdx + ahead)];
-  const scale = (ref.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * sfNum("enemyMul", 1);
+  const scale = (ref.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
   return { rank: ref.rank || 1, scale };
 }
 
@@ -447,7 +483,8 @@ function updateTopbar() {
   }
   const sp = specialDef();
   const dn = activeCfg();
-  const mark = G.eliteFloor ? "☠" : sp ? "✨" : "";
+  const mu = mutDef();
+  const mark = (G.eliteFloor ? "☠" : sp ? "✨" : "") + (mu ? mu.sym : "");
   floorInfo.textContent = `${dn ? dn.name + " " : ""}B${G.floor}F${mark}`;
   setTopbarCurrency();
   updateDescendBtn();
@@ -1067,7 +1104,8 @@ function resolveCell(cell) {
           startBattle(spawnEliteEnemies(cell.monsterKey, enemyScale()), cell);
         } else {
           log(`⚔ ${name} のカードだ！`, "dmg");
-          startBattle(spawnCardEnemies(cell.monsterKey, G.floor, enemyScale()), cell);
+          // 迷宮の異変 (飢えた狩場): 敵が常に群れで現れる
+          startBattle(spawnCardEnemies(cell.monsterKey, G.floor, enemyScale(), { min: mutNum("packMin", 0) }), cell);
         }
       }
       break;
@@ -1262,7 +1300,7 @@ function collectWarmCorpse(cell, clsKey, clsLabel) {
       title: riseLine,
       accent: great ? "#ffcf4a" : "#d4504e",
       btnLabel: "応戦する",
-      onClose: () => startBattle(spawnCardEnemies(undeadKeyForDungeon(), G.floor, enemyScale()), cell),
+      onClose: () => startBattle(spawnCardEnemies(undeadKeyForDungeon(), G.floor, enemyScale(), { min: mutNum("packMin", 0) }), cell),
     });
     return;
   }
@@ -1490,8 +1528,8 @@ function chestRankOf(cell) {
   const cfg = activeCfg();
   const floors = Math.max(1, cfg.floors || 3);
   const depth = floors > 1 ? Math.min(1, (G.floor - 1) / (floors - 1)) : 0;
-  // 特別階 (商隊の遺品): 宝箱ランクが1段上がる
-  const r = Math.min(5, rollChestRank(depth, cfg.rank || 1) + sfNum("chestRankUp", 0));
+  // 特別階 (商隊の遺品) / 迷宮の異変 (閉ざされた退路など): 宝箱ランクが上がる
+  const r = Math.min(5, rollChestRank(depth, cfg.rank || 1) + sfNum("chestRankUp", 0) + mutNum("chestRankUp", 0));
   if (cell) cell.cRank = r;
   return r;
 }
@@ -1530,8 +1568,8 @@ function rollChest(cell, allowDanger, done, opener, cRankIn, lvBonus, noGold = f
   if (allowDanger) {
     // 伝説の宝箱 (cell.lootBonus) はミミック/黒い宝箱に化けない
     const legendary = !!(cell && cell.lootBonus);
-    // ミミック率: 一律3% (特別階「ミミックの巣」では一律50%)
-    if (!legendary && Math.random() < sfNum("mimicRate", 0.03)) {
+    // ミミック率: 一律3% (特別階「ミミックの巣」/異変「ミミックの行進」では高い方を採用)
+    if (!legendary && Math.random() < Math.max(sfNum("mimicRate", 0.03), mutNum("mimicRate", 0))) {
       // ミミック出現時、10%でマスターミミック。強さは先のダンジョンを参照
       //  (通常=1つ先 / マスター=2つ先)。固有ドロップは無く、上質な宝箱を残す。
       const master = Math.random() < 0.10;
@@ -1990,7 +2028,7 @@ function startBattle(enemies, cell) {
   const spFloor = specialDef();
   const isElite = enemies.some((e) => e.mon && e.mon.elite);
   if (cfg.element) {
-    const ch = spFloor && spFloor.elemAll ? 1 : 0.5;
+    const ch = (spFloor && spFloor.elemAll) || mutNum("elemAll", false) ? 1 : 0.5;
     for (const e of enemies) if (!e.boss && !(e.mon && e.mon.elite) && Math.random() < ch) e.element = cfg.element;
   }
   G.battleCell = cell;
@@ -2006,7 +2044,8 @@ function startBattle(enemies, cell) {
   let opening = null;
   if (!isBoss && !isElite) {
     const vig = partyPassiveLv("vigilance");
-    const amb = (spFloor && spFloor.noAmbush) ? 0 : 0.08 * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1);
+    // 迷宮の異変 (闇討ちの宴): 奇襲率が跳ね上がる (周囲警戒は引き続き有効)
+    const amb = (spFloor && spFloor.noAmbush) ? 0 : 0.08 * mutNum("ambushMul", 1) * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1);
     // 追い風の階 (preempt100) では必ず先手を取れる
     const pre = (spFloor && spFloor.preempt100) ? 1 : 0.08 + (partyPassiveLv("initiative") ? 0.15 : 0);
     const r = Math.random();
@@ -2017,7 +2056,7 @@ function startBattle(enemies, cell) {
   else if (opening === "ambush") { log("奇襲された！", "dmg"); showToast("⚠ 奇襲された！"); buzz([0, 60, 40, 60]); }
   // ランク帯ごとの戦闘テーマ (ボス・強敵は専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
   playBgm(battleBgm(isBoss || isElite));
-  G.battle = new Battle(G.party, enemies, log, { opening });
+  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false) });
   G.fx = null;
   G.animating = false;
   G.enemyPos = {};
@@ -2531,6 +2570,7 @@ function applyImpact(res) {
       }
       if (idx === 0 || !fx.flash[h.target.uid]) fx.flash[h.target.uid] = { t0: ht0 };
       if (h.dmg != null) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 18, text: String(h.dmg) + (h.crit ? "!" : ""), color: h.crit ? "#ffd84a" : "#fff", t0: ht0 });
+      else if (h.heal != null) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 18, text: "+" + h.heal, color: "#7CFC7C", t0: ht0 }); // 敵の回復役による回復
       if (h.died) anyDeath = true;
     } else {
       // 味方が対象
@@ -4838,8 +4878,8 @@ function rollMonsterDrop(enemy) {
   if (!mon) return null;
   let dropId = null, rare = false;
   const ap = partyPassiveLv("appraise") ? 1.15 : 1; // 目利き: ドロップ率+15%
-  // 特別階 (盗賊の洞察): レアドロップ率が一律20%になる
-  if (mon.dropRare && Math.random() < sfNum("rareDropRate", 0.04 * ap)) { dropId = mon.dropRare; rare = true; }
+  // 特別階 (盗賊の洞察) / 迷宮の異変 (飢えた狩場): レアドロップ率が上がる (高い方を採用)
+  if (mon.dropRare && Math.random() < Math.max(sfNum("rareDropRate", 0.04 * ap), mutNum("rareDropRate", 0))) { dropId = mon.dropRare; rare = true; }
   else if (mon.dropNormal && Math.random() < 0.30 * ap) { dropId = mon.dropNormal; rare = false; }
   if (!dropId) return null;
   const it = cloneItem(dropId);
@@ -5636,7 +5676,29 @@ function buyItem(id, price) {
 function tryEnterDungeon() {
   if (G.unlockedDungeons < 1) { log("王の勅命を受けるまで、迷宮には入れない。", "sys"); return; }
   if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); return; }
-  // 魂未封印で極端に弱い人業がいたら注意 (任意続行)
+  // 迷宮の異変: D3以降、一定確率で発生。受け入れるか避けるかを選んでから潜る
+  if (G.dungeonIdx >= 2 && Math.random() < 0.45) {
+    const cfg = curDungeon();
+    const pool = MUTATORS.filter((m) => !m.cond || m.cond(cfg));
+    const cand = pool[rand(pool.length)];
+    if (cand) {
+      SFX.trap(); buzz([0, 30, 40, 30]);
+      showChoice(`${cand.sym}「${cand.name}」`, [
+        { label: `${cand.sym} 異変ごと潜る`, danger: true, fn: () => enterDungeon(cand.id) },
+        { label: "▼ 異変が鎮まるのを待って潜る", fn: () => enterDungeon(null) },
+      ], ICONS.stairs, {
+        banner: "⚠ 迷宮の異変 ⚠", accent: cand.accent,
+        lines: [`${cfg.name}の様子がおかしい…`, `⚠ ${cand.risk}`, `✨ ${cand.gain}`],
+      });
+      return;
+    }
+  }
+  enterDungeon(null);
+}
+
+// 潜入の実体。mutatorId を渡すと「迷宮の異変」を受け入れた状態で潜る
+function enterDungeon(mutatorId) {
+  G.mutator = mutatorId || null;
   SFX.stairs();
   townEl.classList.add("hidden");
   G.town.facility = null; G.town.sub = null;
@@ -5652,6 +5714,8 @@ function tryEnterDungeon() {
   playBgm(fieldBgm());
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
   newFloor();
+  const mu = mutDef();
+  if (mu) log(`${mu.sym} 異変「${mu.name}」の中を行く。${mu.gain}。`, "win");
   renderBoard();
 }
 
@@ -5661,6 +5725,7 @@ function returnToTown() {
   G.battle = null; G.battleCell = null;
   G.eliteFloor = false;
   G.specialFloor = null;
+  G.mutator = null; // 迷宮の異変は潜入単位 (帰還で解除)
   combatMenu.classList.add("hidden");
   if (townBtn) townBtn.classList.add("hidden");
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
@@ -6972,7 +7037,7 @@ if (settingsBtn) settingsBtn.addEventListener("click", () => {
 const SAVE_KEY = "dos-save-v2";
 // 保存する G のフィールド (アニメーション等の一時状態は除外)
 const SAVE_FIELDS = [
-  "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor",
+  "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator",
   "gold", "soulPts", "redSoul", "dollsPurchased", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "lastEmptyClaim", "run", "town",
   "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "rumor", "rumorCooldown", "activeRumor", "codex", "story", "dragonSlain", "stats",
