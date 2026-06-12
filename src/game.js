@@ -18,7 +18,7 @@ import {
   dollSouls, dominantClass, recalcDoll, sealSoul,
   ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
   SOUL_RANKS, rollSoulRank, soulStats, soulHardCap, ensureSoul,
-  jobRankOf, PART_SKILLS, HYBRIDS, findHybrid, JOB_LORE, jobRankCondText,
+  jobRankOf, PART_GROWTH, GROWTH_PER_LV, HYBRIDS, findHybrid, JOB_LORE, jobRankCondText,
   jobSkillTable, charLevelOf, jobRankName, jobPassiveTable, pLv,
 } from "./souls.js";
 import { showOpening } from "./opening.js";
@@ -130,7 +130,6 @@ const logEl = document.getElementById("log");
 const partyEl = document.getElementById("party");
 const combatMenu = document.getElementById("combat-menu");
 const floorInfo = document.getElementById("floor-info");
-const dungeonTitleEl = document.getElementById("dungeon-title");
 
 const G = {
   state: "town",      // town | board | combat | over
@@ -312,11 +311,9 @@ function eliteKey() {
 function updateTopbar() {
   const currency = `🔴${G.redSoul} 💰${G.gold} ✦${G.soulPts}`;
   if (G.state === "town") {
-    if (dungeonTitleEl) dungeonTitleEl.textContent = "百の迷宮と 魂の王";
     floorInfo.textContent = currency;
     return;
   }
-  if (dungeonTitleEl) dungeonTitleEl.textContent = curDungeon().name;
   floorInfo.textContent = `B${G.floor}F ${currency}`;
 }
 
@@ -1216,7 +1213,7 @@ function disarmPower(m) {
 function disarmNeed(cRank = 1) {
   const cfg = activeCfg();
   const L = 2 + (cfg.soulLevelBonus || 0) * 2.4;        // 適正な魂レベルの目安 (強化込み)
-  const f = 1 + (L - 1) * 0.12;                          // souls.js の lvlFactor と同式
+  const f = 1 + (L - 1) * GROWTH_PER_LV;                 // souls.js の標準成長と同式
   const q = 1 + ((cfg.rank || 1) - 1) * 0.14;            // ダンジョンランク: 深部は高ランク魂が前提
   const c = 1 + ((cRank || 1) - 1) * 0.16;               // 宝箱ランク: 上等な箱ほど狡猾な錠前
   return 14 * f * q * c;
@@ -3303,10 +3300,15 @@ function renderAltar() {
     }
   }
 
-  // 職業・スキル サマリ
+  // 職業・スキル サマリ (クリックで職業図鑑ポップアップ)
   const sum = el("div", "tw-summary");
   const dom = d.dominant;
   sum.style.borderColor = dom ? SOUL_CLASSES[dom.clsKey].color : "#34344a";
+  if (d.jobKey) {
+    sum.style.cursor = "pointer";
+    sum.title = "職業図鑑を表示";
+    sum.addEventListener("click", () => showCodexJobDetail(d.jobKey, d.jobRank));
+  }
   sum.appendChild(el("div", "tw-sumc", d.cls));
   const tierTxt = d.jobRank
     ? `キャラLv ${d.jobLv || 0}（魂の平均・スキル解放 Lv${d.jobRank * 10} まで）`
@@ -3316,6 +3318,7 @@ function renderAltar() {
     `HP${d.maxhp} MP${d.maxmp} ATK${d.atk} VIT${d.vit} AGI${d.agi} INT${d.int} PIE${d.pie} LUK${d.luk}`));
   if (d.spells.length) { const sk = skillChips(d.spells, "習得:"); sk.classList.add("tw-sumsk"); sum.appendChild(sk); }
   if (d.passives.length) sum.appendChild(el("div", "tw-sumsk", d.passives.join(" / ")));
+  if (d.jobKey) sum.appendChild(el("div", "tw-sumhint", "▶ 職業図鑑"));
   townEl.appendChild(sum);
 
   // 5部位
@@ -3354,11 +3357,23 @@ function renderAltar() {
     if (cur) {
       townEl.appendChild(el("div", "tw-h", `「${PART_LABEL[part]}」の魂を鍛える`));
       const trainBox = el("div", "tw-trainbox");
+      const curSt = soulStats(cur);
       if (cur.level >= cur.cap) {
-        trainBox.appendChild(el("div", "tw-note", `${soulName(cur)} は上限 Lv${cur.cap}。館の「魂強化」で限界突破を。`));
+        trainBox.appendChild(el("div", "tw-trainn", soulName(cur)));
+        trainBox.appendChild(el("div", "tw-soulst", soulStatText(curSt)));
+        trainBox.appendChild(el("div", "tw-note", `上限 Lv${cur.cap}。館の「魂強化」で限界突破を。`));
       } else {
         const tc = soulTrainCost(cur.level);
-        trainBox.appendChild(el("div", "tw-trainn", `${soulName(cur)} → Lv${cur.level + 1}`));
+        const nextSt = soulStats({ ...cur, level: cur.level + 1 });
+        const _stKeys = ["hp", "mp", "atk", "vit", "agi", "int", "pie", "luk"];
+        const _stLbl = { hp: "HP", mp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
+        const deltaStr = _stKeys
+          .filter((k) => (nextSt[k] || 0) - (curSt[k] || 0) > 0.001)
+          .map((k) => `${_stLbl[k]}+${Math.round(((nextSt[k] || 0) - (curSt[k] || 0)) * 10) / 10}`)
+          .join(" ");
+        trainBox.appendChild(el("div", "tw-trainn", `${soulName(cur)}　Lv${cur.level} → Lv${cur.level + 1}`));
+        trainBox.appendChild(el("div", "tw-soulst", soulStatText(curSt)));
+        if (deltaStr) trainBox.appendChild(el("div", "tw-souldn", `↑ ${deltaStr}`));
         const tb = btn(`✦ Soul ${tc} で鍛える`, () => trainSoul(d, part));
         tb.className = "tw-small primary";
         if (G.soulPts < tc) tb.disabled = true;
@@ -5133,18 +5148,13 @@ function renderSoulTab(p) {
   return wrap;
 }
 
-// パッシブの加算オブジェクトを表示用ラベルに ("ATK+2" など)
-const PASSIVE_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP", crit: "会心" };
-function passiveLabel(add) {
-  if (!add) return "—";
-  return Object.keys(add).map((k) => k === "crit" ? `会心+${Math.round(add[k] * 100)}%` : `${PASSIVE_LABEL[k] || k}+${add[k]}`).join(" / ");
-}
+// 六大ステ + HP/MP の短縮ラベル (魂のステータス/成長傾向の表示用)
+const STAT_LABEL = { hp: "HP", mp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
 
 // 魂のステータス寄与を「HP+7 ATK+2.4 …」形式で列挙 (0は省略)
 function soulStatText(st, sep = " ") {
   const keys = ["hp", "mp", "atk", "vit", "agi", "int", "pie", "luk"];
-  const lbl = { hp: "HP", mp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
-  return keys.filter((k) => st[k]).map((k) => `${lbl[k]}+${st[k]}`).join(sep);
+  return keys.filter((k) => st[k]).map((k) => `${STAT_LABEL[k]}+${st[k]}`).join(sep);
 }
 
 // 魂の詳細パネル: ステータスと、覚える基本スキル/上位スキル
@@ -5161,13 +5171,22 @@ function renderSoulDetail(s) {
   d.appendChild(el("div", "st-sdnote", `レベル上限 ${s.cap}（限界突破で最大 ${soulHardCap(s)}）`));
   if (rank.order >= 1) d.appendChild(el("div", "st-sdnote", `${rank.label}魂 (能力 ×${rank.mul})`));
 
-  // この魂(職業×部位)のパッシブ表を表示。s.level で発動済みを強調。
+  // この魂の成長傾向を表示。部位スキル(パッシブ)は廃止 — 部位の個性は
+  // 「どのステータスがよく成長するか」(成長度) で表す。
   // アクションスキルは魂ではなく職業に帰属する (職業図鑑参照)。
-  d.appendChild(el("div", "st-sdh", `パッシブスキル（${PART_LABEL[s.part]}・常時発動）`));
-  const tbl = (PART_SKILLS[s.clsKey] && PART_SKILLS[s.clsKey][s.part]) || [];
-  for (const e of tbl) {
-    const on = s.level >= e.lvl;
-    d.appendChild(el("div", "st-sdskill" + (on ? " on" : ""), `${on ? "★" : "○"} Lv${e.lvl}: ${passiveLabel(e.add)}`));
+  d.appendChild(el("div", "st-sdh", `成長傾向（${PART_LABEL[s.part]}）`));
+  const grow = PART_GROWTH[s.part] || {};
+  const byMul = {};
+  for (const k in grow) (byMul[grow[k]] = byMul[grow[k]] || []).push(STAT_LABEL[k] || k);
+  for (const m of Object.keys(byMul).map(Number).sort((a, b) => b - a)) {
+    d.appendChild(el("div", "st-sdskill on", `${m >= 2 ? "◎" : "◯"} ${byMul[m].join("・")} — 成長 ×${m}`));
+  }
+  d.appendChild(el("div", "st-sdskill", "○ 他のステータスは標準成長"));
+  if (s.level < s.cap) {
+    const nxt = soulStats({ ...s, level: s.level + 1 });
+    const dlt = {};
+    for (const k in st) dlt[k] = Math.round((nxt[k] - st[k]) * 10) / 10;
+    d.appendChild(el("div", "st-sdnote", `Lv${s.level + 1} になると: ${soulStatText(dlt) || "—"}`));
   }
   return d;
 }

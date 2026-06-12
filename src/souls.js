@@ -2,7 +2,8 @@
 //
 // 「人業 (Doll)」= 人型の器。頭・右手・左手・胴体・足の5部位があり、
 // 各部位に「魂 (Soul)」を封じ込めることで性能が決まる。
-// ・魂そのものが与えるのは全部位ともパッシブ (能力強化) のみ。
+// ・魂そのものが与えるのはステータスのみ。部位ごとの成長傾向 (PART_GROWTH)
+//   で、どのステータスがよく伸びるかが変わる (部位スキル/パッシブは廃止)。
 // ・5部位中3部位以上を同じ職業の魂で揃えると、その職業が【発現】する。
 // ・アクションスキルは職業に帰属する (JOB_SKILLS/jobSkillTable)。
 //   キャラLv (宿している魂の平均レベル) が閾値に達し、かつ職業ランクの
@@ -392,55 +393,25 @@ export function jobRankOf(doll) {
 
 export const SOUL_KEYS = Object.keys(SOUL_CLASSES);
 
-// ===== 部位ごとの魂スキル =====
-// 各魂は「職業 × 部位」でパッシブ表を持つ。魂レベルが閾値に達すると発動。
-// 全部位パッシブ (能力強化) のみ — アクションスキルは職業に帰属 (JOB_SKILLS)。
-// 頭は精神系 (INT/PIE/MP/会心など) に寄せた部位特性を持つ。
-// パッシブ add: 六大ステ(atk/vit/agi/int/pie/luk) と hp/mp/crit(会心率) を直接加算。
-export const PART_SKILLS = {
-  priest: {
-    head: [{ lvl: 1, add: { pie: 2 } }, { lvl: 3, add: { mp: 2 } }, { lvl: 5, add: { pie: 3 } }, { lvl: 7, add: { mp: 4 } }, { lvl: 10, add: { pie: 5 } }],
-    rhand: [{ lvl: 1, add: { atk: 1 } }, { lvl: 3, add: { pie: 2 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { atk: 2 } }, { lvl: 10, add: { pie: 5 } }],
-    lhand: [{ lvl: 1, add: { pie: 2 } }, { lvl: 3, add: { vit: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { pie: 3 } }, { lvl: 10, add: { vit: 3 } }],
-    body:  [{ lvl: 1, add: { hp: 8 } }, { lvl: 3, add: { vit: 2 } }, { lvl: 5, add: { hp: 14 } }, { lvl: 7, add: { pie: 2 } }, { lvl: 10, add: { hp: 24 } }],
-    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { mp: 2 } }, { lvl: 7, add: { agi: 2 } }, { lvl: 10, add: { agi: 3 } }],
-  },
-  mage: {
-    head: [{ lvl: 1, add: { int: 2 } }, { lvl: 3, add: { mp: 2 } }, { lvl: 5, add: { int: 3 } }, { lvl: 7, add: { mp: 4 } }, { lvl: 10, add: { int: 5 } }],
-    rhand: [{ lvl: 1, add: { int: 2 } }, { lvl: 3, add: { mp: 3 } }, { lvl: 5, add: { int: 3 } }, { lvl: 7, add: { mp: 4 } }, { lvl: 10, add: { int: 5 } }],
-    lhand: [{ lvl: 1, add: { mp: 3 } }, { lvl: 3, add: { int: 2 } }, { lvl: 5, add: { mp: 4 } }, { lvl: 7, add: { int: 2 } }, { lvl: 10, add: { mp: 6 } }],
-    body:  [{ lvl: 1, add: { hp: 4 } }, { lvl: 3, add: { vit: 1 } }, { lvl: 5, add: { hp: 8 } }, { lvl: 7, add: { int: 2 } }, { lvl: 10, add: { hp: 12 } }],
-    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { agi: 2 } }, { lvl: 10, add: { agi: 2 } }],
-  },
-  bishop: {
-    head: [{ lvl: 1, add: { int: 1, pie: 1 } }, { lvl: 3, add: { mp: 3 } }, { lvl: 5, add: { int: 2 } }, { lvl: 7, add: { pie: 3 } }, { lvl: 10, add: { mp: 5 } }],
-    rhand: [{ lvl: 1, add: { int: 1 } }, { lvl: 3, add: { pie: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { int: 2 } }, { lvl: 10, add: { pie: 3 } }],
-    lhand: [{ lvl: 1, add: { pie: 1 } }, { lvl: 3, add: { int: 1 } }, { lvl: 5, add: { mp: 3 } }, { lvl: 7, add: { pie: 2 } }, { lvl: 10, add: { int: 3 } }],
-    body:  [{ lvl: 1, add: { hp: 5 } }, { lvl: 3, add: { vit: 1 } }, { lvl: 5, add: { hp: 9 } }, { lvl: 7, add: { mp: 3 } }, { lvl: 10, add: { hp: 14 } }],
-    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { mp: 2 } }, { lvl: 5, add: { agi: 1 } }, { lvl: 7, add: { int: 1 } }, { lvl: 10, add: { mp: 4 } }],
-  },
-  fighter: {
-    head: [{ lvl: 1, add: { atk: 1 } }, { lvl: 3, add: { crit: 0.03 } }, { lvl: 5, add: { atk: 2 } }, { lvl: 7, add: { hp: 12 } }, { lvl: 10, add: { crit: 0.05 } }],
-    rhand: [{ lvl: 1, add: { atk: 1 } }, { lvl: 3, add: { atk: 1 } }, { lvl: 5, add: { atk: 2 } }, { lvl: 7, add: { atk: 2 } }, { lvl: 10, add: { atk: 3 } }],
-    lhand: [{ lvl: 1, add: { vit: 1 } }, { lvl: 3, add: { atk: 1 } }, { lvl: 5, add: { vit: 2 } }, { lvl: 7, add: { crit: 0.04 } }, { lvl: 10, add: { vit: 3 } }],
-    body:  [{ lvl: 1, add: { hp: 10 } }, { lvl: 3, add: { vit: 2 } }, { lvl: 5, add: { hp: 16 } }, { lvl: 7, add: { hp: 20 } }, { lvl: 10, add: { vit: 4 } }],
-    legs:  [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { agi: 2 } }, { lvl: 7, add: { agi: 2 } }, { lvl: 10, add: { agi: 3 } }],
-  },
-  knight: {
-    head: [{ lvl: 1, add: { vit: 1 } }, { lvl: 3, add: { hp: 8 } }, { lvl: 5, add: { vit: 2 } }, { lvl: 7, add: { hp: 14 } }, { lvl: 10, add: { vit: 4 } }],
-    rhand: [{ lvl: 1, add: { atk: 1 } }, { lvl: 3, add: { vit: 2 } }, { lvl: 5, add: { atk: 1 } }, { lvl: 7, add: { vit: 3 } }, { lvl: 10, add: { atk: 2 } }],
-    lhand: [{ lvl: 1, add: { vit: 2 } }, { lvl: 3, add: { vit: 2 } }, { lvl: 5, add: { hp: 12 } }, { lvl: 7, add: { vit: 3 } }, { lvl: 10, add: { vit: 5 } }],
-    body:  [{ lvl: 1, add: { hp: 14 } }, { lvl: 3, add: { vit: 3 } }, { lvl: 5, add: { hp: 22 } }, { lvl: 7, add: { vit: 3 } }, { lvl: 10, add: { hp: 30 } }],
-    legs:  [{ lvl: 1, add: { vit: 1 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { vit: 2 } }, { lvl: 7, add: { agi: 1 } }, { lvl: 10, add: { vit: 3 } }],
-  },
-  thief: {
-    head: [{ lvl: 1, add: { agi: 1 } }, { lvl: 3, add: { luk: 2 } }, { lvl: 5, add: { crit: 0.04 } }, { lvl: 7, add: { agi: 3 } }, { lvl: 10, add: { luk: 4 } }],
-    rhand: [{ lvl: 1, add: { agi: 2 } }, { lvl: 3, add: { atk: 1 } }, { lvl: 5, add: { crit: 0.04 } }, { lvl: 7, add: { agi: 3 } }, { lvl: 10, add: { atk: 2 } }],
-    lhand: [{ lvl: 1, add: { luk: 2 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { luk: 3 } }, { lvl: 7, add: { crit: 0.05 } }, { lvl: 10, add: { luk: 4 } }],
-    body:  [{ lvl: 1, add: { hp: 6 } }, { lvl: 3, add: { agi: 1 } }, { lvl: 5, add: { hp: 10 } }, { lvl: 7, add: { vit: 1 } }, { lvl: 10, add: { hp: 16 } }],
-    legs:  [{ lvl: 1, add: { agi: 2 } }, { lvl: 3, add: { agi: 2 } }, { lvl: 5, add: { agi: 3 } }, { lvl: 7, add: { agi: 3 } }, { lvl: 10, add: { agi: 5 } }],
-  },
+// ===== 部位ごとの成長傾向 =====
+// 部位スキル (魂のパッシブ) は廃止した。部位の個性は「どのステータスが
+// よく成長するか」= 成長度で表現する。値は1レベルあたりの標準成長係数
+// (GROWTH_PER_LV) に掛かる倍率で、未記載のステは標準成長 (×1.0)。
+// 職業の基礎値 (SOUL_CLASSES.stat) に掛かるため伸びの絶対量は職業で変わり、
+// レベルが上がるほど部位の個性が際立つ (Lv1ではどの部位も同じ)。
+export const GROWTH_PER_LV = 0.12; // 標準成長: 1Lvあたり基礎値の12%
+export const PART_GROWTH = {
+  head:  { int: 2.0, pie: 2.0, mp: 2.0, luk: 1.5 }, // 精神の座 — 知力・信仰・魔力
+  rhand: { atk: 2.0, agi: 1.5 },                    // 利き腕 — 攻めの要
+  lhand: { vit: 2.0, atk: 1.5 },                    // 添え手 — 受けと支え
+  body:  { hp: 2.0, vit: 1.5 },                     // 体幹 — 生命力の器
+  legs:  { agi: 2.0, luk: 1.5 },                    // 足腰 — 敏捷と身のこなし
 };
+// 部位×ステの成長倍率 (未記載は標準の1.0)
+export function partGrowthMul(part, key) {
+  const g = PART_GROWTH[part];
+  return (g && g[key]) || 1;
+}
 
 // ===== ハイブリッド職業 =====
 // 5部位を「ある職業3つ + 別の職業2つ」で組むと、特別な上位職が発現する。
@@ -496,7 +467,7 @@ export const HYBRIDS = {
 export const JOB_LORE = {
   fighter: {
     desc: "戦場の記憶を宿す魂。剣を握って生き、剣を握って死んだ者たちの執念が、人業の腕に力を与える。",
-    tips: "高いATKとHPで前衛の軸となる。頭に宿せば強撃や乱れ斬りで攻め立て、職業ランクが上がるほど会心の刃が冴える。",
+    tips: "高いATKとHPで前衛の軸となる。強撃や乱れ斬りで攻め立て、職業ランクが上がるほど会心の刃が冴える。",
   },
   knight: {
     desc: "守りの誓いを抱いたまま朽ちた騎士の魂。盾の重みを、誇りの重みとして覚えている。",
@@ -614,26 +585,20 @@ export function soulName(s) {
   return `${rank}${SOUL_CLASSES[s.clsKey].label}の魂${part} Lv${s.level}`;
 }
 
-// レベル係数: 1部位の寄与は (1 + (level-1)*0.12) 倍
-function lvlFactor(level) {
-  return 1 + (level - 1) * 0.12;
-}
-
-// 魂1つの総合係数 (レベル × ランク)
-function soulFactor(s) {
-  return lvlFactor(s.level) * SOUL_RANKS[s.rank || "normal"].mul;
-}
-
-// 魂1つが持つステータス (人業のステータスはこれの合計)
+// 魂1つが持つステータス (人業のステータスはこれの合計)。
+// 各ステ = 職業基礎値 × 成長係数 × ランク係数。
+// 成長係数 = 1 + (Lv-1) × GROWTH_PER_LV × 部位の成長倍率 (PART_GROWTH) —
+// 部位の得意ステほど速く伸び、レベルが上がるほど部位ごとの差が開く。
 export function soulStats(s) {
   const st = SOUL_CLASSES[s.clsKey].stat;
-  const f = soulFactor(s);
-  const r1 = (v) => Math.round((v || 0) * f * 10) / 10;
+  const mul = SOUL_RANKS[s.rank || "normal"].mul;
+  const f = (k) => (1 + ((s.level || 1) - 1) * GROWTH_PER_LV * partGrowthMul(s.part, k)) * mul;
+  const r1 = (k) => Math.round((st[k] || 0) * f(k) * 10) / 10;
   return {
-    hp: Math.round(st.hp * f),
-    mp: Math.round(st.mp * f),
-    atk: r1(st.atk), vit: r1(st.vit), agi: r1(st.agi),
-    int: r1(st.int), pie: r1(st.pie), luk: r1(st.luk),
+    hp: Math.round((st.hp || 0) * f("hp")),
+    mp: Math.round((st.mp || 0) * f("mp")),
+    atk: r1("atk"), vit: r1("vit"), agi: r1("agi"),
+    int: r1("int"), pie: r1("pie"), luk: r1("luk"),
   };
 }
 
@@ -698,7 +663,6 @@ export function recalcDoll(doll) {
   const dom = dominantClass(doll);
   const spells = [];
   const passives = [];
-  let crit = 0;
   let clsLabel = "空の器";
   let clsKey = "fighter";
 
@@ -712,25 +676,8 @@ export function recalcDoll(doll) {
   const jr = jobRankOf(doll);
   doll.jobRank = jr ? jr.rank : 0;
 
-  // パッシブ集計 (全部位の魂のスキル表から、魂レベルに応じて累積)
-  const pAdd = { atk: 0, vit: 0, agi: 0, int: 0, pie: 0, luk: 0, hp: 0, mp: 0, crit: 0 };
-  for (const part of PARTS) {
-    const s = doll.parts[part];
-    if (!s) continue;
-    const tbl = PART_SKILLS[s.clsKey] && PART_SKILLS[s.clsKey][part];
-    if (!tbl) continue;
-    for (const e of tbl) if (s.level >= e.lvl && e.add) for (const k in e.add) pAdd[k] += e.add[k];
-  }
-  // パッシブを反映 (六大ステ/hp/mp/crit を直接加算)
-  hp  += pAdd.hp;
-  mp  += pAdd.mp;
-  atk += pAdd.atk;
-  vit += pAdd.vit;
-  agi += pAdd.agi;
-  int += pAdd.int;
-  pie += pAdd.pie;
-  luk += pAdd.luk;
-  crit += pAdd.crit;
+  // 部位スキル (魂のパッシブ) は廃止 — 部位の個性は soulStats の成長傾向
+  // (PART_GROWTH) がステータスそのものに織り込んでいる。
 
   // 職業の称号 (発現=同職3部位以上)。ステータス倍率パッシブは廃止し、
   // ランク2以降のユニークパッシブ (JOB_PASSIVES) に一本化した。
@@ -777,7 +724,6 @@ export function recalcDoll(doll) {
     hp: Math.max(1, Math.round(hp)), mp: Math.round(mp),
     atk: Math.round(atk), vit: Math.round(vit), agi: Math.max(1, Math.round(agi)),
     int: Math.round(int), pie: Math.round(pie), luk: Math.round(luk),
-    crit, // 会心率ボーナス (recalc が装備分と合算して critBonus にする)
   };
   doll.spells = spells;
   doll.passives = passives;
