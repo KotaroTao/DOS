@@ -166,6 +166,7 @@ const logEl = document.getElementById("log");
 const partyEl = document.getElementById("party");
 const combatMenu = document.getElementById("combat-menu");
 const floorInfo = document.getElementById("floor-info");
+const topbarCur = document.getElementById("topbar-cur");
 
 const G = {
   state: "town",      // town | board | combat | over
@@ -417,14 +418,27 @@ function eliteKey() {
   return ELITE_ORDER[(r - 1) * 3 + g];
 }
 
+// ダンジョンのヘッダは街のヘッダ (.tw-head) と同じ構図: 中央タイトル + 右に通貨を縦並び
+function setTopbarCurrency() {
+  if (!topbarCur) return;
+  topbarCur.innerHTML = "";
+  topbarCur.appendChild(el("span", "tw-c-gold", `💰${G.gold}`));
+  topbarCur.appendChild(el("span", "tw-c-soul", `✦${G.soulPts}`));
+  topbarCur.appendChild(el("span", "tw-c-red", `🔴${G.redSoul}`));
+}
 function updateTopbar() {
-  const currency = `🔴${G.redSoul} 💰${G.gold} ✦${G.soulPts}`;
   if (G.state === "town") {
-    floorInfo.textContent = currency;
+    // 街では #topbar はオーバーレイ (#town-screen) に隠れる。タイトルだけ持たせておく
+    floorInfo.textContent = "街";
+    if (topbarCur) topbarCur.innerHTML = "";
     return;
   }
   const sp = specialDef();
-  floorInfo.textContent = `B${G.floor}F${G.eliteFloor ? "☠" : sp ? "✨" : ""} ${currency}`;
+  const dn = activeCfg();
+  const mark = G.eliteFloor ? "☠" : sp ? "✨" : "";
+  floorInfo.textContent = `${dn ? dn.name + " " : ""}B${G.floor}F${mark}`;
+  setTopbarCurrency();
+  updateDescendBtn();
 }
 
 function newFloor() {
@@ -2772,13 +2786,16 @@ const townEl = document.getElementById("town-screen");
 const townBtn = document.getElementById("town-btn");
 const descendBtn = document.getElementById("descend-btn");
 
+// 下り階段ボタン: 最初は完全非表示。下り階段を見つけたら設定アイコンの右に出す。
+// アイコンは MAP の下り階段と同じスプライト (ICONS.stairs)。
 function updateDescendBtn() {
   if (!descendBtn) return;
-  if (G.state !== "board" || !G.board) {
-    descendBtn.disabled = true;
-    return;
+  if (!descendBtn.dataset.iconReady) {
+    descendBtn.appendChild(spriteCanvas(ICONS.stairs, 2));
+    descendBtn.dataset.iconReady = "1";
   }
-  const stairCell = findRevealedStairs();
+  const stairCell = (G.state === "board" && G.board) ? findRevealedStairs() : null;
+  descendBtn.classList.toggle("hidden", !stairCell);
   descendBtn.disabled = !stairCell;
 }
 
@@ -5337,8 +5354,7 @@ function tryEnterDungeon() {
   if (G.rumor) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
   G.state = "board";
   playBgm(fieldBgm());
-  if (townBtn) townBtn.classList.remove("hidden");
-  if (descendBtn) { descendBtn.classList.remove("hidden"); descendBtn.disabled = true; }
+  if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
   newFloor();
   renderBoard();
 }
@@ -5499,9 +5515,6 @@ function renderStatus() {
 
   statusEl.appendChild(grid);
 
-  // アイテム選択中は情報パネル
-  if (stSel) statusEl.appendChild(renderItemDetail(p, stSel));
-
   // 野営呪文 (ある場合のみ)。消費MPは省詠唱 (chant) 込みの実コストで表示する
   const campSpells = (p.spells || []).filter((k) => SPELLS[k] && SPELLS[k].kind === "heal");
   if (p.isDoll && p.alive && campSpells.length) {
@@ -5520,13 +5533,12 @@ function renderStatus() {
   }
 }
 
-// 所持品リストの1行
+// 所持品リストの1行 (タップで詳細ポップアップ)
 function invRow(p, it, sel) {
-  const selected = stSel && stSel.from === "bag" && stSel.item === it;
-  const row = el("div", "st-invrow" + (selected ? " sel" : ""));
+  const row = el("div", "st-invrow");
   const ic = el("span", "st-iicon"); ic.appendChild(spriteCanvas(it, 2)); row.appendChild(ic);
   row.appendChild(el("span", "st-iname", it.name + (it.cursed ? " 🔒" : "")));
-  row.addEventListener("click", () => { stSel = { item: it, from: "bag", index: sel.index }; renderStatus(); });
+  row.addEventListener("click", () => { SFX.select(); showItemDetailPopup(p, { item: it, from: "bag", index: sel.index }); });
   return row;
 }
 
@@ -5893,45 +5905,47 @@ function detailLines(it) {
   return L;
 }
 
-function renderItemDetail(p, sel) {
-  const d = el("div", "st-detail");
-  d.appendChild(el("div", "st-h center", "情報"));
-  if (!sel) { d.appendChild(el("div", "st-ddesc", "アイテムを選んでください。")); return d; }
+// 所持アイテムの詳細をポップアップ表示 (旧: 画面下のインライン情報パネル)
+function showItemDetailPopup(p, sel) {
+  if (!sel || !sel.item) return;
   const it = sel.item;
-  const top = el("div", "st-dtop");
-  top.appendChild(spriteCanvas(it, 6));
-  const dt = el("div", "st-dtext");
-  dt.appendChild(el("div", "st-dname", it.name + (it.cursed ? " 🔒呪" : "")));
-  for (const line of detailLines(it)) dt.appendChild(el("div", "st-dstat", line));
-  if (isEquippable(it) && G.party.length > 1) dt.appendChild(equipPartyChips(it));
-  top.appendChild(dt);
-  d.appendChild(top);
-  d.appendChild(el("div", "st-ddesc", it.desc || ""));
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card cdx-detail");
+  const rc = it.rank ? RANK_COLOR[it.rank] : null;
+  if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
+  const ban = el("div", "ig-banner", it.rank ? `${RANK_NAME[it.rank]}級アイテム` : "情報");
+  if (rc) ban.style.color = rc;
+  card.appendChild(ban);
+  const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 11)); card.appendChild(art);
+  card.appendChild(el("div", "ig-name", it.name + (it.cursed ? " 🔒呪" : "")));
+  for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
+  if (isEquippable(it) && G.party.length > 1) card.appendChild(equipPartyChips(it));
+  if (it.desc) card.appendChild(el("div", "ig-desc", it.desc));
 
-  const acts = el("div", "st-acts");
+  const acts = el("div", "ig-choices");
+  const close = () => wrap.remove();
   if (sel.from === "bag") {
     if (it.slot === "use") {
-      acts.appendChild(btn("使う", () => useItem(p, sel.index)));
+      acts.appendChild(btn("使う", () => { close(); useItem(p, sel.index); }));
     } else if (it.slot === "mat" || it.slot === "misc") {
       // 貴重品/戦利品: 装備も使用もできない (売却・譲渡のみ)
     } else {
       const can = canEquip(p, it);
-      const b = btn(can ? "装備する" : "装備不可", () => { if (can) doEquip(p, it); });
+      const b = btn(can ? "装備する" : "装備不可", () => { if (can) { close(); doEquip(p, it); } });
       if (!can) b.disabled = true;
       acts.appendChild(b);
     }
-    acts.appendChild(makeDanger("捨てる", () => dropItem(p, sel.index)));
+    acts.appendChild(makeDanger("捨てる", () => { close(); dropItem(p, sel.index); }));
     // 他のメンバーへ渡す (生存者が2人以上いるときのみ)
     if (G.party.filter((m) => m.alive).length > 1) {
-      acts.appendChild(btn("渡す", () => transferItem(p, sel.index)));
+      acts.appendChild(btn("渡す", () => { close(); transferItem(p, sel.index); }));
     }
-  } else if (sel.from === "equip") {
-    const b = makeDanger("外す", () => doUnequip(p, sel.key));
-    if (it.cursed) { b.disabled = true; b.textContent = "外せない(呪)"; }
-    acts.appendChild(b);
   }
-  d.appendChild(acts);
-  return d;
+  acts.appendChild(btn("閉じる", close));
+  card.appendChild(acts);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
 }
 
 function makeDanger(label, fn) { const b = btn(label, fn); b.classList.add("danger"); return b; }
@@ -5993,15 +6007,25 @@ function openEquipChooser(p, slotKey) {
 
   const list = el("div", "ig-choices eq-cand");
 
-  // 現在装備中 → 外す
+  // 現在装備中 → 外す (候補と同じく詳細情報も表示)
   if (cur) {
-    const un = btn(cur.cursed ? `${cur.name} は呪われて外せない` : `（外す） ${cur.name}`, () => {
+    const un = btn("", () => {
       if (cur.cursed) return;
       wrap.remove();
       const r = unequipItem(p, slotKey);
       if (r.msg) log(r.msg, "sys");
       SFX.select(); renderStatus(); renderParty();
     });
+    un.className = "btn eq-cand-btn eq-cur";
+    un.textContent = "";
+    const ic = el("span", "eq-ci"); ic.appendChild(spriteCanvas(cur, 2)); un.appendChild(ic);
+    const tx = el("span", "eq-ct");
+    tx.appendChild(el("span", "eq-cn", (cur.cursed ? "🔒 " : "装備中 ") + cur.name + (cur.cursed ? "（呪・外せない）" : "（タップで外す）")));
+    const st = statLines(cur);
+    if (st) tx.appendChild(el("span", "eq-cs", st));
+    if (cur.slot !== "use") tx.appendChild(el("span", "eq-ccls", equipClassText(cur)));
+    if (cur.desc) tx.appendChild(el("span", "eq-cdesc", cur.desc));
+    un.appendChild(tx);
     if (cur.cursed) un.disabled = true;
     list.appendChild(un);
   }
@@ -6750,15 +6774,13 @@ function resumeFromState() {
     return;
   }
   if (G.state === "board") {
-    if (townBtn) townBtn.classList.remove("hidden");
-    if (descendBtn) descendBtn.classList.remove("hidden");
+    if (descendBtn) descendBtn.classList.add("hidden");
     if (!G.board) newFloor();
     renderBoard();
     return;
   }
   if (G.state === "combat") {
-    if (townBtn) townBtn.classList.remove("hidden");
-    if (descendBtn) descendBtn.classList.remove("hidden");
+    if (descendBtn) descendBtn.classList.add("hidden");
     combatMenu.classList.remove("hidden");
     resumeCombat();
     return;

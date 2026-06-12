@@ -61,8 +61,10 @@ html, body { height: 100%; overflow: hidden; }
   border-bottom: 2px solid var(--accent);
   box-shadow: 0 2px 10px rgba(201, 162, 39, 0.18), inset 0 1px 0 rgba(255,255,255,0.06);
 }
-.topbar-right { display: flex; align-items: center; gap: 6px; }
-#floor-info { font-size: 13px; color: var(--accent); font-weight: bold; white-space: nowrap; }
+/* 街のヘッダ (.tw-head) と同じ構図: 左=操作ボタン / 中央=タイトル / 右=通貨 */
+.topbar-left { display: flex; align-items: center; gap: 6px; }
+#floor-info { flex: 1; text-align: center; font-size: 15px; font-weight: bold; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.5px; }
+#topbar-cur { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; font-size: 11px; font-weight: bold; white-space: nowrap; }
 #settings-btn, #descend-btn {
   background: none;
   border: 1px solid var(--border);
@@ -74,10 +76,14 @@ html, body { height: 100%; overflow: hidden; }
   line-height: 1;
   min-width: 40px;
   min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 #settings-btn:active { background: #2a2a3a; }
 #descend-btn:not(:disabled):active { background: #2a2a3a; }
-#descend-btn:disabled { opacity: 0.35; cursor: default; }
+#descend-btn { border-color: #7fd0ff; box-shadow: 0 0 10px rgba(127,208,255,0.35); }
+#descend-btn.hidden { display: none; }
 
 /* ===== 盤面 (主役。横幅いっぱい、上部に固定) ===== */
 #screen {
@@ -953,6 +959,8 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .eqchooser { max-width: 440px; }
 .eq-cand { gap: 6px; }
 .eq-cand-btn { display: flex; align-items: center; gap: 9px; justify-content: flex-start; text-align: left; min-height: 46px; padding: 7px 10px; }
+.eq-cur { border-color: #6b8cff; background: rgba(107,140,255,0.08); }
+.eq-cur .eq-cn { color: #aec2ff; }
 .eq-ci { flex: 0 0 auto; display: flex; }
 .eq-ct { display: flex; flex-direction: column; min-width: 0; }
 .eq-cn { font-size: 13px; color: #e7e3d4; }
