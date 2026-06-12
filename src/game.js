@@ -2357,7 +2357,8 @@ function renderCombatMenu() {
 function showSpells(actor) {
   combatMenu.innerHTML = "";
   combatMenu.appendChild(el("div", "who", `${actor.name} のスキル (MP ${actor.mp})`));
-  const list = el("div", "target-list");
+  // 呪文が多い職 (魔導士・賢者など最大11個) は2列に並べて縦に伸びすぎないようにする
+  const list = el("div", "target-list" + (actor.spells.length > 4 ? " cols2" : ""));
   for (const key of actor.spells) {
     const sp = SPELLS[key];
     const cost = spellCost(actor, sp); // 省詠唱 (chant) 持ちは消費が軽い
