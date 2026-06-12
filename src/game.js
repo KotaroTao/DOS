@@ -1323,6 +1323,7 @@ function acquireSoul(soul, sourceLine) {
 // ゴールド発見などと同じ中央オーバーレイカードに、イラスト+タイトル+選択肢を表示
 function showChoice(title, options, icon, { banner = "✦ 発見 ✦", accent = "#c9a227", lines = [] } = {}) {
   G.prompt = true;
+  itemGetEl.onclick = null; // 直前のポップアップが残した背景ハンドラを念のため消す
   itemGetEl.innerHTML = "";
   const card = el("div", "ig-card");
   card.style.borderColor = accent;
@@ -1352,6 +1353,7 @@ function closePrompt() {
   G.prompt = false;
   itemGetEl.classList.add("hidden");
   itemGetEl.innerHTML = "";
+  itemGetEl.onclick = null; // 古い背景クリックハンドラを消す (次のポップアップへ漏れないように)
   autosave(true);
 }
 
@@ -6213,6 +6215,7 @@ function showItemGet(item, who, onClose) {
   G.prompt = true; // 入力をブロック
   SFX.itemget();
   buzz([0, 30, 60, 30]);
+  itemGetEl.onclick = null;
   itemGetEl.innerHTML = "";
   const card = el("div", "ig-card");
   const rc = item.rank ? RANK_COLOR[item.rank] : null;
@@ -6241,13 +6244,12 @@ function showItemGet(item, who, onClose) {
   card.appendChild(ok);
   itemGetEl.appendChild(card);
   itemGetEl.classList.remove("hidden");
-  // 画面どこでも閉じられる
-  itemGetEl.onclick = (e) => { if (e.target === itemGetEl) closeItemGet(onClose); };
 }
 
 function closeItemGet(onClose) {
   itemGetEl.classList.add("hidden");
   itemGetEl.innerHTML = "";
+  itemGetEl.onclick = null; // 古い背景クリックハンドラが次のポップアップへ漏れないように
   G.prompt = false;
   if (onClose) onClose();
   else renderBoard();
@@ -6258,6 +6260,7 @@ function closeItemGet(onClose) {
 // アイテム獲得演出と同じオーバーレイ/カードデザインで表示する
 function showEvent({ sprite, title, lines = [], accent = "#c9a227", btnLabel = "つぎへ", banner = "✦ イベント ✦", sparkle = false, onClose }) {
   G.prompt = true;
+  itemGetEl.onclick = null;
   itemGetEl.innerHTML = "";
   const card = el("div", "ig-card");
   card.style.borderColor = accent;
@@ -6289,7 +6292,6 @@ function showEvent({ sprite, title, lines = [], accent = "#c9a227", btnLabel = "
   card.appendChild(ok);
   itemGetEl.appendChild(card);
   itemGetEl.classList.remove("hidden");
-  itemGetEl.onclick = (e) => { if (e.target === itemGetEl) closeItemGet(onClose); };
 }
 
 // 毒のダメージ (盤面を1歩進むごと)
