@@ -1219,7 +1219,7 @@ function resolveCorpse(cell) {
   const clsLabel = SOUL_CLASSES[clsKey].label;
   // 偉大なる死体 (特別階「強大な気配」): 希少な職業の魂が必ず宿っている
   if (cell.corpseGreat) {
-    showChoice(`偉大なる死体（${clsLabel}）。尋常ならざる魂の気配がする。`, [
+    showChoice(`偉大なる死体。尋常ならざる魂の気配がする。`, [
       { label: "✦ 魂を回収する", fn: () => collectWarmCorpse(cell, clsKey, clsLabel) },
       { label: "🚶 立ち去る", fn: () => { log("偉大なる死体に手を触れず、立ち去った。", "sys"); renderBoard(); } },
     ], ICONS.corpseWarm, { banner: "★ 偉大なる死体 ★", accent: "#ffcf4a" });
@@ -1227,14 +1227,14 @@ function resolveCorpse(cell) {
   }
   if (!cell.corpseWarm) {
     // 風化した死体: 調べるか立ち去るかを選ぶ (宝箱と同じポップアップ)
-    showChoice(`風化した死体（${clsLabel}）が横たわっている。調べてみるか？`, [
+    showChoice(`風化した死体が横たわっている。調べてみるか？`, [
       { label: "🔍 調べる", fn: () => investigateCorpse(cell, clsKey, clsLabel) },
       { label: "🚶 立ち去る", fn: () => { log("死体には触れず、立ち去った。", "sys"); renderBoard(); } },
     ], ICONS.corpse, { banner: "— 風化した死体 —", accent: "#8c866f" });
     return;
   }
   // あたたかい死体: 回収するか立ち去るか選べる。立ち去れば死体は残る。
-  showChoice(`まだあたたかい死体（${clsLabel}）。魂が宿っている。`, [
+  showChoice(`まだあたたかい死体。魂が宿っている。`, [
     { label: "✦ 魂を回収する", fn: () => collectWarmCorpse(cell, clsKey, clsLabel) },
     { label: "🚶 立ち去る", fn: () => { log("死体に手を触れず、立ち去った。", "sys"); renderBoard(); } },
   ], ICONS.corpseWarm, { banner: "✦ あたたかい死体 ✦", accent: SOUL_CLASSES[clsKey].glow });
