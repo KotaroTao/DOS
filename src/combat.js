@@ -150,18 +150,25 @@ export function spawnEliteEnemies(key, scale = 1) {
   return [makeEnemy(key, scale)];
 }
 
-// 宝箱から出るミミック (通常より手強い)。迷宮のランクに合った個体に化ける (強敵には化けない)
-export function spawnMimic(rank, scale = 1) {
+// 宝箱から出るミミック (通常より手強い)。ステータスは「先のダンジョン」相応の個体から借りるが
+// (rank/scale は game.js 側で参照先ダンジョンから算出)、見た目は固定のミミック絵で統一する。
+// master=true でマスターミミック (さらに手強く、見た目も別。固有ドロップは無く宝箱を残す)。
+export function spawnMimic(rank, scale = 1, master = false) {
   const pool = Object.keys(MONSTERS).filter((k) => MONSTERS[k].rank === rank && !MONSTERS[k].boss && !MONSTERS[k].elite);
   const key = pool.length ? pool[rand(pool.length)] : "cm_slime";
   const e = makeEnemy(key, scale);
-  e.name = "ミミック";
+  // 見た目を固定のミミック絵に差し替える (key/mon を上書き。ステータスは借りた個体のまま)
+  e.key = master ? "master_mimic" : "mimic";
+  e.mon = MONSTERS[e.key];
+  e.element = "none";
+  e.name = master ? "マスターミミック" : "ミミック";
   e.isMimic = true; // 撃破時は宝箱が確定出現し、中身が上質になる (game.js の endBattle)
-  e.maxhp = Math.round(e.maxhp * 1.4);
+  if (master) e.isMasterMimic = true; // 宝箱の中身がさらに上質 (アイテムLv+30)
+  e.maxhp = Math.round(e.maxhp * (master ? 2.0 : 1.4));
   e.hp = e.maxhp;
-  e.atk = Math.round(e.atk * 1.25);
-  e.gold = Math.round(e.gold * 2);
-  e.soul = Math.round(e.soul * 1.5);
+  e.atk = Math.round(e.atk * (master ? 1.5 : 1.25));
+  e.gold = Math.round(e.gold * (master ? 3 : 2));
+  e.soul = Math.round(e.soul * (master ? 2 : 1.5));
   return [e];
 }
 

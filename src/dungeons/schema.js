@@ -62,10 +62,12 @@ export function elemMult(atk, def) {
 
 // ===== 属性攻撃 / 属性防御 (装備で得るレベル付きステータス) =====
 // 属性攻撃 Lv1=◯: 有利属性へのダメージ+50% / 不利属性へ-50%。Lv2=◎: ±100%。
-// 属性防御も同じ計算で受けるダメージを増減する (Lv1=◯ ±50%, Lv2=◎ ±100%)。
 //   aE/aLv  : 攻撃側の属性と属性攻撃レベル (呪文・モンスター固有属性は Lv1 扱い)
 //   tgtElem : 対象の固有属性 (モンスター)。攻撃側の有利不利はこれと比較する
-//   tgtDef  : 対象の属性防御 {el, lv} (装備由来)。攻撃属性との相性で被ダメージを増減
+//   tgtDef  : 対象の属性防御 {el, lv} (装備由来)。攻撃属性に有利な時のみ被ダメージを軽減
+// 属性防御は「軽減のみ」: 有利属性で受けると減るが、不利属性で受けても増えない
+//   (装備した属性防具が裏目に出てダメージが増えることはない)。
+//   軽減量は Lv1=◯ 25% / Lv2=◎ 50% (Lv2 が上限)。
 // 光↔闇は相互有利の例外: 攻撃側は常に「有利」、防御側は常に「軽減」扱いになる。
 export function elemDmgMult(aE, aLv, tgtElem, tgtDef) {
   if (!aE || aE === "none") return 1;
@@ -76,9 +78,8 @@ export function elemDmgMult(aE, aLv, tgtElem, tgtDef) {
     else if (elemBeats(tgtElem, aE)) m *= Math.max(0, 1 - k);
   }
   if (tgtDef && tgtDef.lv > 0 && tgtDef.el && tgtDef.el !== "none") {
-    const k = 0.5 * Math.min(2, tgtDef.lv);
-    if (elemBeats(tgtDef.el, aE)) m *= Math.max(0, 1 - k); // 防御側が有利 → 軽減
-    else if (elemBeats(aE, tgtDef.el)) m *= 1 + k;          // 防御側が不利 → 増加
+    const k = 0.25 * Math.min(2, tgtDef.lv); // Lv1→25% / Lv2→50% 軽減
+    if (elemBeats(tgtDef.el, aE)) m *= Math.max(0, 1 - k); // 防御側が有利 → 軽減 (不利でも増加はしない)
   }
   return m;
 }

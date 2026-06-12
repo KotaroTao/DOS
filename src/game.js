@@ -408,6 +408,15 @@ function enemyScale() {
   return (cfg.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * sfNum("enemyMul", 1);
 }
 
+// ミミックの強さ参照: 現在地より ahead 先のダンジョン (末尾でクランプ) の rank と
+// enemyScale を借りる。これで「D2 のミミックは D3 相当」になる。
+// 階層補正・特別階補正は現在地のものを掛ける。
+function mimicRef(ahead) {
+  const ref = DUNGEONS[Math.min(DUNGEONS.length - 1, G.dungeonIdx + ahead)];
+  const scale = (ref.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * sfNum("enemyMul", 1);
+  return { rank: ref.rank || 1, scale };
+}
+
 // この迷宮に出る強敵のid。各ランク帯 (10迷宮) を 1-3 / 4-6 / 7-10 の
 // 3グループに区切り、グループごとに固有の強敵が決まっている (例: 迷宮1-3, 4-6, 7-10, 11-13, …)
 function eliteKey() {
@@ -1210,7 +1219,7 @@ function resolveCorpse(cell) {
   const clsLabel = SOUL_CLASSES[clsKey].label;
   // 偉大なる死体 (特別階「強大な気配」): 希少な職業の魂が必ず宿っている
   if (cell.corpseGreat) {
-    showChoice(`偉大なる死体（${clsLabel}）。尋常ならざる魂の気配がする。`, [
+    showChoice(`偉大なる死体。尋常ならざる魂の気配がする。`, [
       { label: "✦ 魂を回収する", fn: () => collectWarmCorpse(cell, clsKey, clsLabel) },
       { label: "🚶 立ち去る", fn: () => { log("偉大なる死体に手を触れず、立ち去った。", "sys"); renderBoard(); } },
     ], ICONS.corpseWarm, { banner: "★ 偉大なる死体 ★", accent: "#ffcf4a" });
@@ -1218,14 +1227,14 @@ function resolveCorpse(cell) {
   }
   if (!cell.corpseWarm) {
     // 風化した死体: 調べるか立ち去るかを選ぶ (宝箱と同じポップアップ)
-    showChoice(`風化した死体（${clsLabel}）が横たわっている。調べてみるか？`, [
+    showChoice(`風化した死体が横たわっている。調べてみるか？`, [
       { label: "🔍 調べる", fn: () => investigateCorpse(cell, clsKey, clsLabel) },
       { label: "🚶 立ち去る", fn: () => { log("死体には触れず、立ち去った。", "sys"); renderBoard(); } },
     ], ICONS.corpse, { banner: "— 風化した死体 —", accent: "#8c866f" });
     return;
   }
   // あたたかい死体: 回収するか立ち去るか選べる。立ち去れば死体は残る。
-  showChoice(`まだあたたかい死体（${clsLabel}）。魂が宿っている。`, [
+  showChoice(`まだあたたかい死体。魂が宿っている。`, [
     { label: "✦ 魂を回収する", fn: () => collectWarmCorpse(cell, clsKey, clsLabel) },
     { label: "🚶 立ち去る", fn: () => { log("死体に手を触れず、立ち去った。", "sys"); renderBoard(); } },
   ], ICONS.corpseWarm, { banner: "✦ あたたかい死体 ✦", accent: SOUL_CLASSES[clsKey].glow });
@@ -1237,8 +1246,8 @@ function collectWarmCorpse(cell, clsKey, clsLabel) {
   if (Math.random() < 0.20) {
     const great = !!cell.corpseGreat;
     const riseLine = great
-      ? `偉大なる死体（${clsLabel}）は目覚めて襲ってきた！`
-      : `まだあたたかい死体（${clsLabel}）は起き上がって襲ってきた！`;
+      ? `偉大なる死体は目覚めて襲ってきた！`
+      : `まだあたたかい死体は起き上がって襲ってきた！`;
     cell._corpseRise = true; // endBattle 側で「宝箱なし・魂回収」を分岐するための印
     log(riseLine, "dmg");
     SFX.die(); buzz([0, 40, 60, 40]);
@@ -1288,7 +1297,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   if (roll < 0.50) {
     const lvl = 1 + (dn.soulLevelBonus || 0) + Math.floor(G.floor / 3);
     const soul = makeSoul(clsKey, lvl, null, rollSoulRank(dn.rankBonus));
-    acquireSoul(soul, `風化した死体（${clsLabel}）の残りかすに、まだ職能の記憶が宿っていた。`);
+    acquireSoul(soul, `風化した死体の残りかすに、まだ職能の記憶が宿っていた。`);
     return;
   }
 
@@ -1301,7 +1310,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
     showEvent({
       sprite: ICONS.gold, banner: "💰 金品を発見 💰", title: `${g} ゴールド`,
       accent: "#ffd84a", sparkle: true,
-      lines: [`風化した死体（${clsLabel}）の懐に遺されていた金品だ。`],
+      lines: [`風化した死体の懐に遺されていた金品だ。`],
       onClose: () => renderBoard(),
     });
     return;
@@ -1322,7 +1331,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   // 所持品に空きがない等で装備を渡せない時は魂にフォールバック
   const lvl = 1 + (dn.soulLevelBonus || 0) + Math.floor(G.floor / 3);
   acquireSoul(makeSoul(clsKey, lvl, null, rollSoulRank(dn.rankBonus)),
-    `風化した死体（${clsLabel}）に、まだ職能の記憶が宿っていた。`);
+    `風化した死体に、まだ職能の記憶が宿っていた。`);
 }
 
 function collectSoul(cell, clsKey, clsLabel) {
@@ -1333,8 +1342,8 @@ function collectSoul(cell, clsKey, clsLabel) {
   const soul = makeSoul(clsKey, lvl, null, rollSoulRank((dn.rankBonus || 0) + (cell.corpseGreat ? 1 : 0)));
   maybeDropEmptySoul(0.07); // まれに「空の魂」も見つかる
   acquireSoul(soul, cell.corpseGreat
-    ? `偉大なる死体（${clsLabel}）に宿っていた、強大な魂だ。`
-    : `まだあたたかい死体（${clsLabel}）に宿っていた魂だ。`);
+    ? `偉大なる死体に宿っていた、強大な魂だ。`
+    : `まだあたたかい死体に宿っていた魂だ。`);
 }
 
 // 一定確率で「空の魂」を手の空いた人業へ。入手したらログ表示
@@ -1499,15 +1508,21 @@ function rollChest(cell, allowDanger, done, opener, cRankIn, lvBonus) {
   if (allowDanger) {
     // 伝説の宝箱 (cell.lootBonus) はミミック/黒い宝箱に化けない
     const legendary = !!(cell && cell.lootBonus);
-    // ミミック率: 特別階 (ミミックの巣) では一律50%
-    if (!legendary && Math.random() < sfNum("mimicRate", 0.06 + G.floor * 0.03)) {
-      // ミミック: 演出 → 戦闘
+    // ミミック率: 一律3% (特別階「ミミックの巣」では一律50%)
+    if (!legendary && Math.random() < sfNum("mimicRate", 0.03)) {
+      // ミミック出現時、10%でマスターミミック。強さは先のダンジョンを参照
+      //  (通常=1つ先 / マスター=2つ先)。固有ドロップは無く、上質な宝箱を残す。
+      const master = Math.random() < 0.10;
+      const ref = mimicRef(master ? 2 : 1);
       SFX.trap(); buzz([0, 60, 40, 60]);
-      log("宝箱はミミックだった！", "dmg");
+      log(master ? "宝箱はマスターミミックだった！" : "宝箱はミミックだった！", "dmg");
       showEvent({
-        sprite: MONSTERS.kobold, title: "ミミックだ！", accent: "#d4504e", banner: "⚠ 危険 ⚠",
-        lines: ["宝箱は怪物だった！", "戦闘になる！"], btnLabel: "戦う",
-        onClose: () => startBattle(spawnMimic(activeCfg().rank || 1, enemyScale()), cell),
+        sprite: master ? MONSTERS.master_mimic : MONSTERS.mimic,
+        title: master ? "マスターミミックだ！" : "ミミックだ！",
+        accent: master ? "#ffd34d" : "#d4504e", banner: master ? "⚠ 危険 ⚠⚠" : "⚠ 危険 ⚠",
+        lines: master ? ["金色に輝く宝箱が牙を剥いた！", "強敵だ。倒せば極上の宝が手に入る。"] : ["宝箱は怪物だった！", "戦闘になる！"],
+        btnLabel: "戦う",
+        onClose: () => startBattle(spawnMimic(ref.rank, ref.scale, master), cell),
       });
       return;
     }
@@ -2615,8 +2630,9 @@ function endBattle() {
     finishToBoard();
     // 勝利の余韻: まず勝利ポップアップ(Gold/Soul)を表示し、閉じてから宝箱を出す。
     // 宝箱はドロップ品があれば必ず、なければ50%で出現。強敵・ミミックは宝箱確定。
-    // ミミックが残す宝箱は中身が上質 (アイテムレベル+15)
+    // ミミックが残す宝箱は中身が上質 (アイテムレベル+15)。マスターミミックは+30。
     const wasMimic = b.enemies.some((e) => e.isMimic);
+    const wasMasterMimic = b.enemies.some((e) => e.isMasterMimic);
     const afterVictory = () => {
       const after = clearInfo ? () => showDungeonClearedPopup(clearInfo) : null;
       // 死体戦は宝箱を出さず、死体に残っていた魂を100%回収する
@@ -2625,7 +2641,7 @@ function endBattle() {
         return;
       }
       if (drop || wasElite || wasMimic || Math.random() < 0.5) {
-        setTimeout(() => battleChest(drop ? [drop] : [], after, wasMimic ? 15 : 0), 200);
+        setTimeout(() => battleChest(drop ? [drop] : [], after, wasMasterMimic ? 30 : wasMimic ? 15 : 0), 200);
         return;
       }
       if (after) after();
@@ -4788,7 +4804,8 @@ function showCodexMonDetail(key) {
   const rc = m.rank ? RANK_COLOR[m.rank] : null;
   if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
   const elm = ELEMENTS[m.element] || ELEMENTS.none;
-  const ban = el("div", "ig-banner", `${RACE_LABEL[m.race] || "魔物"}${m.rank ? "・" + RANK_NAME[m.rank] + "級" : ""}`);
+  const isOther = CODEX_OTHER.includes(key);
+  const ban = el("div", "ig-banner", isOther ? "その他" : `${RACE_LABEL[m.race] || "魔物"}${m.rank ? "・" + RANK_NAME[m.rank] + "級" : ""}`);
   if (rc) ban.style.color = rc;
   card.appendChild(ban);
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(m, 9)); card.appendChild(art);
@@ -4803,9 +4820,15 @@ function showCodexMonDetail(key) {
   info.appendChild(el("div", "cdx-stat", `HP${m.maxhp}  ATK${m.atk}  VIT${m.def}  AGI${m.spd}  ✦${m.soul}  💰${m.gold}`));
   card.appendChild(info);
 
-  // ドロップ (実際に落とすまで ？？？)
+  // ドロップ (実際に落とすまで ？？？)。固有ドロップを持たない魔物は「無し」と明示
   const dropBox = el("div", "cdx-drops");
   dropBox.appendChild(el("div", "cdx-h", "落とすもの"));
+  if (!m.dropNormal && !m.dropRare) {
+    dropBox.appendChild(el("div", "cdx-dun dim", isOther
+      ? "・固有のドロップは無い（上質な宝箱を残す）"
+      : "・固有のドロップは無い"));
+    card.appendChild(dropBox);
+  } else {
   const dropRow = (label, itemId, revealed, cls) => {
     const r = el("div", "cdx-drow");
     r.appendChild(el("span", "cdx-dlabel " + cls, label));
@@ -4820,6 +4843,7 @@ function showCodexMonDetail(key) {
   dropBox.appendChild(dropRow("通常", m.dropNormal, e.normal, "normal"));
   dropBox.appendChild(dropRow("レア", m.dropRare, e.rare, "rare"));
   card.appendChild(dropBox);
+  }
 
   // 出現ダンジョン (倒したダンジョンのみ記載)
   const dunBox = el("div", "cdx-drops");
@@ -4850,7 +4874,10 @@ function dungeonRoster(dn) {
   return out;
 }
 
-let codexDungeonIdx = 0; // モンスター図鑑の選択中ダンジョン
+// 特定のダンジョンに属さない魔物 (宝箱に潜む類) を集める「その他」タブの面々
+const CODEX_OTHER = ["mimic", "master_mimic"];
+
+let codexDungeonIdx = 0; // モンスター図鑑の選択中ダンジョン (-1 は「その他」タブ)
 function renderCodexDungeon() {
   townEl.innerHTML = "";
   townEl.appendChild(townHeader("モンスター図鑑", "palace"));
@@ -4858,19 +4885,25 @@ function renderCodexDungeon() {
   const unlocked = Math.max(1, G.unlockedDungeons || 1);
   if (codexDungeonIdx >= unlocked) codexDungeonIdx = 0;
 
-  // ダンジョン選択タブ (未解放のダンジョンは一切表示しない)
+  // ダンジョン選択タブ (未解放のダンジョンは一切表示しない) + 末尾に「その他」
   const tabs = el("div", "tw-dolltabs shop-tabs cdx-tabs");
   for (let i = 0; i < unlocked && i < DUNGEONS.length; i++) {
     const b = btn(DUNGEONS[i].short, () => { codexDungeonIdx = i; renderCodexDungeon(); });
     b.className = "tw-dolltab" + (codexDungeonIdx === i ? " active" : "");
     tabs.appendChild(b);
   }
+  const ob = btn("その他", () => { codexDungeonIdx = -1; renderCodexDungeon(); });
+  ob.className = "tw-dolltab" + (codexDungeonIdx === -1 ? " active" : "");
+  tabs.appendChild(ob);
   townEl.appendChild(tabs);
 
-  const dn = DUNGEONS[codexDungeonIdx];
-  townEl.appendChild(el("div", "tw-note", `${dn.name} — 出現する魔物 (未討伐は ？？？)`));
+  const isOther = codexDungeonIdx === -1;
+  const dn = isOther ? null : DUNGEONS[codexDungeonIdx];
+  townEl.appendChild(el("div", "tw-note", isOther
+    ? "その他 — 宝箱に潜む魔物 (未討伐は ？？？)"
+    : `${dn.name} — 出現する魔物 (未討伐は ？？？)`));
 
-  const roster = dungeonRoster(dn);
+  const roster = isOther ? CODEX_OTHER.filter((k) => MONSTERS[k]) : dungeonRoster(dn);
   const grid = el("div", "cdx-grid");
   for (const key of roster) {
     const m = MONSTERS[key];
@@ -5245,15 +5278,26 @@ function renderShop() {
     townEl.appendChild(subs);
   }
 
-  // 在庫 (内部スクロール領域)
+  // 在庫 (内部スクロール領域)。カテゴリ順 → 売却額の安い順に並べる
   const stock = el("div", "shop-stock");
-  let any = false;
-  for (const id of Object.keys(G.shopStock)) {
+  // 並び順キー: 武器はサブカテゴリ (WEAPON_CATS) 順、その他はアイテム分類 (ITEM_CATS) 順
+  const catOrder = (it) => {
+    if (it.cat) { const i = WEAPON_CATS.findIndex((c) => c.key === it.cat); return i < 0 ? 99 : i; }
+    const i = ITEM_CATS.findIndex((c) => c.slots.includes(it.slot)); return i < 0 ? 99 : i;
+  };
+  const ids = Object.keys(G.shopStock).filter((id) => {
     const it = ITEMS[id];
-    if (!it || !tabDef.slots.includes(it.slot)) continue;
-    if (tabDef.key === "weapon" && shopWeaponCat !== "all" && it.cat !== shopWeaponCat) continue;
+    if (!it || !tabDef.slots.includes(it.slot)) return false;
+    if (tabDef.key === "weapon" && shopWeaponCat !== "all" && it.cat !== shopWeaponCat) return false;
+    return G.shopStock[id] > 0;
+  }).sort((a, b) => {
+    const ia = ITEMS[a], ib = ITEMS[b];
+    return catOrder(ia) - catOrder(ib) || sellPrice(ia) - sellPrice(ib) || ia.name.localeCompare(ib.name);
+  });
+  let any = false;
+  for (const id of ids) {
+    const it = ITEMS[id];
     const count = G.shopStock[id];
-    if (count <= 0) continue;
     any = true;
     const price = it.price || 30;
     const r = el("div", "tw-shoprow");
@@ -6304,7 +6348,11 @@ function showItemGet(item, who, onClose) {
   card.appendChild(el("div", "ig-name", item.name));
   const stat = statLines(item);
   if (stat) card.appendChild(el("div", "ig-stat", stat));
-  if (isEquippable(item)) card.appendChild(el("div", "ig-class", equipClassText(item)));
+  // 装備可否は現在の編成 (人業) 単位で ○/× 表示。1人のみの時は条件バッジにフォールバック
+  if (isEquippable(item)) {
+    if (G.party.length > 1) card.appendChild(equipPartyChips(item));
+    else card.appendChild(el("div", "ig-class", equipClassText(item)));
+  }
   card.appendChild(el("div", "ig-desc", item.desc || ""));
   card.appendChild(el("div", "ig-who", `${who.name} が手に入れた`));
   const ok = btn("受け取る", () => closeItemGet(onClose));
