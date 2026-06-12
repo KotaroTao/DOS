@@ -5258,7 +5258,6 @@ function confirmReturnToTown() {
 const statusEl = document.getElementById("status-screen");
 const statusBtn = document.getElementById("status-btn");
 let stSel = null; // 詳細表示中のアイテム { item, from:"equip"|"bag", key }
-let stSoulSel = null; // 魂タブで詳細表示中の魂 (uid)
 
 function openStatus(idx = 0) {
   if (G.state !== "board" && G.state !== "town") return;
@@ -5268,7 +5267,6 @@ function openStatus(idx = 0) {
   G.statusIdx = idx;
   G.statusTab = "main"; // 初期表示は統合画面 (ステータス/装備/所持品)
   stSel = null;
-  stSoulSel = null;
   statusEl.classList.remove("hidden");
   renderStatus();
 }
@@ -5458,13 +5456,19 @@ function renderSoulTab(p) {
   head.style.borderColor = dom ? SOUL_CLASSES[dom.clsKey].color : "#34344a";
   head.appendChild(el("div", "st-soulc", p.cls));
   head.appendChild(el("div", "st-soultt",
-    p.jobRank ? `キャラLv ${p.jobLv || 0}（魂の平均・スキル解放 Lv${p.jobRank * 10} まで）` : "同職3部位未満 — 職業未発現"));
+    p.jobRank ? `キャラLv ${p.jobLv || 0}（魂の平均）` : "同職3部位未満 — 職業未発現"));
+  // 職業欄タップで職業図鑑と同じ職業詳細ポップアップを開く
+  if (p.jobKey) {
+    head.style.cursor = "pointer";
+    head.title = "職業図鑑を表示";
+    head.appendChild(el("div", "tw-sumhint", "▶ 職業図鑑"));
+    head.addEventListener("click", () => showCodexJobDetail(p.jobKey, p.jobRank));
+  }
   wrap.appendChild(head);
 
   for (const part of PARTS) {
     const s = p.parts[part];
-    const selected = s && stSoulSel === s.uid;
-    const row = el("div", "st-soulrow2" + (selected ? " sel" : ""));
+    const row = el("div", "st-soulrow2");
     row.appendChild(el("div", "st-soulpart", PART_LABEL[part]));
     const orb = el("span", "tw-chips");
     if (s) { orb.style.color = SOUL_CLASSES[s.clsKey].glow; orb.appendChild(spriteCanvas(soulSprite(s.clsKey), 2)); }
@@ -5473,23 +5477,58 @@ function renderSoulTab(p) {
       const rank = SOUL_RANKS[s.rank] || SOUL_RANKS[1];
       if (rank.color) row.style.borderColor = rank.color;
       const info = el("div", "st-soulinfo");
-      const nm = el("div", "st-souln2", soulName(s));
+      const atCap = s.level >= s.cap;
+      // 魂名に「Lv1/10」のように上限を付ける
+      const nm = el("div", "st-souln2", atCap ? soulName(s) : `${soulName(s)}/${s.cap}`);
       if (rank.color) nm.style.color = rank.color;
       info.appendChild(nm);
-      // 成長・限界突破は館「魂強化」で
-      info.appendChild(el("div", "st-soulstat",
-        s.level >= s.cap ? `Lv ${s.level}（上限）— 館で限界突破` : `Lv ${s.level} / ${s.cap} ・ 強化は館で ✦${soulTrainCost(s.level)}`));
+      if (atCap) {
+        info.appendChild(el("div", "st-soulstat", "Lv上限 — 館で限界突破"));
+      } else {
+        // 次のレベルまでに必要な Soul を所持量に対するバーで表示
+        const need = soulTrainCost(s.level);
+        const have = G.soulPts || 0;
+        const ratio = Math.max(0, Math.min(1, have / need));
+        const bar = el("div", "st-soulbar");
+        const fill = el("i");
+        fill.style.width = `${Math.round(ratio * 100)}%`;
+        bar.appendChild(fill);
+        info.appendChild(bar);
+        info.appendChild(el("div", "st-soulstat", `次のLvまで Soul ${Math.min(have, need)} / ${need}`));
+      }
       row.appendChild(info);
-      // タップで魂の詳細 (ステータス + 基本/上位スキル) を開閉
-      row.addEventListener("click", () => { stSoulSel = selected ? null : s.uid; renderStatus(); });
+      // タップで魂の詳細をポップアップ表示 (ステータス + パッシブ)
+      row.style.cursor = "pointer";
+      row.addEventListener("click", () => showSoulDetailPopup(s));
       wrap.appendChild(row);
-      if (selected) wrap.appendChild(renderSoulDetail(s));
     } else {
       row.appendChild(el("div", "st-soulinfo dim", "（魂なし）"));
       wrap.appendChild(row);
     }
   }
   return wrap;
+}
+
+// 魂の詳細をポップアップで表示 (折りたたみではなくモーダル)
+function showSoulDetailPopup(s) {
+  const rank = SOUL_RANKS[s.rank] || SOUL_RANKS[1];
+  const accent = rank.color || (SOUL_CLASSES[s.clsKey] || {}).color || "#c9a227";
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card confirm-card");
+  card.style.borderColor = accent;
+  const banner = el("div", "ig-banner", "✦ 魂 ✦");
+  banner.style.color = accent;
+  card.appendChild(banner);
+  const nm = el("div", "ig-name", soulName(s));
+  nm.style.color = accent;
+  card.appendChild(nm);
+  card.appendChild(renderSoulDetail(s));
+  const ok = btn("閉じる", () => wrap.remove());
+  ok.className = "btn primary ig-ok";
+  card.appendChild(ok);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
 }
 
 // パッシブの加算オブジェクトを表示用ラベルに ("ATK+2" など)
