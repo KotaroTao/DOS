@@ -306,7 +306,7 @@ function activeCfg() { return curDungeon(); }
 // 効果はその階に滞在する間だけ有効。board(b) は newFloor 直後の盤面加工フック。
 const SF_CORPSE_CLASSES = ["fighter", "knight", "thief", "mage", "priest", "bishop"];
 const SPECIAL_FLOORS = [
-  { id: "mighty", name: "強大な気配", icon: "corpseWarm", accent: "#ffcf4a", sym: "✟", minFloor: 4, rate: 0.01,
+  { id: "mighty", name: "強大な気配", icon: "corpseWarm", accent: "#ffcf4a", sym: "✟", minFloor: 3, rate: 0.01,
     lines: ["この階のどこかに「偉大なる死体」が眠っている。", "並の魂ではない。必ずや希少な魂が宿っているだろう。"],
     board: (b) => sfPlace(b, 1, (c) => { c.type = "corpse"; c.cleared = false; c.corpseWarm = true; c.corpseGreat = true; c.corpseClass = rollGreatCorpseClass(); }) },
   { id: "bounty", name: "豊穣の間", icon: "gold", accent: "#ffd84a", sym: "❂", minFloor: 2, rate: 0.05, goldMul: 2,
@@ -319,35 +319,35 @@ const SPECIAL_FLOORS = [
   { id: "moonlight", name: "月明かりの階", icon: "corpseWarm", accent: "#aef0ff", sym: "☾", minFloor: 2, rate: 0.02,
     lines: ["蒼い光が差し込み、死者の温もりが消えない。", "この階の死体はすべて「あたたかい死体」だ。"],
     board: (b) => sfEachCell(b, (c) => { if (c.type === "corpse" && !c.cleared) c.corpseWarm = true; }) },
-  { id: "vault", name: "黄金の蔵", icon: "chest", accent: "#e8c47a", sym: "▣", minFloor: 3, rate: 0.02,
+  { id: "vault", name: "黄金の蔵", icon: "chest", accent: "#e8c47a", sym: "▣", minFloor: 2, rate: 0.02,
     lines: ["ここは何者かの貯蔵庫だったようだ。", "宝箱が多く眠っている。"],
     board: (b) => sfPlace(b, 3, (c) => { c.type = "chest"; c.cleared = false; }) },
   { id: "springs", name: "霊泉の階", icon: "fountain", accent: "#5fb8d6", sym: "♨", minFloor: 2, rate: 0.02,
     lines: ["岩の隙間から清らかな水音が聞こえる。", "癒しの泉が複数湧いている。"],
     board: (b) => sfPlace(b, 2, (c) => { c.type = "fountain"; c.cleared = false; c.fountainKind = "pure"; }) },
-  { id: "clairvoyance", name: "千里眼の刻", icon: "start", accent: "#c08aff", sym: "◉", minFloor: 3, rate: 0.015,
+  { id: "clairvoyance", name: "千里眼の刻", icon: "start", accent: "#c08aff", sym: "◉", minFloor: 2, rate: 0.015,
     lines: ["不思議な力が視界を開いていく。", "この階のすべてのカードが最初から見えている。"],
     board: (b) => sfEachCell(b, (c) => { c.revealed = true; }) },
-  { id: "horde", name: "餓えた群れ", icon: "poison", accent: "#d4504e", sym: "Ψ", minFloor: 3, rate: 0.02,
+  { id: "horde", name: "餓えた群れ", icon: "poison", accent: "#d4504e", sym: "Ψ", minFloor: 2, rate: 0.02,
     lines: ["無数の足音と唸り声…敵が異常に多い。", "群れを狩り尽くせば、魂も財も多く集まるだろう。"],
     board: (b) => sfPlace(b, 4, (c) => { c.type = "monster"; c.monsterKey = pickFrom(sfMonsterPool()); c.cleared = false; }) },
-  { id: "thiefInsight", name: "盗賊の洞察", icon: "gold", accent: "#6fae46", sym: "♠", minFloor: 3, rate: 0.02, rareDropRate: 0.20,
+  { id: "thiefInsight", name: "盗賊の洞察", icon: "gold", accent: "#6fae46", sym: "♠", minFloor: 2, rate: 0.02, rareDropRate: 0.20,
     lines: ["盗賊の経験則が囁く——奴らは上物を呑んでいる。", "この階の敵のレアドロップ率が 20% になる。"] },
-  { id: "miasma", name: "瘴気の階", icon: "poison", accent: "#8a2be2", sym: "☣", minFloor: 3, rate: 0.02, enemyMul: 1.25, soulMul: 2,
+  { id: "miasma", name: "瘴気の階", icon: "poison", accent: "#8a2be2", sym: "☣", minFloor: 2, rate: 0.02, enemyMul: 1.25, soulMul: 2,
     lines: ["淀んだ瘴気が敵を昂らせている。敵が強い。", "だが得られる Soul は 2倍 になる。"] },
-  { id: "caravan", name: "商隊の遺品", icon: "chest", accent: "#e0a060", sym: "❖", minFloor: 3, rate: 0.02, chestRankUp: 1,
+  { id: "caravan", name: "商隊の遺品", icon: "chest", accent: "#e0a060", sym: "❖", minFloor: 2, rate: 0.02, chestRankUp: 1,
     lines: ["全滅した商隊の荷が散らばっている。", "この階の宝箱は1ランク上等だ。"] },
-  { id: "necropolis", name: "屍人の巣", icon: "corpse", accent: "#8c866f", sym: "✝", minFloor: 4, rate: 0.015,
+  { id: "necropolis", name: "屍人の巣", icon: "corpse", accent: "#8c866f", sym: "✝", minFloor: 3, rate: 0.015,
     lines: ["おびただしい数の死体が横たわっている。", "魂を回収する好機だが、起き上がる者もいるだろう。"],
     board: (b) => sfPlace(b, 4, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = pickFrom(SF_CORPSE_CLASSES); c.corpseWarm = Math.random() < 0.5; }) },
-  { id: "marsh", name: "毒の沼", icon: "poison", accent: "#5a8a2a", sym: "ஃ", minFloor: 3, rate: 0.02, goldMul: 1.5,
+  { id: "marsh", name: "毒の沼", icon: "poison", accent: "#5a8a2a", sym: "ஃ", minFloor: 2, rate: 0.02, goldMul: 1.5,
     lines: ["床のいたるところから毒が滲み出している。", "足場は危険だが、沼には金品が沈んでいる。ゴールド 1.5倍。"],
     board: (b) => sfEachCell(b, (c) => { if (c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.30) { c.type = "poison"; c.cleared = false; } }) },
   { id: "tailwind", name: "追い風の階", icon: "stairs", accent: "#7fe0a8", sym: "≫", minFloor: 2, rate: 0.02, preempt100: true, noAmbush: true,
     lines: ["不思議と体が軽く、敵の動きがよく見える。", "常に先手を取り、奇襲を受けない。"] },
-  { id: "elemSurge", name: "属性の奔流", icon: "wisp", accent: "#ff9a4a", sym: "✺", minFloor: 3, rate: 0.02, elemAll: true, cond: (cfg) => !!cfg.element,
+  { id: "elemSurge", name: "属性の奔流", icon: "wisp", accent: "#ff9a4a", sym: "✺", minFloor: 2, rate: 0.02, elemAll: true, cond: (cfg) => !!cfg.element,
     lines: ["迷宮の属性が荒れ狂っている。", "この階の敵はすべて迷宮の属性を帯びる。属性装備が鍵だ。"] },
-  { id: "mimicNest", name: "ミミックの巣", icon: "chest", accent: "#e07840", sym: "‽", minFloor: 4, rate: 0.015, mimicRate: 0.50,
+  { id: "mimicNest", name: "ミミックの巣", icon: "chest", accent: "#e07840", sym: "‽", minFloor: 3, rate: 0.015, mimicRate: 0.50,
     lines: ["不自然なほど宝箱が多い…罠の匂いがする。", "宝箱の半分はミミックだ。だが倒せば上質な宝箱を残す。"],
     board: (b) => sfPlace(b, 3, (c) => { c.type = "chest"; c.cleared = false; }) },
   { id: "healing", name: "癒しの霊気", icon: "fountain", accent: "#8af0c0", sym: "✚", minFloor: 2, rate: 0.02, victoryHeal: 0.10,
@@ -355,7 +355,7 @@ const SPECIAL_FLOORS = [
   { id: "guided", name: "迷い無き道", icon: "stairs", accent: "#e8e0c0", sym: "▼", minFloor: 2, rate: 0.02,
     lines: ["誰かが残した道標が奥まで続いている。", "下り階段の位置が最初から見えている。"],
     board: (b) => sfEachCell(b, (c) => { if (c.type === "stairs") c.revealed = true; }) },
-  { id: "legend", name: "伝説の眠る階", icon: "chest", accent: "#ffe080", sym: "★", minFloor: 5, rate: 0.01,
+  { id: "legend", name: "伝説の眠る階", icon: "chest", accent: "#ffe080", sym: "★", minFloor: 4, rate: 0.01,
     lines: ["遥か昔の英雄の遺品が、この階のどこかに眠っている。", "ひとつの宝箱にだけ、格別の装備が入っている。"],
     board: (b) => {
       // 既存の宝箱から1つ選んで「伝説の宝箱」(+40レベル) にする。なければ1つ追加する
@@ -1283,13 +1283,14 @@ function recoverCorpseSoul(corpse, after) {
     : `死体に残っていた魂を回収した。`, after || (() => renderBoard()));
 }
 
-// 現在のダンジョンに出るアンデッド種のキー (なければ全体から、最終的に地下牢の骸)
+// 現在のダンジョンに出るアンデッド種のキー (なければ全体から、最終的に地下牢の骸)。
+// ボス/強敵は除外する (死体から湧いた個体が boss フラグを持つと迷宮踏破扱いになってしまうため)
 function undeadKeyForDungeon() {
   const cfg = activeCfg();
   const local = [...(cfg.pool || []), ...(cfg.deepPool || [])]
-    .filter((k) => MONSTERS[k] && MONSTERS[k].race === "undead");
+    .filter((k) => MONSTERS[k] && MONSTERS[k].race === "undead" && !MONSTERS[k].boss && !MONSTERS[k].elite);
   if (local.length) return local[rand(local.length)];
-  const all = Object.keys(MONSTERS).filter((k) => MONSTERS[k].race === "undead" && !MONSTERS[k].elite);
+  const all = Object.keys(MONSTERS).filter((k) => MONSTERS[k].race === "undead" && !MONSTERS[k].boss && !MONSTERS[k].elite);
   return all.length ? all[rand(all.length)] : "d01_skeleton";
 }
 
@@ -1895,9 +1896,10 @@ function descend() {
   questProgress("floor", G.floor);
   // 強敵階判定: 5階層以上の迷宮のみ、3F以降で10%の確率で発生
   G.eliteFloor = (activeCfg().floors || 3) >= 5 && G.floor >= 3 && Math.random() < 0.10;
-  // 特別階判定: 強敵階でなければ、各候補の出現条件 (階数) と出現率で抽選 (1Fには出ない)
+  // 特別階判定: 強敵階でなければ、各候補の出現条件 (階数) と出現率で抽選。
+  // 1F には特別な階は出現しない (2F以降のみ)。
   G.specialFloor = null;
-  if (!G.eliteFloor) {
+  if (!G.eliteFloor && G.floor >= 2) {
     const r = Math.random();
     let acc = 0;
     for (const c of SPECIAL_FLOORS) {
@@ -2702,7 +2704,8 @@ function endBattle() {
         setTimeout(() => showToast(`${rk.order >= 2 ? "🌟" : "✦"} ${soulName(s)} を入手`), 600);
       }
     }
-    const wasBoss = b.enemies.some((e) => e.boss);
+    // 迷宮踏破は本物の主戦のみ。死体から湧いた個体 (corpse) は boss フラグを持っていても踏破扱いにしない
+    const wasBoss = !corpse && b.enemies.some((e) => e.boss);
     if (wasBoss) { flashScreen("#ffd84a"); buzz([0, 60, 50, 60, 50, 250]); } // 主討伐は特別な瞬間
     else if (wasElite) { flashScreen("#d4504e"); buzz([0, 80, 50, 80, 50, 300]); setTimeout(() => showToast("☠ 強敵討伐！"), 400); }
     if (G.battleCell) G.battleCell.cleared = true;
