@@ -3558,43 +3558,47 @@ function renderMansionSynth() {
 }
 
 // 魂融合: 同じ職業・部位・ランクの魂を2つ選んで融合。ランクアップ or ランク5強化
-let fuseSel = [null, null]; // 選択中の魂インデックス (G.souls[] のインデックス)
+let fuseSel = [null, null]; // 選択中の魂オブジェクト (ストック・装備中どちらも対象)
 function renderMansionFuse() {
   townEl.appendChild(townHeader("魂融合", "mansion"));
   townEl.appendChild(el("div", "tw-lead",
     "同じ職業・部位・ランクで、どちらもLvMaxの魂を2つ融合する。\nランク1-4: ランクが1つ上昇。ランク5: ステータス強化(+1)。"));
 
+  // ストック + 装備中の全魂を収集 (装備中はどの人形・部位か記録)
+  const allSouls = [
+    ...G.souls.map((s) => ({ s, equipped: false })),
+    ...allDolls().flatMap((d) =>
+      PARTS.filter((p) => d.parts && d.parts[p]).map((p) => ({ s: d.parts[p], equipped: true, doll: d, part: p }))),
+  ];
+
   // 条件を満たす魂のみ表示: LvMAX かつ 同職業・部位・ランクの LvMAX 相手がいるもの。
-  // 職業 → ランク → 部位順に並べる (G.souls のインデックスは選択用に保持)
   const isMax = (s) => s.level >= ((SOUL_RANKS[s.rank] || {}).cap || s.cap);
-  const groups = {}; // clsKey|part|rank -> count (LvMAXのみ)
-  for (const s of G.souls) {
+  const groups = {};
+  for (const { s } of allSouls) {
     if (!isMax(s)) continue;
     const k = `${s.clsKey}|${s.part}|${s.rank}`;
     groups[k] = (groups[k] || 0) + 1;
   }
-  const eligible = G.souls
-    .map((s, idx) => ({ s, idx }))
-    .filter(({ s }) => isMax(s) && groups[`${s.clsKey}|${s.part}|${s.rank}`] >= 2);
+  const eligible = allSouls.filter(({ s }) => isMax(s) && groups[`${s.clsKey}|${s.part}|${s.rank}`] >= 2);
   const clsOrder = Object.keys(SOUL_CLASSES);
   eligible.sort((a, b) =>
     (clsOrder.indexOf(a.s.clsKey) - clsOrder.indexOf(b.s.clsKey)) ||
     (a.s.rank - b.s.rank) ||
     (PARTS.indexOf(a.s.part) - PARTS.indexOf(b.s.part)));
-  // 非表示になった魂の選択は解除しておく (見えない選択が残ると誤融合のもと)
-  const visible = new Set(eligible.map((e) => e.idx));
-  if (fuseSel[0] !== null && !visible.has(fuseSel[0])) fuseSel[0] = null;
-  if (fuseSel[1] !== null && !visible.has(fuseSel[1])) fuseSel[1] = null;
+  // 非表示になった魂の選択は解除しておく
+  const visibleSouls = new Set(eligible.map((e) => e.s));
+  if (fuseSel[0] !== null && !visibleSouls.has(fuseSel[0])) fuseSel[0] = null;
+  if (fuseSel[1] !== null && !visibleSouls.has(fuseSel[1])) fuseSel[1] = null;
 
-  // ストックの魂一覧 (融合可能な組み合わせのみ)
+  // 魂一覧 (融合可能な組み合わせのみ)
   const list = el("div", "tw-soullist");
   if (!eligible.length) {
     list.appendChild(el("div", "tw-empty",
-      G.souls.length ? "融合できる組み合わせがない。(同じ職業・部位・ランクで LvMAX の魂が2つ必要)" : "ストックに魂がない。"));
+      allSouls.length ? "融合できる組み合わせがない。(同じ職業・部位・ランクで LvMAX の魂が2つ必要)" : "魂がない。"));
   } else {
-    eligible.forEach(({ s, idx }) => {
+    eligible.forEach(({ s, equipped, doll, part }) => {
       const rank = SOUL_RANKS[s.rank] || SOUL_RANKS[1];
-      const sel = fuseSel[0] === idx || fuseSel[1] === idx;
+      const sel = fuseSel[0] === s || fuseSel[1] === s;
       const r = el("div", "tw-soulrow" + (sel ? " selected" : "") + (rank.order >= 1 ? " rare" : ""));
       if (rank.color) r.style.borderColor = rank.color;
       if (sel) r.style.outline = "2px solid #ffcf4a";
@@ -3604,14 +3608,17 @@ function renderMansionFuse() {
       const info = el("div", "tw-chipi");
       const nm = el("div", "tw-souln", soulName(s)); if (rank.color) nm.style.color = rank.color;
       info.appendChild(nm);
-      info.appendChild(el("div", "tw-soulst", "✓ Lv MAX"));
+      const stLine = equipped
+        ? `✓ Lv MAX ・ ${doll.name || "人業"}に装備中`
+        : "✓ Lv MAX";
+      info.appendChild(el("div", "tw-soulst", stLine));
       r.appendChild(info);
       const b = btn(sel ? "✓ 選択中" : "選ぶ", () => {
-        if (fuseSel[0] === idx) { fuseSel[0] = null; }
-        else if (fuseSel[1] === idx) { fuseSel[1] = null; }
-        else if (fuseSel[0] === null) { fuseSel[0] = idx; }
-        else if (fuseSel[1] === null) { fuseSel[1] = idx; }
-        else { fuseSel[0] = fuseSel[1]; fuseSel[1] = idx; }
+        if (fuseSel[0] === s) { fuseSel[0] = null; }
+        else if (fuseSel[1] === s) { fuseSel[1] = null; }
+        else if (fuseSel[0] === null) { fuseSel[0] = s; }
+        else if (fuseSel[1] === null) { fuseSel[1] = s; }
+        else { fuseSel[0] = fuseSel[1]; fuseSel[1] = s; }
         renderTown();
       });
       b.className = "tw-small" + (sel ? " primary" : "");
@@ -3624,16 +3631,24 @@ function renderMansionFuse() {
   // 融合ボタン
   const canFuse = fuseSel[0] !== null && fuseSel[1] !== null && fuseSel[0] !== fuseSel[1];
   const fuseBtn = btn("⚗ 融合する", () => {
-    const s1 = G.souls[fuseSel[0]];
-    const s2 = G.souls[fuseSel[1]];
+    const s1 = fuseSel[0];
+    const s2 = fuseSel[1];
     const result = fuseSouls(s1, s2);
     if (!result) {
       log("この2つは融合できない。(同じ職業・部位・ランク・Lv MAXが必要)", "sys"); return;
     }
-    // 素材の2体をストックから除去
-    const idxs = [fuseSel[0], fuseSel[1]].sort((a, b) => b - a);
-    for (const i of idxs) G.souls.splice(i, 1);
-    // 部位に宿っていた場合は外す (融合不可だが念のため)
+    // 素材を除去 (ストック or 装備中の部位から)
+    const removeSoul = (soul) => {
+      const si = G.souls.indexOf(soul);
+      if (si !== -1) { G.souls.splice(si, 1); return; }
+      for (const d of allDolls()) {
+        for (const p of PARTS) {
+          if (d.parts && d.parts[p] === soul) { d.parts[p] = null; recalcDoll(d); return; }
+        }
+      }
+    };
+    removeSoul(s1);
+    removeSoul(s2);
     G.souls.push(result.soul);
     fuseSel = [null, null];
     SFX.itemget(); buzz([0, 40, 60, 40, 60, 200]);
