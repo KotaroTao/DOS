@@ -4013,9 +4013,7 @@ function questProgress(type, key, n = 1) {
   const all = [...G.quests, ...((G.dailyQuests && G.dailyQuests.list) || []), ...Object.values(G.subQuests || {})];
   for (const q of all) {
     if (q.state !== "active" || q.type !== type) continue;
-    // サブクエストは「その迷宮 (と、指定があればその階)」でのみ進む
-    if (q.dunIdx != null && G.dungeonIdx !== q.dunIdx) continue;
-    if (q.floorReq != null && G.floor !== q.floorReq) continue;
+    // サブクエストも迷宮・階を問わず、条件さえ満たせば進む (場所の縛りなし)
     // kill: q.race 指定なら倒した敵の種族で判定 / それ以外は従来のキー一致
     if (q.type === "kill") {
       if (q.race) { const m = MONSTERS[key]; if (!m || m.race !== q.race) continue; }
@@ -4187,7 +4185,7 @@ function renderTavern() {
   if (!G.subQuestSeen) G.subQuestSeen = [];
   if (!G.subQuestSeen.includes(G.dungeonIdx)) G.subQuestSeen.push(G.dungeonIdx);
   townEl.appendChild(el("div", "tw-h", "酒場の依頼人"));
-  townEl.appendChild(el("div", "tw-note", "迷宮の階ごとに、事情を抱えた誰かが待っている。一度顔を合わせた依頼人は、別の迷宮を選んでも酒場に残る。果たした依頼は消える。"));
+  townEl.appendChild(el("div", "tw-note", "迷宮ごとに、事情を抱えた依頼人がいる。依頼はどの迷宮にいても条件を満たせば達成できる。一度顔を合わせた依頼人は別の迷宮を選んでも酒場に残り、果たした依頼は消える。"));
   const sql = el("div", "tw-mlist");
   // 選択中の迷宮を先頭に、発見済みの迷宮順で並べる
   const seenDuns = [...new Set(G.subQuestSeen)].filter((i) => DUNGEONS[i])
@@ -4207,7 +4205,7 @@ function renderTavern() {
       subAny = true;
       const row = el("div", "tw-quest" + (st && st.state === "done" ? " done" : ""));
       const info = el("div", "tw-chipi");
-      info.appendChild(el("div", "tw-chipn", `🕯 ${DUNGEONS[di].name} B${def.floor}F 「${def.name}」`));
+      info.appendChild(el("div", "tw-chipn", `🕯 「${def.name}」`));
       info.appendChild(el("div", "tw-chipc", `― ${def.npc.name} (${def.npc.title})`));
       info.appendChild(el("div", "tw-chipc", def.text));
       const rw = [`💰${def.reward.gold}`, `✦${def.reward.soulPts}`];
