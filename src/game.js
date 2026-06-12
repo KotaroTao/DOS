@@ -286,8 +286,11 @@ function log(msg, cls = "sys") {
   div.className = "l-" + cls;
   div.textContent = msg;
   logEl.appendChild(div);
-  logEl.scrollTop = logEl.scrollHeight;
   while (logEl.children.length > 80) logEl.removeChild(logEl.firstChild);
+  // 最新行を確実に最下部へ。iOS Safari 等では appendChild 直後の再レイアウトが
+  // 間に合わず最新メッセージまでスクロールしきれないことがあるため、次フレームでも実行する。
+  logEl.scrollTop = logEl.scrollHeight;
+  requestAnimationFrame(() => { logEl.scrollTop = logEl.scrollHeight; });
 }
 
 // 現在の迷宮設定
@@ -2147,7 +2150,7 @@ function drawEffects(fx, now) {
   // 斬撃 (白い斜線が走る)
   for (const s of fx.slashes) {
     const t = (now - s.t0) / 240;
-    if (t > 1) continue;
+    if (t < 0 || t > 1) continue; // t0 が未来 (多段の2撃目以降) のものはまだ描かない
     vctx.save();
     vctx.globalAlpha = 1 - t;
     vctx.strokeStyle = "#ffffff";
@@ -2164,7 +2167,7 @@ function drawEffects(fx, now) {
   // 魔法 (色付きリングが広がる + 火花)
   for (const m of fx.magic) {
     const t = (now - m.t0) / 360;
-    if (t > 1) continue;
+    if (t < 0 || t > 1) continue;
     vctx.save();
     vctx.globalAlpha = 1 - t;
     vctx.strokeStyle = m.color;
@@ -2195,7 +2198,7 @@ function drawEffects(fx, now) {
   vctx.textAlign = "center";
   for (const f of fx.floats) {
     const t = (now - f.t0) / 700;
-    if (t > 1) continue;
+    if (t < 0 || t > 1) continue; // t0 が未来 (多段の2撃目以降) のものはまだ描かない
     vctx.save();
     vctx.globalAlpha = 1 - t;
     vctx.fillStyle = f.color;
@@ -2374,11 +2377,23 @@ function postResolve() {
   setTimeout(combatStep, 150 * spdMul());
 }
 
+// 多段ヒットの時間差 (ms。spdMul で速度モードに追従)。applyImpact と共有
+const HIT_STAGGER = 165;
+
 // 結果オブジェクトを演出 (踏み込み → 着弾 → 余韻)
 function animateResult(res, done) {
   const t0 = performance.now();
   const WIND = (res.side === "enemy" ? 170 : 90) * spdMul();
-  const TOTAL = WIND + 360 * spdMul();
+  // 同一対象への最大ヒット数を数え、多段なら余韻を延ばして全ヒットを見せきる
+  const stack = {};
+  let maxStack = 1;
+  for (const h of (res.hits || [])) {
+    if (h.miss || !h.target) continue;
+    const id = h.target.uid != null ? h.target.uid : h.target;
+    stack[id] = (stack[id] || 0) + 1;
+    if (stack[id] > maxStack) maxStack = stack[id];
+  }
+  const TOTAL = WIND + (360 + (maxStack - 1) * HIT_STAGGER) * spdMul();
   G.fx = { lunge: res.side === "enemy" ? { uid: res.actor.uid, p: 0 } : null,
            slashes: [], magic: [], floats: [], screen: null, flash: {} };
   G.partyFx = G.partyFx || new Map();
@@ -2437,17 +2452,25 @@ function applyImpact(res) {
   }
 
   let partyHit = false, anyDeath = false;
+  // 多段ヒット (二段斬り等) は同じ対象・同座標に重なって1回に見えてしまうため、
+  // 対象ごとにヒット順で時間差(stagger)と位置差(横ずらし)を付けて、回数分はっきり見せる
+  const stag = HIT_STAGGER * spdMul();
+  const stackIdx = {};
   for (const h of res.hits) {
     if (h.target.side === "enemy") {
       const pos = G.enemyPos[h.target.uid];
       if (!pos || h.miss) continue;
+      const idx = (stackIdx[h.target.uid] = (stackIdx[h.target.uid] || 0) + 1) - 1; // 0,1,2…
+      const ht0 = now + idx * stag;
+      const dx = idx === 0 ? 0 : (idx % 2 ? 1 : -1) * (14 + 4 * idx); // 左右に振って重なり回避
+      if (idx > 0) setTimeout(() => SFX.hit(), idx * stag); // 2撃目以降にも手応えの効果音
       if (res.action === "spell" && res.spellKind !== "heal" && res.spellKind !== "phys") {
-        fx.magic.push({ x: pos.cx, y: pos.cy, t0: now, color: magicColor(res) });
+        fx.magic.push({ x: pos.cx, y: pos.cy, t0: ht0, color: magicColor(res) });
       } else if (res.action === "attack" || res.spellKind === "phys") {
-        fx.slashes.push({ x: pos.cx, y: pos.cy, t0: now });
+        fx.slashes.push({ x: pos.cx, y: pos.cy, t0: ht0 });
       }
-      fx.flash[h.target.uid] = { t0: now };
-      if (h.dmg != null) fx.floats.push({ x: pos.cx, y: pos.cy - 18, text: String(h.dmg) + (h.crit ? "!" : ""), color: h.crit ? "#ffd84a" : "#fff", t0: now });
+      if (idx === 0 || !fx.flash[h.target.uid]) fx.flash[h.target.uid] = { t0: ht0 };
+      if (h.dmg != null) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 18, text: String(h.dmg) + (h.crit ? "!" : ""), color: h.crit ? "#ffd84a" : "#fff", t0: ht0 });
       if (h.died) anyDeath = true;
     } else {
       // 味方が対象
@@ -3884,7 +3907,12 @@ function renderAltar() {
     // 魂は対応する部位にしか宿せない
     const candidates = G.souls
       .map((s, si) => ({ s, si }))
-      .filter(({ s }) => (s.part || "head") === part);
+      .filter(({ s }) => (s.part || "head") === part)
+      // 職業 (SOUL_CLASSES の定義順) → ランク昇順 → レベル降順 で並べる
+      .sort((a, b) =>
+        (SOUL_CLASS_ORDER[a.s.clsKey] ?? 99) - (SOUL_CLASS_ORDER[b.s.clsKey] ?? 99)
+        || (a.s.rank || 1) - (b.s.rank || 1)
+        || (b.s.level || 1) - (a.s.level || 1));
     if (!candidates.length) stock.appendChild(el("div", "tw-empty", `この部位の魂がない。迷宮で（${PART_LABEL[part]}）の魂を探そう。`));
     for (const { s, si } of candidates) {
       const rank = SOUL_RANKS[s.rank] || SOUL_RANKS[1];
@@ -3909,6 +3937,9 @@ function renderAltar() {
 }
 
 // 人業の発現職業シグネチャ (職業キー:ランク)。未発現は "none"
+// 職業 (clsKey) の表示順 = SOUL_CLASSES の定義順。祭壇の魂並び替えに使う
+const SOUL_CLASS_ORDER = Object.fromEntries(Object.keys(SOUL_CLASSES).map((k, i) => [k, i]));
+
 function jobSig(d) { return d.jobKey ? `${d.jobKey}:${d.jobRank}` : "none"; }
 // 魂の付け替えで職業が変わって新たに発現したら「○○は●●になった！」+職業詳細を演出する。
 // before は操作前に jobSig() で控えたシグネチャ。
