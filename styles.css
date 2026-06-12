@@ -289,9 +289,11 @@ html, body { height: 100%; overflow: hidden; }
 #combat-menu { display: grid; gap: 8px; }
 #combat-menu .row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 #combat-menu .who { font-size: 13px; color: var(--accent); margin-bottom: 2px; text-align: center; }
-#combat-menu .target-list { display: grid; gap: 6px; overflow-y: auto; max-height: 38vh; -webkit-overflow-scrolling: touch; }
-#combat-menu .target-list.cols2 { grid-template-columns: 1fr 1fr; } /* 敵が4体以上の対象選択 */
+#combat-menu .target-list { display: grid; gap: 6px; overflow-y: auto; max-height: 46vh; -webkit-overflow-scrolling: touch; }
+#combat-menu .target-list.cols2 { grid-template-columns: 1fr 1fr; } /* 敵が4体以上の対象選択・呪文が多い職 */
 #combat-menu .btn { min-height: 52px; font-size: 15px; }
+/* 2列時はボタン文字を詰めて長い呪文名でも収まるようにする */
+#combat-menu .target-list.cols2 .btn { min-height: 48px; font-size: 13px; padding: 6px 8px; line-height: 1.25; }
 
 .hidden { display: none !important; }
 
