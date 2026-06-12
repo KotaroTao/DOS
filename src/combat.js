@@ -1,6 +1,6 @@
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
-import { ITEMS, SLOTS, recalc, equip } from "./items.js";
+import { ITEMS, SLOTS, recalc, equip, weaponRange } from "./items.js";
 import { elemDmgMult } from "./dungeons/schema.js";
 
 export const SPELLS = {
@@ -225,7 +225,7 @@ export class Battle {
     for (const p of this.party) {
       if (!p.alive) continue;
       if (pv(p, "iai")) {
-        const t = this._randAlive(this.enemies);
+        const t = this._randAlive(this.attackableEnemies(p)); // 居合も武器の射程に従う
         if (t) { this.log(`${p.name}の居合！`, "hit"); this._physical(p, t, { power: 0.8, name: "居合" }); }
       }
       if (pv(p, "openSpell")) {
@@ -244,6 +244,34 @@ export class Battle {
 
   livingParty() { return this.party.filter((p) => p.alive); }
   livingEnemies() { return this.enemies.filter((e) => e.alive); }
+
+  // ---- 隊列 (前衛/後衛) ----
+  // 並びの先頭3人/3体が前衛、4人目以降が後衛。前衛が全滅した側は
+  // 後衛が繰り上がり、前衛として扱われる (狙われ方・物理半減・射程すべて)
+  isBackRow(a) {
+    const arr = a.side === "party" ? this.party : this.enemies;
+    if (arr.indexOf(a) < 3) return false;
+    return arr.slice(0, 3).some((x) => x.alive);
+  }
+
+  // 物理の隊列補正: 後衛は物理を「与える」「受ける」ともに半減。魔法・ブレスには掛からない
+  _rowMul(actor, tgt) {
+    return (this.isBackRow(actor) ? 0.5 : 1) * (this.isBackRow(tgt) ? 0.5 : 1);
+  }
+
+  // 武器の射程 (近/中/長)。敵側は射程の概念を持たない (狙いは _pickPartyTarget が決める)
+  attackRange(actor) {
+    return actor.side === "party" ? weaponRange(actor.equip && actor.equip.weapon) : "near";
+  }
+
+  // actor の武器が届く敵: 長距離=全体 / 中距離=前衛からなら全体、後衛からは敵前衛のみ / 近距離=敵前衛のみ
+  attackableEnemies(actor) {
+    const all = this.livingEnemies();
+    const rng = this.attackRange(actor);
+    if (rng === "long" || (rng === "mid" && !this.isBackRow(actor))) return all;
+    const front = all.filter((e) => !this.isBackRow(e));
+    return front.length ? front : all;
+  }
 
   // AGI(+乱数)で行動順を組み直す。ラウンド開始時に毒のダメージが入る。
   // 第1ラウンドは先制/奇襲なら片側のみが行動する
@@ -329,9 +357,9 @@ export class Battle {
   targetOptions() {
     const p = this.pending;
     if (!p) return [];
-    if (p.action === "attack") return this.livingEnemies();
+    if (p.action === "attack") return this.attackableEnemies(p.actor); // 武器の射程内のみ
     const sp = SPELLS[p.spellKey];
-    if (sp.target === "enemy") return this.livingEnemies();
+    if (sp.target === "enemy") return sp.kind === "phys" ? this.attackableEnemies(p.actor) : this.livingEnemies(); // 物理技は射程に従う。呪文は全体に届く
     if (sp.target === "ally") return sp.kind === "heal" ? this.party : this.livingParty(); // 回復系は死者も選べる(蘇生)
     return [];
   }
@@ -386,12 +414,16 @@ export class Battle {
     return a[rand(a.length)] || null;
   }
 
-  // 敵の単体行動の標的選び。挑発 (taunt) 持ちは狙われやすい (重み3倍)
+  // 敵の単体行動の標的選び。前衛は狙われやすく (重み3)、後衛は狙われにくい (重み1)。
+  // 挑発 (taunt) 持ちはさらに3倍狙われやすい
   _pickPartyTarget() {
     const list = this.livingParty();
     if (!list.length) return null;
     const pool = [];
-    for (const p of list) for (let i = 0; i < (pv(p, "taunt") ? 3 : 1); i++) pool.push(p);
+    for (const p of list) {
+      const w = (this.isBackRow(p) ? 1 : 3) * (pv(p, "taunt") ? 3 : 1);
+      for (let i = 0; i < w; i++) pool.push(p);
+    }
     return pool[rand(pool.length)];
   }
 
@@ -417,7 +449,9 @@ export class Battle {
       return res;
     }
     if (action === "attack") {
-      const tgt = (cmd.target && cmd.target.alive) ? cmd.target : this._randAlive(actor.side === "party" ? this.enemies : this.party);
+      // 標的が倒れていたら選び直す (味方は射程内から、敵は隊列の重み付きで)
+      const tgt = (cmd.target && cmd.target.alive) ? cmd.target
+        : actor.side === "party" ? this._randAlive(this.attackableEnemies(actor)) : this._pickPartyTarget();
       if (tgt) {
         const h = this._physical(actor, tgt, { basic: true });
         res.hits.push(h);
@@ -565,7 +599,8 @@ export class Battle {
     const cLv = pv(defender, "counter");
     if (cLv && Math.random() < [0, 0.15, 0.25, 0.35][cLv]) {
       const mul = [0, 0.5, 0.7, 1.0][cLv];
-      let dmg = Math.max(1, variance(Math.round(this._eatk(defender) * mul)) - Math.floor(this._evit(attacker) * 0.5));
+      // 反撃も物理なので隊列補正を受ける
+      let dmg = Math.max(1, Math.round((variance(Math.round(this._eatk(defender) * mul)) - Math.floor(this._evit(attacker) * 0.5)) * this._rowMul(defender, attacker)));
       let crit = false;
       if (cLv >= 3 && Math.random() < 0.06 + (defender.critBonus || 0)) { crit = true; dmg = Math.floor(dmg * 1.85); }
       attacker.hp -= dmg;
@@ -585,7 +620,7 @@ export class Battle {
   _afterBasic(actor, tgt, h, res) {
     // 残心: 敵を倒した時25%で追加攻撃 (1ラウンド1回)
     if (h.died && pv(actor, "zanshin") && this._zanshinRound !== this._roundNo && Math.random() < 0.25) {
-      const t2 = this._randAlive(this.enemies);
+      const t2 = this._randAlive(this.attackableEnemies(actor)); // 残心の追撃も射程内のみ
       if (t2) {
         this._zanshinRound = this._roundNo;
         this.log(`${actor.name}の残心！`, "hit");
@@ -664,6 +699,9 @@ export class Battle {
     if (pv(actor, "sleepKill") && (tgt.asleep || tgt.ailment === "paralyze")) sureCrit = true; // 寝込み襲い
     const crit = sureCrit || Math.random() < critChance;
     if (crit) dmg = Math.floor(dmg * 1.85 * (pv(actor, "vitalEye") ? 1.25 : 1)); // 急所読み: 会心強化
+    // 隊列補正: 後衛は物理の与ダメ・被ダメが半減
+    const rm = this._rowMul(actor, tgt);
+    if (rm !== 1) dmg = Math.round(dmg * rm);
     dmg = Math.max(1, dmg);
     tgt.hp -= dmg;
     const eff = em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : "";
