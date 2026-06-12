@@ -2815,7 +2815,7 @@ let altarSel = null; // 訓練所で選択中 { doll, part }
 const FACILITIES = [
   { key: "mansion", icon: "🏚", name: "人業の館", desc: "人業を仕立て、魂を宿す" },
   { key: "tavern", icon: "🍺", name: "酒場「沈まぬ灯」", desc: "編成とクエスト" },
-  { key: "shop", icon: "🏪", name: "商店 : 黒鉄商会", desc: "装備・道具の売買" },
+  { key: "shop", icon: "🏪", name: "商店「黒鉄商会」", desc: "装備・道具の売買" },
   { key: "inn", icon: "🛏", name: "宿屋「白狼」", desc: "魂を休め、傷を癒す" },
   { key: "palace", icon: "👑", name: "王宮", desc: "勅命と図鑑の間" },
   { key: "shrine", icon: "🔴", name: "赤い魂の祠", desc: "Red Soul を授かる" },
@@ -4862,7 +4862,7 @@ function renderCodexJob() {
     for (const k of bs) list.appendChild(jobRow(jobRankName(k, r), jobSprite(k, r), SOUL_CLASSES[k].glow, () => showCodexJobDetail(k, r)));
     for (const k of hy) {
       const bk = k.split("+")[0];
-      list.appendChild(jobRow(jobRankName(k, r), jobSprite(k, r), SOUL_CLASSES[bk].glow, () => showCodexJobDetail(k, r)));
+      list.appendChild(jobRow(jobRankName(k, r), jobSprite(bk, r), SOUL_CLASSES[bk].glow, () => showCodexJobDetail(k, r)));
     }
     townEl.appendChild(list);
   }
@@ -4886,7 +4886,7 @@ function showCodexJobDetail(key, rank) {
   ban.style.color = color;
   card.appendChild(ban);
   const art = el("div", "ig-art");
-  art.appendChild(spriteCanvas(jobSprite(key, rank), 9));
+  art.appendChild(spriteCanvas(jobSprite(baseK, rank), 9));
   card.appendChild(art);
 
   const line = (name, desc) => {
@@ -5419,7 +5419,7 @@ function renderStatus() {
   // ===== ヘッダ: 肖像 + 名前 + 属性-種族-職業 + 前後/閉じる =====
   const head = el("div", "st-head");
   const port = el("div", "st-port small");
-  port.appendChild(spriteCanvas(HERO, 4));
+  port.appendChild(spriteCanvas(p.isDoll ? dollSprite(p) : HERO, 4));
   head.appendChild(port);
   const idn = el("div", "st-idn");
   idn.appendChild(el("div", "st-name", p.name + (p.alive ? "" : " †")));
@@ -5689,20 +5689,27 @@ const ELEM_ADV = {
   light: ["dark", null], dark: ["light", null],
 };
 function elemName(el) { return (ELEMENTS[el] || ELEMENTS.none).label; }
-// "火属性攻撃+1 ◯" のような短い表記。e = {el, lv}
+// "火属性攻撃 +1" のような短い表記 (Lv1=+1, Lv2(◎)=+2)。e = {el, lv}
 function elemStatText(kind, e) {
   if (!e || !e.el) return null;
-  return `${elemName(e.el)}属性${kind}+${Math.min(2, e.lv)} ${e.lv >= 2 ? "◎" : "◯"}`;
+  return `${elemName(e.el)}属性${kind}+${Math.min(2, e.lv)}`;
 }
-// 相性のくわしい説明行
-function elemAdvText(kind, e) {
-  if (!e || !e.el || !ELEM_ADV[e.el]) return null;
+// 相性のくわしい説明行 (複数行)。
+// 防御: 「水属性防御 +1」「火属性から受けるダメージ -50%」「土属性から受けるダメージ +50%」
+// 攻撃: 「水属性攻撃 +1」「火属性に与えるダメージ +50%」「土属性に与えるダメージ -50%」
+function elemDetailLines(kind, e) {
+  if (!e || !e.el || !ELEM_ADV[e.el]) return [];
   const [adv, weak] = ELEM_ADV[e.el];
   const pct = e.lv >= 2 ? 100 : 50;
+  const lines = [`${elemName(e.el)}属性${kind}　+${Math.min(2, e.lv)}`];
   if (kind === "攻撃") {
-    return `${elemName(adv)}の魔物へのダメージ+${pct}%` + (weak ? ` / ${elemName(weak)}へは-${pct}%` : "");
+    lines.push(`${elemName(adv)}属性に与えるダメージ　+${pct}%`);
+    if (weak) lines.push(`${elemName(weak)}属性に与えるダメージ　-${pct}%`);
+  } else {
+    lines.push(`${elemName(adv)}属性から受けるダメージ　-${pct}%`);
+    if (weak) lines.push(`${elemName(weak)}属性から受けるダメージ　+${pct}%`);
   }
-  return `${elemName(adv)}属性の攻撃を-${pct}%` + (weak ? ` / ${elemName(weak)}属性からは+${pct}%` : "");
+  return lines;
 }
 // ステータス画面用の色付きチップ ("火◯" / "—")
 function elemStatChip(e) {
@@ -5894,11 +5901,9 @@ function detailLines(it) {
     if (it.crit) mod.push(`会心+${Math.round(it.crit * 100)}%`);
     if (mod.length) L.push(mod.join(" / "));
   }
-  // 属性攻撃/属性防御 (短い表記 + 相性の説明)
-  const ea = it.eAtk ? elemStatText("攻撃", it.eAtk) : null;
-  if (ea) L.push(`${ea} — ${elemAdvText("攻撃", it.eAtk)}`);
-  const ed = it.eDef ? elemStatText("防御", it.eDef) : null;
-  if (ed) L.push(`${ed} — ${elemAdvText("防御", it.eDef)}`);
+  // 属性攻撃/属性防御 (1行ずつのくわしい表記)
+  for (const ln of elemDetailLines("攻撃", it.eAtk)) L.push(ln);
+  for (const ln of elemDetailLines("防御", it.eDef)) L.push(ln);
   if (isEquippable(it)) L.push(equipClassText(it));
   if (it.align) L.push(`${it.align}属性。`);
   return L;
@@ -6052,11 +6057,8 @@ function openEquipChooser(p, slotKey) {
     // 装備可能職業 (未発見職は伏せる) と説明文
     if (c.it.slot !== "use") tx.appendChild(el("span", "eq-ccls", equipClassText(c.it)));
     if (c.it.desc) tx.appendChild(el("span", "eq-cdesc", c.it.desc));
-    // 装備中の品と付け替える(または両手武器で盾が外れる)場合だけ、現在との増減を出す
-    const tk = slotKeyFor(c.it, p);
-    const dropShield = c.it.slot === "weapon" && c.it.twoHanded && p.equip.shield;
-    const dropWeapon = c.it.slot === "shield" && p.equip.weapon && p.equip.weapon.twoHanded;
-    if ((tk && p.equip[tk]) || dropShield || dropWeapon) tx.appendChild(equipCompareEl(p, c.it));
+    // 現在との増減 (空きスロットへの装備でも常に表示する)
+    tx.appendChild(equipCompareEl(p, c.it));
     b.appendChild(tx);
     list.appendChild(b);
   }
