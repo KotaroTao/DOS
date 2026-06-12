@@ -11,7 +11,7 @@
 //    Lv1=◯ (有利+50%/不利-50%), Lv2=◎ (有利+100%/不利-100%)
 //  - 絵は形の原型 (ARTS) × 色 (属性色 or tint指定) で描き分ける
 import { tint } from "../dungeons/schema.js";
-import { lvToRank } from "../items.js";
+import { lvToRank, finalizePct } from "../items.js";
 
 // 共有パレット (items.js と同等)
 const P = {
@@ -167,33 +167,7 @@ const SHAPE_WEIGHT = {
   robe: "cloth", circlet: "cloth",
 };
 
-// ===== %型ステータス変換 =====
-// フラット値を「コモン戦士5部位基準の%」に変換して保存。
-// stat = round(base[k] * (1 + Σpct[k])) — 魂融合で base が伸びても装備が比例して強くなる。
-const _SOUL_RANK_MULS = [0, 1.0, 1.3, 1.9, 3.0, 5.0];
-const _SOUL_RANK_CAPS = [0, 10, 20, 30, 50, 100];
-const _FIGHTER_STAT   = { atk: 2.4, vit: 1.6, agi: 1.2, int: 0.3, pie: 0.4, luk: 1.0, hp: 7.0, mp: 0.7 };
-
-function _lvBand(lv) { return lv <= 20 ? 1 : lv <= 45 ? 2 : lv <= 80 ? 3 : lv <= 120 ? 4 : 5; }
-
-function _typicalBase(lv, stat) {
-  const rank = _lvBand(lv);
-  const f = _SOUL_RANK_MULS[rank] * (1 + (_SOUL_RANK_CAPS[rank] - 1) * 0.12) * 5 * 1.10;
-  return (_FIGHTER_STAT[stat] || 1.0) * f;
-}
-
-function _finalizePct(it, lv) {
-  const pct = {};
-  for (const k of ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"]) {
-    const v = it[k];
-    if (v != null && v !== 0) {
-      pct[k] = Math.round(v / _typicalBase(lv, k) * 10000) / 10000;
-      delete it[k];
-    }
-  }
-  if (Object.keys(pct).length) it.pct = pct;
-}
-
+// %型ステータス変換は items.js の finalizePct に一元化 (基本装備とカタログ品で同式)
 const round = Math.round;
 const priceOf = (lv) => round(10 + lv * lv * 0.30 + lv * 5);
 
@@ -252,7 +226,7 @@ export function W(id, name, cat, lv, opt = {}) {
     if (it.int == null) it.int = Math.max(1, Math.floor(lv / 22));   // INT (攻撃呪文の威力) も伸ばす
   }
   if (cat === "dg" && it.agi == null) it.agi = 1;                    // 短剣は取り回しが軽い
-  _finalizePct(it, lv);
+  finalizePct(it);
   return it;
 }
 
@@ -262,7 +236,7 @@ export function S(id, name, lv, opt = {}) {
   const it = base(id, name, "shield", lv, shape, { cls: null, ...opt });
   it.vit = opt.def != null ? opt.def : Math.max(1, round(2 + lv * 0.20));
   it.weight = SHAPE_WEIGHT[shape];
-  _finalizePct(it, lv);
+  finalizePct(it);
   return it;
 }
 
@@ -276,7 +250,7 @@ export function A(id, name, lv, opt = {}) {
     if (it.pie == null) it.pie = Math.max(1, Math.floor(lv / 28)); // 法衣は祈りの器
   }
   it.weight = robe ? "cloth" : "heavy";
-  _finalizePct(it, lv);
+  finalizePct(it);
   return it;
 }
 
@@ -286,7 +260,7 @@ export function H(id, name, lv, opt = {}) {
   const it = base(id, name, "head", lv, shape, opt);
   it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.15));
   it.weight = SHAPE_WEIGHT[shape];
-  _finalizePct(it, lv);
+  finalizePct(it);
   return it;
 }
 
@@ -296,7 +270,7 @@ export function F(id, name, lv, opt = {}) {
   const it = base(id, name, "feet", lv, shape, opt);
   it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.13));
   it.weight = SHAPE_WEIGHT[shape];
-  _finalizePct(it, lv);
+  finalizePct(it);
   return it;
 }
 
@@ -306,7 +280,7 @@ export function G(id, name, lv, opt = {}) {
   const it = base(id, name, "hands", lv, shape, opt);
   it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.13));
   it.weight = SHAPE_WEIGHT[shape];
-  _finalizePct(it, lv);
+  finalizePct(it);
   return it;
 }
 
@@ -314,7 +288,7 @@ export function G(id, name, lv, opt = {}) {
 export function R(id, name, shape, lv, opt = {}) {
   const it = base(id, name, "acc", lv, shape, opt);
   if (opt.def != null) it.vit = opt.def;
-  _finalizePct(it, lv);
+  finalizePct(it);
   return it;
 }
 
