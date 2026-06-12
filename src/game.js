@@ -5379,14 +5379,18 @@ function equipFromAnywhere(p, slotKey, c) {
     p.items.push(it);
   }
   const r = equipItem(p, it);
-  if (r.msg) log(r.msg, r.ok ? "win" : "sys");
-  if (!r.ok && owner !== p) {
-    // 失敗時は取り上げた品を戻す
-    const i = p.items.indexOf(it); if (i >= 0) p.items.splice(i, 1);
-    owner.items.push(it);
-  } else if (r.ok && owner !== p) {
-    log(`${owner.name} から ${it.name} を受け取り装備した。`, "win");
+  if (!r.ok) {
+    if (owner !== p) {
+      // 失敗時は取り上げた品を戻す
+      const i = p.items.indexOf(it); if (i >= 0) p.items.splice(i, 1);
+      owner.items.push(it);
+    }
+    if (r.msg) showAlert(r.msg);
+    renderStatus(); renderParty();
+    return;
   }
+  if (r.msg) log(r.msg, "win");
+  if (owner !== p) log(`${owner.name} から ${it.name} を受け取り装備した。`, "win");
   SFX.select(); buzz(10);
   stSel = null;
   renderStatus(); renderParty();
@@ -5470,6 +5474,22 @@ function transferItem(p, index) {
 }
 
 // 確認ダイアログ (ステータス画面の上にも出せる軽量モーダル)
+function showAlert(msg) {
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card confirm-card");
+  card.style.borderColor = "#d4504e";
+  card.style.boxShadow = "0 0 40px #d4504e55";
+  const bn = el("div", "ig-banner", "⚠ 警告 ⚠");
+  bn.style.color = "#d4504e";
+  card.appendChild(bn);
+  card.appendChild(el("div", "ig-name", msg));
+  const list = el("div", "ig-choices");
+  list.appendChild(btn("閉じる", () => wrap.remove()));
+  card.appendChild(list);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
+}
 function showConfirm({ title, lines = [], okLabel = "実行する", onOk }) {
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card confirm-card");
