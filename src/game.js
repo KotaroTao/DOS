@@ -130,6 +130,7 @@ const logEl = document.getElementById("log");
 const partyEl = document.getElementById("party");
 const combatMenu = document.getElementById("combat-menu");
 const floorInfo = document.getElementById("floor-info");
+const dungeonTitleEl = document.getElementById("dungeon-title");
 
 const G = {
   state: "town",      // town | board | combat | over
@@ -298,8 +299,14 @@ function enemyScale() {
 }
 
 function updateTopbar() {
-  if (G.state === "town") { floorInfo.textContent = `街 💰${G.gold}`; return; }
-  floorInfo.textContent = `${curDungeon().short} B${G.floor}F 💰${G.gold}`;
+  const currency = `🔴${G.redSoul} 💰${G.gold} ✦${G.soulPts}`;
+  if (G.state === "town") {
+    if (dungeonTitleEl) dungeonTitleEl.textContent = "百の迷宮と 魂の王";
+    floorInfo.textContent = currency;
+    return;
+  }
+  if (dungeonTitleEl) dungeonTitleEl.textContent = curDungeon().name;
+  floorInfo.textContent = `B${G.floor}F ${currency}`;
 }
 
 function newFloor() {
@@ -347,6 +354,7 @@ function drawFloor() {
 }
 
 function renderBoard() {
+  updateDescendBtn();
   drawFloor();
 
   // 到達可能マスを事前計算 (静止中のみ)
@@ -2217,7 +2225,7 @@ function gameOver() {
   const r = G.run || { gold: 0, soulPts: 0, items: [], souls: [] };
 
   // 街へ戻る (死亡人業は連れ帰りを待つ)
-  const goTown = () => { if (townBtn) townBtn.classList.add("hidden"); combatMenu.classList.add("hidden"); returnToTown(); };
+  const goTown = () => { if (townBtn) townBtn.classList.add("hidden"); if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; } combatMenu.classList.add("hidden"); returnToTown(); };
 
   const opts = [];
   // 赤い魂を使う: 戦利品を失わず街へ即時帰還 (人業は復活せず連れ帰りを待つ)
@@ -2278,6 +2286,7 @@ function showDungeonClearedPopup({ idx, isStoryTarget }) {
     itemGetEl.classList.add("hidden"); itemGetEl.innerHTML = "";
     G.prompt = false;
     if (townBtn) townBtn.classList.add("hidden");
+    if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
     returnToTown();
   });
   ok.className = "btn primary ig-ok";
@@ -2336,6 +2345,29 @@ function btn(label, onClick) {
 // ================= 街 (拠点) =================
 const townEl = document.getElementById("town-screen");
 const townBtn = document.getElementById("town-btn");
+const descendBtn = document.getElementById("descend-btn");
+
+function updateDescendBtn() {
+  if (!descendBtn) return;
+  if (G.state !== "board" || !G.board) {
+    descendBtn.disabled = true;
+    return;
+  }
+  const stairCell = findRevealedStairs();
+  descendBtn.disabled = !stairCell;
+}
+
+function findRevealedStairs() {
+  if (!G.board) return null;
+  for (let y = 0; y < G.board.cells.length; y++) {
+    for (let x = 0; x < G.board.cells[y].length; x++) {
+      const c = G.board.cells[y][x];
+      if (c.type === "stairs" && c.revealed) return c;
+    }
+  }
+  return null;
+}
+
 let altarSel = null; // 訓練所で選択中 { doll, part }
 
 const FACILITIES = [
@@ -4708,6 +4740,7 @@ function tryEnterDungeon() {
   G.state = "board";
   playBgm(fieldBgm());
   if (townBtn) townBtn.classList.remove("hidden");
+  if (descendBtn) { descendBtn.classList.remove("hidden"); descendBtn.disabled = true; }
   newFloor();
   renderBoard();
 }
@@ -4718,6 +4751,7 @@ function returnToTown() {
   G.battle = null; G.battleCell = null;
   combatMenu.classList.add("hidden");
   if (townBtn) townBtn.classList.add("hidden");
+  if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
   G.maxFloorReached = Math.max(G.maxFloorReached, G.floor);
   G.run = null; // 無事帰還 = 戦利品は確定 (BGMは renderTown が施設に応じて切替)
   updateTopbar();
@@ -5569,6 +5603,11 @@ function tickPoison() {
 
 if (statusBtn) statusBtn.addEventListener("click", () => { if (G.statusOpen) closeStatus(); else openStatus(G.statusIdx || 0); });
 if (townBtn) townBtn.addEventListener("click", confirmReturnToTown);
+if (descendBtn) descendBtn.addEventListener("click", () => {
+  if (G.state !== "board" || G.anim || G.walking || G.prompt) return;
+  const cell = findRevealedStairs();
+  if (cell) askDescend(cell);
+});
 
 // ---- 入力 ----
 // 最初のユーザー操作で音声を起動 (ブラウザの自動再生制限対策)
@@ -6000,17 +6039,20 @@ function resumeFromState() {
   if (!G.state || G.state === "town") {
     G.state = "town";
     if (townBtn) townBtn.classList.add("hidden");
+    if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
     renderTown();
     return;
   }
   if (G.state === "board") {
     if (townBtn) townBtn.classList.remove("hidden");
+    if (descendBtn) descendBtn.classList.remove("hidden");
     if (!G.board) newFloor();
     renderBoard();
     return;
   }
   if (G.state === "combat") {
     if (townBtn) townBtn.classList.remove("hidden");
+    if (descendBtn) descendBtn.classList.remove("hidden");
     combatMenu.classList.remove("hidden");
     resumeCombat();
     return;
