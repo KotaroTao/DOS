@@ -109,6 +109,10 @@ export const SPELLS = {
   SHASHINNOGYOU: { name: "捨身の行", mp: 8, kind: "phys", power: 3.6, hpCost: 0.15, target: "enemy", desc: "身を削って放つ捨身の荒行" },
   HOUSHOUHEKI: { name: "法障壁", mp: 13, kind: "buff", grantBarrier: 1, target: "all-ally", desc: "隊全体に魔を防ぐ障壁を張る" },
   MEIKONGURAI: { name: "冥魂喰らい", mp: 10, kind: "atk", power: 28, element: "dark", drain: 0.5, target: "enemy", desc: "闇で魂を喰らい己の命とする" },
+  // --- 伝説職固有スキル ---
+  SEIKEN: { name: "聖剣奮迅", mp: 14, kind: "atk", power: 20, element: "light", partyHeal: 16, target: "all-enemy", desc: "聖剣の輝きで敵を薙ぎ、返す光で隊を癒す" },
+  ASHURAZAN: { name: "阿修羅斬", mp: 15, kind: "phys", power: 0.8, hits: 5, target: "enemy", desc: "阿修羅の怒涛の五連斬" },
+  RYUZETSU: { name: "竜墜とし", mp: 16, kind: "phys", power: 5.0, target: "enemy", desc: "竜の力を解き放つ渾身の一撃" },
 };
 
 // アイテムは個体ごとに複製して持たせる (装備状態を個別管理するため)
