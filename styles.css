@@ -943,15 +943,6 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .set-toggle { flex: 0 0 auto; min-width: 76px; }
 .set-toggle.on { border-color: #8a63b8; color: #f0e2ff; box-shadow: 0 0 0 1px #8a63b8; background: #241836; }
 
-/* ===== 日替わり迷宮 ===== */
-.tw-daily {
-  background: linear-gradient(180deg, #1a2230, #121826);
-  border: 1px solid #2f4a6a; border-left: 4px solid #5fb8d6;
-  border-radius: 8px; padding: 8px 11px; margin-top: 6px;
-}
-.tw-dailyt { font-size: 13px; color: #aef0ff; font-weight: bold; }
-.tw-dailyd { font-size: 11px; color: #8fb8c8; margin-top: 2px; }
-
 /* ===== 戦績 ===== */
 .tw-records { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .tw-recrow { display: flex; justify-content: space-between; background: #140d1e; border: 1px solid #34254a; border-radius: 6px; padding: 6px 10px; }
