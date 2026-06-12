@@ -662,7 +662,202 @@ export function fuseSouls(s1, s2) {
   return { type: "rankup", soul: newSoul };
 }
 
+// ===== 職業キャラアイコン =====
+// 12x12 のキャラドット絵原型 (6系統)。36職は JOB_ART_FAMILY で系統に割り当て、
+// 職業ごとの color/glow で塗り分けるため、同系統でも職業ごとに見た目が変わる。
+const JOB_ARTS = {
+  // 戦士系: 羽根飾りの兜と大剣
+  fighter: [
+    ".8..99...4..",
+    "..800000.4..",
+    "..01111104..",
+    "..03333304..",
+    "..03636304..",
+    "...02220.4..",
+    "..011111444.",
+    "..01151134..",
+    "..0222220...",
+    "...01110....",
+    "...01.10....",
+    "...00.00....",
+  ],
+  // 騎士系: 面頬の兜・カイトシールド・長剣
+  knight: [
+    ".8..99......",
+    "..800000.4..",
+    "..04444404..",
+    "..00606004..",
+    "..04444404..",
+    "...02220.4..",
+    "04011111444.",
+    "0501111134..",
+    "040222220...",
+    ".0.01110....",
+    "...01.10....",
+    "...00.00....",
+  ],
+  // 盗賊系: 目深の頭巾・襟巻き・短剣
+  thief: [
+    "....99......",
+    "....000.....",
+    "...01110....",
+    "..01111104..",
+    "..01606104..",
+    "...0222034..",
+    ".80111110...",
+    "..0115110...",
+    "..0222220...",
+    "...01110....",
+    "...01.10....",
+    "..00..00....",
+  ],
+  // 魔導系: つば広のとんがり帽と宝珠の杖
+  mage: [
+    "..9.00.9....",
+    "...0110..5..",
+    ".8011110.5..",
+    ".011111104..",
+    "..03636304..",
+    "...0222034..",
+    "..01111104..",
+    "..01151104..",
+    ".011111104..",
+    ".021111204..",
+    ".01111110...",
+    ".00000000...",
+  ],
+  // 僧侶系: 頭巾と胸の聖印・十字杖
+  priest: [
+    "....99......",
+    "...00000848.",
+    "..011110444.",
+    "..01333104..",
+    "..01636104..",
+    "...0222034..",
+    "..01111104..",
+    "..01151104..",
+    "..01555104..",
+    ".011151110..",
+    ".011111110..",
+    ".000000000..",
+  ],
+  // 司教系: 宝玉の司教冠と法環の杖
+  bishop: [
+    "...9.0.9....",
+    "....010..5..",
+    "...01710.5..",
+    "..01111104..",
+    "..03636304..",
+    "...0222034..",
+    "..01111104..",
+    "..01151104..",
+    ".011111104..",
+    ".021111204..",
+    ".01111110...",
+    ".00000000...",
+  ],
+};
+
+// 36職 → 6系統。新職を追加したらここにも割り当てる (未登録は fighter 系統に落ちる)
+const JOB_ART_FAMILY = {
+  fighter: "fighter", samurai: "fighter", berserker: "fighter", monk: "fighter",
+  hero: "fighter", asura: "fighter", crusader: "fighter", battlemage: "fighter",
+  knight: "knight", paladin: "knight", guardian: "knight", templar: "knight",
+  darkknight: "knight", dragonknight: "knight", chaplain: "knight",
+  thief: "thief", hunter: "thief", shadow: "thief", brigand: "thief", arcthief: "thief",
+  mage: "mage", spellblade: "mage", hexer: "mage", arcanist: "mage",
+  archmage: "mage", necromancer: "mage",
+  priest: "priest", exorcist: "priest", ascetic: "priest", inquisitor: "priest", hermit: "priest",
+  bishop: "bishop", archbishop: "bishop", sage: "bishop", cardinal: "bishop", warden: "bishop",
+};
+
+// #rrggbb 同士を t (0-1) で混ぜる
+function mixHex(a, b, t) {
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const ch = (sh) => Math.round(((pa >> sh) & 255) + (((pb >> sh) & 255) - ((pa >> sh) & 255)) * t);
+  return "#" + ((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).slice(1);
+}
+
+// #rrggbb → rgba() 文字列 (オーラの半透明用)
+function hexA(hex, a) {
+  const p = parseInt(hex.slice(1), 16);
+  return `rgba(${(p >> 16) & 255},${(p >> 8) & 255},${p & 255},${a})`;
+}
+
+const _jobSprCache = {};
+
+// 職業キャラアイコンを返す。jobKey は SOUL_CLASSES の36職キー。rank は職業ランク1〜5。
+// ランク1=くすんだ見習い装 / 2=正装 / 3=金の意匠 / 4=瞳が灯り市松の煌めきオーラ / 5=冠・光輪+強オーラ
+export function jobSprite(jobKey, rank = 2) {
+  const r = Math.max(1, Math.min(5, Math.round(rank) || 2));
+  const key = SOUL_CLASSES[jobKey] ? jobKey : "fighter";
+  const cacheKey = key + ":" + r;
+  if (_jobSprCache[cacheKey]) return _jobSprCache[cacheKey];
+
+  const c = SOUL_CLASSES[key];
+  const dull = (x, t) => mixHex(x, "#787c84", t); // 見習い装のくすみ
+  const lift = (x, t) => mixHex(x, "#ffffff", t);
+
+  // ランクで深まる色調
+  const prim = r === 1 ? dull(c.color, 0.5) : r >= 4 ? mixHex(c.color, c.glow, r === 5 ? 0.28 : 0.15) : c.color;
+  const trim = r === 1 ? dull(c.glow, 0.5) : r === 5 ? lift(c.glow, 0.3) : r === 4 ? lift(c.glow, 0.15) : c.glow;
+  const accBase = mixHex(c.glow, c.color, 0.3); // 紋章のランク2以下の色
+  const acc = r >= 3 ? (r === 5 ? "#ffd95e" : "#e8c24a") : r === 1 ? dull(accBase, 0.4) : accBase;
+  const metal = r === 1 ? "#8f949e" : r >= 4 ? mixHex("#c9cfdb", c.glow, 0.25) : "#c9cfdb";
+  const eye = r >= 5 ? "#ffffff" : r === 4 ? lift(c.glow, 0.35) : "#16120e";
+
+  const palette = {
+    "0": mixHex(c.color, "#07070c", 0.76),
+    "1": prim,
+    "2": trim,
+    "3": r === 1 ? "#d9bd96" : "#ecc89c",
+    "4": metal,
+    "5": acc,
+    "6": eye,
+    "7": r >= 3 ? acc : prim, // 象嵌: 低ランクでは主色に沈む
+  };
+  if (r >= 3) palette["8"] = r === 5 ? "#ffe48a" : acc; // 飾り
+  if (r >= 5) palette["9"] = "#ffe48a"; // 冠・光輪
+
+  let art = JOB_ARTS[JOB_ART_FAMILY[key] || "fighter"];
+  // ランク4+: 輪郭の外側1ドットにオーラを纏う。
+  // ランク4は市松の煌めき、ランク5は途切れぬ光輪+斜めに散る残光。
+  if (r >= 4) {
+    const rows = art.map((s) => s.split(""));
+    const solid = (y, x) => {
+      if (y < 0 || y >= rows.length || x < 0 || x >= rows[y].length) return false;
+      const ch = rows[y][x];
+      return ch !== "." && palette[ch] != null;
+    };
+    const out = art.map((s) => s.split(""));
+    for (let y = 0; y < rows.length; y++) {
+      for (let x = 0; x < rows[y].length; x++) {
+        if (rows[y][x] !== ".") continue;
+        if (solid(y - 1, x) || solid(y + 1, x) || solid(y, x - 1) || solid(y, x + 1)) {
+          if (r >= 5 || (x + y) % 2 === 0) out[y][x] = "a";
+        } else if (r >= 5 && (x + y) % 2 === 0 &&
+          (solid(y - 1, x - 1) || solid(y - 1, x + 1) || solid(y + 1, x - 1) || solid(y + 1, x + 1))) {
+          out[y][x] = "b";
+        }
+      }
+    }
+    art = out.map((a) => a.join(""));
+    palette["a"] = hexA(c.glow, r === 5 ? 0.3 : 0.26);
+    if (r >= 5) palette["b"] = hexA(c.glow, 0.13);
+  }
+
+  return (_jobSprCache[cacheKey] = { palette, art });
+}
+
+// 人業の顔アイコン: 発現中の職業と職業ランクの姿。未発現は支配職のランク1
+export function dollSprite(d) {
+  const key = d.jobKey || (d.dominant && d.dominant.clsKey) || d.clsKey || "fighter";
+  return jobSprite(key, d.jobRank || 1);
+}
+
 // ===== スプライト =====
+// 魂のドット絵 (魂の入手・強化・祭壇などの表示用)。職業色の宝珠。
+// ※キャラ (人業/職業) の表示は jobSprite/dollSprite。魂はあくまで宝珠で表す。
 export function soulSprite(clsKey) {
   const c = SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter;
   return {

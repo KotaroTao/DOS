@@ -14,7 +14,7 @@ import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE } from 
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS, ELITE_ORDER } from "./dungeons/index.js";
 import {
-  PARTS, PART_LABEL, SOUL_CLASSES, makeSoul, makeDoll, soulName, soulSprite,
+  PARTS, PART_LABEL, SOUL_CLASSES, makeSoul, makeDoll, soulName, soulSprite, jobSprite, dollSprite,
   dollSouls, dominantClass, recalcDoll, sealSoul,
   ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
   SOUL_RANKS, rollSoulRank, rollJobClass, soulStats, soulHardCap, ensureSoul,
@@ -2815,7 +2815,7 @@ let altarSel = null; // 訓練所で選択中 { doll, part }
 const FACILITIES = [
   { key: "mansion", icon: "🏚", name: "人業の館", desc: "人業を仕立て、魂を宿す" },
   { key: "tavern", icon: "🍺", name: "酒場「沈まぬ灯」", desc: "編成とクエスト" },
-  { key: "shop", icon: "🏪", name: "商店 : 黒鉄商会", desc: "装備・道具の売買" },
+  { key: "shop", icon: "🏪", name: "商店「黒鉄商会」", desc: "装備・道具の売買" },
   { key: "inn", icon: "🛏", name: "宿屋「白狼」", desc: "魂を休め、傷を癒す" },
   { key: "palace", icon: "👑", name: "王宮", desc: "勅命と図鑑の間" },
   { key: "shrine", icon: "🔴", name: "赤い魂の祠", desc: "Red Soul を授かる" },
@@ -3010,7 +3010,7 @@ function dollChip(d) {
   if (dom) {
     const s = el("span", "tw-chips");
     s.style.color = SOUL_CLASSES[dom.clsKey].glow;
-    s.appendChild(spriteCanvas(soulSprite(dom.clsKey), 2));
+    s.appendChild(spriteCanvas(dollSprite(d), 2));
     chip.appendChild(s);
   }
   const info = el("div", "tw-chipi");
@@ -3108,7 +3108,7 @@ function renderMansionParty() {
 function rosterRow(d, onClick) {
   const row = el("div", "tw-mrow" + (d.alive ? "" : " dead"));
   const s = el("span", "tw-chips");
-  if (d.dominant) { s.style.color = SOUL_CLASSES[d.dominant.clsKey].glow; s.appendChild(spriteCanvas(soulSprite(d.dominant.clsKey), 2)); }
+  if (d.dominant) { s.style.color = SOUL_CLASSES[d.dominant.clsKey].glow; s.appendChild(spriteCanvas(dollSprite(d), 2)); }
   row.appendChild(s);
   const info = el("div", "tw-chipi");
   info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
@@ -3241,8 +3241,7 @@ function showSkillUnlockPopup(d, keys) {
   ban.style.color = accent;
   card.appendChild(ban);
   const art = el("div", "ig-art");
-  const spriteK = (d.jobKey ? d.jobKey.split("+")[0] : d.clsKey) || "fighter";
-  art.appendChild(spriteCanvas(soulSprite(spriteK), 9));
+  art.appendChild(spriteCanvas(dollSprite(d), 9));
   card.appendChild(art);
   card.appendChild(el("div", "ig-name", d.name));
   card.appendChild(el("div", "cdx-elem", `${d.cls} キャラLv${d.jobLv || 1}`));
@@ -3535,7 +3534,7 @@ function renderMansionManage() {
     const inParty = G.party.includes(d);
     const row = el("div", "tw-mrow" + (d.alive ? "" : " dead"));
     const s = el("span", "tw-chips");
-    if (d.dominant) { s.style.color = SOUL_CLASSES[d.dominant.clsKey].glow; s.appendChild(spriteCanvas(soulSprite(d.dominant.clsKey), 2)); }
+    if (d.dominant) { s.style.color = SOUL_CLASSES[d.dominant.clsKey].glow; s.appendChild(spriteCanvas(dollSprite(d), 2)); }
     row.appendChild(s);
     const info = el("div", "tw-chipi");
     info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †") + (d.isEmpty ? "（未生成）" : inParty ? "" : " (控え)")));
@@ -4860,10 +4859,10 @@ function renderCodexJob() {
     if (!bs.length && !hy.length) continue;
     townEl.appendChild(el("div", "tw-h", `ランク${r}`));
     const list = el("div", "cdx-sklist");
-    for (const k of bs) list.appendChild(jobRow(jobRankName(k, r), soulSprite(k), SOUL_CLASSES[k].glow, () => showCodexJobDetail(k, r)));
+    for (const k of bs) list.appendChild(jobRow(jobRankName(k, r), jobSprite(k, r), SOUL_CLASSES[k].glow, () => showCodexJobDetail(k, r)));
     for (const k of hy) {
       const bk = k.split("+")[0];
-      list.appendChild(jobRow(jobRankName(k, r), soulSprite(bk), SOUL_CLASSES[bk].glow, () => showCodexJobDetail(k, r)));
+      list.appendChild(jobRow(jobRankName(k, r), jobSprite(bk, r), SOUL_CLASSES[bk].glow, () => showCodexJobDetail(k, r)));
     }
     townEl.appendChild(list);
   }
@@ -4887,7 +4886,7 @@ function showCodexJobDetail(key, rank) {
   ban.style.color = color;
   card.appendChild(ban);
   const art = el("div", "ig-art");
-  art.appendChild(spriteCanvas(soulSprite(baseK), 9));
+  art.appendChild(spriteCanvas(jobSprite(baseK, rank), 9));
   card.appendChild(art);
 
   const line = (name, desc) => {
@@ -5219,7 +5218,7 @@ function renderShop() {
     if (m.dominant) {
       const o = el("span", "tw-chips");
       o.style.color = SOUL_CLASSES[m.dominant.clsKey].glow;
-      o.appendChild(spriteCanvas(soulSprite(m.dominant.clsKey), 2));
+      o.appendChild(spriteCanvas(dollSprite(m), 2));
       chip.appendChild(o);
     }
     chip.appendChild(el("span", "shop-mname", m.name));
@@ -5420,7 +5419,7 @@ function renderStatus() {
   // ===== ヘッダ: 肖像 + 名前 + 属性-種族-職業 + 前後/閉じる =====
   const head = el("div", "st-head");
   const port = el("div", "st-port small");
-  port.appendChild(spriteCanvas(HERO, 4));
+  port.appendChild(spriteCanvas(p.isDoll ? dollSprite(p) : HERO, 4));
   head.appendChild(port);
   const idn = el("div", "st-idn");
   idn.appendChild(el("div", "st-name", p.name + (p.alive ? "" : " †")));
