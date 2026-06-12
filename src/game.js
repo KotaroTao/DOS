@@ -1525,7 +1525,7 @@ function openChest(cell, opener) {
 // 宝箱の中身を解決。allowDanger=falseなら罠/ミミックなし (戦闘後の宝箱。罠フェーズは battleChest 側)。
 // opener: 開けると選ばれた人業 (罠解除判定に使う)。done は安全終了時のコールバック。
 // cRankIn: 宝箱ランクの引き継ぎ (戦闘後の宝箱はセルがないため明示的に渡す)
-function rollChest(cell, allowDanger, done, opener, cRankIn, lvBonus) {
+function rollChest(cell, allowDanger, done, opener, cRankIn, lvBonus, noGold = false) {
   const cRank = cRankIn || (allowDanger ? chestRankOf(cell) : 1);
   if (allowDanger) {
     // 伝説の宝箱 (cell.lootBonus) はミミック/黒い宝箱に化けない
@@ -1554,10 +1554,10 @@ function rollChest(cell, allowDanger, done, opener, cRankIn, lvBonus) {
       return;
     }
     // 罠フェーズ: 70%で罠。解除/発動/罠なしの演出を経て中身へ
-    chestTrapPhase(opener, () => chestContents(cell, done, cRank, lvBonus), cRank, done);
+    chestTrapPhase(opener, () => chestContents(cell, done, cRank, lvBonus, noGold), cRank, done);
     return;
   }
-  chestContents(cell, done, cRank, lvBonus);
+  chestContents(cell, done, cRank, lvBonus, noGold);
 }
 
 // 罠フェーズ (盤面・戦闘後の宝箱共通): cfg.trapRate (デフォルト0.70) の確率で罠が仕掛けられている。
@@ -1756,7 +1756,7 @@ function springTrap(trap, opener, fin) {
 // 宝箱の中身 (ゴールド/空の魂/装備品)。cRank: 宝箱ランク (1-5、高いほど豪華)
 // lvBonus: ミミック撃破後の宝箱などのアイテムレベル底上げ。
 // cell.lootBonus: 特別階 (伝説の眠る階) の「伝説の宝箱」— 中身は必ず装備品で +40レベル
-function chestContents(cell, done, cRank = 1, lvBonus = 0) {
+function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false) {
   const lootUp = (lvBonus || 0) + ((cell && cell.lootBonus) || 0);
   const legendary = !!(cell && cell.lootBonus);
   const rankMul = 1 + ((cRank || 1) - 1) * 0.3;
@@ -1778,8 +1778,8 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0) {
     }
   }
   // 中身の抽選 (ダンジョンレベルに応じる): ゴールド50% / ゴールド以外のアイテム50%
-  // 伝説の宝箱はゴールド/空の魂にならず、必ず装備品が出る
-  if (!legendary && Math.random() < 0.5) {
+  // 伝説の宝箱・ミミック宝箱はゴールドにならず、必ず装備品が出る
+  if (!legendary && !noGold && Math.random() < 0.5) {
     SFX.chest();
     const dRank = activeCfg().rank || 1;
     const g = runGainGold(Math.round((10 + G.floor * 12 + rand(30)) * (1 + (dRank - 1) * 0.5) * rankMul));
@@ -1850,12 +1850,12 @@ function askCursedChest(done) {
 // 開ける者を選んでその者の解除値で判定する (盤面の宝箱と同じ罠フェーズを通る)。
 // 敵がアイテムを落としていれば中身はそれ。なければダンジョンレベル準拠の抽選。
 // after: 終了後に呼ぶ (ボス撃破時は踏破演出へつなぐ)。lvBonus: ミミック撃破宝箱などの中身底上げ
-function battleChest(drops, after, lvBonus = 0) {
+function battleChest(drops, after, lvBonus = 0, noGold = false) {
   const done = () => { if (after) after(); else if (G.state === "board") renderBoard(); };
   const cRank = chestRankOf(null);
   const contents = () => {
     if (drops && drops.length) giveDropsFromChest(drops, 0, done);
-    else rollChest(null, false, done, null, cRank, lvBonus);
+    else rollChest(null, false, done, null, cRank, lvBonus, noGold);
   };
   // 踏破演出など続きの処理 (after) がある時は、戦闘へ突入する警報系の罠を出さない
   // (戦闘を挟むと after が呼ばれなくなるため)
@@ -2725,7 +2725,7 @@ function endBattle() {
         return;
       }
       if (drop || wasElite || wasMimic || Math.random() < 0.5) {
-        setTimeout(() => battleChest(drop ? [drop] : [], after, wasMasterMimic ? 30 : wasMimic ? 15 : 0), 200);
+        setTimeout(() => battleChest(drop ? [drop] : [], after, wasMasterMimic ? 30 : wasMimic ? 15 : 0, wasMimic || wasMasterMimic), 200);
         return;
       }
       if (after) after();
@@ -3558,43 +3558,47 @@ function renderMansionSynth() {
 }
 
 // 魂融合: 同じ職業・部位・ランクの魂を2つ選んで融合。ランクアップ or ランク5強化
-let fuseSel = [null, null]; // 選択中の魂インデックス (G.souls[] のインデックス)
+let fuseSel = [null, null]; // 選択中の魂オブジェクト (ストック・装備中どちらも対象)
 function renderMansionFuse() {
   townEl.appendChild(townHeader("魂融合", "mansion"));
   townEl.appendChild(el("div", "tw-lead",
     "同じ職業・部位・ランクで、どちらもLvMaxの魂を2つ融合する。\nランク1-4: ランクが1つ上昇。ランク5: ステータス強化(+1)。"));
 
+  // ストック + 装備中の全魂を収集 (装備中はどの人形・部位か記録)
+  const allSouls = [
+    ...G.souls.map((s) => ({ s, equipped: false })),
+    ...allDolls().flatMap((d) =>
+      PARTS.filter((p) => d.parts && d.parts[p]).map((p) => ({ s: d.parts[p], equipped: true, doll: d, part: p }))),
+  ];
+
   // 条件を満たす魂のみ表示: LvMAX かつ 同職業・部位・ランクの LvMAX 相手がいるもの。
-  // 職業 → ランク → 部位順に並べる (G.souls のインデックスは選択用に保持)
   const isMax = (s) => s.level >= ((SOUL_RANKS[s.rank] || {}).cap || s.cap);
-  const groups = {}; // clsKey|part|rank -> count (LvMAXのみ)
-  for (const s of G.souls) {
+  const groups = {};
+  for (const { s } of allSouls) {
     if (!isMax(s)) continue;
     const k = `${s.clsKey}|${s.part}|${s.rank}`;
     groups[k] = (groups[k] || 0) + 1;
   }
-  const eligible = G.souls
-    .map((s, idx) => ({ s, idx }))
-    .filter(({ s }) => isMax(s) && groups[`${s.clsKey}|${s.part}|${s.rank}`] >= 2);
+  const eligible = allSouls.filter(({ s }) => isMax(s) && groups[`${s.clsKey}|${s.part}|${s.rank}`] >= 2);
   const clsOrder = Object.keys(SOUL_CLASSES);
   eligible.sort((a, b) =>
     (clsOrder.indexOf(a.s.clsKey) - clsOrder.indexOf(b.s.clsKey)) ||
     (a.s.rank - b.s.rank) ||
     (PARTS.indexOf(a.s.part) - PARTS.indexOf(b.s.part)));
-  // 非表示になった魂の選択は解除しておく (見えない選択が残ると誤融合のもと)
-  const visible = new Set(eligible.map((e) => e.idx));
-  if (fuseSel[0] !== null && !visible.has(fuseSel[0])) fuseSel[0] = null;
-  if (fuseSel[1] !== null && !visible.has(fuseSel[1])) fuseSel[1] = null;
+  // 非表示になった魂の選択は解除しておく
+  const visibleSouls = new Set(eligible.map((e) => e.s));
+  if (fuseSel[0] !== null && !visibleSouls.has(fuseSel[0])) fuseSel[0] = null;
+  if (fuseSel[1] !== null && !visibleSouls.has(fuseSel[1])) fuseSel[1] = null;
 
-  // ストックの魂一覧 (融合可能な組み合わせのみ)
+  // 魂一覧 (融合可能な組み合わせのみ)
   const list = el("div", "tw-soullist");
   if (!eligible.length) {
     list.appendChild(el("div", "tw-empty",
-      G.souls.length ? "融合できる組み合わせがない。(同じ職業・部位・ランクで LvMAX の魂が2つ必要)" : "ストックに魂がない。"));
+      allSouls.length ? "融合できる組み合わせがない。(同じ職業・部位・ランクで LvMAX の魂が2つ必要)" : "魂がない。"));
   } else {
-    eligible.forEach(({ s, idx }) => {
+    eligible.forEach(({ s, equipped, doll, part }) => {
       const rank = SOUL_RANKS[s.rank] || SOUL_RANKS[1];
-      const sel = fuseSel[0] === idx || fuseSel[1] === idx;
+      const sel = fuseSel[0] === s || fuseSel[1] === s;
       const r = el("div", "tw-soulrow" + (sel ? " selected" : "") + (rank.order >= 1 ? " rare" : ""));
       if (rank.color) r.style.borderColor = rank.color;
       if (sel) r.style.outline = "2px solid #ffcf4a";
@@ -3604,14 +3608,17 @@ function renderMansionFuse() {
       const info = el("div", "tw-chipi");
       const nm = el("div", "tw-souln", soulName(s)); if (rank.color) nm.style.color = rank.color;
       info.appendChild(nm);
-      info.appendChild(el("div", "tw-soulst", "✓ Lv MAX"));
+      const stLine = equipped
+        ? `✓ Lv MAX ・ ${doll.name || "人業"}に装備中`
+        : "✓ Lv MAX";
+      info.appendChild(el("div", "tw-soulst", stLine));
       r.appendChild(info);
       const b = btn(sel ? "✓ 選択中" : "選ぶ", () => {
-        if (fuseSel[0] === idx) { fuseSel[0] = null; }
-        else if (fuseSel[1] === idx) { fuseSel[1] = null; }
-        else if (fuseSel[0] === null) { fuseSel[0] = idx; }
-        else if (fuseSel[1] === null) { fuseSel[1] = idx; }
-        else { fuseSel[0] = fuseSel[1]; fuseSel[1] = idx; }
+        if (fuseSel[0] === s) { fuseSel[0] = null; }
+        else if (fuseSel[1] === s) { fuseSel[1] = null; }
+        else if (fuseSel[0] === null) { fuseSel[0] = s; }
+        else if (fuseSel[1] === null) { fuseSel[1] = s; }
+        else { fuseSel[0] = fuseSel[1]; fuseSel[1] = s; }
         renderTown();
       });
       b.className = "tw-small" + (sel ? " primary" : "");
@@ -3624,16 +3631,24 @@ function renderMansionFuse() {
   // 融合ボタン
   const canFuse = fuseSel[0] !== null && fuseSel[1] !== null && fuseSel[0] !== fuseSel[1];
   const fuseBtn = btn("⚗ 融合する", () => {
-    const s1 = G.souls[fuseSel[0]];
-    const s2 = G.souls[fuseSel[1]];
+    const s1 = fuseSel[0];
+    const s2 = fuseSel[1];
     const result = fuseSouls(s1, s2);
     if (!result) {
       log("この2つは融合できない。(同じ職業・部位・ランク・Lv MAXが必要)", "sys"); return;
     }
-    // 素材の2体をストックから除去
-    const idxs = [fuseSel[0], fuseSel[1]].sort((a, b) => b - a);
-    for (const i of idxs) G.souls.splice(i, 1);
-    // 部位に宿っていた場合は外す (融合不可だが念のため)
+    // 素材を除去 (ストック or 装備中の部位から)
+    const removeSoul = (soul) => {
+      const si = G.souls.indexOf(soul);
+      if (si !== -1) { G.souls.splice(si, 1); return; }
+      for (const d of allDolls()) {
+        for (const p of PARTS) {
+          if (d.parts && d.parts[p] === soul) { d.parts[p] = null; recalcDoll(d); return; }
+        }
+      }
+    };
+    removeSoul(s1);
+    removeSoul(s2);
     G.souls.push(result.soul);
     fuseSel = [null, null];
     SFX.itemget(); buzz([0, 40, 60, 40, 60, 200]);
@@ -6070,7 +6085,7 @@ function elemStatText(kind, e) {
   return `${elemName(e.el)}属性${kind}+${Math.min(2, e.lv)}`;
 }
 // 相性のくわしい説明行 (複数行)。
-// 防御: 「水属性防御 +1」「火属性から受けるダメージ -50%」「土属性から受けるダメージ +50%」
+// 防御: 「水属性防御 +1」「火属性から受けるダメージ -50%」(不利属性のダメージ増加は表示・適用しない)
 // 攻撃: 「水属性攻撃 +1」「火属性に与えるダメージ +50%」「土属性に与えるダメージ -50%」
 function elemDetailLines(kind, e) {
   if (!e || !e.el || !ELEM_ADV[e.el]) return [];
@@ -6082,7 +6097,7 @@ function elemDetailLines(kind, e) {
     if (weak) lines.push(`${elemName(weak)}属性に与えるダメージ　-${pct}%`);
   } else {
     lines.push(`${elemName(adv)}属性から受けるダメージ　-${pct}%`);
-    if (weak) lines.push(`${elemName(weak)}属性から受けるダメージ　+${pct}%`);
+    // 不利属性からのダメージ増加は適用しない (軽減のみ)
   }
   return lines;
 }
