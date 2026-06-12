@@ -1202,7 +1202,7 @@ function askDescend(cell) {
 }
 
 // ===== 罠解除 (宝箱・罠マス共通) =====
-// 解除値 = AGI + LUK。盗賊系の職業 (基本職/混成職に盗賊を含む) は1.5倍のボーナス
+// 解除値 = AGI + LUK。盗賊系の職業は1.5倍のボーナス
 function disarmPower(m) {
   let v = (m.agi || 0) + (m.luk || 0);
   if (m.jobKey && m.jobKey.split("+").includes("thief")) v *= 1.5;
@@ -3310,7 +3310,7 @@ function renderAltar() {
   sum.style.borderColor = dom ? SOUL_CLASSES[dom.clsKey].color : "#34344a";
   sum.appendChild(el("div", "tw-sumc", d.cls));
   const tierTxt = d.jobRank
-    ? `キャラLv ${d.jobLv || 0}（魂の平均・スキル解放 Lv${d.jobRank * 10} まで）${d.hybrid ? "（混成職）" : ""}`
+    ? `キャラLv ${d.jobLv || 0}（魂の平均・スキル解放 Lv${d.jobRank * 10} まで）`
     : "同職3部位未満 — 職業未発現";
   sum.appendChild(el("div", "tw-sumt", tierTxt));
   sum.appendChild(el("div", "tw-sumst",
@@ -3519,7 +3519,7 @@ function rollRumor() {
   const floor = 1;
   const speaker = RUMOR_SPEAKERS[rand(RUMOR_SPEAKERS.length)];
   const roll = Math.random();
-  // 2% で未発見の混成職ヒント
+  // 2% で未発見の職業ヒント
   if (roll < 0.02) {
     const undiscovered = Object.keys(HYBRIDS).filter((k) => !(G.codex.job && G.codex.job[k]));
     if (undiscovered.length) {
@@ -3803,11 +3803,11 @@ const ACHIEVEMENTS = [];
     [150, "宝物庫の主", 1500, 15], [250, "伝説の収集家", 3000, 30], [350, "全てを手にした者", 8000, 60],
   ], (v) => `アイテム図鑑 ${v}種`, (v) => itemSeen() >= v);
 
-  // 混成職の発現 (8)
+  // 職業発現 (8)
   tiers((v) => `hyb${v}`, [
     [1, "最初の混成", 100], [3, "魂の配合師", 200], [5, "混成の探求者", 300], [10, "職業の織り手", 600, 10],
     [15, "魂の錬金術師", 1000, 15], [20, "異端の指導者", 1500, 20], [25, "万職の祖", 2000, 30], [30, "全職業の支配者", 3000, 50],
-  ], (v) => `混成職を ${v}種 発現させる`, (v) => hybSeen() >= v);
+  ], (v) => `${v}種の職業を発現させる`, (v) => hybSeen() >= v);
 
   // 蓄財 (4) — 受領時にも所持金を再判定する
   tiers((v) => `gold${v}`, [
@@ -4181,7 +4181,7 @@ function rollMonsterDrop(enemy) {
 function codexSeeItem(id) { if (id) G.codex.item[id] = true; }
 
 // ---- 職業図鑑の記録 ----
-// 人業に職業 (基本職/混成職) が発現した時点で「発見」とし、スキル解放の
+// 人業に職業が発現した時点で「発見」とし、スキル解放の
 // 到達レベル (ランク上限でキャップしたキャラLv = 宿した魂の平均レベル) の
 // 最高値を {lv} に、到達した職業ランクの最高値を {rank} に記録する。
 // 図鑑はランク別に称号を列挙し、スキル表は到達Lvまでの技だけ内容を開示する。
@@ -4396,7 +4396,7 @@ function renderCodexDungeon() {
 }
 
 // ---- 職業図鑑 ----
-// 人業に発現したことのある職業 (基本職/混成職) のみ表示。未発見は一切載せない。
+// 人業に発現したことのある職業のみ表示。未発見は一切載せない。
 function jobRow(name, sprite, color, onClick) {
   const r = el("div", "tw-soulrow");
   const o = el("span", "tw-chips");
@@ -4432,11 +4432,11 @@ function renderCodexJob() {
     for (const k of bs) list.appendChild(jobRow(jobRankName(k, r), soulSprite(k), SOUL_CLASSES[k].glow, () => showCodexJobDetail(k, r)));
     for (const k of hy) {
       const bk = k.split("+")[0];
-      list.appendChild(jobRow(`${jobRankName(k, r)}（混成）`, soulSprite(bk), SOUL_CLASSES[bk].glow, () => showCodexJobDetail(k, r)));
+      list.appendChild(jobRow(jobRankName(k, r), soulSprite(bk), SOUL_CLASSES[bk].glow, () => showCodexJobDetail(k, r)));
     }
     townEl.appendChild(list);
   }
-  townEl.appendChild(el("div", "tw-note", "魂の組み合わせ次第で、いまだ知られぬ混成職が眠っているという……"));
+  townEl.appendChild(el("div", "tw-note", "魂の組み合わせ次第で、いまだ知られぬ職業が眠っているという……"));
 }
 
 // 職業図鑑: 詳細カード (解説/活用/発現条件/パッシブ/スキル表)。
@@ -4452,7 +4452,7 @@ function showCodexJobDetail(key, rank) {
   const card = el("div", "ig-card cdx-detail");
   card.style.borderColor = color;
   card.style.boxShadow = `0 0 40px ${color}44`;
-  const ban = el("div", "ig-banner", `${isHybrid ? "混成職" : "基本職"} ランク${rank}`);
+  const ban = el("div", "ig-banner", `ランク${rank}`);
   ban.style.color = color;
   card.appendChild(ban);
   const art = el("div", "ig-art");
@@ -5100,7 +5100,7 @@ function renderSoulTab(p) {
   head.style.borderColor = dom ? SOUL_CLASSES[dom.clsKey].color : "#34344a";
   head.appendChild(el("div", "st-soulc", p.cls));
   head.appendChild(el("div", "st-soultt",
-    p.jobRank ? `キャラLv ${p.jobLv || 0}（魂の平均・スキル解放 Lv${p.jobRank * 10} まで）${p.hybrid ? `（混成職「${p.hybrid}」）` : ""}` : "同職3部位未満 — 職業未発現"));
+    p.jobRank ? `キャラLv ${p.jobLv || 0}（魂の平均・スキル解放 Lv${p.jobRank * 10} まで）` : "同職3部位未満 — 職業未発現"));
   wrap.appendChild(head);
 
   for (const part of PARTS) {

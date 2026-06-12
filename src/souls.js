@@ -183,7 +183,7 @@ const P = (key, lv = 1) => ({ name: passiveName(key, lv), desc: passiveDesc(key,
 const U = (name, desc, grants) => ({ name, desc, grants });
 
 // ===== 職業ごとのランクパッシブ表 =====
-// 各職業 (基本職キー / 混成職 "base+sub" キー) → [ランク2, 3, 4, 5] の効果。
+// 各職業 (基本職キー / ハイブリッド "base+sub" キー) → [ランク2, 3, 4, 5] の効果。
 // ランク1はパッシブなし。上位ランクは下位のパッシブをすべて内包する。
 // Lv付きの同名効果は重複せず、最高Lvのみが効く。
 export const JOB_PASSIVES = {
@@ -251,7 +251,7 @@ export function passivesUpTo(jobKey, rank) {
 // メンバーのパッシブLvを引く (持っていなければ 0)
 export function pLv(m, key) { return (m && m.passiveMap && m.passiveMap[key]) || 0; }
 
-// 職業×ランクの称号。基本職は JOB_RANKS、混成職は HYBRIDS.ranks から引く
+// 職業×ランクの称号。基本職は JOB_RANKS、ハイブリッドは HYBRIDS.ranks から引く
 export function jobRankName(jobKey, rank) {
   const r = Math.max(1, Math.min(5, rank || 1));
   if (JOB_RANKS[jobKey]) return JOB_RANKS[jobKey][r - 1].name;
@@ -327,10 +327,10 @@ export function charLevelOf(doll) {
   return Math.max(1, Math.round(souls.reduce((a, s) => a + (s.level || 1), 0) / souls.length));
 }
 
-// 職業のスキル表を返す。基本職は JOB_SKILLS。混成職はベース職の序盤5枠と
-// サブ職から未修得の技4枠を交互に並べ、Lv40 にその混成職だけの固有スキル
+// 職業のスキル表を返す。基本職は JOB_SKILLS。ハイブリッドはベース職の序盤5枠と
+// サブ職から未修得の技4枠を交互に並べ、Lv40 にそのハイブリッドだけの固有スキル
 // (HYBRIDS[k].spell — 他のどの職業のスキル表にも現れない) を置いて合成する。
-// Lv50 の奥義は基本職だけが持つ — 混成は広く、純職は深く。
+// Lv50 の奥義は基本職だけが持つ — ハイブリッドは広く、純職は深く。
 const _hybTables = {};
 export function jobSkillTable(jobKey) {
   if (JOB_SKILLS[jobKey]) return JOB_SKILLS[jobKey];
@@ -442,7 +442,7 @@ export const PART_SKILLS = {
   },
 };
 
-// ===== 混成職業 (ハイブリッド) =====
+// ===== ハイブリッド職業 =====
 // 5部位を「ある職業3つ + 別の職業2つ」で組むと、特別な上位職が発現する。
 // 発見要素: プレイヤーが自分で組み合わせを見つける楽しみ = ビルド探索の核。
 // キーは "base+sub" (base=3部位の職業 / sub=2部位の職業)。全30通り (6職×5) を網羅。
@@ -539,7 +539,7 @@ export function jobRankCondText(jobKey, rank) {
   return `${q}以上の${baseL}の魂×3部位 (または ${qPrev}以上×3部位 + ボーナス条件)`;
 }
 
-// 部位タリーから混成職を判定。base(3) と sub(2) のときのみ成立し {key,name,...} を返す
+// 部位タリーからハイブリッド職を判定。base(3) と sub(2) のときのみ成立し {key,name,...} を返す
 export function findHybrid(counts) {
   let baseK = null;
   for (const k in counts) if (counts[k] === 3) baseK = k;
@@ -702,7 +702,7 @@ export function recalcDoll(doll) {
   let clsLabel = "空の器";
   let clsKey = "fighter";
 
-  // 部位ごとの職業数を集計し、混成職(3+2)を判定
+  // 部位ごとの職業数を集計し、ハイブリッド(3+2)を判定
   const counts = {};
   for (const p of PARTS) { const s = doll.parts[p]; if (s) counts[s.clsKey] = (counts[s.clsKey] || 0) + 1; }
   const hybrid = findHybrid(counts);
@@ -739,7 +739,7 @@ export function recalcDoll(doll) {
     clsLabel = JOB_RANKS[clsKey][jr.rank - 1].name;
   }
 
-  // アクションスキル: 職業 (基本職/混成職) のスキル表から習得する。
+  // アクションスキル: 職業のスキル表から習得する。
   // キャラLv = 宿している魂の平均レベル。職業ランクが解放上限 (ランクN → Lv N*10)。
   const charLv = charLevelOf(doll);
   doll.jobLv = charLv;
@@ -750,10 +750,10 @@ export function recalcDoll(doll) {
     }
   }
 
-  // 混成職が発現していれば称号を混成職のランク称号に置き換える
+  // ハイブリッドが発現していれば称号をハイブリッドのランク称号に置き換える
   if (hybrid && jr) clsLabel = jobRankName(hybrid.key, jr.rank);
 
-  // ランクパッシブの確定: 職業 (混成優先) × ランクから {key: lv} を合成
+  // ランクパッシブの確定: 職業 (ハイブリッド優先) × ランクから {key: lv} を合成
   const jobKey = hybrid ? hybrid.key : jr ? jr.clsKey : null;
   doll.jobKey = jobKey; // 発現中の職業キー ("thief" / "fighter+thief" 等)。盗賊系判定などに使う
   const pMap = jobKey && jr ? passivesUpTo(jobKey, jr.rank) : {};
