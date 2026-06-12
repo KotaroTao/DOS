@@ -130,7 +130,6 @@ const logEl = document.getElementById("log");
 const partyEl = document.getElementById("party");
 const combatMenu = document.getElementById("combat-menu");
 const floorInfo = document.getElementById("floor-info");
-const dungeonTitleEl = document.getElementById("dungeon-title");
 
 const G = {
   state: "town",      // town | board | combat | over
@@ -312,11 +311,9 @@ function eliteKey() {
 function updateTopbar() {
   const currency = `🔴${G.redSoul} 💰${G.gold} ✦${G.soulPts}`;
   if (G.state === "town") {
-    if (dungeonTitleEl) dungeonTitleEl.textContent = "百の迷宮と 魂の王";
     floorInfo.textContent = currency;
     return;
   }
-  if (dungeonTitleEl) dungeonTitleEl.textContent = curDungeon().name;
   floorInfo.textContent = `B${G.floor}F ${currency}`;
 }
 
