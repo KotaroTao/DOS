@@ -358,6 +358,10 @@ export class Battle {
       const sp = SPELLS[spellKey];
       if (actor.mp < spellCost(actor, sp)) { this.log("MPが足りない！", "sys"); return { invalid: true }; }
       this.pending = { actor, action: "spell", spellKey };
+      // 単体味方呪文で効果のある対象がいない場合は唱えさせない (満タンへの回復など)
+      if (sp.target === "ally" && this._allyTargets(sp).length === 0) {
+        this.log("効果のある対象がいない。", "sys"); this.pending = null; return { invalid: true };
+      }
       if (sp.target === "all-enemy" || sp.target === "all-ally" || sp.target === "self") { this.phase = "resolve"; return { needTarget: false }; }
       this.phase = "target";
       return { needTarget: true };
@@ -376,9 +380,26 @@ export class Battle {
     if (p.action === "attack") return this.attackableEnemies(p.actor); // 武器の射程内のみ
     const sp = SPELLS[p.spellKey];
     if (sp.target === "enemy") return sp.kind === "phys" ? this.attackableEnemies(p.actor) : this.livingEnemies(); // 物理技は射程に従う。呪文は全体に届く
-    // 死者を選べるのは蘇生できる呪文のみ (蘇生なしの回復で死者を選べると空振りする)
-    if (sp.target === "ally") return sp.kind === "heal" && sp.revive ? this.party : this.livingParty();
+    if (sp.target === "ally") return this._allyTargets(sp);
     return [];
+  }
+
+  // 単体味方呪文で「効果のある対象」だけを返す。
+  //  - HP回復(power) は HP満タンには無効 / 状態治療は状態異常がなければ無効 /
+  //    蘇生は戦闘不能者のみ。バフ/不屈/障壁などの副次効果がある呪文は満タンでも有効。
+  _allyTargets(sp) {
+    const heals = sp.kind === "heal" && (sp.power || 0) > 0;
+    const revives = !!sp.revive;
+    const cures = sp.kind === "cure" || !!sp.cure;
+    const otherBenefit = !!(sp.buff || sp.grantEndure || sp.grantBarrier); // 満タンでも有効な効果
+    return this.party.filter((t) => {
+      if (!t.alive) return revives;            // 死者は蘇生呪文のみ
+      if (otherBenefit) return true;
+      if (heals && t.hp < t.maxhp) return true;
+      if (cures && t.ailment) return true;
+      if (!heals && !cures && !revives) return true; // 回復/治療/蘇生以外の補助は満タンでも可
+      return false;
+    });
   }
 
   chooseTarget(target) {
