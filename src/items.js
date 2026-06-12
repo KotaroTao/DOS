@@ -379,7 +379,7 @@ export const ITEMS = {
     id: "leatherGloves", name: "革の手袋", slot: "hands", lv: 1, vit: 1, price: 50, classes: null,
     desc: "しなやかな革の手袋。罠の毒針から指先を、冷たい亡者の握手から手首を、わずかながら守ってくれる。",
     ...sprite([
-      ".kl k.klk...",
+      ".klk.klk....",
       ".klk.klk....",
       ".kllkllk....",
       ".kdlllldk...",
@@ -822,22 +822,20 @@ export function equip(member, item) {
   if (!canEquip(member, item)) return { ok: false, msg: `${member.cls}は${item.name}を装備できない` };
   const key = slotKeyFor(item, member);
   if (!key) return { ok: false, msg: "装備できない" };
-  // 所持品から取り出す
-  const idx = member.items.indexOf(item);
-  if (idx >= 0) member.items.splice(idx, 1);
 
+  // 押し出される装備を先に数え、所持品が8枠を超えるなら装備自体を中止する
   const removed = [];
-  // 両手武器: 盾を外す
-  if (item.slot === "weapon" && item.twoHanded && member.equip.shield) {
-    removed.push(member.equip.shield);
-    member.equip.shield = null;
-  }
-  // 盾は両手武器と併用不可 → 武器を外す
-  if (item.slot === "shield" && member.equip.weapon && member.equip.weapon.twoHanded) {
-    removed.push(member.equip.weapon);
-    member.equip.weapon = null;
-  }
+  if (item.slot === "weapon" && item.twoHanded && member.equip.shield) removed.push(member.equip.shield);
+  if (item.slot === "shield" && member.equip.weapon && member.equip.weapon.twoHanded) removed.push(member.equip.weapon);
   if (member.equip[key]) removed.push(member.equip[key]);
+  const idx = member.items.indexOf(item);
+  const bagAfter = member.items.length - (idx >= 0 ? 1 : 0) + removed.filter((r) => r && r !== item).length;
+  if (bagAfter > MAX_ITEMS) return { ok: false, msg: "持ち物がいっぱいで装備を入れ替えられない" };
+
+  // 所持品から取り出し、外した装備を所持品へ戻す
+  if (idx >= 0) member.items.splice(idx, 1);
+  if (item.slot === "weapon" && item.twoHanded) member.equip.shield = null;
+  if (item.slot === "shield" && member.equip.weapon && member.equip.weapon.twoHanded) member.equip.weapon = null;
   member.equip[key] = item;
   for (const r of removed) if (r && r !== item) member.items.push(r);
   recalc(member);

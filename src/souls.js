@@ -771,9 +771,7 @@ export function recalcDoll(doll) {
   doll.cls = clsLabel + (hybrid ? "(混成)" : "");
   doll.tier = jr ? (hybrid ? "hybrid" : "rank" + jr.rank) : "none";
   doll.dominant = dom;
-  doll.blessing = false;            // 旧フラグ (聖者の祝福) は廃止
   doll.endure = (pMap.endure || 0) > 0;
-  doll.spellMaster = false;         // 旧フラグ (魔道の極み) は廃止
   // 人業の「レベル」= 封印した魂の平均レベル (表示用)
   const souls = dollSouls(doll);
   doll.level = souls.length ? Math.max(1, Math.round(souls.reduce((a, s) => a + s.level, 0) / souls.length)) : 1;
@@ -800,46 +798,6 @@ export function sealSoul(doll, part, soul) {
   recalcDoll(doll);
 }
 
-// 新規プレイ時の初期編成。3体の人業 + 予備の魂を返す。
-// 器そのものは弱いが、魂を鍛え/組み替えて強くしていく導入。
-export function createStartingRoster() {
-  const dolls = [];
-
-  const garo = makeDoll("ガロ");
-  for (const p of PARTS) garo.parts[p] = makeSoul("fighter", 1, p);
-  recalcDoll(garo);
-  dolls.push(garo);
-
-  const saria = makeDoll("サリア");
-  saria.parts.head = makeSoul("mage", 1, "head");
-  saria.parts.rhand = makeSoul("mage", 1, "rhand");
-  saria.parts.body = makeSoul("mage", 1, "body");
-  saria.parts.lhand = makeSoul("thief", 1, "lhand");
-  saria.parts.legs = makeSoul("thief", 1, "legs");
-  recalcDoll(saria);
-  dolls.push(saria);
-
-  const mina = makeDoll("ミナ");
-  mina.parts.head = makeSoul("priest", 1, "head");
-  mina.parts.rhand = makeSoul("priest", 1, "rhand");
-  mina.parts.body = makeSoul("priest", 1, "body");
-  mina.parts.lhand = makeSoul("knight", 1, "lhand");
-  mina.parts.legs = makeSoul("knight", 1, "legs");
-  recalcDoll(mina);
-  dolls.push(mina);
-
-  // 予備の魂 (組み替え・新しい人業づくり用)
-  const souls = [
-    makeSoul("fighter", 1, "rhand"), makeSoul("fighter", 1, "body"),
-    makeSoul("knight", 1, "head"),
-    makeSoul("thief", 1, "legs"), makeSoul("thief", 1, "lhand"),
-    makeSoul("mage", 1, "head"),
-    makeSoul("priest", 1, "body"),
-  ];
-
-  return { dolls, souls };
-}
-
 // 魂のドット絵 (部位スロット/一覧表示用)。職業色の宝珠。
 export function soulSprite(clsKey) {
   const c = SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter;
@@ -848,9 +806,9 @@ export function soulSprite(clsKey) {
     art: [
       "....0000....",
       "..00222200..",
-      ".02211112 20.",
+      ".0221111220.",
       ".0211333110.",
-      "021133331 20",
+      "021133331120",
       "021113311120",
       "021111111120",
       "021111111120",

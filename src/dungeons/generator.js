@@ -3,7 +3,7 @@
 // ・帯内の進行は enemyScale (0.7→1.7) が受け持ち、ランク境界の段差を均す
 // ・報酬系 (lootLv / rankBonus / soulLevelBonus) は n の連続関数。
 //   rankBonus は対数で伸ばし、最深部でも伝説の魂が「稀」であり続けるようにする
-import { RANK_POOLS } from "./bestiary.js";
+import { RANK_POOLS, BOSS_ORDER } from "./bestiary.js";
 
 export const DUNGEON_COUNT = 100;
 
@@ -128,7 +128,7 @@ const SHORT = ["墓地", "坑道", "砦", "森", "神殿", "灼洞", "氷廊", "
 function hash(n, salt) {
   let h = (n * 2654435761 + salt * 40503) >>> 0;
   h ^= h >>> 13; h = Math.imul(h, 1274126177) >>> 0; h ^= h >>> 16;
-  return h;
+  return h >>> 0; // 最後の XOR で符号付きに戻るため、必ず非負へ正規化する
 }
 
 export function generateDungeon(n) {
@@ -165,7 +165,7 @@ export function generateDungeon(n) {
     floors: Math.min(12, 3 + Math.floor((n - 1) / 9)),
     pool,
     deepPool: deep,
-    boss: cur.boss[hash(n, 71) % cur.boss.length],
+    boss: BOSS_ORDER[r][p], // 迷宮固有の主 (帯内 p 番目)。全100迷宮で重複しない
     bossScale: 1.0,
     enemyScale: Math.round((0.7 + pos) * 100) / 100,
     trapRate: Math.min(0.25, 0.04 + n * 0.002),
