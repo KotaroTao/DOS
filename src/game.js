@@ -1,6 +1,6 @@
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
-import { MONSTERS, HERO, ICONS, drawSprite } from "./sprites.js";
+import { MONSTERS, HERO, HERO_BATTLE, ICONS, drawSprite } from "./sprites.js";
 import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, Battle, SPELLS, cloneItem, spellCost } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
 import { spriteCanvas } from "./sprites.js";
@@ -2054,6 +2054,43 @@ function renderCombatCanvas() {
   vctx.fillStyle = fgr;
   vctx.fillRect(0, floorY, view.width, view.height - floorY);
 
+  // 味方スプライト: 左エリア(x=0..HERO_ZONE)に前衛・後衛を描く
+  const HERO_ZONE = 170; // 左のヒーロー占有幅
+  {
+    const heroFront = G.party.slice(0, 3);
+    const heroBack = G.party.slice(3);
+    // 後衛 → 前衛の順で描く (前衛を手前に重ねる)
+    const heroRows = [
+      { members: heroBack, y: view.height * 0.47, scale: 1.6 },
+      { members: heroFront, y: view.height * 0.60, scale: 2.0 },
+    ];
+    for (const { members, y: hy, scale } of heroRows) {
+      members.forEach((p, i) => {
+        const cx = (HERO_ZONE / (members.length + 1)) * (i + 1);
+        const alpha = p.alive ? 1 : 0.25;
+        // 被弾フラッシュ (パーティ側)
+        const phf = G.partyFx && G.partyFx.get(p);
+        let pox = 0;
+        if (phf === "fx-hit") pox = Math.sin(now * 0.07) * 3;
+        drawSprite(vctx, HERO_BATTLE, cx + pox, hy, scale, alpha);
+        // 手番強調リング (ブーツの位置 = hy + 15*scale)
+        if (b.phase === "input" && b.current === p) {
+          vctx.save();
+          vctx.globalAlpha = 0.85;
+          vctx.strokeStyle = "#7ad4ff";
+          vctx.lineWidth = 1.5;
+          vctx.setLineDash([5, 3]);
+          vctx.lineDashOffset = -now * 0.018;
+          vctx.beginPath();
+          vctx.ellipse(cx, hy + 15 * scale, 13 * scale * 0.5, 4 * scale * 0.5, 0, 0, Math.PI * 2);
+          vctx.stroke();
+          vctx.setLineDash([]);
+          vctx.restore();
+        }
+      });
+    }
+  }
+
   // 隊列: 4体以上は前衛(先頭3体)・後衛(4体目以降)の2列に分かれる。
   // 奥に立つ後衛から先に描き、前衛を手前に重ねて遠近を出す
   const frontRow = b.enemies.slice(0, 3);
@@ -2069,7 +2106,7 @@ function renderCombatCanvas() {
     : []);
   G.enemyPos = {};
   for (const row of rows) row.list.forEach((e, i) => {
-    const baseX = (view.width / (row.list.length + 1)) * (i + 1);
+    const baseX = HERO_ZONE + ((view.width - HERO_ZONE) / (row.list.length + 1)) * (i + 1);
     const baseY = row.y;
     G.enemyPos[e.uid] = { cx: baseX, cy: baseY };
     if (!e.alive) return; // 倒した敵は完全に消す (薄い残像を残さない)
