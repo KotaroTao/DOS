@@ -540,6 +540,16 @@ export function drawSprite(ctx, mon, cx, cy, size, alpha = 1) {
   ctx.restore();
 }
 
+// 解像度の異なるアートを 12 グリッド換算の見かけサイズへ正規化して描く。
+// size は「12x12 アートでの 1 ドット px」。32px 級の高解像度アートは
+// 同じ見かけの大きさのままドットが細かくなる。
+export function drawSpriteFit(ctx, mon, cx, cy, size, alpha = 1) {
+  const h = mon.art.length;
+  const w = mon.art.reduce((m, r) => Math.max(m, r.length), 0);
+  const k = Math.max(12, w, h) / 12;
+  drawSprite(ctx, mon, cx, cy, size / k, alpha);
+}
+
 // 一覧用の小さなサムネを返す（未使用でも拡張用に公開）
 export function spriteList() {
   return Object.keys(MONSTERS);
@@ -552,6 +562,6 @@ export function spriteCanvas(spr, scale = 4, box = 12) {
   c.height = box * scale;
   c.className = "spr";
   const ctx = c.getContext("2d");
-  drawSprite(ctx, spr, c.width / 2, c.height / 2, scale);
+  drawSpriteFit(ctx, spr, c.width / 2, c.height / 2, scale);
   return c;
 }

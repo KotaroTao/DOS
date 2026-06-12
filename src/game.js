@@ -1,6 +1,6 @@
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
-import { MONSTERS, HERO, HERO_BATTLE, ICONS, drawSprite } from "./sprites.js";
+import { MONSTERS, HERO, HERO_BATTLE, ICONS, drawSprite, drawSpriteFit } from "./sprites.js";
 import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, Battle, SPELLS, cloneItem, spellCost } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
 import { spriteCanvas } from "./sprites.js";
@@ -850,7 +850,7 @@ function drawCard(r, cell, scaleX, showBack) {
       vctx.beginPath();
       vctx.ellipse(cx, cy + 14, 13, 3.5, 0, 0, Math.PI * 2);
       vctx.fill();
-      drawSprite(vctx, icon, cx, cy, 3);
+      drawSpriteFit(vctx, icon, cx, cy, 3);
       // あたたかい死体 (魂未回収) には青い人魂を浮かべる
       if (cell.type === "corpse" && cell.corpseWarm && !cell.cleared) {
         const bob = Math.sin(performance.now() * 0.004 + cx) * 2;
@@ -2153,7 +2153,7 @@ function renderCombatCanvas() {
     vctx.ellipse(baseX + ox, baseY + size * 5.4, size * 3.4, size * 1.1, 0, 0, Math.PI * 2);
     vctx.fill();
     vctx.restore();
-    drawSprite(vctx, e.mon, baseX + ox, baseY + oy, size, alpha);
+    drawSpriteFit(vctx, e.mon, baseX + ox, baseY + oy, size, alpha);
     // 被弾時の白フラッシュ
     if (hf && now - hf.t0 < 200) {
       vctx.save();
