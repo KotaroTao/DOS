@@ -313,7 +313,7 @@ const SPECIAL_FLOORS = [
     lines: ["黄金の気が満ちている。", "この階で得るゴールドが 2倍 になる。"] },
   { id: "soulTide", name: "魂の奔流", icon: "wisp", accent: "#7fd0ff", sym: "✧", minFloor: 2, rate: 0.03, soulMul: 1.5,
     lines: ["死者たちの声がざわめいている。", "この階で得る Soul が 1.5倍 になる。"] },
-  { id: "silence", name: "静寂の階", icon: "trap", accent: "#9be88a", sym: "∅", minFloor: 2, rate: 0.02,
+  { id: "silence", name: "静寂の階", icon: "trap", accent: "#9be88a", sym: "∅", minFloor: 2, rate: 0.02, noTrap: true,
     lines: ["仕掛けという仕掛けが朽ち果てている。", "この階に罠と毒の床は存在しない。"],
     board: (b) => sfEachCell(b, (c) => { if (c.type === "trap" || c.type === "poison") { c.type = "empty"; c.cleared = true; } }) },
   { id: "moonlight", name: "月明かりの階", icon: "corpseWarm", accent: "#aef0ff", sym: "☾", minFloor: 2, rate: 0.02,
@@ -1293,9 +1293,11 @@ function undeadKeyForDungeon() {
   return all.length ? all[rand(all.length)] : "d01_skeleton";
 }
 
-// 風化した死体を調べる: Gold 60% / 装備 40% (戦闘は起きない。風化した死体から魂は出ない)
+// 風化した死体を調べる: Soul 50% / Gold 30% / 装備 20% (戦闘は起きない)。
+// ここで出るのは ✦ ソウルポイントで、装備できる「魂」(soul object) は出さない。
 function investigateCorpse(cell, clsKey, clsLabel) {
   cell.cleared = true;
+  const dn = activeCfg();
 
   // 懐に残された金品 (Gold) を渡す処理 (装備を渡せない時のフォールバックにも使う)
   const giveGold = () => {
@@ -1311,10 +1313,27 @@ function investigateCorpse(cell, clsKey, clsLabel) {
     });
   };
 
-  // 60%: 懐に残された金品
-  if (Math.random() < 0.60) { giveGold(); return; }
+  const roll = Math.random();
 
-  // 40%: 傍らに遺された装備品 (渡せなければ金品にフォールバック)
+  // 50%: 亡骸に残る ✦ Soul (ソウルポイント) を集める
+  if (roll < 0.50) {
+    const got = runGainSoulPts(Math.round((20 + G.floor * 8 + (dn.rank || 1) * 6) * (0.7 + Math.random() * 0.6)));
+    SFX.itemget(); buzz([0, 30, 60, 30]);
+    log(`風化した死体から ✦${got} Soul を集めた。`, "win");
+    updateTopbar();
+    showEvent({
+      sprite: ICONS.wisp, banner: "✦ Soul を回収 ✦", title: `✦ ${got} Soul`,
+      accent: "#7fd0ff", sparkle: true,
+      lines: [`風化した亡骸に残っていた魂の残響を集めた。`],
+      onClose: () => renderBoard(),
+    });
+    return;
+  }
+
+  // 30%: 懐に残された金品
+  if (roll < 0.80) { giveGold(); return; }
+
+  // 20%: 傍らに遺された装備品 (渡せなければ金品にフォールバック)
   const id = pickItemByLv(lootLvAt());
   const who = G.party.find((p) => p.alive && p.items.length < MAX_ITEMS)
     || G.party.find((p) => p.items.length < MAX_ITEMS);
@@ -1541,8 +1560,9 @@ function rollChest(cell, allowDanger, done, opener, cRankIn, lvBonus) {
 // excludeKinds: 出現させない罠の型 (踏破演出など、戦闘で続きが途切れる場面で使う)
 function chestTrapPhase(opener, contents, cRank = 1, abort, excludeKinds) {
   const cfg = activeCfg();
-  // cfg.trapRate === 0 は「罠なし」修飾 (静寂の刻など)。その日は宝箱の罠も出さない
-  const trapProb = cfg.trapRate === 0 ? 0 : 0.70;
+  // cfg.trapRate === 0 は「罠なし」修飾 (静寂の刻など)。特別階「静寂の階」(noTrap) も同様に、
+  // 床の罠だけでなく宝箱の罠も出さない。
+  const trapProb = (cfg.trapRate === 0 || sfNum("noTrap", false)) ? 0 : 0.70;
   if (Math.random() < trapProb) {
     const trap = pickTrap(cfg.rank || 1, Math.random, excludeKinds);
     const who = opener || bestDisarmer();
