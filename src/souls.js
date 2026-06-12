@@ -1,7 +1,8 @@
 // 魂(Soul)と人業(Doll)のデータモデル — 新仕様 (36職業・ランク1-5・レア度・融合)
 //
-// 魂のランク = 職業の位階 (1〜5)。部位・職業・ランクがすべて同じ魂3部位以上で職業発現。
-// 5部位そろえると職業ボーナス発生。上位ランクはダンジョンでは出ず、融合で入手。
+// 魂のランク = 職業の位階 (1〜5)。同じ職業の魂を3部位以上に宿すと職業発現。
+// 上位ランクの魂は下位ランクの代替になり、発現ランクは「rank>=r が3部位以上」を満たす最大の r。
+// 5部位すべて同職 (rank>=発現rank) で職業ボーナス発生。上位ランクはダンジョンでは出ず、融合で入手。
 import { recalc, registerJobGear } from "./items.js";
 
 export const PARTS = ["head", "rhand", "lhand", "body", "legs"];
@@ -527,30 +528,39 @@ export function dominantClass(doll) {
   return best;
 }
 
-// 職業発現判定: 同一clsKey・同一rankの魂が3部位以上で発現
+// 職業発現判定: 同一clsKeyの魂が3部位以上で発現。
+// 上位ランクの魂は下位ランクの魂の代替になる
+// (rank r の発現には「clsKey一致 かつ rank>=r」の魂が3部位以上必要)。
+// 発現ランクは、その条件を満たす最大の r。系統が複数あるときは高ランク優先、
+// 同ランクなら宿している魂数が多い系統を採用する。
 export function jobRankOf(doll) {
-  const tally = {};
+  const byCls = {}; // clsKey -> その系統の魂ランク配列
   for (const p of PARTS) {
     const s = doll.parts[p]; if (!s) continue;
-    const key = `${s.clsKey}:${s.rank}`;
-    tally[key] = (tally[key] || 0) + 1;
+    (byCls[s.clsKey] = byCls[s.clsKey] || []).push(s.rank);
   }
-  let best = null, bestCount = 0;
-  for (const k in tally) {
-    if (tally[k] >= 3 && tally[k] > bestCount) {
-      bestCount = tally[k];
-      const [clsKey, rankStr] = k.split(":");
-      best = { clsKey, rank: parseInt(rankStr), count: bestCount };
+  let best = null;
+  for (const clsKey in byCls) {
+    const ranks = byCls[clsKey];
+    // rank>=r の魂が3部位以上になる最大の r を求める
+    for (let r = 5; r >= 1; r--) {
+      const cnt = ranks.filter((x) => x >= r).length;
+      if (cnt >= 3) {
+        if (!best || r > best.rank || (r === best.rank && ranks.length > best.total)) {
+          best = { clsKey, rank: r, count: cnt, total: ranks.length };
+        }
+        break; // この系統の最大発現ランクは確定
+      }
     }
   }
   if (!best) return null;
-  // 5部位すべて同一か確認
-  let total = 0;
+  // 5部位すべてこの職業 (rank>=発現rank) なら 5部位ボーナス
+  let total5 = 0;
   for (const p of PARTS) {
     const s = doll.parts[p];
-    if (s && s.clsKey === best.clsKey && s.rank === best.rank) total++;
+    if (s && s.clsKey === best.clsKey && s.rank >= best.rank) total5++;
   }
-  best.all5 = (total === 5);
+  best.all5 = (total5 === 5);
   return best;
 }
 
