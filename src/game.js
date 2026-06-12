@@ -3565,14 +3565,36 @@ function renderMansionFuse() {
   townEl.appendChild(el("div", "tw-lead",
     "同じ職業・部位・ランクで、どちらもLvMaxの魂を2つ融合する。\nランク1-4: ランクが1つ上昇。ランク5: ステータス強化(+1)。"));
 
-  // ストックの魂一覧
+  // 条件を満たす魂のみ表示: LvMAX かつ 同職業・部位・ランクの LvMAX 相手がいるもの。
+  // 職業 → ランク → 部位順に並べる (G.souls のインデックスは選択用に保持)
+  const isMax = (s) => s.level >= ((SOUL_RANKS[s.rank] || {}).cap || s.cap);
+  const groups = {}; // clsKey|part|rank -> count (LvMAXのみ)
+  for (const s of G.souls) {
+    if (!isMax(s)) continue;
+    const k = `${s.clsKey}|${s.part}|${s.rank}`;
+    groups[k] = (groups[k] || 0) + 1;
+  }
+  const eligible = G.souls
+    .map((s, idx) => ({ s, idx }))
+    .filter(({ s }) => isMax(s) && groups[`${s.clsKey}|${s.part}|${s.rank}`] >= 2);
+  const clsOrder = Object.keys(SOUL_CLASSES);
+  eligible.sort((a, b) =>
+    (clsOrder.indexOf(a.s.clsKey) - clsOrder.indexOf(b.s.clsKey)) ||
+    (a.s.rank - b.s.rank) ||
+    (PARTS.indexOf(a.s.part) - PARTS.indexOf(b.s.part)));
+  // 非表示になった魂の選択は解除しておく (見えない選択が残ると誤融合のもと)
+  const visible = new Set(eligible.map((e) => e.idx));
+  if (fuseSel[0] !== null && !visible.has(fuseSel[0])) fuseSel[0] = null;
+  if (fuseSel[1] !== null && !visible.has(fuseSel[1])) fuseSel[1] = null;
+
+  // ストックの魂一覧 (融合可能な組み合わせのみ)
   const list = el("div", "tw-soullist");
-  if (!G.souls.length) {
-    list.appendChild(el("div", "tw-empty", "ストックに魂がない。"));
+  if (!eligible.length) {
+    list.appendChild(el("div", "tw-empty",
+      G.souls.length ? "融合できる組み合わせがない。(同じ職業・部位・ランクで LvMAX の魂が2つ必要)" : "ストックに魂がない。"));
   } else {
-    G.souls.forEach((s, idx) => {
+    eligible.forEach(({ s, idx }) => {
       const rank = SOUL_RANKS[s.rank] || SOUL_RANKS[1];
-      const atMax = s.level >= s.cap;
       const sel = fuseSel[0] === idx || fuseSel[1] === idx;
       const r = el("div", "tw-soulrow" + (sel ? " selected" : "") + (rank.order >= 1 ? " rare" : ""));
       if (rank.color) r.style.borderColor = rank.color;
@@ -3583,7 +3605,7 @@ function renderMansionFuse() {
       const info = el("div", "tw-chipi");
       const nm = el("div", "tw-souln", soulName(s)); if (rank.color) nm.style.color = rank.color;
       info.appendChild(nm);
-      info.appendChild(el("div", "tw-soulst", atMax ? "✓ Lv MAX" : `Lv ${s.level}/${s.cap} (Max未到達)`));
+      info.appendChild(el("div", "tw-soulst", "✓ Lv MAX"));
       r.appendChild(info);
       const b = btn(sel ? "✓ 選択中" : "選ぶ", () => {
         if (fuseSel[0] === idx) { fuseSel[0] = null; }
