@@ -5316,17 +5316,30 @@ function openEquipChooser(p, slotKey) {
 
   const list = el("div", "ig-choices eq-cand");
 
-  // 現在装備中 → 外す
+  // 現在装備中 → 詳細情報 + 外すボタン
   if (cur) {
-    const un = btn(cur.cursed ? `${cur.name} は呪われて外せない` : `（外す） ${cur.name}`, () => {
+    const curBlock = el("div", "eq-cur-block");
+    const curCard = el("div", "eq-cur-card");
+    const ic = el("span", "eq-ci"); ic.appendChild(spriteCanvas(cur, 2)); curCard.appendChild(ic);
+    const tx = el("span", "eq-ct");
+    tx.appendChild(el("span", "eq-cn eq-cur-label", `【装備中】 ${cur.name}${cur.cursed ? " 🔒" : ""}`));
+    const st = statLines(cur);
+    if (st) tx.appendChild(el("span", "eq-cs", st));
+    if (cur.slot !== "use") tx.appendChild(el("span", "eq-ccls", equipClassText(cur)));
+    if (cur.desc) tx.appendChild(el("span", "eq-cdesc", cur.desc));
+    curCard.appendChild(tx);
+    curBlock.appendChild(curCard);
+    const un = btn(cur.cursed ? "外せない（呪）" : "外す", () => {
       if (cur.cursed) return;
       wrap.remove();
       const r = unequipItem(p, slotKey);
       if (r.msg) log(r.msg, "sys");
       SFX.select(); renderStatus(); renderParty();
     });
+    un.className = "btn danger eq-cur-un";
     if (cur.cursed) un.disabled = true;
-    list.appendChild(un);
+    curBlock.appendChild(un);
+    list.appendChild(curBlock);
   }
 
   // 候補収集: 自分の所持品 → 他キャラの所持品 (他キャラが装備中の品は除外)
