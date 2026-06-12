@@ -3871,7 +3871,9 @@ function renderAltar() {
       }
       townEl.appendChild(trainBox);
       const un = btn(`${PART_LABEL[part]} の魂を外す`, () => {
+        const before = jobSig(d);
         G.souls.push(d.parts[part]); d.parts[part] = null; recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); SFX.select(); renderTown();
+        announceJobChange(d, before);
       });
       un.className = "btn danger tw-un";
       townEl.appendChild(un);
@@ -3905,9 +3907,20 @@ function renderAltar() {
   }
 }
 
+// 人業の発現職業シグネチャ (職業キー:ランク)。未発現は "none"
+function jobSig(d) { return d.jobKey ? `${d.jobKey}:${d.jobRank}` : "none"; }
+// 魂の付け替えで職業が変わって新たに発現したら「○○は●●になった！」+職業詳細を演出する。
+// before は操作前に jobSig() で控えたシグネチャ。
+function announceJobChange(d, before) {
+  if (!d.jobKey || jobSig(d) === before) return;
+  SFX.victory(); buzz([0, 30, 50, 30]);
+  showCodexJobDetail(d.jobKey, d.jobRank, `${d.name} は ${d.cls} になった！`);
+}
+
 function sealFromStock(d, part, stockIdx) {
   const s = G.souls[stockIdx];
   if (!s) return;
+  const before = jobSig(d);
   // 既存の魂はストックへ戻す
   if (d.parts[part]) G.souls.push(d.parts[part]);
   G.souls.splice(stockIdx, 1);
@@ -3915,12 +3928,13 @@ function sealFromStock(d, part, stockIdx) {
   d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp);
   SFX.select(); buzz(15);
   log(`${PART_LABEL[part]}に ${soulName(s)} を宿した。`, "win");
-  // 空の人形: 5部位すべて揃ったら生成ポップアップ
+  // 空の人形: 5部位すべて揃ったら生成ポップアップ (職業発現は生成演出側に委ねる)
   if (d.isEmpty && PARTS.every(p => d.parts[p])) {
     showGenerateDollPopup(d);
     return;
   }
   renderTown();
+  announceJobChange(d, before);
 }
 
 // 魂を1レベル上げるのに要する Soul (レベルが高いほど高い)
@@ -4970,7 +4984,9 @@ function renderCodexJob() {
 
 // 職業図鑑: 詳細カード (解説/活用/発現条件/パッシブ/スキル表)。
 // rank = 図鑑で選んだ位階。称号・発現条件・パッシブ・スキルはこのランク視点で表示する。
-function showCodexJobDetail(key, rank) {
+// heading を渡すと、最上部に「○○は●●になった！」等の見出しを大きく表示する
+// (職業発現/変化の演出から呼ぶ。職業図鑑からは未指定)。
+function showCodexJobDetail(key, rank, heading) {
   const isHybrid = !!HYBRIDS[key];
   const baseK = isHybrid ? key.split("+")[0] : key;
   if (!SOUL_CLASSES[baseK]) return;
@@ -4981,6 +4997,11 @@ function showCodexJobDetail(key, rank) {
   const card = el("div", "ig-card cdx-detail");
   card.style.borderColor = color;
   card.style.boxShadow = `0 0 40px ${color}44`;
+  if (heading) {
+    const hd = el("div", "ig-name", heading);
+    hd.style.color = color;
+    card.appendChild(hd);
+  }
   const ban = el("div", "ig-banner", `ランク${rank}`);
   ban.style.color = color;
   card.appendChild(ban);
@@ -5300,11 +5321,15 @@ function renderShop() {
     const count = G.shopStock[id];
     any = true;
     const price = it.price || 30;
-    const r = el("div", "tw-shoprow");
+    // 選択中キャラが装備できる品は色を変えて目立たせる
+    const canEq = isEquippable(it) && who && who.alive && canEquip(who, it);
+    const r = el("div", "tw-shoprow" + (canEq ? " equip-ok" : ""));
     if (it.rank) r.style.borderColor = RANK_COLOR[it.rank];
     const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
     const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", `${it.name} 在庫 : ${count}`));
+    const nm = el("div", "tw-chipn", `${it.name} 在庫 : ${count}`);
+    if (canEq) nm.appendChild(el("span", "shop-eqmark", "✓装備可"));
+    info.appendChild(nm);
     info.appendChild(el("div", "tw-chipc", it.desc || ""));
     r.appendChild(info);
     // アイテム部をタップで詳細ポップアップ (購入もそこから)
@@ -5374,6 +5399,11 @@ function showShopItemDetail(id, price) {
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 11)); card.appendChild(art);
   card.appendChild(el("div", "ig-name", it.name + (it.cursed ? " 🔒" : "")));
   for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
+  // 選択中キャラが装備した場合のステータス増減 (装備可能な品のみ)
+  if (who && isEquippable(it)) {
+    if (canEquip(who, it)) card.appendChild(equipCompareEl(who, it));
+    else card.appendChild(el("div", "ig-stat dim", `${who.name} は装備できない`));
+  }
   if (it.desc) card.appendChild(el("div", "ig-desc", it.desc));
   const count = G.shopStock[id] || 0;
   card.appendChild(el("div", "ig-who", `在庫 ${count}・買値 💰${price}`));
