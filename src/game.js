@@ -6266,16 +6266,15 @@ function showItemDetailPopup(p, sel) {
 function makeDanger(label, fn) { const b = btn(label, fn); b.classList.add("danger"); return b; }
 function clsLabel(k) { return (SOUL_CLASSES[k] || {}).label || k; }
 
-// 装備可能条件のバッジ表示 (36職対応: 職業名列挙→条件バッジ方式)
+// 装備可能条件のバッジ表示 (36職対応)。装備制限は実際の対応職をそのまま表示する
+// (未発見職を「？」で伏せる旧仕様は廃止。所持・装備画面で条件が読めないと不便なため)。
 function equipClassText(it) {
   if (it.forJob) {
     const lbl = (SOUL_CLASSES[it.forJob] || {}).label || it.forJob;
-    const seen = (k) => G.codex && G.codex.job && G.codex.job[k];
-    return `〈${seen(it.forJob) ? lbl : "？"}〉専用`;
+    return `〈${lbl}〉専用`;
   }
   if (it.classes) {
-    const seen = (k) => G.codex && G.codex.job && G.codex.job[k];
-    return "装備可: " + it.classes.map((k) => (seen(k) ? clsLabel(k) : "？")).join("・");
+    return "装備可: " + it.classes.map((k) => clsLabel(k)).join("・");
   }
   if (it.slot === "weapon") return `武器適性: ${WEAPON_CAT_LABEL[it.cat] || it.cat}`;
   if (it.slot === "shield") return "適性: 盾持ち職";
