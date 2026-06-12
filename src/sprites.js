@@ -542,6 +542,8 @@ function normalize(art) {
 
 // Canvasコンテキストにドット絵を描く
 // cx,cy: 中心座標 / size: 1ドットの大きさ(px)
+// size が小数でも隙間が出ないよう、各ドットの矩形は「隣のドットの開始位置まで」
+// をピクセル整数に丸めて敷き詰める (位置と幅を別々に丸めると格子状の線が入る)。
 export function drawSprite(ctx, mon, cx, cy, size, alpha = 1) {
   const { w, h, rows } = normalize(mon.art);
   const ox = cx - (w * size) / 2;
@@ -550,13 +552,15 @@ export function drawSprite(ctx, mon, cx, cy, size, alpha = 1) {
   ctx.globalAlpha = alpha;
   for (let y = 0; y < h; y++) {
     const row = rows[y];
+    const y0 = Math.round(oy + y * size), y1 = Math.round(oy + (y + 1) * size);
     for (let x = 0; x < w; x++) {
       const ch = row[x];
       if (!ch || ch === "." || ch === " ") continue;
       const col = mon.palette[ch];
       if (!col) continue;
       ctx.fillStyle = col;
-      ctx.fillRect(Math.round(ox + x * size), Math.round(oy + y * size), size, size);
+      const x0 = Math.round(ox + x * size), x1 = Math.round(ox + (x + 1) * size);
+      ctx.fillRect(x0, y0, Math.max(1, x1 - x0), Math.max(1, y1 - y0));
     }
   }
   ctx.restore();
