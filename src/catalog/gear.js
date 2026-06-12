@@ -123,6 +123,24 @@ export const HEADS = [
     desc: "単身で古竜の顎へ潜り込み、内から喉を裂いた英雄の兜。浴びた竜血で鋼は半ば竜鱗と化し、生半可な牙にも爪にももう貫けない。" }),
   H("h_star_sovereign_crown", "星々の王の宝冠", 192, { shape: "circlet", mp: 8, hp: 10,
     desc: "天の星々を臣下に数えたという伝説の王の宝冠。夜空を縮めて鋳たとされる輪の内では今も小さな星が生まれては流れ、祈りを集める。" }),
+
+  // ===== 魔法系・低ランク補完 (circlet=cloth重量。序盤から魔法職が頭を守れるように) =====
+  H("h_scholar_band", "学徒の知恵帯", 4, { shape: "circlet", mp: 1,
+    desc: "迷宮学院の入学と同時に配られる布製の額帯。地味だが呪文の暗記を助けると先輩たちは言い、殆どの卒業生が迷宮へも持ち込んでいる。" }),
+  H("h_apprentice_arcana_circlet", "魔法習得の額輪", 18, { shape: "circlet", mp: 2, int: 1,
+    desc: "呪文の型を覚えた者に授けられる銀環。新しい術式が額から流れ込むような感覚があり、詠唱を繰り返すたびに輪の光が僅かに深まる。" }),
+  H("h_mage_apprentice_hat", "術師見習いの帽子", 8, { shape: "hat", mp: 1, cls: ["mage", "bishop", "hexer", "hermit", "arcthief", "warden", "arcanist", "necromancer", "sage", "cardinal", "archmage"],
+    desc: "大きすぎて目が隠れる、術師見習いの支給品の帽子。先輩たちが呪文の公式を書き込み続けた裏地には、今も微かな魔力が滲んでいる。" }),
+
+  // ===== 侍・魔剣士系専用頭装備 (cls:samurai系。hat=light重量なので侍が装備可) =====
+  H("h_jingasa", "陣笠", 15, { shape: "hat", luk: 1, cls: ["samurai", "spellblade", "brigand", "shadow"],
+    desc: "戦陣で風雨と矢を防いだ竹張りの笠。野戦の侍には鎧より先に手に入る馴染みの形で、笠の傾け方で流派が分かるという。" }),
+  H("h_tatami_kabuto", "畳み兜", 45, { shape: "hat", agi: 2, cls: ["samurai", "spellblade", "shadow", "brigand"],
+    desc: "折り畳んで腰に差して運べる軽量の兜。兜の折り目は剣の引き方に沿って計算されており、被った瞬間に抜刀の速度が上がる気がする。" }),
+  H("h_war_blade_mempo", "戦刃の面頬", 88, { shape: "hat", agi: 3, crit: 0.02, cls: ["samurai", "spellblade"],
+    desc: "鬼の表情を刻んだ面頬。覗き穴の角度は急所を自然に狙うよう調整されており、百戦を経た目が面の奥で煌く。侍と魔剣士の証。" }),
+  H("h_demon_blade_visor", "魔剣士の鬼面", 138, { shape: "hat", agi: 4, crit: 0.03, cls: ["samurai", "spellblade"],
+    desc: "魔力を鬼の面に封じた半面。被れば身の丈が一段大きく見え、周囲の魔が一瞬だけ怯む。その一瞬に全てを賭けるのが魔剣士の道だ。" }),
 ];
 
 export const FEET = [
@@ -245,6 +263,28 @@ export const FEET = [
     desc: "天寿を全うした老竜が、形見にと鱗を許した——そんな伝説を持つ脚甲。黄金の鱗は山の重みで足を縛るが、竜の永い命を分け与えてくれる。" }),
   F("f_eternal_pilgrim_boots", "永劫巡礼のくつ", 192, { spd: 60, hp: 12, tint: "#e8e8f4", tintAmt: 0.3,
     desc: "世界をひと巡りしてなお歩みを止めない、終わりなき巡礼者のくつ。歩いた道のりの分だけ命を蓄えるといわれ、革はもう擦り切れ方を忘れた。" }),
+
+  // ===== 布足装備 (weight:"cloth" — 魔法系・祈祷系が序盤から足を更新できるように) =====
+  F("f_robe_sandals", "術師の草履", 4, { weight: "cloth", tint: "#8a6438", tintAmt: 0.2,
+    desc: "魔法使いの見習いが初めて迷宮へ向かう朝に履かされる、麻紐の草履。軽さが取り柄で、呪文詠唱の姿勢を乱さない程度には役に立つ。" }),
+  F("f_incense_treads", "香炉台の布靴", 14, { weight: "cloth", mp: 1, tint: "#9b59b6", tintAmt: 0.2,
+    desc: "香炉の台座から採れた樹脂を靴底に染み込ませた布靴。香りが薄れることなく足元を包み、詠唱の集中力を微かに高めてくれる。" }),
+  F("f_mist_step_slippers", "霧踏みの布靴", 26, { weight: "cloth", spd: 2, tint: "#7fd0e6", tintAmt: 0.22,
+    desc: "濃霧の中を歩く霊媒師の布靴。靴底に縫い込んだ霧水晶が足運びを霧の揺らめきに変え、踏んだ床の軋みをすべて呑み込む。" }),
+  F("f_wind_chant_sandals", "風詠みの草履", 40, { weight: "cloth", eAtk: ["wind", 1], spd: 2, tint: "#5fd08a", tintAmt: 0.2,
+    desc: "嵐の呪師が竜巻の中心で脱ぎ捨てた草履。風の流れを読む術が皮に宿り、履く者の踏み込みに風の刃が乗り移る。" }),
+  F("f_deep_script_shoes", "深偈踏みの布靴", 54, { weight: "cloth", mp: 3, tint: "#6b3fa0", tintAmt: 0.25,
+    desc: "迷宮の深層から写し取った深偈を靴底に刷った布靴。一歩ごとに偈の一節が消えていくが、読み終えた頃には魔力が満ちている。" }),
+  F("f_star_weave_slippers", "星織りの踏鞋", 73, { weight: "cloth", eAtk: ["light", 1], mp: 4, tint: "#ffe27a", tintAmt: 0.22,
+    desc: "夜空の星を機に通して織り込んだ踏鞋。踏むたびにかすかな星明かりが漏れ、暗闇でも足元だけは小さな宇宙が広がっている。" }),
+  F("f_void_silk_treads", "虚空絹の踏鞋", 93, { weight: "cloth", spd: 4, mp: 5, tint: "#3a3a46", tintAmt: 0.25,
+    desc: "在らざる糸で織った踏鞋。確かな手触りがあるのに足元の影だけが濃く、踏んだ石畳はこれがいつ通ったのか記憶を持てない。" }),
+  F("f_dark_mantle_treads", "暗幕の呪靴", 118, { weight: "cloth", eAtk: ["dark", 1], mp: 6, tint: "#9b6bd0", tintAmt: 0.25,
+    desc: "夜会の舞台幕を縫い直した呪靴。幕は昼でも舞台の夜を覚えており、踏み出した一歩の足音を暗幕の向こうへ隠してしまう。" }),
+  F("f_aeon_cloth_sandals", "永劫の術師草鞋", 150, { weight: "cloth", mp: 8, int: 2, tint: "#6b3fa0", tintAmt: 0.28,
+    desc: "時間の流れが別の場所で編まれたという草鞋。秒が時間に感じられる詠唱の瞬間に、この草鞋だけは正しい速度で時を刻む。" }),
+  F("f_cosmos_soul_slippers", "星宙魂の踏鞋", 180, { weight: "cloth", eAtk: ["dark", 2], mp: 10, int: 3, tint: "#9b6bd0", tintAmt: 0.3,
+    desc: "星々が生まれる前の宇宙の静寂を踏み固めた踏鞋。履く者の足元では時間の概念が薄れ、迷宮の闇さえ宇宙の一点に過ぎなくなる。" }),
 ];
 
 // ===== 小手 (18種) =====
@@ -286,6 +326,24 @@ export const HANDS = [
     desc: "指先で星座を書き換えたと謳われる大魔導の指貫。十指それぞれに別の呪文の癖が染みつき、詠唱の途中を勝手に補ってくれる。" }),
   G("g_godhand_gauntlets", "神手の黄金籠手", 192, { shape: "gauntlet", eDef: ["light", 2], hp: 15,
     desc: "神像の両手を鋳潰して打たれた黄金の籠手。祝福と瀆神をひとしく握り潰してきた手であり、闇はこの掌の上では形を保てない。" }),
+
+  // ===== 布小手 (weight:"cloth" — 魔法系・祈祷系が序盤から小手を更新できるように) =====
+  G("g_spell_wraps", "魔術の指包み", 5, { weight: "cloth", mp: 1, tint: "#9b59b6", tintAmt: 0.2,
+    desc: "術師見習いが指先の感覚を掴むために巻く薄布の指包み。詠唱のたびに指先から魔力が染み出るのが分かり、少しだけ呪文が届く気がする。" }),
+  G("g_rune_cloth_gloves", "符文の手袋", 20, { weight: "cloth", mp: 2, tint: "#6b3fa0", tintAmt: 0.22,
+    desc: "掌に呪符を書き込んだ薄手の手袋。符の文字は手を動かすたびに形を変え、握った得物の扱いを秘かに呪文の延長へと変えていく。" }),
+  G("g_hex_finger_guards", "呪法の指貫", 38, { weight: "cloth", int: 1, mp: 3, tint: "#9b6bd0", tintAmt: 0.22,
+    desc: "呪法師が術式を指で描くために仕立てた指貫。五指それぞれに異なる呪の型が覚えられており、握るだけで詠唱の下準備が整う。" }),
+  G("g_tide_weave_gloves", "潮詠みの手袋", 58, { weight: "cloth", eDef: ["water", 1], mp: 4, tint: "#4aa3ff", tintAmt: 0.22,
+    desc: "潮の満ち引きに呼応して魔力を満たすことを覚えた手袋。炎の奔流が来るたびに、手袋はその熱を潮に変えて消し去る。" }),
+  G("g_ley_reader_gloves", "地脈詠みの指貫", 78, { weight: "cloth", int: 1, pie: 1, mp: 5, tint: "#c89a4a", tintAmt: 0.22,
+    desc: "地脈の流れを手で読んだ占師の指貫。地の底の魔力が指先まで昇ってきて、詠唱と癒しの両方へ均等に分配されていく。" }),
+  G("g_star_cloth_gauntlets", "星布の手甲", 108, { weight: "cloth", eAtk: ["light", 1], mp: 6, int: 2, tint: "#ffe27a", tintAmt: 0.22,
+    desc: "夜空を圧縮した糸で織った手甲。握った呪文の器に星明かりが満ちて溢れ、光に属するものへの呪文が一段冴えるという。" }),
+  G("g_soul_weave_wraps", "魂糸の指貫", 140, { weight: "cloth", mp: 8, int: 2, pie: 2, tint: "#9b6bd0", tintAmt: 0.28,
+    desc: "迷宮で散った術師の魂を糸に紡いで編んだ指貫。先人の術式の記憶が指先まで流れ込み、詠唱の途中から手が勝手に動き始める。" }),
+  G("g_arcane_void_gloves", "秘術虚無の手袋", 172, { weight: "cloth", eAtk: ["dark", 2], mp: 10, int: 3, tint: "#9b6bd0", tintAmt: 0.3,
+    desc: "在らざる空間から引き抜いた糸で縫い上げた手袋。嵌めれば指の輪郭が曖昧になり、虚空へ放った呪文は次の虚空を渡って届く。" }),
 ];
 
 // ===== 装飾品 (8種) =====
