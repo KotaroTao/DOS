@@ -1283,13 +1283,14 @@ function recoverCorpseSoul(corpse, after) {
     : `死体に残っていた魂を回収した。`, after || (() => renderBoard()));
 }
 
-// 現在のダンジョンに出るアンデッド種のキー (なければ全体から、最終的に地下牢の骸)
+// 現在のダンジョンに出るアンデッド種のキー (なければ全体から、最終的に地下牢の骸)。
+// ボス/強敵は除外する (死体から湧いた個体が boss フラグを持つと迷宮踏破扱いになってしまうため)
 function undeadKeyForDungeon() {
   const cfg = activeCfg();
   const local = [...(cfg.pool || []), ...(cfg.deepPool || [])]
-    .filter((k) => MONSTERS[k] && MONSTERS[k].race === "undead");
+    .filter((k) => MONSTERS[k] && MONSTERS[k].race === "undead" && !MONSTERS[k].boss && !MONSTERS[k].elite);
   if (local.length) return local[rand(local.length)];
-  const all = Object.keys(MONSTERS).filter((k) => MONSTERS[k].race === "undead" && !MONSTERS[k].elite);
+  const all = Object.keys(MONSTERS).filter((k) => MONSTERS[k].race === "undead" && !MONSTERS[k].boss && !MONSTERS[k].elite);
   return all.length ? all[rand(all.length)] : "d01_skeleton";
 }
 
@@ -2665,7 +2666,8 @@ function endBattle() {
         setTimeout(() => showToast(`${rk.order >= 2 ? "🌟" : "✦"} ${soulName(s)} を入手`), 600);
       }
     }
-    const wasBoss = b.enemies.some((e) => e.boss);
+    // 迷宮踏破は本物の主戦のみ。死体から湧いた個体 (corpse) は boss フラグを持っていても踏破扱いにしない
+    const wasBoss = !corpse && b.enemies.some((e) => e.boss);
     if (wasBoss) { flashScreen("#ffd84a"); buzz([0, 60, 50, 60, 50, 250]); } // 主討伐は特別な瞬間
     else if (wasElite) { flashScreen("#d4504e"); buzz([0, 80, 50, 80, 50, 300]); setTimeout(() => showToast("☠ 強敵討伐！"), 400); }
     if (G.battleCell) G.battleCell.cleared = true;
