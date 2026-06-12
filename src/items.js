@@ -826,15 +826,21 @@ export function recalc(member) {
     if (it.eAtk && it.eAtk.el) ea[it.eAtk.el] = (ea[it.eAtk.el] || 0) + (it.eAtk.lv || 1);
     if (it.eDef && it.eDef.el) ed[it.eDef.el] = (ed[it.eDef.el] || 0) + (it.eDef.lv || 1);
   }
-  member.atk = Math.max(1, Math.round((base.atk || 0) * (1 + pct.atk) + flatAtk));
-  member.vit = Math.max(0, Math.round((base.vit || 0) * (1 + pct.vit) + flatVit));
-  member.agi = Math.max(1, Math.round((base.agi || 0) * (1 + pct.agi) + flatAgi));
-  member.int = Math.max(0, Math.round((base.int || 0) * (1 + pct.int) + flatInt));
-  member.pie = Math.max(0, Math.round((base.pie || 0) * (1 + pct.pie) + flatPie));
-  member.luk = Math.max(0, Math.round((base.luk || 0) * (1 + pct.luk) + flatLuk));
+  // 装備による上昇分は切り上げ (0.1→1, 2.2→3)。基礎値はそのまま、装備の寄与だけ ceil する
+  const withEquip = (b, p, f) => {
+    const baseV = Math.round(b || 0);
+    const bonus = (b || 0) * p + f; // 装備由来の増減 (% + フラット)
+    return baseV + (bonus > 0 ? Math.ceil(bonus) : Math.floor(bonus));
+  };
+  member.atk = Math.max(1, withEquip(base.atk, pct.atk, flatAtk));
+  member.vit = Math.max(0, withEquip(base.vit, pct.vit, flatVit));
+  member.agi = Math.max(1, withEquip(base.agi, pct.agi, flatAgi));
+  member.int = Math.max(0, withEquip(base.int, pct.int, flatInt));
+  member.pie = Math.max(0, withEquip(base.pie, pct.pie, flatPie));
+  member.luk = Math.max(0, withEquip(base.luk, pct.luk, flatLuk));
   member.critBonus = crit;
-  member.maxhp = Math.round((base.hp || 0) * (1 + pct.hp) + flatHp);
-  member.maxmp = Math.round((base.mp || 0) * (1 + pct.mp) + flatMp);
+  member.maxhp = withEquip(base.hp, pct.hp, flatHp);
+  member.maxmp = withEquip(base.mp, pct.mp, flatMp);
   if (member.hp > member.maxhp) member.hp = member.maxhp;
   if (member.mp > member.maxmp) member.mp = member.maxmp;
   // 属性攻撃/属性防御 (装備由来。Lv1=◯, Lv2=◎)

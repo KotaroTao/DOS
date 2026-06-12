@@ -1211,7 +1211,7 @@ function resolveCorpse(cell) {
   // 偉大なる死体 (特別階「強大な気配」): 希少な職業の魂が必ず宿っている
   if (cell.corpseGreat) {
     showChoice(`偉大なる死体（${clsLabel}）。尋常ならざる魂の気配がする。`, [
-      { label: "✦ 魂を回収する", fn: () => collectSoul(cell, clsKey, clsLabel) },
+      { label: "✦ 魂を回収する", fn: () => collectWarmCorpse(cell, clsKey, clsLabel) },
       { label: "🚶 立ち去る", fn: () => { log("偉大なる死体に手を触れず、立ち去った。", "sys"); renderBoard(); } },
     ], ICONS.corpseWarm, { banner: "★ 偉大なる死体 ★", accent: "#ffcf4a" });
     return;
@@ -1226,9 +1226,46 @@ function resolveCorpse(cell) {
   }
   // あたたかい死体: 回収するか立ち去るか選べる。立ち去れば死体は残る。
   showChoice(`まだあたたかい死体（${clsLabel}）。魂が宿っている。`, [
-    { label: "✦ 魂を回収する", fn: () => collectSoul(cell, clsKey, clsLabel) },
+    { label: "✦ 魂を回収する", fn: () => collectWarmCorpse(cell, clsKey, clsLabel) },
     { label: "🚶 立ち去る", fn: () => { log("死体に手を触れず、立ち去った。", "sys"); renderBoard(); } },
   ], ICONS.corpseWarm, { banner: "✦ あたたかい死体 ✦", accent: SOUL_CLASSES[clsKey].glow });
+}
+
+// あたたかい死体/偉大なる死体の回収: 80%で魂を直接入手、20%で死体が起き上がりアンデッド戦。
+// 戦闘に勝てば魂を100%回収する (宝箱は出ない)。
+function collectWarmCorpse(cell, clsKey, clsLabel) {
+  if (Math.random() < 0.20) {
+    const great = !!cell.corpseGreat;
+    const riseLine = great
+      ? `偉大なる死体（${clsLabel}）は目覚めて襲ってきた！`
+      : `まだあたたかい死体（${clsLabel}）は起き上がって襲ってきた！`;
+    cell._corpseRise = true; // endBattle 側で「宝箱なし・魂回収」を分岐するための印
+    log(riseLine, "dmg");
+    SFX.die(); buzz([0, 40, 60, 40]);
+    showEvent({
+      sprite: ICONS.corpseWarm,
+      banner: great ? "★ 死体が目覚めた ★" : "☠ 死体が起き上がった ☠",
+      title: riseLine,
+      accent: great ? "#ffcf4a" : "#d4504e",
+      btnLabel: "応戦する",
+      onClose: () => startBattle(spawnCardEnemies(undeadKeyForDungeon(), G.floor, enemyScale()), cell),
+    });
+    return;
+  }
+  collectSoul(cell, clsKey, clsLabel);
+}
+
+// 死体戦に勝利した後、死体に残っていた魂を100%回収する (endBattle から呼ばれる)
+function recoverCorpseSoul(corpse, after) {
+  const clsKey = corpse.clsKey || "fighter";
+  const clsLabel = (SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter).label;
+  const dn = activeCfg();
+  const lvl = 1 + (dn.soulLevelBonus || 0) + (Math.random() < 0.3 ? 1 : 0) + Math.floor(G.floor / 3);
+  const soul = makeSoul(clsKey, lvl, null, rollSoulRank((dn.rankBonus || 0) + (corpse.great ? 1 : 0)));
+  maybeDropEmptySoul(0.07);
+  acquireSoul(soul, corpse.great
+    ? `偉大なる魂を回収した。`
+    : `死体に残っていた魂を回収した。`, after || (() => renderBoard()));
 }
 
 // 現在のダンジョンに出るアンデッド種のキー (なければ全体から、最終的に地下牢の骸)
@@ -1241,36 +1278,51 @@ function undeadKeyForDungeon() {
   return all.length ? all[rand(all.length)] : "d01_skeleton";
 }
 
-// 風化した死体を調べる: 20%で死体が起き上がりアンデッド戦、それ以外は装備 or 魂
+// 風化した死体を調べる: 魂50% / Gold30% / 装備20% (戦闘は起きない)
 function investigateCorpse(cell, clsKey, clsLabel) {
-  if (Math.random() < 0.20) {
-    // 死体が起き上がる: アンデッドとの戦闘 (勝てば battleCell が cleared)
-    log("風化した死体が、軋みながら起き上がった！", "dmg");
-    SFX.die(); buzz([0, 40, 60, 40]);
-    startBattle(spawnCardEnemies(undeadKeyForDungeon(), G.floor, enemyScale()), cell);
+  cell.cleared = true;
+  const dn = activeCfg();
+  const roll = Math.random();
+
+  // 50%: 職能の記憶を宿した魂
+  if (roll < 0.50) {
+    const lvl = 1 + (dn.soulLevelBonus || 0) + Math.floor(G.floor / 3);
+    const soul = makeSoul(clsKey, lvl, null, rollSoulRank(dn.rankBonus));
+    acquireSoul(soul, `風化した死体（${clsLabel}）の残りかすに、まだ職能の記憶が宿っていた。`);
     return;
   }
-  cell.cleared = true;
-  // 50%: 装備品が見つかる
-  if (Math.random() < 0.5) {
-    const id = pickItemByLv(lootLvAt());
-    const who = G.party.find((p) => p.alive && p.items.length < MAX_ITEMS)
-      || G.party.find((p) => p.items.length < MAX_ITEMS);
-    if (who && ITEMS[id]) {
-      const it = cloneItem(id);
-      runGainItem(who, it);
-      codexSeeItem(id);
-      log(`風化した死体の傍らに ${it.name} が遺されていた。`, "win");
-      showItemGet(it, who, () => renderBoard());
-      return;
-    }
-    // 所持品に空きがなければ魂にフォールバック
+
+  // 30%: 懐に残された金品 (Gold)
+  if (roll < 0.80) {
+    const g = runGainGold(Math.round((18 + G.floor * 9) * (0.7 + Math.random() * 0.6)));
+    SFX.itemget(); buzz([0, 30, 60, 30]);
+    log(`風化した死体の懐から ${g} ゴールドを見つけた。`, "win");
+    updateTopbar();
+    showEvent({
+      sprite: ICONS.gold, banner: "💰 金品を発見 💰", title: `${g} ゴールド`,
+      accent: "#ffd84a", sparkle: true,
+      lines: [`風化した死体（${clsLabel}）の懐に遺されていた金品だ。`],
+      onClose: () => renderBoard(),
+    });
+    return;
   }
-  // 残り: 職能の記憶を宿した魂
-  const dn = activeCfg();
+
+  // 20%: 傍らに遺された装備品
+  const id = pickItemByLv(lootLvAt());
+  const who = G.party.find((p) => p.alive && p.items.length < MAX_ITEMS)
+    || G.party.find((p) => p.items.length < MAX_ITEMS);
+  if (who && ITEMS[id]) {
+    const it = cloneItem(id);
+    runGainItem(who, it);
+    codexSeeItem(id);
+    log(`風化した死体の傍らに ${it.name} が遺されていた。`, "win");
+    showItemGet(it, who, () => renderBoard());
+    return;
+  }
+  // 所持品に空きがない等で装備を渡せない時は魂にフォールバック
   const lvl = 1 + (dn.soulLevelBonus || 0) + Math.floor(G.floor / 3);
-  const soul = makeSoul(clsKey, lvl, null, rollSoulRank(dn.rankBonus));
-  acquireSoul(soul, `風化した死体（${clsLabel}）の残りかすに、まだ職能の記憶が宿っていた。`);
+  acquireSoul(makeSoul(clsKey, lvl, null, rollSoulRank(dn.rankBonus)),
+    `風化した死体（${clsLabel}）に、まだ職能の記憶が宿っていた。`);
 }
 
 function collectSoul(cell, clsKey, clsLabel) {
@@ -1300,7 +1352,7 @@ function maybeDropEmptySoul(chance) {
 }
 
 // 魂の入手処理 (共通): ストック追加・クエスト進捗・ランクに応じた演出
-function acquireSoul(soul, sourceLine) {
+function acquireSoul(soul, sourceLine, onClose) {
   runGainSoul(soul);
   G.stats.soulsFound++;
   questProgress("soul", null, 1);
@@ -1315,7 +1367,7 @@ function acquireSoul(soul, sourceLine) {
     accent: rank.color || SOUL_CLASSES[soul.clsKey].glow,
     banner: rare ? `★ ${rank.label}魂 ★` : "✦ 魂を回収 ✦", sparkle: true,
     lines: [sourceLine, "人業の館で同じ部位に宿せる。"],
-    onClose: () => renderBoard(),
+    onClose: onClose || (() => renderBoard()),
   });
 }
 
@@ -2500,6 +2552,10 @@ function endBattle() {
   if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
   renderCombat();
   if (b.result === "win") {
+    // 死体戦 (まだあたたかい/偉大なる死体が起き上がった戦闘): 宝箱なし・魂を100%回収する
+    const corpse = (G.battleCell && G.battleCell._corpseRise)
+      ? { clsKey: G.battleCell.corpseClass || "fighter", great: !!G.battleCell.corpseGreat }
+      : null;
     // 倒した敵から Soul(魂) を回収する。Soul が経験値の役割を兼ね、館での魂の強化に使う
     // 金運 (goldLuck) / 魂寄せ (soulLure) は戦闘報酬を底上げする (隊内最高Lvのみ)
     const { soul, gold } = b.rewards();
@@ -2563,6 +2619,11 @@ function endBattle() {
     const wasMimic = b.enemies.some((e) => e.isMimic);
     const afterVictory = () => {
       const after = clearInfo ? () => showDungeonClearedPopup(clearInfo) : null;
+      // 死体戦は宝箱を出さず、死体に残っていた魂を100%回収する
+      if (corpse) {
+        setTimeout(() => recoverCorpseSoul(corpse, after), 200);
+        return;
+      }
       if (drop || wasElite || wasMimic || Math.random() < 0.5) {
         setTimeout(() => battleChest(drop ? [drop] : [], after, wasMimic ? 15 : 0), 200);
         return;
@@ -5981,11 +6042,18 @@ function equipClassText(it) {
 }
 
 // パーティメンバーの装備可否チップ (6人分 ○/×)
+// 各メンバーの装備可否。頭文字だけだと同名頭文字を判別できないため、
+// キャラアイコン + フルネーム + ○/× で示す。
 function equipPartyChips(it) {
-  const row = el("div", "eq-cls-chips");
+  const row = el("div", "eq-pchips");
   for (const m of G.party) {
     const ok = canEquip(m, it);
-    const c = el("span", "eq-cls-chip " + (ok ? "ok" : "ng"), m.name.slice(0, 1) + (ok ? "○" : "×"));
+    const c = el("span", "eq-pchip " + (ok ? "ok" : "ng"));
+    const ic = el("span", "eq-pchip-ic");
+    ic.appendChild(spriteCanvas(m.isDoll ? dollSprite(m) : HERO, 2));
+    c.appendChild(ic);
+    c.appendChild(el("span", "eq-pchip-nm", m.name));
+    c.appendChild(el("span", "eq-pchip-mk", ok ? "○" : "×"));
     row.appendChild(c);
   }
   return row;
