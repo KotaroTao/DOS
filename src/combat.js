@@ -50,11 +50,11 @@ export const SPELLS = {
   // 物理技
   TATEWARI: { name: "兜割り", mp: 4, kind: "phys", power: 1.3, debuff: { vit: 0.85 }, target: "enemy", desc: "兜ごと打ち据えてVITを下げる" },
   NAGIHARAI: { name: "薙ぎ払い", mp: 6, kind: "phys", power: 0.7, target: "all-enemy", desc: "敵全体を薙ぎ払う" },
-  KIKOKU: { name: "鬼哭斬", mp: 13, kind: "phys", power: 3.4, target: "enemy", desc: "鬼すら哭かせる怒涛の一刀" },
+  KIKOKU: { name: "きこく斬", mp: 13, kind: "phys", power: 3.4, target: "enemy", desc: "鬼すら泣かせる怒涛の一刀" },
   KOTE: { name: "小手打ち", mp: 4, kind: "phys", power: 1.2, debuff: { atk: 0.85 }, target: "enemy", desc: "腕を打ちATKを下げる" },
   KASUMEGIRI: { name: "霞斬り", mp: 4, kind: "phys", power: 1.0, debuff: { agi: 0.8 }, target: "enemy", desc: "足を裂きAGIを下げる" },
   TSUJIKAZE: { name: "辻風", mp: 10, kind: "phys", power: 1.0, critBonus: 0.15, target: "all-enemy", desc: "旋風のごとく全体を斬り抜ける" },
-  OBORO: { name: "朧抜き", mp: 12, kind: "phys", power: 2.8, critBonus: 0.4, target: "enemy", desc: "朧の太刀筋で急所を抉る" },
+  OBORO: { name: "朧抜き", mp: 12, kind: "phys", power: 2.8, critBonus: 0.4, target: "enemy", desc: "朧の太刀筋で急所をえぐる" },
   // 攻撃呪文 (属性のバリエーション)
   ICENEEDLE: { name: "アイスニードル", mp: 3, kind: "atk", power: 13, element: "water", target: "enemy", desc: "氷の針" },
   KAMAITACHI: { name: "かまいたち", mp: 4, kind: "atk", power: 17, element: "wind", target: "enemy", desc: "真空の刃" },
@@ -495,7 +495,7 @@ export class Battle {
           h.died = this._die(t) || h.died; // 不屈持ちはHP1で耐える
         }
       } else if (k === "goldSteal" || k === "soulSteal") {
-        if (Math.random() < 0.35) { this.log(`${actor.name}は${t.name}の懐を狙ったが、躱された！`, "sys"); res.hits.push({ target: t, miss: true }); }
+        if (Math.random() < 0.35) { this.log(`${actor.name}は${t.name}の懐を狙ったが、かわされた！`, "sys"); res.hits.push({ target: t, miss: true }); }
         else {
           const amt = k === "goldSteal" ? 5 + Math.round((actor.gold || 10) * 0.5) : 3 + Math.round((actor.soul || 5) * 0.6);
           res.hits.push({ target: t, steal: k, stealAmt: amt });

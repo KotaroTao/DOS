@@ -924,7 +924,7 @@ function useDarkFountain(cell) {
     log(`黒い泉は恵みをもたらした！ 全回復し、✦${bonus} Soul を得た。`, "win");
     showEvent({
       sprite: ICONS.fountain, title: "深淵の恵み", accent: "#5fb8d6", banner: "✦ 大いなる恵み ✦", sparkle: true,
-      lines: ["全員のHPとMPが完全に回復した！", `淀みから ✦${bonus} Soul を掬い上げた。`],
+      lines: ["全員のHPとMPが完全に回復した！", `淀みから ✦${bonus} Soul をすくい上げた。`],
       onClose: () => renderBoard(),
     });
     return;
@@ -1002,7 +1002,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   const dn = activeCfg();
   const lvl = 1 + (dn.soulLevelBonus || 0) + Math.floor(G.floor / 3);
   const soul = makeSoul(clsKey, lvl, null, rollSoulRank(dn.rankBonus));
-  acquireSoul(soul, `風化した死体（${clsLabel}）の残滓に、まだ職能の記憶が宿っていた。`);
+  acquireSoul(soul, `風化した死体（${clsLabel}）の残りかすに、まだ職能の記憶が宿っていた。`);
 }
 
 function collectSoul(cell, clsKey, clsLabel) {
@@ -2405,7 +2405,7 @@ const FACILITIES = [
   { key: "mansion", icon: "🏚", name: "人業の館", desc: "人業を仕立て、魂を宿す" },
   { key: "tavern", icon: "🍺", name: "酒場「沈まぬ灯」", desc: "編成とクエスト" },
   { key: "shop", icon: "🏪", name: "商店", desc: "装備・道具の売買" },
-  { key: "inn", icon: "🛏", name: "宿屋「臥牢」", desc: "魂を休め、傷を癒す" },
+  { key: "inn", icon: "🛏", name: "宿屋「がろう」", desc: "魂を休め、傷を癒す" },
   { key: "palace", icon: "👑", name: "王宮", desc: "勅命と図鑑の間" },
   { key: "shrine", icon: "🔴", name: "赤い魂の祠", desc: "Red Soul を授かる" },
 ];
@@ -3647,8 +3647,8 @@ const ACHIEVEMENTS = [];
 
   // 主討伐 (7)
   tiers((v) => `boss${v}`, [
-    [1, "主殺し", 100], [5, "玉座荒らし", 300, 5], [10, "玉座の簒奪者", 500, 10], [20, "主喰らい", 1000, 15],
-    [30, "深淵の死神", 1500, 25], [50, "王なき迷宮", 3000, 40], [100, "全ての主を屠る者", 8000, 80],
+    [1, "主殺し", 100], [5, "玉座荒らし", 300, 5], [10, "玉座のさんだつ者", 500, 10], [20, "主喰らい", 1000, 15],
+    [30, "深淵の死神", 1500, 25], [50, "王なき迷宮", 3000, 40], [100, "全ての主をほふる者", 8000, 80],
   ], (v) => `迷宮の主を ${v}体 討つ`, (v) => G.stats.bossKills >= v);
 
   // 到達最深階 (11)
@@ -3661,12 +3661,12 @@ const ACHIEVEMENTS = [];
   // 魂の回収 (8)
   tiers((v) => `soul${v}`, [
     [5, "魂拾い", 100], [10, "魂集め", 200], [25, "魂の籠", 350, 5], [50, "魂の商人", 600, 10],
-    [100, "千魂の器", 1000, 15], [250, "魂の蒐集家", 2000, 20], [500, "魂の大河", 4000, 35], [1000, "魂の海", 8000, 60],
+    [100, "千魂の器", 1000, 15], [250, "魂の収集家", 2000, 20], [500, "魂の大河", 4000, 35], [1000, "魂の海", 8000, 60],
   ], (v) => `魂を ${v}個 回収する`, (v) => G.stats.soulsFound >= v);
 
   // 喪失 (5) — 敗北の数だけ強くなる
   tiers((v) => `death${v}`, [
-    [1, "初めての喪失", 50], [10, "不撓不屈", 0, 20], [25, "砕けても なお", 500, 25],
+    [1, "初めての喪失", 50], [10, "不屈の心", 0, 20], [25, "砕けても なお", 500, 25],
     [50, "屍を越えて", 1000, 35], [100, "喪失の果てに", 2000, 50],
   ], (v) => `人業が ${v}体 砕ける`, (v) => G.stats.deaths >= v);
 
@@ -3686,8 +3686,8 @@ const ACHIEVEMENTS = [];
 
   // アイテム図鑑 (7)
   tiers((v) => `item${v}`, [
-    [10, "目利き見習い", 150], [25, "道具屋の常連", 300], [50, "蒐集家", 400], [100, "蔵の主", 800, 10],
-    [150, "宝物庫の主", 1500, 15], [250, "伝説の蒐集家", 3000, 30], [350, "全てを手にした者", 8000, 60],
+    [10, "目利き見習い", 150], [25, "道具屋の常連", 300], [50, "収集家", 400], [100, "蔵の主", 800, 10],
+    [150, "宝物庫の主", 1500, 15], [250, "伝説の収集家", 3000, 30], [350, "全てを手にした者", 8000, 60],
   ], (v) => `アイテム図鑑 ${v}種`, (v) => itemSeen() >= v);
 
   // 混成職の発現 (8)
@@ -3717,7 +3717,7 @@ const ACHIEVEMENTS = [];
   tiers((v) => `slv${v}`, [
     [20, "魂を磨く者", 200], [50, "魂を鍛える者", 800, 10], [70, "限界の先へ", 1500, 20], [100, "魂の極致", 3000, 40],
   ], (v) => `Lv${v} の魂を育てる`, (v) => allSouls().some((s) => (s.level || 1) >= v));
-  tiers((v) => `srank${v}`, [[2, "偉大なる魂", 300, 5], [3, "伝説との邂逅", 1000, 20]],
+  tiers((v) => `srank${v}`, [[2, "偉大なる魂", 300, 5], [3, "伝説とのめぐり合い", 1000, 20]],
     (v) => `${v === 3 ? "伝説の" : "偉大な"}魂を手に入れる`, (v) => allSouls().some((s) => SOUL_RANKS[s.rank || "normal"].order >= v));
 
   // 一点物 (2)
@@ -4420,7 +4420,7 @@ function showCodexJobDetail(key, rank) {
 // ---- 宿屋: 全回復 ----
 function innCost() { return G.party.length * 12 + G.maxFloorReached * 6; }
 function renderInn() {
-  townEl.appendChild(townHeader("宿屋「臥牢」"));
+  townEl.appendChild(townHeader("宿屋「がろう」"));
   townEl.appendChild(el("div", "tw-lead", "一晩の休息で、生きた人業のHP・MPが全快する。"));
   const cost = innCost();
   const need = G.party.filter((p) => p.alive && (p.hp < p.maxhp || p.mp < p.maxmp));

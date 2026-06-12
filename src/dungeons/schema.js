@@ -14,7 +14,7 @@ export const MON_RACES = [
   { key: "beast", label: "獣" },
   { key: "wing", label: "飛獣" },
   { key: "avian", label: "鳥人" },
-  { key: "insect", label: "蟲" },
+  { key: "insect", label: "虫" },
   { key: "plant", label: "植物" },
   { key: "aquatic", label: "水棲" },
   { key: "reptile", label: "爬虫" },
