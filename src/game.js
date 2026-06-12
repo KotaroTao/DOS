@@ -22,6 +22,7 @@ import {
   jobSkillTable, jobLevelOf, jobRankName, jobPassiveTable, pLv,
 } from "./souls.js";
 import { showOpening } from "./opening.js";
+import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 
 // ===== コンテンツの取り込み =====
 // アイテム: 一点物の手作りカタログ (src/catalog/)。二つ名つきの量産品は廃止。
@@ -666,7 +667,7 @@ function tryMove(dx, dy) {
 
 // 単発移動 (方向キー/ボタン/隣接クリック)。ガード後に1歩進む
 function moveTo(nx, ny) {
-  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen) return;
+  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen || G.settingsOpen) return;
   if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) return;
   if (Math.abs(nx - G.px) + Math.abs(ny - G.py) !== 1) return;
   // 辺が壁で塞がれている: 進めない (壁の通り抜けは不可)。連続表示は抑制
@@ -811,38 +812,20 @@ function resolveCell(cell) {
     case "trap": {
       if (cell.cleared) break;
       cell.cleared = true;
-      // 罠解除判定: パーティで最も解除値 (AGI+LUK・盗賊系1.5倍) が高い者が試みる
+      // 迷宮ランクに応じた罠を抽選し、パーティで最も解除値 (AGI+LUK・盗賊系1.5倍) が高い者が解除を試みる
+      const trap = pickTrap(activeCfg().rank || 1);
       const best = bestDisarmer();
       if (best && Math.random() < disarmChance(best)) {
         SFX.chest();
-        log(`床の罠を ${best.name}が見抜き、解除した！`, "sys");
+        log(`床の罠「${trap.name}」を ${best.name}が見抜き、解除した！`, "sys");
         showEvent({
           sprite: ICONS.trap, title: "罠を解除！", accent: "#9be88a", banner: "✦ 罠解除 ✦", sparkle: true,
-          lines: ["床に罠が仕掛けられていた。", `${best.name}が見抜き、解除した！`],
+          lines: [`床に「${trap.name}」が仕掛けられていた。`, `${best.name}が見抜き、解除した！`],
           onClose: () => renderBoard(),
         });
         break;
       }
-      SFX.trap(); buzz([0, 60, 40, 60]);
-      const victims = G.party.filter((p) => p.alive);
-      const v = victims[rand(victims.length)];
-      const dmg = 4 + G.floor * 3 + rand(7);
-      v.hp = Math.max(0, v.hp - dmg);
-      const lines = [`${v.name}に ${dmg} ダメージ！`];
-      log(`罠だ！ ${v.name}に ${dmg} ダメージ`, "dmg");
-      let died = false;
-      if (v.hp === 0) {
-        v.alive = false; died = true;
-        log(`${v.name}は倒れた…`, "dmg");
-        lines.push(`${v.name}は倒れた…`);
-      }
-      showEvent({
-        sprite: ICONS.trap, title: "罠だ！", lines, accent: "#d4504e", banner: "⚠ 危険 ⚠",
-        onClose: () => {
-          if (died) { SFX.die(); imprintFallen(); if (!G.party.some((p) => p.alive)) { gameOver(); return; } }
-          renderBoard();
-        },
-      });
+      springTrap(trap, best, { proceed: () => renderBoard() });
       break;
     }
     case "poison": {
@@ -1133,18 +1116,33 @@ function disarmPower(m) {
   return Math.round(v);
 }
 
-// 解除難度: 迷宮の魂レベル帯とランクから「適正パーティの AGI+LUK」を見積もる。
-// 適正レベルの盗賊系で約95% (上限)、それ以外で70〜80% になるよう調整している
-function disarmNeed() {
+// 解除難度: ダンジョンランクと宝箱ランクで決まる。
+// 迷宮の魂レベル帯 (これも迷宮ランクの関数) から「適正パーティの AGI+LUK」を見積もり、
+// 適正レベルの盗賊系で約95% (上限)、それ以外で70〜80% になるよう調整している。
+// cRank: 宝箱ランク (1-5)。床罠は1扱い
+function disarmNeed(cRank = 1) {
   const cfg = activeCfg();
   const L = 2 + (cfg.soulLevelBonus || 0) * 2.4;        // 適正な魂レベルの目安 (強化込み)
   const f = 1 + (L - 1) * 0.12;                          // souls.js の lvlFactor と同式
-  const q = 1 + ((cfg.rank || 1) - 1) * 0.12;            // 深部は高ランク魂が前提
-  return 14 * f * q * (1 + (G.floor - 1) * 0.03);
+  const q = 1 + ((cfg.rank || 1) - 1) * 0.14;            // ダンジョンランク: 深部は高ランク魂が前提
+  const c = 1 + ((cRank || 1) - 1) * 0.16;               // 宝箱ランク: 上等な箱ほど狡猾な錠前
+  return 14 * f * q * c;
 }
 
-function disarmChance(m) {
-  return Math.max(0.05, Math.min(0.95, disarmPower(m) / disarmNeed()));
+function disarmChance(m, cRank = 1) {
+  return Math.max(0.05, Math.min(0.95, disarmPower(m) / disarmNeed(cRank)));
+}
+
+// 宝箱ランク (1-5) を取得。セルに未設定ならその場で抽選して保存する
+// (出現%表示と実際の判定がぶれないよう、同じ宝箱では固定)
+function chestRankOf(cell) {
+  if (cell && cell.cRank) return cell.cRank;
+  const cfg = activeCfg();
+  const floors = Math.max(1, cfg.floors || 3);
+  const depth = floors > 1 ? Math.min(1, (G.floor - 1) / (floors - 1)) : 0;
+  const r = rollChestRank(depth, cfg.rank || 1);
+  if (cell) cell.cRank = r;
+  return r;
 }
 
 // パーティで最も罠解除が高い生存メンバー (罠マスの判定に使う)
@@ -1155,14 +1153,16 @@ function bestDisarmer() {
   return best;
 }
 
-// 宝箱: 開ける人業を1人選ぶ。70%で罠が仕掛けられており、選んだ者の解除値で判定する
+// 宝箱: 開ける人業を1人選ぶ。70%で罠が仕掛けられており、選んだ者の解除値で判定する。
+// 宝箱にはランク (1-5) があり、高ランクほど中身が豪華だが解除難度が上がる
 function askOpenChest(cell) {
+  const cRank = chestRankOf(cell);
   const opts = G.party.filter((p) => p.alive).map((p) => ({
-    label: `🔓 ${p.name} (解除 ${Math.round(disarmChance(p) * 100)}%)`,
+    label: `🔓 ${p.name} (解除 ${Math.round(disarmChance(p, cRank) * 100)}%)`,
     fn: () => openChest(cell, p),
   }));
   opts.push({ label: "✋ 開けない", fn: () => { renderBoard(); } });
-  showChoice("宝箱が現れた！ 罠があるかもしれない。誰が開ける？", opts, ICONS.chest);
+  showChoice(`${CHEST_RANKS[cRank]}宝箱が現れた！ 罠があるかもしれない。誰が開ける？`, opts, ICONS.chest);
 }
 
 function openChest(cell, opener) {
@@ -1171,9 +1171,11 @@ function openChest(cell, opener) {
   rollChest(cell, true, () => { if (G.state === "board") renderBoard(); }, opener);
 }
 
-// 宝箱の中身を解決。allowDanger=falseなら罠/ミミックなし (戦闘後の宝箱)。
-// opener: 開けると選ばれた人業 (罠解除判定に使う)。done は安全終了時のコールバック
-function rollChest(cell, allowDanger, done, opener) {
+// 宝箱の中身を解決。allowDanger=falseなら罠/ミミックなし (戦闘後の宝箱。罠フェーズは battleChest 側)。
+// opener: 開けると選ばれた人業 (罠解除判定に使う)。done は安全終了時のコールバック。
+// cRankIn: 宝箱ランクの引き継ぎ (戦闘後の宝箱はセルがないため明示的に渡す)
+function rollChest(cell, allowDanger, done, opener, cRankIn) {
+  const cRank = cRankIn || (allowDanger ? chestRankOf(cell) : 1);
   if (allowDanger) {
     if (Math.random() < 0.06 + G.floor * 0.03) {
       // ミミック: 演出 → 戦闘
@@ -1192,28 +1194,33 @@ function rollChest(cell, allowDanger, done, opener) {
       return;
     }
     // 罠フェーズ: 70%で罠。解除/発動/罠なしの演出を経て中身へ
-    chestTrapPhase(opener, () => chestContents(cell, done));
+    chestTrapPhase(opener, () => chestContents(cell, done, cRank), cRank, done);
     return;
   }
-  chestContents(cell, done);
+  chestContents(cell, done, cRank);
 }
 
 // 罠フェーズ (盤面・戦闘後の宝箱共通): 70%の確率で罠が仕掛けられている。
-// 開けた者が解除を試み、成功または罠なしならその旨を告げてから contents() へ進む
-function chestTrapPhase(opener, contents) {
+// 迷宮ランクに応じた罠を抽選し、開けた者が解除を試みる (難度はダンジョンランク×宝箱ランク)。
+// 成功または罠なしならその旨を告げてから contents() へ進む。
+// abort: テレポーター/警報で中身を失った時の終了処理 (省略時は盤面へ)。
+// excludeKinds: 出現させない罠の型 (踏破演出など、戦闘で続きが途切れる場面で使う)
+function chestTrapPhase(opener, contents, cRank = 1, abort, excludeKinds) {
   if (Math.random() < 0.70) {
+    const trap = pickTrap(activeCfg().rank || 1, Math.random, excludeKinds);
     const who = opener || bestDisarmer();
-    if (who && Math.random() < disarmChance(who)) {
+    if (who && Math.random() < disarmChance(who, cRank)) {
       SFX.chest();
-      log(`宝箱の罠を ${who.name}が解除した！`, "sys");
+      log(`宝箱の罠「${trap.name}」を ${who.name}が解除した！`, "sys");
       showEvent({
         sprite: ICONS.trap, title: "罠解除！", accent: "#9be88a", banner: "✦ 罠解除 ✦", sparkle: true,
-        lines: ["宝箱には罠が仕掛けられていた。", `${who.name}が見抜き、解除した！`],
+        lines: [`宝箱には「${trap.name}」が仕掛けられていた。`, `${who.name}が見抜き、解除した！`],
         onClose: contents,
       });
       return;
     }
-    springChestTrap(who, contents);
+    // 解除失敗: 罠が発動。生き残れば中身は手に入る (テレポーター/警報は中身を失う)
+    springTrap(trap, who, { chest: true, proceed: contents, abort });
     return;
   }
   SFX.chest();
@@ -1225,55 +1232,166 @@ function chestTrapPhase(opener, contents) {
   });
 }
 
-// 宝箱の罠の種類: 単体罠 (one) は開けた者だけが受け、全体罠 (all) は隊全員が受ける
-const CHEST_TRAPS = [
-  { name: "毒針", target: "one", mult: 1.0, ailment: "poison" },
-  { name: "麻痺針", target: "one", mult: 0.8, ailment: "paralyze" },
-  { name: "仕込み弩", target: "one", mult: 1.6 },
-  { name: "毒ガス", target: "all", mult: 0.7, ailment: "poison" },
-  { name: "爆発", target: "all", mult: 1.0 },
-];
+// ===== 罠の発動 (床罠・宝箱罠共通) =====
+// 罠ダメージの基準値。disarmNeed と同じく迷宮の魂レベル帯×ランクに比例させ、
+// 深い迷宮ほど罠そのものが重くなる。実ダメージは罠ごとの mult を掛けた値
+function trapBaseDmg() {
+  const cfg = activeCfg();
+  const L = 2 + (cfg.soulLevelBonus || 0) * 2.4;
+  const f = 1 + (L - 1) * 0.12;
+  const q = 1 + ((cfg.rank || 1) - 1) * 0.12;
+  return (5 + G.floor * 3 + rand(6)) * f * q;
+}
 
-// 罠が発動: 種類を抽選し、単体罠は開けた者 (opener) が、全体罠は全員が受ける。
-// 生き残れば中身 (after) は手に入る
-function springChestTrap(opener, after) {
+// 罠を発動させる。opener: 開けた者/先頭の解除役 (opener型の罠が狙う)。
+// fin.proceed: 生存時の続き (宝箱なら中身の取得、床罠なら盤面へ戻る)。
+// fin.abort: テレポーター/警報で中身を失った時の終了処理 (省略時は盤面へ)。
+// fin.chest: 宝箱の罠かどうか (演出の文言に使う)
+function springTrap(trap, opener, fin) {
   SFX.trap(); buzz([0, 60, 40, 60]);
-  const trap = CHEST_TRAPS[rand(CHEST_TRAPS.length)];
-  const dmg = Math.max(1, Math.round((6 + G.floor * 4 + rand(8)) * trap.mult));
-  const victims = trap.target === "one" && opener && opener.alive
-    ? [opener] : G.party.filter((p) => p.alive);
-  let ailed = false;
-  for (const p of victims) {
-    p.hp = Math.max(0, p.hp - dmg);
-    if (p.hp === 0) { p.alive = false; log(`${p.name}は倒れた…`, "dmg"); }
-    else if (trap.ailment && !p.ailment && Math.random() < 0.5) { p.ailment = trap.ailment; ailed = true; }
+  log(`罠だ！ 「${trap.name}」が発動した！`, "dmg");
+  const alive = () => G.party.filter((p) => p.alive);
+
+  // テレポーター: 同じ階の別の場所へ飛ばされる。宝箱の中身は失われる
+  if (trap.kind === "teleport") {
+    showEvent({
+      sprite: ICONS.trap, title: `${trap.name}！`, accent: "#8a2be2", banner: "⚠ 危険 ⚠",
+      lines: [trap.flavor, "隊は見知らぬ場所へ飛ばされた！", ...(fin.chest ? ["宝箱は闇の彼方に消えた…"] : [])],
+      onClose: () => {
+        const spots = [];
+        for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+          const c = G.board.cells[y][x];
+          if (c.cleared && c.type !== "stairs" && !(x === G.px && y === G.py)) spots.push({ x, y });
+        }
+        if (spots.length) {
+          const s = spots[rand(spots.length)];
+          G.px = s.x; G.py = s.y;
+          G.board.cells[s.y][s.x].revealed = true;
+        }
+        flashScreen("#8a2be2");
+        SFX.stairs();
+        if (fin.abort) fin.abort(); else renderBoard();
+      },
+    });
+    return;
   }
-  const tgtTxt = trap.target === "one" ? `${victims[0].name}に` : "全員に";
-  log(`罠の解除に失敗！ ${trap.name}の罠が発動、${tgtTxt} ${dmg} ダメージ`, "dmg");
+
+  // 警報: 怪物を呼び寄せ戦闘になる。宝箱の中身を検める暇はない
+  if (trap.kind === "alarm") {
+    const cfg = activeCfg();
+    const deep = G.floor > (cfg.floors || 3) / 2;
+    const pool = ((trap.horde || deep) ? cfg.deepPool : cfg.pool) || cfg.pool || ["cm_slime"];
+    const key = pool[rand(pool.length)];
+    showEvent({
+      sprite: ICONS.trap, title: `${trap.name}！`, accent: "#d4504e", banner: "⚠ 危険 ⚠",
+      lines: [trap.flavor, trap.horde ? "怪物の群れが雪崩れ込んでくる！" : "怪物が呼び寄せられた！", ...(fin.chest ? ["宝箱を検める暇はない！"] : [])],
+      btnLabel: "戦う",
+      onClose: () => startBattle(spawnCardEnemies(key, G.floor, enemyScale() * (trap.horde ? 1.25 : 1), trap.horde ? { min: 4 } : null), null),
+    });
+    return;
+  }
+
+  // 残りはダメージ/吸収系: 効果を適用して結果をまとめて表示する
+  const lines = [trap.flavor];
+  const fallen = [];
+  const hurt = (p, mult) => {
+    const dmg = Math.max(1, Math.round(trapBaseDmg() * mult));
+    p.hp = Math.max(0, p.hp - dmg);
+    lines.push(`${p.name}に ${dmg} ダメージ！`);
+    if (p.hp === 0) {
+      p.alive = false; fallen.push(p);
+      lines.push(`${p.name}は倒れた…`);
+      log(`${p.name}は倒れた…`, "dmg");
+    }
+    return p.alive;
+  };
+  const afflict = (p, ail, chance) => {
+    if (!ail || !p.alive || p.ailment || Math.random() >= chance) return;
+    p.ailment = ail;
+    lines.push(`${p.name}は${AIL_NAME[ail]}に侵された！`);
+  };
+  switch (trap.kind) {
+    case "opener":
+    case "one": {
+      const pool = alive();
+      if (!pool.length) break;
+      const t = (trap.kind === "opener" && opener && opener.alive) ? opener : pool[rand(pool.length)];
+      if (trap.dieChance && Math.random() < trap.dieChance) {
+        t.hp = 0; t.alive = false; fallen.push(t);
+        lines.push(`${t.name}は罠の直撃を受け、倒れた…`);
+        log(`${t.name}は倒れた…`, "dmg");
+      } else if (hurt(t, trap.mult)) {
+        afflict(t, trap.ail, trap.ailChance || 1);
+      }
+      break;
+    }
+    case "multi": {
+      for (let i = 0; i < (trap.hits || 2); i++) {
+        const pool = alive();
+        if (!pool.length) break;
+        const t = pool[rand(pool.length)];
+        if (hurt(t, trap.mult)) afflict(t, trap.ail, trap.ailChance || 1);
+      }
+      break;
+    }
+    case "party": {
+      for (const p of alive()) if (hurt(p, trap.mult)) afflict(p, trap.ail, trap.ailChance || 1);
+      break;
+    }
+    case "pct": {
+      for (const p of alive()) {
+        const dmg = Math.max(1, Math.ceil(p.maxhp * trap.pct));
+        p.hp = Math.max(0, p.hp - dmg);
+        lines.push(`${p.name}は生気を ${dmg} 吸われた！`);
+        if (p.hp === 0) { p.alive = false; fallen.push(p); lines.push(`${p.name}は倒れた…`); log(`${p.name}は倒れた…`, "dmg"); }
+      }
+      break;
+    }
+    case "mp": {
+      for (const p of alive()) {
+        p.mp = Math.max(0, p.mp - Math.ceil(p.maxmp * 0.4));
+        hurt(p, trap.mult || 0.25);
+      }
+      lines.push("隊の魔力が吸い取られた…");
+      break;
+    }
+    case "gold": {
+      const loss = Math.min(G.gold, Math.round(G.gold * 0.15) + 10);
+      G.gold = Math.max(0, G.gold - loss);
+      updateTopbar();
+      lines.push(`${loss} ゴールドが溶かされた…`);
+      log(`${loss} ゴールドを失った…`, "dmg");
+      break;
+    }
+    case "soul": {
+      const loss = Math.min(G.soulPts, Math.round(G.soulPts * 0.10) + 5);
+      G.soulPts = Math.max(0, G.soulPts - loss);
+      updateTopbar();
+      lines.push(`✦${loss} Soul を吸い取られた…`);
+      log(`✦${loss} Soul を失った…`, "dmg");
+      break;
+    }
+  }
   const wiped = !G.party.some((p) => p.alive);
-  const ailTxt = trap.ailment === "paralyze" ? "麻痺" : "毒";
   showEvent({
-    sprite: ICONS.trap, title: `${trap.name}の罠！`, accent: "#d4504e", banner: "⚠ 危険 ⚠",
-    lines: [
-      `解除に失敗し、${trap.name}の罠が発動した！`,
-      `${tgtTxt} ${dmg} ダメージ！`,
-      ...(ailed ? [trap.target === "one" ? `${victims[0].name}は${ailTxt}に侵された…` : `${ailTxt}に侵された者も…`] : []),
-    ],
+    sprite: ICONS.trap, title: `${trap.name}！`, lines, accent: "#d4504e", banner: "⚠ 危険 ⚠",
     onClose: () => {
       if (wiped) { gameOver(); return; }
+      if (fallen.length) SFX.die();
       imprintFallen();
-      after(); // 痛手は負ったが、中身は手に入る
+      fin.proceed(); // 痛手は負ったが、先へ進める (宝箱なら中身は手に入る)
     },
   });
 }
 
-// 宝箱の中身 (ゴールド/空の魂/装備品)
-function chestContents(cell, done) {
+// 宝箱の中身 (ゴールド/空の魂/装備品)。cRank: 宝箱ランク (1-5、高いほど豪華)
+function chestContents(cell, done, cRank = 1) {
+  const rankMul = 1 + ((cRank || 1) - 1) * 0.3;
   // 中身の抽選 (ダンジョンレベルに応じる): ゴールド50% / ゴールド以外のアイテム50%
   if (Math.random() < 0.5) {
     SFX.chest();
     const dRank = activeCfg().rank || 1;
-    const g = runGainGold(Math.round((10 + G.floor * 12 + rand(30)) * (1 + (dRank - 1) * 0.5)));
+    const g = runGainGold(Math.round((10 + G.floor * 12 + rand(30)) * (1 + (dRank - 1) * 0.5) * rankMul));
     updateTopbar();
     log(`宝箱から ${g} ゴールドを手に入れた！`, "win");
     showEvent({
@@ -1292,8 +1410,8 @@ function chestContents(cell, done) {
       showItemGet(it, who, done); return;
     }
   }
-  // 宝: 装備/アイテム (迷宮のアイテムレベル帯から抽選)
-  const got = giveItem(pickItemByLv(lootLvAt()));
+  // 宝: 装備/アイテム (迷宮のアイテムレベル帯から抽選。高ランクの宝箱は一段上の帯)
+  const got = giveItem(pickItemByLv(Math.min(200, lootLvAt() + ((cRank || 1) - 1) * 4)));
   if (got) { showItemGet(got.item, got.who, done); return; } // 演出後に done
   SFX.chest();
   if (done) done();
@@ -1340,16 +1458,20 @@ function askCursedChest(done) {
 // after: 終了後に呼ぶ (ボス撃破時は踏破演出へつなぐ)
 function battleChest(drops, after) {
   const done = () => { if (after) after(); else if (G.state === "board") renderBoard(); };
+  const cRank = chestRankOf(null);
   const contents = () => {
     if (drops && drops.length) giveDropsFromChest(drops, 0, done);
-    else rollChest(null, false, done);
+    else rollChest(null, false, done, null, cRank);
   };
+  // 踏破演出など続きの処理 (after) がある時は、戦闘へ突入する警報系の罠を出さない
+  // (戦闘を挟むと after が呼ばれなくなるため)
+  const exclude = after ? ["alarm"] : null;
   const opts = G.party.filter((p) => p.alive).map((p) => ({
-    label: `🔓 ${p.name} (解除 ${Math.round(disarmChance(p) * 100)}%)`,
-    fn: () => chestTrapPhase(p, contents),
+    label: `🔓 ${p.name} (解除 ${Math.round(disarmChance(p, cRank) * 100)}%)`,
+    fn: () => chestTrapPhase(p, contents, cRank, done, exclude),
   }));
   opts.push({ label: "✋ 開けない", fn: done });
-  showChoice("宝箱が現れた！ 罠があるかもしれない。誰が開ける？", opts, ICONS.chest, { banner: "⚔ 勝利 ⚔" });
+  showChoice(`${CHEST_RANKS[cRank]}宝箱が現れた！ 罠があるかもしれない。誰が開ける？`, opts, ICONS.chest, { banner: "⚔ 勝利 ⚔" });
 }
 
 // 宝箱から敵のドロップ品を順に取り出す。図鑑への開示も実際に手にした時に行う
@@ -1424,7 +1546,9 @@ function startBattle(enemies, cell) {
   G.state = "combat";
 
   combatMenu.classList.remove("hidden");
-  log(`${enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
+  // 同種の群れは「ゴブリン ×4」とまとめて告げる (個体名は A/B/C… 付き)
+  const sameKind = enemies.length > 1 && enemies.every((e) => e.key === enemies[0].key);
+  log(`${sameKind ? `${enemies[0].mon.name} ×${enemies.length}` : enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
   // 先制・奇襲の判定 (ボス戦では発生しない)。
   // 周囲警戒 (vigilance) が奇襲を抑え、先制の心得 (initiative) が先制を伸ばす
   const isBoss = enemies.some((e) => e.boss);
@@ -1439,8 +1563,8 @@ function startBattle(enemies, cell) {
   }
   if (opening === "preempt") { log("先手を取った！", "win"); showToast("⚡ 先制攻撃！"); }
   else if (opening === "ambush") { log("奇襲された！", "dmg"); showToast("⚠ 奇襲された！"); buzz([0, 60, 40, 60]); }
-  // ボス戦は専用テーマ。図鑑への記録は「倒した時」に行う (endBattle)
-  playBgm(isBoss ? "boss" : "battle");
+  // ランク帯ごとの戦闘テーマ (ボスは専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
+  playBgm(battleBgm(isBoss));
   G.battle = new Battle(G.party, enemies, log, { opening });
   G.fx = null;
   G.animating = false;
@@ -1479,13 +1603,17 @@ function renderCombatCanvas() {
   vctx.fillStyle = fgr;
   vctx.fillRect(0, floorY, view.width, view.height - floorY);
 
-  const living = b.enemies;
-  const n = living.length;
-  const slotW = view.width / (n + 1);
+  // 隊列: 4体以上は前衛(先頭3体)・後衛(4体目以降)の2列に分かれる。
+  // 奥に立つ後衛から先に描き、前衛を手前に重ねて遠近を出す
+  const frontRow = b.enemies.slice(0, 3);
+  const backRow = b.enemies.slice(3);
+  const rows = backRow.length
+    ? [{ list: backRow, y: view.height * 0.30, back: true }, { list: frontRow, y: view.height * 0.49, back: false }]
+    : [{ list: frontRow, y: view.height * 0.40, back: false }];
   G.enemyPos = {};
-  living.forEach((e, i) => {
-    const baseX = slotW * (i + 1);
-    const baseY = view.height * 0.40;
+  for (const row of rows) row.list.forEach((e, i) => {
+    const baseX = (view.width / (row.list.length + 1)) * (i + 1);
+    const baseY = row.y;
     G.enemyPos[e.uid] = { cx: baseX, cy: baseY };
     if (!e.alive) return; // 倒した敵は完全に消す (薄い残像を残さない)
     let ox = 0, oy = 0, alpha = 1;
@@ -1500,7 +1628,7 @@ function renderCombatCanvas() {
         if (Math.floor(dt / 55) % 2 === 0) alpha = 0.35;
       }
     }
-    const size = e.boss ? 14 : 9;
+    const size = e.boss ? 14 : row.back ? 8 : 9; // 後衛は奥にいるぶん少し小さい
     // 入力/ターゲット選択中: タップで攻撃できる敵に金のリングとマーカーを表示
     const tappable = !G.animating && e.alive && (b.phase === "target" || b.phase === "input");
     if (tappable) {
@@ -1519,7 +1647,7 @@ function renderCombatCanvas() {
         vctx.fillStyle = "#ffd84a";
         vctx.font = "12px monospace";
         vctx.textAlign = "center";
-        vctx.fillText("▼", baseX, baseY - size * 6.2);
+        vctx.fillText("▼", baseX, row.back ? baseY - 82 : baseY - size * 6.2); // 後衛はプレートのさらに上
       }
       vctx.restore();
     }
@@ -1552,7 +1680,8 @@ function renderCombatCanvas() {
     vctx.fillStyle = "rgba(8,8,14,0.75)";
     vctx.strokeStyle = e.alive ? "rgba(160,140,180,0.4)" : "rgba(90,90,102,0.3)";
     vctx.lineWidth = 1;
-    const px = baseX - tw / 2 - 7, py2 = baseY + 70, pw = tw + 14, ph = 14;
+    // 後衛のプレート/HPバーは頭上に出す (足元は前衛に隠れるため)
+    const px = baseX - tw / 2 - 7, py2 = baseY + (row.back ? -76 : 70), pw = tw + 14, ph = 14;
     vctx.beginPath();
     vctx.roundRect ? vctx.roundRect(px, py2, pw, ph, 7) : vctx.rect(px, py2, pw, ph);
     vctx.fill();
@@ -1560,7 +1689,7 @@ function renderCombatCanvas() {
     vctx.fillStyle = e.alive ? "#e7e3d4" : "#5a5a66";
     vctx.fillText(label, baseX, py2 + 10);
     // HPバー (グラデーション + 枠)
-    const bw = 56, bh = 6, bx = baseX - bw / 2, by = baseY + 88;
+    const bw = 56, bh = 6, bx = baseX - bw / 2, by = baseY + (row.back ? -58 : 88);
     vctx.fillStyle = "#1b1b26";
     vctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
     const ratio = Math.max(0, e.hp / e.maxhp);
@@ -1715,8 +1844,10 @@ function renderCombatMenu() {
     combatMenu.appendChild(row2);
   } else if (b.phase === "target") {
     combatMenu.appendChild(el("div", "who", "対象を選択 (敵を直接タップでもOK)"));
-    const list = el("div", "target-list");
-    for (const t of b.targetOptions()) {
+    const opts = b.targetOptions();
+    // 対象が多い時 (敵の群れなど) は2列に並べて縦に伸びすぎないようにする
+    const list = el("div", "target-list" + (opts.length > 3 ? " cols2" : ""));
+    for (const t of opts) {
       const label = t.side === "enemy"
         ? `${t.name} (HP ${t.hp})`
         : `${t.name} (HP ${t.hp}/${t.maxhp})${t.alive ? "" : " [気絶]"}`;
@@ -1961,6 +2092,9 @@ function endBattle() {
       const d = rollMonsterDrop(e);
       if (d) drops.push(d);
     }
+    // 宝箱は1つしか現れないので中身も1品まで: 複数体が同時に落とした時はレア優先で1つに絞る
+    // (同種2体が同じ品を落とし、1つの宝箱からアイテムが2つ出てしまうのを防ぐ)
+    const drop = drops.find((d) => d.rare) || drops[0] || null;
     // soulClass を持つ敵 (人型・騎士など) はまれに魂を落とす (レアドロップ)
     for (const e of b.enemies) {
       const sc = e.alive ? null : (e.mon && e.mon.soulClass) || (MONSTERS[e.key] && MONSTERS[e.key].soulClass);
@@ -1987,8 +2121,8 @@ function endBattle() {
     // 宝箱はドロップ品があれば必ず、なければ50%で出現。ボスは宝箱のあとに踏破演出へ
     const afterVictory = () => {
       const after = clearInfo ? () => showDungeonClearedPopup(clearInfo) : null;
-      if (drops.length || Math.random() < 0.5) {
-        setTimeout(() => battleChest(drops, after), 200);
+      if (drop || Math.random() < 0.5) {
+        setTimeout(() => battleChest(drop ? [drop] : [], after), 200);
         return;
       }
       if (after) after();
@@ -2001,6 +2135,7 @@ function endBattle() {
     return;
   } else if (b.result === "flee") {
     // 逃走: 元のマスへ戻る (カードは表のまま)
+    SFX.flee();
     if (G.prevPos) { G.px = G.prevPos.x; G.py = G.prevPos.y; }
     finishToBoard();
   } else if (b.result === "lose") {
@@ -2057,7 +2192,7 @@ function finishToBoard() {
   G.state = "board";
   combatMenu.classList.add("hidden");
 
-  playBgm("field");
+  playBgm(fieldBgm());
   renderBoard();
   autosave(true);
 }
@@ -2313,6 +2448,10 @@ function renderTownHub() {
 
     // 迷宮の選択 — 10迷宮ごとの「層域」アコーディオン (数が増えても一覧が伸びすぎない)
     townEl.appendChild(el("div", "tw-h", "潜る迷宮を選ぶ"));
+    townEl.appendChild(el("div", "tw-dunhelp", "★踏破済みの迷宮には何度でも再挑戦できる — 戦利品・魂・図鑑集めに。"));
+    const clearedCnt = clearedDungeonCount();
+    // 勅命の対象迷宮 (攻略中の章のみ ❗ を付ける)
+    const targetIdx = G.msq && G.msq.state === "active" && G.msq.n >= 1 ? G.msq.n - 1 : -1;
     const bandCount = Math.ceil(DUNGEONS.length / 10);
     const openBand = (townBandOpen != null) ? townBandOpen : Math.floor(G.dungeonIdx / 10);
     const maxBand = Math.floor((G.unlockedDungeons - 1) / 10); // 解放済み迷宮が属する最後の層域
@@ -2330,8 +2469,8 @@ function renderTownHub() {
       const det = el("details", "tw-band");
       if (b === openBand) det.open = true;
       const sum = el("summary", "tw-bandh");
-      const clearedIn = Math.max(0, Math.min(clearedDungeonCount() - s, e - s));
-      sum.textContent = `第${b + 1}層域 — 迷宮 ${s + 1}〜${e} (踏破 ${clearedIn}/${e - s})`;
+      const clearedIn = Math.max(0, Math.min(clearedCnt - s, e - s));
+      sum.textContent = `${clearedIn >= e - s ? "★ " : ""}第${b + 1}層域 — 迷宮 ${s + 1}〜${e} (踏破 ${clearedIn}/${e - s})`;
       det.appendChild(sum);
       det.addEventListener("toggle", () => {
         if (det.open) townBandOpen = b;
@@ -2341,13 +2480,20 @@ function renderTownHub() {
       for (let i = s; i < e; i++) {
         const dn = DUNGEONS[i];
         const unlocked = i < G.unlockedDungeons;
-        const row = el("div", "tw-dungeon" + (i === G.dungeonIdx ? " sel" : "") + (unlocked ? "" : " locked"));
+        const cleared = i < clearedCnt;
+        const row = el("div", "tw-dungeon" + (i === G.dungeonIdx ? " sel" : "") + (unlocked ? "" : " locked") + (cleared ? " cleared" : ""));
         const info = el("div", "tw-chipi");
         info.appendChild(el("div", "tw-chipn", unlocked ? `${i + 1}. ${dn.name}` : `🔒 ？？？`));
         const elTag = dn.element && ELEMENTS[dn.element] ? ` ・${ELEMENTS[dn.element].label}の気配` : "";
-        info.appendChild(el("div", "tw-chipc", unlocked ? `全${dn.floors}階 ・ ${i === 0 ? "弱い敵・罠少なめ" : "敵が強く良い戦利品"}${elTag}` : `前の迷宮を踏破し、王宮で勅命を受けると解放`));
+        info.appendChild(el("div", "tw-chipc", unlocked ? `全${dn.floors}階 ・ 敵ランク${dn.rank}${elTag}` : `前の迷宮を踏破し、王宮で勅命を受けると解放`));
         row.appendChild(info);
-        if (unlocked) row.addEventListener("click", () => { G.dungeonIdx = i; SFX.select(); renderTown(); });
+        if (unlocked) {
+          // 踏破状態バッジ (★踏破済=再挑戦可 / ❗勅命=攻略対象 / 未踏破)
+          const st = el("div", "tw-dunst" + (cleared ? " done" : i === targetIdx ? " quest" : ""));
+          st.textContent = cleared ? "★ 踏破済" : i === targetIdx ? "❗ 勅命" : "未踏破";
+          row.appendChild(st);
+          row.addEventListener("click", () => { G.dungeonIdx = i; SFX.select(); renderTown(); });
+        }
         dlist.appendChild(row);
       }
       det.appendChild(dlist);
@@ -2355,15 +2501,11 @@ function renderTownHub() {
     }
   }
 
-  // データ削除 (はじめから) — 誤タップ防止に二重確認
-  const reset = btn("🗑 はじめから (全データ削除)", confirmReset);
-  reset.className = "tw-small danger tw-reset";
-  townEl.appendChild(reset);
-
   // 迷宮へ (常に1階から) — スクロール位置に関わらず押せるよう画面下部に固定表示
   if (G.unlockedDungeons >= 1) {
     const divebar = el("div", "tw-divebar");
-    const dive = btn(`🕳 「${curDungeon().name}」へ潜る (B1F)`, tryEnterDungeon);
+    const again = G.dungeonIdx < clearedDungeonCount(); // 踏破済みへの再挑戦
+    const dive = btn(`${again ? "⚔" : "🕳"} 「${curDungeon().name}」へ${again ? "再挑戦" : "潜る"} (B1F)`, tryEnterDungeon);
     dive.className = "btn primary tw-dive";
     divebar.appendChild(dive);
     townEl.appendChild(divebar);
@@ -4537,7 +4679,7 @@ function tryEnterDungeon() {
   // 表示中の噂を確定し、この迷宮で現実化させる
   if (G.rumor) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
   G.state = "board";
-  playBgm("field");
+  playBgm(fieldBgm());
   if (townBtn) townBtn.classList.remove("hidden");
   newFloor();
   renderBoard();
@@ -4558,7 +4700,7 @@ function returnToTown() {
 }
 
 function confirmReturnToTown() {
-  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen) return;
+  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen || G.settingsOpen) return;
   showConfirm({
     title: "街へ帰還する？",
     lines: ["今いる階の探索は中断される。", "集めた魂・お金・アイテムは持ち帰れる。"],
@@ -4576,6 +4718,7 @@ let stSoulSel = null; // 魂タブで詳細表示中の魂 (uid)
 function openStatus(idx = 0) {
   if (G.state !== "board" && G.state !== "town") return;
   if (G.anim || G.walking || G.prompt) return;
+  if (G.settingsOpen) closeSettings();
   G.statusOpen = true;
   G.statusIdx = idx;
   G.statusTab = "main"; // 初期表示は統合画面 (ステータス/装備/所持品)
@@ -4949,6 +5092,10 @@ function statLines(it) {
   return parts.join("　");
 }
 
+// 装備品か (装備可能職業を表示する対象か)。use/misc/mat は対象外。
+const EQUIPPABLE_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
+function isEquippable(it) { return EQUIPPABLE_SLOTS.has(it.slot); }
+
 // 候補 cand を p に装備した場合の最終ステータス増減 {atk,def,spd,hp,mp} を返す。
 // items.js の recalc を仮の装備マップに流用するので、両手武器⇄盾の付け替え分も反映される。
 function equipPreviewDelta(p, cand) {
@@ -5025,7 +5172,7 @@ function detailLines(it) {
   if (ea) L.push(`${ea} — ${elemAdvText("攻撃", it.eAtk)}`);
   const ed = it.eDef ? elemStatText("防御", it.eDef) : null;
   if (ed) L.push(`${ed} — ${elemAdvText("防御", it.eDef)}`);
-  if (it.classes) L.push(equipClassText(it));
+  if (isEquippable(it)) L.push(equipClassText(it));
   if (it.align) L.push(`${it.align}属性。`);
   return L;
 }
@@ -5317,6 +5464,7 @@ function showItemGet(item, who, onClose) {
   card.appendChild(el("div", "ig-name", item.name));
   const stat = statLines(item);
   if (stat) card.appendChild(el("div", "ig-stat", stat));
+  if (isEquippable(item)) card.appendChild(el("div", "ig-class", equipClassText(item)));
   card.appendChild(el("div", "ig-desc", item.desc || ""));
   card.appendChild(el("div", "ig-who", `${who.name} が手に入れた`));
   const ok = btn("受け取る", () => closeItemGet(onClose));
@@ -5405,12 +5553,23 @@ const FACILITY_BGM = {
   shrine: "shrine",
 };
 let openingActive = false; // オープニング演出中は専用テーマ
+// 探索BGM: 迷宮のランク帯 (1-10) ごとに専用テーマ (墓地/坑道/砦/森/神殿/灼洞/氷廊/尖塔/冥門/玄室)
+function fieldBgm() {
+  const r = Math.max(1, Math.min(10, activeCfg().rank || 1));
+  return r === 1 ? "field" : `field${r}`;
+}
+// 戦闘BGM: ランク帯で激しさが3段階。深層 (ランク9-10) のボスは終末のテーマ
+function battleBgm(isBoss) {
+  const r = activeCfg().rank || 1;
+  if (isBoss) return r >= 9 ? "boss2" : "boss";
+  return r >= 7 ? "battle3" : r >= 4 ? "battle2" : "battle";
+}
 // 現在のシーンに合ったBGM名
 function sceneBgm() {
   if (openingActive) return "opening";
   if (G.state === "town") return FACILITY_BGM[G.town.facility] || "town";
-  if (G.state === "combat") return (G.battle && G.battle.enemies.some((e) => e.boss)) ? "boss" : "battle";
-  if (G.state === "board") return "field";
+  if (G.state === "combat") return battleBgm(G.battle && G.battle.enemies.some((e) => e.boss));
+  if (G.state === "board") return fieldBgm();
   return null; // over などは無音 (ジングルのみ)
 }
 function ensureAudio() {
@@ -5462,7 +5621,7 @@ view.addEventListener("click", (e) => {
     }
     return;
   }
-  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen) return;
+  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen || G.settingsOpen) return;
   const cx = Math.floor((sx - OX) / (CARD_W + GAP));
   const cy = Math.floor((sy - OY) / (CARD_H + GAP));
   if (cx < 0 || cy < 0 || cx >= COLS || cy >= ROWS) return;
@@ -5496,7 +5655,7 @@ function stopSwipe() {
 // 指を離さずに方向が確定した後、1歩ずつ連続移動するループ
 function swipeStep(dx, dy) {
   if (!swipe) return; // 指が離れた
-  if (G.state !== "board" || G.prompt || G.statusOpen) { stopSwipe(); return; }
+  if (G.state !== "board" || G.prompt || G.statusOpen || G.settingsOpen) { stopSwipe(); return; }
   if (G.anim || G.walking) {
     // アニメーション完了待ち。50ms ごとに再チェック
     swipeTimer = setTimeout(() => swipeStep(dx, dy), 50);
@@ -5539,8 +5698,9 @@ document.addEventListener("pointercancel", () => { stopSwipe(); });
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "m" || e.key === "M") { updateMuteBtn(toggleMute()); return; }
+  if (e.key === "Escape" && G.settingsOpen) { closeSettings(); return; }
   if (e.key === "Escape" && G.statusOpen) { closeStatus(); return; }
-  if (G.state !== "board" || G.prompt || G.statusOpen) return;
+  if (G.state !== "board" || G.prompt || G.statusOpen || G.settingsOpen) return;
   switch (e.key) {
     case "ArrowUp": case "w": tryMove(0, -1); break;
     case "ArrowDown": case "s": tryMove(0, 1); break;
@@ -5553,10 +5713,71 @@ document.addEventListener("keydown", (e) => {
 
 // ミュートボタン
 const muteBtn = document.getElementById("mute-btn");
-function updateMuteBtn(m) { if (muteBtn) muteBtn.textContent = m ? "🔇" : "🔊"; }
+function updateMuteBtn(m) { if (muteBtn) muteBtn.textContent = m ? "🔇" : "🔊"; if (G.settingsOpen) renderSettings(); }
 if (muteBtn) {
   muteBtn.addEventListener("click", () => { ensureAudio(); updateMuteBtn(toggleMute()); });
 }
+
+// ================= 設定画面 (⚙) =================
+const settingsEl = document.getElementById("settings-screen");
+const settingsBtn = document.getElementById("settings-btn");
+
+function openSettings() {
+  if (G.state !== "board" && G.state !== "town") return;
+  if (G.anim || G.walking || G.prompt) return;
+  if (G.statusOpen) closeStatus();
+  G.settingsOpen = true;
+  settingsEl.classList.remove("hidden");
+  renderSettings();
+}
+function closeSettings() {
+  G.settingsOpen = false;
+  settingsEl.classList.add("hidden");
+}
+
+// 設定の1行 (名前 + 説明 + 右端の操作ボタン)
+function settingRow(name, desc, button, danger = false) {
+  const row = el("div", "set-row" + (danger ? " danger" : ""));
+  const info = el("div", "set-rowi");
+  info.appendChild(el("div", "set-rown", name));
+  info.appendChild(el("div", "set-rowd", desc));
+  row.appendChild(info);
+  row.appendChild(button);
+  return row;
+}
+
+function renderSettings() {
+  if (!settingsEl) return;
+  settingsEl.innerHTML = "";
+  const head = el("div", "set-head");
+  head.appendChild(el("div", "set-title", "⚙ 設定"));
+  const close = btn("✕ 閉じる", () => { SFX.select(); closeSettings(); });
+  close.className = "tw-small set-close";
+  head.appendChild(close);
+  settingsEl.appendChild(head);
+
+  // サウンド (ミュートはトップバーの🔊/Mキーと共通)
+  const snd = btn(isMuted() ? "🔇 OFF" : "🔊 ON", () => { ensureAudio(); updateMuteBtn(toggleMute()); }); // updateMuteBtn が設定画面も再描画する
+  snd.className = "tw-small set-toggle" + (isMuted() ? "" : " on");
+  settingsEl.appendChild(settingRow("サウンド", "効果音とBGMのオン/オフ (Mキー)", snd));
+
+  // 戦闘演出の倍速 (戦闘メニューの倍速ボタンと共通の設定)
+  const spd = btn(G.fastAnim ? "▶▶ ON" : "▶ OFF", () => { SFX.select(); G.fastAnim = !G.fastAnim; autosave(); renderSettings(); });
+  spd.className = "tw-small set-toggle" + (G.fastAnim ? " on" : "");
+  settingsEl.appendChild(settingRow("戦闘演出 倍速", "戦闘のアニメーションを速める", spd));
+
+  // データ削除 (はじめから) — 二重確認は confirmReset 側
+  settingsEl.appendChild(el("div", "set-h", "データ"));
+  const reset = btn("🗑 削除", confirmReset);
+  reset.className = "tw-small danger";
+  settingsEl.appendChild(settingRow("はじめから (全データ削除)", "人業・魂・図鑑・進行度がすべて失われる", reset, true));
+}
+
+if (settingsBtn) settingsBtn.addEventListener("click", () => {
+  SFX.select();
+  if (G.settingsOpen) closeSettings();
+  else openSettings();
+});
 
 // ================= オートセーブ (ウィザードリィ3風: 常時保存・やり直し不可) =================
 // 一度選択した行動は取り消せない。タスクキルされても直前の状態 (戦闘なら確定済みの
@@ -5686,7 +5907,7 @@ function loadGame() {
   // 一時状態はリセット
   G.anim = null; G.flipAnim = null; G.heroAnim = null; G.walking = false; G.prompt = false;
   G.fx = null; G.animating = false; G.enemyPos = {}; G.partyFx = new Map(); G.wallFlash = null;
-  G.statusOpen = false;
+  G.statusOpen = false; G.settingsOpen = false;
   // クラス/参照の再リンク (Battleのメソッド・敵のmon・派生値)
   if (G.battle) {
     Object.setPrototypeOf(G.battle, Battle.prototype);
@@ -5822,8 +6043,9 @@ function init() {
   } catch (e) {
     try {
       G.state = "town"; G.town = { facility: null, sub: null };
-      G.statusOpen = false; G.prompt = false; G.anim = null; G.walking = false;
+      G.statusOpen = false; G.settingsOpen = false; G.prompt = false; G.anim = null; G.walking = false;
       if (statusEl) statusEl.classList.add("hidden");
+      if (settingsEl) settingsEl.classList.add("hidden");
       renderTown();
     } catch (e2) { /* これ以上は何もしない (セーブは温存) */ }
   }
