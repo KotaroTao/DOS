@@ -2416,6 +2416,67 @@ function applyImpact(res) {
   if (anyDeath) setTimeout(() => SFX.die(), 200);
 }
 
+// 戦闘勝利時: 入手Soulの1/5を、生存しているパーティメンバー全員の全部位の魂に
+// 経験値(soul.exp)として加算する。閾値(soulTrainCost)に達した魂は自動でレベルアップし、
+// キャラLv上昇/スキル習得を検出してポップアップ用のキューを返す。
+function distributeBattleSoulExp(soulGot) {
+  const queue = [];
+  const share = Math.floor((soulGot || 0) / 5);
+  if (share <= 0) return queue;
+  for (const m of G.party) {
+    if (!m || !m.alive || !m.parts) continue;
+    const oldLv = m.jobLv || charLevelOf(m);
+    const oldSpells = new Set(m.spells || []);
+    let leveled = false;
+    for (const part of PARTS) {
+      const s = m.parts[part];
+      if (!s || s.level >= s.cap) continue;
+      s.exp = (s.exp || 0) + share;
+      while (s.level < s.cap && s.exp >= soulTrainCost(s.level)) {
+        s.exp -= soulTrainCost(s.level);
+        s.level++;
+        leveled = true;
+      }
+      if (s.level >= s.cap) s.exp = 0; // 上限到達: 余剰expは持ち越さない
+    }
+    if (!leveled) continue; // ステータス変動なし
+    recalcDoll(m);
+    if (m.hp > m.maxhp) m.hp = m.maxhp;
+    const newLv = m.jobLv || charLevelOf(m);
+    // 仕様: 1名ずつ「レベルアップ(回数ぶん)→スキル獲得」の順でポップアップ
+    for (let lv = oldLv + 1; lv <= newLv; lv++) queue.push({ kind: "level", member: m, lv });
+    for (const sk of (m.spells || [])) if (!oldSpells.has(sk)) queue.push({ kind: "skill", member: m, skill: sk });
+  }
+  return queue;
+}
+
+// レベルアップ/スキル習得ポップアップをキュー順に1つずつ表示し、最後に done を呼ぶ
+function runProgressPopups(queue, done) {
+  if (!queue || !queue.length) { if (done) done(); return; }
+  const ev = queue.shift();
+  const next = () => runProgressPopups(queue, done);
+  if (ev.kind === "level") {
+    SFX.levelup();
+    showEvent({
+      banner: "⤴ レベルアップ ⤴",
+      title: `${ev.member.name} は Lv${ev.lv} に上がった！`,
+      accent: "#ffd84a", sparkle: true,
+      lines: [ev.member.cls],
+      btnLabel: "つぎへ", onClose: next,
+    });
+  } else {
+    const sp = SPELLS[ev.skill];
+    SFX.heal();
+    showEvent({
+      banner: "✦ スキル習得 ✦",
+      title: `${ev.member.name} は「${sp ? sp.name : ev.skill}」を覚えた！`,
+      accent: "#5fa8e0", sparkle: true,
+      lines: sp ? [sp.desc] : [],
+      btnLabel: "つぎへ", onClose: next,
+    });
+  }
+}
+
 function endBattle() {
   const b = G.battle;
   // オート戦闘は戦闘ごとに解除 (次の戦闘に持ち越さない)
@@ -2430,6 +2491,8 @@ function endBattle() {
     const goldGot = runGainGold(Math.round(gold * (gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)));
     const soulGot = runGainSoulPts(Math.round(soul * (sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1)));
     applyVictoryPassives();
+    // 入手Soulの1/5を生存メンバー全員の全部位の魂に加算 → レベルアップ/スキル習得を集計
+    const progressQueue = distributeBattleSoulExp(soulGot);
     updateTopbar();
     log(`勝利！ ${goldGot} ゴールド と ✦${soulGot} Soul を得た。`, "win");
     SFX.victory();
@@ -2496,7 +2559,8 @@ function endBattle() {
       accent: wasElite ? "#d4504e" : "#ffd84a",
       sparkle: true,
       lines: [`獲得 ゴールド 💰${goldGot}`, `回収した Soul ✦${soulGot}`],
-      btnLabel: "つぎへ", onClose: afterVictory,
+      // 勝利ポップアップを閉じたら、レベルアップ/スキル習得を順番に表示してから宝箱へ
+      btnLabel: "つぎへ", onClose: () => runProgressPopups(progressQueue, afterVictory),
     });
     return;
   } else if (b.result === "flee") {
