@@ -955,6 +955,17 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .tw-recl { font-size: 11px; color: #9685ad; }
 .tw-recv { font-size: 13px; color: #ffd84a; font-weight: bold; }
 
+/* 装備可否チップ (キャラアイコン + 名前 + ○/×) */
+.eq-pchips { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; margin-top: 5px; }
+.eq-pchip { display: inline-flex; align-items: center; gap: 3px; padding: 2px 7px 2px 3px; border-radius: 7px; border: 1px solid #34344a; font-size: 11px; line-height: 1; }
+.eq-pchip.ok { border-color: #3a7a5e; background: rgba(70,192,143,0.12); color: #cfeede; }
+.eq-pchip.ng { border-color: #6a3a3a; background: rgba(150,70,70,0.10); color: #b58a8a; opacity: 0.72; }
+.eq-pchip-ic { display: flex; }
+.eq-pchip-nm { font-weight: bold; }
+.eq-pchip-mk { font-weight: bold; }
+.eq-pchip.ok .eq-pchip-mk { color: #5fe0a0; }
+.eq-pchip.ng .eq-pchip-mk { color: #ff6b6b; }
+
 /* ===== 装備候補チューザー ===== */
 .eqchooser { max-width: 440px; }
 .eq-cand { gap: 6px; }
