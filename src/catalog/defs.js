@@ -157,18 +157,42 @@ export const ARTS = {
     ".klllldlk...", "..kllllk....", "...kkkk.....", "............", "............", "............"],
 };
 
-// 武器サブカテゴリごとの威力倍率と既定の装備可能職
+// 武器サブカテゴリごとの威力倍率 (職業制限は souls.js の JOB_GEAR テーブルで一元管理)
 const W_MUL = { ls: 1.0, dg: 0.78, kt: 1.06, ax: 1.16, mc: 1.1, sp: 1.04, bw: 0.92, st: 0.66 };
-const W_CLS = {
-  ls: ["fighter", "knight", "thief", "priest", "bishop"],
-  dg: null,
-  kt: ["fighter", "knight", "thief"],
-  ax: ["fighter", "knight"],
-  mc: ["fighter", "knight", "priest"],
-  sp: ["fighter", "knight", "thief"],
-  bw: ["fighter", "thief"],
-  st: ["mage", "priest", "bishop"],
+
+// 形状 → 装備重量 (canEquip の鎧重量チェックに使う)
+const SHAPE_WEIGHT = {
+  plate: "heavy", helm: "heavy", greaves: "heavy", gauntlet: "heavy", kite: "heavy",
+  round: "light", boots: "light", gloves: "light", hat: "light",
+  robe: "cloth", circlet: "cloth",
 };
+
+// ===== %型ステータス変換 =====
+// フラット値を「コモン戦士5部位基準の%」に変換して保存。
+// stat = round(base[k] * (1 + Σpct[k])) — 魂融合で base が伸びても装備が比例して強くなる。
+const _SOUL_RANK_MULS = [0, 1.0, 1.3, 1.9, 3.0, 5.0];
+const _SOUL_RANK_CAPS = [0, 10, 20, 30, 50, 100];
+const _FIGHTER_STAT   = { atk: 2.4, vit: 1.6, agi: 1.2, int: 0.3, pie: 0.4, luk: 1.0, hp: 7.0, mp: 0.7 };
+
+function _lvBand(lv) { return lv <= 20 ? 1 : lv <= 45 ? 2 : lv <= 80 ? 3 : lv <= 120 ? 4 : 5; }
+
+function _typicalBase(lv, stat) {
+  const rank = _lvBand(lv);
+  const f = _SOUL_RANK_MULS[rank] * (1 + (_SOUL_RANK_CAPS[rank] - 1) * 0.12) * 5 * 1.10;
+  return (_FIGHTER_STAT[stat] || 1.0) * f;
+}
+
+function _finalizePct(it, lv) {
+  const pct = {};
+  for (const k of ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"]) {
+    const v = it[k];
+    if (v != null && v !== 0) {
+      pct[k] = Math.round(v / _typicalBase(lv, k) * 10000) / 10000;
+      delete it[k];
+    }
+  }
+  if (Object.keys(pct).length) it.pct = pct;
+}
 
 const round = Math.round;
 const priceOf = (lv) => round(10 + lv * lv * 0.30 + lv * 5);
@@ -215,7 +239,7 @@ function base(id, name, slot, lv, artKey, opt) {
 // opt: { desc(必須), eAtk, two, cls, spd, mp, hp, atk(絶対値上書き), tint, tintAmt, cursed, align, price }
 export function W(id, name, cat, lv, opt = {}) {
   chk(W_MUL[cat], "unknown weapon cat: " + cat + " (" + id + ")");
-  const it = base(id, name, "weapon", lv, cat, { cls: opt.cls !== undefined ? opt.cls : W_CLS[cat], ...opt });
+  const it = base(id, name, "weapon", lv, cat, { cls: opt.cls !== undefined ? opt.cls : null, ...opt });
   it.cat = cat;
   const two = !!opt.two || cat === "bw"; // 弓は常に両手
   if (two) it.twoHanded = true;
@@ -228,15 +252,17 @@ export function W(id, name, cat, lv, opt = {}) {
     if (it.int == null) it.int = Math.max(1, Math.floor(lv / 22));   // INT (攻撃呪文の威力) も伸ばす
   }
   if (cat === "dg" && it.agi == null) it.agi = 1;                    // 短剣は取り回しが軽い
+  _finalizePct(it, lv);
   return it;
 }
 
 // 盾: S(id, 名, lv, opt) — opt.shape: "kite"(既定) | "round"。opt.def は VIT の上書き
 export function S(id, name, lv, opt = {}) {
-  const it = base(id, name, "shield", lv, opt.shape || "kite", {
-    cls: opt.cls !== undefined ? opt.cls : ["fighter", "knight", "thief", "priest", "bishop"], ...opt,
-  });
+  const shape = opt.shape || "kite";
+  const it = base(id, name, "shield", lv, shape, { cls: null, ...opt });
   it.vit = opt.def != null ? opt.def : Math.max(1, round(2 + lv * 0.20));
+  it.weight = SHAPE_WEIGHT[shape];
+  _finalizePct(it, lv);
   return it;
 }
 
@@ -249,27 +275,38 @@ export function A(id, name, lv, opt = {}) {
     if (it.mp == null) it.mp = 2 + Math.floor(lv / 14);
     if (it.pie == null) it.pie = Math.max(1, Math.floor(lv / 28)); // 法衣は祈りの器
   }
+  it.weight = robe ? "cloth" : "heavy";
+  _finalizePct(it, lv);
   return it;
 }
 
 // 頭: H(id, 名, lv, opt) — opt.shape: "helm"(既定) | "hat" | "circlet"。opt.def は VIT の上書き
 export function H(id, name, lv, opt = {}) {
-  const it = base(id, name, "head", lv, opt.shape || "helm", opt);
+  const shape = opt.shape || "helm";
+  const it = base(id, name, "head", lv, shape, opt);
   it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.15));
+  it.weight = SHAPE_WEIGHT[shape];
+  _finalizePct(it, lv);
   return it;
 }
 
 // 足: F(id, 名, lv, opt) — opt.shape: "boots"(既定) | "greaves"。opt.def は VIT の上書き
 export function F(id, name, lv, opt = {}) {
-  const it = base(id, name, "feet", lv, opt.shape || "boots", opt);
+  const shape = opt.shape || "boots";
+  const it = base(id, name, "feet", lv, shape, opt);
   it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.13));
+  it.weight = SHAPE_WEIGHT[shape];
+  _finalizePct(it, lv);
   return it;
 }
 
 // 小手: G(id, 名, lv, opt) — opt.shape: "gloves"(既定) | "gauntlet"。opt.def は VIT の上書き
 export function G(id, name, lv, opt = {}) {
-  const it = base(id, name, "hands", lv, opt.shape || "gloves", opt);
+  const shape = opt.shape || "gloves";
+  const it = base(id, name, "hands", lv, shape, opt);
   it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.13));
+  it.weight = SHAPE_WEIGHT[shape];
+  _finalizePct(it, lv);
   return it;
 }
 
@@ -277,6 +314,7 @@ export function G(id, name, lv, opt = {}) {
 export function R(id, name, shape, lv, opt = {}) {
   const it = base(id, name, "acc", lv, shape, opt);
   if (opt.def != null) it.vit = opt.def;
+  _finalizePct(it, lv);
   return it;
 }
 
