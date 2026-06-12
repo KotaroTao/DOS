@@ -5551,6 +5551,32 @@ function statName(p) {
   return p.alive ? p.name : `${p.name}†`;
 }
 
+// 六大ステータスの詳しい説明 (ステータス画面でタップ時に表示)
+const ATTR_DESC = {
+  atk: "物理攻撃のダメージを決める力。武器による通常攻撃や物理スキルの威力が上がる。",
+  vit: "受ける物理ダメージを軽減する頑強さ。高いほど打たれ強くなる。",
+  agi: "行動の速さ。高いほど戦闘で先に動け、敵の攻撃を回避しやすくなる。",
+  int: "攻撃呪文の威力を決める知力。火球など攻撃魔法のダメージが上がる。",
+  pie: "回復呪文の効果を決める信仰心。HPを回復する魔法の回復量が上がる。",
+  luk: "会心（クリティカル）の発生率を左右する幸運。高いほど大ダメージが出やすい。",
+};
+
+// 能力値の説明ポップアップ
+function showStatInfo(k, p) {
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card cdx-detail");
+  card.appendChild(el("div", "ig-banner", ATTR_LABEL[k]));
+  card.appendChild(el("div", "ig-name", ATTR_NAME[k]));
+  if (p) card.appendChild(el("div", "ig-stat", `${p.name} の ${ATTR_LABEL[k]}: ${Math.round(p[k] || 0)}`));
+  card.appendChild(el("div", "ig-desc", ATTR_DESC[k] || ""));
+  const ok = btn("閉じる", () => wrap.remove());
+  ok.className = "btn primary ig-ok";
+  card.appendChild(ok);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
+}
+
 function renderStatus() {
   autosave(); // 装備変更・呪文使用などのたびに保存
   const p = G.party[G.statusIdx];
@@ -5613,13 +5639,14 @@ function renderStatus() {
     statusEl.appendChild(box);
   }
 
-  // 2. 能力値 (6列1行)
+  // 2. 能力値 (6列1行)。タップで各能力の説明をポップアップ表示
   const ab = el("div", "st-attrs6");
   for (const k of ATTR_KEYS) {
-    const cell = el("div", "st-attr6");
+    const cell = el("div", "st-attr6 st-attr-tap");
     cell.appendChild(el("span", "st-attrk", ATTR_LABEL[k]));
     cell.appendChild(el("span", "st-attrv", String(Math.round(p[k] || 0))));
     cell.title = ATTR_NAME[k];
+    cell.addEventListener("click", () => { SFX.select(); showStatInfo(k, p); });
     ab.appendChild(cell);
   }
   statusEl.appendChild(ab);

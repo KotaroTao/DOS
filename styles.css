@@ -351,6 +351,8 @@ canvas.spr { image-rendering: pixelated; display: block; }
 }
 .st-attr6 .st-attrk { font-size: 9px; color: #6fb89e; letter-spacing: 0; }
 .st-attr6 .st-attrv { font-size: 14px; font-weight: bold; color: #d9fff0; }
+.st-attr-tap { cursor: pointer; }
+.st-attr-tap:active { border-color: #3f8a72; background: #0f1f17; }
 
 /* 装備 + 所持品: 2カラム横並び */
 .st-bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 5px; }
