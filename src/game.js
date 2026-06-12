@@ -5278,15 +5278,26 @@ function renderShop() {
     townEl.appendChild(subs);
   }
 
-  // 在庫 (内部スクロール領域)
+  // 在庫 (内部スクロール領域)。カテゴリ順 → 売却額の安い順に並べる
   const stock = el("div", "shop-stock");
-  let any = false;
-  for (const id of Object.keys(G.shopStock)) {
+  // 並び順キー: 武器はサブカテゴリ (WEAPON_CATS) 順、その他はアイテム分類 (ITEM_CATS) 順
+  const catOrder = (it) => {
+    if (it.cat) { const i = WEAPON_CATS.findIndex((c) => c.key === it.cat); return i < 0 ? 99 : i; }
+    const i = ITEM_CATS.findIndex((c) => c.slots.includes(it.slot)); return i < 0 ? 99 : i;
+  };
+  const ids = Object.keys(G.shopStock).filter((id) => {
     const it = ITEMS[id];
-    if (!it || !tabDef.slots.includes(it.slot)) continue;
-    if (tabDef.key === "weapon" && shopWeaponCat !== "all" && it.cat !== shopWeaponCat) continue;
+    if (!it || !tabDef.slots.includes(it.slot)) return false;
+    if (tabDef.key === "weapon" && shopWeaponCat !== "all" && it.cat !== shopWeaponCat) return false;
+    return G.shopStock[id] > 0;
+  }).sort((a, b) => {
+    const ia = ITEMS[a], ib = ITEMS[b];
+    return catOrder(ia) - catOrder(ib) || sellPrice(ia) - sellPrice(ib) || ia.name.localeCompare(ib.name);
+  });
+  let any = false;
+  for (const id of ids) {
+    const it = ITEMS[id];
     const count = G.shopStock[id];
-    if (count <= 0) continue;
     any = true;
     const price = it.price || 30;
     const r = el("div", "tw-shoprow");

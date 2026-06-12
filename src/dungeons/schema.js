@@ -67,6 +67,7 @@ export function elemMult(atk, def) {
 //   tgtDef  : 対象の属性防御 {el, lv} (装備由来)。攻撃属性に有利な時のみ被ダメージを軽減
 // 属性防御は「軽減のみ」: 有利属性で受けると減るが、不利属性で受けても増えない
 //   (装備した属性防具が裏目に出てダメージが増えることはない)。
+//   軽減量は Lv1=◯ 25% / Lv2=◎ 50% (Lv2 が上限)。
 // 光↔闇は相互有利の例外: 攻撃側は常に「有利」、防御側は常に「軽減」扱いになる。
 export function elemDmgMult(aE, aLv, tgtElem, tgtDef) {
   if (!aE || aE === "none") return 1;
@@ -77,7 +78,7 @@ export function elemDmgMult(aE, aLv, tgtElem, tgtDef) {
     else if (elemBeats(tgtElem, aE)) m *= Math.max(0, 1 - k);
   }
   if (tgtDef && tgtDef.lv > 0 && tgtDef.el && tgtDef.el !== "none") {
-    const k = 0.5 * Math.min(2, tgtDef.lv);
+    const k = 0.25 * Math.min(2, tgtDef.lv); // Lv1→25% / Lv2→50% 軽減
     if (elemBeats(tgtDef.el, aE)) m *= Math.max(0, 1 - k); // 防御側が有利 → 軽減 (不利でも増加はしない)
   }
   return m;
