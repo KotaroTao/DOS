@@ -3304,10 +3304,15 @@ function renderAltar() {
     }
   }
 
-  // 職業・スキル サマリ
+  // 職業・スキル サマリ (クリックで職業図鑑ポップアップ)
   const sum = el("div", "tw-summary");
   const dom = d.dominant;
   sum.style.borderColor = dom ? SOUL_CLASSES[dom.clsKey].color : "#34344a";
+  if (d.jobKey) {
+    sum.style.cursor = "pointer";
+    sum.title = "職業図鑑を表示";
+    sum.addEventListener("click", () => showCodexJobDetail(d.jobKey, d.jobRank));
+  }
   sum.appendChild(el("div", "tw-sumc", d.cls));
   const tierTxt = d.jobRank
     ? `キャラLv ${d.jobLv || 0}（魂の平均・スキル解放 Lv${d.jobRank * 10} まで）`
@@ -3317,6 +3322,7 @@ function renderAltar() {
     `HP${d.maxhp} MP${d.maxmp} ATK${d.atk} VIT${d.vit} AGI${d.agi} INT${d.int} PIE${d.pie} LUK${d.luk}`));
   if (d.spells.length) { const sk = skillChips(d.spells, "習得:"); sk.classList.add("tw-sumsk"); sum.appendChild(sk); }
   if (d.passives.length) sum.appendChild(el("div", "tw-sumsk", d.passives.join(" / ")));
+  if (d.jobKey) sum.appendChild(el("div", "tw-sumhint", "▶ 職業図鑑"));
   townEl.appendChild(sum);
 
   // 5部位
@@ -3355,11 +3361,23 @@ function renderAltar() {
     if (cur) {
       townEl.appendChild(el("div", "tw-h", `「${PART_LABEL[part]}」の魂を鍛える`));
       const trainBox = el("div", "tw-trainbox");
+      const curSt = soulStats(cur);
       if (cur.level >= cur.cap) {
-        trainBox.appendChild(el("div", "tw-note", `${soulName(cur)} は上限 Lv${cur.cap}。館の「魂強化」で限界突破を。`));
+        trainBox.appendChild(el("div", "tw-trainn", soulName(cur)));
+        trainBox.appendChild(el("div", "tw-soulst", soulStatText(curSt)));
+        trainBox.appendChild(el("div", "tw-note", `上限 Lv${cur.cap}。館の「魂強化」で限界突破を。`));
       } else {
         const tc = soulTrainCost(cur.level);
-        trainBox.appendChild(el("div", "tw-trainn", `${soulName(cur)} → Lv${cur.level + 1}`));
+        const nextSt = soulStats({ ...cur, level: cur.level + 1 });
+        const _stKeys = ["hp", "mp", "atk", "vit", "agi", "int", "pie", "luk"];
+        const _stLbl = { hp: "HP", mp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
+        const deltaStr = _stKeys
+          .filter((k) => (nextSt[k] || 0) - (curSt[k] || 0) > 0.001)
+          .map((k) => `${_stLbl[k]}+${Math.round(((nextSt[k] || 0) - (curSt[k] || 0)) * 10) / 10}`)
+          .join(" ");
+        trainBox.appendChild(el("div", "tw-trainn", `${soulName(cur)}　Lv${cur.level} → Lv${cur.level + 1}`));
+        trainBox.appendChild(el("div", "tw-soulst", soulStatText(curSt)));
+        if (deltaStr) trainBox.appendChild(el("div", "tw-souldn", `↑ ${deltaStr}`));
         const tb = btn(`✦ Soul ${tc} で鍛える`, () => trainSoul(d, part));
         tb.className = "tw-small primary";
         if (G.soulPts < tc) tb.disabled = true;
