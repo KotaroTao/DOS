@@ -595,7 +595,7 @@ export function makeSoul(clsKey, level = 1, part = null, rank = "normal") {
   if (!part) part = PARTS[Math.floor(Math.random() * PARTS.length)];
   if (!SOUL_RANKS[rank]) rank = "normal";
   const cap = SOUL_RANKS[rank].cap;
-  return { uid: ++_soulUid, clsKey, part, rank, level: Math.min(level, cap), cap };
+  return { uid: ++_soulUid, clsKey, part, rank, level: Math.min(level, cap), cap, exp: 0 };
 }
 
 // 旧セーブ等で cap 未設定の魂を補正する
@@ -604,6 +604,7 @@ export function ensureSoul(s) {
   if (s.cap == null) s.cap = SOUL_RANKS[s.rank || "normal"].cap;
   if (s.level == null) s.level = 1;
   if (s.level > s.cap) s.level = s.cap;
+  if (s.exp == null) s.exp = 0;
   return s;
 }
 

@@ -2134,9 +2134,10 @@ function endBattle() {
       }
       if (after) after();
     };
+    grantSoulExp(Math.floor(soulGot / 5));
     showEvent({
       banner: "⚔ 勝利 ⚔", title: "戦いに勝利した！", accent: "#ffd84a", sparkle: true,
-      lines: [`獲得 ゴールド 💰${goldGot}`, `回収した Soul ✦${soulGot}`],
+      lines: [`獲得 ゴールド 💰${goldGot}`, `回収した Soul ✦${soulGot}`, "魂の輝きが少し増した…"],
       btnLabel: "つぎへ", onClose: afterVictory,
     });
     return;
@@ -3267,6 +3268,27 @@ function sealFromStock(d, part, stockIdx) {
 
 // 魂を1レベル上げるのに要する Soul (レベルが高いほど高い)
 function soulTrainCost(level) { return 15 + level * 12; }
+
+// ダンジョン戦闘報酬として魂に経験値を付与し、閾値超過でレベルアップ
+function grantSoulExp(expAmount) {
+  if (!expAmount || expAmount <= 0) return;
+  for (const p of G.party) {
+    if (!p.alive || !p.isDoll) continue;
+    let leveled = false;
+    for (const part of PARTS) {
+      const s = p.parts[part];
+      if (!s || s.level >= s.cap) continue;
+      s.exp = (s.exp || 0) + expAmount;
+      while (s.level < s.cap && s.exp >= soulTrainCost(s.level)) {
+        s.exp -= soulTrainCost(s.level);
+        s.level++;
+        leveled = true;
+      }
+      if (s.level >= s.cap) s.exp = 0;
+    }
+    if (leveled) { recalcDoll(p); p.hp = Math.min(p.hp, p.maxhp); }
+  }
+}
 
 function trainSoul(d, part) {
   const s = d.parts[part];
@@ -4958,9 +4980,21 @@ function renderSoulTab(p) {
       const nm = el("div", "st-souln2", soulName(s));
       if (rank.color) nm.style.color = rank.color;
       info.appendChild(nm);
-      // 成長・限界突破は館「魂強化」で
-      info.appendChild(el("div", "st-soulstat",
-        s.level >= s.cap ? `Lv ${s.level}（上限）— 館で限界突破` : `Lv ${s.level} / ${s.cap} ・ 強化は館で ✦${soulTrainCost(s.level)}`));
+      if (s.level >= s.cap) {
+        info.appendChild(el("div", "st-soulstat", `Lv ${s.level}（上限）— 館で限界突破`));
+      } else {
+        const need = soulTrainCost(s.level);
+        const curExp = s.exp || 0;
+        const pct = Math.min(100, Math.round(curExp / need * 100));
+        info.appendChild(el("div", "st-soulstat",
+          `Lv ${s.level} / ${s.cap} ・ 強化は館で ✦${need}`));
+        const bar = el("div", "st-soulbar");
+        const fill = el("i");
+        fill.style.width = pct + "%";
+        bar.appendChild(fill);
+        info.appendChild(bar);
+        info.appendChild(el("div", "st-soulstat", `次のLvまで ${curExp} / ${need}`));
+      }
       row.appendChild(info);
       // タップで魂の詳細 (ステータス + 基本/上位スキル) を開閉
       row.addEventListener("click", () => { stSoulSel = selected ? null : s.uid; renderStatus(); });
