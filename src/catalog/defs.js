@@ -217,13 +217,13 @@ export function W(id, name, cat, lv, opt = {}) {
   it.cat = cat;
   const two = !!opt.two || cat === "bw"; // 弓は常に両手
   if (two) it.twoHanded = true;
-  it.atk = opt.atk != null ? opt.atk : Math.max(1, round((2 + lv * 0.82 + lv * lv * 0.0026) * W_MUL[cat] * (two && cat !== "bw" ? 1.25 : 1)));
+  it.atk = opt.atk != null ? opt.atk : Math.max(1, (2 + lv * 0.82 + lv * lv * 0.0026) * W_MUL[cat] * (two && cat !== "bw" ? 1.25 : 1));
   it.hit = opt.hit != null ? opt.hit : 1 + Math.floor(lv / 25);
   it.dice = opt.dice || ("1d" + (4 + Math.min(20, Math.floor(lv / 9))) + (lv >= 30 ? "+" + Math.min(15, Math.floor(lv / 13)) : ""));
   it.swings = opt.swings || 1;
   if (cat === "st") {                                                // 杖は魔力の触媒
-    if (it.mp == null) it.mp = round(2 + lv * 0.05 + lv * lv * 0.0006);
-    if (it.int == null) it.int = Math.max(1, round(0.5 + lv * 0.025 + lv * lv * 0.00028));
+    if (it.mp == null) it.mp = 2 + lv * 0.05 + lv * lv * 0.0006;
+    if (it.int == null) it.int = Math.max(1, 0.5 + lv * 0.025 + lv * lv * 0.00028);
   }
   if (cat === "dg" && it.agi == null) it.agi = Math.max(1, round(typicalBase(lv, "agi") * 0.07)); // 短剣は取り回しが軽い (lv帯に比例)
   finalizePct(it);
@@ -234,7 +234,7 @@ export function W(id, name, cat, lv, opt = {}) {
 export function S(id, name, lv, opt = {}) {
   const shape = opt.shape || "kite";
   const it = base(id, name, "shield", lv, shape, { cls: null, ...opt });
-  it.vit = opt.def != null ? opt.def : Math.max(1, round(2 + lv * 0.16 + lv * lv * 0.0014));
+  it.vit = opt.def != null ? opt.def : Math.max(1, 2 + lv * 0.16 + lv * lv * 0.0014);
   it.weight = SHAPE_WEIGHT[shape] || "cloth";  // orb/book 等は cloth 扱い
   finalizePct(it);
   return it;
@@ -248,10 +248,10 @@ export function A(id, name, lv, opt = {}) {
   const autoWeight = robe ? "cloth" : "heavy";
   const weight = opt.weight || autoWeight;
   const lightMul = weight === "cloth" ? 0.5 : weight === "light" ? 0.75 : 1;
-  it.vit = opt.def != null ? opt.def : Math.max(1, round((3 + lv * 0.22 + lv * lv * 0.0014) * lightMul));
+  it.vit = opt.def != null ? opt.def : Math.max(1, (3 + lv * 0.22 + lv * lv * 0.0014) * lightMul);
   if (robe || weight === "cloth") {
-    if (it.mp == null) it.mp = round(1.5 + lv * 0.05 + lv * lv * 0.0005);
-    if (it.pie == null) it.pie = Math.max(1, round(0.5 + lv * 0.022 + lv * lv * 0.0001));
+    if (it.mp == null) it.mp = 1.5 + lv * 0.05 + lv * lv * 0.0005;
+    if (it.pie == null) it.pie = Math.max(1, 0.5 + lv * 0.022 + lv * lv * 0.0001);
   }
   it.weight = weight;
   finalizePct(it);
@@ -263,7 +263,7 @@ export function A(id, name, lv, opt = {}) {
 export function H(id, name, lv, opt = {}) {
   const shape = opt.shape || "helm";
   const it = base(id, name, "head", lv, shape, opt);
-  it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.10 + lv * lv * 0.0012));
+  it.vit = opt.def != null ? opt.def : Math.max(1, 1 + lv * 0.10 + lv * lv * 0.0012);
   it.weight = opt.weight || SHAPE_WEIGHT[shape];
   finalizePct(it);
   return it;
@@ -274,7 +274,7 @@ export function H(id, name, lv, opt = {}) {
 export function F(id, name, lv, opt = {}) {
   const shape = opt.shape || "boots";
   const it = base(id, name, "feet", lv, shape, opt);
-  it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.09 + lv * lv * 0.0010));
+  it.vit = opt.def != null ? opt.def : Math.max(1, 1 + lv * 0.09 + lv * lv * 0.0010);
   it.weight = opt.weight || SHAPE_WEIGHT[shape];
   finalizePct(it);
   return it;
@@ -285,7 +285,7 @@ export function F(id, name, lv, opt = {}) {
 export function G(id, name, lv, opt = {}) {
   const shape = opt.shape || "gloves";
   const it = base(id, name, "hands", lv, shape, opt);
-  it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.09 + lv * lv * 0.0010));
+  it.vit = opt.def != null ? opt.def : Math.max(1, 1 + lv * 0.09 + lv * lv * 0.0010);
   it.weight = opt.weight || SHAPE_WEIGHT[shape];
   finalizePct(it);
   return it;

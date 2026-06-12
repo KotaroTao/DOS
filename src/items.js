@@ -750,17 +750,19 @@ export const ITEMS = {
 // 装備のフラット値 (atk/vit/…) を「コモン戦士5部位基準の%」に変換して .pct に保存する。
 // stat = round(base[k] * (1 + Σpct[k])) — 魂融合で base が伸びても装備が比例して強くなる。
 // 基本装備 (このファイル) もカタログ品 (src/catalog) も同じこの式を通すことで表示・計算を統一する。
-const _SOUL_RANK_MULS = [0, 1.0, 1.3, 1.9, 3.0, 5.0];
-const _SOUL_RANK_CAPS = [0, 10, 20, 30, 50, 100];
 const _FIGHTER_STAT   = { atk: 2.4, vit: 1.6, agi: 1.2, int: 0.3, pie: 0.4, luk: 1.0, hp: 7.0, mp: 0.7 };
 const _PCT_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"];
 const _PCT_SLOTS = new Set(["weapon", "shield", "body", "head", "feet", "hands", "acc"]);
 
-function _lvBand(lv) { return lv <= 20 ? 1 : lv <= 45 ? 2 : lv <= 80 ? 3 : lv <= 120 ? 4 : 5; }
+// 正規化の基準値 (lv 非依存の定数)。
+// 旧式は lv 帯ごとの「段差」で割っていたため、同帯の装備が全く同じ % になり、
+// 帯の境界では高レベル品ほど % が下がる逆転すら起きていた。
+// 分母を lv 非依存の定数にすることで、% は装備の素ステ (atk/vit/… は lv とともに
+// 単調増加) にそのまま比例する → 「グレードが高い装備ほど % の数値が大きい」を常に満たす。
+// (高 lv の素ステは二次関数で伸びるので、最深部の神話級ほど % が大きく跳ね上がる)
+const _TB_C = 85;
 export function typicalBase(lv, stat) {
-  const rank = _lvBand(lv);
-  const f = _SOUL_RANK_MULS[rank] * (1 + (_SOUL_RANK_CAPS[rank] - 1) * 0.12) * 5 * 1.10;
-  return (_FIGHTER_STAT[stat] || 1.0) * f;
+  return (_FIGHTER_STAT[stat] || 1.0) * _TB_C;
 }
 // it のフラットステを %型に変換 (装備スロットのみ。既に pct 化済み・非装備は無視)
 export function finalizePct(it) {
