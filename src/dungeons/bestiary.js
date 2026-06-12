@@ -603,12 +603,54 @@ const NEW_DEFS = [
 // 新規分にランク基準ステータスを与えてから検証・登録する
 const NEW_MONSTERS = defMonsters(NEW_DEFS.map((d) => ({ ...monStats(d.rank, d.boss), ...d })));
 
+// ---- 強敵モンスター (Elite Monsters) ----
+// 通常のランクプールには含まれない特殊強敵。強敵階でのみ出現する。
+// boss 相当のステータスを持ち、適正レベルより遥かに強い。
+// tier 1: ダンジョン1-30 (rank 1-3) / tier 2: ダンジョン31-60 (rank 4-6) / tier 3: ダンジョン61-100 (rank 7-10)
+const ELITE_DEFS = [
+  // -- tier 1 --
+  { id: "el_deathlord", name: "冥府の門番", elite: true, eliteTier: 1, rank: 5, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
+    palette: tint(ARTS.knightmare.palette, "#e8e8ff", 0.6),
+    desc: "冥府の入り口を守る為に遣わされた騎士。浅い階にその姿があることは、冥府が扉を開いたことを意味する。同じ階の主をも超える力で、その剣は魂ごと断ち斬る。" },
+  { id: "el_bloodtitan", name: "血染めの巨人", elite: true, eliteTier: 1, rank: 5, race: "giant", element: "fire", artKey: "ogre",
+    palette: tint(ARTS.ogre.palette, "#cc1a1a", 0.6),
+    desc: "幾百の戦士の血を吸って成長した異形の巨人。その身の丈は迷宮の壁を削り、足音は階全体を揺らす。通常の迷宮では遭遇しえない存在だ。" },
+  // -- tier 2 --
+  { id: "el_voidreaper", name: "虚無の刈人", elite: true, eliteTier: 2, rank: 8, race: "specter", element: "dark", artKey: "wraith",
+    palette: tint(ARTS.wraith.palette, "#d8d4ff", 0.65),
+    desc: "虚無の果てから降りてきた魂刈りの上位存在。その鎌が振るわれると生と死の境が消え、適正の探索者では接触すること自体が命取りとなる。" },
+  { id: "el_ruindragon", name: "廃竜", elite: true, eliteTier: 2, rank: 8, race: "dragon", element: "dark", artKey: "dragon",
+    palette: tint(ARTS.dragon.palette, "#3a1a5a", 0.65),
+    desc: "かつて黄金の竜であったが、深淵の呪いに全身が侵された堕竜。滅びを体に宿し、触れるものすべてに腐敗と恐怖をもたらす。" },
+  // -- tier 3 --
+  { id: "el_worldender", name: "終末の咆哮", elite: true, eliteTier: 3, rank: 10, race: "demon", element: "dark", artKey: "imp",
+    palette: tint(ARTS.imp.palette, "#d8c4ff", 0.7),
+    desc: "世界の終わりを欲する高位の悪魔。その体が迷宮を歩くたびに地が軋み、声が発されるたびに空が曇る。これに対抗できるのは伝説の域に達した探索者のみ。" },
+  { id: "el_abyssalking", name: "深淵の魔王", elite: true, eliteTier: 3, rank: 10, race: "demon", element: "dark", artKey: "wraith",
+    palette: tint(ARTS.wraith.palette, "#d8a0ff", 0.7),
+    desc: "迷宮の最深部から意識を広げ、あらゆる階層に爪を伸ばす闇の王。なぜ浅い階に現れるのかではなく、なぜそれが許されているのかを問うべき存在。" },
+];
+// 強敵はボス相当のステータスを与える (elite フラグで通常プールから除外される)
+const ELITE_MONSTERS = defMonsters(ELITE_DEFS.map((d) => ({ ...monStats(d.rank, true), ...d })));
+
+// 強敵階で参照するプール: tier (1/2/3) → [id, ...]
+export const ELITE_POOLS = {
+  1: ["el_deathlord", "el_bloodtitan"],
+  2: ["el_voidreaper", "el_ruindragon"],
+  3: ["el_worldender", "el_abyssalking"],
+};
+
 // ---- 統合辞書とランク別プール ----
 export const BESTIARY = (() => {
   const out = { ...LEGACY };
   for (const id in NEW_MONSTERS) {
     if (out[id]) throw new Error("duplicate monster id: " + id);
     out[id] = NEW_MONSTERS[id];
+  }
+  // 強敵を辞書に統合 (RANK_POOLS からは除外)
+  for (const id in ELITE_MONSTERS) {
+    if (out[id]) throw new Error("duplicate monster id: " + id);
+    out[id] = ELITE_MONSTERS[id];
   }
   return out;
 })();
@@ -618,6 +660,7 @@ export const RANK_POOLS = (() => {
   const pools = {};
   for (const id in BESTIARY) {
     const m = BESTIARY[id];
+    if (m.elite) continue; // 強敵は通常プールに含めない
     const p = pools[m.rank] || (pools[m.rank] = { regular: [], boss: [] });
     (m.boss ? p.boss : p.regular).push(id);
   }
