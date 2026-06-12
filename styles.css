@@ -958,6 +958,10 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 /* ===== 装備候補チューザー ===== */
 .eqchooser { max-width: 440px; }
 .eq-cand { gap: 6px; }
+.eq-cur-block { display: flex; flex-direction: column; gap: 6px; padding: 8px 10px; background: rgba(107,140,255,0.1); border: 1px solid rgba(107,140,255,0.35); border-radius: 6px; }
+.eq-cur-card { display: flex; align-items: flex-start; gap: 9px; }
+.eq-cur-label { color: #8fb4ff; font-weight: bold; }
+.eq-cur-un { align-self: flex-start; padding: 4px 12px; font-size: 12px; }
 .eq-cand-btn { display: flex; align-items: center; gap: 9px; justify-content: flex-start; text-align: left; min-height: 46px; padding: 7px 10px; }
 .eq-ci { flex: 0 0 auto; display: flex; }
 .eq-ct { display: flex; flex-direction: column; min-width: 0; }
