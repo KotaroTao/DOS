@@ -2329,8 +2329,8 @@ function renderCombatMenu() {
     combatMenu.appendChild(el("div", "who", `▶ ${actor.name} のターン [${rowTag}・射程:${RANGE_LABEL[b.attackRange(actor)]}] ・ 敵タップで攻撃`));
     const row = el("div", "row");
     row.appendChild(btn("⚔ 攻撃", () => act("attack")));
-    if (actor.spells.length) row.appendChild(btn("✦ 呪文", () => showSpells(actor)));
-    else row.appendChild(btn("✦ 呪文", () => log("呪文を使えない", "sys")));
+    if (actor.spells.length) row.appendChild(btn("✦ スキル", () => showSpells(actor)));
+    else row.appendChild(btn("✦ スキル", () => log("スキルを使えない", "sys")));
     row.appendChild(btn("🛡 防御", () => act("defend")));
     row.appendChild(btn("🏃 逃走", () => act("run")));
     combatMenu.appendChild(row);
@@ -2356,7 +2356,7 @@ function renderCombatMenu() {
 
 function showSpells(actor) {
   combatMenu.innerHTML = "";
-  combatMenu.appendChild(el("div", "who", `${actor.name} の呪文 (MP ${actor.mp})`));
+  combatMenu.appendChild(el("div", "who", `${actor.name} のスキル (MP ${actor.mp})`));
   const list = el("div", "target-list");
   for (const key of actor.spells) {
     const sp = SPELLS[key];
@@ -5524,6 +5524,16 @@ function renderShop() {
       bag.appendChild(cellEl);
     }
     dock.appendChild(bag);
+    // 一括売却ボタン (呪われたアイテムを除く全所持品を売る)
+    const sellable = who.items.filter((it) => !it.cursed);
+    if (sellable.length > 0) {
+      const total = sellable.reduce((s, it) => s + sellPrice(it), 0);
+      const bulkBtn = btn(`一括売却 (${sellable.length}点 / 💰${total})`, () => {
+        for (const it of sellable) sellItem(who, it, sellPrice(it));
+      });
+      bulkBtn.className = "btn tw-add";
+      dock.appendChild(bulkBtn);
+    }
   } else {
     dock.appendChild(el("div", "tw-empty", "編成に人業がいない。"));
   }
