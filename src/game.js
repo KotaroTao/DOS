@@ -20,7 +20,7 @@ import {
   SOUL_RANKS, rollSoulRank, rollJobClass, soulStats, soulHardCap, ensureSoul,
   jobRankOf, PART_SKILLS, HYBRIDS, findHybrid, JOB_LORE, jobRankCondText,
   jobSkillTable, charLevelOf, jobRankName, jobPassiveTable, pLv,
-  RARITY_SYNTH_COST, FUSION_STAT_BONUS, FIVE_PART_BONUS, fuseSouls,
+  RARITY_SYNTH_COST, FUSION_STAT_BONUS, FIVE_PART_BONUS, fuseSouls, JOB_GEAR,
 } from "./souls.js";
 import { showOpening } from "./opening.js";
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
@@ -4597,6 +4597,18 @@ function showCodexJobDetail(key, rank) {
   if (rank >= 2) cbox.appendChild(el("div", "cdx-dun dim", "・5部位すべて同職かつ同ランク: 職業ボーナス (全ステ倍率上昇)"));
   card.appendChild(cbox);
 
+  // 装備適性 (基本職のみ)
+  if (!isHybrid && JOB_GEAR[key]) {
+    const gbox = el("div", "cdx-drops");
+    gbox.appendChild(el("div", "cdx-h", "装備適性"));
+    const g = JOB_GEAR[key];
+    if (g.weapons) gbox.appendChild(el("div", "cdx-dun", `・武器: ${g.weapons.map(w => WEAPON_CAT_LABEL[w] || w).join("・")}`));
+    const armorLabel = g.armor === "heavy" ? "重装可" : g.armor === "light" ? "軽装まで" : "布装のみ";
+    gbox.appendChild(el("div", "cdx-dun", `・防具: ${armorLabel}`));
+    gbox.appendChild(el("div", "cdx-dun", `・盾: ${g.shield ? "装備可" : "不可"}`));
+    card.appendChild(gbox);
+  }
+
   // パッシブ: この位階で有効な効果。上位ランクは下位を内包するため、
   // ランク2〜rank の表を高い方から畳み込み、上位に呑まれた同系統の下位Lvは省く
   const pbox = el("div", "cdx-drops");
@@ -5390,10 +5402,17 @@ function skillChips(keys, label) {
 
 function statLines(it) {
   const parts = [];
-  const f = (label, v) => { if (v) parts.push(`${label} ${v > 0 ? "+" : ""}${v}`); };
-  f("ATK", it.atk); f("VIT", it.vit); f("AGI", it.agi);
-  f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
-  f("HP", it.hp); f("MP", it.mp);
+  if (it.pct) {
+    const fp = (label, v) => { if (v) parts.push(`${label}${v > 0 ? "+" : ""}${Math.round(v * 100)}%`); };
+    fp("ATK", it.pct.atk); fp("VIT", it.pct.vit); fp("AGI", it.pct.agi);
+    fp("INT", it.pct.int); fp("PIE", it.pct.pie); fp("LUK", it.pct.luk);
+    fp("HP", it.pct.hp); fp("MP", it.pct.mp);
+  } else {
+    const f = (label, v) => { if (v) parts.push(`${label} ${v > 0 ? "+" : ""}${v}`); };
+    f("ATK", it.atk); f("VIT", it.vit); f("AGI", it.agi);
+    f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
+    f("HP", it.hp); f("MP", it.mp);
+  }
   if (it.crit) parts.push(`会心 +${Math.round(it.crit * 100)}%`);
   const ea = elemStatText("攻撃", it.eAtk);
   const ed = elemStatText("防御", it.eDef);
@@ -5475,10 +5494,17 @@ function detailLines(it) {
     if (it.slot === "weapon") L.push(`射程: ${RANGE_LABEL[weaponRange(it)]}`);
     // 六大ステ (ATK/VIT/AGI/INT/PIE/LUK) への補正
     const mod = [];
-    const f = (label, v) => { if (v) mod.push(`${label}${v >= 0 ? "+" : ""}${v}`); };
-    f("ATK", it.atk); f("VIT", it.vit); f("AGI", it.agi);
-    f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
-    f("HP", it.hp); f("MP", it.mp);
+    if (it.pct) {
+      const fp = (label, v) => { if (v) mod.push(`${label}${v >= 0 ? "+" : ""}${Math.round(v * 100)}%`); };
+      fp("ATK", it.pct.atk); fp("VIT", it.pct.vit); fp("AGI", it.pct.agi);
+      fp("INT", it.pct.int); fp("PIE", it.pct.pie); fp("LUK", it.pct.luk);
+      fp("HP", it.pct.hp); fp("MP", it.pct.mp);
+    } else {
+      const f = (label, v) => { if (v) mod.push(`${label}${v >= 0 ? "+" : ""}${v}`); };
+      f("ATK", it.atk); f("VIT", it.vit); f("AGI", it.agi);
+      f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
+      f("HP", it.hp); f("MP", it.mp);
+    }
     if (it.crit) mod.push(`会心+${Math.round(it.crit * 100)}%`);
     if (mod.length) L.push(mod.join(" / "));
   }
@@ -5502,6 +5528,7 @@ function renderItemDetail(p, sel) {
   const dt = el("div", "st-dtext");
   dt.appendChild(el("div", "st-dname", it.name + (it.cursed ? " 🔒呪" : "")));
   for (const line of detailLines(it)) dt.appendChild(el("div", "st-dstat", line));
+  if (isEquippable(it) && G.party.length > 1) dt.appendChild(equipPartyChips(it));
   top.appendChild(dt);
   d.appendChild(top);
   d.appendChild(el("div", "st-ddesc", it.desc || ""));
@@ -5533,13 +5560,37 @@ function renderItemDetail(p, sel) {
 }
 
 function makeDanger(label, fn) { const b = btn(label, fn); b.classList.add("danger"); return b; }
-function clsLabel(k) { return ({ fighter: "戦", knight: "騎", thief: "盗", mage: "魔", priest: "僧", bishop: "導" })[k] || k; }
+function clsLabel(k) { return (SOUL_CLASSES[k] || {}).label || k; }
 
-// 装備可能職業の表示。未発見の職業は名前を出さず「？」で伏せる (職業図鑑の発見状況に従う)
+// 装備可能条件のバッジ表示 (36職対応: 職業名列挙→条件バッジ方式)
 function equipClassText(it) {
-  if (!it.classes) return "装備可: 全職";
-  const seen = (k) => G.codex && G.codex.job && G.codex.job[k];
-  return "装備可: " + it.classes.map((k) => (seen(k) ? clsLabel(k) : "？")).join("/");
+  if (it.forJob) {
+    const lbl = (SOUL_CLASSES[it.forJob] || {}).label || it.forJob;
+    const seen = (k) => G.codex && G.codex.job && G.codex.job[k];
+    return `〈${seen(it.forJob) ? lbl : "？"}〉専用`;
+  }
+  if (it.classes) {
+    const seen = (k) => G.codex && G.codex.job && G.codex.job[k];
+    return "装備可: " + it.classes.map((k) => (seen(k) ? clsLabel(k) : "？")).join("・");
+  }
+  if (it.slot === "weapon") return `武器適性: ${WEAPON_CAT_LABEL[it.cat] || it.cat}`;
+  if (it.slot === "shield") return "適性: 盾持ち職";
+  const w = it.weight;
+  if (w === "heavy") return "装備: 重装職";
+  if (w === "cloth") return "装備: 布装職";
+  if (w === "light") return "装備: 軽装以上";
+  return "装備可: 全職";
+}
+
+// パーティメンバーの装備可否チップ (6人分 ○/×)
+function equipPartyChips(it) {
+  const row = el("div", "eq-cls-chips");
+  for (const m of G.party) {
+    const ok = canEquip(m, it);
+    const c = el("span", "eq-cls-chip " + (ok ? "ok" : "ng"), m.name.slice(0, 1) + (ok ? "○" : "×"));
+    row.appendChild(c);
+  }
+  return row;
 }
 
 function doEquip(p, it) {
@@ -6183,6 +6234,27 @@ function autosave(force = false) {
 
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch {} }
 
+// 旧セーブのカタログアイテムに %型ステータス (.pct) を再注入する。
+// refSerialize の参照共有を壊さないよう、saved item オブジェクトを in-place で変更する。
+function reinjectItemPct() {
+  const visited = new Set();
+  function inject(it) {
+    if (!it || visited.has(it)) return;
+    visited.add(it);
+    const tmpl = ITEMS[it.id];
+    if (!tmpl || !tmpl.pct || it.pct) return;
+    it.pct = tmpl.pct;
+    for (const k of ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"]) {
+      if (tmpl.pct[k] != null) delete it[k];
+    }
+    if (tmpl.weight && !it.weight) it.weight = tmpl.weight;
+  }
+  for (const m of G.party) {
+    for (const it of m.items) inject(it);
+    for (const k of Object.keys(m.equip)) inject(m.equip[k]);
+  }
+}
+
 // 旧ステータス体系 (こうげき/ぼうぎょ/すばやさ/AC) のセーブを六大ステへ移行する。
 // 装備品 (slot を持つ) と戦闘アクター (side を持つ) の def→vit / spd→agi を付け替え、
 // AC と旧表示用能力値 (attrs: STR/IQ…) を破棄する。人業の base は後段の recalcDoll が再計算する。
@@ -6228,6 +6300,7 @@ function loadGame() {
   // 旧ステータス体系のセーブを六大ステ (ATK/VIT/AGI/INT/PIE/LUK) へ移行
   // (battle の敵の mon はこの後 MONSTERS の生定義に差し替えられるため触れても無害)
   migrateLegacyStats(snap);
+  reinjectItemPct();
   // 一時状態はリセット
   G.anim = null; G.flipAnim = null; G.heroAnim = null; G.walking = false; G.prompt = false;
   G.fx = null; G.animating = false; G.enemyPos = {}; G.partyFx = new Map(); G.wallFlash = null;

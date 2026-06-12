@@ -2,7 +2,7 @@
 //
 // 魂のランク = 職業の位階 (1〜5)。部位・職業・ランクがすべて同じ魂3部位以上で職業発現。
 // 5部位そろえると職業ボーナス発生。上位ランクはダンジョンでは出ず、融合で入手。
-import { recalc } from "./items.js";
+import { recalc, registerJobGear } from "./items.js";
 
 export const PARTS = ["head", "rhand", "lhand", "body", "legs"];
 export const PART_LABEL = { head: "頭", rhand: "右手", lhand: "左手", body: "胴体", legs: "足" };
@@ -369,6 +369,52 @@ export function jobRankCondText(jobKey, rank) {
 // 後方互換: ハイブリッド関連 (廃止済みだが import で参照される箇所のため空で残す)
 export const HYBRIDS = {};
 export function findHybrid() { return null; }
+
+// ===== 職業ギアマトリクス =====
+// weapons: 使用可能な武器カテゴリキー (items.js の WEAPON_CATS と同値)
+// armor: 装備可能な防具重量の上限 ("heavy"|"light"|"cloth")
+// shield: 盾を装備できるか
+export const JOB_GEAR = {
+  fighter:     { weapons: ["ls","ax","mc","sp","dg"],            armor: "heavy", shield: true  },
+  knight:      { weapons: ["ls","mc","sp"],                      armor: "heavy", shield: true  },
+  priest:      { weapons: ["mc","st"],                           armor: "light", shield: false },
+  mage:        { weapons: ["st","dg"],                           armor: "cloth", shield: false },
+  thief:       { weapons: ["dg","bw","ls","sp"],                 armor: "light", shield: false },
+  bishop:      { weapons: ["st","mc"],                           armor: "cloth", shield: false },
+  samurai:     { weapons: ["kt","ls"],                           armor: "light", shield: false },
+  berserker:   { weapons: ["ax","mc","ls","sp"],                 armor: "heavy", shield: false },
+  hunter:      { weapons: ["bw","dg","sp"],                      armor: "light", shield: false },
+  shadow:      { weapons: ["dg","bw"],                           armor: "light", shield: false },
+  paladin:     { weapons: ["ls","mc","sp"],                      armor: "heavy", shield: true  },
+  guardian:    { weapons: ["mc","sp","ls"],                      armor: "heavy", shield: true  },
+  spellblade:  { weapons: ["kt","ls","st","dg"],                 armor: "light", shield: false },
+  monk:        { weapons: ["mc","st","sp"],                      armor: "light", shield: false },
+  hexer:       { weapons: ["st","dg"],                           armor: "cloth", shield: false },
+  hermit:      { weapons: ["st","mc"],                           armor: "cloth", shield: false },
+  brigand:     { weapons: ["dg","bw","ls"],                      armor: "light", shield: false },
+  arcthief:    { weapons: ["dg","st","bw"],                      armor: "cloth", shield: false },
+  crusader:    { weapons: ["ls","mc","sp","ax"],                 armor: "heavy", shield: true  },
+  battlemage:  { weapons: ["ls","ax","st"],                      armor: "heavy", shield: false },
+  darkknight:  { weapons: ["ls","ax","mc"],                      armor: "heavy", shield: true  },
+  templar:     { weapons: ["mc","ls","sp"],                      armor: "heavy", shield: true  },
+  exorcist:    { weapons: ["dg","mc","st"],                      armor: "light", shield: false },
+  warden:      { weapons: ["st","mc"],                           armor: "light", shield: false },
+  arcanist:    { weapons: ["st","dg"],                           armor: "cloth", shield: false },
+  inquisitor:  { weapons: ["mc","ls"],                           armor: "heavy", shield: false },
+  archbishop:  { weapons: ["st","mc"],                           armor: "cloth", shield: false },
+  ascetic:     { weapons: ["mc","st","ax"],                      armor: "light", shield: false },
+  hero:        { weapons: ["ls","kt","mc","sp","ax","dg","st","bw"], armor: "heavy", shield: true },
+  asura:       { weapons: ["ls","ax","mc","sp","dg"],            armor: "heavy", shield: false },
+  dragonknight:{ weapons: ["ls","sp","ax"],                      armor: "heavy", shield: true  },
+  necromancer: { weapons: ["st","dg"],                           armor: "cloth", shield: false },
+  sage:        { weapons: ["st","dg","mc"],                      armor: "cloth", shield: false },
+  cardinal:    { weapons: ["st","mc"],                           armor: "cloth", shield: false },
+  archmage:    { weapons: ["st","dg"],                           armor: "cloth", shield: false },
+  chaplain:    { weapons: ["mc","ls","sp"],                      armor: "heavy", shield: true  },
+};
+
+// 職業ギアマトリクスを items.js に注入 (循環 import 回避のため遅延バインディング)
+registerJobGear(JOB_GEAR);
 
 // ===== 属性・ステータス定義 =====
 export const ATTR_KEYS = ["atk", "vit", "agi", "int", "pie", "luk"];
