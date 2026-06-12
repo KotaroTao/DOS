@@ -416,6 +416,7 @@ export const JOB_GEAR = {
 // 職業ギアマトリクスを items.js に注入 (循環 import 回避のため遅延バインディング)
 registerJobGear(JOB_GEAR);
 
+
 // ===== 属性・ステータス定義 =====
 export const ATTR_KEYS = ["atk", "vit", "agi", "int", "pie", "luk"];
 export const ATTR_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };

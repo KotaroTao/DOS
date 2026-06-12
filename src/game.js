@@ -41,7 +41,8 @@ for (const id in ITEMS) {
 // 全アイテムは隠しレベル lv を持つ。迷宮ごとの lootLv 帯 (＋階の深さ) を中心に、
 // レベルの近い品だけが出現する。中心より高レベルの品ほど出現率が急減するうえ、
 // 全体補正でも高レベル品ほど稀になる (= 強い装備は深い迷宮でしか、稀にしか出ない)。
-const LOOT_IDS = Object.keys(ITEMS).filter((id) => ITEMS[id].slot !== "mat").sort();
+// exclusive: true のアイテムは専用抽選レイヤーで管理し、通常テーブルには含めない
+const LOOT_IDS = Object.keys(ITEMS).filter((id) => ITEMS[id].slot !== "mat" && !ITEMS[id].exclusive).sort();
 function lootWeight(lv, center) {
   const d = lv - center;
   if (d > 8 || d < -16) return 0;                       // 出現窓: 中心+8 〜 中心-16
@@ -62,6 +63,40 @@ function pickItemByLv(center) {
   for (const [id, t] of acc) if (r <= t) return id;
   return acc[acc.length - 1][0];
 }
+// ===== 職業専用装備 抽選レイヤー =====
+// 通常 lootLv テーブルとは独立した宝箱専用の確率。
+// BASE_RATE × 宝箱ランク で判定し、当たれば通常の中身を差し替える。
+const EXCL_BASE_RATE = 1 / 500;
+const EXCL_DUNGEON_GATE = { common: 3, rare: 5, epic: 7, legend: 9 };  // 解禁迷宮ランク
+const EXCL_RARITY_WEIGHT = { common: 8, rare: 4, epic: 2, legend: 1 }; // 逆数ウェイト
+let _exclIds = null;
+function exclIds() {
+  if (!_exclIds) _exclIds = Object.keys(ITEMS).filter((id) => ITEMS[id].exclusive);
+  return _exclIds;
+}
+// 宝箱を開けた瞬間に1回だけ呼ぶ。ヒットすれば item id を返し、外れなら null
+function pickExclusive(dungeonRank, chestRank) {
+  if (Math.random() >= EXCL_BASE_RATE * (chestRank || 1)) return null;
+  const pool = exclIds().filter((id) => {
+    const rarity = (SOUL_CLASSES[ITEMS[id].forJob] || {}).rarity || "common";
+    return (dungeonRank || 1) >= (EXCL_DUNGEON_GATE[rarity] || 3);
+  });
+  if (!pool.length) return null;
+  let total = 0;
+  const acc = [];
+  for (const id of pool) {
+    const rarity = (SOUL_CLASSES[ITEMS[id].forJob] || {}).rarity || "common";
+    const rw = EXCL_RARITY_WEIGHT[rarity] || 4;
+    // パーティに発現中の職業なら3倍重み (自分の職を引きやすく)
+    const bonus = G.party.some((m) => m.clsKey === ITEMS[id].forJob) ? 3 : 1;
+    total += rw * bonus;
+    acc.push([id, total]);
+  }
+  const r = Math.random() * total;
+  for (const [id, t] of acc) if (r <= t) return id;
+  return acc[acc.length - 1][0];
+}
+
 // 現在の迷宮+階のアイテムレベル (中心値)。迷宮の lootLv 帯を階の深さで補間
 function lootLvAt() {
   const cfg = activeCfg();
@@ -1478,6 +1513,23 @@ function springTrap(trap, opener, fin) {
 // 宝箱の中身 (ゴールド/空の魂/装備品)。cRank: 宝箱ランク (1-5、高いほど豪華)
 function chestContents(cell, done, cRank = 1) {
   const rankMul = 1 + ((cRank || 1) - 1) * 0.3;
+  // ===== 職業専用装備 ジャックポット抽選 (通常の中身より先に判定) =====
+  const dRankNow = activeCfg().rank || 1;
+  const exId = pickExclusive(dRankNow, cRank);
+  if (exId && ITEMS[exId]) {
+    const it = cloneItem(exId);
+    const who = G.party.find((m) => m.alive && m.items.length < MAX_ITEMS)
+              || G.party.find((m) => m.items.length < MAX_ITEMS);
+    if (who) {
+      runGainItem(who, it); codexSeeItem(exId);
+      flashScreen(SOUL_CLASSES[it.forJob] ? SOUL_CLASSES[it.forJob].glow : "#ffcf4a");
+      SFX.victory(); buzz([0, 40, 60, 50, 60, 200]);
+      log(`✦ 職業専用装備「${it.name}」を発見！ (${who.name})`, "win");
+      setTimeout(() => showToast(`✦ ${it.name}`), 200);
+      showItemGet(it, who, done);
+      return;
+    }
+  }
   // 中身の抽選 (ダンジョンレベルに応じる): ゴールド50% / ゴールド以外のアイテム50%
   if (Math.random() < 0.5) {
     SFX.chest();
