@@ -2279,7 +2279,6 @@ function showDungeonClearedPopup({ idx, isStoryTarget }) {
   card.style.borderColor = "#ffd84a";
   card.style.boxShadow = "0 0 50px #ffd84a55";
   card.appendChild(el("div", "ig-banner", "★ 迷宮踏破 ★"));
-  const art = el("div", "ig-art"); art.appendChild(spriteCanvas(ICONS.stairs, 9)); card.appendChild(art);
   card.appendChild(el("div", "ig-name", dn.name));
   for (const ln of lines) card.appendChild(el("div", "ig-desc", ln));
   const ok = btn("街へ凱旋する", () => {
