@@ -19,7 +19,7 @@ import {
   ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
   SOUL_RANKS, rollSoulRank, soulStats, soulHardCap, ensureSoul,
   jobRankOf, PART_SKILLS, HYBRIDS, findHybrid, JOB_LORE, jobRankCondText,
-  jobSkillTable, jobLevelOf, jobRankName, jobPassiveTable, pLv,
+  jobSkillTable, charLevelOf, jobRankName, jobPassiveTable, pLv,
 } from "./souls.js";
 import { showOpening } from "./opening.js";
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
@@ -2808,7 +2808,7 @@ function showSkillUnlockPopup(d, keys) {
   art.appendChild(spriteCanvas(soulSprite(spriteK), 9));
   card.appendChild(art);
   card.appendChild(el("div", "ig-name", d.name));
-  card.appendChild(el("div", "cdx-elem", `${d.cls} 職業Lv${d.jobLv || 1}`));
+  card.appendChild(el("div", "cdx-elem", `${d.cls} キャラLv${d.jobLv || 1}`));
   card.appendChild(el("div", "ig-desc", "魂の成長により、新たな技に目覚めた！"));
   const box = el("div", "cdx-drops");
   for (const k of keys) {
@@ -3187,7 +3187,7 @@ function renderAltar() {
   sum.style.borderColor = dom ? SOUL_CLASSES[dom.clsKey].color : "#34344a";
   sum.appendChild(el("div", "tw-sumc", d.cls));
   const tierTxt = d.jobRank
-    ? `職業Lv ${d.jobLv || 0}（スキル解放 Lv${d.jobRank * 10} まで）${d.hybrid ? "（混成職）" : ""}`
+    ? `キャラLv ${d.jobLv || 0}（魂の平均・スキル解放 Lv${d.jobRank * 10} まで）${d.hybrid ? "（混成職）" : ""}`
     : "同職3部位未満 — 職業未発現";
   sum.appendChild(el("div", "tw-sumt", tierTxt));
   sum.appendChild(el("div", "tw-sumst",
@@ -3697,13 +3697,13 @@ const ACHIEVEMENTS = [];
   tiers((v) => `rs${v}`, [[100, "赤の収集者", 500], [500, "緋色の王", 3000]],
     (v) => `赤い魂を ${v} 集める`, (v) => G.redSoul >= v);
 
-  // 育成: 職業ランク / 職業Lv / 魂レベル / 魂ランク (14)
+  // 育成: 職業ランク / キャラLv / 魂レベル / 魂ランク (14)
   tiers((v) => `jrank${v}`, [[3, "位階を昇る者", 300, 5], [4, "高位の魂繰り", 800, 10], [5, "極みに至る者", 2000, 30]],
     (v) => `職業ランク ${v} の人業を持つ`, (v) => allDolls().some((d) => (d.jobRank || 0) >= v));
   tiers((v) => `jlv${v}`, [
     [10, "駆け出しの職人", 150], [20, "熟練の域", 400, 5], [30, "達人の域", 800, 10],
     [40, "名人の域", 1500, 20], [50, "神域", 3000, 40],
-  ], (v) => `職業Lv ${v} に到達する`, (v) => allDolls().some((d) => (d.jobLv || 0) >= v));
+  ], (v) => `キャラLv ${v} に到達する`, (v) => allDolls().some((d) => (d.jobLv || 0) >= v));
   tiers((v) => `slv${v}`, [
     [20, "魂を磨く者", 200], [50, "魂を鍛える者", 800, 10], [70, "限界の先へ", 1500, 20], [100, "魂の極致", 3000, 40],
   ], (v) => `Lv${v} の魂を育てる`, (v) => allSouls().some((s) => (s.level || 1) >= v));
@@ -4059,8 +4059,8 @@ function codexSeeItem(id) { if (id) G.codex.item[id] = true; }
 
 // ---- 職業図鑑の記録 ----
 // 人業に職業 (基本職/混成職) が発現した時点で「発見」とし、スキル解放の
-// 到達レベル (ランク上限でキャップした職業Lv) の最高値を {lv} に、
-// 到達した職業ランクの最高値を {rank} に記録する。
+// 到達レベル (ランク上限でキャップしたキャラLv = 宿した魂の平均レベル) の
+// 最高値を {lv} に、到達した職業ランクの最高値を {rank} に記録する。
 // 図鑑はランク別に称号を列挙し、スキル表は到達Lvまでの技だけ内容を開示する。
 function codexSeeJobs(doll) {
   if (!doll || !doll.parts) return;
@@ -4072,12 +4072,12 @@ function codexSeeJobs(doll) {
   };
   const jr = jobRankOf(doll);
   if (!jr) return;
-  const cap = jr.rank * 10;
-  rec(jr.clsKey, Math.min(cap, jobLevelOf(doll, [jr.clsKey])), jr.rank);
+  const lv = Math.min(jr.rank * 10, charLevelOf(doll));
+  rec(jr.clsKey, lv, jr.rank);
   const counts = {};
   for (const p of PARTS) { const s = doll.parts[p]; if (s) counts[s.clsKey] = (counts[s.clsKey] || 0) + 1; }
   const hy = findHybrid(counts);
-  if (hy) rec(hy.key, Math.min(cap, jobLevelOf(doll, [hy.baseK, hy.subK])), jr.rank);
+  if (hy) rec(hy.key, lv, jr.rank);
 }
 // 全人業を走査して職業図鑑を更新する。封印・強化の経路が多岐にわたるため、
 // 個別フックではなくオートセーブのたびに全走査する (件数は僅少)。
@@ -4975,7 +4975,7 @@ function renderSoulTab(p) {
   head.style.borderColor = dom ? SOUL_CLASSES[dom.clsKey].color : "#34344a";
   head.appendChild(el("div", "st-soulc", p.cls));
   head.appendChild(el("div", "st-soultt",
-    p.jobRank ? `職業Lv ${p.jobLv || 0}（スキル解放 Lv${p.jobRank * 10} まで）${p.hybrid ? `（混成職「${p.hybrid}」）` : ""}` : "同職3部位未満 — 職業未発現"));
+    p.jobRank ? `キャラLv ${p.jobLv || 0}（魂の平均・スキル解放 Lv${p.jobRank * 10} まで）${p.hybrid ? `（混成職「${p.hybrid}」）` : ""}` : "同職3部位未満 — 職業未発現"));
   wrap.appendChild(head);
 
   for (const part of PARTS) {
@@ -5094,9 +5094,23 @@ function skillDetailLines(sp) {
     lines.push(`威力 攻撃力の${sp.power}倍${sp.hits ? ` × ${sp.hits}回` : ""}`);
     if (sp.critBonus) lines.push(`会心率 +${Math.round(sp.critBonus * 100)}%`);
   }
+  if (sp.kind === "atk" && sp.critBonus) lines.push(`呪文会心率 +${Math.round(sp.critBonus * 100)}%（会心は×1.5）`);
   const fx = (obj) => Object.entries(obj).map(([k, v]) => `${ATTR_LABEL[k] || k.toUpperCase()} ×${v}`).join("・");
   if (sp.buff) lines.push(`強化: ${fx(sp.buff)}`);
   if (sp.debuff) lines.push(`弱体: ${fx(sp.debuff)}`);
+  // ---- 混成職ユニークスキルの固有効果 ----
+  if (sp.hpCost) lines.push(`代償: 自分の最大HPの${Math.round(sp.hpCost * 100)}%を失う（HP1で踏みとどまる）`);
+  if (sp.drain) lines.push(`与えたダメージの${Math.round(sp.drain * 100)}%だけ自分のHPを回復`);
+  if (sp.mpDrain) lines.push(`与えたダメージの${Math.round(sp.mpDrain * 100)}%だけ自分のMPを回復`);
+  if (sp.sleepChance) lines.push(`命中後 ${Math.round(sp.sleepChance * 100)}%で対象を眠らせる`);
+  if (sp.flinchChance) lines.push(`命中後 ${Math.round(sp.flinchChance * 100)}%で対象を怯ませる（主には効かない）`);
+  if (sp.ailment) lines.push(`${Math.round(sp.ailment.chance * 100)}%で対象を${sp.ailment.type === "poison" ? "毒" : "異常"}に侵す`);
+  if (sp.plunder) lines.push("この技で倒した敵は、落とすゴールドが2倍になる");
+  if (sp.partyHeal) lines.push(`攻撃の後、味方全体のHPを ${sp.partyHeal} 回復（術者のPIEで伸びる）`);
+  if (sp.cure) lines.push("同時に状態異常も治す");
+  if (sp.grantEndure) lines.push("対象に「致死ダメージをHP1で耐える」を付与（1戦闘1回）");
+  if (sp.grantBarrier) lines.push(`味方全体に魔障壁${sp.grantBarrier}回分（ブレス・呪文の被ダメ半減）を付与`);
+  if (sp.debuffAll) lines.push(`さらに敵全体を弱体: ${fx(sp.debuffAll)}`);
   return lines;
 }
 
