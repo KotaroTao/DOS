@@ -11,7 +11,7 @@
 //    Lv1=◯ (有利+50%/不利-50%), Lv2=◎ (有利+100%/不利-100%)
 //  - 絵は形の原型 (ARTS) × 色 (属性色 or tint指定) で描き分ける
 import { tint } from "../dungeons/schema.js";
-import { lvToRank, finalizePct } from "../items.js";
+import { lvToRank, finalizePct, typicalBase } from "../items.js";
 
 // 共有パレット (items.js と同等)
 const P = {
@@ -225,7 +225,7 @@ export function W(id, name, cat, lv, opt = {}) {
     if (it.mp == null) it.mp = 3 + Math.floor(lv / 14);
     if (it.int == null) it.int = Math.max(1, Math.floor(lv / 22));   // INT (攻撃呪文の威力) も伸ばす
   }
-  if (cat === "dg" && it.agi == null) it.agi = 1;                    // 短剣は取り回しが軽い
+  if (cat === "dg" && it.agi == null) it.agi = Math.max(1, round(typicalBase(lv, "agi") * 0.07)); // 短剣は取り回しが軽い (lv帯に比例)
   finalizePct(it);
   return it;
 }
