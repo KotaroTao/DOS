@@ -794,7 +794,202 @@ export function sealSoul(doll, part, soul) {
   recalcDoll(doll);
 }
 
+// ===== 職業キャラアイコン =====
+// 職業ごとの12x12キャラドット絵。人業チップ・職業図鑑など「職業」の表示に使う
+// (魂そのものは従来どおり宝珠 soulSprite で表す)。
+// 位階 (ランク1〜5) が上がるほど同じ姿のまま豪華になる:
+//   ランク1 = くすんだ見習い装 / 2 = 職業色の正装 / 3 = 金の意匠が入る /
+//   4 = 瞳が灯り淡いオーラを纏う / 5 = 冠・光輪を戴き強いオーラを放つ。
+// 混成職 ("base+sub" キー) はベース職の姿のまま、サブ職の色の意匠とオーラを帯びる。
+//
+// 文字の意味: 0=輪郭 1=主色(衣・鎧) 2=明色(襟・帯) 3=肌・手 4=金属(武具)
+//   5=紋章(ランク3+で金に変わる) 6=瞳(ランク4+で光る) 7=象嵌(ランク3未満は主色)
+//   8=飾り(羽根・聖玉など。ランク3+でのみ出現) 9=冠・光輪(ランク5のみ)
+const JOB_ARTS = {
+  // 戦士: 羽根飾りの兜と大剣
+  fighter: [
+    ".8..99...4..",
+    "..800000.4..",
+    "..01111104..",
+    "..03333304..",
+    "..03636304..",
+    "...02220.4..",
+    "..011111444.",
+    "..01151134..",
+    "..0222220...",
+    "...01110....",
+    "...01.10....",
+    "...00.00....",
+  ],
+  // 騎士: 面頬の兜・カイトシールド・長剣
+  knight: [
+    ".8..99......",
+    "..800000.4..",
+    "..04444404..",
+    "..00606004..",
+    "..04444404..",
+    "...02220.4..",
+    "04011111444.",
+    "0501111134..",
+    "040222220...",
+    ".0.01110....",
+    "...01.10....",
+    "...00.00....",
+  ],
+  // 盗賊: 目深の頭巾・襟巻き・短剣
+  thief: [
+    "....99......",
+    "....000.....",
+    "...01110....",
+    "..01111104..",
+    "..01606104..",
+    "...0222034..",
+    ".80111110...",
+    "..0115110...",
+    "..0222220...",
+    "...01110....",
+    "...01.10....",
+    "..00..00....",
+  ],
+  // 魔術師: つば広のとんがり帽と宝珠の杖
+  mage: [
+    "..9.00.9....",
+    "...0110..5..",
+    ".8011110.5..",
+    ".011111104..",
+    "..03636304..",
+    "...0222034..",
+    "..01111104..",
+    "..01151104..",
+    ".011111104..",
+    ".021111204..",
+    ".01111110...",
+    ".00000000...",
+  ],
+  // 僧侶: 頭巾と胸の聖印・十字杖
+  priest: [
+    "....99......",
+    "...00000848.",
+    "..011110444.",
+    "..01333104..",
+    "..01636104..",
+    "...0222034..",
+    "..01111104..",
+    "..01151104..",
+    "..01555104..",
+    ".011151110..",
+    ".011111110..",
+    ".000000000..",
+  ],
+  // 魔導僧: 宝玉の司教冠と法環の杖
+  bishop: [
+    "...9.0.9....",
+    "....010..5..",
+    "...01710.5..",
+    "..01111104..",
+    "..03636304..",
+    "...0222034..",
+    "..01111104..",
+    "..01151104..",
+    ".011111104..",
+    ".021111204..",
+    ".01111110...",
+    ".00000000...",
+  ],
+};
+
+// #rrggbb 同士を t (0-1) で混ぜる
+function mixHex(a, b, t) {
+  const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+  const ch = (sh) => Math.round(((pa >> sh) & 255) + (((pb >> sh) & 255) - ((pa >> sh) & 255)) * t);
+  return "#" + ((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).slice(1);
+}
+
+// #rrggbb → rgba() 文字列 (オーラの半透明用)
+function hexA(hex, a) {
+  const p = parseInt(hex.slice(1), 16);
+  return `rgba(${(p >> 16) & 255},${(p >> 8) & 255},${p & 255},${a})`;
+}
+
+const _jobSprCache = {};
+
+// 職業キャラアイコンを返す。jobKey は基本職キー or 混成 "base+sub" キー。
+// rank は職業ランク1〜5 (魂表示では魂の品質1〜4をそのまま映す)。
+export function jobSprite(jobKey, rank = 2) {
+  const r = Math.max(1, Math.min(5, Math.round(rank) || 2));
+  const [baseK, subK] = String(jobKey || "").split("+");
+  const key = SOUL_CLASSES[baseK] ? baseK : "fighter";
+  const cacheKey = key + (subK && SOUL_CLASSES[subK] ? "+" + subK : "") + ":" + r;
+  if (_jobSprCache[cacheKey]) return _jobSprCache[cacheKey];
+
+  const c = SOUL_CLASSES[key];
+  const sub = subK ? SOUL_CLASSES[subK] : null;
+  const dull = (x, t) => mixHex(x, "#787c84", t); // 見習い装のくすみ
+  const lift = (x, t) => mixHex(x, "#ffffff", t);
+
+  // ランクで深まる色調。混成はサブ職の色が意匠とオーラに差す
+  const prim = r === 1 ? dull(c.color, 0.5) : r >= 4 ? mixHex(c.color, c.glow, r === 5 ? 0.28 : 0.15) : c.color;
+  const trim = r === 1 ? dull(c.glow, 0.5)
+    : sub ? mixHex(c.glow, sub.glow, 0.5)
+    : r === 5 ? lift(c.glow, 0.3) : r === 4 ? lift(c.glow, 0.15) : c.glow;
+  const accBase = sub ? sub.glow : mixHex(c.glow, c.color, 0.3); // 紋章のランク2以下の色
+  const acc = r >= 3 ? (sub ? lift(sub.glow, r === 5 ? 0.35 : 0.15) : r === 5 ? "#ffd95e" : "#e8c24a")
+    : r === 1 ? dull(accBase, 0.4) : accBase;
+  const metal = r === 1 ? "#8f949e" : r >= 4 ? mixHex("#c9cfdb", c.glow, 0.25) : "#c9cfdb";
+  const eye = r >= 5 ? "#ffffff" : r === 4 ? lift(c.glow, 0.35) : "#16120e";
+  const auraGlow = sub ? sub.glow : c.glow;
+
+  const palette = {
+    "0": mixHex(c.color, "#07070c", 0.76),
+    "1": prim,
+    "2": trim,
+    "3": r === 1 ? "#d9bd96" : "#ecc89c",
+    "4": metal,
+    "5": acc,
+    "6": eye,
+    "7": r >= 3 ? acc : prim, // 象嵌: 低ランクでは主色に沈む
+  };
+  if (r >= 3) palette["8"] = r === 5 ? "#ffe48a" : acc; // 飾り
+  if (r >= 5) palette["9"] = "#ffe48a"; // 冠・光輪
+
+  let art = JOB_ARTS[key];
+  // ランク4+: 輪郭の外側1ドットにオーラを纏う。
+  // ランク4は市松の煌めき、ランク5は途切れぬ光輪+斜めに散る残光。
+  if (r >= 4) {
+    const rows = art.map((s) => s.split(""));
+    const solid = (y, x) => {
+      if (y < 0 || y >= rows.length || x < 0 || x >= rows[y].length) return false;
+      const ch = rows[y][x];
+      return ch !== "." && palette[ch] != null;
+    };
+    const out = art.map((s) => s.split(""));
+    for (let y = 0; y < rows.length; y++) {
+      for (let x = 0; x < rows[y].length; x++) {
+        if (rows[y][x] !== ".") continue;
+        if (solid(y - 1, x) || solid(y + 1, x) || solid(y, x - 1) || solid(y, x + 1)) {
+          if (r >= 5 || (x + y) % 2 === 0) out[y][x] = "a";
+        } else if (r >= 5 && (x + y) % 2 === 0 &&
+          (solid(y - 1, x - 1) || solid(y - 1, x + 1) || solid(y + 1, x - 1) || solid(y + 1, x + 1))) {
+          out[y][x] = "b";
+        }
+      }
+    }
+    art = out.map((a) => a.join(""));
+    palette["a"] = hexA(auraGlow, r === 5 ? 0.3 : 0.26);
+    if (r >= 5) palette["b"] = hexA(auraGlow, 0.13);
+  }
+
+  return (_jobSprCache[cacheKey] = { palette, art });
+}
+
+// 人業の顔アイコン: 発現中の職業 (混成含む) と職業ランクの姿。未発現は支配職のランク1
+export function dollSprite(d) {
+  const key = d.jobKey || (d.dominant && d.dominant.clsKey) || d.clsKey || "fighter";
+  return jobSprite(key, d.jobRank || 1);
+}
+
 // 魂のドット絵 (部位スロット/一覧表示用)。職業色の宝珠。
+// ※職業の表示は jobSprite/dollSprite (キャラアイコン)。魂はあくまで宝珠で表す。
 export function soulSprite(clsKey) {
   const c = SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter;
   return {
