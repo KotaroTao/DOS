@@ -50,6 +50,12 @@ export const WEAPON_CAT_LABEL = (() => {
   return m;
 })();
 
+// 職業ギアマトリクス (souls.js が registerJobGear で注入する)
+let _jobGear = {};
+export function registerJobGear(map) { _jobGear = map; }
+// 鎧重量ランク: heavy(2) ≥ light(1) ≥ cloth(0)。item.weight ≤ job.armor のとき装備可
+const ARMOR_RANK = { heavy: 2, light: 1, cloth: 0 };
+
 // ===== 武器の射程 =====
 // 近距離: 敵の前衛にしか届かない / 中距離: 自分が前衛なら敵の後衛まで届く /
 // 長距離: 後衛からでも敵の後衛まで届く。魔法・ブレスは射程の制約を受けない。
@@ -122,8 +128,7 @@ export const ITEMS = {
     ]),
   },
   shortSword: {
-    id: "shortSword", name: "ショートソード", slot: "weapon", cat: "ls", lv: 3, atk: 6, hit: 2, dice: "1d6+1", swings: 1, price: 120,
-    classes: ["fighter", "knight", "thief", "priest", "bishop"],
+    id: "shortSword", name: "ショートソード", slot: "weapon", cat: "ls", lv: 3, atk: 6, hit: 2, dice: "1d6+1", swings: 1, price: 120, classes: null,
     desc: "兵士崩れの亡骸からよく見つかる、無銘の片手剣。鍛えは確かで、迷宮の闇の中で数多の持ち主を看取ってきた。",
     ...sprite([
       "....k.......",
@@ -141,8 +146,7 @@ export const ITEMS = {
     ]),
   },
   battleAxe: {
-    id: "battleAxe", name: "バトルアックス", slot: "weapon", cat: "ax", lv: 8, atk: 13, hit: 3, dice: "2d6", swings: 1, twoHanded: true, price: 480,
-    classes: ["fighter", "knight"],
+    id: "battleAxe", name: "バトルアックス", slot: "weapon", cat: "ax", lv: 8, atk: 13, hit: 3, dice: "2d6", swings: 1, twoHanded: true, price: 480, classes: null,
     desc: "骨ごと断つことしか考えられていない、無骨な両手斧。刃こぼれの一つ一つが誰かの最期だ。絶大な威力だが盾は持てない。",
     ...sprite([
       ".....kn.....",
@@ -160,8 +164,7 @@ export const ITEMS = {
     ]),
   },
   warHammer: {
-    id: "warHammer", name: "ウォーハンマー", slot: "weapon", cat: "mc", lv: 6, atk: 9, pie: 1, hit: 2, dice: "1d8+1", swings: 1, price: 300,
-    classes: ["fighter", "knight", "priest"],
+    id: "warHammer", name: "ウォーハンマー", slot: "weapon", cat: "mc", lv: 6, atk: 9, pie: 1, hit: 2, dice: "1d8+1", swings: 1, price: 300, classes: null,
     desc: "柄に祈りの文句が刻まれた戦槌。刃を禁じられた聖職者が、骸を「鎮める」ために編み出した得物だという。骨ある敵に重く響く。",
     ...sprite([
       "..kkkkkk....",
@@ -179,8 +182,7 @@ export const ITEMS = {
     ]),
   },
   magicStaff: {
-    id: "magicStaff", name: "魔法の杖", slot: "weapon", cat: "st", lv: 5, atk: 4, int: 2, hit: 0, dice: "1d4", swings: 1, mp: 4, price: 260,
-    classes: ["mage", "bishop", "priest"],
+    id: "magicStaff", name: "魔法の杖", slot: "weapon", cat: "st", lv: 5, atk: 4, int: 2, hit: 0, dice: "1d4", swings: 1, mp: 4, price: 260, classes: null,
     desc: "蒼い宝玉を戴いた杖。玉の奥では囚われた精霊の光がゆっくりと脈打ち、握る者の魔力と知性を研ぎ澄ます。",
     ...sprite([
       "....kbk.....",
@@ -200,8 +202,7 @@ export const ITEMS = {
 
   // ===== 盾 =====
   woodShield: {
-    id: "woodShield", name: "木の盾", slot: "shield", lv: 2, vit: 3, price: 80,
-    classes: ["fighter", "knight", "thief", "priest", "bishop"],
+    id: "woodShield", name: "木の盾", slot: "shield", lv: 2, vit: 3, price: 80, classes: null,
     desc: "カシの板をびょうで重ねた小盾。表面には先代の持ち主のものらしい爪痕が走るが、まだ十分に矢と牙を受け止められる。",
     ...sprite([
       "..kkkkkk....",
@@ -219,8 +220,7 @@ export const ITEMS = {
     ]),
   },
   kiteShield: {
-    id: "kiteShield", name: "カイトシールド", slot: "shield", lv: 7, vit: 6, price: 240,
-    classes: ["fighter", "knight"],
+    id: "kiteShield", name: "カイトシールド", slot: "shield", lv: 7, vit: 6, price: 240, classes: null,
     desc: "騎士団の紋章が剥げ落ちた大盾。掲げた誓いは廃れても、鋼の守りは廃れていない。前衛の半身を覆って守る。",
     ...sprite([
       "..kkkkkk....",
@@ -240,7 +240,7 @@ export const ITEMS = {
 
   // ===== 体 =====
   robe: {
-    id: "robe", name: "ローブ", slot: "body", lv: 2, vit: 1, int: 1, mp: 3, price: 90, classes: null,
+    id: "robe", name: "ローブ", slot: "body", lv: 2, vit: 1, int: 1, mp: 3, price: 90, classes: null, weight: "cloth",
     desc: "魔除けの紋様を縫い込んだ外套。糸は月のない夜に紡がれたといい、まとう者の魔力を少しだけ高める。",
     ...sprite([
       "...kkkk.....",
@@ -258,8 +258,7 @@ export const ITEMS = {
     ]),
   },
   leatherArmor: {
-    id: "leatherArmor", name: "革の鎧", slot: "body", lv: 4, vit: 4, price: 160,
-    classes: ["fighter", "knight", "thief", "priest", "bishop"],
+    id: "leatherArmor", name: "革の鎧", slot: "body", lv: 4, vit: 4, price: 160, classes: null, weight: "light",
     desc: "魔獣の革をなめした軽鎧。幾針もの縫い直しの跡は、これを着て生き延びた者たちの記録だ。軽くて動きやすい。",
     ...sprite([
       "..kkkkkk....",
@@ -277,8 +276,7 @@ export const ITEMS = {
     ]),
   },
   plateArmor: {
-    id: "plateArmor", name: "プレートアーマー", slot: "body", lv: 12, vit: 11, agi: -1, price: 600,
-    classes: ["fighter", "knight"],
+    id: "plateArmor", name: "プレートアーマー", slot: "body", lv: 12, vit: 11, agi: -1, price: 600, classes: null, weight: "heavy",
     desc: "全身を鋼で固めた重鎧。継ぎ目の奥に沈む黒ずみは錆か、それとも前の持ち主の名残か。鉄壁だが少し鈍重になる。",
     ...sprite([
       "..kkkkkk....",
@@ -298,7 +296,7 @@ export const ITEMS = {
 
   // ===== 頭 =====
   cap: {
-    id: "cap", name: "布の帽子", slot: "head", lv: 1, vit: 1, price: 30, classes: null,
+    id: "cap", name: "布の帽子", slot: "head", lv: 1, vit: 1, price: 30, classes: null, weight: "light",
     desc: "擦り切れた布の帽子。墓土の冷たさと滴る汚水からは守ってくれる。ないよりはまし、と誰もが言う。",
     ...sprite([
       "............",
@@ -316,8 +314,7 @@ export const ITEMS = {
     ]),
   },
   ironHelm: {
-    id: "ironHelm", name: "鉄兜", slot: "head", lv: 5, vit: 3, price: 150,
-    classes: ["fighter", "knight", "priest"],
+    id: "ironHelm", name: "鉄兜", slot: "head", lv: 5, vit: 3, price: 150, classes: null, weight: "heavy",
     desc: "面頬つきの鉄兜。覗き穴の奥は常に闇で、かぶった者の顔を誰にも思い出させない。頭部をしっかり守る。",
     ...sprite([
       "...kkkk.....",
@@ -337,7 +334,7 @@ export const ITEMS = {
 
   // ===== 足 =====
   leatherBoots: {
-    id: "leatherBoots", name: "革のブーツ", slot: "feet", lv: 2, vit: 1, agi: 1, price: 70, classes: null,
+    id: "leatherBoots", name: "革のブーツ", slot: "feet", lv: 2, vit: 1, agi: 1, price: 70, classes: null, weight: "light",
     desc: "丈夫な革の長靴。底に染みた泥は幾層にも重なり、どの層がどの迷宮のものかもう分からない。素早さがわずかに上がる。",
     ...sprite([
       "............",
@@ -355,8 +352,7 @@ export const ITEMS = {
     ]),
   },
   ironGreaves: {
-    id: "ironGreaves", name: "鉄の脚甲", slot: "feet", lv: 6, vit: 3, price: 180,
-    classes: ["fighter", "knight"],
+    id: "ironGreaves", name: "鉄の脚甲", slot: "feet", lv: 6, vit: 3, price: 180, classes: null, weight: "heavy",
     desc: "鋼のすね当て。骨の散らばる床を踏み砕いて進むためのものであり、自分が踏み砕かれないためのものでもある。",
     ...sprite([
       "............",
@@ -376,7 +372,7 @@ export const ITEMS = {
 
   // ===== 小手 =====
   leatherGloves: {
-    id: "leatherGloves", name: "革の手袋", slot: "hands", lv: 1, vit: 1, price: 50, classes: null,
+    id: "leatherGloves", name: "革の手袋", slot: "hands", lv: 1, vit: 1, price: 50, classes: null, weight: "light",
     desc: "しなやかな革の手袋。罠の毒針から指先を、冷たい亡者の握手から手首を、わずかながら守ってくれる。",
     ...sprite([
       ".klk.klk....",
@@ -394,7 +390,7 @@ export const ITEMS = {
     ]),
   },
   silverGloves: {
-    id: "silverGloves", name: "銀の小手", slot: "hands", lv: 7, vit: 3, atk: 1, price: 280, classes: null,
+    id: "silverGloves", name: "銀の小手", slot: "hands", lv: 7, vit: 3, atk: 1, price: 280, classes: null, weight: "light",
     desc: "銀細工の籠手。銀は穢れた者に触れると鈍く曇り、持ち主に警告するという。守りを固めつつ拳撃にも冴える。",
     ...sprite([
       ".kwk.kwk....",
@@ -412,8 +408,7 @@ export const ITEMS = {
     ]),
   },
   ironGauntlets: {
-    id: "ironGauntlets", name: "鉄の籠手", slot: "hands", lv: 6, vit: 4, agi: -1, price: 240,
-    classes: ["fighter", "knight"],
+    id: "ironGauntlets", name: "鉄の籠手", slot: "hands", lv: 6, vit: 4, agi: -1, price: 240, classes: null, weight: "heavy",
     desc: "重厚な鉄の籠手。指の自由と引き換えに、握った得物ごと腕を守り抜く。少し動きが鈍る。",
     ...sprite([
       ".kwk.kwk....",
@@ -657,8 +652,7 @@ export const ITEMS = {
   },
   cursedBlade: {
     id: "cursedBlade", name: "妖刀ムラマサ", slot: "weapon", cat: "kt", lv: 175, atk: 152, vit: -12, hit: 9, dice: "2d12+10", swings: 4, align: "悪", cursed: true, price: 0,
-    eAtk: { el: "dark", lv: 1 },
-    classes: ["fighter", "knight", "thief"],
+    eAtk: { el: "dark", lv: 1 }, classes: null,
     desc: "鞘の中からすすり泣きが聞こえる呪われた刀。凄まじい斬れ味と引き換えに、一度握った者の血を忘れない。攻撃は跳ね上がるが身を守れなくなる。悪属性。",
     ...sprite([
       ".........kp.",
@@ -766,38 +760,48 @@ function topElemStat(sums) {
 }
 
 // 六大ステ (ATK/VIT/AGI/INT/PIE/LUK) を base + 装備から再計算
+// 装備は %型 (.pct) と フラット型 (.atk/.vit/…) を両方対応。
+// %型: stat = round(base * (1 + Σpct)) — 魂融合で base が伸びても装備が比例して強くなる
+// フラット型: stat = base + Σflat — 旧セーブ互換 (リインジェクト前の暫定)
 export function recalc(member) {
   const base = member.base;
-  let atk = base.atk || 0, vit = base.vit || 0, agi = base.agi || 0;
-  let int = base.int || 0, pie = base.pie || 0, luk = base.luk || 0;
-  let hpBonus = 0, mpBonus = 0, crit = base.crit || 0;
-  const ea = {}, ed = {}; // 属性攻撃/属性防御のレベル合計 (属性ごと)
+  const pct = { atk: 0, vit: 0, agi: 0, int: 0, pie: 0, luk: 0, hp: 0, mp: 0 };
+  let flatAtk = 0, flatVit = 0, flatAgi = 0, flatInt = 0, flatPie = 0, flatLuk = 0;
+  let flatHp = 0, flatMp = 0, crit = base.crit || 0;
+  const ea = {}, ed = {};
   const counted = new Set();
   for (const slot of SLOTS) {
     const it = member.equip[slot];
     if (!it || counted.has(it)) continue;
     counted.add(it);
-    atk += it.atk || 0;
-    vit += (it.vit != null ? it.vit : it.def) || 0; // def/spd は旧セーブ装備の互換読み
-    agi += (it.agi != null ? it.agi : it.spd) || 0;
-    int += it.int || 0;
-    pie += it.pie || 0;
-    luk += it.luk || 0;
+    if (it.pct) {
+      for (const k of ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"]) {
+        if (it.pct[k]) pct[k] += it.pct[k];
+      }
+    } else {
+      // フラット値フォールバック (旧セーブ装備 / 未変換アイテム)
+      flatAtk += it.atk || 0;
+      flatVit += (it.vit != null ? it.vit : it.def) || 0; // def は旧セーブ互換
+      flatAgi += (it.agi != null ? it.agi : it.spd) || 0; // spd は旧セーブ互換
+      flatInt += it.int || 0;
+      flatPie += it.pie || 0;
+      flatLuk += it.luk || 0;
+      flatHp  += it.hp || 0;
+      flatMp  += it.mp || 0;
+    }
     crit += it.crit || 0;
-    hpBonus += it.hp || 0;
-    mpBonus += it.mp || 0;
     if (it.eAtk && it.eAtk.el) ea[it.eAtk.el] = (ea[it.eAtk.el] || 0) + (it.eAtk.lv || 1);
     if (it.eDef && it.eDef.el) ed[it.eDef.el] = (ed[it.eDef.el] || 0) + (it.eDef.lv || 1);
   }
-  member.atk = Math.max(1, Math.round(atk));
-  member.vit = Math.max(0, Math.round(vit));
-  member.agi = Math.max(1, Math.round(agi));
-  member.int = Math.max(0, Math.round(int));
-  member.pie = Math.max(0, Math.round(pie));
-  member.luk = Math.max(0, Math.round(luk));
+  member.atk = Math.max(1, Math.round((base.atk || 0) * (1 + pct.atk) + flatAtk));
+  member.vit = Math.max(0, Math.round((base.vit || 0) * (1 + pct.vit) + flatVit));
+  member.agi = Math.max(1, Math.round((base.agi || 0) * (1 + pct.agi) + flatAgi));
+  member.int = Math.max(0, Math.round((base.int || 0) * (1 + pct.int) + flatInt));
+  member.pie = Math.max(0, Math.round((base.pie || 0) * (1 + pct.pie) + flatPie));
+  member.luk = Math.max(0, Math.round((base.luk || 0) * (1 + pct.luk) + flatLuk));
   member.critBonus = crit;
-  member.maxhp = base.hp + hpBonus;
-  member.maxmp = base.mp + mpBonus;
+  member.maxhp = Math.round((base.hp || 0) * (1 + pct.hp) + flatHp);
+  member.maxmp = Math.round((base.mp || 0) * (1 + pct.mp) + flatMp);
   if (member.hp > member.maxhp) member.hp = member.maxhp;
   if (member.mp > member.maxmp) member.mp = member.maxmp;
   // 属性攻撃/属性防御 (装備由来。Lv1=◯, Lv2=◎)
@@ -812,8 +816,15 @@ export function canEquip(member, item) {
   if (item.align && member.align && item.align !== "中立" && member.align !== "中立" && item.align !== member.align) {
     return false;
   }
-  if (!item.classes) return true;
-  return item.classes.includes(member.clsKey);
+  // 明示的職業リスト (専用装備など)
+  if (item.classes) return item.classes.includes(member.clsKey);
+  // ギアマトリクス (souls.js の JOB_GEAR から注入)
+  const gear = _jobGear[member.clsKey];
+  if (!gear) return true; // 未登録職業はオープン
+  if (item.slot === "weapon") return !gear.weapons || gear.weapons.includes(item.cat);
+  if (item.slot === "shield") return !!gear.shield;
+  if (item.weight) return (ARMOR_RANK[item.weight] || 0) <= (ARMOR_RANK[gear.armor] || 0);
+  return true; // アクセサリ等は全職OK
 }
 
 // 装備する (置換した装備品は所持品に戻す)。成否メッセージを返す
