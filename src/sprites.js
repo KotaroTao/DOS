@@ -67,23 +67,33 @@ export const MONSTERS = {
     name: "ミミック",
     maxhp: 30, atk: 12, def: 4, spd: 5, soul: 18, gold: 20,
     desc: "宝箱に化けて獲物を待つ魔物。並の個体より一回り手強いが、倒せば上質な宝箱を残す。",
-    palette: {
-      "0": "#2a1a0a", "1": "#6b421e", "2": "#c98c4a", "3": "#e0b040",
-      "4": "#0a0a0a", "5": "#ffffff", "6": "#d4504e", "7": "#ffd34d",
-    },
+    palette: { "o": "#1e140a", "A": "#6b421e", "B": "#a06834", "H": "#c98c4a", "K": "#382210", "k": "#100806", "G": "#d9a93f", "Y": "#ffe678", "W": "#f0ece2", "R": "#d4504e", "r": "#963234", "P": "#eb8282", "E": "#3c1410" },
     art: [
-      ".03333333330",
-      ".0322222230.",
-      ".0327227230.",
-      "003444444300",
-      "03545454540.",
-      "03444444440.",
-      "03466666440.",
-      "03454545450.",
-      "003222223300",
-      ".0122222210.",
-      ".0122332210.",
-      ".0011111100.",
+      ".oAAAAAAAAAAAAAAAAAAo..",
+      "oABBBBBBBBBBBBBBBBBBAo.",
+      "oABBBBRBBBBBBBBRBBBBAo.",
+      "oABBBBEBBBBBBBBEBBBBAo.",
+      "oABBBBBBBBBBBBBBBBBBAo.",
+      "oGGGGGGGGGGGGGGGGGGGGo.",
+      ".ooKKKKKKKKKKKKKKKKoo..",
+      "..oKKKKKKKKKKKKKKKKo...",
+      "..oWKKWKKWKKWKKWKKWo...",
+      ".okWkkWkkWkkWkkWkkWko..",
+      ".okkkkkkkkkRRRPkkkkko..",
+      ".okkkkkkRRRkkkkRRkkko..",
+      ".okkWkkWkkWkkWkkWRRWRo.",
+      "oGGGGGGGGGGGGGGGGGGGGro",
+      "oAHHHBBBBGGGGBBBAAAAAo.",
+      "oAHHHBBBBGYYGBBBAAAAAo.",
+      "oAHHHBBBBGGGGBBBAAAAAo.",
+      "oAAAAAAAAAAAAAAAAAAAAo.",
+      "oABBBBBBBBBBBBBBAAAAAo.",
+      "oABBBBBBBBBBBBBBAAAAAo.",
+      "oABBBBBBBBBBBBBBAAAAAo.",
+      "oAAAAAAAAAAAAAAAAAAAAo.",
+      ".oookkooooooooookkooo..",
+      "..okoo..........ooko...",
+      "...o..............o....",
     ],
   },
 
@@ -91,23 +101,35 @@ export const MONSTERS = {
     name: "マスターミミック",
     maxhp: 60, atk: 18, def: 6, spd: 6, soul: 40, gold: 60,
     desc: "金色に輝く宝箱の王。極めて手強いが、討ち倒せば極上の宝箱を必ず残す。",
-    palette: {
-      "0": "#3a2a08", "1": "#b8860b", "2": "#ffd34d", "3": "#fff2a0",
-      "4": "#0a0a0a", "5": "#ffffff", "6": "#d4504e", "7": "#ff5a4a",
-    },
+    palette: { "o": "#1e140a", "A": "#b8861e", "B": "#e6be46", "H": "#ffeb8c", "K": "#6e5014", "k": "#100806", "G": "#d9a93f", "Y": "#ffe678", "W": "#f0ece2", "R": "#d4504e", "r": "#963234", "P": "#eb8282", "E": "#3c1410" },
     art: [
-      "..2..2..2...",
-      ".02222222220",
-      ".0211111120.",
-      ".0217117120.",
-      "002444444200",
-      "02545454520.",
-      "02444444420.",
-      "02466666420.",
-      "02454545420.",
-      "002111112200",
-      ".0212332120.",
-      ".0021111200.",
+      ".......oYoYoYo.........",
+      "..ooooooGGGGGGoooooo...",
+      ".oAAAAAAAAAAAAAAAAAAo..",
+      "oABBBBBBBBBBBBBBBBBBAo.",
+      "oABBBBRBBBBBBBBRBBBBAo.",
+      "oABBBBEBBBBBBBBEBBBBAo.",
+      "oABBBBBBBBBBBBBBBBBBAo.",
+      "oGGGGGGGGGGGGGGGGGGGGo.",
+      ".ooKKKKKKKKKKKKKKKKoo..",
+      "..oKKKKKKKKKKKKKKKKo...",
+      "..oWKKWKKWKKWKKWKKWo...",
+      ".okWkkWkkWkkWkkWkkWko..",
+      ".okkkkkkkkkRRRPkkkkko..",
+      ".okkkkkkRRRkkkkRRkkko..",
+      ".okkWkkWkkWkkWkkWRRWRo.",
+      "oGGGGGGGGGGGGGGGGGGGGro",
+      "oAHHHBBBBGGGGBBBAAAAAo.",
+      "oAHHHBBBBGYYGBBBAAAAAo.",
+      "oAHHHBBBBGGGGBBBAAAAAo.",
+      "oAAAAAAAAAAAAAAAAAAAAo.",
+      "oABBBBBBBBBBBBBBAAAAAo.",
+      "oABBBBBBBBBBBBBBAAAAAo.",
+      "oABBBBBBBBBBBBBBAAAAAo.",
+      "oAAAAAAAAAAAAAAAAAAAAo.",
+      ".oookkooooooooookkooo..",
+      "..okoo..........ooko...",
+      "...o..............o....",
     ],
   },
 
@@ -210,6 +232,82 @@ export const HERO = {
     "..022220....",
     "...0..0.....",
     "..00..00....",
+  ],
+};
+
+// 主人公戦闘スプライト 32x40 (見習い戦士: 剣・盾・革鎧)
+export const HERO_BATTLE = {
+  name: "ヒーロー",
+  palette: {
+    "o": "#201627", // 輪郭
+    "S": "#f2c692", // 肌
+    "s": "#cf9665", // 肌影
+    "E": "#2a1c20", // 目
+    "H": "#7a4a26", // 髪
+    "h": "#a8703a", // 髪ハイライト
+    "R": "#b03030", // 鉢巻
+    "r": "#d8554a", // 鉢巻ハイライト
+    "M": "#9aa6b2", // 金属
+    "m": "#6e7884", // 金属影
+    "W": "#e8f0f4", // 金属ハイライト
+    "A": "#8a5c34", // 革鎧
+    "a": "#644020", // 革鎧影
+    "b": "#ab7a46", // 革鎧ハイライト
+    "T": "#3f7a52", // 服(緑)
+    "t": "#2c5a3c", // 服影
+    "P": "#4a4458", // ズボン
+    "p": "#342f40", // ズボン影
+    "B": "#5c3a24", // ブーツ
+    "d": "#3e2718", // ブーツ影
+    "G": "#d9a93f", // 金
+    "g": "#a87820", // 金影
+    "L": "#cdd8e0", // 剣身
+    "l": "#97a4b0", // 剣身影
+    "C": "rgba(0,0,0,0.275)", // 落ち影
+    "k": "#cdaa6e", // 盾木材(明)
+    "K": "#a07c46", // 盾木材(暗)
+  },
+  art: [
+    "................................", // 0
+    ".....o..........................", // 1
+    "....oWo.....oohHHoo.............", // 2
+    "....oLlo...ohhHHHHHo............", // 3
+    "....oWlo..ohhHHHHHHHo...........", // 4
+    "....oWlo..oHHHHHHHHHooo.........", // 5
+    "....oLlo..oRrRRRRRRRoRRo........", // 6
+    "....oLlo..oHSHSSSHsHo.rRo.......", // 7
+    "....oLlo..oSSESSSESso.ooo.......", // 8
+    "....oLlo..oSSSSsSSSso...........", // 9
+    "....oLlo..osSSsssSSso...........", // 10
+    "....oLlo...oSSSSSSSo............", // 11
+    "....oLlo....ooSSSoo.............", // 12
+    "...oGGGgooooosSSsooooo..........", // 13
+    "...oSSSooWMmoAAAAoTTto..........", // 14
+    "...oSSSSSMMmobAAaoTtto..........", // 15
+    "...ooGoooooobAAAaoooo...........", // 16
+    ".....o....obAAAAaokkKo..........", // 17
+    "..........obAAAAokGGKKo.........", // 18
+    "..........obAAAAokGgKKo.........", // 19
+    "..........obAAAAokKKKKo.........", // 20
+    "..........oaAAAAaoKKKo..........", // 21
+    "..........oaaGgaaoooo...........", // 22
+    "..........oPPgGgPpo.............", // 23
+    "..........oPPPPPPpo.............", // 24
+    "..........oPPoooPPo.............", // 25
+    "..........oPPo.oPPo.............", // 26
+    "..........oPpo.oPpo.............", // 27
+    "..........oPpo.oPpo.............", // 28
+    "..........oPpo.oPpo.............", // 29
+    "..........oBBo.oBBo.............", // 30
+    "..........oBBo.oBBo.............", // 31
+    "..........oBdo.oBdo.............", // 32
+    ".........oBBdo.oBBdo............", // 33
+    ".........oBddo.oBddo............", // 34
+    ".........ooooo.ooooo............", // 35
+    "................................", // 36
+    ".......CCCCCCCCCCCCCCC..........", // 37
+    "................................", // 38
+    "................................", // 39
   ],
 };
 
@@ -464,6 +562,16 @@ export function drawSprite(ctx, mon, cx, cy, size, alpha = 1) {
   ctx.restore();
 }
 
+// 解像度の異なるアートを 12 グリッド換算の見かけサイズへ正規化して描く。
+// size は「12x12 アートでの 1 ドット px」。32px 級の高解像度アートは
+// 同じ見かけの大きさのままドットが細かくなる。
+export function drawSpriteFit(ctx, mon, cx, cy, size, alpha = 1) {
+  const h = mon.art.length;
+  const w = mon.art.reduce((m, r) => Math.max(m, r.length), 0);
+  const k = Math.max(12, w, h) / 12;
+  drawSprite(ctx, mon, cx, cy, size / k, alpha);
+}
+
 // 一覧用の小さなサムネを返す（未使用でも拡張用に公開）
 export function spriteList() {
   return Object.keys(MONSTERS);
@@ -476,6 +584,6 @@ export function spriteCanvas(spr, scale = 4, box = 12) {
   c.height = box * scale;
   c.className = "spr";
   const ctx = c.getContext("2d");
-  drawSprite(ctx, spr, c.width / 2, c.height / 2, scale);
+  drawSpriteFit(ctx, spr, c.width / 2, c.height / 2, scale);
   return c;
 }
