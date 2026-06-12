@@ -301,56 +301,56 @@ function activeCfg() { return curDungeon(); }
 // 効果はその階に滞在する間だけ有効。board(b) は newFloor 直後の盤面加工フック。
 const SF_CORPSE_CLASSES = ["fighter", "knight", "thief", "mage", "priest", "bishop"];
 const SPECIAL_FLOORS = [
-  { id: "mighty", name: "強大な気配", icon: "corpseWarm", accent: "#ffcf4a", minFloor: 4, rate: 0.01,
+  { id: "mighty", name: "強大な気配", icon: "corpseWarm", accent: "#ffcf4a", sym: "✟", minFloor: 4, rate: 0.01,
     lines: ["この階のどこかに「偉大なる死体」が眠っている。", "並の魂ではない。必ずや希少な魂が宿っているだろう。"],
     board: (b) => sfPlace(b, 1, (c) => { c.type = "corpse"; c.cleared = false; c.corpseWarm = true; c.corpseGreat = true; c.corpseClass = rollGreatCorpseClass(); }) },
-  { id: "bounty", name: "豊穣の間", icon: "gold", accent: "#ffd84a", minFloor: 2, rate: 0.05, goldMul: 2,
+  { id: "bounty", name: "豊穣の間", icon: "gold", accent: "#ffd84a", sym: "❂", minFloor: 2, rate: 0.05, goldMul: 2,
     lines: ["黄金の気が満ちている。", "この階で得るゴールドが 2倍 になる。"] },
-  { id: "soulTide", name: "魂の奔流", icon: "wisp", accent: "#7fd0ff", minFloor: 2, rate: 0.03, soulMul: 1.5,
+  { id: "soulTide", name: "魂の奔流", icon: "wisp", accent: "#7fd0ff", sym: "✧", minFloor: 2, rate: 0.03, soulMul: 1.5,
     lines: ["死者たちの声がざわめいている。", "この階で得る Soul が 1.5倍 になる。"] },
-  { id: "silence", name: "静寂の階", icon: "trap", accent: "#9be88a", minFloor: 2, rate: 0.02,
+  { id: "silence", name: "静寂の階", icon: "trap", accent: "#9be88a", sym: "∅", minFloor: 2, rate: 0.02,
     lines: ["仕掛けという仕掛けが朽ち果てている。", "この階に罠と毒の床は存在しない。"],
     board: (b) => sfEachCell(b, (c) => { if (c.type === "trap" || c.type === "poison") { c.type = "empty"; c.cleared = true; } }) },
-  { id: "moonlight", name: "月明かりの階", icon: "corpseWarm", accent: "#aef0ff", minFloor: 2, rate: 0.02,
+  { id: "moonlight", name: "月明かりの階", icon: "corpseWarm", accent: "#aef0ff", sym: "☾", minFloor: 2, rate: 0.02,
     lines: ["蒼い光が差し込み、死者の温もりが消えない。", "この階の死体はすべて「あたたかい死体」だ。"],
     board: (b) => sfEachCell(b, (c) => { if (c.type === "corpse" && !c.cleared) c.corpseWarm = true; }) },
-  { id: "vault", name: "黄金の蔵", icon: "chest", accent: "#e8c47a", minFloor: 3, rate: 0.02,
+  { id: "vault", name: "黄金の蔵", icon: "chest", accent: "#e8c47a", sym: "▣", minFloor: 3, rate: 0.02,
     lines: ["ここは何者かの貯蔵庫だったようだ。", "宝箱が多く眠っている。"],
     board: (b) => sfPlace(b, 3, (c) => { c.type = "chest"; c.cleared = false; }) },
-  { id: "springs", name: "霊泉の階", icon: "fountain", accent: "#5fb8d6", minFloor: 2, rate: 0.02,
+  { id: "springs", name: "霊泉の階", icon: "fountain", accent: "#5fb8d6", sym: "♨", minFloor: 2, rate: 0.02,
     lines: ["岩の隙間から清らかな水音が聞こえる。", "癒しの泉が複数湧いている。"],
     board: (b) => sfPlace(b, 2, (c) => { c.type = "fountain"; c.cleared = false; c.fountainKind = "pure"; }) },
-  { id: "clairvoyance", name: "千里眼の刻", icon: "start", accent: "#c08aff", minFloor: 3, rate: 0.015,
+  { id: "clairvoyance", name: "千里眼の刻", icon: "start", accent: "#c08aff", sym: "◉", minFloor: 3, rate: 0.015,
     lines: ["不思議な力が視界を開いていく。", "この階のすべてのカードが最初から見えている。"],
     board: (b) => sfEachCell(b, (c) => { c.revealed = true; }) },
-  { id: "horde", name: "餓えた群れ", icon: "poison", accent: "#d4504e", minFloor: 3, rate: 0.02,
+  { id: "horde", name: "餓えた群れ", icon: "poison", accent: "#d4504e", sym: "Ψ", minFloor: 3, rate: 0.02,
     lines: ["無数の足音と唸り声…敵が異常に多い。", "群れを狩り尽くせば、魂も財も多く集まるだろう。"],
     board: (b) => sfPlace(b, 4, (c) => { c.type = "monster"; c.monsterKey = pickFrom(sfMonsterPool()); c.cleared = false; }) },
-  { id: "thiefInsight", name: "盗賊の洞察", icon: "gold", accent: "#6fae46", minFloor: 3, rate: 0.02, rareDropRate: 0.20,
+  { id: "thiefInsight", name: "盗賊の洞察", icon: "gold", accent: "#6fae46", sym: "♠", minFloor: 3, rate: 0.02, rareDropRate: 0.20,
     lines: ["盗賊の経験則が囁く——奴らは上物を呑んでいる。", "この階の敵のレアドロップ率が 20% になる。"] },
-  { id: "miasma", name: "瘴気の階", icon: "poison", accent: "#8a2be2", minFloor: 3, rate: 0.02, enemyMul: 1.25, soulMul: 2,
+  { id: "miasma", name: "瘴気の階", icon: "poison", accent: "#8a2be2", sym: "☣", minFloor: 3, rate: 0.02, enemyMul: 1.25, soulMul: 2,
     lines: ["淀んだ瘴気が敵を昂らせている。敵が強い。", "だが得られる Soul は 2倍 になる。"] },
-  { id: "caravan", name: "商隊の遺品", icon: "chest", accent: "#e0a060", minFloor: 3, rate: 0.02, chestRankUp: 1,
+  { id: "caravan", name: "商隊の遺品", icon: "chest", accent: "#e0a060", sym: "❖", minFloor: 3, rate: 0.02, chestRankUp: 1,
     lines: ["全滅した商隊の荷が散らばっている。", "この階の宝箱は1ランク上等だ。"] },
-  { id: "necropolis", name: "屍人の巣", icon: "corpse", accent: "#8c866f", minFloor: 4, rate: 0.015,
+  { id: "necropolis", name: "屍人の巣", icon: "corpse", accent: "#8c866f", sym: "✝", minFloor: 4, rate: 0.015,
     lines: ["おびただしい数の死体が横たわっている。", "魂を回収する好機だが、起き上がる者もいるだろう。"],
     board: (b) => sfPlace(b, 4, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = pickFrom(SF_CORPSE_CLASSES); c.corpseWarm = Math.random() < 0.5; }) },
-  { id: "marsh", name: "毒の沼", icon: "poison", accent: "#5a8a2a", minFloor: 3, rate: 0.02, goldMul: 1.5,
+  { id: "marsh", name: "毒の沼", icon: "poison", accent: "#5a8a2a", sym: "ஃ", minFloor: 3, rate: 0.02, goldMul: 1.5,
     lines: ["床のいたるところから毒が滲み出している。", "足場は危険だが、沼には金品が沈んでいる。ゴールド 1.5倍。"],
     board: (b) => sfEachCell(b, (c) => { if (c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.30) { c.type = "poison"; c.cleared = false; } }) },
-  { id: "tailwind", name: "追い風の階", icon: "stairs", accent: "#9be88a", minFloor: 2, rate: 0.02, preempt100: true, noAmbush: true,
+  { id: "tailwind", name: "追い風の階", icon: "stairs", accent: "#7fe0a8", sym: "≫", minFloor: 2, rate: 0.02, preempt100: true, noAmbush: true,
     lines: ["不思議と体が軽く、敵の動きがよく見える。", "常に先手を取り、奇襲を受けない。"] },
-  { id: "elemSurge", name: "属性の奔流", icon: "wisp", accent: "#ff9a4a", minFloor: 3, rate: 0.02, elemAll: true, cond: (cfg) => !!cfg.element,
+  { id: "elemSurge", name: "属性の奔流", icon: "wisp", accent: "#ff9a4a", sym: "✺", minFloor: 3, rate: 0.02, elemAll: true, cond: (cfg) => !!cfg.element,
     lines: ["迷宮の属性が荒れ狂っている。", "この階の敵はすべて迷宮の属性を帯びる。属性装備が鍵だ。"] },
-  { id: "mimicNest", name: "ミミックの巣", icon: "chest", accent: "#d4504e", minFloor: 4, rate: 0.015, mimicRate: 0.50,
+  { id: "mimicNest", name: "ミミックの巣", icon: "chest", accent: "#e07840", sym: "‽", minFloor: 4, rate: 0.015, mimicRate: 0.50,
     lines: ["不自然なほど宝箱が多い…罠の匂いがする。", "宝箱の半分はミミックだ。だが倒せば上質な宝箱を残す。"],
     board: (b) => sfPlace(b, 3, (c) => { c.type = "chest"; c.cleared = false; }) },
-  { id: "healing", name: "癒しの霊気", icon: "fountain", accent: "#aef0ff", minFloor: 2, rate: 0.02, victoryHeal: 0.10,
+  { id: "healing", name: "癒しの霊気", icon: "fountain", accent: "#8af0c0", sym: "✚", minFloor: 2, rate: 0.02, victoryHeal: 0.10,
     lines: ["澄んだ霊気が満ち、傷を癒してくれる。", "戦闘に勝利するたび、隊全体のHPが10%回復する。"] },
-  { id: "guided", name: "迷い無き道", icon: "stairs", accent: "#7fd0ff", minFloor: 2, rate: 0.02,
+  { id: "guided", name: "迷い無き道", icon: "stairs", accent: "#e8e0c0", sym: "▼", minFloor: 2, rate: 0.02,
     lines: ["誰かが残した道標が奥まで続いている。", "下り階段の位置が最初から見えている。"],
     board: (b) => sfEachCell(b, (c) => { if (c.type === "stairs") c.revealed = true; }) },
-  { id: "legend", name: "伝説の眠る階", icon: "chest", accent: "#ffcf4a", minFloor: 5, rate: 0.01,
+  { id: "legend", name: "伝説の眠る階", icon: "chest", accent: "#ffe080", sym: "★", minFloor: 5, rate: 0.01,
     lines: ["遥か昔の英雄の遺品が、この階のどこかに眠っている。", "ひとつの宝箱にだけ、格別の装備が入っている。"],
     board: (b) => {
       // 既存の宝箱から1つ選んで「伝説の宝箱」(+40レベル) にする。なければ1つ追加する
@@ -380,6 +380,11 @@ function sfMonsterPool() {
   const cfg = activeCfg();
   const deep = G.floor > (cfg.floors || 3) / 2;
   return (deep ? cfg.deepPool : cfg.pool) || cfg.pool || ["cm_slime"];
+}
+// テーマ色の明度変換 (カード裏面の地色・枠色を accent から作る)
+function shadeHex(hex, f) {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgb(${Math.round(((n >> 16) & 255) * f)},${Math.round(((n >> 8) & 255) * f)},${Math.round((n & 255) * f)})`;
 }
 // 偉大なる死体の職業: コモン0% / レア90% / エピック9% / レジェンド1%
 function rollGreatCorpseClass() {
@@ -700,6 +705,37 @@ function drawCard(r, cell, scaleX, showBack) {
       }
       // 上辺の血滲み
       vctx.fillStyle = "rgba(200,0,0,0.10)";
+      vctx.fillRect(2, 2, r.w - 4, 3);
+    } else if (specialDef()) {
+      // 特別階カード裏面: 階ごとのテーマ色の地 + 固有の紋章
+      const sp = specialDef();
+      const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
+      bg.addColorStop(0, shadeHex(sp.accent, 0.24));
+      bg.addColorStop(0.5, shadeHex(sp.accent, 0.14));
+      bg.addColorStop(1, shadeHex(sp.accent, 0.09));
+      vctx.fillStyle = bg;
+      vctx.fillRect(0, 0, r.w, r.h);
+      // 外枠 (二重・テーマ色)
+      vctx.strokeStyle = shadeHex(sp.accent, 0.78);
+      vctx.lineWidth = 2;
+      vctx.strokeRect(1.5, 1.5, r.w - 3, r.h - 3);
+      vctx.strokeStyle = shadeHex(sp.accent, 0.42);
+      vctx.lineWidth = 1;
+      vctx.strokeRect(4.5, 4.5, r.w - 9, r.h - 9);
+      // 中央の紋章 (階ごとに固有)
+      const cx = r.w / 2, cy = r.h / 2;
+      vctx.fillStyle = sp.accent;
+      vctx.font = "bold 16px monospace";
+      vctx.textAlign = "center";
+      vctx.textBaseline = "middle";
+      vctx.fillText(sp.sym || "✦", cx, cy + 1);
+      // コーナードット (テーマ色)
+      vctx.fillStyle = shadeHex(sp.accent, 0.6);
+      for (const [dx, dy] of [[7, 7], [r.w - 7, 7], [7, r.h - 7], [r.w - 7, r.h - 7]]) {
+        vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+      }
+      // 上辺ハイライト
+      vctx.fillStyle = "rgba(255,255,255,0.08)";
       vctx.fillRect(2, 2, r.w - 4, 3);
     } else {
       // 通常カード裏面: 深紅の布地 + 金の縁飾り + ダイヤ紋
