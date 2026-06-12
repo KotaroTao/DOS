@@ -156,6 +156,7 @@ export function spawnMimic(rank, scale = 1) {
   const key = pool.length ? pool[rand(pool.length)] : "cm_slime";
   const e = makeEnemy(key, scale);
   e.name = "ミミック";
+  e.isMimic = true; // 撃破時は宝箱が確定出現し、中身が上質になる (game.js の endBattle)
   e.maxhp = Math.round(e.maxhp * 1.4);
   e.hp = e.maxhp;
   e.atk = Math.round(e.atk * 1.25);

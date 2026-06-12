@@ -105,7 +105,6 @@ function lootLvAt() {
   const t = floors > 1 ? Math.min(1, (G.floor - 1) / (floors - 1)) : 0;
   let c = band[0] + (band[1] - band[0]) * t;
   if (Math.random() < 0.05) c += 12; // まれな大当たり: ワンランク上の帯から出る
-  c += sfNum("lootLvBonus", 0); // 特別階 (伝説の眠る階/ミミックの巣) の底上げ
   return Math.min(200, c);
 }
 
@@ -324,9 +323,11 @@ const SPECIAL_FLOORS = [
   { id: "clairvoyance", name: "千里眼の刻", icon: "start", accent: "#c08aff", minFloor: 3, rate: 0.015,
     lines: ["不思議な力が視界を開いていく。", "この階のすべてのカードが最初から見えている。"],
     board: (b) => sfEachCell(b, (c) => { c.revealed = true; }) },
-  { id: "horde", name: "餓えた群れ", icon: "poison", accent: "#d4504e", minFloor: 3, rate: 0.02, dropMul: 2,
-    lines: ["無数の足音と唸り声…敵が異常に多い。", "だが戦利品のドロップ率は 2倍 だ。"],
+  { id: "horde", name: "餓えた群れ", icon: "poison", accent: "#d4504e", minFloor: 3, rate: 0.02,
+    lines: ["無数の足音と唸り声…敵が異常に多い。", "群れを狩り尽くせば、魂も財も多く集まるだろう。"],
     board: (b) => sfPlace(b, 4, (c) => { c.type = "monster"; c.monsterKey = pickFrom(sfMonsterPool()); c.cleared = false; }) },
+  { id: "thiefInsight", name: "盗賊の洞察", icon: "gold", accent: "#6fae46", minFloor: 3, rate: 0.02, rareDropRate: 0.20,
+    lines: ["盗賊の経験則が囁く——奴らは上物を呑んでいる。", "この階の敵のレアドロップ率が 20% になる。"] },
   { id: "miasma", name: "瘴気の階", icon: "poison", accent: "#8a2be2", minFloor: 3, rate: 0.02, enemyMul: 1.25, soulMul: 2,
     lines: ["淀んだ瘴気が敵を昂らせている。敵が強い。", "だが得られる Soul は 2倍 になる。"] },
   { id: "caravan", name: "商隊の遺品", icon: "chest", accent: "#e0a060", minFloor: 3, rate: 0.02, chestRankUp: 1,
@@ -337,23 +338,27 @@ const SPECIAL_FLOORS = [
   { id: "marsh", name: "毒の沼", icon: "poison", accent: "#5a8a2a", minFloor: 3, rate: 0.02, goldMul: 1.5,
     lines: ["床のいたるところから毒が滲み出している。", "足場は危険だが、沼には金品が沈んでいる。ゴールド 1.5倍。"],
     board: (b) => sfEachCell(b, (c) => { if (c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.30) { c.type = "poison"; c.cleared = false; } }) },
-  { id: "tailwind", name: "追い風の階", icon: "stairs", accent: "#9be88a", minFloor: 2, rate: 0.02, preemptPlus: 0.25, noAmbush: true,
-    lines: ["不思議と体が軽く、敵の動きがよく見える。", "先制攻撃が発生しやすく、奇襲を受けない。"] },
+  { id: "tailwind", name: "追い風の階", icon: "stairs", accent: "#9be88a", minFloor: 2, rate: 0.02, preempt100: true, noAmbush: true,
+    lines: ["不思議と体が軽く、敵の動きがよく見える。", "常に先手を取り、奇襲を受けない。"] },
   { id: "elemSurge", name: "属性の奔流", icon: "wisp", accent: "#ff9a4a", minFloor: 3, rate: 0.02, elemAll: true, cond: (cfg) => !!cfg.element,
     lines: ["迷宮の属性が荒れ狂っている。", "この階の敵はすべて迷宮の属性を帯びる。属性装備が鍵だ。"] },
-  { id: "mimicNest", name: "ミミックの巣", icon: "chest", accent: "#d4504e", minFloor: 4, rate: 0.015, mimicPlus: 0.25, lootLvBonus: 15,
-    lines: ["不自然なほど宝箱が多い…罠の匂いがする。", "ミミックが潜むが、本物の宝箱の中身は上質だ。"],
+  { id: "mimicNest", name: "ミミックの巣", icon: "chest", accent: "#d4504e", minFloor: 4, rate: 0.015, mimicRate: 0.50,
+    lines: ["不自然なほど宝箱が多い…罠の匂いがする。", "宝箱の半分はミミックだ。だが倒せば上質な宝箱を残す。"],
     board: (b) => sfPlace(b, 3, (c) => { c.type = "chest"; c.cleared = false; }) },
   { id: "healing", name: "癒しの霊気", icon: "fountain", accent: "#aef0ff", minFloor: 2, rate: 0.02, victoryHeal: 0.10,
     lines: ["澄んだ霊気が満ち、傷を癒してくれる。", "戦闘に勝利するたび、隊全体のHPが10%回復する。"] },
   { id: "guided", name: "迷い無き道", icon: "stairs", accent: "#7fd0ff", minFloor: 2, rate: 0.02,
     lines: ["誰かが残した道標が奥まで続いている。", "下り階段の位置が最初から見えている。"],
     board: (b) => sfEachCell(b, (c) => { if (c.type === "stairs") c.revealed = true; }) },
-  { id: "legend", name: "伝説の眠る階", icon: "chest", accent: "#ffcf4a", minFloor: 5, rate: 0.01, lootLvBonus: 40,
-    lines: ["遥か昔の英雄たちの遺品が眠る階層。", "この階で見つかる装備は格段に上質だ。"] },
-  { id: "cursedGold", name: "呪われた富", icon: "gold", accent: "#a01030", minFloor: 4, rate: 0.015, goldMul: 3,
-    lines: ["金貨の山…だが守りの呪いが張り巡らされている。", "ゴールド 3倍。ただし罠が異常に多い。"],
-    board: (b) => sfPlace(b, 4, (c) => { c.type = "trap"; c.cleared = false; }) },
+  { id: "legend", name: "伝説の眠る階", icon: "chest", accent: "#ffcf4a", minFloor: 5, rate: 0.01,
+    lines: ["遥か昔の英雄の遺品が、この階のどこかに眠っている。", "ひとつの宝箱にだけ、格別の装備が入っている。"],
+    board: (b) => {
+      // 既存の宝箱から1つ選んで「伝説の宝箱」(+40レベル) にする。なければ1つ追加する
+      const chests = [];
+      sfEachCell(b, (c) => { if (c.type === "chest" && !c.cleared) chests.push(c); });
+      if (chests.length) pickFrom(chests).lootBonus = 40;
+      else sfPlace(b, 1, (c) => { c.type = "chest"; c.cleared = false; c.lootBonus = 40; });
+    } },
 ];
 
 // 現在の階の特別階定義 (なければ null)
@@ -1385,10 +1390,13 @@ function openChest(cell, opener) {
 // 宝箱の中身を解決。allowDanger=falseなら罠/ミミックなし (戦闘後の宝箱。罠フェーズは battleChest 側)。
 // opener: 開けると選ばれた人業 (罠解除判定に使う)。done は安全終了時のコールバック。
 // cRankIn: 宝箱ランクの引き継ぎ (戦闘後の宝箱はセルがないため明示的に渡す)
-function rollChest(cell, allowDanger, done, opener, cRankIn) {
+function rollChest(cell, allowDanger, done, opener, cRankIn, lvBonus) {
   const cRank = cRankIn || (allowDanger ? chestRankOf(cell) : 1);
   if (allowDanger) {
-    if (Math.random() < 0.06 + G.floor * 0.03 + sfNum("mimicPlus", 0)) {
+    // 伝説の宝箱 (cell.lootBonus) はミミック/黒い宝箱に化けない
+    const legendary = !!(cell && cell.lootBonus);
+    // ミミック率: 特別階 (ミミックの巣) では一律50%
+    if (!legendary && Math.random() < sfNum("mimicRate", 0.06 + G.floor * 0.03)) {
       // ミミック: 演出 → 戦闘
       SFX.trap(); buzz([0, 60, 40, 60]);
       log("宝箱はミミックだった！", "dmg");
@@ -1400,15 +1408,15 @@ function rollChest(cell, allowDanger, done, opener, cRankIn) {
       return;
     }
     // 黒い宝箱: 一段上のレベル帯の品が眠るが、開けると呪いの危険を伴う (任意の賭け)
-    if (Math.random() < 0.10) {
+    if (!legendary && Math.random() < 0.10) {
       askCursedChest(done);
       return;
     }
     // 罠フェーズ: 70%で罠。解除/発動/罠なしの演出を経て中身へ
-    chestTrapPhase(opener, () => chestContents(cell, done, cRank), cRank, done);
+    chestTrapPhase(opener, () => chestContents(cell, done, cRank, lvBonus), cRank, done);
     return;
   }
-  chestContents(cell, done, cRank);
+  chestContents(cell, done, cRank, lvBonus);
 }
 
 // 罠フェーズ (盤面・戦闘後の宝箱共通): 70%の確率で罠が仕掛けられている。
@@ -1596,7 +1604,11 @@ function springTrap(trap, opener, fin) {
 }
 
 // 宝箱の中身 (ゴールド/空の魂/装備品)。cRank: 宝箱ランク (1-5、高いほど豪華)
-function chestContents(cell, done, cRank = 1) {
+// lvBonus: ミミック撃破後の宝箱などのアイテムレベル底上げ。
+// cell.lootBonus: 特別階 (伝説の眠る階) の「伝説の宝箱」— 中身は必ず装備品で +40レベル
+function chestContents(cell, done, cRank = 1, lvBonus = 0) {
+  const lootUp = (lvBonus || 0) + ((cell && cell.lootBonus) || 0);
+  const legendary = !!(cell && cell.lootBonus);
   const rankMul = 1 + ((cRank || 1) - 1) * 0.3;
   // ===== 職業専用装備 ジャックポット抽選 (通常の中身より先に判定) =====
   const dRankNow = activeCfg().rank || 1;
@@ -1616,7 +1628,8 @@ function chestContents(cell, done, cRank = 1) {
     }
   }
   // 中身の抽選 (ダンジョンレベルに応じる): ゴールド50% / ゴールド以外のアイテム50%
-  if (Math.random() < 0.5) {
+  // 伝説の宝箱はゴールド/空の魂にならず、必ず装備品が出る
+  if (!legendary && Math.random() < 0.5) {
     SFX.chest();
     const dRank = activeCfg().rank || 1;
     const g = runGainGold(Math.round((10 + G.floor * 12 + rand(30)) * (1 + (dRank - 1) * 0.5) * rankMul));
@@ -1629,7 +1642,7 @@ function chestContents(cell, done, cRank = 1) {
     return;
   }
   // アイテム: まれに「空の魂」(魂合成の素材)、通常は宝箱ランク→アイテムランク
-  if (Math.random() < 0.18) {
+  if (!legendary && Math.random() < 0.18) {
     const who = G.party.find((m) => m.alive && m.items.length < MAX_ITEMS);
     if (who) {
       const it = cloneItem(EMPTY_SOUL_ID);
@@ -1639,8 +1652,11 @@ function chestContents(cell, done, cRank = 1) {
     }
   }
   // 宝: 装備/アイテム (迷宮のアイテムレベル帯から抽選。高ランクの宝箱は一段上の帯)
-  const got = giveItem(pickItemByLv(Math.min(200, lootLvAt() + ((cRank || 1) - 1) * 4)));
-  if (got) { showItemGet(got.item, got.who, done); return; } // 演出後に done
+  const got = giveItem(pickItemByLv(Math.min(200, lootLvAt() + ((cRank || 1) - 1) * 4 + lootUp)));
+  if (got) {
+    if (legendary) { flashScreen("#ffcf4a"); SFX.victory(); log(`✦ 伝説の宝箱から ${got.item.name} を見つけた！`, "win"); }
+    showItemGet(got.item, got.who, done); return; // 演出後に done
+  }
   SFX.chest();
   if (done) done();
 }
@@ -1683,13 +1699,13 @@ function askCursedChest(done) {
 // 戦闘勝利後の宝箱 (出現判定は endBattle 側)。ミミックはいないが罠は70%で仕掛けられており、
 // 開ける者を選んでその者の解除値で判定する (盤面の宝箱と同じ罠フェーズを通る)。
 // 敵がアイテムを落としていれば中身はそれ。なければダンジョンレベル準拠の抽選。
-// after: 終了後に呼ぶ (ボス撃破時は踏破演出へつなぐ)
-function battleChest(drops, after) {
+// after: 終了後に呼ぶ (ボス撃破時は踏破演出へつなぐ)。lvBonus: ミミック撃破宝箱などの中身底上げ
+function battleChest(drops, after, lvBonus = 0) {
   const done = () => { if (after) after(); else if (G.state === "board") renderBoard(); };
   const cRank = chestRankOf(null);
   const contents = () => {
     if (drops && drops.length) giveDropsFromChest(drops, 0, done);
-    else rollChest(null, false, done, null, cRank);
+    else rollChest(null, false, done, null, cRank, lvBonus);
   };
   // 踏破演出など続きの処理 (after) がある時は、戦闘へ突入する警報系の罠を出さない
   // (戦闘を挟むと after が呼ばれなくなるため)
@@ -1840,7 +1856,8 @@ function startBattle(enemies, cell) {
   if (!isBoss && !isElite) {
     const vig = partyPassiveLv("vigilance");
     const amb = (spFloor && spFloor.noAmbush) ? 0 : 0.08 * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1);
-    const pre = 0.08 + (partyPassiveLv("initiative") ? 0.15 : 0) + sfNum("preemptPlus", 0);
+    // 追い風の階 (preempt100) では必ず先手を取れる
+    const pre = (spFloor && spFloor.preempt100) ? 1 : 0.08 + (partyPassiveLv("initiative") ? 0.15 : 0);
     const r = Math.random();
     if (r < amb) opening = "ambush";
     else if (r < amb + pre) opening = "preempt";
@@ -2418,11 +2435,13 @@ function endBattle() {
     const clearInfo = wasBoss ? commitDungeonClear() : null;
     finishToBoard();
     // 勝利の余韻: まず勝利ポップアップ(Gold/Soul)を表示し、閉じてから宝箱を出す。
-    // 宝箱はドロップ品があれば必ず、なければ50%で出現。強敵・ボスは宝箱確定。
+    // 宝箱はドロップ品があれば必ず、なければ50%で出現。強敵・ミミックは宝箱確定。
+    // ミミックが残す宝箱は中身が上質 (アイテムレベル+15)
+    const wasMimic = b.enemies.some((e) => e.isMimic);
     const afterVictory = () => {
       const after = clearInfo ? () => showDungeonClearedPopup(clearInfo) : null;
-      if (drop || wasElite || Math.random() < 0.5) {
-        setTimeout(() => battleChest(drop ? [drop] : [], after), 200);
+      if (drop || wasElite || wasMimic || Math.random() < 0.5) {
+        setTimeout(() => battleChest(drop ? [drop] : [], after, wasMimic ? 15 : 0), 200);
         return;
       }
       if (after) after();
@@ -4449,9 +4468,9 @@ function rollMonsterDrop(enemy) {
   const mon = MONSTERS[enemy.key];
   if (!mon) return null;
   let dropId = null, rare = false;
-  // 目利き (ドロップ率+15%) × 特別階 (餓えた群れ: 2倍)
-  const ap = (partyPassiveLv("appraise") ? 1.15 : 1) * sfNum("dropMul", 1);
-  if (mon.dropRare && Math.random() < 0.04 * ap) { dropId = mon.dropRare; rare = true; }
+  const ap = partyPassiveLv("appraise") ? 1.15 : 1; // 目利き: ドロップ率+15%
+  // 特別階 (盗賊の洞察): レアドロップ率が一律20%になる
+  if (mon.dropRare && Math.random() < sfNum("rareDropRate", 0.04 * ap)) { dropId = mon.dropRare; rare = true; }
   else if (mon.dropNormal && Math.random() < 0.30 * ap) { dropId = mon.dropNormal; rare = false; }
   if (!dropId) return null;
   const it = cloneItem(dropId);
