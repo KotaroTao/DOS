@@ -35,7 +35,7 @@ export const SPELLS = {
   POISONSTAB: { name: "毒刃", mp: 4, kind: "phys", power: 1.2, debuff: { atk: 0.85 }, target: "enemy", desc: "毒の刃で弱らせる" },
   ASSASSINATE: { name: "急所突き", mp: 6, kind: "phys", power: 1.6, critBonus: 0.5, target: "enemy", desc: "会心率の高い一撃" },
 
-  // ---- 職業Lv 28-50 帯の上位スキル ----
+  // ---- キャラLv 28-50 帯の上位スキル ----
   GOUZAN: { name: "豪斬", mp: 10, kind: "phys", power: 2.4, target: "enemy", desc: "鎧ごと断ち割る重い一刀" },
   SENPUU: { name: "旋風斬", mp: 12, kind: "phys", power: 1.3, target: "all-enemy", desc: "竜巻のごとき回転斬り" },
   ZANTETSU: { name: "斬鉄", mp: 16, kind: "phys", power: 4.2, target: "enemy", desc: "鉄をも両断する奥義の一閃" },
@@ -64,6 +64,51 @@ export const SPELLS = {
   // 回復・支援
   DIALALL: { name: "リカバーオール", mp: 12, kind: "heal", power: 40, target: "all-ally", desc: "味方全員を大きく回復" },
   OUJOU: { name: "王城の構え", mp: 18, kind: "buff", buff: { vit: 1.7 }, target: "all-ally", desc: "隊全体を城壁と化す究極の守り" },
+
+  // ---- 混成職のユニークスキル (Lv40 枠・全30職に1つずつ。他職は覚えない) ----
+  // 固有の追加効果プロパティ (該当スキルのみが持つ):
+  //   element(物理技にも属性が乗る) / drain(与ダメの%だけ自分のHP回復) /
+  //   mpDrain(与ダメの%だけ自分のMP回復) / sleepChance・flinchChance(命中後に付与) /
+  //   ailment(攻撃呪文が状態異常を付与) / plunder(この技で倒した敵のゴールド2倍) /
+  //   partyHeal(攻撃後に味方全体を回復) / cure(回復・支援と同時に状態異常を治す) /
+  //   grantEndure(対象に不屈を付与) / grantBarrier(味方全体に魔障壁を配る) /
+  //   debuffAll(本効果に加えて敵全体を弱体) / hpCost(最大HPの%を代償に払う)
+  // --- 戦士ベース ---
+  TSUBAMEGAESHI: { name: "燕返し", mp: 13, kind: "phys", power: 1.7, hits: 2, critBonus: 0.2, target: "enemy", desc: "返す刀が二度閃く侍の秘剣" },
+  MAENZAN: { name: "魔焔斬", mp: 12, kind: "phys", power: 2.8, element: "fire", target: "enemy", desc: "刃に纏わせた魔焔で焼き断つ" },
+  SEIKOUZAN: { name: "聖光斬", mp: 12, kind: "phys", power: 2.4, element: "light", drain: 0.35, target: "enemy", desc: "聖光の斬撃で祓い、己の傷を癒す" },
+  KIJINKUDAKI: { name: "鬼神砕き", mp: 14, kind: "phys", power: 3.1, debuff: { vit: 0.75 }, target: "enemy", desc: "鎧も砦も砕く鬼神の一撃" },
+  HAMANOKEN: { name: "破魔の拳", mp: 12, kind: "phys", power: 2.3, debuff: { atk: 0.8, vit: 0.85 }, target: "enemy", desc: "魔を祓う拳で敵の力を削ぐ" },
+  // --- 騎士ベース ---
+  SEIHEKINOINORI: { name: "聖壁の祈り", mp: 14, kind: "heal", power: 22, buff: { vit: 1.2 }, target: "all-ally", desc: "隊を癒し、守りを固める祈り" },
+  KOUBOUITTAI: { name: "攻防一体", mp: 10, kind: "buff", buff: { atk: 1.35, vit: 1.35 }, target: "self", desc: "攻めと守りを兼ねる無双の構え" },
+  SAKIGAKENOGOREI: { name: "先駆けの号令", mp: 10, kind: "buff", buff: { agi: 1.35 }, target: "all-ally", desc: "隊全体を疾風のごとく駆り立てる" },
+  MAGUINOTACHI: { name: "魔喰いの太刀", mp: 8, kind: "phys", power: 2.4, mpDrain: 0.25, target: "enemy", desc: "斬った魔力を喰らいMPに変える" },
+  SEIIKINOKANE: { name: "聖域の鐘", mp: 12, kind: "buff", buff: { vit: 1.2 }, cure: true, target: "all-ally", desc: "鐘の音が隊を守り、穢れを祓う" },
+  // --- 盗賊ベース ---
+  KUBIKARI: { name: "首狩り", mp: 13, kind: "phys", power: 2.5, critBonus: 0.45, target: "enemy", desc: "獲物の首筋を狙う必殺の狩技" },
+  OIHAGI: { name: "追い剥ぎ", mp: 10, kind: "phys", power: 2.4, plunder: true, target: "enemy", desc: "倒した敵から金品を根こそぎ奪う" },
+  DOKUGIRI: { name: "毒霧", mp: 12, kind: "atk", power: 16, ailment: { type: "poison", chance: 0.65 }, target: "all-enemy", desc: "敵全体を蝕む毒の霧" },
+  HAJANOTACHI: { name: "破邪の太刀", mp: 12, kind: "phys", power: 2.3, element: "light", critBonus: 0.25, target: "enemy", desc: "聖別された刃で不浄を斬る" },
+  YOIYAMIUCHI: { name: "宵闇打ち", mp: 10, kind: "phys", power: 2.0, sleepChance: 0.5, target: "enemy", desc: "闇の祝詞を乗せた一撃で眠らせる" },
+  // --- 魔術師ベース ---
+  SHINRANOSABAKI: { name: "森羅の裁き", mp: 15, kind: "atk", power: 36, target: "all-enemy", desc: "属性の理を超えた万象の裁き" },
+  MARYOKUGOUDATSU: { name: "魔力強奪", mp: 7, kind: "atk", power: 30, element: "dark", mpDrain: 0.3, target: "enemy", desc: "呪撃で敵を撃ち、魔力を奪い取る" },
+  MAFUUZAN: { name: "魔風斬", mp: 13, kind: "phys", power: 1.2, element: "wind", target: "all-enemy", desc: "理力の風で敵全体を斬り抜ける" },
+  KOUSHUNOHOUJIN: { name: "攻守の法陣", mp: 14, kind: "buff", buff: { vit: 1.25 }, debuffAll: { atk: 0.85 }, target: "all-ally", desc: "味方を守り敵を縛る二重の法陣" },
+  KINJUKAICHOU: { name: "禁呪開帳", mp: 12, kind: "atk", power: 38, element: "dark", critBonus: 0.25, target: "enemy", desc: "禁断の頁を開き闇の呪撃を放つ" },
+  // --- 僧侶ベース ---
+  SEIMAICHINYO: { name: "聖魔一如", mp: 14, kind: "atk", power: 22, element: "light", partyHeal: 14, target: "all-enemy", desc: "聖光で敵を焼き、返す光で隊を癒す" },
+  DANZAINOTSUCHI: { name: "断罪の鉄槌", mp: 12, kind: "phys", power: 2.3, element: "light", flinchChance: 0.35, target: "enemy", desc: "断罪の聖槌が敵を打ち据え怯ませる" },
+  KONGOURENDA: { name: "金剛連打", mp: 13, kind: "phys", power: 0.95, hits: 3, target: "enemy", desc: "金剛の拳による怒涛の三連打" },
+  KASUMINOTOBARI: { name: "霞の帳", mp: 12, kind: "heal", power: 16, debuffAll: { atk: 0.8 }, target: "all-ally", desc: "霞が隊を癒し、敵の目を曇らせる" },
+  DAISEIKITOU: { name: "大聖祈祷", mp: 14, kind: "heal", power: 30, cure: true, target: "all-ally", desc: "隊を癒し穢れを祓う大いなる祈り" },
+  // --- 魔導僧ベース ---
+  SHINENNOHADOU: { name: "深淵の波動", mp: 13, kind: "atk", power: 44, element: "dark", target: "enemy", desc: "深淵より汲み上げた闇の波動" },
+  SEIKUNOKAGO: { name: "聖句の加護", mp: 12, kind: "heal", power: 36, grantEndure: true, target: "ally", desc: "癒しと共に死を退ける聖句を授ける" },
+  SHASHINNOGYOU: { name: "捨身の行", mp: 8, kind: "phys", power: 3.6, hpCost: 0.15, target: "enemy", desc: "身を削って放つ捨身の荒行" },
+  HOUSHOUHEKI: { name: "法障壁", mp: 13, kind: "buff", grantBarrier: 1, target: "all-ally", desc: "隊全体に魔を防ぐ障壁を張る" },
+  MEIKONGURAI: { name: "冥魂喰らい", mp: 10, kind: "atk", power: 28, element: "dark", drain: 0.5, target: "enemy", desc: "闇で魂を喰らい己の命とする" },
 };
 
 // アイテムは個体ごとに複製して持たせる (装備状態を個別管理するため)
@@ -159,7 +204,7 @@ export class Battle {
     this.opening = opts.opening || null;
     this._roundNo = 0;
     this._bigBarrierUsed = false;
-    for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a._enduredThisBattle = false; }
+    for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a._enduredThisBattle = false; a._grantEndure = false; }
     for (const p of party) {
       p._coverLeft = pv(p, "cover");
       p._barrierLeft = pv(p, "barrier");
@@ -692,20 +737,48 @@ export class Battle {
   _cast(actor, cmd, res) {
     const sp = SPELLS[cmd.spellKey];
     actor.mp -= spellCost(actor, sp); // 省詠唱 (chant) 持ちは消費が軽い
+    // 捨身 (hpCost): 最大HPの一定割合を代償に払う (HP1で踏みとどまる)。
+    // ダメージ計算より先に払うため、自ら瀕死に踏み込んで荒行の果てを起動できる
+    if (sp.hpCost) {
+      const cost = Math.max(1, Math.round((actor.maxhp || 1) * sp.hpCost));
+      actor.hp = Math.max(1, actor.hp - cost);
+      this.log(`${actor.name}は己の身を削った (${cost})`, "dmg");
+    }
     if (pv(actor, "kenma")) actor._kenma = true; // 剣魔合一: 次の通常攻撃が確定会心
     res.spellName = sp.name;
     res.spellKind = sp.kind;
     res.spellElement = sp.element || null;
     const isPhys = sp.kind === "phys";
     this.log(isPhys ? `${actor.name}の ${sp.name}！` : `${actor.name}は ${sp.name} を唱えた！`, "hit");
+    let dealt = 0; // この技で与えた総ダメージ (drain / mpDrain の吸収量の基準)
     if (isPhys) {
-      // 物理技は通常攻撃と同じ計算系 (倍率/多段/会心/弱体)
+      // 物理技は通常攻撃と同じ計算系 (倍率/多段/会心/弱体)。element 持ちは属性が乗る
       const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
       const hits = sp.hits || 1;
       for (const t of targets) {
+        let connected = false; // 1発でも命中したか (命中後の付与効果の条件)
         for (let h = 0; h < hits; h++) {
           if (!t.alive) break;
-          res.hits.push(this._physical(actor, t, { power: sp.power, critBonus: sp.critBonus, debuff: sp.debuff, name: sp.name }));
+          const hit = this._physical(actor, t, { power: sp.power, critBonus: sp.critBonus, debuff: sp.debuff, element: sp.element, name: sp.name });
+          res.hits.push(hit);
+          dealt += hit.dmg || 0;
+          if (!hit.miss) connected = true;
+          // 追い剥ぎ (plunder): この技で倒した敵は落とすゴールドが2倍になる
+          if (sp.plunder && hit.died && t.gold) {
+            t.gold = Math.round(t.gold * 2);
+            this.log(`${actor.name}は${t.name}から金品を剥ぎ取った！`, "win");
+          }
+        }
+        // 命中後の付与: 眠らせ (宵闇打ち) / 怯ませ (断罪の鉄槌・主には効かない)
+        if (connected && t.alive && t.side === "enemy") {
+          if (sp.sleepChance && !t.asleep && Math.random() < sp.sleepChance) {
+            t.asleep = true;
+            this.log(`${t.name}は深い眠りに落ちた`, "sys");
+          }
+          if (sp.flinchChance && !t.boss && !t._flinch && Math.random() < sp.flinchChance) {
+            t._flinch = true;
+            this.log(`${t.name}は怯んだ！`, "hit");
+          }
         }
       }
     } else if (sp.kind === "atk") {
@@ -722,22 +795,45 @@ export class Battle {
         let dmg = Math.max(1, Math.round(variance(power) * this._lowHpMul(actor)) - Math.floor(this._evit(t) * 0.2));
         if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
         if (pv(actor, "gokudoku") && t.ailment === "poison") dmg = Math.round(dmg * 1.3); // 蠱毒
-        const crit = scLv && Math.random() < (scLv >= 2 ? 0.18 : 0.10);
+        // 会心: 呪文会心パッシブ + 技固有の会心補正 (禁呪開帳など)
+        const crit = Math.random() < ((scLv ? (scLv >= 2 ? 0.18 : 0.10) : 0) + (sp.critBonus || 0));
         if (crit) dmg = Math.floor(dmg * 1.5);
         t.hp -= dmg;
+        dealt += dmg;
         const eff = em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : "";
         this.log(`${t.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}${eff}`, "dmg");
         if (t.asleep) t.asleep = false;
+        // 状態異常の付与 (毒霧): 命中した生存敵を蝕む
+        if (sp.ailment && t.alive && t.hp > 0 && !t.ailment && Math.random() < sp.ailment.chance) {
+          t.ailment = sp.ailment.type;
+          this.log(`${t.name}は${sp.ailment.type === "poison" ? "毒" : "異常"}に侵された！`, "hit");
+        }
         res.hits.push({ target: t, dmg, crit, eff: em > 1 ? "weak" : em < 1 ? "resist" : null, died: this._die(t) });
+      }
+      // 聖魔一如 (partyHeal): 撃ち込んだ後、返す光が隊を癒す (PIEで伸びる)
+      if (sp.partyHeal) {
+        const hPow = sp.partyHeal + (actor.pie || 0) * 0.3;
+        for (const t of this.livingParty()) {
+          const heal = variance(hPow);
+          t.hp = Math.min(t.maxhp, t.hp + heal);
+          res.hits.push({ target: t, heal });
+        }
+        this.log("聖なる残光が隊を癒した", "heal");
       }
     } else if (sp.kind === "buff") {
       const targets = sp.target === "self" ? [actor] : sp.target === "all-ally" ? this.livingParty() : [cmd.target || actor].filter(Boolean);
+      let cured = false;
       for (const t of targets) {
         t.buffs = t.buffs || { atk: 1, vit: 1, agi: 1 };
         for (const k in sp.buff) t.buffs[k] = Math.min(3, (t.buffs[k] || 1) * sp.buff[k]);
+        // 法障壁 (grantBarrier): 魔障壁の残回数を配る (ブレス・呪文の被ダメ半減)
+        if (sp.grantBarrier) t._barrierLeft = (t._barrierLeft || 0) + sp.grantBarrier;
+        // 聖域の鐘 (cure): 守りと同時に状態異常を祓う
+        if (sp.cure && t.ailment) { t.ailment = null; cured = true; }
         res.hits.push({ target: t, buff: true });
       }
-      this.log(`${sp.name}の効果！`, "heal");
+      this.log(sp.grantBarrier ? `${sp.name}！ 魔障壁が隊を包んだ` : `${sp.name}の効果！`, "heal");
+      if (cured) this.log("隊の穢れが祓われた", "heal");
     } else if (sp.kind === "debuff") {
       const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
       for (const t of targets) {
@@ -759,13 +855,22 @@ export class Battle {
       const healPower = (sp.power + (actor.pie || 0) * 0.5) * aMul;
       // 全体回復
       if (sp.target === "all-ally") {
+        let cured = false;
         for (const t of this.party) {
           if (!t.alive) continue;
           const heal = variance(healPower);
           t.hp = Math.min(t.maxhp, t.hp + heal);
+          // 大聖祈祷 (cure): 癒しと同時に穢れを祓う / 聖壁の祈り (buff): 守りも固める
+          if (sp.cure && t.ailment) { t.ailment = null; cured = true; }
+          if (sp.buff) {
+            t.buffs = t.buffs || { atk: 1, vit: 1, agi: 1 };
+            for (const k in sp.buff) t.buffs[k] = Math.min(3, (t.buffs[k] || 1) * sp.buff[k]);
+          }
           res.hits.push({ target: t, heal });
         }
         this.log(`味方全員のHPが回復した`, "heal");
+        if (cured) this.log("隊の穢れが祓われた", "heal");
+        if (sp.buff) this.log("隊の守りも固められた", "heal");
       } else {
         // 蘇生呪文は戦闘不能の味方も対象にできる
         let t = cmd.target || actor;
@@ -777,6 +882,12 @@ export class Battle {
         t.hp = Math.min(t.maxhp, (t.hp > 0 ? t.hp : 0) + heal);
         if (wasDead && sp.revive) this.log(`${t.name}は蘇った！ HP ${t.hp}`, "heal");
         else this.log(`${t.name}のHPが ${heal} 回復`, "heal");
+        if (sp.cure && t.ailment) { t.ailment = null; this.log(`${t.name}の穢れも祓われた`, "heal"); }
+        // 聖句の加護 (grantEndure): 致死ダメージをHP1で耐える力を授ける (1戦闘1回)
+        if (sp.grantEndure && t.alive && !t._grantEndure) {
+          t._grantEndure = true;
+          this.log(`${t.name}に聖句の加護が宿った (致死を一度耐える)`, "heal");
+        }
         res.hits.push({ target: t, heal, revived: wasDead && sp.revive });
       }
     } else if (sp.kind === "sleep") {
@@ -785,13 +896,33 @@ export class Battle {
         else this.log(`${t.name}には効かない`, "sys");
       }
     }
+    // 与えたダメージに応じた吸収 (聖光斬・冥魂喰らい / 魔喰いの太刀・魔力強奪)
+    if (dealt > 0 && sp.drain && actor.alive) {
+      const heal = Math.max(1, Math.round(dealt * sp.drain));
+      actor.hp = Math.min(actor.maxhp, actor.hp + heal);
+      this.log(`${actor.name}は命を吸い取った (HP+${heal})`, "heal");
+      res.hits.push({ target: actor, heal });
+    }
+    if (dealt > 0 && sp.mpDrain && actor.maxmp) {
+      const gain = Math.max(1, Math.round(dealt * sp.mpDrain));
+      actor.mp = Math.min(actor.maxmp, actor.mp + gain);
+      this.log(`${actor.name}は魔力を喰らった (MP+${gain})`, "heal");
+    }
+    // 本効果に付随する敵全体への弱体 (攻守の法陣・霞の帳)
+    if (sp.debuffAll) {
+      for (const t of this.livingEnemies()) {
+        t.buffs = t.buffs || { atk: 1, vit: 1, agi: 1 };
+        for (const k in sp.debuffAll) t.buffs[k] = Math.max(0.3, (t.buffs[k] || 1) * sp.debuffAll[k]);
+      }
+      this.log("敵の力が削がれた", "hit");
+    }
   }
 
   _die(t) {
     if (t.hp <= 0 && t.alive) {
-      // 不屈: 致死を1回だけ HP1 で耐える
-      if (t.side === "party" && (t.endure || pv(t, "endure")) && !t._enduredThisBattle) {
-        t._enduredThisBattle = true; t.hp = 1;
+      // 不屈: 致死を1回だけ HP1 で耐える (聖句の加護による付与分も同じ1回を共有)
+      if (t.side === "party" && (t.endure || pv(t, "endure") || t._grantEndure) && !t._enduredThisBattle) {
+        t._enduredThisBattle = true; t._grantEndure = false; t.hp = 1;
         this.log(`${t.name}は不屈で持ちこたえた！ (HP1)`, "heal");
         return false;
       }
