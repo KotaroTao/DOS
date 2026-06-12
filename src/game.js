@@ -3966,12 +3966,15 @@ function renderAltar() {
     townEl.appendChild(el("div", "tw-h", `「${PART_LABEL[part]}」に宿す魂を選ぶ`));
     const stock = el("div", "tw-soullist");
     // 魂は対応する部位にしか宿せない
+    // 装備中の魂の系統 (clsKey) を優先候補として収集
+    const _equippedKeys = new Set(PARTS.map((p) => d.parts[p]?.clsKey).filter(Boolean));
     const candidates = G.souls
       .map((s, si) => ({ s, si }))
       .filter(({ s }) => (s.part || "head") === part)
-      // 職業 (SOUL_CLASSES の定義順) → ランク昇順 → レベル降順 で並べる
+      // 装備中と同系統を最優先 → 職業 (SOUL_CLASSES の定義順) → ランク昇順 → レベル降順
       .sort((a, b) =>
-        (SOUL_CLASS_ORDER[a.s.clsKey] ?? 99) - (SOUL_CLASS_ORDER[b.s.clsKey] ?? 99)
+        (_equippedKeys.has(a.s.clsKey) ? 0 : 1) - (_equippedKeys.has(b.s.clsKey) ? 0 : 1)
+        || (SOUL_CLASS_ORDER[a.s.clsKey] ?? 99) - (SOUL_CLASS_ORDER[b.s.clsKey] ?? 99)
         || (a.s.rank || 1) - (b.s.rank || 1)
         || (b.s.level || 1) - (a.s.level || 1));
     if (!candidates.length) stock.appendChild(el("div", "tw-empty", `この部位の魂がない。迷宮で（${PART_LABEL[part]}）の魂を探そう。`));
