@@ -191,6 +191,7 @@ const G = {
   quests: [],         // 受注可能/進行中のクエスト
   dailyQuests: null,  // 日替わりクエスト { seed, list:[] } (日付が変わると再生成)
   subQuests: {},      // 受注済みサブクエスト { id: {…def, state, progress} } (定義は決定的に再生成可能)
+  subQuestSeen: [],   // 酒場で一度表示した迷宮index (別の迷宮を選んでも依頼を残す)
   msq: null,          // メインストーリー { n: 章=迷宮番号(1-100), state: "active"|"report"|"offer"|"end" }
   ach: {},            // 受領済みの勲章 (実績) { id: true }
   fastAnim: false,    // 戦闘演出の倍速設定 (永続)
@@ -4181,43 +4182,59 @@ function renderTavern() {
   if (![...ql.children].length) ql.appendChild(el("div", "tw-empty", "依頼はすべて果たされた。"));
   townEl.appendChild(ql);
 
-  // --- 酒場の依頼人 (サブクエスト): 選択中の迷宮の階ごとに1件 ---
-  const sdn = curDungeon();
-  townEl.appendChild(el("div", "tw-h", `酒場の依頼人 — ${sdn.name}`));
-  townEl.appendChild(el("div", "tw-note", "選んだ迷宮の階ごとに、事情を抱えた誰かが待っている。果たした依頼は酒場から消える。"));
+  // --- 酒場の依頼人 (サブクエスト): 迷宮の階ごとに1件 ---
+  // 一度表示した迷宮の依頼は、別の迷宮を選んでも酒場に残り続ける (発見済みを蓄積)。
+  if (!G.subQuestSeen) G.subQuestSeen = [];
+  if (!G.subQuestSeen.includes(G.dungeonIdx)) G.subQuestSeen.push(G.dungeonIdx);
+  townEl.appendChild(el("div", "tw-h", "酒場の依頼人"));
+  townEl.appendChild(el("div", "tw-note", "迷宮の階ごとに、事情を抱えた誰かが待っている。一度顔を合わせた依頼人は、別の迷宮を選んでも酒場に残る。果たした依頼は消える。"));
   const sql = el("div", "tw-mlist");
-  for (const def of dungeonSubQuests(G.dungeonIdx)) {
-    const st = G.subQuests[def.id];
-    if (st && st.state === "claimed") continue;
-    const row = el("div", "tw-quest" + (st && st.state === "done" ? " done" : ""));
-    const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", `🕯 B${def.floor}F 「${def.name}」`));
-    info.appendChild(el("div", "tw-chipc", `― ${def.npc.name} (${def.npc.title})`));
-    info.appendChild(el("div", "tw-chipc", def.text));
-    const rw = [`💰${def.reward.gold}`, `✦${def.reward.soulPts}`];
-    if (def.reward.redSoul) rw.push(`🔴${def.reward.redSoul}`);
-    info.appendChild(el("div", "tw-chipc", "報酬: " + rw.join(" + ") +
-      (st ? ` ・ 進捗 ${Math.min(st.progress, def.goal)}/${def.goal}` : "")));
-    row.appendChild(info);
-    if (!st) {
-      const b = btn("受ける", () => {
-        G.subQuests[def.id] = { ...def, state: "active", progress: 0 };
-        SFX.select();
-        log(`${def.npc.name}の依頼「${def.name}」を受けた。`, "sys");
-        renderTown();
-      });
-      b.className = "tw-small";
-      row.appendChild(b);
-    } else if (st.state === "active") {
-      row.appendChild(el("div", "tw-chiphp", "進行中"));
-    } else if (st.state === "done") {
-      const b = btn("報告する", () => claimQuest(st));
-      b.className = "tw-small primary";
-      row.appendChild(b);
+  // 選択中の迷宮を先頭に、発見済みの迷宮順で並べる
+  const seenDuns = [...new Set(G.subQuestSeen)].filter((i) => DUNGEONS[i])
+    .sort((a, b) => (a === G.dungeonIdx ? -1 : b === G.dungeonIdx ? 1 : a - b));
+  let subAny = false;
+  for (const di of seenDuns) {
+    const defs = dungeonSubQuests(di).filter((def) => {
+      const st = G.subQuests[def.id];
+      return !(st && st.state === "claimed");
+    });
+    if (!defs.length) continue;
+    // どの迷宮の依頼かを明示する見出し (現在選択中は印を付ける)
+    const head = el("div", "tw-subh", `🗺 ${DUNGEONS[di].name}` + (di === G.dungeonIdx ? "（選択中）" : ""));
+    sql.appendChild(head);
+    for (const def of defs) {
+      const st = G.subQuests[def.id];
+      subAny = true;
+      const row = el("div", "tw-quest" + (st && st.state === "done" ? " done" : ""));
+      const info = el("div", "tw-chipi");
+      info.appendChild(el("div", "tw-chipn", `🕯 ${DUNGEONS[di].name} B${def.floor}F 「${def.name}」`));
+      info.appendChild(el("div", "tw-chipc", `― ${def.npc.name} (${def.npc.title})`));
+      info.appendChild(el("div", "tw-chipc", def.text));
+      const rw = [`💰${def.reward.gold}`, `✦${def.reward.soulPts}`];
+      if (def.reward.redSoul) rw.push(`🔴${def.reward.redSoul}`);
+      info.appendChild(el("div", "tw-chipc", "報酬: " + rw.join(" + ") +
+        (st ? ` ・ 進捗 ${Math.min(st.progress, def.goal)}/${def.goal}` : "")));
+      row.appendChild(info);
+      if (!st) {
+        const b = btn("受ける", () => {
+          G.subQuests[def.id] = { ...def, state: "active", progress: 0 };
+          SFX.select();
+          log(`${def.npc.name}の依頼「${def.name}」を受けた。`, "sys");
+          renderTown();
+        });
+        b.className = "tw-small";
+        row.appendChild(b);
+      } else if (st.state === "active") {
+        row.appendChild(el("div", "tw-chiphp", "進行中"));
+      } else if (st.state === "done") {
+        const b = btn("報告する", () => claimQuest(st));
+        b.className = "tw-small primary";
+        row.appendChild(b);
+      }
+      sql.appendChild(row);
     }
-    sql.appendChild(row);
   }
-  if (![...sql.children].length) sql.appendChild(el("div", "tw-empty", "この迷宮の依頼は、すべて果たされた。"));
+  if (!subAny) sql.appendChild(el("div", "tw-empty", "依頼は、すべて果たされた。"));
   townEl.appendChild(sql);
 }
 
@@ -6742,7 +6759,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor",
   "gold", "soulPts", "redSoul", "dollsPurchased", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "lastEmptyClaim", "run", "town",
-  "quests", "dailyQuests", "subQuests", "msq", "ach", "fastAnim", "rumor", "rumorCooldown", "activeRumor", "codex", "story", "dragonSlain", "stats",
+  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "rumor", "rumorCooldown", "activeRumor", "codex", "story", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
 ];
 
@@ -6913,6 +6930,7 @@ function loadGame() {
   if (!G.stats) G.stats = { runs: 0, deepest: 0, kills: 0, deaths: 0, soulsFound: 0, bossKills: 0 };
   if (!G.ach) G.ach = {}; // 勲章 (後付け)
   if (!G.subQuests) G.subQuests = {}; // サブクエスト (後付け)
+  if (!Array.isArray(G.subQuestSeen)) G.subQuestSeen = []; // 表示済みの迷宮 (後付け)
   // メインストーリー (後付け): 解放済みの最前線の迷宮を現在章とみなす。
   // 既に最後の迷宮まで終えたセーブは、第100章の報告から再開できる
   if (!G.msq) {
