@@ -1327,16 +1327,21 @@ function rollChest(cell, allowDanger, done, opener, cRankIn) {
   chestContents(cell, done, cRank);
 }
 
-// 罠フェーズ (盤面・戦闘後の宝箱共通): 70%の確率で罠が仕掛けられている。
+// 罠フェーズ (盤面・戦闘後の宝箱共通): cfg.trapRate (デフォルト0.70) の確率で罠が仕掛けられている。
+// activeCfg().trapRate を参照することで「静寂の刻」等の日替わり修飾が宝箱にも適用される。
 // 迷宮ランクに応じた罠を抽選し、開けた者が解除を試みる (難度はダンジョンランク×宝箱ランク)。
 // 成功または罠なしならその旨を告げてから contents() へ進む。
 // abort: テレポーター/警報で中身を失った時の終了処理 (省略時は盤面へ)。
 // excludeKinds: 出現させない罠の型 (踏破演出など、戦闘で続きが途切れる場面で使う)
 function chestTrapPhase(opener, contents, cRank = 1, abort, excludeKinds) {
-  if (Math.random() < 0.70) {
-    const trap = pickTrap(activeCfg().rank || 1, Math.random, excludeKinds);
+  const cfg = activeCfg();
+  // cfg.trapRate === 0 は「罠なし」修飾 (静寂の刻など)。その日は宝箱の罠も出さない
+  const trapProb = cfg.trapRate === 0 ? 0 : 0.70;
+  if (Math.random() < trapProb) {
+    const trap = pickTrap(cfg.rank || 1, Math.random, excludeKinds);
     const who = opener || bestDisarmer();
-    if (who && Math.random() < disarmChance(who, cRank)) {
+    const chance = disarmChance(who, cRank);
+    if (who && Math.random() < chance) {
       SFX.chest();
       log(`宝箱の罠「${trap.name}」を ${who.name}が解除した！`, "sys");
       showEvent({
@@ -1347,6 +1352,7 @@ function chestTrapPhase(opener, contents, cRank = 1, abort, excludeKinds) {
       return;
     }
     // 解除失敗: 罠が発動。生き残れば中身は手に入る (テレポーター/警報は中身を失う)
+    if (who) log(`${who.name}は罠「${trap.name}」の解除に失敗した！`, "dmg");
     springTrap(trap, who, { chest: true, proceed: contents, abort });
     return;
   }
