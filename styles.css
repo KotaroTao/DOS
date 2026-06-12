@@ -584,6 +584,7 @@ canvas.spr { image-rendering: pixelated; display: block; }
 }
 .tw-fac:active { transform: translateY(1px); }
 @media (hover: hover) { .tw-fac:hover { border-color: #6a4d90; box-shadow: 0 0 0 1px #6a4d90, 0 2px 10px rgba(0,0,0,0.55); } }
+.tw-fac.locked { opacity: 0.45; cursor: default; }
 .tw-faci { font-size: 26px; line-height: 1; }
 .tw-facn { font-size: 13px; font-weight: bold; color: #ece0ff; margin-top: 6px; }
 .tw-facd { font-size: 10px; color: #8a7ca0; margin-top: 3px; }
