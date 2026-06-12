@@ -1,7 +1,7 @@
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSprite } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, SPELLS, cloneItem, spellCost } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, Battle, SPELLS, cloneItem, spellCost } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
 import { spriteCanvas } from "./sprites.js";
 import {
@@ -12,7 +12,7 @@ import { RANK_NAME, RANK_COLOR } from "./content.js";
 import { dungeonSubQuests } from "./subquests.js";
 import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
-import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS, ELITE_POOLS } from "./dungeons/index.js";
+import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS, ELITE_ORDER } from "./dungeons/index.js";
 import {
   PARTS, PART_LABEL, SOUL_CLASSES, makeSoul, makeDoll, soulName, soulSprite,
   dollSouls, dominantClass, recalcDoll, sealSoul,
@@ -299,12 +299,14 @@ function enemyScale() {
   return (cfg.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * (cfg.enemyMul || 1);
 }
 
-// 強敵階のティア判定: ダンジョン1-30→1、31-60→2、61-100→3
-function eliteTier() {
+// この迷宮に出る強敵のid。各ランク帯 (10迷宮) を 1-3 / 4-6 / 7-10 の
+// 3グループに区切り、グループごとに固有の強敵が決まっている (例: 迷宮1-3, 4-6, 7-10, 11-13, …)
+function eliteKey() {
   const n = G.dungeonIdx + 1;
-  if (n <= 30) return 1;
-  if (n <= 60) return 2;
-  return 3;
+  const r = Math.min(10, Math.ceil(n / 10));
+  const pos = ((n - 1) % 10) + 1;
+  const g = pos <= 3 ? 0 : pos <= 6 ? 1 : 2;
+  return ELITE_ORDER[(r - 1) * 3 + g];
 }
 
 function updateTopbar() {
@@ -322,14 +324,14 @@ function newFloor() {
   // ダンジョンが自前で持つ出現プール (pool=浅階 / deepPool=深階) を使う
   const cfg = activeCfg();
   G.board = makeBoard(G.floor, cfg);
-  // 強敵階: 全モンスターカードを強敵に置き換える
+  // 強敵階: 全モンスターカードをこの迷宮グループ固有の強敵に置き換える
   if (G.eliteFloor) {
-    const pool = ELITE_POOLS[eliteTier()];
+    const ek = eliteKey();
     for (let ey = 0; ey < ROWS; ey++) {
       for (let ex = 0; ex < COLS; ex++) {
         const ecell = G.board.cells[ey][ex];
         if (ecell.type === "monster") {
-          ecell.monsterKey = pool[rand(pool.length)];
+          ecell.monsterKey = ek;
           ecell.elite = true;
         }
       }
@@ -885,8 +887,14 @@ function resolveCell(cell) {
     case "monster":
       if (!cell.cleared) {
         const name = MONSTERS[cell.monsterKey].name;
-        log(`⚔ ${name} のカードだ！`, "dmg");
-        startBattle(spawnCardEnemies(cell.monsterKey, G.floor, enemyScale()), cell);
+        if (cell.elite) {
+          // 強敵は群れない: 規格外の1体が立ちはだかる
+          log(`☠ 強敵 ${name} が立ちはだかる！`, "dmg");
+          startBattle(spawnEliteEnemies(cell.monsterKey, enemyScale()), cell);
+        } else {
+          log(`⚔ ${name} のカードだ！`, "dmg");
+          startBattle(spawnCardEnemies(cell.monsterKey, G.floor, enemyScale()), cell);
+        }
       }
       break;
     case "chest": {
@@ -1059,7 +1067,7 @@ function undeadKeyForDungeon() {
   const local = [...(cfg.pool || []), ...(cfg.deepPool || [])]
     .filter((k) => MONSTERS[k] && MONSTERS[k].race === "undead");
   if (local.length) return local[rand(local.length)];
-  const all = Object.keys(MONSTERS).filter((k) => MONSTERS[k].race === "undead");
+  const all = Object.keys(MONSTERS).filter((k) => MONSTERS[k].race === "undead" && !MONSTERS[k].elite);
   return all.length ? all[rand(all.length)] : "d01_skeleton";
 }
 
@@ -1584,8 +1592,8 @@ function descend() {
   G.floor++;
   G.maxFloorReached = Math.max(G.maxFloorReached, G.floor);
   questProgress("floor", G.floor);
-  // 強敵階判定: 3F以降、5%の確率で発生
-  G.eliteFloor = G.floor >= 3 && Math.random() < 0.05;
+  // 強敵階判定: 5階層以上の迷宮のみ、3F以降で10%の確率で発生
+  G.eliteFloor = (activeCfg().floors || 3) >= 5 && G.floor >= 3 && Math.random() < 0.10;
   if (G.eliteFloor) {
     log("…強敵の気配がする。", "dmg");
   } else {
@@ -1607,11 +1615,9 @@ function descend() {
     setTimeout(() => {
       ov.remove();
       if (G.eliteFloor) {
-        // 強敵階警告ポップアップ
-        const pool = ELITE_POOLS[eliteTier()];
-        const spriteKey = pool[rand(pool.length)];
+        // 強敵階警告ポップアップ (この迷宮グループ固有の強敵を見せる)
         showEvent({
-          sprite: MONSTERS[spriteKey],
+          sprite: MONSTERS[eliteKey()],
           banner: "⚠ 警告 ⚠",
           title: "強敵の気配がする…",
           accent: "#d4504e",
@@ -1648,11 +1654,12 @@ function showToast(text) {
 
 // ---- 戦闘 ----
 function startBattle(enemies, cell) {
-  // 迷宮の属性気配: 属性持ち迷宮では雑魚敵が迷宮属性を帯びやすい (主は固有属性のまま)
+  // 迷宮の属性気配: 属性持ち迷宮では雑魚敵が迷宮属性を帯びやすい (主・強敵は固有属性のまま)
   const cfg = activeCfg();
+  const isElite = enemies.some((e) => e.mon && e.mon.elite);
   if (cfg.element) {
     const ch = cfg.elemBias ? 0.9 : 0.5;
-    for (const e of enemies) if (!e.boss && Math.random() < ch) e.element = cfg.element;
+    for (const e of enemies) if (!e.boss && !(e.mon && e.mon.elite) && Math.random() < ch) e.element = cfg.element;
   }
   G.battleCell = cell;
   G.state = "combat";
@@ -1661,11 +1668,11 @@ function startBattle(enemies, cell) {
   // 同種の群れは「ゴブリン ×4」とまとめて告げる (個体名は A/B/C… 付き)
   const sameKind = enemies.length > 1 && enemies.every((e) => e.key === enemies[0].key);
   log(`${sameKind ? `${enemies[0].mon.name} ×${enemies.length}` : enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
-  // 先制・奇襲の判定 (ボス戦では発生しない)。
+  // 先制・奇襲の判定 (ボス戦・強敵戦では発生しない)。
   // 周囲警戒 (vigilance) が奇襲を抑え、先制の心得 (initiative) が先制を伸ばす
   const isBoss = enemies.some((e) => e.boss);
   let opening = null;
-  if (!isBoss) {
+  if (!isBoss && !isElite) {
     const vig = partyPassiveLv("vigilance");
     const amb = 0.08 * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1);
     const pre = 0.08 + (partyPassiveLv("initiative") ? 0.15 : 0);
@@ -1675,8 +1682,8 @@ function startBattle(enemies, cell) {
   }
   if (opening === "preempt") { log("先手を取った！", "win"); showToast("⚡ 先制攻撃！"); }
   else if (opening === "ambush") { log("奇襲された！", "dmg"); showToast("⚠ 奇襲された！"); buzz([0, 60, 40, 60]); }
-  // ランク帯ごとの戦闘テーマ (ボスは専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
-  playBgm(battleBgm(isBoss));
+  // ランク帯ごとの戦闘テーマ (ボス・強敵は専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
+  playBgm(battleBgm(isBoss || isElite));
   G.battle = new Battle(G.party, enemies, log, { opening });
   G.fx = null;
   G.animating = false;
@@ -5770,7 +5777,7 @@ function battleBgm(isBoss) {
 function sceneBgm() {
   if (openingActive) return "opening";
   if (G.state === "town") return FACILITY_BGM[G.town.facility] || "town";
-  if (G.state === "combat") return battleBgm(G.battle && G.battle.enemies.some((e) => e.boss));
+  if (G.state === "combat") return battleBgm(G.battle && G.battle.enemies.some((e) => e.boss || (e.mon && e.mon.elite)));
   if (G.state === "board") return fieldBgm();
   return null; // over などは無音 (ジングルのみ)
 }

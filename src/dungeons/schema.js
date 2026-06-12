@@ -194,6 +194,7 @@ export function defMonster(def) {
   if (def.dropNormal) m.dropNormal = def.dropNormal;
   if (def.dropRare) m.dropRare = def.dropRare;
   if (def.soulClass) m.soulClass = def.soulClass;
+  if (def.elite) m.elite = true; // 強敵 (強敵階専用。通常プール・ミミックの対象外)
   return m;
 }
 
