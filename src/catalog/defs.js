@@ -11,7 +11,7 @@
 //    Lv1=◯ (有利+50%/不利-50%), Lv2=◎ (有利+100%/不利-100%)
 //  - 絵は形の原型 (ARTS) × 色 (属性色 or tint指定) で描き分ける
 import { tint } from "../dungeons/schema.js";
-import { lvToRank, finalizePct, typicalBase } from "../items.js";
+import { lvToRank } from "../items.js";
 
 // 共有パレット (items.js と同等)
 const P = {
@@ -167,7 +167,8 @@ const SHAPE_WEIGHT = {
   robe: "cloth", circlet: "cloth",
 };
 
-// %型ステータス変換は items.js の finalizePct に一元化 (基本装備とカタログ品で同式)
+// 性能はすべてフラット値 (ATK+10 など)。自動算出値は lv の二次関数で単調増加し、
+// opt.pow (自動主ステの倍率) と各種ボーナス/ペナルティで装備ごとの個性を出す。
 const round = Math.round;
 const priceOf = (lv) => round(10 + lv * lv * 0.30 + lv * 5);
 
@@ -198,6 +199,7 @@ function base(id, name, slot, lv, artKey, opt) {
   if (opt.luk) it.luk = opt.luk;
   if (opt.crit) it.crit = opt.crit;
   if (opt.atkB) it.atk = opt.atkB;     // 防具などの攻撃ボーナス
+  if (opt.vitB) it.vit = opt.vitB;     // 武器・装飾の VIT 補正 (負値=重武器のペナルティ等)
   if (opt.cursed) it.cursed = true;
   if (opt.align) it.align = opt.align;
   // 絵: 原型 × 染め色 (属性があれば属性色が既定)
@@ -210,23 +212,23 @@ function base(id, name, slot, lv, artKey, opt) {
 }
 
 // 武器: W(id, 名, サブカテゴリ, lv, opt)
-// opt: { desc(必須), eAtk, two, cls, spd, mp, hp, atk(絶対値上書き), tint, tintAmt, cursed, align, price }
+// opt: { desc(必須), eAtk, two, cls, pow(自動ATKの倍率), vitB, spd, mp, hp, atk(絶対値上書き), tint, tintAmt, cursed, align, price }
 export function W(id, name, cat, lv, opt = {}) {
   chk(W_MUL[cat], "unknown weapon cat: " + cat + " (" + id + ")");
   const it = base(id, name, "weapon", lv, cat, { cls: opt.cls !== undefined ? opt.cls : null, ...opt });
   it.cat = cat;
   const two = !!opt.two || cat === "bw"; // 弓は常に両手
   if (two) it.twoHanded = true;
-  it.atk = opt.atk != null ? opt.atk : Math.max(1, (2 + lv * 0.82 + lv * lv * 0.0026) * W_MUL[cat] * (two && cat !== "bw" ? 1.25 : 1));
+  it.atk = opt.atk != null ? opt.atk : Math.max(1, round((2 + lv * 0.82 + lv * lv * 0.0026) * W_MUL[cat] * (two && cat !== "bw" ? 1.25 : 1) * (opt.pow || 1)));
   it.hit = opt.hit != null ? opt.hit : 1 + Math.floor(lv / 25);
   it.dice = opt.dice || ("1d" + (4 + Math.min(20, Math.floor(lv / 9))) + (lv >= 30 ? "+" + Math.min(15, Math.floor(lv / 13)) : ""));
   it.swings = opt.swings || 1;
   if (cat === "st") {                                                // 杖は魔力の触媒
-    if (it.mp == null) it.mp = 2 + lv * 0.05 + lv * lv * 0.0006;
-    if (it.int == null) it.int = Math.max(1, 0.5 + lv * 0.025 + lv * lv * 0.00028);
+    // INT は呪文威力に ×0.5 で直結する術者の「攻撃力」— 武器ATKと同格のカーブにする
+    if (it.mp == null) it.mp = round(3 + lv * 0.3 + lv * lv * 0.0008);
+    if (it.int == null) it.int = Math.max(1, round(2 + lv * 0.5 + lv * lv * 0.0015));
   }
-  if (cat === "dg" && it.agi == null) it.agi = Math.max(1, round(typicalBase(lv, "agi") * 0.07)); // 短剣は取り回しが軽い (lv帯に比例)
-  finalizePct(it);
+  if (cat === "dg" && it.agi == null) it.agi = Math.max(1, round(1 + lv * 0.06)); // 短剣は取り回しが軽い (lvに比例)
   return it;
 }
 
@@ -234,9 +236,8 @@ export function W(id, name, cat, lv, opt = {}) {
 export function S(id, name, lv, opt = {}) {
   const shape = opt.shape || "kite";
   const it = base(id, name, "shield", lv, shape, { cls: null, ...opt });
-  it.vit = opt.def != null ? opt.def : Math.max(1, 2 + lv * 0.16 + lv * lv * 0.0014);
+  it.vit = opt.def != null ? opt.def : Math.max(1, round((2 + lv * 0.16 + lv * lv * 0.0014) * (opt.pow || 1)));
   it.weight = SHAPE_WEIGHT[shape] || "cloth";  // orb/book 等は cloth 扱い
-  finalizePct(it);
   return it;
 }
 
@@ -248,13 +249,13 @@ export function A(id, name, lv, opt = {}) {
   const autoWeight = robe ? "cloth" : "heavy";
   const weight = opt.weight || autoWeight;
   const lightMul = weight === "cloth" ? 0.5 : weight === "light" ? 0.75 : 1;
-  it.vit = opt.def != null ? opt.def : Math.max(1, (3 + lv * 0.22 + lv * lv * 0.0014) * lightMul);
+  it.vit = opt.def != null ? opt.def : Math.max(1, round((3 + lv * 0.22 + lv * lv * 0.0014) * lightMul * (opt.pow || 1)));
   if (robe || weight === "cloth") {
-    if (it.mp == null) it.mp = 1.5 + lv * 0.05 + lv * lv * 0.0005;
-    if (it.pie == null) it.pie = Math.max(1, 0.5 + lv * 0.022 + lv * lv * 0.0001);
+    // PIE は回復量に ×0.5 で直結する — 法衣は癒し手の主装備としてしっかり伸ばす
+    if (it.mp == null) it.mp = round(2 + lv * 0.25 + lv * lv * 0.0007);
+    if (it.pie == null) it.pie = Math.max(1, round(1 + lv * 0.28 + lv * lv * 0.0008));
   }
   it.weight = weight;
-  finalizePct(it);
   return it;
 }
 
@@ -263,9 +264,8 @@ export function A(id, name, lv, opt = {}) {
 export function H(id, name, lv, opt = {}) {
   const shape = opt.shape || "helm";
   const it = base(id, name, "head", lv, shape, opt);
-  it.vit = opt.def != null ? opt.def : Math.max(1, 1 + lv * 0.10 + lv * lv * 0.0012);
+  it.vit = opt.def != null ? opt.def : Math.max(1, round((1 + lv * 0.10 + lv * lv * 0.0012) * (opt.pow || 1)));
   it.weight = opt.weight || SHAPE_WEIGHT[shape];
-  finalizePct(it);
   return it;
 }
 
@@ -274,9 +274,8 @@ export function H(id, name, lv, opt = {}) {
 export function F(id, name, lv, opt = {}) {
   const shape = opt.shape || "boots";
   const it = base(id, name, "feet", lv, shape, opt);
-  it.vit = opt.def != null ? opt.def : Math.max(1, 1 + lv * 0.09 + lv * lv * 0.0010);
+  it.vit = opt.def != null ? opt.def : Math.max(1, round((1 + lv * 0.09 + lv * lv * 0.0010) * (opt.pow || 1)));
   it.weight = opt.weight || SHAPE_WEIGHT[shape];
-  finalizePct(it);
   return it;
 }
 
@@ -285,9 +284,8 @@ export function F(id, name, lv, opt = {}) {
 export function G(id, name, lv, opt = {}) {
   const shape = opt.shape || "gloves";
   const it = base(id, name, "hands", lv, shape, opt);
-  it.vit = opt.def != null ? opt.def : Math.max(1, 1 + lv * 0.09 + lv * lv * 0.0010);
+  it.vit = opt.def != null ? opt.def : Math.max(1, round((1 + lv * 0.09 + lv * lv * 0.0010) * (opt.pow || 1)));
   it.weight = opt.weight || SHAPE_WEIGHT[shape];
-  finalizePct(it);
   return it;
 }
 
@@ -295,7 +293,6 @@ export function G(id, name, lv, opt = {}) {
 export function R(id, name, shape, lv, opt = {}) {
   const it = base(id, name, "acc", lv, shape, opt);
   if (opt.def != null) it.vit = opt.def;
-  finalizePct(it);
   return it;
 }
 
