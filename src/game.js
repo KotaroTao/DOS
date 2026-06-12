@@ -5602,15 +5602,16 @@ function renderSoulTab(p) {
         info.appendChild(el("div", "st-soulstat", "Lv上限 — 館で限界突破"));
       } else {
         // 次のレベルまでに必要な Soul を所持量に対するバーで表示
+        // この魂が次のLvに蓄えた経験値(soul.exp)を表示。戦闘勝利で貯まる
         const need = soulTrainCost(s.level);
-        const have = G.soulPts || 0;
-        const ratio = Math.max(0, Math.min(1, have / need));
+        const have = Math.max(0, Math.min(need, s.exp || 0));
+        const ratio = need > 0 ? have / need : 0;
         const bar = el("div", "st-soulbar");
         const fill = el("i");
         fill.style.width = `${Math.round(ratio * 100)}%`;
         bar.appendChild(fill);
         info.appendChild(bar);
-        info.appendChild(el("div", "st-soulstat", `次のLvまで Soul ${Math.min(have, need)} / ${need}`));
+        info.appendChild(el("div", "st-soulstat", `次のLvまで Soul ${have} / ${need}`));
       }
       row.appendChild(info);
       // タップで魂の詳細をポップアップ表示 (ステータス + パッシブ)
