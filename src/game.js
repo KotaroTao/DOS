@@ -2755,7 +2755,10 @@ function townHeader(title, backTo = "hub") {
     back.className = "tw-back";
     head.appendChild(back);
   } else {
-    head.appendChild(el("div", "tw-back ghost", ""));
+    const sg = btn("⚙", () => { SFX.select(); if (G.settingsOpen) closeSettings(); else openSettings(); });
+    sg.className = "tw-back";
+    sg.title = "設定";
+    head.appendChild(sg);
   }
   head.appendChild(el("div", "tw-title", title));
   const cur = el("div", "tw-cur");
@@ -2794,10 +2797,7 @@ let townBandOpen = null; // 迷宮選択で開いている層域 (null = 選択�
 function renderTownHub() {
   townEl.appendChild(townHeader("辺境の街 ロアダル", false));
 
-  const intro = el("div", "tw-intro");
-  intro.appendChild(el("div", "tw-introt", "百の迷宮と 魂の王 — Hundred Labyrinths: Rise of the Soul King"));
-  intro.appendChild(el("div", "tw-intros", `踏破した迷宮 ${clearedDungeonCount()} / ${DUNGEONS.length}`));
-  townEl.appendChild(intro);
+
 
   // 第0章 (人業の生成) の間は、王宮 (+下賜後は人業の館) 以外を閉ざす
   const tut = G.msq && G.msq.n === 0 && G.msq.state === "active";
