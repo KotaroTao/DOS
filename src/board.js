@@ -6,11 +6,10 @@
 // type: start | empty | monster | chest | trap | poison | fountain | stairs
 // walls: その辺に壁があれば true (隣接セルと共有)
 
+import { rollJobClass } from "./souls.js";
+
 export const COLS = 8;
 export const ROWS = 6;
-
-// 死体に宿る職業の候補 (魂の職業と対応)
-const SOUL_CLASS_KEYS = ["fighter", "knight", "thief", "mage", "priest", "bishop"];
 
 // ===== 迷宮の種類 =====
 // 迷宮の定義 (名前/階数/出現プール/ボス等) は src/dungeons/ 配下のモジュールへ移管。
@@ -181,7 +180,7 @@ export function makeBoard(floor, cfg = null) {
       else if (r2 < 0.92) {
         // 死体: 職業つき。一部は「まだあたたかい死体」で魂が手に入る (青い人魂)
         c.type = "corpse"; c.cleared = false;
-        c.corpseClass = pick(SOUL_CLASS_KEYS);
+        c.corpseClass = rollJobClass();
         c.corpseWarm = Math.random() < warmChance;
       }
       else if (fountainCount < 1) { c.type = "fountain"; c.cleared = false; fountainCount++; }

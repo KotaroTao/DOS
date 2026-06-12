@@ -304,7 +304,6 @@ function activeCfg() { return curDungeon(); }
 // ===== 特別階 =====
 // 階段を降りた時、一定確率で「特別な効果を持つ階」が出現する (1Fと強敵階には出ない)。
 // 効果はその階に滞在する間だけ有効。board(b) は newFloor 直後の盤面加工フック。
-const SF_CORPSE_CLASSES = ["fighter", "knight", "thief", "mage", "priest", "bishop"];
 const SPECIAL_FLOORS = [
   { id: "mighty", name: "強大な気配", icon: "corpseWarm", accent: "#ffcf4a", sym: "✟", minFloor: 3, rate: 0.01,
     lines: ["この階のどこかに「偉大なる死体」が眠っている。", "並の魂ではない。必ずや希少な魂が宿っているだろう。"],
@@ -339,7 +338,7 @@ const SPECIAL_FLOORS = [
     lines: ["全滅した商隊の荷が散らばっている。", "この階の宝箱は1ランク上等だ。"] },
   { id: "necropolis", name: "屍人の巣", icon: "corpse", accent: "#8c866f", sym: "✝", minFloor: 3, rate: 0.015,
     lines: ["おびただしい数の死体が横たわっている。", "魂を回収する好機だが、起き上がる者もいるだろう。"],
-    board: (b) => sfPlace(b, 4, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = pickFrom(SF_CORPSE_CLASSES); c.corpseWarm = Math.random() < 0.5; }) },
+    board: (b) => sfPlace(b, 4, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = Math.random() < 0.5; }) },
   { id: "marsh", name: "毒の沼", icon: "poison", accent: "#5a8a2a", sym: "ஃ", minFloor: 2, rate: 0.02, goldMul: 1.5,
     lines: ["床のいたるところから毒が滲み出している。", "足場は危険だが、沼には金品が沈んでいる。ゴールド 1.5倍。"],
     board: (b) => sfEachCell(b, (c) => { if (c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.30) { c.type = "poison"; c.cleared = false; } }) },
@@ -391,10 +390,10 @@ function shadeHex(hex, f) {
   const n = parseInt(hex.slice(1), 16);
   return `rgb(${Math.round(((n >> 16) & 255) * f)},${Math.round(((n >> 8) & 255) * f)},${Math.round((n & 255) * f)})`;
 }
-// 偉大なる死体の職業: コモン0% / レア90% / エピック9% / レジェンド1%
+// 偉大なる死体の職業: レア60% / エピック30% / レジェンド10%
 function rollGreatCorpseClass() {
   const r = Math.random();
-  const rarity = r < 0.01 ? "legend" : r < 0.10 ? "epic" : "rare";
+  const rarity = r < 0.10 ? "legend" : r < 0.40 ? "epic" : "rare";
   const pool = Object.keys(SOUL_CLASSES).filter((k) => SOUL_CLASSES[k].rarity === rarity);
   return pickFrom(pool);
 }
@@ -2695,7 +2694,7 @@ function endBattle() {
       const soulChance = wasElite ? 0.40 : 0.08; // 強敵は魂ドロップ率が大幅上昇
       if (Math.random() < soulChance) {
         const dn = activeCfg();
-        const s = makeSoul(sc, 1 + (dn.soulLevelBonus || 0) + (G.floor >= 2 ? 1 : 0), null, rollSoulRank(dn.rankBonus || 0));
+        const s = makeSoul(rollJobClass(), 1 + (dn.soulLevelBonus || 0) + (G.floor >= 2 ? 1 : 0), null, rollSoulRank(dn.rankBonus || 0));
         runGainSoul(s);
         G.stats.soulsFound++;
         questProgress("soul", null, 1);
