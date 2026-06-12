@@ -2707,14 +2707,31 @@ function dollChip(d) {
   return chip;
 }
 
-// ---- 人業の館: 4つのメニュー (編成 / 魂を宿す / 魂の強化・管理 / 人業作成・管理) ----
+// ---- 人業の館: 6つの機能を「人業 (器)」「魂」の2グループに分けて提供 ----
+// desc/badge は関数で、開くたびに現在の状態 (編成数・ストック数・✦ など) を映す
 const MANSION_MENU = [
-  { key: "party", icon: "🛡", name: "パーティ編成", desc: "迷宮へ連れて行く6体を選ぶ" },
-  { key: "altar", icon: "⛓", name: "魂を宿す", desc: "5部位に魂を宿す" },
-  { key: "enhance", icon: "✦", name: "魂強化", desc: "Soulで魂を鍛える" },
-  { key: "synth", icon: "🌀", name: "魂合成", desc: "Soulで魂を作る" },
-  { key: "break", icon: "💥", name: "魂分解", desc: "魂を砕いてSoulに" },
-  { key: "manage", icon: "🏚", name: "人業 作成 / 管理", desc: "空の人業を購入・解体" },
+  { sec: "doll", key: "party", icon: "🛡", name: "パーティ編成",
+    desc: () => `編成 ${G.party.length}/6 ・ 控え ${G.reserve.length}体` },
+  { sec: "doll", key: "manage", icon: "🏚", name: "人業の作成・解体",
+    desc: () => `空の人業を購入 (🔴${emptyDollCost()})・解体で魂を回収` },
+  { sec: "soul", key: "altar", icon: "⛓", name: "魂を宿す",
+    desc: () => `5部位に魂を宿す（ストック ${G.souls.length}）`,
+    badge: () => {
+      const empties = allDolls().filter((d) => d.isEmpty);
+      if (!empties.length) return null;
+      const mx = Math.max(...empties.map((d) => dollSouls(d).length));
+      return mx >= 5 ? "❗ 人業を生成できる" : `空の人形 — 魂 ${mx}/5`;
+    } },
+  { sec: "soul", key: "enhance", icon: "✦", name: "魂強化",
+    desc: () => `✦${G.soulPts} で鍛える・限界突破` },
+  { sec: "soul", key: "synth", icon: "🌀", name: "魂合成",
+    desc: () => `✦${SOUL_SYNTH_COST}+空の魂で作る（空の魂 ${emptySoulCount()}個）` },
+  { sec: "soul", key: "break", icon: "💥", name: "魂分解",
+    desc: () => `魂を砕いてSoulに戻す（ストック ${G.souls.length}）` },
+];
+const MANSION_SECTIONS = [
+  ["doll", "人業 — 器を仕立て、隊を組む"],
+  ["soul", "魂 — 宿す・鍛える・作る・砕く"],
 ];
 
 function renderMansion() {
@@ -2729,18 +2746,25 @@ function renderMansion() {
   townEl.appendChild(townHeader("人業の館"));
   townEl.appendChild(el("div", "tw-lead", "人型の器「人業（Doll）」を仕立て、5部位に魂を宿して鍛える訓練所。"));
   const tutM = G.msq && G.msq.n === 0 && G.msq.state === "active";
-  const grid = el("div", "tw-grid");
-  for (const m of MANSION_MENU) {
-    // 第0章中は「作成/管理」のみ。空の人形がいる間は「魂を宿す」も開放 (戻れないと詰むため)
-    const locked = tutM && m.key !== "manage" && !(m.key === "altar" && allDolls().some((d) => d.isEmpty));
-    const c = el("div", "tw-fac" + (locked ? " locked" : ""));
-    c.appendChild(el("div", "tw-faci", locked ? "🔒" : m.icon));
-    c.appendChild(el("div", "tw-facn", m.name));
-    c.appendChild(el("div", "tw-facd", m.desc));
-    if (!locked) c.addEventListener("click", () => { SFX.select(); G.town.sub = m.key; altarSel = null; renderTown(); });
-    grid.appendChild(c);
+  for (const [sec, label] of MANSION_SECTIONS) {
+    townEl.appendChild(el("div", "tw-h", label));
+    const grid = el("div", "tw-grid");
+    for (const m of MANSION_MENU.filter((x) => x.sec === sec)) {
+      // 第0章中は「作成・解体」のみ。空の人形がいる間は「魂を宿す」も開放 (戻れないと詰むため)
+      const locked = tutM && m.key !== "manage" && !(m.key === "altar" && allDolls().some((d) => d.isEmpty));
+      const c = el("div", "tw-fac" + (locked ? " locked" : ""));
+      c.appendChild(el("div", "tw-faci", locked ? "🔒" : m.icon));
+      c.appendChild(el("div", "tw-facn", m.name));
+      c.appendChild(el("div", "tw-facd", m.desc()));
+      const badge = !locked && m.badge ? m.badge() : null;
+      if (badge) c.appendChild(el("div", "tw-facb", badge));
+      if (!locked) c.addEventListener("click", () => { SFX.select(); G.town.sub = m.key; altarSel = null; renderTown(); });
+      grid.appendChild(c);
+    }
+    townEl.appendChild(grid);
   }
-  townEl.appendChild(grid);
+  townEl.appendChild(el("div", "tw-note",
+    "流れ: 作成 (🔴) → 魂を宿す (5部位で生成) → 編成して迷宮へ。魂は迷宮の死体から回収できる。"));
 }
 
 // 館サブ: パーティ編成 (編成 ⇄ 控え の入れ替え + ▲▼で隊列の並び替え)
@@ -2804,10 +2828,20 @@ function rosterRow(d, onClick) {
   return row;
 }
 
+// 魂リストの共通表示順: 部位 → 職業 → ランク降順 → Lv降順。
+// 同部位・同職 (=限界突破の素材) が隣り合い、所持数がひと目で分かる
+const SOUL_CLS_ORDER = Object.keys(SOUL_CLASSES);
+function soulCmp(a, b) {
+  return (PARTS.indexOf(a.part || "head") - PARTS.indexOf(b.part || "head"))
+    || (SOUL_CLS_ORDER.indexOf(a.clsKey) - SOUL_CLS_ORDER.indexOf(b.clsKey))
+    || (SOUL_RANKS[b.rank || "normal"].order - SOUL_RANKS[a.rank || "normal"].order)
+    || (b.level - a.level);
+}
+
 // 館サブ: 魂の強化・管理 (ストックの魂を一覧、Soulで鍛える)
 function renderMansionEnhance() {
   townEl.appendChild(townHeader("魂強化", "mansion"));
-  townEl.appendChild(el("div", "tw-lead", `✦${G.soulPts} Soul で、ストックの魂や人業に宿した魂を鍛えられる。`));
+  townEl.appendChild(el("div", "tw-lead", `✦${G.soulPts} Soul で、ストックの魂や人業に宿した魂を鍛えられる。\n(名前タップで能力と強化時の伸びを確認できる)`));
 
   // 宿している魂 (人業ごと)
   for (const d of allDolls()) {
@@ -2827,7 +2861,7 @@ function renderMansionEnhance() {
   townEl.appendChild(el("div", "tw-h", `魂ストック (${G.souls.length})`));
   const stock = el("div", "tw-soullist");
   if (!G.souls.length) stock.appendChild(el("div", "tw-empty", "ストックに魂がない。迷宮で集めよう。"));
-  for (const s of G.souls) stock.appendChild(soulEnhanceRow(s, null));
+  for (const s of [...G.souls].sort(soulCmp)) stock.appendChild(soulEnhanceRow(s, null));
   townEl.appendChild(stock);
 }
 
@@ -3075,10 +3109,10 @@ function soulBreakRefund(s) { return Math.max(1, Math.floor(soulInvested(s) / 2)
 // 魂分解: ストックの魂を砕いて Soul を得る (Lvが高いほど多い)
 function renderMansionBreak() {
   townEl.appendChild(townHeader("魂分解", "mansion"));
-  townEl.appendChild(el("div", "tw-lead", "ストックの魂を砕いて Soul を取り戻す。レベルが高い魂ほど多く得られる。"));
+  townEl.appendChild(el("div", "tw-lead", "ストックの魂を砕いて Soul を取り戻す。レベルが高い魂ほど多く得られる。\n(名前タップで魂の能力を確認できる)"));
   const list = el("div", "tw-soullist");
   if (!G.souls.length) list.appendChild(el("div", "tw-empty", "ストックに魂がない。(宿している魂は外してから)"));
-  G.souls.forEach((s) => {
+  [...G.souls].sort(soulCmp).forEach((s) => {
     const rank = SOUL_RANKS[s.rank || "normal"];
     const r = el("div", "tw-soulrow" + (rank.order >= 1 ? " rare" : ""));
     if (rank.color) r.style.borderColor = rank.color;
@@ -3088,6 +3122,7 @@ function renderMansionBreak() {
     const nm = el("div", "tw-souln", soulName(s)); if (rank.color) nm.style.color = rank.color;
     info.appendChild(nm);
     info.appendChild(el("div", "tw-soulst", `分解で ✦${soulBreakRefund(s)} を得る`));
+    info.addEventListener("click", () => { SFX.select(); showSoulInfo(s); });
     r.appendChild(info);
     const b = btn(`💥 分解`, () => confirmBreakSoul(s));
     b.className = "tw-small danger";
@@ -3115,12 +3150,13 @@ function confirmBreakSoul(s) {
   });
 }
 
-// 館サブ: 人業の作成・管理 (購入・解体)
+// 館サブ: 人業の作成・解体 (空の器の購入 / 解体して魂を回収 / 改名)
 function renderMansionManage() {
-  townEl.appendChild(townHeader("人業 作成 / 管理", "mansion"));
-  townEl.appendChild(el("div", "tw-lead", "空の人業を仕立て、不要な人業は解体して魂を回収できる。"));
+  townEl.appendChild(townHeader("人業の作成・解体", "mansion"));
+  townEl.appendChild(el("div", "tw-lead", "空の人業を仕立て、不要な人業は解体して宿した魂を回収する。"));
 
   const list = el("div", "tw-mlist");
+  if (!allDolls().length) list.appendChild(el("div", "tw-empty", "人業がいない。空の人業を購入しよう。"));
   allDolls().forEach((d) => {
     const inParty = G.party.includes(d);
     const row = el("div", "tw-mrow" + (d.alive ? "" : " dead"));
@@ -3128,14 +3164,25 @@ function renderMansionManage() {
     if (d.dominant) { s.style.color = SOUL_CLASSES[d.dominant.clsKey].glow; s.appendChild(spriteCanvas(soulSprite(d.dominant.clsKey), 2)); }
     row.appendChild(s);
     const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †") + (d.isEmpty ? "（未生成）" : inParty ? "" : " (控え)")));
-    info.appendChild(el("div", "tw-chipc", d.isEmpty
-      ? `魂 ${dollSouls(d).length}/5 — 5部位に宿すと人業として生成できる`
-      : `${d.cls} Lv${d.jobLv || 1} ・ 魂 ${dollSouls(d).length}/5`));
+    info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
+    const tag = d.isEmpty ? "未生成" : inParty ? "編成中" : "控え";
+    info.appendChild(el("div", "tw-chipc", (d.isEmpty
+      ? `魂 ${dollSouls(d).length}/5`
+      : `${d.cls} Lv${d.jobLv || 1} ・ 魂 ${dollSouls(d).length}/5`) + ` ・ ${tag}`));
     row.appendChild(info);
-    const ren = btn("名前を変える", () => showRenameInput(d));
-    ren.className = "tw-small";
-    row.appendChild(ren);
+    if (d.isEmpty) {
+      // 未生成の人形は改名より「宿す」への導線が先 (名前は生成時に与える)
+      const go = btn("⛓ 宿す", () => { altarSel = { doll: d, part: null }; G.town.sub = "altar"; SFX.select(); renderTown(); });
+      go.className = "tw-small primary";
+      row.appendChild(go);
+    } else {
+      const ren = btn("✏ 改名", () => showRenameInput(d));
+      ren.className = "tw-small";
+      row.appendChild(ren);
+    }
+    const dis = btn("🔨 解体", () => confirmDisband(d));
+    dis.className = "tw-small danger";
+    row.appendChild(dis);
     list.appendChild(row);
   });
   townEl.appendChild(list);
@@ -3143,10 +3190,10 @@ function renderMansionManage() {
   const cost = emptyDollCost();
   const add = btn(`＋ 空の人業を購入 (🔴${cost})`, () => buyEmptyDoll());
   add.className = "btn tw-add";
-  if (G.redSoul < cost) add.disabled = true;
+  if (G.redSoul < cost || G.reserve.length >= 12) add.disabled = true;
   townEl.appendChild(add);
   townEl.appendChild(el("div", "tw-note",
-    `空の人業: 1体目 🔴30 / 2体目 🔴50 / 3体目以降 🔴100`));
+    `空の人業: 1体目 🔴30 / 2体目 🔴50 / 3体目以降 🔴100 ・ 控え枠 ${G.reserve.length}/12`));
 }
 
 // 空の人業の価格 (購入回数で段階的に上昇)
@@ -3176,8 +3223,25 @@ function buyEmptyDoll() {
   renderTown();
 }
 
+// 人業の解体: 宿した魂はストックへ戻し、装備・所持品は空きのある仲間が引き取る。
+// 死亡中は不可 (帰還待ちを飛ばして魂を即回収できてしまう)。最後の生成済み人業も不可。
 function confirmDisband(d) {
-  const lines = ["宿した魂はストックに戻る。", "装備していた品も外れる。"];
+  if (!d.alive) { log("死亡中の人業は解体できない。帰還を待とう。", "sys"); SFX.ng(); return; }
+  if (!d.isEmpty && !allDolls().some((x) => x !== d && !x.isEmpty)) {
+    log("最後の人業は解体できない。", "sys"); SFX.ng(); return;
+  }
+  const souls = dollSouls(d);
+  const gear = [...new Set(Object.values(d.equip).filter(Boolean)), ...d.items];
+  const receivers = allDolls().filter((x) => x !== d);
+  const free = receivers.reduce((a, x) => a + Math.max(0, MAX_ITEMS - x.items.length), 0);
+  const lost = Math.max(0, gear.length - free);
+  const lines = [];
+  if (souls.length) lines.push(`宿した魂 ${souls.length}個はストックへ戻る。`);
+  if (gear.length) lines.push(lost
+    ? `装備・所持品 ${gear.length}点のうち ${gear.length - lost}点は仲間が引き取る（${lost}点は持ちきれず失われる）。`
+    : `装備・所持品 ${gear.length}点は仲間が引き取る。`);
+  if (d.isEmpty) lines.push("購入に使った🔴は戻らない。");
+  lines.push("解体した器は二度と戻らない。");
   showConfirm({
     title: `${d.name} を解体する？`,
     lines,
@@ -3185,11 +3249,21 @@ function confirmDisband(d) {
     onOk: () => {
       // 魂をストックへ返す
       for (const part of PARTS) { if (d.parts[part]) { G.souls.push(d.parts[part]); d.parts[part] = null; } }
+      // 装備・所持品は空きのある仲間へ (持ちきれない分は失われる)
+      let moved = 0;
+      for (const it of gear) {
+        const r = receivers.find((x) => x.items.length < MAX_ITEMS);
+        if (r) { r.items.push(it); moved++; }
+      }
       const pi = G.party.indexOf(d);
       if (pi >= 0) G.party.splice(pi, 1);
       const ri = G.reserve.indexOf(d);
       if (ri >= 0) G.reserve.splice(ri, 1);
-      log(`${d.name} を解体した。`, "sys");
+      SFX.crit(); buzz([0, 40, 40, 40]);
+      log(`${d.name} を解体した。`
+        + (souls.length ? ` 魂${souls.length}個を回収。` : "")
+        + (gear.length ? ` 品${moved}/${gear.length}点を引き継いだ。` : ""), "sys");
+      autosave(true);
       renderTown();
     },
   });
@@ -3278,6 +3352,7 @@ function renderAltar() {
   const d = altarSel.doll;
 
   townEl.appendChild(townHeader("魂を宿す間", "mansion"));
+  townEl.appendChild(el("div", "tw-lead", "部位をタップして魂を宿す。同じ職業の魂を3部位以上そろえると、その職業が発現する。"));
 
   // 人業セレクタ
   const sel = el("div", "tw-dolltabs");
@@ -3387,12 +3462,13 @@ function renderAltar() {
       un.className = "btn danger tw-un";
       townEl.appendChild(un);
     }
-    townEl.appendChild(el("div", "tw-h", `「${PART_LABEL[part]}」に宿す魂を選ぶ`));
+    townEl.appendChild(el("div", "tw-h", `「${PART_LABEL[part]}」に宿す魂を選ぶ — タップで宿す`));
     const stock = el("div", "tw-soullist");
     // 魂は対応する部位にしか宿せない
     const candidates = G.souls
       .map((s, si) => ({ s, si }))
-      .filter(({ s }) => (s.part || "head") === part);
+      .filter(({ s }) => (s.part || "head") === part)
+      .sort((a, b) => soulCmp(a.s, b.s));
     if (!candidates.length) stock.appendChild(el("div", "tw-empty", `この部位の魂がない。迷宮で（${PART_LABEL[part]}）の魂を探そう。`));
     for (const { s, si } of candidates) {
       const rank = SOUL_RANKS[s.rank || "normal"];
@@ -3407,6 +3483,7 @@ function renderAltar() {
       const st = soulStats(s);
       info.appendChild(el("div", "tw-soulst", soulStatText(st)));
       r.appendChild(info);
+      r.appendChild(el("div", "tw-chiphp", "宿す ▶"));
       r.addEventListener("click", () => sealFromStock(d, part, si));
       stock.appendChild(r);
     }
