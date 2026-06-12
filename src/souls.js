@@ -454,7 +454,7 @@ export const PART_SKILLS = {
 // スキル表そのものは jobSkillTable() がベース職+サブ職から合成する。
 export const HYBRIDS = {
   // --- 戦士ベース ---
-  "fighter+thief":  { name: "侍",       spell: "ISSEN",    ranks: ["浪人", "侍", "剣客", "侍大将", "剣神"], desc: "斬撃に影の足捌きを織り込んだ異国の剣士。抜き打ちの一閃が戦いの口火を切る。", tips: "居合の自動攻撃で口火を切り、残心の追撃で敵の数を減らす。AGIを盛るほど先手の型が冴える。" },
+  "fighter+thief":  { name: "侍",       spell: "ISSEN",    ranks: ["浪人", "侍", "剣客", "侍大将", "剣神"], desc: "斬撃に影の足さばきを織り込んだ異国の剣士。抜き打ちの一閃が戦いの口火を切る。", tips: "居合の自動攻撃で口火を切り、残心の追撃で敵の数を減らす。AGIを盛るほど先手の型が冴える。" },
   "fighter+mage":   { name: "魔法剣士", spell: "MAHALITO", ranks: ["魔剣の徒", "魔法剣士", "魔刃士", "大魔剣士", "魔剣聖"], desc: "刃に呪文を纏わせる戦い方。剣で攻めながら、届かぬ敵は業火で焼く。", tips: "魔力撃でINTが通常攻撃に乗るため、ATKとINTを両方育てたい。剣魔合一は呪文→剣の順で会心が確定する。" },
   "fighter+priest": { name: "聖戦士",   spell: "DIAL",     ranks: ["聖戦の徒", "聖戦士", "聖剣士", "聖戦将", "神威の剣"], desc: "祈りを力に変える戦士。魔を祓いながら、自らの傷を癒して戦い続ける。", tips: "破邪で不死・幽鬼・悪魔に滅法強い。戦闘後回復で消耗が少なく、長丁場の深層探索の先頭に向く。" },
   "fighter+knight": { name: "重戦士",   spell: "GOUZAN",   ranks: ["重兵", "重戦士", "重装闘士", "重戦将", "鬼神将"], desc: "攻めの剛力と守りの錬度を兼ね備えた、純粋な前衛の完成形。受けた刃は倍にして返す。", tips: "挑発で敵の単体攻撃を引き受け、反撃で被弾を火力に変える。重装備で固めるほど強気に立ち回れる。" },
@@ -463,24 +463,24 @@ export const HYBRIDS = {
   "knight+priest":  { name: "聖騎士",   spell: "DIAL",     ranks: ["聖騎士見習い", "聖騎士", "聖堂守護", "聖騎士長", "神盾公"], desc: "守護の誓いに聖句を重ねた生ける盾。倒れてなお、その祈りは仲間を癒す。", tips: "かばうで瀕死の仲間を守り抜く守護の要。自分も回復を持つため崩れにくく、殉教の祈りが最後の保険になる。" },
   "knight+fighter": { name: "聖堂騎士", spell: "IRONWALL", ranks: ["城門衛士", "聖堂騎士", "城塞騎士", "大聖堂騎士", "不落の城壁"], desc: "城壁の如き構えから強撃を放つ、攻防一体の重装騎士。", tips: "城壁の構えにより防御するだけで隊全体の被ダメージが減る。挑発で集めて耐え、反撃と不屈で粘り勝つ。" },
   "knight+thief":   { name: "斥候騎士", spell: "KAGENUI",  ranks: ["斥候", "斥候騎士", "遊撃騎士", "疾風騎士", "影鎧公"], desc: "重装ながら身軽さを失わぬ偵察騎士。隊の目となり、奇襲の芽を摘む。", tips: "周囲警戒と敵感知で隊の目を担う前衛。奇襲対策が一人で完結し、初見の迷宮を安全に進める。" },
-  "knight+mage":    { name: "魔騎士",   spell: "MADALT",   ranks: ["魔盾兵", "魔騎士", "呪鎧騎士", "大魔騎士", "魔城公"], desc: "障壁の呪文理論を盾に編み込んだ騎士。魔をもって魔を防ぎ、撥ね返す。", tips: "魔障壁と魔力反射でブレス・呪文の受けに無類。竜や術師が相手の時こそ前に出したい対魔の壁。" },
-  "knight+bishop":  { name: "神殿騎士", spell: "DIOSALL",  ranks: ["神殿衛士", "神殿騎士", "聖蹟守護", "神殿騎士長", "法城の盾"], desc: "神殿の最奥を守る誓いの騎士。その聖域に病毒は近寄れない。", tips: "聖域で隊全体に異常耐性を配れる。毒や麻痺をばら撒く魔物の巣窟で真価を発揮する守りの柱。" },
+  "knight+mage":    { name: "魔騎士",   spell: "MADALT",   ranks: ["魔盾兵", "魔騎士", "呪鎧騎士", "大魔騎士", "魔城公"], desc: "障壁の呪文理論を盾に編み込んだ騎士。魔をもって魔を防ぎ、はね返す。", tips: "魔障壁と魔力反射でブレス・呪文の受けに無類。竜や術師が相手の時こそ前に出したい対魔の壁。" },
+  "knight+bishop":  { name: "神殿騎士", spell: "DIOSALL",  ranks: ["神殿衛士", "神殿騎士", "聖跡守護", "神殿騎士長", "法城の盾"], desc: "神殿の最奥を守る誓いの騎士。その聖域に病毒は近寄れない。", tips: "聖域で隊全体に異常耐性を配れる。毒や麻痺をばらまく魔物の巣窟で真価を発揮する守りの柱。" },
   // --- 盗賊ベース ---
   "thief+fighter":  { name: "野伏",     spell: "MIDARE",   ranks: ["狩人", "野伏", "獣狩り", "首狩り", "修羅"], desc: "野に生きる狩人。不意打ちと会心で、確実に獲物を仕留める。", tips: "先制からの不意打ち会心が必殺。急所読みで会心ダメージも伸び、LUKを盛るほど一撃の期待値が跳ねる。" },
-  "thief+knight":   { name: "義賊",     spell: "IRONWALL", ranks: ["小盗", "義賊", "侠盗", "大侠盗", "伝説の義賊"], desc: "奪った力を弱きに配る無頼。金に聡く、仲間の盾になることを厭わない。", tips: "金運で稼ぎながら、かばうで前も張れる万能型。仁義の盾はかばった相手への攻撃に反撃まで返す。金策周回のお供に。" },
-  "thief+mage":     { name: "呪術師",   spell: "LAHALITO", ranks: ["呪い屋", "呪術師", "蠱毒師", "大呪術師", "禍津神"], desc: "盗賊の業に呪詛を混ぜた異端者。毒に冒された獲物を嬲り尽くす。", tips: "毒刃で蝕み、蠱毒で毒の敵への与ダメージを伸ばす継戦型。硬い大物ほど毒の積み重ねが効いてくる。" },
+  "thief+knight":   { name: "義賊",     spell: "IRONWALL", ranks: ["小盗", "義賊", "侠盗", "大侠盗", "伝説の義賊"], desc: "奪った力を弱きに配る無頼。金に聡く、仲間の盾になることをいとわない。", tips: "金運で稼ぎながら、かばうで前も張れる万能型。仁義の盾はかばった相手への攻撃に反撃まで返す。金策周回のお供に。" },
+  "thief+mage":     { name: "呪術師",   spell: "LAHALITO", ranks: ["呪い屋", "呪術師", "蠱毒師", "大呪術師", "禍津神"], desc: "盗賊の業に呪詛を混ぜた異端者。毒に冒された獲物をなぶり尽くす。", tips: "毒刃で蝕み、蠱毒で毒の敵への与ダメージを伸ばす継戦型。硬い大物ほど毒の積み重ねが効いてくる。" },
   "thief+priest":   { name: "祓魔師",   spell: "DISPEL",   ranks: ["祓い屋", "祓魔師", "聖影", "大祓魔師", "宵闇の聖者"], desc: "聖印を帯びた影。誰よりも速く動き、不浄なるものを刃で祓う。", tips: "聖刃の会心で不死・幽鬼・悪魔を狩る遊撃手。浄化が隊の毒・麻痺も拭うので、墓所や霊廟の探索に強い。" },
   "thief+bishop":   { name: "影法師",   spell: "KATINO",   ranks: ["影走り", "影法師", "宵渡り", "影渡りの導師", "無明"], desc: "影から影へ渡り歩く沈黙の伝道者。闇の祝詞で敵を眠らせ、寝首を掻く。", tips: "スリープで眠らせ、寝込み襲いの確定会心で刈り取るのが基本の型。財宝感知と魂寄せで探索の実入りも増える。" },
   // --- 魔術師ベース ---
-  "mage+priest":    { name: "賢者",     spell: "DIAL",     ranks: ["見習い賢者", "賢者", "碩学", "賢人", "全知者"], desc: "魔と聖、二つの理をともに識る者。森羅万象を識り、呪文に淀みがない。", tips: "森羅万象で属性の不利が消え、どの迷宮でも呪文が安定して通る。攻守の呪文を一人で賄う後衛の完成形。" },
+  "mage+priest":    { name: "賢者",     spell: "DIAL",     ranks: ["見習い賢者", "賢者", "博学者", "賢人", "全知者"], desc: "魔と聖、二つの理をともに識る者。森羅万象を識り、呪文に淀みがない。", tips: "森羅万象で属性の不利が消え、どの迷宮でも呪文が安定して通る。攻守の呪文を一人で賄う後衛の完成形。" },
   "mage+thief":     { name: "魔盗賊",   spell: "ASSASSINATE", ranks: ["魔盗り", "魔盗賊", "幻影盗", "宵闇の魔手", "霧の大盗"], desc: "影に潜んで呪文を放つ異形の術士。戦いの口火はいつも彼らの呪撃だ。", tips: "開幕呪撃が無消費で先手を取り、先制の心得で開幕の主導権を握る。短期決戦と雑魚散らしの鬼。" },
   "mage+fighter":   { name: "戦技師",   spell: "WARCRY",   ranks: ["武学徒", "戦技師", "闘術士", "武芸魔導", "軍神の杖"], desc: "肉体を鍛え上げた魔術師。杖の一振りに理力を乗せ、追撃の呪文を放つ。", tips: "魔力撃と二刀の理で通常攻撃が呪文火力を帯びる。MPが尽きても殴りで戦える、息の長い術士。" },
   "mage+knight":    { name: "護法師",   spell: "GUARDALL", ranks: ["護法見習い", "護法師", "結界師", "大結界師", "法城の賢者"], desc: "守りの法陣を究めた魔術師。大結界は隊を包み、災厄を半ばに断つ。", tips: "大結界が敵の全体攻撃を隊全体で半減する。全体技を連発する深層のボス戦で隊の生存率を一変させる。" },
-  "mage+bishop":    { name: "秘術師",   spell: "MADIOS",   ranks: ["写本師", "秘術師", "秘文士", "秘奥導師", "深淵の秘術師"], desc: "公にされぬ秘術を蒐集する求道者。呪文の冴えは司教をも凌ぐ。", tips: "呪文会心と省詠唱を併せ持つ攻撃呪文の特化型。燃費がよく、長い探索でも火力が衰えない。" },
+  "mage+bishop":    { name: "秘術師",   spell: "MADIOS",   ranks: ["写本師", "秘術師", "秘文士", "秘奥導師", "深淵の秘術師"], desc: "公にされぬ秘術を収集する求道者。呪文の冴えは司教をもしのぐ。", tips: "呪文会心と省詠唱を併せ持つ攻撃呪文の特化型。燃費がよく、長い探索でも火力が衰えない。" },
   // --- 僧侶ベース ---
   "priest+mage":    { name: "司教",     spell: "MAHALITO", ranks: ["助祭", "司教", "主教", "府主教", "教父"], desc: "聖職にありながら攻撃呪文を修めた二道の信徒。その祈りは死者にも届く。", tips: "回復を軸に攻撃呪文も撃てる後衛。慈悲の祈りが倒れた仲間を自動で引き起こす、立て直しの達人。" },
   "priest+knight":  { name: "審問官",   spell: "MADIOS",   ranks: ["修道士", "審問官", "断罪官", "大審問官", "神罰の執行者"], desc: "断罪の祈りで身を固めた聖職者。振るわれた暴力には神罰をもって応える。", tips: "異常耐性とかばうで崩れにくく、被弾には神罰の鉄槌で反撃する。前衛に置ける珍しい回復役。" },
-  "priest+fighter": { name: "戦僧",     spell: "MIDARE",   ranks: ["行者", "戦僧", "武僧", "大戦僧", "金剛力士"], desc: "拳と祈りで戦う破戒の僧。金剛の構えは死すら一度は撥ね除ける。", tips: "破邪を帯びた拳で殴れる回復役。金剛の構えで致死の一撃を一度耐え、その場で立て直せる。" },
+  "priest+fighter": { name: "戦僧",     spell: "MIDARE",   ranks: ["行者", "戦僧", "武僧", "大戦僧", "金剛力士"], desc: "拳と祈りで戦う破戒の僧。金剛の構えは死すら一度ははねのける。", tips: "破邪を帯びた拳で殴れる回復役。金剛の構えで致死の一撃を一度耐え、その場で立て直せる。" },
   "priest+thief":   { name: "隠修士",   spell: "BLIND",    ranks: ["庵主", "隠修士", "山隠れ", "深山の隠者", "霞の聖人"], desc: "俗世を離れ、影に祈りを隠した修道者。身軽に動き、癒し、そして消える。", tips: "隠形で奇襲を受けず、逃げ足も速い低リスクの癒し手。毒床耐性もあり、危険地帯の踏破に向く。" },
   "priest+bishop":  { name: "枢機卿",   spell: "MADIOS",   ranks: ["司祭", "高位司祭", "枢機卿", "大枢機卿", "教皇"], desc: "教団の頂に座す聖職者。その祈りは一人のためでなく、隊のすべてに注がれる。", tips: "教皇の祈りで戦闘後回復が隊全体に及ぶ。連戦の消耗を丸ごと癒し、宿に帰らず潜り続けられる。" },
   // --- 魔導僧ベース ---
@@ -512,7 +512,7 @@ export const JOB_LORE = {
   },
   priest: {
     desc: "祈りの果てに神の沈黙を知った聖職者の魂。それでも祈ることをやめなかった者だけが、癒しの力を残す。",
-    tips: "PIEが回復量を決める。蘇生の秘蹟を扱える唯一の系譜であり、聖者に至れば全滅の淵から一度だけ皆を引き戻す。",
+    tips: "PIEが回復量を決める。蘇生の秘跡を扱える唯一の系譜であり、聖者に至れば全滅の淵から一度だけ皆を引き戻す。",
   },
   bishop: {
     desc: "魔と聖、二つの道を同時に究めようとした異端者の魂。教会は彼らを破門し、迷宮は彼らを歓迎した。",
@@ -771,9 +771,7 @@ export function recalcDoll(doll) {
   doll.cls = clsLabel + (hybrid ? "(混成)" : "");
   doll.tier = jr ? (hybrid ? "hybrid" : "rank" + jr.rank) : "none";
   doll.dominant = dom;
-  doll.blessing = false;            // 旧フラグ (聖者の祝福) は廃止
   doll.endure = (pMap.endure || 0) > 0;
-  doll.spellMaster = false;         // 旧フラグ (魔道の極み) は廃止
   // 人業の「レベル」= 封印した魂の平均レベル (表示用)
   const souls = dollSouls(doll);
   doll.level = souls.length ? Math.max(1, Math.round(souls.reduce((a, s) => a + s.level, 0) / souls.length)) : 1;
@@ -800,46 +798,6 @@ export function sealSoul(doll, part, soul) {
   recalcDoll(doll);
 }
 
-// 新規プレイ時の初期編成。3体の人業 + 予備の魂を返す。
-// 器そのものは弱いが、魂を鍛え/組み替えて強くしていく導入。
-export function createStartingRoster() {
-  const dolls = [];
-
-  const garo = makeDoll("ガロ");
-  for (const p of PARTS) garo.parts[p] = makeSoul("fighter", 1, p);
-  recalcDoll(garo);
-  dolls.push(garo);
-
-  const saria = makeDoll("サリア");
-  saria.parts.head = makeSoul("mage", 1, "head");
-  saria.parts.rhand = makeSoul("mage", 1, "rhand");
-  saria.parts.body = makeSoul("mage", 1, "body");
-  saria.parts.lhand = makeSoul("thief", 1, "lhand");
-  saria.parts.legs = makeSoul("thief", 1, "legs");
-  recalcDoll(saria);
-  dolls.push(saria);
-
-  const mina = makeDoll("ミナ");
-  mina.parts.head = makeSoul("priest", 1, "head");
-  mina.parts.rhand = makeSoul("priest", 1, "rhand");
-  mina.parts.body = makeSoul("priest", 1, "body");
-  mina.parts.lhand = makeSoul("knight", 1, "lhand");
-  mina.parts.legs = makeSoul("knight", 1, "legs");
-  recalcDoll(mina);
-  dolls.push(mina);
-
-  // 予備の魂 (組み替え・新しい人業づくり用)
-  const souls = [
-    makeSoul("fighter", 1, "rhand"), makeSoul("fighter", 1, "body"),
-    makeSoul("knight", 1, "head"),
-    makeSoul("thief", 1, "legs"), makeSoul("thief", 1, "lhand"),
-    makeSoul("mage", 1, "head"),
-    makeSoul("priest", 1, "body"),
-  ];
-
-  return { dolls, souls };
-}
-
 // 魂のドット絵 (部位スロット/一覧表示用)。職業色の宝珠。
 export function soulSprite(clsKey) {
   const c = SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter;
@@ -848,9 +806,9 @@ export function soulSprite(clsKey) {
     art: [
       "....0000....",
       "..00222200..",
-      ".02211112 20.",
+      ".0221111220.",
       ".0211333110.",
-      "021133331 20",
+      "021133331120",
       "021113311120",
       "021111111120",
       "021111111120",

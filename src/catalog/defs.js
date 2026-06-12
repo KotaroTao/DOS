@@ -1,7 +1,7 @@
 // 一点物アイテムカタログの共通定義: ドット絵原型 + ビルダー
 //
 // 「上質な」「秘宝の」のような量産用の二つ名は廃止。すべてのアイテムは
-// ここにあるビルダー (W/S/A/H/F/M/U) を通して固有の名と来歴を持つ一点物として定義する。
+// ここにあるビルダー (W/S/A/H/F/G/R/M/U) を通して固有の名と来歴を持つ一点物として定義する。
 //
 // 共通ルール:
 //  - id は append-only (セーブ/図鑑が参照するため、改名・削除は禁止。増やすのみ)
@@ -98,6 +98,20 @@ export const ARTS = {
   greaves: [
     "............", "..kk...kk...", ".kwk...kwk..", ".kgk...kgk..", ".kwk...kwk..", ".kgk...kgk..",
     ".kwwk.kwwk..", ".kgwwkkgwwk.", ".kwggwwwggk.", ".kkkkkkkkk..", "............", "............"],
+  // --- 小手 ---
+  gloves: [
+    ".klk.klk....", ".klk.klk....", ".kllkllk....", ".kdlllldk...", "..klllk.....", "..kkkkk.....",
+    "............", "............", "............", "............", "............", "............"],
+  gauntlet: [
+    ".kwk.kwk....", ".kgwkgwk....", ".kwgwgwk....", ".kggwggk....", "..kgggk.....", "..kkkkk.....",
+    "............", "............", "............", "............", "............", "............"],
+  // --- 装飾品 ---
+  ring: [
+    "............", "....kkk.....", "...kyyyk....", "..ky.k.yk...", "..ky.y.yk...", "..ky...yk...",
+    "...ky.yk....", "....kyk.....", ".....k......", "............", "............", "............"],
+  amulet: [
+    "....kk......", "...kbbk.....", "..kb..bk....", "..kb..bk....", "...kbbk.....", "..kbccbk....",
+    ".kbcyycbk...", ".kbcyycbk...", ".kbccccbk...", "..kbbbbk....", "...kkkk.....", "............"],
   // --- その他 (換金品・戦利品) ---
   fang: [
     "............", "....kk......", "...kwwk.....", "...kwwk.....", "..kwwk......", "..kwwk......",
@@ -249,6 +263,20 @@ export function H(id, name, lv, opt = {}) {
 export function F(id, name, lv, opt = {}) {
   const it = base(id, name, "feet", lv, opt.shape || "boots", opt);
   it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.13));
+  return it;
+}
+
+// 小手: G(id, 名, lv, opt) — opt.shape: "gloves"(既定) | "gauntlet"。opt.def は VIT の上書き
+export function G(id, name, lv, opt = {}) {
+  const it = base(id, name, "hands", lv, opt.shape || "gloves", opt);
+  it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.13));
+  return it;
+}
+
+// 装飾品: R(id, 名, 形, lv, opt) — 防御の自動値は持たず、性能 (hp/mp/luk/crit/eAtk/eDef…) は opt で明示する
+export function R(id, name, shape, lv, opt = {}) {
+  const it = base(id, name, "acc", lv, shape, opt);
+  if (opt.def != null) it.vit = opt.def;
   return it;
 }
 

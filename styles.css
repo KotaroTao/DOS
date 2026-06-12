@@ -156,6 +156,10 @@ html, body { height: 100%; overflow: hidden; }
   40% { background: #1e4a26; box-shadow: 0 0 0 2px var(--good); }
 }
 .pc .name { font-weight: bold; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 隊列バッジ (前/後) */
+.pc .rowtag { display: inline-block; font-size: 8px; font-weight: normal; border-radius: 3px; padding: 0 2px; margin-right: 3px; vertical-align: 1px; }
+.pc .rowtag.front { color: #e0b06a; border: 1px solid #7a5c30; }
+.pc .rowtag.back { color: #8fb4dc; border: 1px solid #3c5474; }
 .pc .cls { color: var(--ink-dim); font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pc .bar { height: 5px; background: #2a2a3a; border-radius: 3px; margin: 2px 0; overflow: hidden; }
 .pc .bar > i { display: block; height: 100%; }
@@ -631,6 +635,12 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 /* 人業の館 / 神殿 / 道具屋 のリスト */
 .tw-mlist, .tw-shoplist { display: flex; flex-direction: column; gap: 7px; }
 .tw-mrow { gap: 8px; }
+/* 編成の前衛/後衛の区切りと並び替えボタン */
+.tw-rowdiv { font-size: 10px; letter-spacing: 1px; padding: 3px 2px 0; }
+.tw-rowdiv.front { color: #e0b06a; }
+.tw-rowdiv.back { color: #8fb4dc; }
+.tw-move { flex: 0 0 auto; display: flex; gap: 4px; }
+.tw-moveb { min-width: 30px; min-height: 30px; font-size: 12px; background: #221833; border: 1px solid #4a3568; border-radius: 6px; color: #e0d2f4; }
 .tw-shoprow { display: flex; align-items: center; gap: 9px; background: #170f22; border: 1px solid #34254a; border-radius: 8px; padding: 7px 9px; }
 .tw-small { min-height: 34px; padding: 6px 10px; font-size: 11px; background: #221833; border: 1px solid #4a3568; border-radius: 6px; color: #e0d2f4; white-space: nowrap; }
 .tw-small.danger { border-color: var(--danger); color: #ff9a98; }

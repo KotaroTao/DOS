@@ -50,6 +50,17 @@ export const WEAPON_CAT_LABEL = (() => {
   return m;
 })();
 
+// ===== 武器の射程 =====
+// 近距離: 敵の前衛にしか届かない / 中距離: 自分が前衛なら敵の後衛まで届く /
+// 長距離: 後衛からでも敵の後衛まで届く。魔法・ブレスは射程の制約を受けない。
+export const RANGE_LABEL = { near: "近距離", mid: "中距離", long: "長距離" };
+const CAT_RANGE = { ls: "near", dg: "near", kt: "near", ax: "near", mc: "near", st: "near", sp: "mid", bw: "long" };
+// アイテム個別の range 指定 > サブカテゴリの既定値。素手・射程不明は近距離
+export function weaponRange(item) {
+  if (!item) return "near";
+  return item.range || CAT_RANGE[item.cat] || "near";
+}
+
 // 隠しレベル → 表示ランク (図鑑の枠色・発見演出に使う)
 // lv は 1-200 (全100迷宮の lootLv 帯に対応)。R6 は最深部の神話級のみ。
 export function lvToRank(lv) {
@@ -191,7 +202,7 @@ export const ITEMS = {
   woodShield: {
     id: "woodShield", name: "木の盾", slot: "shield", lv: 2, vit: 3, price: 80,
     classes: ["fighter", "knight", "thief", "priest", "bishop"],
-    desc: "樫の板を鋲で重ねた小盾。表面には先代の持ち主のものらしい爪痕が走るが、まだ十分に矢と牙を受け止められる。",
+    desc: "カシの板をびょうで重ねた小盾。表面には先代の持ち主のものらしい爪痕が走るが、まだ十分に矢と牙を受け止められる。",
     ...sprite([
       "..kkkkkk....",
       ".knnnnnnk...",
@@ -346,7 +357,7 @@ export const ITEMS = {
   ironGreaves: {
     id: "ironGreaves", name: "鉄の脚甲", slot: "feet", lv: 6, vit: 3, price: 180,
     classes: ["fighter", "knight"],
-    desc: "鋼の脛当て。骨の散らばる床を踏み砕いて進むためのものであり、自分が踏み砕かれないためのものでもある。",
+    desc: "鋼のすね当て。骨の散らばる床を踏み砕いて進むためのものであり、自分が踏み砕かれないためのものでもある。",
     ...sprite([
       "............",
       "..kk...kk...",
@@ -368,7 +379,7 @@ export const ITEMS = {
     id: "leatherGloves", name: "革の手袋", slot: "hands", lv: 1, vit: 1, price: 50, classes: null,
     desc: "しなやかな革の手袋。罠の毒針から指先を、冷たい亡者の握手から手首を、わずかながら守ってくれる。",
     ...sprite([
-      ".kl k.klk...",
+      ".klk.klk....",
       ".klk.klk....",
       ".kllkllk....",
       ".kdlllldk...",
@@ -423,7 +434,7 @@ export const ITEMS = {
   // ===== アクセサリ =====
   powerRing: {
     id: "powerRing", name: "力の指輪", slot: "acc", lv: 20, atk: 4, price: 240, classes: null,
-    desc: "嵌めた瞬間、自分のものではない怒りが血管を駆け抜ける指輪。腕力が漲り、攻撃力が上がる。",
+    desc: "はめた瞬間、自分のものではない怒りが血管を駆け抜ける指輪。腕力がみなぎり、攻撃力が上がる。",
     ...sprite([
       "............",
       "....kkk.....",
@@ -513,9 +524,9 @@ export const ITEMS = {
     ]),
   },
   emberRing: {
-    id: "emberRing", name: "燼火の指輪", slot: "acc", lv: 67, atk: 5, price: 1700, classes: null,
+    id: "emberRing", name: "残り火の指輪", slot: "acc", lv: 67, atk: 5, price: 1700, classes: null,
     eAtk: { el: "fire", lv: 1 },
-    desc: "決して冷めない熾火を嵌め込んだ指輪。指先に伝う熱が、振るう得物の先にまで燃え移る。",
+    desc: "決して冷めないおき火をはめ込んだ指輪。指先に伝う熱が、振るう得物の先にまで燃え移る。",
     ...sprite([
       "............",
       "....kkk.....",
@@ -609,7 +620,7 @@ export const ITEMS = {
   abyssEye: {
     id: "abyssEye", name: "深淵の瞳", slot: "acc", lv: 161, mp: 24, price: 8600, classes: null,
     eAtk: { el: "dark", lv: 1 },
-    desc: "覗いた者を覗き返すという、正体不明の眼球の剥製。瞼のない瞳は瞬きの代わりに、持ち主の敵を見据える。",
+    desc: "覗いた者を覗き返すという、正体不明の眼球の剥製。まぶたのない瞳は瞬きの代わりに、持ち主の敵を見据える。",
     ...sprite([
       "............",
       "...kkkk.....",
@@ -628,7 +639,7 @@ export const ITEMS = {
   dragonboneRing: {
     id: "dragonboneRing", name: "竜骨の指輪", slot: "acc", lv: 177, atk: 14, hp: 45, price: 10300, classes: null,
     eDef: { el: "fire", lv: 1 },
-    desc: "古竜の指骨を削り出した白い環。骨髄に残った竜の体温がじんわりと巡り、嵌めた者の血潮を猛らせる。",
+    desc: "古竜の指骨を削り出した白い環。骨髄に残った竜の体温がじんわりと巡り、はめた者の血潮を猛らせる。",
     ...sprite([
       "............",
       "....kkk.....",
@@ -648,7 +659,7 @@ export const ITEMS = {
     id: "cursedBlade", name: "妖刀ムラマサ", slot: "weapon", cat: "kt", lv: 175, atk: 152, vit: -12, hit: 9, dice: "2d12+10", swings: 4, align: "悪", cursed: true, price: 0,
     eAtk: { el: "dark", lv: 1 },
     classes: ["fighter", "knight", "thief"],
-    desc: "鞘の中から啜り泣きが聞こえる呪われた刀。凄まじい斬れ味と引き換えに、一度握った者の血を忘れない。攻撃は跳ね上がるが身を守れなくなる。悪属性。",
+    desc: "鞘の中からすすり泣きが聞こえる呪われた刀。凄まじい斬れ味と引き換えに、一度握った者の血を忘れない。攻撃は跳ね上がるが身を守れなくなる。悪属性。",
     ...sprite([
       ".........kp.",
       "........kpk.",
@@ -811,22 +822,20 @@ export function equip(member, item) {
   if (!canEquip(member, item)) return { ok: false, msg: `${member.cls}は${item.name}を装備できない` };
   const key = slotKeyFor(item, member);
   if (!key) return { ok: false, msg: "装備できない" };
-  // 所持品から取り出す
-  const idx = member.items.indexOf(item);
-  if (idx >= 0) member.items.splice(idx, 1);
 
+  // 押し出される装備を先に数え、所持品が8枠を超えるなら装備自体を中止する
   const removed = [];
-  // 両手武器: 盾を外す
-  if (item.slot === "weapon" && item.twoHanded && member.equip.shield) {
-    removed.push(member.equip.shield);
-    member.equip.shield = null;
-  }
-  // 盾は両手武器と併用不可 → 武器を外す
-  if (item.slot === "shield" && member.equip.weapon && member.equip.weapon.twoHanded) {
-    removed.push(member.equip.weapon);
-    member.equip.weapon = null;
-  }
+  if (item.slot === "weapon" && item.twoHanded && member.equip.shield) removed.push(member.equip.shield);
+  if (item.slot === "shield" && member.equip.weapon && member.equip.weapon.twoHanded) removed.push(member.equip.weapon);
   if (member.equip[key]) removed.push(member.equip[key]);
+  const idx = member.items.indexOf(item);
+  const bagAfter = member.items.length - (idx >= 0 ? 1 : 0) + removed.filter((r) => r && r !== item).length;
+  if (bagAfter > MAX_ITEMS) return { ok: false, msg: "持ち物がいっぱいで装備を入れ替えられない" };
+
+  // 所持品から取り出し、外した装備を所持品へ戻す
+  if (idx >= 0) member.items.splice(idx, 1);
+  if (item.slot === "weapon" && item.twoHanded) member.equip.shield = null;
+  if (item.slot === "shield" && member.equip.weapon && member.equip.weapon.twoHanded) member.equip.weapon = null;
   member.equip[key] = item;
   for (const r of removed) if (r && r !== item) member.items.push(r);
   recalc(member);
