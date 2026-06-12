@@ -140,9 +140,15 @@ export function spawnBossEnemies(key = "dragon", scale = 1) {
   return [makeEnemy(key, scale, true)];
 }
 
-// 宝箱から出るミミック (通常より手強い)。迷宮のランクに合った個体に化ける
+// 強敵階の強敵: 必ず単体で出現する規格外の個体。
+// boss フラグは立てない (迷宮踏破の判定・主討伐演出と混同しないため)
+export function spawnEliteEnemies(key, scale = 1) {
+  return [makeEnemy(key, scale)];
+}
+
+// 宝箱から出るミミック (通常より手強い)。迷宮のランクに合った個体に化ける (強敵には化けない)
 export function spawnMimic(rank, scale = 1) {
-  const pool = Object.keys(MONSTERS).filter((k) => MONSTERS[k].rank === rank && !MONSTERS[k].boss);
+  const pool = Object.keys(MONSTERS).filter((k) => MONSTERS[k].rank === rank && !MONSTERS[k].boss && !MONSTERS[k].elite);
   const key = pool.length ? pool[rand(pool.length)] : "cm_slime";
   const e = makeEnemy(key, scale);
   e.name = "ミミック";

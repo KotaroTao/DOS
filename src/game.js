@@ -1,7 +1,7 @@
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSprite } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnMimic, Battle, SPELLS, cloneItem, spellCost } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, Battle, SPELLS, cloneItem, spellCost } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
 import { spriteCanvas } from "./sprites.js";
 import {
@@ -12,7 +12,7 @@ import { RANK_NAME, RANK_COLOR } from "./content.js";
 import { dungeonSubQuests } from "./subquests.js";
 import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
-import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS } from "./dungeons/index.js";
+import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS, ELITE_ORDER } from "./dungeons/index.js";
 import {
   PARTS, PART_LABEL, SOUL_CLASSES, makeSoul, makeDoll, soulName, soulSprite,
   dollSouls, dominantClass, recalcDoll, sealSoul,
@@ -183,6 +183,7 @@ const G = {
   statusOpen: false,  // ステータス画面表示中
   statusIdx: 0,       // ステータス画面で選択中のメンバー
   statusTab: "main",  // ステータス画面のタブ "main"(統合) | "soul"
+  eliteFloor: false,  // 現在のフロアが強敵階か (3F以降、5%の確率で発生)
 };
 
 const rand = (n) => Math.floor(Math.random() * n);
@@ -298,6 +299,16 @@ function enemyScale() {
   return (cfg.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * (cfg.enemyMul || 1);
 }
 
+// この迷宮に出る強敵のid。各ランク帯 (10迷宮) を 1-3 / 4-6 / 7-10 の
+// 3グループに区切り、グループごとに固有の強敵が決まっている (例: 迷宮1-3, 4-6, 7-10, 11-13, …)
+function eliteKey() {
+  const n = G.dungeonIdx + 1;
+  const r = Math.min(10, Math.ceil(n / 10));
+  const pos = ((n - 1) % 10) + 1;
+  const g = pos <= 3 ? 0 : pos <= 6 ? 1 : 2;
+  return ELITE_ORDER[(r - 1) * 3 + g];
+}
+
 function updateTopbar() {
   const currency = `🔴${G.redSoul} 💰${G.gold} ✦${G.soulPts}`;
   if (G.state === "town") {
@@ -313,6 +324,19 @@ function newFloor() {
   // ダンジョンが自前で持つ出現プール (pool=浅階 / deepPool=深階) を使う
   const cfg = activeCfg();
   G.board = makeBoard(G.floor, cfg);
+  // 強敵階: 全モンスターカードをこの迷宮グループ固有の強敵に置き換える
+  if (G.eliteFloor) {
+    const ek = eliteKey();
+    for (let ey = 0; ey < ROWS; ey++) {
+      for (let ex = 0; ex < COLS; ex++) {
+        const ecell = G.board.cells[ey][ex];
+        if (ecell.type === "monster") {
+          ecell.monsterKey = ek;
+          ecell.elite = true;
+        }
+      }
+    }
+  }
   if (G.floor > G.stats.deepest) G.stats.deepest = G.floor;
   // 酒場の噂を盤面に反映 (潜入直後の階のみ)
   if (G.activeRumor && G.activeRumor.floor === G.floor) applyRumorToBoard(G.board);
@@ -351,6 +375,14 @@ function drawFloor() {
   vg.addColorStop(1, "rgba(0,0,0,0.55)");
   vctx.fillStyle = vg;
   vctx.fillRect(0, 0, view.width, view.height);
+  // 強敵階: 禍々しい血の霧のオーバーレイ
+  if (G.eliteFloor) {
+    const rg = vctx.createRadialGradient(view.width / 2, view.height / 2, 0, view.width / 2, view.height / 2, view.width * 0.9);
+    rg.addColorStop(0, "rgba(100,0,0,0.08)");
+    rg.addColorStop(1, "rgba(60,0,0,0.30)");
+    vctx.fillStyle = rg;
+    vctx.fillRect(0, 0, view.width, view.height);
+  }
 }
 
 function renderBoard() {
@@ -527,40 +559,72 @@ function drawCard(r, cell, scaleX, showBack) {
   vctx.translate(-r.w / 2, -r.h / 2);
 
   if (showBack) {
-    // カード裏面: 深紅の布地 + 金の縁飾り + ダイヤ紋
-    const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
-    bg.addColorStop(0, "#7a5616");
-    bg.addColorStop(0.5, "#5e420f");
-    bg.addColorStop(1, "#46300a");
-    vctx.fillStyle = bg;
-    vctx.fillRect(0, 0, r.w, r.h);
-    // 外枠 (二重)
-    vctx.strokeStyle = "#e3bd45";
-    vctx.lineWidth = 2;
-    vctx.strokeRect(1.5, 1.5, r.w - 3, r.h - 3);
-    vctx.strokeStyle = "#8a6a18";
-    vctx.lineWidth = 1;
-    vctx.strokeRect(4.5, 4.5, r.w - 9, r.h - 9);
-    // 中央のダイヤ紋
-    const cx = r.w / 2, cy = r.h / 2;
-    vctx.strokeStyle = "#caa22e";
-    vctx.beginPath();
-    vctx.moveTo(cx, cy - 11); vctx.lineTo(cx + 9, cy); vctx.lineTo(cx, cy + 11); vctx.lineTo(cx - 9, cy); vctx.closePath();
-    vctx.stroke();
-    // コーナードット
-    vctx.fillStyle = "#caa22e";
-    for (const [dx, dy] of [[7, 7], [r.w - 7, 7], [7, r.h - 7], [r.w - 7, r.h - 7]]) {
-      vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+    if (G.eliteFloor) {
+      // 強敵階カード裏面: 血の黒紅 + 骸骨紋
+      const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
+      bg.addColorStop(0, "#280808");
+      bg.addColorStop(0.5, "#180505");
+      bg.addColorStop(1, "#100303");
+      vctx.fillStyle = bg;
+      vctx.fillRect(0, 0, r.w, r.h);
+      // 外枠 (血の赤)
+      vctx.strokeStyle = "#882020";
+      vctx.lineWidth = 2;
+      vctx.strokeRect(1.5, 1.5, r.w - 3, r.h - 3);
+      vctx.strokeStyle = "#551010";
+      vctx.lineWidth = 1;
+      vctx.strokeRect(4.5, 4.5, r.w - 9, r.h - 9);
+      // 中央の骸骨シンボル
+      const cx = r.w / 2, cy = r.h / 2;
+      vctx.fillStyle = "#cc2020";
+      vctx.font = "bold 16px monospace";
+      vctx.textAlign = "center";
+      vctx.textBaseline = "middle";
+      vctx.fillText("☠", cx, cy + 1);
+      // コーナードット (血の色)
+      vctx.fillStyle = "#882020";
+      for (const [dx, dy] of [[7, 7], [r.w - 7, 7], [7, r.h - 7], [r.w - 7, r.h - 7]]) {
+        vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+      }
+      // 上辺の血滲み
+      vctx.fillStyle = "rgba(200,0,0,0.10)";
+      vctx.fillRect(2, 2, r.w - 4, 3);
+    } else {
+      // 通常カード裏面: 深紅の布地 + 金の縁飾り + ダイヤ紋
+      const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
+      bg.addColorStop(0, "#7a5616");
+      bg.addColorStop(0.5, "#5e420f");
+      bg.addColorStop(1, "#46300a");
+      vctx.fillStyle = bg;
+      vctx.fillRect(0, 0, r.w, r.h);
+      // 外枠 (二重)
+      vctx.strokeStyle = "#e3bd45";
+      vctx.lineWidth = 2;
+      vctx.strokeRect(1.5, 1.5, r.w - 3, r.h - 3);
+      vctx.strokeStyle = "#8a6a18";
+      vctx.lineWidth = 1;
+      vctx.strokeRect(4.5, 4.5, r.w - 9, r.h - 9);
+      // 中央のダイヤ紋
+      const cx = r.w / 2, cy = r.h / 2;
+      vctx.strokeStyle = "#caa22e";
+      vctx.beginPath();
+      vctx.moveTo(cx, cy - 11); vctx.lineTo(cx + 9, cy); vctx.lineTo(cx, cy + 11); vctx.lineTo(cx - 9, cy); vctx.closePath();
+      vctx.stroke();
+      // コーナードット
+      vctx.fillStyle = "#caa22e";
+      for (const [dx, dy] of [[7, 7], [r.w - 7, 7], [7, r.h - 7], [r.w - 7, r.h - 7]]) {
+        vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+      }
+      // 「?」
+      vctx.fillStyle = "#f0d069";
+      vctx.font = "bold 15px monospace";
+      vctx.textAlign = "center";
+      vctx.textBaseline = "middle";
+      vctx.fillText("?", cx, cy + 1);
+      // 上辺ハイライト
+      vctx.fillStyle = "rgba(255,235,170,0.18)";
+      vctx.fillRect(2, 2, r.w - 4, 3);
     }
-    // 「?」
-    vctx.fillStyle = "#f0d069";
-    vctx.font = "bold 15px monospace";
-    vctx.textAlign = "center";
-    vctx.textBaseline = "middle";
-    vctx.fillText("?", cx, cy + 1);
-    // 上辺ハイライト
-    vctx.fillStyle = "rgba(255,235,170,0.18)";
-    vctx.fillRect(2, 2, r.w - 4, 3);
   } else {
     // 表面 (探索済み): マス目を見せず、石床として連続的に塗る。
     // GAP ぶん外側まで塗って隣の開いたマスと繋がり、グリッド線を消す。
@@ -621,6 +685,21 @@ function drawCard(r, cell, scaleX, showBack) {
         drawSprite(vctx, ICONS.wisp, cx + 7, cy - 12 + bob, 1.6);
         vctx.restore();
       }
+    }
+    // 強敵バッジ: 表に出た強敵モンスターカードに赤帯を描く
+    if (cell.type === "monster" && !cell.cleared && cell.elite) {
+      vctx.save();
+      vctx.fillStyle = "rgba(150,10,10,0.88)";
+      vctx.fillRect(0, 0, r.w, 11);
+      vctx.strokeStyle = "#ff3030";
+      vctx.lineWidth = 0.5;
+      vctx.strokeRect(0, 0, r.w, 11);
+      vctx.fillStyle = "#ffaaaa";
+      vctx.font = "bold 7px monospace";
+      vctx.textAlign = "center";
+      vctx.textBaseline = "middle";
+      vctx.fillText("★ 強 敵 ★", r.w / 2, 5.5);
+      vctx.restore();
     }
     // 壁は renderBoard 側で境界上に重ね描きする
   }
@@ -808,8 +887,14 @@ function resolveCell(cell) {
     case "monster":
       if (!cell.cleared) {
         const name = MONSTERS[cell.monsterKey].name;
-        log(`⚔ ${name} のカードだ！`, "dmg");
-        startBattle(spawnCardEnemies(cell.monsterKey, G.floor, enemyScale()), cell);
+        if (cell.elite) {
+          // 強敵は群れない: 規格外の1体が立ちはだかる
+          log(`☠ 強敵 ${name} が立ちはだかる！`, "dmg");
+          startBattle(spawnEliteEnemies(cell.monsterKey, enemyScale()), cell);
+        } else {
+          log(`⚔ ${name} のカードだ！`, "dmg");
+          startBattle(spawnCardEnemies(cell.monsterKey, G.floor, enemyScale()), cell);
+        }
       }
       break;
     case "chest": {
@@ -982,7 +1067,7 @@ function undeadKeyForDungeon() {
   const local = [...(cfg.pool || []), ...(cfg.deepPool || [])]
     .filter((k) => MONSTERS[k] && MONSTERS[k].race === "undead");
   if (local.length) return local[rand(local.length)];
-  const all = Object.keys(MONSTERS).filter((k) => MONSTERS[k].race === "undead");
+  const all = Object.keys(MONSTERS).filter((k) => MONSTERS[k].race === "undead" && !MONSTERS[k].elite);
   return all.length ? all[rand(all.length)] : "d01_skeleton";
 }
 
@@ -1507,12 +1592,18 @@ function descend() {
   G.floor++;
   G.maxFloorReached = Math.max(G.maxFloorReached, G.floor);
   questProgress("floor", G.floor);
-  log("階段を降りていく…", "sys");
+  // 強敵階判定: 5階層以上の迷宮のみ、3F以降で10%の確率で発生
+  G.eliteFloor = (activeCfg().floors || 3) >= 5 && G.floor >= 3 && Math.random() < 0.10;
+  if (G.eliteFloor) {
+    log("…強敵の気配がする。", "dmg");
+  } else {
+    log("階段を降りていく…", "sys");
+  }
   // 暗転 → 階数タイトル → 明転 の演出
   G.prompt = true;
-  const ov = el("div", "floor-trans");
+  const ov = el("div", G.eliteFloor ? "floor-trans floor-trans-elite" : "floor-trans");
   ov.appendChild(el("div", "ft-floor", `B${G.floor}F`));
-  ov.appendChild(el("div", "ft-sub", "— さらに深く潜る —"));
+  ov.appendChild(el("div", "ft-sub", G.eliteFloor ? "— 禍々しき気配 —" : "— さらに深く潜る —"));
   document.body.appendChild(ov);
   setTimeout(() => {
     newFloor();
@@ -1521,7 +1612,26 @@ function descend() {
   }, 600); // 完全に暗転したタイミングで盤面を切替
   setTimeout(() => {
     ov.classList.add("out");
-    setTimeout(() => { ov.remove(); G.prompt = false; }, 500);
+    setTimeout(() => {
+      ov.remove();
+      if (G.eliteFloor) {
+        // 強敵階警告ポップアップ (この迷宮グループ固有の強敵を見せる)
+        showEvent({
+          sprite: MONSTERS[eliteKey()],
+          banner: "⚠ 警告 ⚠",
+          title: "強敵の気配がする…",
+          accent: "#d4504e",
+          lines: [
+            "この階には通常では遭遇しない強大な存在が潜んでいる。",
+            "撃破すれば希少な戦利品を得られるだろう。",
+          ],
+          btnLabel: "覚悟する",
+          onClose: () => {},
+        });
+      } else {
+        G.prompt = false;
+      }
+    }, 500);
   }, 1500);
 }
 
@@ -1544,11 +1654,12 @@ function showToast(text) {
 
 // ---- 戦闘 ----
 function startBattle(enemies, cell) {
-  // 迷宮の属性気配: 属性持ち迷宮では雑魚敵が迷宮属性を帯びやすい (主は固有属性のまま)
+  // 迷宮の属性気配: 属性持ち迷宮では雑魚敵が迷宮属性を帯びやすい (主・強敵は固有属性のまま)
   const cfg = activeCfg();
+  const isElite = enemies.some((e) => e.mon && e.mon.elite);
   if (cfg.element) {
     const ch = cfg.elemBias ? 0.9 : 0.5;
-    for (const e of enemies) if (!e.boss && Math.random() < ch) e.element = cfg.element;
+    for (const e of enemies) if (!e.boss && !(e.mon && e.mon.elite) && Math.random() < ch) e.element = cfg.element;
   }
   G.battleCell = cell;
   G.state = "combat";
@@ -1557,11 +1668,11 @@ function startBattle(enemies, cell) {
   // 同種の群れは「ゴブリン ×4」とまとめて告げる (個体名は A/B/C… 付き)
   const sameKind = enemies.length > 1 && enemies.every((e) => e.key === enemies[0].key);
   log(`${sameKind ? `${enemies[0].mon.name} ×${enemies.length}` : enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
-  // 先制・奇襲の判定 (ボス戦では発生しない)。
+  // 先制・奇襲の判定 (ボス戦・強敵戦では発生しない)。
   // 周囲警戒 (vigilance) が奇襲を抑え、先制の心得 (initiative) が先制を伸ばす
   const isBoss = enemies.some((e) => e.boss);
   let opening = null;
-  if (!isBoss) {
+  if (!isBoss && !isElite) {
     const vig = partyPassiveLv("vigilance");
     const amb = 0.08 * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1);
     const pre = 0.08 + (partyPassiveLv("initiative") ? 0.15 : 0);
@@ -1571,8 +1682,8 @@ function startBattle(enemies, cell) {
   }
   if (opening === "preempt") { log("先手を取った！", "win"); showToast("⚡ 先制攻撃！"); }
   else if (opening === "ambush") { log("奇襲された！", "dmg"); showToast("⚠ 奇襲された！"); buzz([0, 60, 40, 60]); }
-  // ランク帯ごとの戦闘テーマ (ボスは専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
-  playBgm(battleBgm(isBoss));
+  // ランク帯ごとの戦闘テーマ (ボス・強敵は専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
+  playBgm(battleBgm(isBoss || isElite));
   G.battle = new Battle(G.party, enemies, log, { opening });
   G.fx = null;
   G.animating = false;
@@ -2109,12 +2220,20 @@ function endBattle() {
     }
     // 宝箱は1つしか現れないので中身も1品まで: 複数体が同時に落とした時はレア優先で1つに絞る
     // (同種2体が同じ品を落とし、1つの宝箱からアイテムが2つ出てしまうのを防ぐ)
-    const drop = drops.find((d) => d.rare) || drops[0] || null;
+    let drop = drops.find((d) => d.rare) || drops[0] || null;
+    // 強敵討伐ボーナス: 高ランクアイテムの確定ドロップ
+    const wasElite = b.enemies.some((e) => !e.alive && e.mon && e.mon.elite);
+    if (wasElite) {
+      const eliteLv = Math.min(200, lootLvAt() + 20); // 適正帯より2ランク上のアイテム
+      const eid = pickItemByLv(eliteLv);
+      if (ITEMS[eid]) drop = { key: "elite", name: "強敵", id: eid, item: cloneItem(eid), rare: true };
+    }
     // soulClass を持つ敵 (人型・騎士など) はまれに魂を落とす (レアドロップ)
     for (const e of b.enemies) {
       const sc = e.alive ? null : (e.mon && e.mon.soulClass) || (MONSTERS[e.key] && MONSTERS[e.key].soulClass);
       if (!sc) continue;
-      if (Math.random() < 0.08) {
+      const soulChance = wasElite ? 0.40 : 0.08; // 強敵は魂ドロップ率が大幅上昇
+      if (Math.random() < soulChance) {
         const dn = activeCfg();
         const s = makeSoul(sc, 1 + (dn.soulLevelBonus || 0) + (G.floor >= 2 ? 1 : 0), null, rollSoulRank(dn.rankBonus || 0));
         runGainSoul(s);
@@ -2127,23 +2246,27 @@ function endBattle() {
     }
     const wasBoss = b.enemies.some((e) => e.boss);
     if (wasBoss) { flashScreen("#ffd84a"); buzz([0, 60, 50, 60, 50, 250]); } // 主討伐は特別な瞬間
+    else if (wasElite) { flashScreen("#d4504e"); buzz([0, 80, 50, 80, 50, 300]); setTimeout(() => showToast("☠ 強敵討伐！"), 400); }
     if (G.battleCell) G.battleCell.cleared = true;
     // 主討伐の確定処理 (踏破記録・章進行・戦利品確定) は演出より先に行い、
     // 直後の finishToBoard の保存に乗せる。演出中に中断されても踏破は失われない
     const clearInfo = wasBoss ? commitDungeonClear() : null;
     finishToBoard();
     // 勝利の余韻: まず勝利ポップアップ(Gold/Soul)を表示し、閉じてから宝箱を出す。
-    // 宝箱はドロップ品があれば必ず、なければ50%で出現。ボスは宝箱のあとに踏破演出へ
+    // 宝箱はドロップ品があれば必ず、なければ50%で出現。強敵・ボスは宝箱確定。
     const afterVictory = () => {
       const after = clearInfo ? () => showDungeonClearedPopup(clearInfo) : null;
-      if (drop || Math.random() < 0.5) {
+      if (drop || wasElite || Math.random() < 0.5) {
         setTimeout(() => battleChest(drop ? [drop] : [], after), 200);
         return;
       }
       if (after) after();
     };
     showEvent({
-      banner: "⚔ 勝利 ⚔", title: "戦いに勝利した！", accent: "#ffd84a", sparkle: true,
+      banner: wasElite ? "☠ 強敵討伐 ☠" : "⚔ 勝利 ⚔",
+      title: wasElite ? "強敵を討ち倒した！" : "戦いに勝利した！",
+      accent: wasElite ? "#d4504e" : "#ffd84a",
+      sparkle: true,
       lines: [`獲得 ゴールド 💰${goldGot}`, `回収した Soul ✦${soulGot}`],
       btnLabel: "つぎへ", onClose: afterVictory,
     });
@@ -4732,6 +4855,7 @@ function tryEnterDungeon() {
   townEl.classList.add("hidden");
   G.town.facility = null; G.town.sub = null;
   G.floor = 1; // 迷宮は常に1階から (街に戻ると入り直し)
+  G.eliteFloor = false; // 1Fは強敵階にならない
   G.runCfg = buildRunCfg(); // 迷宮 + 日替わり修飾を確定
   G.stats.runs++;
   // 今回の戦利品トラッキングを初期化
@@ -4750,6 +4874,7 @@ function tryEnterDungeon() {
 function returnToTown() {
   G.state = "town";
   G.battle = null; G.battleCell = null;
+  G.eliteFloor = false;
   combatMenu.classList.add("hidden");
   if (townBtn) townBtn.classList.add("hidden");
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
@@ -5652,7 +5777,7 @@ function battleBgm(isBoss) {
 function sceneBgm() {
   if (openingActive) return "opening";
   if (G.state === "town") return FACILITY_BGM[G.town.facility] || "town";
-  if (G.state === "combat") return battleBgm(G.battle && G.battle.enemies.some((e) => e.boss));
+  if (G.state === "combat") return battleBgm(G.battle && G.battle.enemies.some((e) => e.boss || (e.mon && e.mon.elite)));
   if (G.state === "board") return fieldBgm();
   return null; // over などは無音 (ジングルのみ)
 }
@@ -5874,7 +5999,7 @@ if (settingsBtn) settingsBtn.addEventListener("click", () => {
 const SAVE_KEY = "dos-save-v2";
 // 保存する G のフィールド (アニメーション等の一時状態は除外)
 const SAVE_FIELDS = [
-  "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py",
+  "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor",
   "gold", "soulPts", "redSoul", "dollsPurchased", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "lastEmptyClaim", "run", "town",
   "quests", "dailyQuests", "subQuests", "msq", "ach", "fastAnim", "rumor", "rumorCooldown", "activeRumor", "codex", "story", "dragonSlain", "runCfg", "stats",

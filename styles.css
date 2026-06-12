@@ -214,6 +214,9 @@ html, body { height: 100%; overflow: hidden; }
   opacity: 0;
 }
 .floor-trans.out { animation: ft-out 0.5s ease forwards; }
+.floor-trans-elite { background: #0a0000; }
+.floor-trans-elite .ft-floor { color: #d44040; text-shadow: 0 0 24px rgba(200, 40, 40, 0.7); }
+.floor-trans-elite .ft-sub { color: #884040; }
 @keyframes ft-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ft-out { from { opacity: 1; } to { opacity: 0; } }
 .ft-floor {

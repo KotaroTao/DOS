@@ -131,6 +131,31 @@ function hash(n, salt) {
   return h >>> 0; // 最後の XOR で符号付きに戻るため、必ず非負へ正規化する
 }
 
+// ダンジョン番号 n (1-100) → 階層数
+function dungeonFloors(n) {
+  if (n === 100) return 20;
+  if (n === 90) return 10;
+  if (n >= 91) return 10;   // D91-99
+  if (n >= 81) return 7;    // D81-89
+  if (n === 80) return 10;
+  if (n >= 71) return 7;    // D71-79
+  if (n === 70) return 10;
+  if (n >= 61) return 7;    // D61-69
+  if (n === 60) return 10;
+  if (n >= 51) return 7;    // D51-59
+  if (n === 50) return 10;
+  if (n >= 41) return 5;    // D41-49
+  if (n === 40) return 7;
+  if (n >= 31) return 5;    // D31-39
+  if (n === 30) return 7;
+  if (n >= 21) return 5;    // D21-29
+  if (n === 20) return 10;
+  if (n >= 11) return 5;    // D11-19
+  if (n === 10) return 7;
+  if (n >= 4)  return 5;    // D4-9
+  return 3;                  // D1-3
+}
+
 export function generateDungeon(n) {
   const r = Math.min(10, Math.ceil(n / 10));    // 敵ランク帯 (1-10)
   const pos = ((n - 1) % 10) / 9;               // 帯内の進行度 0→1
@@ -162,7 +187,7 @@ export function generateDungeon(n) {
     short: SHORT[r - 1] + ((n - 1) % 10 + 1),
     rank: r,
     element,
-    floors: Math.min(12, 3 + Math.floor((n - 1) / 9)),
+    floors: dungeonFloors(n),
     pool,
     deepPool: deep,
     boss: BOSS_ORDER[r][p], // 迷宮固有の主 (帯内 p 番目)。全100迷宮で重複しない
