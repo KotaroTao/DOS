@@ -2,7 +2,7 @@
 //
 // 魂のランク = 職業の位階 (1〜5)。同じ職業の魂を3部位以上に宿すと職業発現。
 // 上位ランクの魂は下位ランクの代替になり、発現ランクは「rank>=r が3部位以上」を満たす最大の r。
-// 5部位すべて同職 (rank>=発現rank) で職業ボーナス発生。上位ランクはダンジョンでは出ず、融合で入手。
+// 5部位すべて同系列職業 (同clsKey) でランクボーナス発生。上位ランクはダンジョンでは出ず、融合で入手。
 import { recalc, registerJobGear } from "./items.js";
 
 export const PARTS = ["head", "rhand", "lhand", "body", "legs"];
@@ -115,7 +115,7 @@ const RARITY_MUL = { common: 1.0, rare: 1.15, epic: 1.3, legend: 1.5 };
 // 融合強化 (ランク5魂を2体融合するたびに加算): レア度ごとのLv100ステ比率
 export const FUSION_STAT_BONUS = { common: 0.02, rare: 0.05, epic: 0.10, legend: 0.20 };
 
-// 5部位ボーナス (全ステ倍率)
+// ランクボーナス (5部位すべて同系列職業のときの全ステ倍率)
 export const FIVE_PART_BONUS = { common: 0.10, rare: 0.15, epic: 0.20, legend: 0.25 };
 
 // 合成に必要な空の魂の数
@@ -554,11 +554,12 @@ export function jobRankOf(doll) {
     }
   }
   if (!best) return null;
-  // 5部位すべてこの職業 (rank>=発現rank) なら 5部位ボーナス
+  // ランクボーナス: 5部位すべて同系列職業 (同 clsKey) ならボーナス。
+  // 職業発現と同じく上位ランクは下位を兼ねるため、ランクの一致は問わない。
   let total5 = 0;
   for (const p of PARTS) {
     const s = doll.parts[p];
-    if (s && s.clsKey === best.clsKey && s.rank >= best.rank) total5++;
+    if (s && s.clsKey === best.clsKey) total5++;
   }
   best.all5 = (total5 === 5);
   return best;
@@ -598,7 +599,7 @@ export function recalcDoll(doll) {
     const ranks = JOB_RANKS[clsKey];
     clsLabel = ranks ? ranks[jr.rank - 1].name : SOUL_CLASSES[clsKey].label;
 
-    // 5部位ボーナス (全ステ倍率)
+    // ランクボーナス (5部位すべて同系列職業のときの全ステ倍率)
     if (jr.all5) {
       const bonusPct = FIVE_PART_BONUS[SOUL_CLASSES[clsKey].rarity] || 0.10;
       const mul = 1 + bonusPct;

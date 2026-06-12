@@ -1293,8 +1293,8 @@ function undeadKeyForDungeon() {
   return all.length ? all[rand(all.length)] : "d01_skeleton";
 }
 
-// 風化した死体を調べる: Soul 50% / Gold 30% / 装備 20% (戦闘は起きない)。
-// ここで出るのは ✦ ソウルポイントで、装備できる「魂」(soul object) は出さない。
+// 風化した死体を調べる: 魂20% / Soul30% / Gold30% / 装備20% (戦闘は起きない)。
+// 「魂」= 装備できる魂オブジェクト / 「Soul」= ✦ ソウルポイント。
 function investigateCorpse(cell, clsKey, clsLabel) {
   cell.cleared = true;
   const dn = activeCfg();
@@ -1315,7 +1315,15 @@ function investigateCorpse(cell, clsKey, clsLabel) {
 
   const roll = Math.random();
 
-  // 50%: 亡骸に残る ✦ Soul (ソウルポイント) を集める
+  // 20%: 職能の記憶を宿した「魂」(装備できる魂オブジェクト)
+  if (roll < 0.20) {
+    const lvl = 1 + (dn.soulLevelBonus || 0) + Math.floor(G.floor / 3);
+    const soul = makeSoul(clsKey, lvl, null, rollSoulRank(dn.rankBonus));
+    acquireSoul(soul, `風化した死体の残りかすに、まだ職能の記憶が宿っていた。`);
+    return;
+  }
+
+  // 30%: 亡骸に残る ✦ Soul (ソウルポイント) を集める
   if (roll < 0.50) {
     const got = runGainSoulPts(Math.round((20 + G.floor * 8 + (dn.rank || 1) * 6) * (0.7 + Math.random() * 0.6)));
     SFX.itemget(); buzz([0, 30, 60, 30]);
@@ -2317,6 +2325,8 @@ function showSpells(actor) {
     const cost = spellCost(actor, sp); // 省詠唱 (chant) 持ちは消費が軽い
     const b = btn(`${sp.name} (MP${cost}) - ${sp.desc}`, () => { act("spell", key); });
     if (actor.mp < cost) { b.disabled = true; b.style.opacity = "0.4"; } // MP不足は押せない
+    // 単体味方呪文で効果のある対象がいない (満タンへの回復・状態異常なしへの治療) は押せない
+    else if (sp.target === "ally" && G.battle._allyTargets(sp).length === 0) { b.disabled = true; b.style.opacity = "0.4"; }
     list.appendChild(b);
   }
   combatMenu.appendChild(list);
@@ -5090,7 +5100,7 @@ function showCodexJobDetail(key, rank, heading) {
   const cbox = el("div", "cdx-drops");
   cbox.appendChild(el("div", "cdx-h", "発現の条件"));
   cbox.appendChild(el("div", "cdx-dun", `・${jobRankCondText(key, rank)}`));
-  if (rank >= 2) cbox.appendChild(el("div", "cdx-dun dim", "・5部位すべて同職かつ同ランク: 職業ボーナス (全ステ倍率上昇)"));
+  cbox.appendChild(el("div", "cdx-dun dim", "・5部位すべて同系列職業: ランクボーナス (全ステ倍率上昇。上位ランクは下位を兼ねる)"));
   card.appendChild(cbox);
 
   // 装備適性 (基本職のみ)
@@ -5810,7 +5820,15 @@ function campCast(caster, spellKey) {
     return;
   }
 
-  // 単体: 対象を選ぶ。蘇生可能なら戦闘不能者も候補に出す
+  // 単体: 効果のある対象だけを候補にする (HP満タンへの回復・状態異常なしへの治療は不可)
+  const benefits = (t) => {
+    if (!t.alive) return !!sp.revive;            // 死者は蘇生のみ
+    if (cures && t.ailment) return true;         // 状態異常を治す
+    if (heals && t.hp < t.maxhp) return true;    // HPを回復する
+    return false;
+  };
+  const targets = G.party.filter(benefits);
+  if (!targets.length) { log("効果のある対象がいない。", "sys"); return; }
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card confirm-card");
   card.style.borderColor = "#46c08f";
@@ -5818,8 +5836,7 @@ function campCast(caster, spellKey) {
   card.appendChild(el("div", "ig-name", "誰に唱える？"));
   const list = el("div", "ig-choices");
   const ailLabel = { poison: "毒", paralyze: "麻痺", stone: "石化" };
-  for (const t of G.party) {
-    if (!t.alive && !sp.revive) continue;
+  for (const t of targets) {
     const ail = t.ailment ? ` [${ailLabel[t.ailment] || t.ailment}]` : "";
     const label = `${t.name} (HP ${t.hp}/${t.maxhp})${ail}${t.alive ? "" : " †"}`;
     const b = btn(label, () => {
