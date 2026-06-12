@@ -1246,8 +1246,8 @@ function collectWarmCorpse(cell, clsKey, clsLabel) {
   if (Math.random() < 0.20) {
     const great = !!cell.corpseGreat;
     const riseLine = great
-      ? `偉大なる死体（${clsLabel}）は目覚めて襲ってきた！`
-      : `まだあたたかい死体（${clsLabel}）は起き上がって襲ってきた！`;
+      ? `偉大なる死体は目覚めて襲ってきた！`
+      : `まだあたたかい死体は起き上がって襲ってきた！`;
     cell._corpseRise = true; // endBattle 側で「宝箱なし・魂回収」を分岐するための印
     log(riseLine, "dmg");
     SFX.die(); buzz([0, 40, 60, 40]);
@@ -1297,7 +1297,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   if (roll < 0.50) {
     const lvl = 1 + (dn.soulLevelBonus || 0) + Math.floor(G.floor / 3);
     const soul = makeSoul(clsKey, lvl, null, rollSoulRank(dn.rankBonus));
-    acquireSoul(soul, `風化した死体（${clsLabel}）の残りかすに、まだ職能の記憶が宿っていた。`);
+    acquireSoul(soul, `風化した死体の残りかすに、まだ職能の記憶が宿っていた。`);
     return;
   }
 
@@ -1310,7 +1310,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
     showEvent({
       sprite: ICONS.gold, banner: "💰 金品を発見 💰", title: `${g} ゴールド`,
       accent: "#ffd84a", sparkle: true,
-      lines: [`風化した死体（${clsLabel}）の懐に遺されていた金品だ。`],
+      lines: [`風化した死体の懐に遺されていた金品だ。`],
       onClose: () => renderBoard(),
     });
     return;
@@ -1331,7 +1331,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   // 所持品に空きがない等で装備を渡せない時は魂にフォールバック
   const lvl = 1 + (dn.soulLevelBonus || 0) + Math.floor(G.floor / 3);
   acquireSoul(makeSoul(clsKey, lvl, null, rollSoulRank(dn.rankBonus)),
-    `風化した死体（${clsLabel}）に、まだ職能の記憶が宿っていた。`);
+    `風化した死体に、まだ職能の記憶が宿っていた。`);
 }
 
 function collectSoul(cell, clsKey, clsLabel) {
@@ -1342,8 +1342,8 @@ function collectSoul(cell, clsKey, clsLabel) {
   const soul = makeSoul(clsKey, lvl, null, rollSoulRank((dn.rankBonus || 0) + (cell.corpseGreat ? 1 : 0)));
   maybeDropEmptySoul(0.07); // まれに「空の魂」も見つかる
   acquireSoul(soul, cell.corpseGreat
-    ? `偉大なる死体（${clsLabel}）に宿っていた、強大な魂だ。`
-    : `まだあたたかい死体（${clsLabel}）に宿っていた魂だ。`);
+    ? `偉大なる死体に宿っていた、強大な魂だ。`
+    : `まだあたたかい死体に宿っていた魂だ。`);
 }
 
 // 一定確率で「空の魂」を手の空いた人業へ。入手したらログ表示
@@ -6348,7 +6348,11 @@ function showItemGet(item, who, onClose) {
   card.appendChild(el("div", "ig-name", item.name));
   const stat = statLines(item);
   if (stat) card.appendChild(el("div", "ig-stat", stat));
-  if (isEquippable(item)) card.appendChild(el("div", "ig-class", equipClassText(item)));
+  // 装備可否は現在の編成 (人業) 単位で ○/× 表示。1人のみの時は条件バッジにフォールバック
+  if (isEquippable(item)) {
+    if (G.party.length > 1) card.appendChild(equipPartyChips(item));
+    else card.appendChild(el("div", "ig-class", equipClassText(item)));
+  }
   card.appendChild(el("div", "ig-desc", item.desc || ""));
   card.appendChild(el("div", "ig-who", `${who.name} が手に入れた`));
   const ok = btn("受け取る", () => closeItemGet(onClose));
