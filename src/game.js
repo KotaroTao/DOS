@@ -6070,7 +6070,7 @@ function elemStatText(kind, e) {
   return `${elemName(e.el)}属性${kind}+${Math.min(2, e.lv)}`;
 }
 // 相性のくわしい説明行 (複数行)。
-// 防御: 「水属性防御 +1」「火属性から受けるダメージ -50%」「土属性から受けるダメージ +50%」
+// 防御: 「水属性防御 +1」「火属性から受けるダメージ -50%」(不利属性のダメージ増加は表示・適用しない)
 // 攻撃: 「水属性攻撃 +1」「火属性に与えるダメージ +50%」「土属性に与えるダメージ -50%」
 function elemDetailLines(kind, e) {
   if (!e || !e.el || !ELEM_ADV[e.el]) return [];
@@ -6082,7 +6082,7 @@ function elemDetailLines(kind, e) {
     if (weak) lines.push(`${elemName(weak)}属性に与えるダメージ　-${pct}%`);
   } else {
     lines.push(`${elemName(adv)}属性から受けるダメージ　-${pct}%`);
-    if (weak) lines.push(`${elemName(weak)}属性から受けるダメージ　+${pct}%`);
+    // 不利属性からのダメージ増加は適用しない (軽減のみ)
   }
   return lines;
 }
