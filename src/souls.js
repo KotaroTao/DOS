@@ -97,7 +97,7 @@ export const JOB_RANKS = {
 };
 
 // ===== 魂ランク (1〜5) の係数・表示 =====
-// cap: レベル上限 / order: 0始まり (UI判定用) / color: 表示色
+// cap: そのランクで到達できる魂レベル上限 / order: 0始まり (UI判定用) / color: 表示色
 export const SOUL_RANKS = {
   1: { label: "",         cap: 10,  order: 0, color: null,      mul: 1.0 },
   2: { label: "ランク2の", cap: 20,  order: 1, color: "#7fd0ff", mul: 1.3 },
@@ -105,6 +105,45 @@ export const SOUL_RANKS = {
   4: { label: "ランク4の", cap: 50,  order: 3, color: "#ff9a4a", mul: 3.0 },
   5: { label: "ランク5の", cap: 100, order: 4, color: "#ffcf4a", mul: 5.0 },
 };
+
+// ===== 集魂ランクアップ (1部位制) =====
+// 人業は職業ごとに「吸収した魂の数 (count)」と「魂レベル (level/exp)」を個別に育てる。
+// 同じ職業の魂を集めるとステータスが上がり、一定数でランクアップして
+// 魂レベルの上限 (SOUL_RANKS[rank].cap) が伸び、新たなスキル・パッシブが解放される。
+// RANKUP_NEED[rarity] = [r1→2, r2→3, r3→4, r4→5] に必要な追加の魂数
+export const RANKUP_NEED = {
+  common: [10, 30, 50, 100],
+  rare:   [5, 15, 25, 50],
+  epic:   [2, 5, 10, 20],
+  legend: [1, 2, 3, 5],
+};
+// 同じ魂1個ごとの全ステータス上昇 (基礎値に対する%)。1個目は基礎値そのもの
+export const SOUL_STAT_UP = { common: 0.01, rare: 0.04, epic: 0.10, legend: 1.00 };
+
+// 累計しきい値: [rank1, rank2, …, rank5] に到達する累計所持数 (1個目で rank1)
+export function rankThresholds(rarity) {
+  const need = RANKUP_NEED[rarity] || RANKUP_NEED.common;
+  const t = [1];
+  for (const n of need) t.push(t[t.length - 1] + n);
+  return t;
+}
+// 所持数 → ランク (0 = 未所持)
+export function soulRankFromCount(clsKey, count) {
+  if (!count || count < 1) return 0;
+  const cls = SOUL_CLASSES[clsKey];
+  const t = rankThresholds(cls ? cls.rarity : "common");
+  let r = 1;
+  for (let i = 1; i < t.length; i++) if (count >= t[i]) r = i + 1;
+  return Math.min(5, r);
+}
+// 次のランクまでの進捗 { next: 必要累計, prev: 現ランクの累計しきい値 } (rank5なら null)
+export function nextRankThreshold(clsKey, count) {
+  const cls = SOUL_CLASSES[clsKey];
+  const t = rankThresholds(cls ? cls.rarity : "common");
+  const r = soulRankFromCount(clsKey, count);
+  if (r >= 5) return null;
+  return { next: t[r], prev: r > 0 ? t[r - 1] : 0 };
+}
 
 // ランク係数 (内部参照用)
 const SOUL_RANK_MUL = { 1: 1.0, 2: 1.3, 3: 1.9, 4: 3.0, 5: 5.0 };
@@ -140,12 +179,19 @@ function rarityPool(r) {
   return _rarityPools[r];
 }
 export function rollJobClass() {
+  // 風化した死体・まだあたたかい死体: コモン70% / レア20% / エピック9% / レジェンド1%
   const r = Math.random();
   let pool;
-  if (r < 0.001)       pool = rarityPool("legend");
-  else if (r < 0.011)  pool = rarityPool("epic");
-  else if (r < 0.091)  pool = rarityPool("rare");
+  if (r < 0.01)        pool = rarityPool("legend");
+  else if (r < 0.10)   pool = rarityPool("epic");
+  else if (r < 0.30)   pool = rarityPool("rare");
   else                  pool = rarityPool("common");
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+// 偉大なる死体: レア30% / エピック50% / レジェンド20% (コモンは出ない)
+export function rollGreatJobClass() {
+  const r = Math.random();
+  const pool = r < 0.20 ? rarityPool("legend") : r < 0.70 ? rarityPool("epic") : rarityPool("rare");
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
@@ -360,11 +406,9 @@ export const JOB_LORE = {
 export function jobRankCondText(jobKey, rank) {
   const cls = SOUL_CLASSES[jobKey];
   if (!cls) return "";
-  const label = cls.label;
-  const rankName = JOB_RANKS[jobKey] ? JOB_RANKS[jobKey][rank - 1].name : label;
-  if (rank <= 1) return `${rankName}の魂を3部位以上に宿す`;
-  if (rank <= 3) return `${rankName}の魂（ランク${rank}）を3部位以上に宿す`;
-  return `${rankName}の魂（ランク${rank}）を3部位以上 ― ダンジョンでは出ないため、魂融合で入手する`;
+  const t = rankThresholds(cls.rarity);
+  if (rank <= 1) return `${cls.label}の魂を1つ吸収する`;
+  return `${cls.label}の魂を累計 ${t[rank - 1]}個 吸収する`;
 }
 
 // 後方互換: ハイブリッド関連 (廃止済みだが import で参照される箇所のため空で残す)
@@ -503,13 +547,47 @@ let _dollUid = 0;
 export function makeDoll(name) {
   return {
     uid: ++_dollUid, name, isDoll: true,
-    parts: { head: null, rhand: null, lhand: null, body: null, legs: null },
-    clsKey: "fighter", cls: "無職", level: 1,
+    soulCls: null,   // 宿している魂 (職業)。館の祭壇で付け替えられる (ダーマ式転職)
+    souls: {},       // clsKey -> { count, level, exp } — 職業ごとの育成状態 (人業ごとに個別)
+    clsKey: "fighter", cls: "空の器", level: 1,
     hp: 1, maxhp: 1, mp: 0, maxmp: 0,
     atk: 0, vit: 0, agi: 1, int: 0, pie: 0, luk: 0,
     base: { hp: 1, mp: 0, atk: 0, vit: 0, agi: 1, int: 0, pie: 0, luk: 0 },
     equip: { weapon: null, body: null, shield: null, head: null, hands: null, feet: null, acc1: null, acc2: null },
     items: [], ailment: null, spells: [], passives: [], alive: true, side: "party",
+  };
+}
+
+// ---- 1部位制ヘルパー ----
+// 宿している魂の育成エントリ { count, level, exp } (未装着なら null)
+export function dollSoul(d) { return d && d.soulCls && d.souls ? d.souls[d.soulCls] || null : null; }
+// 魂を1つ吸収: 職業エントリを作成/加算して返す
+export function absorbSoul(d, clsKey, n = 1) {
+  if (!d.souls) d.souls = {};
+  const e = d.souls[clsKey] || (d.souls[clsKey] = { count: 0, level: 1, exp: 0 });
+  e.count += n;
+  return e;
+}
+// 所持数に応じた魂レベル上限 (ランクが上がるほど伸びる)
+export function soulLevelCap(clsKey, count) {
+  const r = soulRankFromCount(clsKey, count);
+  return (SOUL_RANKS[r] || SOUL_RANKS[1]).cap;
+}
+// 職業ステータス: 基礎値 × レベル係数 × レア度係数 × 集魂ボーナス (1個ごとに基礎値の+N%)
+const BASE_FACTOR = 5; // 旧5部位ぶんに相当する基礎係数
+export function jobStatsOf(clsKey, entry) {
+  const cls = SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter;
+  const st = cls.stat;
+  const count = entry ? entry.count || 0 : 1;
+  const level = entry ? entry.level || 1 : 1;
+  const rarityMul = RARITY_MUL[cls.rarity] || 1.0;
+  const up = SOUL_STAT_UP[cls.rarity] || 0.01;
+  const f = BASE_FACTOR * lvlFactor(level) * rarityMul * (1 + Math.max(0, count - 1) * up);
+  const r1 = (v) => Math.round((v || 0) * f * 10) / 10;
+  return {
+    hp: Math.round(st.hp * f), mp: Math.round(st.mp * f),
+    atk: r1(st.atk), vit: r1(st.vit), agi: r1(st.agi),
+    int: r1(st.int), pie: r1(st.pie), luk: r1(st.luk),
   };
 }
 
@@ -571,86 +649,66 @@ export function charLevelOf(doll) {
   return Math.max(1, Math.round(souls.reduce((a, s) => a + (s.level || 1), 0) / souls.length));
 }
 
-// ===== recalcDoll =====
+// ===== recalcDoll (1部位制) =====
+// 宿している魂 (soulCls) の育成エントリ {count, level} から全ステ・スキル・パッシブを導出する。
 export function recalcDoll(doll) {
-  let hp = 0, mp = 0, atk = 0, vit = 0, agi = 0, int = 0, pie = 0, luk = 0;
-  for (const p of PARTS) {
-    const s = doll.parts[p]; if (!s) continue;
-    const st = soulStats(s);
-    hp += st.hp; mp += st.mp; atk += st.atk; vit += st.vit;
-    agi += st.agi; int += st.int; pie += st.pie; luk += st.luk;
+  if (!doll.souls) doll.souls = {};
+  const clsKey = doll.soulCls && doll.souls[doll.soulCls] ? doll.soulCls : null;
+  const e = clsKey ? doll.souls[clsKey] : null;
+  const rank = clsKey ? soulRankFromCount(clsKey, e.count) : 0;
+  // レベルはランクの上限でクランプ (ランクアップで上限が伸びる)
+  if (e) {
+    const cap = (SOUL_RANKS[rank] || SOUL_RANKS[1]).cap;
+    if ((e.level || 1) > cap) e.level = cap;
+    if (!e.level) e.level = 1;
   }
+  const st = clsKey ? jobStatsOf(clsKey, e)
+    : { hp: 1, mp: 0, atk: 0, vit: 0, agi: 1, int: 0, pie: 0, luk: 0 };
 
-  const dom = dominantClass(doll);
   const spells = [];
   const passives = [];
-  const crit = 0;
+  doll.jobRank = rank;
+  doll.hybrid = null;
 
-  // 職業発現判定 (3部位以上 同clsKey・同rank)
-  const jr = jobRankOf(doll);
-  doll.jobRank = jr ? jr.rank : 0;
-  doll.hybrid = null; // ハイブリッド廃止
-
-  let clsKey = dom ? dom.clsKey : "fighter";
-  let clsLabel = "空の器";
-
-  if (jr) {
-    clsKey = jr.clsKey;
+  if (clsKey) {
+    doll.jobKey = clsKey;
+    doll.clsKey = clsKey;
     const ranks = JOB_RANKS[clsKey];
-    clsLabel = ranks ? ranks[jr.rank - 1].name : SOUL_CLASSES[clsKey].label;
-
-    // ランクボーナス (5部位すべて同系列職業のときの全ステ倍率)
-    if (jr.all5) {
-      const bonusPct = FIVE_PART_BONUS[SOUL_CLASSES[clsKey].rarity] || 0.10;
-      const mul = 1 + bonusPct;
-      hp *= mul; mp *= mul; atk *= mul; vit *= mul;
-      agi *= mul; int *= mul; pie *= mul; luk *= mul;
+    doll.cls = ranks ? ranks[rank - 1].name : SOUL_CLASSES[clsKey].label;
+    doll.jobLv = e.level;
+    // スキルは魂レベルで習得 (ランク×10 が解放上限。ランクアップで先のスキルが見える)
+    const effLv = Math.min(e.level, rank * 10);
+    for (const t of jobSkillTable(clsKey)) {
+      if (effLv >= t.lvl && !spells.includes(t.skill)) spells.push(t.skill);
     }
-
-    // スキル習得 (キャラLv・ランク上限)
-    const charLv = charLevelOf(doll);
-    doll.jobLv = charLv;
-    const effLv = Math.min(charLv, jr.rank * 10);
-    for (const e of jobSkillTable(clsKey)) {
-      if (effLv >= e.lvl && !spells.includes(e.skill)) spells.push(e.skill);
-    }
-
-    // パッシブ
-    const jobKey = clsKey;
-    doll.jobKey = jobKey;
-    const pMap = passivesUpTo(jobKey, jr.rank);
-    doll.passiveMap = pMap;
-    const tbl = JOB_PASSIVES[jobKey] || [];
-    for (let r = 2; r <= jr.rank; r++) if (tbl[r - 2]) passives.push(tbl[r - 2].name);
+    doll.passiveMap = passivesUpTo(clsKey, rank);
+    const tbl = JOB_PASSIVES[clsKey] || [];
+    for (let r = 2; r <= rank; r++) if (tbl[r - 2]) passives.push(tbl[r - 2].name);
   } else {
     doll.jobKey = null;
+    doll.clsKey = "fighter";
+    doll.cls = "空の器";
     doll.passiveMap = {};
-    doll.jobLv = charLevelOf(doll);
+    doll.jobLv = 1;
   }
 
-  doll.clsKey = clsKey;
-  doll.cls = clsLabel;
-  doll.tier = jr ? "rank" + jr.rank : "none";
-  doll.dominant = dom;
+  doll.tier = rank ? "rank" + rank : "none";
+  doll.dominant = clsKey ? { clsKey, count: e.count, maxLevel: e.level } : null;
   doll.endure = ((doll.passiveMap || {}).endure || 0) > 0;
   doll.level = doll.jobLv || 1;
 
   doll.base = {
-    hp: Math.max(1, Math.round(hp)), mp: Math.round(mp),
-    atk: Math.round(atk), vit: Math.round(vit), agi: Math.max(1, Math.round(agi)),
-    int: Math.round(int), pie: Math.round(pie), luk: Math.round(luk),
-    crit,
+    hp: Math.max(1, Math.round(st.hp)), mp: Math.round(st.mp),
+    atk: Math.round(st.atk), vit: Math.round(st.vit), agi: Math.max(1, Math.round(st.agi)),
+    int: Math.round(st.int), pie: Math.round(st.pie), luk: Math.round(st.luk),
+    crit: 0,
   };
   doll.spells = spells;
   doll.passives = passives;
   delete doll.attrs;
+  delete doll.parts; // 旧5部位フィールドの残骸を除去
   recalc(doll);
   return doll;
-}
-
-export function sealSoul(doll, part, soul) {
-  doll.parts[part] = soul;
-  recalcDoll(doll);
 }
 
 // ===== 魂融合 =====

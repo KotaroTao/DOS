@@ -598,6 +598,42 @@ const NEW_DEFS = [
   { id: "bs_twilightdragon", name: "終焉の黄昏竜", rank: 10, boss: true, race: "dragon", element: "light", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#c87a4a", 0.4),
     desc: "終焉の黄昏の間に座し、世界の日没を待ち続ける竜。その鱗は沈む直前の太陽の色をして、翼を広げれば部屋の灯りがすべて夕暮れになる。" },
+
+  // ---- 役割持ちモンスター (role: healer/guard/summoner) ----
+  // 取り巻き (escort) を連れて現れる。回復役・呼び手は後衛に立つため、
+  // 長射程の武器や呪文で先に仕留めるか、護り手を崩す「処理順」が問われる。
+  // ability: null は種族由来の特殊能力を持たせない明示指定。
+  // -- rank 2 --
+  { id: "bs_goblinshaman", name: "ゴブリンの呪い手", rank: 2, race: "humanoid", element: "dark", artKey: "kobold",
+    role: "healer", escort: "bs_goblin", ability: null, soulClass: "priest",
+    palette: tint(ARTS.kobold.palette, "#7a3aa0", 0.45),
+    desc: "骨の杖を振るい、仲間の傷を呪詛で縫い合わせるゴブリンの祈祷師。群れの後ろで唱え続ける限り、ゴブリンどもは何度でも立ち上がる。" },
+  { id: "bs_tombwarden", name: "墓守の重骸", rank: 2, race: "undead", element: "dark", artKey: "knightmare",
+    role: "guard", escort: "bs_zombie", ability: null,
+    palette: tint(ARTS.knightmare.palette, "#8a8a7a", 0.4),
+    desc: "墓所の番を最後の命令として朽ちた鎧の亡者。命令だけが残った今も仲間の屍を背に庇い、自らが砕けるまで一歩も退かない。" },
+  { id: "bs_ratpiper", name: "鼠寄せの笛吹き", rank: 2, race: "humanoid", element: "none", artKey: "kobold",
+    role: "summoner", summonKey: "bs_drainrat", escort: "bs_drainrat", ability: null, soulClass: "thief",
+    palette: tint(ARTS.kobold.palette, "#5a7a3a", 0.45),
+    desc: "骨の笛で坑道の鼠を従える小鬼。笛の音が続く限り、闇の奥から際限なく鼠が湧いてくる。まず笛を止めさせることだ。" },
+  // -- rank 3 --
+  { id: "bs_bonechanter", name: "白骨の唱導師", rank: 3, race: "undead", element: "dark", artKey: "skeleton",
+    role: "healer", escort: "d01_skeleton", ability: null, soulClass: "bishop",
+    palette: tint(ARTS.skeleton.palette, "#c8b87a", 0.4),
+    desc: "死者への祈りを逆さに唱え、砕けた骨を継ぎ直す骸の司祭。唱導が続く限り、倒したはずの骸兵が骨を拾い集めて立ち上がる。" },
+  { id: "bs_gravecaller", name: "墓呼びの語り部", rank: 3, race: "specter", element: "dark", artKey: "ghost",
+    role: "summoner", summonKey: "bs_zombie", escort: "bs_zombie", ability: null,
+    palette: tint(ARTS.ghost.palette, "#3a5a4a", 0.45),
+    desc: "土の下の亡者に「まだ終わっていない」と囁き続ける亡霊。その語りを聞いた骸は墓を破って這い出し、語り部の指す方へ歩き出す。" },
+  // -- rank 4 --
+  { id: "bs_shieldogre", name: "大盾のオーガ", rank: 4, race: "giant", element: "earth", artKey: "ogre",
+    role: "guard", escort: "d03_orc", ability: null,
+    palette: tint(ARTS.ogre.palette, "#5a6a8a", 0.4),
+    desc: "城門の残骸を大盾として担ぐオーガの古強者。群れの矢面に立って刃を受け止めることだけを誇りとし、その背後でオークどもが斧を研ぐ。" },
+  { id: "bs_plaguepriest", name: "疫病の祈り手", rank: 4, race: "specter", element: "dark", artKey: "ghost",
+    role: "healer", escort: "bs_banshee", ability: null, soulClass: "priest",
+    palette: tint(ARTS.ghost.palette, "#7a8a3a", 0.45),
+    desc: "病魔を神と崇め、その「恵み」で仲間の傷を腐肉ごと塞ぐ亡僧。祈りの言葉は治癒と疫病をひとつの息で唱えられる。" },
 ];
 
 // 新規分にランク基準ステータスを与えてから検証・登録する

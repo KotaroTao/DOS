@@ -157,6 +157,21 @@ export function makeBoard(floor, cfg = null) {
   cells[st.y][st.x].type = "stairs";
   cells[st.y][st.x].cleared = false;
 
+  // 帰還魔法陣: 5の倍数の階には必ず、その他の階にも20%で出現する。
+  // 迷宮に入ると、これを踏むか主を倒すまで街へは帰れない (game.js が帰還を制限する)。
+  if (floor % 5 === 0 || Math.random() < 0.20) {
+    const cand = [];
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+      const c = cells[y][x];
+      if (c.type === "empty" && !(x === sx && y === sy)) cand.push(c);
+    }
+    if (cand.length) {
+      const p = pick(cand);
+      p.type = "portal";
+      p.cleared = false; // 何度でも使える (階段と同じく踏むたびに選択)
+    }
+  }
+
   // イベントは行き止まり (開いた辺が1つ) にのみ50%
   // 回復の泉は 1階層に最大1つ (0 の場合もある)
   // モンスターの種類は迷宮の浅い/深い階で変わる

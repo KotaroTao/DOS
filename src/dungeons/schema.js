@@ -750,6 +750,13 @@ export function defMonster(def) {
   if (def.dropRare) m.dropRare = def.dropRare;
   if (def.soulClass) m.soulClass = def.soulClass;
   if (def.elite) m.elite = true; // 強敵 (強敵階専用。通常プール・ミミックの対象外)
+  // 役割持ち: role (healer/guard/summoner) + escort (取り巻きのid)。
+  // summoner は summonKey の仲間を戦闘中に呼び寄せる。ability は明示指定で上書き可
+  // (省略時は game.js が種族から決定的に付与する)
+  if (def.role) m.role = def.role;
+  if (def.escort) m.escort = def.escort;
+  if (def.summonKey) m.summonKey = def.summonKey;
+  if (def.ability !== undefined) m.ability = def.ability;
   return m;
 }
 
