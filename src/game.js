@@ -3022,22 +3022,20 @@ function dollChip(d) {
   return chip;
 }
 
-// ---- 人業の館: 4つのメニュー (編成 / 魂を宿す / 魂の強化・管理 / 人業作成・管理) ----
+// ---- 人業の館: メニュー (魂の祭壇 / 魂合成 / 魂融合 / 魂分解 / パーティ編成 / 人業保管庫) ----
 const MANSION_MENU = [
-  { key: "party", icon: "🛡", name: "パーティ編成", desc: "迷宮へ連れて行く6体を選ぶ" },
-  { key: "altar", icon: "⛓", name: "魂を宿す", desc: "5部位に魂を宿す" },
-  { key: "enhance", icon: "✦", name: "魂強化", desc: "Soulで魂を鍛える" },
+  { key: "altar", icon: "⛓", name: "魂の祭壇", desc: "5部位に魂を宿し鍛える" },
   { key: "synth", icon: "🌀", name: "魂合成", desc: "Soulで魂を作る" },
   { key: "fuse", icon: "⚗", name: "魂融合", desc: "同種2体を融合してランクアップ" },
   { key: "break", icon: "💥", name: "魂分解", desc: "魂を砕いてSoulに" },
-  { key: "manage", icon: "🏚", name: "人業 作成 / 管理", desc: "空の人業を購入・解体" },
+  { key: "party", icon: "🛡", name: "パーティ編成", desc: "迷宮へ連れて行く6体を選ぶ" },
+  { key: "manage", icon: "🏚", name: "人業保管庫", desc: "人形購入・解体・名前変更" },
 ];
 
 function renderMansion() {
   const sub = G.town.sub;
   if (sub === "party") return renderMansionParty();
   if (sub === "altar") return renderAltar();
-  if (sub === "enhance") return renderMansionEnhance();
   if (sub === "synth") return renderMansionSynth();
   if (sub === "fuse") return renderMansionFuse();
   if (sub === "break") return renderMansionBreak();
@@ -3679,20 +3677,21 @@ function showGenerateDollPopup(d) {
   });
 }
 
-// ---- 魂を宿す間 (人業の館の奥): 5部位に魂を宿す ----
+// ---- 魂の祭壇 (人業の館の奥): 5部位に魂を宿し鍛える ----
 function renderAltar() {
   const dolls = allDolls();
-  if (!altarSel || !dolls.includes(altarSel.doll)) altarSel = { doll: dolls[0] || null, part: null };
-  if (!dolls.length) { townEl.appendChild(townHeader("魂を宿す間", "mansion")); townEl.appendChild(el("div", "tw-empty", "人業がいない。")); return; }
+  // 入室時は頭(PARTS[0])を選択した状態にする。キャラ切り替え時は選択部位を維持。
+  if (!altarSel || !dolls.includes(altarSel.doll)) altarSel = { doll: dolls[0] || null, part: PARTS[0] };
+  if (!dolls.length) { townEl.appendChild(townHeader("魂の祭壇", "mansion")); townEl.appendChild(el("div", "tw-empty", "人業がいない。")); return; }
   const d = altarSel.doll;
 
-  townEl.appendChild(townHeader("魂を宿す間", "mansion"));
+  townEl.appendChild(townHeader("魂の祭壇", "mansion"));
 
   // 人業セレクタ
   const sel = el("div", "tw-dolltabs");
   dolls.forEach((dd) => {
     const label = dd.isEmpty ? `${dd.name}（未生成）` : dd.name;
-    const t = btn(label, () => { altarSel = { doll: dd, part: null }; renderTown(); });
+    const t = btn(label, () => { altarSel = { doll: dd, part: altarSel.part }; renderTown(); });
     t.className = "tw-dolltab" + (dd === d ? " active" : "") + (dd.isEmpty ? " pending" : "");
     sel.appendChild(t);
   });
@@ -3721,7 +3720,7 @@ function renderAltar() {
   }
   sum.appendChild(el("div", "tw-sumc", d.cls));
   const tierTxt = d.jobRank
-    ? `キャラLv ${d.jobLv || 0}（魂の平均・スキル解放 Lv${d.jobRank * 10} まで）`
+    ? `キャラLv ${d.jobLv || 0}（魂Lvの平均）`
     : "同職3部位未満 — 職業未発現";
   sum.appendChild(el("div", "tw-sumt", tierTxt));
   sum.appendChild(el("div", "tw-sumst",
@@ -3771,9 +3770,10 @@ function renderAltar() {
       if (cur.level >= cur.cap) {
         trainBox.appendChild(el("div", "tw-trainn", soulName(cur)));
         trainBox.appendChild(el("div", "tw-soulst", soulStatText(curSt)));
-        trainBox.appendChild(el("div", "tw-note", `上限 Lv${cur.cap}。館の「魂強化」で限界突破を。`));
+        trainBox.appendChild(el("div", "tw-note", `上限 Lv${cur.cap}。融合でランクを上げると上限が伸びる。`));
       } else {
-        const tc = soulTrainCost(cur.level);
+        // 次のレベルまでに必要な Soul = 強化コスト − 戦闘で貯まった経験値(exp)
+        const need = Math.max(1, soulTrainCost(cur.level) - (cur.exp || 0));
         const nextSt = soulStats({ ...cur, level: cur.level + 1 });
         const _stKeys = ["hp", "mp", "atk", "vit", "agi", "int", "pie", "luk"];
         const _stLbl = { hp: "HP", mp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
@@ -3784,9 +3784,10 @@ function renderAltar() {
         trainBox.appendChild(el("div", "tw-trainn", `${soulName(cur)}　Lv${cur.level} → Lv${cur.level + 1}`));
         trainBox.appendChild(el("div", "tw-soulst", soulStatText(curSt)));
         if (deltaStr) trainBox.appendChild(el("div", "tw-souldn", `↑ ${deltaStr}`));
-        const tb = btn(`✦ Soul ${tc} で鍛える`, () => trainSoul(d, part));
+        trainBox.appendChild(el("div", "tw-note", `次のLvまで 必要Soul ${need}（所持 ✦${G.soulPts}）`));
+        const tb = btn(`✦ Soul ${need} で鍛える`, () => trainSoul(d, part));
         tb.className = "tw-small primary";
-        if (G.soulPts < tc) tb.disabled = true;
+        if (G.soulPts < need) tb.disabled = true;
         trainBox.appendChild(tb);
       }
       townEl.appendChild(trainBox);
@@ -3849,11 +3850,13 @@ function soulTrainCost(level) { return 15 + level * 12; }
 function trainSoul(d, part) {
   const s = d.parts[part];
   if (!s || s.level >= s.cap) return;
-  const cost = soulTrainCost(s.level);
+  // 戦闘で貯まった exp を差し引いた残り Soul で1レベル上げる
+  const cost = Math.max(1, soulTrainCost(s.level) - (s.exp || 0));
   if (G.soulPts < cost) { log("Soul が足りない。", "sys"); return; }
   const before = (d.spells || []).slice();
   G.soulPts -= cost;
   s.level++;
+  s.exp = 0;
   recalcDoll(d);
   d.hp = Math.min(d.hp, d.maxhp);
   SFX.levelup(); buzz([0, 30, 40, 30]);
