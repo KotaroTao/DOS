@@ -1506,8 +1506,10 @@ function springTrap(trap, opener, fin) {
     }
   }
   const wiped = !G.party.some((p) => p.alive);
+  const failBanner = fin.chest ? "✗ 罠解除失敗 ✗" : "⚠ 危険 ⚠";
+  const failTitle  = fin.chest ? `解除失敗！「${trap.name}」発動` : `${trap.name}！`;
   showEvent({
-    sprite: ICONS.trap, title: `${trap.name}！`, lines, accent: "#d4504e", banner: "⚠ 危険 ⚠",
+    sprite: ICONS.trap, title: failTitle, lines, accent: "#d4504e", banner: failBanner,
     onClose: () => {
       if (wiped) { gameOver(); return; }
       if (fallen.length) SFX.die();
