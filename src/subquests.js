@@ -70,11 +70,13 @@ const BOSS_TEXTS = [
   { name: "最後の一節", text: "「この詩は主が死なねば完成しない。頼む、結末を書かせてくれ。」" },
 ];
 
-// 迷宮の浅階プールから討伐対象を決定的に選ぶ
-function pickMonster(dn, h) {
-  const pool = [...(dn.pool || []), ...(dn.deepPool || [])].filter((k) => MONSTERS[k] && !MONSTERS[k].boss);
-  if (!pool.length) return null;
-  return pool[h % pool.length];
+// 討伐対象を決定的に選ぶ。依頼は「その階」でのみ進むため、
+// その階に実際に出現する帯 (浅階=pool / 深階=deepPool。board.js と同じ判定) から選ぶ
+function pickMonster(dn, h, floor) {
+  const deep = floor > dn.floors / 2;
+  const band = ((deep ? dn.deepPool : dn.pool) || dn.pool || []).filter((k) => MONSTERS[k] && !MONSTERS[k].boss);
+  if (!band.length) return null;
+  return band[h % band.length];
 }
 
 // dunIdx (0始まり) と floor (1始まり) からサブクエストを決定的に生成する。
@@ -108,7 +110,7 @@ export function genSubQuest(dunIdx, floor) {
   const kinds = floor >= 2 ? ["kill", "kill", "kill", "soul", "chest", "reach"] : ["kill", "kill", "soul", "chest"];
   const kind = kinds[hash(seed, 29) % kinds.length];
   if (kind === "kill") {
-    const key = pickMonster(dn, hash(seed, 31));
+    const key = pickMonster(dn, hash(seed, 31), floor);
     if (!key) return { ...base, type: "floor", goal: floor, floorReq: null, ...fill(REACH_TEXTS[0]) };
     const goal = 2 + (hash(seed, 37) % 3);
     const t = fill(KILL_TEXTS[hash(seed, 41) % KILL_TEXTS.length], MONSTERS[key].name, goal);

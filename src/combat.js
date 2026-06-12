@@ -1,6 +1,6 @@
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
-import { ITEMS, SLOTS, recalc, equip } from "./items.js";
+import { ITEMS } from "./items.js";
 import { elemDmgMult } from "./dungeons/schema.js";
 
 export const SPELLS = {
@@ -65,52 +65,6 @@ export const SPELLS = {
   DIALALL: { name: "リカバーオール", mp: 12, kind: "heal", power: 40, target: "all-ally", desc: "味方全員を大きく回復" },
   OUJOU: { name: "王城の構え", mp: 18, kind: "buff", buff: { vit: 1.7 }, target: "all-ally", desc: "隊全体を城壁と化す究極の守り" },
 };
-
-// 旧プリメイド職テーブル (現行のパーティは人業=souls.js 経由で作られる)。六大ステで定義。
-export const CLASSES = {
-  fighter: { label: "戦士", hp: 34, mp: 0, atk: 12, vit: 8, agi: 6, int: 2, pie: 2, luk: 5, spells: [] },
-  mage: { label: "魔法使い", hp: 18, mp: 14, atk: 5, vit: 3, agi: 7, int: 12, pie: 4, luk: 6, spells: ["HALITO", "MAHALITO", "KATINO"] },
-  priest: { label: "僧侶", hp: 24, mp: 12, atk: 7, vit: 5, agi: 5, int: 4, pie: 12, luk: 6, spells: ["DIOS", "DIAL"] },
-  knight: { label: "騎士", hp: 42, mp: 0, atk: 11, vit: 12, agi: 4, int: 2, pie: 4, luk: 5, spells: [] },
-  thief: { label: "盗賊", hp: 22, mp: 0, atk: 9, vit: 5, agi: 11, int: 4, pie: 2, luk: 10, spells: [] },
-  bishop: { label: "魔導僧", hp: 22, mp: 16, atk: 6, vit: 4, agi: 6, int: 9, pie: 9, luk: 6, spells: ["HALITO", "DIOS", "DIAL"] },
-};
-
-// パーティは最大6人
-export const MAX_PARTY = 6;
-
-export function createParty() {
-  const make = (name, clsKey, race, align, gear = [], bag = []) => {
-    const c = CLASSES[clsKey];
-    const m = {
-      name, clsKey, cls: c.label,
-      race, align, // 種族・属性 (ウィザードリィ風)
-      level: 1,
-      hp: c.hp, maxhp: c.hp, mp: c.mp, maxmp: c.mp,
-      atk: c.atk, vit: c.vit, agi: c.agi, int: c.int, pie: c.pie, luk: c.luk,
-      base: { hp: c.hp, mp: c.mp, atk: c.atk, vit: c.vit, agi: c.agi, int: c.int, pie: c.pie, luk: c.luk }, // 素のステータス
-      equip: { weapon: null, body: null, shield: null, head: null, hands: null, feet: null, acc1: null, acc2: null },
-      items: [],
-      ailment: null,      // null | "poison"
-      spells: c.spells.slice(),
-      alive: true, side: "party",
-    };
-    // 初期所持品 → 装備
-    for (const id of gear) { const it = cloneItem(id); if (it) { m.items.push(it); equip(m, it); } }
-    for (const id of bag) { const it = cloneItem(id); if (it) m.items.push(it); }
-    recalc(m);
-    m.hp = m.maxhp; m.mp = m.maxmp;
-    return m;
-  };
-  return [
-    make("アレク", "fighter", "人間", "善", ["shortSword", "woodShield", "leatherArmor", "leatherGloves"], ["herb"]),
-    make("ガレス", "knight", "ドワーフ", "善", ["battleAxe", "ironHelm", "ironGauntlets"], ["herb"]),
-    make("ロビン", "thief", "ホビット", "中立", ["dagger", "leatherBoots", "leatherGloves"], ["herb", "antidote"]),
-    make("メリナ", "mage", "エルフ", "中立", ["magicStaff", "robe"], ["manaDrop"]),
-    make("セイル", "priest", "人間", "善", ["warHammer", "cap"], ["herb", "herb"]),
-    make("イルザ", "bishop", "ノーム", "悪", ["dagger", "robe", "silverGloves"], ["manaDrop"]),
-  ].slice(0, MAX_PARTY);
-}
 
 // アイテムは個体ごとに複製して持たせる (装備状態を個別管理するため)
 export function cloneItem(id) {
@@ -191,7 +145,6 @@ export class Battle {
     this.phase = "input";     // input | target | resolve | enemy | done
     this.pending = null;      // 対象選択待ちの行動
     this.result = null;       // "win" | "lose" | "flee"
-    this._blessingUsed = false;
     this.opening = opts.opening || null;
     this._roundNo = 0;
     this._bigBarrierUsed = false;
@@ -321,7 +274,8 @@ export class Battle {
     if (p.action === "attack") return this.livingEnemies();
     const sp = SPELLS[p.spellKey];
     if (sp.target === "enemy") return this.livingEnemies();
-    if (sp.target === "ally") return sp.kind === "heal" ? this.party : this.livingParty(); // 回復系は死者も選べる(蘇生)
+    // 死者を選べるのは蘇生できる呪文のみ (蘇生なしの回復で死者を選べると空振りする)
+    if (sp.target === "ally") return sp.kind === "heal" && sp.revive ? this.party : this.livingParty();
     return [];
   }
 
@@ -824,17 +778,7 @@ export class Battle {
     if (this.livingEnemies().length === 0) { this.result = "win"; return; }
     // 全滅 = 生存者ゼロ、または生存者全員が石化
     const living = this.livingParty();
-    if (living.length === 0 || living.every((p) => p.ailment === "stone")) {
-      // 聖者の祝福: 全滅時、1回だけ全員HP1で復活 (祝福持ちが編成にいれば)
-      if (!this._blessingUsed && this.party.some((p) => p.blessing)) {
-        this._blessingUsed = true;
-        for (const p of this.party) { p.alive = true; p.hp = Math.max(1, p.hp); p.ailment = null; p.reviveAt = null; p._dead = false; }
-        this.log("聖者の祝福！ 倒れた仲間が HP1 で立ち上がった！", "win");
-        this._blessingFired = true;
-        return;
-      }
-      this.result = "lose";
-    }
+    if (living.length === 0 || living.every((p) => p.ailment === "stone")) this.result = "lose";
   }
 
   // 戦闘後の報酬計算。Soul が経験値の役割を兼ねる (魂の成長は館の「魂の強化」で行う)。

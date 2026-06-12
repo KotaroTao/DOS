@@ -130,8 +130,6 @@ const partyEl = document.getElementById("party");
 const combatMenu = document.getElementById("combat-menu");
 const floorInfo = document.getElementById("floor-info");
 
-const MAX_FLOOR = 3;
-
 const G = {
   state: "town",      // town | board | combat | over
   floor: 1,
@@ -205,11 +203,18 @@ function forfeitRun() {
   if (!r) return;
   G.gold = Math.max(0, G.gold - r.gold);
   G.soulPts = Math.max(0, G.soulPts - r.soulPts);
-  // 入手したアイテム/装備を所有者から除去 (装備中なら外す)
-  for (const { owner, item } of r.items) {
-    const bi = owner.items.indexOf(item);
-    if (bi >= 0) { owner.items.splice(bi, 1); continue; }
-    for (const slot of SLOTS) if (owner.equip[slot] === item) { owner.equip[slot] = null; recalcDoll ? recalcDoll(owner) : recalc(owner); }
+  // 入手したアイテム/装備を現在の持ち主から除去 (潜入中に「渡す」/他メンバーが
+  // 装備した品も追跡し、全員の所持品・装備を走査して取り上げる)
+  for (const { item } of r.items) {
+    let gone = false;
+    for (const d of allDolls()) {
+      const bi = d.items.indexOf(item);
+      if (bi >= 0) { d.items.splice(bi, 1); gone = true; break; }
+      for (const slot of SLOTS) {
+        if (d.equip[slot] === item) { d.equip[slot] = null; recalcDoll(d); gone = true; break; }
+      }
+      if (gone) break;
+    }
   }
   // 入手した魂を除去 (ストック or 宿し済みの両方を走査)
   for (const soul of r.souls) {
@@ -1730,7 +1735,7 @@ function showSpells(actor) {
     const sp = SPELLS[key];
     const cost = spellCost(actor, sp); // 省詠唱 (chant) 持ちは消費が軽い
     const b = btn(`${sp.name} (MP${cost}) - ${sp.desc}`, () => { act("spell", key); });
-    if (actor.mp < cost) b.style.opacity = "0.4";
+    if (actor.mp < cost) { b.disabled = true; b.style.opacity = "0.4"; } // MP不足は押せない
     list.appendChild(b);
   }
   combatMenu.appendChild(list);
@@ -1790,13 +1795,6 @@ function runCommitted() {
 // 行動の結果を演出し、終わったら次へ
 function postResolve() {
   const b = G.battle;
-  // 聖者の祝福が発動したら派手に知らせる
-  if (b._blessingFired && !b._blessingShown) {
-    b._blessingShown = true;
-    SFX.levelup(); buzz([0, 40, 50, 40, 50, 200]); shakeScreen(true);
-    showToast("🕊 聖者の祝福！ 全員復活");
-    renderParty();
-  }
   // ボスの発狂を派手に知らせる
   if (b._enrageFx) {
     b._enrageFx = false;
@@ -1981,11 +1979,14 @@ function endBattle() {
     const wasBoss = b.enemies.some((e) => e.boss);
     if (wasBoss) { flashScreen("#ffd84a"); buzz([0, 60, 50, 60, 50, 250]); } // 主討伐は特別な瞬間
     if (G.battleCell) G.battleCell.cleared = true;
+    // 主討伐の確定処理 (踏破記録・章進行・戦利品確定) は演出より先に行い、
+    // 直後の finishToBoard の保存に乗せる。演出中に中断されても踏破は失われない
+    const clearInfo = wasBoss ? commitDungeonClear() : null;
     finishToBoard();
     // 勝利の余韻: まず勝利ポップアップ(Gold/Soul)を表示し、閉じてから宝箱を出す。
     // 宝箱はドロップ品があれば必ず、なければ50%で出現。ボスは宝箱のあとに踏破演出へ
     const afterVictory = () => {
-      const after = wasBoss ? onDungeonCleared : null;
+      const after = clearInfo ? () => showDungeonClearedPopup(clearInfo) : null;
       if (drops.length || Math.random() < 0.5) {
         setTimeout(() => battleChest(drops, after), 200);
         return;
@@ -2099,10 +2100,10 @@ function gameOver() {
   showChoice(lootLine, opts, ICONS.corpse, { banner: "💀 全滅 💀", accent: "#d4504e" });
 }
 
-// 迷宮の主を撃破: 踏破を記録し、戦利品を持って街へ凱旋 (次の迷宮は王宮の勅命で解放)
-function onDungeonCleared() {
+// 迷宮の主を撃破した瞬間の確定処理。演出 (showDungeonClearedPopup) とは分離し、
+// 勝利確定と同時に保存されるため、演出中に中断されても踏破・章進行は失われない
+function commitDungeonClear() {
   const idx = G.dungeonIdx;
-  const dn = DUNGEONS[idx];
   G.stats.bossKills++;
   questProgress("boss", null, 1);
   G.dragonSlain = G.dragonSlain || idx === DUNGEONS.length - 1;
@@ -2110,7 +2111,12 @@ function onDungeonCleared() {
   const isStoryTarget = G.msq && G.msq.state === "active" && idx + 1 === G.msq.n;
   if (isStoryTarget) G.msq.state = "report";
   G.run = null; // クリア = 戦利品確定
+  return { idx, isStoryTarget };
+}
 
+// 踏破の凱旋演出 (確定処理は commitDungeonClear 済み)
+function showDungeonClearedPopup({ idx, isStoryTarget }) {
+  const dn = DUNGEONS[idx];
   const lines = [`「${dn.name}」を踏破した！`];
   if (isStoryTarget) lines.push("勅命を果たした。王宮へ戻り、王に報告せよ。");
   else if (idx >= DUNGEONS.length - 1) lines.push("すべての迷宮を制覇した。あなたは伝説となった。");
@@ -2136,82 +2142,6 @@ function onDungeonCleared() {
   card.appendChild(ok);
   itemGetEl.appendChild(card);
   itemGetEl.classList.remove("hidden");
-}
-
-function victory() {
-  G.state = "over";
-  playBgm(null);
-  buzz([0, 40, 50, 40, 50, 40, 50, 200]);
-  log("おめでとう！ あなたは地下迷宮を制覇した！", "win");
-
-  combatMenu.classList.remove("hidden");
-  combatMenu.innerHTML = "";
-  // 凱旋: 王宮で最終ストーリーが待つ
-  const home = btn("🏚 街へ凱旋する (王宮で報告を)", () => {
-    combatMenu.classList.add("hidden");
-    returnToTown();
-  });
-  home.className = "btn primary";
-  combatMenu.appendChild(home);
-  combatMenu.appendChild(btn("もう一度挑戦する", () => location.reload()));
-
-  // 金貨の紙吹雪が舞い続ける勝利画面
-  const t0 = performance.now();
-  const parts = [];
-  for (let i = 0; i < 70; i++) {
-    parts.push({
-      x: Math.random() * view.width,
-      y: -20 - Math.random() * view.height,
-      vy: 0.6 + Math.random() * 1.4,
-      vx: (Math.random() - 0.5) * 0.5,
-      r: 2 + Math.random() * 3,
-      sp: Math.random() * Math.PI * 2, // 回転位相
-      gold: Math.random() < 0.8,
-    });
-  }
-  const tick = () => {
-    if (G.state !== "over") return;
-    const now = performance.now();
-    vctx.fillStyle = "#07060a";
-    vctx.fillRect(0, 0, view.width, view.height);
-    // 背後の金色グロー
-    const g = vctx.createRadialGradient(view.width / 2, view.height / 2, 20, view.width / 2, view.height / 2, view.width / 2);
-    g.addColorStop(0, "rgba(201,162,39,0.18)");
-    g.addColorStop(1, "rgba(0,0,0,0)");
-    vctx.fillStyle = g;
-    vctx.fillRect(0, 0, view.width, view.height);
-    // 金貨たち
-    for (const p of parts) {
-      p.y += p.vy; p.x += p.vx;
-      if (p.y > view.height + 10) { p.y = -10; p.x = Math.random() * view.width; }
-      const wob = Math.abs(Math.sin(now * 0.004 + p.sp)); // コインの回転 (横幅が伸縮)
-      vctx.fillStyle = p.gold ? "#f2d24e" : "#fff0a0";
-      vctx.beginPath();
-      vctx.ellipse(p.x, p.y, p.r * (0.3 + wob * 0.7), p.r, 0, 0, Math.PI * 2);
-      vctx.fill();
-    }
-    // タイトル (ゆっくり明滅)
-    const pulse = 0.85 + Math.sin(now * 0.003) * 0.15;
-    vctx.save();
-    vctx.globalAlpha = pulse;
-    vctx.fillStyle = "#ffd84a";
-    vctx.font = "bold 30px monospace";
-    vctx.textAlign = "center";
-    vctx.shadowColor = "#c9a227";
-    vctx.shadowBlur = 18;
-    vctx.fillText("★ 迷宮制覇 ★", view.width / 2, view.height / 2 - 14);
-    vctx.restore();
-    vctx.fillStyle = "#e7e3d4";
-    vctx.font = "13px monospace";
-    vctx.textAlign = "center";
-    vctx.fillText(`ドラゴンを倒した！ 獲得 ${G.gold} ゴールド`, view.width / 2, view.height / 2 + 24);
-    const survivors = G.party.filter((p) => p.alive).length;
-    vctx.fillStyle = "#9b97a8";
-    vctx.font = "11px monospace";
-    vctx.fillText(`生還者 ${survivors}/${G.party.length} 人`, view.width / 2, view.height / 2 + 46);
-    requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
 }
 
 // ---- パーティ表示 ----
@@ -3261,7 +3191,9 @@ function questProgress(type, key, n = 1) {
 const RUMOR_SPEAKERS = ["隻眼の傭兵", "酔った盗掘者", "巡礼の僧", "宿の女将", "傷だらけの斥候", "黒衣の占い師"];
 
 function rollRumor() {
-  const floor = G.maxFloorReached;
+  // 噂は次の潜入の開始階 (B1F) で必ず現実になる (applyRumorToBoard)。
+  // 文言もその階を指す (深い階を語ると、実際に起きる場所と食い違ってしまう)
+  const floor = 1;
   const speaker = RUMOR_SPEAKERS[rand(RUMOR_SPEAKERS.length)];
   const roll = Math.random();
   // 2% で未発見の混成職ヒント
@@ -3351,7 +3283,7 @@ function renderTavern() {
         G.rumor = rollRumor();
         G.rumorCooldown = Date.now() + 30 * 60 * 1000;
         SFX.select();
-        save();
+        autosave(true);
         renderTown();
       });
       listenBtn.className = "btn tw-add";
@@ -4767,16 +4699,17 @@ function renderStatus() {
   // アイテム選択中は情報パネル
   if (stSel) statusEl.appendChild(renderItemDetail(p, stSel));
 
-  // 野営呪文 (ある場合のみ)
+  // 野営呪文 (ある場合のみ)。消費MPは省詠唱 (chant) 込みの実コストで表示する
   const campSpells = (p.spells || []).filter((k) => SPELLS[k] && SPELLS[k].kind === "heal");
   if (p.isDoll && p.alive && campSpells.length) {
     statusEl.appendChild(el("div", "st-h2", "呪文 (野営)"));
     const sl = el("div", "st-camp");
     for (const k of campSpells) {
       const sp = SPELLS[k];
-      const b = btn(`${sp.name} (MP${sp.mp})`, () => campCast(p, k));
+      const cost = spellCost(p, sp);
+      const b = btn(`${sp.name} (MP${cost})`, () => campCast(p, k));
       b.className = "tw-small";
-      if (p.mp < sp.mp) b.disabled = true;
+      if (p.mp < cost) b.disabled = true;
       sl.appendChild(b);
     }
     statusEl.appendChild(sl);
@@ -4792,72 +4725,6 @@ function invRow(p, it, sel) {
   row.appendChild(el("span", "st-iname", it.name + (it.cursed ? " 🔒" : "")));
   row.addEventListener("click", () => { stSel = { item: it, from: "bag", index: sel.index }; renderStatus(); });
   return row;
-}
-
-// ステータスタブ (詳細なステータスシート)
-function renderStatTab(p) {
-  const info = el("div", "st-statsheet");
-  // 上段: 肖像 + 基本情報 (横並び)
-  const top = el("div", "st-stattop");
-  const port = el("div", "st-port");
-  port.appendChild(spriteCanvas(HERO, 6));
-  top.appendChild(port);
-  const meta = el("div", "st-meta");
-  const line1 = p.isDoll
-    ? `<div class="st-line">人業 <b>${p.cls} Lv${p.jobLv || 1}</b>　魂 <b>${dollSouls(p).length}/5</b></div>`
-    : `<div class="st-line">属性 <b>${p.align}</b>　種族 <b>${p.race}</b></div>
-       <div class="st-line">職業 <b>${p.cls}</b>　レベル <b>${p.level}</b></div>`;
-  meta.innerHTML = `
-    ${line1}
-    <div class="st-line">HP <b>${p.hp}/${p.maxhp}</b>　MP <b>${p.mp}/${p.maxmp}</b></div>
-    <div class="st-line">属性攻撃 ${elemStatChip(p.elemAtk)}　属性防御 ${elemStatChip(p.elemDef)}</div>
-    <div class="st-line ${p.ailment ? "st-bad" : ""}">状態: ${p.ailment ? (AIL_NAME[p.ailment] || p.ailment) : (p.alive ? "正常" : "戦闘不能")}</div>`;
-  if (p.spells && p.spells.length) meta.appendChild(skillChips(p.spells, "習得:"));
-  top.appendChild(meta);
-  info.appendChild(top);
-
-  // 死亡中: 街へ連れ帰られるまでの残り時間と、Red Soulによる短縮
-  if (p.isDoll && !p.alive) {
-    if (!p.reviveAt) setReviveTimers();
-    const box = el("div", "st-revive");
-    const remain = Math.max(0, (p.reviveAt || Date.now()) - Date.now());
-    box.appendChild(el("div", "st-revt", `⏳ 帰還まで ${fmtRemain(remain)}`));
-    box.appendChild(el("div", "tw-note", "他の冒険者が捜索・救出している…"));
-    const b = btn(`🔴1 で帰還を早める (-20分)`, () => tryHastenRescue(p));
-    b.className = "btn primary";
-    if (G.redSoul < 1) b.disabled = true;
-    box.appendChild(b);
-    info.appendChild(box);
-  }
-
-  // 六大ステータス (ATK/VIT/AGI/INT/PIE/LUK)。装備・魂込みの実効値で、武具によって変動する
-  const ab = el("div", "st-attrs");
-  for (const k of ATTR_KEYS) {
-    const cell = el("div", "st-attr");
-    cell.appendChild(el("span", "st-attrk", ATTR_LABEL[k]));
-    cell.appendChild(el("span", "st-attrv", String(Math.round(p[k] || 0))));
-    cell.title = ATTR_NAME[k];
-    ab.appendChild(cell);
-  }
-  info.appendChild(ab);
-
-  // 野営呪文 (戦闘外の回復/治療/蘇生)。MPを消費して使える
-  const campSpells = (p.spells || []).filter((k) => SPELLS[k] && SPELLS[k].kind === "heal");
-  if (p.isDoll && p.alive && campSpells.length) {
-    info.appendChild(el("div", "st-h2", "呪文 (野営)"));
-    const sl = el("div", "st-camp");
-    for (const k of campSpells) {
-      const sp = SPELLS[k];
-      const cost = spellCost(p, sp);
-      const b = btn(`${sp.name} (MP${cost})`, () => campCast(p, k));
-      b.className = "tw-small";
-      if (p.mp < cost) b.disabled = true;
-      sl.appendChild(b);
-    }
-    info.appendChild(sl);
-    info.appendChild(el("div", "tw-note", "回復・蘇生は対象を選んで使う。"));
-  }
-  return info;
 }
 
 // 戦闘外で回復系呪文を唱える。対象の味方を選び、HP回復/蘇生する
@@ -5143,14 +5010,8 @@ function detailLines(it) {
   } else if (it.slot === "mat") {
     L.push("用途は街で見つかるかもしれない");
   } else {
-    if (it.slot === "weapon") {
-      const seg = [];
-      if (it.hit != null) seg.push(`命中${it.hit >= 0 ? "+" : ""}${it.hit}`);
-      if (it.dice) seg.push(`${it.dice}ダメージ`);
-      if (it.swings != null) seg.push(`最低攻撃回数: ${it.swings}`);
-      if (seg.length) L.push(seg.join(" / "));
-    }
     // 六大ステ (ATK/VIT/AGI/INT/PIE/LUK) への補正
+    // (旧 Wizardry 風の 命中/ダイス/攻撃回数 は戦闘で使われないため表示しない)
     const mod = [];
     const f = (label, v) => { if (v) mod.push(`${label}${v >= 0 ? "+" : ""}${v}`); };
     f("ATK", it.atk); f("VIT", it.vit); f("AGI", it.agi);
@@ -5259,10 +5120,10 @@ function openEquipChooser(p, slotKey) {
 
   // 候補収集: 自分の所持品 → 他キャラの所持品 (他キャラが装備中の品は除外)
   const cands = [];
-  for (const it of p.items) if (itemFitsSlot(it, slotKey) && canEquip(p, it)) cands.push({ it, owner: p, where: "self" });
+  for (const it of p.items) if (itemFitsSlot(it, slotKey) && canEquip(p, it)) cands.push({ it, owner: p });
   for (const d of allDolls()) {
     if (d === p) continue;
-    for (const it of d.items) if (itemFitsSlot(it, slotKey) && canEquip(p, it)) cands.push({ it, owner: d, where: "bag" });
+    for (const it of d.items) if (itemFitsSlot(it, slotKey) && canEquip(p, it)) cands.push({ it, owner: d });
   }
 
   if (!cands.length) list.appendChild(el("div", "tw-empty", "装備できる品がない。"));
@@ -5297,12 +5158,12 @@ function openEquipChooser(p, slotKey) {
 
 // 候補(自分/他キャラの所持品/装備品)を p の slotKey に装備する
 function equipFromAnywhere(p, slotKey, c) {
-  const { it, owner, where, srcSlot } = c;
+  const { it, owner } = c;
   if (owner !== p) {
-    // 他キャラから取り上げる
-    if (where === "bag") { const i = owner.items.indexOf(it); if (i >= 0) owner.items.splice(i, 1); }
-    else if (where === "equip") { owner.equip[srcSlot] = null; recalcDoll(owner); }
-    p.items.push(it); // いったん p の所持品へ
+    // 他キャラの所持品から取り上げ、いったん p の所持品へ
+    const i = owner.items.indexOf(it);
+    if (i >= 0) owner.items.splice(i, 1);
+    p.items.push(it);
   }
   const r = equipItem(p, it);
   if (r.msg) log(r.msg, r.ok ? "win" : "sys");

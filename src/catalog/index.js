@@ -3,13 +3,13 @@
 // アイテムを追加するときは各ファイルに追記するだけでよい (append-only)。
 import { WEAPONS } from "./weapons.js";
 import { SHIELDS, ARMORS } from "./armor.js";
-import { HEADS, FEET } from "./gear.js";
+import { HEADS, FEET, HANDS, ACCS } from "./gear.js";
 import { MISC, USABLES } from "./misc.js";
 import { LEGENDS } from "./legends.js";
 
 // { id: item } に統合。ID重複は即エラー (セーブ/図鑑の参照を守る)
 export const CATALOG_ITEMS = {};
-for (const list of [WEAPONS, SHIELDS, ARMORS, HEADS, FEET, MISC, USABLES, LEGENDS]) {
+for (const list of [WEAPONS, SHIELDS, ARMORS, HEADS, FEET, HANDS, ACCS, MISC, USABLES, LEGENDS]) {
   for (const it of list) {
     if (CATALOG_ITEMS[it.id]) throw new Error("duplicate item id: " + it.id);
     CATALOG_ITEMS[it.id] = it;

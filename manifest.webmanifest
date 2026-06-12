@@ -1,7 +1,7 @@
 {
   "name": "百の迷宮と 魂の王 - Hundred Labyrinths: Rise of the Soul King",
   "short_name": "百の迷宮",
-  "description": "ウィザードリィ風 擬似3Dダンジョン探索RPG",
+  "description": "ウィザードリィ風 カードめくり探索RPG。魂を宿した人業を率い、百の迷宮へ潜る。",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
