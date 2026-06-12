@@ -150,11 +150,16 @@ export function spawnEliteEnemies(key, scale = 1) {
   return [makeEnemy(key, scale)];
 }
 
-// 宝箱から出るミミック (通常より手強い)。迷宮のランクに合った個体に化ける (強敵には化けない)
+// 宝箱から出るミミック (通常より手強い)。ステータスは迷宮ランク相応の個体から借りるが、
+// 見た目は固定のミミック (宝箱の魔物) イラストで統一する (強敵には化けない)
 export function spawnMimic(rank, scale = 1) {
   const pool = Object.keys(MONSTERS).filter((k) => MONSTERS[k].rank === rank && !MONSTERS[k].boss && !MONSTERS[k].elite);
   const key = pool.length ? pool[rand(pool.length)] : "cm_slime";
   const e = makeEnemy(key, scale);
+  // 見た目を固定のミミック絵に差し替える (key/mon を上書き。ステータスは借りた個体のまま)
+  e.key = "mimic";
+  e.mon = MONSTERS.mimic;
+  e.element = "none";
   e.name = "ミミック";
   e.isMimic = true; // 撃破時は宝箱が確定出現し、中身が上質になる (game.js の endBattle)
   e.maxhp = Math.round(e.maxhp * 1.4);

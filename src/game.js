@@ -1505,7 +1505,7 @@ function rollChest(cell, allowDanger, done, opener, cRankIn, lvBonus) {
       SFX.trap(); buzz([0, 60, 40, 60]);
       log("宝箱はミミックだった！", "dmg");
       showEvent({
-        sprite: MONSTERS.kobold, title: "ミミックだ！", accent: "#d4504e", banner: "⚠ 危険 ⚠",
+        sprite: MONSTERS.mimic, title: "ミミックだ！", accent: "#d4504e", banner: "⚠ 危険 ⚠",
         lines: ["宝箱は怪物だった！", "戦闘になる！"], btnLabel: "戦う",
         onClose: () => startBattle(spawnMimic(activeCfg().rank || 1, enemyScale()), cell),
       });
