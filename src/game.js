@@ -18,7 +18,7 @@ import {
   dollSouls, dominantClass, recalcDoll, sealSoul,
   ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
   SOUL_RANKS, rollSoulRank, rollJobClass, soulStats, soulHardCap, ensureSoul,
-  jobRankOf, PART_SKILLS, HYBRIDS, findHybrid, JOB_LORE, jobRankCondText,
+  jobRankOf, HYBRIDS, findHybrid, JOB_LORE, jobRankCondText,
   jobSkillTable, charLevelOf, jobRankName, jobPassiveTable, pLv,
   RARITY_SYNTH_COST, FUSION_STAT_BONUS, FIVE_PART_BONUS, fuseSouls, JOB_GEAR,
 } from "./souls.js";
@@ -2416,6 +2416,67 @@ function applyImpact(res) {
   if (anyDeath) setTimeout(() => SFX.die(), 200);
 }
 
+// 戦闘勝利時: 入手Soulの1/5を、生存しているパーティメンバー全員の全部位の魂に
+// 経験値(soul.exp)として加算する。閾値(soulTrainCost)に達した魂は自動でレベルアップし、
+// キャラLv上昇/スキル習得を検出してポップアップ用のキューを返す。
+function distributeBattleSoulExp(soulGot) {
+  const queue = [];
+  const share = Math.floor((soulGot || 0) / 5);
+  if (share <= 0) return queue;
+  for (const m of G.party) {
+    if (!m || !m.alive || !m.parts) continue;
+    const oldLv = m.jobLv || charLevelOf(m);
+    const oldSpells = new Set(m.spells || []);
+    let leveled = false;
+    for (const part of PARTS) {
+      const s = m.parts[part];
+      if (!s || s.level >= s.cap) continue;
+      s.exp = (s.exp || 0) + share;
+      while (s.level < s.cap && s.exp >= soulTrainCost(s.level)) {
+        s.exp -= soulTrainCost(s.level);
+        s.level++;
+        leveled = true;
+      }
+      if (s.level >= s.cap) s.exp = 0; // 上限到達: 余剰expは持ち越さない
+    }
+    if (!leveled) continue; // ステータス変動なし
+    recalcDoll(m);
+    if (m.hp > m.maxhp) m.hp = m.maxhp;
+    const newLv = m.jobLv || charLevelOf(m);
+    // 仕様: 1名ずつ「レベルアップ(回数ぶん)→スキル獲得」の順でポップアップ
+    for (let lv = oldLv + 1; lv <= newLv; lv++) queue.push({ kind: "level", member: m, lv });
+    for (const sk of (m.spells || [])) if (!oldSpells.has(sk)) queue.push({ kind: "skill", member: m, skill: sk });
+  }
+  return queue;
+}
+
+// レベルアップ/スキル習得ポップアップをキュー順に1つずつ表示し、最後に done を呼ぶ
+function runProgressPopups(queue, done) {
+  if (!queue || !queue.length) { if (done) done(); return; }
+  const ev = queue.shift();
+  const next = () => runProgressPopups(queue, done);
+  if (ev.kind === "level") {
+    SFX.levelup();
+    showEvent({
+      banner: "⤴ レベルアップ ⤴",
+      title: `${ev.member.name} は Lv${ev.lv} に上がった！`,
+      accent: "#ffd84a", sparkle: true,
+      lines: [ev.member.cls],
+      btnLabel: "つぎへ", onClose: next,
+    });
+  } else {
+    const sp = SPELLS[ev.skill];
+    SFX.heal();
+    showEvent({
+      banner: "✦ スキル習得 ✦",
+      title: `${ev.member.name} は「${sp ? sp.name : ev.skill}」を覚えた！`,
+      accent: "#5fa8e0", sparkle: true,
+      lines: sp ? [sp.desc] : [],
+      btnLabel: "つぎへ", onClose: next,
+    });
+  }
+}
+
 function endBattle() {
   const b = G.battle;
   // オート戦闘は戦闘ごとに解除 (次の戦闘に持ち越さない)
@@ -2430,6 +2491,8 @@ function endBattle() {
     const goldGot = runGainGold(Math.round(gold * (gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)));
     const soulGot = runGainSoulPts(Math.round(soul * (sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1)));
     applyVictoryPassives();
+    // 入手Soulの1/5を生存メンバー全員の全部位の魂に加算 → レベルアップ/スキル習得を集計
+    const progressQueue = distributeBattleSoulExp(soulGot);
     updateTopbar();
     log(`勝利！ ${goldGot} ゴールド と ✦${soulGot} Soul を得た。`, "win");
     SFX.victory();
@@ -2496,7 +2559,8 @@ function endBattle() {
       accent: wasElite ? "#d4504e" : "#ffd84a",
       sparkle: true,
       lines: [`獲得 ゴールド 💰${goldGot}`, `回収した Soul ✦${soulGot}`],
-      btnLabel: "つぎへ", onClose: afterVictory,
+      // 勝利ポップアップを閉じたら、レベルアップ/スキル習得を順番に表示してから宝箱へ
+      btnLabel: "つぎへ", onClose: () => runProgressPopups(progressQueue, afterVictory),
     });
     return;
   } else if (b.result === "flee") {
@@ -5258,7 +5322,6 @@ function confirmReturnToTown() {
 const statusEl = document.getElementById("status-screen");
 const statusBtn = document.getElementById("status-btn");
 let stSel = null; // 詳細表示中のアイテム { item, from:"equip"|"bag", key }
-let stSoulSel = null; // 魂タブで詳細表示中の魂 (uid)
 
 function openStatus(idx = 0) {
   if (G.state !== "board" && G.state !== "town") return;
@@ -5268,7 +5331,6 @@ function openStatus(idx = 0) {
   G.statusIdx = idx;
   G.statusTab = "main"; // 初期表示は統合画面 (ステータス/装備/所持品)
   stSel = null;
-  stSoulSel = null;
   statusEl.classList.remove("hidden");
   renderStatus();
 }
@@ -5458,13 +5520,19 @@ function renderSoulTab(p) {
   head.style.borderColor = dom ? SOUL_CLASSES[dom.clsKey].color : "#34344a";
   head.appendChild(el("div", "st-soulc", p.cls));
   head.appendChild(el("div", "st-soultt",
-    p.jobRank ? `キャラLv ${p.jobLv || 0}（魂の平均・スキル解放 Lv${p.jobRank * 10} まで）` : "同職3部位未満 — 職業未発現"));
+    p.jobRank ? `キャラLv ${p.jobLv || 0}（魂の平均）` : "同職3部位未満 — 職業未発現"));
+  // 職業欄タップで職業図鑑と同じ職業詳細ポップアップを開く
+  if (p.jobKey) {
+    head.style.cursor = "pointer";
+    head.title = "職業図鑑を表示";
+    head.appendChild(el("div", "tw-sumhint", "▶ 職業図鑑"));
+    head.addEventListener("click", () => showCodexJobDetail(p.jobKey, p.jobRank));
+  }
   wrap.appendChild(head);
 
   for (const part of PARTS) {
     const s = p.parts[part];
-    const selected = s && stSoulSel === s.uid;
-    const row = el("div", "st-soulrow2" + (selected ? " sel" : ""));
+    const row = el("div", "st-soulrow2");
     row.appendChild(el("div", "st-soulpart", PART_LABEL[part]));
     const orb = el("span", "tw-chips");
     if (s) { orb.style.color = SOUL_CLASSES[s.clsKey].glow; orb.appendChild(spriteCanvas(soulSprite(s.clsKey), 2)); }
@@ -5473,17 +5541,30 @@ function renderSoulTab(p) {
       const rank = SOUL_RANKS[s.rank] || SOUL_RANKS[1];
       if (rank.color) row.style.borderColor = rank.color;
       const info = el("div", "st-soulinfo");
-      const nm = el("div", "st-souln2", soulName(s));
+      const atCap = s.level >= s.cap;
+      // 魂名に「Lv1/10」のように上限を付ける
+      const nm = el("div", "st-souln2", atCap ? soulName(s) : `${soulName(s)}/${s.cap}`);
       if (rank.color) nm.style.color = rank.color;
       info.appendChild(nm);
-      // 成長・限界突破は館「魂強化」で
-      info.appendChild(el("div", "st-soulstat",
-        s.level >= s.cap ? `Lv ${s.level}（上限）— 館で限界突破` : `Lv ${s.level} / ${s.cap} ・ 強化は館で ✦${soulTrainCost(s.level)}`));
+      if (atCap) {
+        info.appendChild(el("div", "st-soulstat", "Lv上限 — 館で限界突破"));
+      } else {
+        // 次のレベルまでに必要な Soul を所持量に対するバーで表示
+        const need = soulTrainCost(s.level);
+        const have = G.soulPts || 0;
+        const ratio = Math.max(0, Math.min(1, have / need));
+        const bar = el("div", "st-soulbar");
+        const fill = el("i");
+        fill.style.width = `${Math.round(ratio * 100)}%`;
+        bar.appendChild(fill);
+        info.appendChild(bar);
+        info.appendChild(el("div", "st-soulstat", `次のLvまで Soul ${Math.min(have, need)} / ${need}`));
+      }
       row.appendChild(info);
-      // タップで魂の詳細 (ステータス + 基本/上位スキル) を開閉
-      row.addEventListener("click", () => { stSoulSel = selected ? null : s.uid; renderStatus(); });
+      // タップで魂の詳細をポップアップ表示 (ステータス + パッシブ)
+      row.style.cursor = "pointer";
+      row.addEventListener("click", () => showSoulDetailPopup(s));
       wrap.appendChild(row);
-      if (selected) wrap.appendChild(renderSoulDetail(s));
     } else {
       row.appendChild(el("div", "st-soulinfo dim", "（魂なし）"));
       wrap.appendChild(row);
@@ -5492,11 +5573,26 @@ function renderSoulTab(p) {
   return wrap;
 }
 
-// パッシブの加算オブジェクトを表示用ラベルに ("ATK+2" など)
-const PASSIVE_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP", crit: "会心" };
-function passiveLabel(add) {
-  if (!add) return "—";
-  return Object.keys(add).map((k) => k === "crit" ? `会心+${Math.round(add[k] * 100)}%` : `${PASSIVE_LABEL[k] || k}+${add[k]}`).join(" / ");
+// 魂の詳細をポップアップで表示 (折りたたみではなくモーダル)
+function showSoulDetailPopup(s) {
+  const rank = SOUL_RANKS[s.rank] || SOUL_RANKS[1];
+  const accent = rank.color || (SOUL_CLASSES[s.clsKey] || {}).color || "#c9a227";
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card confirm-card");
+  card.style.borderColor = accent;
+  const banner = el("div", "ig-banner", "✦ 魂 ✦");
+  banner.style.color = accent;
+  card.appendChild(banner);
+  const nm = el("div", "ig-name", soulName(s));
+  nm.style.color = accent;
+  card.appendChild(nm);
+  card.appendChild(renderSoulDetail(s));
+  const ok = btn("閉じる", () => wrap.remove());
+  ok.className = "btn primary ig-ok";
+  card.appendChild(ok);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
 }
 
 // 魂のステータス寄与を「HP+7 ATK+2.4 …」形式で列挙 (0は省略)
@@ -5506,9 +5602,8 @@ function soulStatText(st, sep = " ") {
   return keys.filter((k) => st[k]).map((k) => `${lbl[k]}+${st[k]}`).join(sep);
 }
 
-// 魂の詳細パネル: ステータスと、覚える基本スキル/上位スキル
+// 魂の詳細パネル: ステータスのみ (パッシブスキルは廃止)
 function renderSoulDetail(s) {
-  const def = SOUL_CLASSES[s.clsKey];
   const rank = SOUL_RANKS[s.rank] || SOUL_RANKS[1];
   const d = el("div", "st-souldetail");
   if (rank.color) d.style.borderColor = rank.color;
@@ -5520,14 +5615,6 @@ function renderSoulDetail(s) {
   d.appendChild(el("div", "st-sdnote", `レベル上限 ${s.cap}（融合でランクアップすると上限が上昇）`));
   if (rank.order >= 1) d.appendChild(el("div", "st-sdnote", `${rank.label}魂 (能力 ×${rank.mul})`));
 
-  // この魂(職業×部位)のパッシブ表を表示。s.level で発動済みを強調。
-  // アクションスキルは魂ではなく職業に帰属する (職業図鑑参照)。
-  d.appendChild(el("div", "st-sdh", `パッシブスキル（${PART_LABEL[s.part]}・常時発動）`));
-  const tbl = (PART_SKILLS[s.clsKey] && PART_SKILLS[s.clsKey][s.part]) || [];
-  for (const e of tbl) {
-    const on = s.level >= e.lvl;
-    d.appendChild(el("div", "st-sdskill" + (on ? " on" : ""), `${on ? "★" : "○"} Lv${e.lvl}: ${passiveLabel(e.add)}`));
-  }
   return d;
 }
 
