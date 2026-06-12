@@ -4317,8 +4317,8 @@ function renderCodexJob() {
   townEl.appendChild(el("div", "tw-note", "魂の組み合わせ次第で、いまだ知られぬ混成職が眠っているという……"));
 }
 
-// 職業図鑑: 詳細カード (解説/活用/発現条件/スキル表/ランク表)。
-// rank = 図鑑で選んだ位階。称号・発現条件・スキル解放上限はこのランク視点で表示する。
+// 職業図鑑: 詳細カード (解説/活用/発現条件/パッシブ/スキル表)。
+// rank = 図鑑で選んだ位階。称号・発現条件・パッシブ・スキルはこのランク視点で表示する。
 function showCodexJobDetail(key, rank) {
   const isHybrid = !!HYBRIDS[key];
   const baseK = isHybrid ? key.split("+")[0] : key;
@@ -4364,18 +4364,35 @@ function showCodexJobDetail(key, rank) {
   if (rank >= 2) cbox.appendChild(el("div", "cdx-dun dim", "・ボーナス条件: 5部位すべて同職、または混成(3+2)でサブ2部位の品質も同等以上"));
   card.appendChild(cbox);
 
-  // 職業スキル表 (職業Lvで習得)。実際に到達したLvまでの技だけ開示し、
-  // このランクの解放上限 (Lv ランク×10) を超える技には必要ランクを添える
+  // パッシブ: この位階で有効な効果。上位ランクは下位を内包するため、
+  // ランク2〜rank の表を高い方から畳み込み、上位に呑まれた同系統の下位Lvは省く
+  const pbox = el("div", "cdx-drops");
+  pbox.appendChild(el("div", "cdx-h", "パッシブ"));
+  const pTbl = jobPassiveTable(key);
+  const claimed = {};
+  const actives = [];
+  for (let r = Math.min(rank, 5); r >= 2; r--) {
+    const e = pTbl[r - 2];
+    if (!e || !Object.entries(e.grants).some(([k, lv]) => lv > (claimed[k] || 0))) continue;
+    for (const k in e.grants) claimed[k] = Math.max(claimed[k] || 0, e.grants[k]);
+    actives.unshift(e);
+  }
+  for (const e of actives) pbox.appendChild(line(e.name, e.desc));
+  if (!actives.length) pbox.appendChild(el("div", "cdx-dun dim", "・なし (ランク2以上で発現)"));
+  card.appendChild(pbox);
+
+  // 職業スキル表: このランクで覚える技 (Lv ランク×10 まで) だけを載せ、
+  // 実際に到達したLvの技だけ開示する
   const reached = (rec && typeof rec === "object" && rec.lv) || 0;
   const sbox = el("div", "cdx-drops");
-  sbox.appendChild(el("div", "cdx-h", `職業スキル (職業Lvで習得 / ランク${rank}は Lv${rank * 10} まで解放)`));
   for (const e of jobSkillTable(key)) {
+    if (e.lvl > rank * 10) continue;
     const sp = SPELLS[e.skill];
     const r = el("div", "cdx-drow");
     r.appendChild(el("span", "cdx-sklv", `Lv${e.lvl}`));
     if (reached >= e.lvl && sp) {
       r.appendChild(el("span", "cdx-dn", sp.name));
-      r.appendChild(el("span", "cdx-skd", `${sp.desc} (MP${sp.mp})${e.lvl > rank * 10 ? ` 〔要ランク${Math.ceil(e.lvl / 10)}〕` : ""}`));
+      r.appendChild(el("span", "cdx-skd", `${sp.desc} (MP${sp.mp})`));
       r.classList.add("cdx-sktap");
       r.addEventListener("click", () => showSkillPopup(e.skill));
     } else {
@@ -4384,21 +4401,6 @@ function showCodexJobDetail(key, rank) {
     sbox.appendChild(r);
   }
   card.appendChild(sbox);
-
-  // 職業ランク (位階): 称号とランクパッシブ。ランクN → 職業Lv N*10 までのスキルを解放。
-  // 上位ランクは下位のパッシブをすべて内包する (Lv付きは最高Lvのみ)
-  const rbox = el("div", "cdx-drops");
-  rbox.appendChild(el("div", "cdx-h", "職業ランク (魂の品質で決まる位階)"));
-  if (isHybrid) rbox.appendChild(el("div", "cdx-dun", `・ベース職 (${SOUL_CLASSES[baseK].label}) の魂の品質に従う`));
-  const pTbl = jobPassiveTable(key);
-  for (let r = 1; r <= 5; r++) {
-    const fx = [`スキル解放 Lv${r * 10} まで`];
-    if (r === 1) fx.push("パッシブなし");
-    else if (pTbl[r - 2]) fx.push(`${pTbl[r - 2].name}: ${pTbl[r - 2].desc}`);
-    rbox.appendChild(line(`${r === rank ? "▶ " : ""}ランク${r} ${jobRankName(key, r)}`, fx.join(" / ")));
-  }
-  rbox.appendChild(el("div", "cdx-dun", "・上位ランクは下位のパッシブをすべて発動 (同名のLv効果は最高Lvのみ)"));
-  card.appendChild(rbox);
 
   const ok = btn("閉じる", () => wrap.remove());
   ok.className = "btn primary ig-ok";
