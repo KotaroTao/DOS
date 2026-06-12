@@ -1246,8 +1246,10 @@ function resolveCorpse(cell) {
 
 // あたたかい死体/偉大なる死体の回収: 80%で魂を直接入手、20%で死体が起き上がりアンデッド戦。
 // 戦闘に勝てば魂を100%回収する (宝箱は出ない)。
+// 一度起き上がった死体は cell._corpseRise を残すので、戦闘から逃げて再度調べても
+// 必ずまた起き上がる (逃走→再調査で無償の魂入手を防ぐ)。
 function collectWarmCorpse(cell, clsKey, clsLabel) {
-  if (Math.random() < 0.20) {
+  if (cell._corpseRise || Math.random() < 0.20) {
     const great = !!cell.corpseGreat;
     const riseLine = great
       ? `偉大なる死体は目覚めて襲ってきた！`
@@ -5727,8 +5729,12 @@ function renderStatus() {
 
   statusEl.appendChild(grid);
 
-  // 野営呪文 (ある場合のみ)。消費MPは省詠唱 (chant) 込みの実コストで表示する
-  const campSpells = (p.spells || []).filter((k) => SPELLS[k] && SPELLS[k].kind === "heal");
+  // 野営呪文 (ある場合のみ)。戦闘外で意味があるのは HP回復/蘇生/状態異常治療の呪文。
+  // バフ系は戦闘外では効果が持続しないため除外する。消費MPは省詠唱(chant)込みで表示。
+  const campSpells = (p.spells || []).filter((k) => {
+    const sp = SPELLS[k];
+    return sp && (sp.kind === "heal" || sp.kind === "cure" || sp.cure);
+  });
   if (p.isDoll && p.alive && campSpells.length) {
     statusEl.appendChild(el("div", "st-h2", "呪文 (野営)"));
     const sl = el("div", "st-camp");
@@ -5741,7 +5747,7 @@ function renderStatus() {
       sl.appendChild(b);
     }
     statusEl.appendChild(sl);
-    statusEl.appendChild(el("div", "tw-note", "回復・蘇生は対象を選んで使う。"));
+    statusEl.appendChild(el("div", "tw-note", "回復・蘇生・状態異常の治療を、対象を選んで使える。"));
   }
 }
 
@@ -5754,30 +5760,62 @@ function invRow(p, it, sel) {
   return row;
 }
 
-// 戦闘外で回復系呪文を唱える。対象の味方を選び、HP回復/蘇生する
+// 戦闘外で回復系呪文を唱える。対象の味方を選び、HP回復/蘇生/状態異常治療を行う。
+// バフは戦闘外では持続しないため適用しない (回復・治療部分のみ効果がある)。
 function campCast(caster, spellKey) {
   const sp = SPELLS[spellKey];
-  if (caster.mp < spellCost(caster, sp)) { log("MPが足りない。", "sys"); return; }
+  const cost = spellCost(caster, sp);
+  if (caster.mp < cost) { log("MPが足りない。", "sys"); return; }
+  const cures = sp.kind === "cure" || !!sp.cure;     // 毒・麻痺・石化を治す
+  const heals = (sp.power || 0) > 0;                  // HP回復量を持つ
+  const powerOf = () => (sp.power || 0) + Math.round((caster.pie || 0) * 0.5);
+
+  // 1体へ効果を適用。何か起きたら true
+  const applyTo = (t) => {
+    if (!t.alive) {
+      if (!sp.revive) return false;
+      const heal = sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : Math.max(1, powerOf());
+      t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false;
+      t.hp = Math.max(1, Math.min(t.maxhp, heal));
+      log(`${sp.name}！ ${t.name}が蘇った (HP ${t.hp})`, "heal");
+      return true;
+    }
+    let did = false;
+    if (cures && t.ailment) { t.ailment = null; log(`${sp.name}！ ${t.name}の状態異常が治った`, "heal"); did = true; }
+    if (heals && t.hp < t.maxhp) {
+      const p = powerOf();
+      const heal = p + rand(Math.ceil(p * 0.3) + 1);
+      t.hp = Math.min(t.maxhp, t.hp + heal);
+      log(`${sp.name}！ ${t.name}のHPが ${heal} 回復`, "heal");
+      did = true;
+    }
+    return did;
+  };
+  const finish = () => { caster.mp -= cost; SFX.heal(); buzz(15); renderStatus(); renderParty(); };
+
+  // 全体呪文は対象選択なしで全員へ (効果がなければMPは消費しない)
+  if (sp.target === "all-ally") {
+    let any = false;
+    for (const t of G.party) if (applyTo(t)) any = true;
+    if (any) finish(); else log("効果のある対象がいない。", "sys");
+    return;
+  }
+
+  // 単体: 対象を選ぶ。蘇生可能なら戦闘不能者も候補に出す
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card confirm-card");
   card.style.borderColor = "#46c08f";
   card.appendChild(el("div", "ig-banner", `✦ ${sp.name} ✦`));
   card.appendChild(el("div", "ig-name", "誰に唱える？"));
   const list = el("div", "ig-choices");
+  const ailLabel = { poison: "毒", paralyze: "麻痺", stone: "石化" };
   for (const t of G.party) {
-    const canRevive = sp.revive && !t.alive;
-    if (!t.alive && !canRevive) continue;
-    const label = `${t.name} (HP ${t.hp}/${t.maxhp})${t.alive ? "" : " †"}`;
+    if (!t.alive && !sp.revive) continue;
+    const ail = t.ailment ? ` [${ailLabel[t.ailment] || t.ailment}]` : "";
+    const label = `${t.name} (HP ${t.hp}/${t.maxhp})${ail}${t.alive ? "" : " †"}`;
     const b = btn(label, () => {
       wrap.remove();
-      caster.mp -= spellCost(caster, sp);
-      // 蘇生は revivePct(最大HP割合) を優先。それ以外は power 回復 (術者の PIE で伸びる)
-      const power = sp.power + Math.round((caster.pie || 0) * 0.5);
-      const heal = sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : power + rand(Math.ceil(power * 0.3));
-      if (!t.alive && sp.revive) { t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false; t.hp = Math.max(1, Math.min(t.maxhp, heal)); log(`${sp.name}！ ${t.name}が蘇った (HP ${t.hp})`, "heal"); }
-      else { t.hp = Math.min(t.maxhp, t.hp + heal); log(`${sp.name}！ ${t.name}のHPが ${heal} 回復`, "heal"); }
-      SFX.heal(); buzz(15);
-      renderStatus(); renderParty();
+      if (applyTo(t)) finish(); else log("効果のある対象ではなかった。", "sys");
     });
     list.appendChild(b);
   }
