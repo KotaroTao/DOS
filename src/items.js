@@ -746,40 +746,10 @@ export const ITEMS = {
   },
 };
 
-// ===== %型ステータス変換 (装備の単一フォーマット) =====
-// 装備のフラット値 (atk/vit/…) を「コモン戦士5部位基準の%」に変換して .pct に保存する。
-// stat = round(base[k] * (1 + Σpct[k])) — 魂融合で base が伸びても装備が比例して強くなる。
-// 基本装備 (このファイル) もカタログ品 (src/catalog) も同じこの式を通すことで表示・計算を統一する。
-const _FIGHTER_STAT   = { atk: 2.4, vit: 1.6, agi: 1.2, int: 0.3, pie: 0.4, luk: 1.0, hp: 7.0, mp: 0.7 };
-const _PCT_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"];
-const _PCT_SLOTS = new Set(["weapon", "shield", "body", "head", "feet", "hands", "acc"]);
-
-// 正規化の基準値 (lv 非依存の定数)。
-// 旧式は lv 帯ごとの「段差」で割っていたため、同帯の装備が全く同じ % になり、
-// 帯の境界では高レベル品ほど % が下がる逆転すら起きていた。
-// 分母を lv 非依存の定数にすることで、% は装備の素ステ (atk/vit/… は lv とともに
-// 単調増加) にそのまま比例する → 「グレードが高い装備ほど % の数値が大きい」を常に満たす。
-// (高 lv の素ステは二次関数で伸びるので、最深部の神話級ほど % が大きく跳ね上がる)
-const _TB_C = 85;
-export function typicalBase(lv, stat) {
-  return (_FIGHTER_STAT[stat] || 1.0) * _TB_C;
-}
-// it のフラットステを %型に変換 (装備スロットのみ。既に pct 化済み・非装備は無視)
-export function finalizePct(it) {
-  if (it.pct || !_PCT_SLOTS.has(it.slot)) return it;
-  const lv = it.lv || 1;
-  const pct = {};
-  for (const k of _PCT_KEYS) {
-    if (it[k] != null && it[k] !== 0) {
-      pct[k] = Math.round(it[k] / typicalBase(lv, k) * 10000) / 10000;
-      delete it[k];
-    }
-  }
-  if (Object.keys(pct).length) it.pct = pct;
-  return it;
-}
-// 基本装備をロード時に一括変換 (カタログ品はビルダー側で変換済み)
-for (const id in ITEMS) finalizePct(ITEMS[id]);
+// ===== 装備ステータスの単一フォーマット =====
+// 装備の性能はすべてフラット値 (atk/vit/… を base に加算)。
+// 旧%型 (.pct) は廃止 — 旧セーブの .pct はロード時にテンプレートのフラット値へ
+// 戻される (game.js の reflattenItemStats)。
 
 // 属性集計の優先順 (同レベルなら先のものが発現)
 const ELEM_ORDER = ["fire", "water", "wind", "earth", "light", "dark"];
@@ -795,12 +765,9 @@ function topElemStat(sums) {
 }
 
 // 六大ステ (ATK/VIT/AGI/INT/PIE/LUK) を base + 装備から再計算
-// 装備は %型 (.pct) と フラット型 (.atk/.vit/…) を両方対応。
-// %型: stat = round(base * (1 + Σpct)) — 魂融合で base が伸びても装備が比例して強くなる
-// フラット型: stat = base + Σflat — 旧セーブ互換 (リインジェクト前の暫定)
+// 装備はフラット型: stat = base + Σflat (atk/vit/…)
 export function recalc(member) {
   const base = member.base;
-  const pct = { atk: 0, vit: 0, agi: 0, int: 0, pie: 0, luk: 0, hp: 0, mp: 0 };
   let flatAtk = 0, flatVit = 0, flatAgi = 0, flatInt = 0, flatPie = 0, flatLuk = 0;
   let flatHp = 0, flatMp = 0, crit = base.crit || 0;
   const ea = {}, ed = {};
@@ -809,40 +776,32 @@ export function recalc(member) {
     const it = member.equip[slot];
     if (!it || counted.has(it)) continue;
     counted.add(it);
-    if (it.pct) {
-      for (const k of ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"]) {
-        if (it.pct[k]) pct[k] += it.pct[k];
-      }
-    } else {
-      // フラット値フォールバック (旧セーブ装備 / 未変換アイテム)
-      flatAtk += it.atk || 0;
-      flatVit += (it.vit != null ? it.vit : it.def) || 0; // def は旧セーブ互換
-      flatAgi += (it.agi != null ? it.agi : it.spd) || 0; // spd は旧セーブ互換
-      flatInt += it.int || 0;
-      flatPie += it.pie || 0;
-      flatLuk += it.luk || 0;
-      flatHp  += it.hp || 0;
-      flatMp  += it.mp || 0;
-    }
+    flatAtk += it.atk || 0;
+    flatVit += (it.vit != null ? it.vit : it.def) || 0; // def は旧セーブ互換
+    flatAgi += (it.agi != null ? it.agi : it.spd) || 0; // spd は旧セーブ互換
+    flatInt += it.int || 0;
+    flatPie += it.pie || 0;
+    flatLuk += it.luk || 0;
+    flatHp  += it.hp || 0;
+    flatMp  += it.mp || 0;
     crit += it.crit || 0;
     if (it.eAtk && it.eAtk.el) ea[it.eAtk.el] = (ea[it.eAtk.el] || 0) + (it.eAtk.lv || 1);
     if (it.eDef && it.eDef.el) ed[it.eDef.el] = (ed[it.eDef.el] || 0) + (it.eDef.lv || 1);
   }
-  // 装備による上昇分は切り上げ (0.1→1, 2.2→3)。基礎値はそのまま、装備の寄与だけ ceil する
-  const withEquip = (b, p, f) => {
+  // 装備による増減は整数化 (増は切り上げ・減は切り下げ)。基礎値はそのまま
+  const withEquip = (b, f) => {
     const baseV = Math.round(b || 0);
-    const bonus = (b || 0) * p + f; // 装備由来の増減 (% + フラット)
-    return baseV + (bonus > 0 ? Math.ceil(bonus) : Math.floor(bonus));
+    return baseV + (f > 0 ? Math.ceil(f) : Math.floor(f));
   };
-  member.atk = Math.max(1, withEquip(base.atk, pct.atk, flatAtk));
-  member.vit = Math.max(0, withEquip(base.vit, pct.vit, flatVit));
-  member.agi = Math.max(1, withEquip(base.agi, pct.agi, flatAgi));
-  member.int = Math.max(0, withEquip(base.int, pct.int, flatInt));
-  member.pie = Math.max(0, withEquip(base.pie, pct.pie, flatPie));
-  member.luk = Math.max(0, withEquip(base.luk, pct.luk, flatLuk));
+  member.atk = Math.max(1, withEquip(base.atk, flatAtk));
+  member.vit = Math.max(0, withEquip(base.vit, flatVit));
+  member.agi = Math.max(1, withEquip(base.agi, flatAgi));
+  member.int = Math.max(0, withEquip(base.int, flatInt));
+  member.pie = Math.max(0, withEquip(base.pie, flatPie));
+  member.luk = Math.max(0, withEquip(base.luk, flatLuk));
   member.critBonus = crit;
-  member.maxhp = withEquip(base.hp, pct.hp, flatHp);
-  member.maxmp = withEquip(base.mp, pct.mp, flatMp);
+  member.maxhp = withEquip(base.hp, flatHp);
+  member.maxmp = withEquip(base.mp, flatMp);
   if (member.hp > member.maxhp) member.hp = member.maxhp;
   if (member.mp > member.maxmp) member.mp = member.maxmp;
   // 属性攻撃/属性防御 (装備由来。Lv1=◯, Lv2=◎)

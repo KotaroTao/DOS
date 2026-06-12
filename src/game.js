@@ -6196,17 +6196,10 @@ function skillChips(keys, label) {
 
 function statLines(it) {
   const parts = [];
-  if (it.pct) {
-    const fp = (label, v) => { if (v) parts.push(`${label}${v > 0 ? "+" : ""}${Math.round(v * 100)}%`); };
-    fp("ATK", it.pct.atk); fp("VIT", it.pct.vit); fp("AGI", it.pct.agi);
-    fp("INT", it.pct.int); fp("PIE", it.pct.pie); fp("LUK", it.pct.luk);
-    fp("HP", it.pct.hp); fp("MP", it.pct.mp);
-  } else {
-    const f = (label, v) => { if (v) parts.push(`${label} ${v > 0 ? "+" : ""}${v}`); };
-    f("ATK", it.atk); f("VIT", it.vit); f("AGI", it.agi);
-    f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
-    f("HP", it.hp); f("MP", it.mp);
-  }
+  const f = (label, v) => { if (v) parts.push(`${label} ${v > 0 ? "+" : ""}${v}`); };
+  f("ATK", it.atk); f("VIT", it.vit); f("AGI", it.agi);
+  f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
+  f("HP", it.hp); f("MP", it.mp);
   if (it.crit) parts.push(`会心 +${Math.round(it.crit * 100)}%`);
   const ea = elemStatText("攻撃", it.eAtk);
   const ed = elemStatText("防御", it.eDef);
@@ -6288,17 +6281,10 @@ function detailLines(it) {
     if (it.slot === "weapon") L.push(`射程: ${RANGE_LABEL[weaponRange(it)]}`);
     // 六大ステ (ATK/VIT/AGI/INT/PIE/LUK) への補正
     const mod = [];
-    if (it.pct) {
-      const fp = (label, v) => { if (v) mod.push(`${label}${v >= 0 ? "+" : ""}${Math.round(v * 100)}%`); };
-      fp("ATK", it.pct.atk); fp("VIT", it.pct.vit); fp("AGI", it.pct.agi);
-      fp("INT", it.pct.int); fp("PIE", it.pct.pie); fp("LUK", it.pct.luk);
-      fp("HP", it.pct.hp); fp("MP", it.pct.mp);
-    } else {
-      const f = (label, v) => { if (v) mod.push(`${label}${v >= 0 ? "+" : ""}${v}`); };
-      f("ATK", it.atk); f("VIT", it.vit); f("AGI", it.agi);
-      f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
-      f("HP", it.hp); f("MP", it.mp);
-    }
+    const f = (label, v) => { if (v) mod.push(`${label}${v >= 0 ? "+" : ""}${v}`); };
+    f("ATK", it.atk); f("VIT", it.vit); f("AGI", it.agi);
+    f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
+    f("HP", it.hp); f("MP", it.mp);
     if (it.crit) mod.push(`会心+${Math.round(it.crit * 100)}%`);
     if (mod.length) L.push(mod.join(" / "));
   }
@@ -7045,24 +7031,26 @@ function autosave(force = false) {
 
 function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch {} }
 
-// 旧セーブのカタログアイテムに %型ステータス (.pct) を再注入する。
+// 旧セーブの %型アイテム (.pct) をテンプレートのフラット値へ戻す。
 // refSerialize の参照共有を壊さないよう、saved item オブジェクトを in-place で変更する。
-function reinjectItemPct() {
+function reflattenItemStats() {
   const visited = new Set();
-  function inject(it) {
+  function flatten(it) {
     if (!it || visited.has(it)) return;
     visited.add(it);
     const tmpl = ITEMS[it.id];
-    if (!tmpl || !tmpl.pct || it.pct) return;
-    it.pct = tmpl.pct;
-    for (const k of ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"]) {
-      if (tmpl.pct[k] != null) delete it[k];
+    if (!tmpl) return;
+    if (it.pct) {
+      delete it.pct;
+      for (const k of ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"]) {
+        if (tmpl[k] != null) it[k] = tmpl[k]; else delete it[k];
+      }
     }
     if (tmpl.weight && !it.weight) it.weight = tmpl.weight;
   }
   for (const m of G.party) {
-    for (const it of m.items) inject(it);
-    for (const k of Object.keys(m.equip)) inject(m.equip[k]);
+    for (const it of m.items) flatten(it);
+    for (const k of Object.keys(m.equip)) flatten(m.equip[k]);
   }
 }
 
@@ -7111,7 +7099,7 @@ function loadGame() {
   // 旧ステータス体系のセーブを六大ステ (ATK/VIT/AGI/INT/PIE/LUK) へ移行
   // (battle の敵の mon はこの後 MONSTERS の生定義に差し替えられるため触れても無害)
   migrateLegacyStats(snap);
-  reinjectItemPct();
+  reflattenItemStats();
   // 一時状態はリセット
   G.anim = null; G.flipAnim = null; G.heroAnim = null; G.walking = false; G.prompt = false;
   G.fx = null; G.animating = false; G.enemyPos = {}; G.partyFx = new Map(); G.wallFlash = null;
