@@ -50,6 +50,17 @@ export const WEAPON_CAT_LABEL = (() => {
   return m;
 })();
 
+// ===== 武器の射程 =====
+// 近距離: 敵の前衛にしか届かない / 中距離: 自分が前衛なら敵の後衛まで届く /
+// 長距離: 後衛からでも敵の後衛まで届く。魔法・ブレスは射程の制約を受けない。
+export const RANGE_LABEL = { near: "近距離", mid: "中距離", long: "長距離" };
+const CAT_RANGE = { ls: "near", dg: "near", kt: "near", ax: "near", mc: "near", st: "near", sp: "mid", bw: "long" };
+// アイテム個別の range 指定 > サブカテゴリの既定値。素手・射程不明は近距離
+export function weaponRange(item) {
+  if (!item) return "near";
+  return item.range || CAT_RANGE[item.cat] || "near";
+}
+
 // 隠しレベル → 表示ランク (図鑑の枠色・発見演出に使う)
 // lv は 1-200 (全100迷宮の lootLv 帯に対応)。R6 は最深部の神話級のみ。
 export function lvToRank(lv) {
