@@ -120,10 +120,21 @@ export function cloneItem(id) {
 }
 
 let _uid = 0;
-// カードでめくったモンスター: 階層が深いほど複数で出やすい。scale で迷宮ごとの強さ調整
-export function spawnCardEnemies(key, floor, scale = 1) {
-  const count = Math.random() < 0.2 + floor * 0.12 ? 2 : 1;
-  return Array.from({ length: count }, () => makeEnemy(key, scale));
+// 敵の群れは最大6体 (前衛3+後衛3)
+export const MAX_ENEMIES = 6;
+
+// カードでめくったモンスター: 階層が深いほど群れが膨らむ (最大6体)。scale で迷宮ごとの強さ調整。
+// 「もう1体」を確率 p で繰り返す幾何分布 — 1階 p≈0.26 (平均1.4体) → 5階以深 p≈0.6 (平均2.4体、まれに6体)。
+// opts.min は最低数の強制 (大警報の群れなど)
+export function spawnCardEnemies(key, floor, scale = 1, opts = {}) {
+  const p = Math.min(0.62, 0.18 + floor * 0.08);
+  let count = 1;
+  while (count < MAX_ENEMIES && Math.random() < p) count++;
+  if (opts && opts.min) count = Math.max(count, Math.min(MAX_ENEMIES, opts.min));
+  const list = Array.from({ length: count }, () => makeEnemy(key, scale));
+  // 同種の群れは A/B/C… で呼び分ける (ログ・対象選択の判別用)
+  if (list.length > 1) list.forEach((e, i) => { e.name += String.fromCharCode(65 + i); });
+  return list;
 }
 
 export function spawnBossEnemies(key = "dragon", scale = 1) {

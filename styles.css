@@ -68,7 +68,7 @@ html, body { height: 100%; overflow: hidden; }
 }
 .topbar-right { display: flex; align-items: center; gap: 10px; }
 #floor-info { font-size: 14px; color: var(--accent); font-weight: bold; white-space: nowrap; }
-#mute-btn {
+#mute-btn, #settings-btn {
   background: none;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -80,7 +80,7 @@ html, body { height: 100%; overflow: hidden; }
   min-width: 40px;
   min-height: 36px;
 }
-#mute-btn:active { background: #2a2a3a; }
+#mute-btn:active, #settings-btn:active { background: #2a2a3a; }
 
 /* ===== 盤面 (主役。横幅いっぱい、上部に固定) ===== */
 #screen {
@@ -280,6 +280,7 @@ html, body { height: 100%; overflow: hidden; }
 #combat-menu .row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
 #combat-menu .who { font-size: 13px; color: var(--accent); margin-bottom: 2px; text-align: center; }
 #combat-menu .target-list { display: grid; gap: 6px; }
+#combat-menu .target-list.cols2 { grid-template-columns: 1fr 1fr; } /* 敵が4体以上の対象選択 */
 #combat-menu .btn { min-height: 52px; font-size: 15px; }
 
 .hidden { display: none !important; }
@@ -441,6 +442,7 @@ canvas.spr { image-rendering: pixelated; display: block; }
 }
 .ig-name { font-size: 19px; font-weight: bold; color: #fff; }
 .ig-stat { font-size: 12px; color: var(--accent-2); margin-top: 4px; }
+.ig-class { font-size: 11px; color: var(--ink-dim); margin-top: 4px; }
 .ig-desc { font-size: 12px; color: var(--ink-dim); line-height: 1.6; margin: 10px 4px; }
 .ig-who { font-size: 12px; color: var(--accent); margin-bottom: 12px; }
 .ig-ok { width: 100%; }
@@ -544,6 +546,15 @@ canvas.spr { image-rendering: pixelated; display: block; }
   color: var(--ink);
 }
 
+/* 縦スクロール画面 (街/ステータス/設定) は flex 縦積みのため、子の縮小を禁じる。
+   overflow を持つ子 (層域アコーディオン .tw-band や図鑑タブ .cdx-tabs) は
+   flex の自動最小サイズが 0 になり、あふれた高さを一身に吸収して潰れる —
+   リストが途中で切れた上に全体が画面内に収まってスクロール自体が死ぬ。
+   商店 (.shop-mode) だけは .shop-stock が縮んで内側スクロールする設計のため除外 */
+#town-screen:not(.shop-mode) > *,
+#status-screen > *,
+#settings-screen > * { flex-shrink: 0; }
+
 /* 共通ヘッダ */
 .tw-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
 .tw-back {
@@ -623,7 +634,6 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .tw-shoprow { display: flex; align-items: center; gap: 9px; background: #170f22; border: 1px solid #34254a; border-radius: 8px; padding: 7px 9px; }
 .tw-small { min-height: 34px; padding: 6px 10px; font-size: 11px; background: #221833; border: 1px solid #4a3568; border-radius: 6px; color: #e0d2f4; white-space: nowrap; }
 .tw-small.danger { border-color: var(--danger); color: #ff9a98; }
-.tw-reset { display: block; margin: 18px auto 4px; opacity: 0.75; }
 .tw-add { margin-top: 10px; min-height: 46px; }
 
 /* 魂封じの祭壇 */
@@ -679,6 +689,34 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 }
 .tw-quest.done { border-left-color: #46c08f; box-shadow: 0 0 10px rgba(70,192,143,0.25); }
 .tw-small.primary { border-color: var(--accent); color: #ffd84a; }
+
+/* ===== 王宮: 勅命 (メインクエスト) の大ボタン ===== */
+.tw-msq {
+  display: block; width: 100%; min-height: 64px;
+  font-size: 16px; font-weight: bold; letter-spacing: 1px;
+  color: #1a1206;
+  background: linear-gradient(180deg, #ffe98a, #c9a227);
+  border: 2px solid #ffe98a; border-radius: 12px;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.35);
+  animation: msq-glow 1.6s ease-in-out infinite alternate;
+}
+.tw-msq:active { background: linear-gradient(180deg, #e3c455, #ad8a1e); transform: translateY(1px); }
+@media (hover: hover) { .tw-msq:hover { background: linear-gradient(180deg, #fff0a6, #d4ad33); } }
+@keyframes msq-glow {
+  from { box-shadow: 0 0 10px rgba(255, 216, 74, 0.35), 0 3px 10px rgba(0,0,0,0.5); }
+  to   { box-shadow: 0 0 26px rgba(255, 216, 74, 0.75), 0 3px 10px rgba(0,0,0,0.5); }
+}
+
+/* ===== 王宮: 勲章の間 (実績) ===== */
+.ach-card { cursor: default; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ach-card:active { transform: none; }
+.ach-card.ready { border-color: var(--accent); box-shadow: 0 0 10px rgba(201, 162, 39, 0.3); }
+.ach-card.done { opacity: 0.55; }
+.ach-icon { font-size: 22px; line-height: 1.2; }
+.ach-card .cdx-name { width: 100%; }
+.ach-desc { min-height: 24px; }
+.ach-got { color: #c0a0a0; }
+.ach-claim { margin-top: 5px; }
 
 /* ===== 王宮: ストーリーイベント ===== */
 .story-card { max-width: 420px; }
@@ -809,6 +847,15 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 }
 .tw-dungeon.sel { border-left-color: #8a63b8; box-shadow: 0 0 0 1px #8a63b8; background: #20162e; }
 .tw-dungeon.locked { opacity: 0.5; cursor: default; }
+.tw-dungeon.cleared { border-left-color: #8a7227; }
+.tw-dunhelp { font-size: 10px; color: #8a7ca0; margin: -2px 0 8px; line-height: 1.5; }
+/* 踏破状態バッジ (★踏破済 / ❗勅命 / 未踏破) */
+.tw-dunst {
+  flex: 0 0 auto; font-size: 10px; font-weight: bold; white-space: nowrap;
+  padding: 3px 8px; border-radius: 99px; border: 1px solid #4a3568; color: #9685ad;
+}
+.tw-dunst.done { color: #ffd84a; border-color: #8a7227; background: rgba(201, 162, 39, 0.08); }
+.tw-dunst.quest { color: #ff9a98; border-color: #7a3a48; background: rgba(228, 85, 79, 0.1); }
 
 /* ===== 商店 (固定レイアウト: ページスクロールなし) ===== */
 #town-screen.shop-mode { overflow: hidden; display: flex; flex-direction: column; }
@@ -855,6 +902,33 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 
 /* モーダルが背の高い内容でも収まるように (スクロールはモーダル内のみ) */
 .confirm-overlay .ig-card { max-height: 88vh; overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain; }
+
+/* ===== 設定画面 (⚙) ===== */
+#settings-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 75; /* 街(70)の上・確認ダイアログ #item-get(76) の下。ステータス(75)とは排他 */
+  background:
+    radial-gradient(120% 80% at 50% -10%, #2a1d2e 0%, rgba(0,0,0,0) 55%),
+    linear-gradient(170deg, #14101a, #07060b 65%);
+  display: flex; flex-direction: column; gap: 9px;
+  padding: calc(var(--safe-top) + 12px) 14px calc(var(--safe-bottom) + 14px);
+  overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch;
+}
+.set-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.set-title { font-size: 16px; font-weight: bold; color: #f3e9c8; letter-spacing: 1px; text-shadow: 0 0 8px rgba(201, 162, 39, 0.4); }
+.set-h { font-size: 12px; color: #b49fd2; letter-spacing: 1px; margin: 12px 0 0; border-left: 3px solid #6a4d90; padding-left: 7px; }
+.set-row {
+  display: flex; align-items: center; gap: 10px;
+  background: #170f22; border: 1px solid #34254a; border-radius: 8px; padding: 10px 12px;
+}
+.set-row.danger { border-color: #5a2a3a; background: #160d12; }
+.set-rowi { flex: 1; min-width: 0; }
+.set-rown { font-size: 13px; font-weight: bold; color: #ede2ff; }
+.set-row.danger .set-rown { color: #ff9a98; }
+.set-rowd { font-size: 10px; color: #9685ad; margin-top: 2px; line-height: 1.5; }
+.set-toggle { flex: 0 0 auto; min-width: 76px; }
+.set-toggle.on { border-color: #8a63b8; color: #f0e2ff; box-shadow: 0 0 0 1px #8a63b8; background: #241836; }
 
 /* ===== 日替わり迷宮 ===== */
 .tw-daily {
