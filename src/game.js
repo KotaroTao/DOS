@@ -2798,7 +2798,7 @@ let altarSel = null; // 訓練所で選択中 { doll, part }
 const FACILITIES = [
   { key: "mansion", icon: "🏚", name: "人業の館", desc: "人業を仕立て、魂を宿す" },
   { key: "tavern", icon: "🍺", name: "酒場「沈まぬ灯」", desc: "編成とクエスト" },
-  { key: "shop", icon: "🏪", name: "商店", desc: "装備・道具の売買" },
+  { key: "shop", icon: "🏪", name: "商店 : 黒鉄商会", desc: "装備・道具の売買" },
   { key: "inn", icon: "🛏", name: "宿屋「白狼」", desc: "魂を休め、傷を癒す" },
   { key: "palace", icon: "👑", name: "王宮", desc: "勅命と図鑑の間" },
   { key: "shrine", icon: "🔴", name: "赤い魂の祠", desc: "Red Soul を授かる" },
@@ -4652,18 +4652,23 @@ function renderCodexItem() {
     townEl.appendChild(subs);
     if (codexWeaponCat !== "all") ids = ids.filter((id) => ITEMS[id].cat === codexWeaponCat);
   }
-  const grid = el("div", "cdx-grid");
+  // 商店と同じリスト表示 (アイコン + 名前 + 説明)。タップで詳細ポップアップ
+  const list = el("div", "shop-stock");
   for (const id of ids) {
     const it = ITEMS[id];
-    const c = el("div", "cdx-card");
-    if (it.rank) c.style.borderColor = RANK_COLOR[it.rank];
-    const art = el("div", "cdx-art"); art.appendChild(spriteCanvas(it, 3)); c.appendChild(art);
-    c.appendChild(el("div", "cdx-name", it.name));
-    c.addEventListener("click", () => { SFX.select(); showCodexItemDetail(id); });
-    grid.appendChild(c);
+    const r = el("div", "tw-shoprow");
+    if (it.rank) r.style.borderColor = RANK_COLOR[it.rank];
+    const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
+    const info = el("div", "tw-chipi");
+    info.appendChild(el("div", "tw-chipn", it.name));
+    info.appendChild(el("div", "tw-chipc", it.desc || ""));
+    r.appendChild(info);
+    r.style.cursor = "pointer";
+    r.addEventListener("click", () => { SFX.select(); showCodexItemDetail(id); });
+    list.appendChild(r);
   }
-  if (!ids.length) grid.appendChild(el("div", "tw-empty", "この区分の品はまだ手にしていない。"));
-  townEl.appendChild(grid);
+  if (!ids.length) list.appendChild(el("div", "tw-empty", "この区分の品はまだ手にしていない。"));
+  townEl.appendChild(list);
 }
 
 // 図鑑: アイテム詳細を宝箱出現時と同じ大きさでメイン画面に表示
@@ -5107,6 +5112,7 @@ const SHOP_INIT_STOCK = {
 // 商店タブ: アイテム分類 (items.js の ITEM_CATS) ごとに切り替え
 const SHOP_TABS = ITEM_CATS;
 let shopTab = "weapon";
+let shopWeaponCat = "all"; // 商店の武器タブのサブカテゴリ (長剣/短剣/…)
 let shopMember = 0; // 取引する編成メンバーの index
 const sellPrice = (it) => Math.max(1, Math.floor((it.price || 10) / 2));
 
@@ -5114,7 +5120,7 @@ const sellPrice = (it) => Math.max(1, Math.floor((it.price || 10) / 2));
 // ページ全体は縦スクロールさせず、在庫リストだけが内部でスクロールする。
 function renderShop() {
   townEl.classList.add("shop-mode");
-  townEl.appendChild(townHeader("ボルタック商店"));
+  townEl.appendChild(townHeader("黒鉄商会"));
 
   if (shopMember >= G.party.length) shopMember = 0;
   const who = G.party[shopMember] || null;
@@ -5145,23 +5151,39 @@ function renderShop() {
   }
   townEl.appendChild(tabs);
 
-  // 在庫 (内部スクロール領域)
+  // 武器タブは図鑑と同じくサブカテゴリ (長剣/短剣/…) で絞り込める
   const tabDef = SHOP_TABS.find((t) => t.key === shopTab) || SHOP_TABS[0];
+  if (tabDef.key === "weapon") {
+    const subs = el("div", "tw-dolltabs shop-tabs");
+    for (const c of [{ key: "all", label: "すべて" }, ...WEAPON_CATS]) {
+      const b = btn(c.label, () => { shopWeaponCat = c.key; renderTown(); });
+      b.className = "tw-dolltab" + (shopWeaponCat === c.key ? " active" : "");
+      subs.appendChild(b);
+    }
+    townEl.appendChild(subs);
+  }
+
+  // 在庫 (内部スクロール領域)
   const stock = el("div", "shop-stock");
   let any = false;
   for (const id of Object.keys(G.shopStock)) {
     const it = ITEMS[id];
     if (!it || !tabDef.slots.includes(it.slot)) continue;
+    if (tabDef.key === "weapon" && shopWeaponCat !== "all" && it.cat !== shopWeaponCat) continue;
     const count = G.shopStock[id];
     if (count <= 0) continue;
     any = true;
     const price = it.price || 30;
     const r = el("div", "tw-shoprow");
+    if (it.rank) r.style.borderColor = RANK_COLOR[it.rank];
     const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
     const info = el("div", "tw-chipi");
     info.appendChild(el("div", "tw-chipn", `${it.name} 在庫 : ${count}`));
     info.appendChild(el("div", "tw-chipc", it.desc || ""));
     r.appendChild(info);
+    // アイテム部をタップで詳細ポップアップ (購入もそこから)
+    info.style.cursor = "pointer";
+    info.addEventListener("click", () => { SFX.select(); showShopItemDetail(id, price); });
     const b = btn(`💰${price}`, () => buyItem(id, price));
     b.className = "tw-small";
     if (G.gold < price || !who || !who.alive || who.items.length >= MAX_ITEMS) b.disabled = true;
@@ -5209,6 +5231,36 @@ function renderShop() {
     dock.appendChild(el("div", "tw-empty", "編成に人業がいない。"));
   }
   townEl.appendChild(dock);
+}
+
+// 商店: 在庫アイテムの詳細をポップアップ表示し、その場で購入もできる
+function showShopItemDetail(id, price) {
+  const it = ITEMS[id];
+  if (!it) return;
+  const who = G.party[shopMember] || null;
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card cdx-detail");
+  const rc = it.rank ? RANK_COLOR[it.rank] : null;
+  if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
+  const ban = el("div", "ig-banner", it.rank ? `${RANK_NAME[it.rank]}級アイテム` : "アイテム");
+  if (rc) ban.style.color = rc;
+  card.appendChild(ban);
+  const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 11)); card.appendChild(art);
+  card.appendChild(el("div", "ig-name", it.name + (it.cursed ? " 🔒" : "")));
+  for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
+  if (it.desc) card.appendChild(el("div", "ig-desc", it.desc));
+  const count = G.shopStock[id] || 0;
+  card.appendChild(el("div", "ig-who", `在庫 ${count}・買値 💰${price}`));
+  const list = el("div", "ig-choices");
+  const buy = btn(`💰${price} で買う`, () => { wrap.remove(); buyItem(id, price); });
+  buy.classList.add("primary");
+  if (G.gold < price || !who || !who.alive || who.items.length >= MAX_ITEMS || count <= 0) buy.disabled = true;
+  list.appendChild(buy);
+  list.appendChild(btn("閉じる", () => wrap.remove()));
+  card.appendChild(list);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
 }
 
 // 商店: アイテム情報を表示し、売却するか選ぶ (宝箱演出と同じカード)
