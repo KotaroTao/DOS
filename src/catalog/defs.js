@@ -217,69 +217,76 @@ export function W(id, name, cat, lv, opt = {}) {
   it.cat = cat;
   const two = !!opt.two || cat === "bw"; // 弓は常に両手
   if (two) it.twoHanded = true;
-  it.atk = opt.atk != null ? opt.atk : Math.max(1, round((3 + lv * 0.95) * W_MUL[cat] * (two && cat !== "bw" ? 1.25 : 1)));
+  it.atk = opt.atk != null ? opt.atk : Math.max(1, round((2 + lv * 0.82 + lv * lv * 0.0026) * W_MUL[cat] * (two && cat !== "bw" ? 1.25 : 1)));
   it.hit = opt.hit != null ? opt.hit : 1 + Math.floor(lv / 25);
   it.dice = opt.dice || ("1d" + (4 + Math.min(20, Math.floor(lv / 9))) + (lv >= 30 ? "+" + Math.min(15, Math.floor(lv / 13)) : ""));
   it.swings = opt.swings || 1;
   if (cat === "st") {                                                // 杖は魔力の触媒
-    if (it.mp == null) it.mp = 3 + Math.floor(lv / 14);
-    if (it.int == null) it.int = Math.max(1, Math.floor(lv / 22));   // INT (攻撃呪文の威力) も伸ばす
+    if (it.mp == null) it.mp = round(2 + lv * 0.05 + lv * lv * 0.0006);
+    if (it.int == null) it.int = Math.max(1, round(0.5 + lv * 0.025 + lv * lv * 0.00028));
   }
   if (cat === "dg" && it.agi == null) it.agi = Math.max(1, round(typicalBase(lv, "agi") * 0.07)); // 短剣は取り回しが軽い (lv帯に比例)
   finalizePct(it);
   return it;
 }
 
-// 盾: S(id, 名, lv, opt) — opt.shape: "kite"(既定) | "round"。opt.def は VIT の上書き
+// 盾: S(id, 名, lv, opt) — opt.shape: "kite"(既定) | "round" | "orb" | "book"。opt.def は VIT の上書き
 export function S(id, name, lv, opt = {}) {
   const shape = opt.shape || "kite";
   const it = base(id, name, "shield", lv, shape, { cls: null, ...opt });
-  it.vit = opt.def != null ? opt.def : Math.max(1, round(2 + lv * 0.20));
-  it.weight = SHAPE_WEIGHT[shape];
+  it.vit = opt.def != null ? opt.def : Math.max(1, round(2 + lv * 0.16 + lv * lv * 0.0014));
+  it.weight = SHAPE_WEIGHT[shape] || "cloth";  // orb/book 等は cloth 扱い
   finalizePct(it);
   return it;
 }
 
 // 鎧: A(id, 名, lv, opt) — opt.shape: "plate"(既定) | "robe"。opt.def は VIT の上書き
+// opt.weight: "heavy"(既定) | "light" | "cloth" — 省略時は shape から自動決定
 export function A(id, name, lv, opt = {}) {
   const robe = opt.shape === "robe";
   const it = base(id, name, "body", lv, robe ? "robe" : "plate", opt);
-  it.vit = opt.def != null ? opt.def : Math.max(1, round((3 + lv * 0.26) * (robe ? 0.5 : 1)));
-  if (robe) {
-    if (it.mp == null) it.mp = 2 + Math.floor(lv / 14);
-    if (it.pie == null) it.pie = Math.max(1, Math.floor(lv / 28)); // 法衣は祈りの器
+  const autoWeight = robe ? "cloth" : "heavy";
+  const weight = opt.weight || autoWeight;
+  const lightMul = weight === "cloth" ? 0.5 : weight === "light" ? 0.75 : 1;
+  it.vit = opt.def != null ? opt.def : Math.max(1, round((3 + lv * 0.22 + lv * lv * 0.0014) * lightMul));
+  if (robe || weight === "cloth") {
+    if (it.mp == null) it.mp = round(1.5 + lv * 0.05 + lv * lv * 0.0005);
+    if (it.pie == null) it.pie = Math.max(1, round(0.5 + lv * 0.022 + lv * lv * 0.0001));
   }
-  it.weight = robe ? "cloth" : "heavy";
+  it.weight = weight;
   finalizePct(it);
   return it;
 }
 
 // 頭: H(id, 名, lv, opt) — opt.shape: "helm"(既定) | "hat" | "circlet"。opt.def は VIT の上書き
+// opt.weight: shape から自動決定 (helm=heavy, hat=light, circlet=cloth)。上書き可
 export function H(id, name, lv, opt = {}) {
   const shape = opt.shape || "helm";
   const it = base(id, name, "head", lv, shape, opt);
-  it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.15));
-  it.weight = SHAPE_WEIGHT[shape];
+  it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.10 + lv * lv * 0.0012));
+  it.weight = opt.weight || SHAPE_WEIGHT[shape];
   finalizePct(it);
   return it;
 }
 
 // 足: F(id, 名, lv, opt) — opt.shape: "boots"(既定) | "greaves"。opt.def は VIT の上書き
+// opt.weight: shape から自動決定 (boots=light, greaves=heavy)。上書き可 (例: weight:"cloth" で布靴)
 export function F(id, name, lv, opt = {}) {
   const shape = opt.shape || "boots";
   const it = base(id, name, "feet", lv, shape, opt);
-  it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.13));
-  it.weight = SHAPE_WEIGHT[shape];
+  it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.09 + lv * lv * 0.0010));
+  it.weight = opt.weight || SHAPE_WEIGHT[shape];
   finalizePct(it);
   return it;
 }
 
 // 小手: G(id, 名, lv, opt) — opt.shape: "gloves"(既定) | "gauntlet"。opt.def は VIT の上書き
+// opt.weight: shape から自動決定 (gloves=light, gauntlet=heavy)。上書き可 (例: weight:"cloth" で布手袋)
 export function G(id, name, lv, opt = {}) {
   const shape = opt.shape || "gloves";
   const it = base(id, name, "hands", lv, shape, opt);
-  it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.13));
-  it.weight = SHAPE_WEIGHT[shape];
+  it.vit = opt.def != null ? opt.def : Math.max(1, round(1 + lv * 0.09 + lv * lv * 0.0010));
+  it.weight = opt.weight || SHAPE_WEIGHT[shape];
   finalizePct(it);
   return it;
 }
