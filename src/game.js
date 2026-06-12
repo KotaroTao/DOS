@@ -1244,7 +1244,8 @@ function disarmPower(m) {
 
 // 解除難度: ダンジョンランクと宝箱ランクで決まる。
 // 迷宮の魂レベル帯 (これも迷宮ランクの関数) から「適正パーティの AGI+LUK」を見積もり、
-// 適正レベルの盗賊系で約95% (上限)、それ以外で70〜80% になるよう調整している。
+// 適正レベルの盗賊系で最大90% (上限)、それ以外で60〜75% になるよう調整している。
+// 上限を90%に抑えることで、熟練の盗賊でも常に10%の失敗リスクを残す。
 // cRank: 宝箱ランク (1-5)。床罠は1扱い
 function disarmNeed(cRank = 1) {
   const cfg = activeCfg();
@@ -1252,11 +1253,11 @@ function disarmNeed(cRank = 1) {
   const f = 1 + (L - 1) * 0.12;                          // souls.js の lvlFactor と同式
   const q = 1 + ((cfg.rank || 1) - 1) * 0.14;            // ダンジョンランク: 深部は高ランク魂が前提
   const c = 1 + ((cRank || 1) - 1) * 0.16;               // 宝箱ランク: 上等な箱ほど狡猾な錠前
-  return 14 * f * q * c;
+  return 17 * f * q * c;
 }
 
 function disarmChance(m, cRank = 1) {
-  return Math.max(0.05, Math.min(0.95, disarmPower(m) / disarmNeed(cRank)));
+  return Math.max(0.05, Math.min(0.90, disarmPower(m) / disarmNeed(cRank)));
 }
 
 // 宝箱ランク (1-5) を取得。セルに未設定ならその場で抽選して保存する
