@@ -4358,7 +4358,8 @@ function renderCombatCanvas() {
     // 名前プレート (ダークピル)。弱点看破 (scan) 持ちがいれば敵の属性を開示する
     const scanTag = partyPassiveLv("scan") && e.alive && e.element && e.element !== "none"
       ? `【${(ELEMENTS[e.element] || {}).label || ""}】` : "";
-    const label = e.name + scanTag + (e.asleep ? " 💤" : "") + (e._flinch ? " 💫" : "");
+    const ailTag = e.alive && e.ailment ? " " + (AIL_ICON[e.ailment] || "☠") : "";
+    const label = e.name + scanTag + ailTag + (e.asleep ? " 💤" : "") + (e._flinch ? " 💫" : "");
     vctx.font = "10px monospace";
     vctx.textAlign = "center";
     const tw = vctx.measureText(label).width;
@@ -4387,9 +4388,55 @@ function renderCombatCanvas() {
     vctx.fillRect(bx, by, bw * ratio, bh);
     vctx.strokeStyle = "rgba(0,0,0,0.6)";
     vctx.strokeRect(bx - 0.5, by - 0.5, bw + 1, bh + 1);
+    // バフ/デバフ表示 (味方カードの buffBadges に相当): 前衛はHPバーの下、後衛はプレートの上
+    drawEnemyBadges(e, baseX, row.back ? py2 - 16 : by + bh + 4);
   });
 
   if (fx) drawEffects(fx, now);
+}
+
+// 敵にかかっている強化(▲)/弱体(▼)を名前プレート付近に小さなピルで描く。
+// 能力(攻/守/速)ごとに集約し、段階ぶんの矢印と最短残ターンを添える。
+const BUFF_KANJI = { atk: "攻", vit: "守", agi: "速" };
+function drawEnemyBadges(e, baseX, yTop) {
+  if (!e.alive || !e.effects || !e.effects.length) return;
+  const groups = new Map();
+  for (const ef of e.effects) {
+    const up = ef.mult > 1;
+    const key = ef.stat + (up ? "+" : "-");
+    const g = groups.get(key) || { stat: ef.stat, up, stages: 0, turns: Infinity };
+    g.stages++; g.turns = Math.min(g.turns, ef.turns);
+    groups.set(key, g);
+  }
+  const segs = [];
+  for (const g of groups.values()) {
+    const arrow = (g.up ? "▲" : "▼").repeat(Math.min(2, g.stages));
+    segs.push({ text: `${BUFF_KANJI[g.stat] || "◆"}${arrow}${g.turns}`, up: g.up });
+  }
+  if (!segs.length) return;
+  vctx.save();
+  vctx.font = "9px monospace";
+  vctx.textAlign = "left";
+  vctx.textBaseline = "middle";
+  const pad = 3, gap = 3, h = 12;
+  const widths = segs.map((s) => vctx.measureText(s.text).width + pad * 2);
+  const total = widths.reduce((a, b) => a + b, 0) + gap * (segs.length - 1);
+  let x = baseX - total / 2;
+  const cy = yTop + h / 2;
+  segs.forEach((s, i) => {
+    const w = widths[i];
+    vctx.fillStyle = s.up ? "rgba(36,84,40,0.88)" : "rgba(108,40,40,0.88)";
+    vctx.beginPath();
+    vctx.roundRect ? vctx.roundRect(x, yTop, w, h, 4) : vctx.rect(x, yTop, w, h);
+    vctx.fill();
+    vctx.strokeStyle = s.up ? "#6fcf6f" : "#ff7a72";
+    vctx.lineWidth = 1;
+    vctx.stroke();
+    vctx.fillStyle = s.up ? "#c8f0c8" : "#ffc9c5";
+    vctx.fillText(s.text, x + pad, cy + 0.5);
+    x += w + gap;
+  });
+  vctx.restore();
 }
 
 // 攻撃/魔法/被弾エフェクトの描画
