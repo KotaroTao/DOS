@@ -518,17 +518,27 @@ function newFloor() {
   // ダンジョンが自前で持つ出現プール (pool=浅階 / deepPool=深階) を使う
   const cfg = activeCfg();
   G.board = makeBoard(G.floor, cfg);
-  // 強敵階: 全モンスターカードをこの迷宮グループ固有の強敵に置き換える
+  // 強敵階: モンスターカードのうち1枚だけをこの迷宮グループ固有の強敵に置き換える
+  // (強敵は各階に1体のみ)。モンスターカードが無ければ任意の空マスを強敵にする。
   if (G.eliteFloor) {
     const ek = eliteKey();
+    const monsterCells = [];
     for (let ey = 0; ey < ROWS; ey++) {
       for (let ex = 0; ex < COLS; ex++) {
         const ecell = G.board.cells[ey][ex];
-        if (ecell.type === "monster") {
-          ecell.monsterKey = ek;
-          ecell.elite = true;
-        }
+        if (ecell.type === "monster") monsterCells.push(ecell);
       }
+    }
+    let target = monsterCells.length ? monsterCells[rand(monsterCells.length)] : null;
+    if (!target) {
+      const empties = [];
+      sfEachCell(G.board, (c) => { if (c.type === "empty") empties.push(c); });
+      if (empties.length) { target = empties[rand(empties.length)]; target.type = "monster"; }
+    }
+    if (target) {
+      target.monsterKey = ek;
+      target.elite = true;
+      target.cleared = false;
     }
   }
   // 特別階: 盤面への効果 (宝箱の追加・罠の消滅など) を適用
