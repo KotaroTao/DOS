@@ -764,6 +764,130 @@ const NEW_DEFS = [
   { id: "bs_highpontiff", name: "深淵の聖堂の主", rank: 10, boss: true, race: "specter", element: "light", artKey: "highpontiff", soulClass: "cardinal",
     role: "summoner", summonKey: "bs_falseseraph", ability: "drain", magResist: 0.5, enrage: true,
     desc: "偽りの光の名のもとに、数えきれぬ魂を聖堂で焼き続けた大司教の霊。堕ちた熾天使を従え、捧げられた魂ごと生者の命を吸い上げる。光も闇も魂を喰らうことに変わりはない――ただ、光のほうが言い訳が美しいだけだ。" },
+  // -- 第17層「凍てつく王墓」 (rank 10・水/氷の王墓。若さの代償) --
+  { id: "bs_frozenking", name: "氷漬けの王", rank: 10, race: "undead", element: "water", artKey: "frozenking",
+    ability: "drain", physResist: 0.4, enrage: true, desc: "若さを保てなくなり、氷の下へ移された歴代の王。氷漬けのまま玉座を求めて起き上がり、生者の命と若さを吸い上げる。買えなくなった若さの、最後の請求書だ。" },
+  { id: "bs_iceroyalguard", name: "氷結の近衛", rank: 10, race: "armored", element: "water", artKey: "iceroyalguard",
+    ability: "critical", barrier: 2, physResist: 0.4, desc: "王とともに氷の下へ葬られた、凍れる近衛兵。霜の槍で急所を貫き、氷の鎧が刃を阻む。守るべき王はもう氷の中だが、任を解かれていない。" },
+  { id: "bs_frostmonarchwraith", name: "凍れる先王の霊", rank: 10, race: "specter", element: "water", artKey: "frostmonarchwraith",
+    ability: "weaken", magResist: 0.4, desc: "氷の王墓に眠る、歴代の先王たちの霊。凍てつく嘆きで生者の力を奪い、若く美しい顔のまま彷徨う。皆、天寿を全うできなかった者たちだ。" },
+  { id: "bs_youththief", name: "若さを奪う者", rank: 10, race: "specter", element: "water", artKey: "youththief",
+    ability: "drain", lifesteal: 0.3, enrage: true, desc: "王に若さを供給し続けた、忌まわしき仕組みの化身。生者の若さと命を吸い取り、奪うほどに自らも若返る。王の不老の代償が、この姿だ。" },
+  { id: "bs_glacialtomb", name: "氷棺の番", rank: 10, race: "construct", element: "water", artKey: "glacialtomb",
+    ability: "paralyze", physResist: 0.5, barrier: 2, desc: "王を納めた氷の棺そのものが守護者となったもの。冷気で近づく者を凍りつかせ、分厚い氷が刃を阻む。蓋を開ければ、中の王が氷の下で目を開けている。" },
+  { id: "bs_frostnoble", name: "氷の貴人", rank: 10, race: "undead", element: "water", artKey: "frostnoble",
+    ability: "paralyze", magResist: 0.4, lifesteal: 0.3, desc: "王に従って氷の下へ供奉された、凍れる貴族たち。優雅な所作のまま冷気で獲物を痺れさせ、その温もりを吸う。死してなお、序列を守って整列している。" },
+  { id: "bs_icebreaker", name: "氷砕きの巨人", rank: 10, race: "giant", element: "water", artKey: "icebreaker",
+    multistrike: 2, enrage: true, physResist: 0.5, desc: "王墓を封じる氷を割り、また閉ざすために据えられた巨人。氷塊の拳で続けざまに打ち砕き、傷つけば雪崩のように荒れる。封印を保つ者か、破る者か。" },
+  { id: "bs_frozenchancellor", name: "凍れる宰相", rank: 10, race: "specter", element: "water", artKey: "frozenchancellor",
+    ability: "weaken", role: "summoner", summonKey: "bs_frostservant", magResist: 0.4, desc: "王の若さの秘密を抱え、氷の下へ口を封じられた宰相の霊。呪詛で挑む者を弱らせ、凍れる従者を呼び寄せる。『陛下、それ以上は』と、氷の中で諫め続けている。" },
+  { id: "bs_frostlynx", name: "霜の山猫", rank: 10, race: "beast", element: "water", artKey: "frostlynx",
+    ability: "critical", swift: true, evasive: true, desc: "王墓の番として放たれた、霜をまとう白い山猫。音もなく雪を踏んで急所を一撃で抉り、白い体は雪に紛れて見えない。気配を感じた時には、もう喉元にいる。" },
+  { id: "bs_crystalcoffin", name: "水晶棺の魔", rank: 10, race: "construct", element: "water", artKey: "crystalcoffin",
+    ability: "critical", barrier: 2, physResist: 0.4, desc: "王の亡骸を透かして見せる、水晶でできた棺の魔。鋭い水晶の縁で急所を断ち、その身は刃を弾く。中に横たわる王は、いつ目覚めてもおかしくない。" },
+  { id: "bs_soulfrostwraith", name: "魂凍りの霊", rank: 10, race: "specter", element: "water", artKey: "soulfrostwraith",
+    ability: "drain", magWeak: 1.3, evasive: true, desc: "若さの代償として凍りつかせられた、魂そのものの霊。生者の命を吸って一瞬熱を取り戻し、吹雪となって刃をすり抜ける。凍えた魂は、炎の魔法に脆い。" },
+  { id: "bs_permafrostgolem", name: "凍土の番兵", rank: 10, race: "construct", element: "water", artKey: "permafrostgolem",
+    physResist: 0.5, magResist: 0.5, barrier: 2, desc: "永久凍土を固めて作られた、王墓の最奥を守る番兵。刃も魔も凍った体に阻まれ、若さの仕組みへ続く道を塞ぐ。溶けることなく、永遠に立ち続ける。" },
+  { id: "bs_frozenpriest", name: "氷結の司祭", rank: 10, race: "undead", element: "water", artKey: "frozenpriest",
+    ability: "drain", regen: 0.08, magResist: 0.4, desc: "王の埋葬と若返りの儀を司り、自らも凍りついた司祭の骸。凍えた祈りで生者の命を奪い、その力で崩れを繕う。儀式はまだ、終わっていないと信じている。" },
+  { id: "bs_iciclewyrm", name: "氷柱の竜", rank: 10, race: "dragon", element: "water", artKey: "iciclewyrm",
+    ability: "breath", physResist: 0.5, multistrike: 2, desc: "王墓の天井から垂れる氷柱が、竜の形を得たもの。凍てつくブレスで全体を凍らせ、氷の鱗が刃を弾く。落ちかかる氷柱は、幾本もの牙となって襲う。" },
+  { id: "bs_mournfulqueen", name: "嘆きの氷の女王", rank: 10, race: "specter", element: "water", artKey: "mournfulqueen",
+    ability: "weaken", role: "summoner", summonKey: "bs_frostservant", magResist: 0.4, desc: "若き王に嫁ぎ、夫より先に氷の下へ移された女王の霊。哀切な嘆きで生者の気力を奪い、凍れる侍女を呼び寄せる。失われた愛も若さも、氷の中で凍りついたままだ。" },
+  { id: "bs_coldrevenant", name: "凍える怨霊", rank: 10, race: "specter", element: "water", artKey: "coldrevenant",
+    ability: "critical", enrage: true, lifesteal: 0.3, desc: "若さを奪われた恨みを抱いて凍りついた怨霊。氷の爪で急所を抉り、傷つくほど凍てつく怒りで猛る。温もりを奪うことでしか、己の凍えを忘れられない。" },
+  { id: "bs_snowhydra", name: "雪の多頭", rank: 10, race: "reptile", element: "water", artKey: "snowhydra",
+    ability: "breath", multistrike: 2, regen: 0.08, desc: "凍った泉から幾つもの首をもたげる、雪白の多頭の魔。それぞれの口から吹雪を吐き、続けざまに噛みつく。一つ首を凍らせ落としても、また新たな首が生える。" },
+  { id: "bs_glacialhound", name: "氷の番犬", rank: 10, race: "beast", element: "water", artKey: "glacialhound",
+    ability: "critical", swift: true, pack: true, desc: "王墓に殉葬された、氷の牙をもつ番犬の群れ。素早く取り囲んで急所に喰らいつき、その吐息は獲物を凍てつかせる。主の眠りを守って、永遠に氷の回廊を巡る。" },
+  { id: "bs_frostsentinel", name: "凍れる門番", rank: 10, race: "construct", element: "water", artKey: "frostsentinel",
+    ability: "critical", magResist: 0.4, barrier: 2, desc: "王墓の門に氷漬けのまま立つ、巨大な門番の像。氷の大剣で急所を断ち、凍った鎧が刃も魔も阻む。門を越えようとする者を、千年も拒み続けている。" },
+  { id: "bs_frostservant", name: "氷の従者", rank: 10, race: "undead", element: "water", artKey: "frostservant",
+    ability: "paralyze", pack: true, physResist: 0.4, desc: "王に仕えたまま氷の下へ供奉された、凍れる従者たちの群れ。冷たい手で掴んで痺れさせ、群れで主君の眠りを守る。命じられた務めを、死してなお果たし続けている。" },
+  { id: "bs_frostmonarch", name: "凍てつく王墓の主", rank: 10, boss: true, race: "undead", element: "water", artKey: "frostmonarch", soulClass: "hexer",
+    role: "summoner", summonKey: "bs_iceroyalguard", ability: "drain", physResist: 0.5, enrage: true,
+    desc: "氷の玉座に座す、最も古く最も若い顔をした王の亡骸。近衛を呼び従え、生者の若さと命を貪る。若さは魂で買うもの――買えなくなった王はこうして氷へ移され、次の王が立つ。今の王も、いずれここへ来る。" },
+  // -- 第18層「冥府の門」 (rank 10・闇/冥府への門) --
+  { id: "bs_gatekeeper", name: "門の番人", rank: 10, race: "construct", element: "dark", artKey: "gatekeeper",
+    ability: "critical", physResist: 0.5, barrier: 2, desc: "半開きの冥府の門を守り続ける、巨大な門番の像。冥火の刃で急所を断ち、その身は刃も魔も阻む。門の向こうへ通すことも、こちらへ来させることも、決して許さない。" },
+  { id: "bs_ferryman", name: "冥河の渡し守", rank: 10, race: "specter", element: "dark", artKey: "ferryman",
+    ability: "drain", magResist: 0.4, evasive: true, desc: "門の向こうの冥河で、死者を運び続ける渡し守の霊。櫂で生者の命を奪って渡し賃とし、霧のように掴みどころがない。運ばれた者は、二度と戻らない。" },
+  { id: "bs_wailingdead", name: "還せと叫ぶ亡者", rank: 10, race: "undead", element: "dark", artKey: "wailingdead",
+    ability: "drain", pack: true, enrage: true, desc: "門の向こうへ送られ、『還せ』と叫び続ける亡者の群れ。生者に縋りついて命を吸い、押し返されるほど狂ったように暴れる。皆、生きたまま門をくぐらされた者たちだ。" },
+  { id: "bs_cerberusshade", name: "冥門の犬", rank: 10, race: "beast", element: "dark", artKey: "cerberusshade",
+    ability: "critical", multistrike: 2, swift: true, desc: "三つの首で門の左右を睨む、冥府の番犬の影。三つの口で続けざまに急所へ喰らいつき、素早く回り込む。一つの首を黙らせても、残る二つが吠え続ける。" },
+  { id: "bs_soulchain", name: "魂縛りの鎖", rank: 10, race: "construct", element: "dark", artKey: "soulchain",
+    ability: "paralyze", barrier: 2, physResist: 0.4, desc: "門をくぐる魂を縛り、引き留める呪いの鎖。絡みついて獲物を痺れさせ、断とうにも刃を弾く。この鎖が、門を半開きのまま保っている。" },
+  { id: "bs_doorwraith", name: "門前の霊", rank: 10, race: "specter", element: "dark", artKey: "doorwraith",
+    ability: "drain", evasive: true, lifesteal: 0.3, desc: "門をくぐれず、くぐられもせず、門前で彷徨い続ける霊。近づく者の命を吸って一瞬実体を得て、刃を向ければ門の隙間へ消える。行くも還るも許されぬ、宙吊りの魂だ。" },
+  { id: "bs_underjudge", name: "冥府の判官", rank: 10, race: "armored", element: "dark", artKey: "underjudge",
+    ability: "critical", enrage: true, physResist: 0.4, desc: "門の向こうで死者の罪を裁く、冥府の判官の影。冥火の刃で罪人の急所を断ち、裁きの興奮で猛る。生者すらも、裁くべき罪人として門へ引きずり込もうとする。" },
+  { id: "bs_lostbrother", name: "送られた弟", rank: 10, race: "undead", element: "dark", artKey: "lostbrother",
+    ability: "drain", enrage: true, lifesteal: 0.3, desc: "百年前、王の祖父に生きたまま門の向こうへ送られた、実の弟の亡霊。裏切りの恨みで生者の命を吸い、王家の血を求めて荒れ狂う。『還せ』の声の、最初の主だ。" },
+  { id: "bs_shadereaper", name: "魂を刈る影", rank: 10, race: "specter", element: "dark", artKey: "shadereaper",
+    ability: "critical", swift: true, lifesteal: 0.3, desc: "門の前で迷う魂を刈り取る、大鎌を持つ影。素早く間合いを詰めて急所を一閃し、刈った命をおのれの糧とする。門へ向かう列から、はぐれた魂を狩る。" },
+  { id: "bs_grievingspirit", name: "嘆きの群霊", rank: 10, race: "specter", element: "dark", artKey: "grievingspirit",
+    ability: "weaken", pack: true, magResist: 0.4, desc: "門の前で別れを嘆き続ける、無数の死者の霊の群れ。重なる嘆きが生者の気力を奪い、群れで取り囲む。誰もが、まだ門の向こうへ行きたくないと泣いている。" },
+  { id: "bs_boneferry", name: "骸の渡し舟", rank: 10, race: "construct", element: "dark", artKey: "boneferry",
+    multistrike: 2, physResist: 0.5, barrier: 2, desc: "無数の骸を組み合わせて作られた、冥河を渡る舟の魔。骨の櫂で続けざまに打ち据え、組まれた骨の体は刃を阻む。乗せた魂を、二度と降ろさない。" },
+  { id: "bs_hadeshound", name: "冥界の番犬", rank: 10, race: "beast", element: "dark", artKey: "hadeshound",
+    ability: "critical", swift: true, pack: true, desc: "門の向こうから漏れ出した、冥界の番犬の群れ。素早く取り囲んで急所に喰らいつき、その牙は魂を引き裂く。獲物を門の向こうへ追い立てるのが、こいつらの務めだ。" },
+  { id: "bs_voidpriest", name: "虚無の司祭", rank: 10, race: "specter", element: "dark", artKey: "voidpriest", soulClass: "necromancer",
+    role: "summoner", summonKey: "bs_wailingdead", ability: "drain", magResist: 0.4, desc: "門の向こうの虚無を崇め、死者を呼び戻す術を編んだ司祭の霊。叫ぶ亡者を次々と呼び覚まし、生者の命を吸う。門を開いたままにしているのは、こいつの祈祷でもある。" },
+  { id: "bs_chainwraith", name: "鎖の亡霊", rank: 10, race: "specter", element: "dark", artKey: "chainwraith",
+    ability: "paralyze", lifesteal: 0.3, enrage: true, desc: "罪人として鎖に繋がれたまま門前で朽ちた者の霊。絡みつく鎖で獲物を痺れさせ、その温もりを吸う。引きちぎろうともがくほど、鎖は深く食い込む。" },
+  { id: "bs_tormentor", name: "責め苦の鬼", rank: 10, race: "demon", element: "dark", artKey: "tormentor",
+    ability: "critical", multistrike: 2, enrage: true, desc: "門の向こうで罪人を責め苛む、鉤と鞭を持つ冥府の鬼。鉤で急所を抉り、続けざまに打ち据える。生者をも罪人と見なし、永遠の責め苦へ引きずり込もうとする。" },
+  { id: "bs_echoofvoice", name: "『還せ』の声", rank: 10, race: "elemental", element: "dark", artKey: "echoofvoice",
+    ability: "weaken", magResist: 0.4, evasive: true, desc: "門の向こうから絶えず響く、『還せ』という声そのものが凝った魔。その声を聞いた者は気力を奪われ、声は実体なく刃をすり抜ける。門も、迷宮も、骸も、皆この同じ言葉を口にする。" },
+  { id: "bs_gatewarden", name: "冥府の門の主", rank: 10, boss: true, race: "specter", element: "dark", artKey: "gatewarden", soulClass: "hexer",
+    role: "summoner", summonKey: "bs_wailingdead", ability: "drain", physResist: 0.5, enrage: true,
+    desc: "半開きの冥府の門を守り、向こうとこちらの境に座す門の主。叫ぶ亡者を次々と呼び、生者の命を貪る。百の迷宮は病巣ではなく傷口――魂の巡りをせき止めた、この国の業が開けた傷の、最も深い裂け目だ。" },
+  // -- 第19層「竜の巣」 (rank 10・火/竜。最初の魂繰りの眷属) --
+  { id: "bs_broodwyrm", name: "竜の仔", rank: 10, race: "dragon", element: "fire", artKey: "broodwyrm",
+    ability: "breath", swift: true, multistrike: 2, desc: "竜の巣に孵った、まだ若く獰猛な仔竜。小さなブレスで全体を焼き、素早く幾度も噛みつく。群れで生まれ、巣を侵す者に一斉に襲いかかる。" },
+  { id: "bs_dragonkin", name: "竜人", rank: 10, race: "reptile", element: "fire", artKey: "dragonkin",
+    ability: "critical", enrage: true, physResist: 0.4, desc: "竜の血を引く、鱗に覆われた半人半竜の戦士。竜の爪で急所を抉り、傷つけば竜の怒りで猛る。最初の魂繰りに仕える、誇り高き竜の眷属だ。" },
+  { id: "bs_eggguardian", name: "卵の守り手", rank: 10, race: "dragon", element: "fire", artKey: "eggguardian",
+    physResist: 0.5, barrier: 2, enrage: true, desc: "竜の卵を抱いて守る、母性の化身のような竜。卵に近づく者を全力で阻み、その身を盾にする。傷つけられれば、卵を守るために狂ったように荒れ狂う。" },
+  { id: "bs_wyvernlord", name: "飛竜の長", rank: 10, race: "dragon", element: "fire", artKey: "wyvernlord",
+    ability: "breath", swift: true, multistrike: 2, desc: "竜の巣の空を支配する、飛竜たちの長。急降下のブレスで全体を薙ぎ、鉤爪で素早く何度も切り裂く。地を這う者を、空から狩る。" },
+  { id: "bs_dragoncultist", name: "竜を崇める者", rank: 10, race: "humanoid", element: "fire", artKey: "dragoncultist",
+    role: "summoner", summonKey: "bs_broodwyrm", ability: "critical", desc: "竜を神と崇め、巣に仕える狂信者。仔竜を呼び寄せて盾とし、竜の牙を模した短剣で急所を狙う。最初の魂繰りを『竜神』として、いまも祈り続けている。" },
+  { id: "bs_scaledhorror", name: "鱗甲の異形", rank: 10, race: "reptile", element: "fire", artKey: "scaledhorror",
+    ability: "critical", physResist: 0.5, multistrike: 2, desc: "竜の血を浴びて異形に変じた、鱗甲の怪物。重なった鱗が刃を弾き、鉤爪で続けざまに急所を抉る。竜になりそこねた、成れの果てだ。" },
+  { id: "bs_emberdrake", name: "熾火竜", rank: 10, race: "dragon", element: "fire", artKey: "emberdrake",
+    ability: "breath", enrage: true, physResist: 0.4, desc: "体内に熾火を絶やさぬ、赤く輝く竜。燃え盛るブレスで全体を焼き、傷つけば内なる火を燃え上がらせて猛る。冷めることを知らない炎の竜だ。" },
+  { id: "bs_dragonbeast", name: "竜の眷属獣", rank: 10, race: "beast", element: "fire", artKey: "dragonbeast",
+    ability: "critical", swift: true, enrage: true, desc: "竜の巣に飼われ、竜の気性を分け与えられた獣。素早く間合いを詰めて急所を抉り、傷つけば見境なく猛る。竜に従う、忠実な狩りの相棒だ。" },
+  { id: "bs_wingedterror", name: "翼ある恐竜", rank: 10, race: "dragon", element: "fire", artKey: "wingedterror",
+    ability: "critical", multistrike: 2, swift: true, desc: "大きな翼で巣の上空を旋回する、原始的な恐竜。急降下して鉤爪で急所を続けざまに抉り、すぐに舞い上がる。竜の眷属の中でも、特に狡猾な狩人だ。" },
+  { id: "bs_salamanderking", name: "火蜥蜴の王", rank: 10, race: "reptile", element: "fire", artKey: "salamanderking",
+    ability: "breath", regen: 0.08, physResist: 0.4, desc: "巣の溶岩溜まりに棲む、火蜥蜴たちの王。炎のブレスで全体を焼き、溶岩に浸かるたび傷を癒す。竜には及ばずとも、火の眷属を束ねる長だ。" },
+  { id: "bs_dragonpriest", name: "竜神官", rank: 10, race: "specter", element: "fire", artKey: "dragonpriest", soulClass: "hexer",
+    role: "summoner", summonKey: "bs_broodwyrm", ability: "drain", magResist: 0.4, desc: "竜神を崇める儀式を司り、巣で果てた神官の霊。仔竜を呼び覚まし、生者の命を竜への供物として吸い上げる。竜の正体を知ってなお、崇め続けている。" },
+  { id: "bs_hoardgolem", name: "宝物の守護者", rank: 10, race: "construct", element: "fire", artKey: "hoardgolem",
+    physResist: 0.5, barrier: 2, ability: "critical", desc: "竜が集めた宝の山が、黄金の巨像となって動き出したもの。宝を奪う者を黄金の拳で打ち砕き、その身は刃を弾く。竜の眠りの間、宝を守り続ける。" },
+  { id: "bs_drakerider", name: "竜騎兵の亡霊", rank: 10, race: "armored", element: "fire", artKey: "drakerider",
+    ability: "critical", multistrike: 2, physResist: 0.4, desc: "竜を駆って戦い、巣に骨を埋めた竜騎兵の亡霊。竜の牙の槍で急所を続けざまに貫き、竜鱗の鎧が刃を阻む。今も愛竜の背を求めて、巣を彷徨う。" },
+  { id: "bs_ashdrake", name: "灰燼竜", rank: 10, race: "dragon", element: "fire", artKey: "ashdrake",
+    ability: "breath", physResist: 0.5, enrage: true, desc: "焼き尽くした獲物の灰をまとう、燻んだ灰色の竜。灰のブレスで視界を奪って焼き、灰に覆われた鱗が刃を阻む。こいつが通った跡には、灰しか残らない。" },
+  { id: "bs_brimstonewyrm", name: "硫煙の蛇竜", rank: 10, race: "dragon", element: "fire", artKey: "brimstonewyrm",
+    ability: "breath", swift: true, multistrike: 2, desc: "巣の火口に潜む、硫黄の煙を吐く蛇竜。咳き込ませる硫煙のブレスを吐き、素早く幾度も噛みつく。その通り道は、毒の煙で霞んでいる。" },
+  { id: "bs_dragonwhelp", name: "竜の幼体群", rank: 10, race: "dragon", element: "fire", artKey: "dragonwhelp",
+    pack: true, ability: "critical", multistrike: 2, swift: true, desc: "孵ったばかりの竜の幼体が、群れをなして這い回る。小さくとも竜の牙は鋭く、群れで一斉に急所へ喰らいつく。巣の床は、こいつらで埋め尽くされている。" },
+  { id: "bs_moltendrake", name: "溶岩竜", rank: 10, race: "dragon", element: "fire", artKey: "moltendrake",
+    ability: "breath", physResist: 0.5, lifesteal: 0.3, desc: "溶けた岩を体内に滾らせる、巣の最も深部に棲む竜。溶岩のブレスで全体を焼き、焼いた命を糧として取り込む。冷えた外皮の下で、常に溶岩が脈打っている。" },
+  { id: "bs_flameserpentkin", name: "炎蛇の眷属", rank: 10, race: "reptile", element: "fire", artKey: "flameserpentkin",
+    ability: "critical", swift: true, multistrike: 2, desc: "竜の眷属として巣を守る、炎をまとう大蛇。素早く巻きついて急所を続けざまに噛み、灼けた鱗が触れた者を焼く。竜の足元を、滑るように這い回る。" },
+  { id: "bs_drakehound", name: "竜の猟犬", rank: 10, race: "beast", element: "fire", artKey: "drakehound",
+    ability: "critical", swift: true, pack: true, desc: "竜が狩りに使う、鱗に覆われた炎の猟犬の群れ。素早く取り囲んで急所に喰らいつき、その牙は赤熱している。巣を侵す者の匂いを、決して見失わない。" },
+  { id: "bs_basilisk", name: "石化竜", rank: 10, race: "reptile", element: "fire", artKey: "basilisk",
+    ability: "stone", physResist: 0.4, multistrike: 2, desc: "竜の巣に潜む、見た者を石に変える邪眼の竜。その視線を浴びれば全身が硬直し、続けざまの牙が石像ごと砕く。巣のあちこちに、石化した獲物が転がっている。" },
+  { id: "bs_elderdragon", name: "竜の巣の主", rank: 10, boss: true, race: "dragon", element: "fire", artKey: "elderdragon", soulClass: "fighter",
+    role: "summoner", summonKey: "bs_broodwyrm", ability: "breath", physResist: 0.6, enrage: true,
+    desc: "竜の巣を統べ、最奥の玄室への道を守る古き大竜。仔竜を次々と呼び、すべてを焼き尽くす業炎のブレスを吐く。最初の魂繰りの眷属にして、その孤独な末路を最も近くで見てきた、最後の門番だ。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1445,6 +1569,65 @@ const NEW_DEFS = [
     ability: "breath", physResist: 0.5, // 黄昏を呼ぶ吐息で全体を染め、夕陽色の鱗は刃を弾く
     desc: "終焉の黄昏の間に座し、世界の日没を待ち続ける竜。沈む直前の太陽の色をした鱗は刃を弾き、翼を広げれば部屋の灯りがすべて夕暮れになり、吐く息は前衛後衛もろとも黄昏へ沈める。" },
 
+  // ==== 第20層 「終焉の玄室」(D96-100 / dark) ====
+  // 最初の魂繰りが眠る最果ての玄室。魂を器に縫い付けた「織り手」の遺物と、
+  // 世界そのものを縛る鎖、そして器に堕ちた先人たちが立ちはだかる。
+  { id: "bs_cagekeeper", name: "檻の番人", rank: 10, race: "construct", element: "dark", artKey: "cagekeeper",
+    ability: "stone", physResist: 0.45, endure: true, // 鉄檻の腕で挑戦者を捕らえ石へ変える / 砕けても踏み止まる
+    desc: "玄室の入口を最初に守る、鉄檻を組み合わせた歪な番人。捕らえた魂を檻の中で石へ変え、自らの体に継ぎ足してきた。砕いても砕いても一拍は立ち止まり、最後の意地で腕を振り下ろす。" },
+  { id: "bs_souldragon", name: "魂喰らいの竜", rank: 10, race: "dragon", element: "dark", artKey: "souldragon",
+    ability: "breath", lifesteal: 0.3, // 魂ごと喰らう吐息で全体を焼き、奪った魂で自らを癒やす
+    desc: "数多の魂を喰らって肥え太った漆黒の竜。その吐息は肉ではなく魂を直接焼き、焼いた魂をそのまま啜って傷を塞ぐ。腹の中で今も挑戦者たちが叫び続けている。" },
+  { id: "bs_firstdoll", name: "最初の人形", rank: 10, race: "construct", element: "dark", artKey: "firstdoll",
+    ability: "drain", magResist: 0.4, regen: 0.05, // 最初に魂を宿された器 / 魔法をいなし傷を繕う
+    desc: "最初の魂繰りが初めて魂を縫い付けた器。完成と呼ぶには歪で、棄てられてなお主を慕い続ける。近づく者から生気を吸い、自らの綻びをひとりでに繕いながら、いつまでも主の帰りを待っている。" },
+  { id: "bs_weaversregret", name: "織り手の悔悟", rank: 10, race: "specter", element: "dark", artKey: "weaversregret",
+    ability: "weaken", magWeak: 1.3, evasive: true, // 悔いの霧で力を奪う / 実体が薄く刃をすり抜ける
+    desc: "魂を縫い付けた指先に宿った、織り手自身の悔いが形を成した霊。触れた者から力を奪い、自らの罪の重さを分け与える。実体は霧のように薄く刃をすり抜けるが、火の魔法には脆い。" },
+  { id: "bs_voidserpent", name: "虚無の蛇", rank: 10, race: "dragon", element: "dark", artKey: "voidserpent",
+    ability: "poison", swift: true, multistrike: true, // 虚無の毒牙で何度も噛みつく俊敏な蛇
+    desc: "玄室の闇そのものが細く長く伸びて蛇となったもの。素早く床を這い、虚無の毒を滴らせる牙で立て続けに噛みつく。咬まれた傷からは、世界の色が少しずつ抜け落ちていく。" },
+  { id: "bs_memorywraith", name: "記憶の亡霊", rank: 10, race: "specter", element: "dark", artKey: "memorywraith",
+    ability: "soulSteal", evasive: true, // 奪った記憶=魂を糧にする / 掴みどころのない影
+    desc: "玄室に堕ちた者たちの忘れられた記憶が寄り集まった亡霊。誰のものとも知れぬ顔を次々に浮かべ、近づく者の魂を記憶ごと啜り取る。倒した相手の顔で、また新しい記憶を語り始める。" },
+  { id: "bs_chainoftheworld", name: "世界の鎖", rank: 10, race: "construct", element: "dark", artKey: "chainoftheworld",
+    ability: "paralyze", physResist: 0.5, barrier: true, // 世界を縛る鎖で動きを封じる / 守りが極めて堅い
+    desc: "最初の魂繰りが世界を繋ぎ止めるために鋳た、終わらない鎖。打ち込まれた者の四肢を縛って動きを奪い、自らは魔の膜に守られて微動だにしない。この鎖が解ければ、世界もまた解ける。" },
+  { id: "bs_lastguardian", name: "最後の守護者", rank: 10, race: "construct", element: "dark", artKey: "lastguardian",
+    ability: "critical", physResist: 0.55, endure: true, // 最後の一撃に全てを賭ける / 砕けても倒れない
+    desc: "玄室の最奥をただ一体で守り続ける、最も古い守護者。幾千の挑戦者を退けた装甲は刃を通さず、致命の一撃を狙って腕を振り上げる。砕けても膝をつかず、命令が消えるその時まで立ち続ける。" },
+  { id: "bs_abyssalbeast", name: "深淵の獣", rank: 10, race: "beast", element: "dark", artKey: "abyssalbeast",
+    ability: "drain", enrage: true, swift: true, // 傷つくほど猛る深淵の捕食者
+    desc: "玄室の底に巣食う、目を持たぬ深淵の獣。闇の中で気配だけを頼りに襲いかかり、生気を貪る。手負いになるほど咆哮を上げて速さを増し、最期の瞬間が最も危うい。" },
+  { id: "bs_soulstorm", name: "魂の嵐", rank: 10, race: "specter", element: "dark", artKey: "soulstorm",
+    ability: "breath", magResist: 0.45, swift: true, // 無数の魂が渦巻く嵐 / 魔法が効きにくい
+    desc: "解き放たれた無数の魂が渦を巻いて荒れ狂う嵐。中心に飲まれた者は前衛後衛の別なく引き裂かれる。一つひとつは弱い魂の集合ゆえ、魔法の一撃では中心まで届かない。" },
+  { id: "bs_fallenweaver", name: "堕ちた織り手", rank: 10, race: "humanoid", element: "dark", artKey: "fallenweaver",
+    role: "summoner", summonKey: "bs_firstdoll", ability: "soulSteal", soulClass: "necromancer", // 器を呼び寄せ、奪った魂を縫い込む
+    desc: "かつて最初の魂繰りに師事し、禁を破って自らに魂を縫い込んだ織り手の成れの果て。指を振れば棄てられた器が這い出してきて主を守り、奪った魂をその場で新たな器に縫い付ける。" },
+  { id: "bs_dragonshade", name: "竜の影", rank: 10, race: "dragon", element: "dark", artKey: "dragonshade",
+    ability: "weaken", evasive: true, physResist: 0.35, // 実体なき竜の影 / 力を削ぎ刃をかわす
+    desc: "玄室の壁に焼き付いた、ありし日の番竜の影。実体はとうに失せたが、影だけが今も挑戦者を狙って這い回る。触れられた者は力が抜け落ち、影は刃をするりとかわして壁へ逃げ込む。" },
+  { id: "bs_eternalflame", name: "永遠の焔", rank: 10, race: "elemental", element: "dark", artKey: "eternalflame",
+    ability: "breath", regen: 0.08, magWeak: 1.25, // 消えぬ焔 / 燃え続け再生するが魔法に弱い
+    desc: "最初の魂繰りが己の魂を薪にして灯した、決して消えぬ漆黒の焔。燃やされた魂を糧に際限なく再生し、触れる者すべてを焔へ変える。だが魂を束ねる芯は脆く、強い魔法には抗えない。" },
+  { id: "bs_nullsentinel", name: "虚無の歩哨", rank: 10, race: "construct", element: "dark", artKey: "nullsentinel",
+    ability: "stone", barrier: true, magResist: 0.5, // 虚無を纏う歩哨 / 魔の膜で魔法を弾く
+    desc: "感情も意志も抜き取られ、虚無だけを詰め込まれた器の歩哨。見据えられた者は石へと固まっていく。全身を覆う虚無の膜が魔法を飲み込むため、力ずくで膜ごと砕くほかない。" },
+  { id: "bs_shadowofthefirst", name: "最初の影", rank: 10, race: "specter", element: "dark", artKey: "shadowofthefirst",
+    ability: "drain", evasive: true, lifesteal: 0.25, // 最初の魂繰りの影法師 / 生気を奪い己を保つ
+    desc: "最初の魂繰りが落とした、もう一つの自分。主が眠りについてもなお玄室を彷徨い、近づく者の生気を奪っては自らの輪郭を保っている。掴もうとすれば手の中で霧散し、背後から忍び寄ってくる。" },
+  { id: "bs_worldwyrm", name: "世界蛇", rank: 10, race: "dragon", element: "dark", artKey: "worldwyrm",
+    ability: "breath", endure: true, physResist: 0.4, // 世界を巻く大蛇 / 倒れても一度耐える
+    desc: "玄室の壁を幾重にも巡り、世界そのものを腹に巻き込んだとされる大蛇。とぐろの一巻きで部屋ごと締め上げ、毒気の吐息で前衛後衛を等しく蝕む。致命の一撃すら、世界を解くまいと一度は耐える。" },
+  { id: "bs_despairwraith", name: "絶望の亡霊", rank: 10, race: "specter", element: "dark", artKey: "despairwraith",
+    ability: "weaken", pack: true, magWeak: 1.3, // 群れで現れ希望を削ぐ / 数は多いが魔法に脆い
+    desc: "玄室で力尽きた者たちの、最後に抱いた絶望が形を成した亡霊の群れ。三体四体と連なって押し寄せ、触れた者から戦う意志を削ぎ落とす。一体ずつは儚く、範囲魔法でまとめて祓える。" },
+  { id: "bs_firstweaver", name: "最初の魂繰り", rank: 10, boss: true, race: "dragon", element: "dark", artKey: "firstweaver",
+    ability: "breath", role: "summoner", summonKey: "bs_firstdoll", regen: 0.05, physResist: 0.4, barrier: true,
+    // 最果ての主 / 器を呼び、魂の吐息で全体を灼き、魔の膜と再生で容易には堕ちない
+    desc: "竜の姿を借りた、世界で最初に魂を器へ縫い付けた者。あらゆる魂繰りの祖にして、棄てた器たちの父。指を振れば最初の人形が這い出して主を守り、吐く息は魂そのものを灼き尽くす。魔の膜と尽きぬ再生に守られたその懐に辿り着けるのは、第十九層までを越えてなお折れぬ魂だけだ。" },
+
   // ---- 役割持ちモンスター (role: healer/guard/summoner) ----
   // 取り巻き (escort) を連れて現れる。回復役・呼び手は後衛に立つため、
   // 長射程の武器や呪文で先に仕留めるか、護り手を崩す「処理順」が問われる。
@@ -1707,6 +1890,10 @@ export const BOSS_ORDER = {
 // 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
 // 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
 const LAYER_BOSS_OVERRIDE = {
+  20: "bs_firstweaver", // 第20層「終焉の玄室」: 最初の魂繰り (rank10・闇ボス・最終)
+  19: "bs_elderdragon", // 第19層「竜の巣」: 竜の巣の主 (rank10・火ボス)
+  18: "bs_gatewarden", // 第18層「冥府の門」: 冥府の門の主 (rank10・闇ボス)
+  17: "bs_frostmonarch", // 第17層「凍てつく王墓」: 凍てつく王墓の主 (rank10・水ボス)
   16: "bs_highpontiff", // 第16層「深淵の聖堂」: 深淵の聖堂の主 (rank10・光ボス)
   15: "bs_forgemaster", // 第15層「溶鉄炉」: 溶鉄炉の主 (rank10・火ボス)
   14: "bs_cryptking", // 第14層「屍蝋の回廊」: 屍蝋の回廊の主 (rank10・闇ボス)
@@ -1735,6 +1922,16 @@ export const LAYER_BOSS = Array.from({ length: 20 }, (_, i) => {
 // 定義済みの層は generator がここから抽選し、未定義の層は暫定のランクプールにフォールバックする。
 // 各層は固有アートのモンスターで構成し、最低20種を目標に層ごとのPRで充実させる。
 export const LAYER_POOLS = {
+  // 第20層「終焉の玄室」: 最果ての闇。器・鎖・堕ちた織り手と、闇竜系を再配置 (全20種)
+  20: [
+    // 新規 (固有アート・17体)
+    "bs_cagekeeper", "bs_souldragon", "bs_firstdoll", "bs_weaversregret", "bs_voidserpent",
+    "bs_memorywraith", "bs_chainoftheworld", "bs_lastguardian", "bs_abyssalbeast", "bs_soulstorm",
+    "bs_fallenweaver", "bs_dragonshade", "bs_eternalflame", "bs_nullsentinel", "bs_shadowofthefirst",
+    "bs_worldwyrm", "bs_despairwraith",
+    // 既存の闇/虚無系を第20層へ再配置 (3体)
+    "bs_voiddragon", "bs_voidcolossus", "bs_godslayer",
+  ],
   // 第1層「墓地」: アンデッド/亡霊中心。新スキル (weaken 等) と既存の墓地系を再配置
   1: [
     // 新規 (固有アート・12体)
@@ -1880,6 +2077,30 @@ export const LAYER_POOLS = {
     "bs_martyrwraith", "bs_holygolem", "bs_confessor", "bs_lightlance", "bs_wingedjudge",
     "bs_pyreofsouls", "bs_cathedralguard", "bs_hymncaster", "bs_lightmoth",
     "bs_seraphwraith",
+  ],
+  // 第17層「凍てつく王墓」: 水/氷の王墓中心、全rank10。全て新規
+  17: [
+    "bs_frozenking", "bs_iceroyalguard", "bs_frostmonarchwraith", "bs_youththief", "bs_glacialtomb",
+    "bs_frostnoble", "bs_icebreaker", "bs_frozenchancellor", "bs_frostlynx", "bs_crystalcoffin",
+    "bs_soulfrostwraith", "bs_permafrostgolem", "bs_frozenpriest", "bs_iciclewyrm", "bs_mournfulqueen",
+    "bs_coldrevenant", "bs_snowhydra", "bs_glacialhound", "bs_frostsentinel", "bs_frostservant",
+  ],
+  // 第18層「冥府の門」: 闇/冥府中心、全rank10。虚無/終末系4体を再配置
+  18: [
+    "bs_gatekeeper", "bs_ferryman", "bs_wailingdead", "bs_cerberusshade", "bs_soulchain",
+    "bs_doorwraith", "bs_underjudge", "bs_lostbrother", "bs_shadereaper", "bs_grievingspirit",
+    "bs_boneferry", "bs_hadeshound", "bs_voidpriest", "bs_chainwraith", "bs_tormentor",
+    "bs_echoofvoice",
+    // 既存の虚無/終末系を再配置
+    "bs_apocalypsedrake", "bs_abysswarden", "bs_eternallord", "bs_chaosknight",
+  ],
+  // 第19層「竜の巣」: 火/竜中心、全rank10。全て新規
+  19: [
+    "bs_broodwyrm", "bs_dragonkin", "bs_eggguardian", "bs_wyvernlord", "bs_dragoncultist",
+    "bs_scaledhorror", "bs_emberdrake", "bs_dragonbeast", "bs_wingedterror", "bs_salamanderking",
+    "bs_dragonpriest", "bs_hoardgolem", "bs_drakerider", "bs_ashdrake", "bs_brimstonewyrm",
+    "bs_dragonwhelp", "bs_moltendrake", "bs_flameserpentkin", "bs_drakehound",
+    "bs_basilisk",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
