@@ -375,6 +375,61 @@ const NEW_DEFS = [
   { id: "bs_aurorawisp", name: "極光の群火", rank: 8, race: "specter", element: "water", artKey: "aurorawisp",
     pack: true, ability: "paralyze", evasive: true, magWeak: 1.5, // 揺れる極光の群体。誘い込み痺れさせる。実体は薄い
     desc: "回廊の天井に揺らめく、極光の色をした鬼火の群れ。美しい光に見惚れた者を誘い込んでは、冷気で痺れさせて凍えさせる。実体に乏しく刃をすり抜けるが、魔の力にはひとたまりもない。" },
+  // -- 第9層「毒沼」 (rank 9-10・毒/腐敗。第8層より格上の壁) --
+  { id: "bs_plaguebeast", name: "疫病の獣", rank: 9, race: "beast", element: "earth", artKey: "plaguebeast",
+    ability: "poison", enrage: true, multistrike: 2, // 病毒を撒き、手負いで荒れ、連打で薙ぐ
+    desc: "疫病に冒されて狂った、毒膿を滴らせる獣。噛みつくたびに病毒を流し込み、傷つけば膿んだ体で見境なく暴れ回る。その通り道には、必ず疫病が広がる。" },
+  { id: "bs_rotooze", name: "腐敗の泥", rank: 9, race: "amorph", element: "earth", artKey: "rotooze",
+    physResist: 0.5, regen: 0.1, ability: "poison", // 腐汁の泥。刃が沈み、毒を浴びせ、寄り集まる
+    desc: "沼の底に積もった腐敗が、意思を持って這い上がった泥。触れたものを腐汁の毒で爛れさせ、刃を突き立てても泥に沈んで効かない。崩しても、腐臭の核さえ残れば甦る。" },
+  { id: "bs_swamphag", name: "沼の魔女", rank: 10, race: "specter", element: "earth", artKey: "swamphag", soulClass: "hexer",
+    ability: "weaken", role: "summoner", summonKey: "bs_leechswarm", regen: 0.06, // 呪詛で力を奪い、蛭を呼び、泥で繕う
+    desc: "毒沼に棲みついた、藻と腐肉をまとう老いた魔女。呪いの言葉で生者の力を奪い、沼の蛭を次々と這わせる。沼の毒気が、こいつの若さと術を保っている。" },
+  { id: "bs_bogdrowned", name: "沼の溺者", rank: 9, race: "undead", element: "water", artKey: "bogdrowned",
+    ability: "poison", lifesteal: 0.3, pack: true, // 沼に沈んだ溺者の群れ。毒泥で侵し、群れで引き込む
+    desc: "毒沼に足を取られて沈んだ者たちの、膨れ腐った群れ。泥に塗れた手で生者を掴み、毒の沼へ引きずり込もうとする。一体を払っても、泥の中から幾つもの手が伸びる。" },
+  { id: "bs_venomspider", name: "猛毒の大蜘蛛", rank: 9, race: "insect", element: "earth", artKey: "venomspider",
+    ability: "poison", multistrike: 2, swift: true, // 猛毒の牙で素早く幾度も噛みつく
+    desc: "沼地に巣を張る、人を捕らえるほどの大蜘蛛。猛毒の牙で素早く何度も噛みつき、痺れた獲物を糸で吊るす。八本の脚で水面を滑り、退路を糸で塞いでくる。" },
+  { id: "bs_miasmawraith", name: "瘴気の霊", rank: 9, race: "specter", element: "earth", artKey: "miasmawraith",
+    ability: "poison", evasive: true, magWeak: 1.4, // 毒気の霊。蝕み、すり抜け、魔に脆い
+    desc: "沼から立ちのぼる瘴気が、ぼんやりと形をなした毒の霊。まとわりつく毒気で生者を蝕み、刃を向ければ霧となって散ってかわす。実体が薄く、魔の力には抗えない。" },
+  { id: "bs_corpseflower", name: "屍肉花", rank: 9, race: "plant", element: "earth", artKey: "corpseflower",
+    ability: "poison", multistrike: 2, regen: 0.08, // 死臭で誘い、毒蔓で何度も打ち、刈っても咲く
+    desc: "死臭を放って獲物を誘い寄せる、毒々しい大輪の食人花。蔓を鞭のように振るって何度も打ち据え、毒液で溶かして養分にする。刈り取っても、屍肉のある限り咲き続ける。" },
+  { id: "bs_plaguerat", name: "疫病鼠の大群", rank: 9, race: "beast", element: "earth", artKey: "plaguerat",
+    pack: true, ability: "poison", lifesteal: 0.3, // 病を運ぶ鼠の大群。噛んで毒し、血を啜る
+    desc: "疫病を撒き散らす、膨れ上がった鼠の大群。波のように押し寄せて噛みつき、病毒を移しては血を啜る。一匹叩いても、足元の闇からまた百匹が湧き出る。" },
+  { id: "bs_toxicgolem", name: "汚泥の巨塊", rank: 10, race: "construct", element: "earth", artKey: "toxicgolem",
+    physResist: 0.6, barrier: 2, ability: "poison", // 汚泥が固まった巨塊。刃を阻み、毒煙を噴く
+    desc: "沼の汚泥が幾年も積もって固まり、動き出した巨塊。叩いても泥に沈んで手応えがなく、継ぎ目からは絶えず毒の煙が噴き出す。沼そのものが立ち上がったような、底知れぬ重さだ。" },
+  { id: "bs_leechswarm", name: "蛭の群体", rank: 9, race: "amorph", element: "water", artKey: "leechswarm",
+    lifesteal: 0.4, pack: true, ability: "paralyze", // 無数の蛭。吸い付いて痺れさせ、血を貪る
+    desc: "毒沼に湧いた、無数の黒い蛭が寄り集まった群体。一斉に吸い付いて獲物を痺れさせ、奪った血で赤黒く膨れ上がる。引き剥がそうにも、千切れた蛭がまた吸い付く。" },
+  { id: "bs_gasfiend", name: "毒気の鬼", rank: 9, race: "demon", element: "earth", artKey: "gasfiend",
+    ability: "breath", enrage: true, magWeak: 1.3, // 全体に毒の息を吐き、手負いで荒れる
+    desc: "沼の毒気が凝って生まれた、緑にくすむ鬼。口を開けば全体を包む毒の息を吐き、近づく者を残らず病に沈める。傷を負えば毒気を噴き上げて荒れ狂う。" },
+  { id: "bs_marshlurker", name: "沼に潜む顎", rank: 9, race: "aquatic", element: "water", artKey: "marshlurker",
+    ability: "critical", lifesteal: 0.3, physResist: 0.4, // 沼に潜み、急所を一噛みで仕留め、喰らって満ちる
+    desc: "泥水に身を沈め、目だけを出して獲物を待つ大顎の魔。近づいた者を一息に咥え込み、鎧ごと急所を噛み砕く。泥に覆われた体は刃を通さず、喰らうほどに肥える。" },
+  { id: "bs_pestilenceknight", name: "疫病の騎士", rank: 10, race: "armored", element: "earth", artKey: "pestilenceknight",
+    ability: "critical", physResist: 0.4, enrage: true, // 疫病の鎧。急所を貫き、刃を阻み、手負いで猛る
+    desc: "疫病で全滅した軍の、ただ一騎生き残って腐り果てた騎士。膿の滴る鎧は刃を阻み、錆びた剣は鎧ごと急所を貫く。倒れた仲間の恨みを背負い、傷つくほど鬼気迫る。" },
+  { id: "bs_fungalcorpse", name: "茸まみれの死人", rank: 9, race: "undead", element: "earth", artKey: "fungalcorpse",
+    ability: "poison", regen: 0.08, pack: true, // 茸に侵された死人。胞子を撒き、群れ、甦る
+    desc: "沼に倒れ、毒茸に全身を乗っ取られた死人の群れ。背の傘から毒胞子を撒き、近づく者を侵す。打ち崩しても、残った菌糸からまた起き上がってくる。" },
+  { id: "bs_blightmoth", name: "枯死の大蛾", rank: 9, race: "insect", element: "earth", artKey: "blightmoth",
+    ability: "paralyze", evasive: true, swift: true, // 枯死の鱗粉で痺れさせ、ふらりと舞ってかわす
+    desc: "毒沼の夜に舞う、触れたものを枯らす鱗粉をまとった大蛾。鱗粉を浴びた者は痺れて立ち尽くし、刃を向ければ不規則に舞ってかわす。灯りに群がり、油断した者を狙う。" },
+  { id: "bs_sludgehydra", name: "汚泥の多頭", rank: 10, race: "reptile", element: "water", artKey: "sludgehydra",
+    multistrike: 3, ability: "poison", regen: 0.08, // 幾つもの頭で毒を吐き連打し、斬っても生える
+    desc: "汚泥から幾つもの首をもたげる、毒沼の多頭の魔。それぞれの口から毒を吐き、続けざまに噛みつく。一つ首を落としても、泥の中から新たな首が生えてくる。" },
+  { id: "bs_discardeddoll", name: "捨てられた人業", rank: 9, race: "construct", element: "dark", artKey: "discardeddoll",
+    ability: "drain", enrage: true, lifesteal: 0.3, // 使い潰された器の成れの果て。命を求めて掴みかかる
+    desc: "使い潰され、毒沼へ捨てられた人業の成れの果て。砕けた体で起き上がり、失った魂を求めて生者の温もりに掴みかかる。その縫い目の顔は、かつての自分に似ているかもしれない。" },
+  { id: "bs_swamplord", name: "澱みの主", rank: 10, boss: true, race: "amorph", element: "earth", artKey: "swamplord", soulClass: "hexer",
+    role: "summoner", summonKey: "bs_rotooze", ability: "breath", physResist: 0.5, regen: 0.08, // 腐泥を呼び、毒気を吐き、沼で繕う
+    desc: "毒沼のすべての澱みが寄り集まって意思を得た、沼そのものの主。腐敗の泥を眷属として吐き出し、全体を包む毒気の息で生者を沈める。ここに捨てられた数えきれぬ魂が、その身に溶け込んでいる。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1318,6 +1373,7 @@ export const BOSS_ORDER = {
 // 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
 // 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
 const LAYER_BOSS_OVERRIDE = {
+  9: "bs_swamplord", // 第9層「毒沼」: 澱みの主 (rank10・毒ボス)
   8: "bs_glaciallord", // 第8層「氷結回廊」: 氷結回廊の主 (rank9・氷ボス)
   7: "bs_infernolord", // 第7層「灼熱の洞」: 業火の主 (rank9・火/悪魔ボス)
   6: "bs_templelord", // 第6層「沈没神殿」: 沈める神官王 (rank8・水/神殿ボス)
@@ -1419,6 +1475,15 @@ export const LAYER_POOLS = {
     // batch2 新規 (固有アート)
     "bs_frostknight", "bs_snowstalker", "bs_iceserpent", "bs_winterbat", "bs_glacialcrab",
     "bs_frostlich", "bs_snowmantis", "bs_frostmaiden", "bs_frozenangel", "bs_frostfiend", "bs_aurorawisp",
+  ],
+  // 第9層「毒沼」: 毒/腐敗中心、rank9-10。疫病系の闇undeadを再配置
+  9: [
+    "bs_plaguebeast", "bs_rotooze", "bs_swamphag", "bs_bogdrowned", "bs_venomspider",
+    "bs_miasmawraith", "bs_corpseflower", "bs_plaguerat", "bs_toxicgolem", "bs_leechswarm",
+    "bs_gasfiend", "bs_marshlurker", "bs_pestilenceknight", "bs_fungalcorpse", "bs_blightmoth",
+    "bs_sludgehydra", "bs_discardeddoll",
+    // 既存の疫病系を再配置
+    "bs_plaguewraith", "bs_plaguelich", "bs_necromancer",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
