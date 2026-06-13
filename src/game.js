@@ -7554,7 +7554,11 @@ function renderTreasury() {
     for (const id of ids) {
       const got = !!ts.donated[id];
       const slot = el("div", "tw-tslot" + (got ? " got" : ""));
-      if (got) { slot.appendChild(spriteCanvas(ITEMS[id], 3)); slot.title = ITEMS[id].name; }
+      if (got) {
+        slot.appendChild(spriteCanvas(ITEMS[id], 3)); slot.title = ITEMS[id].name + " (タップで詳細)";
+        slot.style.cursor = "pointer";
+        slot.addEventListener("click", () => { SFX.select(); showItemDetailPopup(null, { item: ITEMS[id], from: "treasury" }); });
+      }
       else { slot.appendChild(el("div", "tw-tlock", "？")); slot.title = "未奉納"; }
       slots.appendChild(slot);
     }
