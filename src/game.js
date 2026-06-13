@@ -274,6 +274,7 @@ const G = {
   rumor: null,        // 酒場で表示中の噂 (次回潜入で現実化)
   rumorCooldown: 0,   // 次の噂を聞けるUNIXタイムスタンプ(ms) — 30分クールダウン
   activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
+  deliveryQuests: null, // 酒場の納品依頼 [{itemId}] (最大3件。迷宮に潜るたびに入れ替わる)
   codex: { mon: {}, item: {}, job: {} }, // 図鑑 (モンスター/アイテム/職業)
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={蒐集品id:true}, claimed={"ランク:しきい値":true}
   lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
@@ -6637,6 +6638,90 @@ function applyRumorToBoard(board) {
   log(`噂どおりだ… (${r.speaker}の話)`, "sys");
 }
 
+// ---- 酒場の納品依頼: 求められた品を納めると、その品の格 (R1-20) に応じて職業の魂を授かる ----
+// 対象は「今 到達している深さまでに出現しうる品」からランダム3件。LR/専用装備は除外
+// (LOOT_IDS が exclusive を弾く)。常時最大3件で、迷宮に潜るたびに入れ替わる (rollDeliveryQuests)。
+const DELIVERY_BANDS = [
+  // max(R20) : [ [rarity, 体数, 確率], … ] (確率は合計1.0)
+  { max: 5,  rows: [["common", 2, 0.70], ["rare", 1, 0.20], ["epic", 1, 0.09], ["legend", 1, 0.01]] },
+  { max: 10, rows: [["common", 3, 0.60], ["rare", 2, 0.25], ["epic", 1, 0.13], ["legend", 1, 0.02]] },
+  { max: 15, rows: [["common", 4, 0.45], ["rare", 2, 0.30], ["epic", 1, 0.20], ["legend", 1, 0.05]] },
+  { max: 20, rows: [["common", 5, 0.40], ["rare", 3, 0.30], ["epic", 2, 0.20], ["legend", 1, 0.10]] },
+];
+function deliveryBand(r20) { return DELIVERY_BANDS.find((b) => r20 <= b.max) || DELIVERY_BANDS[DELIVERY_BANDS.length - 1]; }
+// 報酬を1つ抽選: [rarity, 体数]
+function rollDeliveryReward(r20) {
+  let r = Math.random();
+  for (const [rarity, count, p] of deliveryBand(r20).rows) { if ((r -= p) < 0) return [rarity, count]; }
+  const last = deliveryBand(r20).rows[deliveryBand(r20).rows.length - 1];
+  return [last[0], last[1]];
+}
+// 報酬テーブルの表示文
+function deliveryRewardDesc(r20) {
+  return deliveryBand(r20).rows.map(([rar, c, p]) => `${RARITY_LABEL[rar]}魂×${c} (${Math.round(p * 100)}%)`).join(" / ");
+}
+// 指定レアリティの職業をランダムに選ぶ
+function rollClassOfRarity(rarity) {
+  const pool = SOUL_KEYS.filter((k) => SOUL_CLASSES[k].rarity === rarity);
+  return pool.length ? pool[rand(pool.length)] : "fighter";
+}
+// 「今 到達している深さまでに出現しうる」品のid (LOOT_IDS = exclusive/LR を除く通常ドロップ品)
+function eligibleDeliveryItemIds() {
+  const idx = Math.min(DUNGEONS.length - 1, Math.max(0, (G.unlockedDungeons || 1) - 1));
+  const cap = (DUNGEONS[idx].lootLv || [1, 1])[1]; // 到達済み最深ダンジョンのドロップ帯上限 lv
+  return LOOT_IDS.filter((id) => (ITEMS[id].lv || 1) <= cap);
+}
+// 納品依頼を3件 (重複なし) 引き直す
+function rollDeliveryQuests() {
+  const pool = eligibleDeliveryItemIds();
+  const out = [], used = new Set();
+  for (let i = 0; i < 3 && pool.length; i++) {
+    let id, tries = 0;
+    do { id = pool[rand(pool.length)]; tries++; } while (used.has(id) && tries < 24);
+    if (used.has(id)) break;
+    used.add(id); out.push({ itemId: id });
+  }
+  return out;
+}
+function ensureDeliveryQuests() { if (!Array.isArray(G.deliveryQuests)) G.deliveryQuests = rollDeliveryQuests(); }
+// 対象アイテムが手持ち (人業の所持品。装備中・未鑑定は除く) にあるか
+function deliveryHolder(itemId) {
+  return allDolls().find((d) => (d.items || []).some((it) => it.id === itemId && !it.unidentified)) || null;
+}
+// 納品を実行: 手持ちから1つ消費し、品の格に応じた魂を授かる
+function deliverQuest(q) {
+  const it = ITEMS[q.itemId];
+  if (!it) return;
+  const holder = deliveryHolder(q.itemId);
+  if (!holder) { log("納品できる品が手元にない。", "sys"); SFX.ng(); return; }
+  const i = holder.items.findIndex((x) => x.id === q.itemId && !x.unidentified);
+  if (i < 0) { log("納品できる品が手元にない。", "sys"); SFX.ng(); return; }
+  holder.items.splice(i, 1);
+  recalcDoll(holder); holder.hp = Math.min(holder.hp, holder.maxhp); holder.mp = Math.min(holder.mp, holder.maxmp);
+  const [rarity, count] = rollDeliveryReward(it.r20 || 1);
+  const got = [];
+  for (let k = 0; k < count; k++) { const ck = rollClassOfRarity(rarity); addSoulInstance(ck); got.push(ck); }
+  recalcAllDolls();
+  // 納めた依頼は消える (次に潜るまで補充されない)
+  G.deliveryQuests = (G.deliveryQuests || []).filter((x) => x !== q);
+  const names = got.map((k) => SOUL_CLASSES[k].label);
+  const rare = rarity !== "common";
+  SFX.itemget(); buzz(rare ? [0, 40, 50, 40, 50, 150] : [0, 30, 60, 30]);
+  if (rarity === "legend") { flashScreen("#ffcf4a"); SFX.victory(); }
+  log(`${itemName(it)} を納品し、${RARITY_LABEL[rarity]}の魂を ${count} 体授かった。(${names.join("・")})`, "win");
+  showEvent({
+    sprite: jobSprite(got[0], 1),
+    banner: rare ? `★ ${RARITY_LABEL[rarity]}の魂 ×${count} ★` : `✦ 魂 ×${count} ✦`,
+    title: `「${it.name}」を納品`,
+    lines: [`${RARITY_LABEL[rarity]}の魂を ${count} 体 授かった。`, `${names.join("・")} の魂`, "所持魂 一覧に追加した。"],
+    accent: (SOUL_CLASSES[got[0]] || {}).glow || "#c9a227",
+    sparkle: rare,
+    btnLabel: "受け取る",
+    onClose: () => { updateTopbar(); renderTown(); },
+  });
+  autosave(true);
+}
+
 function renderTavern() {
   townEl.appendChild(townHeader("酒場「沈まぬ灯」"));
   townEl.appendChild(el("div", "tw-lead", "迷宮帰りの流れ者がたむろする。世界の噂や冒険のヒントを聞ける。(編成は人業の館)"));
@@ -6657,11 +6742,43 @@ function renderTavern() {
   townEl.appendChild(crowd);
   townEl.appendChild(el("div", "tw-note", "顔ぶれは迷宮から帰還するたびに入れ替わる。"));
 
-  // 依頼と噂を扱えるのは「名の知れた魂繰り」(15迷宮踏破) から。それまでは情報を聞くだけの場。
+  // --- 納品依頼: 求められた品を納めると、品の格に応じた職業の魂が手に入る ---
+  ensureDeliveryQuests();
+  townEl.appendChild(el("div", "tw-h", "納品依頼"));
+  townEl.appendChild(el("div", "tw-note", "求められた品を納めれば、その品の格に応じて職業の魂を授かる。対象は今 到達している深さまでに出回る品。依頼は迷宮に潜るたびに入れ替わる。"));
+  const dl = el("div", "tw-mlist");
+  for (const q of G.deliveryQuests) {
+    const it = ITEMS[q.itemId];
+    if (!it) continue;
+    const r20 = it.r20 || 1;
+    const holder = deliveryHolder(q.itemId);
+    const inShop = (G.shopStock && G.shopStock[q.itemId] > 0);
+    const row = el("div", "tw-quest" + (holder ? " done" : ""));
+    const info = el("div", "tw-chipi");
+    const rn = itemRankName(it);
+    info.appendChild(el("div", "tw-chipn", `📦 「${it.name}」を納品`));
+    info.appendChild(el("div", "tw-chipc", `${SLOT_LABEL[it.slot] || it.slot || ""}${rn ? " ・ " + rn : ""} ・ アイテムR${r20}`));
+    info.appendChild(el("div", "tw-chipc", "報酬: " + deliveryRewardDesc(r20)));
+    // 手持ち / 商店に対象があるかを示す
+    if (holder) info.appendChild(el("div", "tw-chiphp", `🎒 手持ちにあり（${holder.name}）`));
+    else if (inShop) info.appendChild(el("div", "tw-chipc", "🏪 商店に並んでいる"));
+    else info.appendChild(el("div", "tw-chipc", "― まだ手元にない ―"));
+    row.appendChild(info);
+    if (holder) {
+      const b = btn("納品する", () => deliverQuest(q));
+      b.className = "tw-small primary";
+      row.appendChild(b);
+    }
+    dl.appendChild(row);
+  }
+  if (!G.deliveryQuests.length) dl.appendChild(el("div", "tw-empty", "今は納品依頼がない。迷宮に潜れば新たな品が求められる。"));
+  townEl.appendChild(dl);
+
+  // 噂を扱えるのは「名の知れた魂繰り」(15迷宮踏破) から。それまでは情報を聞くだけの場。
   if (!featureUnlocked("rumor")) {
     const lockBox = el("div", "tw-rumor");
-    lockBox.appendChild(el("div", "tw-rumors", "― まだ仕事の話はない ―"));
-    lockBox.appendChild(el("div", "tw-rumort", `酒場が依頼や噂を回すのは、名の知れた魂繰りが現れてからだ。15 迷宮を踏破すれば、情報屋も腰を上げよう。（現在 ${clearedDungeonCount()} 踏破）`));
+    lockBox.appendChild(el("div", "tw-rumors", "― まだ噂は回ってこない ―"));
+    lockBox.appendChild(el("div", "tw-rumort", `情報屋が噂を回すのは、名の知れた魂繰りが現れてからだ。15 迷宮を踏破すれば、腰を上げよう。（現在 ${clearedDungeonCount()} 踏破）`));
     townEl.appendChild(lockBox);
     return;
   }
@@ -6702,107 +6819,6 @@ function renderTavern() {
     }
   }
 
-  // --- クエスト掲示板 (常設 + 日替わり) ---
-  const questRow = (q) => {
-    const row = el("div", "tw-quest" + (q.state === "done" ? " done" : ""));
-    const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", (q.daily ? "🌙 " : "📜 ") + q.name));
-    info.appendChild(el("div", "tw-chipc", q.desc));
-    const rw = [`💰${q.reward.gold}`];
-    if (q.reward.soulPts) rw.push(`✦${q.reward.soulPts}`);
-    if (q.reward.redSoul) rw.push(`🔴${q.reward.redSoul}`);
-    if (q.reward.soul) rw.push(`${SOUL_CLASSES[q.reward.soul].label}の魂`);
-    info.appendChild(el("div", "tw-chipc", "報酬: " + rw.join(" + ") +
-      (q.state !== "avail" ? ` ・ 進捗 ${Math.min(q.progress, q.goal)}/${q.goal}` : "")));
-    row.appendChild(info);
-    if (q.state === "avail") {
-      const b = btn("受注", () => { q.state = "active"; SFX.select(); log(`クエスト「${q.name}」を受注した。`, "sys"); renderTown(); });
-      b.className = "tw-small";
-      row.appendChild(b);
-    } else if (q.state === "active") {
-      row.appendChild(el("div", "tw-chiphp", "進行中"));
-    } else if (q.state === "done") {
-      const b = btn("報告する", () => claimQuest(q));
-      b.className = "tw-small primary";
-      row.appendChild(b);
-    }
-    return row;
-  };
-
-  // 日替わり依頼 (毎日3件。日付が変わると入れ替わる)
-  ensureDailyQuests();
-  townEl.appendChild(el("div", "tw-h", "今日の依頼 — 日替わり"));
-  const dql = el("div", "tw-mlist");
-  for (const q of G.dailyQuests.list) {
-    if (q.state === "claimed") continue;
-    dql.appendChild(questRow(q));
-  }
-  if (![...dql.children].length) dql.appendChild(el("div", "tw-empty", "今日の依頼はすべて果たした。また明日。"));
-  townEl.appendChild(dql);
-
-  townEl.appendChild(el("div", "tw-h", "依頼の掲示板"));
-  const ql = el("div", "tw-mlist");
-  for (const q of G.quests) {
-    if (q.state === "claimed") continue;
-    ql.appendChild(questRow(q));
-  }
-  if (![...ql.children].length) ql.appendChild(el("div", "tw-empty", "依頼はすべて果たされた。"));
-  townEl.appendChild(ql);
-
-  // --- 酒場の依頼人 (サブクエスト): 迷宮の階ごとに1件 ---
-  // 一度表示した迷宮の依頼は、別の迷宮を選んでも酒場に残り続ける (発見済みを蓄積)。
-  if (!G.subQuestSeen) G.subQuestSeen = [];
-  if (!G.subQuestSeen.includes(G.dungeonIdx)) G.subQuestSeen.push(G.dungeonIdx);
-  townEl.appendChild(el("div", "tw-h", "酒場の依頼人"));
-  townEl.appendChild(el("div", "tw-note", "迷宮ごとに、事情を抱えた依頼人がいる。依頼はどの迷宮にいても条件を満たせば達成できる。一度顔を合わせた依頼人は別の迷宮を選んでも酒場に残り、果たした依頼は消える。"));
-  const sql = el("div", "tw-mlist");
-  // 選択中の迷宮を先頭に、発見済みの迷宮順で並べる
-  const seenDuns = [...new Set(G.subQuestSeen)].filter((i) => DUNGEONS[i])
-    .sort((a, b) => (a === G.dungeonIdx ? -1 : b === G.dungeonIdx ? 1 : a - b));
-  let subAny = false;
-  for (const di of seenDuns) {
-    const defs = dungeonSubQuests(di).filter((def) => {
-      const st = G.subQuests[def.id];
-      return !(st && st.state === "claimed");
-    });
-    if (!defs.length) continue;
-    // どの迷宮の依頼かを明示する見出し (現在選択中は印を付ける)
-    const head = el("div", "tw-subh", `🗺 ${DUNGEONS[di].name}` + (di === G.dungeonIdx ? "（選択中）" : ""));
-    sql.appendChild(head);
-    for (const def of defs) {
-      const st = G.subQuests[def.id];
-      subAny = true;
-      const row = el("div", "tw-quest" + (st && st.state === "done" ? " done" : ""));
-      const info = el("div", "tw-chipi");
-      info.appendChild(el("div", "tw-chipn", `🕯 「${def.name}」`));
-      info.appendChild(el("div", "tw-chipc", `― ${def.npc.name} (${def.npc.title})`));
-      info.appendChild(el("div", "tw-chipc", def.text));
-      const rw = [`💰${def.reward.gold}`, `✦${def.reward.soulPts}`];
-      if (def.reward.redSoul) rw.push(`🔴${def.reward.redSoul}`);
-      info.appendChild(el("div", "tw-chipc", "報酬: " + rw.join(" + ") +
-        (st ? ` ・ 進捗 ${Math.min(st.progress, def.goal)}/${def.goal}` : "")));
-      row.appendChild(info);
-      if (!st) {
-        const b = btn("受ける", () => {
-          G.subQuests[def.id] = { ...def, state: "active", progress: 0 };
-          SFX.select();
-          log(`${def.npc.name}の依頼「${def.name}」を受けた。`, "sys");
-          renderTown();
-        });
-        b.className = "tw-small";
-        row.appendChild(b);
-      } else if (st.state === "active") {
-        row.appendChild(el("div", "tw-chiphp", "進行中"));
-      } else if (st.state === "done") {
-        const b = btn("報告する", () => claimQuest(st));
-        b.className = "tw-small primary";
-        row.appendChild(b);
-      }
-      sql.appendChild(row);
-    }
-  }
-  if (!subAny) sql.appendChild(el("div", "tw-empty", "依頼は、すべて果たされた。"));
-  townEl.appendChild(sql);
 }
 
 function claimQuest(q) {
@@ -8508,6 +8524,8 @@ function enterDungeon(mutatorId) {
   G.run = { gold: 0, soulPts: 0, items: [], souls: [] };
   // 表示中の噂を確定し、この迷宮で現実化させる
   if (G.rumor) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
+  // 納品依頼は迷宮に潜るたびに入れ替わる
+  G.deliveryQuests = rollDeliveryQuests();
   G.state = "board";
   playBgm(fieldBgm());
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
@@ -9966,7 +9984,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "story", "dragonSlain", "stats",
+  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "story", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
 ];
 
@@ -10228,6 +10246,7 @@ function setupNewGame() {
   G.redSoul = 0;
   G.unlockedDungeons = 0; // 勅命 (第1章) を受けるまで、迷宮の場所は明かされない
   G.shopStock = { ...SHOP_INIT_STOCK };
+  G.deliveryQuests = rollDeliveryQuests();
   // 第0章「人業の生成」: 王宮で謁見 → 戦士・僧侶・盗賊・魔導士の魂×4+🔴100を受ける (granted) → 館の保管庫で人業を1体仕立て → 報告
   G.msq = { n: 0, state: "active", granted: false };
   codexSweepJobs();
