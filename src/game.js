@@ -400,7 +400,7 @@ const LAYER_VISUALS = [
   { name: "氷結回廊",   sym: "❄", accent: "#9fd0e6", bgm: "layer8", back: drawBackIce, floorBase: "#0e1417", floorTiles: ["#152027", "#111a20", "#0d1418"], glow: "rgba(170,220,245,0.06)" }, // 8
   { name: "毒沼",       sym: "⚗", accent: "#a7b84a", bgm: "layer9", back: drawBackSwamp, floorBase: "#12140d", floorTiles: ["#1a1c11", "#16180d", "#12140a"], glow: "rgba(170,195,75,0.06)" },  // 9
   { name: "嵐の尖塔",   sym: "⚡", accent: "#b6a4e0", bgm: "layer10", back: drawBackSpire, floorBase: "#10101a", floorTiles: ["#181826", "#14141f", "#101019"], glow: "rgba(180,160,235,0.06)" }, // 10
-  { name: "闘技場跡",   sym: "✶", accent: "#c9a05a", bgm: "field3",     floorBase: "#16130d", floorTiles: ["#1f1a11", "#1a160d", "#15110a"], glow: "rgba(225,180,90,0.05)" },  // 11
+  { name: "闘技場跡",   sym: "✶", accent: "#c9a05a", bgm: "layer11", back: drawBackArena, floorBase: "#16130d", floorTiles: ["#1f1a11", "#1a160d", "#15110a"], glow: "rgba(225,180,90,0.05)" },  // 11
   { name: "地底大空洞", sym: "◆", accent: "#8a7a5a", bgm: "field10",    floorBase: "#13110d", floorTiles: ["#1b1813", "#16140f", "#12100b"], glow: "rgba(200,180,140,0.05)" }, // 12
   { name: "魔導書庫",   sym: "✪", accent: "#9d7ad0", bgm: "fieldCrypt", floorBase: "#100e17", floorTiles: ["#181323", "#13101c", "#100d16"], glow: "rgba(160,120,225,0.06)" }, // 13
   { name: "屍蝋の回廊", sym: "‡", accent: "#b8a878", bgm: "fieldCrypt", floorBase: "#14120d", floorTiles: ["#1c1912", "#17140e", "#13100a"], glow: "rgba(210,190,130,0.05)" }, // 14
@@ -890,6 +890,110 @@ function drawThemedBack(r, accent, sym) {
   }
   vctx.fillStyle = "rgba(255,255,255,0.08)";
   vctx.fillRect(2, 2, r.w - 4, 3);
+}
+
+// 層11「闘技場跡」のカード裏面: 崩れた観客席のアーケード、折れた円柱、砂上に転がる闘士の兜、舞う砂塵
+function drawBackArena(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  // 砂と石の地
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#1f1810");
+  bg.addColorStop(0.55, "#2a2012");
+  bg.addColorStop(1, "#352a14");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+
+  // 上方から差す金色の光
+  vctx.save();
+  vctx.globalCompositeOperation = "lighter";
+  vctx.fillStyle = "rgba(220,180,90,0.05)";
+  vctx.beginPath(); vctx.moveTo(18, 0); vctx.lineTo(30, 0); vctx.lineTo(40, H); vctx.lineTo(20, H); vctx.closePath(); vctx.fill();
+  vctx.restore();
+
+  // 観客席のアーケード (上部に並ぶアーチ。3つ目は崩落)
+  const arT = 9, arB = 22;
+  vctx.fillStyle = "#3a3020";
+  vctx.fillRect(2, arT - 3, W - 4, 3);
+  const cols = [3, 12, 21, 30, 39, 48, W - 3];
+  for (let i = 0; i < cols.length - 1; i++) {
+    const x0 = cols[i], x1 = cols[i + 1], mid = (x0 + x1) / 2, aw = (x1 - x0) / 2 - 1;
+    vctx.fillStyle = "#473a24";
+    vctx.fillRect(x0 - 1.2, arT, 2.4, arB - arT);
+    if (i !== 2) {
+      vctx.fillStyle = "#120d07";
+      vctx.beginPath();
+      vctx.moveTo(mid - aw, arB); vctx.lineTo(mid - aw, arT + 4);
+      vctx.arc(mid, arT + 4, aw, Math.PI, 0);
+      vctx.lineTo(mid + aw, arB); vctx.closePath(); vctx.fill();
+    } else {
+      vctx.fillStyle = "#2e2616";
+      vctx.fillRect(x0, arT + 3, x1 - x0, arB - arT - 3);
+    }
+  }
+  vctx.fillStyle = "#473a24";
+  vctx.fillRect(cols[cols.length - 1] - 1.2, arT, 2.4, arB - arT);
+  vctx.fillStyle = "rgba(220,185,110,0.18)";
+  vctx.fillRect(2, arT - 3, W - 4, 1);
+
+  // 折れた円柱 (砂上に立つ。1本は傾く)
+  const col = (cx, h, tilt) => {
+    vctx.save();
+    vctx.translate(cx, H); vctx.rotate(tilt);
+    const g = vctx.createLinearGradient(-3, 0, 3, 0);
+    g.addColorStop(0, "#5a4a2c"); g.addColorStop(0.5, "#7a6438"); g.addColorStop(1, "#473a22");
+    vctx.fillStyle = g;
+    vctx.fillRect(-2.5, -h, 5, h);
+    vctx.fillStyle = "#6a572f";
+    vctx.fillRect(-3.5, -h, 7, 2);
+    vctx.strokeStyle = "rgba(40,30,12,0.5)"; vctx.lineWidth = 0.5;
+    vctx.beginPath(); vctx.moveTo(0, -h + 2); vctx.lineTo(0, -2); vctx.stroke();
+    vctx.restore();
+  };
+  col(9, 16, 0);
+  col(46, 12, 0.12);
+
+  // 闘士の兜 (砂上に転がる。鶏冠つき)
+  const hx = W / 2, hy = H - 7;
+  vctx.fillStyle = "rgba(0,0,0,0.3)"; // 兜の影
+  vctx.beginPath(); vctx.ellipse(hx, hy + 4, 9, 2, 0, 0, Math.PI * 2); vctx.fill();
+  vctx.fillStyle = "#8a3b2a"; // 鶏冠 (クレスト)
+  vctx.beginPath();
+  vctx.moveTo(hx - 1, hy - 9); vctx.quadraticCurveTo(hx, hy - 15, hx + 4, hy - 9);
+  vctx.lineTo(hx + 1, hy - 8); vctx.lineTo(hx - 1, hy - 8); vctx.closePath(); vctx.fill();
+  const helm = vctx.createLinearGradient(hx - 7, 0, hx + 7, 0);
+  helm.addColorStop(0, "#7e8590"); helm.addColorStop(0.45, "#aab0ba"); helm.addColorStop(1, "#5e636d");
+  vctx.fillStyle = helm;
+  vctx.beginPath();
+  vctx.arc(hx, hy - 2, 7, Math.PI, 0); vctx.lineTo(hx + 7, hy + 2); vctx.lineTo(hx - 7, hy + 2); vctx.closePath(); vctx.fill();
+  vctx.fillStyle = "#15171a"; // 面の闇 (アイスリット)
+  vctx.fillRect(hx - 5, hy - 1, 10, 3);
+  vctx.fillStyle = "#6b7079"; // 鼻当て
+  vctx.fillRect(hx - 1, hy - 3, 2, 5);
+  vctx.fillStyle = "rgba(255,255,255,0.25)"; // ハイライト
+  vctx.fillRect(hx - 5, hy - 6, 1.4, 4);
+
+  // 砂塵 (金色の塵が漂う)
+  for (let i = 0; i < 6; i++) {
+    const px = (i * 41 + t * 0.006) % W;
+    const py = 26 + ((i * 60 + t * 0.01) % (H - 28));
+    const al = 0.3 + 0.4 * Math.sin(t * 0.002 + i * 1.6);
+    vctx.fillStyle = `rgba(225,195,110,${Math.max(0, al) * 0.5})`;
+    vctx.fillRect(px, py, 1, 1);
+  }
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
 }
 
 // 層10「嵐の尖塔」のカード裏面: 嵐空にそびえる尖塔、閃く稲妻と雷雲、吹きつける雨
