@@ -127,7 +127,12 @@ function dropCenterR(opts = {}) {
 // 旧 1/500 × 宝箱ランク の機構は廃止し、すべてこの 2% 機構に統一した。
 const EXCL_RATE = 0.02;
 const LR_UNLOCK = { 5: 40, 10: 90, 15: 140, 20: 190 }; // LR ティア → 解禁 lootLv
-// その装備が出現し始める lootLv。LR はティア解禁値、職業専用装備(x_)は自レベル基準
+// その装備が出現「し始める」lootLv (下限のみ。上限は無い)。
+// LR はティア解禁値、職業専用装備(x_)は自レベル基準。判定は「現在の lootLv >= 解禁値」なので、
+// 一度解禁した LR ティアは以降どれだけ深い迷宮でも出続ける (通常装備の R±2 窓とは別物):
+//   ・LR5 (解禁lootLv40) は D80 のような深層でも出現する
+//   ・LR20 (解禁lootLv190 ≒ D95+) は D20 のような浅層では絶対に出ない
+// 深層では低ティアLRも当たるが、1点もの(G.lrOwned)で既得分は除外されるため自然に上位へ移る。
 function exclUnlockLv(it) {
   return it.lr ? (LR_UNLOCK[it.lr] || 40) : Math.max(40, (it.lv || 1) - 25);
 }
@@ -140,7 +145,8 @@ function exclIds() {
 // 現在の lootLv で解禁済みの専用装備から、パーティの職に合う品を強く優先して選ぶ。
 function pickExclusive(lootLv) {
   if (Math.random() >= EXCL_RATE) return null;
-  const pool = exclIds().filter((id) => (lootLv || 0) >= exclUnlockLv(ITEMS[id]));
+  // LR は1点もの: 既に入手済みの id は除外する (x_ 職業専用装備は複数可)
+  const pool = exclIds().filter((id) => (lootLv || 0) >= exclUnlockLv(ITEMS[id]) && !(ITEMS[id].lr && G.lrOwned && G.lrOwned[id]));
   if (!pool.length) return null;
   let total = 0;
   const acc = [];
@@ -241,6 +247,7 @@ const G = {
   activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
   codex: { mon: {}, item: {}, job: {} }, // 図鑑 (モンスター/アイテム/職業)
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={蒐集品id:true}, claimed={"ランク:しきい値":true}
+  lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
   story: 0,           // 王宮ストーリーの進行段階
   dragonSlain: false, // 竜を討ったか
   stats: { runs: 0, deepest: 0, kills: 0, deaths: 0, soulsFound: 0, bossKills: 0 }, // 戦績
@@ -3818,6 +3825,8 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false) {
   if (exId && ITEMS[exId]) {
     const it = cloneItem(exId);
     const fj = it.forJob;
+    // LR は未鑑定で手に入り、味方スキルでは鑑定できない (商店で同帯の約20倍の鑑定料が要る)
+    if (it.lr) it.unidentified = true;
     // 専用武器は forJob 一致者を優先して渡す
     const who = (fj && G.party.find((m) => m.alive && m.clsKey === fj && m.items.length < MAX_ITEMS))
               || (fj && G.party.find((m) => m.clsKey === fj && m.items.length < MAX_ITEMS))
@@ -3825,12 +3834,14 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false) {
               || G.party.find((m) => m.items.length < MAX_ITEMS);
     if (who) {
       runGainItem(who, it); codexSeeItem(exId);
+      if (it.lr) { if (!G.lrOwned) G.lrOwned = {}; G.lrOwned[exId] = true; } // 1点もの: 以後ドロップしない
       flashScreen(it.lr ? "#ff5fae" : (SOUL_CLASSES[it.forJob] ? SOUL_CLASSES[it.forJob].glow : "#ffcf4a"));
       SFX.victory(); buzz([0, 60, 50, 60, 50, 60, 240]);
       const mark = it.lr ? "★" : "✦";
-      const label = it.lr ? `LR${it.lr} 専用装備` : "職業専用装備";
-      log(`${mark} ${label}「${it.name}」を発見！ (${who.name})`, "win");
-      setTimeout(() => showToast(`${mark} ${it.name}`), 200);
+      const nm = itemName(it); // 未鑑定なら伏せ名 (LRは正体を鑑定まで伏せる)
+      const label = it.lr ? `LR${it.lr} 専用装備(未鑑定)` : "職業専用装備";
+      log(`${mark} ${label}「${nm}」を発見！ (${who.name})`, "win");
+      setTimeout(() => showToast(`${mark} ${nm}`), 200);
       showItemGet(it, who, done);
       return;
     }
@@ -7690,6 +7701,8 @@ let shopTab = "weapon";
 let shopWeaponCat = "all"; // 商店の武器タブのサブカテゴリ (長剣/短剣/…)
 let shopMember = 0; // 取引する編成メンバーの index
 const sellPrice = (it) => Math.max(1, Math.floor((it.price || 10) / 2));
+// 鑑定料: 通常は売値と同額。LR(専用装備)は同ランク帯の約20倍で、商店でのみ鑑定できる
+const appraiseCost = (it) => it && it.lr ? sellPrice(it) * 20 : sellPrice(it);
 
 // 商店: 上=在庫 (内部スクロール) / 下=取引相手の選択と所持品。
 // ページ全体は縦スクロールさせず、在庫リストだけが内部でスクロールする。
@@ -7793,7 +7806,7 @@ function renderShop() {
       const cellEl = el("div", "shop-slot" + (it ? "" : " empty"));
       if (it) {
         cellEl.appendChild(spriteCanvas(it, 2));
-        if (it.unidentified) { cellEl.classList.add("shop-unid"); cellEl.appendChild(el("span", "shop-price", `🔍${sellPrice(it)}`)); }
+        if (it.unidentified) { cellEl.classList.add("shop-unid"); cellEl.appendChild(el("span", "shop-price", `🔍${appraiseCost(it)}`)); }
         else cellEl.appendChild(el("span", "shop-price", `💰${sellPrice(it)}`));
         cellEl.title = itemName(it);
         cellEl.addEventListener("click", () => it.unidentified ? showAppraisePrompt(who, it) : showSellPrompt(who, it));
@@ -7809,7 +7822,7 @@ function renderShop() {
       actions.style.display = "flex";
       actions.style.gap = "8px";
       if (unid.length > 0) {
-        const idTotal = unid.reduce((s, it) => s + sellPrice(it), 0);
+        const idTotal = unid.reduce((s, it) => s + appraiseCost(it), 0);
         const idBtn = btn(`一括鑑定 (${unid.length}点 / 💰${idTotal})`, () => {
           showConfirm({
             title: "未鑑定品をまとめて鑑定しますか？",
@@ -7821,7 +7834,7 @@ function renderShop() {
         });
         idBtn.className = "btn tw-add";
         idBtn.style.flex = "1";
-        if (G.gold < sellPrice(unid[0])) idBtn.disabled = true; // 1点も鑑定できないなら無効
+        if (G.gold < appraiseCost(unid[0])) idBtn.disabled = true; // 1点も鑑定できないなら無効
         actions.appendChild(idBtn);
       }
       if (sellable.length > 0) {
@@ -7884,7 +7897,7 @@ function showShopItemDetail(id, price) {
 
 // 商店: 未鑑定品の鑑定/売却を選ぶ。鑑定料は売値と同額で、必ず成功する (商店の確実さ)。
 function showAppraisePrompt(owner, it) {
-  const cost = sellPrice(it); // 鑑定料 = 売却金額と同じ
+  const cost = appraiseCost(it); // 鑑定料 (LRは同帯の約20倍)
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card");
   card.style.borderColor = "#7fd0ff";
@@ -7909,7 +7922,7 @@ function showAppraisePrompt(owner, it) {
 
 // 商店で鑑定する: 鑑定料を払い、必ず正体を明かす
 function shopIdentify(owner, it) {
-  const cost = sellPrice(it);
+  const cost = appraiseCost(it);
   if (G.gold < cost) { log("お金が足りない。", "sys"); return; }
   G.gold -= cost;
   it.unidentified = false;
@@ -7922,10 +7935,10 @@ function shopIdentify(owner, it) {
 
 // 商店で一括鑑定: 所持品の未鑑定品を、所持金が続く限り安い順に鑑定する
 function bulkIdentify(owner) {
-  const unid = owner.items.filter((it) => it.unidentified).sort((a, b) => sellPrice(a) - sellPrice(b));
+  const unid = owner.items.filter((it) => it.unidentified).sort((a, b) => appraiseCost(a) - appraiseCost(b));
   let n = 0, spent = 0;
   for (const it of unid) {
-    const cost = sellPrice(it);
+    const cost = appraiseCost(it);
     if (G.gold < cost) break;
     G.gold -= cost; spent += cost;
     it.unidentified = false; it.idHardFail = false;
@@ -8735,6 +8748,13 @@ function showItemDetailPopup(p, sel) {
 // 未鑑定品の詳細ポップアップに「鑑定する」アクションを足す。
 // 鑑定済みの心得がある仲間がいればその場で試せる。失敗済み (idHardFail) は商店送り。
 function addIdentifyAction(acts, it, close) {
+  // LR (専用装備) は味方スキルでは鑑定できない。商店でのみ (同帯の約20倍の鑑定料)
+  if (it.lr) {
+    const b = btn("🔒 LR専用装備は商店でのみ鑑定可", () => {});
+    b.disabled = true;
+    acts.appendChild(b);
+    return;
+  }
   if (it.idHardFail) {
     const b = btn("🔒 鑑定失敗済み (商店でのみ鑑定可)", () => {});
     b.disabled = true;
@@ -9428,7 +9448,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "story", "dragonSlain", "stats",
+  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "story", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
 ];
 
@@ -9563,6 +9583,7 @@ function loadGame() {
   try { snap = refDeserialize(JSON.parse(raw)); } catch (e) { return false; }
   if (!snap || !snap.party || !snap.party.length) return false;
   for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
+  if (!G.lrOwned || typeof G.lrOwned !== "object") G.lrOwned = {}; // LR入手済み記録 (1点もの)
   // 旧ステータス体系のセーブを六大ステ (ATK/VIT/AGI/INT/PIE/LUK) へ移行
   // (battle の敵の mon はこの後 MONSTERS の生定義に差し替えられるため触れても無害)
   migrateLegacyStats(snap);
