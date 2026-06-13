@@ -7025,11 +7025,27 @@ function renderPalace() {
 // 蒐集品 (slot:"misc") を奉納すると、ランク帯ごとではなく「奉納した総種類数」の節目で褒賞が下賜される。
 // 各しきい値に到達するごとに一度だけ褒賞を受領できる (装備、節目によっては魂も)。
 // soul: 0=装備のみ / 1=魂(通常抽選)+装備 / 2=魂(偉大な抽選)+装備
+// 報酬の種別: cls=特定職の魂のみ / reward:"lrArmor"=未入手LR防具1点 / reward:"lrWeapon5"=未入手LR5武器1点
+//             soul=従来の「魂(+装備)」(soul:1=通常魂 / soul:2=偉大な魂 + 節目相応の装備)
+// ※25種以降は未定のため、従来の魂+装備をプレースホルダとして残してある。
 const TREASURY_MILESTONES = [
-  { n: 5, soul: 0 }, { n: 10, soul: 1 }, { n: 20, soul: 1 }, { n: 30, soul: 1 },
+  { n: 5, cls: "bishop" },   // 司教の魂
+  { n: 10, cls: "samurai" },   // 侍の魂
+  { n: 15, reward: "lrArmor" }, // LR防具1つ (未入手のもの)
+  { n: 20, reward: "lrWeapon5" }, // LR5武器1つ (未入手のもの)
+  { n: 30, soul: 1 },
   { n: 40, soul: 2 }, { n: 50, soul: 1 }, { n: 60, soul: 2 }, { n: 70, soul: 1 },
   { n: 80, soul: 2 }, { n: 90, soul: 2 }, { n: 100, soul: 2 },
 ];
+// 防具とみなすスロット (LR防具褒賞の抽選対象。acc=装飾品は含めない)
+const LR_ARMOR_SLOTS = ["body", "head", "feet", "hands", "shield"];
+// 節目の褒賞ラベル (UI表示用)
+function milestoneLabel(m) {
+  if (m.cls) return ((SOUL_CLASSES[m.cls] || {}).label || m.cls) + "の魂";
+  if (m.reward === "lrArmor") return "LR防具";
+  if (m.reward === "lrWeapon5") return "LR5武器";
+  return m.soul ? (m.soul >= 2 ? "魂(偉大)+装備" : "魂+装備") : "装備";
+}
 
 // 蒐集品 → ランク帯 (1-10)。lv1-20=R1 … lv181-200=R10
 function collectibleRank(it) { return Math.min(10, Math.max(1, Math.ceil((it.lv || 1) / 20))); }
@@ -7108,6 +7124,34 @@ function grantTreasuryItem(center, onClose) {
   });
 }
 
+// 褒賞のLR(専用装備)を1点下賜する。filter で武器/防具などを絞り、未入手(G.lrOwned外)から抽選する。
+// LRは未鑑定で渡る (商店でのみ鑑定可)。全部入手済みなら通常の装備褒賞にフォールバック。
+function grantLR(filter, center, onClose) {
+  if (!G.lrOwned) G.lrOwned = {};
+  const pool = exclIds().filter((id) => {
+    const it = ITEMS[id];
+    return it && it.lr && !G.lrOwned[id] && filter(it);
+  });
+  if (!pool.length) { grantTreasuryItem(center, onClose); return; } // 既に全種入手済み
+  const id = pool[rand(pool.length)];
+  const it = cloneItem(id);
+  it.unidentified = true; // LRは未鑑定で手に入る
+  const fj = it.forJob;
+  const who = (fj && G.party.find((m) => m.alive && m.clsKey === fj && m.items.length < MAX_ITEMS))
+    || (fj && G.party.find((m) => m.clsKey === fj && m.items.length < MAX_ITEMS))
+    || G.party.find((m) => m.alive && m.items.length < MAX_ITEMS)
+    || G.party.find((m) => m.items.length < MAX_ITEMS)
+    || allDolls().find((d) => !d.isEmpty && d.items.length < MAX_ITEMS);
+  if (!who) { grantTreasuryItem(center, onClose); return; } // 所持枠が無ければ通常褒賞へ
+  runGainItem(who, it); codexSeeItem(id);
+  G.lrOwned[id] = true; // 1点もの: 以後ドロップしない
+  flashScreen("#ff5fae"); SFX.victory(); buzz([0, 60, 50, 60, 50, 60, 240]);
+  const nm = itemName(it); // 未鑑定なら伏せ名
+  log(`★ 宝物庫の褒賞として LR${it.lr} 専用装備(未鑑定)「${nm}」を賜った。(${who.name})`, "win");
+  setTimeout(() => showToast(`★ ${nm}`), 200);
+  showItemGet(it, who, onClose);
+}
+
 // 褒賞を受領する。総種類数が節目 n に達していれば一度だけ。
 function claimTreasury(n) {
   const ts = treasuryState();
@@ -7118,10 +7162,16 @@ function claimTreasury(n) {
   ts.claimed[key] = true;
   const back = () => { autosave(); if (G.town.facility === "treasury") renderTreasury(); };
   const center = Math.min(200, Math.max(1, n * 2)); // 節目が深いほど高位の装備
-  if (m.soul) {
+  const reason = `蒐集品を ${n} 種 宝物庫に納めた褒賞だ。`;
+  if (m.cls) {
+    acquireSoul(m.cls, reason, back); // 特定職の魂のみ
+  } else if (m.reward === "lrArmor") {
+    grantLR((it) => LR_ARMOR_SLOTS.includes(it.slot), center, back);
+  } else if (m.reward === "lrWeapon5") {
+    grantLR((it) => it.slot === "weapon" && it.lr === 5, center, back);
+  } else if (m.soul) {
     const clsKey = m.soul >= 2 ? rollGreatJobClass() : rollJobClass();
-    acquireSoul(clsKey, `蒐集品を ${n} 種 宝物庫に納めた褒賞だ。`,
-      () => grantTreasuryItem(center, back));
+    acquireSoul(clsKey, reason, () => grantTreasuryItem(center, back));
   } else {
     grantTreasuryItem(center, back);
   }
@@ -7171,7 +7221,7 @@ function renderTreasury() {
   mbox.appendChild(el("div", "tw-rumors", `総奉納 ${totalKinds} / 100 種`));
   for (const m of TREASURY_MILESTONES) {
     const key = "m" + m.n;
-    const label = m.soul ? (m.soul >= 2 ? "魂(偉大)+装備" : "魂+装備") : "装備";
+    const label = milestoneLabel(m);
     if (ts.claimed[key]) {
       mbox.appendChild(el("div", "tw-note", `${m.n}種 — ${label} — 受領済`));
     } else if (totalKinds >= m.n) {
