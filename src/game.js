@@ -8788,12 +8788,39 @@ function campCast(caster, spellKey) {
   };
   const finish = () => { caster.mp -= cost; SFX.heal(); buzz(15); renderStatus(); renderParty(); };
 
+  // 回復結果を1人ぶんの行に整形 (回復系呪文でのみ使う)。
+  // ・蘇生: 「●●が蘇った (HP n/max)」
+  // ・満タン (元から満タン / 回復で満タンになった): 「●●は満タンだ」
+  // ・部分回復: 「●●のHPがn回復した」
+  const healLineFor = (t, before, wasDead) => {
+    if (wasDead && t.alive) return `${t.name}が蘇った (HP ${t.hp}/${t.maxhp})`;
+    if (t.alive && t.hp >= t.maxhp) return `${t.name}は満タンだ`;
+    const got = t.hp - before;
+    if (got > 0) return `${t.name}のHPが${got}回復した`;
+    return null;
+  };
+  // 回復結果ポップアップ (複数名ぶんを1枚に列挙)。閉じてもステータス画面に留まる。
+  const showHealResult = (lines) => showEvent({
+    sprite: ICONS.fountain, banner: "✦ 回復 ✦", accent: "#46c08f",
+    title: sp.name, lines, btnLabel: "閉じる",
+    onClose: () => { if (G.statusOpen) renderStatus(); },
+  });
+
   // 全体呪文は対象選択なしで全員へ (効果がなければMPは消費しない)
   if (sp.target === "all-ally") {
     let any = false;
-    for (const t of G.party) if (applyTo(t)) any = true;
-    if (any) { finish(); showToast(`${sp.name}！ 隊を癒した`); }
-    else { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg()); SFX.miss(); }
+    const lines = [];
+    for (const t of G.party) {
+      if (!t.alive && !sp.revive) continue;
+      const before = t.hp, wasDead = !t.alive;
+      if (applyTo(t)) any = true;
+      if (heals) { const ln = healLineFor(t, before, wasDead); if (ln) lines.push(ln); }
+    }
+    if (any) {
+      finish();
+      if (heals && lines.length) showHealResult(lines);
+      else showToast(`${sp.name}！ 隊を癒した`);
+    } else { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg()); SFX.miss(); }
     return;
   }
 
@@ -8818,7 +8845,12 @@ function campCast(caster, spellKey) {
     const label = `${t.name} (HP ${t.hp}/${t.maxhp})${ail}${t.alive ? "" : " †"}`;
     const b = btn(label, () => {
       wrap.remove();
-      if (applyTo(t)) { finish(); showToast(`${sp.name}！ ${t.name}に`); }
+      const before = t.hp, wasDead = !t.alive;
+      if (applyTo(t)) {
+        finish();
+        if (heals) showHealResult([healLineFor(t, before, wasDead) || `${t.name}は満タンだ`]);
+        else showToast(`${sp.name}！ ${t.name}に`);
+      }
       else { log("効果のある対象ではなかった。", "sys"); showToast("効果がなかった"); }
     });
     list.appendChild(b);
