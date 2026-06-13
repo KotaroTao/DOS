@@ -24,7 +24,7 @@ import {
   SOUL_RANKS, rollJobClass, rollGreatJobClass,
   soulRankFromCount, nextRankThreshold, rankThresholds,
   JOB_LORE, jobRankCondText,
-  jobSkillTable, jobRankName, jobPassiveTable, pLv, JOB_GEAR,
+  jobSkillTable, jobRankName, soulSeriesName, jobPassiveTable, pLv, JOB_GEAR,
   IDENTIFY_JOBS, identifyChance, canIdentify,
 } from "./souls.js";
 import { showOpening } from "./opening.js";
@@ -3326,7 +3326,7 @@ function showSkillUnlockPopup(d, keys) {
 // 館サブ: 人業の作成・管理 (購入・解体)
 function renderMansionManage() {
   townEl.appendChild(townHeader("人業保管庫", "mansion"));
-  townEl.appendChild(el("div", "tw-lead", "赤い魂で器を購い、宿す魂をひとつ選んで人業を仕立てる。名を与えれば編成に加えられる。"));
+  townEl.appendChild(el("div", "tw-lead", "赤い魂で器を買い、宿す魂をひとつ選んで人業を仕立てる。名を与えれば編成に加えられる。"));
 
   const list = el("div", "tw-mlist");
   allDolls().forEach((d) => {
@@ -3349,20 +3349,20 @@ function renderMansionManage() {
   townEl.appendChild(list);
 
   const cost = emptyDollCost();
-  const add = btn(`＋ 人業を仕立てる (🔴${cost})`, () => buyDoll());
+  const add = btn(`＋ 人業を仕立てる ${cost ? `(🔴${cost})` : "(無料)"}`, () => buyDoll());
   add.className = "btn tw-add";
   if (G.redSoul < cost) add.disabled = true;
   townEl.appendChild(add);
   townEl.appendChild(el("div", "tw-note",
-    "宿す魂をひとつ選んで購入し、名を与えると人業が生まれる。"));
+    "宿す魂をひとつ選んで器を買い、名を与えると人業が生まれる。"));
   townEl.appendChild(el("div", "tw-note",
-    `費用: 1体目 🔴30 / 2体目 🔴50 / 3体目以降 🔴100`));
+    `費用: 最初の3体まで無料 / 4体目 🔴50 / 5体目以降 🔴100　（所持上限 100体）`));
 }
 
-// 人業を仕立てる費用 (購入回数で段階的に上昇)
+// 人業を仕立てる費用 (最初の3体は無料、4体目以降に上昇)
 function emptyDollCost() {
   const n = G.dollsPurchased;
-  return n === 0 ? 30 : n === 1 ? 50 : 100;
+  return n < 3 ? 0 : n === 3 ? 50 : 100;
 }
 
 // 所持魂の並び順: 職業順 → ランク昇順 → Lv降順
@@ -3379,22 +3379,31 @@ function soulSortCmp(a, b) {
 function buyDoll() {
   const cost = emptyDollCost();
   if (G.redSoul < cost) { log("Red Soul が足りない。", "sys"); SFX.ng(); return; }
-  if (allDolls().length >= 18) { log("これ以上は仕立てられない (18体まで)。", "sys"); SFX.ng(); return; }
+  if (allDolls().length >= 100) { log("これ以上は仕立てられない (100体まで)。", "sys"); SFX.ng(); return; }
   // 宿せる魂 = まだどの人業も宿していない魂。選ばないと購入できない
   const free = G.souls.filter((s) => !soulWorn(s.uid)).sort(soulSortCmp);
   if (!free.length) {
     log("宿せる魂がない。先に魂を集めよう。", "sys"); SFX.ng();
-    showToast("空いている魂がない");
+    showToast("魂を持っていない");
     return;
   }
   const options = free.map((s) => {
     const rank = soulRankOf(s);
-    return { label: `${jobRankName(s.clsKey, rank)}の魂 Lv${s.level}`, fn: () => askDollName(s.uid) };
+    return { label: `${soulSeriesName(s.clsKey)}の魂 Lv${s.level}`, fn: () => askDollName(s.uid) };
   });
   options.push({ label: "やめる", fn: () => {} });
   showChoice("どの魂を宿す？", options, ICONS.wisp,
-    { banner: "✦ 人業を仕立てる ✦", lines: [`赤い魂 🔴${cost} で器を購い、選んだ魂を宿す`] });
+    { banner: "✦ 人業を仕立てる ✦", lines: [cost ? `赤い魂 🔴${cost} で器を買い、選んだ魂を宿す` : "無料で器を買い、選んだ魂を宿す"] });
 }
+
+// 人業の名前候補 (ランダム生成に使う)
+const DOLL_NAMES = [
+  "アレク", "ルナ", "セシル", "ガロ", "ミラ", "フェン", "リーゼ", "オーウェン", "ノア", "ヴェル",
+  "ティナ", "ザイン", "リオ", "クレア", "バルト", "エルザ", "グレン", "ソフィア", "ダリオ", "ニケ",
+  "レヴィ", "アイナ", "クロウ", "フィオ", "ジーク", "メイ", "ロラン", "ユーリ", "セラ", "ヴァン",
+  "リコ", "オルガ", "カイ", "ネル", "テオ", "シエル", "ガイ", "リン", "アッシュ", "ノクト",
+];
+function randomDollName() { return DOLL_NAMES[Math.floor(Math.random() * DOLL_NAMES.length)]; }
 
 // 宿す魂を選んだあと: 名を与えて人業を生成する
 function askDollName(uid) {
@@ -3402,10 +3411,13 @@ function askDollName(uid) {
   const cost = emptyDollCost();
   showNameInput({
     title: "人業に名を与える",
-    desc: `${jobRankName(s.clsKey, soulRankOf(s))}の魂を宿す器に、名を与えよ。`,
+    desc: `${soulSeriesName(s.clsKey)}の魂を宿す器に、名を与えよ。名はあとから変更できる。`,
     placeholder: "人業の名前",
-    confirmLabel: `生成する (🔴${cost})`,
+    defaultValue: randomDollName(),
+    confirmLabel: cost ? `生成する (🔴${cost})` : "生成する (無料)",
     onConfirm: (name) => finalizeBuyDoll(uid, name),
+    cancelLabel: "やめる",
+    randomName: randomDollName,
   });
 }
 
@@ -3449,7 +3461,7 @@ function confirmDisband(d) {
 }
 
 // 名前入力モーダル (confirm-overlayと同じレイヤ)
-function showNameInput({ title, desc, placeholder, defaultValue = "", confirmLabel = "決定", onConfirm }) {
+function showNameInput({ title, desc, placeholder, defaultValue = "", confirmLabel = "決定", onConfirm, cancelLabel = null, onCancel = null, randomName = null }) {
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card confirm-card");
   card.style.borderColor = "#c9a227";
@@ -3466,6 +3478,11 @@ function showNameInput({ title, desc, placeholder, defaultValue = "", confirmLab
   inp.value = defaultValue;
   inp.maxLength = 12;
   card.appendChild(inp);
+  if (randomName) {
+    const rnd = btn("🎲 ランダムな名前", () => { inp.value = randomName(); inp.focus(); });
+    rnd.className = "tw-small";
+    card.appendChild(rnd);
+  }
   const list = el("div", "ig-choices");
   const okBtn = btn(confirmLabel, () => {
     const name = inp.value.trim();
@@ -3475,6 +3492,10 @@ function showNameInput({ title, desc, placeholder, defaultValue = "", confirmLab
   });
   okBtn.classList.add("primary");
   list.appendChild(okBtn);
+  if (cancelLabel) {
+    const cancelBtn = btn(cancelLabel, () => { wrap.remove(); if (onCancel) onCancel(); });
+    list.appendChild(cancelBtn);
+  }
   card.appendChild(list);
   wrap.appendChild(card);
   document.body.appendChild(wrap);
@@ -3586,7 +3607,7 @@ function renderAltar() {
   }
   sum.appendChild(el("div", "tw-sumc", d.cls));
   sum.appendChild(el("div", "tw-sumt", pe
-    ? `ランク${d.jobRank} ・ 魂Lv${pe.level} ・ ${jobRankName(pe.clsKey, d.jobRank)}の魂`
+    ? `ランク${d.jobRank} ・ 魂Lv${pe.level} ・ ${soulSeriesName(pe.clsKey)}の魂`
     : "メイン魂が宿っていない"));
   sum.appendChild(el("div", "tw-sumst",
     `HP${d.maxhp} MP${d.maxmp} ATK${d.atk} VIT${d.vit} AGI${d.agi} INT${d.int} PIE${d.pie} LUK${d.luk}`));
@@ -3606,7 +3627,7 @@ function renderAltar() {
       orb.style.color = SOUL_CLASSES[inst.clsKey].glow;
       orb.appendChild(spriteCanvas(jobSprite(inst.clsKey, Math.max(1, rank)), 3));
       slot.appendChild(orb);
-      // キャラアイコン下の職業名 = 宿している魂と同じ称号 (見習い戦士 など)
+      // キャラアイコン下の職業名 = 魂のランクに応じた称号 (見習い戦士 → 戦士 など)
       slot.appendChild(el("div", "tw-parts2", jobRankName(inst.clsKey, rank)));
       if (isSub) {
         const skName = subRef && subRef.skill && SPELLS[subRef.skill] ? SPELLS[subRef.skill].name : "技を選ぶ";
@@ -3632,7 +3653,7 @@ function renderAltar() {
   if (selSoul) {
     const cap = soulLevelCap(selSoul.clsKey, selSoul.count);
     const rank = soulRankOf(selSoul);
-    townEl.appendChild(el("div", "tw-h", `魂を強化（${jobRankName(selSoul.clsKey, rank)}の魂）`));
+    townEl.appendChild(el("div", "tw-h", `魂を強化（${soulSeriesName(selSoul.clsKey)}の魂）`));
     const tb = el("div", "tw-trainbox");
     if (selSoul.level >= cap) {
       const nx = nextRankThreshold(selSoul.clsKey, selSoul.count);
@@ -3671,7 +3692,7 @@ function renderAltar() {
     const o = el("span", "tw-chips"); o.style.color = cls.glow; o.appendChild(spriteCanvas(jobSprite(s.clsKey, Math.max(1, rank)), 2));
     r.appendChild(o);
     const info = el("div", "tw-chipi");
-    const nm = el("div", "tw-souln", `${jobRankName(s.clsKey, rank)}の魂${tag}`);
+    const nm = el("div", "tw-souln", `${soulSeriesName(s.clsKey)}の魂${tag}`);
     nm.style.color = cls.glow;
     info.appendChild(nm);
     const nx = nextRankThreshold(s.clsKey, s.count);
@@ -3773,7 +3794,7 @@ function openSubSkillPicker(d, subRef) {
     fn: () => { subRef.skill = sk; recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp); SFX.select(); renderTown(); },
   }));
   opts.push({ label: "やめる", fn: () => {} });
-  showChoice(`${jobRankName(s.clsKey, soulRankOf(s))}の魂 — 使うスキルを選ぶ`, opts,
+  showChoice(`${soulSeriesName(s.clsKey)}の魂 — 使うスキルを選ぶ`, opts,
     jobSprite(s.clsKey, Math.max(1, soulRankOf(s))),
     { banner: "✦ サブ魂のスキル ✦", accent: SOUL_CLASSES[s.clsKey].glow });
 }
@@ -3789,11 +3810,11 @@ function openFusePicker(targetUid) {
   const cands = fuseCandidates(targetUid).sort(soulSortCmp);
   if (!cands.length) { log("吸収できる同職の魂がない。", "sys"); SFX.ng(); return; }
   const opts = cands.map((c) => ({
-    label: `${jobRankName(c.clsKey, soulRankOf(c))}の魂 Lv${c.level}（魂数${c.count}）`,
+    label: `${soulSeriesName(c.clsKey)}の魂 Lv${c.level}（魂数${c.count}）`,
     fn: () => fuseSoul(targetUid, c.uid),
   }));
   opts.push({ label: "やめる", fn: () => {} });
-  showChoice(`${jobRankName(t.clsKey, soulRankOf(t))}の魂に吸収させる魂を選ぶ`, opts,
+  showChoice(`${soulSeriesName(t.clsKey)}の魂に吸収させる魂を選ぶ`, opts,
     jobSprite(t.clsKey, Math.max(1, soulRankOf(t))),
     { banner: "✦ 魂の吸収 ✦", accent: SOUL_CLASSES[t.clsKey].glow, lines: ["吸収した魂は失われ、魂数がランクに加算される。"] });
 }
@@ -3833,7 +3854,7 @@ function trainSoul(uid) {
   recalcAllDolls();
   codexJobSee(e.clsKey, e.count, e.level);
   SFX.levelup(); buzz([0, 30, 40, 30]);
-  log(`${jobRankName(e.clsKey, soulRankOf(e))}の魂が Lv${e.level} に成長した！ (✦${cost})`, "win");
+  log(`${soulSeriesName(e.clsKey)}の魂が Lv${e.level} に成長した！ (✦${cost})`, "win");
   if (wearer && before) notifyNewSkills(wearer, before);
   renderTown();
 }
@@ -4333,8 +4354,8 @@ const TUT_INTRO = [
   "「よくぞ参った、新しき魂繰りよ。…生身のまま、よくぞ辺境まで辿り着いた。」",
   "「だが言うておく。生身で迷宮に入ってはならぬ。深淵は、生きた魂から順に喰らう。」",
   "「ゆえに死者の魂を器に宿した『人業』を遣わすのだ。まずは其の一体を、おのれの手で生み出すがよい。」",
-  "「盗賊の魂をひとつ、そして赤い魂を百、くれてやろう。」",
-  "「人業の館の保管庫へゆけ。赤い魂で器を購い、宿す魂を選び、名を与えよ。」",
+  "「戦士・僧侶・盗賊・魔導士の魂を、そして赤い魂を百、くれてやろう。」",
+  "「人業の館の保管庫へゆけ。赤い魂で器を買い、宿す魂を選び、名を与えよ。」",
   "「それがそなたの最初の勅命である。人業を一体生み出したら、戻って報告せよ。」",
 ];
 const TUT_FINALE = [
@@ -4344,18 +4365,21 @@ const TUT_FINALE = [
   "「これでそなたも一人前。次は、まことの勅命を授けよう。」",
 ];
 
-// 着任の謁見: 盗賊の魂×1 + 赤い魂100 を下賜する (人業は館の保管庫で自分の手で仕立てる)
+// 着任の謁見: 戦士/僧侶/盗賊/魔導士の魂×4 + 赤い魂100 を下賜する (人業は館の保管庫で自分の手で仕立てる)
 function grantTutorialGift() {
   const ms = G.msq;
   if (!ms || ms.granted) return;
   ms.granted = true;
-  // 初期に持つ魂は盗賊ひとつのみ。所持魂 一覧に1体追加する
+  // 初期に持つ魂は戦士・僧侶・盗賊・魔導士の4つ。所持魂 一覧に追加する
+  addSoulInstance("fighter");
+  addSoulInstance("priest");
   addSoulInstance("thief");
+  addSoulInstance("mage");
   G.redSoul += 100;
   codexSweepJobs();
   SFX.itemget(); buzz([0, 30, 60, 30]);
-  log("盗賊の魂 ×1 ・ 🔴100 を拝受した。", "win");
-  showToast("👑 盗賊の魂と赤い魂を拝受した");
+  log("戦士・僧侶・盗賊・魔導士の魂 ×4 ・ 🔴100 を拝受した。", "win");
+  showToast("👑 4つの魂と赤い魂を拝受した");
   autosave(true);
   renderTown();
 }
@@ -4402,7 +4426,7 @@ function renderPalace() {
     if (!ms.granted) {
       townEl.appendChild(el("div", "tw-note", "玉座の老王が、新しき魂繰りの到着を待っている。"));
       const b = btn("👑 謁見する — 着任の挨拶", () =>
-        showStoryScene("勅命 「人業の生成」", TUT_INTRO, "下賜: 盗賊の魂×1 + 🔴100", () => grantTutorialGift()));
+        showStoryScene("勅命 「人業の生成」", TUT_INTRO, "下賜: 戦士・僧侶・盗賊・魔導士の魂 + 🔴100", () => grantTutorialGift()));
       b.className = "btn tw-add tw-msq";
       townEl.appendChild(b);
     } else if (allDolls().filter((d) => !d.isEmpty).length >= 1) {
@@ -4412,7 +4436,7 @@ function renderPalace() {
     } else {
       const box = el("div", "tw-rumor");
       box.appendChild(el("div", "tw-rumors", "勅命 「人業の生成」"));
-      box.appendChild(el("div", "tw-rumort", "人業の館の保管庫で器を購い (🔴30)、盗賊の魂を宿して人業を一体つくれ。"));
+      box.appendChild(el("div", "tw-rumort", "人業の館の保管庫で器を買い (最初の3体は無料)、いずれかの魂を宿して人業を一体つくれ。"));
       box.appendChild(el("div", "tw-note", "人業が立ち上がったら、王宮へ戻り報告せよ。"));
       townEl.appendChild(box);
       const re = btn("👑 勅命を聞き直す", () => showStoryScene("勅命 「人業の生成」", TUT_INTRO, null, null));
@@ -5041,7 +5065,7 @@ setInterval(() => {
 let _adCooldownUntil = 0;
 function renderShrine() {
   townEl.appendChild(townHeader("赤い魂の祠"));
-  townEl.appendChild(el("div", "tw-lead", "赤く脈打つ魂「Red Soul」を授かる祠。空の人業を購い、絶望の淵で加護をもたらす。"));
+  townEl.appendChild(el("div", "tw-lead", "赤く脈打つ魂「Red Soul」を授かる祠。空の人業を買い、絶望の淵で加護をもたらす。"));
 
   const box = el("div", "tw-innbox");
   box.appendChild(el("div", "tw-innc red", `🔴 ${G.redSoul}`));
@@ -5727,7 +5751,7 @@ function renderSoulTab(p) {
   head.style.borderColor = pe ? SOUL_CLASSES[pe.clsKey].color : "#34344a";
   head.appendChild(el("div", "st-soulc", p.cls));
   head.appendChild(el("div", "st-soultt",
-    pe ? `ランク${p.jobRank} ・ 魂Lv${pe.level} ・ ${jobRankName(pe.clsKey, p.jobRank)}の魂` : "メイン魂が宿っていない"));
+    pe ? `ランク${p.jobRank} ・ 魂Lv${pe.level} ・ ${soulSeriesName(pe.clsKey)}の魂` : "メイン魂が宿っていない"));
   if (p.jobKey) {
     head.style.cursor = "pointer";
     head.title = "職業図鑑を表示";
@@ -5760,7 +5784,7 @@ function renderSoulTab(p) {
       info.appendChild(el("div", "st-soulstat", `次のLvまで Soul ${have} / ${need}`));
     }
     const nx = nextRankThreshold(pe.clsKey, pe.count);
-    if (nx) info.appendChild(el("div", "st-soulstat", `ランク${p.jobRank + 1}まで 魂 ${pe.count} / ${nx.next}`));
+    if (nx) info.appendChild(el("div", "st-soulstat", `ランク${p.jobRank + 1}まで 魂 ${pe.count - nx.prev} / ${nx.next - nx.prev}`));
     row.appendChild(info);
     wrap.appendChild(row);
   }
@@ -7015,7 +7039,7 @@ function setupNewGame() {
   G.redSoul = 0;
   G.unlockedDungeons = 0; // 勅命 (第1章) を受けるまで、迷宮の場所は明かされない
   G.shopStock = { ...SHOP_INIT_STOCK };
-  // 第0章「人業の生成」: 王宮で謁見 → 盗賊の魂×1+🔴100を受ける (granted) → 館の保管庫で人業を1体仕立て → 報告
+  // 第0章「人業の生成」: 王宮で謁見 → 戦士・僧侶・盗賊・魔導士の魂×4+🔴100を受ける (granted) → 館の保管庫で人業を1体仕立て → 報告
   G.msq = { n: 0, state: "active", granted: false };
   codexSweepJobs();
   initQuests();

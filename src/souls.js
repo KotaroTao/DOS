@@ -522,18 +522,25 @@ export function ensureSoul(s) {
 export function soulHardCap(s) { return SOUL_RANKS[s.rank] ? SOUL_RANKS[s.rank].cap : 10; }
 
 export function soulName(s) {
-  const ranks = JOB_RANKS[s.clsKey];
-  const rankIdx = Math.max(0, Math.min(4, (s.rank || 1) - 1));
-  const jobName = ranks ? ranks[rankIdx].name : (SOUL_CLASSES[s.clsKey] || {}).label || s.clsKey;
+  // 魂の名称は系列名のみ (ランクごとの称号は廃止)
+  const jobName = (SOUL_CLASSES[s.clsKey] || {}).label || s.clsKey;
   const part = s.part ? `（${PART_LABEL[s.part]}）` : "";
   const fusion = s.fusionBonus ? `+${s.fusionBonus}` : "";
   return `${jobName}の魂${part} Lv${s.level}${fusion}`;
 }
 
+// 職業名 (称号) は融合数で上がるランクに応じて変わる (ランク1=見習い戦士 → ランク2=戦士 …)。
+// ※ 魂そのものの名称は系列名のみ (soulName / soulSeriesName)。称号と魂名は別物。
 export function jobRankName(jobKey, rank) {
   const r = Math.max(1, Math.min(5, rank || 1));
   const rows = JOB_RANKS[jobKey];
   return rows ? rows[r - 1].name : jobKey;
+}
+
+// 魂の系列名 (ランクに依らない。例: "戦士"・"盗賊")
+export function soulSeriesName(jobKey) {
+  const cls = SOUL_CLASSES[jobKey];
+  return cls ? cls.label : jobKey;
 }
 
 function lvlFactor(level) { return 1 + (level - 1) * 0.12; }
@@ -776,6 +783,7 @@ export function recalcDoll(doll) {
   if (clsKey) {
     doll.jobKey = clsKey;
     doll.clsKey = clsKey;
+    // 職業の称号はランクで変わる (見習い戦士 → 戦士 → 剣士 …)
     const ranks = JOB_RANKS[clsKey];
     doll.cls = ranks ? ranks[rank - 1].name : SOUL_CLASSES[clsKey].label;
     doll.jobLv = pe.level;
