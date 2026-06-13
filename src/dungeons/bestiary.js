@@ -844,6 +844,50 @@ const NEW_DEFS = [
   { id: "bs_gatewarden", name: "冥府の門の主", rank: 10, boss: true, race: "specter", element: "dark", artKey: "gatewarden", soulClass: "hexer",
     role: "summoner", summonKey: "bs_wailingdead", ability: "drain", physResist: 0.5, enrage: true,
     desc: "半開きの冥府の門を守り、向こうとこちらの境に座す門の主。叫ぶ亡者を次々と呼び、生者の命を貪る。百の迷宮は病巣ではなく傷口――魂の巡りをせき止めた、この国の業が開けた傷の、最も深い裂け目だ。" },
+  // -- 第19層「竜の巣」 (rank 10・火/竜。最初の魂繰りの眷属) --
+  { id: "bs_broodwyrm", name: "竜の仔", rank: 10, race: "dragon", element: "fire", artKey: "broodwyrm",
+    ability: "breath", swift: true, multistrike: 2, desc: "竜の巣に孵った、まだ若く獰猛な仔竜。小さなブレスで全体を焼き、素早く幾度も噛みつく。群れで生まれ、巣を侵す者に一斉に襲いかかる。" },
+  { id: "bs_dragonkin", name: "竜人", rank: 10, race: "reptile", element: "fire", artKey: "dragonkin",
+    ability: "critical", enrage: true, physResist: 0.4, desc: "竜の血を引く、鱗に覆われた半人半竜の戦士。竜の爪で急所を抉り、傷つけば竜の怒りで猛る。最初の魂繰りに仕える、誇り高き竜の眷属だ。" },
+  { id: "bs_eggguardian", name: "卵の守り手", rank: 10, race: "dragon", element: "fire", artKey: "eggguardian",
+    physResist: 0.5, barrier: 2, enrage: true, desc: "竜の卵を抱いて守る、母性の化身のような竜。卵に近づく者を全力で阻み、その身を盾にする。傷つけられれば、卵を守るために狂ったように荒れ狂う。" },
+  { id: "bs_wyvernlord", name: "飛竜の長", rank: 10, race: "dragon", element: "fire", artKey: "wyvernlord",
+    ability: "breath", swift: true, multistrike: 2, desc: "竜の巣の空を支配する、飛竜たちの長。急降下のブレスで全体を薙ぎ、鉤爪で素早く何度も切り裂く。地を這う者を、空から狩る。" },
+  { id: "bs_dragoncultist", name: "竜を崇める者", rank: 10, race: "humanoid", element: "fire", artKey: "dragoncultist",
+    role: "summoner", summonKey: "bs_broodwyrm", ability: "critical", desc: "竜を神と崇め、巣に仕える狂信者。仔竜を呼び寄せて盾とし、竜の牙を模した短剣で急所を狙う。最初の魂繰りを『竜神』として、いまも祈り続けている。" },
+  { id: "bs_scaledhorror", name: "鱗甲の異形", rank: 10, race: "reptile", element: "fire", artKey: "scaledhorror",
+    ability: "critical", physResist: 0.5, multistrike: 2, desc: "竜の血を浴びて異形に変じた、鱗甲の怪物。重なった鱗が刃を弾き、鉤爪で続けざまに急所を抉る。竜になりそこねた、成れの果てだ。" },
+  { id: "bs_emberdrake", name: "熾火竜", rank: 10, race: "dragon", element: "fire", artKey: "emberdrake",
+    ability: "breath", enrage: true, physResist: 0.4, desc: "体内に熾火を絶やさぬ、赤く輝く竜。燃え盛るブレスで全体を焼き、傷つけば内なる火を燃え上がらせて猛る。冷めることを知らない炎の竜だ。" },
+  { id: "bs_dragonbeast", name: "竜の眷属獣", rank: 10, race: "beast", element: "fire", artKey: "dragonbeast",
+    ability: "critical", swift: true, enrage: true, desc: "竜の巣に飼われ、竜の気性を分け与えられた獣。素早く間合いを詰めて急所を抉り、傷つけば見境なく猛る。竜に従う、忠実な狩りの相棒だ。" },
+  { id: "bs_wingedterror", name: "翼ある恐竜", rank: 10, race: "dragon", element: "fire", artKey: "wingedterror",
+    ability: "critical", multistrike: 2, swift: true, desc: "大きな翼で巣の上空を旋回する、原始的な恐竜。急降下して鉤爪で急所を続けざまに抉り、すぐに舞い上がる。竜の眷属の中でも、特に狡猾な狩人だ。" },
+  { id: "bs_salamanderking", name: "火蜥蜴の王", rank: 10, race: "reptile", element: "fire", artKey: "salamanderking",
+    ability: "breath", regen: 0.08, physResist: 0.4, desc: "巣の溶岩溜まりに棲む、火蜥蜴たちの王。炎のブレスで全体を焼き、溶岩に浸かるたび傷を癒す。竜には及ばずとも、火の眷属を束ねる長だ。" },
+  { id: "bs_dragonpriest", name: "竜神官", rank: 10, race: "specter", element: "fire", artKey: "dragonpriest", soulClass: "hexer",
+    role: "summoner", summonKey: "bs_broodwyrm", ability: "drain", magResist: 0.4, desc: "竜神を崇める儀式を司り、巣で果てた神官の霊。仔竜を呼び覚まし、生者の命を竜への供物として吸い上げる。竜の正体を知ってなお、崇め続けている。" },
+  { id: "bs_hoardgolem", name: "宝物の守護者", rank: 10, race: "construct", element: "fire", artKey: "hoardgolem",
+    physResist: 0.5, barrier: 2, ability: "critical", desc: "竜が集めた宝の山が、黄金の巨像となって動き出したもの。宝を奪う者を黄金の拳で打ち砕き、その身は刃を弾く。竜の眠りの間、宝を守り続ける。" },
+  { id: "bs_drakerider", name: "竜騎兵の亡霊", rank: 10, race: "armored", element: "fire", artKey: "drakerider",
+    ability: "critical", multistrike: 2, physResist: 0.4, desc: "竜を駆って戦い、巣に骨を埋めた竜騎兵の亡霊。竜の牙の槍で急所を続けざまに貫き、竜鱗の鎧が刃を阻む。今も愛竜の背を求めて、巣を彷徨う。" },
+  { id: "bs_ashdrake", name: "灰燼竜", rank: 10, race: "dragon", element: "fire", artKey: "ashdrake",
+    ability: "breath", physResist: 0.5, enrage: true, desc: "焼き尽くした獲物の灰をまとう、燻んだ灰色の竜。灰のブレスで視界を奪って焼き、灰に覆われた鱗が刃を阻む。こいつが通った跡には、灰しか残らない。" },
+  { id: "bs_brimstonewyrm", name: "硫煙の蛇竜", rank: 10, race: "dragon", element: "fire", artKey: "brimstonewyrm",
+    ability: "breath", swift: true, multistrike: 2, desc: "巣の火口に潜む、硫黄の煙を吐く蛇竜。咳き込ませる硫煙のブレスを吐き、素早く幾度も噛みつく。その通り道は、毒の煙で霞んでいる。" },
+  { id: "bs_dragonwhelp", name: "竜の幼体群", rank: 10, race: "dragon", element: "fire", artKey: "dragonwhelp",
+    pack: true, ability: "critical", multistrike: 2, swift: true, desc: "孵ったばかりの竜の幼体が、群れをなして這い回る。小さくとも竜の牙は鋭く、群れで一斉に急所へ喰らいつく。巣の床は、こいつらで埋め尽くされている。" },
+  { id: "bs_moltendrake", name: "溶岩竜", rank: 10, race: "dragon", element: "fire", artKey: "moltendrake",
+    ability: "breath", physResist: 0.5, lifesteal: 0.3, desc: "溶けた岩を体内に滾らせる、巣の最も深部に棲む竜。溶岩のブレスで全体を焼き、焼いた命を糧として取り込む。冷えた外皮の下で、常に溶岩が脈打っている。" },
+  { id: "bs_flameserpentkin", name: "炎蛇の眷属", rank: 10, race: "reptile", element: "fire", artKey: "flameserpentkin",
+    ability: "critical", swift: true, multistrike: 2, desc: "竜の眷属として巣を守る、炎をまとう大蛇。素早く巻きついて急所を続けざまに噛み、灼けた鱗が触れた者を焼く。竜の足元を、滑るように這い回る。" },
+  { id: "bs_drakehound", name: "竜の猟犬", rank: 10, race: "beast", element: "fire", artKey: "drakehound",
+    ability: "critical", swift: true, pack: true, desc: "竜が狩りに使う、鱗に覆われた炎の猟犬の群れ。素早く取り囲んで急所に喰らいつき、その牙は赤熱している。巣を侵す者の匂いを、決して見失わない。" },
+  { id: "bs_basilisk", name: "石化竜", rank: 10, race: "reptile", element: "fire", artKey: "basilisk",
+    ability: "stone", physResist: 0.4, multistrike: 2, desc: "竜の巣に潜む、見た者を石に変える邪眼の竜。その視線を浴びれば全身が硬直し、続けざまの牙が石像ごと砕く。巣のあちこちに、石化した獲物が転がっている。" },
+  { id: "bs_elderdragon", name: "竜の巣の主", rank: 10, boss: true, race: "dragon", element: "fire", artKey: "elderdragon", soulClass: "fighter",
+    role: "summoner", summonKey: "bs_broodwyrm", ability: "breath", physResist: 0.6, enrage: true,
+    desc: "竜の巣を統べ、最奥の玄室への道を守る古き大竜。仔竜を次々と呼び、すべてを焼き尽くす業炎のブレスを吐く。最初の魂繰りの眷属にして、その孤独な末路を最も近くで見てきた、最後の門番だ。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1787,6 +1831,7 @@ export const BOSS_ORDER = {
 // 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
 // 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
 const LAYER_BOSS_OVERRIDE = {
+  19: "bs_elderdragon", // 第19層「竜の巣」: 竜の巣の主 (rank10・火ボス)
   18: "bs_gatewarden", // 第18層「冥府の門」: 冥府の門の主 (rank10・闇ボス)
   17: "bs_frostmonarch", // 第17層「凍てつく王墓」: 凍てつく王墓の主 (rank10・水ボス)
   16: "bs_highpontiff", // 第16層「深淵の聖堂」: 深淵の聖堂の主 (rank10・光ボス)
@@ -1978,6 +2023,14 @@ export const LAYER_POOLS = {
     "bs_echoofvoice",
     // 既存の虚無/終末系を再配置
     "bs_apocalypsedrake", "bs_abysswarden", "bs_eternallord", "bs_chaosknight",
+  ],
+  // 第19層「竜の巣」: 火/竜中心、全rank10。全て新規
+  19: [
+    "bs_broodwyrm", "bs_dragonkin", "bs_eggguardian", "bs_wyvernlord", "bs_dragoncultist",
+    "bs_scaledhorror", "bs_emberdrake", "bs_dragonbeast", "bs_wingedterror", "bs_salamanderking",
+    "bs_dragonpriest", "bs_hoardgolem", "bs_drakerider", "bs_ashdrake", "bs_brimstonewyrm",
+    "bs_dragonwhelp", "bs_moltendrake", "bs_flameserpentkin", "bs_drakehound",
+    "bs_basilisk",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
