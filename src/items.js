@@ -2,9 +2,9 @@
 // 大量の一点物は src/catalog/ で定義され、game.js が ITEMS に統合する。
 // 各アイテムは art(12x12) + 共有パレット P で描く。説明文・性能・職業制限つき。
 //
-// slot: head | weapon | shield | body | feet | acc | use | misc | mat
+// slot: head | weapon | shield | body | feet | acc | use | misc
 //   weapon→右手, shield→左手, head/body/feet, acc→アクセサリ枠(2), use→消耗品
-//   misc→その他(換金品・戦利品。装備/使用不可), mat→貴重品(イベント品。装備/使用不可)
+//   misc→蒐集品(戦利品。装備/使用不可。売却するか王宮の宝物庫に奉納する)
 // twoHanded: 両手武器 (左手をふさぐ)
 // classes: 装備可能な職業キー配列 (null=全職)
 // cursed: 呪い (一度装備すると外せない)
@@ -30,8 +30,7 @@ export const ITEM_CATS = [
   { key: "hands", label: "小手", slots: ["hands"] },
   { key: "feet", label: "足", slots: ["feet"] },
   { key: "acc", label: "装飾", slots: ["acc"] },
-  { key: "misc", label: "その他", slots: ["misc"] },
-  { key: "mat", label: "貴重品", slots: ["mat"] },
+  { key: "misc", label: "蒐集品", slots: ["misc"] },
 ];
 // 武器サブカテゴリ (図鑑の武器タブをさらに分ける)
 export const WEAPON_CATS = [
@@ -70,7 +69,7 @@ export function weaponRange(item) {
 // ===== 鑑定システム (ウィザードリィ風) =====
 // ダンジョンで拾った装備は「未鑑定 (unidentified)」状態で手に入り、伏せ名で表示され
 // 鑑定するまで装備できない。鑑定は商店 (有料・確実) か一部職業のスキルで行う。
-// 消耗品・戦利品・貴重品 (use/misc/mat) は鑑定済みで出るため対象外。
+// 消耗品・蒐集品 (use/misc) は鑑定済みで出るため対象外。
 export const UNIDENT_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
 // 武器はサブカテゴリごとに伏せ名を変える (剣・斧・杖… の見当はつく、というていの表記)
 const UNIDENT_WEAPON = { ls: "けん？", dg: "ナイフ？", kt: "かたな？", ax: "おの？", mc: "つち？", sp: "やり？", bw: "ゆみ？", st: "つえ？" };
@@ -739,25 +738,6 @@ export const ITEMS = {
       ".kbccccbk...",
       "..kbbbbk....",
       "...kkkk.....",
-      "............",
-    ]),
-  },
-  // 魂合成に使うレア素材 (slot:"mat" = 貴重品。装備も使用もできない)
-  emptySoul: {
-    id: "emptySoul", name: "空の魂", slot: "mat", lv: 1, price: 0, classes: null,
-    desc: "何者の記憶も宿していない、空の器。覗き込むと、底のない静寂がこちらを見つめ返してくる。魂合成の核になる希少品。",
-    ...sprite([
-      "....cccc....",
-      "..cc.pp.cc..",
-      ".c..pwwp..c.",
-      "c..pw..wp..c",
-      "c.pw....wp.c",
-      "c.pw....wp.c",
-      "c..pw..wp..c",
-      "c...pwwp...c",
-      ".c...pp...c.",
-      "..cc....cc..",
-      "....cccc....",
       "............",
     ]),
   },
