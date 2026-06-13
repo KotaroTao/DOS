@@ -39,8 +39,7 @@ for (const id in LEGACY) {
 // ステータスは defMonsters 通過後に monStats で与える (下の一括処理)
 const NEW_DEFS = [
   // -- rank 1 --
-  { id: "bs_goblin", name: "ゴブリン", rank: 1, race: "humanoid", element: "none", artKey: "kobold", soulClass: "thief",
-    palette: tint(ARTS.kobold.palette, "#4a8a3a", 0.35),
+  { id: "bs_goblin", name: "ゴブリン", rank: 1, race: "humanoid", element: "none", artKey: "goblin", soulClass: "thief",
     ability: "goldSteal", swift: true, // 素早い身のこなしで懐を狙う
     desc: "迷宮の浅瀬に巣食う緑肌の小鬼。賢くはないが、罠の在処と人の急所、そして財布の場所だけはよく憶えている。すばしこく間合いに飛び込み、金品をかすめ取って逃げる。" },
   { id: "bs_slimeking", name: "ジャイアントスライム", rank: 1, boss: true, race: "amorph", element: "water", artKey: "slime",
@@ -146,20 +145,17 @@ const NEW_DEFS = [
     desc: "百層の迷宮、そのすべての闇が流れ着く玉座に座す者。迷宮で果てた魂はみな、この王の冠の飾りになるという。" },
   // ---- 各ランクの新規通常モンスター (各ランク10体確保のための追加分) ----
   // -- rank 1 追加 (+4) --
-  { id: "bs_mudbeetle", name: "泥甲虫", rank: 1, race: "insect", element: "earth", artKey: "spider",
-    palette: tint(ARTS.spider.palette, "#6a4a2a", 0.4),
+  { id: "bs_mudbeetle", name: "泥甲虫", rank: 1, race: "insect", element: "earth", artKey: "beetle",
     physResist: 0.6, ability: "poison", // 鎧のような甲羅 (物理耐性) + 毒液
     desc: "湿った地下の通路を這い回る硬殻の甲虫。踏みつけても鎧のような甲羅が足を跳ね返し、刃もろくに通らない。隙を見て指の隙間から毒液を染み込ませてくる。" },
-  { id: "bs_drainrat", name: "溝鼠", rank: 1, race: "beast", element: "none", artKey: "kobold",
-    palette: tint(ARTS.kobold.palette, "#7a6a5a", 0.4),
+  { id: "bs_drainrat", name: "溝鼠", rank: 1, race: "beast", element: "none", artKey: "rat",
     swift: true, pack: true, // 素早い群れ
     desc: "下水と骸の悪臭に慣れきった大鼠。小賢しく群れをなして素早く駆け回り、眠った者の耳や指から順にかじり始める。" },
   { id: "bs_shroomspirit", name: "毒キノコの魔", rank: 1, race: "plant", element: "earth", artKey: "mandrake",
     palette: tint(ARTS.mandrake.palette, "#9a3a7a", 0.4),
     ability: "poison", regen: 0.06, // 毒胞子 + 菌糸の再生
     desc: "地下墓地の湿気を糧に育った毒キノコの化身。胞子を吸った者は幻を見ながら眠り続ける。傘を裂いても菌糸からみるみる再生し、なかなか枯れない。" },
-  { id: "bs_bonebat", name: "骸蝙蝠", rank: 1, race: "undead", element: "dark", artKey: "bat",
-    palette: tint(ARTS.bat.palette, "#c8c8c8", 0.5),
+  { id: "bs_bonebat", name: "骸蝙蝠", rank: 1, race: "undead", element: "dark", artKey: "bonebat",
     magWeak: 1.6, evasive: true, // 脆い骨 (魔法弱点) + 不規則な飛行 (回避)
     desc: "死した蝙蝠の骨が呪いで再び飛び回る亡者。不規則にひらめいて刃をかわすが、脆い骨は魔法の一撃で容易く砕け散る。羽ばたくたびに散る骨粉が、吸い込んだ者の肺を内から蝕む。" },
   // -- rank 2 追加 (+5) --
