@@ -3376,13 +3376,13 @@ function renderMansionManage() {
   townEl.appendChild(el("div", "tw-note",
     "宿す魂をひとつ選んで器を買い、名を与えると人業が生まれる。"));
   townEl.appendChild(el("div", "tw-note",
-    `費用: 最初の3体まで無料 / 4体目 🔴50 / 5体目以降 🔴100　（所持上限 100体）`));
+    `費用: 最初の3体まで無料 / 4体目 🔴30 / 5体目 🔴50 / 6体目以降 🔴100　（所持上限 100体）`));
 }
 
-// 人業を仕立てる費用 (最初の3体は無料、4体目以降に上昇)
+// 人業を仕立てる費用 (最初の3体は無料、4体目以降に段階上昇)
 function emptyDollCost() {
   const n = G.dollsPurchased;
-  return n < 3 ? 0 : n === 3 ? 50 : 100;
+  return n < 3 ? 0 : n === 3 ? 30 : n === 4 ? 50 : 100;
 }
 
 // 所持魂の並び順: 職業順 → ランク昇順 → Lv降順
