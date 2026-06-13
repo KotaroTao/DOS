@@ -83,10 +83,11 @@ export function unidentName(it) {
 // 表示名: 未鑑定なら伏せ名、鑑定済みなら本来の名前
 export function itemName(it) { return it && it.unidentified ? unidentName(it) : (it ? it.name : ""); }
 
-// 隠しレベル → 表示ランク (図鑑の枠色・発見演出に使う)
-// lv は 1-200 (全100迷宮の lootLv 帯に対応)。R6 は最深部の神話級のみ。
+// 隠しレベル → 表示ランク R1-R20 (図鑑の枠色・発見演出に使う)
+// lv は 1-200 (全100迷宮の lootLv 帯に対応)。10lv ごとに 1 ランク上がり、
+// 1ランクの差で性能が明確に伸びる (R1=lv1-10 … R20=lv191-200)。
 export function lvToRank(lv) {
-  return lv < 20 ? 1 : lv < 45 ? 2 : lv < 80 ? 3 : lv < 120 ? 4 : lv < 165 ? 5 : 6;
+  return Math.min(20, Math.max(1, Math.ceil((lv || 1) / 10)));
 }
 
 // slot種別 → 装備キー

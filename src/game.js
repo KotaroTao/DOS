@@ -9,7 +9,7 @@ import {
   ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, lvToRank, weaponRange, RANGE_LABEL,
   UNIDENT_SLOTS, itemName,
 } from "./items.js";
-import { RANK_NAME, RANK_COLOR } from "./content.js";
+import { RANK_NAME, RANK_COLOR, ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { dungeonSubQuests } from "./subquests.js";
 import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
 import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
@@ -5234,7 +5234,7 @@ function renderCodexItem() {
   for (const id of ids) {
     const it = ITEMS[id];
     const r = el("div", "tw-shoprow");
-    if (it.rank) r.style.borderColor = RANK_COLOR[it.rank];
+    if (it.rank) r.style.borderColor = ITEM_RANK_COLOR[it.rank];
     const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
     const info = el("div", "tw-chipi");
     info.appendChild(el("div", "tw-chipn", it.name));
@@ -5254,9 +5254,9 @@ function showCodexItemDetail(id) {
   if (!it) return;
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card cdx-detail");
-  const rc = it.rank ? RANK_COLOR[it.rank] : null;
+  const rc = it.rank ? ITEM_RANK_COLOR[it.rank] : null;
   if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
-  const ban = el("div", "ig-banner", it.rank ? `${RANK_NAME[it.rank]}級アイテム` : "アイテム");
+  const ban = el("div", "ig-banner", it.rank ? `${ITEM_RANK_NAME[it.rank]}級アイテム` : "アイテム");
   if (rc) ban.style.color = rc;
   card.appendChild(ban);
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 11)); card.appendChild(art);
@@ -5775,7 +5775,7 @@ function renderShop() {
     // 選択中キャラが装備できる品は色を変えて目立たせる
     const canEq = isEquippable(it) && who && who.alive && canEquip(who, it);
     const r = el("div", "tw-shoprow" + (canEq ? " equip-ok" : ""));
-    if (it.rank) r.style.borderColor = RANK_COLOR[it.rank];
+    if (it.rank) r.style.borderColor = ITEM_RANK_COLOR[it.rank];
     const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
     const info = el("div", "tw-chipi");
     const nm = el("div", "tw-chipn", `${it.name} 在庫 : ${count}`);
@@ -5883,9 +5883,9 @@ function showShopItemDetail(id, price) {
   const who = G.party[shopMember] || null;
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card cdx-detail");
-  const rc = it.rank ? RANK_COLOR[it.rank] : null;
+  const rc = it.rank ? ITEM_RANK_COLOR[it.rank] : null;
   if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
-  const ban = el("div", "ig-banner", it.rank ? `${RANK_NAME[it.rank]}級アイテム` : "アイテム");
+  const ban = el("div", "ig-banner", it.rank ? `${ITEM_RANK_NAME[it.rank]}級アイテム` : "アイテム");
   if (rc) ban.style.color = rc;
   card.appendChild(ban);
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 11)); card.appendChild(art);
@@ -6716,9 +6716,9 @@ function showItemDetailPopup(p, sel) {
   const it = sel.item;
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card cdx-detail");
-  const rc = it.rank ? RANK_COLOR[it.rank] : null;
+  const rc = it.rank ? ITEM_RANK_COLOR[it.rank] : null;
   if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
-  const ban = el("div", "ig-banner", it.rank ? `${RANK_NAME[it.rank]}級アイテム` : "情報");
+  const ban = el("div", "ig-banner", it.rank ? `${ITEM_RANK_NAME[it.rank]}級アイテム` : "情報");
   if (rc) ban.style.color = rc;
   card.appendChild(ban);
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 11)); card.appendChild(art);
@@ -7096,10 +7096,10 @@ function showItemGet(item, who, onClose) {
   itemGetEl.onclick = null;
   itemGetEl.innerHTML = "";
   const card = el("div", "ig-card");
-  const rc = item.rank ? RANK_COLOR[item.rank] : null;
+  const rc = item.rank ? ITEM_RANK_COLOR[item.rank] : null;
   if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
   const unid = !!item.unidentified;
-  const ban = el("div", "ig-banner", unid ? "✦ 未鑑定の品を発見！ ✦" : (item.rank >= 4 ? `★ ${RANK_NAME[item.rank]}級アイテム発見！ ★` : "✦ アイテム発見！ ✦"));
+  const ban = el("div", "ig-banner", unid ? "✦ 未鑑定の品を発見！ ✦" : (item.rank >= 11 ? `★ ${ITEM_RANK_NAME[item.rank]}級アイテム発見！ ★` : "✦ アイテム発見！ ✦"));
   if (rc && !unid) ban.style.color = rc;
   card.appendChild(ban);
   const art = el("div", "ig-art");
