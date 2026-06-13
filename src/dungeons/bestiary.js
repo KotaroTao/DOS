@@ -1569,6 +1569,65 @@ const NEW_DEFS = [
     ability: "breath", physResist: 0.5, // 黄昏を呼ぶ吐息で全体を染め、夕陽色の鱗は刃を弾く
     desc: "終焉の黄昏の間に座し、世界の日没を待ち続ける竜。沈む直前の太陽の色をした鱗は刃を弾き、翼を広げれば部屋の灯りがすべて夕暮れになり、吐く息は前衛後衛もろとも黄昏へ沈める。" },
 
+  // ==== 第20層 「終焉の玄室」(D96-100 / dark) ====
+  // 最初の魂繰りが眠る最果ての玄室。魂を器に縫い付けた「織り手」の遺物と、
+  // 世界そのものを縛る鎖、そして器に堕ちた先人たちが立ちはだかる。
+  { id: "bs_cagekeeper", name: "檻の番人", rank: 10, race: "construct", element: "dark", artKey: "cagekeeper",
+    ability: "stone", physResist: 0.45, endure: true, // 鉄檻の腕で挑戦者を捕らえ石へ変える / 砕けても踏み止まる
+    desc: "玄室の入口を最初に守る、鉄檻を組み合わせた歪な番人。捕らえた魂を檻の中で石へ変え、自らの体に継ぎ足してきた。砕いても砕いても一拍は立ち止まり、最後の意地で腕を振り下ろす。" },
+  { id: "bs_souldragon", name: "魂喰らいの竜", rank: 10, race: "dragon", element: "dark", artKey: "souldragon",
+    ability: "breath", lifesteal: 0.3, // 魂ごと喰らう吐息で全体を焼き、奪った魂で自らを癒やす
+    desc: "数多の魂を喰らって肥え太った漆黒の竜。その吐息は肉ではなく魂を直接焼き、焼いた魂をそのまま啜って傷を塞ぐ。腹の中で今も挑戦者たちが叫び続けている。" },
+  { id: "bs_firstdoll", name: "最初の人形", rank: 10, race: "construct", element: "dark", artKey: "firstdoll",
+    ability: "drain", magResist: 0.4, regen: 0.05, // 最初に魂を宿された器 / 魔法をいなし傷を繕う
+    desc: "最初の魂繰りが初めて魂を縫い付けた器。完成と呼ぶには歪で、棄てられてなお主を慕い続ける。近づく者から生気を吸い、自らの綻びをひとりでに繕いながら、いつまでも主の帰りを待っている。" },
+  { id: "bs_weaversregret", name: "織り手の悔悟", rank: 10, race: "specter", element: "dark", artKey: "weaversregret",
+    ability: "weaken", magWeak: 1.3, evasive: true, // 悔いの霧で力を奪う / 実体が薄く刃をすり抜ける
+    desc: "魂を縫い付けた指先に宿った、織り手自身の悔いが形を成した霊。触れた者から力を奪い、自らの罪の重さを分け与える。実体は霧のように薄く刃をすり抜けるが、火の魔法には脆い。" },
+  { id: "bs_voidserpent", name: "虚無の蛇", rank: 10, race: "dragon", element: "dark", artKey: "voidserpent",
+    ability: "poison", swift: true, multistrike: true, // 虚無の毒牙で何度も噛みつく俊敏な蛇
+    desc: "玄室の闇そのものが細く長く伸びて蛇となったもの。素早く床を這い、虚無の毒を滴らせる牙で立て続けに噛みつく。咬まれた傷からは、世界の色が少しずつ抜け落ちていく。" },
+  { id: "bs_memorywraith", name: "記憶の亡霊", rank: 10, race: "specter", element: "dark", artKey: "memorywraith",
+    ability: "soulSteal", evasive: true, // 奪った記憶=魂を糧にする / 掴みどころのない影
+    desc: "玄室に堕ちた者たちの忘れられた記憶が寄り集まった亡霊。誰のものとも知れぬ顔を次々に浮かべ、近づく者の魂を記憶ごと啜り取る。倒した相手の顔で、また新しい記憶を語り始める。" },
+  { id: "bs_chainoftheworld", name: "世界の鎖", rank: 10, race: "construct", element: "dark", artKey: "chainoftheworld",
+    ability: "paralyze", physResist: 0.5, barrier: true, // 世界を縛る鎖で動きを封じる / 守りが極めて堅い
+    desc: "最初の魂繰りが世界を繋ぎ止めるために鋳た、終わらない鎖。打ち込まれた者の四肢を縛って動きを奪い、自らは魔の膜に守られて微動だにしない。この鎖が解ければ、世界もまた解ける。" },
+  { id: "bs_lastguardian", name: "最後の守護者", rank: 10, race: "construct", element: "dark", artKey: "lastguardian",
+    ability: "critical", physResist: 0.55, endure: true, // 最後の一撃に全てを賭ける / 砕けても倒れない
+    desc: "玄室の最奥をただ一体で守り続ける、最も古い守護者。幾千の挑戦者を退けた装甲は刃を通さず、致命の一撃を狙って腕を振り上げる。砕けても膝をつかず、命令が消えるその時まで立ち続ける。" },
+  { id: "bs_abyssalbeast", name: "深淵の獣", rank: 10, race: "beast", element: "dark", artKey: "abyssalbeast",
+    ability: "drain", enrage: true, swift: true, // 傷つくほど猛る深淵の捕食者
+    desc: "玄室の底に巣食う、目を持たぬ深淵の獣。闇の中で気配だけを頼りに襲いかかり、生気を貪る。手負いになるほど咆哮を上げて速さを増し、最期の瞬間が最も危うい。" },
+  { id: "bs_soulstorm", name: "魂の嵐", rank: 10, race: "specter", element: "dark", artKey: "soulstorm",
+    ability: "breath", magResist: 0.45, swift: true, // 無数の魂が渦巻く嵐 / 魔法が効きにくい
+    desc: "解き放たれた無数の魂が渦を巻いて荒れ狂う嵐。中心に飲まれた者は前衛後衛の別なく引き裂かれる。一つひとつは弱い魂の集合ゆえ、魔法の一撃では中心まで届かない。" },
+  { id: "bs_fallenweaver", name: "堕ちた織り手", rank: 10, race: "humanoid", element: "dark", artKey: "fallenweaver",
+    role: "summoner", summonKey: "bs_firstdoll", ability: "soulSteal", soulClass: "necromancer", // 器を呼び寄せ、奪った魂を縫い込む
+    desc: "かつて最初の魂繰りに師事し、禁を破って自らに魂を縫い込んだ織り手の成れの果て。指を振れば棄てられた器が這い出してきて主を守り、奪った魂をその場で新たな器に縫い付ける。" },
+  { id: "bs_dragonshade", name: "竜の影", rank: 10, race: "dragon", element: "dark", artKey: "dragonshade",
+    ability: "weaken", evasive: true, physResist: 0.35, // 実体なき竜の影 / 力を削ぎ刃をかわす
+    desc: "玄室の壁に焼き付いた、ありし日の番竜の影。実体はとうに失せたが、影だけが今も挑戦者を狙って這い回る。触れられた者は力が抜け落ち、影は刃をするりとかわして壁へ逃げ込む。" },
+  { id: "bs_eternalflame", name: "永遠の焔", rank: 10, race: "elemental", element: "dark", artKey: "eternalflame",
+    ability: "breath", regen: 0.08, magWeak: 1.25, // 消えぬ焔 / 燃え続け再生するが魔法に弱い
+    desc: "最初の魂繰りが己の魂を薪にして灯した、決して消えぬ漆黒の焔。燃やされた魂を糧に際限なく再生し、触れる者すべてを焔へ変える。だが魂を束ねる芯は脆く、強い魔法には抗えない。" },
+  { id: "bs_nullsentinel", name: "虚無の歩哨", rank: 10, race: "construct", element: "dark", artKey: "nullsentinel",
+    ability: "stone", barrier: true, magResist: 0.5, // 虚無を纏う歩哨 / 魔の膜で魔法を弾く
+    desc: "感情も意志も抜き取られ、虚無だけを詰め込まれた器の歩哨。見据えられた者は石へと固まっていく。全身を覆う虚無の膜が魔法を飲み込むため、力ずくで膜ごと砕くほかない。" },
+  { id: "bs_shadowofthefirst", name: "最初の影", rank: 10, race: "specter", element: "dark", artKey: "shadowofthefirst",
+    ability: "drain", evasive: true, lifesteal: 0.25, // 最初の魂繰りの影法師 / 生気を奪い己を保つ
+    desc: "最初の魂繰りが落とした、もう一つの自分。主が眠りについてもなお玄室を彷徨い、近づく者の生気を奪っては自らの輪郭を保っている。掴もうとすれば手の中で霧散し、背後から忍び寄ってくる。" },
+  { id: "bs_worldwyrm", name: "世界蛇", rank: 10, race: "dragon", element: "dark", artKey: "worldwyrm",
+    ability: "breath", endure: true, physResist: 0.4, // 世界を巻く大蛇 / 倒れても一度耐える
+    desc: "玄室の壁を幾重にも巡り、世界そのものを腹に巻き込んだとされる大蛇。とぐろの一巻きで部屋ごと締め上げ、毒気の吐息で前衛後衛を等しく蝕む。致命の一撃すら、世界を解くまいと一度は耐える。" },
+  { id: "bs_despairwraith", name: "絶望の亡霊", rank: 10, race: "specter", element: "dark", artKey: "despairwraith",
+    ability: "weaken", pack: true, magWeak: 1.3, // 群れで現れ希望を削ぐ / 数は多いが魔法に脆い
+    desc: "玄室で力尽きた者たちの、最後に抱いた絶望が形を成した亡霊の群れ。三体四体と連なって押し寄せ、触れた者から戦う意志を削ぎ落とす。一体ずつは儚く、範囲魔法でまとめて祓える。" },
+  { id: "bs_firstweaver", name: "最初の魂繰り", rank: 10, boss: true, race: "dragon", element: "dark", artKey: "firstweaver",
+    ability: "breath", role: "summoner", summonKey: "bs_firstdoll", regen: 0.05, physResist: 0.4, barrier: true,
+    // 最果ての主 / 器を呼び、魂の吐息で全体を灼き、魔の膜と再生で容易には堕ちない
+    desc: "竜の姿を借りた、世界で最初に魂を器へ縫い付けた者。あらゆる魂繰りの祖にして、棄てた器たちの父。指を振れば最初の人形が這い出して主を守り、吐く息は魂そのものを灼き尽くす。魔の膜と尽きぬ再生に守られたその懐に辿り着けるのは、第十九層までを越えてなお折れぬ魂だけだ。" },
+
   // ---- 役割持ちモンスター (role: healer/guard/summoner) ----
   // 取り巻き (escort) を連れて現れる。回復役・呼び手は後衛に立つため、
   // 長射程の武器や呪文で先に仕留めるか、護り手を崩す「処理順」が問われる。
@@ -1831,6 +1890,7 @@ export const BOSS_ORDER = {
 // 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
 // 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
 const LAYER_BOSS_OVERRIDE = {
+  20: "bs_firstweaver", // 第20層「終焉の玄室」: 最初の魂繰り (rank10・闇ボス・最終)
   19: "bs_elderdragon", // 第19層「竜の巣」: 竜の巣の主 (rank10・火ボス)
   18: "bs_gatewarden", // 第18層「冥府の門」: 冥府の門の主 (rank10・闇ボス)
   17: "bs_frostmonarch", // 第17層「凍てつく王墓」: 凍てつく王墓の主 (rank10・水ボス)
@@ -1862,6 +1922,16 @@ export const LAYER_BOSS = Array.from({ length: 20 }, (_, i) => {
 // 定義済みの層は generator がここから抽選し、未定義の層は暫定のランクプールにフォールバックする。
 // 各層は固有アートのモンスターで構成し、最低20種を目標に層ごとのPRで充実させる。
 export const LAYER_POOLS = {
+  // 第20層「終焉の玄室」: 最果ての闇。器・鎖・堕ちた織り手と、闇竜系を再配置 (全20種)
+  20: [
+    // 新規 (固有アート・17体)
+    "bs_cagekeeper", "bs_souldragon", "bs_firstdoll", "bs_weaversregret", "bs_voidserpent",
+    "bs_memorywraith", "bs_chainoftheworld", "bs_lastguardian", "bs_abyssalbeast", "bs_soulstorm",
+    "bs_fallenweaver", "bs_dragonshade", "bs_eternalflame", "bs_nullsentinel", "bs_shadowofthefirst",
+    "bs_worldwyrm", "bs_despairwraith",
+    // 既存の闇/虚無系を第20層へ再配置 (3体)
+    "bs_voiddragon", "bs_voidcolossus", "bs_godslayer",
+  ],
   // 第1層「墓地」: アンデッド/亡霊中心。新スキル (weaken 等) と既存の墓地系を再配置
   1: [
     // 新規 (固有アート・12体)
