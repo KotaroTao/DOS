@@ -398,7 +398,7 @@ const LAYER_VISUALS = [
   { name: "沈没神殿",   sym: "⛪", accent: "#6fb0c8", bgm: "layer6", back: drawBackTemple, floorBase: "#0d1316", floorTiles: ["#121c20", "#0f171b", "#0c1215"], glow: "rgba(120,200,225,0.06)" }, // 6
   { name: "灼熱の洞",   sym: "▲", accent: "#d4682e", bgm: "layer7", back: drawBackLava, floorBase: "#190f0a", floorTiles: ["#22130c", "#1c0f0a", "#160c07"], glow: "rgba(255,130,50,0.07)" },  // 7
   { name: "氷結回廊",   sym: "❄", accent: "#9fd0e6", bgm: "layer8", back: drawBackIce, floorBase: "#0e1417", floorTiles: ["#152027", "#111a20", "#0d1418"], glow: "rgba(170,220,245,0.06)" }, // 8
-  { name: "毒沼",       sym: "⚗", accent: "#a7b84a", bgm: "fieldSulfur",floorBase: "#12140d", floorTiles: ["#1a1c11", "#16180d", "#12140a"], glow: "rgba(170,195,75,0.06)" },  // 9
+  { name: "毒沼",       sym: "⚗", accent: "#a7b84a", bgm: "layer9", back: drawBackSwamp, floorBase: "#12140d", floorTiles: ["#1a1c11", "#16180d", "#12140a"], glow: "rgba(170,195,75,0.06)" },  // 9
   { name: "嵐の尖塔",   sym: "⚡", accent: "#b6a4e0", bgm: "field8",     floorBase: "#10101a", floorTiles: ["#181826", "#14141f", "#101019"], glow: "rgba(180,160,235,0.06)" }, // 10
   { name: "闘技場跡",   sym: "✶", accent: "#c9a05a", bgm: "field3",     floorBase: "#16130d", floorTiles: ["#1f1a11", "#1a160d", "#15110a"], glow: "rgba(225,180,90,0.05)" },  // 11
   { name: "地底大空洞", sym: "◆", accent: "#8a7a5a", bgm: "field10",    floorBase: "#13110d", floorTiles: ["#1b1813", "#16140f", "#12100b"], glow: "rgba(200,180,140,0.05)" }, // 12
@@ -881,6 +881,119 @@ function drawThemedBack(r, accent, sym) {
   }
   vctx.fillStyle = "rgba(255,255,255,0.08)";
   vctx.fillRect(2, 2, r.w - 4, 3);
+}
+
+// 層9「毒沼」のカード裏面: 沸き立つ毒の澱み、ねじれた枯れ木、漂う瘴気と垂れる毒の雫、毒の鬼火
+function drawBackSwamp(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  // 淀んだ地
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#1a1d10");
+  bg.addColorStop(0.55, "#15170c");
+  bg.addColorStop(1, "#101309");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+
+  // 漂う瘴気 (緑がかった靄)
+  for (let i = 0; i < 3; i++) {
+    const fy = 14 + i * 9;
+    const off = Math.sin(t * 0.0007 + i * 1.4) * 7;
+    vctx.fillStyle = `rgba(150,175,70,${0.07 - i * 0.015})`;
+    vctx.beginPath(); vctx.ellipse(W / 2 + off, fy, W * 0.55, 4, 0, 0, Math.PI * 2); vctx.fill();
+  }
+
+  // 枯れ木 (ねじれた裸の幹と枝)
+  vctx.strokeStyle = "#1d1810";
+  vctx.lineCap = "round";
+  vctx.lineWidth = 3;
+  vctx.beginPath(); vctx.moveTo(13, H - 14); vctx.lineTo(12, 18); vctx.stroke();
+  vctx.lineWidth = 1.6;
+  vctx.beginPath();
+  vctx.moveTo(12, 24); vctx.lineTo(5, 17);
+  vctx.moveTo(12, 28); vctx.lineTo(19, 20);
+  vctx.moveTo(12, 20); vctx.lineTo(17, 12);
+  vctx.stroke();
+  vctx.lineWidth = 1;
+  vctx.beginPath(); vctx.moveTo(5, 17); vctx.lineTo(3, 12); vctx.moveTo(19, 20); vctx.lineTo(22, 16); vctx.stroke();
+  // 右の細い枯れ木
+  vctx.strokeStyle = "#191509";
+  vctx.lineWidth = 2;
+  vctx.beginPath(); vctx.moveTo(44, H - 13); vctx.lineTo(45, 20); vctx.stroke();
+  vctx.lineWidth = 1.2;
+  vctx.beginPath(); vctx.moveTo(45, 24); vctx.lineTo(50, 18); vctx.moveTo(45, 27); vctx.lineTo(40, 22); vctx.stroke();
+
+  // 毒沼 (下部の毒々しい水面)
+  const poolY = H - 13;
+  const pool = vctx.createLinearGradient(0, poolY, 0, H);
+  pool.addColorStop(0, "#7d9a2c");
+  pool.addColorStop(0.5, "#566c1a");
+  pool.addColorStop(1, "#33420f");
+  vctx.fillStyle = pool;
+  vctx.beginPath();
+  vctx.moveTo(0, poolY + 2);
+  for (let x = 0; x <= W; x += 8) {
+    vctx.lineTo(x, poolY + 2 + Math.sin(t * 0.0016 + x * 0.25) * 1.1);
+  }
+  vctx.lineTo(W, H); vctx.lineTo(0, H); vctx.closePath();
+  vctx.fill();
+  // 沼上の淡い燐光
+  const glow = vctx.createLinearGradient(0, poolY - 8, 0, poolY + 2);
+  glow.addColorStop(0, "rgba(160,200,60,0)");
+  glow.addColorStop(1, "rgba(160,200,60,0.18)");
+  vctx.fillStyle = glow;
+  vctx.fillRect(0, poolY - 8, W, 10);
+  // 暗い澱み
+  vctx.strokeStyle = "rgba(30,40,10,0.5)";
+  vctx.lineWidth = 1;
+  for (let i = 0; i < 2; i++) {
+    const yy = poolY + 5 + i * 3;
+    vctx.beginPath(); vctx.moveTo(2, yy); vctx.lineTo(W - 2, yy + Math.sin(t * 0.0016 + i) * 1); vctx.stroke();
+  }
+
+  // 沸き立つ毒泡 (膨らんで弾ける)
+  for (let i = 0; i < 4; i++) {
+    const ph = ((t * 0.0008) + i * 0.28) % 1;
+    if (ph >= 0.85) continue;
+    const bx = 7 + i * 14, by = poolY + 4 + (i % 2) * 3, rr = 0.5 + ph * 3;
+    vctx.fillStyle = `rgba(${150 + Math.floor(40 * (1 - ph))},200,70,${0.55 * (1 - ph)})`;
+    vctx.beginPath(); vctx.arc(bx, by, rr, 0, Math.PI * 2); vctx.fill();
+  }
+
+  // 垂れる毒の雫 (枝先から周期的に落下 → 着水で波紋)
+  const ph = (t % 1700) / 1700, dx = 17;
+  if (ph < 0.6) {
+    const dy = 12 + (poolY - 2 - 12) * (ph / 0.6);
+    vctx.fillStyle = "rgba(180,215,90,0.85)";
+    vctx.fillRect(dx - 0.5, dy, 1.5, 3);
+  } else {
+    const rp = (ph - 0.6) / 0.4;
+    vctx.strokeStyle = `rgba(170,210,80,${0.5 * (1 - rp)})`;
+    vctx.lineWidth = 1;
+    vctx.beginPath(); vctx.ellipse(dx, poolY + 1, 2 + rp * 8, 1 + rp * 2, 0, 0, Math.PI * 2); vctx.stroke();
+  }
+
+  // 毒の鬼火 (ふわりと浮かぶ燐光)
+  const wy = poolY - 9 + Math.sin(t * 0.002) * 3, wx = 38;
+  vctx.save();
+  vctx.shadowColor = "rgba(160,210,70,0.9)";
+  vctx.shadowBlur = 6;
+  vctx.fillStyle = "rgba(190,225,110,0.8)";
+  vctx.beginPath(); vctx.arc(wx, wy, 2, 0, Math.PI * 2); vctx.fill();
+  vctx.restore();
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx2, dy2] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx2, dy2, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
 }
 
 // 層8「氷結回廊」のカード裏面: 奥へ続く氷の回廊、垂れるつらら、舞い落ちる雪と氷晶のきらめき
@@ -4184,8 +4297,9 @@ function dollChip(d) {
   info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
   info.appendChild(el("div", "tw-chipc", `${d.cls} Lv${d.jobLv || 1}`));
   chip.appendChild(info);
-  chip.appendChild(el("div", "tw-chiphp",
-    d.alive ? `HP ${d.hp}/${d.maxhp}` : `⏳${fmtRemain(Math.max(0, (d.reviveAt || Date.now()) - Date.now()))}`));
+  chip.appendChild(d.alive
+    ? el("div", "tw-chiphp", `HP ${d.hp}/${d.maxhp}`)
+    : reviveTimerEl("div", "tw-chiphp", "⏳", d));
   return chip;
 }
 
@@ -4274,9 +4388,10 @@ function rosterRow(d, onClick) {
   info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
   info.appendChild(el("div", "tw-chipc", d.primary == null ? "空の人業 ・ メイン魂なし" : `${d.cls} 魂Lv${d.jobLv || 1}`));
   row.appendChild(info);
-  row.appendChild(el("div", "tw-chiphp",
-    d.primary == null ? "編成不可" :
-    d.alive ? `HP ${d.hp}/${d.maxhp}` : `⏳${fmtRemain(Math.max(0, (d.reviveAt || Date.now()) - Date.now()))}`));
+  row.appendChild(
+    d.primary == null ? el("div", "tw-chiphp", "編成不可") :
+    d.alive ? el("div", "tw-chiphp", `HP ${d.hp}/${d.maxhp}`) :
+    reviveTimerEl("div", "tw-chiphp", "⏳", d));
   row.addEventListener("click", onClick);
   return row;
 }
@@ -6426,6 +6541,26 @@ function fmtRemain(ms) {
   return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
 }
 
+// 帰還タイマーの「生きた」表示要素を作る。class js-revt + dataset を持ち、
+// 下の 1秒ごとのティッカーが残り時間をリアルタイムに描き替える (全画面再描画はしない)。
+function reviveTimerEl(tag, cls, prefix, d) {
+  const at = (d.reviveAt || Date.now());
+  const node = el(tag, cls, prefix + fmtRemain(Math.max(0, at - Date.now())));
+  node.classList.add("js-revt");
+  node.dataset.reviveAt = String(at);
+  node.dataset.prefix = prefix;
+  return node;
+}
+
+// 帰還タイマーを1秒ごとに更新 (DOMのテキストだけ書き替え、秒数が1秒ずつ減る)
+setInterval(() => {
+  const now = Date.now();
+  for (const node of document.querySelectorAll(".js-revt")) {
+    const at = Number(node.dataset.reviveAt) || now;
+    node.textContent = (node.dataset.prefix || "") + fmtRemain(Math.max(0, at - now));
+  }
+}, 1000);
+
 // 砕けた人業をすべてHP1で生還させる (生存者がいる帰還・赤い魂帰還で使う)
 function reviveAllAtHp1() {
   for (const d of allDolls()) {
@@ -6749,13 +6884,13 @@ function showAppraisePrompt(owner, it) {
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 9)); card.appendChild(art);
   card.appendChild(el("div", "ig-name", itemName(it)));
   for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
-  card.appendChild(el("div", "ig-who", `鑑定料 💰${cost}・正体不明のまま売っても 💰${cost}`));
+  card.appendChild(el("div", "ig-who", `鑑定料 💰${cost}・正体不明のまま売っても 💰0 (商店に並ばない)`));
   const list = el("div", "ig-choices");
   const idb = btn(`💰${cost} で鑑定する`, () => { wrap.remove(); shopIdentify(owner, it); });
   idb.classList.add("primary");
   if (G.gold < cost) idb.disabled = true;
   list.appendChild(idb);
-  list.appendChild(makeDanger(`💰${cost} で売る (正体不明のまま)`, () => { wrap.remove(); sellItem(owner, it, sellPrice(it)); }));
+  list.appendChild(makeDanger(`💰0 で売る (正体不明のまま)`, () => { wrap.remove(); sellItem(owner, it, 0); }));
   list.appendChild(btn("やめる", () => wrap.remove()));
   card.appendChild(list);
   wrap.appendChild(card);
@@ -6823,14 +6958,16 @@ function showSellPrompt(owner, it) {
 function sellItem(owner, it, price) {
   const idx = owner.items.indexOf(it);
   if (idx < 0) return;
+  // 未鑑定品は正体不明のため二束三文 (0G) で引き取られ、商店にも並ばない
+  if (it.unidentified) price = 0;
   owner.items.splice(idx, 1);
   G.gold += price;
-  // 在庫に積む (ボルタック方式)
-  if (it.id) G.shopStock[it.id] = (G.shopStock[it.id] || 0) + 1;
+  // 在庫に積む (ボルタック方式)。未鑑定品は並ばない
+  if (it.id && !it.unidentified) G.shopStock[it.id] = (G.shopStock[it.id] || 0) + 1;
   codexSeeItem(it.id);
   SFX.select(); buzz(10);
   const shown = itemName(it);
-  log(`${shown} を売った (+💰${price})。商店に並んだ。`, "win");
+  log(`${shown} を売った (+💰${price})。${it.unidentified ? "" : "商店に並んだ。"}`, "win");
   showToast(`💰+${price} ${shown} を売却`);
   renderTown();
 }
@@ -7083,8 +7220,7 @@ function renderStatus() {
   if (p.isDoll && !p.alive) {
     if (!p.reviveAt) setReviveTimers();
     const box = el("div", "st-revive");
-    const remain = Math.max(0, (p.reviveAt || Date.now()) - Date.now());
-    box.appendChild(el("div", "st-revt", `⏳ 帰還まで ${fmtRemain(remain)}`));
+    box.appendChild(reviveTimerEl("div", "st-revt", "⏳ 帰還まで ", p));
     box.appendChild(el("div", "tw-note", "他の冒険者が捜索・救出している…"));
     const b = btn(`🔴1 で帰還を早める`, () => tryHastenRescue(p));
     b.className = "btn primary";
