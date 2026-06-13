@@ -61,6 +61,7 @@ const ASSETS = [
   "./src/catalog/ranks/r16.js",
   "./src/catalog/ranks/r17.js",
   "./src/catalog/ranks/r18.js",
+  "./src/catalog/ranks/r19.js",
 ];
 
 self.addEventListener("install", (e) => {
