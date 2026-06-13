@@ -259,7 +259,7 @@ export const PASSIVES = {
   divineCounter: { label: "神罰の鉄槌",   scope: "self",  lv: ["物理被弾時20%でPIE×0.8の聖なる反撃"] },
   scripture:     { label: "聖典の加護",   scope: "self",  lv: ["HP30%以下になった時、PIE×1.2を自動回復 (1戦闘1回)"] },
   chant:         { label: "省詠唱",       scope: "self",  lv: ["呪文・技の消費MP-15%", "呪文・技の消費MP-30%"] },
-  spellCrit:     { label: "呪文会心",     scope: "self",  lv: ["攻撃呪文が10%で会心 (×1.5)", "攻撃呪文が18%で会心 (×1.5)"] },
+  spellCrit:     { label: "呪文会心",     scope: "self",  lv: ["攻撃呪文が10%で会心 (×1.5)", "攻撃呪文が18%で会心 (×1.5)", "攻撃呪文が26%で会心 (×1.5)"] },
   scan:          { label: "弱点看破",     scope: "party", lv: ["戦闘中、敵の属性が見える"] },
   elemFloor:     { label: "森羅の理",     scope: "self",  lv: ["自分の攻撃呪文に属性の不利が出なくなる"] },
 };
@@ -284,7 +284,8 @@ export const JOB_PASSIVES = {
   knight:      [],
   // 僧侶はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
   priest:      [],
-  mage:        [P("afterMp", 1), P("chant", 1), P("afterMp", 2), P("spellCrit", 2)],
+  // 魔導士はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
+  mage:        [],
   thief:       [P("vigilance", 1), P("senseEnemy"), P("poisonFloor", 1), P("poisonFloor", 2)],
   bishop:      [P("afterBoth", 1), P("scan"), P("afterBoth", 2), P("purify")],
   // レア
@@ -482,7 +483,52 @@ export const JOB_SKILLS = {
     { lvl: 195, passive: "bigBarrier", plv: 1 },      // 大結界
     { lvl: 200, skill: "KAMIWAZA" },                  // 神の御業
   ],
-  mage:        [{ lvl: 1, skill: "HALITO" }, { lvl: 3, skill: "ICENEEDLE" }, { lvl: 5, skill: "KATINO" }, { lvl: 7, skill: "KAMAITACHI" }, { lvl: 10, skill: "MAHALITO" }, { lvl: 15, skill: "ROCKBLAST" }, { lvl: 20, skill: "MADALT" }, { lvl: 25, skill: "DISPEL" }, { lvl: 30, skill: "LAHALITO" }, { lvl: 40, skill: "TILTOWAIT" }, { lvl: 50, skill: "SEISAI" }],
+  // 魔導士: 新仕様 (Lv1-200 / 技とパッシブを織り込み)。Lv40=エクスプロージョン は宿し技 (signature)
+  mage:        [
+    { lvl: 1,   skill: "HALITO" },                    // ファイアアロー
+    { lvl: 3,   skill: "ICENEEDLE" },                 // アイスニードル
+    { lvl: 5,   passive: "afterMp", plv: 1 },         // 魔力回路Lv1
+    { lvl: 7,   skill: "KAMAITACHI" },                // かまいたち
+    { lvl: 10,  skill: "KATINO" },                    // スリープ
+    { lvl: 15,  passive: "chant", plv: 1 },           // 省詠唱Lv1
+    { lvl: 20,  skill: "MAHALITO" },                  // ファイアストーム
+    { lvl: 25,  passive: "spellCrit", plv: 1 },       // 呪文会心Lv1
+    { lvl: 30,  skill: "ROCKBLAST" },                 // ストーンブラスト
+    { lvl: 35,  passive: "afterMp", plv: 2 },         // 魔力回路Lv2
+    { lvl: 40,  skill: "TILTOWAIT" },                 // エクスプロージョン (看板技)
+    { lvl: 45,  passive: "chant", plv: 2 },           // 省詠唱Lv2
+    { lvl: 50,  skill: "MADALT" },                    // ブリザード
+    { lvl: 55,  skill: "DISPEL" },                    // ディスペル
+    { lvl: 60,  passive: "spellCrit", plv: 2 },       // 呪文会心Lv2
+    { lvl: 65,  skill: "LAHALITO" },                  // インフェルノ
+    { lvl: 70,  passive: "barrier", plv: 1 },         // 魔障壁Lv1
+    { lvl: 75,  passive: "scan", plv: 1 },            // 弱点看破
+    { lvl: 80,  skill: "SEISAI" },                    // 星砕
+    { lvl: 85,  skill: "RAITEI" },                    // 雷霆
+    { lvl: 90,  passive: "reflect", plv: 1 },         // 魔力反射
+    { lvl: 95,  skill: "HYORETSU" },                  // 氷烈
+    { lvl: 100, skill: "ENBU" },                      // 炎舞
+    { lvl: 105, passive: "barrier", plv: 2 },         // 魔障壁Lv2
+    { lvl: 110, skill: "RAIJIN" },                    // 雷神
+    { lvl: 115, passive: "resistAilment", plv: 1 },   // 異常耐性Lv1
+    { lvl: 120, skill: "DAICHIWARI" },                // 大地割
+    { lvl: 125, passive: "elemFloor", plv: 1 },       // 森羅の理
+    { lvl: 130, skill: "HYOUGA" },                    // 氷河
+    { lvl: 135, passive: "spellCrit", plv: 3 },       // 呪文会心Lv3
+    { lvl: 140, skill: "GOKUEN" },                    // 獄炎
+    { lvl: 145, passive: "afterBoth", plv: 1 },       // 法力の灯Lv1
+    { lvl: 150, skill: "RAIMEIRAN" },                 // 雷鳴嵐
+    { lvl: 155, passive: "resistAilment", plv: 2 },   // 異常耐性Lv2
+    { lvl: 160, skill: "METEOR" },                    // メテオ
+    { lvl: 165, passive: "afterBoth", plv: 2 },       // 法力の灯Lv2
+    { lvl: 170, skill: "ZETTAIREIDO" },               // 絶対零度
+    { lvl: 175, passive: "bigBarrier", plv: 1 },      // 大結界
+    { lvl: 180, skill: "GOKUENRAN" },                 // 獄炎嵐
+    { lvl: 185, passive: "soulEater", plv: 1 },       // 魂喰い
+    { lvl: 190, skill: "KOKUUHA" },                   // 虚空波
+    { lvl: 195, skill: "TENPENCHII" },                // 天変地異
+    { lvl: 200, skill: "KYOKUDAI" },                  // 極大消滅
+  ],
   thief:       [{ lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "POISONSTAB" }, { lvl: 5, skill: "BLIND" }, { lvl: 7, skill: "DOUBLE" }, { lvl: 10, skill: "KASUMEGIRI" }, { lvl: 15, skill: "ASSASSINATE" }, { lvl: 20, skill: "MIDARE" }, { lvl: 25, skill: "KAGENUI" }, { lvl: 30, skill: "TSUJIKAZE" }, { lvl: 40, skill: "OBORO" }, { lvl: 50, skill: "ZETSUEI" }],
   bishop:      [{ lvl: 1, skill: "HALITO" }, { lvl: 3, skill: "DIOS" }, { lvl: 5, skill: "ICENEEDLE" }, { lvl: 7, skill: "CURE" }, { lvl: 10, skill: "DIAL" }, { lvl: 15, skill: "MAHALITO" }, { lvl: 20, skill: "DIOSALL" }, { lvl: 25, skill: "DISPEL" }, { lvl: 30, skill: "MADALT" }, { lvl: 40, skill: "MADIOS" }, { lvl: 50, skill: "TILTOWAIT" }],
   samurai:     [{ lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "TATEWARI" }, { lvl: 5, skill: "POISONSTAB" }, { lvl: 7, skill: "DOUBLE" }, { lvl: 10, skill: "KASUMEGIRI" }, { lvl: 15, skill: "MIDARE" }, { lvl: 20, skill: "ASSASSINATE" }, { lvl: 25, skill: "GOUZAN" }, { lvl: 30, skill: "TSUJIKAZE" }, { lvl: 40, skill: "TSUBAMEGAESHI" }, { lvl: 50, skill: "ZETSUEI" }],

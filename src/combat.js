@@ -125,6 +125,21 @@ export const SPELLS = {
   MAFUUZAN: { name: "魔風斬", mp: 13, kind: "phys", power: 1.2, element: "wind", target: "all-enemy", desc: "理力の風で敵全体を斬り抜ける" },
   KOUSHUNOHOUJIN: { name: "攻守の法陣", mp: 14, kind: "buff", buff: { vit: 1.25 }, debuffAll: { atk: 0.85 }, target: "all-ally", desc: "味方を守り敵を縛る二重の法陣" },
   KINJUKAICHOU: { name: "禁呪開帳", mp: 12, kind: "atk", power: 38, element: "dark", critBonus: 0.25, target: "enemy", desc: "禁断の頁を開き闇の呪撃を放つ" },
+  // --- 魔導士 高レベル帯 (Lv85-200) ---
+  RAITEI: { name: "雷霆", mp: 9, kind: "atk", power: 28, element: "wind", target: "enemy", desc: "天を裂く雷霆の一撃" },
+  HYORETSU: { name: "氷烈", mp: 14, kind: "atk", power: 40, element: "water", target: "enemy", desc: "凍てつく氷烈の槍" },
+  ENBU: { name: "炎舞", mp: 14, kind: "atk", power: 40, element: "fire", target: "all-enemy", desc: "渦巻く炎が敵全体を舞い焼く" },
+  RAIJIN: { name: "雷神", mp: 16, kind: "atk", power: 46, element: "wind", target: "all-enemy", desc: "雷神の怒りが戦場を貫く" },
+  DAICHIWARI: { name: "大地割", mp: 16, kind: "atk", power: 50, element: "earth", target: "enemy", desc: "大地ごと敵を断ち割る" },
+  HYOUGA: { name: "氷河", mp: 20, kind: "atk", power: 56, element: "water", target: "all-enemy", desc: "全てを凍てつかせる氷河" },
+  GOKUEN: { name: "獄炎", mp: 20, kind: "atk", power: 64, element: "fire", target: "enemy", desc: "獄の業火で一体を焼き尽くす" },
+  RAIMEIRAN: { name: "雷鳴嵐", mp: 22, kind: "atk", power: 64, element: "wind", target: "all-enemy", desc: "天を裂く雷鳴の大嵐" },
+  METEOR: { name: "メテオ", mp: 26, kind: "atk", power: 80, element: "earth", target: "all-enemy", desc: "天より墜つる隕石の雨" },
+  ZETTAIREIDO: { name: "絶対零度", mp: 26, kind: "atk", power: 90, element: "water", target: "enemy", desc: "絶対零度が一体を凍砕する" },
+  GOKUENRAN: { name: "獄炎嵐", mp: 30, kind: "atk", power: 90, element: "fire", target: "all-enemy", desc: "獄炎の大嵐が戦場を呑む" },
+  KOKUUHA: { name: "虚空波", mp: 30, kind: "atk", power: 100, element: "dark", target: "enemy", desc: "虚空より放つ闇の波動" },
+  TENPENCHII: { name: "天変地異", mp: 36, kind: "atk", power: 110, target: "all-enemy", desc: "天地を覆す大災厄" },
+  KYOKUDAI: { name: "極大消滅", mp: 44, kind: "atk", power: 140, target: "all-enemy", desc: "万象を消滅させる極大呪文" },
   // --- 僧侶ベース ---
   SEIMAICHINYO: { name: "聖魔一如", mp: 14, kind: "atk", power: 22, element: "light", partyHeal: 14, target: "all-enemy", desc: "聖光で敵を焼き、返す光で隊を癒す" },
   DANZAINOTSUCHI: { name: "断罪の鉄槌", mp: 12, kind: "phys", power: 2.3, element: "light", flinchChance: 0.35, target: "enemy", desc: "断罪の聖槌が敵を打ち据え怯ませる" },
@@ -1108,7 +1123,7 @@ export class Battle {
         if (t.magResist && t.magResist > 0) { dmg = Math.max(1, Math.round(dmg * (1 - t.magResist))); magResisted = true; }
         if (pv(actor, "gokudoku") && t.ailment === "poison") dmg = Math.round(dmg * 1.3); // 蠱毒
         // 会心: 呪文会心パッシブ + 技固有の会心補正 (禁呪開帳など)
-        const crit = Math.random() < ((scLv ? (scLv >= 2 ? 0.18 : 0.10) : 0) + (sp.critBonus || 0));
+        const crit = Math.random() < (([0, 0.10, 0.18, 0.26][Math.min(scLv, 3)] || 0) + (sp.critBonus || 0));
         if (crit) dmg = Math.floor(dmg * 1.5);
         t.hp -= dmg;
         dealt += dmg;
