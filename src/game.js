@@ -274,7 +274,8 @@ const G = {
   rumor: null,        // 酒場で表示中の噂 (次回潜入で現実化)
   rumorCooldown: 0,   // 次の噂を聞けるUNIXタイムスタンプ(ms) — 30分クールダウン
   activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
-  deliveryQuests: null, // 酒場の納品依頼 [{itemId}] (最大3件。迷宮に潜るたびに入れ替わる)
+  deliveryQuests: null, // 酒場の納品依頼 [{itemId}] (3〜5件。迷宮に潜るたびに入れ替わる)
+  orderSeats: [],     // 控えの結社の席に着いた魂の uid 配列 (席数は orderSeatCount で決まる)
   codex: { mon: {}, item: {}, job: {} }, // 図鑑 (モンスター/アイテム/職業)
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={蒐集品id:true}, claimed={"ランク:しきい値":true}
   lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
@@ -618,7 +619,7 @@ function rollGreatCorpseClass() { return rollGreatJobClass(); }
 function partyPassiveLv(key) {
   let lv = 0;
   for (const p of G.party || []) if (p.alive) lv = Math.max(lv, pLv(p, key));
-  const om = orderPassiveMap(G.party || []);
+  const om = orderPassiveMap(G.party || [], activeOrderSeats());
   if (om[key]) lv = Math.max(lv, om[key]);
   return lv;
 }
@@ -6161,35 +6162,76 @@ function renderAltar() {
   renderOrderSection();
 }
 
-// 控えの結社の表示。編成に出していないランク2以上の魂がパーティ加護を供給する
+// 控えの結社の表示。席に着けた編成外のランク2以上の魂が、職業に応じたパーティ加護を供給する。
+// 席数は踏破数で増える (D20→1 / D30→2 / D45→3)。空席に魂を着席させ、加護を取捨できる。
 function renderOrderSection() {
-  const fielded = new Set();
-  for (const dd of G.party) { if (dd.primary != null) fielded.add(dd.primary); for (const s of (dd.subs || [])) if (s) fielded.add(s.uid); }
-  const benched = G.souls.filter((s) => !fielded.has(s.uid) && soulRankOf(s) >= 2).sort(soulSortCmp);
-  townEl.appendChild(el("div", "tw-h", "控えの結社 — 編成外の魂の加護"));
-  if (!benched.length) {
-    townEl.appendChild(el("div", "tw-note", "編成に出していない魂をランク2以上に育てると、職業に応じたパーティ全体の加護を授ける。"));
+  const cap = orderSeatCount();
+  townEl.appendChild(el("div", "tw-h", "控えの結社 — 席に着いた魂の加護"));
+  if (cap <= 0) {
+    townEl.appendChild(el("div", "tw-note",
+      `控えの結社は20迷宮を踏破すると解放される。席に着けた編成外の魂が、職業に応じたパーティ全体の加護を授ける。（現在 ${clearedDungeonCount()} 踏破）`));
     return;
   }
-  const om = orderPassiveMap(G.party);
-  const box = el("div", "tw-soullist");
-  for (const s of benched) {
-    const cls = SOUL_CLASSES[s.clsKey];
-    const perk = ORDER_PERK[s.clsKey];
-    const rank = soulRankOf(s);
-    if (!perk || !PASSIVES[perk]) continue;
-    const lv = Math.min(PASSIVES[perk].lv.length, rank >= 4 ? 2 : 1);
-    const r = el("div", "tw-soulrow");
-    const o = el("span", "tw-chips"); o.style.color = cls.glow; o.appendChild(spriteCanvas(jobSprite(s.clsKey, rank), 2));
-    r.appendChild(o);
+  // 編成中 (primary/sub) の uid。これらは席に着けない
+  const fielded = new Set();
+  for (const dd of G.party) { if (dd.primary != null) fielded.add(dd.primary); for (const s of (dd.subs || [])) if (s) fielded.add(s.uid); }
+  // 無効になった席 (消えた/編成入り/ランク落ち) を掃除し、席数で切る
+  G.orderSeats = (G.orderSeats || []).filter((uid) => { const s = soulByUid(uid); return s && !fielded.has(uid) && soulRankOf(s) >= 2; });
+  const seated = G.orderSeats.slice(0, cap);
+
+  // 魂1体ぶんの行を組む (perk 表示つき)
+  const seatRow = (s) => {
+    const cls = SOUL_CLASSES[s.clsKey], perk = ORDER_PERK[s.clsKey], rank = soulRankOf(s);
+    const lv = perk && PASSIVES[perk] ? Math.min(PASSIVES[perk].lv.length, rank >= 4 ? 2 : 1) : 1;
+    const r = el("div", "tw-soulrow"); r.style.borderColor = cls.glow;
+    const o = el("span", "tw-chips"); o.style.color = cls.glow; o.appendChild(spriteCanvas(jobSprite(s.clsKey, rank), 2)); r.appendChild(o);
     const info = el("div", "tw-chipi");
     info.appendChild(el("div", "tw-souln", `${jobRankName(s.clsKey, rank)}（R${rank}）`));
-    info.appendChild(el("div", "tw-soulst", `${passiveName(perk, lv)}: ${passiveDesc(perk, lv)}`));
+    info.appendChild(el("div", "tw-soulst", perk && PASSIVES[perk] ? `${passiveName(perk, lv)}: ${passiveDesc(perk, lv)}` : "この職業に結社の加護はない"));
     r.appendChild(info);
-    box.appendChild(r);
+    return r;
+  };
+
+  townEl.appendChild(el("div", "tw-note", `席数 ${seated.length}/${cap}。席に着いた魂のみが加護を供給する（編成に出すと席から外れる）。`));
+
+  // 着席中の席 (cap 個ぶん表示。空席はプレースホルダ)
+  const box = el("div", "tw-soullist");
+  for (let i = 0; i < cap; i++) {
+    const uid = seated[i];
+    const s = uid != null ? soulByUid(uid) : null;
+    if (s) {
+      const r = seatRow(s);
+      const rm = btn("席を外す", () => { G.orderSeats = (G.orderSeats || []).filter((u) => u !== uid); autosave(true); renderTown(); });
+      rm.className = "tw-small";
+      r.appendChild(rm);
+      box.appendChild(r);
+    } else {
+      box.appendChild(el("div", "tw-soulrow dim", `― 空席 ${i + 1} ―`));
+    }
   }
   townEl.appendChild(box);
-  if (Object.keys(om).length) townEl.appendChild(el("div", "tw-note", "結社の加護はパーティ全体に常時適用される。編成に出すと加護は止まる(本人として働く)。"));
+
+  // 空席があれば、着席候補 (編成外・未着席・ランク2以上・加護を持つ職) を出す
+  if (seated.length < cap) {
+    const seatedSet = new Set(seated);
+    const cand = G.souls.filter((s) =>
+      !fielded.has(s.uid) && !seatedSet.has(s.uid) && soulRankOf(s) >= 2 &&
+      ORDER_PERK[s.clsKey] && PASSIVES[ORDER_PERK[s.clsKey]]).sort(soulSortCmp);
+    townEl.appendChild(el("div", "tw-h", "席に着ける魂"));
+    if (!cand.length) {
+      townEl.appendChild(el("div", "tw-note", "席に着けられる、編成外のランク2以上の魂がいない。魂を育てよう。"));
+    } else {
+      const cbox = el("div", "tw-soullist");
+      for (const s of cand) {
+        const r = seatRow(s);
+        const add = btn("席に着く", () => { if ((G.orderSeats || []).length < cap) { (G.orderSeats = G.orderSeats || []).push(s.uid); autosave(true); renderTown(); } });
+        add.className = "tw-small";
+        r.appendChild(add);
+        cbox.appendChild(r);
+      }
+      townEl.appendChild(cbox);
+    }
+  }
 }
 
 function jobSig(d) { return d.jobKey ? `${d.jobKey}:${d.jobRank}` : "none"; }
@@ -6686,8 +6728,8 @@ function applyRumorToBoard(board) {
 }
 
 // ---- 酒場の納品依頼: 求められた品を納めると、その品の格 (R1-20) に応じて職業の魂を授かる ----
-// 対象は「今 到達している深さまでに出現しうる品」からランダム3件。LR/専用装備は除外
-// (LOOT_IDS が exclusive を弾く)。常時最大3件で、迷宮に潜るたびに入れ替わる (rollDeliveryQuests)。
+// 対象は「今 到達している深さまでに出現しうる品」からランダムに掲示。LR/専用装備は除外
+// (LOOT_IDS が exclusive を弾く)。件数は deliveryQuestCount() (3〜5件) で、迷宮に潜るたびに入れ替わる (rollDeliveryQuests)。
 const DELIVERY_BANDS = [
   // max(R20) : [ [rarity, 体数, 確率], … ] (確率は合計1.0)
   { max: 5,  rows: [["common", 2, 0.70], ["rare", 1, 0.20], ["epic", 1, 0.09], ["legend", 1, 0.01]] },
@@ -6718,11 +6760,12 @@ function eligibleDeliveryItemIds() {
   const cap = (DUNGEONS[idx].lootLv || [1, 1])[1]; // 到達済み最深ダンジョンのドロップ帯上限 lv
   return LOOT_IDS.filter((id) => (ITEMS[id].lv || 1) <= cap);
 }
-// 納品依頼を3件 (重複なし) 引き直す
+// 納品依頼を deliveryQuestCount() 件 (重複なし) 引き直す
 function rollDeliveryQuests() {
   const pool = eligibleDeliveryItemIds();
+  const n = deliveryQuestCount();
   const out = [], used = new Set();
-  for (let i = 0; i < 3 && pool.length; i++) {
+  for (let i = 0; i < n && pool.length; i++) {
     let id, tries = 0;
     do { id = pool[rand(pool.length)]; tries++; } while (used.has(id) && tries < 24);
     if (used.has(id)) break;
@@ -7112,7 +7155,7 @@ function reportMainQuest() {
       return;
     }
     autosave(true);
-    // 解放の節目 (D5/10/15/20) は、報告の直後に機能解放のシーンを挟む
+    // 解放の節目 (D5/10/15/20/25/30/35/40/45) は、報告の直後に機能解放のシーンを挟む
     const us = unlockSceneFor(n);
     if (us) {
       showStoryScene(us.title, us.lines, null, () => {
@@ -7199,10 +7242,31 @@ function featureUnlocked(key) {
   if (key === "rumor") return c >= 15;
   return false;
 }
-// 解放済みのサブ魂 (宿し技) スロット数 (0/1/2)。MAX_SUBS が上限
+// 解放済みのサブ魂 (宿し技) スロット数 (0/1/2/3)。MAX_SUBS が上限。D10→1 / D20→2 / D40→3
 function unlockedSubSlots() {
   const c = clearedDungeonCount();
-  return Math.min(MAX_SUBS, c >= 20 ? 2 : c >= 10 ? 1 : 0);
+  return Math.min(MAX_SUBS, c >= 40 ? 3 : c >= 20 ? 2 : c >= 10 ? 1 : 0);
+}
+// 控えの結社の席数 (0/1/2/3)。D20 で解放(1席) / D30→2席 / D45→3席
+function orderSeatCount() {
+  const c = clearedDungeonCount();
+  return c >= 45 ? 3 : c >= 30 ? 2 : c >= 20 ? 1 : 0;
+}
+// 酒場の納品依頼の同時掲示数 (基本3 / D25→4 / D35→5)
+function deliveryQuestCount() {
+  const c = clearedDungeonCount();
+  return 3 + (c >= 35 ? 2 : c >= 25 ? 1 : 0);
+}
+// 控えの結社の席に着いている (有効な) 魂の uid 配列。席数上限・編成外・ランク2以上を満たすもの
+function activeOrderSeats() {
+  const cap = orderSeatCount();
+  if (cap <= 0) return [];
+  const fielded = new Set();
+  for (const dd of G.party || []) { if (dd.primary != null) fielded.add(dd.primary); for (const s of (dd.subs || [])) if (s) fielded.add(s.uid); }
+  return (G.orderSeats || []).filter((uid) => {
+    const s = soulByUid(uid);
+    return s && !fielded.has(uid) && soulRankOf(s) >= 2;
+  }).slice(0, cap);
 }
 
 // 踏破済みの迷宮数 (メインストーリー基準: 第n章攻略中 = n-1 踏破)
@@ -10129,7 +10193,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "story", "dragonSlain", "stats",
+  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "orderSeats", "codex", "treasury", "lrOwned", "story", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
 ];
 
