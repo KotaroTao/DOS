@@ -23,7 +23,7 @@ import {
   PASSIVES, passiveName, passiveDesc,
   ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
   SOUL_RANKS, rollJobClass, rollGreatJobClass, SOUL_STAT_UP,
-  soulRankFromCount, nextRankThreshold, rankThresholds,
+  soulRankFromCount, nextRankThreshold, rankThresholds, capForRarityRank,
   jobLoreFor, jobRankCondText,
   jobSkillTable, jobRankName, soulSeriesName, jobPassiveTable, pLv, JOB_GEAR,
   IDENTIFY_JOBS, identifyChance, canIdentify,
@@ -405,7 +405,7 @@ const LAYER_VISUALS = [
   { name: "魔導書庫",   sym: "✪", accent: "#9d7ad0", bgm: "layer13", back: drawBackLibrary, floorBase: "#100e17", floorTiles: ["#181323", "#13101c", "#100d16"], glow: "rgba(160,120,225,0.06)" }, // 13
   { name: "屍蝋の回廊", sym: "‡", accent: "#b8a878", bgm: "layer14", back: drawBackOssuary, floorBase: "#14120d", floorTiles: ["#1c1912", "#17140e", "#13100a"], glow: "rgba(210,190,130,0.05)" }, // 14
   { name: "溶鉄炉",     sym: "♨", accent: "#e07838", bgm: "layer15", back: drawBackForge, floorBase: "#190e08", floorTiles: ["#23120a", "#1c0f08", "#160b06"], glow: "rgba(255,140,55,0.07)" },  // 15
-  { name: "深淵の聖堂", sym: "✝", accent: "#e0d28a", bgm: "field9",     floorBase: "#14130c", floorTiles: ["#1d1b10", "#18160d", "#13110a"], glow: "rgba(240,225,150,0.06)" }, // 16
+  { name: "深淵の聖堂", sym: "✝", accent: "#e0d28a", bgm: "layer16", back: drawBackCathedral, floorBase: "#14130c", floorTiles: ["#1d1b10", "#18160d", "#13110a"], glow: "rgba(240,225,150,0.06)" }, // 16
   { name: "凍てつく王墓", sym: "❅", accent: "#a8c8e0", bgm: "field7",   floorBase: "#0d1217", floorTiles: ["#141e26", "#10181f", "#0c1217"], glow: "rgba(180,215,245,0.06)" }, // 17
   { name: "冥府の門",   sym: "☖", accent: "#8c6aa8", bgm: "field9",     floorBase: "#100d14", floorTiles: ["#17121e", "#130f19", "#0f0c14"], glow: "rgba(150,110,190,0.06)" }, // 18
   { name: "竜の巣",     sym: "♦", accent: "#c8503a", bgm: "field10",    floorBase: "#170d0a", floorTiles: ["#21120c", "#1b0f0a", "#150b07"], glow: "rgba(235,90,60,0.06)" },   // 19
@@ -916,6 +916,106 @@ function drawThemedBack(r, accent, sym) {
   }
   vctx.fillStyle = "rgba(255,255,255,0.08)";
   vctx.fillRect(2, 2, r.w - 4, 3);
+}
+
+// 層16「深淵の聖堂」のカード裏面: 尖頭アーチのステンドグラス窓、降り注ぐ光条、祭壇と舞う光の塵
+function drawBackCathedral(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  // 聖堂の地 (深い影に金の光)
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#16140d");
+  bg.addColorStop(0.5, "#131109");
+  bg.addColorStop(1, "#0e0c07");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+
+  const wx = W / 2, wTop = 8, wBot = H - 14, ww = 9;
+
+  // 側廊の円柱 (左右、暗い) とアーチの起こし
+  for (const cx of [8, W - 8]) {
+    const g = vctx.createLinearGradient(cx - 3, 0, cx + 3, 0);
+    g.addColorStop(0, "#241f14"); g.addColorStop(0.5, "#3a3220"); g.addColorStop(1, "#1c1810");
+    vctx.fillStyle = g;
+    vctx.fillRect(cx - 3, 6, 6, H - 6);
+    vctx.fillStyle = "#4a4028";
+    vctx.fillRect(cx - 4, 6, 8, 2.5);
+    vctx.strokeStyle = "#3a3220"; vctx.lineWidth = 2;
+    vctx.beginPath(); vctx.moveTo(cx, 8); vctx.quadraticCurveTo(cx, 4, wx, 5); vctx.stroke();
+  }
+
+  // 窓の光輪
+  const halo = vctx.createRadialGradient(wx, (wTop + wBot) / 2, 2, wx, (wTop + wBot) / 2, 22);
+  halo.addColorStop(0, "rgba(240,210,120,0.5)");
+  halo.addColorStop(1, "rgba(240,210,120,0)");
+  vctx.fillStyle = halo;
+  vctx.fillRect(wx - 22, wTop - 4, 44, wBot - wTop + 24);
+
+  // 尖頭アーチの窓 (金色のステンドグラス)
+  const winPath = () => {
+    vctx.beginPath();
+    vctx.moveTo(wx - ww, wBot); vctx.lineTo(wx - ww, wTop + 6);
+    vctx.lineTo(wx, wTop); vctx.lineTo(wx + ww, wTop + 6); vctx.lineTo(wx + ww, wBot); vctx.closePath();
+  };
+  const glass = vctx.createLinearGradient(0, wTop, 0, wBot);
+  glass.addColorStop(0, "#ffe9a8"); glass.addColorStop(0.5, "#e8b24e"); glass.addColorStop(1, "#b9742a");
+  vctx.fillStyle = glass; winPath(); vctx.fill();
+  // ステンドの色片
+  vctx.fillStyle = "rgba(180,80,60,0.5)"; vctx.fillRect(wx - ww + 1, wTop + 10, ww - 1, 4);
+  vctx.fillStyle = "rgba(70,110,170,0.5)"; vctx.fillRect(wx + 1, wTop + 16, ww - 1, 5);
+  vctx.fillStyle = "rgba(80,150,90,0.4)"; vctx.fillRect(wx - ww + 1, wBot - 8, ww - 1, 4);
+  // 窓枠 (マリオン)
+  vctx.save();
+  winPath(); vctx.clip();
+  vctx.strokeStyle = "rgba(40,28,12,0.8)"; vctx.lineWidth = 1;
+  vctx.beginPath(); vctx.moveTo(wx, wTop); vctx.lineTo(wx, wBot); vctx.stroke();
+  for (let y = wTop + 8; y < wBot; y += 7) { vctx.beginPath(); vctx.moveTo(wx - ww, y); vctx.lineTo(wx + ww, y); vctx.stroke(); }
+  vctx.restore();
+  vctx.strokeStyle = "#5a4a28"; vctx.lineWidth = 1.4; winPath(); vctx.stroke();
+
+  // 降り注ぐ光条 (窓から下方へ)
+  vctx.save();
+  vctx.globalCompositeOperation = "lighter";
+  const shimmer = 0.04 + 0.02 * Math.sin(t * 0.0015);
+  for (let i = -1; i <= 1; i++) {
+    vctx.fillStyle = `rgba(245,215,130,${shimmer})`;
+    vctx.beginPath();
+    vctx.moveTo(wx + i * 4, wBot - 4); vctx.lineTo(wx + i * 4 + 3, wBot - 4);
+    vctx.lineTo(wx + i * 9 + 6, H); vctx.lineTo(wx + i * 9 - 2, H); vctx.closePath(); vctx.fill();
+  }
+  vctx.restore();
+
+  // 祭壇 (下中央の暗い台と小さな十字の光)
+  vctx.fillStyle = "#2a2417"; vctx.fillRect(wx - 7, H - 9, 14, 6);
+  vctx.fillStyle = "#1f1a10"; vctx.fillRect(wx - 9, H - 4, 18, 3);
+  vctx.save();
+  vctx.shadowColor = "rgba(255,225,140,0.9)"; vctx.shadowBlur = 4;
+  vctx.fillStyle = "rgba(255,235,170,0.9)";
+  vctx.fillRect(wx - 0.7, H - 12, 1.4, 5);
+  vctx.fillRect(wx - 2.5, H - 10.5, 5, 1.4);
+  vctx.restore();
+
+  // 光の塵 (光条の中を舞う)
+  for (let i = 0; i < 5; i++) {
+    const px = wx + Math.sin(t * 0.0008 + i * 1.5) * 8 + (i - 2) * 2;
+    const py = wBot + ((t * 0.01 + i * 30) % (H - wBot - 2));
+    const al = 0.3 + 0.3 * Math.sin(t * 0.003 + i);
+    vctx.fillStyle = `rgba(250,225,150,${Math.max(0, al) * 0.5})`;
+    vctx.fillRect(px, py, 1, 1);
+  }
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
 }
 
 // 層15「溶鉄炉」のカード裏面: 灼熱する溶鉱炉の炉口、溶けた鉄の樋、鉄床を打って散る火花
@@ -7041,22 +7141,33 @@ function showCodexJobDetail(key, rank, heading) {
   if (!actives.length) pbox.appendChild(el("div", "cdx-dun dim", "・なし (ランク2以上で発現)"));
   card.appendChild(pbox);
 
-  // 職業スキル表: このランクで覚える技 (Lv ランク×10 まで) だけを載せ、
-  // 実際に到達したLvの技だけ開示する
+  // 職業スキル表: このランクのLv上限まで覚える技・パッシブを載せ、
+  // 実際に到達したLvのものだけ開示する (新仕様: ランク×10ゲート撤廃)
   const reached = (rec && typeof rec === "object" && rec.lv) || 0;
+  const lvCap = capForRarityRank(SOUL_CLASSES[key].rarity, rank);
   const sbox = el("div", "cdx-drops");
   for (const e of jobSkillTable(key)) {
-    if (e.lvl > rank * 10) continue;
-    const sp = SPELLS[e.skill];
+    if (e.lvl > lvCap) continue;
     const r = el("div", "cdx-drow");
     r.appendChild(el("span", "cdx-sklv", `Lv${e.lvl}`));
-    if (reached >= e.lvl && sp) {
-      r.appendChild(el("span", "cdx-dn", sp.name));
-      r.appendChild(el("span", "cdx-skd", `${sp.desc} (MP${sp.mp})`));
-      r.classList.add("cdx-sktap");
-      r.addEventListener("click", () => showSkillPopup(e.skill));
+    if (e.passive) {
+      // レベル表に織り込まれたパッシブ
+      if (reached >= e.lvl) {
+        r.appendChild(el("span", "cdx-dn", passiveName(e.passive, e.plv || 1)));
+        r.appendChild(el("span", "cdx-skd", `[パッシブ] ${passiveDesc(e.passive, e.plv || 1)}`));
+      } else {
+        r.appendChild(el("span", "cdx-dn dim", "？？？"));
+      }
     } else {
-      r.appendChild(el("span", "cdx-dn dim", "？？？"));
+      const sp = SPELLS[e.skill];
+      if (reached >= e.lvl && sp) {
+        r.appendChild(el("span", "cdx-dn", sp.name));
+        r.appendChild(el("span", "cdx-skd", `${sp.desc} (MP${sp.mp})`));
+        r.classList.add("cdx-sktap");
+        r.addEventListener("click", () => showSkillPopup(e.skill));
+      } else {
+        r.appendChild(el("span", "cdx-dn dim", "？？？"));
+      }
     }
     sbox.appendChild(r);
   }
