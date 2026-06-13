@@ -4196,7 +4196,20 @@ function startBattle(enemies, cell) {
   G.enemyPos = {};
   if (G.partyFx) G.partyFx.clear();
   autosave(true); // 戦闘開始を保存
-  combatStep(); // 素早い敵が先手なら自動で動く
+  // 居合・開幕呪撃の演出を先に流してから手番処理へ (発動を視覚的に伝える)
+  const opens = G.battle.openingResults || [];
+  if (opens.length) { renderCombat(); playOpeningStrikes(opens, 0, combatStep); }
+  else combatStep(); // 素早い敵が先手なら自動で動く
+}
+
+// 戦闘開始時の自動攻撃 (居合/開幕呪撃) を1つずつ斬撃エフェクトで見せる
+function playOpeningStrikes(list, i, done) {
+  if (i >= list.length) { done(); return; }
+  const res = list[i];
+  G.animating = true;
+  if (res.opening === "iai") showToast("⚡ 居合！");
+  else if (res.opening === "openSpell") showToast("✦ 開幕呪撃！");
+  animateResult(res, () => playOpeningStrikes(list, i + 1, done));
 }
 
 // 全体描画 (キャンバス + パーティ + メニュー)
