@@ -494,6 +494,70 @@ const NEW_DEFS = [
   { id: "bs_stormlord", name: "嵐の尖塔の主", rank: 10, boss: true, race: "elemental", element: "wind", artKey: "stormlord", soulClass: "mage",
     role: "summoner", summonKey: "bs_stormelemental", ability: "breath", evasive: true, enrage: true, // 嵐の精を呼び、雷のブレスを吐き、すり抜ける
     desc: "嵐の尖塔そのものを支配する、雷雲が凝った嵐の主。配下の精を次々と呼び、全体を撃つ雷のブレスを落とす。昇ろうとする魂を絡め取って地に引き戻す、この国の業の歯車の一つだ。" },
+  // -- 第11層「闘技場跡」 (rank 10・剣闘/無。enemyScaleで上昇) --
+  { id: "bs_championwraith", name: "不滅の闘士", rank: 10, race: "armored", element: "none", artKey: "championwraith",
+    ability: "critical", multistrike: 2, enrage: true,
+    desc: "幾百の試合を勝ち抜き、死してなお闘いを求める不滅の闘士の霊。鎧ごと急所を貫く剣を続けざまに振るい、追い詰められるほど観客の幻聴に煽られて猛る。" },
+  { id: "bs_netfighter", name: "網と銛の闘士", rank: 10, race: "humanoid", element: "none", artKey: "netfighter",
+    ability: "paralyze", critical: undefined, multistrike: 2, swift: true,
+    desc: "投網で獲物の動きを封じ、三叉の銛で仕留める剣闘士。絡め取られれば身動きが取れず、容赦なく銛が突き込まれる。素早い間合いの捌きで、決して網の外には出さない。" },
+  { id: "bs_arenabeast", name: "闘獣", rank: 10, race: "beast", element: "none", artKey: "arenabeast",
+    enrage: true, multistrike: 2, ability: "critical",
+    desc: "見世物のために飢えと痛みで狂わされた、巨大な闘獣。鞭の傷だらけの体で見境なく暴れ、鉤爪で続けざまに急所を抉る。檻は、とうに壊れている。" },
+  { id: "bs_spectreaudience", name: "亡き観客", rank: 10, race: "specter", element: "none", artKey: "spectreaudience",
+    pack: true, ability: "drain", weaken: undefined,
+    desc: "闘技場の観客席を埋め尽くす、興奮したまま死んだ亡霊の群れ。血を求める歓声で闘士の力を萎えさせ、流れる命の精気を遠くから吸い上げる。満員の歓声は、もう誰にも止められない。" },
+  { id: "bs_chainedogre", name: "鎖の巨闘士", rank: 10, race: "giant", element: "none", artKey: "chainedogre",
+    enrage: true, multistrike: 2, physResist: 0.4,
+    desc: "鎖に繋がれ、闘技場の主役を張らされた巨大なオーガの闘士。引きちぎれぬ鎖に苛立ち、繋がれたまま拳を叩きつける。傷を負うほど鎖を鳴らして暴れ、分厚い筋肉が刃を阻む。" },
+  { id: "bs_bladedancer", name: "双刃の舞い手", rank: 10, race: "humanoid", element: "none", artKey: "bladedancer",
+    multistrike: 3, swift: true, ability: "critical",
+    desc: "二刀を舞うように振るう、観客を魅了した花形の剣闘士。優雅な舞の合間に幾度も斬撃を織り込み、気づけば急所を断たれている。その美しさが、最後に見る景色だ。" },
+  { id: "bs_executioner", name: "処刑人", rank: 10, race: "armored", element: "none", artKey: "executioner",
+    ability: "critical", enrage: true, physResist: 0.4,
+    desc: "敗者の首を刎ねる役を担い続けた、覆面の処刑人。巨大な斧の一振りは鎧ごと急所を断ち、返り血を浴びるほど振りが速くなる。慈悲という言葉を、こいつは知らない。" },
+  { id: "bs_beastmaster", name: "猛獣使いの亡霊", rank: 10, race: "specter", element: "none", artKey: "beastmaster",
+    role: "summoner", summonKey: "bs_arenabeast", ability: "weaken",
+    desc: "闘獣を煽って観客を沸かせ続けた猛獣使いの霊。鞭の音で飢えた闘獣を次々と放ち、その威嚇で挑む者の戦意を削ぐ。自分は決して檻の中へは入らない。" },
+  { id: "bs_mirrorduelist", name: "鏡写しの決闘者", rank: 10, race: "construct", element: "none", artKey: "mirrorduelist",
+    multistrike: 2, barrier: 2, ability: "critical",
+    desc: "挑戦者の動きを鏡のように写して戦う、磨かれた鋼の決闘人形。こちらの剣筋をそっくり返し、急所を同じだけ突いてくる。己の太刀筋こそが、最大の弱点となる。" },
+  { id: "bs_crowdroar", name: "歓声の渦", rank: 10, race: "specter", element: "none", artKey: "crowdroar",
+    pack: true, ability: "warcry", evasive: true,
+    desc: "闘技場に渦巻く、無数の歓声が形をなした霊体。その大歓声は味方の闘士を奮い立たせ、押し寄せる声の波は掴みどころがない。耳を塞いでも、声は骨の中で響く。" },
+  { id: "bs_sandlurker", name: "砂中の顎", rank: 10, race: "beast", element: "none", artKey: "sandlurker",
+    ability: "critical", lifesteal: 0.3, physResist: 0.4,
+    desc: "闘技場の砂の下に潜み、闘士の足を狙う大顎の魔。砂煙とともに飛び出して急所を一噛みし、喰らった命で身を肥やす。砂に守られた体は、刃をろくに通さない。" },
+  { id: "bs_gladiatorlich", name: "闘技場の死霊術師", rank: 10, race: "undead", element: "none", artKey: "gladiatorlich", soulClass: "necromancer",
+    role: "summoner", summonKey: "bs_ghostgladiator", ability: "drain", magWeak: 1.3,
+    desc: "敗者の魂を蒐集し、闘技場の地下で操る死霊術師の骸。倒れた剣闘士を亡霊として次々と立たせ、生者の命を吸って術を保つ。観客のいない試合を、永遠に興行し続ける。" },
+  { id: "bs_spikedgolem", name: "鉄刺の像", rank: 10, race: "construct", element: "none", artKey: "spikedgolem",
+    physResist: 0.6, barrier: 2, multistrike: 2,
+    desc: "全身に刃を生やした、闘技場の仕掛けが意思を得た鉄の像。触れるだけで裂かれ、突進すれば幾本もの刺が獲物を貫く。分厚い鉄の体は、並の刃を寄せつけない。" },
+  { id: "bs_hookmaster", name: "鉤縄の使い手", rank: 10, race: "humanoid", element: "none", artKey: "hookmaster",
+    ability: "paralyze", multistrike: 2, swift: true,
+    desc: "鉤のついた縄を操り、間合いの外から獲物を絡め取る剣闘士。引き寄せて動きを止め、素早く幾度も斬りつける。逃げようにも、鉤が肉に食い込んで離さない。" },
+  { id: "bs_bloodpriest", name: "血の司祭", rank: 10, race: "specter", element: "none", artKey: "bloodpriest", soulClass: "hexer",
+    ability: "drain", lifesteal: 0.3, magWeak: 1.3,
+    desc: "闘技場に捧げられた血を糧に、邪神を崇めた司祭の霊。流れる命を吸って力とし、生者の精気をすするほど赤く輝く。試合の血は、すべてこの霊への供物だった。" },
+  { id: "bs_warbeasthound", name: "闘犬", rank: 10, race: "beast", element: "none", artKey: "warbeasthound",
+    swift: true, pack: true, ability: "critical",
+    desc: "闘技の余興のために飼われ、互いに殺し合わされた闘犬の群れ。素早く取り囲んで急所に喰らいつき、群れで一斉に襲いかかる。鎖を解かれた今、止める者はいない。" },
+  { id: "bs_championofash", name: "灰の覇者", rank: 10, race: "armored", element: "none", artKey: "championofash",
+    ability: "critical", enrage: true, physResist: 0.4,
+    desc: "幾度も頂点に立ち、灰になってなお王座を譲らぬ伝説の覇者。風格ある一撃は鎧ごと急所を断ち、傷つくほど往年の闘志を燃え上がらせる。挑む者すべてを、灰の山に加えてきた。" },
+  { id: "bs_impaler", name: "串刺しの槍士", rank: 10, race: "humanoid", element: "none", artKey: "impaler",
+    ability: "critical", multistrike: 2,
+    desc: "長槍で間合いの外から獲物を貫く、冷酷な剣闘士。後衛に隠れた者まで槍の間合いに捉え、急所を続けざまに突き刺す。近づく前に、もう貫かれている。" },
+  { id: "bs_ghostgladiator", name: "亡霊剣闘士", rank: 10, race: "specter", element: "none", artKey: "ghostgladiator",
+    multistrike: 2, ability: "critical", evasive: true,
+    desc: "砂の下に幾重にも埋もれた、名もなき剣闘士たちの霊。生前の太刀筋のまま幾度も斬りかかり、刃を向ければ陽炎のように揺らいでかわす。誰に勝てば解放されるのかも、もう分からない。" },
+  { id: "bs_chaingang", name: "鎖の囚徒", rank: 10, race: "undead", element: "none", artKey: "chaingang",
+    pack: true, enrage: true, multistrike: 2,
+    desc: "鎖で数珠つなぎにされ、闘技場へ送られて朽ちた囚人たちの群れ。互いを引きずりながら殺到し、千切れた鎖を振り回して打ち据える。一人倒れても、鎖が次の者を立たせる。" },
+  { id: "bs_arenalord", name: "闘技場の支配者", rank: 10, boss: true, race: "armored", element: "none", artKey: "arenalord", soulClass: "fighter",
+    role: "summoner", summonKey: "bs_arenabeast", ability: "critical", enrage: true, physResist: 0.5,
+    desc: "魂繰り同士を戦わせ、敗者の魂を観客に振る舞った闘技場の興行主。今も砂の中心に立ち、闘獣を放っては挑む者を見世物にする。王家の余興に選ばれただけの剣闘士たちの、恨みの中心に座す者だ。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1437,6 +1501,7 @@ export const BOSS_ORDER = {
 // 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
 // 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
 const LAYER_BOSS_OVERRIDE = {
+  11: "bs_arenalord", // 第11層「闘技場跡」: 闘技場の支配者 (rank10・剣闘ボス)
   10: "bs_stormlord", // 第10層「嵐の尖塔」: 嵐の尖塔の主 (rank10・風ボス)
   9: "bs_swamplord", // 第9層「毒沼」: 澱みの主 (rank10・毒ボス)
   8: "bs_glaciallord", // 第8層「氷結回廊」: 氷結回廊の主 (rank9・氷ボス)
@@ -1556,6 +1621,13 @@ export const LAYER_POOLS = {
     "bs_tempestserpent", "bs_harpyqueen", "bs_lightninggolem", "bs_zephyrfiend", "bs_stormhag",
     "bs_thunderbeast", "bs_galewisp", "bs_ravenswarm", "bs_skydrake", "bs_boltarcher",
     "bs_cyclonecore", "bs_soulanchor", "bs_galehound", "bs_windscythe", "bs_stormcaller",
+  ],
+  // 第11層「闘技場跡」: 剣闘/無中心、全rank10。全て新規
+  11: [
+    "bs_championwraith", "bs_netfighter", "bs_arenabeast", "bs_spectreaudience", "bs_chainedogre",
+    "bs_bladedancer", "bs_executioner", "bs_beastmaster", "bs_mirrorduelist", "bs_crowdroar",
+    "bs_sandlurker", "bs_gladiatorlich", "bs_spikedgolem", "bs_hookmaster", "bs_bloodpriest",
+    "bs_warbeasthound", "bs_championofash", "bs_impaler", "bs_ghostgladiator", "bs_chaingang",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
