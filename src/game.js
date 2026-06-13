@@ -8252,6 +8252,10 @@ function showAppraisePrompt(owner, it) {
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 9)); card.appendChild(art);
   card.appendChild(el("div", "ig-name", itemName(it)));
   for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
+  const warn = el("div", "ig-stat", "⚠ 未鑑定のアイテムです。正体不明のまま売ると 💰0 で引き取られ、商店にも並びません。先に鑑定するのがおすすめです。");
+  warn.style.color = "#ff8fc4";
+  warn.style.fontWeight = "bold";
+  card.appendChild(warn);
   card.appendChild(el("div", "ig-who", `鑑定料 💰${cost}・正体不明のまま売っても 💰0 (商店に並ばない)`));
   const list = el("div", "ig-choices");
   const idb = btn(`💰${cost} で鑑定する`, () => { wrap.remove(); shopIdentify(owner, it); });
@@ -8298,22 +8302,42 @@ function bulkIdentify(owner) {
   renderTown();
 }
 
+// 売却時に注意を促すべき品か判定し、警告文を返す (未奉納蒐集品 / LR専用装備)
+function sellWarnings(it) {
+  const out = [];
+  if (it.slot === "misc" && it.id && !treasuryState().donated[it.id]) {
+    out.push("⚠ まだ宝物庫に奉納していない蒐集品です。売ると奉納できなくなり、図鑑の褒賞を取り逃します。");
+  }
+  if (it.lr) {
+    out.push("⚠ LR(レジェンドレア)専用装備です。二度と手に入らないかもしれません。本当に売りますか？");
+  }
+  return out;
+}
+
 // 商店: アイテム情報を表示し、売却するか選ぶ (宝箱演出と同じカード)
 function showSellPrompt(owner, it) {
   const price = sellPrice(it);
+  const warns = sellWarnings(it);
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card");
-  card.style.borderColor = "#c9a227";
-  card.style.boxShadow = "0 0 40px #c9a22755";
-  card.appendChild(el("div", "ig-banner", "🛒 売却の確認"));
+  card.style.borderColor = warns.length ? "#ff5fae" : "#c9a227";
+  card.style.boxShadow = `0 0 40px ${warns.length ? "#ff5fae55" : "#c9a22755"}`;
+  card.appendChild(el("div", "ig-banner", warns.length ? "⚠ 売却の確認" : "🛒 売却の確認"));
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 9)); card.appendChild(art);
   card.appendChild(el("div", "ig-name", itemName(it) + (it.cursed ? " 🔒" : "")));
   // 性能・説明
   for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
   if (it.desc) card.appendChild(el("div", "ig-desc", it.desc));
+  // 注意喚起 (未奉納蒐集品 / LR専用装備)
+  for (const w of warns) {
+    const wl = el("div", "ig-stat", w);
+    wl.style.color = "#ff8fc4";
+    wl.style.fontWeight = "bold";
+    card.appendChild(wl);
+  }
   card.appendChild(el("div", "ig-who", `売値 💰${price} (在庫に並びます)`));
   const list = el("div", "ig-choices");
-  const sell = btn(`💰${price} で売る`, () => { wrap.remove(); sellItem(owner, it, price); });
+  const sell = btn(warns.length ? `⚠ 💰${price} で売る` : `💰${price} で売る`, () => { wrap.remove(); sellItem(owner, it, price); });
   sell.classList.add("danger");
   list.appendChild(sell);
   list.appendChild(btn("やめる", () => wrap.remove()));
