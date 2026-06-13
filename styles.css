@@ -353,6 +353,12 @@ canvas.spr { image-rendering: pixelated; display: block; }
 }
 .st-statbar b { color: #eafff4; }
 .st-bar-spells { color: #8fd6bd; width: 100%; }
+.st-statbar-tap { cursor: pointer; }
+.st-statbar-tap:active { border-color: #3f8a72; background: #0f1f17; }
+
+/* キャラ詳細ポップアップ */
+.st-detail { max-width: 360px; text-align: left; }
+.st-detail-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
 
 /* 能力値 6列グリッド */
 .st-attrs6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-top: 5px; }

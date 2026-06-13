@@ -272,9 +272,15 @@ export function spawnMimic(rank, scale = 1, master = false) {
   e.name = master ? "マスターミミック" : "ミミック";
   e.isMimic = true; // 撃破時は宝箱が確定出現し、中身が上質になる (game.js の endBattle)
   if (master) e.isMasterMimic = true; // 宝箱の中身がさらに上質 (アイテムLv+30)
-  e.maxhp = Math.round(e.maxhp * (master ? 2.0 : 1.4));
+  // 単体でパーティ6人を相手にする手強い化け物。HP/攻撃/防御を大きく底上げする。
+  e.maxhp = Math.round(e.maxhp * (master ? 4.5 : 3.0));
   e.hp = e.maxhp;
-  e.atk = Math.round(e.atk * (master ? 1.5 : 1.25));
+  e.atk = Math.round(e.atk * (master ? 2.4 : 1.9));
+  e.vit = Math.round(e.vit * (master ? 1.8 : 1.4));
+  e.agi += master ? 8 : 4;                       // 不意打ちで先手を取りやすい
+  e.multistrike = master ? 3 : 2;                // 牙で噛みつき連撃 (一手で複数回)
+  e.physResist = Math.max(e.physResist, master ? 0.25 : 0.15); // 硬い外殻
+  if (master) { e.ability = "soulSteal"; e.lifesteal = Math.max(e.lifesteal, 0.3); }
   e.gold = Math.round(e.gold * (master ? 3 : 2));
   e.soul = Math.round(e.soul * (master ? 2 : 1.5));
   return [e];
