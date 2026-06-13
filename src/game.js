@@ -2640,9 +2640,11 @@ function distributeBattleSoulExp(soulGot) {
     const oldLv = preLv.get(m) || 0;
     if (newLv > oldLv) {
       const before = preStat.get(m) || {};
-      const deltas = [];
-      for (const k of STAT_KEYS) { const d = (m[k] || 0) - (before[k] || 0); if (d > 0) deltas.push(`${STAT_LABEL[k]} +${d}`); }
-      queue.push({ kind: "level", member: m, toLv: newLv, deltas });
+      // 上昇ステータスを2行に分割: AGI/PIE/LUK は改行して2行目へ
+      const SECOND_ROW = new Set(["agi", "pie", "luk"]);
+      const deltas = [], deltas2 = [];
+      for (const k of STAT_KEYS) { const d = (m[k] || 0) - (before[k] || 0); if (d > 0) (SECOND_ROW.has(k) ? deltas2 : deltas).push(`${STAT_LABEL[k]} +${d}`); }
+      queue.push({ kind: "level", member: m, toLv: newLv, deltas, deltas2 });
     }
     const oldSp = preSpells.get(m) || new Set();
     for (const sk of (m.spells || [])) if (!oldSp.has(sk)) queue.push({ kind: "skill", member: m, skill: sk });
@@ -2663,7 +2665,12 @@ function runProgressPopups(queue, done) {
   if (ev.kind === "level") {
     SFX.levelup();
     const lines = [ev.member.cls];
-    lines.push(ev.deltas && ev.deltas.length ? ev.deltas.join("  ") : "ステータスはそのまま");
+    if ((ev.deltas && ev.deltas.length) || (ev.deltas2 && ev.deltas2.length)) {
+      if (ev.deltas && ev.deltas.length) lines.push(ev.deltas.join("  "));
+      if (ev.deltas2 && ev.deltas2.length) lines.push(ev.deltas2.join("  "));
+    } else {
+      lines.push("ステータスはそのまま");
+    }
     showEvent({
       banner: "⤴ レベルアップ ⤴",
       title: `${ev.member.name} は Lv${ev.toLv} に上がった！`,
