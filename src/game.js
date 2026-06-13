@@ -8398,7 +8398,7 @@ function renderStatus() {
     ? `<span class="st-bar-spells">スキル: ${p.spells.map((k) => SPELLS[k] ? SPELLS[k].name : k).join("・")}</span>`
     : "";
   bar.innerHTML = `<span>HP <b>${p.hp}/${p.maxhp}</b></span><span>MP <b>${p.mp}/${p.maxmp}</b></span><span class="${ailCls}">状態: <b>${ail}</b></span><span>属性攻 ${elemStatChip(p.elemAtk)}</span><span>属性防 ${elemStatChip(p.elemDef)}</span>${spellLine}`;
-  bar.addEventListener("click", () => { SFX.select(); showCharDetailPopup(p); });
+  bar.addEventListener("click", () => { SFX.select(); if (p.jobKey) showCodexJobDetail(p.jobKey, p.jobRank); else showCharDetailPopup(p); });
   statusEl.appendChild(bar);
 
   // 死亡中の帰還タイマー
