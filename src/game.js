@@ -2367,16 +2367,22 @@ function renderCombatMenu() {
 
 function showSpells(actor) {
   combatMenu.innerHTML = "";
-  combatMenu.appendChild(el("div", "who", `${actor.name} のスキル (MP ${actor.mp})`));
+  combatMenu.appendChild(el("div", "who", `${actor.name} のスキル (MP ${actor.mp})　長押しで詳細`));
   // 呪文が多い職 (魔導士・賢者など最大11個) は2列に並べて縦に伸びすぎないようにする
   const list = el("div", "target-list" + (actor.spells.length > 4 ? " cols2" : ""));
   for (const key of actor.spells) {
     const sp = SPELLS[key];
     const cost = spellCost(actor, sp); // 省詠唱 (chant) 持ちは消費が軽い
-    const b = btn(`${sp.name} (MP${cost}) - ${sp.desc}`, () => { act("spell", key); });
-    if (actor.mp < cost) { b.disabled = true; b.style.opacity = "0.4"; } // MP不足は押せない
+    // 使えない技も長押しで詳細を見られるよう、native disabled ではなく soft-lock にする
+    // (disabled だと pointer イベントが飛ばず長押しを拾えない)
+    let locked = false;
+    if (actor.mp < cost) locked = true; // MP不足は押せない
     // 単体味方呪文で効果のある対象がいない (満タンへの回復・状態異常なしへの治療) は押せない
-    else if (sp.target === "ally" && G.battle._allyTargets(sp).length === 0) { b.disabled = true; b.style.opacity = "0.4"; }
+    else if (sp.target === "ally" && G.battle._allyTargets(sp).length === 0) locked = true;
+    const b = btn(`${sp.name} (MP${cost}) - ${sp.desc}`, () => { if (locked) { SFX.ng(); return; } act("spell", key); });
+    if (locked) { b.classList.add("locked"); b.style.opacity = "0.4"; }
+    // 長押しでスキル詳細を表示 (MP不足などで押せない技でも内容は確認できる)
+    attachLongPress(b, () => { SFX.select(); showSkillPopup(key); });
     list.appendChild(b);
   }
   combatMenu.appendChild(list);
@@ -2990,6 +2996,26 @@ function btn(label, onClick) {
   b.textContent = label;
   b.addEventListener("click", onClick);
   return b;
+}
+
+// 長押し検出: ~450ms 押し続けたら onHold を呼び、その直後のクリックは抑制する。
+// タッチ/マウス両対応。指が大きく動いたら(スクロール扱い)キャンセルする。
+function attachLongPress(elm, onHold, ms = 450) {
+  let timer = null, fired = false, sx = 0, sy = 0;
+  const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  const start = (x, y) => {
+    fired = false; sx = x; sy = y;
+    clear();
+    timer = setTimeout(() => { fired = true; onHold(); }, ms);
+  };
+  const move = (x, y) => { if (timer && (Math.abs(x - sx) > 10 || Math.abs(y - sy) > 10)) clear(); };
+  elm.addEventListener("pointerdown", (e) => start(e.clientX, e.clientY));
+  elm.addEventListener("pointermove", (e) => move(e.clientX, e.clientY));
+  elm.addEventListener("pointerup", clear);
+  elm.addEventListener("pointercancel", clear);
+  elm.addEventListener("pointerleave", clear);
+  // 長押しが発火していたら通常クリック(スキル発動など)を握り潰す
+  elm.addEventListener("click", (e) => { if (fired) { e.preventDefault(); e.stopPropagation(); fired = false; } }, true);
 }
 
 // ================= 街 (拠点) =================
