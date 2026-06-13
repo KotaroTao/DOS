@@ -388,7 +388,7 @@ const LAYER_VISUALS = [
   { name: "墓地",       sym: "†", accent: "#c7bfa6", bgm: "layer1", back: drawBackGraveyard, floorBase: "#14130f", floorTiles: ["#1b1812", "#17150f", "#13110c"], glow: "rgba(232,210,150,0.06)" }, // 1
   { name: "地下水路",   sym: "≈", accent: "#5fa0b8", bgm: "layer2", back: drawBackWaterway, floorBase: "#0d1417", floorTiles: ["#121d22", "#0f181c", "#0c1216"], glow: "rgba(110,200,220,0.06)" }, // 2
   { name: "廃坑",       sym: "⛏", accent: "#c9923f", bgm: "layer3", back: drawBackMine, floorBase: "#15110c", floorTiles: ["#1d1610", "#18130d", "#14100a"], glow: "rgba(222,150,70,0.06)" },  // 3
-  { name: "捨て砦",     sym: "⚔", accent: "#9aa0ac", bgm: "field3",     floorBase: "#121316", floorTiles: ["#191b20", "#15171b", "#111316"], glow: "rgba(200,210,230,0.05)" }, // 4
+  { name: "捨て砦",     sym: "⚔", accent: "#9aa0ac", bgm: "layer4", back: drawBackFort, floorBase: "#121316", floorTiles: ["#191b20", "#15171b", "#111316"], glow: "rgba(200,210,230,0.05)" }, // 4
   { name: "霧の森",     sym: "♣", accent: "#7faa5a", bgm: "field4",     floorBase: "#0f140d", floorTiles: ["#161d12", "#12180e", "#0e130a"], glow: "rgba(150,200,120,0.06)" }, // 5
   { name: "沈没神殿",   sym: "⛪", accent: "#6fb0c8", bgm: "field5",     floorBase: "#0d1316", floorTiles: ["#121c20", "#0f171b", "#0c1215"], glow: "rgba(120,200,225,0.06)" }, // 6
   { name: "灼熱の洞",   sym: "▲", accent: "#d4682e", bgm: "field6",     floorBase: "#190f0a", floorTiles: ["#22130c", "#1c0f0a", "#160c07"], glow: "rgba(255,130,50,0.07)" },  // 7
@@ -876,6 +876,114 @@ function drawThemedBack(r, accent, sym) {
   }
   vctx.fillStyle = "rgba(255,255,255,0.08)";
   vctx.fillRect(2, 2, r.w - 4, 3);
+}
+
+// 層4「捨て砦」のカード裏面: 朽ちた胸壁と城門、はためく破れ軍旗、地に突き立つ慰霊の剣
+function drawBackFort(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  // 冷たい石の地
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#1a1c21");
+  bg.addColorStop(0.6, "#141519");
+  bg.addColorStop(1, "#0e0f13");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+
+  // 朽ちた城壁
+  const wallTop = 22, wallBot = 36;
+  vctx.fillStyle = "#262a31";
+  vctx.fillRect(2, wallTop, W - 4, wallBot - wallTop);
+  // 胸壁 (メルロン。一部は崩れ落ちて欠ける)
+  const merlons = [1, 1, 0, 1, 1, 0, 1, 1];
+  const mw = (W - 4) / merlons.length;
+  for (let i = 0; i < merlons.length; i++) {
+    if (!merlons[i]) continue;
+    vctx.fillStyle = "#2b2f37";
+    vctx.fillRect(2 + i * mw + 1, wallTop - 5, mw - 2, 6);
+  }
+  // 石目
+  vctx.strokeStyle = "rgba(0,0,0,0.35)";
+  vctx.lineWidth = 0.7;
+  vctx.beginPath(); vctx.moveTo(2, wallTop + 5); vctx.lineTo(W - 2, wallTop + 5); vctx.stroke();
+  vctx.beginPath(); vctx.moveTo(2, wallTop + 10); vctx.lineTo(W - 2, wallTop + 10); vctx.stroke();
+  for (let i = 1; i < 6; i++) {
+    const x = 2 + i * ((W - 4) / 6);
+    vctx.beginPath();
+    vctx.moveTo(x, i % 2 ? wallTop : wallTop + 5);
+    vctx.lineTo(x, i % 2 ? wallTop + 5 : wallTop + 10);
+    vctx.stroke();
+  }
+  vctx.fillStyle = "rgba(170,180,195,0.12)"; // 壁上辺の冷光
+  vctx.fillRect(2, wallTop, W - 4, 1);
+  // 城門 (暗い入口)
+  vctx.fillStyle = "#070809";
+  vctx.beginPath();
+  vctx.moveTo(W / 2 - 5, wallBot);
+  vctx.lineTo(W / 2 - 5, wallTop + 6);
+  vctx.arc(W / 2, wallTop + 6, 5, Math.PI, 0);
+  vctx.lineTo(W / 2 + 5, wallBot);
+  vctx.closePath();
+  vctx.fill();
+
+  // 破れた軍旗 (左の旗竿から垂れ、風にはためく)
+  const poleX = 12, poleTop = 8, poleBot = wallTop + 2;
+  vctx.strokeStyle = "#3a3d44";
+  vctx.lineWidth = 1.4;
+  vctx.beginPath(); vctx.moveTo(poleX, poleTop); vctx.lineTo(poleX, poleBot); vctx.stroke();
+  const sway = Math.sin(t * 0.003) * 2;
+  vctx.fillStyle = "#6b3434"; // 色褪せた深紅
+  vctx.beginPath();
+  vctx.moveTo(poleX, poleTop + 1);
+  vctx.lineTo(poleX + 13 + sway, poleTop + 3);
+  vctx.lineTo(poleX + 10 + sway, poleTop + 7);
+  vctx.lineTo(poleX + 13 + sway, poleTop + 11);
+  vctx.lineTo(poleX + 9 + sway * 0.5, poleTop + 10);
+  vctx.lineTo(poleX, poleTop + 9);
+  vctx.closePath();
+  vctx.fill();
+  vctx.fillStyle = "rgba(0,0,0,0.2)";
+  vctx.fillRect(poleX, poleTop + 5, Math.max(0, 9 + sway * 0.5), 1);
+
+  // 地に突き立つ慰霊の剣 (中央手前)
+  const sx = W / 2;
+  const blade = vctx.createLinearGradient(sx - 1.5, 0, sx + 1.5, 0);
+  blade.addColorStop(0, "#8c93a0"); blade.addColorStop(0.5, "#c2c8d2"); blade.addColorStop(1, "#5b606b");
+  vctx.fillStyle = blade;
+  vctx.beginPath();
+  vctx.moveTo(sx - 1.5, wallBot + 2);
+  vctx.lineTo(sx + 1.5, wallBot + 2);
+  vctx.lineTo(sx + 1.2, H - 6);
+  vctx.lineTo(sx, H - 4);
+  vctx.lineTo(sx - 1.2, H - 6);
+  vctx.closePath();
+  vctx.fill();
+  vctx.fillStyle = "#7a6a3a"; // 鍔
+  vctx.fillRect(sx - 5, wallBot + 1, 10, 2);
+  vctx.fillStyle = "#4a3a22"; // 柄
+  vctx.fillRect(sx - 1.2, wallBot - 4, 2.4, 5);
+  vctx.fillStyle = "#8a7a44"; // 柄頭
+  vctx.fillRect(sx - 1.6, wallBot - 6, 3.2, 2);
+
+  // 瓦礫 (剣の根元)
+  vctx.fillStyle = "#2a2d33";
+  vctx.beginPath(); vctx.ellipse(sx, H - 4, 9, 2.6, 0, 0, Math.PI * 2); vctx.fill();
+  vctx.fillStyle = "#23262b";
+  vctx.fillRect(sx - 12, H - 5, 4, 3);
+  vctx.fillRect(sx + 8, H - 4, 5, 2.5);
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
 }
 
 // 層3「廃坑」のカード裏面: 坑木の支保工が組まれた坑道口、鉱脈の煌めきとトロッコ軌道
