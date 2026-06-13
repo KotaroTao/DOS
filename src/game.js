@@ -880,8 +880,7 @@ function drawCard(r, cell, scaleX, showBack) {
       cell.type === "fountain" && !cell.cleared ? ICONS.fountain :
       cell.type === "corpse" ? ICONS.corpse :
       cell.type === "portal" ? ICONS.portal :
-      cell.type === "stairs" ? ICONS.stairs :
-      cell.type === "start" ? ICONS.upstairs : null;
+      cell.type === "stairs" ? ICONS.stairs : null;
     if (icon) {
       // アイコンの足元影
       vctx.fillStyle = "rgba(0,0,0,0.35)";
@@ -1195,18 +1194,7 @@ function resolveCell(cell) {
     case "stairs":
       askDescend(cell);
       break;
-    case "start":
-      askReturnFromStairs();
-      break;
   }
-}
-
-// 登り階段 (入口/降りてきたマス): 街へ戻るか選ぶ
-function askReturnFromStairs() {
-  showChoice("登り階段だ。街へ戻る？", [
-    { label: "🏚 街へ戻る", fn: () => returnToTown() },
-    { label: "✋ 探索を続ける", fn: () => { renderBoard(); } },
-  ], ICONS.upstairs, { banner: "↑ 登り階段 ↑", accent: "#7fd0ff" });
 }
 
 // 泉を利用: HP/MP回復・毒浄化。利用したら消える。
