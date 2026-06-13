@@ -7,6 +7,7 @@ import { spriteCanvas } from "./sprites.js";
 import {
   ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, recalc, equip as equipItem, unequip as unequipItem, canEquip, slotKeyFor,
   ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, lvToRank, weaponRange, RANGE_LABEL,
+  UNIDENT_SLOTS, itemName,
 } from "./items.js";
 import { RANK_NAME, RANK_COLOR } from "./content.js";
 import { dungeonSubQuests } from "./subquests.js";
@@ -23,6 +24,7 @@ import {
   soulRankFromCount, nextRankThreshold, rankThresholds,
   JOB_LORE, jobRankCondText,
   jobSkillTable, jobRankName, jobPassiveTable, pLv, JOB_GEAR,
+  IDENTIFY_JOBS, identifyChance, canIdentify,
 } from "./souls.js";
 import { showOpening } from "./opening.js";
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
@@ -1393,9 +1395,10 @@ function investigateCorpse(cell, clsKey, clsLabel) {
     || G.party.find((p) => p.items.length < MAX_ITEMS);
   if (who && ITEMS[id]) {
     const it = cloneItem(id);
+    markDungeonLoot(it);
     runGainItem(who, it);
     codexSeeItem(id);
-    log(`風化した死体の傍らに ${it.name} が遺されていた。`, "win");
+    log(`風化した死体の傍らに ${itemName(it)} が遺されていた。`, "win");
     showItemGet(it, who, () => renderBoard());
     return;
   }
@@ -1929,10 +1932,11 @@ function giveDropsFromChest(drops, i, done) {
   const ce = codexMonEntry(d.key);
   if (d.rare) ce.rare = true; else ce.normal = true;
   codexSeeItem(d.id);
+  markDungeonLoot(d.item);
   runGainItem(who, d.item);
   SFX.chest();
-  log(`宝箱から ${d.name}の落とした ${d.item.name} を手に入れた！`, d.rare ? "win" : "sys");
-  if (d.rare) setTimeout(() => showToast(`🌟レアドロップ ${d.item.name}`), 500);
+  log(`宝箱から ${d.name}の落とした ${itemName(d.item)} を手に入れた！`, d.rare ? "win" : "sys");
+  if (d.rare) setTimeout(() => showToast(`🌟レアドロップ ${itemName(d.item)}`), 500);
   showItemGet(d.item, who, next);
 }
 
@@ -5174,15 +5178,16 @@ function renderShop() {
       const cellEl = el("div", "shop-slot" + (it ? "" : " empty"));
       if (it) {
         cellEl.appendChild(spriteCanvas(it, 2));
-        cellEl.appendChild(el("span", "shop-price", `💰${sellPrice(it)}`));
-        cellEl.title = it.name;
-        cellEl.addEventListener("click", () => showSellPrompt(who, it));
+        if (it.unidentified) { cellEl.classList.add("shop-unid"); cellEl.appendChild(el("span", "shop-price", `🔍${sellPrice(it)}`)); }
+        else cellEl.appendChild(el("span", "shop-price", `💰${sellPrice(it)}`));
+        cellEl.title = itemName(it);
+        cellEl.addEventListener("click", () => it.unidentified ? showAppraisePrompt(who, it) : showSellPrompt(who, it));
       }
       bag.appendChild(cellEl);
     }
     dock.appendChild(bag);
-    // 一括売却ボタン (呪われたアイテムを除く全所持品を売る)
-    const sellable = who.items.filter((it) => !it.cursed);
+    // 一括売却ボタン (呪い・未鑑定のアイテムを除く全所持品を売る)
+    const sellable = who.items.filter((it) => !it.cursed && !it.unidentified);
     if (sellable.length > 0) {
       const total = sellable.reduce((s, it) => s + sellPrice(it), 0);
       const bulkBtn = btn(`一括売却 (${sellable.length}点 / 💰${total})`, () => {
@@ -5232,6 +5237,44 @@ function showShopItemDetail(id, price) {
   document.body.appendChild(wrap);
 }
 
+// 商店: 未鑑定品の鑑定/売却を選ぶ。鑑定料は売値と同額で、必ず成功する (商店の確実さ)。
+function showAppraisePrompt(owner, it) {
+  const cost = sellPrice(it); // 鑑定料 = 売却金額と同じ
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card");
+  card.style.borderColor = "#7fd0ff";
+  card.style.boxShadow = "0 0 40px #7fd0ff55";
+  card.appendChild(el("div", "ig-banner", "🔍 未鑑定の品"));
+  const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 9)); card.appendChild(art);
+  card.appendChild(el("div", "ig-name", itemName(it)));
+  for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
+  card.appendChild(el("div", "ig-who", `鑑定料 💰${cost}・正体不明のまま売っても 💰${cost}`));
+  const list = el("div", "ig-choices");
+  const idb = btn(`💰${cost} で鑑定する`, () => { wrap.remove(); shopIdentify(owner, it); });
+  idb.classList.add("primary");
+  if (G.gold < cost) idb.disabled = true;
+  list.appendChild(idb);
+  list.appendChild(makeDanger(`💰${cost} で売る (正体不明のまま)`, () => { wrap.remove(); sellItem(owner, it, sellPrice(it)); }));
+  list.appendChild(btn("やめる", () => wrap.remove()));
+  card.appendChild(list);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
+}
+
+// 商店で鑑定する: 鑑定料を払い、必ず正体を明かす
+function shopIdentify(owner, it) {
+  const cost = sellPrice(it);
+  if (G.gold < cost) { log("お金が足りない。", "sys"); return; }
+  G.gold -= cost;
+  it.unidentified = false;
+  it.idHardFail = false;
+  SFX.itemget(); buzz(15);
+  log(`鑑定料 💰${cost} を払った。${it.name} と判明した！`, "win");
+  showToast(`🔍 ${it.name}`);
+  renderTown();
+}
+
 // 商店: アイテム情報を表示し、売却するか選ぶ (宝箱演出と同じカード)
 function showSellPrompt(owner, it) {
   const price = sellPrice(it);
@@ -5241,7 +5284,7 @@ function showSellPrompt(owner, it) {
   card.style.boxShadow = "0 0 40px #c9a22755";
   card.appendChild(el("div", "ig-banner", "🛒 売却の確認"));
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 9)); card.appendChild(art);
-  card.appendChild(el("div", "ig-name", it.name + (it.cursed ? " 🔒" : "")));
+  card.appendChild(el("div", "ig-name", itemName(it) + (it.cursed ? " 🔒" : "")));
   // 性能・説明
   for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
   if (it.desc) card.appendChild(el("div", "ig-desc", it.desc));
@@ -5266,8 +5309,9 @@ function sellItem(owner, it, price) {
   if (it.id) G.shopStock[it.id] = (G.shopStock[it.id] || 0) + 1;
   codexSeeItem(it.id);
   SFX.select(); buzz(10);
-  log(`${it.name} を売った (+💰${price})。商店に並んだ。`, "win");
-  showToast(`💰+${price} ${it.name} を売却`);
+  const shown = itemName(it);
+  log(`${shown} を売った (+💰${price})。商店に並んだ。`, "win");
+  showToast(`💰+${price} ${shown} を売却`);
   renderTown();
 }
 
@@ -5524,7 +5568,7 @@ function renderStatus() {
     const row = el("div", "st-eqrow" + (it ? "" : " empty"));
     const si = el("span", "st-sicon"); si.appendChild(spriteCanvas(SLOT_ICONS[slot] || SLOT_ICONS.weapon, 2)); row.appendChild(si);
     const ii = el("span", "st-iicon"); if (it) ii.appendChild(spriteCanvas(it, 2)); row.appendChild(ii);
-    row.appendChild(el("span", "st-ename", it ? it.name + (it.cursed ? " 🔒" : "") : SLOT_LABEL[slot]));
+    row.appendChild(el("span", "st-ename", it ? itemName(it) + (it.cursed ? " 🔒" : "") : SLOT_LABEL[slot]));
     row.addEventListener("click", () => openEquipChooser(p, slot));
     eqList.appendChild(row);
   }
@@ -5568,7 +5612,7 @@ function renderStatus() {
 function invRow(p, it, sel) {
   const row = el("div", "st-invrow");
   const ic = el("span", "st-iicon"); ic.appendChild(spriteCanvas(it, 2)); row.appendChild(ic);
-  row.appendChild(el("span", "st-iname", it.name + (it.cursed ? " 🔒" : "")));
+  row.appendChild(el("span", "st-iname" + (it.unidentified ? " st-unid" : ""), itemName(it) + (it.unidentified ? " 🔍" : (it.cursed ? " 🔒" : ""))));
   row.addEventListener("click", () => { SFX.select(); showItemDetailPopup(p, { item: it, from: "bag", index: sel.index }); });
   return row;
 }
@@ -5832,6 +5876,7 @@ function skillChips(keys, label) {
 }
 
 function statLines(it) {
+  if (it && it.unidentified) return "未鑑定 — 鑑定が必要";
   const parts = [];
   const f = (label, v) => { if (v) parts.push(`${label} ${v > 0 ? "+" : ""}${v}`); };
   f("ATK", it.atk); f("VIT", it.vit); f("AGI", it.agi);
@@ -5902,6 +5947,9 @@ function itemCatText(it) {
 
 // ウィザードリィ風の情報テキスト行
 function detailLines(it) {
+  if (it && it.unidentified) {
+    return ["？ 未鑑定の品", "鑑定するまで正体も性能もわからない。", "商店 (有料) か、鑑定の心得がある仲間が必要だ。"];
+  }
   const L = [];
   L.push(itemCatText(it));
   if (it.slot === "use") {
@@ -5945,15 +5993,18 @@ function showItemDetailPopup(p, sel) {
   if (rc) ban.style.color = rc;
   card.appendChild(ban);
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 11)); card.appendChild(art);
-  card.appendChild(el("div", "ig-name", it.name + (it.cursed ? " 🔒呪" : "")));
+  card.appendChild(el("div", "ig-name", itemName(it) + (it.unidentified ? " 🔍" : (it.cursed ? " 🔒呪" : ""))));
   for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
-  if (isEquippable(it) && G.party.length > 1) card.appendChild(equipPartyChips(it));
-  if (it.desc) card.appendChild(el("div", "ig-desc", it.desc));
+  if (isEquippable(it) && !it.unidentified && G.party.length > 1) card.appendChild(equipPartyChips(it));
+  if (it.desc && !it.unidentified) card.appendChild(el("div", "ig-desc", it.desc));
 
   const acts = el("div", "ig-choices");
   const close = () => wrap.remove();
   if (sel.from === "bag") {
-    if (it.slot === "use") {
+    if (it.unidentified) {
+      // 未鑑定品: 鑑定の心得がある仲間がいれば、その場で鑑定を試みられる (商店なら確実・有料)
+      addIdentifyAction(acts, it, close);
+    } else if (it.slot === "use") {
       acts.appendChild(btn("使う", () => { close(); useItem(p, sel.index); }));
     } else if (it.slot === "mat" || it.slot === "misc") {
       // 貴重品/戦利品: 装備も使用もできない (売却・譲渡のみ)
@@ -5974,6 +6025,71 @@ function showItemDetailPopup(p, sel) {
   wrap.appendChild(card);
   wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
   document.body.appendChild(wrap);
+}
+
+// 未鑑定品の詳細ポップアップに「鑑定する」アクションを足す。
+// 鑑定済みの心得がある仲間がいればその場で試せる。失敗済み (idHardFail) は商店送り。
+function addIdentifyAction(acts, it, close) {
+  if (it.idHardFail) {
+    const b = btn("🔒 鑑定失敗済み (商店でのみ鑑定可)", () => {});
+    b.disabled = true;
+    acts.appendChild(b);
+    return;
+  }
+  const idmen = G.party.filter((m) => m.alive && canIdentify(m));
+  if (!idmen.length) {
+    const b = btn("鑑定できる仲間がいない", () => {});
+    b.disabled = true;
+    acts.appendChild(b);
+    return;
+  }
+  acts.appendChild(btn("🔍 鑑定する (スキル)", () => { close(); openIdentifyChooser(it); }));
+}
+
+// 鑑定できる仲間を一覧表示し、誰が鑑定を試みるかを選ぶ (成功率つき)
+function openIdentifyChooser(it) {
+  const idmen = G.party.filter((m) => m.alive && canIdentify(m));
+  if (!idmen.length) { log("鑑定できる仲間がいない。", "sys"); return; }
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card confirm-card");
+  card.style.borderColor = "#7fd0ff";
+  card.appendChild(el("div", "ig-banner", "🔍 鑑定"));
+  card.appendChild(el("div", "ig-name", "誰が鑑定する？"));
+  card.appendChild(el("div", "ig-stat dim", "失敗するとこの品はスキルで鑑定できなくなる (商店なら確実)"));
+  const list = el("div", "ig-choices");
+  for (const m of idmen) {
+    const ch = identifyChance(m.clsKey, m.jobLv || 1, it.lv || 1);
+    const lbl = (IDENTIFY_JOBS[m.clsKey] || {}).label || "鑑定";
+    const b = btn(`${m.name} (${m.cls}) ${lbl} 成功 ${Math.round(ch * 100)}%`, () => {
+      wrap.remove();
+      doIdentifySkill(m, it);
+    });
+    list.appendChild(b);
+  }
+  list.appendChild(btn("やめる", () => wrap.remove()));
+  card.appendChild(list);
+  wrap.appendChild(card);
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  document.body.appendChild(wrap);
+}
+
+// スキル鑑定を実行。成功で正体判明、失敗で idHardFail (以後は商店でのみ鑑定可)
+function doIdentifySkill(m, it) {
+  const ch = identifyChance(m.clsKey, m.jobLv || 1, it.lv || 1);
+  if (Math.random() < ch) {
+    it.unidentified = false;
+    SFX.itemget(); buzz(15);
+    log(`${m.name}は ${it.name} を鑑定した！`, "win");
+    showToast(`🔍 ${it.name} と判明！`);
+  } else {
+    it.idHardFail = true;
+    SFX.ng(); buzz([0, 30, 40, 30]);
+    log(`${m.name}の鑑定は失敗した… この品は商店でしか鑑定できなくなった。`, "sys");
+    showToast("🔍 鑑定失敗…");
+  }
+  if (G.state === "status") renderStatus();
+  renderParty();
+  autosave(true);
 }
 
 function makeDanger(label, fn) { const b = btn(label, fn); b.classList.add("danger"); return b; }
@@ -6221,15 +6337,23 @@ function showConfirm({ title, lines = [], okLabel = "実行する", onOk }) {
   document.body.appendChild(wrap);
 }
 
+// ダンジョンで拾った装備は未鑑定 (鑑定するまで装備不可) で手に入る。
+// 消耗品・戦利品・貴重品 (use/misc/mat) は鑑定済みでそのまま使える。
+function markDungeonLoot(it) {
+  if (it && UNIDENT_SLOTS.has(it.slot)) it.unidentified = true;
+  return it;
+}
+
 // アイテムを入手 (空きのあるメンバーへ)。満杯なら拾えない。{item, who} を返す
 function giveItem(id) {
   const it = cloneItem(id);
   if (!it) return null;
+  markDungeonLoot(it);
   const who = G.party.find((m) => m.items.length < MAX_ITEMS);
-  if (!who) { log(`${it.name}を見つけたが、誰も持てない…`, "sys"); return null; }
+  if (!who) { log(`${itemName(it)}を見つけたが、誰も持てない…`, "sys"); return null; }
   runGainItem(who, it);
   codexSeeItem(id);
-  log(`${it.name} を手に入れた！ (${who.name})`, "win");
+  log(`${itemName(it)} を手に入れた！ (${who.name})`, "win");
   return { item: it, who };
 }
 
@@ -6245,8 +6369,9 @@ function showItemGet(item, who, onClose) {
   const card = el("div", "ig-card");
   const rc = item.rank ? RANK_COLOR[item.rank] : null;
   if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
-  const ban = el("div", "ig-banner", item.rank >= 4 ? `★ ${RANK_NAME[item.rank]}級アイテム発見！ ★` : "✦ アイテム発見！ ✦");
-  if (rc) ban.style.color = rc;
+  const unid = !!item.unidentified;
+  const ban = el("div", "ig-banner", unid ? "✦ 未鑑定の品を発見！ ✦" : (item.rank >= 4 ? `★ ${RANK_NAME[item.rank]}級アイテム発見！ ★` : "✦ アイテム発見！ ✦"));
+  if (rc && !unid) ban.style.color = rc;
   card.appendChild(ban);
   const art = el("div", "ig-art");
   art.appendChild(spriteCanvas(item, 11)); // 大きめのイラスト
@@ -6258,15 +6383,16 @@ function showItemGet(item, who, onClose) {
     art.appendChild(s);
   }
   card.appendChild(art);
-  card.appendChild(el("div", "ig-name", item.name));
+  card.appendChild(el("div", "ig-name", itemName(item)));
   const stat = statLines(item);
   if (stat) card.appendChild(el("div", "ig-stat", stat));
   // 装備可否は現在の編成 (人業) 単位で ○/× 表示。1人のみの時は条件バッジにフォールバック
-  if (isEquippable(item)) {
+  // 未鑑定品は正体不明なので装備可否は出さない
+  if (isEquippable(item) && !unid) {
     if (G.party.length > 1) card.appendChild(equipPartyChips(item));
     else card.appendChild(el("div", "ig-class", equipClassText(item)));
   }
-  card.appendChild(el("div", "ig-desc", item.desc || ""));
+  card.appendChild(el("div", "ig-desc", unid ? "なんだかよくわからない品だ。鑑定すれば正体がわかるだろう。" : (item.desc || "")));
   card.appendChild(el("div", "ig-who", `${who.name} が手に入れた`));
   const ok = btn("受け取る", () => closeItemGet(onClose));
   ok.className = "btn primary ig-ok";
