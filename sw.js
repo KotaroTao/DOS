@@ -4,7 +4,7 @@
 // キャッシュから返す。これにより「新しい game.js + 古い souls.js」のような
 // モジュール混在 (export 不一致で白画面) が構造的に起きない。
 // 新デプロイは CACHE 名の変更で検出され、ページ側が自動リロードする。
-const CACHE = "dos-v209";
+const CACHE = "dos-v213";
 const ASSETS = [
   "./",
   "./index.html",
@@ -53,6 +53,8 @@ const ASSETS = [
   "./src/catalog/ranks/r08.js",
   "./src/catalog/ranks/r09.js",
   "./src/catalog/ranks/r10.js",
+  "./src/catalog/ranks/r11.js",
+  "./src/catalog/ranks/r12.js",
 ];
 
 self.addEventListener("install", (e) => {

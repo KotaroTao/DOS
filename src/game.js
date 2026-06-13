@@ -399,7 +399,7 @@ const LAYER_VISUALS = [
   { name: "灼熱の洞",   sym: "▲", accent: "#d4682e", bgm: "layer7", back: drawBackLava, floorBase: "#190f0a", floorTiles: ["#22130c", "#1c0f0a", "#160c07"], glow: "rgba(255,130,50,0.07)" },  // 7
   { name: "氷結回廊",   sym: "❄", accent: "#9fd0e6", bgm: "layer8", back: drawBackIce, floorBase: "#0e1417", floorTiles: ["#152027", "#111a20", "#0d1418"], glow: "rgba(170,220,245,0.06)" }, // 8
   { name: "毒沼",       sym: "⚗", accent: "#a7b84a", bgm: "layer9", back: drawBackSwamp, floorBase: "#12140d", floorTiles: ["#1a1c11", "#16180d", "#12140a"], glow: "rgba(170,195,75,0.06)" },  // 9
-  { name: "嵐の尖塔",   sym: "⚡", accent: "#b6a4e0", bgm: "field8",     floorBase: "#10101a", floorTiles: ["#181826", "#14141f", "#101019"], glow: "rgba(180,160,235,0.06)" }, // 10
+  { name: "嵐の尖塔",   sym: "⚡", accent: "#b6a4e0", bgm: "layer10", back: drawBackSpire, floorBase: "#10101a", floorTiles: ["#181826", "#14141f", "#101019"], glow: "rgba(180,160,235,0.06)" }, // 10
   { name: "闘技場跡",   sym: "✶", accent: "#c9a05a", bgm: "field3",     floorBase: "#16130d", floorTiles: ["#1f1a11", "#1a160d", "#15110a"], glow: "rgba(225,180,90,0.05)" },  // 11
   { name: "地底大空洞", sym: "◆", accent: "#8a7a5a", bgm: "field10",    floorBase: "#13110d", floorTiles: ["#1b1813", "#16140f", "#12100b"], glow: "rgba(200,180,140,0.05)" }, // 12
   { name: "魔導書庫",   sym: "✪", accent: "#9d7ad0", bgm: "fieldCrypt", floorBase: "#100e17", floorTiles: ["#181323", "#13101c", "#100d16"], glow: "rgba(160,120,225,0.06)" }, // 13
@@ -693,6 +693,15 @@ function drawFloor() {
   }
 }
 
+// ダンジョンで歩くキャラのスプライト。生存している先頭メンバーの職業姿を表示
+// (先頭が倒れていれば、生きているメンバーのうち最も上の者)。全滅時は先頭。
+function walkerSprite() {
+  const party = G.party || [];
+  const lead = party.find((p) => p.alive) || party[0];
+  if (!lead) return HERO;
+  return lead.isDoll ? dollSprite(lead) : HERO;
+}
+
 function renderBoard() {
   updateDescendBtn();
   updateReturnBtn();
@@ -796,7 +805,7 @@ function renderBoard() {
   vctx.ellipse(hx, hy + 16, 12, 4, 0, 0, Math.PI * 2);
   vctx.fill();
   vctx.restore();
-  drawSprite(vctx, HERO, hx, hy, SPR);
+  drawSprite(vctx, walkerSprite(), hx, hy, SPR);
 
   renderParty();
 }
@@ -881,6 +890,90 @@ function drawThemedBack(r, accent, sym) {
   }
   vctx.fillStyle = "rgba(255,255,255,0.08)";
   vctx.fillRect(2, 2, r.w - 4, 3);
+}
+
+// 層10「嵐の尖塔」のカード裏面: 嵐空にそびえる尖塔、閃く稲妻と雷雲、吹きつける雨
+function drawBackSpire(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  // 嵐空の地
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#181426");
+  bg.addColorStop(0.5, "#14121f");
+  bg.addColorStop(1, "#0e0c16");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+
+  // 稲妻のフラッシュ判定 (周期的に二度光る)
+  const lp = t % 2600;
+  const flash = lp < 140 ? (1 - lp / 140) : (lp > 200 && lp < 300 ? (1 - (lp - 200) / 100) * 0.6 : 0);
+
+  // 雷雲 (上辺の暗い塊。フラッシュで縁が光る)
+  for (const [cx, cy, rr] of [[10, 5, 9], [26, 3, 10], [44, 5, 9], [W - 2, 7, 8]]) {
+    vctx.fillStyle = `rgb(${Math.round(33 + flash * 120)},${Math.round(28 + flash * 110)},${Math.round(48 + flash * 120)})`;
+    vctx.beginPath(); vctx.arc(cx, cy, rr, 0, Math.PI * 2); vctx.fill();
+  }
+
+  // 尖塔 (中央にそびえる暗い塔)
+  const tx = W / 2;
+  const body = vctx.createLinearGradient(tx - 7, 0, tx + 7, 0);
+  body.addColorStop(0, "#1a1726"); body.addColorStop(0.5, "#2a2540"); body.addColorStop(1, "#15121f");
+  vctx.fillStyle = body;
+  vctx.beginPath();
+  vctx.moveTo(tx - 5, H); vctx.lineTo(tx - 4, 16); vctx.lineTo(tx + 4, 16); vctx.lineTo(tx + 5, H); vctx.closePath();
+  vctx.fill();
+  // 尖った屋根
+  vctx.fillStyle = "#221d34";
+  vctx.beginPath(); vctx.moveTo(tx - 6, 16); vctx.lineTo(tx, 6); vctx.lineTo(tx + 6, 16); vctx.closePath(); vctx.fill();
+  // 塔の縁ハイライト (フラッシュで青白く)
+  vctx.fillStyle = `rgba(180,165,225,${0.15 + flash * 0.5})`;
+  vctx.fillRect(tx - 4, 16, 1.2, H - 16);
+  // 窓 (淡い灯)
+  vctx.fillStyle = "rgba(190,170,230,0.4)";
+  vctx.fillRect(tx - 1.2, 24, 2.4, 3);
+  vctx.fillRect(tx - 1.2, 34, 2.4, 3);
+
+  // 稲妻 (フラッシュ時に折れ線の閃光)
+  if (flash > 0.25) {
+    vctx.save();
+    vctx.strokeStyle = `rgba(225,220,255,${flash})`;
+    vctx.shadowColor = "rgba(180,160,255,0.9)";
+    vctx.shadowBlur = 8;
+    vctx.lineWidth = 1.4;
+    vctx.beginPath();
+    vctx.moveTo(38, 2); vctx.lineTo(34, 12); vctx.lineTo(40, 18); vctx.lineTo(33, 30); vctx.lineTo(37, 38);
+    vctx.stroke();
+    vctx.restore();
+  }
+
+  // 吹きつける雨 (斜めの線が流れる)
+  vctx.strokeStyle = "rgba(170,185,225,0.18)";
+  vctx.lineWidth = 0.8;
+  for (let i = 0; i < 14; i++) {
+    const seed = i * 53;
+    const x0 = (seed + t * 0.16) % (W + 20) - 10;
+    const y0 = (seed * 1.7 + t * 0.5) % (H + 12) - 6;
+    vctx.beginPath(); vctx.moveTo(x0, y0); vctx.lineTo(x0 - 3, y0 + 6); vctx.stroke();
+  }
+
+  // 全体の閃光 (淡く)
+  if (flash > 0) {
+    vctx.fillStyle = `rgba(190,175,235,${flash * 0.12})`;
+    vctx.fillRect(0, 0, W, H);
+  }
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
 }
 
 // 層9「毒沼」のカード裏面: 沸き立つ毒の澱み、ねじれた枯れ木、漂う瘴気と垂れる毒の雫、毒の鬼火
