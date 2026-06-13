@@ -4184,8 +4184,9 @@ function dollChip(d) {
   info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
   info.appendChild(el("div", "tw-chipc", `${d.cls} Lv${d.jobLv || 1}`));
   chip.appendChild(info);
-  chip.appendChild(el("div", "tw-chiphp",
-    d.alive ? `HP ${d.hp}/${d.maxhp}` : `⏳${fmtRemain(Math.max(0, (d.reviveAt || Date.now()) - Date.now()))}`));
+  chip.appendChild(d.alive
+    ? el("div", "tw-chiphp", `HP ${d.hp}/${d.maxhp}`)
+    : reviveTimerEl("div", "tw-chiphp", "⏳", d));
   return chip;
 }
 
@@ -4274,9 +4275,10 @@ function rosterRow(d, onClick) {
   info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
   info.appendChild(el("div", "tw-chipc", d.primary == null ? "空の人業 ・ メイン魂なし" : `${d.cls} 魂Lv${d.jobLv || 1}`));
   row.appendChild(info);
-  row.appendChild(el("div", "tw-chiphp",
-    d.primary == null ? "編成不可" :
-    d.alive ? `HP ${d.hp}/${d.maxhp}` : `⏳${fmtRemain(Math.max(0, (d.reviveAt || Date.now()) - Date.now()))}`));
+  row.appendChild(
+    d.primary == null ? el("div", "tw-chiphp", "編成不可") :
+    d.alive ? el("div", "tw-chiphp", `HP ${d.hp}/${d.maxhp}`) :
+    reviveTimerEl("div", "tw-chiphp", "⏳", d));
   row.addEventListener("click", onClick);
   return row;
 }
@@ -6409,6 +6411,26 @@ function fmtRemain(ms) {
   return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
 }
 
+// 帰還タイマーの「生きた」表示要素を作る。class js-revt + dataset を持ち、
+// 下の 1秒ごとのティッカーが残り時間をリアルタイムに描き替える (全画面再描画はしない)。
+function reviveTimerEl(tag, cls, prefix, d) {
+  const at = (d.reviveAt || Date.now());
+  const node = el(tag, cls, prefix + fmtRemain(Math.max(0, at - Date.now())));
+  node.classList.add("js-revt");
+  node.dataset.reviveAt = String(at);
+  node.dataset.prefix = prefix;
+  return node;
+}
+
+// 帰還タイマーを1秒ごとに更新 (DOMのテキストだけ書き替え、秒数が1秒ずつ減る)
+setInterval(() => {
+  const now = Date.now();
+  for (const node of document.querySelectorAll(".js-revt")) {
+    const at = Number(node.dataset.reviveAt) || now;
+    node.textContent = (node.dataset.prefix || "") + fmtRemain(Math.max(0, at - now));
+  }
+}, 1000);
+
 // 砕けた人業をすべてHP1で生還させる (生存者がいる帰還・赤い魂帰還で使う)
 function reviveAllAtHp1() {
   for (const d of allDolls()) {
@@ -6732,13 +6754,13 @@ function showAppraisePrompt(owner, it) {
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 9)); card.appendChild(art);
   card.appendChild(el("div", "ig-name", itemName(it)));
   for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
-  card.appendChild(el("div", "ig-who", `鑑定料 💰${cost}・正体不明のまま売っても 💰${cost}`));
+  card.appendChild(el("div", "ig-who", `鑑定料 💰${cost}・正体不明のまま売っても 💰0 (商店に並ばない)`));
   const list = el("div", "ig-choices");
   const idb = btn(`💰${cost} で鑑定する`, () => { wrap.remove(); shopIdentify(owner, it); });
   idb.classList.add("primary");
   if (G.gold < cost) idb.disabled = true;
   list.appendChild(idb);
-  list.appendChild(makeDanger(`💰${cost} で売る (正体不明のまま)`, () => { wrap.remove(); sellItem(owner, it, sellPrice(it)); }));
+  list.appendChild(makeDanger(`💰0 で売る (正体不明のまま)`, () => { wrap.remove(); sellItem(owner, it, 0); }));
   list.appendChild(btn("やめる", () => wrap.remove()));
   card.appendChild(list);
   wrap.appendChild(card);
@@ -6806,14 +6828,16 @@ function showSellPrompt(owner, it) {
 function sellItem(owner, it, price) {
   const idx = owner.items.indexOf(it);
   if (idx < 0) return;
+  // 未鑑定品は正体不明のため二束三文 (0G) で引き取られ、商店にも並ばない
+  if (it.unidentified) price = 0;
   owner.items.splice(idx, 1);
   G.gold += price;
-  // 在庫に積む (ボルタック方式)
-  if (it.id) G.shopStock[it.id] = (G.shopStock[it.id] || 0) + 1;
+  // 在庫に積む (ボルタック方式)。未鑑定品は並ばない
+  if (it.id && !it.unidentified) G.shopStock[it.id] = (G.shopStock[it.id] || 0) + 1;
   codexSeeItem(it.id);
   SFX.select(); buzz(10);
   const shown = itemName(it);
-  log(`${shown} を売った (+💰${price})。商店に並んだ。`, "win");
+  log(`${shown} を売った (+💰${price})。${it.unidentified ? "" : "商店に並んだ。"}`, "win");
   showToast(`💰+${price} ${shown} を売却`);
   renderTown();
 }
@@ -7066,8 +7090,7 @@ function renderStatus() {
   if (p.isDoll && !p.alive) {
     if (!p.reviveAt) setReviveTimers();
     const box = el("div", "st-revive");
-    const remain = Math.max(0, (p.reviveAt || Date.now()) - Date.now());
-    box.appendChild(el("div", "st-revt", `⏳ 帰還まで ${fmtRemain(remain)}`));
+    box.appendChild(reviveTimerEl("div", "st-revt", "⏳ 帰還まで ", p));
     box.appendChild(el("div", "tw-note", "他の冒険者が捜索・救出している…"));
     const b = btn(`🔴1 で帰還を早める`, () => tryHastenRescue(p));
     b.className = "btn primary";
