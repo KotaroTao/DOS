@@ -3946,15 +3946,33 @@ function trainSoul(uid) {
   const cost = Math.max(1, soulTrainCost(e.level) - (e.exp || 0));
   if (G.soulPts < cost) { log("Soul が足りない。", "sys"); SFX.ng(); return; }
   const wearer = allDolls().find((d) => d.primary === uid || (d.subs || []).some((s) => s && s.uid === uid));
-  const before = wearer ? (wearer.spells || []).slice() : null;
+  const STAT_KEYS = ["maxhp", "maxmp", "atk", "vit", "agi", "int", "pie", "luk"];
+  const STAT_LABEL = { maxhp: "HP", maxmp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
+  const beforeStat = wearer ? Object.fromEntries(STAT_KEYS.map((k) => [k, wearer[k] || 0])) : null;
+  const beforeSpells = new Set(wearer ? (wearer.spells || []) : []);
   G.soulPts -= cost;
   e.level++; e.exp = 0;
   recalcAllDolls();
   codexJobSee(e.clsKey, e.count, e.level);
   SFX.levelup(); buzz([0, 30, 40, 30]);
   log(`${soulSeriesName(e.clsKey)}の魂が Lv${e.level} に成長した！ (✦${cost})`, "win");
-  if (wearer && before) notifyNewSkills(wearer, before);
-  renderTown();
+  // 魂のレベルアップを宿主の上昇ステータス・習得スキルとともにポップアップ表示
+  const deltas = [];
+  if (wearer && beforeStat) for (const k of STAT_KEYS) { const d = (wearer[k] || 0) - beforeStat[k]; if (d > 0) deltas.push(`${STAT_LABEL[k]} +${d}`); }
+  const gainedSkills = wearer ? (wearer.spells || []).filter((k) => !beforeSpells.has(k)) : [];
+  const lines = [`${wearer ? wearer.name + " の" : ""}全能力が高まった`];
+  lines.push(deltas.length ? deltas.join("  ") : "ステータスはそのまま");
+  for (const sk of gainedSkills) { const sp = SPELLS[sk]; lines.push(`✦ 「${sp ? sp.name : sk}」を覚えた！`); }
+  showEvent({
+    sprite: wearer ? dollSprite(wearer) : jobSprite(e.clsKey, soulRankOf(e)),
+    banner: "⤴ 魂レベルアップ ⤴",
+    title: `${soulSeriesName(e.clsKey)}の魂が Lv${e.level} になった！`,
+    lines,
+    accent: SOUL_CLASSES[e.clsKey].glow,
+    sparkle: true,
+    btnLabel: "受け取る",
+    onClose: () => renderTown(),
+  });
 }
 
 // ---- 酒場「沈まぬ灯」: パーティ編成 + クエスト ----
@@ -5347,15 +5365,31 @@ function renderShop() {
       bag.appendChild(cellEl);
     }
     dock.appendChild(bag);
-    // 一括売却ボタン (呪い・未鑑定のアイテムを除く全所持品を売る)
+    // 一括鑑定 (左) ・ 一括売却 (右) を横並びで配置
+    const unid = who.items.filter((it) => it.unidentified);
     const sellable = who.items.filter((it) => !it.cursed && !it.unidentified);
-    if (sellable.length > 0) {
-      const total = sellable.reduce((s, it) => s + sellPrice(it), 0);
-      const bulkBtn = btn(`一括売却 (${sellable.length}点 / 💰${total})`, () => {
-        for (const it of sellable) sellItem(who, it, sellPrice(it));
-      });
-      bulkBtn.className = "btn tw-add";
-      dock.appendChild(bulkBtn);
+    if (unid.length > 0 || sellable.length > 0) {
+      const actions = el("div", "shop-actions");
+      actions.style.display = "flex";
+      actions.style.gap = "8px";
+      if (unid.length > 0) {
+        const idTotal = unid.reduce((s, it) => s + sellPrice(it), 0);
+        const idBtn = btn(`一括鑑定 (${unid.length}点 / 💰${idTotal})`, () => bulkIdentify(who));
+        idBtn.className = "btn tw-add";
+        idBtn.style.flex = "1";
+        if (G.gold < sellPrice(unid[0])) idBtn.disabled = true; // 1点も鑑定できないなら無効
+        actions.appendChild(idBtn);
+      }
+      if (sellable.length > 0) {
+        const total = sellable.reduce((s, it) => s + sellPrice(it), 0);
+        const bulkBtn = btn(`一括売却 (${sellable.length}点 / 💰${total})`, () => {
+          for (const it of sellable) sellItem(who, it, sellPrice(it));
+        });
+        bulkBtn.className = "btn tw-add";
+        bulkBtn.style.flex = "1";
+        actions.appendChild(bulkBtn);
+      }
+      dock.appendChild(actions);
     }
   } else {
     dock.appendChild(el("div", "tw-empty", "編成に人業がいない。"));
@@ -5433,6 +5467,25 @@ function shopIdentify(owner, it) {
   SFX.itemget(); buzz(15);
   log(`鑑定料 💰${cost} を払った。${it.name} と判明した！`, "win");
   showToast(`🔍 ${it.name}`);
+  renderTown();
+}
+
+// 商店で一括鑑定: 所持品の未鑑定品を、所持金が続く限り安い順に鑑定する
+function bulkIdentify(owner) {
+  const unid = owner.items.filter((it) => it.unidentified).sort((a, b) => sellPrice(a) - sellPrice(b));
+  let n = 0, spent = 0;
+  for (const it of unid) {
+    const cost = sellPrice(it);
+    if (G.gold < cost) break;
+    G.gold -= cost; spent += cost;
+    it.unidentified = false; it.idHardFail = false;
+    n++;
+  }
+  if (n > 0) {
+    SFX.itemget(); buzz(15);
+    log(`一括鑑定: ${n}点を鑑定した (💰${spent})。`, "win");
+    showToast(`🔍 ${n}点を鑑定`);
+  } else { log("お金が足りない。", "sys"); SFX.ng(); }
   renderTown();
 }
 
