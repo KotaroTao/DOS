@@ -58,12 +58,12 @@ const NEW_DEFS = [
     role: "summoner", summonKey: "bs_goblin", ability: "goldSteal", // 配下を盾に呼び、混乱に乗じて奪う
     desc: "屍から剥いだ鎧を勲章のように重ね着た、ゴブリンどもの長。配下を盾に、戦利品の山の上から戦を眺める。形勢が傾けば甲高い号令で新手のゴブリンを呼び寄せ、その隙に懐を狙う。" },
   // -- rank 3 --
-  { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "beast", soulClass: "fighter",
-    palette: tint(ARTS.beast.palette, "#3a3a46", 0.35),
-    desc: "月のない迷宮の闇でこそ獣性が猛る呪われた人。引き裂いた相手の悲鳴で、わずかに残った人の心が軋む。" },
-  { id: "bs_scorpion", name: "鉄ばさみの毒さそり", rank: 3, race: "insect", element: "earth", artKey: "spider",
-    palette: tint(ARTS.spider.palette, "#b8923a", 0.4),
-    desc: "鎧の継ぎ目を断ち切るはさみと、心の臓を直に灼く尾針を併せ持つ大さそり。乾いた床を擦る音が死の予鈴となる。" },
+  { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
+    regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
+    desc: "月のない迷宮の闇でこそ獣性が猛る呪われた人。引き裂いた相手の悲鳴で、わずかに残った人の心が軋む。負わせた傷もろとも、己の傷もみるみる塞がっていく。" },
+  { id: "bs_scorpion", name: "鉄ばさみの毒さそり", rank: 3, race: "insect", element: "earth", artKey: "scorpion",
+    ability: "poison", physResist: 0.5, // 心臓を灼く毒針 + 鎧のような甲殻
+    desc: "鎧の継ぎ目を断ち切るはさみと、心の臓を直に灼く尾針を併せ持つ大さそり。乾いた床を擦る音が死の予鈴となる。分厚い甲殻は刃をろくに通さない。" },
   // -- rank 4 --
   { id: "bs_gargoyle", name: "ガーゴイル", rank: 4, race: "construct", element: "earth", artKey: "golem",
     palette: tint(ARTS.golem.palette, "#4a4a5a", 0.3),
@@ -180,21 +180,22 @@ const NEW_DEFS = [
     physResist: 0.5, ability: "poison", // 粘体ゆえ刃が通らず、鉱毒を傷へ流し込む
     desc: "鉱毒を溶かし込んだ粘塊。刃を突き立てても潰れて寄り集まり、触れた武器を緑色に染める。その毒が傷口から血液へと溶け込む。迷宮の床が緑色なら、すでに領域だ。" },
   // -- rank 3 追加 (+5) --
-  { id: "bs_darkelf", name: "闇の射手", rank: 3, race: "humanoid", element: "dark", artKey: "kobold", soulClass: "thief",
-    palette: tint(ARTS.kobold.palette, "#3a2a5a", 0.45),
-    desc: "光を嫌い廃砦の奥に巣食う弓の使い手。暗闇でも正確に射る矢は呪いで染まり、刺さった先から腐敗が広がる。" },
+  { id: "bs_darkelf", name: "闇の射手", rank: 3, race: "humanoid", element: "dark", artKey: "darkelf", soulClass: "thief",
+    ability: "poison", evasive: true, // 腐敗を呼ぶ呪い矢 + 身軽な射手
+    desc: "光を嫌い廃砦の奥に巣食う弓の使い手。暗闇でも正確に射る矢は呪いで染まり、刺さった先から腐敗が広がる。身軽に物陰を渡り歩き、矢を放つや影に溶けて消える。" },
   { id: "bs_poisonspider", name: "毒蜘蛛", rank: 3, race: "insect", element: "earth", artKey: "spider",
     palette: tint(ARTS.spider.palette, "#2a6a2a", 0.45),
-    desc: "砦の天井に巣を張り、人が通るのをじっと待ち続ける大蜘蛛。毒の牙で獲物を麻痺させてから、蜘蛛糸で巻いて食料庫へ運ぶ。" },
-  { id: "bs_waterelemental", name: "水の精霊", rank: 3, race: "elemental", element: "water", artKey: "slime",
-    palette: tint(ARTS.slime.palette, "#2a6a9a", 0.35),
-    desc: "砦跡の地下水脈に宿った水の精霊。人の形を模して歩くが、斬れば水に戻り、水に戻れば再び形を結ぶ。" },
-  { id: "bs_marshgolem", name: "泥のゴーレム", rank: 3, race: "construct", element: "earth", artKey: "golem",
-    palette: tint(ARTS.golem.palette, "#5a4a2a", 0.45),
-    desc: "廃砦跡の湿地に積もった泥が、呪文の残りかすを吸って動き出したゴーレム。動くたびに腐臭をまき散らし、跡には沼の跡が残る。" },
-  { id: "bs_hexwolf", name: "呪詛の狼", rank: 3, race: "beast", element: "dark", artKey: "beast",
-    palette: tint(ARTS.beast.palette, "#4a3a6a", 0.4),
-    desc: "呪詛の言葉を刻まれ、死してなお走り続ける狼の亡骸。噛まれた傷は癒えず、噛まれた者は夢の中で追われ続ける。" },
+    ability: "paralyze", evasive: true, // 毒牙で麻痺させてから巻く + 糸を伝って身をかわす
+    desc: "砦の天井に巣を張り、人が通るのをじっと待ち続ける大蜘蛛。毒の牙で獲物を麻痺させてから、蜘蛛糸で巻いて食料庫へ運ぶ。糸を伝って跳ね、振るう刃を軽々とかわす。" },
+  { id: "bs_waterelemental", name: "水の精霊", rank: 3, race: "elemental", element: "water", artKey: "waterelemental",
+    physResist: 0.55, regen: 0.1, // 斬れば水に戻り、水は再び形を結ぶ
+    desc: "砦跡の地下水脈に宿った水の精霊。人の形を模して歩くが、斬れば水に戻り、水に戻れば再び形を結ぶ。刃も槍もその身を通り抜けるばかりで、崩れた形は瞬く間に流れ集まって元に戻る。" },
+  { id: "bs_marshgolem", name: "泥のゴーレム", rank: 3, race: "construct", element: "earth", artKey: "marshgolem",
+    ability: "poison", regen: 0.08, // 腐臭の泥 + 泥はすぐに盛り直す
+    desc: "廃砦跡の湿地に積もった泥が、呪文の残りかすを吸って動き出したゴーレム。動くたびに腐臭をまき散らし、跡には沼の跡が残る。崩した泥もすぐに本体へ吸い寄せられ、盛り直されてしまう。" },
+  { id: "bs_hexwolf", name: "呪詛の狼", rank: 3, race: "beast", element: "dark", artKey: "hexwolf",
+    magWeak: 1.5, swift: true, // 脆い呪骸 (魔法弱点) + 死してなお止まらぬ俊足
+    desc: "呪詛の言葉を刻まれ、死してなお走り続ける狼の亡骸。噛まれた傷は癒えず、噛まれた者は夢の中で追われ続ける。脆い呪骸は俊敏だが、術の一撃には脆く崩れる。" },
   // -- rank 4 追加 (+5) --
   { id: "bs_darksamurai", name: "黒甲の武者", rank: 4, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#3a2a2a", 0.45),
