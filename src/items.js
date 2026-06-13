@@ -770,6 +770,7 @@ export function recalc(member) {
   let flatHp = 0, flatMp = 0, crit = base.crit || 0;
   // %補正 (LR装飾品など)。同種は加算合算 (+20%×2 = +40%)、フラット加算の後に乗算で効く
   const mul = { atk: 0, vit: 0, agi: 0, int: 0, pie: 0, luk: 0, hp: 0, mp: 0 };
+  const eff = {}; // 戦闘効果 (LR装飾品): actFirst/multistrike/lifesteal/autoRevive/guard/spellCostMul
   const ea = {}, ed = {};
   const counted = new Set();
   for (const slot of SLOTS) {
@@ -786,6 +787,12 @@ export function recalc(member) {
     flatMp  += it.mp || 0;
     crit += it.crit || 0;
     if (it.mult) for (const k in mul) mul[k] += it.mult[k] || 0;
+    if (it.eff) for (const k in it.eff) {
+      const v = it.eff[k];
+      if (typeof v === "boolean") eff[k] = eff[k] || v;                  // actFirst 等
+      else if (k === "multistrike" || k === "barrier") eff[k] = (eff[k] || 0) + v; // 加算
+      else eff[k] = Math.max(eff[k] || 0, v);                            // 割合は強い方
+    }
     if (it.eAtk && it.eAtk.el) ea[it.eAtk.el] = (ea[it.eAtk.el] || 0) + (it.eAtk.lv || 1);
     if (it.eDef && it.eDef.el) ed[it.eDef.el] = (ed[it.eDef.el] || 0) + (it.eDef.lv || 1);
   }
@@ -810,6 +817,8 @@ export function recalc(member) {
   // 属性攻撃/属性防御 (装備由来。Lv1=◯, Lv2=◎)
   member.elemAtk = topElemStat(ea);
   member.elemDef = topElemStat(ed);
+  // 戦闘効果 (LR装飾品由来)。combat.js が戦闘開始時に actor へ展開する
+  member.eff = Object.keys(eff).length ? eff : null;
   // 旧体系の派生値 (こうげき/ぼうぎょ/すばやさ/AC) は廃止
   delete member.def; delete member.spd; delete member.ac;
 }
