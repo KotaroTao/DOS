@@ -808,6 +808,42 @@ const NEW_DEFS = [
   { id: "bs_frostmonarch", name: "凍てつく王墓の主", rank: 10, boss: true, race: "undead", element: "water", artKey: "frostmonarch", soulClass: "hexer",
     role: "summoner", summonKey: "bs_iceroyalguard", ability: "drain", physResist: 0.5, enrage: true,
     desc: "氷の玉座に座す、最も古く最も若い顔をした王の亡骸。近衛を呼び従え、生者の若さと命を貪る。若さは魂で買うもの――買えなくなった王はこうして氷へ移され、次の王が立つ。今の王も、いずれここへ来る。" },
+  // -- 第18層「冥府の門」 (rank 10・闇/冥府への門) --
+  { id: "bs_gatekeeper", name: "門の番人", rank: 10, race: "construct", element: "dark", artKey: "gatekeeper",
+    ability: "critical", physResist: 0.5, barrier: 2, desc: "半開きの冥府の門を守り続ける、巨大な門番の像。冥火の刃で急所を断ち、その身は刃も魔も阻む。門の向こうへ通すことも、こちらへ来させることも、決して許さない。" },
+  { id: "bs_ferryman", name: "冥河の渡し守", rank: 10, race: "specter", element: "dark", artKey: "ferryman",
+    ability: "drain", magResist: 0.4, evasive: true, desc: "門の向こうの冥河で、死者を運び続ける渡し守の霊。櫂で生者の命を奪って渡し賃とし、霧のように掴みどころがない。運ばれた者は、二度と戻らない。" },
+  { id: "bs_wailingdead", name: "還せと叫ぶ亡者", rank: 10, race: "undead", element: "dark", artKey: "wailingdead",
+    ability: "drain", pack: true, enrage: true, desc: "門の向こうへ送られ、『還せ』と叫び続ける亡者の群れ。生者に縋りついて命を吸い、押し返されるほど狂ったように暴れる。皆、生きたまま門をくぐらされた者たちだ。" },
+  { id: "bs_cerberusshade", name: "冥門の犬", rank: 10, race: "beast", element: "dark", artKey: "cerberusshade",
+    ability: "critical", multistrike: 2, swift: true, desc: "三つの首で門の左右を睨む、冥府の番犬の影。三つの口で続けざまに急所へ喰らいつき、素早く回り込む。一つの首を黙らせても、残る二つが吠え続ける。" },
+  { id: "bs_soulchain", name: "魂縛りの鎖", rank: 10, race: "construct", element: "dark", artKey: "soulchain",
+    ability: "paralyze", barrier: 2, physResist: 0.4, desc: "門をくぐる魂を縛り、引き留める呪いの鎖。絡みついて獲物を痺れさせ、断とうにも刃を弾く。この鎖が、門を半開きのまま保っている。" },
+  { id: "bs_doorwraith", name: "門前の霊", rank: 10, race: "specter", element: "dark", artKey: "doorwraith",
+    ability: "drain", evasive: true, lifesteal: 0.3, desc: "門をくぐれず、くぐられもせず、門前で彷徨い続ける霊。近づく者の命を吸って一瞬実体を得て、刃を向ければ門の隙間へ消える。行くも還るも許されぬ、宙吊りの魂だ。" },
+  { id: "bs_underjudge", name: "冥府の判官", rank: 10, race: "armored", element: "dark", artKey: "underjudge",
+    ability: "critical", enrage: true, physResist: 0.4, desc: "門の向こうで死者の罪を裁く、冥府の判官の影。冥火の刃で罪人の急所を断ち、裁きの興奮で猛る。生者すらも、裁くべき罪人として門へ引きずり込もうとする。" },
+  { id: "bs_lostbrother", name: "送られた弟", rank: 10, race: "undead", element: "dark", artKey: "lostbrother",
+    ability: "drain", enrage: true, lifesteal: 0.3, desc: "百年前、王の祖父に生きたまま門の向こうへ送られた、実の弟の亡霊。裏切りの恨みで生者の命を吸い、王家の血を求めて荒れ狂う。『還せ』の声の、最初の主だ。" },
+  { id: "bs_shadereaper", name: "魂を刈る影", rank: 10, race: "specter", element: "dark", artKey: "shadereaper",
+    ability: "critical", swift: true, lifesteal: 0.3, desc: "門の前で迷う魂を刈り取る、大鎌を持つ影。素早く間合いを詰めて急所を一閃し、刈った命をおのれの糧とする。門へ向かう列から、はぐれた魂を狩る。" },
+  { id: "bs_grievingspirit", name: "嘆きの群霊", rank: 10, race: "specter", element: "dark", artKey: "grievingspirit",
+    ability: "weaken", pack: true, magResist: 0.4, desc: "門の前で別れを嘆き続ける、無数の死者の霊の群れ。重なる嘆きが生者の気力を奪い、群れで取り囲む。誰もが、まだ門の向こうへ行きたくないと泣いている。" },
+  { id: "bs_boneferry", name: "骸の渡し舟", rank: 10, race: "construct", element: "dark", artKey: "boneferry",
+    multistrike: 2, physResist: 0.5, barrier: 2, desc: "無数の骸を組み合わせて作られた、冥河を渡る舟の魔。骨の櫂で続けざまに打ち据え、組まれた骨の体は刃を阻む。乗せた魂を、二度と降ろさない。" },
+  { id: "bs_hadeshound", name: "冥界の番犬", rank: 10, race: "beast", element: "dark", artKey: "hadeshound",
+    ability: "critical", swift: true, pack: true, desc: "門の向こうから漏れ出した、冥界の番犬の群れ。素早く取り囲んで急所に喰らいつき、その牙は魂を引き裂く。獲物を門の向こうへ追い立てるのが、こいつらの務めだ。" },
+  { id: "bs_voidpriest", name: "虚無の司祭", rank: 10, race: "specter", element: "dark", artKey: "voidpriest", soulClass: "necromancer",
+    role: "summoner", summonKey: "bs_wailingdead", ability: "drain", magResist: 0.4, desc: "門の向こうの虚無を崇め、死者を呼び戻す術を編んだ司祭の霊。叫ぶ亡者を次々と呼び覚まし、生者の命を吸う。門を開いたままにしているのは、こいつの祈祷でもある。" },
+  { id: "bs_chainwraith", name: "鎖の亡霊", rank: 10, race: "specter", element: "dark", artKey: "chainwraith",
+    ability: "paralyze", lifesteal: 0.3, enrage: true, desc: "罪人として鎖に繋がれたまま門前で朽ちた者の霊。絡みつく鎖で獲物を痺れさせ、その温もりを吸う。引きちぎろうともがくほど、鎖は深く食い込む。" },
+  { id: "bs_tormentor", name: "責め苦の鬼", rank: 10, race: "demon", element: "dark", artKey: "tormentor",
+    ability: "critical", multistrike: 2, enrage: true, desc: "門の向こうで罪人を責め苛む、鉤と鞭を持つ冥府の鬼。鉤で急所を抉り、続けざまに打ち据える。生者をも罪人と見なし、永遠の責め苦へ引きずり込もうとする。" },
+  { id: "bs_echoofvoice", name: "『還せ』の声", rank: 10, race: "elemental", element: "dark", artKey: "echoofvoice",
+    ability: "weaken", magResist: 0.4, evasive: true, desc: "門の向こうから絶えず響く、『還せ』という声そのものが凝った魔。その声を聞いた者は気力を奪われ、声は実体なく刃をすり抜ける。門も、迷宮も、骸も、皆この同じ言葉を口にする。" },
+  { id: "bs_gatewarden", name: "冥府の門の主", rank: 10, boss: true, race: "specter", element: "dark", artKey: "gatewarden", soulClass: "hexer",
+    role: "summoner", summonKey: "bs_wailingdead", ability: "drain", physResist: 0.5, enrage: true,
+    desc: "半開きの冥府の門を守り、向こうとこちらの境に座す門の主。叫ぶ亡者を次々と呼び、生者の命を貪る。百の迷宮は病巣ではなく傷口――魂の巡りをせき止めた、この国の業が開けた傷の、最も深い裂け目だ。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1751,6 +1787,7 @@ export const BOSS_ORDER = {
 // 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
 // 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
 const LAYER_BOSS_OVERRIDE = {
+  18: "bs_gatewarden", // 第18層「冥府の門」: 冥府の門の主 (rank10・闇ボス)
   17: "bs_frostmonarch", // 第17層「凍てつく王墓」: 凍てつく王墓の主 (rank10・水ボス)
   16: "bs_highpontiff", // 第16層「深淵の聖堂」: 深淵の聖堂の主 (rank10・光ボス)
   15: "bs_forgemaster", // 第15層「溶鉄炉」: 溶鉄炉の主 (rank10・火ボス)
@@ -1932,6 +1969,15 @@ export const LAYER_POOLS = {
     "bs_frostnoble", "bs_icebreaker", "bs_frozenchancellor", "bs_frostlynx", "bs_crystalcoffin",
     "bs_soulfrostwraith", "bs_permafrostgolem", "bs_frozenpriest", "bs_iciclewyrm", "bs_mournfulqueen",
     "bs_coldrevenant", "bs_snowhydra", "bs_glacialhound", "bs_frostsentinel", "bs_frostservant",
+  ],
+  // 第18層「冥府の門」: 闇/冥府中心、全rank10。虚無/終末系4体を再配置
+  18: [
+    "bs_gatekeeper", "bs_ferryman", "bs_wailingdead", "bs_cerberusshade", "bs_soulchain",
+    "bs_doorwraith", "bs_underjudge", "bs_lostbrother", "bs_shadereaper", "bs_grievingspirit",
+    "bs_boneferry", "bs_hadeshound", "bs_voidpriest", "bs_chainwraith", "bs_tormentor",
+    "bs_echoofvoice",
+    // 既存の虚無/終末系を再配置
+    "bs_apocalypsedrake", "bs_abysswarden", "bs_eternallord", "bs_chaosknight",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
