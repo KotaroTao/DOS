@@ -99,6 +99,20 @@ export const SPELLS = {
   SAKIGAKENOGOREI: { name: "先駆けの号令", mp: 10, kind: "buff", buff: { agi: 1.35 }, target: "all-ally", desc: "隊全体を疾風のごとく駆り立てる" },
   MAGUINOTACHI: { name: "魔喰いの太刀", mp: 8, kind: "phys", power: 2.4, mpDrain: 0.25, target: "enemy", desc: "斬った魔力を喰らいMPに変える" },
   SEIIKINOKANE: { name: "聖域の鐘", mp: 12, kind: "buff", buff: { vit: 1.2 }, cure: true, target: "all-ally", desc: "鐘の音が隊を守り、穢れを祓う" },
+  // --- 騎士 高レベル帯 (Lv85-200) ---
+  SHIELDCHARGE: { name: "盾突進", mp: 10, kind: "phys", power: 2.4, debuff: { vit: 0.85 }, target: "enemy", desc: "盾ごと突進して打ち据える" },
+  SHUGOHOUKOU: { name: "守護咆哮", mp: 10, kind: "buff", buff: { vit: 1.4, atk: 1.2 }, target: "self", desc: "守護の咆哮で身を奮い立たせる" },
+  JOUSAITSUKI: { name: "城塞突き", mp: 18, kind: "phys", power: 5.0, debuff: { vit: 0.7 }, target: "enemy", desc: "城塞すら砕く渾身の突き" },
+  TEPPEKIJIN: { name: "鉄壁陣", mp: 16, kind: "heal", power: 18, buff: { vit: 1.3 }, target: "all-ally", desc: "鉄壁の陣形で隊を守り癒す" },
+  FURAKUNOTATE: { name: "不落の盾", mp: 20, kind: "buff", buff: { vit: 1.7 }, target: "all-ally", desc: "崩れぬ盾で隊全体を守る" },
+  BANRAI: { name: "万雷の盾撃", mp: 24, kind: "phys", power: 6.8, target: "enemy", desc: "万雷のごとき盾の連打" },
+  TESSAINAGI: { name: "鉄盾薙ぎ", mp: 22, kind: "phys", power: 2.4, target: "all-enemy", desc: "大盾で敵全体を薙ぎ払う" },
+  SHUGOKEKKAI: { name: "守護結界", mp: 22, kind: "buff", buff: { vit: 1.5 }, grantBarrier: 1, target: "all-ally", desc: "結界で隊を守り、魔障壁を配る" },
+  JOUSAIKUZUSHI: { name: "城塞崩し", mp: 28, kind: "phys", power: 8.0, debuff: { vit: 0.7 }, target: "enemy", desc: "城塞を崩す決死の一撃" },
+  KISHIOU: { name: "騎士王の威光", mp: 30, kind: "heal", power: 30, buff: { vit: 1.4 }, target: "all-ally", desc: "王の威光が隊を癒し守りを高める" },
+  FUDOUJIN: { name: "不動明王陣", mp: 32, kind: "phys", power: 9.0, debuff: { vit: 0.7 }, target: "enemy", desc: "不動の構えから放つ決死の一撃" },
+  DAIGOUREI: { name: "守護の大号令", mp: 30, kind: "buff", buff: { vit: 1.6, atk: 1.25 }, target: "all-ally", desc: "隊全体の攻守を奮い立たせる号令" },
+  FURAKUJOU: { name: "不落城", mp: 40, kind: "heal", power: 40, buff: { vit: 1.8 }, target: "all-ally", desc: "隊を鉄壁の城と化す騎士王の極み" },
   // --- 盗賊ベース ---
   KUBIKARI: { name: "首狩り", mp: 13, kind: "phys", power: 2.5, critBonus: 0.45, target: "enemy", desc: "獲物の首筋を狙う必殺の狩技" },
   OIHAGI: { name: "追い剥ぎ", mp: 10, kind: "phys", power: 2.4, plunder: true, target: "enemy", desc: "倒した敵から金品を根こそぎ奪う" },
@@ -286,7 +300,7 @@ export class Battle {
     this.opening = opts.opening || null;
     this.noFlee = !!opts.noFlee; // 迷宮の異変「閉ざされた退路」: 逃走不可
     this._roundNo = 0;
-    this._bigBarrierUsed = false;
+    this._bigBarrierUsed = 0;
     for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._endureUsed = 0; a._grantEndure = false; }
     for (const p of party) {
       p._coverLeft = pv(p, "cover");
@@ -707,10 +721,11 @@ export class Battle {
       // ブレス: 味方全体への属性ダメージ (回避不可・VITで微減)
       this.log(`${actor.name}は${actor.boss ? "業炎の" : ""}ブレスを吐いた！`, "dmg");
       res.breath = true;
-      // 大結界: 1戦闘1回、自動で隊全体の被ダメージを半減する
+      // 大結界: 自動で隊全体の被ダメージを半減する (Lv1=1戦闘1回 / Lv2=2回)
       let bigB = false;
-      if (!this._bigBarrierUsed && this.party.some((p) => p.alive && pv(p, "bigBarrier"))) {
-        this._bigBarrierUsed = true;
+      const bigBMax = Math.max(0, ...this.party.filter((p) => p.alive).map((p) => pv(p, "bigBarrier")));
+      if ((this._bigBarrierUsed || 0) < bigBMax) {
+        this._bigBarrierUsed = (this._bigBarrierUsed || 0) + 1;
         bigB = true;
         this.log("大結界が隊を包んだ！", "heal");
       }
@@ -904,7 +919,8 @@ export class Battle {
       if (g) {
         g._coverLeft--;
         this.log(`${g.name}は${tgt.name}をかばった！`, "sys");
-        if (pv(g, "cover") >= 2) coverMul = 0.7;
+        const cvLv = pv(g, "cover");
+        if (cvLv >= 3) coverMul = 0.6; else if (cvLv >= 2) coverMul = 0.7;
         tgt = g;
       }
     }
@@ -937,7 +953,10 @@ export class Battle {
     let dmg = variance(Math.round(this._eatk(actor) * power * this._lowHpMul(actor))) + sbAdd - Math.floor(this._evit(tgt) * 0.5);
     if (tgt._defending) dmg = Math.floor(dmg * 0.5);
     // 城壁の構え: 防御中の持ち主がいれば隊全体の被ダメ-10%
-    if (tgt.side === "party" && this.party.some((p) => p.alive && p._defending && pv(p, "bastion"))) dmg = Math.floor(dmg * 0.9);
+    if (tgt.side === "party") {
+      const bastLv = Math.max(0, ...this.party.filter((p) => p.alive && p._defending).map((p) => pv(p, "bastion")));
+      if (bastLv >= 2) dmg = Math.floor(dmg * 0.82); else if (bastLv >= 1) dmg = Math.floor(dmg * 0.9);
+    }
     if (coverMul !== 1) dmg = Math.floor(dmg * coverMul);
     // 属性相性: 攻撃属性 (技 > 装備の属性攻撃 > 固有属性) × 対象の固有属性/属性防御
     const aE = opt.element || (actor.elemAtk && actor.elemAtk.el) || actor.element || "none";
