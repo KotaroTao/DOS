@@ -406,7 +406,7 @@ const LAYER_VISUALS = [
   { name: "屍蝋の回廊", sym: "‡", accent: "#b8a878", bgm: "layer14", back: drawBackOssuary, floorBase: "#14120d", floorTiles: ["#1c1912", "#17140e", "#13100a"], glow: "rgba(210,190,130,0.05)" }, // 14
   { name: "溶鉄炉",     sym: "♨", accent: "#e07838", bgm: "layer15", back: drawBackForge, floorBase: "#190e08", floorTiles: ["#23120a", "#1c0f08", "#160b06"], glow: "rgba(255,140,55,0.07)" },  // 15
   { name: "深淵の聖堂", sym: "✝", accent: "#e0d28a", bgm: "layer16", back: drawBackCathedral, floorBase: "#14130c", floorTiles: ["#1d1b10", "#18160d", "#13110a"], glow: "rgba(240,225,150,0.06)" }, // 16
-  { name: "凍てつく王墓", sym: "❅", accent: "#a8c8e0", bgm: "field7",   floorBase: "#0d1217", floorTiles: ["#141e26", "#10181f", "#0c1217"], glow: "rgba(180,215,245,0.06)" }, // 17
+  { name: "凍てつく王墓", sym: "❅", accent: "#a8c8e0", bgm: "layer17", back: drawBackTomb, floorBase: "#0d1217", floorTiles: ["#141e26", "#10181f", "#0c1217"], glow: "rgba(180,215,245,0.06)" }, // 17
   { name: "冥府の門",   sym: "☖", accent: "#8c6aa8", bgm: "field9",     floorBase: "#100d14", floorTiles: ["#17121e", "#130f19", "#0f0c14"], glow: "rgba(150,110,190,0.06)" }, // 18
   { name: "竜の巣",     sym: "♦", accent: "#c8503a", bgm: "field10",    floorBase: "#170d0a", floorTiles: ["#21120c", "#1b0f0a", "#150b07"], glow: "rgba(235,90,60,0.06)" },   // 19
   { name: "終焉の玄室", sym: "✺", accent: "#b08ac0", bgm: "field10",    floorBase: "#0f0c13", floorTiles: ["#161019", "#120d15", "#0e0b11"], glow: "rgba(180,130,210,0.06)" }, // 20
@@ -916,6 +916,114 @@ function drawThemedBack(r, accent, sym) {
   }
   vctx.fillStyle = "rgba(255,255,255,0.08)";
   vctx.fillRect(2, 2, r.w - 4, 3);
+}
+
+// 層17「凍てつく王墓」のカード裏面: 氷に覆われた石棺と横臥像、載る凍てついた王冠、舞い落ちる霜
+function drawBackTomb(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  // 凍てつく王墓の地
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#16222c");
+  bg.addColorStop(0.5, "#121d26");
+  bg.addColorStop(1, "#0d161d");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+
+  // 背後の冷たい光輪
+  const halo = vctx.createRadialGradient(W / 2, 24, 2, W / 2, 24, 26);
+  halo.addColorStop(0, "rgba(150,195,225,0.16)");
+  halo.addColorStop(1, "rgba(150,195,225,0)");
+  vctx.fillStyle = halo;
+  vctx.fillRect(0, 0, W, H);
+
+  // 左右の氷の柱
+  for (const cx of [7, W - 7]) {
+    const g = vctx.createLinearGradient(cx - 3, 0, cx + 3, 0);
+    g.addColorStop(0, "#2a3a44"); g.addColorStop(0.4, "#54707e"); g.addColorStop(1, "#1f2c34");
+    vctx.fillStyle = g;
+    vctx.fillRect(cx - 3, 6, 6, H - 6);
+    vctx.fillStyle = "#5e7c8a";
+    vctx.fillRect(cx - 4, 6, 8, 2.5);
+    vctx.fillStyle = "rgba(220,238,248,0.25)";
+    vctx.fillRect(cx - 2.5, 7, 1, H - 8);
+  }
+
+  // 石棺 (中央の台座と棺)
+  const sx = W / 2, baseY = H - 8, topY = 26;
+  vctx.fillStyle = "#33454f"; vctx.fillRect(sx - 15, baseY, 30, 5);
+  vctx.fillStyle = "#283740"; vctx.fillRect(sx - 17, baseY + 4, 34, 3);
+  const sg = vctx.createLinearGradient(sx - 13, 0, sx + 13, 0);
+  sg.addColorStop(0, "#3a4e58"); sg.addColorStop(0.5, "#5a7480"); sg.addColorStop(1, "#2e3e47");
+  vctx.fillStyle = sg;
+  vctx.beginPath();
+  vctx.moveTo(sx - 12, baseY); vctx.lineTo(sx - 13, topY + 5); vctx.lineTo(sx + 13, topY + 5); vctx.lineTo(sx + 12, baseY); vctx.closePath();
+  vctx.fill();
+  // 蓋
+  vctx.fillStyle = "#6b8794";
+  vctx.beginPath();
+  vctx.moveTo(sx - 14, topY + 5); vctx.lineTo(sx - 11, topY); vctx.lineTo(sx + 11, topY); vctx.lineTo(sx + 14, topY + 5); vctx.closePath();
+  vctx.fill();
+  // 横臥像 (簡略な起伏)
+  vctx.fillStyle = "rgba(40,55,62,0.6)";
+  vctx.beginPath(); vctx.ellipse(sx - 7, topY + 2.5, 2, 1.4, 0, 0, Math.PI * 2); vctx.fill();
+  vctx.fillRect(sx - 4, topY + 1.5, 9, 2.4);
+  // 蓋の十字
+  vctx.strokeStyle = "rgba(30,45,52,0.7)"; vctx.lineWidth = 0.8;
+  vctx.beginPath();
+  vctx.moveTo(sx + 7, topY + 1); vctx.lineTo(sx + 7, topY + 4.5);
+  vctx.moveTo(sx + 5.5, topY + 2.3); vctx.lineTo(sx + 8.5, topY + 2.3); vctx.stroke();
+  // 石棺を覆う氷のシート
+  vctx.fillStyle = "rgba(170,210,235,0.14)";
+  vctx.beginPath();
+  vctx.moveTo(sx - 13, baseY); vctx.lineTo(sx - 14, topY); vctx.lineTo(sx + 14, topY); vctx.lineTo(sx + 13, baseY); vctx.closePath();
+  vctx.fill();
+  vctx.fillStyle = "rgba(225,242,250,0.35)";
+  vctx.fillRect(sx - 13, topY, 3, baseY - topY);
+
+  // 凍てついた王冠 (蓋の上に載る)
+  const cy = topY - 2;
+  vctx.fillStyle = "#c9a23e";
+  vctx.beginPath();
+  vctx.moveTo(sx - 6, cy); vctx.lineTo(sx - 6, cy - 2);
+  vctx.lineTo(sx - 3, cy - 0.5); vctx.lineTo(sx - 1.5, cy - 3.5); vctx.lineTo(sx, cy - 0.5);
+  vctx.lineTo(sx + 1.5, cy - 3.5); vctx.lineTo(sx + 3, cy - 0.5); vctx.lineTo(sx + 6, cy - 2);
+  vctx.lineTo(sx + 6, cy); vctx.closePath();
+  vctx.fill();
+  vctx.fillStyle = "#e8c869"; vctx.fillRect(sx - 6, cy, 12, 1.4);
+  vctx.fillStyle = "#8fd0e0"; vctx.fillRect(sx - 0.8, cy - 1, 1.6, 1.6); // 宝玉
+  vctx.fillStyle = "rgba(225,242,250,0.5)"; vctx.fillRect(sx - 6, cy - 2, 12, 0.8); // 霜の被り
+  // きらめき
+  const tw = Math.sin(t * 0.004);
+  if (tw > 0.4) {
+    vctx.strokeStyle = `rgba(240,250,255,${(tw - 0.4) * 1.5})`;
+    vctx.lineWidth = 0.7;
+    vctx.beginPath();
+    vctx.moveTo(sx + 4, cy - 3); vctx.lineTo(sx + 6, cy - 1);
+    vctx.moveTo(sx + 5, cy - 3); vctx.lineTo(sx + 5, cy - 1); vctx.stroke();
+  }
+
+  // 舞い落ちる霜
+  for (let i = 0; i < 6; i++) {
+    const px = (i * 43 + Math.sin(t * 0.0009 + i) * 4 + 6) % W;
+    const py = ((t * 0.01 + i * 36) % (H - 4)) + 2;
+    const al = 0.3 + 0.3 * Math.sin(t * 0.0025 + i * 1.3);
+    vctx.fillStyle = `rgba(220,238,248,${Math.max(0.15, al) * 0.6})`;
+    vctx.fillRect(px, py, 1, 1);
+  }
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
 }
 
 // 層16「深淵の聖堂」のカード裏面: 尖頭アーチのステンドグラス窓、降り注ぐ光条、祭壇と舞う光の塵
@@ -4843,7 +4951,7 @@ function renderTown() {
   renderTownHub();
 }
 
-let townBandOpen = null; // 迷宮選択で開いている層域 (null = 選択中の迷宮の層域)
+let townBandOpen = null; // 迷宮選択で開いている層 (null = 選択中の迷宮の層)
 
 function renderTownHub() {
   townEl.appendChild(townHeader("辺境の街 ロアダル", false));
@@ -4889,16 +4997,17 @@ function renderTownHub() {
     townEl.appendChild(el("div", "tw-h", "迷宮"));
     townEl.appendChild(el("div", "tw-note", "王の勅命を受けるまで、迷宮の在処は明かされない。"));
   } else {
-    // 迷宮の選択 — 10迷宮ごとの「層域」アコーディオン (数が増えても一覧が伸びすぎない)
+    // 迷宮の選択 — 1層 (5迷宮) ごとの層アコーディオン (数が増えても一覧が伸びすぎない)
     townEl.appendChild(el("div", "tw-h", "潜る迷宮を選ぶ"));
     townEl.appendChild(el("div", "tw-dunhelp", "★踏破済みの迷宮には何度でも再挑戦できる — 戦利品・魂・図鑑集めに。"));
     const clearedCnt = clearedDungeonCount();
     // 勅命の対象迷宮 (攻略中の章のみ ❗ を付ける)
     const targetIdx = G.msq && G.msq.state === "active" && G.msq.n >= 1 ? G.msq.n - 1 : -1;
-    const openBand = (townBandOpen != null) ? townBandOpen : Math.floor(G.dungeonIdx / 10);
-    const maxBand = Math.floor((G.unlockedDungeons - 1) / 10); // 解放済み迷宮が属する最後の層域
+    const PER_LAYER = 5; // 1層 = 5迷宮
+    const openBand = (townBandOpen != null) ? townBandOpen : Math.floor(G.dungeonIdx / PER_LAYER);
+    const maxBand = Math.floor((G.unlockedDungeons - 1) / PER_LAYER); // 解放済み迷宮が属する最後の層
     for (let b = 0; b <= maxBand; b++) {
-      const s = b * 10, e = Math.min(DUNGEONS.length, s + 10);
+      const s = b * PER_LAYER, e = Math.min(DUNGEONS.length, s + PER_LAYER);
       // 出現済み (解放済み) の迷宮のみ表示する。未出現の迷宮は一切見せない (先を伏せる)
       const appeared = Math.max(0, Math.min(G.unlockedDungeons - s, e - s));
       if (appeared <= 0) continue;
@@ -4906,7 +5015,8 @@ function renderTownHub() {
       if (b === openBand) det.open = true;
       const sum = el("summary", "tw-bandh");
       const clearedIn = Math.max(0, Math.min(clearedCnt - s, appeared));
-      sum.textContent = `${clearedIn >= e - s ? "★ " : ""}第${b + 1}層域 — 迷宮 ${s + 1}〜${s + appeared} (踏破 ${clearedIn})`;
+      const lv = LAYER_VISUALS[b]; // 層テーマ (第b+1層)
+      sum.textContent = `${clearedIn >= e - s ? "★ " : ""}第${b + 1}層 — ${lv ? lv.name : ""}`;
       det.appendChild(sum);
       det.addEventListener("toggle", () => {
         if (det.open) townBandOpen = b;
@@ -4920,7 +5030,7 @@ function renderTownHub() {
         const info = el("div", "tw-chipi");
         info.appendChild(el("div", "tw-chipn", `${i + 1}. ${dn.name}`));
         const elTag = dn.element && ELEMENTS[dn.element] ? ` ・${ELEMENTS[dn.element].label}の気配` : "";
-        info.appendChild(el("div", "tw-chipc", `全${dn.floors}階 ・ 敵ランク${dn.rank}${elTag}`));
+        info.appendChild(el("div", "tw-chipc", `全${dn.floors}階${elTag}`));
         row.appendChild(info);
         // 踏破状態バッジ (★踏破済=再挑戦可 / ❗勅命=攻略対象 / 未踏破)
         const st = el("div", "tw-dunst" + (cleared ? " done" : i === targetIdx ? " quest" : ""));
