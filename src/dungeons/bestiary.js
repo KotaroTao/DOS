@@ -236,6 +236,34 @@ const NEW_DEFS = [
   { id: "bs_fogpanther", name: "霧豹", rank: 7, race: "beast", element: "wind", artKey: "fogpanther",
     ability: "critical", swift: true, evasive: true, // 霧に紛れて忍び寄り、急所を一突きで仕留める
     desc: "霧に体を溶け込ませて忍び寄る、しなやかな大豹。気配を断って背後を取り、急所を狙った一撃で獲物を仕留める。仕損じても霧に翻って間合いを外し、また音もなく回り込んでくる。" },
+  // -- 第6層「沈没神殿」 (rank 7-8・水/神殿。第5層より格上の壁。深部に rank9 の神像・堕天) --
+  { id: "bs_drownedpriest", name: "水底の祈り手", rank: 7, race: "specter", element: "water", artKey: "drownedpriest", soulClass: "priest",
+    role: "healer", ability: "weaken", // 呪詛で力を奪い、傷ついた眷属を癒す
+    desc: "神殿が湖底に沈んでなお、祭壇の前で祈りを止めない溺死した神官。生者には力を奪う呪詛を、傷ついた同胞には癒しの祈りを捧げる。その口から漏れるのは、もう意味をなさぬ経文だ。" },
+  { id: "bs_fonthorror", name: "聖水盤の異形", rank: 7, race: "aquatic", element: "water", artKey: "fonthorror",
+    ability: "poison", regen: 0.08, physResist: 0.4, // 聖水を毒水に変え、刃を呑む粘塊
+    desc: "聖水盤に巣食い、清めの水を毒の沼に変えてしまった触手の塊。盤の縁から腕を伸ばして獲物を絡め取り、腐った聖水を浴びせる。ぬめる肉は刃をすべらせ、削いだ先から盛り上がる。" },
+  { id: "bs_choirwraith", name: "水没聖歌隊", rank: 7, race: "specter", element: "water", artKey: "choirwraith",
+    pack: true, ability: "paralyze", // 群れで痺れる賛美歌を歌い上げる
+    desc: "水没の夜から、止むことのない賛美歌を歌い続ける聖歌隊の霊。幾重にも重なる歌声を浴びた者は、荘厳さに打たれて身が痺れ、動けなくなる。一体を黙らせても、隣の口がすぐ後を継ぐ。" },
+  { id: "bs_idolguardian", name: "神像の番人", rank: 8, race: "construct", element: "water", artKey: "idolguardian",
+    role: "guard", physResist: 0.6, barrier: 2, // 旧き神の石像。主を庇い、刃を阻む
+    desc: "旧き神を象った巨大な石像が、聖域を侵す者の前に立ちはだかる。背後の祭司を己の石身で庇い、刻まれた神文が刃を撥ね返す。沈黙の神に代わって、まだ忠実に務めを果たしている。" },
+  { id: "bs_abyssjelly", name: "深海の鐘鬼", rank: 7, race: "aquatic", element: "water", artKey: "abyssjelly",
+    ability: "paralyze", lifesteal: 0.3, magWeak: 1.4, // 触手で痺れさせ精気を吸う。実体は脆い
+    desc: "鐘の形をした、深海から這い上がった半透明の魔。長い触手で獲物を痺れさせ、まとわりついて精気を吸い上げる。淡く発光する体は美しいが、魔の力を浴びれば容易く弾ける。" },
+  { id: "bs_tidecaller", name: "潮を呼ぶ司祭", rank: 8, race: "specter", element: "water", artKey: "tidecaller", soulClass: "priest",
+    role: "summoner", summonKey: "bs_choirwraith", ability: "drain", regen: 0.06, // 眷属を呼び、命を吸い、潮で傷を繕う
+    desc: "神殿をみずから湖底へ沈めた、背教の大司祭の霊。潮を操って眷属を次々と呼び寄せ、生者の命を吸って自らの存在を保つ。沈めたのは罰からの逃避か、それとも何かを封じるためか。" },
+  { id: "bs_kelpdrowned", name: "藻に巻かれし者", rank: 7, race: "undead", element: "water", artKey: "kelpdrowned",
+    ability: "paralyze", lifesteal: 0.3, pack: true, // 海藻ごと群れで絡みつき、痺れさせ精気を吸う
+    desc: "神殿に押し寄せた水に呑まれ、海藻に絡め取られたまま朽ちた参拝者の群れ。藻ごと幾体も折り重なって獲物に巻きつき、冷たい指で締め上げて精気を啜る。藻を断っても、また別の手が伸びる。" },
+  { id: "bs_sunkenbell", name: "祟りの梵鐘", rank: 8, race: "construct", element: "water", artKey: "sunkenbell",
+    ability: "paralyze", magResist: 0.5, barrier: 2, // 鳴れば魂が痺れる祟りの鐘。魔を弾く
+    desc: "水没した鐘楼から響き続ける、祟りを宿した神殿の梵鐘。ひとたび鳴れば、その音は骨の髄まで染み入って魂を痺れさせる。青銅の身は刃を阻み、魔力をも鈍く弾き返す。" },
+  { id: "bs_templelord", name: "沈める神官王", rank: 8, boss: true, race: "specter", element: "water", artKey: "templelord", soulClass: "priest",
+    role: "summoner", summonKey: "bs_kelpdrowned", ability: "drain", physResist: 0.5, regen: 0.06, magWeak: 1.3, // 眷属を呼び、命を貪り、潮で繕う。光に脆い
+    desc: "神殿を湖底へ沈め、自らも王冠を被ったまま溺れ果てた背教の神官王。沈んだ参拝者を眷属として呼び起こし、生者の命を貪って永遠の祈祷を続ける。湖底の闇に慣れた身は、聖なる光に焼かれて崩れる。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1179,6 +1207,7 @@ export const BOSS_ORDER = {
 // 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
 // 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
 const LAYER_BOSS_OVERRIDE = {
+  6: "bs_templelord", // 第6層「沈没神殿」: 沈める神官王 (rank8・水/神殿ボス)
   5: "bs_forestlord", // 第5層「霧の森」: 霧の森の主 (rank7・植物ボス)
   4: "bs_fortlord",  // 第4層「捨て砦」: 砦の主 (rank6・armoredボス)
   2: "bs_sewerlord", // 第2層「地下水路」: 水路の主 (rank4・水棲ボス)
@@ -1247,6 +1276,17 @@ export const LAYER_POOLS = {
     // batch2 新規 (固有アート)
     "bs_giantowl", "bs_direboar", "bs_willowwitch", "bs_sporezombie", "bs_thornhound",
     "bs_wisplure", "bs_satyrpiper", "bs_flytrap", "bs_mossgolem", "bs_fogpanther",
+  ],
+  // 第6層「沈没神殿」: 水/神殿(神官霊・神像・水棲)中心、rank7-8主体 (第5層より格上)。深部に rank9
+  6: [
+    // 新規 (固有アート)
+    "bs_drownedpriest", "bs_fonthorror", "bs_choirwraith", "bs_idolguardian",
+    "bs_abyssjelly", "bs_tidecaller", "bs_kelpdrowned", "bs_sunkenbell",
+    // 既存の水棲/神像/深淵を第6層へ再配置 (rank7-8)
+    "bs_naga", "bs_goldgolem", "bs_soulharvester", "d04_grudge", "bs_shadowdragon",
+    "bs_crystalgolem", "bs_irongolem", "bs_voidwalker", "bs_dreadlich",
+    // 深部の強敵 (rank9): 神像・堕ちた光
+    "bs_divinegolem", "bs_shadowseraph", "bs_fallenangel",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
