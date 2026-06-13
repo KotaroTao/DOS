@@ -283,9 +283,13 @@ function buzz(p) {
 
 // ---- 潜入中の戦利品トラッキング (全滅ペナルティ / Red Soul帰還で使う) ----
 const inDungeon = () => G.state === "board" || G.state === "combat" || G.state === "over";
+// パーティ内で最も強い装備効果(eff)値を返す (LR装飾品の goldUp/soulUp 等。重複装備は加算せず最大値)
+function partyEffMax(key) { let s = 0; if (G.party) for (const m of G.party) { if (m && m.eff && m.eff[key] > s) s = m.eff[key]; } return s; }
 // 迷宮で得るゴールド (戦闘勝利・宝箱・床イベント) の共通入口。全体の獲得量を半分に抑える。
-function runGainGold(g) { g = Math.round(g * 0.5 * sfNum("goldMul", 1) * mutNum("goldMul", 1)); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; return g; }
-function runGainSoulPts(s) { s = Math.round(s * sfNum("soulMul", 1) * mutNum("soulMul", 1)); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; return s; }
+// 黄金の指輪 (LR装飾品) の goldUp があれば獲得量を割合で増やす。
+function runGainGold(g) { g = Math.round(g * 0.5 * sfNum("goldMul", 1) * mutNum("goldMul", 1) * (1 + partyEffMax("goldUp"))); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; return g; }
+// 魂導の護符 (LR装飾品) の soulUp があれば ✦Soul の獲得量を割合で増やす。
+function runGainSoulPts(s) { s = Math.round(s * sfNum("soulMul", 1) * mutNum("soulMul", 1) * (1 + partyEffMax("soulUp"))); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; return s; }
 function runGainItem(owner, item) { owner.items.push(item); if (G.run && inDungeon()) G.run.items.push({ owner, item }); }
 // 魂の吸収を記録 (全滅没収で巻き戻すため {doll, clsKey} で覚える)
 // 魂の入手を記録 (全滅没収で巻き戻すため)。kind: "awaken"(共有countへ) | "bag"(未覚醒)
@@ -464,14 +468,14 @@ const SPECIAL_FLOORS = [
   { id: "necropolis", name: "屍人の巣", icon: "corpse", accent: "#8c866f", sym: "✝", minFloor: 3, rate: 0.015,
     lines: ["おびただしい数の死体が横たわっている。", "魂を回収する好機だが、起き上がる者もいるだろう。"],
     board: (b) => sfPlace(b, 4, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = Math.random() < 0.5; }) },
-  { id: "marsh", name: "毒の沼", icon: "poison", accent: "#5a8a2a", sym: "ஃ", minFloor: 2, rate: 0.02, goldMul: 1.5,
+  { id: "marsh", name: "毒の沼", icon: "poison", accent: "#5a8a2a", sym: "≈", minFloor: 2, rate: 0.02, goldMul: 1.5,
     lines: ["床のいたるところから毒が滲み出している。", "足場は危険だが、沼には金品が沈んでいる。ゴールド 1.5倍。"],
     board: (b) => sfEachCell(b, (c) => { if (c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.30) { c.type = "poison"; c.cleared = false; } }) },
   { id: "tailwind", name: "追い風の階", icon: "stairs", accent: "#7fe0a8", sym: "≫", minFloor: 2, rate: 0.02, preempt100: true, noAmbush: true,
     lines: ["不思議と体が軽く、敵の動きがよく見える。", "常に先手を取り、奇襲を受けない。"] },
   { id: "elemSurge", name: "属性の奔流", icon: "wisp", accent: "#ff9a4a", sym: "✺", minFloor: 2, rate: 0.02, elemAll: true, cond: (cfg) => !!cfg.element,
     lines: ["迷宮の属性が荒れ狂っている。", "この階の敵はすべて迷宮の属性を帯びる。属性装備が鍵だ。"] },
-  { id: "mimicNest", name: "ミミックの巣", icon: "chest", accent: "#e07840", sym: "‽", minFloor: 3, rate: 0.015, mimicRate: 0.50,
+  { id: "mimicNest", name: "ミミックの巣", icon: "chest", accent: "#e07840", sym: "◈", minFloor: 3, rate: 0.015, mimicRate: 0.50,
     lines: ["不自然なほど宝箱が多い…罠の匂いがする。", "宝箱の半分はミミックだ。だが倒せば上質な宝箱を残す。"],
     board: (b) => sfPlace(b, 3, (c) => { c.type = "chest"; c.cleared = false; }) },
   { id: "healing", name: "癒しの霊気", icon: "fountain", accent: "#8af0c0", sym: "✚", minFloor: 2, rate: 0.02, victoryHeal: 0.10,
@@ -541,7 +545,7 @@ const MUTATORS = [
   { id: "elemRage", name: "属性の暴走", sym: "✺", accent: "#ff9a4a", elemAll: true, soulMul: 1.5, cond: (cfg) => !!cfg.element,
     risk: "すべての敵が迷宮の属性を帯びる (属性装備がないと危険)",
     gain: "得られる Soul が 1.5倍 になる" },
-  { id: "mimicMarch", name: "ミミックの行進", sym: "‽", accent: "#e07840", mimicRate: 0.30, chestRankUp: 1,
+  { id: "mimicMarch", name: "ミミックの行進", sym: "◈", accent: "#e07840", mimicRate: 0.30, chestRankUp: 1,
     risk: "宝箱の3割はミミックだ",
     gain: "宝箱が 1ランク上等になり、ミミックは上質な宝箱を残す" },
   { id: "abyssalSurge", name: "深淵の脈動", sym: "☠", accent: "#8a2be2", enemyMul: 1.5, soulMul: 2, goldMul: 1.5, lootBonusLv: 8,
