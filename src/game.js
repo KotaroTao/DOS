@@ -403,7 +403,7 @@ const LAYER_VISUALS = [
   { name: "闘技場跡",   sym: "✶", accent: "#c9a05a", bgm: "layer11", back: drawBackArena, floorBase: "#16130d", floorTiles: ["#1f1a11", "#1a160d", "#15110a"], glow: "rgba(225,180,90,0.05)" },  // 11
   { name: "地底大空洞", sym: "◆", accent: "#8a7a5a", bgm: "layer12", back: drawBackCavern, floorBase: "#13110d", floorTiles: ["#1b1813", "#16140f", "#12100b"], glow: "rgba(200,180,140,0.05)" }, // 12
   { name: "魔導書庫",   sym: "✪", accent: "#9d7ad0", bgm: "layer13", back: drawBackLibrary, floorBase: "#100e17", floorTiles: ["#181323", "#13101c", "#100d16"], glow: "rgba(160,120,225,0.06)" }, // 13
-  { name: "屍蝋の回廊", sym: "‡", accent: "#b8a878", bgm: "fieldCrypt", floorBase: "#14120d", floorTiles: ["#1c1912", "#17140e", "#13100a"], glow: "rgba(210,190,130,0.05)" }, // 14
+  { name: "屍蝋の回廊", sym: "‡", accent: "#b8a878", bgm: "layer14", back: drawBackOssuary, floorBase: "#14120d", floorTiles: ["#1c1912", "#17140e", "#13100a"], glow: "rgba(210,190,130,0.05)" }, // 14
   { name: "溶鉄炉",     sym: "♨", accent: "#e07838", bgm: "field6",     floorBase: "#190e08", floorTiles: ["#23120a", "#1c0f08", "#160b06"], glow: "rgba(255,140,55,0.07)" },  // 15
   { name: "深淵の聖堂", sym: "✝", accent: "#e0d28a", bgm: "field9",     floorBase: "#14130c", floorTiles: ["#1d1b10", "#18160d", "#13110a"], glow: "rgba(240,225,150,0.06)" }, // 16
   { name: "凍てつく王墓", sym: "❅", accent: "#a8c8e0", bgm: "field7",   floorBase: "#0d1217", floorTiles: ["#141e26", "#10181f", "#0c1217"], glow: "rgba(180,215,245,0.06)" }, // 17
@@ -916,6 +916,94 @@ function drawThemedBack(r, accent, sym) {
   }
   vctx.fillStyle = "rgba(255,255,255,0.08)";
   vctx.fillRect(2, 2, r.w - 4, 3);
+}
+
+// 層14「屍蝋の回廊」のカード裏面: 壁龕に並ぶ屍蝋の頭蓋、滴る蝋のろうそくと揺らぐ炎
+function drawBackOssuary(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  // 屍蝋の地 (蝋のような淡褐)
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#1b170f");
+  bg.addColorStop(0.55, "#16120b");
+  bg.addColorStop(1, "#110e08");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+
+  // ろうそくの灯の揺らぎ (暖色グロー)
+  const flick = 0.7 + 0.3 * Math.sin(t * 0.012) + 0.1 * Math.sin(t * 0.031);
+  const warm = vctx.createRadialGradient(12, H - 16, 2, 12, H - 16, 30);
+  warm.addColorStop(0, `rgba(230,180,90,${0.12 * flick})`);
+  warm.addColorStop(1, "rgba(230,180,90,0)");
+  vctx.fillStyle = warm;
+  vctx.fillRect(0, H - 40, 42, 40);
+
+  // 壁龕 (アーチ型の窪みに屍蝋の頭蓋)
+  for (const [nx, ny] of [[16, 15], [30, 13], [44, 15]]) {
+    vctx.fillStyle = "#0c0a06"; // 窪みの闇
+    vctx.beginPath();
+    vctx.moveTo(nx - 6, ny + 9); vctx.lineTo(nx - 6, ny);
+    vctx.arc(nx, ny, 6, Math.PI, 0);
+    vctx.lineTo(nx + 6, ny + 9); vctx.closePath();
+    vctx.fill();
+    vctx.strokeStyle = "#5a4d30"; vctx.lineWidth = 1; vctx.stroke(); // 蝋の縁
+    const sk = ny + 3; // 頭蓋
+    vctx.fillStyle = "#cfc4a0";
+    vctx.beginPath(); vctx.arc(nx, sk, 3.2, Math.PI, 0); vctx.lineTo(nx + 2.4, sk + 3); vctx.lineTo(nx - 2.4, sk + 3); vctx.closePath(); vctx.fill();
+    vctx.fillStyle = "#b8ad8a"; vctx.fillRect(nx - 2.4, sk + 3, 4.8, 2); // 顎
+    vctx.fillStyle = "#2a2418"; vctx.fillRect(nx - 2, sk - 1, 1.4, 1.6); vctx.fillRect(nx + 0.6, sk - 1, 1.4, 1.6); // 眼窩
+  }
+
+  // 滴る蝋の雫 (右の壁龕から周期的に落下)
+  const ph = (t % 2000) / 2000, dx = 44;
+  if (ph < 0.7) {
+    const dy = 24 + (H - 10 - 24) * (ph / 0.7);
+    vctx.fillStyle = "rgba(210,198,150,0.8)";
+    vctx.fillRect(dx - 0.5, dy, 1.4, 3);
+  }
+
+  // 床のろうそく (蝋が滴る。左手前)
+  const cxC = 12, cBase = H - 7;
+  vctx.fillStyle = "#d8cba0"; // 蝋だまり
+  vctx.beginPath(); vctx.ellipse(cxC, cBase + 2, 7, 2.5, 0, 0, Math.PI * 2); vctx.fill();
+  const cg = vctx.createLinearGradient(cxC - 3, 0, cxC + 3, 0); // 蝋柱
+  cg.addColorStop(0, "#b3a880"); cg.addColorStop(0.5, "#e0d6ad"); cg.addColorStop(1, "#9b9070");
+  vctx.fillStyle = cg;
+  vctx.fillRect(cxC - 3, cBase - 12, 6, 14);
+  vctx.fillStyle = "#cabf95"; // 垂れる蝋
+  vctx.fillRect(cxC + 2, cBase - 9, 1.6, 7);
+  vctx.fillRect(cxC - 3, cBase - 6, 1.4, 5);
+  vctx.fillStyle = "#3a2e18"; // 芯
+  vctx.fillRect(cxC - 0.5, cBase - 15, 1, 3);
+  // 炎 (揺らめく)
+  const fh = 4 + flick * 1.5, sway = Math.sin(t * 0.02) * 0.8;
+  vctx.save();
+  vctx.shadowColor = "rgba(255,180,70,0.9)";
+  vctx.shadowBlur = 6 * flick;
+  const fg = vctx.createLinearGradient(cxC, cBase - 15 - fh, cxC, cBase - 15);
+  fg.addColorStop(0, "rgba(255,235,160,0.95)");
+  fg.addColorStop(1, "rgba(230,120,30,0.7)");
+  vctx.fillStyle = fg;
+  vctx.beginPath();
+  vctx.moveTo(cxC, cBase - 15 - fh);
+  vctx.quadraticCurveTo(cxC + 2 + sway, cBase - 15 - fh * 0.4, cxC, cBase - 15);
+  vctx.quadraticCurveTo(cxC - 2 + sway, cBase - 15 - fh * 0.4, cxC, cBase - 15 - fh);
+  vctx.closePath();
+  vctx.fill();
+  vctx.restore();
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [ddx, ddy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(ddx, ddy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
 }
 
 // 層13「魔導書庫」のカード裏面: 両壁の書架、中央に浮かぶ光る魔導書、立ちのぼる魔法文字
