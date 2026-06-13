@@ -219,7 +219,8 @@ function buzz(p) {
 
 // ---- 潜入中の戦利品トラッキング (全滅ペナルティ / Red Soul帰還で使う) ----
 const inDungeon = () => G.state === "board" || G.state === "combat" || G.state === "over";
-function runGainGold(g) { g = Math.round(g * sfNum("goldMul", 1) * mutNum("goldMul", 1)); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; return g; }
+// 迷宮で得るゴールド (戦闘勝利・宝箱・床イベント) の共通入口。全体の獲得量を半分に抑える。
+function runGainGold(g) { g = Math.round(g * 0.5 * sfNum("goldMul", 1) * mutNum("goldMul", 1)); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; return g; }
 function runGainSoulPts(s) { s = Math.round(s * sfNum("soulMul", 1) * mutNum("soulMul", 1)); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; return s; }
 function runGainItem(owner, item) { owner.items.push(item); if (G.run && inDungeon()) G.run.items.push({ owner, item }); }
 // 魂の吸収を記録 (全滅没収で巻き戻すため {doll, clsKey} で覚える)
@@ -3391,7 +3392,7 @@ function notifyNewSkills(d, before) {
 }
 
 // 新スキル習得のお知らせカード: 使えるようになった技の名前と説明を一覧する
-function showSkillUnlockPopup(d, keys) {
+function showSkillUnlockPopup(d, keys, onClose) {
   const accent = "#ffcf4a";
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card cdx-detail");
@@ -3418,11 +3419,12 @@ function showSkillUnlockPopup(d, keys) {
   }
   card.appendChild(box);
   card.appendChild(el("div", "cdx-dun dim", "・技名をタップすると詳しい効果を確認できる"));
-  const ok = btn("閉じる", () => wrap.remove());
+  const close = () => { wrap.remove(); if (onClose) onClose(); };
+  const ok = btn("閉じる", close);
   ok.className = "btn primary ig-ok";
   card.appendChild(ok);
   wrap.appendChild(card);
-  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) close(); });
   document.body.appendChild(wrap);
 }
 
@@ -3929,7 +3931,22 @@ function openFusePicker(targetUid) {
   if (!cands.length) { log("吸収できる同職の魂がない。", "sys"); SFX.ng(); return; }
   const opts = cands.map((c) => ({
     label: `${soulSeriesName(c.clsKey)}の魂 Lv${c.level}（魂数${c.count}）`,
-    fn: () => fuseSoul(targetUid, c.uid),
+    // すでに融合済み (魂数2以上) の魂を素材にする場合は、誤って消費しないよう警告する
+    fn: () => {
+      if (c.count > 1) {
+        showConfirm({
+          title: "融合済みの魂を素材にしますか？",
+          lines: [
+            `この ${soulSeriesName(c.clsKey)}の魂 は ${c.count} 体ぶんを融合した魂です。`,
+            "素材にすると、この魂とその魂数・蓄積した Soul はすべて失われます。",
+          ],
+          okLabel: "素材にする",
+          onOk: () => fuseSoul(targetUid, c.uid),
+        });
+      } else {
+        fuseSoul(targetUid, c.uid);
+      }
+    },
   }));
   opts.push({ label: "やめる", fn: () => {} });
   showChoice(`${soulSeriesName(t.clsKey)}の魂に吸収させる魂を選ぶ`, opts,
@@ -3976,7 +3993,9 @@ function fuseSoul(targetUid, consumeUid) {
 }
 
 // 魂を1レベル上げるのに要する Soul (レベルが高いほど高い)
-function soulTrainCost(level) { return 15 + level * 12; }
+// 次レベルへ必要な ✦Soul。レベルが上がるほど指数的に増え、レベリングのペースを抑える。
+// 基準 20 × 1.13^(level-1) → Lv1≈20 / Lv10≈60 / Lv20≈204 / Lv30≈692 / Lv50≈7980。
+function soulTrainCost(level) { return Math.max(1, Math.round(20 * Math.pow(1.13, (level || 1) - 1))); }
 
 // 魂に蓄積している総 Soul = 現レベルまでに消費した分 + 次レベルへの途中分(exp)。
 // 融合時の合算や、上限突破後の一括レベルアップ計算に使う。
@@ -4018,7 +4037,11 @@ function trainSoul(uid) {
   const gainedSkills = wearer ? (wearer.spells || []).filter((k) => !beforeSpells.has(k)) : [];
   const lines = [`${wearer ? wearer.name + " の" : ""}全能力が高まった`];
   lines.push(deltas.length ? deltas.join("  ") : "ステータスはそのまま");
-  for (const sk of gainedSkills) { const sp = SPELLS[sk]; lines.push(`✦ 「${sp ? sp.name : sk}」を覚えた！`); }
+  // スキル習得はレベルアップのポップアップには載せず、閉じた後に別カードで知らせる
+  const afterLevel = () => {
+    if (wearer && gainedSkills.length) showSkillUnlockPopup(wearer, gainedSkills, () => renderTown());
+    else renderTown();
+  };
   showEvent({
     sprite: wearer ? dollSprite(wearer) : jobSprite(e.clsKey, soulRankOf(e)),
     banner: "⤴ 魂レベルアップ ⤴",
@@ -4027,7 +4050,7 @@ function trainSoul(uid) {
     accent: SOUL_CLASSES[e.clsKey].glow,
     sparkle: true,
     btnLabel: "受け取る",
-    onClose: () => renderTown(),
+    onClose: afterLevel,
   });
 }
 
