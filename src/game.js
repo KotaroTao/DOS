@@ -4830,7 +4830,7 @@ function endBattle() {
     // 金運 (goldLuck) / 魂寄せ (soulLure) は戦闘報酬を底上げする (隊内最高Lvのみ)
     const { soul, gold } = b.rewards();
     const gl = partyPassiveLv("goldLuck"), sl = partyPassiveLv("soulLure");
-    const goldGot = runGainGold(Math.round(gold * (gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)));
+    const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)));
     const soulGot = runGainSoulPts(Math.round(soul * (sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1)));
     applyVictoryPassives();
     // 入手Soulの1/5を生存メンバー全員の全部位の魂に加算 → レベルアップ/スキル習得を集計
