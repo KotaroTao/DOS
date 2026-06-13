@@ -3,9 +3,40 @@
 // ・帯内の進行は enemyScale (0.7→1.7) が受け持ち、ランク境界の段差を均す
 // ・報酬系 (lootLv / rankBonus / soulLevelBonus) は n の連続関数。
 //   rankBonus は対数で伸ばし、最深部でも伝説の魂が「稀」であり続けるようにする
-import { RANK_POOLS, BOSS_ORDER } from "./bestiary.js";
+import { RANK_POOLS, BOSS_ORDER, LAYER_BOSS } from "./bestiary.js";
 
 export const DUNGEON_COUNT = 100;
+export const LAYER_COUNT = 20;
+
+// 迷宮番号 n (1-100) → 層 (1-20)。100迷宮 = 20層 × 5迷宮。
+export function layerOf(n) { return Math.min(LAYER_COUNT, Math.ceil(n / 5)); }
+
+// ===== 20層のテーマ定義 =====
+// name=層の通称 / short=表示用短縮 / element=層の属性気配 / poolRank=暫定の敵プール参照
+// (基盤フェーズでは既存ランクプール 1-10 を 2層ずつ共有。各層の専用ロスターは層ごとのPRで差し替える)
+// floors=[層途中の階数, 層末(ボス階)の階数]
+const LAYER_DEF = [
+  { name: "墓地",       short: "墓地", element: "dark",  floors: [3, 5] },   // 1
+  { name: "地下水路",   short: "水路", element: "water", floors: [4, 6] },   // 2
+  { name: "廃坑",       short: "廃坑", element: "earth", floors: [5, 7] },   // 3
+  { name: "捨て砦",     short: "砦",   element: "none",  floors: [5, 7] },   // 4
+  { name: "霧の森",     short: "霧森", element: "wind",  floors: [6, 8] },   // 5
+  { name: "沈没神殿",   short: "神殿", element: "water", floors: [6, 8] },   // 6
+  { name: "灼熱の洞",   short: "灼洞", element: "fire",  floors: [7, 9] },   // 7
+  { name: "氷結回廊",   short: "氷廊", element: "water", floors: [7, 9] },   // 8
+  { name: "毒沼",       short: "毒沼", element: "earth", floors: [8, 10] },  // 9
+  { name: "嵐の尖塔",   short: "尖塔", element: "wind",  floors: [8, 10] },  // 10
+  { name: "闘技場跡",   short: "闘技", element: "none",  floors: [9, 11] },  // 11
+  { name: "地底大空洞", short: "大洞", element: "earth", floors: [9, 11] },  // 12
+  { name: "魔導書庫",   short: "書庫", element: "dark",  floors: [10, 12] }, // 13
+  { name: "屍蝋の回廊", short: "屍蝋", element: "dark",  floors: [10, 12] }, // 14
+  { name: "溶鉄炉",     short: "溶炉", element: "fire",  floors: [11, 13] }, // 15
+  { name: "深淵の聖堂", short: "聖堂", element: "light", floors: [11, 13] }, // 16
+  { name: "凍てつく王墓", short: "王墓", element: "water", floors: [12, 14] }, // 17
+  { name: "冥府の門",   short: "冥門", element: "dark",  floors: [12, 14] }, // 18
+  { name: "竜の巣",     short: "竜巣", element: "fire",  floors: [13, 15] }, // 19
+  { name: "終焉の玄室", short: "玄室", element: "dark",  floors: [14, 20] }, // 20 (最終層)
+];
 
 // 各ダンジョン固有のユニーク名 (n=1-100)
 const DUNGEON_NAMES = [
@@ -121,9 +152,6 @@ const DUNGEON_NAMES = [
   "深淵なき終末の竜宮",      // 100
 ];
 
-// ランクごとの短縮名 (表示用)
-const SHORT = ["墓地", "坑道", "砦", "森", "神殿", "灼洞", "氷廊", "尖塔", "冥門", "玄室"];
-
 // n から決定的に並びを崩すための擬似乱数 (生成のたびに変わらないこと)
 function hash(n, salt) {
   let h = (n * 2654435761 + salt * 40503) >>> 0;
@@ -131,80 +159,49 @@ function hash(n, salt) {
   return h >>> 0; // 最後の XOR で符号付きに戻るため、必ず非負へ正規化する
 }
 
-// ダンジョン番号 n (1-100) → 階層数
-// 序盤 (D1-20) は階層を緩やかに増やし、機能解放の節目 (D5/10/15/20) を深くする
+// ダンジョン番号 n (1-100) → 階層数。層途中は浅く、層末 (ボス階) は深い。
 function dungeonFloors(n) {
-  if (n === 100) return 20;
-  if (n === 90) return 10;
-  if (n >= 91) return 10;   // D91-99
-  if (n >= 81) return 7;    // D81-89
-  if (n === 80) return 10;
-  if (n >= 71) return 7;    // D71-79
-  if (n === 70) return 10;
-  if (n >= 61) return 7;    // D61-69
-  if (n === 60) return 10;
-  if (n >= 51) return 7;    // D51-59
-  if (n === 50) return 10;
-  if (n >= 41) return 5;    // D41-49
-  if (n === 40) return 7;
-  if (n >= 31) return 5;    // D31-39
-  if (n === 30) return 7;
-  if (n >= 21) return 5;    // D21-29
-  // ── 序盤 (D1-20): 機能解放の節目を深くする ──
-  if (n === 20) return 7;   // D20 サブ魂2枠目解放
-  if (n >= 16) return 5;    // D16-19
-  if (n === 15) return 7;   // D15 酒場の噂解放
-  if (n >= 11) return 5;    // D11-14
-  if (n === 10) return 6;   // D10 サブ魂1枠目解放
-  if (n >= 6)  return 4;    // D6-9
-  if (n === 5)  return 5;   // D5 魂融合解放
-  return 3;                  // D1-4
+  const layer = layerOf(n);
+  const isEnd = n % 5 === 0;            // 層末 (D5,10,…,100) はボス階
+  return LAYER_DEF[layer - 1].floors[isEnd ? 1 : 0];
 }
 
 export function generateDungeon(n) {
-  const r = Math.min(10, Math.ceil(n / 10));    // 敵ランク帯 (1-10)
-  const pos = ((n - 1) % 10) / 9;               // 帯内の進行度 0→1
-  const p = (n - 1) % 10;                       // 帯内の位置 0-9
+  const layer = layerOf(n);                     // 層 (1-20)
+  const def = LAYER_DEF[layer - 1];
+  const p = (n - 1) % 5;                         // 層内の位置 0-4
+  const isEnd = p === 4;                         // 層末 (ボス迷宮)
+  const r = Math.min(10, Math.ceil(layer / 2));  // 暫定の敵プール参照ランク (1-10)
   const cur = RANK_POOLS[r];
-  const next = RANK_POOLS[Math.min(10, r + 1)];
 
-  // ローテーション方式: shift=3 (10とは互いに素) で10迷宮すべてがユニークな組み合わせ
-  // 各迷宮は前の迷宮から3体の「新顔」を保証する (各ダンジョン2体以上の新規敵条件を満たす)
+  // 層のプールのみから抽選する (層をまたいで敵を混ぜない)。
+  // p ごとに開始位置をずらし、層内の5迷宮で顔ぶれを変える。
   const sorted = [...cur.regular].sort();
   const m = sorted.length;
-  const start = (p * 3) % m;
+  const start = (p * 2) % m;
   const pool = [0, 1, 2].map(i => sorted[(start + i) % m]);
-  const deep = [3, 4].map(i => sorted[(start + i) % m]);
-  if (pos > 0.5 && r < 10) {
-    const nextSorted = [...next.regular].sort();
-    deep.push(nextSorted[(start + 5) % nextSorted.length]);
-  } else {
-    deep.push(sorted[(start + 5) % m]);
-  }
-
-  // 迷宮の属性気配: 約2/3の迷宮はいずれかの属性を帯び、その属性の敵が出やすい。
-  const ELS = ["fire", "water", "wind", "earth", "light", "dark"];
-  const element = n % 3 === 0 ? null : ELS[(hash(n, 91) >>> 0) % ELS.length];
+  const deep = [3, 4, 5].map(i => sorted[(start + i) % m]);
 
   return {
     id: "g" + String(n).padStart(3, "0"),
     name: DUNGEON_NAMES[n - 1],
-    short: SHORT[r - 1] + ((n - 1) % 10 + 1),
-    rank: r,
-    element,
+    short: def.short + (p + 1),
+    rank: r,                  // 既存のランク依存処理 (monStats・強敵・戦闘BGM 等) 用の参照ランク
+    layer,                    // 層 (1-20): 盤面テーマ・探索BGM・物語が参照
+    element: def.element,     // 層の属性気配
     floors: dungeonFloors(n),
     pool,
     deepPool: deep,
-    boss: BOSS_ORDER[r][p], // 迷宮固有の主 (帯内 p 番目)。全100迷宮で重複しない
+    boss: isEnd ? LAYER_BOSS[layer - 1] : null,  // 層ボスは層末迷宮のみ。途中はボスなし (踏破で攻略)
     bossScale: 1.0,
-    enemyScale: Math.round((0.7 + pos) * 100) / 100,
+    enemyScale: Math.round((0.7 + (n - 1) / 99 * 1.4) * 100) / 100, // 全100迷宮で滑らかに上昇 0.7→2.1
     trapRate: Math.min(0.25, 0.04 + n * 0.002),
-    poisonRate: n > 20 ? Math.min(0.10, 0.04 + n * 0.0006) : 0,
+    poisonRate: n > 10 ? Math.min(0.10, 0.04 + n * 0.0006) : 0,
     warmChance: Math.min(0.7, 0.38 + n * 0.0032),
     soulLevelBonus: Math.floor((Math.sqrt(n) - 1) * 1.6),
     rankBonus: Math.round(1.15 * Math.log2(1 + n / 2) * 100) / 100,
     lootLv: [Math.max(1, Math.round(n * 1.5)), Math.min(200, Math.round(n * 2))],
-    lootTier: Math.ceil(n / 10),
+    lootTier: layer,
   };
 }
 

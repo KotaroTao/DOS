@@ -903,3 +903,13 @@ export const BOSS_ORDER = {
     }
   }
 }
+
+// ===== 20層構成の層ボス (各層に1体・計20体) =====
+// 100迷宮 = 20層 × 5迷宮。各層の最終迷宮 (D5,10,…,100) でのみ層ボスと戦う。
+// 既存ボスから決定的に20体を選ぶ (層 L → ランク ceil(L/2) の 0 番目 / 5 番目)。
+// ※ 段階リリースの基盤フェーズ用の暫定割り当て。各層の専用ボスは層ごとのPRで差し替える。
+export const LAYER_BOSS = Array.from({ length: 20 }, (_, i) => {
+  const L = i + 1;
+  const r = Math.ceil(L / 2);
+  return BOSS_ORDER[r][((L - 1) % 2) * 5];
+});

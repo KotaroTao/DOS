@@ -14,7 +14,7 @@ import { dungeonSubQuests } from "./subquests.js";
 import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
 import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
-import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS, ELITE_ORDER, monsterTraits } from "./dungeons/index.js";
+import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS, ELITE_ORDER, monsterTraits, layerOf } from "./dungeons/index.js";
 import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, soulSprite, jobSprite, dollSprite,
   recalcDoll, jobStatsOf, soulLevelCap, setSharedSouls, MAX_SUBS,
@@ -331,41 +331,37 @@ function dailySeed() { const d = new Date(); return d.getFullYear() * 10000 + (d
 
 function activeCfg() { return curDungeon(); }
 
-// ===== 迷宮テーマ (5迷宮ごと) =====
-// D1-20 を5迷宮ごとの4ブロックに分け、カード裏面の意匠・床の色味・探索BGMを束ねる。
-// それ以前のランク別の見た目とBGMは D21 以降のフォールバックとして残す (D21- は今後決定)。
-const DUNGEON_THEMES = [
-  { // D1-5 浅層墓地「骸の墓所」: 骨と冷えた石。たいまつの橙の灯
-    key: "bone", name: "骸の墓所", bgm: "field",
-    sym: "†", accent: "#c7bfa6",
-    floorBase: "#14130f", floorTiles: ["#1b1812", "#17150f", "#13110c"],
-    glow: "rgba(232,210,150,0.06)",
-  },
-  { // D6-10 深層墓地「呪われた霊廟」: 死者の燐光が漂う紫
-    key: "crypt", name: "呪われた霊廟", bgm: "fieldCrypt",
-    sym: "‡", accent: "#a487c9",
-    floorBase: "#100f17", floorTiles: ["#181423", "#14111c", "#100e16"],
-    glow: "rgba(150,110,210,0.06)",
-  },
-  { // D11-15 廃坑「坑夫の骨道」: 錆と鉱石、坑道のランプの琥珀
-    key: "mine", name: "坑夫の骨道", bgm: "field2",
-    sym: "⛏", accent: "#c9923f",
-    floorBase: "#15110c", floorTiles: ["#1d1610", "#18130d", "#14100a"],
-    glow: "rgba(222,150,70,0.06)",
-  },
-  { // D16-20 深部坑道「硫黄の縦坑」: 毒気の黄緑がにじむ闇
-    key: "sulfur", name: "硫黄の縦坑", bgm: "fieldSulfur",
-    sym: "⚗", accent: "#a7b84a",
-    floorBase: "#12140d", floorTiles: ["#1a1c11", "#16180d", "#12140a"],
-    glow: "rgba(170,195,75,0.06)",
-  },
+// ===== 迷宮テーマ (20層) =====
+// 100迷宮 = 20層 × 5迷宮。層ごとにカード裏面の意匠・床の色味・探索BGMを束ねる。
+// bgm は当面は既存トラックを流用 (専用曲は層ごとのPRで差し替える)。
+const LAYER_VISUALS = [
+  { name: "墓地",       sym: "†", accent: "#c7bfa6", bgm: "field",      floorBase: "#14130f", floorTiles: ["#1b1812", "#17150f", "#13110c"], glow: "rgba(232,210,150,0.06)" }, // 1
+  { name: "地下水路",   sym: "≈", accent: "#5fa0b8", bgm: "field5",     floorBase: "#0d1417", floorTiles: ["#121d22", "#0f181c", "#0c1216"], glow: "rgba(110,200,220,0.06)" }, // 2
+  { name: "廃坑",       sym: "⛏", accent: "#c9923f", bgm: "field2",     floorBase: "#15110c", floorTiles: ["#1d1610", "#18130d", "#14100a"], glow: "rgba(222,150,70,0.06)" },  // 3
+  { name: "捨て砦",     sym: "⚔", accent: "#9aa0ac", bgm: "field3",     floorBase: "#121316", floorTiles: ["#191b20", "#15171b", "#111316"], glow: "rgba(200,210,230,0.05)" }, // 4
+  { name: "霧の森",     sym: "♣", accent: "#7faa5a", bgm: "field4",     floorBase: "#0f140d", floorTiles: ["#161d12", "#12180e", "#0e130a"], glow: "rgba(150,200,120,0.06)" }, // 5
+  { name: "沈没神殿",   sym: "⛪", accent: "#6fb0c8", bgm: "field5",     floorBase: "#0d1316", floorTiles: ["#121c20", "#0f171b", "#0c1215"], glow: "rgba(120,200,225,0.06)" }, // 6
+  { name: "灼熱の洞",   sym: "▲", accent: "#d4682e", bgm: "field6",     floorBase: "#190f0a", floorTiles: ["#22130c", "#1c0f0a", "#160c07"], glow: "rgba(255,130,50,0.07)" },  // 7
+  { name: "氷結回廊",   sym: "❄", accent: "#9fd0e6", bgm: "field7",     floorBase: "#0e1417", floorTiles: ["#152027", "#111a20", "#0d1418"], glow: "rgba(170,220,245,0.06)" }, // 8
+  { name: "毒沼",       sym: "⚗", accent: "#a7b84a", bgm: "fieldSulfur",floorBase: "#12140d", floorTiles: ["#1a1c11", "#16180d", "#12140a"], glow: "rgba(170,195,75,0.06)" },  // 9
+  { name: "嵐の尖塔",   sym: "⚡", accent: "#b6a4e0", bgm: "field8",     floorBase: "#10101a", floorTiles: ["#181826", "#14141f", "#101019"], glow: "rgba(180,160,235,0.06)" }, // 10
+  { name: "闘技場跡",   sym: "✶", accent: "#c9a05a", bgm: "field3",     floorBase: "#16130d", floorTiles: ["#1f1a11", "#1a160d", "#15110a"], glow: "rgba(225,180,90,0.05)" },  // 11
+  { name: "地底大空洞", sym: "◆", accent: "#8a7a5a", bgm: "field10",    floorBase: "#13110d", floorTiles: ["#1b1813", "#16140f", "#12100b"], glow: "rgba(200,180,140,0.05)" }, // 12
+  { name: "魔導書庫",   sym: "✪", accent: "#9d7ad0", bgm: "fieldCrypt", floorBase: "#100e17", floorTiles: ["#181323", "#13101c", "#100d16"], glow: "rgba(160,120,225,0.06)" }, // 13
+  { name: "屍蝋の回廊", sym: "‡", accent: "#b8a878", bgm: "fieldCrypt", floorBase: "#14120d", floorTiles: ["#1c1912", "#17140e", "#13100a"], glow: "rgba(210,190,130,0.05)" }, // 14
+  { name: "溶鉄炉",     sym: "♨", accent: "#e07838", bgm: "field6",     floorBase: "#190e08", floorTiles: ["#23120a", "#1c0f08", "#160b06"], glow: "rgba(255,140,55,0.07)" },  // 15
+  { name: "深淵の聖堂", sym: "✝", accent: "#e0d28a", bgm: "field9",     floorBase: "#14130c", floorTiles: ["#1d1b10", "#18160d", "#13110a"], glow: "rgba(240,225,150,0.06)" }, // 16
+  { name: "凍てつく王墓", sym: "❅", accent: "#a8c8e0", bgm: "field7",   floorBase: "#0d1217", floorTiles: ["#141e26", "#10181f", "#0c1217"], glow: "rgba(180,215,245,0.06)" }, // 17
+  { name: "冥府の門",   sym: "☖", accent: "#8c6aa8", bgm: "field9",     floorBase: "#100d14", floorTiles: ["#17121e", "#130f19", "#0f0c14"], glow: "rgba(150,110,190,0.06)" }, // 18
+  { name: "竜の巣",     sym: "♦", accent: "#c8503a", bgm: "field10",    floorBase: "#170d0a", floorTiles: ["#21120c", "#1b0f0a", "#150b07"], glow: "rgba(235,90,60,0.06)" },   // 19
+  { name: "終焉の玄室", sym: "✺", accent: "#b08ac0", bgm: "field10",    floorBase: "#0f0c13", floorTiles: ["#161019", "#120d15", "#0e0b11"], glow: "rgba(180,130,210,0.06)" }, // 20
 ];
 // 迷宮番号 (1-100)。cfg.id = "g001" から取り出す
 function dungeonNumber(cfg) { return cfg && cfg.id ? parseInt(cfg.id.slice(1), 10) : (G.dungeonIdx + 1); }
-// 現在の迷宮のテーマ (D1-20 のみ。D21 以降は null でフォールバック)
+// 現在の迷宮の層テーマ (全100迷宮 = 20層)
 function dungeonTheme(cfg = activeCfg()) {
-  const n = dungeonNumber(cfg);
-  return n >= 1 && n <= 20 ? DUNGEON_THEMES[Math.ceil(n / 5) - 1] : null;
+  const L = cfg && cfg.layer ? cfg.layer : layerOf(dungeonNumber(cfg));
+  return LAYER_VISUALS[Math.min(20, Math.max(1, L)) - 1];
 }
 
 // ===== 特別階 =====
@@ -1541,22 +1537,35 @@ function closePrompt() {
   autosave(true);
 }
 
-// 階段: 降りるか選ぶ。最深階の階段はボスへの扉
+// 階段: 降りるか選ぶ。最深階の階段は、層末迷宮では層ボスへの扉、それ以外では踏破口。
 function askDescend(cell) {
   const dn = curDungeon();
-  const boss = G.floor >= dn.floors;
+  const atBottom = G.floor >= dn.floors;
+  const boss = atBottom && !!dn.boss;        // 層末迷宮のみ最深部にボスがいる
+  const clearNoBoss = atBottom && !dn.boss;  // 層途中の迷宮は最深部到達で踏破
+  let label, banner, accent, prompt;
+  if (boss) { label = "⚔ 主に挑む"; banner = "⚠ 迷宮の主 ⚠"; accent = "#d4504e"; prompt = `この奥に「${dn.name}」の主が待つ。挑む？`; }
+  else if (clearNoBoss) { label = "★ 踏破する"; banner = "✦ 最深部 ✦"; accent = "#ffd84a"; prompt = `「${dn.name}」の最深部に至った。踏破して街へ凱旋する？`; }
+  else { label = "▼ 降りる"; banner = "✦ 発見 ✦"; prompt = `下り階段を見つけた。地下 ${G.floor + 1} 階へ降りる？`; }
   showChoice(
-    boss ? `この奥に「${dn.name}」の主が待つ。挑む？` : `下り階段を見つけた。地下 ${G.floor + 1} 階へ降りる？`,
+    prompt,
     [
-      { label: boss ? "⚔ 主に挑む" : "▼ 降りる", danger: boss, fn: () => {
+      { label, danger: boss, fn: () => {
         if (boss) { log("迷宮の主が立ちはだかる！", "dmg"); startBattle(spawnBossEnemies(dn.boss, dn.bossScale * enemyScale()), cell); }
+        else if (clearNoBoss) clearDungeonNoBoss();
         else descend();
       } },
       { label: "✋ まだ探索する", fn: () => { renderBoard(); } },
     ],
     ICONS.stairs,
-    boss ? { banner: "⚠ 迷宮の主 ⚠", accent: "#d4504e" } : { banner: "✦ 発見 ✦" }
+    { banner, accent }
   );
+}
+
+// ボスのいない層途中の迷宮を踏破する (最深部到達で確定)。ボス撃破と同じ章進行・凱旋演出につなぐ。
+function clearDungeonNoBoss() {
+  const info = commitDungeonClear(false); // boss扱いしない (戦績の主撃破は加算しない)
+  showDungeonClearedPopup(info);
 }
 
 // ===== 罠解除 (宝箱・罠マス共通) =====
@@ -2955,10 +2964,9 @@ function gameOver() {
 
 // 迷宮の主を撃破した瞬間の確定処理。演出 (showDungeonClearedPopup) とは分離し、
 // 勝利確定と同時に保存されるため、演出中に中断されても踏破・章進行は失われない
-function commitDungeonClear() {
+function commitDungeonClear(countBoss = true) {
   const idx = G.dungeonIdx;
-  G.stats.bossKills++;
-  questProgress("boss", null, 1);
+  if (countBoss) { G.stats.bossKills++; questProgress("boss", null, 1); }
   G.dragonSlain = G.dragonSlain || idx === DUNGEONS.length - 1;
   // 新迷宮の解放は王宮の勅命ループが担う: 勅命対象を踏破 → 王宮で報告 → 次章拝命で解放
   const isStoryTarget = G.msq && G.msq.state === "active" && idx + 1 === G.msq.n;
@@ -6955,12 +6963,9 @@ const FACILITY_BGM = {
   shrine: "shrine",
 };
 let openingActive = false; // オープニング演出中は専用テーマ
-// 探索BGM: D1-20 は5迷宮ごとのテーマ曲、D21以降はランク帯 (1-10) の専用テーマ
+// 探索BGM: 層 (1-20) ごとのテーマ曲
 function fieldBgm() {
-  const th = dungeonTheme();
-  if (th) return th.bgm;
-  const r = Math.max(1, Math.min(10, activeCfg().rank || 1));
-  return r === 1 ? "field" : `field${r}`;
+  return dungeonTheme().bgm;
 }
 // 戦闘BGM: ランク帯で激しさが3段階。深層 (ランク9-10) のボスは終末のテーマ
 function battleBgm(isBoss) {
@@ -7191,7 +7196,7 @@ if (settingsBtn) settingsBtn.addEventListener("click", () => {
 // 一度選択した行動は取り消せない。タスクキルされても直前の状態 (戦闘なら確定済みの
 // 行動が実行される直前) から再開する。
 // v2: 全コンテンツ再編 (隠しレベル1-200 / 迷宮100 / 魂cap拡張)。v1セーブとは互換しない
-const SAVE_KEY = "dos-save-v5"; // v2/v3/v4 は魂システム刷新で孤立させた (v5 = 魂を1体ごと個別管理)
+const SAVE_KEY = "dos-save-v6"; // v6 = 100迷宮を20層×5迷宮へ再構成 (旧セーブは孤立させる)
 // 保存する G のフィールド (アニメーション等の一時状態は除外)
 const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound",
