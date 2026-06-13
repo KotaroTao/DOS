@@ -2609,9 +2609,10 @@ function distributeBattleSoulExp(soulGot) {
     const e = soulByUid(uid);
     if (!e) continue;
     const cap = soulLevelCap(e.clsKey, e.count);
-    if (e.level >= cap) continue;
     const oldLv = e.level;
     const oldSpells = new Set((rep && rep.spells) || []);
+    // 上限に達していても獲得Soulは exp として蓄積する。
+    // ランクUPで上限が伸びた際に applySoulLevelCatchup で一気にレベルへ反映される。
     e.exp = (e.exp || 0) + share;
     let leveled = false;
     while (e.level < cap && e.exp >= soulTrainCost(e.level)) {
@@ -2619,7 +2620,6 @@ function distributeBattleSoulExp(soulGot) {
       e.level++;
       leveled = true;
     }
-    if (e.level >= cap) e.exp = 0;
     if (!leveled) continue;
     recalcAllDolls();
     // 1魂ずつ「レベルアップ(回数ぶん)→スキル獲得」の順でポップアップ
@@ -3684,6 +3684,7 @@ function renderAltar() {
       tb.appendChild(el("div", "tw-note", nx
         ? `同じ${SOUL_CLASSES[selSoul.clsKey].label}の魂をあと ${nx.next - selSoul.count} 体 吸収させてランク${rank + 1}になると上限が伸びる。`
         : "最高ランク。これ以上は上限が伸びない。"));
+      if (selSoul.exp > 0) tb.appendChild(el("div", "tw-note", `蓄積 Soul ✦${selSoul.exp}（ランクUPで一気にLvへ反映される）`));
     } else {
       const need = Math.max(1, soulTrainCost(selSoul.level) - (selSoul.exp || 0));
       tb.appendChild(el("div", "tw-trainn", `Lv${selSoul.level} → Lv${selSoul.level + 1}`));
@@ -3846,7 +3847,13 @@ function fuseSoul(targetUid, consumeUid) {
   const t = soulByUid(targetUid), c = soulByUid(consumeUid);
   if (!t || !c || c.clsKey !== t.clsKey || soulWorn(c.uid)) { SFX.ng(); return; }
   const before = soulRankOf(t);
+  const beforeLv = t.level;
+  // 双方に蓄積していた総 Soul を合算する。新しい上限まではレベルに、超過分は exp に保持する。
+  const total = soulTotalExp(t.level, t.exp) + soulTotalExp(c.level, c.exp);
   t.count += c.count;
+  const newCap = soulLevelCap(t.clsKey, t.count);
+  const le = levelExpFromTotal(total, newCap);
+  t.level = le.level; t.exp = le.exp;
   const idx = G.souls.indexOf(c);
   if (idx >= 0) G.souls.splice(idx, 1);
   unequipSoulEverywhere(c.uid);
@@ -3855,12 +3862,28 @@ function fuseSoul(targetUid, consumeUid) {
   const after = soulRankOf(t);
   SFX.itemget(); buzz([0, 30, 50, 30]);
   log(`${SOUL_CLASSES[t.clsKey].label}の魂を吸収させた (魂数 ×${t.count})。`, "win");
+  if (t.level > beforeLv) log(`蓄積した Soul が反映され、Lv${beforeLv} → Lv${t.level} に上昇した！`, "win");
   if (after > before) { SFX.victory(); showToast(`⤴ ${jobRankName(t.clsKey, after)} に昇格！`); }
   renderTown();
 }
 
 // 魂を1レベル上げるのに要する Soul (レベルが高いほど高い)
 function soulTrainCost(level) { return 15 + level * 12; }
+
+// 魂に蓄積している総 Soul = 現レベルまでに消費した分 + 次レベルへの途中分(exp)。
+// 融合時の合算や、上限突破後の一括レベルアップ計算に使う。
+function soulTotalExp(level, exp) {
+  let total = exp || 0;
+  for (let i = 1; i < (level || 1); i++) total += soulTrainCost(i);
+  return total;
+}
+// 総 Soul と Lv上限から、到達レベルと端数 exp を求める。
+// 上限に達しても余剰 Soul は exp として保持し、ランクUPで上限が伸びたら一気に反映される。
+function levelExpFromTotal(total, cap) {
+  let level = 1, rem = Math.max(0, total);
+  while (level < cap && rem >= soulTrainCost(level)) { rem -= soulTrainCost(level); level++; }
+  return { level, exp: rem };
+}
 
 // 魂インスタンスを ✦Soul でレベルアップ (その魂を宿す人業が伸びる)
 function trainSoul(uid) {
@@ -5796,6 +5819,7 @@ function renderSoulTab(p) {
     info.appendChild(el("div", "st-souln2", `メイン魂 ${jobRankName(pe.clsKey, p.jobRank)}　Lv${pe.level} / ${cap}`));
     if (pe.level >= cap) {
       info.appendChild(el("div", "st-soulstat", "Lv上限 — ランクアップで上限が伸びる"));
+      if (pe.exp > 0) info.appendChild(el("div", "st-soulstat", `蓄積 Soul ✦${pe.exp}（ランクUPでLvに反映）`));
     } else {
       const need = soulTrainCost(pe.level);
       const have = Math.max(0, Math.min(need, pe.exp || 0));
