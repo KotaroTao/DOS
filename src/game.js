@@ -3282,11 +3282,15 @@ function resolveCell(cell) {
       }
       SFX.trap(); buzz([0, 40, 30, 40]);
       flashScreen("#5a8a2a");
+      // 床ダメージ率: 基本5% + 層に応じて微増 (層1=5% → 層20≈10.7%, 上限12%)。
+      // 深層ほど毒沼が脅威であり続けるようにする。
+      const layer = activeCfg().layer || layerOf(dungeonNumber(activeCfg()));
+      const pct = Math.min(0.12, 0.05 + (layer - 1) * 0.003);
       let anyDeath = false;
       const fallen = [];
       for (const p of G.party) {
         if (!p.alive) continue;
-        let dmg = Math.max(1, Math.ceil(p.maxhp * 0.05));
+        let dmg = Math.max(1, Math.ceil(p.maxhp * pct));
         if (resist === 1) dmg = Math.max(1, Math.ceil(dmg * 0.5));
         p.hp = Math.max(0, p.hp - dmg);
         if (p.hp === 0) { p.alive = false; anyDeath = true; fallen.push(p.name); log(`${p.name}は毒に沈んだ…`, "dmg"); }
@@ -9675,7 +9679,9 @@ function tickPoison() {
   for (const p of G.party) {
     if (!p.alive || p.ailment !== "poison") continue;
     any = true;
-    p.hp = Math.max(0, p.hp - 1);
+    // 毒状態の継続ダメージは最大HPの2% (高レベルでも脅威として機能するよう%化)
+    const dmg = Math.max(1, Math.ceil(p.maxhp * 0.02));
+    p.hp = Math.max(0, p.hp - dmg);
     if (p.hp === 0) { p.alive = false; SFX.die(); log(`${p.name}は毒に倒れた…`, "dmg"); }
   }
   imprintFallen();
