@@ -365,6 +365,9 @@ export class Battle {
       p.spellCostMul = (ef && ef.spellCostMul) || 0;
       p.autoRevive = (ef && ef.autoRevive) || 0;
       p._autoReviveUsed = false;
+      p.regen = (ef && ef.regen) || 0;             // 再生の宝珠
+      p.counter = (ef && ef.counter) || 0;          // 報復の籠手
+      p.ailmentImmune = !!(ef && ef.ailmentImmune); // 解呪の宝珠
     }
     this._openingStrikes();
     this.advance();
@@ -485,6 +488,15 @@ export class Battle {
         const h = Math.max(1, Math.round(e.maxhp * e.regen));
         e.hp = Math.min(e.maxhp, e.hp + h);
         this.log(`${e.name}の傷がふさがっていく (${h})`, "sys");
+      }
+    }
+    // 再生の宝珠 (party regen): 2ラウンド目以降、傷ついた味方が最大HPの割合だけ回復する (LR装飾品)
+    if (this._roundNo > 1) {
+      for (const p of this.livingParty()) {
+        if (!p.regen || p.hp >= p.maxhp) continue;
+        const h = Math.max(1, Math.round(p.maxhp * p.regen));
+        p.hp = Math.min(p.maxhp, p.hp + h);
+        this.log(`${p.name}の傷が再生していく (${h})`, "heal");
       }
     }
     // 激昂: HPが3割を切った敵が一度だけ荒れ狂い、ATK/AGI が跳ね上がる
@@ -896,12 +908,14 @@ export class Battle {
   // 異常耐性 (resistAilment / 聖域): 毒・麻痺・睡眠の付与率カット
   _ailRes(t) {
     if (t.side !== "party") return 0;
+    if (t.ailmentImmune) return 1; // 解呪の宝珠 (LR装飾品): 状態異常を完全無効
     let lv = pv(t, "resistAilment");
     if (lv < 1 && this.party.some((p) => p.alive && pv(p, "sanctuary"))) lv = 1;
     return lv >= 2 ? 0.60 : lv === 1 ? 0.30 : 0;
   }
   // 石化・即死への耐性 (異常耐性Lv2のみ)
   _hardRes(t) {
+    if (t.ailmentImmune) return 1; // 解呪の宝珠: 石化・即死系の付与も無効
     return t.side === "party" && pv(t, "resistAilment") >= 2 ? 0.30 : 0;
   }
 
@@ -1054,6 +1068,13 @@ export class Battle {
       const hl = Math.max(1, Math.round(dmg * actor.lifesteal));
       actor.hp = Math.min(actor.maxhp, actor.hp + hl);
       this.log(`${actor.name}は精気を吸い取った (${hl})`, "dmg");
+    }
+    // 報復の籠手 (counter): 敵の物理攻撃を受けた味方が反撃する (LR装飾品。反撃の反撃は起きない)
+    if (tgt.side === "party" && tgt.counter && tgt.alive && actor.side === "enemy" && actor.alive && !opt._counter && dmg > 0) {
+      const cdmg = Math.max(1, Math.round((tgt.atk || 1) * tgt.counter));
+      actor.hp -= cdmg;
+      this.log(`${tgt.name}の報復！ ${actor.name}に ${cdmg} ダメージ`, "hit");
+      this._die(actor);
     }
     const eff = em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : barriered ? " 障壁!" : resisted ? " 物理耐性!" : "";
     this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}${eff}`,
