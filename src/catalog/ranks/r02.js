@@ -36,8 +36,8 @@ export const RANK2_ITEMS = [
   A("a_r2_brigandine", "ブリガンダイン", 20, { tint: "#7c818c", desc: "布地の内側に無数の鉄片を鋲留めした鎧。見た目は布だが中身は鉄、しなやかさと堅さを兼ね備える。" }),
 
   // ===== 頭 head (布2/軽2/重2) =====
-  H("h_r2_mageveil", "術士の頭巾", 12, { shape: "hat", weight: "cloth", tint: "#6a7a9a", desc: "刺繍で印を編み込んだ術士の頭巾。気の散る視界を布で絞り、唱える間の心を鎮めてくれる。" }),
-  H("h_r2_widebrim", "つば広帽", 17, { shape: "hat", weight: "cloth", tint: "#7a5bb0", desc: "視線を隠す深いつばの帽子。魔導を学ぶ者の旅装の定番で、灯りの揺らぎから目を守る。" }),
+  H("h_r2_mageveil", "術士の頭巾", 12, { magStat: "int", shape: "hat", weight: "cloth", tint: "#6a7a9a", desc: "刺繍で印を編み込んだ術士の頭巾。気の散る視界を布で絞り、唱える間の心を鎮めてくれる。" }),
+  H("h_r2_widebrim", "つば広帽", 17, { magStat: "pie", shape: "hat", weight: "cloth", tint: "#7a5bb0", desc: "視線を隠す深いつばの帽子。魔導を学ぶ者の旅装の定番で、灯りの揺らぎから目を守る。" }),
   H("h_r2_studdedcap", "鋲革の帽子", 13, { shape: "hat", tint: "#8a6438", desc: "革帽子に鉄鋲を並べて補強した一品。軽いまま打撃への備えが増し、斥候や狩人に好まれる。" }),
   H("h_r2_mailcoif", "鎖頭巾", 18, { shape: "hat", tint: "#aeb4be", desc: "首まで覆う鎖の頭巾。兜ほど重くないのに、横薙ぎの斬撃から後頭と襟足をよく守ってくれる。" }),
   H("h_r2_ironhelm", "鉄兜", 15, { shape: "helm", tint: "#9aa0ac", desc: "頭をすっぽり包む標準の鉄兜。視界は少し狭まるが、矢も棍棒もまずこの鉄が受け止める。" }),
@@ -52,12 +52,12 @@ export const RANK2_ITEMS = [
   F("f_r2_steelgreaves", "鋼の脚甲", 20, { shape: "greaves", tint: "#cfd2da", desc: "膝から脛を鋼板で固めた脚甲。前線で踏ん張る脚を斬撃と落石から守り抜く、重装の要。" }),
 
   // ===== 小手 hands (布2/軽2/重2) =====
-  G("g_r2_magegloves", "術士の手袋", 12, { weight: "cloth", tint: "#6a7a9a", desc: "印を結ぶ指の動きを妨げぬ薄手の手袋。掌に魔法陣が刺繍され、握る杖との馴染みがよい。" }),
-  G("g_r2_strapwraps", "革紐の手当て", 17, { weight: "cloth", tint: "#8a6438", desc: "革紐を巻きつけて手首を固めた簡素な手当て。拳と手首を支え、武僧の打撃を後押しする。" }),
-  G("g_r2_studdedgloves", "鋲革の手袋", 13, { tint: "#8a6438", desc: "甲に鉄鋲を並べた革手袋。受け流しの一手で刃を弾き、握った得物が手から滑るのを防ぐ。" }),
-  G("g_r2_archerglove", "弓懸", 18, { tint: "#a9781f", desc: "弦から指を守る射手の革手套。引き手の指を固め、矢を放つたびの痛みなく連射を支える。" }),
-  G("g_r2_irongauntlet", "鉄の籠手", 15, { shape: "gauntlet", tint: "#9aa0ac", desc: "手の甲から手首までを鉄で覆う籠手。殴り合いの間合いでも、拳ごと相手の刃を受け止められる。" }),
-  G("g_r2_mailgauntlet", "鎖手甲", 20, { shape: "gauntlet", tint: "#aeb4be", desc: "鎖を編んで関節の自由を残した手甲。指先まで守りが回り、握力を損なわずに長く戦える。" }),
+  G("g_r2_magegloves", "術士の手袋", 12, { magStat: "int", weight: "cloth", tint: "#6a7a9a", desc: "印を結ぶ指の動きを妨げぬ薄手の手袋。掌に魔法陣が刺繍され、握る杖との馴染みがよい。" }),
+  G("g_r2_strapwraps", "革紐の手当て", 17, { magStat: "pie", weight: "cloth", tint: "#8a6438", desc: "革紐を巻きつけて手首を固めた簡素な手当て。拳と手首を支え、武僧の打撃を後押しする。" }),
+  G("g_r2_studdedgloves", "鋲革の手袋", 13, { role: "atk", tint: "#8a6438", desc: "甲に鉄鋲を並べた革手袋。受け流しの一手で刃を弾き、握った得物が手から滑るのを防ぐ。" }),
+  G("g_r2_archerglove", "弓懸", 18, { role: "atk", tint: "#a9781f", desc: "弦から指を守る射手の革手套。引き手の指を固め、矢を放つたびの痛みなく連射を支える。" }),
+  G("g_r2_irongauntlet", "鉄の籠手", 15, { role: "atk", shape: "gauntlet", tint: "#9aa0ac", desc: "手の甲から手首までを鉄で覆う籠手。殴り合いの間合いでも、拳ごと相手の刃を受け止められる。" }),
+  G("g_r2_mailgauntlet", "鎖手甲", 20, { role: "atk", shape: "gauntlet", tint: "#aeb4be", desc: "鎖を編んで関節の自由を残した手甲。指先まで守りが回り、握力を損なわずに長く戦える。" }),
 
   // ===== 盾 (軽1/重1) =====
   S("s_r2_ironround", "鉄縁の丸盾", 13, { shape: "round", tint: "#9aa0ac", desc: "縁を鉄で固めた丸盾。軽く取り回しがよく、打ち払いから受け止めまで、攻防にそつなくこなす。" }),

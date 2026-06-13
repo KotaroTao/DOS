@@ -49,8 +49,8 @@ export const RANK1_ITEMS = [
   A("a_r1_ironbreast", "板金の前当て", 10, { tint: "#9aa0ac", desc: "胸と腹を覆う一枚板の前当て。重いぶん守りは堅く、前線で矢面に立つ者の盾代わりになる。" }),
 
   // ===== 頭 head (布2/軽2/重2) =====
-  H("h_r1_clothhood", "布の頭巾", 2, { shape: "hat", weight: "cloth", tint: "#7c8aa0", desc: "頭からすっぽり被る麻の頭巾。日差しと埃を防ぐ程度だが、術者の集中を乱さない。" }),
-  H("h_r1_pointedhat", "とんがり帽子", 7, { shape: "hat", weight: "cloth", tint: "#5a6a8a", desc: "つばの広いとんがり帽子。魔を学ぶ者の証のような形で、被るだけで少し気が引き締まる。" }),
+  H("h_r1_clothhood", "布の頭巾", 2, { magStat: "pie", shape: "hat", weight: "cloth", tint: "#7c8aa0", desc: "頭からすっぽり被る麻の頭巾。日差しと埃を防ぐ程度だが、術者の集中を乱さない。" }),
+  H("h_r1_pointedhat", "とんがり帽子", 7, { magStat: "int", shape: "hat", weight: "cloth", tint: "#5a6a8a", desc: "つばの広いとんがり帽子。魔を学ぶ者の証のような形で、被るだけで少し気が引き締まる。" }),
   H("h_r1_leathercap", "革帽子", 3, { shape: "hat", tint: "#a9781f", desc: "厚手の革をかぶせただけの帽子。軽く蒸れにくく、頭への不意の一打をやわらげる。" }),
   H("h_r1_travelhat", "旅笠", 8, { shape: "hat", tint: "#8a6438", desc: "雨風をしのぐ旅人の笠。革縁で補強され、転んだ拍子の擦り傷くらいは防いでくれる。" }),
   H("h_r1_ironcirclet", "鉄の鉢金", 5, { shape: "helm", tint: "#9aa0ac", desc: "額に当てる鉄の鉢金。兜には及ばないが、こめかみを守るだけでも命拾いすることがある。" }),
@@ -65,12 +65,12 @@ export const RANK1_ITEMS = [
   F("f_r1_heavygreaves", "重い脚甲", 10, { shape: "greaves", tint: "#888e9c", desc: "膝下を鉄板で固めた脚甲。重量はあるが、前線で踏ん張る脚を刃と衝撃から守り抜く。" }),
 
   // ===== 小手 hands (布2/軽2/重2) =====
-  G("g_r1_clothgloves", "布手袋", 2, { weight: "cloth", tint: "#7c8aa0", desc: "薄い布の手袋。守りは申し訳程度だが、杖や本を握る指先をかじかみから守ってくれる。" }),
-  G("g_r1_fingerless", "指なし手袋", 6, { weight: "cloth", tint: "#5a6a8a", desc: "指先を切り落とした布手袋。細かな指の動きを妨げず、印を結ぶ術者に好まれる。" }),
-  G("g_r1_leathergloves", "革手袋", 3, { tint: "#a9781f", desc: "なめし革の手袋。手の甲を覆い、弦を引く指や柄を握る掌のまめを防いでくれる。" }),
-  G("g_r1_leatherbracer", "革の腕当て", 8, { tint: "#8a6438", desc: "前腕まで覆う革の腕当て。受け流しの咄嗟の一手で、刃を腕で払う度胸を後押しする。" }),
-  G("g_r1_ironhandguard", "鉄の手甲", 5, { shape: "gauntlet", tint: "#9aa0ac", desc: "手の甲に鉄板を当てた手甲。殴り合いの間合いでも、拳ごと相手の刃を受け止められる。" }),
-  G("g_r1_oldgauntlet", "古い籠手", 10, { shape: "gauntlet", tint: "#888e9c", desc: "関節まで鉄で覆う古びた籠手。重く武骨だが、握った得物を決して離さぬ堅牢さがある。" }),
+  G("g_r1_clothgloves", "布手袋", 2, { magStat: "pie", weight: "cloth", tint: "#7c8aa0", desc: "薄い布の手袋。守りは申し訳程度だが、杖や本を握る指先をかじかみから守ってくれる。" }),
+  G("g_r1_fingerless", "指なし手袋", 6, { magStat: "int", weight: "cloth", tint: "#5a6a8a", desc: "指先を切り落とした布手袋。細かな指の動きを妨げず、印を結ぶ術者に好まれる。" }),
+  G("g_r1_leathergloves", "革手袋", 3, { role: "atk", tint: "#a9781f", desc: "なめし革の手袋。手の甲を覆い、弦を引く指や柄を握る掌のまめを防いでくれる。" }),
+  G("g_r1_leatherbracer", "革の腕当て", 8, { role: "atk", tint: "#8a6438", desc: "前腕まで覆う革の腕当て。受け流しの咄嗟の一手で、刃を腕で払う度胸を後押しする。" }),
+  G("g_r1_ironhandguard", "鉄の手甲", 5, { role: "atk", shape: "gauntlet", tint: "#9aa0ac", desc: "手の甲に鉄板を当てた手甲。殴り合いの間合いでも、拳ごと相手の刃を受け止められる。" }),
+  G("g_r1_oldgauntlet", "古い籠手", 10, { role: "atk", shape: "gauntlet", tint: "#888e9c", desc: "関節まで鉄で覆う古びた籠手。重く武骨だが、握った得物を決して離さぬ堅牢さがある。" }),
 
   // ===== 盾 (軽1/重1) =====
   S("s_r1_woodbuckler", "木の丸盾", 3, { shape: "round", tint: "#a9781f", desc: "板を組んで縁を革で巻いた小さな丸盾。軽く取り回しがよく、最初の一面として申し分ない。" }),

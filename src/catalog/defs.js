@@ -259,13 +259,23 @@ export function A(id, name, lv, opt = {}) {
   return it;
 }
 
+// 段階装備の役割ステ量 (lv に応じて単調増加)。頭/小手の主ステ算出に使う。
+const roleStatAmt = (lv) => Math.max(1, round(0.8 + lv * 0.16 + lv * lv * 0.0006));
+const tokenVit = (lv) => Math.max(1, round(lv * 0.05));
+
 // 頭: H(id, 名, lv, opt) — opt.shape: "helm"(既定) | "hat" | "circlet"。opt.def は VIT の上書き
 // opt.weight: shape から自動決定 (helm=heavy, hat=light, circlet=cloth)。上書き可
+// 段階装備の方針: 物理職向け(軽/重)は VIT 主体、術者向け(布)は opt.magStat ("int"|"pie") 主体。
+// magStat 指定時のみ VIT をトークンに落として INT/PIE を主ステにする (既存の一点物には無影響)。
 export function H(id, name, lv, opt = {}) {
   const shape = opt.shape || "helm";
   const it = base(id, name, "head", lv, shape, opt);
   it.vit = opt.def != null ? opt.def : Math.max(1, round((1 + lv * 0.10 + lv * lv * 0.0012) * (opt.pow || 1)));
   it.weight = opt.weight || SHAPE_WEIGHT[shape];
+  if (opt.magStat === "int" || opt.magStat === "pie") {
+    it[opt.magStat] = (it[opt.magStat] || 0) + roleStatAmt(lv);
+    if (opt.def == null) it.vit = tokenVit(lv);
+  }
   return it;
 }
 
@@ -287,11 +297,20 @@ export function F(id, name, lv, opt = {}) {
 
 // 小手: G(id, 名, lv, opt) — opt.shape: "gloves"(既定) | "gauntlet"。opt.def は VIT の上書き
 // opt.weight: shape から自動決定 (gloves=light, gauntlet=heavy)。上書き可 (例: weight:"cloth" で布手袋)
+// 段階装備の方針: 小手は「攻めの部位」。物理職向け(軽/重)は opt.role:"atk" で ATK 主体、
+// 術者向け(布)は opt.magStat ("int"|"pie") 主体。指定時は VIT をトークンに落とす (既存品は無影響)。
 export function G(id, name, lv, opt = {}) {
   const shape = opt.shape || "gloves";
   const it = base(id, name, "hands", lv, shape, opt);
   it.vit = opt.def != null ? opt.def : Math.max(1, round((1 + lv * 0.09 + lv * lv * 0.0010) * (opt.pow || 1)));
   it.weight = opt.weight || SHAPE_WEIGHT[shape];
+  if (opt.role === "atk") {
+    it.atk = (it.atk || 0) + roleStatAmt(lv);
+    if (opt.def == null) it.vit = tokenVit(lv);
+  } else if (opt.magStat === "int" || opt.magStat === "pie") {
+    it[opt.magStat] = (it[opt.magStat] || 0) + roleStatAmt(lv);
+    if (opt.def == null) it.vit = tokenVit(lv);
+  }
   return it;
 }
 

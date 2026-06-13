@@ -36,8 +36,8 @@ export const RANK4_ITEMS = [
   A("a_r4_magicplate", "魔法の板金鎧", 40, { tint: "#aeb4be", desc: "魔法の符を鋲打ちした堅牢な板金鎧。鋼に宿した護りの力が刃の勢いを和らげ、まともな直撃にも耐える。" }),
 
   // ===== 頭 head (布2/軽2/重2) =====
-  H("h_r4_sagehood", "賢者の頭巾", 32, { shape: "hat", weight: "cloth", tint: "#8a78c0", desc: "知の紋を編み込んだ頭巾。締めつけず思考を澄ませ、長い詠唱でも術者の集中を切らさない。" }),
-  H("h_r4_archmagehat", "大魔導の帽子", 38, { shape: "hat", weight: "cloth", tint: "#7a4ac0", desc: "星と月をあしらった大魔導の帽子。被る者の魔力をわずかに高め、呪文の冴えをひと押しする。" }),
+  H("h_r4_sagehood", "賢者の頭巾", 32, { magStat: "pie", shape: "hat", weight: "cloth", tint: "#8a78c0", desc: "知の紋を編み込んだ頭巾。締めつけず思考を澄ませ、長い詠唱でも術者の集中を切らさない。" }),
+  H("h_r4_archmagehat", "大魔導の帽子", 38, { magStat: "int", shape: "hat", weight: "cloth", tint: "#7a4ac0", desc: "星と月をあしらった大魔導の帽子。被る者の魔力をわずかに高め、呪文の冴えをひと押しする。" }),
   H("h_r4_mithrilcoif", "ミスリルの鎖頭巾", 34, { shape: "hat", tint: "#cfe0ea", desc: "軽銀で編んだ鎖の頭巾。羽のように軽く、首筋までの守りを保ったまま俊敏な動きを妨げない。" }),
   H("h_r4_faehat", "妖精の帽子", 38, { shape: "hat", tint: "#9bd0a8", desc: "妖精の加護が宿るという軽やかな帽子。風を呼ぶ縁取りが、頭上への一撃をふわりと受け流す。" }),
   H("h_r4_mithrilhelm", "ミスリルの兜", 35, { shape: "helm", tint: "#cfe0ea", desc: "軽銀を打ち出した兜。鋼兜の守りを軽さのまま実現し、長丁場でも首への負担を抑えてくれる。" }),
@@ -52,12 +52,12 @@ export const RANK4_ITEMS = [
   F("f_r4_magicgreaves", "魔法の脚甲", 40, { shape: "greaves", tint: "#aeb4be", desc: "護りの符を刻んだ脚甲。鋼に宿る力が衝撃を和らげ、前線で踏ん張る脚を斬撃と落石から守り抜く。" }),
 
   // ===== 小手 hands (布2/軽2/重2) =====
-  G("g_r4_sagegloves", "賢者の手袋", 32, { weight: "cloth", tint: "#8a78c0", desc: "魔法陣を縫い込んだ薄手の手袋。指先の感覚を保ち、握った触媒へ魔力を滑らかに導いてくれる。" }),
-  G("g_r4_archmagegloves", "大魔導の手袋", 38, { weight: "cloth", tint: "#7a4ac0", desc: "大魔導の名にふさわしい意匠の手袋。掌の紋様が魔力を増幅し、唱える呪文の発動を後押しする。" }),
-  G("g_r4_mithrilgloves", "ミスリルの手套", 34, { tint: "#cfe0ea", desc: "軽銀を編んだ手套。軽く指の自由を残しながら甲を守り、刃を弾く受けの一手を後押しする。" }),
-  G("g_r4_archerglove4", "射手の魔法手袋", 38, { tint: "#8a6438", desc: "祝福を込めた射手の手套。連射の負担から指を守り、引き手の震えを抑えて狙いの精度を保つ。" }),
-  G("g_r4_mithrilgauntlet", "ミスリルの籠手", 35, { shape: "gauntlet", tint: "#cfe0ea", desc: "軽銀を連ねた籠手。指の動きを残したまま拳ごと刃を受け止め、握る得物を確と手の内に留める。" }),
-  G("g_r4_magicgauntlet", "魔法の籠手", 40, { shape: "gauntlet", tint: "#aeb4be", desc: "護りの符を刻んだ籠手。鋼に宿る魔力が打撃を逸らし、武器を握る手をいかなる衝撃からも守る。" }),
+  G("g_r4_sagegloves", "賢者の手袋", 32, { magStat: "pie", weight: "cloth", tint: "#8a78c0", desc: "魔法陣を縫い込んだ薄手の手袋。指先の感覚を保ち、握った触媒へ魔力を滑らかに導いてくれる。" }),
+  G("g_r4_archmagegloves", "大魔導の手袋", 38, { magStat: "int", weight: "cloth", tint: "#7a4ac0", desc: "大魔導の名にふさわしい意匠の手袋。掌の紋様が魔力を増幅し、唱える呪文の発動を後押しする。" }),
+  G("g_r4_mithrilgloves", "ミスリルの手套", 34, { role: "atk", tint: "#cfe0ea", desc: "軽銀を編んだ手套。軽く指の自由を残しながら甲を守り、刃を弾く受けの一手を後押しする。" }),
+  G("g_r4_archerglove4", "射手の魔法手袋", 38, { role: "atk", tint: "#8a6438", desc: "祝福を込めた射手の手套。連射の負担から指を守り、引き手の震えを抑えて狙いの精度を保つ。" }),
+  G("g_r4_mithrilgauntlet", "ミスリルの籠手", 35, { role: "atk", shape: "gauntlet", tint: "#cfe0ea", desc: "軽銀を連ねた籠手。指の動きを残したまま拳ごと刃を受け止め、握る得物を確と手の内に留める。" }),
+  G("g_r4_magicgauntlet", "魔法の籠手", 40, { role: "atk", shape: "gauntlet", tint: "#aeb4be", desc: "護りの符を刻んだ籠手。鋼に宿る魔力が打撃を逸らし、武器を握る手をいかなる衝撃からも守る。" }),
 
   // ===== 盾 (軽1/重1) =====
   S("s_r4_mithrilround", "ミスリルの円盾", 34, { shape: "round", tint: "#cfe0ea", desc: "軽銀を打ち出した円盾。羽のように軽く取り回せ、打ち払いから受け流しまで攻防を自在にこなす。" }),

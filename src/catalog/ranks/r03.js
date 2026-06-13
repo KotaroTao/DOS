@@ -35,8 +35,8 @@ export const RANK3_ITEMS = [
   A("a_r3_knightarmor", "騎士の鎧", 30, { tint: "#e8eaf0", desc: "騎士団の正装たる磨き上げた全身鎧。重厚な守りと威容を兼ね、前線に立つだけで味方の士気を支える。" }),
 
   // ===== 頭 head (布2/軽2/重2) =====
-  H("h_r3_silkhood", "絹の頭巾", 22, { shape: "hat", weight: "cloth", tint: "#8a78c0", desc: "細い絹糸で編んだ滑らかな頭巾。締めつけがなく、長い詠唱の間も術者の思考を澄ませてくれる。" }),
-  H("h_r3_sagehat", "賢者帽", 27, { shape: "hat", weight: "cloth", tint: "#9b6bd0", desc: "つばに星の刺繍を巡らせた賢者の帽子。被る者の知を象徴し、魔力の流れをわずかに整えるという。" }),
+  H("h_r3_silkhood", "絹の頭巾", 22, { magStat: "pie", shape: "hat", weight: "cloth", tint: "#8a78c0", desc: "細い絹糸で編んだ滑らかな頭巾。締めつけがなく、長い詠唱の間も術者の思考を澄ませてくれる。" }),
+  H("h_r3_sagehat", "賢者帽", 27, { magStat: "int", shape: "hat", weight: "cloth", tint: "#9b6bd0", desc: "つばに星の刺繍を巡らせた賢者の帽子。被る者の知を象徴し、魔力の流れをわずかに整えるという。" }),
   H("h_r3_leatherhelm", "革兜", 23, { shape: "hat", tint: "#a9781f", desc: "厚革を兜形に成形し鉄で要所を留めた頭防具。軽さを保ったまま、側頭部までしっかり守ってくれる。" }),
   H("h_r3_mailhelm", "鎖兜", 28, { shape: "hat", tint: "#aeb4be", desc: "鉢を鉄で覆い、垂らした鎖で首筋まで守る兜。重すぎず視界も利き、斥候や軽戦士に重宝される。" }),
   H("h_r3_steelhelm", "鋼兜", 25, { shape: "helm", tint: "#cfd2da", desc: "鋼を打ち出した堅牢な兜。曲面が打撃をいなし、矢でも棍でもまずこの鋼が頭蓋を守り抜く。" }),
@@ -51,12 +51,12 @@ export const RANK3_ITEMS = [
   F("f_r3_knightgreaves", "騎士の脚甲", 30, { shape: "greaves", tint: "#e8eaf0", desc: "膝の関節まで美しく成形された騎士の脚甲。重装の要として、前線に踏みとどまる脚を完璧に守る。" }),
 
   // ===== 小手 hands (布2/軽2/重2) =====
-  G("g_r3_silkgloves", "絹の手袋", 22, { weight: "cloth", tint: "#8a78c0", desc: "薄く滑らかな絹の手袋。指先の感覚を損なわず、印を結び杖を握る術者の繊細な所作を支える。" }),
-  G("g_r3_sigilgloves", "印章の手袋", 27, { weight: "cloth", tint: "#9b6bd0", desc: "掌に魔法の印章を縫い込んだ手袋。握った触媒へ力を導きやすく、呪文の発動を滑らかにする。" }),
-  G("g_r3_doublegloves", "重ね革の手袋", 23, { tint: "#a9781f", desc: "革を重ねて甲を厚くした手袋。受けの一手で刃を弾き、握った得物を確と手の内に留める。" }),
-  G("g_r3_archergauntlet", "弓士の手套", 28, { tint: "#8a6438", desc: "引き手と押し手を別々に守る射手用の手套。連射の負担から指を守り、狙いの精度を保たせる。" }),
-  G("g_r3_steelgauntlet", "鋼の籠手", 25, { shape: "gauntlet", tint: "#cfd2da", desc: "鋼板を関節ごとに連ねた籠手。指の自由を残しつつ、拳ごと刃を受け止める堅さを備える。" }),
-  G("g_r3_knightgauntlet", "騎士の籠手", 30, { shape: "gauntlet", tint: "#e8eaf0", desc: "指先まで精緻に鋼で覆った騎士の籠手。握力を損なわず、剣を握る手をいかなる打撃からも守り抜く。" }),
+  G("g_r3_silkgloves", "絹の手袋", 22, { magStat: "pie", weight: "cloth", tint: "#8a78c0", desc: "薄く滑らかな絹の手袋。指先の感覚を損なわず、印を結び杖を握る術者の繊細な所作を支える。" }),
+  G("g_r3_sigilgloves", "印章の手袋", 27, { magStat: "int", weight: "cloth", tint: "#9b6bd0", desc: "掌に魔法の印章を縫い込んだ手袋。握った触媒へ力を導きやすく、呪文の発動を滑らかにする。" }),
+  G("g_r3_doublegloves", "重ね革の手袋", 23, { role: "atk", tint: "#a9781f", desc: "革を重ねて甲を厚くした手袋。受けの一手で刃を弾き、握った得物を確と手の内に留める。" }),
+  G("g_r3_archergauntlet", "弓士の手套", 28, { role: "atk", tint: "#8a6438", desc: "引き手と押し手を別々に守る射手用の手套。連射の負担から指を守り、狙いの精度を保たせる。" }),
+  G("g_r3_steelgauntlet", "鋼の籠手", 25, { role: "atk", shape: "gauntlet", tint: "#cfd2da", desc: "鋼板を関節ごとに連ねた籠手。指の自由を残しつつ、拳ごと刃を受け止める堅さを備える。" }),
+  G("g_r3_knightgauntlet", "騎士の籠手", 30, { role: "atk", shape: "gauntlet", tint: "#e8eaf0", desc: "指先まで精緻に鋼で覆った騎士の籠手。握力を損なわず、剣を握る手をいかなる打撃からも守り抜く。" }),
 
   // ===== 盾 (軽1/重1) =====
   S("s_r3_steelround", "鋼の円盾", 23, { shape: "round", tint: "#cfd2da", desc: "鋼を打ち出した円盾。軽快に取り回せて、打ち払いから受け流しまで攻防を自在にこなす。" }),
