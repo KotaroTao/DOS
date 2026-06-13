@@ -104,6 +104,246 @@ export function tint(pal, tintColor, amount) {
 // 見かけサイズを 12 グリッド換算へ正規化するので、大きいアートほどドットが細かくなる。
 // 高解像度アートの規約: 'o'=輪郭 / 光源は左上 / 各素材 3トーン (本体・影・ハイライト)。
 export const ARTS = {
+  // ── 第1層「墓地」の固有プロトタイプ ──
+  gravewisp: { // 墓火: 漂う鬼火。白熱した芯と青緑の炎、細い尾を引く
+    palette: { o: "#06201e", t: "#0d3a36", F: "#1f8c7e", L: "#46d6be", W: "#e6fff6" },
+    art: [
+      "........oo........",
+      ".......oWWo.......",
+      ".......oWLo.......",
+      "......oLWWLo......",
+      "......oLWWLo......",
+      ".....oLLWWLLo.....",
+      ".....oLLLLLLo.....",
+      "....oFLLLLLLFo....",
+      "....oFFLLLLFFo....",
+      "....oFFFLLFFFo....",
+      ".....oFFFFFFo.....",
+      ".....oFFFFFFo.....",
+      "......oFFFFo......",
+      "......otFFto......",
+      ".......otto.......",
+      "........to........",
+    ],
+  },
+  grasphand: { // 這い寄る腐手: 土から突き出し掴みかかる腐肉の手
+    palette: { o: "#0e0a08", H: "#b8a07e", h: "#7c674a", D: "#241a12", d: "#3a2a1c" },
+    art: [
+      ".....oo...oo.....",
+      "....oHo...oHo....",
+      "....oHo...oHo..oo",
+      ".oo.oHo...oHo.oHo",
+      "oHo.oHo...oHooooHo",
+      "oHho.oHo.oHHHHHHHo",
+      "oHHho.oHooHHHHHHo.",
+      ".oHHhooHHHHHHHHo..",
+      "..oHHHHHHHHHHHo...",
+      "...oHHHHHHHHHo....",
+      "....ohHHHHHho.....",
+      "....ohhHHHhho.....",
+      "...oDdhhhhhdDo....",
+      "..oDDDDddDDDDDo...",
+      "..oDDDDDDDDDDDo...",
+      "...ooooooooooo....",
+    ],
+  },
+  mournshade: { // 嘆きの喪影: 頭を垂れ、青白い顔から涙を流す喪服の霊
+    palette: { o: "#0a0810", S: "#2a2640", s: "#171430", F: "#b8c0e0", T: "#7fd0ff" },
+    art: [
+      "......oooo......",
+      "....ooSSSSoo....",
+      "...oSSSSSSSSo...",
+      "..oSSSSSSSSSSo..",
+      "..oSSoFFFFoSSo..",
+      "..oSSoFFFFoSSo..",
+      "..oSSoFTTFoSSo..",
+      "..oSSSoTToSSSo..",
+      "..oSSSSFFSSSSo..",
+      ".oSSSSSSSSSSSSo.",
+      ".oSSSSSSSSSSSSo.",
+      ".oSssSSSSSSssSo.",
+      ".osssSSSSSSssso.",
+      "..osssssssssso..",
+      "...ossssssssso..",
+      "....ooooooooo...",
+    ],
+  },
+  corpsemaggot: { // 屍蛆: 腐肉に湧く肥えた蛆。乳白の節くれ立った体に黒い口
+    palette: { o: "#241d10", B: "#d8cba0", b: "#9c8e66", W: "#f4eecf", M: "#5a1818" },
+    art: [
+      ".....ooooo......",
+      "...ooBBBBBoo....",
+      "..oBWBBBBBBBo...",
+      ".oBBBBBBBBBBBo..",
+      ".oMBBbBBbBBbBo..",
+      "oMMBBBBBBBBBBBo.",
+      ".oMBBbBBbBBbBo..",
+      ".oBBBBBBBBBBBo..",
+      "..oBBBBBBBBBo...",
+      "...oobbbbboo...",
+      ".....ooooo.....",
+    ],
+  },
+  carrioncrow: { // 腐肉啄みの大鴉: 墓を漁る黒鴉。赤い目と灰の嘴
+    palette: { o: "#0a0a0e", K: "#23232e", k: "#15151c", B: "#8a8a96", R: "#d83838", W: "#4a4a58" },
+    art: [
+      "........oooo........",
+      ".......oKKKKo.......",
+      "......oKKKKKKo......",
+      ".....oKKRKKKKo.....",
+      "....oKKKKKKKKKo.BB..",
+      "...oKKKKKKKKKKoBBBo.",
+      "..oKKKKKKKKKKKKBBo..",
+      ".oKkkKKKKKKKKKKKo...",
+      "oKkkkKKKKKKKKKKKo...",
+      "oKkkkkKKKKKKKKKKo...",
+      ".oKkkKKKKKKKKKKo....",
+      "..oKKKKKKKKKKKo.....",
+      "...oKKKKKKKKKo......",
+      "....oKKKKKKKo......",
+      ".....oKo.oKo.......",
+      ".....oo...oo.......",
+    ],
+  },
+  ghoul: { // 喰屍鬼: 屍肉を貪る痩せ枯れた鬼。落ち窪んだ赤目と長い爪
+    palette: { o: "#0e120c", G: "#6f7a52", g: "#454d30", C: "#d8d2b8", R: "#e03030", M: "#3a0e0e" },
+    art: [
+      ".......oooo.......",
+      "......oGGGGo......",
+      ".....oGRGGRGo.....",
+      ".....oGGGGGGo.....",
+      ".....oGMMMMGo.....",
+      "...o..oGGGGo..o...",
+      "..oCo.oGGGGo.oCo..",
+      ".oCGooGGGGGGooGCo.",
+      "oCCGGGGGGGGGGGGCCo",
+      ".oCGGGGGGGGGGGGCo.",
+      "..oGGGGGGGGGGGGo..",
+      "...oGGGggggGGGo...",
+      "...oGGo....oGGo...",
+      "...oGo......oGo...",
+      "..ooo........ooo..",
+    ],
+  },
+  bonepile: { // 蠢く骨山: 累々と積もった骨が髑髏を頂に蠢く。刃を弾く
+    palette: { o: "#161208", B: "#cfc6a4", b: "#8e8460", E: "#241c0e" },
+    art: [
+      ".......oooo.......",
+      "......oBBBBo......",
+      ".....oBBBBBBo.....",
+      ".....oBEBBEBo.....",
+      ".....oBBBBBBo.....",
+      "......oBEEBo......",
+      "....ooBBBBBBoo....",
+      "..ooBbBBBBBBbBoo..",
+      ".oBBBBBBBBBBBBBBo.",
+      "oBbBBbBBBBBBbBBbBo",
+      "oBBBBBBBBBBBBBBBBo",
+      ".oBbBBBBBBBBBBbBo.",
+      "..oBBBBBBBBBBBBo..",
+      "...oooooooooooo...",
+    ],
+  },
+  skullswarm: { // 髑髏の群れ: 怨念に浮かぶ小さな髑髏の群体。次々に噛みつく
+    palette: { o: "#13110a", B: "#cabf98", b: "#8c8158", E: "#201a0e" },
+    art: [
+      "...oo.....oo.....",
+      "..oBBo...oBBo....",
+      "..oBEBo..oBEBo...",
+      "..oBBBo..oBBBo...",
+      "...oo.....oo.....",
+      ".oo...oBBo...oo..",
+      "oBBo.oBEBo..oBBo.",
+      "oBEBo.oBBo.oBEBo.",
+      "oBBBo..oo..oBBBo.",
+      ".oo..oo.....oo...",
+      "....oBBo..oBBo...",
+      "....oBEBo.oBEBo..",
+      "....oBBBo.oBBBo..",
+      ".....oo....oo....",
+    ],
+  },
+  sarcoguard: { // 石棺の番人: 立ち上がった石棺。金の装飾と彫られた顔、腕を組む
+    palette: { o: "#1a160e", S: "#7a7466", s: "#4a463c", G: "#c9a24a", E: "#15120a" },
+    art: [
+      "....oooooooo....",
+      "...oSSSSSSSSo...",
+      "..oSGGGGGGGGSo..",
+      "..oSSEssssEsSo..",
+      "..oSSssssssSSo..",
+      "..oSSsssssssSo..",
+      "..oSGGGGGGGGSo..",
+      ".oSSSSSSSSSSSSo.",
+      ".oSSGSSSSSSGSSo.",
+      ".oSSSGGGGGGSSSo.",
+      ".oSSSSSSSSSSSSo.",
+      ".oSsSSSSSSSSsSo.",
+      ".oSSSSSSSSSSSSo.",
+      ".oSssSSSSSSssSo.",
+      ".oooooooooooooo.",
+    ],
+  },
+  weepangel: { // 啜り泣く墓像: 顔を覆って泣く翼ある墓守の石像。刃を通さない
+    palette: { o: "#161616", S: "#8c8c94", s: "#54545c", W: "#b6b6c0" },
+    art: [
+      "......oooo......",
+      ".....oSSSSo.....",
+      "....oSSSSSSo....",
+      "....oSssssSo....",
+      "...WoSSSSSSoW...",
+      "..WWoSSSSSSoWW..",
+      ".WWWoSSSSSSoWWW.",
+      "WWWSoSSSSSSoSWWW",
+      ".WWSSSSSSSSSSWW.",
+      "..oSSSSSSSSSSo..",
+      "..oSSsSSSSsSSo..",
+      "..oSSSSSSSSSSo..",
+      "..oSSSSSSSSSSo..",
+      ".oSSsSSSSSSsSSo.",
+      ".oSSSSSSSSSSSSo.",
+      "..oooooooooooo..",
+    ],
+  },
+  pettyrevenant: { // 浅き怨霊: 痛めつけられると荒れ狂う、痩せ細った恨みの霊
+    palette: { o: "#0c140e", V: "#5a7a5e", v: "#33473a", R: "#e03838", C: "#bcd0c0" },
+    art: [
+      ".......oooo.......",
+      "......oVVVVo......",
+      ".....oVRVVRVo.....",
+      ".....oVVVVVVo.....",
+      "..o..oVVVVVVo..o..",
+      ".oCVooVVVVVVooVCo.",
+      "oCCVVVVVVVVVVVVCCo",
+      ".oCVVVVVVVVVVVVCo.",
+      "..oVVVVVVVVVVVVo..",
+      "...oVVVvvvvVVVo...",
+      "....oVVVVVVVVo....",
+      ".....oVvVVvVo.....",
+      "......ovVVvo......",
+      ".......ovvo.......",
+      "........oo........",
+    ],
+  },
+  shroudstrangler: { // 経帷子の絞め手: 宙を漂う死装束。垂れた布で首を絞める
+    palette: { o: "#14120c", C: "#cabf9e", c: "#8a8060", E: "#1c160c" },
+    art: [
+      "......oooo......",
+      "....ooCCCCoo....",
+      "...oCCCCCCCCo...",
+      "..oCCCEEEECCCo..",
+      "..oCCEEEEEECCo..",
+      "..oCCCEEEECCCo..",
+      "..oCCCCCCCCCCo..",
+      ".oCCCcCCCCcCCCo.",
+      ".oCCccCCCCccCCo.",
+      ".oCccoCCCCocccCo.",
+      ".oCc.oCCCCo.cCo.",
+      ".oo..oCccCo..oo.",
+      ".....oCo.oCo....",
+      "....oco...oco...",
+      "....o.......o...",
+    ],
+  },
   slime: {
     palette: { o: "#102c16", D: "#185424", G: "#389a42", L: "#6ecc64", B: "#aaeb91", W: "#ebffdc", E: "#081408" },
     art: [
@@ -1614,6 +1854,20 @@ export function defMonster(def) {
   if (def.swift) m.swift = true;
   if (def.evasive) m.evasive = true;
   if (def.pack) m.pack = true;
+  // 追加の戦闘特性 (combat.js が解釈):
+  //   magResist   : 攻撃呪文の被ダメを割合カット (0〜0.9)。「魔法がほとんど効かない」
+  //   enrage      : HPが3割を切ると一度だけ ATK/AGI が跳ね上がる
+  //   endure      : 致死の一撃を一度だけ HP1 で耐える
+  //   lifesteal   : 与えた物理ダメージの割合だけ自己回復 (0〜1)
+  //   multistrike : 1手番で続けざまに攻撃する回数 (2〜4)
+  //   barrier     : 被ダメを半減できる残り回数 (数回制)
+  //   (ability に "warcry"=鼓舞 / "weaken"=弱体 も指定可)
+  if (def.magResist) m.magResist = def.magResist;
+  if (def.enrage) m.enrage = true;
+  if (def.endure) m.endure = true;
+  if (def.lifesteal) m.lifesteal = def.lifesteal;
+  if (def.multistrike) m.multistrike = def.multistrike;
+  if (def.barrier) m.barrier = def.barrier;
   if (def.traits) m.traits = def.traits; // 表示専用の追加特徴キー
   return m;
 }
@@ -1638,6 +1892,14 @@ export const TRAITS = {
   soulSteal:  { label: "魂奪",   desc: "Soul を吸い取ってくる" },
   goldSteal:  { label: "強奪",   desc: "金品を奪い取ってくる" },
   critical:   { label: "痛撃",   desc: "急所を狙う一撃を放つ" },
+  magResist:  { label: "魔法耐性", desc: "魔法がほとんど効かない" },
+  enrage:     { label: "激昂",   desc: "手負いになると荒れ狂う" },
+  endure:     { label: "不屈",   desc: "致命の一撃を一度だけ耐える" },
+  lifesteal:  { label: "吸血",   desc: "与えた傷の分だけ己を癒す" },
+  multistrike:{ label: "連撃",   desc: "一手で続けざまに打つ" },
+  barrier:    { label: "障壁",   desc: "数度だけ被害を半減する" },
+  warcry:     { label: "鼓舞",   desc: "雄叫びで味方を奮い立たせる" },
+  weaken:     { label: "弱体",   desc: "力を削ぐ呪いをかける" },
 };
 
 // モンスター定義から特徴キーの並びを導く (重複なし、表示順は定義順)。
@@ -1652,10 +1914,16 @@ export function monsterTraitKeys(m) {
   if (m.magWeak) add("magWeak");
   if (m.regen) add("regen");
   if (m.pack) add("pack");
+  if (m.magResist) add("magResist");
+  if (m.enrage) add("enrage");
+  if (m.endure) add("endure");
+  if (m.lifesteal) add("lifesteal");
+  if (m.multistrike) add("multistrike");
+  if (m.barrier) add("barrier");
   if (m.role === "summoner") add("summon");
   if (m.role === "healer") add("heal");
   if (m.role === "guard") add("guard");
-  add(m.ability); // poison/paralyze/stone/drain/soulSteal/goldSteal/critical/breath
+  add(m.ability); // poison/paralyze/stone/drain/soulSteal/goldSteal/critical/breath/warcry/weaken
   for (const t of m.traits || []) add(t);
   return keys;
 }

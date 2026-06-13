@@ -602,6 +602,8 @@ export function soulStats(s) {
 // subs (宿し技スロット: 別職の看板スキルだけを借りる、最大 MAX_SUBS 個) を持つ。
 let _dollUid = 0;
 export const MAX_SUBS = 2;
+// サブ魂 (宿し技) のステータス寄与率: 宿した魂の全ステの30%を器に加算する
+export const SUB_STAT_RATE = 0.3;
 
 // 共有魂プールへの参照 (game.js が setSharedSouls で注入)。recalcDoll が読む。
 // 新仕様: G.souls は「魂インスタンスの配列」。同じ職業でも1体ずつ個別に Lv/ランクを持つ。
@@ -672,7 +674,7 @@ export function jobStatsOf(clsKey, entry) {
 
 // ===== 宿し技 (サブ魂) =====
 // 各職の「看板スキル」= 職業スキル表のLv40固有技。宿しスロットに別職の魂を差すと、
-// その看板スキルを借りられる (ステータスは乗らない)。共有ランク2以上で技を、
+// その看板スキルを借りられ、その魂のステの30% (SUB_STAT_RATE) も加算される。共有ランク2以上で技を、
 // ランク4以上でその職のランク2パッシブも借りられる。
 export const JOB_SIGNATURE = (() => {
   const out = {};
@@ -830,7 +832,8 @@ export function recalcDoll(doll) {
     doll.jobLv = 1;
   }
 
-  // サブ魂: その魂が覚えているスキルから1つ (doll が設定) を借りる。ステ・パッシブは乗らない
+  // サブ魂: その魂が覚えているスキルから1つ (doll が設定) を借りる。
+  // ステータスはその魂のステの SUB_STAT_RATE (=30%) を加算する。パッシブは乗らない。
   doll.subInfo = [];
   for (const sub of doll.subs) {
     const se = sub ? soulByUid(sub.uid) : null;
@@ -840,6 +843,9 @@ export function recalcDoll(doll) {
     let chosen = sub.skill;
     if (!chosen || !learned.includes(chosen)) { chosen = learned.length ? learned[learned.length - 1] : null; sub.skill = chosen; }
     if (chosen && !spells.includes(chosen)) spells.push(chosen);
+    // サブ魂のステータスを SUB_STAT_RATE ぶん加算
+    const sst = jobStatsOf(se.clsKey, se);
+    for (const k in st) st[k] += (sst[k] || 0) * SUB_STAT_RATE;
     doll.subInfo.push({ uid: se.uid, clsKey: se.clsKey, rank: sr, level: se.level, skill: chosen });
   }
 

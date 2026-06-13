@@ -41,6 +41,9 @@ for (const id in ITEMS) {
   const it = ITEMS[id];
   if (it.lv == null) it.lv = 1;
   if (it.rank == null) it.rank = lvToRank(it.lv);
+  // R1-20 (ドロップ窓の判定に使う隠しランク)。当面は lv から算出する暫定値で、
+  // 別途用意するランク表 (各アイテムの r20) が来たら差し替える。
+  if (it.r20 == null) it.r20 = Math.max(1, Math.min(20, Math.ceil(it.lv / 10)));
 }
 
 // アイテムの表示ランク名/枠色。LR (専用装備) は LR5/LR10… の専用表示にする
@@ -73,8 +76,53 @@ function pickItemByLv(center) {
   for (const [id, t] of acc) if (r <= t) return id;
   return acc[acc.length - 1][0];
 }
+// ===== R1-20 ランク窓による出現テーブル =====
+// 仕様: 各迷宮には「基準ランク R = min(20, ダンジョン番号)」があり、
+// アイテムはその ±2 (R-2〜R+2、1-20でクランプ) の範囲から出現する (例: D5 → R3-7)。
+// 補正で中心を押し上げる: ミミック +1 / マスターミミック +2 / 特別階 +1 / 強敵 +2 /
+// レア枠 +2 / 宝箱ランク(1-5) +0〜2 / 迷宮の異変。補正は重複加算する。
+function lootBaseR() { return Math.max(1, Math.min(20, dungeonNumber(activeCfg()))); }
+
+let _itemsByR = null;
+function itemsByR() {
+  if (_itemsByR) return _itemsByR;
+  _itemsByR = Array.from({ length: 21 }, () => []);
+  for (const id of LOOT_IDS) _itemsByR[Math.max(1, Math.min(20, ITEMS[id].r20 || 1))].push(id);
+  return _itemsByR;
+}
+// 中心ランク centerR の ±2 から1つ抽選 (中心ほど出やすい)。窓内が空なら最寄りへ広げる
+function pickItemByR(centerR) {
+  const idx = itemsByR();
+  centerR = Math.max(1, Math.min(20, Math.round(centerR)));
+  let total = 0; const acc = [];
+  const gather = (lo, hi, weighted) => {
+    for (let r = lo; r <= hi; r++) {
+      const w = weighted ? Math.max(1, 3 - Math.abs(r - centerR)) : 1;
+      for (const id of idx[r]) { total += w; acc.push([id, total]); }
+    }
+  };
+  gather(Math.max(1, centerR - 2), Math.min(20, centerR + 2), true);
+  for (let span = 3; span <= 20 && !total; span++) gather(Math.max(1, centerR - span), Math.min(20, centerR + span), false);
+  if (!total) return "herb";
+  const rr = Math.random() * total;
+  for (const [id, t] of acc) if (rr <= t) return id;
+  return acc[acc.length - 1][0];
+}
+// 各種補正込みで中心ランクを算出する
+function dropCenterR(opts = {}) {
+  let r = lootBaseR();
+  if (specialDef()) r += 1;                                  // 特別階: 良い宝物 R+1
+  if (opts.master) r += 2; else if (opts.mimic) r += 1;      // ミミック / マスターミミック
+  if (opts.elite) r += 2;                                    // 強敵討伐
+  if (opts.rare) r += 2;                                     // レアドロップ枠 (黒い宝箱・レア戦利品)
+  if (opts.chestRank) r += Math.floor(((opts.chestRank || 1) - 1) / 2); // 宝箱ランク 1-5 → +0〜2
+  if (opts.lvBonus) r += Math.round(opts.lvBonus / 15);      // ミミック宝箱の底上げ (15→+1, 30→+2)
+  r += Math.round(mutNum("lootBonusLv", 0) / 8);             // 迷宮の異変 (深淵の脈動)
+  return Math.max(1, Math.min(20, r));
+}
+
 // ===== 専用装備 統一ドロップ層 (LR・職業専用装備 x_ を一本化) =====
-// 通常 lootLv テーブルとは独立。宝箱を開けた瞬間に flat 2% で1回だけ判定し、
+// 通常の出現テーブルとは独立。宝箱を開けた瞬間に flat 2% で1回だけ判定し、
 // 当たれば通常の中身を差し替える (宝箱ランクや迷宮ランクには依存しない)。
 // 旧 1/500 × 宝箱ランク の機構は廃止し、すべてこの 2% 機構に統一した。
 const EXCL_RATE = 0.02;
@@ -342,11 +390,11 @@ function activeCfg() { return curDungeon(); }
 // 100迷宮 = 20層 × 5迷宮。層ごとにカード裏面の意匠・床の色味・探索BGMを束ねる。
 // bgm は当面は既存トラックを流用 (専用曲は層ごとのPRで差し替える)。
 const LAYER_VISUALS = [
-  { name: "墓地",       sym: "†", accent: "#c7bfa6", bgm: "field",      floorBase: "#14130f", floorTiles: ["#1b1812", "#17150f", "#13110c"], glow: "rgba(232,210,150,0.06)" }, // 1
-  { name: "地下水路",   sym: "≈", accent: "#5fa0b8", bgm: "field5",     floorBase: "#0d1417", floorTiles: ["#121d22", "#0f181c", "#0c1216"], glow: "rgba(110,200,220,0.06)" }, // 2
-  { name: "廃坑",       sym: "⛏", accent: "#c9923f", bgm: "field2",     floorBase: "#15110c", floorTiles: ["#1d1610", "#18130d", "#14100a"], glow: "rgba(222,150,70,0.06)" },  // 3
-  { name: "捨て砦",     sym: "⚔", accent: "#9aa0ac", bgm: "field3",     floorBase: "#121316", floorTiles: ["#191b20", "#15171b", "#111316"], glow: "rgba(200,210,230,0.05)" }, // 4
-  { name: "霧の森",     sym: "♣", accent: "#7faa5a", bgm: "field4",     floorBase: "#0f140d", floorTiles: ["#161d12", "#12180e", "#0e130a"], glow: "rgba(150,200,120,0.06)" }, // 5
+  { name: "墓地",       sym: "†", accent: "#c7bfa6", bgm: "layer1", back: drawBackGraveyard, floorBase: "#14130f", floorTiles: ["#1b1812", "#17150f", "#13110c"], glow: "rgba(232,210,150,0.06)" }, // 1
+  { name: "地下水路",   sym: "≈", accent: "#5fa0b8", bgm: "layer2", back: drawBackWaterway, floorBase: "#0d1417", floorTiles: ["#121d22", "#0f181c", "#0c1216"], glow: "rgba(110,200,220,0.06)" }, // 2
+  { name: "廃坑",       sym: "⛏", accent: "#c9923f", bgm: "layer3", back: drawBackMine, floorBase: "#15110c", floorTiles: ["#1d1610", "#18130d", "#14100a"], glow: "rgba(222,150,70,0.06)" },  // 3
+  { name: "捨て砦",     sym: "⚔", accent: "#9aa0ac", bgm: "layer4", back: drawBackFort, floorBase: "#121316", floorTiles: ["#191b20", "#15171b", "#111316"], glow: "rgba(200,210,230,0.05)" }, // 4
+  { name: "霧の森",     sym: "♣", accent: "#7faa5a", bgm: "layer5", back: drawBackForest, floorBase: "#0f140d", floorTiles: ["#161d12", "#12180e", "#0e130a"], glow: "rgba(150,200,120,0.06)" }, // 5
   { name: "沈没神殿",   sym: "⛪", accent: "#6fb0c8", bgm: "field5",     floorBase: "#0d1316", floorTiles: ["#121c20", "#0f171b", "#0c1215"], glow: "rgba(120,200,225,0.06)" }, // 6
   { name: "灼熱の洞",   sym: "▲", accent: "#d4682e", bgm: "field6",     floorBase: "#190f0a", floorTiles: ["#22130c", "#1c0f0a", "#160c07"], glow: "rgba(255,130,50,0.07)" },  // 7
   { name: "氷結回廊",   sym: "❄", accent: "#9fd0e6", bgm: "field7",     floorBase: "#0e1417", floorTiles: ["#152027", "#111a20", "#0d1418"], glow: "rgba(170,220,245,0.06)" }, // 8
@@ -835,6 +883,493 @@ function drawThemedBack(r, accent, sym) {
   vctx.fillRect(2, 2, r.w - 4, 3);
 }
 
+// 層5「霧の森」のカード裏面: 樹冠から差す薄明、暗い木立と林床の小径、流れる霧と舞う胞子
+function drawBackForest(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  // 霧緑の地 (梢から差す薄明)
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#17211a");
+  bg.addColorStop(0.5, "#111811");
+  bg.addColorStop(1, "#0b110b");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+
+  // 林床の小径 (中央奥へ細くなる薄明)
+  vctx.fillStyle = "rgba(120,140,90,0.08)";
+  vctx.beginPath();
+  vctx.moveTo(W / 2 - 2, 20); vctx.lineTo(W / 2 + 2, 20);
+  vctx.lineTo(W / 2 + 9, H - 2); vctx.lineTo(W / 2 - 9, H - 2);
+  vctx.closePath();
+  vctx.fill();
+
+  // 樹冠 (上辺の暗い茂み)
+  vctx.fillStyle = "#0e160e";
+  for (const [cx, cy, rr] of [[8, 4, 9], [20, 2, 8], [34, 5, 9], [48, 2, 9], [W - 3, 6, 8]]) {
+    vctx.beginPath(); vctx.arc(cx, cy, rr, 0, Math.PI * 2); vctx.fill();
+  }
+
+  // 木の幹 (先細りの暗い樹皮)
+  const trunk = (bx, topY, topW, botW) => {
+    const g = vctx.createLinearGradient(bx - botW, 0, bx + botW, 0);
+    g.addColorStop(0, "#15130d"); g.addColorStop(0.5, "#241f15"); g.addColorStop(1, "#100e09");
+    vctx.fillStyle = g;
+    vctx.beginPath();
+    vctx.moveTo(bx - topW, topY); vctx.lineTo(bx + topW, topY);
+    vctx.lineTo(bx + botW, H); vctx.lineTo(bx - botW, H);
+    vctx.closePath();
+    vctx.fill();
+  };
+  trunk(14, 6, 2, 4);
+  trunk(42, 4, 2.5, 5);
+  // 後景の細い幹
+  vctx.fillStyle = "#181610";
+  vctx.fillRect(W / 2 - 1.2, 10, 2.4, H - 10);
+  // 枝
+  vctx.strokeStyle = "#1c1810";
+  vctx.lineWidth = 1.4;
+  vctx.beginPath(); vctx.moveTo(14, 14); vctx.lineTo(7, 8); vctx.stroke();
+  vctx.beginPath(); vctx.moveTo(42, 12); vctx.lineTo(50, 7); vctx.stroke();
+  vctx.beginPath(); vctx.moveTo(42, 18); vctx.lineTo(36, 13); vctx.stroke();
+
+  // 漂う霧 (淡い帯がゆっくり流れる)
+  for (let i = 0; i < 4; i++) {
+    const fy = 18 + i * 8;
+    const off = Math.sin(t * 0.0008 + i * 1.5) * 8;
+    vctx.fillStyle = `rgba(180,200,180,${0.10 - i * 0.012})`;
+    vctx.beginPath();
+    vctx.ellipse(W / 2 + off, fy, W * 0.55, 3.5, 0, 0, Math.PI * 2);
+    vctx.fill();
+  }
+
+  // 漂う胞子 (淡緑の光点がふわりと舞い上がる)
+  for (let i = 0; i < 5; i++) {
+    const px = (i * 53 + t * 0.01) % W;
+    const py = (H - 6) - ((t * 0.012 + i * 40) % (H - 12));
+    const al = 0.3 + 0.4 * Math.sin(t * 0.003 + i * 2);
+    vctx.fillStyle = `rgba(170,220,140,${Math.max(0, al) * 0.6})`;
+    vctx.fillRect(px, py, 1.3, 1.3);
+  }
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
+}
+
+// 層4「捨て砦」のカード裏面: 朽ちた胸壁と城門、はためく破れ軍旗、地に突き立つ慰霊の剣
+function drawBackFort(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  // 冷たい石の地
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#1a1c21");
+  bg.addColorStop(0.6, "#141519");
+  bg.addColorStop(1, "#0e0f13");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+
+  // 朽ちた城壁
+  const wallTop = 22, wallBot = 36;
+  vctx.fillStyle = "#262a31";
+  vctx.fillRect(2, wallTop, W - 4, wallBot - wallTop);
+  // 胸壁 (メルロン。一部は崩れ落ちて欠ける)
+  const merlons = [1, 1, 0, 1, 1, 0, 1, 1];
+  const mw = (W - 4) / merlons.length;
+  for (let i = 0; i < merlons.length; i++) {
+    if (!merlons[i]) continue;
+    vctx.fillStyle = "#2b2f37";
+    vctx.fillRect(2 + i * mw + 1, wallTop - 5, mw - 2, 6);
+  }
+  // 石目
+  vctx.strokeStyle = "rgba(0,0,0,0.35)";
+  vctx.lineWidth = 0.7;
+  vctx.beginPath(); vctx.moveTo(2, wallTop + 5); vctx.lineTo(W - 2, wallTop + 5); vctx.stroke();
+  vctx.beginPath(); vctx.moveTo(2, wallTop + 10); vctx.lineTo(W - 2, wallTop + 10); vctx.stroke();
+  for (let i = 1; i < 6; i++) {
+    const x = 2 + i * ((W - 4) / 6);
+    vctx.beginPath();
+    vctx.moveTo(x, i % 2 ? wallTop : wallTop + 5);
+    vctx.lineTo(x, i % 2 ? wallTop + 5 : wallTop + 10);
+    vctx.stroke();
+  }
+  vctx.fillStyle = "rgba(170,180,195,0.12)"; // 壁上辺の冷光
+  vctx.fillRect(2, wallTop, W - 4, 1);
+  // 城門 (暗い入口)
+  vctx.fillStyle = "#070809";
+  vctx.beginPath();
+  vctx.moveTo(W / 2 - 5, wallBot);
+  vctx.lineTo(W / 2 - 5, wallTop + 6);
+  vctx.arc(W / 2, wallTop + 6, 5, Math.PI, 0);
+  vctx.lineTo(W / 2 + 5, wallBot);
+  vctx.closePath();
+  vctx.fill();
+
+  // 破れた軍旗 (左の旗竿から垂れ、風にはためく)
+  const poleX = 12, poleTop = 8, poleBot = wallTop + 2;
+  vctx.strokeStyle = "#3a3d44";
+  vctx.lineWidth = 1.4;
+  vctx.beginPath(); vctx.moveTo(poleX, poleTop); vctx.lineTo(poleX, poleBot); vctx.stroke();
+  const sway = Math.sin(t * 0.003) * 2;
+  vctx.fillStyle = "#6b3434"; // 色褪せた深紅
+  vctx.beginPath();
+  vctx.moveTo(poleX, poleTop + 1);
+  vctx.lineTo(poleX + 13 + sway, poleTop + 3);
+  vctx.lineTo(poleX + 10 + sway, poleTop + 7);
+  vctx.lineTo(poleX + 13 + sway, poleTop + 11);
+  vctx.lineTo(poleX + 9 + sway * 0.5, poleTop + 10);
+  vctx.lineTo(poleX, poleTop + 9);
+  vctx.closePath();
+  vctx.fill();
+  vctx.fillStyle = "rgba(0,0,0,0.2)";
+  vctx.fillRect(poleX, poleTop + 5, Math.max(0, 9 + sway * 0.5), 1);
+
+  // 地に突き立つ慰霊の剣 (中央手前)
+  const sx = W / 2;
+  const blade = vctx.createLinearGradient(sx - 1.5, 0, sx + 1.5, 0);
+  blade.addColorStop(0, "#8c93a0"); blade.addColorStop(0.5, "#c2c8d2"); blade.addColorStop(1, "#5b606b");
+  vctx.fillStyle = blade;
+  vctx.beginPath();
+  vctx.moveTo(sx - 1.5, wallBot + 2);
+  vctx.lineTo(sx + 1.5, wallBot + 2);
+  vctx.lineTo(sx + 1.2, H - 6);
+  vctx.lineTo(sx, H - 4);
+  vctx.lineTo(sx - 1.2, H - 6);
+  vctx.closePath();
+  vctx.fill();
+  vctx.fillStyle = "#7a6a3a"; // 鍔
+  vctx.fillRect(sx - 5, wallBot + 1, 10, 2);
+  vctx.fillStyle = "#4a3a22"; // 柄
+  vctx.fillRect(sx - 1.2, wallBot - 4, 2.4, 5);
+  vctx.fillStyle = "#8a7a44"; // 柄頭
+  vctx.fillRect(sx - 1.6, wallBot - 6, 3.2, 2);
+
+  // 瓦礫 (剣の根元)
+  vctx.fillStyle = "#2a2d33";
+  vctx.beginPath(); vctx.ellipse(sx, H - 4, 9, 2.6, 0, 0, Math.PI * 2); vctx.fill();
+  vctx.fillStyle = "#23262b";
+  vctx.fillRect(sx - 12, H - 5, 4, 3);
+  vctx.fillRect(sx + 8, H - 4, 5, 2.5);
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
+}
+
+// 層3「廃坑」のカード裏面: 坑木の支保工が組まれた坑道口、鉱脈の煌めきとトロッコ軌道
+function drawBackMine(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  // 岩肌の地
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#1b140d");
+  bg.addColorStop(0.6, "#150f09");
+  bg.addColorStop(1, "#0f0a06");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+  // 岩の割れ目
+  vctx.strokeStyle = "rgba(0,0,0,0.3)";
+  vctx.lineWidth = 1;
+  vctx.beginPath(); vctx.moveTo(6, 8); vctx.lineTo(11, 17); vctx.lineTo(8, 24); vctx.stroke();
+  vctx.beginPath(); vctx.moveTo(W - 7, 11); vctx.lineTo(W - 12, 19); vctx.stroke();
+
+  const tx = W / 2, ow = 12, openTop = 15, openBot = H - 12;
+  // 坑道の闇
+  vctx.fillStyle = "#070504";
+  vctx.beginPath();
+  vctx.moveTo(tx - ow, openBot);
+  vctx.lineTo(tx - ow, openTop + 4);
+  vctx.quadraticCurveTo(tx - ow, openTop, tx - ow + 4, openTop);
+  vctx.lineTo(tx + ow - 4, openTop);
+  vctx.quadraticCurveTo(tx + ow, openTop, tx + ow, openTop + 4);
+  vctx.lineTo(tx + ow, openBot);
+  vctx.closePath();
+  vctx.fill();
+  // 坑奥に滲む土気の残光
+  const gl = vctx.createRadialGradient(tx, openBot - 4, 1, tx, openBot - 4, 14);
+  gl.addColorStop(0, "rgba(150,100,40,0.18)");
+  gl.addColorStop(1, "rgba(150,100,40,0)");
+  vctx.fillStyle = gl;
+  vctx.fillRect(tx - 14, openBot - 18, 28, 18);
+
+  // 坑木の支保工 (左右の柱 + 梁)
+  const woodG = (x0, x1) => {
+    const g = vctx.createLinearGradient(x0, 0, x1, 0);
+    g.addColorStop(0, "#6b4a26"); g.addColorStop(0.5, "#8a6233"); g.addColorStop(1, "#523619");
+    return g;
+  };
+  vctx.fillStyle = woodG(tx - ow - 6, tx - ow); // 左柱
+  vctx.fillRect(tx - ow - 6, openTop - 2, 6, openBot - openTop + 2);
+  vctx.fillStyle = woodG(tx + ow, tx + ow + 6); // 右柱
+  vctx.fillRect(tx + ow, openTop - 2, 6, openBot - openTop + 2);
+  vctx.fillStyle = woodG(tx - ow - 7, tx + ow + 7); // 梁
+  vctx.fillRect(tx - ow - 7, openTop - 7, ow * 2 + 14, 6);
+  // 木目と継ぎ目
+  vctx.strokeStyle = "rgba(40,24,8,0.6)";
+  vctx.lineWidth = 0.7;
+  for (const px of [tx - ow - 3, tx + ow + 3]) {
+    vctx.beginPath(); vctx.moveTo(px, openTop); vctx.lineTo(px, openBot); vctx.stroke();
+  }
+  vctx.beginPath(); vctx.moveTo(tx - ow - 6, openTop - 4); vctx.lineTo(tx + ow + 6, openTop - 4); vctx.stroke();
+  // 梁の上辺ハイライト
+  vctx.fillStyle = "rgba(220,180,110,0.2)";
+  vctx.fillRect(tx - ow - 7, openTop - 7, ow * 2 + 14, 1.2);
+
+  // 鉱脈の煌めき (金鉱の粒が明滅)
+  const veins = [[10, 30], [W - 11, 33], [12, 41], [W - 13, 22]];
+  for (let i = 0; i < veins.length; i++) {
+    const [vx, vy] = veins[i];
+    const tw = 0.5 + 0.5 * Math.sin(t * 0.004 + i * 1.9);
+    vctx.fillStyle = `rgba(230,180,80,${0.3 + 0.5 * tw})`;
+    vctx.fillRect(vx, vy, 1.4, 1.4);
+  }
+
+  // トロッコの軌道 (坑奥から手前へ末広がり) と枕木
+  vctx.strokeStyle = "rgba(125,115,105,0.5)";
+  vctx.lineWidth = 1;
+  vctx.beginPath(); vctx.moveTo(tx - 3, openBot - 2); vctx.lineTo(tx - 7, H - 3); vctx.stroke();
+  vctx.beginPath(); vctx.moveTo(tx + 3, openBot - 2); vctx.lineTo(tx + 7, H - 3); vctx.stroke();
+  vctx.strokeStyle = "rgba(80,60,38,0.7)";
+  vctx.lineWidth = 1.4;
+  for (const [yy, hw] of [[openBot + 2, 4], [H - 4, 6]]) {
+    vctx.beginPath(); vctx.moveTo(tx - hw, yy); vctx.lineTo(tx + hw, yy); vctx.stroke();
+  }
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
+}
+
+// 層2「地下水路」のカード裏面: 石組みのアーチ水門、滴る雫が暗い水面に波紋を広げる
+function drawBackWaterway(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  // 石壁の地
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#121b1f");
+  bg.addColorStop(0.55, "#0e161a");
+  bg.addColorStop(1, "#0a1014");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+  // 石積みの目地 (背景にうっすら)
+  vctx.strokeStyle = "rgba(0,0,0,0.25)";
+  vctx.lineWidth = 1;
+  for (let y = 11; y < H - 16; y += 7) {
+    vctx.beginPath(); vctx.moveTo(2, y + 0.5); vctx.lineTo(W - 2, y + 0.5); vctx.stroke();
+  }
+
+  const tx = W / 2, aw = 13, springY = H - 16, apexY = 14;
+  // トンネル奥 (闇に沈む水路の口)
+  vctx.save();
+  vctx.beginPath();
+  vctx.moveTo(tx - aw, springY);
+  vctx.lineTo(tx - aw, apexY);
+  vctx.arc(tx, apexY, aw, Math.PI, 0);
+  vctx.lineTo(tx + aw, springY);
+  vctx.closePath();
+  vctx.clip();
+  const depth = vctx.createRadialGradient(tx, springY, 2, tx, apexY, 30);
+  depth.addColorStop(0, "#0a181c");
+  depth.addColorStop(1, "#03070a");
+  vctx.fillStyle = depth;
+  vctx.fillRect(tx - aw, apexY - aw, aw * 2, springY - apexY + aw);
+  vctx.restore();
+
+  // アーチの石組み (迫石)
+  vctx.save();
+  vctx.lineCap = "round";
+  vctx.strokeStyle = "#3a4750";
+  vctx.lineWidth = 5;
+  vctx.beginPath();
+  vctx.moveTo(tx - aw, springY);
+  vctx.lineTo(tx - aw, apexY);
+  vctx.arc(tx, apexY, aw, Math.PI, 0);
+  vctx.lineTo(tx + aw, springY);
+  vctx.stroke();
+  // アーチ上辺の月光ハイライト
+  vctx.strokeStyle = "rgba(150,180,190,0.25)";
+  vctx.lineWidth = 1.5;
+  vctx.beginPath(); vctx.arc(tx, apexY, aw + 1.5, Math.PI, 0); vctx.stroke();
+  vctx.restore();
+  // 迫石の放射状の目地
+  vctx.strokeStyle = "rgba(10,16,18,0.7)";
+  vctx.lineWidth = 1;
+  for (let k = 0; k <= 4; k++) {
+    const a = Math.PI + (Math.PI * k) / 4;
+    const ix = tx + Math.cos(a) * (aw - 3), iy = apexY + Math.sin(a) * (aw - 3);
+    const ox = tx + Math.cos(a) * (aw + 3), oy = apexY + Math.sin(a) * (aw + 3);
+    vctx.beginPath(); vctx.moveTo(ix, iy); vctx.lineTo(ox, oy); vctx.stroke();
+  }
+  // 要石
+  vctx.fillStyle = "#4a5862";
+  vctx.fillRect(tx - 2.5, apexY - aw - 2.5, 5, 5);
+
+  // 水路 (下部の暗い水面)
+  const waterY = H - 13;
+  const wg = vctx.createLinearGradient(0, waterY, 0, H);
+  wg.addColorStop(0, "#0e2a30");
+  wg.addColorStop(1, "#07161a");
+  vctx.fillStyle = wg;
+  vctx.fillRect(0, waterY, W, H - waterY);
+  // 水面のゆらめき (反射) と中央の門の映り込み
+  for (let i = 0; i < 3; i++) {
+    const ry = waterY + 2 + i * 3;
+    const off = Math.sin(t * 0.0015 + i * 1.3) * 6;
+    vctx.fillStyle = `rgba(120,200,215,${0.16 - i * 0.04})`;
+    vctx.fillRect(0, ry, W, 1);
+    vctx.fillStyle = `rgba(90,170,190,${0.12 - i * 0.03})`;
+    vctx.fillRect(tx - 6 + off * 0.3, ry, 12, 1);
+  }
+  vctx.fillStyle = "rgba(150,210,225,0.4)";
+  vctx.fillRect(0, waterY, W, 1);
+
+  // 滴り落ちる雫 (アーチ頂点から周期的に落下 → 着水で波紋)
+  const ph = (t % 1600) / 1600, dripX = tx + 0.5;
+  const startY = apexY + 2, endY = waterY - 1;
+  if (ph < 0.6) {
+    const dy = startY + (endY - startY) * (ph / 0.6);
+    vctx.fillStyle = "rgba(170,225,235,0.85)";
+    vctx.fillRect(dripX - 0.5, dy, 1.5, 3);
+  } else {
+    const rp = (ph - 0.6) / 0.4;
+    vctx.strokeStyle = `rgba(160,220,235,${0.5 * (1 - rp)})`;
+    vctx.lineWidth = 1;
+    vctx.beginPath();
+    vctx.ellipse(dripX, waterY + 1, 2 + rp * 9, 1 + rp * 2, 0, 0, Math.PI * 2);
+    vctx.stroke();
+  }
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
+}
+
+// 層1「墓地」のカード裏面: 蒼い月の下、霧に沈む墓石と十字の彫り込み
+function drawBackGraveyard(r, accent, sym) {
+  const W = r.w, H = r.h;
+  // 夜気の地: 上は蒼い夜、下は墓土
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#1a1b24");
+  bg.addColorStop(0.55, "#16140f");
+  bg.addColorStop(1, "#100e0a");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+
+  // 蒼い月 (右上にぼうっと滲む)
+  const mx = W - 14, my = 13;
+  const mg = vctx.createRadialGradient(mx, my, 1, mx, my, 12);
+  mg.addColorStop(0, "rgba(205,222,236,0.5)");
+  mg.addColorStop(0.5, "rgba(150,180,210,0.16)");
+  mg.addColorStop(1, "rgba(150,180,210,0)");
+  vctx.fillStyle = mg;
+  vctx.fillRect(mx - 12, my - 12, 24, 24);
+  vctx.fillStyle = "rgba(220,230,240,0.66)";
+  vctx.beginPath(); vctx.arc(mx, my, 4.6, 0, Math.PI * 2); vctx.fill();
+  vctx.fillStyle = "rgba(22,20,15,0.5)"; // 月の翳り
+  vctx.beginPath(); vctx.arc(mx + 2.3, my - 1.4, 3.9, 0, Math.PI * 2); vctx.fill();
+
+  // 奥に傾いた古い墓標 (シルエット)
+  vctx.save();
+  vctx.translate(13, 31); vctx.rotate(-0.13);
+  vctx.fillStyle = "#222229";
+  vctx.fillRect(-3.5, -9, 7, 17);
+  vctx.beginPath(); vctx.arc(0, -9, 3.5, Math.PI, 0); vctx.fill();
+  vctx.restore();
+
+  // 地面の盛り土
+  const gy = H - 11;
+  vctx.fillStyle = "#1c1812";
+  vctx.beginPath();
+  vctx.moveTo(0, gy + 3);
+  vctx.quadraticCurveTo(W / 2, gy - 4, W, gy + 3);
+  vctx.lineTo(W, H); vctx.lineTo(0, H); vctx.closePath();
+  vctx.fill();
+
+  // 中央の墓石 (ラウンドトップの墓標)
+  const tx = W / 2, baseY = gy + 2, topY = 15, tw = 8.5;
+  const stone = vctx.createLinearGradient(tx - tw, 0, tx + tw, 0);
+  stone.addColorStop(0, "#696974");
+  stone.addColorStop(0.5, "#8b8b96");
+  stone.addColorStop(1, "#53535d");
+  vctx.fillStyle = stone;
+  vctx.beginPath();
+  vctx.moveTo(tx - tw, baseY);
+  vctx.lineTo(tx - tw, topY);
+  vctx.arc(tx, topY, tw, Math.PI, 0);
+  vctx.lineTo(tx + tw, baseY);
+  vctx.closePath();
+  vctx.fill();
+  vctx.strokeStyle = "#36363e"; vctx.lineWidth = 1; vctx.stroke();
+  vctx.fillStyle = "rgba(255,255,255,0.12)"; // 左の月光
+  vctx.fillRect(tx - tw + 1, topY, 1.5, baseY - topY);
+  vctx.fillStyle = "rgba(0,0,0,0.22)";      // 右の影
+  vctx.fillRect(tx + tw - 2, topY, 1.5, baseY - topY);
+  // 十字の彫り込み
+  vctx.fillStyle = "#3a3a42";
+  vctx.fillRect(tx - 1, topY + 1, 2, 11);
+  vctx.fillRect(tx - 4, topY + 4, 8, 2);
+
+  // 立ちこめる霧 (下部で淡くたゆたう)
+  const t = performance.now() * 0.0012;
+  for (let i = 0; i < 3; i++) {
+    const fy = H - 5 - i * 3;
+    vctx.fillStyle = `rgba(190,200,206,${0.11 - i * 0.025})`;
+    const off = Math.sin(t + i * 1.7) * 5;
+    vctx.beginPath();
+    vctx.ellipse(W / 2 + off, fy, W * 0.5, 3, 0, 0, Math.PI * 2);
+    vctx.fill();
+  }
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.06)";
+  vctx.fillRect(2, 2, W - 4, 3);
+}
+
 function drawCard(r, cell, scaleX, showBack) {
   // カードの落ち影 (フリップ中も足元に残す)
   vctx.save();
@@ -883,9 +1418,10 @@ function drawCard(r, cell, scaleX, showBack) {
       const sp = specialDef();
       drawThemedBack(r, sp.accent, sp.sym);
     } else if (dungeonTheme()) {
-      // 迷宮テーマのカード裏面 (5迷宮ごと): ブロック固有の色と紋章
+      // 迷宮テーマのカード裏面 (層ごと): 層固有のイラストがあれば使う
       const th = dungeonTheme();
-      drawThemedBack(r, th.accent, th.sym);
+      if (th.back) th.back(r, th.accent, th.sym);
+      else drawThemedBack(r, th.accent, th.sym);
     } else {
       // 通常カード裏面 (D21以降): 深紅の布地 + 金の縁飾り + ダイヤ紋
       const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
@@ -1455,7 +1991,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   if (roll < 0.80) { giveGold(); return; }
 
   // 20%: 傍らに遺された装備品 (渡せなければ金品にフォールバック)
-  const id = pickItemByLv(lootLvAt());
+  const id = pickItemByR(dropCenterR());
   const who = G.party.find((p) => p.alive && p.items.length < MAX_ITEMS)
     || G.party.find((p) => p.items.length < MAX_ITEMS);
   if (who && ITEMS[id]) {
@@ -1944,7 +2480,7 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false) {
     return;
   }
   // 宝: 装備/アイテム (迷宮のアイテムレベル帯から抽選。高ランクの宝箱は一段上の帯)
-  const got = giveItem(pickItemByLv(Math.min(200, lootLvAt() + ((cRank || 1) - 1) * 4 + lootUp)));
+  const got = giveItem(pickItemByR(dropCenterR({ chestRank: cRank, lvBonus: lootUp })));
   if (got) {
     if (legendary) { flashScreen("#ffcf4a"); SFX.victory(); log(`✦ 伝説の宝箱から ${got.item.name} を見つけた！`, "win"); }
     showItemGet(got.item, got.who, done); return; // 演出後に done
@@ -1958,7 +2494,7 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false) {
 function askCursedChest(done) {
   const openIt = () => {
     const giveLoot = () => {
-      const got = giveItem(pickItemByLv(Math.min(200, lootLvAt() + 14)));
+      const got = giveItem(pickItemByR(dropCenterR({ rare: true })));
       if (got) { showItemGet(got.item, got.who, done); return; }
       SFX.chest();
       done();
@@ -2826,8 +3362,7 @@ function endBattle() {
     // 強敵討伐ボーナス: 高ランクアイテムの確定ドロップ
     const wasElite = b.enemies.some((e) => !e.alive && e.mon && e.mon.elite);
     if (wasElite) {
-      const eliteLv = Math.min(200, lootLvAt() + 20); // 適正帯より2ランク上のアイテム
-      const eid = pickItemByLv(eliteLv);
+      const eid = pickItemByR(dropCenterR({ elite: true })); // 適正帯より2ランク上のアイテム
       if (ITEMS[eid]) drop = { key: "elite", name: "強敵", id: eid, item: cloneItem(eid), rare: true };
     }
     // soulClass を持つ敵 (人型・騎士など) はまれに魂を落とす (レアドロップ)
@@ -5176,11 +5711,11 @@ function rollGenericDrop() {
   const ap = partyPassiveLv("appraise") ? 1.15 : 1; // 目利き: ドロップ率+15%
   // 特別階 (盗賊の洞察) / 迷宮の異変 (飢えた狩場): レアドロップ率が上がる (高い方を採用)
   if (Math.random() < Math.max(sfNum("rareDropRate", 0.04 * ap), mutNum("rareDropRate", 0))) {
-    const id = pickItemByLv(Math.min(200, lootLvAt() + 14));
+    const id = pickItemByR(dropCenterR({ rare: true }));
     if (ITEMS[id]) { const it = cloneItem(id); if (it) return { key: "loot", name: "戦利品", id, item: it, rare: true }; }
   }
   if (Math.random() < 0.30 * ap) {
-    const id = pickItemByLv(lootLvAt());
+    const id = pickItemByR(dropCenterR());
     if (ITEMS[id]) { const it = cloneItem(id); if (it) return { key: "loot", name: "戦利品", id, item: it, rare: false }; }
   }
   return null;
@@ -6474,7 +7009,7 @@ function renderSoulTab(p) {
   wrap.appendChild(el("div", "st-soulpart", "サブ魂"));
   const subs = (p.subs || []);
   if (!subs.length) wrap.appendChild(el("div", "st-soulinfo dim", unlockedSubSlots() > 0
-    ? "（サブ魂なし — 館の祭壇で別の魂の技を1つ借りられる）"
+    ? "（サブ魂なし — 館の祭壇で別の魂の技を1つ借り、ステの30%を得られる）"
     : "（宿し技スロットは未解放 — 迷宮を踏破すると開く）"));
   for (const sub of subs) {
     const se = sub ? soulByUid(sub.uid) : null;
@@ -6488,7 +7023,7 @@ function renderSoulTab(p) {
     const info = el("div", "st-soulinfo");
     const nm = el("div", "st-souln2", `${jobRankName(se.clsKey, rank)}　Lv${se.level}`); nm.style.color = cls.glow;
     info.appendChild(nm);
-    info.appendChild(el("div", "st-soulstat", `技: ${skName}`));
+    info.appendChild(el("div", "st-soulstat", `技: ${skName}　ステ+30%`));
     row.appendChild(info);
     wrap.appendChild(row);
   }
