@@ -1024,6 +1024,7 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .eq-cd-lab { color: var(--ink-dim); }
 .eq-cd-seg.up { color: var(--good); }
 .eq-cd-seg.down { color: var(--danger); }
+.eq-cd-seg.elem { color: var(--accent); }
 .eq-cd-same { color: var(--ink-dim); }
 .st-eslot { margin-left: auto; font-size: 10px; color: #6fb89e; }
 

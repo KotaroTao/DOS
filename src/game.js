@@ -8964,8 +8964,9 @@ function statLines(it) {
 const EQUIPPABLE_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
 function isEquippable(it) { return EQUIPPABLE_SLOTS.has(it.slot); }
 
-// 候補 cand を p に装備した場合の最終ステータス増減 {atk,def,spd,hp,mp} を返す。
+// 候補 cand を p に装備した場合の最終ステータス増減を返す。
 // items.js の recalc を仮の装備マップに流用するので、両手武器⇄盾の付け替え分も反映される。
+// 数値ステ (atk…mp) のほか、会心率 (crit, %) と属性攻撃/防御 (elemAtk/elemDef) の変化も返す。
 function equipPreviewDelta(p, cand) {
   const key = slotKeyFor(cand, p);
   if (!key) return null;
@@ -8985,8 +8986,19 @@ function equipPreviewDelta(p, cand) {
     luk: fake.luk - p.luk,
     hp: fake.maxhp - p.maxhp,
     mp: fake.maxmp - p.maxmp,
+    crit: Math.round(((fake.critBonus || 0) - (p.critBonus || 0)) * 100),
+    elemAtk: { from: p.elemAtk, to: fake.elemAtk },
+    elemDef: { from: p.elemDef, to: fake.elemDef },
   };
 }
+
+// 属性攻撃/防御 (装備由来の {el, lv}) が等価か
+function elemStatEq(a, b) {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return a.el === b.el && a.lv === b.lv;
+}
+function elemStatShort(e) { return e && e.el ? `${elemName(e.el)}${e.lv >= 2 ? "◎" : "◯"}` : "—"; }
 
 // 装備候補の「装備中と比べた増減」行 (増・緑/減・赤)。何かを付け替えるときだけ呼ぶ。
 function equipCompareEl(p, cand) {
@@ -8994,11 +9006,24 @@ function equipCompareEl(p, cand) {
   const row = el("span", "eq-cd");
   row.appendChild(el("span", "eq-cd-lab", "装備すると"));
   let any = false;
-  if (d) for (const [label, k] of [["ATK", "atk"], ["VIT", "vit"], ["AGI", "agi"], ["INT", "int"], ["PIE", "pie"], ["LUK", "luk"], ["HP", "hp"], ["MP", "mp"]]) {
-    const v = d[k];
-    if (!v) continue;
-    any = true;
-    row.appendChild(el("span", "eq-cd-seg " + (v > 0 ? "up" : "down"), `${label} ${v > 0 ? "▲+" + v : "▼" + v}`));
+  if (d) {
+    for (const [label, k] of [["ATK", "atk"], ["VIT", "vit"], ["AGI", "agi"], ["INT", "int"], ["PIE", "pie"], ["LUK", "luk"], ["HP", "hp"], ["MP", "mp"]]) {
+      const v = d[k];
+      if (!v) continue;
+      any = true;
+      row.appendChild(el("span", "eq-cd-seg " + (v > 0 ? "up" : "down"), `${label} ${v > 0 ? "▲+" + v : "▼" + v}`));
+    }
+    // 会心率 (%)
+    if (d.crit) {
+      any = true;
+      row.appendChild(el("span", "eq-cd-seg " + (d.crit > 0 ? "up" : "down"), `会心 ${d.crit > 0 ? "▲+" + d.crit : "▼" + d.crit}%`));
+    }
+    // 属性攻撃/防御の変化 (—→火◯ のように現状→装備後で表示)
+    for (const [label, ch] of [["属性攻", d.elemAtk], ["属性防", d.elemDef]]) {
+      if (elemStatEq(ch.from, ch.to)) continue;
+      any = true;
+      row.appendChild(el("span", "eq-cd-seg elem", `${label} ${elemStatShort(ch.from)}→${elemStatShort(ch.to)}`));
+    }
   }
   if (!any) row.appendChild(el("span", "eq-cd-same", "変化なし"));
   return row;
