@@ -1486,16 +1486,16 @@ export function defMonster(def) {
 // ===== モンスターの特徴・スキル (図鑑表示 + 戦闘挙動の単一の語彙) =====
 // 各キーは「ラベル」と「説明」を持つ。固有ドロップに代わって図鑑に列挙される。
 export const TRAITS = {
-  swift:      { label: "俊敏",   desc: "素早さが高く、先手を取りやすい" },
-  evasive:    { label: "回避",   desc: "身軽で、物理攻撃をよくかわす" },
-  physResist: { label: "物理耐性", desc: "体が頑強で、物理攻撃がほとんど効かない" },
-  magWeak:    { label: "魔法弱点", desc: "魔法によるダメージを大きく受ける" },
+  swift:      { label: "俊敏",   desc: "素早く先手を取りやすい" },
+  evasive:    { label: "回避",   desc: "物理攻撃をよくかわす" },
+  physResist: { label: "物理耐性", desc: "物理攻撃がほとんど効かない" },
+  magWeak:    { label: "魔法弱点", desc: "魔法で大ダメージを受ける" },
   regen:      { label: "再生",   desc: "毎ターン少しずつ傷を癒す" },
   pack:       { label: "群棲",   desc: "群れをなして現れる" },
   summon:     { label: "招来",   desc: "戦闘中に仲間を呼び寄せる" },
   heal:       { label: "治癒",   desc: "傷ついた仲間を癒す" },
   guard:      { label: "庇護",   desc: "仲間への攻撃を庇う" },
-  breath:     { label: "ブレス", desc: "前衛後衛もろとも巻き込む息を吐く" },
+  breath:     { label: "ブレス", desc: "全体を巻き込む息を吐く" },
   poison:     { label: "毒",     desc: "攻撃で毒を与えてくる" },
   paralyze:   { label: "麻痺",   desc: "攻撃で麻痺させてくる" },
   stone:      { label: "石化",   desc: "凝視で石に変えてくる" },
