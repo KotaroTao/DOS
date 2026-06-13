@@ -259,7 +259,7 @@ export const PASSIVES = {
   divineCounter: { label: "神罰の鉄槌",   scope: "self",  lv: ["物理被弾時20%でPIE×0.8の聖なる反撃"] },
   scripture:     { label: "聖典の加護",   scope: "self",  lv: ["HP30%以下になった時、PIE×1.2を自動回復 (1戦闘1回)"] },
   chant:         { label: "省詠唱",       scope: "self",  lv: ["呪文・技の消費MP-15%", "呪文・技の消費MP-30%"] },
-  spellCrit:     { label: "呪文会心",     scope: "self",  lv: ["攻撃呪文が10%で会心 (×1.5)", "攻撃呪文が18%で会心 (×1.5)"] },
+  spellCrit:     { label: "呪文会心",     scope: "self",  lv: ["攻撃呪文が10%で会心 (×1.5)", "攻撃呪文が18%で会心 (×1.5)", "攻撃呪文が26%で会心 (×1.5)"] },
   scan:          { label: "弱点看破",     scope: "party", lv: ["戦闘中、敵の属性が見える"] },
   elemFloor:     { label: "森羅の理",     scope: "self",  lv: ["自分の攻撃呪文に属性の不利が出なくなる"] },
 };
@@ -282,10 +282,14 @@ export const JOB_PASSIVES = {
   fighter:     [],
   // 騎士はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
   knight:      [],
-  priest:      [P("afterHeal", 1), P("afterHeal", 2), P("afterHeal", 3), P("afterHeal", 4)],
-  mage:        [P("afterMp", 1), P("chant", 1), P("afterMp", 2), P("spellCrit", 2)],
-  thief:       [P("vigilance", 1), P("senseEnemy"), P("poisonFloor", 1), P("poisonFloor", 2)],
-  bishop:      [P("afterBoth", 1), P("scan"), P("afterBoth", 2), P("purify")],
+  // 僧侶はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
+  priest:      [],
+  // 魔導士はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
+  mage:        [],
+  // 盗賊はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
+  thief:       [],
+  // 司教はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
+  bishop:      [],
   // レア
   samurai:     [P("initiative"), P("parry", 1), P("iai"), P("zanshin")],
   berserker:   [P("counter", 1), P("fightSpirit", 1), P("counter", 2), P("fightSpirit", 2)],
@@ -435,10 +439,190 @@ export const JOB_SKILLS = {
     { lvl: 195, skill: "DAIGOUREI" },                 // 守護の大号令
     { lvl: 200, skill: "FURAKUJOU" },                 // 不落城
   ],
-  priest:      [{ lvl: 1, skill: "DIOS" }, { lvl: 3, skill: "CURE" }, { lvl: 5, skill: "BLESS" }, { lvl: 7, skill: "HOLYRAY" }, { lvl: 10, skill: "DIOSALL" }, { lvl: 15, skill: "DIAL" }, { lvl: 20, skill: "SAINTRAY" }, { lvl: 25, skill: "REVIVE" }, { lvl: 30, skill: "MADIOS" }, { lvl: 40, skill: "DIALALL" }, { lvl: 50, skill: "RESURRECT" }],
-  mage:        [{ lvl: 1, skill: "HALITO" }, { lvl: 3, skill: "ICENEEDLE" }, { lvl: 5, skill: "KATINO" }, { lvl: 7, skill: "KAMAITACHI" }, { lvl: 10, skill: "MAHALITO" }, { lvl: 15, skill: "ROCKBLAST" }, { lvl: 20, skill: "MADALT" }, { lvl: 25, skill: "DISPEL" }, { lvl: 30, skill: "LAHALITO" }, { lvl: 40, skill: "TILTOWAIT" }, { lvl: 50, skill: "SEISAI" }],
-  thief:       [{ lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "POISONSTAB" }, { lvl: 5, skill: "BLIND" }, { lvl: 7, skill: "DOUBLE" }, { lvl: 10, skill: "KASUMEGIRI" }, { lvl: 15, skill: "ASSASSINATE" }, { lvl: 20, skill: "MIDARE" }, { lvl: 25, skill: "KAGENUI" }, { lvl: 30, skill: "TSUJIKAZE" }, { lvl: 40, skill: "OBORO" }, { lvl: 50, skill: "ZETSUEI" }],
-  bishop:      [{ lvl: 1, skill: "HALITO" }, { lvl: 3, skill: "DIOS" }, { lvl: 5, skill: "ICENEEDLE" }, { lvl: 7, skill: "CURE" }, { lvl: 10, skill: "DIAL" }, { lvl: 15, skill: "MAHALITO" }, { lvl: 20, skill: "DIOSALL" }, { lvl: 25, skill: "DISPEL" }, { lvl: 30, skill: "MADALT" }, { lvl: 40, skill: "MADIOS" }, { lvl: 50, skill: "TILTOWAIT" }],
+  // 僧侶: 新仕様 (Lv1-200 / 技とパッシブを織り込み)。Lv40=リカバーオール は宿し技 (signature)
+  priest:      [
+    { lvl: 1,   skill: "DIOS" },                      // ヒール
+    { lvl: 3,   skill: "CURE" },                      // キュア
+    { lvl: 5,   passive: "afterHeal", plv: 1 },       // 戦闘後回復Lv1
+    { lvl: 7,   skill: "HOLYRAY" },                   // 聖光
+    { lvl: 10,  skill: "BLESS" },                     // ブレス
+    { lvl: 15,  passive: "selfPurify", plv: 1 },      // 自浄
+    { lvl: 20,  skill: "DIOSALL" },                   // ヒールオール
+    { lvl: 25,  passive: "afterHeal", plv: 2 },       // 戦闘後回復Lv2
+    { lvl: 30,  skill: "DIAL" },                      // リカバー
+    { lvl: 35,  passive: "chant", plv: 1 },           // 省詠唱Lv1
+    { lvl: 40,  skill: "DIALALL" },                   // リカバーオール (看板技)
+    { lvl: 45,  passive: "purify", plv: 1 },          // 浄化
+    { lvl: 50,  skill: "SAINTRAY" },                  // 聖閃
+    { lvl: 55,  skill: "REVIVE" },                    // リバイブ
+    { lvl: 60,  passive: "afterHeal", plv: 3 },       // 戦闘後回復Lv3
+    { lvl: 65,  skill: "MADIOS" },                    // フルヒール
+    { lvl: 70,  passive: "resistAilment", plv: 1 },   // 異常耐性Lv1
+    { lvl: 75,  passive: "sanctuary", plv: 1 },       // 聖域
+    { lvl: 80,  skill: "RESURRECT" },                 // リザレクション
+    { lvl: 85,  skill: "SHINSEIKO" },                 // 神聖光
+    { lvl: 90,  passive: "afterHeal", plv: 4 },       // 戦闘後回復Lv4
+    { lvl: 95,  skill: "SHINYU" },                    // 神癒
+    { lvl: 100, skill: "SEIBETSU" },                  // 聖別
+    { lvl: 105, passive: "chant", plv: 2 },           // 省詠唱Lv2
+    { lvl: 110, skill: "IYASHINAMI" },                // 癒しの波
+    { lvl: 115, passive: "scripture", plv: 1 },       // 聖典の加護
+    { lvl: 120, skill: "SEIMETSUKOU" },               // 聖滅光
+    { lvl: 125, passive: "resistAilment", plv: 2 },   // 異常耐性Lv2
+    { lvl: 130, skill: "SHINBATSU" },                 // 神罰
+    { lvl: 135, passive: "divineCounter", plv: 1 },   // 神罰の鉄槌
+    { lvl: 140, skill: "SEISUISHO" },                 // 聖水撒
+    { lvl: 145, passive: "martyr", plv: 1 },          // 殉教の祈り
+    { lvl: 150, skill: "TENKEINOINORI" },             // 天啓の祈り
+    { lvl: 155, passive: "mercy", plv: 1 },           // 慈悲の祈り
+    { lvl: 160, skill: "SEIKOURETSU" },               // 聖光烈
+    { lvl: 165, passive: "popePrayer", plv: 1 },      // 教皇の祈り
+    { lvl: 170, skill: "FUKUIN" },                    // 復活の福音
+    { lvl: 175, passive: "holyCover", plv: 1 },       // 聖盾
+    { lvl: 180, skill: "SEIMETSUREKKOU" },            // 聖滅烈光
+    { lvl: 185, skill: "DAISEIKITOU" },               // 大聖祈祷
+    { lvl: 190, skill: "DAIFUKUIN" },                 // 大福音
+    { lvl: 195, passive: "bigBarrier", plv: 1 },      // 大結界
+    { lvl: 200, skill: "KAMIWAZA" },                  // 神の御業
+  ],
+  // 魔導士: 新仕様 (Lv1-200 / 技とパッシブを織り込み)。Lv40=エクスプロージョン は宿し技 (signature)
+  mage:        [
+    { lvl: 1,   skill: "HALITO" },                    // ファイアアロー
+    { lvl: 3,   skill: "ICENEEDLE" },                 // アイスニードル
+    { lvl: 5,   passive: "afterMp", plv: 1 },         // 魔力回路Lv1
+    { lvl: 7,   skill: "KAMAITACHI" },                // かまいたち
+    { lvl: 10,  skill: "KATINO" },                    // スリープ
+    { lvl: 15,  passive: "chant", plv: 1 },           // 省詠唱Lv1
+    { lvl: 20,  skill: "MAHALITO" },                  // ファイアストーム
+    { lvl: 25,  passive: "spellCrit", plv: 1 },       // 呪文会心Lv1
+    { lvl: 30,  skill: "ROCKBLAST" },                 // ストーンブラスト
+    { lvl: 35,  passive: "afterMp", plv: 2 },         // 魔力回路Lv2
+    { lvl: 40,  skill: "TILTOWAIT" },                 // エクスプロージョン (看板技)
+    { lvl: 45,  passive: "chant", plv: 2 },           // 省詠唱Lv2
+    { lvl: 50,  skill: "MADALT" },                    // ブリザード
+    { lvl: 55,  skill: "DISPEL" },                    // ディスペル
+    { lvl: 60,  passive: "spellCrit", plv: 2 },       // 呪文会心Lv2
+    { lvl: 65,  skill: "LAHALITO" },                  // インフェルノ
+    { lvl: 70,  passive: "barrier", plv: 1 },         // 魔障壁Lv1
+    { lvl: 75,  passive: "scan", plv: 1 },            // 弱点看破
+    { lvl: 80,  skill: "SEISAI" },                    // 星砕
+    { lvl: 85,  skill: "RAITEI" },                    // 雷霆
+    { lvl: 90,  passive: "reflect", plv: 1 },         // 魔力反射
+    { lvl: 95,  skill: "HYORETSU" },                  // 氷烈
+    { lvl: 100, skill: "ENBU" },                      // 炎舞
+    { lvl: 105, passive: "barrier", plv: 2 },         // 魔障壁Lv2
+    { lvl: 110, skill: "RAIJIN" },                    // 雷神
+    { lvl: 115, passive: "resistAilment", plv: 1 },   // 異常耐性Lv1
+    { lvl: 120, skill: "DAICHIWARI" },                // 大地割
+    { lvl: 125, passive: "elemFloor", plv: 1 },       // 森羅の理
+    { lvl: 130, skill: "HYOUGA" },                    // 氷河
+    { lvl: 135, passive: "spellCrit", plv: 3 },       // 呪文会心Lv3
+    { lvl: 140, skill: "GOKUEN" },                    // 獄炎
+    { lvl: 145, passive: "afterBoth", plv: 1 },       // 法力の灯Lv1
+    { lvl: 150, skill: "RAIMEIRAN" },                 // 雷鳴嵐
+    { lvl: 155, passive: "resistAilment", plv: 2 },   // 異常耐性Lv2
+    { lvl: 160, skill: "METEOR" },                    // メテオ
+    { lvl: 165, passive: "afterBoth", plv: 2 },       // 法力の灯Lv2
+    { lvl: 170, skill: "ZETTAIREIDO" },               // 絶対零度
+    { lvl: 175, passive: "bigBarrier", plv: 1 },      // 大結界
+    { lvl: 180, skill: "GOKUENRAN" },                 // 獄炎嵐
+    { lvl: 185, passive: "soulEater", plv: 1 },       // 魂喰い
+    { lvl: 190, skill: "KOKUUHA" },                   // 虚空波
+    { lvl: 195, skill: "TENPENCHII" },                // 天変地異
+    { lvl: 200, skill: "KYOKUDAI" },                  // 極大消滅
+  ],
+  // 盗賊: 新仕様 (Lv1-200 / 技とパッシブを織り込み)。Lv40=朧抜き は宿し技 (signature)
+  thief:       [
+    { lvl: 1,   skill: "KYOUGEKI" },                  // 強撃
+    { lvl: 3,   skill: "POISONSTAB" },                // 毒刃
+    { lvl: 5,   passive: "ambushCrit", plv: 1 },      // 不意打ち
+    { lvl: 7,   skill: "DOUBLE" },                    // 二段斬り
+    { lvl: 10,  skill: "BLIND" },                     // 目くらまし
+    { lvl: 15,  passive: "extraHit", plv: 1 },        // 連撃Lv1
+    { lvl: 20,  skill: "KASUMEGIRI" },                // 霞斬り
+    { lvl: 25,  passive: "vitalEye", plv: 1 },        // 急所読みLv1
+    { lvl: 30,  skill: "ASSASSINATE" },               // 急所突き
+    { lvl: 35,  passive: "extraHit", plv: 2 },        // 連撃Lv2
+    { lvl: 40,  skill: "OBORO" },                     // 朧抜き (看板技)
+    { lvl: 45,  passive: "parry", plv: 1 },           // 見切りLv1
+    { lvl: 50,  skill: "MIDARE" },                    // 乱れ斬り
+    { lvl: 55,  skill: "KAGENUI" },                   // 影縫い
+    { lvl: 60,  passive: "venomBlade", plv: 1 },      // 毒刃Lv1
+    { lvl: 65,  skill: "TSUJIKAZE" },                 // 辻風
+    { lvl: 70,  passive: "sleepKill", plv: 1 },       // 寝込み襲い
+    { lvl: 75,  passive: "initiative", plv: 1 },      // 先制の心得
+    { lvl: 80,  skill: "ZETSUEI" },                   // 絶影
+    { lvl: 85,  skill: "SHIPPUTSUKI" },               // 疾風突き
+    { lvl: 90,  passive: "extraHit", plv: 3 },        // 連撃Lv3
+    { lvl: 95,  skill: "ENGETSUJIN" },                // 円月刃
+    { lvl: 100, skill: "MOUDOKUSASHI" },              // 猛毒刺し
+    { lvl: 105, passive: "vitalEye", plv: 2 },        // 急所読みLv2
+    { lvl: 110, skill: "KAGEUCHI" },                  // 影討ち
+    { lvl: 115, passive: "venomBlade", plv: 2 },      // 毒刃Lv2
+    { lvl: 120, skill: "KUBIHANE" },                  // 首刎ね
+    { lvl: 125, passive: "parry", plv: 2 },           // 見切りLv2
+    { lvl: 130, skill: "RANBUTSUKI" },                // 乱舞突き
+    { lvl: 135, passive: "extraHit", plv: 4 },        // 連撃Lv4
+    { lvl: 140, skill: "SHUNSATSU" },                 // 瞬殺
+    { lvl: 145, passive: "zanshin", plv: 1 },         // 残心
+    { lvl: 150, skill: "TSUMUJIKAZE" },               // 旋風乱れ
+    { lvl: 155, passive: "vigilance", plv: 1 },       // 周囲警戒Lv1
+    { lvl: 160, skill: "ZANKOU" },                    // 斬光
+    { lvl: 165, passive: "vigilance", plv: 2 },       // 周囲警戒Lv2
+    { lvl: 170, skill: "ANSATSU" },                   // 暗殺
+    { lvl: 175, passive: "senseEnemy", plv: 1 },      // 敵感知
+    { lvl: 180, skill: "SENKOUZAN" },                 // 閃光斬
+    { lvl: 185, passive: "fleetFoot", plv: 1 },       // 逃げ足
+    { lvl: 190, skill: "HISSATSU" },                  // 必殺奥義
+    { lvl: 195, skill: "MUGEN" },                     // 夢幻泡影
+    { lvl: 200, skill: "ZANSEI" },                    // 斬星
+  ],
+  // 司教: 新仕様 (Lv1-200 / 攻撃・回復の二道を究める汎用後衛)。Lv40=フルヒール は宿し技 (signature)
+  bishop:      [
+    { lvl: 1,   skill: "HALITO" },                    // ファイアアロー
+    { lvl: 3,   skill: "DIOS" },                      // ヒール
+    { lvl: 5,   passive: "afterMp", plv: 1 },         // 魔力回路Lv1
+    { lvl: 7,   skill: "ICENEEDLE" },                 // アイスニードル
+    { lvl: 10,  skill: "CURE" },                      // キュア
+    { lvl: 15,  passive: "afterBoth", plv: 1 },       // 法力の灯Lv1
+    { lvl: 20,  skill: "MAHALITO" },                  // ファイアストーム
+    { lvl: 25,  passive: "scan", plv: 1 },            // 弱点看破
+    { lvl: 30,  skill: "DIAL" },                      // リカバー
+    { lvl: 35,  passive: "chant", plv: 1 },           // 省詠唱Lv1
+    { lvl: 40,  skill: "MADIOS" },                    // フルヒール (看板技)
+    { lvl: 45,  passive: "afterHeal", plv: 1 },       // 戦闘後回復Lv1
+    { lvl: 50,  skill: "DIOSALL" },                   // ヒールオール
+    { lvl: 55,  skill: "DISPEL" },                    // ディスペル
+    { lvl: 60,  passive: "spellCrit", plv: 1 },       // 呪文会心Lv1
+    { lvl: 65,  skill: "MADALT" },                    // ブリザード
+    { lvl: 70,  passive: "purify", plv: 1 },          // 浄化
+    { lvl: 75,  passive: "afterBoth", plv: 2 },       // 法力の灯Lv2
+    { lvl: 80,  skill: "LAHALITO" },                  // インフェルノ
+    { lvl: 85,  skill: "SAINTRAY" },                  // 聖閃
+    { lvl: 90,  passive: "afterMp", plv: 2 },         // 魔力回路Lv2
+    { lvl: 95,  skill: "DIALALL" },                   // リカバーオール
+    { lvl: 100, skill: "HYORETSU" },                  // 氷烈
+    { lvl: 105, passive: "chant", plv: 2 },           // 省詠唱Lv2
+    { lvl: 110, skill: "REVIVE" },                    // リバイブ
+    { lvl: 115, passive: "spellCrit", plv: 2 },       // 呪文会心Lv2
+    { lvl: 120, skill: "TILTOWAIT" },                 // エクスプロージョン
+    { lvl: 125, passive: "selfPurify", plv: 1 },      // 自浄
+    { lvl: 130, skill: "IYASHINAMI" },                // 癒しの波
+    { lvl: 135, passive: "afterHeal", plv: 2 },       // 戦闘後回復Lv2
+    { lvl: 140, skill: "SEISAI" },                    // 星砕
+    { lvl: 145, passive: "resistAilment", plv: 1 },   // 異常耐性Lv1
+    { lvl: 150, skill: "RAIJIN" },                    // 雷神
+    { lvl: 155, passive: "elemFloor", plv: 1 },       // 森羅の理
+    { lvl: 160, skill: "RESURRECT" },                 // リザレクション
+    { lvl: 165, passive: "resistAilment", plv: 2 },   // 異常耐性Lv2
+    { lvl: 170, skill: "METEOR" },                    // メテオ
+    { lvl: 175, passive: "barrier", plv: 1 },         // 魔障壁Lv1
+    { lvl: 180, skill: "DAIFUKUIN" },                 // 大福音
+    { lvl: 185, passive: "sanctuary", plv: 1 },       // 聖域
+    { lvl: 190, skill: "GOKUENRAN" },                 // 獄炎嵐
+    { lvl: 195, skill: "SEIKOURETSU" },               // 聖光烈
+    { lvl: 200, skill: "KYOKUDAI" },                  // 極大消滅
+  ],
   samurai:     [{ lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "TATEWARI" }, { lvl: 5, skill: "POISONSTAB" }, { lvl: 7, skill: "DOUBLE" }, { lvl: 10, skill: "KASUMEGIRI" }, { lvl: 15, skill: "MIDARE" }, { lvl: 20, skill: "ASSASSINATE" }, { lvl: 25, skill: "GOUZAN" }, { lvl: 30, skill: "TSUJIKAZE" }, { lvl: 40, skill: "TSUBAMEGAESHI" }, { lvl: 50, skill: "ZETSUEI" }],
   berserker:   [{ lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "TATEWARI" }, { lvl: 5, skill: "SHIELDBASH" }, { lvl: 7, skill: "DOUBLE" }, { lvl: 10, skill: "NAGIHARAI" }, { lvl: 15, skill: "MIDARE" }, { lvl: 20, skill: "GOUZAN" }, { lvl: 25, skill: "ISSEN" }, { lvl: 30, skill: "SENPUU" }, { lvl: 40, skill: "KIJINKUDAKI" }, { lvl: 50, skill: "KIKOKU" }],
   hunter:      [{ lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "BLIND" }, { lvl: 5, skill: "POISONSTAB" }, { lvl: 7, skill: "DOUBLE" }, { lvl: 10, skill: "KASUMEGIRI" }, { lvl: 15, skill: "ASSASSINATE" }, { lvl: 20, skill: "OBORO" }, { lvl: 25, skill: "GOUZAN" }, { lvl: 30, skill: "TSUJIKAZE" }, { lvl: 40, skill: "KUBIKARI" }, { lvl: 50, skill: "ZETSUEI" }],
