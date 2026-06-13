@@ -222,6 +222,9 @@ function makeEnemy(key, scale = 1, boss = false) {
     ability: m.ability || null, // 特殊能力 (毒/麻痺/石化/即死/窃盗/ドレイン/ブレス)
     // 個体特性: 物理被ダメ軽減 / 魔法被ダメ増 / 自己再生 / 回避
     physResist: m.physResist || 0, magWeak: m.magWeak || 1, regen: m.regen || 0, evasive: !!m.evasive,
+    // 追加特性: 魔法耐性 / 激昂(手負いで強化) / 不屈(致死を1度耐える) / 吸血 / 連撃 / 障壁(被ダメ半減の回数)
+    magResist: m.magResist || 0, enrage: !!m.enrage, endure: !!m.endure,
+    lifesteal: m.lifesteal || 0, multistrike: m.multistrike || 0, _barrierLeft: m.barrier || 0,
     // 役割 (healer=回復役 / guard=護り手 / summoner=呼び手)。_scale は召喚の強さ引き継ぎ用
     role: m.role || null, summonKey: m.summonKey || null, _scale: scale,
     _guardLeft: m.role === "guard" ? 3 : 0, // 護り手が肩代わりできる残り回数
@@ -391,6 +394,14 @@ export class Battle {
         e.hp = Math.min(e.maxhp, e.hp + h);
         this.log(`${e.name}の傷がふさがっていく (${h})`, "sys");
       }
+    }
+    // 激昂: HPが3割を切った敵が一度だけ荒れ狂い、ATK/AGI が跳ね上がる
+    for (const e of this.livingEnemies()) {
+      if (!e.enrage || e._enraged || !e.maxhp || e.hp > e.maxhp * 0.3) continue;
+      e._enraged = true;
+      this._applyMod(e, "atk", 1.5, 99, "激昂");
+      this._applyMod(e, "agi", 1.3, 99, "激昂");
+      this.log(`${e.name}は激昂した！`, "dmg");
     }
     this._checkEnd();
     let pool = [...this.party, ...this.enemies];
@@ -621,9 +632,16 @@ export class Battle {
       const tgt = (cmd.target && cmd.target.alive) ? cmd.target
         : actor.side === "party" ? this._randAlive(this.attackableEnemies(actor)) : this._pickPartyTarget();
       if (tgt) {
-        const h = this._physical(actor, tgt, { basic: true });
-        res.hits.push(h);
-        if (actor.side === "party") this._afterBasic(actor, tgt, h, res);
+        // 連撃 (multistrike): 敵は一手で続けざまに打つ (倒れたら次の標的へ)
+        const strikes = (actor.side === "enemy" && actor.multistrike > 1) ? Math.min(4, actor.multistrike) : 1;
+        if (strikes > 1) this.log(`${actor.name}の${strikes}連撃！`, "dmg");
+        for (let s = 0; s < strikes; s++) {
+          const t2 = tgt.alive ? tgt : this._pickPartyTarget();
+          if (!t2) break;
+          const h = this._physical(actor, t2, { basic: true });
+          res.hits.push(h);
+          if (actor.side === "party") this._afterBasic(actor, t2, h, res);
+        }
       }
       return res;
     }
@@ -738,6 +756,17 @@ export class Battle {
         const h = this._physical(actor, t, { power: 0.8, name: "魂喰らい" });
         res.hits.push(h);
         if (!h.miss && t.alive && Math.random() < 0.35) h.drain = true; // 魂レベルの控除は game.js 側
+      } else if (k === "warcry") {
+        // 鼓舞: 自分を含む味方 (敵側) 全体の ATK を数ターン上げる
+        this.log(`${actor.name}の雄叫び！`, "dmg");
+        for (const e of this.livingEnemies()) this._applyMod(e, "atk", 1.3, ENEMY_BUFF_DUR, "雄叫び");
+        res.warcry = true;
+      } else if (k === "weaken") {
+        // 弱体: 近接 (×0.9) + 命中したプレイヤーの ATK を数ターン下げる
+        const h = this._physical(actor, t, { power: 0.9, name: "呪いの一撃" });
+        res.hits.push(h);
+        const tt = h.target; // かばうで対象が替わることがある
+        if (!h.miss && tt.alive) { this._applyMod(tt, "atk", 0.75, ENEMY_BUFF_DUR, "弱体"); this.log(`${tt.name}の力が削がれた…`, "dmg"); }
       }
       return res;
     }
@@ -914,9 +943,18 @@ export class Battle {
     // 物理耐性: 頑強な敵は物理被ダメを割合カット (「物理がほとんど効かない」)
     let resisted = false;
     if (tgt.side === "enemy" && tgt.physResist) { dmg = Math.round(dmg * (1 - tgt.physResist)); resisted = true; }
+    // 障壁: 数回だけ被ダメを半減する敵 (回数制)
+    let barriered = false;
+    if (tgt.side === "enemy" && tgt._barrierLeft > 0) { tgt._barrierLeft--; dmg = Math.ceil(dmg * 0.5); barriered = true; }
     dmg = Math.max(1, dmg);
     tgt.hp -= dmg;
-    const eff = em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : resisted ? " 物理耐性!" : "";
+    // 吸血: 敵は与えた傷の一部を己のHPに変える
+    if (actor.side === "enemy" && actor.lifesteal && actor.alive && dmg > 0) {
+      const hl = Math.max(1, Math.round(dmg * actor.lifesteal));
+      actor.hp = Math.min(actor.maxhp, actor.hp + hl);
+      this.log(`${actor.name}は精気を吸い取った (${hl})`, "dmg");
+    }
+    const eff = em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : barriered ? " 障壁!" : resisted ? " 物理耐性!" : "";
     this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}${eff}`,
       actor.side === "party" ? "hit" : "dmg");
     if (tgt.asleep) tgt.asleep = false;
@@ -1010,13 +1048,16 @@ export class Battle {
         // 魔法弱点: 攻撃呪文の被ダメが増える (「魔法に弱い」)
         let magWeak = false;
         if (t.magWeak && t.magWeak > 1) { dmg = Math.round(dmg * t.magWeak); magWeak = true; }
+        // 魔法耐性: 攻撃呪文の被ダメを割合カット (「魔法がほとんど効かない」)
+        let magResisted = false;
+        if (t.magResist && t.magResist > 0) { dmg = Math.max(1, Math.round(dmg * (1 - t.magResist))); magResisted = true; }
         if (pv(actor, "gokudoku") && t.ailment === "poison") dmg = Math.round(dmg * 1.3); // 蠱毒
         // 会心: 呪文会心パッシブ + 技固有の会心補正 (禁呪開帳など)
         const crit = Math.random() < ((scLv ? (scLv >= 2 ? 0.18 : 0.10) : 0) + (sp.critBonus || 0));
         if (crit) dmg = Math.floor(dmg * 1.5);
         t.hp -= dmg;
         dealt += dmg;
-        const eff = em > 1 || magWeak ? " 弱点!" : em < 1 ? " 耐性…" : "";
+        const eff = em > 1 || magWeak ? " 弱点!" : magResisted ? " 魔法耐性!" : em < 1 ? " 耐性…" : "";
         this.log(`${t.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}${eff}`, "dmg");
         if (t.asleep) t.asleep = false;
         // 状態異常の付与 (毒霧): 命中した生存敵を蝕む
@@ -1130,10 +1171,11 @@ export class Battle {
 
   _die(t) {
     if (t.hp <= 0 && t.alive) {
-      // 不屈: 致死を1回だけ HP1 で耐える (聖句の加護による付与分も同じ1回を共有)
-      if (t.side === "party" && (t.endure || pv(t, "endure") || t._grantEndure) && !t._enduredThisBattle) {
+      // 不屈: 致死を1回だけ HP1 で耐える (味方=聖句の加護付与分も同じ1回を共有 / 敵=def の endure)
+      const canEndure = t.side === "party" ? (t.endure || pv(t, "endure") || t._grantEndure) : !!t.endure;
+      if (canEndure && !t._enduredThisBattle) {
         t._enduredThisBattle = true; t._grantEndure = false; t.hp = 1;
-        this.log(`${t.name}は不屈で持ちこたえた！ (HP1)`, "heal");
+        this.log(`${t.name}は不屈で持ちこたえた！ (HP1)`, t.side === "enemy" ? "dmg" : "heal");
         return false;
       }
       t.hp = 0; t.alive = false;

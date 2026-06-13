@@ -1614,6 +1614,20 @@ export function defMonster(def) {
   if (def.swift) m.swift = true;
   if (def.evasive) m.evasive = true;
   if (def.pack) m.pack = true;
+  // 追加の戦闘特性 (combat.js が解釈):
+  //   magResist   : 攻撃呪文の被ダメを割合カット (0〜0.9)。「魔法がほとんど効かない」
+  //   enrage      : HPが3割を切ると一度だけ ATK/AGI が跳ね上がる
+  //   endure      : 致死の一撃を一度だけ HP1 で耐える
+  //   lifesteal   : 与えた物理ダメージの割合だけ自己回復 (0〜1)
+  //   multistrike : 1手番で続けざまに攻撃する回数 (2〜4)
+  //   barrier     : 被ダメを半減できる残り回数 (数回制)
+  //   (ability に "warcry"=鼓舞 / "weaken"=弱体 も指定可)
+  if (def.magResist) m.magResist = def.magResist;
+  if (def.enrage) m.enrage = true;
+  if (def.endure) m.endure = true;
+  if (def.lifesteal) m.lifesteal = def.lifesteal;
+  if (def.multistrike) m.multistrike = def.multistrike;
+  if (def.barrier) m.barrier = def.barrier;
   if (def.traits) m.traits = def.traits; // 表示専用の追加特徴キー
   return m;
 }
@@ -1638,6 +1652,14 @@ export const TRAITS = {
   soulSteal:  { label: "魂奪",   desc: "Soul を吸い取ってくる" },
   goldSteal:  { label: "強奪",   desc: "金品を奪い取ってくる" },
   critical:   { label: "痛撃",   desc: "急所を狙う一撃を放つ" },
+  magResist:  { label: "魔法耐性", desc: "魔法がほとんど効かない" },
+  enrage:     { label: "激昂",   desc: "手負いになると荒れ狂う" },
+  endure:     { label: "不屈",   desc: "致命の一撃を一度だけ耐える" },
+  lifesteal:  { label: "吸血",   desc: "与えた傷の分だけ己を癒す" },
+  multistrike:{ label: "連撃",   desc: "一手で続けざまに打つ" },
+  barrier:    { label: "障壁",   desc: "数度だけ被害を半減する" },
+  warcry:     { label: "鼓舞",   desc: "雄叫びで味方を奮い立たせる" },
+  weaken:     { label: "弱体",   desc: "力を削ぐ呪いをかける" },
 };
 
 // モンスター定義から特徴キーの並びを導く (重複なし、表示順は定義順)。
@@ -1652,10 +1674,16 @@ export function monsterTraitKeys(m) {
   if (m.magWeak) add("magWeak");
   if (m.regen) add("regen");
   if (m.pack) add("pack");
+  if (m.magResist) add("magResist");
+  if (m.enrage) add("enrage");
+  if (m.endure) add("endure");
+  if (m.lifesteal) add("lifesteal");
+  if (m.multistrike) add("multistrike");
+  if (m.barrier) add("barrier");
   if (m.role === "summoner") add("summon");
   if (m.role === "healer") add("heal");
   if (m.role === "guard") add("guard");
-  add(m.ability); // poison/paralyze/stone/drain/soulSteal/goldSteal/critical/breath
+  add(m.ability); // poison/paralyze/stone/drain/soulSteal/goldSteal/critical/breath/warcry/weaken
   for (const t of m.traits || []) add(t);
   return keys;
 }
