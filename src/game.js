@@ -4696,7 +4696,10 @@ function animateResult(res, done) {
     stack[id] = (stack[id] || 0) + 1;
     if (stack[id] > maxStack) maxStack = stack[id];
   }
-  const TOTAL = WIND + (360 + (maxStack - 1) * HIT_STAGGER) * spdMul();
+  // 全体回復は対象人数ぶん時間差で弾ませるため、最後の表示まで尺を確保する
+  const partyHealN = (res.hits || []).filter((h) => h && h.target && h.target.side !== "enemy" && h.heal != null).length;
+  const staggerSteps = Math.max(maxStack - 1, partyHealN - 1);
+  const TOTAL = WIND + (360 + staggerSteps * HIT_STAGGER) * spdMul();
   G.fx = { lunge: res.side === "enemy" ? { uid: res.actor.uid, p: 0 } : null,
            slashes: [], magic: [], floats: [], screen: null, flash: {} };
   G.partyFx = G.partyFx || new Map();
@@ -4759,6 +4762,10 @@ function applyImpact(res) {
   // 対象ごとにヒット順で時間差(stagger)と位置差(横ずらし)を付けて、回数分はっきり見せる
   const stag = HIT_STAGGER * spdMul();
   const stackIdx = {};
+  // 全体回復は対象全員が同じ中央下に重なって1人分にしか見えないため、
+  // 回復対象ごとに横位置をずらし、わずかな時間差を付けて全員ぶんはっきり見せる
+  const partyHeals = res.hits.filter((h) => h.target.side !== "enemy" && h.heal != null);
+  let partyHealIdx = 0;
   for (const h of res.hits) {
     if (h.target.side === "enemy") {
       const pos = G.enemyPos[h.target.uid];
@@ -4780,7 +4787,12 @@ function applyImpact(res) {
       // 味方が対象
       if (h.heal != null) {
         G.partyFx.set(h.target, "heal");
-        fx.floats.push({ x: view.width / 2, y: view.height - 26, text: "+" + h.heal, color: "#7CFC7C", t0: now });
+        // 複数人を回復する時は横に散らし、順に弾ませて全員の回復を見せる
+        const n = partyHeals.length;
+        const i = partyHealIdx++;
+        const fx0 = n > 1 ? view.width * (i + 1) / (n + 1) : view.width / 2;
+        const fy0 = view.height - 26 - (i % 2) * 16; // 重なり回避に上下も少しずらす
+        fx.floats.push({ x: fx0, y: fy0, text: "+" + h.heal, color: "#7CFC7C", t0: now + i * stag });
       } else if (h.steal) {
         // 窃盗: ゴールド/Soul の控除はここで行う (combat.js は G を知らない)
         partyHit = true;
