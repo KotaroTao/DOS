@@ -78,23 +78,27 @@ const NEW_DEFS = [
   // -- rank 5 --
   { id: "bs_troll", name: "トロール", rank: 5, race: "giant", element: "earth", artKey: "ogre",
     palette: tint(ARTS.ogre.palette, "#4a8a3a", 0.35),
-    desc: "裂かれた傷がみるみる塞がる再生の巨人。火で灼かれた痕だけが、こいつの体に古傷として残っている。" },
-  { id: "bs_dullahan", name: "デュラハン", rank: 5, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
-    palette: tint(ARTS.knightmare.palette, "#2a2a3a", 0.35),
-    desc: "首を失ってなお戦場を求める黒鎧の騎士。小脇に抱えた己の首が、斬るべき相手の名を囁いて教える。" },
+    regen: 0.12, // 火で灼かぬ限り裂かれた傷もみるみる塞がる
+    desc: "裂かれた傷がみるみる塞がる再生の巨人。腕をもがれてもすぐに生え直し、火で灼かれた痕だけが、こいつの体に古傷として残っている。" },
+  { id: "bs_dullahan", name: "デュラハン", rank: 5, race: "armored", element: "dark", artKey: "dullahan", soulClass: "knight",
+    swift: true, ability: "critical", // 首を狙う一閃を音もなく繰り出す
+    desc: "首を失ってなお戦場を求める黒鎧の騎士。小脇に抱えた己の首が斬るべき相手の名を囁いて教え、音もなく間合いを詰めては首筋へ一閃を浴びせる。" },
   { id: "bs_salamander", name: "サラマンダー", rank: 5, race: "reptile", element: "fire", artKey: "lizard",
     palette: tint(ARTS.lizard.palette, "#d04a2a", 0.4),
-    desc: "溶岩の川を寝床とする火トカゲ。鱗の隙間から覗く体内はおき火の色で、噛み傷は永く焼け続けるという。" },
+    ability: "poison", regen: 0.06, // 焼け続ける噛み傷 + おき火の体が傷を炙り塞ぐ
+    desc: "溶岩の川を寝床とする火トカゲ。鱗の隙間から覗く体内はおき火の色で、噛み傷は永く焼け続ける。その熱は己の傷をも炙って塞いでしまう。" },
   // -- rank 6 --
   { id: "bs_chimera", name: "キマイラ", rank: 6, race: "beast", element: "fire", artKey: "beast",
     palette: tint(ARTS.beast.palette, "#c04a3a", 0.3),
-    desc: "獅子と山羊と毒蛇を縫い合わせた禁忌の合成獣。三つの頭は互いを憎みながら、獲物の前でだけ一つになる。" },
-  { id: "bs_wyvern", name: "ワイバーン", rank: 6, race: "dragon", element: "wind", artKey: "dragon",
-    palette: tint(ARTS.dragon.palette, "#3a8a5a", 0.35),
+    ability: "breath", // 三つの首が一斉に吐く炎
+    desc: "獅子と山羊と毒蛇を縫い合わせた禁忌の合成獣。三つの頭は互いを憎みながら、獲物の前でだけ一つになり、前衛後衛もろとも炎を吐きかける。" },
+  { id: "bs_wyvern", name: "ワイバーン", rank: 6, race: "dragon", element: "wind", artKey: "wyvern",
+    swift: true, ability: "poison", // 風を切る速さで舞い降り、尾の毒針を突き立てる
     desc: "竜の血が薄れた代わりに翼を肥らせた飛竜。風切り音が聞こえた時には、尾の毒針はもう振り下ろされている。" },
   { id: "bs_cyclops", name: "サイクロプス", rank: 6, boss: true, race: "giant", element: "none", artKey: "ogre",
     palette: tint(ARTS.ogre.palette, "#8a8a9a", 0.3),
-    desc: "単眼の巨人。神々の炉で雷を鍛えたという腕は、いま岩柱を棍棒代わりに迷宮の柱ごと侵入者を薙ぐ。" },
+    ability: "critical", // 岩柱を叩きつける一撃が急所を砕く
+    desc: "単眼の巨人。神々の炉で雷を鍛えたという腕は、いま岩柱を棍棒代わりに迷宮の柱ごと侵入者を薙ぎ、その一撃は急所を捉えれば鎧ごと砕く。" },
   // -- rank 7 --
   { id: "bs_griffon", name: "グリフォン", rank: 7, race: "avian", element: "wind", artKey: "harpy",
     palette: tint(ARTS.harpy.palette, "#c8a23a", 0.35),
@@ -215,40 +219,48 @@ const NEW_DEFS = [
     swift: true, regen: 0.08, // 血の匂いで猛り、傷つくほど勢いを増す
     desc: "血の匂いで理性を失うオークの変異体。傷を負うほど凶暴さと速さが増し、自分の傷口まで噛んで己を鼓舞し、浅い傷ならたちまち塞いでしまう。" },
   // -- rank 5 追加 (+5) --
-  { id: "bs_ironknight", name: "鉄の騎士", rank: 5, race: "armored", element: "none", artKey: "knightmare", soulClass: "knight",
-    palette: tint(ARTS.knightmare.palette, "#6a6a7a", 0.35),
-    desc: "古代神殿を守るために鋳造された鉄の自動人形。命令のみで動き、千年の時を経た今もその命令を忠実に実行し続ける。" },
+  { id: "bs_ironknight", name: "鉄の騎士", rank: 5, race: "armored", element: "none", artKey: "ironknight", soulClass: "knight",
+    physResist: 0.6, // 無骨な鉄塊の体は刃を通さない
+    desc: "古代神殿を守るために鋳造された鉄の自動人形。命令のみで動き、千年の時を経た今もその命令を忠実に実行し続ける。分厚い鉄塊の体は並の武器をほとんど通さない。" },
   { id: "bs_thunderbird", name: "雷鳥", rank: 5, race: "avian", element: "wind", artKey: "harpy",
     palette: tint(ARTS.harpy.palette, "#d4d44a", 0.4),
-    desc: "嵐の中でのみ現れる雷光の鳥。羽ばたきのたびに稲光が走り、その翼に触れた者は心の臓まで焼かれると伝えられる。" },
+    swift: true, ability: "paralyze", // 稲光をまとって舞い、触れた者を痺れさせる
+    desc: "嵐の中でのみ現れる雷光の鳥。羽ばたきのたびに稲光が走って素早く宙を舞い、その翼に触れた者は心の臓まで痺れて動けなくなる。" },
   { id: "bs_deepgolem", name: "大地のゴーレム", rank: 5, race: "construct", element: "earth", artKey: "golem",
     palette: tint(ARTS.golem.palette, "#4a3a2a", 0.5),
-    desc: "神殿の基礎石が何百年もの呪文の蓄積で自ら動き始めた古代ゴーレム。一歩踏み出すたびに床が割れ、壁が崩れる。" },
+    physResist: 0.6, // 神殿の基礎石そのものの巨体
+    desc: "神殿の基礎石が何百年もの呪文の蓄積で自ら動き始めた古代ゴーレム。岩盤そのものの巨体は刃を寄せつけず、一歩踏み出すたびに床が割れ、壁が崩れる。" },
   { id: "bs_shadowmage", name: "影の術師", rank: 5, race: "undead", element: "dark", artKey: "ghost", soulClass: "mage",
     palette: tint(ARTS.ghost.palette, "#2a2a5a", 0.5),
-    desc: "禁呪に魂を喰われた術師の残りかす。肉体は消え失せ、影だけが術を唱え続ける。召喚した闇の眷属は術師と共に消えない。" },
-  { id: "bs_fireserpent", name: "炎の大蛇", rank: 5, race: "reptile", element: "fire", artKey: "lizard",
-    palette: tint(ARTS.lizard.palette, "#c03a1a", 0.5),
-    desc: "溶岩の流れを住処とする巨大な炎の大蛇。鱗の一枚一枚が炉の断片で、皮膚に触れただけで焼き付いて離れない。" },
+    role: "summoner", summonKey: "d03_ghost", magWeak: 1.4, // 闇の眷属を召喚するが、本体は術もろとも魔法に脆い
+    desc: "禁呪に魂を喰われた術師の残りかす。肉体は消え失せ、影だけが闇の眷属を呼び出して術を唱え続ける。実体の薄い身は、魔法を撃ち込まれれば術もろとも掻き消える。" },
+  { id: "bs_fireserpent", name: "炎の大蛇", rank: 5, race: "reptile", element: "fire", artKey: "fireserpent",
+    swift: true, ability: "poison", // 焼き付く鱗を擦りつけて素早く絡む
+    desc: "溶岩の流れを住処とする巨大な炎の大蛇。鱗の一枚一枚が炉の断片で、素早く巻きついた相手の肌に皮膚ごと焼き付いて離れない。" },
   // -- rank 6 追加 (+6) --
   { id: "bs_darkdrake", name: "暗竜", rank: 6, race: "dragon", element: "dark", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#2a1a3a", 0.5),
-    desc: "竜の血脈が呪いで変質した漆黒の小竜。吐く息は火でなく影であり、影に包まれた者はやがて自分の輪郭を失う。" },
+    ability: "breath", // 火でなく影を吐き、前衛後衛を呑む
+    desc: "竜の血脈が呪いで変質した漆黒の小竜。吐く息は火でなく影であり、前衛後衛もろとも包まれた者はやがて自分の輪郭を失う。" },
   { id: "bs_bloodwraith", name: "血霊", rank: 6, race: "specter", element: "dark", artKey: "wraith",
     palette: tint(ARTS.wraith.palette, "#8a1a2a", 0.45),
-    desc: "溶岩洞で大量の血が流された場所に生まれた血の亡霊。触れられた者の血が傷口から引き出され、霊体の一部になる。" },
-  { id: "bs_stormgiant", name: "嵐の巨人", rank: 6, race: "giant", element: "wind", artKey: "ogre",
-    palette: tint(ARTS.ogre.palette, "#4a5a6a", 0.4),
-    desc: "嵐の日にのみ地上に降りてくる雷雲を纏う巨人。一歩ごとに地響きがし、振り下ろす拳は落雷を伴う。" },
+    ability: "drain", regen: 0.06, // 触れた者の血を引き出して己の一部にする
+    desc: "溶岩洞で大量の血が流された場所に生まれた血の亡霊。触れられた者の血は傷口から引き出されて霊体の一部となり、奪った分だけその身が濃さを増す。" },
+  { id: "bs_stormgiant", name: "嵐の巨人", rank: 6, race: "giant", element: "wind", artKey: "stormgiant",
+    ability: "paralyze", // 振り下ろす拳に伴う落雷で痺れさせる
+    desc: "嵐の日にのみ地上に降りてくる雷雲を纏う巨人。一歩ごとに地響きがし、振り下ろす拳は落雷を伴って、打たれた者を痺れさせる。" },
   { id: "bs_bonecolossus", name: "骨の巨兵", rank: 6, race: "undead", element: "dark", artKey: "skeleton",
     palette: tint(ARTS.skeleton.palette, "#c8c0a0", 0.3),
-    desc: "幾十の骸が呪力で融合し立ち上がった巨大な骨の兵。その胴の中には今も生者の叫び声が閉じ込められているという。" },
+    physResist: 0.5, // 幾十の骸が融合した骨の塊は崩しにくい
+    desc: "幾十の骸が呪力で融合し立ち上がった巨大な骨の兵。分厚く絡み合った骨は刃を弾き、その胴の中には今も生者の叫び声が閉じ込められているという。" },
   { id: "bs_ashphoenix", name: "灰の鳳凰", rank: 6, race: "avian", element: "fire", artKey: "harpy",
     palette: tint(ARTS.harpy.palette, "#c85a2a", 0.45),
-    desc: "溶岩洞の奥に棲む、再生しない鳳凰。かつて不死を誇ったが呪いで再生を失い、今は最後の炎を奪われまいと燃え続ける。" },
+    ability: "breath", // 奪われまいと吐き散らす最後の炎
+    desc: "溶岩洞の奥に棲む、再生しない鳳凰。かつて不死を誇ったが呪いで再生を失い、今は最後の炎を奪われまいと、前衛後衛もろとも炎を吐き散らして燃え続ける。" },
   { id: "bs_steelspider", name: "鋼蜘蛛", rank: 6, race: "construct", element: "none", artKey: "spider",
     palette: tint(ARTS.spider.palette, "#8a9aaa", 0.4),
-    desc: "古代の錬金術師が造った鉄製の機械蜘蛛。溶岩に落ちても溶けずに動き続け、絹より細く鋼より強い糸で罠を張る。" },
+    physResist: 0.5, ability: "paralyze", // 鋼の外殻が刃を弾き、鋼糸で獲物を絡め取る
+    desc: "古代の錬金術師が造った鉄製の機械蜘蛛。鋼の外殻は刃を弾き、溶岩に落ちても溶けずに動き続け、絹より細く鋼より強い糸で獲物を絡めて縛り上げる。" },
   // -- rank 7 追加 (+5) --
   { id: "bs_shadowdragon", name: "影竜", rank: 7, race: "dragon", element: "dark", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#1a2a3a", 0.6),
@@ -474,59 +486,77 @@ const NEW_DEFS = [
   // -- rank 5 (迷宮41-50: 沈没神殿帯) --
   { id: "bs_drownedpontiff", name: "水底の神官王", rank: 5, boss: true, race: "undead", element: "water", artKey: "ghost", soulClass: "priest",
     palette: tint(ARTS.ghost.palette, "#2a6a9a", 0.4),
-    desc: "神殿もろとも湖底に沈んだ神官たちの王。水底でなお続く礼拝の頂点に立ち、息のある参拝者を「沈黙の聖歌隊」へ勧誘する。" },
+    ability: "paralyze", regen: 0.06, // 沈黙の聖歌で動きを封じ、水に抱かれて傷を癒す
+    desc: "神殿もろとも湖底に沈んだ神官たちの王。水底でなお続く礼拝の頂点に立ち、唱える沈黙の聖歌は聞いた者の息と動きを奪い、「沈黙の聖歌隊」へ勧誘する。" },
   { id: "bs_altarguardian", name: "祭壇の番像", rank: 5, boss: true, race: "construct", element: "light", artKey: "golem",
     palette: tint(ARTS.golem.palette, "#e0d0a0", 0.35),
-    desc: "朽ちた祭壇を守るために聖別された石の番像。神はとうに去ったが聖別だけが残り、供物なき参拝者を瀆神者として打ち砕く。" },
+    physResist: 0.6, // 聖別された石の番像は刃を通さない
+    desc: "朽ちた祭壇を守るために聖別された石の番像。神はとうに去ったが聖別だけが残り、聖石の体は刃を弾いて、供物なき参拝者を瀆神者として打ち砕く。" },
   { id: "bs_sacrificelord", name: "生贄の祭主", rank: 5, boss: true, race: "specter", element: "dark", artKey: "ghost", soulClass: "bishop",
     palette: tint(ARTS.ghost.palette, "#8a2a4a", 0.4),
-    desc: "血染めの間で千の生贄を捧げ、最後に自らを捧げた祭主。儀式はまだ完成しておらず、足りない分の血を訪問者に求めてくる。" },
+    ability: "drain", // 足りない生贄の血を訪問者から吸い取る
+    desc: "血染めの間で千の生贄を捧げ、最後に自らを捧げた祭主。儀式はまだ完成しておらず、足りない分の血と宿した魂を訪問者から吸い取って補おうとする。" },
   { id: "bs_whisperingidol", name: "囁く神像", rank: 5, boss: true, race: "construct", element: "dark", artKey: "golem",
     palette: tint(ARTS.golem.palette, "#4a4a6a", 0.4),
-    desc: "迷宮の中心に座し、囁きだけで信徒を操ってきた名もなき神の像。耳を塞いでも囁きは頭蓋の内側から聞こえてくる。" },
+    physResist: 0.5, ability: "paralyze", // 石の像は刃を弾き、頭蓋に響く囁きで体を縛る
+    desc: "迷宮の中心に座し、囁きだけで信徒を操ってきた名もなき神の像。石の体は刃を寄せつけず、耳を塞いでも頭蓋の内側から響く囁きが、聞いた者の体を縛りつける。" },
   { id: "bs_blazeseraph", name: "燃ゆる聖堂の天使", rank: 5, boss: true, race: "specter", element: "fire", artKey: "harpy",
     palette: tint(ARTS.harpy.palette, "#c85a2a", 0.4),
-    desc: "大聖堂の火に焼かれてなお祝福の歌をやめない天使像の霊。焼け爛れた翼から火の粉の聖句が降り、浴びた者は祝福ごと燃える。" },
+    ability: "breath", // 翼から降り注ぐ火の粉の聖句が全体を焼く
+    desc: "大聖堂の火に焼かれてなお祝福の歌をやめない天使像の霊。焼け爛れた翼から火の粉の聖句が前衛後衛もろとも降り注ぎ、浴びた者は祝福ごと燃える。" },
   { id: "bs_nagamatriarch", name: "神域のナーガ母神", rank: 5, boss: true, race: "aquatic", element: "water", artKey: "sahagin",
     palette: tint(ARTS.sahagin.palette, "#7a4aa0", 0.4),
-    desc: "海底に沈んだ神域を鱗の塒で抱え込む蛇身の母神。千年の祈りを捧げた信徒の末裔すら、今は卵の餌としか見ていない。" },
+    ability: "poison", regen: 0.06, // 蛇神の猛毒と、卵を産み続ける生命力
+    desc: "海底に沈んだ神域を鱗の塒で抱え込む蛇身の母神。蛇神の猛毒を牙に湛え、傷ついても卵を産むほどの生命力で身を繕い、信徒の末裔すら今は卵の餌としか見ていない。" },
   { id: "bs_cursedpontifex", name: "呪われた教主", rank: 5, boss: true, race: "undead", element: "dark", artKey: "skeleton", soulClass: "bishop",
     palette: tint(ARTS.skeleton.palette, "#7a4aa0", 0.4),
-    desc: "霊廟に葬られた後、祈りごと呪詛に転じた神官の教主。唱える聖句は一字ずつ裏返り、祝福した者から順に病み衰えていく。" },
+    ability: "poison", // 裏返った聖句が祝福した者を病み衰えさせる
+    desc: "霊廟に葬られた後、祈りごと呪詛に転じた神官の教主。唱える聖句は一字ずつ裏返り、祝福した者から順に病に侵されて衰えていく。" },
   { id: "bs_duskapostle", name: "黄昏の神使", rank: 5, boss: true, race: "avian", element: "light", artKey: "harpy",
     palette: tint(ARTS.harpy.palette, "#e8c24a", 0.35),
-    desc: "没落した神殿に最後まで残った神の使い。届ける相手のいない神託を抱えたまま、黄昏の廊を旋回し続けている。" },
+    swift: true, ability: "paralyze", // 黄昏の廊を翔け、神託の一声で立ちすくませる
+    desc: "没落した神殿に最後まで残った神の使い。届ける相手のいない神託を抱えて黄昏の廊を素早く旋回し、その一声を聞いた者は神威に打たれて立ちすくむ。" },
   { id: "bs_ordealavatar", name: "試練の神像", rank: 5, boss: true, race: "construct", element: "light", artKey: "golem",
     palette: tint(ARTS.golem.palette, "#c8a040", 0.4),
-    desc: "神意の試練の底で挑む者を量り続ける神の依代。秤の片方には挑戦者の魂、もう片方には誰も見たことのない「合格」が載っている。" },
+    physResist: 0.6, // 神の依代たる石躯は容易に砕けない
+    desc: "神意の試練の底で挑む者を量り続ける神の依代。聖別された石躯は並の刃では砕けず、秤の片方には挑戦者の魂、もう片方には誰も見たことのない「合格」が載っている。" },
   // -- rank 6 (迷宮51-60: 灼熱洞帯) --
   { id: "bs_magmacentipede", name: "溶岩の大百足", rank: 6, boss: true, race: "insect", element: "fire", artKey: "spider",
     palette: tint(ARTS.spider.palette, "#c84a1a", 0.45),
-    desc: "溶岩の川を素肌で泳ぐ灼熱の大百足。幾百の脚が掻き立てる火飛沫は雨のように降り、通った後の岩肌は飴のように波打つ。" },
+    swift: true, ability: "poison", // 幾百の脚で素早く這い、灼熱の毒液を浴びせる
+    desc: "溶岩の川を素肌で泳ぐ灼熱の大百足。幾百の脚で素早く這い回り、掻き立てる火飛沫は雨のように降って獲物を灼き、通った後の岩肌は飴のように波打つ。" },
   { id: "bs_cinderknight", name: "燃え殻の騎士", rank: 6, boss: true, race: "armored", element: "fire", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#8a3a1a", 0.4),
-    desc: "熔岩の回廊で焼かれ続け、中身が燃え尽きてなお立ち続ける騎士の鎧。兜の奥の熾火は、誓いの言葉を今も燻らせている。" },
+    physResist: 0.4, ability: "critical", // 焼けた鎧が刃を弾き、誓いを込めた一撃が急所を断つ
+    desc: "熔岩の回廊で焼かれ続け、中身が燃え尽きてなお立ち続ける騎士の鎧。灼けた装甲は刃を弾き、兜の奥の熾火に燻る誓いを込めた一撃は、急所だけを正確に断つ。" },
   { id: "bs_boilingmass", name: "血沸きの肉塊", rank: 6, boss: true, race: "amorph", element: "fire", artKey: "slime",
     palette: tint(ARTS.slime.palette, "#a02a2a", 0.45),
-    desc: "血の沸く迷路で煮え続け、煮詰まった末に意志を持った肉の塊。触れたものを丸ごと取り込んで、また少し煮詰まる。" },
+    physResist: 0.5, ability: "poison", // 煮えた肉塊は刃を呑み、煮汁の毒を流し込む
+    desc: "血の沸く迷路で煮え続け、煮詰まった末に意志を持った肉の塊。突き立てた刃は熱い肉に呑まれて手応えなく、触れたものを煮汁の毒ごと丸ごと取り込んで、また少し煮詰まる。" },
   { id: "bs_fumarolelord", name: "噴気孔の魔伯", rank: 6, boss: true, race: "demon", element: "fire", artKey: "imp",
     palette: tint(ARTS.imp.palette, "#8a6a1a", 0.4),
-    desc: "硫黄の噴気孔を玉座とする魔界の伯爵。立ち昇る毒煙を恭しく従者として侍らせ、咳ひとつで客人の格を見定める。" },
+    ability: "poison", // 玉座から立ち昇る硫黄の毒煙を浴びせる
+    desc: "硫黄の噴気孔を玉座とする魔界の伯爵。立ち昇る毒煙を恭しく従者として侍らせ、咳き込ませた客人の喉へ更なる毒を流し込んでその格を見定める。" },
   { id: "bs_venomhydra", name: "毒炎の双首蛇", rank: 6, boss: true, race: "reptile", element: "fire", artKey: "lizard",
     palette: tint(ARTS.lizard.palette, "#6a8a2a", 0.45),
-    desc: "炎と毒、相容れぬ二つを同時に吐く双つ首の大蛇。二つの首は互いを憎みながら、獲物を炙り煮にする時だけ息を合わせる。" },
+    ability: "poison", regen: 0.08, // 双つ首の猛毒と、落とされても生え直す首
+    desc: "炎と毒、相容れぬ二つを同時に吐く双つ首の大蛇。二つの首は互いを憎みながら獲物を炙り煮にし、片首を落とされてもすぐに生え直してしまう。" },
   { id: "bs_calderawyrm", name: "火口の蛇竜", rank: 6, boss: true, race: "reptile", element: "fire", artKey: "lizard",
     palette: tint(ARTS.lizard.palette, "#c85a1a", 0.45),
-    desc: "火山の縦坑に巻きついて眠る鱗の長虫。目覚めれば縦坑そのものが胃袋に変わり、落ちてくるものはみな同じ場所へ着く。" },
+    ability: "breath", // 火口の業火を縦坑ごと吐き上げる
+    desc: "火山の縦坑に巻きついて眠る鱗の長虫。目覚めれば縦坑そのものが胃袋に変わり、吐き上げる火口の業火は前衛後衛を問わず焼き尽くす。" },
   { id: "bs_flameheresiarch", name: "炎の異端教主", rank: 6, boss: true, race: "specter", element: "fire", artKey: "ghost", soulClass: "bishop",
     palette: tint(ARTS.ghost.palette, "#c84a2a", 0.4),
-    desc: "炎の聖地を乗っ取り、火刑を「祝福」と説いた異端の教主。焼かれた信徒の数だけ法衣の火は強くなり、説法は今日も燃えている。" },
+    ability: "soulSteal", // 焼かれた信徒の魂を法衣の火に吸い込む
+    desc: "炎の聖地を乗っ取り、火刑を「祝福」と説いた異端の教主。焼かれた信徒の魂を法衣の火に吸い込んで燃え盛り、説法は今日も燃えている。" },
   { id: "bs_emberking", name: "燠火の廃王", rank: 6, boss: true, race: "undead", element: "fire", artKey: "skeleton",
     palette: tint(ARTS.skeleton.palette, "#c8742a", 0.4),
-    desc: "灼熱の廃都で燠火の冠を戴き続ける王の骸。都が燃え尽きた夜から退位を認めず、灰の玉座への謁見を今も義務づけている。" },
+    ability: "critical", regen: 0.06, // 燠火の一撃が急所を灼き、灰から燃え立ち直す
+    desc: "灼熱の廃都で燠火の冠を戴き続ける王の骸。燠火を纏った一撃は急所を灼き、砕いても灰の中から燃え立ち直して、都が燃え尽きた夜からの退位を認めない。" },
   { id: "bs_infernowyrm", name: "業火竜", rank: 6, boss: true, race: "dragon", element: "fire", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#a02a0a", 0.45),
-    desc: "終末迷宮の底で己の業火に巻かれながら生き続ける竜。炎はもはや吐くものではなく棲み処であり、竜はその只中からこちらを見ている。" },
+    ability: "breath", regen: 0.06, // 棲み処の業火を吐き、その炎で身を灼き直す
+    desc: "終末迷宮の底で己の業火に巻かれながら生き続ける竜。炎はもはや吐くものではなく棲み処であり、前衛後衛を呑む業火を吐きながら、その只中で傷を灼き直してこちらを見ている。" },
   // -- rank 7 (迷宮61-70: 氷結回廊帯) --
   { id: "bs_crystalwyrm", name: "氷晶の蛇竜", rank: 7, boss: true, race: "dragon", element: "water", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#9fd0e8", 0.45),
@@ -710,23 +740,29 @@ const ELITE_DEFS = [
   // -- 迷宮 21-30 (砦帯) / 強敵ランク5 --
   { id: "el_warbanner", name: "軍旗の亡将", elite: true, rank: 5, race: "armored", element: "fire", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#a03020", 0.5),
-    desc: "落城の日、軍旗を握ったまま焼け死んだ将の亡霊。今も燃え続ける旗を掲げ、目に映るすべてを攻め落とすべき敵城と見なす。" }, // D21-23
+    physResist: 0.5, ability: "critical", // 焼け鎧が刃を弾き、攻城の一撃が急所を貫く
+    desc: "落城の日、軍旗を握ったまま焼け死んだ将の亡霊。燃える鎧は刃を弾き、目に映るすべてを攻め落とすべき敵城と見なして、城門を割る勢いの一撃を急所へ叩き込む。" }, // D21-23
   { id: "el_headsman", name: "処刑人の大鬼", elite: true, rank: 5, race: "giant", element: "earth", artKey: "ogre",
     palette: tint(ARTS.ogre.palette, "#6a2a2a", 0.5),
-    desc: "砦の処刑場に飼われていた首斬り役の大鬼。主を失ってなお務めを忘れず、迷い込んだ者を「本日の咎人」として斧の下へ並ばせる。" }, // D24-26
+    swift: true, ability: "critical", // 首斬りの斧が一閃で急所を断つ
+    desc: "砦の処刑場に飼われていた首斬り役の大鬼。主を失ってなお務めを忘れず、迷い込んだ者を「本日の咎人」として斧の下へ並ばせ、振り下ろす一閃で首筋を狙う。" }, // D24-26
   { id: "el_phantomcompany", name: "亡霊中隊", elite: true, rank: 5, race: "specter", element: "wind", artKey: "ghost",
     palette: tint(ARTS.ghost.palette, "#7a8aa8", 0.5),
-    desc: "全滅した守備中隊の魂が、ひとつの巨影に溶け合った亡霊。百の声が同時に号令を叫び、百人分の殺意がひとつの太刀筋に乗る。" }, // D27-30
+    role: "summoner", summonKey: "d03_ghost", swift: true, // 散った中隊を呼び集め、号令とともに先んじる
+    desc: "全滅した守備中隊の魂が、ひとつの巨影に溶け合った亡霊。号令ひとつで散った戦友の霊を呼び集め、百人分の殺意が先んじてひとつの太刀筋に乗る。" }, // D27-30
   // -- 迷宮 31-40 (霧の森帯) / 強敵ランク6 --
   { id: "el_mistmother", name: "霧の繭母", elite: true, rank: 6, race: "insect", element: "water", artKey: "spider",
     palette: tint(ARTS.spider.palette, "#c8d4e0", 0.55),
-    desc: "霧の森の最深部に巣を張る繭の女王。立ち込める霧はすべてこの蜘蛛の吐いた糸であり、森に入った時点で、すでに巣の上にいる。" }, // D31-33
+    ability: "paralyze", regen: 0.06, // 霧の糸で獲物を絡めて麻痺させ、巣を繕い続ける
+    desc: "霧の森の最深部に巣を張る繭の女王。立ち込める霧はすべてこの蜘蛛の吐いた糸であり、絡めとられた獲物は痺れて動けなくなる。裂かれた巣はすぐに繕われ、森に入った時点で、すでに巣の上にいる。" }, // D31-33
   { id: "el_eldertreant", name: "古樹の巨人", elite: true, rank: 6, race: "plant", element: "earth", artKey: "mandrake",
     palette: tint(ARTS.mandrake.palette, "#3a5a2a", 0.5),
-    desc: "森が芽吹くより前からそこに立つ古樹の巨人。根は迷宮全体に張り巡らされ、梢を騒がせた者を大地ごと締め上げて肥料に変える。" }, // D34-36
+    physResist: 0.5, regen: 0.08, // 太古の樹皮が刃を弾き、根から養分を吸って癒える
+    desc: "森が芽吹くより前からそこに立つ古樹の巨人。分厚い樹皮は刃を寄せつけず、迷宮全体に張り巡らせた根から養分を吸い上げて傷を癒し、梢を騒がせた者を大地ごと締め上げて肥料に変える。" }, // D34-36
   { id: "el_huntsmanwraith", name: "狩人王の亡霊", elite: true, rank: 6, race: "specter", element: "wind", artKey: "wraith", soulClass: "thief",
     palette: tint(ARTS.wraith.palette, "#3a6a3a", 0.5),
-    desc: "獲物を狩り尽くし、最後に己の従者を獲物にした狩人王の亡霊。角笛の音が聞こえたなら、すでに狩りは始まっている。" }, // D37-40
+    swift: true, ability: "critical", // 風のごとく追い、狩りの一矢で急所を射抜く
+    desc: "獲物を狩り尽くし、最後に己の従者を獲物にした狩人王の亡霊。風のごとく間合いを詰め、狩りの一矢は急所だけを射抜く。角笛の音が聞こえたなら、すでに狩りは始まっている。" }, // D37-40
   // -- 迷宮 41-50 (神殿帯) / 強敵ランク7 --
   { id: "el_fallenidol", name: "堕ちた神像", elite: true, rank: 7, race: "construct", element: "light", artKey: "golem",
     palette: tint(ARTS.golem.palette, "#e8d8a0", 0.5),
