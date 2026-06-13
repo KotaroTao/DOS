@@ -600,6 +600,44 @@ const NEW_DEFS = [
   { id: "bs_cavernlord", name: "大空洞の主", rank: 10, boss: true, race: "giant", element: "earth", artKey: "cavernlord", soulClass: "fighter",
     role: "summoner", summonKey: "bs_cavebehemoth", ability: "breath", enrage: true, physResist: 0.6,
     desc: "大空洞の最奥、眠れる『根』のすぐ手前に座す巨大な守護者。岩を喰らう巨獣を次々と呼び、砕けた岩の息で道を塞ぐ。鎖に繋がれて眠るものを、決して目覚めさせまいとしている――いや、目覚めを待っているのかもしれない。" },
+  // -- 第13層「魔導書庫」 (rank 10・闇/魔導。魂繰りの術の源) --
+  { id: "bs_grimoirebeast", name: "蠢く魔導書", rank: 10, race: "construct", element: "dark", artKey: "grimoirebeast",
+    multistrike: 2, magResist: 0.5, barrier: 2, desc: "自ら頁をめくり、書かれた術を放つ巨大な魔導書。紙の刃を続けざまに飛ばし、魔力は表紙に弾かれる。読み解こうとした者を、片端から己の頁に綴じ込んでいく。" },
+  { id: "bs_inkhorror", name: "墨の異形", rank: 10, race: "amorph", element: "dark", artKey: "inkhorror",
+    ability: "poison", physResist: 0.5, lifesteal: 0.3, desc: "こぼれた魔導の墨が意思を得て這い回る異形。触れたものを文字ごと溶かして喰らい、刃を突き立てても墨に沈んで効かない。喰らった知識の分だけ、黒く濃くなる。" },
+  { id: "bs_spellwraith", name: "呪文の亡霊", rank: 10, race: "specter", element: "dark", artKey: "spellwraith",
+    ability: "drain", magResist: 0.5, paralyze: undefined, desc: "唱えられぬまま忘れられた呪文が、霊となって書庫を漂う。生者の魔力と命を吸って自らを保ち、向けられた魔法を呪文ごと打ち消す。意味を失った詠唱を、永遠に呟き続ける。" },
+  { id: "bs_runegolem", name: "ルーンの守護者", rank: 10, race: "construct", element: "dark", artKey: "runegolem",
+    magResist: 0.6, barrier: 2, physResist: 0.4, desc: "禁書を守るために刻まれた、ルーンの光を放つ石の守護者。刻印が刃も魔も阻み、書庫の奥へ通すまいと立ちはだかる。ルーンを一つずつ消さねば、決して崩れない。" },
+  { id: "bs_papermimic", name: "擬書", rank: 10, race: "construct", element: "dark", artKey: "papermimic",
+    ability: "critical", barrier: 2, desc: "ただの本のふりをして棚に紛れ、手に取った者に襲いかかる擬態の魔。紙とは思えぬ鋭さで頁の縁が急所を裂く。書庫のどの一冊が擬書なのか、開くまで分からない。" },
+  { id: "bs_eyetome", name: "眼の魔導書", rank: 10, race: "specter", element: "dark", artKey: "eyetome",
+    ability: "paralyze", lifesteal: 0.3, evasive: true, desc: "頁という頁に瞳が描かれ、すべてが一斉に見開く呪われた書。その視線を浴びた者は石のように動けなくなり、見られるほど命を吸われる。閉じても、表紙の眼が見ている。" },
+  { id: "bs_forbiddenspirit", name: "禁書の精", rank: 10, race: "elemental", element: "dark", artKey: "forbiddenspirit",
+    multistrike: 2, magResist: 0.5, ability: "paralyze", desc: "封印された禁書から漏れ出した、剥き出しの魔力の精。触れれば麻痺し、暴走する術が続けざまに弾ける。封を解いた者の手で、最初に祟る。" },
+  { id: "bs_bookworm", name: "知識喰らいの蟲", rank: 10, race: "insect", element: "dark", artKey: "bookworm",
+    multistrike: 2, lifesteal: 0.3, swift: true, desc: "魔導書の知識を喰らって異常に育った、無数の本の蟲。素早く頁を食い破って術を盗み、近づく者の記憶ごと齧り取る。一冊喰らうたび、新たな術を一つ覚える。" },
+  { id: "bs_arcanesentinel", name: "書庫の番兵", rank: 10, race: "construct", element: "dark", artKey: "arcanesentinel",
+    ability: "critical", magResist: 0.5, barrier: 2, desc: "禁書の間を巡回する、魔力で動く鋼の番兵。光の刃で侵入者の急所を断ち、刻まれた術式が魔法を弾く。書庫の静寂を破る者を、一人も逃さない。" },
+  { id: "bs_cursescroll", name: "呪いの巻物", rank: 10, race: "specter", element: "dark", artKey: "cursescroll",
+    ability: "weaken", evasive: true, magResist: 0.5, desc: "読み上げれば災いを呼ぶ、宙に漂う呪いの巻物。広げた文面から呪詛を浴びせて力を奪い、丸まって刃をかわす。燃やそうにも、呪いが手に移って離れない。" },
+  { id: "bs_wordwraith", name: "言霊の霊", rank: 10, race: "specter", element: "dark", artKey: "wordwraith",
+    ability: "drain", magResist: 0.5, evasive: true, desc: "書き記された言葉そのものが霊と化したもの。発せられた言霊が生者の力と命を削り、文字となって揺らめき刃をすり抜ける。聞いてはならぬ真名を、囁き続けている。" },
+  { id: "bs_inkdragon", name: "墨竜", rank: 10, race: "dragon", element: "dark", artKey: "inkdragon",
+    ability: "breath", magResist: 0.5, multistrike: 2, desc: "こぼれた墨が幾百年を経て竜の形を得たもの。墨のブレスで全体を黒く塗り潰し、その身に魔法は吸われて消える。書庫の最も古い棚の影から、音もなく現れる。" },
+  { id: "bs_familiarswarm", name: "使い魔の群れ", rank: 10, race: "demon", element: "dark", artKey: "familiarswarm",
+    pack: true, ability: "critical", swift: true, desc: "主を失い、書庫に取り残された無数の使い魔の群れ。素早く飛び回って急所を突き、群れで一斉に襲いかかる。かつての契約者を探して、永遠に書庫を彷徨っている。" },
+  { id: "bs_mindeater", name: "知識を貪る者", rank: 10, race: "specter", element: "dark", artKey: "mindeater",
+    ability: "drain", magResist: 0.5, lifesteal: 0.3, desc: "禁断の知識を求めるあまり、頭から脳ごと知識を貪る化け物に堕ちた学者の霊。記憶と魔力を吸い上げ、奪うほどに肥大した頭が脈打つ。知りすぎることの、成れの果てだ。" },
+  { id: "bs_glyphhound", name: "呪印の番犬", rank: 10, race: "beast", element: "dark", artKey: "glyphhound",
+    swift: true, pack: true, magResist: 0.5, desc: "呪印を全身に刻まれ、書庫を守る番犬に作り変えられた獣の群れ。素早く取り囲んで噛みつき、刻印が魔法を弾く。侵入者の魔力の匂いを、決して見失わない。" },
+  { id: "bs_tomeguardian", name: "禁書の巨像", rank: 10, race: "construct", element: "dark", artKey: "tomeguardian",
+    physResist: 0.5, magResist: 0.5, barrier: 2, desc: "最も危険な禁書を抱え込んだまま固まった、本でできた巨像。刃も魔も分厚い頁の鎧に阻まれ、抱えた禁書には誰も触れられない。守っているのか、囚われているのか分からない。" },
+  { id: "bs_astralwraith", name: "星辰の霊", rank: 10, race: "specter", element: "dark", artKey: "astralwraith",
+    magResist: 0.5, multistrike: 2, evasive: true, desc: "天文の禁書に封じられた、星の運行を司る霊。星屑の刃で幾度も斬りつけ、星明かりのように掴みどころがない。その身には、見てはならぬ天の理が書き込まれている。" },
+  { id: "bs_archivist", name: "大書庫の主", rank: 10, boss: true, race: "undead", element: "dark", artKey: "archivist", soulClass: "sage",
+    role: "summoner", summonKey: "bs_grimoirebeast", ability: "drain", magResist: 0.5, physResist: 0.4,
+    desc: "魂繰りの術のすべてを記し、最初の手記を守り続ける大書庫の主。蠢く魔導書を次々と呼び、生者の命と知識を吸い上げる。最初の魂繰りがなぜ救い手から檻の番人に堕ちたか――その答えを、誰にも読ませまいとしている。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1543,6 +1581,7 @@ export const BOSS_ORDER = {
 // 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
 // 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
 const LAYER_BOSS_OVERRIDE = {
+  13: "bs_archivist", // 第13層「魔導書庫」: 大書庫の主 (rank10・闇ボス)
   12: "bs_cavernlord", // 第12層「地底大空洞」: 大空洞の主 (rank10・土ボス)
   11: "bs_arenalord", // 第11層「闘技場跡」: 闘技場の支配者 (rank10・剣闘ボス)
   10: "bs_stormlord", // 第10層「嵐の尖塔」: 嵐の尖塔の主 (rank10・風ボス)
@@ -1679,6 +1718,15 @@ export const LAYER_POOLS = {
     "bs_crystalspider", "bs_caveguardian", "bs_fossildragon", "bs_cavefisher", "bs_abysshorror",
     "bs_earthshaker", "bs_mawofthedeep", "bs_primalbeast", "bs_gloomstalker",
     "bs_primalserpent",
+  ],
+  // 第13層「魔導書庫」: 闇/魔導中心、全rank10。闇系3体を再配置
+  13: [
+    "bs_grimoirebeast", "bs_inkhorror", "bs_spellwraith", "bs_runegolem", "bs_papermimic",
+    "bs_eyetome", "bs_forbiddenspirit", "bs_bookworm", "bs_arcanesentinel", "bs_cursescroll",
+    "bs_wordwraith", "bs_inkdragon", "bs_familiarswarm", "bs_mindeater", "bs_glyphhound",
+    "bs_tomeguardian", "bs_astralwraith",
+    // 既存の闇/魔導系を再配置
+    "bs_elderlich", "bs_soulreaper", "bs_cosmicwraith",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
