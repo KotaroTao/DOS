@@ -45,6 +45,12 @@ const NEW_DEFS = [
   { id: "bs_grasphand", name: "這い寄る腐手", rank: 1, race: "undead", element: "dark", artKey: "grasphand",
     ability: "paralyze", pack: true, // 土から無数に突き出し、掴んで痺れさせる
     desc: "埋葬を拒まれた者たちの、腐り落ちた手だけが土を破って這い出る。足首を掴まれた者は、冷たい指の感触に総毛立ち、その場に縫い止められる。一本では弱いが、墓所では群れを成す。" },
+  { id: "bs_corpsemaggot", name: "屍蛆", rank: 1, race: "undead", element: "dark", artKey: "corpsemaggot",
+    ability: "poison", pack: true, // 腐肉に湧き、群れで毒の体液を吐く
+    desc: "墓の下で膨れに膨れた、人の頭ほどもある肥えた蛆。腐肉を喰らって育ち、噛みつくと腐敗の毒を流し込む。一匹見つけたなら、土の下にはその百倍が蠢いている。" },
+  { id: "bs_carrioncrow", name: "腐肉啄みの大鴉", rank: 1, race: "avian", element: "dark", artKey: "carrioncrow",
+    swift: true, pack: true, // 墓を漁る賢しい黒鴉。素早く群れる
+    desc: "墓地の梢に鈴なりにとまり、埋めたばかりの土を狙う賢い黒鴉。死を嗅ぎつける鼻は早く、群れで一斉に舞い降りては、目玉から先につついていく。" },
   { id: "bs_goblin", name: "ゴブリン", rank: 1, race: "humanoid", element: "none", artKey: "goblin", soulClass: "thief",
     ability: "goldSteal", swift: true, // 素早い身のこなしで懐を狙う
     desc: "迷宮の浅瀬に巣食う緑肌の小鬼。賢くはないが、罠の在処と人の急所、そして財布の場所だけはよく憶えている。すばしこく間合いに飛び込み、金品をかすめ取って逃げる。" },
@@ -55,6 +61,27 @@ const NEW_DEFS = [
   { id: "bs_mournshade", name: "嘆きの喪影", rank: 2, race: "specter", element: "dark", artKey: "mournshade", soulClass: "hexer",
     ability: "weaken", // 弔いの嘆きが、生者の力を萎えさせる
     desc: "墓前で頭を垂れ、青白い顔から尽きぬ涙を流す喪服の霊。その嘆きを聞いた者は、四肢から力が抜け、剣を握ることすら億劫になる。誰の葬列だったのかは、もう霊自身も覚えていない。" },
+  { id: "bs_ghoul", name: "喰屍鬼", rank: 2, race: "undead", element: "dark", artKey: "ghoul",
+    lifesteal: 0.35, // 屍肉を喰らい、与えた傷の分だけ己を肥やす
+    desc: "墓を暴いて屍肉を貪るうちに、人であることを忘れた痩せ枯れの鬼。長い爪で生者を裂き、その肉片を喰らっては傷を塞ぐ。満たされることのない飢えだけが、こいつを動かしている。" },
+  { id: "bs_bonepile", name: "蠢く骨山", rank: 2, race: "undead", element: "none", artKey: "bonepile",
+    physResist: 0.5, barrier: 2, // 累々と積もった骨。崩しても組み上がる
+    desc: "幾百の骸が崩れ落ち、ひとつの山となって蠢く。刃を突き立てても、ただ骨を一本叩き落とすだけ。砕いたそばから別の骨が組み上がり、いつまでも崩れきらない。" },
+  { id: "bs_skullswarm", name: "髑髏の群れ", rank: 2, race: "undead", element: "dark", artKey: "skullswarm",
+    pack: true, multistrike: 2, // 宙を舞う髑髏の群体。次々に噛みつく
+    desc: "怨念に浮かび上がった髑髏が、群れをなして宙を舞う。歯を鳴らして次々に噛みつき、一体を払っても、すぐ別の顎が背後から迫る。静寂の墓地に響く笑い声は、こいつらの顎の音だ。" },
+  { id: "bs_sarcoguard", name: "石棺の番人", rank: 2, race: "construct", element: "none", artKey: "sarcoguard",
+    role: "guard", barrier: 2, // 棺の主を護り、刃を数度受け止める石の番人
+    desc: "石棺の蓋に彫られた守護者が、眠りを侵す者の前に立ちはだかる。腕を組んだまま一歩も退かず、後ろに控える同胞への一撃をことごとく己の石body で受け止める。砕くには、まずこの番人を黙らせるしかない。" },
+  { id: "bs_weepangel", name: "啜り泣く墓像", rank: 2, race: "construct", element: "none", artKey: "weepangel",
+    physResist: 0.5, ability: "weaken", // 顔を覆って泣く石像。嘆きが力を奪う
+    desc: "墓を見守る翼ある石像。顔を両手で覆い、永遠に啜り泣いている。その嘆きの声を浴びた者は、剣を振るう気力すら萎えていく。石の体は並の刃を寄せつけない。" },
+  { id: "bs_pettyrevenant", name: "浅き怨霊", rank: 2, race: "specter", element: "dark", artKey: "pettyrevenant",
+    enrage: true, // 痛めつけられるほど恨みが燃え上がる
+    desc: "果たせぬ恨みを抱いたまま、浅い眠りから覚めた新しい霊。まだ力は弱いが、傷つけられるたびに恨みが煮えたぎり、終いには手のつけられぬ憤怒の塊となって襲いかかる。" },
+  { id: "bs_shroudstrangler", name: "経帷子の絞め手", rank: 2, race: "specter", element: "dark", artKey: "shroudstrangler",
+    ability: "paralyze", // 垂れた死装束で首を絞め、痺れさせる
+    desc: "葬送の経帷子だけが宙に漂い、生者を見つけては垂れた布で首に巻きつく。締め上げられた者は声も出せず、痺れて崩れ落ちる。中に骸はない。布そのものが、絞めたがっているのだ。" },
   { id: "bs_zombie", name: "腐乱死体", rank: 2, race: "undead", element: "dark", artKey: "zombie",
     ability: "poison", regen: 0.05, // 腐肉の毒をうつし、裂いた傷もすぐ膿んで塞がる
     desc: "土に還ることを許されなかった亡骸。腐汁の滴る腕で生者を掴み、己と同じ地獄へ引きずり込もうとする。腐った肉は斬られてもじわじわと膿んで塞がり、その爪には腐敗の毒が宿る。" },
@@ -1019,8 +1046,12 @@ export const LAYER_BOSS = Array.from({ length: 20 }, (_, i) => {
 export const LAYER_POOLS = {
   // 第1層「墓地」: アンデッド/亡霊中心。新スキル (weaken 等) と既存の墓地系を再配置
   1: [
-    "bs_gravewisp", "bs_grasphand", "bs_mournshade",   // 新規 (固有アート)
-    "bs_bonebat", "bs_spiritbat", "bs_tombwarden",      // 既存の墓地系を第1層へ再配置
+    // 新規 (固有アート・12体)
+    "bs_gravewisp", "bs_grasphand", "bs_mournshade",
+    "bs_corpsemaggot", "bs_carrioncrow", "bs_ghoul", "bs_bonepile", "bs_skullswarm",
+    "bs_sarcoguard", "bs_weepangel", "bs_pettyrevenant", "bs_shroudstrangler",
+    // 既存の墓地系を第1層へ再配置 (8体)
+    "bs_bonebat", "bs_spiritbat", "bs_tombwarden",
     "bs_zombie", "d01_skeleton", "d02_soldier",
     "bs_bonechanter", "bs_gravecaller",
   ],
