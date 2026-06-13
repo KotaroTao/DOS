@@ -134,28 +134,35 @@ const NEW_DEFS = [
   // -- rank 9 --
   { id: "bs_elderlich", name: "エルダーリッチ", rank: 9, race: "undead", element: "dark", artKey: "skeleton", soulClass: "mage",
     palette: tint(ARTS.skeleton.palette, "#7a4aa0", 0.4),
-    desc: "幾つもの王朝の興亡を骨の玉座から眺めてきた大死霊。魂を七つに裂いて隠したといい、死がこの者を裁けない。" },
-  { id: "bs_fallenangel", name: "堕天使", rank: 9, race: "demon", element: "light", artKey: "harpy", soulClass: "priest",
-    palette: tint(ARTS.harpy.palette, "#e8e8f4", 0.4),
-    desc: "天を逐われてなお光をまとう、哀しき翼。祝福の言葉を逆さに唱え、祈るような手つきで生者を裁く。" },
+    ability: "drain", regen: 0.06, // 宿した魂を喰らい、七つに裂いた魂を依代に蘇る
+    desc: "幾つもの王朝の興亡を骨の玉座から眺めてきた大死霊。触れた者の宿した魂を喰らって己を保ち、魂を七つに裂いて隠したゆえ、砕いても蘇って死がこの者を裁けない。" },
+  { id: "bs_fallenangel", name: "堕天使", rank: 9, race: "demon", element: "light", artKey: "angel", soulClass: "priest",
+    ability: "critical", // 祈るような手つきで生者の急所を裁き断つ
+    desc: "天を逐われてなお光をまとう、哀しき翼。祝福の言葉を逆さに唱え、祈るような手つきで差し向ける裁きの一撃は、生者の急所を正確に断つ。" },
   { id: "bs_doomknight", name: "冥府の騎士", rank: 9, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#6a1a2a", 0.35),
-    desc: "冥府の門を守ると誓った騎士の末路。その剣に斬られた者は傷ではなく、生きる理由を失って倒れる。" },
+    physResist: 0.5, ability: "soulSteal", // 冥鉄の鎧が刃を弾き、その剣は生きる理由(魂)を奪う
+    desc: "冥府の門を守ると誓った騎士の末路。冥鉄の鎧は刃を弾き、その剣に斬られた者は傷ではなく、生きる理由ごと魂を失って倒れる。" },
   // -- rank 10 --
   { id: "bs_voiddragon", name: "虚無竜", rank: 10, race: "dragon", element: "dark", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#1a1a2a", 0.45),
-    desc: "星々の隙間の何もない場所から迷い込んだ竜。その鱗は光を返さず、咆哮は音ではなく静寂として届く。" },
+    ability: "breath", evasive: true, // 静寂の吐息で全体を呑み、光を返さぬ体は捉えにくい
+    desc: "星々の隙間の何もない場所から迷い込んだ竜。光を返さぬ鱗は狙いを惑わせ、咆哮は音ではなく静寂として届き、その吐息は前衛後衛もろとも虚無へ呑む。" },
   { id: "bs_seraphwraith", name: "終末の使徒", rank: 10, race: "specter", element: "light", artKey: "wraith",
     palette: tint(ARTS.wraith.palette, "#e8e2c0", 0.4),
-    desc: "世界の終わりを告げるために遣わされたという白い影。ラッパは携えていない。もう吹き終えたのかもしれない。" },
+    swift: true, ability: "soulSteal", // 終焉を告げて先んじ、聞いた魂を抜き取る
+    desc: "世界の終わりを告げるために遣わされたという白い影。誰より先んじて終焉を告げ、その報せを聞いた者の魂を音もなく抜き取る。ラッパは携えていない。もう吹き終えたのかもしれない。" },
   { id: "bs_chaosknight", name: "混沌の騎士", rank: 10, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#7a2a8a", 0.4),
-    desc: "百の戦場で百の主君に仕え、そのすべてを裏切った剣鬼。鎧の下にあるのが人なのか、誰も確かめていない。" },
+    swift: true, ability: "critical", // 裏切りの剣技で先手を取り、急所だけを抉る
+    desc: "百の戦場で百の主君に仕え、そのすべてを裏切った剣鬼。読めぬ剣筋で先手を奪い、急所だけを的確に抉る。鎧の下にあるのが人なのか、誰も確かめていない。" },
   { id: "bs_reddragon", name: "レッドドラゴン", rank: 10, boss: true, race: "dragon", element: "fire", artKey: "dragon",
-    desc: "灼熱の血を巡らせる竜の中の竜。その吐息は城壁を飴のように溶かし、財宝の山をしとねに千年を眠る。竜殺しを名乗りたくば、まずこの焔の前に立て。" },
+    ability: "breath", physResist: 0.5, // 城壁を溶かす業火を吐き、灼熱の鱗は刃を弾く
+    desc: "灼熱の血を巡らせる竜の中の竜。城壁を飴のように溶かす業火を前衛後衛もろとも吐きかけ、赤熱した鱗は並の刃を弾く。財宝の山をしとねに千年を眠る。竜殺しを名乗りたくば、まずこの焔の前に立て。" },
   { id: "bs_abysslord", name: "深淵の王", rank: 10, boss: true, race: "demon", element: "dark", artKey: "wraith",
     palette: tint(ARTS.wraith.palette, "#c8a23a", 0.4),
-    desc: "百層の迷宮、そのすべての闇が流れ着く玉座に座す者。迷宮で果てた魂はみな、この王の冠の飾りになるという。" },
+    ability: "soulSteal", regen: 0.06, // 果てた魂を冠の飾りに奪い、その力で己を保つ
+    desc: "百層の迷宮、そのすべての闇が流れ着く玉座に座す者。迷宮で果てた魂を奪っては冠の飾りに加え、集めた魂の力で己を繕う。" },
   // ---- 各ランクの新規通常モンスター (各ランク10体確保のための追加分) ----
   // -- rank 1 追加 (+4) --
   { id: "bs_mudbeetle", name: "泥甲虫", rank: 1, race: "insect", element: "earth", artKey: "beetle",
@@ -318,47 +325,60 @@ const NEW_DEFS = [
   // -- rank 9 追加 (+7) --
   { id: "bs_voidknight", name: "虚無の騎士", rank: 9, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#1a1a2a", 0.6),
-    desc: "冥府の門を守護する騎士の中で、存在そのものが消えかかった最古参。その剣が触れた場所は、現実の布地に穴を開ける。" },
+    physResist: 0.5, ability: "critical", // 虚無の鎧が刃を逸らし、現実に穴を開ける剣が急所を貫く
+    desc: "冥府の門を守護する騎士の中で、存在そのものが消えかかった最古参。希薄な鎧は刃を逸らし、その剣が触れた場所は現実の布地ごと急所に穴を開ける。" },
   { id: "bs_apocalypsedrake", name: "終末の竜", rank: 9, race: "dragon", element: "dark", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#3a1a4a", 0.5),
-    desc: "終末の予言書に記された竜。世界の終わりに先立って現れると言われ、その吐息が触れた大地は二度と命を育まない。" },
-  { id: "bs_soulreaper", name: "魂の刈人", rank: 9, race: "specter", element: "dark", artKey: "wraith",
-    palette: tint(ARTS.wraith.palette, "#5a0a0a", 0.5),
-    desc: "冥府の正規の従者として魂を刈る役目を持つ上位の霊。迷宮で死を迎えた者には必ず現れ、魂が逃げないよう懐に包む。" },
+    ability: "breath", // 大地を不毛に変える終末の吐息で全体を灼く
+    desc: "終末の予言書に記された竜。世界の終わりに先立って現れると言われ、前衛後衛もろとも呑む吐息が触れた大地は、二度と命を育まない。" },
+  { id: "bs_soulreaper", name: "魂の刈人", rank: 9, race: "specter", element: "dark", artKey: "reaper",
+    swift: true, ability: "soulSteal", // 音もなく現れ、鎌で魂を刈り取って逃さない
+    desc: "冥府の正規の従者として魂を刈る役目を持つ上位の霊。迷宮で死を迎えた者には必ず音もなく現れ、鎌の一振りで魂を刈り取って、逃げぬよう懐に包む。" },
   { id: "bs_plaguelich", name: "疫病のリッチ", rank: 9, race: "undead", element: "dark", artKey: "skeleton", soulClass: "mage",
     palette: tint(ARTS.skeleton.palette, "#2a5a2a", 0.5),
-    desc: "疫病を武器として研究し続けた術師の死霊。指から滴る液は千の病の混合物で、触れた者は己の体が何に侵されているかも分からない。" },
+    ability: "poison", regen: 0.06, // 千の病を浴びせ、宝珠を依代に蘇る
+    desc: "疫病を武器として研究し続けた術師の死霊。指から滴る千の病の混合液を浴びせ、砕けても隠した宝珠を依代に蘇る。触れた者は己の体が何に侵されているかも分からない。" },
   { id: "bs_divinegolem", name: "神のくぐつ", rank: 9, race: "construct", element: "light", artKey: "golem",
     palette: tint(ARTS.golem.palette, "#e0d0a0", 0.4),
-    desc: "神が最後の審判のために造った審判のくぐつ。罪なき者には手を出さないが、迷宮に踏み込んだ時点で全員を罪ある者と判定する。" },
+    physResist: 0.7, ability: "critical", // 神鉄の躯は刃を通さず、審判の一撃が急所を断罪する
+    desc: "神が最後の審判のために造った審判のくぐつ。神鉄の躯は刃をまるで通さず、迷宮に踏み込んだ全員を罪ある者と判定し、断罪の一撃を急所へ下す。" },
   { id: "bs_shadowseraph", name: "堕ちた光翼", rank: 9, race: "specter", element: "dark", artKey: "harpy",
     palette: tint(ARTS.harpy.palette, "#4a4a6a", 0.5),
-    desc: "天から追われた後も光の翼を持つ存在。その翼の光は既に腐り始めており、触れた者の魂の善性を少しずつ溶かしていく。" },
+    ability: "drain", evasive: true, // 腐った光翼で宙を舞い、魂の善性を溶かし喰らう
+    desc: "天から追われた後も光の翼を持つ存在。腐りかけた翼でひらりと宙を舞い、触れた者の魂の善性を少しずつ溶かして己に取り込んでいく。" },
   { id: "bs_infernaltyrant", name: "獄炎の暴君", rank: 9, race: "demon", element: "fire", artKey: "ogre",
     palette: tint(ARTS.ogre.palette, "#8a2a0a", 0.5),
-    desc: "地獄の最深層を統べる炎の悪魔の将。踏みつけた大地が溶岩に変わり、拳で叩き潰した者の魂が炎の中に閉じ込められる。" },
+    ability: "breath", physResist: 0.5, // 溶岩を吐いて全体を灼き、灼熱の巨体は刃を寄せつけない
+    desc: "地獄の最深層を統べる炎の悪魔の将。踏みつけた大地は溶岩に変わり、吐き出す業火は前衛後衛もろとも灼く。灼熱の巨体は並の刃を寄せつけない。" },
   // -- rank 10 追加 (+7) --
   { id: "bs_eternallord", name: "永劫の魔将", rank: 10, race: "demon", element: "dark", artKey: "imp",
     palette: tint(ARTS.imp.palette, "#3a0a3a", 0.5),
-    desc: "時間の概念を超えて存在する上位魔。過去も未来も同時に見ており、相手が次に何をするかを常に知っている。対策の立てようがない。" },
+    evasive: true, ability: "critical", // 相手の次手を読み切ってかわし、急所だけを撃つ
+    desc: "時間の概念を超えて存在する上位魔。過去も未来も同時に見て相手の次手を読み切り、攻撃をかわしては露わになった急所だけを撃つ。対策の立てようがない。" },
   { id: "bs_abysswarden", name: "深淵の番人", rank: 10, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#0a1a2a", 0.6),
-    desc: "迷宮の最深部への通路を守り続ける不滅の番人。既に何千もの挑戦者を退けており、その鎧には彼らの名が刻まれている。" },
+    physResist: 0.6, regen: 0.06, // 不滅の鎧は刃を通さず、削っても再び立ち上がる
+    desc: "迷宮の最深部への通路を守り続ける不滅の番人。何千もの挑戦者を退けてきた鎧は刃を通さず、崩しても再び立ち上がる。その鎧には敗者たちの名が刻まれている。" },
   { id: "bs_cosmicwraith", name: "宇宙の亡霊", rank: 10, race: "specter", element: "dark", artKey: "wraith",
     palette: tint(ARTS.wraith.palette, "#0a0a2a", 0.7),
-    desc: "星々の間の冷たい虚空から迷い込んだ宇宙的な霊体。その目が向いた先の空気が消え、覗き込んだ者は宇宙の孤独に溺れる。" },
+    evasive: true, ability: "soulSteal", // 虚空に紛れて刃をかわし、覗いた者の魂を奪う
+    desc: "星々の間の冷たい虚空から迷い込んだ宇宙的な霊体。虚空に紛れて刃をすり抜け、その目が向いた先の空気は消え、覗き込んだ者は魂ごと宇宙の孤独に溺れる。" },
   { id: "bs_godslayer", name: "神殺し", rank: 10, race: "humanoid", element: "dark", artKey: "orc", soulClass: "fighter",
     palette: tint(ARTS.orc.palette, "#2a0a0a", 0.6),
-    desc: "神を三柱殺した後、自らも神に近い存在へと変質した剣士。弱い神は殺すことで取り込み、強い神は挑戦することで楽しむ。" },
+    swift: true, ability: "critical", // 神を斬った剣技で先んじ、急所を一刀で断つ
+    desc: "神を三柱殺した後、自らも神に近い存在へと変質した剣士。神を斬った剣技で誰より先んじ、急所を一刀で断つ。弱い神は殺すことで取り込み、強い神は挑戦することで楽しむ。" },
   { id: "bs_voidcolossus", name: "虚無の巨人", rank: 10, race: "giant", element: "dark", artKey: "ogre",
     palette: tint(ARTS.ogre.palette, "#0a0a1a", 0.65),
-    desc: "宇宙の虚無が巨人の形を借りて顕現した存在。その体積は全て無であり、触れた物が物理的に消滅する。存在への反論だ。" },
-  { id: "bs_primalserpent", name: "原初の大蛇", rank: 10, race: "reptile", element: "dark", artKey: "lizard",
-    palette: tint(ARTS.lizard.palette, "#1a1a2a", 0.6),
-    desc: "世界が生まれる前から存在していたという太古の大蛇。その鱗一枚が世界の歴史の一ページを刻んでおり、倒してもそれは消えない。" },
+    physResist: 0.7, ability: "critical", // 無の巨体は刃を呑み、触れた物を消滅させる一撃を放つ
+    desc: "宇宙の虚無が巨人の形を借りて顕現した存在。その体積は全て無であり、突き立てた刃を呑み込み、振り下ろす拳は触れた物を物理的に消滅させる。存在への反論だ。" },
+  { id: "bs_primalserpent", name: "原初の大蛇", rank: 10, race: "reptile", element: "dark", artKey: "fireserpent",
+    palette: tint(ARTS.fireserpent.palette, "#2a2a4a", 0.6),
+    physResist: 0.5, ability: "poison", // 太古の鱗は刃を弾き、原初の毒を流し込む
+    desc: "世界が生まれる前から存在していたという太古の大蛇。世界の歴史を刻んだ古き鱗は刃を弾き、噛みついて流し込む原初の毒に解毒の術は無い。その鱗一枚は倒しても消えない。" },
   { id: "bs_doombringer", name: "終焉の使者", rank: 10, race: "dragon", element: "fire", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#5a1a0a", 0.55),
-    desc: "世界の終わりを告げるために遣わされた炎の竜。その到来は終わりの始まりではなく終わりそのものであり、吐き出す炎は星すら焼く。" },
+    ability: "breath", physResist: 0.5, // 星すら焼く終焉の炎を吐き、灼熱の鱗は刃を弾く
+    desc: "世界の終わりを告げるために遣わされた炎の竜。その到来は終わりそのものであり、前衛後衛もろとも呑んで星すら焼く炎を吐き、灼熱の鱗は並の刃を弾く。" },
 
   // ==== 迷宮固有ボス (全100迷宮にひとりずつ。割り当ては BOSS_ORDER) ====
   // -- rank 1 (迷宮1-10: 地下墓地帯) --
@@ -650,56 +670,73 @@ const NEW_DEFS = [
   // -- rank 9 (迷宮81-90: 冥府の門帯) --
   { id: "bs_hellgatehound", name: "冥門の番犬", rank: 9, boss: true, race: "demon", element: "dark", artKey: "beast",
     palette: tint(ARTS.beast.palette, "#3a1a1a", 0.45),
-    desc: "冥府の門前に鎖で繋がれた三つ首の番犬。生者を通さず、死者を帰さず——その鎖は門を守るためではなく、世界を犬から守るためにある。" },
+    swift: true, ability: "breath", // 三つ首が一斉に獄炎を吐き、素早く獲物を追う
+    desc: "冥府の門前に鎖で繋がれた三つ首の番犬。素早く獲物を追い詰め、三つの喉から前衛後衛もろとも獄炎を吐く。その鎖は門を守るためではなく、世界を犬から守るためにある。" },
   { id: "bs_ferrymanshade", name: "冥橋の渡し守", rank: 9, boss: true, race: "specter", element: "dark", artKey: "wraith",
     palette: tint(ARTS.wraith.palette, "#4a4a5a", 0.4),
-    desc: "朽ちた欄干の橋で渡し賃を待ち続ける影。賃を払えぬ魂は橋の下へ落とされ、欄干の軋みはその魂たちが登ろうとする音だ。" },
+    ability: "soulSteal", // 賃を払えぬ魂を橋の下へ——その手で魂を抜き取る
+    desc: "朽ちた欄干の橋で渡し賃を待ち続ける影。賃を払えぬ者の魂を抜き取って橋の下へ落とし、欄干の軋みはその魂たちが登ろうとする音だ。" },
   { id: "bs_bloodjudge", name: "血の裁定者", rank: 9, boss: true, race: "specter", element: "dark", artKey: "ghost", soulClass: "bishop",
     palette: tint(ARTS.ghost.palette, "#8a1a2a", 0.45),
-    desc: "死者審判の間で裁きを下し続ける裁定者。天秤の片皿には常に血が満たされ、釣り合う重さの罪を持たない者は「無罪のまま」斬られる。" },
+    ability: "critical", // 罪の重さが釣り合わぬ者を「無罪のまま」急所で斬る
+    desc: "死者審判の間で裁きを下し続ける裁定者。天秤の片皿には常に血が満たされ、釣り合う重さの罪を持たない者は「無罪のまま」、急所を一刀で斬られる。" },
   { id: "bs_processionlord", name: "死出の行列長", rank: 9, boss: true, race: "undead", element: "dark", artKey: "skeleton",
     palette: tint(ARTS.skeleton.palette, "#5a4a6a", 0.4),
-    desc: "死者の列を率いて囁く道を行く行列の長。列は冥府まで一列、追い越しも離脱も許されず、生者と出会えば列の最後尾が一人ぶん延びる。" },
+    role: "summoner", summonKey: "bs_plaguewraith", // 出会った者を列に加え、死者の行列を伸ばす
+    desc: "死者の列を率いて囁く道を行く行列の長。列は冥府まで一列、追い越しも離脱も許されず、生者と出会えば死者を呼んで列の最後尾を一人ぶん延ばす。" },
   { id: "bs_palefrostking", name: "冥宮の凍王", rank: 9, boss: true, race: "armored", element: "water", artKey: "knightmare",
     palette: tint(ARTS.knightmare.palette, "#8aa0b8", 0.4),
-    desc: "冥王宮の玉座で凍てついた王の鎧。冥王の帰りを待つ間に氷柱と化し、玉座に近づく足音へ、凍った剣をきしませながら立ち上がる。" },
+    physResist: 0.5, ability: "paralyze", // 氷柱と化した鎧が刃を弾き、凍った剣が動きを止める
+    desc: "冥王宮の玉座で凍てついた王の鎧。氷柱と化した鎧は刃を弾き、玉座に近づく足音へ凍った剣をきしませながら立ち上がり、斬りつけた相手を芯まで凍らせる。" },
   { id: "bs_hellfirejailer", name: "獄炎の看守", rank: 9, boss: true, race: "demon", element: "fire", artKey: "imp",
     palette: tint(ARTS.imp.palette, "#6a1a0a", 0.45),
-    desc: "冥府の獄炎回廊を巡回する看守。鞭の代わりに焼けた鎖を引きずり、房の数より多い鍵を腰に下げて、新しい房の主を探している。" },
+    ability: "breath", // 焼けた鎖を振り回し、獄炎を前衛後衛へ撒く
+    desc: "冥府の獄炎回廊を巡回する看守。引きずる焼けた鎖から獄炎を前衛後衛もろとも撒き散らし、房の数より多い鍵を腰に下げて、新しい房の主を探している。" },
   { id: "bs_styxcrone", name: "三途の媼", rank: 9, boss: true, race: "specter", element: "dark", artKey: "ghost", soulClass: "mage",
     palette: tint(ARTS.ghost.palette, "#5a6a4a", 0.4),
-    desc: "三途の岸で渡れぬ者の衣を剥ぎ集める老婆。積み上がった衣の山はどれも持ち主の未練の重さで、媼はその重さを量って嗤う。" },
+    ability: "drain", // 未練の重さごと、まとうものを剥ぎ取る
+    desc: "三途の岸で渡れぬ者の衣を剥ぎ集める老婆。生者からは未練の重さごと命を剥ぎ取り、積み上がった衣の山の重さを量って嗤う。" },
   { id: "bs_duskmausoleum", name: "黄昏の廟王", rank: 9, boss: true, race: "undead", element: "light", artKey: "skeleton",
     palette: tint(ARTS.skeleton.palette, "#c8b88a", 0.35),
-    desc: "冥界廃墟の黄昏に立つ大廟の王。葬られた身でありながら自らの廟を統治し、参拝も盗掘もひとしく「臣従」として迎え入れる。" },
+    regen: 0.08, ability: "critical", // 廟ごと蘇る不滅の骨身と、王笏の一撃
+    desc: "冥界廃墟の黄昏に立つ大廟の王。葬られた身でありながら廟ごと幾度も蘇り、参拝も盗掘もひとしく「臣従」として迎え、振るう王笏は急所を砕く。" },
   { id: "bs_soulgaoler", name: "魂牢の獄王", rank: 9, boss: true, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#2a1a3a", 0.45),
-    desc: "魂牢獄の終末処で、檻に満ちた魂たちの錠を握る獄王。鎧の継ぎ目からは囚われた魂の光が漏れ、その輝きが強いほど獄王は強くなる。" },
+    physResist: 0.5, ability: "soulSteal", // 囚えた魂で鎧を硬くし、新たな魂を檻へ奪う
+    desc: "魂牢獄の終末処で、檻に満ちた魂たちの錠を握る獄王。囚えた魂の輝きが鎧を硬くして刃を弾き、奪った魂を新たな囚人として檻へ加える。" },
   // -- rank 10 (迷宮91-100: 竜の玄室帯) --
   { id: "bs_elderwyrmking", name: "玄室の古竜王", rank: 10, boss: true, race: "dragon", element: "none", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#c8a040", 0.4),
-    desc: "玄室の深奥に眠る、竜たちの系譜の頂点。歴代の挑戦者の武具を鱗の下に喰い込ませたまま育ち、その巨体自体が英雄たちの墓標である。" },
+    ability: "breath", physResist: 0.6, // 系譜の頂点の吐息で全体を呑み、英雄の武具を喰い込ませた鱗は刃を弾く
+    desc: "玄室の深奥に眠る、竜たちの系譜の頂点。歴代の挑戦者の武具を鱗の下に喰い込ませた鎧鱗は刃を弾き、吐く息は前衛後衛もろとも呑む。その巨体自体が英雄たちの墓標である。" },
   { id: "bs_hoardwarden", name: "宝物殿の守護像", rank: 10, boss: true, race: "construct", element: "light", artKey: "golem",
     palette: tint(ARTS.golem.palette, "#e8c24a", 0.4),
-    desc: "竜王の財宝を守るため、財宝そのものを鋳潰して造られた黄金の巨像。守るべき宝の一部である自分自身を、最後の宝として守り抜く。" },
+    physResist: 0.7, ability: "critical", // 黄金の巨躯は刃を通さず、宝を守る一撃が急所を砕く
+    desc: "竜王の財宝を守るため、財宝そのものを鋳潰して造られた黄金の巨像。重く分厚い黄金の躯は刃をまるで通さず、宝を脅かす者の急所を一撃で砕く。最後の宝である自分自身を守り抜く。" },
   { id: "bs_broodmother", name: "竜母", rank: 10, boss: true, race: "dragon", element: "fire", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#a03a3a", 0.4),
-    desc: "血染めの巣穴で幾百の卵を抱く竜の母。巣に近づくものへの敵意に際限はなく、その血の何割かは、卵を狙った者たちのものだ。" },
+    ability: "breath", regen: 0.08, // 巣を焼く吐息と、卵を産み続ける生命力で傷を繕う
+    desc: "血染めの巣穴で幾百の卵を抱く竜の母。巣に近づくものへ前衛後衛を呑む炎を吐き、母なる生命力で傷をみるみる繕う。その血の何割かは、卵を狙った者たちのものだ。" },
   { id: "bs_dracolich", name: "竜骸の屍竜", rank: 10, boss: true, race: "undead", element: "dark", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#7a6a8a", 0.45),
-    desc: "竜骸の大迷宮の心臓部で、己の骨格だけで蘇った屍の竜。肉も炎も失ったが、死そのものを吐息として吐くことを覚えた。" },
+    ability: "drain", regen: 0.06, // 死を吐息として吐き、宿した魂を喰らって蘇り続ける
+    desc: "竜骸の大迷宮の心臓部で、己の骨格だけで蘇った屍の竜。肉も炎も失ったが、死そのものを吐息として吐き、触れた者の宿した魂を喰らっては砕けた骨を継ぎ直す。" },
   { id: "bs_frostwyrmlord", name: "凍れる白竜", rank: 10, boss: true, race: "dragon", element: "water", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#d8e8f4", 0.45),
-    desc: "氷窟の奥で氷塊に半身を封じられたまま生き続ける白竜。脈打つたび氷窟全体が軋み、その吐息は炎ではなく絶対の静寂を吹きつける。" },
+    ability: "breath", physResist: 0.5, // 絶対の静寂(冷気)を吐き、氷塊の半身は刃を弾く
+    desc: "氷窟の奥で氷塊に半身を封じられたまま生き続ける白竜。氷と化した鱗は刃を弾き、吐く息は炎ではなく前衛後衛を凍てつかせる絶対の静寂を吹きつける。" },
   { id: "bs_abyssdrake", name: "奈落竜", rank: 10, boss: true, race: "dragon", element: "dark", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#1a1a3a", 0.5),
-    desc: "竜の奈落の底知れぬ闇に潜む影の竜。落ちてくる挑戦者を翼で受け止める——底まで落ちる楽しみを、奪われたくないからだ。" },
+    evasive: true, ability: "breath", // 闇に紛れて刃をかわし、奈落の吐息で全体を呑む
+    desc: "竜の奈落の底知れぬ闇に潜む影の竜。闇に紛れて狙いを惑わせ、落ちてくる挑戦者を翼で受け止める——底まで落ちる楽しみを、奪われたくないからだ。" },
   { id: "bs_dragongodshade", name: "竜神の残影", rank: 10, boss: true, race: "specter", element: "light", artKey: "wraith",
     palette: tint(ARTS.wraith.palette, "#e8d8a0", 0.4),
-    desc: "呪われた霊域に焼き付いた竜神の残影。本体はとうに天へ還ったが、地上に残した影は信仰と呪詛を吸い続け、神の形を保っている。" },
+    ability: "soulSteal", regen: 0.06, // 信仰と呪詛(魂)を吸って神の形を保つ
+    desc: "呪われた霊域に焼き付いた竜神の残影。本体はとうに天へ還ったが、地上に残した影は近づく者の信仰と魂を吸い続け、奪った力で神の形を保っている。" },
   { id: "bs_twilightdragon", name: "終焉の黄昏竜", rank: 10, boss: true, race: "dragon", element: "light", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#c87a4a", 0.4),
-    desc: "終焉の黄昏の間に座し、世界の日没を待ち続ける竜。その鱗は沈む直前の太陽の色をして、翼を広げれば部屋の灯りがすべて夕暮れになる。" },
+    ability: "breath", physResist: 0.5, // 黄昏を呼ぶ吐息で全体を染め、夕陽色の鱗は刃を弾く
+    desc: "終焉の黄昏の間に座し、世界の日没を待ち続ける竜。沈む直前の太陽の色をした鱗は刃を弾き、翼を広げれば部屋の灯りがすべて夕暮れになり、吐く息は前衛後衛もろとも黄昏へ沈める。" },
 
   // ---- 役割持ちモンスター (role: healer/guard/summoner) ----
   // 取り巻き (escort) を連れて現れる。回復役・呼び手は後衛に立つため、
@@ -826,43 +863,55 @@ const ELITE_DEFS = [
   // -- 迷宮 61-70 (氷廊帯) / 強敵ランク9 --
   { id: "el_frostsovereign", name: "凍王の影", elite: true, rank: 9, race: "armored", element: "water", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#a8c8e8", 0.55),
-    desc: "氷廊の最深部に座す「凍王」が、退屈しのぎに切り離した己の影。影でありながら本体に迫る力を持ち、敗者は氷像として回廊に飾られる。" }, // D61-63
+    physResist: 0.5, ability: "paralyze", // 凍てついた影鎧は刃を弾き、敗者を氷像に変える
+    desc: "氷廊の最深部に座す「凍王」が、退屈しのぎに切り離した己の影。凍てついた鎧は刃を弾き、本体に迫る力で斬りつけた相手を芯から凍らせ、敗者は氷像として回廊に飾られる。" }, // D61-63
   { id: "el_glacialmaw", name: "氷河の大顎", elite: true, rank: 9, race: "dragon", element: "water", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#c8e0f0", 0.6),
-    desc: "氷河の裂け目そのものと見紛う、白竜の巨大な顎。氷ごと獲物を噛み砕き、千年溶けない吹雪を吐く。" }, // D64-66
+    physResist: 0.5, ability: "breath", // 氷塊の巨顎は刃を弾き、千年溶けぬ吹雪を吐く
+    desc: "氷河の裂け目そのものと見紛う、白竜の巨大な顎。氷塊の鱗は刃を弾き、氷ごと獲物を噛み砕いては、前衛後衛もろとも千年溶けない吹雪を吐く。" }, // D64-66
   { id: "el_blizzardwitch", name: "吹雪の魔女", elite: true, rank: 9, race: "specter", element: "wind", artKey: "ghost", soulClass: "mage",
     palette: tint(ARTS.ghost.palette, "#b0d8e8", 0.55),
-    desc: "吹雪の夜にだけ氷廊へ現れる魔女の亡霊。彼女が紡ぐ子守唄を聞いた者は、暖かな眠りの中で静かに凍りついていく。" }, // D67-70
+    ability: "paralyze", // 子守唄で暖かな眠りごと凍りつかせる
+    desc: "吹雪の夜にだけ氷廊へ現れる魔女の亡霊。彼女が紡ぐ子守唄を聞いた者は、暖かな眠りに誘われるまま手足の感覚を失い、静かに凍りついていく。" }, // D67-70
   // -- 迷宮 71-80 (尖塔帯) / 強敵ランク10 --
   { id: "el_stareater", name: "星喰らい", elite: true, rank: 10, race: "demon", element: "dark", artKey: "imp",
     palette: tint(ARTS.imp.palette, "#2a1a4a", 0.55),
-    desc: "尖塔の頂から夜空の星をひとつずつ喰らってきた大悪魔。星の消えた夜空はこの者の腹の中であり、次に喰らうのは地上の光だという。" }, // D71-73
+    ability: "drain", physResist: 0.5, // 星すら喰らう胃袋に命を呑み、闇の体は刃を呑む
+    desc: "尖塔の頂から夜空の星をひとつずつ喰らってきた大悪魔。星すら呑む胃袋で近づく者の命を喰らい、闇に満ちた体は突き立てた刃を呑む。次に喰らうのは地上の光だという。" }, // D71-73
   { id: "el_voidarchon", name: "虚空の執政官", elite: true, rank: 10, race: "specter", element: "light", artKey: "wraith", soulClass: "mage",
     palette: tint(ARTS.wraith.palette, "#f0f0e8", 0.6),
-    desc: "塔の観測室が「何もない場所」を覗いた時、向こう側から歩いてきた執政官。白く輝くその姿を直視した者は、輪郭から順に存在を失う。" }, // D74-76
+    evasive: true, ability: "soulSteal", // 虚空に紛れて刃をかわし、直視した者の存在を奪う
+    desc: "塔の観測室が「何もない場所」を覗いた時、向こう側から歩いてきた執政官。虚空に紛れて刃をかわし、白く輝くその姿を直視した者は、輪郭から順に魂ごと存在を失う。" }, // D74-76
   { id: "el_geargod", name: "歯車の神", elite: true, rank: 10, race: "construct", element: "none", artKey: "golem",
     palette: tint(ARTS.golem.palette, "#b8a060", 0.5),
-    desc: "尖塔の機構の奥で、誰にも知られず回り続けた歯車の集合体。自らを神と定義し、噛み合わぬもの——すなわち生命を、設計図から除去する。" }, // D77-80
+    physResist: 0.7, ability: "critical", // 噛み合う鋼鉄は刃を通さず、設計図から生命を除去する一撃
+    desc: "尖塔の機構の奥で、誰にも知られず回り続けた歯車の集合体。噛み合う鋼鉄の躯は刃をまるで通さず、自らを神と定義し、噛み合わぬもの——生命を、急所への一撃で設計図から除去する。" }, // D77-80
   // -- 迷宮 81-90 (冥門帯) / 強敵ランク10 --
   { id: "el_hellwarden", name: "冥獄の大典獄", elite: true, rank: 10, race: "demon", element: "fire", artKey: "imp",
     palette: tint(ARTS.imp.palette, "#a02818", 0.5),
-    desc: "冥獄の最下層を預かる大典獄。腰に下がる無数の鍵はすべて「出られなかった者」の数であり、新たな鍵を増やすことだけを喜びとする。" }, // D81-83
+    ability: "breath", physResist: 0.5, // 獄炎を全体へ撒き、灼熱の巨躯は刃を弾く
+    desc: "冥獄の最下層を預かる大典獄。引きずる焼けた鎖から獄炎を前衛後衛もろとも撒き、灼熱の巨躯は並の刃を弾く。腰に下がる無数の鍵は「出られなかった者」の数であり、新たな鍵を増やすことだけを喜びとする。" }, // D81-83
   { id: "el_soulflayer", name: "魂剥ぎの主", elite: true, rank: 10, race: "specter", element: "dark", artKey: "wraith", soulClass: "bishop",
     palette: tint(ARTS.wraith.palette, "#6a3a8a", 0.55),
-    desc: "刈り取った魂の「殻」を剥ぎ、冥府への通行料として徴収する首魁。剥がれた魂は名を忘れ、名を忘れた魂は、もう誰にも弔えない。" }, // D84-86
+    ability: "soulSteal", regen: 0.06, // 魂の殻を剥いで奪い、その力で己を保つ
+    desc: "刈り取った魂の「殻」を剥ぎ、冥府への通行料として徴収する首魁。剥ぎ取った魂で己を繕い、剥がれた魂は名を忘れ、名を忘れた魂は、もう誰にも弔えない。" }, // D84-86
   { id: "el_palerider", name: "蒼褪めた騎手", elite: true, rank: 10, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#d8d8d0", 0.6),
-    desc: "冥門の前を往復し続ける蒼褪めた騎手。その馬蹄の音を三度聞いた者の枕元に現れ、四度目の蹄鉄を額に打ち込むという。" }, // D87-90
+    swift: true, ability: "critical", // 蹄鉄の音とともに先んじ、額へ一撃を打ち込む
+    desc: "冥門の前を往復し続ける蒼褪めた騎手。その馬蹄の音を三度聞いた者の枕元に誰より先んじて現れ、四度目の蹄鉄を額の急所へ打ち込むという。" }, // D87-90
   // -- 迷宮 91-100 (玄室帯) / 強敵ランク10 --
   { id: "el_dragonslayer", name: "竜殺しの亡霊", elite: true, rank: 10, race: "specter", element: "none", artKey: "wraith", soulClass: "fighter",
     palette: tint(ARTS.wraith.palette, "#c0c8d8", 0.5),
-    desc: "百の竜を屠り、最後は竜の財宝の上で息絶えた英雄の亡霊。竜殺しの本能だけが残り、玄室を訪れる「竜より強き者」を新たな獲物と定めた。" }, // D91-93
+    physResist: 0.5, ability: "critical", // 英雄の鎧が刃を弾き、竜殺しの一撃が急所を貫く
+    desc: "百の竜を屠り、最後は竜の財宝の上で息絶えた英雄の亡霊。英雄の鎧は刃を弾き、竜殺しの本能が振るう一撃は急所だけを貫く。玄室を訪れる「竜より強き者」を新たな獲物と定めた。" }, // D91-93
   { id: "el_goldtyrant", name: "黄金の暴君竜", elite: true, rank: 10, race: "dragon", element: "light", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#e8c84a", 0.55),
-    desc: "喰らった黄金が鱗となり、全身が財宝と化した暴君竜。己の体こそ世界最大の秘宝と誇り、それを見た者を生かして帰さぬことで価値を守る。" }, // D94-96
+    physResist: 0.7, ability: "breath", // 黄金の鱗は刃をほぼ通さず、灼熱の吐息で全体を焼く
+    desc: "喰らった黄金が鱗となり、全身が財宝と化した暴君竜。黄金の鱗は刃をほとんど通さず、前衛後衛もろとも焼く吐息を放つ。己の体こそ世界最大の秘宝と誇り、それを見た者を生かして帰さぬことで価値を守る。" }, // D94-96
   { id: "el_eclipsedragon", name: "日蝕の竜", elite: true, rank: 10, race: "dragon", element: "dark", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#141420", 0.6),
-    desc: "天の竜が太陽を呑む——日蝕の伝承そのものが実体化した竜。その翼が広がると玄室の灯りがすべて翳り、闇の中で竜だけが昏く輝く。" }, // D97-100
+    evasive: true, ability: "breath", // 翳りに紛れて刃をかわし、日蝕の闇で全体を呑む
+    desc: "天の竜が太陽を呑む——日蝕の伝承そのものが実体化した竜。翼を広げて灯りを翳らせ、その闇に紛れて刃をかわし、吐く息は前衛後衛もろとも日蝕の闇へ呑む。" }, // D97-100
 ];
 // 強敵はボス相当のステータスを与える (elite フラグで通常プールから除外される)
 const ELITE_MONSTERS = defMonsters(ELITE_DEFS.map((d) => ({ ...monStats(d.rank, true), ...d })));
