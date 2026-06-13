@@ -401,8 +401,8 @@ const LAYER_VISUALS = [
   { name: "毒沼",       sym: "⚗", accent: "#a7b84a", bgm: "layer9", back: drawBackSwamp, floorBase: "#12140d", floorTiles: ["#1a1c11", "#16180d", "#12140a"], glow: "rgba(170,195,75,0.06)" },  // 9
   { name: "嵐の尖塔",   sym: "⚡", accent: "#b6a4e0", bgm: "layer10", back: drawBackSpire, floorBase: "#10101a", floorTiles: ["#181826", "#14141f", "#101019"], glow: "rgba(180,160,235,0.06)" }, // 10
   { name: "闘技場跡",   sym: "✶", accent: "#c9a05a", bgm: "layer11", back: drawBackArena, floorBase: "#16130d", floorTiles: ["#1f1a11", "#1a160d", "#15110a"], glow: "rgba(225,180,90,0.05)" },  // 11
-  { name: "地底大空洞", sym: "◆", accent: "#8a7a5a", bgm: "field10",    floorBase: "#13110d", floorTiles: ["#1b1813", "#16140f", "#12100b"], glow: "rgba(200,180,140,0.05)" }, // 12
-  { name: "魔導書庫",   sym: "✪", accent: "#9d7ad0", bgm: "fieldCrypt", floorBase: "#100e17", floorTiles: ["#181323", "#13101c", "#100d16"], glow: "rgba(160,120,225,0.06)" }, // 13
+  { name: "地底大空洞", sym: "◆", accent: "#8a7a5a", bgm: "layer12", back: drawBackCavern, floorBase: "#13110d", floorTiles: ["#1b1813", "#16140f", "#12100b"], glow: "rgba(200,180,140,0.05)" }, // 12
+  { name: "魔導書庫",   sym: "✪", accent: "#9d7ad0", bgm: "layer13", back: drawBackLibrary, floorBase: "#100e17", floorTiles: ["#181323", "#13101c", "#100d16"], glow: "rgba(160,120,225,0.06)" }, // 13
   { name: "屍蝋の回廊", sym: "‡", accent: "#b8a878", bgm: "fieldCrypt", floorBase: "#14120d", floorTiles: ["#1c1912", "#17140e", "#13100a"], glow: "rgba(210,190,130,0.05)" }, // 14
   { name: "溶鉄炉",     sym: "♨", accent: "#e07838", bgm: "field6",     floorBase: "#190e08", floorTiles: ["#23120a", "#1c0f08", "#160b06"], glow: "rgba(255,140,55,0.07)" },  // 15
   { name: "深淵の聖堂", sym: "✝", accent: "#e0d28a", bgm: "field9",     floorBase: "#14130c", floorTiles: ["#1d1b10", "#18160d", "#13110a"], glow: "rgba(240,225,150,0.06)" }, // 16
@@ -916,6 +916,182 @@ function drawThemedBack(r, accent, sym) {
   }
   vctx.fillStyle = "rgba(255,255,255,0.08)";
   vctx.fillRect(2, 2, r.w - 4, 3);
+}
+
+// 層13「魔導書庫」のカード裏面: 両壁の書架、中央に浮かぶ光る魔導書、立ちのぼる魔法文字
+function drawBackLibrary(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  // 書庫の闇
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#15101f");
+  bg.addColorStop(0.5, "#110d1a");
+  bg.addColorStop(1, "#0d0a14");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+
+  // 書架 (左右の壁。棚板と背表紙)
+  const spineCols = ["#3a2a4a", "#4a2a2a", "#2a3a4a", "#3a3a22", "#442a3a", "#2a4438"];
+  const shelf = (x0, x1) => {
+    vctx.fillStyle = "#1b1322";
+    vctx.fillRect(x0, 4, x1 - x0, H - 8);
+    for (let sy = 8; sy < H - 8; sy += 11) {
+      vctx.fillStyle = "#0e0a14"; // 棚板
+      vctx.fillRect(x0, sy + 9, x1 - x0, 1.5);
+      let bx = x0 + 1, k = (x0 * 7 + sy * 13) >>> 0; // 擬似乱数シード
+      while (bx < x1 - 1) {
+        k = (k * 1103515245 + 12345) >>> 0;
+        const bw = 1.4 + (k % 3) * 0.7;
+        const h = 7 + ((k >> 4) % 3);
+        vctx.fillStyle = spineCols[(k >> 8) % spineCols.length];
+        vctx.fillRect(bx, sy + 9 - h, bw, h);
+        vctx.fillStyle = "rgba(255,255,255,0.06)";
+        vctx.fillRect(bx, sy + 9 - h, 0.5, h);
+        bx += bw + 0.6;
+      }
+    }
+  };
+  shelf(2, 17);
+  shelf(W - 17, W - 2);
+
+  // 中央の魔法の光輪
+  const cx = W / 2, cy = H / 2 + 2;
+  const halo = vctx.createRadialGradient(cx, cy, 2, cx, cy, 18);
+  halo.addColorStop(0, "rgba(160,110,225,0.3)");
+  halo.addColorStop(1, "rgba(160,110,225,0)");
+  vctx.fillStyle = halo;
+  vctx.fillRect(cx - 18, cy - 18, 36, 36);
+
+  // 浮遊する開いた魔導書
+  const by = cy - 3 + Math.sin(t * 0.002) * 1.5;
+  vctx.fillStyle = "#2a2038"; // 表紙 (V字に開く)
+  vctx.beginPath();
+  vctx.moveTo(cx, by - 1); vctx.lineTo(cx - 10, by + 1); vctx.lineTo(cx - 9, by + 7); vctx.lineTo(cx, by + 5); vctx.closePath(); vctx.fill();
+  vctx.beginPath();
+  vctx.moveTo(cx, by - 1); vctx.lineTo(cx + 10, by + 1); vctx.lineTo(cx + 9, by + 7); vctx.lineTo(cx, by + 5); vctx.closePath(); vctx.fill();
+  vctx.fillStyle = "#c9c0d8"; // 左頁
+  vctx.beginPath();
+  vctx.moveTo(cx - 0.5, by); vctx.lineTo(cx - 9, by + 1.5); vctx.lineTo(cx - 8, by + 6); vctx.lineTo(cx - 0.5, by + 4.5); vctx.closePath(); vctx.fill();
+  vctx.fillStyle = "#bcb2cc"; // 右頁
+  vctx.beginPath();
+  vctx.moveTo(cx + 0.5, by); vctx.lineTo(cx + 9, by + 1.5); vctx.lineTo(cx + 8, by + 6); vctx.lineTo(cx + 0.5, by + 4.5); vctx.closePath(); vctx.fill();
+  // 頁の文字行
+  vctx.strokeStyle = "rgba(80,60,110,0.5)";
+  vctx.lineWidth = 0.4;
+  for (let i = 0; i < 3; i++) {
+    vctx.beginPath(); vctx.moveTo(cx - 7, by + 2 + i * 1.4); vctx.lineTo(cx - 2, by + 1.4 + i * 1.4); vctx.stroke();
+    vctx.beginPath(); vctx.moveTo(cx + 2, by + 1.4 + i * 1.4); vctx.lineTo(cx + 7, by + 2 + i * 1.4); vctx.stroke();
+  }
+  // 中央に光る印
+  vctx.save();
+  vctx.shadowColor = "rgba(180,130,255,0.9)";
+  vctx.shadowBlur = 5;
+  vctx.fillStyle = "rgba(205,175,255,0.9)";
+  vctx.font = "bold 7px monospace";
+  vctx.textAlign = "center";
+  vctx.textBaseline = "middle";
+  vctx.fillText("✶", cx, by + 2.5);
+  vctx.restore();
+
+  // 立ちのぼる魔法文字 (符が浮かんで消える)
+  const runes = ["✦", "†", "◇", "∴", "✕"];
+  vctx.font = "6px monospace";
+  vctx.textAlign = "center";
+  vctx.textBaseline = "middle";
+  for (let i = 0; i < 4; i++) {
+    const ph = ((t * 0.0006) + i * 0.25) % 1;
+    const ry = by - ph * 22, rx = cx + Math.sin(ph * 6 + i) * 5, al = (1 - ph) * 0.7;
+    vctx.fillStyle = `rgba(190,150,240,${al})`;
+    vctx.fillText(runes[i % runes.length], rx, ry);
+  }
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
+}
+
+// 層12「地底大空洞」のカード裏面: 天井の鍾乳石と地の石筍、岩肌の琥珀結晶、遥か下の残光と漂う塵
+function drawBackCavern(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  // 岩窟の地
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#18140d");
+  bg.addColorStop(0.5, "#13110b");
+  bg.addColorStop(1, "#0e0c07");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+
+  // 遥か下の空洞の残光
+  const glow = vctx.createRadialGradient(W / 2, H - 6, 2, W / 2, H - 6, 24);
+  glow.addColorStop(0, "rgba(190,150,80,0.16)");
+  glow.addColorStop(1, "rgba(190,150,80,0)");
+  vctx.fillStyle = glow;
+  vctx.fillRect(0, H - 26, W, 26);
+
+  // 鍾乳石 (天井から下がる大小の岩)
+  for (const [sx, sl, sw] of [[7, 12, 4], [17, 8, 3], [27, 16, 5], [37, 9, 3], [47, 13, 4], [W - 4, 7, 3]]) {
+    const g = vctx.createLinearGradient(sx, 0, sx, sl);
+    g.addColorStop(0, "#2a2317"); g.addColorStop(1, "#15110b");
+    vctx.fillStyle = g;
+    vctx.beginPath(); vctx.moveTo(sx - sw, 0); vctx.lineTo(sx + sw, 0); vctx.lineTo(sx, sl); vctx.closePath(); vctx.fill();
+    vctx.fillStyle = "rgba(180,160,110,0.12)";
+    vctx.fillRect(sx - sw + 0.5, 0, 1, sl * 0.6);
+  }
+
+  // 石筍 (地面から立ち上がる岩)
+  for (const [sx, sl, sw] of [[10, 10, 4], [22, 7, 3], [33, 12, 5], [44, 8, 3]]) {
+    const g = vctx.createLinearGradient(sx, H - sl, sx, H);
+    g.addColorStop(0, "#241e14"); g.addColorStop(1, "#312815");
+    vctx.fillStyle = g;
+    vctx.beginPath(); vctx.moveTo(sx - sw, H); vctx.lineTo(sx + sw, H); vctx.lineTo(sx, H - sl); vctx.closePath(); vctx.fill();
+    vctx.fillStyle = "rgba(200,160,90,0.10)";
+    vctx.fillRect(sx - sw + 0.5, H - sl, 1, sl * 0.6);
+  }
+
+  // 岩肌に埋もれた結晶 (琥珀色に明滅)
+  for (const [cx, cy, ci] of [[6, 28, 0], [50, 24, 1.3], [30, 33, 2.4], [16, 38, 3.1]]) {
+    const tw = 0.5 + 0.5 * Math.sin(t * 0.0035 + ci);
+    vctx.save();
+    vctx.shadowColor = "rgba(220,180,90,0.8)";
+    vctx.shadowBlur = 3 + tw * 3;
+    vctx.fillStyle = `rgba(225,190,110,${0.4 + 0.4 * tw})`;
+    vctx.beginPath();
+    vctx.moveTo(cx, cy - 2.5); vctx.lineTo(cx + 1.6, cy); vctx.lineTo(cx, cy + 2.5); vctx.lineTo(cx - 1.6, cy); vctx.closePath();
+    vctx.fill();
+    vctx.restore();
+  }
+
+  // 漂う塵 (淡い光の粒)
+  for (let i = 0; i < 5; i++) {
+    const px = (i * 47 + t * 0.004) % W;
+    const py = 18 + ((i * 53 + t * 0.008) % (H - 22));
+    const al = 0.25 + 0.35 * Math.sin(t * 0.0025 + i * 1.7);
+    vctx.fillStyle = `rgba(210,185,130,${Math.max(0, al) * 0.4})`;
+    vctx.fillRect(px, py, 1, 1);
+  }
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
 }
 
 // 層11「闘技場跡」のカード裏面: 崩れた観客席のアーケード、折れた円柱、砂上に転がる闘士の兜、舞う砂塵
