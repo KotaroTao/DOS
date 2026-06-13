@@ -3002,6 +3002,11 @@ const returnBtn = document.getElementById("return-btn");
 // 押せばどこにいても街へ帰還できる (魔法陣まで歩いて戻る必要がない)。
 function updateReturnBtn() {
   if (!returnBtn) return;
+  // アイコンは MAP の帰還魔法陣と同じスプライト (ICONS.portal)
+  if (!returnBtn.dataset.iconReady) {
+    returnBtn.appendChild(spriteCanvas(ICONS.portal, 2));
+    returnBtn.dataset.iconReady = "1";
+  }
   const show = G.state === "board" && !!G.portalFound;
   returnBtn.classList.toggle("hidden", !show);
 }
