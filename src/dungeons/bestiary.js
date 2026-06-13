@@ -678,6 +678,50 @@ const NEW_DEFS = [
   { id: "bs_cryptking", name: "屍蝋の回廊の主", rank: 10, boss: true, race: "undead", element: "dark", artKey: "cryptking", soulClass: "hexer",
     role: "summoner", summonKey: "bs_graveroyalguard", ability: "drain", physResist: 0.5, enrage: true,
     desc: "屍蝋の回廊を統べる、朽ちることを許されぬ最も古い王。近衛を呼び従え、生者の命と若さを吸い上げる。回廊の奥の空の棺は、今の王のために用意されたもの――その日まで、こいつは玉座を空けて待っている。" },
+  // -- 第15層「溶鉄炉」 (rank 10・火/鋳造。器を鋳る工房) --
+  { id: "bs_moltensmith", name: "溶鉄の鍛冶", rank: 10, race: "construct", element: "fire", artKey: "moltensmith",
+    ability: "critical", multistrike: 2, physResist: 0.4, desc: "灼けた鎚を振るい続ける、溶鉄でできた鍛冶の自動人形。鎚の一打は鎧ごと急所を砕き、続けざまに打ち下ろす。今も誰かの『器』を鍛えようと、生者を炉へ運ぼうとする。" },
+  { id: "bs_forgegolem", name: "鋳造のゴーレム", rank: 10, race: "construct", element: "fire", artKey: "forgegolem",
+    physResist: 0.6, barrier: 2, enrage: true, desc: "鋳型に溶鉄を流し込む工程そのものが意思を得た巨像。腹に炉を抱え、傷を負えば溶鉄を噴いて荒れる。分厚い鋳鉄の体は、並の刃を寄せつけない。" },
+  { id: "bs_slagbeast", name: "鉱滓の獣", rank: 10, race: "beast", element: "fire", artKey: "slagbeast",
+    ability: "critical", physResist: 0.5, enrage: true, desc: "炉から掻き出された鉱滓が、獣の形に凝って動き出したもの。灼けた爪で急所を抉り、冷えて固まった滓の皮が刃を阻む。砕けば中から溶岩がしたたる。" },
+  { id: "bs_anvilhorror", name: "金床の魔", rank: 10, race: "construct", element: "fire", artKey: "anvilhorror",
+    ability: "paralyze", multistrike: 2, physResist: 0.5, barrier: 2, desc: "幾千の器を打たれ続けた金床に宿った魔。重い鉄塊の体で獲物を押し潰し、打ち鳴らす衝撃で痺れさせる。叩かれた数だけ、こいつは硬くなった。" },
+  { id: "bs_soulingot", name: "魂の鋳塊", rank: 10, race: "elemental", element: "fire", artKey: "soulingot",
+    ability: "drain", lifesteal: 0.3, physResist: 0.4, desc: "巡りへ還せぬ穢れた魂を鋳固めた、脈打つ灼熱の塊。中に閉じ込められた無数の魂が、外の命を求めて吸い寄せる。これがやがて、人業の核となる――器の、最初の姿だ。" },
+  { id: "bs_moltenwraith", name: "溶けた霊", rank: 10, race: "specter", element: "fire", artKey: "moltenwraith",
+    ability: "drain", magWeak: 1.3, evasive: true, desc: "炉に落ちて溶け、それでも消えきれなかった者の霊。灼けた手で生者の命を吸い、揺らめく陽炎となって刃をかわす。水気のない身は、皮肉にも炎の魔法でこそ崩れる。" },
+  { id: "bs_forgehound", name: "炉の番犬", rank: 10, race: "beast", element: "fire", artKey: "forgehound",
+    ability: "critical", swift: true, pack: true, desc: "炉の火を守るために鋳られた、灼熱の鉄の番犬の群れ。素早く取り囲んで急所に喰らいつき、その牙は赤熱している。火種を奪う者を、決して逃さない。" },
+  { id: "bs_ironmaiden", name: "鉄の処女", rank: 10, race: "construct", element: "fire", artKey: "ironmaiden",
+    ability: "critical", barrier: 2, physResist: 0.4, desc: "内に刃を並べた、人型の拷問器具が動き出したもの。抱きしめるように獲物を捉え、内側の棘で急所を貫く。閉じた扉の中には、まだ前の獲物が残っている。" },
+  { id: "bs_bellowsfiend", name: "鞴の鬼", rank: 10, race: "demon", element: "fire", artKey: "bellowsfiend",
+    ability: "breath", enrage: true, multistrike: 2, desc: "炉に風を送り続ける鞴に棲みついた、炎を吐く鬼。大きく息を吸っては全体を焼く炎を吹き、傷つけば炉ごと火勢を増して荒れる。こいつが吹けば、炉は一段と燃え盛る。" },
+  { id: "bs_quenchserpent", name: "焼き入れの大蛇", rank: 10, race: "reptile", element: "fire", artKey: "quenchserpent",
+    ability: "breath", swift: true, multistrike: 2, desc: "焼き入れの油槽に潜む、灼けた鱗の大蛇。熱した刃のような牙で素早く幾度も噛みつき、蒸気のブレスで全体を焼く。油の中を、影のように泳ぐ。" },
+  { id: "bs_smithghost", name: "鍛冶師の亡霊", rank: 10, race: "specter", element: "fire", artKey: "smithghost",
+    role: "summoner", summonKey: "bs_soulingot", ability: "weaken", magResist: 0.4, desc: "器を鋳ることに生涯を捧げ、炉の前で力尽きた鍛冶師の霊。魂の鋳塊を次々と打ち出し、呪詛で挑む者の力を奪う。自分が何を作っていたのか、もう問うこともない。" },
+  { id: "bs_moltencore", name: "溶鉱の核", rank: 10, race: "elemental", element: "fire", artKey: "moltencore",
+    multistrike: 2, enrage: true, physResist: 0.4, desc: "炉の中心で煮えたぎる、剥き出しの溶鉱の核。触れるものすべてを灼き、爆ぜるように熱の塊を撃ち出す。これが冷えれば、炉は止まる――が、誰も冷やせない。" },
+  { id: "bs_dollhusk", name: "器の抜け殻", rank: 10, race: "construct", element: "fire", artKey: "dollhusk",
+    ability: "drain", enrage: true, lifesteal: 0.3, desc: "魂を入れられる前に弾かれた、空っぽの人業の抜け殻。失った魂を求めて起き上がり、生者の温もりに掴みかかる。縫い目の顔は、まだ誰のものでもない。" },
+  { id: "bs_flamehammer", name: "炎槌の番人", rank: 10, race: "armored", element: "fire", artKey: "flamehammer",
+    ability: "critical", multistrike: 2, physResist: 0.4, desc: "炉を守る、灼けた大槌を担いだ鎧の番人。振り下ろす炎の槌は鎧ごと急所を砕き、続けざまに叩きつける。火の粉を撒く一撃は、岩をも鍛え直す。" },
+  { id: "bs_cruciblehorror", name: "るつぼの異形", rank: 10, race: "amorph", element: "fire", artKey: "cruciblehorror",
+    ability: "poison", physResist: 0.5, regen: 0.08, desc: "るつぼの底で混ざり合った、あらゆる金属と魂の毒の塊。触れたものを溶かし込み、刃を突き立てても溶湯に沈んで効かない。中で煮える顔は、鋳潰された者たちだ。" },
+  { id: "bs_sparkswarm", name: "火花の群れ", rank: 10, race: "insect", element: "fire", artKey: "sparkswarm",
+    pack: true, multistrike: 2, swift: true, desc: "炉から飛び散る火花が、意思を得て群れ飛ぶもの。素早くまとわりついて何度も焼き刺し、払っても次の火花が湧く。鍛冶の音とともに、無数に弾ける。" },
+  { id: "bs_forgewyrm", name: "炉の竜", rank: 10, race: "dragon", element: "fire", artKey: "forgewyrm",
+    ability: "breath", physResist: 0.5, enrage: true, desc: "溶鉄を喰らって育った、鋳鉄の鱗をもつ竜。溶けた金属のブレスで全体を焼き固め、鋳鉄の鱗は刃を弾く。炉の火が消えぬ限り、こいつも眠らない。" },
+  { id: "bs_moltenknight", name: "溶鉄の騎士", rank: 10, race: "armored", element: "fire", artKey: "moltenknight",
+    ability: "critical", barrier: 2, enrage: true, desc: "溶けた鎧をまとったまま炉を守る騎士。灼けた剣で急所を貫き、流れる溶鉄が刃を逸らす。傷を負えば鎧の継ぎ目から火を噴いて猛る。" },
+  { id: "bs_cindergeist", name: "燃え滓の番", rank: 10, race: "specter", element: "fire", artKey: "cindergeist",
+    ability: "drain", evasive: true, magWeak: 1.3, desc: "炉の灰の中で燻り続ける、焼け死んだ職人の霊。近づく者の命を熾火にして燃え、火の粉となって刃をかわす。掃き出された灰の中から、また赤く灯る。" },
+  { id: "bs_emberfly", name: "火屑の羽虫", rank: 10, race: "insect", element: "fire", artKey: "emberfly",
+    pack: true, swift: true, multistrike: 2, desc: "炉の熱気に湧いた、火屑のように赤熱した羽虫の群れ。素早く飛び回って獲物を焼き刺し、群れごと炎の渦をなす。鍛冶の煤の中で、無数に舞っている。" },
+  { id: "bs_forgemaster", name: "溶鉄炉の主", rank: 10, boss: true, race: "construct", element: "fire", artKey: "forgemaster", soulClass: "fighter",
+    role: "summoner", summonKey: "bs_forgegolem", ability: "breath", physResist: 0.6, enrage: true,
+    desc: "穢れた魂を鋳て『器』を作り続ける、溶鉄炉そのものの主。鋳造のゴーレムを次々と生み出し、全体を焼く溶鉄のブレスを吐く。人業がどう作られるかを知った今、こいつの炉の音は、もう以前と同じには聞こえない。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1621,6 +1665,7 @@ export const BOSS_ORDER = {
 // 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
 // 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
 const LAYER_BOSS_OVERRIDE = {
+  15: "bs_forgemaster", // 第15層「溶鉄炉」: 溶鉄炉の主 (rank10・火ボス)
   14: "bs_cryptking", // 第14層「屍蝋の回廊」: 屍蝋の回廊の主 (rank10・闇ボス)
   13: "bs_archivist", // 第13層「魔導書庫」: 大書庫の主 (rank10・闇ボス)
   12: "bs_cavernlord", // 第12層「地底大空洞」: 大空洞の主 (rank10・土ボス)
@@ -1777,6 +1822,13 @@ export const LAYER_POOLS = {
     "bs_boneprince", "bs_crypthound", "bs_shroudkeeper",
     // 既存の闇騎士を近衛として再配置
     "bs_doomknight", "bs_voidknight",
+  ],
+  // 第15層「溶鉄炉」: 火/鋳造中心、全rank10。全て新規
+  15: [
+    "bs_moltensmith", "bs_forgegolem", "bs_slagbeast", "bs_anvilhorror", "bs_soulingot",
+    "bs_moltenwraith", "bs_forgehound", "bs_ironmaiden", "bs_bellowsfiend", "bs_quenchserpent",
+    "bs_smithghost", "bs_moltencore", "bs_dollhusk", "bs_flamehammer", "bs_cruciblehorror",
+    "bs_sparkswarm", "bs_forgewyrm", "bs_moltenknight", "bs_cindergeist", "bs_emberfly",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
