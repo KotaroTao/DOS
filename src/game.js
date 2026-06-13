@@ -693,6 +693,15 @@ function drawFloor() {
   }
 }
 
+// ダンジョンで歩くキャラのスプライト。生存している先頭メンバーの職業姿を表示
+// (先頭が倒れていれば、生きているメンバーのうち最も上の者)。全滅時は先頭。
+function walkerSprite() {
+  const party = G.party || [];
+  const lead = party.find((p) => p.alive) || party[0];
+  if (!lead) return HERO;
+  return lead.isDoll ? dollSprite(lead) : HERO;
+}
+
 function renderBoard() {
   updateDescendBtn();
   updateReturnBtn();
@@ -796,7 +805,7 @@ function renderBoard() {
   vctx.ellipse(hx, hy + 16, 12, 4, 0, 0, Math.PI * 2);
   vctx.fill();
   vctx.restore();
-  drawSprite(vctx, HERO, hx, hy, SPR);
+  drawSprite(vctx, walkerSprite(), hx, hy, SPR);
 
   renderParty();
 }
