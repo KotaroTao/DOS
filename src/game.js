@@ -6083,18 +6083,27 @@ function announceJobChange(d, before) {
   showCodexJobDetail(d.jobKey, d.jobRank, `${d.name} は ${d.cls} になった！`);
 }
 
-// 選択中スロットに魂を宿す/外す (メイン魂=転職、サブ魂=技の借用)。魂は1体ごとに固有
-function equipSoulToSlot(d, uid) {
+// メイン魂を newCls に付け替えると装備できなくなる装備を列挙する ({key, item} の配列)
+function unequippableUnder(d, newCls) {
+  const bad = [];
+  if (!newCls || !d.equip) return bad;
+  const probe = { clsKey: newCls }; // canEquip は clsKey/align のみ参照 (人業に align は無い)
+  for (const slot of SLOTS) {
+    const it = d.equip[slot];
+    if (it && !canEquip(probe, it)) bad.push({ key: slot, item: it });
+  }
+  return bad;
+}
+
+// 実際に魂をスロットへ宿す/外す処理 (装備の事前確認を通過した後に呼ぶ)
+function applyEquipSoul(d, uid, s) {
   const before = jobSig(d);
-  const s = soulByUid(uid);
-  if (!s) return;
   if (altarSlot === "primary" && d.primary === uid) {
     d.primary = null; // 同じ魂をタップで外す
   } else if (altarSlot !== "primary" && (d.subs[+altarSlot.slice(3)] || {}).uid === uid) {
     d.subs.splice(+altarSlot.slice(3), 1); // 同じ魂をタップで外す
     d.subs = d.subs.filter(Boolean);
   } else {
-    if (soulWornByOther(uid, d)) { log("他の人業が宿している魂は宿せない。", "sys"); SFX.ng(); return; }
     // 同じ人業の他スロットからは外す (二重装備しない)
     if (d.primary === uid) d.primary = null;
     d.subs = (d.subs || []).filter((x) => x && x.uid !== uid);
@@ -6111,6 +6120,60 @@ function equipSoulToSlot(d, uid) {
   SFX.select(); buzz(15);
   renderTown();
   announceJobChange(d, before);
+}
+
+// 選択中スロットに魂を宿す/外す (メイン魂=転職、サブ魂=技の借用)。魂は1体ごとに固有
+function equipSoulToSlot(d, uid) {
+  const s = soulByUid(uid);
+  if (!s) return;
+  // 別スロットへ宿す (=付け替え) 場合のみ装備可否を判定する。タップで外す操作は対象外
+  const isNewEquip = !(altarSlot === "primary" && d.primary === uid)
+    && !(altarSlot !== "primary" && (d.subs[+altarSlot.slice(3)] || {}).uid === uid);
+  if (isNewEquip && soulWornByOther(uid, d)) { log("他の人業が宿している魂は宿せない。", "sys"); SFX.ng(); return; }
+
+  // メイン魂の付け替えで、新しい職では装備できなくなる装備があれば事前に確認する
+  if (isNewEquip && altarSlot === "primary" && d.primary !== uid) {
+    const bad = unequippableUnder(d, s.clsKey);
+    if (bad.length) {
+      const free = MAX_ITEMS - d.items.length;
+      const names = bad.map((b) => `・${b.item.name}（${SLOT_LABEL[b.key] || b.key}）`);
+      if (bad.length > free) {
+        // 外した装備を持ち物に入れる空きが足りない → 付け替えを中止
+        showEvent({
+          sprite: jobSprite(s.clsKey, Math.max(1, soulRankOf(s))),
+          banner: "⚠ 付け替えできない ⚠",
+          title: "持ち物がいっぱいです",
+          lines: [
+            `${soulSeriesName(s.clsKey)}の魂 に付け替えると、次の装備が外れます。`,
+            ...names,
+            `しかし ${d.name} の持ち物に空きが ${free} 枠しかありません。`,
+            "持ち物を減らしてから、もう一度付け替えてください。",
+          ],
+          accent: "#d4504e",
+          btnLabel: "とじる",
+          onClose: () => renderTown(),
+        });
+        SFX.ng();
+        return;
+      }
+      showConfirm({
+        title: `${soulSeriesName(s.clsKey)}の魂 に付け替えますか？`,
+        lines: [
+          "新しい職では次の装備を扱えないため、外して持ち物に戻します。",
+          ...names,
+        ],
+        okLabel: "付け替える",
+        onOk: () => {
+          // 装備できない装備を外して持ち物へ戻す
+          for (const b of bad) { d.equip[b.key] = null; d.items.push(b.item); }
+          applyEquipSoul(d, uid, s);
+        },
+      });
+      return;
+    }
+  }
+
+  applyEquipSoul(d, uid, s);
 }
 
 // サブ魂が使うスキルを選ぶポップアップ (その魂が覚えているスキルから1つ)
