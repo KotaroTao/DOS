@@ -21,9 +21,9 @@ import {
   ORDER_PERK, orderPassiveMap,
   PASSIVES, passiveName, passiveDesc,
   ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
-  SOUL_RANKS, rollJobClass, rollGreatJobClass,
+  SOUL_RANKS, rollJobClass, rollGreatJobClass, SOUL_STAT_UP,
   soulRankFromCount, nextRankThreshold, rankThresholds,
-  JOB_LORE, jobRankCondText,
+  jobLoreFor, jobRankCondText,
   jobSkillTable, jobRankName, soulSeriesName, jobPassiveTable, pLv, JOB_GEAR,
   IDENTIFY_JOBS, identifyChance, canIdentify,
 } from "./souls.js";
@@ -207,6 +207,7 @@ const G = {
   specialFloor: null, // 現在のフロアの特別階id (SPECIAL_FLOORS 参照。2F以降に低確率で発生)
   mutator: null,      // 今回の潜入に適用中の「迷宮の異変」id (MUTATORS 参照。潜入時に任意で受諾)
   bossDown: false,    // この潜入で迷宮の主を討ったか (討つと帰還制限が解ける)
+  portalFound: false, // この階で帰還魔法陣を発見したか (発見後はいつでも街へ戻れる)
 };
 
 const rand = (n) => Math.floor(Math.random() * n);
@@ -356,8 +357,8 @@ const SPECIAL_FLOORS = [
   { id: "horde", name: "餓えた群れ", icon: "poison", accent: "#d4504e", sym: "Ψ", minFloor: 2, rate: 0.02,
     lines: ["無数の足音と唸り声…敵が異常に多い。", "群れを狩り尽くせば、魂も財も多く集まるだろう。"],
     board: (b) => sfPlace(b, 4, (c) => { c.type = "monster"; c.monsterKey = pickFrom(sfMonsterPool()); c.cleared = false; }) },
-  { id: "thiefInsight", name: "盗賊の洞察", icon: "gold", accent: "#6fae46", sym: "♠", minFloor: 2, rate: 0.02, rareDropRate: 0.20,
-    lines: ["盗賊の経験則が囁く——奴らは上物を呑んでいる。", "この階の敵のレアドロップ率が 20% になる。"] },
+  { id: "thiefInsight", name: "盗賊の洞察", icon: "chest", accent: "#6fae46", sym: "♠", minFloor: 2, rate: 0.02, sureChest: true, sureDisarm: true,
+    lines: ["盗賊の勘が冴え渡る。敵は必ず宝を遺し、罠はことごとく見抜ける。", "敵が100%宝箱を落とし、宝箱の罠解除率が100%になる。"] },
   { id: "miasma", name: "瘴気の階", icon: "poison", accent: "#8a2be2", sym: "☣", minFloor: 2, rate: 0.02, enemyMul: 1.25, soulMul: 2,
     lines: ["淀んだ瘴気が敵を昂らせている。敵が強い。", "だが得られる Soul は 2倍 になる。"] },
   { id: "caravan", name: "商隊の遺品", icon: "chest", accent: "#e0a060", sym: "❖", minFloor: 2, rate: 0.02, chestRankUp: 1,
@@ -377,9 +378,6 @@ const SPECIAL_FLOORS = [
     board: (b) => sfPlace(b, 3, (c) => { c.type = "chest"; c.cleared = false; }) },
   { id: "healing", name: "癒しの霊気", icon: "fountain", accent: "#8af0c0", sym: "✚", minFloor: 2, rate: 0.02, victoryHeal: 0.10,
     lines: ["澄んだ霊気が満ち、傷を癒してくれる。", "戦闘に勝利するたび、隊全体のHPが10%回復する。"] },
-  { id: "guided", name: "迷い無き道", icon: "stairs", accent: "#e8e0c0", sym: "▼", minFloor: 2, rate: 0.02,
-    lines: ["誰かが残した道標が奥まで続いている。", "下り階段の位置が最初から見えている。"],
-    board: (b) => sfEachCell(b, (c) => { if (c.type === "stairs") c.revealed = true; }) },
   { id: "legend", name: "伝説の眠る階", icon: "chest", accent: "#ffe080", sym: "★", minFloor: 4, rate: 0.01,
     lines: ["遥か昔の英雄の遺品が、この階のどこかに眠っている。", "ひとつの宝箱にだけ、格別の装備が入っている。"],
     board: (b) => {
@@ -510,6 +508,7 @@ function updateTopbar() {
   floorInfo.textContent = `${dn ? dn.name + " " : ""}B${G.floor}F${mark}`;
   setTopbarCurrency();
   updateDescendBtn();
+  updateReturnBtn();
 }
 
 function newFloor() {
@@ -547,6 +546,7 @@ function newFloor() {
   if (G.activeRumor && G.activeRumor.floor === G.floor) applyRumorToBoard(G.board);
   G.px = G.board.start.x;
   G.py = G.board.start.y;
+  G.portalFound = false; // この階の帰還魔法陣はまだ発見していない
   updateTopbar();
   log(`地下 ${G.floor} 階。カードをめくって階段を探せ！`, "sys");
 }
@@ -599,6 +599,7 @@ function drawFloor() {
 
 function renderBoard() {
   updateDescendBtn();
+  updateReturnBtn();
   drawFloor();
 
   // 到達可能マスを事前計算 (静止中のみ)
@@ -1196,7 +1197,10 @@ function resolveCell(cell) {
       break;
     }
     case "portal":
-      // 帰還魔法陣: 何度でも使える。踏むたびに帰還するか選ぶ
+      // 帰還魔法陣: 何度でも使える。踏むたびに帰還するか選ぶ。
+      // 発見後は設定アイコン右の帰還ボタンで、どこからでも街へ戻れる。
+      G.portalFound = true;
+      updateReturnBtn();
       askPortalReturn();
       break;
     case "fountain": {
@@ -1528,6 +1532,7 @@ function disarmNeed(cRank = 1) {
 }
 
 function disarmChance(m, cRank = 1) {
+  if ((specialDef() || {}).sureDisarm) return 1; // 盗賊の洞察: 罠解除率100%
   return Math.max(0.05, Math.min(0.95, disarmPower(m) / disarmNeed(cRank)));
 }
 
@@ -2602,30 +2607,45 @@ function distributeBattleSoulExp(soulGot) {
   const seen = new Set();
   for (const m of G.party) {
     if (!m || !m.alive) continue;
-    const add = (uid) => { if (uid == null || seen.has(uid)) return; seen.add(uid); worn.push({ uid, rep: m }); };
+    const add = (uid) => { if (uid == null || seen.has(uid)) return; seen.add(uid); worn.push(uid); };
     if (m.primary != null) add(m.primary);
     for (const s of (m.subs || [])) if (s) add(s.uid);
   }
-  for (const { uid, rep } of worn) {
+  // レベルアップ前の各メンバーのステータス・スキル・メイン魂Lvを記録 (上昇量の算出用)
+  const STAT_KEYS = ["maxhp", "maxmp", "atk", "vit", "agi", "int", "pie", "luk"];
+  const snap = (m) => { const o = {}; for (const k of STAT_KEYS) o[k] = m[k] || 0; return o; };
+  const preStat = new Map(), preLv = new Map(), preSpells = new Map();
+  for (const m of G.party) {
+    if (!m || !m.alive) continue;
+    preStat.set(m, snap(m));
+    preSpells.set(m, new Set(m.spells || []));
+    const ps = m.primary != null ? soulByUid(m.primary) : null;
+    preLv.set(m, ps ? ps.level : 0);
+  }
+  // 宿している魂すべてに Soul を加算してレベルアップ (上限超過分は exp に蓄積)
+  for (const uid of worn) {
     const e = soulByUid(uid);
     if (!e) continue;
     const cap = soulLevelCap(e.clsKey, e.count);
-    const oldLv = e.level;
-    const oldSpells = new Set((rep && rep.spells) || []);
-    // 上限に達していても獲得Soulは exp として蓄積する。
-    // ランクUPで上限が伸びた際に applySoulLevelCatchup で一気にレベルへ反映される。
     e.exp = (e.exp || 0) + share;
-    let leveled = false;
-    while (e.level < cap && e.exp >= soulTrainCost(e.level)) {
-      e.exp -= soulTrainCost(e.level);
-      e.level++;
-      leveled = true;
+    while (e.level < cap && e.exp >= soulTrainCost(e.level)) { e.exp -= soulTrainCost(e.level); e.level++; }
+  }
+  recalcAllDolls();
+  // メンバーごとに「レベルアップ(上昇ステータス付き)→新規スキル」をポップアップ用キューへ
+  const STAT_LABEL = { maxhp: "HP", maxmp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
+  for (const m of G.party) {
+    if (!m || !m.alive) continue;
+    const ps = m.primary != null ? soulByUid(m.primary) : null;
+    const newLv = ps ? ps.level : 0;
+    const oldLv = preLv.get(m) || 0;
+    if (newLv > oldLv) {
+      const before = preStat.get(m) || {};
+      const deltas = [];
+      for (const k of STAT_KEYS) { const d = (m[k] || 0) - (before[k] || 0); if (d > 0) deltas.push(`${STAT_LABEL[k]} +${d}`); }
+      queue.push({ kind: "level", member: m, toLv: newLv, deltas });
     }
-    if (!leveled) continue;
-    recalcAllDolls();
-    // 1魂ずつ「レベルアップ(回数ぶん)→スキル獲得」の順でポップアップ
-    for (let lv = oldLv + 1; lv <= e.level; lv++) queue.push({ kind: "level", member: rep, lv });
-    for (const sk of ((rep && rep.spells) || [])) if (!oldSpells.has(sk)) queue.push({ kind: "skill", member: rep, skill: sk });
+    const oldSp = preSpells.get(m) || new Set();
+    for (const sk of (m.spells || [])) if (!oldSp.has(sk)) queue.push({ kind: "skill", member: m, skill: sk });
   }
   return queue;
 }
@@ -2642,11 +2662,13 @@ function runProgressPopups(queue, done) {
   }
   if (ev.kind === "level") {
     SFX.levelup();
+    const lines = [ev.member.cls];
+    lines.push(ev.deltas && ev.deltas.length ? ev.deltas.join("  ") : "ステータスはそのまま");
     showEvent({
       banner: "⤴ レベルアップ ⤴",
-      title: `${ev.member.name} は Lv${ev.lv} に上がった！`,
+      title: `${ev.member.name} は Lv${ev.toLv} に上がった！`,
       accent: "#ffd84a", sparkle: true,
-      lines: [ev.member.cls],
+      lines,
       btnLabel: "つぎへ", onClose: next,
     });
   } else {
@@ -2735,7 +2757,8 @@ function endBattle() {
         setTimeout(() => recoverCorpseSoul(corpse, after), 200);
         return;
       }
-      if (drop || wasElite || wasMimic || Math.random() < 0.5) {
+      // 盗賊の洞察 (sureChest) の階では敵が必ず宝箱を落とす
+      if (drop || wasElite || wasMimic || (specialDef() || {}).sureChest || Math.random() < 0.5) {
         setTimeout(() => battleChest(drop ? [drop] : [], after, wasMasterMimic ? 30 : wasMimic ? 15 : 0, wasMimic || wasMasterMimic), 200);
         return;
       }
@@ -2970,6 +2993,20 @@ function btn(label, onClick) {
 const townEl = document.getElementById("town-screen");
 const townBtn = document.getElementById("town-btn");
 const descendBtn = document.getElementById("descend-btn");
+const returnBtn = document.getElementById("return-btn");
+
+// 帰還魔法陣ボタン: この階で帰還魔法陣を発見したら設定アイコンの右に出す。
+// 押せばどこにいても街へ帰還できる (魔法陣まで歩いて戻る必要がない)。
+function updateReturnBtn() {
+  if (!returnBtn) return;
+  const show = G.state === "board" && !!G.portalFound;
+  returnBtn.classList.toggle("hidden", !show);
+}
+if (returnBtn) returnBtn.addEventListener("click", () => {
+  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen || G.settingsOpen) return;
+  SFX.select();
+  confirmReturnToTown();
+});
 
 // 下り階段ボタン: 最初は完全非表示。下り階段を見つけたら設定アイコンの右に出す。
 // アイコンは MAP の下り階段と同じスプライト (ICONS.stairs)。
@@ -3110,48 +3147,38 @@ function renderTownHub() {
     const clearedCnt = clearedDungeonCount();
     // 勅命の対象迷宮 (攻略中の章のみ ❗ を付ける)
     const targetIdx = G.msq && G.msq.state === "active" && G.msq.n >= 1 ? G.msq.n - 1 : -1;
-    const bandCount = Math.ceil(DUNGEONS.length / 10);
     const openBand = (townBandOpen != null) ? townBandOpen : Math.floor(G.dungeonIdx / 10);
     const maxBand = Math.floor((G.unlockedDungeons - 1) / 10); // 解放済み迷宮が属する最後の層域
-    for (let b = 0; b < bandCount; b++) {
+    for (let b = 0; b <= maxBand; b++) {
       const s = b * 10, e = Math.min(DUNGEONS.length, s + 10);
-      if (b > maxBand) {
-        // 未到達の層域は次のひとつだけ「封印中」として見せる
-        if (b === maxBand + 1) {
-          const lockBox = el("div", "tw-band lockedband");
-          lockBox.appendChild(el("div", "tw-bandh", `🔒 第${b + 1}層域 — 迷宮 ${s + 1}〜${e} (封印中)`));
-          townEl.appendChild(lockBox);
-        }
-        continue;
-      }
+      // 出現済み (解放済み) の迷宮のみ表示する。未出現の迷宮は一切見せない (先を伏せる)
+      const appeared = Math.max(0, Math.min(G.unlockedDungeons - s, e - s));
+      if (appeared <= 0) continue;
       const det = el("details", "tw-band");
       if (b === openBand) det.open = true;
       const sum = el("summary", "tw-bandh");
-      const clearedIn = Math.max(0, Math.min(clearedCnt - s, e - s));
-      sum.textContent = `${clearedIn >= e - s ? "★ " : ""}第${b + 1}層域 — 迷宮 ${s + 1}〜${e} (踏破 ${clearedIn}/${e - s})`;
+      const clearedIn = Math.max(0, Math.min(clearedCnt - s, appeared));
+      sum.textContent = `${clearedIn >= e - s ? "★ " : ""}第${b + 1}層域 — 迷宮 ${s + 1}〜${s + appeared} (踏破 ${clearedIn})`;
       det.appendChild(sum);
       det.addEventListener("toggle", () => {
         if (det.open) townBandOpen = b;
         else if (townBandOpen === b) townBandOpen = null;
       });
       const dlist = el("div", "tw-mlist");
-      for (let i = s; i < e; i++) {
+      for (let i = s; i < s + appeared; i++) {
         const dn = DUNGEONS[i];
-        const unlocked = i < G.unlockedDungeons;
         const cleared = i < clearedCnt;
-        const row = el("div", "tw-dungeon" + (i === G.dungeonIdx ? " sel" : "") + (unlocked ? "" : " locked") + (cleared ? " cleared" : ""));
+        const row = el("div", "tw-dungeon" + (i === G.dungeonIdx ? " sel" : "") + (cleared ? " cleared" : ""));
         const info = el("div", "tw-chipi");
-        info.appendChild(el("div", "tw-chipn", unlocked ? `${i + 1}. ${dn.name}` : `🔒 ？？？`));
+        info.appendChild(el("div", "tw-chipn", `${i + 1}. ${dn.name}`));
         const elTag = dn.element && ELEMENTS[dn.element] ? ` ・${ELEMENTS[dn.element].label}の気配` : "";
-        info.appendChild(el("div", "tw-chipc", unlocked ? `全${dn.floors}階 ・ 敵ランク${dn.rank}${elTag}` : `前の迷宮を踏破し、王宮で勅命を受けると解放`));
+        info.appendChild(el("div", "tw-chipc", `全${dn.floors}階 ・ 敵ランク${dn.rank}${elTag}`));
         row.appendChild(info);
-        if (unlocked) {
-          // 踏破状態バッジ (★踏破済=再挑戦可 / ❗勅命=攻略対象 / 未踏破)
-          const st = el("div", "tw-dunst" + (cleared ? " done" : i === targetIdx ? " quest" : ""));
-          st.textContent = cleared ? "★ 踏破済" : i === targetIdx ? "❗ 勅命" : "未踏破";
-          row.appendChild(st);
-          row.addEventListener("click", () => { G.dungeonIdx = i; SFX.select(); renderTown(); });
-        }
+        // 踏破状態バッジ (★踏破済=再挑戦可 / ❗勅命=攻略対象 / 未踏破)
+        const st = el("div", "tw-dunst" + (cleared ? " done" : i === targetIdx ? " quest" : ""));
+        st.textContent = cleared ? "★ 踏破済" : i === targetIdx ? "❗ 勅命" : "未踏破";
+        row.appendChild(st);
+        row.addEventListener("click", () => { G.dungeonIdx = i; SFX.select(); renderTown(); });
         dlist.appendChild(row);
       }
       det.appendChild(dlist);
@@ -3875,7 +3902,21 @@ function fuseSoul(targetUid, consumeUid) {
   log(`${SOUL_CLASSES[t.clsKey].label}の魂を吸収させた (魂数 ×${t.count})。`, "win");
   if (t.level > beforeLv) log(`蓄積した Soul が反映され、Lv${beforeLv} → Lv${t.level} に上昇した！`, "win");
   if (after > before) { SFX.victory(); showToast(`⤴ ${jobRankName(t.clsKey, after)} に昇格！`); }
-  renderTown();
+  // 融合のポップアップ: 魂の輝きが増したことと、全能力の上昇率を伝える
+  const pct = Math.round((SOUL_STAT_UP[SOUL_CLASSES[t.clsKey].rarity] || 0.01) * 100);
+  const lines = [`全能力が基礎値の ${pct}% ずつ高まる（魂数 ${t.count}）`];
+  if (t.level > beforeLv) lines.push(`蓄積した Soul が反映され Lv${beforeLv} → Lv${t.level}`);
+  if (after > before) lines.push(`⤴ ランク${after}「${jobRankName(t.clsKey, after)}」に昇格！`);
+  showEvent({
+    sprite: jobSprite(t.clsKey, after),
+    banner: "✦ 魂の融合 ✦",
+    title: `${soulSeriesName(t.clsKey)}の魂の輝きが増した`,
+    lines,
+    accent: SOUL_CLASSES[t.clsKey].glow,
+    sparkle: true,
+    btnLabel: "受け取る",
+    onClose: () => renderTown(),
+  });
 }
 
 // 魂を1レベル上げるのに要する Soul (レベルが高いほど高い)
@@ -4520,27 +4561,35 @@ function renderPalace() {
     townEl.appendChild(b);
   }
 
-  // 図鑑
+  // 図鑑 (モンスター図鑑・アイテム図鑑・職業図鑑・勲章の間 を2列で並べる)
   townEl.appendChild(el("div", "tw-h", "王宮書庫 — 図鑑"));
   const row = el("div", "tw-grid");
-  const itemBtn = el("div", "tw-fac");
-  itemBtn.appendChild(el("div", "tw-faci", "⚔"));
-  itemBtn.appendChild(el("div", "tw-facn", "アイテム図鑑"));
-  itemBtn.appendChild(el("div", "tw-facd", `発見 ${Object.keys(G.codex.item).length} 種`));
-  itemBtn.addEventListener("click", () => { G.town.facility = "codexItem"; renderCodexItem(); });
-  row.appendChild(itemBtn);
   const dunBtn = el("div", "tw-fac");
   dunBtn.appendChild(el("div", "tw-faci", "🐉"));
   dunBtn.appendChild(el("div", "tw-facn", "モンスター図鑑"));
   dunBtn.appendChild(el("div", "tw-facd", `発見 ${Object.keys(G.codex.mon).filter((k) => MONSTERS[k]).length} 種`));
   dunBtn.addEventListener("click", () => { G.town.facility = "codexDungeon"; renderCodexDungeon(); });
   row.appendChild(dunBtn);
+  const itemBtn = el("div", "tw-fac");
+  itemBtn.appendChild(el("div", "tw-faci", "⚔"));
+  itemBtn.appendChild(el("div", "tw-facn", "アイテム図鑑"));
+  itemBtn.appendChild(el("div", "tw-facd", `発見 ${Object.keys(G.codex.item).length} 種`));
+  itemBtn.addEventListener("click", () => { G.town.facility = "codexItem"; renderCodexItem(); });
+  row.appendChild(itemBtn);
   const jobBtn = el("div", "tw-fac");
   jobBtn.appendChild(el("div", "tw-faci", "📜"));
   jobBtn.appendChild(el("div", "tw-facn", "職業図鑑"));
   jobBtn.appendChild(el("div", "tw-facd", `発現 ${Object.keys(G.codex.job).filter((k) => SOUL_CLASSES[k]).length} 種`));
   jobBtn.addEventListener("click", () => { G.town.facility = "codexJob"; renderCodexJob(); });
   row.appendChild(jobBtn);
+  const claimable = ACHIEVEMENTS.filter((a) => !G.ach[a.id] && a.cond()).length;
+  const achBtn = el("div", "tw-fac");
+  achBtn.appendChild(el("div", "tw-faci", "🏅"));
+  achBtn.appendChild(el("div", "tw-facn", "勲章の間"));
+  achBtn.appendChild(el("div", "tw-facd", `受領 ${Object.keys(G.ach).length} / ${ACHIEVEMENTS.length}`));
+  if (claimable) achBtn.appendChild(el("div", "tw-facb", `❗ 受領可 ${claimable}`));
+  achBtn.addEventListener("click", () => { G.town.facility = "codexAch"; renderCodexAch(); });
+  row.appendChild(achBtn);
   townEl.appendChild(row);
 
   // 戦績 (ローカル記録)
@@ -4554,21 +4603,8 @@ function renderPalace() {
   recRow("倒した迷宮の主", s.bossKills);
   recRow("回収した魂", s.soulsFound);
   recRow("砕けた人業", s.deaths);
-  recRow("踏破した迷宮", `${clearedDungeonCount()} / ${DUNGEONS.length}`);
+  recRow("踏破した迷宮", clearedDungeonCount());
   townEl.appendChild(rec);
-
-  // 勲章 (実績): 一覧は別室「勲章の間」へ。受領できる勲章があれば印を出す
-  const claimable = ACHIEVEMENTS.filter((a) => !G.ach[a.id] && a.cond()).length;
-  townEl.appendChild(el("div", "tw-h", "王の勲章 — 実績"));
-  const arow = el("div", "tw-grid");
-  const achBtn = el("div", "tw-fac");
-  achBtn.appendChild(el("div", "tw-faci", "🏅"));
-  achBtn.appendChild(el("div", "tw-facn", "勲章の間"));
-  achBtn.appendChild(el("div", "tw-facd", `受領 ${Object.keys(G.ach).length} / ${ACHIEVEMENTS.length}`));
-  if (claimable) achBtn.appendChild(el("div", "tw-facb", `❗ 受領可 ${claimable}`));
-  achBtn.addEventListener("click", () => { G.town.facility = "codexAch"; renderCodexAch(); });
-  arow.appendChild(achBtn);
-  townEl.appendChild(arow);
 }
 
 // ---- 勲章の間 (実績一覧) ----
@@ -4957,7 +4993,7 @@ function showCodexJobDetail(key, rank, heading) {
   if (false) {
     // 混成職は廃止
   } else {
-    const lore = JOB_LORE[key] || {};
+    const lore = jobLoreFor(key, rank);
     card.appendChild(el("div", "cdx-elem", `${SOUL_CLASSES[key].label}系`));
     if (lore.desc) card.appendChild(el("div", "ig-desc", lore.desc));
     if (lore.tips) card.appendChild(el("div", "ig-desc cdx-tips", "活用: " + lore.tips));
@@ -4967,7 +5003,8 @@ function showCodexJobDetail(key, rank, heading) {
   const cbox = el("div", "cdx-drops");
   cbox.appendChild(el("div", "cdx-h", "発現の条件"));
   cbox.appendChild(el("div", "cdx-dun", `・${jobRankCondText(key, rank)}`));
-  cbox.appendChild(el("div", "cdx-dun dim", "・同じ魂を1個集めるごとに全ステータスが上がる (レア度が高いほど大きい)"));
+  const upPct = Math.round((SOUL_STAT_UP[SOUL_CLASSES[key].rarity] || 0.01) * 100);
+  cbox.appendChild(el("div", "cdx-dun dim", `・魂を1つ吸収するごと、全能力 基礎値×${upPct}% UP`));
   card.appendChild(cbox);
 
   // 装備適性 (基本職のみ)
@@ -5552,10 +5589,10 @@ function returnToTown() {
 
 function confirmReturnToTown() {
   if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen || G.settingsOpen) return;
-  // 帰還制限: 帰還魔法陣の上に立っているか、主を討っていなければ帰れない
+  // 帰還制限: 帰還魔法陣を発見済み (この階で踏んだ)、その上に立っている、または主を討っていれば帰れる
   const cell = G.board && G.board.cells[G.py] && G.board.cells[G.py][G.px];
   const onPortal = cell && cell.type === "portal";
-  if (!onPortal && !G.bossDown) {
+  if (!onPortal && !G.bossDown && !G.portalFound) {
     SFX.ng(); buzz(20);
     showEvent({
       sprite: ICONS.portal, banner: "⚠ 帰還できない ⚠", title: "帰り道は閉ざされている",
@@ -6876,7 +6913,7 @@ if (settingsBtn) settingsBtn.addEventListener("click", () => {
 const SAVE_KEY = "dos-save-v5"; // v2/v3/v4 は魂システム刷新で孤立させた (v5 = 魂を1体ごと個別管理)
 // 保存する G のフィールド (アニメーション等の一時状態は除外)
 const SAVE_FIELDS = [
-  "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown",
+  "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound",
   "gold", "soulPts", "redSoul", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
   "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "rumor", "rumorCooldown", "activeRumor", "codex", "story", "dragonSlain", "stats",

@@ -4,6 +4,7 @@
 // 上位ランクの魂は下位ランクの代替になり、発現ランクは「rank>=r が3部位以上」を満たす最大の r。
 // 5部位すべて同系列職業 (同clsKey) でランクボーナス発生。上位ランクはダンジョンでは出ず、融合で入手。
 import { recalc, registerJobGear } from "./items.js";
+import { JOB_LORE_RANKS } from "./joblore.js";
 
 export const PARTS = ["head", "rhand", "lhand", "body", "legs"];
 export const PART_LABEL = { head: "頭", rhand: "右手", lhand: "左手", body: "胴体", legs: "足" };
@@ -428,6 +429,14 @@ export const JOB_LORE = {
   archmage:    { desc: "深淵の知識に到達した大魔導の魂。その波動は破壊の理そのもの。", tips: "深淵の理で燃費と弱点看破を両立した呪文砲台。深淵の波動で単体を粉砕する。" },
   chaplain:    { desc: "教えを守るために武装した護教官の魂。法障壁が全ての攻撃を防ぐ。", tips: "聖盾でブレスや呪文まで肩代わりできる。法障壁で隊全体に魔障壁を配る究極の守護聖職者。" },
 };
+
+// 職業×ランクの説明文・活用法を返す (ランク別が無ければ系列共通の JOB_LORE にフォールバック)
+export function jobLoreFor(jobKey, rank) {
+  const r = Math.max(1, Math.min(5, rank || 1));
+  const arr = JOB_LORE_RANKS[jobKey];
+  if (arr && arr[r - 1]) return arr[r - 1];
+  return JOB_LORE[jobKey] || {};
+}
 
 // ===== 魂ランクの発現条件テキスト (図鑑用) =====
 export function jobRankCondText(jobKey, rank) {
