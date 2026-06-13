@@ -4184,8 +4184,9 @@ function dollChip(d) {
   info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
   info.appendChild(el("div", "tw-chipc", `${d.cls} Lv${d.jobLv || 1}`));
   chip.appendChild(info);
-  chip.appendChild(el("div", "tw-chiphp",
-    d.alive ? `HP ${d.hp}/${d.maxhp}` : `⏳${fmtRemain(Math.max(0, (d.reviveAt || Date.now()) - Date.now()))}`));
+  chip.appendChild(d.alive
+    ? el("div", "tw-chiphp", `HP ${d.hp}/${d.maxhp}`)
+    : reviveTimerEl("div", "tw-chiphp", "⏳", d));
   return chip;
 }
 
@@ -4274,9 +4275,10 @@ function rosterRow(d, onClick) {
   info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
   info.appendChild(el("div", "tw-chipc", d.primary == null ? "空の人業 ・ メイン魂なし" : `${d.cls} 魂Lv${d.jobLv || 1}`));
   row.appendChild(info);
-  row.appendChild(el("div", "tw-chiphp",
-    d.primary == null ? "編成不可" :
-    d.alive ? `HP ${d.hp}/${d.maxhp}` : `⏳${fmtRemain(Math.max(0, (d.reviveAt || Date.now()) - Date.now()))}`));
+  row.appendChild(
+    d.primary == null ? el("div", "tw-chiphp", "編成不可") :
+    d.alive ? el("div", "tw-chiphp", `HP ${d.hp}/${d.maxhp}`) :
+    reviveTimerEl("div", "tw-chiphp", "⏳", d));
   row.addEventListener("click", onClick);
   return row;
 }
@@ -6409,6 +6411,26 @@ function fmtRemain(ms) {
   return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
 }
 
+// 帰還タイマーの「生きた」表示要素を作る。class js-revt + dataset を持ち、
+// 下の 1秒ごとのティッカーが残り時間をリアルタイムに描き替える (全画面再描画はしない)。
+function reviveTimerEl(tag, cls, prefix, d) {
+  const at = (d.reviveAt || Date.now());
+  const node = el(tag, cls, prefix + fmtRemain(Math.max(0, at - Date.now())));
+  node.classList.add("js-revt");
+  node.dataset.reviveAt = String(at);
+  node.dataset.prefix = prefix;
+  return node;
+}
+
+// 帰還タイマーを1秒ごとに更新 (DOMのテキストだけ書き替え、秒数が1秒ずつ減る)
+setInterval(() => {
+  const now = Date.now();
+  for (const node of document.querySelectorAll(".js-revt")) {
+    const at = Number(node.dataset.reviveAt) || now;
+    node.textContent = (node.dataset.prefix || "") + fmtRemain(Math.max(0, at - now));
+  }
+}, 1000);
+
 // 砕けた人業をすべてHP1で生還させる (生存者がいる帰還・赤い魂帰還で使う)
 function reviveAllAtHp1() {
   for (const d of allDolls()) {
@@ -7066,8 +7088,7 @@ function renderStatus() {
   if (p.isDoll && !p.alive) {
     if (!p.reviveAt) setReviveTimers();
     const box = el("div", "st-revive");
-    const remain = Math.max(0, (p.reviveAt || Date.now()) - Date.now());
-    box.appendChild(el("div", "st-revt", `⏳ 帰還まで ${fmtRemain(remain)}`));
+    box.appendChild(reviveTimerEl("div", "st-revt", "⏳ 帰還まで ", p));
     box.appendChild(el("div", "tw-note", "他の冒険者が捜索・救出している…"));
     const b = btn(`🔴1 で帰還を早める`, () => tryHastenRescue(p));
     b.className = "btn primary";
