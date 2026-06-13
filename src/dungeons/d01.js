@@ -8,7 +8,8 @@ export const monsters = defMonsters([
     desc: "犬の頭を持つ小鬼。打ち捨てられた牢を住処とし、囚人の遺品を漁って身を飾る。一匹では臆病だが、数を頼みに群れて錆びた得物を振り回し、隙あらば懐の金品をくすねる。" },
   { id: "d01_skeleton", name: "囚人の亡骸", race: "undead", element: "dark", artKey: "skeleton", rank: 2,
     hp: 22, atk: 11, def: 4, spd: 7, soul: 16, gold: 12, soulClass: "thief",
-    desc: "裁きも赦しも無いまま牢で朽ち果てた者の骨。残った怨みだけが関節を軋ませ、出口を求めて鉄格子を掻きむしり続ける。その虚ろな眼窩は、近づく生者を看守と取り違えて襲いかかる。" },
+    magWeak: 1.5, // 朽ちて脆い骨は魔法の一撃で砕ける
+    desc: "裁きも赦しも無いまま牢で朽ち果てた者の骨。残った怨みだけが関節を軋ませ、出口を求めて鉄格子を掻きむしり続ける。その虚ろな眼窩は、近づく生者を看守と取り違えて襲いかかる。風化した骨は脆く、魔法の一撃で容易く砕け散る。" },
   { id: "d01_gaoler", name: "牢番オーク", race: "humanoid", element: "earth", artKey: "orc", rank: 2, boss: true,
     palette: tint(ARTS.orc.palette, "#3a2a1a", 0.2),
     hp: 70, atk: 16, def: 7, spd: 5, soul: 60, gold: 80, soulClass: "knight",
