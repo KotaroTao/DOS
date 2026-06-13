@@ -4662,8 +4662,8 @@ function claimAchievement(a) {
 
 // ---- 王宮: メインストーリー「百の迷宮と、魂の王」 ----
 // 勅命を受ける → 対象迷宮が出現 → 踏破 → 王宮で報告し報酬 → 次の勅命、のループ。
-// 章テキスト/報酬は story.js (10幕構成・各章=迷宮1つ)。
-// G.msq = { n: 章 (1-100), state: "active"(攻略中) | "report"(報告可) | "offer"(次章待ち) | "end" }
+// 物語テキスト/報酬は story.js (20層構成・1層=5迷宮。層の最初でオープニング、層末でエンディング)。
+// G.msq = { n: 迷宮番号 (1-100), state: "active"(攻略中) | "report"(報告可) | "offer"(次の勅命待ち) | "end" }
 
 // 勅命シーン: 金縁のカードで台詞を流す
 function showStoryScene(title, lines, rewardText, onClose, btnLabel = "御意") {
@@ -4690,12 +4690,12 @@ function reportMainQuest() {
   const n = ms.n;
   const r = msqReward(n);
   const rwText = `下賜: 💰${r.gold} + ✦${r.soulPts}` + (r.redSoul ? ` + 🔴${r.redSoul}` : "");
-  showStoryScene(`第${n}章 完遂`, msqReportLines(n), rwText, () => {
+  showStoryScene(`第${actOf(n)}層 「${ACTS[actOf(n) - 1].title}」`, msqReportLines(n), rwText, () => {
     G.gold += r.gold;
     G.soulPts += r.soulPts;
     G.redSoul += r.redSoul || 0;
     SFX.itemget(); buzz([0, 30, 60, 30]);
-    log(`勅命「第${n}章」の完遂を報告した。`, "win");
+    log(`「${DUNGEONS[n - 1].name}」の踏破を報告した。`, "win");
     updateTopbar();
     if (n >= 100) {
       G.msq = { n: 101, state: "end" };
@@ -4727,7 +4727,7 @@ function acceptMainQuest() {
   G.dungeonIdx = ms.n - 1;  // 新しい迷宮を選択しておく
   townBandOpen = null;      // 迷宮選択は新迷宮の層域を開いた状態に戻す
   const dn = DUNGEONS[ms.n - 1];
-  showStoryScene(`第${ms.n}章 「${ACTS[actOf(ms.n) - 1].title}」`, msqOrderLines(ms.n), null, () => {
+  showStoryScene(`第${actOf(ms.n)}層 「${ACTS[actOf(ms.n) - 1].title}」`, msqOrderLines(ms.n), null, () => {
     SFX.itemget(); buzz([0, 30, 60, 30]);
     log(`新たな勅命を拝命した。「${dn.name}」が地図に記された。`, "win");
     showToast(`🗺 新たな迷宮「${dn.short}」出現`);
@@ -4847,11 +4847,11 @@ function renderPalace() {
   } else if (ms.state === "active") {
     const tdn = DUNGEONS[ms.n - 1];
     const box = el("div", "tw-rumor");
-    box.appendChild(el("div", "tw-rumors", `第${ms.n}章 「${ACTS[actOf(ms.n) - 1].title}」`));
-    box.appendChild(el("div", "tw-rumort", `勅命: 「${tdn.name}」を踏破し、その主を討て。`));
+    box.appendChild(el("div", "tw-rumors", `第${actOf(ms.n)}層 「${ACTS[actOf(ms.n) - 1].title}」`));
+    box.appendChild(el("div", "tw-rumort", `勅命: 「${tdn.name}」を踏破${ms.n % 5 === 0 ? "し、その主を討て。" : "せよ。"}`));
     box.appendChild(el("div", "tw-note", "果たしたら王宮へ戻り、報告せよ。"));
     townEl.appendChild(box);
-    const re = btn("👑 勅命を聞き直す", () => showStoryScene(`第${ms.n}章 「${ACTS[actOf(ms.n) - 1].title}」`, msqOrderLines(ms.n), null, null));
+    const re = btn("👑 勅命を聞き直す", () => showStoryScene(`第${actOf(ms.n)}層 「${ACTS[actOf(ms.n) - 1].title}」`, msqOrderLines(ms.n), null, null));
     re.className = "btn tw-add";
     townEl.appendChild(re);
   } else if (ms.state === "report") {
@@ -4859,7 +4859,7 @@ function renderPalace() {
     b.className = "btn tw-add tw-msq";
     townEl.appendChild(b);
   } else if (ms.state === "offer") {
-    const b = btn(`👑 謁見する — 新たな勅命 (第${ms.n + 1}章)`, () => acceptMainQuest());
+    const b = btn(`👑 謁見する — 新たな勅命 (第${actOf(ms.n + 1)}層)`, () => acceptMainQuest());
     b.className = "btn tw-add tw-msq";
     townEl.appendChild(b);
   }
