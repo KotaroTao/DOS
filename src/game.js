@@ -5453,7 +5453,15 @@ function renderShop() {
       actions.style.gap = "8px";
       if (unid.length > 0) {
         const idTotal = unid.reduce((s, it) => s + sellPrice(it), 0);
-        const idBtn = btn(`一括鑑定 (${unid.length}点 / 💰${idTotal})`, () => bulkIdentify(who));
+        const idBtn = btn(`一括鑑定 (${unid.length}点 / 💰${idTotal})`, () => {
+          showConfirm({
+            title: "未鑑定品をまとめて鑑定しますか？",
+            lines: [`${who.name}の未鑑定品 ${unid.length}点を、安い順に所持金が続く限り鑑定します。`,
+              `最大で 💰${idTotal} を支払います（所持金 💰${G.gold}）。`],
+            okLabel: "鑑定する",
+            onOk: () => bulkIdentify(who),
+          });
+        });
         idBtn.className = "btn tw-add";
         idBtn.style.flex = "1";
         if (G.gold < sellPrice(unid[0])) idBtn.disabled = true; // 1点も鑑定できないなら無効
@@ -5462,7 +5470,13 @@ function renderShop() {
       if (sellable.length > 0) {
         const total = sellable.reduce((s, it) => s + sellPrice(it), 0);
         const bulkBtn = btn(`一括売却 (${sellable.length}点 / 💰${total})`, () => {
-          for (const it of sellable) sellItem(who, it, sellPrice(it));
+          showConfirm({
+            title: "持ち物をまとめて売却しますか？",
+            lines: [`${who.name}の売却可能な ${sellable.length}点 をすべて売ります。`,
+              `合計 💰${total} を獲得します。`],
+            okLabel: "売却する",
+            onOk: () => { for (const it of sellable) sellItem(who, it, sellPrice(it)); },
+          });
         });
         bulkBtn.className = "btn tw-add";
         bulkBtn.style.flex = "1";
