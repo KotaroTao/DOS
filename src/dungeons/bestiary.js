@@ -638,6 +638,46 @@ const NEW_DEFS = [
   { id: "bs_archivist", name: "大書庫の主", rank: 10, boss: true, race: "undead", element: "dark", artKey: "archivist", soulClass: "sage",
     role: "summoner", summonKey: "bs_grimoirebeast", ability: "drain", magResist: 0.5, physResist: 0.4,
     desc: "魂繰りの術のすべてを記し、最初の手記を守り続ける大書庫の主。蠢く魔導書を次々と呼び、生者の命と知識を吸い上げる。最初の魂繰りがなぜ救い手から檻の番人に堕ちたか――その答えを、誰にも読ませまいとしている。" },
+  // -- 第14層「屍蝋の回廊」 (rank 10・闇/王家の廟。朽ちぬ亡骸) --
+  { id: "bs_wickmummy", name: "屍蝋の王", rank: 10, race: "undead", element: "dark", artKey: "wickmummy",
+    ability: "drain", critical: undefined, physResist: 0.4, enrage: true, desc: "魂を抜かれて腐ることすら許されず、蝋のように固まった歴代の王。乾いた手で生者の命を吸い、王冠の重みのまま立ち上がる。朽ちぬことは、安らぎではなく罰だ。" },
+  { id: "bs_embalmer", name: "防腐処理の番人", rank: 10, race: "specter", element: "dark", artKey: "embalmer",
+    ability: "drain", regen: 0.08, physResist: 0.4, desc: "王の亡骸を腐らせぬよう、永遠に処置を続ける防腐師の霊。生者をも『標本』にしようと命を抜き取り、自らの崩れた体も薬で繕う。完璧な保存だけが、こいつの執念だ。" },
+  { id: "bs_graveroyalguard", name: "不朽の近衛", rank: 10, race: "armored", element: "dark", artKey: "graveroyalguard",
+    ability: "critical", barrier: 2, physResist: 0.4, desc: "王の死後も廟を守り続ける、屍蝋と化した近衛兵。錆びぬ槍で急所を貫き、王家の紋章を刻んだ鎧が刃を阻む。守るべき王は、とうに空の棺の中だ。" },
+  { id: "bs_waxhorror", name: "蝋の塊", rank: 10, race: "amorph", element: "dark", artKey: "waxhorror",
+    ability: "paralyze", physResist: 0.5, multistrike: 2, desc: "防腐の蝋がこぼれ溜まり、無数の顔を浮かべて蠢く塊。触れた者を蝋で固めて痺れさせ、幾つもの腕で打ち据える。塗り込められた顔は、皆この廟に眠る者たちだ。" },
+  { id: "bs_mournfulchancellor", name: "先代の宰相", rank: 10, race: "specter", element: "dark", artKey: "mournfulchancellor",
+    ability: "weaken", role: "summoner", summonKey: "bs_corpsewax", magResist: 0.4, desc: "歴代の王に仕え、その秘密を抱えて廟に葬られた宰相の霊。呪詛で挑む者の力を奪い、眠れる屍蝋人を呼び起こす。『陛下、それ以上は』と、今も誰かを諫め続けている。" },
+  { id: "bs_candlewraith", name: "蝋燭の霊", rank: 10, race: "specter", element: "dark", artKey: "candlewraith",
+    ability: "drain", magWeak: 1.3, evasive: true, desc: "廟を照らし続ける弔いの蝋燭に宿った霊。近づく者の命を芯にして燃え、その炎は揺らめいて刃をかわす。蝋燭が尽きぬ限り、王の眠りは照らされ続ける。" },
+  { id: "bs_preservedbeast", name: "剥製の獣", rank: 10, race: "beast", element: "dark", artKey: "preservedbeast",
+    ability: "critical", multistrike: 2, physResist: 0.4, desc: "王の狩りの戦利品として剥製にされ、なお動き出した獣。乾いた爪で急所を続けざまに抉り、防腐された皮は刃を通しにくい。ガラスの目の奥に、まだ怒りが宿っている。" },
+  { id: "bs_tombpriest", name: "埋葬司祭", rank: 10, race: "undead", element: "dark", artKey: "tombpriest",
+    ability: "drain", regen: 0.08, magResist: 0.4, desc: "歴代の王を弔い続け、自らも廟に取り込まれた司祭の骸。葬送の祈りで生者の命を奪い、その祈祷が自らの崩れを繕う。誰の葬儀も、まだ終わっていないと信じている。" },
+  { id: "bs_sarcophagusguard", name: "石棺の守り手", rank: 10, race: "construct", element: "dark", artKey: "sarcophagusguard",
+    ability: "critical", physResist: 0.5, barrier: 2, desc: "王の石棺そのものが守護者となって動き出した像。重い蓋の縁で急所を断ち、黄金の装飾が刃を弾く。中の王を守るためか、出さぬためか――蓋は固く閉ざされている。" },
+  { id: "bs_wailingnoble", name: "嘆く先王", rank: 10, race: "specter", element: "dark", artKey: "wailingnoble",
+    ability: "weaken", magWeak: 1.3, evasive: true, desc: "若さを保ったまま氷ではなくこの廟へ移された、先代の王の霊。嘆きの声で生者の気力を萎えさせ、未練のままに彷徨う。『余は、まだ終われぬ』と、空の棺を見つめている。" },
+  { id: "bs_coffincrawler", name: "棺這いの蟲", rank: 10, race: "insect", element: "dark", artKey: "coffincrawler",
+    ability: "critical", multistrike: 2, lifesteal: 0.3, swift: true, desc: "棺の中の亡骸を喰らって肥えた、無数の脚をもつ蟲。素早く棺から這い出て急所に喰らいつき、喰らうほどに肥大する。王の眠りを、内側から食い荒らしている。" },
+  { id: "bs_mummylord", name: "ミイラの将", rank: 10, race: "armored", element: "dark", artKey: "mummylord",
+    ability: "critical", enrage: true, physResist: 0.5, desc: "王に殉じて自ら包帯を巻き、屍蝋となった将軍。黄金の戦装束で急所を貫き、傷を負うほど主への忠義で猛る。死してなお、ただ一人の王を守り続けている。" },
+  { id: "bs_deathmask", name: "死面", rank: 10, race: "construct", element: "dark", artKey: "deathmask",
+    ability: "paralyze", evasive: true, barrier: 2, desc: "歴代の王の死に顔を象った、宙を漂う黄金の仮面の群れ。覗き込んだ者を石のように固まらせ、ひらりと翻って刃をかわす。仮面の数だけ、ここに眠る王がいる。" },
+  { id: "bs_corpsewax", name: "屍蝋人", rank: 10, race: "undead", element: "dark", artKey: "corpsewax",
+    ability: "paralyze", pack: true, regen: 0.06, desc: "腐ることを許されず、蝋のように固まった廟の住人たちの群れ。冷たい手で掴んで痺れさせ、崩しても溶けた蝋から固まり直す。皆かつて、王に仕えた者たちだ。" },
+  { id: "bs_funeralwraith", name: "葬列の霊", rank: 10, race: "specter", element: "dark", artKey: "funeralwraith",
+    ability: "weaken", pack: true, magResist: 0.4, desc: "終わらぬ王の葬列を、列をなして練り歩く弔問客の霊。すれ違う者の気力を奪い、群れで静かに取り囲む。誰の葬列なのかは、参列者自身も忘れている。" },
+  { id: "bs_boneprince", name: "白骨の王子", rank: 10, race: "undead", element: "dark", artKey: "boneprince",
+    ability: "critical", multistrike: 2, role: "summoner", summonKey: "bs_corpsewax", desc: "王位を継ぐ前に廟へ入れられた、王子の白骨。細身の剣で急所を続けざまに突き、廟の従者を呼び従える。継げなかった王冠を、今も骨の頭に載せている。" },
+  { id: "bs_crypthound", name: "墓守の番犬", rank: 10, race: "beast", element: "dark", artKey: "crypthound",
+    ability: "critical", swift: true, pack: true, desc: "王の廟を守るために殉葬された、黄金の首輪の番犬の群れ。素早く取り囲んで急所に喰らいつき、侵入者を一人も通さない。主の亡骸の匂いだけを、永遠に守り続ける。" },
+  { id: "bs_shroudkeeper", name: "経帷子の守人", rank: 10, race: "specter", element: "dark", artKey: "shroudkeeper",
+    ability: "paralyze", lifesteal: 0.3, evasive: true, desc: "王に被せる経帷子を抱え、廟を巡る守人の霊。垂れた布で生者を絡めて痺れさせ、その温もりを吸う。新たに包む亡骸を、いつも探している。" },
+  { id: "bs_cryptking", name: "屍蝋の回廊の主", rank: 10, boss: true, race: "undead", element: "dark", artKey: "cryptking", soulClass: "hexer",
+    role: "summoner", summonKey: "bs_graveroyalguard", ability: "drain", physResist: 0.5, enrage: true,
+    desc: "屍蝋の回廊を統べる、朽ちることを許されぬ最も古い王。近衛を呼び従え、生者の命と若さを吸い上げる。回廊の奥の空の棺は、今の王のために用意されたもの――その日まで、こいつは玉座を空けて待っている。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1581,6 +1621,7 @@ export const BOSS_ORDER = {
 // 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
 // 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
 const LAYER_BOSS_OVERRIDE = {
+  14: "bs_cryptking", // 第14層「屍蝋の回廊」: 屍蝋の回廊の主 (rank10・闇ボス)
   13: "bs_archivist", // 第13層「魔導書庫」: 大書庫の主 (rank10・闇ボス)
   12: "bs_cavernlord", // 第12層「地底大空洞」: 大空洞の主 (rank10・土ボス)
   11: "bs_arenalord", // 第11層「闘技場跡」: 闘技場の支配者 (rank10・剣闘ボス)
@@ -1727,6 +1768,15 @@ export const LAYER_POOLS = {
     "bs_tomeguardian", "bs_astralwraith",
     // 既存の闇/魔導系を再配置
     "bs_elderlich", "bs_soulreaper", "bs_cosmicwraith",
+  ],
+  // 第14層「屍蝋の回廊」: 闇/王家の廟中心、全rank10。闇騎士2体を近衛として再配置
+  14: [
+    "bs_wickmummy", "bs_embalmer", "bs_graveroyalguard", "bs_waxhorror", "bs_mournfulchancellor",
+    "bs_candlewraith", "bs_preservedbeast", "bs_tombpriest", "bs_sarcophagusguard", "bs_wailingnoble",
+    "bs_coffincrawler", "bs_mummylord", "bs_deathmask", "bs_corpsewax", "bs_funeralwraith",
+    "bs_boneprince", "bs_crypthound", "bs_shroudkeeper",
+    // 既存の闇騎士を近衛として再配置
+    "bs_doomknight", "bs_voidknight",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
