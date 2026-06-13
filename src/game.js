@@ -274,6 +274,7 @@ const G = {
   rumor: null,        // 酒場で表示中の噂 (次回潜入で現実化)
   rumorCooldown: 0,   // 次の噂を聞けるUNIXタイムスタンプ(ms) — 30分クールダウン
   activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
+  deliveryQuests: null, // 酒場の納品依頼 [{itemId}] (最大3件。迷宮に潜るたびに入れ替わる)
   codex: { mon: {}, item: {}, job: {} }, // 図鑑 (モンスター/アイテム/職業)
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={蒐集品id:true}, claimed={"ランク:しきい値":true}
   lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
@@ -3286,11 +3287,15 @@ function resolveCell(cell) {
       }
       SFX.trap(); buzz([0, 40, 30, 40]);
       flashScreen("#5a8a2a");
+      // 床ダメージ率: 基本5% + 層に応じて微増 (層1=5% → 層20≈10.7%, 上限12%)。
+      // 深層ほど毒沼が脅威であり続けるようにする。
+      const layer = activeCfg().layer || layerOf(dungeonNumber(activeCfg()));
+      const pct = Math.min(0.12, 0.05 + (layer - 1) * 0.003);
       let anyDeath = false;
       const fallen = [];
       for (const p of G.party) {
         if (!p.alive) continue;
-        let dmg = Math.max(1, Math.ceil(p.maxhp * 0.05));
+        let dmg = Math.max(1, Math.ceil(p.maxhp * pct));
         if (resist === 1) dmg = Math.max(1, Math.ceil(dmg * 0.5));
         p.hp = Math.max(0, p.hp - dmg);
         if (p.hp === 0) { p.alive = false; anyDeath = true; fallen.push(p.name); log(`${p.name}は毒に沈んだ…`, "dmg"); }
@@ -4405,6 +4410,15 @@ function renderCombatCanvas() {
 // 敵にかかっている強化(▲)/弱体(▼)を名前プレート付近に小さなピルで描く。
 // 能力(攻/守/速)ごとに集約し、段階ぶんの矢印と最短残ターンを添える。
 const BUFF_KANJI = { atk: "攻", vit: "守", agi: "速" };
+// 強化/弱体が「かかった瞬間」に出すフロート文字と色 (敵味方共通)。
+// mods があれば能力ごとに 攻▲/守▼ … を並べ、無ければ汎用の 強化▲/弱体▼。
+function buffFloatText(h) {
+  const up = !!h.buff;
+  const m = h.mods || {};
+  const ks = Object.keys(m);
+  const body = ks.length ? ks.map((k) => `${BUFF_KANJI[k] || "◆"}${up ? "▲" : "▼"}`).join("") : (up ? "強化▲" : "弱体▼");
+  return { text: body, color: up ? "#7fe0a0" : "#ff9a8a" };
+}
 function drawEnemyBadges(e, baseX, yTop) {
   if (!e.alive || !e.effects || !e.effects.length) return;
   const groups = new Map();
@@ -4773,6 +4787,9 @@ function applyImpact(res) {
   // 回復対象ごとに横位置をずらし、わずかな時間差を付けて全員ぶんはっきり見せる
   const partyHeals = res.hits.filter((h) => h.target.side !== "enemy" && h.heal != null);
   let partyHealIdx = 0;
+  // 味方への強化/弱体フロートも複数人ぶん横に散らす
+  const partyModHits = res.hits.filter((h) => h.target.side !== "enemy" && (h.buff || h.debuff));
+  let partyModIdx = 0;
   for (const h of res.hits) {
     if (h.target.side === "enemy") {
       const pos = G.enemyPos[h.target.uid];
@@ -4789,10 +4806,24 @@ function applyImpact(res) {
       if (idx === 0 || !fx.flash[h.target.uid]) fx.flash[h.target.uid] = { t0: ht0 };
       if (h.dmg != null) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 18, text: String(h.dmg) + (h.crit ? "!" : ""), color: h.crit ? "#ffd84a" : "#fff", t0: ht0 });
       else if (h.heal != null) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 18, text: "+" + h.heal, color: "#7CFC7C", t0: ht0 }); // 敵の回復役による回復
+      // 敵にかかった強化/弱体も発動フロートで知らせる (ピル表示に加えて瞬間を可視化)
+      if (h.buff || h.debuff) { const mt = buffFloatText(h); fx.floats.push({ x: pos.cx + dx, y: pos.cy - 34, text: mt.text, color: mt.color, t0: ht0 }); }
       if (h.died) anyDeath = true;
     } else {
       // 味方が対象
-      if (h.heal != null) {
+      if (h.buff || h.debuff) {
+        // 強化/弱体が味方にかかった: 緑(▲)/赤(▼)のフロートで発動を知らせる (敵のピル表示と同様に可視化)
+        const mt = buffFloatText(h);
+        G.partyFx.set(h.target, h.buff ? "heal" : "hit");
+        const n = partyModHits.length, mi = partyModIdx++;
+        const fx0 = n > 1 ? view.width * (mi + 1) / (n + 1) : view.width / 2;
+        const fy0 = view.height - 26 - (mi % 2) * 16;
+        fx.floats.push({ x: fx0, y: fy0, text: mt.text, color: mt.color, t0: now + mi * stag });
+      } else if (h.cured) {
+        // 状態異常の治癒も知らせる
+        G.partyFx.set(h.target, "heal");
+        fx.floats.push({ x: view.width / 2, y: view.height - 26, text: "治癒✚", color: "#9be8ff", t0: now });
+      } else if (h.heal != null) {
         G.partyFx.set(h.target, "heal");
         // 複数人を回復する時は横に散らし、順に弾ませて全員の回復を見せる
         const n = partyHeals.length;
@@ -6539,48 +6570,86 @@ function rollTavernCrowd() {
   G.tavernCrowd = crowd;
 }
 
-// ---- 酒場の噂話: 次の潜入で必ず起きる「予兆」を生成し、盤面に反映 ----
+// ---- 酒場の噂話: 「選択中の潜入先」を読んだ予兆を生成する ----
+// 盤面型 (harvest/treasure/special) は次の潜入の開始階 (B1F) で現実になり (applyRumorToBoard)、
+// その威力は実際に潜る迷宮の層 (layer) に合わせてスケールする。
+// 情報型 (element/boss, info:true) は備えを促すだけで盤面は変えない。
 const RUMOR_SPEAKERS = ["隻眼の傭兵", "酔った盗掘者", "巡礼の僧", "宿の女将", "傷だらけの斥候", "黒衣の占い師"];
-
-function rollRumor() {
-  // 噂は次の潜入の開始階 (B1F) で必ず現実になる (applyRumorToBoard)。
-  // 文言もその階を指す (深い階を語ると、実際に起きる場所と食い違ってしまう)
-  const floor = 1;
-  const speaker = RUMOR_SPEAKERS[rand(RUMOR_SPEAKERS.length)];
-  const roll = Math.random();
-  // 2% で未発見の職業ヒント
-  if (roll < 0.02) {
-    const undiscovered = []; // 混成職は廃止 (ヒント噂は出さない)
-    if (undiscovered.length) {
-      const key = undiscovered[rand(undiscovered.length)];
-      const [baseK, subK] = key.split("+");
-      const bn = SOUL_CLASSES[baseK].label, sn = SOUL_CLASSES[subK].label;
-      return { type: "hybridHint", hybridKey: key, floor, speaker,
-        text: `「〈${bn}〉の魂を多く宿し、〈${sn}〉の魂を添えると……奇妙な力が宿るらしい。眉唾だがな。」` };
-    }
-  }
-  if (roll < 0.45) {
-    // あたたかい死体 (職業指定) の予兆
-    const clsKey = rollJobClass();
-    const cl = SOUL_CLASSES[clsKey].label;
-    return { type: "warmCorpse", clsKey, floor, speaker,
-      text: `「B${floor}Fで、まだあたたかい〈${cl}〉の死体を見た。魂が宿っているはずだ。」` };
-  } else if (roll < 0.70) {
-    return { type: "soulRich", floor, speaker,
-      text: `「B${floor}Fは死者が多い。あたたかい死体がいくつも転がっているとか…。」` };
-  } else if (roll < 0.90) {
-    return { type: "treasure", floor, speaker,
-      text: `「B${floor}Fの奥で金属の輝きを見たという話だ。宝箱がひとつ余分にあるかもな。」` };
-  }
-  return { type: "fountain", floor, speaker,
-    text: `「B${floor}Fには癒しの泉が湧いているらしい。傷ついたら探すといい。」` };
+// 層属性に有利を取る攻撃属性 (敵の弱点 = こちらが厚くすべき備え)
+const ELEM_COUNTER = { fire: "water", water: "earth", earth: "wind", wind: "fire", dark: "light", light: "dark" };
+// 特別階の予兆で「ピン留め」できる好特別階 (深層では伝説も加わる)
+function pickRumorSpecial(layer) {
+  const pool = [
+    { id: "bounty",   omen: "黄金の気配が満ちる「豊穣の間」が口を開けているらしい" },
+    { id: "soulTide", omen: "魂の奔流が渦巻いていると聞く" },
+    { id: "vault",    omen: "宝箱がいくつも転がる「黄金の蔵」があるという" },
+    { id: "springs",  omen: "癒しの霊泉が湧いているそうだ" },
+    { id: "healing",  omen: "癒しの霊気が満ちているらしい" },
+  ];
+  if (layer >= 12) pool.push({ id: "legend", omen: "伝説の眠る気配がある" });
+  return pool[rand(pool.length)];
 }
 
-// 盤面生成後に、予兆 (rumor) を反映する
+function rollRumor() {
+  const cfg = curDungeon();
+  const layer = cfg.layer || layerOf(dungeonNumber(cfg));
+  const speaker = RUMOR_SPEAKERS[rand(RUMOR_SPEAKERS.length)];
+  const dn = cfg.name || "次の迷宮";
+
+  // 潜入先に応じて成立する噂だけを [重み, 生成関数] で候補に積む
+  const cands = [];
+  // 豊穣の予兆: B1F に温かい死体。深層ほど数も魂の格も上がる
+  cands.push([30, () => {
+    const great = layer >= 8;
+    const clsKey = great ? rollGreatCorpseClass() : rollJobClass();
+    const cl = SOUL_CLASSES[clsKey].label;
+    return { type: "harvest", clsKey, great, floor: 1, speaker,
+      text: `「${dn}の入口あたりで、まだあたたかい〈${cl}〉の死体を見た。${great ? "並の魂ではないぞ。" : "魂が宿っているはずだ。"}」` };
+  }]);
+  // 財宝の予兆: B1F に格の高い宝箱 (中身は装備品確定・層相応のレベル底上げ)
+  cands.push([25, () => ({ type: "treasure", floor: 1, speaker,
+    text: `「${dn}の奥で金属の輝きを見たという。${layer >= 10 ? "相当な業物が眠っているかもしれん。" : "上物の宝箱がひとつ余分にあるかもな。"}」` })]);
+  // 特別階の予兆: B1F が好特別階になる
+  cands.push([20, () => {
+    const sp = pickRumorSpecial(layer);
+    return { type: "special", special: sp.id, floor: 1, speaker,
+      text: `「${dn}の最初の階に、${sp.omen}。見過ごすなよ。」` };
+  }]);
+  // 属性の予兆 (情報): 層属性と備えるべき属性
+  if (cfg.element && cfg.element !== "none" && ELEMENTS[cfg.element]) {
+    cands.push([15, () => {
+      const el = ELEMENTS[cfg.element].label;
+      const ce = ELEM_COUNTER[cfg.element];
+      const adv = ce && ELEMENTS[ce] ? `〈${ELEMENTS[ce].label}〉の備えを厚くしておけ。` : "属性の備えを見直せ。";
+      return { type: "element", floor: 1, speaker, info: true,
+        text: `「${dn}は〈${el}〉の気が満ちている。${adv}」` };
+    }]);
+  }
+  // 主の予兆 (情報): 層末ボスの正体と弱点
+  if (cfg.boss && MONSTERS[cfg.boss]) {
+    cands.push([12, () => {
+      const b = MONSTERS[cfg.boss];
+      const be = b.element && b.element !== "none" && ELEMENTS[b.element] ? `〈${ELEMENTS[b.element].label}〉を纏う` : "";
+      const tr = monsterTraits(b)[0];
+      const trTxt = tr ? `${tr.label}——${tr.desc}。` : "底知れぬ力を持つという。";
+      return { type: "boss", floor: 1, speaker, info: true,
+        text: `「${dn}の主は${be}「${b.name}」だ。${trTxt}心して挑め。」` };
+    }]);
+  }
+
+  const total = cands.reduce((s, c) => s + c[0], 0);
+  let r = Math.random() * total;
+  for (const c of cands) { if ((r -= c[0]) < 0) return c[1](); }
+  return cands[0][1]();
+}
+
+// 盤面生成後に、予兆 (rumor) を反映する。威力は実際に潜る迷宮の層に合わせる
 function applyRumorToBoard(board) {
   const r = G.activeRumor;
   if (!r) return;
   G.activeRumor = null;
+  if (r.info) return; // 属性・主の予兆は備えを促すだけ。盤面は変えない
+  const layer = activeCfg().layer || 1;
   // 行き止まり (開いた辺が1つ) のマスを候補にする
   const deadends = [];
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
@@ -6590,56 +6659,134 @@ function applyRumorToBoard(board) {
     if (open === 1) deadends.push(c);
   }
   const pickCell = () => deadends.length ? deadends.splice(rand(deadends.length), 1)[0] : null;
-  const setCorpse = (cls) => { const c = pickCell(); if (c) { c.type = "corpse"; c.cleared = false; c.corpseWarm = true; c.corpseClass = cls; } };
-  if (r.type === "warmCorpse") setCorpse(r.clsKey);
-  else if (r.type === "soulRich") { for (let i = 0; i < 3; i++) setCorpse(rollJobClass()); }
-  else if (r.type === "treasure") { const c = pickCell(); if (c) { c.type = "chest"; c.cleared = false; } }
-  else if (r.type === "fountain") {
-    // 泉は1階層に最大1つ。既にあれば追加しない
-    let hasFountain = false;
-    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (board.cells[y][x].type === "fountain") hasFountain = true;
-    if (!hasFountain) { const c = pickCell(); if (c) { c.type = "fountain"; c.cleared = false; } }
+  const setCorpse = (cls, great) => { const c = pickCell(); if (c) { c.type = "corpse"; c.cleared = false; c.corpseWarm = true; c.corpseClass = cls; if (great) c.corpseGreat = true; } };
+  if (r.type === "harvest") {
+    // 名指しの1体 + 層に応じた追加 (深層ほど多く、上位レアの魂が宿る)
+    const extra = layer >= 14 ? 2 : layer >= 7 ? 1 : 0;
+    setCorpse(r.clsKey, r.great);
+    for (let i = 0; i < extra; i++) {
+      const great = layer >= 8;
+      setCorpse(great ? rollGreatCorpseClass() : rollJobClass(), great);
+    }
+  } else if (r.type === "treasure") {
+    // 中身が必ず装備品の「特別な宝箱」。層に比例した装備レベル底上げ (上限+40)
+    const c = pickCell();
+    if (c) { c.type = "chest"; c.cleared = false; c.lootBonus = Math.min(40, layer * 2); }
+  } else if (r.type === "special") {
+    // B1F を指定の好特別階にピン留めする (本来1Fには出ない特別階を噂で呼び込む)
+    const def = SPECIAL_FLOORS.find((s) => s.id === r.special);
+    if (def) {
+      G.specialFloor = def.id;
+      if (def.board) def.board(board);
+      log(`噂どおりだ… この階は「${def.name}」だ。(${r.speaker}の話)`, "win");
+      return;
+    }
   }
   log(`噂どおりだ… (${r.speaker}の話)`, "sys");
+}
+
+// ---- 酒場の納品依頼: 求められた品を納めると、その品の格 (R1-20) に応じて職業の魂を授かる ----
+// 対象は「今 到達している深さまでに出現しうる品」からランダム3件。LR/専用装備は除外
+// (LOOT_IDS が exclusive を弾く)。常時最大3件で、迷宮に潜るたびに入れ替わる (rollDeliveryQuests)。
+const DELIVERY_BANDS = [
+  // max(R20) : [ [rarity, 体数, 確率], … ] (確率は合計1.0)
+  { max: 5,  rows: [["common", 2, 0.70], ["rare", 1, 0.20], ["epic", 1, 0.09], ["legend", 1, 0.01]] },
+  { max: 10, rows: [["common", 3, 0.60], ["rare", 2, 0.25], ["epic", 1, 0.13], ["legend", 1, 0.02]] },
+  { max: 15, rows: [["common", 4, 0.45], ["rare", 2, 0.30], ["epic", 1, 0.20], ["legend", 1, 0.05]] },
+  { max: 20, rows: [["common", 5, 0.40], ["rare", 3, 0.30], ["epic", 2, 0.20], ["legend", 1, 0.10]] },
+];
+function deliveryBand(r20) { return DELIVERY_BANDS.find((b) => r20 <= b.max) || DELIVERY_BANDS[DELIVERY_BANDS.length - 1]; }
+// 報酬を1つ抽選: [rarity, 体数]
+function rollDeliveryReward(r20) {
+  let r = Math.random();
+  for (const [rarity, count, p] of deliveryBand(r20).rows) { if ((r -= p) < 0) return [rarity, count]; }
+  const last = deliveryBand(r20).rows[deliveryBand(r20).rows.length - 1];
+  return [last[0], last[1]];
+}
+// 報酬テーブルの表示文
+function deliveryRewardDesc(r20) {
+  return deliveryBand(r20).rows.map(([rar, c, p]) => `${RARITY_LABEL[rar]}魂×${c} (${Math.round(p * 100)}%)`).join(" / ");
+}
+// 指定レアリティの職業をランダムに選ぶ
+function rollClassOfRarity(rarity) {
+  const pool = SOUL_KEYS.filter((k) => SOUL_CLASSES[k].rarity === rarity);
+  return pool.length ? pool[rand(pool.length)] : "fighter";
+}
+// 「今 到達している深さまでに出現しうる」品のid (LOOT_IDS = exclusive/LR を除く通常ドロップ品)
+function eligibleDeliveryItemIds() {
+  const idx = Math.min(DUNGEONS.length - 1, Math.max(0, (G.unlockedDungeons || 1) - 1));
+  const cap = (DUNGEONS[idx].lootLv || [1, 1])[1]; // 到達済み最深ダンジョンのドロップ帯上限 lv
+  return LOOT_IDS.filter((id) => (ITEMS[id].lv || 1) <= cap);
+}
+// 納品依頼を3件 (重複なし) 引き直す
+function rollDeliveryQuests() {
+  const pool = eligibleDeliveryItemIds();
+  const out = [], used = new Set();
+  for (let i = 0; i < 3 && pool.length; i++) {
+    let id, tries = 0;
+    do { id = pool[rand(pool.length)]; tries++; } while (used.has(id) && tries < 24);
+    if (used.has(id)) break;
+    used.add(id); out.push({ itemId: id });
+  }
+  return out;
+}
+function ensureDeliveryQuests() { if (!Array.isArray(G.deliveryQuests)) G.deliveryQuests = rollDeliveryQuests(); }
+// 対象アイテムが手持ち (人業の所持品。装備中・未鑑定は除く) にあるか
+function deliveryHolder(itemId) {
+  return allDolls().find((d) => (d.items || []).some((it) => it.id === itemId && !it.unidentified)) || null;
+}
+// 納品を実行: 手持ちから1つ消費し、品の格に応じた魂を授かる
+function deliverQuest(q) {
+  const it = ITEMS[q.itemId];
+  if (!it) return;
+  const holder = deliveryHolder(q.itemId);
+  if (!holder) { log("納品できる品が手元にない。", "sys"); SFX.ng(); return; }
+  const i = holder.items.findIndex((x) => x.id === q.itemId && !x.unidentified);
+  if (i < 0) { log("納品できる品が手元にない。", "sys"); SFX.ng(); return; }
+  holder.items.splice(i, 1);
+  recalcDoll(holder); holder.hp = Math.min(holder.hp, holder.maxhp); holder.mp = Math.min(holder.mp, holder.maxmp);
+  const [rarity, count] = rollDeliveryReward(it.r20 || 1);
+  const got = [];
+  for (let k = 0; k < count; k++) { const ck = rollClassOfRarity(rarity); addSoulInstance(ck); got.push(ck); }
+  recalcAllDolls();
+  // 納めた依頼は消える (次に潜るまで補充されない)
+  G.deliveryQuests = (G.deliveryQuests || []).filter((x) => x !== q);
+  const names = got.map((k) => SOUL_CLASSES[k].label);
+  const rare = rarity !== "common";
+  SFX.itemget(); buzz(rare ? [0, 40, 50, 40, 50, 150] : [0, 30, 60, 30]);
+  if (rarity === "legend") { flashScreen("#ffcf4a"); SFX.victory(); }
+  log(`${itemName(it)} を納品し、${RARITY_LABEL[rarity]}の魂を ${count} 体授かった。(${names.join("・")})`, "win");
+  showEvent({
+    sprite: jobSprite(got[0], 1),
+    banner: rare ? `★ ${RARITY_LABEL[rarity]}の魂 ×${count} ★` : `✦ 魂 ×${count} ✦`,
+    title: `「${it.name}」を納品`,
+    lines: [`${RARITY_LABEL[rarity]}の魂を ${count} 体 授かった。`, `${names.join("・")} の魂`, "所持魂 一覧に追加した。"],
+    accent: (SOUL_CLASSES[got[0]] || {}).glow || "#c9a227",
+    sparkle: rare,
+    btnLabel: "受け取る",
+    onClose: () => { updateTopbar(); renderTown(); },
+  });
+  autosave(true);
 }
 
 function renderTavern() {
   townEl.appendChild(townHeader("酒場「沈まぬ灯」"));
   townEl.appendChild(el("div", "tw-lead", "迷宮帰りの流れ者がたむろする。世界の噂や冒険のヒントを聞ける。(編成は人業の館)"));
 
-  // --- 酒場の顔ぶれ: 帰還ごとに入れ替わる3〜5名。各人が世界の噂・冒険のヒントを語る ---
-  if (!G.tavernCrowd || !G.tavernCrowd.length) rollTavernCrowd();
-  townEl.appendChild(el("div", "tw-h", "今 酒場にいる者たち"));
-  const crowd = el("div", "tw-mlist");
-  for (const m of (G.tavernCrowd || [])) {
-    const row = el("div", "tw-quest");
-    const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", `${m.icon || "🍺"} ${m.name}`));
-    info.appendChild(el("div", "tw-chipc", `― ${m.type}`));
-    info.appendChild(el("div", "tw-rumort", m.line));
-    row.appendChild(info);
-    crowd.appendChild(row);
-  }
-  townEl.appendChild(crowd);
-  townEl.appendChild(el("div", "tw-note", "顔ぶれは迷宮から帰還するたびに入れ替わる。"));
-
-  // 依頼と噂を扱えるのは「名の知れた魂繰り」(15迷宮踏破) から。それまでは情報を聞くだけの場。
+  // ===== 1) 酒場の噂話 (最上段) =====
+  // 噂を扱えるのは「名の知れた魂繰り」(15迷宮踏破) から。未解放でも見出しと案内は出す。
+  townEl.appendChild(el("div", "tw-h", "酒場の噂話"));
   if (!featureUnlocked("rumor")) {
     const lockBox = el("div", "tw-rumor");
-    lockBox.appendChild(el("div", "tw-rumors", "― まだ仕事の話はない ―"));
-    lockBox.appendChild(el("div", "tw-rumort", `酒場が依頼や噂を回すのは、名の知れた魂繰りが現れてからだ。15 迷宮を踏破すれば、情報屋も腰を上げよう。（現在 ${clearedDungeonCount()} 踏破）`));
+    lockBox.appendChild(el("div", "tw-rumors", "― まだ噂は回ってこない ―"));
+    lockBox.appendChild(el("div", "tw-rumort", `情報屋が噂を回すのは、名の知れた魂繰りが現れてからだ。15 迷宮を踏破すれば、腰を上げよう。（現在 ${clearedDungeonCount()} 踏破）`));
     townEl.appendChild(lockBox);
-    return;
-  }
-
-  // --- 噂話 ---
-  townEl.appendChild(el("div", "tw-h", "酒場の噂話"));
-  if (G.rumor) {
+  } else if (G.rumor) {
     const rb = el("div", "tw-rumor");
     rb.appendChild(el("div", "tw-rumors", `― ${G.rumor.speaker} ―`));
     rb.appendChild(el("div", "tw-rumort", G.rumor.text));
-    const noteText = G.rumor.type === "hybridHint"
-      ? "これは迷宮で現実になる話ではないが……真偽はお前が確かめるしかない。"
+    const noteText = G.rumor.info
+      ? "これは盤面に現れる話ではない。だが備えあれば憂いなし、だ。"
       : "この噂は、次に潜る迷宮で現実になる。";
     rb.appendChild(el("div", "tw-note", noteText));
     townEl.appendChild(rb);
@@ -6653,7 +6800,7 @@ function renderTavern() {
       coolBox.appendChild(el("div", "tw-rumort", `情報屋はまだ動いていない。あと約 ${mins} 分後に話せる。`));
       townEl.appendChild(coolBox);
     } else {
-      townEl.appendChild(el("div", "tw-note", "100ゴールドで噂話を一つ聞ける。迷宮に潜れば現実になるという…。"));
+      townEl.appendChild(el("div", "tw-note", `100ゴールドで噂話を一つ聞ける。情報屋は今 選んでいる迷宮（${curDungeon().name}）を読む。盤面の予兆は次の潜入で現実になり、属性や主の噂は備えの助けになる。`));
       const listenBtn = btn("🍺 噂を聞く (💰100)", () => {
         if (G.gold < 100) { log("ゴールドが足りない。", "bad"); SFX.ng(); return; }
         G.gold -= 100;
@@ -6668,107 +6815,54 @@ function renderTavern() {
     }
   }
 
-  // --- クエスト掲示板 (常設 + 日替わり) ---
-  const questRow = (q) => {
-    const row = el("div", "tw-quest" + (q.state === "done" ? " done" : ""));
+  // ===== 2) 納品依頼 (中段): 求められた品を納めると、品の格に応じた職業の魂が手に入る =====
+  ensureDeliveryQuests();
+  townEl.appendChild(el("div", "tw-h", "納品依頼"));
+  townEl.appendChild(el("div", "tw-note", "求められた品を納めれば、その品の格に応じて職業の魂を授かる。対象は今 到達している深さまでに出回る品。依頼は迷宮に潜るたびに入れ替わる。"));
+  const dl = el("div", "tw-mlist");
+  for (const q of G.deliveryQuests) {
+    const it = ITEMS[q.itemId];
+    if (!it) continue;
+    const r20 = it.r20 || 1;
+    const holder = deliveryHolder(q.itemId);
+    const inShop = (G.shopStock && G.shopStock[q.itemId] > 0);
+    const row = el("div", "tw-quest" + (holder ? " done" : ""));
     const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", (q.daily ? "🌙 " : "📜 ") + q.name));
-    info.appendChild(el("div", "tw-chipc", q.desc));
-    const rw = [`💰${q.reward.gold}`];
-    if (q.reward.soulPts) rw.push(`✦${q.reward.soulPts}`);
-    if (q.reward.redSoul) rw.push(`🔴${q.reward.redSoul}`);
-    if (q.reward.soul) rw.push(`${SOUL_CLASSES[q.reward.soul].label}の魂`);
-    info.appendChild(el("div", "tw-chipc", "報酬: " + rw.join(" + ") +
-      (q.state !== "avail" ? ` ・ 進捗 ${Math.min(q.progress, q.goal)}/${q.goal}` : "")));
+    const rn = itemRankName(it);
+    info.appendChild(el("div", "tw-chipn", `📦 「${it.name}」を納品`));
+    info.appendChild(el("div", "tw-chipc", `${SLOT_LABEL[it.slot] || it.slot || ""}${rn ? " ・ " + rn : ""} ・ アイテムR${r20}`));
+    info.appendChild(el("div", "tw-chipc", "報酬: " + deliveryRewardDesc(r20)));
+    // 手持ち / 商店に対象があるかを示す
+    if (holder) info.appendChild(el("div", "tw-chiphp", `🎒 手持ちにあり（${holder.name}）`));
+    else if (inShop) info.appendChild(el("div", "tw-chipc", "🏪 商店に並んでいる"));
+    else info.appendChild(el("div", "tw-chipc", "― まだ手元にない ―"));
     row.appendChild(info);
-    if (q.state === "avail") {
-      const b = btn("受注", () => { q.state = "active"; SFX.select(); log(`クエスト「${q.name}」を受注した。`, "sys"); renderTown(); });
-      b.className = "tw-small";
-      row.appendChild(b);
-    } else if (q.state === "active") {
-      row.appendChild(el("div", "tw-chiphp", "進行中"));
-    } else if (q.state === "done") {
-      const b = btn("報告する", () => claimQuest(q));
+    if (holder) {
+      const b = btn("納品する", () => deliverQuest(q));
       b.className = "tw-small primary";
       row.appendChild(b);
     }
-    return row;
-  };
-
-  // 日替わり依頼 (毎日3件。日付が変わると入れ替わる)
-  ensureDailyQuests();
-  townEl.appendChild(el("div", "tw-h", "今日の依頼 — 日替わり"));
-  const dql = el("div", "tw-mlist");
-  for (const q of G.dailyQuests.list) {
-    if (q.state === "claimed") continue;
-    dql.appendChild(questRow(q));
+    dl.appendChild(row);
   }
-  if (![...dql.children].length) dql.appendChild(el("div", "tw-empty", "今日の依頼はすべて果たした。また明日。"));
-  townEl.appendChild(dql);
+  if (!G.deliveryQuests.length) dl.appendChild(el("div", "tw-empty", "今は納品依頼がない。迷宮に潜れば新たな品が求められる。"));
+  townEl.appendChild(dl);
 
-  townEl.appendChild(el("div", "tw-h", "依頼の掲示板"));
-  const ql = el("div", "tw-mlist");
-  for (const q of G.quests) {
-    if (q.state === "claimed") continue;
-    ql.appendChild(questRow(q));
+  // ===== 3) 情報提供: 酒場の顔ぶれ (最下段) =====
+  // 帰還ごとに入れ替わる3〜5名。各人が世界の噂・冒険のヒントを語る
+  if (!G.tavernCrowd || !G.tavernCrowd.length) rollTavernCrowd();
+  townEl.appendChild(el("div", "tw-h", "情報提供 — 今 酒場にいる者たち"));
+  const crowd = el("div", "tw-mlist");
+  for (const m of (G.tavernCrowd || [])) {
+    const row = el("div", "tw-quest");
+    const info = el("div", "tw-chipi");
+    info.appendChild(el("div", "tw-chipn", `${m.icon || "🍺"} ${m.name}`));
+    info.appendChild(el("div", "tw-chipc", `― ${m.type}`));
+    info.appendChild(el("div", "tw-rumort", m.line));
+    row.appendChild(info);
+    crowd.appendChild(row);
   }
-  if (![...ql.children].length) ql.appendChild(el("div", "tw-empty", "依頼はすべて果たされた。"));
-  townEl.appendChild(ql);
-
-  // --- 酒場の依頼人 (サブクエスト): 迷宮の階ごとに1件 ---
-  // 一度表示した迷宮の依頼は、別の迷宮を選んでも酒場に残り続ける (発見済みを蓄積)。
-  if (!G.subQuestSeen) G.subQuestSeen = [];
-  if (!G.subQuestSeen.includes(G.dungeonIdx)) G.subQuestSeen.push(G.dungeonIdx);
-  townEl.appendChild(el("div", "tw-h", "酒場の依頼人"));
-  townEl.appendChild(el("div", "tw-note", "迷宮ごとに、事情を抱えた依頼人がいる。依頼はどの迷宮にいても条件を満たせば達成できる。一度顔を合わせた依頼人は別の迷宮を選んでも酒場に残り、果たした依頼は消える。"));
-  const sql = el("div", "tw-mlist");
-  // 選択中の迷宮を先頭に、発見済みの迷宮順で並べる
-  const seenDuns = [...new Set(G.subQuestSeen)].filter((i) => DUNGEONS[i])
-    .sort((a, b) => (a === G.dungeonIdx ? -1 : b === G.dungeonIdx ? 1 : a - b));
-  let subAny = false;
-  for (const di of seenDuns) {
-    const defs = dungeonSubQuests(di).filter((def) => {
-      const st = G.subQuests[def.id];
-      return !(st && st.state === "claimed");
-    });
-    if (!defs.length) continue;
-    // どの迷宮の依頼かを明示する見出し (現在選択中は印を付ける)
-    const head = el("div", "tw-subh", `🗺 ${DUNGEONS[di].name}` + (di === G.dungeonIdx ? "（選択中）" : ""));
-    sql.appendChild(head);
-    for (const def of defs) {
-      const st = G.subQuests[def.id];
-      subAny = true;
-      const row = el("div", "tw-quest" + (st && st.state === "done" ? " done" : ""));
-      const info = el("div", "tw-chipi");
-      info.appendChild(el("div", "tw-chipn", `🕯 「${def.name}」`));
-      info.appendChild(el("div", "tw-chipc", `― ${def.npc.name} (${def.npc.title})`));
-      info.appendChild(el("div", "tw-chipc", def.text));
-      const rw = [`💰${def.reward.gold}`, `✦${def.reward.soulPts}`];
-      if (def.reward.redSoul) rw.push(`🔴${def.reward.redSoul}`);
-      info.appendChild(el("div", "tw-chipc", "報酬: " + rw.join(" + ") +
-        (st ? ` ・ 進捗 ${Math.min(st.progress, def.goal)}/${def.goal}` : "")));
-      row.appendChild(info);
-      if (!st) {
-        const b = btn("受ける", () => {
-          G.subQuests[def.id] = { ...def, state: "active", progress: 0 };
-          SFX.select();
-          log(`${def.npc.name}の依頼「${def.name}」を受けた。`, "sys");
-          renderTown();
-        });
-        b.className = "tw-small";
-        row.appendChild(b);
-      } else if (st.state === "active") {
-        row.appendChild(el("div", "tw-chiphp", "進行中"));
-      } else if (st.state === "done") {
-        const b = btn("報告する", () => claimQuest(st));
-        b.className = "tw-small primary";
-        row.appendChild(b);
-      }
-      sql.appendChild(row);
-    }
-  }
-  if (!subAny) sql.appendChild(el("div", "tw-empty", "依頼は、すべて果たされた。"));
-  townEl.appendChild(sql);
+  townEl.appendChild(crowd);
+  townEl.appendChild(el("div", "tw-note", "顔ぶれは迷宮から帰還するたびに入れ替わる。"));
 }
 
 function claimQuest(q) {
@@ -8530,6 +8624,8 @@ function enterDungeon(mutatorId) {
   G.run = { gold: 0, soulPts: 0, items: [], souls: [] };
   // 表示中の噂を確定し、この迷宮で現実化させる
   if (G.rumor) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
+  // 納品依頼は迷宮に潜るたびに入れ替わる
+  G.deliveryQuests = rollDeliveryQuests();
   G.state = "board";
   playBgm(fieldBgm());
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
@@ -8812,8 +8908,9 @@ function renderStatus() {
       const sp = SPELLS[k];
       const cost = spellCost(p, sp);
       const b = btn(`${sp.name} (MP${cost})`, () => campCast(p, k));
-      b.className = "tw-small";
-      if (p.mp < cost) b.disabled = true;
+      // MP不足でも disabled にはせず押せるようにする (campCast がトーストで理由を出す)。
+      // disabled にすると .tw-small は減光スタイルが効かず「押せるのに無反応」に見えるため。
+      b.className = "tw-small" + (p.mp < cost ? " dim" : "");
       sl.appendChild(b);
     }
     statusEl.appendChild(sl);
@@ -8836,10 +8933,18 @@ function invRow(p, it, sel) {
 function campCast(caster, spellKey) {
   const sp = SPELLS[spellKey];
   const cost = spellCost(caster, sp);
-  if (caster.mp < cost) { log("MPが足りない。", "sys"); return; }
+  // 失敗理由はステータス画面の裏のログに出しても見えないため、トーストでも知らせる。
+  if (caster.mp < cost) { log("MPが足りない。", "sys"); showToast(`MPが足りない (MP ${caster.mp}/${cost})`); SFX.miss(); return; }
   const cures = sp.kind === "cure" || !!sp.cure;     // 毒・麻痺・石化を治す
   const heals = (sp.power || 0) > 0;                  // HP回復量を持つ
   const powerOf = () => (sp.power || 0) + Math.round((caster.pie || 0) * 0.5);
+  // 対象がいないときに「なぜ唱えられないか」を明示するアラート文言
+  const noTargetMsg = () => {
+    if (heals && cures) return `${sp.name}: 傷つき・状態異常の仲間がいない`;
+    if (cures) return `${sp.name}: 状態異常の仲間がいない`;
+    if (sp.revive && !heals) return `${sp.name}: 倒れた仲間がいない`;
+    return `${sp.name}: 傷ついた仲間がいない`;
+  };
 
   // 1体へ効果を適用。何か起きたら true
   const applyTo = (t) => {
@@ -8864,11 +8969,39 @@ function campCast(caster, spellKey) {
   };
   const finish = () => { caster.mp -= cost; SFX.heal(); buzz(15); renderStatus(); renderParty(); };
 
+  // 回復結果を1人ぶんの行に整形 (回復系呪文でのみ使う)。
+  // ・蘇生: 「●●が蘇った (HP n/max)」
+  // ・満タン (元から満タン / 回復で満タンになった): 「●●は満タンだ」
+  // ・部分回復: 「●●のHPがn回復した」
+  const healLineFor = (t, before, wasDead) => {
+    if (wasDead && t.alive) return `${t.name}が蘇った (HP ${t.hp}/${t.maxhp})`;
+    if (t.alive && t.hp >= t.maxhp) return `${t.name}は満タンだ`;
+    const got = t.hp - before;
+    if (got > 0) return `${t.name}のHPが${got}回復した`;
+    return null;
+  };
+  // 回復結果ポップアップ (複数名ぶんを1枚に列挙)。閉じてもステータス画面に留まる。
+  const showHealResult = (lines) => showEvent({
+    sprite: ICONS.fountain, banner: "✦ 回復 ✦", accent: "#46c08f",
+    title: sp.name, lines, btnLabel: "閉じる",
+    onClose: () => { if (G.statusOpen) renderStatus(); },
+  });
+
   // 全体呪文は対象選択なしで全員へ (効果がなければMPは消費しない)
   if (sp.target === "all-ally") {
     let any = false;
-    for (const t of G.party) if (applyTo(t)) any = true;
-    if (any) finish(); else log("効果のある対象がいない。", "sys");
+    const lines = [];
+    for (const t of G.party) {
+      if (!t.alive && !sp.revive) continue;
+      const before = t.hp, wasDead = !t.alive;
+      if (applyTo(t)) any = true;
+      if (heals) { const ln = healLineFor(t, before, wasDead); if (ln) lines.push(ln); }
+    }
+    if (any) {
+      finish();
+      if (heals && lines.length) showHealResult(lines);
+      else showToast(`${sp.name}！ 隊を癒した`);
+    } else { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg()); SFX.miss(); }
     return;
   }
 
@@ -8880,7 +9013,7 @@ function campCast(caster, spellKey) {
     return false;
   };
   const targets = G.party.filter(benefits);
-  if (!targets.length) { log("効果のある対象がいない。", "sys"); return; }
+  if (!targets.length) { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg()); SFX.miss(); return; }
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card confirm-card");
   card.style.borderColor = "#46c08f";
@@ -8893,7 +9026,13 @@ function campCast(caster, spellKey) {
     const label = `${t.name} (HP ${t.hp}/${t.maxhp})${ail}${t.alive ? "" : " †"}`;
     const b = btn(label, () => {
       wrap.remove();
-      if (applyTo(t)) finish(); else log("効果のある対象ではなかった。", "sys");
+      const before = t.hp, wasDead = !t.alive;
+      if (applyTo(t)) {
+        finish();
+        if (heals) showHealResult([healLineFor(t, before, wasDead) || `${t.name}は満タンだ`]);
+        else showToast(`${sp.name}！ ${t.name}に`);
+      }
+      else { log("効果のある対象ではなかった。", "sys"); showToast("効果がなかった"); }
     });
     list.appendChild(b);
   }
@@ -9717,7 +9856,9 @@ function tickPoison() {
   for (const p of G.party) {
     if (!p.alive || p.ailment !== "poison") continue;
     any = true;
-    p.hp = Math.max(0, p.hp - 1);
+    // 毒状態の継続ダメージは最大HPの2% (高レベルでも脅威として機能するよう%化)
+    const dmg = Math.max(1, Math.ceil(p.maxhp * 0.02));
+    p.hp = Math.max(0, p.hp - dmg);
     if (p.hp === 0) { p.alive = false; SFX.die(); log(`${p.name}は毒に倒れた…`, "dmg"); }
   }
   imprintFallen();
@@ -9872,8 +10013,11 @@ function swipeStep(dx, dy) {
 const SWIPE_IGNORE = "button, a, [role=button], #party, #status-screen, #town-screen, #item-get, .confirm-overlay";
 document.addEventListener("pointerdown", (e) => {
   if (e.pointerType === "mouse") return;
-  if (e.target.closest(SWIPE_IGNORE)) return;
+  // どこを触っても、まず進行中のスワイプ連続移動ループを止める。
+  // (メンバーカード等 SWIPE_IGNORE をタップした際にループが走り続けると、
+  //  移動に伴う renderParty() でカードDOMが作り直されてタップ(openStatus)が失われる)
   stopSwipe();
+  if (e.target.closest(SWIPE_IGNORE)) return;
   swipe = { x: e.clientX, y: e.clientY, dir: null };
 });
 
@@ -9985,7 +10129,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "story", "dragonSlain", "stats",
+  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "story", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
 ];
 
@@ -10254,6 +10398,7 @@ function setupNewGame() {
   G.redSoul = 0;
   G.unlockedDungeons = 0; // 勅命 (第1章) を受けるまで、迷宮の場所は明かされない
   G.shopStock = { ...SHOP_INIT_STOCK };
+  G.deliveryQuests = rollDeliveryQuests();
   // 第0章「人業の生成」: 王宮で謁見 → 戦士・僧侶・盗賊・魔導士の魂×4+🔴100を受ける (granted) → 館の保管庫で人業を1体仕立て → 報告
   G.msq = { n: 0, state: "active", granted: false };
   codexSweepJobs();

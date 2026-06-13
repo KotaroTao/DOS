@@ -281,6 +281,7 @@ html, body { height: 100%; overflow: hidden; }
   align-items: center;
   justify-content: center;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation; /* タップをダブルタップ判定/パンに奪われず確実にクリックさせる */
   box-shadow: 0 2px 5px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.07);
   transition: box-shadow 0.1s ease, transform 0.05s ease;
 }
@@ -536,6 +537,8 @@ canvas.spr { image-rendering: pixelated; display: block; }
 }
 .sk-chip:active { background: #33335a; }
 .cdx-sktap { cursor: pointer; }
+/* タップ専用コントロール: スクロール領域内でもタップがパン/ダブルタップに奪われないようにする */
+.sk-chip, .tw-small, .pc { touch-action: manipulation; }
 .cdx-sktap:active { background: #23233a; }
 
 /* ===== ヒント ===== */
@@ -685,6 +688,8 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .tw-shoprow.equip-ok { background: #122017; box-shadow: inset 0 0 0 1px #3f8a5255; }
 .shop-eqmark { font-size: 10px; color: #7fd08a; font-weight: bold; margin-left: 5px; white-space: nowrap; }
 .tw-small { min-height: 34px; padding: 6px 10px; font-size: 11px; background: #221833; border: 1px solid #4a3568; border-radius: 6px; color: #e0d2f4; white-space: nowrap; }
+.tw-small.dim { opacity: 0.45; } /* MP不足の野営呪文: 押せるが理由をトーストで知らせる */
+.tw-small:disabled { opacity: 0.4; }
 .tw-small.danger { border-color: var(--danger); color: #ff9a98; }
 .tw-add { margin-top: 10px; min-height: 46px; }
 
