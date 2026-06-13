@@ -8306,7 +8306,8 @@ function renderStatus() {
 function invRow(p, it, sel) {
   const row = el("div", "st-invrow");
   const ic = el("span", "st-iicon"); ic.appendChild(spriteCanvas(it, 2)); row.appendChild(ic);
-  row.appendChild(el("span", "st-iname" + (it.unidentified ? " st-unid" : ""), itemName(it) + (it.unidentified ? " 🔍" : (it.cursed ? " 🔒" : ""))));
+  const unidMark = it.unidentified ? (it.idHardFail ? " 🔍✕" : " 🔍") : (it.cursed ? " 🔒" : "");
+  row.appendChild(el("span", "st-iname" + (it.unidentified ? (it.idHardFail ? " st-unid st-idfail" : " st-unid") : ""), itemName(it) + unidMark));
   row.addEventListener("click", () => { SFX.select(); showItemDetailPopup(p, { item: it, from: "bag", index: sel.index }); });
   return row;
 }
@@ -8649,6 +8650,9 @@ function itemCatText(it) {
 // ウィザードリィ風の情報テキスト行
 function detailLines(it) {
   if (it && it.unidentified) {
+    if (it.idHardFail) {
+      return ["？ 未鑑定の品 (鑑定失敗済み)", "鑑定するまで正体も性能もわからない。", "スキル鑑定に失敗したため、もう商店 (有料) でしか鑑定できない。"];
+    }
     return ["？ 未鑑定の品", "鑑定するまで正体も性能もわからない。", "商店 (有料) か、鑑定の心得がある仲間が必要だ。"];
   }
   const L = [];
@@ -8694,7 +8698,7 @@ function showItemDetailPopup(p, sel) {
   if (rc) ban.style.color = rc;
   card.appendChild(ban);
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 11)); card.appendChild(art);
-  card.appendChild(el("div", "ig-name", itemName(it) + (it.unidentified ? " 🔍" : (it.cursed ? " 🔒呪" : ""))));
+  card.appendChild(el("div", "ig-name", itemName(it) + (it.unidentified ? (it.idHardFail ? " 🔍✕" : " 🔍") : (it.cursed ? " 🔒呪" : ""))));
   for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
   if (isEquippable(it) && !it.unidentified && G.party.length > 1) card.appendChild(equipPartyChips(it));
   if (it.desc && !it.unidentified) card.appendChild(el("div", "ig-desc", it.desc));
@@ -8788,7 +8792,7 @@ function doIdentifySkill(m, it) {
     log(`${m.name}の鑑定は失敗した… この品は商店でしか鑑定できなくなった。`, "sys");
     showToast("🔍 鑑定失敗…");
   }
-  if (G.state === "status") renderStatus();
+  if (G.statusOpen) renderStatus(); // ステータス画面はオーバーレイ (G.state は board/town のまま) なので statusOpen で判定
   renderParty();
   autosave(true);
 }
