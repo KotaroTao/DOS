@@ -3645,7 +3645,8 @@ function disarmNeed(cRank = 1) {
   const f = 1 + (L - 1) * 0.12;                          // souls.js の lvlFactor と同式
   const q = 1 + ((cfg.rank || 1) - 1) * 0.14;            // ダンジョンランク: 深部は高ランク魂が前提
   const c = 1 + ((cRank || 1) - 1) * 0.16;               // 宝箱ランク: 上等な箱ほど狡猾な錠前
-  return 17 * f * q * c;
+  // 基準値を引き上げ、盗賊系 (disarmPower ×1.5) 以外が安易に95%へ届かないよう難度を上げる
+  return 23 * f * q * c;
 }
 
 function disarmChance(m, cRank = 1) {
@@ -3962,7 +3963,7 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false) {
   if (!legendary && !noGold && Math.random() < 0.5) {
     SFX.chest();
     const dRank = activeCfg().rank || 1;
-    const g = runGainGold(Math.round((10 + G.floor * 12 + rand(30)) * (1 + (dRank - 1) * 0.5) * rankMul));
+    const g = runGainGold(Math.round((10 + G.floor * 12 + rand(30)) * (1 + (dRank - 1) * 0.5) * rankMul * 2));
     updateTopbar();
     log(`宝箱から ${g} ゴールドを手に入れた！`, "win");
     showEvent({
@@ -4833,7 +4834,7 @@ function endBattle() {
     // 金運 (goldLuck) / 魂寄せ (soulLure) は戦闘報酬を底上げする (隊内最高Lvのみ)
     const { soul, gold } = b.rewards();
     const gl = partyPassiveLv("goldLuck"), sl = partyPassiveLv("soulLure");
-    const goldGot = runGainGold(Math.round(gold * (gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)));
+    const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)));
     const soulGot = runGainSoulPts(Math.round(soul * (sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1)));
     applyVictoryPassives();
     // 入手Soulの1/5を生存メンバー全員の全部位の魂に加算 → レベルアップ/スキル習得を集計
