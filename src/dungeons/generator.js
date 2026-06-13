@@ -194,6 +194,9 @@ export function generateDungeon(n) {
     pool,
     deepPool: deep,
     boss: isEnd ? LAYER_BOSS[layer - 1] : null,  // 層ボスは層末迷宮のみ。途中はボスなし (踏破で攻略)
+    // 層ボスを組み直す基準ランク。専用ロスター整備済みの層は layer+2 (層内最強格)、
+    // 暫定プールの層は ceil(layer/2) (通常敵と同帯) でボス倍率分だけ強い主にする。
+    bossRank: isEnd ? Math.min(10, LAYER_POOLS[layer] ? layer + 2 : Math.ceil(layer / 2)) : 0,
     bossScale: 1.0,
     enemyScale: Math.round((0.7 + (n - 1) / 99 * 1.4) * 100) / 100, // 全100迷宮で滑らかに上昇 0.7→2.1
     trapRate: Math.min(0.25, 0.04 + n * 0.002),

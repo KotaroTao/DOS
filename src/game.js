@@ -404,7 +404,7 @@ const LAYER_VISUALS = [
   { name: "地底大空洞", sym: "◆", accent: "#8a7a5a", bgm: "layer12", back: drawBackCavern, floorBase: "#13110d", floorTiles: ["#1b1813", "#16140f", "#12100b"], glow: "rgba(200,180,140,0.05)" }, // 12
   { name: "魔導書庫",   sym: "✪", accent: "#9d7ad0", bgm: "layer13", back: drawBackLibrary, floorBase: "#100e17", floorTiles: ["#181323", "#13101c", "#100d16"], glow: "rgba(160,120,225,0.06)" }, // 13
   { name: "屍蝋の回廊", sym: "‡", accent: "#b8a878", bgm: "layer14", back: drawBackOssuary, floorBase: "#14120d", floorTiles: ["#1c1912", "#17140e", "#13100a"], glow: "rgba(210,190,130,0.05)" }, // 14
-  { name: "溶鉄炉",     sym: "♨", accent: "#e07838", bgm: "field6",     floorBase: "#190e08", floorTiles: ["#23120a", "#1c0f08", "#160b06"], glow: "rgba(255,140,55,0.07)" },  // 15
+  { name: "溶鉄炉",     sym: "♨", accent: "#e07838", bgm: "layer15", back: drawBackForge, floorBase: "#190e08", floorTiles: ["#23120a", "#1c0f08", "#160b06"], glow: "rgba(255,140,55,0.07)" },  // 15
   { name: "深淵の聖堂", sym: "✝", accent: "#e0d28a", bgm: "field9",     floorBase: "#14130c", floorTiles: ["#1d1b10", "#18160d", "#13110a"], glow: "rgba(240,225,150,0.06)" }, // 16
   { name: "凍てつく王墓", sym: "❅", accent: "#a8c8e0", bgm: "field7",   floorBase: "#0d1217", floorTiles: ["#141e26", "#10181f", "#0c1217"], glow: "rgba(180,215,245,0.06)" }, // 17
   { name: "冥府の門",   sym: "☖", accent: "#8c6aa8", bgm: "field9",     floorBase: "#100d14", floorTiles: ["#17121e", "#130f19", "#0f0c14"], glow: "rgba(150,110,190,0.06)" }, // 18
@@ -916,6 +916,96 @@ function drawThemedBack(r, accent, sym) {
   }
   vctx.fillStyle = "rgba(255,255,255,0.08)";
   vctx.fillRect(2, 2, r.w - 4, 3);
+}
+
+// 層15「溶鉄炉」のカード裏面: 灼熱する溶鉱炉の炉口、溶けた鉄の樋、鉄床を打って散る火花
+function drawBackForge(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  // 工房の闇 (熱気の橙)
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#190e07");
+  bg.addColorStop(0.55, "#1f0f07");
+  bg.addColorStop(1, "#281307");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+
+  // 溶鉱炉 (右奥の煉瓦の炉)
+  const fTop = 10, fBot = H - 12;
+  vctx.fillStyle = "#3a2013";
+  vctx.beginPath();
+  vctx.moveTo(30, fBot); vctx.lineTo(30, fTop + 5);
+  vctx.quadraticCurveTo(30, fTop, 35, fTop);
+  vctx.lineTo(W - 3, fTop); vctx.lineTo(W - 3, fBot); vctx.closePath();
+  vctx.fill();
+  // 煉瓦の目地
+  vctx.strokeStyle = "rgba(0,0,0,0.35)";
+  vctx.lineWidth = 0.6;
+  for (let y = fTop + 5; y < fBot; y += 5) { vctx.beginPath(); vctx.moveTo(30, y); vctx.lineTo(W - 3, y); vctx.stroke(); }
+  for (let x = 34; x < W - 3; x += 7) { vctx.beginPath(); vctx.moveTo(x, fTop); vctx.lineTo(x, fBot); vctx.stroke(); }
+  // 炉口の灼熱グロー (アーチ)
+  const mx = 43, my = (fTop + fBot) / 2 + 2;
+  const fglow = vctx.createRadialGradient(mx, my, 1, mx, my, 13);
+  fglow.addColorStop(0, "rgba(255,220,120,0.95)");
+  fglow.addColorStop(0.4, "rgba(255,140,40,0.7)");
+  fglow.addColorStop(1, "rgba(255,90,20,0)");
+  vctx.fillStyle = fglow;
+  vctx.beginPath();
+  vctx.moveTo(mx - 7, my + 8); vctx.lineTo(mx - 7, my - 2);
+  vctx.arc(mx, my - 2, 7, Math.PI, 0);
+  vctx.lineTo(mx + 7, my + 8); vctx.closePath();
+  vctx.fill();
+
+  // 溶けた鉄の樋 (手前を流れる)
+  const channelY = H - 9;
+  const ch = vctx.createLinearGradient(0, channelY, 0, H - 4);
+  ch.addColorStop(0, "#ffd24a"); ch.addColorStop(0.5, "#ff7e1e"); ch.addColorStop(1, "#b53a06");
+  vctx.fillStyle = ch;
+  vctx.fillRect(4, channelY, W - 8, 5);
+  vctx.fillStyle = "#2a1810"; // 樋の縁
+  vctx.fillRect(4, channelY - 1.5, W - 8, 1.5);
+  vctx.fillRect(4, H - 4, W - 8, 1.5);
+  vctx.fillStyle = "rgba(255,240,180,0.5)"; // 流れる明部
+  for (let i = 0; i < 4; i++) {
+    const lx = ((i * 18 + t * 0.04) % (W - 10)) + 5;
+    vctx.fillRect(lx, channelY + 1, 5, 1.5);
+  }
+
+  // 金床 (手前左) と灼けた鉄塊
+  const ax = 15, ay = H - 16;
+  vctx.fillStyle = "#2c2c33"; // 台座
+  vctx.fillRect(ax - 4, ay + 4, 8, 6);
+  vctx.fillStyle = "#3c3c44"; // 金床
+  vctx.fillRect(ax - 6, ay, 12, 4);
+  vctx.fillRect(ax - 2, ay + 4, 4, 2);
+  vctx.beginPath(); vctx.moveTo(ax + 6, ay); vctx.lineTo(ax + 11, ay + 1.5); vctx.lineTo(ax + 6, ay + 3); vctx.closePath(); vctx.fill();
+  vctx.fillStyle = "rgba(180,185,200,0.3)";
+  vctx.fillRect(ax - 6, ay, 12, 1);
+  vctx.fillStyle = "rgba(255,150,40,0.9)"; // 灼けた鉄塊
+  vctx.fillRect(ax - 2, ay - 1.5, 5, 2);
+
+  // 火花 (鉄を打つ飛沫が放射状に散り、重力で落ちる)
+  const burst = (t % 900) / 900;
+  for (let i = 0; i < 10; i++) {
+    const ang = -Math.PI / 2 + (i - 5) * 0.28, sp = burst * 16;
+    const sx2 = ax + 1 + Math.cos(ang) * sp;
+    const sy2 = ay - 1 + Math.sin(ang) * sp + burst * burst * 8;
+    vctx.fillStyle = `rgba(255,${200 - Math.floor(burst * 120)},90,${1 - burst})`;
+    vctx.fillRect(sx2, sy2, 1, 1);
+  }
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
 }
 
 // 層14「屍蝋の回廊」のカード裏面: 壁龕に並ぶ屍蝋の頭蓋、滴る蝋のろうそくと揺らぐ炎
@@ -2986,7 +3076,7 @@ function askDescend(cell) {
     prompt,
     [
       { label, danger: boss, fn: () => {
-        if (boss) { log("迷宮の主が立ちはだかる！", "dmg"); startBattle(spawnBossEnemies(dn.boss, dn.bossScale * enemyScale()), cell); }
+        if (boss) { log("迷宮の主が立ちはだかる！", "dmg"); startBattle(spawnBossEnemies(dn.boss, dn.bossScale * enemyScale(), dn.bossRank), cell); }
         else if (clearNoBoss) clearDungeonNoBoss();
         else descend();
       } },

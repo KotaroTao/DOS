@@ -183,6 +183,28 @@ const NEW_DEFS = [
   { id: "bs_fortlord", name: "砦の主", rank: 6, boss: true, race: "armored", element: "none", artKey: "fortlord", soulClass: "fighter",
     role: "summoner", summonKey: "d03_sentinel", ability: "critical", enrage: true, physResist: 0.5, // 亡兵を呼び、急所を貫き、追い詰められて荒れ狂う
     desc: "砦を枕に討ち死にし、なお退却の許しを待ち続ける将の亡霊。錆びた大剣を提げ、無人の甲冑を次々と起こして陣を布く。分厚い甲冑は刃を阻み、城が落ちる時の絶望が、その剣に宿っている。" },
+  // -- 第5層「霧の森」 (rank 6-7・植物/獣/妖。第4層より格上の壁。火に弱い者が多い) --
+  { id: "bs_misttreant", name: "霧の古木", rank: 6, race: "plant", element: "wind", artKey: "misttreant",
+    physResist: 0.5, regen: 0.08, barrier: 2, magWeak: 1.3, // 刃を呑み傷を巻き戻すが、炎には脆い
+    desc: "苔と霧をまとって歩く、森の最も古い木の化身。太い幹は刃を呑み込み、刻んだ傷も年輪を巻き戻すように塞がる。ただ、乾いた芯は炎の魔法を浴びると一気に燃え盛る。" },
+  { id: "bs_dryadfey", name: "森の妖魔", rank: 6, race: "plant", element: "wind", artKey: "dryadfey",
+    ability: "weaken", regen: 0.06, role: "healer", // 妖しい歌で力を奪い、傷ついた森の眷属を癒す
+    desc: "霧の奥から妖しい歌を響かせる、美しくも恐ろしい森の妖。その歌を聞いた者は四肢の力が抜け、立ち尽くす。傷ついた森の眷属には癒しの旋律を、侵入者には呪いの旋律を歌い分ける。" },
+  { id: "bs_giantmoth", name: "燐粉の大蛾", rank: 6, race: "insect", element: "wind", artKey: "giantmoth",
+    ability: "paralyze", evasive: true, swift: true, // 痺れの鱗粉を撒き、霧と灯に紛れてかわす
+    desc: "霧の夜にだけ舞う、両翼を広げれば人の背丈ほどもある大蛾。鱗粉を撒き散らして獲物を痺れさせ、ふらりと不規則に舞っては刃をかわす。灯りを見つけると、吸い寄せられるように群がる。" },
+  { id: "bs_stranglevine", name: "絞め蔦の魔", rank: 6, race: "plant", element: "earth", artKey: "stranglevine",
+    ability: "paralyze", multistrike: 2, physResist: 0.4, // 樹冠から無数に垂れ、絡め取って締め上げる
+    desc: "樹冠から音もなく垂れ下がり、通る者を絡め取る食人の蔦。一本に捉えられれば、たちまち十本が巻きついて締め上げる。しなやかな蔓は刃を受け流し、断っても次の蔓が伸びてくる。" },
+  { id: "bs_corruptstag", name: "角の魔獣", rank: 7, race: "beast", element: "wind", artKey: "corruptstag",
+    ability: "critical", enrage: true, swift: true, // 捻れた角で急所を抉り、手負いで猛り狂う
+    desc: "霧の瘴気に呑まれて変じた、森の主だった大鹿。捻れて鋭く尖った角は鎧ごと急所を抉り、疾風のごとく森を駆ける。傷を負うほどに血走った目で猛り、見境なく突進してくる。" },
+  { id: "bs_fungalhulk", name: "茸人の巨躯", rank: 6, race: "plant", element: "earth", artKey: "fungalhulk",
+    ability: "poison", regen: 0.1, physResist: 0.4, // 胞子の毒を撒き、崩しても胞子から甦る
+    desc: "朽ち木に根を張った菌糸が、人を超える巨躯に育ったもの。歩くたびに毒の胞子を撒き散らし、叩き崩しても残った胞子からみるみる再生する。倒しきるには、胞子ごと焼き払うしかない。" },
+  { id: "bs_forestlord", name: "霧の森の主", rank: 7, boss: true, race: "plant", element: "wind", artKey: "forestlord", soulClass: "priest",
+    role: "summoner", summonKey: "bs_stranglevine", regen: 0.08, physResist: 0.5, magWeak: 1.3, // 蔦を呼び、傷を繕い、刃を呑む。炎には脆い
+    desc: "霧そのものが森の意思を得て、古木の体に宿った主。無数の絞め蔦を従え、刃を幹に呑み込み、霧を吸うたびに傷を繕う。森を統べる古き妖だが、その身もまた木――業火の前には、ただ燃える薪にすぎない。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1126,6 +1148,7 @@ export const BOSS_ORDER = {
 // 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
 // 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
 const LAYER_BOSS_OVERRIDE = {
+  5: "bs_forestlord", // 第5層「霧の森」: 霧の森の主 (rank7・植物ボス)
   4: "bs_fortlord",  // 第4層「捨て砦」: 砦の主 (rank6・armoredボス)
   2: "bs_sewerlord", // 第2層「地下水路」: 水路の主 (rank4・水棲ボス)
   3: "bs_minelord",  // 第3層「廃坑」: 坑道の主 (rank5・土ボス)
@@ -1183,6 +1206,13 @@ export const LAYER_POOLS = {
     "bs_bloodwraith", "bs_bonecolossus", "bs_stormgiant",
     // 深部の強敵 (rank7)
     "d04_revenant", "bs_thunderknight", "bs_vampire",
+  ],
+  // 第5層「霧の森」: 植物/獣/妖中心、rank6-7主体 (第4層より格上)。火に弱い者が多い ※20種へ作成中
+  5: [
+    // 新規 (固有アート)
+    "bs_misttreant", "bs_dryadfey", "bs_giantmoth", "bs_stranglevine", "bs_corruptstag", "bs_fungalhulk",
+    // 既存の獣/鳥/爬虫を第5層へ再配置
+    "bs_thunderbird", "bs_chimera", "bs_griffon", "bs_salamander",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
