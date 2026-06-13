@@ -204,6 +204,9 @@ function base(id, name, slot, lv, artKey, opt) {
   if (opt.align) it.align = opt.align;
   // %補正 (装飾品など): { atk:0.2, hp:0.2 } で +20%。recalc が乗算レイヤーで適用する
   if (opt.mult) it.mult = opt.mult;
+  // 戦闘効果 (LR装飾品など): { actFirst, multistrike, lifesteal, autoRevive, guard, spellCostMul }。
+  // recalc が member.eff へ集約し、combat.js が actor に展開して使う。
+  if (opt.eff) it.eff = opt.eff;
   // LR (レジェンドレア・専用装備) のティア。lr が立つと専用ドロップ層・LR表示になる
   if (opt.lr) it.lr = opt.lr;
   if (opt.forJob) it.forJob = opt.forJob;

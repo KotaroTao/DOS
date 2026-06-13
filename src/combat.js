@@ -323,9 +323,11 @@ const enemyRace = (e) => (e && e.mon && e.mon.race) || null;
 
 // 省詠唱 (chant) 込みの実効MPコスト
 export function spellCost(actor, sp) {
+  let mp = sp.mp;
   const c = pv(actor, "chant");
-  if (!c) return sp.mp;
-  return Math.max(1, Math.ceil(sp.mp * (c >= 2 ? 0.7 : 0.85)));
+  if (c) mp = Math.ceil(mp * (c >= 2 ? 0.7 : 0.85));
+  if (actor && actor.spellCostMul) mp = Math.ceil(mp * actor.spellCostMul); // 賢者の冠: MP消費を割合カット
+  return Math.max(1, mp);
 }
 
 // 戦闘の状態機械: AGI順に1人ずつ手番が回る。
@@ -353,6 +355,16 @@ export class Battle {
       p._martyrUsed = false;
       p._kenma = false;
       p._ambushCritLeft = this.opening === "preempt" && pv(p, "ambushCrit") ? 1 : 0;
+      // LR装飾品の戦闘効果を actor に展開 (member.eff = recalc が集約済み)
+      const ef = p.eff || null;
+      p.actFirst = !!(ef && ef.actFirst);
+      if (ef && ef.multistrike) p.multistrike = Math.max(p.multistrike || 0, ef.multistrike);
+      if (ef && ef.lifesteal) p.lifesteal = Math.max(p.lifesteal || 0, ef.lifesteal);
+      if (ef && ef.barrier) p._barrierLeft = (p._barrierLeft || 0) + ef.barrier;
+      p.guard = (ef && ef.guard) || 0;
+      p.spellCostMul = (ef && ef.spellCostMul) || 0;
+      p.autoRevive = (ef && ef.autoRevive) || 0;
+      p._autoReviveUsed = false;
     }
     this._openingStrikes();
     this.advance();
@@ -490,7 +502,8 @@ export class Battle {
     const eagi = (a) => (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1);
     this.queue = pool
       .filter((a) => a.alive)
-      .sort((a, b) => (eagi(b) + rand(4)) - (eagi(a) + rand(4)));
+      // 加速装置 (actFirst) は必ず手番の最初に行動する。同士の中では AGI 順
+      .sort((a, b) => ((b.actFirst ? 1 : 0) - (a.actFirst ? 1 : 0)) || ((eagi(b) + rand(4)) - (eagi(a) + rand(4))));
   }
 
   // 次の手番へ。味方なら input (行動不能なら stunned)、敵なら enemy フェーズで止まる
@@ -712,11 +725,11 @@ export class Battle {
       const tgt = (cmd.target && cmd.target.alive) ? cmd.target
         : actor.side === "party" ? this._randAlive(this.attackableEnemies(actor)) : this._pickPartyTarget();
       if (tgt) {
-        // 連撃 (multistrike): 敵は一手で続けざまに打つ (倒れたら次の標的へ)
-        const strikes = (actor.side === "enemy" && actor.multistrike > 1) ? Math.min(4, actor.multistrike) : 1;
+        // 連撃 (multistrike): 一手で続けざまに打つ (倒れたら次の標的へ)。敵の能力・味方のLR装飾品の双方で発動
+        const strikes = (actor.multistrike > 1) ? Math.min(4, actor.multistrike) : 1;
         if (strikes > 1) this.log(`${actor.name}の${strikes}連撃！`, "dmg");
         for (let s = 0; s < strikes; s++) {
-          const t2 = tgt.alive ? tgt : this._pickPartyTarget();
+          const t2 = tgt.alive ? tgt : (actor.side === "party" ? this._randAlive(this.attackableEnemies(actor)) : this._pickPartyTarget());
           if (!t2) break;
           const h = this._physical(actor, t2, { basic: true });
           res.hits.push(h);
@@ -1032,10 +1045,12 @@ export class Battle {
     // 障壁: 数回だけ被ダメを半減する敵 (回数制)
     let barriered = false;
     if (tgt.side === "enemy" && tgt._barrierLeft > 0) { tgt._barrierLeft--; dmg = Math.ceil(dmg * 0.5); barriered = true; }
+    // 金剛の護符 (guard): 被ダメを常に割合カット (LR装飾品)
+    if (tgt.guard) dmg = Math.ceil(dmg * (1 - tgt.guard));
     dmg = Math.max(1, dmg);
     tgt.hp -= dmg;
-    // 吸血: 敵は与えた傷の一部を己のHPに変える
-    if (actor.side === "enemy" && actor.lifesteal && actor.alive && dmg > 0) {
+    // 吸血 (lifesteal): 与えた傷の一部を己のHPに変える (敵の能力・味方の吸命のLR装飾品の双方)
+    if (actor.lifesteal && actor.alive && dmg > 0) {
       const hl = Math.max(1, Math.round(dmg * actor.lifesteal));
       actor.hp = Math.min(actor.maxhp, actor.hp + hl);
       this.log(`${actor.name}は精気を吸い取った (${hl})`, "dmg");
@@ -1141,6 +1156,7 @@ export class Battle {
         // 会心: 呪文会心パッシブ + 技固有の会心補正 (禁呪開帳など)
         const crit = Math.random() < (([0, 0.10, 0.18, 0.26][Math.min(scLv, 3)] || 0) + (sp.critBonus || 0));
         if (crit) dmg = Math.floor(dmg * 1.5);
+        if (t.guard) dmg = Math.max(1, Math.ceil(dmg * (1 - t.guard))); // 金剛の護符: 呪文・ブレスの被ダメもカット
         t.hp -= dmg;
         dealt += dmg;
         const eff = em > 1 || magWeak ? " 弱点!" : magResisted ? " 魔法耐性!" : em < 1 ? " 耐性…" : "";
@@ -1272,6 +1288,13 @@ export class Battle {
       if (maxEndure > 0 && (t._endureUsed || 0) < maxEndure) {
         t._endureUsed = (t._endureUsed || 0) + 1; t._grantEndure = false; t.hp = 1;
         this.log(`${t.name}は不屈で持ちこたえた！ (HP1)`, t.side === "enemy" ? "dmg" : "heal");
+        return false;
+      }
+      // 不死鳥の心臓 (autoRevive): 1戦闘1回だけ、戦闘不能を割合HPの蘇生で踏みとどまる (LR装飾品)
+      if (t.autoRevive && !t._autoReviveUsed) {
+        t._autoReviveUsed = true;
+        t.hp = Math.max(1, Math.round(t.maxhp * t.autoRevive));
+        this.log(`${t.name}は不死鳥の加護で蘇った！ (HP${t.hp})`, "heal");
         return false;
       }
       t.hp = 0; t.alive = false;
