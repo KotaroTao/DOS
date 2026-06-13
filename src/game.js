@@ -5850,9 +5850,14 @@ function renderPalace() {
 }
 
 // ==== 王宮の宝物庫 (蒐集品の奉納) ====
-// 蒐集品 (slot:"misc") を奉納すると、ランク帯ごとに納めた「種類」の数に応じて褒賞が下賜される。
-// しきい値 5種 / 10種 でそれぞれ一度だけ褒賞を受領できる (5種=装備1点 / 10種=魂1体+装備1点)。
-const TREASURY_THRESHOLDS = [5, 10];
+// 蒐集品 (slot:"misc") を奉納すると、ランク帯ごとではなく「奉納した総種類数」の節目で褒賞が下賜される。
+// 各しきい値に到達するごとに一度だけ褒賞を受領できる (装備、節目によっては魂も)。
+// soul: 0=装備のみ / 1=魂(通常抽選)+装備 / 2=魂(偉大な抽選)+装備
+const TREASURY_MILESTONES = [
+  { n: 5, soul: 0 }, { n: 10, soul: 1 }, { n: 20, soul: 1 }, { n: 30, soul: 1 },
+  { n: 40, soul: 2 }, { n: 50, soul: 1 }, { n: 60, soul: 2 }, { n: 70, soul: 1 },
+  { n: 80, soul: 2 }, { n: 90, soul: 2 }, { n: 100, soul: 2 },
+];
 
 // 蒐集品 → ランク帯 (1-10)。lv1-20=R1 … lv181-200=R10
 function collectibleRank(it) { return Math.min(10, Math.max(1, Math.ceil((it.lv || 1) / 20))); }
@@ -5876,6 +5881,11 @@ function treasuryState() {
   return G.treasury;
 }
 function donatedCountRank(r) { const ts = treasuryState(); return collectiblesByRank()[r].filter((id) => ts.donated[id]).length; }
+// 奉納した蒐集品の総種類数 (ランク帯を問わない)
+function totalDonatedKinds() {
+  const ts = treasuryState();
+  return Object.keys(ts.donated).filter((id) => ITEMS[id] && ITEMS[id].slot === "misc").length;
+}
 
 // 手持ち (編成+控え) の蒐集品 [{doll, item}]
 function heldCollectibles() {
@@ -5887,10 +5897,8 @@ function heldCollectibles() {
 // どこかに受領可能な褒賞があるか (王宮ハブのバッジ判定にも使う)
 function treasuryRewardReady() {
   const ts = treasuryState();
-  for (let r = 1; r <= 10; r++) {
-    const c = donatedCountRank(r);
-    for (const t of TREASURY_THRESHOLDS) if (c >= t && !ts.claimed[r + ":" + t]) return true;
-  }
+  const c = totalDonatedKinds();
+  for (const m of TREASURY_MILESTONES) if (c >= m.n && !ts.claimed["m" + m.n]) return true;
   return false;
 }
 
@@ -5928,27 +5936,29 @@ function grantTreasuryItem(center, onClose) {
   });
 }
 
-// 褒賞を受領する。rank 帯の threshold 種を達成していれば一度だけ。
-function claimTreasury(rank, threshold) {
+// 褒賞を受領する。総種類数が節目 n に達していれば一度だけ。
+function claimTreasury(n) {
   const ts = treasuryState();
-  const key = rank + ":" + threshold;
-  if (ts.claimed[key] || donatedCountRank(rank) < threshold) { SFX.ng(); return; }
+  const m = TREASURY_MILESTONES.find((x) => x.n === n);
+  if (!m) { SFX.ng(); return; }
+  const key = "m" + n;
+  if (ts.claimed[key] || totalDonatedKinds() < n) { SFX.ng(); return; }
   ts.claimed[key] = true;
   const back = () => { autosave(); if (G.town.facility === "treasury") renderTreasury(); };
-  if (threshold >= 10) {
-    // 全10種達成: 魂1体 (浅い帯はrollJobClass / R4以降は偉大な抽選) + 装備1点
-    const clsKey = rank <= 3 ? rollJobClass() : rollGreatJobClass();
-    acquireSoul(clsKey, `第${rank}帯の蒐集品をすべて宝物庫に納めた褒賞だ。`,
-      () => grantTreasuryItem(rank * 20 + 6, back));
+  const center = Math.min(200, Math.max(1, n * 2)); // 節目が深いほど高位の装備
+  if (m.soul) {
+    const clsKey = m.soul >= 2 ? rollGreatJobClass() : rollJobClass();
+    acquireSoul(clsKey, `蒐集品を ${n} 種 宝物庫に納めた褒賞だ。`,
+      () => grantTreasuryItem(center, back));
   } else {
-    grantTreasuryItem(rank * 20 - 10, back);
+    grantTreasuryItem(center, back);
   }
 }
 
 function renderTreasury() {
   townEl.innerHTML = "";
   townEl.appendChild(townHeader("宝物庫", "palace"));
-  townEl.appendChild(el("div", "tw-lead", "王宮の宝物庫。迷宮で拾った蒐集品をここに奉納すると、納めた種類の数に応じて褒賞——装備や魂——が下賜される。"));
+  townEl.appendChild(el("div", "tw-lead", "王宮の宝物庫。迷宮で拾った蒐集品をここに奉納すると、納めた総種類数の節目ごとに褒賞——装備や魂——が下賜される。"));
   const ts = treasuryState();
   const byRank = collectiblesByRank();
   const totalKinds = Object.keys(ts.donated).filter((id) => ITEMS[id] && ITEMS[id].slot === "misc").length;
@@ -5983,7 +5993,26 @@ function renderTreasury() {
     townEl.appendChild(all);
   }
 
-  // ---- 奉納台帳 (ランク帯ごと) ----
+  // ---- 褒賞 (奉納した総種類数の節目) ----
+  townEl.appendChild(el("div", "tw-h", "褒賞 — 奉納した総種類数の節目"));
+  const mbox = el("div", "tw-rumor");
+  mbox.appendChild(el("div", "tw-rumors", `総奉納 ${totalKinds} / 100 種`));
+  for (const m of TREASURY_MILESTONES) {
+    const key = "m" + m.n;
+    const label = m.soul ? (m.soul >= 2 ? "魂(偉大)+装備" : "魂+装備") : "装備";
+    if (ts.claimed[key]) {
+      mbox.appendChild(el("div", "tw-note", `${m.n}種 — ${label} — 受領済`));
+    } else if (totalKinds >= m.n) {
+      const b = btn(`🎁 褒賞を受け取る (${m.n}種達成 — ${label})`, () => claimTreasury(m.n));
+      b.className = "btn tw-add tw-msq";
+      mbox.appendChild(b);
+    } else {
+      mbox.appendChild(el("div", "tw-note", `${m.n}種 — ${label} — あと ${m.n - totalKinds} 種`));
+    }
+  }
+  townEl.appendChild(mbox);
+
+  // ---- 奉納台帳 (ランク帯ごと・閲覧用) ----
   townEl.appendChild(el("div", "tw-h", "奉納台帳 — ランク帯ごと (各10種)"));
   for (let r = 1; r <= 10; r++) {
     const ids = byRank[r];
@@ -5999,18 +6028,6 @@ function renderTreasury() {
       slots.appendChild(slot);
     }
     box.appendChild(slots);
-    for (const t of TREASURY_THRESHOLDS) {
-      const key = r + ":" + t;
-      if (ts.claimed[key]) {
-        box.appendChild(el("div", "tw-note", `褒賞 (${t}種) — 受領済`));
-      } else if (cnt >= t) {
-        const b = btn(`🎁 褒賞を受け取る (${t}種達成${t >= 10 ? " — 魂+装備" : " — 装備"})`, () => claimTreasury(r, t));
-        b.className = "btn tw-add tw-msq";
-        box.appendChild(b);
-      } else {
-        box.appendChild(el("div", "tw-note", `褒賞 (${t}種) — あと ${t - cnt} 種`));
-      }
-    }
     townEl.appendChild(box);
   }
 }
@@ -7006,7 +7023,7 @@ function tryEnterDungeon() {
 // 初回潜入時、警備兵が迷宮の鉄則を説く (注意事項のポップアップ)
 function showDungeonBriefing(onClose) {
   showEvent({
-    sprite: ICONS.stairs,
+    sprite: ICONS.guard,
     banner: "⚔ 警備兵の忠告 ⚔",
     title: "迷宮へ入る前に",
     lines: [
