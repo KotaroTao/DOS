@@ -6754,13 +6754,13 @@ function showAppraisePrompt(owner, it) {
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 9)); card.appendChild(art);
   card.appendChild(el("div", "ig-name", itemName(it)));
   for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
-  card.appendChild(el("div", "ig-who", `鑑定料 💰${cost}・正体不明のまま売っても 💰${cost}`));
+  card.appendChild(el("div", "ig-who", `鑑定料 💰${cost}・正体不明のまま売っても 💰0 (商店に並ばない)`));
   const list = el("div", "ig-choices");
   const idb = btn(`💰${cost} で鑑定する`, () => { wrap.remove(); shopIdentify(owner, it); });
   idb.classList.add("primary");
   if (G.gold < cost) idb.disabled = true;
   list.appendChild(idb);
-  list.appendChild(makeDanger(`💰${cost} で売る (正体不明のまま)`, () => { wrap.remove(); sellItem(owner, it, sellPrice(it)); }));
+  list.appendChild(makeDanger(`💰0 で売る (正体不明のまま)`, () => { wrap.remove(); sellItem(owner, it, 0); }));
   list.appendChild(btn("やめる", () => wrap.remove()));
   card.appendChild(list);
   wrap.appendChild(card);
@@ -6828,14 +6828,16 @@ function showSellPrompt(owner, it) {
 function sellItem(owner, it, price) {
   const idx = owner.items.indexOf(it);
   if (idx < 0) return;
+  // 未鑑定品は正体不明のため二束三文 (0G) で引き取られ、商店にも並ばない
+  if (it.unidentified) price = 0;
   owner.items.splice(idx, 1);
   G.gold += price;
-  // 在庫に積む (ボルタック方式)
-  if (it.id) G.shopStock[it.id] = (G.shopStock[it.id] || 0) + 1;
+  // 在庫に積む (ボルタック方式)。未鑑定品は並ばない
+  if (it.id && !it.unidentified) G.shopStock[it.id] = (G.shopStock[it.id] || 0) + 1;
   codexSeeItem(it.id);
   SFX.select(); buzz(10);
   const shown = itemName(it);
-  log(`${shown} を売った (+💰${price})。商店に並んだ。`, "win");
+  log(`${shown} を売った (+💰${price})。${it.unidentified ? "" : "商店に並んだ。"}`, "win");
   showToast(`💰+${price} ${shown} を売却`);
   renderTown();
 }
