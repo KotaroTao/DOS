@@ -2,8 +2,9 @@
 // 通常の lootLv 抽選テーブルには含まれず、chestContents の専用レイヤーでのみ出現する。
 // exclusive: true — LOOT_IDS から除外するフラグ
 // forJob: clsKey — 出現判定・重み計算に使う職業キー (classes[] と同じ値)
-// ドロップ解禁ランク: コモン=迷宮ランク3+ / レア=5+ / エピック=7+ / レジェンド=9+
-// 出現率: BASE_RATE(1/500) × 宝箱ランク (chestContents 側で抽選)
+// 出現: LR と共通の「専用装備 統一ドロップ層」で抽選 (game.js pickExclusive)。
+// 宝箱を開けた瞬間に flat 2% で判定し、現在の lootLv で解禁済み (自レベル lv-25 以上の帯)
+// の専用装備から、パーティの職に合う品を優先して1つ出す。旧 1/500×宝箱ランク は廃止。
 import { W, S, A, H, G } from "./defs.js";
 
 function excl(item, forJob) { item.exclusive = true; item.forJob = forJob; return item; }

@@ -83,10 +83,11 @@ export function unidentName(it) {
 // 表示名: 未鑑定なら伏せ名、鑑定済みなら本来の名前
 export function itemName(it) { return it && it.unidentified ? unidentName(it) : (it ? it.name : ""); }
 
-// 隠しレベル → 表示ランク (図鑑の枠色・発見演出に使う)
-// lv は 1-200 (全100迷宮の lootLv 帯に対応)。R6 は最深部の神話級のみ。
+// 隠しレベル → 表示ランク R1-R20 (図鑑の枠色・発見演出に使う)
+// lv は 1-200 (全100迷宮の lootLv 帯に対応)。10lv ごとに 1 ランク上がり、
+// 1ランクの差で性能が明確に伸びる (R1=lv1-10 … R20=lv191-200)。
 export function lvToRank(lv) {
-  return lv < 20 ? 1 : lv < 45 ? 2 : lv < 80 ? 3 : lv < 120 ? 4 : lv < 165 ? 5 : 6;
+  return Math.min(20, Math.max(1, Math.ceil((lv || 1) / 10)));
 }
 
 // slot種別 → 装備キー
@@ -767,6 +768,8 @@ export function recalc(member) {
   const base = member.base;
   let flatAtk = 0, flatVit = 0, flatAgi = 0, flatInt = 0, flatPie = 0, flatLuk = 0;
   let flatHp = 0, flatMp = 0, crit = base.crit || 0;
+  // %補正 (LR装飾品など)。同種は加算合算 (+20%×2 = +40%)、フラット加算の後に乗算で効く
+  const mul = { atk: 0, vit: 0, agi: 0, int: 0, pie: 0, luk: 0, hp: 0, mp: 0 };
   const ea = {}, ed = {};
   const counted = new Set();
   for (const slot of SLOTS) {
@@ -782,23 +785,26 @@ export function recalc(member) {
     flatHp  += it.hp || 0;
     flatMp  += it.mp || 0;
     crit += it.crit || 0;
+    if (it.mult) for (const k in mul) mul[k] += it.mult[k] || 0;
     if (it.eAtk && it.eAtk.el) ea[it.eAtk.el] = (ea[it.eAtk.el] || 0) + (it.eAtk.lv || 1);
     if (it.eDef && it.eDef.el) ed[it.eDef.el] = (ed[it.eDef.el] || 0) + (it.eDef.lv || 1);
   }
-  // 装備による増減は整数化 (増は切り上げ・減は切り下げ)。基礎値はそのまま
-  const withEquip = (b, f) => {
+  // 装備による増減は整数化 (増は切り上げ・減は切り下げ)。基礎値はそのまま。
+  // %補正があれば (基礎+フラット) に乗じてから整数化する
+  const withEquip = (b, f, m) => {
     const baseV = Math.round(b || 0);
-    return baseV + (f > 0 ? Math.ceil(f) : Math.floor(f));
+    const v = baseV + (f > 0 ? Math.ceil(f) : Math.floor(f));
+    return m ? Math.round(v * (1 + m)) : v;
   };
-  member.atk = Math.max(1, withEquip(base.atk, flatAtk));
-  member.vit = Math.max(0, withEquip(base.vit, flatVit));
-  member.agi = Math.max(1, withEquip(base.agi, flatAgi));
-  member.int = Math.max(0, withEquip(base.int, flatInt));
-  member.pie = Math.max(0, withEquip(base.pie, flatPie));
-  member.luk = Math.max(0, withEquip(base.luk, flatLuk));
+  member.atk = Math.max(1, withEquip(base.atk, flatAtk, mul.atk));
+  member.vit = Math.max(0, withEquip(base.vit, flatVit, mul.vit));
+  member.agi = Math.max(1, withEquip(base.agi, flatAgi, mul.agi));
+  member.int = Math.max(0, withEquip(base.int, flatInt, mul.int));
+  member.pie = Math.max(0, withEquip(base.pie, flatPie, mul.pie));
+  member.luk = Math.max(0, withEquip(base.luk, flatLuk, mul.luk));
   member.critBonus = crit;
-  member.maxhp = withEquip(base.hp, flatHp);
-  member.maxmp = withEquip(base.mp, flatMp);
+  member.maxhp = withEquip(base.hp, flatHp, mul.hp);
+  member.maxmp = withEquip(base.mp, flatMp, mul.mp);
   if (member.hp > member.maxhp) member.hp = member.maxhp;
   if (member.mp > member.maxmp) member.mp = member.maxmp;
   // 属性攻撃/属性防御 (装備由来。Lv1=◯, Lv2=◎)

@@ -202,6 +202,12 @@ function base(id, name, slot, lv, artKey, opt) {
   if (opt.vitB) it.vit = opt.vitB;     // 武器・装飾の VIT 補正 (負値=重武器のペナルティ等)
   if (opt.cursed) it.cursed = true;
   if (opt.align) it.align = opt.align;
+  // %補正 (装飾品など): { atk:0.2, hp:0.2 } で +20%。recalc が乗算レイヤーで適用する
+  if (opt.mult) it.mult = opt.mult;
+  // LR (レジェンドレア・専用装備) のティア。lr が立つと専用ドロップ層・LR表示になる
+  if (opt.lr) it.lr = opt.lr;
+  if (opt.forJob) it.forJob = opt.forJob;
+  if (opt.exclusive) it.exclusive = true;
   // 絵: 原型 × 染め色 (属性があれば属性色が既定)
   const el = (opt.eAtk && opt.eAtk[0]) || (opt.eDef && opt.eDef[0]) || null;
   const tc = opt.tint || (el ? ELEM_TINT[el] : null);
@@ -259,33 +265,58 @@ export function A(id, name, lv, opt = {}) {
   return it;
 }
 
+// 段階装備の役割ステ量 (lv に応じて単調増加)。頭/小手の主ステ算出に使う。
+const roleStatAmt = (lv) => Math.max(1, round(0.8 + lv * 0.16 + lv * lv * 0.0006));
+const tokenVit = (lv) => Math.max(1, round(lv * 0.05));
+
 // 頭: H(id, 名, lv, opt) — opt.shape: "helm"(既定) | "hat" | "circlet"。opt.def は VIT の上書き
 // opt.weight: shape から自動決定 (helm=heavy, hat=light, circlet=cloth)。上書き可
+// 段階装備の方針: 物理職向け(軽/重)は VIT 主体、術者向け(布)は opt.magStat ("int"|"pie") 主体。
+// magStat 指定時のみ VIT をトークンに落として INT/PIE を主ステにする (既存の一点物には無影響)。
 export function H(id, name, lv, opt = {}) {
   const shape = opt.shape || "helm";
   const it = base(id, name, "head", lv, shape, opt);
   it.vit = opt.def != null ? opt.def : Math.max(1, round((1 + lv * 0.10 + lv * lv * 0.0012) * (opt.pow || 1)));
   it.weight = opt.weight || SHAPE_WEIGHT[shape];
+  if (opt.magStat === "int" || opt.magStat === "pie") {
+    it[opt.magStat] = (it[opt.magStat] || 0) + roleStatAmt(lv);
+    if (opt.def == null) it.vit = tokenVit(lv);
+  }
   return it;
 }
 
 // 足: F(id, 名, lv, opt) — opt.shape: "boots"(既定) | "greaves"。opt.def は VIT の上書き
 // opt.weight: shape から自動決定 (boots=light, greaves=heavy)。上書き可 (例: weight:"cloth" で布靴)
+// 足は「AGI(すばやさ)の部位」: 重量に応じて AGI を自動付与する (布>軽>重)。
+// opt.agi/opt.spd を渡すと、その分が自動AGIに上乗せされる (韋駄天の沓など俊足の品)。
+const FEET_AGI_COEF = { cloth: 0.11, light: 0.085, heavy: 0.04 };
 export function F(id, name, lv, opt = {}) {
   const shape = opt.shape || "boots";
   const it = base(id, name, "feet", lv, shape, opt);
   it.vit = opt.def != null ? opt.def : Math.max(1, round((1 + lv * 0.09 + lv * lv * 0.0010) * (opt.pow || 1)));
   it.weight = opt.weight || SHAPE_WEIGHT[shape];
+  // AGI 自動付与 (base() が opt.agi/spd で設定済みの分には上乗せ)
+  const coef = FEET_AGI_COEF[it.weight] != null ? FEET_AGI_COEF[it.weight] : 0.085;
+  it.agi = (it.agi || 0) + Math.max(1, round(0.6 + lv * coef));
   return it;
 }
 
 // 小手: G(id, 名, lv, opt) — opt.shape: "gloves"(既定) | "gauntlet"。opt.def は VIT の上書き
 // opt.weight: shape から自動決定 (gloves=light, gauntlet=heavy)。上書き可 (例: weight:"cloth" で布手袋)
+// 段階装備の方針: 小手は「攻めの部位」。物理職向け(軽/重)は opt.role:"atk" で ATK 主体、
+// 術者向け(布)は opt.magStat ("int"|"pie") 主体。指定時は VIT をトークンに落とす (既存品は無影響)。
 export function G(id, name, lv, opt = {}) {
   const shape = opt.shape || "gloves";
   const it = base(id, name, "hands", lv, shape, opt);
   it.vit = opt.def != null ? opt.def : Math.max(1, round((1 + lv * 0.09 + lv * lv * 0.0010) * (opt.pow || 1)));
   it.weight = opt.weight || SHAPE_WEIGHT[shape];
+  if (opt.role === "atk") {
+    it.atk = (it.atk || 0) + roleStatAmt(lv);
+    if (opt.def == null) it.vit = tokenVit(lv);
+  } else if (opt.magStat === "int" || opt.magStat === "pie") {
+    it[opt.magStat] = (it[opt.magStat] || 0) + roleStatAmt(lv);
+    if (opt.def == null) it.vit = tokenVit(lv);
+  }
   return it;
 }
 
