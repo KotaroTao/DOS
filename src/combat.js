@@ -134,8 +134,10 @@ export function spawnCardEnemies(key, floor, scale = 1, opts = {}) {
   let count = 1;
   while (count < MAX_ENEMIES && Math.random() < p) count++;
   if (opts && opts.min) count = Math.max(count, Math.min(MAX_ENEMIES, opts.min));
-  let list;
   const m = MONSTERS[key];
+  // 群棲: 群れで現れる敵は最低3体で湧く
+  if (m && m.pack) count = Math.max(count, Math.min(MAX_ENEMIES, 3));
+  let list;
   // 役割持ち (role) の群れ: 本体1体 + 取り巻き (escort)。回復役・呼び手は後衛
   // (index 3+) に立つので、長射程の武器か呪文がないと直接は狙えない。
   // 護り手 (guard) は前衛に立ち、取り巻きへの攻撃を肩代わりする。
@@ -196,10 +198,12 @@ function makeEnemy(key, scale = 1, boss = false) {
     // モンスター定義の atk/def/spd を六大ステへ写像 (def→VIT, spd→AGI)
     atk: Math.max(1, Math.round(m.atk * scale)),
     vit: Math.round(m.def * scale),
-    agi: m.spd,
+    agi: m.swift ? m.spd + 4 : m.spd, // 俊敏: AGI を底上げして先手を取りやすくする
     soul: Math.round(m.soul * scale), gold: Math.round(m.gold * scale),
     boss: boss || !!m.boss,
     ability: m.ability || null, // 特殊能力 (毒/麻痺/石化/即死/窃盗/ドレイン/ブレス)
+    // 個体特性: 物理被ダメ軽減 / 魔法被ダメ増 / 自己再生 / 回避
+    physResist: m.physResist || 0, magWeak: m.magWeak || 1, regen: m.regen || 0, evasive: !!m.evasive,
     // 役割 (healer=回復役 / guard=護り手 / summoner=呼び手)。_scale は召喚の強さ引き継ぎ用
     role: m.role || null, summonKey: m.summonKey || null, _scale: scale,
     _guardLeft: m.role === "guard" ? 3 : 0, // 護り手が肩代わりできる残り回数
@@ -317,6 +321,15 @@ export class Battle {
       a.hp -= d;
       this.log(`${a.name}は毒に蝕まれた (${d})`, "dmg");
       this._die(a);
+    }
+    // 再生: 2ラウンド目以降、傷ついた再生持ちの敵が少しずつ回復する
+    if (this._roundNo > 1) {
+      for (const e of this.livingEnemies()) {
+        if (!e.regen || e.hp >= e.maxhp) continue;
+        const h = Math.max(1, Math.round(e.maxhp * e.regen));
+        e.hp = Math.min(e.maxhp, e.hp + h);
+        this.log(`${e.name}の傷がふさがっていく (${h})`, "sys");
+      }
     }
     this._checkEnd();
     let pool = [...this.party, ...this.enemies];
@@ -798,8 +811,8 @@ export class Battle {
       this.log(`${tgt.name}は見切った！`, "sys");
       return { target: tgt, miss: true, evaded: true };
     }
-    // 命中判定: 素の命中漏れ + 対象の敏捷(AGI)による回避
-    const evade = Math.min(0.4, Math.max(0, ((tgt.agi || 6) - 6) * 0.012));
+    // 命中判定: 素の命中漏れ + 対象の敏捷(AGI)による回避 + 回避持ちの追加回避
+    const evade = Math.min(0.4, Math.max(0, ((tgt.agi || 6) - 6) * 0.012)) + (tgt.evasive ? 0.15 : 0);
     if (Math.random() < 0.06 + evade) {
       this.log(`${tgt.name}は攻撃をかわした！`, "sys");
       return { target: tgt, miss: true, evaded: true };
@@ -837,9 +850,12 @@ export class Battle {
     // 隊列補正: 後衛は物理の与ダメ・被ダメが半減
     const rm = this._rowMul(actor, tgt);
     if (rm !== 1) dmg = Math.round(dmg * rm);
+    // 物理耐性: 頑強な敵は物理被ダメを割合カット (「物理がほとんど効かない」)
+    let resisted = false;
+    if (tgt.side === "enemy" && tgt.physResist) { dmg = Math.round(dmg * (1 - tgt.physResist)); resisted = true; }
     dmg = Math.max(1, dmg);
     tgt.hp -= dmg;
-    const eff = em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : "";
+    const eff = em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : resisted ? " 物理耐性!" : "";
     this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}${eff}`,
       actor.side === "party" ? "hit" : "dmg");
     if (tgt.asleep) tgt.asleep = false;
@@ -930,13 +946,16 @@ export class Battle {
         const power = sp.power + (actor.int || 0) * 0.5;
         let dmg = Math.max(1, Math.round(variance(power) * this._lowHpMul(actor)) - Math.floor(this._evit(t) * 0.2));
         if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
+        // 魔法弱点: 攻撃呪文の被ダメが増える (「魔法に弱い」)
+        let magWeak = false;
+        if (t.magWeak && t.magWeak > 1) { dmg = Math.round(dmg * t.magWeak); magWeak = true; }
         if (pv(actor, "gokudoku") && t.ailment === "poison") dmg = Math.round(dmg * 1.3); // 蠱毒
         // 会心: 呪文会心パッシブ + 技固有の会心補正 (禁呪開帳など)
         const crit = Math.random() < ((scLv ? (scLv >= 2 ? 0.18 : 0.10) : 0) + (sp.critBonus || 0));
         if (crit) dmg = Math.floor(dmg * 1.5);
         t.hp -= dmg;
         dealt += dmg;
-        const eff = em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : "";
+        const eff = em > 1 || magWeak ? " 弱点!" : em < 1 ? " 耐性…" : "";
         this.log(`${t.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}${eff}`, "dmg");
         if (t.asleep) t.asleep = false;
         // 状態異常の付与 (毒霧): 命中した生存敵を蝕む
@@ -944,7 +963,7 @@ export class Battle {
           t.ailment = sp.ailment.type;
           this.log(`${t.name}は${sp.ailment.type === "poison" ? "毒" : "異常"}に侵された！`, "hit");
         }
-        res.hits.push({ target: t, dmg, crit, eff: em > 1 ? "weak" : em < 1 ? "resist" : null, died: this._die(t) });
+        res.hits.push({ target: t, dmg, crit, eff: em > 1 || magWeak ? "weak" : em < 1 ? "resist" : null, died: this._die(t) });
       }
       // 聖魔一如 (partyHeal): 撃ち込んだ後、返す光が隊を癒す (PIEで伸びる)
       if (sp.partyHeal) {
