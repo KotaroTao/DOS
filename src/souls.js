@@ -244,15 +244,15 @@ export const PASSIVES = {
   openSpell:     { label: "開幕呪撃",     scope: "self",  lv: ["戦闘開始時、敵1体へ無消費の呪撃INT×1.2 (奇襲時は不発)"] },
   asceticism:    { label: "荒行の果て",   scope: "self",  lv: ["HP30%以下の間、与ダメージ・回復量+30%"] },
   taunt:         { label: "挑発",         scope: "self",  lv: ["敵の単体攻撃が自分に向かいやすくなる"] },
-  cover:         { label: "かばう",       scope: "party", lv: ["瀕死(HP25%以下)の味方への攻撃を肩代わり (1戦闘1回)", "肩代わりが1戦闘2回になり、その被ダメ-30%"] },
+  cover:         { label: "かばう",       scope: "party", lv: ["瀕死(HP25%以下)の味方への攻撃を肩代わり (1戦闘1回)", "肩代わりが1戦闘2回になり、その被ダメ-30%", "肩代わりが1戦闘3回になり、その被ダメ-40%"] },
   parry:         { label: "見切り",       scope: "self",  lv: ["敵の物理攻撃を10%で完全回避", "敵の物理攻撃を15%で完全回避"] },
   counter:       { label: "反撃",         scope: "self",  lv: ["物理被弾時15%でATK×0.5の反撃", "物理被弾時25%でATK×0.7の反撃", "物理被弾時35%でATK×1.0の反撃 (会心あり)"] },
   endure:        { label: "不屈",         scope: "self",  lv: ["致死ダメージをHP1で耐える (1戦闘1回)", "致死ダメージをHP1で耐える (1戦闘2回)"] },
   barrier:       { label: "魔障壁",       scope: "self",  lv: ["ブレス・呪文の被ダメージ半減 (1戦闘1回)", "ブレス・呪文の被ダメージ半減 (1戦闘2回)"] },
   reflect:       { label: "魔力反射",     scope: "self",  lv: ["魔障壁で防いだ分のダメージを相手に返す"] },
-  bigBarrier:    { label: "大結界",       scope: "party", lv: ["敵の全体攻撃を隊全体で半減 (1戦闘1回・自動)"] },
+  bigBarrier:    { label: "大結界",       scope: "party", lv: ["敵の全体攻撃を隊全体で半減 (1戦闘1回・自動)", "敵の全体攻撃を隊全体で半減 (1戦闘2回・自動)"] },
   holyCover:     { label: "聖盾",         scope: "party", lv: ["かばうがブレス等の攻撃も肩代わりできる"] },
-  bastion:       { label: "城壁の構え",   scope: "party", lv: ["自分が防御中、隊全体の被ダメージ-10%"] },
+  bastion:       { label: "城壁の構え",   scope: "party", lv: ["自分が防御中、隊全体の被ダメージ-10%", "自分が防御中、隊全体の被ダメージ-18%"] },
   resistAilment: { label: "異常耐性",     scope: "self",  lv: ["毒・麻痺・睡眠の付与率-30%", "毒・麻痺・睡眠-60%、石化・即死-30%"] },
   sanctuary:     { label: "聖域",         scope: "party", lv: ["隊全体に異常耐性Lv1を付与"] },
   martyr:        { label: "殉教の祈り",   scope: "party", lv: ["自分が倒れた時、味方全体をPIE×1.0回復 (1戦闘1回)"] },
@@ -280,7 +280,8 @@ export const JOB_PASSIVES = {
   // コモン
   // 戦士はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
   fighter:     [],
-  knight:      [P("taunt"), P("cover", 1), P("cover", 2), P("endure")],
+  // 騎士はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
+  knight:      [],
   priest:      [P("afterHeal", 1), P("afterHeal", 2), P("afterHeal", 3), P("afterHeal", 4)],
   mage:        [P("afterMp", 1), P("chant", 1), P("afterMp", 2), P("spellCrit", 2)],
   thief:       [P("vigilance", 1), P("senseEnemy"), P("poisonFloor", 1), P("poisonFloor", 2)],
@@ -388,7 +389,52 @@ export const JOB_SKILLS = {
     { lvl: 195, passive: "fightSpirit", plv: 4 },    // 闘魂Lv4
     { lvl: 200, skill: "METSUKYAKU" },               // 滅却・終ノ太刀
   ],
-  knight:      [{ lvl: 1, skill: "SHIELDBASH" }, { lvl: 3, skill: "PROTECT" }, { lvl: 5, skill: "KYOUGEKI" }, { lvl: 7, skill: "KOTE" }, { lvl: 10, skill: "IRONWALL" }, { lvl: 15, skill: "GUARDALL" }, { lvl: 20, skill: "MIDARE" }, { lvl: 25, skill: "GOUZAN" }, { lvl: 30, skill: "BOUJIN" }, { lvl: 40, skill: "JOUMON" }, { lvl: 50, skill: "OUJOU" }],
+  // 騎士: 新仕様 (Lv1-200 / 技とパッシブを織り込み)。Lv40=城門崩し は宿し技 (signature)
+  knight:      [
+    { lvl: 1,   skill: "SHIELDBASH" },               // シールドバッシュ
+    { lvl: 3,   passive: "taunt", plv: 1 },           // 挑発
+    { lvl: 5,   skill: "PROTECT" },                   // プロテクション
+    { lvl: 7,   skill: "KOTE" },                      // 小手打ち
+    { lvl: 10,  skill: "KYOUGEKI" },                  // 強撃
+    { lvl: 15,  passive: "cover", plv: 1 },           // かばうLv1
+    { lvl: 20,  skill: "IRONWALL" },                  // 鉄壁
+    { lvl: 25,  passive: "counter", plv: 1 },         // 反撃Lv1
+    { lvl: 30,  skill: "GUARDALL" },                  // 守りの号令
+    { lvl: 35,  passive: "cover", plv: 2 },           // かばうLv2
+    { lvl: 40,  skill: "JOUMON" },                    // 城門崩し (看板技)
+    { lvl: 45,  passive: "bastion", plv: 1 },         // 城壁の構えLv1
+    { lvl: 50,  skill: "MIDARE" },                    // 乱れ斬り
+    { lvl: 55,  skill: "BOUJIN" },                    // 防陣
+    { lvl: 60,  passive: "counter", plv: 2 },         // 反撃Lv2
+    { lvl: 65,  skill: "GOUZAN" },                    // 豪斬
+    { lvl: 70,  passive: "parry", plv: 1 },           // 見切りLv1
+    { lvl: 75,  passive: "endure", plv: 1 },          // 不屈
+    { lvl: 80,  skill: "OUJOU" },                     // 王城の構え
+    { lvl: 85,  skill: "SHIELDCHARGE" },              // 盾突進
+    { lvl: 90,  passive: "resistAilment", plv: 1 },   // 異常耐性Lv1
+    { lvl: 95,  skill: "SHUGOHOUKOU" },               // 守護咆哮
+    { lvl: 100, skill: "JOUSAITSUKI" },               // 城塞突き
+    { lvl: 105, passive: "counter", plv: 3 },         // 反撃Lv3
+    { lvl: 110, skill: "TEPPEKIJIN" },                // 鉄壁陣
+    { lvl: 115, passive: "cover", plv: 3 },           // かばうLv3
+    { lvl: 120, skill: "ZANTETSU" },                  // 斬鉄
+    { lvl: 125, passive: "bastion", plv: 2 },         // 城壁の構えLv2
+    { lvl: 130, skill: "FURAKUNOTATE" },              // 不落の盾
+    { lvl: 135, passive: "parry", plv: 2 },           // 見切りLv2
+    { lvl: 140, skill: "BANRAI" },                    // 万雷の盾撃
+    { lvl: 145, passive: "bigBarrier", plv: 1 },      // 大結界Lv1
+    { lvl: 150, skill: "SHUGOKEKKAI" },               // 守護結界
+    { lvl: 155, passive: "endure", plv: 2 },          // 不屈Lv2
+    { lvl: 160, skill: "JOUSAIKUZUSHI" },             // 城塞崩し
+    { lvl: 165, passive: "resistAilment", plv: 2 },   // 異常耐性Lv2
+    { lvl: 170, skill: "TESSAINAGI" },                // 鉄盾薙ぎ
+    { lvl: 175, passive: "bigBarrier", plv: 2 },      // 大結界Lv2
+    { lvl: 180, skill: "KISHIOU" },                   // 騎士王の威光
+    { lvl: 185, passive: "holyCover", plv: 1 },       // 聖盾
+    { lvl: 190, skill: "FUDOUJIN" },                  // 不動明王陣
+    { lvl: 195, skill: "DAIGOUREI" },                 // 守護の大号令
+    { lvl: 200, skill: "FURAKUJOU" },                 // 不落城
+  ],
   priest:      [{ lvl: 1, skill: "DIOS" }, { lvl: 3, skill: "CURE" }, { lvl: 5, skill: "BLESS" }, { lvl: 7, skill: "HOLYRAY" }, { lvl: 10, skill: "DIOSALL" }, { lvl: 15, skill: "DIAL" }, { lvl: 20, skill: "SAINTRAY" }, { lvl: 25, skill: "REVIVE" }, { lvl: 30, skill: "MADIOS" }, { lvl: 40, skill: "DIALALL" }, { lvl: 50, skill: "RESURRECT" }],
   mage:        [{ lvl: 1, skill: "HALITO" }, { lvl: 3, skill: "ICENEEDLE" }, { lvl: 5, skill: "KATINO" }, { lvl: 7, skill: "KAMAITACHI" }, { lvl: 10, skill: "MAHALITO" }, { lvl: 15, skill: "ROCKBLAST" }, { lvl: 20, skill: "MADALT" }, { lvl: 25, skill: "DISPEL" }, { lvl: 30, skill: "LAHALITO" }, { lvl: 40, skill: "TILTOWAIT" }, { lvl: 50, skill: "SEISAI" }],
   thief:       [{ lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "POISONSTAB" }, { lvl: 5, skill: "BLIND" }, { lvl: 7, skill: "DOUBLE" }, { lvl: 10, skill: "KASUMEGIRI" }, { lvl: 15, skill: "ASSASSINATE" }, { lvl: 20, skill: "MIDARE" }, { lvl: 25, skill: "KAGENUI" }, { lvl: 30, skill: "TSUJIKAZE" }, { lvl: 40, skill: "OBORO" }, { lvl: 50, skill: "ZETSUEI" }],
