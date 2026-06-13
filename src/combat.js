@@ -310,9 +310,17 @@ export class Battle {
     return arr.slice(0, 3).some((x) => x.alive);
   }
 
-  // 物理の隊列補正: 後衛は物理を「与える」「受ける」ともに半減。魔法・ブレスには掛からない
+  // 後衛から物理を「与える」ときの威力補正。通常は半減だが、射程のある武器
+  // (槍=中 / 弓=長) は後列からでも減衰しない (後衛運用が本来の用途のため)。
+  _outRowMul(actor) {
+    if (!this.isBackRow(actor)) return 1;
+    const rng = this.attackRange(actor);
+    if (rng === "mid" || rng === "long") return 1; // 槍・弓は後列でも減衰なし
+    return 0.5;
+  }
+  // 物理の隊列補正: 後衛は与ダメ(射程武器を除く)・被ダメが半減。魔法・ブレスには掛からない
   _rowMul(actor, tgt) {
-    return (this.isBackRow(actor) ? 0.5 : 1) * (this.isBackRow(tgt) ? 0.5 : 1);
+    return this._outRowMul(actor) * (this.isBackRow(tgt) ? 0.5 : 1);
   }
 
   // 武器の射程 (近/中/長)。敵側は射程の概念を持たない (狙いは _pickPartyTarget が決める)
