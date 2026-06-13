@@ -3211,7 +3211,7 @@ function dollChip(d) {
 const MANSION_MENU = [
   { key: "altar", icon: "⛓", name: "魂の祭壇", desc: "宿す魂の付け替えと強化" },
   { key: "party", icon: "🛡", name: "パーティ編成", desc: "迷宮へ連れて行く6体を選ぶ" },
-  { key: "manage", icon: "🏚", name: "人業保管庫", desc: "人形購入・解体・名前変更" },
+  { key: "manage", icon: "🏚", name: "人業保管庫", desc: "魂を宿して人業を仕立てる・名前変更" },
 ];
 
 function renderMansion() {
@@ -3225,13 +3225,14 @@ function renderMansion() {
   const tutM = G.msq && G.msq.n === 0 && G.msq.state === "active";
   const grid = el("div", "tw-grid");
   for (const m of MANSION_MENU) {
-    // 第0章中は「作成/管理」のみ。空の人形がいる間は「魂を宿す」も開放 (戻れないと詰むため)
-    const locked = tutM && m.key !== "manage" && !(m.key === "altar" && allDolls().some((d) => d.isEmpty));
+    // 第0章 (人業の生成) の間は「人業保管庫」のみ開放。残りはロック＆グレーアウト
+    const locked = tutM && m.key !== "manage";
     const c = el("div", "tw-fac" + (locked ? " locked" : ""));
     c.appendChild(el("div", "tw-faci", locked ? "🔒" : m.icon));
     c.appendChild(el("div", "tw-facn", m.name));
-    c.appendChild(el("div", "tw-facd", m.desc));
-    if (!locked) c.addEventListener("click", () => { SFX.select(); G.town.sub = m.key; altarSel = null; renderTown(); });
+    c.appendChild(el("div", "tw-facd", locked ? "人業を生み出すまで閉ざされている" : m.desc));
+    if (locked) c.style.opacity = "0.45";
+    else c.addEventListener("click", () => { SFX.select(); G.town.sub = m.key; altarSel = null; renderTown(); });
     grid.appendChild(c);
   }
   townEl.appendChild(grid);
@@ -3344,8 +3345,8 @@ function showSkillUnlockPopup(d, keys) {
 
 // 館サブ: 人業の作成・管理 (購入・解体)
 function renderMansionManage() {
-  townEl.appendChild(townHeader("人業 作成 / 管理", "mansion"));
-  townEl.appendChild(el("div", "tw-lead", "空の人業を仕立て、不要な人業は解体して魂を回収できる。"));
+  townEl.appendChild(townHeader("人業保管庫", "mansion"));
+  townEl.appendChild(el("div", "tw-lead", "赤い魂で器を購い、宿す魂をひとつ選んで人業を仕立てる。名を与えれば編成に加えられる。"));
 
   const list = el("div", "tw-mlist");
   allDolls().forEach((d) => {
@@ -3368,37 +3369,75 @@ function renderMansionManage() {
   townEl.appendChild(list);
 
   const cost = emptyDollCost();
-  const add = btn(`＋ 空の人業を購入 (🔴${cost})`, () => buyEmptyDoll());
+  const add = btn(`＋ 人業を仕立てる (🔴${cost})`, () => buyDoll());
   add.className = "btn tw-add";
   if (G.redSoul < cost) add.disabled = true;
   townEl.appendChild(add);
   townEl.appendChild(el("div", "tw-note",
-    `空の人業: 1体目 🔴30 / 2体目 🔴50 / 3体目以降 🔴100`));
+    "宿す魂をひとつ選んで購入し、名を与えると人業が生まれる。"));
+  townEl.appendChild(el("div", "tw-note",
+    `費用: 1体目 🔴30 / 2体目 🔴50 / 3体目以降 🔴100`));
 }
 
-// 空の人業の価格 (購入回数で段階的に上昇)
+// 人業を仕立てる費用 (購入回数で段階的に上昇)
 function emptyDollCost() {
   const n = G.dollsPurchased;
   return n === 0 ? 30 : n === 1 ? 50 : 100;
 }
 
-function buyEmptyDoll() {
+// 人業保管庫: 宿す魂を選び (必須)、赤い魂で人業を仕立てる
+function buyDoll() {
   const cost = emptyDollCost();
-  if (G.redSoul < cost) { log("Red Soul が足りない。", "sys"); return; }
-  if (G.reserve.length >= 12) { log("控えが満員で、これ以上は仕立てられない。", "sys"); return; }
+  if (G.redSoul < cost) { log("Red Soul が足りない。", "sys"); SFX.ng(); return; }
+  if (allDolls().length >= 18) { log("これ以上は仕立てられない (18体まで)。", "sys"); SFX.ng(); return; }
+  // 宿せる魂 = 覚醒済み (共有プールに count>=1)。選ばないと購入できない
+  const awakened = Object.keys(G.souls)
+    .filter((k) => SOUL_CLASSES[k] && (G.souls[k].count || 0) >= 1)
+    .sort((a, b) => (SOUL_CLASS_ORDER[a] ?? 99) - (SOUL_CLASS_ORDER[b] ?? 99));
+  if (!awakened.length) {
+    log("宿せる魂がない。先に魂を覚醒させてから仕立てよう。", "sys"); SFX.ng();
+    showToast("宿せる魂がない");
+    return;
+  }
+  const options = awakened.map((k) => {
+    const ent = G.souls[k];
+    const rank = soulRankFromCount(k, ent.count);
+    return { label: `${jobRankName(k, rank)}（${SOUL_CLASSES[k].label}の魂 ×${ent.count}）`, fn: () => askDollName(k) };
+  });
+  options.push({ label: "やめる", fn: () => {} });
+  showChoice("どの魂を宿す？", options, ICONS.wisp,
+    { banner: "✦ 人業を仕立てる ✦", lines: [`赤い魂 🔴${cost} で器を購い、選んだ魂を宿す`] });
+}
+
+// 宿す魂を選んだあと: 名を与えて人業を生成する
+function askDollName(clsKey) {
+  const cost = emptyDollCost();
+  showNameInput({
+    title: "人業に名を与える",
+    desc: `${SOUL_CLASSES[clsKey].label}の魂を宿す器に、名を与えよ。`,
+    placeholder: "人業の名前",
+    confirmLabel: `生成する (🔴${cost})`,
+    onConfirm: (name) => finalizeBuyDoll(clsKey, name),
+  });
+}
+
+// 魂と名前が決まったら、赤い魂を支払って人業を生成し、編成に加える
+function finalizeBuyDoll(clsKey, name) {
+  const cost = emptyDollCost();
+  if (G.redSoul < cost) { log("Red Soul が足りない。", "sys"); SFX.ng(); return; }
+  if (!(G.souls[clsKey] && (G.souls[clsKey].count || 0) >= 1)) { log("その魂は宿せない。", "sys"); SFX.ng(); return; }
   G.redSoul -= cost;
   G.dollsPurchased++;
-  // 購入した器は「空の人形」として控えに残る (消えない)。
-  // 魂を吸収させて生成するまでパーティ編成はできない。
-  const d = makeDoll("空の人形");
-  d.isEmpty = true;
+  const d = makeDoll(name);
+  d.primary = clsKey; // 選んだ共有魂を主魂として宿す
   recalcDoll(d);
   d.hp = d.maxhp; d.mp = d.maxmp;
-  G.reserve.push(d);
+  // 仕立てたばかりの人業はそのまま編成に加わる (満員なら控えへ)
+  if (G.party.length < 6) G.party.push(d);
+  else { G.reserve.push(d); log(`${d.name} は控えで待機する。`, "sys"); }
   SFX.itemget(); buzz([0, 30, 60, 30]);
-  log(`空の人業を購入した (🔴${cost})。魂を吸収させて生成しよう。`, "win");
-  altarSel = { doll: d, part: null };
-  G.town.facility = "mansion"; G.town.sub = "altar";
+  log(`人業「${d.name}」が生まれた！（${SOUL_CLASSES[clsKey].label}・🔴${cost}）`, "win");
+  showToast(`✦ 人業「${d.name}」誕生`);
   autosave(true);
   renderTown();
 }
@@ -4248,10 +4287,10 @@ function acceptMainQuest() {
 const TUT_INTRO = [
   "「よくぞ参った、新しき魂繰りよ。…生身のまま、よくぞ辺境まで辿り着いた。」",
   "「だが言うておく。生身で迷宮に入ってはならぬ。深淵は、生きた魂から順に喰らう。」",
-  "「先代の魂繰りが遺した人業が三体、武具庫で埃を被っておる。見習いの魂が入ったままだがな。──くれてやろう。」",
-  "「それと赤い魂を百。盗賊の魂を五つ吸わせた空の器をひとつ、くれてやろう。」",
-  "「人業の館へゆけ。空の器に名を与え、四体目の同胞をおのれの手で生み出すのだ。」",
-  "「それがそなたの最初の勅命である。果たしたら、戻って報告せよ。」",
+  "「ゆえに死者の魂を器に宿した『人業』を遣わすのだ。まずは其の一体を、おのれの手で生み出すがよい。」",
+  "「盗賊の魂をひとつ、そして赤い魂を百、くれてやろう。」",
+  "「人業の館の保管庫へゆけ。赤い魂で器を購い、宿す魂を選び、名を与えよ。」",
+  "「それがそなたの最初の勅命である。人業を一体生み出したら、戻って報告せよ。」",
 ];
 const TUT_FINALE = [
   "「…ほう。良い面構えの人業ではないか。初仕事にしては上出来よ。」",
@@ -4260,39 +4299,18 @@ const TUT_FINALE = [
   "「これでそなたも一人前。次は、まことの勅命を授けよう。」",
 ];
 
-// 着任の謁見: 見習いの人業3体 + 赤い魂100 + 共有魂プールの初期付与 を下賜する
+// 着任の謁見: 盗賊の魂×1 + 赤い魂100 を下賜する (人業は館の保管庫で自分の手で仕立てる)
 function grantTutorialGift() {
   const ms = G.msq;
   if (!ms || ms.granted) return;
   ms.granted = true;
-  // 共有魂プールに初期の魂を覚醒させておく (戦士/僧侶/魔導士 各1、盗賊1)
-  for (const k of ["fighter", "priest", "mage", "thief"]) ensureJob(k).count = 1;
-  const mk = (name, clsKey, gear) => {
-    const d = makeDoll(name);
-    d.primary = clsKey; // 共有魂を宿す
-    for (const id of gear) {
-      const it = cloneItem(id);
-      if (it) { d.items.push(it); equipItem(d, it); codexSeeItem(id); }
-    }
-    d.items.push(cloneItem("herb")); codexSeeItem("herb");
-    recalcDoll(d);
-    d.hp = d.maxhp; d.mp = d.maxmp;
-    G.party.push(d);
-  };
-  mk("ガルド", "fighter", ["shortSword", "leatherArmor"]);
-  mk("セリア", "priest", ["warHammer", "cap"]);
-  mk("ゼノ", "mage", ["magicStaff", "robe"]);
+  // 初期に持つ魂は盗賊ひとつのみ。共有魂プールに覚醒させて授ける
+  ensureJob("thief").count = 1;
   G.redSoul += 100;
-  // 4体目の素体: 空の器 (館で盗賊などの主魂を宿し、名前を与えて生成する)
-  const empty = makeDoll("空の器");
-  empty.isEmpty = true;
-  recalcDoll(empty);
-  empty.hp = empty.maxhp; empty.mp = empty.maxmp;
-  G.reserve.push(empty);
   codexSweepJobs();
   SFX.itemget(); buzz([0, 30, 60, 30]);
-  log("見習いの人業3体・🔴100・盗賊の魂 を拝受した。", "win");
-  showToast("👑 人業3体と赤い魂を拝受した");
+  log("盗賊の魂 ×1 ・ 🔴100 を拝受した。", "win");
+  showToast("👑 盗賊の魂と赤い魂を拝受した");
   autosave(true);
   renderTown();
 }
@@ -4321,7 +4339,7 @@ function clearedDungeonCount() {
 function palaceCallReady() {
   const ms = G.msq;
   if (!ms) return false;
-  if (ms.n === 0 && ms.state === "active") return !ms.granted || allDolls().filter((d) => !d.isEmpty).length >= 4;
+  if (ms.n === 0 && ms.state === "active") return !ms.granted || allDolls().filter((d) => !d.isEmpty).length >= 1;
   return ms.state === "report" || ms.state === "offer";
 }
 
@@ -4339,18 +4357,18 @@ function renderPalace() {
     if (!ms.granted) {
       townEl.appendChild(el("div", "tw-note", "玉座の老王が、新しき魂繰りの到着を待っている。"));
       const b = btn("👑 謁見する — 着任の挨拶", () =>
-        showStoryScene("勅命 「人業の生成」", TUT_INTRO, "下賜: 見習いの人業3体 + 🔴100 + 盗賊の魂×5", () => grantTutorialGift()));
+        showStoryScene("勅命 「人業の生成」", TUT_INTRO, "下賜: 盗賊の魂×1 + 🔴100", () => grantTutorialGift()));
       b.className = "btn tw-add tw-msq";
       townEl.appendChild(b);
-    } else if (allDolls().filter((d) => !d.isEmpty).length >= 4) {
+    } else if (allDolls().filter((d) => !d.isEmpty).length >= 1) {
       const b = btn("👑 報告する — 「人業の生成」完遂", () => reportTutorialQuest());
       b.className = "btn tw-add tw-msq";
       townEl.appendChild(b);
     } else {
       const box = el("div", "tw-rumor");
       box.appendChild(el("div", "tw-rumors", "勅命 「人業の生成」"));
-      box.appendChild(el("div", "tw-rumort", "人業の館で空の人業を仕立て (🔴30)、盗賊の魂を五部位に封じよ。"));
-      box.appendChild(el("div", "tw-note", "4体目の人業が立ち上がったら、王宮へ戻り報告せよ。"));
+      box.appendChild(el("div", "tw-rumort", "人業の館の保管庫で器を購い (🔴30)、盗賊の魂を宿して人業を一体つくれ。"));
+      box.appendChild(el("div", "tw-note", "人業が立ち上がったら、王宮へ戻り報告せよ。"));
       townEl.appendChild(box);
       const re = btn("👑 勅命を聞き直す", () => showStoryScene("勅命 「人業の生成」", TUT_INTRO, null, null));
       re.className = "btn tw-add";
@@ -6949,7 +6967,7 @@ function setupNewGame() {
   G.redSoul = 0;
   G.unlockedDungeons = 0; // 勅命 (第1章) を受けるまで、迷宮の場所は明かされない
   G.shopStock = { ...SHOP_INIT_STOCK };
-  // 第0章「人業の生成」: 王宮で謁見 → 下賜品を受ける (granted) → 館で4体目を仕立て → 報告
+  // 第0章「人業の生成」: 王宮で謁見 → 盗賊の魂×1+🔴100を受ける (granted) → 館の保管庫で人業を1体仕立て → 報告
   G.msq = { n: 0, state: "active", granted: false };
   codexSweepJobs();
   initQuests();
