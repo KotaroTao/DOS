@@ -15,15 +15,18 @@ export const monsters = defMonsters([
     hp: 42, atk: 16, def: 8, spd: 8, soul: 33, gold: 24,
     desc: "陽の射さぬ地底湖に棲む半魚人。退化した眼の代わりに水の震えで獲物を捉え、骨を削ったもりを手に群れをなして岸辺を囲う。捕えた獲物は湖底の祭壇へ引きずり込み、見たこともない深きものへ捧げる。" },
   { id: "d03_mandrake", name: "毒マンドレイク", race: "plant", element: "earth", artKey: "mandrake", rank: 4,
+    ability: "poison", // 肺を腐らせる紫の毒胞子
     hp: 52, atk: 17, def: 9, spd: 4, soul: 40, gold: 30,
     desc: "屍を養分に、人の形を真似て育った歩く毒草。引き抜かれると断末魔の絶叫を放ち、聞いた者の正気を削る。根からまかれる紫の胞子は肺を腐らせ、やがてその体内が次の苗床になる。" },
   { id: "d03_sentinel", name: "無人の甲冑", race: "armored", element: "light", artKey: "knightmare", rank: 4,
+    ability: "critical", physResist: 0.5, // 冴えた剣技で急所を突き、空洞の鎧が刃を弾く
     hp: 60, atk: 19, def: 12, spd: 6, soul: 46, gold: 34, soulClass: "knight",
-    desc: "守るべき主も、守るべき意味も失われ、ただ「侵入者を通すな」という最後の誓いだけが宿った無人の鎧。中身は空洞だが、磨き抜かれた剣技は生前のまま冴え渡る。兜の奥で、消えぬ聖光がぼうと灯る。" },
+    desc: "守るべき主も、守るべき意味も失われ、ただ「侵入者を通すな」という最後の誓いだけが宿った無人の鎧。中身は空洞ゆえ刃を通しても手応えなく、磨き抜かれた剣技は生前のまま冴え渡り、隙あらば急所を突く。兜の奥で、消えぬ聖光がぼうと灯る。" },
   { id: "d03_whelp", name: "奈落の幼竜", race: "dragon", element: "fire", artKey: "dragon", rank: 4, boss: true,
     palette: tint(ARTS.dragon.palette, "#3a8a3a", 0.35),
+    ability: "breath", // 前衛後衛もろとも灼く炎の吐息
     hp: 220, atk: 26, def: 12, spd: 9, soul: 320, gold: 360,
-    desc: "深淵の熱泉でふ化したばかりの若き竜。鱗はまだ柔らかく、知恵も浅い。だがその喉から吐き出される炎は回廊の石を飴のように溶かし、未熟ゆえの加減を知らぬ分だけ、かえって容赦がない。" },
+    desc: "深淵の熱泉でふ化したばかりの若き竜。鱗はまだ柔らかく、知恵も浅い。だがその喉から吐き出される炎は前衛も後衛もまとめて飲み込んで回廊の石を飴のように溶かし、未熟ゆえの加減を知らぬ分だけ、かえって容赦がない。" },
 ]);
 
 export const dungeon = {
