@@ -445,8 +445,8 @@ const SPECIAL_FLOORS = [
   { id: "clairvoyance", name: "千里眼の刻", icon: "start", accent: "#c08aff", sym: "◉", minFloor: 2, rate: 0.015,
     lines: ["不思議な力が視界を開いていく。", "この階のすべてのカードが最初から見えている。"],
     board: (b) => sfEachCell(b, (c) => { c.revealed = true; }) },
-  { id: "horde", name: "餓えた群れ", icon: "poison", accent: "#d4504e", sym: "Ψ", minFloor: 2, rate: 0.02,
-    lines: ["無数の足音と唸り声…敵が異常に多い。", "群れを狩り尽くせば、魂も財も多く集まるだろう。"],
+  { id: "horde", name: "餓えた群れ", icon: "poison", accent: "#d4504e", sym: "Ψ", minFloor: 2, rate: 0.02, hordeReward: true,
+    lines: ["無数の足音と唸り声…敵が異常に多い (出現マス +4)。", "この階の敵をすべて葬れば、迷宮の深さに応じた魂と財が手に入る。"],
     board: (b) => sfPlace(b, 4, (c) => { c.type = "monster"; c.monsterKey = pickFrom(sfMonsterPool()); c.cleared = false; }) },
   { id: "thiefInsight", name: "盗賊の洞察", icon: "chest", accent: "#6fae46", sym: "♠", minFloor: 2, rate: 0.02, sureChest: true, sureDisarm: true,
     lines: ["盗賊の勘が冴え渡る。敵は必ず宝を遺し、罠はことごとく見抜ける。", "敵が100%宝箱を落とし、宝箱の罠解除率が100%になる。"] },
@@ -484,6 +484,32 @@ const SPECIAL_FLOORS = [
 function specialDef() { return G.specialFloor ? SPECIAL_FLOORS.find((s) => s.id === G.specialFloor) || null : null; }
 // 特別階の効果値の取り出し (効果なしなら既定値)
 function sfNum(key, dflt) { const sp = specialDef(); return sp && sp[key] != null ? sp[key] : dflt; }
+
+// 餓えた群れ: この階の敵 (モンスターマス) をすべて倒したか。未受領のときだけ true
+function hordeRewardPending() {
+  const sp = specialDef();
+  if (!sp || !sp.hordeReward || !G.board || G.board._hordeRewarded) return false;
+  let any = false, allCleared = true;
+  sfEachCell(G.board, (c) => { if (c.type === "monster") { any = true; if (!c.cleared) allCleared = false; } });
+  return any && allCleared;
+}
+// 殲滅報酬: 迷宮の深さ (n) に応じて Soul n×50・ゴールド n×100 を授ける
+function grantHordeReward() {
+  G.board._hordeRewarded = true;
+  const n = dungeonNumber(activeCfg());
+  const soul = n * 50, gold = n * 100;
+  G.gold += gold; G.soulPts += soul;
+  if (G.run && inDungeon()) { G.run.gold += gold; G.run.soulPts += soul; }
+  updateTopbar();
+  log(`この辺りの敵をすべて葬った！ 💰${gold} と ✦${soul} Soul を得た。`, "win");
+  SFX.victory(); flashScreen("#d4504e");
+  showEvent({
+    banner: "✦ 殲滅 ✦", title: "この辺りの敵をすべて葬った",
+    accent: "#d4504e", sprite: ICONS.poison, sparkle: true,
+    lines: ["群れを狩り尽くした褒美だ。", `獲得 ゴールド 💰${gold}`, `回収した Soul ✦${soul}`],
+    onClose: () => renderBoard(),
+  });
+}
 
 // ===== 迷宮の異変 (潜入単位のミューテーター) =====
 // 潜入時に一定確率で迷宮全体に「異変」が起きている。受け入れて潜るか、避けて
@@ -3862,7 +3888,10 @@ function endBattle() {
     const wasMimic = b.enemies.some((e) => e.isMimic);
     const wasMasterMimic = b.enemies.some((e) => e.isMasterMimic);
     const afterVictory = () => {
-      const after = clearInfo ? () => showDungeonClearedPopup(clearInfo) : null;
+      // 主討伐の踏破演出 → なければ「餓えた群れ」殲滅報酬。どちらも無ければ何もしない
+      const after = clearInfo
+        ? () => showDungeonClearedPopup(clearInfo)
+        : (hordeRewardPending() ? () => grantHordeReward() : null);
       // 死体戦は宝箱を出さず、死体に残っていた魂を100%回収する
       if (corpse) {
         setTimeout(() => recoverCorpseSoul(corpse, after), 200);
