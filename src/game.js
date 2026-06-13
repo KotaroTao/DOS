@@ -5943,7 +5943,7 @@ function renderAltar() {
       slot.appendChild(el("div", "tw-parts2", jobRankName(inst.clsKey, rank)));
       if (isSub) {
         const set = subRef && (subRef.passive || subRef.skill);
-        const skName = subRef && subRef.passive ? passiveName(subRef.passive)
+        const skName = subRef && subRef.passive ? passiveName(subRef.passive, soulLearnedPassives(inst)[subRef.passive] || 1)
           : (subRef && subRef.skill && SPELLS[subRef.skill] ? SPELLS[subRef.skill].name : "技を選ぶ");
         const skl = el("div", "tw-parts2" + (set ? "" : " dim"), `▶ ${skName}`);
         skl.style.cursor = "pointer";
@@ -8807,7 +8807,7 @@ function renderSoulTab(p) {
     const cls = SOUL_CLASSES[se.clsKey]; if (!cls) continue;
     const rank = soulRankOf(se);
     const borrow = sub.passive
-      ? `パッシブ: ${passiveName(sub.passive)}`
+      ? `パッシブ: ${passiveName(sub.passive, soulLearnedPassives(se)[sub.passive] || 1)}`
       : `技: ${sub.skill && SPELLS[sub.skill] ? SPELLS[sub.skill].name : "未設定"}`;
     const row = el("div", "st-soulrow2");
     const orb = el("span", "tw-chips"); orb.style.color = cls.glow; orb.appendChild(spriteCanvas(jobSprite(se.clsKey, Math.max(1, rank)), 2));
