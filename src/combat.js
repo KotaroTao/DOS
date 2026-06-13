@@ -1019,7 +1019,8 @@ export class Battle {
     let sureCrit = false;
     if (opt.basic && actor._kenma) { actor._kenma = false; sureCrit = true; }       // 剣魔合一
     if (opt.basic && actor._ambushCritLeft > 0) { actor._ambushCritLeft--; sureCrit = true; } // 不意打ち
-    if (pv(actor, "sleepKill") && (tgt.asleep || tgt.ailment === "paralyze")) sureCrit = true; // 寝込み襲い
+    if (tgt.asleep) sureCrit = true; // 眠っている敵への物理は必ず会心
+    if (pv(actor, "sleepKill") && tgt.ailment === "paralyze") sureCrit = true; // 寝込み襲い: 麻痺にも確定会心
     const crit = sureCrit || Math.random() < critChance;
     if (crit) dmg = Math.floor(dmg * 1.85 * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)]); // 急所読み: 会心強化
     // 隊列補正: 後衛は物理の与ダメ・被ダメが半減

@@ -385,6 +385,7 @@ canvas.spr { image-rendering: pixelated; display: block; }
 .st-iicon { flex: 0 0 auto; display: flex; }
 .st-iname { font-size: 11px; color: #dff5ec; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
 .st-iname.st-unid { color: #7fd0ff; font-style: italic; }
+.st-iname.st-unid.st-idfail { color: #e6a96b; } /* スキル鑑定失敗済み (商店でのみ鑑定可) */
 
 /* 装備中リスト (コンパクト) */
 .st-eqlist { display: flex; flex-direction: column; gap: 2px; }
