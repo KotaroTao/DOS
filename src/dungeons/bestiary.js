@@ -264,6 +264,52 @@ const NEW_DEFS = [
   { id: "bs_templelord", name: "沈める神官王", rank: 8, boss: true, race: "specter", element: "water", artKey: "templelord", soulClass: "priest",
     role: "summoner", summonKey: "bs_kelpdrowned", ability: "drain", physResist: 0.5, regen: 0.06, magWeak: 1.3, // 眷属を呼び、命を貪り、潮で繕う。光に脆い
     desc: "神殿を湖底へ沈め、自らも王冠を被ったまま溺れ果てた背教の神官王。沈んだ参拝者を眷属として呼び起こし、生者の命を貪って永遠の祈祷を続ける。湖底の闇に慣れた身は、聖なる光に焼かれて崩れる。" },
+  // -- 第7層「灼熱の洞」 (rank 8-9・火/溶岩。第6層より格上の壁。深部に rank10) --
+  { id: "bs_lavagolem", name: "溶岩のゴーレム", rank: 8, race: "construct", element: "fire", artKey: "lavagolem",
+    physResist: 0.6, barrier: 2, enrage: true, // 岩殻が刃を阻み、割れると噴き出す溶岩で猛る
+    desc: "黒い岩の殻の下に溶岩を滾らせて歩く巨人。分厚い殻は刃をことごとく弾き返すが、砕かれた割れ目から噴き出す熱とともに、手がつけられぬほど荒れ狂う。" },
+  { id: "bs_magmaslime", name: "溶岩の粘塊", rank: 8, race: "amorph", element: "fire", artKey: "magmaslime",
+    physResist: 0.5, regen: 0.1, ability: "poison", // 煮えたぎる溶岩の塊。刃が沈み、爛れさせ、寄り集まる
+    desc: "黒い皮膜の下で煮えたぎる、意思を持った溶岩の塊。触れたものを灼けただれさせ、刃を突き立てても泥のように沈んで効かない。崩しても、熱い核さえ残れば再び寄り集まる。" },
+  { id: "bs_sulfurfiend", name: "硫黄の鬼", rank: 8, race: "demon", element: "fire", artKey: "sulfurfiend",
+    ability: "critical", swift: true, multistrike: 2, // 毒火の爪で素早く急所を続けざまに抉る
+    desc: "火口の硫煙が凝って生じた、角を生やした炎の鬼。毒火をまとった鉤爪で素早く二度三度と斬りつけ、その一撃は鎧ごと急所を抉る。硫黄の悪臭が、こいつの近づく合図だ。" },
+  { id: "bs_cinderwraith", name: "燃え殻の亡霊", rank: 8, race: "specter", element: "fire", artKey: "cinderwraith",
+    ability: "drain", lifesteal: 0.3, evasive: true, // 燻る霊。触れた命を吸い、熾火のように掴みどころがない
+    desc: "焼け死んだ者の未練が、燻る熾火の霊となって彷徨う姿。触れた者の命を吸って一瞬輝きを増し、刃を向ければ火の粉となって散ってかわす。消えたかと思えば、背後で再び赤く灯る。" },
+  { id: "bs_flamedrake", name: "炎の幼竜", rank: 9, race: "dragon", element: "fire", artKey: "flamedrake",
+    ability: "breath", enrage: true, swift: true, // 業炎のブレスを吐き、手負いで荒れ狂う
+    desc: "火口に巣くう、まだ若い火竜。気性は荒く、両翼を広げて全体を業炎のブレスで焼き払う。手負いになれば見境を失い、洞窟が崩れるのも構わず暴れ回る。" },
+  { id: "bs_obsidianguard", name: "黒曜の番兵", rank: 9, race: "construct", element: "fire", artKey: "obsidianguard",
+    role: "guard", physResist: 0.6, magResist: 0.5, barrier: 2, // 黒曜石の殻が刃も魔も弾き、主を庇う
+    desc: "火口を守るために黒曜石を削り出して作られた番兵。鋭く硬い殻は刃を弾き、魔力もまた磨かれた面に滑り落ちる。背後の主を己の身で庇い、決してその場を動かない。" },
+  { id: "bs_lavamaw", name: "溶岩の顎", rank: 8, race: "aquatic", element: "fire", artKey: "lavamaw",
+    ability: "critical", lifesteal: 0.3, physResist: 0.4, // 溶岩に潜み丸呑みにする顎。喰らって己を満たす
+    desc: "溶岩溜まりに口だけを開けて獲物を待つ、罠のような魔。近づいた者を一息に丸呑みにし、灼けた腹で溶かして己の熱に変える。一見ただの溶岩の泡だが、近づけば牙が並ぶ。" },
+  { id: "bs_ashghoul", name: "灰塗れの喰屍鬼", rank: 8, race: "undead", element: "fire", artKey: "ashghoul",
+    ability: "poison", regen: 0.08, pack: true, // 火砕流に焼かれた亡者。灰の毒を撒き群れで這う
+    desc: "火砕流に呑まれて焼け焦げ、それでも這い続ける亡者の群れ。動くたびに有毒の灰を撒き散らし、焦げた手で生者を引きずり込む。崩れても、灰の中からまた起き上がる。" },
+  { id: "bs_emberswarm", name: "火の粉の蟲群", rank: 8, race: "insect", element: "fire", artKey: "emberswarm",
+    pack: true, multistrike: 2, swift: true, // 灼熱の羽虫の群れ。素早く群れて何度も焼き刺す
+    desc: "火口の熱気に湧いた、灼熱に輝く無数の羽虫の群れ。風に乗って素早く飛び回り、群れごと獲物にまとわりついて何度も焼き刺す。払っても払っても、熱のある限り湧き続ける。" },
+  { id: "bs_pyrelich", name: "業火の死霊術師", rank: 9, race: "undead", element: "fire", artKey: "pyrelich", soulClass: "mage",
+    role: "summoner", summonKey: "bs_ashghoul", ability: "drain", magWeak: 1.3, // 亡者を呼び、命を吸う。骨は熱に脆い
+    desc: "炎を求めて火口に降り、業火をまとったまま朽ちた魔術師の骸。灰の亡者を次々と呼び起こし、生者の命を吸って術を保つ。だが乾いた骨は、自ら操る炎にこそ脆い。" },
+  { id: "bs_brimstonegolem", name: "硫黄の鋳像", rank: 8, race: "construct", element: "fire", artKey: "brimstonegolem",
+    physResist: 0.5, barrier: 2, ability: "poison", // 硫黄を固めた像。毒煙を噴き、刃を阻む
+    desc: "火口の硫黄を煮固めて鋳た、黄ばんだ巨像。継ぎ目から絶えず有毒の煙を噴き上げ、近づく者を咳き込ませる。脆く見えて、固まった硫黄の殻は存外に刃を通さない。" },
+  { id: "bs_furnacefiend", name: "溶鉱の鬼神", rank: 9, race: "demon", element: "fire", artKey: "furnacefiend",
+    ability: "critical", enrage: true, multistrike: 2, // 溶鉱炉の巨鬼。手負いで荒れ狂い連打する
+    desc: "溶鉱炉の底から生まれ出た、燃え盛る巨躯の鬼神。鎚のような両腕で続けざまに打ち据え、傷を負うほど炉のように赤熱して猛る。その一撃は岩盤すら鍛冶のごとく叩き潰す。" },
+  { id: "bs_magmaray", name: "溶岩のエイ", rank: 8, race: "aquatic", element: "fire", artKey: "magmaray",
+    ability: "paralyze", swift: true, evasive: true, // 溶岩を泳ぐ魔魚。帯電した尾で痺れさせ翻る
+    desc: "溶岩の海を翼のように泳ぐ、灼熱の魔魚。帯電した長い尾で獲物を痺れさせ、ひらりと身を翻して刃をかわす。溶岩の表面をなめらかに滑る姿は、影のように捉えどころがない。" },
+  { id: "bs_basaltdrake", name: "玄武岩の竜", rank: 9, race: "dragon", element: "fire", artKey: "basaltdrake",
+    ability: "breath", physResist: 0.5, enrage: true, // 岩鱗が刃を阻み、業炎を吐く。手負いで猛る
+    desc: "黒い玄武岩の鱗に全身を覆われた火竜。岩のごとき鱗は並の刃を寄せつけず、腹の底で滾る溶岩を業炎として吐き出す。冷えて固まったように見えても、内には常に火が燃えている。" },
+  { id: "bs_infernolord", name: "業火の主", rank: 9, boss: true, race: "demon", element: "fire", artKey: "infernolord", soulClass: "hexer",
+    role: "summoner", summonKey: "bs_sulfurfiend", ability: "breath", physResist: 0.5, enrage: true, // 眷属を呼び、業炎を吐き、手負いで荒れ狂う
+    desc: "灼熱の洞の最奥、煮えたぎる溶岩湖の中心に座す業火の魔王。配下の鬼を次々と呼び寄せ、洞窟ごと焼き尽くす業炎のブレスを吐く。追い詰めれば、その身は太陽のごとく膨れ上がり、すべてを灰に帰そうとする。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1207,6 +1253,7 @@ export const BOSS_ORDER = {
 // 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
 // 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
 const LAYER_BOSS_OVERRIDE = {
+  7: "bs_infernolord", // 第7層「灼熱の洞」: 業火の主 (rank9・火/悪魔ボス)
   6: "bs_templelord", // 第6層「沈没神殿」: 沈める神官王 (rank8・水/神殿ボス)
   5: "bs_forestlord", // 第5層「霧の森」: 霧の森の主 (rank7・植物ボス)
   4: "bs_fortlord",  // 第4層「捨て砦」: 砦の主 (rank6・armoredボス)
@@ -1287,6 +1334,17 @@ export const LAYER_POOLS = {
     "bs_crystalgolem", "bs_irongolem", "bs_voidwalker", "bs_dreadlich",
     // 深部の強敵 (rank9): 神像・堕ちた光
     "bs_divinegolem", "bs_shadowseraph", "bs_fallenangel",
+  ],
+  // 第7層「灼熱の洞」: 火/溶岩中心、rank8-9主体 (第6層より格上)。深部に rank10
+  7: [
+    // 新規 (固有アート)
+    "bs_lavagolem", "bs_magmaslime", "bs_sulfurfiend", "bs_cinderwraith", "bs_flamedrake",
+    "bs_obsidianguard", "bs_lavamaw", "bs_ashghoul", "bs_emberswarm", "bs_pyrelich",
+    "bs_brimstonegolem", "bs_furnacefiend", "bs_magmaray", "bs_basaltdrake",
+    // 既存の火/悪魔/獄系を第7層へ再配置 (rank8-9)
+    "bs_demon", "bs_hellhound", "bs_shadowogre", "bs_darkliege", "bs_infernaltyrant",
+    // 深部の強敵 (rank10)
+    "bs_doombringer",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
