@@ -8302,6 +8302,56 @@ function showStatInfo(k, p) {
   document.body.appendChild(wrap);
 }
 
+// キャラ詳細ポップアップ (ステータスバーのタップで開く)
+// HP/MP・状態・属性・能力値・習得スキルを1枚にまとめて表示する
+function showCharDetailPopup(p) {
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card cdx-detail st-detail");
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+
+  // ヘッダ: 肖像 + 名前 + 職業/レベル
+  const head = el("div", "st-detail-head");
+  const port = el("div", "st-port small");
+  port.appendChild(spriteCanvas(p.isDoll ? dollSprite(p) : HERO, 4));
+  head.appendChild(port);
+  const idn = el("div", "st-idn");
+  idn.appendChild(el("div", "st-name", p.name + (p.alive ? "" : " †")));
+  idn.appendChild(el("div", "st-sub", p.isDoll ? `人業 ・ ${p.cls} Lv${p.jobLv || 1}` : `${p.align} - ${p.race} - ${p.cls} Lv${p.level}`));
+  head.appendChild(idn);
+  card.appendChild(head);
+
+  // HP/MP・状態・属性
+  const ail = p.ailment === "poison" ? "毒" : (p.alive ? "正常" : "戦闘不能");
+  const ailCls = (p.ailment || !p.alive) ? "st-bad" : "";
+  const bar = el("div", "st-statbar");
+  bar.innerHTML = `<span>HP <b>${p.hp}/${p.maxhp}</b></span><span>MP <b>${p.mp}/${p.maxmp}</b></span><span class="${ailCls}">状態: <b>${ail}</b></span><span>属性攻 ${elemStatChip(p.elemAtk)}</span><span>属性防 ${elemStatChip(p.elemDef)}</span>`;
+  card.appendChild(bar);
+
+  // 能力値 (6列)。タップで各能力の説明を表示
+  const ab = el("div", "st-attrs6");
+  for (const k of ATTR_KEYS) {
+    const cell = el("div", "st-attr6 st-attr-tap");
+    cell.appendChild(el("span", "st-attrk", ATTR_LABEL[k]));
+    cell.appendChild(el("span", "st-attrv", String(Math.round(p[k] || 0))));
+    cell.title = ATTR_NAME[k];
+    cell.addEventListener("click", () => { SFX.select(); showStatInfo(k, p); });
+    ab.appendChild(cell);
+  }
+  card.appendChild(ab);
+
+  // 習得スキル (タップで各スキルの詳細を表示)
+  if (p.spells && p.spells.length) {
+    card.appendChild(el("div", "st-h2", "習得スキル — タップで詳細"));
+    card.appendChild(skillChips(p.spells));
+  }
+
+  const ok = btn("閉じる", () => wrap.remove());
+  ok.className = "btn primary ig-ok";
+  card.appendChild(ok);
+  wrap.appendChild(card);
+  document.body.appendChild(wrap);
+}
+
 function renderStatus() {
   autosave(); // 装備変更・呪文使用などのたびに保存
   const p = G.party[G.statusIdx];
@@ -8340,14 +8390,15 @@ function renderStatus() {
 
   // ===== コンパクト1画面レイアウト =====
 
-  // 1. ステータスバー (HP/MP/状態/属性/呪文)
-  const bar = el("div", "st-statbar");
+  // 1. ステータスバー (HP/MP/状態/属性/スキル)。タップでキャラ詳細ポップアップを表示
+  const bar = el("div", "st-statbar st-statbar-tap");
   const ail = p.ailment === "poison" ? "毒" : (p.alive ? "正常" : "戦闘不能");
   const ailCls = (p.ailment || !p.alive) ? "st-bad" : "";
   const spellLine = p.spells && p.spells.length
-    ? `<span class="st-bar-spells">呪文: ${p.spells.map((k) => SPELLS[k] ? SPELLS[k].name : k).join("・")}</span>`
+    ? `<span class="st-bar-spells">スキル: ${p.spells.map((k) => SPELLS[k] ? SPELLS[k].name : k).join("・")}</span>`
     : "";
   bar.innerHTML = `<span>HP <b>${p.hp}/${p.maxhp}</b></span><span>MP <b>${p.mp}/${p.maxmp}</b></span><span class="${ailCls}">状態: <b>${ail}</b></span><span>属性攻 ${elemStatChip(p.elemAtk)}</span><span>属性防 ${elemStatChip(p.elemDef)}</span>${spellLine}`;
+  bar.addEventListener("click", () => { SFX.select(); showCharDetailPopup(p); });
   statusEl.appendChild(bar);
 
   // 死亡中の帰還タイマー
