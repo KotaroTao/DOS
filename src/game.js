@@ -223,6 +223,18 @@ const AIL_NAME = { poison: "毒", paralyze: "麻痺", stone: "石化" };
 const view = document.getElementById("view");
 const vctx = view.getContext("2d");
 const logEl = document.getElementById("log");
+// ログは最新行を常に最下部へ。ただしユーザーが履歴を読もうと上へスクロールしている
+// 間は追従しない。戦闘開始でコマンドメニューが出るなどしてログ欄の高さが後から
+// 変わると最新行が下端で見切れるため、リサイズにも追従して貼り付け直す。
+let _logPinned = true;
+function scrollLogBottom() { logEl.scrollTop = logEl.scrollHeight; }
+function isLogAtBottom() {
+  return logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 24;
+}
+logEl.addEventListener("scroll", () => { _logPinned = isLogAtBottom(); }, { passive: true });
+if (typeof ResizeObserver !== "undefined") {
+  new ResizeObserver(() => { if (_logPinned) scrollLogBottom(); }).observe(logEl);
+}
 const partyEl = document.getElementById("party");
 const combatMenu = document.getElementById("combat-menu");
 const floorInfo = document.getElementById("floor-info");
@@ -400,10 +412,11 @@ function log(msg, cls = "sys") {
   div.textContent = msg;
   logEl.appendChild(div);
   while (logEl.children.length > 80) logEl.removeChild(logEl.firstChild);
-  // 最新行を確実に最下部へ。iOS Safari 等では appendChild 直後の再レイアウトが
-  // 間に合わず最新メッセージまでスクロールしきれないことがあるため、次フレームでも実行する。
-  logEl.scrollTop = logEl.scrollHeight;
-  requestAnimationFrame(() => { logEl.scrollTop = logEl.scrollHeight; });
+  // 新しいメッセージが来たら最下部へ貼り付け直す。iOS Safari 等では appendChild 直後の
+  // 再レイアウトが間に合わず最新メッセージまでスクロールしきれないことがあるため、次フレームでも実行する。
+  _logPinned = true;
+  scrollLogBottom();
+  requestAnimationFrame(scrollLogBottom);
 }
 
 // 現在の迷宮設定
