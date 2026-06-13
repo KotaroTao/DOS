@@ -1401,7 +1401,7 @@ export function soulStats(s) {
 // 人業はそこから魂を差し込むだけの器で、primary (主魂=職業・ステ・スキル) と
 // subs (宿し技スロット: 別職の看板スキルだけを借りる、最大 MAX_SUBS 個) を持つ。
 let _dollUid = 0;
-export const MAX_SUBS = 2;
+export const MAX_SUBS = 3;
 // サブ魂 (宿し技) のステータス寄与率: 宿した魂の全ステの30%を器に加算する
 export const SUB_STAT_RATE = 0.3;
 
@@ -1536,12 +1536,15 @@ export function fieldedSoulUids(party) {
   }
   return set;
 }
-// 結社が供給するパーティパッシブ {passiveKey: lv}。編成に出していないランク2以上の魂が対象
-export function orderPassiveMap(party) {
+// 結社が供給するパーティパッシブ {passiveKey: lv}。編成に出していないランク2以上の魂が対象。
+// seatUids を渡すと「席に着いた魂」だけに絞る (控えの結社の席数制限)。未指定なら従来どおり全編成外を対象。
+export function orderPassiveMap(party, seatUids) {
   const fielded = fieldedSoulUids(party);
+  const seats = seatUids ? new Set(seatUids) : null;
   const map = {};
   for (const s of SOULS) {
     if (!s || fielded.has(s.uid)) continue;
+    if (seats && !seats.has(s.uid)) continue; // 席に着いた魂のみ加護を供給する
     const rank = soulRankFromCount(s.clsKey, s.count);
     if (rank < 2) continue;
     const perk = ORDER_PERK[s.clsKey];
