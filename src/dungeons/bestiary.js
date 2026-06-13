@@ -142,6 +142,28 @@ const NEW_DEFS = [
   { id: "bs_fogspecter", name: "汚水の靄", rank: 3, race: "specter", element: "water", artKey: "fogspecter",
     ability: "paralyze", evasive: true, magWeak: 1.5, // 実体なく刃をすり抜け、瘴気で痺れさせる。魔には脆い
     desc: "汚水から立ちのぼる瘴気が、ぼんやりと人の形をなした霊。刃は霧をすり抜けてしまい、まとわりつく毒気に触れた者は痺れて動けなくなる。実体が薄いぶん、魔の力には抗えない。" },
+  // -- 第3層「廃坑」 (rank 4-5・土/採掘。第2層より格上の壁。深部に rank6 の旧坑の主) --
+  { id: "bs_rockworm", name: "岩喰いの大蟲", rank: 4, race: "insect", element: "earth", artKey: "rockworm",
+    physResist: 0.5, multistrike: 2, // 岩盤ごと喰らう顎で続けざまに噛み砕く
+    desc: "坑道の岩盤を喰らって掘り進む、人を丸呑みにする環形の大蟲。円い口にびっしり並んだ歯で岩ごと獲物を削り取り、二度三度と噛み砕く。硬い体節は刃をほとんど通さない。" },
+  { id: "bs_dustwraith", name: "粉塵の亡霊", rank: 4, race: "specter", element: "earth", artKey: "dustwraith",
+    ability: "poison", evasive: true, magWeak: 1.4, // 炭塵を吸わせて蝕み、掴みどころがない。魔には脆い
+    desc: "落盤と炭塵に巻かれて窒息した坑夫たちの霊が、黒い粉塵の渦となって彷徨う。吸い込めば肺を蝕む毒の塵をまき散らし、刃を向けても渦の中をすり抜ける。光の魔法には掻き消される。" },
+  { id: "bs_crystalcrawler", name: "水晶喰い蟲", rank: 5, race: "insect", element: "earth", artKey: "crystalcrawler",
+    physResist: 0.5, magResist: 0.5, barrier: 2, // 鉱脈を喰らい水晶の鎧をまとう。刃も魔も通りにくい
+    desc: "鉱脈の水晶を喰らって育ち、背に鋭い結晶の鎧を生やした巨大な甲虫。刃は結晶に弾かれ、魔力もまた水晶に吸われて霧散する。生半可な攻撃では、傷一つつけられない。" },
+  { id: "bs_blastsprite", name: "坑火の精", rank: 4, race: "elemental", element: "fire", artKey: "blastsprite",
+    enrage: true, magWeak: 1.4, // 坑道に溜まる可燃ガスの化身。追い詰めると爆ぜる
+    desc: "閉ざされた坑道に溜まった可燃ガスが、ゆらめく火の精と化したもの。揺らめきながら近づき、傷つけられて追い詰められると、内に溜めた炎を一気に爆ぜさせる。水気のない体は、魔法でかえって燃え上がる。" },
+  { id: "bs_orehulk", name: "鉱滓の巨塊", rank: 5, race: "construct", element: "earth", artKey: "orehulk",
+    physResist: 0.6, barrier: 2, // 捨てられた鉱滓の塊。分厚い殻が刃を阻む
+    desc: "精錬で捨てられた鉱滓が幾年も積もり、熱を孕んだまま動き出した巨塊。光る鉱脈が体を走り、分厚い滓の殻は並の刃を寄せつけない。ひと振りの拳は、坑道の梁すら叩き折る。" },
+  { id: "bs_tunneler", name: "坑道掘りの獣", rank: 4, race: "beast", element: "earth", artKey: "tunneler",
+    swift: true, multistrike: 2, // 土に潜んで奇襲し、巨大な前肢で素早く掘り穿つ
+    desc: "盲いた目で土中を泳ぐように掘り進む、巨大な前肢を持つ獣。気配を断って土から飛び出し、岩をも砕く鉤爪で素早く二度抉る。気づいた時には、足元の土が崩れている。" },
+  { id: "bs_minelord", name: "坑道の主", rank: 5, boss: true, race: "giant", element: "earth", artKey: "minelord", soulClass: "fighter",
+    role: "summoner", summonKey: "bs_rockworm", physResist: 0.5, barrier: 3, enrage: true, // 坑蟲を呼び、刃を阻み、手負いで荒れ狂う
+    desc: "廃坑の闇そのものが岩を寄せ集めて形をなした、坑道の主。腹の底で燃える鉱脈を脈打たせ、岩を喰らう蟲を次々と呼び寄せる。分厚い岩の殻は刃を阻み、砕かれるほどに怒りで坑道を揺らす。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1086,6 +1108,7 @@ export const BOSS_ORDER = {
 // 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
 const LAYER_BOSS_OVERRIDE = {
   2: "bs_sewerlord", // 第2層「地下水路」: 水路の主 (rank4・水棲ボス)
+  3: "bs_minelord",  // 第3層「廃坑」: 坑道の主 (rank5・土ボス)
 };
 export const LAYER_BOSS = Array.from({ length: 20 }, (_, i) => {
   const L = i + 1;
@@ -1118,6 +1141,17 @@ export const LAYER_POOLS = {
     "bs_waterhag", "bs_mucusworm", "bs_razorshrimp", "bs_ironcarp", "bs_fogspecter",
     // 既存の水棲/不定形を第2層へ再配置
     "cm_slime", "bs_swampslime", "bs_waterelemental", "d03_sahagin", "bs_deepsahagin",
+  ],
+  // 第3層「廃坑」: 土/構造体/虫中心、rank4-5主体 (第2層より格上)。深部に rank6 の旧坑の怪物
+  3: [
+    // 新規 (固有アート)
+    "bs_rockworm", "bs_dustwraith", "bs_crystalcrawler", "bs_blastsprite", "bs_orehulk", "bs_tunneler",
+    // 既存の土/構造体/虫を第3層へ再配置 (rank3-5)
+    "bs_scorpion", "bs_poisonspider", "bs_marshgolem", "d02_lizard",
+    "d03_orc", "bs_gargoyle", "bs_stonegorgon", "bs_shieldogre",
+    "d03_mandrake", "bs_troll", "bs_deepgolem",
+    // 深部の強敵 (rank6)
+    "d04_golem", "d04_ogre", "bs_steelspider",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ

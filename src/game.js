@@ -399,7 +399,7 @@ const LAYER_VISUALS = [
   { name: "灼熱の洞",   sym: "▲", accent: "#d4682e", bgm: "layer7", back: drawBackLava, floorBase: "#190f0a", floorTiles: ["#22130c", "#1c0f0a", "#160c07"], glow: "rgba(255,130,50,0.07)" },  // 7
   { name: "氷結回廊",   sym: "❄", accent: "#9fd0e6", bgm: "layer8", back: drawBackIce, floorBase: "#0e1417", floorTiles: ["#152027", "#111a20", "#0d1418"], glow: "rgba(170,220,245,0.06)" }, // 8
   { name: "毒沼",       sym: "⚗", accent: "#a7b84a", bgm: "layer9", back: drawBackSwamp, floorBase: "#12140d", floorTiles: ["#1a1c11", "#16180d", "#12140a"], glow: "rgba(170,195,75,0.06)" },  // 9
-  { name: "嵐の尖塔",   sym: "⚡", accent: "#b6a4e0", bgm: "field8",     floorBase: "#10101a", floorTiles: ["#181826", "#14141f", "#101019"], glow: "rgba(180,160,235,0.06)" }, // 10
+  { name: "嵐の尖塔",   sym: "⚡", accent: "#b6a4e0", bgm: "layer10", back: drawBackSpire, floorBase: "#10101a", floorTiles: ["#181826", "#14141f", "#101019"], glow: "rgba(180,160,235,0.06)" }, // 10
   { name: "闘技場跡",   sym: "✶", accent: "#c9a05a", bgm: "field3",     floorBase: "#16130d", floorTiles: ["#1f1a11", "#1a160d", "#15110a"], glow: "rgba(225,180,90,0.05)" },  // 11
   { name: "地底大空洞", sym: "◆", accent: "#8a7a5a", bgm: "field10",    floorBase: "#13110d", floorTiles: ["#1b1813", "#16140f", "#12100b"], glow: "rgba(200,180,140,0.05)" }, // 12
   { name: "魔導書庫",   sym: "✪", accent: "#9d7ad0", bgm: "fieldCrypt", floorBase: "#100e17", floorTiles: ["#181323", "#13101c", "#100d16"], glow: "rgba(160,120,225,0.06)" }, // 13
@@ -881,6 +881,90 @@ function drawThemedBack(r, accent, sym) {
   }
   vctx.fillStyle = "rgba(255,255,255,0.08)";
   vctx.fillRect(2, 2, r.w - 4, 3);
+}
+
+// 層10「嵐の尖塔」のカード裏面: 嵐空にそびえる尖塔、閃く稲妻と雷雲、吹きつける雨
+function drawBackSpire(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  // 嵐空の地
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#181426");
+  bg.addColorStop(0.5, "#14121f");
+  bg.addColorStop(1, "#0e0c16");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+
+  // 稲妻のフラッシュ判定 (周期的に二度光る)
+  const lp = t % 2600;
+  const flash = lp < 140 ? (1 - lp / 140) : (lp > 200 && lp < 300 ? (1 - (lp - 200) / 100) * 0.6 : 0);
+
+  // 雷雲 (上辺の暗い塊。フラッシュで縁が光る)
+  for (const [cx, cy, rr] of [[10, 5, 9], [26, 3, 10], [44, 5, 9], [W - 2, 7, 8]]) {
+    vctx.fillStyle = `rgb(${Math.round(33 + flash * 120)},${Math.round(28 + flash * 110)},${Math.round(48 + flash * 120)})`;
+    vctx.beginPath(); vctx.arc(cx, cy, rr, 0, Math.PI * 2); vctx.fill();
+  }
+
+  // 尖塔 (中央にそびえる暗い塔)
+  const tx = W / 2;
+  const body = vctx.createLinearGradient(tx - 7, 0, tx + 7, 0);
+  body.addColorStop(0, "#1a1726"); body.addColorStop(0.5, "#2a2540"); body.addColorStop(1, "#15121f");
+  vctx.fillStyle = body;
+  vctx.beginPath();
+  vctx.moveTo(tx - 5, H); vctx.lineTo(tx - 4, 16); vctx.lineTo(tx + 4, 16); vctx.lineTo(tx + 5, H); vctx.closePath();
+  vctx.fill();
+  // 尖った屋根
+  vctx.fillStyle = "#221d34";
+  vctx.beginPath(); vctx.moveTo(tx - 6, 16); vctx.lineTo(tx, 6); vctx.lineTo(tx + 6, 16); vctx.closePath(); vctx.fill();
+  // 塔の縁ハイライト (フラッシュで青白く)
+  vctx.fillStyle = `rgba(180,165,225,${0.15 + flash * 0.5})`;
+  vctx.fillRect(tx - 4, 16, 1.2, H - 16);
+  // 窓 (淡い灯)
+  vctx.fillStyle = "rgba(190,170,230,0.4)";
+  vctx.fillRect(tx - 1.2, 24, 2.4, 3);
+  vctx.fillRect(tx - 1.2, 34, 2.4, 3);
+
+  // 稲妻 (フラッシュ時に折れ線の閃光)
+  if (flash > 0.25) {
+    vctx.save();
+    vctx.strokeStyle = `rgba(225,220,255,${flash})`;
+    vctx.shadowColor = "rgba(180,160,255,0.9)";
+    vctx.shadowBlur = 8;
+    vctx.lineWidth = 1.4;
+    vctx.beginPath();
+    vctx.moveTo(38, 2); vctx.lineTo(34, 12); vctx.lineTo(40, 18); vctx.lineTo(33, 30); vctx.lineTo(37, 38);
+    vctx.stroke();
+    vctx.restore();
+  }
+
+  // 吹きつける雨 (斜めの線が流れる)
+  vctx.strokeStyle = "rgba(170,185,225,0.18)";
+  vctx.lineWidth = 0.8;
+  for (let i = 0; i < 14; i++) {
+    const seed = i * 53;
+    const x0 = (seed + t * 0.16) % (W + 20) - 10;
+    const y0 = (seed * 1.7 + t * 0.5) % (H + 12) - 6;
+    vctx.beginPath(); vctx.moveTo(x0, y0); vctx.lineTo(x0 - 3, y0 + 6); vctx.stroke();
+  }
+
+  // 全体の閃光 (淡く)
+  if (flash > 0) {
+    vctx.fillStyle = `rgba(190,175,235,${flash * 0.12})`;
+    vctx.fillRect(0, 0, W, H);
+  }
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
 }
 
 // 層9「毒沼」のカード裏面: 沸き立つ毒の澱み、ねじれた枯れ木、漂う瘴気と垂れる毒の雫、毒の鬼火
@@ -5850,9 +5934,14 @@ function renderPalace() {
 }
 
 // ==== 王宮の宝物庫 (蒐集品の奉納) ====
-// 蒐集品 (slot:"misc") を奉納すると、ランク帯ごとに納めた「種類」の数に応じて褒賞が下賜される。
-// しきい値 5種 / 10種 でそれぞれ一度だけ褒賞を受領できる (5種=装備1点 / 10種=魂1体+装備1点)。
-const TREASURY_THRESHOLDS = [5, 10];
+// 蒐集品 (slot:"misc") を奉納すると、ランク帯ごとではなく「奉納した総種類数」の節目で褒賞が下賜される。
+// 各しきい値に到達するごとに一度だけ褒賞を受領できる (装備、節目によっては魂も)。
+// soul: 0=装備のみ / 1=魂(通常抽選)+装備 / 2=魂(偉大な抽選)+装備
+const TREASURY_MILESTONES = [
+  { n: 5, soul: 0 }, { n: 10, soul: 1 }, { n: 20, soul: 1 }, { n: 30, soul: 1 },
+  { n: 40, soul: 2 }, { n: 50, soul: 1 }, { n: 60, soul: 2 }, { n: 70, soul: 1 },
+  { n: 80, soul: 2 }, { n: 90, soul: 2 }, { n: 100, soul: 2 },
+];
 
 // 蒐集品 → ランク帯 (1-10)。lv1-20=R1 … lv181-200=R10
 function collectibleRank(it) { return Math.min(10, Math.max(1, Math.ceil((it.lv || 1) / 20))); }
@@ -5876,6 +5965,11 @@ function treasuryState() {
   return G.treasury;
 }
 function donatedCountRank(r) { const ts = treasuryState(); return collectiblesByRank()[r].filter((id) => ts.donated[id]).length; }
+// 奉納した蒐集品の総種類数 (ランク帯を問わない)
+function totalDonatedKinds() {
+  const ts = treasuryState();
+  return Object.keys(ts.donated).filter((id) => ITEMS[id] && ITEMS[id].slot === "misc").length;
+}
 
 // 手持ち (編成+控え) の蒐集品 [{doll, item}]
 function heldCollectibles() {
@@ -5887,10 +5981,8 @@ function heldCollectibles() {
 // どこかに受領可能な褒賞があるか (王宮ハブのバッジ判定にも使う)
 function treasuryRewardReady() {
   const ts = treasuryState();
-  for (let r = 1; r <= 10; r++) {
-    const c = donatedCountRank(r);
-    for (const t of TREASURY_THRESHOLDS) if (c >= t && !ts.claimed[r + ":" + t]) return true;
-  }
+  const c = totalDonatedKinds();
+  for (const m of TREASURY_MILESTONES) if (c >= m.n && !ts.claimed["m" + m.n]) return true;
   return false;
 }
 
@@ -5928,27 +6020,29 @@ function grantTreasuryItem(center, onClose) {
   });
 }
 
-// 褒賞を受領する。rank 帯の threshold 種を達成していれば一度だけ。
-function claimTreasury(rank, threshold) {
+// 褒賞を受領する。総種類数が節目 n に達していれば一度だけ。
+function claimTreasury(n) {
   const ts = treasuryState();
-  const key = rank + ":" + threshold;
-  if (ts.claimed[key] || donatedCountRank(rank) < threshold) { SFX.ng(); return; }
+  const m = TREASURY_MILESTONES.find((x) => x.n === n);
+  if (!m) { SFX.ng(); return; }
+  const key = "m" + n;
+  if (ts.claimed[key] || totalDonatedKinds() < n) { SFX.ng(); return; }
   ts.claimed[key] = true;
   const back = () => { autosave(); if (G.town.facility === "treasury") renderTreasury(); };
-  if (threshold >= 10) {
-    // 全10種達成: 魂1体 (浅い帯はrollJobClass / R4以降は偉大な抽選) + 装備1点
-    const clsKey = rank <= 3 ? rollJobClass() : rollGreatJobClass();
-    acquireSoul(clsKey, `第${rank}帯の蒐集品をすべて宝物庫に納めた褒賞だ。`,
-      () => grantTreasuryItem(rank * 20 + 6, back));
+  const center = Math.min(200, Math.max(1, n * 2)); // 節目が深いほど高位の装備
+  if (m.soul) {
+    const clsKey = m.soul >= 2 ? rollGreatJobClass() : rollJobClass();
+    acquireSoul(clsKey, `蒐集品を ${n} 種 宝物庫に納めた褒賞だ。`,
+      () => grantTreasuryItem(center, back));
   } else {
-    grantTreasuryItem(rank * 20 - 10, back);
+    grantTreasuryItem(center, back);
   }
 }
 
 function renderTreasury() {
   townEl.innerHTML = "";
   townEl.appendChild(townHeader("宝物庫", "palace"));
-  townEl.appendChild(el("div", "tw-lead", "王宮の宝物庫。迷宮で拾った蒐集品をここに奉納すると、納めた種類の数に応じて褒賞——装備や魂——が下賜される。"));
+  townEl.appendChild(el("div", "tw-lead", "王宮の宝物庫。迷宮で拾った蒐集品をここに奉納すると、納めた総種類数の節目ごとに褒賞——装備や魂——が下賜される。"));
   const ts = treasuryState();
   const byRank = collectiblesByRank();
   const totalKinds = Object.keys(ts.donated).filter((id) => ITEMS[id] && ITEMS[id].slot === "misc").length;
@@ -5983,7 +6077,26 @@ function renderTreasury() {
     townEl.appendChild(all);
   }
 
-  // ---- 奉納台帳 (ランク帯ごと) ----
+  // ---- 褒賞 (奉納した総種類数の節目) ----
+  townEl.appendChild(el("div", "tw-h", "褒賞 — 奉納した総種類数の節目"));
+  const mbox = el("div", "tw-rumor");
+  mbox.appendChild(el("div", "tw-rumors", `総奉納 ${totalKinds} / 100 種`));
+  for (const m of TREASURY_MILESTONES) {
+    const key = "m" + m.n;
+    const label = m.soul ? (m.soul >= 2 ? "魂(偉大)+装備" : "魂+装備") : "装備";
+    if (ts.claimed[key]) {
+      mbox.appendChild(el("div", "tw-note", `${m.n}種 — ${label} — 受領済`));
+    } else if (totalKinds >= m.n) {
+      const b = btn(`🎁 褒賞を受け取る (${m.n}種達成 — ${label})`, () => claimTreasury(m.n));
+      b.className = "btn tw-add tw-msq";
+      mbox.appendChild(b);
+    } else {
+      mbox.appendChild(el("div", "tw-note", `${m.n}種 — ${label} — あと ${m.n - totalKinds} 種`));
+    }
+  }
+  townEl.appendChild(mbox);
+
+  // ---- 奉納台帳 (ランク帯ごと・閲覧用) ----
   townEl.appendChild(el("div", "tw-h", "奉納台帳 — ランク帯ごと (各10種)"));
   for (let r = 1; r <= 10; r++) {
     const ids = byRank[r];
@@ -5999,18 +6112,6 @@ function renderTreasury() {
       slots.appendChild(slot);
     }
     box.appendChild(slots);
-    for (const t of TREASURY_THRESHOLDS) {
-      const key = r + ":" + t;
-      if (ts.claimed[key]) {
-        box.appendChild(el("div", "tw-note", `褒賞 (${t}種) — 受領済`));
-      } else if (cnt >= t) {
-        const b = btn(`🎁 褒賞を受け取る (${t}種達成${t >= 10 ? " — 魂+装備" : " — 装備"})`, () => claimTreasury(r, t));
-        b.className = "btn tw-add tw-msq";
-        box.appendChild(b);
-      } else {
-        box.appendChild(el("div", "tw-note", `褒賞 (${t}種) — あと ${t - cnt} 種`));
-      }
-    }
     townEl.appendChild(box);
   }
 }
@@ -7006,7 +7107,7 @@ function tryEnterDungeon() {
 // 初回潜入時、警備兵が迷宮の鉄則を説く (注意事項のポップアップ)
 function showDungeonBriefing(onClose) {
   showEvent({
-    sprite: ICONS.stairs,
+    sprite: ICONS.guard,
     banner: "⚔ 警備兵の忠告 ⚔",
     title: "迷宮へ入る前に",
     lines: [
