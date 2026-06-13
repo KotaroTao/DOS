@@ -764,6 +764,50 @@ const NEW_DEFS = [
   { id: "bs_highpontiff", name: "深淵の聖堂の主", rank: 10, boss: true, race: "specter", element: "light", artKey: "highpontiff", soulClass: "cardinal",
     role: "summoner", summonKey: "bs_falseseraph", ability: "drain", magResist: 0.5, enrage: true,
     desc: "偽りの光の名のもとに、数えきれぬ魂を聖堂で焼き続けた大司教の霊。堕ちた熾天使を従え、捧げられた魂ごと生者の命を吸い上げる。光も闇も魂を喰らうことに変わりはない――ただ、光のほうが言い訳が美しいだけだ。" },
+  // -- 第17層「凍てつく王墓」 (rank 10・水/氷の王墓。若さの代償) --
+  { id: "bs_frozenking", name: "氷漬けの王", rank: 10, race: "undead", element: "water", artKey: "frozenking",
+    ability: "drain", physResist: 0.4, enrage: true, desc: "若さを保てなくなり、氷の下へ移された歴代の王。氷漬けのまま玉座を求めて起き上がり、生者の命と若さを吸い上げる。買えなくなった若さの、最後の請求書だ。" },
+  { id: "bs_iceroyalguard", name: "氷結の近衛", rank: 10, race: "armored", element: "water", artKey: "iceroyalguard",
+    ability: "critical", barrier: 2, physResist: 0.4, desc: "王とともに氷の下へ葬られた、凍れる近衛兵。霜の槍で急所を貫き、氷の鎧が刃を阻む。守るべき王はもう氷の中だが、任を解かれていない。" },
+  { id: "bs_frostmonarchwraith", name: "凍れる先王の霊", rank: 10, race: "specter", element: "water", artKey: "frostmonarchwraith",
+    ability: "weaken", magResist: 0.4, desc: "氷の王墓に眠る、歴代の先王たちの霊。凍てつく嘆きで生者の力を奪い、若く美しい顔のまま彷徨う。皆、天寿を全うできなかった者たちだ。" },
+  { id: "bs_youththief", name: "若さを奪う者", rank: 10, race: "specter", element: "water", artKey: "youththief",
+    ability: "drain", lifesteal: 0.3, enrage: true, desc: "王に若さを供給し続けた、忌まわしき仕組みの化身。生者の若さと命を吸い取り、奪うほどに自らも若返る。王の不老の代償が、この姿だ。" },
+  { id: "bs_glacialtomb", name: "氷棺の番", rank: 10, race: "construct", element: "water", artKey: "glacialtomb",
+    ability: "paralyze", physResist: 0.5, barrier: 2, desc: "王を納めた氷の棺そのものが守護者となったもの。冷気で近づく者を凍りつかせ、分厚い氷が刃を阻む。蓋を開ければ、中の王が氷の下で目を開けている。" },
+  { id: "bs_frostnoble", name: "氷の貴人", rank: 10, race: "undead", element: "water", artKey: "frostnoble",
+    ability: "paralyze", magResist: 0.4, lifesteal: 0.3, desc: "王に従って氷の下へ供奉された、凍れる貴族たち。優雅な所作のまま冷気で獲物を痺れさせ、その温もりを吸う。死してなお、序列を守って整列している。" },
+  { id: "bs_icebreaker", name: "氷砕きの巨人", rank: 10, race: "giant", element: "water", artKey: "icebreaker",
+    multistrike: 2, enrage: true, physResist: 0.5, desc: "王墓を封じる氷を割り、また閉ざすために据えられた巨人。氷塊の拳で続けざまに打ち砕き、傷つけば雪崩のように荒れる。封印を保つ者か、破る者か。" },
+  { id: "bs_frozenchancellor", name: "凍れる宰相", rank: 10, race: "specter", element: "water", artKey: "frozenchancellor",
+    ability: "weaken", role: "summoner", summonKey: "bs_frostservant", magResist: 0.4, desc: "王の若さの秘密を抱え、氷の下へ口を封じられた宰相の霊。呪詛で挑む者を弱らせ、凍れる従者を呼び寄せる。『陛下、それ以上は』と、氷の中で諫め続けている。" },
+  { id: "bs_frostlynx", name: "霜の山猫", rank: 10, race: "beast", element: "water", artKey: "frostlynx",
+    ability: "critical", swift: true, evasive: true, desc: "王墓の番として放たれた、霜をまとう白い山猫。音もなく雪を踏んで急所を一撃で抉り、白い体は雪に紛れて見えない。気配を感じた時には、もう喉元にいる。" },
+  { id: "bs_crystalcoffin", name: "水晶棺の魔", rank: 10, race: "construct", element: "water", artKey: "crystalcoffin",
+    ability: "critical", barrier: 2, physResist: 0.4, desc: "王の亡骸を透かして見せる、水晶でできた棺の魔。鋭い水晶の縁で急所を断ち、その身は刃を弾く。中に横たわる王は、いつ目覚めてもおかしくない。" },
+  { id: "bs_soulfrostwraith", name: "魂凍りの霊", rank: 10, race: "specter", element: "water", artKey: "soulfrostwraith",
+    ability: "drain", magWeak: 1.3, evasive: true, desc: "若さの代償として凍りつかせられた、魂そのものの霊。生者の命を吸って一瞬熱を取り戻し、吹雪となって刃をすり抜ける。凍えた魂は、炎の魔法に脆い。" },
+  { id: "bs_permafrostgolem", name: "凍土の番兵", rank: 10, race: "construct", element: "water", artKey: "permafrostgolem",
+    physResist: 0.5, magResist: 0.5, barrier: 2, desc: "永久凍土を固めて作られた、王墓の最奥を守る番兵。刃も魔も凍った体に阻まれ、若さの仕組みへ続く道を塞ぐ。溶けることなく、永遠に立ち続ける。" },
+  { id: "bs_frozenpriest", name: "氷結の司祭", rank: 10, race: "undead", element: "water", artKey: "frozenpriest",
+    ability: "drain", regen: 0.08, magResist: 0.4, desc: "王の埋葬と若返りの儀を司り、自らも凍りついた司祭の骸。凍えた祈りで生者の命を奪い、その力で崩れを繕う。儀式はまだ、終わっていないと信じている。" },
+  { id: "bs_iciclewyrm", name: "氷柱の竜", rank: 10, race: "dragon", element: "water", artKey: "iciclewyrm",
+    ability: "breath", physResist: 0.5, multistrike: 2, desc: "王墓の天井から垂れる氷柱が、竜の形を得たもの。凍てつくブレスで全体を凍らせ、氷の鱗が刃を弾く。落ちかかる氷柱は、幾本もの牙となって襲う。" },
+  { id: "bs_mournfulqueen", name: "嘆きの氷の女王", rank: 10, race: "specter", element: "water", artKey: "mournfulqueen",
+    ability: "weaken", role: "summoner", summonKey: "bs_frostservant", magResist: 0.4, desc: "若き王に嫁ぎ、夫より先に氷の下へ移された女王の霊。哀切な嘆きで生者の気力を奪い、凍れる侍女を呼び寄せる。失われた愛も若さも、氷の中で凍りついたままだ。" },
+  { id: "bs_coldrevenant", name: "凍える怨霊", rank: 10, race: "specter", element: "water", artKey: "coldrevenant",
+    ability: "critical", enrage: true, lifesteal: 0.3, desc: "若さを奪われた恨みを抱いて凍りついた怨霊。氷の爪で急所を抉り、傷つくほど凍てつく怒りで猛る。温もりを奪うことでしか、己の凍えを忘れられない。" },
+  { id: "bs_snowhydra", name: "雪の多頭", rank: 10, race: "reptile", element: "water", artKey: "snowhydra",
+    ability: "breath", multistrike: 2, regen: 0.08, desc: "凍った泉から幾つもの首をもたげる、雪白の多頭の魔。それぞれの口から吹雪を吐き、続けざまに噛みつく。一つ首を凍らせ落としても、また新たな首が生える。" },
+  { id: "bs_glacialhound", name: "氷の番犬", rank: 10, race: "beast", element: "water", artKey: "glacialhound",
+    ability: "critical", swift: true, pack: true, desc: "王墓に殉葬された、氷の牙をもつ番犬の群れ。素早く取り囲んで急所に喰らいつき、その吐息は獲物を凍てつかせる。主の眠りを守って、永遠に氷の回廊を巡る。" },
+  { id: "bs_frostsentinel", name: "凍れる門番", rank: 10, race: "construct", element: "water", artKey: "frostsentinel",
+    ability: "critical", magResist: 0.4, barrier: 2, desc: "王墓の門に氷漬けのまま立つ、巨大な門番の像。氷の大剣で急所を断ち、凍った鎧が刃も魔も阻む。門を越えようとする者を、千年も拒み続けている。" },
+  { id: "bs_frostservant", name: "氷の従者", rank: 10, race: "undead", element: "water", artKey: "frostservant",
+    ability: "paralyze", pack: true, physResist: 0.4, desc: "王に仕えたまま氷の下へ供奉された、凍れる従者たちの群れ。冷たい手で掴んで痺れさせ、群れで主君の眠りを守る。命じられた務めを、死してなお果たし続けている。" },
+  { id: "bs_frostmonarch", name: "凍てつく王墓の主", rank: 10, boss: true, race: "undead", element: "water", artKey: "frostmonarch", soulClass: "hexer",
+    role: "summoner", summonKey: "bs_iceroyalguard", ability: "drain", physResist: 0.5, enrage: true,
+    desc: "氷の玉座に座す、最も古く最も若い顔をした王の亡骸。近衛を呼び従え、生者の若さと命を貪る。若さは魂で買うもの――買えなくなった王はこうして氷へ移され、次の王が立つ。今の王も、いずれここへ来る。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1707,6 +1751,7 @@ export const BOSS_ORDER = {
 // 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
 // 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
 const LAYER_BOSS_OVERRIDE = {
+  17: "bs_frostmonarch", // 第17層「凍てつく王墓」: 凍てつく王墓の主 (rank10・水ボス)
   16: "bs_highpontiff", // 第16層「深淵の聖堂」: 深淵の聖堂の主 (rank10・光ボス)
   15: "bs_forgemaster", // 第15層「溶鉄炉」: 溶鉄炉の主 (rank10・火ボス)
   14: "bs_cryptking", // 第14層「屍蝋の回廊」: 屍蝋の回廊の主 (rank10・闇ボス)
@@ -1880,6 +1925,13 @@ export const LAYER_POOLS = {
     "bs_martyrwraith", "bs_holygolem", "bs_confessor", "bs_lightlance", "bs_wingedjudge",
     "bs_pyreofsouls", "bs_cathedralguard", "bs_hymncaster", "bs_lightmoth",
     "bs_seraphwraith",
+  ],
+  // 第17層「凍てつく王墓」: 水/氷の王墓中心、全rank10。全て新規
+  17: [
+    "bs_frozenking", "bs_iceroyalguard", "bs_frostmonarchwraith", "bs_youththief", "bs_glacialtomb",
+    "bs_frostnoble", "bs_icebreaker", "bs_frozenchancellor", "bs_frostlynx", "bs_crystalcoffin",
+    "bs_soulfrostwraith", "bs_permafrostgolem", "bs_frozenpriest", "bs_iciclewyrm", "bs_mournfulqueen",
+    "bs_coldrevenant", "bs_snowhydra", "bs_glacialhound", "bs_frostsentinel", "bs_frostservant",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
