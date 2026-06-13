@@ -202,6 +202,12 @@ function base(id, name, slot, lv, artKey, opt) {
   if (opt.vitB) it.vit = opt.vitB;     // 武器・装飾の VIT 補正 (負値=重武器のペナルティ等)
   if (opt.cursed) it.cursed = true;
   if (opt.align) it.align = opt.align;
+  // %補正 (装飾品など): { atk:0.2, hp:0.2 } で +20%。recalc が乗算レイヤーで適用する
+  if (opt.mult) it.mult = opt.mult;
+  // LR (レジェンドレア・専用装備) のティア。lr が立つと専用ドロップ層・LR表示になる
+  if (opt.lr) it.lr = opt.lr;
+  if (opt.forJob) it.forJob = opt.forJob;
+  if (opt.exclusive) it.exclusive = true;
   // 絵: 原型 × 染め色 (属性があれば属性色が既定)
   const el = (opt.eAtk && opt.eAtk[0]) || (opt.eDef && opt.eDef[0]) || null;
   const tc = opt.tint || (el ? ELEM_TINT[el] : null);

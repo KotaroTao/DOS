@@ -43,6 +43,10 @@ for (const id in ITEMS) {
   if (it.rank == null) it.rank = lvToRank(it.lv);
 }
 
+// アイテムの表示ランク名/枠色。LR (専用装備) は LR5/LR10… の専用表示にする
+function itemRankName(it) { return it && it.lr ? `LR${it.lr}` : (it && it.rank ? ITEM_RANK_NAME[it.rank] : null); }
+function itemRankColor(it) { return it && it.lr ? "#ff5fae" : (it && it.rank ? ITEM_RANK_COLOR[it.rank] : null); }
+
 // ===== 出現テーブル (隠しレベル) =====
 // 全アイテムは隠しレベル lv を持つ。迷宮ごとの lootLv 帯 (＋階の深さ) を中心に、
 // レベルの近い品だけが出現する。中心より高レベルの品ほど出現率が急減するうえ、
@@ -77,8 +81,40 @@ const EXCL_DUNGEON_GATE = { common: 3, rare: 5, epic: 7, legend: 9 };  // 解禁
 const EXCL_RARITY_WEIGHT = { common: 8, rare: 4, epic: 2, legend: 1 }; // 逆数ウェイト
 let _exclIds = null;
 function exclIds() {
-  if (!_exclIds) _exclIds = Object.keys(ITEMS).filter((id) => ITEMS[id].exclusive);
+  // LR (専用ドロップ層は別管理) は除外する
+  if (!_exclIds) _exclIds = Object.keys(ITEMS).filter((id) => ITEMS[id].exclusive && !ITEMS[id].lr);
   return _exclIds;
+}
+
+// ===== LR (レジェンドレア・専用装備) 抽選 =====
+// 宝箱を開けた瞬間に flat 2% で出現。現在の lootLv で解禁されている最高ティアを選び、
+// パーティの職に合う品を強く優先する (専用武器は forJob 一致で重み大)。
+const LR_RATE = 0.02;
+const LR_UNLOCK = { 5: 40, 10: 90, 15: 140, 20: 190 }; // ティア → 解禁 lootLv
+let _lrIds = null;
+function lrIds() {
+  if (!_lrIds) _lrIds = Object.keys(ITEMS).filter((id) => ITEMS[id].lr);
+  return _lrIds;
+}
+function pickLR(lootLv) {
+  if (Math.random() >= LR_RATE) return null;
+  // 解禁済みの最高ティアを選ぶ
+  const tier = [20, 15, 10, 5].find((t) => (lootLv || 0) >= LR_UNLOCK[t]);
+  if (!tier) return null;
+  const pool = lrIds().filter((id) => ITEMS[id].lr === tier);
+  if (!pool.length) return null;
+  let total = 0;
+  const acc = [];
+  for (const id of pool) {
+    const fj = ITEMS[id].forJob;
+    // 装飾品 (forJob 無し)=2、専用武器=パーティ発現職なら6・それ以外1
+    const w = !fj ? 2 : (G.party.some((m) => m.clsKey === fj) ? 6 : 1);
+    total += w;
+    acc.push([id, total]);
+  }
+  const r = Math.random() * total;
+  for (const [id, t] of acc) if (r <= t) return id;
+  return acc[acc.length - 1][0];
 }
 // 宝箱を開けた瞬間に1回だけ呼ぶ。ヒットすれば item id を返し、外れなら null
 function pickExclusive(dungeonRank, chestRank) {
@@ -1901,6 +1937,26 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false) {
   const lootUp = (lvBonus || 0) + ((cell && cell.lootBonus) || 0);
   const legendary = !!(cell && cell.lootBonus);
   const rankMul = 1 + ((cRank || 1) - 1) * 0.3;
+  // ===== LR (レジェンドレア・専用装備) 抽選 (最優先・flat 2%) =====
+  const lrId = pickLR(Math.min(200, lootLvAt() + lootUp));
+  if (lrId && ITEMS[lrId]) {
+    const it = cloneItem(lrId);
+    const fj = it.forJob;
+    // 装備できる仲間を優先 (専用武器は forJob 一致者へ)
+    const who = (fj && G.party.find((m) => m.alive && m.clsKey === fj && m.items.length < MAX_ITEMS))
+              || (fj && G.party.find((m) => m.clsKey === fj && m.items.length < MAX_ITEMS))
+              || G.party.find((m) => m.alive && m.items.length < MAX_ITEMS)
+              || G.party.find((m) => m.items.length < MAX_ITEMS);
+    if (who) {
+      runGainItem(who, it); codexSeeItem(lrId);
+      flashScreen("#ff5fae");
+      SFX.victory(); buzz([0, 60, 50, 60, 50, 60, 240]);
+      log(`★ LR${it.lr} 専用装備「${it.name}」を発見！ (${who.name})`, "win");
+      setTimeout(() => showToast(`★ ${it.name}`), 200);
+      showItemGet(it, who, done);
+      return;
+    }
+  }
   // ===== 職業専用装備 ジャックポット抽選 (通常の中身より先に判定) =====
   const dRankNow = activeCfg().rank || 1;
   const exId = pickExclusive(dRankNow, cRank);
@@ -5234,7 +5290,7 @@ function renderCodexItem() {
   for (const id of ids) {
     const it = ITEMS[id];
     const r = el("div", "tw-shoprow");
-    if (it.rank) r.style.borderColor = ITEM_RANK_COLOR[it.rank];
+    if (it.rank || it.lr) r.style.borderColor = itemRankColor(it);
     const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
     const info = el("div", "tw-chipi");
     info.appendChild(el("div", "tw-chipn", it.name));
@@ -5254,9 +5310,9 @@ function showCodexItemDetail(id) {
   if (!it) return;
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card cdx-detail");
-  const rc = it.rank ? ITEM_RANK_COLOR[it.rank] : null;
+  const rc = itemRankColor(it);
   if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
-  const ban = el("div", "ig-banner", it.rank ? `${ITEM_RANK_NAME[it.rank]}級アイテム` : "アイテム");
+  const ban = el("div", "ig-banner", it.lr ? `LR${it.lr} 専用装備` : (it.rank ? `${ITEM_RANK_NAME[it.rank]}級アイテム` : "アイテム"));
   if (rc) ban.style.color = rc;
   card.appendChild(ban);
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 11)); card.appendChild(art);
@@ -5775,7 +5831,7 @@ function renderShop() {
     // 選択中キャラが装備できる品は色を変えて目立たせる
     const canEq = isEquippable(it) && who && who.alive && canEquip(who, it);
     const r = el("div", "tw-shoprow" + (canEq ? " equip-ok" : ""));
-    if (it.rank) r.style.borderColor = ITEM_RANK_COLOR[it.rank];
+    if (it.rank || it.lr) r.style.borderColor = itemRankColor(it);
     const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
     const info = el("div", "tw-chipi");
     const nm = el("div", "tw-chipn", `${it.name} 在庫 : ${count}`);
@@ -5883,9 +5939,9 @@ function showShopItemDetail(id, price) {
   const who = G.party[shopMember] || null;
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card cdx-detail");
-  const rc = it.rank ? ITEM_RANK_COLOR[it.rank] : null;
+  const rc = itemRankColor(it);
   if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
-  const ban = el("div", "ig-banner", it.rank ? `${ITEM_RANK_NAME[it.rank]}級アイテム` : "アイテム");
+  const ban = el("div", "ig-banner", it.lr ? `LR${it.lr} 専用装備` : (it.rank ? `${ITEM_RANK_NAME[it.rank]}級アイテム` : "アイテム"));
   if (rc) ban.style.color = rc;
   card.appendChild(ban);
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 11)); card.appendChild(art);
@@ -6716,9 +6772,9 @@ function showItemDetailPopup(p, sel) {
   const it = sel.item;
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card cdx-detail");
-  const rc = it.rank ? ITEM_RANK_COLOR[it.rank] : null;
+  const rc = itemRankColor(it);
   if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
-  const ban = el("div", "ig-banner", it.rank ? `${ITEM_RANK_NAME[it.rank]}級アイテム` : "情報");
+  const ban = el("div", "ig-banner", it.lr ? `LR${it.lr} 専用装備` : (it.rank ? `${ITEM_RANK_NAME[it.rank]}級アイテム` : "情報"));
   if (rc) ban.style.color = rc;
   card.appendChild(ban);
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 11)); card.appendChild(art);
@@ -7096,10 +7152,10 @@ function showItemGet(item, who, onClose) {
   itemGetEl.onclick = null;
   itemGetEl.innerHTML = "";
   const card = el("div", "ig-card");
-  const rc = item.rank ? ITEM_RANK_COLOR[item.rank] : null;
+  const rc = itemRankColor(item);
   if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
   const unid = !!item.unidentified;
-  const ban = el("div", "ig-banner", unid ? "✦ 未鑑定の品を発見！ ✦" : (item.rank >= 11 ? `★ ${ITEM_RANK_NAME[item.rank]}級アイテム発見！ ★` : "✦ アイテム発見！ ✦"));
+  const ban = el("div", "ig-banner", unid ? "✦ 未鑑定の品を発見！ ✦" : (item.lr ? `★ LR${item.lr} 専用装備発見！ ★` : (item.rank >= 11 ? `★ ${ITEM_RANK_NAME[item.rank]}級アイテム発見！ ★` : "✦ アイテム発見！ ✦")));
   if (rc && !unid) ban.style.color = rc;
   card.appendChild(ban);
   const art = el("div", "ig-art");
