@@ -1390,7 +1390,7 @@ function recoverCorpseSoul(corpse, after) {
   const clsKey = corpse.clsKey || "fighter";
   acquireSoul(clsKey, corpse.great
     ? `偉大なる魂を回収した。`
-    : `死体に残っていた魂を回収した。`, after || (() => renderBoard()), corpse.great ? EMBER_GREAT : EMBER_WARM);
+    : `死体に残っていた魂を回収した。`, after || (() => renderBoard()), emberReward(corpse.great));
 }
 
 // 現在のダンジョンに出るアンデッド種のキー (なければ全体から、最終的に地下牢の骸)。
@@ -1466,13 +1466,17 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   giveGold();
 }
 
-// まだあたたかい死体=残火1個 / 偉大なる死体=残火5個
-const EMBER_WARM = 1, EMBER_GREAT = 5;
+// 魂の残火: まだあたたかい死体=50%で1個 / 偉大なる死体=100%で5個
+const EMBER_WARM = 1, EMBER_GREAT = 5, EMBER_WARM_RATE = 0.5;
+function emberReward(great) {
+  if (great) return EMBER_GREAT;                              // 偉大なる死体: 確定
+  return Math.random() < EMBER_WARM_RATE ? EMBER_WARM : 0;    // あたたかい死体: 50%
+}
 function collectSoul(cell, clsKey, clsLabel) {
   cell.cleared = true;
   acquireSoul(clsKey, cell.corpseGreat
     ? `偉大なる死体に宿っていた、強大な魂だ。`
-    : `まだあたたかい死体に宿っていた魂だ。`, null, cell.corpseGreat ? EMBER_GREAT : EMBER_WARM);
+    : `まだあたたかい死体に宿っていた魂だ。`, null, emberReward(cell.corpseGreat));
 }
 
 // レア度の表示名

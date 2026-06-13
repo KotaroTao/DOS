@@ -98,7 +98,8 @@ export const JOB_RANKS = {
 };
 
 // ===== 魂ランク (1〜5) の係数・表示 =====
-// cap: そのランクで到達できる魂レベル上限 / order: 0始まり (UI判定用) / color: 表示色
+// cap: そのランクで到達できる魂レベル上限の基準値 (コモン)。実際の上限はレア度でも変わる
+//      (RARITY_LEVEL_CAPS / capForRarityRank を参照) / order: 0始まり (UI判定用) / color: 表示色
 export const SOUL_RANKS = {
   1: { label: "",         cap: 20,  order: 0, color: null,      mul: 1.0 },
   2: { label: "ランク2の", cap: 40,  order: 1, color: "#7fd0ff", mul: 1.3 },
@@ -106,6 +107,19 @@ export const SOUL_RANKS = {
   4: { label: "ランク4の", cap: 80,  order: 3, color: "#ff9a4a", mul: 3.0 },
   5: { label: "ランク5の", cap: 100, order: 4, color: "#ffcf4a", mul: 5.0 },
 };
+
+// レア度 × ランク (1〜5) の魂レベル上限。レア度が高い魂ほど上限が高い。
+export const RARITY_LEVEL_CAPS = {
+  common: [20, 40, 60, 80, 100],
+  rare:   [30, 50, 70, 90, 110],
+  epic:   [50, 70, 90, 110, 130],
+  legend: [70, 90, 110, 130, 150],
+};
+// レア度とランクから魂レベル上限を引く (ランクは1〜5にクランプ)
+export function capForRarityRank(rarity, rank) {
+  const caps = RARITY_LEVEL_CAPS[rarity] || RARITY_LEVEL_CAPS.common;
+  return caps[Math.max(1, Math.min(5, rank || 1)) - 1];
+}
 
 // ===== 集魂ランクアップ (1部位制) =====
 // 人業は職業ごとに「吸収した魂の数 (count)」と「魂レベル (level/exp)」を個別に育てる。
@@ -510,7 +524,7 @@ export function makeSoul(clsKey, level = 1, part = null, rank = 1) {
   if (!SOUL_CLASSES[clsKey]) return null;
   if (!part) part = PARTS[Math.floor(Math.random() * PARTS.length)];
   rank = Math.max(1, Math.min(5, parseInt(rank) || 1));
-  const cap = SOUL_RANKS[rank].cap;
+  const cap = capForRarityRank(SOUL_CLASSES[clsKey].rarity, rank);
   return { uid: ++_soulUid, clsKey, part, rank, level: Math.min(Math.max(1, level), cap), cap };
 }
 
@@ -521,14 +535,15 @@ export function ensureSoul(s) {
     s.rank = ({ normal: 1, fine: 2, great: 3, legend: 5 }[s.rank] || 1);
   }
   s.rank = Math.max(1, Math.min(5, parseInt(s.rank) || 1));
-  s.cap = SOUL_RANKS[s.rank].cap;
+  const rarity = (SOUL_CLASSES[s.clsKey] || {}).rarity || "common";
+  s.cap = capForRarityRank(rarity, s.rank);
   if (s.level == null) s.level = 1;
   if (s.level > s.cap) s.level = s.cap;
   return s;
 }
 
 // 後方互換: limit-breakthrough は廃止 (cap を超えない)
-export function soulHardCap(s) { return SOUL_RANKS[s.rank] ? SOUL_RANKS[s.rank].cap : 10; }
+export function soulHardCap(s) { return capForRarityRank((SOUL_CLASSES[s.clsKey] || {}).rarity || "common", s.rank); }
 
 export function soulName(s) {
   // 魂の名称は系列名のみ (ランクごとの称号は廃止)
@@ -629,10 +644,11 @@ export function makeDoll(name) {
   };
 }
 
-// 所持数に応じた魂レベル上限 (ランクが上がるほど伸びる)
+// 所持数に応じた魂レベル上限 (ランクが上がるほど・レア度が高いほど伸びる)
 export function soulLevelCap(clsKey, count) {
+  const cls = SOUL_CLASSES[clsKey];
   const r = soulRankFromCount(clsKey, count);
-  return (SOUL_RANKS[r] || SOUL_RANKS[1]).cap;
+  return capForRarityRank(cls ? cls.rarity : "common", r);
 }
 // 魂インスタンスの実効レベル上限: ランク上限 + 魂の残火で得た上乗せ (capBonus)
 export function soulLevelCapOf(s) {
@@ -856,7 +872,7 @@ export function recalcDoll(doll) {
 export function fuseSouls(s1, s2) {
   if (!s1 || !s2) return null;
   if (s1.clsKey !== s2.clsKey || s1.part !== s2.part || s1.rank !== s2.rank) return null;
-  const cap = SOUL_RANKS[s1.rank] ? SOUL_RANKS[s1.rank].cap : 10;
+  const cap = capForRarityRank((SOUL_CLASSES[s1.clsKey] || {}).rarity || "common", s1.rank);
   if (s1.level < cap || s2.level < cap) return null; // LvMAX必須
 
   if (s1.rank >= 5) {
