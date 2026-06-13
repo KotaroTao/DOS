@@ -688,6 +688,8 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .tw-shoprow.equip-ok { background: #122017; box-shadow: inset 0 0 0 1px #3f8a5255; }
 .shop-eqmark { font-size: 10px; color: #7fd08a; font-weight: bold; margin-left: 5px; white-space: nowrap; }
 .tw-small { min-height: 34px; padding: 6px 10px; font-size: 11px; background: #221833; border: 1px solid #4a3568; border-radius: 6px; color: #e0d2f4; white-space: nowrap; }
+.tw-small.dim { opacity: 0.45; } /* MP不足の野営呪文: 押せるが理由をトーストで知らせる */
+.tw-small:disabled { opacity: 0.4; }
 .tw-small.danger { border-color: var(--danger); color: #ff9a98; }
 .tw-add { margin-top: 10px; min-height: 46px; }
 

@@ -3283,11 +3283,15 @@ function resolveCell(cell) {
       }
       SFX.trap(); buzz([0, 40, 30, 40]);
       flashScreen("#5a8a2a");
+      // 床ダメージ率: 基本5% + 層に応じて微増 (層1=5% → 層20≈10.7%, 上限12%)。
+      // 深層ほど毒沼が脅威であり続けるようにする。
+      const layer = activeCfg().layer || layerOf(dungeonNumber(activeCfg()));
+      const pct = Math.min(0.12, 0.05 + (layer - 1) * 0.003);
       let anyDeath = false;
       const fallen = [];
       for (const p of G.party) {
         if (!p.alive) continue;
-        let dmg = Math.max(1, Math.ceil(p.maxhp * 0.05));
+        let dmg = Math.max(1, Math.ceil(p.maxhp * pct));
         if (resist === 1) dmg = Math.max(1, Math.ceil(dmg * 0.5));
         p.hp = Math.max(0, p.hp - dmg);
         if (p.hp === 0) { p.alive = false; anyDeath = true; fallen.push(p.name); log(`${p.name}は毒に沈んだ…`, "dmg"); }
@@ -8808,8 +8812,9 @@ function renderStatus() {
       const sp = SPELLS[k];
       const cost = spellCost(p, sp);
       const b = btn(`${sp.name} (MP${cost})`, () => campCast(p, k));
-      b.className = "tw-small";
-      if (p.mp < cost) b.disabled = true;
+      // MP不足でも disabled にはせず押せるようにする (campCast がトーストで理由を出す)。
+      // disabled にすると .tw-small は減光スタイルが効かず「押せるのに無反応」に見えるため。
+      b.className = "tw-small" + (p.mp < cost ? " dim" : "");
       sl.appendChild(b);
     }
     statusEl.appendChild(sl);
@@ -8832,10 +8837,18 @@ function invRow(p, it, sel) {
 function campCast(caster, spellKey) {
   const sp = SPELLS[spellKey];
   const cost = spellCost(caster, sp);
-  if (caster.mp < cost) { log("MPが足りない。", "sys"); return; }
+  // 失敗理由はステータス画面の裏のログに出しても見えないため、トーストでも知らせる。
+  if (caster.mp < cost) { log("MPが足りない。", "sys"); showToast(`MPが足りない (MP ${caster.mp}/${cost})`); SFX.miss(); return; }
   const cures = sp.kind === "cure" || !!sp.cure;     // 毒・麻痺・石化を治す
   const heals = (sp.power || 0) > 0;                  // HP回復量を持つ
   const powerOf = () => (sp.power || 0) + Math.round((caster.pie || 0) * 0.5);
+  // 対象がいないときに「なぜ唱えられないか」を明示するアラート文言
+  const noTargetMsg = () => {
+    if (heals && cures) return `${sp.name}: 傷つき・状態異常の仲間がいない`;
+    if (cures) return `${sp.name}: 状態異常の仲間がいない`;
+    if (sp.revive && !heals) return `${sp.name}: 倒れた仲間がいない`;
+    return `${sp.name}: 傷ついた仲間がいない`;
+  };
 
   // 1体へ効果を適用。何か起きたら true
   const applyTo = (t) => {
@@ -8860,11 +8873,39 @@ function campCast(caster, spellKey) {
   };
   const finish = () => { caster.mp -= cost; SFX.heal(); buzz(15); renderStatus(); renderParty(); };
 
+  // 回復結果を1人ぶんの行に整形 (回復系呪文でのみ使う)。
+  // ・蘇生: 「●●が蘇った (HP n/max)」
+  // ・満タン (元から満タン / 回復で満タンになった): 「●●は満タンだ」
+  // ・部分回復: 「●●のHPがn回復した」
+  const healLineFor = (t, before, wasDead) => {
+    if (wasDead && t.alive) return `${t.name}が蘇った (HP ${t.hp}/${t.maxhp})`;
+    if (t.alive && t.hp >= t.maxhp) return `${t.name}は満タンだ`;
+    const got = t.hp - before;
+    if (got > 0) return `${t.name}のHPが${got}回復した`;
+    return null;
+  };
+  // 回復結果ポップアップ (複数名ぶんを1枚に列挙)。閉じてもステータス画面に留まる。
+  const showHealResult = (lines) => showEvent({
+    sprite: ICONS.fountain, banner: "✦ 回復 ✦", accent: "#46c08f",
+    title: sp.name, lines, btnLabel: "閉じる",
+    onClose: () => { if (G.statusOpen) renderStatus(); },
+  });
+
   // 全体呪文は対象選択なしで全員へ (効果がなければMPは消費しない)
   if (sp.target === "all-ally") {
     let any = false;
-    for (const t of G.party) if (applyTo(t)) any = true;
-    if (any) finish(); else log("効果のある対象がいない。", "sys");
+    const lines = [];
+    for (const t of G.party) {
+      if (!t.alive && !sp.revive) continue;
+      const before = t.hp, wasDead = !t.alive;
+      if (applyTo(t)) any = true;
+      if (heals) { const ln = healLineFor(t, before, wasDead); if (ln) lines.push(ln); }
+    }
+    if (any) {
+      finish();
+      if (heals && lines.length) showHealResult(lines);
+      else showToast(`${sp.name}！ 隊を癒した`);
+    } else { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg()); SFX.miss(); }
     return;
   }
 
@@ -8876,7 +8917,7 @@ function campCast(caster, spellKey) {
     return false;
   };
   const targets = G.party.filter(benefits);
-  if (!targets.length) { log("効果のある対象がいない。", "sys"); return; }
+  if (!targets.length) { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg()); SFX.miss(); return; }
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card confirm-card");
   card.style.borderColor = "#46c08f";
@@ -8889,7 +8930,13 @@ function campCast(caster, spellKey) {
     const label = `${t.name} (HP ${t.hp}/${t.maxhp})${ail}${t.alive ? "" : " †"}`;
     const b = btn(label, () => {
       wrap.remove();
-      if (applyTo(t)) finish(); else log("効果のある対象ではなかった。", "sys");
+      const before = t.hp, wasDead = !t.alive;
+      if (applyTo(t)) {
+        finish();
+        if (heals) showHealResult([healLineFor(t, before, wasDead) || `${t.name}は満タンだ`]);
+        else showToast(`${sp.name}！ ${t.name}に`);
+      }
+      else { log("効果のある対象ではなかった。", "sys"); showToast("効果がなかった"); }
     });
     list.appendChild(b);
   }
@@ -9713,7 +9760,9 @@ function tickPoison() {
   for (const p of G.party) {
     if (!p.alive || p.ailment !== "poison") continue;
     any = true;
-    p.hp = Math.max(0, p.hp - 1);
+    // 毒状態の継続ダメージは最大HPの2% (高レベルでも脅威として機能するよう%化)
+    const dmg = Math.max(1, Math.ceil(p.maxhp * 0.02));
+    p.hp = Math.max(0, p.hp - dmg);
     if (p.hp === 0) { p.alive = false; SFX.die(); log(`${p.name}は毒に倒れた…`, "dmg"); }
   }
   imprintFallen();
