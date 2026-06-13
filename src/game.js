@@ -9709,7 +9709,7 @@ function swipeStep(dx, dy) {
 }
 
 // スワイプは画面全体で受け付ける。ボタン/モーダル/ステータス画面は除外。
-const SWIPE_IGNORE = "button, a, [role=button], #status-screen, #town-screen, #item-get, .confirm-overlay";
+const SWIPE_IGNORE = "button, a, [role=button], #party, #status-screen, #town-screen, #item-get, .confirm-overlay";
 document.addEventListener("pointerdown", (e) => {
   if (e.pointerType === "mouse") return;
   if (e.target.closest(SWIPE_IGNORE)) return;
