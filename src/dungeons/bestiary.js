@@ -65,15 +65,16 @@ const NEW_DEFS = [
     ability: "poison", physResist: 0.5, // 心臓を灼く毒針 + 鎧のような甲殻
     desc: "鎧の継ぎ目を断ち切るはさみと、心の臓を直に灼く尾針を併せ持つ大さそり。乾いた床を擦る音が死の予鈴となる。分厚い甲殻は刃をろくに通さない。" },
   // -- rank 4 --
-  { id: "bs_gargoyle", name: "ガーゴイル", rank: 4, race: "construct", element: "earth", artKey: "golem",
-    palette: tint(ARTS.golem.palette, "#4a4a5a", 0.3),
-    desc: "聖堂の軒先で魔を払っていた石像の成れの果て。守るべき聖域を失い、今は止まり木に来るものすべてを払う。" },
-  { id: "bs_banshee", name: "バンシー", rank: 4, race: "specter", element: "dark", artKey: "ghost",
-    palette: tint(ARTS.ghost.palette, "#9b59b6", 0.35),
-    desc: "死を報せる泣き女の霊。その絶叫を聞いた者は、自分の葬列の足音が背後から近づいてくるのを聞く。" },
+  { id: "bs_gargoyle", name: "ガーゴイル", rank: 4, race: "construct", element: "earth", artKey: "gargoyle",
+    physResist: 0.5, // 石の体が刃をほとんど通さない
+    desc: "聖堂の軒先で魔を払っていた石像の成れの果て。守るべき聖域を失い、今は止まり木に来るものすべてを翼と爪で払う。石の体は並の刃を寄せつけず、砕くには相応の力がいる。" },
+  { id: "bs_banshee", name: "バンシー", rank: 4, race: "specter", element: "dark", artKey: "banshee",
+    ability: "paralyze", // 葬送の絶叫で身をすくませる
+    desc: "死を報せる泣き女の霊。その絶叫を聞いた者は、自分の葬列の足音が背後から近づいてくるのを聞き、恐怖に体が縛りつけられて動けなくなる。" },
   { id: "bs_minotaur", name: "ミノタウロス", rank: 4, boss: true, race: "giant", element: "earth", artKey: "ogre",
     palette: tint(ARTS.ogre.palette, "#7a4a2a", 0.3),
-    desc: "迷路の中心で生贄を待ち続けた牛頭の巨人。捧げられる者が絶えて久しく、自ら狩りに出ることを覚えた。" },
+    ability: "critical", // 全体重を乗せた突進で急所を抉る
+    desc: "迷路の中心で生贄を待ち続けた牛頭の巨人。捧げられる者が絶えて久しく、自ら狩りに出ることを覚えた。低く構えた角の突進は鎧ごと急所を抉る。" },
   // -- rank 5 --
   { id: "bs_troll", name: "トロール", rank: 5, race: "giant", element: "earth", artKey: "ogre",
     palette: tint(ARTS.ogre.palette, "#4a8a3a", 0.35),
@@ -197,21 +198,22 @@ const NEW_DEFS = [
     magWeak: 1.5, swift: true, // 脆い呪骸 (魔法弱点) + 死してなお止まらぬ俊足
     desc: "呪詛の言葉を刻まれ、死してなお走り続ける狼の亡骸。噛まれた傷は癒えず、噛まれた者は夢の中で追われ続ける。脆い呪骸は俊敏だが、術の一撃には脆く崩れる。" },
   // -- rank 4 追加 (+5) --
-  { id: "bs_darksamurai", name: "黒甲の武者", rank: 4, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
-    palette: tint(ARTS.knightmare.palette, "#3a2a2a", 0.45),
-    desc: "敗れた戦国の武者が憎しみのまま霧の森をさまよう亡霊の騎士。主の敵を誰にでも重ね、抜刀は一瞬、納刀を知らない。" },
-  { id: "bs_cultist", name: "邪神の僧", rank: 4, race: "specter", element: "dark", artKey: "ghost", soulClass: "bishop",
-    palette: tint(ARTS.ghost.palette, "#5a3a5a", 0.4),
-    desc: "禁忌の神をまつり命を捧げた僧侶の亡霊。神に近づくために捨てたものを、今も取り戻そうとするように手を伸ばしてくる。" },
-  { id: "bs_stonegorgon", name: "石化の眼", rank: 4, race: "specter", element: "earth", artKey: "harpy",
-    palette: tint(ARTS.harpy.palette, "#8a7a6a", 0.4),
+  { id: "bs_darksamurai", name: "黒甲の武者", rank: 4, race: "armored", element: "dark", artKey: "samurai", soulClass: "knight",
+    swift: true, ability: "critical", // 抜き打ちの一閃で急所を断つ
+    desc: "敗れた戦国の武者が憎しみのまま霧の森をさまよう亡霊の騎士。主の敵を誰にでも重ね、抜刀は一瞬。鞘走った刃は納刀を知らぬまま、急所だけを正確に断つ。" },
+  { id: "bs_cultist", name: "邪神の僧", rank: 4, race: "specter", element: "dark", artKey: "cultist", soulClass: "bishop",
+    ability: "drain", // 捨てたものを取り戻そうと宿した魂を喰らう
+    desc: "禁忌の神をまつり命を捧げた僧侶の亡霊。神に近づくために捨てたものを取り戻そうと手を伸ばし、触れた者の宿した魂のレベルを喰らい取る。" },
+  { id: "bs_stonegorgon", name: "石化の眼", rank: 4, race: "specter", element: "earth", artKey: "gorgon",
+    ability: "stone", // 直視した者を石へと変える眼
     desc: "ゴルゴンの血を引く蛇髪の霊。その眼を直視した者の皮膚が石灰色に固まり始め、完全に石化するまで意識だけが残るという。" },
-  { id: "bs_deepsahagin", name: "深海魚人", rank: 4, race: "aquatic", element: "water", artKey: "sahagin",
-    palette: tint(ARTS.sahagin.palette, "#1a3a5a", 0.5),
-    desc: "神殿の地下水脈の最深部に棲む魚人の変種。目が退化し、代わりに僅かな水流の乱れで獲物の位置を感知する。" },
+  { id: "bs_deepsahagin", name: "深海魚人", rank: 4, race: "aquatic", element: "water", artKey: "deepsahagin",
+    swift: true, ability: "paralyze", // 水流で先んじて感知し、もりで突いて痺れさせる
+    desc: "神殿の地下水脈の最深部に棲む魚人の変種。目が退化し、代わりに僅かな水流の乱れで獲物の位置を先に感知して襲い、毒もりで突いて痺れさせる。" },
   { id: "bs_bloodorc", name: "血狂いのオーク", rank: 4, race: "humanoid", element: "fire", artKey: "orc", soulClass: "fighter",
     palette: tint(ARTS.orc.palette, "#8a2a1a", 0.45),
-    desc: "血の匂いで理性を失うオークの変異体。傷を負うほど凶暴さが増し、自分の傷口まで噛んで己を鼓舞する。" },
+    swift: true, regen: 0.08, // 血の匂いで猛り、傷つくほど勢いを増す
+    desc: "血の匂いで理性を失うオークの変異体。傷を負うほど凶暴さと速さが増し、自分の傷口まで噛んで己を鼓舞し、浅い傷ならたちまち塞いでしまう。" },
   // -- rank 5 追加 (+5) --
   { id: "bs_ironknight", name: "鉄の騎士", rank: 5, race: "armored", element: "none", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#6a6a7a", 0.35),
@@ -398,59 +400,77 @@ const NEW_DEFS = [
   // -- rank 3 (迷宮21-30: 廃砦帯) --
   { id: "bs_lastbanneret", name: "最後の旗手", rank: 3, boss: true, race: "armored", element: "none", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#7a8a9a", 0.3),
-    desc: "守備隊の最後の陣で、折れた旗を握ったまま果てた騎士。旗が地に落ちない限り陣は破られていないと信じ、今も最後の防衛線に立つ。" },
+    physResist: 0.5, // 防衛線を守る鋼の構えが刃を弾く
+    desc: "守備隊の最後の陣で、折れた旗を握ったまま果てた騎士。旗が地に落ちない限り陣は破られていないと信じ、鋼の構えで刃を受け止め、今も最後の防衛線に立つ。" },
   { id: "bs_bloodfeastogre", name: "血祭りの鬼将", rank: 3, boss: true, race: "giant", element: "fire", artKey: "ogre", soulClass: "fighter",
     palette: tint(ARTS.ogre.palette, "#8a2a1a", 0.4),
-    desc: "城境壁で幾日も血祭りを続けた攻め手の鬼将。戦が終わったことを誰も伝えに来なかったので、祭りはまだ続いている。" },
+    regen: 0.06, // 血の祭りに酔い、傷を顧みず塞いでいく
+    desc: "城境壁で幾日も血祭りを続けた攻め手の鬼将。戦が終わったことを誰も伝えに来なかったので、祭りはまだ続いている。返り血を浴びるほど猛り、浅い傷ならすぐに塞いでしまう。" },
   { id: "bs_squareghost", name: "広場の亡霊将", rank: 3, boss: true, race: "specter", element: "dark", artKey: "ghost",
     palette: tint(ARTS.ghost.palette, "#6a6a8a", 0.35),
-    desc: "旗竿の広場で全滅した部隊の点呼を取り続ける将の亡霊。名簿の最後にはいつの間にか、迷宮に入った者の名が書き足されている。" },
+    role: "summoner", summonKey: "d03_ghost", // 名簿を読み上げ散った部隊を呼び戻す
+    desc: "旗竿の広場で全滅した部隊の点呼を取り続ける将の亡霊。名簿を読み上げるたびに散った兵の霊が立ち戻り、その末尾にはいつの間にか、迷宮に入った者の名が書き足されている。" },
   { id: "bs_frozenarcher", name: "凍て弓の隊長", rank: 3, boss: true, race: "undead", element: "water", artKey: "skeleton", soulClass: "thief",
     palette: tint(ARTS.skeleton.palette, "#9fc0d8", 0.35),
-    desc: "弓兵の塔で矢を番えたまま凍りついた射手の隊長。指は氷柱と化してなお弦を引き絞り、放たれる矢は刺さった先から獲物を凍らせる。" },
+    ability: "paralyze", // 刺さった先から凍らせる矢
+    desc: "弓兵の塔で矢を番えたまま凍りついた射手の隊長。指は氷柱と化してなお弦を引き絞り、放たれる矢は刺さった先から獲物を凍りつかせ、身動きを奪う。" },
   { id: "bs_granarymaw", name: "兵糧庫の貪り", rank: 3, boss: true, race: "amorph", element: "fire", artKey: "slime",
     palette: tint(ARTS.slime.palette, "#c87a2a", 0.4),
-    desc: "燃え落ちた兵糧庫で、焦げた糧秣ごと燠火を呑み込んで膨れ上がった粘塊。腹の中ではまだ火が燻り、近づくものを飢えたまま炙り喰う。" },
+    physResist: 0.5, // 焦げた糧秣の塊ゆえ刃が通らない
+    desc: "燃え落ちた兵糧庫で、焦げた糧秣ごと燠火を呑み込んで膨れ上がった粘塊。刃を突き立てても潰れて寄り集まり、腹の中ではまだ火が燻り、近づくものを飢えたまま炙り喰う。" },
   { id: "bs_headsmanwraith", name: "処刑人の影", rank: 3, boss: true, race: "specter", element: "dark", artKey: "wraith", soulClass: "fighter",
     palette: tint(ARTS.wraith.palette, "#3a3a46", 0.4),
-    desc: "処刑台の下の底知れぬ穴に堕ちた処刑人の影。執行の名簿は燃え失せたが斧だけが残り、影は誰の罪状も読まずに振り下ろす。" },
+    swift: true, ability: "paralyze", // 影から音もなく振り下ろす処刑の斧
+    desc: "処刑台の下の底知れぬ穴に堕ちた処刑人の影。執行の名簿は燃え失せたが斧だけが残り、影は音もなく間合いを詰め、誰の罪状も読まずに振り下ろす。死の予感に体が凍りつく。" },
   { id: "bs_ironcagewarden", name: "鉄房の看守長", rank: 3, boss: true, race: "armored", element: "earth", artKey: "knightmare",
     palette: tint(ARTS.knightmare.palette, "#6a5a4a", 0.35),
-    desc: "捕虜たちの呪詛を浴び続け、鎧と鉄格子が癒着した看守長。胸の鉄房には今も誰かが囚われていて、戦いの最中にも細い腕が助けを乞う。" },
+    physResist: 0.5, // 鎧と鉄格子が癒着した重装甲
+    desc: "捕虜たちの呪詛を浴び続け、鎧と鉄格子が癒着した看守長。分厚い鉄の塊と化した体は刃を寄せつけず、胸の鉄房には今も誰かが囚われていて、戦いの最中にも細い腕が助けを乞う。" },
   { id: "bs_duskcastellan", name: "黄昏の城代", rank: 3, boss: true, race: "undead", element: "dark", artKey: "skeleton",
     palette: tint(ARTS.skeleton.palette, "#b0884a", 0.3),
-    desc: "落城の夕べ、明け渡しの鍵を抱いたまま果てた城代。差し出す相手を間違えまいと骨の指は鍵を握り続け、奪おうとする者を客とは認めない。" },
+    regen: 0.06, // 砕けても鍵を握り直して立ち上がる
+    desc: "落城の夕べ、明け渡しの鍵を抱いたまま果てた城代。差し出す相手を間違えまいと骨の指は鍵を握り続け、砕いても骨を継ぎ直しては立ち上がり、奪おうとする者を客とは認めない。" },
   { id: "bs_warhostrevenant", name: "千兵の怨嵐", rank: 3, boss: true, race: "specter", element: "dark", artKey: "wraith",
     palette: tint(ARTS.wraith.palette, "#8a2a3a", 0.4),
-    desc: "霊魂の迷路に散った千の兵の怨念が、ひとつの嵐に縒り合わさったもの。千の声が同時に突撃の鬨を上げ、千の手が同時に剣を振るう。" },
+    swift: true, ability: "paralyze", // 千の鬨の声が一斉に襲い、すくませる
+    desc: "霊魂の迷路に散った千の兵の怨念が、ひとつの嵐に縒り合わさったもの。千の声が同時に突撃の鬨を上げて先んじ、聞いた者は千の殺意に体をすくませる。" },
   // -- rank 4 (迷宮31-40: 霧の森帯) --
   { id: "bs_mistwolfking", name: "霧狼の王", rank: 4, boss: true, race: "beast", element: "wind", artKey: "beast",
     palette: tint(ARTS.beast.palette, "#9aa3ab", 0.4),
-    desc: "幽の森に立ちこめる霧そのものを群れとして従える大狼の王。遠吠えひとつで霧が牙の形に凝り、迷い込んだ者の退路から順に喰い千切る。" },
+    role: "summoner", summonKey: "bs_direwolf", swift: true, // 遠吠えで霧を牙に凝らせ群れを呼ぶ
+    desc: "幽の森に立ちこめる霧そのものを群れとして従える大狼の王。遠吠えひとつで霧が牙の形に凝って新たな狼となり、風のような速さで迷い込んだ者の退路から順に喰い千切る。" },
   { id: "bs_hollowkodama", name: "朽ち社の木霊", rank: 4, boss: true, race: "plant", element: "earth", artKey: "mandrake",
     palette: tint(ARTS.mandrake.palette, "#6a8a4a", 0.35),
-    desc: "参る者の絶えた社で、届かなかった願いだけを溜め込んで肥えた木霊。叶えられなかった祈りの数だけ枝を伸ばし、参拝者を離さない。" },
+    regen: 0.06, // 願いを溜めるたびに枝を伸ばし直す
+    desc: "参る者の絶えた社で、届かなかった願いだけを溜め込んで肥えた木霊。叶えられなかった祈りの数だけ枝を伸ばし、裂かれた枝もすぐに芽吹き直して、参拝者を離さない。" },
   { id: "bs_bloodbriar", name: "血茨の主", rank: 4, boss: true, race: "plant", element: "dark", artKey: "mandrake",
     palette: tint(ARTS.mandrake.palette, "#8a2a3a", 0.4),
-    desc: "樹海の路に倒れた旅人の血を吸って肥え太った茨の大蔓。獲物を絞め上げる時だけ、棘の先に小さな赤い花を咲かせる。" },
+    ability: "drain", regen: 0.06, // 獲物の血(と魂)を吸い上げて己を肥やす
+    desc: "樹海の路に倒れた旅人の血を吸って肥え太った茨の大蔓。獲物を絞め上げて宿した魂ごと吸い上げ、吸った分だけ傷を塞ぐ。その時だけ、棘の先に小さな赤い花を咲かせる。" },
   { id: "bs_birchwitch", name: "白樺の魔女", rank: 4, boss: true, race: "specter", element: "water", artKey: "ghost", soulClass: "mage",
     palette: tint(ARTS.ghost.palette, "#e8e8f4", 0.4),
-    desc: "凍てついた白樺林に棲む雪の魔女の霊。白い林に紛れて立ち尽くし、声をかけた者の体温を呪文ひとつで根こそぎ奪い取る。" },
+    ability: "paralyze", // 体温を奪う呪文で凍てつかせる
+    desc: "凍てついた白樺林に棲む雪の魔女の霊。白い林に紛れて立ち尽くし、声をかけた者の体温を呪文ひとつで根こそぎ奪い、その場に凍りつかせる。" },
   { id: "bs_pyretreant", name: "燃え木の巨人", rank: 4, boss: true, race: "plant", element: "fire", artKey: "ogre",
     palette: tint(ARTS.ogre.palette, "#c85a2a", 0.4),
-    desc: "炎樹の回廊で燃えながら決して倒れぬ巨木の人形。幹の火は百年消えたことがなく、抱きしめられた者は薪の仲間入りをする。" },
+    physResist: 0.4, regen: 0.06, // 百年消えぬ火を宿し、焦げてもまた燃え立つ
+    desc: "炎樹の回廊で燃えながら決して倒れぬ巨木の人形。硬い幹は刃を弾き、抱きしめられた者は薪の仲間入りをする。幹の火は百年消えたことがなく、焼け焦げてもまた燃え立つ。" },
   { id: "bs_bogtyrant", name: "底なし沼の主", rank: 4, boss: true, race: "aquatic", element: "water", artKey: "sahagin",
     palette: tint(ARTS.sahagin.palette, "#4a5a2a", 0.4),
-    desc: "沼地の底で幾百年も沈むものを待ち続けた主。泥の下から伸びる腕は数えるだけ無駄で、掴まれた足はもう岸を踏めない。" },
+    ability: "paralyze", // 泥から伸びる無数の腕が獲物を絡めて沈める
+    desc: "沼地の底で幾百年も沈むものを待ち続けた主。泥の下から伸びる腕は数えるだけ無駄で、絡めとられた獲物は身動きを奪われ、掴まれた足はもう岸を踏めない。" },
   { id: "bs_curseroot", name: "呪樹の根王", rank: 4, boss: true, race: "plant", element: "dark", artKey: "mandrake",
     palette: tint(ARTS.mandrake.palette, "#3a2a4a", 0.45),
-    desc: "呪われた呪樹の根が地中で結び合い、ひとつの意志を持った王。森のすべての木は、この根の指先に過ぎない。" },
+    role: "summoner", summonKey: "d03_mandrake", regen: 0.06, // 地中の根から新たな苗を芽吹かせる
+    desc: "呪われた呪樹の根が地中で結び合い、ひとつの意志を持った王。森のすべての木はこの根の指先に過ぎず、刈っても地から新たな苗を芽吹かせて尽きることがない。" },
   { id: "bs_rotgardener", name: "腐苑の庭師", rank: 4, boss: true, race: "undead", element: "earth", artKey: "skeleton",
     palette: tint(ARTS.skeleton.palette, "#5a7a3a", 0.4),
-    desc: "腐葉の苑を死体で手入れし続ける骸の庭師。倒した獲物を几帳面に土へ植え、芽吹いた何かに誇らしげに水をやる。" },
+    role: "summoner", summonKey: "bs_zombie", ability: "poison", // 植えた死体を芽吹かせ、腐臭を撒く
+    desc: "腐葉の苑を死体で手入れし続ける骸の庭師。倒した獲物を几帳面に土へ植えては芽吹かせて新たな下僕とし、撒き散らす腐臭は肺を蝕む。" },
   { id: "bs_mireforestking", name: "血沼の樹王", rank: 4, boss: true, race: "plant", element: "dark", artKey: "mandrake",
     palette: tint(ARTS.mandrake.palette, "#6a1a2a", 0.45),
-    desc: "果てなき森の血沼に根を張る樹々の王。根は沼の血を吸い上げて梢まで赤く染まり、落ちる葉の一枚一枚が血の匂いで獣を狂わせる。" },
+    physResist: 0.4, ability: "drain", // 沼の血を吸い上げる大樹、宿した魂も吸う
+    desc: "果てなき森の血沼に根を張る樹々の王。沼の血を吸い上げて梢まで赤く染まった大樹の幹は刃を弾き、絡めた獲物からは血ごと宿した魂を吸い上げる。" },
   // -- rank 5 (迷宮41-50: 沈没神殿帯) --
   { id: "bs_drownedpontiff", name: "水底の神官王", rank: 5, boss: true, race: "undead", element: "water", artKey: "ghost", soulClass: "priest",
     palette: tint(ARTS.ghost.palette, "#2a6a9a", 0.4),
@@ -634,22 +654,22 @@ const NEW_DEFS = [
     desc: "骨の笛で坑道の鼠を従える小鬼。笛の音が続く限り、闇の奥から際限なく鼠が湧いてくる。まず笛を止めさせることだ。" },
   // -- rank 3 --
   { id: "bs_bonechanter", name: "白骨の唱導師", rank: 3, race: "undead", element: "dark", artKey: "skeleton",
-    role: "healer", escort: "d01_skeleton", ability: null, soulClass: "bishop",
+    role: "healer", escort: "d01_skeleton", ability: null, magWeak: 1.4, soulClass: "bishop",
     palette: tint(ARTS.skeleton.palette, "#c8b87a", 0.4),
-    desc: "死者への祈りを逆さに唱え、砕けた骨を継ぎ直す骸の司祭。唱導が続く限り、倒したはずの骸兵が骨を拾い集めて立ち上がる。" },
+    desc: "死者への祈りを逆さに唱え、砕けた骨を継ぎ直す骸の司祭。唱導が続く限り、倒したはずの骸兵が骨を拾い集めて立ち上がる。痩せた骨身は脆く、魔法の一撃で唱導もろとも砕け散る。" },
   { id: "bs_gravecaller", name: "墓呼びの語り部", rank: 3, race: "specter", element: "dark", artKey: "ghost",
     role: "summoner", summonKey: "bs_zombie", escort: "bs_zombie", ability: null,
     palette: tint(ARTS.ghost.palette, "#3a5a4a", 0.45),
     desc: "土の下の亡者に「まだ終わっていない」と囁き続ける亡霊。その語りを聞いた骸は墓を破って這い出し、語り部の指す方へ歩き出す。" },
   // -- rank 4 --
   { id: "bs_shieldogre", name: "大盾のオーガ", rank: 4, race: "giant", element: "earth", artKey: "ogre",
-    role: "guard", escort: "d03_orc", ability: null,
+    role: "guard", escort: "d03_orc", ability: null, physResist: 0.5,
     palette: tint(ARTS.ogre.palette, "#5a6a8a", 0.4),
-    desc: "城門の残骸を大盾として担ぐオーガの古強者。群れの矢面に立って刃を受け止めることだけを誇りとし、その背後でオークどもが斧を研ぐ。" },
+    desc: "城門の残骸を大盾として担ぐオーガの古強者。群れの矢面に立って刃を受け止めることだけを誇りとし、分厚い鉄扉ごと打撃をいなす。その背後でオークどもが斧を研ぐ。" },
   { id: "bs_plaguepriest", name: "疫病の祈り手", rank: 4, race: "specter", element: "dark", artKey: "ghost",
-    role: "healer", escort: "bs_banshee", ability: null, soulClass: "priest",
+    role: "healer", escort: "bs_banshee", ability: "poison", soulClass: "priest",
     palette: tint(ARTS.ghost.palette, "#7a8a3a", 0.45),
-    desc: "病魔を神と崇め、その「恵み」で仲間の傷を腐肉ごと塞ぐ亡僧。祈りの言葉は治癒と疫病をひとつの息で唱えられる。" },
+    desc: "病魔を神と崇め、その「恵み」で仲間の傷を腐肉ごと塞ぐ亡僧。同じ息で唱える祈りは敵には疫病を、味方には治癒を運ぶ。" },
 ];
 
 // 新規分にランク基準ステータスを与えてから検証・登録する
@@ -664,23 +684,29 @@ const ELITE_DEFS = [
   // -- 迷宮 1-10 (墓地帯) / 強敵ランク3 --
   { id: "el_cryptlord", name: "墓所の君主", elite: true, rank: 3, race: "undead", element: "dark", artKey: "skeleton", soulClass: "mage",
     palette: tint(ARTS.skeleton.palette, "#caa84a", 0.45),
-    desc: "墓地の最奥、最も古い柩に葬られた貴人の成れの果て。己の眠りを破った足音をすべて数えており、数え終えた夜に柩の蓋が開く。" }, // D1-3
+    role: "summoner", summonKey: "d01_skeleton", physResist: 0.4, // 死者を侍らせ、古びた骨身が刃を弾く
+    desc: "墓地の最奥、最も古い柩に葬られた貴人の成れの果て。眠りを破った足音を数え終えた夜に柩の蓋が開き、侍る骸兵を率いて立ち上がる。石化した古い骨は並の刃を寄せつけない。" }, // D1-3
   { id: "el_palebutcher", name: "蒼白の屠殺鬼", elite: true, rank: 3, race: "giant", element: "none", artKey: "ogre",
     palette: tint(ARTS.ogre.palette, "#d8d8e4", 0.55),
-    desc: "墓守に化けて幾世代も墓地に住み着いた蒼白の喰人鬼。奴の包丁が研がれる夜は、翌朝までに墓穴がひとつ増えている。" }, // D4-6
+    physResist: 0.5, ability: "paralyze", // 巨体は刃をいなし、振るう包丁が獲物をすくませる
+    desc: "墓守に化けて幾世代も墓地に住み着いた蒼白の喰人鬼。たるんだ巨体は刃を吸い込んでいなし、研ぎ上げた包丁が一閃するたび獲物は恐怖に立ちすくむ。包丁が研がれる夜は、翌朝までに墓穴がひとつ増えている。" }, // D4-6
   { id: "el_sorrowsaint", name: "嘆きの聖女", elite: true, rank: 3, race: "specter", element: "light", artKey: "ghost", soulClass: "priest",
     palette: tint(ARTS.ghost.palette, "#ffe8b0", 0.5),
-    desc: "疫病の死者を弔い続け、最後は自らも墓地に倒れた聖女の亡霊。祈りの文句は生前のままに、その祝福だけが死を運ぶものへ変わり果てた。" }, // D7-10
+    ability: "paralyze", regen: 0.06, // 死を運ぶ祝福ですくませ、祈りで己を癒す
+    desc: "疫病の死者を弔い続け、最後は自らも墓地に倒れた聖女の亡霊。生前のままの祈りは聞いた者を金縛りにし、唱えるたびに己の傷を癒す。その祝福だけが、死を運ぶものへ変わり果てた。" }, // D7-10
   // -- 迷宮 11-20 (坑道帯) / 強敵ランク4 --
   { id: "el_oremaw", name: "鉱脈喰らい", elite: true, rank: 4, race: "construct", element: "earth", artKey: "golem",
     palette: tint(ARTS.golem.palette, "#5ac8a0", 0.45),
-    desc: "坑道の鉱脈そのものを喰らって肥え太った岩塊の獣。全身に喰い残しの原石が突き刺さり、その輝きに惹かれた鉱夫ごと岩盤を呑み込む。" }, // D11-13
+    physResist: 0.6, // 鉱石を喰らい固めた岩塊の体は刃を通さない
+    desc: "坑道の鉱脈そのものを喰らって肥え太った岩塊の獣。原石を喰い込ませた岩盤の体は並の武器をほとんど通さず、輝きに惹かれた鉱夫ごと呑み込む。" }, // D11-13
   { id: "el_lanternreaper", name: "灯火狩り", elite: true, rank: 4, race: "specter", element: "dark", artKey: "wraith", soulClass: "thief",
     palette: tint(ARTS.wraith.palette, "#16162a", 0.6),
-    desc: "坑道で果てた者たちの「消えた灯」が寄り集まった漆黒の影。生者の掲げる灯りを何よりも憎み、灯火を狩るついでに持ち主の息の根を摘む。" }, // D14-16
+    swift: true, ability: "soulSteal", // 闇を駆け、灯火もろとも魂を狩り取る
+    desc: "坑道で果てた者たちの「消えた灯」が寄り集まった漆黒の影。闇を音もなく駆けて先んじ、生者の掲げる灯りを憎んで、灯火を狩るついでにその魂を吸い取る。" }, // D14-16
   { id: "el_tunnelking", name: "穴蔵の王", elite: true, rank: 4, race: "humanoid", element: "fire", artKey: "kobold", soulClass: "fighter",
     palette: tint(ARTS.kobold.palette, "#c8a040", 0.5),
-    desc: "数千の眷属を従え、坑道の闇に王国を築いた古コボルト。小鬼と侮った者の骸が、玉座への道に敷き詰められている。" }, // D17-20
+    role: "summoner", summonKey: "d01_kobold", ability: "goldSteal", // 数千の眷属を呼び、奪い尽くす
+    desc: "数千の眷属を従え、坑道の闇に王国を築いた古コボルト。吼えれば際限なく眷属が湧き、混戦に乗じて獲物の懐を漁る。小鬼と侮った者の骸が、玉座への道に敷き詰められている。" }, // D17-20
   // -- 迷宮 21-30 (砦帯) / 強敵ランク5 --
   { id: "el_warbanner", name: "軍旗の亡将", elite: true, rank: 5, race: "armored", element: "fire", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#a03020", 0.5),
