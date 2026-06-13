@@ -633,6 +633,17 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 /* 施設バッジ (王宮の勅命など) */
 .tw-facb { font-size: 10px; color: #ffd84a; margin-top: 4px; font-weight: bold; text-shadow: 0 0 6px rgba(255,216,74,0.5); }
 
+/* 宝物庫: 奉納台帳のスロット */
+.tw-tslots { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin: 6px 0; }
+.tw-tslot {
+  aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  background: #100b18; border: 1px solid #2c2040; border-radius: 6px; overflow: hidden;
+}
+.tw-tslot.got { border-color: #6a4d90; background: #1a1230; box-shadow: inset 0 0 6px rgba(150,110,220,0.3); }
+.tw-tslot canvas { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+.tw-tlock { font-size: 12px; color: #4a3f5e; }
+@media (max-width: 380px) { .tw-tslots { grid-template-columns: repeat(5, 1fr); } }
+
 /* ロスター概要 */
 .tw-roster { margin-top: 14px; }
 .tw-h { font-size: 12px; color: #b49fd2; letter-spacing: 1px; margin: 10px 0 6px; border-left: 3px solid #6a4d90; padding-left: 7px; }

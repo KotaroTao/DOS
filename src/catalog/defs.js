@@ -112,7 +112,7 @@ export const ARTS = {
   amulet: [
     "....kk......", "...kbbk.....", "..kb..bk....", "..kb..bk....", "...kbbk.....", "..kbccbk....",
     ".kbcyycbk...", ".kbcyycbk...", ".kbccccbk...", "..kbbbbk....", "...kkkk.....", "............"],
-  // --- その他 (換金品・戦利品) ---
+  // --- 蒐集品 (戦利品) ---
   fang: [
     "............", "....kk......", "...kwwk.....", "...kwwk.....", "..kwwk......", "..kwwk......",
     ".kwwk.......", ".kwk........", ".kwk........", ".kk.........", "............", "............"],
@@ -296,7 +296,7 @@ export function R(id, name, shape, lv, opt = {}) {
   return it;
 }
 
-// その他 (換金品・戦利品): M(id, 名, 形, lv, opt) — 装備も使用もできず、商店で金になる
+// 蒐集品 (戦利品): M(id, 名, 形, lv, opt) — 装備も使用もできず、商店で売るか宝物庫に奉納する
 export function M(id, name, shape, lv, opt = {}) {
   const it = base(id, name, "misc", lv, shape, opt);
   it.price = opt.price != null ? opt.price : round(8 + lv * lv * 0.25 + lv * 4);

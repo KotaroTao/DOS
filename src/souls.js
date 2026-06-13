@@ -172,9 +172,6 @@ export const FUSION_STAT_BONUS = { common: 0.02, rare: 0.05, epic: 0.10, legend:
 // ランクボーナス (5部位すべて同系列職業のときの全ステ倍率)
 export const FIVE_PART_BONUS = { common: 0.10, rare: 0.15, epic: 0.20, legend: 0.25 };
 
-// 合成に必要な空の魂の数
-export const RARITY_SYNTH_COST = { common: 1, rare: 5, epic: 10, legend: 20 };
-
 // ===== ドロップ =====
 // ダンジョンではランク1〜3のみ。ランク2は約半減、ランク3はさらに半減
 export function rollSoulRank(bonus = 0) {
