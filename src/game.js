@@ -2663,7 +2663,10 @@ function runProgressPopups(queue, done) {
   if (ev.kind === "level") {
     SFX.levelup();
     const lines = [ev.member.cls];
-    lines.push(ev.deltas && ev.deltas.length ? ev.deltas.join("  ") : "ステータスはそのまま");
+    // 上昇ステータスは改行せず1行で表示 (横幅に収まるよう ig-statline で nowrap+縮小)
+    lines.push(ev.deltas && ev.deltas.length
+      ? { text: ev.deltas.join("  "), cls: "ig-statline" }
+      : "ステータスはそのまま");
     showEvent({
       banner: "⤴ レベルアップ ⤴",
       title: `${ev.member.name} は Lv${ev.toLv} に上がった！`,
@@ -6684,7 +6687,12 @@ function showEvent({ sprite, title, lines = [], accent = "#c9a227", btnLabel = "
   const t = el("div", "ig-name", title);
   t.style.color = accent === "#c9a227" ? "#fff" : accent;
   card.appendChild(t);
-  for (const ln of lines) card.appendChild(el("div", "ig-desc", ln));
+  for (const ln of lines) {
+    // 文字列、または { text, cls } で行ごとに追加クラスを指定可能
+    const txt = (ln && typeof ln === "object") ? ln.text : ln;
+    const extra = (ln && typeof ln === "object" && ln.cls) ? ` ${ln.cls}` : "";
+    card.appendChild(el("div", "ig-desc" + extra, txt));
+  }
   const ok = btn(btnLabel, () => closeItemGet(onClose));
   ok.className = "btn primary ig-ok";
   ok.style.borderColor = accent;
