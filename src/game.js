@@ -2669,10 +2669,8 @@ function runProgressPopups(queue, done) {
   if (ev.kind === "level") {
     SFX.levelup();
     const lines = [ev.member.cls];
-    // 上昇ステータスは改行せず1行で表示 (横幅に収まるよう ig-statline で nowrap+縮小)
-    lines.push(ev.deltas && ev.deltas.length
-      ? { text: ev.deltas.join("  "), cls: "ig-statline" }
-      : "ステータスはそのまま");
+    // 上昇ステータスは必要に応じて折り返して表示 (1行に固定せず自然改行)
+    lines.push(ev.deltas && ev.deltas.length ? ev.deltas.join("  ") : "ステータスはそのまま");
     showEvent({
       banner: "⤴ レベルアップ ⤴",
       title: `${ev.member.name} は Lv${ev.toLv} に上がった！`,
@@ -2978,9 +2976,33 @@ function renderParty() {
       <div class="nums">HP ${p.hp}/${p.maxhp}</div>
       ${p.maxmp > 0 ? `<div class="bar mp"><i style="width:${(p.mp / p.maxmp) * 100}%"></i></div>
       <div class="nums">MP ${p.mp}/${p.maxmp}</div>` : ""}
+      ${buffBadges(p)}
     `;
     partyEl.appendChild(card);
   });
+}
+
+// 戦闘中の発動効果バッジ: 能力ごとに 強化(▲)/弱体(▼) を段階数ぶん並べ、残りターンを添える。
+const BUFF_STAT_ICON = { atk: "⚔", vit: "🛡", agi: "💨" };
+const BUFF_STAT_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI" };
+function buffBadges(p) {
+  if (G.state !== "battle" || !p.alive || !p.effects || !p.effects.length) return "";
+  // (能力, 方向) ごとに集約: 段階数(最大2)と最短残ターンを出す
+  const groups = new Map();
+  for (const ef of p.effects) {
+    const up = ef.mult > 1;
+    const key = ef.stat + (up ? "+" : "-");
+    const g = groups.get(key) || { stat: ef.stat, up, stages: 0, turns: Infinity };
+    g.stages++; g.turns = Math.min(g.turns, ef.turns);
+    groups.set(key, g);
+  }
+  let html = "";
+  for (const g of groups.values()) {
+    const arrow = (g.up ? "▲" : "▼").repeat(Math.min(2, g.stages));
+    const title = `${BUFF_STAT_LABEL[g.stat] || g.stat} ${g.up ? "強化" : "弱体"}${g.stages}段階・残り${g.turns}T`;
+    html += `<span class="bf ${g.up ? "up" : "dn"}" title="${title}">${BUFF_STAT_ICON[g.stat] || "◆"}${arrow}<b>${g.turns}</b></span>`;
+  }
+  return `<div class="buffs">${html}</div>`;
 }
 
 // ---- DOM ヘルパ ----
@@ -6113,6 +6135,8 @@ function skillDetailLines(sp) {
   if (sp.grantEndure) lines.push("対象に「致死ダメージをHP1で耐える」を付与（1戦闘1回）");
   if (sp.grantBarrier) lines.push(`味方全体に魔障壁${sp.grantBarrier}回分（ブレス・呪文の被ダメ半減）を付与`);
   if (sp.debuffAll) lines.push(`さらに敵全体を弱体: ${fx(sp.debuffAll)}`);
+  // 強化/弱体の持続ターン数 (同方向は最大2段階まで重ねられる)
+  if (sp.dur && (sp.buff || sp.debuff || sp.debuffAll)) lines.push(`効果は ${sp.dur} ターン持続（同じ能力は最大2段階）`);
   return lines;
 }
 
@@ -6718,12 +6742,7 @@ function showEvent({ sprite, title, lines = [], accent = "#c9a227", btnLabel = "
   const t = el("div", "ig-name", title);
   t.style.color = accent === "#c9a227" ? "#fff" : accent;
   card.appendChild(t);
-  for (const ln of lines) {
-    // 文字列、または { text, cls } で行ごとに追加クラスを指定可能
-    const txt = (ln && typeof ln === "object") ? ln.text : ln;
-    const extra = (ln && typeof ln === "object" && ln.cls) ? ` ${ln.cls}` : "";
-    card.appendChild(el("div", "ig-desc" + extra, txt));
-  }
+  for (const ln of lines) card.appendChild(el("div", "ig-desc", ln));
   const ok = btn(btnLabel, () => closeItemGet(onClose));
   ok.className = "btn primary ig-ok";
   ok.style.borderColor = accent;
