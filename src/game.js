@@ -26,7 +26,7 @@ import {
   soulRankFromCount, nextRankThreshold, rankThresholds, capForRarityRank,
   jobLoreFor, jobRankCondText,
   jobSkillTable, jobRankName, soulSeriesName, jobPassiveTable, pLv, JOB_GEAR,
-  IDENTIFY_JOBS, identifyChance, canIdentify,
+  identifyChance, canIdentify, identifyLabel,
 } from "./souls.js";
 import { showOpening } from "./opening.js";
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
@@ -509,7 +509,7 @@ const SPECIAL_FLOORS = [
     lines: ["不自然なほど宝箱が多い…罠の匂いがする。", "宝箱の半分はミミックだ。だが倒せば上質な宝箱を残す。"],
     board: (b) => sfPlace(b, 3, (c) => { c.type = "chest"; c.cleared = false; }) },
   { id: "healing", name: "癒しの霊気", icon: "fountain", accent: "#8af0c0", sym: "✚", minFloor: 2, rate: 0.02, victoryHeal: 0.10,
-    lines: ["澄んだ霊気が満ち、傷を癒してくれる。", "戦闘に勝利するたび、隊全体のHPが10%回復する。"] },
+    lines: ["澄んだ霊気が満ち、傷を癒してくれる。", "戦闘に勝利するたび、隊全体のHPとMPが10%回復する。"] },
   { id: "legend", name: "伝説の眠る階", icon: "chest", accent: "#ffe080", sym: "★", minFloor: 4, rate: 0.01,
     lines: ["遥か昔の英雄の遺品が、この階のどこかに眠っている。", "ひとつの宝箱にだけ、格別の装備が入っている。"],
     board: (b) => {
@@ -3658,16 +3658,22 @@ function clearDungeonNoBoss() {
 }
 
 // ===== 罠解除 (宝箱・罠マス共通) =====
-// 解除値 = AGI + LUK。盗賊系の職業は1.5倍のボーナス
+// 解除値 = AGI + LUK。解除を得意とする職 (盗賊・義賊・暗殺者・魔盗賊・狩人) は1.5倍のボーナス
+const DISARM_JOBS = ["thief", "brigand", "shadow", "arcthief", "hunter"];
+// この人業が「解除の得意職」を宿しているか (メイン魂・宿し魂のいずれか)
+function disarmExpert(m) {
+  if (!m.jobKey) return false;
+  return m.jobKey.split("+").some((k) => DISARM_JOBS.includes(k));
+}
 function disarmPower(m) {
   let v = (m.agi || 0) + (m.luk || 0);
-  if (m.jobKey && m.jobKey.split("+").includes("thief")) v *= 1.5;
+  if (disarmExpert(m)) v *= 1.5;
   return Math.round(v);
 }
 
 // 解除難度: ダンジョンランクと宝箱ランクで決まる。
 // 迷宮の魂レベル帯 (これも迷宮ランクの関数) から「適正パーティの AGI+LUK」を見積もり、
-// 適正レベルの盗賊系で最大95% (上限)、それ以外で70〜80% になるよう調整している。
+// 適正レベルでは 得意職が ~75% (上限95%まで伸びる)、それ以外の職は ~50% になるよう調整している。
 // cRank: 宝箱ランク (1-5)。床罠は1扱い
 function disarmNeed(cRank = 1) {
   const cfg = activeCfg();
@@ -3675,13 +3681,15 @@ function disarmNeed(cRank = 1) {
   const f = 1 + (L - 1) * 0.12;                          // souls.js の lvlFactor と同式
   const q = 1 + ((cfg.rank || 1) - 1) * 0.14;            // ダンジョンランク: 深部は高ランク魂が前提
   const c = 1 + ((cRank || 1) - 1) * 0.16;               // 宝箱ランク: 上等な箱ほど狡猾な錠前
-  // 基準値を引き上げ、盗賊系 (disarmPower ×1.5) 以外が安易に95%へ届かないよう難度を上げる
-  return 23 * f * q * c;
+  // 基準値: 得意職以外が適正レベルで約50%に収まる難度 (得意職は ×1.5 ボーナスで上回る)
+  return 34 * f * q * c;
 }
 
 function disarmChance(m, cRank = 1) {
   if ((specialDef() || {}).sureDisarm) return 1; // 盗賊の洞察: 罠解除率100%
-  return Math.max(0.05, Math.min(0.95, disarmPower(m) / disarmNeed(cRank)));
+  // 得意職は最大95%まで伸びるが、それ以外は上限55% (適正レベルで約50%、過剰育成でも頭打ち)
+  const cap = disarmExpert(m) ? 0.95 : 0.55;
+  return Math.max(0.05, Math.min(cap, disarmPower(m) / disarmNeed(cRank)));
 }
 
 // 宝箱ランク (1-5) を取得。セルに未設定ならその場で抽選して保存する
@@ -4981,16 +4989,16 @@ function applyVictoryPassives() {
     if (mpct > 0 && p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * mpct)); healed = true; }
   }
   if (healed) log("勝利の余韻が隊を癒した。", "heal");
-  // 特別階 (癒しの霊気): 戦闘勝利のたび隊全体のHPが回復する
+  // 特別階 (癒しの霊気): 戦闘勝利のたび隊全体のHP・MPが回復する
   const fh = sfNum("victoryHeal", 0);
   if (fh > 0) {
     let mist = false;
     for (const p of G.party) {
-      if (!p.alive || p.hp >= p.maxhp) continue;
-      p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * fh));
-      mist = true;
+      if (!p.alive) continue;
+      if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * fh)); mist = true; }
+      if (p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * fh)); mist = true; }
     }
-    if (mist) log("癒しの霊気が傷を塞いだ。", "heal");
+    if (mist) log("癒しの霊気が傷を塞ぎ、魔力を満たした。", "heal");
   }
   // 浄化 (隊全体) / 自浄 (自分): 毒・麻痺を治す (石化は対象外)
   const hasPurify = G.party.some((p) => p.alive && pLv(p, "purify"));
@@ -7289,7 +7297,7 @@ function codexJobSee(clsKey, count, level) {
   if (!G.codex || !G.codex.job) return;
   const rank = soulRankFromCount(clsKey, count || 0);
   if (rank < 1) return;
-  const cap = capForRarityRank((SOUL_CLASSES[clsKey] || {}).rarity || "common", rank);
+  const cap = soulLevelCap(clsKey, count || 0);
   const lv = Math.min(cap, level || 1);
   const e = G.codex.job[clsKey];
   const prevLv = e && typeof e === "object" ? (e.lv || 0) : 0;
@@ -7629,7 +7637,9 @@ function showCodexJobDetail(key, rank, heading) {
   // 職業スキル表: このランクのLv上限まで覚える技・パッシブを載せ、
   // 実際に到達したLvのものだけ開示する (新仕様: ランク×10ゲート撤廃)
   const reached = (rec && typeof rec === "object" && rec.lv) || 0;
-  const lvCap = capForRarityRank(SOUL_CLASSES[key].rarity, rank);
+  // このランクに到達した時点の魂数を起点に、吸収式のLv上限を求める (到達済みLvが上回ればそちらを優先)
+  const capCount = (rankThresholds(SOUL_CLASSES[key].rarity)[rank - 1]) || 1;
+  const lvCap = Math.max(soulLevelCap(key, capCount), reached);
   const sbox = el("div", "cdx-drops");
   for (const e of jobSkillTable(key)) {
     if (e.lvl > lvCap) continue;
@@ -8990,8 +9000,8 @@ function openIdentifyChooser(it) {
   card.appendChild(el("div", "ig-stat dim", "失敗するとこの品はスキルで鑑定できなくなる (商店なら確実)"));
   const list = el("div", "ig-choices");
   for (const m of idmen) {
-    const ch = identifyChance(m.clsKey, m.jobLv || 1, it.lv || 1);
-    const lbl = (IDENTIFY_JOBS[m.clsKey] || {}).label || "鑑定";
+    const ch = identifyChance(m, it.lv || 1);
+    const lbl = identifyLabel(m);
     const b = btn(`${m.name} (${m.cls}) ${lbl} 成功 ${Math.round(ch * 100)}%`, () => {
       wrap.remove();
       doIdentifySkill(m, it);
@@ -9007,7 +9017,7 @@ function openIdentifyChooser(it) {
 
 // スキル鑑定を実行。成功で正体判明、失敗で idHardFail (以後は商店でのみ鑑定可)
 function doIdentifySkill(m, it) {
-  const ch = identifyChance(m.clsKey, m.jobLv || 1, it.lv || 1);
+  const ch = identifyChance(m, it.lv || 1);
   if (Math.random() < ch) {
     it.unidentified = false;
     SFX.itemget(); buzz(15);
