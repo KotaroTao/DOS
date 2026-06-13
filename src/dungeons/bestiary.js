@@ -722,6 +722,48 @@ const NEW_DEFS = [
   { id: "bs_forgemaster", name: "溶鉄炉の主", rank: 10, boss: true, race: "construct", element: "fire", artKey: "forgemaster", soulClass: "fighter",
     role: "summoner", summonKey: "bs_forgegolem", ability: "breath", physResist: 0.6, enrage: true,
     desc: "穢れた魂を鋳て『器』を作り続ける、溶鉄炉そのものの主。鋳造のゴーレムを次々と生み出し、全体を焼く溶鉄のブレスを吐く。人業がどう作られるかを知った今、こいつの炉の音は、もう以前と同じには聞こえない。" },
+  // -- 第16層「深淵の聖堂」 (rank 10・光/偽りの光) --
+  { id: "bs_falseseraph", name: "偽りの熾天使", rank: 10, race: "specter", element: "light", artKey: "falseseraph",
+    ability: "drain", barrier: 2, magResist: 0.4, desc: "聖堂の祭壇に祀られた、光を騙る堕ちた熾天使。慈悲を装って近づき、捧げられた魂ごと命を吸う。後光は本物だが、その光は他者を焼くためのものだ。" },
+  { id: "bs_inquisitor", name: "異端審問官", rank: 10, race: "armored", element: "light", artKey: "inquisitor",
+    ability: "critical", enrage: true, physResist: 0.4, desc: "光の名のもとに数えきれぬ魂を火刑に処した、審問官の亡霊。聖印を刻んだ刃で異端者の急所を貫き、断罪の興奮で猛る。こいつにとって、生者はみな裁くべき罪人だ。" },
+  { id: "bs_censerfiend", name: "香炉の鬼", rank: 10, race: "demon", element: "light", artKey: "censerfiend",
+    ability: "breath", enrage: true, desc: "聖香を焚き続けた香炉から生まれた、聖なる炎をまとう鬼。振り撒く香煙は全体を清めの炎で焼き、傷つけば香炉を振り回して荒れる。その煙を吸えば、魂ごと浄化されて消える。" },
+  { id: "bs_lightidol", name: "光の偶像", rank: 10, race: "construct", element: "light", artKey: "lightidol",
+    ability: "critical", magResist: 0.5, barrier: 2, desc: "信仰を集めるために据えられた、黄金の光を放つ偶像。崇める者を光の刃で貫き、その身は刃も魔も弾く。捧げられた祈りの分だけ、こいつは強く輝く。" },
+  { id: "bs_choirofthelost", name: "失われた聖歌隊", rank: 10, race: "specter", element: "light", artKey: "choirofthelost",
+    ability: "paralyze", pack: true, magResist: 0.4, desc: "聖堂で焼かれた者たちが、なお賛美歌を歌わされ続ける霊の群れ。荘厳な歌声を浴びた者は身が痺れて動けなくなる。歌うことをやめれば、自分が燃やされた記憶が蘇るからだ。" },
+  { id: "bs_flagellant", name: "鞭打ち苦行者", rank: 10, race: "humanoid", element: "light", artKey: "flagellant",
+    ability: "critical", enrage: true, lifesteal: 0.3, desc: "己を鞭打ち、その血を聖油として捧げ続けた苦行者の亡霊。鋭い鉤の鞭で急所を裂き、流れる血を糧に傷を癒す。痛みこそが信仰だと、永遠に己を打ち続ける。" },
+  { id: "bs_radiantwraith", name: "眩き霊", rank: 10, race: "specter", element: "light", artKey: "radiantwraith",
+    ability: "paralyze", evasive: true, lifesteal: 0.3, desc: "聖堂の眩い光に溶け込んだ、輪郭を失った霊。直視できぬ光で獲物の目を眩ませて痺れさせ、光となって刃をすり抜ける。美しい後光が、近づく者を惑わせる。" },
+  { id: "bs_crusaderghost", name: "亡き聖騎士", rank: 10, race: "armored", element: "light", artKey: "crusaderghost",
+    ability: "critical", barrier: 2, multistrike: 2, desc: "聖戦で果て、聖堂に祀られた聖騎士の亡霊。聖別された剣で急所を続けざまに貫き、聖印の盾が刃を阻む。守るべき信仰が偽りだったとは、まだ知らない。" },
+  { id: "bs_saintbeast", name: "聖獣", rank: 10, race: "beast", element: "light", artKey: "saintbeast",
+    ability: "critical", swift: true, enrage: true, desc: "聖なる獣として崇められ、祭壇で飼われた光をまとう獣。素早く間合いを詰めて急所を抉り、傷つけば神聖な怒りで猛る。崇拝の鎖は、とうに引きちぎれている。" },
+  { id: "bs_blindingorb", name: "眩光の球", rank: 10, race: "elemental", element: "light", artKey: "blindingorb",
+    ability: "paralyze", multistrike: 2, evasive: true, desc: "聖堂の天蓋に浮かぶ、見る者の目を焼く眩い光の球。光の矢を続けざまに撃ち、放たれる閃光が獲物を痺れさせる。直視すれば、視界が白く塗り潰される。" },
+  { id: "bs_martyrwraith", name: "殉教の霊", rank: 10, race: "specter", element: "light", artKey: "martyrwraith",
+    ability: "drain", lifesteal: 0.3, regen: 0.06, desc: "信仰のために自ら火に身を投じた殉教者の霊。捧げた命の渇きで生者の命を吸い、奪うほどに崩れた体を繕う。救われると信じて焼かれたが、何も救われはしなかった。" },
+  { id: "bs_holygolem", name: "聖鎧の巨像", rank: 10, race: "construct", element: "light", artKey: "holygolem",
+    magResist: 0.5, physResist: 0.5, barrier: 2, desc: "聖別された黄金の鎧を幾重にも重ねた、聖堂を守る巨像。刃も魔も分厚い聖鎧に阻まれ、聖印が攻撃を弾く。中身は空――信仰だけが、これを動かしている。" },
+  { id: "bs_confessor", name: "告解の聴き手", rank: 10, race: "specter", element: "light", artKey: "confessor",
+    ability: "weaken", magResist: 0.4, evasive: true, desc: "罪の告解を永遠に聴き続け、その重みに潰れた聴罪司祭の霊。囁きで生者の罪悪感を煽って力を奪い、影のように掴みどころがない。告げた罪は、二度と赦されない。" },
+  { id: "bs_lightlance", name: "光槍の番兵", rank: 10, race: "armored", element: "light", artKey: "lightlance",
+    ability: "critical", multistrike: 2, physResist: 0.4, desc: "聖堂の門を守る、光の槍を構えた番兵の亡霊。間合いの外から後衛の急所すら貫き、続けざまに突き込む。光の穂先は、どんな盾も貫くと信じられている。" },
+  { id: "bs_wingedjudge", name: "裁きの翼", rank: 10, race: "specter", element: "light", artKey: "wingedjudge",
+    ability: "critical", barrier: 2, evasive: true, desc: "罪を裁く権能を与えられた、翼ある裁定者の霊。光の刃で罪人と見なした者の急所を断ち、聖なる翼が刃を逸らす。誰が罪人かは、こいつの気まぐれで決まる。" },
+  { id: "bs_pyreofsouls", name: "魂の火刑", rank: 10, race: "elemental", element: "light", artKey: "pyreofsouls",
+    ability: "breath", enrage: true, lifesteal: 0.3, desc: "聖堂の地下で魂を焼き続ける、消えぬ火刑の炎の集合体。捧げられた魂を全体を焼く清めの炎として吐き、燃やすほどに勢いを増す。この炎が、回収された魂の行き着く先の一つだ。" },
+  { id: "bs_cathedralguard", name: "聖堂の守護者", rank: 10, race: "construct", element: "light", artKey: "cathedralguard",
+    physResist: 0.5, magResist: 0.5, barrier: 2, multistrike: 2, desc: "聖堂の最奥を守る、聖印を刻まれた巨大な守護像。刃も魔も阻む頑強な体で、偽りの光の秘密へ続く道を塞ぐ。守っているのは信仰か、それとも罪の証拠か。" },
+  { id: "bs_hymncaster", name: "賛美歌の司祭", rank: 10, race: "specter", element: "light", artKey: "hymncaster",
+    role: "summoner", summonKey: "bs_choirofthelost", ability: "weaken", magResist: 0.4, desc: "終わらぬ賛美歌の指揮を執り続ける司祭の霊。焼かれた聖歌隊を次々と呼び覚まし、呪詛のごとき祈祷で挑む者の力を奪う。その歌は、悲鳴を覆い隠すために大きくなった。" },
+  { id: "bs_lightmoth", name: "光に集う蛾", rank: 10, race: "insect", element: "light", artKey: "lightmoth",
+    ability: "paralyze", pack: true, swift: true, desc: "聖堂の偽りの光に引き寄せられ、群がる黄金の蛾。鱗粉を撒いて獲物を痺れさせ、光を求めて素早く乱舞する。光に焼かれてもなお、次の蛾が集まってくる。" },
+  { id: "bs_highpontiff", name: "深淵の聖堂の主", rank: 10, boss: true, race: "specter", element: "light", artKey: "highpontiff", soulClass: "cardinal",
+    role: "summoner", summonKey: "bs_falseseraph", ability: "drain", magResist: 0.5, enrage: true,
+    desc: "偽りの光の名のもとに、数えきれぬ魂を聖堂で焼き続けた大司教の霊。堕ちた熾天使を従え、捧げられた魂ごと生者の命を吸い上げる。光も闇も魂を喰らうことに変わりはない――ただ、光のほうが言い訳が美しいだけだ。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1665,6 +1707,7 @@ export const BOSS_ORDER = {
 // 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
 // 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
 const LAYER_BOSS_OVERRIDE = {
+  16: "bs_highpontiff", // 第16層「深淵の聖堂」: 深淵の聖堂の主 (rank10・光ボス)
   15: "bs_forgemaster", // 第15層「溶鉄炉」: 溶鉄炉の主 (rank10・火ボス)
   14: "bs_cryptking", // 第14層「屍蝋の回廊」: 屍蝋の回廊の主 (rank10・闇ボス)
   13: "bs_archivist", // 第13層「魔導書庫」: 大書庫の主 (rank10・闇ボス)
@@ -1829,6 +1872,14 @@ export const LAYER_POOLS = {
     "bs_moltenwraith", "bs_forgehound", "bs_ironmaiden", "bs_bellowsfiend", "bs_quenchserpent",
     "bs_smithghost", "bs_moltencore", "bs_dollhusk", "bs_flamehammer", "bs_cruciblehorror",
     "bs_sparkswarm", "bs_forgewyrm", "bs_moltenknight", "bs_cindergeist", "bs_emberfly",
+  ],
+  // 第16層「深淵の聖堂」: 光/偽りの光中心、全rank10。終末の使徒を再配置
+  16: [
+    "bs_falseseraph", "bs_inquisitor", "bs_censerfiend", "bs_lightidol", "bs_choirofthelost",
+    "bs_flagellant", "bs_radiantwraith", "bs_crusaderghost", "bs_saintbeast", "bs_blindingorb",
+    "bs_martyrwraith", "bs_holygolem", "bs_confessor", "bs_lightlance", "bs_wingedjudge",
+    "bs_pyreofsouls", "bs_cathedralguard", "bs_hymncaster", "bs_lightmoth",
+    "bs_seraphwraith",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
