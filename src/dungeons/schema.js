@@ -1509,6 +1509,32 @@ export const ARTS = {
       "...oo......oo....",
     ],
   },
+  // 堕天使。光輪と大きな羽根の翼を広げた人型、聖衣。鳥人(harpy)と描き分ける
+  angel: {
+    palette: { o: "#1a1814", F: "#e8e2d0", f: "#b8b0a0", S: "#e8c8a8", H: "#f0e8d0", h: "#cabfa8", E: "#f2d24a", k: "#0a0a0a", R: "#a83838", W: "#fffaf0" },
+    art: [
+      ".........EEE.........",
+      "........EoooE........",
+      "....F....ooo....F....",
+      "...FFF..oSSSo..FFF...",
+      "..FFFFF.oSkSo.FFFFF..",
+      ".FFFFFFFoSSSoFFFFFFF.",
+      "FFFFFFFFoWWWoFFFFFFFF",
+      "FFFFFFFFFWWWFFFFFFFFF",
+      ".FFFFFFFoHHHoFFFFFFF.",
+      "..FFFFFoHHHHHoFFFFF..",
+      "...FFFoHHHHHHHoFFF...",
+      "....FoHHHHHHHHHoF....",
+      ".....oHHHHHHHHHo.....",
+      ".....oHHHRRRHHHo.....",
+      ".....oHHHHHHHHHo.....",
+      "....oHHHHHHHHHHHo....",
+      "....oHHHHhohHHHHo....",
+      "....oHHo.h.h.oHHo....",
+      "....oHo..h.h..oHo....",
+      ".....o...h.h...o.....",
+    ],
+  },
 };
 
 // ===== ランク基準ステータス =====
