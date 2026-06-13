@@ -271,11 +271,17 @@ export function H(id, name, lv, opt = {}) {
 
 // 足: F(id, 名, lv, opt) — opt.shape: "boots"(既定) | "greaves"。opt.def は VIT の上書き
 // opt.weight: shape から自動決定 (boots=light, greaves=heavy)。上書き可 (例: weight:"cloth" で布靴)
+// 足は「AGI(すばやさ)の部位」: 重量に応じて AGI を自動付与する (布>軽>重)。
+// opt.agi/opt.spd を渡すと、その分が自動AGIに上乗せされる (韋駄天の沓など俊足の品)。
+const FEET_AGI_COEF = { cloth: 0.11, light: 0.085, heavy: 0.04 };
 export function F(id, name, lv, opt = {}) {
   const shape = opt.shape || "boots";
   const it = base(id, name, "feet", lv, shape, opt);
   it.vit = opt.def != null ? opt.def : Math.max(1, round((1 + lv * 0.09 + lv * lv * 0.0010) * (opt.pow || 1)));
   it.weight = opt.weight || SHAPE_WEIGHT[shape];
+  // AGI 自動付与 (base() が opt.agi/spd で設定済みの分には上乗せ)
+  const coef = FEET_AGI_COEF[it.weight] != null ? FEET_AGI_COEF[it.weight] : 0.085;
+  it.agi = (it.agi || 0) + Math.max(1, round(0.6 + lv * coef));
   return it;
 }
 
