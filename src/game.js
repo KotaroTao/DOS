@@ -496,7 +496,7 @@ const SPECIAL_FLOORS = [
     lines: ["不自然なほど宝箱が多い…罠の匂いがする。", "宝箱の半分はミミックだ。だが倒せば上質な宝箱を残す。"],
     board: (b) => sfPlace(b, 3, (c) => { c.type = "chest"; c.cleared = false; }) },
   { id: "healing", name: "癒しの霊気", icon: "fountain", accent: "#8af0c0", sym: "✚", minFloor: 2, rate: 0.02, victoryHeal: 0.10,
-    lines: ["澄んだ霊気が満ち、傷を癒してくれる。", "戦闘に勝利するたび、隊全体のHPが10%回復する。"] },
+    lines: ["澄んだ霊気が満ち、傷を癒してくれる。", "戦闘に勝利するたび、隊全体のHPとMPが10%回復する。"] },
   { id: "legend", name: "伝説の眠る階", icon: "chest", accent: "#ffe080", sym: "★", minFloor: 4, rate: 0.01,
     lines: ["遥か昔の英雄の遺品が、この階のどこかに眠っている。", "ひとつの宝箱にだけ、格別の装備が入っている。"],
     board: (b) => {
@@ -4963,16 +4963,16 @@ function applyVictoryPassives() {
     if (mpct > 0 && p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * mpct)); healed = true; }
   }
   if (healed) log("勝利の余韻が隊を癒した。", "heal");
-  // 特別階 (癒しの霊気): 戦闘勝利のたび隊全体のHPが回復する
+  // 特別階 (癒しの霊気): 戦闘勝利のたび隊全体のHP・MPが回復する
   const fh = sfNum("victoryHeal", 0);
   if (fh > 0) {
     let mist = false;
     for (const p of G.party) {
-      if (!p.alive || p.hp >= p.maxhp) continue;
-      p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * fh));
-      mist = true;
+      if (!p.alive) continue;
+      if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * fh)); mist = true; }
+      if (p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * fh)); mist = true; }
     }
-    if (mist) log("癒しの霊気が傷を塞いだ。", "heal");
+    if (mist) log("癒しの霊気が傷を塞ぎ、魔力を満たした。", "heal");
   }
   // 浄化 (隊全体) / 自浄 (自分): 毒・麻痺を治す (石化は対象外)
   const hasPurify = G.party.some((p) => p.alive && pLv(p, "purify"));
