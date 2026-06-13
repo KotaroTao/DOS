@@ -67,6 +67,23 @@ export function weaponRange(item) {
   return item.range || CAT_RANGE[item.cat] || "near";
 }
 
+// ===== 鑑定システム (ウィザードリィ風) =====
+// ダンジョンで拾った装備は「未鑑定 (unidentified)」状態で手に入り、伏せ名で表示され
+// 鑑定するまで装備できない。鑑定は商店 (有料・確実) か一部職業のスキルで行う。
+// 消耗品・戦利品・貴重品 (use/misc/mat) は鑑定済みで出るため対象外。
+export const UNIDENT_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
+// 武器はサブカテゴリごとに伏せ名を変える (剣・斧・杖… の見当はつく、というていの表記)
+const UNIDENT_WEAPON = { ls: "けん？", dg: "ナイフ？", kt: "かたな？", ax: "おの？", mc: "つち？", sp: "やり？", bw: "ゆみ？", st: "つえ？" };
+const UNIDENT_SLOT = { weapon: "えもの？", shield: "たて？", body: "よろい？", head: "かぶと？", hands: "こて？", feet: "くつ？", acc: "かざり？" };
+// 未鑑定品の伏せ名 (スロット/武器カテゴリ別)
+export function unidentName(it) {
+  if (!it) return "なぞのしなもの？";
+  if (it.slot === "weapon") return UNIDENT_WEAPON[it.cat] || "えもの？";
+  return UNIDENT_SLOT[it.slot] || "なぞのしなもの？";
+}
+// 表示名: 未鑑定なら伏せ名、鑑定済みなら本来の名前
+export function itemName(it) { return it && it.unidentified ? unidentName(it) : (it ? it.name : ""); }
+
 // 隠しレベル → 表示ランク (図鑑の枠色・発見演出に使う)
 // lv は 1-200 (全100迷宮の lootLv 帯に対応)。R6 は最深部の神話級のみ。
 export function lvToRank(lv) {
@@ -812,6 +829,8 @@ export function recalc(member) {
 }
 
 export function canEquip(member, item) {
+  // 未鑑定の品は正体が分からないため装備できない (鑑定が必要)
+  if (item.unidentified) return false;
   // 属性制限: 悪の装備は善のキャラに装備できない (逆も同様)
   if (item.align && member.align && item.align !== "中立" && member.align !== "中立" && item.align !== member.align) {
     return false;

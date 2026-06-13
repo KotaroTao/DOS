@@ -362,6 +362,33 @@ export const JOB_SKILLS = {
 
 export function jobSkillTable(jobKey) { return JOB_SKILLS[jobKey] || []; }
 
+// ===== 鑑定スキル (ウィザードリィ風) =====
+// 知識・探索系の一部職業は、未鑑定の装備を自前で鑑定できる。ただし成功率は決して
+// 100% にならず (上限95%)、失敗するとその品はスキルでは二度と鑑定できなくなる
+// (idHardFail フラグが立ち、確実だが有料の商店鑑定に頼ることになる)。
+// これにより「育てれば道中で無料鑑定できるが、確実さは商店が握る」という住み分けになる。
+//   base: 基準成功率 / perLv: 魂レベル1ごとの上昇 / lvPenalty: 品のlv1ごとの低下
+//   minLvl: 習得に必要な魂レベル / floor: 成功率の下限
+export const IDENTIFY_JOBS = {
+  bishop: { label: "鑑定",   minLvl: 1, base: 0.55, perLv: 0.015, lvPenalty: 0.004, floor: 0.10 }, // 本職: 高精度・高lv品にも強い
+  sage:   { label: "看破",   minLvl: 1, base: 0.50, perLv: 0.020, lvPenalty: 0.003, floor: 0.10 }, // 上位: 育つほど万能
+  thief:  { label: "目利き", minLvl: 5, base: 0.35, perLv: 0.010, lvPenalty: 0.008, floor: 0.05 }, // 簡易: 序盤の安物専門
+};
+export const IDENTIFY_CAP = 0.95; // どれだけ育てても 5% は失敗する
+// clsKey の職業が魂レベル jobLv で 隠しレベル itemLv の品を鑑定できる確率 (0=不可)
+export function identifyChance(clsKey, jobLv, itemLv) {
+  const j = IDENTIFY_JOBS[clsKey];
+  if (!j || (jobLv || 1) < j.minLvl) return 0;
+  const c = j.base + ((jobLv || 1) - 1) * j.perLv - (itemLv || 1) * j.lvPenalty;
+  return Math.max(j.floor, Math.min(IDENTIFY_CAP, c));
+}
+// このメンバーが鑑定スキルを使えるか (職業・習得レベルを満たすか)
+export function canIdentify(member) {
+  if (!member) return false;
+  const j = IDENTIFY_JOBS[member.clsKey];
+  return !!j && (member.jobLv || member.level || 1) >= j.minLvl;
+}
+
 // ===== 職業図鑑テキスト =====
 export const JOB_LORE = {
   fighter:     { desc: "戦場の記憶を宿す魂。剣を握って生き、剣を握って死んだ者たちの執念が、人業の腕に力を与える。", tips: "高いATKとHPで前衛の軸となる。ランクが上がるほど連撃と闘魂が冴え、危機的状況で真価を発揮する。" },
