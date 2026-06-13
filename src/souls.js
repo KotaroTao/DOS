@@ -100,10 +100,10 @@ export const JOB_RANKS = {
 // ===== 魂ランク (1〜5) の係数・表示 =====
 // cap: そのランクで到達できる魂レベル上限 / order: 0始まり (UI判定用) / color: 表示色
 export const SOUL_RANKS = {
-  1: { label: "",         cap: 10,  order: 0, color: null,      mul: 1.0 },
-  2: { label: "ランク2の", cap: 20,  order: 1, color: "#7fd0ff", mul: 1.3 },
-  3: { label: "ランク3の", cap: 30,  order: 2, color: "#c08aff", mul: 1.9 },
-  4: { label: "ランク4の", cap: 50,  order: 3, color: "#ff9a4a", mul: 3.0 },
+  1: { label: "",         cap: 20,  order: 0, color: null,      mul: 1.0 },
+  2: { label: "ランク2の", cap: 40,  order: 1, color: "#7fd0ff", mul: 1.3 },
+  3: { label: "ランク3の", cap: 60,  order: 2, color: "#c08aff", mul: 1.9 },
+  4: { label: "ランク4の", cap: 80,  order: 3, color: "#ff9a4a", mul: 3.0 },
   5: { label: "ランク5の", cap: 100, order: 4, color: "#ffcf4a", mul: 5.0 },
 };
 
@@ -634,6 +634,11 @@ export function soulLevelCap(clsKey, count) {
   const r = soulRankFromCount(clsKey, count);
   return (SOUL_RANKS[r] || SOUL_RANKS[1]).cap;
 }
+// 魂インスタンスの実効レベル上限: ランク上限 + 魂の残火で得た上乗せ (capBonus)
+export function soulLevelCapOf(s) {
+  if (!s) return SOUL_RANKS[1].cap;
+  return soulLevelCap(s.clsKey, s.count) + (s.capBonus || 0);
+}
 // 職業ステータス: 基礎値 × レベル係数 × レア度係数 × 集魂ボーナス (1個ごとに基礎値の+N%)
 const BASE_FACTOR = 5; // 旧5部位ぶんに相当する基礎係数
 export function jobStatsOf(clsKey, entry) {
@@ -776,7 +781,7 @@ export function recalcDoll(doll) {
   const rank = pe ? soulRankFromCount(clsKey, pe.count) : 0;
   // レベルはランクの上限でクランプ (ランクアップで上限が伸びる)
   if (pe) {
-    const cap = (SOUL_RANKS[rank] || SOUL_RANKS[1]).cap;
+    const cap = soulLevelCapOf(pe);
     if ((pe.level || 1) > cap) pe.level = cap;
     if (!pe.level) pe.level = 1;
   }

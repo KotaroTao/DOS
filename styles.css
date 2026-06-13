@@ -839,6 +839,7 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .tw-c-gold { color: var(--accent); }
 .tw-c-soul { color: #aef0ff; }
 .tw-c-red { color: #ff5b6e; }
+.tw-c-ember { color: #ff9a3a; }
 
 /* 複数行のリード文 */
 .tw-lead { white-space: pre-line; }

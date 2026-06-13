@@ -16,7 +16,7 @@ import { CATALOG_ITEMS } from "./catalog/index.js";
 import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS, ELITE_ORDER, monsterTraits } from "./dungeons/index.js";
 import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, soulSprite, jobSprite, dollSprite,
-  recalcDoll, jobStatsOf, soulLevelCap, setSharedSouls, MAX_SUBS,
+  recalcDoll, jobStatsOf, soulLevelCap, soulLevelCapOf, setSharedSouls, MAX_SUBS,
   soulByUid, makeSoulInstance, allSoulInstances, soulRankOf, soulLearnedSkills,
   ORDER_PERK, orderPassiveMap,
   PASSIVES, passiveName, passiveDesc,
@@ -162,6 +162,7 @@ const G = {
   gold: 200,          // 初期所持金 (宿屋・商店用)
   soulPts: 0,         // Soul(魂): 敵/死体から得る。経験値の役割を兼ね、館で魂のレベルアップに使う
   redSoul: 100,       // Red Soul(赤い魂): プレミアム通貨 (空の人業購入・加護)
+  embers: 0,          // 魂の残火: 死体から確定で得る。メイン魂のLv上限を1上げるのに使う
   dollsPurchased: 0,  // 空の人業を購入した回数 (価格の段階に使う)
   dungeonBriefed: false, // 初回潜入時の警備兵の注意事項を表示済みか
   pendingDoll: null,  // (旧形式) 未生成の人業。現在は「空の人形」(isEmpty) として reserve に残る (ロード時に移行)
@@ -531,6 +532,7 @@ function setTopbarCurrency() {
   topbarCur.appendChild(el("span", "tw-c-gold", `💰${G.gold}`));
   topbarCur.appendChild(el("span", "tw-c-soul", `✦${G.soulPts}`));
   topbarCur.appendChild(el("span", "tw-c-red", `🔴${G.redSoul}`));
+  if (G.embers > 0) topbarCur.appendChild(el("span", "tw-c-ember", `🔥${G.embers}`));
 }
 function updateTopbar() {
   if (G.state === "town") {
@@ -1388,7 +1390,7 @@ function recoverCorpseSoul(corpse, after) {
   const clsKey = corpse.clsKey || "fighter";
   acquireSoul(clsKey, corpse.great
     ? `偉大なる魂を回収した。`
-    : `死体に残っていた魂を回収した。`, after || (() => renderBoard()));
+    : `死体に残っていた魂を回収した。`, after || (() => renderBoard()), corpse.great ? EMBER_GREAT : EMBER_WARM);
 }
 
 // 現在のダンジョンに出るアンデッド種のキー (なければ全体から、最終的に地下牢の骸)。
@@ -1464,11 +1466,13 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   giveGold();
 }
 
+// まだあたたかい死体=残火1個 / 偉大なる死体=残火5個
+const EMBER_WARM = 1, EMBER_GREAT = 5;
 function collectSoul(cell, clsKey, clsLabel) {
   cell.cleared = true;
   acquireSoul(clsKey, cell.corpseGreat
     ? `偉大なる死体に宿っていた、強大な魂だ。`
-    : `まだあたたかい死体に宿っていた魂だ。`);
+    : `まだあたたかい死体に宿っていた魂だ。`, null, cell.corpseGreat ? EMBER_GREAT : EMBER_WARM);
 }
 
 // レア度の表示名
@@ -1476,14 +1480,16 @@ const RARITY_LABEL = { common: "コモン", rare: "レア", epic: "エピック"
 
 // 魂の入手処理: 拾った魂は1体の魂インスタンスとして自動で「所持魂 一覧」に追加される。
 // (魂袋は廃止。同職でも個別に Lv/ランクを持つ魂として貯まる)
-function acquireSoul(clsKey, sourceLine, onClose) {
+function acquireSoul(clsKey, sourceLine, onClose, emberCount = 0) {
   const cls = SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter;
   const rare = cls.rarity !== "common";
   G.stats.soulsFound++;
   questProgress("soul", null, 1);
   SFX.itemget(); buzz(rare ? [0, 40, 50, 40, 50, 150] : [0, 30, 60, 30]);
   if (cls.rarity === "legend") { flashScreen("#ffcf4a"); SFX.victory(); }
-  const done = onClose || (() => { if (G.state === "board") renderBoard(); });
+  const after = onClose || (() => { if (G.state === "board") renderBoard(); });
+  // 死体からは魂とは別に「魂の残火」が確定で手に入る。魂のポップアップの後に続けて知らせる
+  const done = emberCount > 0 ? () => grantEmbers(emberCount, after) : after;
   addSoulInstance(clsKey);
   runTrackSoul(clsKey, "bag");
   codexJobSee(clsKey, 1, 1);
@@ -1498,6 +1504,25 @@ function acquireSoul(clsKey, sourceLine, onClose) {
     sparkle: rare,
     btnLabel: "受け取る",
     onClose: done,
+  });
+}
+
+// 魂の残火を手に入れる: 死体回収時に魂のポップアップに続けて表示する。
+// 魂の残火は祭壇でメイン魂のLv上限を1上げるのに使う消費アイテム。
+function grantEmbers(n, onClose) {
+  n = Math.max(1, n | 0);
+  G.embers = (G.embers || 0) + n;
+  updateTopbar();
+  SFX.itemget(); buzz([0, 30, 50, 30]);
+  showEvent({
+    sprite: ICONS.ember,
+    banner: "🔥 魂の残火 🔥",
+    title: n > 1 ? `魂の残火を ${n}つ 手に入れた` : "魂の残火を1つ手に入れた",
+    lines: ["祭壇でメイン魂のLv上限を 1 上げるのに使える。"],
+    accent: "#ff9a3a",
+    sparkle: n > 1,
+    btnLabel: "受け取る",
+    onClose: onClose || (() => { if (G.state === "board") renderBoard(); }),
   });
 }
 
@@ -2679,7 +2704,7 @@ function distributeBattleSoulExp(soulGot) {
   for (const uid of worn) {
     const e = soulByUid(uid);
     if (!e) continue;
-    const cap = soulLevelCap(e.clsKey, e.count);
+    const cap = soulLevelCapOf(e);
     e.exp = (e.exp || 0) + share;
     while (e.level < cap && e.exp >= soulTrainCost(e.level)) { e.exp -= soulTrainCost(e.level); e.level++; }
   }
@@ -3171,6 +3196,7 @@ function townHeader(title, backTo = "hub") {
   cur.appendChild(el("span", "tw-c-gold", `💰${G.gold}`));
   cur.appendChild(el("span", "tw-c-soul", `✦${G.soulPts}`));
   cur.appendChild(el("span", "tw-c-red", `🔴${G.redSoul}`));
+  if (G.embers > 0) cur.appendChild(el("span", "tw-c-ember", `🔥${G.embers}`));
   head.appendChild(cur);
   return head;
 }
@@ -3825,7 +3851,7 @@ function renderAltar() {
   // 魂を強化 (選択中スロットのメイン魂/サブ魂に ✦Soul を注いでレベルを上げる)
   const selSoul = slotSoul(d, altarSlot);
   if (selSoul) {
-    const cap = soulLevelCap(selSoul.clsKey, selSoul.count);
+    const cap = soulLevelCapOf(selSoul);
     const rank = soulRankOf(selSoul);
     townEl.appendChild(el("div", "tw-h", `魂を強化（${soulSeriesName(selSoul.clsKey)}の魂）`));
     const tb = el("div", "tw-trainbox");
@@ -3848,6 +3874,22 @@ function renderAltar() {
     townEl.appendChild(tb);
   }
 
+  // 魂のLv上限を上げる (メイン魂に「魂の残火」を捧げて上限を1伸ばす)
+  if (altarSlot === "primary" && selSoul) {
+    townEl.appendChild(el("div", "tw-h", "魂のLv上限を上げる"));
+    const eb = el("div", "tw-trainbox");
+    const baseCap = soulLevelCap(selSoul.clsKey, selSoul.count);
+    const bonus = selSoul.capBonus || 0;
+    eb.appendChild(el("div", "tw-trainn", `Lv上限 ${baseCap + bonus}` + (bonus ? `（+${bonus}）` : "")));
+    eb.appendChild(el("div", "tw-note", `魂の残火を1つ捧げると、${soulSeriesName(selSoul.clsKey)}の魂のLv上限が +1 される。`));
+    eb.appendChild(el("div", "tw-note", `所持: 🔥魂の残火 ${G.embers || 0}`));
+    const b = btn("🔥 魂の残火 1 で上限+1", () => raiseSoulCap(selSoul.uid));
+    b.className = "tw-small primary";
+    if ((G.embers || 0) < 1) b.disabled = true;
+    eb.appendChild(b);
+    townEl.appendChild(eb);
+  }
+
   // 所持魂 一覧: すべての魂インスタンス (職業→ランク→Lv順)。選択中スロットへ宿す
   const slotLabel = altarSlot === "primary" ? "メイン魂" : `サブ魂${(+altarSlot.slice(3)) + 1}`;
   townEl.appendChild(el("div", "tw-h", `所持魂 一覧 — ${slotLabel}スロットに宿す魂を選ぶ`));
@@ -3857,7 +3899,7 @@ function renderAltar() {
   for (const s of souls) {
     const cls = SOUL_CLASSES[s.clsKey]; if (!cls) continue;
     const rank = soulRankOf(s);
-    const cap = soulLevelCap(s.clsKey, s.count);
+    const cap = soulLevelCapOf(s);
     const isMain = d.primary === s.uid;
     const asSub = (d.subs || []).some((x) => x && x.uid === s.uid);
     const byOther = soulWornByOther(s.uid, d);
@@ -4018,7 +4060,7 @@ function fuseSoul(targetUid, consumeUid) {
   // 双方に蓄積していた総 Soul を合算する。新しい上限まではレベルに、超過分は exp に保持する。
   const total = soulTotalExp(t.level, t.exp) + soulTotalExp(c.level, c.exp);
   t.count += c.count;
-  const newCap = soulLevelCap(t.clsKey, t.count);
+  const newCap = soulLevelCapOf(t);
   const le = levelExpFromTotal(total, newCap);
   t.level = le.level; t.exp = le.exp;
   const idx = G.souls.indexOf(c);
@@ -4072,7 +4114,7 @@ function levelExpFromTotal(total, cap) {
 function trainSoul(uid) {
   const e = soulByUid(uid);
   if (!e) return;
-  const cap = soulLevelCap(e.clsKey, e.count);
+  const cap = soulLevelCapOf(e);
   if (e.level >= cap) { log("これ以上レベルを上げられない。", "sys"); SFX.ng(); return; }
   const cost = Math.max(1, soulTrainCost(e.level) - (e.exp || 0));
   if (G.soulPts < cost) { log("Soul が足りない。", "sys"); SFX.ng(); return; }
@@ -4107,6 +4149,30 @@ function trainSoul(uid) {
     sparkle: true,
     btnLabel: "受け取る",
     onClose: afterLevel,
+  });
+}
+
+// 魂の残火でメイン魂のLv上限を1上げる (上限は capBonus に蓄積される)
+function raiseSoulCap(uid) {
+  const e = soulByUid(uid);
+  if (!e) return;
+  if ((G.embers || 0) < 1) { log("魂の残火が足りない。", "sys"); SFX.ng(); return; }
+  G.embers -= 1;
+  e.capBonus = (e.capBonus || 0) + 1;
+  recalcAllDolls();
+  updateTopbar();
+  const cap = soulLevelCapOf(e);
+  SFX.levelup(); buzz([0, 30, 50, 30]);
+  log(`魂の残火を捧げ、${soulSeriesName(e.clsKey)}の魂のLv上限が ${cap} になった。`, "win");
+  showEvent({
+    sprite: ICONS.ember,
+    banner: "🔥 魂のLv上限上昇 🔥",
+    title: `${soulSeriesName(e.clsKey)}の魂のLv上限が +1`,
+    lines: [`Lv上限が ${cap} になった。`, `残り 🔥魂の残火 ${G.embers}`],
+    accent: "#ff9a3a",
+    sparkle: true,
+    btnLabel: "受け取る",
+    onClose: () => renderTown(),
   });
 }
 
@@ -6129,7 +6195,7 @@ function renderSoulTab(p) {
 
   // メイン魂の成長 (魂レベルと次のランクへの進捗)
   if (pe) {
-    const cap = soulLevelCap(pe.clsKey, pe.count);
+    const cap = soulLevelCapOf(pe);
     const row = el("div", "st-soulrow2");
     row.style.borderColor = SOUL_CLASSES[pe.clsKey].glow;
     const orb = el("span", "tw-chips");
@@ -7151,7 +7217,7 @@ const SAVE_KEY = "dos-save-v5"; // v2/v3/v4 は魂システム刷新で孤立さ
 // 保存する G のフィールド (アニメーション等の一時状態は除外)
 const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound",
-  "gold", "soulPts", "redSoul", "dollsPurchased", "dungeonBriefed", "pendingDoll",
+  "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
   "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "rumor", "rumorCooldown", "activeRumor", "codex", "story", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
