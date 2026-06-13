@@ -173,6 +173,13 @@ html, body { height: 100%; overflow: hidden; }
 .pc .mp > i { background: var(--accent-2); }
 .pc .nums { color: var(--ink-dim); font-size: 9px; }
 
+/* 発動中の強化/弱体バッジ (戦闘中) */
+.pc .buffs { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 2px; }
+.pc .buffs .bf { display: inline-flex; align-items: center; font-size: 8px; line-height: 1; padding: 1px 2px; border-radius: 3px; border: 1px solid; }
+.pc .buffs .bf b { font-size: 7px; margin-left: 1px; opacity: 0.85; }
+.pc .buffs .bf.up { color: #6fe0a0; border-color: #2e6b48; background: rgba(46,107,72,0.25); }
+.pc .buffs .bf.dn { color: #e08a8a; border-color: #6b3030; background: rgba(107,48,48,0.25); }
+
 /* 瀕死 (HP25%以下) は赤くゆっくり明滅して危険を知らせる */
 .pc.low { animation: pc-low 1.2s ease-in-out infinite; }
 @keyframes pc-low {
@@ -462,8 +469,6 @@ canvas.spr { image-rendering: pixelated; display: block; }
 .ig-stat { font-size: 12px; color: var(--accent-2); margin-top: 4px; }
 .ig-class { font-size: 11px; color: var(--ink-dim); margin-top: 4px; }
 .ig-desc { font-size: 12px; color: var(--ink-dim); line-height: 1.6; margin: 10px 4px; }
-/* 上昇ステータスは改行せず1行表示。横幅に収まらない場合は文字を縮小して収める */
-.ig-statline { white-space: nowrap; overflow: hidden; text-overflow: clip; font-size: clamp(8px, 3.2vw, 12px); letter-spacing: 0; margin-left: 0; margin-right: 0; }
 .ig-who { font-size: 12px; color: var(--accent); margin-bottom: 12px; }
 .ig-ok { width: 100%; margin-top: 16px; }
 

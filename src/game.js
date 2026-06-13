@@ -219,7 +219,8 @@ function buzz(p) {
 
 // ---- 潜入中の戦利品トラッキング (全滅ペナルティ / Red Soul帰還で使う) ----
 const inDungeon = () => G.state === "board" || G.state === "combat" || G.state === "over";
-function runGainGold(g) { g = Math.round(g * sfNum("goldMul", 1) * mutNum("goldMul", 1)); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; return g; }
+// 迷宮で得るゴールド (戦闘勝利・宝箱・床イベント) の共通入口。全体の獲得量を半分に抑える。
+function runGainGold(g) { g = Math.round(g * 0.5 * sfNum("goldMul", 1) * mutNum("goldMul", 1)); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; return g; }
 function runGainSoulPts(s) { s = Math.round(s * sfNum("soulMul", 1) * mutNum("soulMul", 1)); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; return s; }
 function runGainItem(owner, item) { owner.items.push(item); if (G.run && inDungeon()) G.run.items.push({ owner, item }); }
 // 魂の吸収を記録 (全滅没収で巻き戻すため {doll, clsKey} で覚える)
@@ -2669,10 +2670,8 @@ function runProgressPopups(queue, done) {
   if (ev.kind === "level") {
     SFX.levelup();
     const lines = [ev.member.cls];
-    // 上昇ステータスは改行せず1行で表示 (横幅に収まるよう ig-statline で nowrap+縮小)
-    lines.push(ev.deltas && ev.deltas.length
-      ? { text: ev.deltas.join("  "), cls: "ig-statline" }
-      : "ステータスはそのまま");
+    // 上昇ステータスは必要に応じて折り返して表示 (1行に固定せず自然改行)
+    lines.push(ev.deltas && ev.deltas.length ? ev.deltas.join("  ") : "ステータスはそのまま");
     showEvent({
       banner: "⤴ レベルアップ ⤴",
       title: `${ev.member.name} は Lv${ev.toLv} に上がった！`,
@@ -2978,9 +2977,33 @@ function renderParty() {
       <div class="nums">HP ${p.hp}/${p.maxhp}</div>
       ${p.maxmp > 0 ? `<div class="bar mp"><i style="width:${(p.mp / p.maxmp) * 100}%"></i></div>
       <div class="nums">MP ${p.mp}/${p.maxmp}</div>` : ""}
+      ${buffBadges(p)}
     `;
     partyEl.appendChild(card);
   });
+}
+
+// 戦闘中の発動効果バッジ: 能力ごとに 強化(▲)/弱体(▼) を段階数ぶん並べ、残りターンを添える。
+const BUFF_STAT_ICON = { atk: "⚔", vit: "🛡", agi: "💨" };
+const BUFF_STAT_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI" };
+function buffBadges(p) {
+  if (G.state !== "battle" || !p.alive || !p.effects || !p.effects.length) return "";
+  // (能力, 方向) ごとに集約: 段階数(最大2)と最短残ターンを出す
+  const groups = new Map();
+  for (const ef of p.effects) {
+    const up = ef.mult > 1;
+    const key = ef.stat + (up ? "+" : "-");
+    const g = groups.get(key) || { stat: ef.stat, up, stages: 0, turns: Infinity };
+    g.stages++; g.turns = Math.min(g.turns, ef.turns);
+    groups.set(key, g);
+  }
+  let html = "";
+  for (const g of groups.values()) {
+    const arrow = (g.up ? "▲" : "▼").repeat(Math.min(2, g.stages));
+    const title = `${BUFF_STAT_LABEL[g.stat] || g.stat} ${g.up ? "強化" : "弱体"}${g.stages}段階・残り${g.turns}T`;
+    html += `<span class="bf ${g.up ? "up" : "dn"}" title="${title}">${BUFF_STAT_ICON[g.stat] || "◆"}${arrow}<b>${g.turns}</b></span>`;
+  }
+  return `<div class="buffs">${html}</div>`;
 }
 
 // ---- DOM ヘルパ ----
@@ -3369,7 +3392,7 @@ function notifyNewSkills(d, before) {
 }
 
 // 新スキル習得のお知らせカード: 使えるようになった技の名前と説明を一覧する
-function showSkillUnlockPopup(d, keys) {
+function showSkillUnlockPopup(d, keys, onClose) {
   const accent = "#ffcf4a";
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card cdx-detail");
@@ -3396,11 +3419,12 @@ function showSkillUnlockPopup(d, keys) {
   }
   card.appendChild(box);
   card.appendChild(el("div", "cdx-dun dim", "・技名をタップすると詳しい効果を確認できる"));
-  const ok = btn("閉じる", () => wrap.remove());
+  const close = () => { wrap.remove(); if (onClose) onClose(); };
+  const ok = btn("閉じる", close);
   ok.className = "btn primary ig-ok";
   card.appendChild(ok);
   wrap.appendChild(card);
-  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) close(); });
   document.body.appendChild(wrap);
 }
 
@@ -3907,7 +3931,22 @@ function openFusePicker(targetUid) {
   if (!cands.length) { log("吸収できる同職の魂がない。", "sys"); SFX.ng(); return; }
   const opts = cands.map((c) => ({
     label: `${soulSeriesName(c.clsKey)}の魂 Lv${c.level}（魂数${c.count}）`,
-    fn: () => fuseSoul(targetUid, c.uid),
+    // すでに融合済み (魂数2以上) の魂を素材にする場合は、誤って消費しないよう警告する
+    fn: () => {
+      if (c.count > 1) {
+        showConfirm({
+          title: "融合済みの魂を素材にしますか？",
+          lines: [
+            `この ${soulSeriesName(c.clsKey)}の魂 は ${c.count} 体ぶんを融合した魂です。`,
+            "素材にすると、この魂とその魂数・蓄積した Soul はすべて失われます。",
+          ],
+          okLabel: "素材にする",
+          onOk: () => fuseSoul(targetUid, c.uid),
+        });
+      } else {
+        fuseSoul(targetUid, c.uid);
+      }
+    },
   }));
   opts.push({ label: "やめる", fn: () => {} });
   showChoice(`${soulSeriesName(t.clsKey)}の魂に吸収させる魂を選ぶ`, opts,
@@ -3954,7 +3993,9 @@ function fuseSoul(targetUid, consumeUid) {
 }
 
 // 魂を1レベル上げるのに要する Soul (レベルが高いほど高い)
-function soulTrainCost(level) { return 15 + level * 12; }
+// 次レベルへ必要な ✦Soul。レベルが上がるほど指数的に増え、レベリングのペースを抑える。
+// 基準 20 × 1.13^(level-1) → Lv1≈20 / Lv10≈60 / Lv20≈204 / Lv30≈692 / Lv50≈7980。
+function soulTrainCost(level) { return Math.max(1, Math.round(20 * Math.pow(1.13, (level || 1) - 1))); }
 
 // 魂に蓄積している総 Soul = 現レベルまでに消費した分 + 次レベルへの途中分(exp)。
 // 融合時の合算や、上限突破後の一括レベルアップ計算に使う。
@@ -3996,7 +4037,11 @@ function trainSoul(uid) {
   const gainedSkills = wearer ? (wearer.spells || []).filter((k) => !beforeSpells.has(k)) : [];
   const lines = [`${wearer ? wearer.name + " の" : ""}全能力が高まった`];
   lines.push(deltas.length ? deltas.join("  ") : "ステータスはそのまま");
-  for (const sk of gainedSkills) { const sp = SPELLS[sk]; lines.push(`✦ 「${sp ? sp.name : sk}」を覚えた！`); }
+  // スキル習得はレベルアップのポップアップには載せず、閉じた後に別カードで知らせる
+  const afterLevel = () => {
+    if (wearer && gainedSkills.length) showSkillUnlockPopup(wearer, gainedSkills, () => renderTown());
+    else renderTown();
+  };
   showEvent({
     sprite: wearer ? dollSprite(wearer) : jobSprite(e.clsKey, soulRankOf(e)),
     banner: "⤴ 魂レベルアップ ⤴",
@@ -4005,7 +4050,7 @@ function trainSoul(uid) {
     accent: SOUL_CLASSES[e.clsKey].glow,
     sparkle: true,
     btnLabel: "受け取る",
-    onClose: () => renderTown(),
+    onClose: afterLevel,
   });
 }
 
@@ -6113,6 +6158,8 @@ function skillDetailLines(sp) {
   if (sp.grantEndure) lines.push("対象に「致死ダメージをHP1で耐える」を付与（1戦闘1回）");
   if (sp.grantBarrier) lines.push(`味方全体に魔障壁${sp.grantBarrier}回分（ブレス・呪文の被ダメ半減）を付与`);
   if (sp.debuffAll) lines.push(`さらに敵全体を弱体: ${fx(sp.debuffAll)}`);
+  // 強化/弱体の持続ターン数 (同方向は最大2段階まで重ねられる)
+  if (sp.dur && (sp.buff || sp.debuff || sp.debuffAll)) lines.push(`効果は ${sp.dur} ターン持続（同じ能力は最大2段階）`);
   return lines;
 }
 
@@ -6718,12 +6765,7 @@ function showEvent({ sprite, title, lines = [], accent = "#c9a227", btnLabel = "
   const t = el("div", "ig-name", title);
   t.style.color = accent === "#c9a227" ? "#fff" : accent;
   card.appendChild(t);
-  for (const ln of lines) {
-    // 文字列、または { text, cls } で行ごとに追加クラスを指定可能
-    const txt = (ln && typeof ln === "object") ? ln.text : ln;
-    const extra = (ln && typeof ln === "object" && ln.cls) ? ` ${ln.cls}` : "";
-    card.appendChild(el("div", "ig-desc" + extra, txt));
-  }
+  for (const ln of lines) card.appendChild(el("div", "ig-desc", ln));
   const ok = btn(btnLabel, () => closeItemGet(onClose));
   ok.className = "btn primary ig-ok";
   ok.style.borderColor = accent;
