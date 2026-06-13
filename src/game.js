@@ -389,7 +389,7 @@ const LAYER_VISUALS = [
   { name: "地下水路",   sym: "≈", accent: "#5fa0b8", bgm: "layer2", back: drawBackWaterway, floorBase: "#0d1417", floorTiles: ["#121d22", "#0f181c", "#0c1216"], glow: "rgba(110,200,220,0.06)" }, // 2
   { name: "廃坑",       sym: "⛏", accent: "#c9923f", bgm: "layer3", back: drawBackMine, floorBase: "#15110c", floorTiles: ["#1d1610", "#18130d", "#14100a"], glow: "rgba(222,150,70,0.06)" },  // 3
   { name: "捨て砦",     sym: "⚔", accent: "#9aa0ac", bgm: "layer4", back: drawBackFort, floorBase: "#121316", floorTiles: ["#191b20", "#15171b", "#111316"], glow: "rgba(200,210,230,0.05)" }, // 4
-  { name: "霧の森",     sym: "♣", accent: "#7faa5a", bgm: "field4",     floorBase: "#0f140d", floorTiles: ["#161d12", "#12180e", "#0e130a"], glow: "rgba(150,200,120,0.06)" }, // 5
+  { name: "霧の森",     sym: "♣", accent: "#7faa5a", bgm: "layer5", back: drawBackForest, floorBase: "#0f140d", floorTiles: ["#161d12", "#12180e", "#0e130a"], glow: "rgba(150,200,120,0.06)" }, // 5
   { name: "沈没神殿",   sym: "⛪", accent: "#6fb0c8", bgm: "field5",     floorBase: "#0d1316", floorTiles: ["#121c20", "#0f171b", "#0c1215"], glow: "rgba(120,200,225,0.06)" }, // 6
   { name: "灼熱の洞",   sym: "▲", accent: "#d4682e", bgm: "field6",     floorBase: "#190f0a", floorTiles: ["#22130c", "#1c0f0a", "#160c07"], glow: "rgba(255,130,50,0.07)" },  // 7
   { name: "氷結回廊",   sym: "❄", accent: "#9fd0e6", bgm: "field7",     floorBase: "#0e1417", floorTiles: ["#152027", "#111a20", "#0d1418"], glow: "rgba(170,220,245,0.06)" }, // 8
@@ -876,6 +876,88 @@ function drawThemedBack(r, accent, sym) {
   }
   vctx.fillStyle = "rgba(255,255,255,0.08)";
   vctx.fillRect(2, 2, r.w - 4, 3);
+}
+
+// 層5「霧の森」のカード裏面: 樹冠から差す薄明、暗い木立と林床の小径、流れる霧と舞う胞子
+function drawBackForest(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  // 霧緑の地 (梢から差す薄明)
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#17211a");
+  bg.addColorStop(0.5, "#111811");
+  bg.addColorStop(1, "#0b110b");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+
+  // 林床の小径 (中央奥へ細くなる薄明)
+  vctx.fillStyle = "rgba(120,140,90,0.08)";
+  vctx.beginPath();
+  vctx.moveTo(W / 2 - 2, 20); vctx.lineTo(W / 2 + 2, 20);
+  vctx.lineTo(W / 2 + 9, H - 2); vctx.lineTo(W / 2 - 9, H - 2);
+  vctx.closePath();
+  vctx.fill();
+
+  // 樹冠 (上辺の暗い茂み)
+  vctx.fillStyle = "#0e160e";
+  for (const [cx, cy, rr] of [[8, 4, 9], [20, 2, 8], [34, 5, 9], [48, 2, 9], [W - 3, 6, 8]]) {
+    vctx.beginPath(); vctx.arc(cx, cy, rr, 0, Math.PI * 2); vctx.fill();
+  }
+
+  // 木の幹 (先細りの暗い樹皮)
+  const trunk = (bx, topY, topW, botW) => {
+    const g = vctx.createLinearGradient(bx - botW, 0, bx + botW, 0);
+    g.addColorStop(0, "#15130d"); g.addColorStop(0.5, "#241f15"); g.addColorStop(1, "#100e09");
+    vctx.fillStyle = g;
+    vctx.beginPath();
+    vctx.moveTo(bx - topW, topY); vctx.lineTo(bx + topW, topY);
+    vctx.lineTo(bx + botW, H); vctx.lineTo(bx - botW, H);
+    vctx.closePath();
+    vctx.fill();
+  };
+  trunk(14, 6, 2, 4);
+  trunk(42, 4, 2.5, 5);
+  // 後景の細い幹
+  vctx.fillStyle = "#181610";
+  vctx.fillRect(W / 2 - 1.2, 10, 2.4, H - 10);
+  // 枝
+  vctx.strokeStyle = "#1c1810";
+  vctx.lineWidth = 1.4;
+  vctx.beginPath(); vctx.moveTo(14, 14); vctx.lineTo(7, 8); vctx.stroke();
+  vctx.beginPath(); vctx.moveTo(42, 12); vctx.lineTo(50, 7); vctx.stroke();
+  vctx.beginPath(); vctx.moveTo(42, 18); vctx.lineTo(36, 13); vctx.stroke();
+
+  // 漂う霧 (淡い帯がゆっくり流れる)
+  for (let i = 0; i < 4; i++) {
+    const fy = 18 + i * 8;
+    const off = Math.sin(t * 0.0008 + i * 1.5) * 8;
+    vctx.fillStyle = `rgba(180,200,180,${0.10 - i * 0.012})`;
+    vctx.beginPath();
+    vctx.ellipse(W / 2 + off, fy, W * 0.55, 3.5, 0, 0, Math.PI * 2);
+    vctx.fill();
+  }
+
+  // 漂う胞子 (淡緑の光点がふわりと舞い上がる)
+  for (let i = 0; i < 5; i++) {
+    const px = (i * 53 + t * 0.01) % W;
+    const py = (H - 6) - ((t * 0.012 + i * 40) % (H - 12));
+    const al = 0.3 + 0.4 * Math.sin(t * 0.003 + i * 2);
+    vctx.fillStyle = `rgba(170,220,140,${Math.max(0, al) * 0.6})`;
+    vctx.fillRect(px, py, 1.3, 1.3);
+  }
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
 }
 
 // 層4「捨て砦」のカード裏面: 朽ちた胸壁と城門、はためく破れ軍旗、地に突き立つ慰霊の剣
