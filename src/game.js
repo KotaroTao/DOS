@@ -7246,7 +7246,8 @@ function codexJobSee(clsKey, count, level) {
   if (!G.codex || !G.codex.job) return;
   const rank = soulRankFromCount(clsKey, count || 0);
   if (rank < 1) return;
-  const lv = Math.min(rank * 10, level || 1);
+  const cap = capForRarityRank((SOUL_CLASSES[clsKey] || {}).rarity || "common", rank);
+  const lv = Math.min(cap, level || 1);
   const e = G.codex.job[clsKey];
   const prevLv = e && typeof e === "object" ? (e.lv || 0) : 0;
   const prevRank = e && typeof e === "object" ? (e.rank || 0) : 0;
