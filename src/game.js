@@ -11,6 +11,7 @@ import {
 } from "./items.js";
 import { RANK_NAME, RANK_COLOR } from "./content.js";
 import { dungeonSubQuests } from "./subquests.js";
+import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
 import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS, ELITE_ORDER, monsterTraits } from "./dungeons/index.js";
@@ -180,6 +181,7 @@ const G = {
   ach: {},            // 受領済みの勲章 (実績) { id: true }
   fastAnim: false,    // 戦闘演出の倍速設定 (永続)
   autoCombat: false,  // オート戦闘中 (セッション内のみ)
+  tavernCrowd: null,  // 酒場に居合わせる者たち (帰還ごとに3〜5名を選び直す) [{type,icon,name,line}]
   rumor: null,        // 酒場で表示中の噂 (次回潜入で現実化)
   rumorCooldown: 0,   // 次の噂を聞けるUNIXタイムスタンプ(ms) — 30分クールダウン
   activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
@@ -4180,6 +4182,27 @@ function questProgress(type, key, n = 1) {
   }
 }
 
+// ---- 酒場に居合わせる者たち: 帰還ごとに3〜5名を選び、各人が世界の噂・冒険のヒントを語る ----
+// req を持つヒントは、その機能が解放されるまで出さない (未解放システムを匂わせない)。
+function tavernHintAllowed(req) {
+  if (!req) return true;
+  if (req === "sub") return unlockedSubSlots() > 0;     // 宿し技 (D10)
+  return featureUnlocked(req);                           // fusion(D5) / rumor(D15)
+}
+// 酒場の顔ぶれを選び直す (ダンジョン帰還時・初回入店時に呼ぶ)
+function rollTavernCrowd() {
+  const count = 3 + rand(3); // 3〜5名
+  const speakers = [...TAVERN_SPEAKERS].sort(() => Math.random() - 0.5);
+  const hints = TAVERN_HINTS.filter((h) => tavernHintAllowed(h.req)).sort(() => Math.random() - 0.5);
+  const crowd = [];
+  for (let i = 0; i < count && i < speakers.length; i++) {
+    const sp = speakers[i];
+    const line = hints[i % hints.length];
+    crowd.push({ type: sp.type, icon: sp.icon, name: sp.names[rand(sp.names.length)], line: line ? line.t : "「……」" });
+  }
+  G.tavernCrowd = crowd;
+}
+
 // ---- 酒場の噂話: 次の潜入で必ず起きる「予兆」を生成し、盤面に反映 ----
 const RUMOR_SPEAKERS = ["隻眼の傭兵", "酔った盗掘者", "巡礼の僧", "宿の女将", "傷だらけの斥候", "黒衣の占い師"];
 
@@ -4246,16 +4269,36 @@ function applyRumorToBoard(board) {
 
 function renderTavern() {
   townEl.appendChild(townHeader("酒場「沈まぬ灯」"));
-  townEl.appendChild(el("div", "tw-lead", "迷宮帰りの傭兵がたむろする。依頼の受注と噂話はここで。(編成は人業の館)"));
+  townEl.appendChild(el("div", "tw-lead", "迷宮帰りの流れ者がたむろする。世界の噂や冒険のヒントを聞ける。(編成は人業の館)"));
 
-  // --- 噂話 (D15 踏破で解放) ---
-  townEl.appendChild(el("div", "tw-h", "酒場の噂話"));
+  // --- 酒場の顔ぶれ: 帰還ごとに入れ替わる3〜5名。各人が世界の噂・冒険のヒントを語る ---
+  if (!G.tavernCrowd || !G.tavernCrowd.length) rollTavernCrowd();
+  townEl.appendChild(el("div", "tw-h", "今 酒場にいる者たち"));
+  const crowd = el("div", "tw-mlist");
+  for (const m of (G.tavernCrowd || [])) {
+    const row = el("div", "tw-quest");
+    const info = el("div", "tw-chipi");
+    info.appendChild(el("div", "tw-chipn", `${m.icon || "🍺"} ${m.name}`));
+    info.appendChild(el("div", "tw-chipc", `― ${m.type}`));
+    info.appendChild(el("div", "tw-rumort", m.line));
+    row.appendChild(info);
+    crowd.appendChild(row);
+  }
+  townEl.appendChild(crowd);
+  townEl.appendChild(el("div", "tw-note", "顔ぶれは迷宮から帰還するたびに入れ替わる。"));
+
+  // 依頼と噂を扱えるのは「名の知れた魂繰り」(15迷宮踏破) から。それまでは情報を聞くだけの場。
   if (!featureUnlocked("rumor")) {
     const lockBox = el("div", "tw-rumor");
-    lockBox.appendChild(el("div", "tw-rumors", "― 情報屋はまだ口を開かない ―"));
-    lockBox.appendChild(el("div", "tw-rumort", `15 迷宮を踏破した名の知れた魂繰りにしか、確かな噂は売らぬという。（現在 ${clearedDungeonCount()} 踏破）`));
+    lockBox.appendChild(el("div", "tw-rumors", "― まだ仕事の話はない ―"));
+    lockBox.appendChild(el("div", "tw-rumort", `酒場が依頼や噂を回すのは、名の知れた魂繰りが現れてからだ。15 迷宮を踏破すれば、情報屋も腰を上げよう。（現在 ${clearedDungeonCount()} 踏破）`));
     townEl.appendChild(lockBox);
-  } else if (G.rumor) {
+    return;
+  }
+
+  // --- 噂話 ---
+  townEl.appendChild(el("div", "tw-h", "酒場の噂話"));
+  if (G.rumor) {
     const rb = el("div", "tw-rumor");
     rb.appendChild(el("div", "tw-rumors", `― ${G.rumor.speaker} ―`));
     rb.appendChild(el("div", "tw-rumort", G.rumor.text));
@@ -5812,6 +5855,7 @@ function returnToTown() {
   // 生存者が1名でもいれば、砕けた人業は仲間に担がれてHP1で生還する。
   // (全滅時はここに来る前に G.party の生存者ゼロ → 救出待ちのまま帰還する)
   if (G.party.some((p) => p.alive)) reviveAllAtHp1();
+  rollTavernCrowd(); // 酒場の顔ぶれは帰還のたびに入れ替わる
   updateTopbar();
   log("街へ帰還した。", "sys");
   G.town.facility = null; G.town.sub = null;
@@ -7153,7 +7197,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound",
   "gold", "soulPts", "redSoul", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "rumor", "rumorCooldown", "activeRumor", "codex", "story", "dragonSlain", "stats",
+  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "codex", "story", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
 ];
 
