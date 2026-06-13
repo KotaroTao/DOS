@@ -112,6 +112,36 @@ const NEW_DEFS = [
   { id: "bs_sewerlord", name: "水路の主", rank: 4, boss: true, race: "aquatic", element: "water", artKey: "sewerlord", soulClass: "priest",
     role: "summoner", summonKey: "bs_sludgeooze", regen: 0.06, physResist: 0.4, // 汚泥を呼び、刃を沈め、澱みで傷を癒す
     desc: "地下水路のすべての澱みを統べる、巨大な両生の主。腹を空かせた汚泥を次々と呼び寄せ、生者を泥の海へ沈める。分厚い粘膜は刃をろくに通さず、濁り水に浸かるたび傷が塞がる。" },
+  { id: "bs_sewercrab", name: "鋏の大蟹", rank: 3, race: "aquatic", element: "water", artKey: "sewercrab",
+    physResist: 0.5, barrier: 2, // 鋼の甲羅が刃を弾き、数度は完全に受け止める
+    desc: "汚水に肥え太った、大盾ほどもある巨大蟹。鋼を思わせる甲羅は並の刃をすべて弾き返し、両の鋏は鎧ごと人を断つ。横歩きで間合いを詰めてくる音は、暗渠によく響く。" },
+  { id: "bs_abysstentacle", name: "深淵の触手", rank: 4, race: "aquatic", element: "water", artKey: "abysstentacle",
+    ability: "paralyze", multistrike: 2, // 絡めて痺れさせ、何度も締め上げる
+    desc: "排水路の底知れぬ闇から伸びる、吸盤だらけの太い腕。獲物を絡め取って痺れさせ、二度三度と締め上げる。本体がどれほどの大きさなのか、生きて見た者はいない。" },
+  { id: "bs_brinewraith", name: "塩水の亡霊", rank: 4, race: "specter", element: "water", artKey: "brinewraith",
+    ability: "drain", lifesteal: 0.3, // 溺死した恨みで命を吸い、己の存在を保つ
+    desc: "下水に流れ着いて溺れ死んだ水夫たちの霊。塩に蝕まれた半透明の体で生者に取り憑き、その温もりと命を吸って束の間この世に留まる。吸った分だけ、輪郭が濃くなる。" },
+  { id: "bs_anglerfiend", name: "提灯鮟鱇", rank: 4, race: "aquatic", element: "water", artKey: "anglerfiend",
+    ability: "paralyze", magWeak: 1.3, // 誘いの光で痺れさせる。脂の体は火に弱い
+    desc: "暗渠の闇を漂う、巨大な口を持つ醜い魚。額から垂らした青白い誘い灯で獲物を惑わせ、痺れたところを丸呑みにする。脂の乗った体は、炎の魔法でよく焼ける。" },
+  { id: "bs_bloatfly", name: "腐肉蠅の群れ", rank: 3, race: "insect", element: "dark", artKey: "bloatfly",
+    pack: true, ability: "poison", evasive: true, // 群れで湧き、毒をまき散らし、叩こうにも素早く飛び回る
+    desc: "汚水と腐肉に湧いた、握り拳ほどもある肥えた羽虫の群れ。羽音とともに毒の鱗粉をまき散らし、叩き落とそうにも素早く飛び回ってかわす。一匹潰せば、十匹が湧く。" },
+  { id: "bs_waterhag", name: "水路の妖婆", rank: 4, race: "specter", element: "water", artKey: "waterhag", soulClass: "hexer",
+    ability: "weaken", regen: 0.07, // 呪詛で力を奪い、藻に塗れた身を濁り水で繕う
+    desc: "水路に身を投げ、藻に塗れて妖と化した老婆の霊。濁った目で睨み、しわがれた呪詛を浴びせて生者の力を奪う。濁り水に浸かるたび、崩れた体をつくろい直す。" },
+  { id: "bs_mucusworm", name: "粘液の長虫", rank: 3, race: "amorph", element: "water", artKey: "mucusworm",
+    ability: "poison", physResist: 0.45, regen: 0.06, // 毒粘液をまとい、刃をすべらせ、ちぎれても繋がる
+    desc: "暗渠の壁を這う、半透明の巨大な環形虫。全身を覆う毒の粘液が刃をぬるりとすべらせ、断ち切ってもすぐに繋がり直す。触れた皮膚は、たちまち爛れる。" },
+  { id: "bs_razorshrimp", name: "鎌首の大蝦", rank: 3, race: "aquatic", element: "water", artKey: "razorshrimp",
+    swift: true, multistrike: 2, // 鎌のような前肢で目にも留まらぬ連打を放つ
+    desc: "水底に潜み、鎌のような前肢を一閃させる大蝦。その打撃は水を割って轟き、甲羅すら砕く。目にも留まらぬ速さで二度三度と打ち込み、獲物が気づく前に砕いている。" },
+  { id: "bs_ironcarp", name: "鋼鱗の大鯉", rank: 4, race: "aquatic", element: "water", artKey: "ironcarp",
+    physResist: 0.6, barrier: 2, magWeak: 1.3, // 鋼の鱗が刃を弾くが、魔法の熱には脆い
+    desc: "幾百年を生きて鋼のごとき鱗をまとった、ぬしと呼ばれる大鯉。並の刃は鱗に弾かれ傷一つ通らない。だが冷たい体は魔法の熱に脆く、火や雷を浴びれば一たまりもない。" },
+  { id: "bs_fogspecter", name: "汚水の靄", rank: 3, race: "specter", element: "water", artKey: "fogspecter",
+    ability: "paralyze", evasive: true, magWeak: 1.5, // 実体なく刃をすり抜け、瘴気で痺れさせる。魔には脆い
+    desc: "汚水から立ちのぼる瘴気が、ぼんやりと人の形をなした霊。刃は霧をすり抜けてしまい、まとわりつく毒気に触れた者は痺れて動けなくなる。実体が薄いぶん、魔の力には抗えない。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1084,6 +1114,8 @@ export const LAYER_POOLS = {
   2: [
     // 新規 (固有アート)
     "bs_giantleech", "bs_sludgeooze", "bs_toxictoad", "bs_drownedcorpse", "bs_eelfiend",
+    "bs_sewercrab", "bs_abysstentacle", "bs_brinewraith", "bs_anglerfiend", "bs_bloatfly",
+    "bs_waterhag", "bs_mucusworm", "bs_razorshrimp", "bs_ironcarp", "bs_fogspecter",
     // 既存の水棲/不定形を第2層へ再配置
     "cm_slime", "bs_swampslime", "bs_waterelemental", "d03_sahagin", "bs_deepsahagin",
   ],
