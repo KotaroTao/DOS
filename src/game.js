@@ -17,7 +17,8 @@ import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS, ELITE_ORDER, monsterT
 import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, soulSprite, jobSprite, dollSprite,
   recalcDoll, jobStatsOf, soulLevelCap, setSharedSouls, MAX_SUBS,
-  sharedEntry, sharedRank, JOB_SIGNATURE, signatureSkillOf, ORDER_PERK, orderPassiveMap,
+  soulByUid, makeSoulInstance, allSoulInstances, soulRankOf, soulLearnedSkills,
+  ORDER_PERK, orderPassiveMap,
   PASSIVES, passiveName, passiveDesc,
   ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
   SOUL_RANKS, rollJobClass, rollGreatJobClass,
@@ -165,9 +166,8 @@ const G = {
   pendingDoll: null,  // (旧形式) 未生成の人業。現在は「空の人形」(isEmpty) として reserve に残る (ロード時に移行)
   party: [],          // 迷宮に連れて行く人業 (最大6体)
   reserve: [],        // 酒場で待機中の人業
-  // 魂はパーティ共有 (本体は魂、人業は器)。職業ごとに1つの育成エントリを共有する。
-  souls: {},          // 共有魂プール: clsKey -> { count(覚醒数→ランク), level, exp }
-  soulBag: {},        // 入手して未覚醒の魂 (clsKey -> 個数)。無制限・館で覚醒。インベントリは圧迫しない
+  // 魂は1体ごとに固有のインスタンス (本体は魂、人業は器)。同職でも個別に Lv/ランクを持つ。
+  souls: [],          // 所持魂 一覧: [{ uid, clsKey, count(吸収数→ランク), level, exp }]
   shopStock: null,    // 商店の在庫 { itemId: 個数 } (初回 setupNewGame で初期化)
   run: null,          // 今回の潜入で得た戦利品 { gold, soulPts, items:[{owner,item}], souls:[] }
   town: { facility: null, sub: null }, // 街UIの現在地 (sub: 館などのサブメニュー)
@@ -224,28 +224,37 @@ function runGainItem(owner, item) { owner.items.push(item); if (G.run && inDunge
 // 魂の入手を記録 (全滅没収で巻き戻すため)。kind: "awaken"(共有countへ) | "bag"(未覚醒)
 function runTrackSoul(clsKey, kind) { if (G.run && inDungeon()) G.run.souls.push({ clsKey, kind }); }
 
-// ===== 共有魂プールのヘルパー =====
-// 職業の共有育成エントリを取得 (なければ作成)
-function ensureJob(clsKey) {
-  if (!G.souls[clsKey]) G.souls[clsKey] = { count: 0, level: 1, exp: 0 };
-  return G.souls[clsKey];
+// ===== 所持魂 (個別インスタンス) のヘルパー =====
+// 魂を1体、所持魂一覧 (G.souls 配列) に加える
+function addSoulInstance(clsKey, count = 1, level = 1) {
+  const s = makeSoulInstance(clsKey, count, level);
+  G.souls.push(s);
+  return s;
 }
-// 魂を1つ覚醒させる (共有 count++ → ランクアップ判定)。before/after ランクを返す
-function awakenSoul(clsKey, n = 1) {
-  const e = ensureJob(clsKey);
-  const before = soulRankFromCount(clsKey, e.count);
-  e.count += n;
-  const after = soulRankFromCount(clsKey, e.count);
-  recalcDollsUsing(clsKey);
-  return { before, after, entry: e };
-}
-// その職業を primary/sub に使っている全人業を再計算する
-function recalcDollsUsing(clsKey) {
+// 全人業を再計算する (魂の Lv/ランク/装備変化を反映)
+function recalcAllDolls() {
   for (const d of allDolls()) {
-    if (d.primary === clsKey || (d.subs || []).includes(clsKey)) {
-      recalcDoll(d);
-      d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp);
-    }
+    recalcDoll(d);
+    d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp);
+  }
+}
+// その魂 (uid) を誰かが宿しているか
+function soulWorn(uid) {
+  for (const d of allDolls()) {
+    if (d.primary === uid) return true;
+    for (const s of (d.subs || [])) if (s && s.uid === uid) return true;
+  }
+  return false;
+}
+// 魂を宿している人業からその魂を外す (融合で消費した/失われた時)
+function unequipSoulEverywhere(uid) {
+  for (const d of allDolls()) {
+    let touched = false;
+    if (d.primary === uid) { d.primary = null; touched = true; }
+    const before = (d.subs || []).length;
+    d.subs = (d.subs || []).filter((s) => s && s.uid !== uid);
+    if (d.subs.length !== before) touched = true;
+    if (touched) { recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp); }
   }
 }
 
@@ -268,29 +277,17 @@ function forfeitRun() {
       if (gone) break;
     }
   }
-  // 入手した魂を巻き戻す (覚醒分は共有 count を戻し、袋分は袋から戻す)
+  // 入手した魂を巻き戻す (今回拾った魂インスタンスを職業ごとに1体ずつ取り消す)
   for (const rec of r.souls) {
     const k = rec && rec.clsKey;
     if (!k) continue;
-    if (rec.kind === "bag") {
-      if (G.soulBag[k]) { G.soulBag[k] = Math.max(0, G.soulBag[k] - 1); if (!G.soulBag[k]) delete G.soulBag[k]; }
-    } else if (G.souls[k]) {
-      G.souls[k].count = Math.max(0, G.souls[k].count - 1);
-      if (G.souls[k].count <= 0) { delete G.souls[k]; unequipJobEverywhere(k); }
-      else recalcDollsUsing(k);
+    for (let i = G.souls.length - 1; i >= 0; i--) {
+      const s = G.souls[i];
+      if (s.clsKey === k && !soulWorn(s.uid)) { G.souls.splice(i, 1); break; }
     }
   }
+  recalcAllDolls();
   G.run = null;
-}
-
-// ある職業が消えた時、それを宿していた人業から外して再計算する
-function unequipJobEverywhere(clsKey) {
-  for (const d of allDolls()) {
-    let touched = false;
-    if (d.primary === clsKey) { d.primary = null; touched = true; }
-    if ((d.subs || []).includes(clsKey)) { d.subs = d.subs.filter((s) => s !== clsKey); touched = true; }
-    if (touched) { recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp); }
-  }
 }
 
 // 砕けた人業: 死亡を戦績に記録し、街への連れ帰りタイマーをセット
@@ -1415,8 +1412,8 @@ function collectSoul(cell, clsKey, clsLabel) {
 // レア度の表示名
 const RARITY_LABEL = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド" };
 
-// 魂の入手処理 (共通・パーティ共有): 同職を編成で宿しているメンバーがいれば
-// 「その場で覚醒(即ランク反映)/持ち帰る(袋へ)」を選択。いなければ自動で袋へ。
+// 魂の入手処理: 拾った魂は1体の魂インスタンスとして自動で「所持魂 一覧」に追加される。
+// (魂袋は廃止。同職でも個別に Lv/ランクを持つ魂として貯まる)
 function acquireSoul(clsKey, sourceLine, onClose) {
   const cls = SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter;
   const rare = cls.rarity !== "common";
@@ -1425,44 +1422,12 @@ function acquireSoul(clsKey, sourceLine, onClose) {
   SFX.itemget(); buzz(rare ? [0, 40, 50, 40, 50, 150] : [0, 30, 60, 30]);
   if (cls.rarity === "legend") { flashScreen("#ffcf4a"); SFX.victory(); }
   const done = onClose || (() => { if (G.state === "board") renderBoard(); });
-  // 編成中にこの職業を「主魂」として宿しているメンバーがいるか
-  const wearer = G.party.find((d) => d.alive && d.primary === clsKey);
-  if (wearer) {
-    if (rare) setTimeout(() => showToast(`🌟 ${RARITY_LABEL[cls.rarity]}の魂！`), 200);
-    showChoice(`${cls.label}の魂`, [
-      { label: "✦ その場で覚醒させる（即ランク反映）", fn: () => { strengthenNow(clsKey); done(); } },
-      { label: "🎒 持ち帰る（館にストック）", fn: () => { bagSoul(clsKey); done(); } },
-    ], soulSprite(clsKey), {
-      banner: rare ? `★ ${RARITY_LABEL[cls.rarity]}の魂 ★` : "✦ 魂を回収 ✦",
-      accent: cls.glow || cls.color,
-      lines: [sourceLine, `編成中の ${SOUL_CLASSES[clsKey].label} が宿している。`],
-    });
-    return;
-  }
-  // 同職を宿しているメンバーがいない → 自動で持ち帰り (潜行を止めない)
-  bagSoul(clsKey);
-  log(`${cls.label}の魂 を持ち帰った。(館の魂蔵にストック)`, "win");
+  addSoulInstance(clsKey);
+  runTrackSoul(clsKey, "bag");
+  codexJobSee(clsKey, 1, 1);
+  log(`${cls.label}の魂 を持ち帰った。(所持魂 一覧に追加)`, "win");
   if (rare) setTimeout(() => showToast(`🌟 ${RARITY_LABEL[cls.rarity]}の魂を入手！`), 200);
   done();
-}
-
-// 魂を袋 (未覚醒ストック) に入れる。インベントリは圧迫しない・無制限
-function bagSoul(clsKey) {
-  G.soulBag[clsKey] = (G.soulBag[clsKey] || 0) + 1;
-  runTrackSoul(clsKey, "bag");
-}
-
-// その場で覚醒: 共有 count++ → ランクアップ判定・演出。宿している全メンバーが強くなる
-function strengthenNow(clsKey) {
-  const cls = SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter;
-  const r = awakenSoul(clsKey);
-  runTrackSoul(clsKey, "awaken");
-  codexJobSee(clsKey, G.souls[clsKey].count, G.souls[clsKey].level);
-  log(`${cls.label}の魂を覚醒させた (×${G.souls[clsKey].count})。`, "win");
-  if (r.after > r.before) {
-    SFX.victory(); buzz([0, 40, 50, 40]);
-    showToast(`⤴ ${jobRankName(clsKey, r.after)} に昇格！`);
-  }
 }
 
 // ---- 選択肢プロンプト ----
@@ -2586,13 +2551,13 @@ function applyImpact(res) {
         G.partyFx.set(h.target, "hit");
         fx.floats.push({ x: view.width / 2, y: view.height - 26, text: String(h.dmg) + (h.fatal ? " 即死!" : ""), color: h.fatal ? "#ff2a2a" : "#ff6b6b", t0: now });
         if (h.died) anyDeath = true;
-        // レベルドレイン: 宿している主魂 (共有) のレベルを永続的に1下げる
-        if (h.drain && h.target.isDoll && h.target.primary && G.souls[h.target.primary]) {
-          const s = G.souls[h.target.primary];
-          if (s.level > 1) {
+        // レベルドレイン: 宿しているメイン魂のレベルを永続的に1下げる
+        if (h.drain && h.target.isDoll && h.target.primary != null) {
+          const s = soulByUid(h.target.primary);
+          if (s && s.level > 1) {
             s.level--;
-            recalcDollsUsing(h.target.primary);
-            const lbl = SOUL_CLASSES[h.target.primary].label;
+            recalcAllDolls();
+            const lbl = SOUL_CLASSES[s.clsKey].label;
             log(`${h.target.name}の${lbl}の魂が喰われ、Lv${s.level} に堕ちた…！`, "dmg");
             setTimeout(() => showToast(`☠ レベルドレイン: ${lbl}の魂 Lv-1`), 300);
           }
@@ -2611,16 +2576,21 @@ function distributeBattleSoulExp(soulGot) {
   const queue = [];
   const share = Math.floor((soulGot || 0) / 3);
   if (share <= 0) return queue;
-  // 経験値は「編成中に宿している主魂」(共有) ごとに1回ずつ入る。同職を複数人が宿していても
-  // 同じ魂なので重複加算はしない (多様な編成ほど多くの魂を同時に育てられる)。
-  const jobs = new Set();
-  for (const m of G.party) if (m && m.alive && m.primary) jobs.add(m.primary);
-  for (const clsKey of jobs) {
-    const e = G.souls[clsKey];
+  // 経験値は「編成中に宿している魂」(メイン魂・サブ魂とも) ごとに1回ずつ入る。
+  // 同じ魂を複数人が宿すことはない (魂は1体ごとに個別) ので重複加算は起きない。
+  const worn = [];
+  const seen = new Set();
+  for (const m of G.party) {
+    if (!m || !m.alive) continue;
+    const add = (uid) => { if (uid == null || seen.has(uid)) return; seen.add(uid); worn.push({ uid, rep: m }); };
+    if (m.primary != null) add(m.primary);
+    for (const s of (m.subs || [])) if (s) add(s.uid);
+  }
+  for (const { uid, rep } of worn) {
+    const e = soulByUid(uid);
     if (!e) continue;
-    const cap = soulLevelCap(clsKey, e.count);
+    const cap = soulLevelCap(e.clsKey, e.count);
     if (e.level >= cap) continue;
-    const rep = G.party.find((m) => m.alive && m.primary === clsKey); // 演出用の代表メンバー
     const oldLv = e.level;
     const oldSpells = new Set((rep && rep.spells) || []);
     e.exp = (e.exp || 0) + share;
@@ -2632,8 +2602,8 @@ function distributeBattleSoulExp(soulGot) {
     }
     if (e.level >= cap) e.exp = 0;
     if (!leveled) continue;
-    recalcDollsUsing(clsKey);
-    // 1職ずつ「レベルアップ(回数ぶん)→スキル獲得」の順でポップアップ
+    recalcAllDolls();
+    // 1魂ずつ「レベルアップ(回数ぶん)→スキル獲得」の順でポップアップ
     for (let lv = oldLv + 1; lv <= e.level; lv++) queue.push({ kind: "level", member: rep, lv });
     for (const sk of ((rep && rep.spells) || [])) if (!oldSpells.has(sk)) queue.push({ kind: "skill", member: rep, skill: sk });
   }
@@ -3275,7 +3245,7 @@ function renderMansionParty() {
   const rl = el("div", "tw-mlist");
   if (!G.reserve.length) rl.appendChild(el("div", "tw-empty", "控えはいない。"));
   G.reserve.forEach((d) => rl.appendChild(rosterRow(d, () => {
-    if (!d.primary) { log("主魂を宿していない器は編成できない。祭壇で主魂を宿そう。", "sys"); SFX.ng(); return; }
+    if (d.primary == null) { log("メイン魂を宿していない人業は編成できない。", "sys"); SFX.ng(); return; }
     if (G.party.length >= 6) { log("編成は満員だ (6体まで)。", "sys"); return; }
     G.reserve.splice(G.reserve.indexOf(d), 1); G.party.push(d); SFX.select(); renderTown();
   })));
@@ -3290,10 +3260,10 @@ function rosterRow(d, onClick) {
   row.appendChild(s);
   const info = el("div", "tw-chipi");
   info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
-  info.appendChild(el("div", "tw-chipc", !d.primary ? "空の器 ・ 主魂なし" : `${d.cls} 魂Lv${d.jobLv || 1}`));
+  info.appendChild(el("div", "tw-chipc", d.primary == null ? "空の人業 ・ メイン魂なし" : `${d.cls} 魂Lv${d.jobLv || 1}`));
   row.appendChild(info);
   row.appendChild(el("div", "tw-chiphp",
-    !d.primary ? "編成不可" :
+    d.primary == null ? "編成不可" :
     d.alive ? `HP ${d.hp}/${d.maxhp}` : `⏳${fmtRemain(Math.max(0, (d.reviveAt || Date.now()) - Date.now()))}`));
   row.addEventListener("click", onClick);
   return row;
@@ -3357,9 +3327,9 @@ function renderMansionManage() {
     row.appendChild(s);
     const info = el("div", "tw-chipi");
     info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †") + (d.isEmpty ? "（未生成）" : inParty ? "" : " (控え)")));
-    info.appendChild(el("div", "tw-chipc", !d.primary
-      ? "空の器 — 祭壇で主魂を宿すと人業として生成できる"
-      : `${d.cls} 魂Lv${d.jobLv || 1}${(d.subs || []).length ? ` ・ 宿し${d.subs.length}` : ""}`));
+    info.appendChild(el("div", "tw-chipc", d.primary == null
+      ? "空の人業 — 祭壇でメイン魂を宿すと人業として生成できる"
+      : `${d.cls} 魂Lv${d.jobLv || 1}${(d.subs || []).length ? ` ・ サブ${d.subs.length}` : ""}`));
     row.appendChild(info);
     const ren = btn("名前を変える", () => showRenameInput(d));
     ren.className = "tw-small";
@@ -3385,24 +3355,31 @@ function emptyDollCost() {
   return n === 0 ? 30 : n === 1 ? 50 : 100;
 }
 
+// 所持魂の並び順: 職業順 → ランク昇順 → Lv降順
+function soulSortCmp(a, b) {
+  const ja = SOUL_CLASS_ORDER[a.clsKey] ?? 99, jb = SOUL_CLASS_ORDER[b.clsKey] ?? 99;
+  if (ja !== jb) return ja - jb;
+  const ra = soulRankOf(a), rb = soulRankOf(b);
+  if (ra !== rb) return ra - rb;
+  if ((b.level || 1) !== (a.level || 1)) return (b.level || 1) - (a.level || 1);
+  return a.uid - b.uid;
+}
+
 // 人業保管庫: 宿す魂を選び (必須)、赤い魂で人業を仕立てる
 function buyDoll() {
   const cost = emptyDollCost();
   if (G.redSoul < cost) { log("Red Soul が足りない。", "sys"); SFX.ng(); return; }
   if (allDolls().length >= 18) { log("これ以上は仕立てられない (18体まで)。", "sys"); SFX.ng(); return; }
-  // 宿せる魂 = 覚醒済み (共有プールに count>=1)。選ばないと購入できない
-  const awakened = Object.keys(G.souls)
-    .filter((k) => SOUL_CLASSES[k] && (G.souls[k].count || 0) >= 1)
-    .sort((a, b) => (SOUL_CLASS_ORDER[a] ?? 99) - (SOUL_CLASS_ORDER[b] ?? 99));
-  if (!awakened.length) {
-    log("宿せる魂がない。先に魂を覚醒させてから仕立てよう。", "sys"); SFX.ng();
-    showToast("宿せる魂がない");
+  // 宿せる魂 = まだどの人業も宿していない魂。選ばないと購入できない
+  const free = G.souls.filter((s) => !soulWorn(s.uid)).sort(soulSortCmp);
+  if (!free.length) {
+    log("宿せる魂がない。先に魂を集めよう。", "sys"); SFX.ng();
+    showToast("空いている魂がない");
     return;
   }
-  const options = awakened.map((k) => {
-    const ent = G.souls[k];
-    const rank = soulRankFromCount(k, ent.count);
-    return { label: `${jobRankName(k, rank)}（${SOUL_CLASSES[k].label}の魂 ×${ent.count}）`, fn: () => askDollName(k) };
+  const options = free.map((s) => {
+    const rank = soulRankOf(s);
+    return { label: `${jobRankName(s.clsKey, rank)}の魂 Lv${s.level}`, fn: () => askDollName(s.uid) };
   });
   options.push({ label: "やめる", fn: () => {} });
   showChoice("どの魂を宿す？", options, ICONS.wisp,
@@ -3410,33 +3387,35 @@ function buyDoll() {
 }
 
 // 宿す魂を選んだあと: 名を与えて人業を生成する
-function askDollName(clsKey) {
+function askDollName(uid) {
+  const s = soulByUid(uid); if (!s) return;
   const cost = emptyDollCost();
   showNameInput({
     title: "人業に名を与える",
-    desc: `${SOUL_CLASSES[clsKey].label}の魂を宿す器に、名を与えよ。`,
+    desc: `${jobRankName(s.clsKey, soulRankOf(s))}の魂を宿す器に、名を与えよ。`,
     placeholder: "人業の名前",
     confirmLabel: `生成する (🔴${cost})`,
-    onConfirm: (name) => finalizeBuyDoll(clsKey, name),
+    onConfirm: (name) => finalizeBuyDoll(uid, name),
   });
 }
 
 // 魂と名前が決まったら、赤い魂を支払って人業を生成し、編成に加える
-function finalizeBuyDoll(clsKey, name) {
+function finalizeBuyDoll(uid, name) {
   const cost = emptyDollCost();
+  const s = soulByUid(uid);
   if (G.redSoul < cost) { log("Red Soul が足りない。", "sys"); SFX.ng(); return; }
-  if (!(G.souls[clsKey] && (G.souls[clsKey].count || 0) >= 1)) { log("その魂は宿せない。", "sys"); SFX.ng(); return; }
+  if (!s || soulWorn(s.uid)) { log("その魂は宿せない。", "sys"); SFX.ng(); return; }
   G.redSoul -= cost;
   G.dollsPurchased++;
   const d = makeDoll(name);
-  d.primary = clsKey; // 選んだ共有魂を主魂として宿す
+  d.primary = uid; // 選んだ魂をメイン魂として宿す
   recalcDoll(d);
   d.hp = d.maxhp; d.mp = d.maxmp;
   // 仕立てたばかりの人業はそのまま編成に加わる (満員なら控えへ)
   if (G.party.length < 6) G.party.push(d);
   else { G.reserve.push(d); log(`${d.name} は控えで待機する。`, "sys"); }
   SFX.itemget(); buzz([0, 30, 60, 30]);
-  log(`人業「${d.name}」が生まれた！（${SOUL_CLASSES[clsKey].label}・🔴${cost}）`, "win");
+  log(`人業「${d.name}」が生まれた！（${SOUL_CLASSES[s.clsKey].label}・🔴${cost}）`, "win");
   showToast(`✦ 人業「${d.name}」誕生`);
   autosave(true);
   renderTown();
@@ -3536,10 +3515,26 @@ function showGenerateDollPopup(d) {
 
 // 職業 (clsKey) の表示順 = SOUL_CLASSES の定義順
 const SOUL_CLASS_ORDER = Object.fromEntries(Object.keys(SOUL_CLASSES).map((k, i) => [k, i]));
-// 祭壇の操作モード: "primary"(主魂を宿す) | "sub0"/"sub1"(宿し技スロット)
+// 祭壇の操作モード: "primary"(メイン魂) | "sub0"/"sub1"(サブ魂スロット)
 let altarSlot = "primary";
 
-// ---- 魂の祭壇: 主魂を宿す/付け替え・宿し技・✦Soulで魂を鍛える・控えの結社 ----
+// 祭壇スロットが指す魂インスタンス (なければ null)
+function slotSoul(d, slotId) {
+  if (slotId === "primary") return d.primary != null ? soulByUid(d.primary) : null;
+  const sub = d.subs[+slotId.slice(3)];
+  return sub ? soulByUid(sub.uid) : null;
+}
+// ある魂を「自分以外の人業」が宿しているか (魂は1体ごとに固有 = 同時装備は不可)
+function soulWornByOther(uid, self) {
+  for (const dd of allDolls()) {
+    if (dd === self) continue;
+    if (dd.primary === uid) return true;
+    for (const s of (dd.subs || [])) if (s && s.uid === uid) return true;
+  }
+  return false;
+}
+
+// ---- 魂の祭壇: メイン魂を宿す/付け替え・サブ魂・✦Soulで魂を強化・控えの結社 ----
 function renderAltar() {
   const dolls = allDolls();
   if (!altarSel || !dolls.includes(altarSel.doll)) altarSel = { doll: dolls[0] || null };
@@ -3548,41 +3543,41 @@ function renderAltar() {
   d.subs = d.subs || [];
 
   townEl.appendChild(townHeader("魂の祭壇", "mansion"));
-  townEl.appendChild(el("div", "tw-lead", "本体は魂、人業は器。主魂が職業を決め、宿し技スロットには別職の看板技を借りられる。魂はパーティ共有。"));
+  townEl.appendChild(el("div", "tw-lead", "本体は魂、人業は器。メイン魂が職業を決め、サブ魂スロットには別の魂が覚えた技を1つ借りられる。"));
 
   // 人業セレクタ
   const sel = el("div", "tw-dolltabs");
   dolls.forEach((dd) => {
-    const label = !dd.primary ? `${dd.name}（空の器）` : dd.name;
+    const label = dd.primary == null ? `${dd.name}（空の人業）` : dd.name;
     const t = btn(label, () => { altarSel = { doll: dd }; renderTown(); });
-    t.className = "tw-dolltab" + (dd === d ? " active" : "") + (!dd.primary ? " pending" : "");
+    t.className = "tw-dolltab" + (dd === d ? " active" : "") + (dd.primary == null ? " pending" : "");
     sel.appendChild(t);
   });
   townEl.appendChild(sel);
 
-  // 空の器: 主魂を宿せば生成できる
+  // 空の人業: メイン魂を宿せば生成できる (旧セーブ互換)
   if (d.isEmpty) {
-    if (d.primary) {
+    if (d.primary != null) {
       const gen = btn("✦ 人業を生成する (名前を与える)", () => showGenerateDollPopup(d));
       gen.className = "btn primary tw-add";
       townEl.appendChild(gen);
     } else {
-      townEl.appendChild(el("div", "tw-note", "空の器 — 主魂を宿すと人業として生成できる。下の「魂蔵」から覚醒済みの魂を選ぼう。"));
+      townEl.appendChild(el("div", "tw-note", "空の人業 — メイン魂を宿すと人業として生成できる。下の「所持魂 一覧」から魂を選ぼう。"));
     }
   }
 
   // サマリ
+  const pe = d.primary != null ? soulByUid(d.primary) : null;
   const sum = el("div", "tw-summary");
-  sum.style.borderColor = d.primary ? SOUL_CLASSES[d.primary].color : "#34344a";
+  sum.style.borderColor = pe ? SOUL_CLASSES[pe.clsKey].color : "#34344a";
   if (d.jobKey) {
     sum.style.cursor = "pointer"; sum.title = "職業図鑑を表示";
     sum.addEventListener("click", () => showCodexJobDetail(d.jobKey, d.jobRank));
   }
   sum.appendChild(el("div", "tw-sumc", d.cls));
-  const e0 = d.primary ? G.souls[d.primary] : null;
-  sum.appendChild(el("div", "tw-sumt", e0
-    ? `ランク${d.jobRank} ・ 魂Lv${e0.level} ・ ${SOUL_CLASSES[d.primary].label}の魂 ×${e0.count}（共有）`
-    : "主魂が宿っていない"));
+  sum.appendChild(el("div", "tw-sumt", pe
+    ? `ランク${d.jobRank} ・ 魂Lv${pe.level} ・ ${jobRankName(pe.clsKey, d.jobRank)}の魂`
+    : "メイン魂が宿っていない"));
   sum.appendChild(el("div", "tw-sumst",
     `HP${d.maxhp} MP${d.maxmp} ATK${d.atk} VIT${d.vit} AGI${d.agi} INT${d.int} PIE${d.pie} LUK${d.luk}`));
   if (d.spells.length) { const sk = skillChips(d.spells, "習得:"); sk.classList.add("tw-sumsk"); sum.appendChild(sk); }
@@ -3590,19 +3585,26 @@ function renderAltar() {
   if (d.jobKey) sum.appendChild(el("div", "tw-sumhint", "▶ 職業図鑑"));
   townEl.appendChild(sum);
 
-  // スロット (主魂 + 宿し技×MAX_SUBS)。タップで「ここに宿す魂」を選ぶ対象スロットを切替
+  // スロット (メイン魂 + サブ魂×MAX_SUBS)。タップで対象スロットを切替。サブ魂はスキル名も表示
   const slots = el("div", "tw-parts");
-  const mkSlot = (id, label, clsKey, isSub) => {
+  const mkSlot = (id, label, inst, isSub, subRef) => {
     const slot = el("div", "tw-part" + (altarSlot === id ? " sel" : ""));
     slot.appendChild(el("div", "tw-partl", label));
     const orb = el("div", "tw-partorb");
-    if (clsKey) {
-      const rank = sharedRank(clsKey);
-      orb.style.color = SOUL_CLASSES[clsKey].glow;
-      orb.appendChild(spriteCanvas(jobSprite(clsKey, Math.max(1, rank)), 3));
+    if (inst) {
+      const rank = soulRankOf(inst);
+      orb.style.color = SOUL_CLASSES[inst.clsKey].glow;
+      orb.appendChild(spriteCanvas(jobSprite(inst.clsKey, Math.max(1, rank)), 3));
       slot.appendChild(orb);
-      const sub = isSub && rank < 2;
-      slot.appendChild(el("div", "tw-parts2" + (sub ? " dim" : ""), sub ? `${SOUL_CLASSES[clsKey].label}(R2必要)` : SOUL_CLASSES[clsKey].label));
+      // キャラアイコン下の職業名 = 宿している魂と同じ称号 (見習い戦士 など)
+      slot.appendChild(el("div", "tw-parts2", jobRankName(inst.clsKey, rank)));
+      if (isSub) {
+        const skName = subRef && subRef.skill && SPELLS[subRef.skill] ? SPELLS[subRef.skill].name : "技を選ぶ";
+        const skl = el("div", "tw-parts2" + (subRef && subRef.skill ? "" : " dim"), `▶ ${skName}`);
+        skl.style.cursor = "pointer";
+        skl.addEventListener("click", (ev) => { ev.stopPropagation(); openSubSkillPicker(d, subRef); });
+        slot.appendChild(skl);
+      }
     } else {
       orb.appendChild(el("div", "tw-partempty", "空"));
       slot.appendChild(orb);
@@ -3611,26 +3613,28 @@ function renderAltar() {
     slot.addEventListener("click", () => { altarSlot = id; renderTown(); });
     slots.appendChild(slot);
   };
-  mkSlot("primary", "主魂", d.primary, false);
-  for (let i = 0; i < MAX_SUBS; i++) mkSlot("sub" + i, `宿し${i + 1}`, d.subs[i] || null, true);
+  mkSlot("primary", "メイン魂", pe, false, null);
+  for (let i = 0; i < MAX_SUBS; i++) { const sub = d.subs[i] || null; mkSlot("sub" + i, `サブ魂${i + 1}`, sub ? soulByUid(sub.uid) : null, true, sub); }
   townEl.appendChild(slots);
 
-  // 主魂の強化 (✦Soul を注いでレベルを上げる。共有なので同職を宿す全員が伸びる)
-  if (d.primary && e0) {
-    const cap = soulLevelCap(d.primary, e0.count);
-    townEl.appendChild(el("div", "tw-h", `主魂を鍛える（${SOUL_CLASSES[d.primary].label}・共有）`));
+  // 魂を強化 (選択中スロットのメイン魂/サブ魂に ✦Soul を注いでレベルを上げる)
+  const selSoul = slotSoul(d, altarSlot);
+  if (selSoul) {
+    const cap = soulLevelCap(selSoul.clsKey, selSoul.count);
+    const rank = soulRankOf(selSoul);
+    townEl.appendChild(el("div", "tw-h", `魂を強化（${jobRankName(selSoul.clsKey, rank)}の魂）`));
     const tb = el("div", "tw-trainbox");
-    if (e0.level >= cap) {
-      const nx = nextRankThreshold(d.primary, e0.count);
-      tb.appendChild(el("div", "tw-trainn", `Lv${e0.level}（上限）`));
+    if (selSoul.level >= cap) {
+      const nx = nextRankThreshold(selSoul.clsKey, selSoul.count);
+      tb.appendChild(el("div", "tw-trainn", `Lv${selSoul.level}（上限）`));
       tb.appendChild(el("div", "tw-note", nx
-        ? `${SOUL_CLASSES[d.primary].label}の魂をあと ${nx.next - e0.count} 個 覚醒させてランク${d.jobRank + 1}になると上限が伸びる。`
+        ? `同じ${SOUL_CLASSES[selSoul.clsKey].label}の魂をあと ${nx.next - selSoul.count} 体 吸収させてランク${rank + 1}になると上限が伸びる。`
         : "最高ランク。これ以上は上限が伸びない。"));
     } else {
-      const need = Math.max(1, soulTrainCost(e0.level) - (e0.exp || 0));
-      tb.appendChild(el("div", "tw-trainn", `Lv${e0.level} → Lv${e0.level + 1}`));
+      const need = Math.max(1, soulTrainCost(selSoul.level) - (selSoul.exp || 0));
+      tb.appendChild(el("div", "tw-trainn", `Lv${selSoul.level} → Lv${selSoul.level + 1}`));
       tb.appendChild(el("div", "tw-note", `次のLvまで 必要Soul ${need}（所持 ✦${G.soulPts}）`));
-      const b = btn(`✦ Soul ${need} で鍛える`, () => trainJob(d.primary));
+      const b = btn(`✦ Soul ${need} で鍛える`, () => trainSoul(selSoul.uid));
       b.className = "tw-small primary";
       if (G.soulPts < need) b.disabled = true;
       tb.appendChild(b);
@@ -3638,67 +3642,53 @@ function renderAltar() {
     townEl.appendChild(tb);
   }
 
-  // 魂蔵 (共有): 覚醒済みの職業を一覧。選択中スロットへ宿す。未覚醒の袋は「覚醒」で count 化
-  const slotLabel = altarSlot === "primary" ? "主魂" : `宿し技${(+altarSlot.slice(3)) + 1}`;
-  townEl.appendChild(el("div", "tw-h", `魂蔵（共有）— ${slotLabel}スロットに宿す魂を選ぶ`));
+  // 所持魂 一覧: すべての魂インスタンス (職業→ランク→Lv順)。選択中スロットへ宿す
+  const slotLabel = altarSlot === "primary" ? "メイン魂" : `サブ魂${(+altarSlot.slice(3)) + 1}`;
+  townEl.appendChild(el("div", "tw-h", `所持魂 一覧 — ${slotLabel}スロットに宿す魂を選ぶ`));
   const list = el("div", "tw-soullist");
-  const awakened = Object.keys(G.souls).sort((a, b) => (SOUL_CLASS_ORDER[a] ?? 99) - (SOUL_CLASS_ORDER[b] ?? 99));
-  if (!awakened.length) list.appendChild(el("div", "tw-empty", "覚醒済みの魂がない。下の袋から覚醒させよう。"));
-  for (const k of awakened) {
-    const cls = SOUL_CLASSES[k]; if (!cls) continue;
-    const ent = G.souls[k];
-    const rank = soulRankFromCount(k, ent.count);
-    const equippedHere = altarSlot === "primary" ? d.primary === k : d.subs[altarSlot.slice(3) | 0] === k;
-    const r = el("div", "tw-soulrow" + (cls.rarity !== "common" ? " rare" : ""));
-    if (equippedHere) r.style.borderColor = cls.glow;
-    const o = el("span", "tw-chips"); o.style.color = cls.glow; o.appendChild(spriteCanvas(jobSprite(k, Math.max(1, rank)), 2));
+  const souls = [...G.souls].sort(soulSortCmp);
+  if (!souls.length) list.appendChild(el("div", "tw-empty", "魂を持っていない。迷宮で集めよう。"));
+  for (const s of souls) {
+    const cls = SOUL_CLASSES[s.clsKey]; if (!cls) continue;
+    const rank = soulRankOf(s);
+    const cap = soulLevelCap(s.clsKey, s.count);
+    const isMain = d.primary === s.uid;
+    const asSub = (d.subs || []).some((x) => x && x.uid === s.uid);
+    const byOther = soulWornByOther(s.uid, d);
+    const tag = isMain ? "（メイン魂）" : asSub ? "（サブ魂）" : byOther ? "（別の人業）" : "";
+    const r = el("div", "tw-soulrow" + (cls.rarity !== "common" ? " rare" : "") + (byOther ? " dim" : ""));
+    if (isMain || asSub) r.style.borderColor = cls.glow;
+    const o = el("span", "tw-chips"); o.style.color = cls.glow; o.appendChild(spriteCanvas(jobSprite(s.clsKey, Math.max(1, rank)), 2));
     r.appendChild(o);
     const info = el("div", "tw-chipi");
-    const nm = el("div", "tw-souln", `${jobRankName(k, rank)}${equippedHere ? "（宿し中）" : ""}`);
+    const nm = el("div", "tw-souln", `${jobRankName(s.clsKey, rank)}の魂${tag}`);
     nm.style.color = cls.glow;
     info.appendChild(nm);
-    const nx = nextRankThreshold(k, ent.count);
-    const sig = JOB_SIGNATURE[k] && SPELLS[JOB_SIGNATURE[k]] ? SPELLS[JOB_SIGNATURE[k]].name : "—";
+    const nx = nextRankThreshold(s.clsKey, s.count);
     info.appendChild(el("div", "tw-soulst",
-      `×${ent.count}・R${rank}・Lv${ent.level}` + (nx ? `（次R まで${nx.next - ent.count}）` : "") + ` ・ 看板:${sig}`));
+      `Lv${s.level}/${cap}　ランク${rank}` + (nx ? `　（次ランクまで${nx.next - s.count}の魂が必要）` : "　（最高ランク）")));
     r.appendChild(info);
-    r.addEventListener("click", () => equipSoulToSlot(d, k));
+    // 吸収 (融合): 同職の余っている魂を取り込んでランクを上げる
+    const cands = fuseCandidates(s.uid);
+    if (cands.length) {
+      const fb = btn(`吸収(${cands.length})`, (ev) => { ev.stopPropagation(); openFusePicker(s.uid); });
+      fb.className = "tw-small";
+      r.appendChild(fb);
+    }
+    r.addEventListener("click", () => equipSoulToSlot(d, s.uid));
     list.appendChild(r);
   }
   townEl.appendChild(list);
-
-  // 未覚醒の袋 (持ち帰った魂)。覚醒で共有 count を上げる
-  const bagKeys = Object.keys(G.soulBag).filter((k) => G.soulBag[k] > 0).sort((a, b) => (SOUL_CLASS_ORDER[a] ?? 99) - (SOUL_CLASS_ORDER[b] ?? 99));
-  townEl.appendChild(el("div", "tw-h", `未覚醒の魂袋（${bagKeys.reduce((a, k) => a + G.soulBag[k], 0)}）`));
-  const bag = el("div", "tw-soullist");
-  if (!bagKeys.length) bag.appendChild(el("div", "tw-empty", "袋は空。迷宮で集めた魂が自動でここに入る。"));
-  for (const k of bagKeys) {
-    const cls = SOUL_CLASSES[k]; if (!cls) continue;
-    const n = G.soulBag[k];
-    const r = el("div", "tw-soulrow" + (cls.rarity !== "common" ? " rare" : ""));
-    const o = el("span", "tw-chips"); o.style.color = cls.glow; o.appendChild(spriteCanvas(soulSprite(k), 2));
-    r.appendChild(o);
-    const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-souln", `${cls.label}の魂 ×${n}`));
-    const cur = (G.souls[k] || {}).count || 0;
-    info.appendChild(el("div", "tw-soulst", `覚醒すると共有 ×${cur} → ×${cur + n}（${RARITY_LABEL[cls.rarity]}）`));
-    r.appendChild(info);
-    const b1 = btn("覚醒+1", () => awakenFromBag(k, 1)); b1.className = "tw-small primary";
-    r.appendChild(b1);
-    if (n > 1) { const ball = btn(`全${n}`, () => awakenFromBag(k, n)); ball.className = "tw-small"; r.appendChild(ball); }
-    bag.appendChild(r);
-  }
-  townEl.appendChild(bag);
 
   // 控えの結社 (編成外の魂が供給するパーティ加護)
   renderOrderSection();
 }
 
-// 控えの結社の表示。編成外で共有ランク2以上の職業がパーティ加護を供給する
+// 控えの結社の表示。編成に出していないランク2以上の魂がパーティ加護を供給する
 function renderOrderSection() {
   const fielded = new Set();
-  for (const dd of G.party) { if (dd.primary) fielded.add(dd.primary); for (const s of (dd.subs || [])) fielded.add(s); }
-  const benched = Object.keys(G.souls).filter((k) => !fielded.has(k) && soulRankFromCount(k, G.souls[k].count) >= 2);
+  for (const dd of G.party) { if (dd.primary != null) fielded.add(dd.primary); for (const s of (dd.subs || [])) if (s) fielded.add(s.uid); }
+  const benched = G.souls.filter((s) => !fielded.has(s.uid) && soulRankOf(s) >= 2).sort(soulSortCmp);
   townEl.appendChild(el("div", "tw-h", "控えの結社 — 編成外の魂の加護"));
   if (!benched.length) {
     townEl.appendChild(el("div", "tw-note", "編成に出していない魂をランク2以上に育てると、職業に応じたパーティ全体の加護を授ける。"));
@@ -3706,23 +3696,23 @@ function renderOrderSection() {
   }
   const om = orderPassiveMap(G.party);
   const box = el("div", "tw-soullist");
-  for (const k of benched.sort((a, b) => (SOUL_CLASS_ORDER[a] ?? 99) - (SOUL_CLASS_ORDER[b] ?? 99))) {
-    const cls = SOUL_CLASSES[k];
-    const perk = ORDER_PERK[k];
-    const rank = soulRankFromCount(k, G.souls[k].count);
-    const lv = Math.min((PASSIVES[perk] || { lv: [0] }).lv.length, rank >= 4 ? 2 : 1);
+  for (const s of benched) {
+    const cls = SOUL_CLASSES[s.clsKey];
+    const perk = ORDER_PERK[s.clsKey];
+    const rank = soulRankOf(s);
+    if (!perk || !PASSIVES[perk]) continue;
+    const lv = Math.min(PASSIVES[perk].lv.length, rank >= 4 ? 2 : 1);
     const r = el("div", "tw-soulrow");
-    const o = el("span", "tw-chips"); o.style.color = cls.glow; o.appendChild(spriteCanvas(jobSprite(k, rank), 2));
+    const o = el("span", "tw-chips"); o.style.color = cls.glow; o.appendChild(spriteCanvas(jobSprite(s.clsKey, rank), 2));
     r.appendChild(o);
     const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-souln", `${cls.label}（R${rank}）`));
+    info.appendChild(el("div", "tw-souln", `${jobRankName(s.clsKey, rank)}（R${rank}）`));
     info.appendChild(el("div", "tw-soulst", `${passiveName(perk, lv)}: ${passiveDesc(perk, lv)}`));
     r.appendChild(info);
     box.appendChild(r);
   }
   townEl.appendChild(box);
-  const keys = Object.keys(om);
-  if (keys.length) townEl.appendChild(el("div", "tw-note", "結社の加護はパーティ全体に常時適用される。編成に出すと加護は止まる(本人として働く)。"));
+  if (Object.keys(om).length) townEl.appendChild(el("div", "tw-note", "結社の加護はパーティ全体に常時適用される。編成に出すと加護は止まる(本人として働く)。"));
 }
 
 function jobSig(d) { return d.jobKey ? `${d.jobKey}:${d.jobRank}` : "none"; }
@@ -3732,18 +3722,28 @@ function announceJobChange(d, before) {
   showCodexJobDetail(d.jobKey, d.jobRank, `${d.name} は ${d.cls} になった！`);
 }
 
-// 選択中スロットに魂を宿す/外す (主魂=ダーマ式転職、宿し=看板技の借用)
-function equipSoulToSlot(d, clsKey) {
+// 選択中スロットに魂を宿す/外す (メイン魂=転職、サブ魂=技の借用)。魂は1体ごとに固有
+function equipSoulToSlot(d, uid) {
   const before = jobSig(d);
-  if (altarSlot === "primary") {
-    d.primary = d.primary === clsKey ? null : clsKey; // 同じものをタップで外す
-  } else {
-    const i = altarSlot.slice(3) | 0;
-    d.subs = d.subs || [];
-    if (d.subs[i] === clsKey) d.subs.splice(i, 1);            // 同じものをタップで外す
-    else if (clsKey === d.primary) { log("主魂と同じ職業は宿し技にできない。", "sys"); SFX.ng(); return; }
-    else d.subs[i] = clsKey;
+  const s = soulByUid(uid);
+  if (!s) return;
+  if (altarSlot === "primary" && d.primary === uid) {
+    d.primary = null; // 同じ魂をタップで外す
+  } else if (altarSlot !== "primary" && (d.subs[+altarSlot.slice(3)] || {}).uid === uid) {
+    d.subs.splice(+altarSlot.slice(3), 1); // 同じ魂をタップで外す
     d.subs = d.subs.filter(Boolean);
+  } else {
+    if (soulWornByOther(uid, d)) { log("他の人業が宿している魂は宿せない。", "sys"); SFX.ng(); return; }
+    // 同じ人業の他スロットからは外す (二重装備しない)
+    if (d.primary === uid) d.primary = null;
+    d.subs = (d.subs || []).filter((x) => x && x.uid !== uid);
+    if (altarSlot === "primary") {
+      d.primary = uid;
+    } else {
+      const learned = soulLearnedSkills(s);
+      d.subs[+altarSlot.slice(3)] = { uid, skill: learned.length ? learned[learned.length - 1] : null };
+      d.subs = d.subs.filter(Boolean);
+    }
   }
   recalcDoll(d);
   d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp);
@@ -3752,44 +3752,79 @@ function equipSoulToSlot(d, clsKey) {
   announceJobChange(d, before);
 }
 
-// 袋の魂を覚醒させる (共有 count++)。ランクアップを通知
-function awakenFromBag(clsKey, n) {
-  const have = G.soulBag[clsKey] || 0;
-  if (have <= 0) return;
-  n = Math.min(n, have);
-  const before = sharedRank(clsKey);
-  ensureJob(clsKey).count += n;
-  G.soulBag[clsKey] -= n;
-  if (G.soulBag[clsKey] <= 0) delete G.soulBag[clsKey];
-  recalcDollsUsing(clsKey);
-  codexJobSee(clsKey, G.souls[clsKey].count, G.souls[clsKey].level);
-  const after = sharedRank(clsKey);
+// サブ魂が使うスキルを選ぶポップアップ (その魂が覚えているスキルから1つ)
+function openSubSkillPicker(d, subRef) {
+  if (!subRef) return;
+  const s = soulByUid(subRef.uid); if (!s) return;
+  const learned = soulLearnedSkills(s);
+  if (!learned.length) { log("この魂はまだスキルを覚えていない。", "sys"); SFX.ng(); return; }
+  const opts = learned.map((sk) => ({
+    label: `${SPELLS[sk] ? SPELLS[sk].name : sk}${subRef.skill === sk ? "（設定中）" : ""}`,
+    fn: () => { subRef.skill = sk; recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp); SFX.select(); renderTown(); },
+  }));
+  opts.push({ label: "やめる", fn: () => {} });
+  showChoice(`${jobRankName(s.clsKey, soulRankOf(s))}の魂 — 使うスキルを選ぶ`, opts,
+    jobSprite(s.clsKey, Math.max(1, soulRankOf(s))),
+    { banner: "✦ サブ魂のスキル ✦", accent: SOUL_CLASSES[s.clsKey].glow });
+}
+
+// 融合: target に同職の余っている魂を吸収させる候補
+function fuseCandidates(targetUid) {
+  const t = soulByUid(targetUid); if (!t) return [];
+  return G.souls.filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey && !soulWorn(s.uid));
+}
+// 吸収する魂を選ぶポップアップ
+function openFusePicker(targetUid) {
+  const t = soulByUid(targetUid); if (!t) return;
+  const cands = fuseCandidates(targetUid).sort(soulSortCmp);
+  if (!cands.length) { log("吸収できる同職の魂がない。", "sys"); SFX.ng(); return; }
+  const opts = cands.map((c) => ({
+    label: `${jobRankName(c.clsKey, soulRankOf(c))}の魂 Lv${c.level}（魂数${c.count}）`,
+    fn: () => fuseSoul(targetUid, c.uid),
+  }));
+  opts.push({ label: "やめる", fn: () => {} });
+  showChoice(`${jobRankName(t.clsKey, soulRankOf(t))}の魂に吸収させる魂を選ぶ`, opts,
+    jobSprite(t.clsKey, Math.max(1, soulRankOf(t))),
+    { banner: "✦ 魂の吸収 ✦", accent: SOUL_CLASSES[t.clsKey].glow, lines: ["吸収した魂は失われ、魂数がランクに加算される。"] });
+}
+// 実際の融合: consume を消し、その魂数を target に加える
+function fuseSoul(targetUid, consumeUid) {
+  const t = soulByUid(targetUid), c = soulByUid(consumeUid);
+  if (!t || !c || c.clsKey !== t.clsKey || soulWorn(c.uid)) { SFX.ng(); return; }
+  const before = soulRankOf(t);
+  t.count += c.count;
+  const idx = G.souls.indexOf(c);
+  if (idx >= 0) G.souls.splice(idx, 1);
+  unequipSoulEverywhere(c.uid);
+  recalcAllDolls();
+  codexJobSee(t.clsKey, t.count, t.level);
+  const after = soulRankOf(t);
   SFX.itemget(); buzz([0, 30, 50, 30]);
-  log(`${SOUL_CLASSES[clsKey].label}の魂を ${n}個 覚醒させた (共有 ×${G.souls[clsKey].count})。`, "win");
-  if (after > before) { SFX.victory(); showToast(`⤴ ${jobRankName(clsKey, after)} に昇格！`); }
+  log(`${SOUL_CLASSES[t.clsKey].label}の魂を吸収させた (魂数 ×${t.count})。`, "win");
+  if (after > before) { SFX.victory(); showToast(`⤴ ${jobRankName(t.clsKey, after)} に昇格！`); }
   renderTown();
 }
 
 // 魂を1レベル上げるのに要する Soul (レベルが高いほど高い)
 function soulTrainCost(level) { return 15 + level * 12; }
 
-// 共有の主魂を ✦Soul でレベルアップ (同職を宿す全員が伸びる)
-function trainJob(clsKey) {
-  const e = G.souls[clsKey];
+// 魂インスタンスを ✦Soul でレベルアップ (その魂を宿す人業が伸びる)
+function trainSoul(uid) {
+  const e = soulByUid(uid);
   if (!e) return;
-  const cap = soulLevelCap(clsKey, e.count);
-  if (e.level >= cap) return;
+  const cap = soulLevelCap(e.clsKey, e.count);
+  if (e.level >= cap) { log("これ以上レベルを上げられない。", "sys"); SFX.ng(); return; }
   const cost = Math.max(1, soulTrainCost(e.level) - (e.exp || 0));
-  if (G.soulPts < cost) { log("Soul が足りない。", "sys"); return; }
-  const rep = allDolls().find((d) => d.primary === clsKey);
-  const before = rep ? (rep.spells || []).slice() : null;
+  if (G.soulPts < cost) { log("Soul が足りない。", "sys"); SFX.ng(); return; }
+  const wearer = allDolls().find((d) => d.primary === uid || (d.subs || []).some((s) => s && s.uid === uid));
+  const before = wearer ? (wearer.spells || []).slice() : null;
   G.soulPts -= cost;
   e.level++; e.exp = 0;
-  recalcDollsUsing(clsKey);
+  recalcAllDolls();
+  codexJobSee(e.clsKey, e.count, e.level);
   SFX.levelup(); buzz([0, 30, 40, 30]);
-  log(`${SOUL_CLASSES[clsKey].label}の魂が Lv${e.level} に成長した！ (✦${cost})`, "win");
-  const after = allDolls().find((d) => d.primary === clsKey);
-  if (rep && before) notifyNewSkills(after || rep, before);
+  log(`${jobRankName(e.clsKey, soulRankOf(e))}の魂が Lv${e.level} に成長した！ (✦${cost})`, "win");
+  if (wearer && before) notifyNewSkills(wearer, before);
   renderTown();
 }
 
@@ -4104,7 +4139,7 @@ const ACHIEVEMENTS = [];
   const tiers = (idOf, rows, descOf, condOf) =>
     rows.forEach(([v, name, gold, redSoul]) => push(idOf(v), name, descOf(v), () => condOf(v), gold, redSoul, idOf(rows[0][0])));
   const allDolls = () => [...(G.party || []), ...(G.reserve || [])];
-  const allSouls = () => Object.keys(G.souls || {}).map((k) => ({ clsKey: k, ...G.souls[k] }));
+  const allSouls = () => (G.souls || []);
   const monSeen = () => Object.keys(G.codex.mon).filter((k) => MONSTERS[k]).length;
   const itemSeen = () => Object.keys(G.codex.item).filter((k) => ITEMS[k]).length;
   const hybSeen = () => Object.keys(G.codex.job).filter((k) => SOUL_CLASSES[k]).length;
@@ -4304,8 +4339,8 @@ function grantTutorialGift() {
   const ms = G.msq;
   if (!ms || ms.granted) return;
   ms.granted = true;
-  // 初期に持つ魂は盗賊ひとつのみ。共有魂プールに覚醒させて授ける
-  ensureJob("thief").count = 1;
+  // 初期に持つ魂は盗賊ひとつのみ。所持魂 一覧に1体追加する
+  addSoulInstance("thief");
   G.redSoul += 100;
   codexSweepJobs();
   SFX.itemget(); buzz([0, 30, 60, 30]);
@@ -4544,10 +4579,10 @@ function codexJobSee(clsKey, count, level) {
   const prevRank = e && typeof e === "object" ? (e.rank || 0) : 0;
   G.codex.job[clsKey] = { lv: Math.max(prevLv, lv), rank: Math.max(prevRank, rank) };
 }
-// 共有魂プールを走査して職業図鑑を更新する (オートセーブのたびに全走査)
+// 所持魂一覧を走査して職業図鑑を更新する (オートセーブのたびに全走査)
 function codexSweepJobs() {
   if (!G.codex || !G.codex.job) return;
-  for (const k in (G.souls || {})) codexJobSee(k, G.souls[k].count, G.souls[k].level);
+  for (const s of (G.souls || [])) codexJobSee(s.clsKey, s.count, s.level);
 }
 
 let codexItemTab = "weapon"; // アイテム図鑑の選択中タブ (分類)
@@ -5674,15 +5709,15 @@ function campCast(caster, spellKey) {
   document.body.appendChild(wrap);
 }
 
-// 魂タブ (主魂の成長 + 宿し技スロットを表示)。進行は共有プール
+// 魂タブ (メイン魂の成長 + サブ魂スロットを表示)
 function renderSoulTab(p) {
   const wrap = el("div", "st-soultab");
   const head = el("div", "st-soulsum");
-  head.style.borderColor = p.primary ? SOUL_CLASSES[p.primary].color : "#34344a";
+  const pe = p.primary != null ? soulByUid(p.primary) : null;
+  head.style.borderColor = pe ? SOUL_CLASSES[pe.clsKey].color : "#34344a";
   head.appendChild(el("div", "st-soulc", p.cls));
-  const e0 = p.primary ? G.souls[p.primary] : null;
   head.appendChild(el("div", "st-soultt",
-    e0 ? `ランク${p.jobRank} ・ 魂Lv${e0.level} ・ ${SOUL_CLASSES[p.primary].label}の魂 ×${e0.count}（共有）` : "主魂が宿っていない"));
+    pe ? `ランク${p.jobRank} ・ 魂Lv${pe.level} ・ ${jobRankName(pe.clsKey, p.jobRank)}の魂` : "メイン魂が宿っていない"));
   if (p.jobKey) {
     head.style.cursor = "pointer";
     head.title = "職業図鑑を表示";
@@ -5691,22 +5726,22 @@ function renderSoulTab(p) {
   }
   wrap.appendChild(head);
 
-  // 主魂の成長 (魂レベルと次のランクへの進捗)
-  if (e0) {
-    const cap = soulLevelCap(p.primary, e0.count);
+  // メイン魂の成長 (魂レベルと次のランクへの進捗)
+  if (pe) {
+    const cap = soulLevelCap(pe.clsKey, pe.count);
     const row = el("div", "st-soulrow2");
-    row.style.borderColor = SOUL_CLASSES[p.primary].glow;
+    row.style.borderColor = SOUL_CLASSES[pe.clsKey].glow;
     const orb = el("span", "tw-chips");
-    orb.style.color = SOUL_CLASSES[p.primary].glow;
-    orb.appendChild(spriteCanvas(jobSprite(p.primary, Math.max(1, p.jobRank)), 2));
+    orb.style.color = SOUL_CLASSES[pe.clsKey].glow;
+    orb.appendChild(spriteCanvas(jobSprite(pe.clsKey, Math.max(1, p.jobRank)), 2));
     row.appendChild(orb);
     const info = el("div", "st-soulinfo");
-    info.appendChild(el("div", "st-souln2", `主魂 ${SOUL_CLASSES[p.primary].label}　Lv${e0.level} / ${cap}`));
-    if (e0.level >= cap) {
+    info.appendChild(el("div", "st-souln2", `メイン魂 ${jobRankName(pe.clsKey, p.jobRank)}　Lv${pe.level} / ${cap}`));
+    if (pe.level >= cap) {
       info.appendChild(el("div", "st-soulstat", "Lv上限 — ランクアップで上限が伸びる"));
     } else {
-      const need = soulTrainCost(e0.level);
-      const have = Math.max(0, Math.min(need, e0.exp || 0));
+      const need = soulTrainCost(pe.level);
+      const have = Math.max(0, Math.min(need, pe.exp || 0));
       const bar = el("div", "st-soulbar");
       const fill = el("i");
       fill.style.width = `${Math.round((need ? have / need : 0) * 100)}%`;
@@ -5714,27 +5749,29 @@ function renderSoulTab(p) {
       info.appendChild(bar);
       info.appendChild(el("div", "st-soulstat", `次のLvまで Soul ${have} / ${need}`));
     }
-    const nx = nextRankThreshold(p.primary, e0.count);
-    if (nx) info.appendChild(el("div", "st-soulstat", `ランク${p.jobRank + 1}まで 魂 ${e0.count} / ${nx.next}`));
+    const nx = nextRankThreshold(pe.clsKey, pe.count);
+    if (nx) info.appendChild(el("div", "st-soulstat", `ランク${p.jobRank + 1}まで 魂 ${pe.count} / ${nx.next}`));
     row.appendChild(info);
     wrap.appendChild(row);
   }
 
-  // 宿し技スロット
-  wrap.appendChild(el("div", "st-soulpart", "宿し技"));
+  // サブ魂スロット
+  wrap.appendChild(el("div", "st-soulpart", "サブ魂"));
   const subs = (p.subs || []);
-  if (!subs.length) wrap.appendChild(el("div", "st-soulinfo dim", "（宿し技なし — 館の祭壇で別職の看板技を借りられる）"));
-  for (const k of subs) {
-    const cls = SOUL_CLASSES[k]; if (!cls) continue;
-    const rank = sharedRank(k);
-    const sig = JOB_SIGNATURE[k] && SPELLS[JOB_SIGNATURE[k]] ? SPELLS[JOB_SIGNATURE[k]].name : "—";
+  if (!subs.length) wrap.appendChild(el("div", "st-soulinfo dim", "（サブ魂なし — 館の祭壇で別の魂の技を1つ借りられる）"));
+  for (const sub of subs) {
+    const se = sub ? soulByUid(sub.uid) : null;
+    if (!se) continue;
+    const cls = SOUL_CLASSES[se.clsKey]; if (!cls) continue;
+    const rank = soulRankOf(se);
+    const skName = sub.skill && SPELLS[sub.skill] ? SPELLS[sub.skill].name : "技未設定";
     const row = el("div", "st-soulrow2");
-    const orb = el("span", "tw-chips"); orb.style.color = cls.glow; orb.appendChild(spriteCanvas(jobSprite(k, Math.max(1, rank)), 2));
+    const orb = el("span", "tw-chips"); orb.style.color = cls.glow; orb.appendChild(spriteCanvas(jobSprite(se.clsKey, Math.max(1, rank)), 2));
     row.appendChild(orb);
     const info = el("div", "st-soulinfo");
-    const nm = el("div", "st-souln2", `${cls.label}（R${rank}）`); nm.style.color = cls.glow;
+    const nm = el("div", "st-souln2", `${jobRankName(se.clsKey, rank)}　Lv${se.level}`); nm.style.color = cls.glow;
     info.appendChild(nm);
-    info.appendChild(el("div", "st-soulstat", rank >= 2 ? `看板技: ${sig}${rank >= 4 ? " + ランク2パッシブ" : ""}` : "R2未満 — 効果なし(育成中)"));
+    info.appendChild(el("div", "st-soulstat", `技: ${skName}`));
     row.appendChild(info);
     wrap.appendChild(row);
   }
@@ -6702,12 +6739,12 @@ if (settingsBtn) settingsBtn.addEventListener("click", () => {
 // 一度選択した行動は取り消せない。タスクキルされても直前の状態 (戦闘なら確定済みの
 // 行動が実行される直前) から再開する。
 // v2: 全コンテンツ再編 (隠しレベル1-200 / 迷宮100 / 魂cap拡張)。v1セーブとは互換しない
-const SAVE_KEY = "dos-save-v4"; // v2/v3 は魂システム刷新 (共有魂・宿し技) で孤立させた
+const SAVE_KEY = "dos-save-v5"; // v2/v3/v4 は魂システム刷新で孤立させた (v5 = 魂を1体ごと個別管理)
 // 保存する G のフィールド (アニメーション等の一時状態は除外)
 const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown",
   "gold", "soulPts", "redSoul", "dollsPurchased", "pendingDoll",
-  "party", "reserve", "souls", "soulBag", "shopStock", "run", "town",
+  "party", "reserve", "souls", "shopStock", "run", "town",
   "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "rumor", "rumorCooldown", "activeRumor", "codex", "story", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
 ];
@@ -6865,16 +6902,18 @@ function loadGame() {
     G.reserve.push(pd);
     G.pendingDoll = null;
   }
-  // 共有魂プール (v4): 無効な職業を掃除し、人業の主魂/宿しを実在する魂に整える
-  if (!G.souls) G.souls = {};
-  if (!G.soulBag) G.soulBag = {};
-  for (const k in G.souls) if (!SOUL_CLASSES[k]) delete G.souls[k];
-  for (const k in G.soulBag) if (!SOUL_CLASSES[k] || G.soulBag[k] <= 0) delete G.soulBag[k];
-  setSharedSouls(G.souls); // recalcDoll が共有プールを読めるようにする
+  // 所持魂 (v5): 配列に整え、無効な職業を除き、人業のメイン魂/サブ魂を実在する魂に整える
+  if (!Array.isArray(G.souls)) G.souls = [];
+  G.souls = G.souls.filter((s) => s && SOUL_CLASSES[s.clsKey]);
+  setSharedSouls(G.souls); // recalcDoll が所持魂を uid で引けるようにする
   for (const d of [...(G.party || []), ...(G.reserve || [])]) {
     if (!Array.isArray(d.subs)) d.subs = [];
-    if (d.primary && !G.souls[d.primary]) d.primary = null;
-    d.subs = d.subs.filter((k) => k && G.souls[k] && k !== d.primary).slice(0, MAX_SUBS);
+    if (d.primary != null && !soulByUid(d.primary)) d.primary = null;
+    // サブ魂を {uid, skill} 形式へ正規化し、実在する魂・メイン魂と別の魂だけ残す
+    d.subs = d.subs
+      .map((x) => (x && typeof x === "object") ? { uid: x.uid, skill: x.skill || null } : null)
+      .filter((x) => x && soulByUid(x.uid) && x.uid !== d.primary)
+      .slice(0, MAX_SUBS);
     try { recalcDoll(d); } catch {}
   }
   if (!G.stats) G.stats = { runs: 0, deepest: 0, kills: 0, deaths: 0, soulsFound: 0, bossKills: 0 };
@@ -6961,8 +7000,7 @@ function setupNewGame() {
   // 何も持たずに着任する。人業も魂も赤い魂も、まず王宮で拝受する (第0章)
   G.party = [];
   G.reserve = [];
-  G.souls = {};       // 共有魂プール
-  G.soulBag = {};     // 未覚醒の魂袋
+  G.souls = [];       // 所持魂 一覧 (魂インスタンスの配列)
   setSharedSouls(G.souls);
   G.redSoul = 0;
   G.unlockedDungeons = 0; // 勅命 (第1章) を受けるまで、迷宮の場所は明かされない
