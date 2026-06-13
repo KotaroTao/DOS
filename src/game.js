@@ -339,7 +339,7 @@ function activeCfg() { return curDungeon(); }
 const LAYER_VISUALS = [
   { name: "墓地",       sym: "†", accent: "#c7bfa6", bgm: "layer1", back: drawBackGraveyard, floorBase: "#14130f", floorTiles: ["#1b1812", "#17150f", "#13110c"], glow: "rgba(232,210,150,0.06)" }, // 1
   { name: "地下水路",   sym: "≈", accent: "#5fa0b8", bgm: "layer2", back: drawBackWaterway, floorBase: "#0d1417", floorTiles: ["#121d22", "#0f181c", "#0c1216"], glow: "rgba(110,200,220,0.06)" }, // 2
-  { name: "廃坑",       sym: "⛏", accent: "#c9923f", bgm: "field2",     floorBase: "#15110c", floorTiles: ["#1d1610", "#18130d", "#14100a"], glow: "rgba(222,150,70,0.06)" },  // 3
+  { name: "廃坑",       sym: "⛏", accent: "#c9923f", bgm: "layer3", back: drawBackMine, floorBase: "#15110c", floorTiles: ["#1d1610", "#18130d", "#14100a"], glow: "rgba(222,150,70,0.06)" },  // 3
   { name: "捨て砦",     sym: "⚔", accent: "#9aa0ac", bgm: "field3",     floorBase: "#121316", floorTiles: ["#191b20", "#15171b", "#111316"], glow: "rgba(200,210,230,0.05)" }, // 4
   { name: "霧の森",     sym: "♣", accent: "#7faa5a", bgm: "field4",     floorBase: "#0f140d", floorTiles: ["#161d12", "#12180e", "#0e130a"], glow: "rgba(150,200,120,0.06)" }, // 5
   { name: "沈没神殿",   sym: "⛪", accent: "#6fb0c8", bgm: "field5",     floorBase: "#0d1316", floorTiles: ["#121c20", "#0f171b", "#0c1215"], glow: "rgba(120,200,225,0.06)" }, // 6
@@ -828,6 +828,99 @@ function drawThemedBack(r, accent, sym) {
   }
   vctx.fillStyle = "rgba(255,255,255,0.08)";
   vctx.fillRect(2, 2, r.w - 4, 3);
+}
+
+// 層3「廃坑」のカード裏面: 坑木の支保工が組まれた坑道口、鉱脈の煌めきとトロッコ軌道
+function drawBackMine(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  // 岩肌の地
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#1b140d");
+  bg.addColorStop(0.6, "#150f09");
+  bg.addColorStop(1, "#0f0a06");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+  // 岩の割れ目
+  vctx.strokeStyle = "rgba(0,0,0,0.3)";
+  vctx.lineWidth = 1;
+  vctx.beginPath(); vctx.moveTo(6, 8); vctx.lineTo(11, 17); vctx.lineTo(8, 24); vctx.stroke();
+  vctx.beginPath(); vctx.moveTo(W - 7, 11); vctx.lineTo(W - 12, 19); vctx.stroke();
+
+  const tx = W / 2, ow = 12, openTop = 15, openBot = H - 12;
+  // 坑道の闇
+  vctx.fillStyle = "#070504";
+  vctx.beginPath();
+  vctx.moveTo(tx - ow, openBot);
+  vctx.lineTo(tx - ow, openTop + 4);
+  vctx.quadraticCurveTo(tx - ow, openTop, tx - ow + 4, openTop);
+  vctx.lineTo(tx + ow - 4, openTop);
+  vctx.quadraticCurveTo(tx + ow, openTop, tx + ow, openTop + 4);
+  vctx.lineTo(tx + ow, openBot);
+  vctx.closePath();
+  vctx.fill();
+  // 坑奥に滲む土気の残光
+  const gl = vctx.createRadialGradient(tx, openBot - 4, 1, tx, openBot - 4, 14);
+  gl.addColorStop(0, "rgba(150,100,40,0.18)");
+  gl.addColorStop(1, "rgba(150,100,40,0)");
+  vctx.fillStyle = gl;
+  vctx.fillRect(tx - 14, openBot - 18, 28, 18);
+
+  // 坑木の支保工 (左右の柱 + 梁)
+  const woodG = (x0, x1) => {
+    const g = vctx.createLinearGradient(x0, 0, x1, 0);
+    g.addColorStop(0, "#6b4a26"); g.addColorStop(0.5, "#8a6233"); g.addColorStop(1, "#523619");
+    return g;
+  };
+  vctx.fillStyle = woodG(tx - ow - 6, tx - ow); // 左柱
+  vctx.fillRect(tx - ow - 6, openTop - 2, 6, openBot - openTop + 2);
+  vctx.fillStyle = woodG(tx + ow, tx + ow + 6); // 右柱
+  vctx.fillRect(tx + ow, openTop - 2, 6, openBot - openTop + 2);
+  vctx.fillStyle = woodG(tx - ow - 7, tx + ow + 7); // 梁
+  vctx.fillRect(tx - ow - 7, openTop - 7, ow * 2 + 14, 6);
+  // 木目と継ぎ目
+  vctx.strokeStyle = "rgba(40,24,8,0.6)";
+  vctx.lineWidth = 0.7;
+  for (const px of [tx - ow - 3, tx + ow + 3]) {
+    vctx.beginPath(); vctx.moveTo(px, openTop); vctx.lineTo(px, openBot); vctx.stroke();
+  }
+  vctx.beginPath(); vctx.moveTo(tx - ow - 6, openTop - 4); vctx.lineTo(tx + ow + 6, openTop - 4); vctx.stroke();
+  // 梁の上辺ハイライト
+  vctx.fillStyle = "rgba(220,180,110,0.2)";
+  vctx.fillRect(tx - ow - 7, openTop - 7, ow * 2 + 14, 1.2);
+
+  // 鉱脈の煌めき (金鉱の粒が明滅)
+  const veins = [[10, 30], [W - 11, 33], [12, 41], [W - 13, 22]];
+  for (let i = 0; i < veins.length; i++) {
+    const [vx, vy] = veins[i];
+    const tw = 0.5 + 0.5 * Math.sin(t * 0.004 + i * 1.9);
+    vctx.fillStyle = `rgba(230,180,80,${0.3 + 0.5 * tw})`;
+    vctx.fillRect(vx, vy, 1.4, 1.4);
+  }
+
+  // トロッコの軌道 (坑奥から手前へ末広がり) と枕木
+  vctx.strokeStyle = "rgba(125,115,105,0.5)";
+  vctx.lineWidth = 1;
+  vctx.beginPath(); vctx.moveTo(tx - 3, openBot - 2); vctx.lineTo(tx - 7, H - 3); vctx.stroke();
+  vctx.beginPath(); vctx.moveTo(tx + 3, openBot - 2); vctx.lineTo(tx + 7, H - 3); vctx.stroke();
+  vctx.strokeStyle = "rgba(80,60,38,0.7)";
+  vctx.lineWidth = 1.4;
+  for (const [yy, hw] of [[openBot + 2, 4], [H - 4, 6]]) {
+    vctx.beginPath(); vctx.moveTo(tx - hw, yy); vctx.lineTo(tx + hw, yy); vctx.stroke();
+  }
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
 }
 
 // 層2「地下水路」のカード裏面: 石組みのアーチ水門、滴る雫が暗い水面に波紋を広げる
