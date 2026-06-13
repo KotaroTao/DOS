@@ -615,8 +615,10 @@ function rollGreatCorpseClass() { return rollGreatJobClass(); }
 function partyPassiveLv(key) {
   let lv = 0;
   for (const p of G.party || []) if (p.alive) lv = Math.max(lv, pLv(p, key));
-  const om = orderPassiveMap(G.party || []);
-  if (om[key]) lv = Math.max(lv, om[key]);
+  if (featureUnlocked("order")) {
+    const om = orderPassiveMap(G.party || []);
+    if (om[key]) lv = Math.max(lv, om[key]);
+  }
   return lv;
 }
 
@@ -6055,7 +6057,7 @@ function renderAltar() {
   // 未解放のサブ魂枠は迷宮の踏破で開く (選択中スロットも開放済みに戻す)
   if (subSlots < MAX_SUBS) {
     const c = clearedDungeonCount();
-    const nextAt = subSlots === 0 ? 10 : 20;
+    const nextAt = subSlots === 0 ? 10 : 40;
     townEl.appendChild(el("div", "tw-note",
       `宿し技スロット（サブ魂）はあと ${MAX_SUBS - subSlots} 枠、迷宮の踏破で開く。次の枠は ${nextAt} 迷宮の踏破で解放（現在 ${c} 踏破）。`));
     if (altarSlot !== "primary" && (+altarSlot.slice(3)) >= subSlots) altarSlot = "primary";
@@ -6151,6 +6153,15 @@ function renderOrderSection() {
   for (const dd of G.party) { if (dd.primary != null) fielded.add(dd.primary); for (const s of (dd.subs || [])) if (s) fielded.add(s.uid); }
   const benched = G.souls.filter((s) => !fielded.has(s.uid) && soulRankOf(s) >= 2).sort(soulSortCmp);
   townEl.appendChild(el("div", "tw-h", "控えの結社 — 編成外の魂の加護"));
+  if (!featureUnlocked("order")) {
+    townEl.appendChild(el("div", "tw-note",
+      `控えの結社はまだ開かれていない。20 迷宮を踏破すれば、王が席を授ける。（現在 ${clearedDungeonCount()} 踏破）`));
+    return;
+  }
+  const seats = orderSeats();
+  const nextSeatAt = seats >= 3 ? null : seats >= 2 ? 45 : seats >= 1 ? 30 : 20;
+  townEl.appendChild(el("div", "tw-note",
+    `結社の席: ${seats}${nextSeatAt ? `（次の席は ${nextSeatAt} 迷宮の踏破で開く）` : "（最大）"}`));
   if (!benched.length) {
     townEl.appendChild(el("div", "tw-note", "編成に出していない魂をランク2以上に育てると、職業に応じたパーティ全体の加護を授ける。"));
     return;
@@ -6701,11 +6712,12 @@ function eligibleDeliveryItemIds() {
   const cap = (DUNGEONS[idx].lootLv || [1, 1])[1]; // 到達済み最深ダンジョンのドロップ帯上限 lv
   return LOOT_IDS.filter((id) => (ITEMS[id].lv || 1) <= cap);
 }
-// 納品依頼を3件 (重複なし) 引き直す
+// 納品依頼を引き直す (重複なし)。同時件数は解放段階に応じて 1→2→3
 function rollDeliveryQuests() {
   const pool = eligibleDeliveryItemIds();
+  const cap = deliveryQuestCap();
   const out = [], used = new Set();
-  for (let i = 0; i < 3 && pool.length; i++) {
+  for (let i = 0; i < cap && pool.length; i++) {
     let id, tries = 0;
     do { id = pool[rand(pool.length)]; tries++; } while (used.has(id) && tries < 24);
     if (used.has(id)) break;
@@ -7118,18 +7130,31 @@ function reportTutorialQuest() {
   });
 }
 
-// 機能解放: ダンジョン踏破数に応じて段階的に解放される (序盤の節目で授かる)。
-//   D5 踏破 → 魂融合 / D10 → サブ魂1枠 / D15 → 酒場の噂 / D20 → サブ魂2枠目
+// 機能解放: ダンジョン踏破数に応じて段階的に解放される (層末の節目で授かる)。
+//   D5→魂融合 / D10→サブ魂1枠 / D15→酒場の噂・依頼 / D20→控えの結社(席1) /
+//   D25→納品+1 / D30→結社席+1 / D35→納品+1 / D40→サブ魂2枠目 / D45→結社席+1 / D50→無限迷宮
 function featureUnlocked(key) {
   const c = clearedDungeonCount();
   if (key === "fusion") return c >= 5;
   if (key === "rumor") return c >= 15;
+  if (key === "order") return c >= 20;
+  if (key === "infinite") return c >= 50;
   return false;
 }
-// 解放済みのサブ魂 (宿し技) スロット数 (0/1/2)。MAX_SUBS が上限
+// 解放済みのサブ魂 (宿し技) スロット数 (0/1/2)。MAX_SUBS が上限。2枠目は D40 で解放
 function unlockedSubSlots() {
   const c = clearedDungeonCount();
-  return Math.min(MAX_SUBS, c >= 20 ? 2 : c >= 10 ? 1 : 0);
+  return Math.min(MAX_SUBS, c >= 40 ? 2 : c >= 10 ? 1 : 0);
+}
+// 控えの結社の席数 (0/1/2/3)。D20 で席1、D30 で席2、D45 で席3
+function orderSeats() {
+  const c = clearedDungeonCount();
+  return c >= 45 ? 3 : c >= 30 ? 2 : c >= 20 ? 1 : 0;
+}
+// 同時に受けられる納品依頼の件数。D15(酒場解放)=1 / D25=2 / D35=3
+function deliveryQuestCap() {
+  const c = clearedDungeonCount();
+  return c >= 35 ? 3 : c >= 25 ? 2 : 1;
 }
 
 // 踏破済みの迷宮数 (メインストーリー基準: 第n章攻略中 = n-1 踏破)
