@@ -1436,8 +1436,17 @@ function acquireSoul(clsKey, sourceLine, onClose) {
   runTrackSoul(clsKey, "bag");
   codexJobSee(clsKey, 1, 1);
   log(`${cls.label}の魂 を持ち帰った。(所持魂 一覧に追加)`, "win");
-  if (rare) setTimeout(() => showToast(`🌟 ${RARITY_LABEL[cls.rarity]}の魂を入手！`), 200);
-  done();
+  // 宝箱と同じイラスト付きポップアップで入手を知らせる
+  showEvent({
+    sprite: jobSprite(clsKey, 1),
+    banner: rare ? `★ ${RARITY_LABEL[cls.rarity]}の魂を入手！ ★` : "✦ 魂を入手！ ✦",
+    title: `${cls.label}の魂`,
+    lines: sourceLine ? [sourceLine, "所持魂 一覧に追加した。"] : ["所持魂 一覧に追加した。"],
+    accent: cls.glow || "#c9a227",
+    sparkle: rare,
+    btnLabel: "受け取る",
+    onClose: done,
+  });
 }
 
 // ---- 選択肢プロンプト ----
