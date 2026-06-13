@@ -9571,6 +9571,8 @@ function showItemGet(item, who, onClose) {
   ok.className = "btn primary ig-ok";
   card.appendChild(ok);
   itemGetEl.appendChild(card);
+  // 選択肢のないポップアップは、カード外 (背景) をタップしても閉じられるようにする
+  itemGetEl.onclick = (e) => { if (e.target === itemGetEl) closeItemGet(onClose); };
   itemGetEl.classList.remove("hidden");
 }
 
@@ -9619,6 +9621,8 @@ function showEvent({ sprite, title, lines = [], accent = "#c9a227", btnLabel = "
   ok.style.color = accent;
   card.appendChild(ok);
   itemGetEl.appendChild(card);
+  // 選択肢のないポップアップは、カード外 (背景) をタップしても閉じられるようにする
+  itemGetEl.onclick = (e) => { if (e.target === itemGetEl) closeItemGet(onClose); };
   itemGetEl.classList.remove("hidden");
 }
 
