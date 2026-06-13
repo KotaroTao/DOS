@@ -84,12 +84,23 @@ function pickItemByLv(center) {
 function lootBaseR() { return Math.max(1, Math.min(20, dungeonNumber(activeCfg()))); }
 
 let _itemsByR = null;
+let _miscLootIds = null;
 function itemsByR() {
   if (_itemsByR) return _itemsByR;
   _itemsByR = Array.from({ length: 21 }, () => []);
-  for (const id of LOOT_IDS) _itemsByR[Math.max(1, Math.min(20, ITEMS[id].r20 || 1))].push(id);
+  _miscLootIds = [];
+  // 蒐集品 (slot:"misc") はランク窓に入れず別枠で全域から抽選する (下記 pickItemByR 参照)。
+  for (const id of LOOT_IDS) {
+    if (ITEMS[id].slot === "misc") { _miscLootIds.push(id); continue; }
+    _itemsByR[Math.max(1, Math.min(20, ITEMS[id].r20 || 1))].push(id);
+  }
   return _itemsByR;
 }
+function miscLootIds() { itemsByR(); return _miscLootIds; }
+// 蒐集品は LR 装備と同様「深度の上限なし」で出続けるが、LR と違い一点ものではなく
+// 何度でも同じ品が出る。深い迷宮ほど低ランクの蒐集品も拾える (D80 でも D20 帯の品が出る) よう、
+// 自ランク以下の蒐集品をすべて対象にする (上限のみ中心+2 まで許容し、極端な先取りは抑える)。
+const MISC_LOOT_WEIGHT = 0.5; // 装備のランク窓に対する蒐集品1点あたりの相対重み
 // 中心ランク centerR の ±2 から1つ抽選 (中心ほど出やすい)。窓内が空なら最寄りへ広げる
 function pickItemByR(centerR) {
   const idx = itemsByR();
@@ -103,6 +114,12 @@ function pickItemByR(centerR) {
   };
   gather(Math.max(1, centerR - 2), Math.min(20, centerR + 2), true);
   for (let span = 3; span <= 20 && !total; span++) gather(Math.max(1, centerR - span), Math.min(20, centerR + span), false);
+  // 蒐集品: 中心+2 以下の全ランク帯を一律の重みで対象に加える (下限なし=深層でも浅層の品が出る)
+  const miscCap = Math.min(20, centerR + 2);
+  for (const id of miscLootIds()) {
+    if (Math.max(1, Math.min(20, ITEMS[id].r20 || 1)) > miscCap) continue;
+    total += MISC_LOOT_WEIGHT; acc.push([id, total]);
+  }
   if (!total) return "herb";
   const rr = Math.random() * total;
   for (const [id, t] of acc) if (rr <= t) return id;
@@ -7259,7 +7276,8 @@ function codexJobSee(clsKey, count, level) {
   if (!G.codex || !G.codex.job) return;
   const rank = soulRankFromCount(clsKey, count || 0);
   if (rank < 1) return;
-  const lv = Math.min(rank * 10, level || 1);
+  const cap = capForRarityRank((SOUL_CLASSES[clsKey] || {}).rarity || "common", rank);
+  const lv = Math.min(cap, level || 1);
   const e = G.codex.job[clsKey];
   const prevLv = e && typeof e === "object" ? (e.lv || 0) : 0;
   const prevRank = e && typeof e === "object" ? (e.rank || 0) : 0;
