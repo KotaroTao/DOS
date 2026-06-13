@@ -163,6 +163,7 @@ const G = {
   soulPts: 0,         // Soul(魂): 敵/死体から得る。経験値の役割を兼ね、館で魂のレベルアップに使う
   redSoul: 100,       // Red Soul(赤い魂): プレミアム通貨 (空の人業購入・加護)
   dollsPurchased: 0,  // 空の人業を購入した回数 (価格の段階に使う)
+  dungeonBriefed: false, // 初回潜入時の警備兵の注意事項を表示済みか
   pendingDoll: null,  // (旧形式) 未生成の人業。現在は「空の人形」(isEmpty) として reserve に残る (ロード時に移行)
   party: [],          // 迷宮に連れて行く人業 (最大6体)
   reserve: [],        // 酒場で待機中の人業
@@ -258,12 +259,12 @@ function unequipSoulEverywhere(uid) {
   }
 }
 
-// 全滅して Red Soul を使わなかった場合: 今回の戦利品をすべて失う
+// 全滅して Red Soul を使わなかった場合: 今回得たゴールド・アイテム・魂を失う。
+// ただし蓄積した ✦Soul (soulPts) は残る (経験値の役割を担うため没収しない)。
 function forfeitRun() {
   const r = G.run;
   if (!r) return;
   G.gold = Math.max(0, G.gold - r.gold);
-  G.soulPts = Math.max(0, G.soulPts - r.soulPts);
   // 入手したアイテム/装備を現在の持ち主から除去 (潜入中に「渡す」/他メンバーが
   // 装備した品も追跡し、全員の所持品・装備を走査して取り上げる)
   for (const { item } of r.items) {
@@ -2841,26 +2842,36 @@ function gameOver() {
   const goTown = () => { if (townBtn) townBtn.classList.add("hidden"); if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; } combatMenu.classList.add("hidden"); returnToTown(); };
 
   const opts = [];
-  // 赤い魂を使う: 戦利品を失わず街へ即時帰還 (人業は復活せず連れ帰りを待つ)
+  // 赤い魂を使う: 何も失わず街へ即時帰還。全キャラHP1で復活する
   if (G.redSoul >= GUARDIAN_COST) {
-    opts.push({ label: `🔴 赤い魂 ×${GUARDIAN_COST} を使う（戦利品を守り即時帰還）`, fn: () => {
+    opts.push({ label: `🔴 赤い魂 ×${GUARDIAN_COST} を使う（全て守り全員HP1で生還）`, fn: () => {
       G.redSoul -= GUARDIAN_COST;
       G.run = null; // 戦利品を確定 (没収しない)
+      reviveAllAtHp1(); // 全キャラHP1で復活
       SFX.levelup(); buzz([0, 30, 40, 30]);
-      log("赤い魂が戦利品を守った。死した人業は連れ帰りを待つ。", "win");
+      log("赤い魂が戦利品と人業を守った。一同HP1で生還する。", "win");
       goTown();
     } });
   }
-  // あきらめる: 今回の戦利品をすべて失い、救出を待つ
-  opts.push({ label: "🏚 あきらめる（戦利品を失い救出を待つ）", danger: true, fn: () => {
+  // あきらめる: ゴールド・アイテム・魂を失う (✦Soul は残る)、人業は救出を待つ
+  opts.push({ label: "🏚 あきらめる（💰・装備・魂を失い救出を待つ）", danger: true, fn: () => {
     forfeitRun();
-    log("今回の探索で得たものはすべて失われた…", "dmg");
+    log("今回得たゴールド・アイテム・魂は失われた…（✦Soul は残った）", "dmg");
     goTown();
   } });
 
-  const lootLine = `戦利品 💰${r.gold} ✦${r.soulPts}・装備${r.items.length}・魂${r.souls.length}`
-    + (G.redSoul >= GUARDIAN_COST ? "" : `（赤い魂は ${GUARDIAN_COST} 必要・所持 ${G.redSoul}）`);
-  showChoice(lootLine, opts, ICONS.corpse, { banner: "💀 全滅 💀", accent: "#d4504e" });
+  // 失うものをリスト表示 (✦Soul は失わないことを明記)
+  const lossLines = [
+    "全滅した。このまま諦めると、今回の探索で得た以下を失う:",
+    `　💰 ${r.gold} ゴールド`,
+    `　🎁 アイテム ${r.items.length} 個`,
+    `　👻 魂 ${r.souls.length} 体`,
+    `（✦${r.soulPts} Soul は失わない）`,
+    G.redSoul >= GUARDIAN_COST
+      ? `🔴 赤い魂 ${GUARDIAN_COST} を使えば、何も失わず全員HP1で生還できる。`
+      : `※ 赤い魂 ${GUARDIAN_COST} があれば全て守れた（所持 ${G.redSoul}）。`,
+  ];
+  showChoice("人業はことごとく砕けた…", opts, ICONS.corpse, { banner: "💀 全滅 💀", accent: "#d4504e", lines: lossLines });
 }
 
 // 迷宮の主を撃破した瞬間の確定処理。演出 (showDungeonClearedPopup) とは分離し、
@@ -5068,6 +5079,20 @@ function fmtRemain(ms) {
   return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
 }
 
+// 砕けた人業をすべてHP1で生還させる (生存者がいる帰還・赤い魂帰還で使う)
+function reviveAllAtHp1() {
+  for (const d of allDolls()) {
+    if (d.isDoll && !d.alive) {
+      d.alive = true;
+      d.hp = 1;
+      d.ailment = null;
+      d.reviveAt = null;
+      d._dead = false;
+      log(`${d.name} はHP1で生還した。`, "win");
+    }
+  }
+}
+
 // 復活実行 (連れ帰り完了)
 function reviveDoll(d, byRedSoul = false) {
   d.alive = true;
@@ -5087,7 +5112,7 @@ function tryHastenRescue(d) {
   G.redSoul -= 1;
   d.reviveAt -= RESCUE_SHORTEN_MS;
   if (d.reviveAt <= Date.now()) reviveDoll(d, true);
-  else { SFX.select(); buzz(15); log(`${d.name} の帰還を早めた (-20分)。`, "sys"); }
+  else { SFX.select(); buzz(15); log(`${d.name} の帰還を早めた。`, "sys"); }
   if (G.statusOpen) renderStatus();
   if (G.state === "town") renderTown();
   renderParty();
@@ -5158,7 +5183,7 @@ function renderShrine() {
 
   townEl.appendChild(el("div", "tw-h", "Red Soul の使い道"));
   townEl.appendChild(el("div", "tw-lead",
-    `・空の人業の購入 (人業の館)\n・死亡人業の帰還を早める (🔴1で-20分)\n・全滅時、🔴${GUARDIAN_COST} で戦利品を守って帰還`));
+    `・空の人業の購入 (人業の館)\n・死亡人業の帰還を早める (🔴1)\n・全滅時、🔴${GUARDIAN_COST} で戦利品を守って帰還`));
 }
 
 // ---- 商店: 装備・道具の売買 ----
@@ -5435,6 +5460,13 @@ function buyItem(id, price) {
 function tryEnterDungeon() {
   if (G.unlockedDungeons < 1) { log("王の勅命を受けるまで、迷宮には入れない。", "sys"); return; }
   if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); return; }
+  // チュートリアル後、初めて迷宮へ潜る際は警備兵が注意事項を説明する (1回のみ)
+  if (!G.dungeonBriefed) {
+    G.dungeonBriefed = true;
+    autosave(true);
+    showDungeonBriefing(() => tryEnterDungeon());
+    return;
+  }
   // 迷宮の異変: D3以降、一定確率で発生。受け入れるか避けるかを選んでから潜る
   if (G.dungeonIdx >= 2 && Math.random() < 0.45) {
     const cfg = curDungeon();
@@ -5453,6 +5485,24 @@ function tryEnterDungeon() {
     }
   }
   enterDungeon(null);
+}
+
+// 初回潜入時、警備兵が迷宮の鉄則を説く (注意事項のポップアップ)
+function showDungeonBriefing(onClose) {
+  showEvent({
+    sprite: ICONS.stairs,
+    banner: "⚔ 警備兵の忠告 ⚔",
+    title: "迷宮へ入る前に",
+    lines: [
+      "「待て、魂繰り。初めて潜るなら、これだけは胸に刻んでおけ。」",
+      "■ 一度迷宮に入ったら、迷宮の主（ボス）を倒すか「帰還魔法陣」を見つけるまで街へは戻れない。",
+      "■ 全滅すれば、その探索で得たゴールド・アイテム・魂はすべて失う。（蓄積した ✦Soul だけは残る）",
+      "「…赤い魂があれば、全滅しても何もかも失わずに帰る道はある。励めよ。」",
+    ],
+    accent: "#7fd0ff",
+    btnLabel: "心得た",
+    onClose,
+  });
 }
 
 // 潜入の実体。mutatorId を渡すと「迷宮の異変」を受け入れた状態で潜る
@@ -5491,6 +5541,9 @@ function returnToTown() {
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
   G.maxFloorReached = Math.max(G.maxFloorReached, G.floor);
   G.run = null; // 無事帰還 = 戦利品は確定 (BGMは renderTown が施設に応じて切替)
+  // 生存者が1名でもいれば、砕けた人業は仲間に担がれてHP1で生還する。
+  // (全滅時はここに来る前に G.party の生存者ゼロ → 救出待ちのまま帰還する)
+  if (G.party.some((p) => p.alive)) reviveAllAtHp1();
   updateTopbar();
   log("街へ帰還した。", "sys");
   G.town.facility = null; G.town.sub = null;
@@ -5636,7 +5689,7 @@ function renderStatus() {
     const remain = Math.max(0, (p.reviveAt || Date.now()) - Date.now());
     box.appendChild(el("div", "st-revt", `⏳ 帰還まで ${fmtRemain(remain)}`));
     box.appendChild(el("div", "tw-note", "他の冒険者が捜索・救出している…"));
-    const b = btn(`🔴1 で帰還を早める (-20分)`, () => tryHastenRescue(p));
+    const b = btn(`🔴1 で帰還を早める`, () => tryHastenRescue(p));
     b.className = "btn primary";
     if (G.redSoul < 1) b.disabled = true;
     box.appendChild(b);
@@ -6824,7 +6877,7 @@ const SAVE_KEY = "dos-save-v5"; // v2/v3/v4 は魂システム刷新で孤立さ
 // 保存する G のフィールド (アニメーション等の一時状態は除外)
 const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown",
-  "gold", "soulPts", "redSoul", "dollsPurchased", "pendingDoll",
+  "gold", "soulPts", "redSoul", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
   "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "rumor", "rumorCooldown", "activeRumor", "codex", "story", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
