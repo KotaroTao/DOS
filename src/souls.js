@@ -1513,8 +1513,9 @@ export const JOB_SIGNATURE = (() => {
 export function signatureSkillOf(clsKey) { return JOB_SIGNATURE[clsKey] || null; }
 
 // ===== 控えの結社 (ベンチの加護) =====
-// 編成に出していない (primary/sub いずれにも使っていない) 魂は「結社」として
+// 編成に出していない (primary/sub いずれにも使っていない) 魂を「結社」の席に着けると、
 // 職業テーマ別のパーティ全体パッシブを供給する。共有ランク2以上で Lv1、ランク4以上で Lv2。
+// 席数は game.js の orderSeats() (D20で1, D30で2, D45で3)。着席選択は orderPassiveMap の picks 引数で渡す。
 // 効果は game.js 側で読むパーティ範囲パッシブ (財宝/金運/魂寄せ/感知/警戒/先制/毒床) に限定する。
 export const ORDER_PERK = {
   fighter: "vigilance", knight: "vigilance", priest: "poisonFloor", mage: "senseEnemy", thief: "goldLuck", bishop: "soulLure",
@@ -1536,12 +1537,15 @@ export function fieldedSoulUids(party) {
   }
   return set;
 }
-// 結社が供給するパーティパッシブ {passiveKey: lv}。編成に出していないランク2以上の魂が対象
-export function orderPassiveMap(party) {
+// 結社が供給するパーティパッシブ {passiveKey: lv}。編成外ランク2以上の魂が対象。
+// picks (席に着けた魂uidの配列/Set) を渡すと、その魂だけを集計する (席選択UI用)。未指定なら全控え魂。
+export function orderPassiveMap(party, picks) {
   const fielded = fieldedSoulUids(party);
+  const pickSet = picks ? (picks instanceof Set ? picks : new Set(picks)) : null;
   const map = {};
   for (const s of SOULS) {
     if (!s || fielded.has(s.uid)) continue;
+    if (pickSet && !pickSet.has(s.uid)) continue; // 席に着いた魂のみ加護を送る
     const rank = soulRankFromCount(s.clsKey, s.count);
     if (rank < 2) continue;
     const perk = ORDER_PERK[s.clsKey];

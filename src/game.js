@@ -278,6 +278,7 @@ const G = {
   codex: { mon: {}, item: {}, job: {} }, // 図鑑 (モンスター/アイテム/職業)
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={蒐集品id:true}, claimed={"ランク:しきい値":true}
   lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
+  order: { picks: [] }, // 控えの結社: 席に着けた魂のuid配列 (席数=orderSeats()。編成外ランク2以上のみ有効)
   story: 0,           // 王宮ストーリーの進行段階
   dragonSlain: false, // 竜を討ったか
   stats: { runs: 0, deepest: 0, kills: 0, deaths: 0, soulsFound: 0, bossKills: 0 }, // 戦績
@@ -616,7 +617,7 @@ function partyPassiveLv(key) {
   let lv = 0;
   for (const p of G.party || []) if (p.alive) lv = Math.max(lv, pLv(p, key));
   if (featureUnlocked("order")) {
-    const om = orderPassiveMap(G.party || []);
+    const om = orderPassiveMap(G.party || [], orderSeatedUids());
     if (om[key]) lv = Math.max(lv, om[key]);
   }
   return lv;
@@ -6159,32 +6160,42 @@ function renderOrderSection() {
     return;
   }
   const seats = orderSeats();
+  const seated = orderSeatedUids();
+  const seatedSet = new Set(seated);
+  const full = seated.length >= seats;
   const nextSeatAt = seats >= 3 ? null : seats >= 2 ? 45 : seats >= 1 ? 30 : 20;
   townEl.appendChild(el("div", "tw-note",
-    `結社の席: ${seats}${nextSeatAt ? `（次の席は ${nextSeatAt} 迷宮の踏破で開く）` : "（最大）"}`));
+    `結社の席: ${seated.length} / ${seats} 使用中${nextSeatAt ? `（次の席は ${nextSeatAt} 迷宮の踏破で開く）` : "（最大）"}`));
   if (!benched.length) {
-    townEl.appendChild(el("div", "tw-note", "編成に出していない魂をランク2以上に育てると、職業に応じたパーティ全体の加護を授ける。"));
+    townEl.appendChild(el("div", "tw-note", "編成に出していない魂をランク2以上に育てると、席に着けて職業に応じたパーティ全体の加護を授けられる。"));
     return;
   }
-  const om = orderPassiveMap(G.party);
+  townEl.appendChild(el("div", "tw-note", "席に着けた魂だけが加護を送る。空席が許す数まで選んで着席させよ。編成に出すと加護は止まる(本人として働く)。"));
+  // 着席中を上に並べる
+  const sorted = benched.slice().sort((a, b) => (seatedSet.has(b.uid) ? 1 : 0) - (seatedSet.has(a.uid) ? 1 : 0) || soulSortCmp(a, b));
   const box = el("div", "tw-soullist");
-  for (const s of benched) {
+  for (const s of sorted) {
     const cls = SOUL_CLASSES[s.clsKey];
     const perk = ORDER_PERK[s.clsKey];
     const rank = soulRankOf(s);
     if (!perk || !PASSIVES[perk]) continue;
     const lv = Math.min(PASSIVES[perk].lv.length, rank >= 4 ? 2 : 1);
+    const isSeated = seatedSet.has(s.uid);
     const r = el("div", "tw-soulrow");
+    if (isSeated) { r.style.borderLeft = `3px solid ${cls.glow}`; r.style.paddingLeft = "5px"; }
     const o = el("span", "tw-chips"); o.style.color = cls.glow; o.appendChild(spriteCanvas(jobSprite(s.clsKey, rank), 2));
     r.appendChild(o);
     const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-souln", `${jobRankName(s.clsKey, rank)}（R${rank}）`));
+    info.appendChild(el("div", "tw-souln", `${jobRankName(s.clsKey, rank)}（R${rank}）${isSeated ? " ・ 着席中" : ""}`));
     info.appendChild(el("div", "tw-soulst", `${passiveName(perk, lv)}: ${passiveDesc(perk, lv)}`));
     r.appendChild(info);
+    const b = btn(isSeated ? "外す" : "着席", () => toggleOrderSeat(s.uid));
+    b.className = "tw-small" + (isSeated ? "" : " primary");
+    if (!isSeated && full) { b.disabled = true; b.className = "tw-small"; }
+    r.appendChild(b);
     box.appendChild(r);
   }
   townEl.appendChild(box);
-  if (Object.keys(om).length) townEl.appendChild(el("div", "tw-note", "結社の加護はパーティ全体に常時適用される。編成に出すと加護は止まる(本人として働く)。"));
 }
 
 function jobSig(d) { return d.jobKey ? `${d.jobKey}:${d.jobRank}` : "none"; }
@@ -7150,6 +7161,41 @@ function unlockedSubSlots() {
 function orderSeats() {
   const c = clearedDungeonCount();
   return c >= 45 ? 3 : c >= 30 ? 2 : c >= 20 ? 1 : 0;
+}
+// 結社の席に実際に着いている魂uid (編成外・ランク2以上・有効な加護持ち・席数上限でクリーン)。
+// G.order.picks の順を尊重しつつ、無効になった指定 (編成入り/ランク低下/消失) は除外する。
+function orderSeatedUids() {
+  if (!featureUnlocked("order")) return [];
+  const seats = orderSeats();
+  if (seats <= 0) return [];
+  const fielded = new Set();
+  for (const dd of G.party) { if (dd.primary != null) fielded.add(dd.primary); for (const s of (dd.subs || [])) if (s) fielded.add(s.uid); }
+  const picks = (G.order && Array.isArray(G.order.picks)) ? G.order.picks : [];
+  const out = [];
+  for (const uid of picks) {
+    if (out.length >= seats) break;
+    if (out.includes(uid) || fielded.has(uid)) continue;
+    const s = soulByUid(uid);
+    if (!s || soulRankOf(s) < 2) continue;
+    const perk = ORDER_PERK[s.clsKey];
+    if (!perk || !PASSIVES[perk]) continue;
+    out.push(uid);
+  }
+  return out;
+}
+// 結社の席に魂を着ける/外す。空席が無ければ着席不可
+function toggleOrderSeat(uid) {
+  if (!G.order || !Array.isArray(G.order.picks)) G.order = { picks: [] };
+  const picks = G.order.picks;
+  const i = picks.indexOf(uid);
+  if (i >= 0) { picks.splice(i, 1); SFX.select(); }
+  else {
+    if (orderSeatedUids().length >= orderSeats()) { log("結社の席が空いていない。誰かを外してから着席させよ。", "sys"); SFX.ng(); return; }
+    picks.push(uid); SFX.select();
+  }
+  // 消失した魂のuidを掃除しておく
+  G.order.picks = picks.filter((u) => soulByUid(u));
+  autosave(); renderTown();
 }
 // 同時に受けられる納品依頼の件数。D15(酒場解放)=1 / D25=2 / D35=3
 function deliveryQuestCap() {
@@ -10081,7 +10127,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "story", "dragonSlain", "stats",
+  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "order", "story", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
 ];
 
@@ -10217,6 +10263,7 @@ function loadGame() {
   if (!snap || !snap.party || !snap.party.length) return false;
   for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
   if (!G.lrOwned || typeof G.lrOwned !== "object") G.lrOwned = {}; // LR入手済み記録 (1点もの)
+  if (!G.order || !Array.isArray(G.order.picks)) G.order = { picks: [] }; // 控えの結社の着席指定
   // 旧ステータス体系のセーブを六大ステ (ATK/VIT/AGI/INT/PIE/LUK) へ移行
   // (battle の敵の mon はこの後 MONSTERS の生定義に差し替えられるため触れても無害)
   migrateLegacyStats(snap);
