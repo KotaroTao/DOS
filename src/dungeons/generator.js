@@ -132,6 +132,7 @@ function hash(n, salt) {
 }
 
 // ダンジョン番号 n (1-100) → 階層数
+// 序盤 (D1-20) は階層を緩やかに増やし、機能解放の節目 (D5/10/15/20) を深くする
 function dungeonFloors(n) {
   if (n === 100) return 20;
   if (n === 90) return 10;
@@ -149,11 +150,15 @@ function dungeonFloors(n) {
   if (n >= 31) return 5;    // D31-39
   if (n === 30) return 7;
   if (n >= 21) return 5;    // D21-29
-  if (n === 20) return 10;
-  if (n >= 11) return 5;    // D11-19
-  if (n === 10) return 7;
-  if (n >= 4)  return 5;    // D4-9
-  return 3;                  // D1-3
+  // ── 序盤 (D1-20): 機能解放の節目を深くする ──
+  if (n === 20) return 7;   // D20 サブ魂2枠目解放
+  if (n >= 16) return 5;    // D16-19
+  if (n === 15) return 7;   // D15 酒場の噂解放
+  if (n >= 11) return 5;    // D11-14
+  if (n === 10) return 6;   // D10 サブ魂1枠目解放
+  if (n >= 6)  return 4;    // D6-9
+  if (n === 5)  return 5;   // D5 魂融合解放
+  return 3;                  // D1-4
 }
 
 export function generateDungeon(n) {

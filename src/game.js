@@ -11,7 +11,7 @@ import {
 } from "./items.js";
 import { RANK_NAME, RANK_COLOR } from "./content.js";
 import { dungeonSubQuests } from "./subquests.js";
-import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE } from "./story.js";
+import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS, ELITE_ORDER, monsterTraits } from "./dungeons/index.js";
 import {
@@ -3740,8 +3740,17 @@ function renderAltar() {
     slots.appendChild(slot);
   };
   mkSlot("primary", "メイン魂", pe, false, null);
-  for (let i = 0; i < MAX_SUBS; i++) { const sub = d.subs[i] || null; mkSlot("sub" + i, `サブ魂${i + 1}`, sub ? soulByUid(sub.uid) : null, true, sub); }
+  const subSlots = unlockedSubSlots();
+  for (let i = 0; i < subSlots; i++) { const sub = d.subs[i] || null; mkSlot("sub" + i, `サブ魂${i + 1}`, sub ? soulByUid(sub.uid) : null, true, sub); }
   townEl.appendChild(slots);
+  // 未解放のサブ魂枠は迷宮の踏破で開く (選択中スロットも開放済みに戻す)
+  if (subSlots < MAX_SUBS) {
+    const c = clearedDungeonCount();
+    const nextAt = subSlots === 0 ? 10 : 20;
+    townEl.appendChild(el("div", "tw-note",
+      `宿し技スロット（サブ魂）はあと ${MAX_SUBS - subSlots} 枠、迷宮の踏破で開く。次の枠は ${nextAt} 迷宮の踏破で解放（現在 ${c} 踏破）。`));
+    if (altarSlot !== "primary" && (+altarSlot.slice(3)) >= subSlots) altarSlot = "primary";
+  }
 
   // 魂を強化 (選択中スロットのメイン魂/サブ魂に ✦Soul を注いでレベルを上げる)
   const selSoul = slotSoul(d, altarSlot);
@@ -3795,8 +3804,8 @@ function renderAltar() {
     info.appendChild(el("div", "tw-soulst",
       `Lv${s.level}/${cap}　ランク${rank}` + (nx ? `　（次ランクまで${nx.next - s.count}の魂が必要）` : "　（最高ランク）")));
     r.appendChild(info);
-    // 吸収 (融合): 同職の余っている魂を取り込んでランクを上げる
-    const cands = fuseCandidates(s.uid);
+    // 吸収 (融合): 同職の余っている魂を取り込んでランクを上げる (D5 踏破で解放)
+    const cands = featureUnlocked("fusion") ? fuseCandidates(s.uid) : [];
     if (cands.length) {
       const fb = btn(`吸収(${cands.length})`, (ev) => { ev.stopPropagation(); openFusePicker(s.uid); });
       fb.className = "tw-small";
@@ -3903,6 +3912,7 @@ function fuseCandidates(targetUid) {
 // 吸収する魂を選ぶポップアップ
 function openFusePicker(targetUid) {
   const t = soulByUid(targetUid); if (!t) return;
+  if (!featureUnlocked("fusion")) { log("魂の融合はまだ授かっていない。", "sys"); SFX.ng(); return; }
   const cands = fuseCandidates(targetUid).sort(soulSortCmp);
   if (!cands.length) { log("吸収できる同職の魂がない。", "sys"); SFX.ng(); return; }
   const opts = cands.map((c) => ({
@@ -4147,9 +4157,14 @@ function renderTavern() {
   townEl.appendChild(townHeader("酒場「沈まぬ灯」"));
   townEl.appendChild(el("div", "tw-lead", "迷宮帰りの傭兵がたむろする。依頼の受注と噂話はここで。(編成は人業の館)"));
 
-  // --- 噂話 ---
+  // --- 噂話 (D15 踏破で解放) ---
   townEl.appendChild(el("div", "tw-h", "酒場の噂話"));
-  if (G.rumor) {
+  if (!featureUnlocked("rumor")) {
+    const lockBox = el("div", "tw-rumor");
+    lockBox.appendChild(el("div", "tw-rumors", "― 情報屋はまだ口を開かない ―"));
+    lockBox.appendChild(el("div", "tw-rumort", `15 迷宮を踏破した名の知れた魂繰りにしか、確かな噂は売らぬという。（現在 ${clearedDungeonCount()} 踏破）`));
+    townEl.appendChild(lockBox);
+  } else if (G.rumor) {
     const rb = el("div", "tw-rumor");
     rb.appendChild(el("div", "tw-rumors", `― ${G.rumor.speaker} ―`));
     rb.appendChild(el("div", "tw-rumort", G.rumor.text));
@@ -4477,7 +4492,17 @@ function reportMainQuest() {
       return;
     }
     autosave(true);
-    acceptMainQuest(); // 踏破報告と同時に次の勅命を自動拝命
+    // 解放の節目 (D5/10/15/20) は、報告の直後に機能解放のシーンを挟む
+    const us = unlockSceneFor(n);
+    if (us) {
+      showStoryScene(us.title, us.lines, null, () => {
+        SFX.victory(); buzz([0, 40, 80, 40]);
+        showToast("🔓 新たな技能を授かった");
+        acceptMainQuest();
+      });
+    } else {
+      acceptMainQuest(); // 踏破報告と同時に次の勅命を自動拝命
+    }
   });
 }
 
@@ -4544,6 +4569,20 @@ function reportTutorialQuest() {
     autosave(true);
     acceptMainQuest(); // チュートリアル完了後も自動で第1章を拝命
   });
+}
+
+// 機能解放: ダンジョン踏破数に応じて段階的に解放される (序盤の節目で授かる)。
+//   D5 踏破 → 魂融合 / D10 → サブ魂1枠 / D15 → 酒場の噂 / D20 → サブ魂2枠目
+function featureUnlocked(key) {
+  const c = clearedDungeonCount();
+  if (key === "fusion") return c >= 5;
+  if (key === "rumor") return c >= 15;
+  return false;
+}
+// 解放済みのサブ魂 (宿し技) スロット数 (0/1/2)。MAX_SUBS が上限
+function unlockedSubSlots() {
+  const c = clearedDungeonCount();
+  return Math.min(MAX_SUBS, c >= 20 ? 2 : c >= 10 ? 1 : 0);
 }
 
 // 踏破済みの迷宮数 (メインストーリー基準: 第n章攻略中 = n-1 踏破)
@@ -6016,7 +6055,9 @@ function renderSoulTab(p) {
   // サブ魂スロット
   wrap.appendChild(el("div", "st-soulpart", "サブ魂"));
   const subs = (p.subs || []);
-  if (!subs.length) wrap.appendChild(el("div", "st-soulinfo dim", "（サブ魂なし — 館の祭壇で別の魂の技を1つ借りられる）"));
+  if (!subs.length) wrap.appendChild(el("div", "st-soulinfo dim", unlockedSubSlots() > 0
+    ? "（サブ魂なし — 館の祭壇で別の魂の技を1つ借りられる）"
+    : "（宿し技スロットは未解放 — 迷宮を踏破すると開く）"));
   for (const sub of subs) {
     const se = sub ? soulByUid(sub.uid) : null;
     if (!se) continue;
