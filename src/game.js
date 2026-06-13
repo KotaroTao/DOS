@@ -18,7 +18,7 @@ import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS, ELITE_ORDER, monsterT
 import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, soulSprite, jobSprite, dollSprite,
   recalcDoll, jobStatsOf, soulLevelCap, soulLevelCapOf, setSharedSouls, MAX_SUBS,
-  soulByUid, makeSoulInstance, allSoulInstances, soulRankOf, soulLearnedSkills,
+  soulByUid, makeSoulInstance, allSoulInstances, soulRankOf, soulLearnedSkills, soulLearnedPassives,
   ORDER_PERK, orderPassiveMap,
   PASSIVES, passiveName, passiveDesc,
   ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
@@ -4788,13 +4788,18 @@ function distributeBattleSoulExp(soulGot) {
   if (share <= 0) return queue;
   // 経験値は「編成中に宿している魂」(メイン魂・サブ魂とも) ごとに1回ずつ入る。
   // 同じ魂を複数人が宿すことはない (魂は1体ごとに個別) ので重複加算は起きない。
-  const worn = [];
+  // サブ魂が得る経験値はメイン魂の 1/2。どこかでメイン魂として宿していれば全量扱いにする。
+  const worn = []; // {uid, sub}
   const seen = new Set();
+  // まずメイン魂 (全量) を集める
   for (const m of G.party) {
     if (!m || !m.alive) continue;
-    const add = (uid) => { if (uid == null || seen.has(uid)) return; seen.add(uid); worn.push(uid); };
-    if (m.primary != null) add(m.primary);
-    for (const s of (m.subs || [])) if (s) add(s.uid);
+    if (m.primary != null && !seen.has(m.primary)) { seen.add(m.primary); worn.push({ uid: m.primary, sub: false }); }
+  }
+  // 次にサブ魂 (1/2)。メイン魂として既に集めた魂は除く
+  for (const m of G.party) {
+    if (!m || !m.alive) continue;
+    for (const s of (m.subs || [])) if (s && s.uid != null && !seen.has(s.uid)) { seen.add(s.uid); worn.push({ uid: s.uid, sub: true }); }
   }
   // レベルアップ前の各メンバーのステータス・スキル・メイン魂Lvを記録 (上昇量の算出用)
   const STAT_KEYS = ["maxhp", "maxmp", "atk", "vit", "agi", "int", "pie", "luk"];
@@ -4807,12 +4812,15 @@ function distributeBattleSoulExp(soulGot) {
     const ps = m.primary != null ? soulByUid(m.primary) : null;
     preLv.set(m, ps ? ps.level : 0);
   }
-  // 宿している魂すべてに Soul を加算してレベルアップ (上限超過分は exp に蓄積)
-  for (const uid of worn) {
-    const e = soulByUid(uid);
+  // 宿している魂すべてに Soul を加算してレベルアップ (上限超過分は exp に蓄積)。
+  // サブ魂はメイン魂の半分 (share の 1/2) を得る。
+  for (const w of worn) {
+    const e = soulByUid(w.uid);
     if (!e) continue;
+    const gain = w.sub ? Math.floor(share / 2) : share;
+    if (gain <= 0) continue;
     const cap = soulLevelCapOf(e);
-    e.exp = (e.exp || 0) + share;
+    e.exp = (e.exp || 0) + gain;
     while (e.level < cap && e.exp >= soulTrainCost(e.level)) { e.exp -= soulTrainCost(e.level); e.level++; }
   }
   recalcAllDolls();
@@ -5934,8 +5942,10 @@ function renderAltar() {
       // キャラアイコン下の職業名 = 魂のランクに応じた称号 (見習い戦士 → 戦士 など)
       slot.appendChild(el("div", "tw-parts2", jobRankName(inst.clsKey, rank)));
       if (isSub) {
-        const skName = subRef && subRef.skill && SPELLS[subRef.skill] ? SPELLS[subRef.skill].name : "技を選ぶ";
-        const skl = el("div", "tw-parts2" + (subRef && subRef.skill ? "" : " dim"), `▶ ${skName}`);
+        const set = subRef && (subRef.passive || subRef.skill);
+        const skName = subRef && subRef.passive ? passiveName(subRef.passive)
+          : (subRef && subRef.skill && SPELLS[subRef.skill] ? SPELLS[subRef.skill].name : "技を選ぶ");
+        const skl = el("div", "tw-parts2" + (set ? "" : " dim"), `▶ ${skName}`);
         skl.style.cursor = "pointer";
         skl.addEventListener("click", (ev) => { ev.stopPropagation(); openSubSkillPicker(d, subRef); });
         slot.appendChild(skl);
@@ -6113,20 +6123,30 @@ function equipSoulToSlot(d, uid) {
   announceJobChange(d, before);
 }
 
-// サブ魂が使うスキルを選ぶポップアップ (その魂が覚えているスキルから1つ)
+// サブ魂が借りる技/パッシブを選ぶポップアップ (その魂が覚えているスキル・パッシブから1つ)
 function openSubSkillPicker(d, subRef) {
   if (!subRef) return;
   const s = soulByUid(subRef.uid); if (!s) return;
   const learned = soulLearnedSkills(s);
-  if (!learned.length) { log("この魂はまだスキルを覚えていない。", "sys"); SFX.ng(); return; }
-  const opts = learned.map((sk) => ({
-    label: `${SPELLS[sk] ? SPELLS[sk].name : sk}${subRef.skill === sk ? "（設定中）" : ""}`,
-    fn: () => { subRef.skill = sk; recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp); SFX.select(); renderTown(); },
-  }));
+  const passives = soulLearnedPassives(s);
+  const pkeys = Object.keys(passives);
+  if (!learned.length && !pkeys.length) { log("この魂はまだ技もパッシブも覚えていない。", "sys"); SFX.ng(); return; }
+  const apply = () => { recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp); SFX.select(); renderTown(); };
+  const opts = [];
+  // 技 (アクティブスキル)
+  for (const sk of learned) opts.push({
+    label: `⚔ ${SPELLS[sk] ? SPELLS[sk].name : sk}${(subRef.skill === sk && !subRef.passive) ? "（設定中）" : ""}`,
+    fn: () => { subRef.skill = sk; subRef.passive = null; apply(); },
+  });
+  // パッシブ
+  for (const pk of pkeys) opts.push({
+    label: `◆ ${passiveName(pk, passives[pk])}${subRef.passive === pk ? "（設定中）" : ""}`,
+    fn: () => { subRef.passive = pk; subRef.skill = null; apply(); },
+  });
   opts.push({ label: "やめる", fn: () => {} });
-  showChoice(`${soulSeriesName(s.clsKey)}の魂 — 使うスキルを選ぶ`, opts,
+  showChoice(`${soulSeriesName(s.clsKey)}の魂 — 宿す技・パッシブを選ぶ`, opts,
     jobSprite(s.clsKey, Math.max(1, soulRankOf(s))),
-    { banner: "✦ サブ魂のスキル ✦", accent: SOUL_CLASSES[s.clsKey].glow });
+    { banner: "✦ サブ魂の宿し技 ✦", accent: SOUL_CLASSES[s.clsKey].glow });
 }
 
 // 融合: target に同職の余っている魂を吸収させる候補
@@ -8666,21 +8686,23 @@ function renderSoulTab(p) {
   wrap.appendChild(el("div", "st-soulpart", "サブ魂"));
   const subs = (p.subs || []);
   if (!subs.length) wrap.appendChild(el("div", "st-soulinfo dim", unlockedSubSlots() > 0
-    ? "（サブ魂なし — 館の祭壇で別の魂の技を1つ借り、ステの30%を得られる）"
+    ? "（サブ魂なし — 館の祭壇で別の魂の技かパッシブを1つ借り、ステの30%を得られる）"
     : "（宿し技スロットは未解放 — 迷宮を踏破すると開く）"));
   for (const sub of subs) {
     const se = sub ? soulByUid(sub.uid) : null;
     if (!se) continue;
     const cls = SOUL_CLASSES[se.clsKey]; if (!cls) continue;
     const rank = soulRankOf(se);
-    const skName = sub.skill && SPELLS[sub.skill] ? SPELLS[sub.skill].name : "技未設定";
+    const borrow = sub.passive
+      ? `パッシブ: ${passiveName(sub.passive)}`
+      : `技: ${sub.skill && SPELLS[sub.skill] ? SPELLS[sub.skill].name : "未設定"}`;
     const row = el("div", "st-soulrow2");
     const orb = el("span", "tw-chips"); orb.style.color = cls.glow; orb.appendChild(spriteCanvas(jobSprite(se.clsKey, Math.max(1, rank)), 2));
     row.appendChild(orb);
     const info = el("div", "st-soulinfo");
     const nm = el("div", "st-souln2", `${jobRankName(se.clsKey, rank)}　Lv${se.level}`); nm.style.color = cls.glow;
     info.appendChild(nm);
-    info.appendChild(el("div", "st-soulstat", `技: ${skName}　ステ+30%`));
+    info.appendChild(el("div", "st-soulstat", `${borrow}　ステ+30%`));
     row.appendChild(info);
     wrap.appendChild(row);
   }
