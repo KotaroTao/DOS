@@ -131,6 +131,20 @@ export const SPELLS = {
   KONGOURENDA: { name: "金剛連打", mp: 13, kind: "phys", power: 0.95, hits: 3, target: "enemy", desc: "金剛の拳による怒涛の三連打" },
   KASUMINOTOBARI: { name: "霞の帳", mp: 12, kind: "heal", power: 16, debuffAll: { atk: 0.8 }, target: "all-ally", desc: "霞が隊を癒し、敵の目を曇らせる" },
   DAISEIKITOU: { name: "大聖祈祷", mp: 14, kind: "heal", power: 30, cure: true, target: "all-ally", desc: "隊を癒し穢れを祓う大いなる祈り" },
+  // --- 僧侶 高レベル帯 (Lv85-200) ---
+  SHINSEIKO: { name: "神聖光", mp: 14, kind: "atk", power: 40, element: "light", target: "enemy", desc: "神聖な光で敵を裁く" },
+  SHINYU: { name: "神癒", mp: 16, kind: "heal", power: 100, target: "ally", desc: "神の癒しで深手を塞ぐ" },
+  SEIBETSU: { name: "聖別", mp: 16, kind: "buff", buff: { vit: 1.3 }, cure: true, target: "all-ally", desc: "聖別の祈りで隊を守り穢れを祓う" },
+  IYASHINAMI: { name: "癒しの波", mp: 22, kind: "heal", power: 70, target: "all-ally", desc: "癒しの大波が隊を包む" },
+  SEIMETSUKOU: { name: "聖滅光", mp: 20, kind: "atk", power: 50, element: "light", target: "all-enemy", desc: "全敵を浄化する聖滅の光" },
+  SHINBATSU: { name: "神罰", mp: 24, kind: "atk", power: 70, element: "light", target: "enemy", desc: "天より下る神罰の一閃" },
+  SEISUISHO: { name: "聖水撒", mp: 18, kind: "heal", power: 26, cure: true, target: "all-ally", desc: "聖水を撒き、癒しと共に穢れを祓う" },
+  TENKEINOINORI: { name: "天啓の祈り", mp: 26, kind: "heal", power: 50, buff: { vit: 1.3 }, target: "all-ally", desc: "天啓が隊を癒し守りを高める" },
+  SEIKOURETSU: { name: "聖光烈", mp: 28, kind: "atk", power: 90, element: "light", target: "enemy", desc: "凝縮した聖光が敵を撃ち抜く" },
+  FUKUIN: { name: "復活の福音", mp: 30, kind: "heal", power: 40, revive: true, revivePct: 0.6, target: "all-ally", desc: "倒れた味方を蘇らせ、隊を癒す福音" },
+  SEIMETSUREKKOU: { name: "聖滅烈光", mp: 30, kind: "atk", power: 70, element: "light", target: "all-enemy", desc: "全敵を焼き払う聖滅の烈光" },
+  DAIFUKUIN: { name: "大福音", mp: 36, kind: "heal", power: 80, cure: true, target: "all-ally", desc: "隊全員を大きく癒し穢れを祓う祈り" },
+  KAMIWAZA: { name: "神の御業", mp: 44, kind: "heal", power: 999, cure: true, revive: true, revivePct: 1.0, target: "all-ally", desc: "倒れた者すら完全に呼び戻す神の御業" },
   // --- 魔導僧ベース ---
   SHINENNOHADOU: { name: "深淵の波動", mp: 13, kind: "atk", power: 44, element: "dark", target: "enemy", desc: "深淵より汲み上げた闇の波動" },
   SEIKUNOKAGO: { name: "聖句の加護", mp: 12, kind: "heal", power: 36, grantEndure: true, target: "ally", desc: "癒しと共に死を退ける聖句を授ける" },
@@ -1151,9 +1165,18 @@ export class Battle {
       const healPower = (sp.power + (actor.pie || 0) * 0.5) * aMul;
       // 全体回復
       if (sp.target === "all-ally") {
-        let cured = false;
+        let cured = false, revivedAny = false;
         for (const t of this.party) {
-          if (!t.alive) continue;
+          // 復活の福音 (revive): 倒れた味方も対象にして蘇生する
+          const wasDead = !t.alive;
+          if (wasDead) {
+            if (!sp.revive) continue;
+            t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false;
+            t.hp = sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : Math.min(t.maxhp, variance(healPower));
+            revivedAny = true;
+            res.hits.push({ target: t, heal: t.hp, revived: true });
+            continue;
+          }
           const heal = variance(healPower);
           t.hp = Math.min(t.maxhp, t.hp + heal);
           // 大聖祈祷 (cure): 癒しと同時に穢れを祓う / 聖壁の祈り (buff): 守りも固める
@@ -1161,7 +1184,7 @@ export class Battle {
           if (sp.buff) for (const k in sp.buff) this._applyMod(t, k, sp.buff[k], sp.dur, sp.name);
           res.hits.push({ target: t, heal });
         }
-        this.log(`味方全員のHPが回復した`, "heal");
+        this.log(revivedAny ? `福音が倒れた者を呼び戻した！` : `味方全員のHPが回復した`, "heal");
         if (cured) this.log("隊の穢れが祓われた", "heal");
         if (sp.buff) this.log("隊の守りも固められた", "heal");
       } else {

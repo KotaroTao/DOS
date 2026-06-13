@@ -282,7 +282,8 @@ export const JOB_PASSIVES = {
   fighter:     [],
   // 騎士はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
   knight:      [],
-  priest:      [P("afterHeal", 1), P("afterHeal", 2), P("afterHeal", 3), P("afterHeal", 4)],
+  // 僧侶はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
+  priest:      [],
   mage:        [P("afterMp", 1), P("chant", 1), P("afterMp", 2), P("spellCrit", 2)],
   thief:       [P("vigilance", 1), P("senseEnemy"), P("poisonFloor", 1), P("poisonFloor", 2)],
   bishop:      [P("afterBoth", 1), P("scan"), P("afterBoth", 2), P("purify")],
@@ -435,7 +436,52 @@ export const JOB_SKILLS = {
     { lvl: 195, skill: "DAIGOUREI" },                 // 守護の大号令
     { lvl: 200, skill: "FURAKUJOU" },                 // 不落城
   ],
-  priest:      [{ lvl: 1, skill: "DIOS" }, { lvl: 3, skill: "CURE" }, { lvl: 5, skill: "BLESS" }, { lvl: 7, skill: "HOLYRAY" }, { lvl: 10, skill: "DIOSALL" }, { lvl: 15, skill: "DIAL" }, { lvl: 20, skill: "SAINTRAY" }, { lvl: 25, skill: "REVIVE" }, { lvl: 30, skill: "MADIOS" }, { lvl: 40, skill: "DIALALL" }, { lvl: 50, skill: "RESURRECT" }],
+  // 僧侶: 新仕様 (Lv1-200 / 技とパッシブを織り込み)。Lv40=リカバーオール は宿し技 (signature)
+  priest:      [
+    { lvl: 1,   skill: "DIOS" },                      // ヒール
+    { lvl: 3,   skill: "CURE" },                      // キュア
+    { lvl: 5,   passive: "afterHeal", plv: 1 },       // 戦闘後回復Lv1
+    { lvl: 7,   skill: "HOLYRAY" },                   // 聖光
+    { lvl: 10,  skill: "BLESS" },                     // ブレス
+    { lvl: 15,  passive: "selfPurify", plv: 1 },      // 自浄
+    { lvl: 20,  skill: "DIOSALL" },                   // ヒールオール
+    { lvl: 25,  passive: "afterHeal", plv: 2 },       // 戦闘後回復Lv2
+    { lvl: 30,  skill: "DIAL" },                      // リカバー
+    { lvl: 35,  passive: "chant", plv: 1 },           // 省詠唱Lv1
+    { lvl: 40,  skill: "DIALALL" },                   // リカバーオール (看板技)
+    { lvl: 45,  passive: "purify", plv: 1 },          // 浄化
+    { lvl: 50,  skill: "SAINTRAY" },                  // 聖閃
+    { lvl: 55,  skill: "REVIVE" },                    // リバイブ
+    { lvl: 60,  passive: "afterHeal", plv: 3 },       // 戦闘後回復Lv3
+    { lvl: 65,  skill: "MADIOS" },                    // フルヒール
+    { lvl: 70,  passive: "resistAilment", plv: 1 },   // 異常耐性Lv1
+    { lvl: 75,  passive: "sanctuary", plv: 1 },       // 聖域
+    { lvl: 80,  skill: "RESURRECT" },                 // リザレクション
+    { lvl: 85,  skill: "SHINSEIKO" },                 // 神聖光
+    { lvl: 90,  passive: "afterHeal", plv: 4 },       // 戦闘後回復Lv4
+    { lvl: 95,  skill: "SHINYU" },                    // 神癒
+    { lvl: 100, skill: "SEIBETSU" },                  // 聖別
+    { lvl: 105, passive: "chant", plv: 2 },           // 省詠唱Lv2
+    { lvl: 110, skill: "IYASHINAMI" },                // 癒しの波
+    { lvl: 115, passive: "scripture", plv: 1 },       // 聖典の加護
+    { lvl: 120, skill: "SEIMETSUKOU" },               // 聖滅光
+    { lvl: 125, passive: "resistAilment", plv: 2 },   // 異常耐性Lv2
+    { lvl: 130, skill: "SHINBATSU" },                 // 神罰
+    { lvl: 135, passive: "divineCounter", plv: 1 },   // 神罰の鉄槌
+    { lvl: 140, skill: "SEISUISHO" },                 // 聖水撒
+    { lvl: 145, passive: "martyr", plv: 1 },          // 殉教の祈り
+    { lvl: 150, skill: "TENKEINOINORI" },             // 天啓の祈り
+    { lvl: 155, passive: "mercy", plv: 1 },           // 慈悲の祈り
+    { lvl: 160, skill: "SEIKOURETSU" },               // 聖光烈
+    { lvl: 165, passive: "popePrayer", plv: 1 },      // 教皇の祈り
+    { lvl: 170, skill: "FUKUIN" },                    // 復活の福音
+    { lvl: 175, passive: "holyCover", plv: 1 },       // 聖盾
+    { lvl: 180, skill: "SEIMETSUREKKOU" },            // 聖滅烈光
+    { lvl: 185, skill: "DAISEIKITOU" },               // 大聖祈祷
+    { lvl: 190, skill: "DAIFUKUIN" },                 // 大福音
+    { lvl: 195, passive: "bigBarrier", plv: 1 },      // 大結界
+    { lvl: 200, skill: "KAMIWAZA" },                  // 神の御業
+  ],
   mage:        [{ lvl: 1, skill: "HALITO" }, { lvl: 3, skill: "ICENEEDLE" }, { lvl: 5, skill: "KATINO" }, { lvl: 7, skill: "KAMAITACHI" }, { lvl: 10, skill: "MAHALITO" }, { lvl: 15, skill: "ROCKBLAST" }, { lvl: 20, skill: "MADALT" }, { lvl: 25, skill: "DISPEL" }, { lvl: 30, skill: "LAHALITO" }, { lvl: 40, skill: "TILTOWAIT" }, { lvl: 50, skill: "SEISAI" }],
   thief:       [{ lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "POISONSTAB" }, { lvl: 5, skill: "BLIND" }, { lvl: 7, skill: "DOUBLE" }, { lvl: 10, skill: "KASUMEGIRI" }, { lvl: 15, skill: "ASSASSINATE" }, { lvl: 20, skill: "MIDARE" }, { lvl: 25, skill: "KAGENUI" }, { lvl: 30, skill: "TSUJIKAZE" }, { lvl: 40, skill: "OBORO" }, { lvl: 50, skill: "ZETSUEI" }],
   bishop:      [{ lvl: 1, skill: "HALITO" }, { lvl: 3, skill: "DIOS" }, { lvl: 5, skill: "ICENEEDLE" }, { lvl: 7, skill: "CURE" }, { lvl: 10, skill: "DIAL" }, { lvl: 15, skill: "MAHALITO" }, { lvl: 20, skill: "DIOSALL" }, { lvl: 25, skill: "DISPEL" }, { lvl: 30, skill: "MADALT" }, { lvl: 40, skill: "MADIOS" }, { lvl: 50, skill: "TILTOWAIT" }],
