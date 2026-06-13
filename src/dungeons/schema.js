@@ -896,6 +896,145 @@ export const ARTS = {
       "..oo.........oo..",
     ],
   },
+  // ── 第5層「霧の森」の固有プロトタイプ (rank 6-7・植物/獣/妖) ──
+  misttreant: { // 霧の古木: 苔と霧をまとい歩く古木。刃を呑み、傷を巻き戻す
+    palette: { o: "#0e1a0e", D: "#33421f", B: "#5a4226", b: "#3a2c18", G: "#4e7a34", L: "#7eb84a", E: "#e8e44a" },
+    art: [
+      "...GGLL..LLGG...",
+      "..GGLLGGGGLLGG..",
+      ".GGLLGGGGGGLLGG.",
+      ".GLLGGLLLLGGLLG.",
+      "..GLGGLGGLGGLG..",
+      "...oBEBBBBEBo...",
+      "...oBBBBBBBBo...",
+      "...oBbBBBBbBo...",
+      "...oBBBbbBBBo...",
+      "...oBBBBBBBBo...",
+      "...oBbBGGBbBo...",
+      "..oBBBo..oBBBo..",
+      "..oBBo....oBBo..",
+      ".oBBo......oBBo.",
+      ".obo........obo.",
+    ],
+  },
+  dryadfey: { // 森の妖魔: 霧に隠れ歌う美しき妖。聞く者の力を奪う
+    palette: { o: "#101a22", S: "#2e6a5a", G: "#4e9a6a", L: "#86d49a", F: "#cfe8d0", H: "#3a8c6e", E: "#7fd0ff" },
+    art: [
+      "....GLLLLLG....",
+      "...GLLGGGGLLG..",
+      "..GLLGGFFGGLLG.",
+      "..GLGFFFFFFGLG.",
+      "..oGFEFFEFGo...",
+      "..oGFFFFFFGo...",
+      "...oSFFFFSo....",
+      "..GoSSSSSSoG...",
+      ".GLoSHSSHSoLG..",
+      "GLLoSSSSSSoLLG.",
+      ".LoSSSSSSSSoL..",
+      "..oSSSoSSSo....",
+      "..oSSo.oSSo....",
+      "..oSo...oSo....",
+      "..oo.....oo....",
+    ],
+  },
+  giantmoth: { // 燐粉の大蛾: 霧夜に舞う大蛾。鱗粉が痺れを誘い、灯に紛れる
+    palette: { o: "#160f1a", W: "#7a6a8c", w: "#4e4260", P: "#c8a0d8", L: "#e8d24a", B: "#3a2e44", E: "#e85a8a" },
+    art: [
+      "...LL......LL...",
+      "..LWWL....LWWL..",
+      ".LWWWWL..LWWWWL.",
+      "LWWPWWWLLWWWPWWL",
+      "WWWWWWWBBWWWWWWW",
+      "wWWPWWWBBWWWPWWw",
+      ".wWWWWBEEBWWWWw.",
+      "..wWWWBEEBWWWw..",
+      "...wWWBBBBWWw...",
+      "...LWWWBBWWWL...",
+      "..LWWWwwwwWWWL..",
+      "..wWWL....LWWw..",
+      "...ww......ww...",
+    ],
+  },
+  stranglevine: { // 絞め蔦の魔: 樹冠から垂れ、獲物を絡め取る食人の蔦
+    palette: { o: "#0e1a0c", G: "#356e2a", g: "#1e421a", L: "#6cb84a", M: "#8c2828", T: "#c8d24a" },
+    art: [
+      "GgGoGgGoGgGoGgG",
+      "oGoGoGgoGoGoGoG",
+      ".GgoGLGoGgoGLG.",
+      ".oGGoGgGoGGoGo.",
+      "..GLGoGGGoGLG..",
+      "..oGgGMMMGgGo..",
+      "...GoGMTMGoG...",
+      "...oGGMMMGGo...",
+      "....GoGGGoG....",
+      "....oGLGLGo....",
+      ".....GoGoG.....",
+      ".....oGgGo.....",
+      "......GoG......",
+      "......oGo......",
+    ],
+  },
+  corruptstag: { // 角の魔獣: 霧に呑まれ変じた大鹿。捻れた角で急所を抉る
+    palette: { o: "#140f0a", F: "#6a4a30", f: "#3e2c1a", H: "#9a7a4e", B: "#cabf9e", E: "#e85a1a", k: "#1a120a" },
+    art: [
+      "B..B....B..B...",
+      ".BB.BB.BB.BB...",
+      "..BBoBoBBoB.....",
+      "...BoFFFFoB.....",
+      "....oFEFEFo.....",
+      "....oFFFFFo.....",
+      "....oFHHFFo.....",
+      "...oFFFFFFFo....",
+      "..oFFffffFFFo...",
+      ".oFFFFFFFFFFFo..",
+      ".oFFFFFFFFFFFo..",
+      ".oFFffooffFFo...",
+      ".oFFo....oFFo...",
+      ".oFo......oFo...",
+      ".oo........oo..",
+    ],
+  },
+  fungalhulk: { // 茸人の巨躯: 胞子を撒く巨大な茸の化け物。崩れても胞子で甦る
+    palette: { o: "#160f1a", C: "#8c3a4a", c: "#5a2230", S: "#c87a8a", G: "#5a6a3a", g: "#3a4226", P: "#e0a0c0" },
+    art: [
+      "...CCCCCCCC....",
+      "..CCSCCCCSCCC..",
+      ".CCSSCCCCSSCCC.",
+      ".CCCCCCCCCCCCC.",
+      ".CPCCCPPCCCPCC.",
+      "..oCCCCCCCCo...",
+      "...oGgGGgGo....",
+      "..oGGGGGGGGo...",
+      "..oGgGGGGgGo...",
+      "..oGGGggGGGo...",
+      "..oGGGGGGGGo...",
+      "..oGgGo.oGgGo..",
+      "..oGGo...oGGo..",
+      "..oo......oo...",
+    ],
+  },
+  forestlord: { // 霧の森の主 (層ボス): 森の霧そのものが宿った古妖。獣と蔦を従える
+    palette: { o: "#0a160c", D: "#2a3e1c", B: "#5a4226", b: "#382a16", G: "#4e8a3a", L: "#8ed44e", F: "#cfe8b0", E: "#7fe0c0" },
+    art: [
+      "....GGLLLLLLGG....",
+      "..GGLLGGGGGGLLGG..",
+      ".GLLGGLLLLLLGGLLG.",
+      ".GLGGLGGGGGGLGGLG.",
+      "GLGGLoBEBBEBoLGGLG",
+      ".GoBBBBBBBBBBBBoG.",
+      ".oBBFBBBBBBBBFBBo.",
+      ".oBBBBBEFFEBBBBBo.",
+      ".oBBBBBFFFFBBBBBo.",
+      ".oBBbBBBFFBBBbBBo.",
+      ".oBBBBBBBBBBBBBBo.",
+      "GLoBBbBBBBBBbBBoLG",
+      "LLGoBBBo..oBBBoGLL",
+      ".GGoBBo....oBBoGG.",
+      "..GoBo......oBoG..",
+      "...obo......obo...",
+      "...oo........oo...",
+    ],
+  },
   slime: {
     palette: { o: "#102c16", D: "#185424", G: "#389a42", L: "#6ecc64", B: "#aaeb91", W: "#ebffdc", E: "#081408" },
     art: [
@@ -2345,10 +2484,10 @@ export function monStats(rank, boss = false) {
     gold: Math.round(8 * Math.pow(1.7, r - 1)),
   };
   if (boss) {
-    s.hp = Math.round(s.hp * 3.2);
-    s.atk = Math.round(s.atk * 1.3);
-    s.def = Math.round(s.def * 1.2);
-    s.spd += 2;
+    s.hp = Math.round(s.hp * 4.0);
+    s.atk = Math.round(s.atk * 1.4);
+    s.def = Math.round(s.def * 1.3);
+    s.spd += 3;
     s.soul *= 8;
     s.gold *= 10;
   }

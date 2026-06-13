@@ -1,7 +1,7 @@
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
 import { ITEMS, weaponRange } from "./items.js";
-import { elemDmgMult } from "./dungeons/schema.js";
+import { elemDmgMult, monStats } from "./dungeons/schema.js";
 
 export const SPELLS = {
   HALITO: { name: "ファイアアロー", mp: 2, kind: "atk", power: 10, element: "fire", target: "enemy", desc: "炎の矢" },
@@ -188,8 +188,10 @@ export function spawnCardEnemies(key, floor, scale = 1, opts = {}) {
   return list;
 }
 
-export function spawnBossEnemies(key = "dragon", scale = 1) {
-  return [makeEnemy(key, scale, true)];
+// bossRank: 層基準ランク (1-10)。指定すると、ボスの def の rank ではなく
+// この層相応のランクで HP/ATK 等を組み直す (暫定ボスや低ランクボスが弱すぎる問題への対処)。
+export function spawnBossEnemies(key = "dragon", scale = 1, bossRank = 0) {
+  return [makeEnemy(key, scale, true, bossRank)];
 }
 
 // 強敵階の強敵: 必ず単体で出現する規格外の個体。
@@ -220,18 +222,24 @@ export function spawnMimic(rank, scale = 1, master = false) {
   return [e];
 }
 
-function makeEnemy(key, scale = 1, boss = false) {
+function makeEnemy(key, scale = 1, boss = false, bossRank = 0) {
   const m = MONSTERS[key];
-  const hp = Math.max(1, Math.round(m.maxhp * scale));
+  // 層ボスは bossRank が指定されていれば、その層相応のランクでステータスを組み直す
+  // (def の rank が低い暫定ボスでも、層に見合った強さの主として立ちはだかる)。
+  const b = (boss && bossRank) ? monStats(bossRank, true) : null;
+  const baseHp = b ? b.hp : m.maxhp, baseAtk = b ? b.atk : m.atk;
+  const baseDef = b ? b.def : m.def, baseSpd = b ? b.spd : m.spd;
+  const baseSoul = b ? b.soul : m.soul, baseGold = b ? b.gold : m.gold;
+  const hp = Math.max(1, Math.round(baseHp * scale));
   return {
     uid: ++_uid, key, mon: m, name: (boss ? m.name : m.name),
     element: m.element || "none",
     hp, maxhp: hp,
     // モンスター定義の atk/def/spd を六大ステへ写像 (def→VIT, spd→AGI)
-    atk: Math.max(1, Math.round(m.atk * scale)),
-    vit: Math.round(m.def * scale),
-    agi: m.swift ? m.spd + 4 : m.spd, // 俊敏: AGI を底上げして先手を取りやすくする
-    soul: Math.round(m.soul * scale), gold: Math.round(m.gold * scale),
+    atk: Math.max(1, Math.round(baseAtk * scale)),
+    vit: Math.round(baseDef * scale),
+    agi: m.swift ? baseSpd + 4 : baseSpd, // 俊敏: AGI を底上げして先手を取りやすくする
+    soul: Math.round(baseSoul * scale), gold: Math.round(baseGold * scale),
     boss: boss || !!m.boss,
     ability: m.ability || null, // 特殊能力 (毒/麻痺/石化/即死/窃盗/ドレイン/ブレス)
     // 個体特性: 物理被ダメ軽減 / 魔法被ダメ増 / 自己再生 / 回避
