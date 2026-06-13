@@ -94,5 +94,6 @@ Six elements + `none`, defined in `schema.js`. Advantage cycle is **火→風→
 Screens are overlay `<div>`s in `index.html` (`#town-screen`, `#status-screen`, `#item-get`) toggled via `.hidden`. Reusable popups in `game.js`: `showChoice` (illustrated choice card), `showEvent` (illustrated info/event card), `showItemGet` (item-acquired card). Reuse these instead of hand-rolling overlays; they manage the `G.prompt` input-block flag and the shared `#item-get` container.
 
 ## Conventions
+- **Always reply to the user in Japanese (日本語).** All assistant chat responses, plans, questions, and PR descriptions for this repo must be written in Japanese — this is mandatory, regardless of the language the user writes in. (Code identifiers stay in English; comments and in-game strings stay Japanese as below.)
 - Comments and all in-game/user-facing strings are in **Japanese**; match the surrounding tone (dark-fantasy flavor for monster/event text).
 - Plain ES Modules with explicit `.js` extensions in imports. No TypeScript, no JSX, no framework.
