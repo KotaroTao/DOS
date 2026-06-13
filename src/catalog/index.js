@@ -18,10 +18,11 @@ import { RANK6_ITEMS } from "./ranks/r06.js";
 import { RANK7_ITEMS } from "./ranks/r07.js";
 import { RANK8_ITEMS } from "./ranks/r08.js";
 import { RANK9_ITEMS } from "./ranks/r09.js";
+import { RANK10_ITEMS } from "./ranks/r10.js";
 
 // { id: item } に統合。ID重複は即エラー (セーブ/図鑑の参照を守る)
 export const CATALOG_ITEMS = {};
-for (const list of [WEAPONS, SHIELDS, ARMORS, HEADS, FEET, HANDS, ACCS, MISC, USABLES, LEGENDS, EXCLUSIVES, LR_ITEMS, RANK1_ITEMS, RANK2_ITEMS, RANK3_ITEMS, RANK4_ITEMS, RANK5_ITEMS, RANK6_ITEMS, RANK7_ITEMS, RANK8_ITEMS, RANK9_ITEMS]) {
+for (const list of [WEAPONS, SHIELDS, ARMORS, HEADS, FEET, HANDS, ACCS, MISC, USABLES, LEGENDS, EXCLUSIVES, LR_ITEMS, RANK1_ITEMS, RANK2_ITEMS, RANK3_ITEMS, RANK4_ITEMS, RANK5_ITEMS, RANK6_ITEMS, RANK7_ITEMS, RANK8_ITEMS, RANK9_ITEMS, RANK10_ITEMS]) {
   for (const it of list) {
     if (CATALOG_ITEMS[it.id]) throw new Error("duplicate item id: " + it.id);
     CATALOG_ITEMS[it.id] = it;
