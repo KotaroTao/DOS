@@ -379,14 +379,20 @@ export class Battle {
     this.advance();
   }
 
-  // 戦闘開始時の自動攻撃 (居合/開幕呪撃)。奇襲されている時は発動しない
+  // 戦闘開始時の自動攻撃 (居合/開幕呪撃)。奇襲されている時は発動しない。
+  // 与ダメはここで適用しつつ、結果を openingResults に記録し、game.js が斬撃エフェクトで見せる。
   _openingStrikes() {
+    this.openingResults = [];
     if (this.opening === "ambush") return;
     for (const p of this.party) {
       if (!p.alive) continue;
       if (pv(p, "iai")) {
         const t = this._randAlive(this.attackableEnemies(p)); // 居合も武器の射程に従う
-        if (t) { this.log(`${p.name}の居合！`, "hit"); this._physical(p, t, { power: 0.8, name: "居合" }); }
+        if (t) {
+          this.log(`${p.name}の居合！`, "hit");
+          const hit = this._physical(p, t, { power: 0.8, name: "居合" });
+          this.openingResults.push({ side: "party", actor: p, action: "attack", opening: "iai", hits: [hit] });
+        }
       }
       if (pv(p, "openSpell")) {
         const t = this._randAlive(this.enemies);
@@ -395,7 +401,8 @@ export class Battle {
           t.hp -= dmg;
           this.log(`${p.name}の開幕呪撃！ ${t.name}に ${dmg} ダメージ`, "hit");
           if (t.asleep) t.asleep = false;
-          this._die(t);
+          const died = this._die(t);
+          this.openingResults.push({ side: "party", actor: p, action: "spell", spellKind: "atk", spellElement: "none", opening: "openSpell", hits: [{ target: t, dmg, died }] });
         }
       }
     }
