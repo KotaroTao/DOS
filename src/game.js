@@ -407,7 +407,7 @@ const LAYER_VISUALS = [
   { name: "溶鉄炉",     sym: "♨", accent: "#e07838", bgm: "layer15", back: drawBackForge, floorBase: "#190e08", floorTiles: ["#23120a", "#1c0f08", "#160b06"], glow: "rgba(255,140,55,0.07)" },  // 15
   { name: "深淵の聖堂", sym: "✝", accent: "#e0d28a", bgm: "layer16", back: drawBackCathedral, floorBase: "#14130c", floorTiles: ["#1d1b10", "#18160d", "#13110a"], glow: "rgba(240,225,150,0.06)" }, // 16
   { name: "凍てつく王墓", sym: "❅", accent: "#a8c8e0", bgm: "layer17", back: drawBackTomb, floorBase: "#0d1217", floorTiles: ["#141e26", "#10181f", "#0c1217"], glow: "rgba(180,215,245,0.06)" }, // 17
-  { name: "冥府の門",   sym: "☖", accent: "#8c6aa8", bgm: "field9",     floorBase: "#100d14", floorTiles: ["#17121e", "#130f19", "#0f0c14"], glow: "rgba(150,110,190,0.06)" }, // 18
+  { name: "冥府の門",   sym: "☖", accent: "#8c6aa8", bgm: "layer18", back: drawBackHadesGate, floorBase: "#100d14", floorTiles: ["#17121e", "#130f19", "#0f0c14"], glow: "rgba(150,110,190,0.06)" }, // 18
   { name: "竜の巣",     sym: "♦", accent: "#c8503a", bgm: "field10",    floorBase: "#170d0a", floorTiles: ["#21120c", "#1b0f0a", "#150b07"], glow: "rgba(235,90,60,0.06)" },   // 19
   { name: "終焉の玄室", sym: "✺", accent: "#b08ac0", bgm: "field10",    floorBase: "#0f0c13", floorTiles: ["#161019", "#120d15", "#0e0b11"], glow: "rgba(180,130,210,0.06)" }, // 20
 ];
@@ -916,6 +916,105 @@ function drawThemedBack(r, accent, sym) {
   }
   vctx.fillStyle = "rgba(255,255,255,0.08)";
   vctx.fillRect(2, 2, r.w - 4, 3);
+}
+
+// 層18「冥府の門」のカード裏面: 死者の国へ続く巨大な門扉、隙間から漏れる冥府の光、昇る亡者の魂
+function drawBackHadesGate(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#140d1a");
+  bg.addColorStop(0.5, "#110b16");
+  bg.addColorStop(1, "#0d0810");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+
+  const ax0 = 11, ax1 = W - 11, aSpring = 18, aApex = 8, cxm = W / 2, gap = 2.2;
+  const archPath = () => {
+    vctx.beginPath();
+    vctx.moveTo(ax0, H); vctx.lineTo(ax0, aSpring);
+    vctx.quadraticCurveTo(ax0, aApex, cxm, aApex);
+    vctx.quadraticCurveTo(ax1, aApex, ax1, aSpring);
+    vctx.lineTo(ax1, H); vctx.closePath();
+  };
+
+  // 開口部 (クリップ内): 冥府の光 → 門扉 → 隙間の煌めき
+  vctx.save();
+  archPath(); vctx.clip();
+  const glow = vctx.createLinearGradient(0, aApex, 0, H);
+  glow.addColorStop(0, "rgba(180,120,240,0.5)");
+  glow.addColorStop(1, "rgba(120,70,180,0.2)");
+  vctx.fillStyle = glow;
+  vctx.fillRect(ax0, aApex, ax1 - ax0, H);
+  const door = (x0, x1) => {
+    const g = vctx.createLinearGradient(x0, 0, x1, 0);
+    g.addColorStop(0, "#221b2c"); g.addColorStop(0.5, "#352b44"); g.addColorStop(1, "#1a1424");
+    return g;
+  };
+  vctx.fillStyle = door(ax0, cxm - gap); vctx.fillRect(ax0, aApex, (cxm - gap) - ax0, H - aApex);
+  vctx.fillStyle = door(cxm + gap, ax1); vctx.fillRect(cxm + gap, aApex, ax1 - (cxm + gap), H - aApex);
+  // 扉の板目
+  vctx.strokeStyle = "rgba(10,6,16,0.6)"; vctx.lineWidth = 0.7;
+  for (const px of [ax0 + 5, ax0 + 10, cxm + 6, ax1 - 5]) {
+    vctx.beginPath(); vctx.moveTo(px, aApex + 2); vctx.lineTo(px, H); vctx.stroke();
+  }
+  // 鋲
+  vctx.fillStyle = "#4a3d5e";
+  for (let y = 14; y < H - 4; y += 9) {
+    for (const px of [ax0 + 3, cxm - gap - 3, cxm + gap + 3, ax1 - 3]) vctx.fillRect(px - 0.8, y, 1.6, 1.6);
+  }
+  // 隙間のまばゆい縁
+  vctx.fillStyle = "rgba(220,180,255,0.6)";
+  vctx.fillRect(cxm - gap - 0.6, aApex, 0.6, H);
+  vctx.fillRect(cxm + gap, aApex, 0.6, H);
+  vctx.restore();
+
+  // 石の門枠 (太いアーチ)
+  vctx.save();
+  vctx.lineJoin = "round";
+  vctx.strokeStyle = "#3a3146"; vctx.lineWidth = 4;
+  vctx.beginPath();
+  vctx.moveTo(ax0, H); vctx.lineTo(ax0, aSpring);
+  vctx.quadraticCurveTo(ax0, aApex, cxm, aApex);
+  vctx.quadraticCurveTo(ax1, aApex, ax1, aSpring);
+  vctx.lineTo(ax1, H); vctx.stroke();
+  vctx.strokeStyle = "rgba(150,120,190,0.25)"; vctx.lineWidth = 1;
+  vctx.beginPath();
+  vctx.moveTo(ax0 + 2, H); vctx.lineTo(ax0 + 2, aSpring);
+  vctx.quadraticCurveTo(ax0 + 2, aApex + 2, cxm, aApex + 2);
+  vctx.quadraticCurveTo(ax1 - 2, aApex + 2, ax1 - 2, aSpring);
+  vctx.lineTo(ax1 - 2, H); vctx.stroke();
+  vctx.restore();
+
+  // 要石の髑髏
+  const kx = cxm, ky = aApex - 1;
+  vctx.fillStyle = "#cfc7d8";
+  vctx.beginPath(); vctx.arc(kx, ky, 3, Math.PI, 0); vctx.lineTo(kx + 2, ky + 2.5); vctx.lineTo(kx - 2, ky + 2.5); vctx.closePath(); vctx.fill();
+  vctx.fillStyle = "#1a1420"; vctx.fillRect(kx - 1.8, ky - 1, 1.3, 1.4); vctx.fillRect(kx + 0.5, ky - 1, 1.3, 1.4);
+
+  // 亡者の魂 (紫の鬼火が隙間付近を昇る)
+  for (let i = 0; i < 5; i++) {
+    const ph = ((t * 0.0007) + i * 0.21) % 1;
+    const wx = cxm + Math.sin(ph * 7 + i * 2) * 7, wy = (H - 4) - ph * (H - 12), al = (1 - ph) * 0.7;
+    vctx.save();
+    vctx.shadowColor = "rgba(180,120,250,0.9)"; vctx.shadowBlur = 4;
+    vctx.fillStyle = `rgba(200,150,255,${al})`;
+    vctx.beginPath(); vctx.arc(wx, wy, 1.3, 0, Math.PI * 2); vctx.fill();
+    vctx.restore();
+  }
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
 }
 
 // 層17「凍てつく王墓」のカード裏面: 氷に覆われた石棺と横臥像、載る凍てついた王冠、舞い落ちる霜
