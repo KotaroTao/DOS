@@ -119,18 +119,62 @@ export const SPELLS = {
   DOKUGIRI: { name: "毒霧", mp: 12, kind: "atk", power: 16, ailment: { type: "poison", chance: 0.65 }, target: "all-enemy", desc: "敵全体を蝕む毒の霧" },
   HAJANOTACHI: { name: "破邪の太刀", mp: 12, kind: "phys", power: 2.3, element: "light", critBonus: 0.25, target: "enemy", desc: "聖別された刃で不浄を斬る" },
   YOIYAMIUCHI: { name: "宵闇打ち", mp: 10, kind: "phys", power: 2.0, sleepChance: 0.5, target: "enemy", desc: "闇の祝詞を乗せた一撃で眠らせる" },
+  // --- 盗賊 高レベル帯 (Lv85-200) ---
+  SHIPPUTSUKI: { name: "疾風突き", mp: 10, kind: "phys", power: 2.4, target: "enemy", desc: "疾風のごとき鋭い刺突" },
+  ENGETSUJIN: { name: "円月刃", mp: 14, kind: "phys", power: 1.4, critBonus: 0.15, target: "all-enemy", desc: "円を描く刃が敵全体を裂く" },
+  MOUDOKUSASHI: { name: "猛毒刺し", mp: 14, kind: "phys", power: 2.6, debuff: { atk: 0.8, vit: 0.85 }, target: "enemy", desc: "猛毒を塗った刃で深く蝕む" },
+  KAGEUCHI: { name: "影討ち", mp: 14, kind: "phys", power: 1.0, hits: 3, critBonus: 0.3, target: "enemy", desc: "影から繰り出す三連の刺突" },
+  KUBIHANE: { name: "首刎ね", mp: 18, kind: "phys", power: 5.0, critBonus: 0.4, target: "enemy", desc: "急所を狙う一撃必殺の刃" },
+  RANBUTSUKI: { name: "乱舞突き", mp: 18, kind: "phys", power: 0.9, hits: 4, target: "enemy", desc: "舞うように刻む四連刺し" },
+  SHUNSATSU: { name: "瞬殺", mp: 22, kind: "phys", power: 6.0, critBonus: 0.5, target: "enemy", desc: "瞬きの間に急所を貫く" },
+  TSUMUJIKAZE: { name: "旋風乱れ", mp: 22, kind: "phys", power: 1.8, critBonus: 0.2, target: "all-enemy", desc: "旋風となって全体を斬り乱す" },
+  ZANKOU: { name: "斬光", mp: 24, kind: "phys", power: 0.8, hits: 5, critBonus: 0.3, target: "enemy", desc: "光の速さで刻む五連撃" },
+  ANSATSU: { name: "暗殺", mp: 28, kind: "phys", power: 8.0, critBonus: 0.6, target: "enemy", desc: "標的を確実に仕留める暗殺術" },
+  SENKOUZAN: { name: "閃光斬", mp: 28, kind: "phys", power: 2.4, critBonus: 0.25, target: "all-enemy", desc: "閃光のごとく全体を薙ぐ" },
+  HISSATSU: { name: "必殺奥義", mp: 32, kind: "phys", power: 9.0, critBonus: 0.5, target: "enemy", desc: "盗賊の極みたる必殺の一刺し" },
+  MUGEN: { name: "夢幻泡影", mp: 30, kind: "phys", power: 0.7, hits: 6, critBonus: 0.4, target: "enemy", desc: "幻のごとき六連の乱刺" },
+  ZANSEI: { name: "斬星", mp: 40, kind: "phys", power: 11.0, critBonus: 0.7, target: "enemy", desc: "星すら断つ大怪盗の奥義" },
   // --- 魔術師ベース ---
   SHINRANOSABAKI: { name: "森羅の裁き", mp: 15, kind: "atk", power: 36, target: "all-enemy", desc: "属性の理を超えた万象の裁き" },
   MARYOKUGOUDATSU: { name: "魔力強奪", mp: 7, kind: "atk", power: 30, element: "dark", mpDrain: 0.3, target: "enemy", desc: "呪撃で敵を撃ち、魔力を奪い取る" },
   MAFUUZAN: { name: "魔風斬", mp: 13, kind: "phys", power: 1.2, element: "wind", target: "all-enemy", desc: "理力の風で敵全体を斬り抜ける" },
   KOUSHUNOHOUJIN: { name: "攻守の法陣", mp: 14, kind: "buff", buff: { vit: 1.25 }, debuffAll: { atk: 0.85 }, target: "all-ally", desc: "味方を守り敵を縛る二重の法陣" },
   KINJUKAICHOU: { name: "禁呪開帳", mp: 12, kind: "atk", power: 38, element: "dark", critBonus: 0.25, target: "enemy", desc: "禁断の頁を開き闇の呪撃を放つ" },
+  // --- 魔導士 高レベル帯 (Lv85-200) ---
+  RAITEI: { name: "雷霆", mp: 9, kind: "atk", power: 28, element: "wind", target: "enemy", desc: "天を裂く雷霆の一撃" },
+  HYORETSU: { name: "氷烈", mp: 14, kind: "atk", power: 40, element: "water", target: "enemy", desc: "凍てつく氷烈の槍" },
+  ENBU: { name: "炎舞", mp: 14, kind: "atk", power: 40, element: "fire", target: "all-enemy", desc: "渦巻く炎が敵全体を舞い焼く" },
+  RAIJIN: { name: "雷神", mp: 16, kind: "atk", power: 46, element: "wind", target: "all-enemy", desc: "雷神の怒りが戦場を貫く" },
+  DAICHIWARI: { name: "大地割", mp: 16, kind: "atk", power: 50, element: "earth", target: "enemy", desc: "大地ごと敵を断ち割る" },
+  HYOUGA: { name: "氷河", mp: 20, kind: "atk", power: 56, element: "water", target: "all-enemy", desc: "全てを凍てつかせる氷河" },
+  GOKUEN: { name: "獄炎", mp: 20, kind: "atk", power: 64, element: "fire", target: "enemy", desc: "獄の業火で一体を焼き尽くす" },
+  RAIMEIRAN: { name: "雷鳴嵐", mp: 22, kind: "atk", power: 64, element: "wind", target: "all-enemy", desc: "天を裂く雷鳴の大嵐" },
+  METEOR: { name: "メテオ", mp: 26, kind: "atk", power: 80, element: "earth", target: "all-enemy", desc: "天より墜つる隕石の雨" },
+  ZETTAIREIDO: { name: "絶対零度", mp: 26, kind: "atk", power: 90, element: "water", target: "enemy", desc: "絶対零度が一体を凍砕する" },
+  GOKUENRAN: { name: "獄炎嵐", mp: 30, kind: "atk", power: 90, element: "fire", target: "all-enemy", desc: "獄炎の大嵐が戦場を呑む" },
+  KOKUUHA: { name: "虚空波", mp: 30, kind: "atk", power: 100, element: "dark", target: "enemy", desc: "虚空より放つ闇の波動" },
+  TENPENCHII: { name: "天変地異", mp: 36, kind: "atk", power: 110, target: "all-enemy", desc: "天地を覆す大災厄" },
+  KYOKUDAI: { name: "極大消滅", mp: 44, kind: "atk", power: 140, target: "all-enemy", desc: "万象を消滅させる極大呪文" },
   // --- 僧侶ベース ---
   SEIMAICHINYO: { name: "聖魔一如", mp: 14, kind: "atk", power: 22, element: "light", partyHeal: 14, target: "all-enemy", desc: "聖光で敵を焼き、返す光で隊を癒す" },
   DANZAINOTSUCHI: { name: "断罪の鉄槌", mp: 12, kind: "phys", power: 2.3, element: "light", flinchChance: 0.35, target: "enemy", desc: "断罪の聖槌が敵を打ち据え怯ませる" },
   KONGOURENDA: { name: "金剛連打", mp: 13, kind: "phys", power: 0.95, hits: 3, target: "enemy", desc: "金剛の拳による怒涛の三連打" },
   KASUMINOTOBARI: { name: "霞の帳", mp: 12, kind: "heal", power: 16, debuffAll: { atk: 0.8 }, target: "all-ally", desc: "霞が隊を癒し、敵の目を曇らせる" },
   DAISEIKITOU: { name: "大聖祈祷", mp: 14, kind: "heal", power: 30, cure: true, target: "all-ally", desc: "隊を癒し穢れを祓う大いなる祈り" },
+  // --- 僧侶 高レベル帯 (Lv85-200) ---
+  SHINSEIKO: { name: "神聖光", mp: 14, kind: "atk", power: 40, element: "light", target: "enemy", desc: "神聖な光で敵を裁く" },
+  SHINYU: { name: "神癒", mp: 16, kind: "heal", power: 100, target: "ally", desc: "神の癒しで深手を塞ぐ" },
+  SEIBETSU: { name: "聖別", mp: 16, kind: "buff", buff: { vit: 1.3 }, cure: true, target: "all-ally", desc: "聖別の祈りで隊を守り穢れを祓う" },
+  IYASHINAMI: { name: "癒しの波", mp: 22, kind: "heal", power: 70, target: "all-ally", desc: "癒しの大波が隊を包む" },
+  SEIMETSUKOU: { name: "聖滅光", mp: 20, kind: "atk", power: 50, element: "light", target: "all-enemy", desc: "全敵を浄化する聖滅の光" },
+  SHINBATSU: { name: "神罰", mp: 24, kind: "atk", power: 70, element: "light", target: "enemy", desc: "天より下る神罰の一閃" },
+  SEISUISHO: { name: "聖水撒", mp: 18, kind: "heal", power: 26, cure: true, target: "all-ally", desc: "聖水を撒き、癒しと共に穢れを祓う" },
+  TENKEINOINORI: { name: "天啓の祈り", mp: 26, kind: "heal", power: 50, buff: { vit: 1.3 }, target: "all-ally", desc: "天啓が隊を癒し守りを高める" },
+  SEIKOURETSU: { name: "聖光烈", mp: 28, kind: "atk", power: 90, element: "light", target: "enemy", desc: "凝縮した聖光が敵を撃ち抜く" },
+  FUKUIN: { name: "復活の福音", mp: 30, kind: "heal", power: 40, revive: true, revivePct: 0.6, target: "all-ally", desc: "倒れた味方を蘇らせ、隊を癒す福音" },
+  SEIMETSUREKKOU: { name: "聖滅烈光", mp: 30, kind: "atk", power: 70, element: "light", target: "all-enemy", desc: "全敵を焼き払う聖滅の烈光" },
+  DAIFUKUIN: { name: "大福音", mp: 36, kind: "heal", power: 80, cure: true, target: "all-ally", desc: "隊全員を大きく癒し穢れを祓う祈り" },
+  KAMIWAZA: { name: "神の御業", mp: 44, kind: "heal", power: 999, cure: true, revive: true, revivePct: 1.0, target: "all-ally", desc: "倒れた者すら完全に呼び戻す神の御業" },
   // --- 魔導僧ベース ---
   SHINENNOHADOU: { name: "深淵の波動", mp: 13, kind: "atk", power: 44, element: "dark", target: "enemy", desc: "深淵より汲み上げた闇の波動" },
   SEIKUNOKAGO: { name: "聖句の加護", mp: 12, kind: "heal", power: 36, grantEndure: true, target: "ally", desc: "癒しと共に死を退ける聖句を授ける" },
@@ -988,7 +1032,8 @@ export class Battle {
     let sureCrit = false;
     if (opt.basic && actor._kenma) { actor._kenma = false; sureCrit = true; }       // 剣魔合一
     if (opt.basic && actor._ambushCritLeft > 0) { actor._ambushCritLeft--; sureCrit = true; } // 不意打ち
-    if (pv(actor, "sleepKill") && (tgt.asleep || tgt.ailment === "paralyze")) sureCrit = true; // 寝込み襲い
+    if (tgt.asleep) sureCrit = true; // 眠っている敵への物理は必ず会心
+    if (pv(actor, "sleepKill") && tgt.ailment === "paralyze") sureCrit = true; // 寝込み襲い: 麻痺にも確定会心
     const crit = sureCrit || Math.random() < critChance;
     if (crit) dmg = Math.floor(dmg * 1.85 * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)]); // 急所読み: 会心強化
     // 隊列補正: 後衛は物理の与ダメ・被ダメが半減
@@ -1109,7 +1154,7 @@ export class Battle {
         if (t.magResist && t.magResist > 0) { dmg = Math.max(1, Math.round(dmg * (1 - t.magResist))); magResisted = true; }
         if (pv(actor, "gokudoku") && t.ailment === "poison") dmg = Math.round(dmg * 1.3); // 蠱毒
         // 会心: 呪文会心パッシブ + 技固有の会心補正 (禁呪開帳など)
-        const crit = Math.random() < ((scLv ? (scLv >= 2 ? 0.18 : 0.10) : 0) + (sp.critBonus || 0));
+        const crit = Math.random() < (([0, 0.10, 0.18, 0.26][Math.min(scLv, 3)] || 0) + (sp.critBonus || 0));
         if (crit) dmg = Math.floor(dmg * 1.5);
         if (t.guard) dmg = Math.max(1, Math.ceil(dmg * (1 - t.guard))); // 金剛の護符: 呪文・ブレスの被ダメもカット
         t.hp -= dmg;
@@ -1167,9 +1212,18 @@ export class Battle {
       const healPower = (sp.power + (actor.pie || 0) * 0.5) * aMul;
       // 全体回復
       if (sp.target === "all-ally") {
-        let cured = false;
+        let cured = false, revivedAny = false;
         for (const t of this.party) {
-          if (!t.alive) continue;
+          // 復活の福音 (revive): 倒れた味方も対象にして蘇生する
+          const wasDead = !t.alive;
+          if (wasDead) {
+            if (!sp.revive) continue;
+            t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false;
+            t.hp = sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : Math.min(t.maxhp, variance(healPower));
+            revivedAny = true;
+            res.hits.push({ target: t, heal: t.hp, revived: true });
+            continue;
+          }
           const heal = variance(healPower);
           t.hp = Math.min(t.maxhp, t.hp + heal);
           // 大聖祈祷 (cure): 癒しと同時に穢れを祓う / 聖壁の祈り (buff): 守りも固める
@@ -1177,7 +1231,7 @@ export class Battle {
           if (sp.buff) for (const k in sp.buff) this._applyMod(t, k, sp.buff[k], sp.dur, sp.name);
           res.hits.push({ target: t, heal });
         }
-        this.log(`味方全員のHPが回復した`, "heal");
+        this.log(revivedAny ? `福音が倒れた者を呼び戻した！` : `味方全員のHPが回復した`, "heal");
         if (cured) this.log("隊の穢れが祓われた", "heal");
         if (sp.buff) this.log("隊の守りも固められた", "heal");
       } else {

@@ -532,9 +532,9 @@ const MUTATORS = [
   { id: "sealedExit", name: "閉ざされた退路", sym: "⛓", accent: "#9aa0ac", noFlee: true, chestRankUp: 1,
     risk: "すべての戦闘から逃げられない",
     gain: "宝箱がすべて 1ランク上等になる" },
-  { id: "hungryPack", name: "飢えた狩場", sym: "Ψ", accent: "#c08a4a", packMin: 3, rareDropRate: 0.15,
+  { id: "hungryPack", name: "飢えた狩場", sym: "Ψ", accent: "#c08a4a", packMin: 3, soulMul: 1.3,
     risk: "敵が常に群れで現れる (3体以上)",
-    gain: "敵のレアドロップ率が 15% になる" },
+    gain: "得られる Soul が 30% 増える" },
   { id: "nightHunt", name: "闇討ちの宴", sym: "🌘", accent: "#7a5ad0", ambushMul: 4, goldMul: 1.5, soulMul: 1.3,
     risk: "奇襲を受けやすくなる",
     gain: "ゴールド 1.5倍・Soul 1.3倍" },
@@ -842,6 +842,21 @@ function renderBoard() {
 
   renderParty();
 }
+
+// 盤面の常時アニメーション: 静止中もカード裏面の演出 (水滴・火花・霧・鬼火など) を動かす。
+// 移動/めくり中はそれぞれの tick が renderBoard を回すので、ここでは静止中の盤面だけを
+// ゆるやかに (約18fps) 再描画する。タブが背面の間は requestAnimationFrame が止まり負荷もかからない。
+let _boardAnimLast = 0;
+function boardAnimLoop(ts) {
+  requestAnimationFrame(boardAnimLoop);
+  if (G.state !== "board") return;
+  if (G.anim || G.walking || G.flipAnim || G.heroAnim || G.wallFlash) return; // 他の tick に任せる
+  if (G.prompt || G.statusOpen || G.settingsOpen) return;                     // オーバーレイ表示中は不要
+  if (ts - _boardAnimLast < 55) return;                                       // 約18fpsに間引き
+  _boardAnimLast = ts;
+  renderBoard();
+}
+requestAnimationFrame(boardAnimLoop);
 
 // マスの辺の壁 (カード境界の上に重ね描き)。絶対座標で太く明るく描く
 const WALL_T = 8;
@@ -7099,7 +7114,7 @@ function recordMonsterKill(key, dungeonIdx) {
 // 中身は迷宮の lootLv 帯から引く (レアは一段深い帯)。実物は勝利後の宝箱から取り出す。
 function rollGenericDrop() {
   const ap = partyPassiveLv("appraise") ? 1.15 : 1; // 目利き: ドロップ率+15%
-  // 特別階 (盗賊の洞察) / 迷宮の異変 (飢えた狩場): レアドロップ率が上がる (高い方を採用)
+  // 特別階 (盗賊の洞察): レアドロップ率が上がる
   if (Math.random() < Math.max(sfNum("rareDropRate", 0.04 * ap), mutNum("rareDropRate", 0))) {
     const id = pickItemByR(dropCenterR({ rare: true }));
     if (ITEMS[id]) { const it = cloneItem(id); if (it) return { key: "loot", name: "戦利品", id, item: it, rare: true }; }
@@ -8304,7 +8319,8 @@ function renderStatus() {
 function invRow(p, it, sel) {
   const row = el("div", "st-invrow");
   const ic = el("span", "st-iicon"); ic.appendChild(spriteCanvas(it, 2)); row.appendChild(ic);
-  row.appendChild(el("span", "st-iname" + (it.unidentified ? " st-unid" : ""), itemName(it) + (it.unidentified ? " 🔍" : (it.cursed ? " 🔒" : ""))));
+  const unidMark = it.unidentified ? (it.idHardFail ? " 🔍✕" : " 🔍") : (it.cursed ? " 🔒" : "");
+  row.appendChild(el("span", "st-iname" + (it.unidentified ? (it.idHardFail ? " st-unid st-idfail" : " st-unid") : ""), itemName(it) + unidMark));
   row.addEventListener("click", () => { SFX.select(); showItemDetailPopup(p, { item: it, from: "bag", index: sel.index }); });
   return row;
 }
@@ -8647,6 +8663,9 @@ function itemCatText(it) {
 // ウィザードリィ風の情報テキスト行
 function detailLines(it) {
   if (it && it.unidentified) {
+    if (it.idHardFail) {
+      return ["？ 未鑑定の品 (鑑定失敗済み)", "鑑定するまで正体も性能もわからない。", "スキル鑑定に失敗したため、もう商店 (有料) でしか鑑定できない。"];
+    }
     return ["？ 未鑑定の品", "鑑定するまで正体も性能もわからない。", "商店 (有料) か、鑑定の心得がある仲間が必要だ。"];
   }
   const L = [];
@@ -8692,7 +8711,7 @@ function showItemDetailPopup(p, sel) {
   if (rc) ban.style.color = rc;
   card.appendChild(ban);
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 11)); card.appendChild(art);
-  card.appendChild(el("div", "ig-name", itemName(it) + (it.unidentified ? " 🔍" : (it.cursed ? " 🔒呪" : ""))));
+  card.appendChild(el("div", "ig-name", itemName(it) + (it.unidentified ? (it.idHardFail ? " 🔍✕" : " 🔍") : (it.cursed ? " 🔒呪" : ""))));
   for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
   if (isEquippable(it) && !it.unidentified && G.party.length > 1) card.appendChild(equipPartyChips(it));
   if (it.desc && !it.unidentified) card.appendChild(el("div", "ig-desc", it.desc));
@@ -8793,7 +8812,7 @@ function doIdentifySkill(m, it) {
     log(`${m.name}の鑑定は失敗した… この品は商店でしか鑑定できなくなった。`, "sys");
     showToast("🔍 鑑定失敗…");
   }
-  if (G.state === "status") renderStatus();
+  if (G.statusOpen) renderStatus(); // ステータス画面はオーバーレイ (G.state は board/town のまま) なので statusOpen で判定
   renderParty();
   autosave(true);
 }
