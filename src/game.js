@@ -2696,7 +2696,7 @@ function askDescend(cell) {
     prompt,
     [
       { label, danger: boss, fn: () => {
-        if (boss) { log("迷宮の主が立ちはだかる！", "dmg"); startBattle(spawnBossEnemies(dn.boss, dn.bossScale * enemyScale()), cell); }
+        if (boss) { log("迷宮の主が立ちはだかる！", "dmg"); startBattle(spawnBossEnemies(dn.boss, dn.bossScale * enemyScale(), dn.bossRank), cell); }
         else if (clearNoBoss) clearDungeonNoBoss();
         else descend();
       } },
