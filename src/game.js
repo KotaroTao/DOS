@@ -279,7 +279,10 @@ const G = {
   lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
   story: 0,           // 王宮ストーリーの進行段階
   dragonSlain: false, // 竜を討ったか
-  stats: { runs: 0, deepest: 0, kills: 0, deaths: 0, soulsFound: 0, bossKills: 0 }, // 戦績
+  // 戦績。bossIds/elemKills は集合 ({key:true})、swiftBoss/masterMimicSlain は一度きりの達成フラグ
+  stats: { runs: 0, deepest: 0, kills: 0, deaths: 0, soulsFound: 0, bossKills: 0,
+    chests: 0, mimics: 0, trapsDisarmed: 0, trapsSprung: 0, fusions: 0, questsDone: 0,
+    swiftBoss: false, masterMimicSlain: false, bossIds: {}, elemKills: {} },
   battle: null,
   battleCell: null,   // 戦闘中のモンスターカード
   prevPos: null,      // 逃走時の戻り先
@@ -3262,6 +3265,7 @@ function resolveCell(cell) {
       const best = bestDisarmer();
       if (best && Math.random() < disarmChance(best)) {
         SFX.chest();
+        G.stats.trapsDisarmed++; // 戦績: 解除した罠 (勲章用)
         log(`床の罠「${trap.name}」を ${best.name}が見抜き、解除した！`, "sys");
         showEvent({
           sprite: ICONS.trap, title: "罠を解除！", accent: "#9be88a", banner: "✦ 罠解除 ✦", sparkle: true,
@@ -3727,6 +3731,7 @@ function askOpenChest(cell) {
 
 function openChest(cell, opener) {
   if (cell) cell.cleared = true;
+  G.stats.chests++; // 戦績: 開けた宝箱の数 (勲章用)
   questProgress("chest", null, 1); // 盤面の宝箱を開けた (サブクエスト用)
   rollChest(cell, true, () => { if (G.state === "board") renderBoard(); }, opener);
 }
@@ -3786,6 +3791,7 @@ function chestTrapPhase(opener, contents, cRank = 1, abort, excludeKinds) {
     const chance = disarmChance(who, cRank);
     if (who && Math.random() < chance) {
       SFX.chest();
+      G.stats.trapsDisarmed++; // 戦績: 解除した罠 (勲章用)
       log(`宝箱の罠「${trap.name}」を ${who.name}が解除した！`, "sys");
       showEvent({
         sprite: ICONS.trap, title: "罠解除！", accent: "#9be88a", banner: "✦ 罠解除 ✦", sparkle: true,
@@ -3825,6 +3831,7 @@ function trapBaseDmg() {
 // fin.chest: 宝箱の罠かどうか (演出の文言に使う)
 function springTrap(trap, opener, fin) {
   SFX.trap(); buzz([0, 60, 40, 60]);
+  G.stats.trapsSprung++; // 戦績: 発動させてしまった罠 (勲章用)
   log(`罠だ！ 「${trap.name}」が発動した！`, "dmg");
   const alive = () => G.party.filter((p) => p.alive);
 
@@ -4966,8 +4973,13 @@ function endBattle() {
       if (e.alive) continue;
       questProgress("kill", e.key);
       G.stats.kills++;
+      if (e.element && e.element !== "none") G.stats.elemKills[e.element] = true; // 戦績: 撃破した属性 (勲章用)
+      if (e.isMimic) G.stats.mimics++;                       // 戦績: ミミック撃破数
+      if (e.isMasterMimic) G.stats.masterMimicSlain = true;  // 戦績: マスターミミック討伐 (一度きり)
       recordMonsterKill(e.key, G.dungeonIdx); // 図鑑は「倒した時」に記録
     }
+    // 層ボスを1ラウンドで討ち取ったか (勲章: 電光石火)
+    if (b._roundNo <= 1 && b.enemies.some((e) => !e.alive && e.boss)) G.stats.swiftBoss = true;
     // 戦利品は勝利ごとに1品まで汎用抽選 (固有ドロップ廃止)。宝箱は1つだけ現れる
     let drop = rollGenericDrop();
     // 強敵討伐ボーナス: 高ランクアイテムの確定ドロップ
@@ -5156,7 +5168,11 @@ function gameOver() {
 // 勝利確定と同時に保存されるため、演出中に中断されても踏破・章進行は失われない
 function commitDungeonClear(countBoss = true) {
   const idx = G.dungeonIdx;
-  if (countBoss) { G.stats.bossKills++; questProgress("boss", null, 1); }
+  if (countBoss) {
+    G.stats.bossKills++; questProgress("boss", null, 1);
+    const bk = DUNGEONS[idx] && DUNGEONS[idx].boss;
+    if (bk) G.stats.bossIds[bk] = true; // 戦績: 討伐した層ボスの種類 (勲章用)
+  }
   G.dragonSlain = G.dragonSlain || idx === DUNGEONS.length - 1;
   // 新迷宮の解放は王宮の勅命ループが担う: 勅命対象を踏破 → 王宮で報告 → 次章拝命で解放
   const isStoryTarget = G.msq && G.msq.state === "active" && idx + 1 === G.msq.n;
@@ -6321,6 +6337,7 @@ function fuseSoul(targetUid, consumeUid) {
   const idx = G.souls.indexOf(c);
   if (idx >= 0) G.souls.splice(idx, 1);
   unequipSoulEverywhere(c.uid);
+  G.stats.fusions++; // 戦績: 魂の融合回数 (勲章用)
   recalcAllDolls();
   codexJobSee(t.clsKey, t.count, t.level);
   const after = soulRankOf(t);
@@ -6756,6 +6773,7 @@ function renderTavern() {
 
 function claimQuest(q) {
   q.state = "claimed";
+  G.stats.questsDone++; // 戦績: 達成した依頼の数 (勲章用)
   G.gold += q.reward.gold;
   let msg = `報酬 💰${q.reward.gold}`;
   if (q.reward.soulPts) { G.soulPts += q.reward.soulPts; msg += ` ✦${q.reward.soulPts}`; }
@@ -6777,16 +6795,17 @@ function claimQuest(q) {
 // 追跡用の状態は不要 (G.ach は受領済みのみ記録)。ID はセーブに残るため変更禁止。
 const ACHIEVEMENTS = [];
 {
-  const push = (id, name, desc, cond, gold, redSoul, series) => {
+  const push = (id, name, desc, cond, gold, redSoul, series, soulPts) => {
     const reward = {};
     if (gold) reward.gold = gold;
     if (redSoul) reward.redSoul = redSoul;
+    if (soulPts) reward.soulPts = soulPts;
     ACHIEVEMENTS.push({ id, name, desc, cond, reward, series: series || id });
   };
-  // 段階表: rows = [しきい値, 称号, gold, redSoul][]
+  // 段階表: rows = [しきい値, 称号, gold, redSoul, soulPts][] (gold以降は省略可)
   // 同じ段階表の勲章は series で束ね、勲章の間では「次の段階」だけを1枠に表示する
   const tiers = (idOf, rows, descOf, condOf) =>
-    rows.forEach(([v, name, gold, redSoul]) => push(idOf(v), name, descOf(v), () => condOf(v), gold, redSoul, idOf(rows[0][0])));
+    rows.forEach(([v, name, gold, redSoul, soulPts]) => push(idOf(v), name, descOf(v), () => condOf(v), gold, redSoul, idOf(rows[0][0]), soulPts));
   const allDolls = () => [...(G.party || []), ...(G.reserve || [])];
   const allSouls = () => (G.souls || []);
   const monSeen = () => Object.keys(G.codex.mon).filter((k) => MONSTERS[k]).length;
@@ -6881,9 +6900,63 @@ const ACHIEVEMENTS = [];
   tiers((v) => `srank${v}`, [[2, "偉大なる魂", 300, 5], [4, "伝説とのめぐり合い", 1000, 20]],
     (v) => `${v === 4 ? "ランク5" : "ランク2以上"}の職業に到達する`, (v) => allSouls().some((s) => soulRankFromCount(s.clsKey, s.count) >= v + 1));
 
-  // 一点物 (2)
+  // ── 探索の所作 (A: これまで未計測だった行動を勲章化) ──
+  // 宝箱開封 (4)
+  tiers((v) => `chest${v}`, [
+    [10, "宝箱漁り", 100], [50, "財宝の嗅覚", 300, 5], [200, "蔵荒らし", 800, 10], [500, "宝箱の王", 2000, 20],
+  ], (v) => `宝箱を ${v}回 開ける`, (v) => (G.stats.chests || 0) >= v);
+
+  // 罠解除 (4) — 盗賊の見せ場
+  tiers((v) => `disarm${v}`, [
+    [10, "罠外し", 120], [50, "罠師の目", 350, 5], [150, "罠殺し", 900, 10], [400, "全ての罠を見抜く者", 2500, 25],
+  ], (v) => `罠を ${v}回 解除する`, (v) => (G.stats.trapsDisarmed || 0) >= v);
+
+  // 罠の被害 (3) — 痛い目を見た数だけ語れる
+  tiers((v) => `trapped${v}`, [
+    [10, "うっかり者", 0, 5], [50, "痛みを知る者", 0, 15], [150, "罠の常連", 0, 30],
+  ], (v) => `罠を ${v}回 踏み抜く`, (v) => (G.stats.trapsSprung || 0) >= v);
+
+  // 魂の融合 (4)
+  tiers((v) => `fuse${v}`, [
+    [1, "はじめての融合", 150], [10, "魂の鍛冶", 400, 5], [50, "融合の達人", 1200, 15], [150, "魂を束ねる者", 3000, 30],
+  ], (v) => `魂を ${v}回 融合する`, (v) => (G.stats.fusions || 0) >= v);
+
+  // 依頼の達成 (4) — 酒場のクエスト
+  tiers((v) => `quest${v}`, [
+    [5, "駆け出しの請負人", 150], [25, "酒場の常連", 400, 5], [75, "万能の請負人", 1200, 15], [200, "伝説の請負人", 3000, 30],
+  ], (v) => `依頼を ${v}件 達成する`, (v) => (G.stats.questsDone || 0) >= v);
+
+  // ミミック撃破 (3)
+  tiers((v) => `mimic${v}`, [
+    [1, "化け箱殺し", 150], [10, "擬態の天敵", 500, 10], [50, "ミミックの宿敵", 2000, 25],
+  ], (v) => `ミミックを ${v}体 倒す`, (v) => (G.stats.mimics || 0) >= v);
+
+  // 層ボス制覇 (4) — 種類で数える (1迷宮1種・最大20)
+  const bossKinds = () => Object.keys(G.stats.bossIds || {}).length;
+  tiers((v) => `lboss${v}`, [
+    [3, "層の覇者", 300, 5], [7, "幾多の主を屠る者", 1000, 10], [13, "玉座の収集家", 2500, 20], [20, "二十層の支配者", 6000, 50],
+  ], (v) => `層ボスを ${v}種 討伐する`, (v) => bossKinds() >= v);
+
+  // ── 一点物・チャレンジ (B) ──
   push("party6", "六人の隊列", "人業 6体 で編成する", () => G.party.length >= 6, 200);
   push("dragon", "竜殺しの伝説", "竜の玄室の主を討つ", () => G.dragonSlain, 5000, 50);
+  push("swiftBoss", "電光石火", "層ボスを 1ラウンド で討ち取る",
+    () => !!G.stats.swiftBoss, 2000, 20, null, 500);
+  push("masterMimic", "黄金を喰らう者", "マスターミミックを討ち取る",
+    () => !!G.stats.masterMimicSlain, 2500, 25, null, 500);
+  push("allElements", "六属を統べる者", "火・水・風・土・光・闇 すべての属性の敵を倒す",
+    () => ["fire", "water", "wind", "earth", "light", "dark"].every((el) => G.stats.elemKills && G.stats.elemKills[el]),
+    1500, 15, null, 400);
+
+  // ── コンプリート (C) ── 達成可能な収集の最終目標
+  const JOB_TOTAL = Object.keys(SOUL_CLASSES).length; // 全職業数 (=36)
+  const awakenedJobs = () => new Set(allSouls().filter((s) => soulRankFromCount(s.clsKey, s.count) >= 2).map((s) => s.clsKey)).size;
+  push("await6", "六魂の覚醒", "6種の職業をランク2以上に覚醒させる",
+    () => awakenedJobs() >= 6, 600, 5);
+  push("await18", "十八魂の覚醒", "18種の職業をランク2以上に覚醒させる",
+    () => awakenedJobs() >= 18, 2000, 20, null, 300);
+  push("awakeAll", "全魂覚醒の祖", `全${JOB_TOTAL}職をランク2以上に覚醒させる`,
+    () => awakenedJobs() >= JOB_TOTAL, 8000, 80, null, 1000);
 }
 
 function claimAchievement(a) {
@@ -10085,7 +10158,14 @@ function loadGame() {
       .slice(0, MAX_SUBS);
     try { recalcDoll(d); } catch {}
   }
-  if (!G.stats) G.stats = { runs: 0, deepest: 0, kills: 0, deaths: 0, soulsFound: 0, bossKills: 0 };
+  if (!G.stats) G.stats = {};
+  // 後付けの戦績フィールドを既存セーブにも補完する (勲章 cond が参照する)
+  const _statDefaults = { runs: 0, deepest: 0, kills: 0, deaths: 0, soulsFound: 0, bossKills: 0,
+    chests: 0, mimics: 0, trapsDisarmed: 0, trapsSprung: 0, fusions: 0, questsDone: 0,
+    swiftBoss: false, masterMimicSlain: false };
+  for (const k in _statDefaults) if (G.stats[k] == null) G.stats[k] = _statDefaults[k];
+  if (!G.stats.bossIds || typeof G.stats.bossIds !== "object") G.stats.bossIds = {};
+  if (!G.stats.elemKills || typeof G.stats.elemKills !== "object") G.stats.elemKills = {};
   if (!G.ach) G.ach = {}; // 勲章 (後付け)
   if (!G.subQuests) G.subQuests = {}; // サブクエスト (後付け)
   if (!Array.isArray(G.subQuestSeen)) G.subQuestSeen = []; // 表示済みの迷宮 (後付け)
