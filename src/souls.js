@@ -1436,12 +1436,22 @@ export function jobLevelPassives(jobKey, level) {
   }
   return map;
 }
+// 魂インスタンスが習得済みのパッシブ {key: lv} (自身の Lv とランクで決まる)。
+// レベルスキル表に織り込まれたパッシブ + 旧仕様のランク別パッシブを合算する。
+export function soulLearnedPassives(s) {
+  if (!s) return {};
+  const map = jobLevelPassives(s.clsKey, s.level || 1);
+  const rank = soulRankFromCount(s.clsKey, s.count);
+  const pmap = passivesUpTo(s.clsKey, rank);
+  for (const k in pmap) map[k] = Math.max(map[k] || 0, pmap[k]);
+  return map;
+}
 
 export function makeDoll(name) {
   return {
     uid: ++_dollUid, name, isDoll: true,
     primary: null,   // 宿しているメイン魂の uid (祭壇で付け替え)
-    subs: [],        // サブ魂スロット: {uid, skill} の配列 (最大 MAX_SUBS)。skill = 借りる技
+    subs: [],        // サブ魂スロット: {uid, skill, passive} の配列 (最大 MAX_SUBS)。skill=借りる技 / passive=借りるパッシブ
     clsKey: "fighter", cls: "空の人業", level: 1,
     hp: 1, maxhp: 1, mp: 0, maxmp: 0,
     atk: 0, vit: 0, agi: 1, int: 0, pie: 0, luk: 0,
@@ -1655,21 +1665,39 @@ export function recalcDoll(doll) {
     doll.jobLv = 1;
   }
 
-  // サブ魂: その魂が覚えているスキルから1つ (doll が設定) を借りる。
-  // ステータスはその魂のステの SUB_STAT_RATE (=30%) を加算する。パッシブは乗らない。
+  // サブ魂: その魂が覚えているスキル「または」パッシブから1つ (doll が設定) を借りる。
+  // sub.passive が設定されていればパッシブを、なければ sub.skill のスキルを借りる。
+  // ステータスはその魂のステの SUB_STAT_RATE (=30%) を加算する。
   doll.subInfo = [];
   for (const sub of doll.subs) {
     const se = sub ? soulByUid(sub.uid) : null;
     if (!se) continue;
     const sr = soulRankFromCount(se.clsKey, se.count);
     const learned = soulLearnedSkills(se);
-    let chosen = sub.skill;
-    if (!chosen || !learned.includes(chosen)) { chosen = learned.length ? learned[learned.length - 1] : null; sub.skill = chosen; }
-    if (chosen && !spells.includes(chosen)) spells.push(chosen);
+    const learnedPassives = soulLearnedPassives(se);
+    let chosenSkill = null, chosenPassive = null;
+    if (sub.passive && learnedPassives[sub.passive]) {
+      // パッシブを借用
+      chosenPassive = sub.passive;
+    } else if (sub.skill && learned.includes(sub.skill)) {
+      // スキルを借用
+      chosenSkill = sub.skill;
+    } else {
+      // 未設定/無効なら看板スキル相当 (覚えている最後のスキル) を既定にする
+      chosenSkill = learned.length ? learned[learned.length - 1] : null;
+      sub.skill = chosenSkill; sub.passive = null;
+    }
+    if (chosenSkill && !spells.includes(chosenSkill)) spells.push(chosenSkill);
+    if (chosenPassive) {
+      const plv = learnedPassives[chosenPassive];
+      passiveMap[chosenPassive] = Math.max(passiveMap[chosenPassive] || 0, plv);
+      const nm = passiveName(chosenPassive, plv);
+      if (!passives.includes(nm)) passives.push(nm);
+    }
     // サブ魂のステータスを SUB_STAT_RATE ぶん加算
     const sst = jobStatsOf(se.clsKey, se);
     for (const k in st) st[k] += (sst[k] || 0) * SUB_STAT_RATE;
-    doll.subInfo.push({ uid: se.uid, clsKey: se.clsKey, rank: sr, level: se.level, skill: chosen });
+    doll.subInfo.push({ uid: se.uid, clsKey: se.clsKey, rank: sr, level: se.level, skill: chosenSkill, passive: chosenPassive });
   }
 
   doll.passiveMap = passiveMap;
