@@ -274,7 +274,7 @@ const G = {
   rumor: null,        // 酒場で表示中の噂 (次回潜入で現実化)
   rumorCooldown: 0,   // 次の噂を聞けるUNIXタイムスタンプ(ms) — 30分クールダウン
   activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
-  deliveryQuests: null, // 酒場の納品依頼 [{itemId}] (最大3件。迷宮に潜るたびに入れ替わる)
+  deliveryQuests: null, // 酒場の納品依頼 [{itemId}] (最大3件。ダンジョン踏破で入れ替わる)
   codex: { mon: {}, item: {}, job: {} }, // 図鑑 (モンスター/アイテム/職業)
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={蒐集品id:true}, claimed={"ランク:しきい値":true}
   lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
@@ -5210,6 +5210,8 @@ function commitDungeonClear(countBoss = true) {
   if (isStoryTarget) G.msq.state = "report";
   G.run = null; // クリア = 戦利品確定
   G.bossDown = true; // 主を討ったので、どこからでも帰還できる
+  // 納品依頼はダンジョン踏破で入れ替わる (潜入時だと死に戻りで更新できてしまうため)
+  G.deliveryQuests = rollDeliveryQuests();
   return { idx, isStoryTarget };
 }
 
@@ -6549,14 +6551,14 @@ function questProgress(type, key, n = 1) {
   }
 }
 
-// ---- 酒場に居合わせる者たち: 帰還ごとに3〜5名を選び、各人が世界の噂・冒険のヒントを語る ----
+// ---- 酒場に居合わせる者たち: 潜入ごとに3〜5名を選び、各人が世界の噂・冒険のヒントを語る ----
 // req を持つヒントは、その機能が解放されるまで出さない (未解放システムを匂わせない)。
 function tavernHintAllowed(req) {
   if (!req) return true;
   if (req === "sub") return unlockedSubSlots() > 0;     // 宿し技 (D10)
   return featureUnlocked(req);                           // fusion(D5) / rumor(D15)
 }
-// 酒場の顔ぶれを選び直す (ダンジョン帰還時・初回入店時に呼ぶ)
+// 酒場の顔ぶれを選び直す (ダンジョン潜入時・初回入店時に呼ぶ)
 function rollTavernCrowd() {
   const count = 3 + rand(3); // 3〜5名
   const speakers = [...TAVERN_SPEAKERS].sort(() => Math.random() - 0.5);
@@ -6687,7 +6689,7 @@ function applyRumorToBoard(board) {
 
 // ---- 酒場の納品依頼: 求められた品を納めると、その品の格 (R1-20) に応じて職業の魂を授かる ----
 // 対象は「今 到達している深さまでに出現しうる品」からランダム3件。LR/専用装備は除外
-// (LOOT_IDS が exclusive を弾く)。常時最大3件で、迷宮に潜るたびに入れ替わる (rollDeliveryQuests)。
+// (LOOT_IDS が exclusive を弾く)。常時最大3件で、ダンジョン踏破で入れ替わる (rollDeliveryQuests)。
 const DELIVERY_BANDS = [
   // max(R20) : [ [rarity, 体数, 確率], … ] (確率は合計1.0)
   { max: 5,  rows: [["common", 2, 0.70], ["rare", 1, 0.20], ["epic", 1, 0.09], ["legend", 1, 0.01]] },
@@ -6818,7 +6820,7 @@ function renderTavern() {
   // ===== 2) 納品依頼 (中段): 求められた品を納めると、品の格に応じた職業の魂が手に入る =====
   ensureDeliveryQuests();
   townEl.appendChild(el("div", "tw-h", "納品依頼"));
-  townEl.appendChild(el("div", "tw-note", "求められた品を納めれば、その品の格に応じて職業の魂を授かる。対象は今 到達している深さまでに出回る品。依頼は迷宮に潜るたびに入れ替わる。"));
+  townEl.appendChild(el("div", "tw-note", "求められた品を納めれば、その品の格に応じて職業の魂を授かる。対象は今 到達している深さまでに出回る品。依頼は迷宮を踏破するたびに入れ替わる。"));
   const dl = el("div", "tw-mlist");
   for (const q of G.deliveryQuests) {
     const it = ITEMS[q.itemId];
@@ -6844,11 +6846,11 @@ function renderTavern() {
     }
     dl.appendChild(row);
   }
-  if (!G.deliveryQuests.length) dl.appendChild(el("div", "tw-empty", "今は納品依頼がない。迷宮に潜れば新たな品が求められる。"));
+  if (!G.deliveryQuests.length) dl.appendChild(el("div", "tw-empty", "今は納品依頼がない。迷宮を踏破すれば新たな品が求められる。"));
   townEl.appendChild(dl);
 
   // ===== 3) 情報提供: 酒場の顔ぶれ (最下段) =====
-  // 帰還ごとに入れ替わる3〜5名。各人が世界の噂・冒険のヒントを語る
+  // 潜入ごとに入れ替わる3〜5名。各人が世界の噂・冒険のヒントを語る
   if (!G.tavernCrowd || !G.tavernCrowd.length) rollTavernCrowd();
   townEl.appendChild(el("div", "tw-h", "情報提供 — 今 酒場にいる者たち"));
   const crowd = el("div", "tw-mlist");
@@ -6862,7 +6864,7 @@ function renderTavern() {
     crowd.appendChild(row);
   }
   townEl.appendChild(crowd);
-  townEl.appendChild(el("div", "tw-note", "顔ぶれは迷宮から帰還するたびに入れ替わる。"));
+  townEl.appendChild(el("div", "tw-note", "顔ぶれは迷宮に潜るたびに入れ替わる。"));
 }
 
 function claimQuest(q) {
@@ -8624,8 +8626,8 @@ function enterDungeon(mutatorId) {
   G.run = { gold: 0, soulPts: 0, items: [], souls: [] };
   // 表示中の噂を確定し、この迷宮で現実化させる
   if (G.rumor) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
-  // 納品依頼は迷宮に潜るたびに入れ替わる
-  G.deliveryQuests = rollDeliveryQuests();
+  // 酒場の顔ぶれは迷宮に潜るタイミングで入れ替わる
+  rollTavernCrowd();
   G.state = "board";
   playBgm(fieldBgm());
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
@@ -8650,7 +8652,6 @@ function returnToTown() {
   // 生存者が1名でもいれば、砕けた人業は仲間に担がれてHP1で生還する。
   // (全滅時はここに来る前に G.party の生存者ゼロ → 救出待ちのまま帰還する)
   if (G.party.some((p) => p.alive)) reviveAllAtHp1();
-  rollTavernCrowd(); // 酒場の顔ぶれは帰還のたびに入れ替わる
   updateTopbar();
   log("街へ帰還した。", "sys");
   G.town.facility = null; G.town.sub = null;
