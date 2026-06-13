@@ -11,7 +11,7 @@ import {
 } from "./items.js";
 import { RANK_NAME, RANK_COLOR } from "./content.js";
 import { dungeonSubQuests } from "./subquests.js";
-import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE } from "./story.js";
+import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS, ELITE_ORDER, monsterTraits } from "./dungeons/index.js";
 import {
@@ -329,6 +329,43 @@ function dailySeed() { const d = new Date(); return d.getFullYear() * 10000 + (d
 
 function activeCfg() { return curDungeon(); }
 
+// ===== 迷宮テーマ (5迷宮ごと) =====
+// D1-20 を5迷宮ごとの4ブロックに分け、カード裏面の意匠・床の色味・探索BGMを束ねる。
+// それ以前のランク別の見た目とBGMは D21 以降のフォールバックとして残す (D21- は今後決定)。
+const DUNGEON_THEMES = [
+  { // D1-5 浅層墓地「骸の墓所」: 骨と冷えた石。たいまつの橙の灯
+    key: "bone", name: "骸の墓所", bgm: "field",
+    sym: "†", accent: "#c7bfa6",
+    floorBase: "#14130f", floorTiles: ["#1b1812", "#17150f", "#13110c"],
+    glow: "rgba(232,210,150,0.06)",
+  },
+  { // D6-10 深層墓地「呪われた霊廟」: 死者の燐光が漂う紫
+    key: "crypt", name: "呪われた霊廟", bgm: "fieldCrypt",
+    sym: "‡", accent: "#a487c9",
+    floorBase: "#100f17", floorTiles: ["#181423", "#14111c", "#100e16"],
+    glow: "rgba(150,110,210,0.06)",
+  },
+  { // D11-15 廃坑「坑夫の骨道」: 錆と鉱石、坑道のランプの琥珀
+    key: "mine", name: "坑夫の骨道", bgm: "field2",
+    sym: "⛏", accent: "#c9923f",
+    floorBase: "#15110c", floorTiles: ["#1d1610", "#18130d", "#14100a"],
+    glow: "rgba(222,150,70,0.06)",
+  },
+  { // D16-20 深部坑道「硫黄の縦坑」: 毒気の黄緑がにじむ闇
+    key: "sulfur", name: "硫黄の縦坑", bgm: "fieldSulfur",
+    sym: "⚗", accent: "#a7b84a",
+    floorBase: "#12140d", floorTiles: ["#1a1c11", "#16180d", "#12140a"],
+    glow: "rgba(170,195,75,0.06)",
+  },
+];
+// 迷宮番号 (1-100)。cfg.id = "g001" から取り出す
+function dungeonNumber(cfg) { return cfg && cfg.id ? parseInt(cfg.id.slice(1), 10) : (G.dungeonIdx + 1); }
+// 現在の迷宮のテーマ (D1-20 のみ。D21 以降は null でフォールバック)
+function dungeonTheme(cfg = activeCfg()) {
+  const n = dungeonNumber(cfg);
+  return n >= 1 && n <= 20 ? DUNGEON_THEMES[Math.ceil(n / 5) - 1] : null;
+}
+
 // ===== 特別階 =====
 // 階段を降りた時、一定確率で「特別な効果を持つ階」が出現する (1Fと強敵階には出ない)。
 // 効果はその階に滞在する間だけ有効。board(b) は newFloor 直後の盤面加工フック。
@@ -562,21 +599,25 @@ function cellRect(x, y) {
   return { x: OX + x * (CARD_W + GAP), y: OY + y * (CARD_H + GAP), w: CARD_W, h: CARD_H };
 }
 
-// 石床のタイル模様 (決定的な乱数で毎回同じ見た目)
+// 石床のタイル模様 (決定的な乱数で毎回同じ見た目)。迷宮テーマに応じて色味を変える
 function drawFloor() {
-  vctx.fillStyle = "#121218";
+  const th = dungeonTheme();
+  const base = th ? th.floorBase : "#121218";
+  const tiles = th ? th.floorTiles : ["#17171f", "#15151c", "#131319"];
+  const glow = th ? th.glow : "rgba(255,190,90,0.07)";
+  vctx.fillStyle = base;
   vctx.fillRect(0, 0, view.width, view.height);
   const T = 24;
   for (let ty = 0; ty < view.height / T; ty++) {
     for (let tx = 0; tx < view.width / T; tx++) {
       const n = (tx * 7 + ty * 13) % 5;
-      vctx.fillStyle = n === 0 ? "#17171f" : n === 1 ? "#15151c" : "#131319";
+      vctx.fillStyle = n === 0 ? tiles[0] : n === 1 ? tiles[1] : tiles[2];
       vctx.fillRect(tx * T, ty * T, T - 1, T - 1);
     }
   }
-  // 中央が明るく周辺が暗いビネット (たいまつの灯り)
+  // 中央が明るく周辺が暗いビネット (テーマに応じた灯りの色)
   const vg = vctx.createRadialGradient(view.width / 2, view.height / 2, 60, view.width / 2, view.height / 2, view.width * 0.62);
-  vg.addColorStop(0, "rgba(255,190,90,0.07)");
+  vg.addColorStop(0, glow);
   vg.addColorStop(0.5, "rgba(0,0,0,0)");
   vg.addColorStop(1, "rgba(0,0,0,0.55)");
   vctx.fillStyle = vg;
@@ -760,6 +801,34 @@ function drawWallBar(r, dir, { flash = 0 } = {}) {
   vctx.restore();
 }
 
+// テーマ色のカード裏面 (特別階・迷宮テーマで共用): 地のグラデ + 二重枠 + 中央紋章 + コーナードット
+function drawThemedBack(r, accent, sym) {
+  const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
+  bg.addColorStop(0, shadeHex(accent, 0.24));
+  bg.addColorStop(0.5, shadeHex(accent, 0.14));
+  bg.addColorStop(1, shadeHex(accent, 0.09));
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, r.w, r.h);
+  vctx.strokeStyle = shadeHex(accent, 0.78);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, r.w - 3, r.h - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.42);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, r.w - 9, r.h - 9);
+  const cx = r.w / 2, cy = r.h / 2;
+  vctx.fillStyle = accent;
+  vctx.font = "bold 16px monospace";
+  vctx.textAlign = "center";
+  vctx.textBaseline = "middle";
+  vctx.fillText(sym || "✦", cx, cy + 1);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [r.w - 7, 7], [7, r.h - 7], [r.w - 7, r.h - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.08)";
+  vctx.fillRect(2, 2, r.w - 4, 3);
+}
+
 function drawCard(r, cell, scaleX, showBack) {
   // カードの落ち影 (フリップ中も足元に残す)
   vctx.save();
@@ -806,36 +875,13 @@ function drawCard(r, cell, scaleX, showBack) {
     } else if (specialDef()) {
       // 特別階カード裏面: 階ごとのテーマ色の地 + 固有の紋章
       const sp = specialDef();
-      const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
-      bg.addColorStop(0, shadeHex(sp.accent, 0.24));
-      bg.addColorStop(0.5, shadeHex(sp.accent, 0.14));
-      bg.addColorStop(1, shadeHex(sp.accent, 0.09));
-      vctx.fillStyle = bg;
-      vctx.fillRect(0, 0, r.w, r.h);
-      // 外枠 (二重・テーマ色)
-      vctx.strokeStyle = shadeHex(sp.accent, 0.78);
-      vctx.lineWidth = 2;
-      vctx.strokeRect(1.5, 1.5, r.w - 3, r.h - 3);
-      vctx.strokeStyle = shadeHex(sp.accent, 0.42);
-      vctx.lineWidth = 1;
-      vctx.strokeRect(4.5, 4.5, r.w - 9, r.h - 9);
-      // 中央の紋章 (階ごとに固有)
-      const cx = r.w / 2, cy = r.h / 2;
-      vctx.fillStyle = sp.accent;
-      vctx.font = "bold 16px monospace";
-      vctx.textAlign = "center";
-      vctx.textBaseline = "middle";
-      vctx.fillText(sp.sym || "✦", cx, cy + 1);
-      // コーナードット (テーマ色)
-      vctx.fillStyle = shadeHex(sp.accent, 0.6);
-      for (const [dx, dy] of [[7, 7], [r.w - 7, 7], [7, r.h - 7], [r.w - 7, r.h - 7]]) {
-        vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
-      }
-      // 上辺ハイライト
-      vctx.fillStyle = "rgba(255,255,255,0.08)";
-      vctx.fillRect(2, 2, r.w - 4, 3);
+      drawThemedBack(r, sp.accent, sp.sym);
+    } else if (dungeonTheme()) {
+      // 迷宮テーマのカード裏面 (5迷宮ごと): ブロック固有の色と紋章
+      const th = dungeonTheme();
+      drawThemedBack(r, th.accent, th.sym);
     } else {
-      // 通常カード裏面: 深紅の布地 + 金の縁飾り + ダイヤ紋
+      // 通常カード裏面 (D21以降): 深紅の布地 + 金の縁飾り + ダイヤ紋
       const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
       bg.addColorStop(0, "#7a5616");
       bg.addColorStop(0.5, "#5e420f");
@@ -3764,8 +3810,17 @@ function renderAltar() {
     slots.appendChild(slot);
   };
   mkSlot("primary", "メイン魂", pe, false, null);
-  for (let i = 0; i < MAX_SUBS; i++) { const sub = d.subs[i] || null; mkSlot("sub" + i, `サブ魂${i + 1}`, sub ? soulByUid(sub.uid) : null, true, sub); }
+  const subSlots = unlockedSubSlots();
+  for (let i = 0; i < subSlots; i++) { const sub = d.subs[i] || null; mkSlot("sub" + i, `サブ魂${i + 1}`, sub ? soulByUid(sub.uid) : null, true, sub); }
   townEl.appendChild(slots);
+  // 未解放のサブ魂枠は迷宮の踏破で開く (選択中スロットも開放済みに戻す)
+  if (subSlots < MAX_SUBS) {
+    const c = clearedDungeonCount();
+    const nextAt = subSlots === 0 ? 10 : 20;
+    townEl.appendChild(el("div", "tw-note",
+      `宿し技スロット（サブ魂）はあと ${MAX_SUBS - subSlots} 枠、迷宮の踏破で開く。次の枠は ${nextAt} 迷宮の踏破で解放（現在 ${c} 踏破）。`));
+    if (altarSlot !== "primary" && (+altarSlot.slice(3)) >= subSlots) altarSlot = "primary";
+  }
 
   // 魂を強化 (選択中スロットのメイン魂/サブ魂に ✦Soul を注いでレベルを上げる)
   const selSoul = slotSoul(d, altarSlot);
@@ -3819,8 +3874,8 @@ function renderAltar() {
     info.appendChild(el("div", "tw-soulst",
       `Lv${s.level}/${cap}　ランク${rank}` + (nx ? `　（次ランクまで${nx.next - s.count}の魂が必要）` : "　（最高ランク）")));
     r.appendChild(info);
-    // 吸収 (融合): 同職の余っている魂を取り込んでランクを上げる
-    const cands = fuseCandidates(s.uid);
+    // 吸収 (融合): 同職の余っている魂を取り込んでランクを上げる (D5 踏破で解放)
+    const cands = featureUnlocked("fusion") ? fuseCandidates(s.uid) : [];
     if (cands.length) {
       const fb = btn(`吸収(${cands.length})`, (ev) => { ev.stopPropagation(); openFusePicker(s.uid); });
       fb.className = "tw-small";
@@ -3927,6 +3982,7 @@ function fuseCandidates(targetUid) {
 // 吸収する魂を選ぶポップアップ
 function openFusePicker(targetUid) {
   const t = soulByUid(targetUid); if (!t) return;
+  if (!featureUnlocked("fusion")) { log("魂の融合はまだ授かっていない。", "sys"); SFX.ng(); return; }
   const cands = fuseCandidates(targetUid).sort(soulSortCmp);
   if (!cands.length) { log("吸収できる同職の魂がない。", "sys"); SFX.ng(); return; }
   const opts = cands.map((c) => ({
@@ -4192,9 +4248,14 @@ function renderTavern() {
   townEl.appendChild(townHeader("酒場「沈まぬ灯」"));
   townEl.appendChild(el("div", "tw-lead", "迷宮帰りの傭兵がたむろする。依頼の受注と噂話はここで。(編成は人業の館)"));
 
-  // --- 噂話 ---
+  // --- 噂話 (D15 踏破で解放) ---
   townEl.appendChild(el("div", "tw-h", "酒場の噂話"));
-  if (G.rumor) {
+  if (!featureUnlocked("rumor")) {
+    const lockBox = el("div", "tw-rumor");
+    lockBox.appendChild(el("div", "tw-rumors", "― 情報屋はまだ口を開かない ―"));
+    lockBox.appendChild(el("div", "tw-rumort", `15 迷宮を踏破した名の知れた魂繰りにしか、確かな噂は売らぬという。（現在 ${clearedDungeonCount()} 踏破）`));
+    townEl.appendChild(lockBox);
+  } else if (G.rumor) {
     const rb = el("div", "tw-rumor");
     rb.appendChild(el("div", "tw-rumors", `― ${G.rumor.speaker} ―`));
     rb.appendChild(el("div", "tw-rumort", G.rumor.text));
@@ -4522,7 +4583,17 @@ function reportMainQuest() {
       return;
     }
     autosave(true);
-    acceptMainQuest(); // 踏破報告と同時に次の勅命を自動拝命
+    // 解放の節目 (D5/10/15/20) は、報告の直後に機能解放のシーンを挟む
+    const us = unlockSceneFor(n);
+    if (us) {
+      showStoryScene(us.title, us.lines, null, () => {
+        SFX.victory(); buzz([0, 40, 80, 40]);
+        showToast("🔓 新たな技能を授かった");
+        acceptMainQuest();
+      });
+    } else {
+      acceptMainQuest(); // 踏破報告と同時に次の勅命を自動拝命
+    }
   });
 }
 
@@ -4589,6 +4660,20 @@ function reportTutorialQuest() {
     autosave(true);
     acceptMainQuest(); // チュートリアル完了後も自動で第1章を拝命
   });
+}
+
+// 機能解放: ダンジョン踏破数に応じて段階的に解放される (序盤の節目で授かる)。
+//   D5 踏破 → 魂融合 / D10 → サブ魂1枠 / D15 → 酒場の噂 / D20 → サブ魂2枠目
+function featureUnlocked(key) {
+  const c = clearedDungeonCount();
+  if (key === "fusion") return c >= 5;
+  if (key === "rumor") return c >= 15;
+  return false;
+}
+// 解放済みのサブ魂 (宿し技) スロット数 (0/1/2)。MAX_SUBS が上限
+function unlockedSubSlots() {
+  const c = clearedDungeonCount();
+  return Math.min(MAX_SUBS, c >= 20 ? 2 : c >= 10 ? 1 : 0);
 }
 
 // 踏破済みの迷宮数 (メインストーリー基準: 第n章攻略中 = n-1 踏破)
@@ -6061,7 +6146,9 @@ function renderSoulTab(p) {
   // サブ魂スロット
   wrap.appendChild(el("div", "st-soulpart", "サブ魂"));
   const subs = (p.subs || []);
-  if (!subs.length) wrap.appendChild(el("div", "st-soulinfo dim", "（サブ魂なし — 館の祭壇で別の魂の技を1つ借りられる）"));
+  if (!subs.length) wrap.appendChild(el("div", "st-soulinfo dim", unlockedSubSlots() > 0
+    ? "（サブ魂なし — 館の祭壇で別の魂の技を1つ借りられる）"
+    : "（宿し技スロットは未解放 — 迷宮を踏破すると開く）"));
   for (const sub of subs) {
     const se = sub ? soulByUid(sub.uid) : null;
     if (!se) continue;
@@ -6810,8 +6897,10 @@ const FACILITY_BGM = {
   shrine: "shrine",
 };
 let openingActive = false; // オープニング演出中は専用テーマ
-// 探索BGM: 迷宮のランク帯 (1-10) ごとに専用テーマ (墓地/坑道/砦/森/神殿/灼洞/氷廊/尖塔/冥門/玄室)
+// 探索BGM: D1-20 は5迷宮ごとのテーマ曲、D21以降はランク帯 (1-10) の専用テーマ
 function fieldBgm() {
+  const th = dungeonTheme();
+  if (th) return th.bgm;
   const r = Math.max(1, Math.min(10, activeCfg().rank || 1));
   return r === 1 ? "field" : `field${r}`;
 }
