@@ -8727,8 +8727,9 @@ function renderStatus() {
       const sp = SPELLS[k];
       const cost = spellCost(p, sp);
       const b = btn(`${sp.name} (MP${cost})`, () => campCast(p, k));
-      b.className = "tw-small";
-      if (p.mp < cost) b.disabled = true;
+      // MP不足でも disabled にはせず押せるようにする (campCast がトーストで理由を出す)。
+      // disabled にすると .tw-small は減光スタイルが効かず「押せるのに無反応」に見えるため。
+      b.className = "tw-small" + (p.mp < cost ? " dim" : "");
       sl.appendChild(b);
     }
     statusEl.appendChild(sl);
@@ -8751,7 +8752,8 @@ function invRow(p, it, sel) {
 function campCast(caster, spellKey) {
   const sp = SPELLS[spellKey];
   const cost = spellCost(caster, sp);
-  if (caster.mp < cost) { log("MPが足りない。", "sys"); return; }
+  // 失敗理由はステータス画面の裏のログに出しても見えないため、トーストでも知らせる。
+  if (caster.mp < cost) { log("MPが足りない。", "sys"); showToast(`MPが足りない (MP ${caster.mp}/${cost})`); SFX.miss(); return; }
   const cures = sp.kind === "cure" || !!sp.cure;     // 毒・麻痺・石化を治す
   const heals = (sp.power || 0) > 0;                  // HP回復量を持つ
   const powerOf = () => (sp.power || 0) + Math.round((caster.pie || 0) * 0.5);
@@ -8783,7 +8785,8 @@ function campCast(caster, spellKey) {
   if (sp.target === "all-ally") {
     let any = false;
     for (const t of G.party) if (applyTo(t)) any = true;
-    if (any) finish(); else log("効果のある対象がいない。", "sys");
+    if (any) { finish(); showToast(`${sp.name}！ 隊を癒した`); }
+    else { log("効果のある対象がいない。", "sys"); showToast(cures ? "治療が必要な仲間がいない" : "回復が必要な仲間がいない"); }
     return;
   }
 
@@ -8795,7 +8798,7 @@ function campCast(caster, spellKey) {
     return false;
   };
   const targets = G.party.filter(benefits);
-  if (!targets.length) { log("効果のある対象がいない。", "sys"); return; }
+  if (!targets.length) { log("効果のある対象がいない。", "sys"); showToast(cures ? "治療が必要な仲間がいない" : "回復が必要な仲間がいない"); return; }
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card confirm-card");
   card.style.borderColor = "#46c08f";
@@ -8808,7 +8811,8 @@ function campCast(caster, spellKey) {
     const label = `${t.name} (HP ${t.hp}/${t.maxhp})${ail}${t.alive ? "" : " †"}`;
     const b = btn(label, () => {
       wrap.remove();
-      if (applyTo(t)) finish(); else log("効果のある対象ではなかった。", "sys");
+      if (applyTo(t)) { finish(); showToast(`${sp.name}！ ${t.name}に`); }
+      else { log("効果のある対象ではなかった。", "sys"); showToast("効果がなかった"); }
     });
     list.appendChild(b);
   }
