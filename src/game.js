@@ -836,6 +836,21 @@ function renderBoard() {
   renderParty();
 }
 
+// 盤面の常時アニメーション: 静止中もカード裏面の演出 (水滴・火花・霧・鬼火など) を動かす。
+// 移動/めくり中はそれぞれの tick が renderBoard を回すので、ここでは静止中の盤面だけを
+// ゆるやかに (約18fps) 再描画する。タブが背面の間は requestAnimationFrame が止まり負荷もかからない。
+let _boardAnimLast = 0;
+function boardAnimLoop(ts) {
+  requestAnimationFrame(boardAnimLoop);
+  if (G.state !== "board") return;
+  if (G.anim || G.walking || G.flipAnim || G.heroAnim || G.wallFlash) return; // 他の tick に任せる
+  if (G.prompt || G.statusOpen || G.settingsOpen) return;                     // オーバーレイ表示中は不要
+  if (ts - _boardAnimLast < 55) return;                                       // 約18fpsに間引き
+  _boardAnimLast = ts;
+  renderBoard();
+}
+requestAnimationFrame(boardAnimLoop);
+
 // マスの辺の壁 (カード境界の上に重ね描き)。絶対座標で太く明るく描く
 const WALL_T = 8;
 
