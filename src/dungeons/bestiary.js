@@ -38,7 +38,13 @@ for (const id in LEGACY) {
 // ---- 新規モンスター (ランクの穴を埋める + 高ランクの伝説級) ----
 // ステータスは defMonsters 通過後に monStats で与える (下の一括処理)
 const NEW_DEFS = [
-  // -- rank 1 --
+  // -- 第1層「墓地」 (rank 1-2) --
+  { id: "bs_gravewisp", name: "墓火", rank: 1, race: "specter", element: "dark", artKey: "gravewisp",
+    magWeak: 1.6, evasive: true, ability: null, // 実体を持たぬ鬼火: 魔法に脆く、刃はすり抜ける
+    desc: "墓地の夜に漂う青い鬼火。死にきれぬ者の未練が、火の玉となって彷徨う姿だという。刃は炎をすり抜けてしまうが、ひとたび魔の力を浴びれば、たちまち掻き消える。" },
+  { id: "bs_grasphand", name: "這い寄る腐手", rank: 1, race: "undead", element: "dark", artKey: "grasphand",
+    ability: "paralyze", pack: true, // 土から無数に突き出し、掴んで痺れさせる
+    desc: "埋葬を拒まれた者たちの、腐り落ちた手だけが土を破って這い出る。足首を掴まれた者は、冷たい指の感触に総毛立ち、その場に縫い止められる。一本では弱いが、墓所では群れを成す。" },
   { id: "bs_goblin", name: "ゴブリン", rank: 1, race: "humanoid", element: "none", artKey: "goblin", soulClass: "thief",
     ability: "goldSteal", swift: true, // 素早い身のこなしで懐を狙う
     desc: "迷宮の浅瀬に巣食う緑肌の小鬼。賢くはないが、罠の在処と人の急所、そして財布の場所だけはよく憶えている。すばしこく間合いに飛び込み、金品をかすめ取って逃げる。" },
@@ -46,6 +52,9 @@ const NEW_DEFS = [
     palette: tint(ARTS.slime.palette, "#3a6ad0", 0.3),
     desc: "幾百の粘塊が呑み合い、ひとつに膨れ上がった巨大な王。呑まれた者の得物が、半透明の体内に何本も沈んでいる。" },
   // -- rank 2 --
+  { id: "bs_mournshade", name: "嘆きの喪影", rank: 2, race: "specter", element: "dark", artKey: "mournshade", soulClass: "hexer",
+    ability: "weaken", // 弔いの嘆きが、生者の力を萎えさせる
+    desc: "墓前で頭を垂れ、青白い顔から尽きぬ涙を流す喪服の霊。その嘆きを聞いた者は、四肢から力が抜け、剣を握ることすら億劫になる。誰の葬列だったのかは、もう霊自身も覚えていない。" },
   { id: "bs_zombie", name: "腐乱死体", rank: 2, race: "undead", element: "dark", artKey: "zombie",
     ability: "poison", regen: 0.05, // 腐肉の毒をうつし、裂いた傷もすぐ膿んで塞がる
     desc: "土に還ることを許されなかった亡骸。腐汁の滴る腕で生者を掴み、己と同じ地獄へ引きずり込もうとする。腐った肉は斬られてもじわじわと膿んで塞がり、その爪には腐敗の毒が宿る。" },
@@ -1002,3 +1011,28 @@ export const LAYER_BOSS = Array.from({ length: 20 }, (_, i) => {
   const r = Math.ceil(L / 2);
   return BOSS_ORDER[r][((L - 1) % 2) * 5];
 });
+
+// ===== 層ごとの専用ロスター (フェーズC: 層が変わると別のモンスターが出る) =====
+// LAYER_POOLS[layer] = その層に出る通常モンスター id の配列 (ボス除く)。
+// 定義済みの層は generator がここから抽選し、未定義の層は暫定のランクプールにフォールバックする。
+// 各層は固有アートのモンスターで構成し、最低20種を目標に層ごとのPRで充実させる。
+export const LAYER_POOLS = {
+  // 第1層「墓地」: アンデッド/亡霊中心。新スキル (weaken 等) と既存の墓地系を再配置
+  1: [
+    "bs_gravewisp", "bs_grasphand", "bs_mournshade",   // 新規 (固有アート)
+    "bs_bonebat", "bs_spiritbat", "bs_tombwarden",      // 既存の墓地系を第1層へ再配置
+    "bs_zombie", "d01_skeleton", "d02_soldier",
+    "bs_bonechanter", "bs_gravecaller",
+  ],
+};
+{ // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
+  for (const L in LAYER_POOLS) {
+    const ids = LAYER_POOLS[L];
+    if (!Array.isArray(ids) || ids.length < 6) throw new Error("LAYER_POOLS: layer " + L + " needs >=6 regulars");
+    for (const id of ids) {
+      const m = BESTIARY[id];
+      if (!m) throw new Error("LAYER_POOLS: unknown monster " + id + " (layer " + L + ")");
+      if (m.boss || m.elite) throw new Error("LAYER_POOLS: " + id + " must be a regular monster (layer " + L + ")");
+    }
+  }
+}
