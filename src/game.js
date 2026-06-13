@@ -84,12 +84,23 @@ function pickItemByLv(center) {
 function lootBaseR() { return Math.max(1, Math.min(20, dungeonNumber(activeCfg()))); }
 
 let _itemsByR = null;
+let _miscLootIds = null;
 function itemsByR() {
   if (_itemsByR) return _itemsByR;
   _itemsByR = Array.from({ length: 21 }, () => []);
-  for (const id of LOOT_IDS) _itemsByR[Math.max(1, Math.min(20, ITEMS[id].r20 || 1))].push(id);
+  _miscLootIds = [];
+  // 蒐集品 (slot:"misc") はランク窓に入れず別枠で全域から抽選する (下記 pickItemByR 参照)。
+  for (const id of LOOT_IDS) {
+    if (ITEMS[id].slot === "misc") { _miscLootIds.push(id); continue; }
+    _itemsByR[Math.max(1, Math.min(20, ITEMS[id].r20 || 1))].push(id);
+  }
   return _itemsByR;
 }
+function miscLootIds() { itemsByR(); return _miscLootIds; }
+// 蒐集品は LR 装備と同様「深度の上限なし」で出続けるが、LR と違い一点ものではなく
+// 何度でも同じ品が出る。深い迷宮ほど低ランクの蒐集品も拾える (D80 でも D20 帯の品が出る) よう、
+// 自ランク以下の蒐集品をすべて対象にする (上限のみ中心+2 まで許容し、極端な先取りは抑える)。
+const MISC_LOOT_WEIGHT = 0.5; // 装備のランク窓に対する蒐集品1点あたりの相対重み
 // 中心ランク centerR の ±2 から1つ抽選 (中心ほど出やすい)。窓内が空なら最寄りへ広げる
 function pickItemByR(centerR) {
   const idx = itemsByR();
@@ -103,6 +114,12 @@ function pickItemByR(centerR) {
   };
   gather(Math.max(1, centerR - 2), Math.min(20, centerR + 2), true);
   for (let span = 3; span <= 20 && !total; span++) gather(Math.max(1, centerR - span), Math.min(20, centerR + span), false);
+  // 蒐集品: 中心+2 以下の全ランク帯を一律の重みで対象に加える (下限なし=深層でも浅層の品が出る)
+  const miscCap = Math.min(20, centerR + 2);
+  for (const id of miscLootIds()) {
+    if (Math.max(1, Math.min(20, ITEMS[id].r20 || 1)) > miscCap) continue;
+    total += MISC_LOOT_WEIGHT; acc.push([id, total]);
+  }
   if (!total) return "herb";
   const rr = Math.random() * total;
   for (const [id, t] of acc) if (rr <= t) return id;
@@ -7246,7 +7263,8 @@ function codexJobSee(clsKey, count, level) {
   if (!G.codex || !G.codex.job) return;
   const rank = soulRankFromCount(clsKey, count || 0);
   if (rank < 1) return;
-  const lv = Math.min(rank * 10, level || 1);
+  const cap = capForRarityRank((SOUL_CLASSES[clsKey] || {}).rarity || "common", rank);
+  const lv = Math.min(cap, level || 1);
   const e = G.codex.job[clsKey];
   const prevLv = e && typeof e === "object" ? (e.lv || 0) : 0;
   const prevRank = e && typeof e === "object" ? (e.rank || 0) : 0;
@@ -8302,6 +8320,56 @@ function showStatInfo(k, p) {
   document.body.appendChild(wrap);
 }
 
+// キャラ詳細ポップアップ (ステータスバーのタップで開く)
+// HP/MP・状態・属性・能力値・習得スキルを1枚にまとめて表示する
+function showCharDetailPopup(p) {
+  const wrap = el("div", "confirm-overlay");
+  const card = el("div", "ig-card cdx-detail st-detail");
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+
+  // ヘッダ: 肖像 + 名前 + 職業/レベル
+  const head = el("div", "st-detail-head");
+  const port = el("div", "st-port small");
+  port.appendChild(spriteCanvas(p.isDoll ? dollSprite(p) : HERO, 4));
+  head.appendChild(port);
+  const idn = el("div", "st-idn");
+  idn.appendChild(el("div", "st-name", p.name + (p.alive ? "" : " †")));
+  idn.appendChild(el("div", "st-sub", p.isDoll ? `人業 ・ ${p.cls} Lv${p.jobLv || 1}` : `${p.align} - ${p.race} - ${p.cls} Lv${p.level}`));
+  head.appendChild(idn);
+  card.appendChild(head);
+
+  // HP/MP・状態・属性
+  const ail = p.ailment === "poison" ? "毒" : (p.alive ? "正常" : "戦闘不能");
+  const ailCls = (p.ailment || !p.alive) ? "st-bad" : "";
+  const bar = el("div", "st-statbar");
+  bar.innerHTML = `<span>HP <b>${p.hp}/${p.maxhp}</b></span><span>MP <b>${p.mp}/${p.maxmp}</b></span><span class="${ailCls}">状態: <b>${ail}</b></span><span>属性攻 ${elemStatChip(p.elemAtk)}</span><span>属性防 ${elemStatChip(p.elemDef)}</span>`;
+  card.appendChild(bar);
+
+  // 能力値 (6列)。タップで各能力の説明を表示
+  const ab = el("div", "st-attrs6");
+  for (const k of ATTR_KEYS) {
+    const cell = el("div", "st-attr6 st-attr-tap");
+    cell.appendChild(el("span", "st-attrk", ATTR_LABEL[k]));
+    cell.appendChild(el("span", "st-attrv", String(Math.round(p[k] || 0))));
+    cell.title = ATTR_NAME[k];
+    cell.addEventListener("click", () => { SFX.select(); showStatInfo(k, p); });
+    ab.appendChild(cell);
+  }
+  card.appendChild(ab);
+
+  // 習得スキル (タップで各スキルの詳細を表示)
+  if (p.spells && p.spells.length) {
+    card.appendChild(el("div", "st-h2", "習得スキル — タップで詳細"));
+    card.appendChild(skillChips(p.spells));
+  }
+
+  const ok = btn("閉じる", () => wrap.remove());
+  ok.className = "btn primary ig-ok";
+  card.appendChild(ok);
+  wrap.appendChild(card);
+  document.body.appendChild(wrap);
+}
+
 function renderStatus() {
   autosave(); // 装備変更・呪文使用などのたびに保存
   const p = G.party[G.statusIdx];
@@ -8340,14 +8408,15 @@ function renderStatus() {
 
   // ===== コンパクト1画面レイアウト =====
 
-  // 1. ステータスバー (HP/MP/状態/属性/呪文)
-  const bar = el("div", "st-statbar");
+  // 1. ステータスバー (HP/MP/状態/属性/スキル)。タップでキャラ詳細ポップアップを表示
+  const bar = el("div", "st-statbar st-statbar-tap");
   const ail = p.ailment === "poison" ? "毒" : (p.alive ? "正常" : "戦闘不能");
   const ailCls = (p.ailment || !p.alive) ? "st-bad" : "";
   const spellLine = p.spells && p.spells.length
-    ? `<span class="st-bar-spells">呪文: ${p.spells.map((k) => SPELLS[k] ? SPELLS[k].name : k).join("・")}</span>`
+    ? `<span class="st-bar-spells">スキル: ${p.spells.map((k) => SPELLS[k] ? SPELLS[k].name : k).join("・")}</span>`
     : "";
   bar.innerHTML = `<span>HP <b>${p.hp}/${p.maxhp}</b></span><span>MP <b>${p.mp}/${p.maxmp}</b></span><span class="${ailCls}">状態: <b>${ail}</b></span><span>属性攻 ${elemStatChip(p.elemAtk)}</span><span>属性防 ${elemStatChip(p.elemDef)}</span>${spellLine}`;
+  bar.addEventListener("click", () => { SFX.select(); showCharDetailPopup(p); });
   statusEl.appendChild(bar);
 
   // 死亡中の帰還タイマー
