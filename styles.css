@@ -65,7 +65,7 @@ html, body { height: 100%; overflow: hidden; }
 .topbar-left { display: flex; align-items: center; gap: 6px; }
 #floor-info { flex: 1; text-align: center; font-size: 15px; font-weight: bold; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.5px; }
 #topbar-cur { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; font-size: 11px; font-weight: bold; white-space: nowrap; }
-#settings-btn, #descend-btn {
+#settings-btn, #descend-btn, #return-btn {
   background: none;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -84,6 +84,9 @@ html, body { height: 100%; overflow: hidden; }
 #descend-btn:not(:disabled):active { background: #2a2a3a; }
 #descend-btn { border-color: #7fd0ff; box-shadow: 0 0 10px rgba(127,208,255,0.35); }
 #descend-btn.hidden { display: none; }
+#return-btn:active { background: #2a2a3a; }
+#return-btn { border-color: #7fd0ff; box-shadow: 0 0 10px rgba(127,208,255,0.35); }
+#return-btn.hidden { display: none; }
 
 /* ===== 盤面 (主役。横幅いっぱい、上部に固定) ===== */
 #screen {
@@ -169,6 +172,13 @@ html, body { height: 100%; overflow: hidden; }
 .pc .hp > i { background: var(--good); }
 .pc .mp > i { background: var(--accent-2); }
 .pc .nums { color: var(--ink-dim); font-size: 9px; }
+
+/* 発動中の強化/弱体バッジ (戦闘中) */
+.pc .buffs { display: flex; flex-wrap: wrap; gap: 2px; margin-top: 2px; }
+.pc .buffs .bf { display: inline-flex; align-items: center; font-size: 8px; line-height: 1; padding: 1px 2px; border-radius: 3px; border: 1px solid; }
+.pc .buffs .bf b { font-size: 7px; margin-left: 1px; opacity: 0.85; }
+.pc .buffs .bf.up { color: #6fe0a0; border-color: #2e6b48; background: rgba(46,107,72,0.25); }
+.pc .buffs .bf.dn { color: #e08a8a; border-color: #6b3030; background: rgba(107,48,48,0.25); }
 
 /* 瀕死 (HP25%以下) は赤くゆっくり明滅して危険を知らせる */
 .pc.low { animation: pc-low 1.2s ease-in-out infinite; }

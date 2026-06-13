@@ -11,7 +11,7 @@ import {
 } from "./items.js";
 import { RANK_NAME, RANK_COLOR } from "./content.js";
 import { dungeonSubQuests } from "./subquests.js";
-import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE } from "./story.js";
+import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS, ELITE_ORDER, monsterTraits } from "./dungeons/index.js";
 import {
@@ -219,7 +219,8 @@ function buzz(p) {
 
 // ---- 潜入中の戦利品トラッキング (全滅ペナルティ / Red Soul帰還で使う) ----
 const inDungeon = () => G.state === "board" || G.state === "combat" || G.state === "over";
-function runGainGold(g) { g = Math.round(g * sfNum("goldMul", 1) * mutNum("goldMul", 1)); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; return g; }
+// 迷宮で得るゴールド (戦闘勝利・宝箱・床イベント) の共通入口。全体の獲得量を半分に抑える。
+function runGainGold(g) { g = Math.round(g * 0.5 * sfNum("goldMul", 1) * mutNum("goldMul", 1)); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; return g; }
 function runGainSoulPts(s) { s = Math.round(s * sfNum("soulMul", 1) * mutNum("soulMul", 1)); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; return s; }
 function runGainItem(owner, item) { owner.items.push(item); if (G.run && inDungeon()) G.run.items.push({ owner, item }); }
 // 魂の吸収を記録 (全滅没収で巻き戻すため {doll, clsKey} で覚える)
@@ -327,6 +328,43 @@ function curDungeon() { return DUNGEONS[G.dungeonIdx] || DUNGEONS[0]; }
 function dailySeed() { const d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
 
 function activeCfg() { return curDungeon(); }
+
+// ===== 迷宮テーマ (5迷宮ごと) =====
+// D1-20 を5迷宮ごとの4ブロックに分け、カード裏面の意匠・床の色味・探索BGMを束ねる。
+// それ以前のランク別の見た目とBGMは D21 以降のフォールバックとして残す (D21- は今後決定)。
+const DUNGEON_THEMES = [
+  { // D1-5 浅層墓地「骸の墓所」: 骨と冷えた石。たいまつの橙の灯
+    key: "bone", name: "骸の墓所", bgm: "field",
+    sym: "†", accent: "#c7bfa6",
+    floorBase: "#14130f", floorTiles: ["#1b1812", "#17150f", "#13110c"],
+    glow: "rgba(232,210,150,0.06)",
+  },
+  { // D6-10 深層墓地「呪われた霊廟」: 死者の燐光が漂う紫
+    key: "crypt", name: "呪われた霊廟", bgm: "fieldCrypt",
+    sym: "‡", accent: "#a487c9",
+    floorBase: "#100f17", floorTiles: ["#181423", "#14111c", "#100e16"],
+    glow: "rgba(150,110,210,0.06)",
+  },
+  { // D11-15 廃坑「坑夫の骨道」: 錆と鉱石、坑道のランプの琥珀
+    key: "mine", name: "坑夫の骨道", bgm: "field2",
+    sym: "⛏", accent: "#c9923f",
+    floorBase: "#15110c", floorTiles: ["#1d1610", "#18130d", "#14100a"],
+    glow: "rgba(222,150,70,0.06)",
+  },
+  { // D16-20 深部坑道「硫黄の縦坑」: 毒気の黄緑がにじむ闇
+    key: "sulfur", name: "硫黄の縦坑", bgm: "fieldSulfur",
+    sym: "⚗", accent: "#a7b84a",
+    floorBase: "#12140d", floorTiles: ["#1a1c11", "#16180d", "#12140a"],
+    glow: "rgba(170,195,75,0.06)",
+  },
+];
+// 迷宮番号 (1-100)。cfg.id = "g001" から取り出す
+function dungeonNumber(cfg) { return cfg && cfg.id ? parseInt(cfg.id.slice(1), 10) : (G.dungeonIdx + 1); }
+// 現在の迷宮のテーマ (D1-20 のみ。D21 以降は null でフォールバック)
+function dungeonTheme(cfg = activeCfg()) {
+  const n = dungeonNumber(cfg);
+  return n >= 1 && n <= 20 ? DUNGEON_THEMES[Math.ceil(n / 5) - 1] : null;
+}
 
 // ===== 特別階 =====
 // 階段を降りた時、一定確率で「特別な効果を持つ階」が出現する (1Fと強敵階には出ない)。
@@ -561,21 +599,25 @@ function cellRect(x, y) {
   return { x: OX + x * (CARD_W + GAP), y: OY + y * (CARD_H + GAP), w: CARD_W, h: CARD_H };
 }
 
-// 石床のタイル模様 (決定的な乱数で毎回同じ見た目)
+// 石床のタイル模様 (決定的な乱数で毎回同じ見た目)。迷宮テーマに応じて色味を変える
 function drawFloor() {
-  vctx.fillStyle = "#121218";
+  const th = dungeonTheme();
+  const base = th ? th.floorBase : "#121218";
+  const tiles = th ? th.floorTiles : ["#17171f", "#15151c", "#131319"];
+  const glow = th ? th.glow : "rgba(255,190,90,0.07)";
+  vctx.fillStyle = base;
   vctx.fillRect(0, 0, view.width, view.height);
   const T = 24;
   for (let ty = 0; ty < view.height / T; ty++) {
     for (let tx = 0; tx < view.width / T; tx++) {
       const n = (tx * 7 + ty * 13) % 5;
-      vctx.fillStyle = n === 0 ? "#17171f" : n === 1 ? "#15151c" : "#131319";
+      vctx.fillStyle = n === 0 ? tiles[0] : n === 1 ? tiles[1] : tiles[2];
       vctx.fillRect(tx * T, ty * T, T - 1, T - 1);
     }
   }
-  // 中央が明るく周辺が暗いビネット (たいまつの灯り)
+  // 中央が明るく周辺が暗いビネット (テーマに応じた灯りの色)
   const vg = vctx.createRadialGradient(view.width / 2, view.height / 2, 60, view.width / 2, view.height / 2, view.width * 0.62);
-  vg.addColorStop(0, "rgba(255,190,90,0.07)");
+  vg.addColorStop(0, glow);
   vg.addColorStop(0.5, "rgba(0,0,0,0)");
   vg.addColorStop(1, "rgba(0,0,0,0.55)");
   vctx.fillStyle = vg;
@@ -759,6 +801,34 @@ function drawWallBar(r, dir, { flash = 0 } = {}) {
   vctx.restore();
 }
 
+// テーマ色のカード裏面 (特別階・迷宮テーマで共用): 地のグラデ + 二重枠 + 中央紋章 + コーナードット
+function drawThemedBack(r, accent, sym) {
+  const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
+  bg.addColorStop(0, shadeHex(accent, 0.24));
+  bg.addColorStop(0.5, shadeHex(accent, 0.14));
+  bg.addColorStop(1, shadeHex(accent, 0.09));
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, r.w, r.h);
+  vctx.strokeStyle = shadeHex(accent, 0.78);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, r.w - 3, r.h - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.42);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, r.w - 9, r.h - 9);
+  const cx = r.w / 2, cy = r.h / 2;
+  vctx.fillStyle = accent;
+  vctx.font = "bold 16px monospace";
+  vctx.textAlign = "center";
+  vctx.textBaseline = "middle";
+  vctx.fillText(sym || "✦", cx, cy + 1);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [r.w - 7, 7], [7, r.h - 7], [r.w - 7, r.h - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.08)";
+  vctx.fillRect(2, 2, r.w - 4, 3);
+}
+
 function drawCard(r, cell, scaleX, showBack) {
   // カードの落ち影 (フリップ中も足元に残す)
   vctx.save();
@@ -805,36 +875,13 @@ function drawCard(r, cell, scaleX, showBack) {
     } else if (specialDef()) {
       // 特別階カード裏面: 階ごとのテーマ色の地 + 固有の紋章
       const sp = specialDef();
-      const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
-      bg.addColorStop(0, shadeHex(sp.accent, 0.24));
-      bg.addColorStop(0.5, shadeHex(sp.accent, 0.14));
-      bg.addColorStop(1, shadeHex(sp.accent, 0.09));
-      vctx.fillStyle = bg;
-      vctx.fillRect(0, 0, r.w, r.h);
-      // 外枠 (二重・テーマ色)
-      vctx.strokeStyle = shadeHex(sp.accent, 0.78);
-      vctx.lineWidth = 2;
-      vctx.strokeRect(1.5, 1.5, r.w - 3, r.h - 3);
-      vctx.strokeStyle = shadeHex(sp.accent, 0.42);
-      vctx.lineWidth = 1;
-      vctx.strokeRect(4.5, 4.5, r.w - 9, r.h - 9);
-      // 中央の紋章 (階ごとに固有)
-      const cx = r.w / 2, cy = r.h / 2;
-      vctx.fillStyle = sp.accent;
-      vctx.font = "bold 16px monospace";
-      vctx.textAlign = "center";
-      vctx.textBaseline = "middle";
-      vctx.fillText(sp.sym || "✦", cx, cy + 1);
-      // コーナードット (テーマ色)
-      vctx.fillStyle = shadeHex(sp.accent, 0.6);
-      for (const [dx, dy] of [[7, 7], [r.w - 7, 7], [7, r.h - 7], [r.w - 7, r.h - 7]]) {
-        vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
-      }
-      // 上辺ハイライト
-      vctx.fillStyle = "rgba(255,255,255,0.08)";
-      vctx.fillRect(2, 2, r.w - 4, 3);
+      drawThemedBack(r, sp.accent, sp.sym);
+    } else if (dungeonTheme()) {
+      // 迷宮テーマのカード裏面 (5迷宮ごと): ブロック固有の色と紋章
+      const th = dungeonTheme();
+      drawThemedBack(r, th.accent, th.sym);
     } else {
-      // 通常カード裏面: 深紅の布地 + 金の縁飾り + ダイヤ紋
+      // 通常カード裏面 (D21以降): 深紅の布地 + 金の縁飾り + ダイヤ紋
       const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
       bg.addColorStop(0, "#7a5616");
       bg.addColorStop(0.5, "#5e420f");
@@ -2367,16 +2414,22 @@ function renderCombatMenu() {
 
 function showSpells(actor) {
   combatMenu.innerHTML = "";
-  combatMenu.appendChild(el("div", "who", `${actor.name} のスキル (MP ${actor.mp})`));
+  combatMenu.appendChild(el("div", "who", `${actor.name} のスキル (MP ${actor.mp})　長押しで詳細`));
   // 呪文が多い職 (魔導士・賢者など最大11個) は2列に並べて縦に伸びすぎないようにする
   const list = el("div", "target-list" + (actor.spells.length > 4 ? " cols2" : ""));
   for (const key of actor.spells) {
     const sp = SPELLS[key];
     const cost = spellCost(actor, sp); // 省詠唱 (chant) 持ちは消費が軽い
-    const b = btn(`${sp.name} (MP${cost}) - ${sp.desc}`, () => { act("spell", key); });
-    if (actor.mp < cost) { b.disabled = true; b.style.opacity = "0.4"; } // MP不足は押せない
+    // 使えない技も長押しで詳細を見られるよう、native disabled ではなく soft-lock にする
+    // (disabled だと pointer イベントが飛ばず長押しを拾えない)
+    let locked = false;
+    if (actor.mp < cost) locked = true; // MP不足は押せない
     // 単体味方呪文で効果のある対象がいない (満タンへの回復・状態異常なしへの治療) は押せない
-    else if (sp.target === "ally" && G.battle._allyTargets(sp).length === 0) { b.disabled = true; b.style.opacity = "0.4"; }
+    else if (sp.target === "ally" && G.battle._allyTargets(sp).length === 0) locked = true;
+    const b = btn(`${sp.name} (MP${cost}) - ${sp.desc}`, () => { if (locked) { SFX.ng(); return; } act("spell", key); });
+    if (locked) { b.classList.add("locked"); b.style.opacity = "0.4"; }
+    // 長押しでスキル詳細を表示 (MP不足などで押せない技でも内容は確認できる)
+    attachLongPress(b, () => { SFX.select(); showSkillPopup(key); });
     list.appendChild(b);
   }
   combatMenu.appendChild(list);
@@ -2663,6 +2716,7 @@ function runProgressPopups(queue, done) {
   if (ev.kind === "level") {
     SFX.levelup();
     const lines = [ev.member.cls];
+    // 上昇ステータスは必要に応じて折り返して表示 (1行に固定せず自然改行)
     lines.push(ev.deltas && ev.deltas.length ? ev.deltas.join("  ") : "ステータスはそのまま");
     showEvent({
       banner: "⤴ レベルアップ ⤴",
@@ -2969,9 +3023,33 @@ function renderParty() {
       <div class="nums">HP ${p.hp}/${p.maxhp}</div>
       ${p.maxmp > 0 ? `<div class="bar mp"><i style="width:${(p.mp / p.maxmp) * 100}%"></i></div>
       <div class="nums">MP ${p.mp}/${p.maxmp}</div>` : ""}
+      ${buffBadges(p)}
     `;
     partyEl.appendChild(card);
   });
+}
+
+// 戦闘中の発動効果バッジ: 能力ごとに 強化(▲)/弱体(▼) を段階数ぶん並べ、残りターンを添える。
+const BUFF_STAT_ICON = { atk: "⚔", vit: "🛡", agi: "💨" };
+const BUFF_STAT_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI" };
+function buffBadges(p) {
+  if (G.state !== "battle" || !p.alive || !p.effects || !p.effects.length) return "";
+  // (能力, 方向) ごとに集約: 段階数(最大2)と最短残ターンを出す
+  const groups = new Map();
+  for (const ef of p.effects) {
+    const up = ef.mult > 1;
+    const key = ef.stat + (up ? "+" : "-");
+    const g = groups.get(key) || { stat: ef.stat, up, stages: 0, turns: Infinity };
+    g.stages++; g.turns = Math.min(g.turns, ef.turns);
+    groups.set(key, g);
+  }
+  let html = "";
+  for (const g of groups.values()) {
+    const arrow = (g.up ? "▲" : "▼").repeat(Math.min(2, g.stages));
+    const title = `${BUFF_STAT_LABEL[g.stat] || g.stat} ${g.up ? "強化" : "弱体"}${g.stages}段階・残り${g.turns}T`;
+    html += `<span class="bf ${g.up ? "up" : "dn"}" title="${title}">${BUFF_STAT_ICON[g.stat] || "◆"}${arrow}<b>${g.turns}</b></span>`;
+  }
+  return `<div class="buffs">${html}</div>`;
 }
 
 // ---- DOM ヘルパ ----
@@ -2989,6 +3067,26 @@ function btn(label, onClick) {
   return b;
 }
 
+// 長押し検出: ~450ms 押し続けたら onHold を呼び、その直後のクリックは抑制する。
+// タッチ/マウス両対応。指が大きく動いたら(スクロール扱い)キャンセルする。
+function attachLongPress(elm, onHold, ms = 450) {
+  let timer = null, fired = false, sx = 0, sy = 0;
+  const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
+  const start = (x, y) => {
+    fired = false; sx = x; sy = y;
+    clear();
+    timer = setTimeout(() => { fired = true; onHold(); }, ms);
+  };
+  const move = (x, y) => { if (timer && (Math.abs(x - sx) > 10 || Math.abs(y - sy) > 10)) clear(); };
+  elm.addEventListener("pointerdown", (e) => start(e.clientX, e.clientY));
+  elm.addEventListener("pointermove", (e) => move(e.clientX, e.clientY));
+  elm.addEventListener("pointerup", clear);
+  elm.addEventListener("pointercancel", clear);
+  elm.addEventListener("pointerleave", clear);
+  // 長押しが発火していたら通常クリック(スキル発動など)を握り潰す
+  elm.addEventListener("click", (e) => { if (fired) { e.preventDefault(); e.stopPropagation(); fired = false; } }, true);
+}
+
 // ================= 街 (拠点) =================
 const townEl = document.getElementById("town-screen");
 const townBtn = document.getElementById("town-btn");
@@ -2999,6 +3097,11 @@ const returnBtn = document.getElementById("return-btn");
 // 押せばどこにいても街へ帰還できる (魔法陣まで歩いて戻る必要がない)。
 function updateReturnBtn() {
   if (!returnBtn) return;
+  // アイコンは MAP の帰還魔法陣と同じスプライト (ICONS.portal)
+  if (!returnBtn.dataset.iconReady) {
+    returnBtn.appendChild(spriteCanvas(ICONS.portal, 2));
+    returnBtn.dataset.iconReady = "1";
+  }
   const show = G.state === "board" && !!G.portalFound;
   returnBtn.classList.toggle("hidden", !show);
 }
@@ -3335,7 +3438,7 @@ function notifyNewSkills(d, before) {
 }
 
 // 新スキル習得のお知らせカード: 使えるようになった技の名前と説明を一覧する
-function showSkillUnlockPopup(d, keys) {
+function showSkillUnlockPopup(d, keys, onClose) {
   const accent = "#ffcf4a";
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card cdx-detail");
@@ -3362,11 +3465,12 @@ function showSkillUnlockPopup(d, keys) {
   }
   card.appendChild(box);
   card.appendChild(el("div", "cdx-dun dim", "・技名をタップすると詳しい効果を確認できる"));
-  const ok = btn("閉じる", () => wrap.remove());
+  const close = () => { wrap.remove(); if (onClose) onClose(); };
+  const ok = btn("閉じる", close);
   ok.className = "btn primary ig-ok";
   card.appendChild(ok);
   wrap.appendChild(card);
-  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
+  wrap.addEventListener("click", (e) => { if (e.target === wrap) close(); });
   document.body.appendChild(wrap);
 }
 
@@ -3706,8 +3810,17 @@ function renderAltar() {
     slots.appendChild(slot);
   };
   mkSlot("primary", "メイン魂", pe, false, null);
-  for (let i = 0; i < MAX_SUBS; i++) { const sub = d.subs[i] || null; mkSlot("sub" + i, `サブ魂${i + 1}`, sub ? soulByUid(sub.uid) : null, true, sub); }
+  const subSlots = unlockedSubSlots();
+  for (let i = 0; i < subSlots; i++) { const sub = d.subs[i] || null; mkSlot("sub" + i, `サブ魂${i + 1}`, sub ? soulByUid(sub.uid) : null, true, sub); }
   townEl.appendChild(slots);
+  // 未解放のサブ魂枠は迷宮の踏破で開く (選択中スロットも開放済みに戻す)
+  if (subSlots < MAX_SUBS) {
+    const c = clearedDungeonCount();
+    const nextAt = subSlots === 0 ? 10 : 20;
+    townEl.appendChild(el("div", "tw-note",
+      `宿し技スロット（サブ魂）はあと ${MAX_SUBS - subSlots} 枠、迷宮の踏破で開く。次の枠は ${nextAt} 迷宮の踏破で解放（現在 ${c} 踏破）。`));
+    if (altarSlot !== "primary" && (+altarSlot.slice(3)) >= subSlots) altarSlot = "primary";
+  }
 
   // 魂を強化 (選択中スロットのメイン魂/サブ魂に ✦Soul を注いでレベルを上げる)
   const selSoul = slotSoul(d, altarSlot);
@@ -3761,8 +3874,8 @@ function renderAltar() {
     info.appendChild(el("div", "tw-soulst",
       `Lv${s.level}/${cap}　ランク${rank}` + (nx ? `　（次ランクまで${nx.next - s.count}の魂が必要）` : "　（最高ランク）")));
     r.appendChild(info);
-    // 吸収 (融合): 同職の余っている魂を取り込んでランクを上げる
-    const cands = fuseCandidates(s.uid);
+    // 吸収 (融合): 同職の余っている魂を取り込んでランクを上げる (D5 踏破で解放)
+    const cands = featureUnlocked("fusion") ? fuseCandidates(s.uid) : [];
     if (cands.length) {
       const fb = btn(`吸収(${cands.length})`, (ev) => { ev.stopPropagation(); openFusePicker(s.uid); });
       fb.className = "tw-small";
@@ -3869,11 +3982,27 @@ function fuseCandidates(targetUid) {
 // 吸収する魂を選ぶポップアップ
 function openFusePicker(targetUid) {
   const t = soulByUid(targetUid); if (!t) return;
+  if (!featureUnlocked("fusion")) { log("魂の融合はまだ授かっていない。", "sys"); SFX.ng(); return; }
   const cands = fuseCandidates(targetUid).sort(soulSortCmp);
   if (!cands.length) { log("吸収できる同職の魂がない。", "sys"); SFX.ng(); return; }
   const opts = cands.map((c) => ({
     label: `${soulSeriesName(c.clsKey)}の魂 Lv${c.level}（魂数${c.count}）`,
-    fn: () => fuseSoul(targetUid, c.uid),
+    // すでに融合済み (魂数2以上) の魂を素材にする場合は、誤って消費しないよう警告する
+    fn: () => {
+      if (c.count > 1) {
+        showConfirm({
+          title: "融合済みの魂を素材にしますか？",
+          lines: [
+            `この ${soulSeriesName(c.clsKey)}の魂 は ${c.count} 体ぶんを融合した魂です。`,
+            "素材にすると、この魂とその魂数・蓄積した Soul はすべて失われます。",
+          ],
+          okLabel: "素材にする",
+          onOk: () => fuseSoul(targetUid, c.uid),
+        });
+      } else {
+        fuseSoul(targetUid, c.uid);
+      }
+    },
   }));
   opts.push({ label: "やめる", fn: () => {} });
   showChoice(`${soulSeriesName(t.clsKey)}の魂に吸収させる魂を選ぶ`, opts,
@@ -3920,7 +4049,9 @@ function fuseSoul(targetUid, consumeUid) {
 }
 
 // 魂を1レベル上げるのに要する Soul (レベルが高いほど高い)
-function soulTrainCost(level) { return 15 + level * 12; }
+// 次レベルへ必要な ✦Soul。レベルが上がるほど指数的に増え、レベリングのペースを抑える。
+// 基準 20 × 1.13^(level-1) → Lv1≈20 / Lv10≈60 / Lv20≈204 / Lv30≈692 / Lv50≈7980。
+function soulTrainCost(level) { return Math.max(1, Math.round(20 * Math.pow(1.13, (level || 1) - 1))); }
 
 // 魂に蓄積している総 Soul = 現レベルまでに消費した分 + 次レベルへの途中分(exp)。
 // 融合時の合算や、上限突破後の一括レベルアップ計算に使う。
@@ -3946,15 +4077,37 @@ function trainSoul(uid) {
   const cost = Math.max(1, soulTrainCost(e.level) - (e.exp || 0));
   if (G.soulPts < cost) { log("Soul が足りない。", "sys"); SFX.ng(); return; }
   const wearer = allDolls().find((d) => d.primary === uid || (d.subs || []).some((s) => s && s.uid === uid));
-  const before = wearer ? (wearer.spells || []).slice() : null;
+  const STAT_KEYS = ["maxhp", "maxmp", "atk", "vit", "agi", "int", "pie", "luk"];
+  const STAT_LABEL = { maxhp: "HP", maxmp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
+  const beforeStat = wearer ? Object.fromEntries(STAT_KEYS.map((k) => [k, wearer[k] || 0])) : null;
+  const beforeSpells = new Set(wearer ? (wearer.spells || []) : []);
   G.soulPts -= cost;
   e.level++; e.exp = 0;
   recalcAllDolls();
   codexJobSee(e.clsKey, e.count, e.level);
   SFX.levelup(); buzz([0, 30, 40, 30]);
   log(`${soulSeriesName(e.clsKey)}の魂が Lv${e.level} に成長した！ (✦${cost})`, "win");
-  if (wearer && before) notifyNewSkills(wearer, before);
-  renderTown();
+  // 魂のレベルアップを宿主の上昇ステータス・習得スキルとともにポップアップ表示
+  const deltas = [];
+  if (wearer && beforeStat) for (const k of STAT_KEYS) { const d = (wearer[k] || 0) - beforeStat[k]; if (d > 0) deltas.push(`${STAT_LABEL[k]} +${d}`); }
+  const gainedSkills = wearer ? (wearer.spells || []).filter((k) => !beforeSpells.has(k)) : [];
+  const lines = [`${wearer ? wearer.name + " の" : ""}全能力が高まった`];
+  lines.push(deltas.length ? deltas.join("  ") : "ステータスはそのまま");
+  // スキル習得はレベルアップのポップアップには載せず、閉じた後に別カードで知らせる
+  const afterLevel = () => {
+    if (wearer && gainedSkills.length) showSkillUnlockPopup(wearer, gainedSkills, () => renderTown());
+    else renderTown();
+  };
+  showEvent({
+    sprite: wearer ? dollSprite(wearer) : jobSprite(e.clsKey, soulRankOf(e)),
+    banner: "⤴ 魂レベルアップ ⤴",
+    title: `${soulSeriesName(e.clsKey)}の魂が Lv${e.level} になった！`,
+    lines,
+    accent: SOUL_CLASSES[e.clsKey].glow,
+    sparkle: true,
+    btnLabel: "受け取る",
+    onClose: afterLevel,
+  });
 }
 
 // ---- 酒場「沈まぬ灯」: パーティ編成 + クエスト ----
@@ -4095,9 +4248,14 @@ function renderTavern() {
   townEl.appendChild(townHeader("酒場「沈まぬ灯」"));
   townEl.appendChild(el("div", "tw-lead", "迷宮帰りの傭兵がたむろする。依頼の受注と噂話はここで。(編成は人業の館)"));
 
-  // --- 噂話 ---
+  // --- 噂話 (D15 踏破で解放) ---
   townEl.appendChild(el("div", "tw-h", "酒場の噂話"));
-  if (G.rumor) {
+  if (!featureUnlocked("rumor")) {
+    const lockBox = el("div", "tw-rumor");
+    lockBox.appendChild(el("div", "tw-rumors", "― 情報屋はまだ口を開かない ―"));
+    lockBox.appendChild(el("div", "tw-rumort", `15 迷宮を踏破した名の知れた魂繰りにしか、確かな噂は売らぬという。（現在 ${clearedDungeonCount()} 踏破）`));
+    townEl.appendChild(lockBox);
+  } else if (G.rumor) {
     const rb = el("div", "tw-rumor");
     rb.appendChild(el("div", "tw-rumors", `― ${G.rumor.speaker} ―`));
     rb.appendChild(el("div", "tw-rumort", G.rumor.text));
@@ -4425,7 +4583,17 @@ function reportMainQuest() {
       return;
     }
     autosave(true);
-    acceptMainQuest(); // 踏破報告と同時に次の勅命を自動拝命
+    // 解放の節目 (D5/10/15/20) は、報告の直後に機能解放のシーンを挟む
+    const us = unlockSceneFor(n);
+    if (us) {
+      showStoryScene(us.title, us.lines, null, () => {
+        SFX.victory(); buzz([0, 40, 80, 40]);
+        showToast("🔓 新たな技能を授かった");
+        acceptMainQuest();
+      });
+    } else {
+      acceptMainQuest(); // 踏破報告と同時に次の勅命を自動拝命
+    }
   });
 }
 
@@ -4492,6 +4660,20 @@ function reportTutorialQuest() {
     autosave(true);
     acceptMainQuest(); // チュートリアル完了後も自動で第1章を拝命
   });
+}
+
+// 機能解放: ダンジョン踏破数に応じて段階的に解放される (序盤の節目で授かる)。
+//   D5 踏破 → 魂融合 / D10 → サブ魂1枠 / D15 → 酒場の噂 / D20 → サブ魂2枠目
+function featureUnlocked(key) {
+  const c = clearedDungeonCount();
+  if (key === "fusion") return c >= 5;
+  if (key === "rumor") return c >= 15;
+  return false;
+}
+// 解放済みのサブ魂 (宿し技) スロット数 (0/1/2)。MAX_SUBS が上限
+function unlockedSubSlots() {
+  const c = clearedDungeonCount();
+  return Math.min(MAX_SUBS, c >= 20 ? 2 : c >= 10 ? 1 : 0);
 }
 
 // 踏破済みの迷宮数 (メインストーリー基準: 第n章攻略中 = n-1 踏破)
@@ -5347,15 +5529,45 @@ function renderShop() {
       bag.appendChild(cellEl);
     }
     dock.appendChild(bag);
-    // 一括売却ボタン (呪い・未鑑定のアイテムを除く全所持品を売る)
+    // 一括鑑定 (左) ・ 一括売却 (右) を横並びで配置
+    const unid = who.items.filter((it) => it.unidentified);
     const sellable = who.items.filter((it) => !it.cursed && !it.unidentified);
-    if (sellable.length > 0) {
-      const total = sellable.reduce((s, it) => s + sellPrice(it), 0);
-      const bulkBtn = btn(`一括売却 (${sellable.length}点 / 💰${total})`, () => {
-        for (const it of sellable) sellItem(who, it, sellPrice(it));
-      });
-      bulkBtn.className = "btn tw-add";
-      dock.appendChild(bulkBtn);
+    if (unid.length > 0 || sellable.length > 0) {
+      const actions = el("div", "shop-actions");
+      actions.style.display = "flex";
+      actions.style.gap = "8px";
+      if (unid.length > 0) {
+        const idTotal = unid.reduce((s, it) => s + sellPrice(it), 0);
+        const idBtn = btn(`一括鑑定 (${unid.length}点 / 💰${idTotal})`, () => {
+          showConfirm({
+            title: "未鑑定品をまとめて鑑定しますか？",
+            lines: [`${who.name}の未鑑定品 ${unid.length}点を、安い順に所持金が続く限り鑑定します。`,
+              `最大で 💰${idTotal} を支払います（所持金 💰${G.gold}）。`],
+            okLabel: "鑑定する",
+            onOk: () => bulkIdentify(who),
+          });
+        });
+        idBtn.className = "btn tw-add";
+        idBtn.style.flex = "1";
+        if (G.gold < sellPrice(unid[0])) idBtn.disabled = true; // 1点も鑑定できないなら無効
+        actions.appendChild(idBtn);
+      }
+      if (sellable.length > 0) {
+        const total = sellable.reduce((s, it) => s + sellPrice(it), 0);
+        const bulkBtn = btn(`一括売却 (${sellable.length}点 / 💰${total})`, () => {
+          showConfirm({
+            title: "持ち物をまとめて売却しますか？",
+            lines: [`${who.name}の売却可能な ${sellable.length}点 をすべて売ります。`,
+              `合計 💰${total} を獲得します。`],
+            okLabel: "売却する",
+            onOk: () => { for (const it of sellable) sellItem(who, it, sellPrice(it)); },
+          });
+        });
+        bulkBtn.className = "btn tw-add";
+        bulkBtn.style.flex = "1";
+        actions.appendChild(bulkBtn);
+      }
+      dock.appendChild(actions);
     }
   } else {
     dock.appendChild(el("div", "tw-empty", "編成に人業がいない。"));
@@ -5433,6 +5645,25 @@ function shopIdentify(owner, it) {
   SFX.itemget(); buzz(15);
   log(`鑑定料 💰${cost} を払った。${it.name} と判明した！`, "win");
   showToast(`🔍 ${it.name}`);
+  renderTown();
+}
+
+// 商店で一括鑑定: 所持品の未鑑定品を、所持金が続く限り安い順に鑑定する
+function bulkIdentify(owner) {
+  const unid = owner.items.filter((it) => it.unidentified).sort((a, b) => sellPrice(a) - sellPrice(b));
+  let n = 0, spent = 0;
+  for (const it of unid) {
+    const cost = sellPrice(it);
+    if (G.gold < cost) break;
+    G.gold -= cost; spent += cost;
+    it.unidentified = false; it.idHardFail = false;
+    n++;
+  }
+  if (n > 0) {
+    SFX.itemget(); buzz(15);
+    log(`一括鑑定: ${n}点を鑑定した (💰${spent})。`, "win");
+    showToast(`🔍 ${n}点を鑑定`);
+  } else { log("お金が足りない。", "sys"); SFX.ng(); }
   renderTown();
 }
 
@@ -5929,7 +6160,9 @@ function renderSoulTab(p) {
   // サブ魂スロット
   wrap.appendChild(el("div", "st-soulpart", "サブ魂"));
   const subs = (p.subs || []);
-  if (!subs.length) wrap.appendChild(el("div", "st-soulinfo dim", "（サブ魂なし — 館の祭壇で別の魂の技を1つ借りられる）"));
+  if (!subs.length) wrap.appendChild(el("div", "st-soulinfo dim", unlockedSubSlots() > 0
+    ? "（サブ魂なし — 館の祭壇で別の魂の技を1つ借りられる）"
+    : "（宿し技スロットは未解放 — 迷宮を踏破すると開く）"));
   for (const sub of subs) {
     const se = sub ? soulByUid(sub.uid) : null;
     if (!se) continue;
@@ -6026,6 +6259,8 @@ function skillDetailLines(sp) {
   if (sp.grantEndure) lines.push("対象に「致死ダメージをHP1で耐える」を付与（1戦闘1回）");
   if (sp.grantBarrier) lines.push(`味方全体に魔障壁${sp.grantBarrier}回分（ブレス・呪文の被ダメ半減）を付与`);
   if (sp.debuffAll) lines.push(`さらに敵全体を弱体: ${fx(sp.debuffAll)}`);
+  // 強化/弱体の持続ターン数 (同方向は最大2段階まで重ねられる)
+  if (sp.dur && (sp.buff || sp.debuff || sp.debuffAll)) lines.push(`効果は ${sp.dur} ターン持続（同じ能力は最大2段階）`);
   return lines;
 }
 
@@ -6676,8 +6911,10 @@ const FACILITY_BGM = {
   shrine: "shrine",
 };
 let openingActive = false; // オープニング演出中は専用テーマ
-// 探索BGM: 迷宮のランク帯 (1-10) ごとに専用テーマ (墓地/坑道/砦/森/神殿/灼洞/氷廊/尖塔/冥門/玄室)
+// 探索BGM: D1-20 は5迷宮ごとのテーマ曲、D21以降はランク帯 (1-10) の専用テーマ
 function fieldBgm() {
+  const th = dungeonTheme();
+  if (th) return th.bgm;
   const r = Math.max(1, Math.min(10, activeCfg().rank || 1));
   return r === 1 ? "field" : `field${r}`;
 }

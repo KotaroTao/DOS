@@ -115,6 +115,24 @@ export const SPELLS = {
   RYUZETSU: { name: "竜墜とし", mp: 16, kind: "phys", power: 5.0, target: "enemy", desc: "竜の力を解き放つ渾身の一撃" },
 };
 
+// 強化/弱体 (atk/vit/agi 倍率) の持続ターン数を各スキルに個別設定する。
+// 同じ能力への同方向の効果は最大2段階(2回)まで重ねられ、各効果がこのターン数だけ持続する。
+// (ラウンド開始ごとに1減り、0で消える。未掲載の効果持ちスキルは既定3ターン)
+const BUFF_DURATIONS = {
+  BLESS: 3, PROTECT: 3, DISPEL: 3, WARCRY: 3, GUARDALL: 3, IRONWALL: 4, BLIND: 3,
+  POISONSTAB: 3, BOUJIN: 3, JOUMON: 3, KAGENUI: 3,
+  TATEWARI: 3, KOTE: 3, KASUMEGIRI: 3, OUJOU: 4,
+  KIJINKUDAKI: 3, HAMANOKEN: 3,
+  SEIHEKINOINORI: 3, KOUBOUITTAI: 4, SAKIGAKENOGOREI: 3, SEIIKINOKANE: 3,
+  KOUSHUNOHOUJIN: 3, KASUMINOTOBARI: 3,
+};
+for (const key in SPELLS) {
+  const sp = SPELLS[key];
+  if (sp.buff || sp.debuff || sp.debuffAll) sp.dur = BUFF_DURATIONS[key] || 3;
+}
+// 敵が使う自己強化 (enemyAct の WARCRY 相当) の既定持続ターン数
+export const ENEMY_BUFF_DUR = 3;
+
 // アイテムは個体ごとに複製して持たせる (装備状態を個別管理するため)
 export function cloneItem(id) {
   const t = ITEMS[id];
@@ -244,7 +262,7 @@ export class Battle {
     this.noFlee = !!opts.noFlee; // 迷宮の異変「閉ざされた退路」: 逃走不可
     this._roundNo = 0;
     this._bigBarrierUsed = false;
-    for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a._enduredThisBattle = false; a._grantEndure = false; }
+    for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._enduredThisBattle = false; a._grantEndure = false; }
     for (const p of party) {
       p._coverLeft = pv(p, "cover");
       p._barrierLeft = pv(p, "barrier");
@@ -292,9 +310,17 @@ export class Battle {
     return arr.slice(0, 3).some((x) => x.alive);
   }
 
-  // 物理の隊列補正: 後衛は物理を「与える」「受ける」ともに半減。魔法・ブレスには掛からない
+  // 後衛から物理を「与える」ときの威力補正。通常は半減だが、射程のある武器
+  // (槍=中 / 弓=長) は後列からでも減衰しない (後衛運用が本来の用途のため)。
+  _outRowMul(actor) {
+    if (!this.isBackRow(actor)) return 1;
+    const rng = this.attackRange(actor);
+    if (rng === "mid" || rng === "long") return 1; // 槍・弓は後列でも減衰なし
+    return 0.5;
+  }
+  // 物理の隊列補正: 後衛は与ダメ(射程武器を除く)・被ダメが半減。魔法・ブレスには掛からない
   _rowMul(actor, tgt) {
-    return (this.isBackRow(actor) ? 0.5 : 1) * (this.isBackRow(tgt) ? 0.5 : 1);
+    return this._outRowMul(actor) * (this.isBackRow(tgt) ? 0.5 : 1);
   }
 
   // 武器の射程 (近/中/長)。敵側は射程の概念を持たない (狙いは _pickPartyTarget が決める)
@@ -311,10 +337,45 @@ export class Battle {
     return front.length ? front : all;
   }
 
+  // ---- 強化/弱体 (atk/vit/agi 倍率) の段階・持続管理 ----
+  // ターゲットの effects から能力ごとの実効倍率を再計算して buffs に反映する。
+  _recalcBuffs(t) {
+    const b = { atk: 1, vit: 1, agi: 1 };
+    for (const ef of (t.effects || [])) b[ef.stat] = (b[ef.stat] || 1) * ef.mult;
+    // 旧来の上下限 (×3 / ×0.3) を安全側で維持
+    for (const k in b) b[k] = Math.max(0.3, Math.min(3, b[k]));
+    t.buffs = b;
+  }
+  // 1つの能力強化/弱体を付与する。同じ能力への同方向(強化 or 弱体)の効果は最大2段階まで。
+  // すでに2つ乗っていたら最も古いものを置き換える(=掛け直しで持続を更新できる)。
+  _applyMod(t, stat, mult, dur, srcName) {
+    if (!t || mult === 1) return;
+    t.effects = t.effects || [];
+    const up = mult > 1;
+    const same = t.effects.filter((e) => e.stat === stat && (e.mult > 1) === up);
+    if (same.length >= 2) {
+      // 同方向2段階が上限: 最古を取り除いてから新規を積む
+      const oldest = same[0];
+      t.effects.splice(t.effects.indexOf(oldest), 1);
+    }
+    t.effects.push({ stat, mult, turns: Math.max(1, dur || 3), src: srcName || "" });
+    this._recalcBuffs(t);
+  }
+  // ラウンド開始時に全員の効果ターンを1減らし、切れたものを除く。
+  _tickEffects() {
+    for (const a of [...this.party, ...this.enemies]) {
+      if (!a.effects || !a.effects.length) continue;
+      let changed = false;
+      for (const ef of a.effects) { ef.turns--; if (ef.turns <= 0) changed = true; }
+      if (changed) { a.effects = a.effects.filter((e) => e.turns > 0); this._recalcBuffs(a); }
+    }
+  }
+
   // AGI(+乱数)で行動順を組み直す。ラウンド開始時に毒のダメージが入る。
   // 第1ラウンドは先制/奇襲なら片側のみが行動する
   _startRound() {
     this._roundNo++;
+    if (this._roundNo > 1) this._tickEffects(); // 2ラウンド目以降、強化/弱体の持続を消化
     for (const a of [...this.party, ...this.enemies]) {
       if (!a.alive || a.ailment !== "poison") continue;
       const d = Math.max(1, Math.round(a.maxhp * 0.05));
@@ -590,7 +651,7 @@ export class Battle {
         const e = makeEnemy(key, actor._scale || 1);
         // ロード復元後の uid 重複を防ぐ (uid カウンタはリロードでリセットされる)
         e.uid = [...this.party, ...this.enemies].reduce((mx, x) => Math.max(mx, x.uid || 0), 0) + 1;
-        e.buffs = { atk: 1, vit: 1, agi: 1 };
+        e.buffs = { atk: 1, vit: 1, agi: 1 }; e.effects = [];
         // 同種が既にいるなら A/B/C… の続きで呼び分ける
         const same = this.enemies.filter((x) => x.key === key).length;
         if (same) e.name += String.fromCharCode(65 + same);
@@ -860,7 +921,7 @@ export class Battle {
       actor.side === "party" ? "hit" : "dmg");
     if (tgt.asleep) tgt.asleep = false;
     // 命中時の弱体 (毒刃など)
-    if (opt.debuff && tgt.alive) { tgt.buffs = tgt.buffs || { atk: 1, vit: 1, agi: 1 }; for (const k in opt.debuff) tgt.buffs[k] *= opt.debuff[k]; }
+    if (opt.debuff && tgt.alive) { for (const k in opt.debuff) this._applyMod(tgt, k, opt.debuff[k], opt.debuffDur, opt.name); }
     // 毒刃 (venomBlade): 敵を毒に侵す
     const vb = pv(actor, "venomBlade");
     if (vb && tgt.alive && tgt.side === "enemy" && !tgt.ailment && Math.random() < (vb >= 2 ? 0.30 : 0.15)) {
@@ -911,7 +972,7 @@ export class Battle {
         let connected = false; // 1発でも命中したか (命中後の付与効果の条件)
         for (let h = 0; h < hits; h++) {
           if (!t.alive) break;
-          const hit = this._physical(actor, t, { power: sp.power, critBonus: sp.critBonus, debuff: sp.debuff, element: sp.element, name: sp.name });
+          const hit = this._physical(actor, t, { power: sp.power, critBonus: sp.critBonus, debuff: sp.debuff, debuffDur: sp.dur, element: sp.element, name: sp.name });
           res.hits.push(hit);
           dealt += hit.dmg || 0;
           if (!hit.miss) connected = true;
@@ -979,8 +1040,7 @@ export class Battle {
       const targets = sp.target === "self" ? [actor] : sp.target === "all-ally" ? this.livingParty() : [cmd.target || actor].filter(Boolean);
       let cured = false;
       for (const t of targets) {
-        t.buffs = t.buffs || { atk: 1, vit: 1, agi: 1 };
-        for (const k in sp.buff) t.buffs[k] = Math.min(3, (t.buffs[k] || 1) * sp.buff[k]);
+        for (const k in sp.buff) this._applyMod(t, k, sp.buff[k], sp.dur, sp.name);
         // 法障壁 (grantBarrier): 魔障壁の残回数を配る (ブレス・呪文の被ダメ半減)
         if (sp.grantBarrier) t._barrierLeft = (t._barrierLeft || 0) + sp.grantBarrier;
         // 聖域の鐘 (cure): 守りと同時に状態異常を祓う
@@ -993,8 +1053,7 @@ export class Battle {
       const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
       for (const t of targets) {
         if (!t.alive) continue;
-        t.buffs = t.buffs || { atk: 1, vit: 1, agi: 1 };
-        for (const k in sp.debuff) t.buffs[k] = Math.max(0.3, (t.buffs[k] || 1) * sp.debuff[k]);
+        for (const k in sp.debuff) this._applyMod(t, k, sp.debuff[k], sp.dur, sp.name);
         res.hits.push({ target: t, debuff: true });
       }
       this.log(`${sp.name}！ 敵の力が削がれた`, "hit");
@@ -1017,10 +1076,7 @@ export class Battle {
           t.hp = Math.min(t.maxhp, t.hp + heal);
           // 大聖祈祷 (cure): 癒しと同時に穢れを祓う / 聖壁の祈り (buff): 守りも固める
           if (sp.cure && t.ailment) { t.ailment = null; cured = true; }
-          if (sp.buff) {
-            t.buffs = t.buffs || { atk: 1, vit: 1, agi: 1 };
-            for (const k in sp.buff) t.buffs[k] = Math.min(3, (t.buffs[k] || 1) * sp.buff[k]);
-          }
+          if (sp.buff) for (const k in sp.buff) this._applyMod(t, k, sp.buff[k], sp.dur, sp.name);
           res.hits.push({ target: t, heal });
         }
         this.log(`味方全員のHPが回復した`, "heal");
@@ -1066,8 +1122,7 @@ export class Battle {
     // 本効果に付随する敵全体への弱体 (攻守の法陣・霞の帳)
     if (sp.debuffAll) {
       for (const t of this.livingEnemies()) {
-        t.buffs = t.buffs || { atk: 1, vit: 1, agi: 1 };
-        for (const k in sp.debuffAll) t.buffs[k] = Math.max(0.3, (t.buffs[k] || 1) * sp.debuffAll[k]);
+        for (const k in sp.debuffAll) this._applyMod(t, k, sp.debuffAll[k], sp.dur, sp.name);
       }
       this.log("敵の力が削がれた", "hit");
     }
@@ -1104,8 +1159,7 @@ export class Battle {
     for (const e of this.enemies) {
       if (e.boss && e.alive && !e._enraged && e.hp <= e.maxhp / 2) {
         e._enraged = true;
-        e.buffs = e.buffs || { atk: 1, vit: 1, agi: 1 };
-        e.buffs.atk = Math.min(3, (e.buffs.atk || 1) * 1.3);
+        this._applyMod(e, "atk", 1.3, ENEMY_BUFF_DUR, "怒り");
         this.log(`${e.name}は怒り狂っている！ (攻撃力上昇)`, "dmg");
         this._enrageFx = true; // game.js が演出に使う
       }
