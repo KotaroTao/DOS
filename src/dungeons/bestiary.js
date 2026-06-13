@@ -41,7 +41,8 @@ const NEW_DEFS = [
   // -- rank 1 --
   { id: "bs_goblin", name: "ゴブリン", rank: 1, race: "humanoid", element: "none", artKey: "kobold", soulClass: "thief",
     palette: tint(ARTS.kobold.palette, "#4a8a3a", 0.35),
-    desc: "迷宮の浅瀬に巣食う緑肌の小鬼。賢くはないが、罠の在処と人の急所だけはよく憶えている。" },
+    ability: "goldSteal", swift: true, // 素早い身のこなしで懐を狙う
+    desc: "迷宮の浅瀬に巣食う緑肌の小鬼。賢くはないが、罠の在処と人の急所、そして財布の場所だけはよく憶えている。すばしこく間合いに飛び込み、金品をかすめ取って逃げる。" },
   { id: "bs_slimeking", name: "ジャイアントスライム", rank: 1, boss: true, race: "amorph", element: "water", artKey: "slime",
     palette: tint(ARTS.slime.palette, "#3a6ad0", 0.3),
     desc: "幾百の粘塊が呑み合い、ひとつに膨れ上がった巨大な王。呑まれた者の得物が、半透明の体内に何本も沈んでいる。" },
@@ -147,16 +148,20 @@ const NEW_DEFS = [
   // -- rank 1 追加 (+4) --
   { id: "bs_mudbeetle", name: "泥甲虫", rank: 1, race: "insect", element: "earth", artKey: "spider",
     palette: tint(ARTS.spider.palette, "#6a4a2a", 0.4),
-    desc: "湿った地下の通路を這い回る硬殻の甲虫。踏みつけても鎧のような甲羅が足を跳ね返し、指の隙間から毒液を染み込ませる。" },
+    physResist: 0.6, ability: "poison", // 鎧のような甲羅 (物理耐性) + 毒液
+    desc: "湿った地下の通路を這い回る硬殻の甲虫。踏みつけても鎧のような甲羅が足を跳ね返し、刃もろくに通らない。隙を見て指の隙間から毒液を染み込ませてくる。" },
   { id: "bs_drainrat", name: "溝鼠", rank: 1, race: "beast", element: "none", artKey: "kobold",
     palette: tint(ARTS.kobold.palette, "#7a6a5a", 0.4),
-    desc: "下水と骸の悪臭に慣れきった大鼠。小賢しく群れをなし、眠った者の耳や指から順にかじり始める。" },
+    swift: true, pack: true, // 素早い群れ
+    desc: "下水と骸の悪臭に慣れきった大鼠。小賢しく群れをなして素早く駆け回り、眠った者の耳や指から順にかじり始める。" },
   { id: "bs_shroomspirit", name: "毒キノコの魔", rank: 1, race: "plant", element: "earth", artKey: "mandrake",
     palette: tint(ARTS.mandrake.palette, "#9a3a7a", 0.4),
-    desc: "地下墓地の湿気を糧に育った毒キノコの化身。胞子を吸った者は幻を見ながら眠り続け、そのまま二度と目覚めない。" },
+    ability: "poison", regen: 0.06, // 毒胞子 + 菌糸の再生
+    desc: "地下墓地の湿気を糧に育った毒キノコの化身。胞子を吸った者は幻を見ながら眠り続ける。傘を裂いても菌糸からみるみる再生し、なかなか枯れない。" },
   { id: "bs_bonebat", name: "骸蝙蝠", rank: 1, race: "undead", element: "dark", artKey: "bat",
     palette: tint(ARTS.bat.palette, "#c8c8c8", 0.5),
-    desc: "死した蝙蝠の骨が呪いで再び飛び回る亡者。羽ばたくたびに骨粉が散り、その粉を吸い込んだ者の肺が内から蝕まれる。" },
+    magWeak: 1.6, evasive: true, // 脆い骨 (魔法弱点) + 不規則な飛行 (回避)
+    desc: "死した蝙蝠の骨が呪いで再び飛び回る亡者。不規則にひらめいて刃をかわすが、脆い骨は魔法の一撃で容易く砕け散る。羽ばたくたびに散る骨粉が、吸い込んだ者の肺を内から蝕む。" },
   // -- rank 2 追加 (+5) --
   { id: "bs_shadowhound", name: "影犬", rank: 2, race: "beast", element: "dark", artKey: "beast",
     palette: tint(ARTS.beast.palette, "#2a2a3a", 0.5),
@@ -327,13 +332,16 @@ const NEW_DEFS = [
   // -- rank 1 (迷宮1-10: 地下墓地帯) --
   { id: "bs_cryptabbot", name: "骸の修道院長", rank: 1, boss: true, race: "undead", element: "dark", artKey: "skeleton", soulClass: "priest",
     palette: tint(ARTS.skeleton.palette, "#8a7a4a", 0.3),
-    desc: "墓域の祈祷堂で祈りの姿のまま朽ちた院長。死してなお埋葬の祈祷を唱え続け、墓を暴く者を「埋葬されるべき骸」として地へ還そうとする。" },
+    ability: null, role: "summoner", summonKey: "d01_skeleton", regen: 0.05, // 死者を呼び、自らも朽ちない
+    desc: "墓域の祈祷堂で祈りの姿のまま朽ちた院長。死してなお埋葬の祈祷を唱え、眠る亡骸を呼び起こして侍らせる。砕いても祈りが骨を継ぎ直し、なかなか沈黙しない。" },
   { id: "bs_whispercollector", name: "囁きの蒐集者", rank: 1, boss: true, race: "specter", element: "dark", artKey: "ghost",
     palette: tint(ARTS.ghost.palette, "#6a5a8a", 0.35),
-    desc: "回廊に染みついた死者の囁きを集め、声だけで形を成した影。蒐集した臨終の言葉を一つずつ再生しながら、新しい声の持ち主に近づいてくる。" },
+    ability: "paralyze", swift: true, // 縛る囁き + 影のような速さ
+    desc: "回廊に染みついた死者の囁きを集め、声だけで形を成した影。音もなく素早く間合いを詰め、臨終の言葉を耳元で再生して聞いた者の体を縛りつける。" },
   { id: "bs_bloodcoffin", name: "血濡れの石棺", rank: 1, boss: true, race: "construct", element: "dark", artKey: "golem",
     palette: tint(ARTS.golem.palette, "#6a2a2a", 0.4),
-    desc: "幾百の生贄の血を吸い続けた埋葬の間の石棺。注がれた血が満ちた夜、蓋の内側から軋みはじめた。中身はもう、誰も覚えていない。" },
+    ability: null, physResist: 0.6, regen: 0.06, // 頑強な石棺 (物理耐性) + 血を吸って塞がる
+    desc: "幾百の生贄の血を吸い続けた埋葬の間の石棺。分厚い石の蓋は刃を弾き、傷つけてもなお滴る血を吸って亀裂を塞いでいく。中身はもう、誰も覚えていない。" },
   { id: "bs_ossuarygiant", name: "骨壁の大鬼", rank: 1, boss: true, race: "giant", element: "none", artKey: "ogre",
     palette: tint(ARTS.ogre.palette, "#c8c0a0", 0.35),
     desc: "穴蔵の骨壁を喰らい、砕いた骨を己の体に継ぎ足して肥え太った大鬼。壁の骨が減るたび、奴の背がまたひとつ高くなる。" },

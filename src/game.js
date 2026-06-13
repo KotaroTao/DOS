@@ -12,7 +12,7 @@ import { RANK_NAME, RANK_COLOR } from "./content.js";
 import { dungeonSubQuests } from "./subquests.js";
 import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
-import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS, ELITE_ORDER } from "./dungeons/index.js";
+import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS, ELITE_ORDER, monsterTraits } from "./dungeons/index.js";
 import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, soulSprite, jobSprite, dollSprite,
   recalcDoll, dollSoul, absorbSoul, jobStatsOf, soulLevelCap,
@@ -109,33 +109,10 @@ function lootLvAt() {
   return Math.min(200, c);
 }
 
-// ===== モンスターの戦利品テーブル =====
-// 各モンスターに「通常ドロップ」「レアドロップ」を決定的に割り当てる。
-// モンスターのランク → アイテムレベル帯に対応させる (レアは一段深い帯から)。
-// 図鑑では実際に落とすまで ？？？ で伏せられる。
-function _hashStr(s) {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return h >>> 0;
-}
-function _dropPoolAt(centerLv) {
-  for (let win = 6; win <= 50; win += 6) {
-    const ids = LOOT_IDS.filter((id) => Math.abs(ITEMS[id].lv - centerLv) <= win);
-    if (ids.length) return ids;
-  }
-  return ["herb"];
-}
-for (const k in MONSTERS) {
-  const m = MONSTERS[k];
-  if (m.dropNormal && m.dropRare) continue;
-  const h = _hashStr(String(m.key || k));
-  // ランク (1-10) → アイテムレベル帯。rank*19 ≒ そのランクの迷宮の lootLv 中心
-  const lvC = Math.max(2, Math.min(192, (m.rank || 1) * 19));
-  const np = _dropPoolAt(lvC);
-  const rp = _dropPoolAt(Math.min(198, lvC + 14));
-  m.dropNormal = m.dropNormal || np[h % np.length];
-  m.dropRare = m.dropRare || rp[(h >> 5) % rp.length];
-}
+// ===== モンスターの戦利品 =====
+// 固有ドロップ (モンスターごとの専用ドロップ表) は廃止。戦利品は勝利後の宝箱から
+// 迷宮の lootLv 帯に応じて汎用抽選される (rollGenericDrop)。図鑑にはドロップではなく
+// その敵の特徴・スキル (TRAITS) を掲載する。
 
 // ===== モンスターの特殊能力 =====
 // 種族とランクから決定的に付与する。戦闘中、一定確率で通常攻撃の代わりに使う。
@@ -2711,18 +2688,14 @@ function endBattle() {
     SFX.victory();
     // 討伐クエストの進捗 + 戦績 + 図鑑記録 (倒した敵を集計)。
     // 戦利品はここでは抽選のみ。実物は勝利後の宝箱から取り出す
-    const drops = [];
     for (const e of b.enemies) {
       if (e.alive) continue;
       questProgress("kill", e.key);
       G.stats.kills++;
       recordMonsterKill(e.key, G.dungeonIdx); // 図鑑は「倒した時」に記録
-      const d = rollMonsterDrop(e);
-      if (d) drops.push(d);
     }
-    // 宝箱は1つしか現れないので中身も1品まで: 複数体が同時に落とした時はレア優先で1つに絞る
-    // (同種2体が同じ品を落とし、1つの宝箱からアイテムが2つ出てしまうのを防ぐ)
-    let drop = drops.find((d) => d.rare) || drops[0] || null;
+    // 戦利品は勝利ごとに1品まで汎用抽選 (固有ドロップ廃止)。宝箱は1つだけ現れる
+    let drop = rollGenericDrop();
     // 強敵討伐ボーナス: 高ランクアイテムの確定ドロップ
     const wasElite = b.enemies.some((e) => !e.alive && e.mon && e.mon.elite);
     if (wasElite) {
@@ -4409,20 +4382,20 @@ function recordMonsterKill(key, dungeonIdx) {
   e.kills++;
   if (dungeonIdx != null) e.dungeons[dungeonIdx] = true;
 }
-// 撃破時の戦利品抽選 (通常30% / レア4%)。ここでは抽選のみで、
-// 実物は勝利後の宝箱から取り出す (giveDropsFromChest)
-function rollMonsterDrop(enemy) {
-  const mon = MONSTERS[enemy.key];
-  if (!mon) return null;
-  let dropId = null, rare = false;
+// 勝利時の汎用戦利品抽選 (固有ドロップ廃止に伴う置換)。通常30% / レア4%。
+// 中身は迷宮の lootLv 帯から引く (レアは一段深い帯)。実物は勝利後の宝箱から取り出す。
+function rollGenericDrop() {
   const ap = partyPassiveLv("appraise") ? 1.15 : 1; // 目利き: ドロップ率+15%
   // 特別階 (盗賊の洞察) / 迷宮の異変 (飢えた狩場): レアドロップ率が上がる (高い方を採用)
-  if (mon.dropRare && Math.random() < Math.max(sfNum("rareDropRate", 0.04 * ap), mutNum("rareDropRate", 0))) { dropId = mon.dropRare; rare = true; }
-  else if (mon.dropNormal && Math.random() < 0.30 * ap) { dropId = mon.dropNormal; rare = false; }
-  if (!dropId) return null;
-  const it = cloneItem(dropId);
-  if (!it) return null;
-  return { key: enemy.key, name: enemy.name, id: dropId, item: it, rare };
+  if (Math.random() < Math.max(sfNum("rareDropRate", 0.04 * ap), mutNum("rareDropRate", 0))) {
+    const id = pickItemByLv(Math.min(200, lootLvAt() + 14));
+    if (ITEMS[id]) { const it = cloneItem(id); if (it) return { key: "loot", name: "戦利品", id, item: it, rare: true }; }
+  }
+  if (Math.random() < 0.30 * ap) {
+    const id = pickItemByLv(lootLvAt());
+    if (ITEMS[id]) { const it = cloneItem(id); if (it) return { key: "loot", name: "戦利品", id, item: it, rare: false }; }
+  }
+  return null;
 }
 function codexSeeItem(id) { if (id) G.codex.item[id] = true; }
 
@@ -4551,30 +4524,21 @@ function showCodexMonDetail(key) {
   info.appendChild(el("div", "cdx-stat", `HP${m.maxhp}  ATK${m.atk}  VIT${m.def}  AGI${m.spd}  ✦${m.soul}  💰${m.gold}`));
   card.appendChild(info);
 
-  // ドロップ (実際に落とすまで ？？？)。固有ドロップを持たない魔物は「無し」と明示
-  const dropBox = el("div", "cdx-drops");
-  dropBox.appendChild(el("div", "cdx-h", "落とすもの"));
-  if (!m.dropNormal && !m.dropRare) {
-    dropBox.appendChild(el("div", "cdx-dun dim", isOther
-      ? "・固有のドロップは無い（上質な宝箱を残す）"
-      : "・固有のドロップは無い"));
-    card.appendChild(dropBox);
-  } else {
-  const dropRow = (label, itemId, revealed, cls) => {
-    const r = el("div", "cdx-drow");
-    r.appendChild(el("span", "cdx-dlabel " + cls, label));
-    if (revealed && ITEMS[itemId]) {
-      const ic = el("span", "cdx-di"); ic.appendChild(spriteCanvas(ITEMS[itemId], 2)); r.appendChild(ic);
-      r.appendChild(el("span", "cdx-dn", ITEMS[itemId].name));
-    } else {
-      r.appendChild(el("span", "cdx-dn dim", "？？？"));
+  // 特徴・スキル: その敵が戦闘で見せる挙動 (固有ドロップに代わって掲載)
+  const traitBox = el("div", "cdx-drops");
+  traitBox.appendChild(el("div", "cdx-h", "特徴・スキル"));
+  const traits = monsterTraits(m);
+  if (traits.length) {
+    for (const t of traits) {
+      const r = el("div", "cdx-trow");
+      r.appendChild(el("span", "cdx-tlabel", t.label));
+      r.appendChild(el("span", "cdx-tdesc", t.desc));
+      traitBox.appendChild(r);
     }
-    return r;
-  };
-  dropBox.appendChild(dropRow("通常", m.dropNormal, e.normal, "normal"));
-  dropBox.appendChild(dropRow("レア", m.dropRare, e.rare, "rare"));
-  card.appendChild(dropBox);
+  } else {
+    traitBox.appendChild(el("div", "cdx-dun dim", "・特筆すべき特徴はない"));
   }
+  card.appendChild(traitBox);
 
   // 出現ダンジョン (倒したダンジョンのみ記載)
   const dunBox = el("div", "cdx-drops");

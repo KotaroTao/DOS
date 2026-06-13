@@ -757,7 +757,68 @@ export function defMonster(def) {
   if (def.escort) m.escort = def.escort;
   if (def.summonKey) m.summonKey = def.summonKey;
   if (def.ability !== undefined) m.ability = def.ability;
+  // 個体ごとの戦闘特性 (図鑑にも掲載される):
+  //   physResist : 物理被ダメを割合カット (0〜0.9)。「物理がほとんど効かない」表現
+  //   magWeak    : 攻撃呪文の被ダメ倍率 (>1)。「魔法に弱い」表現
+  //   regen      : 毎ラウンド最大HPの割合だけ自己回復 (0〜1)
+  //   swift      : 出現時に AGI を底上げ (先手を取りやすい)
+  //   evasive    : 物理攻撃を確率で大きく回避する
+  //   pack       : 群れで現れる (出現数の下限を引き上げる)
+  if (def.physResist) m.physResist = def.physResist;
+  if (def.magWeak) m.magWeak = def.magWeak;
+  if (def.regen) m.regen = def.regen;
+  if (def.swift) m.swift = true;
+  if (def.evasive) m.evasive = true;
+  if (def.pack) m.pack = true;
+  if (def.traits) m.traits = def.traits; // 表示専用の追加特徴キー
   return m;
+}
+
+// ===== モンスターの特徴・スキル (図鑑表示 + 戦闘挙動の単一の語彙) =====
+// 各キーは「ラベル」と「説明」を持つ。固有ドロップに代わって図鑑に列挙される。
+export const TRAITS = {
+  swift:      { label: "俊敏",   desc: "素早さが高く、先手を取りやすい" },
+  evasive:    { label: "回避",   desc: "身軽で、物理攻撃をよくかわす" },
+  physResist: { label: "物理耐性", desc: "体が頑強で、物理攻撃がほとんど効かない" },
+  magWeak:    { label: "魔法弱点", desc: "魔法によるダメージを大きく受ける" },
+  regen:      { label: "再生",   desc: "毎ターン少しずつ傷を癒す" },
+  pack:       { label: "群棲",   desc: "群れをなして現れる" },
+  summon:     { label: "招来",   desc: "戦闘中に仲間を呼び寄せる" },
+  heal:       { label: "治癒",   desc: "傷ついた仲間を癒す" },
+  guard:      { label: "庇護",   desc: "仲間への攻撃を庇う" },
+  breath:     { label: "ブレス", desc: "前衛後衛もろとも巻き込む息を吐く" },
+  poison:     { label: "毒",     desc: "攻撃で毒を与えてくる" },
+  paralyze:   { label: "麻痺",   desc: "攻撃で麻痺させてくる" },
+  stone:      { label: "石化",   desc: "凝視で石に変えてくる" },
+  drain:      { label: "吸命",   desc: "宿した魂のレベルを喰らう" },
+  soulSteal:  { label: "魂奪",   desc: "Soul を吸い取ってくる" },
+  goldSteal:  { label: "強奪",   desc: "金品を奪い取ってくる" },
+  critical:   { label: "痛撃",   desc: "急所を狙う一撃を放つ" },
+};
+
+// モンスター定義から特徴キーの並びを導く (重複なし、表示順は定義順)。
+// 既存の ability / role と新フィールドを単一の語彙へ正規化する。
+export function monsterTraitKeys(m) {
+  if (!m) return [];
+  const keys = [];
+  const add = (k) => { if (k && TRAITS[k] && !keys.includes(k)) keys.push(k); };
+  if (m.swift) add("swift");
+  if (m.evasive) add("evasive");
+  if (m.physResist) add("physResist");
+  if (m.magWeak) add("magWeak");
+  if (m.regen) add("regen");
+  if (m.pack) add("pack");
+  if (m.role === "summoner") add("summon");
+  if (m.role === "healer") add("heal");
+  if (m.role === "guard") add("guard");
+  add(m.ability); // poison/paralyze/stone/drain/soulSteal/goldSteal/critical/breath
+  for (const t of m.traits || []) add(t);
+  return keys;
+}
+
+// 表示用に {key,label,desc} の配列へ展開する
+export function monsterTraits(m) {
+  return monsterTraitKeys(m).map((k) => ({ key: k, ...TRAITS[k] }));
 }
 
 // 定義の配列を { id: monster } に変換 (重複IDは即エラー)
