@@ -10080,9 +10080,10 @@ function loadGame() {
   for (const d of [...(G.party || []), ...(G.reserve || [])]) {
     if (!Array.isArray(d.subs)) d.subs = [];
     if (d.primary != null && !soulByUid(d.primary)) d.primary = null;
-    // サブ魂を {uid, skill} 形式へ正規化し、実在する魂・メイン魂と別の魂だけ残す
+    // サブ魂を {uid, skill, passive} 形式へ正規化し、実在する魂・メイン魂と別の魂だけ残す
+    // (passive を落とすと、宿しているパッシブ設定がロード時に失われ既定スキルへ戻ってしまう)
     d.subs = d.subs
-      .map((x) => (x && typeof x === "object") ? { uid: x.uid, skill: x.skill || null } : null)
+      .map((x) => (x && typeof x === "object") ? { uid: x.uid, skill: x.skill || null, passive: x.passive || null } : null)
       .filter((x) => x && soulByUid(x.uid) && x.uid !== d.primary)
       .slice(0, MAX_SUBS);
     try { recalcDoll(d); } catch {}
