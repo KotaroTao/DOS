@@ -262,6 +262,7 @@ export const PASSIVES = {
   spellCrit:     { label: "呪文会心",     scope: "self",  lv: ["攻撃呪文が10%で会心 (×1.5)", "攻撃呪文が18%で会心 (×1.5)", "攻撃呪文が26%で会心 (×1.5)"] },
   scan:          { label: "弱点看破",     scope: "party", lv: ["戦闘中、敵の属性が見える"] },
   elemFloor:     { label: "森羅の理",     scope: "self",  lv: ["自分の攻撃呪文に属性の不利が出なくなる"] },
+  kantei:        { label: "鑑定",         scope: "self",  lv: ["未鑑定の装備をその場で鑑定できる (簡易・安物向き)", "未鑑定の装備を高い精度で鑑定できる (高lv品にも強い)"] },
 };
 
 export function passiveName(key, lv = 1) {
@@ -533,7 +534,7 @@ export const JOB_SKILLS = {
   ],
   // 盗賊: 新仕様 (Lv1-200 / 技とパッシブを織り込み)。Lv40=朧抜き は宿し技 (signature)
   thief:       [
-    { lvl: 1,   skill: "KYOUGEKI" },                  // 強撃
+    { lvl: 1,   passive: "kantei", plv: 1 },          // 鑑定Lv1 (簡易・目利き)
     { lvl: 3,   skill: "POISONSTAB" },                // 毒刃
     { lvl: 5,   passive: "ambushCrit", plv: 1 },      // 不意打ち
     { lvl: 7,   skill: "DOUBLE" },                    // 二段斬り
@@ -579,7 +580,7 @@ export const JOB_SKILLS = {
   ],
   // 司教: 新仕様 (Lv1-200 / 攻撃・回復の二道を究める汎用後衛)。Lv40=フルヒール は宿し技 (signature)
   bishop:      [
-    { lvl: 1,   skill: "HALITO" },                    // ファイアアロー
+    { lvl: 1,   passive: "kantei", plv: 2 },          // 鑑定Lv2 (高精度)
     { lvl: 3,   skill: "DIOS" },                      // ヒール
     { lvl: 5,   passive: "afterMp", plv: 1 },         // 魔力回路Lv1
     { lvl: 7,   skill: "ICENEEDLE" },                 // アイスニードル
@@ -1093,7 +1094,7 @@ export const JOB_SKILLS = {
   ],
   // 賢者: 魔と聖の理を識り尽くす。Lv40=森羅の裁き は宿し技 (signature)
   sage:        [
-    { lvl: 1, skill: "HALITO" }, { lvl: 3, skill: "DIOS" }, { lvl: 5, passive: "afterMp", plv: 1 },
+    { lvl: 1, passive: "kantei", plv: 2 }, { lvl: 3, skill: "DIOS" }, { lvl: 5, passive: "afterMp", plv: 1 },
     { lvl: 7, skill: "ICENEEDLE" }, { lvl: 10, skill: "CURE" }, { lvl: 15, passive: "scan", plv: 1 },
     { lvl: 20, skill: "MAHALITO" }, { lvl: 25, passive: "chant", plv: 1 }, { lvl: 30, skill: "DIOSALL" },
     { lvl: 35, passive: "elemFloor", plv: 1 }, { lvl: 40, skill: "SHINRANOSABAKI" }, { lvl: 45, passive: "spellCrit", plv: 1 },
@@ -1168,30 +1169,36 @@ export const JOB_SKILLS = {
 export function jobSkillTable(jobKey) { return JOB_SKILLS[jobKey] || []; }
 
 // ===== 鑑定スキル (ウィザードリィ風) =====
-// 知識・探索系の一部職業は、未鑑定の装備を自前で鑑定できる。ただし成功率は決して
-// 100% にならず (上限95%)、失敗するとその品はスキルでは二度と鑑定できなくなる
-// (idHardFail フラグが立ち、確実だが有料の商店鑑定に頼ることになる)。
-// これにより「育てれば道中で無料鑑定できるが、確実さは商店が握る」という住み分けになる。
-//   base: 基準成功率 / perLv: 魂レベル1ごとの上昇 / lvPenalty: 品のlv1ごとの低下
-//   minLvl: 習得に必要な魂レベル / floor: 成功率の下限
-export const IDENTIFY_JOBS = {
-  bishop: { label: "鑑定",   minLvl: 1, base: 0.55, perLv: 0.015, lvPenalty: 0.004, floor: 0.10 }, // 本職: 高精度・高lv品にも強い
-  sage:   { label: "看破",   minLvl: 1, base: 0.50, perLv: 0.020, lvPenalty: 0.003, floor: 0.10 }, // 上位: 育つほど万能
-  thief:  { label: "目利き", minLvl: 5, base: 0.35, perLv: 0.010, lvPenalty: 0.008, floor: 0.05 }, // 簡易: 序盤の安物専門
+// 鑑定は職業スキル「鑑定 (kantei)」として実装。スキルを覚えた人業は未鑑定の装備を
+// その場で鑑定できる。ただし成功率は決して 100% にならず (上限95%)、失敗するとその品は
+// スキルでは二度と鑑定できなくなる (idHardFail フラグが立ち、確実だが有料の商店鑑定に頼る)。
+// 「育てれば道中で無料鑑定できるが、確実さは商店が握る」という住み分け。
+//   司教 (bishop)・賢者 (sage) = 鑑定Lv2 (高精度) / 盗賊 (thief) = 鑑定Lv1 (簡易)
+// 鑑定スキルレベル (1/2) ごとの成功率パラメータ:
+//   base: 基準成功率 / perLv: 魂レベル1ごとの上昇 / lvPenalty: 品のlv1ごとの低下 / floor: 下限
+export const IDENTIFY_TIERS = {
+  1: { label: "目利き", base: 0.35, perLv: 0.010, lvPenalty: 0.008, floor: 0.05 }, // 簡易: 序盤の安物向き
+  2: { label: "鑑定",   base: 0.55, perLv: 0.015, lvPenalty: 0.004, floor: 0.10 }, // 高精度: 高lv品にも強い
 };
 export const IDENTIFY_CAP = 0.95; // どれだけ育てても 5% は失敗する
-// clsKey の職業が魂レベル jobLv で 隠しレベル itemLv の品を鑑定できる確率 (0=不可)
-export function identifyChance(clsKey, jobLv, itemLv) {
-  const j = IDENTIFY_JOBS[clsKey];
-  if (!j || (jobLv || 1) < j.minLvl) return 0;
-  const c = j.base + ((jobLv || 1) - 1) * j.perLv - (itemLv || 1) * j.lvPenalty;
-  return Math.max(j.floor, Math.min(IDENTIFY_CAP, c));
+// メンバーが習得している鑑定スキルのレベル (0=未習得)
+export function identifyTier(member) {
+  return (member && member.passiveMap && member.passiveMap.kantei) || 0;
 }
-// このメンバーが鑑定スキルを使えるか (職業・習得レベルを満たすか)
-export function canIdentify(member) {
-  if (!member) return false;
-  const j = IDENTIFY_JOBS[member.clsKey];
-  return !!j && (member.jobLv || member.level || 1) >= j.minLvl;
+// このメンバーが鑑定スキルを使えるか
+export function canIdentify(member) { return identifyTier(member) > 0; }
+// 鑑定スキルの表示名 ("目利き" / "鑑定")
+export function identifyLabel(member) {
+  const t = IDENTIFY_TIERS[identifyTier(member)];
+  return t ? t.label : "鑑定";
+}
+// このメンバーが 魂レベル jobLv で 隠しレベル itemLv の品を鑑定できる確率 (0=不可)
+export function identifyChance(member, itemLv) {
+  const j = IDENTIFY_TIERS[identifyTier(member)];
+  if (!j) return 0;
+  const jobLv = (member && (member.jobLv || member.level)) || 1;
+  const c = j.base + (jobLv - 1) * j.perLv - (itemLv || 1) * j.lvPenalty;
+  return Math.max(j.floor, Math.min(IDENTIFY_CAP, c));
 }
 
 // ===== 職業図鑑テキスト =====
@@ -1444,11 +1451,18 @@ export function makeDoll(name) {
   };
 }
 
-// 所持数に応じた魂レベル上限 (ランクが上がるほど・レア度が高いほど伸びる)
+// 同じ職業の魂を吸収するたびに伸びる魂レベル上限の増分 (レア度別)。
+// コモン+1 / レア+2 / エピック+5 / レジェンド+10 (吸収数が少なくて済む高レア度ほど1個の伸びが大きい)
+export const LEVELCAP_PER_SOUL = { common: 1, rare: 2, epic: 5, legend: 10 };
+
+// 所持数に応じた魂レベル上限。1個目はレア度ごとの基準上限、以降は吸収のたび LEVELCAP_PER_SOUL ぶん伸びる。
+// (旧: ランクに応じた段階上限。ランクによる技/パッシブ解放はそのまま、上限だけ吸収数で連続的に伸びる仕様へ)
 export function soulLevelCap(clsKey, count) {
   const cls = SOUL_CLASSES[clsKey];
-  const r = soulRankFromCount(clsKey, count);
-  return capForRarityRank(cls ? cls.rarity : "common", r);
+  const rarity = cls ? cls.rarity : "common";
+  const base = capForRarityRank(rarity, 1);                 // 1個目 (rank1) の上限を起点にする
+  const per = LEVELCAP_PER_SOUL[rarity] || 1;
+  return base + per * Math.max(0, (count || 0) - 1);
 }
 // 魂インスタンスの実効レベル上限: ランク上限 + 魂の残火で得た上乗せ (capBonus)
 export function soulLevelCapOf(s) {

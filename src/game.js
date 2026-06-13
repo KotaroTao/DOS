@@ -26,7 +26,7 @@ import {
   soulRankFromCount, nextRankThreshold, rankThresholds, capForRarityRank,
   jobLoreFor, jobRankCondText,
   jobSkillTable, jobRankName, soulSeriesName, jobPassiveTable, pLv, JOB_GEAR,
-  IDENTIFY_JOBS, identifyChance, canIdentify,
+  identifyChance, canIdentify, identifyLabel,
 } from "./souls.js";
 import { showOpening } from "./opening.js";
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
@@ -7271,7 +7271,7 @@ function codexJobSee(clsKey, count, level) {
   if (!G.codex || !G.codex.job) return;
   const rank = soulRankFromCount(clsKey, count || 0);
   if (rank < 1) return;
-  const cap = capForRarityRank((SOUL_CLASSES[clsKey] || {}).rarity || "common", rank);
+  const cap = soulLevelCap(clsKey, count || 0);
   const lv = Math.min(cap, level || 1);
   const e = G.codex.job[clsKey];
   const prevLv = e && typeof e === "object" ? (e.lv || 0) : 0;
@@ -7611,7 +7611,9 @@ function showCodexJobDetail(key, rank, heading) {
   // 職業スキル表: このランクのLv上限まで覚える技・パッシブを載せ、
   // 実際に到達したLvのものだけ開示する (新仕様: ランク×10ゲート撤廃)
   const reached = (rec && typeof rec === "object" && rec.lv) || 0;
-  const lvCap = capForRarityRank(SOUL_CLASSES[key].rarity, rank);
+  // このランクに到達した時点の魂数を起点に、吸収式のLv上限を求める (到達済みLvが上回ればそちらを優先)
+  const capCount = (rankThresholds(SOUL_CLASSES[key].rarity)[rank - 1]) || 1;
+  const lvCap = Math.max(soulLevelCap(key, capCount), reached);
   const sbox = el("div", "cdx-drops");
   for (const e of jobSkillTable(key)) {
     if (e.lvl > lvCap) continue;
@@ -8972,8 +8974,8 @@ function openIdentifyChooser(it) {
   card.appendChild(el("div", "ig-stat dim", "失敗するとこの品はスキルで鑑定できなくなる (商店なら確実)"));
   const list = el("div", "ig-choices");
   for (const m of idmen) {
-    const ch = identifyChance(m.clsKey, m.jobLv || 1, it.lv || 1);
-    const lbl = (IDENTIFY_JOBS[m.clsKey] || {}).label || "鑑定";
+    const ch = identifyChance(m, it.lv || 1);
+    const lbl = identifyLabel(m);
     const b = btn(`${m.name} (${m.cls}) ${lbl} 成功 ${Math.round(ch * 100)}%`, () => {
       wrap.remove();
       doIdentifySkill(m, it);
@@ -8989,7 +8991,7 @@ function openIdentifyChooser(it) {
 
 // スキル鑑定を実行。成功で正体判明、失敗で idHardFail (以後は商店でのみ鑑定可)
 function doIdentifySkill(m, it) {
-  const ch = identifyChance(m.clsKey, m.jobLv || 1, it.lv || 1);
+  const ch = identifyChance(m, it.lv || 1);
   if (Math.random() < ch) {
     it.unidentified = false;
     SFX.itemget(); buzz(15);
