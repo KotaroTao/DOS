@@ -6375,12 +6375,19 @@ function fuseSoul(targetUid, consumeUid) {
   SFX.itemget(); buzz([0, 30, 50, 30]);
   log(`${SOUL_CLASSES[t.clsKey].label}の魂を吸収させた (魂数 ×${t.count})。`, "win");
   if (t.level > beforeLv) log(`蓄積した Soul が反映され、Lv${beforeLv} → Lv${t.level} に上昇した！`, "win");
-  if (after > before) { SFX.victory(); showToast(`⤴ ${jobRankName(t.clsKey, after)} に昇格！`); }
-  // 融合のポップアップ: 魂の輝きが増したことと、全能力の上昇率を伝える
+  // ランクが上がったときは、昇格の感動を最大化する専用ポップアップを見せる。
+  if (after > before) {
+    log(`⤴ ${jobRankName(t.clsKey, after)} に昇格！`, "win");
+    showRankUp(
+      { clsKey: t.clsKey, fromRank: before, toRank: after, fromLv: beforeLv, toLv: t.level, count: t.count },
+      () => renderTown()
+    );
+    return;
+  }
+  // ランク据え置きの融合: 魂の輝きが増したことと、全能力の上昇率を伝える
   const pct = Math.round((SOUL_STAT_UP[SOUL_CLASSES[t.clsKey].rarity] || 0.01) * 100);
   const lines = [`全能力が基礎値の ${pct}% ずつ高まる（魂数 ${t.count}）`];
   if (t.level > beforeLv) lines.push(`蓄積した Soul が反映され Lv${beforeLv} → Lv${t.level}`);
-  if (after > before) lines.push(`⤴ ランク${after}「${jobRankName(t.clsKey, after)}」に昇格！`);
   showEvent({
     sprite: jobSprite(t.clsKey, after),
     banner: "✦ 魂の融合 ✦",
@@ -9852,6 +9859,95 @@ function showEvent({ sprite, title, lines = [], accent = "#c9a227", btnLabel = "
   // 選択肢のないポップアップは、カード外 (背景) をタップしても閉じられるようにする
   itemGetEl.onclick = (e) => { if (e.target === itemGetEl) closeItemGet(onClose); };
   itemGetEl.classList.remove("hidden");
+}
+
+// ---- ランクアップ専用の祝祭ポップアップ ----
+// 昇格の感動を最大化するため、汎用イベントより派手に: 画面フラッシュ + 勝利ファンファーレ、
+// 回転する光条と大量の火花、ランクN→N+1 の大きな昇格表示、新たに得た称号 (ランク名)、
+// 進化したスプライト、そして解放されたもの (Lv上限・節目の特典) を一望させる。
+function showRankUp({ clsKey, fromRank, toRank, fromLv, toLv, count }, onClose) {
+  const cls = SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter;
+  const accent = (SOUL_RANKS[toRank] && SOUL_RANKS[toRank].color) || cls.glow || "#ffcf4a";
+  const fromCap = capForRarityRank(cls.rarity, fromRank);
+  const toCap = capForRarityRank(cls.rarity, toRank);
+  // 演出: ランク色のフラッシュ + 勝利ファンファーレ + 強い触覚フィードバック
+  flashScreen(accent);
+  SFX.victory(); buzz([0, 60, 40, 60, 40, 70, 90, 220]);
+
+  G.prompt = true;
+  itemGetEl.onclick = null;
+  itemGetEl.innerHTML = "";
+  const card = el("div", "ig-card ru-card");
+  card.style.borderColor = accent;
+  card.style.setProperty("--accent", accent);
+  card.style.boxShadow = `0 0 60px ${accent}88`;
+
+  card.appendChild(el("div", "ru-title", "✦ RANK UP ✦"));
+  card.appendChild(el("div", "ru-sub", `${cls.label}の魂が 昇格した！`));
+
+  // 回転する光条 + 進化したスプライト + 火花
+  const art = el("div", "ig-art ru-art");
+  const rays = el("div", "ru-rays");
+  rays.style.background = `repeating-conic-gradient(from 0deg, ${accent}55 0deg 8deg, transparent 8deg 26deg)`;
+  art.appendChild(rays);
+  art.appendChild(spriteCanvas(jobSprite(clsKey, toRank), 11));
+  for (let i = 0; i < 10; i++) {
+    const s = el("span", "ig-spark");
+    s.style.setProperty("--a", (i * 36) + "deg");
+    s.style.animationDelay = (i * 0.06) + "s";
+    s.style.background = accent;
+    art.appendChild(s);
+  }
+  card.appendChild(art);
+
+  // ランク表記: fromRank ➜ toRank (新ランクをランク色で強調)
+  const row = el("div", "ru-rankrow");
+  row.appendChild(el("span", "ru-rk", `ランク${fromRank}`));
+  row.appendChild(el("span", "ru-arrow", "➜"));
+  const to = el("span", "ru-rk ru-new", `ランク${toRank}`);
+  to.style.color = accent; to.style.textShadow = `0 0 16px ${accent}`;
+  row.appendChild(to);
+  card.appendChild(row);
+
+  // 新たに得た称号 (ランク名)
+  const jn = el("div", "ru-jobname", `「${jobRankName(clsKey, toRank)}」`);
+  jn.style.color = accent;
+  card.appendChild(jn);
+
+  // 解放されたもの
+  const perks = el("div", "ru-perks");
+  perks.appendChild(ruPerk("Lv上限", `${fromCap} → ${toCap}`, accent));
+  if (toLv > fromLv) perks.appendChild(ruPerk("魂レベル", `Lv${fromLv} → Lv${toLv}`, accent));
+  const hint = rankUnlockHint(toRank);
+  if (hint) { const h = el("div", "ru-unlock", hint); h.style.borderColor = accent + "66"; perks.appendChild(h); }
+  card.appendChild(perks);
+
+  const ok = btn("受け取る", () => closeItemGet(onClose));
+  ok.className = "btn primary ig-ok";
+  ok.style.borderColor = accent; ok.style.color = accent;
+  card.appendChild(ok);
+
+  itemGetEl.appendChild(card);
+  itemGetEl.onclick = (e) => { if (e.target === itemGetEl) closeItemGet(onClose); };
+  itemGetEl.classList.remove("hidden");
+}
+
+// ランクアップ特典の1行 (ラベル + 値)
+function ruPerk(label, val, accent) {
+  const d = el("div", "ru-perk");
+  d.appendChild(el("span", "ru-pl", label));
+  const v = el("span", "ru-pv", val); v.style.color = accent;
+  d.appendChild(v);
+  return d;
+}
+
+// 各ランク到達で新たに開ける道のヒント (節目を強調)
+function rankUnlockHint(rank) {
+  if (rank === 2) return "★ 覚醒 — 控えの結社パッシブが芽吹き、宿し技として他の人業に貸せるようになった。";
+  if (rank === 3) return "★ 上位の技 — 伸びたLv上限の先に、新たなスキル・パッシブが見えてきた。";
+  if (rank === 4) return "★ 真髄 — 宿し先へランク2パッシブまで託せるようになった。";
+  if (rank === 5) return "★ 極致 — 魂は最高位に至り、Lvの天井が解き放たれた。";
+  return null;
 }
 
 // 毒のダメージ (盤面を1歩進むごと)
