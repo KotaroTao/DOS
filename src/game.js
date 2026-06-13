@@ -4951,7 +4951,7 @@ function renderTown() {
   renderTownHub();
 }
 
-let townBandOpen = null; // 迷宮選択で開いている層域 (null = 選択中の迷宮の層域)
+let townBandOpen = null; // 迷宮選択で開いている層 (null = 選択中の迷宮の層)
 
 function renderTownHub() {
   townEl.appendChild(townHeader("辺境の街 ロアダル", false));
@@ -4997,16 +4997,17 @@ function renderTownHub() {
     townEl.appendChild(el("div", "tw-h", "迷宮"));
     townEl.appendChild(el("div", "tw-note", "王の勅命を受けるまで、迷宮の在処は明かされない。"));
   } else {
-    // 迷宮の選択 — 10迷宮ごとの「層域」アコーディオン (数が増えても一覧が伸びすぎない)
+    // 迷宮の選択 — 1層 (5迷宮) ごとの層アコーディオン (数が増えても一覧が伸びすぎない)
     townEl.appendChild(el("div", "tw-h", "潜る迷宮を選ぶ"));
     townEl.appendChild(el("div", "tw-dunhelp", "★踏破済みの迷宮には何度でも再挑戦できる — 戦利品・魂・図鑑集めに。"));
     const clearedCnt = clearedDungeonCount();
     // 勅命の対象迷宮 (攻略中の章のみ ❗ を付ける)
     const targetIdx = G.msq && G.msq.state === "active" && G.msq.n >= 1 ? G.msq.n - 1 : -1;
-    const openBand = (townBandOpen != null) ? townBandOpen : Math.floor(G.dungeonIdx / 10);
-    const maxBand = Math.floor((G.unlockedDungeons - 1) / 10); // 解放済み迷宮が属する最後の層域
+    const PER_LAYER = 5; // 1層 = 5迷宮
+    const openBand = (townBandOpen != null) ? townBandOpen : Math.floor(G.dungeonIdx / PER_LAYER);
+    const maxBand = Math.floor((G.unlockedDungeons - 1) / PER_LAYER); // 解放済み迷宮が属する最後の層
     for (let b = 0; b <= maxBand; b++) {
-      const s = b * 10, e = Math.min(DUNGEONS.length, s + 10);
+      const s = b * PER_LAYER, e = Math.min(DUNGEONS.length, s + PER_LAYER);
       // 出現済み (解放済み) の迷宮のみ表示する。未出現の迷宮は一切見せない (先を伏せる)
       const appeared = Math.max(0, Math.min(G.unlockedDungeons - s, e - s));
       if (appeared <= 0) continue;
@@ -5014,7 +5015,8 @@ function renderTownHub() {
       if (b === openBand) det.open = true;
       const sum = el("summary", "tw-bandh");
       const clearedIn = Math.max(0, Math.min(clearedCnt - s, appeared));
-      sum.textContent = `${clearedIn >= e - s ? "★ " : ""}第${b + 1}層域 — 迷宮 ${s + 1}〜${s + appeared} (踏破 ${clearedIn})`;
+      const lv = LAYER_VISUALS[b]; // 層テーマ (第b+1層)
+      sum.textContent = `${clearedIn >= e - s ? "★ " : ""}第${b + 1}層 — ${lv ? lv.name : ""}`;
       det.appendChild(sum);
       det.addEventListener("toggle", () => {
         if (det.open) townBandOpen = b;
@@ -5028,7 +5030,7 @@ function renderTownHub() {
         const info = el("div", "tw-chipi");
         info.appendChild(el("div", "tw-chipn", `${i + 1}. ${dn.name}`));
         const elTag = dn.element && ELEMENTS[dn.element] ? ` ・${ELEMENTS[dn.element].label}の気配` : "";
-        info.appendChild(el("div", "tw-chipc", `全${dn.floors}階 ・ 敵ランク${dn.rank}${elTag}`));
+        info.appendChild(el("div", "tw-chipc", `全${dn.floors}階${elTag}`));
         row.appendChild(info);
         // 踏破状態バッジ (★踏破済=再挑戦可 / ❗勅命=攻略対象 / 未踏破)
         const st = el("div", "tw-dunst" + (cleared ? " done" : i === targetIdx ? " quest" : ""));
