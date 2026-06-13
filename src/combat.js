@@ -1229,7 +1229,7 @@ export class Battle {
         if (sp.grantBarrier) t._barrierLeft = (t._barrierLeft || 0) + sp.grantBarrier;
         // 聖域の鐘 (cure): 守りと同時に状態異常を祓う
         if (sp.cure && t.ailment) { t.ailment = null; cured = true; }
-        res.hits.push({ target: t, buff: true });
+        res.hits.push({ target: t, buff: true, mods: sp.buff });
       }
       this.log(sp.grantBarrier ? `${sp.name}！ 魔障壁が隊を包んだ` : `${sp.name}の効果！`, "heal");
       if (cured) this.log("隊の穢れが祓われた", "heal");
@@ -1238,7 +1238,7 @@ export class Battle {
       for (const t of targets) {
         if (!t.alive) continue;
         for (const k in sp.debuff) this._applyMod(t, k, sp.debuff[k], sp.dur, sp.name);
-        res.hits.push({ target: t, debuff: true });
+        res.hits.push({ target: t, debuff: true, mods: sp.debuff });
       }
       this.log(`${sp.name}！ 敵の力が削がれた`, "hit");
     } else if (sp.kind === "cure") {
