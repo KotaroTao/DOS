@@ -164,6 +164,25 @@ const NEW_DEFS = [
   { id: "bs_minelord", name: "坑道の主", rank: 5, boss: true, race: "giant", element: "earth", artKey: "minelord", soulClass: "fighter",
     role: "summoner", summonKey: "bs_rockworm", physResist: 0.5, barrier: 3, enrage: true, // 坑蟲を呼び、刃を阻み、手負いで荒れ狂う
     desc: "廃坑の闇そのものが岩を寄せ集めて形をなした、坑道の主。腹の底で燃える鉱脈を脈打たせ、岩を喰らう蟲を次々と呼び寄せる。分厚い岩の殻は刃を阻み、砕かれるほどに怒りで坑道を揺らす。" },
+  // -- 第4層「捨て砦」 (rank 5-6・武装/戦の亡霊。第3層より格上の壁。深部に rank7 の騎士) --
+  { id: "bs_siegeballista", name: "自走弩砲", rank: 6, race: "construct", element: "none", artKey: "siegeballista",
+    physResist: 0.5, ability: "critical", // 鉄枠が刃を阻み、狙い澄ました大弩で急所を貫く
+    desc: "守備兵が絶えてなお、砦に残された巨大な弩が己の意思で動き出したもの。軋みながら標的に狙いを定め、城門すら貫く大矢を放つ。鉄と樫の枠は、並の刃を寄せつけない。" },
+  { id: "bs_bannerwraith", name: "軍旗の亡霊", rank: 5, race: "specter", element: "none", artKey: "bannerwraith",
+    role: "summoner", summonKey: "d03_sentinel", ability: "warcry", // 朽ちた軍旗を掲げ、亡兵を呼び、号令で奮い立たせる
+    desc: "陥落の際まで軍旗を手放さなかった旗手の霊。今も朽ちた旗を高く掲げ、眠る亡兵を呼び覚ましては、しわがれた号令で奮い立たせる。旗が立つ限り、砦の死者は戦いをやめない。" },
+  { id: "bs_gravecaptain", name: "亡き守備隊長", rank: 6, race: "armored", element: "none", artKey: "gravecaptain",
+    ability: "critical", enrage: true, // 号令とともに急所を狙い、追い詰められると鬼気迫る
+    desc: "砦と運命を共にした守備隊長の骸。錆びた指揮刀を振るい、配下の亡兵を叱咤しながら自ら先頭で斬りかかる。劣勢になるほど、果たせなかった守備の責で鬼気迫る猛攻に転じる。" },
+  { id: "bs_pikewall", name: "亡兵の槍衾", rank: 5, race: "undead", element: "none", artKey: "pikewall",
+    role: "guard", physResist: 0.5, multistrike: 2, // 盾を並べて前を固く守り、突き出した槍で連突する
+    desc: "盾を並べ、槍を揃えて突き出したまま朽ちた歩兵の隊列。今も崩れぬ陣形で後ろの者を守り、近づく敵には幾本もの槍が連なって襲いかかる。一人を倒しても、隊列は決して退かない。" },
+  { id: "bs_drumwraith", name: "戦鼓の亡霊", rank: 5, race: "specter", element: "none", artKey: "drumwraith",
+    role: "healer", ability: "warcry", // 終わらぬ進軍を打ち鳴らし、味方を鼓舞し傷を繕わせる
+    desc: "落城の夜から、終わらぬ進軍の太鼓を打ち鳴らし続ける鼓手の霊。その響きは亡兵の士気を煽り、砕けた体を奮い立たせて戦線へ戻す。鼓の音が止まぬ限り、守備隊は立ち上がり続ける。" },
+  { id: "bs_fortlord", name: "砦の主", rank: 6, boss: true, race: "armored", element: "none", artKey: "fortlord", soulClass: "fighter",
+    role: "summoner", summonKey: "d03_sentinel", ability: "critical", enrage: true, physResist: 0.5, // 亡兵を呼び、急所を貫き、追い詰められて荒れ狂う
+    desc: "砦を枕に討ち死にし、なお退却の許しを待ち続ける将の亡霊。錆びた大剣を提げ、無人の甲冑を次々と起こして陣を布く。分厚い甲冑は刃を阻み、城が落ちる時の絶望が、その剣に宿っている。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1107,6 +1126,7 @@ export const BOSS_ORDER = {
 // 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
 // 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
 const LAYER_BOSS_OVERRIDE = {
+  4: "bs_fortlord",  // 第4層「捨て砦」: 砦の主 (rank6・armoredボス)
   2: "bs_sewerlord", // 第2層「地下水路」: 水路の主 (rank4・水棲ボス)
   3: "bs_minelord",  // 第3層「廃坑」: 坑道の主 (rank5・土ボス)
 };
@@ -1152,6 +1172,17 @@ export const LAYER_POOLS = {
     "d03_mandrake", "bs_troll", "bs_deepgolem",
     // 深部の強敵 (rank6)
     "d04_golem", "d04_ogre", "bs_steelspider",
+  ],
+  // 第4層「捨て砦」: 武装兵/騎士/戦の亡霊中心、rank5-6主体 (第3層より格上)。深部に rank7 の騎士
+  4: [
+    // 新規 (固有アート)
+    "bs_siegeballista", "bs_bannerwraith", "bs_gravecaptain", "bs_pikewall", "bs_drumwraith",
+    // 既存の武装兵/戦の亡霊を第4層へ再配置 (rank4-6)
+    "bs_darksamurai", "bs_bloodorc", "bs_cultist", "d03_ghost", "bs_banshee",
+    "d03_sentinel", "bs_dullahan", "bs_ironknight", "bs_shadowmage",
+    "bs_bloodwraith", "bs_bonecolossus", "bs_stormgiant",
+    // 深部の強敵 (rank7)
+    "d04_revenant", "bs_thunderknight", "bs_vampire",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
