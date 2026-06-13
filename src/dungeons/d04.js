@@ -12,16 +12,19 @@ export const monsters = defMonsters([
     desc: "墓を暴いて骸を喰らううち、屍肉の魔力で異形に肥え太った人喰い鬼。供物のつもりか、棍棒で急所を叩き潰した獲物を古竜の墓前へ並べる悪癖を持つ。足音だけで石棺の蓋が震えるという。" },
   { id: "d04_revenant", name: "亡霊騎士", race: "armored", element: "light", artKey: "knightmare", rank: 5,
     palette: tint(ARTS.knightmare.palette, "#5fb8d6", 0.3),
+    physResist: 0.5, ability: "critical", // 誇り高き剣技が鎧の継ぎ目=急所を突き、鎧は刃を弾く
     hp: 110, atk: 24, def: 16, spd: 7, soul: 70, gold: 56, soulClass: "knight",
-    desc: "古竜に挑み、誇り高く敗れた騎士の鎧。死してなお誓いを捨てず、後から来る挑戦者を「竜にふさわしき者か」と試すように斬りかかる。砕けた兜の奥で、あがないを求める弱い光が今も明滅している。" },
+    desc: "古竜に挑み、誇り高く敗れた騎士の鎧。死してなお誓いを捨てず、磨かれた剣技で挑戦者の鎧の継ぎ目を突き、その身を鎧で固めて刃を弾く。砕けた兜の奥で、あがないを求める弱い光が今も明滅している。" },
   { id: "d04_grudge", name: "墓所の怨霊", race: "specter", element: "dark", artKey: "wraith", rank: 5,
     palette: tint(ARTS.wraith.palette, "#6a4a8a", 0.4),
+    ability: "soulSteal", // 黄金への妄執を呪詛に変え、魂を吸い上げる
     hp: 100, atk: 23, def: 12, spd: 11, soul: 66, gold: 52, soulClass: "mage",
-    desc: "古竜の財宝に魅入られ、手を伸ばしたまま息絶えた盗掘者たちの妄執が、幾重にも凝り固まった黒いもや。黄金への渇望だけが残り、近づく生者を「宝を奪う敵」と見て呪詛を浴びせる。" },
+    desc: "古竜の財宝に魅入られ、手を伸ばしたまま息絶えた盗掘者たちの妄執が、幾重にも凝り固まった黒いもや。黄金への渇望だけが残り、近づく生者を「宝を奪う敵」と見て、呪詛とともに魂を吸い上げる。" },
   { id: "d04_vritra", name: "古竜ヴリトラ", race: "dragon", element: "dark", artKey: "dragon", rank: 6, boss: true,
     palette: tint(ARTS.dragon.palette, "#ffd24a", 0.25),
+    ability: "breath", regen: 0.05, // 災厄の吐息で全体を呑み、古竜の生命力で傷を繕う
     hp: 420, atk: 34, def: 16, spd: 10, soul: 900, gold: 1200,
-    desc: "墓所の最奥、累々たる英雄の骸をしとねに眠る黄金の古竜。幾百年を生き、挑む者すべてを呑み込んできた災厄そのもの。その眼が薄く開いたとき、貴公はようやく悟る——ここは竜の墓ではなく、竜に捧げられた墓場なのだと。" },
+    desc: "墓所の最奥、累々たる英雄の骸をしとねに眠る黄金の古竜。前衛後衛を呑み込む災厄の吐息を放ち、幾百年を生きた古竜の生命力は浅い傷を瞬く間に繕う。その眼が薄く開いたとき、貴公はようやく悟る——ここは竜の墓ではなく、竜に捧げられた墓場なのだと。" },
 ]);
 
 export const dungeon = {
