@@ -558,6 +558,48 @@ const NEW_DEFS = [
   { id: "bs_arenalord", name: "闘技場の支配者", rank: 10, boss: true, race: "armored", element: "none", artKey: "arenalord", soulClass: "fighter",
     role: "summoner", summonKey: "bs_arenabeast", ability: "critical", enrage: true, physResist: 0.5,
     desc: "魂繰り同士を戦わせ、敗者の魂を観客に振る舞った闘技場の興行主。今も砂の中心に立ち、闘獣を放っては挑む者を見世物にする。王家の余興に選ばれただけの剣闘士たちの、恨みの中心に座す者だ。" },
+  // -- 第12層「地底大空洞」 (rank 10・土/洞窟。世界の根) --
+  { id: "bs_cavebehemoth", name: "大空洞の巨獣", rank: 10, race: "beast", element: "earth", artKey: "cavebehemoth",
+    enrage: true, multistrike: 2, physResist: 0.5, desc: "灯りも届かぬ大空洞を徘徊する、山のような巨獣。岩を砕く前肢で続けざまに薙ぎ払い、傷を負えば洞窟を揺らして暴れる。分厚い岩のような皮は刃を通さない。" },
+  { id: "bs_crystaldrake", name: "水晶竜", rank: 10, race: "dragon", element: "earth", artKey: "crystaldrake",
+    ability: "breath", physResist: 0.5, magResist: 0.5, desc: "鉱脈の水晶を喰らって育った、結晶の鱗をもつ竜。砕けた水晶の礫を全体に吐き、その鎧は刃も魔もろくに通さない。動くたび、体内の宝石が涼やかに鳴る。" },
+  { id: "bs_blindhorror", name: "盲いた深淵獣", rank: 10, race: "beast", element: "earth", artKey: "blindhorror",
+    ability: "critical", lifesteal: 0.3, swift: true, desc: "光なき闇で目を退化させ、音と熱だけで獲物を追う痩せた獣。気配を断って忍び寄り、急所を一噛みで仕留めては喰らう。暗闇では、こいつの独壇場だ。" },
+  { id: "bs_rocktitan", name: "岩の巨人", rank: 10, race: "giant", element: "earth", artKey: "rocktitan",
+    physResist: 0.6, barrier: 2, multistrike: 2, desc: "大空洞の岩盤そのものが立ち上がった巨人。岩塊の拳で続けざまに叩きつけ、分厚い岩の身は刃をことごとく弾く。歩むたびに、天井から礫が降り落ちる。" },
+  { id: "bs_deepworm", name: "地底の大蟲", rank: 10, race: "insect", element: "earth", artKey: "deepworm",
+    multistrike: 3, physResist: 0.4, lifesteal: 0.3, desc: "岩盤を喰らって地底を進む、果てしなく長い大蟲。円い顎で獲物を削り取り、喰らった分だけ肥える。地鳴りが聞こえたなら、もう足元まで来ている。" },
+  { id: "bs_glowspore", name: "光胞子の群れ", rank: 10, race: "plant", element: "earth", artKey: "glowspore",
+    pack: true, ability: "poison", paralyze: undefined, desc: "暗闇に青白く光る、毒の胞子をまとった菌の群生。光に誘われた者へ一斉に胞子を吹きかけ、痺れと毒で蝕む。美しい燐光は、獲物をおびき寄せる罠だ。" },
+  { id: "bs_stalactiteghost", name: "鍾乳の霊", rank: 10, race: "specter", element: "earth", artKey: "stalactiteghost",
+    ability: "paralyze", evasive: true, magWeak: 1.3, desc: "鍾乳石に染み込んだ、永い年月をかけて凝った霊。天井から滴り落ちて獲物を痺れさせ、刃を向ければ石の中へ染み込んで消える。滴る水音が、こいつの足音だ。" },
+  { id: "bs_obsidianbeast", name: "黒曜の獣", rank: 10, race: "beast", element: "earth", artKey: "obsidianbeast",
+    physResist: 0.5, ability: "critical", swift: true, desc: "黒曜石の体をもつ、鋭く硬質な大空洞の獣。鏡のような体は刃を弾き、研ぎ澄まされた爪が急所を一閃で断つ。素早く闇に溶け込み、月のない夜のように見えない。" },
+  { id: "bs_cavetroll", name: "洞窟のトロール", rank: 10, race: "giant", element: "earth", artKey: "cavetroll",
+    regen: 0.1, multistrike: 2, enrage: true, desc: "大空洞の苔と岩を喰らって生きる、巨大なトロール。裂いた傷もみるみる塞がり、丸太のような腕で続けざまに殴りつける。倒すには、再生を上回る火力で押し切るしかない。" },
+  { id: "bs_echowraith", name: "反響の霊", rank: 10, race: "specter", element: "earth", artKey: "echowraith",
+    ability: "weaken", evasive: true, magWeak: 1.3, desc: "大空洞に響く木霊が、無数に重なって形をなした霊。あちこちから響く声で生者の気力を削ぎ、本体がどこにあるのか掴ませない。斬りつけた手応えすら、反響して返ってくる。" },
+  { id: "bs_crystalspider", name: "晶蟲の大蜘蛛", rank: 10, race: "insect", element: "earth", artKey: "crystalspider",
+    multistrike: 2, physResist: 0.5, magResist: 0.5, desc: "水晶の脚と甲殻をもつ、鉱脈に巣くう大蜘蛛。硬い結晶の脚で素早く幾度も突き刺し、刃も魔もその甲殻に弾かれる。張り巡らせた水晶の糸が、洞窟を罠に変える。" },
+  { id: "bs_caveguardian", name: "大空洞の守護像", rank: 10, race: "construct", element: "earth", artKey: "caveguardian",
+    physResist: 0.6, magResist: 0.5, barrier: 2, desc: "大空洞の最奥への道を守る、水晶を埋め込まれた巨大な石像。刃も魔も阻む頑強な体で、眠れる『何か』への道を塞ぐ。誰が、何を守らせているのかは分からない。" },
+  { id: "bs_fossildragon", name: "化石竜", rank: 10, race: "dragon", element: "earth", artKey: "fossildragon",
+    ability: "breath", physResist: 0.5, enrage: true, desc: "岩に取り込まれて化石となり、なお動く太古の竜。石化した骨の体は刃を弾き、化石の口から砕けた岩の息を吐く。世界の根に眠る、最も古い時代の生き残りだ。" },
+  { id: "bs_cavefisher", name: "洞天井の漁り手", rank: 10, race: "aquatic", element: "earth", artKey: "cavefisher",
+    ability: "paralyze", lifesteal: 0.3, evasive: true, desc: "洞窟の天井に張りつき、粘る糸を垂らして獲物を釣る蟲めいた魔。糸に触れた者を痺れさせて吊り上げ、宙吊りのまま精気を吸う。見上げた時には、もう糸が首にかかっている。" },
+  { id: "bs_abysshorror", name: "深淵の異形", rank: 10, race: "specter", element: "earth", artKey: "abysshorror",
+    ability: "drain", physResist: 0.4, critical: undefined, desc: "大空洞のさらに底、光の概念すらない深淵から這い上がった異形。見ただけで正気を削る姿で、生者の命を吸い上げる。眠れる根の寝息に引き寄せられて、底から昇ってきた。" },
+  { id: "bs_earthshaker", name: "地揺らす巨躯", rank: 10, race: "giant", element: "earth", artKey: "earthshaker",
+    multistrike: 2, enrage: true, physResist: 0.5, desc: "歩むだけで大空洞を揺るがす、岩塊を背負った巨躯の魔。地を踏み鳴らして全体を揺さぶり、岩の拳で続けざまに打ち据える。その地響きは、眠れる根まで届くという。" },
+  { id: "bs_mawofthedeep", name: "深淵の顎", rank: 10, race: "amorph", element: "earth", artKey: "mawofthedeep",
+    ability: "critical", lifesteal: 0.3, physResist: 0.4, desc: "大空洞の床に口を開く、底なしの顎をもつ魔。近づいた者を一息に呑み込み、急所ごと噛み砕いて喰らう。地面と見分けがつかず、踏んだ時にはもう遅い。" },
+  { id: "bs_primalbeast", name: "原初の獣", rank: 10, race: "beast", element: "earth", artKey: "primalbeast",
+    enrage: true, ability: "critical", multistrike: 2, desc: "世界がまだ若かった頃から大空洞に潜む、進化を忘れた原初の獣。本能のままに急所を狙って連撃し、傷つけば太古の獰猛さで猛り狂う。眠れる根の、最初の守り手の一つだ。" },
+  { id: "bs_gloomstalker", name: "闇這いの蟲", rank: 10, race: "insect", element: "earth", artKey: "gloomstalker",
+    swift: true, evasive: true, ability: "poison", desc: "闇に溶ける黒い甲殻をもつ、素早く這い回る大蟲。気配を断って忍び寄り、毒の牙で刺しては闇へ消える。光を当てても、すぐに岩の隙間へ滑り込んで見失う。" },
+  { id: "bs_cavernlord", name: "大空洞の主", rank: 10, boss: true, race: "giant", element: "earth", artKey: "cavernlord", soulClass: "fighter",
+    role: "summoner", summonKey: "bs_cavebehemoth", ability: "breath", enrage: true, physResist: 0.6,
+    desc: "大空洞の最奥、眠れる『根』のすぐ手前に座す巨大な守護者。岩を喰らう巨獣を次々と呼び、砕けた岩の息で道を塞ぐ。鎖に繋がれて眠るものを、決して目覚めさせまいとしている――いや、目覚めを待っているのかもしれない。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1501,6 +1543,7 @@ export const BOSS_ORDER = {
 // 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
 // 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
 const LAYER_BOSS_OVERRIDE = {
+  12: "bs_cavernlord", // 第12層「地底大空洞」: 大空洞の主 (rank10・土ボス)
   11: "bs_arenalord", // 第11層「闘技場跡」: 闘技場の支配者 (rank10・剣闘ボス)
   10: "bs_stormlord", // 第10層「嵐の尖塔」: 嵐の尖塔の主 (rank10・風ボス)
   9: "bs_swamplord", // 第9層「毒沼」: 澱みの主 (rank10・毒ボス)
@@ -1628,6 +1671,14 @@ export const LAYER_POOLS = {
     "bs_bladedancer", "bs_executioner", "bs_beastmaster", "bs_mirrorduelist", "bs_crowdroar",
     "bs_sandlurker", "bs_gladiatorlich", "bs_spikedgolem", "bs_hookmaster", "bs_bloodpriest",
     "bs_warbeasthound", "bs_championofash", "bs_impaler", "bs_ghostgladiator", "bs_chaingang",
+  ],
+  // 第12層「地底大空洞」: 土/洞窟中心、全rank10。原初の大蛇を再配置(世界の根)
+  12: [
+    "bs_cavebehemoth", "bs_crystaldrake", "bs_blindhorror", "bs_rocktitan", "bs_deepworm",
+    "bs_glowspore", "bs_stalactiteghost", "bs_obsidianbeast", "bs_cavetroll", "bs_echowraith",
+    "bs_crystalspider", "bs_caveguardian", "bs_fossildragon", "bs_cavefisher", "bs_abysshorror",
+    "bs_earthshaker", "bs_mawofthedeep", "bs_primalbeast", "bs_gloomstalker",
+    "bs_primalserpent",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
