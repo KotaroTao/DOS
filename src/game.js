@@ -8757,6 +8757,13 @@ function campCast(caster, spellKey) {
   const cures = sp.kind === "cure" || !!sp.cure;     // 毒・麻痺・石化を治す
   const heals = (sp.power || 0) > 0;                  // HP回復量を持つ
   const powerOf = () => (sp.power || 0) + Math.round((caster.pie || 0) * 0.5);
+  // 対象がいないときに「なぜ唱えられないか」を明示するアラート文言
+  const noTargetMsg = () => {
+    if (heals && cures) return `${sp.name}: 傷つき・状態異常の仲間がいない`;
+    if (cures) return `${sp.name}: 状態異常の仲間がいない`;
+    if (sp.revive && !heals) return `${sp.name}: 倒れた仲間がいない`;
+    return `${sp.name}: 傷ついた仲間がいない`;
+  };
 
   // 1体へ効果を適用。何か起きたら true
   const applyTo = (t) => {
@@ -8786,7 +8793,7 @@ function campCast(caster, spellKey) {
     let any = false;
     for (const t of G.party) if (applyTo(t)) any = true;
     if (any) { finish(); showToast(`${sp.name}！ 隊を癒した`); }
-    else { log("効果のある対象がいない。", "sys"); showToast(cures ? "治療が必要な仲間がいない" : "回復が必要な仲間がいない"); }
+    else { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg()); SFX.miss(); }
     return;
   }
 
@@ -8798,7 +8805,7 @@ function campCast(caster, spellKey) {
     return false;
   };
   const targets = G.party.filter(benefits);
-  if (!targets.length) { log("効果のある対象がいない。", "sys"); showToast(cures ? "治療が必要な仲間がいない" : "回復が必要な仲間がいない"); return; }
+  if (!targets.length) { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg()); SFX.miss(); return; }
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card confirm-card");
   card.style.borderColor = "#46c08f";
