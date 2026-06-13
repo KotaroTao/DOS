@@ -6463,48 +6463,86 @@ function rollTavernCrowd() {
   G.tavernCrowd = crowd;
 }
 
-// ---- 酒場の噂話: 次の潜入で必ず起きる「予兆」を生成し、盤面に反映 ----
+// ---- 酒場の噂話: 「選択中の潜入先」を読んだ予兆を生成する ----
+// 盤面型 (harvest/treasure/special) は次の潜入の開始階 (B1F) で現実になり (applyRumorToBoard)、
+// その威力は実際に潜る迷宮の層 (layer) に合わせてスケールする。
+// 情報型 (element/boss, info:true) は備えを促すだけで盤面は変えない。
 const RUMOR_SPEAKERS = ["隻眼の傭兵", "酔った盗掘者", "巡礼の僧", "宿の女将", "傷だらけの斥候", "黒衣の占い師"];
-
-function rollRumor() {
-  // 噂は次の潜入の開始階 (B1F) で必ず現実になる (applyRumorToBoard)。
-  // 文言もその階を指す (深い階を語ると、実際に起きる場所と食い違ってしまう)
-  const floor = 1;
-  const speaker = RUMOR_SPEAKERS[rand(RUMOR_SPEAKERS.length)];
-  const roll = Math.random();
-  // 2% で未発見の職業ヒント
-  if (roll < 0.02) {
-    const undiscovered = []; // 混成職は廃止 (ヒント噂は出さない)
-    if (undiscovered.length) {
-      const key = undiscovered[rand(undiscovered.length)];
-      const [baseK, subK] = key.split("+");
-      const bn = SOUL_CLASSES[baseK].label, sn = SOUL_CLASSES[subK].label;
-      return { type: "hybridHint", hybridKey: key, floor, speaker,
-        text: `「〈${bn}〉の魂を多く宿し、〈${sn}〉の魂を添えると……奇妙な力が宿るらしい。眉唾だがな。」` };
-    }
-  }
-  if (roll < 0.45) {
-    // あたたかい死体 (職業指定) の予兆
-    const clsKey = rollJobClass();
-    const cl = SOUL_CLASSES[clsKey].label;
-    return { type: "warmCorpse", clsKey, floor, speaker,
-      text: `「B${floor}Fで、まだあたたかい〈${cl}〉の死体を見た。魂が宿っているはずだ。」` };
-  } else if (roll < 0.70) {
-    return { type: "soulRich", floor, speaker,
-      text: `「B${floor}Fは死者が多い。あたたかい死体がいくつも転がっているとか…。」` };
-  } else if (roll < 0.90) {
-    return { type: "treasure", floor, speaker,
-      text: `「B${floor}Fの奥で金属の輝きを見たという話だ。宝箱がひとつ余分にあるかもな。」` };
-  }
-  return { type: "fountain", floor, speaker,
-    text: `「B${floor}Fには癒しの泉が湧いているらしい。傷ついたら探すといい。」` };
+// 層属性に有利を取る攻撃属性 (敵の弱点 = こちらが厚くすべき備え)
+const ELEM_COUNTER = { fire: "water", water: "earth", earth: "wind", wind: "fire", dark: "light", light: "dark" };
+// 特別階の予兆で「ピン留め」できる好特別階 (深層では伝説も加わる)
+function pickRumorSpecial(layer) {
+  const pool = [
+    { id: "bounty",   omen: "黄金の気配が満ちる「豊穣の間」が口を開けているらしい" },
+    { id: "soulTide", omen: "魂の奔流が渦巻いていると聞く" },
+    { id: "vault",    omen: "宝箱がいくつも転がる「黄金の蔵」があるという" },
+    { id: "springs",  omen: "癒しの霊泉が湧いているそうだ" },
+    { id: "healing",  omen: "癒しの霊気が満ちているらしい" },
+  ];
+  if (layer >= 12) pool.push({ id: "legend", omen: "伝説の眠る気配がある" });
+  return pool[rand(pool.length)];
 }
 
-// 盤面生成後に、予兆 (rumor) を反映する
+function rollRumor() {
+  const cfg = curDungeon();
+  const layer = cfg.layer || layerOf(dungeonNumber(cfg));
+  const speaker = RUMOR_SPEAKERS[rand(RUMOR_SPEAKERS.length)];
+  const dn = cfg.name || "次の迷宮";
+
+  // 潜入先に応じて成立する噂だけを [重み, 生成関数] で候補に積む
+  const cands = [];
+  // 豊穣の予兆: B1F に温かい死体。深層ほど数も魂の格も上がる
+  cands.push([30, () => {
+    const great = layer >= 8;
+    const clsKey = great ? rollGreatCorpseClass() : rollJobClass();
+    const cl = SOUL_CLASSES[clsKey].label;
+    return { type: "harvest", clsKey, great, floor: 1, speaker,
+      text: `「${dn}の入口あたりで、まだあたたかい〈${cl}〉の死体を見た。${great ? "並の魂ではないぞ。" : "魂が宿っているはずだ。"}」` };
+  }]);
+  // 財宝の予兆: B1F に格の高い宝箱 (中身は装備品確定・層相応のレベル底上げ)
+  cands.push([25, () => ({ type: "treasure", floor: 1, speaker,
+    text: `「${dn}の奥で金属の輝きを見たという。${layer >= 10 ? "相当な業物が眠っているかもしれん。" : "上物の宝箱がひとつ余分にあるかもな。"}」` })]);
+  // 特別階の予兆: B1F が好特別階になる
+  cands.push([20, () => {
+    const sp = pickRumorSpecial(layer);
+    return { type: "special", special: sp.id, floor: 1, speaker,
+      text: `「${dn}の最初の階に、${sp.omen}。見過ごすなよ。」` };
+  }]);
+  // 属性の予兆 (情報): 層属性と備えるべき属性
+  if (cfg.element && cfg.element !== "none" && ELEMENTS[cfg.element]) {
+    cands.push([15, () => {
+      const el = ELEMENTS[cfg.element].label;
+      const ce = ELEM_COUNTER[cfg.element];
+      const adv = ce && ELEMENTS[ce] ? `〈${ELEMENTS[ce].label}〉の備えを厚くしておけ。` : "属性の備えを見直せ。";
+      return { type: "element", floor: 1, speaker, info: true,
+        text: `「${dn}は〈${el}〉の気が満ちている。${adv}」` };
+    }]);
+  }
+  // 主の予兆 (情報): 層末ボスの正体と弱点
+  if (cfg.boss && MONSTERS[cfg.boss]) {
+    cands.push([12, () => {
+      const b = MONSTERS[cfg.boss];
+      const be = b.element && b.element !== "none" && ELEMENTS[b.element] ? `〈${ELEMENTS[b.element].label}〉を纏う` : "";
+      const tr = monsterTraits(b)[0];
+      const trTxt = tr ? `${tr.label}——${tr.desc}。` : "底知れぬ力を持つという。";
+      return { type: "boss", floor: 1, speaker, info: true,
+        text: `「${dn}の主は${be}「${b.name}」だ。${trTxt}心して挑め。」` };
+    }]);
+  }
+
+  const total = cands.reduce((s, c) => s + c[0], 0);
+  let r = Math.random() * total;
+  for (const c of cands) { if ((r -= c[0]) < 0) return c[1](); }
+  return cands[0][1]();
+}
+
+// 盤面生成後に、予兆 (rumor) を反映する。威力は実際に潜る迷宮の層に合わせる
 function applyRumorToBoard(board) {
   const r = G.activeRumor;
   if (!r) return;
   G.activeRumor = null;
+  if (r.info) return; // 属性・主の予兆は備えを促すだけ。盤面は変えない
+  const layer = activeCfg().layer || 1;
   // 行き止まり (開いた辺が1つ) のマスを候補にする
   const deadends = [];
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
@@ -6514,15 +6552,28 @@ function applyRumorToBoard(board) {
     if (open === 1) deadends.push(c);
   }
   const pickCell = () => deadends.length ? deadends.splice(rand(deadends.length), 1)[0] : null;
-  const setCorpse = (cls) => { const c = pickCell(); if (c) { c.type = "corpse"; c.cleared = false; c.corpseWarm = true; c.corpseClass = cls; } };
-  if (r.type === "warmCorpse") setCorpse(r.clsKey);
-  else if (r.type === "soulRich") { for (let i = 0; i < 3; i++) setCorpse(rollJobClass()); }
-  else if (r.type === "treasure") { const c = pickCell(); if (c) { c.type = "chest"; c.cleared = false; } }
-  else if (r.type === "fountain") {
-    // 泉は1階層に最大1つ。既にあれば追加しない
-    let hasFountain = false;
-    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (board.cells[y][x].type === "fountain") hasFountain = true;
-    if (!hasFountain) { const c = pickCell(); if (c) { c.type = "fountain"; c.cleared = false; } }
+  const setCorpse = (cls, great) => { const c = pickCell(); if (c) { c.type = "corpse"; c.cleared = false; c.corpseWarm = true; c.corpseClass = cls; if (great) c.corpseGreat = true; } };
+  if (r.type === "harvest") {
+    // 名指しの1体 + 層に応じた追加 (深層ほど多く、上位レアの魂が宿る)
+    const extra = layer >= 14 ? 2 : layer >= 7 ? 1 : 0;
+    setCorpse(r.clsKey, r.great);
+    for (let i = 0; i < extra; i++) {
+      const great = layer >= 8;
+      setCorpse(great ? rollGreatCorpseClass() : rollJobClass(), great);
+    }
+  } else if (r.type === "treasure") {
+    // 中身が必ず装備品の「特別な宝箱」。層に比例した装備レベル底上げ (上限+40)
+    const c = pickCell();
+    if (c) { c.type = "chest"; c.cleared = false; c.lootBonus = Math.min(40, layer * 2); }
+  } else if (r.type === "special") {
+    // B1F を指定の好特別階にピン留めする (本来1Fには出ない特別階を噂で呼び込む)
+    const def = SPECIAL_FLOORS.find((s) => s.id === r.special);
+    if (def) {
+      G.specialFloor = def.id;
+      if (def.board) def.board(board);
+      log(`噂どおりだ… この階は「${def.name}」だ。(${r.speaker}の話)`, "win");
+      return;
+    }
   }
   log(`噂どおりだ… (${r.speaker}の話)`, "sys");
 }
@@ -6562,8 +6613,8 @@ function renderTavern() {
     const rb = el("div", "tw-rumor");
     rb.appendChild(el("div", "tw-rumors", `― ${G.rumor.speaker} ―`));
     rb.appendChild(el("div", "tw-rumort", G.rumor.text));
-    const noteText = G.rumor.type === "hybridHint"
-      ? "これは迷宮で現実になる話ではないが……真偽はお前が確かめるしかない。"
+    const noteText = G.rumor.info
+      ? "これは盤面に現れる話ではない。だが備えあれば憂いなし、だ。"
       : "この噂は、次に潜る迷宮で現実になる。";
     rb.appendChild(el("div", "tw-note", noteText));
     townEl.appendChild(rb);
@@ -6577,7 +6628,7 @@ function renderTavern() {
       coolBox.appendChild(el("div", "tw-rumort", `情報屋はまだ動いていない。あと約 ${mins} 分後に話せる。`));
       townEl.appendChild(coolBox);
     } else {
-      townEl.appendChild(el("div", "tw-note", "100ゴールドで噂話を一つ聞ける。迷宮に潜れば現実になるという…。"));
+      townEl.appendChild(el("div", "tw-note", `100ゴールドで噂話を一つ聞ける。情報屋は今 選んでいる迷宮（${curDungeon().name}）を読む。盤面の予兆は次の潜入で現実になり、属性や主の噂は備えの助けになる。`));
       const listenBtn = btn("🍺 噂を聞く (💰100)", () => {
         if (G.gold < 100) { log("ゴールドが足りない。", "bad"); SFX.ng(); return; }
         G.gold -= 100;
