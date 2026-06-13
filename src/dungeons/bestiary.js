@@ -46,15 +46,17 @@ const NEW_DEFS = [
     palette: tint(ARTS.slime.palette, "#3a6ad0", 0.3),
     desc: "幾百の粘塊が呑み合い、ひとつに膨れ上がった巨大な王。呑まれた者の得物が、半透明の体内に何本も沈んでいる。" },
   // -- rank 2 --
-  { id: "bs_zombie", name: "腐乱死体", rank: 2, race: "undead", element: "dark", artKey: "skeleton",
-    palette: tint(ARTS.skeleton.palette, "#5a8a4a", 0.4),
-    desc: "土に還ることを許されなかった亡骸。腐汁の滴る腕で生者を掴み、己と同じ地獄へ引きずり込もうとする。" },
+  { id: "bs_zombie", name: "腐乱死体", rank: 2, race: "undead", element: "dark", artKey: "zombie",
+    ability: "poison", regen: 0.05, // 腐肉の毒をうつし、裂いた傷もすぐ膿んで塞がる
+    desc: "土に還ることを許されなかった亡骸。腐汁の滴る腕で生者を掴み、己と同じ地獄へ引きずり込もうとする。腐った肉は斬られてもじわじわと膿んで塞がり、その爪には腐敗の毒が宿る。" },
   { id: "bs_direwolf", name: "灰色の大狼", rank: 2, race: "beast", element: "none", artKey: "beast",
     palette: tint(ARTS.beast.palette, "#9aa3ab", 0.35),
-    desc: "群れを失い、迷宮を新たな狩場に選んだ大狼。遠吠えは出口の方角から聞こえる。帰り道を断つためだ。" },
-  { id: "bs_goblinchief", name: "ゴブリンの族長", rank: 2, boss: true, race: "humanoid", element: "fire", artKey: "kobold", soulClass: "fighter",
-    palette: tint(ARTS.kobold.palette, "#c04a3a", 0.35),
-    desc: "屍から剥いだ鎧を勲章のように重ね着た、ゴブリンどもの長。配下を盾に、戦利品の山の上から戦を眺める。" },
+    swift: true, // 出口を断つ速さで間合いを詰める
+    desc: "群れを失い、迷宮を新たな狩場に選んだ大狼。遠吠えは出口の方角から聞こえる。帰り道を断つためだ。風のように間合いを詰め、たいてい先手を奪う。" },
+  { id: "bs_goblinchief", name: "ゴブリンの族長", rank: 2, boss: true, race: "humanoid", element: "fire", artKey: "gobchief", soulClass: "fighter",
+    palette: tint(ARTS.gobchief.palette, "#c04a3a", 0.22),
+    role: "summoner", summonKey: "bs_goblin", ability: "goldSteal", // 配下を盾に呼び、混乱に乗じて奪う
+    desc: "屍から剥いだ鎧を勲章のように重ね着た、ゴブリンどもの長。配下を盾に、戦利品の山の上から戦を眺める。形勢が傾けば甲高い号令で新手のゴブリンを呼び寄せ、その隙に懐を狙う。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "beast", soulClass: "fighter",
     palette: tint(ARTS.beast.palette, "#3a3a46", 0.35),
@@ -159,21 +161,24 @@ const NEW_DEFS = [
     magWeak: 1.6, evasive: true, // 脆い骨 (魔法弱点) + 不規則な飛行 (回避)
     desc: "死した蝙蝠の骨が呪いで再び飛び回る亡者。不規則にひらめいて刃をかわすが、脆い骨は魔法の一撃で容易く砕け散る。羽ばたくたびに散る骨粉が、吸い込んだ者の肺を内から蝕む。" },
   // -- rank 2 追加 (+5) --
-  { id: "bs_shadowhound", name: "影犬", rank: 2, race: "beast", element: "dark", artKey: "beast",
-    palette: tint(ARTS.beast.palette, "#2a2a3a", 0.5),
-    desc: "坑道の影が犬の形を借りた呪いの獣。光を持つ者に噛みつき、その光ごと奪い去る。暗闇の中でだけ、赤い目が輝く。" },
-  { id: "bs_gnoll", name: "ゴール", rank: 2, race: "humanoid", element: "earth", artKey: "orc", soulClass: "fighter",
-    palette: tint(ARTS.orc.palette, "#9a8a3a", 0.35),
-    desc: "ハイエナの顎を持つ異形の戦士。骨ごと噛み砕く噛む力を誇り、迷宮で死んだ者の装備を剥いで身につける。" },
+  { id: "bs_shadowhound", name: "影犬", rank: 2, race: "beast", element: "dark", artKey: "hound",
+    evasive: true, // 影に紛れて刃をすり抜ける
+    desc: "坑道の影が犬の形を借りた呪いの獣。光を持つ者に噛みつき、その光ごと奪い去る。影と一体になって刃をすり抜け、暗闇の中でだけ、赤い目が輝く。" },
+  { id: "bs_gnoll", name: "ゴール", rank: 2, race: "humanoid", element: "earth", artKey: "gnoll", soulClass: "fighter",
+    pack: true, // ハイエナの習いで群れて襲う
+    desc: "ハイエナの顎を持つ異形の戦士。骨ごと噛み砕く噛む力を誇り、迷宮で死んだ者の装備を剥いで身につける。一頭では狡猾に間合いを計り、数が揃えば一斉に喉笛へ飛びかかる。" },
   { id: "bs_spiritbat", name: "霊蝙蝠", rank: 2, race: "specter", element: "dark", artKey: "bat",
     palette: tint(ARTS.bat.palette, "#5a2a8a", 0.4),
-    desc: "坑道の亡霊が蝙蝠の形を借りた霊体。噛まれた箇所は寒気を帯び、体温を奪われた者から順に意識が遠のく。" },
-  { id: "bs_hobgoblin", name: "ホブゴブリン", rank: 2, race: "humanoid", element: "none", artKey: "kobold", soulClass: "thief",
-    palette: tint(ARTS.kobold.palette, "#8a6a2a", 0.4),
-    desc: "ゴブリンの中でも知恵と体格に恵まれた上位種。仲間をおとりに使い、退路を断いた上で奇襲するのを好む。" },
+    ability: "paralyze", // 体温を奪う冷たい牙で痺れさせる
+    desc: "坑道の亡霊が蝙蝠の形を借りた霊体。噛まれた箇所は寒気を帯び、体温を奪われた者から順に意識が遠のき、やがて手足が痺れて動かなくなる。" },
+  { id: "bs_hobgoblin", name: "ホブゴブリン", rank: 2, race: "humanoid", element: "none", artKey: "goblin", soulClass: "thief",
+    palette: tint(ARTS.goblin.palette, "#6a4a1a", 0.35),
+    swift: true, ability: "goldSteal", // 退路を断つ奇襲で財布を奪う
+    desc: "ゴブリンの中でも知恵と体格に恵まれた上位種。仲間をおとりに使い、退路を断った上で奇襲するのを好む。一足飛びに懐へ踏み込み、得物より先に財布をかすめ取る。" },
   { id: "bs_swampslime", name: "毒沼スライム", rank: 2, race: "amorph", element: "earth", artKey: "slime",
     palette: tint(ARTS.slime.palette, "#4a8a2a", 0.4),
-    desc: "鉱毒を溶かし込んだ粘塊。触れた武器を緑色に染め、その毒が傷口から血液へと溶け込む。迷宮の床が緑色なら、すでに領域だ。" },
+    physResist: 0.5, ability: "poison", // 粘体ゆえ刃が通らず、鉱毒を傷へ流し込む
+    desc: "鉱毒を溶かし込んだ粘塊。刃を突き立てても潰れて寄り集まり、触れた武器を緑色に染める。その毒が傷口から血液へと溶け込む。迷宮の床が緑色なら、すでに領域だ。" },
   // -- rank 3 追加 (+5) --
   { id: "bs_darkelf", name: "闇の射手", rank: 3, race: "humanoid", element: "dark", artKey: "kobold", soulClass: "thief",
     palette: tint(ARTS.kobold.palette, "#3a2a5a", 0.45),
@@ -359,28 +364,36 @@ const NEW_DEFS = [
   // -- rank 2 (迷宮11-20: 廃坑帯) --
   { id: "bs_foremanwraith", name: "坑夫頭の亡霊", rank: 2, boss: true, race: "specter", element: "dark", artKey: "wraith", soulClass: "fighter",
     palette: tint(ARTS.wraith.palette, "#5a6a7a", 0.35),
-    desc: "落盤の朝も持ち場を離れなかった坑夫頭の亡霊。今も配下の亡霊たちに鶴嘴を振らせ、点呼に応えない者を坑道の闇へ連れて行く。" },
+    ability: "paralyze", // 点呼の声で立ちすくませる
+    desc: "落盤の朝も持ち場を離れなかった坑夫頭の亡霊。今も配下の亡霊たちに鶴嘴を振らせ、点呼に応えない者を坑道の闇へ連れて行く。その点呼の声を聞いた者は、答えようとして体が凍りつく。" },
   { id: "bs_bonecollier", name: "骨の坑夫長", rank: 2, boss: true, race: "undead", element: "earth", artKey: "skeleton",
     palette: tint(ARTS.skeleton.palette, "#7a6a4a", 0.35),
-    desc: "骨道を今も掘り進める坑夫どもの長。掘り当てた鉱脈ではなく、掘り当てた仲間の骨を律儀に並べ直しては、また掘る。" },
+    regen: 0.07, // 砕けた骨を律儀に拾い継ぐ
+    desc: "骨道を今も掘り進める坑夫どもの長。掘り当てた鉱脈ではなく、掘り当てた仲間の骨を律儀に並べ直しては、また掘る。砕いても落ちた骨を拾い集めて継ぎ直し、なかなか倒れない。" },
   { id: "bs_saltcolossus", name: "岩塩の巨像", rank: 2, boss: true, race: "construct", element: "earth", artKey: "golem",
     palette: tint(ARTS.golem.palette, "#d8d8e2", 0.4),
-    desc: "坑夫たちが安全を祈って岩塩から彫り出した守り神。坑道が見捨てられた日から祈りは呪いに転じ、塩の巨体は侵入者だけを守りに来る。" },
+    physResist: 0.5, // 分厚い塩の巨体が刃を弾く
+    desc: "坑夫たちが安全を祈って岩塩から彫り出した守り神。坑道が見捨てられた日から祈りは呪いに転じ、塩の巨体は侵入者だけを守りに来る。分厚い結晶の体は刃をほとんど通さない。" },
   { id: "bs_frostmaggot", name: "凍坑の大蟲", rank: 2, boss: true, race: "insect", element: "water", artKey: "spider",
     palette: tint(ARTS.spider.palette, "#9fc0d8", 0.4),
-    desc: "凍てついた炭坑の底で氷ごと石炭を喰らう大蟲。吐き出す冷気は坑道の水脈を一晩で凍らせ、獲物を氷柱の標本に変える。" },
+    ability: "paralyze", // 冷気で凍てつかせ動きを止める
+    desc: "凍てついた炭坑の底で氷ごと石炭を喰らう大蟲。吐き出す冷気は坑道の水脈を一晩で凍らせ、浴びた獲物は手足が凍てついて氷柱の標本に変わる。" },
   { id: "bs_brimstonefiend", name: "硫黄の悪鬼", rank: 2, boss: true, race: "demon", element: "fire", artKey: "imp",
     palette: tint(ARTS.imp.palette, "#8a6a1a", 0.35),
-    desc: "硫黄の噴気に引き寄せられて湧いた下級魔どもの王。黄色い煙を玉座の帳のように纏い、咳き込んだ獲物の喉へ火種を投げ込む。" },
+    ability: "poison", // 硫黄の毒煙で喉を灼く
+    desc: "硫黄の噴気に引き寄せられて湧いた下級魔どもの王。黄色い毒煙を玉座の帳のように纏い、咳き込んだ獲物の喉へ火種を投げ込む。煙を吸った者は内から灼かれ続ける。" },
   { id: "bs_steamtyrant", name: "蒸気の暴君", rank: 2, boss: true, race: "construct", element: "fire", artKey: "golem",
     palette: tint(ARTS.golem.palette, "#8a5a3a", 0.4),
-    desc: "縦坑の闇で誰の命令もないまま動き続ける蒸気仕掛けの巨人。弁から漏れる白い悲鳴は、炉にくべられた坑夫たちの分だという。" },
+    ability: "breath", physResist: 0.4, // 全体を包む高圧蒸気 + 鋼の装甲
+    desc: "縦坑の闇で誰の命令もないまま動き続ける蒸気仕掛けの巨人。弁から噴き出す灼熱の蒸気は前衛も後衛もまとめて茹で上げ、鋼の装甲は並の刃を寄せつけない。漏れる白い悲鳴は、炉にくべられた坑夫たちの分だという。" },
   { id: "bs_leadenking", name: "鉛の王", rank: 2, boss: true, race: "armored", element: "earth", artKey: "knightmare",
     palette: tint(ARTS.knightmare.palette, "#5a5a6a", 0.4),
-    desc: "鉛山の底で王冠を抱いたまま、鎧ごと鉛に呑まれた成り上がりの王。鈍色の巨体は遅いが、その一打は地金の重さで骨を潰す。" },
+    physResist: 0.5, // 鉛の巨体が刃を呑み込む
+    desc: "鉛山の底で王冠を抱いたまま、鎧ごと鉛に呑まれた成り上がりの王。鈍色の巨体は遅いが刃を鈍く呑み込み、その一打は地金の重さで骨を潰す。" },
   { id: "bs_rustwyrm", name: "錆喰いの竜", rank: 2, boss: true, race: "dragon", element: "earth", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#8a4a2a", 0.4),
-    desc: "廃坑の軌条も鶴嘴も喰らい尽くし、錆の鱗を纏った地竜。吐息は赤茶けた錆の嵐で、浴びた剣も鎧も一晩で崩れ落ちる。" },
+    ability: "breath", // 錆の嵐を吐いて装備ごと崩す
+    desc: "廃坑の軌条も鶴嘴も喰らい尽くし、錆の鱗を纏った地竜。前衛後衛を問わず吐きかける赤茶けた錆の嵐は、浴びた剣も鎧も一晩で崩れ落とす。" },
   // -- rank 3 (迷宮21-30: 廃砦帯) --
   { id: "bs_lastbanneret", name: "最後の旗手", rank: 3, boss: true, race: "armored", element: "none", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#7a8a9a", 0.3),
@@ -608,17 +621,15 @@ const NEW_DEFS = [
   // 長射程の武器や呪文で先に仕留めるか、護り手を崩す「処理順」が問われる。
   // ability: null は種族由来の特殊能力を持たせない明示指定。
   // -- rank 2 --
-  { id: "bs_goblinshaman", name: "ゴブリンの呪い手", rank: 2, race: "humanoid", element: "dark", artKey: "kobold",
-    role: "healer", escort: "bs_goblin", ability: null, soulClass: "priest",
-    palette: tint(ARTS.kobold.palette, "#7a3aa0", 0.45),
-    desc: "骨の杖を振るい、仲間の傷を呪詛で縫い合わせるゴブリンの祈祷師。群れの後ろで唱え続ける限り、ゴブリンどもは何度でも立ち上がる。" },
+  { id: "bs_goblinshaman", name: "ゴブリンの呪い手", rank: 2, race: "humanoid", element: "dark", artKey: "gobshaman",
+    role: "healer", escort: "bs_goblin", ability: null, magWeak: 1.4, soulClass: "priest",
+    desc: "骨の杖を振るい、仲間の傷を呪詛で縫い合わせるゴブリンの祈祷師。群れの後ろで唱え続ける限り、ゴブリンどもは何度でも立ち上がる。痩せた体は脆く、魔法を撃ち込めば呪文ごと崩れ落ちる。" },
   { id: "bs_tombwarden", name: "墓守の重骸", rank: 2, race: "undead", element: "dark", artKey: "knightmare",
-    role: "guard", escort: "bs_zombie", ability: null,
+    role: "guard", escort: "bs_zombie", ability: null, physResist: 0.4,
     palette: tint(ARTS.knightmare.palette, "#8a8a7a", 0.4),
-    desc: "墓所の番を最後の命令として朽ちた鎧の亡者。命令だけが残った今も仲間の屍を背に庇い、自らが砕けるまで一歩も退かない。" },
-  { id: "bs_ratpiper", name: "鼠寄せの笛吹き", rank: 2, race: "humanoid", element: "none", artKey: "kobold",
+    desc: "墓所の番を最後の命令として朽ちた鎧の亡者。命令だけが残った今も仲間の屍を背に庇い、分厚い具足で刃を受け止め、自らが砕けるまで一歩も退かない。" },
+  { id: "bs_ratpiper", name: "鼠寄せの笛吹き", rank: 2, race: "humanoid", element: "none", artKey: "piper",
     role: "summoner", summonKey: "bs_drainrat", escort: "bs_drainrat", ability: null, soulClass: "thief",
-    palette: tint(ARTS.kobold.palette, "#5a7a3a", 0.45),
     desc: "骨の笛で坑道の鼠を従える小鬼。笛の音が続く限り、闇の奥から際限なく鼠が湧いてくる。まず笛を止めさせることだ。" },
   // -- rank 3 --
   { id: "bs_bonechanter", name: "白骨の唱導師", rank: 3, race: "undead", element: "dark", artKey: "skeleton",

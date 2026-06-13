@@ -4,12 +4,13 @@ import { defMonsters, tint, ARTS } from "./schema.js";
 export const monsters = defMonsters([
   { id: "d02_armkobold", name: "鎧コボルド", race: "humanoid", element: "none", artKey: "kobold", rank: 2,
     palette: tint(ARTS.kobold.palette, "#9aa3ab", 0.35),
+    ability: "goldSteal", physResist: 0.35, // 寄せ集めの甲冑で刃を受け、隙を見て遺品を漁る
     hp: 26, atk: 12, def: 6, spd: 6, soul: 18, gold: 14, soulClass: "fighter",
-    desc: "落城の際に死んだ兵から鎧を剥ぎ取り、身に纏ったコボルド。寸法の合わぬ甲冑を引きずりながら隊列を組む姿は、滅びた守備隊の悪夢のような模倣だ。兜の中から、犬の唸りが響く。" },
-  { id: "d02_soldier", name: "朽ちた兵士", race: "undead", element: "dark", artKey: "skeleton", rank: 2,
-    palette: tint(ARTS.skeleton.palette, "#5a5f7a", 0.3),
+    desc: "落城の際に死んだ兵から鎧を剥ぎ取り、身に纏ったコボルド。寸法の合わぬ甲冑を引きずりながら隊列を組む姿は、滅びた守備隊の悪夢のような模倣だ。継ぎ接ぎの鉄板が刃をいなし、兜の中から、犬の唸りが響く。" },
+  { id: "d02_soldier", name: "朽ちた兵士", race: "undead", element: "dark", artKey: "soldier", rank: 2,
+    physResist: 0.4, // 錆びてなお具足が刃を弾く
     hp: 30, atk: 13, def: 6, spd: 6, soul: 22, gold: 16, soulClass: "thief",
-    desc: "城を守れずに散った衛兵の成れの果て。誰を守るのかも、誰と戦うのかも忘れ、ただ「持ち場を離れるな」という最後の号令だけが骨の髄に焼き付いている。崩れた城壁の前で、永遠に剣を構え続ける。" },
+    desc: "城を守れずに散った衛兵の成れの果て。誰を守るのかも、誰と戦うのかも忘れ、ただ「持ち場を離れるな」という最後の号令だけが骨の髄に焼き付いている。錆びついた具足は刃をよく弾き、崩れた城壁の前で永遠に剣を構え続ける。" },
   { id: "d02_harpy", name: "城砦のハーピー", race: "avian", element: "wind", artKey: "harpy", rank: 2,
     hp: 24, atk: 13, def: 4, spd: 11, soul: 20, gold: 15,
     desc: "崩れた尖塔を巣とする、女の貌と猛禽の体を持つ魔物。耳をろうするかん高い声で獲物をすくませ、突風とともに舞い降りてかぎ爪で眼をえぐる。巣には磨かれた指輪や髪飾りが集められ、持ち主はもうどこにもいない。" },

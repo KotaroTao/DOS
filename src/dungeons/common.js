@@ -1,6 +1,6 @@
 // 共通モンスター (cm_): 複数のダンジョンに跨って出現する序盤〜汎用の雑魚。
 // 各ダンジョンの pool に id を混ぜて再利用する (毎回描き直さないため)。
-import { defMonsters, tint, ARTS } from "./schema.js";
+import { defMonsters } from "./schema.js";
 
 export const COMMON_MONSTERS = defMonsters([
   { id: "cm_slime", name: "スライム", race: "amorph", element: "water", artKey: "slime", rank: 1,
@@ -16,8 +16,7 @@ export const COMMON_MONSTERS = defMonsters([
     hp: 13, atk: 7, def: 2, spd: 8, soul: 8, gold: 5,
     ability: "paralyze", // 麻痺毒の牙
     desc: "坑道の天井いっぱいに灰色の巣を張る大蜘蛛。獲物を麻痺毒で生かしたまま糸に巻き、何日もかけて体液をすする。巣にぶら下がる繭の中身が、まだ時おり震えているという。" },
-  { id: "cm_caverat", name: "洞窟ネズミ", race: "beast", element: "none", artKey: "beast", rank: 1,
-    palette: tint(ARTS.beast.palette, "#888888", 0.25),
+  { id: "cm_caverat", name: "洞窟ネズミ", race: "beast", element: "none", artKey: "caverat", rank: 1,
     hp: 16, atk: 7, def: 3, spd: 7, soul: 9, gold: 5,
     role: "summoner", summonKey: "cm_caverat", // 血の匂いで仲間を呼び寄せる
     desc: "屍肉を食らって肥え太った灰色の獣。単体では臆病だが、血の匂いを嗅ぎつけると甲高い声で仲間を呼び、倒れた者を骨まで漁る。迷宮の掃除屋にして、迷宮が決して飢えない理由。" },
