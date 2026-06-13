@@ -391,7 +391,7 @@ const LAYER_VISUALS = [
   { name: "捨て砦",     sym: "⚔", accent: "#9aa0ac", bgm: "layer4", back: drawBackFort, floorBase: "#121316", floorTiles: ["#191b20", "#15171b", "#111316"], glow: "rgba(200,210,230,0.05)" }, // 4
   { name: "霧の森",     sym: "♣", accent: "#7faa5a", bgm: "layer5", back: drawBackForest, floorBase: "#0f140d", floorTiles: ["#161d12", "#12180e", "#0e130a"], glow: "rgba(150,200,120,0.06)" }, // 5
   { name: "沈没神殿",   sym: "⛪", accent: "#6fb0c8", bgm: "layer6", back: drawBackTemple, floorBase: "#0d1316", floorTiles: ["#121c20", "#0f171b", "#0c1215"], glow: "rgba(120,200,225,0.06)" }, // 6
-  { name: "灼熱の洞",   sym: "▲", accent: "#d4682e", bgm: "field6",     floorBase: "#190f0a", floorTiles: ["#22130c", "#1c0f0a", "#160c07"], glow: "rgba(255,130,50,0.07)" },  // 7
+  { name: "灼熱の洞",   sym: "▲", accent: "#d4682e", bgm: "layer7", back: drawBackLava, floorBase: "#190f0a", floorTiles: ["#22130c", "#1c0f0a", "#160c07"], glow: "rgba(255,130,50,0.07)" },  // 7
   { name: "氷結回廊",   sym: "❄", accent: "#9fd0e6", bgm: "field7",     floorBase: "#0e1417", floorTiles: ["#152027", "#111a20", "#0d1418"], glow: "rgba(170,220,245,0.06)" }, // 8
   { name: "毒沼",       sym: "⚗", accent: "#a7b84a", bgm: "fieldSulfur",floorBase: "#12140d", floorTiles: ["#1a1c11", "#16180d", "#12140a"], glow: "rgba(170,195,75,0.06)" },  // 9
   { name: "嵐の尖塔",   sym: "⚡", accent: "#b6a4e0", bgm: "field8",     floorBase: "#10101a", floorTiles: ["#181826", "#14141f", "#101019"], glow: "rgba(180,160,235,0.06)" }, // 10
@@ -876,6 +876,95 @@ function drawThemedBack(r, accent, sym) {
   }
   vctx.fillStyle = "rgba(255,255,255,0.08)";
   vctx.fillRect(2, 2, r.w - 4, 3);
+}
+
+// 層7「灼熱の洞」のカード裏面: 煮え立つ溶岩だまり、赤熱した鍾乳石、爆ぜる泡と立ちのぼる火の粉
+function drawBackLava(r, accent, sym) {
+  const W = r.w, H = r.h, t = performance.now();
+  // 火山岩の地
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#190d07");
+  bg.addColorStop(0.55, "#291208");
+  bg.addColorStop(1, "#4a1c08");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+
+  // 岩肌の灼けた亀裂 (橙に光る)
+  vctx.strokeStyle = "rgba(230,110,30,0.5)";
+  vctx.lineWidth = 1;
+  vctx.beginPath(); vctx.moveTo(5, 12); vctx.lineTo(9, 20); vctx.lineTo(6, 27); vctx.stroke();
+  vctx.beginPath(); vctx.moveTo(W - 6, 15); vctx.lineTo(W - 10, 23); vctx.lineTo(W - 7, 30); vctx.stroke();
+
+  // 鍾乳石 (暗い岩。先端は溶岩の照り返しで赤熱)
+  for (const [sx, sl] of [[10, 9], [24, 13], [40, 8], [W - 6, 11]]) {
+    vctx.fillStyle = "#1c0f08";
+    vctx.beginPath();
+    vctx.moveTo(sx - 3, 0); vctx.lineTo(sx + 3, 0); vctx.lineTo(sx, sl); vctx.closePath(); vctx.fill();
+    vctx.fillStyle = "rgba(255,120,40,0.5)";
+    vctx.beginPath();
+    vctx.moveTo(sx - 1.2, sl - 3); vctx.lineTo(sx + 1.2, sl - 3); vctx.lineTo(sx, sl); vctx.closePath(); vctx.fill();
+  }
+
+  // 溶岩だまりの上に立ちのぼる熱気の光
+  const lavaY = H - 15;
+  const halo = vctx.createRadialGradient(W / 2, lavaY, 2, W / 2, lavaY, 26);
+  halo.addColorStop(0, "rgba(255,140,40,0.28)");
+  halo.addColorStop(1, "rgba(255,140,40,0)");
+  vctx.fillStyle = halo;
+  vctx.fillRect(0, lavaY - 22, W, 30);
+
+  // 溶岩だまり (波打つ表面)
+  const lava = vctx.createLinearGradient(0, lavaY, 0, H);
+  lava.addColorStop(0, "#ffb02a");
+  lava.addColorStop(0.4, "#f2731a");
+  lava.addColorStop(1, "#9c2e06");
+  vctx.fillStyle = lava;
+  vctx.beginPath();
+  vctx.moveTo(0, lavaY + 2);
+  for (let x = 0; x <= W; x += 8) {
+    vctx.lineTo(x, lavaY + 2 + Math.sin(t * 0.002 + x * 0.3) * 1.2);
+  }
+  vctx.lineTo(W, H); vctx.lineTo(0, H); vctx.closePath();
+  vctx.fill();
+  // 溶岩表面の暗い殻
+  vctx.strokeStyle = "rgba(40,10,0,0.5)";
+  vctx.lineWidth = 1;
+  for (let i = 0; i < 3; i++) {
+    const yy = lavaY + 5 + i * 3;
+    vctx.beginPath(); vctx.moveTo(2, yy + Math.sin(t * 0.002 + i) * 1); vctx.lineTo(W - 2, yy); vctx.stroke();
+  }
+
+  // 泡 (溶岩面で膨らんで弾ける)
+  for (let i = 0; i < 4; i++) {
+    const ph = ((t * 0.0009) + i * 0.27) % 1;
+    if (ph >= 0.8) continue;
+    const bx = 8 + i * 14, by = lavaY + 4 + (i % 2) * 3, rr = 0.5 + ph * 3;
+    vctx.fillStyle = `rgba(255,${180 + Math.floor(50 * (1 - ph))},80,${0.6 * (1 - ph)})`;
+    vctx.beginPath(); vctx.arc(bx, by, rr, 0, Math.PI * 2); vctx.fill();
+  }
+
+  // 立ちのぼる火の粉 (溶岩面で明るく、上るほど消える)
+  for (let i = 0; i < 6; i++) {
+    const px = (i * 39 + Math.sin(t * 0.001 + i) * 6 + 7) % W;
+    const py = (H - 8) - ((t * 0.02 + i * 33) % (H - 10));
+    const al = Math.max(0, 1 - (H - 8 - py) / (H - 10));
+    vctx.fillStyle = `rgba(255,${140 + Math.floor(80 * al)},40,${al * 0.8})`;
+    vctx.fillRect(px, py, 1.2, 1.2);
+  }
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.05)";
+  vctx.fillRect(2, 2, W - 4, 3);
 }
 
 // 層6「沈没神殿」のカード裏面: 水底に沈む列柱と破風、差し込む光条と立ちのぼる気泡
