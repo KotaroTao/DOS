@@ -286,7 +286,8 @@ export const JOB_PASSIVES = {
   priest:      [],
   // 魔導士はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
   mage:        [],
-  thief:       [P("vigilance", 1), P("senseEnemy"), P("poisonFloor", 1), P("poisonFloor", 2)],
+  // 盗賊はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
+  thief:       [],
   bishop:      [P("afterBoth", 1), P("scan"), P("afterBoth", 2), P("purify")],
   // レア
   samurai:     [P("initiative"), P("parry", 1), P("iai"), P("zanshin")],
@@ -529,7 +530,52 @@ export const JOB_SKILLS = {
     { lvl: 195, skill: "TENPENCHII" },                // 天変地異
     { lvl: 200, skill: "KYOKUDAI" },                  // 極大消滅
   ],
-  thief:       [{ lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "POISONSTAB" }, { lvl: 5, skill: "BLIND" }, { lvl: 7, skill: "DOUBLE" }, { lvl: 10, skill: "KASUMEGIRI" }, { lvl: 15, skill: "ASSASSINATE" }, { lvl: 20, skill: "MIDARE" }, { lvl: 25, skill: "KAGENUI" }, { lvl: 30, skill: "TSUJIKAZE" }, { lvl: 40, skill: "OBORO" }, { lvl: 50, skill: "ZETSUEI" }],
+  // 盗賊: 新仕様 (Lv1-200 / 技とパッシブを織り込み)。Lv40=朧抜き は宿し技 (signature)
+  thief:       [
+    { lvl: 1,   skill: "KYOUGEKI" },                  // 強撃
+    { lvl: 3,   skill: "POISONSTAB" },                // 毒刃
+    { lvl: 5,   passive: "ambushCrit", plv: 1 },      // 不意打ち
+    { lvl: 7,   skill: "DOUBLE" },                    // 二段斬り
+    { lvl: 10,  skill: "BLIND" },                     // 目くらまし
+    { lvl: 15,  passive: "extraHit", plv: 1 },        // 連撃Lv1
+    { lvl: 20,  skill: "KASUMEGIRI" },                // 霞斬り
+    { lvl: 25,  passive: "vitalEye", plv: 1 },        // 急所読みLv1
+    { lvl: 30,  skill: "ASSASSINATE" },               // 急所突き
+    { lvl: 35,  passive: "extraHit", plv: 2 },        // 連撃Lv2
+    { lvl: 40,  skill: "OBORO" },                     // 朧抜き (看板技)
+    { lvl: 45,  passive: "parry", plv: 1 },           // 見切りLv1
+    { lvl: 50,  skill: "MIDARE" },                    // 乱れ斬り
+    { lvl: 55,  skill: "KAGENUI" },                   // 影縫い
+    { lvl: 60,  passive: "venomBlade", plv: 1 },      // 毒刃Lv1
+    { lvl: 65,  skill: "TSUJIKAZE" },                 // 辻風
+    { lvl: 70,  passive: "sleepKill", plv: 1 },       // 寝込み襲い
+    { lvl: 75,  passive: "initiative", plv: 1 },      // 先制の心得
+    { lvl: 80,  skill: "ZETSUEI" },                   // 絶影
+    { lvl: 85,  skill: "SHIPPUTSUKI" },               // 疾風突き
+    { lvl: 90,  passive: "extraHit", plv: 3 },        // 連撃Lv3
+    { lvl: 95,  skill: "ENGETSUJIN" },                // 円月刃
+    { lvl: 100, skill: "MOUDOKUSASHI" },              // 猛毒刺し
+    { lvl: 105, passive: "vitalEye", plv: 2 },        // 急所読みLv2
+    { lvl: 110, skill: "KAGEUCHI" },                  // 影討ち
+    { lvl: 115, passive: "venomBlade", plv: 2 },      // 毒刃Lv2
+    { lvl: 120, skill: "KUBIHANE" },                  // 首刎ね
+    { lvl: 125, passive: "parry", plv: 2 },           // 見切りLv2
+    { lvl: 130, skill: "RANBUTSUKI" },                // 乱舞突き
+    { lvl: 135, passive: "extraHit", plv: 4 },        // 連撃Lv4
+    { lvl: 140, skill: "SHUNSATSU" },                 // 瞬殺
+    { lvl: 145, passive: "zanshin", plv: 1 },         // 残心
+    { lvl: 150, skill: "TSUMUJIKAZE" },               // 旋風乱れ
+    { lvl: 155, passive: "vigilance", plv: 1 },       // 周囲警戒Lv1
+    { lvl: 160, skill: "ZANKOU" },                    // 斬光
+    { lvl: 165, passive: "vigilance", plv: 2 },       // 周囲警戒Lv2
+    { lvl: 170, skill: "ANSATSU" },                   // 暗殺
+    { lvl: 175, passive: "senseEnemy", plv: 1 },      // 敵感知
+    { lvl: 180, skill: "SENKOUZAN" },                 // 閃光斬
+    { lvl: 185, passive: "fleetFoot", plv: 1 },       // 逃げ足
+    { lvl: 190, skill: "HISSATSU" },                  // 必殺奥義
+    { lvl: 195, skill: "MUGEN" },                     // 夢幻泡影
+    { lvl: 200, skill: "ZANSEI" },                    // 斬星
+  ],
   bishop:      [{ lvl: 1, skill: "HALITO" }, { lvl: 3, skill: "DIOS" }, { lvl: 5, skill: "ICENEEDLE" }, { lvl: 7, skill: "CURE" }, { lvl: 10, skill: "DIAL" }, { lvl: 15, skill: "MAHALITO" }, { lvl: 20, skill: "DIOSALL" }, { lvl: 25, skill: "DISPEL" }, { lvl: 30, skill: "MADALT" }, { lvl: 40, skill: "MADIOS" }, { lvl: 50, skill: "TILTOWAIT" }],
   samurai:     [{ lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "TATEWARI" }, { lvl: 5, skill: "POISONSTAB" }, { lvl: 7, skill: "DOUBLE" }, { lvl: 10, skill: "KASUMEGIRI" }, { lvl: 15, skill: "MIDARE" }, { lvl: 20, skill: "ASSASSINATE" }, { lvl: 25, skill: "GOUZAN" }, { lvl: 30, skill: "TSUJIKAZE" }, { lvl: 40, skill: "TSUBAMEGAESHI" }, { lvl: 50, skill: "ZETSUEI" }],
   berserker:   [{ lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "TATEWARI" }, { lvl: 5, skill: "SHIELDBASH" }, { lvl: 7, skill: "DOUBLE" }, { lvl: 10, skill: "NAGIHARAI" }, { lvl: 15, skill: "MIDARE" }, { lvl: 20, skill: "GOUZAN" }, { lvl: 25, skill: "ISSEN" }, { lvl: 30, skill: "SENPUU" }, { lvl: 40, skill: "KIJINKUDAKI" }, { lvl: 50, skill: "KIKOKU" }],
