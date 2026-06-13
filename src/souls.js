@@ -541,14 +541,27 @@ export function soulStats(s) {
   };
 }
 
-// ===== 人業 =====
+// ===== 人業 (器) =====
+// 「本体は魂」: 進行 (count/level/exp) はパーティ共有の魂プール (game.js の G.souls) が持つ。
+// 人業はそこから魂を差し込むだけの器で、primary (主魂=職業・ステ・スキル) と
+// subs (宿し技スロット: 別職の看板スキルだけを借りる、最大 MAX_SUBS 個) を持つ。
 let _dollUid = 0;
+export const MAX_SUBS = 2;
+
+// 共有魂プールへの参照 (game.js が setSharedSouls で注入)。recalcDoll が読む。
+let SHARED = {};
+export function setSharedSouls(s) { SHARED = s || {}; }
+export function sharedEntry(clsKey) { return clsKey ? SHARED[clsKey] || null : null; }
+export function sharedRank(clsKey) {
+  const e = SHARED[clsKey];
+  return e ? soulRankFromCount(clsKey, e.count) : 0;
+}
 
 export function makeDoll(name) {
   return {
     uid: ++_dollUid, name, isDoll: true,
-    soulCls: null,   // 宿している魂 (職業)。館の祭壇で付け替えられる (ダーマ式転職)
-    souls: {},       // clsKey -> { count, level, exp } — 職業ごとの育成状態 (人業ごとに個別)
+    primary: null,   // 宿している主魂の職業キー (館の祭壇で付け替え = ダーマ式転職)
+    subs: [],        // 宿し技スロット: 別職の看板スキルを借りる (clsKey の配列, 最大 MAX_SUBS)
     clsKey: "fighter", cls: "空の器", level: 1,
     hp: 1, maxhp: 1, mp: 0, maxmp: 0,
     atk: 0, vit: 0, agi: 1, int: 0, pie: 0, luk: 0,
@@ -558,16 +571,6 @@ export function makeDoll(name) {
   };
 }
 
-// ---- 1部位制ヘルパー ----
-// 宿している魂の育成エントリ { count, level, exp } (未装着なら null)
-export function dollSoul(d) { return d && d.soulCls && d.souls ? d.souls[d.soulCls] || null : null; }
-// 魂を1つ吸収: 職業エントリを作成/加算して返す
-export function absorbSoul(d, clsKey, n = 1) {
-  if (!d.souls) d.souls = {};
-  const e = d.souls[clsKey] || (d.souls[clsKey] = { count: 0, level: 1, exp: 0 });
-  e.count += n;
-  return e;
-}
 // 所持数に応じた魂レベル上限 (ランクが上がるほど伸びる)
 export function soulLevelCap(clsKey, count) {
   const r = soulRankFromCount(clsKey, count);
@@ -589,6 +592,62 @@ export function jobStatsOf(clsKey, entry) {
     atk: r1(st.atk), vit: r1(st.vit), agi: r1(st.agi),
     int: r1(st.int), pie: r1(st.pie), luk: r1(st.luk),
   };
+}
+
+// ===== 宿し技 (サブ魂) =====
+// 各職の「看板スキル」= 職業スキル表のLv40固有技。宿しスロットに別職の魂を差すと、
+// その看板スキルを借りられる (ステータスは乗らない)。共有ランク2以上で技を、
+// ランク4以上でその職のランク2パッシブも借りられる。
+export const JOB_SIGNATURE = (() => {
+  const out = {};
+  for (const k of SOUL_KEYS) {
+    const tbl = JOB_SKILLS[k] || [];
+    const sig = tbl.find((e) => e.lvl === 40) || tbl[tbl.length - 1];
+    if (sig) out[k] = sig.skill;
+  }
+  return out;
+})();
+export function signatureSkillOf(clsKey) { return JOB_SIGNATURE[clsKey] || null; }
+
+// ===== 控えの結社 (ベンチの加護) =====
+// 編成に出していない (primary/sub いずれにも使っていない) 魂は「結社」として
+// 職業テーマ別のパーティ全体パッシブを供給する。共有ランク2以上で Lv1、ランク4以上で Lv2。
+// 効果は game.js 側で読むパーティ範囲パッシブ (財宝/金運/魂寄せ/感知/警戒/先制/毒床) に限定する。
+export const ORDER_PERK = {
+  fighter: "vigilance", knight: "vigilance", priest: "poisonFloor", mage: "senseEnemy", thief: "goldLuck", bishop: "soulLure",
+  samurai: "initiative", berserker: "vigilance", hunter: "senseTreasure", shadow: "vigilance", paladin: "poisonFloor",
+  guardian: "vigilance", spellblade: "senseEnemy", monk: "poisonFloor", hexer: "appraise", hermit: "poisonFloor",
+  brigand: "goldLuck", arcthief: "goldLuck",
+  crusader: "initiative", battlemage: "senseEnemy", darkknight: "vigilance", templar: "poisonFloor", exorcist: "senseTreasure",
+  warden: "senseEnemy", arcanist: "soulLure", inquisitor: "appraise", archbishop: "soulLure", ascetic: "poisonFloor",
+  hero: "initiative", asura: "vigilance", dragonknight: "vigilance", necromancer: "soulLure", sage: "senseEnemy",
+  cardinal: "soulLure", archmage: "senseEnemy", chaplain: "poisonFloor",
+};
+// 編成中の職業 (primary/sub) の集合を返す
+export function fieldedJobs(party) {
+  const set = new Set();
+  for (const d of party || []) {
+    if (!d.alive) continue;
+    if (d.primary) set.add(d.primary);
+    for (const s of (d.subs || [])) set.add(s);
+  }
+  return set;
+}
+// 結社が供給するパーティパッシブ {passiveKey: lv}。編成外で共有ランク2以上の職業が対象
+export function orderPassiveMap(party) {
+  const fielded = fieldedJobs(party);
+  const map = {};
+  for (const k in SHARED) {
+    if (fielded.has(k)) continue;
+    const rank = soulRankFromCount(k, SHARED[k].count);
+    if (rank < 2) continue;
+    const perk = ORDER_PERK[k];
+    if (!perk || !PASSIVES[perk]) continue;
+    const lvMax = PASSIVES[perk].lv.length;
+    const lv = Math.min(lvMax, rank >= 4 ? 2 : 1);
+    map[perk] = Math.max(map[perk] || 0, lv);
+  }
+  return map;
 }
 
 export function dollSouls(doll) { return PARTS.map((p) => doll.parts[p]).filter(Boolean); }
@@ -649,12 +708,13 @@ export function charLevelOf(doll) {
   return Math.max(1, Math.round(souls.reduce((a, s) => a + (s.level || 1), 0) / souls.length));
 }
 
-// ===== recalcDoll (1部位制) =====
-// 宿している魂 (soulCls) の育成エントリ {count, level} から全ステ・スキル・パッシブを導出する。
+// ===== recalcDoll (器 = 主魂 + 宿し技) =====
+// 主魂 (primary) の共有育成エントリ {count, level} から全ステ・スキル・パッシブを導出し、
+// 宿し技 (subs) の看板スキル/パッシブを上乗せする。進行は共有プール (SHARED) が持つ。
 export function recalcDoll(doll) {
-  if (!doll.souls) doll.souls = {};
-  const clsKey = doll.soulCls && doll.souls[doll.soulCls] ? doll.soulCls : null;
-  const e = clsKey ? doll.souls[clsKey] : null;
+  if (!doll.subs) doll.subs = [];
+  const clsKey = doll.primary && SHARED[doll.primary] ? doll.primary : null;
+  const e = clsKey ? SHARED[clsKey] : null;
   const rank = clsKey ? soulRankFromCount(clsKey, e.count) : 0;
   // レベルはランクの上限でクランプ (ランクアップで上限が伸びる)
   if (e) {
@@ -667,6 +727,7 @@ export function recalcDoll(doll) {
 
   const spells = [];
   const passives = [];
+  const passiveMap = {};
   doll.jobRank = rank;
   doll.hybrid = null;
 
@@ -681,20 +742,37 @@ export function recalcDoll(doll) {
     for (const t of jobSkillTable(clsKey)) {
       if (effLv >= t.lvl && !spells.includes(t.skill)) spells.push(t.skill);
     }
-    doll.passiveMap = passivesUpTo(clsKey, rank);
+    const pmap = passivesUpTo(clsKey, rank);
+    for (const k in pmap) passiveMap[k] = Math.max(passiveMap[k] || 0, pmap[k]);
     const tbl = JOB_PASSIVES[clsKey] || [];
     for (let r = 2; r <= rank; r++) if (tbl[r - 2]) passives.push(tbl[r - 2].name);
   } else {
     doll.jobKey = null;
     doll.clsKey = "fighter";
     doll.cls = "空の器";
-    doll.passiveMap = {};
     doll.jobLv = 1;
   }
 
+  // 宿し技 (サブ魂): 別職の看板スキル (共有ランク2+) と、その職のランク2パッシブ (共有ランク4+)
+  doll.subInfo = [];
+  for (const sk of doll.subs) {
+    if (!sk || sk === clsKey) continue;
+    const se = SHARED[sk];
+    const sr = se ? soulRankFromCount(sk, se.count) : 0;
+    if (sr < 2) { doll.subInfo.push({ clsKey: sk, rank: sr, active: false }); continue; }
+    const sig = JOB_SIGNATURE[sk];
+    if (sig && !spells.includes(sig)) spells.push(sig);
+    if (sr >= 4) {
+      const e2 = (JOB_PASSIVES[sk] || [])[0]; // その職のランク2パッシブ
+      if (e2) { for (const k in e2.grants) passiveMap[k] = Math.max(passiveMap[k] || 0, e2.grants[k]); passives.push(e2.name); }
+    }
+    doll.subInfo.push({ clsKey: sk, rank: sr, active: true, skill: sig });
+  }
+
+  doll.passiveMap = passiveMap;
   doll.tier = rank ? "rank" + rank : "none";
   doll.dominant = clsKey ? { clsKey, count: e.count, maxLevel: e.level } : null;
-  doll.endure = ((doll.passiveMap || {}).endure || 0) > 0;
+  doll.endure = (passiveMap.endure || 0) > 0;
   doll.level = doll.jobLv || 1;
 
   doll.base = {
@@ -706,7 +784,7 @@ export function recalcDoll(doll) {
   doll.spells = spells;
   doll.passives = passives;
   delete doll.attrs;
-  delete doll.parts; // 旧5部位フィールドの残骸を除去
+  delete doll.parts; delete doll.souls; delete doll.soulCls; // 旧フィールドの残骸を除去
   recalc(doll);
   return doll;
 }
