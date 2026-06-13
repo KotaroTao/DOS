@@ -2640,11 +2640,9 @@ function distributeBattleSoulExp(soulGot) {
     const oldLv = preLv.get(m) || 0;
     if (newLv > oldLv) {
       const before = preStat.get(m) || {};
-      // 上昇ステータスを2行に分割: AGI/PIE/LUK は改行して2行目へ
-      const SECOND_ROW = new Set(["agi", "pie", "luk"]);
-      const deltas = [], deltas2 = [];
-      for (const k of STAT_KEYS) { const d = (m[k] || 0) - (before[k] || 0); if (d > 0) (SECOND_ROW.has(k) ? deltas2 : deltas).push(`${STAT_LABEL[k]} +${d}`); }
-      queue.push({ kind: "level", member: m, toLv: newLv, deltas, deltas2 });
+      const deltas = [];
+      for (const k of STAT_KEYS) { const d = (m[k] || 0) - (before[k] || 0); if (d > 0) deltas.push(`${STAT_LABEL[k]} +${d}`); }
+      queue.push({ kind: "level", member: m, toLv: newLv, deltas });
     }
     const oldSp = preSpells.get(m) || new Set();
     for (const sk of (m.spells || [])) if (!oldSp.has(sk)) queue.push({ kind: "skill", member: m, skill: sk });
@@ -2665,12 +2663,10 @@ function runProgressPopups(queue, done) {
   if (ev.kind === "level") {
     SFX.levelup();
     const lines = [ev.member.cls];
-    if ((ev.deltas && ev.deltas.length) || (ev.deltas2 && ev.deltas2.length)) {
-      if (ev.deltas && ev.deltas.length) lines.push(ev.deltas.join("  "));
-      if (ev.deltas2 && ev.deltas2.length) lines.push(ev.deltas2.join("  "));
-    } else {
-      lines.push("ステータスはそのまま");
-    }
+    // 上昇ステータスは改行せず1行で表示 (横幅に収まるよう ig-statline で nowrap+縮小)
+    lines.push(ev.deltas && ev.deltas.length
+      ? { text: ev.deltas.join("  "), cls: "ig-statline" }
+      : "ステータスはそのまま");
     showEvent({
       banner: "⤴ レベルアップ ⤴",
       title: `${ev.member.name} は Lv${ev.toLv} に上がった！`,
@@ -6691,7 +6687,12 @@ function showEvent({ sprite, title, lines = [], accent = "#c9a227", btnLabel = "
   const t = el("div", "ig-name", title);
   t.style.color = accent === "#c9a227" ? "#fff" : accent;
   card.appendChild(t);
-  for (const ln of lines) card.appendChild(el("div", "ig-desc", ln));
+  for (const ln of lines) {
+    // 文字列、または { text, cls } で行ごとに追加クラスを指定可能
+    const txt = (ln && typeof ln === "object") ? ln.text : ln;
+    const extra = (ln && typeof ln === "object" && ln.cls) ? ` ${ln.cls}` : "";
+    card.appendChild(el("div", "ig-desc" + extra, txt));
+  }
   const ok = btn(btnLabel, () => closeItemGet(onClose));
   ok.className = "btn primary ig-ok";
   ok.style.borderColor = accent;

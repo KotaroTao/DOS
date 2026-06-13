@@ -459,6 +459,8 @@ canvas.spr { image-rendering: pixelated; display: block; }
 .ig-stat { font-size: 12px; color: var(--accent-2); margin-top: 4px; }
 .ig-class { font-size: 11px; color: var(--ink-dim); margin-top: 4px; }
 .ig-desc { font-size: 12px; color: var(--ink-dim); line-height: 1.6; margin: 10px 4px; }
+/* 上昇ステータスは改行せず1行表示。横幅に収まらない場合は文字を縮小して収める */
+.ig-statline { white-space: nowrap; overflow: hidden; text-overflow: clip; font-size: clamp(8px, 3.2vw, 12px); letter-spacing: 0; margin-left: 0; margin-right: 0; }
 .ig-who { font-size: 12px; color: var(--accent); margin-bottom: 12px; }
 .ig-ok { width: 100%; margin-top: 16px; }
 
