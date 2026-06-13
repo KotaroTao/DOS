@@ -226,14 +226,14 @@ export const PASSIVES = {
   goldLuck:      { label: "金運",         scope: "party", lv: ["戦闘で得るゴールド+15%", "戦闘で得るゴールド+30%"] },
   soulLure:      { label: "魂寄せ",       scope: "party", lv: ["戦闘で得るSoul+10%", "戦闘で得るSoul+20%"] },
   appraise:      { label: "目利き",       scope: "party", lv: ["敵の戦利品ドロップ率+15%"] },
-  extraHit:      { label: "連撃",         scope: "self",  lv: ["通常攻撃が10%で2撃目を放つ (威力60%)", "通常攻撃が20%で2撃目を放つ (威力60%)"] },
-  fightSpirit:   { label: "闘魂",         scope: "self",  lv: ["HP30%以下の時、ATK+25%", "HP30%以下の時、ATK+40%・会心+15%"] },
+  extraHit:      { label: "連撃",         scope: "self",  lv: ["通常攻撃が10%で2撃目を放つ (威力60%)", "通常攻撃が20%で2撃目を放つ (威力60%)", "通常攻撃が30%で2撃目を放つ (威力60%)", "通常攻撃が40%で2撃目を放つ (威力60%)"] },
+  fightSpirit:   { label: "闘魂",         scope: "self",  lv: ["HP30%以下の時、ATK+25%", "HP30%以下の時、ATK+40%・会心+15%", "HP30%以下の時、ATK+55%・会心+20%", "HP30%以下の時、ATK+70%・会心+25%"] },
   spellBlade:    { label: "魔力撃",       scope: "self",  lv: ["通常攻撃にINTの50%を上乗せ", "通常攻撃にINTの100%を上乗せ"] },
   venomBlade:    { label: "毒刃",         scope: "self",  lv: ["通常攻撃が15%で敵を毒にする", "通常攻撃が30%で敵を毒にする"] },
   flinch:        { label: "怯ませ",       scope: "self",  lv: ["通常攻撃が10%で敵を怯ませる (主には効かない)"] },
   smite:         { label: "破邪",         scope: "self",  lv: ["不死・幽鬼・悪魔へのダメージ+30%"] },
   holyEdge:      { label: "聖刃",         scope: "self",  lv: ["不死・幽鬼・悪魔への会心率+15%"] },
-  vitalEye:      { label: "急所読み",     scope: "self",  lv: ["会心ダメージ+25%"] },
+  vitalEye:      { label: "急所読み",     scope: "self",  lv: ["会心ダメージ+25%", "会心ダメージ+45%"] },
   gokudoku:      { label: "蠱毒",         scope: "self",  lv: ["毒状態の敵への与ダメージ+30%"] },
   sleepKill:     { label: "寝込み襲い",   scope: "self",  lv: ["睡眠・麻痺中の敵への攻撃が必ず会心"] },
   ambushCrit:    { label: "不意打ち",     scope: "self",  lv: ["先制時、最初の通常攻撃が必ず会心"] },
@@ -247,7 +247,7 @@ export const PASSIVES = {
   cover:         { label: "かばう",       scope: "party", lv: ["瀕死(HP25%以下)の味方への攻撃を肩代わり (1戦闘1回)", "肩代わりが1戦闘2回になり、その被ダメ-30%"] },
   parry:         { label: "見切り",       scope: "self",  lv: ["敵の物理攻撃を10%で完全回避", "敵の物理攻撃を15%で完全回避"] },
   counter:       { label: "反撃",         scope: "self",  lv: ["物理被弾時15%でATK×0.5の反撃", "物理被弾時25%でATK×0.7の反撃", "物理被弾時35%でATK×1.0の反撃 (会心あり)"] },
-  endure:        { label: "不屈",         scope: "self",  lv: ["致死ダメージをHP1で耐える (1戦闘1回)"] },
+  endure:        { label: "不屈",         scope: "self",  lv: ["致死ダメージをHP1で耐える (1戦闘1回)", "致死ダメージをHP1で耐える (1戦闘2回)"] },
   barrier:       { label: "魔障壁",       scope: "self",  lv: ["ブレス・呪文の被ダメージ半減 (1戦闘1回)", "ブレス・呪文の被ダメージ半減 (1戦闘2回)"] },
   reflect:       { label: "魔力反射",     scope: "self",  lv: ["魔障壁で防いだ分のダメージを相手に返す"] },
   bigBarrier:    { label: "大結界",       scope: "party", lv: ["敵の全体攻撃を隊全体で半減 (1戦闘1回・自動)"] },
@@ -278,7 +278,8 @@ const U = (name, desc, grants) => ({ name, desc, grants });
 // ===== 職業パッシブ表 [ランク2,3,4,5] =====
 export const JOB_PASSIVES = {
   // コモン
-  fighter:     [P("extraHit", 1), P("fightSpirit", 1), P("extraHit", 2), P("fightSpirit", 2)],
+  // 戦士はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
+  fighter:     [],
   knight:      [P("taunt"), P("cover", 1), P("cover", 2), P("endure")],
   priest:      [P("afterHeal", 1), P("afterHeal", 2), P("afterHeal", 3), P("afterHeal", 4)],
   mage:        [P("afterMp", 1), P("chant", 1), P("afterMp", 2), P("spellCrit", 2)],
@@ -332,9 +333,61 @@ export function passivesUpTo(jobKey, rank) {
 export function pLv(m, key) { return (m && m.passiveMap && m.passiveMap[key]) || 0; }
 
 // ===== 職業スキル表 =====
-export const SKILL_LEVELS = [1, 3, 5, 7, 10, 15, 20, 25, 30, 40, 50];
+// 習得レベル: 1,3,5,7,10 のあと5刻みで200まで (全43段)。
+// 表の各エントリは「技」 {lvl, skill} か「パッシブ」 {lvl, passive, plv} のいずれか。
+// 旧仕様の「ランク×10ゲート」は撤廃し、魂レベルが lvl 以上なら習得する。
+export const SKILL_LEVELS = (() => {
+  const a = [1, 3, 5, 7, 10];
+  for (let lv = 15; lv <= 200; lv += 5) a.push(lv);
+  return a;
+})();
 export const JOB_SKILLS = {
-  fighter:     [{ lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "TATEWARI" }, { lvl: 5, skill: "DOUBLE" }, { lvl: 7, skill: "WARCRY" }, { lvl: 10, skill: "NAGIHARAI" }, { lvl: 15, skill: "MIDARE" }, { lvl: 20, skill: "GOUZAN" }, { lvl: 25, skill: "ISSEN" }, { lvl: 30, skill: "SENPUU" }, { lvl: 40, skill: "KIKOKU" }, { lvl: 50, skill: "ZANTETSU" }],
+  // 戦士: 新仕様 (Lv1-200 / 技とパッシブを織り込み)。Lv40=きこく斬 は宿し技 (signature)
+  fighter:     [
+    { lvl: 1,   skill: "KYOUGEKI" },                 // 強撃
+    { lvl: 3,   skill: "TATEWARI" },                 // 兜割り
+    { lvl: 5,   passive: "extraHit", plv: 1 },       // 連撃Lv1
+    { lvl: 7,   skill: "DOUBLE" },                   // 二段斬り
+    { lvl: 10,  skill: "WARCRY" },                   // 武者震い
+    { lvl: 15,  passive: "fightSpirit", plv: 1 },    // 闘魂Lv1
+    { lvl: 20,  skill: "NAGIHARAI" },                // 薙ぎ払い
+    { lvl: 25,  passive: "vitalEye", plv: 1 },       // 急所読みLv1
+    { lvl: 30,  skill: "MIDARE" },                   // 乱れ斬り
+    { lvl: 35,  passive: "extraHit", plv: 2 },       // 連撃Lv2
+    { lvl: 40,  skill: "KIKOKU" },                   // きこく斬 (看板技)
+    { lvl: 45,  passive: "counter", plv: 1 },        // 反撃Lv1
+    { lvl: 50,  skill: "GOUZAN" },                   // 豪斬
+    { lvl: 55,  skill: "ISSEN" },                    // 一閃
+    { lvl: 60,  passive: "fightSpirit", plv: 2 },    // 闘魂Lv2
+    { lvl: 65,  skill: "SENPUU" },                   // 旋風斬
+    { lvl: 70,  passive: "counter", plv: 2 },        // 反撃Lv2
+    { lvl: 75,  passive: "zanshin", plv: 1 },        // 残心
+    { lvl: 80,  skill: "ZANTETSU" },                 // 斬鉄
+    { lvl: 85,  skill: "SANREN" },                   // 三連斬
+    { lvl: 90,  passive: "vitalEye", plv: 2 },       // 急所読みLv2
+    { lvl: 95,  skill: "DAISENPUU" },                // 大旋風
+    { lvl: 100, skill: "YOROIDACHI" },               // 鎧断ち
+    { lvl: 105, passive: "counter", plv: 3 },        // 反撃Lv3
+    { lvl: 110, skill: "KISHINKA" },                 // 鬼神化
+    { lvl: 115, passive: "extraHit", plv: 3 },       // 連撃Lv3
+    { lvl: 120, skill: "SHURAZAN" },                 // 修羅斬
+    { lvl: 125, passive: "parry", plv: 1 },          // 見切りLv1
+    { lvl: 130, skill: "RANBU" },                    // 乱舞
+    { lvl: 135, passive: "fightSpirit", plv: 3 },    // 闘魂Lv3
+    { lvl: 140, skill: "HADAN" },                    // 覇断
+    { lvl: 145, passive: "endure", plv: 1 },         // 不屈
+    { lvl: 150, skill: "AMATSUKAZE" },               // 天津風
+    { lvl: 155, passive: "parry", plv: 2 },          // 見切りLv2
+    { lvl: 160, skill: "TENCHIZAN" },                // 天地斬
+    { lvl: 165, passive: "endure", plv: 2 },         // 不屈Lv2
+    { lvl: 170, skill: "ROKUREN" },                  // 六連斬
+    { lvl: 175, passive: "resistAilment", plv: 1 },  // 異常耐性Lv1
+    { lvl: 180, skill: "KIKOKURANBU" },              // 鬼哭乱舞
+    { lvl: 185, passive: "extraHit", plv: 4 },       // 連撃Lv4
+    { lvl: 190, skill: "HAOUZAN" },                  // 覇王斬
+    { lvl: 195, passive: "fightSpirit", plv: 4 },    // 闘魂Lv4
+    { lvl: 200, skill: "METSUKYAKU" },               // 滅却・終ノ太刀
+  ],
   knight:      [{ lvl: 1, skill: "SHIELDBASH" }, { lvl: 3, skill: "PROTECT" }, { lvl: 5, skill: "KYOUGEKI" }, { lvl: 7, skill: "KOTE" }, { lvl: 10, skill: "IRONWALL" }, { lvl: 15, skill: "GUARDALL" }, { lvl: 20, skill: "MIDARE" }, { lvl: 25, skill: "GOUZAN" }, { lvl: 30, skill: "BOUJIN" }, { lvl: 40, skill: "JOUMON" }, { lvl: 50, skill: "OUJOU" }],
   priest:      [{ lvl: 1, skill: "DIOS" }, { lvl: 3, skill: "CURE" }, { lvl: 5, skill: "BLESS" }, { lvl: 7, skill: "HOLYRAY" }, { lvl: 10, skill: "DIOSALL" }, { lvl: 15, skill: "DIAL" }, { lvl: 20, skill: "SAINTRAY" }, { lvl: 25, skill: "REVIVE" }, { lvl: 30, skill: "MADIOS" }, { lvl: 40, skill: "DIALALL" }, { lvl: 50, skill: "RESURRECT" }],
   mage:        [{ lvl: 1, skill: "HALITO" }, { lvl: 3, skill: "ICENEEDLE" }, { lvl: 5, skill: "KATINO" }, { lvl: 7, skill: "KAMAITACHI" }, { lvl: 10, skill: "MAHALITO" }, { lvl: 15, skill: "ROCKBLAST" }, { lvl: 20, skill: "MADALT" }, { lvl: 25, skill: "DISPEL" }, { lvl: 30, skill: "LAHALITO" }, { lvl: 40, skill: "TILTOWAIT" }, { lvl: 50, skill: "SEISAI" }],
@@ -622,11 +675,19 @@ export function soulRankOf(s) { return s ? soulRankFromCount(s.clsKey, s.count) 
 // 魂インスタンスが習得済みのスキル一覧 (自身の Lv とランクで決まる)
 export function soulLearnedSkills(s) {
   if (!s) return [];
-  const rank = soulRankFromCount(s.clsKey, s.count);
-  const effLv = Math.min(s.level || 1, rank * 10);
+  // 新仕様: ランク×10ゲートは撤廃。現在の魂レベルで習得 (レベル上限はランク/残火が握る)
+  const effLv = s.level || 1;
   const out = [];
-  for (const t of jobSkillTable(s.clsKey)) if (effLv >= t.lvl && !out.includes(t.skill)) out.push(t.skill);
+  for (const t of jobSkillTable(s.clsKey)) if (t.skill && effLv >= t.lvl && !out.includes(t.skill)) out.push(t.skill);
   return out;
+}
+// レベルスキル表に織り込まれたパッシブ → {key: lv} (現在の魂レベルまで)
+export function jobLevelPassives(jobKey, level) {
+  const map = {};
+  for (const t of (JOB_SKILLS[jobKey] || [])) {
+    if (t.passive && (level || 1) >= t.lvl) map[t.passive] = Math.max(map[t.passive] || 0, t.plv || 1);
+  }
+  return map;
 }
 
 export function makeDoll(name) {
@@ -680,7 +741,7 @@ export const JOB_SIGNATURE = (() => {
   const out = {};
   for (const k of SOUL_KEYS) {
     const tbl = JOB_SKILLS[k] || [];
-    const sig = tbl.find((e) => e.lvl === 40) || tbl[tbl.length - 1];
+    const sig = tbl.find((e) => e.lvl === 40 && e.skill) || [...tbl].reverse().find((e) => e.skill);
     if (sig) out[k] = sig.skill;
   }
   return out;
@@ -816,11 +877,19 @@ export function recalcDoll(doll) {
     const ranks = JOB_RANKS[clsKey];
     doll.cls = ranks ? ranks[rank - 1].name : SOUL_CLASSES[clsKey].label;
     doll.jobLv = pe.level;
-    // スキルは魂レベルで習得 (ランク×10 が解放上限。ランクアップで先のスキルが見える)
-    const effLv = Math.min(pe.level, rank * 10);
+    // スキル/パッシブは魂レベルで習得 (新仕様: ランク×10ゲート撤廃。上限はランク/残火が握る)
+    const effLv = pe.level;
     for (const t of jobSkillTable(clsKey)) {
-      if (effLv >= t.lvl && !spells.includes(t.skill)) spells.push(t.skill);
+      if (t.skill && effLv >= t.lvl && !spells.includes(t.skill)) spells.push(t.skill);
     }
+    // レベルスキル表に織り込まれたパッシブ
+    const lpm = jobLevelPassives(clsKey, effLv);
+    for (const k in lpm) {
+      passiveMap[k] = Math.max(passiveMap[k] || 0, lpm[k]);
+      const nm = passiveName(k, lpm[k]);
+      if (!passives.includes(nm)) passives.push(nm);
+    }
+    // 旧仕様のランク別パッシブ (戦士以外。戦士は上のレベル表に統合済み)
     const pmap = passivesUpTo(clsKey, rank);
     for (const k in pmap) passiveMap[k] = Math.max(passiveMap[k] || 0, pmap[k]);
     const tbl = JOB_PASSIVES[clsKey] || [];

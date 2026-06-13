@@ -23,7 +23,7 @@ import {
   PASSIVES, passiveName, passiveDesc,
   ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
   SOUL_RANKS, rollJobClass, rollGreatJobClass, SOUL_STAT_UP,
-  soulRankFromCount, nextRankThreshold, rankThresholds,
+  soulRankFromCount, nextRankThreshold, rankThresholds, capForRarityRank,
   jobLoreFor, jobRankCondText,
   jobSkillTable, jobRankName, soulSeriesName, jobPassiveTable, pLv, JOB_GEAR,
   IDENTIFY_JOBS, identifyChance, canIdentify,
@@ -6863,22 +6863,33 @@ function showCodexJobDetail(key, rank, heading) {
   if (!actives.length) pbox.appendChild(el("div", "cdx-dun dim", "・なし (ランク2以上で発現)"));
   card.appendChild(pbox);
 
-  // 職業スキル表: このランクで覚える技 (Lv ランク×10 まで) だけを載せ、
-  // 実際に到達したLvの技だけ開示する
+  // 職業スキル表: このランクのLv上限まで覚える技・パッシブを載せ、
+  // 実際に到達したLvのものだけ開示する (新仕様: ランク×10ゲート撤廃)
   const reached = (rec && typeof rec === "object" && rec.lv) || 0;
+  const lvCap = capForRarityRank(SOUL_CLASSES[key].rarity, rank);
   const sbox = el("div", "cdx-drops");
   for (const e of jobSkillTable(key)) {
-    if (e.lvl > rank * 10) continue;
-    const sp = SPELLS[e.skill];
+    if (e.lvl > lvCap) continue;
     const r = el("div", "cdx-drow");
     r.appendChild(el("span", "cdx-sklv", `Lv${e.lvl}`));
-    if (reached >= e.lvl && sp) {
-      r.appendChild(el("span", "cdx-dn", sp.name));
-      r.appendChild(el("span", "cdx-skd", `${sp.desc} (MP${sp.mp})`));
-      r.classList.add("cdx-sktap");
-      r.addEventListener("click", () => showSkillPopup(e.skill));
+    if (e.passive) {
+      // レベル表に織り込まれたパッシブ
+      if (reached >= e.lvl) {
+        r.appendChild(el("span", "cdx-dn", passiveName(e.passive, e.plv || 1)));
+        r.appendChild(el("span", "cdx-skd", `[パッシブ] ${passiveDesc(e.passive, e.plv || 1)}`));
+      } else {
+        r.appendChild(el("span", "cdx-dn dim", "？？？"));
+      }
     } else {
-      r.appendChild(el("span", "cdx-dn dim", "？？？"));
+      const sp = SPELLS[e.skill];
+      if (reached >= e.lvl && sp) {
+        r.appendChild(el("span", "cdx-dn", sp.name));
+        r.appendChild(el("span", "cdx-skd", `${sp.desc} (MP${sp.mp})`));
+        r.classList.add("cdx-sktap");
+        r.addEventListener("click", () => showSkillPopup(e.skill));
+      } else {
+        r.appendChild(el("span", "cdx-dn dim", "？？？"));
+      }
     }
     sbox.appendChild(r);
   }

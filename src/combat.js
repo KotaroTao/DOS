@@ -79,6 +79,20 @@ export const SPELLS = {
   SEIKOUZAN: { name: "聖光斬", mp: 12, kind: "phys", power: 2.4, element: "light", drain: 0.35, target: "enemy", desc: "聖光の斬撃で祓い、己の傷を癒す" },
   KIJINKUDAKI: { name: "鬼神砕き", mp: 14, kind: "phys", power: 3.1, debuff: { vit: 0.75 }, target: "enemy", desc: "鎧も砦も砕く鬼神の一撃" },
   HAMANOKEN: { name: "破魔の拳", mp: 12, kind: "phys", power: 2.3, debuff: { atk: 0.8, vit: 0.85 }, target: "enemy", desc: "魔を祓う拳で敵の力を削ぐ" },
+  // --- 戦士 高レベル帯 (Lv85-200) ---
+  SANREN: { name: "三連斬", mp: 9, kind: "phys", power: 1.0, hits: 3, target: "enemy", desc: "三たび刃を振るう連撃" },
+  DAISENPUU: { name: "大旋風", mp: 16, kind: "phys", power: 1.8, target: "all-enemy", desc: "戦場を薙ぐ大回転斬り" },
+  YOROIDACHI: { name: "鎧断ち", mp: 18, kind: "phys", power: 5.0, debuff: { vit: 0.7 }, target: "enemy", desc: "鎧諸共断ち、VITを大きく下げる" },
+  KISHINKA: { name: "鬼神化", mp: 12, kind: "buff", buff: { atk: 1.7, agi: 1.2 }, target: "self", desc: "鬼神の力を宿し攻めを極める" },
+  SHURAZAN: { name: "修羅斬", mp: 20, kind: "phys", power: 5.8, target: "enemy", desc: "修羅の形相で振り下ろす一刀" },
+  RANBU: { name: "乱舞", mp: 16, kind: "phys", power: 0.8, hits: 4, target: "enemy", desc: "四連の乱舞で斬り刻む" },
+  HADAN: { name: "覇断", mp: 24, kind: "phys", power: 6.8, target: "enemy", desc: "覇気を込めて両断する" },
+  AMATSUKAZE: { name: "天津風", mp: 22, kind: "phys", power: 2.4, target: "all-enemy", desc: "天を裂く烈風の全体斬" },
+  TENCHIZAN: { name: "天地斬", mp: 28, kind: "phys", power: 8.0, target: "enemy", desc: "天地を断つ大上段の一刀" },
+  ROKUREN: { name: "六連斬", mp: 22, kind: "phys", power: 0.7, hits: 6, target: "enemy", desc: "六たび閃く神速の連撃" },
+  KIKOKURANBU: { name: "鬼哭乱舞", mp: 30, kind: "phys", power: 3.0, target: "all-enemy", desc: "鬼すら哭く全体乱舞" },
+  HAOUZAN: { name: "覇王斬", mp: 32, kind: "phys", power: 9.0, target: "enemy", desc: "覇王の名を冠す決死の一閃" },
+  METSUKYAKU: { name: "滅却・終ノ太刀", mp: 40, kind: "phys", power: 11.0, target: "enemy", desc: "全てを滅し去る戦士の終ノ太刀" },
   // --- 騎士ベース ---
   SEIHEKINOINORI: { name: "聖壁の祈り", mp: 14, kind: "heal", power: 22, buff: { vit: 1.2 }, target: "all-ally", desc: "隊を癒し、守りを固める祈り" },
   KOUBOUITTAI: { name: "攻防一体", mp: 10, kind: "buff", buff: { atk: 1.35, vit: 1.35 }, target: "self", desc: "攻めと守りを兼ねる無双の構え" },
@@ -265,7 +279,7 @@ export class Battle {
     this.noFlee = !!opts.noFlee; // 迷宮の異変「閉ざされた退路」: 逃走不可
     this._roundNo = 0;
     this._bigBarrierUsed = false;
-    for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._enduredThisBattle = false; a._grantEndure = false; }
+    for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._endureUsed = 0; a._grantEndure = false; }
     for (const p of party) {
       p._coverLeft = pv(p, "cover");
       p._barrierLeft = pv(p, "barrier");
@@ -782,7 +796,7 @@ export class Battle {
     if (!a.maxhp || a.hp > a.maxhp * 0.3) return 1;
     let m = 1;
     const fs = pv(a, "fightSpirit");
-    if (fs) m *= fs >= 2 ? 1.40 : 1.25;
+    if (fs) m *= [1, 1.25, 1.40, 1.55, 1.70][Math.min(fs, 4)];
     if (pv(a, "asceticism")) m *= 1.3;
     return m;
   }
@@ -860,7 +874,7 @@ export class Battle {
     if (h.miss || !tgt.alive) return;
     // 連撃: 10/20%で2撃目 (威力60%)
     const ex = pv(actor, "extraHit");
-    if (ex && Math.random() < (ex >= 2 ? 0.20 : 0.10)) {
+    if (ex && Math.random() < [0, 0.10, 0.20, 0.30, 0.40][Math.min(ex, 4)]) {
       this.log(`${actor.name}の連撃！`, "hit");
       res.hits.push(this._physical(actor, tgt, { power: 0.6, name: "連撃" }));
       if (!tgt.alive) return;
@@ -930,13 +944,13 @@ export class Battle {
     let critChance = 0.06 + (actor.critBonus || 0) + luckCrit + (opt.critBonus || 0);
     if (pv(actor, "holyEdge") && HOLY_PREY.includes(enemyRace(tgt))) critChance += 0.15;
     const fs = pv(actor, "fightSpirit");
-    if (fs >= 2 && actor.maxhp && actor.hp <= actor.maxhp * 0.3) critChance += 0.15;
+    if (fs >= 2 && actor.maxhp && actor.hp <= actor.maxhp * 0.3) critChance += [0, 0, 0.15, 0.20, 0.25][Math.min(fs, 4)];
     let sureCrit = false;
     if (opt.basic && actor._kenma) { actor._kenma = false; sureCrit = true; }       // 剣魔合一
     if (opt.basic && actor._ambushCritLeft > 0) { actor._ambushCritLeft--; sureCrit = true; } // 不意打ち
     if (pv(actor, "sleepKill") && (tgt.asleep || tgt.ailment === "paralyze")) sureCrit = true; // 寝込み襲い
     const crit = sureCrit || Math.random() < critChance;
-    if (crit) dmg = Math.floor(dmg * 1.85 * (pv(actor, "vitalEye") ? 1.25 : 1)); // 急所読み: 会心強化
+    if (crit) dmg = Math.floor(dmg * 1.85 * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)]); // 急所読み: 会心強化
     // 隊列補正: 後衛は物理の与ダメ・被ダメが半減
     const rm = this._rowMul(actor, tgt);
     if (rm !== 1) dmg = Math.round(dmg * rm);
@@ -1171,10 +1185,11 @@ export class Battle {
 
   _die(t) {
     if (t.hp <= 0 && t.alive) {
-      // 不屈: 致死を1回だけ HP1 で耐える (味方=聖句の加護付与分も同じ1回を共有 / 敵=def の endure)
-      const canEndure = t.side === "party" ? (t.endure || pv(t, "endure") || t._grantEndure) : !!t.endure;
-      if (canEndure && !t._enduredThisBattle) {
-        t._enduredThisBattle = true; t._grantEndure = false; t.hp = 1;
+      // 不屈: 致死を HP1 で耐える (Lv2 で1戦闘2回 / 味方=聖句の加護付与分も同じ回数を共有 / 敵=def の endure)
+      const eLv = t.side === "party" ? Math.max(pv(t, "endure"), (t.endure ? 1 : 0), (t._grantEndure ? 1 : 0)) : (t.endure ? 1 : 0);
+      const maxEndure = eLv >= 2 ? 2 : (eLv >= 1 ? 1 : 0);
+      if (maxEndure > 0 && (t._endureUsed || 0) < maxEndure) {
+        t._endureUsed = (t._endureUsed || 0) + 1; t._grantEndure = false; t.hp = 1;
         this.log(`${t.name}は不屈で持ちこたえた！ (HP1)`, t.side === "enemy" ? "dmg" : "heal");
         return false;
       }
