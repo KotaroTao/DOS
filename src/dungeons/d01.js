@@ -8,9 +8,11 @@ export const monsters = defMonsters([
     desc: "犬の頭を持つ小鬼。打ち捨てられた牢を住処とし、囚人の遺品を漁って身を飾る。一匹では臆病だが、数を頼みに群れて錆びた得物を振り回し、隙あらば懐の金品をくすねる。" },
   { id: "d01_skeleton", name: "囚人の亡骸", race: "undead", element: "dark", artKey: "skeleton", rank: 2,
     hp: 22, atk: 11, def: 4, spd: 7, soul: 16, gold: 12, soulClass: "thief",
-    desc: "裁きも赦しも無いまま牢で朽ち果てた者の骨。残った怨みだけが関節を軋ませ、出口を求めて鉄格子を掻きむしり続ける。その虚ろな眼窩は、近づく生者を看守と取り違えて襲いかかる。" },
+    magWeak: 1.5, // 牢で朽ちた古い骨は脆く、魔法の一撃で砕ける
+    desc: "裁きも赦しも無いまま牢で朽ち果てた者の骨。残った怨みだけが関節を軋ませ、出口を求めて鉄格子を掻きむしり続ける。その虚ろな眼窩は、近づく生者を看守と取り違えて襲いかかる。朽ちた骨は脆く、魔法の衝撃でたやすく崩れ落ちる。" },
   { id: "d01_gaoler", name: "牢番オーク", race: "humanoid", element: "earth", artKey: "orc", rank: 2, boss: true,
     palette: tint(ARTS.orc.palette, "#3a2a1a", 0.2),
+    ability: "goldSteal", physResist: 0.4, // 頑丈な巨体で刃を弾き、奪った遺品を握り込む
     hp: 70, atk: 16, def: 7, spd: 5, soul: 60, gold: 80, soulClass: "knight",
     desc: "主が去った後も、ただ「番をする」という命令だけを忠実に守り続ける巨漢のオーク。錆びた大鍵を棍棒のように振るい、逃げ出そうとする者を骨ごと砕く。牢の主は、とうの昔にこいつ自身になっていた。" },
 ]);
