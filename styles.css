@@ -281,6 +281,7 @@ html, body { height: 100%; overflow: hidden; }
   align-items: center;
   justify-content: center;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation; /* タップをダブルタップ判定/パンに奪われず確実にクリックさせる */
   box-shadow: 0 2px 5px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.07);
   transition: box-shadow 0.1s ease, transform 0.05s ease;
 }
@@ -536,6 +537,8 @@ canvas.spr { image-rendering: pixelated; display: block; }
 }
 .sk-chip:active { background: #33335a; }
 .cdx-sktap { cursor: pointer; }
+/* タップ専用コントロール: スクロール領域内でもタップがパン/ダブルタップに奪われないようにする */
+.sk-chip, .tw-small, .pc { touch-action: manipulation; }
 .cdx-sktap:active { background: #23233a; }
 
 /* ===== ヒント ===== */
@@ -1024,6 +1027,7 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .eq-cd-lab { color: var(--ink-dim); }
 .eq-cd-seg.up { color: var(--good); }
 .eq-cd-seg.down { color: var(--danger); }
+.eq-cd-seg.elem { color: var(--accent); }
 .eq-cd-same { color: var(--ink-dim); }
 .st-eslot { margin-left: auto; font-size: 10px; color: #6fb89e; }
 

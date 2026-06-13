@@ -4358,7 +4358,8 @@ function renderCombatCanvas() {
     // 名前プレート (ダークピル)。弱点看破 (scan) 持ちがいれば敵の属性を開示する
     const scanTag = partyPassiveLv("scan") && e.alive && e.element && e.element !== "none"
       ? `【${(ELEMENTS[e.element] || {}).label || ""}】` : "";
-    const label = e.name + scanTag + (e.asleep ? " 💤" : "") + (e._flinch ? " 💫" : "");
+    const ailTag = e.alive && e.ailment ? " " + (AIL_ICON[e.ailment] || "☠") : "";
+    const label = e.name + scanTag + ailTag + (e.asleep ? " 💤" : "") + (e._flinch ? " 💫" : "");
     vctx.font = "10px monospace";
     vctx.textAlign = "center";
     const tw = vctx.measureText(label).width;
@@ -4387,9 +4388,55 @@ function renderCombatCanvas() {
     vctx.fillRect(bx, by, bw * ratio, bh);
     vctx.strokeStyle = "rgba(0,0,0,0.6)";
     vctx.strokeRect(bx - 0.5, by - 0.5, bw + 1, bh + 1);
+    // バフ/デバフ表示 (味方カードの buffBadges に相当): 前衛はHPバーの下、後衛はプレートの上
+    drawEnemyBadges(e, baseX, row.back ? py2 - 16 : by + bh + 4);
   });
 
   if (fx) drawEffects(fx, now);
+}
+
+// 敵にかかっている強化(▲)/弱体(▼)を名前プレート付近に小さなピルで描く。
+// 能力(攻/守/速)ごとに集約し、段階ぶんの矢印と最短残ターンを添える。
+const BUFF_KANJI = { atk: "攻", vit: "守", agi: "速" };
+function drawEnemyBadges(e, baseX, yTop) {
+  if (!e.alive || !e.effects || !e.effects.length) return;
+  const groups = new Map();
+  for (const ef of e.effects) {
+    const up = ef.mult > 1;
+    const key = ef.stat + (up ? "+" : "-");
+    const g = groups.get(key) || { stat: ef.stat, up, stages: 0, turns: Infinity };
+    g.stages++; g.turns = Math.min(g.turns, ef.turns);
+    groups.set(key, g);
+  }
+  const segs = [];
+  for (const g of groups.values()) {
+    const arrow = (g.up ? "▲" : "▼").repeat(Math.min(2, g.stages));
+    segs.push({ text: `${BUFF_KANJI[g.stat] || "◆"}${arrow}${g.turns}`, up: g.up });
+  }
+  if (!segs.length) return;
+  vctx.save();
+  vctx.font = "9px monospace";
+  vctx.textAlign = "left";
+  vctx.textBaseline = "middle";
+  const pad = 3, gap = 3, h = 12;
+  const widths = segs.map((s) => vctx.measureText(s.text).width + pad * 2);
+  const total = widths.reduce((a, b) => a + b, 0) + gap * (segs.length - 1);
+  let x = baseX - total / 2;
+  const cy = yTop + h / 2;
+  segs.forEach((s, i) => {
+    const w = widths[i];
+    vctx.fillStyle = s.up ? "rgba(36,84,40,0.88)" : "rgba(108,40,40,0.88)";
+    vctx.beginPath();
+    vctx.roundRect ? vctx.roundRect(x, yTop, w, h, 4) : vctx.rect(x, yTop, w, h);
+    vctx.fill();
+    vctx.strokeStyle = s.up ? "#6fcf6f" : "#ff7a72";
+    vctx.lineWidth = 1;
+    vctx.stroke();
+    vctx.fillStyle = s.up ? "#c8f0c8" : "#ffc9c5";
+    vctx.fillText(s.text, x + pad, cy + 0.5);
+    x += w + gap;
+  });
+  vctx.restore();
 }
 
 // 攻撃/魔法/被弾エフェクトの描画
@@ -4649,7 +4696,10 @@ function animateResult(res, done) {
     stack[id] = (stack[id] || 0) + 1;
     if (stack[id] > maxStack) maxStack = stack[id];
   }
-  const TOTAL = WIND + (360 + (maxStack - 1) * HIT_STAGGER) * spdMul();
+  // 全体回復は対象人数ぶん時間差で弾ませるため、最後の表示まで尺を確保する
+  const partyHealN = (res.hits || []).filter((h) => h && h.target && h.target.side !== "enemy" && h.heal != null).length;
+  const staggerSteps = Math.max(maxStack - 1, partyHealN - 1);
+  const TOTAL = WIND + (360 + staggerSteps * HIT_STAGGER) * spdMul();
   G.fx = { lunge: res.side === "enemy" ? { uid: res.actor.uid, p: 0 } : null,
            slashes: [], magic: [], floats: [], screen: null, flash: {} };
   G.partyFx = G.partyFx || new Map();
@@ -4712,6 +4762,10 @@ function applyImpact(res) {
   // 対象ごとにヒット順で時間差(stagger)と位置差(横ずらし)を付けて、回数分はっきり見せる
   const stag = HIT_STAGGER * spdMul();
   const stackIdx = {};
+  // 全体回復は対象全員が同じ中央下に重なって1人分にしか見えないため、
+  // 回復対象ごとに横位置をずらし、わずかな時間差を付けて全員ぶんはっきり見せる
+  const partyHeals = res.hits.filter((h) => h.target.side !== "enemy" && h.heal != null);
+  let partyHealIdx = 0;
   for (const h of res.hits) {
     if (h.target.side === "enemy") {
       const pos = G.enemyPos[h.target.uid];
@@ -4733,7 +4787,12 @@ function applyImpact(res) {
       // 味方が対象
       if (h.heal != null) {
         G.partyFx.set(h.target, "heal");
-        fx.floats.push({ x: view.width / 2, y: view.height - 26, text: "+" + h.heal, color: "#7CFC7C", t0: now });
+        // 複数人を回復する時は横に散らし、順に弾ませて全員の回復を見せる
+        const n = partyHeals.length;
+        const i = partyHealIdx++;
+        const fx0 = n > 1 ? view.width * (i + 1) / (n + 1) : view.width / 2;
+        const fy0 = view.height - 26 - (i % 2) * 16; // 重なり回避に上下も少しずらす
+        fx.floats.push({ x: fx0, y: fy0, text: "+" + h.heal, color: "#7CFC7C", t0: now + i * stag });
       } else if (h.steal) {
         // 窃盗: ゴールド/Soul の控除はここで行う (combat.js は G を知らない)
         partyHit = true;
@@ -8256,6 +8315,10 @@ function showAppraisePrompt(owner, it) {
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 9)); card.appendChild(art);
   card.appendChild(el("div", "ig-name", itemName(it)));
   for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
+  const warn = el("div", "ig-stat", "⚠ 未鑑定のアイテムです。正体不明のまま売ると 💰0 で引き取られ、商店にも並びません。先に鑑定するのがおすすめです。");
+  warn.style.color = "#ff8fc4";
+  warn.style.fontWeight = "bold";
+  card.appendChild(warn);
   card.appendChild(el("div", "ig-who", `鑑定料 💰${cost}・正体不明のまま売っても 💰0 (商店に並ばない)`));
   const list = el("div", "ig-choices");
   const idb = btn(`💰${cost} で鑑定する`, () => { wrap.remove(); shopIdentify(owner, it); });
@@ -8302,22 +8365,42 @@ function bulkIdentify(owner) {
   renderTown();
 }
 
+// 売却時に注意を促すべき品か判定し、警告文を返す (未奉納蒐集品 / LR専用装備)
+function sellWarnings(it) {
+  const out = [];
+  if (it.slot === "misc" && it.id && !treasuryState().donated[it.id]) {
+    out.push("⚠ まだ宝物庫に奉納していない蒐集品です。売ると奉納できなくなり、図鑑の褒賞を取り逃します。");
+  }
+  if (it.lr) {
+    out.push("⚠ LR(レジェンドレア)専用装備です。二度と手に入らないかもしれません。本当に売りますか？");
+  }
+  return out;
+}
+
 // 商店: アイテム情報を表示し、売却するか選ぶ (宝箱演出と同じカード)
 function showSellPrompt(owner, it) {
   const price = sellPrice(it);
+  const warns = sellWarnings(it);
   const wrap = el("div", "confirm-overlay");
   const card = el("div", "ig-card");
-  card.style.borderColor = "#c9a227";
-  card.style.boxShadow = "0 0 40px #c9a22755";
-  card.appendChild(el("div", "ig-banner", "🛒 売却の確認"));
+  card.style.borderColor = warns.length ? "#ff5fae" : "#c9a227";
+  card.style.boxShadow = `0 0 40px ${warns.length ? "#ff5fae55" : "#c9a22755"}`;
+  card.appendChild(el("div", "ig-banner", warns.length ? "⚠ 売却の確認" : "🛒 売却の確認"));
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 9)); card.appendChild(art);
   card.appendChild(el("div", "ig-name", itemName(it) + (it.cursed ? " 🔒" : "")));
   // 性能・説明
   for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
   if (it.desc) card.appendChild(el("div", "ig-desc", it.desc));
+  // 注意喚起 (未奉納蒐集品 / LR専用装備)
+  for (const w of warns) {
+    const wl = el("div", "ig-stat", w);
+    wl.style.color = "#ff8fc4";
+    wl.style.fontWeight = "bold";
+    card.appendChild(wl);
+  }
   card.appendChild(el("div", "ig-who", `売値 💰${price} (在庫に並びます)`));
   const list = el("div", "ig-choices");
-  const sell = btn(`💰${price} で売る`, () => { wrap.remove(); sellItem(owner, it, price); });
+  const sell = btn(warns.length ? `⚠ 💰${price} で売る` : `💰${price} で売る`, () => { wrap.remove(); sellItem(owner, it, price); });
   sell.classList.add("danger");
   list.appendChild(sell);
   list.appendChild(btn("やめる", () => wrap.remove()));
@@ -9015,8 +9098,9 @@ function statLines(it) {
 const EQUIPPABLE_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
 function isEquippable(it) { return EQUIPPABLE_SLOTS.has(it.slot); }
 
-// 候補 cand を p に装備した場合の最終ステータス増減 {atk,def,spd,hp,mp} を返す。
+// 候補 cand を p に装備した場合の最終ステータス増減を返す。
 // items.js の recalc を仮の装備マップに流用するので、両手武器⇄盾の付け替え分も反映される。
+// 数値ステ (atk…mp) のほか、会心率 (crit, %) と属性攻撃/防御 (elemAtk/elemDef) の変化も返す。
 function equipPreviewDelta(p, cand) {
   const key = slotKeyFor(cand, p);
   if (!key) return null;
@@ -9036,8 +9120,19 @@ function equipPreviewDelta(p, cand) {
     luk: fake.luk - p.luk,
     hp: fake.maxhp - p.maxhp,
     mp: fake.maxmp - p.maxmp,
+    crit: Math.round(((fake.critBonus || 0) - (p.critBonus || 0)) * 100),
+    elemAtk: { from: p.elemAtk, to: fake.elemAtk },
+    elemDef: { from: p.elemDef, to: fake.elemDef },
   };
 }
+
+// 属性攻撃/防御 (装備由来の {el, lv}) が等価か
+function elemStatEq(a, b) {
+  if (!a && !b) return true;
+  if (!a || !b) return false;
+  return a.el === b.el && a.lv === b.lv;
+}
+function elemStatShort(e) { return e && e.el ? `${elemName(e.el)}${e.lv >= 2 ? "◎" : "◯"}` : "—"; }
 
 // 装備候補の「装備中と比べた増減」行 (増・緑/減・赤)。何かを付け替えるときだけ呼ぶ。
 function equipCompareEl(p, cand) {
@@ -9045,11 +9140,24 @@ function equipCompareEl(p, cand) {
   const row = el("span", "eq-cd");
   row.appendChild(el("span", "eq-cd-lab", "装備すると"));
   let any = false;
-  if (d) for (const [label, k] of [["ATK", "atk"], ["VIT", "vit"], ["AGI", "agi"], ["INT", "int"], ["PIE", "pie"], ["LUK", "luk"], ["HP", "hp"], ["MP", "mp"]]) {
-    const v = d[k];
-    if (!v) continue;
-    any = true;
-    row.appendChild(el("span", "eq-cd-seg " + (v > 0 ? "up" : "down"), `${label} ${v > 0 ? "▲+" + v : "▼" + v}`));
+  if (d) {
+    for (const [label, k] of [["ATK", "atk"], ["VIT", "vit"], ["AGI", "agi"], ["INT", "int"], ["PIE", "pie"], ["LUK", "luk"], ["HP", "hp"], ["MP", "mp"]]) {
+      const v = d[k];
+      if (!v) continue;
+      any = true;
+      row.appendChild(el("span", "eq-cd-seg " + (v > 0 ? "up" : "down"), `${label} ${v > 0 ? "▲+" + v : "▼" + v}`));
+    }
+    // 会心率 (%)
+    if (d.crit) {
+      any = true;
+      row.appendChild(el("span", "eq-cd-seg " + (d.crit > 0 ? "up" : "down"), `会心 ${d.crit > 0 ? "▲+" + d.crit : "▼" + d.crit}%`));
+    }
+    // 属性攻撃/防御の変化 (—→火◯ のように現状→装備後で表示)
+    for (const [label, ch] of [["属性攻", d.elemAtk], ["属性防", d.elemDef]]) {
+      if (elemStatEq(ch.from, ch.to)) continue;
+      any = true;
+      row.appendChild(el("span", "eq-cd-seg elem", `${label} ${elemStatShort(ch.from)}→${elemStatShort(ch.to)}`));
+    }
   }
   if (!any) row.appendChild(el("span", "eq-cd-same", "変化なし"));
   return row;
@@ -9526,6 +9634,8 @@ function showItemGet(item, who, onClose) {
   ok.className = "btn primary ig-ok";
   card.appendChild(ok);
   itemGetEl.appendChild(card);
+  // 選択肢のないポップアップは、カード外 (背景) をタップしても閉じられるようにする
+  itemGetEl.onclick = (e) => { if (e.target === itemGetEl) closeItemGet(onClose); };
   itemGetEl.classList.remove("hidden");
 }
 
@@ -9574,6 +9684,8 @@ function showEvent({ sprite, title, lines = [], accent = "#c9a227", btnLabel = "
   ok.style.color = accent;
   card.appendChild(ok);
   itemGetEl.appendChild(card);
+  // 選択肢のないポップアップは、カード外 (背景) をタップしても閉じられるようにする
+  itemGetEl.onclick = (e) => { if (e.target === itemGetEl) closeItemGet(onClose); };
   itemGetEl.classList.remove("hidden");
 }
 
@@ -9735,11 +9847,14 @@ function swipeStep(dx, dy) {
 }
 
 // スワイプは画面全体で受け付ける。ボタン/モーダル/ステータス画面は除外。
-const SWIPE_IGNORE = "button, a, [role=button], #status-screen, #town-screen, #item-get, .confirm-overlay";
+const SWIPE_IGNORE = "button, a, [role=button], #party, #status-screen, #town-screen, #item-get, .confirm-overlay";
 document.addEventListener("pointerdown", (e) => {
   if (e.pointerType === "mouse") return;
-  if (e.target.closest(SWIPE_IGNORE)) return;
+  // どこを触っても、まず進行中のスワイプ連続移動ループを止める。
+  // (メンバーカード等 SWIPE_IGNORE をタップした際にループが走り続けると、
+  //  移動に伴う renderParty() でカードDOMが作り直されてタップ(openStatus)が失われる)
   stopSwipe();
+  if (e.target.closest(SWIPE_IGNORE)) return;
   swipe = { x: e.clientX, y: e.clientY, dir: null };
 });
 
@@ -10016,9 +10131,10 @@ function loadGame() {
   for (const d of [...(G.party || []), ...(G.reserve || [])]) {
     if (!Array.isArray(d.subs)) d.subs = [];
     if (d.primary != null && !soulByUid(d.primary)) d.primary = null;
-    // サブ魂を {uid, skill} 形式へ正規化し、実在する魂・メイン魂と別の魂だけ残す
+    // サブ魂を {uid, skill, passive} 形式へ正規化し、実在する魂・メイン魂と別の魂だけ残す
+    // (passive を落とすと、宿しているパッシブ設定がロード時に失われ既定スキルへ戻ってしまう)
     d.subs = d.subs
-      .map((x) => (x && typeof x === "object") ? { uid: x.uid, skill: x.skill || null } : null)
+      .map((x) => (x && typeof x === "object") ? { uid: x.uid, skill: x.skill || null, passive: x.passive || null } : null)
       .filter((x) => x && soulByUid(x.uid) && x.uid !== d.primary)
       .slice(0, MAX_SUBS);
     try { recalcDoll(d); } catch {}
