@@ -5087,7 +5087,7 @@ function tryHastenRescue(d) {
   G.redSoul -= 1;
   d.reviveAt -= RESCUE_SHORTEN_MS;
   if (d.reviveAt <= Date.now()) reviveDoll(d, true);
-  else { SFX.select(); buzz(15); log(`${d.name} の帰還を早めた (-20分)。`, "sys"); }
+  else { SFX.select(); buzz(15); log(`${d.name} の帰還を早めた。`, "sys"); }
   if (G.statusOpen) renderStatus();
   if (G.state === "town") renderTown();
   renderParty();
@@ -5158,7 +5158,7 @@ function renderShrine() {
 
   townEl.appendChild(el("div", "tw-h", "Red Soul の使い道"));
   townEl.appendChild(el("div", "tw-lead",
-    `・空の人業の購入 (人業の館)\n・死亡人業の帰還を早める (🔴1で-20分)\n・全滅時、🔴${GUARDIAN_COST} で戦利品を守って帰還`));
+    `・空の人業の購入 (人業の館)\n・死亡人業の帰還を早める (🔴1)\n・全滅時、🔴${GUARDIAN_COST} で戦利品を守って帰還`));
 }
 
 // ---- 商店: 装備・道具の売買 ----
@@ -5491,6 +5491,20 @@ function returnToTown() {
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
   G.maxFloorReached = Math.max(G.maxFloorReached, G.floor);
   G.run = null; // 無事帰還 = 戦利品は確定 (BGMは renderTown が施設に応じて切替)
+  // 生存者が1名でもいれば、砕けた人業は仲間に担がれてHP1で生還する。
+  // (全滅時はここに来る前に G.party の生存者ゼロ → 救出待ちのまま帰還する)
+  if (G.party.some((p) => p.alive)) {
+    for (const d of allDolls()) {
+      if (d.isDoll && !d.alive) {
+        d.alive = true;
+        d.hp = 1;
+        d.ailment = null;
+        d.reviveAt = null;
+        d._dead = false;
+        log(`${d.name} はHP1で生還した。`, "win");
+      }
+    }
+  }
   updateTopbar();
   log("街へ帰還した。", "sys");
   G.town.facility = null; G.town.sub = null;
@@ -5636,7 +5650,7 @@ function renderStatus() {
     const remain = Math.max(0, (p.reviveAt || Date.now()) - Date.now());
     box.appendChild(el("div", "st-revt", `⏳ 帰還まで ${fmtRemain(remain)}`));
     box.appendChild(el("div", "tw-note", "他の冒険者が捜索・救出している…"));
-    const b = btn(`🔴1 で帰還を早める (-20分)`, () => tryHastenRescue(p));
+    const b = btn(`🔴1 で帰還を早める`, () => tryHastenRescue(p));
     b.className = "btn primary";
     if (G.redSoul < 1) b.disabled = true;
     box.appendChild(b);
