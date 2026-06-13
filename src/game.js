@@ -337,7 +337,7 @@ function activeCfg() { return curDungeon(); }
 // 100迷宮 = 20層 × 5迷宮。層ごとにカード裏面の意匠・床の色味・探索BGMを束ねる。
 // bgm は当面は既存トラックを流用 (専用曲は層ごとのPRで差し替える)。
 const LAYER_VISUALS = [
-  { name: "墓地",       sym: "†", accent: "#c7bfa6", bgm: "field",      floorBase: "#14130f", floorTiles: ["#1b1812", "#17150f", "#13110c"], glow: "rgba(232,210,150,0.06)" }, // 1
+  { name: "墓地",       sym: "†", accent: "#c7bfa6", bgm: "layer1", back: drawBackGraveyard, floorBase: "#14130f", floorTiles: ["#1b1812", "#17150f", "#13110c"], glow: "rgba(232,210,150,0.06)" }, // 1
   { name: "地下水路",   sym: "≈", accent: "#5fa0b8", bgm: "field5",     floorBase: "#0d1417", floorTiles: ["#121d22", "#0f181c", "#0c1216"], glow: "rgba(110,200,220,0.06)" }, // 2
   { name: "廃坑",       sym: "⛏", accent: "#c9923f", bgm: "field2",     floorBase: "#15110c", floorTiles: ["#1d1610", "#18130d", "#14100a"], glow: "rgba(222,150,70,0.06)" },  // 3
   { name: "捨て砦",     sym: "⚔", accent: "#9aa0ac", bgm: "field3",     floorBase: "#121316", floorTiles: ["#191b20", "#15171b", "#111316"], glow: "rgba(200,210,230,0.05)" }, // 4
@@ -830,6 +830,97 @@ function drawThemedBack(r, accent, sym) {
   vctx.fillRect(2, 2, r.w - 4, 3);
 }
 
+// 層1「墓地」のカード裏面: 蒼い月の下、霧に沈む墓石と十字の彫り込み
+function drawBackGraveyard(r, accent, sym) {
+  const W = r.w, H = r.h;
+  // 夜気の地: 上は蒼い夜、下は墓土
+  const bg = vctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#1a1b24");
+  bg.addColorStop(0.55, "#16140f");
+  bg.addColorStop(1, "#100e0a");
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, W, H);
+
+  // 蒼い月 (右上にぼうっと滲む)
+  const mx = W - 14, my = 13;
+  const mg = vctx.createRadialGradient(mx, my, 1, mx, my, 12);
+  mg.addColorStop(0, "rgba(205,222,236,0.5)");
+  mg.addColorStop(0.5, "rgba(150,180,210,0.16)");
+  mg.addColorStop(1, "rgba(150,180,210,0)");
+  vctx.fillStyle = mg;
+  vctx.fillRect(mx - 12, my - 12, 24, 24);
+  vctx.fillStyle = "rgba(220,230,240,0.66)";
+  vctx.beginPath(); vctx.arc(mx, my, 4.6, 0, Math.PI * 2); vctx.fill();
+  vctx.fillStyle = "rgba(22,20,15,0.5)"; // 月の翳り
+  vctx.beginPath(); vctx.arc(mx + 2.3, my - 1.4, 3.9, 0, Math.PI * 2); vctx.fill();
+
+  // 奥に傾いた古い墓標 (シルエット)
+  vctx.save();
+  vctx.translate(13, 31); vctx.rotate(-0.13);
+  vctx.fillStyle = "#222229";
+  vctx.fillRect(-3.5, -9, 7, 17);
+  vctx.beginPath(); vctx.arc(0, -9, 3.5, Math.PI, 0); vctx.fill();
+  vctx.restore();
+
+  // 地面の盛り土
+  const gy = H - 11;
+  vctx.fillStyle = "#1c1812";
+  vctx.beginPath();
+  vctx.moveTo(0, gy + 3);
+  vctx.quadraticCurveTo(W / 2, gy - 4, W, gy + 3);
+  vctx.lineTo(W, H); vctx.lineTo(0, H); vctx.closePath();
+  vctx.fill();
+
+  // 中央の墓石 (ラウンドトップの墓標)
+  const tx = W / 2, baseY = gy + 2, topY = 15, tw = 8.5;
+  const stone = vctx.createLinearGradient(tx - tw, 0, tx + tw, 0);
+  stone.addColorStop(0, "#696974");
+  stone.addColorStop(0.5, "#8b8b96");
+  stone.addColorStop(1, "#53535d");
+  vctx.fillStyle = stone;
+  vctx.beginPath();
+  vctx.moveTo(tx - tw, baseY);
+  vctx.lineTo(tx - tw, topY);
+  vctx.arc(tx, topY, tw, Math.PI, 0);
+  vctx.lineTo(tx + tw, baseY);
+  vctx.closePath();
+  vctx.fill();
+  vctx.strokeStyle = "#36363e"; vctx.lineWidth = 1; vctx.stroke();
+  vctx.fillStyle = "rgba(255,255,255,0.12)"; // 左の月光
+  vctx.fillRect(tx - tw + 1, topY, 1.5, baseY - topY);
+  vctx.fillStyle = "rgba(0,0,0,0.22)";      // 右の影
+  vctx.fillRect(tx + tw - 2, topY, 1.5, baseY - topY);
+  // 十字の彫り込み
+  vctx.fillStyle = "#3a3a42";
+  vctx.fillRect(tx - 1, topY + 1, 2, 11);
+  vctx.fillRect(tx - 4, topY + 4, 8, 2);
+
+  // 立ちこめる霧 (下部で淡くたゆたう)
+  const t = performance.now() * 0.0012;
+  for (let i = 0; i < 3; i++) {
+    const fy = H - 5 - i * 3;
+    vctx.fillStyle = `rgba(190,200,206,${0.11 - i * 0.025})`;
+    const off = Math.sin(t + i * 1.7) * 5;
+    vctx.beginPath();
+    vctx.ellipse(W / 2 + off, fy, W * 0.5, 3, 0, 0, Math.PI * 2);
+    vctx.fill();
+  }
+
+  // 枠とコーナードット (テーマ共通の体裁を踏襲)
+  vctx.strokeStyle = shadeHex(accent, 0.7);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, W - 3, H - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.36);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, W - 9, H - 9);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [W - 7, 7], [7, H - 7], [W - 7, H - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.06)";
+  vctx.fillRect(2, 2, W - 4, 3);
+}
+
 function drawCard(r, cell, scaleX, showBack) {
   // カードの落ち影 (フリップ中も足元に残す)
   vctx.save();
@@ -878,9 +969,10 @@ function drawCard(r, cell, scaleX, showBack) {
       const sp = specialDef();
       drawThemedBack(r, sp.accent, sp.sym);
     } else if (dungeonTheme()) {
-      // 迷宮テーマのカード裏面 (5迷宮ごと): ブロック固有の色と紋章
+      // 迷宮テーマのカード裏面 (層ごと): 層固有のイラストがあれば使う
       const th = dungeonTheme();
-      drawThemedBack(r, th.accent, th.sym);
+      if (th.back) th.back(r, th.accent, th.sym);
+      else drawThemedBack(r, th.accent, th.sym);
     } else {
       // 通常カード裏面 (D21以降): 深紅の布地 + 金の縁飾り + ダイヤ紋
       const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
