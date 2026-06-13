@@ -65,7 +65,7 @@ html, body { height: 100%; overflow: hidden; }
 .topbar-left { display: flex; align-items: center; gap: 6px; }
 #floor-info { flex: 1; text-align: center; font-size: 15px; font-weight: bold; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.5px; }
 #topbar-cur { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; font-size: 11px; font-weight: bold; white-space: nowrap; }
-#settings-btn, #descend-btn {
+#settings-btn, #descend-btn, #return-btn {
   background: none;
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -84,6 +84,9 @@ html, body { height: 100%; overflow: hidden; }
 #descend-btn:not(:disabled):active { background: #2a2a3a; }
 #descend-btn { border-color: #7fd0ff; box-shadow: 0 0 10px rgba(127,208,255,0.35); }
 #descend-btn.hidden { display: none; }
+#return-btn:active { background: #2a2a3a; }
+#return-btn { border-color: #7fd0ff; box-shadow: 0 0 10px rgba(127,208,255,0.35); }
+#return-btn.hidden { display: none; }
 
 /* ===== 盤面 (主役。横幅いっぱい、上部に固定) ===== */
 #screen {
