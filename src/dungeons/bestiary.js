@@ -341,6 +341,40 @@ const NEW_DEFS = [
   { id: "bs_glaciallord", name: "氷結回廊の主", rank: 9, boss: true, race: "specter", element: "water", artKey: "glaciallord", soulClass: "mage",
     role: "summoner", summonKey: "bs_frozenexplorer", ability: "breath", physResist: 0.5, enrage: true, magWeak: 1.3, // 先人を呼び、凍てつく息を吐く。火に弱い
     desc: "氷結回廊そのものを凍てつかせ、歴代の先人を氷漬けにして見張る氷の支配者。凍れる魂繰りを次々と呼び覚まし、回廊ごと凍らせる絶対零度の息を吐く。誰よりも真実に近づき、誰よりも深く凍りついた者の成れの果てだ。" },
+  // -- 第8層「氷結回廊」 batch2 (rank 8-9) --
+  { id: "bs_frostknight", name: "凍れる騎士", rank: 9, race: "armored", element: "water", artKey: "frostknight",
+    ability: "critical", physResist: 0.4, barrier: 2, // 氷漬けの甲冑。氷剣で急所を貫き、刃を阻む
+    desc: "回廊で凍え死に、氷漬けのまま動き出した騎士の甲冑。手にした氷の剣は鎧ごと急所を貫き、霜に覆われた鎧は刃を弾く。中身はとうに溶けて、ただ未練だけが甲冑を動かしている。" },
+  { id: "bs_snowstalker", name: "雪渡りの獣", rank: 8, race: "beast", element: "water", artKey: "snowstalker",
+    swift: true, enrage: true, multistrike: 2, // 雪原を渡る白毛の大獣。手負いで猛り、連打で薙ぐ
+    desc: "白い吹雪に紛れて雪原を渡る、毛むくじゃらの大獣。雪に溶け込む白毛で気配を消し、太い腕で続けざまに薙ぎ払う。傷を負えば吼えながら猛進し、雪煙を巻き上げて暴れ回る。" },
+  { id: "bs_iceserpent", name: "氷の大蛇", rank: 8, race: "reptile", element: "water", artKey: "iceserpent",
+    ability: "paralyze", swift: true, multistrike: 2, // 氷鱗の大蛇。素早く巻きつき、冷気で痺れさせ連咬する
+    desc: "凍てつく鱗をもつ、回廊をのたうつ大蛇。素早く巻きついて締め上げ、冷気の牙で何度も噛みついて獲物を痺れさせる。氷の床を滑るように進む姿は、捉えるのが難しい。" },
+  { id: "bs_winterbat", name: "霜羽の蝙蝠", rank: 8, race: "avian", element: "water", artKey: "winterbat",
+    swift: true, evasive: true, pack: true, ability: "paralyze", // 凍える翼の蝙蝠の群れ。乱舞して痺れさせる
+    desc: "凍える翼をもつ蝙蝠の群れ。回廊の闇を素早く乱舞し、冷気をまとった羽ばたきで獲物を痺れさせる。一匹を叩き落としても、霜を散らして次の群れが舞い降りる。" },
+  { id: "bs_glacialcrab", name: "氷殻の大蟹", rank: 8, race: "aquatic", element: "water", artKey: "glacialcrab",
+    physResist: 0.55, barrier: 2, ability: "critical", // 氷の甲殻が刃を阻み、鋏で急所を断つ
+    desc: "氷の甲殻に覆われた、凍った泉に潜む大蟹。鏡のような殻は刃をことごとく弾き、鋼の鋏は鎧ごと急所を断ち切る。横歩きで氷上を滑り、退路を塞いでくる。" },
+  { id: "bs_frostlich", name: "氷結の死霊術師", rank: 9, race: "undead", element: "water", artKey: "frostlich", soulClass: "mage",
+    role: "summoner", summonKey: "bs_frozenexplorer", ability: "drain", magWeak: 1.3, // 先人を呼び、命を吸う。骨は熱に脆い
+    desc: "永遠の知を求めて回廊に降り、自ら氷漬けとなった魔術師の骸。凍れる先人を次々と呼び覚まし、生者の命を吸って術を保つ。凍てついた骨は、皮肉にも炎の魔法に最も脆い。" },
+  { id: "bs_snowmantis", name: "霜の大蟷螂", rank: 8, race: "insect", element: "water", artKey: "snowmantis",
+    swift: true, ability: "critical", multistrike: 2, // 氷の鎌で素早く急所を続けざまに刈る
+    desc: "氷の鎌をもつ、人の背丈ほどの大蟷螂。鏡のように研ぎ澄まされた鎌は一閃で鎧を断ち、目にも留まらぬ速さで急所を続けざまに刈り取る。祈るような構えのまま、獲物を待っている。" },
+  { id: "bs_frostmaiden", name: "氷の乙女", rank: 9, race: "specter", element: "water", artKey: "frostmaiden",
+    ability: "weaken", role: "healer", magWeak: 1.3, // 哀歌で力を奪い、凍れる眷属を癒す。火に弱い
+    desc: "氷柱に閉ざされたまま凍え死んだ乙女の霊。澄んだ哀歌を響かせて生者の力を奪い、傷ついた凍れる眷属には癒しの旋律を捧げる。その美しさは、近づく者を惑わせる罠だ。" },
+  { id: "bs_frozenangel", name: "氷漬けの堕天", rank: 9, race: "construct", element: "water", artKey: "frozenangel",
+    physResist: 0.6, magResist: 0.5, barrier: 2, // 氷柱に磔にされた翼の像。刃も魔も凍て阻む
+    desc: "翼を広げたまま氷柱に磔にされた、堕ちた天使の像。分厚い氷の鎧は刃を弾き、魔力も凍りついた表面を滑り落ちる。祈るように閉じた目は、もう二度と開かない。" },
+  { id: "bs_frostfiend", name: "氷結の鬼", rank: 8, race: "demon", element: "water", artKey: "frostfiend",
+    ability: "critical", enrage: true, multistrike: 2, // 冷気をまとう青鬼。爪で急所を抉り、手負いで荒れる
+    desc: "絶対零度の冷気をまとった、青く凍てつく鬼。氷の爪で鎧ごと急所を抉り、二度三度と斬りつける。傷を負うほど身を覆う氷が軋み、見境なく荒れ狂う。" },
+  { id: "bs_aurorawisp", name: "極光の群火", rank: 8, race: "specter", element: "water", artKey: "aurorawisp",
+    pack: true, ability: "paralyze", evasive: true, magWeak: 1.5, // 揺れる極光の群体。誘い込み痺れさせる。実体は薄い
+    desc: "回廊の天井に揺らめく、極光の色をした鬼火の群れ。美しい光に見惚れた者を誘い込んでは、冷気で痺れさせて凍えさせる。実体に乏しく刃をすり抜けるが、魔の力にはひとたまりもない。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1382,6 +1416,9 @@ export const LAYER_POOLS = {
   8: [
     "bs_frostwyrm", "bs_icegolem", "bs_frozenexplorer", "bs_blizzardspirit", "bs_rimegiant",
     "bs_icewraith", "bs_frostwolf", "bs_rimecrawler", "bs_iciclehorror",
+    // batch2 新規 (固有アート)
+    "bs_frostknight", "bs_snowstalker", "bs_iceserpent", "bs_winterbat", "bs_glacialcrab",
+    "bs_frostlich", "bs_snowmantis", "bs_frostmaiden", "bs_frozenangel", "bs_frostfiend", "bs_aurorawisp",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
