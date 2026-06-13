@@ -9787,8 +9787,11 @@ function swipeStep(dx, dy) {
 const SWIPE_IGNORE = "button, a, [role=button], #party, #status-screen, #town-screen, #item-get, .confirm-overlay";
 document.addEventListener("pointerdown", (e) => {
   if (e.pointerType === "mouse") return;
-  if (e.target.closest(SWIPE_IGNORE)) return;
+  // どこを触っても、まず進行中のスワイプ連続移動ループを止める。
+  // (メンバーカード等 SWIPE_IGNORE をタップした際にループが走り続けると、
+  //  移動に伴う renderParty() でカードDOMが作り直されてタップ(openStatus)が失われる)
   stopSwipe();
+  if (e.target.closest(SWIPE_IGNORE)) return;
   swipe = { x: e.clientX, y: e.clientY, dir: null };
 });
 
