@@ -4403,6 +4403,15 @@ function renderCombatCanvas() {
 // 敵にかかっている強化(▲)/弱体(▼)を名前プレート付近に小さなピルで描く。
 // 能力(攻/守/速)ごとに集約し、段階ぶんの矢印と最短残ターンを添える。
 const BUFF_KANJI = { atk: "攻", vit: "守", agi: "速" };
+// 強化/弱体が「かかった瞬間」に出すフロート文字と色 (敵味方共通)。
+// mods があれば能力ごとに 攻▲/守▼ … を並べ、無ければ汎用の 強化▲/弱体▼。
+function buffFloatText(h) {
+  const up = !!h.buff;
+  const m = h.mods || {};
+  const ks = Object.keys(m);
+  const body = ks.length ? ks.map((k) => `${BUFF_KANJI[k] || "◆"}${up ? "▲" : "▼"}`).join("") : (up ? "強化▲" : "弱体▼");
+  return { text: body, color: up ? "#7fe0a0" : "#ff9a8a" };
+}
 function drawEnemyBadges(e, baseX, yTop) {
   if (!e.alive || !e.effects || !e.effects.length) return;
   const groups = new Map();
@@ -4771,6 +4780,9 @@ function applyImpact(res) {
   // 回復対象ごとに横位置をずらし、わずかな時間差を付けて全員ぶんはっきり見せる
   const partyHeals = res.hits.filter((h) => h.target.side !== "enemy" && h.heal != null);
   let partyHealIdx = 0;
+  // 味方への強化/弱体フロートも複数人ぶん横に散らす
+  const partyModHits = res.hits.filter((h) => h.target.side !== "enemy" && (h.buff || h.debuff));
+  let partyModIdx = 0;
   for (const h of res.hits) {
     if (h.target.side === "enemy") {
       const pos = G.enemyPos[h.target.uid];
@@ -4787,10 +4799,24 @@ function applyImpact(res) {
       if (idx === 0 || !fx.flash[h.target.uid]) fx.flash[h.target.uid] = { t0: ht0 };
       if (h.dmg != null) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 18, text: String(h.dmg) + (h.crit ? "!" : ""), color: h.crit ? "#ffd84a" : "#fff", t0: ht0 });
       else if (h.heal != null) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 18, text: "+" + h.heal, color: "#7CFC7C", t0: ht0 }); // 敵の回復役による回復
+      // 敵にかかった強化/弱体も発動フロートで知らせる (ピル表示に加えて瞬間を可視化)
+      if (h.buff || h.debuff) { const mt = buffFloatText(h); fx.floats.push({ x: pos.cx + dx, y: pos.cy - 34, text: mt.text, color: mt.color, t0: ht0 }); }
       if (h.died) anyDeath = true;
     } else {
       // 味方が対象
-      if (h.heal != null) {
+      if (h.buff || h.debuff) {
+        // 強化/弱体が味方にかかった: 緑(▲)/赤(▼)のフロートで発動を知らせる (敵のピル表示と同様に可視化)
+        const mt = buffFloatText(h);
+        G.partyFx.set(h.target, h.buff ? "heal" : "hit");
+        const n = partyModHits.length, mi = partyModIdx++;
+        const fx0 = n > 1 ? view.width * (mi + 1) / (n + 1) : view.width / 2;
+        const fy0 = view.height - 26 - (mi % 2) * 16;
+        fx.floats.push({ x: fx0, y: fy0, text: mt.text, color: mt.color, t0: now + mi * stag });
+      } else if (h.cured) {
+        // 状態異常の治癒も知らせる
+        G.partyFx.set(h.target, "heal");
+        fx.floats.push({ x: view.width / 2, y: view.height - 26, text: "治癒✚", color: "#9be8ff", t0: now });
+      } else if (h.heal != null) {
         G.partyFx.set(h.target, "heal");
         // 複数人を回復する時は横に散らし、順に弾ませて全員の回復を見せる
         const n = partyHeals.length;
@@ -6730,66 +6756,15 @@ function renderTavern() {
   townEl.appendChild(townHeader("酒場「沈まぬ灯」"));
   townEl.appendChild(el("div", "tw-lead", "迷宮帰りの流れ者がたむろする。世界の噂や冒険のヒントを聞ける。(編成は人業の館)"));
 
-  // --- 酒場の顔ぶれ: 帰還ごとに入れ替わる3〜5名。各人が世界の噂・冒険のヒントを語る ---
-  if (!G.tavernCrowd || !G.tavernCrowd.length) rollTavernCrowd();
-  townEl.appendChild(el("div", "tw-h", "今 酒場にいる者たち"));
-  const crowd = el("div", "tw-mlist");
-  for (const m of (G.tavernCrowd || [])) {
-    const row = el("div", "tw-quest");
-    const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", `${m.icon || "🍺"} ${m.name}`));
-    info.appendChild(el("div", "tw-chipc", `― ${m.type}`));
-    info.appendChild(el("div", "tw-rumort", m.line));
-    row.appendChild(info);
-    crowd.appendChild(row);
-  }
-  townEl.appendChild(crowd);
-  townEl.appendChild(el("div", "tw-note", "顔ぶれは迷宮から帰還するたびに入れ替わる。"));
-
-  // --- 納品依頼: 求められた品を納めると、品の格に応じた職業の魂が手に入る ---
-  ensureDeliveryQuests();
-  townEl.appendChild(el("div", "tw-h", "納品依頼"));
-  townEl.appendChild(el("div", "tw-note", "求められた品を納めれば、その品の格に応じて職業の魂を授かる。対象は今 到達している深さまでに出回る品。依頼は迷宮に潜るたびに入れ替わる。"));
-  const dl = el("div", "tw-mlist");
-  for (const q of G.deliveryQuests) {
-    const it = ITEMS[q.itemId];
-    if (!it) continue;
-    const r20 = it.r20 || 1;
-    const holder = deliveryHolder(q.itemId);
-    const inShop = (G.shopStock && G.shopStock[q.itemId] > 0);
-    const row = el("div", "tw-quest" + (holder ? " done" : ""));
-    const info = el("div", "tw-chipi");
-    const rn = itemRankName(it);
-    info.appendChild(el("div", "tw-chipn", `📦 「${it.name}」を納品`));
-    info.appendChild(el("div", "tw-chipc", `${SLOT_LABEL[it.slot] || it.slot || ""}${rn ? " ・ " + rn : ""} ・ アイテムR${r20}`));
-    info.appendChild(el("div", "tw-chipc", "報酬: " + deliveryRewardDesc(r20)));
-    // 手持ち / 商店に対象があるかを示す
-    if (holder) info.appendChild(el("div", "tw-chiphp", `🎒 手持ちにあり（${holder.name}）`));
-    else if (inShop) info.appendChild(el("div", "tw-chipc", "🏪 商店に並んでいる"));
-    else info.appendChild(el("div", "tw-chipc", "― まだ手元にない ―"));
-    row.appendChild(info);
-    if (holder) {
-      const b = btn("納品する", () => deliverQuest(q));
-      b.className = "tw-small primary";
-      row.appendChild(b);
-    }
-    dl.appendChild(row);
-  }
-  if (!G.deliveryQuests.length) dl.appendChild(el("div", "tw-empty", "今は納品依頼がない。迷宮に潜れば新たな品が求められる。"));
-  townEl.appendChild(dl);
-
-  // 噂を扱えるのは「名の知れた魂繰り」(15迷宮踏破) から。それまでは情報を聞くだけの場。
+  // ===== 1) 酒場の噂話 (最上段) =====
+  // 噂を扱えるのは「名の知れた魂繰り」(15迷宮踏破) から。未解放でも見出しと案内は出す。
+  townEl.appendChild(el("div", "tw-h", "酒場の噂話"));
   if (!featureUnlocked("rumor")) {
     const lockBox = el("div", "tw-rumor");
     lockBox.appendChild(el("div", "tw-rumors", "― まだ噂は回ってこない ―"));
     lockBox.appendChild(el("div", "tw-rumort", `情報屋が噂を回すのは、名の知れた魂繰りが現れてからだ。15 迷宮を踏破すれば、腰を上げよう。（現在 ${clearedDungeonCount()} 踏破）`));
     townEl.appendChild(lockBox);
-    return;
-  }
-
-  // --- 噂話 ---
-  townEl.appendChild(el("div", "tw-h", "酒場の噂話"));
-  if (G.rumor) {
+  } else if (G.rumor) {
     const rb = el("div", "tw-rumor");
     rb.appendChild(el("div", "tw-rumors", `― ${G.rumor.speaker} ―`));
     rb.appendChild(el("div", "tw-rumort", G.rumor.text));
@@ -6823,6 +6798,54 @@ function renderTavern() {
     }
   }
 
+  // ===== 2) 納品依頼 (中段): 求められた品を納めると、品の格に応じた職業の魂が手に入る =====
+  ensureDeliveryQuests();
+  townEl.appendChild(el("div", "tw-h", "納品依頼"));
+  townEl.appendChild(el("div", "tw-note", "求められた品を納めれば、その品の格に応じて職業の魂を授かる。対象は今 到達している深さまでに出回る品。依頼は迷宮に潜るたびに入れ替わる。"));
+  const dl = el("div", "tw-mlist");
+  for (const q of G.deliveryQuests) {
+    const it = ITEMS[q.itemId];
+    if (!it) continue;
+    const r20 = it.r20 || 1;
+    const holder = deliveryHolder(q.itemId);
+    const inShop = (G.shopStock && G.shopStock[q.itemId] > 0);
+    const row = el("div", "tw-quest" + (holder ? " done" : ""));
+    const info = el("div", "tw-chipi");
+    const rn = itemRankName(it);
+    info.appendChild(el("div", "tw-chipn", `📦 「${it.name}」を納品`));
+    info.appendChild(el("div", "tw-chipc", `${SLOT_LABEL[it.slot] || it.slot || ""}${rn ? " ・ " + rn : ""} ・ アイテムR${r20}`));
+    info.appendChild(el("div", "tw-chipc", "報酬: " + deliveryRewardDesc(r20)));
+    // 手持ち / 商店に対象があるかを示す
+    if (holder) info.appendChild(el("div", "tw-chiphp", `🎒 手持ちにあり（${holder.name}）`));
+    else if (inShop) info.appendChild(el("div", "tw-chipc", "🏪 商店に並んでいる"));
+    else info.appendChild(el("div", "tw-chipc", "― まだ手元にない ―"));
+    row.appendChild(info);
+    if (holder) {
+      const b = btn("納品する", () => deliverQuest(q));
+      b.className = "tw-small primary";
+      row.appendChild(b);
+    }
+    dl.appendChild(row);
+  }
+  if (!G.deliveryQuests.length) dl.appendChild(el("div", "tw-empty", "今は納品依頼がない。迷宮に潜れば新たな品が求められる。"));
+  townEl.appendChild(dl);
+
+  // ===== 3) 情報提供: 酒場の顔ぶれ (最下段) =====
+  // 帰還ごとに入れ替わる3〜5名。各人が世界の噂・冒険のヒントを語る
+  if (!G.tavernCrowd || !G.tavernCrowd.length) rollTavernCrowd();
+  townEl.appendChild(el("div", "tw-h", "情報提供 — 今 酒場にいる者たち"));
+  const crowd = el("div", "tw-mlist");
+  for (const m of (G.tavernCrowd || [])) {
+    const row = el("div", "tw-quest");
+    const info = el("div", "tw-chipi");
+    info.appendChild(el("div", "tw-chipn", `${m.icon || "🍺"} ${m.name}`));
+    info.appendChild(el("div", "tw-chipc", `― ${m.type}`));
+    info.appendChild(el("div", "tw-rumort", m.line));
+    row.appendChild(info);
+    crowd.appendChild(row);
+  }
+  townEl.appendChild(crowd);
+  townEl.appendChild(el("div", "tw-note", "顔ぶれは迷宮から帰還するたびに入れ替わる。"));
 }
 
 function claimQuest(q) {
