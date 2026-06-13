@@ -330,6 +330,13 @@ const enemyRace = (e) => (e && e.mon && e.mon.race) || null;
 // 省詠唱 (chant) 込みの実効MPコスト
 export function spellCost(actor, sp) {
   let mp = sp.mp;
+  // レベルで最大MPが膨らむと固定消費が相対的に無に近づくため、最大MPに連動して
+  // 緩やかにスケールさせる (最大MP90以下=序盤は据え置き)。これで1戦闘あたりの
+  // 詠唱回数がレベルに依らずほぼ一定に保たれ、低位呪文は絶対値・割合とも安いまま
+  // =MP効率の良い連発枠として終盤も価値が残る。
+  const mm = (actor && actor.maxmp) || 0;
+  const factor = Math.max(1, mm / 90);
+  mp = Math.ceil(mp * factor);
   const c = pv(actor, "chant");
   if (c) mp = Math.ceil(mp * (c >= 2 ? 0.7 : 0.85));
   if (actor && actor.spellCostMul) mp = Math.ceil(mp * actor.spellCostMul); // 賢者の冠: MP消費を割合カット
@@ -1177,7 +1184,7 @@ export class Battle {
         let em = elemDmgMult(sp.element || "none", aLv, t.element || "none", t.elemDef);
         if (em < 1 && pv(actor, "elemFloor")) em = 1; // 森羅の理: 属性不利が出ない
         // 攻撃呪文の威力は術者の INT で伸びる。低HP補正 (荒行の果て) も乗る
-        const power = sp.power + (actor.int || 0) * 0.5;
+        const power = sp.power + (actor.int || 0) * 0.6;
         let dmg = Math.max(1, Math.round(variance(power) * this._lowHpMul(actor)) - Math.floor(this._evit(t) * 0.2));
         if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
         // 魔法弱点: 攻撃呪文の被ダメが増える (「魔法に弱い」)
@@ -1243,7 +1250,7 @@ export class Battle {
     } else if (sp.kind === "heal") {
       // 回復量は術者の PIE で伸びる。荒行の果て (低HP時) は回復も+30%
       const aMul = pv(actor, "asceticism") && actor.maxhp && actor.hp <= actor.maxhp * 0.3 ? 1.3 : 1;
-      const healPower = (sp.power + (actor.pie || 0) * 0.5) * aMul;
+      const healPower = (sp.power + (actor.pie || 0) * 0.6) * aMul;
       // 全体回復
       if (sp.target === "all-ally") {
         let cured = false, revivedAny = false;

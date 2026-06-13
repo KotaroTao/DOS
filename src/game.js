@@ -8864,7 +8864,7 @@ function campCast(caster, spellKey) {
   if (caster.mp < cost) { log("MPが足りない。", "sys"); showToast(`MPが足りない (MP ${caster.mp}/${cost})`); SFX.miss(); return; }
   const cures = sp.kind === "cure" || !!sp.cure;     // 毒・麻痺・石化を治す
   const heals = (sp.power || 0) > 0;                  // HP回復量を持つ
-  const powerOf = () => (sp.power || 0) + Math.round((caster.pie || 0) * 0.5);
+  const powerOf = () => (sp.power || 0) + Math.round((caster.pie || 0) * 0.6);
   // 対象がいないときに「なぜ唱えられないか」を明示するアラート文言
   const noTargetMsg = () => {
     if (heals && cures) return `${sp.name}: 傷つき・状態異常の仲間がいない`;
