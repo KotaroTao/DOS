@@ -6463,7 +6463,7 @@ function renderSoulTab(p) {
   wrap.appendChild(el("div", "st-soulpart", "サブ魂"));
   const subs = (p.subs || []);
   if (!subs.length) wrap.appendChild(el("div", "st-soulinfo dim", unlockedSubSlots() > 0
-    ? "（サブ魂なし — 館の祭壇で別の魂の技を1つ借りられる）"
+    ? "（サブ魂なし — 館の祭壇で別の魂の技を1つ借り、ステの30%を得られる）"
     : "（宿し技スロットは未解放 — 迷宮を踏破すると開く）"));
   for (const sub of subs) {
     const se = sub ? soulByUid(sub.uid) : null;
@@ -6477,7 +6477,7 @@ function renderSoulTab(p) {
     const info = el("div", "st-soulinfo");
     const nm = el("div", "st-souln2", `${jobRankName(se.clsKey, rank)}　Lv${se.level}`); nm.style.color = cls.glow;
     info.appendChild(nm);
-    info.appendChild(el("div", "st-soulstat", `技: ${skName}`));
+    info.appendChild(el("div", "st-soulstat", `技: ${skName}　ステ+30%`));
     row.appendChild(info);
     wrap.appendChild(row);
   }
