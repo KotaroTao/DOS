@@ -93,6 +93,25 @@ const NEW_DEFS = [
     palette: tint(ARTS.gobchief.palette, "#c04a3a", 0.22),
     role: "summoner", summonKey: "bs_goblin", ability: "goldSteal", // 配下を盾に呼び、混乱に乗じて奪う
     desc: "屍から剥いだ鎧を勲章のように重ね着た、ゴブリンどもの長。配下を盾に、戦利品の山の上から戦を眺める。形勢が傾けば甲高い号令で新手のゴブリンを呼び寄せ、その隙に懐を狙う。" },
+  // -- 第2層「地下水路」 (rank 3-4・水棲/不定形。第1層より明確に格上＝壁) --
+  { id: "bs_giantleech", name: "吸血大蛭", rank: 3, race: "amorph", element: "water", artKey: "giantleech",
+    lifesteal: 0.4, regen: 0.06, // 吸い付いて血を奪い、その分だけ膨れて回復する
+    desc: "下水の澱みに潜む、人ほどもある肥えた蛭。一度吸い付けば離れず、奪った血の分だけ赤黒く膨れ上がっていく。斬りつけても、貪った命で見る間に傷を塞ぐ。" },
+  { id: "bs_sludgeooze", name: "汚泥の塊", rank: 3, race: "amorph", element: "water", artKey: "sludgeooze",
+    physResist: 0.55, ability: "poison", regen: 0.08, // 刃が沈んで効かず、毒の泥を浴びせ、崩れても寄り集まる
+    desc: "幾年もの汚物が澱み、意思を持つに至った毒の泥。刃を突き立てても泥に沈んで手応えがなく、崩した先から寄り集まって元に戻る。触れたものは残らず腐臭の毒に冒される。" },
+  { id: "bs_toxictoad", name: "毒吐き大蛙", rank: 3, race: "aquatic", element: "water", artKey: "toxictoad",
+    ability: "poison", magWeak: 1.4, // 膨れた毒腺から瘴気を吐く。火球には弱い
+    desc: "暗渠の縁にうずくまる、毒腺で膨れ上がった大蛙。喉を膨らませて瘴気を吐き、近づく者を毒で痺れさせる。脂の乗った体は、火の魔法でよく焼ける。" },
+  { id: "bs_drownedcorpse", name: "水死体", rank: 4, race: "undead", element: "water", artKey: "drownedcorpse",
+    ability: "paralyze", enrage: true, // 冷たい手で掴んで痺れさせ、傷つくほど暴れ狂う
+    desc: "水路に沈み、膨れて青ざめた溺死者の群れ。冷たくふやけた手で生者を掴み、底へ引きずり込もうとする。痛めつけるほど、満たされぬ恨みで滅茶苦茶に暴れだす。" },
+  { id: "bs_eelfiend", name: "噛みつき大鰻", rank: 4, race: "aquatic", element: "water", artKey: "eelfiend",
+    ability: "paralyze", swift: true, multistrike: 2, // 帯電した牙で素早く二度噛みつき痺れさせる
+    desc: "暗渠を音もなく泳ぐ、腕ほどもある獰猛な鰻。帯電した牙で素早く二度三度と噛みつき、痺れて沈む獲物を悠々と呑み込む。水中では誰よりも速い。" },
+  { id: "bs_sewerlord", name: "水路の主", rank: 4, boss: true, race: "aquatic", element: "water", artKey: "sewerlord", soulClass: "priest",
+    role: "summoner", summonKey: "bs_sludgeooze", regen: 0.06, physResist: 0.4, // 汚泥を呼び、刃を沈め、澱みで傷を癒す
+    desc: "地下水路のすべての澱みを統べる、巨大な両生の主。腹を空かせた汚泥を次々と呼び寄せ、生者を泥の海へ沈める。分厚い粘膜は刃をろくに通さず、濁り水に浸かるたび傷が塞がる。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1033,8 +1052,14 @@ export const BOSS_ORDER = {
 // 100迷宮 = 20層 × 5迷宮。各層の最終迷宮 (D5,10,…,100) でのみ層ボスと戦う。
 // 既存ボスから決定的に20体を選ぶ (層 L → ランク ceil(L/2) の 0 番目 / 5 番目)。
 // ※ 段階リリースの基盤フェーズ用の暫定割り当て。各層の専用ボスは層ごとのPRで差し替える。
+// 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
+// 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
+const LAYER_BOSS_OVERRIDE = {
+  2: "bs_sewerlord", // 第2層「地下水路」: 水路の主 (rank4・水棲ボス)
+};
 export const LAYER_BOSS = Array.from({ length: 20 }, (_, i) => {
   const L = i + 1;
+  if (LAYER_BOSS_OVERRIDE[L]) return LAYER_BOSS_OVERRIDE[L];
   const r = Math.ceil(L / 2);
   return BOSS_ORDER[r][((L - 1) % 2) * 5];
 });
@@ -1054,6 +1079,13 @@ export const LAYER_POOLS = {
     "bs_bonebat", "bs_spiritbat", "bs_tombwarden",
     "bs_zombie", "d01_skeleton", "d02_soldier",
     "bs_bonechanter", "bs_gravecaller",
+  ],
+  // 第2層「地下水路」: 水棲/不定形中心、rank 3-4 で構成 (第1層でトレハン・育成しないと歯が立たない壁)
+  2: [
+    // 新規 (固有アート)
+    "bs_giantleech", "bs_sludgeooze", "bs_toxictoad", "bs_drownedcorpse", "bs_eelfiend",
+    // 既存の水棲/不定形を第2層へ再配置
+    "cm_slime", "bs_swampslime", "bs_waterelemental", "d03_sahagin", "bs_deepsahagin",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
