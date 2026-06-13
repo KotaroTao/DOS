@@ -41,6 +41,9 @@ for (const id in ITEMS) {
   const it = ITEMS[id];
   if (it.lv == null) it.lv = 1;
   if (it.rank == null) it.rank = lvToRank(it.lv);
+  // R1-20 (ドロップ窓の判定に使う隠しランク)。当面は lv から算出する暫定値で、
+  // 別途用意するランク表 (各アイテムの r20) が来たら差し替える。
+  if (it.r20 == null) it.r20 = Math.max(1, Math.min(20, Math.ceil(it.lv / 10)));
 }
 
 // ===== 出現テーブル (隠しレベル) =====
@@ -69,6 +72,51 @@ function pickItemByLv(center) {
   for (const [id, t] of acc) if (r <= t) return id;
   return acc[acc.length - 1][0];
 }
+// ===== R1-20 ランク窓による出現テーブル =====
+// 仕様: 各迷宮には「基準ランク R = min(20, ダンジョン番号)」があり、
+// アイテムはその ±2 (R-2〜R+2、1-20でクランプ) の範囲から出現する (例: D5 → R3-7)。
+// 補正で中心を押し上げる: ミミック +1 / マスターミミック +2 / 特別階 +1 / 強敵 +2 /
+// レア枠 +2 / 宝箱ランク(1-5) +0〜2 / 迷宮の異変。補正は重複加算する。
+function lootBaseR() { return Math.max(1, Math.min(20, dungeonNumber(activeCfg()))); }
+
+let _itemsByR = null;
+function itemsByR() {
+  if (_itemsByR) return _itemsByR;
+  _itemsByR = Array.from({ length: 21 }, () => []);
+  for (const id of LOOT_IDS) _itemsByR[Math.max(1, Math.min(20, ITEMS[id].r20 || 1))].push(id);
+  return _itemsByR;
+}
+// 中心ランク centerR の ±2 から1つ抽選 (中心ほど出やすい)。窓内が空なら最寄りへ広げる
+function pickItemByR(centerR) {
+  const idx = itemsByR();
+  centerR = Math.max(1, Math.min(20, Math.round(centerR)));
+  let total = 0; const acc = [];
+  const gather = (lo, hi, weighted) => {
+    for (let r = lo; r <= hi; r++) {
+      const w = weighted ? Math.max(1, 3 - Math.abs(r - centerR)) : 1;
+      for (const id of idx[r]) { total += w; acc.push([id, total]); }
+    }
+  };
+  gather(Math.max(1, centerR - 2), Math.min(20, centerR + 2), true);
+  for (let span = 3; span <= 20 && !total; span++) gather(Math.max(1, centerR - span), Math.min(20, centerR + span), false);
+  if (!total) return "herb";
+  const rr = Math.random() * total;
+  for (const [id, t] of acc) if (rr <= t) return id;
+  return acc[acc.length - 1][0];
+}
+// 各種補正込みで中心ランクを算出する
+function dropCenterR(opts = {}) {
+  let r = lootBaseR();
+  if (specialDef()) r += 1;                                  // 特別階: 良い宝物 R+1
+  if (opts.master) r += 2; else if (opts.mimic) r += 1;      // ミミック / マスターミミック
+  if (opts.elite) r += 2;                                    // 強敵討伐
+  if (opts.rare) r += 2;                                     // レアドロップ枠 (黒い宝箱・レア戦利品)
+  if (opts.chestRank) r += Math.floor(((opts.chestRank || 1) - 1) / 2); // 宝箱ランク 1-5 → +0〜2
+  if (opts.lvBonus) r += Math.round(opts.lvBonus / 15);      // ミミック宝箱の底上げ (15→+1, 30→+2)
+  r += Math.round(mutNum("lootBonusLv", 0) / 8);             // 迷宮の異変 (深淵の脈動)
+  return Math.max(1, Math.min(20, r));
+}
+
 // ===== 職業専用装備 抽選レイヤー =====
 // 通常 lootLv テーブルとは独立した宝箱専用の確率。
 // BASE_RATE × 宝箱ランク で判定し、当たれば通常の中身を差し替える。
@@ -1655,7 +1703,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   if (roll < 0.80) { giveGold(); return; }
 
   // 20%: 傍らに遺された装備品 (渡せなければ金品にフォールバック)
-  const id = pickItemByLv(lootLvAt());
+  const id = pickItemByR(dropCenterR());
   const who = G.party.find((p) => p.alive && p.items.length < MAX_ITEMS)
     || G.party.find((p) => p.items.length < MAX_ITEMS);
   if (who && ITEMS[id]) {
@@ -2138,7 +2186,7 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false) {
     return;
   }
   // 宝: 装備/アイテム (迷宮のアイテムレベル帯から抽選。高ランクの宝箱は一段上の帯)
-  const got = giveItem(pickItemByLv(Math.min(200, lootLvAt() + ((cRank || 1) - 1) * 4 + lootUp)));
+  const got = giveItem(pickItemByR(dropCenterR({ chestRank: cRank, lvBonus: lootUp })));
   if (got) {
     if (legendary) { flashScreen("#ffcf4a"); SFX.victory(); log(`✦ 伝説の宝箱から ${got.item.name} を見つけた！`, "win"); }
     showItemGet(got.item, got.who, done); return; // 演出後に done
@@ -2152,7 +2200,7 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false) {
 function askCursedChest(done) {
   const openIt = () => {
     const giveLoot = () => {
-      const got = giveItem(pickItemByLv(Math.min(200, lootLvAt() + 14)));
+      const got = giveItem(pickItemByR(dropCenterR({ rare: true })));
       if (got) { showItemGet(got.item, got.who, done); return; }
       SFX.chest();
       done();
@@ -3020,8 +3068,7 @@ function endBattle() {
     // 強敵討伐ボーナス: 高ランクアイテムの確定ドロップ
     const wasElite = b.enemies.some((e) => !e.alive && e.mon && e.mon.elite);
     if (wasElite) {
-      const eliteLv = Math.min(200, lootLvAt() + 20); // 適正帯より2ランク上のアイテム
-      const eid = pickItemByLv(eliteLv);
+      const eid = pickItemByR(dropCenterR({ elite: true })); // 適正帯より2ランク上のアイテム
       if (ITEMS[eid]) drop = { key: "elite", name: "強敵", id: eid, item: cloneItem(eid), rare: true };
     }
     // soulClass を持つ敵 (人型・騎士など) はまれに魂を落とす (レアドロップ)
@@ -5370,11 +5417,11 @@ function rollGenericDrop() {
   const ap = partyPassiveLv("appraise") ? 1.15 : 1; // 目利き: ドロップ率+15%
   // 特別階 (盗賊の洞察) / 迷宮の異変 (飢えた狩場): レアドロップ率が上がる (高い方を採用)
   if (Math.random() < Math.max(sfNum("rareDropRate", 0.04 * ap), mutNum("rareDropRate", 0))) {
-    const id = pickItemByLv(Math.min(200, lootLvAt() + 14));
+    const id = pickItemByR(dropCenterR({ rare: true }));
     if (ITEMS[id]) { const it = cloneItem(id); if (it) return { key: "loot", name: "戦利品", id, item: it, rare: true }; }
   }
   if (Math.random() < 0.30 * ap) {
-    const id = pickItemByLv(lootLvAt());
+    const id = pickItemByR(dropCenterR());
     if (ITEMS[id]) { const it = cloneItem(id); if (it) return { key: "loot", name: "戦利品", id, item: it, rare: false }; }
   }
   return null;
