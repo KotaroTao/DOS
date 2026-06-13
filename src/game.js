@@ -283,9 +283,13 @@ function buzz(p) {
 
 // ---- 潜入中の戦利品トラッキング (全滅ペナルティ / Red Soul帰還で使う) ----
 const inDungeon = () => G.state === "board" || G.state === "combat" || G.state === "over";
+// パーティ内で最も強い装備効果(eff)値を返す (LR装飾品の goldUp/soulUp 等。重複装備は加算せず最大値)
+function partyEffMax(key) { let s = 0; if (G.party) for (const m of G.party) { if (m && m.eff && m.eff[key] > s) s = m.eff[key]; } return s; }
 // 迷宮で得るゴールド (戦闘勝利・宝箱・床イベント) の共通入口。全体の獲得量を半分に抑える。
-function runGainGold(g) { g = Math.round(g * 0.5 * sfNum("goldMul", 1) * mutNum("goldMul", 1)); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; return g; }
-function runGainSoulPts(s) { s = Math.round(s * sfNum("soulMul", 1) * mutNum("soulMul", 1)); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; return s; }
+// 黄金の指輪 (LR装飾品) の goldUp があれば獲得量を割合で増やす。
+function runGainGold(g) { g = Math.round(g * 0.5 * sfNum("goldMul", 1) * mutNum("goldMul", 1) * (1 + partyEffMax("goldUp"))); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; return g; }
+// 魂導の護符 (LR装飾品) の soulUp があれば ✦Soul の獲得量を割合で増やす。
+function runGainSoulPts(s) { s = Math.round(s * sfNum("soulMul", 1) * mutNum("soulMul", 1) * (1 + partyEffMax("soulUp"))); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; return s; }
 function runGainItem(owner, item) { owner.items.push(item); if (G.run && inDungeon()) G.run.items.push({ owner, item }); }
 // 魂の吸収を記録 (全滅没収で巻き戻すため {doll, clsKey} で覚える)
 // 魂の入手を記録 (全滅没収で巻き戻すため)。kind: "awaken"(共有countへ) | "bag"(未覚醒)
