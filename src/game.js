@@ -328,6 +328,43 @@ function dailySeed() { const d = new Date(); return d.getFullYear() * 10000 + (d
 
 function activeCfg() { return curDungeon(); }
 
+// ===== 迷宮テーマ (5迷宮ごと) =====
+// D1-20 を5迷宮ごとの4ブロックに分け、カード裏面の意匠・床の色味・探索BGMを束ねる。
+// それ以前のランク別の見た目とBGMは D21 以降のフォールバックとして残す (D21- は今後決定)。
+const DUNGEON_THEMES = [
+  { // D1-5 浅層墓地「骸の墓所」: 骨と冷えた石。たいまつの橙の灯
+    key: "bone", name: "骸の墓所", bgm: "field",
+    sym: "†", accent: "#c7bfa6",
+    floorBase: "#14130f", floorTiles: ["#1b1812", "#17150f", "#13110c"],
+    glow: "rgba(232,210,150,0.06)",
+  },
+  { // D6-10 深層墓地「呪われた霊廟」: 死者の燐光が漂う紫
+    key: "crypt", name: "呪われた霊廟", bgm: "fieldCrypt",
+    sym: "‡", accent: "#a487c9",
+    floorBase: "#100f17", floorTiles: ["#181423", "#14111c", "#100e16"],
+    glow: "rgba(150,110,210,0.06)",
+  },
+  { // D11-15 廃坑「坑夫の骨道」: 錆と鉱石、坑道のランプの琥珀
+    key: "mine", name: "坑夫の骨道", bgm: "field2",
+    sym: "⛏", accent: "#c9923f",
+    floorBase: "#15110c", floorTiles: ["#1d1610", "#18130d", "#14100a"],
+    glow: "rgba(222,150,70,0.06)",
+  },
+  { // D16-20 深部坑道「硫黄の縦坑」: 毒気の黄緑がにじむ闇
+    key: "sulfur", name: "硫黄の縦坑", bgm: "fieldSulfur",
+    sym: "⚗", accent: "#a7b84a",
+    floorBase: "#12140d", floorTiles: ["#1a1c11", "#16180d", "#12140a"],
+    glow: "rgba(170,195,75,0.06)",
+  },
+];
+// 迷宮番号 (1-100)。cfg.id = "g001" から取り出す
+function dungeonNumber(cfg) { return cfg && cfg.id ? parseInt(cfg.id.slice(1), 10) : (G.dungeonIdx + 1); }
+// 現在の迷宮のテーマ (D1-20 のみ。D21 以降は null でフォールバック)
+function dungeonTheme(cfg = activeCfg()) {
+  const n = dungeonNumber(cfg);
+  return n >= 1 && n <= 20 ? DUNGEON_THEMES[Math.ceil(n / 5) - 1] : null;
+}
+
 // ===== 特別階 =====
 // 階段を降りた時、一定確率で「特別な効果を持つ階」が出現する (1Fと強敵階には出ない)。
 // 効果はその階に滞在する間だけ有効。board(b) は newFloor 直後の盤面加工フック。
@@ -561,21 +598,25 @@ function cellRect(x, y) {
   return { x: OX + x * (CARD_W + GAP), y: OY + y * (CARD_H + GAP), w: CARD_W, h: CARD_H };
 }
 
-// 石床のタイル模様 (決定的な乱数で毎回同じ見た目)
+// 石床のタイル模様 (決定的な乱数で毎回同じ見た目)。迷宮テーマに応じて色味を変える
 function drawFloor() {
-  vctx.fillStyle = "#121218";
+  const th = dungeonTheme();
+  const base = th ? th.floorBase : "#121218";
+  const tiles = th ? th.floorTiles : ["#17171f", "#15151c", "#131319"];
+  const glow = th ? th.glow : "rgba(255,190,90,0.07)";
+  vctx.fillStyle = base;
   vctx.fillRect(0, 0, view.width, view.height);
   const T = 24;
   for (let ty = 0; ty < view.height / T; ty++) {
     for (let tx = 0; tx < view.width / T; tx++) {
       const n = (tx * 7 + ty * 13) % 5;
-      vctx.fillStyle = n === 0 ? "#17171f" : n === 1 ? "#15151c" : "#131319";
+      vctx.fillStyle = n === 0 ? tiles[0] : n === 1 ? tiles[1] : tiles[2];
       vctx.fillRect(tx * T, ty * T, T - 1, T - 1);
     }
   }
-  // 中央が明るく周辺が暗いビネット (たいまつの灯り)
+  // 中央が明るく周辺が暗いビネット (テーマに応じた灯りの色)
   const vg = vctx.createRadialGradient(view.width / 2, view.height / 2, 60, view.width / 2, view.height / 2, view.width * 0.62);
-  vg.addColorStop(0, "rgba(255,190,90,0.07)");
+  vg.addColorStop(0, glow);
   vg.addColorStop(0.5, "rgba(0,0,0,0)");
   vg.addColorStop(1, "rgba(0,0,0,0.55)");
   vctx.fillStyle = vg;
@@ -759,6 +800,34 @@ function drawWallBar(r, dir, { flash = 0 } = {}) {
   vctx.restore();
 }
 
+// テーマ色のカード裏面 (特別階・迷宮テーマで共用): 地のグラデ + 二重枠 + 中央紋章 + コーナードット
+function drawThemedBack(r, accent, sym) {
+  const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
+  bg.addColorStop(0, shadeHex(accent, 0.24));
+  bg.addColorStop(0.5, shadeHex(accent, 0.14));
+  bg.addColorStop(1, shadeHex(accent, 0.09));
+  vctx.fillStyle = bg;
+  vctx.fillRect(0, 0, r.w, r.h);
+  vctx.strokeStyle = shadeHex(accent, 0.78);
+  vctx.lineWidth = 2;
+  vctx.strokeRect(1.5, 1.5, r.w - 3, r.h - 3);
+  vctx.strokeStyle = shadeHex(accent, 0.42);
+  vctx.lineWidth = 1;
+  vctx.strokeRect(4.5, 4.5, r.w - 9, r.h - 9);
+  const cx = r.w / 2, cy = r.h / 2;
+  vctx.fillStyle = accent;
+  vctx.font = "bold 16px monospace";
+  vctx.textAlign = "center";
+  vctx.textBaseline = "middle";
+  vctx.fillText(sym || "✦", cx, cy + 1);
+  vctx.fillStyle = shadeHex(accent, 0.6);
+  for (const [dx, dy] of [[7, 7], [r.w - 7, 7], [7, r.h - 7], [r.w - 7, r.h - 7]]) {
+    vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
+  }
+  vctx.fillStyle = "rgba(255,255,255,0.08)";
+  vctx.fillRect(2, 2, r.w - 4, 3);
+}
+
 function drawCard(r, cell, scaleX, showBack) {
   // カードの落ち影 (フリップ中も足元に残す)
   vctx.save();
@@ -805,36 +874,13 @@ function drawCard(r, cell, scaleX, showBack) {
     } else if (specialDef()) {
       // 特別階カード裏面: 階ごとのテーマ色の地 + 固有の紋章
       const sp = specialDef();
-      const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
-      bg.addColorStop(0, shadeHex(sp.accent, 0.24));
-      bg.addColorStop(0.5, shadeHex(sp.accent, 0.14));
-      bg.addColorStop(1, shadeHex(sp.accent, 0.09));
-      vctx.fillStyle = bg;
-      vctx.fillRect(0, 0, r.w, r.h);
-      // 外枠 (二重・テーマ色)
-      vctx.strokeStyle = shadeHex(sp.accent, 0.78);
-      vctx.lineWidth = 2;
-      vctx.strokeRect(1.5, 1.5, r.w - 3, r.h - 3);
-      vctx.strokeStyle = shadeHex(sp.accent, 0.42);
-      vctx.lineWidth = 1;
-      vctx.strokeRect(4.5, 4.5, r.w - 9, r.h - 9);
-      // 中央の紋章 (階ごとに固有)
-      const cx = r.w / 2, cy = r.h / 2;
-      vctx.fillStyle = sp.accent;
-      vctx.font = "bold 16px monospace";
-      vctx.textAlign = "center";
-      vctx.textBaseline = "middle";
-      vctx.fillText(sp.sym || "✦", cx, cy + 1);
-      // コーナードット (テーマ色)
-      vctx.fillStyle = shadeHex(sp.accent, 0.6);
-      for (const [dx, dy] of [[7, 7], [r.w - 7, 7], [7, r.h - 7], [r.w - 7, r.h - 7]]) {
-        vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
-      }
-      // 上辺ハイライト
-      vctx.fillStyle = "rgba(255,255,255,0.08)";
-      vctx.fillRect(2, 2, r.w - 4, 3);
+      drawThemedBack(r, sp.accent, sp.sym);
+    } else if (dungeonTheme()) {
+      // 迷宮テーマのカード裏面 (5迷宮ごと): ブロック固有の色と紋章
+      const th = dungeonTheme();
+      drawThemedBack(r, th.accent, th.sym);
     } else {
-      // 通常カード裏面: 深紅の布地 + 金の縁飾り + ダイヤ紋
+      // 通常カード裏面 (D21以降): 深紅の布地 + 金の縁飾り + ダイヤ紋
       const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
       bg.addColorStop(0, "#7a5616");
       bg.addColorStop(0.5, "#5e420f");
@@ -6809,8 +6855,10 @@ const FACILITY_BGM = {
   shrine: "shrine",
 };
 let openingActive = false; // オープニング演出中は専用テーマ
-// 探索BGM: 迷宮のランク帯 (1-10) ごとに専用テーマ (墓地/坑道/砦/森/神殿/灼洞/氷廊/尖塔/冥門/玄室)
+// 探索BGM: D1-20 は5迷宮ごとのテーマ曲、D21以降はランク帯 (1-10) の専用テーマ
 function fieldBgm() {
+  const th = dungeonTheme();
+  if (th) return th.bgm;
   const r = Math.max(1, Math.min(10, activeCfg().rank || 1));
   return r === 1 ? "field" : `field${r}`;
 }
