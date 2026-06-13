@@ -310,6 +310,37 @@ const NEW_DEFS = [
   { id: "bs_infernolord", name: "業火の主", rank: 9, boss: true, race: "demon", element: "fire", artKey: "infernolord", soulClass: "hexer",
     role: "summoner", summonKey: "bs_sulfurfiend", ability: "breath", physResist: 0.5, enrage: true, // 眷属を呼び、業炎を吐き、手負いで荒れ狂う
     desc: "灼熱の洞の最奥、煮えたぎる溶岩湖の中心に座す業火の魔王。配下の鬼を次々と呼び寄せ、洞窟ごと焼き尽くす業炎のブレスを吐く。追い詰めれば、その身は太陽のごとく膨れ上がり、すべてを灰に帰そうとする。" },
+  // -- 第8層「氷結回廊」 (rank 8-9・氷/水。第7層より格上の壁。火に弱い者が多い) --
+  { id: "bs_frostwyrm", name: "氷牙の蛇竜", rank: 9, race: "dragon", element: "water", artKey: "frostwyrm",
+    ability: "breath", physResist: 0.4, swift: true, // 凍てつくブレスを吐き、氷鱗が刃を阻み、素早い
+    desc: "氷の回廊をのたうつ、青白い鱗の蛇竜。凍てつく吐息で全体を凍りつかせ、硬い氷鱗は刃を弾く。地を這う動きは見た目より速く、気づけば背後に回り込んでいる。" },
+  { id: "bs_icegolem", name: "氷塊のゴーレム", rank: 8, race: "construct", element: "water", artKey: "icegolem",
+    physResist: 0.6, magResist: 0.5, barrier: 2, // 透き通る氷の殻が刃も魔も阻む
+    desc: "回廊の氷が人の形に凝り固まった巨人。透き通る分厚い氷の殻は刃を弾き、魔力すら凍った表面に滑り落ちる。砕くには、まずその冷気の鎧を割らねばならない。" },
+  { id: "bs_frozenexplorer", name: "凍てつく先人", rank: 8, race: "undead", element: "water", artKey: "frozenexplorer",
+    ability: "drain", physResist: 0.3, lifesteal: 0.2, // 真実に届いた歴代の魂繰り。命を喰らい温もりを奪う
+    desc: "真実に届いてしまい、氷漬けにされた歴代の魂繰りたち。半ば凍ったまま彷徨い、生者の温もりと宿した魂を奪っては、束の間おのれの凍えを忘れる。その顔は、いつかの己かもしれない。" },
+  { id: "bs_blizzardspirit", name: "吹雪の精", rank: 8, race: "elemental", element: "water", artKey: "blizzardspirit",
+    ability: "paralyze", evasive: true, magWeak: 1.4, // 渦巻く吹雪。痺れさせ、刃をすり抜ける。熱には脆い
+    desc: "回廊を吹き荒れる吹雪が、渦を巻いて意思を持ったもの。凍える風で獲物の身を痺れさせ、刃を向ければ雪となって舞い散ってかわす。が、ひとたび炎を浴びれば、たちまち溶け消える。" },
+  { id: "bs_rimegiant", name: "氷河の巨人", rank: 9, race: "giant", element: "water", artKey: "rimegiant",
+    physResist: 0.5, enrage: true, multistrike: 2, // 氷河を背負う巨人。氷塊で連打し、手負いで雪崩のごとく荒れる
+    desc: "背に小さな氷河を背負った、霜まみれの巨人。両の拳で氷塊ごと続けざまに叩きつけ、傷を負えば雪崩のように荒れ狂う。その咆哮だけで、回廊の天井から氷柱が降り注ぐ。" },
+  { id: "bs_icewraith", name: "氷霊", rank: 8, race: "specter", element: "water", artKey: "icewraith",
+    ability: "paralyze", lifesteal: 0.3, magWeak: 1.4, // 凍える恨みの霊。痺れさせ命を吸う。実体は脆い
+    desc: "凍え死んだ者の恨みが、青白い霊となって回廊をさまよう。触れられた者は芯から凍えて動けなくなり、奪われた熱がこの霊を一瞬色濃くする。実体は薄く、魔の熱には抗えない。" },
+  { id: "bs_frostwolf", name: "白霜の狼", rank: 8, race: "beast", element: "water", artKey: "frostwolf",
+    swift: true, pack: true, ability: "critical", // 霜をまとう白狼。群れで素早く囲み、急所を一咬み
+    desc: "氷の回廊を音もなく駆ける、霜をまとった白い狼の群れ。吐く息は白く凍り、群れで素早く取り囲んでは、急所めがけて一咬みで仕留める。雪に紛れた姿は、襲われるまで見えない。" },
+  { id: "bs_rimecrawler", name: "霜甲の蟲", rank: 8, race: "insect", element: "water", artKey: "rimecrawler",
+    physResist: 0.5, magResist: 0.5, multistrike: 2, // 氷の甲殻が刃も魔も弾き、氷牙で連打する
+    desc: "氷の甲殻に覆われた、人を超える大蟲。鏡のような甲殻は刃を弾き、魔力も冷えた殻に吸われて霧散する。凍りついた顎で、岩をも噛み砕いて連打する。" },
+  { id: "bs_iciclehorror", name: "氷柱の魔", rank: 9, race: "amorph", element: "water", artKey: "iciclehorror",
+    multistrike: 3, physResist: 0.4, // 天井から無数に垂れる氷柱の群体。突き刺し連打する
+    desc: "回廊の天井から無数に垂れ下がった氷柱が、ひとつの意思で蠢く群体。獲物の上に落ちかかり、鋭い先端で何度も突き刺す。砕いた先から、また新たな氷柱が伸びてくる。" },
+  { id: "bs_glaciallord", name: "氷結回廊の主", rank: 9, boss: true, race: "specter", element: "water", artKey: "glaciallord", soulClass: "mage",
+    role: "summoner", summonKey: "bs_frozenexplorer", ability: "breath", physResist: 0.5, enrage: true, magWeak: 1.3, // 先人を呼び、凍てつく息を吐く。火に弱い
+    desc: "氷結回廊そのものを凍てつかせ、歴代の先人を氷漬けにして見張る氷の支配者。凍れる魂繰りを次々と呼び覚まし、回廊ごと凍らせる絶対零度の息を吐く。誰よりも真実に近づき、誰よりも深く凍りついた者の成れの果てだ。" },
   // -- rank 3 --
   { id: "bs_werewolf", name: "人狼", rank: 3, race: "beast", element: "dark", artKey: "werewolf", soulClass: "fighter",
     regen: 0.08, swift: true, // 月の獣の治癒力 + 跳びかかる俊足
@@ -1253,6 +1284,7 @@ export const BOSS_ORDER = {
 // 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
 // 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
 const LAYER_BOSS_OVERRIDE = {
+  8: "bs_glaciallord", // 第8層「氷結回廊」: 氷結回廊の主 (rank9・氷ボス)
   7: "bs_infernolord", // 第7層「灼熱の洞」: 業火の主 (rank9・火/悪魔ボス)
   6: "bs_templelord", // 第6層「沈没神殿」: 沈める神官王 (rank8・水/神殿ボス)
   5: "bs_forestlord", // 第5層「霧の森」: 霧の森の主 (rank7・植物ボス)
@@ -1345,6 +1377,11 @@ export const LAYER_POOLS = {
     "bs_demon", "bs_hellhound", "bs_shadowogre", "bs_darkliege", "bs_infernaltyrant",
     // 深部の強敵 (rank10)
     "bs_doombringer",
+  ],
+  // 第8層「氷結回廊」: 氷/水中心、rank8-9主体 (第7層より格上)。火に弱い者が多い ※20種へ作成中
+  8: [
+    "bs_frostwyrm", "bs_icegolem", "bs_frozenexplorer", "bs_blizzardspirit", "bs_rimegiant",
+    "bs_icewraith", "bs_frostwolf", "bs_rimecrawler", "bs_iciclehorror",
   ],
 };
 { // 検証: 定義済みの層プールは実在する非ボス・非強敵のモンスターのみ
