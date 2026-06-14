@@ -3599,10 +3599,16 @@ function grantEmbers(n, onClose) {
 
 // ---- 選択肢プロンプト ----
 // ゴールド発見などと同じ中央オーバーレイカードに、イラスト+タイトル+選択肢を表示
-function showChoice(title, options, icon, { banner = "✦ 発見 ✦", accent = "#c9a227", lines = [] } = {}) {
+function showChoice(title, options, icon, { banner = "✦ 発見 ✦", accent = "#c9a227", lines = [], onDismiss = null } = {}) {
   G.prompt = true;
   itemGetEl.onclick = null; // 直前のポップアップが残した背景ハンドラを念のため消す
   itemGetEl.innerHTML = "";
+  // onDismiss 指定時はポップアップ (card) 以外＝背景のクリックで閉じる
+  if (onDismiss) {
+    itemGetEl.onclick = (e) => {
+      if (e.target === itemGetEl) { closePrompt(); onDismiss(); }
+    };
+  }
   const card = el("div", "ig-card");
   card.style.borderColor = accent;
   card.style.boxShadow = `0 0 40px ${accent}55`;
@@ -8697,7 +8703,8 @@ function askPortalReturn() {
     { label: "🏚 街へ帰還する（戦利品は持ち帰る）", fn: () => returnToTown() },
     { label: "✋ まだ潜る", fn: () => renderBoard() },
   ], ICONS.portal, { banner: "✦ 帰還魔法陣 ✦", accent: "#7fd0ff",
-    lines: ["この陣の上からなら、いつでも街へ帰還できる。"] });
+    lines: ["この陣の上からなら、いつでも街へ帰還できる。"],
+    onDismiss: () => renderBoard() });
 }
 
 // ---- 個別ステータス / 装備画面 ----
