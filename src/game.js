@@ -19,7 +19,7 @@ import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, soulSprite, jobSprite, dollSprite,
   recalcDoll, jobStatsOf, soulLevelCap, soulLevelCapOf, setSharedSouls, MAX_SUBS,
   soulByUid, makeSoulInstance, allSoulInstances, soulRankOf, soulLearnedSkills, soulLearnedPassives,
-  ORDER_PERK, orderPassiveMap,
+  ORDER_PERK, orderPassiveMap, orderPerkLv,
   PASSIVES, passiveName, passiveDesc,
   ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
   SOUL_RANKS, rollJobClass, rollGreatJobClass, SOUL_STAT_UP,
@@ -278,6 +278,7 @@ const G = {
   codex: { mon: {}, item: {}, job: {} }, // 図鑑 (モンスター/アイテム/職業)
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={蒐集品id:true}, claimed={"ランク:しきい値":true}
   lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
+  order: { picks: [] }, // 控えの結社: 席に着けた魂のuid配列 (席数=orderSeats()。編成外ランク2以上のみ有効)
   story: 0,           // 王宮ストーリーの進行段階
   dragonSlain: false, // 竜を討ったか
   // 戦績。bossIds/elemKills は集合 ({key:true})、swiftBoss/masterMimicSlain は一度きりの達成フラグ
@@ -624,9 +625,29 @@ function rollGreatCorpseClass() { return rollGreatJobClass(); }
 function partyPassiveLv(key) {
   let lv = 0;
   for (const p of G.party || []) if (p.alive) lv = Math.max(lv, pLv(p, key));
-  const om = orderPassiveMap(G.party || []);
-  if (om[key]) lv = Math.max(lv, om[key]);
+  if (featureUnlocked("order")) {
+    const om = orderPassiveMap(G.party || [], orderSeatedUids());
+    if (om[key]) lv = Math.max(lv, om[key]);
+  }
   return lv;
+}
+
+// 控えの結社 踏破の地図 (cartography): 着地ごとに周囲 N マス (マンハッタン距離) の
+// カードを自動で表にする。踏破済みにはしないので、踏めば通常どおりイベントは起きる。
+function revealByCartography() {
+  const rad = partyPassiveLv("cartography");
+  if (!rad) return false;
+  let any = false;
+  for (let dy = -rad; dy <= rad; dy++) {
+    for (let dx = -rad; dx <= rad; dx++) {
+      if (Math.abs(dx) + Math.abs(dy) > rad) continue;
+      const x = G.px + dx, y = G.py + dy;
+      if (x < 0 || y < 0 || x >= COLS || y >= ROWS) continue;
+      const c = G.board.cells[y][x];
+      if (c && !c.revealed) { c.revealed = true; any = true; }
+    }
+  }
+  return any;
 }
 
 // 迷宮内の階に応じた敵の強さ倍率 (迷宮ベース × 階で微増 × 特別階 × 迷宮の異変)
@@ -788,9 +809,10 @@ function renderBoard() {
   const reachable = (G.state === "board" && !G.anim && !G.walking)
     ? getReachableCells() : null;
 
-  // 感知パッシブ: 未公開カードに敵 (敵感知) / 財宝 (財宝感知) の気配を浮かべる
-  const senseE = partyPassiveLv("senseEnemy") > 0;
-  const senseT = partyPassiveLv("senseTreasure") > 0;
+  // 感知パッシブ: 未公開カードに敵 (敵感知) / 財宝 (財宝感知) の気配を浮かべる。
+  // Lv2: 敵感知=強敵を強調 / 財宝感知=帰還ポータルも。Lv3: 敵感知=属性色 / 財宝感知=罠も。
+  const senseE = partyPassiveLv("senseEnemy");    // 0/1/2/3
+  const senseT = partyPassiveLv("senseTreasure"); // 0/1/2/3
 
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
@@ -805,8 +827,17 @@ function renderBoard() {
       }
       drawCard(r, cell, scaleX, showBack);
       if (!cell.revealed && !cell.cleared) {
-        const mark = senseE && cell.type === "monster" ? { text: "!", color: "#ff6b5e" }
-          : senseT && cell.type === "chest" ? { text: "✦", color: "#ffd84a" } : null;
+        let mark = null;
+        if (senseE && cell.type === "monster") {
+          const strong = senseE >= 2 && cell.elite;
+          let color = strong ? "#ff3b30" : "#ff8a5e";
+          if (senseE >= 3) { const el = (MONSTERS[cell.monsterKey] || {}).element; const ec = (ELEMENTS[el] || {}).color; if (ec) color = ec; }
+          mark = { text: strong ? "‼" : "!", color };
+        } else if (senseT) {
+          if (cell.type === "chest") mark = { text: "✦", color: "#ffd84a" };
+          else if (senseT >= 2 && cell.type === "portal") mark = { text: "⏏", color: "#6fe0d0" };
+          else if (senseT >= 3 && cell.type === "trap") mark = { text: "▲", color: "#ff7a5e" };
+        }
         if (mark) {
           vctx.save();
           vctx.shadowColor = mark.color;
@@ -3152,6 +3183,7 @@ function moveStep(nx, ny, onDone) {
         G.heroAnim = null;
         G.anim = null;
         G.px = nx; G.py = ny;
+        revealByCartography();
         renderBoard();
         resolveCell(cell);
         // 毒は1歩ごとに蝕む (戦闘/選択へ移っていなければ)
@@ -3288,7 +3320,14 @@ function resolveCell(cell) {
       // 毒の床: 踏むたびに隊全体を蝕む。毒床耐性 (盗賊系) で半減/無効
       const resist = partyPassiveLv("poisonFloor");
       if (resist >= 2) {
-        log("毒の床だ。だが足音ひとつ立てず無傷で渡った。", "sys");
+        if (resist >= 3) { // Lv3: 無効化に加え、渡るたび隊全体をHP2%回復
+          let healed = false;
+          for (const p of G.party) { if (!p.alive) continue; const h = Math.max(1, Math.ceil(p.maxhp * 0.02)); if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + h); healed = true; } }
+          log(healed ? "毒の床を浄化して渡った。澱みが力に変わり、隊の傷が癒えた。" : "毒の床を浄化して渡った。", "sys");
+          if (healed) renderParty();
+        } else {
+          log("毒の床だ。だが足音ひとつ立てず無傷で渡った。", "sys");
+        }
         break;
       }
       SFX.trap(); buzz([0, 40, 30, 40]);
@@ -3710,7 +3749,8 @@ function disarmChance(m, cRank = 1) {
   if ((specialDef() || {}).sureDisarm) return 1; // 盗賊の洞察: 罠解除率100%
   // 得意職は最大95%まで伸びるが、それ以外は上限55% (適正レベルで約50%、過剰育成でも頭打ち)
   const cap = disarmExpert(m) ? 0.95 : 0.55;
-  return Math.max(0.05, Math.min(cap, disarmPower(m) / disarmNeed(cRank)));
+  const teLv = partyPassiveLv("trapEye"); // 控えの結社 罠師の目: 解除力 +10/20/30%
+  return Math.max(0.05, Math.min(cap, disarmPower(m) / disarmNeed(cRank) * (1 + 0.10 * teLv)));
 }
 
 // 宝箱ランク (1-5) を取得。セルに未設定ならその場で抽選して保存する
@@ -3720,8 +3760,11 @@ function chestRankOf(cell) {
   const cfg = activeCfg();
   const floors = Math.max(1, cfg.floors || 3);
   const depth = floors > 1 ? Math.min(1, (G.floor - 1) / (floors - 1)) : 0;
-  // 特別階 (商隊の遺品) / 迷宮の異変 (閉ざされた退路など): 宝箱ランクが上がる
-  const r = Math.min(5, rollChestRank(depth, cfg.rank || 1) + sfNum("chestRankUp", 0) + mutNum("chestRankUp", 0));
+  // 特別階 (商隊の遺品) / 迷宮の異変 (閉ざされた退路など): 宝箱ランクが上がる。
+  // 控えの結社 宝物庫 (vault): Lvに応じた確率で宝箱ランク+1
+  const vLv = partyPassiveLv("vault");
+  const vaultBump = (vLv && Math.random() < (vLv >= 3 ? 0.50 : vLv >= 2 ? 0.30 : 0.15)) ? 1 : 0;
+  const r = Math.min(5, rollChestRank(depth, cfg.rank || 1) + sfNum("chestRankUp", 0) + mutNum("chestRankUp", 0) + vaultBump);
   if (cell) cell.cRank = r;
   return r;
 }
@@ -3891,11 +3934,16 @@ function springTrap(trap, opener, fin) {
     return;
   }
 
-  // 残りはダメージ/吸収系: 効果を適用して結果をまとめて表示する
+  // 残りはダメージ/吸収系: 効果を適用して結果をまとめて表示する。
+  // 控えの結社 罠師の目 (trapEye)=罠ダメ軽減 / 加護の祈り (wardField)=状態異常付与率を抑える
+  const teLv = partyPassiveLv("trapEye");
+  const trapDmgMul = teLv >= 3 ? 0.5 : teLv >= 2 ? 0.65 : teLv >= 1 ? 0.8 : 1;
+  const wfLv = partyPassiveLv("wardField");
+  const ailMul = wfLv >= 3 ? 0.3 : wfLv >= 2 ? 0.5 : wfLv >= 1 ? 0.7 : 1;
   const lines = [trap.flavor];
   const fallen = [];
   const hurt = (p, mult) => {
-    const dmg = Math.max(1, Math.round(trapBaseDmg() * mult));
+    const dmg = Math.max(1, Math.round(trapBaseDmg() * mult * trapDmgMul));
     p.hp = Math.max(0, p.hp - dmg);
     lines.push(`${p.name}に ${dmg} ダメージ！`);
     if (p.hp === 0) {
@@ -3906,7 +3954,7 @@ function springTrap(trap, opener, fin) {
     return p.alive;
   };
   const afflict = (p, ail, chance) => {
-    if (!ail || !p.alive || p.ailment || Math.random() >= chance) return;
+    if (!ail || !p.alive || p.ailment || Math.random() >= chance * ailMul) return;
     p.ailment = ail;
     lines.push(`${p.name}は${AIL_NAME[ail]}に侵された！`);
   };
@@ -4127,6 +4175,18 @@ function descend() {
   G.floor++;
   G.maxFloorReached = Math.max(G.maxFloorReached, G.floor);
   questProgress("floor", G.floor);
+  // 控えの結社 戦間回復 (fieldRegen): 階を降りるたび隊全体のHP/MPを少し回復
+  const frLv = partyPassiveLv("fieldRegen");
+  if (frLv) {
+    const pct = frLv >= 3 ? 0.06 : frLv >= 2 ? 0.04 : 0.02;
+    let healed = false;
+    for (const p of G.party) {
+      if (!p.alive) continue;
+      if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * pct)); healed = true; }
+      if (p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * pct)); healed = true; }
+    }
+    if (healed) log("結社の戦間回復: 階を降りる道すがら、隊の傷が癒えていく。", "win");
+  }
   // 強敵階判定: 5階層以上の迷宮のみ、3F以降で10%の確率で発生
   G.eliteFloor = (activeCfg().floors || 3) >= 5 && G.floor >= 3 && Math.random() < 0.10;
   // 特別階判定: 強敵階でなければ、各候補の出現条件 (階数) と出現率で抽選。
@@ -4242,8 +4302,11 @@ function startBattle(enemies, cell) {
     const vig = partyPassiveLv("vigilance");
     // 迷宮の異変 (闇討ちの宴): 奇襲率が跳ね上がる (周囲警戒は引き続き有効)
     const amb = (spFloor && spFloor.noAmbush) ? 0 : 0.08 * mutNum("ambushMul", 1) * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1);
-    // 追い風の階 (preempt100) では必ず先手を取れる
-    const pre = (spFloor && spFloor.preempt100) ? 1 : 0.08 + (partyPassiveLv("initiative") ? 0.15 : 0);
+    // 追い風の階 (preempt100) では必ず先手を取れる。
+    // 先制の心得 (initiative) で +15/25/40%、周囲警戒Lv3 で挑戦時さらに +10%
+    const ini = partyPassiveLv("initiative");
+    const iniBonus = ini >= 3 ? 0.40 : ini >= 2 ? 0.25 : ini >= 1 ? 0.15 : 0;
+    const pre = (spFloor && spFloor.preempt100) ? 1 : 0.08 + iniBonus + (vig >= 3 ? 0.10 : 0);
     const r = Math.random();
     if (r < amb) opening = "ambush";
     else if (r < amb + pre) opening = "preempt";
@@ -4252,7 +4315,7 @@ function startBattle(enemies, cell) {
   else if (opening === "ambush") { log("奇襲された！", "dmg"); showToast("⚠ 奇襲された！"); buzz([0, 60, 40, 60]); }
   // ランク帯ごとの戦闘テーマ (ボス・強敵は専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
   playBgm(battleBgm(isBoss || isElite));
-  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false) });
+  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot") });
   G.fx = null;
   G.animating = false;
   G.enemyPos = {};
@@ -4893,7 +4956,10 @@ function applyImpact(res) {
 // キャラLv上昇/スキル習得を検出してポップアップ用のキューを返す。
 function distributeBattleSoulExp(soulGot) {
   const queue = [];
-  const share = Math.floor((soulGot || 0) / 3);
+  // 控えの結社 魂の薫陶 (soulTutor): 戦闘後に魂へ入るEXPを底上げ
+  const stLv = partyPassiveLv("soulTutor");
+  const stMul = stLv >= 3 ? 1.35 : stLv >= 2 ? 1.20 : stLv >= 1 ? 1.10 : 1;
+  const share = Math.floor((soulGot || 0) * stMul / 3);
   if (share <= 0) return queue;
   // 経験値は「編成中に宿している魂」(メイン魂・サブ魂とも) ごとに1回ずつ入る。
   // 同じ魂を複数人が宿すことはない (魂は1体ごとに個別) ので重複加算は起きない。
@@ -5002,8 +5068,8 @@ function endBattle() {
     // 金運 (goldLuck) / 魂寄せ (soulLure) は戦闘報酬を底上げする (隊内最高Lvのみ)
     const { soul, gold } = b.rewards();
     const gl = partyPassiveLv("goldLuck"), sl = partyPassiveLv("soulLure");
-    const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)));
-    const soulGot = runGainSoulPts(Math.round(soul * (sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1)));
+    const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)));
+    const soulGot = runGainSoulPts(Math.round(soul * (sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1)));
     applyVictoryPassives();
     // 入手Soulの1/5を生存メンバー全員の全部位の魂に加算 → レベルアップ/スキル習得を集計
     const progressQueue = distributeBattleSoulExp(soulGot);
@@ -6083,7 +6149,7 @@ function renderAltar() {
   // 未解放のサブ魂枠は迷宮の踏破で開く (選択中スロットも開放済みに戻す)
   if (subSlots < MAX_SUBS) {
     const c = clearedDungeonCount();
-    const nextAt = subSlots === 0 ? 10 : 20;
+    const nextAt = subSlots === 0 ? 10 : 40;
     townEl.appendChild(el("div", "tw-note",
       `宿し技スロット（サブ魂）はあと ${MAX_SUBS - subSlots} 枠、迷宮の踏破で開く。次の枠は ${nextAt} 迷宮の踏破で解放（現在 ${c} 踏破）。`));
     if (altarSlot !== "primary" && (+altarSlot.slice(3)) >= subSlots) altarSlot = "primary";
@@ -6179,29 +6245,67 @@ function renderOrderSection() {
   for (const dd of G.party) { if (dd.primary != null) fielded.add(dd.primary); for (const s of (dd.subs || [])) if (s) fielded.add(s.uid); }
   const benched = G.souls.filter((s) => !fielded.has(s.uid) && soulRankOf(s) >= 2).sort(soulSortCmp);
   townEl.appendChild(el("div", "tw-h", "控えの結社 — 編成外の魂の加護"));
-  if (!benched.length) {
-    townEl.appendChild(el("div", "tw-note", "編成に出していない魂をランク2以上に育てると、職業に応じたパーティ全体の加護を授ける。"));
+  if (!featureUnlocked("order")) {
+    townEl.appendChild(el("div", "tw-note",
+      `控えの結社はまだ開かれていない。20 迷宮を踏破すれば、王が席を授ける。（現在 ${clearedDungeonCount()} 踏破）`));
     return;
   }
-  const om = orderPassiveMap(G.party);
+  const seats = orderSeats();
+  const seated = orderSeatedUids();
+  const seatedSet = new Set(seated);
+  const full = seated.length >= seats;
+  const nextSeatAt = seats >= 3 ? null : seats >= 2 ? 45 : seats >= 1 ? 30 : 20;
+  townEl.appendChild(el("div", "tw-note",
+    `結社の席: ${seated.length} / ${seats} 使用中${nextSeatAt ? `（次の席は ${nextSeatAt} 迷宮の踏破で開く）` : "（最大）"}`));
+  if (!benched.length) {
+    townEl.appendChild(el("div", "tw-note", "編成に出していない魂をランク2以上に育てると、席に着けて職業に応じたパーティ全体の加護を授けられる。"));
+    return;
+  }
+  townEl.appendChild(el("div", "tw-note", "席に着けた魂だけが加護を送る。空席が許す数まで選んで着席させよ。編成に出すと加護は止まる(本人として働く)。同じ加護は最も高いLvだけが効く。"));
+  // 実際に発動している加護 (着席魂を集約。同一加護は最大Lv) と、その提供元の魂
+  const activeMap = orderPassiveMap(G.party, seated);
+  const perkOf = (s) => ORDER_PERK[s.clsKey] || "";
+  const perkLvOf = (s) => { const p = perkOf(s); return p && PASSIVES[p] ? Math.min(PASSIVES[p].lv.length, orderPerkLv(soulRankOf(s))) : 0; };
+  const provider = {}; // perk -> 実際に加護を提供している魂uid (先着の最大Lv)
+  for (const uid of seated) {
+    const s = soulByUid(uid); if (!s) continue;
+    const p = perkOf(s);
+    if (p && perkLvOf(s) === activeMap[p] && provider[p] == null) provider[p] = uid;
+  }
+  if (seated.length) {
+    const parts = Object.entries(activeMap).map(([p, lv]) => passiveName(p, lv));
+    townEl.appendChild(el("div", "tw-note", `▸ 発動中の加護: ${parts.length ? parts.join("・") : "なし"}`));
+  }
+  // 着席優先 → 加護別グループ → ランク降順 (同じ加護が隣り合い、重複を見つけやすい)
+  const sorted = benched.slice().sort((a, b) =>
+    (seatedSet.has(b.uid) ? 1 : 0) - (seatedSet.has(a.uid) ? 1 : 0) ||
+    perkOf(a).localeCompare(perkOf(b)) ||
+    soulRankOf(b) - soulRankOf(a) || soulSortCmp(a, b));
   const box = el("div", "tw-soullist");
-  for (const s of benched) {
+  for (const s of sorted) {
     const cls = SOUL_CLASSES[s.clsKey];
     const perk = ORDER_PERK[s.clsKey];
     const rank = soulRankOf(s);
     if (!perk || !PASSIVES[perk]) continue;
-    const lv = Math.min(PASSIVES[perk].lv.length, rank >= 4 ? 2 : 1);
+    const lv = Math.min(PASSIVES[perk].lv.length, orderPerkLv(rank));
+    const isSeated = seatedSet.has(s.uid);
+    const redundant = isSeated && provider[perk] !== s.uid; // 上位/先着が着席中で、この席は無駄
     const r = el("div", "tw-soulrow");
+    if (isSeated) { r.style.borderLeft = `3px solid ${redundant ? "#7a7a7a" : cls.glow}`; r.style.paddingLeft = "5px"; if (redundant) r.style.opacity = "0.7"; }
     const o = el("span", "tw-chips"); o.style.color = cls.glow; o.appendChild(spriteCanvas(jobSprite(s.clsKey, rank), 2));
     r.appendChild(o);
     const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-souln", `${jobRankName(s.clsKey, rank)}（R${rank}）`));
+    info.appendChild(el("div", "tw-souln", `${jobRankName(s.clsKey, rank)}（R${rank}）${isSeated ? (redundant ? " ・ 着席中(重複)" : " ・ 着席中") : ""}`));
     info.appendChild(el("div", "tw-soulst", `${passiveName(perk, lv)}: ${passiveDesc(perk, lv)}`));
+    if (redundant) info.appendChild(el("div", "tw-soulst", "※ 同じ加護をより高い席が供給中。外して別の加護に回せる。"));
     r.appendChild(info);
+    const b = btn(isSeated ? "外す" : "着席", () => toggleOrderSeat(s.uid));
+    b.className = "tw-small" + (isSeated ? "" : " primary");
+    if (!isSeated && full) { b.disabled = true; b.className = "tw-small"; }
+    r.appendChild(b);
     box.appendChild(r);
   }
   townEl.appendChild(box);
-  if (Object.keys(om).length) townEl.appendChild(el("div", "tw-note", "結社の加護はパーティ全体に常時適用される。編成に出すと加護は止まる(本人として働く)。"));
 }
 
 function jobSig(d) { return d.jobKey ? `${d.jobKey}:${d.jobRank}` : "none"; }
@@ -6737,11 +6841,12 @@ function eligibleDeliveryItemIds() {
   const cap = (DUNGEONS[idx].lootLv || [1, 1])[1]; // 到達済み最深ダンジョンのドロップ帯上限 lv
   return LOOT_IDS.filter((id) => (ITEMS[id].lv || 1) <= cap);
 }
-// 納品依頼を3件 (重複なし) 引き直す
+// 納品依頼を引き直す (重複なし)。同時件数は解放段階に応じて 1→2→3
 function rollDeliveryQuests() {
   const pool = eligibleDeliveryItemIds();
+  const cap = deliveryQuestCap();
   const out = [], used = new Set();
-  for (let i = 0; i < 3 && pool.length; i++) {
+  for (let i = 0; i < cap && pool.length; i++) {
     let id, tries = 0;
     do { id = pool[rand(pool.length)]; tries++; } while (used.has(id) && tries < 24);
     if (used.has(id)) break;
@@ -7210,18 +7315,66 @@ function reportTutorialQuest() {
   });
 }
 
-// 機能解放: ダンジョン踏破数に応じて段階的に解放される (序盤の節目で授かる)。
-//   D5 踏破 → 魂融合 / D10 → サブ魂1枠 / D15 → 酒場の噂 / D20 → サブ魂2枠目
+// 機能解放: ダンジョン踏破数に応じて段階的に解放される (層末の節目で授かる)。
+//   D5→魂融合 / D10→サブ魂1枠 / D15→酒場の噂・依頼 / D20→控えの結社(席1) /
+//   D25→納品+1 / D30→結社席+1 / D35→納品+1 / D40→サブ魂2枠目 / D45→結社席+1 / D50→無限迷宮
 function featureUnlocked(key) {
   const c = clearedDungeonCount();
   if (key === "fusion") return c >= 5;
   if (key === "rumor") return c >= 15;
+  if (key === "order") return c >= 20;
+  if (key === "infinite") return c >= 50;
   return false;
 }
-// 解放済みのサブ魂 (宿し技) スロット数 (0/1/2)。MAX_SUBS が上限
+// 解放済みのサブ魂 (宿し技) スロット数 (0/1/2)。MAX_SUBS が上限。2枠目は D40 で解放
 function unlockedSubSlots() {
   const c = clearedDungeonCount();
-  return Math.min(MAX_SUBS, c >= 20 ? 2 : c >= 10 ? 1 : 0);
+  return Math.min(MAX_SUBS, c >= 40 ? 2 : c >= 10 ? 1 : 0);
+}
+// 控えの結社の席数 (0/1/2/3)。D20 で席1、D30 で席2、D45 で席3
+function orderSeats() {
+  const c = clearedDungeonCount();
+  return c >= 45 ? 3 : c >= 30 ? 2 : c >= 20 ? 1 : 0;
+}
+// 結社の席に実際に着いている魂uid (編成外・ランク2以上・有効な加護持ち・席数上限でクリーン)。
+// G.order.picks の順を尊重しつつ、無効になった指定 (編成入り/ランク低下/消失) は除外する。
+function orderSeatedUids() {
+  if (!featureUnlocked("order")) return [];
+  const seats = orderSeats();
+  if (seats <= 0) return [];
+  const fielded = new Set();
+  for (const dd of G.party) { if (dd.primary != null) fielded.add(dd.primary); for (const s of (dd.subs || [])) if (s) fielded.add(s.uid); }
+  const picks = (G.order && Array.isArray(G.order.picks)) ? G.order.picks : [];
+  const out = [];
+  for (const uid of picks) {
+    if (out.length >= seats) break;
+    if (out.includes(uid) || fielded.has(uid)) continue;
+    const s = soulByUid(uid);
+    if (!s || soulRankOf(s) < 2) continue;
+    const perk = ORDER_PERK[s.clsKey];
+    if (!perk || !PASSIVES[perk]) continue;
+    out.push(uid);
+  }
+  return out;
+}
+// 結社の席に魂を着ける/外す。空席が無ければ着席不可
+function toggleOrderSeat(uid) {
+  if (!G.order || !Array.isArray(G.order.picks)) G.order = { picks: [] };
+  const picks = G.order.picks;
+  const i = picks.indexOf(uid);
+  if (i >= 0) { picks.splice(i, 1); SFX.select(); }
+  else {
+    if (orderSeatedUids().length >= orderSeats()) { log("結社の席が空いていない。誰かを外してから着席させよ。", "sys"); SFX.ng(); return; }
+    picks.push(uid); SFX.select();
+  }
+  // 消失した魂のuidを掃除しておく
+  G.order.picks = picks.filter((u) => soulByUid(u));
+  autosave(); renderTown();
+}
+// 同時に受けられる納品依頼の件数。D15(酒場解放)=1 / D25=2 / D35=3
+function deliveryQuestCap() {
+  const c = clearedDungeonCount();
+  return c >= 35 ? 3 : c >= 25 ? 2 : 1;
 }
 
 // 踏破済みの迷宮数 (メインストーリー基準: 第n章攻略中 = n-1 踏破)
@@ -7658,7 +7811,8 @@ function recordMonsterKill(key, dungeonIdx) {
 // 勝利時の汎用戦利品抽選 (固有ドロップ廃止に伴う置換)。通常30% / レア4%。
 // 中身は迷宮の lootLv 帯から引く (レアは一段深い帯)。実物は勝利後の宝箱から取り出す。
 function rollGenericDrop() {
-  const ap = partyPassiveLv("appraise") ? 1.15 : 1; // 目利き: ドロップ率+15%
+  const apLv = partyPassiveLv("appraise"); // 目利き: ドロップ率 +15/25/40%
+  const ap = apLv >= 3 ? 1.40 : apLv >= 2 ? 1.25 : apLv >= 1 ? 1.15 : 1;
   // 特別階 (盗賊の洞察): レアドロップ率が上がる
   if (Math.random() < Math.max(sfNum("rareDropRate", 0.04 * ap), mutNum("rareDropRate", 0))) {
     const id = pickItemByR(dropCenterR({ rare: true }));
@@ -8249,8 +8403,11 @@ let shopTab = "weapon";
 let shopWeaponCat = "all"; // 商店の武器タブのサブカテゴリ (長剣/短剣/…)
 let shopMember = 0; // 取引する編成メンバーの index
 const sellPrice = (it) => Math.max(1, Math.floor((it.price || 10) / 2));
-// 鑑定料: 通常は売値と同額。LR(専用装備)は同ランク帯の約20倍で、商店でのみ鑑定できる
-const appraiseCost = (it) => it && it.lr ? sellPrice(it) * 20 : sellPrice(it);
+// 控えの結社 値切り (bargain): 店の買値・鑑定費を -8/15/25% 割引
+function bargainMul() { const lv = partyPassiveLv("bargain"); return lv >= 3 ? 0.75 : lv >= 2 ? 0.85 : lv >= 1 ? 0.92 : 1; }
+const buyPrice = (it) => Math.max(1, Math.round((it && it.price || 30) * bargainMul()));
+// 鑑定料: 通常は売値と同額。LR(専用装備)は同ランク帯の約20倍で、商店でのみ鑑定できる。値切りで割引
+const appraiseCost = (it) => Math.max(1, Math.round((it && it.lr ? sellPrice(it) * 20 : sellPrice(it)) * bargainMul()));
 
 // 商店: 上=在庫 (内部スクロール) / 下=取引相手の選択と所持品。
 // ページ全体は縦スクロールさせず、在庫リストだけが内部でスクロールする。
@@ -8303,7 +8460,7 @@ function renderShop() {
     const it = ITEMS[id];
     const count = G.shopStock[id];
     any = true;
-    const price = it.price || 30;
+    const price = buyPrice(it);
     // 選択中キャラが装備できる品は色を変えて目立たせる
     const canEq = isEquippable(it) && who && who.alive && canEquip(who, it);
     const r = el("div", "tw-shoprow" + (canEq ? " equip-ok" : ""));
@@ -10242,7 +10399,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "story", "dragonSlain", "stats",
+  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "order", "story", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
 ];
 
@@ -10378,6 +10535,7 @@ function loadGame() {
   if (!snap || !snap.party || !snap.party.length) return false;
   for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
   if (!G.lrOwned || typeof G.lrOwned !== "object") G.lrOwned = {}; // LR入手済み記録 (1点もの)
+  if (!G.order || !Array.isArray(G.order.picks)) G.order = { picks: [] }; // 控えの結社の着席指定
   // 旧ステータス体系のセーブを六大ステ (ATK/VIT/AGI/INT/PIE/LUK) へ移行
   // (battle の敵の mon はこの後 MONSTERS の生定義に差し替えられるため触れても無害)
   migrateLegacyStats(snap);
