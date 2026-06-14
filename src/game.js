@@ -5278,7 +5278,8 @@ function endBattle() {
       const eid = pickItemByR(dropCenterR({ elite: true })); // 適正帯より2ランク上のアイテム
       if (ITEMS[eid]) drop = { key: "elite", name: "強敵", id: eid, item: cloneItem(eid), rare: true };
     }
-    // 奈落の門番: 撃破で適正帯より上等な戦利品を確定で残す
+    // 奈落の門番: boss フラグを持つが踏破=帰還ではない。撃破で適正帯より上等な戦利品を残す
+    const wasGuard = abyssActive() && !corpse && b.enemies.some((e) => e.boss);
     if (wasGuard) {
       const gid = pickItemByR(dropCenterR({ elite: true }));
       if (ITEMS[gid]) drop = { key: "guard", name: "門番", id: gid, item: cloneItem(gid), rare: true };
@@ -5295,8 +5296,7 @@ function endBattle() {
         progressQueue.push({ kind: "souldrop", clsKey, from: e.name });
       }
     }
-    // 奈落の門番: boss フラグを持つが踏破=帰還ではない。撃破を記録して先へ進めるようにする
-    const wasGuard = abyssActive() && !corpse && b.enemies.some((e) => e.boss);
+    // 奈落の門番: 撃破を記録して先へ進めるようにする
     if (wasGuard) {
       G.abyss.guardFloor = G.floor; // この階の門番は撃破済み → 階段で潜れる
       flashScreen("#d4504e"); buzz([0, 60, 50, 60, 50, 250]);
