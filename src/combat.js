@@ -351,6 +351,7 @@ export class Battle {
     this.result = null;       // "win" | "lose" | "flee"
     this.opening = opts.opening || null;
     this.noFlee = !!opts.noFlee; // 迷宮の異変「閉ざされた退路」: 逃走不可
+    this.orderFleet = opts.orderFleet || 0; // 控えの結社 逃げ足のLv (0-3): 隊全体の逃走率に上乗せ
     this._roundNo = 0;
     this._bigBarrierUsed = 0;
     for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._endureUsed = 0; a._grantEndure = false; }
@@ -739,9 +740,11 @@ export class Battle {
         res.fledFail = true;
         return res;
       }
-      // 逃げ足 (fleetFoot): 隊に持ち主がいれば成功率+30%
-      const fleet = this.party.some((p) => p.alive && pv(p, "fleetFoot"));
-      if (Math.random() < Math.min(0.95, 0.55 + (fleet ? 0.30 : 0))) { this.result = "flee"; this.log("うまく逃げ出した！", "sys"); res.fled = true; }
+      // 逃げ足 (fleetFoot): 個人の習得は+30%、控えの結社は Lv に応じ +30/45/60%。高い方を採用
+      const fleetSelf = this.party.some((p) => p.alive && pv(p, "fleetFoot")) ? 0.30 : 0;
+      const fleetOrder = this.orderFleet >= 3 ? 0.60 : this.orderFleet >= 2 ? 0.45 : this.orderFleet >= 1 ? 0.30 : 0;
+      const fleetBonus = Math.max(fleetSelf, fleetOrder);
+      if (Math.random() < Math.min(0.95, 0.55 + fleetBonus)) { this.result = "flee"; this.log("うまく逃げ出した！", "sys"); res.fled = true; }
       else { this.log(`${actor.name}は逃げられなかった！`, "dmg"); res.fledFail = true; }
       return res;
     }

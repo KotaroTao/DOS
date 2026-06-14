@@ -623,6 +623,24 @@ function partyPassiveLv(key) {
   return lv;
 }
 
+// 控えの結社 踏破の地図 (cartography): 着地ごとに周囲 N マス (マンハッタン距離) の
+// カードを自動で表にする。踏破済みにはしないので、踏めば通常どおりイベントは起きる。
+function revealByCartography() {
+  const rad = partyPassiveLv("cartography");
+  if (!rad) return false;
+  let any = false;
+  for (let dy = -rad; dy <= rad; dy++) {
+    for (let dx = -rad; dx <= rad; dx++) {
+      if (Math.abs(dx) + Math.abs(dy) > rad) continue;
+      const x = G.px + dx, y = G.py + dy;
+      if (x < 0 || y < 0 || x >= COLS || y >= ROWS) continue;
+      const c = G.board.cells[y][x];
+      if (c && !c.revealed) { c.revealed = true; any = true; }
+    }
+  }
+  return any;
+}
+
 // 迷宮内の階に応じた敵の強さ倍率 (迷宮ベース × 階で微増 × 特別階 × 迷宮の異変)
 function enemyScale() {
   const cfg = activeCfg();
@@ -3156,6 +3174,7 @@ function moveStep(nx, ny, onDone) {
         G.heroAnim = null;
         G.anim = null;
         G.px = nx; G.py = ny;
+        revealByCartography();
         renderBoard();
         resolveCell(cell);
         // 毒は1歩ごとに蝕む (戦闘/選択へ移っていなければ)
@@ -3714,7 +3733,8 @@ function disarmChance(m, cRank = 1) {
   if ((specialDef() || {}).sureDisarm) return 1; // 盗賊の洞察: 罠解除率100%
   // 得意職は最大95%まで伸びるが、それ以外は上限55% (適正レベルで約50%、過剰育成でも頭打ち)
   const cap = disarmExpert(m) ? 0.95 : 0.55;
-  return Math.max(0.05, Math.min(cap, disarmPower(m) / disarmNeed(cRank)));
+  const teLv = partyPassiveLv("trapEye"); // 控えの結社 罠師の目: 解除力 +10/20/30%
+  return Math.max(0.05, Math.min(cap, disarmPower(m) / disarmNeed(cRank) * (1 + 0.10 * teLv)));
 }
 
 // 宝箱ランク (1-5) を取得。セルに未設定ならその場で抽選して保存する
@@ -3724,8 +3744,11 @@ function chestRankOf(cell) {
   const cfg = activeCfg();
   const floors = Math.max(1, cfg.floors || 3);
   const depth = floors > 1 ? Math.min(1, (G.floor - 1) / (floors - 1)) : 0;
-  // 特別階 (商隊の遺品) / 迷宮の異変 (閉ざされた退路など): 宝箱ランクが上がる
-  const r = Math.min(5, rollChestRank(depth, cfg.rank || 1) + sfNum("chestRankUp", 0) + mutNum("chestRankUp", 0));
+  // 特別階 (商隊の遺品) / 迷宮の異変 (閉ざされた退路など): 宝箱ランクが上がる。
+  // 控えの結社 宝物庫 (vault): Lvに応じた確率で宝箱ランク+1
+  const vLv = partyPassiveLv("vault");
+  const vaultBump = (vLv && Math.random() < (vLv >= 3 ? 0.50 : vLv >= 2 ? 0.30 : 0.15)) ? 1 : 0;
+  const r = Math.min(5, rollChestRank(depth, cfg.rank || 1) + sfNum("chestRankUp", 0) + mutNum("chestRankUp", 0) + vaultBump);
   if (cell) cell.cRank = r;
   return r;
 }
@@ -3892,11 +3915,16 @@ function springTrap(trap, opener, fin) {
     return;
   }
 
-  // 残りはダメージ/吸収系: 効果を適用して結果をまとめて表示する
+  // 残りはダメージ/吸収系: 効果を適用して結果をまとめて表示する。
+  // 控えの結社 罠師の目 (trapEye)=罠ダメ軽減 / 加護の祈り (wardField)=状態異常付与率を抑える
+  const teLv = partyPassiveLv("trapEye");
+  const trapDmgMul = teLv >= 3 ? 0.5 : teLv >= 2 ? 0.65 : teLv >= 1 ? 0.8 : 1;
+  const wfLv = partyPassiveLv("wardField");
+  const ailMul = wfLv >= 3 ? 0.3 : wfLv >= 2 ? 0.5 : wfLv >= 1 ? 0.7 : 1;
   const lines = [trap.flavor];
   const fallen = [];
   const hurt = (p, mult) => {
-    const dmg = Math.max(1, Math.round(trapBaseDmg() * mult));
+    const dmg = Math.max(1, Math.round(trapBaseDmg() * mult * trapDmgMul));
     p.hp = Math.max(0, p.hp - dmg);
     lines.push(`${p.name}に ${dmg} ダメージ！`);
     if (p.hp === 0) {
@@ -3907,7 +3935,7 @@ function springTrap(trap, opener, fin) {
     return p.alive;
   };
   const afflict = (p, ail, chance) => {
-    if (!ail || !p.alive || p.ailment || Math.random() >= chance) return;
+    if (!ail || !p.alive || p.ailment || Math.random() >= chance * ailMul) return;
     p.ailment = ail;
     lines.push(`${p.name}は${AIL_NAME[ail]}に侵された！`);
   };
@@ -4128,6 +4156,18 @@ function descend() {
   G.floor++;
   G.maxFloorReached = Math.max(G.maxFloorReached, G.floor);
   questProgress("floor", G.floor);
+  // 控えの結社 戦間回復 (fieldRegen): 階を降りるたび隊全体のHP/MPを少し回復
+  const frLv = partyPassiveLv("fieldRegen");
+  if (frLv) {
+    const pct = frLv >= 3 ? 0.06 : frLv >= 2 ? 0.04 : 0.02;
+    let healed = false;
+    for (const p of G.party) {
+      if (!p.alive) continue;
+      if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * pct)); healed = true; }
+      if (p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * pct)); healed = true; }
+    }
+    if (healed) log("結社の戦間回復: 階を降りる道すがら、隊の傷が癒えていく。", "win");
+  }
   // 強敵階判定: 5階層以上の迷宮のみ、3F以降で10%の確率で発生
   G.eliteFloor = (activeCfg().floors || 3) >= 5 && G.floor >= 3 && Math.random() < 0.10;
   // 特別階判定: 強敵階でなければ、各候補の出現条件 (階数) と出現率で抽選。
@@ -4256,7 +4296,7 @@ function startBattle(enemies, cell) {
   else if (opening === "ambush") { log("奇襲された！", "dmg"); showToast("⚠ 奇襲された！"); buzz([0, 60, 40, 60]); }
   // ランク帯ごとの戦闘テーマ (ボス・強敵は専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
   playBgm(battleBgm(isBoss || isElite));
-  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false) });
+  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot") });
   G.fx = null;
   G.animating = false;
   G.enemyPos = {};
@@ -4897,7 +4937,10 @@ function applyImpact(res) {
 // キャラLv上昇/スキル習得を検出してポップアップ用のキューを返す。
 function distributeBattleSoulExp(soulGot) {
   const queue = [];
-  const share = Math.floor((soulGot || 0) / 3);
+  // 控えの結社 魂の薫陶 (soulTutor): 戦闘後に魂へ入るEXPを底上げ
+  const stLv = partyPassiveLv("soulTutor");
+  const stMul = stLv >= 3 ? 1.35 : stLv >= 2 ? 1.20 : stLv >= 1 ? 1.10 : 1;
+  const share = Math.floor((soulGot || 0) * stMul / 3);
   if (share <= 0) return queue;
   // 経験値は「編成中に宿している魂」(メイン魂・サブ魂とも) ごとに1回ずつ入る。
   // 同じ魂を複数人が宿すことはない (魂は1体ごとに個別) ので重複加算は起きない。
@@ -8245,8 +8288,11 @@ let shopTab = "weapon";
 let shopWeaponCat = "all"; // 商店の武器タブのサブカテゴリ (長剣/短剣/…)
 let shopMember = 0; // 取引する編成メンバーの index
 const sellPrice = (it) => Math.max(1, Math.floor((it.price || 10) / 2));
-// 鑑定料: 通常は売値と同額。LR(専用装備)は同ランク帯の約20倍で、商店でのみ鑑定できる
-const appraiseCost = (it) => it && it.lr ? sellPrice(it) * 20 : sellPrice(it);
+// 控えの結社 値切り (bargain): 店の買値・鑑定費を -8/15/25% 割引
+function bargainMul() { const lv = partyPassiveLv("bargain"); return lv >= 3 ? 0.75 : lv >= 2 ? 0.85 : lv >= 1 ? 0.92 : 1; }
+const buyPrice = (it) => Math.max(1, Math.round((it && it.price || 30) * bargainMul()));
+// 鑑定料: 通常は売値と同額。LR(専用装備)は同ランク帯の約20倍で、商店でのみ鑑定できる。値切りで割引
+const appraiseCost = (it) => Math.max(1, Math.round((it && it.lr ? sellPrice(it) * 20 : sellPrice(it)) * bargainMul()));
 
 // 商店: 上=在庫 (内部スクロール) / 下=取引相手の選択と所持品。
 // ページ全体は縦スクロールさせず、在庫リストだけが内部でスクロールする。
@@ -8299,7 +8345,7 @@ function renderShop() {
     const it = ITEMS[id];
     const count = G.shopStock[id];
     any = true;
-    const price = it.price || 30;
+    const price = buyPrice(it);
     // 選択中キャラが装備できる品は色を変えて目立たせる
     const canEq = isEquippable(it) && who && who.alive && canEquip(who, it);
     const r = el("div", "tw-shoprow" + (canEq ? " equip-ok" : ""));
