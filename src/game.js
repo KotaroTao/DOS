@@ -6233,9 +6233,26 @@ function renderOrderSection() {
     townEl.appendChild(el("div", "tw-note", "編成に出していない魂をランク2以上に育てると、席に着けて職業に応じたパーティ全体の加護を授けられる。"));
     return;
   }
-  townEl.appendChild(el("div", "tw-note", "席に着けた魂だけが加護を送る。空席が許す数まで選んで着席させよ。編成に出すと加護は止まる(本人として働く)。"));
-  // 着席中を上に並べる
-  const sorted = benched.slice().sort((a, b) => (seatedSet.has(b.uid) ? 1 : 0) - (seatedSet.has(a.uid) ? 1 : 0) || soulSortCmp(a, b));
+  townEl.appendChild(el("div", "tw-note", "席に着けた魂だけが加護を送る。空席が許す数まで選んで着席させよ。編成に出すと加護は止まる(本人として働く)。同じ加護は最も高いLvだけが効く。"));
+  // 実際に発動している加護 (着席魂を集約。同一加護は最大Lv) と、その提供元の魂
+  const activeMap = orderPassiveMap(G.party, seated);
+  const perkOf = (s) => ORDER_PERK[s.clsKey] || "";
+  const perkLvOf = (s) => { const p = perkOf(s); return p && PASSIVES[p] ? Math.min(PASSIVES[p].lv.length, orderPerkLv(soulRankOf(s))) : 0; };
+  const provider = {}; // perk -> 実際に加護を提供している魂uid (先着の最大Lv)
+  for (const uid of seated) {
+    const s = soulByUid(uid); if (!s) continue;
+    const p = perkOf(s);
+    if (p && perkLvOf(s) === activeMap[p] && provider[p] == null) provider[p] = uid;
+  }
+  if (seated.length) {
+    const parts = Object.entries(activeMap).map(([p, lv]) => passiveName(p, lv));
+    townEl.appendChild(el("div", "tw-note", `▸ 発動中の加護: ${parts.length ? parts.join("・") : "なし"}`));
+  }
+  // 着席優先 → 加護別グループ → ランク降順 (同じ加護が隣り合い、重複を見つけやすい)
+  const sorted = benched.slice().sort((a, b) =>
+    (seatedSet.has(b.uid) ? 1 : 0) - (seatedSet.has(a.uid) ? 1 : 0) ||
+    perkOf(a).localeCompare(perkOf(b)) ||
+    soulRankOf(b) - soulRankOf(a) || soulSortCmp(a, b));
   const box = el("div", "tw-soullist");
   for (const s of sorted) {
     const cls = SOUL_CLASSES[s.clsKey];
@@ -6244,13 +6261,15 @@ function renderOrderSection() {
     if (!perk || !PASSIVES[perk]) continue;
     const lv = Math.min(PASSIVES[perk].lv.length, orderPerkLv(rank));
     const isSeated = seatedSet.has(s.uid);
+    const redundant = isSeated && provider[perk] !== s.uid; // 上位/先着が着席中で、この席は無駄
     const r = el("div", "tw-soulrow");
-    if (isSeated) { r.style.borderLeft = `3px solid ${cls.glow}`; r.style.paddingLeft = "5px"; }
+    if (isSeated) { r.style.borderLeft = `3px solid ${redundant ? "#7a7a7a" : cls.glow}`; r.style.paddingLeft = "5px"; if (redundant) r.style.opacity = "0.7"; }
     const o = el("span", "tw-chips"); o.style.color = cls.glow; o.appendChild(spriteCanvas(jobSprite(s.clsKey, rank), 2));
     r.appendChild(o);
     const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-souln", `${jobRankName(s.clsKey, rank)}（R${rank}）${isSeated ? " ・ 着席中" : ""}`));
+    info.appendChild(el("div", "tw-souln", `${jobRankName(s.clsKey, rank)}（R${rank}）${isSeated ? (redundant ? " ・ 着席中(重複)" : " ・ 着席中") : ""}`));
     info.appendChild(el("div", "tw-soulst", `${passiveName(perk, lv)}: ${passiveDesc(perk, lv)}`));
+    if (redundant) info.appendChild(el("div", "tw-soulst", "※ 同じ加護をより高い席が供給中。外して別の加護に回せる。"));
     r.appendChild(info);
     const b = btn(isSeated ? "外す" : "着席", () => toggleOrderSeat(s.uid));
     b.className = "tw-small" + (isSeated ? "" : " primary");

@@ -1521,7 +1521,7 @@ export function signatureSkillOf(clsKey) { return JOB_SIGNATURE[clsKey] || null;
 
 // ===== 控えの結社 (ベンチの加護) =====
 // 編成に出していない (primary/sub いずれにも使っていない) 魂を「結社」の席に着けると、
-// 職業テーマ別のパーティ全体パッシブを供給する。共有ランク2以上で Lv1、ランク4以上で Lv2。
+// 職業テーマ別のパーティ全体パッシブを供給する。加護Lvは魂ランク連動 (orderPerkLv: R2=Lv1 / R3・R4=Lv2 / R5=Lv3)。
 // 席数は game.js の orderSeats() (D20で1, D30で2, D45で3)。着席選択は orderPassiveMap の picks 引数で渡す。
 // 効果は探索ユーティリティのパーティ範囲パッシブに限定。職テーマ別に分散し、同一加護は最大3職まで。
 export const ORDER_PERK = {
