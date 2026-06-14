@@ -14,7 +14,11 @@ import { dungeonSubQuests } from "./subquests.js";
 import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
 import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
-import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS, ELITE_ORDER, monsterTraits, layerOf } from "./dungeons/index.js";
+import { DUNGEONS, DUNGEON_MONSTERS, RACE_LABEL, ELEMENTS, ELITE_ORDER, LAYER_BOSS, monsterTraits, layerOf } from "./dungeons/index.js";
+import {
+  ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUTATIONS, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY,
+  ABYSS_UNLOCK_DUNGEON, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
+} from "./abyss.js";
 import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, soulSprite, jobSprite, dollSprite,
   recalcDoll, jobStatsOf, soulLevelCap, soulLevelCapOf, setSharedSouls, MAX_SUBS,
@@ -306,6 +310,9 @@ const G = {
   mutator: null,      // 今回の潜入に適用中の「迷宮の異変」id (MUTATORS 参照。潜入時に任意で受諾)
   bossDown: false,    // この潜入で迷宮の主を討ったか (討つと帰還制限が解ける)
   portalFound: false, // この階で帰還魔法陣を発見したか (発見後はいつでも街へ戻れる)
+  // 無限迷宮「奈落」: 潜入中のランの状態 (null = 通常迷宮)。abyss.js 参照
+  abyss: null,        // { depth, mods:[id], weekly, seed, mutations:[id], guardFloor, started }
+  abyssRec: null,     // 記録 (端末ローカル): { bestDepth, bestScore, runs, weekly:{[seed]:depth}, recent:[] }
 };
 
 const rand = (n) => Math.floor(Math.random() * n);
@@ -430,7 +437,111 @@ function curDungeon() { return DUNGEONS[G.dungeonIdx] || DUNGEONS[0]; }
 // 日付シード (日替わりクエスト・商店の無料受領の判定に使う)
 function dailySeed() { const d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
 
-function activeCfg() { return curDungeon(); }
+// ===== 無限迷宮「奈落」 =====
+// 奈落は実在の100迷宮を「素体」として循環参照し (themed なロスターを再利用)、
+// 深度に応じて enemyScale / lootLv / rank を連続的に底上げした合成 cfg を返す。
+const abyssActive = () => !!(G.abyss && G.abyss.started);
+// 深度 d (1..∞) → 素体にする迷宮番号 (1-100)。深いほど深層の迷宮を引き、100超で巡回する
+function abyssBaseN(d) {
+  const n = Math.min(100, 10 + Math.floor((d - 1) * 1.6)); // d1≒D10 → d56でD100到達
+  return ((n - 1) % 100) + 1;
+}
+function abyssCfg() {
+  const d = G.abyss.depth;
+  const base = DUNGEONS[abyssBaseN(d) - 1];
+  const rank = Math.min(10, Math.ceil(d / 4)); // d40 で rank10 に達し、以降は据え置き (火力は enemyScale が伸ばす)
+  return {
+    ...base,
+    id: base.id,                 // 層テーマ・dungeonNumber が参照するので素体のidを保つ
+    name: `無限迷宮 奈落 B${d}F`,
+    short: `奈落${d}`,
+    rank,
+    floors: 1e9,                 // 最深部で自動踏破しない (askDescend が奈落専用に分岐する)
+    boss: null,                  // 門番は askDescend 側で生成 (踏破=帰還にしない)
+    // 浅階/深階を区別せず両方のロスターを混ぜる (floors が巨大なので board.js は常に pool を引く)
+    pool: [...new Set([...(base.pool || []), ...(base.deepPool || [])])],
+    deepPool: [...new Set([...(base.deepPool || []), ...(base.pool || [])])],
+    enemyScale: Math.round((0.85 + (d - 1) * 0.075) * 100) / 100, // 連続的・青天井の難易度の壁
+    trapRate: Math.min(0.28, 0.06 + d * 0.0015 + (mutNum("poisonUp", false) ? 0.05 : 0)),
+    poisonRate: Math.min(0.14, 0.03 + d * 0.0008 + (mutNum("poisonUp", false) ? 0.05 : 0)),
+    warmChance: 0.45,
+    soulLevelBonus: Math.floor((Math.sqrt(d) - 1) * 1.8),
+    rankBonus: Math.round(1.25 * Math.log2(1 + d / 2) * 100) / 100,
+    lootLv: [Math.min(200, Math.round(18 + d * 1.8)), Math.min(200, Math.round(18 + d * 2.5))],
+    _abyss: true,
+  };
+}
+function activeCfg() { return abyssActive() ? abyssCfg() : curDungeon(); }
+
+// 変異の抽選乱数。週替りは (シード×深度×既得数) で決定的にし、全員同じ変異列になる
+function abyssRng() {
+  if (!G.abyss || !G.abyss.weekly) return Math.random;
+  const s = (G.abyss.seed ^ Math.imul(G.abyss.depth, 2654435761) ^ Math.imul(G.abyss.mutations.length + 1, 40503)) >>> 0;
+  return mulberry32(s);
+}
+// 新たな変異を1つ宿す。返り値は変異定義 (告知用)。
+function addAbyssMutation() {
+  if (!G.abyss) return null;
+  const id = rollAbyssMutation(abyssRng(), G.abyss.mutations);
+  if (!id) return null;
+  G.abyss.mutations.push(id);
+  return ABYSS_MUT_MAP[id];
+}
+// 変異の告知ポップアップ (呪い=赤系/恵み=金水系)。閉じると探索へ戻る
+function showAbyssMutationPopup(m) {
+  if (!m) { G.prompt = false; return; }
+  SFX.trap(); buzz([0, 30, 40, 30]);
+  showEvent({
+    sprite: ICONS.portal,
+    banner: m.kind === "boon" ? "✦ 奈落の恵み ✦" : "⚠ 奈落の変異 ⚠",
+    title: `${m.sym}「${m.name}」`,
+    accent: m.accent,
+    sparkle: m.kind === "boon",
+    lines: [m.kind === "boon" ? "深淵がわずかな恵みを差し出した。" : "深淵が牙を剥く。潜るほど、迷宮は手強くなる。", m.desc],
+    btnLabel: "受け入れる",
+    onClose: () => {},
+  });
+}
+
+// 奈落の門番 (10階ごと)。層ボスをローテーションで使い、深度相応に強化する
+function abyssGuardKey(depth) {
+  const i = Math.floor(depth / ABYSS_BOSS_EVERY) - 1; // 10F→0, 20F→1, …
+  return LAYER_BOSS[((i % LAYER_BOSS.length) + LAYER_BOSS.length) % LAYER_BOSS.length];
+}
+function abyssGuardRank(depth) { return Math.min(10, 3 + Math.floor(depth / ABYSS_BOSS_EVERY)); }
+// この階が門番階か (撃破済みでなければ true)
+function abyssBossPending() {
+  return abyssActive() && G.floor % ABYSS_BOSS_EVERY === 0 && G.abyss.guardFloor !== G.floor;
+}
+
+// ===== 記録 (端末ローカル) =====
+function abyssRecords() {
+  if (!G.abyssRec) G.abyssRec = { bestDepth: 0, bestScore: 0, runs: 0, weekly: {}, recent: [] };
+  return G.abyssRec;
+}
+// ランの確定 (撤退 or 全滅 or あきらめ)。reason: "return"|"wipe"
+function finalizeAbyss(reason) {
+  if (!G.abyss) return;
+  const rec = abyssRecords();
+  const depth = G.abyss.depth;
+  const score = abyssScore(depth, G.abyss.mods);
+  rec.runs++;
+  rec.bestDepth = Math.max(rec.bestDepth, depth);
+  rec.bestScore = Math.max(rec.bestScore, score);
+  if (G.abyss.weekly) rec.weekly[G.abyss.seed] = Math.max(rec.weekly[G.abyss.seed] || 0, depth);
+  rec.recent.unshift({ depth, score, mods: [...G.abyss.mods], weekly: G.abyss.weekly, reason, at: Date.now() });
+  rec.recent = rec.recent.slice(0, 8);
+  G.stats.abyssBest = Math.max(G.stats.abyssBest || 0, depth);
+  G.abyss = null;
+}
+
+// 奈落の門番に挑む (10階ごと)。撃破は踏破=帰還にせず、先へ進めるようにする
+function fightAbyssGuard(cell) {
+  const depth = G.abyss.depth;
+  const key = abyssGuardKey(depth);
+  log("奈落の門番が立ちはだかる！", "dmg");
+  startBattle(spawnBossEnemies(key, enemyScale() * 1.05, abyssGuardRank(depth)), cell);
+}
 
 // ===== 迷宮テーマ (20層) =====
 // 100迷宮 = 20層 × 5迷宮。層ごとにカード裏面の意匠・床の色味・探索BGMを束ねる。
@@ -595,7 +706,37 @@ const MUTATORS = [
 ];
 // 適用中の異変の定義 (なければ null) / 効果値の取り出し
 function mutDef() { return G.mutator ? MUTATORS.find((m) => m.id === G.mutator) || null : null; }
-function mutNum(key, dflt) { const m = mutDef(); return m && m[key] != null ? m[key] : dflt; }
+
+// 効果キーごとの合成方式: 倍率は積算 / 加算値は合算 / 確率系は最大 / 真偽は論理和。
+// これにより「迷宮の異変」「奈落の変異 (積み重ね)」「奈落の誓約」が同一フックでそのまま効く。
+const MUT_AGG = {
+  enemyMul: "mul", soulMul: "mul", goldMul: "mul",
+  ambushMul: "max", mimicRate: "max",
+  lootBonusLv: "add", packMin: "max", chestRankUp: "add",
+  noFlee: "or", elemAll: "or", noTrap: "or", poisonUp: "or",
+};
+// この潜入で効いている全修飾子源 (迷宮の異変 + 奈落の誓約 + 奈落の変異) を列挙
+function activeModifierDefs() {
+  const defs = [];
+  const md = mutDef(); if (md) defs.push(md);
+  if (G.abyss) {
+    for (const id of G.abyss.mods || []) { const m = ABYSS_MOD_MAP[id]; if (m) defs.push(m); }
+    for (const id of G.abyss.mutations || []) { const m = ABYSS_MUT_MAP[id]; if (m) defs.push(m); }
+  }
+  return defs;
+}
+function mutNum(key, dflt) {
+  const vals = [];
+  for (const d of activeModifierDefs()) if (d[key] != null) vals.push(d[key]);
+  if (!vals.length) return dflt;
+  switch (MUT_AGG[key]) {
+    case "mul": return vals.reduce((a, b) => a * b, 1);
+    case "add": return vals.reduce((a, b) => a + b, 0);
+    case "max": return vals.reduce((a, b) => Math.max(a, b), typeof dflt === "number" ? dflt : 0);
+    case "or": return vals.some(Boolean);
+    default: return vals[vals.length - 1]; // 既定: 最後 (= 単一異変の従来挙動)
+  }
+}
 
 const pickFrom = (arr) => arr[rand(arr.length)];
 function sfEachCell(b, fn) { for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) fn(b.cells[y][x]); }
@@ -702,6 +843,8 @@ function updateTopbar() {
 }
 
 function newFloor() {
+  // 奈落: 強敵・ミミック参照 (eliteKey/mimicRef は G.dungeonIdx を見る) を素体迷宮に同期
+  if (abyssActive()) G.dungeonIdx = abyssBaseN(G.abyss.depth) - 1;
   // ダンジョンが自前で持つ出現プール (pool=浅階 / deepPool=深階) を使う
   const cfg = activeCfg();
   G.board = makeBoard(G.floor, cfg);
@@ -3688,6 +3831,31 @@ function closePrompt() {
 
 // 階段: 降りるか選ぶ。最深階の階段は、層末迷宮では層ボスへの扉、それ以外では踏破口。
 function askDescend(cell) {
+  // 奈落: 最深部の概念がなく、ひたすら深く潜る。10階ごとに門番が立ちはだかる。
+  if (abyssActive()) {
+    if (abyssBossPending()) {
+      showChoice(
+        `深部から圧倒的な気配が漏れている。奈落の門番 (B${G.floor}F) に挑む？`,
+        [
+          { label: "⚔ 門番に挑む", danger: true, fn: () => fightAbyssGuard(cell) },
+          { label: "✋ まだ準備する", fn: () => { renderBoard(); } },
+        ],
+        ICONS.stairs,
+        { banner: "⚠ 奈落の門番 ⚠", accent: "#d4504e" }
+      );
+      return;
+    }
+    showChoice(
+      `さらに深い闇へ続く階段だ。B${G.floor + 1}F へ降りる？`,
+      [
+        { label: "▼ さらに潜る", fn: () => descend() },
+        { label: "✋ まだ探索する", fn: () => { renderBoard(); } },
+      ],
+      ICONS.stairs,
+      { banner: "✦ 奈落 ✦", accent: "#b08ac0" }
+    );
+    return;
+  }
   const dn = curDungeon();
   const atBottom = G.floor >= dn.floors;
   const boss = atBottom && !!dn.boss;        // 層末迷宮のみ最深部にボスがいる
@@ -4175,6 +4343,12 @@ function descend() {
   G.floor++;
   G.maxFloorReached = Math.max(G.maxFloorReached, G.floor);
   questProgress("floor", G.floor);
+  // 奈落: 深度を進め、節目で変異を積む (呪縛の誓は進行が速い)
+  if (G.abyss) {
+    G.abyss.depth = G.floor;
+    const every = G.abyss.mods.includes("cursed") ? 2 : ABYSS_MUT_EVERY;
+    if (G.floor % every === 0) G.abyss._pendingMut = addAbyssMutation();
+  }
   // 控えの結社 戦間回復 (fieldRegen): 階を降りるたび隊全体のHP/MPを少し回復
   const frLv = partyPassiveLv("fieldRegen");
   if (frLv) {
@@ -4227,6 +4401,13 @@ function descend() {
     ov.classList.add("out");
     setTimeout(() => {
       ov.remove();
+      // フロア突入演出の後始末: 奈落で変異が積まれていれば最後に告知する
+      const finishFloorIntro = () => {
+        if (G.abyss && G.abyss._pendingMut) {
+          const m = G.abyss._pendingMut; G.abyss._pendingMut = null;
+          showAbyssMutationPopup(m);
+        } else { G.prompt = false; }
+      };
       if (G.eliteFloor) {
         // 強敵階警告ポップアップ (この迷宮グループ固有の強敵を見せる)
         showEvent({
@@ -4239,7 +4420,7 @@ function descend() {
             "撃破すれば希少な戦利品を得られるだろう。",
           ],
           btnLabel: "覚悟する",
-          onClose: () => {},
+          onClose: finishFloorIntro,
         });
       } else if (sp) {
         // 特別階の告知ポップアップ (効果の説明)
@@ -4251,10 +4432,10 @@ function descend() {
           sparkle: true,
           lines: sp.lines,
           btnLabel: "進む",
-          onClose: () => {},
+          onClose: finishFloorIntro,
         });
       } else {
-        G.prompt = false;
+        finishFloorIntro();
       }
     }, 500);
   }, 1500);
@@ -5097,6 +5278,11 @@ function endBattle() {
       const eid = pickItemByR(dropCenterR({ elite: true })); // 適正帯より2ランク上のアイテム
       if (ITEMS[eid]) drop = { key: "elite", name: "強敵", id: eid, item: cloneItem(eid), rare: true };
     }
+    // 奈落の門番: 撃破で適正帯より上等な戦利品を確定で残す
+    if (wasGuard) {
+      const gid = pickItemByR(dropCenterR({ elite: true }));
+      if (ITEMS[gid]) drop = { key: "guard", name: "門番", id: gid, item: cloneItem(gid), rare: true };
+    }
     // soulClass を持つ敵 (人型・騎士など) はまれに魂を落とす (レアドロップ)
     for (const e of b.enemies) {
       const sc = e.alive ? null : (e.mon && e.mon.soulClass) || (MONSTERS[e.key] && MONSTERS[e.key].soulClass);
@@ -5109,8 +5295,15 @@ function endBattle() {
         progressQueue.push({ kind: "souldrop", clsKey, from: e.name });
       }
     }
-    // 迷宮踏破は本物の主戦のみ。死体から湧いた個体 (corpse) は boss フラグを持っていても踏破扱いにしない
-    const wasBoss = !corpse && b.enemies.some((e) => e.boss);
+    // 奈落の門番: boss フラグを持つが踏破=帰還ではない。撃破を記録して先へ進めるようにする
+    const wasGuard = abyssActive() && !corpse && b.enemies.some((e) => e.boss);
+    if (wasGuard) {
+      G.abyss.guardFloor = G.floor; // この階の門番は撃破済み → 階段で潜れる
+      flashScreen("#d4504e"); buzz([0, 60, 50, 60, 50, 250]);
+      setTimeout(() => showToast("⚔ 奈落の門番を打ち倒した！"), 400);
+    }
+    // 迷宮踏破は本物の主戦のみ。死体から湧いた個体 (corpse)・奈落の門番は踏破扱いにしない
+    const wasBoss = !corpse && !abyssActive() && b.enemies.some((e) => e.boss);
     if (wasBoss) { flashScreen("#ffd84a"); buzz([0, 60, 50, 60, 50, 250]); } // 主討伐は特別な瞬間
     else if (wasElite) { flashScreen("#d4504e"); buzz([0, 80, 50, 80, 50, 300]); setTimeout(() => showToast("☠ 強敵討伐！"), 400); }
     if (G.battleCell) G.battleCell.cleared = true;
@@ -5522,6 +5715,7 @@ function renderTown() {
   if (f === "codexJob") return renderCodexJob();
   if (f === "codexAch") return renderCodexAch();
   if (f === "treasury") return renderTreasury();
+  if (f === "abyss") return renderAbyss();
   renderTownHub();
 }
 
@@ -5616,6 +5810,22 @@ function renderTownHub() {
       det.appendChild(dlist);
       townEl.appendChild(det);
     }
+  }
+
+  // 無限迷宮「奈落」: D50 踏破で解放されるエンドコンテンツ。いつでも挑戦できる
+  if (featureUnlocked("infinite")) {
+    townEl.appendChild(el("div", "tw-h", "果てなき深淵"));
+    const rec = abyssRecords();
+    const abyssRow = el("div", "tw-dungeon");
+    const ai = el("div", "tw-chipi");
+    ai.appendChild(el("div", "tw-chipn", "✺ 無限迷宮「奈落」"));
+    ai.appendChild(el("div", "tw-chipc", rec.bestDepth ? `最深 B${rec.bestDepth}F ・ 最高 ${rec.bestScore.toLocaleString()}点` : "どこまでも潜れる。深さに果てはない。"));
+    abyssRow.appendChild(ai);
+    const ast = el("div", "tw-dunst");
+    ast.textContent = "挑戦";
+    abyssRow.appendChild(ast);
+    abyssRow.addEventListener("click", () => { SFX.select(); openAbyssSetup(); });
+    townEl.appendChild(abyssRow);
   }
 
   // 迷宮へ (常に1階から) — スクロール位置に関わらず押せるよう画面下部に固定表示
@@ -8815,8 +9025,154 @@ function enterDungeon(mutatorId) {
   renderBoard();
 }
 
+// ===== 無限迷宮「奈落」への潜入 =====
+function enterAbyss(mods, weekly) {
+  if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); SFX.ng(); return; }
+  const seed = weekly ? weekSeedId() : ((Math.random() * 0x7fffffff) >>> 0);
+  // savedIdx: 帰還後に通常迷宮の選択を元に戻すため控える (G.abyss に持たせ、保存に乗せる)
+  G.abyss = { depth: 1, mods: [...(mods || [])], weekly: !!weekly, seed, mutations: [], guardFloor: 0, started: true, savedIdx: G.dungeonIdx };
+  // 呪縛の誓: 潜入時から変異が2つ宿る
+  if (G.abyss.mods.includes("cursed")) { addAbyssMutation(); addAbyssMutation(); }
+  G.mutator = null;
+  G.bossDown = false;
+  G.portalFound = false;
+  SFX.stairs();
+  townEl.classList.add("hidden");
+  G.town.facility = null; G.town.sub = null;
+  G.floor = 1;
+  G.dungeonIdx = abyssBaseN(1) - 1;
+  G.eliteFloor = false;
+  G.specialFloor = null;
+  G.stats.runs++;
+  G.run = { gold: 0, soulPts: 0, items: [], souls: [] };
+  G.rumor = null; G.activeRumor = null; // 奈落では街の噂は持ち込まない
+  G.deliveryQuests = rollDeliveryQuests();
+  G.state = "board";
+  playBgm(fieldBgm());
+  if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
+  newFloor();
+  const tag = G.abyss.mods.length ? `${G.abyss.mods.length}つの誓約を背負い、` : "";
+  log(`✺ ${tag}無限迷宮「奈落」へ降りていく。果てまで潜れ。`, "win");
+  if (G.abyss.mutations.length) showAbyssMutationPopup(ABYSS_MUT_MAP[G.abyss.mutations[G.abyss.mutations.length - 1]]);
+  renderBoard();
+}
+
+// 潜入前の支度画面: 誓約の選択・モード (通常/今週) ・記録の閲覧
+let abyssSetupMods = [];   // 選択中の誓約
+let abyssSetupWeekly = false;
+function openAbyssSetup() {
+  if (!featureUnlocked("infinite")) { log("無限迷宮はまだ解放されていない。", "sys"); SFX.ng(); return; }
+  G.town.facility = "abyss";
+  abyssSetupMods = [];
+  abyssSetupWeekly = false;
+  renderTown();
+}
+function renderAbyss() {
+  townEl.appendChild(townHeader("無限迷宮「奈落」", "hub"));
+  const rec = abyssRecords();
+  // 記録パネル
+  const recBox = el("div", "tw-roster");
+  recBox.appendChild(el("div", "tw-h", "そなたの記録 (この端末に保存)"));
+  const stats = el("div", "tw-note");
+  stats.innerHTML = `最深到達 <b style="color:#b08ac0">B${rec.bestDepth}F</b> ／ 最高スコア <b style="color:#ffd84a">${rec.bestScore.toLocaleString()}</b> ／ 挑戦 ${rec.runs} 回`;
+  recBox.appendChild(stats);
+  const wk = weekSeedId();
+  const wkBest = rec.weekly[wk] || 0;
+  recBox.appendChild(el("div", "tw-note", `今週の挑戦 (シード #${wk}) 自己最深: ${wkBest ? "B" + wkBest + "F" : "未挑戦"}`));
+  townEl.appendChild(recBox);
+
+  // モード選択
+  const modeWrap = el("div", "tw-roster");
+  modeWrap.appendChild(el("div", "tw-h", "挑戦モード"));
+  const modeRow = el("div", "tw-rlist");
+  const mkMode = (label, on, fn) => { const b = btn(label, fn); b.className = "btn" + (on ? " primary" : ""); return b; };
+  modeRow.appendChild(mkMode("🕳 通常 (毎回ランダム)", !abyssSetupWeekly, () => { abyssSetupWeekly = false; renderTown(); }));
+  modeRow.appendChild(mkMode("📅 今週の挑戦 (固定シード)", abyssSetupWeekly, () => { abyssSetupWeekly = true; renderTown(); }));
+  modeWrap.appendChild(modeRow);
+  modeWrap.appendChild(el("div", "tw-note", abyssSetupWeekly
+    ? "今週は全プレイヤーが同じ変異列に挑む。同条件での実力比べだ。"
+    : "潜るたびに変異が変わる。気軽に最深を更新しにいける。"));
+  townEl.appendChild(modeWrap);
+
+  // 誓約 (縛り)
+  const oathWrap = el("div", "tw-roster");
+  const curMul = abyssScoreMul(abyssSetupMods);
+  oathWrap.appendChild(el("div", "tw-h", `誓約 (任意) — スコア倍率 ×${curMul.toFixed(2)}`));
+  oathWrap.appendChild(el("div", "tw-note", "誓約を背負うほど過酷になるが、スコアが大きく伸びる。複数選択できる。"));
+  for (const m of ABYSS_MODS) {
+    const on = abyssSetupMods.includes(m.id);
+    const row = el("div", "tw-dungeon" + (on ? " sel" : ""));
+    const info = el("div", "tw-chipi");
+    info.appendChild(el("div", "tw-chipn", `${on ? "✔ " : ""}${m.sym} ${m.name} ×${m.scoreMul}`));
+    info.appendChild(el("div", "tw-chipc", m.desc));
+    row.appendChild(info);
+    row.addEventListener("click", () => {
+      SFX.select();
+      if (on) abyssSetupMods = abyssSetupMods.filter((x) => x !== m.id);
+      else abyssSetupMods.push(m.id);
+      renderTown();
+    });
+    oathWrap.appendChild(row);
+  }
+  townEl.appendChild(oathWrap);
+
+  // 直近のラン
+  if (rec.recent.length) {
+    const recentWrap = el("div", "tw-roster");
+    recentWrap.appendChild(el("div", "tw-h", "直近の挑戦"));
+    for (const r of rec.recent) {
+      const line = el("div", "tw-note");
+      const md = r.mods.length ? ` ・誓約${r.mods.length}` : "";
+      line.textContent = `${r.weekly ? "📅" : "🕳"} B${r.depth}F ・ ${r.score.toLocaleString()}点${md} ・ ${r.reason === "wipe" ? "全滅" : "撤退"}`;
+      recentWrap.appendChild(line);
+    }
+    townEl.appendChild(recentWrap);
+  }
+
+  // 潜入ボタン (画面下部に固定)
+  const divebar = el("div", "tw-divebar");
+  const dive = btn(`✺ 奈落へ降りる (スコア ×${curMul.toFixed(2)})`, () => enterAbyss(abyssSetupMods, abyssSetupWeekly));
+  dive.className = "btn primary tw-dive";
+  divebar.appendChild(dive);
+  townEl.appendChild(divebar);
+}
+
+// 帰還時の奈落リザルト
+function showAbyssSummary({ depth, score, weekly, mods, newDepth, newScore }) {
+  const lines = [
+    `到達深度 B${depth}F`,
+    `スコア ${score.toLocaleString()} (誓約 ×${abyssScoreMul(mods).toFixed(2)})`,
+  ];
+  if (newDepth) lines.push("★ 最深到達を更新した！");
+  if (newScore && !newDepth) lines.push("★ 最高スコアを更新した！");
+  if (weekly) lines.push("今週の挑戦の記録に刻まれた。");
+  showEvent({
+    sprite: ICONS.portal,
+    banner: "✺ 奈落の記録 ✺",
+    title: "深淵からの帰還",
+    accent: "#b08ac0",
+    sparkle: newDepth || newScore,
+    lines,
+    btnLabel: "称える",
+    onClose: () => renderTown(),
+  });
+}
+
 // 街へ無事帰還 (戦利品は保持)。keepRun=true で run を確定 (戦利品維持)
 function returnToTown() {
+  // 奈落のランは帰還で確定する。記録更新を判定するため、確定前に控えておく
+  let abyssSummary = null;
+  if (G.abyss) {
+    const rec = abyssRecords();
+    const depth = G.abyss.depth, score = abyssScore(depth, G.abyss.mods);
+    const newDepth = depth > rec.bestDepth, newScore = score > rec.bestScore;
+    const reason = G.party.some((p) => p.alive) ? "return" : "wipe";
+    const savedIdx = G.abyss.savedIdx;
+    abyssSummary = { depth, score, weekly: G.abyss.weekly, mods: [...G.abyss.mods], newDepth, newScore, reason };
+    finalizeAbyss(reason);
+    // 奈落中は素体迷宮へ付け替えていた選択を元に戻す
+    if (savedIdx != null) G.dungeonIdx = Math.min(DUNGEONS.length - 1, Math.max(0, savedIdx));
+  }
   G.state = "town";
   G.battle = null; G.battleCell = null;
   G.eliteFloor = false;
@@ -8835,6 +9191,7 @@ function returnToTown() {
   log("街へ帰還した。", "sys");
   G.town.facility = null; G.town.sub = null;
   renderTown();
+  if (abyssSummary) showAbyssSummary(abyssSummary);
 }
 
 function confirmReturnToTown() {
@@ -9825,6 +10182,8 @@ function doUnequip(p, key) {
 function useItem(p, index) {
   const it = p.items[index];
   if (!it || it.slot !== "use") return;
+  // 無頼の誓 (奈落の縛り): 道具 (消耗品) を一切使えない
+  if (G.abyss && G.abyss.mods.includes("noItems")) { SFX.ng(); log("無頼の誓により、道具は使えない。", "sys"); return; }
   let used = false;
   if (it.use.heal) {
     if (p.hp >= p.maxhp) { log(`${p.name}のHPは満タンだ`, "sys"); }
@@ -10396,7 +10755,7 @@ if (settingsBtn) settingsBtn.addEventListener("click", () => {
 const SAVE_KEY = "dos-save-v6"; // v6 = 100迷宮を20層×5迷宮へ再構成 (旧セーブは孤立させる)
 // 保存する G のフィールド (アニメーション等の一時状態は除外)
 const SAVE_FIELDS = [
-  "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound",
+  "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
   "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "order", "story", "dragonSlain", "stats",

@@ -2,7 +2,7 @@
 // ・迷宮は generator.js が番号 (1-100) から決定的に生成する (手書き設定は廃止)
 // ・モンスターは bestiary.js がランク1-10で束ねる (旧 d01-d04 の個体は id を保ったまま吸収)
 // ・モンスター追加 = bestiary.js に追記するだけ。該当ランクの迷宮に自動で出現する
-import { BESTIARY, ELITE_ORDER as EO } from "./bestiary.js";
+import { BESTIARY, ELITE_ORDER as EO, LAYER_BOSS as LB } from "./bestiary.js";
 import { DUNGEONS as GENERATED } from "./generator.js";
 
 export { MON_RACES, RACE_LABEL, ELEMENTS, elemMult, elemBeats, elemDmgMult, TRAITS, monsterTraitKeys, monsterTraits } from "./schema.js";
@@ -16,3 +16,6 @@ export const DUNGEON_MONSTERS = BESTIARY;
 
 // 強敵の割り当て順 (ランク帯×帯内グループ → 強敵id、30体)
 export const ELITE_ORDER = EO;
+
+// 層ボス (20体)。無限迷宮の門番がローテーションで参照する
+export const LAYER_BOSS = LB;
