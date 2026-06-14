@@ -19,7 +19,7 @@ import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, soulSprite, jobSprite, dollSprite,
   recalcDoll, jobStatsOf, soulLevelCap, soulLevelCapOf, setSharedSouls, MAX_SUBS,
   soulByUid, makeSoulInstance, allSoulInstances, soulRankOf, soulLearnedSkills, soulLearnedPassives,
-  ORDER_PERK, orderPassiveMap,
+  ORDER_PERK, orderPassiveMap, orderPerkLv,
   PASSIVES, passiveName, passiveDesc,
   ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
   SOUL_RANKS, rollJobClass, rollGreatJobClass, SOUL_STAT_UP,
@@ -782,9 +782,10 @@ function renderBoard() {
   const reachable = (G.state === "board" && !G.anim && !G.walking)
     ? getReachableCells() : null;
 
-  // 感知パッシブ: 未公開カードに敵 (敵感知) / 財宝 (財宝感知) の気配を浮かべる
-  const senseE = partyPassiveLv("senseEnemy") > 0;
-  const senseT = partyPassiveLv("senseTreasure") > 0;
+  // 感知パッシブ: 未公開カードに敵 (敵感知) / 財宝 (財宝感知) の気配を浮かべる。
+  // Lv2: 敵感知=強敵を強調 / 財宝感知=帰還ポータルも。Lv3: 敵感知=属性色 / 財宝感知=罠も。
+  const senseE = partyPassiveLv("senseEnemy");    // 0/1/2/3
+  const senseT = partyPassiveLv("senseTreasure"); // 0/1/2/3
 
   for (let y = 0; y < ROWS; y++) {
     for (let x = 0; x < COLS; x++) {
@@ -799,8 +800,17 @@ function renderBoard() {
       }
       drawCard(r, cell, scaleX, showBack);
       if (!cell.revealed && !cell.cleared) {
-        const mark = senseE && cell.type === "monster" ? { text: "!", color: "#ff6b5e" }
-          : senseT && cell.type === "chest" ? { text: "✦", color: "#ffd84a" } : null;
+        let mark = null;
+        if (senseE && cell.type === "monster") {
+          const strong = senseE >= 2 && cell.elite;
+          let color = strong ? "#ff3b30" : "#ff8a5e";
+          if (senseE >= 3) { const el = (MONSTERS[cell.monsterKey] || {}).element; const ec = (ELEMENTS[el] || {}).color; if (ec) color = ec; }
+          mark = { text: strong ? "‼" : "!", color };
+        } else if (senseT) {
+          if (cell.type === "chest") mark = { text: "✦", color: "#ffd84a" };
+          else if (senseT >= 2 && cell.type === "portal") mark = { text: "⏏", color: "#6fe0d0" };
+          else if (senseT >= 3 && cell.type === "trap") mark = { text: "▲", color: "#ff7a5e" };
+        }
         if (mark) {
           vctx.save();
           vctx.shadowColor = mark.color;
@@ -3281,7 +3291,14 @@ function resolveCell(cell) {
       // 毒の床: 踏むたびに隊全体を蝕む。毒床耐性 (盗賊系) で半減/無効
       const resist = partyPassiveLv("poisonFloor");
       if (resist >= 2) {
-        log("毒の床だ。だが足音ひとつ立てず無傷で渡った。", "sys");
+        if (resist >= 3) { // Lv3: 無効化に加え、渡るたび隊全体をHP2%回復
+          let healed = false;
+          for (const p of G.party) { if (!p.alive) continue; const h = Math.max(1, Math.ceil(p.maxhp * 0.02)); if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + h); healed = true; } }
+          log(healed ? "毒の床を浄化して渡った。澱みが力に変わり、隊の傷が癒えた。" : "毒の床を浄化して渡った。", "sys");
+          if (healed) renderParty();
+        } else {
+          log("毒の床だ。だが足音ひとつ立てず無傷で渡った。", "sys");
+        }
         break;
       }
       SFX.trap(); buzz([0, 40, 30, 40]);
@@ -4226,8 +4243,11 @@ function startBattle(enemies, cell) {
     const vig = partyPassiveLv("vigilance");
     // 迷宮の異変 (闇討ちの宴): 奇襲率が跳ね上がる (周囲警戒は引き続き有効)
     const amb = (spFloor && spFloor.noAmbush) ? 0 : 0.08 * mutNum("ambushMul", 1) * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1);
-    // 追い風の階 (preempt100) では必ず先手を取れる
-    const pre = (spFloor && spFloor.preempt100) ? 1 : 0.08 + (partyPassiveLv("initiative") ? 0.15 : 0);
+    // 追い風の階 (preempt100) では必ず先手を取れる。
+    // 先制の心得 (initiative) で +15/25/40%、周囲警戒Lv3 で挑戦時さらに +10%
+    const ini = partyPassiveLv("initiative");
+    const iniBonus = ini >= 3 ? 0.40 : ini >= 2 ? 0.25 : ini >= 1 ? 0.15 : 0;
+    const pre = (spFloor && spFloor.preempt100) ? 1 : 0.08 + iniBonus + (vig >= 3 ? 0.10 : 0);
     const r = Math.random();
     if (r < amb) opening = "ambush";
     else if (r < amb + pre) opening = "preempt";
@@ -4986,8 +5006,8 @@ function endBattle() {
     // 金運 (goldLuck) / 魂寄せ (soulLure) は戦闘報酬を底上げする (隊内最高Lvのみ)
     const { soul, gold } = b.rewards();
     const gl = partyPassiveLv("goldLuck"), sl = partyPassiveLv("soulLure");
-    const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)));
-    const soulGot = runGainSoulPts(Math.round(soul * (sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1)));
+    const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)));
+    const soulGot = runGainSoulPts(Math.round(soul * (sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1)));
     applyVictoryPassives();
     // 入手Soulの1/5を生存メンバー全員の全部位の魂に加算 → レベルアップ/スキル習得を集計
     const progressQueue = distributeBattleSoulExp(soulGot);
@@ -6179,7 +6199,7 @@ function renderOrderSection() {
     const perk = ORDER_PERK[s.clsKey];
     const rank = soulRankOf(s);
     if (!perk || !PASSIVES[perk]) continue;
-    const lv = Math.min(PASSIVES[perk].lv.length, rank >= 4 ? 2 : 1);
+    const lv = Math.min(PASSIVES[perk].lv.length, orderPerkLv(rank));
     const isSeated = seatedSet.has(s.uid);
     const r = el("div", "tw-soulrow");
     if (isSeated) { r.style.borderLeft = `3px solid ${cls.glow}`; r.style.paddingLeft = "5px"; }
@@ -7633,7 +7653,8 @@ function recordMonsterKill(key, dungeonIdx) {
 // 勝利時の汎用戦利品抽選 (固有ドロップ廃止に伴う置換)。通常30% / レア4%。
 // 中身は迷宮の lootLv 帯から引く (レアは一段深い帯)。実物は勝利後の宝箱から取り出す。
 function rollGenericDrop() {
-  const ap = partyPassiveLv("appraise") ? 1.15 : 1; // 目利き: ドロップ率+15%
+  const apLv = partyPassiveLv("appraise"); // 目利き: ドロップ率 +15/25/40%
+  const ap = apLv >= 3 ? 1.40 : apLv >= 2 ? 1.25 : apLv >= 1 ? 1.15 : 1;
   // 特別階 (盗賊の洞察): レアドロップ率が上がる
   if (Math.random() < Math.max(sfNum("rareDropRate", 0.04 * ap), mutNum("rareDropRate", 0))) {
     const id = pickItemByR(dropCenterR({ rare: true }));
