@@ -3,7 +3,7 @@
 // ・帯内の進行は enemyScale (0.7→1.7) が受け持ち、ランク境界の段差を均す
 // ・報酬系 (lootLv / rankBonus / soulLevelBonus) は n の連続関数。
 //   rankBonus は対数で伸ばし、最深部でも伝説の魂が「稀」であり続けるようにする
-import { RANK_POOLS, BOSS_ORDER, LAYER_BOSS, LAYER_POOLS } from "./bestiary.js";
+import { RANK_POOLS, BOSS_ORDER, LAYER_BOSS, LAYER_POOLS, BESTIARY } from "./bestiary.js";
 
 export const DUNGEON_COUNT = 100;
 export const LAYER_COUNT = 20;
@@ -175,11 +175,14 @@ export function generateDungeon(n) {
 
   // 層のプールのみから抽選する (層をまたいで敵を混ぜない)。
   // 専用ロスター (LAYER_POOLS) があればそれを、無ければ暫定のランクプールを使う。
-  // p ごとに開始位置をずらし、層内の5迷宮で顔ぶれを変える。
+  // ロスターを「ランク昇順 → id順」に並べ、層内の5迷宮で出現窓 (浅階3種+深階3種) を
+  // 弱い側から強い側へ滑らせる。層の入口 (D1/D6/…) は弱い敵から始まり、層末ほど強敵が出る
+  // なだらかな難易度曲線になり、窓は層ロスターの全種を端から端まで覆う (出番のない敵を作らない)。
   const regulars = LAYER_POOLS[layer] || RANK_POOLS[r].regular;
-  const sorted = [...regulars].sort();
+  const rankOf = (id) => (BESTIARY[id] && BESTIARY[id].rank) || 0;
+  const sorted = [...regulars].sort((a, b) => rankOf(a) - rankOf(b) || (a < b ? -1 : a > b ? 1 : 0));
   const m = sorted.length;
-  const start = (p * 2) % m;
+  const start = Math.round(p * Math.max(0, m - 6) / 4);
   const pool = [0, 1, 2].map(i => sorted[(start + i) % m]);
   const deep = [3, 4, 5].map(i => sorted[(start + i) % m]);
 

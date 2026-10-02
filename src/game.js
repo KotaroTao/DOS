@@ -2,7 +2,7 @@
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSprite, drawSpriteFit } from "./sprites.js";
 import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, Battle, SPELLS, cloneItem, spellCost } from "./combat.js";
-import { initAudio, SFX, playBgm, toggleMute, isMuted } from "./audio.js";
+import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas } from "./sprites.js";
 import {
   ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, recalc, equip as equipItem, unequip as unequipItem, canEquip, slotKeyFor,
@@ -33,6 +33,12 @@ import {
   identifyChance, canIdentify, identifyLabel,
 } from "./souls.js";
 import { showOpening } from "./opening.js";
+import { TOWN_ICONS, KING_PORTRAIT, createTownScene } from "./townart.js";
+import { drawBattleBackdrop } from "./backdrops.js";
+import { showTitle } from "./title.js";
+
+// 視差・揺れを抑える設定 (OSの「視差効果を減らす」)。待機アニメなどを止める
+const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } })();
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 
 // ===== コンテンツの取り込み =====
@@ -319,8 +325,18 @@ const rand = (n) => Math.floor(Math.random() * n);
 
 // ハプティクス (対応端末のみ)。パターン: 数値 or [待ち,振動,待ち,振動...]
 function buzz(p) {
+  if (!PREFS.vibrate) return;
   if (navigator.vibrate) { try { navigator.vibrate(p); } catch {} }
 }
+
+// 端末ごとの好み (音量・振動)。セーブデータとは別に保存し、「はじめから」でも消えない
+const PREFS_KEY = "dos-prefs";
+const PREFS = (() => {
+  const d = { bgm: 0.8, sfx: 1, vibrate: true };
+  try { return { ...d, ...(JSON.parse(localStorage.getItem(PREFS_KEY)) || {}) }; } catch { return d; }
+})();
+function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(PREFS)); } catch {} }
+setVolumes(PREFS.bgm, PREFS.sfx);
 
 // ---- 潜入中の戦利品トラッキング (全滅ペナルティ / Red Soul帰還で使う) ----
 const inDungeon = () => G.state === "board" || G.state === "combat" || G.state === "over";
@@ -419,9 +435,19 @@ function shakeScreen(strong = false) {
 }
 
 function log(msg, cls = "sys") {
+  // 直前と同じ文 (壁にぶつかり続けた時など) は行を増やさず「×N」で数える
+  const last = logEl.lastElementChild;
+  if (last && last._msg === msg && last.className === "l-" + cls) {
+    last._n = (last._n || 1) + 1;
+    last.textContent = `${msg} ×${last._n}`;
+    _logPinned = true;
+    scrollLogBottom();
+    return;
+  }
   const div = document.createElement("div");
   div.className = "l-" + cls;
   div.textContent = msg;
+  div._msg = msg;
   logEl.appendChild(div);
   while (logEl.children.length > 80) logEl.removeChild(logEl.firstChild);
   // 新しいメッセージが来たら最下部へ貼り付け直す。iOS Safari 等では appendChild 直後の
@@ -943,7 +969,12 @@ function walkerSprite() {
   return lead.isDoll ? dollSprite(lead) : HERO;
 }
 
+// 画面下の操作ヒント: 場面 (探索/戦闘) に合わせて差し替える
+const hintEl = document.getElementById("hint");
+function setHint(t) { if (hintEl && hintEl.textContent !== t) hintEl.textContent = t; }
+
 function renderBoard() {
+  setHint("スワイプで移動 ・ タップで移動先指定 ・ 青枠はめくれるカード");
   updateDescendBtn();
   updateReturnBtn();
   drawFloor();
@@ -4504,8 +4535,10 @@ function startBattle(enemies, cell) {
   autosave(true); // 戦闘開始を保存
   // 居合・開幕呪撃の演出を先に流してから手番処理へ (発動を視覚的に伝える)
   const opens = G.battle.openingResults || [];
-  if (opens.length) { renderCombat(); playOpeningStrikes(opens, 0, combatStep); }
-  else combatStep(); // 素早い敵が先手なら自動で動く
+  playBattleIntro(() => {
+    if (opens.length) { renderCombat(); playOpeningStrikes(opens, 0, combatStep); }
+    else combatStep(); // 素早い敵が先手なら自動で動く
+  });
 }
 
 // 戦闘開始時の自動攻撃 (居合/開幕呪撃) を1つずつ斬撃エフェクトで見せる
@@ -4530,22 +4563,11 @@ function renderCombatCanvas() {
   const b = G.battle;
   const fx = G.fx;
   const now = performance.now();
-  // 背景: 闇 + 紫の奥光 + 石床
-  vctx.fillStyle = "#06050a";
-  vctx.fillRect(0, 0, view.width, view.height);
-  const grad = vctx.createRadialGradient(view.width / 2, view.height * 0.36, 24, view.width / 2, view.height * 0.36, view.width * 0.72);
-  grad.addColorStop(0, "#241733");
-  grad.addColorStop(0.55, "#120c1c");
-  grad.addColorStop(1, "#06050a");
-  vctx.fillStyle = grad;
-  vctx.fillRect(0, 0, view.width, view.height);
-  // 地面のライン
-  const floorY = view.height * 0.62;
-  const fgr = vctx.createLinearGradient(0, floorY, 0, view.height);
-  fgr.addColorStop(0, "rgba(110,80,140,0.16)");
-  fgr.addColorStop(1, "rgba(0,0,0,0)");
-  vctx.fillStyle = fgr;
-  vctx.fillRect(0, floorY, view.width, view.height - floorY);
+  // 背景: 層ごとの戦場 (墓地・水路・廃坑…)。ボス/強敵戦は禍々しい光を重ねる
+  drawBattleBackdrop(vctx, view.width, view.height, battleLayer(), now, {
+    boss: b.enemies.some((e) => e.boss),
+    elite: b.enemies.some((e) => e.mon && e.mon.elite),
+  });
 
   // 味方スプライトは非表示。敵は画面全幅に左右対称で配置する (中央寄せ)
   const HERO_ZONE = 0; // 左の余白なし: 敵をキャンバス中央に揃える
@@ -4557,6 +4579,7 @@ function renderCombatCanvas() {
   const rows = backRow.length
     ? [{ list: backRow, y: view.height * 0.30, back: true }, { list: frontRow, y: view.height * 0.49, back: false }]
     : [{ list: frontRow, y: view.height * 0.40, back: false }];
+  const intro = G.battleIntro && G.battleIntro.battle === b ? G.battleIntro : null;
   // タップで狙える敵 = 攻撃が届く敵のみ (対象選択中は候補、入力中は手番キャラの武器射程)
   const targetable = new Set(
     G.animating ? []
@@ -4581,7 +4604,28 @@ function renderCombatCanvas() {
         if (Math.floor(dt / 55) % 2 === 0) alpha = 0.35;
       }
     }
+    // 待機中の呼吸: 敵ごとに位相をずらしてゆっくり上下する (被弾・踏み込み中は止める)
+    if (!hf && !(fx && fx.lunge && fx.lunge.uid === e.uid) && !REDUCED_MOTION) {
+      oy += Math.round(Math.sin(now * 0.0024 + (e.uid || i) * 1.7) * 1.6);
+    }
     const size = e.boss ? 14 : row.back ? 8 : 9; // 後衛は奥にいるぶん少し小さい
+    // 戦闘開始の演出: 1体ずつ上から降り立つ (着地するまで名札やHPは出さない)
+    if (intro) {
+      const k = b.enemies.indexOf(e);
+      const p = Math.max(0, Math.min(1, (now - intro.t0 - k * 70) / 280));
+      if (p < 1) {
+        const ease = 1 - Math.pow(1 - p, 3);
+        vctx.save();
+        vctx.globalAlpha = 0.45 * ease;
+        vctx.fillStyle = "#000";
+        vctx.beginPath();
+        vctx.ellipse(baseX, baseY + size * 5.4, size * 3.4 * (0.4 + 0.6 * ease), size * 1.1, 0, 0, Math.PI * 2);
+        vctx.fill();
+        vctx.restore();
+        drawSpriteFit(vctx, e.mon, baseX, baseY - (1 - ease) * 34, size, alpha * p);
+        return;
+      }
+    }
     // 入力/ターゲット選択中: タップで攻撃できる敵に金のリングとマーカーを表示
     const tappable = e.alive && targetable.has(e);
     if (tappable) {
@@ -4661,7 +4705,91 @@ function renderCombatCanvas() {
   });
 
   if (fx) drawEffects(fx, now);
+  if (intro) drawBattleIntro(intro, now);
 }
+
+// 戦闘開始の演出: 暗転から明け、迷宮の主なら名乗りの帯を掲げる
+function drawBattleIntro(intro, now) {
+  const t = now - intro.t0;
+  const W = view.width, H = view.height;
+  if (t < 220) {
+    vctx.save();
+    vctx.globalAlpha = 1 - t / 220;
+    vctx.fillStyle = "#000";
+    vctx.fillRect(0, 0, W, H);
+    vctx.restore();
+  }
+  if (!intro.boss) return;
+  const a = Math.min(1, Math.max(0, (t - 120) / 220)) * Math.min(1, Math.max(0, (intro.dur - t) / 320));
+  if (a <= 0) return;
+  const by = H * 0.75, bh = 46;
+  const slide = (1 - Math.min(1, Math.max(0, (t - 120) / 260))) * 40;
+  vctx.save();
+  vctx.globalAlpha = a;
+  const g = vctx.createLinearGradient(0, 0, W, 0);
+  g.addColorStop(0, "rgba(10,4,8,0)");
+  g.addColorStop(0.2, "rgba(20,6,10,0.88)");
+  g.addColorStop(0.8, "rgba(20,6,10,0.88)");
+  g.addColorStop(1, "rgba(10,4,8,0)");
+  vctx.fillStyle = g;
+  vctx.fillRect(0, by, W, bh);
+  vctx.fillStyle = "#c9a227";
+  vctx.fillRect(W * 0.12, by, W * 0.76, 1);
+  vctx.fillRect(W * 0.12, by + bh - 1, W * 0.76, 1);
+  vctx.textAlign = "center";
+  vctx.fillStyle = "#d4504e";
+  vctx.font = "bold 10px monospace";
+  vctx.fillText("— 迷宮の主 —", W / 2 - slide, by + 14);
+  vctx.font = "bold 20px monospace";
+  vctx.lineWidth = 4;
+  vctx.strokeStyle = "#000";
+  vctx.strokeText(intro.boss, W / 2 + slide, by + 37);
+  vctx.fillStyle = "#ffd84a";
+  vctx.fillText(intro.boss, W / 2 + slide, by + 37);
+  vctx.restore();
+}
+
+// 戦闘開始の演出を流してから done (手番処理) へ。演出中は入力を受けない
+function playBattleIntro(done) {
+  const b = G.battle;
+  const boss = b.enemies.find((e) => e.boss);
+  if (REDUCED_MOTION) { done(); return; }
+  const dur = (boss ? 1500 : 420 + b.enemies.length * 70) * (G.fastAnim ? 0.6 : 1);
+  G.battleIntro = { battle: b, t0: performance.now(), dur, boss: boss ? (boss.mon && boss.mon.name) || boss.name : null };
+  G.animating = true;
+  combatMenu.innerHTML = "";
+  setHint("敵をタップで攻撃 ・ スキルは長押しで詳細 ・ ⚡オートで自動戦闘");
+  renderParty();
+  const tick = () => {
+    if (!G.battleIntro || G.battle !== b) return;
+    renderCombatCanvas();
+    if (performance.now() - G.battleIntro.t0 >= dur) {
+      G.battleIntro = null;
+      G.animating = false;
+      done();
+    } else requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+// 戦闘背景に使う層 (1-20)。奈落は素体迷宮の層を引き継ぐ (盤面のテーマと揃える)
+function battleLayer() {
+  const cfg = activeCfg();
+  return cfg && cfg.layer ? cfg.layer : layerOf(dungeonNumber(cfg));
+}
+
+// 戦闘の常時アニメーション: 行動入力を待つ間も背景の粒子・敵の呼吸・照準リングを動かす。
+// 演出中 (G.animating) は各 tick が描くので触らない。約20fpsに間引き、背面タブでは止まる
+let _combatAnimLast = 0;
+function combatAnimLoop(ts) {
+  requestAnimationFrame(combatAnimLoop);
+  if (G.state !== "combat" || !G.battle || G.animating || G.fx) return;
+  if (G.prompt || G.statusOpen || G.settingsOpen) return;
+  if (ts - _combatAnimLast < 50) return;
+  _combatAnimLast = ts;
+  renderCombatCanvas();
+}
+requestAnimationFrame(combatAnimLoop);
 
 // 敵にかかっている強化(▲)/弱体(▼)を名前プレート付近に小さなピルで描く。
 // 能力(攻/守/速)ごとに集約し、段階ぶんの矢印と最短残ターンを添える。
@@ -4771,12 +4899,15 @@ function drawEffects(fx, now) {
     const t = (now - f.t0) / 700;
     if (t < 0 || t > 1) continue; // t0 が未来 (多段の2撃目以降) のものはまだ描かない
     vctx.save();
-    vctx.globalAlpha = 1 - t;
+    vctx.globalAlpha = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3; // しばらく留まってから消える
     vctx.fillStyle = f.color;
     vctx.strokeStyle = "#000";
     vctx.lineWidth = 3;
-    vctx.font = "bold 18px monospace";
-    const yy = f.y - t * 26;
+    // 出た瞬間に大きく弾んで落ち着く (会心はさらに大きく)
+    const pop = t < 0.12 ? 1 + (f.big ? 0.9 : 0.45) * (1 - t / 0.12) : 1;
+    const px = Math.round((f.big ? 24 : f.small ? 12 : 18) * pop);
+    vctx.font = `bold ${px}px monospace`;
+    const yy = f.y - Math.sin(Math.min(1, t * 1.6) * Math.PI / 2) * 26;
     vctx.strokeText(f.text, f.x, yy);
     vctx.fillText(f.text, f.x, yy);
     vctx.restore();
@@ -4817,6 +4948,7 @@ function renderAutoBanner(actor) {
 
 function renderCombatMenu() {
   const b = G.battle;
+  setHint("敵をタップで攻撃 ・ スキルは長押しで詳細 ・ ⚡オートで自動戦闘");
   combatMenu.innerHTML = "";
   if (G.animating) { if (G.autoCombat) renderAutoBanner(); return; } // アニメーション中は解除のみ可
   if (b.phase === "input") {
@@ -5060,7 +5192,10 @@ function applyImpact(res) {
         fx.slashes.push({ x: pos.cx, y: pos.cy, t0: ht0 });
       }
       if (idx === 0 || !fx.flash[h.target.uid]) fx.flash[h.target.uid] = { t0: ht0 };
-      if (h.dmg != null) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 18, text: String(h.dmg) + (h.crit ? "!" : ""), color: h.crit ? "#ffd84a" : "#fff", t0: ht0 });
+      if (h.dmg != null) {
+        fx.floats.push({ x: pos.cx + dx, y: pos.cy - 18, text: String(h.dmg) + (h.crit ? "!" : ""), color: h.crit ? "#ffd84a" : "#fff", t0: ht0, big: !!h.crit });
+        if (h.crit) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 44, text: "会心!", color: "#ffb02e", t0: ht0, small: true });
+      }
       else if (h.heal != null) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 18, text: "+" + h.heal, color: "#7CFC7C", t0: ht0 }); // 敵の回復役による回復
       // 敵にかかった強化/弱体も発動フロートで知らせる (ピル表示に加えて瞬間を可視化)
       if (h.buff || h.debuff) { const mt = buffFloatText(h); fx.floats.push({ x: pos.cx + dx, y: pos.cy - 34, text: mt.text, color: mt.color, t0: ht0 }); }
@@ -5510,8 +5645,32 @@ function showDungeonClearedPopup({ idx, isStoryTarget }) {
   });
   ok.className = "btn primary ig-ok";
   card.appendChild(ok);
+  // 層の主を討った時 (層末の迷宮) は戦果を共有できる
+  if (dn.boss) {
+    const sh = btn("📣 戦果をシェア", (e) => { if (e) e.stopPropagation(); shareProgress(`第${dn.layer}層の主を討ち、「${dn.name}」を踏破した！`); });
+    sh.className = "btn ig-ok share-btn";
+    card.appendChild(sh);
+  }
   itemGetEl.appendChild(card);
   itemGetEl.classList.remove("hidden");
+}
+
+// 戦績の共有: Web Share API (スマホの共有シート) → 無ければクリップボードへ写す
+const GAME_URL = "https://kotarotao.github.io/DOS/";
+function shareProgress(headline) {
+  const text = `${headline}\n` +
+    `踏破 ${clearedDungeonCount()}/100迷宮 ・ 最深 B${G.stats.deepest}F ・ 討伐 ${G.stats.kills}体\n` +
+    `#百の迷宮と魂の王`;
+  const data = { title: "百の迷宮と 魂の王", text, url: GAME_URL };
+  try {
+    if (navigator.share) { navigator.share(data).catch(() => {}); return; }
+  } catch {}
+  const full = `${text}\n${GAME_URL}`;
+  const done = () => showToast("📋 戦績をコピーした");
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(full).then(done, () => showToast("共有できなかった")); return; }
+  } catch {}
+  showToast("共有できなかった");
 }
 
 // ---- パーティ表示 ----
@@ -5543,15 +5702,33 @@ function renderParty() {
       <div class="nums">MP ${p.mp}/${p.maxmp}</div>` : ""}
       ${buffBadges(p)}
     `;
+    const pic = partyPortrait(p);
+    if (pic) { card.classList.add("has-pic"); card.appendChild(pic); }
     partyEl.appendChild(card);
   });
+}
+
+// パーティカードの顔アイコン (職業の姿)。renderParty は盤面の常時アニメで毎フレーム呼ばれるため、
+// 人業ごとに描いた canvas を使い回す (職業/ランクが変わった時だけ描き直す)
+const _partyPics = new WeakMap();
+function partyPortrait(p) {
+  if (!p || !p.isDoll || p.primary == null) return null;
+  const key = `${p.jobKey || ""}:${p.jobRank || 1}:${p.clsKey || ""}`;
+  let ent = _partyPics.get(p);
+  if (!ent || ent.key !== key) {
+    const c = spriteCanvas(dollSprite(p), 2);
+    c.className = "spr pc-pic";
+    ent = { key, c };
+    _partyPics.set(p, ent);
+  }
+  return ent.c;
 }
 
 // 戦闘中の発動効果バッジ: 能力ごとに 強化(▲)/弱体(▼) を段階数ぶん並べ、残りターンを添える。
 const BUFF_STAT_ICON = { atk: "⚔", vit: "🛡", agi: "💨" };
 const BUFF_STAT_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI" };
 function buffBadges(p) {
-  if (G.state !== "battle" || !p.alive || !p.effects || !p.effects.length) return "";
+  if (G.state !== "combat" || !p.alive || !p.effects || !p.effects.length) return "";
   // (能力, 方向) ごとに集約: 段階数(最大2)と最短残ターンを出す
   const groups = new Map();
   for (const ef of p.effects) {
@@ -5719,11 +5896,31 @@ function renderTown() {
   renderTownHub();
 }
 
+// 施設アイコン: 街のドット絵 (townart.js) を優先し、無ければ絵文字にフォールバック
+function facIcon(key, emoji) {
+  const spr = TOWN_ICONS[key];
+  const box = el("div", "tw-faci" + (spr ? " px" : ""));
+  if (spr) box.appendChild(spriteCanvas(spr, 4));
+  else box.textContent = emoji;
+  return box;
+}
+
 let townBandOpen = null; // 迷宮選択で開いている層 (null = 選択中の迷宮の層)
 
 function renderTownHub() {
   townEl.appendChild(townHeader("辺境の街 ロアダル", false));
-
+  // 街の夜景 (動くドット絵のパノラマ)。ヘッダの直下に横幅いっぱいで敷く
+  try { townEl.appendChild(createTownScene()); } catch (e) { /* 演出のみ: 失敗しても街は使える */ }
+  // いまの目標 (次に何をすればよいか)。タップでその場所へ
+  const goal = currentObjective();
+  if (goal) {
+    const g = el("div", "tw-goal");
+    g.appendChild(el("span", "tw-goal-k", "目標"));
+    g.appendChild(el("span", "tw-goal-t", goal.text));
+    g.appendChild(el("span", "tw-goal-go", "›"));
+    g.addEventListener("click", () => { SFX.select(); goal.go(); });
+    townEl.appendChild(g);
+  }
 
 
   // 第0章 (人業の生成) の間は、王宮 (+下賜後は人業の館) 以外を閉ざす
@@ -5735,7 +5932,7 @@ function renderTownHub() {
   for (const fac of FACILITIES) {
     const locked = tutAllowed && !tutAllowed.includes(fac.key);
     const c = el("div", "tw-fac" + (locked ? " locked" : ""));
-    c.appendChild(el("div", "tw-faci", locked ? "🔒" : fac.icon));
+    c.appendChild(locked ? facIcon("lock", "🔒") : facIcon(fac.key, fac.icon));
     c.appendChild(el("div", "tw-facn", fac.name));
     c.appendChild(el("div", "tw-facd", locked ? "王命を果たすまで閉ざされている" : fac.desc));
     if (fac.key === "palace" && palaceCallReady()) c.appendChild(el("div", "tw-facb", G.msq.state === "report" ? "❗ 踏破を報告" : "❗ 新たな勅命"));
@@ -5756,7 +5953,7 @@ function renderTownHub() {
     list.appendChild(chip);
   });
   if (!G.party.length) list.appendChild(el("div", "tw-empty",
-    tut ? "人業がいない。まずは王宮で王に謁見しよう。" : "人業がいない。館で仕立てよう。"));
+    tut && !G.msq.granted ? "人業がいない。まずは王宮で王に謁見しよう。" : "人業がいない。館の保管庫で仕立てよう。"));
   roster.appendChild(list);
   townEl.appendChild(roster);
 
@@ -5832,8 +6029,10 @@ function renderTownHub() {
   if (G.unlockedDungeons >= 1) {
     const divebar = el("div", "tw-divebar");
     const again = G.dungeonIdx < clearedDungeonCount(); // 踏破済みへの再挑戦
-    const dive = btn(`${again ? "⚔" : "🕳"} 「${curDungeon().name}」へ${again ? "再挑戦" : "潜る"} (B1F)`, tryEnterDungeon);
+    const dive = btn(`「${curDungeon().name}」へ${again ? "再挑戦" : "潜る"} (B1F)`, tryEnterDungeon);
     dive.className = "btn primary tw-dive";
+    if (TOWN_ICONS.dive) { const ic = spriteCanvas(TOWN_ICONS.dive, 4); ic.className = "spr tw-dive-ic"; dive.prepend(ic); }
+    else dive.prepend(again ? "⚔ " : "🕳 ");
     divebar.appendChild(dive);
     townEl.appendChild(divebar);
   }
@@ -5898,7 +6097,7 @@ function renderMansion() {
     // 第0章 (人業の生成) の間は「人業保管庫」のみ開放。残りはロック＆グレーアウト
     const locked = tutM && m.key !== "manage";
     const c = el("div", "tw-fac" + (locked ? " locked" : ""));
-    c.appendChild(el("div", "tw-faci", locked ? "🔒" : m.icon));
+    c.appendChild(locked ? facIcon("lock", "🔒") : facIcon(m.key, m.icon));
     c.appendChild(el("div", "tw-facn", m.name));
     c.appendChild(el("div", "tw-facd", locked ? "人業を生み出すまで閉ざされている" : m.desc));
     if (locked) c.style.opacity = "0.45";
@@ -7408,20 +7607,61 @@ function claimAchievement(a) {
 // G.msq = { n: 迷宮番号 (1-100), state: "active"(攻略中) | "report"(報告可) | "offer"(次の勅命待ち) | "end" }
 
 // 勅命シーン: 金縁のカードで台詞を流す
+// 王の語り (勅命・報告・解放・終章)。玉座の老王の肖像を掲げ、台詞を1行ずつ浮かび上がらせる。
+// カードのどこかをタップすると残りを一度に表示し、全行が出そろってから「御意」で閉じる。
+// 行の種類で書式を変える: 「…」= 王の台詞 / 宰相… = 宰相の台詞 / ── = 勅命の要旨 / それ以外 = 地の文
+function storyLineKind(t) {
+  if (/^宰相/.test(t)) return "minister";
+  if (/^──/.test(t)) return "decree";
+  if (/^「/.test(t)) return "king";
+  return "narr";
+}
 function showStoryScene(title, lines, rewardText, onClose, btnLabel = "御意") {
   G.prompt = true;
-  const wrap = el("div", "confirm-overlay");
+  const wrap = el("div", "confirm-overlay story-overlay");
   const card = el("div", "ig-card story-card");
-  card.style.borderColor = "#c9a227";
-  card.style.boxShadow = "0 0 50px #c9a22755";
-  const bn = el("div", "ig-banner", "👑 " + title + " 👑");
-  bn.style.color = "#ffd84a";
-  card.appendChild(bn);
-  for (const t of lines) card.appendChild(el("div", "story-line", t));
-  if (rewardText) card.appendChild(el("div", "story-reward", rewardText));
-  const ok = btn(btnLabel, () => { wrap.remove(); G.prompt = false; if (onClose) onClose(); });
-  ok.className = "btn primary ig-ok";
+  // 肖像 + 見出し
+  const head = el("div", "story-head");
+  const pf = el("div", "story-portrait");
+  pf.appendChild(spriteCanvas(KING_PORTRAIT, 7, 12)); // 28x28 → 84px (3px/ドット)
+  pf.appendChild(el("div", "story-who", "老王"));
+  head.appendChild(pf);
+  const ht = el("div", "story-htxt");
+  ht.appendChild(el("div", "story-kicker", "✦ 玉座の間 ✦"));
+  ht.appendChild(el("div", "story-title", title));
+  head.appendChild(ht);
+  card.appendChild(head);
+  const body = el("div", "story-body");
+  // 行ごとの出現タイミング: 文字数に応じて間を取り、長い台詞ほど読む時間を残す
+  let delay = 0.25;
+  for (const t of lines) {
+    const ln = el("div", "story-line k-" + storyLineKind(t), t);
+    ln.style.animationDelay = delay.toFixed(2) + "s";
+    delay += Math.min(1.6, 0.45 + t.length * 0.022);
+    body.appendChild(ln);
+  }
+  card.appendChild(body);
+  if (rewardText) {
+    const rw = el("div", "story-reward", rewardText);
+    rw.style.animationDelay = delay.toFixed(2) + "s";
+    delay += 0.3;
+    card.appendChild(rw);
+  }
+  const close = () => { wrap.remove(); G.prompt = false; if (onClose) onClose(); };
+  const ok = btn(btnLabel, (e) => { if (e) e.stopPropagation(); close(); });
+  ok.className = "btn primary ig-ok story-ok";
+  ok.style.animationDelay = delay.toFixed(2) + "s";
   card.appendChild(ok);
+  const tip = el("div", "story-tip", "タップで全文を表示");
+  card.appendChild(tip);
+  // 途中タップ = 残りを一気に表示 (演出を待たせない)
+  let revealed = false;
+  const revealAll = () => { if (revealed) return; revealed = true; card.classList.add("revealed"); };
+  const timer = setTimeout(revealAll, REDUCED_MOTION ? 0 : (delay + 0.4) * 1000);
+  card.addEventListener("click", (e) => {
+    if (e.target === ok) return;
+    if (!revealed) { clearTimeout(timer); revealAll(); try { SFX.select(); } catch {} }
+  });
   wrap.appendChild(card);
   document.body.appendChild(wrap);
 }
@@ -7596,6 +7836,24 @@ function clearedDungeonCount() {
 }
 
 // 王宮に用があるか (踏破の報告 or 次章の拝命 / 第0章の謁見・報告)
+// 街の広場に掲げる「いまの目標」: { text, go() }。物語を閉じた後は出さない
+function currentObjective() {
+  const ms = G.msq;
+  if (!ms || ms.state === "end" || ms.n > 100) return null;
+  const goPalace = () => { G.town.facility = "palace"; G.town.sub = null; renderTown(); };
+  if (ms.n === 0 && ms.state === "active") {
+    if (!ms.granted) return { text: "王宮で王に謁見する", go: goPalace };
+    if (!allDolls().some((d) => !d.isEmpty)) return { text: "人業の館の保管庫で、人業を仕立てる", go: () => { G.town.facility = "mansion"; G.town.sub = "manage"; renderTown(); } };
+    return { text: "王宮へ戻り、勅命の完遂を報告する", go: goPalace };
+  }
+  if (ms.state === "report") return { text: `王宮へ戻り、「${DUNGEONS[ms.n - 1].name}」の踏破を報告する`, go: goPalace };
+  if (ms.state === "offer") return { text: "王宮で新たな勅命を受ける", go: goPalace };
+  if (ms.state === "active" && ms.n >= 1 && DUNGEONS[ms.n - 1]) {
+    return { text: `「${DUNGEONS[ms.n - 1].name}」を踏破する`, go: () => { G.dungeonIdx = ms.n - 1; townBandOpen = null; renderTown(); requestAnimationFrame(() => { const d = townEl.querySelector(".tw-dive"); if (d) d.scrollIntoView({ block: "nearest", behavior: "smooth" }); }); } };
+  }
+  return null;
+}
+
 function palaceCallReady() {
   const ms = G.msq;
   if (!ms) return false;
@@ -7658,26 +7916,26 @@ function renderPalace() {
   townEl.appendChild(el("div", "tw-h", "王宮書庫 — 図鑑"));
   const row = el("div", "tw-grid");
   const dunBtn = el("div", "tw-fac");
-  dunBtn.appendChild(el("div", "tw-faci", "🐉"));
+  dunBtn.appendChild(facIcon("codexMon", "🐉"));
   dunBtn.appendChild(el("div", "tw-facn", "モンスター図鑑"));
   dunBtn.appendChild(el("div", "tw-facd", `発見 ${Object.keys(G.codex.mon).filter((k) => MONSTERS[k]).length} 種`));
   dunBtn.addEventListener("click", () => { G.town.facility = "codexDungeon"; renderCodexDungeon(); });
   row.appendChild(dunBtn);
   const itemBtn = el("div", "tw-fac");
-  itemBtn.appendChild(el("div", "tw-faci", "⚔"));
+  itemBtn.appendChild(facIcon("codexItem", "⚔"));
   itemBtn.appendChild(el("div", "tw-facn", "アイテム図鑑"));
   itemBtn.appendChild(el("div", "tw-facd", `発見 ${Object.keys(G.codex.item).length} 種`));
   itemBtn.addEventListener("click", () => { G.town.facility = "codexItem"; renderCodexItem(); });
   row.appendChild(itemBtn);
   const jobBtn = el("div", "tw-fac");
-  jobBtn.appendChild(el("div", "tw-faci", "📜"));
+  jobBtn.appendChild(facIcon("codexJob", "📜"));
   jobBtn.appendChild(el("div", "tw-facn", "職業図鑑"));
   jobBtn.appendChild(el("div", "tw-facd", `発現 ${Object.keys(G.codex.job).filter((k) => SOUL_CLASSES[k]).length} 種`));
   jobBtn.addEventListener("click", () => { G.town.facility = "codexJob"; renderCodexJob(); });
   row.appendChild(jobBtn);
   const claimable = ACHIEVEMENTS.filter((a) => !G.ach[a.id] && a.cond()).length;
   const achBtn = el("div", "tw-fac");
-  achBtn.appendChild(el("div", "tw-faci", "🏅"));
+  achBtn.appendChild(facIcon("codexAch", "🏅"));
   achBtn.appendChild(el("div", "tw-facn", "勲章の間"));
   achBtn.appendChild(el("div", "tw-facd", `受領 ${Object.keys(G.ach).length} / ${ACHIEVEMENTS.length}`));
   if (claimable) achBtn.appendChild(el("div", "tw-facb", `❗ 受領可 ${claimable}`));
@@ -7690,7 +7948,7 @@ function renderPalace() {
   const ts = treasuryState();
   const kinds = Object.keys(ts.donated).filter((id) => ITEMS[id] && ITEMS[id].slot === "misc").length;
   const treBtn = el("div", "tw-fac");
-  treBtn.appendChild(el("div", "tw-faci", "🏛"));
+  treBtn.appendChild(facIcon("treasury", "🏛"));
   treBtn.appendChild(el("div", "tw-facn", "宝物庫"));
   treBtn.appendChild(el("div", "tw-facd", `奉納 ${kinds} / 100 種 — 蒐集品を納め褒賞を得る`));
   if (treasuryRewardReady()) treBtn.appendChild(el("div", "tw-facb", "🎁 受領できる褒賞あり"));
@@ -7710,6 +7968,15 @@ function renderPalace() {
   recRow("砕けた人業", s.deaths);
   recRow("踏破した迷宮", clearedDungeonCount());
   townEl.appendChild(rec);
+  const sh = btn("📣 戦績をシェア", () => {
+    SFX.select();
+    const ms = G.msq || {};
+    const head = ms.state === "end" || ms.n > 100 ? "百の迷宮のすべてを制し、物語を閉じた。"
+      : ms.n >= 1 ? `第${actOf(ms.n)}層「${ACTS[actOf(ms.n) - 1].title}」を探索中。` : "魂繰りとして着任した。";
+    shareProgress(head);
+  });
+  sh.className = "btn tw-add share-btn";
+  townEl.appendChild(sh);
 }
 
 // ==== 王宮の宝物庫 (蒐集品の奉納) ====
@@ -8961,6 +9228,23 @@ function tryEnterDungeon() {
     showDungeonBriefing(() => tryEnterDungeon());
     return;
   }
+  // 出立前の点検: 少人数・丸腰・手負いのまま潜ろうとしていれば、警備兵が直し方を示す
+  // (序盤は1体・素手だと浅階の群れにも押し切られる)。「このまま潜る」を選べば以後このセッションでは出さない
+  const chk = !_diveCheckShown ? preDiveIssues() : null;
+  if (chk && chk.lines.length) {
+    _diveCheckShown = true;
+    const opts = [];
+    if (chk.dolls) opts.push({ label: "＋ 保管庫で人業を仕立てる", fn: () => { G.town.facility = "mansion"; G.town.sub = "manage"; renderTown(); } });
+    if (chk.gear) opts.push({ label: "⚒ 商店で武具を整える", fn: () => { G.town.facility = "shop"; G.town.sub = null; renderTown(); } });
+    if (chk.rest) opts.push({ label: "☾ 宿屋で傷を癒す", fn: () => { G.town.facility = "inn"; G.town.sub = null; renderTown(); } });
+    opts.push({ label: "▼ このまま潜る", danger: true, fn: () => tryEnterDungeon() });
+    SFX.select();
+    showChoice("出立前の点検", opts, ICONS.guard, {
+      banner: "⚔ 警備兵の助言 ⚔", accent: "#7fd0ff",
+      lines: ["「待て、魂繰り。その備えで行く気か？」", ...chk.lines],
+    });
+    return;
+  }
   // 迷宮の異変: D3以降、一定確率で発生。受け入れるか避けるかを選んでから潜る
   if (G.dungeonIdx >= 2 && Math.random() < 0.45) {
     const cfg = curDungeon();
@@ -8979,6 +9263,33 @@ function tryEnterDungeon() {
     }
   }
   enterDungeon(null);
+}
+
+// 出立前の点検項目: { lines[], dolls, gear, rest }。直せるものだけを挙げる
+let _diveCheckShown = false;
+function preDiveIssues() {
+  const lines = [];
+  const res = { lines, dolls: false, gear: false, rest: false };
+  // 仲間が少ない (宿せる魂と器の余裕がある時だけ)
+  const free = G.souls.filter((s) => !soulWorn(s.uid)).length;
+  if (G.party.length < 3 && free > 0 && allDolls().length < 100 && G.redSoul >= emptyDollCost()) {
+    const cost = emptyDollCost();
+    lines.push(`■ 編成が ${G.party.length}体 だけだ。魔物は群れで来る。宿せる魂が ${free}個 ある (次の器 ${cost ? `🔴${cost}` : "無料"})。`);
+    res.dolls = true;
+  }
+  // 武器を持たない人業がいる (買える所持金がある時だけ)
+  const bare = G.party.filter((d) => d.alive && d.primary != null && !(d.equip && d.equip.weapon));
+  if (bare.length && G.gold >= 30) {
+    lines.push(`■ ${bare.map((d) => d.name).join("・")} は丸腰だ。商店で武器と防具を整えておけ。`);
+    res.gear = true;
+  }
+  // 手負いの人業がいる
+  const hurt = G.party.filter((d) => d.alive && d.hp < d.maxhp * 0.5);
+  if (hurt.length) {
+    lines.push(`■ ${hurt.map((d) => d.name).join("・")} が深手を負ったままだ。宿屋で休んでいけ。`);
+    res.rest = true;
+  }
+  return res;
 }
 
 // 初回潜入時、警備兵が迷宮の鉄則を説く (注意事項のポップアップ)
@@ -10516,6 +10827,7 @@ const FACILITY_BGM = {
   shrine: "shrine",
 };
 let openingActive = false; // オープニング演出中は専用テーマ
+let titleActive = false;   // タイトル画面の表示中は専用テーマ
 // 探索BGM: 層 (1-20) ごとのテーマ曲
 function fieldBgm() {
   return dungeonTheme().bgm;
@@ -10528,6 +10840,7 @@ function battleBgm(isBoss) {
 }
 // 現在のシーンに合ったBGM名
 function sceneBgm() {
+  if (titleActive) return "title";
   if (openingActive) return "opening";
   if (G.state === "town") return FACILITY_BGM[G.town.facility] || "town";
   if (G.state === "combat") return battleBgm(G.battle && G.battle.enemies.some((e) => e.boss || (e.mon && e.mon.elite)));
@@ -10729,6 +11042,30 @@ function renderSettings() {
   const snd = btn(isMuted() ? "🔇 OFF" : "🔊 ON", () => { ensureAudio(); updateMuteBtn(toggleMute()); }); // updateMuteBtn が設定画面も再描画する
   snd.className = "tw-small set-toggle" + (isMuted() ? "" : " on");
   settingsEl.appendChild(settingRow("サウンド", "効果音とBGMのオン/オフ (Mキー)", snd));
+
+  // 音量 (BGM / 効果音): 0〜100% を5段で切り替える
+  const VOL_STEPS = [0, 0.25, 0.5, 0.8, 1];
+  const volRow = (label, desc, key) => {
+    const box = el("div", "set-vol");
+    for (const v of VOL_STEPS) {
+      const b = btn(v === 0 ? "切" : `${Math.round(v * 100)}`, () => {
+        ensureAudio();
+        PREFS[key] = v; savePrefs(); setVolumes(PREFS.bgm, PREFS.sfx);
+        if (key === "sfx") SFX.select();
+        renderSettings();
+      });
+      b.className = "tw-small set-volb" + (Math.abs((PREFS[key] ?? 1) - v) < 0.01 ? " on" : "");
+      box.appendChild(b);
+    }
+    return settingRow(label, desc, box);
+  };
+  settingsEl.appendChild(volRow("BGM 音量", "街・迷宮・戦闘の曲の大きさ", "bgm"));
+  settingsEl.appendChild(volRow("効果音 音量", "攻撃・宝箱・決定音などの大きさ", "sfx"));
+
+  // 振動 (対応端末のみ)
+  const vib = btn(PREFS.vibrate ? "📳 ON" : "OFF", () => { PREFS.vibrate = !PREFS.vibrate; savePrefs(); SFX.select(); if (PREFS.vibrate) buzz([0, 30]); renderSettings(); });
+  vib.className = "tw-small set-toggle" + (PREFS.vibrate ? " on" : "");
+  settingsEl.appendChild(settingRow("振動", "被弾・宝箱などで端末を震わせる (対応端末のみ)", vib));
 
   // 戦闘演出の倍速 (戦闘メニューの倍速ボタンと共通の設定)
   const spd = btn(G.fastAnim ? "▶▶ ON" : "▶ OFF", () => { SFX.select(); G.fastAnim = !G.fastAnim; autosave(); renderSettings(); });
@@ -11036,6 +11373,21 @@ function setupNewGame() {
 }
 
 // ---- 起動 ----
+// タイトル画面のセーブ概要 (つづきから): 進行中の章・踏破数・編成の顔ぶれ
+function titleSummary() {
+  const ms = G.msq || {};
+  let head = "着任したばかりの魂繰り";
+  if (ms.state === "end" || ms.n > 100) head = "✦ 物語を閉じた魂繰り ✦";
+  else if (ms.n >= 1) head = `第${actOf(ms.n)}層「${ACTS[actOf(ms.n) - 1].title}」`;
+  const lines = [`踏破 ${clearedDungeonCount()} / 100 迷宮 ・ 人業 ${allDolls().length}体`];
+  if (G.state === "board" || G.state === "combat") {
+    lines.push(abyssActive() ? `探索中 — 奈落 B${G.abyss.depth}F` : `探索中 — ${curDungeon().name} B${G.floor}F`);
+  }
+  lines.push(`💰${G.gold}　✦${G.soulPts}　🔴${G.redSoul}`);
+  const sprites = (G.party || []).filter((d) => d && d.primary != null).map((d) => dollSprite(d));
+  return { head, lines, sprites };
+}
+
 function init() {
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
   window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACHIEVEMENTS, questProgress };
@@ -11048,8 +11400,50 @@ function init() {
     log("百の迷宮と 魂の王へようこそ。人業に魂を宿し、深淵へ挑め。", "sys");
   } else {
     log("冒険を再開する。", "sys");
-    setTimeout(() => { try { showToast("💾 冒険を再開しました"); } catch {} }, 400);
   }
+
+  // まずタイトル画面。タップで目覚め (ここで音声が解禁されタイトル曲が流れる)、
+  // 「冒険をはじめる/つづける」で本編へ。再開処理 (戦闘の自動進行など) はタイトルを閉じてから行う
+  titleActive = true;
+  G.prompt = true;
+  playBgm("title"); // 音声起動前なら初回タップ時に開始される
+  let started = false;
+  const start = () => {
+    if (started) return;
+    started = true;
+    titleActive = false;
+    G.prompt = false;
+    startAfterTitle(loaded);
+  };
+  try {
+    showTitle({ hasSave: loaded, summary: loaded ? titleSummary() : null, onStart: start });
+  } catch (e) { start(); }
+
+  if ("serviceWorker" in navigator) {
+    // 新しい SW が制御を奪った瞬間に1度だけ確実にリロード (古いJS混在を防ぐ)。
+    // 初回インストール (それまで SW の制御下になかった) の claim では読み直さない
+    // (同じ版を読み込み済みのため不要。オープニング途中で画面が飛ぶのを防ぐ)
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!hadController || reloaded) return; reloaded = true; location.reload();
+    });
+    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
+      reg.addEventListener("updatefound", () => {
+        const sw = reg.installing;
+        if (!sw) return;
+        sw.addEventListener("statechange", () => {
+          if (sw.state === "activated" && hadController && navigator.serviceWorker.controller && !reloaded) {
+            reloaded = true; location.reload();
+          }
+        });
+      });
+    }).catch(() => {});
+  }
+}
+
+// タイトルを抜けた後の本編起動: 保存状態の復元描画 → (新規なら) オープニング
+function startAfterTitle(loaded) {
   updateTopbar();
   // 復元描画に失敗してもセーブは絶対に消さない (データ保全優先)。
   // 失敗時は安全に街表示へフォールバックする。
@@ -11066,33 +11460,17 @@ function init() {
   }
   autosave(true);
 
-  // 初回起動 (新規ゲーム) のみ: オープニングを流してから街へ
-  if (!loaded) {
-    G.prompt = true;
-    openingActive = true;
-    playBgm("opening"); // 音声起動前なら初回タップ時に開始される
-    try {
-      showOpening(() => { G.prompt = false; openingActive = false; playBgm(sceneBgm()); });
-    } catch (e) { G.prompt = false; openingActive = false; }
+  if (loaded) {
+    playBgm(sceneBgm());
+    setTimeout(() => { try { showToast("💾 冒険を再開しました"); } catch {} }, 400);
+    return;
   }
-
-  if ("serviceWorker" in navigator) {
-    // 新しい SW が制御を奪った瞬間に1度だけ確実にリロード (古いJS混在を防ぐ)
-    let reloaded = false;
-    navigator.serviceWorker.addEventListener("controllerchange", () => {
-      if (reloaded) return; reloaded = true; location.reload();
-    });
-    navigator.serviceWorker.register("sw.js", { updateViaCache: "none" }).then((reg) => {
-      reg.addEventListener("updatefound", () => {
-        const sw = reg.installing;
-        if (!sw) return;
-        sw.addEventListener("statechange", () => {
-          if (sw.state === "activated" && navigator.serviceWorker.controller && !reloaded) {
-            reloaded = true; location.reload();
-          }
-        });
-      });
-    }).catch(() => {});
-  }
+  // 新規ゲーム: オープニングを流してから街へ
+  G.prompt = true;
+  openingActive = true;
+  playBgm("opening");
+  try {
+    showOpening(() => { G.prompt = false; openingActive = false; playBgm(sceneBgm()); });
+  } catch (e) { G.prompt = false; openingActive = false; playBgm(sceneBgm()); }
 }
 init();
