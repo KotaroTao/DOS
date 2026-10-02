@@ -231,7 +231,14 @@ body.pt-dragging, body.pt-dragging * { cursor: grabbing !important; user-select:
 .pt-new { position: absolute; top: 1px; left: 1px; padding: 0 2px; font-size: 7.5px; font-weight: 800; letter-spacing: 0.02em; line-height: 11px; color: #1a0e04; background: linear-gradient(180deg, #ffd27a, #ff9a3a); border-radius: 1px; box-shadow: 0 0 6px rgba(255,140,40,0.8); }
 .pt-bup { position: absolute; bottom: 0; right: 3px; font-size: 10px; color: var(--up); text-shadow: 0 0 5px rgba(127,214,138,0.7), 0 1px 0 #000; }
 .pt-bcell:active:not(.empty) { transform: scale(0.96); }
-@media (max-width: 379px) { .pt-bag { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; } }
+.pt-bagwrap { display: flex; flex-direction: column; gap: 8px; }
+/* 狭い画面: 所持の札は4列×2段。見出し (所持・最適装備) はその左に縦に積み、高さを1段ぶん詰める */
+@media (max-width: 379px) {
+  .pt-bagwrap { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: stretch; }
+  .pt-bagwrap .pt-bagbar { flex-direction: column; align-items: stretch; justify-content: space-between; gap: 4px; }
+  .pt-bagwrap .pt-allauto { white-space: normal; line-height: 1.25; text-align: left; padding: 4px 8px; font-size: 12px; }
+  .pt-bag { grid-template-columns: repeat(4, 44px); gap: 4px; }
+}
 
 /* ---------- 装備候補 (シート) ---------- */
 .pt-cand-sheet .ui-sheet-body, .pt-pick-sheet .ui-sheet-body, .pt-res-sheet .ui-sheet-body, .pt-item-sheet .ui-sheet-body,
@@ -569,12 +576,24 @@ button.sp-tile-main { cursor: pointer; }
 @media (max-height: 700px) {
   .pt-slotp-n { display: none; }
   .pt-form { padding-top: 4px; padding-bottom: 6px; }
-  .pt-slot { min-height: 50px; padding-top: 3px; padding-bottom: 3px; }
-  .pt-root { gap: 6px; }
+  .pt-slot { min-height: 46px; padding-top: 2px; padding-bottom: 2px; }
+  .pt-slots { gap: 3px; }
+  .pt-root, .pt-body { gap: 6px; }
 }
 
 /* ---------- 視差を減らす設定 ---------- */
 @media (prefers-reduced-motion: reduce) {
   .pt-port.target, .pt-bench.target, .pt-port-hp.low i, .sp-cel-rays, .sp-cel-art .pt-px, .sp-ru-rk.new { animation: none !important; }
   .pt-port, .pt-slot, .pt-chc { transition-duration: 0.12s !important; }
+}
+
+/* ---------- 背の低い画面: 魂・能力の区分も1画面に収める ---------- */
+@media (max-height: 700px) {
+  .sp-acts .ui-btn { min-height: 44px; }
+  .sp-btn { min-height: 44px; padding-top: 2px; padding-bottom: 2px; }
+  .sp-tile { min-height: 46px; }
+  .sp-next { min-height: 44px; }
+  .pt-stat { min-height: 50px; padding: 2px 4px; }
+  .sp-head .sp-orb { width: 40px; height: 40px; }
+  .sp-card { gap: 6px; padding-top: 8px; padding-bottom: 6px; }
 }

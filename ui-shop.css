@@ -240,7 +240,7 @@
 .wpc-dchip.best .wpc-dchip-dead { right: 46px; }
 /* WP-B の「誰に装備させる？」(UI.equipChooserEl) を品シートの主役の段に。棚では手元の見出し (値段つき) を使う */
 .wpc-is-pick .wpc-chooser-el { margin: 0; }
-.wpc-isheet.ctx-stock .wpc-chooser-el .pt-ch-h { display: none; }
+
 .wpc-chooser .wpc-chooser-el .pt-ch-h { display: none; }
 /* 人業を選ぶシートの見出し (品の絵と名前) */
 .wpc-ch-hd { display: flex; align-items: center; gap: 10px; text-align: left; margin: 2px 0 10px; }

@@ -141,12 +141,13 @@
 
 /* ===== 記録 (#log): 下から積もる年代記。古い行ほど闇に沈む ===== */
 #log {
-  display: flex; flex-direction: column;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  overflow: hidden; touch-action: manipulation; /* スクロールさせない: 溢れた古い行は上の闇へ切れて消える */
   padding: 6px 10px 6px; font-size: 12.5px; line-height: 1.6;
   -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.25) 0, #000 34px);
   mask-image: linear-gradient(180deg, rgba(0,0,0,0.25) 0, #000 34px);
 }
-#log > :first-child { margin-top: auto; }
+#log > div { flex: 0 0 auto; }
 #log > div { opacity: 0.62; transition: opacity 0.4s ease; text-shadow: 0 1px 0 #000, 0 0 6px rgba(0,0,0,0.9); }
 #log > div:nth-last-child(2) { opacity: 0.82; }
 #log > div:last-child { opacity: 1; animation: dg-line-in 0.35s ease-out; }

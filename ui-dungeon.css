@@ -101,7 +101,7 @@
 .dg-row-ic { width: 22px; height: 22px; fill: none; stroke: #c9ae7c; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
 .dg-sheet .ui-row { margin: 6px 0; }
 .dg-sheet .ui-row-sub { white-space: normal; line-height: 1.45; }
-.dg-menu-list { display: grid; gap: 0; }
+
 .dg-fact { display: flex; gap: 10px; align-items: flex-start; margin: 8px 0; padding: 10px 12px; border: 1px solid #33292a; border-left: 3px solid var(--fact, #c9a24a); border-radius: 3px; background: var(--grain), var(--plate); }
 .dg-fact.t-bad { --fact: #d4504e; }
 .dg-fact-ic { flex: 0 0 auto; display: inline-flex; padding-top: 2px; }

@@ -144,7 +144,7 @@ button, input, select, textarea { font-family: var(--font); }
 }
 .btn:disabled { opacity: 0.45; filter: grayscale(0.4); }
 
-.tw-small, .tw-back, .st-navb, .tw-dolltab, .st-tab2 {
+.tw-small, .tw-back, .tw-dolltab{
   font-family: var(--font);
   background: var(--plate-hi);
   border: 1px solid #4a3d36;
@@ -152,7 +152,7 @@ button, input, select, textarea { font-family: var(--font); }
   color: var(--ink);
   box-shadow: inset 0 1px 0 rgba(255,236,200,0.06), 0 1px 4px rgba(0,0,0,0.5);
 }
-.tw-small.primary, .tw-dolltab.active, .st-tab2.active {
+.tw-small.primary, .tw-dolltab.active{
   color: var(--accent-hi); border-color: #8a6d2e;
   background: linear-gradient(180deg, #2c2318, #18130d);
   box-shadow: 0 0 0 1px rgba(201,162,74,0.35), 0 0 10px rgba(201,162,74,0.18);
@@ -234,8 +234,6 @@ button, input, select, textarea { font-family: var(--font); }
 @keyframes ig-beam { 0%, 100% { opacity: 0.55; transform: translateX(-50%) scaleX(0.85); } 50% { opacity: 1; transform: translateX(-50%) scaleX(1.1); } }
 .ig-card.rar-lr > :not(.ig-beam) { position: relative; z-index: 1; }
 
-.name-input { font-family: var(--font); background: #0d0a0e; border: 1px solid #4a3d36; border-radius: 3px; color: var(--ink); box-shadow: inset 0 2px 6px rgba(0,0,0,0.7); }
-
 /* ===== 街 ===== */
 #town-screen {
   background:
@@ -253,17 +251,17 @@ button, input, select, textarea { font-family: var(--font); }
 .tw-note { color: #9a8e78; }
 .tw-dunhelp { color: #8c816d; }
 /* 見出し: 金の菱と細い罫 */
-.tw-h, .set-h {
+.tw-h{
   display: flex; align-items: center; gap: 8px;
   font-family: var(--font); font-weight: 800; letter-spacing: 2px;
   color: var(--accent); border-left: none; padding-left: 0;
   text-shadow: 0 1px 0 #000;
 }
-.tw-h::before, .set-h::before {
+.tw-h::before{
   content: ""; flex: 0 0 auto; width: 7px; height: 7px; transform: rotate(45deg);
   background: linear-gradient(135deg, #f3d58b, #8a6d2e); box-shadow: 0 0 6px rgba(201,162,74,0.6);
 }
-.tw-h::after, .set-h::after {
+.tw-h::after{
   content: ""; flex: 1 1 auto; height: 1px;
   background: linear-gradient(90deg, rgba(201,162,74,0.6), rgba(201,162,74,0));
 }
@@ -280,7 +278,7 @@ button, input, select, textarea { font-family: var(--font); }
 .tw-facb { color: var(--accent-hi); }
 .tw-fac.locked .tw-facn { color: #7d7468; }
 /* 人業の札・各種の行 */
-.tw-chip, .tw-mrow, .tw-dungeon, .tw-shoprow, .tw-quest, .tw-recrow, .set-row, .tw-rumor, .tw-soulrow, .tw-innbox {
+.tw-chip, .tw-mrow, .tw-dungeon, .tw-shoprow, .tw-quest, .tw-recrow, .tw-rumor, .tw-soulrow, .tw-innbox {
   background: var(--grain), var(--plate);
   border: 1px solid #33292a;
   border-radius: 3px;
@@ -307,48 +305,20 @@ summary.tw-bandh::before { color: var(--accent); }
 .tw-sealed { border-color: #4a3d36; border-style: dashed; }
 .tw-msq { border-color: #8a6d2e !important; }
 .tw-empty { color: #8c816d; }
-.tw-c-gold { color: var(--accent-hi); }
-.tw-c-soul { color: #a6e4f2; }
-.tw-c-red { color: #ff6a5c; }
 
 /* ===== 王の語り ===== */
 .story-card { font-family: var(--font); }
 .story-line { font-size: 13.5px; }
 
 /* ===== ステータス画面 (緑の旧配色を黒鉄と金へ統一) ===== */
-#status-screen, #settings-screen {
-  background: var(--grain), radial-gradient(120% 60% at 50% -10%, rgba(90,50,110,0.2), rgba(0,0,0,0) 55%), linear-gradient(175deg, #120e14, #070508 70%);
-}
-.st-name { font-family: var(--font); font-weight: 800; color: var(--accent-hi); letter-spacing: 2px; text-shadow: 0 1px 0 #000; }
-.st-sub { color: #a3967f; }
-.st-port { background: #0e0b0f; border: 1px solid #4a3d36; border-radius: 3px; box-shadow: var(--plate-edge); }
-.st-navb { color: var(--ink); }
-.st-tabbar { border-bottom: 1px solid #2c2427; }
-.st-tab2 { color: #cdbf9f; }
-.st-statbar, .st-attr6, .st-attr, .st-invrow, .st-eqrow, .st-soulsum, .st-revive {
-  background: var(--grain), var(--plate);
-  border: 1px solid #33292a; border-radius: 3px;
-  box-shadow: var(--plate-edge);
-}
-.st-statbar b, .st-attr6 .st-attrv, .st-attrv { color: var(--ink); }
-.st-attr6 .st-attrk, .st-attrk, .st-h { color: var(--accent); }
-.st-h.center { color: var(--accent-hi); }
-.st-bar-spells { color: #9fc4ee; }
-.st-invrow.sel, .st-eqrow.sel { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(201,162,74,0.4), var(--plate-edge); }
 
 /* ===== 設定 ===== */
-.set-title { font-family: var(--font); font-weight: 800; color: var(--accent-hi); letter-spacing: 3px; }
-.set-rown { color: var(--ink); }
-.set-rowd { color: #9a8e78; }
-.set-toggle.on, .set-volb.on { color: var(--accent-hi); border-color: #8a6d2e; background: linear-gradient(180deg, #2c2318, #18130d); box-shadow: 0 0 0 1px rgba(201,162,74,0.35); }
 
 /* ===== 図鑑 ===== */
-.cdx-card { background: var(--grain), var(--plate); border: 1px solid #33292a; border-radius: 3px; box-shadow: var(--plate-edge); }
-.cdx-name { font-family: var(--font); font-weight: 700; }
 
 /* スクロールバー (対応環境) */
-#town-screen::-webkit-scrollbar, #status-screen::-webkit-scrollbar, #log::-webkit-scrollbar { width: 6px; }
-#town-screen::-webkit-scrollbar-thumb, #status-screen::-webkit-scrollbar-thumb, #log::-webkit-scrollbar-thumb { background: #3a2f2b; border-radius: 3px; }
+#town-screen::-webkit-scrollbar, #log::-webkit-scrollbar { width: 6px; }
+#town-screen::-webkit-scrollbar-thumb, #log::-webkit-scrollbar-thumb { background: #3a2f2b; border-radius: 3px; }
 
 /* スーパーレア以上の「お披露目」: 影の塊から光が弾けて姿を現し、名前は一拍おいて浮かぶ */
 .ig-card.rar-sr .ig-art canvas.spr, .ig-card.rar-lr .ig-art canvas.spr {
@@ -369,8 +339,6 @@ summary.tw-bandh::before { color: var(--accent); }
   .ig-card.rar-sr .ig-art canvas.spr, .ig-card.rar-lr .ig-art canvas.spr,
   .ig-card.rar-sr .ig-name, .ig-card.rar-lr .ig-name, .ig-card .ig-rarity, .ig-card .ig-stat, .ig-beam { animation: none !important; opacity: 1 !important; }
 }
-.st-eqrow.empty .st-ename { color: #6e6457; }
-.st-iname.st-unid { color: #b9a98a; }
 
 /* ステータスの見出し: 区切りの塊ごとに折り返す */
-.st-sub .st-seg { white-space: nowrap; }
+

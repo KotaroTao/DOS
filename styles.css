@@ -319,48 +319,14 @@ canvas.spr { image-rendering: pixelated; display: block; width: var(--spr-size, 
 .ig-ok { width: 100%; margin-top: 16px; }
 
 /* ===== ランクアップ専用ポップアップ ===== */
-.ru-card { animation: ig-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1); }
-.ru-title {
-  font-size: 26px; font-weight: 900; letter-spacing: 3px;
-  color: var(--accent); margin-bottom: 2px;
-  text-shadow: 0 0 18px var(--accent), 0 0 4px var(--accent);
-  animation: ru-pulse 1.1s ease-in-out infinite;
-}
+
 @keyframes ru-pulse { 0%,100% { transform: scale(1); filter: brightness(1); } 50% { transform: scale(1.06); filter: brightness(1.35); } }
-.ru-sub { font-size: 13px; letter-spacing: 1px; color: var(--ink-dim); margin-bottom: 4px; }
-.ru-art { padding: 22px; }
-.ru-rays {
-  position: absolute; left: 50%; top: 50%;
-  width: 200px; height: 200px; margin: -100px;
-  border-radius: 50%;
-  -webkit-mask: radial-gradient(circle, transparent 26px, #000 30px, transparent 96px);
-  mask: radial-gradient(circle, transparent 26px, #000 30px, transparent 96px);
-  opacity: 0.85; pointer-events: none;
-  animation: ru-spin 8s linear infinite;
-}
+
 @keyframes ru-spin { to { transform: rotate(360deg); } }
-.ru-art canvas.spr { position: relative; z-index: 1; animation: ig-float 2s ease-in-out infinite, ru-glow 1.4s ease-in-out infinite; }
+
 @keyframes ru-glow { 0%,100% { filter: drop-shadow(0 0 4px var(--accent)); } 50% { filter: drop-shadow(0 0 16px var(--accent)) brightness(1.15); } }
-.ru-rankrow { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 6px 0 2px; }
-.ru-rk { font-size: 16px; font-weight: bold; color: var(--ink-dim); }
-.ru-rk.ru-new { font-size: 22px; animation: ru-pulse 1.1s ease-in-out infinite; }
-.ru-arrow { font-size: 18px; color: var(--accent); animation: ru-push 0.9s ease-in-out infinite; }
+
 @keyframes ru-push { 0%,100% { transform: translateX(0); opacity: 0.7; } 50% { transform: translateX(4px); opacity: 1; } }
-.ru-jobname { font-size: 18px; font-weight: bold; margin: 4px 0 12px; text-shadow: 0 0 12px currentColor; }
-.ru-perks { display: grid; gap: 6px; margin: 4px 2px 0; }
-.ru-perk {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 6px 12px; border-radius: 8px;
-  background: rgba(255,255,255,0.04); font-size: 13px;
-}
-.ru-pl { color: var(--ink-dim); }
-.ru-pv { font-weight: bold; }
-.ru-unlock {
-  font-size: 12px; line-height: 1.6; color: var(--ink);
-  padding: 8px 10px; margin-top: 4px;
-  border: 1px solid var(--accent); border-radius: 8px;
-  background: rgba(255,255,255,0.03);
-}
 
 /* 中央カード内の選択肢ボタン */
 .ig-choices { display: grid; gap: 8px; margin-top: 16px; }
@@ -382,20 +348,6 @@ canvas.spr { image-rendering: pixelated; display: block; width: var(--spr-size, 
 .confirm-card { max-width: 300px; }
 
 /* 名前入力フィールド */
-.name-input {
-  width: 100%;
-  box-sizing: border-box;
-  margin-top: 12px;
-  padding: 10px 12px;
-  background: #1a1a2e;
-  border: 1px solid #555;
-  border-radius: 6px;
-  color: #fff;
-  font-size: 16px;
-  font-family: inherit;
-  outline: none;
-}
-.name-input:focus { border-color: #c9a227; }
 
 /* 未生成タブ */
 .tw-dolltab.pending { color: #aaa; font-style: italic; }
@@ -418,10 +370,9 @@ canvas.spr { image-rendering: pixelated; display: block; width: var(--spr-size, 
   cursor: pointer;
 }
 .sk-chip:active { background: #33335a; }
-.cdx-sktap { cursor: pointer; }
+
 /* タップ専用コントロール: スクロール領域内でもタップがパン/ダブルタップに奪われないようにする */
 .sk-chip, .tw-small, .pc { touch-action: manipulation; }
-.cdx-sktap:active { background: #23233a; }
 
 /* ===== ヒント ===== */
 #hint {
@@ -467,9 +418,7 @@ canvas.spr { image-rendering: pixelated; display: block; width: var(--spr-size, 
    overflow を持つ子 (層域アコーディオン .tw-band や図鑑タブ .cdx-tabs) は
    flex の自動最小サイズが 0 になり、あふれた高さを一身に吸収して潰れる —
    リストが途中で切れた上に全体が画面内に収まってスクロール自体が死ぬ。 */
-#town-screen > *,
-#status-screen > *,
-#settings-screen > * { flex-shrink: 0; }
+#town-screen > *{ flex-shrink: 0; }
 
 /* 共通ヘッダ */
 .tw-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
@@ -599,17 +548,6 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .tw-innc { font-size: 18px; color: var(--accent); font-weight: bold; }
 
 /* 魂タブ (ステータス画面) */
-.st-soultab { margin-top: 10px; display: flex; flex-direction: column; gap: 7px; }
-.st-soulsum { border: 1px solid #2c5a4a; border-left-width: 4px; border-radius: 8px; padding: 8px 11px; background: #0c1712; }
-.st-soulc { font-size: 15px; font-weight: bold; color: #d9fff0; }
-.st-soultt { font-size: 11px; color: #6fb89e; margin-top: 2px; }
-.st-soulrow2 { display: flex; align-items: center; gap: 9px; background: #0c1712; border: 1px solid #1f4438; border-radius: 8px; padding: 7px 10px; }
-.st-soulpart { flex: 0 0 38px; font-size: 12px; color: #8fd6bd; }
-.st-soulinfo { flex: 1; min-width: 0; }
-.st-soulinfo.dim { color: #5a6c64; font-size: 11px; }
-.st-souln2 { font-size: 12px; color: #e6fff5; }
-.st-soulbar { height: 5px; background: #16261f; border-radius: 3px; margin-top: 4px; overflow: hidden; }
-.st-soulbar > i { display: block; height: 100%; background: #46c08f; }
 
 /* ===== 酒場: クエスト掲示板 ===== */
 .tw-quest {
@@ -638,15 +576,6 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 }
 
 /* ===== 王宮: 勲章の間 (実績) ===== */
-.ach-card { cursor: default; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.ach-card:active { transform: none; }
-.ach-card.ready { border-color: var(--accent); box-shadow: 0 0 10px rgba(201, 162, 39, 0.3); }
-.ach-card.done { opacity: 0.55; }
-.ach-icon { font-size: 22px; line-height: 1.2; }
-.ach-card .cdx-name { width: 100%; }
-.ach-desc { min-height: 24px; }
-.ach-got { color: #c0a0a0; }
-.ach-claim { margin-top: 5px; }
 
 /* ===== 王宮: ストーリーイベント ===== */
 /* ===== 王の語り (勅命・報告) ===== */
@@ -694,59 +623,16 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 }
 
 /* ===== 図鑑 ===== */
-.cdx-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.cdx-card {
-  background: #140d1e; border: 1px solid #34254a; border-radius: 8px;
-  padding: 8px 4px; text-align: center; min-width: 0;
-}
-.cdx-card.unknown { opacity: 0.5; }
-.cdx-card { cursor: pointer; transition: transform 0.08s, box-shadow 0.12s; }
-.cdx-card:active { transform: scale(0.96); }
-.cdx-art { display: flex; align-items: center; justify-content: center; height: 44px; }
-.cdx-q { font-size: 24px; color: #4a3c60; font-weight: bold; }
-.cdx-name { font-size: 11px; color: #ece0ff; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cdx-stat { font-size: 9px; color: #9685ad; margin-top: 2px; line-height: 1.4; }
-.cdx-tabs { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
-.cdx-tabs .tw-dolltab { flex: 0 0 auto; }
 
 /* 図鑑: 詳細オーバーレイ */
-.cdx-detail { max-width: 340px; }
-.cdx-info { margin: 8px 0; }
-.cdx-elem { font-size: 12px; font-weight: bold; margin: 2px 0 6px; letter-spacing: 1px; }
-.cdx-kills { font-size: 12px; color: var(--accent); font-weight: bold; margin-bottom: 4px; }
-.cdx-drops { text-align: left; margin: 8px 4px 0; padding-top: 6px; border-top: 1px solid #34254a; }
-.cdx-h { font-size: 10px; color: #9685ad; margin-bottom: 4px; letter-spacing: 1px; }
-.cdx-drow { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
-.cdx-dlabel { font-size: 10px; padding: 1px 6px; border-radius: 4px; }
-.cdx-dlabel.normal { background: #2a3a4a; color: #9fd6e6; }
-.cdx-dlabel.rare { background: #4a2a1a; color: #f2c14e; }
-.cdx-di { display: inline-flex; }
-.cdx-dn { font-size: 12px; color: #ece0ff; }
-.cdx-dn.dim, .cdx-dun.dim { color: #6a5a80; }
-.cdx-dun { font-size: 12px; color: #d8cdea; margin: 2px 0; }
-.cdx-trow { display: flex; align-items: baseline; gap: 8px; margin: 4px 0; }
-.cdx-tlabel { flex: 0 0 auto; font-size: 11px; padding: 1px 7px; border-radius: 4px; background: #3a2a4a; color: #d6b8ff; letter-spacing: 1px; }
-.cdx-tdesc { font-size: 12px; color: #d8cdea; }
 
 /* ===== 魂図鑑/職業図鑑 (王宮書庫) ===== */
-.cdx-soulhead { display: flex; align-items: center; gap: 8px; margin: 10px 2px 2px; }
-.cdx-souln { font-size: 14px; letter-spacing: 1px; font-weight: bold; }
-.cdx-sklist { display: flex; flex-direction: column; gap: 4px; }
-.cdx-skrow { display: flex; align-items: baseline; gap: 8px; background: #170f22; border: 1px solid #34254a; border-radius: 8px; padding: 6px 10px; }
-.cdx-skrow.dim { opacity: 0.7; }
-.cdx-sklv { font-size: 10px; color: #b49fd2; min-width: 34px; }
-.cdx-skn { font-size: 12px; color: #ece0ff; }
-.cdx-skn.dim { color: #6a5a80; }
-.cdx-skd { font-size: 10px; color: #9685ad; }
-.cdx-tips { color: #b9d6a8; }
 
 /* 画面フラッシュ (ボス撃破/伝説の魂/呪い) */
 .screen-flash { position: fixed; inset: 0; z-index: 300; pointer-events: none; opacity: 0.55; transition: opacity 0.6s ease-out; }
 .screen-flash.out { opacity: 0; }
 
 /* ===== 記憶を宿した魂 (歴戦) ===== */
-.st-souln2.mem { color: #ffd27a; text-shadow: 0 0 8px rgba(255,180,80,0.5); }
-.tw-parts2.mem { color: #ffd27a; }
 
 /* ===== 酒場の噂話 ===== */
 .tw-rumor {
@@ -758,22 +644,9 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .tw-rumort { font-size: 13px; color: #ece0ff; line-height: 1.6; }
 
 /* ===== ウィザードリィ風 能力値 ===== */
-.st-attrs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
-.st-attr {
-  display: flex; align-items: center; justify-content: space-between;
-  background: #0c1712; border: 1px solid #1f4438; border-radius: 6px; padding: 6px 9px;
-}
-.st-attrk { font-size: 11px; color: #6fb89e; letter-spacing: 1px; }
-.st-attrv { font-size: 16px; font-weight: bold; color: #d9fff0; }
-.st-h2 { font-size: 12px; color: #8fd6bd; letter-spacing: 1px; margin: 12px 0 6px; border-left: 3px solid #46c08f; padding-left: 7px; }
-.st-camp { display: flex; flex-wrap: wrap; gap: 6px; }
 
 /* ===== 通貨表示 (街ヘッダ) ===== */
 .tw-cur { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; font-size: 11px; font-weight: bold; white-space: nowrap; }
-.tw-c-gold { color: var(--accent); }
-.tw-c-soul { color: #aef0ff; }
-.tw-c-red { color: #ff5b6e; }
-.tw-c-ember { color: #ff9a3a; }
 
 /* 複数行のリード文 */
 .tw-lead { white-space: pre-line; }
@@ -788,31 +661,11 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 
 /* ===== 魂のランク/個別ステータス表示 ===== */
 .tw-soulrow.rare { box-shadow: 0 0 10px rgba(160,140,255,0.25); }
-.tw-soulst, .st-soulstat { font-size: 10px; color: #9685ad; margin-top: 2px; }
-.st-soulstat { color: #6fb89e; }
+.tw-soulst{ font-size: 10px; color: #9685ad; margin-top: 2px; }
 
 /* ===== 魂の詳細パネル (タップで開閉) ===== */
-.st-soulrow2 { cursor: pointer; }
-.st-soulrow2.sel { box-shadow: 0 0 0 1px #46c08f; }
-.st-souldetail {
-  background: #0a130f;
-  border: 1px solid #2c5a4a; border-left-width: 4px;
-  border-radius: 8px; padding: 9px 12px; margin: -2px 0 4px;
-}
-.st-sdh { font-size: 11px; color: #6fb89e; letter-spacing: 1px; margin: 8px 0 4px; }
-.st-sdh:first-child { margin-top: 0; }
-.st-sdstat { font-size: 12px; color: #d9fff0; }
-.st-sdnote { font-size: 10px; color: #8a9a92; margin-top: 2px; }
-.st-sdskill { font-size: 12px; color: #5a6c64; line-height: 1.7; }
-.st-sdskill.on { color: #c9ffe9; }
-.st-sdskill.adv.on { color: #ffd84a; }
 
 /* ===== 復活待ち表示 ===== */
-.st-revive {
-  display: flex; flex-direction: column; gap: 8px;
-  background: #160d12; border: 1px solid #5a2a3a; border-radius: 8px; padding: 10px 12px;
-}
-.st-revt { font-size: 14px; color: #ff9a98; font-weight: bold; }
 
 /* ===== 迷宮選択 ===== */
 .tw-dungeon {
@@ -845,34 +698,6 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .confirm-overlay .ig-card { max-height: 88vh; overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain; }
 
 /* ===== 設定画面 (⚙) ===== */
-#settings-screen {
-  position: fixed;
-  inset: 0;
-  z-index: 75; /* 街(70)の上・確認ダイアログ #item-get(76) の下。ステータス(75)とは排他 */
-  background:
-    radial-gradient(120% 80% at 50% -10%, #2a1d2e 0%, rgba(0,0,0,0) 55%),
-    linear-gradient(170deg, #14101a, #07060b 65%);
-  display: flex; flex-direction: column; gap: 9px;
-  padding: calc(var(--safe-top) + 12px) 14px calc(var(--safe-bottom) + 14px);
-  overflow-y: auto; touch-action: pan-y; -webkit-overflow-scrolling: touch;
-}
-.set-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-.set-title { font-size: 16px; font-weight: bold; color: #f3e9c8; letter-spacing: 1px; text-shadow: 0 0 8px rgba(201, 162, 39, 0.4); }
-.set-h { font-size: 12px; color: #b49fd2; letter-spacing: 1px; margin: 12px 0 0; border-left: 3px solid #6a4d90; padding-left: 7px; }
-.set-row {
-  display: flex; align-items: center; gap: 10px;
-  background: #170f22; border: 1px solid #34254a; border-radius: 8px; padding: 10px 12px;
-}
-.set-row.danger { border-color: #5a2a3a; background: #160d12; }
-.set-rowi { flex: 1; min-width: 0; }
-.set-rown { font-size: 13px; font-weight: bold; color: #ede2ff; }
-.set-row.danger .set-rown { color: #ff9a98; }
-.set-rowd { font-size: 10px; color: #9685ad; margin-top: 2px; line-height: 1.5; }
-.set-toggle { flex: 0 0 auto; min-width: 76px; }
-.set-vol { flex: 0 0 auto; display: flex; gap: 3px; }
-.set-volb { min-width: 34px !important; padding: 6px 4px !important; font-size: 11px !important; }
-.set-volb.on { border-color: #8a63b8; color: #f0e2ff; box-shadow: 0 0 0 1px #8a63b8; background: #241836; }
-.set-toggle.on { border-color: #8a63b8; color: #f0e2ff; box-shadow: 0 0 0 1px #8a63b8; background: #241836; }
 
 /* ===== 戦績 ===== */
 .tw-records { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
@@ -892,9 +717,9 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .eq-pchip.ng .eq-pchip-mk { color: #ff6b6b; }
 
 /* ===== 装備候補チューザー ===== */
-.eqchooser { max-width: 440px; }
+
 .eq-cand { gap: 6px; }
-.eq-cand-btn { display: flex; align-items: center; gap: 9px; justify-content: flex-start; text-align: left; min-height: 46px; padding: 7px 10px; }
+
 .eq-cur { border-color: #6b8cff; background: rgba(107,140,255,0.08); }
 .eq-cur .eq-cn { color: #aec2ff; }
 .eq-ci { flex: 0 0 auto; display: flex; }
@@ -909,9 +734,7 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .eq-cd-seg.down { color: var(--danger); }
 .eq-cd-seg.elem { color: var(--accent); }
 .eq-cd-same { color: var(--ink-dim); }
-.st-eslot { margin-left: auto; font-size: 10px; color: #6fb89e; }
 
 /* 戦績シェア */
-.share-btn { border-color: #4a6a9a !important; color: #bcd4ff !important; margin-top: 8px; }
 
 /* 街の広場 (夜景・目標・施設の札・編成・迷宮の門) は town.css */
