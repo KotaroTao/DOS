@@ -154,7 +154,7 @@ html, body { height: 100%; overflow: hidden; }
 #view.shake { animation: shake 0.32s ease; }
 #view.shake-strong { animation: shake-strong 0.38s ease; }
 
-/* ===== 階移動の暗転演出 ===== */
+/* ===== 階移動の暗転演出 (墨の帳: 約1.3秒・400ms 後はタップで飛ばせる) ===== */
 .floor-trans {
   position: fixed;
   inset: 0;
@@ -165,13 +165,16 @@ html, body { height: 100%; overflow: hidden; }
   align-items: center;
   justify-content: center;
   gap: 10px;
-  animation: ft-in 0.6s ease forwards;
+  padding: 24px;
+  animation: ft-in 0.28s ease forwards;
   opacity: 0;
+  cursor: default;
 }
-.floor-trans.out { animation: ft-out 0.5s ease forwards; }
+.floor-trans.skippable { cursor: pointer; }
+.floor-trans.out { animation: ft-out 0.3s ease forwards; }
 .floor-trans-elite { background: #0a0000; }
 .floor-trans-elite .ft-floor { color: #d44040; text-shadow: 0 0 24px rgba(200, 40, 40, 0.7); }
-.floor-trans-elite .ft-sub { color: #884040; }
+.floor-trans-elite .ft-sub { color: #b05a50; }
 @keyframes ft-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes ft-out { from { opacity: 1; } to { opacity: 0; } }
 .ft-floor {
@@ -180,11 +183,19 @@ html, body { height: 100%; overflow: hidden; }
   color: var(--accent);
   letter-spacing: 6px;
   text-shadow: 0 0 24px rgba(201, 162, 39, 0.6);
-  animation: ft-rise 1.2s ease 0.3s both;
+  animation: ft-rise 0.6s ease 0.12s both;
 }
-.ft-sub { font-size: 12px; color: var(--ink-dim); letter-spacing: 3px; animation: ft-rise 1.2s ease 0.55s both; }
+.ft-sub { font-size: 12px; color: var(--ink-dim); letter-spacing: 3px; animation: ft-rise 0.6s ease 0.24s both; }
+/* 強敵・特別な階・奈落の変異の知らせ (2〜3行)。後から別の札は出さない */
+.ft-lines { max-width: 340px; margin-top: 6px; display: flex; flex-direction: column; gap: 4px; animation: ft-rise 0.6s ease 0.36s both; }
+.ft-line { font-size: 13px; line-height: 1.7; color: #d6cbb2; text-align: center; text-shadow: 0 1px 0 #000; }
+.floor-trans-special .ft-floor { color: var(--ft-accent, var(--accent)); text-shadow: 0 0 26px color-mix(in srgb, var(--ft-accent, #c9a227) 55%, transparent), 0 2px 0 #000; }
+.floor-trans-special .ft-line { color: #e6dbc2; }
+.ft-tap { position: absolute; left: 0; right: 0; bottom: calc(var(--safe-bottom) + 28px); text-align: center; font-size: 11px; letter-spacing: 0.3em; color: #6e6457; opacity: 0; transition: opacity 0.2s ease; }
+.floor-trans.skippable .ft-tap { opacity: 0.8; }
+.floor-trans.rm, .floor-trans.rm .ft-floor, .floor-trans.rm .ft-sub, .floor-trans.rm .ft-lines { animation-duration: 0.08s; animation-delay: 0s; }
 @keyframes ft-rise {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
