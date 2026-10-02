@@ -2,8 +2,9 @@
 // 「まとめて鑑定」(商会・有料・確実) より先に出す、隊の技による一括鑑定。
 // 品ごとに、その品を最も見抜ける者 (成功率の高い者) が鑑定する。判定は1点ずつ:
 //   「盾？を鑑定している」→「．」→「．．」→「．．．」→「鑑定成功！」/「鑑定失敗…」
-// 成功した品はその場で正体と性能を見せ、「装備する」で人業を選んで付けられる (演出は止まって待つ)。
-// 最後に結果の一覧 (成功した品 → 装備 / 失敗した品は商会でのみ)。残りは「商会で鑑定」へ続ける。
+// 成功した品はその場で正体と性能を見せる (装備は最後の一覧でまとめて)。
+// 最後に結果の一覧 (成功した品 → 装備。装備した品は一覧から消える / 失敗した品は商会でのみ)。残りは「商会で鑑定」へ続ける。
+// 音: 「．」ごとに SFX.appraise(段) が高まり、SFX.appraiseOk (解ける) / appraiseNg (曇る) で答える
 // 提供: UI.tryIdentifyInfo() / UI.openTryIdentifyAll()
 // game.js は import しない (ctx.js の UI / game を通す)。
 
@@ -17,7 +18,7 @@ import { itemName } from "../items.js";
 import { RARITIES, rarityKey } from "../rarity.js";
 
 const G = () => game.G || {};
-const sfx = (k) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](); } catch (e) { /* 音は演出のみ */ } };
+const sfx = (k, ...a) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](...a); } catch (e) { /* 音は演出のみ */ } };
 const buzz = (p) => { try { if (game.buzz) game.buzz(p); } catch (e) { /* noop */ } };
 const allDolls = () => { try { return game.allDolls ? game.allDolls() : [...(G().party || []), ...(G().reserve || [])]; } catch (e) { return []; } };
 const RAR_ORDER = { c: 0, uc: 1, r: 2, sr: 3, lr: 4 };
@@ -69,10 +70,10 @@ export function openTryIdentifyAll({ onDone } = {}) {
   if (!list.length) { toast("技で鑑定できる品はない", { tone: "info" }); return null; }
 
   const results = []; // { item, doll, m, ok }
-  let idx = 0, shown = 1, timer = null, paused = false, finished = false, phase = "idle", h = null;
+  let idx = 0, shown = 1, timer = null, finished = false, h = null;
   let advance = null; // 結果を見せている間に押せば、すぐ次へ
 
-  // ---- 舞台 (高さ一定。品の絵・名・鑑定する者・ドキドキの一行・判明した性能・装備) ----
+  // ---- 舞台 (高さ一定。品の絵・名・鑑定する者・ドキドキの一行・判明した性能) ----
   const box = el("div", "ap");
   const prog = el("div", "ap-prog");
   const progN = el("span", "ap-prog-n");
@@ -95,10 +96,8 @@ export function openTryIdentifyAll({ onDone } = {}) {
   stage.appendChild(who);
   stage.appendChild(msg);
   stage.appendChild(detail);
-  stage.addEventListener("click", () => { if (advance && !paused) { const f = advance; advance = null; clearTimeout(timer); f(); } });
+  stage.addEventListener("click", () => { if (advance) { const f = advance; advance = null; clearTimeout(timer); f(); } });
   box.appendChild(stage);
-  const acts = el("div", "ap-acts");
-  box.appendChild(acts);
   const tally = el("div", "ap-tally");
   box.appendChild(tally);
 
@@ -145,13 +144,11 @@ export function openTryIdentifyAll({ onDone } = {}) {
     const b = bestFor(t.item, alive.length ? alive : men);
     t.best = b;
     shown = idx + 1;
-    phase = "dots";
     stage.className = "ap-stage busy";
     paintArt(t.item, "busy");
     paintName(t.item);
     who.textContent = `${b.m.name} が鑑定する ・ ${identifyLabel(b.m)} ${Math.round(b.ch * 100)}%`;
     detail.textContent = "";
-    acts.textContent = "";
     setProg(); drawTally();
     const base = `${itemName(t.item)}を鑑定している`;
     let dots = 0;
@@ -162,7 +159,7 @@ export function openTryIdentifyAll({ onDone } = {}) {
       if (dots < 3) {
         dots++;
         msg.textContent = base + DOT.repeat(dots);
-        sfx("flip");
+        sfx("appraise", dots);
         timer = setTimeout(tick, T().dot + dots * 60); // 少しずつ間が延びる
         return;
       }
@@ -175,7 +172,6 @@ export function openTryIdentifyAll({ onDone } = {}) {
   const reveal = (t) => {
     const ok = game.doIdentifySkill ? !!game.doIdentifySkill(t.best.m, t.item, { quiet: true }) : false;
     results.push({ item: t.item, doll: t.doll, m: t.best.m, ok });
-    phase = "result";
     const it = t.item;
     if (ok) {
       it.isNew = true;
@@ -186,7 +182,8 @@ export function openTryIdentifyAll({ onDone } = {}) {
       msg.textContent = "鑑定成功！";
       const rk = rarityKey(it);
       const big = rk === "sr" || rk === "lr";
-      sfx(big ? "levelup" : "itemget");
+      sfx("appraiseOk");
+      if (big) sfx("levelup");
       buzz(big ? [0, 60, 50, 60, 50, 120] : [0, 20, 30, 20]);
       detail.textContent = "";
       const cat = itemCatText(it);
@@ -194,26 +191,12 @@ export function openTryIdentifyAll({ onDone } = {}) {
       detail.appendChild(el("div", "ap-grade", [rl, cat].filter(Boolean).join(" ・ ")));
       const st = statLines(it);
       if (st) detail.appendChild(el("div", "ap-stat", st));
-      if (isEquippable(it)) {
-        const o = ownerOf(it);
-        const plan = wearPlan(it, { owner: o ? o.doll : null });
-        const up = plan && plan.target && plan.delta && plan.score > 0;
-        if (up) {
-          const ln = el("div", "ap-up");
-          ln.appendChild(el("span", "ap-up-who", `${plan.target.name} に`));
-          ln.appendChild(deltaEl(plan.delta));
-          detail.appendChild(ln);
-        }
-        if (o && o.where === "bag") {
-          acts.appendChild(button({ label: "装備する", sub: up ? `${plan.target.name} が強くなる` : "人業を選ぶ", kind: up ? "primary" : "secondary", size: "md", onTap: () => equipNow(it) }));
-        }
-      }
     } else {
       stage.className = "ap-stage ng";
       paintArt(it, "ng");
       msg.className = "ap-msg ng";
       msg.textContent = "鑑定失敗…";
-      sfx("ng");
+      sfx("appraiseNg");
       buzz([0, 30, 40, 30]);
       detail.textContent = "";
       detail.appendChild(el("div", "ap-fail", `${t.best.m.name}には見抜けなかった。もう商会でしか鑑定できない。`));
@@ -221,23 +204,7 @@ export function openTryIdentifyAll({ onDone } = {}) {
     idx++;
     setProg(); drawTally();
     advance = () => step();
-    timer = setTimeout(() => { if (paused) return; const f = advance; advance = null; if (f) f(); }, ok ? T().okHold + (acts.childElementCount ? 900 : 0) : T().ngHold);
-  };
-
-  // 成功した品をその場で装備 (演出は止めて待ち、選び終えたら続ける)
-  const equipNow = (it) => {
-    paused = true;
-    clearTimeout(timer);
-    const ch = openDollChooser(it, { owner: ownerOf(it) ? ownerOf(it).doll : null });
-    const resume = () => {
-      paused = false;
-      if (finished || (h && h.closed)) return;
-      // 付け替えた後は舞台の「装備する」を消す
-      if (!ownerOf(it) || ownerOf(it).where !== "bag") acts.textContent = "";
-      if (phase === "result") { const f = advance; advance = null; timer = setTimeout(() => { if (f) f(); }, 500); }
-    };
-    if (ch && ch.opts) { const prev = ch.opts.onClose; ch.opts.onClose = (why) => { if (prev) prev(why); resume(); }; }
-    else resume();
+    timer = setTimeout(() => { const f = advance; advance = null; if (f) f(); }, ok ? T().okHold : T().ngHold);
   };
 
   // 残りを一度に判定して、結果の一覧へ
@@ -254,7 +221,7 @@ export function openTryIdentifyAll({ onDone } = {}) {
       if (ok) t.item.isNew = true;
       results.push({ item: t.item, doll: t.doll, m: b.m, ok });
     }
-    sfx(results.some((r) => r.ok) ? "itemget" : "ng");
+    sfx(results.some((r) => r.ok) ? "appraiseOk" : "appraiseNg");
     finish();
   };
 
@@ -279,12 +246,20 @@ export function openTryIdentifyAll({ onDone } = {}) {
     if (onDone) onDone(results);
   };
 
+  // 品のシート・装備の選択を閉じたら一覧を描き直す (装備した品は消える)
+  const refreshOnClose = (ch) => {
+    if (!ch || !ch.opts) return;
+    const prev = ch.opts.onClose;
+    ch.opts.onClose = (why) => { if (prev) prev(why); if (h && !h.closed) h.update({ body: (bb) => buildSummary(bb) }); };
+  };
   const buildSummary = (b) => {
     const wrap = el("div", "wpc-picklist ap-sum");
+    let worn = 0;
     for (const r of results.filter((x) => x.ok)) {
       const it = r.item;
       const o = ownerOf(it);
       if (!o) continue;
+      if (o.where === "equip") { worn++; continue; } // 装備した品は一覧から消す
       const row = el("div", "wpc-prow");
       const main = el("button", "wpc-prow-main");
       main.type = "button";
@@ -302,19 +277,16 @@ export function openTryIdentifyAll({ onDone } = {}) {
       else sub.appendChild(document.createTextNode(`${statLines(it) || itemCatText(it)} ・ ${o.doll.name}`));
       tx.appendChild(sub);
       main.appendChild(tx);
-      main.addEventListener("click", () => itemSheet(it, { owner: o.doll, context: "bag" }));
+      main.addEventListener("click", () => refreshOnClose(itemSheet(it, { owner: o.doll, context: "bag" })));
       row.appendChild(main);
-      if (isEquippable(it) && o.where === "bag") {
-        const eb = button({ label: "装備", kind: up ? "primary" : "secondary", size: "sm", onTap: () => {
-          const ch = openDollChooser(it, { owner: o.doll });
-          // 装備したら一覧を描き直す (装備中の品は「装備」を消す)
-          if (ch && ch.opts) { const prev = ch.opts.onClose; ch.opts.onClose = (why) => { if (prev) prev(why); if (h && !h.closed) h.update({ body: (bb) => buildSummary(bb) }); }; }
-        } });
+      if (isEquippable(it)) {
+        const eb = button({ label: "装備", kind: up ? "primary" : "secondary", size: "sm", onTap: () => refreshOnClose(openDollChooser(it, { owner: o.doll })) });
         eb.classList.add("wpc-prow-act");
         row.appendChild(eb);
-      } else if (o.where === "equip") row.appendChild(el("span", "ap-worn", `${o.doll.name} が装備中`));
+      }
       wrap.appendChild(row);
     }
+    if (worn) wrap.appendChild(el("div", "ap-sum-worn", `装備した品 ${worn}点は一覧から外した。`));
     const fails = results.filter((x) => !x.ok);
     if (fails.length) {
       const f = el("div", "ap-sum-fail");
