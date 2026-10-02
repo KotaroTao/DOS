@@ -39,16 +39,16 @@ for (const id in LEGACY) {
 // ステータスは defMonsters 通過後に monStats で与える (下の一括処理)
 const NEW_DEFS = [
   // -- 第1層「墓地」 (rank 1-2) --
-  { id: "bs_gravewisp", name: "墓火", rank: 1, race: "specter", element: "dark", artKey: "gravewisp",
+  { id: "bs_gravewisp", name: "墓火", rank: 1, race: "specter", element: "dark", artKey: "hd_gravewisp",
     magWeak: 1.6, evasive: true, ability: null, // 実体を持たぬ鬼火: 魔法に脆く、刃はすり抜ける
     desc: "墓地の夜に漂う青い鬼火。死にきれぬ者の未練が、火の玉となって彷徨う姿だという。刃は炎をすり抜けてしまうが、ひとたび魔の力を浴びれば、たちまち掻き消える。" },
-  { id: "bs_grasphand", name: "這い寄る腐手", rank: 1, race: "undead", element: "dark", artKey: "grasphand",
+  { id: "bs_grasphand", name: "這い寄る腐手", rank: 1, race: "undead", element: "dark", artKey: "hd_grasphand",
     ability: "paralyze", pack: true, // 土から無数に突き出し、掴んで痺れさせる
     desc: "埋葬を拒まれた者たちの、腐り落ちた手だけが土を破って這い出る。足首を掴まれた者は、冷たい指の感触に総毛立ち、その場に縫い止められる。一本では弱いが、墓所では群れを成す。" },
-  { id: "bs_corpsemaggot", name: "屍蛆", rank: 1, race: "undead", element: "dark", artKey: "corpsemaggot",
+  { id: "bs_corpsemaggot", name: "屍蛆", rank: 1, race: "undead", element: "dark", artKey: "hd_corpsemaggot",
     ability: "poison", pack: true, // 腐肉に湧き、群れで毒の体液を吐く
     desc: "墓の下で膨れに膨れた、人の頭ほどもある肥えた蛆。腐肉を喰らって育ち、噛みつくと腐敗の毒を流し込む。一匹見つけたなら、土の下にはその百倍が蠢いている。" },
-  { id: "bs_carrioncrow", name: "腐肉啄みの大鴉", rank: 1, race: "avian", element: "dark", artKey: "carrioncrow",
+  { id: "bs_carrioncrow", name: "腐肉啄みの大鴉", rank: 1, race: "avian", element: "dark", artKey: "hd_carrioncrow",
     swift: true, pack: true, // 墓を漁る賢しい黒鴉。素早く群れる
     desc: "墓地の梢に鈴なりにとまり、埋めたばかりの土を狙う賢い黒鴉。死を嗅ぎつける鼻は早く、群れで一斉に舞い降りては、目玉から先につついていく。" },
   { id: "bs_goblin", name: "ゴブリン", rank: 1, race: "humanoid", element: "none", artKey: "goblin", soulClass: "thief",
@@ -58,31 +58,31 @@ const NEW_DEFS = [
     palette: tint(ARTS.slime.palette, "#3a6ad0", 0.3),
     desc: "幾百の粘塊が呑み合い、ひとつに膨れ上がった巨大な王。呑まれた者の得物が、半透明の体内に何本も沈んでいる。" },
   // -- rank 2 --
-  { id: "bs_mournshade", name: "嘆きの喪影", rank: 2, race: "specter", element: "dark", artKey: "mournshade", soulClass: "hexer",
+  { id: "bs_mournshade", name: "嘆きの喪影", rank: 2, race: "specter", element: "dark", artKey: "hd_mournshade", soulClass: "hexer",
     ability: "weaken", // 弔いの嘆きが、生者の力を萎えさせる
     desc: "墓前で頭を垂れ、青白い顔から尽きぬ涙を流す喪服の霊。その嘆きを聞いた者は、四肢から力が抜け、剣を握ることすら億劫になる。誰の葬列だったのかは、もう霊自身も覚えていない。" },
-  { id: "bs_ghoul", name: "喰屍鬼", rank: 2, race: "undead", element: "dark", artKey: "ghoul",
+  { id: "bs_ghoul", name: "喰屍鬼", rank: 2, race: "undead", element: "dark", artKey: "hd_ghoul",
     lifesteal: 0.35, // 屍肉を喰らい、与えた傷の分だけ己を肥やす
     desc: "墓を暴いて屍肉を貪るうちに、人であることを忘れた痩せ枯れの鬼。長い爪で生者を裂き、その肉片を喰らっては傷を塞ぐ。満たされることのない飢えだけが、こいつを動かしている。" },
-  { id: "bs_bonepile", name: "蠢く骨山", rank: 2, race: "undead", element: "none", artKey: "bonepile",
+  { id: "bs_bonepile", name: "蠢く骨山", rank: 2, race: "undead", element: "none", artKey: "hd_bonepile",
     physResist: 0.5, barrier: 2, // 累々と積もった骨。崩しても組み上がる
     desc: "幾百の骸が崩れ落ち、ひとつの山となって蠢く。刃を突き立てても、ただ骨を一本叩き落とすだけ。砕いたそばから別の骨が組み上がり、いつまでも崩れきらない。" },
-  { id: "bs_skullswarm", name: "髑髏の群れ", rank: 2, race: "undead", element: "dark", artKey: "skullswarm",
+  { id: "bs_skullswarm", name: "髑髏の群れ", rank: 2, race: "undead", element: "dark", artKey: "hd_skullswarm",
     pack: true, multistrike: 2, // 宙を舞う髑髏の群体。次々に噛みつく
     desc: "怨念に浮かび上がった髑髏が、群れをなして宙を舞う。歯を鳴らして次々に噛みつき、一体を払っても、すぐ別の顎が背後から迫る。静寂の墓地に響く笑い声は、こいつらの顎の音だ。" },
-  { id: "bs_sarcoguard", name: "石棺の番人", rank: 2, race: "construct", element: "none", artKey: "sarcoguard",
+  { id: "bs_sarcoguard", name: "石棺の番人", rank: 2, race: "construct", element: "none", artKey: "hd_sarcoguard",
     role: "guard", barrier: 2, // 棺の主を護り、刃を数度受け止める石の番人
     desc: "石棺の蓋に彫られた守護者が、眠りを侵す者の前に立ちはだかる。腕を組んだまま一歩も退かず、後ろに控える同胞への一撃をことごとく己の石body で受け止める。砕くには、まずこの番人を黙らせるしかない。" },
-  { id: "bs_weepangel", name: "啜り泣く墓像", rank: 2, race: "construct", element: "none", artKey: "weepangel",
+  { id: "bs_weepangel", name: "啜り泣く墓像", rank: 2, race: "construct", element: "none", artKey: "hd_weepangel",
     physResist: 0.5, ability: "weaken", // 顔を覆って泣く石像。嘆きが力を奪う
     desc: "墓を見守る翼ある石像。顔を両手で覆い、永遠に啜り泣いている。その嘆きの声を浴びた者は、剣を振るう気力すら萎えていく。石の体は並の刃を寄せつけない。" },
-  { id: "bs_pettyrevenant", name: "浅き怨霊", rank: 2, race: "specter", element: "dark", artKey: "pettyrevenant",
+  { id: "bs_pettyrevenant", name: "浅き怨霊", rank: 2, race: "specter", element: "dark", artKey: "hd_pettyrevenant",
     enrage: true, // 痛めつけられるほど恨みが燃え上がる
     desc: "果たせぬ恨みを抱いたまま、浅い眠りから覚めた新しい霊。まだ力は弱いが、傷つけられるたびに恨みが煮えたぎり、終いには手のつけられぬ憤怒の塊となって襲いかかる。" },
-  { id: "bs_shroudstrangler", name: "経帷子の絞め手", rank: 2, race: "specter", element: "dark", artKey: "shroudstrangler",
+  { id: "bs_shroudstrangler", name: "経帷子の絞め手", rank: 2, race: "specter", element: "dark", artKey: "hd_shroudstrangler",
     ability: "paralyze", // 垂れた死装束で首を絞め、痺れさせる
     desc: "葬送の経帷子だけが宙に漂い、生者を見つけては垂れた布で首に巻きつく。締め上げられた者は声も出せず、痺れて崩れ落ちる。中に骸はない。布そのものが、絞めたがっているのだ。" },
-  { id: "bs_zombie", name: "腐乱死体", rank: 2, race: "undead", element: "dark", artKey: "zombie",
+  { id: "bs_zombie", name: "腐乱死体", rank: 2, race: "undead", element: "dark", artKey: "hd_zombie",
     ability: "poison", regen: 0.05, // 腐肉の毒をうつし、裂いた傷もすぐ膿んで塞がる
     desc: "土に還ることを許されなかった亡骸。腐汁の滴る腕で生者を掴み、己と同じ地獄へ引きずり込もうとする。腐った肉は斬られてもじわじわと膿んで塞がり、その爪には腐敗の毒が宿る。" },
   { id: "bs_direwolf", name: "灰色の大狼", rank: 2, race: "beast", element: "none", artKey: "beast",
@@ -1006,7 +1006,7 @@ const NEW_DEFS = [
     palette: tint(ARTS.mandrake.palette, "#9a3a7a", 0.4),
     ability: "poison", regen: 0.06, // 毒胞子 + 菌糸の再生
     desc: "地下墓地の湿気を糧に育った毒キノコの化身。胞子を吸った者は幻を見ながら眠り続ける。傘を裂いても菌糸からみるみる再生し、なかなか枯れない。" },
-  { id: "bs_bonebat", name: "骸蝙蝠", rank: 1, race: "undead", element: "dark", artKey: "bonebat",
+  { id: "bs_bonebat", name: "骸蝙蝠", rank: 1, race: "undead", element: "dark", artKey: "hd_bonebat",
     magWeak: 1.6, evasive: true, // 脆い骨 (魔法弱点) + 不規則な飛行 (回避)
     desc: "死した蝙蝠の骨が呪いで再び飛び回る亡者。不規則にひらめいて刃をかわすが、脆い骨は魔法の一撃で容易く砕け散る。羽ばたくたびに散る骨粉が、吸い込んだ者の肺を内から蝕む。" },
   // -- rank 2 追加 (+5) --
@@ -1016,8 +1016,7 @@ const NEW_DEFS = [
   { id: "bs_gnoll", name: "ゴール", rank: 2, race: "humanoid", element: "earth", artKey: "gnoll", soulClass: "fighter",
     pack: true, // ハイエナの習いで群れて襲う
     desc: "ハイエナの顎を持つ異形の戦士。骨ごと噛み砕く噛む力を誇り、迷宮で死んだ者の装備を剥いで身につける。一頭では狡猾に間合いを計り、数が揃えば一斉に喉笛へ飛びかかる。" },
-  { id: "bs_spiritbat", name: "霊蝙蝠", rank: 2, race: "specter", element: "dark", artKey: "bat",
-    palette: tint(ARTS.bat.palette, "#5a2a8a", 0.4),
+  { id: "bs_spiritbat", name: "霊蝙蝠", rank: 2, race: "specter", element: "dark", artKey: "hd_spiritbat",
     ability: "paralyze", // 体温を奪う冷たい牙で痺れさせる
     desc: "坑道の亡霊が蝙蝠の形を借りた霊体。噛まれた箇所は寒気を帯び、体温を奪われた者から順に意識が遠のき、やがて手足が痺れて動かなくなる。" },
   { id: "bs_hobgoblin", name: "ホブゴブリン", rank: 2, race: "humanoid", element: "none", artKey: "goblin", soulClass: "thief",
@@ -1213,8 +1212,7 @@ const NEW_DEFS = [
 
   // ==== 迷宮固有ボス (全100迷宮にひとりずつ。割り当ては BOSS_ORDER) ====
   // -- rank 1 (迷宮1-10: 地下墓地帯) --
-  { id: "bs_cryptabbot", name: "骸の修道院長", rank: 1, boss: true, race: "undead", element: "dark", artKey: "skeleton", soulClass: "priest",
-    palette: tint(ARTS.skeleton.palette, "#8a7a4a", 0.3),
+  { id: "bs_cryptabbot", name: "骸の修道院長", rank: 1, boss: true, race: "undead", element: "dark", artKey: "hd_cryptabbot", soulClass: "priest",
     ability: null, role: "summoner", summonKey: "d01_skeleton", regen: 0.05, // 死者を呼び、自らも朽ちない
     desc: "墓域の祈祷堂で祈りの姿のまま朽ちた院長。死してなお埋葬の祈祷を唱え、眠る亡骸を呼び起こして侍らせる。砕いても祈りが骨を継ぎ直し、なかなか沈黙しない。" },
   { id: "bs_whispercollector", name: "囁きの蒐集者", rank: 1, boss: true, race: "specter", element: "dark", artKey: "ghost",
@@ -1636,21 +1634,18 @@ const NEW_DEFS = [
   { id: "bs_goblinshaman", name: "ゴブリンの呪い手", rank: 2, race: "humanoid", element: "dark", artKey: "gobshaman",
     role: "healer", escort: "bs_goblin", ability: null, magWeak: 1.4, soulClass: "priest",
     desc: "骨の杖を振るい、仲間の傷を呪詛で縫い合わせるゴブリンの祈祷師。群れの後ろで唱え続ける限り、ゴブリンどもは何度でも立ち上がる。痩せた体は脆く、魔法を撃ち込めば呪文ごと崩れ落ちる。" },
-  { id: "bs_tombwarden", name: "墓守の重骸", rank: 2, race: "undead", element: "dark", artKey: "knightmare",
+  { id: "bs_tombwarden", name: "墓守の重骸", rank: 2, race: "undead", element: "dark", artKey: "hd_tombwarden",
     role: "guard", escort: "bs_zombie", ability: null, physResist: 0.4,
-    palette: tint(ARTS.knightmare.palette, "#8a8a7a", 0.4),
     desc: "墓所の番を最後の命令として朽ちた鎧の亡者。命令だけが残った今も仲間の屍を背に庇い、分厚い具足で刃を受け止め、自らが砕けるまで一歩も退かない。" },
   { id: "bs_ratpiper", name: "鼠寄せの笛吹き", rank: 2, race: "humanoid", element: "none", artKey: "piper",
     role: "summoner", summonKey: "bs_drainrat", escort: "bs_drainrat", ability: null, soulClass: "thief",
     desc: "骨の笛で坑道の鼠を従える小鬼。笛の音が続く限り、闇の奥から際限なく鼠が湧いてくる。まず笛を止めさせることだ。" },
   // -- rank 3 --
-  { id: "bs_bonechanter", name: "白骨の唱導師", rank: 3, race: "undead", element: "dark", artKey: "skeleton",
+  { id: "bs_bonechanter", name: "白骨の唱導師", rank: 3, race: "undead", element: "dark", artKey: "hd_bonechanter",
     role: "healer", escort: "d01_skeleton", ability: null, magWeak: 1.4, soulClass: "bishop",
-    palette: tint(ARTS.skeleton.palette, "#c8b87a", 0.4),
     desc: "死者への祈りを逆さに唱え、砕けた骨を継ぎ直す骸の司祭。唱導が続く限り、倒したはずの骸兵が骨を拾い集めて立ち上がる。痩せた骨身は脆く、魔法の一撃で唱導もろとも砕け散る。" },
-  { id: "bs_gravecaller", name: "墓呼びの語り部", rank: 3, race: "specter", element: "dark", artKey: "ghost",
+  { id: "bs_gravecaller", name: "墓呼びの語り部", rank: 3, race: "specter", element: "dark", artKey: "hd_gravecaller",
     role: "summoner", summonKey: "bs_zombie", escort: "bs_zombie", ability: null,
-    palette: tint(ARTS.ghost.palette, "#3a5a4a", 0.45),
     desc: "土の下の亡者に「まだ終わっていない」と囁き続ける亡霊。その語りを聞いた骸は墓を破って這い出し、語り部の指す方へ歩き出す。" },
   // -- rank 4 --
   { id: "bs_shieldogre", name: "大盾のオーガ", rank: 4, race: "giant", element: "earth", artKey: "ogre",
@@ -1673,12 +1668,10 @@ const NEW_MONSTERS = defMonsters(NEW_DEFS.map((d) => ({ ...monStats(d.rank, d.bo
 // ステータスは「帯ランク+2 のボス」(上限10)。適正レベルで倒すのは困難な規格外の存在。
 const ELITE_DEFS = [
   // -- 迷宮 1-10 (墓地帯) / 強敵ランク3 --
-  { id: "el_cryptlord", name: "墓所の君主", elite: true, rank: 3, race: "undead", element: "dark", artKey: "skeleton", soulClass: "mage",
-    palette: tint(ARTS.skeleton.palette, "#caa84a", 0.45),
+  { id: "el_cryptlord", name: "墓所の君主", elite: true, rank: 3, race: "undead", element: "dark", artKey: "hd_cryptlord", soulClass: "mage",
     role: "summoner", summonKey: "d01_skeleton", physResist: 0.4, // 死者を侍らせ、古びた骨身が刃を弾く
     desc: "墓地の最奥、最も古い柩に葬られた貴人の成れの果て。眠りを破った足音を数え終えた夜に柩の蓋が開き、侍る骸兵を率いて立ち上がる。石化した古い骨は並の刃を寄せつけない。" }, // D1-3
-  { id: "el_palebutcher", name: "蒼白の屠殺鬼", elite: true, rank: 3, race: "giant", element: "none", artKey: "ogre",
-    palette: tint(ARTS.ogre.palette, "#d8d8e4", 0.55),
+  { id: "el_palebutcher", name: "蒼白の屠殺鬼", elite: true, rank: 3, race: "giant", element: "none", artKey: "hd_palebutcher",
     physResist: 0.5, ability: "paralyze", // 巨体は刃をいなし、振るう包丁が獲物をすくませる
     desc: "墓守に化けて幾世代も墓地に住み着いた蒼白の喰人鬼。たるんだ巨体は刃を吸い込んでいなし、研ぎ上げた包丁が一閃するたび獲物は恐怖に立ちすくむ。包丁が研がれる夜は、翌朝までに墓穴がひとつ増えている。" }, // D4-6
   { id: "el_sorrowsaint", name: "嘆きの聖女", elite: true, rank: 3, race: "specter", element: "light", artKey: "ghost", soulClass: "priest",

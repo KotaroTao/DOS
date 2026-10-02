@@ -6,7 +6,7 @@ export const monsters = defMonsters([
     hp: 18, atk: 9, def: 3, spd: 6, soul: 11, gold: 9, soulClass: "fighter",
     ability: "goldSteal", pack: true, // 遺品漁りの手癖 + 数を頼む群れ
     desc: "犬の頭を持つ小鬼。打ち捨てられた牢を住処とし、囚人の遺品を漁って身を飾る。一匹では臆病だが、数を頼みに群れて錆びた得物を振り回し、隙あらば懐の金品をくすねる。" },
-  { id: "d01_skeleton", name: "囚人の亡骸", race: "undead", element: "dark", artKey: "skeleton", rank: 2,
+  { id: "d01_skeleton", name: "囚人の亡骸", race: "undead", element: "dark", artKey: "hd_skeleton", rank: 2,
     hp: 22, atk: 11, def: 4, spd: 7, soul: 16, gold: 12, soulClass: "thief",
     magWeak: 1.5, // 牢で朽ちた古い骨は脆く、魔法の一撃で砕ける
     desc: "裁きも赦しも無いまま牢で朽ち果てた者の骨。残った怨みだけが関節を軋ませ、出口を求めて鉄格子を掻きむしり続ける。その虚ろな眼窩は、近づく生者を看守と取り違えて襲いかかる。朽ちた骨は脆く、魔法の衝撃でたやすく崩れ落ちる。" },
