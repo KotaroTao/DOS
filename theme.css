@@ -114,28 +114,6 @@ button, input, select, textarea { font-family: var(--font); }
 #log .l-rar-sr { color: #ff9a2e; font-weight: 700; text-shadow: 0 0 8px rgba(255,154,46,0.45); }
 #log .l-rar-lr { color: #ff3b3b; font-weight: 800; text-shadow: 0 0 10px rgba(255,59,59,0.6); }
 
-/* ===== パーティカード: 黒鉄の札 ===== */
-.pc {
-  background: var(--grain), var(--plate);
-  border: 1px solid #3a2f2b;
-  border-radius: 3px;
-  box-shadow: var(--plate-edge);
-}
-.pc.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 14px rgba(201,162,74,0.45), var(--plate-edge); }
-.pc .name { font-weight: 700; color: var(--ink); letter-spacing: 0.3px; }
-.pc .cls { color: var(--ink-dim); }
-.pc .rowtag.front { color: #e2b773; border-color: #6e5228; background: rgba(110,82,40,0.18); }
-.pc .rowtag.back { color: #9cbbe0; border-color: #3d5370; background: rgba(61,83,112,0.18); }
-.pc .bar { height: 6px; background: #0a0709; border-radius: 1px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.9), 0 0 0 1px #2a2125; }
-.pc .hp > i { background: linear-gradient(180deg, #e35a4a 0%, #a8231c 55%, #6e130f 100%); box-shadow: inset 0 1px 0 rgba(255,200,180,0.45); }
-.pc .mp > i { background: linear-gradient(180deg, #6fa2ff 0%, #2f55b8 55%, #1c3270 100%); box-shadow: inset 0 1px 0 rgba(200,220,255,0.45); }
-.pc .nums { color: #b9ab93; font-variant-numeric: tabular-nums; }
-.pc.low { animation: pc-low-dark 1.2s ease-in-out infinite; }
-@keyframes pc-low-dark {
-  0%, 100% { border-color: #3a2f2b; box-shadow: var(--plate-edge); }
-  50% { border-color: #c43a2f; box-shadow: 0 0 12px rgba(196,58,47,0.6), var(--plate-edge); }
-}
-
 /* ===== ボタン: 黒鉄の板に彫り込み、金の縁 ===== */
 .btn {
   font-family: var(--font);
@@ -165,7 +143,6 @@ button, input, select, textarea { font-family: var(--font); }
   background: var(--grain), linear-gradient(180deg, #2c1515 0%, #1c0e0e 60%, #130909 100%);
 }
 .btn:disabled { opacity: 0.45; filter: grayscale(0.4); }
-#combat-menu .who { color: var(--accent-hi); font-weight: 700; letter-spacing: 0.5px; text-shadow: 0 0 8px rgba(201,162,74,0.3); }
 
 .tw-small, .tw-back, .st-navb, .tw-dolltab, .st-tab2 {
   font-family: var(--font);
@@ -400,24 +377,6 @@ summary.tw-bandh::before { color: var(--accent); }
 }
 .st-eqrow.empty .st-ename { color: #6e6457; }
 .st-iname.st-unid { color: #b9a98a; }
-
-/* ===== 今回の収穫バー (盤面の下) ===== */
-#runbar {
-  flex: 0 0 auto; margin: 2px 10px 0; padding: 5px 10px;
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  background: var(--grain), var(--plate); border: 1px solid #33292a; border-radius: 3px;
-  box-shadow: var(--plate-edge); font-size: 12px; font-variant-numeric: tabular-nums;
-}
-#runbar.hidden { display: none; }
-.rb-floor { display: flex; gap: 3px; align-items: center; }
-.rb-pip { color: #3e3433; font-size: 11px; }
-.rb-pip.done { color: #8a6d2e; }
-.rb-pip.now { color: var(--accent-hi); text-shadow: 0 0 8px rgba(243,213,139,0.7); }
-.rb-loot { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-.rb-gold { color: var(--accent-hi); }
-.rb-soul { color: #a6e4f2; }
-.rb-rar { font-weight: 800; }
-.rb-rar.zero { opacity: 0.28; text-shadow: none; }
 
 /* ステータスの見出し: 区切りの塊ごとに折り返す */
 .st-sub .st-seg { white-space: nowrap; }
