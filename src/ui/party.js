@@ -26,9 +26,9 @@ import {
   planBestEquip, applyPlan, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip,
 } from "../autoequip.js";
 import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName } from "../items.js";
-import { SOUL_CLASSES, JOB_GEAR, dollSprite, jobSprite, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulSeriesName, soulByUid } from "../souls.js";
+import { SOUL_CLASSES, JOB_GEAR, dollSprite, dollBust, jobBust, jobSprite, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulSeriesName, soulByUid } from "../souls.js";
 import { SPELLS, spellCost } from "../combat.js";
-import { spriteCanvas } from "../sprites.js";
+import { spriteCanvas, crispCanvas } from "../sprites.js";
 import { rarityKey, RARITIES } from "../rarity.js";
 
 const hasDOM = () => typeof document !== "undefined" && typeof document.createElement === "function";
@@ -69,31 +69,14 @@ const DLABEL = { atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk
 // 人業の肖像を、ドット1つを整数倍で描いた canvas で返す (image-rendering: pixelated)。
 // size = 枠の一辺 (px)。枠に収まる最大の整数倍で描く。
 export function partyPortraitCanvas(doll, size = 52) {
-  const spr = doll ? dollSprite(doll) : jobSprite("fighter", 1);
+  // 小さな額には胸像 (顔を中心に切り出した原画)、大きな額には全身像
+  const spr = size < 72 ? (doll ? dollBust(doll) : jobBust("fighter", 1)) : (doll ? dollSprite(doll) : jobSprite("fighter", 1));
   return pixelCanvas(spr, size);
 }
 function pixelCanvas(spr, size) {
-  const rows = spr.art;
-  const h = rows.length;
-  const w = rows.reduce((m, r) => Math.max(m, r.length), 0) || 1;
-  const s = Math.max(1, Math.floor(size / Math.max(w, h)));
-  const dpr = Math.min(3, Math.max(1, Math.round((typeof window !== "undefined" && window.devicePixelRatio) || 1)));
-  const c = document.createElement("canvas");
+  // ドットを物理ピクセルの整数倍で描く (入りきらない大きな絵だけ滑らかに縮める)
+  const c = crispCanvas(spr, size);
   c.className = "pt-px";
-  c.width = w * s * dpr; c.height = h * s * dpr;
-  c.style.width = (w * s) + "px"; c.style.height = (h * s) + "px";
-  const ctx = c.getContext && c.getContext("2d");
-  if (!ctx) return c;
-  const u = s * dpr;
-  for (let y = 0; y < h; y++) {
-    const r = rows[y];
-    for (let x = 0; x < r.length; x++) {
-      const col = spr.palette[r[x]];
-      if (!col || r[x] === ".") continue;
-      ctx.fillStyle = col;
-      ctx.fillRect(x * u, y * u, u, u);
-    }
-  }
   return c;
 }
 // 肖像の札 (枠・HPの細線・砕けた印)
@@ -912,7 +895,7 @@ export function openCreateDoll() {
         const cl = SOUL_CLASSES[s.clsKey]; if (!cl) continue;
         const ic = el("span", "pt-orb");
         ic.style.setProperty("--glow", cl.glow);
-        ic.appendChild(pixelCanvas(jobSprite(s.clsKey, Math.max(1, soulRank(s))), 36));
+        ic.appendChild(pixelCanvas(jobBust(s.clsKey, Math.max(1, soulRank(s))), 36));
         const r = row({ icon: ic, title: `${soulSeriesName(s.clsKey)}の魂`, sub: `Lv${s.level} ・ ${rarityName(cl.rarity)}`, chevron: true,
           onTap: () => { h.close(); openCreateName(s.uid); } });
         r.classList.add("pt-soulrow");

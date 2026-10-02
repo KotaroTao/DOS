@@ -928,6 +928,34 @@ function artBitmap(spr) {
 
 // 表示の大きさは box*scale px のまま。高精細の絵 (12ドット超) は端末の画素密度で描き、
 // 1ドットが1物理ピクセルを下回る時は等倍の写しを滑らかに縮めて潰れを防ぐ (旧12ドット絵は従来どおり)
+// 一辺 size (CSS px) の枠に、ドットを物理ピクセルの整数倍で描いた canvas を返す (肖像・胸像用)。
+// 入りきらない大きな絵だけは滑らかに縮める。canvas の CSS 寸法は描いた絵の大きさそのもの
+export function crispCanvas(spr, size) {
+  const c = document.createElement("canvas");
+  c.className = "spr";
+  const { w, h } = normalize(spr.art);
+  const dpr = Math.min(3, Math.max(1, Math.round((typeof window !== "undefined" && window.devicePixelRatio) || 1)));
+  const s = Math.floor((size * dpr) / Math.max(w, h, 1));
+  const ctx = c.getContext && c.getContext("2d");
+  if (s >= 1) {
+    c.width = w * s; c.height = h * s;
+    c.style.width = (w * s) / dpr + "px"; c.style.height = (h * s) / dpr + "px";
+    c.style.setProperty("--spr-size", (Math.max(w, h) * s) / dpr + "px");
+    if (ctx) drawSprite(ctx, spr, c.width / 2, c.height / 2, s);
+  } else {
+    const px = Math.round(size * dpr), k = px / Math.max(w, h);
+    c.width = px; c.height = px;
+    c.style.width = size + "px"; c.style.height = size + "px";
+    c.style.setProperty("--spr-size", size + "px");
+    if (ctx) {
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(artBitmap(spr), (px - w * k) / 2, (px - h * k) / 2, w * k, h * k);
+    }
+  }
+  return c;
+}
+
 export function spriteCanvas(spr, scale = 4, box = 12) {
   const c = document.createElement("canvas");
   c.className = "spr";
@@ -948,7 +976,7 @@ export function spriteCanvas(spr, scale = 4, box = 12) {
   const ctx = c.getContext("2d");
   const dot = (scale * dpr) / k; // 1ドットあたりの物理ピクセル
   if (dot >= 1) {
-    drawSpriteFit(ctx, spr, px / 2, px / 2, scale * dpr);
+    drawSprite(ctx, spr, px / 2, px / 2, Math.floor(dot)); // 整数倍で描く (ドットの幅を揃える)
   } else {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = "high";

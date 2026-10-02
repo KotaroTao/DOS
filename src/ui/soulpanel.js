@@ -11,11 +11,12 @@ import { el, button, row, sheet, toast, confirm, statDelta, bar, svgIcon, celebr
 import { countUp, deltaFloat } from "./motion.js";
 import { showSkillPopup, SPELL_KIND_LABEL } from "./itemview.js";
 import {
-  SOUL_CLASSES, jobSprite, soulByUid, soulRankOf, soulLevelCapOf, nextRankThreshold, jobRankName, soulSeriesName,
+  SOUL_CLASSES, jobSprite, jobBust, soulByUid, soulRankOf, soulLevelCapOf, nextRankThreshold, jobRankName, soulSeriesName,
   soulLearnedSkills, soulLearnedPassives, passiveName, passiveDesc, ORDER_PERK, PASSIVES, orderPassiveMap, orderPerkLv,
   jobSkillTable, recalcDoll, SOUL_STAT_UP,
 } from "../souls.js";
 import { SPELLS } from "../combat.js";
+import { crispCanvas } from "../sprites.js";
 
 const sfx = (k) => { try { const S = game.SFX; if (S && S[k]) S[k](); } catch (e) { /* 音は演出のみ */ } };
 const G_ = () => game.G;
@@ -25,34 +26,16 @@ const STAT_L = { hp: "HP", mp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "I
 
 // ドット1つを整数倍で描く (image-rendering: pixelated)
 function pixelCanvas(spr, size) {
-  const rows = spr.art;
-  const h = rows.length;
-  const w = rows.reduce((m, r) => Math.max(m, r.length), 0) || 1;
-  const s = Math.max(1, Math.floor(size / Math.max(w, h)));
-  const dpr = Math.min(3, Math.max(1, Math.round((typeof window !== "undefined" && window.devicePixelRatio) || 1)));
-  const c = document.createElement("canvas");
+  // ドットを物理ピクセルの整数倍で描く (入りきらない大きな絵だけ滑らかに縮める)
+  const c = crispCanvas(spr, size);
   c.className = "pt-px";
-  c.width = w * s * dpr; c.height = h * s * dpr;
-  c.style.width = (w * s) + "px"; c.style.height = (h * s) + "px";
-  const ctx = c.getContext && c.getContext("2d");
-  if (!ctx) return c;
-  const u = s * dpr;
-  for (let y = 0; y < h; y++) {
-    const r = rows[y];
-    for (let x = 0; x < r.length; x++) {
-      const col = spr.palette[r[x]];
-      if (!col || r[x] === ".") continue;
-      ctx.fillStyle = col;
-      ctx.fillRect(x * u, y * u, u, u);
-    }
-  }
   return c;
 }
 function orb(clsKey, rank, size = 40) {
   const cl = SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter;
   const o = el("span", "sp-orb");
   o.style.setProperty("--glow", cl.glow);
-  o.appendChild(pixelCanvas(jobSprite(clsKey, Math.max(1, rank || 1)), size));
+  o.appendChild(pixelCanvas(jobBust(clsKey, Math.max(1, rank || 1)), size)); // 魂の珠の中は胸像
   return o;
 }
 
