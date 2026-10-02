@@ -2,7 +2,7 @@
 // 担当: WP-B。
 //   街: 「隊」タブ (街シェルの中身)。迷宮: 盤面の隊の札から開く全高のシート (魂の付け替え・鍛錬はできない)。
 //   1画面に収める (390×844 でページのスクロール無し):
-//   [砕けた人業の知らせ] [隊列: 前衛3 | 後衛3 | 控え] [人業の見出し] ([野営]) [装備|魂|能力  最適装備] [区分の中身 (残りの高さ)]
+//   [砕けた人業の知らせ] [隊列: 前衛3 | 後衛3 | 控え] [人業の見出し] ([野営]) [装備|魂|能力  最適装備] [区分の中身] [館の主イレーヌ (街のみ・余った高さ)]
 //   区分の中身だけが、狭い画面 (360×640 など) で内側にスクロールする。
 // 品 → 人業を選ぶ → 装備: UI.equipChooser(item, {owner}) が「全員の札 (伸び ▲▼ / 付けられない理由)」を並べ、
 //   1タップでその人業に装備する (どの袋からでも)。元に戻すつきのトースト。他パッケージ (品シート・入手・商会) も使う。
@@ -512,7 +512,58 @@ function renderView(root, mode) {
   else if (seg === "soul") renderSoulSeg(body, d, { mode, rerender, G });
   else statsSeg(body, d, mode);
   root.appendChild(body);
-  if (mode === "town") autoPage(body); // 縦スクロールの代わりに頁送り (収まれば出ない)
+  if (mode === "town") {
+    autoPage(body); // 縦スクロールの代わりに頁送り (収まれば出ない)
+    root.classList.add("has-keeper");
+    root.appendChild(keeperPanel());
+  }
+}
+
+// ================= 館の主イレーヌ (街の「人業の館」の下段: 残りの高さに挿絵と台詞) =================
+// 区分の中身が収まった後の余白だけを使う (足りなければ畳む: ui-party.css のコンテナクエリ)。タップで次の台詞
+const KEEPER_WHO = "人形の館の主　イレーヌ";
+const KEEPER_ART = "./art/mansion_irene.png";
+const KEEPER_LINES = [
+  ["人業とは、魂に刻まれた力のかたち。", "迷った時は、前衛と後衛の役割を見直してみなさい。"],
+  ["器は嘘をつかないわ。", "傷もひびも、宿した魂の生き様そのものよ。"],
+  ["装備は器の衣。", "似合わぬ衣は、魂を窮屈にさせるだけ。"],
+  ["前衛は盾に、後衛は牙に。", "並びひとつで、人業の運命は変わるもの。"],
+  ["魂を宿すたび、器はほんの少しだけ温かくなるの。", "…あなたにも、わかるかしら。"],
+  ["壊れた器は直せても、零れた魂は戻らない。", "無理をさせては駄目よ。"],
+];
+let keeperIdx = null;
+function keeperPanel() {
+  const G = G_();
+  if (keeperIdx == null) keeperIdx = ((G && G.stats && G.stats.runs) || 0) % KEEPER_LINES.length;
+  const box = el("section", "pt-keeper");
+  const inner = el("div", "pt-kp-in");
+  const art = el("img", "pt-kp-art");
+  art.src = KEEPER_ART;
+  art.alt = "";
+  art.decoding = "async";
+  art.draggable = false;
+  inner.appendChild(art);
+  const say = el("button", "pt-kp-say");
+  say.type = "button";
+  say.appendChild(el("span", "pt-kp-who", KEEPER_WHO));
+  const text = el("span", "pt-kp-text");
+  const put = () => {
+    text.textContent = "";
+    for (const l of KEEPER_LINES[keeperIdx]) text.appendChild(el("span", "pt-kp-l", l));
+    say.setAttribute("aria-label", `${KEEPER_WHO}「${KEEPER_LINES[keeperIdx].join("")}」 (タップで次の言葉)`);
+  };
+  put();
+  say.appendChild(text);
+  say.appendChild(el("span", "pt-kp-next", "▼"));
+  say.addEventListener("click", () => {
+    sfx("select");
+    keeperIdx = (keeperIdx + 1) % KEEPER_LINES.length;
+    put();
+    if (typeof text.animate === "function") text.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: "ease-out" });
+  });
+  inner.appendChild(say);
+  box.appendChild(inner);
+  return box;
 }
 
 // ---- 人業がひとりもいない (第0章など) ----

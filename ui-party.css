@@ -16,6 +16,91 @@
 .pt-px { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
 .pt-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .pt-body > * { flex-shrink: 0; }
+/* 館の主イレーヌを置く時: 区分の中身は中身の高さで止め、残りの高さを挿絵が受け取る。
+   中身があふれて頁送りになった時は中身が全高を取り、挿絵は 0 になって畳まれる */
+.pt-root.m-town.has-keeper > .pt-body { flex-grow: 0; }
+.pt-root.m-town.has-keeper > .pt-body.is-paged { flex-grow: 1; }
+.pt-root.m-town > .pt-body.is-paged ~ .pt-keeper { flex: 0 0 28px; } /* 浮いた門の下の余白だけ残す */
+.pt-root.m-town.has-keeper .pt-slot { min-height: 46px; padding-top: 3px; padding-bottom: 3px; }
+.pt-root.m-town.has-keeper .pt-bagbar { min-height: 28px; }
+/* 挿絵はタブバーの際 (浮いた門の下) まで降ろす。門に掛かる台詞の枠は .pt-kp-say の bottom で持ち上げる */
+#town-shell #town-screen > .pt-root.has-keeper { margin-bottom: -28px; }
+/* 挿絵だけは画面の端まで (横は切らずに、縦だけ切る) */
+@supports (overflow: clip) { .pt-root.m-town.has-keeper { overflow-x: visible; overflow-y: clip; } }
+
+/* ---------- 館の主イレーヌ (挿絵 + 台詞の枠) ---------- */
+.pt-root.m-town > .pt-keeper { flex: 1 1 0; min-height: 0; }
+.pt-keeper { position: relative; container-type: size; margin: 0 -8px; overflow: hidden; }
+.pt-kp-in { position: absolute; inset: 0; background: #0a080c; }
+.pt-kp-art {
+  position: absolute; left: 0; top: 0; width: 100%; height: calc(100% - 44px); display: block;
+  object-fit: cover; object-position: 30% 30%;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+  -webkit-user-select: none; user-select: none; pointer-events: none;
+}
+/* 挿絵の下 44px は台詞の枠の受け皿 (闇)。上端は画面の地に溶かし、下端は枠の下で闇へ沈める */
+.pt-kp-in::before {
+  content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    linear-gradient(180deg, #0a080c 0%, rgba(10,8,12,0) 16%),
+    linear-gradient(0deg, #0a080c 0, #0a080c 44px, rgba(10,8,12,0) 104px);
+}
+.pt-kp-say {
+  position: absolute; left: 10px; right: 10px; bottom: 28px; z-index: 2;
+  display: block; min-height: 62px; padding: 14px 22px 9px 14px; text-align: left;
+  font-family: var(--font); color: #ece2cc; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  background: var(--grain), linear-gradient(180deg, rgba(20,15,18,0.9), rgba(9,7,10,0.94));
+  border: 1px solid #c9a24a; border-radius: 3px;
+  box-shadow: inset 0 0 0 2px #0c090c, inset 0 0 0 3px rgba(201,162,74,0.45), 0 0 0 1px #000, 0 8px 22px rgba(0,0,0,0.75);
+}
+/* 枠の四隅の金具と左右の菱 */
+.pt-kp-say::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; background: var(--corners); opacity: 0.9;
+}
+.pt-kp-say::after {
+  content: ""; position: absolute; inset: 50% -5px auto -5px; height: 8px; transform: translateY(-50%); pointer-events: none;
+  background:
+    linear-gradient(45deg, transparent 35%, #c9a24a 35% 65%, transparent 65%) left center / 8px 8px no-repeat,
+    linear-gradient(45deg, transparent 35%, #c9a24a 35% 65%, transparent 65%) right center / 8px 8px no-repeat;
+}
+.pt-kp-say:active { filter: brightness(1.08); }
+.pt-kp-who {
+  position: absolute; left: 16px; top: 0; transform: translateY(-58%);
+  padding: 3px 16px 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.16em; line-height: 1.3; white-space: nowrap;
+  color: #f3d58b; text-shadow: 0 1px 0 #000;
+  background: linear-gradient(180deg, #221a1c, #110d10);
+  border: 1px solid #c9a24a; border-radius: 2px;
+  box-shadow: inset 0 0 0 2px #0c090c, inset 0 0 0 3px rgba(201,162,74,0.35), 0 2px 8px rgba(0,0,0,0.7);
+}
+.pt-kp-who::before, .pt-kp-who::after {
+  content: ""; position: absolute; top: 50%; width: 7px; height: 7px; background: #c9a24a; transform: translateY(-50%) rotate(45deg);
+  box-shadow: 0 0 0 1px #000;
+}
+.pt-kp-who::before { left: -4px; }
+.pt-kp-who::after { right: -4px; }
+.pt-kp-text { display: block; }
+.pt-kp-l { display: block; font-size: 12.5px; line-height: 1.7; letter-spacing: 0.02em; text-shadow: 0 1px 0 #000; }
+.pt-kp-next {
+  position: absolute; right: 12px; bottom: 7px; font-size: 10px; color: #e8d08a; text-shadow: 0 0 6px rgba(232,208,138,0.6);
+  animation: pt-kp-blink 1.2s ease-in-out infinite;
+}
+@keyframes pt-kp-blink { 0%, 100% { opacity: 1; transform: translateY(0); } 50% { opacity: 0.35; transform: translateY(2px); } }
+/* 余白が少し足りない時: 挿絵を全高に広げ、台詞の枠は右へ寄せて顔を隠さない */
+@container (max-height: 190px) {
+  .pt-kp-art { height: 100%; object-position: 0% 30%; }
+  .pt-kp-in::before { background: linear-gradient(180deg, #0a080c 0%, rgba(10,8,12,0) 16%), linear-gradient(0deg, rgba(10,8,12,0.9) 0, rgba(10,8,12,0) 40%); }
+  .pt-kp-say { left: 47%; top: 18px; min-height: 0; display: flex; flex-direction: column; justify-content: center; }
+  .pt-kp-who { left: 10px; padding-left: 10px; padding-right: 10px; letter-spacing: 0.08em; }
+}
+/* さらに狭い時: 挿絵は背に退き、台詞の枠だけを上下いっぱいに。もっと狭ければ畳む */
+@container (max-height: 150px) {
+  .pt-kp-say { left: 10px; top: 12px; padding-top: 12px; }
+}
+@container (max-height: 104px) {
+  .pt-kp-in { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .pt-kp-next { animation: none; } }
+
 .pt-note { font-size: 12px; line-height: 1.6; color: #9a8e78; padding: 0 2px; }
 .pt-note.c { text-align: center; padding: 4px; }
 
