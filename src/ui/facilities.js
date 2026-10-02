@@ -1,13 +1,485 @@
-// ===== 街の施設 — 酒場・赤い魂の祠 (頁)・宿屋 (その場で1タップ + 詳細シート)・番人のひとこと =====
-// 担当: WP-A。Phase 0 では空の受け皿。
-// install() で UI 契約・タブ・頁を登録し、Phase 0 が登録したスタブを差し替える
-// (game.js の init() が全パッケージの install() を呼ぶ。スタブの登録より後)。
-// 提供する契約: UI.shell.registerPage("tavern" | "shrine" | "abyss", …)
-// game.js は import しない (ctx.js の UI / game / ops を通す。kit.js・itemview.js は自由に使ってよい)。
+// ===== 街の施設 — 酒場・赤い魂の祠 (頁) / 宿屋 (シート) / 番人のささやき / 通貨の説明 / 共通の小部品 =====
+// 担当: WP-A。酒場と祠は街タブの1段下の頁 (ヘッダの ‹ で街へ戻る)。宿屋は街の札から1タップで泊まり、詳細はシート。
+// 画面は1枚に収める (頁そのものは縦にスクロールさせない)。長い一覧は「‹ 1/3 ›」でめくる (pagedGrid)。
+// 番人は見出しの下の1行 (胸像の小窓 + ひとこと。タップで胸像のシート)。その街滞在で初めて訪れた時だけ、
+// その行が大きな胸像と吹き出しになって挨拶する (次に描き直す時は1行に畳む)。
+// 品 (納品の依頼・宝物庫・図鑑) を選ぶと、持っている品は UI.itemSheet (WP-C) でその場で装備・譲渡できる。
+// 提供: UI.keeperWhisper(key) / UI.keeperSheet(key) / UI.currencySheet(kind) / UI.openInn() / 頁 "tavern" "shrine"
+// game.js は import しない (ctx.js の UI / game / ops を通す)。
 
 import { UI, game, ops, registerUI } from "./ctx.js";
+import { el, setText, glyph, svgIcon, sheet, button, whisper, itemTile, portrait, bar, toast } from "./kit.js";
+import { getPref, setPref } from "./prefs.js";
+import { keeperCanvas, vignetteCanvas } from "../townart.js";
+import { ITEMS, SLOT_LABEL } from "../items.js";
+import { SFX } from "../audio.js";
+
+const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
+const G = () => game.G;
+
+// ---------- 共通の小部品 ----------
+// 金の菱の見出し (右に小さな付記・操作を置ける)
+export function sectionHead(title, { note = null, right = null, cls = "" } = {}) {
+  const h = el("div", "wa-h" + (cls ? " " + cls : ""));
+  h.appendChild(el("i", "wa-dia"));
+  h.appendChild(setText(el("span", "wa-h-t"), title));
+  if (note != null) h.appendChild(setText(el("span", "wa-h-n"), String(note)));
+  h.appendChild(el("span", "wa-h-rule"));
+  if (right) h.appendChild(right);
+  return h;
+}
+// 鎖で閉ざされた行 (未解放の機能)
+export function lockedRow(title, sub) {
+  const r = el("div", "wa-locked");
+  r.appendChild(svgIcon("chain", "wa-locked-ic"));
+  const t = el("div", "wa-locked-t");
+  t.appendChild(setText(el("div", "wa-locked-h"), title));
+  if (sub) t.appendChild(setText(el("div", "wa-locked-s"), sub));
+  r.appendChild(t);
+  return r;
+}
+// 施設が開いているか (第0章の間は王宮/館のみ)
+export function facilityOpen(key) {
+  let a = null;
+  try { a = game.tutorialAllowed ? game.tutorialAllowed() : null; } catch (e) { a = null; }
+  return !a || a.includes(key);
+}
+export function lockedToast() { sfx("ng"); toast("王命を果たすまで閉ざされている", { tone: "info" }); }
+
+// 1画面に収まる行数ぶんずつ見せる格子 (‹ 1/3 ›)。area は DOM に繋がった、残りの高さを占める箱 (flex:1)。
+// 横に払ってもめくれる。めくった頁は key ごとに覚える (この起動の間)
+const pageMemo = {};
+export function pagedGrid(area, items, makeCell, { cols = 3, cellH = 104, gap = 8, key = "", empty = null } = {}) {
+  area.textContent = "";
+  area.classList.add("wa-parea");
+  if (!items.length) { if (empty) area.appendChild(empty); return; }
+  const grid = el("div", "wa-pgrid");
+  grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+  grid.style.gridAutoRows = cellH + "px";
+  grid.style.gap = gap + "px";
+  area.appendChild(grid);
+  const PAGER_H = 52;
+  const h = area.clientHeight || 0;
+  const fitRows = (avail) => Math.max(1, Math.floor((avail + gap) / (cellH + gap)));
+  let rows = h > 0 ? fitRows(h) : 3;
+  if (h > 0 && Math.ceil(items.length / cols) > rows) rows = fitRows(h - PAGER_H); // めくりが要るなら、その分を空ける
+  const per = rows * cols;
+  const pages = Math.max(1, Math.ceil(items.length / per));
+  let page = Math.min(pageMemo[key] || 0, pages - 1);
+  let pager = null, label = null, prev = null, next = null;
+  const draw = () => {
+    grid.textContent = "";
+    for (const it of items.slice(page * per, page * per + per)) grid.appendChild(makeCell(it));
+    pageMemo[key] = page;
+    if (pager) {
+      label.textContent = `${page + 1} / ${pages}`;
+      prev.disabled = page <= 0;
+      next.disabled = page >= pages - 1;
+    }
+  };
+  if (pages > 1) {
+    pager = el("div", "wa-pager");
+    prev = el("button", "wa-pg-b");
+    prev.type = "button";
+    prev.setAttribute("aria-label", "前の頁");
+    prev.appendChild(svgIcon("back", "wa-pg-ic"));
+    next = el("button", "wa-pg-b");
+    next.type = "button";
+    next.setAttribute("aria-label", "次の頁");
+    next.appendChild(svgIcon("chevron", "wa-pg-ic"));
+    label = el("span", "wa-pg-l");
+    prev.addEventListener("click", () => { if (page > 0) { page--; sfx("select"); draw(); } });
+    next.addEventListener("click", () => { if (page < pages - 1) { page++; sfx("select"); draw(); } });
+    pager.appendChild(prev); pager.appendChild(label); pager.appendChild(next);
+    area.appendChild(pager);
+    // 横に払ってめくる
+    let x0 = null, y0 = null;
+    grid.addEventListener("pointerdown", (e) => { x0 = e.clientX; y0 = e.clientY; });
+    grid.addEventListener("pointerup", (e) => {
+      if (x0 == null) return;
+      const dx = e.clientX - x0, dy = e.clientY - y0;
+      x0 = null;
+      if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      if (dx < 0 && page < pages - 1) { page++; draw(); } else if (dx > 0 && page > 0) { page--; draw(); }
+    });
+  }
+  draw();
+}
+
+// 品をひらく: 持っている品 (誰かの荷・装備) なら UI.itemSheet (その場で装備・譲渡)、無ければ図鑑の詳細
+export function findOwned(itemId) {
+  const g = G();
+  const dolls = [...(g.party || []), ...(g.reserve || [])];
+  for (const d of dolls) {
+    const i = (d.items || []).findIndex((it) => it && it.id === itemId && !it.unidentified);
+    if (i >= 0) return { doll: d, item: d.items[i], index: i, context: "bag" };
+  }
+  for (const d of dolls) {
+    for (const k in (d.equip || {})) { const it = d.equip[k]; if (it && it.id === itemId) return { doll: d, item: it, slot: k, context: "equip" }; }
+  }
+  return null;
+}
+export function openItem(itemId, { instance = null, owner = null } = {}) {
+  sfx("select");
+  const own = instance && owner ? { doll: owner, item: instance, index: (owner.items || []).indexOf(instance), context: "bag" } : findOwned(itemId);
+  if (own && UI.itemSheet) return UI.itemSheet(own.item, { owner: own.doll, context: own.context, index: own.index, slot: own.slot });
+  if (UI.codexItemSheet) return UI.codexItemSheet(itemId);
+  return null;
+}
+
+// ---------- 番人のささやき ----------
+function visitStamp() {
+  const g = G();
+  return String((g && g.stats && g.stats.runs) || 0);
+}
+// その街滞在で初めて訪れた施設か (覚えるのは端末の dos-ui)
+function firstVisit(key) {
+  const seen = { ...(getPref("keeperSeen") || {}) };
+  const st = visitStamp();
+  if (seen[key] === st) return false;
+  seen[key] = st;
+  setPref("keeperSeen", seen);
+  return true;
+}
+function keeperLine(shell) {
+  const g = G();
+  const ls = shell.lines || [];
+  if (!ls.length) return "";
+  return ls[((g && g.stats && g.stats.runs) || 0) % ls.length];
+}
+// 胸像のシート (台詞の一覧)
+export function keeperSheet(key) {
+  const shell = (game.FAC_SHELL || {})[key];
+  if (!shell || !shell.keeper) return null;
+  const body = el("div", "kp-sheet");
+  const fr = el("div", "kp-sheet-bust");
+  try { const c = keeperCanvas(shell.keeper); if (c) fr.appendChild(c); } catch (e) { /* 演出のみ */ }
+  body.appendChild(fr);
+  const ls = el("div", "kp-sheet-lines");
+  for (const l of shell.lines || []) ls.appendChild(setText(el("div", "kp-sheet-line"), `「${l}」`));
+  body.appendChild(ls);
+  return sheet.open({ kind: "info", banner: shell.who || "", body, className: "kp-sheet-card",
+    footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }] });
+}
+// 初訪問の挨拶: その街滞在で初めて訪れた時だけ、ささやきの行が大きな胸像と吹き出しになる。
+// 直後の描き直し (1.5秒以内) の間も大きいまま。次に描き直した時は1行に畳む (めくる格子は描く時に残りの高さを測るので、
+// どちらの大きさでも画面に収まる)
+let _expanded = { key: null, at: 0 };
+export function dismissGreet() { /* 互換 (浮かぶ挨拶は廃止。何もしない) */ }
+function expandNow(key) {
+  if (_expanded.key === key && Date.now() - _expanded.at < 1500) return true;
+  if (!firstVisit(key)) return false;
+  _expanded = { key, at: Date.now() };
+  return true;
+}
+// 見出しの下の1行 (48px)。key = FAC_SHELL の鍵
+export function keeperRow(key) {
+  const shell = (game.FAC_SHELL || {})[key];
+  if (!shell || !shell.keeper) return null;
+  const line = keeperLine(shell);
+  const open = () => { sfx("select"); keeperSheet(key); };
+  if (expandNow(key)) {
+    const box = el("button", "kp-full");
+    box.type = "button";
+    box.setAttribute("aria-label", `${shell.who}「${line}」`);
+    const fr = el("span", "kp-full-bust");
+    try { const c = keeperCanvas(shell.keeper); if (c) fr.appendChild(c); } catch (e) { /* 演出のみ */ }
+    box.appendChild(fr);
+    const say = el("span", "kp-full-say");
+    say.appendChild(setText(el("span", "kp-full-who"), shell.who || ""));
+    say.appendChild(setText(el("span", "kp-full-line"), `「${line}」`));
+    box.appendChild(say);
+    box.addEventListener("click", open);
+    return box;
+  }
+  const w = whisper(shell.keeper, line, { who: shell.who, onTap: open });
+  w.classList.add("kp-whisper");
+  return w;
+}
+
+// ---------- 通貨の説明 (ヘッダの通貨の札をタップ) ----------
+const CUR = {
+  gold: { name: "金貨", key: "gold", desc: ["宿賃・鑑定・装備の売買に使う。", "迷宮の宝箱・戦闘・品の売却で手に入る。"] },
+  soul: { name: "✦Soul", key: "soulPts", desc: ["魂を鍛えるための力。人業ではなく魂に刻まれる。", "迷宮で敵を倒すと得られ、全滅しても失われない。"] },
+  red: { name: "赤い魂", key: "redSoul", desc: ["人業の器を仕立てる、砕けた人業の帰還を早める、全滅の時に戦利品を守る——に使う。", "赤い魂の祠で授かる。"] },
+  ember: { name: "魂の残火", key: "embers", desc: ["魂のLv上限を1つ上げる。", "あたたかい死体の魂を回収すると得ることがある。"] },
+};
+export function currencySheet(kind) {
+  const info = CUR[kind] || CUR.gold;
+  const g = G() || {};
+  const inTown = g.state === "town";
+  const body = el("div", "cur-sheet");
+  const big = el("div", "cur-big c-" + kind);
+  big.appendChild(glyph(kind));
+  big.appendChild(el("span", "cur-big-v", String(g[info.key] || 0)));
+  body.appendChild(big);
+  for (const d of info.desc) body.appendChild(setText(el("div", "ui-sheet-line"), d));
+  const footer = [];
+  if (inTown && kind === "red" && facilityOpen("shrine")) {
+    footer.push({ label: "赤い魂の祠へ", kind: "primary", onTap: (h) => { h.close(); UI.shell.openPage("shrine"); } });
+  } else if (inTown && kind === "gold" && facilityOpen("shop")) {
+    footer.push({ label: "商会へ", kind: "secondary", onTap: (h) => { h.close(); if (UI.openShop) UI.openShop(); } });
+  } else if (inTown && kind === "soul" && facilityOpen("mansion") && (g.party || []).length) {
+    footer.push({ label: "隊で魂を鍛える", kind: "secondary", onTap: (h) => { h.close(); if (UI.openTab) UI.openTab("party"); } });
+  }
+  footer.push({ label: "閉じる", kind: "ghost", onTap: (h) => h.close() });
+  return sheet.open({ kind: "info", banner: info.name, body, footer, className: "cur-sheet-card" });
+}
+// 横並びの通貨の札 (32px の見た目・44px の押せる場所)。街の夜景の上で使う
+export function currencyBar({ cls = "" } = {}) {
+  const g = G() || {};
+  const wrap = el("div", "wa-cur" + (cls ? " " + cls : ""));
+  for (const kind of ["gold", "soul", "red", "ember"]) {
+    const v = g[CUR[kind].key] || 0;
+    if (kind === "ember" && v <= 0) continue;
+    const c = el("button", "wa-cur-c c-" + kind);
+    c.type = "button";
+    c.appendChild(glyph(kind));
+    c.appendChild(el("span", "wa-cur-v", String(v)));
+    c.setAttribute("aria-label", `${CUR[kind].name} ${v}`);
+    c.addEventListener("click", () => { sfx("select"); currencySheet(kind); });
+    wrap.appendChild(c);
+  }
+  return wrap;
+}
+
+// ---------- 宿屋 (シート) ----------
+export function innStatus() {
+  const g = G();
+  const cost = game.innCost ? game.innCost() : 0;
+  const need = (g.party || []).filter((p) => p.alive && (p.hp < p.maxhp || p.mp < p.maxmp));
+  return { cost, need, afford: g.gold >= cost };
+}
+// 宿で休む (1タップ)。泊まれない時 (誰も要らない・金貨が足りない) は詳細のシートを開く
+export function restOrDetail() {
+  if (!facilityOpen("inn")) return lockedToast();
+  const st = innStatus();
+  if (st.need.length && st.afford) return ops.restParty();
+  return openInn();
+}
+let innSheet = null;
+export function openInn() {
+  if (!facilityOpen("inn")) return lockedToast();
+  if (innSheet && !innSheet.closed) return innSheet;
+  const shell = (game.FAC_SHELL || {}).inn || {};
+  const fill = (root) => {
+    const st = innStatus();
+    const g = G();
+    const head = el("div", "inn-head");
+    const art = el("div", "inn-art");
+    try { const v = vignetteCanvas("inn"); if (v) art.appendChild(v); } catch (e) { /* 演出のみ */ }
+    head.appendChild(art);
+    const k = el("div", "inn-keeper");
+    const b = el("span", "inn-bust");
+    try { const c = keeperCanvas(shell.keeper || "innkeeper"); if (c) b.appendChild(c); } catch (e) { /* 演出のみ */ }
+    k.appendChild(b);
+    k.appendChild(setText(el("span", "inn-say"), `「${keeperLine(shell) || "眠りな。"}」`));
+    head.appendChild(k);
+    root.appendChild(head);
+    root.appendChild(setText(el("div", "ui-sheet-line inn-lead"), "一晩の休息で、生きている人業のHP・MPが全快し、毒や麻痺も癒える。"));
+    const list = el("div", "inn-party");
+    for (const p of g.party || []) {
+      const r = el("div", "inn-row" + (p.alive ? "" : " dead"));
+      if (UI.partyPortraitCanvas) {
+        const fr = el("span", "inn-port");
+        try { fr.appendChild(UI.partyPortraitCanvas(p, 40)); } catch (e) { /* 絵が無くても動く */ }
+        r.appendChild(fr);
+      } else r.appendChild(portrait(p, { size: 48, hp: false }));
+      const t = el("div", "inn-row-t");
+      t.appendChild(setText(el("div", "inn-row-n"), p.name));
+      if (p.alive) {
+        t.appendChild(bar(p.hp, p.maxhp, { tone: "hp" }));
+        t.appendChild(el("div", "inn-row-v", `HP ${p.hp}/${p.maxhp}　MP ${p.mp}/${p.maxmp}`));
+      } else {
+        t.appendChild(el("div", "inn-row-v", "砕けている — 宿では癒えない"));
+      }
+      r.appendChild(t);
+      list.appendChild(r);
+    }
+    if (!(g.party || []).length) list.appendChild(el("div", "wa-empty", "隊に人業がいない。"));
+    root.appendChild(list);
+    const note = !st.need.length ? "皆、すこぶる元気だ。" : !st.afford ? `金貨が足りない (宿賃 ${st.cost})。` : `${st.need.length}体が休息を必要としている。`;
+    root.appendChild(setText(el("div", "inn-note" + (st.need.length && st.afford ? " ok" : "")), note));
+  };
+  const footer = () => {
+    const st = innStatus();
+    return [
+      { label: "泊まる", kind: "primary", size: "lg", cost: { kind: "gold", n: st.cost }, disabled: !st.need.length || !st.afford,
+        onTap: (h) => { const r = ops.restParty(); if (r && r.ok) h.close(); else h.update({ footer: footer() }); } },
+      { label: "閉じる", kind: "ghost", onTap: (h) => h.close() },
+    ];
+  };
+  innSheet = sheet.open({ kind: "info", banner: "宿屋「白狼」", body: fill, footer: footer(), className: "inn-sheet", onClose: () => { innSheet = null; } });
+  return innSheet;
+}
+
+// ---------- 酒場 (頁) ----------
+function renderTavern(root) {
+  if (legacyJumped()) return;
+  const g = G();
+  const wrap = el("div", "wa-page wa-fit fc-tavern");
+  root.appendChild(wrap);
+  const kr = keeperRow("tavern");
+  if (kr) wrap.appendChild(kr);
+
+  // 1) 納品依頼: 求められた品を納めると、品の格に応じた職業の魂を授かる。品の札をタップ = 品の詳細 (持っていれば装備・譲渡)
+  if (game.ensureDeliveryQuests) game.ensureDeliveryQuests();
+  const qs = (g.deliveryQuests || []).filter((q) => q && ITEMS[q.itemId]);
+  wrap.appendChild(sectionHead("納品依頼", { note: qs.length ? `${qs.length}件・潜るたびに入れ替わる` : null }));
+  const dl = el("div", "fc-quests");
+  for (const q of qs) {
+    const it = ITEMS[q.itemId];
+    const r20 = it.r20 || 1;
+    const holder = game.deliveryHolder ? game.deliveryHolder(q.itemId) : null;
+    const inShop = !!(g.shopStock && g.shopStock[q.itemId] > 0);
+    const card = el("div", "fc-quest" + (holder ? " ready" : ""));
+    card.appendChild(itemTile(it, { size: 56, onTap: () => openItem(q.itemId) }));
+    const info = el("div", "fc-quest-i");
+    const nm = game.itemNameEl ? game.itemNameEl("div", "fc-quest-n", it) : el("div", "fc-quest-n", it.name);
+    info.appendChild(nm);
+    const rn = game.itemRankName ? game.itemRankName(it) : null;
+    info.appendChild(el("div", "fc-quest-c", `${SLOT_LABEL[it.slot] || it.slot || ""}${rn ? " ・ " + rn : ""} ・ 格 R${r20}`));
+    info.appendChild(el("div", "fc-quest-r", "褒賞: " + (game.deliveryRewardDesc ? game.deliveryRewardDesc(r20) : "")));
+    info.appendChild(el("div", "fc-quest-h" + (holder ? " ok" : ""), holder ? `手持ちにあり — ${holder.name}` : inShop ? "商会に並んでいる" : "まだ手元にない"));
+    card.appendChild(info);
+    if (holder) card.appendChild(button({ label: "納品する", kind: "primary", size: "sm", onTap: () => { sfx("select"); game.deliverQuest(q); } }));
+    dl.appendChild(card);
+  }
+  if (!qs.length) dl.appendChild(el("div", "wa-empty", "今は納品依頼がない。迷宮に潜れば、新たな品が求められる。"));
+  wrap.appendChild(dl);
+
+  // 2) 酒場の噂話 (15迷宮踏破で情報屋が動く)
+  wrap.appendChild(sectionHead("酒場の噂話"));
+  const rumorOpen = game.featureUnlocked && game.featureUnlocked("rumor");
+  if (!rumorOpen) {
+    const c = game.clearedDungeonCount ? game.clearedDungeonCount() : 0;
+    wrap.appendChild(lockedRow("まだ噂は回ってこない", `情報屋が腰を上げるのは、名の知れた魂繰りが現れてから (15迷宮の踏破・いま ${c})。`));
+  } else if (g.rumor) {
+    const rb = el("div", "fc-rumor");
+    rb.appendChild(setText(el("div", "fc-rumor-s"), `— ${g.rumor.speaker} —`));
+    rb.appendChild(setText(el("div", "fc-rumor-t"), g.rumor.text));
+    rb.appendChild(setText(el("div", "wa-note"), g.rumor.info ? "盤面に現れる話ではない。だが、備えあれば憂いなし。" : "この噂は、次に潜る迷宮で現実になる。"));
+    wrap.appendChild(rb);
+  } else {
+    const left = (g.rumorCooldown || 0) - Date.now();
+    if (left > 0) {
+      wrap.appendChild(lockedRow("しばらく待て", `情報屋はまだ動いていない。あと約 ${Math.ceil(left / 60000)} 分。`));
+    } else {
+      const price = game.RUMOR_PRICE || 100;
+      const dn = game.curDungeon ? game.curDungeon() : null;
+      wrap.appendChild(button({ label: "噂を聞く", sub: `情報屋は「${dn ? dn.name : "—"}」を読む`, kind: "primary", cost: { kind: "gold", n: price }, disabled: g.gold < price, onTap: () => game.listenRumor() }));
+    }
+  }
+
+  // 3) 居合わせる者たち (帰還ごとに入れ替わる)。収まる人数ずつめくる
+  if ((!g.tavernCrowd || !g.tavernCrowd.length) && game.rollTavernCrowd) game.rollTavernCrowd();
+  wrap.appendChild(sectionHead("居合わせる者たち", { note: "帰還のたびに入れ替わる" }));
+  const area = el("div", "fc-crowd");
+  wrap.appendChild(area);
+  pagedGrid(area, g.tavernCrowd || [], (m) => {
+    const r = el("div", "fc-voice");
+    const h = el("div", "fc-voice-h");
+    h.appendChild(setText(el("span", "fc-voice-n"), m.name));
+    h.appendChild(setText(el("span", "fc-voice-k"), m.type));
+    r.appendChild(h);
+    r.appendChild(setText(el("div", "fc-voice-t"), m.line));
+    return r;
+  }, { cols: 1, cellH: 104, gap: 6, key: "crowd" });
+}
+
+// ---------- 赤い魂の祠 (頁) ----------
+function renderShrine(root) {
+  if (legacyJumped()) return;
+  const g = G();
+  const wrap = el("div", "wa-page wa-fit fc-shrine");
+  root.appendChild(wrap);
+  const kr = keeperRow("shrine");
+  if (kr) wrap.appendChild(kr);
+  const hero = el("div", "fc-red");
+  const art = el("div", "fc-red-art");
+  try { const v = vignetteCanvas("shrine"); if (v) art.appendChild(v); } catch (e) { /* 演出のみ */ }
+  hero.appendChild(art);
+  const cnt = el("div", "fc-red-cnt");
+  cnt.appendChild(glyph("red"));
+  cnt.appendChild(el("span", "fc-red-v", String(g.redSoul)));
+  cnt.appendChild(el("span", "fc-red-l", "所持する赤い魂"));
+  hero.appendChild(cnt);
+  wrap.appendChild(hero);
+
+  // 広告動画 (シミュレート)
+  const left = game.adCooldownLeft ? game.adCooldownLeft() : 0;
+  const ad = button({ label: left > 0 ? "祈りは届いている…" : "広告動画を見る", sub: left > 0 ? `あと ${Math.ceil(left / 1000)} 秒` : "赤い魂を授かる", kind: "primary",
+    cost: { kind: "red", n: "+10" }, disabled: left > 0, onTap: () => game.watchShrineAd() });
+  ad.classList.add("fc-ad");
+  wrap.appendChild(ad);
+  if (left > 0) {
+    // 待ち時間の表示だけを1秒ごとに書き替える (画面は描き直さない)
+    const t = setInterval(() => {
+      if (!ad.isConnected) { clearInterval(t); return; }
+      const l = game.adCooldownLeft();
+      if (l <= 0) { clearInterval(t); game.renderTown(); return; }
+      const s = ad.querySelector(".ui-btn-s");
+      if (s) s.textContent = `あと ${Math.ceil(l / 1000)} 秒`;
+    }, 1000);
+  }
+
+  wrap.appendChild(sectionHead("赤い魂を授かる", { note: "体験版・無償" }));
+  const packs = el("div", "fc-packs");
+  for (const p of game.RED_PACKS || []) {
+    const r = el("button", "fc-pack");
+    r.type = "button";
+    const n = el("span", "fc-pack-n");
+    n.appendChild(glyph("red"));
+    n.appendChild(document.createTextNode(String(p.n)));
+    r.appendChild(n);
+    r.appendChild(el("span", "fc-pack-tag" + (p.tag ? "" : " plain"), p.tag || "授かる"));
+    r.setAttribute("aria-label", `赤い魂 ${p.n} を授かる`);
+    r.addEventListener("click", () => game.buyRedPack(p.n));
+    packs.appendChild(r);
+  }
+  wrap.appendChild(packs);
+
+  wrap.appendChild(sectionHead("赤い魂の使い道"));
+  const uses = el("div", "fc-uses wa-scroll");
+  const use = (t, s) => { const r = el("div", "fc-use"); r.appendChild(el("i", "wa-dia")); const tx = el("div"); tx.appendChild(setText(el("div", "fc-use-t"), t)); tx.appendChild(setText(el("div", "fc-use-s"), s)); r.appendChild(tx); uses.appendChild(r); };
+  use("人業の器を仕立てる", "人業の館で (最初の3体は無料)");
+  use("砕けた人業を早く連れ帰る", "🔴1 で帰還までの時間を 20 分縮める");
+  use("全滅の時に戦利品を守る", `🔴${game.GUARDIAN_COST || 20} で拾った品を失わずに帰還する`);
+  wrap.appendChild(uses);
+}
+
+// 頁を開いたまま旧来の入口 (G.town.facility = …) へ跳ばされた時は、頁を閉じてそちらを描く
+function legacyJumped() {
+  const t = G() && G().town;
+  if (!t || !t.facility) return false;
+  queueMicrotask(() => { if (t.facility && t.page) { t.page = null; game.renderTown(); } });
+  return true;
+}
 
 export function install() {
-  // 例: registerUI({ … });  UI.shell.registerTab("…", { render(root) { … } });
-  void UI; void game; void ops; void registerUI;
+  registerUI({
+    keeperWhisper: (key) => keeperRow(key),
+    keeperSheet,
+    currencySheet,
+    openInn,
+    restOrDetail,
+  });
+  if (UI.shell) {
+    UI.shell.registerPage("tavern", { title: "酒場「沈まぬ灯」", parentTab: "hub", render: (root) => renderTavern(root) });
+    UI.shell.registerPage("shrine", { title: "赤い魂の祠", parentTab: "hub", render: (root) => renderShrine(root) });
+  }
+  // 街シェルの見出しの通貨の札 (キット) をタップした時は、祠への案内つきの説明を出す
+  try {
+    const head = typeof document !== "undefined" ? document.querySelector("#town-shell .ts-head") : null;
+    if (head && head.addEventListener) {
+      head.addEventListener("click", (e) => {
+        const c = e.target && e.target.closest ? e.target.closest(".ui-cur-c") : null;
+        if (!c) return;
+        e.stopPropagation(); e.preventDefault();
+        const kind = ["gold", "soul", "red", "ember"].find((k) => c.classList.contains("c-" + k)) || "gold";
+        sfx("select");
+        currencySheet(kind);
+      }, true);
+    }
+  } catch (e) { /* 演出のみ */ }
 }
