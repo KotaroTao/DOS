@@ -11772,9 +11772,21 @@ function init() {
     G.prompt = false;
     startAfterTitle(loaded);
   };
-  try {
-    showTitle({ hasSave: loaded, summary: loaded ? titleSummary() : null, onStart: start });
-  } catch (e) { start(); }
+  // タイトルの「はじめから」(記録あり): 確認ののち記録を消して読み直し、タイトルを飛ばして序章から始める
+  const newGameFromTitle = () => {
+    _resetting = true;
+    clearSave();
+    try { sessionStorage.setItem("dos-newgame", "1"); } catch (e) {}
+    location.reload();
+  };
+  let freshStart = false;
+  try { freshStart = sessionStorage.getItem("dos-newgame") === "1"; sessionStorage.removeItem("dos-newgame"); } catch (e) {}
+  if (freshStart && !loaded) start();
+  else {
+    try {
+      showTitle({ hasSave: loaded, summary: loaded ? titleSummary() : null, onStart: start, onNewGame: loaded ? newGameFromTitle : null });
+    } catch (e) { start(); }
+  }
 
   if ("serviceWorker" in navigator) {
     // 新しい SW が制御を奪った瞬間に1度だけ確実にリロード (古いJS混在を防ぐ)。
