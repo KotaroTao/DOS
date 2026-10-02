@@ -135,11 +135,22 @@ function pickItemByLv(center) {
   return acc[acc.length - 1][0];
 }
 // ===== R1-20 ランク窓による出現テーブル =====
-// 仕様: 各迷宮には「基準ランク R = min(20, ダンジョン番号)」があり、
-// アイテムはその ±2 (R-2〜R+2、1-20でクランプ) の範囲から出現する (例: D5 → R3-7)。
+// 仕様: 各迷宮には「基準ランク R = ceil(lootLv上限 / 10)」があり (= 層番号。D1-5 → R1, D6-10 → R2 … D96-100 → R20)、
+// アイテムはその ±2 (R-2〜R+2、1-20でクランプ) の範囲から出現する (例: 第1層 → R1-3 = 隠しLv1-30)。
+// 敵の強さ (monStats のランク) は層ごとに上がるので、装備の格も層に合わせる。
+// (以前は R = 迷宮番号で、第1層の D5 から R3-7 (隠しLv21-70) が出て、層の敵を大きく追い越していた)
 // 補正で中心を押し上げる: ミミック +1 / マスターミミック +2 / 特別階 +1 / 強敵 +2 /
-// レア枠 +2 / 宝箱ランク(1-5) +0〜2 / 迷宮の異変。補正は重複加算する。
-function lootBaseR() { return Math.max(1, Math.min(20, dungeonNumber(activeCfg()))); }
+// レア枠 +2 / 宝箱ランク(1-5) +0〜2 / 迷宮の異変。補正は重複加算するが、中心も窓も出現上限 (lootCapR) で頭打ち。
+// 追加迷宮・無限迷宮 (奈落) も cfg.lootLv を持たせるだけで同じ基準に乗る。
+function lootBaseR() {
+  const band = activeCfg().lootLv || [1, 10];
+  return Math.max(1, Math.min(20, Math.ceil(band[1] / 10)));
+}
+// 出現上限: どんな補正を重ねても、装備は「基準R + LOOT_R_HEADROOM」を超えない。
+// 補正 (強敵・宝箱ランク・ミミック・特別階…) は上限の内側で上位の品を出やすくするだけで、
+// 層の敵を一足飛びに追い越す装備は出さない (第1層なら最大 R3 = 隠しLv30)
+const LOOT_R_HEADROOM = 2;
+function lootCapR() { return Math.min(20, lootBaseR() + LOOT_R_HEADROOM); }
 
 let _itemsByR = null;
 let _miscLootIds = null;
@@ -160,9 +171,10 @@ function miscLootIds() { itemsByR(); return _miscLootIds; }
 // 自ランク以下の蒐集品をすべて対象にする (上限のみ中心+2 まで許容し、極端な先取りは抑える)。
 const MISC_LOOT_WEIGHT = 0.5; // 装備のランク窓に対する蒐集品1点あたりの相対重み
 // 中心ランク centerR の ±2 から1つ抽選 (中心ほど出やすい)。窓内が空なら最寄りへ広げる
-function pickItemByR(centerR) {
+function pickItemByR(centerR, capR = 20) {
   const idx = itemsByR();
   centerR = Math.max(1, Math.min(20, Math.round(centerR)));
+  capR = Math.max(centerR, Math.min(20, capR));
   let total = 0; const acc = [];
   const gather = (lo, hi, weighted) => {
     for (let r = lo; r <= hi; r++) {
@@ -170,8 +182,8 @@ function pickItemByR(centerR) {
       for (const id of idx[r]) { total += w; acc.push([id, total]); }
     }
   };
-  gather(Math.max(1, centerR - 2), Math.min(20, centerR + 2), true);
-  for (let span = 3; span <= 20 && !total; span++) gather(Math.max(1, centerR - span), Math.min(20, centerR + span), false);
+  gather(Math.max(1, centerR - 2), Math.min(capR, centerR + 2), true);
+  for (let span = 3; span <= 20 && !total; span++) gather(Math.max(1, centerR - span), Math.min(capR, centerR + span), false);
   // 蒐集品: 中心+2 以下の全ランク帯を一律の重みで対象に加える (下限なし=深層でも浅層の品が出る)
   const miscCap = Math.min(20, centerR + 2);
   for (const id of miscLootIds()) {
@@ -193,7 +205,7 @@ function dropCenterR(opts = {}) {
   if (opts.chestRank) r += Math.floor(((opts.chestRank || 1) - 1) / 2); // 宝箱ランク 1-5 → +0〜2
   if (opts.lvBonus) r += Math.round(opts.lvBonus / 15);      // ミミック宝箱の底上げ (15→+1, 30→+2)
   r += Math.round(mutNum("lootBonusLv", 0) / 8);             // 迷宮の異変 (深淵の脈動)
-  return Math.max(1, Math.min(20, r));
+  return Math.max(1, Math.min(lootCapR(), r));               // 補正を重ねても出現上限を超えない
 }
 
 // ===== レア度つきドロップ (コモン/アンコモン/レア/スーパーレア/レジェンドレア) =====
@@ -228,14 +240,14 @@ function rarityUp(opts = {}) {
   up += layerRarityUp(battleLayer()); // 深い層ほど高レアが出やすい
   return up;
 }
-function pickOfRarity(rar, centerR) {
+function pickOfRarity(rar, centerR, capR = 20) {
   const idx = lootByRarity()[rar];
   if (!idx) return null;
   // コモン/アンコモンは窓を狭く (中心±1) して顔ぶれを絞る。レア以上は ±2
   const span0 = rar === "c" || rar === "uc" ? 1 : 2;
   for (let span = span0; span <= 6; span++) {
     let total = 0; const acc = [];
-    for (let r = Math.max(1, centerR - span); r <= Math.min(20, centerR + span); r++) {
+    for (let r = Math.max(1, centerR - span); r <= Math.min(capR, centerR + span); r++) {
       const w = Math.max(1, 3 - Math.abs(r - centerR));
       for (const id of idx[r]) {
         const fj = ITEMS[id].forJob; // 職業専用装備は編成にいる職を強く優先
@@ -264,12 +276,13 @@ function pickLoot(opts = {}) {
   const lrId = lrTimeRoll();
   if (lrId) return lrId;
   const order = ["c", "uc", "r", "sr"];
+  const capR = lootCapR();
   let k = order.indexOf(rollRarity(rarityUp(opts)));
   for (; k >= 0; k--) {
-    const id = pickOfRarity(order[k], centerR);
+    const id = pickOfRarity(order[k], centerR, capR);
     if (id) return id;
   }
-  return pickItemByR(centerR);
+  return pickItemByR(centerR, capR);
 }
 
 // ===== レジェンドレアの時間抽選 =====
@@ -291,14 +304,15 @@ setInterval(() => {
   const c = lrClock();
   c.since += 5000 * f; c.pend += 5000 * f;
 }, 5000);
-// 今の深さで出せるLR (1点もの: 入手済みは除く)。第1層の逸品 (tier1) は常に候補、
+// 今の深さで出せるLR (1点もの: 入手済みは除く)。第1層の逸品 (tier1) は出現上限 (lootCapR) 以内の隠しLvなら候補、
 // 職業専用LR (tier5以上) は従来どおり lootLv の解禁値を超えてから
 function lrPool() {
   const lv = lootLvAt();
+  const capLv = lootCapR() * 10;
   return Object.keys(ITEMS).filter((id) => {
     const it = ITEMS[id];
     if (it.rar !== "lr" || (G.lrOwned && G.lrOwned[id])) return false;
-    return it.lr <= 1 || lv >= (LR_UNLOCK[it.lr] || 40);
+    return it.lr <= 1 ? (it.lv || 1) <= capLv : lv >= (LR_UNLOCK[it.lr] || 40);
   });
 }
 function lrIntervalMs() { return lrIntervalH(dungeonNumber(activeCfg())) * HOUR_MS; }
