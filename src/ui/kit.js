@@ -235,6 +235,8 @@ export const sheet = {
     h.pager = pager;
     h.host = card;
     h.page = 0;
+    // pageEnd: 頁に分かれたら最後の頁を見せ続ける (記録など。手で頁を送るまで、割り直しても最後へ寄せる)
+    h.pageEnd = !!opts.pageEnd;
 
     h.update = (o) => { h.opts = { ...h.opts, ...o }; h.page = 0; fill(h.opts); schedulePages(h); };
     h.close = (reason = "close", { silent = false } = {}) => {
@@ -347,7 +349,7 @@ function fitPages(h) {
   }
   h.pages = page + 1;
   if (h.pages <= 1) { pgReset(body); pager.classList.add("hidden"); h.host.classList.remove("is-paged"); h._pgBusy = false; return; }
-  showPage(h, Math.min(h.page || 0, h.pages - 1));
+  showPage(h, h.pageEnd ? h.pages - 1 : Math.min(h.page || 0, h.pages - 1));
   h._pgBusy = false;
 }
 function showPage(h, n) {
@@ -377,6 +379,7 @@ function turnPage(h, d) {
   if (!h.pages || h.pages <= 1) return;
   const n = Math.max(0, Math.min(h.pages - 1, h.page + d));
   if (n === h.page) return;
+  h.pageEnd = false;
   showPage(h, n);
   if (!reduced()) animate(h.body, [{ opacity: 0.35, transform: `translateX(${d * 14}px)` }, { opacity: 1, transform: "none" }], { duration: 160, fill: "none" });
 }

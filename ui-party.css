@@ -356,6 +356,15 @@ body.pt-dragging, body.pt-dragging * { cursor: grabbing !important; user-select:
   background: var(--grain), var(--plate-hi); border: 1px solid #4a3d36; border-radius: 3px; cursor: pointer;
 }
 .pt-allauto.hot { color: var(--accent-hi); border-color: #8a6d2e; }
+/* 所持の見出しの右: [全員を回復] [パーティの全員を最適装備] */
+.pt-bagbar-acts { display: flex; align-items: stretch; justify-content: flex-end; gap: 6px; min-width: 0; flex: 0 1 auto; }
+.pt-allheal { flex: 0 0 auto; }
+.pt-allheal .nb { display: inline-block; white-space: nowrap; } /* 折る時は「全員を / 回復」で */
+.pt-allheal.hot { color: #9fe0a8; border-color: #3f6a44; }
+/* 中くらいの幅: 長い札は2行に折って、見出しと1段に収める */
+@media (max-width: 519px) {
+  .pt-bagbar-acts .pt-allauto { white-space: normal; line-height: 1.25; text-align: center; padding: 4px 10px; }
+}
 .pt-allauto .ui-badge { position: absolute; top: -5px; right: -5px; }
 .pt-bag { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 2px; }
 .pt-bcell {
@@ -377,6 +386,8 @@ body.pt-dragging, body.pt-dragging * { cursor: grabbing !important; user-select:
   .pt-bagwrap { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; align-items: stretch; }
   .pt-bagwrap .pt-bagbar { flex-direction: column; align-items: stretch; justify-content: space-between; gap: 4px; }
   .pt-bagwrap .pt-allauto { white-space: normal; line-height: 1.25; text-align: left; padding: 4px 8px; font-size: 12px; }
+  .pt-bagwrap .pt-bagbar-acts { justify-content: stretch; gap: 4px; }
+  .pt-bagwrap .pt-bagbar-acts .pt-allauto { flex: 1 1 0; min-height: 40px; padding: 3px 6px; font-size: 11px; text-align: center; }
   .pt-bag { grid-template-columns: repeat(4, 44px); gap: 4px; }
 }
 

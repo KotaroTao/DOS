@@ -1212,6 +1212,20 @@ function equipSeg(root, d) {
   const unid = d.items.filter((it) => it && it.unidentified).length;
   if (unid) t.appendChild(el("span", "pt-bagbar-x", `未鑑定${unid}`));
   h.appendChild(t);
+  const acts = el("div", "pt-bagbar-acts");
+  // 全員を回復: MP の多い術者から、最少の MP で全員を全回復する呪文を唱える (game.js healAll)
+  if (game.healAll) {
+    const hurt = game.healAllNeed ? game.healAllNeed() : false;
+    const b = el("button", "pt-allauto pt-allheal" + (hurt ? " hot" : ""));
+    b.type = "button";
+    const tx = el("span");
+    tx.appendChild(el("span", "nb", "全員を"));
+    tx.appendChild(el("span", "nb", "回復"));
+    b.appendChild(tx);
+    b.setAttribute("aria-label", "回復魔法でパーティの全員を全回復する");
+    b.addEventListener("click", () => game.healAll());
+    acts.appendChild(b);
+  }
   if (G_().party.length > 1) {
     const n = betterGearCount();
     const b = el("button", "pt-allauto" + (n ? " hot" : ""));
@@ -1220,8 +1234,9 @@ function equipSeg(root, d) {
     if (n) b.appendChild(badge(n));
     b.setAttribute("aria-label", `パーティの全員を最適装備${n ? ` (${n}体にもっと良い装備)` : ""}`);
     b.addEventListener("click", () => autoEquip("all"));
-    h.appendChild(b);
+    acts.appendChild(b);
   }
+  if (acts.childElementCount) h.appendChild(acts);
   // 見出しと所持の札は1つの箱に入れる (狭い画面では左右に並べて高さを詰める: ui-party.css)
   const wrap = el("div", "pt-bagwrap");
   wrap.appendChild(h);
