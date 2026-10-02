@@ -210,16 +210,35 @@ export function equipCompareEl(p, cand) {
   return row;
 }
 
-// 装備の良し悪しの目安 (増減 → 1つの点数)。WP-B (最適装備) が職ごとの重みへ磨き上げる。
-// 術者 (INT/PIE が ATK を上回る人業) は INT/PIE を重く、ATK を軽く見る。属性の段は1段=4点。
+// 装備の良し悪しの目安 (増減 → 1つの点数)。最適装備・装備候補の並び・最良の装備者の判定に使う。
+// 重みは職業の能力の傾き (SOUL_CLASSES の stat) から作る: その職が最も伸ばす能力を 1.25、
+// 伸ばさない能力を 0.35 とし、間は比例。HP は 0.25、MP は術を使う職だけ 0.15。属性の段は1段=4点。
+const GEAR_W_CACHE = {};
+export function gearWeights(doll) {
+  const key = doll && (doll.jobKey || doll.clsKey);
+  if (key && GEAR_W_CACHE[key]) return GEAR_W_CACHE[key];
+  const st = key && SOUL_CLASSES[key] && SOUL_CLASSES[key].stat;
+  let W;
+  if (!st) {
+    W = { atk: 1, vit: 1, agi: 0.8, int: 0.6, pie: 0.6, luk: 0.4, hp: 0.2, mp: 0.15 };
+    if (doll) {
+      const a = doll.atk || 0;
+      if ((doll.int || 0) > a) { W.int = 1.2; W.atk = 0.4; }
+      if ((doll.pie || 0) > a) { W.pie = 1.2; W.atk = Math.min(W.atk, 0.5); }
+    }
+    return W;
+  }
+  const ks = ["atk", "vit", "agi", "int", "pie", "luk"];
+  const mx = Math.max(...ks.map((k) => st[k] || 0)) || 1;
+  W = {};
+  for (const k of ks) W[k] = Math.round((0.35 + 0.9 * ((st[k] || 0) / mx)) * 100) / 100;
+  W.hp = 0.25;
+  W.mp = (st.mp || 0) >= 1.5 ? 0.15 : 0.03;
+  return (GEAR_W_CACHE[key] = W);
+}
 export function gearScore(doll, delta) {
   if (!delta) return 0;
-  const W = { atk: 1, vit: 1, agi: 0.8, int: 0.6, pie: 0.6, luk: 0.4, hp: 0.2, mp: 0.15 };
-  if (doll) {
-    const a = doll.atk || 0;
-    if ((doll.int || 0) > a) { W.int = 1.2; W.atk = 0.4; }
-    if ((doll.pie || 0) > a) { W.pie = 1.2; W.atk = Math.min(W.atk, 0.5); }
-  }
+  const W = gearWeights(doll);
   let s = 0;
   for (const k in W) s += (delta[k] || 0) * W[k];
   s += (delta.crit || 0) * 0.5;
