@@ -23,19 +23,25 @@ function div(cls, text) {
 const sfx = (k) => { try { SFX[k] && SFX[k](); } catch {} };
 const ease = (u) => (u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2);
 
+// 語りの一行は文字列、または { em, ruby } (物語の肝となる語を一行に据えて大きく掲げる)
+const lineText = (ln) => (typeof ln === "string" ? ln : ln.em);
+
 // 一文字ごとの現れる時刻 (ms)。句読点で息をつく
 function charTimes(lines) {
   const out = [];
   let t = 0;
   for (const ln of lines) {
     const row = [];
-    for (const ch of ln) {
+    const em = typeof ln !== "string";
+    if (em) t += 420; // 掲げる語の前に、ひと呼吸おく
+    for (const ch of lineText(ln)) {
       row.push(t);
       t += 62;
       if (ch === "、") t += 160;
       else if (ch === "。" || ch === "」") t += 380;
       else if (ch === "—") t += 70;
     }
+    if (em) { t += 380; row.push(t); t += 700; } // 末尾 = 読み (ruby) の現れる時刻
     out.push(row);
     t += 520; // 行間の間
   }
@@ -122,22 +128,48 @@ export function showOpening(onDone) {
     shotFor = idx;
   };
 
+  // 語りが下の「次へ」の印・珠に被るなら、収まるまで文字を少しずつ詰める (横長の画面・長い幕)
+  const fitText = () => {
+    text.style.fontSize = "";
+    const base = parseFloat(getComputedStyle(text).fontSize) || 16;
+    let f = base;
+    for (let i = 0; i < 12; i++) {
+      const room = Math.min(pips.getBoundingClientRect().top, next.getBoundingClientRect().top) - 4 - text.getBoundingClientRect().top;
+      const h = text.offsetHeight;
+      if (room <= 0 || h <= room || f <= base * 0.7) break;
+      f = Math.max(base * 0.7, f * Math.max(0.95, room / h));
+      text.style.fontSize = f.toFixed(2) + "px";
+    }
+  };
+
   const renderText = () => {
     const sc = SCENES[idx];
     text.innerHTML = "";
     text.classList.remove("op-done");
     times = charTimes(sc.lines);
+    const delay = (ms) => ((textStart + ms) / 1000).toFixed(3) + "s";
     sc.lines.forEach((ln, i) => {
-      const row = div("op-ln");
-      [...ln].forEach((ch, j) => {
+      const em = typeof ln !== "string";
+      const row = div(em ? "op-ln op-em" : "op-ln");
+      const word = em ? div("op-em-w") : row;
+      [...lineText(ln)].forEach((ch, j) => {
         const s = document.createElement("span");
         s.className = "op-ch";
         s.textContent = ch;
-        s.style.animationDelay = ((textStart + times.rows[i][j]) / 1000).toFixed(3) + "s";
-        row.appendChild(s);
+        s.style.animationDelay = delay(times.rows[i][j]);
+        word.appendChild(s);
       });
+      if (em) {
+        row.appendChild(word);
+        if (ln.ruby) {
+          const r = div("op-em-r", ln.ruby);
+          r.style.animationDelay = delay(times.rows[i][times.rows[i].length - 1]);
+          row.appendChild(r);
+        }
+      }
       text.appendChild(row);
     });
+    fitText();
     capN.textContent = sc.cap; capT.textContent = sc.title;
     pipEls.forEach((p, i) => { p.classList.toggle("on", i === idx); p.classList.toggle("done", i < idx); });
   };
@@ -161,7 +193,7 @@ export function showOpening(onDone) {
     setTimeout(() => { if (phase !== "closed") cap.classList.add("show"); }, 500);
     phase = "play";
     clearTimeout(autoT);
-    const hold = Math.max(5200, SCENES[idx].lines.join("").length * 45);
+    const hold = Math.max(5200, SCENES[idx].lines.map(lineText).join("").length * 45);
     autoT = setTimeout(() => { if (phase === "play" && !SCENES[idx].last) advance(true); }, textStart + times.total + hold);
   };
 
@@ -263,7 +295,7 @@ export function showOpening(onDone) {
   };
   addEventListener("keydown", onKey, true);
   let rsT = 0;
-  const onResize = () => { clearTimeout(rsT); rsT = setTimeout(() => { if (!closed) { layout(); ensureShot(); } }, 200); };
+  const onResize = () => { clearTimeout(rsT); rsT = setTimeout(() => { if (!closed) { layout(); ensureShot(); fitText(); } }, 200); };
   addEventListener("resize", onResize);
 
   document.body.appendChild(wrap);
