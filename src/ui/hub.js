@@ -51,9 +51,15 @@ function builtinSuggestions(c) {
     out.push({ key: "rest", prio: 20, label: "宿で休む", sub: `手負い ${c.hurt}`, cost: { kind: "gold", n: c.innCost }, icon: "rest", run: () => ops.restParty() });
   }
   // 未鑑定: まとめて鑑定 (商会 (WP-C) の確かめのシート → 正体を明かすシート。無ければ1タップ・安い順に所持金の続く限り)
+  // 鑑定の心得のある者がいれば、まず隊の技で試みる (商会の「まとめて鑑定」は試せない品が残った時)
   let unid = c.unid || 0;
   try { if (UI.unidCount) unid = UI.unidCount() || 0; } catch (e) { unid = c.unid || 0; }
-  if (unid && facilityOpen("shop")) {
+  let tryId = null;
+  try { tryId = UI.tryIdentifyInfo ? UI.tryIdentifyInfo() : null; } catch (e) { tryId = null; }
+  if (tryId) {
+    out.push({ key: "identify", prio: 30, label: "鑑定を試みる", short: "鑑定する", sub: `${tryId.n}点 ・ ${tryId.top.m.name}`, icon: "seal",
+      run: () => UI.openTryIdentifyAll() });
+  } else if (unid && facilityOpen("shop")) {
     out.push({ key: "identify", prio: 30, label: "まとめて鑑定", short: "鑑定する", sub: `未鑑定 ${unid}`, cost: { kind: "gold", n: c.unidCost }, icon: "seal",
       run: () => (UI.confirmIdentifyAll ? UI.confirmIdentifyAll() : (UI.identifyAll || ops.identifyAll)()) });
   }
@@ -74,19 +80,20 @@ function builtinSuggestions(c) {
   if (better > 0 && facilityOpen("mansion") && UI.autoEquip) {
     out.push({ key: "autoEquip", prio: 50, label: "最適装備", sub: `より良い品 ${better}`, icon: "party", run: () => UI.autoEquip("all") });
   }
-  // 鍛えられる魂 (1タップで1段。長押しで隊の魂の画面)
+  // 鍛えられる魂 (1タップで1段。長押しで隊の魂の画面)。隊のレベルが揃うよう、いちばん低いLvの魂だけを勧める
+  // (その魂に ✦ が足りなければ、高いLvの魂を先に鍛えはしない)
   let tl = [];
   try { tl = UI.trainableList ? (UI.trainableList() || []) : []; } catch (e) { tl = []; }
-  if (tl.length && facilityOpen("mansion")) {
-    const t = tl[0];
+  const t = tl.find((x) => x.lowest !== false);
+  if (t && facilityOpen("mansion")) {
     const idx = (g.party || []).indexOf(t.doll);
     // 1段鍛える (WP-B の train は新たな技もトーストで知らせる)。長押しで隊の魂の区分 (上限まで鍛えるなど)
     out.push({ key: "train", prio: 60, label: "魂を鍛える", sub: `${t.doll ? t.doll.name : ""} Lv${t.level}→${t.level + 1}`, cost: { kind: "soul", n: t.cost }, icon: "soul",
       run: () => (typeof t.train === "function" ? t.train(1) : ops.trainTimes(t.uid, 1)),
       hold: () => { if (UI.openParty) UI.openParty(t.doll || Math.max(0, idx), { seg: "soul" }); } });
   }
-  // 勲章: まとめて拝受 (1タップ)
-  if (c.ach) out.push({ key: "ach", prio: 70, label: "勲章を拝受", sub: `${c.ach} 個`, icon: "medal", run: () => ops.claimAllAchievements() });
+  // 勲章: 王宮の勲章の区分へ (どれを受け取るかは勲章の画面で選ぶ楽しみとして残す)
+  if (c.ach) out.push({ key: "ach", prio: 70, label: "勲章を拝受", sub: `${c.ach} 個`, icon: "medal", run: () => { if (UI.openPalace) UI.openPalace("ach"); } });
   // 宝物庫: 新種をまとめて奉納 → 節目に届けばそのまま褒賞へ / 褒賞だけ残っている
   if (c.donatable) {
     out.push({ key: "donate", prio: 80, label: "新種を奉納", sub: `${c.donatable} 種`, icon: "treasury",

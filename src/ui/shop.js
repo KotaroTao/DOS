@@ -592,7 +592,12 @@ function renderSell(wrap) {
   const idSub = !unid.length ? "未鑑定なし"
     : !aff.n ? `金貨不足 (💰${shortN(cheapest)}〜)`
     : aff.n < unid.length ? `${aff.n}/${unid.length}点 ・ 💰${shortN(aff.cost)}` : `${unid.length}点 ・ 💰${shortN(unidTotal)}`;
-  const idBtn = button({ label: "まとめて鑑定", sub: idSub, kind: unid.length && aff.n ? "primary" : "secondary", disabled: !aff.n, onTap: () => confirmIdentifyAll() });
+  // 鑑定の心得のある者がいれば、まず隊の技で試みる (失敗した品・LR が残れば次は「まとめて鑑定」)
+  let tryId = null;
+  try { tryId = UI.tryIdentifyInfo ? UI.tryIdentifyInfo() : null; } catch (e) { tryId = null; }
+  const idBtn = tryId
+    ? button({ label: "鑑定を試みる", sub: `${tryId.n}点 ・ 無料`, kind: "primary", onTap: () => UI.openTryIdentifyAll() })
+    : button({ label: "まとめて鑑定", sub: idSub, kind: unid.length && aff.n ? "primary" : "secondary", disabled: !aff.n, onTap: () => confirmIdentifyAll() });
   idBtn.dataset.bulk = "identify";
   row.appendChild(idBtn);
   const sellSub = junk.length ? `${junk.length}点 ・ 💰+${shortN(junkGold)}` : (upN ? `装備候補${upN}点は残す` : "売れる品なし");

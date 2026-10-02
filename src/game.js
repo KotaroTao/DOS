@@ -54,6 +54,7 @@ import * as uiLoot from "./ui/loot.js";
 import * as uiDeparture from "./ui/departure.js";
 import * as uiDungeonHud from "./ui/dungeonhud.js";
 import * as uiResults from "./ui/results.js";
+import * as uiAppraise from "./ui/appraise.js";
 
 // キャンバスに描く文字の書体 (画面の明朝と揃える)
 const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", "Noto Serif CJK JP", serif';
@@ -8083,14 +8084,14 @@ const ACHIEVEMENTS = [];
   // 主討伐 (7)
   tiers((v) => `boss${v}`, [
     [1, "主殺し", 100], [5, "玉座荒らし", 300, 5], [10, "玉座のさんだつ者", 500, 10], [20, "主喰らい", 1000, 15],
-    [30, "深淵の死神", 1500, 25], [50, "王なき迷宮", 3000, 40], [100, "全ての主をほふる者", 8000, 80],
+    [30, "深淵の死神", 1500, 25], [50, "王なき迷宮", 3000, 40], [100, "玉座の墓守", 8000, 80],
   ], (v) => `迷宮の主を ${v}体 討つ`, (v) => G.stats.bossKills >= v);
 
   // 到達最深階 (11)
   tiers((v) => `deep${v}`, [
     [2, "一歩 下へ", 50], [3, "地の底へ", 100], [4, "暗闇に慣れた者", 150], [5, "底知らず", 300],
     [6, "深層の旅人", 400, 5], [7, "闇の淵", 500, 5], [8, "奈落のふち", 700, 10], [9, "静寂の領域", 900, 10],
-    [10, "奈落の踏破者", 1000, 15], [11, "光の届かぬ場所", 1500, 20], [12, "最深への到達者", 2500, 30],
+    [10, "奈落の踏破者", 1000, 15], [11, "光の届かぬ場所", 1500, 20], [12, "闇に溶ける者", 2500, 30],
   ], (v) => `地下 ${v}階 に到達する`, (v) => G.stats.deepest >= v);
 
   // 魂の回収 (8)
@@ -8110,25 +8111,25 @@ const ACHIEVEMENTS = [];
     [1, "最初の踏破", 100], [5, "五つの迷宮", 300, 5], [10, "第二の門", 500, 10], [20, "異界の旅人", 800, 10],
     [30, "中層の覇者", 1500, 20], [40, "迷宮の地図屋", 2000, 20], [50, "折り返しの碑", 2500, 25],
     [60, "深層の覇者", 3000, 30], [70, "終わりの始まり", 4000, 35], [80, "終末の歩み", 5000, 40],
-    [90, "冥府の門前", 6000, 45], [95, "残り五つ", 7000, 50], [99, "全踏破まで あと一つ", 8000, 60],
+    [90, "冥府の門前", 6000, 45], [95, "冥府の深奥", 7000, 50], [99, "終焉を望む者", 8000, 60],
   ], (v) => `迷宮を ${v} 踏破する`, (v) => G.unlockedDungeons >= v + 1);
 
   // モンスター図鑑 (5)
   tiers((v) => `mon${v}`, [
     [10, "魔物の観察者", 150], [30, "魔物の目利き", 400], [60, "魔物学の徒", 700, 10],
-    [100, "深淵の博物学者", 1500, 15], [150, "全てを見た者", 3000, 30],
+    [100, "深淵の博物学者", 1500, 15], [150, "異形の語り部", 3000, 30],
   ], (v) => `モンスター図鑑 ${v}種`, (v) => monSeen() >= v);
 
   // アイテム図鑑 (7)
   tiers((v) => `item${v}`, [
     [10, "目利き見習い", 150], [25, "道具屋の常連", 300], [50, "収集家", 400], [100, "蔵の主", 800, 10],
-    [150, "宝物庫の主", 1500, 15], [250, "伝説の収集家", 3000, 30], [350, "全てを手にした者", 8000, 60],
+    [150, "宝物庫の主", 1500, 15], [250, "伝説の収集家", 3000, 30], [350, "千の宝を知る者", 8000, 60],
   ], (v) => `アイテム図鑑 ${v}種`, (v) => itemSeen() >= v);
 
   // 職業発現 (8)
   tiers((v) => `hyb${v}`, [
     [1, "最初の職業発現", 100], [3, "魂の探求者", 200], [6, "職業の解放者", 300], [12, "職業の織り手", 600, 10],
-    [18, "魂の錬金術師", 1000, 15], [24, "異端の指導者", 1500, 20], [30, "万職の祖", 2000, 30], [36, "全職業の支配者", 3000, 50],
+    [18, "魂の錬金術師", 1000, 15], [24, "異端の指導者", 1500, 20], [30, "万職の祖", 2000, 30], [36, "万魂の支配者", 3000, 50],
   ], (v) => `${v}種の職業を発現させる`, (v) => hybSeen() >= v);
 
   // 蓄財 (4) — 受領時にも所持金を再判定する
@@ -8150,7 +8151,7 @@ const ACHIEVEMENTS = [];
     [40, "名人の域", 1500, 20], [50, "神域", 3000, 40],
   ], (v) => `キャラLv ${v} に到達する`, (v) => allDolls().some((d) => (d.jobLv || 0) >= v));
   tiers((v) => `slv${v}`, [
-    [20, "魂を磨く者", 200], [50, "魂を鍛える者", 800, 10], [70, "限界の先へ", 1500, 20], [100, "魂の極致", 3000, 40],
+    [20, "魂を磨く者", 200], [50, "魂を鍛える者", 800, 10], [70, "限界の先へ", 1500, 20], [100, "魂の深奥", 3000, 40],
   ], (v) => `Lv${v} の魂を育てる`, (v) => allSouls().some((s) => (s.level || 1) >= v));
   tiers((v) => `srank${v}`, [[2, "偉大なる魂", 300, 5], [4, "伝説とのめぐり合い", 1000, 20]],
     (v) => `${v === 4 ? "ランク5" : "ランク2以上"}の職業に到達する`, (v) => allSouls().some((s) => soulRankFromCount(s.clsKey, s.count) >= v + 1));
@@ -8186,10 +8187,10 @@ const ACHIEVEMENTS = [];
     [1, "化け箱殺し", 150], [10, "擬態の天敵", 500, 10], [50, "ミミックの宿敵", 2000, 25],
   ], (v) => `ミミックを ${v}体 倒す`, (v) => (G.stats.mimics || 0) >= v);
 
-  // 層ボス制覇 (4) — 種類で数える (1迷宮1種・最大20)
+  // 層ボス制覇 (4) — 種類で数える (1層1種)
   const bossKinds = () => Object.keys(G.stats.bossIds || {}).length;
   tiers((v) => `lboss${v}`, [
-    [3, "層の覇者", 300, 5], [7, "幾多の主を屠る者", 1000, 10], [13, "玉座の収集家", 2500, 20], [20, "二十層の支配者", 6000, 50],
+    [3, "層の覇者", 300, 5], [7, "幾多の主を屠る者", 1000, 10], [13, "玉座の収集家", 2500, 20], [20, "深淵の玉座を統べる者", 6000, 50],
   ], (v) => `層ボスを ${v}種 討伐する`, (v) => bossKinds() >= v);
 
   // ── 一点物・チャレンジ (B) ──
@@ -8210,8 +8211,15 @@ const ACHIEVEMENTS = [];
     () => awakenedJobs() >= 6, 600, 5);
   push("await18", "十八魂の覚醒", "18種の職業をランク2以上に覚醒させる",
     () => awakenedJobs() >= 18, 2000, 20, null, 300);
-  push("awakeAll", "全魂覚醒の祖", `全${JOB_TOTAL}職をランク2以上に覚醒させる`,
+  push("awakeAll", "万魂覚醒の祖", "すべての職業をランク2以上に覚醒させる",
     () => awakenedJobs() >= JOB_TOTAL, 8000, 80, null, 1000);
+
+  // ── 秘された勲章 ── 迷宮・職業・層ボスの総数に届く段は、達成するまで名も条件も伏せる
+  // (勲章から「どこまで先があるか」を数えられないように)
+  for (const id of ["dun96", "dun100", "hyb36", "lboss20", "awakeAll"]) {
+    const a = ACHIEVEMENTS.find((x) => x.id === id);
+    if (a) a.secret = true;
+  }
 }
 
 function claimAchievement(a) {
@@ -9103,12 +9111,29 @@ function tryEnterDungeon() {
   if (G.unlockedDungeons < 1) { log("王の勅命を受けるまで、迷宮には入れない。", "sys"); showToast("王の勅命を受けるまで、迷宮の在処は明かされない", { tone: "info" }); return; }
   UI.openDeparture();
 }
+// 踏破の報告が済んでいないか (済むまで迷宮には入れない)。公開範囲の先 (準備中) の報告は対象外
+function reportPending() {
+  return !!G.msq && G.msq.state === "report" && !contentSealed() && !!DUNGEONS[G.msq.n - 1];
+}
+// 迷宮へ向かおうとした時、報告が先なら引き止める (王宮へ案内するシート)。引き止めたら true
+function blockForReport() {
+  if (!reportPending()) return false;
+  SFX.ng(); buzz([0, 30, 40, 30]);
+  kitConfirm({
+    banner: "勅 命", danger: false,
+    title: "王に報告するのが先だ",
+    lines: [`「${DUNGEONS[G.msq.n - 1].name}」の踏破を、まだ王に報告していない。`, "報告を済ませるまで、迷宮の門は開かれない。"],
+    okLabel: "王に報告する", cancelLabel: "あとで",
+  }).then((ok) => { if (ok && reportPending()) reportMainQuest(); });
+  return true;
+}
 
 // 門をくぐる (出撃シートの決め手)。idx = 迷宮の番号 (0始まり) / accept = 迷宮の異変ごと潜るか。
 // 闇に溶けて (sceneTransition) その底で潜入する。潜れない時は理由を返す
 function departNow({ idx = G.dungeonIdx, accept = false } = {}) {
   if (G.state !== "town") return { ok: false, reason: "state" };
   if (G.unlockedDungeons < 1) return { ok: false, reason: "locked" };
+  if (blockForReport()) return { ok: false, reason: "report" };
   const open = Math.min(G.unlockedDungeons, CONTENT_LIMIT);
   if (idx < 0 || idx >= open) { showToast("その先は準備中だ", { tone: "info" }); return { ok: false, reason: "sealed" }; }
   if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); SFX.ng(); return { ok: false, reason: "party" }; }
@@ -9261,6 +9286,7 @@ function enterAbyss(mods, weekly) {
 function departAbyss(mods, weekly) {
   if (G.state !== "town") return;
   if (!featureUnlocked("infinite")) { SFX.ng(); return; }
+  if (blockForReport()) return;
   if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); SFX.ng(); return; }
   G.prompt = true;
   uiDungeonHud.sceneTransition(() => { G.prompt = false; enterAbyss(mods, weekly); });
@@ -9728,21 +9754,21 @@ function openIdentifyChooser(it, onDone) {
 }
 
 // スキル鑑定を実行。成功で正体判明、失敗で idHardFail (以後は商店でのみ鑑定可)。成功なら true
-function doIdentifySkill(m, it) {
+// quiet: 音・トースト・描き直し・保存を呼び出し側 (鑑定を試みるの演出 src/ui/appraise.js) に任せる
+function doIdentifySkill(m, it, { quiet = false } = {}) {
   if (!it || !it.unidentified || it.lr || it.idHardFail) return false;
   const ch = identifyChance(m, it.lv || 1);
   const ok = Math.random() < ch;
   if (ok) {
     it.unidentified = false;
-    SFX.itemget(); buzz(15);
     log(`${m.name}は ${it.name} を鑑定した！`, "win");
-    showToast(`${it.name} と判明した (${m.name})`, { tone: "good" });
+    if (!quiet) { SFX.itemget(); buzz(15); showToast(`${it.name} と判明した (${m.name})`, { tone: "good" }); }
   } else {
     it.idHardFail = true;
-    SFX.ng(); buzz([0, 30, 40, 30]);
     log(`${m.name}の鑑定は失敗した… この品は商店でしか鑑定できなくなった。`, "sys");
-    showToast("鑑定に失敗した… もう商会でしか鑑定できない", { tone: "bad" });
+    if (!quiet) { SFX.ng(); buzz([0, 30, 40, 30]); showToast("鑑定に失敗した… もう商会でしか鑑定できない", { tone: "bad" }); }
   }
+  if (quiet) return ok;
   if (G.statusOpen) renderStatus(); // ステータス画面はオーバーレイ (G.state は board/town のまま) なので statusOpen で判定
   if (G.state === "town") renderTown();
   else renderParty();
@@ -10597,17 +10623,22 @@ function opsDonatableList() {
   return out;
 }
 // いま ✦Soul で1段以上鍛えられる、編成の人業のメイン魂
+// 並びはレベルの低い順 (同じなら安い順)。lowest = 上限に届いていない隊の魂のうち最も低いLvか
+// (街の「魂を鍛える」はこれだけを勧め、隊のレベルを揃えていく)
 function opsTrainableList() {
   const out = [];
+  let floor = Infinity;
   for (const d of G.party) {
     if (!d || d.primary == null) continue;
     const e = soulByUid(d.primary);
     if (!e) continue;
     const cap = soulLevelCapOf(e);
+    if (e.level < cap) floor = Math.min(floor, e.level);
     const cost = Math.max(1, soulTrainCost(e.level) - (e.exp || 0));
     if (e.level < cap && G.soulPts >= cost) out.push({ doll: d, uid: e.uid, cost, level: e.level, cap });
   }
-  return out;
+  for (const x of out) x.lowest = x.level === floor;
+  return out.sort((a, b) => a.level - b.level || a.cost - b.cost);
 }
 const OPS = {
   // バッジ・提案・帰還の報告で使う数 (状態は変えない)
@@ -10901,7 +10932,7 @@ function wireUI() {
     itemRankName, itemRankColor, itemGradeText, itemNameEl, logClassForItem,
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
-    tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, contentSealed, reportMainQuest, acceptMainQuest,
+    tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport,
     trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliverQuest,
     tryHastenRescue, reviveDoll, reviveTimerEl, fmtRemain,
@@ -10924,7 +10955,7 @@ function wireUI() {
     }).observe(itemGetEl, { attributes: true, attributeFilter: ["class"] });
   }
   // 各パッケージの UI を登録 (スタブを差し替える)。A→B→C→D の順
-  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiDeparture, uiDungeonHud, uiResults]) {
+  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiAppraise, uiDeparture, uiDungeonHud, uiResults]) {
     try { m.install(); } catch (e) { console.error(e); }
   }
 }

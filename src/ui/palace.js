@@ -349,13 +349,11 @@ function renderAch(body) {
   const g = G();
   const cards = game.achievementCards ? game.achievementCards() : [];
   const ready = cards.filter((c) => c.ready).length;
-  const total = (game.ACHIEVEMENTS || []).length;
   const got = Object.keys(g.ach || {}).length;
-  // 進み具合とまとめて拝受を1段に
+  // 受領数とまとめて拝受を1段に。勲章の総数・段の総数は見せない (どこまで先があるかは伏せる)
   const top = el("div", "pl-top");
   const prog = el("div", "pl-prog");
-  prog.appendChild(el("div", "pl-prog-t", `受領 ${got} / ${total}`));
-  prog.appendChild(bar(got, total, { tone: "gold" }));
+  prog.appendChild(el("div", "pl-prog-t", `受領した勲章 ${got}`));
   top.appendChild(prog);
   const all = button({ label: ready ? `まとめて拝受 ${ready}` : "拝受できる勲章なし", kind: ready ? "primary" : "ghost", size: "sm", disabled: !ready, onTap: () => ops.claimAllAchievements() });
   all.classList.add("pl-top-b");
@@ -365,12 +363,15 @@ function renderAch(body) {
   pagedGrid(area, cards, (c) => {
     const card = el("div", "pl-ach" + (c.ready ? " ready" : c.allDone ? " done" : ""));
     card.appendChild(el("span", "pl-medal" + (c.ready ? " ready" : c.allDone ? " done" : "")));
+    // 秘された勲章: 達成するまで名も条件も褒美も伏せる
+    const hidden = c.a.secret && !c.ready && !c.allDone;
     const t = el("div", "pl-ach-t");
-    t.appendChild(setText(el("div", "pl-ach-n"), c.a.name));
-    t.appendChild(setText(el("div", "pl-ach-d"), c.a.desc));
+    t.appendChild(setText(el("div", "pl-ach-n"), hidden ? "秘された勲章" : c.a.name));
+    t.appendChild(setText(el("div", "pl-ach-d"), hidden ? "その条件は、まだ闇の中にある" : c.a.desc));
     const meta = el("div", "pl-ach-m");
-    if (c.total > 1) meta.appendChild(el("span", "pl-ach-tier", `段 ${c.tier}/${c.total}`));
+    if (c.total > 1) meta.appendChild(el("span", "pl-ach-tier", `段 ${c.tier}`));
     if (c.allDone) meta.appendChild(el("span", "pl-ach-got", "受領済"));
+    else if (hidden) meta.appendChild(el("span", "pl-reward", "？"));
     else meta.appendChild(rewardEl(c.a.reward));
     if (c.ready) {
       const b = button({ label: "拝受", kind: "primary", size: "sm", onTap: () => game.claimAchievement(c.a) });

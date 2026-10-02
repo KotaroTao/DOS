@@ -74,6 +74,7 @@ const ASSETS = [
   "./src/ui/soulpanel.js",
   "./src/ui/shop.js",
   "./src/ui/loot.js",
+  "./src/ui/appraise.js",
   "./src/ui/departure.js",
   "./src/ui/dungeonhud.js",
   "./src/ui/results.js",
