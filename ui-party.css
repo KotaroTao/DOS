@@ -540,7 +540,7 @@ button.sp-tile-main { cursor: pointer; }
 
 /* ---------- 祝祭 (転職・ランクアップ) ---------- */
 .sp-cel-art { position: relative; display: flex; align-items: center; justify-content: center; width: 150px; height: 150px; }
-.sp-cel-art .pt-px { position: relative; z-index: 1; filter: drop-shadow(0 0 10px var(--sheet-accent, #c9a24a)); animation: ig-float 2s ease-in-out infinite; }
+.sp-cel-art .pt-px { position: relative; z-index: 1; filter: drop-shadow(0 0 10px var(--sheet-accent, #c9a24a)); }
 .sp-cel-rays {
   position: absolute; inset: -10px; border-radius: 50%;
   background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--sheet-accent, #c9a24a) 36%, transparent) 0deg 8deg, transparent 8deg 26deg);

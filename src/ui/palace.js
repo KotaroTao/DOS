@@ -17,7 +17,7 @@ import { statLines, itemCatText, showSkillPopup } from "./itemview.js";
 import { MONSTERS, spriteCanvas } from "../sprites.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL } from "../items.js";
 import { RANK_COLOR, RANK_NAME } from "../content.js";
-import { DUNGEONS, ELEMENTS, RACE_LABEL, monsterTraits } from "../dungeons/index.js";
+import { DUNGEONS, ELEMENTS, RACE_LABEL, monsterTraits, isFloating } from "../dungeons/index.js";
 import { SPELLS } from "../combat.js";
 import {
   SOUL_CLASSES, jobSprite, jobRankName, jobLoreFor, jobRankCondText, SOUL_STAT_UP, JOB_GEAR,
@@ -255,7 +255,7 @@ export function codexMonSheet(key) {
   body.appendChild(infoBlock("出現した迷宮", idxs.length ? idxs.map((i) => pairRow(DUNGEONS[i].name)) : [pairRow("記録なし", null, { dim: true })]));
   return sheet.open({
     kind: "info", banner: isOther ? "その他" : `${RACE_LABEL[m.race] || "魔物"}${m.rank ? "・" + RANK_NAME[m.rank] + "級" : ""}`,
-    accent: rc, art: m, artScale: 8, title: m.name, body, className: "pl-detail-sheet",
+    accent: rc, art: m, artScale: 8, float: isFloating(m, key), title: m.name, body, className: "pl-detail-sheet",
     footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
   });
 }

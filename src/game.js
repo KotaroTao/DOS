@@ -12,7 +12,7 @@ import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
 import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
-import { DUNGEONS, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_BOSS, monsterTraits, layerOf } from "./dungeons/index.js";
+import { DUNGEONS, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_BOSS, monsterTraits, layerOf, isFloating } from "./dungeons/index.js";
 import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
@@ -5659,8 +5659,9 @@ function renderCombatCanvas() {
           if (Math.floor(dt / 55) % 2 === 0) alpha = 0.4;
         }
       }
-      // 待機中の呼吸: 敵ごとに位相をずらしてゆっくり上下する (被弾・踏み込み中は止める)
-      if (!hf && !lunging && !REDUCED_MOTION) {
+      // 待機中の浮遊: 宙に浮く魔物 (飛獣・鳥人・幽鬼・精霊・羽虫…) だけ、位相をずらしてゆっくり上下する
+      // (地に足の着いた者は揺らさない。被弾・踏み込み中は止める)
+      if (!hf && !lunging && !REDUCED_MOTION && isFloating(e.mon, e.key)) {
         oy += Math.round(Math.sin(now * 0.0024 + (e.uid || i) * 1.7) * 1.6);
       }
       const feetY = baseY + hh;

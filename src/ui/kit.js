@@ -11,6 +11,7 @@ import { spriteCanvas, crispCanvas } from "../sprites.js";
 import { dollBust, SOUL_CLASSES } from "../souls.js";
 import { rarityKey, RARITIES } from "../rarity.js";
 import { keeperCanvas, iconCanvas } from "../townart.js";
+import { isFloating } from "../dungeons/schema.js";
 
 const hasDOM = () => typeof document !== "undefined" && typeof document.createElement === "function";
 
@@ -200,7 +201,8 @@ export const sheet = {
         head.appendChild(bn);
       }
       if (o.art) {
-        const art = el("div", "ui-art" + (o.sparkle ? " sparkle" : ""));
+        const floats = o.float != null ? o.float : (!o.art.nodeType && o.art.maxhp != null && isFloating(o.art));
+        const art = el("div", "ui-art" + (o.sparkle ? " sparkle" : "") + (floats ? " float" : ""));
         art.appendChild(o.art.nodeType ? o.art : spriteCanvas(o.art, o.artScale || 9));
         if (o.sparkle) {
           for (let i = 0; i < 6; i++) {
