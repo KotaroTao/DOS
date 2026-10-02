@@ -298,8 +298,6 @@ button, input, select, textarea { font-family: var(--font); }
 .tw-band { background: rgba(10,8,11,0.6); border: 1px solid #2c2427; border-radius: 3px; }
 .tw-bandh { font-family: var(--font); font-weight: 700; color: #cdbf9f; letter-spacing: 1px; }
 summary.tw-bandh::before { color: var(--accent); }
-.tw-band-sealed { opacity: 0.7; border-style: dashed; border-color: #4a3d36; }
-.tw-band-sealed .tw-bandh { color: #8c816d; cursor: default; }
 .tw-divebar { background: linear-gradient(180deg, rgba(7,5,8,0), rgba(7,5,8,0.92) 35%); }
 .tw-dive { font-size: 16px; letter-spacing: 2px; }
 .tw-recl { color: #9a8e78; }
@@ -308,14 +306,10 @@ summary.tw-bandh::before { color: var(--accent); }
 .tw-rumort { color: var(--ink); line-height: 1.7; }
 .tw-sealed { border-color: #4a3d36; border-style: dashed; }
 .tw-msq { border-color: #8a6d2e !important; }
-.tw-goal { border-radius: 3px; background: var(--grain), linear-gradient(90deg, rgba(201,162,74,0.18), rgba(201,162,74,0.03)), var(--plate); }
-.tw-goal-k { border-radius: 2px; font-family: var(--font); }
-.tw-goal-t { font-weight: 700; }
 .tw-empty { color: #8c816d; }
 .tw-c-gold { color: var(--accent-hi); }
 .tw-c-soul { color: #a6e4f2; }
 .tw-c-red { color: #ff6a5c; }
-.town-scene { border-bottom: 1px solid #2a2125; }
 
 /* ===== 王の語り ===== */
 .story-card { font-family: var(--font); }

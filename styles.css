@@ -578,14 +578,8 @@ canvas.spr { image-rendering: pixelated; display: block; width: var(--spr-size, 
 }
 .tw-back.ghost { visibility: hidden; }
 .tw-title { flex: 1; text-align: center; font-size: 17px; font-weight: bold; color: #efe2ff; letter-spacing: 1px; text-shadow: 0 0 10px rgba(150,110,200,0.4); }
-.tw-gold { font-size: 13px; color: var(--accent); font-weight: bold; white-space: nowrap; }
 
-/* 広場 (ハブ) */
-.tw-intro { text-align: center; margin: 4px 0 12px; }
-.tw-introt { font-size: 14px; color: #c8b6e0; letter-spacing: 1px; }
-.tw-intros { font-size: 11px; color: #8a7ca0; margin-top: 2px; }
-
-.tw-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
+/* 施設の札 (宝物庫の蒐集品などに残る旧来の札。広場の札は town.css の .tw-plate) */
 .tw-fac {
   background: linear-gradient(180deg, #1d1628, #140f1d);
   border: 1px solid #3c2c52; border-radius: 10px;
@@ -596,18 +590,6 @@ canvas.spr { image-rendering: pixelated; display: block; width: var(--spr-size, 
 .tw-fac:active { transform: translateY(1px); }
 @media (hover: hover) { .tw-fac:hover { border-color: #6a4d90; box-shadow: 0 0 0 1px #6a4d90, 0 2px 10px rgba(0,0,0,0.55); } }
 .tw-faci { font-size: 26px; line-height: 1; }
-.tw-faci.px { height: 48px; display: flex; align-items: center; justify-content: center; }
-.tw-faci.px canvas { width: 48px; height: 48px; image-rendering: pixelated; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.7)); transition: transform 0.15s ease; }
-.tw-fac:not(.locked):active .tw-faci.px canvas { transform: scale(0.94); }
-@media (hover: hover) { .tw-fac:not(.locked):hover .tw-faci.px canvas { transform: translateY(-2px) scale(1.06); } }
-/* 街の夜景パノラマ: 画面幅いっぱい (親の左右 padding を打ち消す) */
-.town-scene {
-  display: block; width: calc(100% + 24px); margin: -4px -12px 10px; height: auto;
-  image-rendering: pixelated; border-bottom: 1px solid #2a1f3a;
-  -webkit-mask-image: linear-gradient(180deg, #000 82%, transparent);
-          mask-image: linear-gradient(180deg, #000 82%, transparent);
-}
-.tw-dive-ic { width: 32px; height: 32px; image-rendering: pixelated; margin-right: 8px; flex: 0 0 auto; }
 .tw-facn { font-size: 13px; font-weight: bold; color: #ece0ff; margin-top: 6px; }
 .tw-facd { font-size: 10px; color: #8a7ca0; margin-top: 3px; }
 
@@ -629,8 +611,6 @@ summary.tw-bandh::-webkit-details-marker { display: none; }
 summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .tw-band[open] > summary.tw-bandh::before { content: "▾ "; }
 .tw-band .tw-mlist { padding: 0 8px 8px; }
-.tw-band.lockedband { opacity: 0.55; }
-.tw-band.lockedband .tw-bandh { cursor: default; }
 
 /* 施設バッジ (王宮の勅命など) */
 .tw-facb { font-size: 10px; color: #ffd84a; margin-top: 4px; font-weight: bold; text-shadow: 0 0 6px rgba(255,216,74,0.5); }
@@ -1071,14 +1051,4 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 /* 戦績シェア */
 .share-btn { border-color: #4a6a9a !important; color: #bcd4ff !important; margin-top: 8px; }
 
-/* 街の広場: いまの目標 */
-.tw-goal {
-  display: flex; align-items: center; gap: 8px; margin: 0 0 12px; padding: 9px 12px; cursor: pointer;
-  background: linear-gradient(90deg, rgba(201,162,39,0.16), rgba(201,162,39,0.04));
-  border: 1px solid rgba(201,162,39,0.45); border-radius: 9px;
-  box-shadow: 0 0 14px rgba(201,162,39,0.12);
-}
-.tw-goal:active { transform: translateY(1px); }
-.tw-goal-k { flex: 0 0 auto; font-size: 10px; font-weight: bold; color: #1a1206; background: #c9a227; border-radius: 4px; padding: 2px 6px; letter-spacing: 1px; }
-.tw-goal-t { flex: 1; min-width: 0; font-size: 12px; color: #f3e6bf; line-height: 1.4; }
-.tw-goal-go { flex: 0 0 auto; font-size: 18px; color: #c9a227; line-height: 1; }
+/* 街の広場 (夜景・目標・施設の札・編成・迷宮の門) は town.css */
