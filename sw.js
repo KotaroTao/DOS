@@ -4,7 +4,7 @@
 // キャッシュから返す。これにより「新しい game.js + 古い souls.js」のような
 // モジュール混在 (export 不一致で白画面) が構造的に起きない。
 // 新デプロイは CACHE 名の変更で検出され、ページ側が自動リロードする。
-const CACHE = "dos-v291";
+const CACHE = "dos-v292";
 const ASSETS = [
   "./",
   "./index.html",
@@ -13,6 +13,11 @@ const ASSETS = [
   "./title.css",
   "./town.css",
   "./dungeon.css",
+  "./ui.css",
+  "./ui-hub.css",
+  "./ui-party.css",
+  "./ui-shop.css",
+  "./ui-dungeon.css",
   "./manifest.webmanifest",
   "./icon.svg",
   "./src/game.js",
@@ -47,6 +52,26 @@ const ASSETS = [
   "./src/backdrops.js",
   "./src/crypt.js",
   "./src/rarity.js",
+  "./src/autoequip.js",
+  "./src/ui/ctx.js",
+  "./src/ui/prefs.js",
+  "./src/ui/motion.js",
+  "./src/ui/nav.js",
+  "./src/ui/kit.js",
+  "./src/ui/itemview.js",
+  "./src/ui/townshell.js",
+  "./src/ui/hub.js",
+  "./src/ui/palace.js",
+  "./src/ui/facilities.js",
+  "./src/ui/settings.js",
+  "./src/ui/story.js",
+  "./src/ui/party.js",
+  "./src/ui/soulpanel.js",
+  "./src/ui/shop.js",
+  "./src/ui/loot.js",
+  "./src/ui/departure.js",
+  "./src/ui/dungeonhud.js",
+  "./src/ui/results.js",
   "./src/dungeons/schema.js",
   "./src/dungeons/common.js",
   "./src/dungeons/index.js",

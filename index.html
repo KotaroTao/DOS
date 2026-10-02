@@ -14,9 +14,14 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&display=swap" />
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="theme.css" />
+  <link rel="stylesheet" href="ui.css" />
   <link rel="stylesheet" href="title.css" />
   <link rel="stylesheet" href="town.css" />
   <link rel="stylesheet" href="dungeon.css" />
+  <link rel="stylesheet" href="ui-hub.css" />
+  <link rel="stylesheet" href="ui-party.css" />
+  <link rel="stylesheet" href="ui-shop.css" />
+  <link rel="stylesheet" href="ui-dungeon.css" />
 </head>
 <body>
   <div id="app">
@@ -30,8 +35,11 @@
       <div id="topbar-cur"></div>
     </header>
 
-    <!-- 街 (拠点) 画面 (オーバーレイ) -->
-    <div id="town-screen" class="hidden"></div>
+    <!-- 街シェル (オーバーレイ): 見出し + 中身 (#town-screen) + 下のタブバー (src/ui/townshell.js が組み立てる) -->
+    <div id="town-shell" class="hidden">
+      <div class="ts-head hidden"></div>
+      <div id="town-screen" class="hidden"></div>
+    </div>
 
     <!-- 個別ステータス / 装備画面 (オーバーレイ) -->
     <div id="status-screen" class="hidden"></div>
@@ -67,6 +75,9 @@
       スワイプで移動 ・ タップで移動先指定 ・ 青枠はめくれるカード
     </footer>
   </div>
+
+  <!-- UI の重ね置き場: シート (z 81+n) とトースト (z 85)。src/ui/kit.js -->
+  <div id="ui-layer"></div>
 
   <!-- 起動エラーの可視化と自己修復 (白画面のまま固まらないように) -->
   <script>
