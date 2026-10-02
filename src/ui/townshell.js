@@ -1,12 +1,10 @@
 // ===== 街シェル: 見出し + 中身 + 下のタブバー (§3.1) =====
-//   [見出し: ⚙/‹ ・ 題 ・ 通貨]   (新しい画面のときだけ。旧画面は自前の見出しを持つ)
+//   [見出し: ⚙/‹ ・ 題 ・ 通貨]   (header:false のタブ/頁は自前の見出しを持つ)
 //   [中身 (#town-screen)]         ← game.js の townEl はここを指す
 //   [タブバー: 街 | 隊 | ◆迷宮◆ | 商会 | 王宮]
 //
-// 旧画面アダプタ: G.town.facility が立っている間は、旧い施設の描画関数 (renderMansion など) を
-// そのまま中身へ描き、見出しは隠し、その施設が属するタブを点す。タブは既定で旧画面を描く
-// (街→renderTownHub / 隊→renderMansion / 商会→renderShop / 王宮→renderPalace)。
-// 各パッケージは registerTab / registerPage で新しい描画に差し替える (legacy:false)。
+// 4つのタブ (registerTab) と頁 (registerPage: 酒場・祠など) は各パッケージが登録する。
+// 旧セーブの街の現在地 (G.town.facility / sub) は game.js の renderTown が新しいタブ/頁へ付け替えてから描く。
 //
 // 夜景のような重い生きた絵は keep(key, factory) で一度だけ作り、描き替えの間は「控え室」へ退避して
 // 生かしたまま次の描画で戻す (createTownScene を描くたびに作り直さない)。
@@ -35,13 +33,6 @@ export const FAC_TAB = {
   palace: "palace", treasury: "palace", codexAch: "palace", codexItem: "palace", codexDungeon: "palace", codexMon: "palace", codexJob: "palace",
   tavern: "hub", inn: "hub", shrine: "hub", abyss: "hub",
 };
-// タブの根になる旧施設 (null = 広場)
-const LEGACY_ROOT = { hub: null, party: "mansion", shop: "shop", palace: "palace" };
-// 旧施設の親 (戻る先)。無いものはタブの根/広場へ
-const LEGACY_PARENT = {
-  altar: "mansion",
-  treasury: "palace", codexAch: "palace", codexItem: "palace", codexDungeon: "palace", codexMon: "palace", codexJob: "palace",
-};
 
 export function townTabOf(facility) { return facility ? (FAC_TAB[facility] || "hub") : "hub"; }
 
@@ -55,7 +46,7 @@ export function migrateTown(t) {
   return t;
 }
 
-const tabDefs = {};   // key → { render(root, api), badge(counts), locked(), legacy, title, header:false=見出しを出さない }
+const tabDefs = {};   // key → { render(root, api), title, header:false=見出しを出さない }
 const pageDefs = {};  // key → { render(root, api), title, parentTab, header:false }
 const kept = new Map();
 let shell = null, head = null, content = null, bar = null, parking = null;
@@ -102,7 +93,6 @@ export function contentRoot() { return mount() || content; }
 // ---- 登録 ----
 export function registerTab(key, def) {
   const merged = { ...(tabDefs[key] || {}), ...def };
-  if (def && def.render && def.legacy === undefined) merged.legacy = false; // 描画を渡したら旧画面ではない
   tabDefs[key] = merged;
 }
 export function registerPage(key, def) { pageDefs[key] = { ...(pageDefs[key] || {}), ...def }; }
@@ -165,22 +155,14 @@ function resolveTab() {
   if (t.page && pageDefs[t.page]) return (t.tab = pageDefs[t.page].parentTab || t.tab || "hub");
   if (t.facility) return (t.tab = townTabOf(t.facility));
   const def = tabDefs[t.tab];
-  if (t.tab && t.tab !== "hub" && def && def.render && !def.legacy) return t.tab;
+  if (t.tab && t.tab !== "hub" && def && def.render) return t.tab;
   return (t.tab = "hub");
 }
-// 深さ (タブの根 = 0、頁/施設の中 = 1、その奥 = 2)
-function currentDepth() {
-  const t = game.G.town;
-  if (t.page) return 1;
-  const f = t.facility;
-  if (!f) return 0;
-  if (f === "mansion") return t.sub ? 1 : 0;
-  if (LEGACY_PARENT[f]) return 1;
-  return FAC_TAB[f] === "hub" ? 1 : 0;
-}
+// 深さ (タブの根 = 0、頁 = 1)
+function currentDepth() { return game.G.town.page ? 1 : 0; }
 function screenKey() {
   const t = game.G.town;
-  return `${t.tab}|${t.facility || ""}|${t.sub || ""}|${t.page || ""}`;
+  return `${t.tab}|${t.page || ""}`;
 }
 
 // ---- 描画 ----
@@ -219,18 +201,15 @@ export function refresh() {
   content.classList.remove("shop-mode"); // 商店専用レイアウトを解除 (商店なら再付与)
   const t = G.town;
   const page = t.page && pageDefs[t.page];
-  const def = tabDefs[tab];
+  const def = tabDefs[tab] || tabDefs.hub;
   if (page) {
     const parent = page.parentTab || tab;
     showHeader(page.header === false ? null : { left: "back", title: page.title || "", backLabel: TAB_TITLE[parent] || "街", onBack: () => nav.back() });
     page.render(content, api);
-  } else if (!t.facility && def && def.render && !def.legacy) {
+  } else if (def && def.render) {
     showHeader(def.header === false ? null : { left: "gear", title: def.title || TAB_TITLE[tab] || "", onGear: () => game.openSettings && game.openSettings() });
     def.render(content, api);
-  } else {
-    showHeader(null);
-    if (game.renderTownLegacy) game.renderTownLegacy();
-  }
+  } else showHeader(null);
   updateBar(tab);
   content.scrollTop = keepScroll;
   if (!same && lastKey) {
@@ -262,10 +241,7 @@ export function setTab(key, { silent = false } = {}) {
   if (isLocked(key)) { lockedToast(key); return false; }
   const t = G.town;
   const cur = resolveTab();
-  const def = tabDefs[key] || { legacy: true };
-  const isLegacy = !def.render || !!def.legacy;
-  const rootFac = isLegacy ? (LEGACY_ROOT[key] || null) : null;
-  const atRoot = !t.page && (t.facility || null) === rootFac && !t.sub;
+  const atRoot = !t.page && !t.facility;
   if (key === cur && atRoot) {
     // 根でもう一度押した: 先頭へ
     try { content.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { content.scrollTop = 0; }
@@ -273,7 +249,7 @@ export function setTab(key, { silent = false } = {}) {
   }
   if (!silent) { try { SFX.select(); } catch (e) { /* noop */ } }
   t.page = null;
-  t.facility = rootFac;
+  t.facility = null;
   t.sub = null;
   t.tab = key;
   if (game.resetTownSelection) game.resetTownSelection();
@@ -290,7 +266,7 @@ export function openGate() {
   return true;
 }
 
-// 頁 (酒場・祠・奈落など、タブの1段下)。登録が無ければ同名の旧施設を開く
+// 頁 (酒場・祠など、タブの1段下)。登録が無ければ旧来の入口として game.js が付け替える
 export function openPage(key, { parentTab } = {}) {
   const G = game.G;
   if (!G) return;
@@ -310,31 +286,21 @@ export function closePage() {
   if (game.renderTown) game.renderTown();
 }
 
-// 「戻る」: 頁 → 施設の中 → タブの根 → 街。街の根なら false (nav が「もう一度で閉じる」)
+// 「戻る」: 頁 → タブの根 → 街。街の根なら false (nav が「もう一度で閉じる」)
 export function back() {
   const G = game.G;
   if (!G || G.state !== "town") return false;
   const t = G.town;
   if (t.page) { closePage(); return true; }
-  const f = t.facility;
-  if (f) {
-    if (f === "mansion" && t.sub) { t.sub = null; if (game.resetTownSelection) game.resetTownSelection(); game.renderTown(); return true; }
-    const parent = LEGACY_PARENT[f];
-    if (parent) { t.facility = parent; t.sub = null; if (game.resetTownSelection) game.resetTownSelection(); game.renderTown(); return true; }
-    if (townTabOf(f) === "hub") { t.facility = null; t.sub = null; game.renderTown(); return true; }
-    setTab("hub", { silent: true });
-    return true;
-  }
-  if (resolveTab() !== "hub") { setTab("hub", { silent: true }); return true; }
+  if (t.facility || resolveTab() !== "hub") { setTab("hub", { silent: true }); return true; }
   return false;
 }
 
 export function hide() { if (mount()) { content.classList.add("hidden"); shell.classList.add("hidden"); } }
 export function isOpen() { return !!(shell && !shell.classList.contains("hidden")); }
 
-// 既定の登録: 4つのタブは旧画面を描く。UI の窓口 (シェル操作) も置く
+// UI の窓口 (シェル操作) を置く。タブの描画は各パッケージが registerTab で登録する
 export function install() {
-  for (const k of ["hub", "party", "shop", "palace"]) if (!tabDefs[k]) tabDefs[k] = { legacy: true, title: TAB_TITLE[k] };
   registerUI({
     shell: { setTab, openPage, closePage, refresh, registerTab, registerPage, keep, back, contentRoot, updateBar, openGate },
     openTab: (k) => setTab(k),

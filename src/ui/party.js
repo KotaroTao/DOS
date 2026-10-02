@@ -14,7 +14,7 @@
 
 import { UI, game, ops, registerUI } from "./ctx.js";
 import {
-  el, button, row, segmented, sheet, toast, confirm, statDelta, bar, badge, svgIcon, setText, longPress, shake,
+  el, button, row, segmented, sheet, toast, confirm, statDelta, bar, badge, setText, longPress, shake,
 } from "./kit.js";
 import { deltaFloat } from "./motion.js";
 import { remember, setPref, getPref } from "./prefs.js";

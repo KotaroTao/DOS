@@ -13,7 +13,7 @@ import { showSkillPopup, SPELL_KIND_LABEL } from "./itemview.js";
 import {
   SOUL_CLASSES, jobSprite, soulByUid, soulRankOf, soulLevelCapOf, nextRankThreshold, jobRankName, soulSeriesName,
   soulLearnedSkills, soulLearnedPassives, passiveName, passiveDesc, ORDER_PERK, PASSIVES, orderPassiveMap, orderPerkLv,
-  jobSkillTable, recalcDoll, MAX_SUBS, SOUL_STAT_UP,
+  jobSkillTable, recalcDoll, SOUL_STAT_UP,
 } from "../souls.js";
 import { SPELLS } from "../combat.js";
 
