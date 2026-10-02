@@ -1,0 +1,411 @@
+/* =====================================================================
+   ダークファンタジー・テーマ — 「黒鉄と蝋燭の灯」
+   styles.css (レイアウト) の上に重ねる見た目の層。配置や寸法は変えず、
+   質感 (黒鉄の板・金の縁取り・角の金細工)・書体 (明朝)・色を全画面で統一する。
+   ===================================================================== */
+
+:root {
+  --bg: #0b0910;
+  --panel: #15111a;
+  --panel-2: #1c1720;
+  --ink: #ece2cc;          /* 骨の白 (本文) */
+  --ink-dim: #a3967f;      /* 煤けた羊皮紙 */
+  --ink-faint: #6e6457;
+  --accent: #c9a24a;       /* 燻した金 */
+  --accent-hi: #f3d58b;
+  --accent-2: #8fb8e8;     /* 冷たい魂の青 */
+  --danger: #c43a2f;       /* 血の紅 */
+  --good: #6fbf5a;
+  --border: #3a3029;
+  --iron: #2a2229;
+  --iron-hi: #54463d;
+  --gold-line: linear-gradient(90deg, rgba(201,162,74,0), rgba(201,162,74,0.85) 20%, rgba(243,213,139,1) 50%, rgba(201,162,74,0.85) 80%, rgba(201,162,74,0));
+  --font: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", "Noto Serif CJK JP", "Source Han Serif JP", serif;
+  --font-serif: var(--font);
+  /* 粒子感 (フィルムグレイン) と角の金細工 */
+  --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.9  0 0 0 0 0.8  0 0 0 0 0.6  0 0 0 0.07 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  --corner-tl: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18'><path d='M1.5 12V1.5H12' fill='none' stroke='%23c9a24a' stroke-width='1.4'/><path d='M4.5 8V4.5H8' fill='none' stroke='%237a6230' stroke-width='1'/><rect x='0.4' y='0.4' width='3.2' height='3.2' transform='rotate(45 2 2)' fill='%23f3d58b'/></svg>");
+  --corner-tr: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18'><path d='M16.5 12V1.5H6' fill='none' stroke='%23c9a24a' stroke-width='1.4'/><path d='M13.5 8V4.5H10' fill='none' stroke='%237a6230' stroke-width='1'/><rect x='14.4' y='0.4' width='3.2' height='3.2' transform='rotate(45 16 2)' fill='%23f3d58b'/></svg>");
+  --corner-bl: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18'><path d='M1.5 6V16.5H12' fill='none' stroke='%23c9a24a' stroke-width='1.4'/><path d='M4.5 10V13.5H8' fill='none' stroke='%237a6230' stroke-width='1'/><rect x='0.4' y='14.4' width='3.2' height='3.2' transform='rotate(45 2 16)' fill='%23f3d58b'/></svg>");
+  --corner-br: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='18'><path d='M16.5 6V16.5H6' fill='none' stroke='%23c9a24a' stroke-width='1.4'/><path d='M13.5 10V13.5H10' fill='none' stroke='%237a6230' stroke-width='1'/><rect x='14.4' y='14.4' width='3.2' height='3.2' transform='rotate(45 16 16)' fill='%23f3d58b'/></svg>");
+  --corners: var(--corner-tl) top 3px left 3px / 18px 18px no-repeat, var(--corner-tr) top 3px right 3px / 18px 18px no-repeat,
+             var(--corner-bl) bottom 3px left 3px / 18px 18px no-repeat, var(--corner-br) bottom 3px right 3px / 18px 18px no-repeat;
+  /* 黒鉄の板 */
+  --plate: linear-gradient(180deg, #1d1820 0%, #141016 55%, #0f0c11 100%);
+  --plate-hi: linear-gradient(180deg, #2a222a 0%, #1a151c 60%, #131015 100%);
+  --plate-edge: inset 0 1px 0 rgba(255,236,200,0.07), inset 0 0 0 1px rgba(0,0,0,0.55), 0 2px 10px rgba(0,0,0,0.6);
+}
+
+html, body {
+  background: #050407;
+  font-family: var(--font);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: "palt" 1;
+}
+button, input, select, textarea { font-family: var(--font); }
+
+/* 画面全体: 闇の奥に燻る紫と蝋燭の灯 + 粒子感 */
+#app {
+  background:
+    var(--grain),
+    radial-gradient(120% 60% at 50% 0%, rgba(90, 50, 110, 0.18), rgba(0,0,0,0) 60%),
+    radial-gradient(100% 50% at 50% 100%, rgba(150, 70, 20, 0.10), rgba(0,0,0,0) 65%),
+    #0b0910;
+  border-left: 1px solid #1f1a1c;
+  border-right: 1px solid #1f1a1c;
+  box-shadow: 0 0 60px rgba(0,0,0,0.9);
+}
+
+/* ===== トップバー: 黒鉄の梁と金の縁 ===== */
+#topbar {
+  background: var(--grain), linear-gradient(180deg, #221b22 0%, #140f15 70%, #0d0a0e 100%);
+  border-bottom: 1px solid #0a080b;
+  box-shadow: 0 1px 0 rgba(201,162,74,0.55), 0 4px 16px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,236,200,0.06);
+  position: relative;
+}
+#topbar::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -2px; height: 1px;
+  background: var(--gold-line); opacity: 0.8; pointer-events: none;
+}
+#floor-info {
+  color: var(--accent-hi); font-weight: 700; letter-spacing: 1.5px;
+  text-shadow: 0 0 10px rgba(201,162,74,0.35), 0 1px 0 #000;
+}
+#settings-btn, #descend-btn, #return-btn {
+  background: var(--plate-hi); border: 1px solid var(--iron-hi); color: var(--ink);
+  box-shadow: var(--plate-edge); border-radius: 4px;
+}
+#descend-btn, #return-btn { border-color: #6fa8c8; box-shadow: var(--plate-edge), 0 0 12px rgba(111,168,200,0.35); }
+#topbar-cur { font-family: var(--font); letter-spacing: 0.5px; }
+
+/* ===== 盤面/戦闘キャンバス: 鉄の額縁 ===== */
+#screen { background: transparent; }
+#view {
+  border: 1px solid #0a080b;
+  border-radius: 3px;
+  box-shadow:
+    0 0 0 2px #2e252b, 0 0 0 3px #0a080b, 0 0 0 4px rgba(201,162,74,0.55),
+    0 10px 30px rgba(0,0,0,0.85), inset 0 0 24px rgba(0,0,0,0.6);
+}
+
+/* ===== 記録 (ログ): 煤けた羊皮紙の帳面 ===== */
+#log {
+  background: var(--grain), linear-gradient(180deg, rgba(24,19,22,0.96), rgba(13,10,14,0.96));
+  border: 1px solid #2a2226;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.6), inset 0 6px 14px rgba(0,0,0,0.55), 0 0 0 1px rgba(201,162,74,0.12);
+  font-size: 12.5px; line-height: 1.65; letter-spacing: 0.2px;
+}
+#log .l-sys { color: #a59a86; }
+#log .l-hit { color: #9fc4ee; }
+#log .l-dmg { color: #e0614f; }
+#log .l-heal { color: #86d17a; }
+#log .l-win { color: var(--accent-hi); font-weight: 700; }
+#log .l-rar-r { color: #4fa6ff; font-weight: 700; }
+#log .l-rar-sr { color: #ff9a2e; font-weight: 700; text-shadow: 0 0 8px rgba(255,154,46,0.45); }
+#log .l-rar-lr { color: #ff3b3b; font-weight: 800; text-shadow: 0 0 10px rgba(255,59,59,0.6); }
+
+/* ===== パーティカード: 黒鉄の札 ===== */
+.pc {
+  background: var(--grain), var(--plate);
+  border: 1px solid #3a2f2b;
+  border-radius: 3px;
+  box-shadow: var(--plate-edge);
+}
+.pc.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 14px rgba(201,162,74,0.45), var(--plate-edge); }
+.pc .name { font-weight: 700; color: var(--ink); letter-spacing: 0.3px; }
+.pc .cls { color: var(--ink-dim); }
+.pc .rowtag.front { color: #e2b773; border-color: #6e5228; background: rgba(110,82,40,0.18); }
+.pc .rowtag.back { color: #9cbbe0; border-color: #3d5370; background: rgba(61,83,112,0.18); }
+.pc .bar { height: 6px; background: #0a0709; border-radius: 1px; box-shadow: inset 0 1px 2px rgba(0,0,0,0.9), 0 0 0 1px #2a2125; }
+.pc .hp > i { background: linear-gradient(180deg, #e35a4a 0%, #a8231c 55%, #6e130f 100%); box-shadow: inset 0 1px 0 rgba(255,200,180,0.45); }
+.pc .mp > i { background: linear-gradient(180deg, #6fa2ff 0%, #2f55b8 55%, #1c3270 100%); box-shadow: inset 0 1px 0 rgba(200,220,255,0.45); }
+.pc .nums { color: #b9ab93; font-variant-numeric: tabular-nums; }
+.pc.low { animation: pc-low-dark 1.2s ease-in-out infinite; }
+@keyframes pc-low-dark {
+  0%, 100% { border-color: #3a2f2b; box-shadow: var(--plate-edge); }
+  50% { border-color: #c43a2f; box-shadow: 0 0 12px rgba(196,58,47,0.6), var(--plate-edge); }
+}
+
+/* ===== ボタン: 黒鉄の板に彫り込み、金の縁 ===== */
+.btn {
+  font-family: var(--font);
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--ink);
+  background: var(--grain), var(--plate-hi);
+  border: 1px solid #4a3d36;
+  border-radius: 3px;
+  box-shadow: inset 0 1px 0 rgba(255,236,200,0.08), inset 0 0 0 1px rgba(0,0,0,0.55), inset 0 -8px 14px rgba(0,0,0,0.35), 0 2px 6px rgba(0,0,0,0.6);
+  text-shadow: 0 1px 0 #000;
+}
+.btn:active {
+  background: var(--grain), linear-gradient(180deg, #151116, #1e181f);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(0,0,0,0.6);
+}
+@media (hover: hover) { .btn:hover { background: var(--grain), linear-gradient(180deg, #33292f 0%, #1f1920 60%, #171218 100%); border-color: #6a5642; } }
+.btn.primary {
+  color: var(--accent-hi);
+  border-color: #8a6d2e;
+  background: var(--grain), linear-gradient(180deg, #2c2318 0%, #1c160f 60%, #130f0a 100%);
+  box-shadow: inset 0 1px 0 rgba(255,226,160,0.14), inset 0 0 0 1px rgba(0,0,0,0.5), 0 0 0 1px rgba(201,162,74,0.25), 0 0 16px rgba(201,162,74,0.18), 0 2px 6px rgba(0,0,0,0.6);
+  text-shadow: 0 0 8px rgba(243,213,139,0.35), 0 1px 0 #000;
+}
+.btn.danger {
+  color: #ffb0a4; border-color: #7a2a24;
+  background: var(--grain), linear-gradient(180deg, #2c1515 0%, #1c0e0e 60%, #130909 100%);
+}
+.btn:disabled { opacity: 0.45; filter: grayscale(0.4); }
+#combat-menu .who { color: var(--accent-hi); font-weight: 700; letter-spacing: 0.5px; text-shadow: 0 0 8px rgba(201,162,74,0.3); }
+
+.tw-small, .tw-back, .st-navb, .tw-dolltab, .st-tab2 {
+  font-family: var(--font);
+  background: var(--plate-hi);
+  border: 1px solid #4a3d36;
+  border-radius: 3px;
+  color: var(--ink);
+  box-shadow: inset 0 1px 0 rgba(255,236,200,0.06), 0 1px 4px rgba(0,0,0,0.5);
+}
+.tw-small.primary, .tw-dolltab.active, .st-tab2.active {
+  color: var(--accent-hi); border-color: #8a6d2e;
+  background: linear-gradient(180deg, #2c2318, #18130d);
+  box-shadow: 0 0 0 1px rgba(201,162,74,0.35), 0 0 10px rgba(201,162,74,0.18);
+}
+.tw-small.danger { color: #ffb0a4; border-color: #7a2a24; }
+
+/* ===== ヒント ===== */
+#hint { color: var(--ink-faint); border-top: 1px solid #1d181b; background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,0.4)); letter-spacing: 0.5px; }
+
+/* ===== トースト ===== */
+.toast {
+  font-family: var(--font);
+  background: var(--grain), linear-gradient(180deg, #2a2114, #17120b);
+  border: 1px solid #8a6d2e; border-radius: 3px;
+  color: var(--accent-hi); letter-spacing: 1px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.7), 0 6px 20px rgba(0,0,0,0.7), 0 0 20px rgba(201,162,74,0.3);
+}
+
+/* ===== 階の暗転タイトル ===== */
+.floor-trans { background: radial-gradient(ellipse at 50% 45%, #1a1218 0%, #050305 70%); }
+.ft-floor { font-family: var(--font); font-weight: 800; letter-spacing: 10px; color: var(--accent-hi); text-shadow: 0 0 30px rgba(201,162,74,0.55), 0 2px 0 #000; }
+.ft-sub { font-family: var(--font); letter-spacing: 6px; color: #b5a68a; }
+
+/* ===== 中央カード (入手・イベント・選択肢): 金細工の額 ===== */
+#item-get, .confirm-overlay { background: radial-gradient(ellipse at 50% 40%, rgba(30,18,26,0.82), rgba(3,2,4,0.92) 70%); }
+.ig-card {
+  background: var(--corners), var(--grain), radial-gradient(120% 70% at 50% 0%, rgba(201,162,74,0.10), rgba(0,0,0,0) 60%), linear-gradient(180deg, #1e181e 0%, #141015 55%, #0e0b0f 100%);
+  border-radius: 4px;
+  border-width: 1px;
+  outline: 1px solid rgba(0,0,0,0.85);
+  outline-offset: 2px;
+  padding: 18px 18px 18px;
+}
+.ig-banner {
+  font-family: var(--font); font-weight: 800; letter-spacing: 3px; font-size: 13px;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.ig-banner::before, .ig-banner::after {
+  content: ""; flex: 0 1 46px; height: 1px;
+  background: linear-gradient(90deg, rgba(201,162,74,0), currentColor);
+  opacity: 0.7;
+}
+.ig-banner::after { background: linear-gradient(90deg, currentColor, rgba(201,162,74,0)); }
+.ig-art { background: radial-gradient(circle, rgba(201,162,74,0.22), rgba(0,0,0,0) 68%); }
+.ig-name { font-family: var(--font); font-weight: 800; letter-spacing: 1px; color: var(--ink); text-shadow: 0 1px 0 #000, 0 0 12px rgba(0,0,0,0.8); }
+.ig-stat { color: #9fc4ee; font-weight: 700; }
+.ig-desc { color: #b2a68f; line-height: 1.75; }
+.ig-who { color: var(--accent); }
+.ig-choices .btn { min-height: 46px; }
+
+/* レア度: 名前の色 (コモン白 / アンコモン緑 / レア青 / スーパーレア橙 / レジェンドレア赤) */
+.rar-c { color: #ece6d8; }
+.rar-uc { color: #46d667; }
+.rar-r { color: #3f9cff; }
+.rar-sr { color: #ff9a2e; text-shadow: 0 0 10px rgba(255,154,46,0.45), 0 1px 0 #000; }
+.rar-lr { color: #ff3b3b; text-shadow: 0 0 12px rgba(255,59,59,0.65), 0 1px 0 #000; }
+.ig-rarity {
+  display: inline-block; margin-top: 4px; padding: 1px 12px;
+  font-size: 11px; font-weight: 800; letter-spacing: 3px;
+  border: 1px solid currentColor; border-radius: 2px;
+  background: rgba(0,0,0,0.35);
+}
+.ig-card.rar-sr { animation: ig-pop 0.4s cubic-bezier(0.2, 1.4, 0.5, 1), rar-glow-sr 1.6s ease-in-out 0.4s infinite; }
+.ig-card.rar-lr { animation: ig-pop 0.5s cubic-bezier(0.2, 1.4, 0.5, 1), rar-glow-lr 1.2s ease-in-out 0.5s infinite; position: relative; overflow: hidden; }
+@keyframes rar-glow-sr { 0%, 100% { box-shadow: 0 0 24px rgba(255,154,46,0.35); } 50% { box-shadow: 0 0 46px rgba(255,154,46,0.7); } }
+@keyframes rar-glow-lr { 0%, 100% { box-shadow: 0 0 30px rgba(255,59,59,0.45), inset 0 0 30px rgba(255,59,59,0.12); } 50% { box-shadow: 0 0 64px rgba(255,59,59,0.85), inset 0 0 40px rgba(255,59,59,0.22); } }
+.ig-card.rar-sr .ig-art { background: radial-gradient(circle, rgba(255,154,46,0.38), rgba(0,0,0,0) 70%); }
+.ig-card.rar-lr .ig-art { background: radial-gradient(circle, rgba(255,59,59,0.45), rgba(0,0,0,0) 70%); }
+.ig-card.rar-r .ig-art { background: radial-gradient(circle, rgba(63,156,255,0.3), rgba(0,0,0,0) 70%); }
+.ig-card.rar-lr .ig-name { font-size: 20px; }
+/* レジェンドレア: 天から差す紅い光の柱 */
+.ig-beam {
+  position: absolute; left: 50%; top: -20%; width: 120px; height: 140%;
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, rgba(255,59,59,0), rgba(255,120,100,0.28) 35%, rgba(255,230,210,0.5) 50%, rgba(255,120,100,0.28) 65%, rgba(255,59,59,0));
+  filter: blur(6px); pointer-events: none; z-index: 0;
+  animation: ig-beam 2.2s ease-in-out infinite;
+}
+@keyframes ig-beam { 0%, 100% { opacity: 0.55; transform: translateX(-50%) scaleX(0.85); } 50% { opacity: 1; transform: translateX(-50%) scaleX(1.1); } }
+.ig-card.rar-lr > :not(.ig-beam) { position: relative; z-index: 1; }
+
+.name-input { font-family: var(--font); background: #0d0a0e; border: 1px solid #4a3d36; border-radius: 3px; color: var(--ink); box-shadow: inset 0 2px 6px rgba(0,0,0,0.7); }
+
+/* ===== 街 ===== */
+#town-screen {
+  background:
+    var(--grain),
+    radial-gradient(120% 70% at 50% -10%, rgba(90,50,110,0.22) 0%, rgba(0,0,0,0) 55%),
+    radial-gradient(90% 40% at 50% 105%, rgba(140,70,25,0.12), rgba(0,0,0,0) 70%),
+    linear-gradient(175deg, #120e14, #070508 70%);
+}
+.tw-title {
+  font-family: var(--font); font-weight: 800; letter-spacing: 3px; color: var(--accent-hi);
+  text-shadow: 0 0 14px rgba(201,162,74,0.35), 0 2px 0 #000;
+}
+.tw-back { color: var(--ink); }
+.tw-lead { color: #b2a68f; line-height: 1.7; }
+.tw-note { color: #9a8e78; }
+.tw-dunhelp { color: #8c816d; }
+/* 見出し: 金の菱と細い罫 */
+.tw-h, .set-h {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font); font-weight: 800; letter-spacing: 2px;
+  color: var(--accent); border-left: none; padding-left: 0;
+  text-shadow: 0 1px 0 #000;
+}
+.tw-h::before, .set-h::before {
+  content: ""; flex: 0 0 auto; width: 7px; height: 7px; transform: rotate(45deg);
+  background: linear-gradient(135deg, #f3d58b, #8a6d2e); box-shadow: 0 0 6px rgba(201,162,74,0.6);
+}
+.tw-h::after, .set-h::after {
+  content: ""; flex: 1 1 auto; height: 1px;
+  background: linear-gradient(90deg, rgba(201,162,74,0.6), rgba(201,162,74,0));
+}
+/* 施設カード: 彫られた石板に金の角飾り */
+.tw-fac {
+  background: var(--corners), var(--grain), radial-gradient(100% 70% at 50% 0%, rgba(201,162,74,0.08), rgba(0,0,0,0) 65%), var(--plate);
+  border: 1px solid #3a2f2b;
+  border-radius: 3px;
+  box-shadow: var(--plate-edge);
+}
+@media (hover: hover) { .tw-fac:hover { border-color: #8a6d2e; box-shadow: 0 0 0 1px rgba(201,162,74,0.4), 0 0 18px rgba(201,162,74,0.18), var(--plate-edge); } }
+.tw-facn { font-family: var(--font); font-weight: 800; letter-spacing: 1px; color: var(--ink); text-shadow: 0 1px 0 #000; }
+.tw-facd { color: #9a8e78; }
+.tw-facb { color: var(--accent-hi); }
+.tw-fac.locked .tw-facn { color: #7d7468; }
+/* 人業の札・各種の行 */
+.tw-chip, .tw-mrow, .tw-dungeon, .tw-shoprow, .tw-quest, .tw-recrow, .set-row, .tw-rumor, .tw-soulrow, .tw-innbox {
+  background: var(--grain), var(--plate);
+  border: 1px solid #33292a;
+  border-radius: 3px;
+  box-shadow: var(--plate-edge);
+}
+.tw-chipn { font-weight: 700; color: var(--ink); }
+.tw-chipc { color: #9a8e78; }
+.tw-chiphp { color: #c9bca2; font-variant-numeric: tabular-nums; }
+.tw-dungeon { border-left: 3px solid #4a3d36; }
+.tw-dungeon.sel { border-color: #8a6d2e; border-left-color: var(--accent); background: var(--grain), linear-gradient(90deg, rgba(201,162,74,0.12), rgba(0,0,0,0) 70%), var(--plate); box-shadow: 0 0 0 1px rgba(201,162,74,0.35), var(--plate-edge); }
+.tw-dungeon.cleared { border-left-color: #7a6230; }
+.tw-dunst { border-radius: 2px; border-color: #4a3d36; color: #a3967f; }
+.tw-dunst.done { color: var(--accent-hi); border-color: #8a6d2e; background: rgba(201,162,74,0.08); }
+.tw-dunst.quest { color: #ffb0a4; border-color: #7a2a24; background: rgba(196,58,47,0.12); }
+.tw-band { background: rgba(10,8,11,0.6); border: 1px solid #2c2427; border-radius: 3px; }
+.tw-bandh { font-family: var(--font); font-weight: 700; color: #cdbf9f; letter-spacing: 1px; }
+summary.tw-bandh::before { color: var(--accent); }
+.tw-band-sealed { opacity: 0.7; border-style: dashed; border-color: #4a3d36; }
+.tw-band-sealed .tw-bandh { color: #8c816d; cursor: default; }
+.tw-divebar { background: linear-gradient(180deg, rgba(7,5,8,0), rgba(7,5,8,0.92) 35%); }
+.tw-dive { font-size: 16px; letter-spacing: 2px; }
+.tw-recl { color: #9a8e78; }
+.tw-recv { color: var(--accent-hi); font-variant-numeric: tabular-nums; }
+.tw-rumors { color: var(--accent-hi); font-weight: 800; letter-spacing: 1px; }
+.tw-rumort { color: var(--ink); line-height: 1.7; }
+.tw-sealed { border-color: #4a3d36; border-style: dashed; }
+.tw-msq { border-color: #8a6d2e !important; }
+.tw-goal { border-radius: 3px; background: var(--grain), linear-gradient(90deg, rgba(201,162,74,0.18), rgba(201,162,74,0.03)), var(--plate); }
+.tw-goal-k { border-radius: 2px; font-family: var(--font); }
+.tw-goal-t { font-weight: 700; }
+.tw-empty { color: #8c816d; }
+.tw-c-gold { color: var(--accent-hi); }
+.tw-c-soul { color: #a6e4f2; }
+.tw-c-red { color: #ff6a5c; }
+.town-scene { border-bottom: 1px solid #2a2125; }
+
+/* ===== 王の語り ===== */
+.story-card { font-family: var(--font); }
+.story-line { font-size: 13.5px; }
+
+/* ===== ステータス画面 (緑の旧配色を黒鉄と金へ統一) ===== */
+#status-screen, #settings-screen {
+  background: var(--grain), radial-gradient(120% 60% at 50% -10%, rgba(90,50,110,0.2), rgba(0,0,0,0) 55%), linear-gradient(175deg, #120e14, #070508 70%);
+}
+.st-name { font-family: var(--font); font-weight: 800; color: var(--accent-hi); letter-spacing: 2px; text-shadow: 0 1px 0 #000; }
+.st-sub { color: #a3967f; }
+.st-port { background: #0e0b0f; border: 1px solid #4a3d36; border-radius: 3px; box-shadow: var(--plate-edge); }
+.st-navb { color: var(--ink); }
+.st-tabbar { border-bottom: 1px solid #2c2427; }
+.st-tab2 { color: #cdbf9f; }
+.st-statbar, .st-attr6, .st-attr, .st-invrow, .st-eqrow, .st-soulsum, .st-revive {
+  background: var(--grain), var(--plate);
+  border: 1px solid #33292a; border-radius: 3px;
+  box-shadow: var(--plate-edge);
+}
+.st-statbar b, .st-attr6 .st-attrv, .st-attrv { color: var(--ink); }
+.st-attr6 .st-attrk, .st-attrk, .st-h { color: var(--accent); }
+.st-h.center { color: var(--accent-hi); }
+.st-bar-spells { color: #9fc4ee; }
+.st-invrow.sel, .st-eqrow.sel { border-color: var(--accent); box-shadow: 0 0 0 1px rgba(201,162,74,0.4), var(--plate-edge); }
+
+/* ===== 設定 ===== */
+.set-title { font-family: var(--font); font-weight: 800; color: var(--accent-hi); letter-spacing: 3px; }
+.set-rown { color: var(--ink); }
+.set-rowd { color: #9a8e78; }
+.set-toggle.on, .set-volb.on { color: var(--accent-hi); border-color: #8a6d2e; background: linear-gradient(180deg, #2c2318, #18130d); box-shadow: 0 0 0 1px rgba(201,162,74,0.35); }
+
+/* ===== 図鑑 ===== */
+.cdx-card { background: var(--grain), var(--plate); border: 1px solid #33292a; border-radius: 3px; box-shadow: var(--plate-edge); }
+.cdx-name { font-family: var(--font); font-weight: 700; }
+
+/* スクロールバー (対応環境) */
+#town-screen::-webkit-scrollbar, #status-screen::-webkit-scrollbar, #log::-webkit-scrollbar { width: 6px; }
+#town-screen::-webkit-scrollbar-thumb, #status-screen::-webkit-scrollbar-thumb, #log::-webkit-scrollbar-thumb { background: #3a2f2b; border-radius: 3px; }
+
+/* スーパーレア以上の「お披露目」: 影の塊から光が弾けて姿を現し、名前は一拍おいて浮かぶ */
+.ig-card.rar-sr .ig-art canvas.spr, .ig-card.rar-lr .ig-art canvas.spr {
+  animation: rar-reveal 1.15s cubic-bezier(.3,.7,.2,1) both, ig-float 2s ease-in-out 1.15s infinite;
+}
+.ig-card.rar-lr .ig-art canvas.spr { animation-duration: 1.5s, 2s; animation-delay: 0s, 1.5s; }
+@keyframes rar-reveal {
+  0% { filter: brightness(0); transform: scale(0.55); opacity: 0.4; }
+  55% { filter: brightness(0) drop-shadow(0 0 2px #fff); transform: scale(1.04); opacity: 1; }
+  68% { filter: brightness(3.2) drop-shadow(0 0 26px #fff); transform: scale(1.12); }
+  100% { filter: brightness(1) drop-shadow(0 0 10px rgba(255,255,255,0.25)); transform: scale(1); }
+}
+.ig-card.rar-sr .ig-name, .ig-card.rar-sr .ig-rarity, .ig-card.rar-sr .ig-stat,
+.ig-card.rar-lr .ig-name, .ig-card.rar-lr .ig-rarity, .ig-card.rar-lr .ig-stat { animation: ig-late 0.5s ease 0.9s both; }
+.ig-card.rar-lr .ig-name, .ig-card.rar-lr .ig-rarity, .ig-card.rar-lr .ig-stat { animation-delay: 1.25s; }
+@keyframes ig-late { from { opacity: 0; transform: translateY(6px); letter-spacing: 6px; } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .ig-card.rar-sr .ig-art canvas.spr, .ig-card.rar-lr .ig-art canvas.spr,
+  .ig-card.rar-sr .ig-name, .ig-card.rar-lr .ig-name, .ig-card .ig-rarity, .ig-card .ig-stat, .ig-beam { animation: none !important; opacity: 1 !important; }
+}
+.st-eqrow.empty .st-ename { color: #6e6457; }
+.st-iname.st-unid { color: #b9a98a; }
+
+/* ===== 今回の収穫バー (盤面の下) ===== */
+#runbar {
+  flex: 0 0 auto; margin: 2px 10px 0; padding: 5px 10px;
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  background: var(--grain), var(--plate); border: 1px solid #33292a; border-radius: 3px;
+  box-shadow: var(--plate-edge); font-size: 12px; font-variant-numeric: tabular-nums;
+}
+#runbar.hidden { display: none; }
+.rb-floor { display: flex; gap: 3px; align-items: center; }
+.rb-pip { color: #3e3433; font-size: 11px; }
+.rb-pip.done { color: #8a6d2e; }
+.rb-pip.now { color: var(--accent-hi); text-shadow: 0 0 8px rgba(243,213,139,0.7); }
+.rb-loot { display: flex; gap: 9px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+.rb-gold { color: var(--accent-hi); }
+.rb-soul { color: #a6e4f2; }
+.rb-rar { font-weight: 800; }
+.rb-rar.zero { opacity: 0.28; text-shadow: none; }

@@ -36,7 +36,10 @@ import { showOpening } from "./opening.js";
 import { TOWN_ICONS, KING_PORTRAIT, createTownScene } from "./townart.js";
 import { drawBattleBackdrop } from "./backdrops.js";
 import { showTitle } from "./title.js";
+import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityUp, lrIntervalH, lrLayerFactor, LR_HAZARD_K, LR_PITY_K } from "./rarity.js";
 
+// キャンバスに描く文字の書体 (画面の明朝と揃える)
+const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", "Noto Serif CJK JP", serif';
 // 視差・揺れを抑える設定 (OSの「視差効果を減らす」)。待機アニメなどを止める
 const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } })();
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
@@ -45,6 +48,15 @@ import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 // アイテム: 一点物の手作りカタログ (src/catalog/)。二つ名つきの量産品は廃止。
 // モンスター: ダンジョン単位で手作りした図鑑 (src/dungeons/) を統合。
 Object.assign(ITEMS, CATALOG_ITEMS);
+// レア度の無い装備 (items.js の基本装備など) はコモン扱い。蒐集品・道具はレア度なし。
+// 基本装備は商店の品揃え専用とし、迷宮のドロップ表からは外す (ドロップのコモンはランク別標準装備が担う)
+for (const id in ITEMS) {
+  const it = ITEMS[id];
+  if (!it.rar && it.slot && it.slot !== "misc" && it.slot !== "use" && it.slot !== "mat") {
+    it.rar = it.lr ? "lr" : "c";
+    if (!CATALOG_ITEMS[id]) it.noDrop = true;
+  }
+}
 Object.assign(MONSTERS, DUNGEON_MONSTERS);
 // 隠しレベル lv (1-50) と表示ランクの補完 (カタログ品は定義済み)
 for (const id in ITEMS) {
@@ -56,16 +68,35 @@ for (const id in ITEMS) {
   if (it.r20 == null) it.r20 = Math.max(1, Math.min(20, Math.ceil(it.lv / 10)));
 }
 
-// アイテムの表示ランク名/枠色。LR (専用装備) は LR5/LR10… の専用表示にする
-function itemRankName(it) { return it && it.lr ? `LR${it.lr}` : (it && it.rank ? ITEM_RANK_NAME[it.rank] : null); }
-function itemRankColor(it) { return it && it.lr ? "#ff5fae" : (it && it.rank ? ITEM_RANK_COLOR[it.rank] : null); }
+// アイテムの格の表示名/色。装備はレア度 (コモン〜レジェンドレア) を、蒐集品などは従来のランクを使う
+function itemRankName(it) { return rarityLabel(it) || (it && it.rank ? ITEM_RANK_NAME[it.rank] : null); }
+function itemRankColor(it) { return rarityColor(it) || (it && it.rank ? ITEM_RANK_COLOR[it.rank] : null); }
+// カードの見出し (格): 装備はレア度、職業専用は「専用装備」を添える。蒐集品は従来のランク
+function itemGradeText(it, fallback = "アイテム") {
+  const rl = rarityLabel(it);
+  if (rl) return it.forJob ? `${rl} ・ 専用装備` : rl;
+  return it && it.rank ? `${ITEM_RANK_NAME[it.rank]}級アイテム` : fallback;
+}
+// ログの色: レア以上はレア度の色で記録する
+function logClassForItem(it, dflt = "win") {
+  const k = rarityKey(it);
+  return k === "r" || k === "sr" || k === "lr" ? "rar-" + k : dflt;
+}
+// アイテム名の表示要素: レア度の色で名前を塗る (未鑑定でも色だけは見える)
+function itemNameEl(tag, cls, it, suffix = "") {
+  const e = el(tag, cls, itemName(it) + suffix);
+  const k = rarityKey(it);
+  if (k) { e.style.color = RARITIES[k].color; e.classList.add("rar-" + k); }
+  return e;
+}
 
 // ===== 出現テーブル (隠しレベル) =====
 // 全アイテムは隠しレベル lv を持つ。迷宮ごとの lootLv 帯 (＋階の深さ) を中心に、
 // レベルの近い品だけが出現する。中心より高レベルの品ほど出現率が急減するうえ、
 // 全体補正でも高レベル品ほど稀になる (= 強い装備は深い迷宮でしか、稀にしか出ない)。
 // exclusive: true のアイテムは専用抽選レイヤーで管理し、通常テーブルには含めない
-const LOOT_IDS = Object.keys(ITEMS).filter((id) => ITEMS[id].slot !== "mat" && !ITEMS[id].exclusive).sort();
+// noDrop: ドロップ表から外した品 (コモン〜レアの厳選。catalog/index.js)。カタログ・図鑑には残る
+const LOOT_IDS = Object.keys(ITEMS).filter((id) => ITEMS[id].slot !== "mat" && !ITEMS[id].exclusive && !ITEMS[id].noDrop).sort();
 function lootWeight(lv, center) {
   const d = lv - center;
   if (d > 8 || d < -16) return 0;                       // 出現窓: 中心+8 〜 中心-16
@@ -148,45 +179,144 @@ function dropCenterR(opts = {}) {
   return Math.max(1, Math.min(20, r));
 }
 
-// ===== 専用装備 統一ドロップ層 (LR・職業専用装備 x_ を一本化) =====
-// 通常の出現テーブルとは独立。宝箱を開けた瞬間に flat 2% で1回だけ判定し、
-// 当たれば通常の中身を差し替える (宝箱ランクや迷宮ランクには依存しない)。
-// 旧 1/500 × 宝箱ランク の機構は廃止し、すべてこの 2% 機構に統一した。
-const EXCL_RATE = 0.02;
-const LR_UNLOCK = { 5: 40, 10: 90, 15: 140, 20: 190 }; // LR ティア → 解禁 lootLv
-// その装備が出現「し始める」lootLv (下限のみ。上限は無い)。
-// LR はティア解禁値、職業専用装備(x_)は自レベル基準。判定は「現在の lootLv >= 解禁値」なので、
-// 一度解禁した LR ティアは以降どれだけ深い迷宮でも出続ける (通常装備の R±2 窓とは別物):
-//   ・LR5 (解禁lootLv40) は D80 のような深層でも出現する
-//   ・LR20 (解禁lootLv190 ≒ D95+) は D20 のような浅層では絶対に出ない
-// 深層では低ティアLRも当たるが、1点もの(G.lrOwned)で既得分は除外されるため自然に上位へ移る。
-function exclUnlockLv(it) {
-  return it.lr ? (LR_UNLOCK[it.lr] || 40) : Math.max(40, (it.lv || 1) - 25);
+// ===== レア度つきドロップ (コモン/アンコモン/レア/スーパーレア/レジェンドレア) =====
+// 装備ドロップのたびに、まずレア度を抽選し (rarity.js rollRarity)、その格の品をランク窓 (中心R±2) から選ぶ。
+// 窓にその格の品が無ければ窓を広げ、それでも無ければ一段下の格に落とす。
+// レジェンドレアだけは実プレイ時間で抽選する (lrTimeRoll)。蒐集品は一定割合で別枠から出る。
+const MISC_DROP_RATE = 0.08;
+let _byRar = null;
+function lootByRarity() {
+  if (_byRar) return _byRar;
+  _byRar = {};
+  for (const k of ["c", "uc", "r", "sr"]) _byRar[k] = Array.from({ length: 21 }, () => []);
+  for (const id of Object.keys(ITEMS)) {
+    const it = ITEMS[id];
+    if (!it.rar || it.rar === "lr" || it.noDrop || it.slot === "misc" || it.slot === "use" || it.slot === "mat") continue;
+    // 職業専用装備 (x_) は exclusive だがスーパーレアとして窓に入れる。それ以外の exclusive は除外
+    if (it.exclusive && it.rar !== "sr") continue;
+    _byRar[it.rar][Math.max(1, Math.min(20, it.r20 || 1))].push(id);
+  }
+  return _byRar;
 }
+// 格上げ度: 宝箱ランク・強敵・ミミック・黒い宝箱・特別階・異変で上位の格が出やすくなる
+function rarityUp(opts = {}) {
+  let up = 0;
+  if (opts.chestRank) up += (opts.chestRank - 1) * 0.5;
+  if (opts.elite) up += 2;
+  if (opts.rare) up += 2;
+  if (opts.master) up += 3; else if (opts.mimic) up += 1.5;
+  if (opts.lvBonus) up += opts.lvBonus / 15;
+  if (specialDef()) up += 0.5;
+  if (mutNum("lootBonusLv", 0) > 0) up += 1;
+  up += layerRarityUp(battleLayer()); // 深い層ほど高レアが出やすい
+  return up;
+}
+function pickOfRarity(rar, centerR) {
+  const idx = lootByRarity()[rar];
+  if (!idx) return null;
+  // コモン/アンコモンは窓を狭く (中心±1) して顔ぶれを絞る。レア以上は ±2
+  const span0 = rar === "c" || rar === "uc" ? 1 : 2;
+  for (let span = span0; span <= 6; span++) {
+    let total = 0; const acc = [];
+    for (let r = Math.max(1, centerR - span); r <= Math.min(20, centerR + span); r++) {
+      const w = Math.max(1, 3 - Math.abs(r - centerR));
+      for (const id of idx[r]) {
+        const fj = ITEMS[id].forJob; // 職業専用装備は編成にいる職を強く優先
+        // 編成の誰かが装備できる品を出やすくする (使えない新品ばかり拾わないように)
+        const usable = G.party.some((m) => m.alive !== undefined && canEquip(m, ITEMS[id]));
+        const ww = w * (fj ? (G.party.some((m) => m.clsKey === fj) ? 6 : 1) : 1) * (usable ? 3 : 1);
+        total += ww; acc.push([id, total]);
+      }
+    }
+    if (total) {
+      const x = Math.random() * total;
+      for (const [id, t] of acc) if (x <= t) return id;
+      return acc[acc.length - 1][0];
+    }
+  }
+  return null;
+}
+// 戦利品を1つ選ぶ (opts は dropCenterR と同じ補正)。返り値は item id
+function pickLoot(opts = {}) {
+  const centerR = dropCenterR(opts);
+  if (Math.random() < MISC_DROP_RATE) {
+    const miscCap = Math.min(20, centerR + 2);
+    const pool = miscLootIds().filter((id) => Math.max(1, Math.min(20, ITEMS[id].r20 || 1)) <= miscCap);
+    if (pool.length) return pool[rand(pool.length)];
+  }
+  const lrId = lrTimeRoll();
+  if (lrId) return lrId;
+  const order = ["c", "uc", "r", "sr"];
+  let k = order.indexOf(rollRarity(rarityUp(opts)));
+  for (; k >= 0; k--) {
+    const id = pickOfRarity(order[k], centerR);
+    if (id) return id;
+  }
+  return pickItemByR(centerR);
+}
+
+// ===== レジェンドレアの時間抽選 =====
+// 実際に遊んでいる時間 (画面が見えていて、直近2分以内に操作がある時間) を数え、
+// 装備ドロップのたびに「前回の抽選からの経過時間」ぶんの確率でLRを出す (時間に対するポアソン過程)。
+// 平均間隔は潜っている深さで縮み (rarity.js lrIntervalH: 迷宮15まで5h → 迷宮33で4h → 迷宮50以降3h)、天井で必ず出る。
+// 時計の進み方は層で変わり、第1層ではほぼ止まる (lrLayerFactor) — 第1層ではほぼ出ない。
+const HOUR_MS = 3600 * 1000;
+let _lastInputAt = Date.now();
+for (const ev of ["pointerdown", "keydown"]) document.addEventListener(ev, () => { _lastInputAt = Date.now(); }, { passive: true, capture: true });
+function lrClock() {
+  if (!G.lrClock || typeof G.lrClock !== "object") G.lrClock = { since: 0, pend: 0 };
+  return G.lrClock;
+}
+setInterval(() => {
+  if (document.visibilityState !== "visible" || Date.now() - _lastInputAt > 120000) return;
+  G.stats.playMs = (G.stats.playMs || 0) + 5000; // 戦績: 総プレイ時間
+  const f = lrLayerFactor(battleLayer());
+  const c = lrClock();
+  c.since += 5000 * f; c.pend += 5000 * f;
+}, 5000);
+// 今の深さで出せるLR (1点もの: 入手済みは除く)。第1層の逸品 (tier1) は常に候補、
+// 職業専用LR (tier5以上) は従来どおり lootLv の解禁値を超えてから
+function lrPool() {
+  const lv = lootLvAt();
+  return Object.keys(ITEMS).filter((id) => {
+    const it = ITEMS[id];
+    if (it.rar !== "lr" || (G.lrOwned && G.lrOwned[id])) return false;
+    return it.lr <= 1 || lv >= (LR_UNLOCK[it.lr] || 40);
+  });
+}
+function lrIntervalMs() { return lrIntervalH(dungeonNumber(activeCfg())) * HOUR_MS; }
+function lrTimeRoll() {
+  const c = lrClock();
+  const m = lrIntervalMs();
+  const p = 1 - Math.exp(-c.pend / (m * LR_HAZARD_K));
+  c.pend = 0;
+  if (c.since < m * LR_PITY_K && Math.random() >= p) return null;
+  const pool = lrPool();
+  if (!pool.length) return null;
+  let total = 0; const acc = [];
+  for (const id of pool) {
+    const fj = ITEMS[id].forJob;
+    const w = !fj ? 3 : (G.party.some((m) => m.clsKey === fj) ? 6 : 1);
+    total += w; acc.push([id, total]);
+  }
+  const x = Math.random() * total;
+  const id = (acc.find(([, t]) => x <= t) || acc[acc.length - 1])[0];
+  c.since = 0;
+  return id;
+}
+// 持ちきれずにLRを取り逃した時は、時計を天井に戻して次の装備ドロップで出し直す
+function refundLR(it) {
+  if (it && it.rar === "lr") lrClock().since = lrIntervalMs() * LR_PITY_K;
+}
+
+// ===== 職業専用LR の解禁深度 =====
+// LR (tier5以上 = 職業専用) は lootLv がティアの解禁値を超えてから時間抽選の候補に入る。
+// 第1層の逸品 (tier1) は常に候補。1点もの (G.lrOwned) は以後候補から外れる
+const LR_UNLOCK = { 5: 40, 10: 90, 15: 140, 20: 190 }; // LR ティア → 解禁 lootLv
 let _exclIds = null;
 function exclIds() {
   if (!_exclIds) _exclIds = Object.keys(ITEMS).filter((id) => ITEMS[id].exclusive);
   return _exclIds;
-}
-// 宝箱を開けた瞬間に1回だけ呼ぶ。ヒットすれば item id を返し、外れなら null。
-// 現在の lootLv で解禁済みの専用装備から、パーティの職に合う品を強く優先して選ぶ。
-function pickExclusive(lootLv) {
-  if (Math.random() >= EXCL_RATE) return null;
-  // LR は1点もの: 既に入手済みの id は除外する (x_ 職業専用装備は複数可)
-  const pool = exclIds().filter((id) => (lootLv || 0) >= exclUnlockLv(ITEMS[id]) && !(ITEMS[id].lr && G.lrOwned && G.lrOwned[id]));
-  if (!pool.length) return null;
-  let total = 0;
-  const acc = [];
-  for (const id of pool) {
-    const fj = ITEMS[id].forJob;
-    // 装飾品など forJob 無し=2、専用武器=パーティ発現職なら6・それ以外1
-    const w = !fj ? 2 : (G.party.some((m) => m.clsKey === fj) ? 6 : 1);
-    total += w;
-    acc.push([id, total]);
-  }
-  const r = Math.random() * total;
-  for (const [id, t] of acc) if (r <= t) return id;
-  return acc[acc.length - 1][0];
 }
 
 // 現在の迷宮+階のアイテムレベル (中心値)。迷宮の lootLv 帯を階の深さで補間
@@ -288,12 +418,13 @@ const G = {
   codex: { mon: {}, item: {}, job: {} }, // 図鑑 (モンスター/アイテム/職業)
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={蒐集品id:true}, claimed={"ランク:しきい値":true}
   lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
+  lrClock: { since: 0, pend: 0 }, // レジェンドレアの時間抽選 (最後のLRからの/前回抽選からの実プレイms)
   order: { picks: [] }, // 控えの結社: 席に着けた魂のuid配列 (席数=orderSeats()。編成外ランク2以上のみ有効)
   story: 0,           // 王宮ストーリーの進行段階
   dragonSlain: false, // 竜を討ったか
   // 戦績。bossIds/elemKills は集合 ({key:true})、swiftBoss/masterMimicSlain は一度きりの達成フラグ
   stats: { runs: 0, deepest: 0, kills: 0, deaths: 0, soulsFound: 0, bossKills: 0,
-    chests: 0, mimics: 0, trapsDisarmed: 0, trapsSprung: 0, fusions: 0, questsDone: 0,
+    chests: 0, mimics: 0, trapsDisarmed: 0, trapsSprung: 0, fusions: 0, questsDone: 0, playMs: 0,
     swiftBoss: false, masterMimicSlain: false, bossIds: {}, elemKills: {} },
   battle: null,
   battleCell: null,   // 戦闘中のモンスターカード
@@ -332,7 +463,7 @@ function buzz(p) {
 // 端末ごとの好み (音量・振動)。セーブデータとは別に保存し、「はじめから」でも消えない
 const PREFS_KEY = "dos-prefs";
 const PREFS = (() => {
-  const d = { bgm: 0.8, sfx: 1, vibrate: true };
+  const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false };
   try { return { ...d, ...(JSON.parse(localStorage.getItem(PREFS_KEY)) || {}) }; } catch { return d; }
 })();
 function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(PREFS)); } catch {} }
@@ -347,7 +478,11 @@ function partyEffMax(key) { let s = 0; if (G.party) for (const m of G.party) { i
 function runGainGold(g) { g = Math.round(g * 0.5 * sfNum("goldMul", 1) * mutNum("goldMul", 1) * (1 + partyEffMax("goldUp"))); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; return g; }
 // 魂導の護符 (LR装飾品) の soulUp があれば ✦Soul の獲得量を割合で増やす。
 function runGainSoulPts(s) { s = Math.round(s * sfNum("soulMul", 1) * mutNum("soulMul", 1) * (1 + partyEffMax("soulUp"))); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; return s; }
-function runGainItem(owner, item) { owner.items.push(item); if (G.run && inDungeon()) G.run.items.push({ owner, item }); }
+function runGainItem(owner, item) {
+  owner.items.push(item);
+  if (G.run && inDungeon()) G.run.items.push({ owner, item });
+  if (item && item.rar === "lr") { if (!G.lrOwned) G.lrOwned = {}; G.lrOwned[item.id] = true; } // LRは1点もの
+}
 // 魂の吸収を記録 (全滅没収で巻き戻すため {doll, clsKey} で覚える)
 // 魂の入手を記録 (全滅没収で巻き戻すため)。kind: "awaken"(共有countへ) | "bag"(未覚醒)
 function runTrackSoul(clsKey, kind) { if (G.run && inDungeon()) G.run.souls.push({ clsKey, kind }); }
@@ -459,6 +594,13 @@ function log(msg, cls = "sys") {
 
 // 現在の迷宮設定
 function curDungeon() { return DUNGEONS[G.dungeonIdx] || DUNGEONS[0]; }
+
+// ===== 公開範囲 (作り込み済みの層だけを遊べるようにする) =====
+// 現在は第1層 (迷宮1-5) を作り込み中。第2層以降は「準備中」として閉じ、刷新が済んだ層から引き上げる。
+// 既存セーブで先へ進んでいる場合も勅命の進行 (G.msq) は書き換えず、表示と潜入だけを止める
+const CONTENT_LIMIT = 5;
+const CONTENT_NEXT_LAYER = Math.floor(CONTENT_LIMIT / 5) + 1; // 準備中の層番号
+const contentSealed = () => !!G.msq && (G.msq.state === "sealed" || G.msq.n > CONTENT_LIMIT);
 
 // 日付シード (日替わりクエスト・商店の無料受領の判定に使う)
 function dailySeed() { const d = new Date(); return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); }
@@ -973,8 +1115,42 @@ function walkerSprite() {
 const hintEl = document.getElementById("hint");
 function setHint(t) { if (hintEl && hintEl.textContent !== t) hintEl.textContent = t; }
 
+// ===== 今回の収穫バー (迷宮内のみ) =====
+// 階の進み (◆) と、この潜入で得たゴールド・Soul・装備 (レア度ごとの色つき個数) を盤面の下に掲げる
+const runbarEl = document.getElementById("runbar");
+let _runbarKey = "";
+function renderRunbar() {
+  if (!runbarEl) return;
+  const show = inDungeon() && G.state !== "over";
+  runbarEl.classList.toggle("hidden", !show);
+  if (!show) return;
+  const run = G.run || { gold: 0, soulPts: 0, items: [] };
+  const cnt = { c: 0, uc: 0, r: 0, sr: 0, lr: 0 };
+  for (const x of run.items || []) { const k = rarityKey(x.item); if (k) cnt[k]++; }
+  const floors = abyssActive() ? 0 : (activeCfg().floors || 1);
+  const key = `${G.floor}/${floors}|${run.gold}|${run.soulPts}|${Object.values(cnt).join(",")}`;
+  if (key === _runbarKey) return;
+  _runbarKey = key;
+  runbarEl.innerHTML = "";
+  const fl = el("div", "rb-floor");
+  if (floors && floors < 30) {
+    for (let i = 1; i <= floors; i++) fl.appendChild(el("span", "rb-pip" + (i < G.floor ? " done" : i === G.floor ? " now" : ""), "◆"));
+  } else fl.appendChild(el("span", "rb-pip now", `B${G.floor}F`));
+  runbarEl.appendChild(fl);
+  const loot = el("div", "rb-loot");
+  loot.appendChild(el("span", "rb-gold", `💰${run.gold || 0}`));
+  loot.appendChild(el("span", "rb-soul", `✦${run.soulPts || 0}`));
+  for (const k of ["c", "uc", "r", "sr", "lr"]) {
+    const sp = el("span", "rb-rar rar-" + k + (cnt[k] ? "" : " zero"), `◆${cnt[k]}`);
+    sp.title = RARITIES[k].label;
+    loot.appendChild(sp);
+  }
+  runbarEl.appendChild(loot);
+}
+
 function renderBoard() {
   setHint("スワイプで移動 ・ タップで移動先指定 ・ 青枠はめくれるカード");
+  renderRunbar();
   updateDescendBtn();
   updateReturnBtn();
   drawFloor();
@@ -3737,7 +3913,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   if (roll < 0.80) { giveGold(); return; }
 
   // 20%: 傍らに遺された装備品 (渡せなければ金品にフォールバック)
-  const id = pickItemByR(dropCenterR());
+  const id = pickLoot();
   const who = G.party.find((p) => p.alive && p.items.length < MAX_ITEMS)
     || G.party.find((p) => p.items.length < MAX_ITEMS);
   if (who && ITEMS[id]) {
@@ -4240,33 +4416,6 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false) {
   const lootUp = (lvBonus || 0) + ((cell && cell.lootBonus) || 0);
   const legendary = !!(cell && cell.lootBonus);
   const rankMul = 1 + ((cRank || 1) - 1) * 0.3;
-  // ===== 専用装備 統一ジャックポット抽選 (flat 2%・通常の中身より先に判定) =====
-  // LR (レジェンドレア) と職業専用装備(x_) を同じ 2% 機構で抽選する
-  const exId = pickExclusive(Math.min(200, lootLvAt() + lootUp));
-  if (exId && ITEMS[exId]) {
-    const it = cloneItem(exId);
-    const fj = it.forJob;
-    // LR は未鑑定で手に入り、味方スキルでは鑑定できない (商店で同帯の約20倍の鑑定料が要る)
-    if (it.lr) it.unidentified = true;
-    // 専用武器は forJob 一致者を優先して渡す
-    const who = (fj && G.party.find((m) => m.alive && m.clsKey === fj && m.items.length < MAX_ITEMS))
-              || (fj && G.party.find((m) => m.clsKey === fj && m.items.length < MAX_ITEMS))
-              || G.party.find((m) => m.alive && m.items.length < MAX_ITEMS)
-              || G.party.find((m) => m.items.length < MAX_ITEMS);
-    if (who) {
-      runGainItem(who, it); codexSeeItem(exId);
-      if (it.lr) { if (!G.lrOwned) G.lrOwned = {}; G.lrOwned[exId] = true; } // 1点もの: 以後ドロップしない
-      flashScreen(it.lr ? "#ff5fae" : (SOUL_CLASSES[it.forJob] ? SOUL_CLASSES[it.forJob].glow : "#ffcf4a"));
-      SFX.victory(); buzz([0, 60, 50, 60, 50, 60, 240]);
-      const mark = it.lr ? "★" : "✦";
-      const nm = itemName(it); // 未鑑定なら伏せ名 (LRは正体を鑑定まで伏せる)
-      const label = it.lr ? `LR${it.lr} 専用装備(未鑑定)` : "職業専用装備";
-      log(`${mark} ${label}「${nm}」を発見！ (${who.name})`, "win");
-      setTimeout(() => showToast(`${mark} ${nm}`), 200);
-      showItemGet(it, who, done);
-      return;
-    }
-  }
   // 中身の抽選 (ダンジョンレベルに応じる): ゴールド50% / ゴールド以外のアイテム50%
   // 伝説の宝箱・ミミック宝箱はゴールドにならず、必ず装備品が出る
   if (!legendary && !noGold && Math.random() < 0.5) {
@@ -4282,7 +4431,7 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false) {
     return;
   }
   // 宝: 装備/アイテム (迷宮のアイテムレベル帯から抽選。高ランクの宝箱は一段上の帯)
-  const got = giveItem(pickItemByR(dropCenterR({ chestRank: cRank, lvBonus: lootUp })));
+  const got = giveItem(pickLoot({ chestRank: cRank, lvBonus: lootUp }));
   if (got) {
     if (legendary) { flashScreen("#ffcf4a"); SFX.victory(); log(`✦ 伝説の宝箱から ${got.item.name} を見つけた！`, "win"); }
     showItemGet(got.item, got.who, done); return; // 演出後に done
@@ -4296,7 +4445,7 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false) {
 function askCursedChest(done) {
   const openIt = () => {
     const giveLoot = () => {
-      const got = giveItem(pickItemByR(dropCenterR({ rare: true })));
+      const got = giveItem(pickLoot({ rare: true }));
       if (got) { showItemGet(got.item, got.who, done); return; }
       SFX.chest();
       done();
@@ -4355,15 +4504,14 @@ function giveDropsFromChest(drops, i, done) {
   const next = () => giveDropsFromChest(drops, i + 1, done);
   const who = G.party.find((p) => p.alive && p.items.length < MAX_ITEMS)
     || G.party.find((p) => p.items.length < MAX_ITEMS);
-  if (!who) { log(`${d.item.name}を見つけたが、誰も持てない…`, "sys"); next(); return; }
+  if (!who) { log(`${itemName(d.item)}を見つけたが、誰も持てない…`, "sys"); refundLR(d.item); next(); return; }
   const ce = codexMonEntry(d.key);
   if (d.rare) ce.rare = true; else ce.normal = true;
   codexSeeItem(d.id);
   markDungeonLoot(d.item);
   runGainItem(who, d.item);
   SFX.chest();
-  log(`宝箱から ${d.name}の落とした ${itemName(d.item)} を手に入れた！`, d.rare ? "win" : "sys");
-  if (d.rare) setTimeout(() => showToast(`🌟レアドロップ ${itemName(d.item)}`), 500);
+  log(`宝箱から ${d.name}の落とした ${itemName(d.item)} を手に入れた！`, logClassForItem(d.item, d.rare ? "win" : "sys"));
   showItemGet(d.item, who, next);
 }
 
@@ -4553,6 +4701,7 @@ function playOpeningStrikes(list, i, done) {
 
 // 全体描画 (キャンバス + パーティ + メニュー)
 function renderCombat() {
+  renderRunbar();
   renderCombatCanvas();
   renderParty();
   renderCombatMenu();
@@ -4563,8 +4712,10 @@ function renderCombatCanvas() {
   const b = G.battle;
   const fx = G.fx;
   const now = performance.now();
-  // 背景: 層ごとの戦場 (墓地・水路・廃坑…)。ボス/強敵戦は禍々しい光を重ねる
-  drawBattleBackdrop(vctx, view.width, view.height, battleLayer(), now, {
+  // 背景: 層ごとの戦場 (墓地・水路・廃坑…)。ボス/強敵戦は禍々しい光を重ねる。
+  // 設定「戦闘の背景: 漆黒」では原作風に、黒地に白枠の窓で魔物だけを見せる
+  if (PREFS.classicBattle) drawClassicWindow(vctx, view.width, view.height);
+  else drawBattleBackdrop(vctx, view.width, view.height, battleLayer(), now, {
     boss: b.enemies.some((e) => e.boss),
     elite: b.enemies.some((e) => e.mon && e.mon.elite),
   });
@@ -4622,7 +4773,7 @@ function renderCombatCanvas() {
         vctx.ellipse(baseX, baseY + size * 5.4, size * 3.4 * (0.4 + 0.6 * ease), size * 1.1, 0, 0, Math.PI * 2);
         vctx.fill();
         vctx.restore();
-        drawSpriteFit(vctx, e.mon, baseX, baseY - (1 - ease) * 34, size, alpha * p);
+        drawMonster(vctx, e.mon, baseX, baseY - (1 - ease) * 34, size, alpha * p);
         return;
       }
     }
@@ -4656,7 +4807,7 @@ function renderCombatCanvas() {
     vctx.ellipse(baseX + ox, baseY + size * 5.4, size * 3.4, size * 1.1, 0, 0, Math.PI * 2);
     vctx.fill();
     vctx.restore();
-    drawSpriteFit(vctx, e.mon, baseX + ox, baseY + oy, size, alpha);
+    drawMonster(vctx, e.mon, baseX + ox, baseY + oy, size, alpha);
     // 被弾時の白フラッシュ
     if (hf && now - hf.t0 < 200) {
       vctx.save();
@@ -4672,34 +4823,41 @@ function renderCombatCanvas() {
       ? `【${(ELEMENTS[e.element] || {}).label || ""}】` : "";
     const ailTag = e.alive && e.ailment ? " " + (AIL_ICON[e.ailment] || "☠") : "";
     const label = e.name + scanTag + ailTag + (e.asleep ? " 💤" : "") + (e._flinch ? " 💫" : "");
-    vctx.font = "10px monospace";
+    vctx.font = `bold 11px ${CANVAS_SERIF}`;
     vctx.textAlign = "center";
     const tw = vctx.measureText(label).width;
-    vctx.fillStyle = "rgba(8,8,14,0.75)";
-    vctx.strokeStyle = e.alive ? "rgba(160,140,180,0.4)" : "rgba(90,90,102,0.3)";
+    // 名札: 黒鉄の札に金の細い縁 (ボスは紅の縁)
+    const px = baseX - tw / 2 - 9, py2 = baseY + (row.back ? -76 : 70), pw = tw + 18, ph = 15;
+    vctx.fillStyle = "rgba(10,7,10,0.86)";
+    vctx.fillRect(px, py2, pw, ph);
+    vctx.strokeStyle = !e.alive ? "rgba(90,80,70,0.35)" : e.boss ? "rgba(220,70,60,0.85)" : "rgba(201,162,74,0.7)";
     vctx.lineWidth = 1;
-    // 後衛のプレート/HPバーは頭上に出す (足元は前衛に隠れるため)
-    const px = baseX - tw / 2 - 7, py2 = baseY + (row.back ? -76 : 70), pw = tw + 14, ph = 14;
-    vctx.beginPath();
-    vctx.roundRect ? vctx.roundRect(px, py2, pw, ph, 7) : vctx.rect(px, py2, pw, ph);
-    vctx.fill();
-    vctx.stroke();
-    vctx.fillStyle = e.alive ? "#e7e3d4" : "#5a5a66";
-    vctx.fillText(label, baseX, py2 + 10);
-    // HPバー (グラデーション + 枠)
-    const bw = 56, bh = 6, bx = baseX - bw / 2, by = baseY + (row.back ? -58 : 88);
-    vctx.fillStyle = "#1b1b26";
-    vctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
+    vctx.strokeRect(px + 0.5, py2 + 0.5, pw - 1, ph - 1);
+    vctx.fillStyle = vctx.strokeStyle;
+    vctx.fillRect(px - 2, py2 + ph / 2 - 1, 2, 2);       // 左右の小さな菱飾り
+    vctx.fillRect(px + pw, py2 + ph / 2 - 1, 2, 2);
+    vctx.fillStyle = e.alive ? "#ece2cc" : "#5a5450";
+    vctx.fillText(label, baseX, py2 + 11);
+    // HPバー: 細身の血の管 (枠 + 艶)
+    const bw = 60, bh = 5, bx = baseX - bw / 2, by = baseY + (row.back ? -58 : 89);
+    vctx.fillStyle = "#050305";
+    vctx.fillRect(bx - 2, by - 2, bw + 4, bh + 4);
+    vctx.fillStyle = "rgba(201,162,74,0.45)";
+    vctx.fillRect(bx - 2, by - 2, bw + 4, 1);
+    vctx.fillRect(bx - 2, by + bh + 1, bw + 4, 1);
+    vctx.fillStyle = "#1a0f12";
+    vctx.fillRect(bx, by, bw, bh);
     const ratio = Math.max(0, e.hp / e.maxhp);
     const hg = vctx.createLinearGradient(bx, by, bx, by + bh);
     if (e.alive) {
-      hg.addColorStop(0, ratio > 0.5 ? "#ff7a72" : "#ffb14a");
-      hg.addColorStop(1, ratio > 0.5 ? "#c23a34" : "#c97a18");
+      hg.addColorStop(0, ratio > 0.5 ? "#f06a58" : "#ffb14a");
+      hg.addColorStop(0.5, ratio > 0.5 ? "#b8261d" : "#c97a18");
+      hg.addColorStop(1, ratio > 0.5 ? "#6e130f" : "#7a4a10");
     } else { hg.addColorStop(0, "#333"); hg.addColorStop(1, "#222"); }
     vctx.fillStyle = hg;
-    vctx.fillRect(bx, by, bw * ratio, bh);
-    vctx.strokeStyle = "rgba(0,0,0,0.6)";
-    vctx.strokeRect(bx - 0.5, by - 0.5, bw + 1, bh + 1);
+    vctx.fillRect(bx, by, Math.round(bw * ratio), bh);
+    vctx.fillStyle = "rgba(255,220,200,0.25)";
+    vctx.fillRect(bx, by, Math.round(bw * ratio), 1);
     // バフ/デバフ表示 (味方カードの buffBadges に相当): 前衛はHPバーの下、後衛はプレートの上
     drawEnemyBadges(e, baseX, row.back ? py2 - 16 : by + bh + 4);
   });
@@ -4738,9 +4896,9 @@ function drawBattleIntro(intro, now) {
   vctx.fillRect(W * 0.12, by + bh - 1, W * 0.76, 1);
   vctx.textAlign = "center";
   vctx.fillStyle = "#d4504e";
-  vctx.font = "bold 10px monospace";
+  vctx.font = `bold 10px ${CANVAS_SERIF}`;
   vctx.fillText("— 迷宮の主 —", W / 2 - slide, by + 14);
-  vctx.font = "bold 20px monospace";
+  vctx.font = `800 20px ${CANVAS_SERIF}`;
   vctx.lineWidth = 4;
   vctx.strokeStyle = "#000";
   vctx.strokeText(intro.boss, W / 2 + slide, by + 37);
@@ -4770,6 +4928,68 @@ function playBattleIntro(done) {
     } else requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
+}
+
+// ===== 魔物の描画 (ビットマップ化 + 黒い縁) =====
+// 高精細の魔物絵 (64ドット級) を毎フレーム1ドットずつ描くと重いので、1ドット=1pxの画像に一度だけ焼き、
+// 以後は拡大転写する。焼く時に「黒い縁 (ハロー)」を1ドット巡らせ、色の濃い戦闘背景からも輪郭が浮くようにする
+// (ファミコン版風の縁取りなしの絵は、本来の黒地と同じ見え方になる)
+const _monBmp = new WeakMap();
+function monsterBitmap(mon) {
+  let b = _monBmp.get(mon);
+  if (b) return b;
+  const rows = mon.art || [];
+  const h = rows.length, w = rows.reduce((m, r) => Math.max(m, r.length), 0);
+  const pad = 1;
+  const c = document.createElement("canvas");
+  c.width = w + pad * 2; c.height = h + pad * 2;
+  const g = c.getContext("2d");
+  const col = (x, y) => { const ch = rows[y] && rows[y][x]; return ch && ch !== "." && ch !== " " ? mon.palette[ch] : null; };
+  g.fillStyle = "rgba(0,0,0,0.88)";
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (!col(x, y)) continue;
+    g.fillRect(x + pad - 1, y + pad, 3, 1);
+    g.fillRect(x + pad, y + pad - 1, 1, 3);
+  }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const cc = col(x, y);
+    if (!cc) continue;
+    g.fillStyle = cc;
+    g.fillRect(x + pad, y + pad, 1, 1);
+  }
+  b = { c, w, h, pad };
+  _monBmp.set(mon, b);
+  return b;
+}
+// drawSpriteFit と同じ見かけの大きさ (12グリッド換算の size) で魔物を描く
+function drawMonster(ctx, mon, cx, cy, size, alpha = 1) {
+  if (!mon || !mon.art) return;
+  const b = monsterBitmap(mon);
+  const dot = size / (Math.max(12, b.w, b.h) / 12);
+  const W = (b.w + b.pad * 2) * dot, H = (b.h + b.pad * 2) * dot;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(b.c, Math.round(cx - W / 2), Math.round(cy - H / 2), Math.round(W), Math.round(H));
+  ctx.restore();
+}
+
+// 原作風の戦闘窓: 漆黒の地に、角を丸めた白い二重枠
+function drawClassicWindow(ctx, w, h) {
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, w, h);
+  ctx.save();
+  ctx.strokeStyle = "#e8e8e8";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(8, 8, w - 16, h - 16, 10); else ctx.rect(8, 8, w - 16, h - 16);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(232,232,232,0.35)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(14, 14, w - 28, h - 28, 6); else ctx.rect(14, 14, w - 28, h - 28);
+  ctx.stroke();
+  ctx.restore();
 }
 
 // 戦闘背景に使う層 (1-20)。奈落は素体迷宮の層を引き継ぐ (盤面のテーマと揃える)
@@ -4906,7 +5126,7 @@ function drawEffects(fx, now) {
     // 出た瞬間に大きく弾んで落ち着く (会心はさらに大きく)
     const pop = t < 0.12 ? 1 + (f.big ? 0.9 : 0.45) * (1 - t / 0.12) : 1;
     const px = Math.round((f.big ? 24 : f.small ? 12 : 18) * pop);
-    vctx.font = `bold ${px}px monospace`;
+    vctx.font = `800 ${px}px ${CANVAS_SERIF}`;
     const yy = f.y - Math.sin(Math.min(1, t * 1.6) * Math.PI / 2) * 26;
     vctx.strokeText(f.text, f.x, yy);
     vctx.fillText(f.text, f.x, yy);
@@ -5410,13 +5630,13 @@ function endBattle() {
     // 強敵討伐ボーナス: 高ランクアイテムの確定ドロップ
     const wasElite = b.enemies.some((e) => !e.alive && e.mon && e.mon.elite);
     if (wasElite) {
-      const eid = pickItemByR(dropCenterR({ elite: true })); // 適正帯より2ランク上のアイテム
+      const eid = pickLoot({ elite: true }); // 適正帯より2ランク上のアイテム
       if (ITEMS[eid]) drop = { key: "elite", name: "強敵", id: eid, item: cloneItem(eid), rare: true };
     }
     // 奈落の門番: boss フラグを持つが踏破=帰還ではない。撃破で適正帯より上等な戦利品を残す
     const wasGuard = abyssActive() && !corpse && b.enemies.some((e) => e.boss);
     if (wasGuard) {
-      const gid = pickItemByR(dropCenterR({ elite: true }));
+      const gid = pickLoot({ elite: true });
       if (ITEMS[gid]) drop = { key: "guard", name: "門番", id: gid, item: cloneItem(gid), rare: true };
     }
     // soulClass を持つ敵 (人型・騎士など) はまれに魂を落とす (レアドロップ)
@@ -5872,6 +6092,7 @@ function townHeader(title, backTo = "hub") {
 }
 
 function renderTown() {
+  renderRunbar(); // 街では隠す
   autosave(); // 街での操作のたびに保存 (描画はアクション後に呼ばれる)
   townEl.classList.remove("hidden");
   townEl.innerHTML = "";
@@ -5969,12 +6190,15 @@ function renderTownHub() {
     // 勅命の対象迷宮 (攻略中の章のみ ❗ を付ける)
     const targetIdx = G.msq && G.msq.state === "active" && G.msq.n >= 1 ? G.msq.n - 1 : -1;
     const PER_LAYER = 5; // 1層 = 5迷宮
+    // 公開範囲 (CONTENT_LIMIT) より先は準備中: 既存セーブで解放済みでも一覧には出さない
+    const openDungeons = Math.min(G.unlockedDungeons, CONTENT_LIMIT);
+    if (G.dungeonIdx >= openDungeons) G.dungeonIdx = openDungeons - 1;
     const openBand = (townBandOpen != null) ? townBandOpen : Math.floor(G.dungeonIdx / PER_LAYER);
-    const maxBand = Math.floor((G.unlockedDungeons - 1) / PER_LAYER); // 解放済み迷宮が属する最後の層
+    const maxBand = Math.floor((openDungeons - 1) / PER_LAYER); // 解放済み迷宮が属する最後の層
     for (let b = 0; b <= maxBand; b++) {
       const s = b * PER_LAYER, e = Math.min(DUNGEONS.length, s + PER_LAYER);
       // 出現済み (解放済み) の迷宮のみ表示する。未出現の迷宮は一切見せない (先を伏せる)
-      const appeared = Math.max(0, Math.min(G.unlockedDungeons - s, e - s));
+      const appeared = Math.max(0, Math.min(openDungeons - s, e - s));
       if (appeared <= 0) continue;
       const det = el("details", "tw-band");
       if (b === openBand) det.open = true;
@@ -6006,6 +6230,13 @@ function renderTownHub() {
       }
       det.appendChild(dlist);
       townEl.appendChild(det);
+    }
+    // 公開範囲の最後まで来たら、次の層を「準備中」として見せる (封印された大門)
+    if (G.unlockedDungeons >= CONTENT_LIMIT && CONTENT_LIMIT < DUNGEONS.length) {
+      const nl = LAYER_VISUALS[CONTENT_NEXT_LAYER - 1];
+      const sealed = el("div", "tw-band tw-band-sealed");
+      sealed.appendChild(el("div", "tw-bandh", `🔒 第${CONTENT_NEXT_LAYER}層 — ${nl ? nl.name : ""} ・ 封印 (準備中)`));
+      townEl.appendChild(sealed);
     }
   }
 
@@ -7703,6 +7934,13 @@ function reportMainQuest() {
 // 次章の勅命を拝命: 新たな迷宮が地図に現れる
 function acceptMainQuest() {
   const ms = G.msq;
+  // 公開範囲の先は準備中: 勅命は進めず、王が封の解けるのを待てと告げる
+  if (ms.n + 1 > CONTENT_LIMIT) {
+    ms.state = "sealed";
+    autosave(true);
+    showStoryScene(`第${CONTENT_NEXT_LAYER}層 — 封印の向こう`, SEALED_LINES, null, () => { renderTown(); });
+    return;
+  }
   ms.n += 1;
   ms.state = "active";
   G.unlockedDungeons = Math.max(G.unlockedDungeons, ms.n);
@@ -7717,6 +7955,14 @@ function acceptMainQuest() {
     renderTown();
   });
 }
+
+// 公開範囲の先 (準備中) を告げる王の言葉
+const SEALED_LINES = [
+  "「墓域の主を討ち、第一の層を鎮めたか。…見事であった、魂繰りよ。」",
+  "「だが、次なる層へ続く大門の封は、いまだ固く閉ざされておる。宮廷の術師どもが解呪を急いでおるところだ。」",
+  "「封が解けるまで、墓域で人業を鍛え、魂を集め、装備を整えておけ。深淵は、備えのない者から喰らう。」",
+  `── 第${CONTENT_NEXT_LAYER}層以降は現在制作中です。墓域の迷宮には何度でも挑めます。`,
+];
 
 // ---- 第0章「人業の生成」(チュートリアル勅命) ----
 const TUT_INTRO = [
@@ -7773,7 +8019,7 @@ function featureUnlocked(key) {
   if (key === "fusion") return c >= 5;
   if (key === "rumor") return c >= 15;
   if (key === "order") return c >= 20;
-  if (key === "infinite") return c >= 50;
+  if (key === "infinite") return c >= 50 && CONTENT_LIMIT >= 50; // 奈落は第10層の公開まで閉じる
   return false;
 }
 // 解放済みのサブ魂 (宿し技) スロット数 (0/1/2)。MAX_SUBS が上限。2枠目は D40 で解放
@@ -7841,6 +8087,7 @@ function currentObjective() {
   const ms = G.msq;
   if (!ms || ms.state === "end" || ms.n > 100) return null;
   const goPalace = () => { G.town.facility = "palace"; G.town.sub = null; renderTown(); };
+  if (contentSealed()) return { text: `墓域で人業を鍛え、装備を集める（第${CONTENT_NEXT_LAYER}層は準備中）`, go: () => { requestAnimationFrame(() => { const d = townEl.querySelector(".tw-dive"); if (d) d.scrollIntoView({ block: "nearest", behavior: "smooth" }); }); } };
   if (ms.n === 0 && ms.state === "active") {
     if (!ms.granted) return { text: "王宮で王に謁見する", go: goPalace };
     if (!allDolls().some((d) => !d.isEmpty)) return { text: "人業の館の保管庫で、人業を仕立てる", go: () => { G.town.facility = "mansion"; G.town.sub = "manage"; renderTown(); } };
@@ -7858,6 +8105,7 @@ function palaceCallReady() {
   const ms = G.msq;
   if (!ms) return false;
   if (ms.n === 0 && ms.state === "active") return !ms.granted || allDolls().filter((d) => !d.isEmpty).length >= 1;
+  if (ms.n > CONTENT_LIMIT) return false; // 公開範囲の先の勅命は準備中
   return ms.state === "report" || ms.state === "offer";
 }
 
@@ -7870,6 +8118,15 @@ function renderPalace() {
   const ms = G.msq;
   if (!ms || ms.state === "end" || ms.n > 100) {
     townEl.appendChild(el("div", "tw-note", "「百の迷宮は解き放たれた。…余の葬列には、来ずともよいぞ。」"));
+  } else if (contentSealed()) {
+    const box = el("div", "tw-rumor tw-sealed");
+    box.appendChild(el("div", "tw-rumors", `第${CONTENT_NEXT_LAYER}層 — 封印の向こう (準備中)`));
+    box.appendChild(el("div", "tw-rumort", "次なる層へ続く大門の封は、いまだ固く閉ざされている。"));
+    box.appendChild(el("div", "tw-note", "封が解けるまで、墓域の迷宮で人業を鍛え、装備を集めよう。"));
+    townEl.appendChild(box);
+    const re = btn("👑 王の言葉を聞き直す", () => showStoryScene(`第${CONTENT_NEXT_LAYER}層 — 封印の向こう`, SEALED_LINES, null, null));
+    re.className = "btn tw-add";
+    townEl.appendChild(re);
   } else if (ms.n === 0 && ms.state === "active") {
     // 第0章「人業の生成」
     if (!ms.granted) {
@@ -7967,6 +8224,8 @@ function renderPalace() {
   recRow("回収した魂", s.soulsFound);
   recRow("砕けた人業", s.deaths);
   recRow("踏破した迷宮", clearedDungeonCount());
+  const pm = Math.floor((s.playMs || 0) / 60000);
+  recRow("総プレイ時間", `${Math.floor(pm / 60)}時間${String(pm % 60).padStart(2, "0")}分`);
   townEl.appendChild(rec);
   const sh = btn("📣 戦績をシェア", () => {
     SFX.select();
@@ -8159,7 +8418,7 @@ function renderTreasury() {
     for (const h of newKinds) {
       const card = el("div", "tw-fac");
       const art = el("div", "tw-faci"); art.appendChild(spriteCanvas(h.item, 4)); card.appendChild(art);
-      card.appendChild(el("div", "tw-facn", itemName(h.item)));
+      card.appendChild(itemNameEl("div", "tw-facn", h.item));
       card.appendChild(el("div", "tw-facd", `R${collectibleRank(h.item)}・所持: ${h.doll.name}`));
       card.addEventListener("click", () => { donateCollectible(h.doll, h.item); SFX.itemget(); autosave(); renderTreasury(); });
       wrap.appendChild(card);
@@ -8292,11 +8551,11 @@ function rollGenericDrop() {
   const ap = apLv >= 3 ? 1.40 : apLv >= 2 ? 1.25 : apLv >= 1 ? 1.15 : 1;
   // 特別階 (盗賊の洞察): レアドロップ率が上がる
   if (Math.random() < Math.max(sfNum("rareDropRate", 0.04 * ap), mutNum("rareDropRate", 0))) {
-    const id = pickItemByR(dropCenterR({ rare: true }));
+    const id = pickLoot({ rare: true });
     if (ITEMS[id]) { const it = cloneItem(id); if (it) return { key: "loot", name: "戦利品", id, item: it, rare: true }; }
   }
   if (Math.random() < 0.30 * ap) {
-    const id = pickItemByR(dropCenterR());
+    const id = pickLoot();
     if (ITEMS[id]) { const it = cloneItem(id); if (it) return { key: "loot", name: "戦利品", id, item: it, rare: false }; }
   }
   return null;
@@ -8362,10 +8621,10 @@ function renderCodexItem() {
   for (const id of ids) {
     const it = ITEMS[id];
     const r = el("div", "tw-shoprow");
-    if (it.rank || it.lr) r.style.borderColor = itemRankColor(it);
+    if (itemRankColor(it)) r.style.borderColor = itemRankColor(it);
     const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
     const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", it.name));
+    info.appendChild(itemNameEl("div", "tw-chipn", it));
     info.appendChild(el("div", "tw-chipc", it.desc || ""));
     r.appendChild(info);
     r.style.cursor = "pointer";
@@ -8384,11 +8643,11 @@ function showCodexItemDetail(id) {
   const card = el("div", "ig-card cdx-detail");
   const rc = itemRankColor(it);
   if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
-  const ban = el("div", "ig-banner", it.lr ? `LR${it.lr} 専用装備` : (it.rank ? `${ITEM_RANK_NAME[it.rank]}級アイテム` : "アイテム"));
+  const ban = el("div", "ig-banner", itemGradeText(it, "アイテム"));
   if (rc) ban.style.color = rc;
   card.appendChild(ban);
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 11)); card.appendChild(art);
-  card.appendChild(el("div", "ig-name", it.name));
+  card.appendChild(itemNameEl("div", "ig-name", it));
   card.appendChild(el("div", "cdx-elem", itemCatText(it)));
   const st = statLines(it);
   if (st) card.appendChild(el("div", "ig-stat", st));
@@ -8883,8 +9142,14 @@ const sellPrice = (it) => Math.max(1, Math.floor((it.price || 10) / 2));
 // 控えの結社 値切り (bargain): 店の買値・鑑定費を -8/15/25% 割引
 function bargainMul() { const lv = partyPassiveLv("bargain"); return lv >= 3 ? 0.75 : lv >= 2 ? 0.85 : lv >= 1 ? 0.92 : 1; }
 const buyPrice = (it) => Math.max(1, Math.round((it && it.price || 30) * bargainMul()));
-// 鑑定料: 通常は売値と同額。LR(専用装備)は同ランク帯の約20倍で、商店でのみ鑑定できる。値切りで割引
-const appraiseCost = (it) => Math.max(1, Math.round((it && it.lr ? sellPrice(it) * 20 : sellPrice(it)) * bargainMul()));
+// 鑑定料: 売値 × レア度の倍率 (コモン0.5 / アンコモン0.75 / レア1 / スーパーレア1.5 / レジェンドレア4)。
+// 深層の職業専用LR (tier5以上) は従来どおり約20倍。LRは商店でのみ鑑定できる。値切りで割引
+const APPRAISE_MUL = { c: 0.5, uc: 0.75, r: 1, sr: 1.5, lr: 4 };
+const appraiseCost = (it) => {
+  if (!it) return 1;
+  const mul = it.lr >= 5 ? 20 : (APPRAISE_MUL[rarityKey(it)] || 1);
+  return Math.max(1, Math.round(sellPrice(it) * mul * bargainMul()));
+};
 
 // 商店: 上=在庫 (内部スクロール) / 下=取引相手の選択と所持品。
 // ページ全体は縦スクロールさせず、在庫リストだけが内部でスクロールする。
@@ -8941,7 +9206,7 @@ function renderShop() {
     // 選択中キャラが装備できる品は色を変えて目立たせる
     const canEq = isEquippable(it) && who && who.alive && canEquip(who, it);
     const r = el("div", "tw-shoprow" + (canEq ? " equip-ok" : ""));
-    if (it.rank || it.lr) r.style.borderColor = itemRankColor(it);
+    if (itemRankColor(it)) r.style.borderColor = itemRankColor(it);
     const ic = el("span", "tw-chips"); ic.appendChild(spriteCanvas(it, 2)); r.appendChild(ic);
     const info = el("div", "tw-chipi");
     const nm = el("div", "tw-chipn", `${it.name} 在庫 : ${count}`);
@@ -8998,7 +9263,8 @@ function renderShop() {
     dock.appendChild(bag);
     // 一括鑑定 (左) ・ 一括売却 (右) を横並びで配置
     const unid = who.items.filter((it) => it.unidentified);
-    const sellable = who.items.filter((it) => !it.cursed && !it.unidentified);
+    // 一括売却の対象から、スーパーレア・レジェンドレアと未奉納の蒐集品は外す (誤って手放さないように)
+    const sellable = who.items.filter((it) => !it.cursed && !it.unidentified && !sellWarnings(it).length);
     if (unid.length > 0 || sellable.length > 0) {
       const actions = el("div", "shop-actions");
       actions.style.display = "flex";
@@ -9025,7 +9291,8 @@ function renderShop() {
           showConfirm({
             title: "持ち物をまとめて売却しますか？",
             lines: [`${who.name}の売却可能な ${sellable.length}点 をすべて売ります。`,
-              `合計 💰${total} を獲得します。`],
+              `合計 💰${total} を獲得します。`,
+              "※ スーパーレア・レジェンドレアと未奉納の蒐集品は含みません（売るなら個別に）。"],
             okLabel: "売却する",
             onOk: () => { for (const it of sellable) sellItem(who, it, sellPrice(it)); },
           });
@@ -9051,7 +9318,7 @@ function showShopItemDetail(id, price) {
   const card = el("div", "ig-card cdx-detail");
   const rc = itemRankColor(it);
   if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
-  const ban = el("div", "ig-banner", it.lr ? `LR${it.lr} 専用装備` : (it.rank ? `${ITEM_RANK_NAME[it.rank]}級アイテム` : "アイテム"));
+  const ban = el("div", "ig-banner", itemGradeText(it, "アイテム"));
   if (rc) ban.style.color = rc;
   card.appendChild(ban);
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 11)); card.appendChild(art);
@@ -9086,7 +9353,7 @@ function showAppraisePrompt(owner, it) {
   card.style.boxShadow = "0 0 40px #7fd0ff55";
   card.appendChild(el("div", "ig-banner", "🔍 未鑑定の品"));
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 9)); card.appendChild(art);
-  card.appendChild(el("div", "ig-name", itemName(it)));
+  card.appendChild(itemNameEl("div", "ig-name", it));
   for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
   const warn = el("div", "ig-stat", "⚠ 未鑑定のアイテムです。正体不明のまま売ると 💰0 で引き取られ、商店にも並びません。先に鑑定するのがおすすめです。");
   warn.style.color = "#ff8fc4";
@@ -9144,8 +9411,10 @@ function sellWarnings(it) {
   if (it.slot === "misc" && it.id && !treasuryState().donated[it.id]) {
     out.push("⚠ まだ宝物庫に奉納していない蒐集品です。売ると奉納できなくなり、図鑑の褒賞を取り逃します。");
   }
-  if (it.lr) {
-    out.push("⚠ LR(レジェンドレア)専用装備です。二度と手に入らないかもしれません。本当に売りますか？");
+  if (rarityKey(it) === "lr") {
+    out.push("⚠ レジェンドレアです。二度と手に入らない1点ものです。本当に売りますか？");
+  } else if (rarityKey(it) === "sr") {
+    out.push("⚠ スーパーレアです。めったに手に入らない逸品です。本当に売りますか？");
   }
   return out;
 }
@@ -9160,7 +9429,7 @@ function showSellPrompt(owner, it) {
   card.style.boxShadow = `0 0 40px ${warns.length ? "#ff5fae55" : "#c9a22755"}`;
   card.appendChild(el("div", "ig-banner", warns.length ? "⚠ 売却の確認" : "🛒 売却の確認"));
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 9)); card.appendChild(art);
-  card.appendChild(el("div", "ig-name", itemName(it) + (it.cursed ? " 🔒" : "")));
+  card.appendChild(itemNameEl("div", "ig-name", it, it.cursed ? " 🔒" : ""));
   // 性能・説明
   for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
   if (it.desc) card.appendChild(el("div", "ig-desc", it.desc));
@@ -9220,6 +9489,7 @@ function buyItem(id, price) {
 // ---- 街 ⇄ 迷宮 の出入り ----
 function tryEnterDungeon() {
   if (G.unlockedDungeons < 1) { log("王の勅命を受けるまで、迷宮には入れない。", "sys"); return; }
+  if (G.dungeonIdx >= CONTENT_LIMIT) { G.dungeonIdx = Math.min(CONTENT_LIMIT, G.unlockedDungeons) - 1; renderTown(); showToast("🔒 その先は準備中だ"); return; }
   if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); return; }
   // チュートリアル後、初めて迷宮へ潜る際は警備兵が注意事項を説明する (1回のみ)
   if (!G.dungeonBriefed) {
@@ -9726,7 +9996,7 @@ function renderStatus() {
     const row = el("div", "st-eqrow" + (it ? "" : " empty"));
     const si = el("span", "st-sicon"); si.appendChild(spriteCanvas(SLOT_ICONS[slot] || SLOT_ICONS.weapon, 2)); row.appendChild(si);
     const ii = el("span", "st-iicon"); if (it) ii.appendChild(spriteCanvas(it, 2)); row.appendChild(ii);
-    row.appendChild(el("span", "st-ename", it ? itemName(it) + (it.cursed ? " 🔒" : "") : SLOT_LABEL[slot]));
+    row.appendChild(it ? itemNameEl("span", "st-ename", it, it.cursed ? " 🔒" : "") : el("span", "st-ename", SLOT_LABEL[slot]));
     row.addEventListener("click", () => openEquipChooser(p, slot));
     eqList.appendChild(row);
   }
@@ -9772,7 +10042,7 @@ function invRow(p, it, sel) {
   const row = el("div", "st-invrow");
   const ic = el("span", "st-iicon"); ic.appendChild(spriteCanvas(it, 2)); row.appendChild(ic);
   const unidMark = it.unidentified ? (it.idHardFail ? " 🔍✕" : " 🔍") : (it.cursed ? " 🔒" : "");
-  row.appendChild(el("span", "st-iname" + (it.unidentified ? (it.idHardFail ? " st-unid st-idfail" : " st-unid") : ""), itemName(it) + unidMark));
+  row.appendChild(itemNameEl("span", "st-iname" + (it.unidentified ? (it.idHardFail ? " st-unid st-idfail" : " st-unid") : ""), it, unidMark));
   row.addEventListener("click", () => { SFX.select(); showItemDetailPopup(p, { item: it, from: "bag", index: sel.index }); });
   return row;
 }
@@ -10228,11 +10498,11 @@ function showItemDetailPopup(p, sel) {
   const card = el("div", "ig-card cdx-detail");
   const rc = itemRankColor(it);
   if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
-  const ban = el("div", "ig-banner", it.lr ? `LR${it.lr} 専用装備` : (it.rank ? `${ITEM_RANK_NAME[it.rank]}級アイテム` : "情報"));
+  const ban = el("div", "ig-banner", itemGradeText(it, "情報"));
   if (rc) ban.style.color = rc;
   card.appendChild(ban);
   const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 11)); card.appendChild(art);
-  card.appendChild(el("div", "ig-name", itemName(it) + (it.unidentified ? (it.idHardFail ? " 🔍✕" : " 🔍") : (it.cursed ? " 🔒呪" : ""))));
+  card.appendChild(itemNameEl("div", "ig-name", it, it.unidentified ? (it.idHardFail ? " 🔍✕" : " 🔍") : (it.cursed ? " 🔒呪" : "")));
   for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
   if (isEquippable(it) && !it.unidentified && G.party.length > 1) card.appendChild(equipPartyChips(it));
   if (it.desc && !it.unidentified) card.appendChild(el("div", "ig-desc", it.desc));
@@ -10269,9 +10539,9 @@ function showItemDetailPopup(p, sel) {
 // 未鑑定品の詳細ポップアップに「鑑定する」アクションを足す。
 // 鑑定済みの心得がある仲間がいればその場で試せる。失敗済み (idHardFail) は商店送り。
 function addIdentifyAction(acts, it, close) {
-  // LR (専用装備) は味方スキルでは鑑定できない。商店でのみ (同帯の約20倍の鑑定料)
+  // レジェンドレアは味方スキルでは鑑定できない。商店でのみ
   if (it.lr) {
-    const b = btn("🔒 LR専用装備は商店でのみ鑑定可", () => {});
+    const b = btn("🔒 レジェンドレアは商店でのみ鑑定可", () => {});
     b.disabled = true;
     acts.appendChild(b);
     return;
@@ -10598,29 +10868,43 @@ function giveItem(id) {
   if (!it) return null;
   markDungeonLoot(it);
   const who = G.party.find((m) => m.items.length < MAX_ITEMS);
-  if (!who) { log(`${itemName(it)}を見つけたが、誰も持てない…`, "sys"); return null; }
+  if (!who) { log(`${itemName(it)}を見つけたが、誰も持てない…`, "sys"); refundLR(it); return null; }
   runGainItem(who, it);
   codexSeeItem(id);
-  log(`${itemName(it)} を手に入れた！ (${who.name})`, "win");
+  log(`${itemName(it)} を手に入れた！ (${who.name})`, logClassForItem(it));
   return { item: it, who };
 }
 
 // ---- アイテム入手演出 (イラスト込みの感動的な表示) ----
 const itemGetEl = document.getElementById("item-get");
 
+// レア度ごとの入手演出: 見出し・効果音・振動・画面の閃光
+const RARITY_FANFARE = {
+  c: { banner: "✦ アイテム発見 ✦" },
+  uc: { banner: "✦ アンコモン発見 ✦" },
+  r: { banner: "✦ レアアイテム発見！ ✦", buzz: [0, 40, 50, 40] },
+  sr: { banner: "★ スーパーレア発見！ ★", flash: "#ff9a2e", buzz: [0, 60, 50, 60, 50, 120], big: true },
+  lr: { banner: "★★ レジェンドレア ★★", flash: "#ff3b3b", buzz: [0, 80, 60, 80, 60, 80, 300], big: true, legend: true },
+};
 function showItemGet(item, who, onClose) {
   G.prompt = true; // 入力をブロック
-  SFX.itemget();
-  buzz([0, 30, 60, 30]);
+  const rk = rarityKey(item);
+  const fan = RARITY_FANFARE[rk] || null;
+  if (fan && fan.big) { SFX.victory(); setTimeout(() => SFX.itemget(), 380); } else SFX.itemget();
+  buzz((fan && fan.buzz) || [0, 30, 60, 30]);
+  if (fan && fan.flash) flashScreen(fan.flash);
+  if (fan && fan.legend) { try { shakeScreen(true); } catch {} }
   itemGetEl.onclick = null;
   itemGetEl.innerHTML = "";
-  const card = el("div", "ig-card");
+  const card = el("div", "ig-card" + (rk ? " rar-" + rk : ""));
   const rc = itemRankColor(item);
   if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
   const unid = !!item.unidentified;
-  const ban = el("div", "ig-banner", unid ? "✦ 未鑑定の品を発見！ ✦" : (item.lr ? `★ LR${item.lr} 専用装備発見！ ★` : (item.rank >= 11 ? `★ ${ITEM_RANK_NAME[item.rank]}級アイテム発見！ ★` : "✦ アイテム発見！ ✦")));
-  if (rc && !unid) ban.style.color = rc;
+  const bannerText = fan ? fan.banner : (unid ? "✦ 未鑑定の品を発見！ ✦" : "✦ アイテム発見！ ✦");
+  const ban = el("div", "ig-banner", bannerText);
+  if (rc) ban.style.color = rc;
   card.appendChild(ban);
+  if (fan && fan.legend) card.appendChild(el("div", "ig-beam")); // レジェンドレア: 天から差す光の柱
   const art = el("div", "ig-art");
   art.appendChild(spriteCanvas(item, 11)); // 大きめのイラスト
   // きらめき
@@ -10631,7 +10915,8 @@ function showItemGet(item, who, onClose) {
     art.appendChild(s);
   }
   card.appendChild(art);
-  card.appendChild(el("div", "ig-name", itemName(item)));
+  card.appendChild(itemNameEl("div", "ig-name", item));
+  if (rk) card.appendChild(el("div", "ig-rarity rar-" + rk, RARITIES[rk].label + (unid ? " ・ 未鑑定" : "")));
   const stat = statLines(item);
   if (stat) card.appendChild(el("div", "ig-stat", stat));
   // 装備可否は現在の編成 (人業) 単位で ○/× 表示。1人のみの時は条件バッジにフォールバック
@@ -11067,6 +11352,11 @@ function renderSettings() {
   vib.className = "tw-small set-toggle" + (PREFS.vibrate ? " on" : "");
   settingsEl.appendChild(settingRow("振動", "被弾・宝箱などで端末を震わせる (対応端末のみ)", vib));
 
+  // 戦闘の背景: 層ごとの情景 / 原作風の漆黒の窓
+  const bg = btn(PREFS.classicBattle ? "漆黒" : "情景", () => { PREFS.classicBattle = !PREFS.classicBattle; savePrefs(); SFX.select(); renderSettings(); });
+  bg.className = "tw-small set-toggle" + (PREFS.classicBattle ? " on" : "");
+  settingsEl.appendChild(settingRow("戦闘の背景", "情景 = 層ごとの戦場を描く / 漆黒 = 黒地に白枠の窓 (原作風)", bg));
+
   // 戦闘演出の倍速 (戦闘メニューの倍速ボタンと共通の設定)
   const spd = btn(G.fastAnim ? "▶▶ ON" : "▶ OFF", () => { SFX.select(); G.fastAnim = !G.fastAnim; autosave(); renderSettings(); });
   spd.className = "tw-small set-toggle" + (G.fastAnim ? " on" : "");
@@ -11095,7 +11385,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "order", "story", "dragonSlain", "stats",
+  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "lrClock", "order", "story", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
 ];
 
@@ -11167,24 +11457,25 @@ function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch {} }
 
 // 旧セーブの %型アイテム (.pct) をテンプレートのフラット値へ戻す。
 // refSerialize の参照共有を壊さないよう、saved item オブジェクトを in-place で変更する。
+// 所持品をカタログの最新定義に合わせ直す (レア度・能力値・絵・説明など、品そのものの性質)。
+// 個体ごとの状態 (未鑑定・鑑定失敗の印など) は残す。旧セーブの装備も新しいレア度と絵になる
+const ITEM_STAT_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp", "crit"];
+const ITEM_TMPL_KEYS = ["name", "desc", "slot", "lv", "rank", "r20", "rar", "lr", "forJob", "exclusive", "classes", "cat",
+  "twoHanded", "weight", "price", "art", "palette", "eAtk", "eDef", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
 function reflattenItemStats() {
   const visited = new Set();
-  function flatten(it) {
+  function refresh(it) {
     if (!it || visited.has(it)) return;
     visited.add(it);
     const tmpl = ITEMS[it.id];
     if (!tmpl) return;
-    if (it.pct) {
-      delete it.pct;
-      for (const k of ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"]) {
-        if (tmpl[k] != null) it[k] = tmpl[k]; else delete it[k];
-      }
-    }
-    if (tmpl.weight && !it.weight) it.weight = tmpl.weight;
+    delete it.pct;
+    for (const k of ITEM_STAT_KEYS) { if (tmpl[k] != null) it[k] = tmpl[k]; else delete it[k]; }
+    for (const k of ITEM_TMPL_KEYS) { if (tmpl[k] !== undefined) it[k] = tmpl[k]; else delete it[k]; }
   }
-  for (const m of G.party) {
-    for (const it of m.items) flatten(it);
-    for (const k of Object.keys(m.equip)) flatten(m.equip[k]);
+  for (const m of [...(G.party || []), ...(G.reserve || [])]) {
+    for (const it of (m.items || [])) refresh(it);
+    for (const k of Object.keys(m.equip || {})) refresh(m.equip[k]);
   }
 }
 
@@ -11272,7 +11563,7 @@ function loadGame() {
   if (!G.stats) G.stats = {};
   // 後付けの戦績フィールドを既存セーブにも補完する (勲章 cond が参照する)
   const _statDefaults = { runs: 0, deepest: 0, kills: 0, deaths: 0, soulsFound: 0, bossKills: 0,
-    chests: 0, mimics: 0, trapsDisarmed: 0, trapsSprung: 0, fusions: 0, questsDone: 0,
+    chests: 0, mimics: 0, trapsDisarmed: 0, trapsSprung: 0, fusions: 0, questsDone: 0, playMs: 0,
     swiftBoss: false, masterMimicSlain: false };
   for (const k in _statDefaults) if (G.stats[k] == null) G.stats[k] = _statDefaults[k];
   if (!G.stats.bossIds || typeof G.stats.bossIds !== "object") G.stats.bossIds = {};
@@ -11390,7 +11681,7 @@ function titleSummary() {
 
 function init() {
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
-  window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACHIEVEMENTS, questProgress };
+  window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACHIEVEMENTS, questProgress, pickLoot, showItemGet };
 
   let loaded = false;
   try { loaded = loadGame(); } catch (e) { loaded = false; }
