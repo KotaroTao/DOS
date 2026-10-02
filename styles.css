@@ -313,7 +313,7 @@ html, body { height: 100%; overflow: hidden; }
 .hidden { display: none !important; }
 
 .pc .ail { color: var(--danger); }
-canvas.spr { image-rendering: pixelated; display: block; }
+canvas.spr { image-rendering: pixelated; display: block; width: var(--spr-size, auto); height: var(--spr-size, auto); }
 
 /* ===== 個別ステータス / 装備画面 (ウィザードリィ風) ===== */
 #status-screen {

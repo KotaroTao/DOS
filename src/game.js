@@ -1119,7 +1119,38 @@ function setHint(t) { if (hintEl && hintEl.textContent !== t) hintEl.textContent
 // 階の進み (◆) と、この潜入で得たゴールド・Soul・装備 (レア度ごとの色つき個数) を盤面の下に掲げる
 const runbarEl = document.getElementById("runbar");
 let _runbarKey = "";
+// 記録欄の背後に、いまいる層の景色を薄く敷く。縦長の画面で大きく空く帳面を「迷宮を覗く窓」にする
+// (欄の実寸で描いて画像化 = 戦闘画面に近いドットの粗さ。設定「戦闘の背景: 漆黒」では敷かない)
+const _logScene = new Map();
+let _logSceneKey = "";
+function updateLogScene() {
+  const el = document.getElementById("log");
+  if (!el) return;
+  const layer = inDungeon() && G.state !== "over" && !PREFS.classicBattle ? battleLayer() : 0;
+  const q = (v) => Math.max(128, Math.round(v / 16) * 16);
+  const w = layer ? q(el.clientWidth) : 0, h = layer ? q(el.clientHeight) : 0;
+  const key = layer ? `${layer}|${w}x${h}` : "";
+  if (key === _logSceneKey) return;
+  _logSceneKey = key;
+  if (!layer) { el.classList.remove("has-scene"); el.style.removeProperty("--log-scene"); return; }
+  let url = _logScene.get(key);
+  if (!url) {
+    try {
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      drawBattleBackdrop(c.getContext("2d"), w, h, layer, 0);
+      url = c.toDataURL();
+      _logScene.set(key, url);
+      if (_logScene.size > 8) _logScene.delete(_logScene.keys().next().value);
+    } catch (e) { url = ""; }
+  }
+  if (!url) { el.classList.remove("has-scene"); return; }
+  el.style.setProperty("--log-scene", `url(${url})`);
+  el.classList.add("has-scene");
+}
+
 function renderRunbar() {
+  updateLogScene();
   if (!runbarEl) return;
   const show = inDungeon() && G.state !== "over";
   runbarEl.classList.toggle("hidden", !show);
@@ -1263,7 +1294,10 @@ function renderBoard() {
   vctx.ellipse(hx, hy + 16, 12, 4, 0, 0, Math.PI * 2);
   vctx.fill();
   vctx.restore();
-  drawSprite(vctx, walkerSprite(), hx, hy, SPR);
+  // 盤面の駒: 旧来の12ドット絵はそのまま、高精細の全身像はマスの高さに収めて縮小転写する
+  const wk = walkerSprite();
+  if ((wk.art || []).length > 24) drawMonster(vctx, wk, hx, hy - 2, 3.7);
+  else drawSprite(vctx, wk, hx, hy, SPR);
 
   renderParty();
 }
@@ -3424,7 +3458,7 @@ function drawCard(r, cell, scaleX, showBack) {
         vctx.save();
         vctx.shadowColor = "rgba(127,208,255,0.9)";
         vctx.shadowBlur = 8;
-        drawSprite(vctx, ICONS.wisp, cx + 7, cy - 12 + bob, 1.6);
+        drawSpriteFit(vctx, ICONS.wisp, cx + 7, cy - 12 + bob, 1.6);
         vctx.restore();
       }
     }
@@ -4759,21 +4793,27 @@ function renderCombatCanvas() {
     if (!hf && !(fx && fx.lunge && fx.lunge.uid === e.uid) && !REDUCED_MOTION) {
       oy += Math.round(Math.sin(now * 0.0024 + (e.uid || i) * 1.7) * 1.6);
     }
-    const size = e.boss ? 14 : row.back ? 8 : 9; // 後衛は奥にいるぶん少し小さい
-    // 戦闘開始の演出: 1体ずつ上から降り立つ (着地するまで名札やHPは出さない)
+    // 後衛は奥にいるぶん少し小さい。強敵は一回り大きく、ボスは画面を圧する
+    const size = e.boss ? 14 : (e.mon && e.mon.elite ? 1.15 : 1) * (row.back ? 8 : 9);
+    // 戦闘開始の演出: 闇の奥から1体ずつ這い出る。まず黒い影だけが浮かび、遅れて色 (正体) が滲み出す
+    // (現れきるまで名札やHPは出さない。迷宮の主はひときわ長く闇に留まる)
     if (intro) {
       const k = b.enemies.indexOf(e);
-      const p = Math.max(0, Math.min(1, (now - intro.t0 - k * 70) / 280));
+      const span = e.boss ? 1000 : 460;
+      const p = Math.max(0, Math.min(1, (now - intro.t0 - 140 - k * 90) / span));
       if (p < 1) {
         const ease = 1 - Math.pow(1 - p, 3);
+        const rise = (1 - ease) * 12, sz = size * (0.94 + 0.06 * ease);
         vctx.save();
         vctx.globalAlpha = 0.45 * ease;
         vctx.fillStyle = "#000";
         vctx.beginPath();
-        vctx.ellipse(baseX, baseY + size * 5.4, size * 3.4 * (0.4 + 0.6 * ease), size * 1.1, 0, 0, Math.PI * 2);
+        vctx.ellipse(baseX, baseY + size * 5.4, size * 3.4 * (0.5 + 0.5 * ease), size * 1.1, 0, 0, Math.PI * 2);
         vctx.fill();
         vctx.restore();
-        drawMonster(vctx, e.mon, baseX, baseY - (1 - ease) * 34, size, alpha * p);
+        const sil = Math.min(1, p / 0.4), col = Math.max(0, Math.min(1, (p - 0.38) / 0.62));
+        if (col < 1) drawMonsterBmp(vctx, monsterSilhouette(e.mon), baseX, baseY + rise, sz, alpha * sil);
+        if (col > 0) drawMonster(vctx, e.mon, baseX, baseY + rise, sz, alpha * col * col);
         return;
       }
     }
@@ -4912,7 +4952,7 @@ function playBattleIntro(done) {
   const b = G.battle;
   const boss = b.enemies.find((e) => e.boss);
   if (REDUCED_MOTION) { done(); return; }
-  const dur = (boss ? 1500 : 420 + b.enemies.length * 70) * (G.fastAnim ? 0.6 : 1);
+  const dur = (boss ? 1900 : 640 + b.enemies.length * 90) * (G.fastAnim ? 0.6 : 1);
   G.battleIntro = { battle: b, t0: performance.now(), dur, boss: boss ? (boss.mon && boss.mon.name) || boss.name : null };
   G.animating = true;
   combatMenu.innerHTML = "";
@@ -4961,15 +5001,37 @@ function monsterBitmap(mon) {
   _monBmp.set(mon, b);
   return b;
 }
+// 魔物の黒い影 (登場演出用): ビットマップを闇色で塗りつぶした写し
+const _monSil = new WeakMap();
+function monsterSilhouette(mon) {
+  let s = _monSil.get(mon);
+  if (s) return s;
+  const b = monsterBitmap(mon);
+  const c = document.createElement("canvas");
+  c.width = b.c.width; c.height = b.c.height;
+  const g = c.getContext("2d");
+  g.drawImage(b.c, 0, 0);
+  g.globalCompositeOperation = "source-in";
+  g.fillStyle = "#050307";
+  g.fillRect(0, 0, c.width, c.height);
+  s = { c, w: b.w, h: b.h, pad: b.pad };
+  _monSil.set(mon, s);
+  return s;
+}
 // drawSpriteFit と同じ見かけの大きさ (12グリッド換算の size) で魔物を描く
 function drawMonster(ctx, mon, cx, cy, size, alpha = 1) {
   if (!mon || !mon.art) return;
-  const b = monsterBitmap(mon);
+  drawMonsterBmp(ctx, monsterBitmap(mon), cx, cy, size, alpha);
+}
+function drawMonsterBmp(ctx, b, cx, cy, size, alpha = 1) {
+  if (!b) return;
   const dot = size / (Math.max(12, b.w, b.h) / 12);
   const W = (b.w + b.pad * 2) * dot, H = (b.h + b.pad * 2) * dot;
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.imageSmoothingEnabled = false;
+  // 1ドット未満に縮める時だけ滑らかに補間する (最近傍だとドットが間引かれてちらつく)
+  ctx.imageSmoothingEnabled = dot < 1;
+  if (dot < 1) ctx.imageSmoothingQuality = "high";
   ctx.drawImage(b.c, Math.round(cx - W / 2), Math.round(cy - H / 2), Math.round(W), Math.round(H));
   ctx.restore();
 }
@@ -9922,8 +9984,12 @@ function renderStatus() {
   head.appendChild(port);
   const idn = el("div", "st-idn");
   idn.appendChild(el("div", "st-name", p.name + (p.alive ? "" : " †")));
-  idn.appendChild(el("div", "st-sub", (p.isDoll ? `人業 ・ ${p.cls} Lv${p.jobLv || 1}` : `${p.align} - ${p.race} - ${p.cls} Lv${p.level}`)
-    + ` ・ ${G.statusIdx < 3 ? "前衛" : "後衛"} ・ 射程:${RANGE_LABEL[weaponRange(p.equip && p.equip.weapon)]}`));
+  // 区切りごとに折り返さない塊にする (「射/程」のような泣き別れを防ぐ)
+  const sub = el("div", "st-sub");
+  const segs = (p.isDoll ? ["人業", `${p.cls} Lv${p.jobLv || 1}`] : [`${p.align} - ${p.race} - ${p.cls} Lv${p.level}`])
+    .concat([G.statusIdx < 3 ? "前衛" : "後衛", `射程:${RANGE_LABEL[weaponRange(p.equip && p.equip.weapon)]}`]);
+  segs.forEach((t, i) => { if (i) sub.appendChild(document.createTextNode(" ・ ")); sub.appendChild(el("span", "st-seg", t)); });
+  idn.appendChild(sub);
   head.appendChild(idn);
   const nav = el("div", "st-nav");
   const prev = btn("◀", () => { G.statusIdx = (G.statusIdx + G.party.length - 1) % G.party.length; stSel = null; renderStatus(); }); prev.className = "st-navb";
@@ -11681,7 +11747,7 @@ function titleSummary() {
 
 function init() {
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
-  window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACHIEVEMENTS, questProgress, pickLoot, showItemGet };
+  window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACHIEVEMENTS, questProgress, pickLoot, showItemGet, startBattle, spawnCardEnemies, spawnBossEnemies, activeCfg };
 
   let loaded = false;
   try { loaded = loadGame(); } catch (e) { loaded = false; }
