@@ -5,7 +5,7 @@ import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, Batt
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas } from "./sprites.js";
 import {
-  ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, recalc, equip as equipItem, unequip as unequipItem, canEquip, slotKeyFor,
+  ITEMS, SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, slotKeyFor,
   ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, lvToRank, weaponRange, RANGE_LABEL,
   UNIDENT_SLOTS, itemName,
 } from "./items.js";
@@ -38,6 +38,29 @@ import { drawBattleBackdrop } from "./backdrops.js";
 import { paintCryptFloor, paintCryptSlabs, paintCryptWalls, CATACOMB, genericMaterial, boardSeed, hexRgb } from "./crypt.js";
 import { showTitle } from "./title.js";
 import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityUp, lrIntervalH, lrLayerFactor, LR_HAZARD_K, LR_PITY_K } from "./rarity.js";
+// ---- UI 基盤 (Phase 0)。新しい UI モジュールは game.js を import せず、ctx.js の UI/game/ops を通す ----
+import { UI, ops, bindGame, registerUI } from "./ui/ctx.js";
+import { el, btn, button as kitButton, longPress as attachLongPress, uiBlocked, sheet, toast as kitToast, confirm as kitConfirm, plainText, shake as kitShake } from "./ui/kit.js";
+import { nav } from "./ui/nav.js";
+import * as townshell from "./ui/townshell.js";
+import {
+  elemStatChip, showSkillPopup, skillChips,
+  SPELL_KIND_COLOR, statLines, isEquippable, equipPreviewDelta, equipCompareEl, itemCatText, detailLines,
+  equipClassText, equipPartyChips, gearScore,
+} from "./ui/itemview.js";
+import * as uiHub from "./ui/hub.js";
+import * as uiPalace from "./ui/palace.js";
+import * as uiFacilities from "./ui/facilities.js";
+import * as uiSettings from "./ui/settings.js";
+import * as uiStory from "./ui/story.js";
+import * as uiParty from "./ui/party.js";
+import * as uiSoulPanel from "./ui/soulpanel.js";
+import * as autoEquip from "./autoequip.js";
+import * as uiShop from "./ui/shop.js";
+import * as uiLoot from "./ui/loot.js";
+import * as uiDeparture from "./ui/departure.js";
+import * as uiDungeonHud from "./ui/dungeonhud.js";
+import * as uiResults from "./ui/results.js";
 
 // キャンバスに描く文字の書体 (画面の明朝と揃える)
 const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", "Noto Serif CJK JP", serif';
@@ -403,7 +426,8 @@ const G = {
   souls: [],          // 所持魂 一覧: [{ uid, clsKey, count(吸収数→ランク), level, exp }]
   shopStock: null,    // 商店の在庫 { itemId: 個数 } (初回 setupNewGame で初期化)
   run: null,          // 今回の潜入で得た戦利品 { gold, soulPts, items:[{owner,item}], souls:[] }
-  town: { facility: null, sub: null }, // 街UIの現在地 (sub: 館などのサブメニュー)
+  town: { facility: null, sub: null, tab: "hub", page: null }, // 街UIの現在地 (tab: 下のタブ / page: タブの1段下 / facility・sub: 旧画面アダプタ用)
+  lastRun: null,      // 直前の潜入のまとめ (帰還の報告カード用。名前・レア度・数・砕けた人業など素のデータ)
   quests: [],         // 受注可能/進行中のクエスト
   dailyQuests: null,  // 日替わりクエスト { seed, list:[] } (日付が変わると再生成)
   subQuests: {},      // 受注済みサブクエスト { id: {…def, state, progress} } (定義は決定的に再生成可能)
@@ -1988,7 +2012,7 @@ function boardAnimLoop(ts) {
   requestAnimationFrame(boardAnimLoop);
   if (G.state !== "board" || !G.board) return;
   if (G.anim || G.flipAnim || G.heroAnim || G.wallFlash) return; // 他の tick に任せる
-  if (G.prompt || G.statusOpen || G.settingsOpen) return;        // オーバーレイ表示中は不要
+  if (uiBlocked()) return;        // オーバーレイ表示中は不要
   if (_boardIdleCost > 9 || ts - _boardActiveAt > 1500) { _boardIdleSkip = !_boardIdleSkip; if (_boardIdleSkip) return; }
   const t0 = performance.now();
   drawBoardFrame();
@@ -4065,7 +4089,7 @@ function tryMove(dx, dy) {
 
 // 単発移動 (方向キー/ボタン/隣接クリック)。ガード後に1歩進む
 function moveTo(nx, ny) {
-  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen || G.settingsOpen) return;
+  if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
   if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) return;
   if (Math.abs(nx - G.px) + Math.abs(ny - G.py) !== 1) return;
   // 辺が壁で塞がれている: 進めない (壁の通り抜けは不可)。連続表示は抑制
@@ -4562,46 +4586,60 @@ function grantEmbers(n, onClose) {
 }
 
 // ---- 選択肢プロンプト ----
-// ゴールド発見などと同じ中央オーバーレイカードに、イラスト+タイトル+選択肢を表示
+// キットの「決断」シート (下から昇る) に、イラスト+タイトル+選択肢を表示する。G.prompt で盤面の入力を止める。
+// 旧 #item-get と同じく「プロンプト」は1枠: 新しい選択肢/出来事は前のものを置き換える (前の onClose は呼ばない)。
+// 戻る操作: onDismiss があればそれ / 無ければ取り消しの選択肢 (やめる・開けない・まだ…) / どちらも無い強制の決断は揺れるだけ。
+let promptSheet = null;
+const CANCEL_RE = /^(やめ|開けない|まだ|立ち去|近寄らない|今はやめ|戻る|閉じる|とじる|いいえ|キャンセル|見送|放って)/;
+function isCancelOption(o) { return !!(o && (o.cancel || CANCEL_RE.test(plainText(o.label)))); }
+// 旧来の #item-get (showItemGet 等) が出ていたら片付ける (旧実装の「1枠を上書き」と同じ)
+function clearItemGetSlot() {
+  if (!itemGetEl || itemGetEl.classList.contains("hidden")) return;
+  itemGetEl.classList.add("hidden");
+  itemGetEl.innerHTML = "";
+  itemGetEl.onclick = null;
+}
+function replacePrompt() {
+  if (promptSheet) { const old = promptSheet; promptSheet = null; old.close("replace", { silent: true }); }
+  clearItemGetSlot();
+}
 function showChoice(title, options, icon, { banner = "✦ 発見 ✦", accent = "#c9a227", lines = [], onDismiss = null } = {}) {
   G.prompt = true;
-  itemGetEl.onclick = null; // 直前のポップアップが残した背景ハンドラを念のため消す
-  itemGetEl.innerHTML = "";
-  // onDismiss 指定時はポップアップ (card) 以外＝背景のクリックで閉じる
-  if (onDismiss) {
-    itemGetEl.onclick = (e) => {
-      if (e.target === itemGetEl) { closePrompt(); onDismiss(); }
-    };
+  replacePrompt();
+  const cancel = onDismiss ? null : options.find(isCancelOption);
+  const acts = options.filter((o) => !isCancelOption(o) && !o.danger);
+  const spec = (o) => ({
+    label: o.label,
+    kind: o.danger ? "danger" : isCancelOption(o) ? "ghost" : (o.primary || (acts.length === 1 && acts[0] === o)) ? "primary" : "secondary",
+    onTap: () => { closePrompt(); o.fn(); },
+  });
+  // 選択肢が多い (魂の一覧など) ときは本文側に並べてスクロールさせる
+  const many = options.length > 4;
+  let list = null;
+  if (many) {
+    list = el("div", "ui-choice-list");
+    for (const o of options) list.appendChild(kitButton(spec(o)));
   }
-  const card = el("div", "ig-card");
-  card.style.borderColor = accent;
-  card.style.boxShadow = `0 0 40px ${accent}55`;
-  const bn = el("div", "ig-banner", banner);
-  bn.style.color = accent;
-  card.appendChild(bn);
-  if (icon) {
-    const art = el("div", "ig-art");
-    art.appendChild(spriteCanvas(icon, 9));
-    card.appendChild(art);
-  }
-  card.appendChild(el("div", "ig-name", title));
-  for (const ln of lines) card.appendChild(el("div", "ig-desc", ln));
-  const list = el("div", "ig-choices");
-  for (const o of options) {
-    const b = btn(o.label, () => { closePrompt(); o.fn(); });
-    if (o.danger) b.classList.add("danger");
-    list.appendChild(b);
-  }
-  card.appendChild(list);
-  itemGetEl.appendChild(card);
-  itemGetEl.classList.remove("hidden");
+  let h = null;
+  const dismiss = () => {
+    if (onDismiss) { closePrompt(); onDismiss(); }
+    else if (cancel) { closePrompt(); cancel.fn(); }
+    else if (h) kitShake(h.el);
+  };
+  h = sheet.open({
+    kind: "choice", banner, accent, art: icon || null, title, lines,
+    body: list || undefined,
+    footer: many ? [] : options.map(spec),
+    dismissible: false,
+    onBack: dismiss,
+    onBackdrop: () => { if (onDismiss) { closePrompt(); onDismiss(); } else kitShake(h.el); },
+  });
+  promptSheet = h;
 }
 
 function closePrompt() {
   G.prompt = false;
-  itemGetEl.classList.add("hidden");
-  itemGetEl.innerHTML = "";
-  itemGetEl.onclick = null; // 古い背景クリックハンドラを消す (次のポップアップへ漏れないように)
+  if (promptSheet) { const h = promptSheet; promptSheet = null; h.close("close", { silent: true }); }
   autosave(true);
 }
 
@@ -5198,12 +5236,10 @@ function flashScreen(color) {
   setTimeout(() => f.remove(), 700);
 }
 
-// 軽量トースト通知 (レベルアップなどの祝福演出)
-function showToast(text) {
-  const t = el("div", "toast", text);
-  document.body.appendChild(t);
-  setTimeout(() => t.classList.add("show"), 20);
-  setTimeout(() => { t.classList.remove("show"); setTimeout(() => t.remove(), 400); }, 2200);
+// 軽量トースト通知 (レベルアップなどの祝福演出)。キットのトースト (最大3つ・2.2秒)。
+// opts: { tone, icon, rarity, action:{label, fn}, ms } (省略可)
+function showToast(text, opts) {
+  return kitToast(text, opts);
 }
 
 // ---- 戦闘 ----
@@ -5787,7 +5823,7 @@ let _combatAnimLast = 0;
 function combatAnimLoop(ts) {
   requestAnimationFrame(combatAnimLoop);
   if (G.state !== "combat" || !G.battle || G.animating || G.fx) return;
-  if (G.prompt || G.statusOpen || G.settingsOpen) return;
+  if (uiBlocked()) return;
   if (ts - _combatAnimLast < 50) return;
   _combatAnimLast = ts;
   renderCombatCanvas();
@@ -6957,42 +6993,11 @@ function buffBadges(p) {
 }
 
 // ---- DOM ヘルパ ----
-function el(tag, cls, text) {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text != null) e.textContent = text;
-  return e;
-}
-function btn(label, onClick) {
-  const b = document.createElement("button");
-  b.className = "btn";
-  b.textContent = label;
-  b.addEventListener("click", onClick);
-  return b;
-}
-
-// 長押し検出: ~450ms 押し続けたら onHold を呼び、その直後のクリックは抑制する。
-// タッチ/マウス両対応。指が大きく動いたら(スクロール扱い)キャンセルする。
-function attachLongPress(elm, onHold, ms = 450) {
-  let timer = null, fired = false, sx = 0, sy = 0;
-  const clear = () => { if (timer) { clearTimeout(timer); timer = null; } };
-  const start = (x, y) => {
-    fired = false; sx = x; sy = y;
-    clear();
-    timer = setTimeout(() => { fired = true; onHold(); }, ms);
-  };
-  const move = (x, y) => { if (timer && (Math.abs(x - sx) > 10 || Math.abs(y - sy) > 10)) clear(); };
-  elm.addEventListener("pointerdown", (e) => start(e.clientX, e.clientY));
-  elm.addEventListener("pointermove", (e) => move(e.clientX, e.clientY));
-  elm.addEventListener("pointerup", clear);
-  elm.addEventListener("pointercancel", clear);
-  elm.addEventListener("pointerleave", clear);
-  // 長押しが発火していたら通常クリック(スキル発動など)を握り潰す
-  elm.addEventListener("click", (e) => { if (fired) { e.preventDefault(); e.stopPropagation(); fired = false; } }, true);
-}
+// el / btn / attachLongPress (= kit の longPress) は src/ui/kit.js へ移設 (import 済み)
 
 // ================= 街 (拠点) =================
-const townEl = document.getElementById("town-screen");
+// 街の中身の根。街シェル (src/ui/townshell.js) の中身 = #town-screen を指す
+let townEl = townshell.contentRoot();
 const townBtn = document.getElementById("town-btn");
 const descendBtn = document.getElementById("descend-btn");
 const returnBtn = document.getElementById("return-btn");
@@ -7010,7 +7015,7 @@ function updateReturnBtn() {
   returnBtn.classList.toggle("hidden", !show);
 }
 if (returnBtn) returnBtn.addEventListener("click", () => {
-  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen || G.settingsOpen) return;
+  if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
   SFX.select();
   confirmReturnToTown();
 });
@@ -7159,18 +7164,18 @@ function townHeader(title, backTo = "hub") {
   return wrap;
 }
 
-let _townScreenKey = "";
+// 街を描き直す (名前と約225の呼び出し元はそのまま)。中身の描き替え・スクロール位置の保持・
+// タブバーの点灯・遷移の演出は街シェル (townshell.refresh) が受け持ち、旧画面は renderTownLegacy が描く
 function renderTown() {
   renderRunbar(); // 街では隠す
   autosave(); // 街での操作のたびに保存 (描画はアクション後に呼ばれる)
-  townEl.classList.remove("hidden");
-  townEl.innerHTML = "";
   updateTopbar();
-  townEl.classList.remove("shop-mode"); // 商店専用レイアウトを解除 (商店なら再付与)
-  // 別の画面へ移ったら先頭から見せる (同じ画面の再描画ではスクロール位置を保つ)
-  const scr = (G.town.facility || "hub") + ":" + (G.town.sub || "");
-  if (scr !== _townScreenKey) { _townScreenKey = scr; townEl.scrollTop = 0; }
   playBgm(sceneBgm()); // 施設ごとのBGM (同じ曲なら継続)
+  townshell.refresh();
+}
+
+// 旧画面アダプタ: G.town.facility (と sub) に応じて旧来の施設画面を街シェルの中身へ描く
+function renderTownLegacy() {
   const f = G.town.facility;
   if (f === "mansion") return renderMansion();
   if (f === "altar") return renderAltar();
@@ -7255,7 +7260,7 @@ function renderTownHub() {
   // ── 夜景 (動くパノラマ) に表題・設定・通貨・名所の札を重ねる ──
   const hero = el("div", "tw-hero");
   const art = el("div", "tw-hero-art");
-  try { const sc = createTownScene(); if (sc) art.appendChild(sc); } catch (e) { /* 演出のみ: 失敗しても街は使える */ }
+  try { const sc = townshell.keep("townScene", createTownScene); if (sc) art.appendChild(sc); } catch (e) { /* 演出のみ: 失敗しても街は使える */ }
   hero.appendChild(art);
   const bar = el("div", "tw-hero-bar");
   const sg = btn("⚙", () => { SFX.select(); if (G.settingsOpen) closeSettings(); else openSettings(); });
@@ -10953,7 +10958,7 @@ function returnToTown() {
 }
 
 function confirmReturnToTown() {
-  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen || G.settingsOpen) return;
+  if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
   // 帰還制限: 帰還魔法陣を発見済み (この階で踏んだ)、その上に立っている、または主を討っていれば帰れる
   const cell = G.board && G.board.cells[G.py] && G.board.cells[G.py][G.px];
   const onPortal = cell && cell.type === "portal";
@@ -11417,259 +11422,8 @@ function renderSoulTab(p) {
   return wrap;
 }
 
-// 魂のステータス寄与を「HP+7 ATK+2.4 …」形式で列挙 (0は省略)
-function soulStatText(st, sep = " ") {
-  const keys = ["hp", "mp", "atk", "vit", "agi", "int", "pie", "luk"];
-  const lbl = { hp: "HP", mp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
-  return keys.filter((k) => st[k]).map((k) => `${lbl[k]}+${st[k]}`).join(sep);
-}
-
-// ===== 属性攻撃/属性防御の表示ヘルパ =====
-// 各属性の [強い相手, 弱い相手] (表示用)。光↔闇は相互有利で弱点なし
-const ELEM_ADV = {
-  fire: ["wind", "water"], wind: ["earth", "fire"], earth: ["water", "wind"], water: ["fire", "earth"],
-  light: ["dark", null], dark: ["light", null],
-};
-function elemName(el) { return (ELEMENTS[el] || ELEMENTS.none).label; }
-// "火属性攻撃 +1" のような短い表記 (Lv1=+1, Lv2(◎)=+2)。e = {el, lv}
-function elemStatText(kind, e) {
-  if (!e || !e.el) return null;
-  return `${elemName(e.el)}属性${kind}+${Math.min(2, e.lv)}`;
-}
-// 相性のくわしい説明行 (複数行)。
-// 防御: 「水属性防御 +1」「火属性から受けるダメージ -50%」(不利属性のダメージ増加は表示・適用しない)
-// 攻撃: 「水属性攻撃 +1」「火属性に与えるダメージ +50%」「土属性に与えるダメージ -50%」
-function elemDetailLines(kind, e) {
-  if (!e || !e.el || !ELEM_ADV[e.el]) return [];
-  const [adv, weak] = ELEM_ADV[e.el];
-  const pct = e.lv >= 2 ? 100 : 50;
-  const lines = [`${elemName(e.el)}属性${kind}　+${Math.min(2, e.lv)}`];
-  if (kind === "攻撃") {
-    lines.push(`${elemName(adv)}属性に与えるダメージ　+${pct}%`);
-    if (weak) lines.push(`${elemName(weak)}属性に与えるダメージ　-${pct}%`);
-  } else {
-    lines.push(`${elemName(adv)}属性から受けるダメージ　-${pct}%`);
-    // 不利属性からのダメージ増加は適用しない (軽減のみ)
-  }
-  return lines;
-}
-// ステータス画面用の色付きチップ ("火◯" / "—")
-function elemStatChip(e) {
-  if (!e || !e.el) return "<b>—</b>";
-  const d = ELEMENTS[e.el] || ELEMENTS.none;
-  return `<b style="color:${d.color}">${d.label}${e.lv >= 2 ? "◎" : "◯"}</b>`;
-}
-
-// ===== スキル詳細ポップアップ =====
-const SPELL_KIND_LABEL = { atk: "攻撃呪文", heal: "回復呪文", phys: "物理技", buff: "支援", debuff: "弱体", sleep: "状態異常", cure: "治療" };
-const SPELL_TARGET_LABEL = { enemy: "敵単体", "all-enemy": "敵全体", ally: "味方単体", "all-ally": "味方全体", self: "自分" };
-const SPELL_KIND_COLOR = { atk: "#e0743f", heal: "#46c08f", phys: "#d8b04a", buff: "#5fa8e0", debuff: "#a06fd6", sleep: "#a06fd6", cure: "#46c08f" };
-
-// スキルの効果をくわしい行に展開する
-function skillDetailLines(sp) {
-  const lines = [];
-  lines.push(`種別: ${SPELL_KIND_LABEL[sp.kind] || sp.kind}　対象: ${SPELL_TARGET_LABEL[sp.target] || sp.target}`);
-  if (sp.element && sp.element !== "none" && ELEMENTS[sp.element]) lines.push(`属性: ${ELEMENTS[sp.element].label}`);
-  if (sp.kind === "atk") lines.push(`威力 ${sp.power}（術者のINTで伸びる）`);
-  if (sp.kind === "heal" && sp.power) lines.push(`回復量 ${sp.power}（術者のPIEで伸びる）`);
-  if (sp.revive) lines.push(sp.revivePct ? `戦闘不能をHP${Math.round(sp.revivePct * 100)}%で蘇生する` : "戦闘不能も蘇生できる");
-  if (sp.kind === "phys") {
-    lines.push(`威力 攻撃力の${sp.power}倍${sp.hits ? ` × ${sp.hits}回` : ""}`);
-    if (sp.critBonus) lines.push(`会心率 +${Math.round(sp.critBonus * 100)}%`);
-  }
-  if (sp.kind === "atk" && sp.critBonus) lines.push(`呪文会心率 +${Math.round(sp.critBonus * 100)}%（会心は×1.5）`);
-  const fx = (obj) => Object.entries(obj).map(([k, v]) => `${ATTR_LABEL[k] || k.toUpperCase()} ×${v}`).join("・");
-  if (sp.buff) lines.push(`強化: ${fx(sp.buff)}`);
-  if (sp.debuff) lines.push(`弱体: ${fx(sp.debuff)}`);
-  // ---- 混成職ユニークスキルの固有効果 ----
-  if (sp.hpCost) lines.push(`代償: 自分の最大HPの${Math.round(sp.hpCost * 100)}%を失う（HP1で踏みとどまる）`);
-  if (sp.drain) lines.push(`与えたダメージの${Math.round(sp.drain * 100)}%だけ自分のHPを回復`);
-  if (sp.mpDrain) lines.push(`与えたダメージの${Math.round(sp.mpDrain * 100)}%だけ自分のMPを回復`);
-  if (sp.sleepChance) lines.push(`命中後 ${Math.round(sp.sleepChance * 100)}%で対象を眠らせる`);
-  if (sp.flinchChance) lines.push(`命中後 ${Math.round(sp.flinchChance * 100)}%で対象を怯ませる（主には効かない）`);
-  if (sp.ailment) lines.push(`${Math.round(sp.ailment.chance * 100)}%で対象を${sp.ailment.type === "poison" ? "毒" : "異常"}に侵す`);
-  if (sp.plunder) lines.push("この技で倒した敵は、落とすゴールドが2倍になる");
-  if (sp.partyHeal) lines.push(`攻撃の後、味方全体のHPを ${sp.partyHeal} 回復（術者のPIEで伸びる）`);
-  if (sp.cure) lines.push("同時に状態異常も治す");
-  if (sp.grantEndure) lines.push("対象に「致死ダメージをHP1で耐える」を付与（1戦闘1回）");
-  if (sp.grantBarrier) lines.push(`味方全体に魔障壁${sp.grantBarrier}回分（ブレス・呪文の被ダメ半減）を付与`);
-  if (sp.debuffAll) lines.push(`さらに敵全体を弱体: ${fx(sp.debuffAll)}`);
-  // 強化/弱体の持続ターン数 (同方向は最大2段階まで重ねられる)
-  if (sp.dur && (sp.buff || sp.debuff || sp.debuffAll)) lines.push(`効果は ${sp.dur} ターン持続（同じ能力は最大2段階）`);
-  return lines;
-}
-
-// スキル名タップで開く詳細カード
-function showSkillPopup(key) {
-  const sp = SPELLS[key];
-  if (!sp) return;
-  const accent = SPELL_KIND_COLOR[sp.kind] || "#c9a227";
-  const wrap = el("div", "confirm-overlay");
-  const card = el("div", "ig-card confirm-card");
-  card.style.borderColor = accent;
-  const banner = el("div", "ig-banner", "✦ スキル ✦");
-  banner.style.color = accent;
-  card.appendChild(banner);
-  card.appendChild(el("div", "ig-name", sp.name));
-  card.appendChild(el("div", "sk-mp", `消費MP ${sp.mp}`));
-  card.appendChild(el("div", "ig-desc", sp.desc));
-  const box = el("div", "sk-lines");
-  for (const ln of skillDetailLines(sp)) box.appendChild(el("div", "sk-line", ln));
-  card.appendChild(box);
-  const ok = btn("閉じる", () => wrap.remove());
-  ok.className = "btn primary ig-ok";
-  card.appendChild(ok);
-  wrap.appendChild(card);
-  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
-  document.body.appendChild(wrap);
-}
-
-// 習得スキルのタップ可能なチップ列
-function skillChips(keys, label) {
-  const row = el("div", "sk-chips");
-  if (label) row.appendChild(el("span", "sk-chipl", label));
-  for (const k of keys) {
-    const sp = SPELLS[k];
-    const c = el("span", "sk-chip", sp ? sp.name : k);
-    if (sp) c.addEventListener("click", () => showSkillPopup(k));
-    row.appendChild(c);
-  }
-  return row;
-}
-
-function statLines(it) {
-  if (it && it.unidentified) return "未鑑定 — 鑑定が必要";
-  const parts = [];
-  const f = (label, v) => { if (v) parts.push(`${label} ${v > 0 ? "+" : ""}${v}`); };
-  f("ATK", it.atk); f("VIT", it.vit); f("AGI", it.agi);
-  f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
-  f("HP", it.hp); f("MP", it.mp);
-  if (it.crit) parts.push(`会心 +${Math.round(it.crit * 100)}%`);
-  const ea = elemStatText("攻撃", it.eAtk);
-  const ed = elemStatText("防御", it.eDef);
-  if (ea) parts.push(ea);
-  if (ed) parts.push(ed);
-  if (it.use && it.use.heal) parts.push(`HP +${it.use.heal}`);
-  if (it.use && it.use.mp) parts.push(`MP +${it.use.mp}`);
-  if (it.use && it.use.cure) parts.push(`毒を治す`);
-  return parts.join("　");
-}
-
-// 装備品か (装備可能職業を表示する対象か)。use/misc/mat は対象外。
-const EQUIPPABLE_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
-function isEquippable(it) { return EQUIPPABLE_SLOTS.has(it.slot); }
-
-// 候補 cand を p に装備した場合の最終ステータス増減を返す。
-// items.js の recalc を仮の装備マップに流用するので、両手武器⇄盾の付け替え分も反映される。
-// 数値ステ (atk…mp) のほか、会心率 (crit, %) と属性攻撃/防御 (elemAtk/elemDef) の変化も返す。
-function equipPreviewDelta(p, cand) {
-  const key = slotKeyFor(cand, p);
-  if (!key) return null;
-  const eq = { ...p.equip };
-  // equip() と同じ付け替え規則: 両手武器は盾を、盾は両手武器を外す
-  if (cand.slot === "weapon" && cand.twoHanded) eq.shield = null;
-  if (cand.slot === "shield" && eq.weapon && eq.weapon.twoHanded) eq.weapon = null;
-  eq[key] = cand;
-  const fake = { base: p.base, equip: eq, hp: p.hp, mp: p.mp };
-  recalc(fake);
-  return {
-    atk: fake.atk - p.atk,
-    vit: fake.vit - p.vit,
-    agi: fake.agi - p.agi,
-    int: fake.int - p.int,
-    pie: fake.pie - p.pie,
-    luk: fake.luk - p.luk,
-    hp: fake.maxhp - p.maxhp,
-    mp: fake.maxmp - p.maxmp,
-    crit: Math.round(((fake.critBonus || 0) - (p.critBonus || 0)) * 100),
-    elemAtk: { from: p.elemAtk, to: fake.elemAtk },
-    elemDef: { from: p.elemDef, to: fake.elemDef },
-  };
-}
-
-// 属性攻撃/防御 (装備由来の {el, lv}) が等価か
-function elemStatEq(a, b) {
-  if (!a && !b) return true;
-  if (!a || !b) return false;
-  return a.el === b.el && a.lv === b.lv;
-}
-function elemStatShort(e) { return e && e.el ? `${elemName(e.el)}${e.lv >= 2 ? "◎" : "◯"}` : "—"; }
-
-// 装備候補の「装備中と比べた増減」行 (増・緑/減・赤)。何かを付け替えるときだけ呼ぶ。
-function equipCompareEl(p, cand) {
-  const d = equipPreviewDelta(p, cand);
-  const row = el("span", "eq-cd");
-  row.appendChild(el("span", "eq-cd-lab", "装備すると"));
-  let any = false;
-  if (d) {
-    for (const [label, k] of [["ATK", "atk"], ["VIT", "vit"], ["AGI", "agi"], ["INT", "int"], ["PIE", "pie"], ["LUK", "luk"], ["HP", "hp"], ["MP", "mp"]]) {
-      const v = d[k];
-      if (!v) continue;
-      any = true;
-      row.appendChild(el("span", "eq-cd-seg " + (v > 0 ? "up" : "down"), `${label} ${v > 0 ? "▲+" + v : "▼" + v}`));
-    }
-    // 会心率 (%)
-    if (d.crit) {
-      any = true;
-      row.appendChild(el("span", "eq-cd-seg " + (d.crit > 0 ? "up" : "down"), `会心 ${d.crit > 0 ? "▲+" + d.crit : "▼" + d.crit}%`));
-    }
-    // 属性攻撃/防御の変化 (—→火◯ のように現状→装備後で表示)
-    for (const [label, ch] of [["属性攻", d.elemAtk], ["属性防", d.elemDef]]) {
-      if (elemStatEq(ch.from, ch.to)) continue;
-      any = true;
-      row.appendChild(el("span", "eq-cd-seg elem", `${label} ${elemStatShort(ch.from)}→${elemStatShort(ch.to)}`));
-    }
-  }
-  if (!any) row.appendChild(el("span", "eq-cd-same", "変化なし"));
-  return row;
-}
-
-// 部位カテゴリ表記
-const CAT_LABEL = { weapon: "武器", shield: "盾", body: "防具", head: "頭防具", hands: "小手", feet: "足防具", acc: "装飾品", use: "消耗品", misc: "蒐集品", mat: "貴重品" };
-// アイテムの分類表記 (武器はサブカテゴリつき: 「武器（長剣）」)
-function itemCatText(it) {
-  if (it.slot === "weapon" && it.cat) return `武器（${WEAPON_CAT_LABEL[it.cat] || "その他"}）`;
-  return CAT_LABEL[it.slot] || "";
-}
-
-// ウィザードリィ風の情報テキスト行
-function detailLines(it) {
-  if (it && it.unidentified) {
-    if (it.idHardFail) {
-      return ["？ 未鑑定の品 (鑑定失敗済み)", "鑑定するまで正体も性能もわからない。", "スキル鑑定に失敗したため、もう商店 (有料) でしか鑑定できない。"];
-    }
-    return ["？ 未鑑定の品", "鑑定するまで正体も性能もわからない。", "商店 (有料) か、鑑定の心得がある仲間が必要だ。"];
-  }
-  const L = [];
-  L.push(itemCatText(it));
-  if (it.slot === "use") {
-    if (it.use && it.use.heal) L.push(`HPを ${it.use.heal} 回復`);
-    if (it.use && it.use.mp) L.push(`MPを ${it.use.mp} 回復`);
-    if (it.use && it.use.cure) L.push("毒を治す");
-  } else if (it.slot === "misc") {
-    L.push("商店で売って金にする戦利品");
-  } else if (it.slot === "mat") {
-    L.push("用途は街で見つかるかもしれない");
-  } else {
-    // 射程は隊列システムで実際に使われるので表示する。旧 Wizardry 風の
-    // 命中/ダイス/攻撃回数 は戦闘で使われないため表示しない
-    if (it.slot === "weapon") L.push(`射程: ${RANGE_LABEL[weaponRange(it)]}`);
-    // 六大ステ (ATK/VIT/AGI/INT/PIE/LUK) への補正
-    const mod = [];
-    const f = (label, v) => { if (v) mod.push(`${label}${v >= 0 ? "+" : ""}${v}`); };
-    f("ATK", it.atk); f("VIT", it.vit); f("AGI", it.agi);
-    f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
-    f("HP", it.hp); f("MP", it.mp);
-    if (it.crit) mod.push(`会心+${Math.round(it.crit * 100)}%`);
-    if (mod.length) L.push(mod.join(" / "));
-  }
-  // 属性攻撃/属性防御 (1行ずつのくわしい表記)
-  for (const ln of elemDetailLines("攻撃", it.eAtk)) L.push(ln);
-  for (const ln of elemDetailLines("防御", it.eDef)) L.push(ln);
-  if (isEquippable(it)) L.push(equipClassText(it));
-  if (it.align) L.push(`${it.align}属性。`);
-  return L;
-}
+// 表示ヘルパ (soulStatText・属性/スキル/品の表示・equipPreviewDelta・equipCompareEl・detailLines など) は
+// src/ui/itemview.js へ移設 (import 済み)
 
 // 所持アイテムの詳細をポップアップ表示 (旧: 画面下のインライン情報パネル)
 function showItemDetailPopup(p, sel) {
@@ -11790,44 +11544,7 @@ function doIdentifySkill(m, it) {
 }
 
 function makeDanger(label, fn) { const b = btn(label, fn); b.classList.add("danger"); return b; }
-function clsLabel(k) { return (SOUL_CLASSES[k] || {}).label || k; }
-
-// 装備可能条件のバッジ表示 (36職対応)。装備制限は実際の対応職をそのまま表示する
-// (未発見職を「？」で伏せる旧仕様は廃止。所持・装備画面で条件が読めないと不便なため)。
-function equipClassText(it) {
-  if (it.forJob) {
-    const lbl = (SOUL_CLASSES[it.forJob] || {}).label || it.forJob;
-    return `〈${lbl}〉専用`;
-  }
-  if (it.classes) {
-    return "装備可: " + it.classes.map((k) => clsLabel(k)).join("・");
-  }
-  if (it.slot === "weapon") return `武器適性: ${WEAPON_CAT_LABEL[it.cat] || it.cat}`;
-  if (it.slot === "shield") return "適性: 盾持ち職";
-  const w = it.weight;
-  if (w === "heavy") return "装備: 重装職";
-  if (w === "cloth") return "装備: 布装職";
-  if (w === "light") return "装備: 軽装以上";
-  return "装備可: 全職";
-}
-
-// パーティメンバーの装備可否チップ (6人分 ○/×)
-// 各メンバーの装備可否。頭文字だけだと同名頭文字を判別できないため、
-// キャラアイコン + フルネーム + ○/× で示す。
-function equipPartyChips(it) {
-  const row = el("div", "eq-pchips");
-  for (const m of G.party) {
-    const ok = canEquip(m, it);
-    const c = el("span", "eq-pchip " + (ok ? "ok" : "ng"));
-    const ic = el("span", "eq-pchip-ic");
-    ic.appendChild(spriteCanvas(m.isDoll ? dollSprite(m) : HERO, 2));
-    c.appendChild(ic);
-    c.appendChild(el("span", "eq-pchip-nm", m.name));
-    c.appendChild(el("span", "eq-pchip-mk", ok ? "○" : "×"));
-    row.appendChild(c);
-  }
-  return row;
-}
+// equipClassText / equipPartyChips は src/ui/itemview.js へ移設 (import 済み)
 
 function doEquip(p, it) {
   const r = equipItem(p, it);
@@ -12014,26 +11731,19 @@ function transferItem(p, index) {
   document.body.appendChild(wrap);
 }
 
-// 確認ダイアログ (ステータス画面の上にも出せる軽量モーダル)
+// 確認ダイアログ (ステータス画面の上にも出せる)。キットの決断シート: 実行 (赤) / やめる。戻る = やめる
 function showConfirm({ title, lines = [], okLabel = "実行する", onOk }) {
-  const wrap = el("div", "confirm-overlay");
-  const card = el("div", "ig-card confirm-card");
-  card.style.borderColor = "#d4504e";
-  card.style.boxShadow = "0 0 40px #d4504e55";
-  const bn = el("div", "ig-banner", "⚠ 確認 ⚠");
-  bn.style.color = "#d4504e";
-  card.appendChild(bn);
-  card.appendChild(el("div", "ig-name", title));
-  for (const ln of lines) card.appendChild(el("div", "ig-desc", ln));
-  const list = el("div", "ig-choices");
-  const okBtn = btn(okLabel, () => { wrap.remove(); onOk(); });
-  okBtn.classList.add("danger");
-  list.appendChild(okBtn);
-  list.appendChild(btn("やめる", () => wrap.remove()));
-  card.appendChild(list);
-  wrap.appendChild(card);
-  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
-  document.body.appendChild(wrap);
+  let h = null;
+  const cancel = () => { if (h) h.close("cancel", { silent: true }); };
+  h = sheet.open({
+    kind: "choice", banner: "確認", accent: "#d4504e", title, lines, className: "ui-confirm",
+    footer: [
+      { label: okLabel, kind: "danger", size: "lg", onTap: () => { h.close("ok", { silent: true }); onOk(); } },
+      { label: "やめる", kind: "ghost", onTap: cancel },
+    ],
+    onBack: cancel, onBackdrop: cancel,
+  });
+  return h;
 }
 
 // ダンジョンで拾った装備は未鑑定 (鑑定するまで装備不可) で手に入る。
@@ -12128,43 +11838,29 @@ function closeItemGet(onClose) {
 }
 
 // ---- 汎用イベント表示 (宝箱の中身・罠・泉など) ----
-// アイテム獲得演出と同じオーバーレイ/カードデザインで表示する
+// キットのシートで表示する (sparkle = 褒美は中央の祝祭カード、それ以外は下から昇る知らせ)。
+// 閉じ方 (ボタン・背景・戻る) はどれも同じ: G.prompt を解き、onClose (無ければ盤面の再描画) → 保存
 function showEvent({ sprite, title, lines = [], accent = "#c9a227", btnLabel = "つぎへ", banner = "✦ イベント ✦", sparkle = false, onClose }) {
   G.prompt = true;
-  itemGetEl.onclick = null;
-  itemGetEl.innerHTML = "";
-  const card = el("div", "ig-card");
-  card.style.borderColor = accent;
-  card.style.boxShadow = `0 0 40px ${accent}55`;
-  const bn = el("div", "ig-banner", banner);
-  bn.style.color = accent;
-  card.appendChild(bn);
-  if (sprite) {
-    const art = el("div", "ig-art");
-    art.appendChild(spriteCanvas(sprite, 9));
-    if (sparkle) {
-      for (let i = 0; i < 6; i++) {
-        const s = el("span", "ig-spark");
-        s.style.setProperty("--a", (i * 60) + "deg");
-        s.style.animationDelay = (i * 0.08) + "s";
-        art.appendChild(s);
-      }
-    }
-    card.appendChild(art);
-  }
-  const t = el("div", "ig-name", title);
-  t.style.color = accent === "#c9a227" ? "#fff" : accent;
-  card.appendChild(t);
-  for (const ln of lines) card.appendChild(el("div", "ig-desc", ln));
-  const ok = btn(btnLabel, () => closeItemGet(onClose));
-  ok.className = "btn primary ig-ok";
-  ok.style.borderColor = accent;
-  ok.style.color = accent;
-  card.appendChild(ok);
-  itemGetEl.appendChild(card);
-  // 選択肢のないポップアップは、カード外 (背景) をタップしても閉じられるようにする
-  itemGetEl.onclick = (e) => { if (e.target === itemGetEl) closeItemGet(onClose); };
-  itemGetEl.classList.remove("hidden");
+  replacePrompt();
+  let h = null, done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    if (promptSheet === h) promptSheet = null;
+    h.close("ok", { silent: true });
+    G.prompt = false;
+    if (onClose) onClose();
+    else renderBoard();
+    autosave(true);
+  };
+  h = sheet.open({
+    kind: sparkle ? "celebrate" : "info", banner, accent, art: sprite || null, sparkle, title,
+    titleColor: accent === "#c9a227" ? null : accent, lines,
+    footer: [{ label: btnLabel, kind: "primary", size: "lg", onTap: finish }],
+    onBack: finish, onBackdrop: finish,
+  });
+  promptSheet = h;
 }
 
 // ---- ランクアップ専用の祝祭ポップアップ ----
@@ -12366,7 +12062,7 @@ view.addEventListener("click", (e) => {
     }
     return;
   }
-  if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen || G.settingsOpen) return;
+  if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
   // セル内 (溝のクリックは無視)
   const hit = cellAt(sx, sy);
   if (!hit) return;
@@ -12398,7 +12094,7 @@ function stopSwipe() {
 // 指を離さずに方向が確定した後、1歩ずつ連続移動するループ
 function swipeStep(dx, dy) {
   if (!swipe) return; // 指が離れた
-  if (G.state !== "board" || G.prompt || G.statusOpen || G.settingsOpen) { stopSwipe(); return; }
+  if (G.state !== "board" || uiBlocked()) { stopSwipe(); return; }
   if (G.anim || G.walking) {
     // アニメーション完了待ち。50ms ごとに再チェック
     swipeTimer = setTimeout(() => swipeStep(dx, dy), 50);
@@ -12416,7 +12112,7 @@ function swipeStep(dx, dy) {
 }
 
 // スワイプは画面全体で受け付ける。ボタン/モーダル/ステータス画面は除外。
-const SWIPE_IGNORE = "button, a, [role=button], #party, #status-screen, #town-screen, #item-get, .confirm-overlay";
+const SWIPE_IGNORE = "button, a, [role=button], #party, #status-screen, #town-screen, #town-shell, #ui-layer, #item-get, .confirm-overlay";
 document.addEventListener("pointerdown", (e) => {
   if (e.pointerType === "mouse") return;
   // どこを触っても、まず進行中のスワイプ連続移動ループを止める。
@@ -12444,9 +12140,8 @@ document.addEventListener("pointercancel", () => { stopSwipe(); });
 
 document.addEventListener("keydown", (e) => {
   if (e.key === "m" || e.key === "M") { updateMuteBtn(toggleMute()); return; }
-  if (e.key === "Escape" && G.settingsOpen) { closeSettings(); return; }
-  if (e.key === "Escape" && G.statusOpen) { closeStatus(); return; }
-  if (G.state !== "board" || G.prompt || G.statusOpen || G.settingsOpen) return;
+  if (e.key === "Escape") { e.preventDefault(); nav.back(); return; } // 戻る操作は nav に一本化 (§3.2)
+  if (G.state !== "board" || uiBlocked()) return;
   switch (e.key) {
     case "ArrowUp": case "w": tryMove(0, -1); break;
     case "ArrowDown": case "s": tryMove(0, 1); break;
@@ -12566,6 +12261,7 @@ const SAVE_FIELDS = [
   "party", "reserve", "souls", "shopStock", "run", "town",
   "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "lrClock", "order", "story", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
+  "lastRun",
 ];
 
 // 参照保持シリアライズ: 共有オブジェクト/循環参照を {$r:index} で表現し、
@@ -12701,6 +12397,9 @@ function loadGame() {
   if (!snap || !snap.party || !snap.party.length) return false;
   for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
   if (!G.lrOwned || typeof G.lrOwned !== "object") G.lrOwned = {}; // LR入手済み記録 (1点もの)
+  // 街UIの現在地 (後付け: tab/page)。旧 {facility, sub} はそれが属するタブへ写す
+  G.town = townshell.migrateTown(G.town);
+  if (G.lastRun === undefined) G.lastRun = null; // 帰還の報告 (後付け)
   if (!G.order || !Array.isArray(G.order.picks)) G.order = { picks: [] }; // 控えの結社の着席指定
   // 旧ステータス体系のセーブを六大ステ (ATK/VIT/AGI/INT/PIE/LUK) へ移行
   // (battle の敵の mon はこの後 MONSTERS の生定義に差し替えられるため触れても無害)
@@ -12845,6 +12544,393 @@ function setupNewGame() {
   initQuests();
 }
 
+// ==== OPS: 一括操作 (Phase 0 が所有。以後は凍結し、拡張は UI 経由) ====
+// どれも既存の単体操作 (宿・商店の鑑定/売却・赤い魂の連れ帰り・勲章の拝受・奉納・魂の鍛錬) のループで、
+// 価格・除外条件は単体と同一 (釣り合いは変えない)。結果のオブジェクトを返し、記録 (log) と
+// トーストは1回にまとめ、街を描き直す。施設が閉ざされている間 (第0章) は動かない。
+function opsFacilityOpen(key) { const a = tutorialAllowed(); return !a || a.includes(key); }
+function opsEquippedBy(d, it) { for (const k in (d.equip || {})) if (d.equip[k] === it) return true; return false; }
+// 売却候補: 呪い・未鑑定・装備中・SR/LR・未奉納の蒐集品 (sellWarnings) は除外 (商店の一括売却と同じ)。
+// 消耗品 (薬草など) は既定で除外する。{ includeUse: true } で商店の一括売却と全く同じ集合になる
+function opsJunkList({ includeUse = false } = {}) {
+  const out = [];
+  for (const d of allDolls()) {
+    for (const it of (d.items || [])) {
+      if (!it || it.cursed || it.unidentified || opsEquippedBy(d, it) || sellWarnings(it).length) continue;
+      if (!includeUse && it.slot === "use") continue;
+      out.push({ doll: d, item: it, price: sellPrice(it) });
+    }
+  }
+  return out;
+}
+// 拝受できる勲章 (段階表は「次の段階」だけ。勲章の間と同じ判定)
+function opsClaimableAchievements() {
+  const seen = new Set();
+  const out = [];
+  for (const a of ACHIEVEMENTS) {
+    if (seen.has(a.series) || G.ach[a.id]) continue;
+    seen.add(a.series);
+    if (a.cond()) out.push(a);
+  }
+  return out;
+}
+// まだ奉納していない種類の蒐集品 (同じ種類は1点だけ)
+function opsDonatableList() {
+  const ts = treasuryState();
+  const seen = new Set();
+  const out = [];
+  for (const h of heldCollectibles()) {
+    if (ts.donated[h.item.id] || seen.has(h.item.id)) continue;
+    seen.add(h.item.id);
+    out.push(h);
+  }
+  return out;
+}
+// いま ✦Soul で1段以上鍛えられる、編成の人業のメイン魂
+function opsTrainableList() {
+  const out = [];
+  for (const d of G.party) {
+    if (!d || d.primary == null) continue;
+    const e = soulByUid(d.primary);
+    if (!e) continue;
+    const cap = soulLevelCapOf(e);
+    const cost = Math.max(1, soulTrainCost(e.level) - (e.exp || 0));
+    if (e.level < cap && G.soulPts >= cost) out.push({ doll: d, uid: e.uid, cost, level: e.level, cap });
+  }
+  return out;
+}
+const OPS = {
+  // バッジ・提案・帰還の報告で使う数 (状態は変えない)
+  counts() {
+    const dolls = allDolls();
+    let unid = 0, unidCost = 0;
+    for (const d of dolls) for (const it of (d.items || [])) if (it && it.unidentified) { unid++; unidCost += appraiseCost(it); }
+    const junk = opsJunkList();
+    const dead = dolls.filter((d) => d.isDoll && !d.alive);
+    let hastenCost = 0;
+    const now = Date.now();
+    for (const d of dead) if (d.reviveAt) hastenCost += Math.max(1, Math.ceil((d.reviveAt - now) / RESCUE_SHORTEN_MS));
+    let ach = 0, treasuryReady = false;
+    try { ach = opsClaimableAchievements().length; } catch (e) { ach = 0; }
+    try { treasuryReady = treasuryRewardReady(); } catch (e) { treasuryReady = false; }
+    return {
+      hurt: G.party.filter((p) => p.alive && (p.hp < p.maxhp || p.mp < p.maxmp)).length,
+      dead: dead.length,
+      unid, unidCost,
+      junk: junk.length, junkGold: junk.reduce((a, j) => a + j.price, 0),
+      ach,
+      donatable: opsDonatableList().length,
+      deliverable: (G.deliveryQuests || []).filter((q) => q && deliveryHolder(q.itemId)).length,
+      trainable: opsTrainableList().length,
+      innCost: innCost(), hastenCost, treasuryReady,
+    };
+  },
+  junkList: opsJunkList,
+  trainableList: opsTrainableList,
+  claimableAchievements: opsClaimableAchievements,
+  donatableList: opsDonatableList,
+
+  // 宿で休む (宿屋の「泊まる」と同じ: 宿賃 innCost・生きている者のHP/MP全快と状態異常の回復)
+  restParty() {
+    if (G.state !== "town" || !opsFacilityOpen("inn")) return { ok: false, reason: "closed" };
+    const cost = innCost();
+    const need = G.party.filter((p) => p.alive && (p.hp < p.maxhp || p.mp < p.maxmp));
+    if (!need.length) return { ok: false, reason: "none", cost };
+    if (G.gold < cost) { log("お金が足りない。", "sys"); SFX.ng(); return { ok: false, reason: "gold", cost }; }
+    G.gold -= cost;
+    for (const p of G.party) { if (p.alive) { p.hp = p.maxhp; p.mp = p.maxmp; p.ailment = null; } }
+    SFX.heal(); buzz(20);
+    log("ぐっすり眠った。HPとMPが全快した。", "heal");
+    showToast(`宿で休んだ — HP・MP全快 (💰${cost})`, { tone: "good" });
+    renderTown();
+    return { ok: true, cost, n: need.length };
+  },
+
+  // まとめて鑑定 (隊と控えの全員の未鑑定品を、安い順に所持金が続く限り。鑑定料 appraiseCost は単体と同じ)
+  identifyAll() {
+    if (G.state !== "town" || !opsFacilityOpen("shop")) return { ok: false, reason: "closed", n: 0, spent: 0 };
+    const list = [];
+    for (const d of allDolls()) for (const it of (d.items || [])) if (it && it.unidentified) list.push(it);
+    list.sort((a, b) => appraiseCost(a) - appraiseCost(b));
+    let n = 0, spent = 0;
+    for (const it of list) {
+      const cost = appraiseCost(it);
+      if (G.gold < cost) break;
+      G.gold -= cost; spent += cost;
+      it.unidentified = false; it.idHardFail = false;
+      n++;
+    }
+    if (n > 0) {
+      SFX.itemget(); buzz(15);
+      log(`まとめて鑑定: ${n}点を鑑定した (💰${spent})。`, "win");
+      showToast(`${n}点を鑑定した (💰${spent})`);
+    } else if (list.length) { log("お金が足りない。", "sys"); SFX.ng(); }
+    renderTown();
+    return { ok: n > 0, n, spent, left: list.length - n };
+  },
+
+  // まとめて売る (opsJunkList の品を売値 sellPrice で。売った品は商店の在庫に並ぶ = 単体の売却と同じ)
+  sellJunkAll(opts) {
+    if (G.state !== "town" || !opsFacilityOpen("shop")) return { ok: false, reason: "closed", n: 0, gold: 0 };
+    let n = 0, gold = 0;
+    for (const { doll, item, price } of opsJunkList(opts)) {
+      const idx = doll.items.indexOf(item);
+      if (idx < 0) continue;
+      doll.items.splice(idx, 1);
+      G.gold += price; gold += price;
+      if (item.id) G.shopStock[item.id] = (G.shopStock[item.id] || 0) + 1;
+      codexSeeItem(item.id);
+      n++;
+    }
+    if (n) {
+      SFX.select(); buzz(10);
+      log(`まとめて売却: ${n}点を売った (+💰${gold})。商店に並んだ。`, "win");
+      showToast(`${n}点を売却 (+💰${gold})`);
+    }
+    renderTown();
+    return { ok: n > 0, n, gold };
+  },
+
+  // 今すぐ連れ帰る (赤い魂1つで20分短縮を、残りの少ない者から順に所持の続く限り。押す回数ぶんと同じ値段)
+  hastenAll() {
+    const dead = allDolls().filter((d) => d.isDoll && !d.alive && d.reviveAt).sort((a, b) => a.reviveAt - b.reviveAt);
+    let spent = 0, revived = 0;
+    for (const d of dead) {
+      while (!d.alive && G.redSoul >= 1) {
+        G.redSoul -= 1; spent++;
+        d.reviveAt -= RESCUE_SHORTEN_MS;
+        if (d.reviveAt <= Date.now()) { reviveDoll(d, true); revived++; }
+      }
+    }
+    if (!spent) {
+      if (dead.length) { log("Red Soul が足りない。", "sys"); SFX.ng(); }
+      return { ok: false, spent: 0, revived: 0 };
+    }
+    SFX.select(); buzz(15);
+    if (revived < dead.length) log(`赤い魂を ${spent} 捧げ、帰還を早めた。`, "sys");
+    if (G.statusOpen) renderStatus();
+    if (G.state === "town") renderTown();
+    renderParty();
+    return { ok: true, spent, revived, left: dead.length - revived };
+  },
+
+  // まとめて拝受 (勲章の間で1つずつ拝受するのと同じ報酬。段階表は次の段階が達成済みなら続けて)
+  claimAllAchievements() {
+    let n = 0, gold = 0, red = 0, soul = 0;
+    for (let guard = 0; guard < 1000; guard++) {
+      const ready = opsClaimableAchievements();
+      if (!ready.length) break;
+      for (const a of ready) {
+        if (G.ach[a.id] || !a.cond()) continue;
+        G.ach[a.id] = true;
+        if (a.reward.gold) { G.gold += a.reward.gold; gold += a.reward.gold; }
+        if (a.reward.redSoul) { G.redSoul += a.reward.redSoul; red += a.reward.redSoul; }
+        if (a.reward.soulPts) { G.soulPts += a.reward.soulPts; soul += a.reward.soulPts; }
+        log(`勲章「${a.name}」を授かった！`, "win");
+        n++;
+      }
+    }
+    if (!n) return { ok: false, n: 0 };
+    const msg = [gold ? `💰${gold}` : "", red ? `🔴${red}` : "", soul ? `✦${soul}` : ""].filter(Boolean).join(" ");
+    SFX.levelup(); buzz([0, 30, 60, 30]);
+    flashScreen("#c9a22744");
+    showToast(`勲章 ${n} を拝受 ${msg}`);
+    updateTopbar();
+    renderTown();
+    return { ok: true, n, gold, redSoul: red, soulPts: soul };
+  },
+
+  // 新種をまとめて奉納 (宝物庫の「新種をまとめて奉納」と同じ)
+  donateAllNew() {
+    const list = opsDonatableList();
+    if (!list.length) return { ok: false, n: 0 };
+    for (const h of list) donateCollectible(h.doll, h.item);
+    SFX.itemget(); autosave();
+    log(`蒐集品 ${list.length} 種を宝物庫に奉納した。`, "win");
+    showToast(`${list.length}種を奉納した`);
+    renderTown();
+    return { ok: true, n: list.length, rewardReady: treasuryRewardReady() };
+  },
+
+  // 魂を n 段鍛える (n = Infinity で上限まで)。1段ごとの費用・上限は trainSoul と同じ。
+  // 結果に宿主の能力の伸び (deltas) と新たに覚えた技 (gainedSkills) を添える。迷宮の中では鍛えられない
+  trainTimes(uid, n = 1) {
+    const e = soulByUid(uid);
+    if (!e || G.state !== "town") return { ok: false, levels: 0, spent: 0 };
+    const wearer = allDolls().find((d) => d.primary === uid || (d.subs || []).some((x) => x && x.uid === uid)) || null;
+    const KEYS = ["maxhp", "maxmp", "atk", "vit", "agi", "int", "pie", "luk"];
+    const before = wearer ? Object.fromEntries(KEYS.map((k) => [k, wearer[k] || 0])) : null;
+    const beforeSpells = new Set(wearer ? (wearer.spells || []) : []);
+    const from = e.level;
+    let spent = 0, levels = 0;
+    for (let i = 0; i < n; i++) {
+      if (e.level >= soulLevelCapOf(e)) break;
+      const cost = Math.max(1, soulTrainCost(e.level) - (e.exp || 0));
+      if (G.soulPts < cost) break;
+      G.soulPts -= cost; spent += cost;
+      e.level++; e.exp = 0;
+      levels++;
+    }
+    if (!levels) {
+      log(e.level >= soulLevelCapOf(e) ? "これ以上レベルを上げられない。" : "Soul が足りない。", "sys");
+      SFX.ng();
+      return { ok: false, levels: 0, spent: 0, from, to: from };
+    }
+    recalcAllDolls();
+    codexJobSee(e.clsKey, e.count, e.level);
+    SFX.levelup(); buzz([0, 30, 40, 30]);
+    log(`${soulSeriesName(e.clsKey)}の魂が Lv${from}→${e.level} に成長した！ (✦${spent})`, "win");
+    const deltas = {};
+    if (wearer && before) for (const k of KEYS) { const d = (wearer[k] || 0) - before[k]; if (d) deltas[k === "maxhp" ? "hp" : k === "maxmp" ? "mp" : k] = d; }
+    const gainedSkills = wearer ? (wearer.spells || []).filter((k) => !beforeSpells.has(k)) : [];
+    showToast(`${soulSeriesName(e.clsKey)}の魂 Lv${e.level} (✦${spent})`, { tone: "good" });
+    renderTown();
+    return { ok: true, levels, spent, from, to: e.level, deltas, gainedSkills, wearer };
+  },
+};
+Object.assign(ops, OPS);
+
+// ==== UI 契約のスタブ (Phase 0)。各パッケージの install() が本物に差し替える ====
+// どれも「いまの画面のまま動く」最小の実装。呼び出し側は差し替えの有無を気にせず使える
+function registerPhase0Stubs() {
+  registerUI({
+    // ---- キット ----
+    toast: kitToast, sheet, confirm: kitConfirm,
+    // ---- WP-A: 街・王宮・物語・設定 ----
+    openSettings: () => openSettings(),
+    playStoryChain: (pages, done) => {
+      const list = (pages || []).filter(Boolean);
+      const next = (i) => {
+        if (i >= list.length) { if (done) done(); return; }
+        const p = list[i];
+        showStoryScene(p.title || "", p.lines || [], p.reward || null, () => next(i + 1), p.btnLabel || "御意");
+      };
+      next(0);
+    },
+    registerSuggestion: (fn) => { if (typeof fn === "function") (UI._suggestions || (UI._suggestions = [])).push(fn); },
+    // ---- WP-B: 隊 ----
+    openParty: (idx = 0) => openStatus(idx),
+    autoEquip: () => ({ ok: false, moves: 0 }),
+    betterGearCount: () => 0,
+    trainableList: () => opsTrainableList(),
+    equipItemTo: (doll, item) => {
+      const owner = allDolls().find((d) => (d.items || []).includes(item));
+      const key = slotKeyFor(item, doll);
+      if (!owner || !key || !canEquip(doll, item) || !G.party.length) return { ok: false };
+      equipFromAnywhere(doll, key, { it: item, owner });
+      return { ok: true };
+    },
+    bestWearer: (item) => {
+      if (!item || item.unidentified || !isEquippable(item)) return null;
+      let best = null, bestScore = 0;
+      for (const d of G.party) {
+        if (!d || !d.alive || !canEquip(d, item)) continue;
+        const sc = gearScore(d, equipPreviewDelta(d, item));
+        if (sc > bestScore) { best = d; bestScore = sc; }
+      }
+      return best;
+    },
+    // ---- WP-C: 商会・品 ----
+    loot: (item, who, opts, next) => showItemGet(item, who, next),
+    itemSheet: (item, { owner = null, context = "bag" } = {}) => showItemDetailPopup(owner, { item, from: context }),
+    unidCount: () => OPS.counts().unid,
+    junkList: (opts) => opsJunkList(opts),
+    // ---- WP-D: 迷宮・出撃・帰還 ----
+    openDeparture: () => tryEnterDungeon(),
+    renderRunReport: () => null,
+    openDungeonMenu: () => openSettings(),
+  });
+}
+
+// ==== 戻る操作 (nav) の旧画面アダプタ ====
+// nav.back() はまず開いているシートを閉じる。無ければここ (prio 10) → 街シェル (60) → 迷宮 (70) の順。
+// 旧来の確認カード (.confirm-overlay) は背景タップ = 閉じる、を再現する。物語の語りは「全文を出す → 御意」
+function closeLegacyOverlay(top) {
+  if (top.classList.contains("story-overlay")) {
+    const card = top.querySelector(".story-card");
+    if (card && !card.classList.contains("revealed")) card.click();
+    else { const ok = top.querySelector(".story-ok"); if (ok) ok.click(); }
+    return;
+  }
+  top.dispatchEvent(new MouseEvent("click", { bubbles: true })); // 背景タップ
+  if (!top.isConnected) return;
+  const cancel = [...top.querySelectorAll("button")].find((b) => /^(やめ|閉じる|とじる|戻る)/.test(plainText(b.textContent)));
+  if (cancel) cancel.click();
+  else kitShake(top.querySelector(".ig-card") || top);
+}
+function legacyBack() {
+  if (titleActive || openingActive) return "root";
+  const ovs = document.querySelectorAll(".confirm-overlay");
+  const top = ovs[ovs.length - 1];
+  if (top) { closeLegacyOverlay(top); return true; }
+  if (itemGetEl && !itemGetEl.classList.contains("hidden")) {
+    if (typeof itemGetEl.onclick === "function") itemGetEl.click(); // 選択肢の無いカードは背景タップで閉じる
+    else kitShake(itemGetEl.querySelector(".ig-card") || itemGetEl); // 踏破の凱旋など、ボタンで進める
+    return true;
+  }
+  if (G.settingsOpen) { closeSettings(); return true; }
+  if (G.statusOpen) { closeStatus(); return true; }
+  if (G.prompt) return true; // 演出の最中 (階の暗転など) は何もしない
+  return false;
+}
+// 迷宮: 盤面 = 手帳 (Phase 0 は設定) / 戦闘 = オートを止めるだけ / 全滅 = 何もしない (決断を迫る)
+function dungeonBack() {
+  if (G.state === "board") { if (!G.anim && !G.walking) UI.openDungeonMenu(); return true; }
+  if (G.state === "combat") { if (G.autoCombat) stopAutoCombat(); return true; }
+  if (G.state === "over") return true;
+  return false;
+}
+
+// ==== UI 基盤の結線 (init の冒頭で一度) ====
+function wireUI() {
+  bindGame({
+    G, log, autosave, buzz, flashScreen, shakeScreen,
+    renderTown, renderTownLegacy, renderBoard, renderParty, renderRunbar, updateTopbar, renderStatus,
+    allDolls, recalcAllDolls, inDungeon, curDungeon, activeCfg, dungeonNumber, clearedDungeonCount,
+    sellPrice, buyPrice, appraiseCost, innCost, sellWarnings, bargainMul,
+    itemRankName, itemRankColor, itemGradeText, itemNameEl, logClassForItem,
+    showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
+    openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
+    tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, contentSealed, reportMainQuest, acceptMainQuest,
+    trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
+    claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliverQuest,
+    tryHastenRescue, reviveDoll, reviveTimerEl, fmtRemain,
+    doEquip, doUnequip, equipFromAnywhere, openEquipChooser, useItem, dropItem, transferItem,
+    stopAutoCombat, sceneBgm, playBgm, SFX,
+    ACHIEVEMENTS, FACILITIES, FAC_SHELL, CONTENT_LIMIT, DUNGEONS, LAYER_VISUALS,
+    isTitleActive: () => titleActive,
+    isOpeningActive: () => openingActive,
+    resetTownSelection: () => { altarSel = null; },
+  });
+  nav.init();
+  nav.handle(legacyBack, 10);
+  nav.handle(dungeonBack, 70);
+  registerPhase0Stubs();
+  townshell.install();
+  // 旧 #item-get (showItemGet 等) が開いたら、キットのプロンプトは置き換えられたものとして閉じる (旧実装の1枠と同じ)
+  if (typeof MutationObserver === "function" && itemGetEl) {
+    new MutationObserver(() => {
+      if (!itemGetEl.classList.contains("hidden") && promptSheet) { const h = promptSheet; promptSheet = null; h.close("replace", { silent: true }); }
+    }).observe(itemGetEl, { attributes: true, attributeFilter: ["class"] });
+  }
+  // 各パッケージの UI を登録 (スタブを差し替える)。A→B→C→D の順
+  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiDeparture, uiDungeonHud, uiResults]) {
+    try { m.install(); } catch (e) { console.error(e); }
+  }
+}
+
+// ==== [WP-A] UI API ==== (街・王宮・物語・設定・タイトル: WP-A が所有)
+// ==== /WP-A ====
+
+// ==== [WP-B] UI API ==== (隊・魂・最適装備: WP-B が所有)
+// ==== /WP-B ====
+
+// ==== [WP-C] UI API ==== (商会・品・入手: WP-C が所有)
+// ==== /WP-C ====
+
+// ==== [WP-D] UI API ==== (迷宮・出撃・帰還・戦果: WP-D が所有)
+// ==== /WP-D ====
+
 // ---- 起動 ----
 // タイトル画面のセーブ概要 (つづきから): 進行中の章・踏破数・編成の顔ぶれ
 function titleSummary() {
@@ -12862,8 +12948,11 @@ function titleSummary() {
 }
 
 function init() {
+  // UI 基盤 (ctx の結線・戻る操作・街シェル・各パッケージ) を最初の描画より前に整える
+  wireUI();
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
-  window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACHIEVEMENTS, questProgress, pickLoot, showItemGet, startBattle, spawnCardEnemies, spawnBossEnemies, activeCfg };
+  window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACHIEVEMENTS, questProgress, pickLoot, showItemGet, startBattle, spawnCardEnemies, spawnBossEnemies, activeCfg,
+    UI, ops, nav, townshell };
 
   let loaded = false;
   try { loaded = loadGame(); } catch (e) { loaded = false; }
@@ -12936,7 +13025,7 @@ function startAfterTitle(loaded) {
     resumeFromState();
   } catch (e) {
     try {
-      G.state = "town"; G.town = { facility: null, sub: null };
+      G.state = "town"; G.town = { facility: null, sub: null, tab: "hub", page: null };
       G.statusOpen = false; G.settingsOpen = false; G.prompt = false; G.anim = null; G.walking = false;
       if (statusEl) statusEl.classList.add("hidden");
       if (settingsEl) settingsEl.classList.add("hidden");
