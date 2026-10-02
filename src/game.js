@@ -7236,6 +7236,7 @@ function renderParty() {
       card.style.cursor = "pointer";
       card.setAttribute("role", "button");
       card.addEventListener("click", () => {
+        if (G._swiped) { G._swiped = false; return; } // 札の上からフリックして歩いた直後の click は無視
         if (G.anim || G.walking || uiBlocked()) return;
         UI.openParty(idx, { context: "dungeon" });
       });
@@ -10205,15 +10206,18 @@ function swipeStep(dx, dy) {
 }
 
 // スワイプは画面全体で受け付ける。ボタン/モーダル/ステータス画面は除外。
+// 盤面では隊の札 (#party) の上からもフリックで歩ける (タップ = 隊のシート、長押し = 覗く はそのまま)。
 const SWIPE_IGNORE = "button, a, [role=button], #party, #town-screen, #town-shell, #ui-layer, #item-get, .confirm-overlay";
 document.addEventListener("pointerdown", (e) => {
+  G._swiped = false; // 新しい指の動きごとに、前のスワイプの「click 無視」印を消す
   if (e.pointerType === "mouse") return;
   // どこを触っても、まず進行中のスワイプ連続移動ループを止める。
   // (メンバーカード等 SWIPE_IGNORE をタップした際にループが走り続けると、
   //  移動に伴う renderParty() でカードDOMが作り直されてタップ(openStatus)が失われる)
   stopSwipe();
-  if (e.target.closest(SWIPE_IGNORE)) return;
-  swipe = { x: e.clientX, y: e.clientY, dir: null };
+  const onParty = G.state === "board" && !uiBlocked() && e.target.closest("#party");
+  if (!onParty && e.target.closest(SWIPE_IGNORE)) return;
+  swipe = { x: e.clientX, y: e.clientY, dir: null, party: !!onParty };
 });
 
 document.addEventListener("pointermove", (e) => {
@@ -10224,6 +10228,9 @@ document.addEventListener("pointermove", (e) => {
   const mdy = mdx === 0 ? (dy > 0 ? 1 : -1) : 0;
   swipe.dir = { dx: mdx, dy: mdy };
   G._swiped = true;
+  // 札の上から始めたフリックは、方向が決まった時点で指を #party (作り直されない器) に捕まえておく。
+  // 歩くたびに renderParty() が札を作り直しても、指を離した pointerup を取りこぼさない (タップは札のまま)。
+  if (swipe.party) { try { partyEl.setPointerCapture(e.pointerId); } catch (err) { /* 非対応環境は素通し */ } }
   SFX.select();
   swipeStep(mdx, mdy);
 });

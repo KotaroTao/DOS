@@ -178,6 +178,7 @@
   border: 1px solid #3a2f2b; border-radius: 3px; box-shadow: var(--dg-edge);
   position: relative;
 }
+#party .pc { touch-action: none; } /* 札の上のフリックもブラウザのパンに奪わせず、盤面の移動に使う */
 #party.n4 .pc { flex-grow: 0; flex-basis: calc((100% - 10px) / 3); max-width: none; }
 .pc-por {
   grid-area: por; position: relative; width: 42px; height: 42px; align-self: start;
