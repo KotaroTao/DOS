@@ -103,12 +103,14 @@
 
 /* ===== 目的と収穫 (#runbar) ===== */
 #runbar {
-  margin: 4px 6px 0; padding: 0 8px 0 7px; height: 30px; gap: 8px;
+  position: relative;
+  margin: 4px 6px 0; padding: 0 8px 0 7px; height: 38px; gap: 8px;
   display: flex; align-items: center; justify-content: space-between;
   background: var(--grain), var(--dg-iron); border: 1px solid #33292a; border-radius: 2px;
   box-shadow: var(--dg-edge); font-size: 12px; font-variant-numeric: tabular-nums;
 }
 #runbar.hidden { display: none; }
+#runbar::before { content: ""; position: absolute; left: 0; right: 0; top: -4px; bottom: -3px; } /* 押せる幅を 44px に (見た目は 38px) */
 .rb-goal { display: flex; align-items: center; gap: 7px; min-width: 0; flex: 1 1 auto; }
 .rb-goal-ic {
   flex: 0 0 auto; width: 8px; height: 8px; transform: rotate(45deg);

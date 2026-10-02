@@ -1,4 +1,401 @@
 /* =====================================================================
-   商会・品 (WP-C) — 各パッケージが所有するスタイル (Phase 0 では空)
+   商会・品 (WP-C) — 商会タブ / 品シート / 入手のトースト・祝祭 / 選ぶシート
    ui.css のトークン (--iron-*, --gold*, --t-*, --sp-*) と kit の部品を土台に重ねる。
+   押せる場所は最低 44×44。値段は金貨の印 (.ui-g-gold) + 数字 (表の数字)。
    ===================================================================== */
+
+/* ---------- 共通の小物 ---------- */
+.wpc-dic { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; filter: drop-shadow(0 0 4px color-mix(in srgb, var(--glow, #000) 55%, transparent)) drop-shadow(0 1px 0 #000); }
+.wpc-dic canvas { width: 24px; height: 24px; }
+.wpc-gold { display: inline-flex; align-items: center; font-variant-numeric: tabular-nums; color: var(--accent-hi); font-weight: 700; }
+.wpc-dim { color: var(--ink-faint); font-weight: 500; }
+.wpc-cur { font-size: 11px; color: var(--ink-faint); font-weight: 500; white-space: nowrap; }
+.wpc-caret { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.wpc-caret.in { width: 16px; height: 16px; margin-left: -4px; opacity: 0.8; }
+.wpc-delta { gap: 2px 7px; font-size: 12px; }
+.wpc-empty { padding: 14px 8px; text-align: center; font-size: 13px; color: var(--ink-dim); }
+.wpc-empty.big { padding: 28px 12px; line-height: 1.8; }
+.wpc-hint { margin: 2px 4px 8px; font-size: 11.5px; line-height: 1.7; color: var(--ink-faint); text-align: center; }
+.wpc-tag { flex: 0 0 auto; padding: 1px 7px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; color: #b8ab92; border: 1px solid #4a3d36; border-radius: 2px; background: rgba(0,0,0,0.35); }
+.wpc-tag.dead { color: #ff9a8a; border-color: #6a2a24; }
+.wpc-x {
+  flex: 0 0 auto; width: var(--hit); height: var(--hit); margin: -8px -8px -8px 0;
+  font-family: var(--font); font-size: 20px; line-height: 1; color: var(--ink-dim);
+  background: none; border: 0; cursor: pointer; touch-action: manipulation;
+}
+
+/* =====================================================================
+   商会タブ
+   ===================================================================== */
+/* ページは流さない: 番人・区分・(分類) は上に固定、一覧の箱が残りの高さを受け持ち、頁で送る */
+#town-screen > .wpc-shop { flex: 1 1 0; min-height: 0; }
+.wpc-shop { display: flex; flex-direction: column; gap: 6px; }
+.wpc-shop > * { flex: 0 0 auto; }
+.wpc-shop > .ui-whisper { min-height: var(--hit); padding: 2px 10px 2px 2px; }
+.wpc-shop > .ui-whisper .ui-whisper-bust { width: 38px; height: 38px; }
+.wpc-shop > .ui-whisper .ui-whisper-line { font-size: 12px; }
+.wpc-bar { display: grid; gap: 6px; }
+.wpc-bar .ui-seg-b .ui-badge { margin-left: 2px; }
+.wpc-bar .ui-chips { margin: 0 -12px; }
+.wpc-bar .ui-chips-in { padding: 0 12px; }
+.wpc-bar .ui-chip { min-width: var(--hit); justify-content: center; }
+.wpc-cats .ui-chip .ui-badge { margin-left: 2px; }
+
+/* 一覧の見出し (題・頁送り) と箱 */
+.wpc-lhead { display: flex; align-items: center; gap: 8px; min-height: var(--hit); padding: 0 2px; }
+.wpc-lhead-t { flex: 0 0 auto; font-size: 13px; font-weight: 800; letter-spacing: 0.16em; color: var(--accent-hi); }
+.wpc-lhead-t::before { content: ""; display: inline-block; width: 6px; height: 6px; margin: 0 8px 2px 2px; transform: rotate(45deg); background: linear-gradient(135deg, #f3d58b, #8a6d2e); }
+.wpc-lhead-s { min-width: 0; flex: 1 1 auto; font-size: 11px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wpc-pager { margin-left: auto; display: inline-flex; align-items: center; gap: 2px; }
+.wpc-pg {
+  width: var(--hit); height: var(--hit); display: inline-flex; align-items: center; justify-content: center;
+  font-family: var(--font); font-size: 22px; line-height: 1; color: var(--accent-hi); cursor: pointer; touch-action: manipulation;
+  background: var(--grain), var(--plate-hi); border: 1px solid #5a4a36; border-radius: 3px;
+}
+.wpc-pg:disabled { opacity: 0.3; cursor: default; }
+.wpc-pg:active:not(:disabled) { transform: scale(0.95); }
+.wpc-pg-n { min-width: 46px; text-align: center; font-size: 12.5px; font-weight: 700; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.wpc-list { flex: 1 1 0 !important; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 6px; touch-action: pan-y; }
+.wpc-kindbtn {
+  display: inline-flex; align-items: center; gap: 6px; min-height: var(--hit); padding: 0 8px 0 12px;
+  font-family: var(--font); color: var(--ink); cursor: pointer; touch-action: manipulation;
+  background: var(--grain), var(--plate-hi); border: 1px solid #4a3d36; border-radius: 3px;
+}
+.wpc-kindbtn-l { font-size: 11px; color: var(--ink-dim); letter-spacing: 0.1em; }
+.wpc-kindbtn-v { font-size: 13px; font-weight: 800; color: var(--accent-hi); }
+.wpc-kindgrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 8px 0 2px; }
+.wpc-kindgrid .ui-btn { min-height: 52px; padding: 4px 6px; }
+
+/* ---------- まとめての札 ---------- */
+.wpc-bulk {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; padding: 10px 12px 0;
+  background: var(--corners), var(--grain), radial-gradient(120% 70% at 50% 0%, rgba(201,162,74,0.09), rgba(0,0,0,0) 60%), var(--plate);
+  border: 1px solid #5a4a36; border-radius: 3px;
+  box-shadow: var(--plate-edge), 0 0 18px rgba(201,162,74,0.08);
+}
+.wpc-bulk-row2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.wpc-bulk .ui-btn { min-width: 0; min-height: 56px; padding: 6px 8px; gap: 6px; font-size: 14px; letter-spacing: 0.06em; }
+.wpc-bulk .ui-btn .ui-btn-t { max-width: 100%; }
+.wpc-bulk .ui-btn .ui-btn-s { max-width: 100%; font-size: 11.5px; color: #cdbf9f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wpc-bulk .ui-btn:disabled .ui-btn-s { color: var(--ink-faint); }
+.wpc-exbtn {
+  display: flex; align-items: center; gap: 10px; width: calc(100% + 24px); min-height: var(--hit); margin: 0 -12px; padding: 2px 12px;
+  font-family: var(--font); font-size: 11.5px; line-height: 1.5; text-align: left; color: var(--ink-dim);
+  background: rgba(0,0,0,0.22); border: 0; border-top: 1px solid #2c2427; cursor: pointer; touch-action: manipulation;
+}
+.wpc-exbtn-t { flex: 1 1 auto; min-width: 0; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wpc-exbtn-t .wpc-keep-dot { display: inline-block; margin: 0 8px 1px 2px; vertical-align: middle; }
+.wpc-exbtn-more { flex: 0 0 auto; font-weight: 700; color: var(--accent); letter-spacing: 0.12em; }
+.wpc-exbtn-more::after { content: " ›"; }
+.wpc-keep-dot { flex: 0 0 auto; width: 6px; height: 6px; transform: rotate(45deg); background: linear-gradient(135deg, #f3d58b, #8a6d2e); box-shadow: 0 0 4px rgba(243,213,139,0.6); }
+
+/* ---------- 人業ごとの持ち物の行 (高さ一定) ---------- */
+.wpc-drow { flex: 0 0 auto; padding: 4px 8px 5px; background: var(--grain), var(--plate); border: 1px solid #33292a; border-radius: 3px; box-shadow: var(--plate-edge); }
+.wpc-drow.reserve { border-style: dashed; border-color: #3a3030; }
+.wpc-drow.dead .wpc-dic { filter: grayscale(0.9) brightness(0.7); }
+.wpc-drow-h { display: flex; align-items: center; gap: 6px; height: 22px; margin-bottom: 3px; }
+.wpc-drow-h .wpc-dic { width: 22px; height: 22px; }
+.wpc-drow-h .wpc-dic canvas { width: 22px; height: 22px; }
+.wpc-drow-h .wpc-tag { padding: 0 6px; line-height: 1.5; }
+.wpc-doll-nm { font-size: 14px; font-weight: 800; letter-spacing: 0.06em; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.wpc-doll-cnt { margin-left: auto; font-size: 12px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.wpc-doll-sum { display: inline-flex; align-items: center; gap: 2px; font-size: 12px; color: var(--ink-dim); white-space: nowrap; }
+.wpc-drow-tiles { display: flex; gap: 4px; height: 52px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; touch-action: pan-x; -webkit-overflow-scrolling: touch; }
+.wpc-drow-tiles::-webkit-scrollbar { display: none; }
+.wpc-drow-tiles .wpc-cell { flex: 0 0 46px; width: 46px; height: 52px; padding: 2px 1px; }
+.wpc-drow-tiles .wpc-cell-art { height: 33px; }
+.wpc-drow-tiles .wpc-cell-art canvas { width: 33px; height: 33px; }
+.wpc-bag-empty { align-self: center; padding: 0 4px; font-size: 12px; color: var(--ink-faint); }
+
+/* 品の札 */
+.wpc-cell {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  min-width: var(--hit); height: 66px; padding: 5px 2px 4px;
+  font-family: var(--font); color: var(--ink);
+  background: radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--edge, #3a302c) 16%, transparent), rgba(0,0,0,0) 62%), #0d0a0d;
+  border: 1px solid var(--edge, #3a302c); border-radius: 2px;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.9), 0 0 6px color-mix(in srgb, var(--edge, #000) 22%, transparent);
+  cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  transition: transform var(--t-tap) ease-out, filter var(--t-tap) ease-out;
+}
+.wpc-cell:active { transform: scale(0.95); filter: brightness(0.9); }
+.wpc-cell-art { display: flex; align-items: center; justify-content: center; height: 38px; }
+.wpc-cell-art canvas { width: 36px; height: 36px; }
+.wpc-cell.unid .wpc-cell-art canvas { filter: brightness(0.62) saturate(0.6); }
+.wpc-cell-p { display: inline-flex; align-items: center; font-size: 11px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; color: var(--accent-hi); text-shadow: 0 1px 0 #000; }
+.wpc-cell-p .ui-g { margin-right: 0.15em; }
+.wpc-cell-p.unid { color: #b4e6ff; }
+.wpc-cell-k { font-style: normal; font-size: 10px; margin-right: 2px; color: #7fd0ff; letter-spacing: 0; }
+.wpc-cell-new {
+  position: absolute; top: 2px; right: 2px; padding: 0 3px; font-size: 8px; font-weight: 800; letter-spacing: 0.04em; line-height: 1.4;
+  color: #1a0d04; background: linear-gradient(180deg, #ffd08a, #ff9a3a); border-radius: 1px; box-shadow: 0 0 6px rgba(255,140,40,0.85);
+}
+.wpc-cell-seal {
+  position: absolute; top: 2px; left: 4px; font-size: 13px; font-weight: 800; line-height: 1;
+  color: #ffe0a8; text-shadow: 0 0 6px rgba(127,208,255,0.8), 0 1px 0 #000;
+}
+.wpc-cell-keep { position: absolute; top: 5px; left: 5px; width: 5px; height: 5px; transform: rotate(45deg); background: linear-gradient(135deg, #f3d58b, #8a6d2e); box-shadow: 0 0 4px rgba(243,213,139,0.7); }
+.wpc-cell-up { position: absolute; top: 1px; left: 4px; font-size: 11px; font-weight: 800; line-height: 1.2; color: var(--up); text-shadow: 0 0 6px rgba(127,214,138,0.7), 0 1px 0 #000; }
+.wpc-cell.rar-sr { box-shadow: inset 0 0 10px rgba(0,0,0,0.9), 0 0 10px rgba(255,154,46,0.45); }
+.wpc-cell.rar-lr { box-shadow: inset 0 0 10px rgba(0,0,0,0.9), 0 0 12px rgba(255,59,59,0.55); }
+
+/* ---------- 買う: 棚の行 ---------- */
+.wpc-stock { display: grid; gap: 8px; }
+.wpc-srow {
+  position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: stretch;
+  min-height: 72px;
+  background: var(--grain), var(--plate); border: 1px solid #33292a; border-left: 3px solid var(--edge, #4a3d36); border-radius: 3px;
+  box-shadow: var(--plate-edge);
+}
+.wpc-srow.up { background: var(--grain), linear-gradient(90deg, rgba(110,190,95,0.12), rgba(0,0,0,0) 55%), var(--plate); }
+.wpc-srow-info {
+  min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 64px; padding: 8px 6px 8px 10px;
+  font-family: var(--font); color: var(--ink); text-align: left; background: none; border: 0; cursor: pointer;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.wpc-srow-info:active { filter: brightness(0.9); }
+.wpc-srow-ic {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 46px; height: 46px;
+  background: radial-gradient(circle, color-mix(in srgb, var(--edge, #3a302c) 18%, transparent), rgba(0,0,0,0) 65%), #0d0a0d;
+  border: 1px solid var(--edge, #3a302c); border-radius: 2px; box-shadow: inset 0 0 8px rgba(0,0,0,0.9);
+}
+.wpc-srow-ic canvas { width: 36px; height: 36px; }
+.wpc-srow-t { min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; }
+.wpc-srow-l1 { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.wpc-srow-nm { min-width: 0; font-size: 14.5px; font-weight: 800; letter-spacing: 0.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wpc-srow-meta { font-size: 11px; color: var(--ink-faint); letter-spacing: 0.06em; }
+.wpc-srow-l3 { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: 12px; min-height: 18px; }
+.wpc-srow-who { font-size: 11.5px; color: var(--ink-dim); white-space: nowrap; }
+.wpc-buy { display: flex; align-items: center; padding: 8px 8px 8px 0; }
+.wpc-buy-main, .wpc-buy-more {
+  display: inline-flex; align-items: center; justify-content: center; min-height: 54px;
+  font-family: var(--font); color: var(--ink); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  background: var(--grain), var(--plate-hi); border: 1px solid #5a4a36;
+  box-shadow: inset 0 1px 0 rgba(255,236,200,0.08), inset 0 0 0 1px rgba(0,0,0,0.55), 0 2px 6px rgba(0,0,0,0.6);
+  transition: transform var(--t-tap) ease-out, filter var(--t-tap) ease-out;
+}
+.wpc-buy-main { flex-direction: column; gap: 1px; min-width: 86px; padding: 4px 8px; border-radius: 3px 0 0 3px; }
+.wpc-buy-more { width: var(--hit); border-left: 0; border-radius: 0 3px 3px 0; color: var(--accent); }
+.wpc-buy-main:active:not(:disabled), .wpc-buy-more:active { transform: scale(0.96); filter: brightness(0.9); }
+.wpc-buy-p { font-size: 13.5px; }
+.wpc-buy-l { font-size: 11.5px; font-weight: 700; letter-spacing: 0.1em; color: var(--ink-dim); white-space: nowrap; }
+.wpc-buy-main.eq { border-color: #8a6d2e; background: var(--grain), linear-gradient(180deg, #2c2318 0%, #1c160f 60%, #130f0a 100%); box-shadow: inset 0 1px 0 rgba(255,226,160,0.14), 0 0 0 1px rgba(201,162,74,0.25), 0 0 14px rgba(201,162,74,0.18); }
+.wpc-buy-main.eq .wpc-buy-l { color: var(--accent-hi); }
+.wpc-buy-main.eq + .wpc-buy-more { border-color: #8a6d2e; }
+.wpc-buy-main.short .wpc-buy-p { color: #e4776f; }
+.wpc-buy-main:disabled { opacity: 0.5; filter: grayscale(0.4); cursor: default; }
+
+/* =====================================================================
+   品シート (ItemSheet)
+   ===================================================================== */
+.wpc-isheet .ui-sheet-body { text-align: left; padding-top: 6px; }
+.wpc-isheet { border-top-width: 2px !important; }
+.wpc-is-top { display: grid; grid-template-columns: 100px minmax(0, 1fr); gap: 14px; align-items: center; padding: 2px 0 10px; }
+.wpc-is-art {
+  position: relative; width: 100px; height: 100px; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle, color-mix(in srgb, var(--sheet-accent, #c9a24a) 30%, transparent), rgba(0,0,0,0) 66%), #0b090c;
+  border: 1px solid color-mix(in srgb, var(--sheet-accent, #c9a24a) 70%, #000); border-radius: 3px;
+  box-shadow: inset 0 0 14px rgba(0,0,0,0.9), 0 0 16px color-mix(in srgb, var(--sheet-accent, #c9a24a) 25%, transparent);
+}
+.wpc-is-art canvas { width: 84px; height: 84px; }
+.wpc-is-seal { position: absolute; right: 6px; bottom: 2px; font-size: 22px; font-weight: 800; color: #ffe0a8; text-shadow: 0 0 10px rgba(127,208,255,0.9), 0 1px 0 #000; }
+.wpc-is-hd { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.wpc-is-name { font-size: 19px; font-weight: 800; letter-spacing: 0.04em; line-height: 1.35; overflow-wrap: anywhere; }
+.wpc-is-grade { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.wpc-rtag { padding: 0 8px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.2em; border: 1px solid currentColor; border-radius: 2px; background: rgba(0,0,0,0.35); text-shadow: none; }
+.wpc-is-cat { font-size: 12px; color: var(--ink-dim); }
+.wpc-is-unid { padding: 0 6px; font-size: 10.5px; font-weight: 700; color: #b4e6ff; border: 1px solid #36506a; border-radius: 2px; }
+.wpc-is-curse { padding: 0 6px; font-size: 10.5px; font-weight: 700; color: #ffb0a4; border: 1px solid #7a2a24; border-radius: 2px; }
+.wpc-is-stat { font-size: 13px; font-weight: 700; color: #9fc4ee; line-height: 1.5; }
+.wpc-is-meta { display: flex; align-items: center; flex-wrap: wrap; font-size: 12px; color: var(--ink-dim); }
+.wpc-is-note { margin: 2px 0 8px; font-size: 13px; color: #b4e6ff; }
+.wpc-is-lab { flex: 0 0 auto; font-size: 11.5px; font-weight: 700; letter-spacing: 0.14em; color: var(--accent); }
+/* 主役の段: 隊と控えの全員 (押せばその場で装備) */
+.wpc-is-pick { margin: 2px 0 12px; }
+.wpc-is-picklab { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; color: var(--accent); }
+.wpc-is-note.gold { color: var(--accent-hi); }
+.wpc-dgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.wpc-dchip {
+  position: relative; display: flex; flex-direction: column; align-items: stretch; justify-content: center; gap: 3px;
+  min-height: 60px; padding: 6px 6px 6px 6px; text-align: left;
+  font-family: var(--font); color: var(--ink); cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  background: var(--grain), var(--plate-hi); border: 1px solid #3a3029; border-radius: 3px;
+  box-shadow: inset 0 1px 0 rgba(255,236,200,0.06), 0 2px 6px rgba(0,0,0,0.5);
+  transition: transform var(--t-tap) ease-out, filter var(--t-tap) ease-out;
+}
+.wpc-dchip:active:not(.off) { transform: scale(0.96); filter: brightness(0.92); }
+.wpc-dchip-top { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.wpc-dchip-top .wpc-dic { width: 26px; height: 26px; }
+.wpc-dchip-nm { min-width: 0; font-size: 13px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wpc-dchip-sub { display: block; min-height: 16px; font-size: 11.5px; line-height: 1.3; }
+.wpc-sd { display: inline-flex; flex-wrap: wrap; gap: 0 6px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.wpc-sd .up { color: var(--up); } .wpc-sd .dn { color: var(--down); } .wpc-sd .eq, .wpc-sd .more { color: var(--ink-faint); font-weight: 500; }
+.wpc-dchip-why { color: #c9a39a; font-weight: 700; letter-spacing: 0.08em; }
+.wpc-dchip-bag { color: var(--ink-dim); }
+.wpc-dchip.off { cursor: default; opacity: 0.5; filter: grayscale(0.7); box-shadow: none; }
+.wpc-dchip.best { border-color: #c9a24a; background: var(--grain), linear-gradient(180deg, #2c2318 0%, #1c160f 60%, #130f0a 100%); box-shadow: 0 0 0 1px rgba(201,162,74,0.45), 0 0 14px rgba(201,162,74,0.25); }
+.wpc-dchip-best { position: absolute; top: -7px; right: 6px; padding: 0 6px; font-size: 9.5px; font-weight: 800; letter-spacing: 0.12em; line-height: 1.5; color: #1a1206; background: linear-gradient(180deg, #f3d58b, #c9a24a); border-radius: 2px; box-shadow: 0 0 6px rgba(243,213,139,0.6); }
+.wpc-dchip-dead { position: absolute; top: 3px; right: 6px; font-size: 13px; font-weight: 800; color: #e4554f; }
+.wpc-dchip-rsv { position: absolute; bottom: 4px; right: 5px; font-size: 9.5px; color: var(--ink-faint); border: 1px solid #3a3029; padding: 0 3px; border-radius: 2px; }
+.wpc-dchip.best .wpc-dchip-dead { right: 46px; }
+/* WP-B の「誰に装備させる？」(UI.equipChooserEl) を品シートの主役の段に。棚では手元の見出し (値段つき) を使う */
+.wpc-is-pick .wpc-chooser-el { margin: 0; }
+.wpc-isheet.ctx-stock .wpc-chooser-el .pt-ch-h { display: none; }
+.wpc-chooser .wpc-chooser-el .pt-ch-h { display: none; }
+/* 人業を選ぶシートの見出し (品の絵と名前) */
+.wpc-ch-hd { display: flex; align-items: center; gap: 10px; text-align: left; margin: 2px 0 10px; }
+.wpc-ch-t { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.wpc-ch-nm { font-size: 16px; font-weight: 800; }
+.wpc-ch-st { font-size: 12px; color: #9fc4ee; font-weight: 700; }
+.wpc-ch-lab { text-align: left; margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; color: var(--accent); }
+.wpc-is-delta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin: 0 0 10px; padding: 9px 12px;
+  background: rgba(0,0,0,0.32); border: 1px solid #2c2427; border-radius: 3px;
+}
+.wpc-is-delta.center { justify-content: center; margin: 8px 0 2px; }
+.wpc-is-delta .wpc-delta { font-size: 13px; }
+.wpc-is-lines { display: grid; gap: 2px; margin: 0 0 10px; font-size: 12.5px; line-height: 1.6; color: var(--ink-dim); }
+.wpc-is-lore {
+  margin: 0 0 4px; padding: 2px 0 2px 12px; font-size: 13px; line-height: 1.8; color: #b2a68f;
+  border-left: 2px solid #5a4a36;
+}
+.wpc-is-top.wpc-revealed .wpc-is-art { animation: wpc-reveal 0.9s ease-out both; }
+.wpc-is-top.wpc-revealed .wpc-is-name { animation: wpc-name-in 0.6s ease 0.25s both; }
+@keyframes wpc-reveal {
+  0% { filter: brightness(2.6); box-shadow: 0 0 40px #f3d58b; }
+  100% { filter: none; }
+}
+@keyframes wpc-name-in { from { opacity: 0; transform: translateY(4px); letter-spacing: 0.3em; } to { opacity: 1; transform: none; } }
+
+/* 操作 (決め手 56px + 補助の段) */
+.wpc-act-main { display: flex; align-items: stretch; gap: 0; }
+.wpc-act-main.split > .ui-btn { border-radius: 3px 0 0 3px; }
+.wpc-act-more {
+  flex: 0 0 auto; width: 56px; min-height: 56px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--accent-hi); cursor: pointer; touch-action: manipulation;
+  background: var(--grain), linear-gradient(180deg, #2c2318 0%, #1c160f 60%, #130f0a 100%);
+  border: 1px solid #8a6d2e; border-left-color: #4a3a22; border-radius: 0 3px 3px 0;
+}
+.wpc-act-more:active { filter: brightness(0.9); }
+.wpc-act-sec { display: grid; gap: 8px; grid-template-columns: repeat(var(--n, 3), minmax(0, 1fr)); }
+.wpc-act-sec.n1 { --n: 1; } .wpc-act-sec.n2 { --n: 2; } .wpc-act-sec.n3 { --n: 3; } .wpc-act-sec.n4 { --n: 4; }
+.wpc-act-sec .ui-btn { padding: 6px 8px; font-size: 13.5px; letter-spacing: 0.04em; gap: 6px; }
+.wpc-act-sec .ui-btn .ui-cost { padding: 1px 5px; font-size: 11.5px; }
+.wpc-isheet .ui-sheet-foot .ui-btn.s-lg .ui-btn-s { color: #cdbf9f; }
+
+/* =====================================================================
+   選ぶシート (装備させる・渡す・鑑定・買う相手)
+   ===================================================================== */
+.wpc-picklist { display: grid; gap: 8px; margin: 8px 0 2px; text-align: left; }
+.wpc-prow { display: flex; align-items: center; gap: 4px; background: var(--grain), var(--plate); border: 1px solid #33292a; border-radius: 3px; box-shadow: var(--plate-edge); }
+.wpc-prow.t-gold { border-color: #8a6d2e; }
+.wpc-prow-main {
+  flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 58px; padding: 6px 12px;
+  font-family: var(--font); color: var(--ink); text-align: left; background: none; border: 0; cursor: pointer; touch-action: manipulation;
+}
+.wpc-prow-main:disabled { opacity: 0.45; cursor: default; }
+.wpc-prow-main:active:not(:disabled) { filter: brightness(0.9); }
+.wpc-prow-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.wpc-prow-title { font-size: 14.5px; font-weight: 800; letter-spacing: 0.04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.wpc-prow-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: 12px; color: var(--ink-dim); }
+.wpc-prow-r { flex: 0 0 auto; display: inline-flex; align-items: center; color: var(--accent-hi); font-weight: 800; }
+.wpc-prow-act.ui-btn { flex: 0 0 auto; width: auto; min-width: 72px; margin: 6px 8px 6px 0; }
+.wpc-odds { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.wpc-odds b { font-size: 16px; color: #b4e6ff; font-variant-numeric: tabular-nums; }
+.wpc-oddsbar { display: block; width: 58px; height: 4px; background: #120d10; border: 1px solid #2a2226; border-radius: 1px; overflow: hidden; }
+.wpc-oddsbar i { display: block; height: 100%; background: linear-gradient(90deg, #1d5a86, #7fd0ff); }
+
+/* 一括の確認・除外の内訳 */
+.wpc-cbody { text-align: left; }
+.wpc-strip { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 8px 0 4px; }
+.wpc-strip .wpc-cell { width: 50px; height: 50px; padding: 2px; }
+.wpc-strip .wpc-cell-art { height: auto; }
+.wpc-strip-more { align-self: center; font-size: 12px; color: var(--ink-dim); padding: 0 6px; }
+/* 切り替え (装備の候補も売る) */
+.wpc-toggle {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 56px; margin: 10px 0 0; padding: 8px 12px;
+  font-family: var(--font); text-align: left; color: var(--ink); cursor: pointer; touch-action: manipulation;
+  background: var(--grain), var(--plate-hi); border: 1px solid #3a3029; border-radius: 3px;
+}
+.wpc-toggle-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.wpc-toggle-l { font-size: 14px; font-weight: 800; }
+.wpc-toggle-s { font-size: 11.5px; color: var(--ink-dim); }
+.wpc-switch { flex: 0 0 auto; position: relative; width: 46px; height: 26px; border-radius: 13px; background: #120d10; border: 1px solid #4a3d36; box-shadow: inset 0 2px 4px rgba(0,0,0,0.8); transition: background var(--t-fast) ease-out, border-color var(--t-fast) ease-out; }
+.wpc-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #d8cdb6, #6e6457); box-shadow: 0 1px 2px #000; transition: transform var(--t-fast) ease-out, background var(--t-fast) ease-out; }
+.wpc-toggle.on .wpc-switch { background: linear-gradient(180deg, #3a2c14, #1c160f); border-color: #b8913e; }
+.wpc-toggle.on .wpc-switch::after { transform: translateX(20px); background: radial-gradient(circle at 35% 30%, #fff3c0, #d6a93c 55%, #6e4c12); }
+.wpc-keepnote { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin: 8px 0 0; padding: 8px 10px; font-size: 12px; line-height: 1.6; color: var(--ink-dim); background: rgba(0,0,0,0.3); border: 1px solid #2c2427; border-radius: 3px; }
+.wpc-keep-lab { font-weight: 800; color: var(--accent); letter-spacing: 0.14em; }
+.wpc-exlist { display: grid; gap: 10px; margin: 6px 0 2px; text-align: left; }
+.wpc-exsec .wpc-strip { justify-content: flex-start; }
+.wpc-exsec { padding: 8px 10px; background: rgba(0,0,0,0.25); border: 1px solid #2c2427; border-radius: 3px; }
+.wpc-exsec.none { opacity: 0.55; }
+.wpc-exh { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.wpc-exh-t { font-size: 13.5px; font-weight: 800; color: var(--ink); }
+.wpc-exh-n { font-size: 12px; color: var(--accent-hi); font-variant-numeric: tabular-nums; }
+.wpc-exnote { font-size: 11.5px; color: var(--ink-faint); margin-top: 2px; }
+.wpc-exnote.foot { text-align: center; margin: 4px 0 0; }
+
+/* =====================================================================
+   入手のトースト・祝祭カード
+   ===================================================================== */
+.ui-toast.wpc-loot-toast { padding-top: 6px; padding-bottom: 6px; }
+.wpc-loot-toast .ui-toast-t { display: flex; flex-direction: column; gap: 1px; }
+.wpc-lt-l1 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.wpc-lt-nm { font-weight: 800; }
+.wpc-lt-nm.rar-c { color: #f1ead9; }
+.wpc-lt-unid { padding: 0 5px; font-size: 10px; letter-spacing: 0.08em; color: #b4e6ff; border: 1px solid #36506a; border-radius: 2px; line-height: 1.5; }
+.wpc-lt-who { font-size: 12px; color: #cdbf9f; font-weight: 700; }
+.wpc-lt-l2 { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: 11.5px; }
+.wpc-lt-l2.dim { color: #b2a68f; font-weight: 500; }
+.wpc-lt-tgt { color: #cdbf9f; font-size: 11.5px; }
+.wpc-loot-toast .ui-toast-act { min-height: var(--hit); }
+.ui-toast-t > .wpc-delta { display: flex; margin-top: 2px; font-size: 11.5px; }
+.wpc-loot .ui-sheet-banner { letter-spacing: 0.1em; white-space: nowrap; gap: 8px; }
+.wpc-loot .ui-sheet-banner::before, .wpc-loot .ui-sheet-banner::after { flex-basis: 22px; }
+
+.ui-sheet.k-celebrate.wpc-loot { padding-top: 14px; }
+.ui-sheet.k-celebrate.wpc-loot.rar-sr { animation: rar-glow-sr 1.6s ease-in-out 0.4s infinite; }
+.ui-sheet.k-celebrate.wpc-loot.rar-lr { animation: rar-glow-lr 1.2s ease-in-out 0.5s infinite; overflow: hidden; }
+.wpc-loot .ig-art { margin: 6px auto 8px; }
+.wpc-loot .ig-art canvas.spr { max-width: 120px; max-height: 120px; }
+.wpc-cel-name { display: block; margin-top: 2px; font-size: 19px; line-height: 1.45; }
+.wpc-loot .ig-rarity { margin-top: 6px; }
+.wpc-loot .ig-desc { margin: 10px 2px 6px; }
+.wpc-loot .ig-who { margin: 2px 0 0; }
+.wpc-cel-foot { display: grid; grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.6fr); gap: 8px; }
+.wpc-cel-foot .ui-btn { min-height: 56px; }
+
+/* 収穫バーの格の数が弾む */
+#runbar .rb-rar.wpc-bump { animation: wpc-bump 0.7s cubic-bezier(.3,1.6,.5,1); }
+@keyframes wpc-bump {
+  0% { transform: scale(1); filter: none; }
+  30% { transform: scale(1.7); filter: brightness(2) drop-shadow(0 0 6px currentColor); }
+  100% { transform: scale(1); filter: none; }
+}
+
+/* ---------- 狭い画面 (360px 前後) ---------- */
+@media (max-width: 374px) {
+  .wpc-bulk .ui-btn { font-size: 13px; padding: 6px 4px; letter-spacing: 0.02em; }
+  .wpc-buy-main { min-width: 78px; padding: 4px 6px; }
+  .wpc-srow-info { gap: 8px; padding-left: 8px; }
+  .wpc-srow-ic { width: 42px; height: 42px; }
+  .wpc-is-top { grid-template-columns: 84px minmax(0, 1fr); gap: 12px; }
+  .wpc-is-art { width: 84px; height: 84px; }
+  .wpc-is-art canvas { width: 72px; height: 72px; }
+  .wpc-act-sec .ui-btn { font-size: 12.5px; padding: 6px 4px; }
+}
+
+/* ---------- 背の低い画面: 番人のひとことは1行に ---------- */
+@media (max-height: 700px) {
+  .wpc-shop > .ui-whisper .ui-whisper-line { -webkit-line-clamp: 1; }
+  .wpc-shop { gap: 6px; }
+}
+
+/* ---------- 視差を減らす設定 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .ui-sheet.k-celebrate.wpc-loot.rar-sr, .ui-sheet.k-celebrate.wpc-loot.rar-lr,
+  .wpc-is-top.wpc-revealed .wpc-is-art, .wpc-is-top.wpc-revealed .wpc-is-name,
+  #runbar .rb-rar.wpc-bump { animation: none !important; }
+  .wpc-cell, .wpc-buy-main, .wpc-buy-more { transition-duration: 0.12s; }
+}

@@ -431,14 +431,6 @@
 .tw-kline { margin-top: 3px; font-size: 12.5px; line-height: 1.7; color: #e6dbc2; }
 .tw-shell + .tw-lead, .tw-shell + .tw-note { margin-top: 10px; }
 
-/* 商店 (固定レイアウト) は帯を低く、番人も小さく */
-#town-screen.shop-mode .tw-shell { flex: 0 0 auto; }
-#town-screen.shop-mode .tw-banner { height: 92px; }
-#town-screen.shop-mode .tw-keeper { margin-top: -44px; }
-#town-screen.shop-mode .tw-kport { width: 48px; height: 56px; }
-#town-screen.shop-mode .tw-kline { font-size: 11.5px; line-height: 1.5; }
-#town-screen.shop-mode .tw-ksay { padding: 5px 9px 6px; }
-
 /* =====================================================================
    施設の中の部品を黒鉄と金に揃える (旧来の紫の名残を上書き)
    ===================================================================== */
@@ -477,16 +469,6 @@
 #town-screen .tw-recrow { padding: 8px 10px; }
 #town-screen .tw-mrow > .tw-small:last-child { margin-left: auto; }
 #town-screen .tw-chips { filter: drop-shadow(0 1px 2px #000); }
-
-/* 商店: 在庫と荷袋 */
-#town-screen .shop-dock { border-top: 1px solid #4a3d36; box-shadow: 0 -1px 0 rgba(201, 162, 74, 0.25); background: linear-gradient(180deg, rgba(20, 15, 14, 0.9), rgba(10, 8, 10, 0.98)); }
-#town-screen .shop-member { background: var(--plate-hi); border: 1px solid #4a3d36; color: #cdbf9f; font-family: var(--font); }
-#town-screen .shop-member.sel { border-color: var(--tw-gold); color: var(--tw-gold-hi); background: linear-gradient(180deg, #2c2318, #18130d); box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.4); }
-#town-screen .shop-bagh { color: #998d77; }
-#town-screen .shop-slot { background: #0d0a0d; border: 1px solid #3a302c; border-radius: 2px; box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.9); }
-#town-screen .shop-slot:not(.empty):active { background: #1d1612; }
-#town-screen .shop-price { color: var(--tw-gold-hi); text-shadow: 0 1px 0 #000; }
-#town-screen .tw-shoprow.equip-ok { background: var(--grain), linear-gradient(90deg, rgba(90, 160, 80, 0.14), rgba(0, 0, 0, 0) 60%), var(--plate); }
 
 @media (prefers-reduced-motion: reduce) {
   .tw-spot.call .tw-spot-l, .tw-plate-badge, #town-screen .tw-dive, #town-screen .tw-dive::after, .tw-php.low > i { animation: none !important; }
