@@ -4,7 +4,7 @@
 // キャッシュから返す。これにより「新しい game.js + 古い souls.js」のような
 // モジュール混在 (export 不一致で白画面) が構造的に起きない。
 // 新デプロイは CACHE 名の変更で検出され、ページ側が自動リロードする。
-const CACHE = "dos-v290";
+const CACHE = "dos-v291";
 const ASSETS = [
   "./",
   "./index.html",
@@ -25,6 +25,15 @@ const ASSETS = [
   "./src/souls.js",
   "./src/content.js",
   "./src/audio.js",
+  "./src/music/dsp.js",
+  "./src/music/instruments.js",
+  "./src/music/bank.js",
+  "./src/music/worker.js",
+  "./src/music/engine.js",
+  "./src/music/score.js",
+  "./src/music/songs.js",
+  "./src/music/legacy.js",
+  "./src/music/sfx.js",
   "./src/opening.js",
   "./src/subquests.js",
   "./src/tavern.js",
