@@ -54,6 +54,7 @@ import * as uiLoot from "./ui/loot.js";
 import * as uiDeparture from "./ui/departure.js";
 import * as uiDungeonHud from "./ui/dungeonhud.js";
 import * as uiResults from "./ui/results.js";
+import * as uiAppraise from "./ui/appraise.js";
 
 // キャンバスに描く文字の書体 (画面の明朝と揃える)
 const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", "Noto Serif CJK JP", serif';
@@ -9103,12 +9104,29 @@ function tryEnterDungeon() {
   if (G.unlockedDungeons < 1) { log("王の勅命を受けるまで、迷宮には入れない。", "sys"); showToast("王の勅命を受けるまで、迷宮の在処は明かされない", { tone: "info" }); return; }
   UI.openDeparture();
 }
+// 踏破の報告が済んでいないか (済むまで迷宮には入れない)。公開範囲の先 (準備中) の報告は対象外
+function reportPending() {
+  return !!G.msq && G.msq.state === "report" && !contentSealed() && !!DUNGEONS[G.msq.n - 1];
+}
+// 迷宮へ向かおうとした時、報告が先なら引き止める (王宮へ案内するシート)。引き止めたら true
+function blockForReport() {
+  if (!reportPending()) return false;
+  SFX.ng(); buzz([0, 30, 40, 30]);
+  kitConfirm({
+    banner: "勅 命", danger: false,
+    title: "王に報告するのが先だ",
+    lines: [`「${DUNGEONS[G.msq.n - 1].name}」の踏破を、まだ王に報告していない。`, "報告を済ませるまで、迷宮の門は開かれない。"],
+    okLabel: "王に報告する", cancelLabel: "あとで",
+  }).then((ok) => { if (ok && reportPending()) reportMainQuest(); });
+  return true;
+}
 
 // 門をくぐる (出撃シートの決め手)。idx = 迷宮の番号 (0始まり) / accept = 迷宮の異変ごと潜るか。
 // 闇に溶けて (sceneTransition) その底で潜入する。潜れない時は理由を返す
 function departNow({ idx = G.dungeonIdx, accept = false } = {}) {
   if (G.state !== "town") return { ok: false, reason: "state" };
   if (G.unlockedDungeons < 1) return { ok: false, reason: "locked" };
+  if (blockForReport()) return { ok: false, reason: "report" };
   const open = Math.min(G.unlockedDungeons, CONTENT_LIMIT);
   if (idx < 0 || idx >= open) { showToast("その先は準備中だ", { tone: "info" }); return { ok: false, reason: "sealed" }; }
   if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); SFX.ng(); return { ok: false, reason: "party" }; }
@@ -9261,6 +9279,7 @@ function enterAbyss(mods, weekly) {
 function departAbyss(mods, weekly) {
   if (G.state !== "town") return;
   if (!featureUnlocked("infinite")) { SFX.ng(); return; }
+  if (blockForReport()) return;
   if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); SFX.ng(); return; }
   G.prompt = true;
   uiDungeonHud.sceneTransition(() => { G.prompt = false; enterAbyss(mods, weekly); });
@@ -9728,21 +9747,21 @@ function openIdentifyChooser(it, onDone) {
 }
 
 // スキル鑑定を実行。成功で正体判明、失敗で idHardFail (以後は商店でのみ鑑定可)。成功なら true
-function doIdentifySkill(m, it) {
+// quiet: 音・トースト・描き直し・保存を呼び出し側 (鑑定を試みるの演出 src/ui/appraise.js) に任せる
+function doIdentifySkill(m, it, { quiet = false } = {}) {
   if (!it || !it.unidentified || it.lr || it.idHardFail) return false;
   const ch = identifyChance(m, it.lv || 1);
   const ok = Math.random() < ch;
   if (ok) {
     it.unidentified = false;
-    SFX.itemget(); buzz(15);
     log(`${m.name}は ${it.name} を鑑定した！`, "win");
-    showToast(`${it.name} と判明した (${m.name})`, { tone: "good" });
+    if (!quiet) { SFX.itemget(); buzz(15); showToast(`${it.name} と判明した (${m.name})`, { tone: "good" }); }
   } else {
     it.idHardFail = true;
-    SFX.ng(); buzz([0, 30, 40, 30]);
     log(`${m.name}の鑑定は失敗した… この品は商店でしか鑑定できなくなった。`, "sys");
-    showToast("鑑定に失敗した… もう商会でしか鑑定できない", { tone: "bad" });
+    if (!quiet) { SFX.ng(); buzz([0, 30, 40, 30]); showToast("鑑定に失敗した… もう商会でしか鑑定できない", { tone: "bad" }); }
   }
+  if (quiet) return ok;
   if (G.statusOpen) renderStatus(); // ステータス画面はオーバーレイ (G.state は board/town のまま) なので statusOpen で判定
   if (G.state === "town") renderTown();
   else renderParty();
@@ -10901,7 +10920,7 @@ function wireUI() {
     itemRankName, itemRankColor, itemGradeText, itemNameEl, logClassForItem,
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
-    tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, contentSealed, reportMainQuest, acceptMainQuest,
+    tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport,
     trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliverQuest,
     tryHastenRescue, reviveDoll, reviveTimerEl, fmtRemain,
@@ -10924,7 +10943,7 @@ function wireUI() {
     }).observe(itemGetEl, { attributes: true, attributeFilter: ["class"] });
   }
   // 各パッケージの UI を登録 (スタブを差し替える)。A→B→C→D の順
-  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiDeparture, uiDungeonHud, uiResults]) {
+  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiAppraise, uiDeparture, uiDungeonHud, uiResults]) {
     try { m.install(); } catch (e) { console.error(e); }
   }
 }

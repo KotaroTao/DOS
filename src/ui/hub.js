@@ -51,9 +51,15 @@ function builtinSuggestions(c) {
     out.push({ key: "rest", prio: 20, label: "宿で休む", sub: `手負い ${c.hurt}`, cost: { kind: "gold", n: c.innCost }, icon: "rest", run: () => ops.restParty() });
   }
   // 未鑑定: まとめて鑑定 (商会 (WP-C) の確かめのシート → 正体を明かすシート。無ければ1タップ・安い順に所持金の続く限り)
+  // 鑑定の心得のある者がいれば、まず隊の技で試みる (商会の「まとめて鑑定」は試せない品が残った時)
   let unid = c.unid || 0;
   try { if (UI.unidCount) unid = UI.unidCount() || 0; } catch (e) { unid = c.unid || 0; }
-  if (unid && facilityOpen("shop")) {
+  let tryId = null;
+  try { tryId = UI.tryIdentifyInfo ? UI.tryIdentifyInfo() : null; } catch (e) { tryId = null; }
+  if (tryId) {
+    out.push({ key: "identify", prio: 30, label: "鑑定を試みる", short: "鑑定する", sub: `${tryId.n}点 ・ ${tryId.top.m.name}`, icon: "seal",
+      run: () => UI.openTryIdentifyAll() });
+  } else if (unid && facilityOpen("shop")) {
     out.push({ key: "identify", prio: 30, label: "まとめて鑑定", short: "鑑定する", sub: `未鑑定 ${unid}`, cost: { kind: "gold", n: c.unidCost }, icon: "seal",
       run: () => (UI.confirmIdentifyAll ? UI.confirmIdentifyAll() : (UI.identifyAll || ops.identifyAll)()) });
   }
