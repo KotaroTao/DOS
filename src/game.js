@@ -7514,176 +7514,17 @@ function confirmReset() {
   ], null, { banner: "⚠ 警告 ⚠", accent: "#e4554f" });
 }
 
-// ---- 人業の館: メニュー (魂の祭壇 / 魂合成 / 魂融合 / 魂分解 / パーティ編成 / 人業保管庫) ----
-const MANSION_MENU = [
-  { key: "altar", icon: "⛓", name: "魂の祭壇", desc: "宿す魂の付け替えと強化" },
-  { key: "party", icon: "🛡", name: "パーティ編成", desc: "迷宮へ連れて行く6体を選ぶ" },
-  { key: "manage", icon: "🏚", name: "人業保管庫", desc: "魂を宿して人業を仕立てる・名前変更" },
-];
-
+// ---- 人業の館 (旧) → 隊タブ (src/ui/party.js) ----
+// 旧来の「館」画面 (G.town.facility = "mansion" / sub = altar・party・manage) は、統合された隊タブへ読み替える。
+// sub=manage は控え・仕立てのシートを、altar は魂の区分を開く。他の入口 (広場の「隊列を組む」・目標・出撃前の確認) もここを通る。
 function renderMansion() {
   const sub = G.town.sub;
-  if (sub === "party") return renderMansionParty();
-  if (sub === "altar") return renderAltar();
-  if (sub === "manage") return renderMansionManage();
-
-  townEl.appendChild(townHeader("人業の館"));
-  townEl.appendChild(el("div", "tw-lead", "人型の器「人業（Doll）」を仕立て、魂を宿して鍛える訓練所。宿す魂は祭壇で付け替えられる。"));
-  const tutM = G.msq && G.msq.n === 0 && G.msq.state === "active";
-  const grid = el("div", "tw-plates");
-  for (const m of MANSION_MENU) {
-    // 第0章 (人業の生成) の間は「人業保管庫」のみ開放。残りはロック＆グレーアウト
-    const locked = tutM && m.key !== "manage";
-    grid.appendChild(facPlate(m.key, m.name, m.desc, {
-      locked, lockDesc: "人業を生むまで開かない", wide: m.key === "manage",
-      onClick: () => { SFX.select(); G.town.sub = m.key; altarSel = null; renderTown(); },
-    }));
-  }
-  townEl.appendChild(grid);
+  G.town.facility = null; G.town.sub = null; G.town.page = null; G.town.tab = "party";
+  uiParty.queueIntent(sub === "manage" ? { reserve: true } : sub === "altar" ? { seg: "soul" } : {});
+  // いまの描画 (旧画面アダプタの最中) が終わってから、隊タブとして描き直す (描画前なのでちらつかない)
+  queueMicrotask(() => { if (G.state === "town") renderTown(); });
 }
-
-// 館サブ: パーティ編成 (編成 ⇄ 控え の入れ替え + ▲▼で隊列の並び替え)
-function renderMansionParty() {
-  townEl.appendChild(townHeader("パーティ編成", "mansion"));
-  townEl.appendChild(el("div", "tw-lead", "迷宮へ連れて行く人業は最大6体。上の3人が前衛、4人目からは後衛。タップで編成⇄控え、▲▼で並び替え。"));
-
-  townEl.appendChild(el("div", "tw-h", `編成 (${G.party.length}/6) — タップで控えへ`));
-  const pl = el("div", "tw-mlist");
-  if (!G.party.length) pl.appendChild(el("div", "tw-empty", "誰もいない。控えから加えよう。"));
-  G.party.forEach((d, i) => {
-    // 前衛/後衛の区切り見出し
-    if (i === 0) pl.appendChild(el("div", "tw-rowdiv front", "⚔ 前衛 — 狙われやすい (重み3倍)"));
-    if (i === 3) pl.appendChild(el("div", "tw-rowdiv back", "🛡 後衛 — 狙われにくく物理被ダメ半減・ただし物理与ダメも半減"));
-    const row = rosterRow(d, () => {
-      G.party.splice(G.party.indexOf(d), 1); G.reserve.push(d); SFX.select(); renderTown();
-    });
-    // ▲▼: 隣と入れ替えて隊列 (前衛/後衛) を編集する
-    const mv = el("span", "tw-move");
-    const mkMove = (txt, j) => {
-      const b = el("button", "tw-moveb", txt);
-      b.addEventListener("click", (ev) => {
-        ev.stopPropagation();
-        const t = G.party[j]; G.party[j] = d; G.party[i] = t;
-        SFX.select(); autosave(); renderTown();
-      });
-      return b;
-    };
-    if (i > 0) mv.appendChild(mkMove("▲", i - 1));
-    if (i < G.party.length - 1) mv.appendChild(mkMove("▼", i + 1));
-    row.appendChild(mv);
-    pl.appendChild(row);
-  });
-  townEl.appendChild(pl);
-
-  townEl.appendChild(el("div", "tw-h", `控え (${G.reserve.length}) — タップで編成へ`));
-  const rl = el("div", "tw-mlist");
-  if (!G.reserve.length) rl.appendChild(el("div", "tw-empty", "控えはいない。"));
-  G.reserve.forEach((d) => rl.appendChild(rosterRow(d, () => {
-    if (d.primary == null) { log("メイン魂を宿していない人業は編成できない。", "sys"); SFX.ng(); return; }
-    if (G.party.length >= 6) { log("編成は満員だ (6体まで)。", "sys"); return; }
-    G.reserve.splice(G.reserve.indexOf(d), 1); G.party.push(d); SFX.select(); renderTown();
-  })));
-  townEl.appendChild(rl);
-}
-
-// 編成行 (タップでトグル)
-function rosterRow(d, onClick) {
-  const row = el("div", "tw-mrow" + (d.alive ? "" : " dead"));
-  const s = el("span", "tw-chips");
-  if (d.dominant) { s.style.color = SOUL_CLASSES[d.dominant.clsKey].glow; s.appendChild(spriteCanvas(dollSprite(d), 2)); }
-  row.appendChild(s);
-  const info = el("div", "tw-chipi");
-  info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
-  info.appendChild(el("div", "tw-chipc", d.primary == null ? "空の人業 ・ メイン魂なし" : `${d.cls} 魂Lv${d.jobLv || 1}`));
-  row.appendChild(info);
-  row.appendChild(
-    d.primary == null ? el("div", "tw-chiphp", "編成不可") :
-    d.alive ? el("div", "tw-chiphp", `HP ${d.hp}/${d.maxhp}`) :
-    reviveTimerEl("div", "tw-chiphp", "⏳", d));
-  row.addEventListener("click", onClick);
-  return row;
-}
-
-// 魂の成長で職業スキルが新たに解放されたら、お知らせポップアップを出す。
-// before = 強化前の習得スキル一覧 (recalcDoll 済みの owner.spells と比較する)
-function notifyNewSkills(d, before) {
-  if (!before) return;
-  const gained = (d.spells || []).filter((k) => !before.includes(k));
-  if (gained.length) showSkillUnlockPopup(d, gained);
-}
-
-// 新スキル習得のお知らせカード: 使えるようになった技の名前と説明を一覧する
-function showSkillUnlockPopup(d, keys, onClose) {
-  const accent = "#ffcf4a";
-  const wrap = el("div", "confirm-overlay");
-  const card = el("div", "ig-card cdx-detail");
-  card.style.borderColor = accent;
-  card.style.boxShadow = `0 0 40px ${accent}55`;
-  const ban = el("div", "ig-banner", "✦ 新スキル習得 ✦");
-  ban.style.color = accent;
-  card.appendChild(ban);
-  const art = el("div", "ig-art");
-  art.appendChild(spriteCanvas(dollSprite(d), 9));
-  card.appendChild(art);
-  card.appendChild(el("div", "ig-name", d.name));
-  card.appendChild(el("div", "cdx-elem", `${d.cls} キャラLv${d.jobLv || 1}`));
-  card.appendChild(el("div", "ig-desc", "魂の成長により、新たな技に目覚めた！"));
-  const box = el("div", "cdx-drops");
-  for (const k of keys) {
-    const sp = SPELLS[k];
-    if (!sp) continue;
-    const r = el("div", "cdx-drow cdx-sktap");
-    r.appendChild(el("span", "cdx-dn", sp.name));
-    r.appendChild(el("span", "cdx-skd", `${sp.desc} (MP${sp.mp})`));
-    r.addEventListener("click", () => showSkillPopup(k));
-    box.appendChild(r);
-  }
-  card.appendChild(box);
-  card.appendChild(el("div", "cdx-dun dim", "・技名をタップすると詳しい効果を確認できる"));
-  const close = () => { wrap.remove(); if (onClose) onClose(); };
-  const ok = btn("閉じる", close);
-  ok.className = "btn primary ig-ok";
-  card.appendChild(ok);
-  wrap.appendChild(card);
-  wrap.addEventListener("click", (e) => { if (e.target === wrap) close(); });
-  document.body.appendChild(wrap);
-}
-
-// 館サブ: 人業の作成・管理 (購入・解体)
-function renderMansionManage() {
-  townEl.appendChild(townHeader("人業保管庫", "mansion"));
-  townEl.appendChild(el("div", "tw-lead", "赤い魂で器を買い、宿す魂をひとつ選んで人業を仕立てる。名を与えれば編成に加えられる。"));
-
-  const list = el("div", "tw-mlist");
-  allDolls().forEach((d) => {
-    const inParty = G.party.includes(d);
-    const row = el("div", "tw-mrow" + (d.alive ? "" : " dead"));
-    const s = el("span", "tw-chips");
-    if (d.dominant) { s.style.color = SOUL_CLASSES[d.dominant.clsKey].glow; s.appendChild(spriteCanvas(dollSprite(d), 2)); }
-    row.appendChild(s);
-    const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †") + (d.isEmpty ? "（未生成）" : inParty ? "" : " (控え)")));
-    info.appendChild(el("div", "tw-chipc", d.primary == null
-      ? "空の人業 — 祭壇でメイン魂を宿すと人業として生成できる"
-      : `${d.cls} 魂Lv${d.jobLv || 1}${(d.subs || []).length ? ` ・ サブ${d.subs.length}` : ""}`));
-    row.appendChild(info);
-    const ren = btn("名前を変える", () => showRenameInput(d));
-    ren.className = "tw-small";
-    row.appendChild(ren);
-    list.appendChild(row);
-  });
-  townEl.appendChild(list);
-
-  const cost = emptyDollCost();
-  const add = btn(`＋ 人業を仕立てる ${cost ? `(🔴${cost})` : "(無料)"}`, () => buyDoll());
-  add.className = "btn tw-add";
-  if (G.redSoul < cost) add.disabled = true;
-  townEl.appendChild(add);
-  townEl.appendChild(el("div", "tw-note",
-    "宿す魂をひとつ選んで器を買い、名を与えると人業が生まれる。"));
-  townEl.appendChild(el("div", "tw-note",
-    `費用: 最初の3体まで無料 / 4体目 🔴30 / 5体目 🔴50 / 6体目以降 🔴100　（所持上限 100体）`));
-}
+function renderAltar() { G.town.sub = "altar"; renderMansion(); }
 
 // 人業を仕立てる費用 (最初の3体は無料、4体目以降に段階上昇)
 function emptyDollCost() {
@@ -7701,26 +7542,8 @@ function soulSortCmp(a, b) {
   return a.uid - b.uid;
 }
 
-// 人業保管庫: 宿す魂を選び (必須)、赤い魂で人業を仕立てる
-function buyDoll() {
-  const cost = emptyDollCost();
-  if (G.redSoul < cost) { log("Red Soul が足りない。", "sys"); SFX.ng(); return; }
-  if (allDolls().length >= 100) { log("これ以上は仕立てられない (100体まで)。", "sys"); SFX.ng(); return; }
-  // 宿せる魂 = まだどの人業も宿していない魂。選ばないと購入できない
-  const free = G.souls.filter((s) => !soulWorn(s.uid)).sort(soulSortCmp);
-  if (!free.length) {
-    log("宿せる魂がない。先に魂を集めよう。", "sys"); SFX.ng();
-    showToast("魂を持っていない");
-    return;
-  }
-  const options = free.map((s) => {
-    const rank = soulRankOf(s);
-    return { label: `${soulSeriesName(s.clsKey)}の魂 Lv${s.level}`, fn: () => askDollName(s.uid) };
-  });
-  options.push({ label: "やめる", fn: () => {} });
-  showChoice("どの魂を宿す？", options, ICONS.wisp,
-    { banner: "✦ 人業を仕立てる ✦", lines: [cost ? `赤い魂 🔴${cost} で器を買い、選んだ魂を宿す` : "無料で器を買い、選んだ魂を宿す"] });
-}
+// 人業を仕立てる: 宿す魂を選ぶ (必須) → 名を与える。隊タブの控えシートから (src/ui/party.js)
+function buyDoll() { uiParty.openCreateDoll(); }
 
 // 人業の名前候補 (ランダム生成に使う)。厳選した基本名に加え、
 // 語幹×語尾の合成名を足して候補を約10倍に増やしている (重複は Set で除去)。
@@ -7745,28 +7568,15 @@ const DOLL_NAMES = (() => {
 })();
 function randomDollName() { return DOLL_NAMES[Math.floor(Math.random() * DOLL_NAMES.length)]; }
 
-// 宿す魂を選んだあと: 名を与えて人業を生成する
-function askDollName(uid) {
-  const s = soulByUid(uid); if (!s) return;
-  const cost = emptyDollCost();
-  showNameInput({
-    title: "人業に名を与える",
-    desc: `${soulSeriesName(s.clsKey)}の魂を宿す器に、名を与えよ。名はあとから変更できる。`,
-    placeholder: "人業の名前",
-    defaultValue: randomDollName(),
-    confirmLabel: cost ? `生成する (🔴${cost})` : "生成する (無料)",
-    onConfirm: (name) => finalizeBuyDoll(uid, name),
-    cancelLabel: "やめる",
-    randomName: randomDollName,
-  });
-}
+// 宿す魂を選んだあと: 名を与えて人業を生成する (名前の入力シート)
+function askDollName(uid) { uiParty.openCreateName(uid); }
 
-// 魂と名前が決まったら、赤い魂を支払って人業を生成し、編成に加える
+// 魂と名前が決まったら、赤い魂を支払って人業を生成し、編成に加える。生まれた人業を返す
 function finalizeBuyDoll(uid, name) {
   const cost = emptyDollCost();
   const s = soulByUid(uid);
-  if (G.redSoul < cost) { log("Red Soul が足りない。", "sys"); SFX.ng(); return; }
-  if (!s || soulWorn(s.uid)) { log("その魂は宿せない。", "sys"); SFX.ng(); return; }
+  if (G.redSoul < cost) { log("Red Soul が足りない。", "sys"); SFX.ng(); showToast("赤い魂が足りない", { tone: "bad" }); return null; }
+  if (!s || soulWorn(s.uid)) { log("その魂は宿せない。", "sys"); SFX.ng(); return null; }
   G.redSoul -= cost;
   G.dollsPurchased++;
   const d = makeDoll(name);
@@ -7778,106 +7588,39 @@ function finalizeBuyDoll(uid, name) {
   else { G.reserve.push(d); log(`${d.name} は控えで待機する。`, "sys"); }
   SFX.itemget(); buzz([0, 30, 60, 30]);
   log(`人業「${d.name}」が生まれた！（${SOUL_CLASSES[s.clsKey].label}・🔴${cost}）`, "win");
-  showToast(`✦ 人業「${d.name}」誕生`);
+  showToast(`人業「${d.name}」が目覚めた`, { tone: "good" });
   autosave(true);
   renderTown();
+  return d;
 }
 
-function confirmDisband(d) {
-  const lines = ["吸収した魂と育成状態は失われる。", "装備していた品も失われる。"];
-  showConfirm({
-    title: `${d.name} を解体する？`,
-    lines,
-    okLabel: "🔨 解体する",
-    onOk: () => {
-      const pi = G.party.indexOf(d);
-      if (pi >= 0) G.party.splice(pi, 1);
-      const ri = G.reserve.indexOf(d);
-      if (ri >= 0) G.reserve.splice(ri, 1);
-      log(`${d.name} を解体した。`, "sys");
-      renderTown();
-    },
-  });
-}
-
-// 名前入力モーダル (confirm-overlayと同じレイヤ)
+// 名前入力 (キットの決断シート)。旧来の呼び出し口と同じ引数
 function showNameInput({ title, desc, placeholder, defaultValue = "", confirmLabel = "決定", onConfirm, cancelLabel = null, onCancel = null, randomName = null }) {
-  const wrap = el("div", "confirm-overlay");
-  const card = el("div", "ig-card confirm-card");
-  card.style.borderColor = "#c9a227";
-  card.style.boxShadow = "0 0 40px #c9a22755";
-  const bn = el("div", "ig-banner", "✦ 人業生成 ✦");
-  bn.style.color = "#c9a227";
-  card.appendChild(bn);
-  card.appendChild(el("div", "ig-name", title));
-  if (desc) card.appendChild(el("div", "ig-desc", desc));
-  const inp = document.createElement("input");
-  inp.type = "text";
-  inp.className = "name-input";
-  inp.placeholder = placeholder || "名前を入力";
-  inp.value = defaultValue;
-  inp.maxLength = 12;
-  card.appendChild(inp);
-  if (randomName) {
-    const rnd = btn("🎲 ランダムな名前", () => { inp.value = randomName(); inp.focus(); });
-    rnd.className = "tw-small";
-    card.appendChild(rnd);
-  }
-  const list = el("div", "ig-choices");
-  const okBtn = btn(confirmLabel, () => {
-    const name = inp.value.trim();
-    if (!name) { inp.focus(); return; }
-    wrap.remove();
-    onConfirm(name);
-  });
-  okBtn.classList.add("primary");
-  list.appendChild(okBtn);
-  if (cancelLabel) {
-    const cancelBtn = btn(cancelLabel, () => { wrap.remove(); if (onCancel) onCancel(); });
-    list.appendChild(cancelBtn);
-  }
-  card.appendChild(list);
-  wrap.appendChild(card);
-  document.body.appendChild(wrap);
-  setTimeout(() => inp.focus(), 80);
+  void placeholder; void cancelLabel;
+  return uiParty.nameSheet({ banner: "名を与える", title, desc, value: defaultValue, okLabel: confirmLabel, random: randomName, onOk: onConfirm, onCancel });
 }
 
-// 名前変更ダイアログ
-function showRenameInput(d) {
-  showNameInput({
-    title: "名前を変える",
-    desc: null,
-    placeholder: "新しい名前",
-    defaultValue: d.name,
-    confirmLabel: "変更する",
-    onConfirm: (name) => {
-      d.name = name;
-      SFX.select();
-      log(`人業の名前を「${name}」に変えた。`, "sys");
-      autosave(true);
-      renderTown();
-    },
-  });
-}
+// 名前変更
+function showRenameInput(d) { uiParty.openRename(d); }
 
-// 魂吸収済みの空の人形→人業生成ポップアップ
+// 魂吸収済みの空の人形→人業生成 (旧セーブ互換)
 function showGenerateDollPopup(d) {
   showNameInput({
     title: "人業を生成しますか？",
     desc: "魂が器に馴染み、人業が目覚めようとしている。名前を与えよ。",
-    placeholder: "人業の名前",
-    defaultValue: "",
+    defaultValue: randomDollName(),
     confirmLabel: "生成する",
+    randomName: randomDollName,
     onConfirm: (name) => {
       d.name = name;
       d.isEmpty = false;
       const ri = G.reserve.indexOf(d);
       if (ri >= 0) G.reserve.splice(ri, 1);
       if (G.party.length < 6) G.party.push(d);
-      else { G.reserve.push(d); log(`${d.name} は酒場で待機する。`, "sys"); }
+      else { G.reserve.push(d); log(`${d.name} は控えで待機する。`, "sys"); }
       SFX.itemget(); buzz([0, 30, 60, 30]);
       log(`人業「${d.name}」が生まれた！`, "win");
-      showToast(`✦ 人業「${d.name}」誕生`);
+      showToast(`人業「${d.name}」が目覚めた`, { tone: "good" });
       autosave(true);
       renderTown();
     },
@@ -7886,13 +7629,11 @@ function showGenerateDollPopup(d) {
 
 // 職業 (clsKey) の表示順 = SOUL_CLASSES の定義順
 const SOUL_CLASS_ORDER = Object.fromEntries(Object.keys(SOUL_CLASSES).map((k, i) => [k, i]));
-// 祭壇の操作モード: "primary"(メイン魂) | "sub0"/"sub1"(サブ魂スロット)
-let altarSlot = "primary";
 
-// 祭壇スロットが指す魂インスタンス (なければ null)
+// 魂の差し口が指す魂インスタンス (なければ null)。slotId: "primary" | "sub0" | "sub1"
 function slotSoul(d, slotId) {
   if (slotId === "primary") return d.primary != null ? soulByUid(d.primary) : null;
-  const sub = d.subs[+slotId.slice(3)];
+  const sub = (d.subs || [])[+slotId.slice(3)];
   return sub ? soulByUid(sub.uid) : null;
 }
 // ある魂を「自分以外の人業」が宿しているか (魂は1体ごとに固有 = 同時装備は不可)
@@ -7905,258 +7646,12 @@ function soulWornByOther(uid, self) {
   return false;
 }
 
-// ---- 魂の祭壇: メイン魂を宿す/付け替え・サブ魂・✦Soulで魂を強化・控えの結社 ----
-function renderAltar() {
-  const dolls = allDolls();
-  if (!altarSel || !dolls.includes(altarSel.doll)) altarSel = { doll: dolls[0] || null };
-  if (!dolls.length) { townEl.appendChild(townHeader("魂の祭壇", "mansion")); townEl.appendChild(el("div", "tw-empty", "人業がいない。")); return; }
-  const d = altarSel.doll;
-  d.subs = d.subs || [];
-
-  townEl.appendChild(townHeader("魂の祭壇", "mansion"));
-  townEl.appendChild(el("div", "tw-lead", "本体は魂、人業は器。メイン魂が職業を決め、サブ魂スロットには別の魂が覚えた技を1つ借りられる。"));
-
-  // 人業セレクタ
-  const sel = el("div", "tw-dolltabs");
-  dolls.forEach((dd) => {
-    const label = dd.primary == null ? `${dd.name}（空の人業）` : dd.name;
-    const t = btn(label, () => { altarSel = { doll: dd }; renderTown(); });
-    t.className = "tw-dolltab" + (dd === d ? " active" : "") + (dd.primary == null ? " pending" : "");
-    sel.appendChild(t);
-  });
-  townEl.appendChild(sel);
-
-  // 空の人業: メイン魂を宿せば生成できる (旧セーブ互換)
-  if (d.isEmpty) {
-    if (d.primary != null) {
-      const gen = btn("✦ 人業を生成する (名前を与える)", () => showGenerateDollPopup(d));
-      gen.className = "btn primary tw-add";
-      townEl.appendChild(gen);
-    } else {
-      townEl.appendChild(el("div", "tw-note", "空の人業 — メイン魂を宿すと人業として生成できる。下の「所持魂 一覧」から魂を選ぼう。"));
-    }
-  }
-
-  // サマリ
-  const pe = d.primary != null ? soulByUid(d.primary) : null;
-  const sum = el("div", "tw-summary");
-  sum.style.borderColor = pe ? SOUL_CLASSES[pe.clsKey].color : "#34344a";
-  if (d.jobKey) {
-    sum.style.cursor = "pointer"; sum.title = "職業図鑑を表示";
-    sum.addEventListener("click", () => showCodexJobDetail(d.jobKey, d.jobRank));
-  }
-  sum.appendChild(el("div", "tw-sumc", d.cls));
-  sum.appendChild(el("div", "tw-sumt", pe
-    ? `ランク${d.jobRank} ・ 魂Lv${pe.level} ・ ${soulSeriesName(pe.clsKey)}の魂`
-    : "メイン魂が宿っていない"));
-  sum.appendChild(el("div", "tw-sumst",
-    `HP${d.maxhp} MP${d.maxmp} ATK${d.atk} VIT${d.vit} AGI${d.agi} INT${d.int} PIE${d.pie} LUK${d.luk}`));
-  if (d.spells.length) { const sk = skillChips(d.spells, "習得:"); sk.classList.add("tw-sumsk"); sum.appendChild(sk); }
-  if (d.passives.length) sum.appendChild(el("div", "tw-sumsk", d.passives.join(" / ")));
-  if (d.jobKey) sum.appendChild(el("div", "tw-sumhint", "▶ 職業図鑑"));
-  townEl.appendChild(sum);
-
-  // スロット (メイン魂 + サブ魂×MAX_SUBS)。タップで対象スロットを切替。サブ魂はスキル名も表示
-  const slots = el("div", "tw-parts");
-  const mkSlot = (id, label, inst, isSub, subRef) => {
-    const slot = el("div", "tw-part" + (altarSlot === id ? " sel" : ""));
-    slot.appendChild(el("div", "tw-partl", label));
-    const orb = el("div", "tw-partorb");
-    if (inst) {
-      const rank = soulRankOf(inst);
-      orb.style.color = SOUL_CLASSES[inst.clsKey].glow;
-      orb.appendChild(spriteCanvas(jobSprite(inst.clsKey, Math.max(1, rank)), 3));
-      slot.appendChild(orb);
-      // キャラアイコン下の職業名 = 魂のランクに応じた称号 (見習い戦士 → 戦士 など)
-      slot.appendChild(el("div", "tw-parts2", jobRankName(inst.clsKey, rank)));
-      if (isSub) {
-        const set = subRef && (subRef.passive || subRef.skill);
-        const skName = subRef && subRef.passive ? passiveName(subRef.passive, soulLearnedPassives(inst)[subRef.passive] || 1)
-          : (subRef && subRef.skill && SPELLS[subRef.skill] ? SPELLS[subRef.skill].name : "技を選ぶ");
-        const skl = el("div", "tw-parts2" + (set ? "" : " dim"), `▶ ${skName}`);
-        skl.style.cursor = "pointer";
-        skl.addEventListener("click", (ev) => { ev.stopPropagation(); openSubSkillPicker(d, subRef); });
-        slot.appendChild(skl);
-      }
-    } else {
-      orb.appendChild(el("div", "tw-partempty", "空"));
-      slot.appendChild(orb);
-      slot.appendChild(el("div", "tw-parts2", "—"));
-    }
-    slot.addEventListener("click", () => { altarSlot = id; renderTown(); });
-    slots.appendChild(slot);
-  };
-  mkSlot("primary", "メイン魂", pe, false, null);
-  const subSlots = unlockedSubSlots();
-  for (let i = 0; i < subSlots; i++) { const sub = d.subs[i] || null; mkSlot("sub" + i, `サブ魂${i + 1}`, sub ? soulByUid(sub.uid) : null, true, sub); }
-  townEl.appendChild(slots);
-  // 未解放のサブ魂枠は迷宮の踏破で開く (選択中スロットも開放済みに戻す)
-  if (subSlots < MAX_SUBS) {
-    const c = clearedDungeonCount();
-    const nextAt = subSlots === 0 ? 10 : 40;
-    townEl.appendChild(el("div", "tw-note",
-      `宿し技スロット（サブ魂）はあと ${MAX_SUBS - subSlots} 枠、迷宮の踏破で開く。次の枠は ${nextAt} 迷宮の踏破で解放（現在 ${c} 踏破）。`));
-    if (altarSlot !== "primary" && (+altarSlot.slice(3)) >= subSlots) altarSlot = "primary";
-  }
-
-  // 魂を強化 (選択中スロットのメイン魂/サブ魂に ✦Soul を注いでレベルを上げる)
-  const selSoul = slotSoul(d, altarSlot);
-  if (selSoul) {
-    const cap = soulLevelCapOf(selSoul);
-    const rank = soulRankOf(selSoul);
-    townEl.appendChild(el("div", "tw-h", `魂を強化（${soulSeriesName(selSoul.clsKey)}の魂）`));
-    const tb = el("div", "tw-trainbox");
-    if (selSoul.level >= cap) {
-      const nx = nextRankThreshold(selSoul.clsKey, selSoul.count);
-      tb.appendChild(el("div", "tw-trainn", `Lv${selSoul.level}（上限）`));
-      tb.appendChild(el("div", "tw-note", nx
-        ? `同じ${SOUL_CLASSES[selSoul.clsKey].label}の魂をあと ${nx.next - selSoul.count} 体 吸収させてランク${rank + 1}になると上限が伸びる。`
-        : "最高ランク。これ以上は上限が伸びない。"));
-      if (selSoul.exp > 0) tb.appendChild(el("div", "tw-note", `蓄積 Soul ✦${selSoul.exp}（ランクUPで一気にLvへ反映される）`));
-    } else {
-      const need = Math.max(1, soulTrainCost(selSoul.level) - (selSoul.exp || 0));
-      tb.appendChild(el("div", "tw-trainn", `Lv${selSoul.level} → Lv${selSoul.level + 1}`));
-      tb.appendChild(el("div", "tw-note", `次のLvまで 必要Soul ${need}（所持 ✦${G.soulPts}）`));
-      const b = btn(`✦ Soul ${need} で鍛える`, () => trainSoul(selSoul.uid));
-      b.className = "tw-small primary";
-      if (G.soulPts < need) b.disabled = true;
-      tb.appendChild(b);
-    }
-    townEl.appendChild(tb);
-  }
-
-  // 魂のLv上限を上げる (メイン魂に「魂の残火」を捧げて上限を1伸ばす)
-  if (altarSlot === "primary" && selSoul) {
-    townEl.appendChild(el("div", "tw-h", "魂のLv上限を上げる"));
-    const eb = el("div", "tw-trainbox");
-    const baseCap = soulLevelCap(selSoul.clsKey, selSoul.count);
-    const bonus = selSoul.capBonus || 0;
-    eb.appendChild(el("div", "tw-trainn", `Lv上限 ${baseCap + bonus}` + (bonus ? `（+${bonus}）` : "")));
-    eb.appendChild(el("div", "tw-note", `魂の残火を1つ捧げると、${soulSeriesName(selSoul.clsKey)}の魂のLv上限が +1 される。`));
-    eb.appendChild(el("div", "tw-note", `所持: 🔥魂の残火 ${G.embers || 0}`));
-    const b = btn("🔥 魂の残火 1 で上限+1", () => raiseSoulCap(selSoul.uid));
-    b.className = "tw-small primary";
-    if ((G.embers || 0) < 1) b.disabled = true;
-    eb.appendChild(b);
-    townEl.appendChild(eb);
-  }
-
-  // 所持魂 一覧: すべての魂インスタンス (職業→ランク→Lv順)。選択中スロットへ宿す
-  const slotLabel = altarSlot === "primary" ? "メイン魂" : `サブ魂${(+altarSlot.slice(3)) + 1}`;
-  townEl.appendChild(el("div", "tw-h", `所持魂 一覧 — ${slotLabel}スロットに宿す魂を選ぶ`));
-  const list = el("div", "tw-soullist");
-  const souls = [...G.souls].sort(soulSortCmp);
-  if (!souls.length) list.appendChild(el("div", "tw-empty", "魂を持っていない。迷宮で集めよう。"));
-  for (const s of souls) {
-    const cls = SOUL_CLASSES[s.clsKey]; if (!cls) continue;
-    const rank = soulRankOf(s);
-    const cap = soulLevelCapOf(s);
-    const isMain = d.primary === s.uid;
-    const asSub = (d.subs || []).some((x) => x && x.uid === s.uid);
-    const byOther = soulWornByOther(s.uid, d);
-    const tag = isMain ? "（メイン魂）" : asSub ? "（サブ魂）" : byOther ? "（別の人業）" : "";
-    const r = el("div", "tw-soulrow" + (cls.rarity !== "common" ? " rare" : "") + (byOther ? " dim" : ""));
-    if (isMain || asSub) r.style.borderColor = cls.glow;
-    const o = el("span", "tw-chips"); o.style.color = cls.glow; o.appendChild(spriteCanvas(jobSprite(s.clsKey, Math.max(1, rank)), 2));
-    r.appendChild(o);
-    const info = el("div", "tw-chipi");
-    const nm = el("div", "tw-souln", `${soulSeriesName(s.clsKey)}の魂${tag}`);
-    nm.style.color = cls.glow;
-    info.appendChild(nm);
-    const nx = nextRankThreshold(s.clsKey, s.count);
-    info.appendChild(el("div", "tw-soulst",
-      `Lv${s.level}/${cap}　ランク${rank}` + (nx ? `　（次ランクまで${nx.next - s.count}の魂が必要）` : "　（最高ランク）")));
-    r.appendChild(info);
-    // 吸収 (融合): 同職の余っている魂を取り込んでランクを上げる (D5 踏破で解放)
-    const cands = featureUnlocked("fusion") ? fuseCandidates(s.uid) : [];
-    if (cands.length) {
-      const fb = btn(`吸収(${cands.length})`, (ev) => { ev.stopPropagation(); openFusePicker(s.uid); });
-      fb.className = "tw-small";
-      r.appendChild(fb);
-    }
-    r.addEventListener("click", () => equipSoulToSlot(d, s.uid));
-    list.appendChild(r);
-  }
-  townEl.appendChild(list);
-
-  // 控えの結社 (編成外の魂が供給するパーティ加護)
-  renderOrderSection();
-}
-
-// 控えの結社の表示。編成に出していないランク2以上の魂がパーティ加護を供給する
-function renderOrderSection() {
-  const fielded = new Set();
-  for (const dd of G.party) { if (dd.primary != null) fielded.add(dd.primary); for (const s of (dd.subs || [])) if (s) fielded.add(s.uid); }
-  const benched = G.souls.filter((s) => !fielded.has(s.uid) && soulRankOf(s) >= 2).sort(soulSortCmp);
-  townEl.appendChild(el("div", "tw-h", "控えの結社 — 編成外の魂の加護"));
-  if (!featureUnlocked("order")) {
-    townEl.appendChild(el("div", "tw-note",
-      `控えの結社はまだ開かれていない。20 迷宮を踏破すれば、王が席を授ける。（現在 ${clearedDungeonCount()} 踏破）`));
-    return;
-  }
-  const seats = orderSeats();
-  const seated = orderSeatedUids();
-  const seatedSet = new Set(seated);
-  const full = seated.length >= seats;
-  const nextSeatAt = seats >= 3 ? null : seats >= 2 ? 45 : seats >= 1 ? 30 : 20;
-  townEl.appendChild(el("div", "tw-note",
-    `結社の席: ${seated.length} / ${seats} 使用中${nextSeatAt ? `（次の席は ${nextSeatAt} 迷宮の踏破で開く）` : "（最大）"}`));
-  if (!benched.length) {
-    townEl.appendChild(el("div", "tw-note", "編成に出していない魂をランク2以上に育てると、席に着けて職業に応じたパーティ全体の加護を授けられる。"));
-    return;
-  }
-  townEl.appendChild(el("div", "tw-note", "席に着けた魂だけが加護を送る。空席が許す数まで選んで着席させよ。編成に出すと加護は止まる(本人として働く)。同じ加護は最も高いLvだけが効く。"));
-  // 実際に発動している加護 (着席魂を集約。同一加護は最大Lv) と、その提供元の魂
-  const activeMap = orderPassiveMap(G.party, seated);
-  const perkOf = (s) => ORDER_PERK[s.clsKey] || "";
-  const perkLvOf = (s) => { const p = perkOf(s); return p && PASSIVES[p] ? Math.min(PASSIVES[p].lv.length, orderPerkLv(soulRankOf(s))) : 0; };
-  const provider = {}; // perk -> 実際に加護を提供している魂uid (先着の最大Lv)
-  for (const uid of seated) {
-    const s = soulByUid(uid); if (!s) continue;
-    const p = perkOf(s);
-    if (p && perkLvOf(s) === activeMap[p] && provider[p] == null) provider[p] = uid;
-  }
-  if (seated.length) {
-    const parts = Object.entries(activeMap).map(([p, lv]) => passiveName(p, lv));
-    townEl.appendChild(el("div", "tw-note", `▸ 発動中の加護: ${parts.length ? parts.join("・") : "なし"}`));
-  }
-  // 着席優先 → 加護別グループ → ランク降順 (同じ加護が隣り合い、重複を見つけやすい)
-  const sorted = benched.slice().sort((a, b) =>
-    (seatedSet.has(b.uid) ? 1 : 0) - (seatedSet.has(a.uid) ? 1 : 0) ||
-    perkOf(a).localeCompare(perkOf(b)) ||
-    soulRankOf(b) - soulRankOf(a) || soulSortCmp(a, b));
-  const box = el("div", "tw-soullist");
-  for (const s of sorted) {
-    const cls = SOUL_CLASSES[s.clsKey];
-    const perk = ORDER_PERK[s.clsKey];
-    const rank = soulRankOf(s);
-    if (!perk || !PASSIVES[perk]) continue;
-    const lv = Math.min(PASSIVES[perk].lv.length, orderPerkLv(rank));
-    const isSeated = seatedSet.has(s.uid);
-    const redundant = isSeated && provider[perk] !== s.uid; // 上位/先着が着席中で、この席は無駄
-    const r = el("div", "tw-soulrow");
-    if (isSeated) { r.style.borderLeft = `3px solid ${redundant ? "#7a7a7a" : cls.glow}`; r.style.paddingLeft = "5px"; if (redundant) r.style.opacity = "0.7"; }
-    const o = el("span", "tw-chips"); o.style.color = cls.glow; o.appendChild(spriteCanvas(jobSprite(s.clsKey, rank), 2));
-    r.appendChild(o);
-    const info = el("div", "tw-chipi");
-    info.appendChild(el("div", "tw-souln", `${jobRankName(s.clsKey, rank)}（R${rank}）${isSeated ? (redundant ? " ・ 着席中(重複)" : " ・ 着席中") : ""}`));
-    info.appendChild(el("div", "tw-soulst", `${passiveName(perk, lv)}: ${passiveDesc(perk, lv)}`));
-    if (redundant) info.appendChild(el("div", "tw-soulst", "※ 同じ加護をより高い席が供給中。外して別の加護に回せる。"));
-    r.appendChild(info);
-    const b = btn(isSeated ? "外す" : "着席", () => toggleOrderSeat(s.uid));
-    b.className = "tw-small" + (isSeated ? "" : " primary");
-    if (!isSeated && full) { b.disabled = true; b.className = "tw-small"; }
-    r.appendChild(b);
-    box.appendChild(r);
-  }
-  townEl.appendChild(box);
-}
-
 function jobSig(d) { return d.jobKey ? `${d.jobKey}:${d.jobRank}` : "none"; }
+// 転職 (職業・職業ランクが変わった): 祝祭カード (職業を見る ›)
 function announceJobChange(d, before) {
   if (!d.jobKey || jobSig(d) === before) return;
   SFX.victory(); buzz([0, 30, 50, 30]);
-  showCodexJobDetail(d.jobKey, d.jobRank, `${d.name} は ${d.cls} になった！`);
+  uiSoulPanel.celebrateJob(d);
 }
 
 // メイン魂を newCls に付け替えると装備できなくなる装備を列挙する ({key, item} の配列)
@@ -8171,152 +7666,97 @@ function unequippableUnder(d, newCls) {
   return bad;
 }
 
-// 実際に魂をスロットへ宿す/外す処理 (装備の事前確認を通過した後に呼ぶ)
-function applyEquipSoul(d, uid, s) {
+// 実際に魂を差し口へ宿す/外す処理 (装備の事前確認を通過した後に呼ぶ)
+function applyEquipSoul(d, uid, s, slotId = "primary") {
   const before = jobSig(d);
-  if (altarSlot === "primary" && d.primary === uid) {
-    d.primary = null; // 同じ魂をタップで外す
-  } else if (altarSlot !== "primary" && (d.subs[+altarSlot.slice(3)] || {}).uid === uid) {
-    d.subs.splice(+altarSlot.slice(3), 1); // 同じ魂をタップで外す
+  d.subs = d.subs || [];
+  const si = slotId === "primary" ? -1 : +slotId.slice(3);
+  if (slotId === "primary" && d.primary === uid) {
+    d.primary = null; // 同じ魂をもう一度選ぶと外す
+  } else if (si >= 0 && (d.subs[si] || {}).uid === uid) {
+    d.subs.splice(si, 1);
     d.subs = d.subs.filter(Boolean);
   } else {
-    // 同じ人業の他スロットからは外す (二重装備しない)
+    // 同じ人業の他の差し口からは外す (二重に宿さない)
     if (d.primary === uid) d.primary = null;
-    d.subs = (d.subs || []).filter((x) => x && x.uid !== uid);
-    if (altarSlot === "primary") {
+    d.subs = d.subs.filter((x) => x && x.uid !== uid);
+    if (slotId === "primary") {
       d.primary = uid;
     } else {
       const learned = soulLearnedSkills(s);
-      d.subs[+altarSlot.slice(3)] = { uid, skill: learned.length ? learned[learned.length - 1] : null };
+      d.subs[si] = { uid, skill: learned.length ? learned[learned.length - 1] : null };
       d.subs = d.subs.filter(Boolean);
     }
   }
   recalcDoll(d);
   d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp);
   SFX.select(); buzz(15);
+  autosave(true);
   renderTown();
   announceJobChange(d, before);
 }
 
-// 選択中スロットに魂を宿す/外す (メイン魂=転職、サブ魂=技の借用)。魂は1体ごとに固有
-function equipSoulToSlot(d, uid) {
+// 差し口 (slotId) に魂を宿す/外す (メイン魂=転職、サブ魂=技の借用)。魂は1体ごとに固有。
+// done(applied) … 実際に宿した/外した (確認で取りやめなら false)
+function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
+  const fin = (v) => { if (typeof done === "function") done(v); return v; };
   const s = soulByUid(uid);
-  if (!s) return;
-  // 別スロットへ宿す (=付け替え) 場合のみ装備可否を判定する。タップで外す操作は対象外
-  const isNewEquip = !(altarSlot === "primary" && d.primary === uid)
-    && !(altarSlot !== "primary" && (d.subs[+altarSlot.slice(3)] || {}).uid === uid);
-  if (isNewEquip && soulWornByOther(uid, d)) { log("他の人業が宿している魂は宿せない。", "sys"); SFX.ng(); return; }
+  if (!s || G.state !== "town") return fin(false);
+  const si = slotId === "primary" ? -1 : +slotId.slice(3);
+  // 別の差し口へ宿す (=付け替え) 場合のみ装備可否を判定する。外す操作は対象外
+  const isNewEquip = !(slotId === "primary" && d.primary === uid) && !(si >= 0 && ((d.subs || [])[si] || {}).uid === uid);
+  if (isNewEquip && soulWornByOther(uid, d)) { log("他の人業が宿している魂は宿せない。", "sys"); SFX.ng(); showToast("他の人業が宿している魂だ", { tone: "bad" }); return fin(false); }
 
   // メイン魂の付け替えで、新しい職では装備できなくなる装備があれば事前に確認する
-  if (isNewEquip && altarSlot === "primary" && d.primary !== uid) {
+  if (isNewEquip && slotId === "primary" && d.primary !== uid) {
     const bad = unequippableUnder(d, s.clsKey);
     if (bad.length) {
       const free = MAX_ITEMS - d.items.length;
       const names = bad.map((b) => `・${b.item.name}（${SLOT_LABEL[b.key] || b.key}）`);
       if (bad.length > free) {
         // 外した装備を持ち物に入れる空きが足りない → 付け替えを中止
+        SFX.ng();
         showEvent({
           sprite: jobSprite(s.clsKey, Math.max(1, soulRankOf(s))),
-          banner: "⚠ 付け替えできない ⚠",
-          title: "持ち物がいっぱいです",
-          lines: [
-            `${soulSeriesName(s.clsKey)}の魂 に付け替えると、次の装備が外れます。`,
-            ...names,
-            `しかし ${d.name} の持ち物に空きが ${free} 枠しかありません。`,
-            "持ち物を減らしてから、もう一度付け替えてください。",
-          ],
-          accent: "#d4504e",
-          btnLabel: "とじる",
-          onClose: () => renderTown(),
+          banner: "付け替えできない", title: "持ち物がいっぱい",
+          lines: [`${soulSeriesName(s.clsKey)}の魂 に付け替えると、次の装備が外れる。`, ...names,
+            `しかし ${d.name} の持ち物に空きが ${free} 枠しかない。持ち物を減らしてから、もう一度。`],
+          accent: "#d4504e", btnLabel: "とじる",
         });
-        SFX.ng();
-        return;
+        return fin(false);
       }
-      showConfirm({
-        title: `${soulSeriesName(s.clsKey)}の魂 に付け替えますか？`,
-        lines: [
-          "新しい職では次の装備を扱えないため、外して持ち物に戻します。",
-          ...names,
-        ],
-        okLabel: "付け替える",
-        onOk: () => {
-          // 装備できない装備を外して持ち物へ戻す
-          for (const b of bad) { d.equip[b.key] = null; d.items.push(b.item); }
-          applyEquipSoul(d, uid, s);
-        },
+      kitConfirm({
+        banner: "付け替え", title: `${soulSeriesName(s.clsKey)}の魂 に付け替える？`,
+        lines: ["新しい職では次の装備を扱えないため、外して持ち物に戻す。", ...names],
+        okLabel: "付け替える", danger: false,
+      }).then((ok) => {
+        if (!ok) return fin(false);
+        for (const b of bad) { d.equip[b.key] = null; d.items.push(b.item); }
+        applyEquipSoul(d, uid, s, slotId);
+        fin(true);
       });
-      return;
+      return false;
     }
   }
-
-  applyEquipSoul(d, uid, s);
+  applyEquipSoul(d, uid, s, slotId);
+  return fin(true);
 }
 
-// サブ魂が借りる技/パッシブを選ぶポップアップ (その魂が覚えているスキル・パッシブから1つ)
-function openSubSkillPicker(d, subRef) {
-  if (!subRef) return;
-  const s = soulByUid(subRef.uid); if (!s) return;
-  const learned = soulLearnedSkills(s);
-  const passives = soulLearnedPassives(s);
-  const pkeys = Object.keys(passives);
-  if (!learned.length && !pkeys.length) { log("この魂はまだ技もパッシブも覚えていない。", "sys"); SFX.ng(); return; }
-  const apply = () => { recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp); SFX.select(); renderTown(); };
-  const opts = [];
-  // 技 (アクティブスキル)
-  for (const sk of learned) opts.push({
-    label: `⚔ ${SPELLS[sk] ? SPELLS[sk].name : sk}${(subRef.skill === sk && !subRef.passive) ? "（設定中）" : ""}`,
-    fn: () => { subRef.skill = sk; subRef.passive = null; apply(); },
-  });
-  // パッシブ
-  for (const pk of pkeys) opts.push({
-    label: `◆ ${passiveName(pk, passives[pk])}${subRef.passive === pk ? "（設定中）" : ""}`,
-    fn: () => { subRef.passive = pk; subRef.skill = null; apply(); },
-  });
-  opts.push({ label: "やめる", fn: () => {} });
-  showChoice(`${soulSeriesName(s.clsKey)}の魂 — 宿す技・パッシブを選ぶ`, opts,
-    jobSprite(s.clsKey, Math.max(1, soulRankOf(s))),
-    { banner: "✦ サブ魂の宿し技 ✦", accent: SOUL_CLASSES[s.clsKey].glow });
-}
+// サブ魂が借りる技/パッシブを選ぶ (src/ui/soulpanel.js のシート)
+function openSubSkillPicker(d, subRef) { return uiSoulPanel.openSkillStep(d, subRef); }
 
 // 融合: target に同職の余っている魂を吸収させる候補
 function fuseCandidates(targetUid) {
   const t = soulByUid(targetUid); if (!t) return [];
   return G.souls.filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey && !soulWorn(s.uid));
 }
-// 吸収する魂を選ぶポップアップ
-function openFusePicker(targetUid) {
-  const t = soulByUid(targetUid); if (!t) return;
-  if (!featureUnlocked("fusion")) { log("魂の融合はまだ授かっていない。", "sys"); SFX.ng(); return; }
-  const cands = fuseCandidates(targetUid).sort(soulSortCmp);
-  if (!cands.length) { log("吸収できる同職の魂がない。", "sys"); SFX.ng(); return; }
-  const opts = cands.map((c) => ({
-    label: `${soulSeriesName(c.clsKey)}の魂 Lv${c.level}（魂数${c.count}）`,
-    // すでに融合済み (魂数2以上) の魂を素材にする場合は、誤って消費しないよう警告する
-    fn: () => {
-      if (c.count > 1) {
-        showConfirm({
-          title: "融合済みの魂を素材にしますか？",
-          lines: [
-            `この ${soulSeriesName(c.clsKey)}の魂 は ${c.count} 体ぶんを融合した魂です。`,
-            "素材にすると、この魂とその魂数・蓄積した Soul はすべて失われます。",
-          ],
-          okLabel: "素材にする",
-          onOk: () => fuseSoul(targetUid, c.uid),
-        });
-      } else {
-        fuseSoul(targetUid, c.uid);
-      }
-    },
-  }));
-  opts.push({ label: "やめる", fn: () => {} });
-  showChoice(`${soulSeriesName(t.clsKey)}の魂に吸収させる魂を選ぶ`, opts,
-    jobSprite(t.clsKey, Math.max(1, soulRankOf(t))),
-    { banner: "✦ 魂の吸収 ✦", accent: SOUL_CLASSES[t.clsKey].glow, lines: ["吸収した魂は失われ、魂数がランクに加算される。"] });
-}
-// 実際の融合: consume を消し、その魂数を target に加える
+// 吸収させる魂を選ぶ (src/ui/soulpanel.js のシート)
+function openFusePicker(targetUid) { return uiSoulPanel.openFusePicker(targetUid); }
+// 実際の融合: consume を消し、その魂数を target に加える。
+// ランクが上がれば祝祭カード (showRankUp)、据え置きならトーストで知らせる
 function fuseSoul(targetUid, consumeUid) {
   const t = soulByUid(targetUid), c = soulByUid(consumeUid);
-  if (!t || !c || c.clsKey !== t.clsKey || soulWorn(c.uid)) { SFX.ng(); return; }
+  if (!t || !c || c.clsKey !== t.clsKey || soulWorn(c.uid)) { SFX.ng(); return null; }
   const before = soulRankOf(t);
   const beforeLv = t.level;
   // 双方に蓄積していた総 Soul を合算する。新しい上限まではレベルに、超過分は exp に保持する。
@@ -8335,29 +7775,18 @@ function fuseSoul(targetUid, consumeUid) {
   SFX.itemget(); buzz([0, 30, 50, 30]);
   log(`${SOUL_CLASSES[t.clsKey].label}の魂を吸収させた (魂数 ×${t.count})。`, "win");
   if (t.level > beforeLv) log(`蓄積した Soul が反映され、Lv${beforeLv} → Lv${t.level} に上昇した！`, "win");
-  // ランクが上がったときは、昇格の感動を最大化する専用ポップアップを見せる。
+  autosave(true);
+  renderTown();
+  // ランクが上がったときは、昇格の祝祭カード (新しい称号・伸びた上限を見せる)
   if (after > before) {
     log(`⤴ ${jobRankName(t.clsKey, after)} に昇格！`, "win");
-    showRankUp(
-      { clsKey: t.clsKey, fromRank: before, toRank: after, fromLv: beforeLv, toLv: t.level, count: t.count },
-      () => renderTown()
-    );
-    return;
+    showRankUp({ clsKey: t.clsKey, fromRank: before, toRank: after, fromLv: beforeLv, toLv: t.level, count: t.count }, null);
+    return { rankUp: true, from: before, to: after };
   }
-  // ランク据え置きの融合: 魂の輝きが増したことと、全能力の上昇率を伝える
+  // ランク据え置きの融合: 魂の輝きが増したことと、全能力の上昇率をトーストで
   const pct = Math.round((SOUL_STAT_UP[SOUL_CLASSES[t.clsKey].rarity] || 0.01) * 100);
-  const lines = [`全能力が基礎値の ${pct}% ずつ高まる（魂数 ${t.count}）`];
-  if (t.level > beforeLv) lines.push(`蓄積した Soul が反映され Lv${beforeLv} → Lv${t.level}`);
-  showEvent({
-    sprite: jobSprite(t.clsKey, after),
-    banner: "✦ 魂の融合 ✦",
-    title: `${soulSeriesName(t.clsKey)}の魂の輝きが増した`,
-    lines,
-    accent: SOUL_CLASSES[t.clsKey].glow,
-    sparkle: true,
-    btnLabel: "受け取る",
-    onClose: () => renderTown(),
-  });
+  showToast(`${soulSeriesName(t.clsKey)}の魂の輝きが増した ― 全能力 +${pct}%（魂数 ${t.count}）${t.level > beforeLv ? ` ・ Lv${beforeLv}→${t.level}` : ""}`, { tone: "good" });
+  return { rankUp: false };
 }
 
 // 魂を1レベル上げるのに要する Soul (レベルが高いほど高い)
@@ -8380,53 +7809,15 @@ function levelExpFromTotal(total, cap) {
   return { level, exp: rem };
 }
 
-// 魂インスタンスを ✦Soul でレベルアップ (その魂を宿す人業が伸びる)
-function trainSoul(uid) {
-  const e = soulByUid(uid);
-  if (!e) return;
-  const cap = soulLevelCapOf(e);
-  if (e.level >= cap) { log("これ以上レベルを上げられない。", "sys"); SFX.ng(); return; }
-  const cost = Math.max(1, soulTrainCost(e.level) - (e.exp || 0));
-  if (G.soulPts < cost) { log("Soul が足りない。", "sys"); SFX.ng(); return; }
-  const wearer = allDolls().find((d) => d.primary === uid || (d.subs || []).some((s) => s && s.uid === uid));
-  const STAT_KEYS = ["maxhp", "maxmp", "atk", "vit", "agi", "int", "pie", "luk"];
-  const STAT_LABEL = { maxhp: "HP", maxmp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
-  const beforeStat = wearer ? Object.fromEntries(STAT_KEYS.map((k) => [k, wearer[k] || 0])) : null;
-  const beforeSpells = new Set(wearer ? (wearer.spells || []) : []);
-  G.soulPts -= cost;
-  e.level++; e.exp = 0;
-  recalcAllDolls();
-  codexJobSee(e.clsKey, e.count, e.level);
-  SFX.levelup(); buzz([0, 30, 40, 30]);
-  log(`${soulSeriesName(e.clsKey)}の魂が Lv${e.level} に成長した！ (✦${cost})`, "win");
-  // 魂のレベルアップを宿主の上昇ステータス・習得スキルとともにポップアップ表示
-  const deltas = [];
-  if (wearer && beforeStat) for (const k of STAT_KEYS) { const d = (wearer[k] || 0) - beforeStat[k]; if (d > 0) deltas.push(`${STAT_LABEL[k]} +${d}`); }
-  const gainedSkills = wearer ? (wearer.spells || []).filter((k) => !beforeSpells.has(k)) : [];
-  const lines = [`${wearer ? wearer.name + " の" : ""}全能力が高まった`];
-  lines.push(deltas.length ? deltas.join("  ") : "ステータスはそのまま");
-  // スキル習得はレベルアップのポップアップには載せず、閉じた後に別カードで知らせる
-  const afterLevel = () => {
-    if (wearer && gainedSkills.length) showSkillUnlockPopup(wearer, gainedSkills, () => renderTown());
-    else renderTown();
-  };
-  showEvent({
-    sprite: wearer ? dollSprite(wearer) : jobSprite(e.clsKey, soulRankOf(e)),
-    banner: "⤴ 魂レベルアップ ⤴",
-    title: `${soulSeriesName(e.clsKey)}の魂が Lv${e.level} になった！`,
-    lines,
-    accent: SOUL_CLASSES[e.clsKey].glow,
-    sparkle: true,
-    btnLabel: "受け取る",
-    onClose: afterLevel,
-  });
-}
+// 魂インスタンスを ✦Soul で1段鍛える (その魂を宿す人業が伸びる)。
+// 費用・上限は ops.trainTimes と同じ。結果はトースト1つ + その場の演出 (src/ui/soulpanel.js)
+function trainSoul(uid) { return uiSoulPanel.train(uid, 1); }
 
 // 魂の残火でメイン魂のLv上限を1上げる (上限は capBonus に蓄積される)
 function raiseSoulCap(uid) {
   const e = soulByUid(uid);
   if (!e) return;
-  if ((G.embers || 0) < 1) { log("魂の残火が足りない。", "sys"); SFX.ng(); return; }
+  if ((G.embers || 0) < 1) { log("魂の残火が足りない。", "sys"); SFX.ng(); showToast("魂の残火が足りない", { tone: "bad" }); return; }
   G.embers -= 1;
   e.capBonus = (e.capBonus || 0) + 1;
   recalcAllDolls();
@@ -8434,16 +7825,9 @@ function raiseSoulCap(uid) {
   const cap = soulLevelCapOf(e);
   SFX.levelup(); buzz([0, 30, 50, 30]);
   log(`魂の残火を捧げ、${soulSeriesName(e.clsKey)}の魂のLv上限が ${cap} になった。`, "win");
-  showEvent({
-    sprite: ICONS.ember,
-    banner: "🔥 魂のLv上限上昇 🔥",
-    title: `${soulSeriesName(e.clsKey)}の魂のLv上限が +1`,
-    lines: [`Lv上限が ${cap} になった。`, `残り 🔥魂の残火 ${G.embers}`],
-    accent: "#ff9a3a",
-    sparkle: true,
-    btnLabel: "受け取る",
-    onClose: () => renderTown(),
-  });
+  showToast(`🔥 ${soulSeriesName(e.clsKey)}の魂 ― Lv上限 ${cap}（残火 ${G.embers}）`, { tone: "gold" });
+  autosave(true);
+  renderTown();
 }
 
 // ---- 酒場「沈まぬ灯」: パーティ編成 + クエスト ----
@@ -10225,17 +9609,23 @@ function reviveDoll(d, byRedSoul = false) {
   d._dead = false;
   SFX.levelup(); buzz([0, 30, 40, 30]);
   log(`${d.name} が街に連れ戻された。${byRedSoul ? "(赤い魂の力)" : ""}`, "win");
-  showToast(`✨ ${d.name} が帰還した`);
+  showToast(`${d.name} が帰還した`, { tone: "good" });
 }
 
 // Red Soul で連れ帰り時間を 20分短縮 (1消費)。残り20分以下なら即帰還
 const RESCUE_SHORTEN_MS = 20 * 60 * 1000;
+// いますぐ連れ帰るのに要る赤い魂の数 (20分ごとに1。押す回数ぶんと同じ値段)
+function hastenCostOf(d) {
+  if (!d || d.alive || !d.reviveAt) return 0;
+  return Math.max(1, Math.ceil((d.reviveAt - Date.now()) / RESCUE_SHORTEN_MS));
+}
 function tryHastenRescue(d) {
-  if (G.redSoul < 1) { log("Red Soul が足りない。", "sys"); return; }
+  if (G.redSoul < 1) { log("Red Soul が足りない。", "sys"); SFX.ng(); showToast("赤い魂が足りない", { tone: "bad" }); return; }
   G.redSoul -= 1;
   d.reviveAt -= RESCUE_SHORTEN_MS;
   if (d.reviveAt <= Date.now()) reviveDoll(d, true);
   else { SFX.select(); buzz(15); log(`${d.name} の帰還を早めた。`, "sys"); }
+  updateTopbar();
   if (G.statusOpen) renderStatus();
   if (G.state === "town") renderTown();
   renderParty();
@@ -10729,267 +10119,50 @@ function askPortalReturn() {
     onDismiss: () => renderBoard() });
 }
 
-// ---- 個別ステータス / 装備画面 ----
+// ---- 個別ステータス (旧) → 隊 (src/ui/party.js) ----
+// 旧 #status-screen は使わない (隠したまま)。街では隊タブを、迷宮では隊のシート (全高) を開く。
+// openStatus / closeStatus / renderStatus は多くの呼び出し元のための窓口 (名前と意味は旧来のまま)。
 const statusEl = document.getElementById("status-screen");
 const statusBtn = document.getElementById("status-btn");
-let stSel = null; // 詳細表示中のアイテム { item, from:"equip"|"bag", key }
 
-function openStatus(idx = 0) {
+function openStatus(idx = 0, opts = {}) {
   if (G.state !== "board" && G.state !== "town") return;
   if (G.anim || G.walking || G.prompt) return;
   if (G.settingsOpen) closeSettings();
-  G.statusOpen = true;
   G.statusIdx = idx;
-  G.statusTab = "main"; // 初期表示は統合画面 (ステータス/装備/所持品)
-  stSel = null;
-  statusEl.classList.remove("hidden");
-  renderStatus();
+  if (statusEl) statusEl.classList.add("hidden");
+  UI.openParty(idx, { context: G.state === "town" ? "town" : "dungeon", ...opts });
 }
 function closeStatus() {
-  G.statusOpen = false;
-  stSel = null;
-  statusEl.classList.add("hidden");
+  uiParty.closeSheet();
+  if (statusEl) statusEl.classList.add("hidden");
 }
-
-function statName(p) {
-  return p.alive ? p.name : `${p.name}†`;
-}
-
-// 六大ステータスの詳しい説明 (ステータス画面でタップ時に表示)
-const ATTR_DESC = {
-  atk: "物理攻撃のダメージを決める力。武器による通常攻撃や物理スキルの威力が上がる。",
-  vit: "受ける物理ダメージを軽減する頑強さ。高いほど打たれ強くなる。",
-  agi: "行動の速さ。高いほど戦闘で先に動け、敵の攻撃を回避しやすくなる。",
-  int: "攻撃呪文の威力を決める知力。火球など攻撃魔法のダメージが上がる。",
-  pie: "回復呪文の効果を決める信仰心。HPを回復する魔法の回復量が上がる。",
-  luk: "会心（クリティカル）の発生率を左右する幸運。高いほど大ダメージが出やすい。",
-};
-
-// 能力値の説明ポップアップ
-function showStatInfo(k, p) {
-  const wrap = el("div", "confirm-overlay");
-  const card = el("div", "ig-card cdx-detail");
-  card.appendChild(el("div", "ig-banner", ATTR_LABEL[k]));
-  card.appendChild(el("div", "ig-name", ATTR_NAME[k]));
-  if (p) card.appendChild(el("div", "ig-stat", `${p.name} の ${ATTR_LABEL[k]}: ${Math.round(p[k] || 0)}`));
-  card.appendChild(el("div", "ig-desc", ATTR_DESC[k] || ""));
-  const ok = btn("閉じる", () => wrap.remove());
-  ok.className = "btn primary ig-ok";
-  card.appendChild(ok);
-  wrap.appendChild(card);
-  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
-  document.body.appendChild(wrap);
-}
-
-// キャラ詳細ポップアップ (ステータスバーのタップで開く)
-// HP/MP・状態・属性・能力値・習得スキルを1枚にまとめて表示する
-function showCharDetailPopup(p) {
-  const wrap = el("div", "confirm-overlay");
-  const card = el("div", "ig-card cdx-detail st-detail");
-  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
-
-  // ヘッダ: 肖像 + 名前 + 職業/レベル
-  const head = el("div", "st-detail-head");
-  const port = el("div", "st-port small");
-  port.appendChild(spriteCanvas(p.isDoll ? dollSprite(p) : HERO, 4));
-  head.appendChild(port);
-  const idn = el("div", "st-idn");
-  idn.appendChild(el("div", "st-name", p.name + (p.alive ? "" : " †")));
-  idn.appendChild(el("div", "st-sub", p.isDoll ? `人業 ・ ${p.cls} Lv${p.jobLv || 1}` : `${p.align} - ${p.race} - ${p.cls} Lv${p.level}`));
-  head.appendChild(idn);
-  card.appendChild(head);
-
-  // HP/MP・状態・属性
-  const ail = p.ailment === "poison" ? "毒" : (p.alive ? "正常" : "戦闘不能");
-  const ailCls = (p.ailment || !p.alive) ? "st-bad" : "";
-  const bar = el("div", "st-statbar");
-  bar.innerHTML = `<span>HP <b>${p.hp}/${p.maxhp}</b></span><span>MP <b>${p.mp}/${p.maxmp}</b></span><span class="${ailCls}">状態: <b>${ail}</b></span><span>属性攻 ${elemStatChip(p.elemAtk)}</span><span>属性防 ${elemStatChip(p.elemDef)}</span>`;
-  card.appendChild(bar);
-
-  // 能力値 (6列)。タップで各能力の説明を表示
-  const ab = el("div", "st-attrs6");
-  for (const k of ATTR_KEYS) {
-    const cell = el("div", "st-attr6 st-attr-tap");
-    cell.appendChild(el("span", "st-attrk", ATTR_LABEL[k]));
-    cell.appendChild(el("span", "st-attrv", String(Math.round(p[k] || 0))));
-    cell.title = ATTR_NAME[k];
-    cell.addEventListener("click", () => { SFX.select(); showStatInfo(k, p); });
-    ab.appendChild(cell);
-  }
-  card.appendChild(ab);
-
-  // 習得スキル (タップで各スキルの詳細を表示)
-  if (p.spells && p.spells.length) {
-    card.appendChild(el("div", "st-h2", "習得スキル — タップで詳細"));
-    card.appendChild(skillChips(p.spells));
-  }
-
-  const ok = btn("閉じる", () => wrap.remove());
-  ok.className = "btn primary ig-ok";
-  card.appendChild(ok);
-  wrap.appendChild(card);
-  document.body.appendChild(wrap);
-}
-
+// 隊の表示を描き直す (迷宮のシート / 街の隊タブ)。装備変更・呪文のたびに保存
 function renderStatus() {
-  autosave(); // 装備変更・呪文使用などのたびに保存
-  const p = G.party[G.statusIdx];
-  statusEl.innerHTML = "";
-
-  // ===== ヘッダ: 肖像 + 名前 + 属性-種族-職業 + 前後/閉じる =====
-  const head = el("div", "st-head");
-  const port = el("div", "st-port small");
-  port.appendChild(spriteCanvas(p.isDoll ? dollSprite(p) : HERO, 4));
-  head.appendChild(port);
-  const idn = el("div", "st-idn");
-  idn.appendChild(el("div", "st-name", p.name + (p.alive ? "" : " †")));
-  // 区切りごとに折り返さない塊にする (「射/程」のような泣き別れを防ぐ)
-  const sub = el("div", "st-sub");
-  const segs = (p.isDoll ? ["人業", `${p.cls} Lv${p.jobLv || 1}`] : [`${p.align} - ${p.race} - ${p.cls} Lv${p.level}`])
-    .concat([G.statusIdx < 3 ? "前衛" : "後衛", `射程:${RANGE_LABEL[weaponRange(p.equip && p.equip.weapon)]}`]);
-  segs.forEach((t, i) => { if (i) sub.appendChild(document.createTextNode(" ・ ")); sub.appendChild(el("span", "st-seg", t)); });
-  idn.appendChild(sub);
-  head.appendChild(idn);
-  const nav = el("div", "st-nav");
-  const prev = btn("◀", () => { G.statusIdx = (G.statusIdx + G.party.length - 1) % G.party.length; stSel = null; renderStatus(); }); prev.className = "st-navb";
-  const next = btn("▶", () => { G.statusIdx = (G.statusIdx + 1) % G.party.length; stSel = null; renderStatus(); }); next.className = "st-navb";
-  const close = btn("✕", closeStatus); close.className = "st-navb";
-  nav.appendChild(prev); nav.appendChild(next); nav.appendChild(close);
-  head.appendChild(nav);
-  statusEl.appendChild(head);
-
-  // タブ: ステータス(統合) / 魂 (人業キャラのみ)
-  if (p.isDoll) {
-    const tabs = el("div", "st-tabbar");
-    const tMain = btn("ステータス", () => { G.statusTab = "main"; stSel = null; renderStatus(); });
-    tMain.className = "st-tab2" + (G.statusTab !== "soul" ? " active" : "");
-    tabs.appendChild(tMain);
-    const tSoul = btn("魂", () => { G.statusTab = "soul"; renderStatus(); });
-    tSoul.className = "st-tab2" + (G.statusTab === "soul" ? " active" : "");
-    tabs.appendChild(tSoul);
-    statusEl.appendChild(tabs);
-    if (G.statusTab === "soul") { statusEl.appendChild(renderSoulTab(p)); return; }
-  }
-
-  // ===== コンパクト1画面レイアウト =====
-
-  // 1. ステータスバー (HP/MP/状態/属性/スキル)。タップでキャラ詳細ポップアップを表示
-  const bar = el("div", "st-statbar st-statbar-tap");
-  const ail = p.ailment === "poison" ? "毒" : (p.alive ? "正常" : "戦闘不能");
-  const ailCls = (p.ailment || !p.alive) ? "st-bad" : "";
-  const spellLine = p.spells && p.spells.length
-    ? `<span class="st-bar-spells">スキル: ${p.spells.map((k) => SPELLS[k] ? SPELLS[k].name : k).join("・")}</span>`
-    : "";
-  bar.innerHTML = `<span>HP <b>${p.hp}/${p.maxhp}</b></span><span>MP <b>${p.mp}/${p.maxmp}</b></span><span class="${ailCls}">状態: <b>${ail}</b></span><span>属性攻 ${elemStatChip(p.elemAtk)}</span><span>属性防 ${elemStatChip(p.elemDef)}</span>${spellLine}`;
-  bar.addEventListener("click", () => { SFX.select(); if (p.jobKey) showCodexJobDetail(p.jobKey, p.jobRank); else showCharDetailPopup(p); });
-  statusEl.appendChild(bar);
-
-  // 死亡中の帰還タイマー
-  if (p.isDoll && !p.alive) {
-    if (!p.reviveAt) setReviveTimers();
-    const box = el("div", "st-revive");
-    box.appendChild(reviveTimerEl("div", "st-revt", "⏳ 帰還まで ", p));
-    box.appendChild(el("div", "tw-note", "他の冒険者が捜索・救出している…"));
-    const b = btn(`🔴1 で帰還を早める`, () => tryHastenRescue(p));
-    b.className = "btn primary";
-    if (G.redSoul < 1) b.disabled = true;
-    box.appendChild(b);
-    statusEl.appendChild(box);
-  }
-
-  // 2. 能力値 (6列1行)。タップで各能力の説明をポップアップ表示
-  const ab = el("div", "st-attrs6");
-  for (const k of ATTR_KEYS) {
-    const cell = el("div", "st-attr6 st-attr-tap");
-    cell.appendChild(el("span", "st-attrk", ATTR_LABEL[k]));
-    cell.appendChild(el("span", "st-attrv", String(Math.round(p[k] || 0))));
-    cell.title = ATTR_NAME[k];
-    cell.addEventListener("click", () => { SFX.select(); showStatInfo(k, p); });
-    ab.appendChild(cell);
-  }
-  statusEl.appendChild(ab);
-
-  // 3. 装備 + 所持品 (2カラム横並び)
-  const grid = el("div", "st-bottom-grid");
-
-  // 左列: 装備 (タップで変更)
-  const eqCol = el("div", "st-col");
-  eqCol.appendChild(el("div", "st-h", "装備 — タップで変更"));
-  const eqList = el("div", "st-eqlist");
-  for (const slot of SLOTS) {
-    const it = p.equip[slot];
-    const row = el("div", "st-eqrow" + (it ? "" : " empty"));
-    const si = el("span", "st-sicon"); si.appendChild(spriteCanvas(SLOT_ICONS[slot] || SLOT_ICONS.weapon, 2)); row.appendChild(si);
-    const ii = el("span", "st-iicon"); if (it) ii.appendChild(spriteCanvas(it, 2)); row.appendChild(ii);
-    row.appendChild(it ? itemNameEl("span", "st-ename", it, it.cursed ? " 🔒" : "") : el("span", "st-ename", SLOT_LABEL[slot]));
-    row.addEventListener("click", () => openEquipChooser(p, slot));
-    eqList.appendChild(row);
-  }
-  eqCol.appendChild(eqList);
-  grid.appendChild(eqCol);
-
-  // 右列: 所持品
-  const invCol = el("div", "st-col");
-  invCol.appendChild(el("div", "st-h", `所持 ${p.items.length}/${MAX_ITEMS}`));
-  const invList = el("div", "st-invlist");
-  p.items.forEach((it, i) => invList.appendChild(invRow(p, it, { from: "bag", index: i })));
-  if (!invList.children.length) invList.appendChild(el("div", "st-empty", "(なし)"));
-  invCol.appendChild(invList);
-  grid.appendChild(invCol);
-
-  statusEl.appendChild(grid);
-
-  // 野営呪文 (ある場合のみ)。戦闘外で意味があるのは HP回復/蘇生/状態異常治療の呪文。
-  // バフ系は戦闘外では効果が持続しないため除外する。消費MPは省詠唱(chant)込みで表示。
-  const campSpells = (p.spells || []).filter((k) => {
-    const sp = SPELLS[k];
-    return sp && (sp.kind === "heal" || sp.kind === "cure" || sp.cure);
-  });
-  if (p.isDoll && p.alive && campSpells.length) {
-    statusEl.appendChild(el("div", "st-h2", "呪文 (野営)"));
-    const sl = el("div", "st-camp");
-    for (const k of campSpells) {
-      const sp = SPELLS[k];
-      const cost = spellCost(p, sp);
-      const b = btn(`${sp.name} (MP${cost})`, () => campCast(p, k));
-      // MP不足でも disabled にはせず押せるようにする (campCast がトーストで理由を出す)。
-      // disabled にすると .tw-small は減光スタイルが効かず「押せるのに無反応」に見えるため。
-      b.className = "tw-small" + (p.mp < cost ? " dim" : "");
-      sl.appendChild(b);
-    }
-    statusEl.appendChild(sl);
-    statusEl.appendChild(el("div", "tw-note", "回復・蘇生・状態異常の治療を、対象を選んで使える。"));
-  }
+  autosave();
+  uiParty.refresh();
 }
 
-// 所持品リストの1行 (タップで詳細ポップアップ)
-function invRow(p, it, sel) {
-  const row = el("div", "st-invrow");
-  const ic = el("span", "st-iicon"); ic.appendChild(spriteCanvas(it, 2)); row.appendChild(ic);
-  const unidMark = it.unidentified ? (it.idHardFail ? " 🔍✕" : " 🔍") : (it.cursed ? " 🔒" : "");
-  row.appendChild(itemNameEl("span", "st-iname" + (it.unidentified ? (it.idHardFail ? " st-unid st-idfail" : " st-unid") : ""), it, unidMark));
-  row.addEventListener("click", () => { SFX.select(); showItemDetailPopup(p, { item: it, from: "bag", index: sel.index }); });
-  return row;
+// 戦闘外で回復系呪文を唱える呪文 (HP回復・蘇生・状態異常の治療)。バフは戦闘外では持続しないため除く
+function campSpellsOf(p) {
+  return (p.spells || []).filter((k) => { const sp = SPELLS[k]; return sp && (sp.kind === "heal" || sp.kind === "cure" || sp.cure); });
 }
 
-// 戦闘外で回復系呪文を唱える。対象の味方を選び、HP回復/蘇生/状態異常治療を行う。
-// バフは戦闘外では持続しないため適用しない (回復・治療部分のみ効果がある)。
+// 戦闘外で回復系呪文を唱える。対象の味方を選び (1人ならそのまま)、HP回復/蘇生/状態異常治療を行う。
+// 結果はトーストで知らせ、隊の画面に留まる。効果のある対象がいなければ MP は減らない
 function campCast(caster, spellKey) {
   const sp = SPELLS[spellKey];
   const cost = spellCost(caster, sp);
-  // 失敗理由はステータス画面の裏のログに出しても見えないため、トーストでも知らせる。
-  if (caster.mp < cost) { log("MPが足りない。", "sys"); showToast(`MPが足りない (MP ${caster.mp}/${cost})`); SFX.miss(); return; }
+  if (caster.mp < cost) { log("MPが足りない。", "sys"); showToast(`MPが足りない (MP ${caster.mp}/${cost})`, { tone: "bad" }); SFX.miss(); return; }
   const cures = sp.kind === "cure" || !!sp.cure;     // 毒・麻痺・石化を治す
   const heals = (sp.power || 0) > 0;                  // HP回復量を持つ
   const powerOf = () => (sp.power || 0) + Math.round((caster.pie || 0) * 0.5);
-  // 対象がいないときに「なぜ唱えられないか」を明示するアラート文言
   const noTargetMsg = () => {
     if (heals && cures) return `${sp.name}: 傷つき・状態異常の仲間がいない`;
     if (cures) return `${sp.name}: 状態異常の仲間がいない`;
     if (sp.revive && !heals) return `${sp.name}: 倒れた仲間がいない`;
     return `${sp.name}: 傷ついた仲間がいない`;
   };
-
   // 1体へ効果を適用。何か起きたら true
   const applyTo = (t) => {
     if (!t.alive) {
@@ -11012,26 +10185,15 @@ function campCast(caster, spellKey) {
     return did;
   };
   const finish = () => { caster.mp -= cost; SFX.heal(); buzz(15); renderStatus(); renderParty(); };
-
-  // 回復結果を1人ぶんの行に整形 (回復系呪文でのみ使う)。
-  // ・蘇生: 「●●が蘇った (HP n/max)」
-  // ・満タン (元から満タン / 回復で満タンになった): 「●●は満タンだ」
-  // ・部分回復: 「●●のHPがn回復した」
+  // 1人ぶんの結果 (蘇生 / 満タン / 回復量)
   const healLineFor = (t, before, wasDead) => {
     if (wasDead && t.alive) return `${t.name}が蘇った (HP ${t.hp}/${t.maxhp})`;
-    if (t.alive && t.hp >= t.maxhp) return `${t.name}は満タンだ`;
+    if (t.alive && t.hp >= t.maxhp) return `${t.name}は満タン`;
     const got = t.hp - before;
-    if (got > 0) return `${t.name}のHPが${got}回復した`;
-    return null;
+    return got > 0 ? `${t.name} HP+${got}` : null;
   };
-  // 回復結果ポップアップ (複数名ぶんを1枚に列挙)。閉じてもステータス画面に留まる。
-  const showHealResult = (lines) => showEvent({
-    sprite: ICONS.fountain, banner: "✦ 回復 ✦", accent: "#46c08f",
-    title: sp.name, lines, btnLabel: "閉じる",
-    onClose: () => { if (G.statusOpen) renderStatus(); },
-  });
 
-  // 全体呪文は対象選択なしで全員へ (効果がなければMPは消費しない)
+  // 全体呪文は対象選択なしで全員へ
   if (sp.target === "all-ally") {
     let any = false;
     const lines = [];
@@ -11041,173 +10203,39 @@ function campCast(caster, spellKey) {
       if (applyTo(t)) any = true;
       if (heals) { const ln = healLineFor(t, before, wasDead); if (ln) lines.push(ln); }
     }
-    if (any) {
-      finish();
-      if (heals && lines.length) showHealResult(lines);
-      else showToast(`${sp.name}！ 隊を癒した`);
-    } else { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg()); SFX.miss(); }
+    if (any) { finish(); showToast(`${sp.name} ― ${lines.length ? lines.slice(0, 3).join(" ・ ") : "隊を癒した"}`, { tone: "good" }); }
+    else { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg(), { tone: "info" }); SFX.miss(); }
     return;
   }
 
   // 単体: 効果のある対象だけを候補にする (HP満タンへの回復・状態異常なしへの治療は不可)
   const benefits = (t) => {
-    if (!t.alive) return !!sp.revive;            // 死者は蘇生のみ
-    if (cures && t.ailment) return true;         // 状態異常を治す
-    if (heals && t.hp < t.maxhp) return true;    // HPを回復する
+    if (!t.alive) return !!sp.revive;
+    if (cures && t.ailment) return true;
+    if (heals && t.hp < t.maxhp) return true;
     return false;
   };
   const targets = G.party.filter(benefits);
-  if (!targets.length) { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg()); SFX.miss(); return; }
-  const wrap = el("div", "confirm-overlay");
-  const card = el("div", "ig-card confirm-card");
-  card.style.borderColor = "#46c08f";
-  card.appendChild(el("div", "ig-banner", `✦ ${sp.name} ✦`));
-  card.appendChild(el("div", "ig-name", "誰に唱える？"));
-  const list = el("div", "ig-choices");
-  const ailLabel = { poison: "毒", paralyze: "麻痺", stone: "石化" };
-  for (const t of targets) {
-    const ail = t.ailment ? ` [${ailLabel[t.ailment] || t.ailment}]` : "";
-    const label = `${t.name} (HP ${t.hp}/${t.maxhp})${ail}${t.alive ? "" : " †"}`;
-    const b = btn(label, () => {
-      wrap.remove();
-      const before = t.hp, wasDead = !t.alive;
-      if (applyTo(t)) {
-        finish();
-        if (heals) showHealResult([healLineFor(t, before, wasDead) || `${t.name}は満タンだ`]);
-        else showToast(`${sp.name}！ ${t.name}に`);
-      }
-      else { log("効果のある対象ではなかった。", "sys"); showToast("効果がなかった"); }
-    });
-    list.appendChild(b);
-  }
-  list.appendChild(btn("やめる", () => wrap.remove()));
-  card.appendChild(list);
-  wrap.appendChild(card);
-  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
-  document.body.appendChild(wrap);
-}
-
-// 魂タブ (メイン魂の成長 + サブ魂スロットを表示)
-function renderSoulTab(p) {
-  const wrap = el("div", "st-soultab");
-  const head = el("div", "st-soulsum");
-  const pe = p.primary != null ? soulByUid(p.primary) : null;
-  head.style.borderColor = pe ? SOUL_CLASSES[pe.clsKey].color : "#34344a";
-  head.appendChild(el("div", "st-soulc", p.cls));
-  head.appendChild(el("div", "st-soultt",
-    pe ? `ランク${p.jobRank} ・ 魂Lv${pe.level} ・ ${soulSeriesName(pe.clsKey)}の魂` : "メイン魂が宿っていない"));
-  if (p.jobKey) {
-    head.style.cursor = "pointer";
-    head.title = "職業図鑑を表示";
-    head.appendChild(el("div", "tw-sumhint", "▶ 職業図鑑"));
-    head.addEventListener("click", () => showCodexJobDetail(p.jobKey, p.jobRank));
-  }
-  wrap.appendChild(head);
-
-  // メイン魂の成長 (魂レベルと次のランクへの進捗)
-  if (pe) {
-    const cap = soulLevelCapOf(pe);
-    const row = el("div", "st-soulrow2");
-    row.style.borderColor = SOUL_CLASSES[pe.clsKey].glow;
-    const orb = el("span", "tw-chips");
-    orb.style.color = SOUL_CLASSES[pe.clsKey].glow;
-    orb.appendChild(spriteCanvas(jobSprite(pe.clsKey, Math.max(1, p.jobRank)), 2));
-    row.appendChild(orb);
-    const info = el("div", "st-soulinfo");
-    info.appendChild(el("div", "st-souln2", `メイン魂 ${jobRankName(pe.clsKey, p.jobRank)}　Lv${pe.level} / ${cap}`));
-    if (pe.level >= cap) {
-      info.appendChild(el("div", "st-soulstat", "Lv上限 — ランクアップで上限が伸びる"));
-      if (pe.exp > 0) info.appendChild(el("div", "st-soulstat", `蓄積 Soul ✦${pe.exp}（ランクUPでLvに反映）`));
-    } else {
-      const need = soulTrainCost(pe.level);
-      const have = Math.max(0, Math.min(need, pe.exp || 0));
-      const bar = el("div", "st-soulbar");
-      const fill = el("i");
-      fill.style.width = `${Math.round((need ? have / need : 0) * 100)}%`;
-      bar.appendChild(fill);
-      info.appendChild(bar);
-      info.appendChild(el("div", "st-soulstat", `次のLvまで Soul ${have} / ${need}`));
-    }
-    const nx = nextRankThreshold(pe.clsKey, pe.count);
-    if (nx) info.appendChild(el("div", "st-soulstat", `ランク${p.jobRank + 1}まで 魂 ${pe.count - nx.prev} / ${nx.next - nx.prev}`));
-    row.appendChild(info);
-    wrap.appendChild(row);
-  }
-
-  // サブ魂スロット
-  wrap.appendChild(el("div", "st-soulpart", "サブ魂"));
-  const subs = (p.subs || []);
-  if (!subs.length) wrap.appendChild(el("div", "st-soulinfo dim", unlockedSubSlots() > 0
-    ? "（サブ魂なし — 館の祭壇で別の魂の技かパッシブを1つ借り、ステの30%を得られる）"
-    : "（宿し技スロットは未解放 — 迷宮を踏破すると開く）"));
-  for (const sub of subs) {
-    const se = sub ? soulByUid(sub.uid) : null;
-    if (!se) continue;
-    const cls = SOUL_CLASSES[se.clsKey]; if (!cls) continue;
-    const rank = soulRankOf(se);
-    const borrow = sub.passive
-      ? `パッシブ: ${passiveName(sub.passive, soulLearnedPassives(se)[sub.passive] || 1)}`
-      : `技: ${sub.skill && SPELLS[sub.skill] ? SPELLS[sub.skill].name : "未設定"}`;
-    const row = el("div", "st-soulrow2");
-    const orb = el("span", "tw-chips"); orb.style.color = cls.glow; orb.appendChild(spriteCanvas(jobSprite(se.clsKey, Math.max(1, rank)), 2));
-    row.appendChild(orb);
-    const info = el("div", "st-soulinfo");
-    const nm = el("div", "st-souln2", `${jobRankName(se.clsKey, rank)}　Lv${se.level}`); nm.style.color = cls.glow;
-    info.appendChild(nm);
-    info.appendChild(el("div", "st-soulstat", `${borrow}　ステ+30%`));
-    row.appendChild(info);
-    wrap.appendChild(row);
-  }
-  return wrap;
+  if (!targets.length) { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg(), { tone: "info" }); SFX.miss(); return; }
+  const castOn = (t) => {
+    const before = t.hp, wasDead = !t.alive;
+    if (applyTo(t)) {
+      finish();
+      showToast(`${sp.name} ― ${heals ? (healLineFor(t, before, wasDead) || `${t.name}は満タン`) : `${t.name}を癒した`}`, { tone: "good" });
+    } else { log("効果のある対象ではなかった。", "sys"); showToast("効果がなかった", { tone: "info" }); }
+  };
+  uiParty.pickTarget({ banner: sp.name, accent: "#46c08f", title: "誰に唱える？",
+    lines: [`消費 MP${cost}（${caster.name} MP ${caster.mp}/${caster.maxmp}）`], targets, onPick: castOn });
 }
 
 // 表示ヘルパ (soulStatText・属性/スキル/品の表示・equipPreviewDelta・equipCompareEl・detailLines など) は
 // src/ui/itemview.js へ移設 (import 済み)
 
-// 所持アイテムの詳細をポップアップ表示 (旧: 画面下のインライン情報パネル)
+// 品の詳細 (窓口)。隊の操作 (装備・使う・渡す・捨てる・鑑定) つきの品シートを開く
+// (WP-C の UI.itemSheet があればそれに actions を渡し、無ければ隊の自前のシート)。p = 持ち主 (null 可)
 function showItemDetailPopup(p, sel) {
-  if (!sel || !sel.item) return;
-  const it = sel.item;
-  const wrap = el("div", "confirm-overlay");
-  const card = el("div", "ig-card cdx-detail");
-  const rc = itemRankColor(it);
-  if (rc) { card.style.borderColor = rc; card.style.boxShadow = `0 0 40px ${rc}66`; }
-  const ban = el("div", "ig-banner", itemGradeText(it, "情報"));
-  if (rc) ban.style.color = rc;
-  card.appendChild(ban);
-  const art = el("div", "ig-art"); art.appendChild(spriteCanvas(it, 11)); card.appendChild(art);
-  card.appendChild(itemNameEl("div", "ig-name", it, it.unidentified ? (it.idHardFail ? " 🔍✕" : " 🔍") : (it.cursed ? " 🔒呪" : "")));
-  for (const line of detailLines(it)) card.appendChild(el("div", "ig-stat", line));
-  if (isEquippable(it) && !it.unidentified && G.party.length > 1) card.appendChild(equipPartyChips(it));
-  if (it.desc && !it.unidentified) card.appendChild(el("div", "ig-desc", it.desc));
-
-  const acts = el("div", "ig-choices");
-  const close = () => wrap.remove();
-  if (sel.from === "bag") {
-    if (it.unidentified) {
-      // 未鑑定品: 鑑定の心得がある仲間がいれば、その場で鑑定を試みられる (商店なら確実・有料)
-      addIdentifyAction(acts, it, close);
-    } else if (it.slot === "use") {
-      acts.appendChild(btn("使う", () => { close(); useItem(p, sel.index); }));
-    } else if (it.slot === "mat" || it.slot === "misc") {
-      // 貴重品/戦利品: 装備も使用もできない (売却・譲渡のみ)
-    } else {
-      const can = canEquip(p, it);
-      const b = btn(can ? "装備する" : "装備不可", () => { if (can) { close(); doEquip(p, it); } });
-      if (!can) b.disabled = true;
-      acts.appendChild(b);
-    }
-    acts.appendChild(makeDanger("捨てる", () => { close(); dropItem(p, sel.index); }));
-    // 他のメンバーへ渡す (生存者が2人以上いるときのみ)
-    if (G.party.filter((m) => m.alive).length > 1) {
-      acts.appendChild(btn("渡す", () => { close(); transferItem(p, sel.index); }));
-    }
-  }
-  acts.appendChild(btn("閉じる", close));
-  card.appendChild(acts);
-  wrap.appendChild(card);
-  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
-  document.body.appendChild(wrap);
+  if (!sel || !sel.item) return null;
+  return uiParty.openItem(sel.item, p, sel);
 }
 
 // 未鑑定品の詳細ポップアップ (旧来の .ig-choices) に「鑑定する」アクションを足す。
@@ -11261,8 +10289,9 @@ function doEquip(p, it) {
   const r = equipItem(p, it);
   if (r.msg) log(r.msg, r.ok ? "win" : "sys");
   if (r.ok) SFX.select();
-  stSel = null;
+  else { SFX.ng(); if (r.msg) showToast(r.msg, { tone: "bad" }); }
   renderStatus(); renderParty();
+  return r;
 }
 
 // アイテムが指定スロットに装備可能か (種別の一致)
@@ -11272,120 +10301,66 @@ function itemFitsSlot(it, slotKey) {
   return it.slot === slotKey;
 }
 
-// 装備候補一覧 (この人業の所持品 + 他の人業の所持品/装備品) を表示して付け替える
-function openEquipChooser(p, slotKey) {
-  const cur = p.equip[slotKey];
-  const wrap = el("div", "confirm-overlay");
-  const card = el("div", "ig-card confirm-card eqchooser");
-  card.style.borderColor = "#6b8cff";
-  card.appendChild(el("div", "ig-banner", `${SLOT_LABEL[slotKey]} に装備`));
-
-  const list = el("div", "ig-choices eq-cand");
-
-  // 現在装備中 → 外す (候補と同じく詳細情報も表示)
-  if (cur) {
-    const un = btn("", () => {
-      if (cur.cursed) return;
-      wrap.remove();
-      const r = unequipItem(p, slotKey);
-      if (r.msg) log(r.msg, "sys");
-      SFX.select(); renderStatus(); renderParty();
-    });
-    un.className = "btn eq-cand-btn eq-cur";
-    un.textContent = "";
-    const ic = el("span", "eq-ci"); ic.appendChild(spriteCanvas(cur, 2)); un.appendChild(ic);
-    const tx = el("span", "eq-ct");
-    tx.appendChild(el("span", "eq-cn", (cur.cursed ? "🔒 " : "装備中 ") + cur.name + (cur.cursed ? "（呪・外せない）" : "（タップで外す）")));
-    const st = statLines(cur);
-    if (st) tx.appendChild(el("span", "eq-cs", st));
-    if (cur.slot !== "use") tx.appendChild(el("span", "eq-ccls", equipClassText(cur)));
-    if (cur.desc) tx.appendChild(el("span", "eq-cdesc", cur.desc));
-    un.appendChild(tx);
-    if (cur.cursed) un.disabled = true;
-    list.appendChild(un);
-  }
-
-  // 候補収集: 自分の所持品 → 他キャラの所持品 (他キャラが装備中の品は除外)
-  const cands = [];
-  for (const it of p.items) if (itemFitsSlot(it, slotKey) && canEquip(p, it)) cands.push({ it, owner: p });
-  for (const d of allDolls()) {
-    if (d === p) continue;
-    for (const it of d.items) if (itemFitsSlot(it, slotKey) && canEquip(p, it)) cands.push({ it, owner: d });
-  }
-
-  if (!cands.length) list.appendChild(el("div", "tw-empty", "装備できる品がない。"));
-  for (const c of cands) {
-    const isOther = c.owner !== p;
-    const label = c.it.name + (isOther ? `（${c.owner.name}）` : "");
-    const b = btn("", () => { wrap.remove(); equipFromAnywhere(p, slotKey, c); });
-    b.className = "btn eq-cand-btn";
-    b.textContent = "";
-    const ic = el("span", "eq-ci"); ic.appendChild(spriteCanvas(c.it, 2)); b.appendChild(ic);
-    const tx = el("span", "eq-ct");
-    tx.appendChild(el("span", "eq-cn", label));
-    const st = statLines(c.it);
-    if (st) tx.appendChild(el("span", "eq-cs", st));
-    // 装備可能職業 (未発見職は伏せる) と説明文
-    if (c.it.slot !== "use") tx.appendChild(el("span", "eq-ccls", equipClassText(c.it)));
-    if (c.it.desc) tx.appendChild(el("span", "eq-cdesc", c.it.desc));
-    // 現在との増減 (空きスロットへの装備でも常に表示する)
-    tx.appendChild(equipCompareEl(p, c.it));
-    b.appendChild(tx);
-    list.appendChild(b);
-  }
-  card.appendChild(list);
-  list.appendChild(btn("やめる", () => wrap.remove()));
-  wrap.appendChild(card);
-  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
-  document.body.appendChild(wrap);
+// p の slotKey に it を装備する (owner = it を袋に持っている人業。自分なら p)。
+// 規則は items.js の equip() と同じ (職・未鑑定・両手武器⇄盾・呪いは外れない・所持枠8) だが、
+// 装飾品は「指定した枠」に付ける。stashTo を渡すと、外れた装備は p ではなくその人業の袋へ入る
+// (p の袋が満杯の時の「持ち主と取り替える」)。成否 { ok, msg, displaced, full }
+function equipAt(p, it, slotKey, owner = p, stashTo = null) {
+  if (!it || !itemFitsSlot(it, slotKey)) return { ok: false, msg: "その部位には装備できない" };
+  if (!canEquip(p, it)) return { ok: false, msg: it.unidentified ? "未鑑定の品は装備できない" : `${p.cls}は${it.name}を装備できない` };
+  const tr = autoEquip.trialEquip(p.equip, it, slotKey);
+  if (!tr) return { ok: false, msg: "呪われた装備が外れない" };
+  const bag = stashTo || p;
+  const bagAfter = bag.items.length - (owner === bag ? 1 : 0) + tr.displaced.length;
+  if (bagAfter > MAX_ITEMS) return { ok: false, full: true, msg: `${bag.name}の持ち物がいっぱいで、外した装備を入れられない` };
+  const i = owner.items.indexOf(it);
+  if (i < 0) return { ok: false, msg: "" };
+  owner.items.splice(i, 1);
+  for (const k of SLOTS) p.equip[k] = tr.equip[k] || null;
+  for (const x of tr.displaced) bag.items.push(x);
+  recalcDoll(p);
+  p.hp = Math.min(p.hp, p.maxhp); p.mp = Math.min(p.mp, p.maxmp);
+  return { ok: true, msg: `${p.name}は ${it.name} を装備した`, displaced: tr.displaced };
 }
 
-// 候補(自分/他キャラの所持品/装備品)を p の slotKey に装備する
+// 装備候補 (窓口)。隊の「装備候補」シート (すべての袋から・伸びの順) を開く
+function openEquipChooser(p, slotKey) { return uiParty.openCandidates(p, slotKey); }
+
+// 候補(自分/他キャラの所持品)を p の slotKey に装備する
 function equipFromAnywhere(p, slotKey, c) {
   const { it, owner } = c;
-  if (owner !== p) {
-    // 他キャラの所持品から取り上げ、いったん p の所持品へ
-    const i = owner.items.indexOf(it);
-    if (i >= 0) owner.items.splice(i, 1);
-    p.items.push(it);
-  }
-  const r = equipItem(p, it);
+  const r = equipAt(p, it, slotKey, owner || p);
   if (r.msg) log(r.msg, r.ok ? "win" : "sys");
-  if (!r.ok && owner !== p) {
-    // 失敗時は取り上げた品を戻す
-    const i = p.items.indexOf(it); if (i >= 0) p.items.splice(i, 1);
-    owner.items.push(it);
-  } else if (r.ok && owner !== p) {
-    log(`${owner.name} から ${it.name} を受け取り装備した。`, "win");
-  }
-  SFX.select(); buzz(10);
-  stSel = null;
+  if (r.ok && owner && owner !== p) log(`${owner.name} から ${it.name} を受け取り装備した。`, "win");
+  if (r.ok) { SFX.select(); buzz(10); } else { SFX.ng(); if (r.msg) showToast(r.msg, { tone: "bad" }); }
   renderStatus(); renderParty();
+  return r;
 }
 function doUnequip(p, key) {
   const r = unequipItem(p, key);
   if (r.msg) log(r.msg, r.ok ? "sys" : "dmg");
   if (r.ok) SFX.select();
-  stSel = null;
+  else { SFX.ng(); if (r.msg) showToast(r.msg, { tone: "bad" }); }
   renderStatus(); renderParty();
+  return r;
 }
 function useItem(p, index) {
   const it = p.items[index];
   if (!it || it.slot !== "use") return;
   // 無頼の誓 (奈落の縛り): 道具 (消耗品) を一切使えない
-  if (G.abyss && G.abyss.mods.includes("noItems")) { SFX.ng(); log("無頼の誓により、道具は使えない。", "sys"); return; }
+  if (G.abyss && G.abyss.mods.includes("noItems")) { SFX.ng(); log("無頼の誓により、道具は使えない。", "sys"); showToast("無頼の誓により、道具は使えない", { tone: "bad" }); return; }
   let used = false;
   if (it.use.heal) {
-    if (p.hp >= p.maxhp) { log(`${p.name}のHPは満タンだ`, "sys"); }
-    else { p.hp = Math.min(p.maxhp, p.hp + it.use.heal); log(`${p.name}は${it.name}を使った。HP回復！`, "heal"); SFX.heal(); used = true; }
+    if (p.hp >= p.maxhp) { log(`${p.name}のHPは満タンだ`, "sys"); showToast(`${p.name}のHPは満タンだ`, { tone: "info" }); }
+    else { const b = p.hp; p.hp = Math.min(p.maxhp, p.hp + it.use.heal); log(`${p.name}は${it.name}を使った。HP回復！`, "heal"); SFX.heal(); used = true; showToast(`${it.name} ― ${p.name} HP+${p.hp - b}`, { tone: "good" }); }
   } else if (it.use.mp) {
-    if (p.mp >= p.maxmp) { log(`${p.name}のMPは満タンだ`, "sys"); }
-    else { p.mp = Math.min(p.maxmp, p.mp + it.use.mp); log(`${p.name}は${it.name}を使った。MP回復！`, "heal"); SFX.heal(); used = true; }
+    if (p.mp >= p.maxmp) { log(`${p.name}のMPは満タンだ`, "sys"); showToast(`${p.name}のMPは満タンだ`, { tone: "info" }); }
+    else { const b = p.mp; p.mp = Math.min(p.maxmp, p.mp + it.use.mp); log(`${p.name}は${it.name}を使った。MP回復！`, "heal"); SFX.heal(); used = true; showToast(`${it.name} ― ${p.name} MP+${p.mp - b}`, { tone: "good" }); }
   } else if (it.use.cure) {
-    if (p.ailment === it.use.cure) { p.ailment = null; log(`${p.name}の毒が治った`, "heal"); SFX.heal(); used = true; }
-    else { log(`効果がなかった`, "sys"); }
+    if (p.ailment === it.use.cure) { p.ailment = null; log(`${p.name}の毒が治った`, "heal"); SFX.heal(); used = true; showToast(`${p.name}の毒が治った`, { tone: "good" }); }
+    else { log(`効果がなかった`, "sys"); showToast("効果がなかった", { tone: "info" }); }
   }
-  if (used) { p.items.splice(index, 1); stSel = null; }
+  if (used) p.items.splice(index, 1);
   renderStatus(); renderParty();
 }
 // 捨てる: 取り返しのつかない操作なので確認画面を挟む
@@ -11395,51 +10370,36 @@ function dropItem(p, index) {
   showConfirm({
     title: `${it.name} を捨てる？`,
     lines: ["捨てたアイテムは二度と戻らない。"],
-    okLabel: "🗑 捨てる",
+    okLabel: "捨てる",
     onOk: () => {
-      p.items.splice(index, 1);
+      const i = p.items.indexOf(it);
+      if (i >= 0) p.items.splice(i, 1);
       log(`${it.name}を捨てた`, "sys");
-      stSel = null;
+      showToast(`${it.name}を捨てた`, { tone: "info" });
       renderStatus();
     },
   });
 }
 
-// 他のメンバーへアイテムを渡す。渡し先を選ぶモーダルを出す
+// 品を from の袋から to の袋へ移す (満杯なら移さない)
+function moveItem(from, it, to) {
+  if (!from || !to || from === to) return false;
+  const i = from.items.indexOf(it);
+  if (i < 0) return false;
+  if (to.items.length >= MAX_ITEMS) { SFX.ng(); showToast(`${to.name}の持ち物はいっぱいだ`, { tone: "bad" }); return false; }
+  from.items.splice(i, 1);
+  to.items.push(it);
+  log(`${it.name} を ${from.name} → ${to.name} に渡した`, "win");
+  SFX.select();
+  showToast(`${it.name} → ${to.name}`, { tone: "info" });
+  renderStatus(); renderParty();
+  return true;
+}
+// 他のメンバーへアイテムを渡す (渡す相手を選ぶシート。街では控えにも渡せる)
 function transferItem(p, index) {
   const it = p.items[index];
   if (!it) return;
-  const wrap = el("div", "confirm-overlay");
-  const card = el("div", "ig-card confirm-card");
-  card.style.borderColor = "#5fb8d6";
-  card.style.boxShadow = "0 0 40px #5fb8d655";
-  const bn = el("div", "ig-banner", "🎁 渡す");
-  bn.style.color = "#5fb8d6";
-  card.appendChild(bn);
-  card.appendChild(el("div", "ig-name", `${it.name} を誰に渡す？`));
-  const list = el("div", "ig-choices");
-  // 自分以外の生存メンバーを並べる。満杯の相手は選べない
-  G.party.forEach((m) => {
-    if (m === p || !m.alive) return;
-    const full = m.items.length >= MAX_ITEMS;
-    const label = `${m.name} (持ち ${m.items.length}/${MAX_ITEMS})` + (full ? " 満杯" : "");
-    const b = btn(label, () => {
-      wrap.remove();
-      p.items.splice(index, 1);
-      m.items.push(it);
-      log(`${it.name} を ${p.name} → ${m.name} に渡した`, "win");
-      SFX.select();
-      stSel = null;
-      renderStatus(); renderParty();
-    });
-    if (full) b.disabled = true;
-    list.appendChild(b);
-  });
-  list.appendChild(btn("やめる", () => wrap.remove()));
-  card.appendChild(list);
-  wrap.appendChild(card);
-  wrap.addEventListener("click", (e) => { if (e.target === wrap) wrap.remove(); });
-  document.body.appendChild(wrap);
+  uiParty.openTransfer(p, it);
 }
 
 // 確認ダイアログ (ステータス画面の上にも出せる)。キットの決断シート: 実行 (赤) / やめる。戻る = やめる
@@ -11541,84 +10501,20 @@ function showEvent({ sprite, title, lines = [], accent = "#c9a227", btnLabel = "
   promptSheet = h;
 }
 
-// ---- ランクアップ専用の祝祭ポップアップ ----
-// 昇格の感動を最大化するため、汎用イベントより派手に: 画面フラッシュ + 勝利ファンファーレ、
-// 回転する光条と大量の火花、ランクN→N+1 の大きな昇格表示、新たに得た称号 (ランク名)、
-// 進化したスプライト、そして解放されたもの (Lv上限・節目の特典) を一望させる。
+// ---- ランクアップの祝祭 (キットの祝祭カード。描画は src/ui/soulpanel.js) ----
+// 昇格の感動を最大化するため: ランク色のフラッシュ + 勝利ファンファーレ + 強い触覚、
+// 回転する光条と火花に包まれた進化した姿、ランクN→N+1 の大きな昇格表示、新たな称号、解放されたもの。
 function showRankUp({ clsKey, fromRank, toRank, fromLv, toLv, count }, onClose) {
   const cls = SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter;
   const accent = (SOUL_RANKS[toRank] && SOUL_RANKS[toRank].color) || cls.glow || "#ffcf4a";
   const fromCap = capForRarityRank(cls.rarity, fromRank);
   const toCap = capForRarityRank(cls.rarity, toRank);
-  // 演出: ランク色のフラッシュ + 勝利ファンファーレ + 強い触覚フィードバック
   flashScreen(accent);
   SFX.victory(); buzz([0, 60, 40, 60, 40, 70, 90, 220]);
-
-  G.prompt = true;
-  itemGetEl.onclick = null;
-  itemGetEl.innerHTML = "";
-  const card = el("div", "ig-card ru-card");
-  card.style.borderColor = accent;
-  card.style.setProperty("--accent", accent);
-  card.style.boxShadow = `0 0 60px ${accent}88`;
-
-  card.appendChild(el("div", "ru-title", "✦ RANK UP ✦"));
-  card.appendChild(el("div", "ru-sub", `${cls.label}の魂が 昇格した！`));
-
-  // 回転する光条 + 進化したスプライト + 火花
-  const art = el("div", "ig-art ru-art");
-  const rays = el("div", "ru-rays");
-  rays.style.background = `repeating-conic-gradient(from 0deg, ${accent}55 0deg 8deg, transparent 8deg 26deg)`;
-  art.appendChild(rays);
-  art.appendChild(spriteCanvas(jobSprite(clsKey, toRank), 11));
-  for (let i = 0; i < 10; i++) {
-    const s = el("span", "ig-spark");
-    s.style.setProperty("--a", (i * 36) + "deg");
-    s.style.animationDelay = (i * 0.06) + "s";
-    s.style.background = accent;
-    art.appendChild(s);
-  }
-  card.appendChild(art);
-
-  // ランク表記: fromRank ➜ toRank (新ランクをランク色で強調)
-  const row = el("div", "ru-rankrow");
-  row.appendChild(el("span", "ru-rk", `ランク${fromRank}`));
-  row.appendChild(el("span", "ru-arrow", "➜"));
-  const to = el("span", "ru-rk ru-new", `ランク${toRank}`);
-  to.style.color = accent; to.style.textShadow = `0 0 16px ${accent}`;
-  row.appendChild(to);
-  card.appendChild(row);
-
-  // 新たに得た称号 (ランク名)
-  const jn = el("div", "ru-jobname", `「${jobRankName(clsKey, toRank)}」`);
-  jn.style.color = accent;
-  card.appendChild(jn);
-
-  // 解放されたもの
-  const perks = el("div", "ru-perks");
-  perks.appendChild(ruPerk("Lv上限", `${fromCap} → ${toCap}`, accent));
-  if (toLv > fromLv) perks.appendChild(ruPerk("魂レベル", `Lv${fromLv} → Lv${toLv}`, accent));
-  const hint = rankUnlockHint(toRank);
-  if (hint) { const h = el("div", "ru-unlock", hint); h.style.borderColor = accent + "66"; perks.appendChild(h); }
-  card.appendChild(perks);
-
-  const ok = btn("受け取る", () => closeItemGet(onClose));
-  ok.className = "btn primary ig-ok";
-  ok.style.borderColor = accent; ok.style.color = accent;
-  card.appendChild(ok);
-
-  itemGetEl.appendChild(card);
-  itemGetEl.onclick = (e) => { if (e.target === itemGetEl) closeItemGet(onClose); };
-  itemGetEl.classList.remove("hidden");
-}
-
-// ランクアップ特典の1行 (ラベル + 値)
-function ruPerk(label, val, accent) {
-  const d = el("div", "ru-perk");
-  d.appendChild(el("span", "ru-pl", label));
-  const v = el("span", "ru-pv", val); v.style.color = accent;
-  d.appendChild(v);
-  return d;
+  return uiSoulPanel.celebrateRankUp({
+    clsKey, fromRank, toRank, fromLv, toLv, count, accent, fromCap, toCap,
+    title: jobRankName(clsKey, toRank), hint: rankUnlockHint(toRank),
+  }, onClose);
 }
 
 // 各ランク到達で新たに開ける道のヒント (節目を強調)
@@ -12601,6 +11497,16 @@ function wireUI() {
 // ==== /WP-A ====
 
 // ==== [WP-B] UI API ==== (隊・魂・最適装備: WP-B が所有)
+// 隊 (src/ui/party.js)・魂 (src/ui/soulpanel.js) が使う game.js の内部を結ぶ (モジュールの読み込み時 = init より前)。
+// 契約 (UI.openParty / autoEquip / betterGearCount / trainableList / equipItemTo / bestWearer) は各モジュールの install() が登録する
+bindGame({
+  equipAt, moveItem, campCast, campSpellsOf, hastenCostOf, setReviveTimers, RESCUE_SHORTEN_MS,
+  emptyDollCost, randomDollName, finalizeBuyDoll, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
+  equipSoulToSlot, fuseCandidates, fuseSoul, openFusePicker, openSubSkillPicker, slotSoul,
+  unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail,
+  canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill,
+  showRankUp, announceJobChange, showNameInput,
+});
 // ==== /WP-B ====
 
 // ==== [WP-C] UI API ==== (商会・品・入手: WP-C が所有)
