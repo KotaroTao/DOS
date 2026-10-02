@@ -158,9 +158,12 @@ export function makeBoard(floor, cfg = null) {
   cells[st.y][st.x].cleared = false;
 
   // 帰還魔法陣: 最深階 (主のいる階) と5の倍数の階には必ず、その他の階にも20%で出現する。
+  // ただし主のいない迷宮の最深階には出さない (階段で踏破すれば凱旋できる)。
   // 各階に1つだけ (cand から1マスのみ選ぶ)。
   // 迷宮に入ると、これを踏むか主を倒すまで街へは帰れない (game.js が帰還を制限する)。
-  if (floor >= dn.floors || floor % 5 === 0 || Math.random() < 0.20) {
+  const bottom = floor >= dn.floors;
+  const noBossBottom = bottom && !dn.boss;
+  if (!noBossBottom && (bottom || floor % 5 === 0 || Math.random() < 0.20)) {
     const cand = [];
     for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
       const c = cells[y][x];
