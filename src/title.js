@@ -60,13 +60,14 @@ function buildStatic(W, H) {
   const hz = Math.round(H * 0.45);          // 地平線
   const pcx = Math.round(W / 2);            // 迷宮の口の中心
   const pcy = Math.round(H * 0.625);
-  const prx = Math.round(W * 0.47);
+  const prx = Math.round(Math.min(W * 0.47, H * 0.45)); // 横長の画面でも穴が地平を越えないように
   const pry = Math.round(prx * 0.36);
 
   // 夜空 (天頂の闇 → 地平の紫)
   ditherV(g, 0, 0, W, hz, ["#030208", "#07050f", "#0d0919", "#161026", "#211534", "#2e1b40"]);
   // 月 (右上の隅): 欠けた蒼白の月
-  const mx = Math.round(W * 0.86), my = Math.round(H * 0.055), mr = Math.max(8, Math.round(W * 0.06));
+  const mr = Math.max(8, Math.round(Math.min(W, H * 0.6) * 0.06));
+  const mx = Math.round(W * 0.86), my = Math.max(mr + 4, Math.round(H * 0.055));
   fillEllipse(g, mx, my, mr + 3, mr + 3, "#151024");
   fillEllipse(g, mx, my, mr + 1, mr + 1, "#231b38");
   fillEllipse(g, mx, my, mr, mr, "#cfc6b4");
@@ -132,7 +133,7 @@ function buildStatic(W, H) {
   const pathTop = pcy + pry - 2, pathBot = H;
   for (let y = pathTop; y < pathBot; y++) {
     const u = (y - pathTop) / Math.max(1, pathBot - pathTop);
-    const half = Math.round(W * (0.10 + 0.22 * u));
+    const half = Math.round(prx * (0.21 + 0.47 * u));
     g.fillStyle = (y - pathTop) % Math.max(3, Math.round(3 + u * 6)) === 0 ? "#0c0912" : "#18121f";
     g.fillRect(pcx - half, y, half * 2, 1);
     g.fillStyle = "#08060c";
@@ -142,7 +143,7 @@ function buildStatic(W, H) {
   for (let i = 0; i < 26; i++) { // 石畳の目地と欠け
     const u = hash(i, 61);
     const y = Math.round(pathTop + u * (pathBot - pathTop));
-    const half = W * (0.10 + 0.22 * u);
+    const half = prx * (0.21 + 0.47 * u);
     const x = Math.round(pcx - half + hash(i, 62) * half * 2);
     g.fillStyle = hash(i, 63) < 0.5 ? "#0a0810" : "#241c2e";
     g.fillRect(x, y, 1, 1 + Math.round(u * 2));
@@ -188,7 +189,7 @@ function buildStatic(W, H) {
 
   // ---- 迷宮の口を護る朽ちた石柱 (左右) ----
   const pillar = (x, top, bot, broken) => {
-    const pw = Math.max(6, Math.round(W * 0.045));
+    const pw = pwid;
     g.fillStyle = "#06040a"; g.fillRect(x - 1, top, pw + 2, bot - top + 1);
     g.fillStyle = "#2a2236"; g.fillRect(x, top, pw, bot - top);
     g.fillStyle = "#3e3450"; g.fillRect(x, top, 2, bot - top);
@@ -200,8 +201,9 @@ function buildStatic(W, H) {
     if (broken) { g.fillStyle = "#0b0811"; g.fillRect(x + pw - 3, top, 3, 2); g.fillRect(x + pw - 1, top + 2, 1, 3); }
     else { g.fillStyle = "#3e3450"; g.fillRect(x - 1, top - 2, pw + 2, 2); g.fillRect(x - 2, top - 3, pw + 4, 1); }
   };
-  pillar(Math.round(W * 0.035), Math.round(H * 0.47), Math.round(pcy + pry * 0.25), true);
-  pillar(Math.round(W * 0.905), Math.round(H * 0.43), Math.round(pcy + pry * 0.2), false);
+  const pwid = Math.max(6, Math.round(W * 0.045));
+  pillar(Math.round(pcx - prx * 0.93 - pwid / 2), Math.round(H * 0.47), Math.round(pcy + pry * 0.25), true);
+  pillar(Math.round(pcx + prx * 0.93 - pwid / 2), Math.round(H * 0.43), Math.round(pcy + pry * 0.2), false);
 
   // ---- 縁に立つ魂繰り (手前、深淵の光を背に影絵となる) ----
   const fx = Math.round(pcx - prx * 0.46), fy = Math.round(pcy + pry * 0.93);
@@ -348,8 +350,9 @@ export function showTitle({ hasSave = false, summary = null, onStart } = {}) {
   let st = null, W = 0, H = 0;
   const fit = () => {
     const vw = Math.max(1, wrap.clientWidth || innerWidth), vh = Math.max(1, wrap.clientHeight || innerHeight);
-    W = 180;
-    H = Math.max(220, Math.min(420, Math.round(W * vh / vw)));
+    // ドットの縦横比を保ったまま画面を覆う: 縦長は幅180を基準、横長は高さ240を基準にする
+    if (vw / vh < 0.75) { W = 180; H = Math.max(220, Math.min(420, Math.round(W * vh / vw))); }
+    else { H = 240; W = Math.max(180, Math.min(640, Math.round(H * vw / vh))); }
     if (cv.width !== W || cv.height !== H || !st) {
       cv.width = W; cv.height = H;
       st = buildStatic(W, H);

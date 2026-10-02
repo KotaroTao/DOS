@@ -435,9 +435,19 @@ function shakeScreen(strong = false) {
 }
 
 function log(msg, cls = "sys") {
+  // 直前と同じ文 (壁にぶつかり続けた時など) は行を増やさず「×N」で数える
+  const last = logEl.lastElementChild;
+  if (last && last._msg === msg && last.className === "l-" + cls) {
+    last._n = (last._n || 1) + 1;
+    last.textContent = `${msg} ×${last._n}`;
+    _logPinned = true;
+    scrollLogBottom();
+    return;
+  }
   const div = document.createElement("div");
   div.className = "l-" + cls;
   div.textContent = msg;
+  div._msg = msg;
   logEl.appendChild(div);
   while (logEl.children.length > 80) logEl.removeChild(logEl.firstChild);
   // 新しいメッセージが来たら最下部へ貼り付け直す。iOS Safari 等では appendChild 直後の
@@ -6021,7 +6031,7 @@ function renderTownHub() {
     const again = G.dungeonIdx < clearedDungeonCount(); // 踏破済みへの再挑戦
     const dive = btn(`「${curDungeon().name}」へ${again ? "再挑戦" : "潜る"} (B1F)`, tryEnterDungeon);
     dive.className = "btn primary tw-dive";
-    if (TOWN_ICONS.dive) { const ic = spriteCanvas(TOWN_ICONS.dive, 2); ic.className = "spr tw-dive-ic"; dive.prepend(ic); }
+    if (TOWN_ICONS.dive) { const ic = spriteCanvas(TOWN_ICONS.dive, 4); ic.className = "spr tw-dive-ic"; dive.prepend(ic); }
     else dive.prepend(again ? "⚔ " : "🕳 ");
     divebar.appendChild(dive);
     townEl.appendChild(divebar);
@@ -7613,7 +7623,7 @@ function showStoryScene(title, lines, rewardText, onClose, btnLabel = "御意") 
   // 肖像 + 見出し
   const head = el("div", "story-head");
   const pf = el("div", "story-portrait");
-  pf.appendChild(spriteCanvas(KING_PORTRAIT, 6, 12));
+  pf.appendChild(spriteCanvas(KING_PORTRAIT, 7, 12)); // 28x28 → 84px (3px/ドット)
   pf.appendChild(el("div", "story-who", "老王"));
   head.appendChild(pf);
   const ht = el("div", "story-htxt");
@@ -7647,7 +7657,7 @@ function showStoryScene(title, lines, rewardText, onClose, btnLabel = "御意") 
   // 途中タップ = 残りを一気に表示 (演出を待たせない)
   let revealed = false;
   const revealAll = () => { if (revealed) return; revealed = true; card.classList.add("revealed"); };
-  const timer = setTimeout(revealAll, (delay + 0.4) * 1000);
+  const timer = setTimeout(revealAll, REDUCED_MOTION ? 0 : (delay + 0.4) * 1000);
   card.addEventListener("click", (e) => {
     if (e.target === ok) return;
     if (!revealed) { clearTimeout(timer); revealAll(); try { SFX.select(); } catch {} }
@@ -9268,7 +9278,7 @@ function preDiveIssues() {
     res.dolls = true;
   }
   // 武器を持たない人業がいる (買える所持金がある時だけ)
-  const bare = G.party.filter((d) => d.alive && d.primary != null && !d.equip.weapon);
+  const bare = G.party.filter((d) => d.alive && d.primary != null && !(d.equip && d.equip.weapon));
   if (bare.length && G.gold >= 30) {
     lines.push(`■ ${bare.map((d) => d.name).join("・")} は丸腰だ。商店で武器と防具を整えておけ。`);
     res.gear = true;
