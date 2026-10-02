@@ -33,8 +33,9 @@ import {
   identifyChance, canIdentify, identifyLabel,
 } from "./souls.js";
 import { showOpening } from "./opening.js";
-import { TOWN_ICONS, KING_PORTRAIT, createTownScene } from "./townart.js";
+import { KING_PORTRAIT, createTownScene, townSpots, vignetteCanvas, keeperCanvas, iconCanvas, prewarmTown } from "./townart.js";
 import { drawBattleBackdrop } from "./backdrops.js";
+import { paintCryptFloor, paintCryptSlabs, paintCryptWalls, CATACOMB, genericMaterial, boardSeed, hexRgb } from "./crypt.js";
 import { showTitle } from "./title.js";
 import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityUp, lrIntervalH, lrLayerFactor, LR_HAZARD_K, LR_PITY_K } from "./rarity.js";
 
@@ -361,7 +362,8 @@ const AIL_ICON = { poison: "☠", paralyze: "💫", stone: "🗿" };
 const AIL_NAME = { poison: "毒", paralyze: "麻痺", stone: "石化" };
 
 const view = document.getElementById("view");
-const vctx = view.getContext("2d");
+// 盤面/戦闘のキャンバス。第1層以外の旧裏面を静的な層へ焼く間だけ、描画先を差し替える (paintOldCardBacks)
+let vctx = view.getContext("2d");
 const logEl = document.getElementById("log");
 // ログは最新行を常に最下部へ。ただしユーザーが履歴を読もうと上へスクロールしている
 // 間は追従しない。戦闘開始でコマンドメニューが出るなどしてログ欄の高さが後から
@@ -984,27 +986,52 @@ function eliteKey() {
   return ELITE_ORDER[(r - 1) * 3 + g];
 }
 
-// ダンジョンのヘッダは街のヘッダ (.tw-head) と同じ構図: 中央タイトル + 右に通貨を縦並び
+// ===== 迷宮の見出し (#topbar) =====
+// 左: 設定・帰還陣・下り階段 / 中央: 迷宮名と「B1F ◆◇◇」の深さ (主の階は髑髏) / 右: 所持の通貨
+const TOPBAR_GEAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Zm8.2 4.6-1.7.9a6.9 6.9 0 0 1-.6 1.5l.6 1.8-1.7 1.7-1.8-.6c-.5.3-1 .5-1.5.6l-.9 1.7h-2.4l-.9-1.7a6.9 6.9 0 0 1-1.5-.6l-1.8.6-1.7-1.7.6-1.8a6.9 6.9 0 0 1-.6-1.5l-1.7-.9v-2.4l1.7-.9c.1-.5.3-1 .6-1.5l-.6-1.8 1.7-1.7 1.8.6c.5-.3 1-.5 1.5-.6l.9-1.7h2.4l.9 1.7c.5.1 1 .3 1.5.6l1.8-.6 1.7 1.7-.6 1.8c.3.5.5 1 .6 1.5l1.7.9Z"/></svg>';
 function setTopbarCurrency() {
   if (!topbarCur) return;
+  const key = `${G.gold}|${G.soulPts}|${G.redSoul}|${G.embers}`;
+  if (topbarCur._k === key && topbarCur.childElementCount) return;
+  topbarCur._k = key;
   topbarCur.innerHTML = "";
-  topbarCur.appendChild(el("span", "tw-c-gold", `💰${G.gold}`));
-  topbarCur.appendChild(el("span", "tw-c-soul", `✦${G.soulPts}`));
-  topbarCur.appendChild(el("span", "tw-c-red", `🔴${G.redSoul}`));
-  if (G.embers > 0) topbarCur.appendChild(el("span", "tw-c-ember", `🔥${G.embers}`));
+  const add = (cls, v, title) => { const sp = el("span", "cur " + cls, String(v)); sp.title = title; topbarCur.appendChild(sp); };
+  add("cur-gold", G.gold, "ゴールド");
+  add("cur-soul", G.soulPts, "✦Soul");
+  add("cur-red", G.redSoul, "赤い魂");
+  if (G.embers > 0) add("cur-ember", G.embers, "魂の残火");
 }
 function updateTopbar() {
+  const sb = document.getElementById("settings-btn");
+  if (sb && !sb.querySelector("svg")) sb.innerHTML = TOPBAR_GEAR;
   if (G.state === "town") {
     // 街では #topbar はオーバーレイ (#town-screen) に隠れる。タイトルだけ持たせておく
     floorInfo.textContent = "街";
-    if (topbarCur) topbarCur.innerHTML = "";
+    if (topbarCur) { topbarCur.innerHTML = ""; topbarCur._k = ""; }
     return;
   }
   const sp = specialDef();
   const dn = activeCfg();
   const mu = mutDef();
-  const mark = (G.eliteFloor ? "☠" : sp ? "✨" : "") + (mu ? mu.sym : "");
-  floorInfo.textContent = `${dn ? dn.name + " " : ""}B${G.floor}F${mark}`;
+  const floors = abyssActive() ? 0 : ((dn && dn.floors) || 1);
+  const boss = !abyssActive() && !!curDungeon().boss;
+  floorInfo.innerHTML = "";
+  floorInfo.title = `${dn ? dn.name : ""} 地下${G.floor}階${floors ? ` (全${floors}階)` : ""}`;
+  floorInfo.appendChild(el("div", "fi-name", dn ? dn.name : ""));
+  const row = el("div", "fi-row");
+  row.appendChild(el("span", "fi-depth", `B${G.floor}F`));
+  if (floors && floors <= 12) {
+    const pips = el("span", "fi-pips");
+    for (let i = 1; i <= floors; i++) {
+      pips.appendChild(el("i", (i < G.floor ? "done" : i === G.floor ? "now" : "") + (i === floors && boss ? " boss" : "")));
+    }
+    row.appendChild(pips);
+  } else if (floors) row.appendChild(el("span", "fi-of", `/ ${floors}`));
+  else row.appendChild(el("span", "fi-of", "奈落"));
+  if (G.eliteFloor) row.appendChild(el("span", "fi-tag fi-elite", "強敵"));
+  else if (sp) { const t = el("span", "fi-tag", sp.name); t.style.color = sp.accent; t.style.borderColor = sp.accent; row.appendChild(t); }
+  if (mu) { const t = el("span", "fi-tag fi-mut", mu.sym); t.title = `異変「${mu.name}」`; row.appendChild(t); }
+  floorInfo.appendChild(row);
   setTopbarCurrency();
   updateDescendBtn();
   updateReturnBtn();
@@ -1053,54 +1080,90 @@ function newFloor() {
 }
 
 // ---- ボード描画 ----
-const CARD_W = 56, CARD_H = 50, GAP = 2;
-const OX = Math.floor((480 - (COLS * CARD_W + (COLS - 1) * GAP)) / 2);
-const OY = Math.floor((320 - (ROWS * CARD_H + (ROWS - 1) * GAP)) / 2);
-const SPR = 3; // スプライト拡大率
-
+// 盤面と戦闘のキャンバスは論理座標 VW×VH で描く。VH は画面の縦の余りに合わせて伸縮し
+// (縦長の端末ほどカードが縦長の墓石になる)、実画素は端末の画素密度ぶん (VSX/VSY 倍) 持つ。
+// 床・墓石・壁は論理解像度で一度だけ焼いたドット絵を補間なしで拡大し、光と粒子だけを毎フレーム重ねる。
+const VW = 480;
+let VH = 320, VSX = 1, VSY = 1;
+const GAP = 4;                     // 墓石と墓石の間の溝 (壁はこの溝の上に立つ)
+const BOARD_MX = 6, BOARD_MY = 6;  // 盤面の外周の余白
+let CARD_W = 55, CARD_H = 50, OX = 6, OY = 6;
+function layoutBoard() {
+  CARD_W = Math.floor((VW - BOARD_MX * 2 - GAP * (COLS - 1)) / COLS);
+  CARD_H = Math.floor((VH - BOARD_MY * 2 - GAP * (ROWS - 1)) / ROWS);
+  OX = Math.round((VW - (COLS * CARD_W + (COLS - 1) * GAP)) / 2);
+  OY = Math.round((VH - (ROWS * CARD_H + (ROWS - 1) * GAP)) / 2);
+}
+layoutBoard();
 function cellRect(x, y) {
   return { x: OX + x * (CARD_W + GAP), y: OY + y * (CARD_H + GAP), w: CARD_W, h: CARD_H };
 }
-
-// 石床のタイル模様 (決定的な乱数で毎回同じ見た目)。迷宮テーマに応じて色味を変える
-function drawFloor() {
-  const th = dungeonTheme();
-  const base = th ? th.floorBase : "#121218";
-  const tiles = th ? th.floorTiles : ["#17171f", "#15151c", "#131319"];
-  const glow = th ? th.glow : "rgba(255,190,90,0.07)";
-  vctx.fillStyle = base;
-  vctx.fillRect(0, 0, view.width, view.height);
-  const T = 24;
-  for (let ty = 0; ty < view.height / T; ty++) {
-    for (let tx = 0; tx < view.width / T; tx++) {
-      const n = (tx * 7 + ty * 13) % 5;
-      vctx.fillStyle = n === 0 ? tiles[0] : n === 1 ? tiles[1] : tiles[2];
-      vctx.fillRect(tx * T, ty * T, T - 1, T - 1);
-    }
-  }
-  // 中央が明るく周辺が暗いビネット (テーマに応じた灯りの色)
-  const vg = vctx.createRadialGradient(view.width / 2, view.height / 2, 60, view.width / 2, view.height / 2, view.width * 0.62);
-  vg.addColorStop(0, glow);
-  vg.addColorStop(0.5, "rgba(0,0,0,0)");
-  vg.addColorStop(1, "rgba(0,0,0,0.55)");
-  vctx.fillStyle = vg;
-  vctx.fillRect(0, 0, view.width, view.height);
-  // 強敵階: 禍々しい血の霧のオーバーレイ
-  if (G.eliteFloor) {
-    const rg = vctx.createRadialGradient(view.width / 2, view.height / 2, 0, view.width / 2, view.height / 2, view.width * 0.9);
-    rg.addColorStop(0, "rgba(100,0,0,0.08)");
-    rg.addColorStop(1, "rgba(60,0,0,0.30)");
-    vctx.fillStyle = rg;
-    vctx.fillRect(0, 0, view.width, view.height);
-  } else {
-    // 特別階: その階のテーマ色のうっすらした霧
-    const sp = specialDef();
-    if (sp) {
-      vctx.fillStyle = sp.accent + "16";
-      vctx.fillRect(0, 0, view.width, view.height);
-    }
-  }
+// キャンバス座標 → マス (溝の上は null)
+function cellAt(sx, sy) {
+  const cx = Math.floor((sx - OX) / (CARD_W + GAP)), cy = Math.floor((sy - OY) / (CARD_H + GAP));
+  if (cx < 0 || cy < 0 || cx >= COLS || cy >= ROWS) return null;
+  const r = cellRect(cx, cy);
+  if (sx > r.x + r.w + 1 || sy > r.y + r.h + 1) return null;
+  return { x: cx, y: cy };
 }
+// 論理座標で描くための変換 (各描画の頭で呼ぶ)
+function viewTransform(ctx = vctx) { ctx.setTransform(VSX, 0, 0, VSY, 0, 0); }
+const h01 = (a, b = 0) => { let h = Math.imul(a | 0, 374761393) ^ Math.imul(b | 0, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+
+// ===== キャンバスの寸法合わせ =====
+// 探索中: 上下の帯 (見出し・収穫・隊・記録の最低限) を除いた縦の余りを盤面に回す (縦横比 0.56〜1.24)。
+// 戦闘中: コマンド板の高さを見込んで戦場を決め、戦闘の間は固定する (メニューの出し入れで揺れないように)。
+const appEl = document.getElementById("app");
+const screenEl = document.getElementById("screen");
+const topbarEl = document.getElementById("topbar");
+const LOG_MIN_BOARD = 84, LOG_MIN_COMBAT = 46, MENU_RESERVE = 166;
+let _fitKey = "";
+function outerH(e) {
+  if (!e || e.classList.contains("hidden")) return 0;
+  const cs = getComputedStyle(e);
+  if (cs.display === "none") return 0;
+  return e.offsetHeight + (parseFloat(cs.marginTop) || 0) + (parseFloat(cs.marginBottom) || 0);
+}
+function fitView(force = false) {
+  if (!appEl || !screenEl) return false;
+  const combat = G.state === "combat" || (G.state === "over" && !!G.battle);
+  appEl.classList.toggle("in-combat", combat);
+  const cssW = view.clientWidth || Math.round(view.getBoundingClientRect().width);
+  if (!cssW) return false;
+  const csA = getComputedStyle(appEl), csS = getComputedStyle(screenEl);
+  const hudEl = document.getElementById("hud"), ctrlEl = document.getElementById("controls");
+  const csH = hudEl ? getComputedStyle(hudEl) : null;
+  const appH = appEl.clientHeight - (parseFloat(csA.paddingTop) || 0) - (parseFloat(csA.paddingBottom) || 0);
+  let used = (parseFloat(csS.paddingTop) || 0) + (parseFloat(csS.paddingBottom) || 0)
+    + outerH(topbarEl) + outerH(partyEl) + outerH(hintEl)
+    + (csH ? (parseFloat(csH.paddingTop) || 0) + (parseFloat(csH.paddingBottom) || 0) : 0);
+  if (combat) used += MENU_RESERVE + LOG_MIN_COMBAT;
+  else used += outerH(runbarEl) + outerH(ctrlEl) + LOG_MIN_BOARD;
+  const h = Math.max(cssW * 0.56, Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
+  const vh = Math.max(240, Math.round((VW * h) / cssW));
+  const cssH = (vh * cssW) / VW;
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  const S = Math.max(1, Math.min(2, (cssW * dpr) / VW));
+  const bw = Math.round(VW * S), bh = Math.round(vh * S);
+  const key = `${bw}x${bh}|${cssH.toFixed(1)}`;
+  if (key === _fitKey && !force) return false;
+  _fitKey = key;
+  VH = vh;
+  if (view.width !== bw) view.width = bw;
+  if (view.height !== bh) view.height = bh;
+  view.style.height = cssH.toFixed(2) + "px";
+  VSX = bw / VW; VSY = bh / VH;
+  layoutBoard();
+  return true;
+}
+// 画面の回転・窓の伸縮に追従 (盤面/戦場を描き直す)
+function refitAndRedraw() {
+  if (!fitView()) return;
+  if (G.state === "board" && G.board) drawBoardFrame();
+  else if (G.state === "combat" && G.battle) renderCombatCanvas();
+}
+window.addEventListener("resize", () => requestAnimationFrame(refitAndRedraw));
+if (typeof ResizeObserver !== "undefined" && appEl) new ResizeObserver(() => requestAnimationFrame(refitAndRedraw)).observe(appEl);
 
 // ダンジョンで歩くキャラのスプライト。生存している先頭メンバーの職業姿を表示
 // (先頭が倒れていれば、生きているメンバーのうち最も上の者)。全滅時は先頭。
@@ -1115,12 +1178,10 @@ function walkerSprite() {
 const hintEl = document.getElementById("hint");
 function setHint(t) { if (hintEl && hintEl.textContent !== t) hintEl.textContent = t; }
 
-// ===== 今回の収穫バー (迷宮内のみ) =====
-// 階の進み (◆) と、この潜入で得たゴールド・Soul・装備 (レア度ごとの色つき個数) を盤面の下に掲げる
+// ===== 今回の収穫と目的 (盤面の下の帯。迷宮の探索中のみ) =====
 const runbarEl = document.getElementById("runbar");
 let _runbarKey = "";
-// 記録欄の背後に、いまいる層の景色を薄く敷く。縦長の画面で大きく空く帳面を「迷宮を覗く窓」にする
-// (欄の実寸で描いて画像化 = 戦闘画面に近いドットの粗さ。設定「戦闘の背景: 漆黒」では敷かない)
+// 記録欄の背後に、いまいる層の景色を薄く敷く (欄の実寸で描いて画像化。設定「戦闘の背景: 漆黒」では敷かない)
 const _logScene = new Map();
 let _logSceneKey = "";
 function updateLogScene() {
@@ -1149,227 +1210,791 @@ function updateLogScene() {
   el.classList.add("has-scene");
 }
 
+// この階で為すべきこと (盤面の下に常に掲げる)
+function dungeonObjective() {
+  if (abyssActive()) {
+    if (abyssBossPending()) return { k: "boss", t: "門番が待つ ― 階段の先へ" };
+    return { k: "down", t: findRevealedStairs() ? "階段を見つけた ― さらに深淵へ" : "下り階段を探せ" };
+  }
+  const dn = curDungeon();
+  const atBottom = G.floor >= (dn.floors || 1);
+  const found = !!findRevealedStairs();
+  if (atBottom && dn.boss) return { k: "boss", t: found ? "主の間への階段を見つけた" : "最深部 ― 主の間への階段を探せ" };
+  if (atBottom) return { k: "goal", t: found ? "最深部の階段を見つけた ― 踏破せよ" : "最深部 ― 最奥の階段を探せ" };
+  return { k: "down", t: found ? "下り階段を見つけた" : "下り階段を探せ" };
+}
+
 function renderRunbar() {
   updateLogScene();
   if (!runbarEl) return;
-  const show = inDungeon() && G.state !== "over";
+  const show = inDungeon() && G.state === "board";
   runbarEl.classList.toggle("hidden", !show);
   if (!show) return;
   const run = G.run || { gold: 0, soulPts: 0, items: [] };
   const cnt = { c: 0, uc: 0, r: 0, sr: 0, lr: 0 };
   for (const x of run.items || []) { const k = rarityKey(x.item); if (k) cnt[k]++; }
-  const floors = abyssActive() ? 0 : (activeCfg().floors || 1);
-  const key = `${G.floor}/${floors}|${run.gold}|${run.soulPts}|${Object.values(cnt).join(",")}`;
+  const obj = dungeonObjective();
+  const key = `${obj.k}|${obj.t}|${run.gold}|${run.soulPts}|${Object.values(cnt).join(",")}|${G.portalFound ? 1 : 0}`;
   if (key === _runbarKey) return;
   _runbarKey = key;
   runbarEl.innerHTML = "";
-  const fl = el("div", "rb-floor");
-  if (floors && floors < 30) {
-    for (let i = 1; i <= floors; i++) fl.appendChild(el("span", "rb-pip" + (i < G.floor ? " done" : i === G.floor ? " now" : ""), "◆"));
-  } else fl.appendChild(el("span", "rb-pip now", `B${G.floor}F`));
-  runbarEl.appendChild(fl);
+  const goal = el("div", "rb-goal rb-goal-" + obj.k);
+  goal.appendChild(el("i", "rb-goal-ic"));
+  goal.appendChild(el("span", "rb-goal-t", obj.t));
+  if (G.portalFound) { const p = el("span", "rb-portal", "帰還陣"); p.title = "この階の帰還魔法陣を見つけた (左上のボタンで街へ戻れる)"; goal.appendChild(p); }
+  runbarEl.appendChild(goal);
   const loot = el("div", "rb-loot");
-  loot.appendChild(el("span", "rb-gold", `💰${run.gold || 0}`));
-  loot.appendChild(el("span", "rb-soul", `✦${run.soulPts || 0}`));
+  loot.title = "今回の潜入で得たもの";
+  loot.appendChild(el("span", "rb-gold" + (run.gold ? "" : " zero"), String(run.gold || 0)));
+  loot.appendChild(el("span", "rb-soul" + (run.soulPts ? "" : " zero"), String(run.soulPts || 0)));
+  const gems = el("span", "rb-gems");
   for (const k of ["c", "uc", "r", "sr", "lr"]) {
-    const sp = el("span", "rb-rar rar-" + k + (cnt[k] ? "" : " zero"), `◆${cnt[k]}`);
-    sp.title = RARITIES[k].label;
-    loot.appendChild(sp);
+    const sp = el("span", "rb-rar rar-" + k + (cnt[k] ? "" : " zero"), cnt[k] ? String(cnt[k]) : "");
+    sp.title = `${RARITIES[k].label} ×${cnt[k]}`;
+    gems.appendChild(sp);
   }
+  loot.appendChild(gems);
   runbarEl.appendChild(loot);
 }
 
 function renderBoard() {
-  setHint("スワイプで移動 ・ タップで移動先指定 ・ 青枠はめくれるカード");
+  _boardActiveAt = performance.now();
+  setHint("スワイプで移動 ・ タップで行き先を指定 ・ 青く光る墓石をめくる");
   renderRunbar();
   updateDescendBtn();
   updateReturnBtn();
-  drawFloor();
+  renderParty();
+  fitView();
+  drawBoardFrame();
+}
 
-  // 到達可能マスを事前計算 (静止中のみ)
-  const reachable = (G.state === "board" && !G.anim && !G.walking)
-    ? getReachableCells() : null;
-
-  // 感知パッシブ: 未公開カードに敵 (敵感知) / 財宝 (財宝感知) の気配を浮かべる。
-  // Lv2: 敵感知=強敵を強調 / 財宝感知=帰還ポータルも。Lv3: 敵感知=属性色 / 財宝感知=罠も。
-  const senseE = partyPassiveLv("senseEnemy");    // 0/1/2/3
-  const senseT = partyPassiveLv("senseTreasure"); // 0/1/2/3
-
-  for (let y = 0; y < ROWS; y++) {
-    for (let x = 0; x < COLS; x++) {
-      const cell = G.board.cells[y][x];
+// ===== 盤面の静的な層 (床・墓石・壁) =====
+// art: 床と墓石の絵 (盤面+寸法+層+階の性質ごと。戦闘で寸法が変わっても戻った時に焼き直さないよう数枚保持)
+// scene: 踏破状況を反映した合成 (めくるたびに作り直す。論理解像度なので軽い)
+const BV = { art: null, artKey: "", artCache: new Map(), scene: null, sctx: null, sceneKey: "", sceneHi: null, sceneHiKey: "",
+  dark: null, dctx: null, darkBase: null, darkKey: "", parts: [], flipSeen: null };
+function ensureBoardArt() {
+  const b = G.board;
+  const L = battleLayer();
+  const sp = specialDef();
+  const crypt = L === 1;
+  const seed = boardSeed(b, dungeonNumber(activeCfg()) * 7919 + G.floor);
+  const key = `${VW}x${VH}|${CARD_W}x${CARD_H}|${seed}|${L}|${G.eliteFloor ? "e" : ""}|${sp ? sp.id : ""}`;
+  if (BV.artKey === key && BV.art) return BV.art;
+  let art = BV.artCache.get(key);
+  if (!art) {
+    const mat = crypt ? CATACOMB : genericMaterial(dungeonTheme());
+    const opt = { seed, cols: COLS, rows: ROWS, rect: cellRect, cells: b.cells, mat, elite: !!G.eliteFloor, accent: crypt && sp ? hexRgb(sp.accent) : null };
+    const fl = paintCryptFloor(VW, VH, opt);
+    const slabs = crypt ? paintCryptSlabs(VW, VH, opt) : paintOldCardBacks();
+    art = { key, seed, floor: fl.canvas, candles: fl.candles, slabs, mat, crypt };
+    BV.artCache.set(key, art);
+    while (BV.artCache.size > 3) BV.artCache.delete(BV.artCache.keys().next().value);
+  }
+  BV.art = art; BV.artKey = key; BV.sceneKey = "";
+  return art;
+}
+// 第1層以外: 層ごとの旧来の裏面 (イラストカード) を論理解像度の画像に焼く
+function paintOldCardBacks() {
+  const c = document.createElement("canvas");
+  c.width = VW; c.height = VH;
+  const g = c.getContext("2d");
+  const main = vctx;
+  vctx = g;
+  try {
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
       const r = cellRect(x, y);
-      let scaleX = 1;
-      let showBack = !cell.revealed;
-      if (G.flipAnim && G.flipAnim.x === x && G.flipAnim.y === y) {
-        const t = Math.min(1, (performance.now() - G.flipAnim.t0) / G.flipAnim.dur);
-        scaleX = Math.abs(Math.cos(t * Math.PI));
-        showBack = t < 0.5;
-      }
-      drawCard(r, cell, scaleX, showBack);
-      if (!cell.revealed && !cell.cleared) {
-        let mark = null;
-        if (senseE && cell.type === "monster") {
-          const strong = senseE >= 2 && cell.elite;
-          let color = strong ? "#ff3b30" : "#ff8a5e";
-          if (senseE >= 3) { const el = (MONSTERS[cell.monsterKey] || {}).element; const ec = (ELEMENTS[el] || {}).color; if (ec) color = ec; }
-          mark = { text: strong ? "‼" : "!", color };
-        } else if (senseT) {
-          if (cell.type === "chest") mark = { text: "✦", color: "#ffd84a" };
-          else if (senseT >= 2 && cell.type === "portal") mark = { text: "⏏", color: "#6fe0d0" };
-          else if (senseT >= 3 && cell.type === "trap") mark = { text: "▲", color: "#ff7a5e" };
+      g.save();
+      g.translate(r.x, r.y);
+      g.beginPath(); g.rect(0, 0, r.w, r.h); g.clip();
+      drawOldCardBack(r);
+      g.restore();
+    }
+  } finally { vctx = main; }
+  return c;
+}
+function ensureBoardScene() {
+  const art = ensureBoardArt();
+  const cells = G.board.cells;
+  let sig = BV.artKey + "|" + (G.flipAnim ? G.flipAnim.x + "," + G.flipAnim.y : "") + "|";
+  for (const row of cells) for (const c of row) sig += c.revealed ? "1" : "0";
+  if (sig === BV.sceneKey && BV.scene) return;
+  BV.sceneKey = sig;
+  if (!BV.scene || BV.scene.width !== VW || BV.scene.height !== VH) {
+    BV.scene = document.createElement("canvas");
+    BV.scene.width = VW; BV.scene.height = VH;
+    BV.sctx = BV.scene.getContext("2d");
+  }
+  const g = BV.sctx;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalCompositeOperation = "source-over"; g.globalAlpha = 1; g.imageSmoothingEnabled = false;
+  // 1) 盤全体の床を闇に沈める (蓋の下と溝)
+  g.drawImage(art.floor, 0, 0);
+  g.fillStyle = G.eliteFloor ? "rgba(10,2,3,0.78)" : "rgba(4,3,5,0.78)";
+  g.fillRect(0, 0, VW, VH);
+  const rev = (x, y) => x >= 0 && y >= 0 && x < COLS && y < ROWS && cells[y][x].revealed;
+  const half = GAP / 2;
+  // 2) 踏破したマスの床 (壁のない境は隣の床とつなげる)
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    if (!rev(x, y)) continue;
+    const c = cells[y][x], r = cellRect(x, y);
+    const x0 = r.x - (!c.walls.w && rev(x - 1, y) ? half : 0), x1 = r.x + r.w + (!c.walls.e && rev(x + 1, y) ? half : 0);
+    const y0 = r.y - (!c.walls.n && rev(x, y - 1) ? half : 0), y1 = r.y + r.h + (!c.walls.s && rev(x, y + 1) ? half : 0);
+    g.drawImage(art.floor, x0, y0, x1 - x0, y1 - y0, x0, y0, x1 - x0, y1 - y0);
+  }
+  for (let j = 1; j < ROWS; j++) for (let i = 1; i < COLS; i++) {
+    if (!rev(i - 1, j - 1) || !rev(i, j - 1) || !rev(i - 1, j) || !rev(i, j)) continue;
+    const a = cells[j - 1][i - 1], d = cells[j][i];
+    if (a.walls.e || a.walls.s || d.walls.n || d.walls.w) continue;
+    const r = cellRect(i, j);
+    g.drawImage(art.floor, r.x - GAP, r.y - GAP, GAP, GAP, r.x - GAP, r.y - GAP, GAP, GAP);
+  }
+  // 3) 墓石の蓋 (落ち影 → 本体)
+  g.fillStyle = "rgba(0,0,0,0.55)";
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    if (rev(x, y)) continue;
+    const r = cellRect(x, y);
+    g.fillRect(r.x + 1, r.y + 2, r.w, r.h);
+  }
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    if (rev(x, y)) continue;
+    const r = cellRect(x, y);
+    g.drawImage(art.slabs, r.x, r.y, r.w, r.h, r.x, r.y, r.w, r.h);
+  }
+  // 4) 踏破したマスの石壁 (共有する辺は一度だけ) と交点の柱頭
+  const walls = [], posts = new Map(), seen = new Set();
+  const post = (px, py) => posts.set(px + "," + py, { x: px, y: py });
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    if (!rev(x, y)) continue;
+    const c = cells[y][x], r = cellRect(x, y);
+    const L = r.x - half, R = r.x + r.w + half, T = r.y - half, B = r.y + r.h + half;
+    if (c.walls.n && !seen.has(`h${x},${y}`)) { seen.add(`h${x},${y}`); walls.push({ x: L, y: T - 3, w: R - L, h: 6, horiz: true }); post(L, T); post(R, T); }
+    if (c.walls.s && !seen.has(`h${x},${y + 1}`)) { seen.add(`h${x},${y + 1}`); walls.push({ x: L, y: B - 3, w: R - L, h: 6, horiz: true }); post(L, B); post(R, B); }
+    if (c.walls.w && !seen.has(`v${x},${y}`)) { seen.add(`v${x},${y}`); walls.push({ x: L - 3, y: T, w: 6, h: B - T, horiz: false }); post(L, T); post(L, B); }
+    if (c.walls.e && !seen.has(`v${x + 1},${y}`)) { seen.add(`v${x + 1},${y}`); walls.push({ x: R - 3, y: T, w: 6, h: B - T, horiz: false }); post(R, T); post(R, B); }
+  }
+  paintCryptWalls(g, walls, [...posts.values()], art.mat, art.seed);
+  BV.sceneHiKey = "";
+}
+// 合成済みの盤面を実画素の寸法へ拡大した写し (毎フレームは等倍で貼るだけにする)
+function boardSceneHi() {
+  const key = BV.sceneKey + "|" + view.width + "x" + view.height;
+  if (BV.sceneHiKey === key && BV.sceneHi) return BV.sceneHi;
+  if (!BV.sceneHi || BV.sceneHi.width !== view.width || BV.sceneHi.height !== view.height) {
+    BV.sceneHi = document.createElement("canvas");
+    BV.sceneHi.width = view.width; BV.sceneHi.height = view.height;
+  }
+  const g = BV.sceneHi.getContext("2d");
+  g.imageSmoothingEnabled = false;
+  g.drawImage(BV.scene, 0, 0, view.width, view.height);
+  BV.sceneHiKey = key;
+  return BV.sceneHi;
+}
+
+// ===== 光と闇 =====
+// 角灯の光の輪 (手番の駒が持つ)。闇は低解像度で作って拡大する (ぼけた縁 = 自然な減衰)
+function boardLight(hx, hy, now) {
+  const fl = REDUCED_MOTION ? 1 : 1 + 0.03 * Math.sin(now * 0.0091) + 0.02 * Math.sin(now * 0.0233 + 1.3) + 0.012 * Math.sin(now * 0.061);
+  const r1 = Math.max(CARD_W * 2.25, (CARD_H + GAP) * 1.5) * fl;
+  return { x: hx, y: hy - CARD_H * 0.12, r1, fl };
+}
+// 点 (x,y) が角灯にどれだけ照らされているか (0..1)
+function lightAt(lt, x, y) {
+  const d = Math.hypot(x - lt.x, y - lt.y) / lt.r1;
+  if (d >= 1) return 0;
+  return d < 0.3 ? 1 : 1 - Math.pow((d - 0.3) / 0.7, 1.4);
+}
+function boardLightSources(now) {
+  const out = [];
+  const art = BV.art, cells = G.board.cells;
+  for (const c of art.candles) {
+    if (!cells[c.cy][c.cx].revealed) continue;
+    const f = REDUCED_MOTION ? 1 : 0.86 + 0.14 * Math.sin(now * 0.013 + c.x * 1.7) * Math.sin(now * 0.0071 + c.y);
+    out.push({ x: c.x, y: c.y - 2, r: 30 * f, a: 0.72 * f, col: "255,150,64", ga: 0.16 * f, gr: 20 });
+  }
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const c = cells[y][x];
+    if (!c.revealed) continue;
+    const r = cellRect(x, y), cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+    const pulse = REDUCED_MOTION ? 0.5 : 0.5 + 0.5 * Math.sin(now * 0.003 + x + y);
+    if (c.type === "portal") out.push({ x: cx, y: cy, r: 46, a: 0.7, col: "90,220,235", ga: 0.18 + 0.1 * pulse, gr: 40 });
+    else if (c.type === "fountain" && !c.cleared) out.push({ x: cx, y: cy, r: 36, a: 0.5, col: "100,170,255", ga: 0.12, gr: 30 });
+    else if (c.type === "poison") out.push({ x: cx, y: cy + r.h * 0.05, r: 34, a: 0.4, col: "120,210,60", ga: 0.1 + 0.05 * pulse, gr: 30 });
+    else if (c.type === "stairs") out.push({ x: cx, y: cy, r: 30, a: 0.4, col: "160,190,255", ga: 0.06, gr: 24 });
+    else if (c.type === "corpse" && c.corpseWarm && !c.cleared) out.push({ x: cx + 7, y: cy - 14, r: 26, a: 0.5, col: "127,208,255", ga: 0.16 + 0.06 * pulse, gr: 20 });
+    else if (c.type === "chest" && !c.cleared) out.push({ x: cx, y: cy, r: 22, a: 0.3, col: "255,210,120", ga: 0.06 + 0.04 * pulse, gr: 18 });
+  }
+  return out;
+}
+function drawBoardDarkness(lt, srcs) {
+  const q = 4, dw = Math.ceil(VW / q), dh = Math.ceil(VH / q);
+  if (!BV.dark || BV.dark.width !== dw || BV.dark.height !== dh) {
+    BV.dark = document.createElement("canvas"); BV.dark.width = dw; BV.dark.height = dh;
+    BV.dctx = BV.dark.getContext("2d");
+    BV.darkKey = "";
+  }
+  const dk = `${dw}x${dh}|${G.eliteFloor ? 1 : 0}|${specialDef() ? specialDef().id : ""}`;
+  if (BV.darkKey !== dk) {
+    BV.darkKey = dk;
+    const b = document.createElement("canvas"); b.width = dw; b.height = dh;
+    const bg = b.getContext("2d");
+    const col = G.eliteFloor ? "16,2,4" : "5,4,9";
+    const vg = bg.createRadialGradient(dw / 2, dh / 2, Math.min(dw, dh) * 0.2, dw / 2, dh / 2, Math.max(dw, dh) * 0.72);
+    vg.addColorStop(0, `rgba(${col},0.54)`);
+    vg.addColorStop(1, `rgba(${col},0.8)`);
+    bg.fillStyle = vg; bg.fillRect(0, 0, dw, dh);
+    BV.darkBase = b;
+  }
+  const d = BV.dctx;
+  d.globalCompositeOperation = "copy";
+  d.drawImage(BV.darkBase, 0, 0);
+  d.globalCompositeOperation = "destination-out";
+  const hole = (x, y, r, a, inner = 0.3) => {
+    const g = d.createRadialGradient(x / q, y / q, 0, x / q, y / q, r / q);
+    g.addColorStop(0, `rgba(0,0,0,${a})`);
+    g.addColorStop(inner, `rgba(0,0,0,${a * 0.92})`);
+    g.addColorStop(0.65, `rgba(0,0,0,${a * 0.42})`);
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    d.fillStyle = g;
+    d.fillRect((x - r) / q, (y - r) / q, (r * 2) / q, (r * 2) / q);
+  };
+  hole(lt.x, lt.y, lt.r1, 1, 0.32);
+  for (const s of srcs) hole(s.x, s.y, s.r, s.a, 0.15);
+  d.globalCompositeOperation = "source-over";
+  vctx.imageSmoothingEnabled = true;
+  vctx.drawImage(BV.dark, 0, 0, dw * q, dh * q);
+}
+// 灯の色を足す (加算)。角灯は暖色、魔法陣は青緑、毒は病んだ緑…
+function drawBoardGlows(lt, srcs) {
+  vctx.save();
+  vctx.globalCompositeOperation = "lighter";
+  const glow = (x, y, r, col, a) => {
+    const g = vctx.createRadialGradient(x, y, 0, x, y, r);
+    g.addColorStop(0, `rgba(${col},${a})`);
+    g.addColorStop(1, `rgba(${col},0)`);
+    vctx.fillStyle = g;
+    vctx.fillRect(x - r, y - r, r * 2, r * 2);
+  };
+  glow(lt.x, lt.y, lt.r1 * 0.8, G.eliteFloor ? "255,90,60" : "255,150,70", 0.15 * lt.fl);
+  for (const s of srcs) glow(s.x, s.y, s.gr, s.col, s.ga);
+  vctx.restore();
+}
+
+// ===== 盤面の1フレーム =====
+// 駒の位置 (移動中は前マスから次マスへ補間)
+function heroPos() {
+  if (G.heroAnim) {
+    const a = G.heroAnim;
+    let t = Math.min(1, (performance.now() - a.t0) / a.dur);
+    t = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    const from = cellRect(a.fromX, a.fromY), to = cellRect(a.toX, a.toY);
+    return [(from.x + from.w / 2) + ((to.x + to.w / 2) - (from.x + from.w / 2)) * t,
+      (from.y + from.h / 2) + ((to.y + to.h / 2) - (from.y + from.h / 2)) * t];
+  }
+  const pr = cellRect(G.px, G.py);
+  return [pr.x + pr.w / 2, pr.y + pr.h / 2];
+}
+function drawBoardFrame() {
+  if (!G.board) return;
+  const now = performance.now();
+  ensureBoardScene();
+  vctx.setTransform(1, 0, 0, 1, 0, 0);
+  vctx.globalCompositeOperation = "copy";
+  vctx.globalAlpha = 1;
+  vctx.drawImage(boardSceneHi(), 0, 0);
+  vctx.globalCompositeOperation = "source-over";
+  viewTransform();
+  vctx.imageSmoothingEnabled = false;
+  const [hx, hy] = heroPos();
+  const lt = boardLight(hx - CARD_W * 0.18, hy, now);
+  const srcs = boardLightSources(now);
+  drawBoardDarkness(lt, srcs);
+  drawBoardGlows(lt, srcs);
+  drawBoardTerrainFx(now);
+  drawCandleFlames(now);
+  drawBoardHighlights(now);
+  drawBoardIcons(lt, now, hx, hy);
+  drawFlipSlab(now);
+  drawWallFlash(now);
+  drawWalker(hx, hy, now);
+  drawBoardParticles(lt, now);
+  vctx.globalCompositeOperation = "source-over";
+  vctx.globalAlpha = 1;
+}
+
+// 地形の動き (闇の上に描く = 闇の中でもぼうっと光る): 毒の汚泥の照り・泡・瘴気
+function drawBoardTerrainFx(now) {
+  const cells = G.board.cells;
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const c = cells[y][x];
+    if (!c.revealed || c.type !== "poison") continue;
+    const r = cellRect(x, y), cx = r.x + r.w / 2, cy = r.y + r.h * 0.55;
+    const t = REDUCED_MOTION ? 0 : now * 0.001;
+    // 汚泥の照り (ゆっくり脈打つ)
+    vctx.save();
+    vctx.globalCompositeOperation = "lighter";
+    const sh = 0.5 + 0.5 * Math.sin(t * 1.7 + x);
+    const g = vctx.createRadialGradient(cx, cy, 0, cx, cy, r.w * 0.42);
+    g.addColorStop(0, `rgba(120,200,40,${0.12 + 0.08 * sh})`);
+    g.addColorStop(1, "rgba(120,200,40,0)");
+    vctx.fillStyle = g;
+    vctx.save(); vctx.translate(cx, cy); vctx.scale(1, (r.h * 0.3) / (r.w * 0.42)); vctx.translate(-cx, -cy);
+    vctx.fillRect(cx - r.w * 0.42, cy - r.w * 0.42, r.w * 0.84, r.w * 0.84);
+    vctx.restore();
+    vctx.restore();
+    // 弾ける泡
+    for (let i = 0; i < 8; i++) {
+      const ph = (t * (0.45 + h01(i, x * 9 + y) * 0.6) + h01(i, 3)) % 1;
+      const bx = cx + (h01(i, x + y * 8) - 0.5) * r.w * 0.6, by = cy + (h01(i + 7, x * 3 + y) - 0.5) * r.h * 0.4;
+      const rad = 0.8 + ph * 2.4;
+      vctx.globalAlpha = (1 - ph) * 0.95;
+      vctx.strokeStyle = "#c8f070";
+      vctx.lineWidth = 0.9;
+      vctx.beginPath(); vctx.arc(bx, by - ph * 2, rad, 0, Math.PI * 2); vctx.stroke();
+      vctx.fillStyle = "rgba(230,255,170,0.8)";
+      vctx.fillRect(bx - rad * 0.4, by - ph * 2 - rad * 0.5, 0.8, 0.8);
+    }
+    // 立ちのぼる瘴気
+    for (let i = 0; i < 3; i++) {
+      const ph = (t * 0.22 + i / 3) % 1;
+      const mx = cx + Math.sin(t * 0.9 + i * 2.1) * r.w * 0.18, my = cy - ph * r.h * 0.5;
+      const mg = vctx.createRadialGradient(mx, my, 0, mx, my, 9 + ph * 6);
+      mg.addColorStop(0, `rgba(110,170,50,${0.16 * Math.sin(ph * Math.PI)})`);
+      mg.addColorStop(1, "rgba(110,170,50,0)");
+      vctx.globalAlpha = 1;
+      vctx.fillStyle = mg;
+      vctx.fillRect(mx - 16, my - 16, 32, 32);
+    }
+    vctx.globalAlpha = 1;
+  }
+}
+
+// 蝋燭の炎 (踏破したマスのみ)
+function drawCandleFlames(now) {
+  const cells = G.board.cells;
+  for (const c of BV.art.candles) {
+    if (!cells[c.cy][c.cx].revealed) continue;
+    const f = REDUCED_MOTION ? 0 : Math.sin(now * 0.017 + c.x * 3.1) * 0.5 + Math.sin(now * 0.041 + c.y) * 0.3;
+    const h = 3.2 + f * 0.8, sway = REDUCED_MOTION ? 0 : Math.sin(now * 0.007 + c.x) * 0.5;
+    vctx.fillStyle = "rgba(255,140,40,0.85)";
+    vctx.beginPath();
+    vctx.ellipse(c.x + sway * 0.5, c.y - h * 0.45, 1.25, h * 0.6, 0, 0, Math.PI * 2);
+    vctx.fill();
+    vctx.fillStyle = "rgba(255,236,170,0.95)";
+    vctx.beginPath();
+    vctx.ellipse(c.x + sway * 0.3, c.y - h * 0.3, 0.6, h * 0.32, 0, 0, Math.PI * 2);
+    vctx.fill();
+  }
+}
+
+// めくれる墓石の霊光 (隣接=脈打つ縁取り / 遠隔=淡い縁)
+function drawBoardHighlights(now) {
+  if (G.state !== "board" || G.anim || G.walking) return;
+  const reach = getReachableCells();
+  const pulse = REDUCED_MOTION ? 0.6 : 0.5 + 0.5 * Math.sin(now * 0.0042);
+  const senseE = partyPassiveLv("senseEnemy"), senseT = partyPassiveLv("senseTreasure");
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const cell = G.board.cells[y][x];
+    if (cell.revealed) continue;
+    const r = cellRect(x, y);
+    if (reach.has(x + "," + y)) {
+      vctx.save();
+      if (isStep(x, y)) {
+        vctx.fillStyle = `rgba(150,200,255,${0.05 + 0.05 * pulse})`;
+        vctx.fillRect(r.x, r.y, r.w, r.h);
+        vctx.strokeStyle = `rgba(110,170,255,${0.16 + 0.12 * pulse})`;
+        vctx.lineWidth = 5;
+        vctx.strokeRect(r.x - 0.5, r.y - 0.5, r.w + 1, r.h + 1);
+        vctx.strokeStyle = `rgba(185,225,255,${0.7 + 0.3 * pulse})`;
+        vctx.lineWidth = 1.4;
+        vctx.strokeRect(r.x + 0.7, r.y + 0.7, r.w - 1.4, r.h - 1.4);
+        // 角の楔
+        vctx.fillStyle = `rgba(225,242,255,${0.75 + 0.25 * pulse})`;
+        const k = 5;
+        for (const [px, py, sx, sy] of [[r.x, r.y, 1, 1], [r.x + r.w, r.y, -1, 1], [r.x, r.y + r.h, 1, -1], [r.x + r.w, r.y + r.h, -1, -1]]) {
+          vctx.beginPath(); vctx.moveTo(px, py); vctx.lineTo(px + k * sx, py); vctx.lineTo(px, py + k * sy); vctx.closePath(); vctx.fill();
         }
-        if (mark) {
-          vctx.save();
-          vctx.shadowColor = mark.color;
-          vctx.shadowBlur = 6;
-          vctx.fillStyle = mark.color;
-          vctx.font = "bold 11px monospace";
-          vctx.textAlign = "center";
-          const bob = Math.sin(performance.now() * 0.003 + x * 2 + y) * 1.5;
-          vctx.fillText(mark.text, r.x + r.w - 9, r.y + 12 + bob);
-          vctx.restore();
-        }
+      } else {
+        vctx.strokeStyle = "rgba(120,170,235,0.42)";
+        vctx.lineWidth = 1;
+        vctx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
       }
-      // めくれる未公開カードのみハイライト: 隣接(1歩)は明るいグロー、遠隔は薄い枠
-      // (めくり済みマスは移動可能でも枠を出さない)
-      if (reachable && !cell.revealed && reachable.has(x + "," + y)) {
+      vctx.restore();
+    }
+    // 感知パッシブ: 敵感知 (!) / 財宝感知 (✦) の気配。Lv2: 強敵を強調・帰還陣も / Lv3: 属性色・罠も
+    if (!cell.cleared) {
+      let mark = null;
+      if (senseE && cell.type === "monster") {
+        const strong = senseE >= 2 && cell.elite;
+        let color = strong ? "#ff3b30" : "#ff7a52";
+        if (senseE >= 3) { const e2 = (MONSTERS[cell.monsterKey] || {}).element; const ec = (ELEMENTS[e2] || {}).color; if (ec) color = ec; }
+        mark = { text: strong ? "‼" : "!", color };
+      } else if (senseT) {
+        if (cell.type === "chest") mark = { text: "✦", color: "#ffd84a" };
+        else if (senseT >= 2 && cell.type === "portal") mark = { text: "◎", color: "#6fe0d0" };
+        else if (senseT >= 3 && cell.type === "trap") mark = { text: "▲", color: "#ff7a5e" };
+      }
+      if (mark) {
+        const bob = REDUCED_MOTION ? 0 : Math.sin(now * 0.003 + x * 2 + y) * 1.2;
+        const mx = r.x + r.w - 9, my = r.y + 10 + bob;
         vctx.save();
-        if (isStep(x, y)) {
-          vctx.shadowColor = "rgba(120,220,255,0.9)";
-          vctx.shadowBlur = 8;
-          vctx.strokeStyle = "rgba(150,230,255,0.95)";
-          vctx.lineWidth = 2;
-        } else {
-          vctx.shadowColor = "rgba(80,160,255,0.4)";
-          vctx.shadowBlur = 4;
-          vctx.strokeStyle = "rgba(100,180,255,0.55)";
-          vctx.lineWidth = 1.5;
-        }
-        vctx.strokeRect(r.x + 1, r.y + 1, r.w - 2, r.h - 2);
+        vctx.fillStyle = "rgba(6,4,6,0.82)";
+        vctx.beginPath(); vctx.arc(mx, my, 6.5, 0, Math.PI * 2); vctx.fill();
+        vctx.strokeStyle = mark.color; vctx.globalAlpha = 0.85; vctx.lineWidth = 1;
+        vctx.stroke();
+        vctx.globalAlpha = 1;
+        vctx.shadowColor = mark.color; vctx.shadowBlur = 6;
+        vctx.fillStyle = mark.color;
+        vctx.font = `800 9px ${CANVAS_SERIF}`;
+        vctx.textAlign = "center"; vctx.textBaseline = "middle";
+        vctx.fillText(mark.text, mx, my + 0.5);
         vctx.restore();
       }
     }
   }
-
-  // 公開済みマスの壁をカード境界の上に重ね描き (隣カードの影に紛れないように)
-  for (let y = 0; y < ROWS; y++) {
-    for (let x = 0; x < COLS; x++) {
-      const cell = G.board.cells[y][x];
-      if (!cell.revealed) continue;
-      if (G.flipAnim && G.flipAnim.x === x && G.flipAnim.y === y) continue; // めくり中は描かない
-      drawWallsOverlay(cell, cellRect(x, y));
-    }
-  }
-  // 進めない方向へ移動を試みた時の赤い壁フラッシュ
-  if (G.wallFlash) {
-    const t = (performance.now() - G.wallFlash.t0) / 350;
-    if (t <= 1) {
-      drawWallBar(cellRect(G.wallFlash.x, G.wallFlash.y), G.wallFlash.dir, {
-        flash: 1 - t,
-      });
-    } else {
-      G.wallFlash = null;
-    }
-  }
-
-  // プレイヤー (移動中は前マスから次マスへ補間してスライド)
-  let hx, hy;
-  if (G.heroAnim) {
-    const a = G.heroAnim;
-    let t = Math.min(1, (performance.now() - a.t0) / a.dur);
-    t = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; // ease-in-out
-    const from = cellRect(a.fromX, a.fromY), to = cellRect(a.toX, a.toY);
-    hx = (from.x + from.w / 2) + ((to.x + to.w / 2) - (from.x + from.w / 2)) * t;
-    hy = (from.y + from.h / 2) + ((to.y + to.h / 2) - (from.y + from.h / 2)) * t;
-  } else {
-    const pr = cellRect(G.px, G.py);
-    hx = pr.x + pr.w / 2;
-    hy = pr.y + pr.h / 2;
-  }
-  // 足元の影
-  vctx.save();
-  vctx.fillStyle = "rgba(0,0,0,0.4)";
-  vctx.beginPath();
-  vctx.ellipse(hx, hy + 16, 12, 4, 0, 0, Math.PI * 2);
-  vctx.fill();
-  vctx.restore();
-  // 盤面の駒: 旧来の12ドット絵はそのまま、高精細の全身像はマスの高さに収めて縮小転写する
-  const wk = walkerSprite();
-  if ((wk.art || []).length > 24) drawMonster(vctx, wk, hx, hy - 2, 3.7);
-  else drawSprite(vctx, wk, hx, hy, SPR);
-
-  renderParty();
 }
 
-// 盤面の常時アニメーション: 静止中もカード裏面の演出 (水滴・火花・霧・鬼火など) を動かす。
-// 移動/めくり中はそれぞれの tick が renderBoard を回すので、ここでは静止中の盤面だけを
-// ゆるやかに (約18fps) 再描画する。タブが背面の間は requestAnimationFrame が止まり負荷もかからない。
-let _boardAnimLast = 0;
+// ===== マスの中身 (魔物・宝箱・罠・泉・死体・魔法陣・階段) =====
+// アイコンは闇の上に描き、角灯から遠いほど暗い写しへ寄せる (遠くの物も形は読める)
+const _plainBmp = new WeakMap();
+function plainBitmap(spr) {
+  let b = _plainBmp.get(spr);
+  if (b) return b;
+  const rows = spr.art || [];
+  const h = rows.length, w = rows.reduce((m, r) => Math.max(m, r.length), 0);
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, w); c.height = Math.max(1, h);
+  const g = c.getContext("2d");
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const ch = rows[y][x];
+    if (!ch || ch === "." || ch === " ") continue;
+    const col = spr.palette[ch];
+    if (!col) continue;
+    g.fillStyle = col;
+    g.fillRect(x, y, 1, 1);
+  }
+  b = { c, w, h, pad: 0 };
+  _plainBmp.set(spr, b);
+  return b;
+}
+const _dimBmp = new WeakMap();
+function dimBitmap(b) {
+  let d = _dimBmp.get(b.c);
+  if (d) return d;
+  const c = document.createElement("canvas");
+  c.width = b.c.width; c.height = b.c.height;
+  const g = c.getContext("2d");
+  g.drawImage(b.c, 0, 0);
+  g.globalCompositeOperation = "source-atop";
+  g.fillStyle = "rgba(4,3,8,0.62)";
+  g.fillRect(0, 0, c.width, c.height);
+  d = { c, w: b.w, h: b.h, pad: b.pad };
+  _dimBmp.set(b.c, d);
+  return d;
+}
+// ビットマップを箱 (maxW×maxH) に収めて、足元 (bottom) を基準に描く。light<1 なら暗い写しと混ぜる
+function drawBmpFit(b, cx, bottom, maxW, maxH, light = 1, alpha = 1) {
+  const dot = Math.min(maxW / (b.w + b.pad * 2), maxH / (b.h + b.pad * 2));
+  const W = (b.w + b.pad * 2) * dot, H = (b.h + b.pad * 2) * dot;
+  const x = cx - W / 2, y = bottom - H;
+  vctx.save();
+  vctx.imageSmoothingEnabled = dot * VSX < 1.6;
+  if (vctx.imageSmoothingEnabled) vctx.imageSmoothingQuality = "high";
+  if (light < 0.98) {
+    vctx.globalAlpha = alpha;
+    vctx.drawImage(dimBitmap(b).c, x, y, W, H);
+    vctx.globalAlpha = alpha * Math.max(0, light);
+  } else vctx.globalAlpha = alpha;
+  if (vctx.globalAlpha > 0.01) vctx.drawImage(b.c, x, y, W, H);
+  vctx.restore();
+  return { x, y, W, H };
+}
+function cellIcon(cell) {
+  return cell.type === "monster" && !cell.cleared ? MONSTERS[cell.monsterKey] :
+    cell.type === "chest" ? (cell.cleared ? ICONS.chestOpen : ICONS.chest) :
+    cell.type === "trap" && !cell.cleared ? ICONS.trap :
+    cell.type === "fountain" && !cell.cleared ? ICONS.fountain :
+    cell.type === "corpse" ? ICONS.corpse :
+    cell.type === "portal" ? ICONS.portal :
+    cell.type === "stairs" ? ICONS.stairs : null;
+}
+function drawBoardIcons(lt, now, hx, hy) {
+  const cells = G.board.cells;
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const cell = cells[y][x];
+    if (!cell.revealed) continue;
+    if (G.flipAnim && G.flipAnim.x === x && G.flipAnim.y === y && now - G.flipAnim.t0 < G.flipAnim.dur * 0.45) continue;
+    const icon = cellIcon(cell);
+    if (!icon) continue;
+    const r = cellRect(x, y);
+    // 駒と同じマスなら、中身を右奥へ寄せて駒と重ならないようにする
+    const here = x === G.px && y === G.py && !G.heroAnim;
+    let cx = r.x + r.w / 2 + (here ? r.w * 0.2 : 0);
+    const light = 0.35 + 0.65 * Math.max(lightAt(lt, cx, r.y + r.h / 2), cell.type === "portal" ? 0.6 : 0);
+    if (cell.type === "portal") {
+      // 床に刻まれた魔法陣 (ゆっくり回る青緑の環)
+      const cy = r.y + r.h * 0.62, rx = r.w * 0.4, ry = Math.min(r.h * 0.16, rx * 0.45);
+      const rot = REDUCED_MOTION ? 0 : now * 0.0006;
+      vctx.save();
+      vctx.strokeStyle = "rgba(110,235,240,0.7)"; vctx.lineWidth = 1;
+      vctx.beginPath(); vctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); vctx.stroke();
+      vctx.strokeStyle = "rgba(110,235,240,0.35)";
+      vctx.beginPath(); vctx.ellipse(cx, cy, rx * 0.72, ry * 0.72, 0, 0, Math.PI * 2); vctx.stroke();
+      vctx.fillStyle = "rgba(170,250,250,0.85)";
+      for (let i = 0; i < 8; i++) {
+        const a = rot + (i / 8) * Math.PI * 2;
+        vctx.fillRect(cx + Math.cos(a) * rx * 0.86 - 0.7, cy + Math.sin(a) * ry * 0.86 - 0.7, 1.4, 1.4);
+      }
+      vctx.restore();
+    }
+    if (cell.type === "monster") {
+      // 魔物: 足元に血の気配。強敵は紅い瘴気をまとい「強敵」の札を掲げる
+      const b = monsterBitmap(icon);
+      const bottom = r.y + r.h * 0.9;
+      vctx.save();
+      vctx.globalCompositeOperation = "lighter";
+      const pulse = REDUCED_MOTION ? 0.5 : 0.5 + 0.5 * Math.sin(now * 0.0035 + x);
+      const g = vctx.createRadialGradient(cx, bottom - r.h * 0.12, 0, cx, bottom - r.h * 0.12, r.w * 0.55);
+      g.addColorStop(0, `rgba(${cell.elite ? "220,30,20" : "150,20,14"},${0.22 + 0.12 * pulse})`);
+      g.addColorStop(1, "rgba(150,20,14,0)");
+      vctx.fillStyle = g; vctx.fillRect(r.x - 6, r.y, r.w + 12, r.h);
+      vctx.restore();
+      vctx.fillStyle = "rgba(0,0,0,0.5)";
+      vctx.beginPath(); vctx.ellipse(cx, bottom - 1, r.w * 0.34, 3.4, 0, 0, Math.PI * 2); vctx.fill();
+      drawBmpFit(b, cx, bottom, r.w * (here ? 0.62 : 0.94), r.h * (here ? 0.58 : 0.78), light);
+      if (cell.elite) {
+        vctx.save();
+        vctx.fillStyle = "rgba(70,4,4,0.92)";
+        vctx.fillRect(r.x + 3, r.y + 3, r.w - 6, 11);
+        vctx.strokeStyle = "rgba(255,90,70,0.85)"; vctx.lineWidth = 0.8;
+        vctx.strokeRect(r.x + 3.5, r.y + 3.5, r.w - 7, 10);
+        vctx.fillStyle = "#ffc9b8";
+        vctx.font = `800 8px ${CANVAS_SERIF}`;
+        vctx.textAlign = "center"; vctx.textBaseline = "middle";
+        vctx.fillText("強 敵", r.x + r.w / 2, r.y + 8.5);
+        vctx.restore();
+      }
+      continue;
+    }
+    const b = plainBitmap(icon);
+    const size = Math.min(r.w * (here ? 0.62 : 0.86), r.h * (here ? 0.5 : 0.62));
+    const bottom = r.y + r.h / 2 + size / 2 + r.h * 0.04;
+    vctx.fillStyle = "rgba(0,0,0,0.42)";
+    vctx.beginPath(); vctx.ellipse(cx, bottom - size * 0.08, size * 0.42, 3, 0, 0, Math.PI * 2); vctx.fill();
+    drawBmpFit(b, cx, bottom, size, size, light);
+    // まだあたたかい死体 (魂未回収) には青い人魂
+    if (cell.type === "corpse" && cell.corpseWarm && !cell.cleared) {
+      const bob = REDUCED_MOTION ? 0 : Math.sin(now * 0.004 + cx) * 2;
+      drawBmpFit(plainBitmap(ICONS.wisp), cx + size * 0.22, bottom - size * 0.62 + bob, size * 0.5, size * 0.5, 1, 0.92);
+    }
+    // 宝箱のきらめき
+    if (cell.type === "chest" && !cell.cleared && !REDUCED_MOTION) {
+      const ph = (now * 0.0011 + x * 0.37 + y * 0.21) % 1;
+      if (ph < 0.22) {
+        const k = Math.sin((ph / 0.22) * Math.PI);
+        const sx = cx - size * 0.18 + h01(Math.floor(now * 0.0011 + x), y) * size * 0.36, sy = bottom - size * 0.55;
+        vctx.save();
+        vctx.globalCompositeOperation = "lighter";
+        vctx.strokeStyle = `rgba(255,236,170,${0.9 * k})`;
+        vctx.lineWidth = 0.8;
+        vctx.beginPath();
+        vctx.moveTo(sx - 3.5 * k, sy); vctx.lineTo(sx + 3.5 * k, sy);
+        vctx.moveTo(sx, sy - 3.5 * k); vctx.lineTo(sx, sy + 3.5 * k);
+        vctx.stroke();
+        vctx.restore();
+      }
+    }
+  }
+}
+
+// めくった墓石の蓋: 進む向きへずらしながら持ち上げ、薄れて消える (+ 舞い上がる塵)
+function drawFlipSlab(now) {
+  const f = G.flipAnim;
+  if (!f || !BV.art) return;
+  const r = cellRect(f.x, f.y);
+  if (BV.flipSeen !== f) {
+    BV.flipSeen = f;
+    for (let i = 0; i < 22; i++) {
+      const side = i % 4, u = Math.random();
+      const px = side === 0 ? r.x + u * r.w : side === 1 ? r.x + r.w : side === 2 ? r.x + u * r.w : r.x;
+      const py = side === 0 ? r.y : side === 1 ? r.y + u * r.h : side === 2 ? r.y + r.h : r.y + u * r.h;
+      const a = Math.atan2(py - (r.y + r.h / 2), px - (r.x + r.w / 2));
+      const sp = 0.012 + Math.random() * 0.03;
+      BV.parts.push({ x: px, y: py, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 0.006, t0: now, life: 500 + Math.random() * 500, s: 0.8 + Math.random() * 1.6 });
+    }
+  }
+  const t = Math.min(1, (now - f.t0) / f.dur);
+  if (t >= 1) return;
+  const dx = Math.sign(f.x - G.px), dy = Math.sign(f.y - G.py);
+  const e = t * t * (3 - 2 * t);
+  const lift = Math.sin(t * Math.PI);
+  const ox = dx * e * r.w * 0.55, oy = dy * e * r.h * 0.4 - lift * 4;
+  const sc = 1 + lift * 0.07;
+  const a = 1 - Math.pow(t, 1.7);
+  vctx.save();
+  vctx.globalAlpha = 0.5 * a;
+  vctx.fillStyle = "#000";
+  vctx.fillRect(r.x + ox + 2 + lift * 5, r.y + oy + 4 + lift * 7, r.w, r.h);
+  vctx.globalAlpha = a;
+  vctx.imageSmoothingEnabled = false;
+  const W = r.w * sc, H = r.h * sc;
+  vctx.drawImage(BV.art.slabs, r.x, r.y, r.w, r.h, r.x + r.w / 2 - W / 2 + ox, r.y + r.h / 2 - H / 2 + oy, W, H);
+  vctx.restore();
+}
+
+// 進めない方向へ動こうとした時の紅い閃き (塞いでいる壁)
+function drawWallFlash(now) {
+  const wf = G.wallFlash;
+  if (!wf) return;
+  const t = (now - wf.t0) / 350;
+  if (t > 1) { G.wallFlash = null; return; }
+  const r = cellRect(wf.x, wf.y), half = GAP / 2;
+  let bx, by, bw, bh;
+  if (wf.dir === "n") { bx = r.x - half; by = r.y - half - 3; bw = r.w + GAP; bh = 6; }
+  else if (wf.dir === "s") { bx = r.x - half; by = r.y + r.h + half - 3; bw = r.w + GAP; bh = 6; }
+  else if (wf.dir === "w") { bx = r.x - half - 3; by = r.y - half; bw = 6; bh = r.h + GAP; }
+  else { bx = r.x + r.w + half - 3; by = r.y - half; bw = 6; bh = r.h + GAP; }
+  const k = 1 - t;
+  vctx.save();
+  vctx.shadowColor = "rgba(255,40,30,0.95)";
+  vctx.shadowBlur = 12 * k;
+  vctx.fillStyle = `rgba(255,70,50,${0.45 + 0.5 * k})`;
+  vctx.fillRect(bx, by, bw, bh);
+  vctx.restore();
+}
+
+// 手番の駒 (先頭の人業の全身像)。足元に影、背に角灯の照り返し
+function drawWalker(hx, hy, now) {
+  const wk = walkerSprite();
+  const b = monsterBitmap(wk);
+  const hi = (wk.art || []).length > 24;
+  const cur = G.board.cells[G.py] && G.board.cells[G.py][G.px];
+  const share = !G.heroAnim && cur && !!cellIcon(cur); // 中身のあるマスでは左手前へ寄る
+  const x = hx - (share ? CARD_W * 0.2 : 0);
+  const maxH = hi ? Math.min(CARD_H * (share ? 0.86 : 0.94), 110) : Math.min(CARD_W * 0.78, CARD_H * 0.66);
+  const feet = hy + (hi ? CARD_H * 0.44 : CARD_H * 0.3);
+  // 影
+  vctx.save();
+  vctx.fillStyle = "rgba(0,0,0,0.3)";
+  vctx.beginPath(); vctx.ellipse(x, feet - 1, CARD_W * 0.36, 5, 0, 0, Math.PI * 2); vctx.fill();
+  vctx.fillStyle = "rgba(0,0,0,0.55)";
+  vctx.beginPath(); vctx.ellipse(x, feet - 1, CARD_W * 0.22, 3, 0, 0, Math.PI * 2); vctx.fill();
+  vctx.restore();
+  const box = drawBmpFit(b, x, feet + 1, hi ? CARD_W * 1.1 : maxH, maxH);
+  drawHandLantern(x - box.W * (hi ? 0.36 : 0.42) - 2, box.y + box.H * (hi ? 0.5 : 0.56), now);
+}
+// 手提げの角灯 (光の輪の源): 鉄の籠と煤けた硝子、ゆるく揺れる
+function drawHandLantern(x, y, now) {
+  const sw = REDUCED_MOTION ? 0 : Math.sin(now * 0.0021) * 0.12;
+  const fl = REDUCED_MOTION ? 1 : 0.85 + 0.15 * Math.sin(now * 0.019) * Math.sin(now * 0.007 + 1);
+  vctx.save();
+  vctx.translate(x, y);
+  vctx.rotate(sw);
+  // 吊り鎖
+  vctx.fillStyle = "#2a2622";
+  vctx.fillRect(-0.5, -6, 1, 4);
+  // 光暈
+  vctx.save();
+  vctx.globalCompositeOperation = "lighter";
+  const g = vctx.createRadialGradient(0, 3, 0, 0, 3, 14);
+  g.addColorStop(0, `rgba(255,190,90,${0.55 * fl})`);
+  g.addColorStop(1, "rgba(255,150,60,0)");
+  vctx.fillStyle = g;
+  vctx.fillRect(-14, -11, 28, 28);
+  vctx.restore();
+  // 籠
+  vctx.fillStyle = "#0d0b0a";
+  vctx.fillRect(-3.5, -2.5, 7, 10);
+  vctx.fillStyle = `rgba(255,${Math.round(190 + 40 * fl)},120,1)`;
+  vctx.fillRect(-2.5, -1, 5, 7);
+  vctx.fillStyle = "#fff4cc";
+  vctx.fillRect(-0.8, 1 + (1 - fl) * 2, 1.6, 3);
+  vctx.fillStyle = "#3a332c";
+  vctx.fillRect(-3.5, -2.5, 7, 1.5);
+  vctx.fillRect(-3.5, 6, 7, 1.5);
+  vctx.fillRect(-0.4, -1, 0.8, 7);
+  vctx.restore();
+}
+
+// 塵: めくった蓋から舞う砂埃と、角灯の光の中を漂う微塵
+function drawBoardParticles(lt, now) {
+  if (BV.parts.length) {
+    vctx.save();
+    BV.parts = BV.parts.filter((p) => now - p.t0 < p.life);
+    for (const p of BV.parts) {
+      const t = now - p.t0, k = 1 - t / p.life;
+      const x = p.x + p.vx * t, y = p.y + p.vy * t + 0.00001 * t * t;
+      vctx.globalAlpha = 0.55 * k;
+      vctx.fillStyle = "#b8a88a";
+      vctx.fillRect(x, y, p.s, p.s);
+    }
+    vctx.restore();
+  }
+  if (REDUCED_MOTION) return;
+  vctx.save();
+  vctx.globalCompositeOperation = "lighter";
+  for (let i = 0; i < 46; i++) {
+    const sp = 0.4 + h01(i, 1) * 0.9;
+    const x = h01(i, 2) * VW + Math.sin(now * 0.00035 * sp + i * 2.3) * 12;
+    const y = (((h01(i, 3) * VH - now * 0.0065 * sp) % VH) + VH) % VH;
+    const l = lightAt(lt, x, y);
+    if (l <= 0.02) continue;
+    const tw = 0.55 + 0.45 * Math.sin(now * 0.0031 + i * 1.7);
+    vctx.globalAlpha = l * tw * 0.5;
+    vctx.fillStyle = "#ffd9a0";
+    const s = 0.7 + h01(i, 4) * 0.9;
+    vctx.fillRect(x, y, s, s);
+  }
+  // 床を這う靄: ふだんは冷たい灰、強敵階は紅、特別階はその色 (柔らかな楕円の絵を一度だけ作って流す)
+  const sp = specialDef();
+  const col = G.eliteFloor ? "200,20,20" : sp ? (() => { const c = hexRgb(sp.accent); return `${c[0]},${c[1]},${c[2]}`; })() : "150,160,178";
+  const a = G.eliteFloor ? 0.09 : sp ? 0.06 : 0.045;
+  const mist = mistSprite(col, a);
+  vctx.globalCompositeOperation = "source-over";
+  vctx.globalAlpha = 1;
+  vctx.imageSmoothingEnabled = true;
+  for (let i = 0; i < 6; i++) {
+    const w = 160 + h01(i, 5) * 120, span = VW + w * 2;
+    const x = ((h01(i, 6) * span + now * 0.006 * (0.5 + h01(i, 7))) % span) - w;
+    const y = VH * (0.12 + 0.15 * i);
+    vctx.drawImage(mist, x - w / 2, y - w * 0.175, w, w * 0.35);
+  }
+  vctx.restore();
+}
+const _mist = new Map();
+function mistSprite(col, a) {
+  const key = col + "|" + a;
+  let c = _mist.get(key);
+  if (c) return c;
+  c = document.createElement("canvas");
+  c.width = 128; c.height = 48;
+  const g = c.getContext("2d");
+  g.translate(64, 24); g.scale(1, 48 / 128);
+  const gr = g.createRadialGradient(0, 0, 0, 0, 0, 64);
+  gr.addColorStop(0, `rgba(${col},${a})`);
+  gr.addColorStop(1, `rgba(${col},0)`);
+  g.fillStyle = gr;
+  g.fillRect(-64, -64, 128, 128);
+  _mist.set(key, c);
+  return c;
+}
+
+// 盤面の常時アニメーション: 灯の揺らぎ・微塵・霊光を毎フレーム動かす (重い層はキャッシュ済み)。
+// 移動/めくり/壁の閃きの間はそれぞれの tick が描くので、ここでは描かない。背面タブでは rAF ごと止まる
+// 操作の直後 (1.5秒) は毎フレーム描き、静止が続けば灯の揺らぎだけ約30fpsに間引く (電池と余力のため)。
+// 1フレームの描画が重い端末でも同じく間引く
+let _boardIdleCost = 0, _boardIdleSkip = false, _boardActiveAt = 0;
 function boardAnimLoop(ts) {
   requestAnimationFrame(boardAnimLoop);
-  if (G.state !== "board") return;
-  if (G.anim || G.walking || G.flipAnim || G.heroAnim || G.wallFlash) return; // 他の tick に任せる
-  if (G.prompt || G.statusOpen || G.settingsOpen) return;                     // オーバーレイ表示中は不要
-  if (ts - _boardAnimLast < 55) return;                                       // 約18fpsに間引き
-  _boardAnimLast = ts;
-  renderBoard();
+  if (G.state !== "board" || !G.board) return;
+  if (G.anim || G.flipAnim || G.heroAnim || G.wallFlash) return; // 他の tick に任せる
+  if (G.prompt || G.statusOpen || G.settingsOpen) return;        // オーバーレイ表示中は不要
+  if (_boardIdleCost > 9 || ts - _boardActiveAt > 1500) { _boardIdleSkip = !_boardIdleSkip; if (_boardIdleSkip) return; }
+  const t0 = performance.now();
+  drawBoardFrame();
+  _boardIdleCost = _boardIdleCost * 0.9 + (performance.now() - t0) * 0.1;
 }
 requestAnimationFrame(boardAnimLoop);
-
-// マスの辺の壁 (カード境界の上に重ね描き)。絶対座標で太く明るく描く
-const WALL_T = 8;
-
-// 指定セルの壁をすべて描く
-function drawWallsOverlay(cell, r) {
-  for (const d of ["n", "e", "s", "w"]) {
-    if (cell.walls[d]) drawWallBar(r, d, {});
-  }
-}
-
-// 1辺ぶんの壁バー。境界(隙間)の中央にまたがるように描く
-function drawWallBar(r, dir, { flash = 0 } = {}) {
-  const half = WALL_T / 2;
-  let bx, by, bw, bh, horiz;
-  if (dir === "n") { bx = r.x - 1; by = r.y - half; bw = r.w + 2; bh = WALL_T; horiz = true; }
-  else if (dir === "s") { bx = r.x - 1; by = r.y + r.h - half; bw = r.w + 2; bh = WALL_T; horiz = true; }
-  else if (dir === "w") { bx = r.x - half; by = r.y - 1; bw = WALL_T; bh = r.h + 2; horiz = false; }
-  else { bx = r.x + r.w - half; by = r.y - 1; bw = WALL_T; bh = r.h + 2; horiz = false; }
-
-  vctx.save();
-  if (flash > 0) {
-    // ブロックされた時の赤フラッシュ
-    vctx.shadowColor = "rgba(255,70,60,0.9)";
-    vctx.shadowBlur = 10 * flash;
-    vctx.fillStyle = `rgba(255,90,80,${0.55 + 0.45 * flash})`;
-    vctx.fillRect(bx, by, bw, bh);
-    vctx.restore();
-    return;
-  }
-  // 石壁: 明るめのグラデーションでカードの影と区別
-  const g = horiz
-    ? vctx.createLinearGradient(bx, by, bx, by + bh)
-    : vctx.createLinearGradient(bx, by, bx + bw, by);
-  g.addColorStop(0, "#a2a2b4");
-  g.addColorStop(0.45, "#7c7c8e");
-  g.addColorStop(1, "#54545f");
-  vctx.fillStyle = g;
-  vctx.fillRect(bx, by, bw, bh);
-  // 石の継ぎ目
-  vctx.fillStyle = "#3a3a46";
-  if (horiz) {
-    for (let i = 1; i < 4; i++) vctx.fillRect(bx + (bw * i) / 4 - 0.5, by + 1, 1, bh - 2);
-  } else {
-    for (let i = 1; i < 5; i++) vctx.fillRect(bx + 1, by + (bh * i) / 5 - 0.5, bw - 2, 1);
-  }
-  // 上面ハイライトと輪郭
-  vctx.fillStyle = "rgba(255,255,255,0.3)";
-  if (horiz) vctx.fillRect(bx, by, bw, 1.5); else vctx.fillRect(bx, by, 1.5, bh);
-  vctx.strokeStyle = "#15151d";
-  vctx.lineWidth = 1;
-  vctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
-  vctx.restore();
-}
 
 // テーマ色のカード裏面 (特別階・迷宮テーマで共用): 地のグラデ + 二重枠 + 中央紋章 + コーナードット
 function drawThemedBack(r, accent, sym) {
@@ -3313,173 +3938,83 @@ function drawBackGraveyard(r, accent, sym) {
   vctx.fillRect(2, 2, W - 4, 3);
 }
 
-function drawCard(r, cell, scaleX, showBack) {
-  // カードの落ち影 (フリップ中も足元に残す)
-  vctx.save();
-  vctx.fillStyle = "rgba(0,0,0,0.45)";
-  vctx.fillRect(r.x + 2, r.y + 3, r.w - 2, r.h - 1);
-  vctx.restore();
-
-  vctx.save();
-  vctx.translate(r.x + r.w / 2, r.y + r.h / 2);
-  vctx.scale(Math.max(0.02, scaleX), 1);
-  vctx.translate(-r.w / 2, -r.h / 2);
-
-  if (showBack) {
-    if (G.eliteFloor) {
-      // 強敵階カード裏面: 血の黒紅 + 骸骨紋
-      const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
-      bg.addColorStop(0, "#280808");
-      bg.addColorStop(0.5, "#180505");
-      bg.addColorStop(1, "#100303");
-      vctx.fillStyle = bg;
-      vctx.fillRect(0, 0, r.w, r.h);
-      // 外枠 (血の赤)
-      vctx.strokeStyle = "#882020";
-      vctx.lineWidth = 2;
-      vctx.strokeRect(1.5, 1.5, r.w - 3, r.h - 3);
-      vctx.strokeStyle = "#551010";
-      vctx.lineWidth = 1;
-      vctx.strokeRect(4.5, 4.5, r.w - 9, r.h - 9);
-      // 中央の骸骨シンボル
-      const cx = r.w / 2, cy = r.h / 2;
-      vctx.fillStyle = "#cc2020";
-      vctx.font = "bold 16px monospace";
-      vctx.textAlign = "center";
-      vctx.textBaseline = "middle";
-      vctx.fillText("☠", cx, cy + 1);
-      // コーナードット (血の色)
-      vctx.fillStyle = "#882020";
-      for (const [dx, dy] of [[7, 7], [r.w - 7, 7], [7, r.h - 7], [r.w - 7, r.h - 7]]) {
-        vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
-      }
-      // 上辺の血滲み
-      vctx.fillStyle = "rgba(200,0,0,0.10)";
-      vctx.fillRect(2, 2, r.w - 4, 3);
-    } else if (specialDef()) {
-      // 特別階カード裏面: 階ごとのテーマ色の地 + 固有の紋章
-      const sp = specialDef();
-      drawThemedBack(r, sp.accent, sp.sym);
-    } else if (dungeonTheme()) {
-      // 迷宮テーマのカード裏面 (層ごと): 層固有のイラストがあれば使う
-      const th = dungeonTheme();
-      if (th.back) th.back(r, th.accent, th.sym);
-      else drawThemedBack(r, th.accent, th.sym);
-    } else {
-      // 通常カード裏面 (D21以降): 深紅の布地 + 金の縁飾り + ダイヤ紋
-      const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
-      bg.addColorStop(0, "#7a5616");
-      bg.addColorStop(0.5, "#5e420f");
-      bg.addColorStop(1, "#46300a");
-      vctx.fillStyle = bg;
-      vctx.fillRect(0, 0, r.w, r.h);
-      // 外枠 (二重)
-      vctx.strokeStyle = "#e3bd45";
-      vctx.lineWidth = 2;
-      vctx.strokeRect(1.5, 1.5, r.w - 3, r.h - 3);
-      vctx.strokeStyle = "#8a6a18";
-      vctx.lineWidth = 1;
-      vctx.strokeRect(4.5, 4.5, r.w - 9, r.h - 9);
-      // 中央のダイヤ紋
-      const cx = r.w / 2, cy = r.h / 2;
-      vctx.strokeStyle = "#caa22e";
-      vctx.beginPath();
-      vctx.moveTo(cx, cy - 11); vctx.lineTo(cx + 9, cy); vctx.lineTo(cx, cy + 11); vctx.lineTo(cx - 9, cy); vctx.closePath();
-      vctx.stroke();
-      // コーナードット
-      vctx.fillStyle = "#caa22e";
-      for (const [dx, dy] of [[7, 7], [r.w - 7, 7], [7, r.h - 7], [r.w - 7, r.h - 7]]) {
-        vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
-      }
-      // 「?」
-      vctx.fillStyle = "#f0d069";
-      vctx.font = "bold 15px monospace";
-      vctx.textAlign = "center";
-      vctx.textBaseline = "middle";
-      vctx.fillText("?", cx, cy + 1);
-      // 上辺ハイライト
-      vctx.fillStyle = "rgba(255,235,170,0.18)";
-      vctx.fillRect(2, 2, r.w - 4, 3);
-    }
-  } else {
-    // 表面 (探索済み): マス目を見せず、石床として連続的に塗る。
-    // GAP ぶん外側まで塗って隣の開いたマスと繋がり、グリッド線を消す。
-    const fg = vctx.createLinearGradient(0, 0, 0, r.h);
-    fg.addColorStop(0, "#23222c");
-    fg.addColorStop(1, "#191820");
-    vctx.fillStyle = fg;
-    vctx.fillRect(-GAP, -GAP, r.w + GAP * 2, r.h + GAP * 2);
-    // ごく薄い石目 (決定的)
-    vctx.fillStyle = "rgba(255,255,255,0.02)";
-    vctx.fillRect(2, 2, r.w - 4, 2);
-
+// 第1層以外の層の裏面 (旧来の層別イラストカード)。盤面の静的な層へ焼く時だけ使う (vctx を差し替えて呼ぶ)
+function drawOldCardBack(r) {
+  if (G.eliteFloor) {
+    // 強敵階カード裏面: 血の黒紅 + 骸骨紋
+    const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
+    bg.addColorStop(0, "#280808");
+    bg.addColorStop(0.5, "#180505");
+    bg.addColorStop(1, "#100303");
+    vctx.fillStyle = bg;
+    vctx.fillRect(0, 0, r.w, r.h);
+    // 外枠 (血の赤)
+    vctx.strokeStyle = "#882020";
+    vctx.lineWidth = 2;
+    vctx.strokeRect(1.5, 1.5, r.w - 3, r.h - 3);
+    vctx.strokeStyle = "#551010";
+    vctx.lineWidth = 1;
+    vctx.strokeRect(4.5, 4.5, r.w - 9, r.h - 9);
+    // 中央の骸骨シンボル
     const cx = r.w / 2, cy = r.h / 2;
-    // 毒の床: 緑の毒だまりを描く (アイコンではなく地形として)
-    if (cell.type === "poison") {
-      vctx.save();
-      vctx.fillStyle = "rgba(90,150,40,0.45)";
-      vctx.beginPath();
-      vctx.ellipse(cx, cy + 4, r.w * 0.36, r.h * 0.26, 0, 0, Math.PI * 2);
-      vctx.fill();
-      vctx.fillStyle = "rgba(150,220,70,0.5)";
-      const t = performance.now() * 0.002;
-      for (let i = 0; i < 3; i++) {
-        const bx = cx + Math.sin(t + i * 2.1) * 10;
-        const by = cy + 2 + Math.cos(t * 1.3 + i * 1.7) * 5;
-        vctx.beginPath();
-        vctx.arc(bx, by, 2 + (i % 2), 0, Math.PI * 2);
-        vctx.fill();
-      }
-      vctx.fillStyle = "rgba(190,255,120,0.8)";
-      vctx.font = "9px monospace";
-      vctx.textAlign = "center";
-      vctx.fillText("☠", cx, cy - 8);
-      vctx.restore();
+    vctx.fillStyle = "#cc2020";
+    vctx.font = "bold 16px monospace";
+    vctx.textAlign = "center";
+    vctx.textBaseline = "middle";
+    vctx.fillText("☠", cx, cy + 1);
+    // コーナードット (血の色)
+    vctx.fillStyle = "#882020";
+    for (const [dx, dy] of [[7, 7], [r.w - 7, 7], [7, r.h - 7], [r.w - 7, r.h - 7]]) {
+      vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
     }
-    // アイコン選択。倒した敵は何も残さない / 宝箱は開封後に空箱 / 死体は常に表示
-    const icon =
-      cell.type === "monster" && !cell.cleared ? MONSTERS[cell.monsterKey] :
-      cell.type === "chest" ? (cell.cleared ? ICONS.chestOpen : ICONS.chest) :
-      cell.type === "trap" && !cell.cleared ? ICONS.trap :
-      cell.type === "fountain" && !cell.cleared ? ICONS.fountain :
-      cell.type === "corpse" ? ICONS.corpse :
-      cell.type === "portal" ? ICONS.portal :
-      cell.type === "stairs" ? ICONS.stairs : null;
-    if (icon) {
-      // アイコンの足元影
-      vctx.fillStyle = "rgba(0,0,0,0.35)";
-      vctx.beginPath();
-      vctx.ellipse(cx, cy + 14, 13, 3.5, 0, 0, Math.PI * 2);
-      vctx.fill();
-      drawSpriteFit(vctx, icon, cx, cy, 3);
-      // あたたかい死体 (魂未回収) には青い人魂を浮かべる
-      if (cell.type === "corpse" && cell.corpseWarm && !cell.cleared) {
-        const bob = Math.sin(performance.now() * 0.004 + cx) * 2;
-        vctx.save();
-        vctx.shadowColor = "rgba(127,208,255,0.9)";
-        vctx.shadowBlur = 8;
-        drawSpriteFit(vctx, ICONS.wisp, cx + 7, cy - 12 + bob, 1.6);
-        vctx.restore();
-      }
+    // 上辺の血滲み
+    vctx.fillStyle = "rgba(200,0,0,0.10)";
+    vctx.fillRect(2, 2, r.w - 4, 3);
+  } else if (specialDef()) {
+    // 特別階カード裏面: 階ごとのテーマ色の地 + 固有の紋章
+    const sp = specialDef();
+    drawThemedBack(r, sp.accent, sp.sym);
+  } else if (dungeonTheme()) {
+    // 迷宮テーマのカード裏面 (層ごと): 層固有のイラストがあれば使う
+    const th = dungeonTheme();
+    if (th.back) th.back(r, th.accent, th.sym);
+    else drawThemedBack(r, th.accent, th.sym);
+  } else {
+    // 通常カード裏面 (D21以降): 深紅の布地 + 金の縁飾り + ダイヤ紋
+    const bg = vctx.createLinearGradient(0, 0, r.w, r.h);
+    bg.addColorStop(0, "#7a5616");
+    bg.addColorStop(0.5, "#5e420f");
+    bg.addColorStop(1, "#46300a");
+    vctx.fillStyle = bg;
+    vctx.fillRect(0, 0, r.w, r.h);
+    // 外枠 (二重)
+    vctx.strokeStyle = "#e3bd45";
+    vctx.lineWidth = 2;
+    vctx.strokeRect(1.5, 1.5, r.w - 3, r.h - 3);
+    vctx.strokeStyle = "#8a6a18";
+    vctx.lineWidth = 1;
+    vctx.strokeRect(4.5, 4.5, r.w - 9, r.h - 9);
+    // 中央のダイヤ紋
+    const cx = r.w / 2, cy = r.h / 2;
+    vctx.strokeStyle = "#caa22e";
+    vctx.beginPath();
+    vctx.moveTo(cx, cy - 11); vctx.lineTo(cx + 9, cy); vctx.lineTo(cx, cy + 11); vctx.lineTo(cx - 9, cy); vctx.closePath();
+    vctx.stroke();
+    // コーナードット
+    vctx.fillStyle = "#caa22e";
+    for (const [dx, dy] of [[7, 7], [r.w - 7, 7], [7, r.h - 7], [r.w - 7, r.h - 7]]) {
+      vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
     }
-    // 強敵バッジ: 表に出た強敵モンスターカードに赤帯を描く
-    if (cell.type === "monster" && !cell.cleared && cell.elite) {
-      vctx.save();
-      vctx.fillStyle = "rgba(150,10,10,0.88)";
-      vctx.fillRect(0, 0, r.w, 11);
-      vctx.strokeStyle = "#ff3030";
-      vctx.lineWidth = 0.5;
-      vctx.strokeRect(0, 0, r.w, 11);
-      vctx.fillStyle = "#ffaaaa";
-      vctx.font = "bold 7px monospace";
-      vctx.textAlign = "center";
-      vctx.textBaseline = "middle";
-      vctx.fillText("★ 強 敵 ★", r.w / 2, 5.5);
-      vctx.restore();
-    }
-    // 壁は renderBoard 側で境界上に重ね描きする
+    // 「?」
+    vctx.fillStyle = "#f0d069";
+    vctx.font = "bold 15px monospace";
+    vctx.textAlign = "center";
+    vctx.textBaseline = "middle";
+    vctx.fillText("?", cx, cy + 1);
+    // 上辺ハイライト
+    vctx.fillStyle = "rgba(255,235,170,0.18)";
+    vctx.fillRect(2, 2, r.w - 4, 3);
   }
-  vctx.restore();
 }
 
 // ---- 移動とカードめくり ----
@@ -4744,26 +5279,28 @@ function renderCombat() {
 // キャンバスのみ (アニメーション毎フレーム用)
 function renderCombatCanvas() {
   const b = G.battle;
+  viewTransform();
+  vctx.globalCompositeOperation = "source-over";
+  vctx.globalAlpha = 1;
   const fx = G.fx;
   const now = performance.now();
   // 背景: 層ごとの戦場 (墓地・水路・廃坑…)。ボス/強敵戦は禍々しい光を重ねる。
   // 設定「戦闘の背景: 漆黒」では原作風に、黒地に白枠の窓で魔物だけを見せる
-  if (PREFS.classicBattle) drawClassicWindow(vctx, view.width, view.height);
-  else drawBattleBackdrop(vctx, view.width, view.height, battleLayer(), now, {
+  if (PREFS.classicBattle) drawClassicWindow(vctx, VW, VH);
+  else drawBattleBackdrop(vctx, VW, VH, battleLayer(), now, {
     boss: b.enemies.some((e) => e.boss),
     elite: b.enemies.some((e) => e.mon && e.mon.elite),
   });
 
-  // 味方スプライトは非表示。敵は画面全幅に左右対称で配置する (中央寄せ)
-  const HERO_ZONE = 0; // 左の余白なし: 敵をキャンバス中央に揃える
-
+  // 戦場の縦の伸び (縦長の戦場ほど魔物を大きく)
+  const k = Math.max(0.92, Math.min(1.3, VH / 330));
   // 隊列: 4体以上は前衛(先頭3体)・後衛(4体目以降)の2列に分かれる。
   // 奥に立つ後衛から先に描き、前衛を手前に重ねて遠近を出す
   const frontRow = b.enemies.slice(0, 3);
   const backRow = b.enemies.slice(3);
   const rows = backRow.length
-    ? [{ list: backRow, y: view.height * 0.30, back: true }, { list: frontRow, y: view.height * 0.49, back: false }]
-    : [{ list: frontRow, y: view.height * 0.40, back: false }];
+    ? [{ list: backRow, y: VH * 0.31, back: true }, { list: frontRow, y: VH * 0.5, back: false }]
+    : [{ list: frontRow, y: VH * 0.41, back: false }];
   const intro = G.battleIntro && G.battleIntro.battle === b ? G.battleIntro : null;
   // タップで狙える敵 = 攻撃が届く敵のみ (対象選択中は候補、入力中は手番キャラの武器射程)
   const targetable = new Set(
@@ -4771,179 +5308,359 @@ function renderCombatCanvas() {
     : b.phase === "target" ? b.targetOptions().filter((t) => t.side === "enemy")
     : b.phase === "input" && b.current && b.current.side === "party" ? b.attackableEnemies(b.current)
     : []);
+  const strongTarget = b.phase === "target";
   G.enemyPos = {};
-  for (const row of rows) row.list.forEach((e, i) => {
-    const baseX = HERO_ZONE + ((view.width - HERO_ZONE) / (row.list.length + 1)) * (i + 1);
-    const baseY = row.y;
-    G.enemyPos[e.uid] = { cx: baseX, cy: baseY };
-    if (!e.alive) return; // 倒した敵は完全に消す (薄い残像を残さない)
-    let ox = 0, oy = 0, alpha = 1;
-    // 攻撃側の踏み込み (こちらへ前進)
-    if (fx && fx.lunge && fx.lunge.uid === e.uid) oy = (fx.lunge.p || 0) * 22;
-    // 被弾フラッシュ: 点滅 + 横揺れ
-    const hf = fx && fx.flash && fx.flash[e.uid];
-    if (hf) {
-      const dt = now - hf.t0;
-      if (dt < 260) {
-        ox = Math.sin(dt * 0.07) * 4;
-        if (Math.floor(dt / 55) % 2 === 0) alpha = 0.35;
+  // 魔物の大きさ: 主は戦場を圧し、強敵は一回り大きく、後衛は奥で小さく。横に並ぶ数ぶんの幅に収める
+  const sizeOf = (e, back, n) => {
+    let sz = (e.boss ? 14 : (e.mon && e.mon.elite ? 1.15 : 1) * (back ? 8 : 9)) * k;
+    if (e.mon && e.mon.art) {
+      const bm = monsterBitmap(e.mon);
+      const unit = Math.max(12, bm.w, bm.h) / 12;
+      const slot = (VW / (n + 1)) * (n > 1 ? 1.12 : 1.6);
+      sz = Math.min(sz, (slot / (bm.w + bm.pad * 2)) * unit);
+    }
+    return sz;
+  };
+  for (const row of rows) {
+    // この列の名札の高さを揃える (いちばん背の高い魔物の足元の下)
+    let foot = 0, head = 0;
+    for (const e of row.list) { const hh = monsterHalfH(e.mon, sizeOf(e, row.back, row.list.length)); foot = Math.max(foot, hh); head = Math.max(head, hh); }
+    const plateY = row.back ? row.y - head - 30 : row.y + foot + 7;
+    row.list.forEach((e, i) => {
+      const baseX = (VW / (row.list.length + 1)) * (i + 1);
+      const baseY = row.y;
+      const size = sizeOf(e, row.back, row.list.length);
+      const hh = monsterHalfH(e.mon, size);
+      G.enemyPos[e.uid] = { cx: baseX, cy: baseY, r: 70 * k, hh, size };
+      // 倒した敵: 撃破の演出 (drawEffects の崩れ落ち) が始まるまでは姿を残し、以後は描かない
+      if (!e.alive) {
+        const d = fx && fx.deaths ? fx.deaths.find((x) => x.uid === e.uid) : null;
+        if (!fx || _deadShown.has(e) || (d && now >= d.t0)) { if (!fx || d) _deadShown.add(e); return; }
       }
-    }
-    // 待機中の呼吸: 敵ごとに位相をずらしてゆっくり上下する (被弾・踏み込み中は止める)
-    if (!hf && !(fx && fx.lunge && fx.lunge.uid === e.uid) && !REDUCED_MOTION) {
-      oy += Math.round(Math.sin(now * 0.0024 + (e.uid || i) * 1.7) * 1.6);
-    }
-    // 後衛は奥にいるぶん少し小さい。強敵は一回り大きく、ボスは画面を圧する
-    const size = e.boss ? 14 : (e.mon && e.mon.elite ? 1.15 : 1) * (row.back ? 8 : 9);
-    // 戦闘開始の演出: 闇の奥から1体ずつ這い出る。まず黒い影だけが浮かび、遅れて色 (正体) が滲み出す
-    // (現れきるまで名札やHPは出さない。迷宮の主はひときわ長く闇に留まる)
-    if (intro) {
-      const k = b.enemies.indexOf(e);
-      const span = e.boss ? 1000 : 460;
-      const p = Math.max(0, Math.min(1, (now - intro.t0 - 140 - k * 90) / span));
-      if (p < 1) {
-        const ease = 1 - Math.pow(1 - p, 3);
-        const rise = (1 - ease) * 12, sz = size * (0.94 + 0.06 * ease);
+      let ox = 0, oy = 0, alpha = 1;
+      // 攻撃側の踏み込み (こちらへ前進)
+      const lunging = fx && fx.lunge && fx.lunge.uid === e.uid;
+      if (lunging) oy = (fx.lunge.p || 0) * 22 * k;
+      // 被弾フラッシュ: 点滅 + 横揺れ
+      const hf = fx && fx.flash && fx.flash[e.uid];
+      if (hf) {
+        const dt = now - hf.t0;
+        if (dt >= 0 && dt < 260) {
+          ox = Math.sin(dt * 0.07) * 4;
+          if (Math.floor(dt / 55) % 2 === 0) alpha = 0.4;
+        }
+      }
+      // 待機中の呼吸: 敵ごとに位相をずらしてゆっくり上下する (被弾・踏み込み中は止める)
+      if (!hf && !lunging && !REDUCED_MOTION) {
+        oy += Math.round(Math.sin(now * 0.0024 + (e.uid || i) * 1.7) * 1.6);
+      }
+      const feetY = baseY + hh;
+      // 戦闘開始の演出: 闇の奥から1体ずつ這い出る。まず黒い影だけが浮かび、遅れて色 (正体) が滲み出す
+      // (現れきるまで名札やHPは出さない。迷宮の主はひときわ長く闇に留まる)
+      if (intro) {
+        const kk = b.enemies.indexOf(e);
+        const span = e.boss ? 1000 : 460;
+        const p = Math.max(0, Math.min(1, (now - intro.t0 - 140 - kk * 90) / span));
+        if (p < 1) {
+          const ease = 1 - Math.pow(1 - p, 3);
+          const rise = (1 - ease) * 12, sz = size * (0.94 + 0.06 * ease);
+          vctx.save();
+          vctx.globalAlpha = 0.45 * ease;
+          vctx.fillStyle = "#000";
+          vctx.beginPath();
+          vctx.ellipse(baseX, feetY - 2, size * 3.4 * (0.5 + 0.5 * ease), size * 0.9, 0, 0, Math.PI * 2);
+          vctx.fill();
+          vctx.restore();
+          const sil = Math.min(1, p / 0.4), col = Math.max(0, Math.min(1, (p - 0.38) / 0.62));
+          if (col < 1) drawMonsterBmp(vctx, monsterSilhouette(e.mon), baseX, baseY + rise, sz, alpha * sil);
+          if (col > 0) drawMonster(vctx, e.mon, baseX, baseY + rise, sz, alpha * col * col);
+          return;
+        }
+      }
+      const tappable = targetable.has(e);
+      // 足元の照準環 (狙える敵)。対象選択中は鮮やかに回り、入力中は控えめに灯す
+      if (tappable) drawTargetRing(baseX, feetY - 2, size, now, strongTarget);
+      // 行動中の敵: 足元に紅い気配
+      if (lunging) {
         vctx.save();
-        vctx.globalAlpha = 0.45 * ease;
-        vctx.fillStyle = "#000";
-        vctx.beginPath();
-        vctx.ellipse(baseX, baseY + size * 5.4, size * 3.4 * (0.5 + 0.5 * ease), size * 1.1, 0, 0, Math.PI * 2);
-        vctx.fill();
+        vctx.globalCompositeOperation = "lighter";
+        const g = vctx.createRadialGradient(baseX, feetY, 0, baseX, feetY, size * 4.2);
+        g.addColorStop(0, `rgba(255,40,20,${0.35 * (fx.lunge.p || 0)})`);
+        g.addColorStop(1, "rgba(255,40,20,0)");
+        vctx.fillStyle = g;
+        vctx.fillRect(baseX - size * 4.2, feetY - size * 4.2, size * 8.4, size * 8.4);
         vctx.restore();
-        const sil = Math.min(1, p / 0.4), col = Math.max(0, Math.min(1, (p - 0.38) / 0.62));
-        if (col < 1) drawMonsterBmp(vctx, monsterSilhouette(e.mon), baseX, baseY + rise, sz, alpha * sil);
-        if (col > 0) drawMonster(vctx, e.mon, baseX, baseY + rise, sz, alpha * col * col);
-        return;
       }
-    }
-    // 入力/ターゲット選択中: タップで攻撃できる敵に金のリングとマーカーを表示
-    const tappable = e.alive && targetable.has(e);
-    if (tappable) {
-      const strong = b.phase === "target"; // 対象選択中はくっきり、入力中は控えめ
+      // 足元の影 (踏み込みに追従)
       vctx.save();
-      vctx.globalAlpha = strong ? 1 : 0.5;
-      vctx.strokeStyle = "#ffd84a";
-      vctx.lineWidth = 2;
-      vctx.setLineDash([6, 4]);
-      vctx.lineDashOffset = -now * 0.02; // リングが回転して目立たせる
+      vctx.globalAlpha = 0.5;
+      vctx.fillStyle = "#000";
       vctx.beginPath();
-      vctx.ellipse(baseX, baseY + size * 5.4, size * 3.8, size * 1.4, 0, 0, Math.PI * 2);
-      vctx.stroke();
-      vctx.setLineDash([]);
-      if (strong) {
-        vctx.fillStyle = "#ffd84a";
-        vctx.font = "12px monospace";
-        vctx.textAlign = "center";
-        vctx.fillText("▼", baseX, row.back ? baseY - 82 : baseY - size * 6.2); // 後衛はプレートのさらに上
-      }
-      vctx.restore();
-    }
-    // 足元の影 (踏み込みに追従)
-    vctx.save();
-    vctx.globalAlpha = e.alive ? 0.45 : 0.15;
-    vctx.fillStyle = "#000";
-    vctx.beginPath();
-    vctx.ellipse(baseX + ox, baseY + size * 5.4, size * 3.4, size * 1.1, 0, 0, Math.PI * 2);
-    vctx.fill();
-    vctx.restore();
-    drawMonster(vctx, e.mon, baseX + ox, baseY + oy, size, alpha);
-    // 被弾時の白フラッシュ
-    if (hf && now - hf.t0 < 200) {
-      vctx.save();
-      vctx.globalAlpha = 0.5 * (1 - (now - hf.t0) / 200);
-      vctx.fillStyle = "#ffffff";
-      vctx.beginPath();
-      vctx.arc(baseX + ox, baseY + oy, size * 3.2, 0, Math.PI * 2);
+      vctx.ellipse(baseX + ox, feetY - 1 + oy * 0.3, size * 3.3, size * 0.95, 0, 0, Math.PI * 2);
       vctx.fill();
       vctx.restore();
-    }
-    // 名前プレート (ダークピル)。弱点看破 (scan) 持ちがいれば敵の属性を開示する
-    const scanTag = partyPassiveLv("scan") && e.alive && e.element && e.element !== "none"
-      ? `【${(ELEMENTS[e.element] || {}).label || ""}】` : "";
-    const ailTag = e.alive && e.ailment ? " " + (AIL_ICON[e.ailment] || "☠") : "";
-    const label = e.name + scanTag + ailTag + (e.asleep ? " 💤" : "") + (e._flinch ? " 💫" : "");
-    vctx.font = `bold 11px ${CANVAS_SERIF}`;
-    vctx.textAlign = "center";
-    const tw = vctx.measureText(label).width;
-    // 名札: 黒鉄の札に金の細い縁 (ボスは紅の縁)
-    const px = baseX - tw / 2 - 9, py2 = baseY + (row.back ? -76 : 70), pw = tw + 18, ph = 15;
-    vctx.fillStyle = "rgba(10,7,10,0.86)";
-    vctx.fillRect(px, py2, pw, ph);
-    vctx.strokeStyle = !e.alive ? "rgba(90,80,70,0.35)" : e.boss ? "rgba(220,70,60,0.85)" : "rgba(201,162,74,0.7)";
-    vctx.lineWidth = 1;
-    vctx.strokeRect(px + 0.5, py2 + 0.5, pw - 1, ph - 1);
-    vctx.fillStyle = vctx.strokeStyle;
-    vctx.fillRect(px - 2, py2 + ph / 2 - 1, 2, 2);       // 左右の小さな菱飾り
-    vctx.fillRect(px + pw, py2 + ph / 2 - 1, 2, 2);
-    vctx.fillStyle = e.alive ? "#ece2cc" : "#5a5450";
-    vctx.fillText(label, baseX, py2 + 11);
-    // HPバー: 細身の血の管 (枠 + 艶)
-    const bw = 60, bh = 5, bx = baseX - bw / 2, by = baseY + (row.back ? -58 : 89);
-    vctx.fillStyle = "#050305";
-    vctx.fillRect(bx - 2, by - 2, bw + 4, bh + 4);
-    vctx.fillStyle = "rgba(201,162,74,0.45)";
-    vctx.fillRect(bx - 2, by - 2, bw + 4, 1);
-    vctx.fillRect(bx - 2, by + bh + 1, bw + 4, 1);
-    vctx.fillStyle = "#1a0f12";
-    vctx.fillRect(bx, by, bw, bh);
-    const ratio = Math.max(0, e.hp / e.maxhp);
-    const hg = vctx.createLinearGradient(bx, by, bx, by + bh);
-    if (e.alive) {
-      hg.addColorStop(0, ratio > 0.5 ? "#f06a58" : "#ffb14a");
-      hg.addColorStop(0.5, ratio > 0.5 ? "#b8261d" : "#c97a18");
-      hg.addColorStop(1, ratio > 0.5 ? "#6e130f" : "#7a4a10");
-    } else { hg.addColorStop(0, "#333"); hg.addColorStop(1, "#222"); }
-    vctx.fillStyle = hg;
-    vctx.fillRect(bx, by, Math.round(bw * ratio), bh);
-    vctx.fillStyle = "rgba(255,220,200,0.25)";
-    vctx.fillRect(bx, by, Math.round(bw * ratio), 1);
-    // バフ/デバフ表示 (味方カードの buffBadges に相当): 前衛はHPバーの下、後衛はプレートの上
-    drawEnemyBadges(e, baseX, row.back ? py2 - 16 : by + bh + 4);
-  });
+      drawMonster(vctx, e.mon, baseX + ox, baseY + oy, size, alpha);
+      // 被弾時の白い閃き (魔物の形に沿って)
+      if (hf && now - hf.t0 >= 0 && now - hf.t0 < 170) {
+        vctx.save();
+        vctx.globalCompositeOperation = "lighter";
+        drawMonsterBmp(vctx, monsterFlashBitmap(e.mon), baseX + ox, baseY + oy, size, 0.85 * (1 - (now - hf.t0) / 170));
+        vctx.restore();
+      }
+      // 対象選択中: 頭上に降りる楔と四隅の鉤
+      if (tappable && strongTarget) drawTargetBrackets(baseX, baseY, hh, size, now);
+      // 名札 + 血の小瓶 (HP)
+      drawEnemyPlate(e, baseX, plateY, tappable && strongTarget, k);
+      const hpY = plateY + 17;
+      drawEnemyHpVial(e, baseX, hpY, now, k);
+      // バフ/デバフ表示 (味方カードの buffBadges に相当): 前衛はHPバーの下、後衛はプレートの上
+      drawEnemyBadges(e, baseX, row.back ? plateY - 15 : hpY + 9);
+    });
+  }
 
   if (fx) drawEffects(fx, now);
   if (intro) drawBattleIntro(intro, now);
 }
 
+const _deadShown = new WeakSet(); // 撃破の演出を見せ終えた敵
+// 魔物を size で描いた時の見かけの半分の高さ
+function monsterHalfH(mon, size) {
+  if (!mon || !mon.art) return size * 6;
+  const bm = monsterBitmap(mon);
+  const dot = size / (Math.max(12, bm.w, bm.h) / 12);
+  return ((bm.h + bm.pad * 2) * dot) / 2;
+}
+// 魔物の白い写し (被弾の閃き用)
+const _monFlash = new WeakMap();
+function monsterFlashBitmap(mon) {
+  let s = _monFlash.get(mon);
+  if (s) return s;
+  const bm = monsterBitmap(mon);
+  const c = document.createElement("canvas");
+  c.width = bm.c.width; c.height = bm.c.height;
+  const g = c.getContext("2d");
+  g.drawImage(bm.c, 0, 0);
+  g.globalCompositeOperation = "source-in";
+  g.fillStyle = "#fff4e8";
+  g.fillRect(0, 0, c.width, c.height);
+  s = { c, w: bm.w, h: bm.h, pad: bm.pad };
+  _monFlash.set(mon, s);
+  return s;
+}
+
+// 照準の環: 足元に刻まれる回転する呪環 (金と血の色)
+function drawTargetRing(x, y, size, now, strong) {
+  const rx = size * 3.7, ry = size * 1.2;
+  const rot = REDUCED_MOTION ? 0 : now * (strong ? 0.0016 : 0.0007);
+  const pulse = REDUCED_MOTION ? 0.7 : 0.6 + 0.4 * Math.sin(now * 0.006);
+  vctx.save();
+  vctx.globalAlpha = strong ? 0.95 : 0.42;
+  if (strong) {
+    vctx.globalCompositeOperation = "lighter";
+    const g = vctx.createRadialGradient(x, y, 0, x, y, rx);
+    g.addColorStop(0, `rgba(255,120,60,${0.16 * pulse})`);
+    g.addColorStop(1, "rgba(255,120,60,0)");
+    vctx.fillStyle = g;
+    vctx.save(); vctx.translate(x, y); vctx.scale(1, ry / rx); vctx.translate(-x, -y);
+    vctx.fillRect(x - rx, y - rx, rx * 2, rx * 2);
+    vctx.restore();
+    vctx.globalCompositeOperation = "source-over";
+  }
+  vctx.strokeStyle = strong ? "#f3c86a" : "#c9a24a";
+  vctx.lineWidth = strong ? 1.4 : 1;
+  vctx.beginPath(); vctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); vctx.stroke();
+  vctx.strokeStyle = strong ? "rgba(220,60,40,0.85)" : "rgba(180,50,40,0.6)";
+  vctx.lineWidth = 1;
+  vctx.beginPath(); vctx.ellipse(x, y, rx * 0.8, ry * 0.8, 0, 0, Math.PI * 2); vctx.stroke();
+  // 環に刻まれた目盛り (回る)
+  vctx.fillStyle = strong ? "#ffe2a0" : "#c9a24a";
+  const n = 12;
+  for (let i = 0; i < n; i++) {
+    const a = rot + (i / n) * Math.PI * 2;
+    const px = x + Math.cos(a) * rx * 0.9, py = y + Math.sin(a) * ry * 0.9;
+    vctx.fillRect(px - 1, py - 0.6, 2, 1.2);
+  }
+  vctx.restore();
+}
+// 対象選択中の印: 頭上の楔 (上下に揺れる) と、魔物を囲む四隅の鉤
+function drawTargetBrackets(x, cy, hh, size, now) {
+  const bob = REDUCED_MOTION ? 0 : Math.sin(now * 0.008) * 2.5;
+  const w = size * 3.6, top = cy - hh - 4, bot = cy + hh + 2;
+  vctx.save();
+  vctx.strokeStyle = "rgba(255,214,140,0.9)";
+  vctx.lineWidth = 1.5;
+  const L = 7;
+  for (const [px, py, sx, sy] of [[x - w, top, 1, 1], [x + w, top, -1, 1], [x - w, bot, 1, -1], [x + w, bot, -1, -1]]) {
+    vctx.beginPath(); vctx.moveTo(px, py + L * sy); vctx.lineTo(px, py); vctx.lineTo(px + L * sx, py); vctx.stroke();
+  }
+  // 楔 (下向きの刃)
+  const ty = top - 10 + bob;
+  vctx.fillStyle = "#ffd88a";
+  vctx.strokeStyle = "#3a1408";
+  vctx.lineWidth = 1;
+  vctx.beginPath(); vctx.moveTo(x - 6, ty - 6); vctx.lineTo(x + 6, ty - 6); vctx.lineTo(x, ty + 3); vctx.closePath();
+  vctx.fill(); vctx.stroke();
+  vctx.fillStyle = "#fff6d8";
+  vctx.fillRect(x - 3, ty - 5, 3, 1);
+  vctx.restore();
+}
+
+// 敵の名札: 両端の尖った黒鉄の札。主は金、強敵は紅の縁。状態異常・属性 (看破) は札の右に印で添える
+const ENEMY_SEAL = { poison: ["毒", "#8ee05a"], paralyze: ["痺", "#ffd84a"], stone: ["石", "#c9c4b8"] };
+function drawEnemyPlate(e, x, y, hot, k) {
+  vctx.save();
+  vctx.font = `800 ${Math.round(11 * Math.min(k, 1.1))}px ${CANVAS_SERIF}`;
+  vctx.textAlign = "center"; vctx.textBaseline = "middle";
+  const label = e.name;
+  const tw = vctx.measureText(label).width;
+  const pw = tw + 22, ph = 15, x0 = x - pw / 2, x1 = x + pw / 2;
+  vctx.beginPath();
+  vctx.moveTo(x0 + 6, y); vctx.lineTo(x1 - 6, y); vctx.lineTo(x1, y + ph / 2); vctx.lineTo(x1 - 6, y + ph); vctx.lineTo(x0 + 6, y + ph); vctx.lineTo(x0, y + ph / 2); vctx.closePath();
+  const g = vctx.createLinearGradient(0, y, 0, y + ph);
+  g.addColorStop(0, "rgba(34,22,24,0.94)"); g.addColorStop(1, "rgba(8,5,7,0.94)");
+  vctx.fillStyle = g;
+  vctx.fill();
+  const edge = e.boss ? "#d9b25a" : e.mon && e.mon.elite ? "#ff5a40" : hot ? "#f3c86a" : "rgba(170,60,44,0.95)";
+  if (e.boss || (e.mon && e.mon.elite)) { vctx.shadowColor = e.boss ? "rgba(255,200,100,0.6)" : "rgba(255,50,30,0.7)"; vctx.shadowBlur = 6; }
+  vctx.strokeStyle = edge; vctx.lineWidth = 1;
+  vctx.stroke();
+  vctx.shadowBlur = 0;
+  // 内側の細い罫
+  vctx.strokeStyle = "rgba(255,230,190,0.08)";
+  vctx.beginPath(); vctx.moveTo(x0 + 7, y + 2.5); vctx.lineTo(x1 - 7, y + 2.5); vctx.stroke();
+  vctx.fillStyle = e.boss ? "#ffe0a0" : "#efe3cb";
+  vctx.shadowColor = "#000"; vctx.shadowBlur = 0; vctx.shadowOffsetY = 1;
+  vctx.fillText(label, x, y + ph / 2 + 0.5);
+  vctx.shadowOffsetY = 0;
+  // 右に添える印 (属性看破 / 状態異常 / 眠り / 怯み)
+  const seals = [];
+  if (partyPassiveLv("scan") && e.element && e.element !== "none") { const el2 = ELEMENTS[e.element] || {}; seals.push([el2.label || "?", el2.color || "#ccc"]); }
+  if (e.ailment) seals.push(ENEMY_SEAL[e.ailment] || ["呪", "#c080ff"]);
+  if (e.asleep) seals.push(["眠", "#8fc8ff"]);
+  if (e._flinch) seals.push(["怯", "#d0a0ff"]);
+  let sx = x1 + 9;
+  vctx.font = `800 9px ${CANVAS_SERIF}`;
+  for (const [t, c] of seals) {
+    vctx.fillStyle = "rgba(6,4,6,0.9)";
+    vctx.beginPath(); vctx.arc(sx, y + ph / 2, 7, 0, Math.PI * 2); vctx.fill();
+    vctx.strokeStyle = c; vctx.lineWidth = 1; vctx.stroke();
+    vctx.fillStyle = c;
+    vctx.fillText(t, sx, y + ph / 2 + 0.5);
+    sx += 16;
+  }
+  vctx.restore();
+}
+// 敵の HP: 硝子の小瓶に満ちた血。削られた分は淡い紅の名残として遅れて消える
+const _hpLag = new WeakMap();
+function drawEnemyHpVial(e, x, y, now, k) {
+  const ratio = Math.max(0, Math.min(1, e.hp / (e.maxhp || 1)));
+  let lag = _hpLag.get(e);
+  if (!lag) { lag = { shown: ratio, from: ratio, t0: 0 }; _hpLag.set(e, lag); }
+  if (ratio < lag.shown - 0.001) { lag.from = Math.max(lag.from, lag.shown); lag.t0 = now; lag.shown = ratio; }
+  else if (ratio > lag.shown) { lag.shown = ratio; lag.from = ratio; }
+  const lt = Math.min(1, Math.max(0, (now - lag.t0 - 220) / 520));
+  const ghost = lag.from + (ratio - lag.from) * (lt * lt);
+  if (lt >= 1) lag.from = ratio;
+  const bw = Math.round((e.boss ? 120 : 64) * Math.min(k, 1.15)), bh = e.boss ? 7 : 6, bx = x - bw / 2;
+  vctx.save();
+  // 硝子の枠
+  vctx.fillStyle = "#040203";
+  vctx.beginPath(); vctx.roundRect ? vctx.roundRect(bx - 2, y - 2, bw + 4, bh + 4, 4) : vctx.rect(bx - 2, y - 2, bw + 4, bh + 4); vctx.fill();
+  vctx.strokeStyle = e.boss ? "rgba(217,178,90,0.75)" : "rgba(150,110,80,0.5)"; vctx.lineWidth = 1;
+  vctx.stroke();
+  vctx.fillStyle = "#1a0b0d";
+  vctx.fillRect(bx, y, bw, bh);
+  // 名残 (削られた直後の淡い紅)
+  if (ghost > ratio + 0.002) {
+    vctx.fillStyle = "rgba(255,190,160,0.75)";
+    vctx.fillRect(bx + bw * ratio, y, bw * (ghost - ratio), bh);
+  }
+  if (ratio > 0) {
+    const hg = vctx.createLinearGradient(0, y, 0, y + bh);
+    const low = ratio <= 0.3;
+    hg.addColorStop(0, low ? "#ffb070" : "#ff7a62");
+    hg.addColorStop(0.45, low ? "#c9541c" : "#c0241a");
+    hg.addColorStop(1, low ? "#5a1c06" : "#4a0604");
+    vctx.fillStyle = hg;
+    vctx.fillRect(bx, y, bw * ratio, bh);
+    vctx.fillStyle = "rgba(255,225,205,0.45)";
+    vctx.fillRect(bx + 1, y + 1, Math.max(0, bw * ratio - 2), 1);
+  }
+  // 目盛り (主は4分割)
+  if (e.boss) { vctx.fillStyle = "rgba(0,0,0,0.6)"; for (let i = 1; i < 4; i++) vctx.fillRect(bx + (bw * i) / 4, y, 1, bh); }
+  vctx.restore();
+}
+
 // 戦闘開始の演出: 暗転から明け、迷宮の主なら名乗りの帯を掲げる
 function drawBattleIntro(intro, now) {
   const t = now - intro.t0;
-  const W = view.width, H = view.height;
-  if (t < 220) {
+  const W = VW, H = VH;
+  if (t < 240) {
     vctx.save();
-    vctx.globalAlpha = 1 - t / 220;
+    vctx.globalAlpha = 1 - t / 240;
     vctx.fillStyle = "#000";
     vctx.fillRect(0, 0, W, H);
     vctx.restore();
   }
   if (!intro.boss) return;
-  const a = Math.min(1, Math.max(0, (t - 120) / 220)) * Math.min(1, Math.max(0, (intro.dur - t) / 320));
+  const a = Math.min(1, Math.max(0, (t - 120) / 240)) * Math.min(1, Math.max(0, (intro.dur - t) / 340));
   if (a <= 0) return;
-  const by = H * 0.75, bh = 46;
-  const slide = (1 - Math.min(1, Math.max(0, (t - 120) / 260))) * 40;
+  const p = Math.min(1, Math.max(0, (t - 120) / 520));
+  const ease = 1 - Math.pow(1 - p, 3);
+  // 紅い縁の脈動 (戦場全体)
   vctx.save();
+  const vg = vctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
+  vg.addColorStop(0, "rgba(120,0,0,0)");
+  vg.addColorStop(1, `rgba(120,6,4,${0.45 * a})`);
+  vctx.fillStyle = vg;
+  vctx.fillRect(0, 0, W, H);
+  // 帯
+  const bh = 58, by = H * 0.74 - bh / 2;
   vctx.globalAlpha = a;
   const g = vctx.createLinearGradient(0, 0, W, 0);
-  g.addColorStop(0, "rgba(10,4,8,0)");
-  g.addColorStop(0.2, "rgba(20,6,10,0.88)");
-  g.addColorStop(0.8, "rgba(20,6,10,0.88)");
-  g.addColorStop(1, "rgba(10,4,8,0)");
+  g.addColorStop(0, "rgba(6,2,4,0)");
+  g.addColorStop(0.16, "rgba(14,4,6,0.92)");
+  g.addColorStop(0.84, "rgba(14,4,6,0.92)");
+  g.addColorStop(1, "rgba(6,2,4,0)");
   vctx.fillStyle = g;
   vctx.fillRect(0, by, W, bh);
-  vctx.fillStyle = "#c9a227";
-  vctx.fillRect(W * 0.12, by, W * 0.76, 1);
-  vctx.fillRect(W * 0.12, by + bh - 1, W * 0.76, 1);
+  // 金の罫 (中央から左右へ伸びる) と菱の飾り
+  const lw = W * 0.36 * ease;
+  vctx.fillStyle = "#c9a24a";
+  vctx.fillRect(W / 2 - lw, by + 3, lw * 2, 1);
+  vctx.fillRect(W / 2 - lw, by + bh - 4, lw * 2, 1);
+  vctx.fillStyle = "rgba(160,20,14,0.9)";
+  vctx.fillRect(W / 2 - lw * 0.9, by + 5, lw * 1.8, 1);
+  vctx.fillRect(W / 2 - lw * 0.9, by + bh - 6, lw * 1.8, 1);
+  for (const sx of [-1, 1]) {
+    const dx = W / 2 + sx * (lw + 4), dy = by + bh / 2;
+    vctx.fillStyle = "#c9a24a";
+    vctx.beginPath(); vctx.moveTo(dx, dy - 5); vctx.lineTo(dx + 5, dy); vctx.lineTo(dx, dy + 5); vctx.lineTo(dx - 5, dy); vctx.closePath(); vctx.fill();
+  }
   vctx.textAlign = "center";
-  vctx.fillStyle = "#d4504e";
-  vctx.font = `bold 10px ${CANVAS_SERIF}`;
-  vctx.fillText("— 迷宮の主 —", W / 2 - slide, by + 14);
-  vctx.font = `800 20px ${CANVAS_SERIF}`;
-  vctx.lineWidth = 4;
+  vctx.textBaseline = "alphabetic";
+  vctx.font = `800 10px ${CANVAS_SERIF}`;
+  if ("letterSpacing" in vctx) vctx.letterSpacing = "6px";
+  vctx.fillStyle = "#e0503c";
+  vctx.shadowColor = "rgba(255,40,20,0.8)"; vctx.shadowBlur = 8;
+  vctx.fillText("迷 宮 の 主", W / 2, by + 18);
+  if ("letterSpacing" in vctx) vctx.letterSpacing = "3px";
+  const sc = 1.12 - 0.12 * ease;
+  vctx.save();
+  vctx.translate(W / 2, by + 44);
+  vctx.scale(sc, sc);
+  vctx.font = `800 24px ${CANVAS_SERIF}`;
+  vctx.shadowBlur = 0;
+  vctx.lineJoin = "round";
+  vctx.lineWidth = 5;
   vctx.strokeStyle = "#000";
-  vctx.strokeText(intro.boss, W / 2 + slide, by + 37);
-  vctx.fillStyle = "#ffd84a";
-  vctx.fillText(intro.boss, W / 2 + slide, by + 37);
+  vctx.strokeText(intro.boss, 0, 0);
+  const tg = vctx.createLinearGradient(0, -20, 0, 2);
+  tg.addColorStop(0, "#fff2c4"); tg.addColorStop(0.55, "#e8b85a"); tg.addColorStop(1, "#8a5a1c");
+  vctx.fillStyle = tg;
+  vctx.shadowColor = "rgba(255,170,60,0.55)"; vctx.shadowBlur = 12;
+  vctx.fillText(intro.boss, 0, 0);
+  vctx.restore();
   vctx.restore();
 }
 
@@ -4951,12 +5668,16 @@ function drawBattleIntro(intro, now) {
 function playBattleIntro(done) {
   const b = G.battle;
   const boss = b.enemies.find((e) => e.boss);
+  // 戦場の寸法をここで決めて、戦闘の間は固定する (盤面より横長の戦場へ)
+  renderRunbar();
+  renderParty();
+  fitView();
   if (REDUCED_MOTION) { done(); return; }
   const dur = (boss ? 1900 : 640 + b.enemies.length * 90) * (G.fastAnim ? 0.6 : 1);
   G.battleIntro = { battle: b, t0: performance.now(), dur, boss: boss ? (boss.mon && boss.mon.name) || boss.name : null };
   G.animating = true;
   combatMenu.innerHTML = "";
-  setHint("敵をタップで攻撃 ・ スキルは長押しで詳細 ・ ⚡オートで自動戦闘");
+  setHint("敵をタップで攻撃 ・ スキルは長押しで詳細 ・ オートで自動戦闘");
   renderParty();
   const tick = () => {
     if (!G.battleIntro || G.battle !== b) return;
@@ -5102,7 +5823,7 @@ function drawEnemyBadges(e, baseX, yTop) {
   }
   if (!segs.length) return;
   vctx.save();
-  vctx.font = "9px monospace";
+  vctx.font = `800 9px ${CANVAS_SERIF}`;
   vctx.textAlign = "left";
   vctx.textBaseline = "middle";
   const pad = 3, gap = 3, h = 12;
@@ -5127,73 +5848,171 @@ function drawEnemyBadges(e, baseX, yTop) {
 }
 
 // 攻撃/魔法/被弾エフェクトの描画
+// 斬撃 = 三日月の閃光と血の飛沫 / 魔法 = 属性色の閃光と環 / 撃破 = 魔物が白く焼けて灰と残り火に崩れる
+// 数字 = 重い明朝の数字 (会心は金で大きく、味方の被弾は紅)
 function drawEffects(fx, now) {
-  // 斬撃 (白い斜線が走る)
-  for (const s of fx.slashes) {
-    const t = (now - s.t0) / 240;
-    if (t < 0 || t > 1) continue; // t0 が未来 (多段の2撃目以降) のものはまだ描かない
+  const spd = spdMul();
+  // 撃破: 白く焼け、上へ崩れながら灰となって消える
+  for (const d of fx.deaths || []) {
+    const dur = 360 * spd;
+    const t = (now - d.t0) / dur;
+    if (t < 0 || t > 1) continue;
+    const bm = monsterBitmap(d.mon);
     vctx.save();
-    vctx.globalAlpha = 1 - t;
-    vctx.strokeStyle = "#ffffff";
-    vctx.lineWidth = 3;
-    for (let k = 0; k < 3; k++) {
-      const off = (k - 1) * 12;
-      vctx.beginPath();
-      vctx.moveTo(s.x - 26 + off, s.y - 26);
-      vctx.lineTo(s.x + 26 + off, s.y + 26);
-      vctx.stroke();
+    const lift = t * 10;
+    if (t < 0.35) {
+      drawMonster(vctx, d.mon, d.x, d.y - lift, d.size, 1 - t * 0.5);
+      vctx.globalCompositeOperation = "lighter";
+      drawMonsterBmp(vctx, monsterFlashBitmap(d.mon), d.x, d.y - lift, d.size, 0.9 * (1 - t / 0.35));
+    } else {
+      drawMonsterBmp(vctx, monsterSilhouette(d.mon), d.x, d.y - lift, d.size * (1 + (t - 0.35) * 0.08), 0.85 * (1 - (t - 0.35) / 0.65));
+    }
+    vctx.restore();
+    // 灰と残り火
+    const dot = d.size / (Math.max(12, bm.w, bm.h) / 12);
+    const hw = (bm.w * dot) / 2, hh = (bm.h * dot) / 2;
+    vctx.save();
+    for (let i = 0; i < 26; i++) {
+      const px = d.x + (h01(i, d.uid) - 0.5) * hw * 1.8, py0 = d.y + (h01(i + 40, d.uid) - 0.5) * hh * 1.8;
+      const py = py0 - t * (20 + h01(i, 9) * 34);
+      const ember = i % 3 === 0;
+      vctx.globalAlpha = (1 - t) * (ember ? 0.95 : 0.6);
+      vctx.fillStyle = ember ? (i % 2 ? "#ff7a3a" : "#ffc070") : "#4a4044";
+      const s = ember ? 1.6 : 2.2;
+      vctx.fillRect(px + Math.sin(t * 6 + i) * 3, py, s, s);
     }
     vctx.restore();
   }
-  // 魔法 (色付きリングが広がる + 火花)
+  // 斬撃: 三日月の閃光が走り、紅い飛沫が散る
+  for (const s of fx.slashes) {
+    const t = (now - s.t0) / (240 * Math.max(0.6, spd));
+    if (t < 0 || t > 1) continue; // t0 が未来 (多段の2撃目以降) のものはまだ描かない
+    const sweep = Math.min(1, t / 0.45);
+    const fade = t < 0.45 ? 1 : 1 - (t - 0.45) / 0.55;
+    const dir = s.flip ? -1 : 1;
+    vctx.save();
+    vctx.translate(s.x, s.y);
+    vctx.scale(dir, 1);
+    vctx.rotate(-0.75);
+    const R = 34 * (s.big ? 1.25 : 1);
+    const a0 = -1.4, a1 = a0 + 2.6 * sweep;
+    vctx.globalCompositeOperation = "lighter";
+    vctx.globalAlpha = fade * 0.55;
+    vctx.strokeStyle = s.crit ? "#ffb040" : "#ff5a3a";
+    vctx.lineWidth = 9;
+    vctx.lineCap = "round";
+    vctx.beginPath(); vctx.arc(0, 0, R, a0, a1); vctx.stroke();
+    vctx.globalAlpha = fade;
+    vctx.strokeStyle = "#fff6ea";
+    vctx.lineWidth = 3;
+    vctx.beginPath(); vctx.arc(0, 0, R, a0 + 0.15 * sweep, a1); vctx.stroke();
+    vctx.lineWidth = 1;
+    vctx.beginPath(); vctx.arc(0, 0, R - 7, a0 + 0.5 * sweep, a1 - 0.1); vctx.stroke();
+    vctx.restore();
+    // 血の飛沫
+    vctx.save();
+    for (let i = 0; i < 9; i++) {
+      const a = -0.6 + (h01(i, s.seed || 1) - 0.5) * 2.4 + (s.flip ? Math.PI : 0);
+      const sp = 22 + h01(i + 9, s.seed || 1) * 30;
+      const px = s.x + Math.cos(a) * sp * t, py = s.y + Math.sin(a) * sp * t + 30 * t * t;
+      vctx.globalAlpha = Math.max(0, 1 - t * 1.1);
+      vctx.fillStyle = i % 3 ? "#8a0e0a" : "#d0281a";
+      const sz = 2.4 - t * 1.2;
+      vctx.fillRect(px, py, sz, sz);
+    }
+    vctx.restore();
+  }
+  // 魔法: 属性色の閃光 → 広がる環 → 火花
   for (const m of fx.magic) {
-    const t = (now - m.t0) / 360;
+    const t = (now - m.t0) / 380;
     if (t < 0 || t > 1) continue;
     vctx.save();
+    vctx.globalCompositeOperation = "lighter";
+    const flash = Math.max(0, 1 - t * 2.2);
+    if (flash > 0) {
+      const g = vctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, 46);
+      g.addColorStop(0, `rgba(255,255,255,${0.75 * flash})`);
+      g.addColorStop(0.35, hexA(m.color, 0.55 * flash));
+      g.addColorStop(1, hexA(m.color, 0));
+      vctx.fillStyle = g;
+      vctx.fillRect(m.x - 46, m.y - 46, 92, 92);
+    }
     vctx.globalAlpha = 1 - t;
     vctx.strokeStyle = m.color;
-    vctx.lineWidth = 4;
-    vctx.beginPath();
-    vctx.arc(m.x, m.y, 6 + t * 34, 0, Math.PI * 2);
-    vctx.stroke();
+    vctx.lineWidth = 3.5 * (1 - t) + 0.5;
+    vctx.beginPath(); vctx.arc(m.x, m.y, 6 + t * 40, 0, Math.PI * 2); vctx.stroke();
+    vctx.strokeStyle = "rgba(255,255,255,0.8)";
+    vctx.lineWidth = 1;
+    vctx.beginPath(); vctx.arc(m.x, m.y, 4 + t * 28, 0, Math.PI * 2); vctx.stroke();
     vctx.fillStyle = m.color;
-    for (let k = 0; k < 6; k++) {
-      const a = (k / 6) * Math.PI * 2 + t * 3;
-      const r = 8 + t * 30;
-      vctx.fillRect(m.x + Math.cos(a) * r - 2, m.y + Math.sin(a) * r - 2, 4, 4);
+    for (let kk = 0; kk < 10; kk++) {
+      const a = (kk / 10) * Math.PI * 2 + t * 2.6;
+      const r = 8 + t * 36;
+      vctx.fillRect(m.x + Math.cos(a) * r - 1.5, m.y + Math.sin(a) * r - 1.5, 3, 3);
     }
     vctx.restore();
   }
-  // 画面フラッシュ (味方被弾=赤)
+  // 画面の縁が紅く脈打つ (味方被弾)
   if (fx.screen) {
-    const t = (now - fx.screen.t0) / 260;
+    const t = (now - fx.screen.t0) / 300;
     if (t <= 1) {
       vctx.save();
-      vctx.globalAlpha = 0.4 * (1 - t);
-      vctx.fillStyle = fx.screen.color;
-      vctx.fillRect(0, 0, view.width, view.height);
+      const g = vctx.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.25, VW / 2, VH / 2, Math.max(VW, VH) * 0.72);
+      g.addColorStop(0, "rgba(160,0,0,0)");
+      g.addColorStop(1, `rgba(170,8,4,${0.62 * (1 - t)})`);
+      vctx.fillStyle = g;
+      vctx.fillRect(0, 0, VW, VH);
       vctx.restore();
     }
   }
-  // ダメージ数値 (浮き上がって消える)
-  vctx.textAlign = "center";
+  // ダメージ数値 (弾んで現れ、少し留まって昇りながら消える)
   for (const f of fx.floats) {
-    const t = (now - f.t0) / 700;
+    const t = (now - f.t0) / 760;
     if (t < 0 || t > 1) continue; // t0 が未来 (多段の2撃目以降) のものはまだ描かない
-    vctx.save();
-    vctx.globalAlpha = t < 0.7 ? 1 : 1 - (t - 0.7) / 0.3; // しばらく留まってから消える
-    vctx.fillStyle = f.color;
-    vctx.strokeStyle = "#000";
-    vctx.lineWidth = 3;
-    // 出た瞬間に大きく弾んで落ち着く (会心はさらに大きく)
-    const pop = t < 0.12 ? 1 + (f.big ? 0.9 : 0.45) * (1 - t / 0.12) : 1;
-    const px = Math.round((f.big ? 24 : f.small ? 12 : 18) * pop);
-    vctx.font = `800 ${px}px ${CANVAS_SERIF}`;
-    const yy = f.y - Math.sin(Math.min(1, t * 1.6) * Math.PI / 2) * 26;
-    vctx.strokeText(f.text, f.x, yy);
-    vctx.fillText(f.text, f.x, yy);
-    vctx.restore();
+    drawFloatText(f, t);
   }
+}
+function hexA(hex, a) {
+  if (!hex || hex[0] !== "#") return `rgba(255,255,255,${a})`;
+  const n = parseInt(hex.slice(1, 7), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+// 浮かぶ文字: 種類ごとの書体と配色 (kind: dmg/crit/label/pdmg/heal/buff/info)
+const FLOAT_STYLE = {
+  dmg:   { px: 32, top: "#ffffff", bot: "#d9c8ac", glow: null },
+  crit:  { px: 42, top: "#fff6c8", bot: "#ff9a1c", glow: "rgba(255,150,40,0.85)" },
+  label: { px: 14, top: "#ffd27a", bot: "#ff8a2a", glow: "rgba(255,120,30,0.6)", spacing: 2 },
+  pdmg:  { px: 32, top: "#ffb4a4", bot: "#d0281a", glow: "rgba(200,20,10,0.7)" },
+  heal:  { px: 28, top: "#e4ffe0", bot: "#3cc060", glow: "rgba(80,220,120,0.6)" },
+  buff:  { px: 16, top: null, bot: null, glow: null },
+  info:  { px: 18, top: null, bot: null, glow: null },
+};
+function drawFloatText(f, t) {
+  const kind = f.kind || (f.big ? "crit" : f.small ? "label" : f.color === "#fff" ? "dmg" : f.color === "#7CFC7C" ? "heal" : "info");
+  const st = FLOAT_STYLE[kind] || FLOAT_STYLE.info;
+  vctx.save();
+  vctx.globalAlpha = t < 0.72 ? 1 : 1 - (t - 0.72) / 0.28;
+  const pop = t < 0.1 ? 1 + (kind === "crit" ? 0.85 : 0.45) * (1 - t / 0.1) : 1;
+  const px = Math.round(st.px * pop);
+  vctx.font = `800 ${px}px ${CANVAS_SERIF}`;
+  vctx.textAlign = "center";
+  vctx.textBaseline = "alphabetic";
+  if (st.spacing && "letterSpacing" in vctx) vctx.letterSpacing = st.spacing + "px";
+  const yy = f.y - Math.sin(Math.min(1, t * 1.5) * Math.PI / 2) * 24;
+  // 黒い縁取り + 下への落ち影
+  vctx.lineJoin = "round";
+  vctx.strokeStyle = "rgba(0,0,0,0.9)";
+  vctx.lineWidth = kind === "crit" ? 5 : 4;
+  vctx.strokeText(f.text, f.x + 1, yy + 2);
+  vctx.strokeText(f.text, f.x, yy);
+  if (st.glow) { vctx.shadowColor = st.glow; vctx.shadowBlur = kind === "crit" ? 14 : 8; }
+  if (st.top) {
+    const g = vctx.createLinearGradient(0, yy - px * 0.85, 0, yy);
+    g.addColorStop(0, st.top); g.addColorStop(1, st.bot);
+    vctx.fillStyle = g;
+  } else vctx.fillStyle = f.color || "#fff";
+  vctx.fillText(f.text, f.x, yy);
+  vctx.restore();
 }
 
 // キャンバス座標(sx,sy)に最も近い生存中の敵を返す (一定距離以内のみ)。allowed があればその集合に限る
@@ -5208,7 +6027,7 @@ function nearestEnemyAt(sx, sy, allowed = null) {
     const d = Math.hypot(sx - pos.cx, sy - pos.cy);
     if (d < bestD) { bestD = d; best = e; }
   }
-  return bestD < 70 ? best : null;
+  return best && bestD < ((G.enemyPos[best.uid] && G.enemyPos[best.uid].r) || 70) ? best : null;
 }
 
 // オート戦闘の解除 (解除ボタン / 戦闘画面タップの共通処理)
@@ -5221,17 +6040,71 @@ function stopAutoCombat() {
   else renderCombatMenu();
 }
 
+// ===== 戦闘のコマンド板 =====
+// 鉄と石の重い札。主の一手 (攻撃) を大きく、ほかは下段に並べる。文字は textContent で入れる (名前の混入対策)
+const CMD_SVG = {
+  attack: '<path d="M20.5 3.5 20 8 10.2 17.8 6.2 13.8 16 4Z"/><path d="m5 13 6 6M7.6 16.4 3.5 20.5"/>',
+  skill: '<path d="M12 2.5 13.9 10.1 21.5 12l-7.6 1.9L12 21.5l-1.9-7.6L2.5 12l7.6-1.9Z"/><circle cx="12" cy="12" r="2.2"/>',
+  defend: '<path d="M12 2.8 19.5 5.6v6.1c0 4.7-3.1 8-7.5 9.5-4.4-1.5-7.5-4.8-7.5-9.5V5.6Z"/><path d="M12 6v12"/>',
+  run: '<path d="M14 3.5h5.5v17H14"/><path d="M3.5 12h10M9.5 7.5l4.5 4.5-4.5 4.5"/>',
+  auto: '<path d="M13.5 2.5 5 13.5h6l-1 8 8.5-11h-6Z"/>',
+  fast: '<path d="M3.5 6v12l7.5-6Zm9 0v12l7.5-6Z"/>',
+  back: '<path d="M15 4.5 7.5 12l7.5 7.5"/>',
+  stop: '<path d="M7 7h10v10H7Z"/>',
+};
+function cmdIcon(kind) {
+  const ns = "http://www.w3.org/2000/svg";
+  const sv = document.createElementNS(ns, "svg");
+  sv.setAttribute("viewBox", "0 0 24 24");
+  sv.setAttribute("aria-hidden", "true");
+  sv.setAttribute("class", "cmd-ic");
+  sv.innerHTML = CMD_SVG[kind] || "";
+  return sv;
+}
+function cmdBtn(kind, label, sub, onClick, extra = "") {
+  const b = btn("", onClick);
+  b.className = "btn cmd cmd-" + kind + (extra ? " " + extra : "");
+  b.appendChild(cmdIcon(kind));
+  const t = el("span", "cmd-t");
+  t.appendChild(el("span", "cmd-l", label));
+  if (sub) t.appendChild(el("span", "cmd-s", sub));
+  b.appendChild(t);
+  return b;
+}
+// 手番の札: 「名 の手番」+ 隊列と射程の印
+function turnPlate(name, tail, chips = []) {
+  const w = el("div", "who");
+  w.appendChild(el("i", "who-mark"));
+  w.appendChild(el("b", "who-n", name));
+  if (tail) w.appendChild(el("span", "who-t", tail));
+  for (const c of chips) w.appendChild(el("span", "who-c", c));
+  return w;
+}
+
+// 演出の間の命令板: いま動いている者の札だけを掲げる (板の高さは CSS で保つ)
+function renderActingPlate(actor) {
+  combatMenu.innerHTML = "";
+  combatMenu.dataset.mode = "acting";
+  if (!actor) return;
+  const foe = actor.side === "enemy";
+  const w = turnPlate(actor.name, foe ? "の攻勢" : "の行動", []);
+  if (foe) w.classList.add("who-foe");
+  combatMenu.appendChild(w);
+}
+
 // オート戦闘中の常設バナー: 演出中も表示し続け、いつでも解除できる
 function renderAutoBanner(actor) {
   combatMenu.innerHTML = "";
-  combatMenu.appendChild(el("div", "who", actor ? `▶ ${actor.name} (⚡オート戦闘中)` : "⚡ オート戦闘中"));
-  combatMenu.appendChild(btn("⏹ オート解除 (画面タップでもOK)", stopAutoCombat));
+  combatMenu.dataset.mode = "auto";
+  combatMenu.appendChild(actor ? turnPlate(actor.name, "の手番", ["オート"]) : turnPlate("オート戦闘中", "", []));
+  combatMenu.appendChild(cmdBtn("stop", "オート解除", "画面のタップでも解除", stopAutoCombat, "cmd-wide"));
 }
 
 function renderCombatMenu() {
   const b = G.battle;
-  setHint("敵をタップで攻撃 ・ スキルは長押しで詳細 ・ ⚡オートで自動戦闘");
+  setHint("敵をタップで攻撃 ・ スキルは長押しで詳細 ・ オートで自動戦闘");
   combatMenu.innerHTML = "";
+  combatMenu.dataset.mode = "";
   if (G.animating) { if (G.autoCombat) renderAutoBanner(); return; } // アニメーション中は解除のみ可
   if (b.phase === "input") {
     const actor = b.current;
@@ -5253,38 +6126,49 @@ function renderCombatMenu() {
       }
       return;
     }
+    combatMenu.dataset.mode = "input";
     const rowTag = b.isBackRow(actor) ? "後衛" : "前衛";
-    combatMenu.appendChild(el("div", "who", `▶ ${actor.name} のターン [${rowTag}・射程:${RANGE_LABEL[b.attackRange(actor)]}] ・ 敵タップで攻撃`));
-    const row = el("div", "row");
-    row.appendChild(btn("⚔ 攻撃", () => act("attack")));
-    if (actor.spells.length) row.appendChild(btn("✦ スキル", () => showSpells(actor)));
-    else row.appendChild(btn("✦ スキル", () => log("スキルを使えない", "sys")));
-    row.appendChild(btn("🛡 防御", () => act("defend")));
-    row.appendChild(btn("🏃 逃走", () => act("run")));
-    combatMenu.appendChild(row);
-    const row2 = el("div", "row");
-    row2.appendChild(btn("⚡ オート", () => { G.autoCombat = true; renderCombatMenu(); }));
-    row2.appendChild(btn(G.fastAnim ? "▶▶ 倍速:ON" : "▶ 倍速:OFF", () => { G.fastAnim = !G.fastAnim; autosave(); renderCombatMenu(); }));
-    combatMenu.appendChild(row2);
+    combatMenu.appendChild(turnPlate(actor.name, "の手番", [rowTag, "射程 " + RANGE_LABEL[b.attackRange(actor)]]));
+    const main = el("div", "cmd-main");
+    main.appendChild(cmdBtn("attack", "攻撃", "敵をタップでも", () => act("attack"), "primary"));
+    const mpTxt = actor.maxmp > 0 ? `MP ${actor.mp}/${actor.maxmp}` : "技なし";
+    if (actor.spells.length) main.appendChild(cmdBtn("skill", "スキル", mpTxt, () => showSpells(actor)));
+    else main.appendChild(cmdBtn("skill", "スキル", "使えない", () => log("スキルを使えない", "sys"), "muted"));
+    combatMenu.appendChild(main);
+    const sub = el("div", "cmd-sub");
+    sub.appendChild(cmdBtn("defend", "防御", "", () => act("defend")));
+    sub.appendChild(cmdBtn("run", "逃走", "", () => act("run")));
+    sub.appendChild(cmdBtn("auto", "オート", "", () => { G.autoCombat = true; renderCombatMenu(); }));
+    sub.appendChild(cmdBtn("fast", "倍速", G.fastAnim ? "ON" : "OFF", () => { G.fastAnim = !G.fastAnim; autosave(); renderCombatMenu(); }, G.fastAnim ? "on" : ""));
+    combatMenu.appendChild(sub);
   } else if (b.phase === "target") {
-    combatMenu.appendChild(el("div", "who", "対象を選択 (敵を直接タップでもOK)"));
+    combatMenu.dataset.mode = "target";
+    combatMenu.appendChild(turnPlate("対象を選択", "", ["敵を直接タップでも可"]));
     const opts = b.targetOptions();
     // 対象が多い時 (敵の群れなど) は2列に並べて縦に伸びすぎないようにする
     const list = el("div", "target-list" + (opts.length > 3 ? " cols2" : ""));
     for (const t of opts) {
-      const label = t.side === "enemy"
-        ? `${b.isBackRow(t) ? "【後】" : ""}${t.name} (HP ${t.hp})`
-        : `${t.name} (HP ${t.hp}/${t.maxhp})${t.alive ? "" : " [気絶]"}`;
-      list.appendChild(btn(label, () => { b.chooseTarget(t); runCommitted(); }));
+      const tb = btn("", () => { b.chooseTarget(t); runCommitted(); });
+      tb.className = "btn tgt " + (t.side === "enemy" ? "tgt-enemy" : "tgt-ally") + (t.alive ? "" : " tgt-down");
+      const nm = el("span", "tgt-n", (t.side === "enemy" && b.isBackRow(t) ? "【後】" : "") + t.name + (t.side !== "enemy" && !t.alive ? " [気絶]" : ""));
+      tb.appendChild(nm);
+      const bar = el("span", "tgt-bar");
+      const fill = el("i");
+      fill.style.width = Math.max(0, Math.min(100, (t.hp / (t.maxhp || 1)) * 100)) + "%";
+      bar.appendChild(fill);
+      tb.appendChild(bar);
+      tb.appendChild(el("span", "tgt-hp", t.side === "enemy" ? `HP ${t.hp}` : `HP ${t.hp}/${t.maxhp}`));
+      list.appendChild(tb);
     }
     combatMenu.appendChild(list);
-    combatMenu.appendChild(btn("← 戻る", () => { b.cancelTarget(); renderCombatMenu(); }));
+    combatMenu.appendChild(cmdBtn("back", "戻る", "", () => { b.cancelTarget(); renderCombatMenu(); }, "cmd-wide cmd-backb"));
   }
 }
 
 function showSpells(actor) {
   combatMenu.innerHTML = "";
-  combatMenu.appendChild(el("div", "who", `${actor.name} のスキル (MP ${actor.mp})　長押しで詳細`));
+  combatMenu.dataset.mode = "spells";
+  combatMenu.appendChild(turnPlate(actor.name, "のスキル", [`MP ${actor.mp}`, "長押しで詳細"]));
   // 呪文が多い職 (魔導士・賢者など最大11個) は2列に並べて縦に伸びすぎないようにする
   const list = el("div", "target-list" + (actor.spells.length > 4 ? " cols2" : ""));
   for (const key of actor.spells) {
@@ -5296,14 +6180,21 @@ function showSpells(actor) {
     if (actor.mp < cost) locked = true; // MP不足は押せない
     // 単体味方呪文で効果のある対象がいない (満タンへの回復・状態異常なしへの治療) は押せない
     else if (sp.target === "ally" && G.battle._allyTargets(sp).length === 0) locked = true;
-    const b = btn(`${sp.name} (MP${cost}) - ${sp.desc}`, () => { if (locked) { SFX.ng(); return; } act("spell", key); });
-    if (locked) { b.classList.add("locked"); b.style.opacity = "0.4"; }
+    const b = btn("", () => { if (locked) { SFX.ng(); return; } act("spell", key); });
+    b.className = "btn spell spell-" + (sp.kind || "atk");
+    const top = el("span", "sp-top");
+    top.appendChild(el("span", "sp-n", sp.name));
+    top.appendChild(el("span", "sp-mp", `MP${cost}`));
+    b.appendChild(top);
+    b.appendChild(el("span", "sp-d", sp.desc));
+    b.style.setProperty("--sp-col", SPELL_KIND_COLOR[sp.kind] || "#c9a24a");
+    if (locked) b.classList.add("locked");
     // 長押しでスキル詳細を表示 (MP不足などで押せない技でも内容は確認できる)
     attachLongPress(b, () => { SFX.select(); showSkillPopup(key); });
     list.appendChild(b);
   }
   combatMenu.appendChild(list);
-  combatMenu.appendChild(btn("← 戻る", () => renderCombatMenu()));
+  combatMenu.appendChild(cmdBtn("back", "戻る", "", () => renderCombatMenu(), "cmd-wide cmd-backb"));
 }
 
 // ---- 戦闘ループ駆動 (1手ずつ・演出付き) ----
@@ -5317,7 +6208,7 @@ function combatStep() {
   if (b.phase === "stunned") {
     // 行動不能の味方 (睡眠/麻痺/石化) の手番を自動消化
     G.animating = true;
-    if (G.autoCombat) renderAutoBanner(); else combatMenu.innerHTML = "";
+    if (G.autoCombat) renderAutoBanner(); else renderActingPlate(b.current);
     renderCombatCanvas();
     autosave(true);
     setTimeout(() => {
@@ -5328,7 +6219,7 @@ function combatStep() {
   }
   if (b.phase === "enemy") {
     G.animating = true;
-    if (G.autoCombat) renderAutoBanner(); else combatMenu.innerHTML = "";
+    if (G.autoCombat) renderAutoBanner(); else renderActingPlate(b.current);
     renderCombatCanvas();
     autosave(true); // 敵の手番を確定 (やり直し不可)
     // 一瞬の間を置いてから敵が動く (ドラクエ風)
@@ -5351,7 +6242,7 @@ function act(action, spellKey) {
 function runCommitted() {
   autosave(true); // 行動確定の瞬間に保存。以降この選択はやり直せない
   G.animating = true;
-  if (G.autoCombat) renderAutoBanner(); else combatMenu.innerHTML = "";
+  if (G.autoCombat) renderAutoBanner(); else renderActingPlate((G.battle.pending && G.battle.pending.actor) || G.battle.current);
   const res = G.battle.commit();
   animateResult(res, postResolve);
 }
@@ -5392,7 +6283,7 @@ function animateResult(res, done) {
   const staggerSteps = Math.max(maxStack - 1, partyHealN - 1);
   const TOTAL = WIND + (360 + staggerSteps * HIT_STAGGER) * spdMul();
   G.fx = { lunge: res.side === "enemy" ? { uid: res.actor.uid, p: 0 } : null,
-           slashes: [], magic: [], floats: [], screen: null, flash: {} };
+           slashes: [], magic: [], floats: [], screen: null, flash: {}, deaths: [] };
   G.partyFx = G.partyFx || new Map();
   let impacted = false;
   const tick = () => {
@@ -5471,17 +6362,21 @@ function applyImpact(res) {
       if (res.action === "spell" && res.spellKind !== "heal" && res.spellKind !== "phys") {
         fx.magic.push({ x: pos.cx, y: pos.cy, t0: ht0, color: magicColor(res) });
       } else if (res.action === "attack" || res.spellKind === "phys") {
-        fx.slashes.push({ x: pos.cx, y: pos.cy, t0: ht0 });
+        fx.slashes.push({ x: pos.cx + dx * 0.5, y: pos.cy, t0: ht0, crit: !!h.crit, big: !!h.crit, flip: idx % 2 === 1, seed: (h.target.uid || 1) * 31 + idx });
       }
       if (idx === 0 || !fx.flash[h.target.uid]) fx.flash[h.target.uid] = { t0: ht0 };
       if (h.dmg != null) {
-        fx.floats.push({ x: pos.cx + dx, y: pos.cy - 18, text: String(h.dmg) + (h.crit ? "!" : ""), color: h.crit ? "#ffd84a" : "#fff", t0: ht0, big: !!h.crit });
-        if (h.crit) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 44, text: "会心!", color: "#ffb02e", t0: ht0, small: true });
+        fx.floats.push({ x: pos.cx + dx, y: pos.cy - 10, text: String(h.dmg), color: h.crit ? "#ffd84a" : "#fff", t0: ht0, big: !!h.crit, kind: h.crit ? "crit" : "dmg" });
+        if (h.crit) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 40, text: "会心の一撃", color: "#ffb02e", t0: ht0, small: true, kind: "label" });
       }
-      else if (h.heal != null) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 18, text: "+" + h.heal, color: "#7CFC7C", t0: ht0 }); // 敵の回復役による回復
+      else if (h.heal != null) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 10, text: "+" + h.heal, color: "#7CFC7C", t0: ht0, kind: "heal" }); // 敵の回復役による回復
       // 敵にかかった強化/弱体も発動フロートで知らせる (ピル表示に加えて瞬間を可視化)
-      if (h.buff || h.debuff) { const mt = buffFloatText(h); fx.floats.push({ x: pos.cx + dx, y: pos.cy - 34, text: mt.text, color: mt.color, t0: ht0 }); }
-      if (h.died) anyDeath = true;
+      if (h.buff || h.debuff) { const mt = buffFloatText(h); fx.floats.push({ x: pos.cx + dx, y: pos.cy - 34, text: mt.text, color: mt.color, t0: ht0, kind: "buff" }); }
+      if (h.died) {
+        anyDeath = true;
+        // 撃破: 魔物が白く焼けて灰に崩れる (描画は drawEffects)
+        if (!fx.deaths.some((d) => d.uid === h.target.uid)) fx.deaths.push({ uid: h.target.uid, mon: h.target.mon, x: pos.cx, y: pos.cy, size: pos.size || 9, t0: ht0 });
+      }
     } else {
       // 味方が対象
       if (h.buff || h.debuff) {
@@ -5489,21 +6384,21 @@ function applyImpact(res) {
         const mt = buffFloatText(h);
         G.partyFx.set(h.target, h.buff ? "heal" : "hit");
         const n = partyModHits.length, mi = partyModIdx++;
-        const fx0 = n > 1 ? view.width * (mi + 1) / (n + 1) : view.width / 2;
-        const fy0 = view.height - 26 - (mi % 2) * 16;
-        fx.floats.push({ x: fx0, y: fy0, text: mt.text, color: mt.color, t0: now + mi * stag });
+        const fx0 = n > 1 ? VW * (mi + 1) / (n + 1) : VW / 2;
+        const fy0 = VH - 26 - (mi % 2) * 16;
+        fx.floats.push({ x: fx0, y: fy0, text: mt.text, color: mt.color, t0: now + mi * stag, kind: "buff" });
       } else if (h.cured) {
         // 状態異常の治癒も知らせる
         G.partyFx.set(h.target, "heal");
-        fx.floats.push({ x: view.width / 2, y: view.height - 26, text: "治癒✚", color: "#9be8ff", t0: now });
+        fx.floats.push({ x: VW / 2, y: VH - 26, text: "治癒✚", color: "#9be8ff", t0: now });
       } else if (h.heal != null) {
         G.partyFx.set(h.target, "heal");
         // 複数人を回復する時は横に散らし、順に弾ませて全員の回復を見せる
         const n = partyHeals.length;
         const i = partyHealIdx++;
-        const fx0 = n > 1 ? view.width * (i + 1) / (n + 1) : view.width / 2;
-        const fy0 = view.height - 26 - (i % 2) * 16; // 重なり回避に上下も少しずらす
-        fx.floats.push({ x: fx0, y: fy0, text: "+" + h.heal, color: "#7CFC7C", t0: now + i * stag });
+        const fx0 = n > 1 ? VW * (i + 1) / (n + 1) : VW / 2;
+        const fy0 = VH - 26 - (i % 2) * 16; // 重なり回避に上下も少しずらす
+        fx.floats.push({ x: fx0, y: fy0, text: "+" + h.heal, color: "#7CFC7C", t0: now + i * stag, kind: "heal" });
       } else if (h.steal) {
         // 窃盗: ゴールド/Soul の控除はここで行う (combat.js は G を知らない)
         partyHit = true;
@@ -5513,23 +6408,23 @@ function applyImpact(res) {
           G.gold -= s;
           if (G.run) G.run.gold = Math.max(0, G.run.gold - s);
           log(`${h.target.name}は ${s} ゴールドを奪われた！`, "dmg");
-          fx.floats.push({ x: view.width / 2, y: view.height - 26, text: `-💰${s}`, color: "#ffd84a", t0: now });
+          fx.floats.push({ x: VW / 2, y: VH - 26, text: `-💰${s}`, color: "#ffd84a", t0: now });
         } else {
           const s = Math.min(G.soulPts, h.stealAmt || 0);
           G.soulPts -= s;
           if (G.run) G.run.soulPts = Math.max(0, G.run.soulPts - s);
           log(`${h.target.name}は ✦${s} Soul を吸い取られた！`, "dmg");
-          fx.floats.push({ x: view.width / 2, y: view.height - 26, text: `-✦${s}`, color: "#b06bff", t0: now });
+          fx.floats.push({ x: VW / 2, y: VH - 26, text: `-✦${s}`, color: "#b06bff", t0: now });
         }
         updateTopbar();
       } else if (h.stoned) {
         partyHit = true;
         G.partyFx.set(h.target, "hit");
-        fx.floats.push({ x: view.width / 2, y: view.height - 26, text: "石化!", color: "#c9c4b8", t0: now });
+        fx.floats.push({ x: VW / 2, y: VH - 26, text: "石化!", color: "#c9c4b8", t0: now });
       } else if (!h.miss) {
         partyHit = true;
         G.partyFx.set(h.target, "hit");
-        fx.floats.push({ x: view.width / 2, y: view.height - 26, text: String(h.dmg) + (h.fatal ? " 即死!" : ""), color: h.fatal ? "#ff2a2a" : "#ff6b6b", t0: now });
+        fx.floats.push({ x: VW / 2, y: VH - 26, text: String(h.dmg) + (h.fatal ? " 即死!" : ""), color: h.fatal ? "#ff2a2a" : "#ff6b6b", t0: now, kind: "pdmg" });
         if (h.died) anyDeath = true;
         // レベルドレイン: 宿しているメイン魂のレベルを永続的に1下げる
         if (h.drain && h.target.isDoll && h.target.primary != null) {
@@ -5956,15 +6851,28 @@ function shareProgress(headline) {
 }
 
 // ---- パーティ表示 ----
+// 隊の札: 肖像 (隊列の印・状態異常の印) + 名と職 + 血の小瓶 (HP) と魂の小瓶 (MP)。
+// 盤面は毎フレーム描き直すが、札は中身が変わった時だけ作り直す (タップの取りこぼしとアニメの再始動を防ぐ)
 function highlightActor(actor) {
   [...partyEl.children].forEach((c, i) => {
     c.classList.toggle("active", G.party[i] === actor);
   });
 }
 
+const AIL_SEAL = { poison: ["毒", "poison"], paralyze: ["痺", "paralyze"], stone: ["石", "stone"] };
+let _partyKey = "";
 function renderParty() {
-  partyEl.innerHTML = "";
   const fx = G.partyFx;
+  const st = G.state;
+  const key = st + "|" + G.party.map((p) => [
+    p.uid, p.name, p.cls, p.isDoll ? (p.jobLv || 1) : p.level, p.hp, p.maxhp, p.mp, p.maxmp, p.alive ? 1 : 0,
+    p.ailment || "", p.asleep && st === "combat" ? 1 : 0, fx && fx.has(p) ? fx.get(p) : "", buffBadges(p),
+    `${p.jobKey || ""}:${p.jobRank || 1}:${p.clsKey || ""}`,
+  ].join(",")).join(";");
+  if (key === _partyKey && partyEl.childElementCount === G.party.length) return;
+  _partyKey = key;
+  partyEl.innerHTML = "";
+  partyEl.classList.toggle("n4", G.party.length >= 4);
   G.party.forEach((p, idx) => {
     const card = document.createElement("div");
     let cls = "pc" + (p.alive ? "" : " dead");
@@ -5975,30 +6883,49 @@ function renderParty() {
       card.style.cursor = "pointer";
       card.addEventListener("click", () => openStatus(idx));
     }
-    card.innerHTML = `
-      <div class="name"><span class="rowtag ${idx < 3 ? "front" : "back"}">${idx < 3 ? "前" : "後"}</span>${p.name}${p.ailment ? ` <span class="ail">${AIL_ICON[p.ailment] || "☠"}</span>` : ""}</div>
-      <div class="cls">${p.cls} Lv${p.isDoll ? (p.jobLv || 1) : p.level}</div>
-      <div class="bar hp"><i style="width:${(p.hp / p.maxhp) * 100}%"></i></div>
-      <div class="nums">HP ${p.hp}/${p.maxhp}</div>
-      ${p.maxmp > 0 ? `<div class="bar mp"><i style="width:${(p.mp / p.maxmp) * 100}%"></i></div>
-      <div class="nums">MP ${p.mp}/${p.maxmp}</div>` : ""}
-      ${buffBadges(p)}
-    `;
+    // 肖像の額 (隊列の印・状態の印を重ねる)
+    const por = el("div", "pc-por");
     const pic = partyPortrait(p);
-    if (pic) { card.classList.add("has-pic"); card.appendChild(pic); }
+    if (pic) por.appendChild(pic);
+    por.appendChild(el("span", "pc-row " + (idx < 3 ? "front" : "back"), idx < 3 ? "前" : "後"));
+    if (!p.alive) por.appendChild(el("span", "pc-seal dead", "斃"));
+    else if (p.ailment) { const a = AIL_SEAL[p.ailment] || ["呪", "poison"]; const s2 = el("span", "pc-seal " + a[1], a[0]); s2.title = AIL_NAME[p.ailment] || ""; por.appendChild(s2); }
+    else if (p.asleep && G.state === "combat") por.appendChild(el("span", "pc-seal sleep", "眠"));
+    card.appendChild(por);
+    const nm = el("div", "name");
+    nm.appendChild(el("span", "pc-n", p.name));
+    nm.appendChild(el("b", "pc-lv", `Lv${p.isDoll ? (p.jobLv || 1) : p.level}`));
+    card.appendChild(nm);
+    card.appendChild(el("div", "cls", p.cls));
+    const vial = (kind, v, m) => {
+      const d = el("div", "pc-vial " + kind + (m > 0 ? "" : " none"));
+      const fill = el("i");
+      fill.style.width = (m > 0 ? Math.max(0, Math.min(100, (v / m) * 100)) : 0) + "%";
+      d.appendChild(fill);
+      const n = el("span", "pc-num", m > 0 ? String(v) : "—");
+      if (m > 0) n.appendChild(el("small", null, "/" + m));
+      d.appendChild(n);
+      return d;
+    };
+    card.appendChild(vial("hp", p.hp, p.maxhp));
+    card.appendChild(vial("mp", p.mp, p.maxmp));
+    const bb = buffBadges(p);
+    if (bb) card.insertAdjacentHTML("beforeend", bb);
     partyEl.appendChild(card);
   });
 }
 
-// パーティカードの顔アイコン (職業の姿)。renderParty は盤面の常時アニメで毎フレーム呼ばれるため、
-// 人業ごとに描いた canvas を使い回す (職業/ランクが変わった時だけ描き直す)
+// パーティカードの肖像。札の額は 24×24 ドットの胸像を ~42px で見せる寸法 (PORTRAIT_PX)。
+// 人業ごとに描いた canvas を使い回す (職業/ランクが変わった時だけ描き直す)。
+// ※ 肖像の絵はここ一か所で差し替えられる (いまは職業の全身像 dollSprite を額に収めている)
+const PORTRAIT_PX = 40;
 const _partyPics = new WeakMap();
 function partyPortrait(p) {
   if (!p || !p.isDoll || p.primary == null) return null;
   const key = `${p.jobKey || ""}:${p.jobRank || 1}:${p.clsKey || ""}`;
   let ent = _partyPics.get(p);
   if (!ent || ent.key !== key) {
-    const c = spriteCanvas(dollSprite(p), 2);
+    const c = spriteCanvas(dollSprite(p), PORTRAIT_PX / 12);
     c.className = "spr pc-pic";
     ent = { key, c };
     _partyPics.set(p, ent);
@@ -6114,18 +7041,83 @@ function findRevealedStairs() {
 
 let altarSel = null; // 訓練所で選択中 { doll, part }
 
+// 街の施設 (広場の札・夜景の名所)。art = townart.js の情景
 const FACILITIES = [
-  { key: "mansion", icon: "🏚", name: "人業の館", desc: "人業を仕立て、魂を宿す" },
-  { key: "tavern", icon: "🍺", name: "酒場「沈まぬ灯」", desc: "編成とクエスト" },
-  { key: "shop", icon: "🏪", name: "商店「黒鉄商会」", desc: "装備・道具の売買" },
-  { key: "inn", icon: "🛏", name: "宿屋「白狼」", desc: "魂を休め、傷を癒す" },
-  { key: "palace", icon: "👑", name: "王宮", desc: "勅命と図鑑の間" },
-  { key: "shrine", icon: "🔴", name: "赤い魂の祠", desc: "Red Soul を授かる" },
+  { key: "mansion", name: "人業の館", desc: "器を仕立て、魂を宿す" },
+  { key: "tavern", name: "酒場「沈まぬ灯」", desc: "噂話と納品の依頼" },
+  { key: "shop", name: "商店「黒鉄商会」", desc: "装備と道具の売買・鑑定" },
+  { key: "inn", name: "宿屋「白狼」", desc: "傷を癒し、魂を休める" },
+  { key: "palace", name: "王宮", desc: "勅命・書庫・宝物庫" },
+  { key: "shrine", name: "赤い魂の祠", desc: "Red Soul を授かる" },
 ];
+
+// 街の絵 (夜景・施設の情景) はアイドル時間に下ごしらえしておく (タイトル画面の間に描き溜め、初回の引っかかりを消す)
+try { prewarmTown(FACILITIES.map((f) => f.key)); } catch (e) { /* 演出のみ */ }
+
+// 施設の表構え: 上部の情景 (art)・帯に切り出す位置 (pos)・番人 (keeper) のひとこと。lines は帰還のたびに巡る
+const FAC_SHELL = {
+  mansion: { art: "mansion", pos: "50% 40%", keeper: "binder", who: "人形師 オルドー", lines: [
+    "器は空のままでは歩けぬ。魂を注げば、肉より従順に動くとも。",
+    "壊れた器は直せる。だが、宿っていた魂の記憶までは戻らん。",
+    "糸を引くのは儂ではない。魂のほうよ。器は、ただ応えるだけだ。"] },
+  altar: { art: "altar", pos: "50% 40%", keeper: "binder", who: "人形師 オルドー", lines: [
+    "魂は付け替えられる。…痛むのは、器のほうではないがな。",
+    "注いだ ✦Soul は魂に刻まれる。器を替えても、失われはせん。"] },
+  party: { art: "party", pos: "50% 45%", keeper: "binder", who: "人形師 オルドー", lines: [
+    "連れてゆく器を選べ。戻らぬ器のぶんまで、な。",
+    "前に立つ者ほど狙われる。盾を持たせる器を、よく選ぶことだ。"] },
+  manage: { art: "manage", pos: "50% 55%", keeper: "binder", who: "人形師 オルドー", lines: [
+    "新しい器が要るか。赤い魂で払え。名は、後からでも刻める。",
+    "名を持たぬ器は、迷宮の闇に溶けやすい。…名を与えてやれ。"] },
+  tavern: { art: "tavern", pos: "50% 45%", keeper: "barkeep", who: "酒場の主 グラム", lines: [
+    "灯が消えぬうちは、ここは安全だ。…たぶんな。",
+    "飲め。迷宮帰りの喉は、血の味しか覚えておらん。",
+    "噂は金で買える。命は買えん。その差を忘れるな。"] },
+  shop: { art: "shop", pos: "50% 45%", keeper: "merchant", who: "黒鉄商会 ヴォス", compact: true, lines: [
+    "黒鉄は嘘をつかん。値札もな。",
+    "死人の剣でも、研げば生者の役に立つ。",
+    "未鑑定の品か。正体を知るのは、金を払ってからだ。"] },
+  inn: { art: "inn", pos: "50% 62%", keeper: "innkeeper", who: "宿の女主 イルザ", lines: [
+    "眠りな。夢の底までは、迷宮も追ってこない。",
+    "白狼の毛皮は温かいだろう。…あれを狩ったのは、あたしさ。",
+    "扉の閂は三重。それでも夜中に爪の音がしたら、起こしな。"] },
+  palace: { art: "palace", pos: "50% 35%", keeper: "minister", who: "宰相 モルデン", lines: [
+    "陛下は玉座でお待ちだ。…あまり長くは、お待ちになれぬ。",
+    "勅命は果たされねばならぬ。たとえ、器が幾つ砕けようとも。"] },
+  treasury: { art: "treasury", pos: "50% 58%", keeper: "minister", who: "宰相 モルデン", lines: [
+    "納めよ。迷宮の拾い物にも、王の目は値を付ける。",
+    "宝物庫の鍵は三つ。ひとつは陛下、ひとつは余、最後のひとつは…失われた。"] },
+  codexAch: { art: "codexAch", pos: "50% 45%", compact: true },
+  codexItem: { art: "codexItem", pos: "50% 78%", compact: true },
+  codexDungeon: { art: "codexMon", pos: "50% 55%", compact: true },
+  codexMon: { art: "codexMon", pos: "50% 55%", compact: true },
+  codexJob: { art: "codexJob", pos: "50% 45%", compact: true },
+  shrine: { art: "shrine", pos: "50% 36%", keeper: "maiden", who: "祠守の巫女", lines: [
+    "赤い魂は脈打つ。誰の心臓だったかは、問うてはならぬ。",
+    "祈りなさい。この祠は、祈りの代わりに血を受け取ります。"] },
+  abyss: { art: "abyss", pos: "50% 58%", compact: true },
+};
+// いま開いている画面の表構えの鍵 (館の中はサブ画面ごと)
+function shellKey() {
+  const f = G.town.facility;
+  if (f === "mansion") return G.town.sub || "mansion";
+  return f;
+}
 
 // 編成 + 控えの全人業
 function allDolls() { return [...G.party, ...G.reserve]; }
 
+// 所持通貨 (金貨 / ✦Soul / 赤い魂 / 魂の残火)
+function currencyEl() {
+  const cur = el("div", "tw-cur");
+  cur.appendChild(el("span", "tw-c-gold", `💰${G.gold}`));
+  cur.appendChild(el("span", "tw-c-soul", `✦${G.soulPts}`));
+  cur.appendChild(el("span", "tw-c-red", `🔴${G.redSoul}`));
+  if (G.embers > 0) cur.appendChild(el("span", "tw-c-ember", `🔥${G.embers}`));
+  return cur;
+}
+
+// 施設画面の見出し。表構え (FAC_SHELL) があれば、情景の帯に見出しを重ね、番人のひとことを添える
 function townHeader(title, backTo = "hub") {
   const head = el("div", "tw-head");
   if (backTo) {
@@ -6144,15 +7136,30 @@ function townHeader(title, backTo = "hub") {
     head.appendChild(sg);
   }
   head.appendChild(el("div", "tw-title", title));
-  const cur = el("div", "tw-cur");
-  cur.appendChild(el("span", "tw-c-gold", `💰${G.gold}`));
-  cur.appendChild(el("span", "tw-c-soul", `✦${G.soulPts}`));
-  cur.appendChild(el("span", "tw-c-red", `🔴${G.redSoul}`));
-  if (G.embers > 0) cur.appendChild(el("span", "tw-c-ember", `🔥${G.embers}`));
-  head.appendChild(cur);
-  return head;
+  head.appendChild(currencyEl());
+  const shell = backTo ? FAC_SHELL[shellKey()] : null;
+  if (!shell) return head;
+  const wrap = el("div", "tw-shell" + (shell.compact ? " compact" : "") + (shell.keeper ? " has-keeper" : ""));
+  const banner = el("div", "tw-banner");
+  try { const art = vignetteCanvas(shell.art); if (art) { if (shell.pos) art.style.objectPosition = shell.pos; banner.appendChild(art); } } catch (e) { /* 演出のみ */ }
+  banner.appendChild(head);
+  wrap.appendChild(banner);
+  if (shell.keeper) {
+    const k = el("div", "tw-keeper");
+    const port = el("div", "tw-kport");
+    try { const bust = keeperCanvas(shell.keeper); if (bust) port.appendChild(bust); } catch (e) { /* 演出のみ */ }
+    k.appendChild(port);
+    const say = el("div", "tw-ksay");
+    say.appendChild(el("div", "tw-kwho", shell.who));
+    const ls = shell.lines;
+    say.appendChild(el("div", "tw-kline", `「${ls[((G.stats && G.stats.runs) || 0) % ls.length]}」`));
+    k.appendChild(say);
+    wrap.appendChild(k);
+  }
+  return wrap;
 }
 
+let _townScreenKey = "";
 function renderTown() {
   renderRunbar(); // 街では隠す
   autosave(); // 街での操作のたびに保存 (描画はアクション後に呼ばれる)
@@ -6160,6 +7167,9 @@ function renderTown() {
   townEl.innerHTML = "";
   updateTopbar();
   townEl.classList.remove("shop-mode"); // 商店専用レイアウトを解除 (商店なら再付与)
+  // 別の画面へ移ったら先頭から見せる (同じ画面の再描画ではスクロール位置を保つ)
+  const scr = (G.town.facility || "hub") + ":" + (G.town.sub || "");
+  if (scr !== _townScreenKey) { _townScreenKey = scr; townEl.scrollTop = 0; }
   playBgm(sceneBgm()); // 施設ごとのBGM (同じ曲なら継続)
   const f = G.town.facility;
   if (f === "mansion") return renderMansion();
@@ -6179,77 +7189,195 @@ function renderTown() {
   renderTownHub();
 }
 
-// 施設アイコン: 街のドット絵 (townart.js) を優先し、無ければ絵文字にフォールバック
-function facIcon(key, emoji) {
-  const spr = TOWN_ICONS[key];
-  const box = el("div", "tw-faci" + (spr ? " px" : ""));
-  if (spr) box.appendChild(spriteCanvas(spr, 4));
-  else box.textContent = emoji;
-  return box;
+// 施設の札: 情景の絵 (townart.js) に名前と一言を重ねる。locked なら鎖をかけて閉ざす
+function facPlate(art, name, desc, { locked = false, badge = null, onClick = null, lockDesc = "王命を果たすまで開かない", wide = false } = {}) {
+  const c = el("div", "tw-plate" + (locked ? " locked" : "") + (wide ? " wide" : ""));
+  const a = el("div", "tw-plate-art");
+  try { const v = vignetteCanvas(art); if (v) a.appendChild(v); } catch (e) { /* 演出のみ */ }
+  if (locked) { try { const lk = iconCanvas("lock"); if (lk) { lk.classList.add("tw-plate-lock"); a.appendChild(lk); } } catch (e) { /* 演出のみ */ } }
+  c.appendChild(a);
+  const cap = el("div", "tw-plate-cap");
+  cap.appendChild(el("div", "tw-plate-name", name));
+  cap.appendChild(el("div", "tw-plate-desc", locked ? lockDesc : desc));
+  c.appendChild(cap);
+  if (badge && !locked) c.appendChild(el("div", "tw-plate-badge", badge));
+  if (locked) c.setAttribute("aria-disabled", "true");
+  else if (onClick) {
+    c.setAttribute("role", "button");
+    c.tabIndex = 0;
+    c.addEventListener("click", onClick);
+    c.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } });
+  }
+  return c;
 }
 
 let townBandOpen = null; // 迷宮選択で開いている層 (null = 選択中の迷宮の層)
 
+// 編成の肖像 (24x24 ドット想定・48px 表示)。肖像の絵の差し替えはこの一か所で行う
+function rosterPortrait(d) {
+  const c = spriteCanvas(dollSprite(d), 4);
+  c.classList.add("tw-portrait");
+  return c;
+}
+
+// 第0章 (人業の生成) の間に開いている施設 (null = 制限なし)
+function tutorialAllowed() {
+  const tut = G.msq && G.msq.n === 0 && G.msq.state === "active";
+  return tut ? (G.msq.granted ? ["palace", "mansion"] : ["palace"]) : null;
+}
+
+// 層の気配 (戦闘背景を縮めた帯)。層ごとに一度だけ描いて data URL を覚えておく
+const _layerMood = new Map();
+function layerMoodUrl(layer) {
+  if (_layerMood.has(layer)) return _layerMood.get(layer);
+  let url = "";
+  try {
+    const c = document.createElement("canvas");
+    c.width = 240; c.height = 160;
+    drawBattleBackdrop(c.getContext("2d"), 240, 160, layer, 0);
+    url = c.toDataURL();
+  } catch (e) { url = ""; }
+  _layerMood.set(layer, url);
+  return url;
+}
+
+// 迷宮の門の見出しへ滑らかに移る
+function scrollToGates() {
+  requestAnimationFrame(() => { const g = townEl.querySelector(".tw-gates"); if (g) g.scrollIntoView({ block: "start", behavior: REDUCED_MOTION ? "auto" : "smooth" }); });
+}
+
 function renderTownHub() {
-  townEl.appendChild(townHeader("辺境の街 ロアダル", false));
-  // 街の夜景 (動くドット絵のパノラマ)。ヘッダの直下に横幅いっぱいで敷く
-  try { townEl.appendChild(createTownScene()); } catch (e) { /* 演出のみ: 失敗しても街は使える */ }
-  // いまの目標 (次に何をすればよいか)。タップでその場所へ
+  const allowed = tutorialAllowed();
+  const isOpen = (k) => !allowed || allowed.includes(k);
+  const lockedToast = () => { SFX.ng(); showToast("王命を果たすまで閉ざされている"); };
+  const enter = (k) => { if (!isOpen(k)) return lockedToast(); SFX.select(); G.town.facility = k; G.town.sub = null; renderTown(); };
+
+  // ── 夜景 (動くパノラマ) に表題・設定・通貨・名所の札を重ねる ──
+  const hero = el("div", "tw-hero");
+  const art = el("div", "tw-hero-art");
+  try { const sc = createTownScene(); if (sc) art.appendChild(sc); } catch (e) { /* 演出のみ: 失敗しても街は使える */ }
+  hero.appendChild(art);
+  const bar = el("div", "tw-hero-bar");
+  const sg = btn("⚙", () => { SFX.select(); if (G.settingsOpen) closeSettings(); else openSettings(); });
+  sg.className = "tw-back tw-gear";
+  sg.title = "設定";
+  sg.setAttribute("aria-label", "設定");
+  bar.appendChild(sg);
+  bar.appendChild(currencyEl());
+  hero.appendChild(bar);
+  let spots = {};
+  try { spots = townSpots(); } catch (e) { spots = {}; }
+  const SPOT_LABEL = { palace: "王宮", mansion: "人業の館", tavern: "酒場", shrine: "祠", crypt: "迷宮の口" };
+  for (const k of Object.keys(SPOT_LABEL)) {
+    const p = spots[k];
+    if (!p) continue;
+    if (k === "crypt" && G.unlockedDungeons < 1) continue;
+    const open = k === "crypt" || isOpen(k);
+    const s = el("button", "tw-spot tw-spot-" + k + (open ? "" : " locked"));
+    s.style.left = (p.x * 100).toFixed(2) + "%";
+    s.style.top = (p.y * 100).toFixed(2) + "%";
+    s.appendChild(el("span", "tw-spot-l", SPOT_LABEL[k]));
+    if (k === "palace" && palaceCallReady()) s.classList.add("call");
+    s.addEventListener("click", () => { if (k === "crypt") { SFX.select(); scrollToGates(); } else enter(k); });
+    hero.appendChild(s);
+  }
+  const ttl = el("div", "tw-hero-title");
+  ttl.appendChild(el("div", "tw-hero-kick", "辺境の街"));
+  ttl.appendChild(el("div", "tw-hero-name", "ロアダル"));
+  ttl.appendChild(el("div", "tw-hero-sub", "百の迷宮の淵に、最後の灯がともる"));
+  hero.appendChild(ttl);
+  townEl.appendChild(hero);
+
+  // ── いまの目標 (封蝋の勅書)。タップでその場所へ ──
   const goal = currentObjective();
   if (goal) {
     const g = el("div", "tw-goal");
-    g.appendChild(el("span", "tw-goal-k", "目標"));
-    g.appendChild(el("span", "tw-goal-t", goal.text));
+    g.setAttribute("role", "button");
+    g.tabIndex = 0;
+    const seal = el("div", "tw-goal-seal");
+    seal.appendChild(el("span", null, "命"));
+    g.appendChild(seal);
+    const tx = el("div", "tw-goal-tx");
+    tx.appendChild(el("div", "tw-goal-k", "いまの目標"));
+    tx.appendChild(el("div", "tw-goal-t", goal.text));
+    g.appendChild(tx);
     g.appendChild(el("span", "tw-goal-go", "›"));
     g.addEventListener("click", () => { SFX.select(); goal.go(); });
     townEl.appendChild(g);
   }
 
-
-  // 第0章 (人業の生成) の間は、王宮 (+下賜後は人業の館) 以外を閉ざす
-  const tut = G.msq && G.msq.n === 0 && G.msq.state === "active";
-  const tutAllowed = tut ? (G.msq.granted ? ["palace", "mansion"] : ["palace"]) : null;
-
-  // 施設グリッド (受けられる勅命があれば王宮に印)
-  const grid = el("div", "tw-grid");
+  // ── 街の施設 (情景の札) ──
+  townEl.appendChild(el("div", "tw-h", "街の施設"));
+  const grid = el("div", "tw-plates");
   for (const fac of FACILITIES) {
-    const locked = tutAllowed && !tutAllowed.includes(fac.key);
-    const c = el("div", "tw-fac" + (locked ? " locked" : ""));
-    c.appendChild(locked ? facIcon("lock", "🔒") : facIcon(fac.key, fac.icon));
-    c.appendChild(el("div", "tw-facn", fac.name));
-    c.appendChild(el("div", "tw-facd", locked ? "王命を果たすまで閉ざされている" : fac.desc));
-    if (fac.key === "palace" && palaceCallReady()) c.appendChild(el("div", "tw-facb", G.msq.state === "report" ? "❗ 踏破を報告" : "❗ 新たな勅命"));
-    if (locked) c.style.opacity = "0.45";
-    else c.addEventListener("click", () => { SFX.select(); G.town.facility = fac.key; renderTown(); });
-    grid.appendChild(c);
+    const locked = !isOpen(fac.key);
+    const badge = fac.key === "palace" && palaceCallReady() ? (G.msq.state === "report" ? "踏破を報告" : "新たな勅命") : null;
+    grid.appendChild(facPlate(fac.key, fac.name, fac.desc, { locked, badge, onClick: () => enter(fac.key) }));
   }
   townEl.appendChild(grid);
 
-  // パーティ概要 (タップで個別ステータス画面)
-  const roster = el("div", "tw-roster");
-  roster.appendChild(el("div", "tw-h", `編成 (${G.party.length}/6) — タップでステータス`));
-  const list = el("div", "tw-rlist");
-  G.party.forEach((d, i) => {
-    const chip = dollChip(d);
-    chip.style.cursor = "pointer";
-    chip.addEventListener("click", () => openStatus(i));
-    list.appendChild(chip);
-  });
-  if (!G.party.length) list.appendChild(el("div", "tw-empty",
-    tut && !G.msq.granted ? "人業がいない。まずは王宮で王に謁見しよう。" : "人業がいない。館の保管庫で仕立てよう。"));
-  roster.appendChild(list);
-  townEl.appendChild(roster);
-
-  // 迷宮 (勅命第1章を拝命するまで、場所は明かされない)
-  if (G.unlockedDungeons < 1) {
-    townEl.appendChild(el("div", "tw-h", "迷宮"));
-    townEl.appendChild(el("div", "tw-note", "王の勅命を受けるまで、迷宮の在処は明かされない。"));
+  // ── 編成 (肖像の札。タップで個別ステータス) ──
+  const rh = el("div", "tw-h tw-h-link");
+  rh.appendChild(el("span", "tw-h-t", `編成 ${G.party.length}/6`));
+  if (isOpen("mansion") && allDolls().some((d) => !d.isEmpty)) {
+    const go = el("button", "tw-h-go", "隊列を組む ›");
+    go.addEventListener("click", () => { if (!isOpen("mansion")) return lockedToast(); SFX.select(); G.town.facility = "mansion"; G.town.sub = "party"; renderTown(); });
+    rh.appendChild(go);
+  }
+  townEl.appendChild(rh);
+  const party = el("div", "tw-party");
+  if (!G.party.length) {
+    party.appendChild(el("div", "tw-empty",
+      allowed && !G.msq.granted ? "人業がいない。まずは王宮で王に謁見しよう。" : "人業がいない。館の保管庫で仕立てよう。"));
   } else {
-    // 迷宮の選択 — 1層 (5迷宮) ごとの層アコーディオン (数が増えても一覧が伸びすぎない)
-    townEl.appendChild(el("div", "tw-h", "潜る迷宮を選ぶ"));
-    townEl.appendChild(el("div", "tw-dunhelp", "★踏破済みの迷宮には何度でも再挑戦できる — 戦利品・魂・図鑑集めに。"));
+    G.party.forEach((d, i) => {
+      const c = el("div", "tw-pcard" + (d.alive ? "" : " dead") + (i >= 3 ? " back" : ""));
+      c.setAttribute("role", "button");
+      c.tabIndex = 0;
+      const port = el("div", "tw-pport");
+      if (d.dominant && SOUL_CLASSES[d.dominant.clsKey]) port.style.setProperty("--glow", SOUL_CLASSES[d.dominant.clsKey].glow);
+      port.appendChild(rosterPortrait(d));
+      port.appendChild(el("span", "tw-prow", i < 3 ? "前衛" : "後衛"));
+      c.appendChild(port);
+      c.appendChild(el("div", "tw-pname", d.name + (d.alive ? "" : " †")));
+      c.appendChild(el("div", "tw-pcls", `${d.cls} Lv${d.jobLv || 1}`));
+      if (d.alive) {
+        const hp = el("div", "tw-php");
+        const fill = el("i");
+        const r = Math.max(0, Math.min(1, d.hp / Math.max(1, d.maxhp)));
+        fill.style.width = (r * 100).toFixed(1) + "%";
+        if (r < 0.34) hp.classList.add("low");
+        hp.appendChild(fill);
+        c.appendChild(hp);
+        c.appendChild(el("div", "tw-phpn", `HP ${d.hp}/${d.maxhp}`));
+      } else {
+        c.appendChild(reviveTimerEl("div", "tw-phpn revive", "帰還 ⏳", d));
+      }
+      c.addEventListener("click", () => openStatus(i));
+      party.appendChild(c);
+    });
+    // 空席 (隊列を組む画面へ)
+    const slots = Math.min(6, Math.ceil(G.party.length / 3) * 3);
+    for (let i = G.party.length; i < slots; i++) {
+      const v = el("div", "tw-pcard vacant" + (i >= 3 ? " back" : ""));
+      v.appendChild(el("div", "tw-pport"));
+      v.appendChild(el("div", "tw-pname", "空席"));
+      v.appendChild(el("div", "tw-pcls", "控えから加える"));
+      if (isOpen("mansion")) v.addEventListener("click", () => { SFX.select(); G.town.facility = "mansion"; G.town.sub = "party"; renderTown(); });
+      party.appendChild(v);
+    }
+  }
+  townEl.appendChild(party);
+
+  // ── 迷宮の門 (勅命第1章を拝命するまで、場所は明かされない) ──
+  const gates = el("div", "tw-gates");
+  gates.appendChild(el("div", "tw-h", "迷宮の門"));
+  if (G.unlockedDungeons < 1) {
+    gates.appendChild(el("div", "tw-note", "王の勅命を受けるまで、迷宮の在処は明かされない。"));
+  } else {
+    gates.appendChild(el("div", "tw-dunhelp", "踏破した門は何度でもくぐれる — 戦利品・魂・図鑑集めに。"));
     const clearedCnt = clearedDungeonCount();
-    // 勅命の対象迷宮 (攻略中の章のみ ❗ を付ける)
+    // 勅命の対象迷宮 (攻略中の章のみ印を付ける)
     const targetIdx = G.msq && G.msq.state === "active" && G.msq.n >= 1 ? G.msq.n - 1 : -1;
     const PER_LAYER = 5; // 1層 = 5迷宮
     // 公開範囲 (CONTENT_LIMIT) より先は準備中: 既存セーブで解放済みでも一覧には出さない
@@ -6262,70 +7390,101 @@ function renderTownHub() {
       // 出現済み (解放済み) の迷宮のみ表示する。未出現の迷宮は一切見せない (先を伏せる)
       const appeared = Math.max(0, Math.min(openDungeons - s, e - s));
       if (appeared <= 0) continue;
-      const det = el("details", "tw-band");
+      const det = el("details", "tw-band tw-layer");
       if (b === openBand) det.open = true;
-      const sum = el("summary", "tw-bandh");
+      const sum = el("summary", "tw-bandh tw-layerh");
+      const mood = layerMoodUrl(b + 1);
+      if (mood) sum.style.setProperty("--mood", `url(${mood})`);
       const clearedIn = Math.max(0, Math.min(clearedCnt - s, appeared));
       const lv = LAYER_VISUALS[b]; // 層テーマ (第b+1層)
-      sum.textContent = `${clearedIn >= e - s ? "★ " : ""}第${b + 1}層 — ${lv ? lv.name : ""}`;
+      const ht = el("span", "tw-layer-t");
+      ht.appendChild(el("span", "tw-layer-n", `第${b + 1}層`));
+      ht.appendChild(el("span", "tw-layer-name", lv ? lv.name : ""));
+      sum.appendChild(ht);
+      sum.appendChild(el("span", "tw-layer-p" + (clearedIn >= e - s ? " done" : ""), `踏破 ${clearedIn}/${e - s}`));
       det.appendChild(sum);
       det.addEventListener("toggle", () => {
         if (det.open) townBandOpen = b;
         else if (townBandOpen === b) townBandOpen = null;
       });
-      const dlist = el("div", "tw-mlist");
+      const dlist = el("div", "tw-mlist tw-gatelist");
       for (let i = s; i < s + appeared; i++) {
         const dn = DUNGEONS[i];
         const cleared = i < clearedCnt;
-        const row = el("div", "tw-dungeon" + (i === G.dungeonIdx ? " sel" : "") + (cleared ? " cleared" : ""));
-        const info = el("div", "tw-chipi");
-        info.appendChild(el("div", "tw-chipn", `${i + 1}. ${dn.name}`));
-        const elTag = dn.element && ELEMENTS[dn.element] ? ` ・${ELEMENTS[dn.element].label}の気配` : "";
-        info.appendChild(el("div", "tw-chipc", `全${dn.floors}階${elTag}`));
+        const sel = i === G.dungeonIdx;
+        const row = el("div", "tw-gate" + (sel ? " sel" : "") + (cleared ? " cleared" : "") + (i === targetIdx ? " quest" : ""));
+        row.setAttribute("role", "button");
+        row.tabIndex = 0;
+        row.setAttribute("aria-pressed", sel ? "true" : "false");
+        const gi = el("div", "tw-gate-ic");
+        try { const ic = iconCanvas(sel ? "gateOpen" : cleared ? "gateDone" : "gate"); if (ic) gi.appendChild(ic); } catch (e) { /* 演出のみ */ }
+        gi.appendChild(el("span", "tw-gate-no", String(i + 1)));
+        row.appendChild(gi);
+        const info = el("div", "tw-gate-i");
+        info.appendChild(el("div", "tw-gate-n", dn.name));
+        const elTag = dn.element && ELEMENTS[dn.element] ? ` ・ ${ELEMENTS[dn.element].label}の気配` : "";
+        const boss = (i + 1) % 5 === 0 ? " ・ 層の主が待つ" : "";
+        info.appendChild(el("div", "tw-gate-c", `全${dn.floors}階${elTag}${boss}`));
         row.appendChild(info);
-        // 踏破状態バッジ (★踏破済=再挑戦可 / ❗勅命=攻略対象 / 未踏破)
+        // 踏破状態の印 (★踏破済=再挑戦可 / 勅命=攻略対象 / 未踏破)
         const st = el("div", "tw-dunst" + (cleared ? " done" : i === targetIdx ? " quest" : ""));
-        st.textContent = cleared ? "★ 踏破済" : i === targetIdx ? "❗ 勅命" : "未踏破";
+        st.textContent = cleared ? "★ 踏破" : i === targetIdx ? "勅命" : "未踏破";
         row.appendChild(st);
         row.addEventListener("click", () => { G.dungeonIdx = i; SFX.select(); renderTown(); });
         dlist.appendChild(row);
       }
       det.appendChild(dlist);
-      townEl.appendChild(det);
+      gates.appendChild(det);
     }
-    // 公開範囲の最後まで来たら、次の層を「準備中」として見せる (封印された大門)
+    // 公開範囲の最後まで来たら、次の層を「準備中」として見せる (鎖で封じられた大門)
     if (G.unlockedDungeons >= CONTENT_LIMIT && CONTENT_LIMIT < DUNGEONS.length) {
       const nl = LAYER_VISUALS[CONTENT_NEXT_LAYER - 1];
-      const sealed = el("div", "tw-band tw-band-sealed");
-      sealed.appendChild(el("div", "tw-bandh", `🔒 第${CONTENT_NEXT_LAYER}層 — ${nl ? nl.name : ""} ・ 封印 (準備中)`));
-      townEl.appendChild(sealed);
+      const sealed = el("div", "tw-gate tw-gate-sealed");
+      const gi = el("div", "tw-gate-ic");
+      try { const ic = iconCanvas("gateSealed"); if (ic) gi.appendChild(ic); } catch (e) { /* 演出のみ */ }
+      sealed.appendChild(gi);
+      const info = el("div", "tw-gate-i");
+      info.appendChild(el("div", "tw-gate-n", `第${CONTENT_NEXT_LAYER}層 — ${nl ? nl.name : ""}`));
+      info.appendChild(el("div", "tw-gate-c", "大門は鎖で封じられている"));
+      sealed.appendChild(info);
+      sealed.appendChild(el("div", "tw-dunst sealed", "準備中"));
+      gates.appendChild(sealed);
     }
   }
-
   // 無限迷宮「奈落」: D50 踏破で解放されるエンドコンテンツ。いつでも挑戦できる
   if (featureUnlocked("infinite")) {
-    townEl.appendChild(el("div", "tw-h", "果てなき深淵"));
     const rec = abyssRecords();
-    const abyssRow = el("div", "tw-dungeon");
-    const ai = el("div", "tw-chipi");
-    ai.appendChild(el("div", "tw-chipn", "✺ 無限迷宮「奈落」"));
-    ai.appendChild(el("div", "tw-chipc", rec.bestDepth ? `最深 B${rec.bestDepth}F ・ 最高 ${rec.bestScore.toLocaleString()}点` : "どこまでも潜れる。深さに果てはない。"));
-    abyssRow.appendChild(ai);
-    const ast = el("div", "tw-dunst");
-    ast.textContent = "挑戦";
-    abyssRow.appendChild(ast);
-    abyssRow.addEventListener("click", () => { SFX.select(); openAbyssSetup(); });
-    townEl.appendChild(abyssRow);
+    const row = el("div", "tw-gate tw-gate-abyss");
+    row.setAttribute("role", "button");
+    row.tabIndex = 0;
+    const gi = el("div", "tw-gate-ic");
+    try { const ic = iconCanvas("abyss"); if (ic) gi.appendChild(ic); } catch (e) { /* 演出のみ */ }
+    row.appendChild(gi);
+    const ai = el("div", "tw-gate-i");
+    ai.appendChild(el("div", "tw-gate-n", "無限迷宮「奈落」"));
+    ai.appendChild(el("div", "tw-gate-c", rec.bestDepth ? `最深 B${rec.bestDepth}F ・ 最高 ${rec.bestScore.toLocaleString()}点` : "どこまでも潜れる。深さに果てはない。"));
+    row.appendChild(ai);
+    row.appendChild(el("div", "tw-dunst", "挑戦"));
+    row.addEventListener("click", () => { SFX.select(); openAbyssSetup(); });
+    gates.appendChild(el("div", "tw-h", "果てなき深淵"));
+    gates.appendChild(row);
   }
+  townEl.appendChild(gates);
 
   // 迷宮へ (常に1階から) — スクロール位置に関わらず押せるよう画面下部に固定表示
   if (G.unlockedDungeons >= 1) {
     const divebar = el("div", "tw-divebar");
     const again = G.dungeonIdx < clearedDungeonCount(); // 踏破済みへの再挑戦
-    const dive = btn(`「${curDungeon().name}」へ${again ? "再挑戦" : "潜る"} (B1F)`, tryEnterDungeon);
-    dive.className = "btn primary tw-dive";
-    if (TOWN_ICONS.dive) { const ic = spriteCanvas(TOWN_ICONS.dive, 4); ic.className = "spr tw-dive-ic"; dive.prepend(ic); }
-    else dive.prepend(again ? "⚔ " : "🕳 ");
+    const dn = curDungeon();
+    const dive = el("button", "btn primary tw-dive");
+    dive.setAttribute("aria-label", `「${dn.name}」へ${again ? "再挑戦" : "潜る"} (B1F)`);
+    try { const ic = iconCanvas("dive"); if (ic) { ic.classList.add("tw-dive-ic"); dive.appendChild(ic); } } catch (e) { /* 演出のみ */ }
+    const tx = el("span", "tw-dive-tx");
+    tx.appendChild(el("span", "tw-dive-k", again ? "ふたたび門をくぐる" : "迷宮へ潜る"));
+    tx.appendChild(el("span", "tw-dive-n", `「${dn.name}」 B1F`));
+    dive.appendChild(tx);
+    dive.appendChild(el("span", "tw-dive-go", "›"));
+    dive.addEventListener("click", tryEnterDungeon);
     divebar.appendChild(dive);
     townEl.appendChild(divebar);
   }
@@ -6349,26 +7508,6 @@ function confirmReset() {
   ], null, { banner: "⚠ 警告 ⚠", accent: "#e4554f" });
 }
 
-// 人業の小カード (名前/職業/HP)
-function dollChip(d) {
-  const chip = el("div", "tw-chip" + (d.alive ? "" : " dead"));
-  const dom = d.dominant;
-  if (dom) {
-    const s = el("span", "tw-chips");
-    s.style.color = SOUL_CLASSES[dom.clsKey].glow;
-    s.appendChild(spriteCanvas(dollSprite(d), 2));
-    chip.appendChild(s);
-  }
-  const info = el("div", "tw-chipi");
-  info.appendChild(el("div", "tw-chipn", d.name + (d.alive ? "" : " †")));
-  info.appendChild(el("div", "tw-chipc", `${d.cls} Lv${d.jobLv || 1}`));
-  chip.appendChild(info);
-  chip.appendChild(d.alive
-    ? el("div", "tw-chiphp", `HP ${d.hp}/${d.maxhp}`)
-    : reviveTimerEl("div", "tw-chiphp", "⏳", d));
-  return chip;
-}
-
 // ---- 人業の館: メニュー (魂の祭壇 / 魂合成 / 魂融合 / 魂分解 / パーティ編成 / 人業保管庫) ----
 const MANSION_MENU = [
   { key: "altar", icon: "⛓", name: "魂の祭壇", desc: "宿す魂の付け替えと強化" },
@@ -6385,17 +7524,14 @@ function renderMansion() {
   townEl.appendChild(townHeader("人業の館"));
   townEl.appendChild(el("div", "tw-lead", "人型の器「人業（Doll）」を仕立て、魂を宿して鍛える訓練所。宿す魂は祭壇で付け替えられる。"));
   const tutM = G.msq && G.msq.n === 0 && G.msq.state === "active";
-  const grid = el("div", "tw-grid");
+  const grid = el("div", "tw-plates");
   for (const m of MANSION_MENU) {
     // 第0章 (人業の生成) の間は「人業保管庫」のみ開放。残りはロック＆グレーアウト
     const locked = tutM && m.key !== "manage";
-    const c = el("div", "tw-fac" + (locked ? " locked" : ""));
-    c.appendChild(locked ? facIcon("lock", "🔒") : facIcon(m.key, m.icon));
-    c.appendChild(el("div", "tw-facn", m.name));
-    c.appendChild(el("div", "tw-facd", locked ? "人業を生み出すまで閉ざされている" : m.desc));
-    if (locked) c.style.opacity = "0.45";
-    else c.addEventListener("click", () => { SFX.select(); G.town.sub = m.key; altarSel = null; renderTown(); });
-    grid.appendChild(c);
+    grid.appendChild(facPlate(m.key, m.name, m.desc, {
+      locked, lockDesc: "人業を生むまで開かない", wide: m.key === "manage",
+      onClick: () => { SFX.select(); G.town.sub = m.key; altarSel = null; renderTown(); },
+    }));
   }
   townEl.appendChild(grid);
 }
@@ -8233,46 +9369,25 @@ function renderPalace() {
 
   // 図鑑 (モンスター図鑑・アイテム図鑑・職業図鑑・勲章の間 を2列で並べる)
   townEl.appendChild(el("div", "tw-h", "王宮書庫 — 図鑑"));
-  const row = el("div", "tw-grid");
-  const dunBtn = el("div", "tw-fac");
-  dunBtn.appendChild(facIcon("codexMon", "🐉"));
-  dunBtn.appendChild(el("div", "tw-facn", "モンスター図鑑"));
-  dunBtn.appendChild(el("div", "tw-facd", `発見 ${Object.keys(G.codex.mon).filter((k) => MONSTERS[k]).length} 種`));
-  dunBtn.addEventListener("click", () => { G.town.facility = "codexDungeon"; renderCodexDungeon(); });
-  row.appendChild(dunBtn);
-  const itemBtn = el("div", "tw-fac");
-  itemBtn.appendChild(facIcon("codexItem", "⚔"));
-  itemBtn.appendChild(el("div", "tw-facn", "アイテム図鑑"));
-  itemBtn.appendChild(el("div", "tw-facd", `発見 ${Object.keys(G.codex.item).length} 種`));
-  itemBtn.addEventListener("click", () => { G.town.facility = "codexItem"; renderCodexItem(); });
-  row.appendChild(itemBtn);
-  const jobBtn = el("div", "tw-fac");
-  jobBtn.appendChild(facIcon("codexJob", "📜"));
-  jobBtn.appendChild(el("div", "tw-facn", "職業図鑑"));
-  jobBtn.appendChild(el("div", "tw-facd", `発現 ${Object.keys(G.codex.job).filter((k) => SOUL_CLASSES[k]).length} 種`));
-  jobBtn.addEventListener("click", () => { G.town.facility = "codexJob"; renderCodexJob(); });
-  row.appendChild(jobBtn);
+  const row = el("div", "tw-plates");
+  const goCodex = (f, fn) => () => { SFX.select(); G.town.facility = f; townEl.scrollTop = 0; fn(); };
+  row.appendChild(facPlate("codexMon", "モンスター図鑑", `発見 ${Object.keys(G.codex.mon).filter((k) => MONSTERS[k]).length} 種`, { onClick: goCodex("codexDungeon", renderCodexDungeon) }));
+  row.appendChild(facPlate("codexItem", "アイテム図鑑", `発見 ${Object.keys(G.codex.item).length} 種`, { onClick: goCodex("codexItem", renderCodexItem) }));
+  row.appendChild(facPlate("codexJob", "職業図鑑", `発現 ${Object.keys(G.codex.job).filter((k) => SOUL_CLASSES[k]).length} 種`, { onClick: goCodex("codexJob", renderCodexJob) }));
   const claimable = ACHIEVEMENTS.filter((a) => !G.ach[a.id] && a.cond()).length;
-  const achBtn = el("div", "tw-fac");
-  achBtn.appendChild(facIcon("codexAch", "🏅"));
-  achBtn.appendChild(el("div", "tw-facn", "勲章の間"));
-  achBtn.appendChild(el("div", "tw-facd", `受領 ${Object.keys(G.ach).length} / ${ACHIEVEMENTS.length}`));
-  if (claimable) achBtn.appendChild(el("div", "tw-facb", `❗ 受領可 ${claimable}`));
-  achBtn.addEventListener("click", () => { G.town.facility = "codexAch"; renderCodexAch(); });
-  row.appendChild(achBtn);
+  row.appendChild(facPlate("codexAch", "勲章の間", `受領 ${Object.keys(G.ach).length} / ${ACHIEVEMENTS.length}`, { badge: claimable ? `受領可 ${claimable}` : null, onClick: goCodex("codexAch", renderCodexAch) }));
   townEl.appendChild(row);
 
   // 宝物庫 (蒐集品の奉納)
   townEl.appendChild(el("div", "tw-h", "王宮宝物庫 — 蒐集品の奉納"));
   const ts = treasuryState();
   const kinds = Object.keys(ts.donated).filter((id) => ITEMS[id] && ITEMS[id].slot === "misc").length;
-  const treBtn = el("div", "tw-fac");
-  treBtn.appendChild(facIcon("treasury", "🏛"));
-  treBtn.appendChild(el("div", "tw-facn", "宝物庫"));
-  treBtn.appendChild(el("div", "tw-facd", `奉納 ${kinds} / 100 種 — 蒐集品を納め褒賞を得る`));
-  if (treasuryRewardReady()) treBtn.appendChild(el("div", "tw-facb", "🎁 受領できる褒賞あり"));
-  treBtn.addEventListener("click", () => { SFX.select(); G.town.facility = "treasury"; renderTown(); });
-  townEl.appendChild(treBtn);
+  const tre = el("div", "tw-plates");
+  tre.appendChild(facPlate("treasury", "宝物庫", `奉納 ${kinds} / 100 種 — 蒐集品を納め褒賞を得る`, {
+    wide: true, badge: treasuryRewardReady() ? "受領できる褒賞あり" : null,
+    onClick: () => { SFX.select(); G.town.facility = "treasury"; renderTown(); },
+  }));
+  townEl.appendChild(tre);
 
   // 戦績 (ローカル記録)
   townEl.appendChild(el("div", "tw-h", "王の記録 — 戦績"));
@@ -11221,8 +12336,8 @@ document.addEventListener("dblclick", (e) => e.preventDefault());
 view.addEventListener("click", (e) => {
   if (G._swiped) { G._swiped = false; return; } // 直前のスワイプ由来の click は無視
   const rect = view.getBoundingClientRect();
-  const sx = (e.clientX - rect.left) * (view.width / rect.width);
-  const sy = (e.clientY - rect.top) * (view.height / rect.height);
+  const sx = (e.clientX - rect.left) * (VW / rect.width);
+  const sy = (e.clientY - rect.top) * (VH / rect.height);
   // 戦闘中にオート戦闘なら、画面のどこをタップしても解除 (演出中もOK)
   if (G.state === "combat" && G.autoCombat) { buzz(10); stopAutoCombat(); return; }
   // 戦闘中: 敵スプライトを直接タップ
@@ -11252,12 +12367,10 @@ view.addEventListener("click", (e) => {
     return;
   }
   if (G.state !== "board" || G.anim || G.walking || G.prompt || G.statusOpen || G.settingsOpen) return;
-  const cx = Math.floor((sx - OX) / (CARD_W + GAP));
-  const cy = Math.floor((sy - OY) / (CARD_H + GAP));
-  if (cx < 0 || cy < 0 || cx >= COLS || cy >= ROWS) return;
-  // セル内 (隙間クリックは無視)
-  const r = cellRect(cx, cy);
-  if (sx > r.x + r.w || sy > r.y + r.h) return;
+  // セル内 (溝のクリックは無視)
+  const hit = cellAt(sx, sy);
+  if (!hit) return;
+  const cx = hit.x, cy = hit.y;
   if (cx === G.px && cy === G.py) return;
   const dist = Math.abs(cx - G.px) + Math.abs(cy - G.py);
   // 隣接かつ辺が開いていれば1歩で移動
@@ -11699,6 +12812,9 @@ function resumeCombat() {
   const b = G.battle;
   if (!b) { finishToBoard(); return; }
   G.animating = false; G.fx = null; G.partyFx = new Map(); G.enemyPos = {};
+  renderRunbar();
+  renderParty();
+  fitView();
   renderCombat();
   if (b.result) { setTimeout(endBattle, 200); return; }
   // resolve フェーズ = 行動が確定済み → そのまま実行 (取り消せない)
@@ -11772,9 +12888,21 @@ function init() {
     G.prompt = false;
     startAfterTitle(loaded);
   };
-  try {
-    showTitle({ hasSave: loaded, summary: loaded ? titleSummary() : null, onStart: start });
-  } catch (e) { start(); }
+  // タイトルの「はじめから」(記録あり): 確認ののち記録を消して読み直し、タイトルを飛ばして序章から始める
+  const newGameFromTitle = () => {
+    _resetting = true;
+    clearSave();
+    try { sessionStorage.setItem("dos-newgame", "1"); } catch (e) {}
+    location.reload();
+  };
+  let freshStart = false;
+  try { freshStart = sessionStorage.getItem("dos-newgame") === "1"; sessionStorage.removeItem("dos-newgame"); } catch (e) {}
+  if (freshStart && !loaded) start();
+  else {
+    try {
+      showTitle({ hasSave: loaded, summary: loaded ? titleSummary() : null, onStart: start, onNewGame: loaded ? newGameFromTitle : null });
+    } catch (e) { start(); }
+  }
 
   if ("serviceWorker" in navigator) {
     // 新しい SW が制御を奪った瞬間に1度だけ確実にリロード (古いJS混在を防ぐ)。

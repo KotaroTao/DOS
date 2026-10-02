@@ -1,1 +1,368 @@
-/* タイトル画面とオープニング (src/title.js / src/opening.js) の見た目。theme.css の後に読み込む */
+/* タイトル画面とオープニング (src/title.js / src/opening.js) の見た目。theme.css の後に読み込む
+   ─ 絵は低解像度の canvas を整数倍で拡大 (pixelated)。文字は明朝の鋳造ロゴ。 */
+
+/* =====================================================================
+   タイトル画面
+   ===================================================================== */
+.ttl-overlay {
+  position: fixed; inset: 0; z-index: 210; overflow: hidden;
+  background: #030206; color: var(--ink);
+  cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+  font-family: var(--font);
+  --gate-x: 50%; --gate-y: 45%;
+}
+.ttl-scene {
+  position: absolute; display: block;
+  image-rendering: pixelated; image-rendering: crisp-edges;
+  opacity: 0; transition: opacity 1.8s ease;
+  transform-origin: var(--gate-x) var(--gate-y);
+}
+.ttl-ready .ttl-scene { opacity: 1; }
+/* 周辺減光 + 粒子感 + 上下の闇 (文字の読みやすさ) */
+.ttl-veil {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    var(--grain),
+    radial-gradient(ellipse 95% 75% at 50% 48%, rgba(0,0,0,0) 52%, rgba(2,1,4,0.78) 100%),
+    linear-gradient(180deg, rgba(3,2,6,0.6) 0%, rgba(3,2,6,0) 24%, rgba(3,2,6,0) 58%, rgba(3,2,6,0.82) 100%);
+}
+.ttl-flash {
+  position: absolute; inset: 0; pointer-events: none; opacity: 0; mix-blend-mode: screen;
+  background: radial-gradient(ellipse 70% 50% at var(--gate-x) var(--gate-y), rgba(200,255,225,0.7), rgba(70,170,130,0.22) 40%, rgba(0,0,0,0) 75%);
+}
+.ttl-awake .ttl-flash { animation: ttl-flash 1.6s ease-out; }
+@keyframes ttl-flash { 0% { opacity: 0; } 8% { opacity: 1; } 100% { opacity: 0; } }
+
+.ttl-ui {
+  position: relative; z-index: 2; height: 100%; box-sizing: border-box;
+  display: flex; flex-direction: column; align-items: center;
+  padding: calc(var(--safe-top, 0px) + clamp(26px, 6.5vh, 70px)) 16px calc(var(--safe-bottom, 0px) + clamp(14px, 3.6vh, 36px));
+}
+.ttl-space { flex: 1 1 auto; min-height: 8px; }
+
+/* ---- ロゴ: 鉄の前置き + 鋳造した金の「魂の王」+ 血のにじみ ---- */
+.ttl-logo { text-align: center; position: relative; animation: ttl-logo-in 2.6s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes ttl-logo-in {
+  0% { opacity: 0; filter: blur(10px) brightness(2); transform: translateY(6px) scale(1.04); }
+  60% { opacity: 1; filter: blur(0) brightness(1.15); }
+  100% { opacity: 1; filter: none; transform: none; }
+}
+.ttl-pre { display: flex; align-items: center; justify-content: center; gap: clamp(8px, 2.6vw, 16px); }
+.ttl-pre-t {
+  font-size: clamp(16px, 4.8vw, 26px); font-weight: 700;
+  letter-spacing: 0.55em; margin-right: -0.55em;
+  background: linear-gradient(180deg, #f1ece2 0%, #b5ad9f 42%, #4f4841 52%, #8d857a 64%, #d9d1c3 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 1px 0 #000) drop-shadow(0 0 8px rgba(0,0,0,0.95));
+}
+.ttl-rule { position: relative; width: clamp(26px, 9vw, 72px); height: 1px; background: linear-gradient(90deg, rgba(201,162,74,0), rgba(201,162,74,0.9)); }
+.ttl-rule.r { transform: scaleX(-1); }
+.ttl-rule::after {
+  content: ""; position: absolute; right: -3px; top: -3px; width: 5px; height: 5px;
+  background: #f3d58b; transform: rotate(45deg); box-shadow: 0 0 6px rgba(201,162,74,0.9);
+}
+.ttl-main {
+  position: relative; line-height: 1.02; margin-top: clamp(0px, 0.6vh, 6px);
+  font-size: clamp(64px, 21.5vw, 132px); font-weight: 800;
+  letter-spacing: 0.07em; padding-left: 0.07em;
+}
+.ttl-main-t {
+  position: relative; z-index: 1;
+  background: linear-gradient(180deg, #fff6dc 0%, #f2d48e 17%, #c0903a 38%, #3e2408 49%, #7c5019 53%, #d9a94f 66%, #fde6a8 79%, #a0702a 90%, #4a2e0e 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  -webkit-text-stroke: 1px rgba(26,10,2,0.6);
+  filter: drop-shadow(0 1px 0 #2a1504) drop-shadow(0 3px 1px rgba(0,0,0,0.95));
+}
+/* 背後ににじむ血の光 (ゆっくり脈打つ) */
+.ttl-main::before {
+  content: attr(data-t); position: absolute; inset: 0; padding-left: inherit; z-index: 0;
+  color: rgba(120,10,16,0.0);
+  text-shadow: 0 0 18px rgba(190,24,28,0.75), 0 0 46px rgba(130,8,18,0.6), 0 0 90px rgba(90,0,10,0.5);
+  animation: ttl-blood 5s ease-in-out infinite;
+}
+@keyframes ttl-blood { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+/* 金を走る照り返し */
+.ttl-main::after {
+  content: attr(data-t); position: absolute; inset: 0; padding-left: inherit; z-index: 2; pointer-events: none;
+  background: linear-gradient(100deg, rgba(255,255,255,0) 42%, rgba(255,248,225,0.85) 50%, rgba(255,255,255,0) 58%);
+  background-size: 320% 100%; background-repeat: no-repeat;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: ttl-shine 8s ease-in-out 2.8s infinite;
+}
+@keyframes ttl-shine { 0% { background-position: 120% 0; } 22%, 100% { background-position: -30% 0; } }
+.ttl-awake .ttl-main-t { animation: ttl-ignite 1.8s ease-out; }
+@keyframes ttl-ignite { 0% { filter: drop-shadow(0 1px 0 #2a1504) drop-shadow(0 3px 1px rgba(0,0,0,0.95)); } 12% { filter: drop-shadow(0 1px 0 #2a1504) drop-shadow(0 0 16px rgba(190,255,220,0.9)) brightness(1.5); } 100% { filter: drop-shadow(0 1px 0 #2a1504) drop-shadow(0 3px 1px rgba(0,0,0,0.95)); } }
+.ttl-en {
+  margin-top: clamp(4px, 1.2vh, 12px);
+  font-size: clamp(8.5px, 2.4vw, 12px); letter-spacing: 0.36em; padding-left: 0.36em;
+  color: #b7a789; text-shadow: 0 0 8px #000, 0 1px 0 #000; opacity: 0.9; white-space: nowrap;
+}
+
+/* ---- 目覚めの合図 ---- */
+.ttl-low { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; }
+.ttl-tap {
+  position: absolute; left: 0; right: 0; bottom: clamp(30px, 9vh, 96px);
+  text-align: center; pointer-events: none;
+  animation: ttl-tap-in 1.2s ease 2.2s both;
+}
+.ttl-tap-j {
+  display: inline-flex; align-items: center; gap: 14px;
+  font-size: clamp(14px, 3.9vw, 18px); letter-spacing: 0.6em; padding-left: 0.6em; color: #ece2cc;
+  text-shadow: 0 0 12px rgba(110,220,170,0.55), 0 1px 0 #000, 0 0 3px #000;
+  animation: ttl-breathe 2.8s ease-in-out 3.4s infinite;
+}
+.ttl-tap-j::before, .ttl-tap-j::after {
+  content: ""; width: 5px; height: 5px; transform: rotate(45deg);
+  background: #8ed6a6; box-shadow: 0 0 8px #66ba8c;
+}
+.ttl-tap-e { margin-top: 8px; font-size: 9px; letter-spacing: 0.5em; padding-left: 0.5em; color: #66ba8c; opacity: 0.75; }
+@keyframes ttl-tap-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes ttl-breathe { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+.ttl-awake .ttl-tap { animation: ttl-tap-out 0.5s ease forwards; }
+@keyframes ttl-tap-out { to { opacity: 0; transform: translateY(-6px) scale(1.04); filter: blur(3px); } }
+
+/* ---- メニュー ---- */
+.ttl-menu {
+  width: 100%; max-width: 360px; display: flex; flex-direction: column; align-items: stretch; gap: 10px;
+  visibility: hidden; opacity: 0; cursor: default;
+}
+.ttl-awake .ttl-menu { visibility: visible; opacity: 1; }
+.ttl-awake .ttl-menu > * { animation: ttl-rise 0.8s cubic-bezier(.2,.8,.2,1) both; }
+.ttl-awake .ttl-menu > :nth-child(1) { animation-delay: 0.35s; }
+.ttl-awake .ttl-menu > :nth-child(2) { animation-delay: 0.5s; }
+.ttl-awake .ttl-menu > :nth-child(3) { animation-delay: 0.65s; }
+@keyframes ttl-rise { from { opacity: 0; transform: translateY(14px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+
+.ttl-btns { display: flex; flex-direction: column; gap: 8px; }
+.ttl-btn {
+  position: relative; display: flex; align-items: baseline; justify-content: center; gap: 12px;
+  width: 100%; min-height: 50px; padding: 11px 16px; cursor: pointer;
+  font-family: var(--font); color: #e9dcc0;
+  background: var(--grain), linear-gradient(180deg, #221b20 0%, #141015 60%, #0d0a0e 100%);
+  border: 1px solid #4b3d2c; border-radius: 2px;
+  box-shadow: inset 0 1px 0 rgba(255,236,200,0.08), inset 0 0 0 1px rgba(0,0,0,0.6), 0 6px 22px rgba(0,0,0,0.7);
+  transition: transform 0.12s ease, border-color 0.2s ease, box-shadow 0.25s ease, color 0.2s ease;
+}
+.ttl-btn-t { font-size: 17px; font-weight: 700; letter-spacing: 0.3em; padding-left: 0.3em; }
+.ttl-btn-s { font-size: 9px; letter-spacing: 0.3em; color: #8f8167; }
+.ttl-btn.primary {
+  color: #fbe6ae; border-color: #a8833c;
+  background: var(--grain), linear-gradient(180deg, #2c2118 0%, #18110c 55%, #0f0a08 100%);
+  box-shadow: inset 0 1px 0 rgba(255,236,200,0.14), inset 0 0 0 1px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.8), 0 0 26px rgba(201,162,74,0.22), 0 8px 26px rgba(0,0,0,0.75);
+}
+.ttl-btn.primary .ttl-btn-t { text-shadow: 0 0 12px rgba(243,213,139,0.45); }
+.ttl-btn.primary .ttl-btn-s { color: #b99a5c; }
+/* 金細工の角と、中央に走る金の糸 */
+.ttl-btn.primary::before {
+  content: ""; position: absolute; inset: 3px; pointer-events: none; background: var(--corners); opacity: 0.9;
+}
+.ttl-btn.primary::after {
+  content: ""; position: absolute; left: 12%; right: 12%; bottom: -1px; height: 1px; background: var(--gold-line);
+}
+.ttl-btn:hover, .ttl-btn:focus-visible { border-color: #c9a24a; color: #fff3cf; outline: none; box-shadow: inset 0 1px 0 rgba(255,236,200,0.14), 0 0 0 1px rgba(0,0,0,0.8), 0 0 30px rgba(102,186,140,0.28), 0 8px 26px rgba(0,0,0,0.75); }
+.ttl-btn:active { transform: translateY(1px) scale(0.99); }
+.ttl-btn.off, .ttl-btn:disabled { opacity: 0.38; cursor: default; filter: grayscale(0.6); }
+.ttl-btn.off:hover { border-color: #4b3d2c; box-shadow: none; }
+.ttl-btn.danger { color: #ffd9cf; border-color: #8a2a22; }
+.ttl-btn.danger:hover { border-color: #c84a34; box-shadow: 0 0 22px rgba(172,44,40,0.4); }
+
+.ttl-note { font-size: 10px; letter-spacing: 0.08em; color: #7d7062; text-align: center; text-shadow: 0 1px 0 #000; }
+
+/* ---- 冒険の記録 ---- */
+.ttl-save {
+  position: relative; padding: 9px 14px 8px; text-align: center; cursor: default;
+  background: var(--corners), var(--grain), linear-gradient(180deg, rgba(24,18,24,0.9) 0%, rgba(11,8,13,0.94) 100%);
+  border: 1px solid rgba(201,162,74,0.32); border-radius: 2px;
+  box-shadow: inset 0 1px 0 rgba(255,236,200,0.06), 0 10px 30px rgba(0,0,0,0.75);
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+}
+.ttl-save-k { font-size: 9px; letter-spacing: 0.5em; padding-left: 0.5em; color: #8a7a5e; }
+.ttl-save-h { margin: 2px 0 6px; font-size: 14px; font-weight: 700; letter-spacing: 0.06em; color: #f3d58b; text-shadow: 0 0 12px rgba(201,162,74,0.35), 0 1px 0 #000; }
+.ttl-party { display: flex; justify-content: center; gap: 5px; margin: 0 0 6px; }
+.ttl-pm {
+  width: 38px; height: 38px; display: grid; place-items: center; box-sizing: border-box;
+  background: radial-gradient(circle at 50% 75%, rgba(102,186,140,0.16), rgba(0,0,0,0.55) 70%);
+  border: 1px solid #4a3d2a; box-shadow: inset 0 0 0 1px #000, 0 2px 6px rgba(0,0,0,0.6);
+}
+.ttl-pm canvas { width: 36px; height: 36px; image-rendering: pixelated; display: block; }
+.ttl-save-l { font-size: 11px; line-height: 1.65; color: #c8bba2; letter-spacing: 0.04em; }
+
+/* ---- はじめから (記録あり) の確認 ---- */
+.ttl-confirm {
+  position: absolute; z-index: 5; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(340px, calc(100% - 40px)); padding: 18px 16px 14px; text-align: center; cursor: default;
+  background: var(--corners), var(--grain), linear-gradient(180deg, #1d161b, #0d0a0e);
+  border: 1px solid #6a2a22; box-shadow: 0 0 0 1px #000, 0 20px 60px rgba(0,0,0,0.9), 0 0 40px rgba(138,30,34,0.25);
+  animation: ttl-confirm-in 0.35s ease both;
+}
+/* 中央寄せの translate を保ったまま浮かび上がる (共通の ttl-rise は transform を上書きしてしまう) */
+@keyframes ttl-confirm-in { from { opacity: 0; transform: translate(-50%, calc(-50% + 14px)); } to { opacity: 1; transform: translate(-50%, -50%); } }
+.ttl-confirm.hidden { display: none; }
+.ttl-confirm-t { font-size: 15px; color: #f1e4c8; line-height: 1.6; }
+.ttl-confirm-s { font-size: 11px; color: #c84a34; margin: 4px 0 12px; }
+.ttl-confirm-row { display: flex; gap: 8px; }
+.ttl-confirm-row .ttl-btn { min-height: 44px; }
+.ttl-confirm-row .ttl-btn-t { font-size: 14px; letter-spacing: 0.12em; }
+.ttl-confirming .ttl-ui { filter: brightness(0.35) blur(1px); pointer-events: none; }
+
+/* ---- 退場: 門の奥へ吸い込まれて暗転 ---- */
+.ttl-out { pointer-events: none; animation: ttl-out 1.5s ease forwards; }
+.ttl-out .ttl-scene { transition: transform 1.1s cubic-bezier(.55,0,.85,.35), filter 1.1s ease; transform: scale(2.2); filter: brightness(0.15); }
+.ttl-out .ttl-ui { transition: opacity 0.45s ease, transform 0.6s ease; opacity: 0; transform: scale(1.06); }
+@keyframes ttl-out { 0%, 45% { opacity: 1; } 100% { opacity: 0; } }
+
+/* ---- 横長の画面: 記録とボタンを横に並べ、絵の下端を広く見せる ---- */
+@media (min-aspect-ratio: 5/4) {
+  .ttl-ui { padding-top: calc(var(--safe-top, 0px) + clamp(18px, 5vh, 56px)); }
+  .ttl-main { font-size: clamp(60px, 12.5vh, 118px); }
+  .ttl-pre-t { font-size: clamp(16px, 3.2vh, 26px); }
+  .ttl-tap { bottom: clamp(20px, 6vh, 60px); }
+  .ttl-menu.has-save { max-width: 720px; display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: 10px 12px; align-items: stretch; }
+  .ttl-menu.has-save .ttl-note { grid-column: 1 / -1; }
+  .ttl-menu.has-save .ttl-btns { justify-content: center; }
+  .ttl-menu.no-save { max-width: 520px; }
+  .ttl-menu.no-save .ttl-btns { flex-direction: row; }
+  .ttl-menu.no-save .ttl-btn { flex: 1 1 0; }
+}
+@media (max-height: 560px) and (min-aspect-ratio: 5/4) {
+  .ttl-main { font-size: clamp(44px, 14vh, 80px); }
+  .ttl-en { display: none; }
+  .ttl-party { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ttl-logo, .ttl-main::before, .ttl-main::after, .ttl-tap, .ttl-tap-j, .ttl-awake .ttl-menu > *, .ttl-awake .ttl-main-t, .ttl-awake .ttl-flash { animation: none !important; }
+  .ttl-scene { transition: none; }
+  .ttl-out .ttl-scene { transform: none; }
+}
+
+/* =====================================================================
+   オープニング (六幕)
+   ===================================================================== */
+.op-overlay {
+  position: fixed; inset: 0; z-index: 200; overflow: hidden;
+  background: #020104; color: var(--ink); font-family: var(--font);
+  cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none; touch-action: manipulation;
+  --op-top: 7vh; --op-bh: 58vh;
+}
+.op-overlay.op-out { animation: op-out 0.9s ease forwards; pointer-events: none; }
+@keyframes op-out { to { opacity: 0; } }
+/* 絵の帯 (上下は闇へ溶ける) */
+.op-frame {
+  position: absolute; left: 0; right: 0; top: var(--op-top); height: var(--op-bh); overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 7%, #000 88%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0%, #000 7%, #000 88%, transparent 100%);
+}
+.op-scene { position: absolute; display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+.op-veil {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    var(--grain),
+    radial-gradient(ellipse 100% 70% at 50% calc(var(--op-top) + var(--op-bh) * 0.5), rgba(0,0,0,0) 55%, rgba(0,0,0,0.6) 100%);
+}
+.op-black { position: absolute; inset: 0; background: #020104; opacity: 0; pointer-events: none; transition: opacity 0.75s ease; }
+.op-black.on { opacity: 1; }
+.op-black.instant { transition: none; }
+
+/* 幕の題 (左上) */
+.op-cap {
+  position: absolute; left: clamp(14px, 4vw, 40px); top: calc(var(--op-top) + 14px); z-index: 3;
+  display: flex; align-items: baseline; gap: 10px; pointer-events: none;
+  opacity: 0; transform: translateY(-4px); transition: opacity 1.2s ease, transform 1.2s ease;
+  text-shadow: 0 0 10px #000, 0 1px 0 #000;
+}
+.op-cap.show { opacity: 1; transform: none; }
+.op-cap-n {
+  font-size: clamp(20px, 5.5vw, 30px); font-weight: 800; line-height: 1;
+  background: linear-gradient(180deg, #fff6dc, #f3d58b 50%, #c9a24a); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 1px 0 #000) drop-shadow(0 0 6px rgba(0,0,0,0.9));
+}
+.op-cap-t { font-size: clamp(11px, 3vw, 14px); letter-spacing: 0.4em; color: #cdbf9f; }
+.op-cap::after { content: ""; position: absolute; left: 0; right: -30px; bottom: -6px; height: 1px; background: linear-gradient(90deg, rgba(201,162,74,0.8), rgba(201,162,74,0)); }
+
+/* 語り: 一文字ずつ墨がにじむように */
+.op-text {
+  position: absolute; left: 0; right: 0; top: calc(var(--op-top) + var(--op-bh) + clamp(10px, 2.2vh, 24px)); z-index: 3;
+  margin: 0 auto; width: min(640px, calc(100% - 44px));
+  font-size: clamp(15px, 4.1vw, 19px); line-height: 2.0; letter-spacing: 0.08em; text-align: left;
+  color: var(--ink); pointer-events: none;
+  line-break: strict; word-break: auto-phrase; /* 日本語の文節で折り返す (対応ブラウザのみ) */
+}
+.op-portrait .op-text { font-size: clamp(15px, 4.2vw, 18px); line-height: 2.05; }
+.op-ln { margin: 0 0 0.25em; }
+.op-ch {
+  display: inline; opacity: 0;
+  animation: op-ink 0.9s cubic-bezier(.2,.6,.3,1) both;
+}
+@keyframes op-ink {
+  0% { opacity: 0; color: #8a1a1e; text-shadow: 0 0 12px rgba(160,20,24,0.9); filter: blur(3px); }
+  35% { opacity: 1; color: #d9b98e; text-shadow: 0 0 8px rgba(120,20,20,0.6); filter: blur(0.6px); }
+  100% { opacity: 1; color: #ece2cc; text-shadow: 0 1px 0 #000, 0 0 10px rgba(0,0,0,0.9); filter: none; }
+}
+.op-done .op-ch { animation-delay: 0s !important; animation-duration: 0.35s; }
+.op-text.op-leave { transition: opacity 0.6s ease, filter 0.6s ease; opacity: 0; filter: blur(3px); }
+
+/* 次へ (語りが出そろうと現れる) */
+.op-next { position: absolute; left: 50%; bottom: calc(var(--safe-bottom, 0px) + clamp(40px, 7vh, 64px)); z-index: 3; transform: translateX(-50%); opacity: 0; transition: opacity 0.6s ease; pointer-events: none; }
+.op-typed .op-next { opacity: 1; }
+.op-next-d { width: 8px; height: 8px; border-right: 1px solid #c9a24a; border-bottom: 1px solid #c9a24a; transform: rotate(45deg); animation: op-bob 1.6s ease-in-out infinite; box-shadow: 2px 2px 6px rgba(201,162,74,0.4); }
+@keyframes op-bob { 0%, 100% { transform: translateY(0) rotate(45deg); opacity: 0.5; } 50% { transform: translateY(4px) rotate(45deg); opacity: 1; } }
+
+/* 幕の進み (菱形の珠) */
+.op-pips { position: absolute; left: 0; right: 0; bottom: calc(var(--safe-bottom, 0px) + clamp(14px, 3vh, 28px)); z-index: 3; display: flex; justify-content: center; gap: 12px; pointer-events: none; }
+.op-pip { width: 6px; height: 6px; transform: rotate(45deg); border: 1px solid #5a4a30; background: transparent; transition: background 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease; }
+.op-pip.done { background: #5a4a30; }
+.op-pip.on { background: #f3d58b; border-color: #f3d58b; box-shadow: 0 0 8px rgba(243,213,139,0.7); }
+
+/* とばす */
+.op-skip {
+  position: absolute; z-index: 5; right: clamp(10px, 3vw, 28px); top: calc(var(--safe-top, 0px) + 10px);
+  display: flex; align-items: center; gap: 6px; padding: 7px 12px 7px 14px; cursor: pointer;
+  font-family: var(--font); font-size: 12px; letter-spacing: 0.3em; color: #a3967f;
+  background: rgba(10,8,12,0.55); border: 1px solid #3a3029; border-radius: 2px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.op-skip b { font-weight: 400; letter-spacing: 0; color: #c9a24a; }
+.op-skip:hover, .op-skip:focus-visible { color: #ece2cc; border-color: #c9a24a; outline: none; }
+/* 長押しの合図 */
+.op-hold { position: absolute; z-index: 4; right: clamp(10px, 3vw, 28px); top: calc(var(--safe-top, 0px) + 50px); display: flex; align-items: center; gap: 8px; opacity: 0; transition: opacity 0.25s ease; pointer-events: none; }
+.op-hold.on { opacity: 1; }
+.op-hold-t { font-size: 10px; letter-spacing: 0.2em; color: #8a7a5e; }
+.op-hold-r { width: 14px; height: 14px; border-radius: 50%; background: conic-gradient(#c9a24a var(--p, 0%), rgba(201,162,74,0.15) 0); }
+.op-hold.on .op-hold-r { animation: op-hold 0.9s linear forwards; }
+@property --p { syntax: "<percentage>"; inherits: false; initial-value: 0%; }
+@keyframes op-hold { from { --p: 0%; } to { --p: 100%; } }
+
+/* 終幕の題字 */
+.op-title {
+  position: absolute; left: 0; right: 0; top: calc(var(--op-top) + var(--op-bh) * 0.1); z-index: 4;
+  text-align: center; pointer-events: none; opacity: 0;
+}
+.op-title .ttl-main { font-size: clamp(56px, 18vw, 112px); }
+.op-title .ttl-pre-t { font-size: clamp(15px, 4.4vw, 24px); }
+.op-final .op-title { animation: op-title 2.6s cubic-bezier(.2,.7,.2,1) forwards; }
+@keyframes op-title { 0% { opacity: 0; filter: blur(12px) brightness(2.2); transform: scale(1.06); } 50% { opacity: 1; filter: blur(0) brightness(1.2); } 100% { opacity: 1; filter: none; transform: none; } }
+.op-final .op-frame { transition: filter 2.4s ease; filter: brightness(0.42) saturate(0.85); }
+.op-final .op-text { transition: opacity 1.2s ease; opacity: 0.0; }
+.op-final .op-cap { opacity: 0; }
+.op-begin {
+  position: absolute; left: 0; right: 0; top: calc(var(--op-top) + var(--op-bh) + clamp(28px, 6vh, 64px)); z-index: 4; pointer-events: none;
+  display: flex; justify-content: center; align-items: center; gap: 14px;
+  font-size: 13px; letter-spacing: 0.5em; padding-left: 0.5em; color: #ece2cc;
+  text-shadow: 0 0 10px rgba(110,220,170,0.55), 0 1px 0 #000;
+  opacity: 0;
+}
+.op-begin::before, .op-begin::after { content: ""; width: 5px; height: 5px; transform: rotate(45deg); background: #8ed6a6; box-shadow: 0 0 8px #66ba8c; }
+.op-final .op-begin { animation: op-begin 2.4s ease-in-out 2.4s infinite both; }
+@keyframes op-begin { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+.op-final .op-next { opacity: 0; }
+
+@media (min-aspect-ratio: 5/4) {
+  .op-text { text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .op-ch { animation-duration: 0.01s; }
+  .op-next-d, .op-final .op-title, .op-final .op-begin { animation: none !important; opacity: 1; }
+  .op-black { transition-duration: 0.1s; }
+}
