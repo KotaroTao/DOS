@@ -303,6 +303,24 @@
   100% { opacity: 1; color: #ece2cc; text-shadow: 0 1px 0 #000, 0 0 10px rgba(0,0,0,0.9); }
 }
 .op-done .op-ch { animation-delay: 0s !important; animation-duration: 0.35s; }
+/* 物語の肝となる語 (人業) — 行を改めて中央に大きく掲げ、読みを金で添える */
+.op-em { display: flex; flex-direction: column; align-items: center; text-align: center; margin: 0.05em 0 0.35em; line-height: 1.2; }
+.op-em-w { font-size: 1.95em; letter-spacing: 0.42em; padding-left: 0.42em; }
+.op-em-w .op-ch { animation-name: op-ink-em; }
+.op-em-r {
+  margin-top: 0.05em; font-size: 0.72em; letter-spacing: 0.6em; color: #d9b45e;
+  display: flex; align-items: center; gap: 0.8em; opacity: 0;
+  animation: op-ruby 1.2s ease both; text-shadow: 0 1px 0 #000, 0 0 8px rgba(201,162,74,0.45);
+}
+.op-em-r::before, .op-em-r::after { content: ""; width: 2.2em; height: 1px; background: linear-gradient(90deg, rgba(201,162,74,0), rgba(201,162,74,0.8)); }
+.op-em-r::after { transform: scaleX(-1); margin-left: -0.6em; }
+@keyframes op-ink-em {
+  0% { opacity: 0; color: rgba(138,26,30,0); text-shadow: 0 0 16px rgba(160,20,24,0.95), 0 0 6px rgba(160,20,24,0.8); }
+  35% { opacity: 1; color: rgba(243,213,139,0.8); text-shadow: 0 0 4px rgba(243,213,139,0.7), 0 0 14px rgba(120,20,20,0.6); }
+  100% { opacity: 1; color: #f6e7c2; text-shadow: 0 1px 0 #000, 0 0 14px rgba(201,162,74,0.55), 0 0 4px rgba(0,0,0,0.9); }
+}
+@keyframes op-ruby { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+.op-done .op-em-r { animation-delay: 0s !important; animation-duration: 0.35s; }
 .op-text.op-leave { transition: opacity 0.6s ease, filter 0.6s ease; opacity: 0; filter: blur(3px); }
 
 /* 次へ (語りが出そろうと現れる) */
@@ -364,7 +382,7 @@
   .op-text { text-align: center; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .op-ch { animation-duration: 0.01s; }
+  .op-ch, .op-em-r { animation-duration: 0.01s; }
   .op-next-d, .op-final .op-title, .op-final .op-begin { animation: none !important; opacity: 1; }
   .op-black { transition-duration: 0.1s; }
 }
