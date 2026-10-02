@@ -15,10 +15,10 @@ import { UI, game, registerUI } from "./ctx.js";
 import { el, sheet, row, setText, glyph, itemTile, portrait, bar, reduced } from "./kit.js";
 import { getPref, setPref, remember } from "./prefs.js";
 import { sceneTransition } from "./motion.js";
-import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
+import { MONSTERS, ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
 import { RACE_LABEL, ELEMENTS, monsterTraits } from "../dungeons/index.js";
 import { RARITIES } from "../rarity.js";
-import { SOUL_CLASSES, jobSprite } from "../souls.js";
+import { SOUL_CLASSES, jobBust } from "../souls.js";
 import { WALKER as WALKER_ART } from "../walkerart.js";
 
 export { getPref, setPref, remember, sceneTransition };
@@ -220,7 +220,7 @@ export function openRunLoot() {
         for (const s of souls) {
           const c = SOUL_CLASSES[s.clsKey];
           const chip = el("span", "dg-soul r-" + ((c && c.rarity) || "common"));
-          try { chip.appendChild(spriteCanvas(jobSprite(s.clsKey, 1), 2)); } catch (e) { /* noop */ }
+          try { chip.appendChild(crispCanvas(jobBust(s.clsKey, 1), 24)); } catch (e) { /* noop */ }
           chip.appendChild(el("span", null, c ? c.label : s.clsKey));
           if (c && c.glow) chip.style.setProperty("--glow", c.glow);
           list.appendChild(chip);

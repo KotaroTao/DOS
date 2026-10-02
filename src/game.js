@@ -3,7 +3,7 @@ import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
 import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, Battle, SPELLS, cloneItem, spellCost } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
-import { spriteCanvas } from "./sprites.js";
+import { spriteCanvas, crispCanvas } from "./sprites.js";
 import {
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, slotKeyFor, lvToRank, RANGE_LABEL,
   UNIDENT_SLOTS, itemName,
@@ -17,7 +17,7 @@ import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
 import {
-  SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite,
+  SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust,
   recalcDoll, soulLevelCap, soulLevelCapOf, setSharedSouls, MAX_SUBS,
   soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills,
   ORDER_PERK, orderPassiveMap,
@@ -4780,7 +4780,7 @@ function acquireSoul(clsKey, sourceLine, onClose, emberCount = 0) {
   const s = grantSoulQuiet(clsKey, sourceLine, emberCount);
   if (s.rare) { celebrateSoul(s, after); return; }
   SFX.itemget(); buzz([0, 30, 60, 30]);
-  showToast(`${s.label}の魂を手に入れた${s.embers > 0 ? ` ・ 残火 ${s.embers}` : ""}`, { tone: "good", icon: jobSprite(clsKey, 1) });
+  showToast(`${s.label}の魂を手に入れた${s.embers > 0 ? ` ・ 残火 ${s.embers}` : ""}`, { tone: "good", icon: jobBust(clsKey, 1) });
   after();
 }
 
@@ -7259,7 +7259,7 @@ function partyPortrait(p) {
   const key = `${p.jobKey || ""}:${p.jobRank || 1}:${p.clsKey || ""}`;
   let ent = _partyPics.get(p);
   if (!ent || ent.key !== key) {
-    const c = spriteCanvas(dollSprite(p), PORTRAIT_PX / 12);
+    const c = crispCanvas(dollBust(p), PORTRAIT_PX); // 顔を中心に切り出した胸像
     c.className = "spr pc-pic";
     ent = { key, c };
     _partyPics.set(p, ent);
@@ -10768,7 +10768,7 @@ function titleSummary() {
     lines.push(abyssActive() ? `探索中 — 奈落 B${G.abyss.depth}F` : `探索中 — ${curDungeon().name} B${G.floor}F`);
   }
   lines.push(`💰${G.gold}　✦${G.soulPts}　🔴${G.redSoul}`);
-  const sprites = (G.party || []).filter((d) => d && d.primary != null).map((d) => dollSprite(d));
+  const sprites = (G.party || []).filter((d) => d && d.primary != null).map((d) => dollBust(d));
   return { head, lines, sprites };
 }
 

@@ -7,8 +7,8 @@ import { game } from "./ctx.js";
 import { nav } from "./nav.js";
 import { sheetIn, sheetOut, shake as shakeEl, animate, T, EASE, reduced } from "./motion.js";
 import { remember } from "./prefs.js";
-import { spriteCanvas } from "../sprites.js";
-import { dollSprite, SOUL_CLASSES } from "../souls.js";
+import { spriteCanvas, crispCanvas } from "../sprites.js";
+import { dollBust, SOUL_CLASSES } from "../souls.js";
 import { rarityKey, RARITIES } from "../rarity.js";
 import { keeperCanvas, iconCanvas } from "../townart.js";
 
@@ -620,7 +620,7 @@ export function portrait(d, o = {}) {
     const cls = d.dominant && SOUL_CLASSES[d.dominant.clsKey];
     if (cls && cls.glow) p.style.setProperty("--glow", cls.glow);
     const fr = el("span", "ui-port-fr");
-    try { fr.appendChild(spriteCanvas(dollSprite(d), size >= 64 ? 3 : 2)); } catch (e) { /* 絵が無くても動く */ }
+    try { fr.appendChild(crispCanvas(dollBust(d), Math.round(size * 0.8))); } catch (e) { /* 絵が無くても動く */ }
     p.appendChild(fr);
     if (!d.alive) p.appendChild(el("span", "ui-port-dead", "†"));
     if (o.hp !== false && d.maxhp) {

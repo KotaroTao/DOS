@@ -5,6 +5,7 @@
 // 5部位すべて同系列職業 (同clsKey) でランクボーナス発生。上位ランクはダンジョンでは出ず、融合で入手。
 import { recalc, registerJobGear } from "./items.js";
 import { JOB_LORE_RANKS } from "./joblore.js";
+import { JOB_IMAGES } from "./jobart.js";
 
 export const PARTS = ["head", "rhand", "lhand", "body", "legs"];
 export const PART_LABEL = { head: "頭", rhand: "右手", lhand: "左手", body: "胴体", legs: "足" };
@@ -2339,6 +2340,7 @@ const _jobSprCache = {};
 // rank は職業ランク = 魂ランク (1〜5)。
 export function jobSprite(jobKey, rank = 2) {
   const r = Math.max(1, Math.min(5, Math.round(rank) || 2));
+  if (JOB_IMAGES[jobKey]) return imageJobSprite(jobKey, r);
   const key = JOB_ARTS[jobKey] ? jobKey : "fighter";
   const cacheKey = key + ":" + r;
   if (_jobSprCache[cacheKey]) return _jobSprCache[cacheKey];
@@ -2396,6 +2398,88 @@ export function jobSprite(jobKey, rank = 2) {
   }
 
   return (_jobSprCache[cacheKey] = { palette, art });
+}
+
+// ---- 原画から起こした全身像 (src/jobart.js) ----
+// 全職の絵を同じ枠 (IMG_BOX) に、顔の列を中央・足元を揃えて置く (並べた時に背丈とドットの大きさが揃う)。
+// そのランクの絵が無ければ近いランクの絵で代え、ランク1はくすませ、ランク4・5は輪郭の外に職の光を纏わせる。
+const IMG_BOX = (() => {
+  let w = 0, h = 0;
+  for (const set of Object.values(JOB_IMAGES)) for (const im of Object.values(set)) {
+    const iw = im.art.reduce((m, row) => Math.max(m, row.length), 0);
+    w = Math.max(w, 2 * Math.max(im.face[0], iw - im.face[0]));
+    h = Math.max(h, im.art.length);
+  }
+  return [w + 4, h + 2]; // 光を纏う余白
+})();
+function pickJobImage(key, r) {
+  const set = JOB_IMAGES[key];
+  if (set[r]) return { im: set[r], exact: true };
+  const near = Object.keys(set).map(Number).sort((a, b) => Math.abs(a - r) - Math.abs(b - r) || b - a)[0];
+  return { im: set[near], exact: false };
+}
+// 枠 IMG_BOX に収めた art と、その中の顔の位置
+function padImage(im) {
+  const [W, H] = IMG_BOX;
+  const ox = Math.round(W / 2 - im.face[0]), oy = H - 1 - im.art.length;
+  const blank = ".".repeat(W);
+  const art = [];
+  for (let y = 0; y < H; y++) {
+    const row = im.art[y - oy];
+    art.push(row == null ? blank : (".".repeat(ox) + row).padEnd(W, ".").slice(0, W));
+  }
+  return { art, face: [im.face[0] + ox, im.face[1] + oy] };
+}
+function imageJobSprite(key, r) {
+  const cacheKey = "img:" + key + ":" + r;
+  if (_jobSprCache[cacheKey]) return _jobSprCache[cacheKey];
+  const c = SOUL_CLASSES[key] || SOUL_CLASSES.fighter;
+  const { im, exact } = pickJobImage(key, r);
+  const { art: base, face } = padImage(im);
+  const palette = { ...im.palette };
+  // 見習い (ランク1) を上のランクの絵で代える時は、装いをくすませる
+  if (!exact && r === 1) for (const k in palette) palette[k] = mixHex(palette[k], "#6e6a66", 0.32);
+  let art = base;
+  // ランク4・5 (専用の絵が無い間): 輪郭の外側1ドットに職の色の光。5は途切れぬ光輪と斜めの残光
+  if (!exact && r >= 4) {
+    const rows = base.map((row) => row.split(""));
+    const solid = (y, x) => y >= 0 && y < rows.length && x >= 0 && x < rows[y].length && rows[y][x] !== ".";
+    const out = base.map((row) => row.split(""));
+    for (let y = 0; y < rows.length; y++) for (let x = 0; x < rows[y].length; x++) {
+      if (rows[y][x] !== ".") continue;
+      if (solid(y - 1, x) || solid(y + 1, x) || solid(y, x - 1) || solid(y, x + 1)) {
+        if (r >= 5 || (x + y) % 2 === 0) out[y][x] = "a";
+      } else if (r >= 5 && (x + y) % 2 === 0 && (solid(y - 1, x - 1) || solid(y - 1, x + 1) || solid(y + 1, x - 1) || solid(y + 1, x + 1))) out[y][x] = "b";
+    }
+    art = out.map((a) => a.join(""));
+    palette["a"] = hexA(c.glow, r === 5 ? 0.42 : 0.34);
+    if (r >= 5) palette["b"] = hexA(c.glow, 0.16);
+  }
+  return (_jobSprCache[cacheKey] = { palette, art, face });
+}
+
+// 職業の胸像 (肖像の小さな額・一覧の札用)。原画のある職は顔を中心に正方形で切り出す。
+// 原画の無い職は従来の 12×12 の小さな全身像 (それ自体が額に収まる大きさ) をそのまま返す
+const BUST = 36;
+const _bustCache = {};
+export function jobBust(jobKey, rank = 2) {
+  const spr = jobSprite(jobKey, rank);
+  if (!spr.face) return spr;
+  const cacheKey = jobKey + ":" + Math.max(1, Math.min(5, Math.round(rank) || 2));
+  if (_bustCache[cacheKey]) return _bustCache[cacheKey];
+  const x0 = Math.round(spr.face[0] - BUST / 2), y0 = Math.round(spr.face[1] - BUST / 2);
+  const art = [];
+  for (let y = y0; y < y0 + BUST; y++) {
+    const row = spr.art[y] || "";
+    let line = "";
+    for (let x = x0; x < x0 + BUST; x++) line += (y < 0 || x < 0 || !row[x]) ? "." : row[x];
+    art.push(line);
+  }
+  return (_bustCache[cacheKey] = { palette: spr.palette, art });
+}
+export function dollBust(d) {
+  const key = d.jobKey || (d.dominant && d.dominant.clsKey) || d.clsKey || "fighter";
+  return jobBust(key, d.jobRank || 1);
 }
 
 // 人業の顔アイコン: 発現中の職業と職業ランクの姿。未発現は支配職のランク1

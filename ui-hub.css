@@ -657,3 +657,5 @@
   .hb-title-n { font-size: 32px; }
   .hb-tile { height: 100px; }
 }
+/* 職業図鑑の詳細: 原画から起こした全身像はドットの整数倍 (3倍) で大きく見せる */
+.pl-detail-sheet .ui-art canvas.spr { max-width: none; max-height: none; }

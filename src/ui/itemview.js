@@ -6,9 +6,9 @@ import { game } from "./ctx.js";
 import { el, sheet } from "./kit.js";
 import { ELEMENTS } from "../dungeons/index.js";
 import { SPELLS } from "../combat.js";
-import { ATTR_LABEL, SOUL_CLASSES, dollSprite } from "../souls.js";
+import { ATTR_LABEL, SOUL_CLASSES, dollBust } from "../souls.js";
 import { WEAPON_CAT_LABEL, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip } from "../items.js";
-import { HERO, spriteCanvas } from "../sprites.js";
+import { HERO, spriteCanvas, crispCanvas } from "../sprites.js";
 
 // 魂のステータス寄与を「HP+7 ATK+2.4 …」形式で列挙 (0は省略)
 export function soulStatText(st, sep = " ") {
@@ -323,7 +323,7 @@ export function equipPartyChips(it, party = (game.G && game.G.party) || []) {
     const ok = canEquip(m, it);
     const c = el("span", "eq-pchip " + (ok ? "ok" : "ng"));
     const ic = el("span", "eq-pchip-ic");
-    ic.appendChild(spriteCanvas(m.isDoll ? dollSprite(m) : HERO, 2));
+    ic.appendChild(m.isDoll ? crispCanvas(dollBust(m), 24) : spriteCanvas(HERO, 2));
     c.appendChild(ic);
     c.appendChild(el("span", "eq-pchip-nm", m.name));
     c.appendChild(el("span", "eq-pchip-mk", ok ? "○" : "×"));
