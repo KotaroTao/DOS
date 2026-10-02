@@ -1514,18 +1514,9 @@ function itemActions(it, owner, ctx, { equip = true } = {}) {
     if (town) {
       acts.push({ label: "商会で鑑定する", sub: game.appraiseCost ? `鑑定料 ${game.appraiseCost(it)}` : "", kind: "primary",
         onTap: (h) => { close(h); if (UI.openShop) UI.openShop("sell"); } });
-    } else if (it.lr || it.idHardFail) {
-      acts.push({ label: it.lr ? "レジェンドレアは商会でのみ鑑定できる" : "鑑定に失敗済み ― 商会でのみ", kind: "ghost", disabled: true });
     } else {
-      const men = G.party.filter((m) => m.alive && game.canIdentify && game.canIdentify(m));
-      if (!men.length) acts.push({ label: "鑑定の心得がある仲間がいない", kind: "ghost", disabled: true });
-      else {
-        const ch = (m) => (game.identifyChance ? game.identifyChance(m, it.lv || 1) : 0);
-        const best = men.slice().sort((a, b) => ch(b) - ch(a))[0];
-        acts.push({ label: `鑑定を試す ― ${best.name} ${Math.round(ch(best) * 100)}%`, sub: "失敗すると商会でしか鑑定できなくなる", kind: "primary",
-          onTap: (h) => { close(h); if (game.doIdentifySkill) game.doIdentifySkill(best, it); rerender(); } });
-        if (men.length > 1) acts.push({ label: "他の者が鑑定する", kind: "secondary", onTap: (h) => { close(h); if (game.openIdentifyChooser) game.openIdentifyChooser(it); } });
-      }
+      // 鑑定は街でのみ (迷宮では心得のある者でも鑑定できない)
+      acts.push({ label: "鑑定は街でのみ", sub: "持ち帰って鑑定する", kind: "ghost", disabled: true });
     }
   } else if (it.slot === "use") {
     acts.push({ label: `${owner.name}が使う`, kind: "primary", onTap: (h) => { close(h); const i = owner.items.indexOf(it); if (i >= 0 && game.useItem) game.useItem(owner, i); } });
@@ -1535,6 +1526,12 @@ function itemActions(it, owner, ctx, { equip = true } = {}) {
     acts.push({ label: town ? "商会で売るか、王宮の宝物庫へ奉納する" : "街へ持ち帰ろう (商会・宝物庫)", kind: "ghost", disabled: true });
   }
   if (transferTargets(owner).length) acts.push({ label: "渡す", kind: "secondary", onTap: (h) => { close(h); openTransfer(owner, it); } });
+  // 売る (商会が開いている街。鑑定済みの品。値段・警告・確認は商会と同じ UI.sellOne)
+  if (town && !it.unidentified && UI.sellOne && UI.shopOpen && UI.shopOpen() && owner.items.includes(it) && game.sellPrice) {
+    const warn = game.sellWarnings && game.sellWarnings(it).length;
+    acts.push({ key: "sell", label: "売る", kind: warn ? "danger" : "secondary", cost: game.sellPrice(it),
+      onTap: async (h) => { if (await UI.sellOne(owner, it)) close(h); } });
+  }
   acts.push({ label: "捨てる", kind: "danger", onTap: (h) => { close(h); const i = owner.items.indexOf(it); if (i >= 0 && game.dropItem) game.dropItem(owner, i); } });
   return acts;
 }

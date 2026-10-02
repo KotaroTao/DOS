@@ -1,6 +1,6 @@
 // ===== 鑑定を試みる — 隊の鑑定の心得で、未鑑定の品を一つずつ確かめる =====
 // 「まとめて鑑定」(商会・有料・確実) より先に出す、隊の技による一括鑑定。
-// 品ごとに、その品を最も見抜ける者 (成功率の高い者) が鑑定する。判定は1点ずつ:
+// 鑑定は街でのみ。品ごとに、隊と控えの全員から、その品を最も見抜ける者 (成功率の高い者) が鑑定する。判定は1点ずつ:
 //   「盾？を鑑定している」→「．」→「．．」→「．．．」→「鑑定成功！」/「鑑定失敗…」
 // 成功した品はその場で正体と性能を見せる (装備は最後の一覧でまとめて)。
 // 最後に結果の一覧 (成功した品 → 装備。装備した品は一覧から消える / 失敗した品は商会でのみ)。残りは「商会で鑑定」へ続ける。
@@ -11,9 +11,9 @@
 import { UI, game, registerUI } from "./ctx.js";
 import { el, sheet, button, setText, toast, reduced } from "./kit.js";
 import { statLines, isEquippable, itemCatText } from "./itemview.js";
-import { wearPlan, deltaEl, nameSpan, openDollChooser, itemSheet, ownerOf, shopOpen } from "./loot.js";
+import { wearPlan, deltaEl, nameSpan, openDollChooser, itemSheet, ownerOf, shopOpen, townAppraisers } from "./loot.js";
 import { spriteCanvas } from "../sprites.js";
-import { canIdentify, identifyChance, identifyLabel } from "../souls.js";
+import { identifyChance, identifyLabel } from "../souls.js";
 import { itemName } from "../items.js";
 import { RARITIES, rarityKey } from "../rarity.js";
 
@@ -29,10 +29,8 @@ const T = () => (reduced && reduced()
   : { dot: 480, okHold: 1500, ngHold: 1000 });
 
 // ---------------------------------------------------------------- 数え上げ
-// 鑑定の心得がある者 (隊の生きている者)
-export function appraisers() {
-  return (G().party || []).filter((m) => m && m.alive && !m.isEmpty && canIdentify(m));
-}
+// 鑑定の心得がある者 (街でのみ。隊と控えの生きている全員。迷宮では鑑定できない)
+export function appraisers() { return townAppraisers(); }
 // 技で試せる未鑑定の品 (隊と控えの所持品。レジェンドレアと失敗済みは商会でのみ)
 export function skillTargets() {
   const out = [];
@@ -56,19 +54,24 @@ export function tryIdentifyInfo() {
   if (!men.length) return null;
   const list = skillTargets();
   if (!list.length) return null;
+  // men = 実際に担当する者 (品ごとの最良の者)。top = その中で最も成功率の高い者
   let top = null;
-  for (const t of list) { const b = bestFor(t.item, men); if (b && (!top || b.ch > top.ch)) top = b; }
-  return { n: list.length, men, top };
+  const leads = new Set();
+  for (const t of list) { const b = bestFor(t.item, men); if (!b) continue; leads.add(b.m); if (!top || b.ch > top.ch) top = b; }
+  return { n: list.length, men: [...leads], top };
 }
 
 // ---------------------------------------------------------------- 演出
 export function openTryIdentifyAll({ onDone } = {}) {
   const men = appraisers();
-  if (!men.length) { toast("鑑定の心得のある者が隊にいない", { tone: "info" }); return null; }
+  if (G().state !== "town") { toast("鑑定は街でしかできない", { tone: "info" }); return null; }
+  if (!men.length) { toast("鑑定の心得のある者がいない", { tone: "info" }); return null; }
   // 安い品から順に (最後に逸品が来るほど胸が高鳴る)
   const list = skillTargets().sort((a, b) => (RAR_ORDER[rarityKey(a.item)] || 0) - (RAR_ORDER[rarityKey(b.item)] || 0) || (a.item.lv || 0) - (b.item.lv || 0));
   if (!list.length) { toast("技で鑑定できる品はない", { tone: "info" }); return null; }
 
+  // 担当する者 (品ごとの最良の者。控えも含む)
+  const leads = [...new Set(list.map((t) => bestFor(t.item, men).m))];
   const results = []; // { item, doll, m, ok }
   let idx = 0, shown = 1, timer = null, finished = false, h = null;
   let advance = null; // 結果を見せている間に押せば、すぐ次へ
@@ -314,7 +317,7 @@ export function openTryIdentifyAll({ onDone } = {}) {
   h = sheet.open({
     kind: "info", banner: "鑑定を試みる", accent: "#7fd0ff", className: "ap-sheet",
     title: `${list.length}点を鑑定する`,
-    lines: [men.length > 1 ? `品ごとに、最も目の利く者が鑑定する (${men.map((m) => m.name).join("・")})。` : `${men[0].name}が鑑定する。`, "失敗した品は、もう商会でしか鑑定できない。"],
+    lines: [leads.length > 1 ? `品ごとに、隊と控えで最も目の利く者が鑑定する (${leads.map((m) => m.name).join("・")})。` : `隊と控えで最も目の利く ${leads[0].name} が鑑定する。`, "失敗した品は、もう商会でしか鑑定できない。"],
     body: box,
     footer: footerRun(),
     onClose: () => {
