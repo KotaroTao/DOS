@@ -4792,20 +4792,25 @@ function renderCombatCanvas() {
     }
     // 後衛は奥にいるぶん少し小さい。強敵は一回り大きく、ボスは画面を圧する
     const size = e.boss ? 14 : (e.mon && e.mon.elite ? 1.15 : 1) * (row.back ? 8 : 9);
-    // 戦闘開始の演出: 1体ずつ上から降り立つ (着地するまで名札やHPは出さない)
+    // 戦闘開始の演出: 闇の奥から1体ずつ這い出る。まず黒い影だけが浮かび、遅れて色 (正体) が滲み出す
+    // (現れきるまで名札やHPは出さない。迷宮の主はひときわ長く闇に留まる)
     if (intro) {
       const k = b.enemies.indexOf(e);
-      const p = Math.max(0, Math.min(1, (now - intro.t0 - k * 70) / 280));
+      const span = e.boss ? 1000 : 460;
+      const p = Math.max(0, Math.min(1, (now - intro.t0 - 140 - k * 90) / span));
       if (p < 1) {
         const ease = 1 - Math.pow(1 - p, 3);
+        const rise = (1 - ease) * 12, sz = size * (0.94 + 0.06 * ease);
         vctx.save();
         vctx.globalAlpha = 0.45 * ease;
         vctx.fillStyle = "#000";
         vctx.beginPath();
-        vctx.ellipse(baseX, baseY + size * 5.4, size * 3.4 * (0.4 + 0.6 * ease), size * 1.1, 0, 0, Math.PI * 2);
+        vctx.ellipse(baseX, baseY + size * 5.4, size * 3.4 * (0.5 + 0.5 * ease), size * 1.1, 0, 0, Math.PI * 2);
         vctx.fill();
         vctx.restore();
-        drawMonster(vctx, e.mon, baseX, baseY - (1 - ease) * 34, size, alpha * p);
+        const sil = Math.min(1, p / 0.4), col = Math.max(0, Math.min(1, (p - 0.38) / 0.62));
+        if (col < 1) drawMonsterBmp(vctx, monsterSilhouette(e.mon), baseX, baseY + rise, sz, alpha * sil);
+        if (col > 0) drawMonster(vctx, e.mon, baseX, baseY + rise, sz, alpha * col * col);
         return;
       }
     }
@@ -4944,7 +4949,7 @@ function playBattleIntro(done) {
   const b = G.battle;
   const boss = b.enemies.find((e) => e.boss);
   if (REDUCED_MOTION) { done(); return; }
-  const dur = (boss ? 1500 : 420 + b.enemies.length * 70) * (G.fastAnim ? 0.6 : 1);
+  const dur = (boss ? 1900 : 640 + b.enemies.length * 90) * (G.fastAnim ? 0.6 : 1);
   G.battleIntro = { battle: b, t0: performance.now(), dur, boss: boss ? (boss.mon && boss.mon.name) || boss.name : null };
   G.animating = true;
   combatMenu.innerHTML = "";
@@ -4993,10 +4998,30 @@ function monsterBitmap(mon) {
   _monBmp.set(mon, b);
   return b;
 }
+// 魔物の黒い影 (登場演出用): ビットマップを闇色で塗りつぶした写し
+const _monSil = new WeakMap();
+function monsterSilhouette(mon) {
+  let s = _monSil.get(mon);
+  if (s) return s;
+  const b = monsterBitmap(mon);
+  const c = document.createElement("canvas");
+  c.width = b.c.width; c.height = b.c.height;
+  const g = c.getContext("2d");
+  g.drawImage(b.c, 0, 0);
+  g.globalCompositeOperation = "source-in";
+  g.fillStyle = "#050307";
+  g.fillRect(0, 0, c.width, c.height);
+  s = { c, w: b.w, h: b.h, pad: b.pad };
+  _monSil.set(mon, s);
+  return s;
+}
 // drawSpriteFit と同じ見かけの大きさ (12グリッド換算の size) で魔物を描く
 function drawMonster(ctx, mon, cx, cy, size, alpha = 1) {
   if (!mon || !mon.art) return;
-  const b = monsterBitmap(mon);
+  drawMonsterBmp(ctx, monsterBitmap(mon), cx, cy, size, alpha);
+}
+function drawMonsterBmp(ctx, b, cx, cy, size, alpha = 1) {
+  if (!b) return;
   const dot = size / (Math.max(12, b.w, b.h) / 12);
   const W = (b.w + b.pad * 2) * dot, H = (b.h + b.pad * 2) * dot;
   ctx.save();
@@ -11717,7 +11742,7 @@ function titleSummary() {
 
 function init() {
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
-  window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACHIEVEMENTS, questProgress, pickLoot, showItemGet };
+  window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACHIEVEMENTS, questProgress, pickLoot, showItemGet, startBattle, spawnCardEnemies, spawnBossEnemies, activeCfg };
 
   let loaded = false;
   try { loaded = loadGame(); } catch (e) { loaded = false; }
