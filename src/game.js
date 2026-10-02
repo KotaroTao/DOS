@@ -11228,6 +11228,10 @@ function returnToTown(opts = {}) {
   renderTown();
   autosave(true);
   if (abyssSummary) showAbyssSummary(abyssSummary);
+  // 帰還の報告は街の広場 (WP-A) が UI.renderRunReport で札として置く。まだ置かれていなければ、シートで見せる
+  else setTimeout(() => {
+    if (G.state === "town" && G.lastRun && !G.lastRun.dismissed && !document.querySelector(".rr-card") && !uiBlocked() && UI.openRunReport) UI.openRunReport();
+  }, 450);
   // §7 M9 帰還時に宿で休む (設定で選んだ時だけ。宿賃は宿屋と同じ)
   if (outcome !== "wipe" && uiDungeonHud.getPref("autoRest")) {
     let c = null;
