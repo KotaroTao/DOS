@@ -6,6 +6,7 @@
 //   kind: chat = 他愛のない話 / hint = 仕組みの助言 / now = いまの状況への助言 (当てはまる時だけ)
 //   fresh = 開いた直後の来館で、真っ先に話す (新しく解放された要素の知らせ)
 //   must = 当てはまる間は必ずこれを話す (人業がまだいない時の案内)
+//   bond / until / 段ごとの say = 親しさ。最初はよそよそしく、層を進めるほど親密になる (よそよそしい話は、打ち解けたらもうしない)
 // 状態は G.irene = { greeted, visits, seen: {id: 回数}, last } (セーブされる)。
 // game.js は import しない (ctx.js の UI / game を通す)。
 
@@ -54,6 +55,7 @@ function ctxNow() {
   return {
     G, party, reserve, dolls, items, ms, stats, cleared,
     visits: ireneState().visits || 0,
+    bond: bondOf(cleared, ireneState().visits || 0),     // 親しさの段 (0〜5)
     act: ms.n || 0,                                      // 勅命の章 (= 迷宮番号)
     sealed: safe(() => !!game.contentSealed(), false),
     fusion: feature("fusion"),
@@ -100,150 +102,259 @@ function fusable(c) {
 const canMake = (c) => c.party.length < 6 && c.freeSouls.length > 0 && (c.G.redSoul || 0) >= safe(() => game.emptyDollCost(), Infinity);
 const jobName = (s) => (s && SOUL_CLASSES[s.clsKey] ? soulSeriesName(s.clsKey) : "宿した");
 
+// ---------- 親しさ (よそよそしい → 親密) ----------
+// 段 0〜5。迷宮の踏破 (層を進める) で深まる。ただし館に通った回数でも頭打ちにする
+// (記録の深い所から初めて館に来ても、出会いはよそよそしい所から始まる)。
+//   0 他人行儀 (です・ます、冷ややか) / 1 顔見知り (丁寧だが少し和らぐ) / 2 打ち解け (くだけた口調)
+//   3 親しみ (層の主を討った頃。名で呼ばせる) / 4 親密 (身の上を語る) / 5 特別 (秘密を明かす)
+const BOND_CLEARED = [0, 1, 3, 5, 10, 25]; // その段に要る踏破数
+const BOND_VISITS = [0, 2, 4, 6, 9, 12];   // その段に要る来館数
+export const BOND_NAME = ["他人行儀", "顔見知り", "打ち解け", "親しみ", "親密", "特別"];
+const stageOf = (v, th) => { let s = 0; for (let i = 0; i < th.length; i++) if (v >= th[i]) s = i; return s; };
+function bondOf(cleared, visits) { return Math.min(stageOf(cleared, BOND_CLEARED), stageOf(visits, BOND_VISITS)); }
+export function ireneBond() { const c = ctxNow(); return c.bond; }
+
 // ---------- 話題 ----------
-// say: [1行目, 2行目] か、(c) => [..] (人業の名などを差し込む時)
+// say: [1行目, 2行目] / (c) => [..] (人業の名などを差し込む時) /
+//      { 段: [..] か (c) => [..], … } = 親しさの段ごとの口調 (いまの段以下で、いちばん高い段の言い方を使う)
+// bond = 話しはじめる段 (既定 0) / until = この段を越えたら、もう話さない (よそよそしい頃だけの話)
 const LINES = [
+  // ---- 親しさの節目 (その段になった直後の来館で、ほかの新しい話題より先に話す) ----
+  { id: "m_bond1", kind: "chat", fresh: true, bond: 1, until: 1,
+    say: ["……また、来られたのですね。", "いえ。この館へ二度来る魂繰りは、珍しいもので。"] },
+  { id: "m_bond2", kind: "chat", fresh: true, bond: 2, until: 2,
+    say: ["……もう、そんなに堅苦しくしなくていいわ。", "わたしも、そうするから。"] },
+  { id: "m_bond3", kind: "chat", fresh: true, bond: 3, until: 3,
+    say: ["イレーヌ、と呼んでくれていいのよ。", "様なんて付けられると、背中がむず痒くなるの。"] },
+  { id: "m_bond4", kind: "chat", fresh: true, bond: 4, until: 4,
+    say: ["あなたが来ると、館の蝋燭が少し明るくなるの。", "……本当よ。人形たちも、そう言っているわ。"] },
+  { id: "m_bond5", kind: "chat", fresh: true, bond: 5,
+    say: ["最初に会った日のこと、覚えている?", "あんなに冷たくして……ごめんなさいね。怖かったの。"] },
+
   // ---- いまの状況 (当てはまる時だけ。上ほど急ぎ) ----
-  { id: "n_nodoll", kind: "now", must: true, when: (c) => !c.dolls.length,
-    say: ["さあ、宿す魂をひとつ選んで。", "器はわたしが仕立ててあげる。最初の三体は、お代はいらないわ。"] },
-  { id: "n_dead", kind: "now", when: (c) => !!deadDoll(c),
-    say: (c) => [`${deadDoll(c).name}の器が、砕けたままね……`, "時が経てば戻るけれど、赤い魂で迎えを早めることもできるわ。"] },
-  { id: "n_hurt", kind: "now", when: (c) => !!hurtDoll(c),
-    say: (c) => [`${hurtDoll(c).name}、ずいぶん傷んでいるわ。`, "潜る前に、宿屋で休ませてあげて。"] },
-  { id: "n_unid", kind: "now", when: (c) => c.hasUnid,
-    say: ["伏せ名の品を持っているわね。", "商会で鑑定すれば、正体を明かして身に着けられるわ。"] },
-  { id: "n_better", kind: "now", when: () => safe(() => UI.betterGearCount() > 0, false),
-    say: ["もっと似合う衣が、袋の中で眠っているわ。", "『最適装備』を押してごらんなさい。"] },
-  { id: "n_train", kind: "now", when: (c) => !!trainable(c),
-    say: (c) => ["✦Soulが貯まっているわね。", `『魂』の区分で、${jobName(trainable(c))}の魂を鍛えてあげて。`] },
-  { id: "n_make", kind: "now", when: (c) => c.dolls.length > 0 && canMake(c),
-    say: ["宿り手のいない魂が、まだ眠っているわ。", "器を仕立てて、目覚めさせてあげましょう。"] },
-  { id: "n_fuse", kind: "now", when: (c) => !!fusable(c),
-    say: (c) => [`${jobName(fusable(c))}の魂が、もうひとつ余っているわね。`, "『魂』の区分で吸わせれば、魂の格が上がるわ。"] },
-  { id: "n_backmelee", kind: "now", when: (c) => !!backMelee(c),
-    say: (c) => [`後衛の${backMelee(c).name}に、刃の短い得物は不向きよ。`, "届くのは敵の前衛だけ。それも力は半分になるわ。"] },
-  { id: "n_bag", kind: "now", when: (c) => !!fullBag(c),
-    say: (c) => [`${fullBag(c).name}の袋が、もう一杯ね。`, "要らない品は、商会で手放しておきなさい。"] },
-  { id: "n_embers", kind: "now", when: (c) => (c.G.embers || 0) > 0,
-    say: ["魂の残火を持っているわね。", "『魂』の区分で使えば、魂の育つ限りを押し広げられるわ。"] },
-  { id: "n_solo", kind: "now", when: (c) => c.party.length === 1 && !canMake(c),
-    say: ["一体きりで迷宮へ?", "……背中を預けられる仲間がいれば、魂も心強いでしょうに。"] },
+  { id: "n_nodoll", kind: "now", must: true, when: (c) => !c.dolls.length, say: {
+    0: ["では、宿す魂をひとつお選びください。", "器はこちらで仕立てます。最初の三体に、お代は要りません。"],
+    2: ["さあ、宿す魂をひとつ選んで。", "器はわたしが仕立ててあげる。"] } },
+  { id: "n_dead", kind: "now", when: (c) => !!deadDoll(c), say: {
+    0: (c) => [`${deadDoll(c).name}の器が、砕けたままです。`, "時が経てば戻りますが、赤い魂で迎えを早めることもできます。"],
+    2: (c) => [`${deadDoll(c).name}の器が、砕けたままね……`, "時が経てば戻るけれど、赤い魂で迎えを早めることもできるわ。"],
+    4: (c) => [`${deadDoll(c).name}……また無茶をさせたのね。`, "迎えは赤い魂で早められるわ。……あなたも、少し休んで。"] } },
+  { id: "n_hurt", kind: "now", when: (c) => !!hurtDoll(c), say: {
+    0: (c) => [`${hurtDoll(c).name}の器が傷んでいます。`, "潜る前に、宿屋で休ませるのがよろしいかと。"],
+    2: (c) => [`${hurtDoll(c).name}、ずいぶん傷んでいるわ。`, "潜る前に、宿屋で休ませてあげて。"],
+    4: (c) => [`${hurtDoll(c).name}の傷、見ていられないわ。`, "宿屋へ連れていって。……あなたの顔色も、よくないわよ。"] } },
+  { id: "n_unid", kind: "now", when: (c) => c.hasUnid, say: {
+    0: ["伏せ名の品をお持ちですね。", "商会で鑑定なされば、身に着けられるようになります。"],
+    2: ["伏せ名の品を持っているわね。", "商会で鑑定すれば、正体を明かして身に着けられるわ。"] } },
+  { id: "n_better", kind: "now", when: () => safe(() => UI.betterGearCount() > 0, false), say: {
+    0: ["袋の中に、より相応しい品があるようです。", "『最適装備』をお使いください。"],
+    2: ["もっと似合う衣が、袋の中で眠っているわ。", "『最適装備』を押してごらんなさい。"],
+    4: ["あら、その子にはもっと似合う衣があるのに。", "『最適装備』……わたしに選ばせてくれてもいいのよ?"] } },
+  { id: "n_train", kind: "now", when: (c) => !!trainable(c), say: {
+    0: (c) => ["✦Soulが貯まっています。", `『魂』の区分で、${jobName(trainable(c))}の魂を鍛えられます。`],
+    2: (c) => ["✦Soulが貯まっているわね。", `『魂』の区分で、${jobName(trainable(c))}の魂を鍛えてあげて。`] } },
+  { id: "n_make", kind: "now", when: (c) => c.dolls.length > 0 && canMake(c), say: {
+    0: ["宿り手のいない魂がございます。", "器をお仕立てになるなら、お申しつけを。"],
+    2: ["宿り手のいない魂が、まだ眠っているわ。", "器を仕立てて、目覚めさせてあげましょう。"] } },
+  { id: "n_fuse", kind: "now", when: (c) => !!fusable(c), say: {
+    0: (c) => [`${jobName(fusable(c))}の魂が、ひとつ余っています。`, "『魂』の区分で吸わせれば、魂の格が上がります。"],
+    2: (c) => [`${jobName(fusable(c))}の魂が、もうひとつ余っているわね。`, "『魂』の区分で吸わせれば、魂の格が上がるわ。"] } },
+  { id: "n_backmelee", kind: "now", when: (c) => !!backMelee(c), say: {
+    0: (c) => [`後衛の${backMelee(c).name}に、刃の短い得物は不向きです。`, "届くのは敵の前衛のみ。力も半分になります。"],
+    2: (c) => [`後衛の${backMelee(c).name}に、刃の短い得物は不向きよ。`, "届くのは敵の前衛だけ。それも力は半分になるわ。"] } },
+  { id: "n_bag", kind: "now", when: (c) => !!fullBag(c), say: {
+    0: (c) => [`${fullBag(c).name}の袋が一杯です。`, "不要な品は、商会でお手放しください。"],
+    2: (c) => [`${fullBag(c).name}の袋が、もう一杯ね。`, "要らない品は、商会で手放しておきなさい。"] } },
+  { id: "n_embers", kind: "now", when: (c) => (c.G.embers || 0) > 0, say: {
+    0: ["魂の残火をお持ちですね。", "『魂』の区分で、魂の育つ限りを押し広げられます。"],
+    2: ["魂の残火を持っているわね。", "『魂』の区分で使えば、魂の育つ限りを押し広げられるわ。"] } },
+  { id: "n_solo", kind: "now", when: (c) => c.party.length === 1 && !canMake(c), say: {
+    0: ["一体きりで迷宮へ……ですか。", "差し出がましいようですが、仲間をお勧めします。"],
+    2: ["一体きりで迷宮へ?", "……背中を預けられる仲間がいれば、魂も心強いでしょうに。"] } },
 
   // ---- 仕組みの助言 (使えるようになったら話す) ----
-  { id: "h_core", kind: "hint", when: (c) => c.dolls.length > 0,
-    say: ["人業とは、魂に刻まれた力のかたち。", "迷った時は、前衛と後衛の役割を見直してみなさい。"] },
-  { id: "h_gear", kind: "hint", when: (c) => c.dolls.length > 0,
-    say: ["装備は器の衣。", "似合わぬ衣は、魂を窮屈にさせるだけよ。"] },
-  { id: "h_rows", kind: "hint", when: (c) => c.dolls.length > 0,
-    say: ["前衛は刃を受け止める盾。後衛は、受ける傷も与える傷も半分。", "力自慢は前へ、術者と射手は後ろへ。"] },
-  { id: "h_form", kind: "hint", when: (c) => c.party.length >= 2,
-    say: ["隊列の札は、長く押して並べ替えられるわ。", "並びひとつで、人業の運命は変わるもの。"] },
-  { id: "h_auto", kind: "hint", when: (c) => c.dolls.length > 0,
-    say: ["装備に迷ったら『最適装備』を押しなさい。", "器に似合う衣を、わたしが見繕ってあげる。"] },
-  { id: "h_range", kind: "hint", when: (c) => c.hasWeapon,
-    say: ["剣や斧が届くのは、敵の前衛だけ。", "槍なら前衛から奥まで、弓ならどこへでも届くわ。"] },
-  { id: "h_train", kind: "hint", when: (c) => c.act >= 1 && c.dolls.length > 0,
-    say: ["迷宮で集めた✦Soulは、魂を育てる糧。", "器ではなく、宿った魂そのものが強くなるのよ。"] },
-  { id: "h_inn", kind: "hint", when: (c) => c.act >= 1,
-    say: ["傷ついた器は、宿屋で休ませなさい。", "疲れた魂は、器の中で軋むものよ。"] },
-  { id: "h_spell", kind: "hint", when: (c) => c.act >= 1,
-    say: ["術は、隊列の前でも後ろでも力を落とさない。", "後衛の魔導士こそ、隊のいちばん鋭い牙よ。"] },
-  { id: "h_unid", kind: "hint", when: (c) => c.hasUnid || c.items.some((it) => it.slot && it.slot !== "use" && it.slot !== "misc"),
-    say: ["迷宮で拾った品は、伏せ名のまま。", "正体を明かすまでは、身に着けられないの。"] },
-  { id: "h_curse", kind: "hint", fresh: true, when: (c) => c.hasCursed,
-    say: ["呪われた品は、一度身に着けたら外れないわ。", "……着せる前に、よく見定めることね。"] },
-  { id: "h_rarity", kind: "hint", fresh: true, when: (c) => c.hasRare,
-    say: ["品の名の色は、格の証。", "白、緑、青、橙……赤い名の品に出会えたら、それは運命よ。"] },
-  { id: "h_sr", kind: "hint", when: (c) => c.hasSR,
-    say: ["橙の名の品を手に入れたのね。", "ああいう品は、器の格まで引き上げてくれるわ。"] },
-  { id: "h_lr", kind: "hint", fresh: true, when: (c) => c.hasLR,
-    say: ["赤い名の品……レジェンドレアは、世にひとつきり。", "持ち主を選ぶ品よ。大切になさい。"] },
-  { id: "h_reserve", kind: "hint", fresh: true, when: (c) => c.reserve.length > 0,
-    say: ["控えの子たちも、ちゃんと見ているわ。", "右上の『控え』から、いつでも隊と入れ替えられるのよ。"] },
-  { id: "h_rescue", kind: "hint", fresh: true, when: (c) => c.deaths > 0,
-    say: ["迷宮で砕けた器は、ほかの冒険者が連れ帰ってくれる。", "深い階で砕けるほど、戻るまでに時がかかるわ。"] },
-  { id: "h_embers", kind: "hint", when: (c) => (c.G.embers || 0) > 0 || c.cleared >= 2,
-    say: ["魂の残火は、死者が遺した最後の熱。", "育ちきった魂に与えれば、もう一歩先へ伸びられるわ。"] },
-  { id: "h_boss", kind: "hint", when: (c) => c.act >= 1 && c.cleared < 5,
-    say: ["層の底には、主が棲んでいるそうよ。", "挑む前に、傷と装備を整えておきなさい。"] },
-  { id: "h_elem", kind: "hint", fresh: true, when: (c) => c.hasElem,
-    say: ["火は風を、風は土を、土は水を、水は火を制する。", "光と闇は、互いを喰らい合う。属性を味方につけなさい。"] },
-  { id: "h_fusion", kind: "hint", fresh: true, when: (c) => c.fusion,
-    say: ["同じ職の魂を、ひとつに束ねられるようになったわ。", "魂を吸わせるほど格が上がり、新たな加護を覚えるの。"] },
-  { id: "h_rank", kind: "hint", fresh: true, when: (c) => c.maxRank >= 2,
-    say: ["格の上がった魂は、器に新たな加護を授けるわ。", "束ねた魂が多いほど、魂の育つ限りも高くなるのよ。"] },
-  { id: "h_subs", kind: "hint", fresh: true, when: (c) => c.subs >= 1,
-    say: ["器に、もうひとつ魂を宿せるようになったわ。", "宿し技……ほかの職の秘技を、借りられるの。"] },
-  { id: "h_subs2", kind: "hint", fresh: true, when: (c) => c.subs >= 2,
-    say: ["宿し技の枠が、ふたつに増えたわ。", "三つの魂を抱く器……あなたの手も、ずいぶん慣れてきたわね。"] },
-  { id: "h_order", kind: "hint", fresh: true, when: (c) => c.order,
-    say: ["隊に加えていない魂も、無駄にはならないの。", "控えの結社に席を与えれば、隊のみんなを守ってくれるわ。"] },
-  { id: "h_rumor", kind: "hint", fresh: true, when: (c) => c.rumor,
-    say: ["酒場の噂が、迷宮の様子を変えることがあるそうね。", "宝の噂か、罠の噂か……耳は澄ませておきなさい。"] },
+  { id: "h_core", kind: "hint", when: (c) => c.dolls.length > 0, say: {
+    0: ["人業とは、魂に刻まれた力のかたちです。", "迷われた時は、前衛と後衛の役割をお見直しください。"],
+    2: ["人業とは、魂に刻まれた力のかたち。", "迷った時は、前衛と後衛の役割を見直してみなさい。"] } },
+  { id: "h_gear", kind: "hint", when: (c) => c.dolls.length > 0, say: {
+    0: ["装備は器の衣です。", "似合わぬ衣は、魂を窮屈にさせるだけですので。"],
+    2: ["装備は器の衣。", "似合わぬ衣は、魂を窮屈にさせるだけよ。"] } },
+  { id: "h_rows", kind: "hint", when: (c) => c.dolls.length > 0, say: {
+    0: ["前衛は刃を受け、後衛は受ける傷も与える傷も半分になります。", "力ある器は前へ、術者と射手は後ろへ。"],
+    2: ["前衛は刃を受け止める盾。後衛は、受ける傷も与える傷も半分。", "力自慢は前へ、術者と射手は後ろへ。"],
+    4: ["前は盾、後ろは牙。……ふふ、もう言うまでもないわね。", "それでも、あなたの子たちの並びを見るのは好きよ。"] } },
+  { id: "h_form", kind: "hint", when: (c) => c.party.length >= 2, say: {
+    0: ["隊列の札は、長く押せば並べ替えられます。", "並びひとつで、人業の運命は変わりますので。"],
+    2: ["隊列の札は、長く押して並べ替えられるわ。", "並びひとつで、人業の運命は変わるもの。"] } },
+  { id: "h_auto", kind: "hint", when: (c) => c.dolls.length > 0, say: {
+    0: ["装備にお迷いなら『最適装備』を。", "器に相応しい品を、こちらで見繕います。"],
+    2: ["装備に迷ったら『最適装備』を押しなさい。", "器に似合う衣を、わたしが見繕ってあげる。"],
+    4: ["装備はわたしに任せて。『最適装備』よ。", "あなたの子たちのことなら、目を閉じていても選べるわ。"] } },
+  { id: "h_range", kind: "hint", when: (c) => c.hasWeapon, say: {
+    0: ["剣や斧が届くのは、敵の前衛のみです。", "槍は前衛から奥まで、弓はどこへでも届きます。"],
+    2: ["剣や斧が届くのは、敵の前衛だけ。", "槍なら前衛から奥まで、弓ならどこへでも届くわ。"] } },
+  { id: "h_train", kind: "hint", when: (c) => c.act >= 1 && c.dolls.length > 0, say: {
+    0: ["迷宮で集めた✦Soulは、魂を育てる糧です。", "強くなるのは器ではなく、宿った魂そのもの。"],
+    2: ["迷宮で集めた✦Soulは、魂を育てる糧。", "器ではなく、宿った魂そのものが強くなるのよ。"] } },
+  { id: "h_inn", kind: "hint", when: (c) => c.act >= 1, say: {
+    0: ["傷んだ器は、宿屋で休ませるのがよろしいかと。", "疲れた魂は、器の中で軋みますので。"],
+    2: ["傷ついた器は、宿屋で休ませなさい。", "疲れた魂は、器の中で軋むものよ。"] } },
+  { id: "h_spell", kind: "hint", when: (c) => c.act >= 1, say: {
+    0: ["術は、前に立っても後ろに立っても力を落としません。", "後衛の魔導士は、隊の鋭い牙となりましょう。"],
+    2: ["術は、隊列の前でも後ろでも力を落とさない。", "後衛の魔導士こそ、隊のいちばん鋭い牙よ。"] } },
+  { id: "h_unid", kind: "hint", when: (c) => c.hasUnid || c.items.some((it) => it.slot && it.slot !== "use" && it.slot !== "misc"), say: {
+    0: ["迷宮で拾われた品は、伏せ名のままです。", "正体を明かすまでは、身に着けられません。"],
+    2: ["迷宮で拾った品は、伏せ名のまま。", "正体を明かすまでは、身に着けられないの。"] } },
+  { id: "h_curse", kind: "hint", fresh: true, when: (c) => c.hasCursed, say: {
+    0: ["呪われた品は、一度身に着ければ外れません。", "……お気をつけを。"],
+    2: ["呪われた品は、一度身に着けたら外れないわ。", "……着せる前に、よく見定めることね。"] } },
+  { id: "h_rarity", kind: "hint", fresh: true, when: (c) => c.hasRare, say: {
+    0: ["品の名の色は、格の証です。", "白、緑、青、橙、そして赤。赤い名には、滅多に出会えません。"],
+    2: ["品の名の色は、格の証。", "白、緑、青、橙……赤い名の品に出会えたら、それは運命よ。"] } },
+  { id: "h_sr", kind: "hint", when: (c) => c.hasSR, say: {
+    0: ["橙の名の品をお持ちですね。", "器の格まで引き上げる品です。"],
+    2: ["橙の名の品を手に入れたのね。", "ああいう品は、器の格まで引き上げてくれるわ。"] } },
+  { id: "h_lr", kind: "hint", fresh: true, when: (c) => c.hasLR, say: {
+    0: ["赤い名の品……レジェンドレアは、世にひとつきりです。", "持ち主を選ぶ品。大切になさいませ。"],
+    2: ["赤い名の品……レジェンドレアは、世にひとつきり。", "持ち主を選ぶ品よ。大切になさい。"],
+    4: ["その赤い名の品……あなたを選んだのね。", "妬けるわ。わたしの人形たちより、ずっと一途。"] } },
+  { id: "h_reserve", kind: "hint", fresh: true, when: (c) => c.reserve.length > 0, say: {
+    0: ["控えの器も、見ておりますよ。", "右上の『控え』から、隊と入れ替えられます。"],
+    2: ["控えの子たちも、ちゃんと見ているわ。", "右上の『控え』から、いつでも隊と入れ替えられるのよ。"] } },
+  { id: "h_rescue", kind: "hint", fresh: true, when: (c) => c.deaths > 0, say: {
+    0: ["迷宮で砕けた器は、ほかの冒険者が連れ帰ります。", "深い階で砕けるほど、戻るまでに時がかかります。"],
+    2: ["迷宮で砕けた器は、ほかの冒険者が連れ帰ってくれる。", "深い階で砕けるほど、戻るまでに時がかかるわ。"] } },
+  { id: "h_embers", kind: "hint", when: (c) => (c.G.embers || 0) > 0 || c.cleared >= 2, say: {
+    0: ["魂の残火は、死者が遺した最後の熱です。", "育ちきった魂に与えれば、もう一歩先へ伸びます。"],
+    2: ["魂の残火は、死者が遺した最後の熱。", "育ちきった魂に与えれば、もう一歩先へ伸びられるわ。"] } },
+  { id: "h_boss", kind: "hint", when: (c) => c.act >= 1 && c.cleared < 5, say: {
+    0: ["層の底には、主が棲むと聞きます。", "挑まれる前に、傷と装備をお整えください。"],
+    2: ["層の底には、主が棲んでいるそうよ。", "挑む前に、傷と装備を整えておきなさい。"] } },
+  { id: "h_elem", kind: "hint", fresh: true, when: (c) => c.hasElem, say: {
+    0: ["火は風を、風は土を、土は水を、水は火を制します。", "光と闇は、互いを喰らい合います。"],
+    2: ["火は風を、風は土を、土は水を、水は火を制する。", "光と闇は、互いを喰らい合う。属性を味方につけなさい。"] } },
+  { id: "h_fusion", kind: "hint", fresh: true, when: (c) => c.fusion, say: {
+    0: ["同じ職の魂を、ひとつに束ねられるようになりました。", "魂を吸わせるほど格が上がり、新たな加護を覚えます。"],
+    2: ["同じ職の魂を、ひとつに束ねられるようになったわ。", "魂を吸わせるほど格が上がり、新たな加護を覚えるの。"] } },
+  { id: "h_rank", kind: "hint", fresh: true, when: (c) => c.maxRank >= 2, say: {
+    0: ["格の上がった魂は、器に新たな加護を授けます。", "束ねた魂が多いほど、魂の育つ限りも高くなります。"],
+    2: ["格の上がった魂は、器に新たな加護を授けるわ。", "束ねた魂が多いほど、魂の育つ限りも高くなるのよ。"] } },
+  { id: "h_subs", kind: "hint", fresh: true, when: (c) => c.subs >= 1, say: {
+    0: ["器に、もうひとつ魂を宿せるようになりました。", "宿し技……ほかの職の秘技を、借りられます。"],
+    2: ["器に、もうひとつ魂を宿せるようになったわ。", "宿し技……ほかの職の秘技を、借りられるの。"] } },
+  { id: "h_subs2", kind: "hint", fresh: true, when: (c) => c.subs >= 2, say: {
+    0: ["宿し技の枠が、ふたつに増えました。", "三つの魂を抱く器……お見事です。"],
+    2: ["宿し技の枠が、ふたつに増えたわ。", "三つの魂を抱く器……あなたの手も、ずいぶん慣れてきたわね。"] } },
+  { id: "h_order", kind: "hint", fresh: true, when: (c) => c.order, say: {
+    0: ["隊に加えていない魂も、無駄にはなりません。", "控えの結社に席を与えれば、隊を守ってくれます。"],
+    2: ["隊に加えていない魂も、無駄にはならないの。", "控えの結社に席を与えれば、隊のみんなを守ってくれるわ。"] } },
+  { id: "h_rumor", kind: "hint", fresh: true, when: (c) => c.rumor, say: {
+    0: ["酒場の噂が、迷宮の様子を変えることがあるそうです。", "耳は澄ませておかれるとよいでしょう。"],
+    2: ["酒場の噂が、迷宮の様子を変えることがあるそうね。", "宝の噂か、罠の噂か……耳は澄ませておきなさい。"] } },
 
-  // ---- 他愛のない話 (いつでも) ----
-  { id: "c_hair", kind: "chat", say: ["人形たちの髪を梳くのが、わたしの日課なの。", "……魂のない子ほど、よく眠るのよ。"] },
-  { id: "c_candle", kind: "chat", say: ["この館の蝋燭は、一度も消えたことがないの。", "消えたら何が起きるか……試したくはないわね。"] },
-  { id: "c_wood", kind: "chat", say: ["器の木は、墓地の古い楡から削り出すの。", "死者を見送ってきた木は、魂を拒まないから。"] },
-  { id: "c_age", kind: "chat", say: ["わたしの歳?", "……人形に歳を訊く人なんて、あなたが初めてよ。"] },
-  { id: "c_steps", kind: "chat", say: ["夜更けに、二階の人形が歩く音がするの。", "怖がらなくていいわ。あの子たちは、ただ寂しいだけ。"] },
-  { id: "c_hands", kind: "chat", say: ["あなたの手、魂繰りの手ね。", "冷たいのに、魂には温かい。不思議な手。"] },
-  { id: "c_tea", kind: "chat", say: ["お茶はいかが? 夜咲きの菫を浮かべたの。", "……迷宮帰りの喉には、少し甘すぎるかしら。"] },
-  { id: "c_honest", kind: "chat", when: (c) => c.dolls.length > 0,
+  // ---- よそよそしい頃だけの話 (打ち解けたら、もう話さない) ----
+  { id: "f_busy", kind: "chat", until: 0, say: ["ご用件はお済みですか。", "でしたら、人形たちを起こさぬよう、お静かに。"] },
+  { id: "f_touch", kind: "chat", until: 1, say: ["棚の人形には、お手を触れぬよう。", "あの子たちは、まだ誰の魂も知りませんので。"] },
+  { id: "f_name", kind: "chat", until: 0, say: ["わたしの名ですか。", "……イレーヌ。それ以上は、お仕事に要りませんでしょう。"] },
+  { id: "f_tea", kind: "chat", until: 1, say: ["お茶はお出ししておりません。", "ここは工房であって、客間ではございませんので。"] },
+  { id: "f_king", kind: "chat", until: 1, when: (c) => c.dolls.length > 0,
+    say: ["王命で参られた魂繰り様、でしたね。", "前の方は……いえ、何でもございません。"] },
+  { id: "f_candle", kind: "chat", until: 1, say: ["この館の蝋燭は、絶やしたことがありません。", "理由は……お話しするほどのことでは。"] },
+  { id: "s1_ask", kind: "chat", bond: 1, until: 1, when: (c) => c.cleared >= 1,
+    say: ["迷宮は、いかがでしたか。", "……いえ。器の傷み具合を伺っただけです。"] },
+  { id: "s1_hair", kind: "chat", bond: 1, until: 1,
+    say: ["人形の髪を梳くのが、わたしの日課です。", "……魂のない子ほど、よく眠るのですよ。"] },
+  { id: "s1_wood", kind: "chat", bond: 1, until: 1,
+    say: ["器の木は、墓地の古い楡から削り出しています。", "死者を見送ってきた木は、魂を拒みませんので。"] },
+
+  // ---- 打ち解けてから (くだけた口調の世間話) ----
+  { id: "c_hair", kind: "chat", bond: 2, say: ["人形たちの髪を梳くのが、わたしの日課なの。", "……魂のない子ほど、よく眠るのよ。"] },
+  { id: "c_candle", kind: "chat", bond: 2, say: ["この館の蝋燭は、一度も消えたことがないの。", "消えたら何が起きるか……試したくはないわね。"] },
+  { id: "c_wood", kind: "chat", bond: 2, say: ["器の木は、墓地の古い楡から削り出すの。", "死者を見送ってきた木は、魂を拒まないから。"] },
+  { id: "c_steps", kind: "chat", bond: 2, say: ["夜更けに、二階の人形が歩く音がするの。", "怖がらなくていいわ。あの子たちは、ただ寂しいだけ。"] },
+  { id: "c_orb", kind: "chat", bond: 2, say: ["机の上の水晶玉? あれは魂の揺りかご。", "器を待つ魂が、ときどき中で寝返りを打つのよ。"] },
+  { id: "c_honest", kind: "chat", bond: 2, when: (c) => c.dolls.length > 0,
     say: ["器は嘘をつかないわ。", "傷もひびも、宿した魂の生き様そのものよ。"] },
-  { id: "c_warm", kind: "chat", when: (c) => c.dolls.length >= 2,
-    say: ["魂を宿すたび、器はほんの少しだけ温かくなるの。", "……あなたにも、わかるかしら。"] },
-  { id: "c_orb", kind: "chat", say: ["机の上の水晶玉? あれは魂の揺りかご。", "器を待つ魂が、ときどき中で寝返りを打つのよ。"] },
-
-  // ---- 他愛のない話 (進むほど増える) ----
-  { id: "c_firstdoll", kind: "chat", when: (c) => c.dolls.length > 0,
+  { id: "c_firstdoll", kind: "chat", bond: 2, when: (c) => c.dolls.length > 0,
     say: ["あなたが最初に仕立てた子、覚えている?", "初めての器には、魂繰りの癖がいちばん出るものよ。"] },
-  { id: "c_grave", kind: "chat", when: (c) => c.act >= 1 && c.cleared < 5,
-    say: ["墓地の迷宮へゆくのね。", "あそこの死者は眠りが浅いの。足音は静かにね。"] },
-  { id: "c_back", kind: "chat", fresh: true, when: (c) => c.cleared >= 1,
-    say: ["初めての迷宮から、よく戻ったわね。", "器に残った土の匂い……嫌いじゃないわ。"] },
-  { id: "c_vos", kind: "chat", when: (c) => c.cleared >= 1,
+  { id: "c_grave", kind: "chat", when: (c) => c.act >= 1 && c.cleared < 5, say: {
+    0: ["墓地の迷宮へ行かれるのですね。", "あそこの死者は眠りが浅い。足音はお静かに。"],
+    2: ["墓地の迷宮へゆくのね。", "あそこの死者は眠りが浅いの。足音は静かにね。"] } },
+  { id: "c_back", kind: "chat", fresh: true, when: (c) => c.cleared >= 1, say: {
+    0: ["初めての迷宮から、戻られたのですね。", "器に残った土の匂い……嫌いではありません。"],
+    2: ["初めての迷宮から、よく戻ったわね。", "器に残った土の匂い……嫌いじゃないわ。"] } },
+  { id: "c_vos", kind: "chat", bond: 2, when: (c) => c.cleared >= 1,
     say: ["黒鉄商会のヴォス? あの人、わたしの人形まで値踏みするの。", "……売り物じゃないって、何度言ったらわかるのかしら。"] },
-  { id: "c_ilsa", kind: "chat", when: (c) => c.cleared >= 2,
+  { id: "c_ilsa", kind: "chat", bond: 2, when: (c) => c.cleared >= 2,
     say: ["宿のイルザとは古い仲よ。", "あの白狼の毛皮、一枚だけ分けてもらったことがあるの。"] },
-  { id: "c_gram", kind: "chat", when: (c) => c.cleared >= 3,
+  { id: "c_gram", kind: "chat", bond: 2, when: (c) => c.cleared >= 3,
     say: ["酒場のグラムは、わたしの館に一歩も入らないの。", "人形の目が怖いんですって。……可愛いでしょう?"] },
-  { id: "c_king", kind: "chat", when: (c) => c.cleared >= 3,
+  { id: "c_king", kind: "chat", bond: 2, when: (c) => c.cleared >= 3,
     say: ["王はあなたを気に入ったみたいね。", "あの方が笑うのは、駒が役に立つ時だけだけれど。"] },
-  { id: "c_broken", kind: "chat", when: (c) => c.deaths > 0,
-    say: ["砕けた器を見るのは、何度目でも慣れないわ。", "……でも魂さえ戻れば、また立ち上がれる。"] },
-  { id: "c_spill", kind: "chat", when: (c) => c.deaths >= 3,
+  { id: "c_broken", kind: "chat", when: (c) => c.deaths > 0, say: {
+    0: ["砕けた器を見るのは、何度でも慣れません。", "……魂さえ戻れば、また立ち上がれますが。"],
+    2: ["砕けた器を見るのは、何度目でも慣れないわ。", "……でも魂さえ戻れば、また立ち上がれる。"] } },
+  { id: "c_spill", kind: "chat", bond: 2, when: (c) => c.deaths >= 3,
     say: ["壊れた器は直せても、零れた魂は戻らない。", "無理をさせては駄目よ。"] },
-  { id: "c_boss", kind: "chat", fresh: true, when: (c) => c.bossKills > 0,
-    say: ["迷宮の主を討ったのですって?", "館の人形たちまで、今夜はざわめいているわ。"] },
-  { id: "c_full", kind: "chat", when: (c) => c.party.length >= 6,
-    say: ["六体そろうと、壮観ね。", "並んだ背中が、まるで本当の家族のよう。"] },
-  { id: "c_paid", kind: "chat", when: (c) => (c.G.dollsPurchased || 0) >= 4,
-    say: ["仕立ての代は、赤い魂で頂いているわ。", "最初の三体は特別だったのよ? 覚えておいてね。"] },
-  { id: "c_sealed", kind: "chat", fresh: true, when: (c) => c.sealed,
-    say: ["次の層への門は、まだ封じられているそうね。", "なら今のうちに、器を磨いておきなさい。"] },
-  { id: "c_layer2", kind: "chat", when: (c) => c.act >= 6 && !c.sealed,
+  { id: "c_boss", kind: "chat", fresh: true, when: (c) => c.bossKills > 0, say: {
+    0: ["迷宮の主を討たれたそうですね。", "……館の人形たちが、今夜はざわめいております。"],
+    3: ["迷宮の主を討ったのですって?", "館の人形たちまで、今夜はざわめいているわ。……わたしもよ。"] } },
+  { id: "c_full", kind: "chat", when: (c) => c.party.length >= 6, say: {
+    0: ["六体、揃いましたね。", "……壮観です。"],
+    2: ["六体そろうと、壮観ね。", "並んだ背中が、まるで本当の家族のよう。"] } },
+  { id: "c_paid", kind: "chat", when: (c) => (c.G.dollsPurchased || 0) >= 4, say: {
+    0: ["仕立ての代は、赤い魂で頂いております。", "最初の三体は、王命ゆえの特別でした。"],
+    2: ["仕立ての代は、赤い魂で頂いているわ。", "最初の三体は特別だったのよ? 覚えておいてね。"] } },
+  { id: "c_sealed", kind: "chat", fresh: true, when: (c) => c.sealed, say: {
+    0: ["次の層への門は、まだ封じられていると聞きます。", "今のうちに、器をお磨きください。"],
+    3: ["次の層への門は、まだ封じられているそうね。", "……少し、ほっとしているの。あなたが遠くへ行かずに済むから。"] } },
+  { id: "c_layer2", kind: "chat", bond: 2, when: (c) => c.act >= 6 && !c.sealed,
     say: ["水路へ降りるのね。", "湿気は木の器の大敵よ。帰ったら、よく乾かしてあげて。"] },
-  { id: "c_layer3", kind: "chat", when: (c) => c.act >= 11 && !c.sealed,
+  { id: "c_layer3", kind: "chat", bond: 2, when: (c) => c.act >= 11 && !c.sealed,
     say: ["廃坑の石の匂いがするわ。", "地の底の闇は、魂の灯をいちばん欲しがるの。"] },
-  { id: "c_layer4", kind: "chat", when: (c) => c.act >= 16 && !c.sealed,
+  { id: "c_layer4", kind: "chat", bond: 2, when: (c) => c.act >= 16 && !c.sealed,
     say: ["捨て砦には、器に宿り損ねた魂が溜まっているそうよ。", "……かわいそうに。いつか、連れて帰ってあげて。"] },
 
-  // ---- 来館を重ねるほど (少しずつ打ち解ける) ----
-  { id: "v_again", kind: "chat", when: (c) => c.visits >= 5,
-    say: ["また来てくれたのね。", "この館まで、わたしに会いに来る人は珍しいのよ。"] },
-  { id: "v_steps", kind: "chat", when: (c) => c.visits >= 15,
-    say: ["あなたの足音、もう覚えてしまったわ。", "扉を開ける前から、あなただとわかるの。"] },
-  { id: "v_master", kind: "chat", when: (c) => c.visits >= 30,
-    say: ["昔、わたしにも魂繰りの師がいたの。", "……その話は、また今度ね。"] },
-  { id: "v_secret", kind: "chat", when: (c) => c.visits >= 60,
-    say: ["わたしの胸の奥にも、ひとつ魂が眠っているの。", "誰のものかは……あなたにだけ、いつか教えてあげる。"] },
+  // ---- 親しみ (層の主を討った頃から) ----
+  { id: "c_tea", kind: "chat", bond: 3, say: ["お茶はいかが? 夜咲きの菫を浮かべたの。", "……前は出さなかった? 気が変わったのよ。"] },
+  { id: "c_age", kind: "chat", bond: 3, say: ["わたしの歳?", "……人形に歳を訊く人なんて、あなたが初めてよ。"] },
+  { id: "c_hands", kind: "chat", bond: 3, say: ["あなたの手、魂繰りの手ね。", "冷たいのに、魂には温かい。不思議な手。"] },
+  { id: "c_warm", kind: "chat", bond: 3, when: (c) => c.dolls.length >= 2,
+    say: ["魂を宿すたび、器はほんの少しだけ温かくなるの。", "……あなたにも、わかるかしら。"] },
+  { id: "c_wait", kind: "chat", bond: 3, say: ["あなたが迷宮にいる間、扉の音ばかり気になるの。", "……人形たちが、よ。わたしじゃないわ。"] },
+  { id: "v_again", kind: "chat", bond: 3, say: ["また来てくれたのね。", "この館まで、わたしに会いに来る人は珍しいのよ。"] },
+
+  // ---- 親密 (身の上を語る) ----
+  { id: "v_steps", kind: "chat", bond: 4, say: ["あなたの足音、もう覚えてしまったわ。", "扉を開ける前から、あなただとわかるの。"] },
+  { id: "v_master", kind: "chat", bond: 4, say: ["昔、わたしにも魂繰りの師がいたの。", "……あなたを見ていると、少しだけ思い出すわ。"] },
+  { id: "c_mydoll", kind: "chat", bond: 4, say: ["ねえ、あなたの器も仕立ててあげましょうか。", "……冗談よ。あなたには、温かい体のままでいてほしいもの。"] },
+  { id: "c_promise", kind: "chat", bond: 4, say: ["深く潜るほど、帰り道は細くなるわ。", "必ず戻ってきて。約束よ。"] },
+  { id: "c_comb", kind: "chat", bond: 4, say: ["たまには、あなたの髪も梳いてあげましょうか?", "……じっとしていられるなら、ね。"] },
+
+  // ---- 特別 (秘密を明かす) ----
+  { id: "v_secret", kind: "chat", bond: 5, say: ["わたしの胸の奥にも、ひとつ魂が眠っているの。", "誰のものか……あなたにだけは、話してもいいわ。"] },
+  { id: "c_before", kind: "chat", bond: 5, say: ["前の魂繰りは、戻ってこなかったの。", "だからあなたにも、心を開くのが怖かった。……もう遅いけれど。"] },
+  { id: "c_home", kind: "chat", bond: 5, say: ["あなたが帰ってくる場所が、ここならいいのに。", "……今のは忘れて。蝋燭の煙が目に沁みただけ。"] },
 ];
 
 const NOW_RECENT = []; // この起動で最近話した「いまの状況」 (同じ助言ばかりにしない)
 
-const resolve = (l, c) => (typeof l.say === "function" ? safe(() => l.say(c), null) : l.say);
-function unlocked(c) { return LINES.filter((l) => !l.when || safe(() => !!l.when(c), false)); }
+// 親しさの段に合う言い方 (段ごとの口調が無ければ、その話題はまだ話せない)
+function sayFor(l, b) {
+  const s = l.say;
+  if (Array.isArray(s) || typeof s === "function") return s;
+  let best = null, bk = -1;
+  for (const k in s) { const n = Number(k); if (n <= b && n > bk) { bk = n; best = s[k]; } }
+  return best;
+}
+const resolve = (l, c) => { const s = sayFor(l, c.bond); return typeof s === "function" ? safe(() => s(c), null) : s; };
+function isOpen(l, c) {
+  if (c.bond < (l.bond || 0)) return false;
+  if (l.until != null && c.bond > l.until) return false;
+  if (!sayFor(l, c.bond)) return false;
+  return !l.when || safe(() => !!l.when(c), false);
+}
+function unlocked(c) { return LINES.filter((l) => isOpen(l, c)); }
 
 // 次に話すことをひとつ選ぶ。entry = 館に入った時 (いまの状況の助言を出しやすくする)
 export function nextLine({ entry = false } = {}) {
@@ -275,34 +386,34 @@ export function nextLine({ entry = false } = {}) {
   return { id: pick.id, lines };
 }
 
-// その話題がいまも開いているか (状況が変わった助言を替えるため)
+// その話題がいまも開いているか (状況・親しさが変わった話を替えるため)
 export function lineOpen(id) {
   const l = LINES.find((x) => x.id === id);
-  return !!l && (!l.when || safe(() => !!l.when(ctxNow()), false));
+  return !!l && isOpen(l, ctxNow());
 }
 
 // 館に入った (タブを開いた) ことを数える
 export function noteVisit() { const st = ireneState(); st.visits = (st.visits || 0) + 1; }
 
 // いま話せる話題の数 / 全体 (確かめ用)
-export function topicCount() { const c = ctxNow(); return { open: unlocked(c).length, all: LINES.length }; }
+export function topicCount() { const c = ctxNow(); return { bond: c.bond, open: unlocked(c).length, all: LINES.length }; }
 
-// ---------- 初訪問の挨拶 (館の案内) ----------
+// ---------- 初訪問の挨拶 (館の案内)。まだよそよそしい ----------
 export function greetingPages() {
   const c = ctxNow();
   const pages = [
-    ["あら……新しい魂繰りさんね。", "ようこそ、人業の館へ。"],
-    ["わたしはイレーヌ。", "この館の主で、器を仕立てる人形師よ。"],
-    ["ここに並ぶ人形は、みんなまだ空っぽの器。", "死者の魂を宿して、はじめて『人業』として目を覚ますの。"],
-    ["器は赤い魂と引き換えに仕立てるわ。", "でも最初の三体は、わたしからの餞別。お代はいらない。"],
-    ["目覚めた人業は、隊列に並べて迷宮へ連れてゆくの。", "前衛に三体、後衛に三体まで。"],
-    ["前衛は刃を受け止める盾。", "後衛は、受ける傷も与える傷も半分になるわ。"],
-    ["だから力自慢は前へ、術者と射手は後ろへ。", "術だけは、どこに立っても力を落とさないのよ。"],
-    ["『装備』では器に衣を着せ、『魂』では宿した魂を鍛え、", "『能力』では器の力を確かめられるわ。"],
-    ["迷宮で集めた✦Soulを注げば、魂は育つ。", "強くなるのは器ではなく、宿った魂そのものよ。"],
-    ["迷ったら、いつでもここへ戻っていらっしゃい。", "わたしは、ずっとここにいるから。"],
+    ["……いらっしゃいませ。", "人業の館へ、ようこそ。"],
+    ["わたしはイレーヌ。", "この館の主で、器を仕立てる人形師をしております。"],
+    ["ここに並ぶ人形は、みな空の器です。", "死者の魂を宿して、はじめて『人業』として目を覚まします。"],
+    ["器は赤い魂と引き換えに仕立てます。", "ただし最初の三体は、王命ゆえお代を頂きません。"],
+    ["目覚めた人業は、隊列に並べて迷宮へ。", "前衛に三体、後衛に三体まで連れてゆけます。"],
+    ["前衛は刃を受け止める盾。", "後衛は、受ける傷も与える傷も半分になります。"],
+    ["力ある器は前へ、術者と射手は後ろへ。", "術だけは、どこに立っても力を落としません。"],
+    ["『装備』では器に衣を着せ、『魂』では宿した魂を鍛え、", "『能力』では器の力を確かめられます。"],
+    ["迷宮で集めた✦Soulを注げば、魂は育ちます。", "強くなるのは器ではなく、宿った魂そのものです。"],
+    ["ご用の際は、またお越しください。", "……器を粗末になさる方とは、二度とお会いしたくありませんが。"],
   ];
-  if (!c.dolls.length) pages.push(["さあ、宿す魂をひとつ選んで。", "あなたの最初の人業を、目覚めさせましょう。"]);
+  if (!c.dolls.length) pages.push(["では、宿す魂をひとつお選びください。", "器は、わたしが仕立てます。"]);
   return pages;
 }
 
