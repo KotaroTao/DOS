@@ -80,19 +80,20 @@ function builtinSuggestions(c) {
   if (better > 0 && facilityOpen("mansion") && UI.autoEquip) {
     out.push({ key: "autoEquip", prio: 50, label: "最適装備", sub: `より良い品 ${better}`, icon: "party", run: () => UI.autoEquip("all") });
   }
-  // 鍛えられる魂 (1タップで1段。長押しで隊の魂の画面)
+  // 鍛えられる魂 (1タップで1段。長押しで隊の魂の画面)。隊のレベルが揃うよう、いちばん低いLvの魂だけを勧める
+  // (その魂に ✦ が足りなければ、高いLvの魂を先に鍛えはしない)
   let tl = [];
   try { tl = UI.trainableList ? (UI.trainableList() || []) : []; } catch (e) { tl = []; }
-  if (tl.length && facilityOpen("mansion")) {
-    const t = tl[0];
+  const t = tl.find((x) => x.lowest !== false);
+  if (t && facilityOpen("mansion")) {
     const idx = (g.party || []).indexOf(t.doll);
     // 1段鍛える (WP-B の train は新たな技もトーストで知らせる)。長押しで隊の魂の区分 (上限まで鍛えるなど)
     out.push({ key: "train", prio: 60, label: "魂を鍛える", sub: `${t.doll ? t.doll.name : ""} Lv${t.level}→${t.level + 1}`, cost: { kind: "soul", n: t.cost }, icon: "soul",
       run: () => (typeof t.train === "function" ? t.train(1) : ops.trainTimes(t.uid, 1)),
       hold: () => { if (UI.openParty) UI.openParty(t.doll || Math.max(0, idx), { seg: "soul" }); } });
   }
-  // 勲章: まとめて拝受 (1タップ)
-  if (c.ach) out.push({ key: "ach", prio: 70, label: "勲章を拝受", sub: `${c.ach} 個`, icon: "medal", run: () => ops.claimAllAchievements() });
+  // 勲章: 王宮の勲章の区分へ (どれを受け取るかは勲章の画面で選ぶ楽しみとして残す)
+  if (c.ach) out.push({ key: "ach", prio: 70, label: "勲章を拝受", sub: `${c.ach} 個`, icon: "medal", run: () => { if (UI.openPalace) UI.openPalace("ach"); } });
   // 宝物庫: 新種をまとめて奉納 → 節目に届けばそのまま褒賞へ / 褒賞だけ残っている
   if (c.donatable) {
     out.push({ key: "donate", prio: 80, label: "新種を奉納", sub: `${c.donatable} 種`, icon: "treasury",
