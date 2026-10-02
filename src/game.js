@@ -8320,7 +8320,7 @@ const TUT_INTRO = [
   "「だが言うておく。生身で迷宮に入ってはならぬ。深淵は、生きた魂から順に喰らう。」",
   "「ゆえに死者の魂を器に宿した『人業』を遣わすのだ。まずは其の一体を、おのれの手で生み出すがよい。」",
   "「戦士・僧侶・盗賊・魔導士の魂を、そして赤い魂を百、くれてやろう。」",
-  "「人業の館の保管庫へゆけ。赤い魂で器を買い、宿す魂を選び、名を与えよ。」",
+  "「人業の館へゆけ。赤い魂で器を買い、宿す魂を選び、名を与えよ。」",
   "「それがそなたの最初の勅命である。人業を一体生み出したら、戻って報告せよ。」",
 ];
 const TUT_FINALE = [
@@ -8453,9 +8453,11 @@ function departTo(idx) {
   if (UI.shell && UI.shell.openGate) UI.shell.openGate();
   else tryEnterDungeon();
 }
-// 第0章: 人業を仕立てる場所 (隊の控え・仕立て。WP-B の入口が無ければ旧来の館の保管庫)
+// 第0章: 人業を仕立てる場所 (隊の「宿す魂をえらぶ」シート。無ければ旧来の館の保管庫)
 function goMakeDoll() {
   if (UI.openCreateDoll) return UI.openCreateDoll();
+  // 隊 (WP-B) の「宿す魂をえらぶ」シートを街のまま直接ひらく (1タップ)
+  if (typeof buyDoll === "function") return buyDoll();
   G.town.page = null; G.town.facility = "mansion"; G.town.sub = "manage";
   renderTown();
 }
@@ -8465,7 +8467,7 @@ function objectiveInfo() {
   if (contentSealed()) return { key: "sealed", text: "墓域で人業を鍛え、装備を集める", sub: `第${CONTENT_NEXT_LAYER}層は準備中`, act: "出撃", kind: "gate", run: () => departTo(null) };
   if (ms.n === 0 && ms.state === "active") {
     if (!ms.granted) return { key: "audience", text: "王宮で王に謁見する", sub: "着任の挨拶", act: "謁見する", kind: "palace", run: audienceTutorial };
-    if (!allDolls().some((d) => !d.isEmpty)) return { key: "makeDoll", text: "人業を一体、仕立てる", sub: "人業の館の保管庫で器に魂を宿す", act: "仕立てる", kind: "party", run: goMakeDoll };
+    if (!allDolls().some((d) => !d.isEmpty)) return { key: "makeDoll", text: "人業を一体、仕立てる", sub: "器を仕立て、魂をひとつ宿す (最初の3体は無料)", act: "仕立てる", kind: "party", run: goMakeDoll };
     return { key: "reportTut", text: "勅命「人業の生成」の完遂を報告する", act: "王に報告する", kind: "palace", run: reportTutorialQuest };
   }
   if (ms.state === "report") return { key: "report", text: `「${DUNGEONS[ms.n - 1].name}」の踏破を報告する`, act: "王に報告する", kind: "palace", run: reportMainQuest };
@@ -8497,7 +8499,7 @@ function decreeInfo() {
   if (contentSealed()) return { kind: "sealed", head: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう (準備中)`, text: "次なる層へ続く大門の封は、いまだ固く閉ざされている。", note: "封が解けるまで、墓域の迷宮で人業を鍛え、装備を集めよう。", replay: true };
   if (ms.n === 0 && ms.state === "active") {
     if (!ms.granted) return { kind: "ch0", head: "着任", text: "玉座の老王が、新しき魂繰りの到着を待っている。", replay: false };
-    return { kind: "ch0", head: "勅命 「人業の生成」", text: "人業の館の保管庫で器を買い (最初の3体は無料)、いずれかの魂を宿して人業を一体つくれ。", note: "人業が立ち上がったら、王に報告せよ。", replay: true };
+    return { kind: "ch0", head: "勅命 「人業の生成」", text: "人業の館で器を仕立て (最初の3体は無料)、いずれかの魂を宿して人業を一体つくれ。", note: "人業が立ち上がったら、王に報告せよ。", replay: true };
   }
   const n = ms.state === "offer" ? Math.min(100, ms.n + 1) : ms.n;
   const head = `第${actOf(n)}層 「${ACTS[actOf(n) - 1].title}」`;

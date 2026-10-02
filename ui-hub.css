@@ -263,6 +263,14 @@
 .hb-pc:active { transform: scale(0.97); }
 .hb-pc.back { background: var(--grain), linear-gradient(180deg, #171820, #101016 60%, #0c0c11); }
 .hb-pc .ui-port { pointer-events: none; width: 44px; height: 44px; }
+.hb-pc-fr {
+  position: relative; flex: 0 0 auto; display: grid; place-items: center; width: 44px; height: 44px; pointer-events: none;
+  background: radial-gradient(circle at 50% 45%, rgba(140,108,240,0.16), rgba(0,0,0,0) 70%), #0e0b0f;
+  border: 1px solid #4a3d36; border-radius: 3px; box-shadow: var(--plate-edge);
+}
+.hb-pc-fr canvas { image-rendering: pixelated; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.9)); }
+.hb-pc.dead .hb-pc-fr canvas { filter: grayscale(0.9) brightness(0.6); }
+.hb-pc-dead { position: absolute; top: 0; right: 3px; font-size: 13px; font-weight: 800; color: #e4554f; text-shadow: 0 1px 0 #000; }
 .hb-pc-n { max-width: 100%; font-size: 11.5px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 0 #000; }
 .hb-pc-hp { width: 86%; height: 4px; border-radius: 1px; overflow: hidden; background: #0a0709; box-shadow: inset 0 1px 2px rgba(0,0,0,0.9), 0 0 0 1px #2a2125; }
 .hb-pc-hp i { display: block; height: 100%; background: linear-gradient(90deg, #4a9a3a, #8fd46a); }
@@ -291,6 +299,9 @@
 .inn-row { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 2px 8px; background: var(--grain), var(--plate); border: 1px solid #33292a; border-radius: 3px; }
 .inn-row.dead { opacity: 0.6; }
 .inn-row .ui-port { width: 44px; height: 44px; }
+.inn-port { flex: 0 0 auto; display: grid; place-items: center; width: 44px; height: 44px; background: #0e0b0f; border: 1px solid #4a3d36; border-radius: 3px; }
+.inn-port canvas { image-rendering: pixelated; }
+.inn-row.dead .inn-port canvas { filter: grayscale(0.9) brightness(0.6); }
 .inn-row-t { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
 .inn-row-n { font-size: 13px; font-weight: 700; }
 .inn-row-v { font-size: 11px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
@@ -622,7 +633,7 @@
   .hb-tile { height: 72px; }
   .hb-sug { min-height: 58px; }
   .hb-pc { min-height: 62px; padding-top: 3px; padding-bottom: 3px; }
-  .hb-pc .ui-port { width: 40px; height: 40px; }
+  .hb-pc .ui-port, .hb-pc-fr { width: 40px; height: 40px; }
   .pl-decree-t { font-size: 15px; }
   .fc-red { height: 84px; }
   .stg-row { min-height: 48px; }

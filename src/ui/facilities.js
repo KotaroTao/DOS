@@ -280,7 +280,11 @@ export function openInn() {
     const list = el("div", "inn-party");
     for (const p of g.party || []) {
       const r = el("div", "inn-row" + (p.alive ? "" : " dead"));
-      r.appendChild(portrait(p, { size: 48, hp: false }));
+      if (UI.partyPortraitCanvas) {
+        const fr = el("span", "inn-port");
+        try { fr.appendChild(UI.partyPortraitCanvas(p, 40)); } catch (e) { /* 絵が無くても動く */ }
+        r.appendChild(fr);
+      } else r.appendChild(portrait(p, { size: 48, hp: false }));
       const t = el("div", "inn-row-t");
       t.appendChild(setText(el("div", "inn-row-n"), p.name));
       if (p.alive) {

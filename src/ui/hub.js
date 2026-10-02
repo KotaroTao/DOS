@@ -75,9 +75,10 @@ function builtinSuggestions(c) {
   if (tl.length && facilityOpen("mansion")) {
     const t = tl[0];
     const idx = (g.party || []).indexOf(t.doll);
+    // 1段鍛える (WP-B の train は新たな技もトーストで知らせる)。長押しで隊の魂の区分 (上限まで鍛えるなど)
     out.push({ key: "train", prio: 60, label: "魂を鍛える", sub: `${t.doll ? t.doll.name : ""} Lv${t.level}→${t.level + 1}`, cost: { kind: "soul", n: t.cost }, icon: "soul",
-      run: () => ops.trainTimes(t.uid, 1),
-      hold: () => { if (UI.openParty) UI.openParty(Math.max(0, idx), { seg: "soul" }); } });
+      run: () => (typeof t.train === "function" ? t.train(1) : ops.trainTimes(t.uid, 1)),
+      hold: () => { if (UI.openParty) UI.openParty(t.doll || Math.max(0, idx), { seg: "soul" }); } });
   }
   // 勲章: まとめて拝受 (1タップ)
   if (c.ach) out.push({ key: "ach", prio: 70, label: "勲章を拝受", sub: `${c.ach} 個`, icon: "medal", run: () => ops.claimAllAchievements() });
@@ -334,7 +335,13 @@ function partyStrip() {
   g.party.forEach((d, i) => {
     const c = el("button", "hb-pc" + (d.alive ? "" : " dead") + (i >= 3 ? " back" : ""));
     c.type = "button";
-    c.appendChild(portrait(d, { size: 48, hp: false }));
+    // 肖像は隊の画面と同じ描き方 (UI.partyPortraitCanvas)。無ければキットの肖像
+    if (UI.partyPortraitCanvas) {
+      const fr = el("span", "hb-pc-fr");
+      try { fr.appendChild(UI.partyPortraitCanvas(d, 40)); } catch (e) { /* 絵が無くても動く */ }
+      if (!d.alive) fr.appendChild(el("span", "hb-pc-dead", "†"));
+      c.appendChild(fr);
+    } else c.appendChild(portrait(d, { size: 48, hp: false }));
     c.appendChild(el("span", "hb-pc-n", d.name));
     if (d.alive) {
       const r = Math.max(0, Math.min(1, d.hp / Math.max(1, d.maxhp)));
@@ -404,7 +411,23 @@ export function renderHub(root, api) {
   // 隊
   wrap.appendChild(partyStrip());
   root.appendChild(wrap);
+  growTiles(mid);
   maybeAutoRest();
+}
+
+// 背の高い画面で余った高さは街の札を背高にして埋める (札と隊のあいだに空白の帯を残さない)
+function growTiles(mid) {
+  if (!mid || !mid.isConnected) return;
+  const tl = mid.querySelectorAll(".hb-tile");
+  const last = mid.lastElementChild;
+  if (!tl.length || !last) return;
+  const used = last.getBoundingClientRect().bottom - mid.getBoundingClientRect().top;
+  const spare = Math.floor(mid.clientHeight - used - 2);
+  if (spare < 8) return;
+  const h0 = tl[0].getBoundingClientRect().height;
+  const h = Math.min(144, Math.round(h0 + spare));
+  if (h <= h0) return;
+  for (const t of tl) t.style.height = h + "px";
 }
 
 export function install() {
