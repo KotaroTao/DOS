@@ -295,10 +295,12 @@
   display: inline; opacity: 0;
   animation: op-ink 0.9s cubic-bezier(.2,.6,.3,1) both;
 }
+/* にじみは filter を使わず、透明な文字の影だけで描く (iPad/iOS の Safari は inline 要素の filter を
+   描き直し損ね、一部の文字がぼやけたまま残るため) */
 @keyframes op-ink {
-  0% { opacity: 0; color: #8a1a1e; text-shadow: 0 0 12px rgba(160,20,24,0.9); filter: blur(3px); }
-  35% { opacity: 1; color: #d9b98e; text-shadow: 0 0 8px rgba(120,20,20,0.6); filter: blur(0.6px); }
-  100% { opacity: 1; color: #ece2cc; text-shadow: 0 1px 0 #000, 0 0 10px rgba(0,0,0,0.9); filter: none; }
+  0% { opacity: 0; color: rgba(138,26,30,0); text-shadow: 0 0 10px rgba(160,20,24,0.95), 0 0 4px rgba(160,20,24,0.8); }
+  35% { opacity: 1; color: rgba(217,185,142,0.75); text-shadow: 0 0 2px rgba(217,185,142,0.7), 0 0 8px rgba(120,20,20,0.6); }
+  100% { opacity: 1; color: #ece2cc; text-shadow: 0 1px 0 #000, 0 0 10px rgba(0,0,0,0.9); }
 }
 .op-done .op-ch { animation-delay: 0s !important; animation-duration: 0.35s; }
 .op-text.op-leave { transition: opacity 0.6s ease, filter 0.6s ease; opacity: 0; filter: blur(3px); }
