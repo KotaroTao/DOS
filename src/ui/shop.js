@@ -13,12 +13,11 @@ import { getPref, setPref, remember } from "./prefs.js";
 import { statLines, isEquippable } from "./itemview.js";
 import {
   itemSheet, wearPlan, deltaFor, deltaEl, nameSpan, goldEl, caretIcon, equipTo, floatGold, ownerOf, equipCandidates, shopOpen, isUpgrade,
-  openDollChooser, equipPick,
+  openDollChooser, equipPick, dollIcon,
 } from "./loot.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, MAX_ITEMS, canEquip, itemName } from "../items.js";
 import { RARITIES, rarityKey } from "../rarity.js";
 import { spriteCanvas } from "../sprites.js";
-import { dollSprite, SOUL_CLASSES } from "../souls.js";
 
 const G = () => game.G || {};
 const sfx = (k) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](); } catch (e) { /* 音は演出のみ */ } };
@@ -140,13 +139,6 @@ function keepReason(it) {
 // ---------------------------------------------------------------- 小さな部品
 // 札に載せる数の短い表記 (1万以上は「2.9万」)
 const shortN = (n) => (n >= 100000 ? `${Math.round(n / 10000)}万` : n >= 10000 ? `${(n / 10000).toFixed(1)}万` : String(n));
-function dollIcon(d) {
-  const w = el("span", "wpc-dic");
-  try { w.appendChild(spriteCanvas(dollSprite(d), 2)); } catch (e) { /* 絵が無くても動く */ }
-  const cls = d && d.dominant && SOUL_CLASSES[d.dominant.clsKey];
-  if (cls && cls.glow) w.style.setProperty("--glow", cls.glow);
-  return w;
-}
 // 品の札 (絵・レア度の縁・NEW・未鑑定の封印・値段)。押せば品シート
 function cell(it, d, { price = true, onTap } = {}) {
   const rk = rarityKey(it);

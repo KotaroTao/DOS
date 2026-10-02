@@ -119,9 +119,13 @@ export function isUpgrade(it, opts) {
 }
 
 // 小さな人形の絵 (キャンバス)
-function dollIcon(d, scale = 2) {
+export function dollIcon(d, scale = 2) {
   const w = el("span", "wpc-dic");
-  try { w.appendChild(spriteCanvas(dollSprite(d), scale)); } catch (e) { /* 絵が無くても動く */ }
+  // 肖像は WP-B の UI.partyPortraitCanvas (隊の絵の差し替え点) で描く。無ければ従来のスプライト
+  try {
+    if (typeof UI.partyPortraitCanvas === "function") w.appendChild(UI.partyPortraitCanvas(d, scale * 12));
+    else w.appendChild(spriteCanvas(dollSprite(d), scale));
+  } catch (e) { /* 絵が無くても動く */ }
   const cls = d && d.dominant && SOUL_CLASSES[d.dominant.clsKey];
   if (cls && cls.glow) w.style.setProperty("--glow", cls.glow);
   return w;
@@ -399,7 +403,7 @@ export function equipPick(d, it, { buyId = null, onDone } = {}) {
     floatGold(snap.gold - (G().gold || 0), "dn");
   }
   let r = null;
-  try { r = UI.equipItemTo ? UI.equipItemTo(d, item) : null; } catch (e) { r = null; setTimeout(() => { throw e; }); }
+  try { r = UI.equipItemTo ? UI.equipItemTo(d, item, { quiet: true }) : null; } catch (e) { r = null; setTimeout(() => { throw e; }); }
   const ok = !!(r && r.ok !== false) && !!equippedBy(d, item);
   refreshViews();
   if (!ok) {
@@ -428,6 +432,16 @@ export function equipPick(d, it, { buyId = null, onDone } = {}) {
 //   mode: "equip" (押せば装備) | "bag" (押せば袋へ = 渡す/買うだけ)
 //   buyId: 棚の品 (押せば買ってから)。onPick(d) を渡すと既定の動きの代わりに呼ぶ
 export function dollGrid(it, { owner = null, mode = "equip", buyId = null, onPick, onDone } = {}) {
+  if (mode === "equip" && typeof UI.equipChooserEl === "function") {
+    try {
+      const pick = onPick || (buyId ? (d, info) => {
+        if (info && info.reason) { sfx("ng"); toast(`${d.name}: ${info.reason}`, { tone: "bad" }); return; }
+        equipPick(d, it, { buyId, onDone });
+      } : null);
+      const node = UI.equipChooserEl(it, { owner, onPick: pick, onDone: onDone ? () => onDone() : null });
+      if (node) { node.classList.add("wpc-chooser-el"); return node; }
+    } catch (e) { setTimeout(() => { throw e; }); }
+  }
   const grid = el("div", "wpc-dgrid");
   const dolls = chooserDolls();
   const plan = mode === "equip" ? wearPlan(it, { owner, pool: dolls.filter((d) => !canEquipReason(d, it, { buy: !!buyId })) }) : null;
@@ -664,7 +678,10 @@ function defaultActions(st) {
 
 function renderActions(foot, specs, st) {
   foot.textContent = "";
+  // close は関数としても、シートの handle としても使える (h.close() を呼ぶ外部の操作のため)
   const close = () => st.close();
+  close.close = close;
+  close.el = st.h && st.h.el;
   const mk = (s, size, kindDefault) => {
     const b = button({
       label: s.label, sub: s.sub, kind: s.kind || kindDefault, size, disabled: !!s.disabled,
@@ -675,8 +692,9 @@ function renderActions(foot, specs, st) {
     if (s.caret) b.appendChild(caretIcon("wpc-caret in"));
     return b;
   };
-  const prim = specs.filter((s) => s.primary);
-  const sec = specs.filter((s) => !s.primary);
+  const isPrim = (s) => s.primary === true || (s.primary === undefined && s.kind === "primary");
+  const prim = specs.filter(isPrim);
+  const sec = specs.filter((s) => !isPrim(s));
   for (const p of prim) {
     const row = el("div", "wpc-act-main" + (p.menu ? " split" : ""));
     row.appendChild(mk(p, "lg", "primary"));
@@ -764,12 +782,14 @@ export function itemSheet(item, o = {}) {
       if (o2 && o2.where === "equip") {
         scroll.appendChild(el("div", "wpc-is-note gold", `${o2.doll.name} が装備中。外すと持ち物へ戻る。`));
       } else {
-        // 主役の段: 隊と控えの全員。押せばその場で装備 (棚の品は買ってから)
+        // 主役の段: 隊と控えの全員。押せばその場で装備 (棚の品は買ってから)。WP-B の UI.equipChooserEl があればそれ
         const sec = el("div", "wpc-is-pick");
-        const lab = el("div", "wpc-is-picklab");
-        lab.appendChild(el("span", null, st.context === "stock" ? "買って装備する人業を選ぶ" : "装備する人業を選ぶ"));
-        if (st.context === "stock") lab.appendChild(goldEl(st.price != null ? st.price : game.buyPrice(it)));
-        sec.appendChild(lab);
+        if (typeof UI.equipChooserEl !== "function" || st.context === "stock") {
+          const lab = el("div", "wpc-is-picklab");
+          lab.appendChild(el("span", null, st.context === "stock" ? "買って装備する人業を選ぶ" : "装備する人業を選ぶ"));
+          if (st.context === "stock") lab.appendChild(goldEl(st.price != null ? st.price : game.buyPrice(it)));
+          sec.appendChild(lab);
+        }
         sec.appendChild(dollGrid(it, {
           owner: st.context === "stock" ? null : st.owner, mode: "equip",
           buyId: st.context === "stock" ? (st.stockId || it.id) : null,
@@ -820,7 +840,7 @@ export function itemSheet(item, o = {}) {
   };
   const rk = rarityKey(item);
   st.h = sheet.open({
-    kind: "info", accent: rarColor(item) || "#8a6d2e", className: "wpc-isheet" + (rk ? " rar-" + rk : ""),
+    kind: "info", accent: rarColor(item) || "#8a6d2e", className: "wpc-isheet ctx-" + st.context + (rk ? " rar-" + rk : ""),
     body: build,
     onClose: (why) => {
       // NEW 印を消したので、街の一覧の点も消す
