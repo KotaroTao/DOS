@@ -6617,6 +6617,24 @@ export const TRAITS = {
 
 // モンスター定義から特徴キーの並びを導く (重複なし、表示順は定義順)。
 // 既存の ability / role と新フィールドを単一の語彙へ正規化する。
+// 宙に浮く魔物か (戦闘待機中・図鑑で上下にゆらめかせるのはこれだけ。地に足の着いた者は揺らさない)
+// 種族で決まるもの: 飛獣/鳥人/幽鬼/精霊。それ以外の種族でも翅や翼で飛ぶ個体は ID で個別に指定する。
+const FLOAT_RACES = new Set(["wing", "avian", "specter", "elemental"]);
+const FLOAT_IDS = new Set([
+  "bat", "wraith", "cm_bat", "d02_imp", "d03_ghost",
+  "bs_bloatfly", "bs_giantmoth", "bs_emberswarm", "bs_blightmoth", "bs_windscythe", "bs_sparkswarm", "bs_emberfly", "bs_lightmoth",
+  "bs_familiarswarm", "bs_fallenangel", "bs_cyclonedjinn",
+  "bs_wyvern", "bs_stormwyvern", "bs_wyvernlord", "bs_skydrake", "bs_wingedterror",
+]);
+// 幽鬼に分類されていても生身の者 (浮かない)
+const GROUNDED_IDS = new Set(["bs_cultist", "bs_stonegorgon"]);
+export function isFloating(m, key) {
+  if (!m) return false;
+  const id = key || m.key || m.id || "";
+  if (GROUNDED_IDS.has(id)) return false;
+  return FLOAT_IDS.has(id) || FLOAT_RACES.has(m.race);
+}
+
 export function monsterTraitKeys(m) {
   if (!m) return [];
   const keys = [];

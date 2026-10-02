@@ -322,9 +322,9 @@ summary.tw-bandh::before { color: var(--accent); }
 
 /* スーパーレア以上の「お披露目」: 影の塊から光が弾けて姿を現し、名前は一拍おいて浮かぶ */
 .ig-card.rar-sr .ig-art canvas.spr, .ig-card.rar-lr .ig-art canvas.spr {
-  animation: rar-reveal 1.15s cubic-bezier(.3,.7,.2,1) both, ig-float 2s ease-in-out 1.15s infinite;
+  animation: rar-reveal 1.15s cubic-bezier(.3,.7,.2,1) both;
 }
-.ig-card.rar-lr .ig-art canvas.spr { animation-duration: 1.5s, 2s; animation-delay: 0s, 1.5s; }
+.ig-card.rar-lr .ig-art canvas.spr { animation-duration: 1.5s; }
 @keyframes rar-reveal {
   0% { filter: brightness(0); transform: scale(0.55); opacity: 0.4; }
   55% { filter: brightness(0) drop-shadow(0 0 2px #fff); transform: scale(1.04); opacity: 1; }

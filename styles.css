@@ -294,7 +294,6 @@ canvas.spr { image-rendering: pixelated; display: block; width: var(--spr-size, 
   margin: 4px auto 10px;
   background: radial-gradient(circle, rgba(201,162,39,0.25), transparent 70%);
 }
-.ig-art canvas.spr { animation: ig-float 2s ease-in-out infinite; }
 @keyframes ig-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
 .ig-spark {
   position: absolute;

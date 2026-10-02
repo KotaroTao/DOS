@@ -16,7 +16,7 @@ import { el, sheet, row, setText, glyph, itemTile, portrait, bar, reduced } from
 import { getPref, setPref, remember } from "./prefs.js";
 import { sceneTransition } from "./motion.js";
 import { MONSTERS, ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
-import { RACE_LABEL, ELEMENTS, monsterTraits } from "../dungeons/index.js";
+import { RACE_LABEL, ELEMENTS, monsterTraits, isFloating } from "../dungeons/index.js";
 import { RARITIES } from "../rarity.js";
 import { SOUL_CLASSES, jobBust } from "../souls.js";
 import { WALKER as WALKER_ART } from "../walkerart.js";
@@ -413,7 +413,7 @@ export function peekEnemy(e) {
   return sheet.open({
     kind: "info", banner: e.boss ? "迷宮の主" : (m.elite ? "強敵" : "敵の姿"), className: "dg-sheet dg-enemy",
     accent: e.boss || m.elite ? "#d4504e" : (elem ? elem.color : null),
-    art: m.art ? m : null, artScale: 4,
+    art: m.art ? m : null, artScale: 4, float: isFloating(m, e.key),
     title: e.name,
     body: (b) => {
       const meta = [RACE_LABEL[m.race] || "", elem ? `${elem.label}属性` : "無属性"].filter(Boolean);
