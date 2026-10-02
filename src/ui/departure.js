@@ -153,15 +153,11 @@ async function runFix(fix) {
     if (ok) ops.hastenAll();
     return;
   }
-  if (fix.act === "equip") {
-    const r = UI.autoEquip ? UI.autoEquip("all") : null;
-    if (!r || !r.ok) toast("いまの装備が最善だ。商会で整えるとよい", { tone: "info" });
-    return;
-  }
+  if (fix.act === "equip") { if (UI.autoEquip) UI.autoEquip("all"); return; } // 結果 (元に戻す付き) は隊の側が知らせる
   // 別の画面へ: シートを閉じてから
   close();
   if (fix.act === "shop") setTimeout(() => { if (UI.openShop) UI.openShop("buy"); }, 0);
-  if (fix.act === "party") setTimeout(() => { if (UI.openParty) UI.openParty(0, { context: "town", seg: "reserve" }); }, 0);
+  if (fix.act === "party") setTimeout(() => { if (UI.openParty) UI.openParty(0, { context: "town" }); }, 0);
   void g;
 }
 function renderReady(b) {

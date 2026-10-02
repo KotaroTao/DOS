@@ -478,7 +478,7 @@ export function renderRunReport(root) {
   if (c.unid > 0 && shopOpen) act({ label: "まとめて鑑定", cost: { kind: "gold", n: c.unidCost }, kind: c.hurt > 0 ? "secondary" : "primary", run: async () => { if (await confirmIdentify(c)) ops.identifyAll(); } });
   let better = 0;
   try { better = UI.betterGearCount ? UI.betterGearCount() || 0 : 0; } catch (e) { better = 0; }
-  if (better > 0) act({ label: "最適装備", sub: `よりよい品 ${better}`, run: () => { const r = UI.autoEquip ? UI.autoEquip("all") : null; if (!r || !r.ok) toast("いまの装備が最善だ", { tone: "info" }); } });
+  if (better > 0) act({ label: "最適装備", sub: `${better}体に よりよい品`, run: () => { if (UI.autoEquip) UI.autoEquip("all"); } });
   if (c.junk > 0 && shopOpen) act({ label: "まとめて売る", cost: { kind: "gold", n: c.junkGold }, run: async () => { if (await confirmSell(c)) ops.sellJunkAll(); } });
   if (c.dead > 0 && c.hastenCost > 0) act({ label: "今すぐ連れ帰る", cost: { kind: "red", n: c.hastenCost }, kind: lr.outcome === "wipe" ? "primary" : "secondary", disabled: g.redSoul < 1, run: async () => { if (await confirmHasten(c)) ops.hastenAll(); } });
   if (acts.childElementCount) card.appendChild(acts);
