@@ -16,6 +16,13 @@ export function initAudio() {
   }
 }
 
+// 音量 (0-1)。BGM と効果音を別々に絞れる (設定画面)。0 ならその系統は鳴らさない
+let bgmVol = 1, sfxVol = 1;
+export function setVolumes(b, s) {
+  bgmVol = Math.max(0, Math.min(1, +b || 0));
+  sfxVol = Math.max(0, Math.min(1, +s || 0));
+}
+
 export function isMuted() { return muted; }
 export function toggleMute() {
   muted = !muted;
@@ -38,12 +45,13 @@ function toneAt(t, freq, dur, type = "square", vol = 0.05, slideTo = null) {
 }
 
 function blip(freq, dur, type = "square", vol = 0.05, delay = 0, slideTo = null) {
-  if (!actx) return;
-  toneAt(actx.currentTime + delay, freq, dur, type, vol, slideTo);
+  if (!actx || sfxVol <= 0) return;
+  toneAt(actx.currentTime + delay, freq, dur, type, vol * sfxVol, slideTo);
 }
 
 function noise(dur, vol = 0.08, delay = 0) {
-  if (!actx || muted) return;
+  if (!actx || muted || sfxVol <= 0) return;
+  vol *= sfxVol;
   const t = actx.currentTime + delay;
   const buf = actx.createBuffer(1, Math.floor(actx.sampleRate * dur), actx.sampleRate);
   const d = buf.getChannelData(0);
@@ -100,6 +108,52 @@ const THEMES = {
       { // 遠い弔鐘
         type: "sine", vol: 0.026,
         notes: [[0, 587.3, 3], [5, 440, 2], [8, 554.4, 3], [13, 415.3, 2]],
+      },
+    ],
+  },
+  // タイトル: 深淵へ降りてゆく行進。ニ短調 Dm-B♭-C-A / Dm-B♭-Gm-A の8小節、口ずさめる主題
+  title: {
+    stepDur: 0.24,
+    loop: 64,
+    voices: [
+      { // 低音: 根音と五度の刻み
+        type: "triangle", vol: 0.046,
+        notes: [[0, 73.4, 4], [4, 110, 4], [8, 58.3, 4], [12, 87.3, 4], [16, 65.4, 4], [20, 98, 4], [24, 55, 4], [28, 82.4, 4],
+                [32, 73.4, 4], [36, 110, 4], [40, 58.3, 4], [44, 87.3, 4], [48, 49, 4], [52, 73.4, 4], [56, 55, 4], [60, 82.4, 4]],
+      },
+      { // 和音のもや (三度)
+        type: "sine", vol: 0.017,
+        notes: [[0, 174.6, 8], [8, 146.8, 8], [16, 164.8, 8], [24, 138.6, 8], [32, 174.6, 8], [40, 146.8, 8], [48, 116.5, 8], [56, 138.6, 8]],
+      },
+      { // 和音のもや (五度)
+        type: "sine", vol: 0.015,
+        notes: [[0, 220, 8], [8, 174.6, 8], [16, 196, 8], [24, 164.8, 8], [32, 220, 8], [40, 174.6, 8], [48, 146.8, 8], [56, 164.8, 8]],
+      },
+      { // 主旋律
+        type: "sine", vol: 0.034,
+        notes: [[0, 440, 3], [3, 587.3, 1], [4, 523.3, 2], [6, 440, 2],
+                [8, 466.2, 3], [11, 440, 1], [12, 349.2, 4],
+                [16, 392, 3], [19, 440, 1], [20, 392, 2], [22, 329.6, 2],
+                [24, 554.4, 4], [28, 440, 4],
+                [32, 440, 3], [35, 587.3, 1], [36, 659.3, 2], [38, 698.5, 2],
+                [40, 587.3, 3], [43, 523.3, 1], [44, 466.2, 4],
+                [48, 392, 2], [50, 466.2, 2], [52, 440, 2], [54, 392, 2],
+                [56, 440, 4], [60, 554.4, 2], [62, 659.3, 2]],
+      },
+      { // 旋律の輪郭 (矩形波で薄く重ねる)
+        type: "square", vol: 0.010,
+        notes: [[0, 440, 3], [3, 587.3, 1], [4, 523.3, 2], [6, 440, 2],
+                [8, 466.2, 3], [11, 440, 1], [12, 349.2, 4],
+                [16, 392, 3], [19, 440, 1], [20, 392, 2], [22, 329.6, 2],
+                [24, 554.4, 4], [28, 440, 4],
+                [32, 440, 3], [35, 587.3, 1], [36, 659.3, 2], [38, 698.5, 2],
+                [40, 587.3, 3], [43, 523.3, 1], [44, 466.2, 4],
+                [48, 392, 2], [50, 466.2, 2], [52, 440, 2], [54, 392, 2],
+                [56, 440, 4], [60, 554.4, 2], [62, 659.3, 2]],
+      },
+      { // 遠い鐘
+        type: "sine", vol: 0.018,
+        notes: [[0, 1174.7, 3], [32, 880, 3], [48, 1046.5, 2]],
       },
     ],
   },
@@ -1097,7 +1151,7 @@ export function playBgm(name) {
       const s = bgm.step % th.loop;
       for (const v of th.voices) {
         for (const [st, f, d] of v.notes) {
-          if (st === s) toneAt(bgm.nextTime, f, d * th.stepDur * 0.9, v.type, v.vol);
+          if (st === s && bgmVol > 0) toneAt(bgm.nextTime, f, d * th.stepDur * 0.9, v.type, v.vol * bgmVol);
         }
       }
       bgm.nextTime += th.stepDur;

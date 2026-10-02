@@ -65,10 +65,33 @@ const PUPPETEER = {
   ],
 };
 
+// 百の迷宮の口 — 石のアーチの奥へ降りる階段と、深みに灯る喰われた魂の光
+const LABYRINTH_GATE = {
+  palette: { o: "#0c0a12", s: "#8a7f98", m: "#5a506a", d: "#352d42", b: "#07050c", v: "#4a2a7a", V: "#9a6ad8", W: "#e6d4ff" },
+  art: [
+    "....oooooooo....",
+    "..oosmmmmmmddoo.",
+    ".osmmoooooommdo.",
+    "osmmobbbbbbomddo",
+    "osmobbbbbbbbomdo",
+    "osmobbbvvbbbomdo",
+    "osmobbvVVvbbomdo",
+    "osmobvVWWVvbomdo",
+    "osmobbvVVvbbomdo",
+    "osmobbbvvbbbomdo",
+    "osmobbbsssbbomdo",
+    "osmobbsmmmsbomdo",
+    "osmobsssssssomdo",
+    "osmosmmmmmmmomdo",
+    "osmssssssssssmdo",
+    "oooooooooooooooo",
+  ],
+};
+
 // 5幕構成。sprites: 上段に並べるピクセルアート / lines: 語り / last: タイトル幕
 const SCENES = [
   {
-    sprites: [ICONS.stairs],
+    sprites: [LABYRINTH_GATE],
     lines: [
       "この国の地の底には、百の迷宮が口を開けている。",
       "死者の魂を喰らい、夜ごと肥え続ける——底知れぬ病巣。",
@@ -96,7 +119,7 @@ const SCENES = [
     sprites: [soulSprite("priest"), DOLL_AWAKE, soulSprite("fighter")],
     lines: [
       "器を満たすのは、迷宮からすくい上げた死者の魂。",
-      "頭に。両の腕に。胴に。足に。——五つの魂を封じたとき、",
+      "器の芯に、ひとつの魂を封じたとき——",
       "人業は静かに目を開ける。",
       "戦士の魂は剣を握り、僧の魂は祈りを唱え、",
       "死者たちは二度目の生を、闇の底で戦い抜く。",
