@@ -96,6 +96,15 @@ button, input, select, textarea { font-family: var(--font); }
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.6), inset 0 6px 14px rgba(0,0,0,0.55), 0 0 0 1px rgba(201,162,74,0.12);
   font-size: 12.5px; line-height: 1.65; letter-spacing: 0.2px;
 }
+/* 迷宮の中では、帳面の奥に層の景色が透ける (上ほど濃い闇で文字を読みやすく) */
+#log.has-scene {
+  background:
+    var(--grain),
+    linear-gradient(180deg, rgba(13,10,14,0.94) 0%, rgba(13,10,14,0.8) 28%, rgba(13,10,14,0.55) 62%, rgba(13,10,14,0.3) 100%),
+    var(--log-scene) center bottom / cover no-repeat,
+    #0d0a0e;
+  image-rendering: pixelated;
+}
 #log .l-sys { color: #a59a86; }
 #log .l-hit { color: #9fc4ee; }
 #log .l-dmg { color: #e0614f; }
@@ -409,3 +418,6 @@ summary.tw-bandh::before { color: var(--accent); }
 .rb-soul { color: #a6e4f2; }
 .rb-rar { font-weight: 800; }
 .rb-rar.zero { opacity: 0.28; text-shadow: none; }
+
+/* ステータスの見出し: 区切りの塊ごとに折り返す */
+.st-sub .st-seg { white-space: nowrap; }

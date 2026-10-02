@@ -1119,7 +1119,38 @@ function setHint(t) { if (hintEl && hintEl.textContent !== t) hintEl.textContent
 // 階の進み (◆) と、この潜入で得たゴールド・Soul・装備 (レア度ごとの色つき個数) を盤面の下に掲げる
 const runbarEl = document.getElementById("runbar");
 let _runbarKey = "";
+// 記録欄の背後に、いまいる層の景色を薄く敷く。縦長の画面で大きく空く帳面を「迷宮を覗く窓」にする
+// (欄の実寸で描いて画像化 = 戦闘画面に近いドットの粗さ。設定「戦闘の背景: 漆黒」では敷かない)
+const _logScene = new Map();
+let _logSceneKey = "";
+function updateLogScene() {
+  const el = document.getElementById("log");
+  if (!el) return;
+  const layer = inDungeon() && G.state !== "over" && !PREFS.classicBattle ? battleLayer() : 0;
+  const q = (v) => Math.max(128, Math.round(v / 16) * 16);
+  const w = layer ? q(el.clientWidth) : 0, h = layer ? q(el.clientHeight) : 0;
+  const key = layer ? `${layer}|${w}x${h}` : "";
+  if (key === _logSceneKey) return;
+  _logSceneKey = key;
+  if (!layer) { el.classList.remove("has-scene"); el.style.removeProperty("--log-scene"); return; }
+  let url = _logScene.get(key);
+  if (!url) {
+    try {
+      const c = document.createElement("canvas");
+      c.width = w; c.height = h;
+      drawBattleBackdrop(c.getContext("2d"), w, h, layer, 0);
+      url = c.toDataURL();
+      _logScene.set(key, url);
+      if (_logScene.size > 8) _logScene.delete(_logScene.keys().next().value);
+    } catch (e) { url = ""; }
+  }
+  if (!url) { el.classList.remove("has-scene"); return; }
+  el.style.setProperty("--log-scene", `url(${url})`);
+  el.classList.add("has-scene");
+}
+
 function renderRunbar() {
+  updateLogScene();
   if (!runbarEl) return;
   const show = inDungeon() && G.state !== "over";
   runbarEl.classList.toggle("hidden", !show);
@@ -4759,7 +4790,8 @@ function renderCombatCanvas() {
     if (!hf && !(fx && fx.lunge && fx.lunge.uid === e.uid) && !REDUCED_MOTION) {
       oy += Math.round(Math.sin(now * 0.0024 + (e.uid || i) * 1.7) * 1.6);
     }
-    const size = e.boss ? 14 : row.back ? 8 : 9; // 後衛は奥にいるぶん少し小さい
+    // 後衛は奥にいるぶん少し小さい。強敵は一回り大きく、ボスは画面を圧する
+    const size = e.boss ? 14 : (e.mon && e.mon.elite ? 1.15 : 1) * (row.back ? 8 : 9);
     // 戦闘開始の演出: 1体ずつ上から降り立つ (着地するまで名札やHPは出さない)
     if (intro) {
       const k = b.enemies.indexOf(e);
@@ -9922,8 +9954,12 @@ function renderStatus() {
   head.appendChild(port);
   const idn = el("div", "st-idn");
   idn.appendChild(el("div", "st-name", p.name + (p.alive ? "" : " †")));
-  idn.appendChild(el("div", "st-sub", (p.isDoll ? `人業 ・ ${p.cls} Lv${p.jobLv || 1}` : `${p.align} - ${p.race} - ${p.cls} Lv${p.level}`)
-    + ` ・ ${G.statusIdx < 3 ? "前衛" : "後衛"} ・ 射程:${RANGE_LABEL[weaponRange(p.equip && p.equip.weapon)]}`));
+  // 区切りごとに折り返さない塊にする (「射/程」のような泣き別れを防ぐ)
+  const sub = el("div", "st-sub");
+  const segs = (p.isDoll ? ["人業", `${p.cls} Lv${p.jobLv || 1}`] : [`${p.align} - ${p.race} - ${p.cls} Lv${p.level}`])
+    .concat([G.statusIdx < 3 ? "前衛" : "後衛", `射程:${RANGE_LABEL[weaponRange(p.equip && p.equip.weapon)]}`]);
+  segs.forEach((t, i) => { if (i) sub.appendChild(document.createTextNode(" ・ ")); sub.appendChild(el("span", "st-seg", t)); });
+  idn.appendChild(sub);
   head.appendChild(idn);
   const nav = el("div", "st-nav");
   const prev = btn("◀", () => { G.statusIdx = (G.statusIdx + G.party.length - 1) % G.party.length; stSel = null; renderStatus(); }); prev.className = "st-navb";
