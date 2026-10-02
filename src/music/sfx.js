@@ -61,6 +61,26 @@ function vocalTone(dur, f0At, ampAt, formants) {
   return x;
 }
 
+// ---- 鑑定 (このゲームの肝) ----
+// 「．」のたびに: 鼓動 (段ごとに強く) + 水晶玉の響き (わずかに唸る) + 覗き込む吐息。
+// 音は 1→3 段で ラ → ド → レ# と上がり、3段目は増4度の不協和で宙づりのまま答えを待つ
+const APPRAISE_NOTE = [440, 523.25, 622.25];
+function appraiseTick(r, step) {
+  const n = len(1.0), x = new Float32Array(n);
+  const k = 0.55 + step * 0.2;
+  const beat = (at, f, a) => mixInto(x, sweep(0.24, (t) => f + 34 * Math.exp(-t / 0.018), 0.13), len(at), a);
+  beat(0, 56, k); beat(0.15, 48, k * 0.65);
+  const f = APPRAISE_NOTE[step - 1];
+  mixInto(x, modal(SR, 0.95, [[f, 1, 0.75, 0.004], [f * 1.0045, 0.75, 0.8, 0.004], [f * 2.0, 0.2, 0.4], [f * 2.76, 0.12, 0.22], [f * 5.4, 0.05, 0.1]]), len(0.03), 0.3);
+  // 宙づりの土台: 低いラの上で、段が進むほど不協和が濃くなる
+  const lo = sweep(0.9, () => 110, 0.7, 0.08);
+  for (let i = 0; i < lo.length; i++) lo[i] *= 0.75 + 0.25 * Math.sin(i / SR * 6.28 * (4 + step * 2));
+  mixInto(x, lo, 0, 0.12 + step * 0.05);
+  if (step === 3) mixInto(x, modal(SR, 0.9, [[f * 0.7071 * 2, 0.6, 0.6, 0.01]]), len(0.05), 0.12); // 増4度の影
+  mixInto(x, whoosh(r, 0.55, 900, 3000 + step * 700, 1800, 3.2, 0.5), 0, 0.14 + step * 0.04);
+  return haas(x, 8);
+}
+
 export const SFX_DEFS = {
   select: { vars: 2, vol: 0.38, rev: 0.12, gen(r) {
     const x = modal(SR, 0.12, [[1180 + r() * 60, 1, 0.05], [2950, 0.4, 0.03], [4800, 0.12, 0.015], [330, 0.25, 0.04]]);
@@ -211,6 +231,41 @@ export const SFX_DEFS = {
     const n = len(0.65), x = new Float32Array(n);
     for (let k = 0; k < 4; k++) mixInto(x, footstep(r, 1.2), len(k * 0.09), 0.8 - k * 0.12);
     mixInto(x, whoosh(r, 0.3, 400, 2200, 600, 1.3, 0.4), len(0.12), 0.6);
+    return mono(x);
+  } },
+  appraise1: { vars: 1, vol: 0.5, rev: 0.4, gen(r) { return appraiseTick(r, 1); } },
+  appraise2: { vars: 1, vol: 0.52, rev: 0.4, gen(r) { return appraiseTick(r, 2); } },
+  appraise3: { vars: 1, vol: 0.55, rev: 0.42, gen(r) { return appraiseTick(r, 3); } },
+  // 鑑定成功: 宙づりの和音が長調へ解け、封が砕けて光がこぼれる (吸い込む息 → 鈴の上行 → きらめき)
+  appraiseOk: { vars: 1, vol: 0.55, rev: 0.5, gen(r) {
+    const n = len(1.8), x = new Float32Array(n);
+    mixInto(x, whoosh(r, 0.16, 1500, 8000, 6000, 1.6, 0.92), 0, 0.35);
+    const at = 0.13;
+    const sh = burst(r, 0.05, 0.03); applyBq(sh, "bp", 5200, 1.5, SR); mixInto(x, sh, len(at), 0.5); // 封が砕ける
+    [880, 1108.73, 1318.51, 1760, 2217.46].forEach((f, k2) => mixInto(x, modal(SR, 1.4, [[f, 1, 1.1], [f * 1.003, 0.5, 1.2], [f * 2.76, 0.1, 0.25], [f * 5.4, 0.04, 0.1]]), len(at + 0.055 * k2), 0.26));
+    const pad = sweep(1.5, () => 220, 1.1, 0.04); mixInto(x, pad, len(at), 0.22);
+    mixInto(x, sweep(1.5, () => 277.18, 1.0, 0.06), len(at), 0.12);
+    for (let k2 = 0; k2 < 14; k2++) {
+      const f = 3200 + r() * 4500, t = at + 0.05 + Math.pow(r(), 1.4) * 0.9;
+      mixInto(x, modal(SR, 0.35, [[f, 1, 0.18 + r() * 0.12], [f * 1.49, 0.4, 0.1]]), len(t), 0.07 + r() * 0.06);
+    }
+    const air = white(n, r); hp1(air, 6500, SR);
+    for (let i = 0; i < n; i++) { const t = i / SR; air[i] *= t < at ? 0 : Math.exp(-(t - at) / 0.4) * 0.12; }
+    mixInto(x, air, 0, 1);
+    return haas(x, 10);
+  } },
+  // 鑑定失敗: 水晶の響きが下へ折れて曇り、鈍く閉ざされる (半音の濁り + くぐもった落下)
+  appraiseNg: { vars: 1, vol: 0.5, rev: 0.35, gen(r) {
+    const n = len(1.3), x = new Float32Array(n);
+    const bend = sweep(1.0, (t) => 622.25 - 90 * Math.min(1, t / 0.5), 0.55, 0.003);
+    mixInto(x, bend, 0, 0.3);
+    mixInto(x, modal(SR, 0.8, [[587.33, 0.7, 0.45], [554.37, 0.5, 0.5]]), len(0.04), 0.18);
+    const crack = burst(r, 0.03, 0.015); applyBq(crack, "bp", 2400, 2.5, SR); mixInto(x, crack, 0, 0.35); // ひびの音
+    mixInto(x, sweep(0.5, (t) => 44 + 40 * Math.exp(-t / 0.03), 0.3), len(0.08), 0.9);
+    const thud = burst(r, 0.2, 0.12); lp1(thud, 380, SR); mixInto(x, thud, len(0.08), 1.0);
+    const lo = sweep(1.1, (t) => 110 * Math.pow(0.5, t / 1.2), 0.8, 0.02); mixInto(x, lo, len(0.08), 0.3);
+    lp1(x, 3200, SR);
+    softClip(x, 1.2);
     return mono(x);
   } },
   // ---- 楽器が未生成の間だけ使う簡易ジングル ----

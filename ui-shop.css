@@ -440,19 +440,14 @@
 .ap-detail { display: flex; flex-direction: column; gap: 2px; font-size: 12.5px; }
 .ap-grade { color: var(--ink-dim); }
 .ap-stat { font-weight: 700; color: #9fc4ee; line-height: 1.45; }
-.ap-up { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; }
-.ap-up-who { color: var(--ink-dim); }
 .ap-fail { color: #c9a6a0; line-height: 1.5; }
-.ap-acts { display: flex; justify-content: flex-end; min-height: 0; }
-.ap-acts:empty { display: none; }
-.ap-acts .ui-btn { width: auto; min-width: 160px; }
 .ap-tally { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; font-size: 13px; }
 .ap-pip { min-width: 16px; text-align: center; color: #5a5048; }
 .ap-pip.now { color: #7fd0ff; animation: ap-pulse-t 1s ease-in-out infinite; }
 .ap-pip.ok { color: var(--accent-hi); font-weight: 800; }
 .ap-pip.ng { color: #c4544a; }
 @keyframes ap-pulse-t { 50% { opacity: 0.35; } }
-.ap-worn { flex: 0 0 auto; margin-right: 10px; font-size: 11.5px; color: var(--ink-dim); }
+.ap-sum-worn { padding: 2px 4px; font-size: 12px; color: var(--ink-dim); text-align: center; }
 .ap-sum-fail { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; font-size: 12.5px; border: 1px dashed #4a3433; border-radius: 3px; }
 .ap-sum-fail-l { font-weight: 700; color: #c9a6a0; letter-spacing: 0.1em; }
 .ap-sum-fail-n { color: var(--ink-dim); overflow-wrap: anywhere; }
