@@ -455,9 +455,8 @@ canvas.spr { image-rendering: pixelated; display: block; width: var(--spr-size, 
 /* 縦スクロール画面 (街/ステータス/設定) は flex 縦積みのため、子の縮小を禁じる。
    overflow を持つ子 (層域アコーディオン .tw-band や図鑑タブ .cdx-tabs) は
    flex の自動最小サイズが 0 になり、あふれた高さを一身に吸収して潰れる —
-   リストが途中で切れた上に全体が画面内に収まってスクロール自体が死ぬ。
-   商店 (.shop-mode) だけは .shop-stock が縮んで内側スクロールする設計のため除外 */
-#town-screen:not(.shop-mode) > *,
+   リストが途中で切れた上に全体が画面内に収まってスクロール自体が死ぬ。 */
+#town-screen > *,
 #status-screen > *,
 #settings-screen > * { flex-shrink: 0; }
 
@@ -548,8 +547,6 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .tw-move { flex: 0 0 auto; display: flex; gap: 4px; }
 .tw-moveb { min-width: 30px; min-height: 30px; font-size: 12px; background: #221833; border: 1px solid #4a3568; border-radius: 6px; color: #e0d2f4; }
 .tw-shoprow { display: flex; align-items: center; gap: 9px; background: #170f22; border: 1px solid #34254a; border-radius: 8px; padding: 7px 9px; }
-.tw-shoprow.equip-ok { background: #122017; box-shadow: inset 0 0 0 1px #3f8a5255; }
-.shop-eqmark { font-size: 10px; color: #7fd08a; font-weight: bold; margin-left: 5px; white-space: nowrap; }
 .tw-small { min-height: 34px; padding: 6px 10px; font-size: 11px; background: #221833; border: 1px solid #4a3568; border-radius: 6px; color: #e0d2f4; white-space: nowrap; }
 .tw-small.dim { opacity: 0.45; } /* MP不足の野営呪文: 押せるが理由をトーストで知らせる */
 .tw-small:disabled { opacity: 0.4; }
@@ -824,8 +821,7 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 .tw-dunst.done { color: #ffd84a; border-color: #8a7227; background: rgba(201, 162, 39, 0.08); }
 .tw-dunst.quest { color: #ff9a98; border-color: #7a3a48; background: rgba(228, 85, 79, 0.1); }
 
-/* ===== 商店 (固定レイアウト: ページスクロールなし) ===== */
-#town-screen.shop-mode { overflow: hidden; display: flex; flex-direction: column; }
+/* ===== 図鑑の分類タブと一覧 (旧商店から残る共用のクラス。商会は ui-shop.css) ===== */
 .shop-tabs { flex: 0 0 auto; flex-wrap: wrap; }
 .shop-stock {
   flex: 1 1 auto; min-height: 0;
@@ -833,41 +829,6 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
   display: flex; flex-direction: column; gap: 7px;
   padding: 2px 0 8px;
 }
-.shop-dock {
-  flex: 0 0 auto;
-  border-top: 2px solid #3c2c52;
-  padding-top: 8px;
-  background: linear-gradient(180deg, rgba(30,20,42,0.6), rgba(18,12,26,0.9));
-}
-.shop-members {
-  display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px;
-  touch-action: pan-x; -webkit-overflow-scrolling: touch;
-}
-.shop-member {
-  flex: 0 0 auto; display: flex; align-items: center; gap: 5px;
-  background: #170f22; border: 1px solid #34254a; border-radius: 99px;
-  padding: 5px 12px; cursor: pointer; font-size: 12px; color: #cfc2e2;
-}
-.shop-member.sel { border-color: #8a63b8; box-shadow: 0 0 0 1px #8a63b8; background: #241836; color: #fff; }
-.shop-member.dead { opacity: 0.45; filter: grayscale(0.7); }
-.shop-mname { white-space: nowrap; }
-.shop-bagh { font-size: 10px; color: #9685ad; margin: 2px 0 5px; }
-.shop-bag { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; }
-.shop-slot {
-  position: relative;
-  aspect-ratio: 1;
-  display: flex; align-items: center; justify-content: center;
-  background: #140d1e; border: 1px solid #34254a; border-radius: 8px;
-  cursor: pointer;
-}
-.shop-slot.empty { opacity: 0.35; cursor: default; }
-.shop-slot:not(.empty):active { background: #241836; }
-.shop-price {
-  position: absolute; bottom: 1px; left: 0; right: 0;
-  font-size: 8px; color: #ffd84a; text-align: center; pointer-events: none;
-}
-.shop-slot.shop-unid { border-color: #7fd0ff; box-shadow: inset 0 0 8px #7fd0ff44; }
-.shop-slot.shop-unid .shop-price { color: #7fd0ff; }
 
 /* モーダルが背の高い内容でも収まるように (スクロールはモーダル内のみ) */
 .confirm-overlay .ig-card { max-height: 88vh; overflow-y: auto; touch-action: pan-y; overscroll-behavior: contain; }
