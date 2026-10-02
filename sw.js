@@ -49,7 +49,7 @@ const ASSETS = [
   "./src/titleart.js",
   "./src/openingart.js",
   "./art/op_dolls.png",
-  "./art/mansion_irene.png",
+  "./art/mansion_irene.jpg",
   "./src/townart.js",
   "./src/walkerart.js",
   "./src/jobart.js",
