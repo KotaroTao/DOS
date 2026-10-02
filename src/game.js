@@ -452,6 +452,7 @@ const G = {
   lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
   lrClock: { since: 0, pend: 0 }, // レジェンドレアの時間抽選 (最後のLRからの/前回抽選からの実プレイms)
   order: { picks: [] }, // 控えの結社: 席に着けた魂のuid配列 (席数=orderSeats()。編成外ランク2以上のみ有効)
+  irene: { greeted: false, visits: 0, seen: {}, last: null }, // 人業の館の主イレーヌ: 初訪問の挨拶済み・来館数・聞いた話 (src/ui/irene.js)
   story: 0,           // 王宮ストーリーの進行段階
   dragonSlain: false, // 竜を討ったか
   // 戦績。bossIds/elemKills は集合 ({key:true})、swiftBoss/masterMimicSlain は一度きりの達成フラグ
@@ -8534,6 +8535,8 @@ function departTo(idx) {
 }
 // 第0章: 人業を仕立てる場所 (隊の「宿す魂をえらぶ」シート。無ければ旧来の館の保管庫)
 function goMakeDoll() {
+  // 人業の館へ入ってから仕立てる (初めてなら館の主イレーヌの挨拶の後)
+  if (UI.enterMansion) return UI.enterMansion({ create: true });
   if (UI.openCreateDoll) return UI.openCreateDoll();
   // 隊 (WP-B) の「宿す魂をえらぶ」シートを街のまま直接ひらく (1タップ)
   if (typeof buyDoll === "function") return buyDoll();
@@ -10053,7 +10056,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "lrClock", "order", "story", "dragonSlain", "stats",
+  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "lrClock", "order", "irene", "story", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
   "lastRun",
 ];
@@ -10195,6 +10198,8 @@ function loadGame() {
   G.town = townshell.migrateTown(G.town);
   if (G.lastRun === undefined) G.lastRun = null; // 帰還の報告 (後付け)
   if (!G.order || !Array.isArray(G.order.picks)) G.order = { picks: [] }; // 控えの結社の着席指定
+  if (!G.irene || typeof G.irene !== "object") G.irene = { greeted: false, visits: 0, seen: {}, last: null }; // 館の主イレーヌ (後付け: 既存の記録では次の来館で挨拶する)
+  if (!G.irene.seen || typeof G.irene.seen !== "object") G.irene.seen = {};
   // 旧ステータス体系のセーブを六大ステ (ATK/VIT/AGI/INT/PIE/LUK) へ移行
   // (battle の敵の mon はこの後 MONSTERS の生定義に差し替えられるため触れても無害)
   migrateLegacyStats(snap);
