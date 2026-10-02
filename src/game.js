@@ -1294,7 +1294,10 @@ function renderBoard() {
   vctx.ellipse(hx, hy + 16, 12, 4, 0, 0, Math.PI * 2);
   vctx.fill();
   vctx.restore();
-  drawSprite(vctx, walkerSprite(), hx, hy, SPR);
+  // 盤面の駒: 旧来の12ドット絵はそのまま、高精細の全身像はマスの高さに収めて縮小転写する
+  const wk = walkerSprite();
+  if ((wk.art || []).length > 24) drawMonster(vctx, wk, hx, hy - 2, 3.7);
+  else drawSprite(vctx, wk, hx, hy, SPR);
 
   renderParty();
 }
@@ -3455,7 +3458,7 @@ function drawCard(r, cell, scaleX, showBack) {
         vctx.save();
         vctx.shadowColor = "rgba(127,208,255,0.9)";
         vctx.shadowBlur = 8;
-        drawSprite(vctx, ICONS.wisp, cx + 7, cy - 12 + bob, 1.6);
+        drawSpriteFit(vctx, ICONS.wisp, cx + 7, cy - 12 + bob, 1.6);
         vctx.restore();
       }
     }
@@ -5026,7 +5029,9 @@ function drawMonsterBmp(ctx, b, cx, cy, size, alpha = 1) {
   const W = (b.w + b.pad * 2) * dot, H = (b.h + b.pad * 2) * dot;
   ctx.save();
   ctx.globalAlpha = alpha;
-  ctx.imageSmoothingEnabled = false;
+  // 1ドット未満に縮める時だけ滑らかに補間する (最近傍だとドットが間引かれてちらつく)
+  ctx.imageSmoothingEnabled = dot < 1;
+  if (dot < 1) ctx.imageSmoothingQuality = "high";
   ctx.drawImage(b.c, Math.round(cx - W / 2), Math.round(cy - H / 2), Math.round(W), Math.round(H));
   ctx.restore();
 }
