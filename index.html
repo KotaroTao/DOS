@@ -73,6 +73,27 @@
   <!-- UI の重ね置き場: シート (z 81+n) とトースト (z 85)。src/ui/kit.js -->
   <div id="ui-layer"></div>
 
+  <!-- 縦画面専用: スマホを横向きにした時だけ全面に出る案内 (styles.css の @media で表示) -->
+  <div id="rotate-guard" aria-hidden="true">
+    <div class="rg-phone"><span></span></div>
+    <div class="rg-title">端末を縦向きにしてください</div>
+    <div class="rg-sub">この迷宮は縦画面でのみ歩めます</div>
+  </div>
+
+  <!-- 縦固定: 対応環境 (Android のホーム画面アプリ / 全画面時) では向きそのものを縦にロックする。
+       iOS Safari などロック不可の環境では上の案内で代替する -->
+  <script>
+    (function () {
+      var so = window.screen && screen.orientation;
+      if (!so || typeof so.lock !== "function") return;
+      function lock() { try { so.lock("portrait").catch(function () {}); } catch (e) {} }
+      lock();
+      document.addEventListener("pointerdown", lock, { once: true, passive: true });
+      document.addEventListener("fullscreenchange", lock);
+      document.addEventListener("visibilitychange", function () { if (!document.hidden) lock(); });
+    })();
+  </script>
+
   <!-- 起動エラーの可視化と自己修復 (白画面のまま固まらないように) -->
   <script>
     (function () {
