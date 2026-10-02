@@ -10715,7 +10715,7 @@ bindGame({
   // 設定 (端末の好み)
   PREFS, savePrefs, setVolumes, isMuted, toggleMute, ensureAudio, updateMuteBtn, resetAllData, confirmReset,
   // 他のパッケージも使える街の部品 (肖像・図鑑の詳細)
-  layerMoodUrl, rosterPortrait, showCodexMonDetail, showCodexItemDetail, showCodexJobDetail,
+  showCodexMonDetail, showCodexItemDetail, showCodexJobDetail,
 });
 // ==== /WP-A ====
 

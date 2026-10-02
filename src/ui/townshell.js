@@ -310,4 +310,16 @@ export function install() {
   });
   nav.handle(() => back(), 60);
   mount();
+  // 画面の回転・大きさの変化: 1画面に収める寸法 (街の札の高さなど) を測り直すため描き直す
+  if (typeof addEventListener === "function") {
+    let tm = null, lastW = innerWidth, lastH = innerHeight;
+    addEventListener("resize", () => {
+      clearTimeout(tm);
+      tm = setTimeout(() => {
+        if (innerWidth === lastW && innerHeight === lastH) return;
+        lastW = innerWidth; lastH = innerHeight;
+        if (game.G && game.G.state === "town" && isOpen() && game.renderTown) game.renderTown();
+      }, 250);
+    });
+  }
 }

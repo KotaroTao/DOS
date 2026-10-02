@@ -10,7 +10,7 @@
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
 import { UI, game, ops, registerUI } from "./ctx.js";
-import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, bar } from "./kit.js";
+import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, bar, autoPage } from "./kit.js";
 import { remember, getPref, setPref } from "./prefs.js";
 import { softFade } from "./motion.js";
 import { statLines, itemCatText, showSkillPopup } from "./itemview.js";
@@ -509,7 +509,7 @@ function renderPalace(root) {
   const draw = (k) => {
     body.textContent = "";
     body.scrollTop = 0;
-    body.className = "pl-body s-" + k;
+    body.className = "pl-body ui-autopage s-" + k;
     if (k === "codex") renderCodex(body);
     else if (k === "ach") renderAch(body);
     else if (k === "treasury") renderTreasury(body);
@@ -525,6 +525,7 @@ function renderPalace(root) {
   wrap.appendChild(segEl);
   wrap.appendChild(body);
   draw(seg);
+  autoPage(body); // 縦スクロールの代わりに頁送り (収まれば出ない)
 }
 
 // 王宮タブを開く (seg を指定すればその区分。"codex:item" のように図鑑の区分も指定できる)

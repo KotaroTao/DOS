@@ -484,3 +484,26 @@ button.ui-whisper { cursor: pointer; touch-action: manipulation; }
   .ui-toast, .ui-tab, .ui-btn, .ui-row.tap { transition-duration: 0.12s !important; }
   .ui-ember { display: none; }
 }
+
+/* ===== シートの頁送り (縦スクロールの代わり: kit.js fitPages) ===== */
+.ui-pg-off { display: none !important; }
+.ui-sheet.is-paged .ui-sheet-body { overflow-y: hidden; }
+.ui-sheet-pager {
+  flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 4px var(--sp-4) 2px;
+}
+.ui-sheet-pager.hidden { display: none; }
+.ui-pg-b {
+  flex: 0 0 auto; width: 56px; height: 44px; border-radius: 3px;
+  font: inherit; font-size: 22px; line-height: 1; color: var(--accent-hi, #f3d58b);
+  background: var(--grain), var(--plate-hi, #221b20); border: 1px solid #4a3d36;
+  box-shadow: inset 0 1px 0 rgba(255,236,200,0.06), 0 1px 4px rgba(0,0,0,0.5);
+}
+.ui-pg-b:disabled { opacity: 0.3; }
+.ui-pg-n { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #9a8e78; letter-spacing: 0.1em; }
+.ui-pg-n i { width: 6px; height: 6px; transform: rotate(45deg); background: #3a2f2b; }
+.ui-pg-n i.on { background: var(--accent, #c9a24a); box-shadow: 0 0 6px rgba(201,162,74,0.6); }
+.ui-pg-n span { margin-left: 6px; }
+.ui-sheet.is-paged { height: 88vh; height: 88dvh; } /* 頁ごとに高さが跳ねないよう、送る間は最大の高さに留める */
+.ui-autopage.is-paged { overflow-y: hidden !important; }
+.ui-box-pager { padding: 4px 0 0; }

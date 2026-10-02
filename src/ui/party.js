@@ -14,7 +14,7 @@
 
 import { UI, game, ops, registerUI } from "./ctx.js";
 import {
-  el, button, row, segmented, sheet, toast, confirm, statDelta, bar, badge, setText, longPress, shake,
+  el, button, row, segmented, sheet, toast, confirm, statDelta, bar, badge, setText, longPress, shake, autoPage,
 } from "./kit.js";
 import { deltaFloat } from "./motion.js";
 import { remember, setPref, getPref } from "./prefs.js";
@@ -529,6 +529,7 @@ function renderView(root, mode) {
   else if (seg === "soul") renderSoulSeg(body, d, { mode, rerender, G });
   else statsSeg(body, d, mode);
   root.appendChild(body);
+  if (mode === "town") autoPage(body); // 縦スクロールの代わりに頁送り (収まれば出ない)
 }
 
 // ---- 人業がひとりもいない (第0章など) ----
@@ -1147,10 +1148,13 @@ function equipSeg(root, d) {
     b.addEventListener("click", () => autoEquip("all"));
     h.appendChild(b);
   }
-  root.appendChild(h);
+  // 見出しと所持の札は1つの箱に入れる (狭い画面では左右に並べて高さを詰める: ui-party.css)
+  const wrap = el("div", "pt-bagwrap");
+  wrap.appendChild(h);
   const grid = el("div", "pt-bag");
   for (let i = 0; i < MAX_ITEMS; i++) grid.appendChild(bagCell(d, d.items[i]));
-  root.appendChild(grid);
+  wrap.appendChild(grid);
+  root.appendChild(wrap);
 }
 
 function slotCell(d, k) {
