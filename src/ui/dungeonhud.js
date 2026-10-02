@@ -243,19 +243,23 @@ export function openRunLoot() {
 }
 
 // ================= 記録 (全文) =================
+// 履歴は game.logHistory (記録欄より長く覚えている)。無ければ記録欄の行から。
+// 頁に分かれたら最新の頁 (最後) から開く: ‹ で過去へ遡る
 export function openLog() {
-  const src = document.getElementById("log");
+  let lines = typeof game.logHistory === "function" ? game.logHistory() : null;
+  if (!lines) {
+    const src = document.getElementById("log");
+    lines = src ? [...src.children].map((ln) => ({ text: ln.textContent, cls: ln.className || "l-sys" })) : [];
+  }
   return sheet.open({
-    kind: "info", banner: "記録", className: "dg-sheet dg-logsheet",
+    kind: "info", banner: "記録", className: "dg-sheet dg-logsheet", pageEnd: true,
     body: (b) => {
       const box = el("div", "dg-logfull");
-      const lines = src ? [...src.children] : [];
       if (!lines.length) box.appendChild(el("div", "dg-note", "まだ何も記されていない。"));
-      for (const ln of lines) box.appendChild(el("div", ln.className || "l-sys", ln.textContent));
+      for (const ln of lines) box.appendChild(el("div", ln.cls || "l-sys", ln.text));
       b.appendChild(box);
-      requestAnimationFrame(() => { b.scrollTop = b.scrollHeight; });
     },
-    footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
+    footer: [{ label: "閉じる", kind: "ghost", onTap: (x) => x.close() }],
   });
 }
 
