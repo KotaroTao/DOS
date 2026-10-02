@@ -165,7 +165,7 @@ function renderReady(b) {
   // 1行: 「隊の備え」+ 肖像 (HP の細線つき) + 入替 ›
   const strip = el("div", "dp-party");
   const lab = el("div", "dp-party-l");
-  lab.appendChild(el("span", "dp-party-t", "隊の備え"));
+  lab.appendChild(el("span", "dp-party-t", "パーティの備え"));
   lab.appendChild(el("span", "dp-party-n", `${g.party.length}/6`));
   strip.appendChild(lab);
   g.party.forEach((d, i) => {

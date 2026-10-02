@@ -25,7 +25,7 @@ export const TRAPS = [
   { id: "bolt",       name: "仕込み矢",     rank: 1, kind: "one",    mult: 1.1,                                   flavor: "壁の隙間から矢が放たれた！" },
   { id: "numb",       name: "痺れ針",       rank: 1, kind: "opener", mult: 0.5, ail: "paralyze", ailChance: 0.5,  flavor: "青く濡れた針が指先をかすめた。" },
   { id: "rock",       name: "落石",         rank: 1, kind: "one",    mult: 1.6,                                   flavor: "頭上の石が崩れ落ちてきた！" },
-  { id: "spark",      name: "火花弾",       rank: 1, kind: "party",  mult: 0.45,                                  flavor: "弾けた火花が隊を焼いた！" },
+  { id: "spark",      name: "火花弾",       rank: 1, kind: "party",  mult: 0.45,                                  flavor: "弾けた火花がパーティを焼いた！" },
   { id: "gas",        name: "毒霧",         rank: 1, kind: "party",  mult: 0.35, ail: "poison",  ailChance: 0.35, flavor: "緑色の霧が噴き出した！" },
   { id: "alarm",      name: "警報",         rank: 1, kind: "alarm",                                               flavor: "甲高い鐘の音が迷宮に響き渡った！" },
   { id: "blade",      name: "仕込み刃",     rank: 1, kind: "opener", mult: 1.3,                                   flavor: "ひびの奥から刃が跳ねた！" },
@@ -41,11 +41,11 @@ export const TRAPS = [
   // ---- ランク3 (迷宮21〜): 命に関わる大物 ----
   { id: "teleporter", name: "テレポーター", rank: 3, kind: "teleport",                                            flavor: "床の魔法陣が妖しく輝いた——" },
   { id: "guillotine", name: "断頭刃",       rank: 3, kind: "opener", mult: 2.4, dieChance: 0.10,                  flavor: "巨大な刃が鎌のように振り下ろされた！" },
-  { id: "inferno",    name: "業火の檻",     rank: 3, kind: "party",  mult: 0.95,                                  flavor: "炎の檻が隊を呑み込んだ！" },
+  { id: "inferno",    name: "業火の檻",     rank: 3, kind: "party",  mult: 0.95,                                  flavor: "炎の檻がパーティを呑み込んだ！" },
   { id: "stonemist",  name: "石化の霧",     rank: 3, kind: "one",    mult: 0.5, ail: "stone",    ailChance: 0.45, flavor: "灰色の霧が肌を石へ変えていく…" },
   { id: "horde",      name: "大警報",       rank: 3, kind: "alarm",  horde: true,                                 flavor: "迷宮全体に轟く咆哮——群れが来る！" },
   { id: "curse",      name: "呪詛の刻印",   rank: 3, kind: "party",  mult: 0.6, ail: "paralyze", ailChance: 0.3,  flavor: "黒い刻印が浮かび、生気を蝕む！" },
-  { id: "lifedrain",  name: "生気吸引",     rank: 3, kind: "pct",    pct: 0.22,                                   flavor: "無形の何かが隊の生命を吸い上げた！" },
+  { id: "lifedrain",  name: "生気吸引",     rank: 3, kind: "pct",    pct: 0.22,                                   flavor: "無形の何かがパーティの生命を吸い上げた！" },
   { id: "abyss",      name: "奈落の顎",     rank: 3, kind: "one",    mult: 2.8, dieChance: 0.14,                  flavor: "床が裂け、闇の顎が開いた！" },
 ];
 

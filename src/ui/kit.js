@@ -769,6 +769,7 @@ export function tabbar(tabs, active, onChange) {
     const lb = el("span", "ui-tab-l");
     if (t.center) { lb.appendChild(el("i", "ui-tab-dia")); lb.appendChild(document.createTextNode(t.label)); lb.appendChild(el("i", "ui-tab-dia")); }
     else lb.textContent = t.label;
+    if (!t.center && t.label.length >= 4) lb.classList.add("long");
     b.appendChild(lb);
     b.appendChild(el("span", "ui-tab-badge"));
     b.addEventListener("click", () => { if (onChange) onChange(t.key, b); });

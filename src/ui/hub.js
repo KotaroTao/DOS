@@ -324,10 +324,10 @@ function partyStrip() {
   const canOpen = facilityOpen("mansion");
   const more = el("button", "hb-more");
   more.type = "button";
-  more.appendChild(document.createTextNode("隊を見る"));
+  more.appendChild(document.createTextNode("パーティを見る"));
   more.appendChild(svgIcon("chevron", "hb-more-ic"));
   more.addEventListener("click", () => UI.shell.setTab("party"));
-  box.appendChild(sectionHead("隊", { note: `${(g.party || []).length}/6`, right: canOpen && (g.party || []).length ? more : null }));
+  box.appendChild(sectionHead("パーティ", { note: `${(g.party || []).length}/6`, right: canOpen && (g.party || []).length ? more : null }));
   if (!(g.party || []).length) {
     const e = el("div", "hb-party-empty");
     const ms = g.msq || {};

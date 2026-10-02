@@ -577,7 +577,7 @@ export function identifyChooser(it, { onDone } = {}) {
   const lines = [];
   if (it.lr) lines.push("レジェンドレアは、商会でしか鑑定できない。");
   else if (it.idHardFail) lines.push("一度鑑定に失敗した品。もう商会でしか鑑定できない。");
-  else if (!men.length) lines.push("鑑定の心得のある者が隊にいない。");
+  else if (!men.length) lines.push("鑑定の心得のある者がパーティにいない。");
   else lines.push("失敗すると、この品はもう商会でしか鑑定できない。");
   if (!body.childElementCount) body.appendChild(el("div", "wpc-empty", inTown() ? "商会で鑑定しよう。" : "街へ持ち帰って、商会で鑑定しよう。"));
   h = sheet.open({
