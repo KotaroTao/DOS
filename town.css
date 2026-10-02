@@ -18,14 +18,7 @@
 #town-screen .tw-h {
   margin: 20px 2px 10px; font-size: 13px; letter-spacing: 0.28em; color: var(--tw-gold);
 }
-#town-screen .tw-h-link .tw-h-t { flex: 0 0 auto; }
-#town-screen .tw-h-link::after { order: 1; }
-.tw-h-go {
-  order: 2; flex: 0 0 auto; font-family: var(--font); font-size: 11px; letter-spacing: 0.12em; font-weight: 700;
-  color: var(--tw-gold-hi); background: none; border: 1px solid rgba(201, 162, 74, 0.4); border-radius: 2px;
-  padding: 4px 9px; min-height: 28px; cursor: pointer;
-}
-.tw-h-go:active { background: rgba(201, 162, 74, 0.12); }
+
 #town-screen .tw-lead {
   font-size: 12px; line-height: 1.8; color: #a99c84; margin: 2px 2px 12px;
   padding-left: 10px; border-left: 1px solid var(--tw-line);
@@ -46,13 +39,7 @@
   background: #050409;
   isolation: isolate;
 }
-.tw-hero-art { position: absolute; inset: 0; z-index: 0; }
-.tw-hero-art .town-scene {
-  display: block; width: 100%; height: 100%; margin: 0; border: 0;
-  object-fit: cover; object-position: 50% 100%;
-  image-rendering: pixelated;
-  -webkit-mask-image: none; mask-image: none;
-}
+
 /* 上は見出しのための闇、下はページへ溶ける */
 .tw-hero::after {
   content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none;
@@ -61,36 +48,8 @@
     linear-gradient(0deg, #0d0a10 0%, rgba(13, 10, 16, 0.82) 7%, rgba(13, 10, 16, 0) 24%),
     radial-gradient(140% 90% at 50% 55%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.55) 100%);
 }
-.tw-hero-bar {
-  position: absolute; z-index: 3; left: 0; right: 0; top: 0;
-  padding: var(--tw-top) var(--tw-pad) 0;
-  display: flex; align-items: flex-start; justify-content: space-between; pointer-events: none;
-}
-.tw-hero-bar > * { pointer-events: auto; }
+
 .tw-gear { min-width: 40px; min-height: 38px; font-size: 16px; background: rgba(12, 9, 13, 0.7) !important; backdrop-filter: blur(2px); }
-.tw-hero-bar .tw-cur {
-  padding: 4px 8px; background: rgba(8, 6, 10, 0.62); border: 1px solid rgba(201, 162, 74, 0.28); border-radius: 2px;
-  text-shadow: 0 1px 0 #000; font-size: 11.5px; gap: 2px;
-}
-.tw-hero-title {
-  position: absolute; z-index: 2; left: 50%; top: calc(var(--tw-top) + 2px); transform: translateX(-50%);
-  text-align: center; pointer-events: none; white-space: nowrap;
-}
-.tw-hero-kick {
-  font-size: 11px; letter-spacing: 0.75em; padding-left: 0.75em; color: #b8a47a; font-weight: 700;
-  text-shadow: 0 1px 2px #000, 0 0 8px #000;
-}
-.tw-hero-name {
-  font-size: 36px; line-height: 1.12; font-weight: 800; letter-spacing: 0.32em; padding-left: 0.32em;
-  color: #f0d690;
-  background: linear-gradient(180deg, #fff4d0 0%, #f1d38a 38%, #b98a3a 70%, #7a5420 100%);
-  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 2px 0 #000) drop-shadow(0 0 14px rgba(0, 0, 0, 0.95));
-}
-.tw-hero-sub {
-  margin-top: 1px; font-size: 10px; letter-spacing: 0.22em; color: #9d8f78;
-  text-shadow: 0 1px 2px #000, 0 0 6px #000;
-}
 
 /* 夜景の名所の札 (タップでその施設へ) */
 .tw-spot {
@@ -103,25 +62,9 @@
   content: ""; width: 1px; height: 9px;
   background: linear-gradient(180deg, rgba(201, 162, 74, 0.8), rgba(201, 162, 74, 0));
 }
-.tw-spot-l {
-  display: block; padding: 3px 7px 3px; min-height: 20px;
-  font-size: 10px; font-weight: 700; letter-spacing: 0.14em; line-height: 1.3; white-space: nowrap;
-  color: #ead9a6; background: rgba(7, 5, 9, 0.74);
-  border: 1px solid rgba(201, 162, 74, 0.5); border-radius: 1px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
-  text-shadow: 0 1px 0 #000;
-  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
-}
-.tw-spot:active .tw-spot-l { background: rgba(201, 162, 74, 0.28); }
-@media (hover: hover) { .tw-spot:hover .tw-spot-l { color: #fff3cf; border-color: var(--tw-gold-hi); box-shadow: 0 0 12px rgba(243, 213, 139, 0.45); } }
+
 .tw-spot.locked { opacity: 0.45; }
-.tw-spot.locked .tw-spot-l::before { content: "⛓ "; }
-.tw-spot-crypt .tw-spot-l { color: #d9ccff; border-color: rgba(140, 108, 240, 0.6); box-shadow: 0 0 10px rgba(122, 90, 216, 0.35); }
-.tw-spot-crypt::after { background: linear-gradient(180deg, rgba(140, 108, 240, 0.85), rgba(140, 108, 240, 0)); }
-.tw-spot-shrine .tw-spot-l { color: #ffc0b0; border-color: rgba(228, 68, 62, 0.55); }
-.tw-spot-shrine::after { background: linear-gradient(180deg, rgba(228, 68, 62, 0.85), rgba(228, 68, 62, 0)); }
-.tw-spot.call .tw-spot-l { color: #1a1006; background: linear-gradient(180deg, #f6d77e, #c99a35); border-color: #fff0c0; animation: tw-call 1.6s ease-in-out infinite; }
-.tw-spot.call .tw-spot-l::before { content: "❗ "; }
+
 @keyframes tw-call { 0%, 100% { box-shadow: 0 0 6px rgba(243, 213, 139, 0.5); } 50% { box-shadow: 0 0 18px rgba(243, 213, 139, 0.95); } }
 
 /* ---------- いまの目標: 封蝋の勅書 ---------- */
@@ -138,17 +81,6 @@
   cursor: pointer;
 }
 #town-screen .tw-goal:active { transform: translateY(1px); }
-.tw-goal-seal {
-  flex: 0 0 auto; width: 40px; height: 40px; display: grid; place-items: center;
-  border-radius: 46% 54% 50% 48% / 52% 46% 54% 48%;
-  background: radial-gradient(circle at 36% 30%, #d0544a 0%, #8e1c1c 46%, #5a0c10 78%, #3a070a 100%);
-  box-shadow: inset 0 -3px 5px rgba(0, 0, 0, 0.55), inset 0 2px 2px rgba(255, 190, 170, 0.32), 0 2px 5px rgba(0, 0, 0, 0.85), 0 0 0 2px rgba(90, 12, 16, 0.45);
-}
-.tw-goal-seal span { font-size: 17px; font-weight: 800; color: #f7cdbd; text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.6), 0 1px 0 rgba(255, 200, 180, 0.25); }
-.tw-goal-tx { flex: 1; min-width: 0; }
-#town-screen .tw-goal-k { display: block; padding: 0; background: none; color: #b8975a; font-size: 10px; font-weight: 700; letter-spacing: 0.35em; }
-#town-screen .tw-goal-t { display: block; font-size: 13.5px; font-weight: 700; color: #f1e3bd; line-height: 1.5; text-shadow: 0 1px 0 #000; }
-#town-screen .tw-goal-go { flex: 0 0 auto; font-size: 24px; line-height: 1; color: var(--tw-gold); }
 
 /* =====================================================================
    施設の札 (情景の絵に名前を重ねる)
@@ -165,53 +97,15 @@
   content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none;
   background: var(--corners); opacity: 0.8;
 }
-.tw-plate-art { position: relative; aspect-ratio: 120 / 75; background: #050407; }
-.tw-plate.wide .tw-plate-art { aspect-ratio: 120 / 42; }
-.tw-plate-art > canvas.tw-vig {
-  display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 45%;
-  image-rendering: pixelated; transition: filter 0.25s ease;
-}
-.tw-plate-cap {
-  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
-  padding: 22px 10px 8px;
-  background: linear-gradient(180deg, rgba(5, 4, 7, 0) 0%, rgba(5, 4, 7, 0.78) 42%, rgba(5, 4, 7, 0.95) 100%);
-}
-.tw-plate-name {
-  font-size: 14px; font-weight: 800; letter-spacing: 0.06em; color: #f1e3c2; line-height: 1.3;
-  text-shadow: 0 1px 0 #000, 0 0 8px #000;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.tw-plate-desc { margin-top: 2px; font-size: 10.5px; color: #a79a82; line-height: 1.35; text-shadow: 0 1px 0 #000; }
-.tw-plate-badge {
-  position: absolute; z-index: 4; top: 8px; right: 8px;
-  padding: 2px 8px; font-size: 10px; font-weight: 800; letter-spacing: 0.08em;
-  color: #1a1006; background: linear-gradient(180deg, #f8dc88, #c99a35);
-  border-radius: 1px; box-shadow: 0 0 0 1px #000, 0 0 12px rgba(243, 213, 139, 0.65);
-  animation: tw-call 1.6s ease-in-out infinite;
-}
-.tw-plate-badge::before { content: "❗ "; }
+
 .tw-plate:not(.locked):active { transform: translateY(1px) scale(0.992); }
 .tw-plate:focus-visible { outline: 2px solid var(--tw-gold-hi); outline-offset: 3px; }
 @media (hover: hover) {
   .tw-plate:not(.locked):hover { box-shadow: 0 0 0 1px #000, 0 0 0 2px #3a2e22, 0 0 0 3px rgba(243, 213, 139, 0.7), 0 0 26px rgba(201, 162, 74, 0.28), 0 10px 22px rgba(0, 0, 0, 0.7); }
-  .tw-plate:not(.locked):hover .tw-plate-art > canvas.tw-vig { filter: brightness(1.22) saturate(1.08); }
+  
 }
 /* 閉ざされた札: 色を失い、鎖と錠前 */
 .tw-plate.locked { cursor: not-allowed; }
-.tw-plate.locked .tw-plate-art > canvas.tw-vig { filter: grayscale(0.85) brightness(0.42) contrast(1.1); }
-.tw-plate.locked .tw-plate-art::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background:
-    repeating-linear-gradient(28deg, rgba(0, 0, 0, 0) 0 46%, rgba(70, 64, 70, 0.55) 46% 48%, rgba(0, 0, 0, 0) 48% 100%),
-    repeating-linear-gradient(-28deg, rgba(0, 0, 0, 0) 0 46%, rgba(70, 64, 70, 0.45) 46% 48%, rgba(0, 0, 0, 0) 48% 100%);
-}
-.tw-plate-art > canvas.tw-plate-lock {
-  position: absolute; z-index: 2; left: 50%; top: 38%; transform: translate(-50%, -50%);
-  width: 36px; height: 44px; image-rendering: pixelated; filter: drop-shadow(0 2px 4px #000);
-}
-.tw-plate.locked .tw-plate-name { color: #8e8576; }
-.tw-plate.locked .tw-plate-desc { color: #7d7466; }
-
 
 /* =====================================================================
    編成: 肖像の札 (前衛 3 / 後衛 3)
@@ -260,9 +154,7 @@
 .tw-phpn.revive { color: #9fc4ee; }
 .tw-pcard.dead .tw-pport canvas { filter: grayscale(1) brightness(0.55); }
 .tw-pcard.dead .tw-pname { color: #8e8576; }
-.tw-pcard.vacant { cursor: pointer; opacity: 0.55; border-style: dashed; background: rgba(10, 8, 11, 0.5); box-shadow: none; }
-.tw-pcard.vacant .tw-pport { background: #070608; }
-.tw-pcard.vacant .tw-pport::before { content: "＋"; color: #5d5246; font-size: 18px; }
+
 .tw-party .tw-empty { grid-column: 1 / -1; }
 
 /* =====================================================================
@@ -289,17 +181,7 @@
   content: "▾"; position: absolute; right: 12px; bottom: 6px; font-size: 11px; color: var(--tw-gold); transition: transform 0.2s;
 }
 #town-screen .tw-layer:not([open]) summary.tw-layerh::after { transform: rotate(-90deg); }
-.tw-layer-t { display: flex; flex-direction: column; min-width: 0; }
-.tw-layer-n { font-size: 10.5px; letter-spacing: 0.4em; color: #b8a47a; font-weight: 700; text-shadow: 0 1px 2px #000; }
-.tw-layer-name {
-  font-size: 22px; font-weight: 800; letter-spacing: 0.3em; line-height: 1.25; color: #f0e2c0;
-  text-shadow: 0 2px 0 #000, 0 0 12px #000;
-}
-.tw-layer-p {
-  flex: 0 0 auto; margin-bottom: 10px; padding: 2px 8px; font-size: 10.5px; letter-spacing: 0.08em; color: #cdbf9f;
-  background: rgba(0, 0, 0, 0.6); border: 1px solid #4a3d36; font-variant-numeric: tabular-nums;
-}
-.tw-layer-p.done { color: var(--tw-gold-hi); border-color: #8a6d2e; }
+
 #town-screen .tw-band .tw-gatelist { padding: 10px 8px 10px; gap: 8px; }
 
 .tw-gate {
@@ -311,35 +193,22 @@
   transition: border-color 0.15s, box-shadow 0.2s;
 }
 .tw-gate:active { transform: translateY(1px); }
-.tw-gate-ic { position: relative; flex: 0 0 auto; width: 40px; height: 48px; }
-.tw-gate-ic canvas { display: block; width: 40px; height: 48px; image-rendering: pixelated; }
-.tw-gate-no {
-  position: absolute; left: 50%; bottom: -5px; transform: translateX(-50%);
-  min-width: 18px; padding: 0 3px; font-size: 9.5px; font-weight: 800; line-height: 13px; text-align: center;
-  color: #e9d9a6; background: #0d0a0c; border: 1px solid #5a4730; font-variant-numeric: tabular-nums;
-}
-.tw-gate-i { flex: 1; min-width: 0; }
-.tw-gate-n { font-size: 14px; font-weight: 700; color: var(--ink); letter-spacing: 0.04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 0 #000; }
-.tw-gate-c { margin-top: 1px; font-size: 10.5px; color: #998d77; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
 .tw-gate.sel {
   border-color: #8a6d2e;
   background: var(--grain), radial-gradient(120% 160% at 0% 50%, rgba(122, 90, 216, 0.22), rgba(0, 0, 0, 0) 55%), var(--plate);
   box-shadow: 0 0 0 1px rgba(201, 162, 74, 0.5), 0 0 22px rgba(122, 90, 216, 0.28), var(--plate-edge);
 }
-.tw-gate.sel .tw-gate-n { color: var(--tw-gold-hi); }
+
 .tw-gate.sel::before { /* 選んだ門を指す金の楔 */
   content: ""; position: absolute; left: -1px; top: 50%; width: 3px; height: 60%; transform: translateY(-50%);
   background: linear-gradient(180deg, transparent, var(--tw-gold-hi), transparent);
 }
-.tw-gate.cleared .tw-gate-ic canvas { filter: sepia(0.25) brightness(0.95); }
+
 #town-screen .tw-dunst { flex: 0 0 auto; padding: 3px 8px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; border: 1px solid #4a3d36; }
 #town-screen .tw-dunst.quest { color: #ffc4b4; border-color: #8a2a24; background: rgba(160, 30, 30, 0.22); box-shadow: 0 0 10px rgba(196, 58, 47, 0.3); }
 #town-screen .tw-dunst.quest::before { content: "❗ "; }
 #town-screen .tw-dunst.sealed { color: #8c816d; border-style: dashed; }
-.tw-gate-sealed { cursor: default; border-style: dashed; border-color: #3a302c; background: rgba(10, 8, 11, 0.55); box-shadow: none; }
-.tw-gate-sealed .tw-gate-n { color: #a39782; }
-.tw-gate-abyss { border-color: #4a3268; background: var(--grain), radial-gradient(120% 160% at 0% 50%, rgba(122, 60, 180, 0.22), rgba(0, 0, 0, 0) 60%), var(--plate); }
-.tw-gate-abyss .tw-gate-n { color: #d6c2f0; }
 
 /* ---------- 潜行の号令 (画面下に固定) ---------- */
 #town-screen .tw-divebar {
@@ -367,15 +236,6 @@
   50% { box-shadow: 0 0 0 1px #000, 0 0 0 2px rgba(201, 162, 74, 0.5), 0 0 34px rgba(122, 90, 216, 0.5), inset 0 1px 0 rgba(255, 226, 160, 0.14); }
 }
 @keyframes tw-sheen { 0%, 55% { background-position: -150% 0; } 100% { background-position: 250% 0; } }
-.tw-dive-ic { flex: 0 0 auto; width: 44px; height: 52px; image-rendering: pixelated; filter: drop-shadow(0 0 8px rgba(140, 110, 240, 0.55)); }
-.tw-dive-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
-.tw-dive-k { font-size: 10.5px; font-weight: 700; letter-spacing: 0.42em; color: #b8a2e6; text-shadow: 0 1px 0 #000; }
-.tw-dive-n {
-  font-size: 17px; font-weight: 800; letter-spacing: 0.04em; color: var(--tw-gold-hi);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  text-shadow: 0 0 10px rgba(243, 213, 139, 0.35), 0 1px 0 #000;
-}
-.tw-dive-go { flex: 0 0 auto; font-size: 28px; line-height: 1; color: var(--tw-gold); text-shadow: 0 0 10px rgba(201, 162, 74, 0.5); }
 
 /* =====================================================================
    施設の表構え: 情景の帯 + 見出し + 番人
@@ -393,7 +253,7 @@
   font-family: var(--font); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; background: none; border: 0; cursor: pointer; text-shadow: 0 1px 0 #000;
 }
 .tw-cchip::before { content: ""; position: absolute; left: 1px; right: 1px; top: 7px; bottom: 7px; z-index: -1; background: rgba(8, 6, 10, 0.66); border: 1px solid rgba(201, 162, 74, 0.28); border-radius: 2px; }
-.tw-cchip.tw-c-gold { color: #f0d48c; } .tw-cchip.tw-c-soul { color: #b4e6ff; } .tw-cchip.tw-c-red { color: #ff8a7a; } .tw-cchip.tw-c-ember { color: #ffb070; }
+   
 .tw-banner > canvas {
   position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%;
   object-fit: cover; object-position: 50% 50%; image-rendering: pixelated;
@@ -471,22 +331,22 @@
 #town-screen .tw-chips { filter: drop-shadow(0 1px 2px #000); }
 
 @media (prefers-reduced-motion: reduce) {
-  .tw-spot.call .tw-spot-l, .tw-plate-badge, #town-screen .tw-dive, #town-screen .tw-dive::after, .tw-php.low > i { animation: none !important; }
+   #town-screen .tw-dive, #town-screen .tw-dive::after, .tw-php.low > i { animation: none !important; }
 }
 
 /* 広い画面 (デスクトップの 520px 列) では夜景をやや高く、札を大きく */
 @media (min-width: 480px) {
-  .tw-hero-name { font-size: 40px; }
-  .tw-spot-l { font-size: 11px; }
-  .tw-plate-name { font-size: 15px; }
+  
+  
+  
   .tw-pport { width: 64px; height: 64px; }
 }
 /* 狭い画面 (360px 級) */
 @media (max-width: 370px) {
-  .tw-hero-name { font-size: 31px; }
+  
   .tw-plates { gap: 9px; }
-  .tw-plate-name { font-size: 13px; }
+  
   .tw-pport { width: 52px; height: 52px; }
   .tw-pport canvas, .tw-portrait { width: 44px; height: 44px; }
-  .tw-dive-n { font-size: 15.5px; }
+  
 }

@@ -9362,9 +9362,8 @@ function askPortalReturn() {
 }
 
 // ---- 個別ステータス (旧) → 隊 (src/ui/party.js) ----
-// 旧 #status-screen は使わない (隠したまま)。街では隊タブを、迷宮では隊のシート (全高) を開く。
+// 旧 #status-screen は廃止。街では隊タブを、迷宮では隊のシート (全高) を開く。
 // openStatus / closeStatus / renderStatus は多くの呼び出し元のための窓口 (名前と意味は旧来のまま)。
-const statusEl = document.getElementById("status-screen");
 const statusBtn = document.getElementById("status-btn");
 
 function openStatus(idx = 0, opts = {}) {
@@ -9372,12 +9371,10 @@ function openStatus(idx = 0, opts = {}) {
   if (G.anim || G.walking || G.prompt) return;
   if (G.settingsOpen) closeSettings();
   G.statusIdx = idx;
-  if (statusEl) statusEl.classList.add("hidden");
   UI.openParty(idx, { context: G.state === "town" ? "town" : "dungeon", ...opts });
 }
 function closeStatus() {
   uiParty.closeSheet();
-  if (statusEl) statusEl.classList.add("hidden");
 }
 // 隊の表示を描き直す (迷宮のシート / 街の隊タブ)。装備変更・呪文のたびに保存
 function renderStatus() {
@@ -9953,7 +9950,7 @@ function swipeStep(dx, dy) {
 }
 
 // スワイプは画面全体で受け付ける。ボタン/モーダル/ステータス画面は除外。
-const SWIPE_IGNORE = "button, a, [role=button], #party, #status-screen, #town-screen, #town-shell, #ui-layer, #item-get, .confirm-overlay";
+const SWIPE_IGNORE = "button, a, [role=button], #party, #town-screen, #town-shell, #ui-layer, #item-get, .confirm-overlay";
 document.addEventListener("pointerdown", (e) => {
   if (e.pointerType === "mouse") return;
   // どこを触っても、まず進行中のスワイプ連続移動ループを止める。
@@ -10003,7 +10000,6 @@ if (muteBtn) {
 // ================= 設定 (⚙) — キットのシート (src/ui/settings.js が組み立てる) =================
 // 音量は端末の好み (PREFS = dos-prefs)、自動化の好みは UI の好み (prefs.js = dos-ui)。どちらもセーブとは別。
 // G.settingsOpen は「シートが開いている」の意味で保つ (盤面の入力止め・戻る操作の判定に使われる)
-const settingsEl = document.getElementById("settings-screen"); // 旧来の設定画面 (使わない。隠したまま)
 const settingsBtn = document.getElementById("settings-btn");
 let settingsSheet = null;
 
@@ -10020,7 +10016,6 @@ function openSettings() {
 function closeSettings() {
   G.settingsOpen = false;
   if (settingsSheet) { const h = settingsSheet; settingsSheet = null; h.close("close"); }
-  if (settingsEl) settingsEl.classList.add("hidden");
 }
 // 開いている設定のシートを描き直す (ミュートの切り替え・Mキーなど)
 function renderSettings() {
@@ -10857,8 +10852,6 @@ function startAfterTitle(loaded) {
     try {
       G.state = "town"; G.town = { facility: null, sub: null, tab: "hub", page: null };
       G.statusOpen = false; G.settingsOpen = false; G.prompt = false; G.anim = null; G.walking = false;
-      if (statusEl) statusEl.classList.add("hidden");
-      if (settingsEl) settingsEl.classList.add("hidden");
       renderTown();
     } catch (e2) { /* これ以上は何もしない (セーブは温存) */ }
   }
