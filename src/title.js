@@ -3,9 +3,9 @@
 // 一枚絵「百の迷宮の門」(titleart.js) を低解像度で描き、整数倍で拡大して全面に敷く。
 // その上に DOM で 鋳造された金と鉄のロゴ、目覚めの合図、メニューを重ねる。
 //
-// 2段階: ①「画面をタップ」で目覚める (ここで音声が解禁され、タイトル曲が流れる)。
-//          目覚めの鐘: 門が脈打ち、巨像の眼が灯り、鴉が飛び立つ
-//        ② はじめから / つづきから とセーブ概要が現れる
+// メニュー (はじめから / つづきから とセーブ概要) は最初から見えていて、1タップで本編へ入る
+// (そのタップで音声も解禁される)。メニュー以外をタップすると目覚めの演出だけを見せる:
+//   目覚めの鐘: 門が脈打ち、巨像の眼が灯り、鴉が飛び立つ
 // showTitle({ hasSave, summary, onStart, onNewGame? })
 //   summary: { head, lines[], sprites[] } — つづきからのカードに出す
 //   onNewGame (任意): セーブがあっても「はじめから」を選べるようにする。渡されなければ隠す
@@ -13,6 +13,7 @@ import { spriteCanvas } from "./sprites.js";
 import { SFX } from "./audio.js";
 import { pickRes } from "./pxpaint.js";
 import { TitleScene } from "./titleart.js";
+import { glyphText } from "./ui/kit.js";
 
 const REDUCED = (() => {
   try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; }
@@ -74,7 +75,8 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
       sc.appendChild(row);
     }
     const ls = div("ttl-save-ls");
-    for (const ln of summary.lines || []) ls.appendChild(div("ttl-save-l", ln));
+    // 通貨は絵文字ではなく小さな硬貨・魂玉の印で
+    for (const ln of summary.lines || []) { const d = div("ttl-save-l"); d.appendChild(glyphText(ln)); ls.appendChild(d); }
     sc.appendChild(ls);
     menu.appendChild(sc);
   }
@@ -178,18 +180,18 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     setTimeout(() => wrap.remove(), REDUCED ? 400 : 1500);
   };
   const start = () => { sfx("stairs"); close(onStart); };
+  // メニューは最初から見えている。「つづきから/はじめから」は1タップで始まる (そのタップで音声も目覚める)。
+  // それ以外の場所をタップすると、目覚めの演出 (鐘・門の脈動・鴉) だけを見せる
   const wake = () => {
     if (awake) return;
     awake = true;
     wrap.classList.add("ttl-awake");
     sfx("select");
     if (scene && !REDUCED) scene.wake(performance.now());
-    setTimeout(() => { try { goBtn.focus({ preventScroll: true }); } catch {} }, 700);
   };
-  goBtn.addEventListener("click", (e) => { e.stopPropagation(); if (!awake) { wake(); return; } start(); });
+  goBtn.addEventListener("click", (e) => { e.stopPropagation(); start(); });
   if (newBtn) newBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-    if (!awake) { wake(); return; }
     sfx("select");
     confirmBox.classList.remove("hidden");
     wrap.classList.add("ttl-confirming");
@@ -202,7 +204,6 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     if (closed) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault(); e.stopPropagation();
-      if (!awake) { wake(); return; }
       if (!confirmBox.classList.contains("hidden")) return;
       const a = document.activeElement;
       if (a && a.classList && a.classList.contains("ttl-btn") && wrap.contains(a)) { a.click(); return; }
@@ -219,6 +220,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     try { await layoutScene(); } catch (e) { console.error(e); }
     if (closed) return;
     wrap.classList.add("ttl-ready");
+    try { goBtn.focus({ preventScroll: true }); } catch {}
     if (!REDUCED) raf = requestAnimationFrame(loop);
   }, 30));
 }

@@ -381,8 +381,19 @@
    施設の表構え: 情景の帯 + 見出し + 番人
    ===================================================================== */
 .tw-shell { position: relative; margin: calc(-1 * var(--tw-top)) calc(-1 * var(--tw-pad)) 8px; }
-.tw-banner { position: relative; height: clamp(160px, 46vw, 210px); overflow: hidden; background: #050407; isolation: isolate; }
+/* 情景の帯は低く (番人は帯の下の1行のささやき)。最初の画面を中身に譲る */
+.tw-banner { position: relative; height: clamp(104px, 28vw, 128px); overflow: hidden; background: #050407; isolation: isolate; }
 .tw-shell.compact .tw-banner { height: clamp(96px, 26vw, 120px); }
+.tw-shell > .ui-whisper, .tw-shell > .kp-full { margin: 6px var(--tw-pad) 0; width: auto; }
+/* 旧来の施設画面の戻る・設定・通貨 (押せる場所は 44px) */
+.tw-head .tw-back { min-width: 44px; min-height: 44px; padding: 0 12px; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; font-family: var(--font); color: #e6dbc2; background: rgba(12, 9, 13, 0.72); border: 1px solid rgba(201, 162, 74, 0.35); border-radius: 2px; cursor: pointer; }
+.tw-head .tw-cur { display: flex; flex-direction: row; align-items: center; gap: 0; padding: 0 !important; background: none !important; border: 0 !important; }
+.tw-cchip {
+  position: relative; isolation: isolate; display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0 4px;
+  font-family: var(--font); font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; background: none; border: 0; cursor: pointer; text-shadow: 0 1px 0 #000;
+}
+.tw-cchip::before { content: ""; position: absolute; left: 1px; right: 1px; top: 7px; bottom: 7px; z-index: -1; background: rgba(8, 6, 10, 0.66); border: 1px solid rgba(201, 162, 74, 0.28); border-radius: 2px; }
+.tw-cchip.tw-c-gold { color: #f0d48c; } .tw-cchip.tw-c-soul { color: #b4e6ff; } .tw-cchip.tw-c-red { color: #ff8a7a; } .tw-cchip.tw-c-ember { color: #ffb070; }
 .tw-banner > canvas {
   position: absolute; inset: 0; z-index: 0; width: 100%; height: 100%;
   object-fit: cover; object-position: 50% 50%; image-rendering: pixelated;
