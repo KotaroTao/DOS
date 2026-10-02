@@ -135,7 +135,7 @@ function mainCard(d, pe, town) {
   if (!pe) {
     card.classList.add("empty");
     card.appendChild(el("div", "sp-empty-t", "メイン魂が宿っていない"));
-    card.appendChild(el("div", "sp-empty-s", "魂を宿せば、職業・能力・技が定まり、隊に加えられる。"));
+    card.appendChild(el("div", "sp-empty-s", "魂を宿せば、職業・能力・技が定まり、パーティに加えられる。"));
     if (town) card.appendChild(button({ label: "魂を宿す", kind: "primary", onTap: () => openSoulPicker(d, "primary") }));
     return card;
   }
@@ -318,7 +318,7 @@ function orderTile(town) {
   const m = el("button", "sp-tile-main");
   m.type = "button";
   m.appendChild(el("span", "sp-tile-k", `控えの結社 ・ 席 ${seated.length}/${seats}`));
-  m.appendChild(el("span", "sp-tile-s", parts.length ? `加護: ${parts.join("・")}` : "隊に出していない魂を席に着ける"));
+  m.appendChild(el("span", "sp-tile-s", parts.length ? `加護: ${parts.join("・")}` : "パーティに出していない魂を席に着ける"));
   m.addEventListener("click", () => openOrderSheet(town));
   t.appendChild(m);
   return t;
@@ -351,7 +351,7 @@ function orderBody(root, town, again) {
     root.appendChild(el("div", "sp-order-on", `発動中の加護: ${parts.length ? parts.join("・") : "なし"}`));
   }
   if (!benched.length) {
-    root.appendChild(el("div", "pt-note", "隊に出していない魂をランク2以上に育てると、席に着けて隊全体の加護を授けられる。同じ加護は最も高いLvだけが効く。"));
+    root.appendChild(el("div", "pt-note", "パーティに出していない魂をランク2以上に育てると、席に着けてパーティ全体の加護を授けられる。同じ加護は最も高いLvだけが効く。"));
     return;
   }
   const perkOf = (s) => ORDER_PERK[s.clsKey] || "";
@@ -477,7 +477,7 @@ function pickerBody(root, d, slotId, h) {
     if (isCur) {
       side.appendChild(button({ label: "外す", kind: "ghost", size: "sm", onTap: () => {
         const go = () => game.equipSoulToSlot(d, s.uid, slotId, (applied) => { if (applied) h.close(); });
-        if (!isSub) confirm({ title: `${d.name} からメイン魂を外す？`, lines: ["魂の宿らない器は、隊で戦えない。"], okLabel: "外す" }).then((y) => { if (y) go(); });
+        if (!isSub) confirm({ title: `${d.name} からメイン魂を外す？`, lines: ["魂の宿らない器は、パーティで戦えない。"], okLabel: "外す" }).then((y) => { if (y) go(); });
         else go();
       } }));
     }

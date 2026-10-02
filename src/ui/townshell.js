@@ -18,13 +18,13 @@ import { SFX } from "../audio.js";
 
 export const TABS = [
   { key: "hub", label: "街", icon: "town" },
-  { key: "party", label: "隊", icon: "party" },
+  { key: "party", label: "人業の館", icon: "party" },
   { key: "gate", label: "迷宮", icon: "dive", center: true },
   { key: "shop", label: "商会", icon: "shop" },
   { key: "palace", label: "王宮", icon: "palace" },
 ];
 const TAB_INDEX = { hub: 0, party: 1, gate: 2, shop: 3, palace: 4 };
-const TAB_TITLE = { hub: "街", party: "隊", shop: "商会", palace: "王宮" };
+const TAB_TITLE = { hub: "街", party: "人業の館", shop: "商会", palace: "王宮" };
 
 // 旧施設 → 属するタブ
 export const FAC_TAB = {

@@ -850,7 +850,7 @@ const SPECIAL_FLOORS = [
     lines: ["不自然なほど宝箱が多い…罠の匂いがする。", "宝箱の半分はミミックだ。だが倒せば上質な宝箱を残す。"],
     board: (b) => sfPlace(b, 3, (c) => { c.type = "chest"; c.cleared = false; }) },
   { id: "healing", name: "癒しの霊気", icon: "fountain", accent: "#8af0c0", sym: "✚", minFloor: 2, rate: 0.02, victoryHeal: 0.10,
-    lines: ["澄んだ霊気が満ち、傷を癒してくれる。", "戦闘に勝利するたび、隊全体のHPとMPが10%回復する。"] },
+    lines: ["澄んだ霊気が満ち、傷を癒してくれる。", "戦闘に勝利するたび、パーティ全体のHPとMPが10%回復する。"] },
   { id: "legend", name: "伝説の眠る階", icon: "chest", accent: "#ffe080", sym: "★", minFloor: 4, rate: 0.01,
     lines: ["遥か昔の英雄の遺品が、この階のどこかに眠っている。", "ひとつの宝箱にだけ、格別の装備が入っている。"],
     board: (b) => {
@@ -4458,7 +4458,7 @@ function resolveCell(cell) {
         if (resist >= 3) { // Lv3: 無効化に加え、渡るたび隊全体をHP2%回復
           let healed = false;
           for (const p of G.party) { if (!p.alive) continue; const h = Math.max(1, Math.ceil(p.maxhp * 0.02)); if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + h); healed = true; } }
-          log(healed ? "毒の床を浄化して渡った。澱みが力に変わり、隊の傷が癒えた。" : "毒の床を浄化して渡った。", "sys");
+          log(healed ? "毒の床を浄化して渡った。澱みが力に変わり、パーティの傷が癒えた。" : "毒の床を浄化して渡った。", "sys");
           if (healed) renderParty();
         } else {
           log("毒の床だ。だが足音ひとつ立てず無傷で渡った。", "sys");
@@ -4481,17 +4481,17 @@ function resolveCell(cell) {
         hurt.push(p);
         if (p.hp === 0) { p.alive = false; anyDeath = true; fallen.push(p.name); log(`${p.name}は毒に沈んだ…`, "dmg"); }
       }
-      log(`毒の床だ！ 隊全体が蝕まれた${resist === 1 ? " (耐性で半減)" : ""}`, "dmg");
+      log(`毒の床だ！ パーティ全体が蝕まれた${resist === 1 ? " (耐性で半減)" : ""}`, "dmg");
       flashPartyCards(hurt, "hit");
       if (!anyDeath) {
         // 軽い痛手はトーストと札の明滅だけ (歩みを止めない)
-        showToast(`毒の床 ― 隊全体が蝕まれた${resist === 1 ? " (耐性で半減)" : ""}`, { tone: "bad", icon: ICONS.poison });
+        showToast(`毒の床 ― パーティ全体が蝕まれた${resist === 1 ? " (耐性で半減)" : ""}`, { tone: "bad", icon: ICONS.poison });
         break;
       }
       // 倒れた者が出た時だけ札で知らせる
       showEvent({
         sprite: ICONS.poison, title: "毒の床！", accent: "#5a8a2a", banner: "⚠ 危険 ⚠",
-        lines: [`隊全体が蝕まれた${resist === 1 ? " (耐性で半減)" : ""}…`, ...fallen.map((n) => `${n}は毒に沈んだ…`)],
+        lines: [`パーティ全体が蝕まれた${resist === 1 ? " (耐性で半減)" : ""}…`, ...fallen.map((n) => `${n}は毒に沈んだ…`)],
         btnLabel: "進む",
         onClose: () => {
           SFX.die(); imprintFallen(); if (!G.party.some((p) => p.alive)) { gameOver(); return; }
@@ -5104,7 +5104,7 @@ function applyTrap(trap, opener) {
   const alive = () => G.party.filter((p) => p.alive);
 
   // テレポーター: 同じ階の別の場所へ飛ばされる。宝箱の中身は失われる
-  if (trap.kind === "teleport") return { kind: "teleport", trap, lines: [trap.flavor, "隊は見知らぬ場所へ飛ばされた！"] };
+  if (trap.kind === "teleport") return { kind: "teleport", trap, lines: [trap.flavor, "パーティは見知らぬ場所へ飛ばされた！"] };
 
   // 警報: 怪物を呼び寄せ戦闘になる。宝箱の中身を検める暇はない
   if (trap.kind === "alarm") {
@@ -5189,7 +5189,7 @@ function applyTrap(trap, opener) {
         p.mp = Math.max(0, p.mp - Math.ceil(p.maxmp * 0.4));
         hurt(p, trap.mult || 0.25);
       }
-      lines.push("隊の魔力が吸い取られた…");
+      lines.push("パーティの魔力が吸い取られた…");
       brief.unshift("魔力を吸われた");
       break;
     }
@@ -5428,7 +5428,7 @@ function descend() {
       if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * pct)); healed = true; }
       if (p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * pct)); healed = true; }
     }
-    if (healed) log("結社の戦間回復: 階を降りる道すがら、隊の傷が癒えていく。", "win");
+    if (healed) log("結社の戦間回復: 階を降りる道すがら、パーティの傷が癒えていく。", "win");
   }
   // 強敵階判定: 5階層以上の迷宮のみ、3F以降で10%の確率で発生
   G.eliteFloor = (activeCfg().floors || 3) >= 5 && G.floor >= 3 && Math.random() < 0.10;
@@ -6500,7 +6500,7 @@ function renderCombatMenu() {
     combatMenu.dataset.mode = "target";
     const p = b.pending;
     const sp = p && p.spellKey ? SPELLS[p.spellKey] : null;
-    combatMenu.appendChild(turnPlate(sp ? sp.name : "対象を選択", sp ? "の対象" : "", [sp && sp.target === "ally" ? "隊の札をタップでも可" : "敵を直接タップでも可"]));
+    combatMenu.appendChild(turnPlate(sp ? sp.name : "対象を選択", sp ? "の対象" : "", [sp && sp.target === "ally" ? "パーティの札をタップでも可" : "敵を直接タップでも可"]));
     const opts = b.targetOptions();
     // 対象が多い時 (敵の群れなど) は2列に並べて縦に伸びすぎないようにする
     const list = el("div", "target-list" + (opts.length > 3 ? " cols2" : ""));
@@ -7012,7 +7012,7 @@ function applyVictoryPassives() {
     if (hpct > 0 && p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * hpct)); healed = true; }
     if (mpct > 0 && p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * mpct)); healed = true; }
   }
-  if (healed) log("勝利の余韻が隊を癒した。", "heal");
+  if (healed) log("勝利の余韻がパーティを癒した。", "heal");
   // 特別階 (癒しの霊気): 戦闘勝利のたび隊全体のHP・MPが回復する
   const fh = sfNum("victoryHeal", 0);
   if (fh > 0) {
@@ -9124,7 +9124,7 @@ function preDiveIssues() {
     const cost = emptyDollCost();
     lines.push(`■ 編成が ${G.party.length}体 だけだ。魔物は群れで来る。宿せる魂が ${free}個 ある (次の器 ${cost ? `🔴${cost}` : "無料"})。`);
     res.dolls = true;
-    res.items.push({ kind: "few", tone: "warn", text: `隊が ${G.party.length}体 だけ ・ 宿せる魂 ${free}`, fix: { act: "party", label: "仕立てる" } });
+    res.items.push({ kind: "few", tone: "warn", text: `パーティが ${G.party.length}体 だけ ・ 宿せる魂 ${free}`, fix: { act: "party", label: "仕立てる" } });
   }
   // 武器を持たない人業がいる (買える所持金がある時だけ)
   const bare = G.party.filter((d) => d.alive && d.primary != null && !(d.equip && d.equip.weapon));
@@ -9442,7 +9442,7 @@ function campCast(caster, spellKey) {
       if (applyTo(t)) any = true;
       if (heals) { const ln = healLineFor(t, before, wasDead); if (ln) lines.push(ln); }
     }
-    if (any) { finish(); showToast(`${sp.name} ― ${lines.length ? lines.slice(0, 3).join(" ・ ") : "隊を癒した"}`, { tone: "good" }); }
+    if (any) { finish(); showToast(`${sp.name} ― ${lines.length ? lines.slice(0, 3).join(" ・ ") : "パーティを癒した"}`, { tone: "good" }); }
     else { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg(), { tone: "info" }); SFX.miss(); }
     return;
   }

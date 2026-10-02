@@ -332,7 +332,7 @@ export function openDungeonMenu() {
       head.addEventListener("click", go(openFloorInfo));
       b.appendChild(head);
       const grid = el("div", "dg-mgrid");
-      grid.appendChild(menuTile("party", "隊を見る", "装備・能力・道具", go(() => UI.openParty(0, { context: "dungeon" }))));
+      grid.appendChild(menuTile("party", "パーティを見る", "装備・能力・道具", go(() => UI.openParty(0, { context: "dungeon" }))));
       grid.appendChild(menuTile("loot", "今回の収穫", `💰${r.gold || 0} ✦${r.soulPts || 0} 品${(r.items || []).length}`, go(openRunLoot)));
       grid.appendChild(menuTile("scroll", "記録を読む", "出来事の全文", go(openLog)));
       grid.appendChild(menuTile("gear", "設定", "音量・振動・背景", go(() => UI.openSettings && UI.openSettings())));
@@ -358,7 +358,7 @@ const AIL = { poison: "毒", paralyze: "麻痺", stone: "石化" };
 export function peekDoll(d, { idx = 0, combat = false } = {}) {
   if (!d) return null;
   return sheet.open({
-    kind: "info", banner: combat ? "隊の札" : "隊の札 ― 覗き見", className: "dg-sheet dg-peek",
+    kind: "info", banner: combat ? "パーティの札" : "パーティの札 ― 覗き見", className: "dg-sheet dg-peek",
     body: (b) => {
       const top = el("div", "dg-peek-top");
       top.appendChild(portrait(d, { size: 64, hp: false }));
@@ -397,7 +397,7 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
       b.appendChild(grid);
     },
     footer: combat ? [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }] : [
-      { label: "隊を見る", kind: "primary", onTap: (h) => { h.close("go"); setTimeout(() => UI.openParty(idx, { context: "dungeon" }), 0); } },
+      { label: "パーティを見る", kind: "primary", onTap: (h) => { h.close("go"); setTimeout(() => UI.openParty(idx, { context: "dungeon" }), 0); } },
       { label: "閉じる", kind: "ghost", onTap: (h) => h.close() },
     ],
   });

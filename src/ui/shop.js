@@ -653,7 +653,7 @@ function renderBuy(wrap) {
   wrap.appendChild(box);
   return () => {
     if (!ids.length) {
-      box.appendChild(el("div", "wpc-empty big", cat === "rec" ? "いまの隊の装備に勝る品は、棚に並んでいない。" : "この種類の品は売り切れだ。"));
+      box.appendChild(el("div", "wpc-empty big", cat === "rec" ? "いまのパーティの装備に勝る品は、棚に並んでいない。" : "この種類の品は売り切れだ。"));
       return;
     }
     fillPaged(box, head, ids, stockRow, "buyPage");

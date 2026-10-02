@@ -147,6 +147,7 @@
 .ui-tab-icw { position: relative; display: inline-flex; align-items: center; justify-content: center; }
 .ui-tab-ic { width: 25px; height: 25px; filter: drop-shadow(0 1px 0 #000); transition: filter var(--t-fast) ease-out, transform var(--t-tap) ease-out; }
 .ui-tab-l { font-size: 11.5px; font-weight: 700; letter-spacing: 0.32em; padding-left: 0.32em; line-height: 1; text-shadow: 0 1px 0 #000; white-space: nowrap; }
+.ui-tab-l.long { letter-spacing: 0.06em; padding-left: 0.06em; } /* 4字の名札 (人業の館) は字間を詰めて収める */
 .ui-tab:active .ui-tab-ic { transform: scale(0.92); }
 .ui-tab.on { color: var(--accent-hi); }
 .ui-tab.on .ui-tab-ic { filter: drop-shadow(0 0 6px rgba(243,213,139,0.55)) drop-shadow(0 1px 0 #000); }
