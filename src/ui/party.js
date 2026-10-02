@@ -418,7 +418,7 @@ function autoEquip(target = "all") {
   const plan = planBestEquip(targets, { pool, canEquip, score: gearScore, recalc });
   if (!plan.moves.length) {
     sfx("select");
-    toast(targets.length > 1 ? "隊の装備は、いまが最良だ" : `${targets[0].name}の装備は、いまが最良だ`, { tone: "info" });
+    toast(targets.length > 1 ? "パーティの装備は、いまが最良だ" : `${targets[0].name}の装備は、いまが最良だ`, { tone: "info" });
     return { ok: false, moves: 0 };
   }
   const involved = plan.undoSnapshot.map((s) => s.doll);
@@ -433,7 +433,7 @@ function autoEquip(target = "all") {
   const sel = targets.includes(selDoll) ? selDoll : targets[0];
   const d0 = before.get(sel);
   if (d0) floatDelta(".pt-head .pt-port", statsDelta(d0, previewStats(sel, sel.equip, recalc)));
-  const who = targets.length > 1 ? `隊の${new Set(plan.moves.map((m) => m.doll)).size}体` : targets[0].name;
+  const who = targets.length > 1 ? `パーティの${new Set(plan.moves.map((m) => m.doll)).size}体` : targets[0].name;
   toast(`最適装備: ${who}の ${plan.moves.length}点を付け替えた`, {
     tone: "good",
     action: { label: "元に戻す", fn: () => {
@@ -647,7 +647,7 @@ function benchButton() {
 // 持ち上げ中の案内 (人業の見出しの場所に出す。高さは同じ)
 function pickHint() {
   const h = el("section", "pt-pickhint");
-  setText(h.appendChild(el("span", "pt-pickhint-t")), `${picked.name} を移す先をえらぶ ― 隊の誰かと入れ替え・「控え」へ下げる`);
+  setText(h.appendChild(el("span", "pt-pickhint-t")), `${picked.name} を移す先をえらぶ ― パーティの誰かと入れ替え・「控え」へ下げる`);
   const x = el("button", "pt-pickhint-x", "やめる");
   x.type = "button";
   x.addEventListener("click", () => { picked = null; rerender(); });
@@ -792,7 +792,7 @@ function reserveBody(root) {
   const pages = Math.max(1, Math.ceil(G.reserve.length / RES_PER_PAGE));
   if (resPage >= pages) resPage = pages - 1;
   const list = el("div", "pt-res");
-  if (!G.reserve.length) list.appendChild(el("div", "pt-res-none", "控えはいない。隊の札を「控え」へ引けば下げられる。"));
+  if (!G.reserve.length) list.appendChild(el("div", "pt-res-none", "控えはいない。パーティの札を「控え」へ引けば下げられる。"));
   for (const d of G.reserve.slice(resPage * RES_PER_PAGE, (resPage + 1) * RES_PER_PAGE)) list.appendChild(reserveRow(d));
   root.appendChild(list);
   if (pages > 1) {
@@ -849,7 +849,7 @@ function reserveRow(d) {
       a.type = "button";
       a.appendChild(el("span", null, "＋"));
       a.appendChild(el("span", "pt-res-join-l", "加える"));
-      a.setAttribute("aria-label", `${d.name} を隊に加える`);
+      a.setAttribute("aria-label", `${d.name} をパーティに加える`);
       a.addEventListener("click", () => joinParty(d));
       sw.appendChild(a);
     }
@@ -870,7 +870,7 @@ function swapWithReserve(d, j) {
   if (k < 0 || !m) return;
   G.party[j] = d; G.reserve[k] = m;
   sfx("select"); buzz(10);
-  game.log(`${d.name} を隊に入れ、${m.name} を控えに下げた。`, "sys");
+  game.log(`${d.name} をパーティに入れ、${m.name} を控えに下げた。`, "sys");
   toast(`${d.name} ⇄ ${m.name}`, { tone: "info" });
   if (reserveH) reserveH.close();
   select(d);
@@ -879,13 +879,13 @@ function swapWithReserve(d, j) {
 }
 function joinParty(d) {
   const G = G_();
-  if (d.primary == null) { sfx("ng"); toast("魂の宿らない人業は隊に入れられない", { tone: "bad" }); return; }
-  if (G.party.length >= 6) { sfx("ng"); toast("隊は満員だ (6体まで)", { tone: "bad" }); return; }
+  if (d.primary == null) { sfx("ng"); toast("魂の宿らない人業はパーティに入れられない", { tone: "bad" }); return; }
+  if (G.party.length >= 6) { sfx("ng"); toast("パーティは満員だ (6体まで)", { tone: "bad" }); return; }
   const k = G.reserve.indexOf(d);
   if (k < 0) return;
   G.reserve.splice(k, 1); G.party.push(d);
   sfx("select");
-  toast(`${d.name} を隊に加えた`, { tone: "good" });
+  toast(`${d.name} をパーティに加えた`, { tone: "good" });
   if (reserveH) reserveH.close();
   select(d);
   if (game.autosave) game.autosave(true);
@@ -1033,7 +1033,7 @@ function dollHeader(d, mode) {
   }
   head.appendChild(tx);
   if (town && pi < 0 && d.primary != null) {
-    const join = button({ label: G.party.length < 6 ? "隊へ" : "入替", kind: "secondary", size: "sm", onTap: () => (G.party.length < 6 ? joinParty(d) : openReserve()) });
+    const join = button({ label: G.party.length < 6 ? "パーティへ" : "入替", kind: "secondary", size: "sm", onTap: () => (G.party.length < 6 ? joinParty(d) : openReserve()) });
     join.classList.add("pt-head-join");
     head.appendChild(join);
   }
@@ -1142,9 +1142,9 @@ function equipSeg(root, d) {
     const n = betterGearCount();
     const b = el("button", "pt-allauto" + (n ? " hot" : ""));
     b.type = "button";
-    b.appendChild(el("span", null, "隊の全員を最適装備"));
+    b.appendChild(el("span", null, "パーティの全員を最適装備"));
     if (n) b.appendChild(badge(n));
-    b.setAttribute("aria-label", `隊の全員を最適装備${n ? ` (${n}体にもっと良い装備)` : ""}`);
+    b.setAttribute("aria-label", `パーティの全員を最適装備${n ? ` (${n}体にもっと良い装備)` : ""}`);
     b.addEventListener("click", () => autoEquip("all"));
     h.appendChild(b);
   }
@@ -1535,7 +1535,7 @@ export function openSheet(d) {
   if (sheetH && !sheetH.closed) { refreshSheet(); return sheetH; }
   G.statusOpen = true;
   sheetH = sheet.open({
-    kind: "info", className: "pt-sheet", banner: "隊の様子",
+    kind: "info", className: "pt-sheet", banner: "パーティの様子",
     body: (scroll) => { const w = el("div", "pt-root m-dungeon"); renderView(w, "dungeon"); scroll.appendChild(w); },
     footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
     onClose: () => { G.statusOpen = false; sheetH = null; picked = null; if (game.renderParty) { try { game.renderParty(); } catch (e) { /* noop */ } } },
@@ -1588,7 +1588,7 @@ export function install() {
   });
   if (UI.shell && UI.shell.registerTab) {
     UI.shell.registerTab("party", {
-      title: "隊 ・ 人業の館",
+      title: "人業の館",
       render: (root) => renderTab(root),
       badge: (counts) => {
         if (counts && counts.dead) return counts.dead;

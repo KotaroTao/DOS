@@ -63,7 +63,7 @@ export const SPELLS = {
   SAINTRAY: { name: "聖閃", mp: 9, kind: "atk", power: 24, element: "light", target: "all-enemy", desc: "敵全体を貫く浄化の閃光" },
   // 回復・支援
   DIALALL: { name: "リカバーオール", mp: 12, kind: "heal", power: 40, target: "all-ally", desc: "味方全員を大きく回復" },
-  OUJOU: { name: "王城の構え", mp: 18, kind: "buff", buff: { vit: 1.7 }, target: "all-ally", desc: "隊全体を城壁と化す究極の守り" },
+  OUJOU: { name: "王城の構え", mp: 18, kind: "buff", buff: { vit: 1.7 }, target: "all-ally", desc: "パーティ全体を城壁と化す究極の守り" },
 
   // ---- 混成職のユニークスキル (Lv40 枠・全30職に1つずつ。他職は覚えない) ----
   // 固有の追加効果プロパティ (該当スキルのみが持つ):
@@ -94,25 +94,25 @@ export const SPELLS = {
   HAOUZAN: { name: "覇王斬", mp: 32, kind: "phys", power: 9.0, target: "enemy", desc: "覇王の名を冠す決死の一閃" },
   METSUKYAKU: { name: "滅却・終ノ太刀", mp: 40, kind: "phys", power: 11.0, target: "enemy", desc: "全てを滅し去る戦士の終ノ太刀" },
   // --- 騎士ベース ---
-  SEIHEKINOINORI: { name: "聖壁の祈り", mp: 14, kind: "heal", power: 22, buff: { vit: 1.2 }, target: "all-ally", desc: "隊を癒し、守りを固める祈り" },
+  SEIHEKINOINORI: { name: "聖壁の祈り", mp: 14, kind: "heal", power: 22, buff: { vit: 1.2 }, target: "all-ally", desc: "パーティを癒し、守りを固める祈り" },
   KOUBOUITTAI: { name: "攻防一体", mp: 10, kind: "buff", buff: { atk: 1.35, vit: 1.35 }, target: "self", desc: "攻めと守りを兼ねる無双の構え" },
-  SAKIGAKENOGOREI: { name: "先駆けの号令", mp: 10, kind: "buff", buff: { agi: 1.35 }, target: "all-ally", desc: "隊全体を疾風のごとく駆り立てる" },
+  SAKIGAKENOGOREI: { name: "先駆けの号令", mp: 10, kind: "buff", buff: { agi: 1.35 }, target: "all-ally", desc: "パーティ全体を疾風のごとく駆り立てる" },
   MAGUINOTACHI: { name: "魔喰いの太刀", mp: 8, kind: "phys", power: 2.4, mpDrain: 0.25, target: "enemy", desc: "斬った魔力を喰らいMPに変える" },
-  SEIIKINOKANE: { name: "聖域の鐘", mp: 12, kind: "buff", buff: { vit: 1.2 }, cure: true, target: "all-ally", desc: "鐘の音が隊を守り、穢れを祓う" },
+  SEIIKINOKANE: { name: "聖域の鐘", mp: 12, kind: "buff", buff: { vit: 1.2 }, cure: true, target: "all-ally", desc: "鐘の音がパーティを守り、穢れを祓う" },
   // --- 騎士 高レベル帯 (Lv85-200) ---
   SHIELDCHARGE: { name: "盾突進", mp: 10, kind: "phys", power: 2.4, debuff: { vit: 0.85 }, target: "enemy", desc: "盾ごと突進して打ち据える" },
   SHUGOHOUKOU: { name: "守護咆哮", mp: 10, kind: "buff", buff: { vit: 1.4, atk: 1.2 }, target: "self", desc: "守護の咆哮で身を奮い立たせる" },
   JOUSAITSUKI: { name: "城塞突き", mp: 18, kind: "phys", power: 5.0, debuff: { vit: 0.7 }, target: "enemy", desc: "城塞すら砕く渾身の突き" },
-  TEPPEKIJIN: { name: "鉄壁陣", mp: 16, kind: "heal", power: 18, buff: { vit: 1.3 }, target: "all-ally", desc: "鉄壁の陣形で隊を守り癒す" },
-  FURAKUNOTATE: { name: "不落の盾", mp: 20, kind: "buff", buff: { vit: 1.7 }, target: "all-ally", desc: "崩れぬ盾で隊全体を守る" },
+  TEPPEKIJIN: { name: "鉄壁陣", mp: 16, kind: "heal", power: 18, buff: { vit: 1.3 }, target: "all-ally", desc: "鉄壁の陣形でパーティを守り癒す" },
+  FURAKUNOTATE: { name: "不落の盾", mp: 20, kind: "buff", buff: { vit: 1.7 }, target: "all-ally", desc: "崩れぬ盾でパーティ全体を守る" },
   BANRAI: { name: "万雷の盾撃", mp: 24, kind: "phys", power: 6.8, target: "enemy", desc: "万雷のごとき盾の連打" },
   TESSAINAGI: { name: "鉄盾薙ぎ", mp: 22, kind: "phys", power: 2.4, target: "all-enemy", desc: "大盾で敵全体を薙ぎ払う" },
-  SHUGOKEKKAI: { name: "守護結界", mp: 22, kind: "buff", buff: { vit: 1.5 }, grantBarrier: 1, target: "all-ally", desc: "結界で隊を守り、魔障壁を配る" },
+  SHUGOKEKKAI: { name: "守護結界", mp: 22, kind: "buff", buff: { vit: 1.5 }, grantBarrier: 1, target: "all-ally", desc: "結界でパーティを守り、魔障壁を配る" },
   JOUSAIKUZUSHI: { name: "城塞崩し", mp: 28, kind: "phys", power: 8.0, debuff: { vit: 0.7 }, target: "enemy", desc: "城塞を崩す決死の一撃" },
-  KISHIOU: { name: "騎士王の威光", mp: 30, kind: "heal", power: 30, buff: { vit: 1.4 }, target: "all-ally", desc: "王の威光が隊を癒し守りを高める" },
+  KISHIOU: { name: "騎士王の威光", mp: 30, kind: "heal", power: 30, buff: { vit: 1.4 }, target: "all-ally", desc: "王の威光がパーティを癒し守りを高める" },
   FUDOUJIN: { name: "不動明王陣", mp: 32, kind: "phys", power: 9.0, debuff: { vit: 0.7 }, target: "enemy", desc: "不動の構えから放つ決死の一撃" },
-  DAIGOUREI: { name: "守護の大号令", mp: 30, kind: "buff", buff: { vit: 1.6, atk: 1.25 }, target: "all-ally", desc: "隊全体の攻守を奮い立たせる号令" },
-  FURAKUJOU: { name: "不落城", mp: 40, kind: "heal", power: 40, buff: { vit: 1.8 }, target: "all-ally", desc: "隊を鉄壁の城と化す騎士王の極み" },
+  DAIGOUREI: { name: "守護の大号令", mp: 30, kind: "buff", buff: { vit: 1.6, atk: 1.25 }, target: "all-ally", desc: "パーティ全体の攻守を奮い立たせる号令" },
+  FURAKUJOU: { name: "不落城", mp: 40, kind: "heal", power: 40, buff: { vit: 1.8 }, target: "all-ally", desc: "パーティを鉄壁の城と化す騎士王の極み" },
   // --- 盗賊ベース ---
   KUBIKARI: { name: "首狩り", mp: 13, kind: "phys", power: 2.5, critBonus: 0.45, target: "enemy", desc: "獲物の首筋を狙う必殺の狩技" },
   OIHAGI: { name: "追い剥ぎ", mp: 10, kind: "phys", power: 2.4, plunder: true, target: "enemy", desc: "倒した敵から金品を根こそぎ奪う" },
@@ -156,33 +156,33 @@ export const SPELLS = {
   TENPENCHII: { name: "天変地異", mp: 36, kind: "atk", power: 110, target: "all-enemy", desc: "天地を覆す大災厄" },
   KYOKUDAI: { name: "極大消滅", mp: 44, kind: "atk", power: 140, target: "all-enemy", desc: "万象を消滅させる極大呪文" },
   // --- 僧侶ベース ---
-  SEIMAICHINYO: { name: "聖魔一如", mp: 14, kind: "atk", power: 22, element: "light", partyHeal: 14, target: "all-enemy", desc: "聖光で敵を焼き、返す光で隊を癒す" },
+  SEIMAICHINYO: { name: "聖魔一如", mp: 14, kind: "atk", power: 22, element: "light", partyHeal: 14, target: "all-enemy", desc: "聖光で敵を焼き、返す光でパーティを癒す" },
   DANZAINOTSUCHI: { name: "断罪の鉄槌", mp: 12, kind: "phys", power: 2.3, element: "light", flinchChance: 0.35, target: "enemy", desc: "断罪の聖槌が敵を打ち据え怯ませる" },
   KONGOURENDA: { name: "金剛連打", mp: 13, kind: "phys", power: 0.95, hits: 3, target: "enemy", desc: "金剛の拳による怒涛の三連打" },
-  KASUMINOTOBARI: { name: "霞の帳", mp: 12, kind: "heal", power: 16, debuffAll: { atk: 0.8 }, target: "all-ally", desc: "霞が隊を癒し、敵の目を曇らせる" },
-  DAISEIKITOU: { name: "大聖祈祷", mp: 14, kind: "heal", power: 30, cure: true, target: "all-ally", desc: "隊を癒し穢れを祓う大いなる祈り" },
+  KASUMINOTOBARI: { name: "霞の帳", mp: 12, kind: "heal", power: 16, debuffAll: { atk: 0.8 }, target: "all-ally", desc: "霞がパーティを癒し、敵の目を曇らせる" },
+  DAISEIKITOU: { name: "大聖祈祷", mp: 14, kind: "heal", power: 30, cure: true, target: "all-ally", desc: "パーティを癒し穢れを祓う大いなる祈り" },
   // --- 僧侶 高レベル帯 (Lv85-200) ---
   SHINSEIKO: { name: "神聖光", mp: 14, kind: "atk", power: 40, element: "light", target: "enemy", desc: "神聖な光で敵を裁く" },
   SHINYU: { name: "神癒", mp: 16, kind: "heal", power: 100, target: "ally", desc: "神の癒しで深手を塞ぐ" },
-  SEIBETSU: { name: "聖別", mp: 16, kind: "buff", buff: { vit: 1.3 }, cure: true, target: "all-ally", desc: "聖別の祈りで隊を守り穢れを祓う" },
-  IYASHINAMI: { name: "癒しの波", mp: 22, kind: "heal", power: 70, target: "all-ally", desc: "癒しの大波が隊を包む" },
+  SEIBETSU: { name: "聖別", mp: 16, kind: "buff", buff: { vit: 1.3 }, cure: true, target: "all-ally", desc: "聖別の祈りでパーティを守り穢れを祓う" },
+  IYASHINAMI: { name: "癒しの波", mp: 22, kind: "heal", power: 70, target: "all-ally", desc: "癒しの大波がパーティを包む" },
   SEIMETSUKOU: { name: "聖滅光", mp: 20, kind: "atk", power: 50, element: "light", target: "all-enemy", desc: "全敵を浄化する聖滅の光" },
   SHINBATSU: { name: "神罰", mp: 24, kind: "atk", power: 70, element: "light", target: "enemy", desc: "天より下る神罰の一閃" },
   SEISUISHO: { name: "聖水撒", mp: 18, kind: "heal", power: 26, cure: true, target: "all-ally", desc: "聖水を撒き、癒しと共に穢れを祓う" },
-  TENKEINOINORI: { name: "天啓の祈り", mp: 26, kind: "heal", power: 50, buff: { vit: 1.3 }, target: "all-ally", desc: "天啓が隊を癒し守りを高める" },
+  TENKEINOINORI: { name: "天啓の祈り", mp: 26, kind: "heal", power: 50, buff: { vit: 1.3 }, target: "all-ally", desc: "天啓がパーティを癒し守りを高める" },
   SEIKOURETSU: { name: "聖光烈", mp: 28, kind: "atk", power: 90, element: "light", target: "enemy", desc: "凝縮した聖光が敵を撃ち抜く" },
-  FUKUIN: { name: "復活の福音", mp: 30, kind: "heal", power: 40, revive: true, revivePct: 0.6, target: "all-ally", desc: "倒れた味方を蘇らせ、隊を癒す福音" },
+  FUKUIN: { name: "復活の福音", mp: 30, kind: "heal", power: 40, revive: true, revivePct: 0.6, target: "all-ally", desc: "倒れた味方を蘇らせ、パーティを癒す福音" },
   SEIMETSUREKKOU: { name: "聖滅烈光", mp: 30, kind: "atk", power: 70, element: "light", target: "all-enemy", desc: "全敵を焼き払う聖滅の烈光" },
-  DAIFUKUIN: { name: "大福音", mp: 36, kind: "heal", power: 80, cure: true, target: "all-ally", desc: "隊全員を大きく癒し穢れを祓う祈り" },
+  DAIFUKUIN: { name: "大福音", mp: 36, kind: "heal", power: 80, cure: true, target: "all-ally", desc: "パーティ全員を大きく癒し穢れを祓う祈り" },
   KAMIWAZA: { name: "神の御業", mp: 44, kind: "heal", power: 999, cure: true, revive: true, revivePct: 1.0, target: "all-ally", desc: "倒れた者すら完全に呼び戻す神の御業" },
   // --- 魔導僧ベース ---
   SHINENNOHADOU: { name: "深淵の波動", mp: 13, kind: "atk", power: 44, element: "dark", target: "enemy", desc: "深淵より汲み上げた闇の波動" },
   SEIKUNOKAGO: { name: "聖句の加護", mp: 12, kind: "heal", power: 36, grantEndure: true, target: "ally", desc: "癒しと共に死を退ける聖句を授ける" },
   SHASHINNOGYOU: { name: "捨身の行", mp: 8, kind: "phys", power: 3.6, hpCost: 0.15, target: "enemy", desc: "身を削って放つ捨身の荒行" },
-  HOUSHOUHEKI: { name: "法障壁", mp: 13, kind: "buff", grantBarrier: 1, target: "all-ally", desc: "隊全体に魔を防ぐ障壁を張る" },
+  HOUSHOUHEKI: { name: "法障壁", mp: 13, kind: "buff", grantBarrier: 1, target: "all-ally", desc: "パーティ全体に魔を防ぐ障壁を張る" },
   MEIKONGURAI: { name: "冥魂喰らい", mp: 10, kind: "atk", power: 28, element: "dark", drain: 0.5, target: "enemy", desc: "闇で魂を喰らい己の命とする" },
   // --- 伝説職固有スキル ---
-  SEIKEN: { name: "聖剣奮迅", mp: 14, kind: "atk", power: 20, element: "light", partyHeal: 16, target: "all-enemy", desc: "聖剣の輝きで敵を薙ぎ、返す光で隊を癒す" },
+  SEIKEN: { name: "聖剣奮迅", mp: 14, kind: "atk", power: 20, element: "light", partyHeal: 16, target: "all-enemy", desc: "聖剣の輝きで敵を薙ぎ、返す光でパーティを癒す" },
   ASHURAZAN: { name: "阿修羅斬", mp: 15, kind: "phys", power: 0.8, hits: 5, target: "enemy", desc: "阿修羅の怒涛の五連斬" },
   RYUZETSU: { name: "竜墜とし", mp: 16, kind: "phys", power: 5.0, target: "enemy", desc: "竜の力を解き放つ渾身の一撃" },
 };
@@ -812,7 +812,7 @@ export class Battle {
       if ((this._bigBarrierUsed || 0) < bigBMax) {
         this._bigBarrierUsed = (this._bigBarrierUsed || 0) + 1;
         bigB = true;
-        this.log("大結界が隊を包んだ！", "heal");
+        this.log("大結界がパーティを包んだ！", "heal");
       }
       for (const t of this.livingParty()) {
         const em = elemDmgMult(actor.element || "none", 1, t.element || "none", t.elemDef);
@@ -1214,7 +1214,7 @@ export class Battle {
           t.hp = Math.min(t.maxhp, t.hp + heal);
           res.hits.push({ target: t, heal });
         }
-        this.log("聖なる残光が隊を癒した", "heal");
+        this.log("聖なる残光がパーティを癒した", "heal");
       }
     } else if (sp.kind === "buff") {
       const targets = sp.target === "self" ? [actor] : sp.target === "all-ally" ? this.livingParty() : [cmd.target || actor].filter(Boolean);
@@ -1227,8 +1227,8 @@ export class Battle {
         if (sp.cure && t.ailment) { t.ailment = null; cured = true; }
         res.hits.push({ target: t, buff: true, mods: sp.buff });
       }
-      this.log(sp.grantBarrier ? `${sp.name}！ 魔障壁が隊を包んだ` : `${sp.name}の効果！`, "heal");
-      if (cured) this.log("隊の穢れが祓われた", "heal");
+      this.log(sp.grantBarrier ? `${sp.name}！ 魔障壁がパーティを包んだ` : `${sp.name}の効果！`, "heal");
+      if (cured) this.log("パーティの穢れが祓われた", "heal");
     } else if (sp.kind === "debuff") {
       const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
       for (const t of targets) {
@@ -1269,8 +1269,8 @@ export class Battle {
           res.hits.push({ target: t, heal });
         }
         this.log(revivedAny ? `福音が倒れた者を呼び戻した！` : `味方全員のHPが回復した`, "heal");
-        if (cured) this.log("隊の穢れが祓われた", "heal");
-        if (sp.buff) this.log("隊の守りも固められた", "heal");
+        if (cured) this.log("パーティの穢れが祓われた", "heal");
+        if (sp.buff) this.log("パーティの守りも固められた", "heal");
       } else {
         // 蘇生呪文は戦闘不能の味方も対象にできる
         let t = cmd.target || actor;
