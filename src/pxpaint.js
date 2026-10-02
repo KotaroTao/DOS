@@ -41,7 +41,7 @@ export const R_FOG = ramp(["#2c2838", "#3a3548", "#4c465c", "#605a70", "#78728a"
 export const R_WOOD = ramp(["#140d0a", "#1e140f", "#2e1f16", "#43301f", "#5c432b", "#7a5a3a", "#9a7a52", "#b89a6c"]);
 export const R_STEEL = ramp(["#121418", "#1b1f25", "#262b33", "#343a43", "#4b535c", "#66707a", "#8a949c", "#b4bcc0", "#dfe4e2"]);
 export const R_SOULSTONE = ramp(["#0c1418", "#111e22", "#172a2c", "#1f3836", "#2a4a44", "#3a6254", "#527e68", "#73a084"]);
-export const MASTER = [R_NIGHT, R_BONE, R_SOUL, R_EMBER, R_BLOOD, R_DUSK, R_FOG, R_WOOD, R_STEEL, R_SOULSTONE].flat();
+const MASTER = [R_NIGHT, R_BONE, R_SOUL, R_EMBER, R_BLOOD, R_DUSK, R_FOG, R_WOOD, R_STEEL, R_SOULSTONE].flat();
 
 // 最近色 (redmean 距離)。6bit の遅延 LUT でキャッシュする
 export class Palette {

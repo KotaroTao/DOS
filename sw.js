@@ -48,6 +48,7 @@ const ASSETS = [
   "./src/pxpaint.js",
   "./src/titleart.js",
   "./src/openingart.js",
+  "./art/op_dolls.png",
   "./src/townart.js",
   "./src/walkerart.js",
   "./src/backdrops.js",
