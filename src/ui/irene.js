@@ -19,7 +19,7 @@ import { soulByUid, soulLevelCapOf, soulRankOf, SOUL_CLASSES, soulSeriesName } f
 import { MAX_ITEMS, weaponRange } from "../items.js";
 
 export const IRENE_WHO = "人形の館の主　イレーヌ";
-export const IRENE_ART = "./art/mansion_irene.png";
+export const IRENE_ART = "./art/mansion_irene.jpg"; // ユーザーの原画 (ドット絵にせずそのまま)
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* 音は演出のみ */ } };
 
