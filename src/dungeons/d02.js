@@ -7,7 +7,7 @@ export const monsters = defMonsters([
     ability: "goldSteal", physResist: 0.35, // 寄せ集めの甲冑で刃を受け、隙を見て遺品を漁る
     hp: 26, atk: 12, def: 6, spd: 6, soul: 18, gold: 14, soulClass: "fighter",
     desc: "落城の際に死んだ兵から鎧を剥ぎ取り、身に纏ったコボルド。寸法の合わぬ甲冑を引きずりながら隊列を組む姿は、滅びた守備隊の悪夢のような模倣だ。継ぎ接ぎの鉄板が刃をいなし、兜の中から、犬の唸りが響く。" },
-  { id: "d02_soldier", name: "朽ちた兵士", race: "undead", element: "dark", artKey: "soldier", rank: 2,
+  { id: "d02_soldier", name: "朽ちた兵士", race: "undead", element: "dark", artKey: "hd_soldier", rank: 2,
     physResist: 0.4, // 錆びてなお具足が刃を弾く
     hp: 30, atk: 13, def: 6, spd: 6, soul: 22, gold: 16, soulClass: "thief",
     desc: "城を守れずに散った衛兵の成れの果て。誰を守るのかも、誰と戦うのかも忘れ、ただ「持ち場を離れるな」という最後の号令だけが骨の髄に焼き付いている。錆びついた具足は刃をよく弾き、崩れた城壁の前で永遠に剣を構え続ける。" },
