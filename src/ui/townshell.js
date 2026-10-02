@@ -194,6 +194,8 @@ export function refresh() {
   const key = screenKey();
   const same = key === lastKey;
   const keepScroll = same ? content.scrollTop : 0;
+  // 他のタブ・迷宮・起動直後からこのタブへ入ってきた描画か (同じタブの描き直しでは false)。タブの render が api.entered で読む
+  api.entered = !lastKey || tab !== lastTab || shell.classList.contains("hidden") || content.classList.contains("hidden");
   shell.classList.remove("hidden");
   content.classList.remove("hidden");
   parkKept();

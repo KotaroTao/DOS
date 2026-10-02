@@ -22,6 +22,7 @@ import {
   statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, itemCatText,
 } from "./itemview.js";
 import { renderSoulSeg, openSoulPicker } from "./soulpanel.js";
+import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
 import {
   planBestEquip, applyPlan, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip,
 } from "../autoequip.js";
@@ -480,8 +481,10 @@ export function refresh() {
   if (G && G.state === "town" && G.town && G.town.tab === "party" && !G.town.facility && !G.town.page && game.renderTown) game.renderTown();
 }
 
-// 街の「隊」タブ
-function renderTab(root) {
+// 街の「隊」タブ。api.entered = 他のタブ・迷宮から館に入ってきた描画 (同じタブの描き直しでは false)
+function renderTab(root, api) {
+  const entered = !!(api && api.entered);
+  if (entered) onEnterMansion();
   const wrap = el("div", "pt-root m-town");
   renderView(wrap, "town");
   root.appendChild(wrap);
@@ -489,7 +492,10 @@ function renderTab(root) {
   if (intent) {
     const it = intent; intent = null;
     if (it.reserve) setTimeout(() => openReserve(), 0);
+    if (it.create) wantCreate = true;
   }
+  if (!isGreeted()) { if (entered || wantCreate) scheduleGreeting(); }
+  else if (wantCreate) { wantCreate = false; setTimeout(() => openCreateDoll(), 0); }
 }
 
 function renderView(root, mode) {
@@ -497,7 +503,11 @@ function renderView(root, mode) {
   memoClear();
   if (intent && intent.seg) { setSeg(intent.seg); if (!intent.reserve) intent = null; else delete intent.seg; }
   const d = ensureSel();
-  if (!allDolls().length) { root.appendChild(emptyState()); return; }
+  if (!allDolls().length) {
+    root.appendChild(emptyState());
+    if (mode === "town") { root.classList.add("has-keeper"); root.appendChild(keeperPanel()); }
+    return;
+  }
   const dead = deadBanner(mode);
   if (dead) root.appendChild(dead);
   if (mode === "town" || G.party.length > 1) root.appendChild(formationEl(mode));
@@ -520,50 +530,80 @@ function renderView(root, mode) {
 }
 
 // ================= 館の主イレーヌ (街の「人業の館」の下段: 残りの高さに挿絵と台詞) =================
-// 区分の中身が収まった後の余白だけを使う (足りなければ畳む: ui-party.css のコンテナクエリ)。タップで次の台詞
-const KEEPER_WHO = "人形の館の主　イレーヌ";
-const KEEPER_ART = "./art/mansion_irene.png";
-const KEEPER_LINES = [
-  ["人業とは、魂に刻まれた力のかたち。", "迷った時は、前衛と後衛の役割を見直してみなさい。"],
-  ["器は嘘をつかないわ。", "傷もひびも、宿した魂の生き様そのものよ。"],
-  ["装備は器の衣。", "似合わぬ衣は、魂を窮屈にさせるだけ。"],
-  ["前衛は盾に、後衛は牙に。", "並びひとつで、人業の運命は変わるもの。"],
-  ["魂を宿すたび、器はほんの少しだけ温かくなるの。", "…あなたにも、わかるかしら。"],
-  ["壊れた器は直せても、零れた魂は戻らない。", "無理をさせては駄目よ。"],
-];
-let keeperIdx = null;
+// 区分の中身が収まった後の余白だけを使う (足りなければ畳む: ui-party.css のコンテナクエリ)。
+// 話す中身は src/ui/irene.js: 館に入るたびに、いま話せる話題 (進むほど増える) からひとつ。タップで次の話。
+// 初めて館に入った時は、全画面の会話の場面で挨拶と館の案内をしてから (終われば、人業がいなければ仕立てへ)
+let curLine = null;    // いま枠に出している話 { id, lines }
+let wantCreate = false; // 挨拶の後に「人業を仕立てる」を開く (目標の「仕立てる」から来た時)
+let greetTimer = null;
+function onEnterMansion() {
+  noteVisit();
+  curLine = isGreeted() ? nextLine({ entry: true }) : null;
+}
+function scheduleGreeting() {
+  if (greetTimer) return;
+  greetTimer = setTimeout(() => {
+    greetTimer = null;
+    const G = G_();
+    if (!G || G.state !== "town" || !G.town || G.town.tab !== "party" || G.town.page || isGreeted() || sceneActive()) return;
+    playIreneScene(greetingPages(), () => {
+      ireneState().greeted = true;
+      curLine = nextLine({ entry: true });
+      if (game.autosave) game.autosave(true);
+      rerender();
+      const make = wantCreate || !allDolls().length;
+      wantCreate = false;
+      if (make && inTown()) setTimeout(() => openCreateDoll(), 120);
+    });
+  }, 60);
+}
+// いま枠に出すべき話 (状況が変わって当てはまらなくなった助言は、別の話に替える)
+function keeperLine() {
+  if (!isGreeted()) return { id: null, lines: greetingPages()[0] };
+  if (!curLine || (curLine.id && !lineOpen(curLine.id))) curLine = nextLine();
+  return curLine;
+}
 function keeperPanel() {
-  const G = G_();
-  if (keeperIdx == null) keeperIdx = ((G && G.stats && G.stats.runs) || 0) % KEEPER_LINES.length;
   const box = el("section", "pt-keeper");
   const inner = el("div", "pt-kp-in");
   const art = el("img", "pt-kp-art");
-  art.src = KEEPER_ART;
+  art.src = IRENE_ART;
   art.alt = "";
   art.decoding = "async";
   art.draggable = false;
   inner.appendChild(art);
   const say = el("button", "pt-kp-say");
   say.type = "button";
-  say.appendChild(el("span", "pt-kp-who", KEEPER_WHO));
+  say.appendChild(el("span", "pt-kp-who", IRENE_WHO));
   const text = el("span", "pt-kp-text");
-  const put = () => {
+  const put = (ln) => {
     text.textContent = "";
-    for (const l of KEEPER_LINES[keeperIdx]) text.appendChild(el("span", "pt-kp-l", l));
-    say.setAttribute("aria-label", `${KEEPER_WHO}「${KEEPER_LINES[keeperIdx].join("")}」 (タップで次の言葉)`);
+    for (const l of ln.lines) if (l) text.appendChild(el("span", "pt-kp-l", l));
+    say.setAttribute("aria-label", `${IRENE_WHO}「${ln.lines.join("")}」 (タップで次の話)`);
   };
-  put();
+  put(keeperLine());
   say.appendChild(text);
   say.appendChild(el("span", "pt-kp-next", "▼"));
   say.addEventListener("click", () => {
     sfx("select");
-    keeperIdx = (keeperIdx + 1) % KEEPER_LINES.length;
-    put();
+    if (!isGreeted()) { scheduleGreeting(); return; }
+    curLine = nextLine();
+    put(curLine);
     if (typeof text.animate === "function") text.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: "ease-out" });
   });
   inner.appendChild(say);
   box.appendChild(inner);
   return box;
+}
+
+// UI.enterMansion({ create }): 人業の館 (隊タブ) へ。create = 着いたら「人業を仕立てる」を開く (初訪問なら挨拶の後)
+function enterMansion({ create = false } = {}) {
+  const G = G_();
+  if (!G || G.state !== "town") return false;
+  if (create) queueIntent({ create: true });
+  const t = G.town || {};
+  if (t.tab === "party" && !t.facility && !t.page) { game.renderTown(); return true; }
+  return UI.shell ? UI.shell.setTab("party") : false;
 }
 
 // ---- 人業がひとりもいない (第0章など) ----
@@ -1611,6 +1651,7 @@ export function install() {
   phase0ItemSheet = UI.itemSheet || null;
   registerUI({
     openParty,
+    enterMansion,
     autoEquip,
     betterGearCount,
     equipItemTo,
@@ -1623,7 +1664,7 @@ export function install() {
   if (UI.shell && UI.shell.registerTab) {
     UI.shell.registerTab("party", {
       title: "人業の館",
-      render: (root) => renderTab(root),
+      render: (root, api) => renderTab(root, api),
       badge: (counts) => {
         if (counts && counts.dead) return counts.dead;
         let better = 0;
