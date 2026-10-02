@@ -8,7 +8,12 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>百の迷宮と 魂の王 - Hundred Labyrinths: Rise of the Soul King</title>
   <link rel="manifest" href="manifest.webmanifest" />
+  <!-- 明朝体 (オフライン時は端末の明朝体にフォールバック) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&display=swap" />
   <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="theme.css" />
 </head>
 <body>
   <div id="app">
@@ -38,6 +43,9 @@
       <!-- カードボード / 戦闘ビュー -->
       <canvas id="view" width="480" height="320"></canvas>
     </main>
+
+    <!-- 今回の探索の収穫 (階の進み・ゴールド・拾った装備のレア度別の数) -->
+    <section id="runbar" class="hidden"></section>
 
     <!-- メッセージ -->
     <section id="hud">
