@@ -13,7 +13,6 @@
 
 import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, setText, glyph, svgIcon, button, portrait, longPress } from "./kit.js";
-import { getPref } from "./prefs.js";
 import { createTownScene, townSpots, vignetteCanvas } from "../townart.js";
 import { SFX } from "../audio.js";
 import { currencyBar, sectionHead, facilityOpen, lockedToast, restOrDetail, openInn, innStatus, dismissGreet } from "./facilities.js";
@@ -22,9 +21,9 @@ const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
 const G = () => game.G;
 
 // ---------- 次にすべきこと (提案) ----------
-// 提案: { key, prio, label, sub?, cost?:{kind,n}, icon?:"gold"|"soul"|"red"|svgKey, tone?, run(), hold?() }
+// 提案: { key, prio, label, short?, sub?, cost?:{kind,n}, icon?:"gold"|"soul"|"red"|svgKey, tone?, run(), hold?() }
 // prio が小さいほど先 (勅命 0 > 砕けた人業 10 > 手負い 20 > 未鑑定 30 > 売れる品 40 > より良い装備 50 > 鍛錬 60 > 勲章 70 > 奉納 80 > 納品 90)
-// 札は3列に並ぶので label は短く (7字ほど)、詳しくは sub に
+// 札は3列に並ぶので label は短く (5字ほど。長い時は3枚並びで使う short を添える)、詳しくは sub に
 const extra = []; // 他のパッケージが登録した提案の源 (fn(counts) → 提案 | 提案[] | null)
 export function registerSuggestion(fn) { if (typeof fn === "function" && !extra.includes(fn)) extra.push(fn); }
 // 帰還の報告の札が受け持つ操作 (報告がある間は「次にすべきこと」に重ねて出さない)
@@ -51,17 +50,23 @@ function builtinSuggestions(c) {
   if (c.hurt && facilityOpen("inn") && g.gold >= c.innCost) {
     out.push({ key: "rest", prio: 20, label: "宿で休む", sub: `手負い ${c.hurt}`, cost: { kind: "gold", n: c.innCost }, icon: "rest", run: () => ops.restParty() });
   }
-  // 未鑑定: まとめて鑑定 (1タップ・安い順に所持金の続く限り)
-  if (c.unid && facilityOpen("shop")) {
-    out.push({ key: "identify", prio: 30, label: "まとめて鑑定", sub: `未鑑定 ${c.unid}`, cost: { kind: "gold", n: c.unidCost }, icon: "seal",
-      run: () => (UI.identifyAll || ops.identifyAll)() });
+  // 未鑑定: まとめて鑑定 (商会 (WP-C) の確かめのシート → 正体を明かすシート。無ければ1タップ・安い順に所持金の続く限り)
+  let unid = c.unid || 0;
+  try { if (UI.unidCount) unid = UI.unidCount() || 0; } catch (e) { unid = c.unid || 0; }
+  if (unid && facilityOpen("shop")) {
+    out.push({ key: "identify", prio: 30, label: "まとめて鑑定", short: "鑑定する", sub: `未鑑定 ${unid}`, cost: { kind: "gold", n: c.unidCost }, icon: "seal",
+      run: () => (UI.confirmIdentifyAll ? UI.confirmIdentifyAll() : (UI.identifyAll || ops.identifyAll)()) });
   }
-  // 売れる品: まとめて売る (確認のシート: 何を売り、何を除くか)
-  if (c.junk && facilityOpen("shop")) {
-    out.push({ key: "sell", prio: 40, label: "まとめて売る", sub: `${c.junk}点`, cost: { kind: "gold", n: "+" + c.junkGold }, icon: "coin",
-      run: () => confirmThen({ banner: "まとめて売る", title: `${c.junk}点を売り、金貨 ${c.junkGold} を得ますか？`,
+  // 売れる品: まとめて売る (商会 (WP-C) の確かめのシート: 装備の候補を残す守りつき)
+  let junk = null;
+  try { junk = UI.junkList ? UI.junkList() : null; } catch (e) { junk = null; }
+  const junkN = junk ? junk.length : (c.junk || 0);
+  const junkGold = junk ? junk.reduce((a2, j) => a2 + (j.price || 0), 0) : (c.junkGold || 0);
+  if (junkN && facilityOpen("shop")) {
+    out.push({ key: "sell", prio: 40, label: "まとめて売る", short: "売り払う", sub: `${junkN}点`, cost: { kind: "gold", n: "+" + junkGold }, icon: "coin",
+      run: () => (UI.confirmSellJunk ? UI.confirmSellJunk() : confirmThen({ banner: "まとめて売る", title: `${junkN}点を売り、金貨 ${junkGold} を得ますか？`,
         lines: ["装備中・呪い・未鑑定・SR/LR・未奉納の蒐集品・道具は売らない。", "売った品は商会の棚に並ぶ (買い戻せる)。"],
-        okLabel: "売る", run: () => (UI.sellJunkAll || ops.sellJunkAll)() }) });
+        okLabel: "売る", run: () => (UI.sellJunkAll || ops.sellJunkAll)() })) });
   }
   // より良い装備 (WP-B の最適装備)
   let better = 0;
@@ -87,7 +92,7 @@ function builtinSuggestions(c) {
     out.push({ key: "donate", prio: 80, label: "新種を奉納", sub: `${c.donatable} 種`, icon: "treasury",
       run: () => { const r = ops.donateAllNew(); if (r && r.rewardReady && game.claimNextTreasury) game.claimNextTreasury(); } });
   } else if (c.treasuryReady) {
-    out.push({ key: "treasury", prio: 80, label: "褒賞を受け取る", sub: "宝物庫", icon: "treasury", run: () => game.claimNextTreasury && game.claimNextTreasury() });
+    out.push({ key: "treasury", prio: 80, label: "褒賞を受け取る", short: "褒賞を拝受", sub: "宝物庫", icon: "treasury", run: () => game.claimNextTreasury && game.claimNextTreasury() });
   }
   // 納品できる品 → 酒場へ
   if (c.deliverable && facilityOpen("tavern")) {
@@ -134,13 +139,14 @@ function sugIcon(k) {
   try { return svgIcon(k, "hb-sug-ic"); } catch (e) { return null; }
 }
 
-function sugChip(s) {
+function sugChip(s, narrow) {
   const b = el("button", "hb-sug" + (s.tone ? " t-" + s.tone : ""));
   b.type = "button";
   const top = el("span", "hb-sug-top");
   const ic = sugIcon(s.icon || (s.cost && s.cost.kind));
   if (ic) { const w = el("span", "hb-sug-icw"); w.appendChild(ic); top.appendChild(w); }
-  top.appendChild(setText(el("span", "hb-sug-l"), s.label));
+  // 3枚並びの狭い札では短い名 (short) を使い、2行に折れないようにする
+  top.appendChild(setText(el("span", "hb-sug-l"), (narrow && s.short) || s.label));
   b.appendChild(top);
   const bot = el("span", "hb-sug-bot");
   if (s.sub) bot.appendChild(setText(el("span", "hb-sug-s"), s.sub));
@@ -359,21 +365,6 @@ function partyStrip() {
   return box;
 }
 
-// ---------- 帰還時に宿で休む (好み) ----------
-let _lastRuns = null;
-function maybeAutoRest() {
-  const g = G();
-  const runs = (g.stats && g.stats.runs) || 0;
-  if (_lastRuns == null) { _lastRuns = runs; return; }
-  if (runs === _lastRuns) return;
-  _lastRuns = runs;
-  if (!getPref("autoRest") || g.state !== "town" || !facilityOpen("inn")) return;
-  queueMicrotask(() => {
-    const st = innStatus();
-    if (st.need.length && st.afford) ops.restParty();
-  });
-}
-
 // ---------- 街タブの描画 (1画面に収める) ----------
 export function renderHub(root, api) {
   const g = G();
@@ -388,7 +379,14 @@ export function renderHub(root, api) {
   if (node && node.nodeType && node.parentNode !== host) host.appendChild(node);
   const hasReport = host.childElementCount > 0;
   wrap.appendChild(hero(a, { collapsed: hasReport, width: root.clientWidth || 390 }));
-  if (hasReport) wrap.appendChild(host);
+  if (hasReport) {
+    wrap.appendChild(host);
+    // 報告を閉じたら (×) 夜景を広げて描き直す
+    host.addEventListener("click", (e) => {
+      if (!e.target.closest || !e.target.closest(".rr-x")) return;
+      queueMicrotask(() => { if (!host.querySelector(".rr-card") && game.renderTown) game.renderTown(); });
+    });
+  }
   // いまの目標
   const o = game.objectiveInfo ? game.objectiveInfo() : null;
   if (o) wrap.appendChild(objectiveCard(o));
@@ -399,7 +397,7 @@ export function renderHub(root, api) {
     const box = el("div", "hb-sugs");
     box.appendChild(sectionHead("次にすべきこと"));
     const list = el("div", "hb-sug-list n" + sg.length);
-    for (const s of sg) list.appendChild(sugChip(s));
+    for (const s of sg) list.appendChild(sugChip(s, sg.length >= 3));
     box.appendChild(list);
     mid.appendChild(box);
   }
@@ -412,7 +410,6 @@ export function renderHub(root, api) {
   wrap.appendChild(partyStrip());
   root.appendChild(wrap);
   growTiles(mid);
-  maybeAutoRest();
 }
 
 // 背の高い画面で余った高さは街の札を背高にして埋める (札と隊のあいだに空白の帯を残さない)
