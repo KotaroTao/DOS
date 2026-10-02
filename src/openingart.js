@@ -590,75 +590,87 @@ function scene2(W, H) {
 }
 
 // =====================================================================
-// 幕 3「人業」— 魂繰りの工房。鎖に吊られた等身大の器がいくつも並び、
+// 幕 3「人業」— 魂繰りの工房。糸で吊られた等身大の白い器 (マネキン) がいくつも並び、
 // 手前の一体の胸に魂が封じられたとき、その眼が静かに灯る。
-// 吊られた人業 (正面・写実の頭身)。H = 身長、(cx, feet) = 足先。値: 1 木肌 / 2 鋼の関節 / 3 眼窩 / 4 胸の魂受け
+// 吊られた人業 = 白いマネキン (正面・写実の頭身 約7.5頭身)。のっぺりとした卵形の頭に顔はなく、
+// 肢体は継ぎ目の細い線だけで分かれる。H = 身長、(cx, feet) = 足先。
+// 値: 1 漆喰の肌 / 2 継ぎ目 / 3 浅い目のくぼみ / 4 胸の魂受け
 function dollHanging(m, cx, feet, H, tilt = 0.03) {
   const P = (u, v) => [cx + u * H, feet - v * H];
   const lim = (a, b, t0, t1, val = 1) => { const A = P(...a), B = P(...b); m.line(A[0], A[1], B[0], B[1], Math.max(1, t0 * H), val, Math.max(1, t1 * H)); };
+  const seam = (u, v, half) => { const A = P(u - half, v), B = P(u + half, v); m.line(A[0], A[1], B[0], B[1], Math.max(1, 0.006 * H), 2); };
   for (const sd of [-1, 1]) {
-    // 脚: ぶらりと垂れる (爪先が下を向く)。腿は太く、脛にふくらはぎの膨らみ
-    lim([sd * 0.056, 0.48], [sd * 0.052, 0.275], 0.078, 0.052);
-    lim([sd * 0.052, 0.26], [sd * 0.05, 0.16], 0.052, 0.046);
-    lim([sd * 0.05, 0.16], [sd * 0.046, 0.055], 0.046, 0.03);
-    m.poly([...P(sd * 0.03, 0.065), ...P(sd * 0.064, 0.065), ...P(sd * 0.058, 0.0), ...P(sd * 0.038, 0.0)], 1);
-    // 腕: 肩から力なく
-    lim([sd * 0.112, 0.8], [sd * 0.13, 0.625], 0.05, 0.038);
-    lim([sd * 0.13, 0.61], [sd * 0.126, 0.475], 0.04, 0.03);
-    m.poly([...P(sd * 0.108, 0.47), ...P(sd * 0.142, 0.47), ...P(sd * 0.14, 0.39), ...P(sd * 0.112, 0.395)], 1);
+    // 脚: 長くまっすぐ垂れる。腿から膝へ細り、ふくらはぎのゆるい膨らみ、細い足首
+    lim([sd * 0.048, 0.49], [sd * 0.04, 0.27], 0.072, 0.044);
+    lim([sd * 0.04, 0.27], [sd * 0.041, 0.17], 0.044, 0.046);
+    lim([sd * 0.041, 0.17], [sd * 0.036, 0.05], 0.046, 0.024);
+    // 足: 爪先を下へ (つま先立ちのように垂れる)
+    m.poly([...P(sd * 0.024, 0.056), ...P(sd * 0.05, 0.056), ...P(sd * 0.044, 0.0), ...P(sd * 0.032, 0.0)], 1);
+    // 腕: なで肩から力なく。上腕は細く、肘から手首へさらに細る
+    lim([sd * 0.098, 0.805], [sd * 0.116, 0.63], 0.04, 0.03);
+    lim([sd * 0.116, 0.63], [sd * 0.118, 0.475], 0.03, 0.021);
+    // 手: 指の分かれていない、ひとかたまりの手
+    m.ellipse(...P(sd * 0.119, 0.44), 0.016 * H, 0.036 * H, 1);
   }
-  // 胴: 胸郭 (肩幅から腰へ締まる)・腹・骨盤 (継ぎ目で分かれる)
-  m.poly([...P(-0.108, 0.826), ...P(0.108, 0.826), ...P(0.104, 0.77), ...P(0.088, 0.69), ...P(0.066, 0.612), ...P(-0.066, 0.612), ...P(-0.088, 0.69), ...P(-0.104, 0.77)], 1);
-  m.poly([...P(-0.064, 0.6), ...P(0.064, 0.6), ...P(0.068, 0.545), ...P(-0.068, 0.545)], 1);
-  m.poly([...P(-0.088, 0.535), ...P(0.088, 0.535), ...P(0.09, 0.49), ...P(0.05, 0.45), ...P(0.0, 0.442), ...P(-0.05, 0.45), ...P(-0.09, 0.49)], 1);
-  // 首と頭 (横へうなだれる)
-  m.rect(cx - 0.02 * H, feet - 0.878 * H, 0.04 * H, 0.062 * H, 2);
-  const hx = cx + tilt * H, hy = feet - 0.928 * H;
-  m.ellipse(hx, hy, 0.05 * H, 0.064 * H, 1);
-  // 関節の鋼球
+  // 胴: 一続きの滑らかな体 (なで肩 → 胸 → 締まった腰 → 腰骨)
+  m.poly([
+    ...P(-0.04, 0.856), ...P(0.04, 0.856), ...P(0.08, 0.842), ...P(0.1, 0.826), ...P(0.106, 0.8), ...P(0.096, 0.73), ...P(0.078, 0.66),
+    ...P(0.066, 0.6), ...P(0.078, 0.54), ...P(0.084, 0.5), ...P(0.06, 0.462), ...P(0.0, 0.452),
+    ...P(-0.06, 0.462), ...P(-0.084, 0.5), ...P(-0.078, 0.54), ...P(-0.066, 0.6), ...P(-0.078, 0.66), ...P(-0.096, 0.73), ...P(-0.106, 0.8), ...P(-0.1, 0.826), ...P(-0.08, 0.842),
+  ], 1);
+  // 首 (細く長い) と頭 (卵形・横へうなだれる)
+  const hx = cx + tilt * H, hy = feet - 0.94 * H;
+  lim([tilt * 0.3, 0.83], [tilt * 0.85, 0.9], 0.058, 0.05); // 首は太めに、頭の真下へ
+  m.ellipse(hx, hy, 0.04 * H, 0.056 * H, 1);
+  m.ellipse(hx, hy + 0.026 * H, 0.032 * H, 0.032 * H, 1); // 顎へすぼまる
+  // 継ぎ目: 首の付け根・肩・肘・手首・腰・膝・足首 (細い線だけ)
+  seam(0, 0.845, 0.03);
+  seam(0, 0.6, 0.066);
   for (const sd of [-1, 1]) {
-    m.ellipse(...P(sd * 0.108, 0.812), 0.024 * H, 0.024 * H, 2);
-    m.ellipse(...P(sd * 0.13, 0.617), 0.017 * H, 0.017 * H, 2);
-    m.ellipse(...P(sd * 0.126, 0.472), 0.013 * H, 0.013 * H, 2);
-    m.ellipse(...P(sd * 0.056, 0.478), 0.022 * H, 0.02 * H, 2);
-    m.ellipse(...P(sd * 0.052, 0.267), 0.02 * H, 0.02 * H, 2);
+    seam(sd * 0.112, 0.63, 0.016);
+    seam(sd * 0.118, 0.476, 0.011);
+    seam(sd * 0.044, 0.49, 0.036);
+    seam(sd * 0.04, 0.27, 0.022);
+    seam(sd * 0.036, 0.055, 0.013);
   }
-  m.rect(cx - 0.064 * H, feet - 0.607 * H, 0.128 * H, Math.max(1, 0.008 * H), 2);
-  // 眼窩 (空ろな横長の穴) と胸の魂受け
+  // 目のくぼみ (浅い影だけ。眼は描かない) と胸の魂受け
   const eyes = [];
   for (const sd of [-1, 1]) {
-    const ex = hx + sd * 0.02 * H, ey = hy + 0.004 * H;
-    m.ellipse(ex, ey, Math.max(1, 0.013 * H), Math.max(0.8, 0.006 * H), 3);
+    const ex = hx + sd * 0.016 * H, ey = hy + 0.004 * H;
+    m.ellipse(ex, ey, Math.max(1, 0.009 * H), Math.max(0.8, 0.005 * H), 3);
     eyes.push([ex, ey]);
   }
-  m.ellipse(cx, feet - 0.725 * H, 0.022 * H, 0.022 * H, 4);
-  return { eyes, core: [cx, feet - 0.725 * H], shoulders: [P(-0.106, 0.83), P(0.106, 0.83)], head: [hx, hy] };
+  m.ellipse(cx, feet - 0.725 * H, 0.018 * H, 0.018 * H, 4);
+  return {
+    eyes, core: [cx, feet - 0.725 * H], head: [hx, hy - 0.06 * H],
+    shoulders: [P(-0.098, 0.83), P(0.098, 0.83)], hands: [P(-0.119, 0.47), P(0.119, 0.47)],
+  };
+}
+// 吊り糸 (操り糸): 梁から頭と両の手首へ。値 6
+function dollStrings(m, d, top, k) {
+  const ends = [d.head, ...d.hands];
+  for (const [ex, ey] of ends) m.line(ex, top, ex, ey, Math.max(1, 0.6 * k), 6);
 }
 function shadeDoll(L, m, cx, feet, H, { lamps, rimDir = [1, -0.6], rimRamp = R_FOG, dark = 0 }) {
   L.paint(m, (x, y, v) => {
-    if (v === 3) return rc(R_NIGHT, 0.0);
     if (v === 4) return rc(R_NIGHT, 0.04);
-    const u = (x + 0.5 - cx) / (0.1 * H);
     if (dark > 0.5) {
-      // 奥の器は影絵: 窓の側の縁だけが冷たく光る
-      let c = rc(R_NIGHT, 0.02 + (v === 2 ? 0.015 : 0));
+      // 奥の器は影絵: 窓の側の縁だけが冷たく光る。糸はかすかに光る
+      if (v === 6) return rc(R_FOG, 0.12);
+      let c = rc(R_NIGHT, 0.03);
       if (m.rim(x, y, rimDir[0], rimDir[1], 2) <= 1) c = mix(c, rc(rimRamp, 0.4), 0.45);
       return c;
     }
-    // 木肌は骨のように白茶け、関節の鋼は鈍く光る
-    // 円筒の陰影: 主光 (左下の蝋燭) へ向く面ほど明るく、反対側は闇へ沈む
-    const n = m.nx(x, y, Math.max(4, Math.round(0.06 * H)), 1);
-    const lam = clamp(0.15 - n * 0.85);
-    let c;
-    if (v === 2) c = rc(R_STEEL, 0.1 + lam * 0.4);
-    else {
-      const grain = vnoise(x * 0.25, y * 1.2, 101) * 0.04;
-      c = rc(R_WOOD, 0.1 + lam * 0.5 + grain);
-    }
-    const seam = m.at(x, y + 1) !== v || m.at(x, y - 1) !== v;
-    if (seam && v === 1) c = mix(c, rc(R_NIGHT, 0.03), 0.5);
+    if (v === 6) { const c = rc(R_BONE, 0.42); return lamps ? applyLights(c, x, y, lamps, 0.5) : c; }
+    // 漆喰の白い肌: 円筒の陰影 (主光 = 左下の蝋燭へ向く面ほど明るい)。継ぎ目と目のくぼみは影
+    const n = m.nx(x, y, Math.max(4, Math.round(0.05 * H)), 1);
+    const lam = clamp(0.2 - n * 0.8);
+    const grain = vnoise(x * 0.3, y * 0.3, 101) * 0.03; // 古びた塗りのむら
+    let c = rc(R_BONE, 0.18 + lam * 0.6 + grain);
+    if (v === 2) c = mix(c, rc(R_NIGHT, 0.06), 0.55);
+    else if (v === 3) c = mix(c, rc(R_BONE, 0.06), 0.6);
     if (lamps) c = applyLights(c, x, y, lamps, 0.1 + lam * 0.9);
-    if (m.rim(x, y, rimDir[0], rimDir[1], 1) === 1) c = mix(c, rc(rimRamp, 0.75), 0.55 - dark * 0.2);
+    if (m.rim(x, y, rimDir[0], rimDir[1], 1) === 1) c = mix(c, rc(rimRamp, 0.75), 0.5 - dark * 0.2);
     return c;
   });
 }
@@ -718,8 +730,7 @@ function scene3(W, H) {
       const cx = w * fx, feet = h * 0.08 + Hd * 1.12;
       const m = new Mask(w, h);
       const d = dollHanging(m, cx, feet, Hd, (h1(i, 118) - 0.5) * 0.06);
-      // 鎖
-      for (const [sx2, sy2] of d.shoulders) for (let y = Math.round(h * 0.04 + 6 * k); y < sy2; y++) if ((y >> 1) % 2 === 0 || true) m._span(y, Math.round(sx2 + (y % 3 === 0 ? 0 : 0)), Math.round(sx2), (y >> 1) % 2 ? 2 : 2);
+      dollStrings(m, d, h * 0.04 + 6 * k, k); // 梁から垂れる操り糸
       shadeDoll(L, m, cx, feet, Hd, { lamps: null, rimDir: [1, -0.8], dark: 0.85 });
       midDolls.push(d);
     });
@@ -741,11 +752,8 @@ function scene3(W, H) {
       { x: jar.x, y: jar.y, r: 60 * k, sq: 1, ramp: R_SOUL, k: 0.8 },
     ];
     const m = new Mask(w, h);
-    hero = dollHanging(m, cx, feet, Hd, 0.035);
-    for (const [sx2, sy2] of hero.shoulders) for (let y = 0; y < sy2 - 1; y++) {
-      const link = Math.floor(y / Math.max(2, 3 * k)) % 2;
-      m._span(y, Math.round(sx2 - (link ? 1 : 0)), Math.round(sx2 + (link ? 1 : 0)), 2);
-    }
+    hero = dollHanging(m, cx, feet, Hd, 0.018);
+    dollStrings(m, hero, 0, k); // 上から垂れる操り糸 (頭と両の手首)
     shadeDoll(L, m, cx, feet, Hd, { lamps, rimDir: [0.8, -1], rimRamp: R_FOG });
     // 作業台
     const tm = new Mask(w, h);
@@ -756,7 +764,7 @@ function scene3(W, H) {
     cand.forEach((c0, i) => { tm.rect(c0.x - 1.5 * k, c0.y, 3 * k, bench.y - c0.y, 3); tm.rect(c0.x - 2.5 * k, bench.y - 1.5 * k, 5 * k, 1.5 * k, 3); });
     tm.ellipse(jar.x, jar.y, 6 * k, 8 * k, 4);
     tm.rect(jar.x - 4 * k, jar.y - 10 * k, 8 * k, 2.5 * k, 5);
-    tm.line(bench.x0 + 6 * k, bench.y - 1.5 * k, bench.x0 + 26 * k, bench.y - 4 * k, Math.max(1, 2.6 * k), 6, Math.max(1, 2 * k)); // 外された腕
+    tm.line(bench.x0 + 6 * k, bench.y - 1.5 * k, bench.x0 + 26 * k, bench.y - 4 * k, Math.max(1, 2.6 * k), 6, Math.max(1, 2 * k)); // 外された白い腕
     tm.ellipse(bench.x0 + 27 * k, bench.y - 4.2 * k, 2 * k, 2 * k, 7);
     tm.line(bench.x1 - 22 * k, bench.y - 1, bench.x1 - 10 * k, bench.y - 2.5 * k, 1, 7); // のみ
     L.paint(tm, (x, y, v) => {
@@ -766,7 +774,7 @@ function scene3(W, H) {
       else if (v === 3) c = rc(R_BONE, 0.55 + (x < cand[0].x ? 0 : 0.05));
       else if (v === 4) { const d = Math.hypot((x - jar.x) / (6 * k), (y - jar.y) / (8 * k)); return mix(rc(R_SOUL, 0.85 - d * 0.5), rc(R_SOULSTONE, 0.3), d > 0.82 ? 0.7 : 0); }
       else if (v === 5) c = rc(R_STEEL, 0.25);
-      else if (v === 6) c = rc(R_WOOD, 0.4);
+      else if (v === 6) c = rc(R_BONE, 0.45);
       else c = rc(R_STEEL, 0.3);
       return applyLights(c, x, y, lamps, 0.7);
     });
@@ -780,7 +788,7 @@ function scene3(W, H) {
   near.bake(10);
   const candleG = glowSprite(Math.round(26 * k), R_EMBER.slice(0, 8), { pow: 2.4, levels: 6, core: 0.65 });
   const jarG = glowSprite(Math.round(18 * k), R_SOUL.slice(1, 10), { pow: 2, levels: 5, core: 0.8 });
-  const eyeG = glowSprite(Math.max(3, Math.round(6 * k)), R_SOUL.slice(4), { pow: 1.3, levels: 4 });
+  const eyeG = glowSprite(Math.max(3, Math.round(3.5 * k)), R_SOUL.slice(4), { pow: 1.6, levels: 4 });
   const coreG = glowSprite(Math.round(16 * k), R_SOUL.slice(2), { pow: 1.6, levels: 5 });
   near.post = (g, t, o, prog) => {
     cand.forEach((c0, i) => {
@@ -804,9 +812,9 @@ function scene3(W, H) {
       }
       const eo = smooth(0.55, 0.75, prog);
       if (eo > 0) for (const [ex, ey] of hero.eyes) {
-        lit(g, eyeG, ex + o.x, ey + o.y, eo);
-        g.globalAlpha = eo; g.fillStyle = "#e9fff2";
-        g.fillRect(Math.round(ex + o.x - k), Math.round(ey + o.y), Math.max(1, Math.round(2 * k)), 1);
+        lit(g, eyeG, ex + o.x, ey + o.y, eo * 0.6);
+        g.globalAlpha = eo; g.fillStyle = "#e9fff2"; // のっぺりとした顔に、細い光の筋だけが灯る
+        g.fillRect(Math.round(ex + o.x - 0.6 * k), Math.round(ey + o.y), Math.max(1, Math.round(1.2 * k)), 1);
         g.globalAlpha = 1;
       }
     }
@@ -1256,7 +1264,7 @@ export const SCENES = [
   {
     cap: "参", title: "人業",
     lines: [
-      "ゆえに人は、木と鋼と祈りで、空の器をこしらえた——人業（ドール）。",
+      "ゆえに人は、白木と漆喰と祈りで、空の器をこしらえた——人業（ドール）。",
       "その胸に死者の魂を封じたとき、器は静かに目を開ける。",
       "人業は道具ではない。死者に与えられた、二度目の生だ。",
     ],
