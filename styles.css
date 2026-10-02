@@ -737,3 +737,41 @@ summary.tw-bandh::before { content: "▸ "; color: #8a63b8; }
 /* 戦績シェア */
 
 /* 街の広場 (夜景・目標・施設の札・編成・迷宮の門) は town.css */
+
+/* ===== 縦画面専用: スマホを横向きにした時の案内 =====
+   向きのロック (manifest の orientation / screen.orientation.lock) が効かない環境
+   (iOS Safari・ブラウザのタブ等) 向け。タッチ端末で横長かつ背の低い画面 = 横向きのスマホだけに出し、
+   PC やタブレットの横画面は従来どおり遊べるようにする。 */
+#rotate-guard { display: none; }
+@media (orientation: landscape) and (max-height: 540px) and (hover: none) and (pointer: coarse) {
+  #rotate-guard {
+    position: fixed; inset: 0; z-index: 9998;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    padding: 24px; text-align: center;
+    background: radial-gradient(ellipse at 50% 40%, #1a1626 0%, #0b0b12 60%, #050509 100%);
+    color: var(--ink);
+    font-family: "Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", serif;
+    touch-action: none;
+  }
+  #rotate-guard .rg-phone {
+    position: relative; width: 34px; height: 58px;
+    border: 3px solid var(--accent); border-radius: 7px;
+    box-shadow: 0 0 18px rgba(201, 162, 39, 0.35);
+    animation: rg-turn 2.4s ease-in-out infinite;
+  }
+  #rotate-guard .rg-phone span {
+    position: absolute; left: 50%; bottom: 4px; width: 8px; height: 3px;
+    margin-left: -4px; border-radius: 2px; background: var(--accent);
+  }
+  #rotate-guard .rg-title { font-size: 17px; font-weight: 700; color: #f0dca0; letter-spacing: 0.08em; }
+  #rotate-guard .rg-sub { font-size: 12px; color: var(--ink-dim); letter-spacing: 0.06em; }
+  /* 案内が出ている間は下のゲーム画面に触れさせない */
+  #app, #ui-layer { visibility: hidden; }
+}
+@keyframes rg-turn {
+  0%, 20% { transform: rotate(-90deg); }
+  55%, 100% { transform: rotate(0deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  #rotate-guard .rg-phone { animation: none; }
+}
