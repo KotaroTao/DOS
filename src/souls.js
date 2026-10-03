@@ -1519,11 +1519,43 @@ export function soulStats(s) {
 // ===== 人業 (器) =====
 // 「本体は魂」: 進行 (count/level/exp) はパーティ共有の魂プール (game.js の G.souls) が持つ。
 // 人業はそこから魂を差し込むだけの器で、primary (主魂=職業・ステ・スキル) と
-// subs (宿し技スロット: 別職の看板スキルだけを借りる、最大 MAX_SUBS 個) を持つ。
+// subs (宿し技スロット: 別職の魂から技/パッシブを借りる、最大 MAX_SUBS 個) を持つ。
 let _dollUid = 0;
 export const MAX_SUBS = 2;
 // サブ魂 (宿し技) のステータス寄与率: 宿した魂の全ステの30%を器に加算する
 export const SUB_STAT_RATE = 0.3;
+// サブ魂1つから借りられる技/パッシブの数は、その魂のランクで増える (R1-2=1 / R3-4=2 / R5=3)
+export function subPickCapOfRank(rank) { return rank >= 5 ? 3 : rank >= 3 ? 2 : 1; }
+export function subPickCap(soul) { return subPickCapOfRank(soul ? soulRankFromCount(soul.clsKey, soul.count) : 0); }
+// サブ魂の借用リスト sub.picks = [{skill} | {passive}] を返す。旧形式 {skill, passive} はここで移し替える
+export function subPicks(sub) {
+  if (!sub) return [];
+  if (!Array.isArray(sub.picks)) {
+    sub.picks = sub.passive ? [{ passive: sub.passive }] : sub.skill ? [{ skill: sub.skill }] : [];
+  }
+  delete sub.skill; delete sub.passive;
+  // 壊れた要素はその場で取り除く (配列の同一性を保つ: 呼び出し側が手元の参照を使い続けられる)
+  for (let i = sub.picks.length - 1; i >= 0; i--) { const p = sub.picks[i]; if (!p || !(p.skill || p.passive)) sub.picks.splice(i, 1); }
+  return sub.picks;
+}
+export function subPickIndex(sub, kind, key) {
+  return subPicks(sub).findIndex((p) => (kind === "passive" ? p.passive === key : p.skill === key));
+}
+// 借用を入れ替える。外す → true / 足す → true / 枠がいっぱいで足せない → false。
+// 枠が1つの魂は、選び直すと入れ替える (旧来の「1つだけ借りる」と同じ手触り)。
+export function toggleSubPick(sub, kind, key) {
+  const picks = subPicks(sub);
+  sub.picked = true; // 一度でも選び直したら、空にしても既定の技で埋めない
+  const i = subPickIndex(sub, kind, key);
+  if (i >= 0) { picks.splice(i, 1); return true; }
+  const cap = subPickCap(soulByUid(sub.uid));
+  if (picks.length >= cap) {
+    if (cap !== 1) return false;
+    picks.length = 0;
+  }
+  picks.push(kind === "passive" ? { passive: key } : { skill: key });
+  return true;
+}
 
 // 共有魂プールへの参照 (game.js が setSharedSouls で注入)。recalcDoll が読む。
 // 新仕様: G.souls は「魂インスタンスの配列」。同じ職業でも1体ずつ個別に Lv/ランクを持つ。
@@ -1571,7 +1603,7 @@ export function makeDoll(name) {
   return {
     uid: ++_dollUid, name, isDoll: true,
     primary: null,   // 宿しているメイン魂の uid (祭壇で付け替え)
-    subs: [],        // サブ魂スロット: {uid, skill, passive} の配列 (最大 MAX_SUBS)。skill=借りる技 / passive=借りるパッシブ
+    subs: [],        // サブ魂スロット: {uid, picks:[{skill}|{passive}], picked} の配列 (最大 MAX_SUBS)。picks=借りる技/パッシブ (数は subPickCap)
     clsKey: "fighter", cls: "空の人業", level: 1,
     hp: 1, maxhp: 1, mp: 0, maxmp: 0,
     atk: 0, vit: 0, agi: 1, int: 0, pie: 0, luk: 0,
@@ -1652,9 +1684,9 @@ export function jobStatsOf(clsKey, entry) {
 }
 
 // ===== 宿し技 (サブ魂) =====
-// 各職の「看板スキル」= 職業スキル表のLv40固有技。宿しスロットに別職の魂を差すと、
-// その看板スキルを借りられ、その魂のステの30% (SUB_STAT_RATE) も加算される。共有ランク2以上で技を、
-// ランク4以上でその職のランク2パッシブも借りられる。
+// 各職の「看板スキル」= 職業スキル表のLv40固有技 (職業図鑑などの表示用)。
+// サブ魂の借用そのものは看板に限らない: 宿した魂が覚えた技/パッシブから、ランクに応じた数
+// (subPickCap: R1-2=1 / R3-4=2 / R5=3) を選べ、その魂のステの30% (SUB_STAT_RATE) も加算される。
 export const JOB_SIGNATURE = (() => {
   const out = {};
   for (const k of SOUL_KEYS) {
@@ -1783,7 +1815,7 @@ export function charLevelOf(doll) {
 
 // ===== recalcDoll (器 = 主魂 + 宿し技) =====
 // 主魂 (primary) の共有育成エントリ {count, level} から全ステ・スキル・パッシブを導出し、
-// サブ魂 (subs) が選んだスキルを1つ借りる。進行は所持魂インスタンス (SOULS) が持つ。
+// サブ魂 (subs) が選んだ技/パッシブを魂のランクに応じた数だけ借りる。進行は所持魂インスタンス (SOULS) が持つ。
 export function recalcDoll(doll) {
   if (!doll.subs) doll.subs = [];
   const pe = doll.primary != null ? soulByUid(doll.primary) : null; // メイン魂インスタンス
@@ -1835,39 +1867,38 @@ export function recalcDoll(doll) {
     doll.jobLv = 1;
   }
 
-  // サブ魂: その魂が覚えているスキル「または」パッシブから1つ (doll が設定) を借りる。
-  // sub.passive が設定されていればパッシブを、なければ sub.skill のスキルを借りる。
+  // サブ魂: その魂が覚えている技/パッシブから、ランクに応じた数 (subPickCap) まで借りる。
+  // 借用は sub.picks。覚えていない/上限を超えた分は効かない (外した後の空きは既定で埋めない)。
   // ステータスはその魂のステの SUB_STAT_RATE (=30%) を加算する。
   doll.subInfo = [];
   for (const sub of doll.subs) {
     const se = sub ? soulByUid(sub.uid) : null;
     if (!se) continue;
     const sr = soulRankFromCount(se.clsKey, se.count);
+    const cap = subPickCapOfRank(sr);
     const learned = soulLearnedSkills(se);
     const learnedPassives = soulLearnedPassives(se);
-    let chosenSkill = null, chosenPassive = null;
-    if (sub.passive && learnedPassives[sub.passive]) {
-      // パッシブを借用
-      chosenPassive = sub.passive;
-    } else if (sub.skill && learned.includes(sub.skill)) {
-      // スキルを借用
-      chosenSkill = sub.skill;
-    } else {
-      // 未設定/無効なら看板スキル相当 (覚えている最後のスキル) を既定にする
-      chosenSkill = learned.length ? learned[learned.length - 1] : null;
-      sub.skill = chosenSkill; sub.passive = null;
-    }
-    if (chosenSkill && !spells.includes(chosenSkill)) spells.push(chosenSkill);
-    if (chosenPassive) {
-      const plv = learnedPassives[chosenPassive];
-      passiveMap[chosenPassive] = Math.max(passiveMap[chosenPassive] || 0, plv);
-      const nm = passiveName(chosenPassive, plv);
-      if (!passives.includes(nm)) passives.push(nm);
+    const picks = subPicks(sub);
+    // 宿したばかり (借用が空で未設定) なら看板スキル相当 (覚えている最後のスキル) を既定にする
+    if (!picks.length && !sub.picked && learned.length) picks.push({ skill: learned[learned.length - 1] });
+    const used = [];
+    for (const p of picks) {
+      if (used.length >= cap) break;
+      if (p.passive && learnedPassives[p.passive]) {
+        const plv = learnedPassives[p.passive];
+        passiveMap[p.passive] = Math.max(passiveMap[p.passive] || 0, plv);
+        const nm = passiveName(p.passive, plv);
+        if (!passives.includes(nm)) passives.push(nm);
+        used.push({ passive: p.passive });
+      } else if (p.skill && learned.includes(p.skill)) {
+        if (!spells.includes(p.skill)) spells.push(p.skill);
+        used.push({ skill: p.skill });
+      }
     }
     // サブ魂のステータスを SUB_STAT_RATE ぶん加算
     const sst = jobStatsOf(se.clsKey, se);
     for (const k in st) st[k] += (sst[k] || 0) * SUB_STAT_RATE;
-    doll.subInfo.push({ uid: se.uid, clsKey: se.clsKey, rank: sr, level: se.level, skill: chosenSkill, passive: chosenPassive });
+    doll.subInfo.push({ uid: se.uid, clsKey: se.clsKey, rank: sr, level: se.level, cap, picks: used });
   }
 
   doll.passiveMap = passiveMap;
