@@ -65,6 +65,7 @@ const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 import { tlOn, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd } from "./telemetry.js";
 import { baselineAgi, progressX } from "./baseline.js";
+import { repriceEquipment } from "./pricing.js";
 
 // ===== コンテンツの取り込み =====
 // アイテム: 一点物の手作りカタログ (src/catalog/)。二つ名つきの量産品は廃止。
@@ -79,6 +80,9 @@ for (const id in ITEMS) {
     if (!CATALOG_ITEMS[id]) it.noDrop = true;
   }
 }
+// 装備の値段は性能 (能力値・属性・耐性・効果) から付け直す (src/pricing.js)。
+// 性能が同じ品は同じ値段、どこも同等以上の品は必ず高くなる
+repriceEquipment(ITEMS);
 Object.assign(MONSTERS, DUNGEON_MONSTERS);
 // 隠しレベル lv (1-50) と表示ランクの補完 (カタログ品は定義済み)
 for (const id in ITEMS) {

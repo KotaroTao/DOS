@@ -33,7 +33,7 @@ export const RANK8_ITEMS = [
   A("a_r8_truesilvermail", "真銀の鎖帷子", 74, { weight: "light", tint: "#dfe8f0", desc: "真銀の細環で編んだ鎖帷子。月光のように澄んだ環が鋼を遥かに凌ぐ強度を持ち、身のこなしを一切損なわない。" }),
   A("a_r8_winddragonhide", "風竜革の鎧", 79, { weight: "light", eDef: ["wind", 1], desc: "風竜の革をなめして仕立てた軽鎧。竜の風の加護が宿り、まとう者を疾風が包んで風の刃や飛び道具を逸らす。" }),
   A("a_r8_arcaneplate", "魔導の板金鎧", 75, { tint: "#7a5ad8", desc: "魔導合金を曲面に打ち出した板金鎧。宿した魔力が刃の勢いを和らげ、重厚な守りにさらなる堅牢さを加える。" }),
-  A("a_r8_dragonemperorarmor", "竜帝の鎧", 80, { tint: "#d06a3a", desc: "竜の帝王の鱗を綴じたと伝わる壮麗な全身鎧。業火に灼かれぬ竜鱗が、まともな攻撃のすべてを正面から退ける。" }),
+  A("a_r8_dragonemperorarmor", "竜帝の鱗鎧", 80, { tint: "#d06a3a", desc: "竜の帝王の鱗を綴じたと伝わる壮麗な全身鎧。業火に灼かれぬ竜鱗が、まともな攻撃のすべてを正面から退ける。" }),
 
   // ===== 頭 head (布2/軽2/重2) =====
   H("h_r8_arcanehat", "魔導の帽子", 73, { magStat: "int", shape: "hat", weight: "cloth", tint: "#7a5ad8", desc: "魔導の紋を縫い取った深紫のつば広帽。被る者の知を研ぎ澄まし、唱える攻撃術の冴えをくっきりと際立たせる。" }),

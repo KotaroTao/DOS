@@ -27,6 +27,7 @@ const ASSETS = [
   "./src/traps.js",
   "./src/telemetry.js",
   "./src/baseline.js",
+  "./src/pricing.js",
   "./src/events.js",
   "./src/sprites.js",
   "./src/combat.js",
