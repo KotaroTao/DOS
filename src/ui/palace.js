@@ -22,7 +22,7 @@ import { DUNGEONS, ELEMENTS, RACE_LABEL, monsterTraits, isFloating } from "../du
 import { SPELLS } from "../combat.js";
 import {
   SOUL_CLASSES, jobSprite, jobRankName, jobLoreFor, jobRankCondText, SOUL_STAT_UP, JOB_GEAR,
-  jobPassiveTable, rankThresholds, soulLevelCap, jobSkillTable, passiveName, passiveDesc,
+  jobPassiveTable, rankThresholds, soulLevelCap, jobSkillTable, passiveName, passiveDesc, JOB_AFFINITY,
 } from "../souls.js";
 import { rarityColor } from "../rarity.js";
 import { SFX } from "../audio.js";
@@ -504,14 +504,18 @@ export function codexJobSheet(key, rank, heading) {
   // 発現の条件
   const upPct = Math.round((SOUL_STAT_UP[SOUL_CLASSES[key].rarity] || 0.01) * 100);
   body.appendChild(infoBlock("発現の条件", [pairRow(jobRankCondText(key, rank)), pairRow(`魂を1つ吸収するごと、全能力 基礎値×${upPct}% UP`, null, { dim: true })]));
-  // 装備適性
+  // 装備適性 + 得意属性 (その属性の物理技・呪文を多く覚える)
   const gg = JOB_GEAR[key];
+  const aff = JOB_AFFINITY[key] || [];
+  const affRow = aff.length ? pairRow("得意属性", null, { tags: aff.map((e) => "el:" + e) }) : null;
   if (gg) {
     const armor = gg.armor === "heavy" ? "重装可" : gg.armor === "light" ? "軽装まで" : "布装のみ";
     body.appendChild(infoBlock("装備適性", [
       pairRow("武器", gg.weapons ? gg.weapons.map((w) => WEAPON_CAT_LABEL[w] || w).join("・") : "—"),
-      pairRow("防具", armor), pairRow("盾", gg.shield ? "装備できる" : "装備できない"),
-    ]));
+      pairRow("防具", armor), pairRow("盾", gg.shield ? "装備できる" : "装備できない"), affRow,
+    ].filter(Boolean)));
+  } else if (affRow) {
+    body.appendChild(infoBlock("得意属性", [affRow]));
   }
   // パッシブ: 上位の位階に呑まれた同系統の下位Lvは省く
   const pTbl = jobPassiveTable(key);

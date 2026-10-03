@@ -26,6 +26,7 @@ import {
   SOUL_RANKS, rollJobClass, rollGreatJobClass, SOUL_STAT_UP,
   soulRankFromCount, capForRarityRank, jobRankName, soulSeriesName, pLv,
   identifyChance, canIdentify,
+  battleSkills,
 } from "./souls.js";
 import { showOpening } from "./opening.js";
 import { KING_PORTRAIT, prewarmTown } from "./townart.js";
@@ -7234,7 +7235,7 @@ function attackNow(target) {
 function lastSkillOf(actor) {
   if (!actor || !actor.spells || !actor.spells.length) return null;
   const k = uiDungeonHud.remember("lastSkill", String(actor.uid));
-  return k && actor.spells.includes(k) && SPELLS[k] ? k : null;
+  return k && battleSkills(actor).includes(k) && SPELLS[k] ? k : null; // 戦闘で出さない (オフの) 技は出さない
 }
 function skillLocked(actor, key) {
   const sp = SPELLS[key];
@@ -7287,7 +7288,8 @@ function renderCombatMenu() {
       main.appendChild(qb);
     }
     const mpTxt = actor.maxmp > 0 ? `MP ${actor.mp}/${actor.maxmp}` : "技なし";
-    if (actor.spells.length) main.appendChild(cmdBtn("skill", "スキル", mpTxt, () => showSpells(actor)));
+    if (battleSkills(actor).length) main.appendChild(cmdBtn("skill", "スキル", mpTxt, () => showSpells(actor)));
+    else if (actor.spells.length) main.appendChild(cmdBtn("skill", "スキル", "すべてオフ", () => showToast("技はすべて非表示 ― 隊の「能力」で表示を戻せる", { tone: "info" }), "muted"));
     else main.appendChild(cmdBtn("skill", "スキル", "使えない", () => log("スキルを使えない", "sys"), "muted"));
     combatMenu.appendChild(main);
     const sub = el("div", "cmd-sub");
@@ -7326,10 +7328,12 @@ function showSpells(actor) {
   combatMenu.innerHTML = "";
   combatMenu.dataset.mode = "spells";
   combatMenu.appendChild(turnPlate(actor.name, "のスキル", [`MP ${actor.mp}`, "長押しで詳細"]));
-  // 呪文が多い職 (魔導士・賢者など最大11個) は2列に並べて縦に伸びすぎないようにする
-  const list = el("div", "target-list" + (actor.spells.length > 4 ? " cols2" : ""));
+  // 並べた順に、オフにした技を除いて出す (隊の「能力」画面で整理)。
+  // 呪文が多い職は2列に並べて縦に伸びすぎないようにする
+  const skills = battleSkills(actor);
+  const list = el("div", "target-list" + (skills.length > 4 ? " cols2" : ""));
   const quick = lastSkillOf(actor);
-  for (const key of actor.spells) {
+  for (const key of skills) {
     const sp = SPELLS[key];
     const cost = spellCost(actor, sp); // 省詠唱 (chant) 持ちは消費が軽い
     // 使えない技も長押しで詳細を見られるよう、native disabled ではなく soft-lock にする

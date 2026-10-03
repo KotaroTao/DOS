@@ -185,6 +185,70 @@ export const SPELLS = {
   SEIKEN: { name: "聖剣奮迅", mp: 14, kind: "atk", power: 20, element: "light", partyHeal: 16, target: "all-enemy", desc: "聖剣の輝きで敵を薙ぎ、返す光でパーティを癒す" },
   ASHURAZAN: { name: "阿修羅斬", mp: 15, kind: "phys", power: 0.8, hits: 5, target: "enemy", desc: "阿修羅の怒涛の五連斬" },
   RYUZETSU: { name: "竜墜とし", mp: 16, kind: "phys", power: 5.0, target: "enemy", desc: "竜の力を解き放つ渾身の一撃" },
+
+  // ===== 属性技の拡充 (6属性 × 物理/呪文を満遍なく。各職の得意属性は souls.js の JOB_AFFINITY) =====
+  // 属性ごとの物理技の持ち味: 火=威力 / 水=AGI低下 / 風=多段・会心 / 土=VIT低下・怯み / 光=HP吸収 / 闇=MP吸収・ATK低下
+  // 段階: 壱(低Lv単体) / 弐(低Lv全体) / 参(中Lv単体) / 肆(高Lv単体) / 伍(高Lv全体)
+  // --- 魔法剣 (魔法剣士系の低Lv技): intScale = INT×倍率×係数を上乗せ (ATKとINTの両方で伸びる) ---
+  MAKEN_FIRE:  { name: "魔法剣・火", mp: 4, kind: "phys", power: 1.4, intScale: 0.6, element: "fire", target: "enemy", desc: "刃に炎の術を宿して斬る" },
+  MAKEN_WATER: { name: "魔法剣・水", mp: 4, kind: "phys", power: 1.2, intScale: 0.6, element: "water", debuff: { agi: 0.85 }, target: "enemy", desc: "冷たい水の術を宿した刃で足を鈍らせる" },
+  MAKEN_WIND:  { name: "魔法剣・風", mp: 4, kind: "phys", power: 0.7, hits: 2, intScale: 0.6, element: "wind", target: "enemy", desc: "風の術を宿した刃で二度斬る" },
+  MAKEN_EARTH: { name: "魔法剣・土", mp: 4, kind: "phys", power: 1.2, intScale: 0.6, element: "earth", debuff: { vit: 0.85 }, target: "enemy", desc: "岩の術を宿した重い刃で守りを削ぐ" },
+  MAKEN_LIGHT: { name: "魔法剣・光", mp: 4, kind: "phys", power: 1.2, intScale: 0.6, element: "light", drain: 0.15, target: "enemy", desc: "光の術を宿した刃で斬り、己を癒す" },
+  MAKEN_DARK:  { name: "魔法剣・闇", mp: 4, kind: "phys", power: 1.2, intScale: 0.6, element: "dark", mpDrain: 0.15, target: "enemy", desc: "闇の術を宿した刃で斬り、魔力を啜る" },
+  // --- 火の物理技 (威力重視) ---
+  KAENGIRI:       { name: "火炎斬り", mp: 3, kind: "phys", power: 1.7, element: "fire", target: "enemy", desc: "炎を纏った刃で斬りつける" },
+  KAENNAGI:       { name: "火焔薙ぎ", mp: 8, kind: "phys", power: 0.85, element: "fire", target: "all-enemy", desc: "炎の刃で敵全体を薙ぐ" },
+  GURENZAN:       { name: "紅蓮斬", mp: 11, kind: "phys", power: 3.0, element: "fire", target: "enemy", desc: "紅蓮の炎ごと叩き斬る" },
+  GOUKADAN:       { name: "劫火断", mp: 20, kind: "phys", power: 5.6, element: "fire", target: "enemy", desc: "劫火を宿した刃で断ち切る" },
+  SHOUNETSURANBU: { name: "焦熱乱舞", mp: 28, kind: "phys", power: 2.6, element: "fire", target: "all-enemy", desc: "焦熱の乱舞が敵陣を焼き尽くす" },
+  // --- 水の物理技 (AGI低下) ---
+  SUIGETSU:   { name: "水月斬り", mp: 4, kind: "phys", power: 1.4, element: "water", debuff: { agi: 0.85 }, target: "enemy", desc: "水面の月のごとき刃で足を鈍らせる" },
+  UZUSHIO:    { name: "渦潮斬り", mp: 9, kind: "phys", power: 0.75, element: "water", debuff: { agi: 0.9 }, target: "all-enemy", desc: "渦巻く斬撃が敵全体を呑み、動きを鈍らせる" },
+  HYOUJIN:    { name: "氷刃", mp: 11, kind: "phys", power: 2.6, element: "water", debuff: { agi: 0.8 }, target: "enemy", desc: "凍てつく刃で斬り、動きを封じる" },
+  TOUGADAN:   { name: "凍牙断", mp: 20, kind: "phys", power: 5.0, element: "water", debuff: { agi: 0.7 }, target: "enemy", desc: "氷の牙で断ち、芯まで凍えさせる" },
+  DAIKAISHOU: { name: "大海嘯", mp: 28, kind: "phys", power: 2.3, element: "water", debuff: { agi: 0.85 }, target: "all-enemy", desc: "大海嘯のごとき斬撃が敵陣を呑む" },
+  // --- 風の物理技 (多段・会心) ---
+  SHIPPUUGIRI: { name: "疾風斬り", mp: 4, kind: "phys", power: 0.85, hits: 2, element: "wind", target: "enemy", desc: "疾風のごとき二連撃" },
+  REPPUU:      { name: "烈風斬", mp: 8, kind: "phys", power: 0.8, critBonus: 0.1, element: "wind", target: "all-enemy", desc: "烈風の刃が敵全体を切り裂く" },
+  FUUGA:       { name: "風牙", mp: 11, kind: "phys", power: 1.0, hits: 3, critBonus: 0.1, element: "wind", target: "enemy", desc: "風の牙が三度食らいつく" },
+  KAMIKAZE:    { name: "神風", mp: 21, kind: "phys", power: 1.4, hits: 4, critBonus: 0.15, element: "wind", target: "enemy", desc: "神風のごとき四連の斬撃" },
+  TENRAN:      { name: "天嵐", mp: 27, kind: "phys", power: 2.3, critBonus: 0.2, element: "wind", target: "all-enemy", desc: "天を覆う嵐の刃が敵陣を刻む" },
+  // --- 土の物理技 (VIT低下・怯み) ---
+  IWAKUDAKI:    { name: "岩砕き", mp: 4, kind: "phys", power: 1.4, element: "earth", debuff: { vit: 0.85 }, target: "enemy", desc: "岩をも砕く一撃で守りを削ぐ" },
+  CHIRETSU:     { name: "地裂撃", mp: 9, kind: "phys", power: 0.75, element: "earth", flinchChance: 0.2, target: "all-enemy", desc: "大地を裂く衝撃が敵全体を揺るがす" },
+  GANOTOSHI:    { name: "巌落とし", mp: 12, kind: "phys", power: 2.6, element: "earth", debuff: { vit: 0.8 }, flinchChance: 0.2, target: "enemy", desc: "巌のごとき一撃で叩き伏せる" },
+  YAMAKUZUSHI:  { name: "山崩し", mp: 20, kind: "phys", power: 5.0, element: "earth", debuff: { vit: 0.7 }, target: "enemy", desc: "山をも崩す剛撃で守りを砕く" },
+  DAICHIMEIDOU: { name: "大地鳴動", mp: 28, kind: "phys", power: 2.3, element: "earth", flinchChance: 0.25, target: "all-enemy", desc: "大地を鳴動させ敵陣を打ち砕く" },
+  // --- 光の物理技 (HP吸収) ---
+  KOUJIN:      { name: "光刃", mp: 4, kind: "phys", power: 1.4, element: "light", drain: 0.2, target: "enemy", desc: "光の刃で斬り、己の傷を癒す" },
+  KOURINZAN:   { name: "光輪斬", mp: 9, kind: "phys", power: 0.75, element: "light", drain: 0.1, target: "all-enemy", desc: "光の輪を描く斬撃で敵全体を斬る" },
+  SEIGEKI:     { name: "聖撃", mp: 12, kind: "phys", power: 2.6, element: "light", drain: 0.25, target: "enemy", desc: "聖なる力を込めた一撃で打ち、癒しを得る" },
+  TENKOUKEN:   { name: "天光剣", mp: 21, kind: "phys", power: 5.0, element: "light", drain: 0.3, target: "enemy", desc: "天の光を束ねた剣で断ち、命を取り戻す" },
+  KOUBOURANBU: { name: "光芒乱舞", mp: 28, kind: "phys", power: 2.3, element: "light", drain: 0.15, target: "all-enemy", desc: "光芒の乱舞が敵陣を斬り払う" },
+  // --- 闇の物理技 (MP吸収・ATK低下) ---
+  YAMIBA:     { name: "闇刃", mp: 3, kind: "phys", power: 1.4, element: "dark", mpDrain: 0.15, target: "enemy", desc: "闇を纏う刃が魔力を啜る" },
+  KOKUEINAGI: { name: "黒影薙ぎ", mp: 9, kind: "phys", power: 0.75, element: "dark", debuff: { atk: 0.9 }, target: "all-enemy", desc: "黒い影の刃で敵全体の力を削ぐ" },
+  MEIJIN:     { name: "冥刃", mp: 10, kind: "phys", power: 2.6, element: "dark", mpDrain: 0.2, target: "enemy", desc: "冥府の刃で斬り、魔力を奪う" },
+  MEIFUZAN:   { name: "冥府斬", mp: 20, kind: "phys", power: 5.0, element: "dark", mpDrain: 0.2, debuff: { atk: 0.8 }, target: "enemy", desc: "冥府へ引きずり込む斬撃で力と魔力を奪う" },
+  TOKOYAMI:   { name: "常闇", mp: 27, kind: "phys", power: 2.3, element: "dark", debuff: { atk: 0.85 }, target: "all-enemy", desc: "常闇が敵陣を覆い斬り裂く" },
+  // --- 属性呪文の空白を埋める (土・闇の低Lv、水・風・土の全体呪文など) ---
+  ISHITSUBUTE: { name: "石つぶて", mp: 3, kind: "atk", power: 12, element: "earth", target: "enemy", desc: "鋭い石礫を撃ち込む" },
+  EARTHQUAKE:  { name: "アースクエイク", mp: 7, kind: "atk", power: 22, element: "earth", target: "all-enemy", desc: "大地を揺らし敵全体を打つ" },
+  LANDSLIDE:   { name: "ランドスライド", mp: 12, kind: "atk", power: 36, element: "earth", target: "all-enemy", desc: "崩れ落ちる土砂が敵全体を呑む" },
+  GANSAI:      { name: "巌砕", mp: 26, kind: "atk", power: 88, element: "earth", target: "enemy", desc: "巨巌を落として一体を押し潰す" },
+  AQUAWAVE:    { name: "アクアウェイブ", mp: 6, kind: "atk", power: 20, element: "water", target: "all-enemy", desc: "押し寄せる水流が敵全体を打つ" },
+  ICELANCE:    { name: "アイスランス", mp: 9, kind: "atk", power: 32, element: "water", target: "enemy", desc: "氷の槍で一体を貫く" },
+  WINDSTORM:   { name: "ウィンドストーム", mp: 6, kind: "atk", power: 20, element: "wind", target: "all-enemy", desc: "吹き荒れる風が敵全体を裂く" },
+  TORNADO:     { name: "トルネード", mp: 10, kind: "atk", power: 34, element: "wind", target: "all-enemy", desc: "竜巻が敵全体を巻き上げる" },
+  GOURAI:      { name: "轟雷", mp: 24, kind: "atk", power: 76, element: "wind", target: "enemy", desc: "轟く雷が一体を撃ち抜く" },
+  HOLYLIGHT:   { name: "ホーリーライト", mp: 6, kind: "atk", power: 18, element: "light", target: "all-enemy", desc: "柔らかな聖光が敵全体を灼く" },
+  SHADOWBOLT:  { name: "シャドウボルト", mp: 3, kind: "atk", power: 13, element: "dark", target: "enemy", desc: "影の矢を放つ" },
+  DARKMIST:    { name: "ダークミスト", mp: 6, kind: "atk", power: 20, element: "dark", target: "all-enemy", desc: "闇の霧が敵全体を蝕む" },
+  DARKBLAST:   { name: "ダークブラスト", mp: 9, kind: "atk", power: 32, element: "dark", target: "enemy", desc: "凝縮した闇を一体に叩きつける" },
+  DARKNESS:    { name: "ダークネス", mp: 12, kind: "atk", power: 36, element: "dark", target: "all-enemy", desc: "深い闇が敵全体を呑み込む" },
+  MEIKOKU:     { name: "冥哭", mp: 21, kind: "atk", power: 66, element: "dark", target: "enemy", desc: "冥府の哭き声が一体の魂を裂く" },
+  MEIANRAN:    { name: "冥闇嵐", mp: 28, kind: "atk", power: 80, element: "dark", target: "all-enemy", desc: "冥府の闇が嵐となって戦場を呑む" },
 };
 
 // 強化/弱体 (atk/vit/agi 倍率) の持続ターン数を各スキルに個別設定する。
@@ -1055,8 +1119,10 @@ export class Battle {
     // 魔力撃 (spellBlade): 通常攻撃にINTを上乗せ
     const sb = pv(actor, "spellBlade");
     const sbAdd = sb ? Math.round((actor.int || 0) * (sb >= 2 ? 1.0 : 0.5) * power) : 0;
+    // 魔法剣 (intScale): 技そのものが INT×倍率×係数 を上乗せする (ATKとINTの両方で伸びる)
+    const ibAdd = opt.intScale ? Math.round((actor.int || 0) * opt.intScale * power) : 0;
     // ダメージ = ATK×倍率×低HP補正 − VIT/2 (VITが被ダメージ軽減を担う)
-    let dmg = variance(Math.round(this._eatk(actor) * power * this._lowHpMul(actor))) + sbAdd - Math.floor(this._evit(tgt) * 0.5);
+    let dmg = variance(Math.round(this._eatk(actor) * power * this._lowHpMul(actor))) + sbAdd + ibAdd - Math.floor(this._evit(tgt) * 0.5);
     if (tgt._defending) dmg = Math.floor(dmg * 0.5);
     // 城壁の構え: 防御中の持ち主がいれば隊全体の被ダメ-10%
     if (tgt.side === "party") {
@@ -1170,7 +1236,7 @@ export class Battle {
         let connected = false; // 1発でも命中したか (命中後の付与効果の条件)
         for (let h = 0; h < hits; h++) {
           if (!t.alive) break;
-          const hit = this._physical(actor, t, { power: sp.power, critBonus: sp.critBonus, debuff: sp.debuff, debuffDur: sp.dur, element: sp.element, name: sp.name });
+          const hit = this._physical(actor, t, { power: sp.power, critBonus: sp.critBonus, debuff: sp.debuff, debuffDur: sp.dur, element: sp.element, intScale: sp.intScale, name: sp.name });
           res.hits.push(hit);
           dealt += hit.dmg || 0;
           if (!hit.miss) connected = true;
