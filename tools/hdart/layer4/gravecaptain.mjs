@@ -53,7 +53,7 @@ export function build() {
     const [lx, lz] = toL(x, z), dx = lx - Hc[0], dz = lz - Hc[2];
     const r = 14.4, d = 8.4, b = Math.sqrt(r * r - d * d), px = Math.abs(dz), py = Math.abs(dx);
     const v = ((py - b) * d > px * b) ? Math.hypot(px, py - b) : Math.hypot(px + d, py) - r;
-    const yc = 20.6 - 0.045 * dx * dx;
+    const yc = 21 - 0.068 * dx * dx;
     const w = Math.abs(y - yc) * 0.85 - 0.55;
     return Math.hypot(Math.max(v, 0), Math.max(w, 0)) + Math.min(Math.max(v, w), 0) - 0.2;
   } };
