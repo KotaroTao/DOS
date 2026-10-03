@@ -11,7 +11,7 @@
 import { UI, game, registerUI } from "./ctx.js";
 import { el, sheet, button, setText, toast, reduced } from "./kit.js";
 import { statLines, isEquippable, itemCatText } from "./itemview.js";
-import { wearPlan, deltaEl, nameSpan, openDollChooser, itemSheet, ownerOf, shopOpen, townAppraisers } from "./loot.js";
+import { wearPlan, deltaEl, nameSpan, openDollChooser, itemSheet, ownerOf, shopOpen, townAppraisers, revealSellBtn } from "./loot.js";
 import { spriteCanvas } from "../sprites.js";
 import { identifyChance, identifyLabel } from "../souls.js";
 import { itemName } from "../items.js";
@@ -303,9 +303,12 @@ export function openTryIdentifyAll({ onDone } = {}) {
         eb.classList.add("wpc-prow-act");
         row.appendChild(eb);
       }
+      if (o.where === "bag" && shopOpen()) row.appendChild(revealSellBtn(o.doll, it, () => { if (h && !h.closed) h.update({ body: (bb) => buildSummary(bb) }); }));
       wrap.appendChild(row);
     }
     if (worn) wrap.appendChild(el("div", "ap-sum-worn", `装備した品 ${worn}点は一覧から外した。`));
+    const sold = results.filter((x) => x.ok && !ownerOf(x.item)).length;
+    if (sold) wrap.appendChild(el("div", "ap-sum-worn", `売った品 ${sold}点は一覧から外した。`));
     const fails = results.filter((x) => !x.ok);
     if (fails.length) {
       const f = el("div", "ap-sum-fail");

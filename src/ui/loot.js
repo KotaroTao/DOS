@@ -272,6 +272,14 @@ export async function sellOne(owner, it) {
   floatGold(price);
   return true;
 }
+// 鑑定の結果の行の「売る」(売値つき)。警告のある品は sellOne が確かめる。売れたら一覧を描き直す (売った品は消える)
+export function revealSellBtn(doll, it, onSold) {
+  const b = button({ label: "売る", sub: String(game.sellPrice(it)), kind: "secondary", size: "sm",
+    onTap: async () => { if (await sellOne(doll, it)) onSold(); } });
+  b.classList.add("wpc-prow-act", "sell");
+  b.dataset.act = "sell";
+  return b;
+}
 // 金貨が増えた/減った印を見出しの金貨の上に浮かべる
 export function floatGold(n, tone = "up") {
   if (!n) return;
