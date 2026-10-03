@@ -279,7 +279,7 @@ const TOGGLES = [
 ];
 // 戦闘中の手帳に並べる切り替え (倍速はセーブの G.fastAnim、ほかは端末の好み)
 const COMBAT_TOGGLES = [
-  { key: "fastAnim", label: "戦闘演出 倍速", sub: "攻撃や術の演出を速める",
+  { key: "fastAnim", label: "戦闘演出 倍速", sub: "切ると演出が 1/2 の速さに",
     get: () => { const g = G(); return !!(g && g.fastAnim); },
     set: (v) => { const g = G(); if (!g) return; g.fastAnim = v; if (game.autosave) game.autosave(); } },
   { key: "autoKeep", label: "オートを続ける", sub: "次の戦闘も。主・強敵で止まる" },
