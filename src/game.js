@@ -1,7 +1,7 @@
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas } from "./sprites.js";
 import {
@@ -654,7 +654,7 @@ function forfeitRun() {
 // 砕けた人業: 死亡を戦績に記録し、街への連れ帰りタイマーをセット
 function imprintFallen() {
   for (const d of G.party) {
-    if (d.isDoll && !d.alive && !d._dead) { G.stats.deaths++; d._dead = true; }
+    if (d.isDoll && !d.alive && !d._dead) { G.stats.deaths++; d._dead = true; d.diedFloor = G.floor; }
   }
   setReviveTimers();
 }
@@ -1102,6 +1102,7 @@ function enemyScale() {
 
 // ミミックの強さの基準: この階に出る雑魚の最上位ランクと、雑魚と同じ強さ補正。
 // (ランクの上乗せ — 通常 +1 / マスター +2 — は combat.js の spawnMimic が行う)
+// 出来事の魔物 (檻番の獄卒など、spawnRanked) も同じ基準で「この階より何ランク上」を組む。
 function mimicRef() {
   const cfg = activeCfg();
   const ranks = sfMonsterPool().map((k) => (MONSTERS[k] && MONSTERS[k].rank) || 0);
@@ -4766,6 +4767,8 @@ function evBuildFoes(specs) {
   for (const sp of specs || []) {
     if (sp.shadows) { for (const p of evAlive()) out.push(evShadow(p, sp.shadows)); continue; }
     if (sp.elite) { out.push(...spawnEliteEnemies(sp.key && MONSTERS[sp.key] ? sp.key : eliteKey(), scale * (sp.strong || 1))); continue; }
+    // 出来事の魔物: その階の雑魚の最上位ランク + ranked の体で現れる (ミミックと同じ基準 mimicRef)
+    if (sp.ranked && sp.key && MONSTERS[sp.key]) { const e = spawnRanked(sp.key, mimicRef().rank, sp.ranked, scale)[0]; if (sp.name) e.name = sp.name; out.push(e); continue; }
     const key = sp.key && MONSTERS[sp.key] ? sp.key : (sp.undead ? undeadKeyForDungeon() : evPoolKey());
     if (sp.strong) { const e = evBoost(spawnEliteEnemies(key, scale)[0], sp.strong); if (sp.name) e.name = sp.name; out.push(e); continue; }
     if (sp.single) { out.push(spawnEliteEnemies(key, scale)[0]); continue; }
@@ -9762,8 +9765,8 @@ function dungeonRoster(dn) {
   return out;
 }
 
-// 特定のダンジョンに属さない魔物 (宝箱に潜む類) を集める「その他」タブの面々
-const CODEX_OTHER = ["mimic", "master_mimic"];
+// 特定のダンジョンに属さない魔物 (宝箱に潜む類・出来事にだけ現れる類) を集める「その他」タブの面々
+const CODEX_OTHER = ["mimic", "master_mimic", "bs_cagewarden"];
 
 // 職業図鑑: 詳細のシート (解説/活用/発現条件/装備適性/パッシブ/スキル表)。rank = 図鑑で選んだ位階。
 // heading を渡すと最上部に「○○は●●になった！」等の見出しを大きく出す (職業の発現・変化の演出から呼ぶ)
@@ -9780,13 +9783,25 @@ function rescueDurationMs(floor) {
   return minutes * 60 * 1000;
 }
 
-// 死亡を検知して連れ帰りタイマーをセット (imprintFallen から呼ばれる)
+// 迷宮を探索中の隊にいる人業か (砕けても、街へ戻るまでは帰還の時を数えない)
+function awayInDungeon(d) {
+  return G.state !== "town" && G.party.includes(d);
+}
+
+// 死亡を検知して連れ帰りタイマーをセット (imprintFallen・街への帰還から呼ばれる)
+// 探索中の隊で砕けた人業は砕けた階だけ覚え、タイマーは街へ戻ってから動き出す。
 function setReviveTimers() {
   const now = Date.now();
   for (const d of allDolls()) {
-    if (d.isDoll && !d.alive && !d.reviveAt) {
-      d.diedFloor = G.floor;
-      d.reviveAt = now + rescueDurationMs(G.floor);
+    if (!d.isDoll || d.alive) continue;
+    if (awayInDungeon(d)) {
+      if (d.diedFloor == null) d.diedFloor = G.floor;
+      continue;
+    }
+    if (!d.reviveAt) {
+      const floor = d.diedFloor != null ? d.diedFloor : G.floor;
+      d.diedFloor = floor;
+      d.reviveAt = now + rescueDurationMs(floor);
     }
   }
 }
@@ -9826,7 +9841,7 @@ function reviveAllAtHp1() {
       d.alive = true;
       d.hp = 1;
       d.ailment = null;
-      d.reviveAt = null;
+      d.reviveAt = null; d.diedFloor = null;
       d._dead = false;
       log(`${d.name} はHP1で生還した。`, "win");
     }
@@ -9838,7 +9853,7 @@ function reviveDoll(d, byRedSoul = false) {
   d.alive = true;
   d.hp = Math.max(1, Math.floor(d.maxhp * 0.5));
   d.ailment = null;
-  d.reviveAt = null;
+  d.reviveAt = null; d.diedFloor = null;
   d._dead = false;
   SFX.levelup(); buzz([0, 30, 40, 30]);
   log(`${d.name} が街に連れ戻された。${byRedSoul ? "(赤い魂の力)" : ""}`, "win");
@@ -9869,7 +9884,7 @@ setInterval(() => {
   const now = Date.now();
   let revived = false;
   for (const d of allDolls()) {
-    if (d.isDoll && !d.alive && d.reviveAt && now >= d.reviveAt) { reviveDoll(d); revived = true; }
+    if (d.isDoll && !d.alive && d.reviveAt && now >= d.reviveAt && !awayInDungeon(d)) { reviveDoll(d); revived = true; }
   }
   if (revived) {
     if (G.statusOpen) renderStatus();
@@ -10245,6 +10260,7 @@ function returnToTown(opts = {}) {
   // 生存者が1名でもいれば、砕けた人業は仲間に担がれてHP1で生還する。
   // (全滅時はここに来る前に G.party の生存者ゼロ → 救出待ちのまま帰還する)
   if (G.party.some((p) => p.alive)) reviveAllAtHp1();
+  setReviveTimers(); // 全滅で戻った人業は、ここから帰還の時を数え始める
   summary.dead = G.party.filter((d) => d && d.isDoll && !d.alive).map((d) => ({ uid: d.uid, name: d.name }));
   G.lastRun = summary;
   rollTavernCrowd(); // 酒場の顔ぶれは帰還のたびに入れ替わる

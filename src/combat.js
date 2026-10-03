@@ -355,6 +355,23 @@ export function spawnMimic(floorRank, scale = 1, master = false) {
   return [e];
 }
 
+// 出来事の魔物 (events.js の看守など): 「その階の雑魚の最上位ランク + plus」の体で組み直す。
+// ミミックと同じく rankStats の曲線から直接作り、どの層の出来事でも「その階より一段上」を保つ。
+// 単体で隊を相手にするので HP は群れ数体分 (hpMul)。特性・能力 (ability/endure など) は def のまま。
+export function spawnRanked(key, floorRank, plus = 1, scale = 1, hpMul = 2.2) {
+  const rank = Math.max(1, floorRank) + plus;
+  const st = rankStats(rank);
+  const e = makeEnemy(key, scale);
+  e.evRank = rank;
+  e.maxhp = e.hp = Math.max(1, Math.round(st.hp * scale * hpMul));
+  e.atk = Math.max(1, Math.round(st.atk * scale));
+  e.vit = Math.round(st.def * scale * 1.2);
+  e.agi = (e.mon && e.mon.swift ? st.spd + 4 : st.spd) + 2;
+  e.gold = Math.round(st.gold * scale * 1.5);
+  e.soul = Math.round(st.soul * scale * 1.5);
+  return [e];
+}
+
 function makeEnemy(key, scale = 1, boss = false, bossRank = 0) {
   const m = MONSTERS[key];
   // 層ボスは bossRank が指定されていれば、その層相応のランクでステータスを組み直す

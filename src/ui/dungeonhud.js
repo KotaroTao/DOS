@@ -3,7 +3,7 @@
 // 提供する契約: UI.openDungeonMenu() (手帳 = 迷宮の一時停止シート)
 //
 //   行動ドック   … #hint を置き換える画面下の 52px。いま取れる行動だけを大きく (▼ 降りる / ⌂ 帰還)
-//   手帳         … 階の情報・迷宮の異変・隊を見る・記録を読む・今回の収穫・帰還・探索の手間・設定
+//   手帳         … 階の情報・迷宮の異変・隊を見る・記録を読む・図鑑・今回の収穫・帰還・探索の手間・設定
 //   階の情報     … 見出しの迷宮名を押すと開く。特別な階・強敵・異変・奈落の変異の説明を読み返せる
 //   今回の収穫   … 収穫の帯を押すと開く。得た品 (押せば品の詳細)・魂・成長・倒した数
 //   覗き見       … 隊の札を長押し (戦闘中も) / 敵を長押し (特徴・スキル)
@@ -346,13 +346,12 @@ export function openDungeonMenu() {
       grid.appendChild(menuTile("party", "パーティを見る", "装備・能力・道具", go(() => UI.openParty(0, { context: "dungeon" }))));
       grid.appendChild(menuTile("loot", "今回の収穫", `💰${r.gold || 0} ✦${r.soulPts || 0} 品${(r.items || []).length}`, go(openRunLoot)));
       grid.appendChild(menuTile("scroll", "記録を読む", "出来事の全文", go(openLog)));
+      grid.appendChild(menuTile("book", "図鑑", "魔物・品・見聞", go(() => UI.openCodexSheet && UI.openCodexSheet({ dungeonIdx: g.dungeonIdx }))));
       grid.appendChild(menuTile("gear", "設定", "音量・振動・背景", go(() => UI.openSettings && UI.openSettings())));
-      b.appendChild(grid);
       const canHome = game.canReturnNow ? game.canReturnNow() : false;
-      const home = menuTile("home", canHome ? "街へ帰還する" : "帰還 ― まだ道は閉ざされている", canHome ? "集めた戦利品は持ち帰れる" : "帰還陣を見つけるか、迷宮の主を討つまで",
-        canHome ? go(() => game.confirmReturnToTown && game.confirmReturnToTown()) : null, canHome ? "gold" : null);
-      home.classList.add("wide");
-      b.appendChild(home);
+      grid.appendChild(menuTile("home", canHome ? "街へ帰還する" : "帰還できない", canHome ? "戦利品を持ち帰る" : "帰還陣か主の討伐で",
+        canHome ? go(() => game.confirmReturnToTown && game.confirmReturnToTown()) : null, canHome ? "gold" : null));
+      b.appendChild(grid);
       b.appendChild(section("探索の手間を省く"));
       const tg = el("div", "dg-toggles grid");
       for (const t of TOGGLES) tg.appendChild(toggleRow(t));
