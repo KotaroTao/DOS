@@ -634,9 +634,14 @@ function forfeitRun() {
   for (const rec of r.souls) {
     const k = rec && rec.clsKey;
     if (!k) continue;
-    for (let i = G.souls.length - 1; i >= 0; i--) {
-      const s = G.souls[i];
-      if (s.clsKey === k && !soulWorn(s.uid)) { G.souls.splice(i, 1); break; }
+    // ロックしていない魂から先に取り消す (ロックした魂はできるだけ残す)
+    let gone = false;
+    for (const pass of [false, true]) {
+      for (let i = G.souls.length - 1; i >= 0 && !gone; i--) {
+        const s = G.souls[i];
+        if (s.clsKey === k && !soulWorn(s.uid) && !!s.locked === pass) { G.souls.splice(i, 1); gone = true; }
+      }
+      if (gone) break;
     }
   }
   recalcAllDolls();
@@ -8508,7 +8513,16 @@ function openSubSkillPicker(d, subRef) { return uiSoulPanel.openSkillStep(d, sub
 // 魂融合: target に同職の余っている魂を融合させる候補
 function fuseCandidates(targetUid) {
   const t = soulByUid(targetUid); if (!t) return [];
-  return G.souls.filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey && !soulWorn(s.uid));
+  return G.souls.filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey && !soulWorn(s.uid) && !s.locked);
+}
+// 魂のロック: ロックした魂は魂融合の素材にできない (宿す・融合先にするのは自由)
+function toggleSoulLock(uid) {
+  const s = soulByUid(uid); if (!s) return null;
+  s.locked = !s.locked;
+  if (!s.locked) delete s.locked;
+  autosave(true);
+  renderTown();
+  return !!s.locked;
 }
 // 融合させる魂を選ぶ (src/ui/soulpanel.js のシート)
 function openFusePicker(targetUid) { return uiSoulPanel.openFusePicker(targetUid); }
@@ -8516,7 +8530,7 @@ function openFusePicker(targetUid) { return uiSoulPanel.openFusePicker(targetUid
 // ランクが上がれば祝祭カード (showRankUp)、据え置きならトーストで知らせる
 function fuseSoul(targetUid, consumeUid) {
   const t = soulByUid(targetUid), c = soulByUid(consumeUid);
-  if (!t || !c || c.clsKey !== t.clsKey || soulWorn(c.uid)) { SFX.ng(); return null; }
+  if (!t || !c || c.clsKey !== t.clsKey || soulWorn(c.uid) || c.locked) { SFX.ng(); return null; }
   const before = soulRankOf(t);
   const beforeLv = t.level;
   // 双方に蓄積していた総 Soul を合算する。新しい上限まではレベルに、超過分は exp に保持する。
@@ -11928,7 +11942,7 @@ bindGame({
 bindGame({
   equipAt, moveItem, campCast, campSpellsOf, healAll, healAllNeed, hastenCostOf, setReviveTimers, RESCUE_SHORTEN_MS,
   emptyDollCost, randomDollName, finalizeBuyDoll, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
-  equipSoulToSlot, fuseCandidates, fuseSoul, openFusePicker, openSubSkillPicker, slotSoul,
+  equipSoulToSlot, fuseCandidates, fuseSoul, toggleSoulLock, openFusePicker, openSubSkillPicker, slotSoul,
   unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail,
   canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill, itemKnown,
   showRankUp, announceJobChange, showNameInput,
