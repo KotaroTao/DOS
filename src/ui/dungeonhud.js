@@ -17,7 +17,7 @@ import { getPref, setPref, remember } from "./prefs.js";
 import { sceneTransition } from "./motion.js";
 import { MONSTERS, ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
 import { ELEMENTS, monsterTraits, isFloating } from "../dungeons/index.js";
-import { tagRow, traitTagKinds, affinityRow, MON_REVEAL, monKills, enemyReveal, enemyLabel, revealLock } from "./itemview.js";
+import { tagRow, traitTagKinds, affinityRow, MON_REVEAL, monKills, enemyReveal, enemyLabel, revealLock, BUFF_NAME } from "./itemview.js";
 import { RARITIES } from "../rarity.js";
 import { SOUL_CLASSES, jobBust } from "../souls.js";
 import { WALKER as WALKER_ART } from "../walkerart.js";
@@ -410,7 +410,7 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
       chips.appendChild(el("span", "dg-chip", w ? `${w.name}` : "素手"));
       if (d.ailment) chips.appendChild(el("span", "dg-chip bad", AIL[d.ailment] || d.ailment));
       if (d.asleep) chips.appendChild(el("span", "dg-chip bad", "眠り"));
-      for (const ef of (d.effects || [])) chips.appendChild(el("span", "dg-chip " + (ef.mult > 1 ? "up" : "bad"), `${(ef.stat || "").toUpperCase()}${ef.mult > 1 ? "▲" : "▼"} 残${ef.turns}`));
+      for (const ef of (d.effects || [])) chips.appendChild(el("span", "dg-chip " + (ef.mult > 1 ? "up" : "bad"), `${BUFF_NAME[ef.stat] || (ef.stat || "").toUpperCase()}${ef.mult > 1 ? "▲" : "▼"} 残${ef.turns}`));
       b.appendChild(chips);
       const grid = el("div", "dg-stats");
       for (const [k, lb] of STAT_KEYS) {

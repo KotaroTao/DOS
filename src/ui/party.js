@@ -1294,7 +1294,7 @@ function rarityOfDoll(d) { const c = d && d.clsKey ? SOUL_CLASSES[d.clsKey] : nu
 
 // ---- 迷宮: 野営 (呪文・道具) をすぐ使える札 ----
 function campSpellsOf(d) {
-  return (d.spells || []).filter((k) => { const sp = SPELLS[k]; return sp && (sp.kind === "heal" || sp.kind === "cure" || sp.cure); });
+  return (d.spells || []).filter((k) => { const sp = SPELLS[k]; return sp && sp.target !== "self" && (sp.kind === "heal" || sp.kind === "cure" || sp.cure); });
 }
 function consumablesOf(d) {
   const out = [];
