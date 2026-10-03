@@ -1020,16 +1020,64 @@ function normalize(art) {
   return { w, h, rows };
 }
 
+// ---- 原画そのまま版の絵 (職業の全身像・胸像) ----
+// spr.photo = { img, sx, sy, sw, sh } (原画の切り出し矩形。画像の外にはみ出した分は透明)、
+// spr.w / spr.h = ドット絵と同じ升目単位の大きさ。ドット絵と同じ関数 (drawSprite / crispCanvas /
+// spriteCanvas) で、升目の大きさに合わせて滑らかに拡大縮小して描く。
+function photoReady(p) { return !!(p.img && p.img.complete && p.img.naturalWidth > 0); }
+// 絵の升目の大きさ (ドット絵は文字グリッド、原画版は w/h)
+function dims(spr) {
+  if (spr.photo) return { w: spr.w, h: spr.h, rows: null };
+  return normalize(spr.art);
+}
+// 原画の矩形を (dx,dy,dw,dh) へ描く。まだ読み込み中なら false
+export function drawPhoto(ctx, spr, dx, dy, dw, dh) {
+  const p = spr.photo;
+  if (!photoReady(p)) return false;
+  const iw = p.img.naturalWidth, ih = p.img.naturalHeight;
+  // 切り出し矩形を画像の内側に詰め、はみ出した分だけ描き先も詰める (画像外の指定は描かない)
+  const x0 = Math.max(0, p.sx), y0 = Math.max(0, p.sy);
+  const x1 = Math.min(iw, p.sx + p.sw), y1 = Math.min(ih, p.sy + p.sh);
+  if (x1 <= x0 || y1 <= y0) return true;
+  const kx = dw / p.sw, ky = dh / p.sh;
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(p.img, x0, y0, x1 - x0, y1 - y0, dx + (x0 - p.sx) * kx, dy + (y0 - p.sy) * ky, (x1 - x0) * kx, (y1 - y0) * ky);
+  ctx.restore();
+  return true;
+}
+// 原画の読み込みを待ってから fn を呼ぶ (読み込み済みなら即座に)
+export function whenPhoto(spr, fn) {
+  const p = spr.photo;
+  if (photoReady(p)) { fn(); return; }
+  if (p.img && p.img.addEventListener) p.img.addEventListener("load", fn, { once: true });
+}
+// 原画版の絵を canvas に描く (読み込み待ちなら読み込み後に描き直す)。滑らかに縮める絵なので pixelated にしない
+function photoInto(c, spr, dx, dy, dw, dh) {
+  c.style.imageRendering = "auto";
+  whenPhoto(spr, () => {
+    const g = c.getContext("2d");
+    g.clearRect(0, 0, c.width, c.height);
+    drawPhoto(g, spr, dx, dy, dw, dh);
+  });
+}
+
 // Canvasコンテキストにドット絵を描く
 // cx,cy: 中心座標 / size: 1ドットの大きさ(px)
 // size が小数でも隙間が出ないよう、各ドットの矩形は「隣のドットの開始位置まで」
 // をピクセル整数に丸めて敷き詰める (位置と幅を別々に丸めると格子状の線が入る)。
 export function drawSprite(ctx, mon, cx, cy, size, alpha = 1) {
-  const { w, h, rows } = normalize(mon.art);
+  const { w, h, rows } = dims(mon);
   const ox = cx - (w * size) / 2;
   const oy = cy - (h * size) / 2;
   ctx.save();
   ctx.globalAlpha = alpha;
+  if (mon.photo) {
+    drawPhoto(ctx, mon, ox, oy, w * size, h * size);
+    ctx.restore();
+    return;
+  }
   for (let y = 0; y < h; y++) {
     const row = rows[y];
     const y0 = Math.round(oy + y * size), y1 = Math.round(oy + (y + 1) * size);
@@ -1050,8 +1098,7 @@ export function drawSprite(ctx, mon, cx, cy, size, alpha = 1) {
 // size は「12x12 アートでの 1 ドット px」。32px 級の高解像度アートは
 // 同じ見かけの大きさのままドットが細かくなる。
 export function drawSpriteFit(ctx, mon, cx, cy, size, alpha = 1) {
-  const h = mon.art.length;
-  const w = mon.art.reduce((m, r) => Math.max(m, r.length), 0);
+  const { w, h } = dims(mon);
   const k = Math.max(12, w, h) / 12;
   drawSprite(ctx, mon, cx, cy, size / k, alpha);
 }
@@ -1090,8 +1137,17 @@ function artBitmap(spr) {
 export function crispCanvas(spr, size) {
   const c = document.createElement("canvas");
   c.className = "spr";
-  const { w, h } = normalize(spr.art);
+  const { w, h } = dims(spr);
   const dpr = Math.min(3, Math.max(1, Math.round((typeof window !== "undefined" && window.devicePixelRatio) || 1)));
+  if (spr.photo) {
+    // 原画版: 枠いっぱいの大きさで、端末の画素密度の解像度に滑らかに描く
+    const k = (size * dpr) / Math.max(w, h, 1);
+    c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k));
+    c.style.width = c.width / dpr + "px"; c.style.height = c.height / dpr + "px";
+    c.style.setProperty("--spr-size", size + "px");
+    photoInto(c, spr, 0, 0, c.width, c.height);
+    return c;
+  }
   const s = Math.floor((size * dpr) / Math.max(w, h, 1));
   const ctx = c.getContext && c.getContext("2d");
   if (s >= 1) {
@@ -1117,8 +1173,18 @@ export function spriteCanvas(spr, scale = 4, box = 12) {
   const c = document.createElement("canvas");
   c.className = "spr";
   const css = box * scale;
-  const { w, h } = normalize(spr.art);
+  const { w, h } = dims(spr);
   const k = Math.max(12, w, h) / 12;
+  if (spr.photo) {
+    // 原画版: ドット絵と同じ見かけの大きさ (12升換算) で、端末の画素密度の解像度に滑らかに描く
+    const dpr = Math.min(3, Math.max(1, (typeof window !== "undefined" && window.devicePixelRatio) || 1));
+    const px = Math.round(css * dpr);
+    c.width = px; c.height = px;
+    c.style.setProperty("--spr-size", css + "px");
+    const dot = (scale * dpr) / k, W = w * dot, H = h * dot;
+    photoInto(c, spr, (px - W) / 2, (px - H) / 2, W, H);
+    return c;
+  }
   if (k <= 1) {
     c.width = css;
     c.height = css;

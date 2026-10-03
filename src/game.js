@@ -3,7 +3,7 @@ import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
 import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
-import { spriteCanvas, crispCanvas } from "./sprites.js";
+import { spriteCanvas, crispCanvas, drawPhoto } from "./sprites.js";
 import {
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, slotKeyFor, lvToRank, RANGE_LABEL,
   UNIDENT_SLOTS, itemName, applyForge,
@@ -4756,6 +4756,8 @@ function evShadeSprite(p) {
   if (_shadeSpr.has(key)) return _shadeSpr.get(key);
   let spr = null;
   try { spr = jobSprite(p.clsKey || "fighter", 2); } catch (e) { spr = null; }
+  // 原画版の絵は、魔物の絵に焼く時 (monsterBitmap) に闇色へ沈める
+  if (spr && spr.photo) { const out = { photo: spr.photo, w: spr.w, h: spr.h, shade: true }; _shadeSpr.set(key, out); return out; }
   if (!spr || !spr.art) spr = HERO;
   const dark = (hex) => {
     if (typeof hex !== "string" || !/^#[0-9a-f]{6}$/i.test(hex)) return hex;
@@ -4776,6 +4778,7 @@ function evShadow(p, ratio) {
   const spr = evShadeSprite(p);
   e.key = "ev_shade";
   e.mon = { name: `${p.name}の影`, race: "specter", rank: 1, palette: spr.palette, art: spr.art, desc: "鏡に映った己の影。" };
+  if (spr.photo) Object.assign(e.mon, { photo: spr.photo, w: spr.w, h: spr.h, shade: true });
   e.name = `${p.name}の影`;
   e.maxhp = e.hp = Math.max(1, Math.round((p.maxhp || 10) * ratio));
   e.atk = Math.max(1, Math.round(Math.max(p.atk || 1, p.int || 0) * ratio));
@@ -6375,7 +6378,7 @@ function renderCombatCanvas() {
   // 魔物の大きさ: 主は戦場を圧し、強敵は一回り大きく、後衛は奥で小さく。横に並ぶ数ぶんの幅に収める
   const sizeOf = (e, back, n) => {
     let sz = (e.boss ? 14 : (e.mon && e.mon.elite ? 1.15 : 1) * (back ? 8 : 9)) * k;
-    if (e.mon && e.mon.art) {
+    if (e.mon && (e.mon.art || e.mon.photo)) {
       const bm = monsterBitmap(e.mon);
       const unit = Math.max(12, bm.w, bm.h) / 12;
       const slot = (VW / (n + 1)) * (n > 1 ? 1.12 : 1.6);
@@ -6489,7 +6492,7 @@ function renderCombatCanvas() {
 const _deadShown = new WeakSet(); // 撃破の演出を見せ終えた敵
 // 魔物を size で描いた時の見かけの半分の高さ
 function monsterHalfH(mon, size) {
-  if (!mon || !mon.art) return size * 6;
+  if (!mon || !(mon.art || mon.photo)) return size * 6;
   const bm = monsterBitmap(mon);
   const dot = size / (Math.max(12, bm.w, bm.h) / 12);
   return ((bm.h + bm.pad * 2) * dot) / 2;
@@ -6856,6 +6859,7 @@ const _monBmp = new WeakMap();
 function monsterBitmap(mon) {
   let b = _monBmp.get(mon);
   if (b) return b;
+  if (mon.photo) return photoMonsterBitmap(mon);
   const rows = mon.art || [];
   const h = rows.length, w = rows.reduce((m, r) => Math.max(m, r.length), 0);
   const pad = 1;
@@ -6879,6 +6883,45 @@ function monsterBitmap(mon) {
   _monBmp.set(mon, b);
   return b;
 }
+// 原画版の絵 (鏡の間の影など) を魔物として焼く: 1ドット = 原画の R px のまま、黒い縁を1ドット巡らせる。
+// shade なら闇色に沈める。読み込み前は空の写しを返し (毎フレーム描き直すので読み込み後に現れる)、焼けてから覚える
+function photoMonsterBitmap(mon) {
+  const p = mon.photo, w = mon.w, h = mon.h, pad = 1;
+  const R = Math.max(1, Math.round(p.sw / w));
+  const c = document.createElement("canvas");
+  c.width = (w + pad * 2) * R; c.height = (h + pad * 2) * R;
+  const b = { c, w, h, pad };
+  if (!(p.img && p.img.complete && p.img.naturalWidth > 0)) return b;
+  const body = document.createElement("canvas");
+  body.width = w * R; body.height = h * R;
+  const bg = body.getContext("2d");
+  drawPhoto(bg, mon, 0, 0, body.width, body.height);
+  if (mon.shade) {
+    // evShadeSprite の dark() と同じ写像: 明るさを保ったまま紫がかった闇色へ
+    const id = bg.getImageData(0, 0, body.width, body.height), d = id.data;
+    for (let i = 0; i < d.length; i += 4) {
+      if (!d[i + 3]) continue;
+      const l = (d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11) / 255;
+      d[i] = Math.round(40 * 0.35 + 150 * l * 0.65);
+      d[i + 1] = Math.round(16 * 0.35 + 90 * l * 0.65);
+      d[i + 2] = Math.round(70 * 0.35 + 220 * l * 0.65);
+    }
+    bg.putImageData(id, 0, 0);
+  }
+  // 黒い縁: 絵の影を上下左右へ1ドットずつずらして敷く
+  const sil = document.createElement("canvas");
+  sil.width = body.width; sil.height = body.height;
+  const sg = sil.getContext("2d");
+  sg.drawImage(body, 0, 0);
+  sg.globalCompositeOperation = "source-in";
+  sg.fillStyle = "rgba(0,0,0,0.88)";
+  sg.fillRect(0, 0, sil.width, sil.height);
+  const g = c.getContext("2d");
+  for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) g.drawImage(sil, (pad + dx) * R, (pad + dy) * R);
+  g.drawImage(body, pad * R, pad * R);
+  _monBmp.set(mon, b);
+  return b;
+}
 // 魔物の黒い影 (登場演出用): ビットマップを闇色で塗りつぶした写し
 const _monSil = new WeakMap();
 function monsterSilhouette(mon) {
@@ -6893,12 +6936,12 @@ function monsterSilhouette(mon) {
   g.fillStyle = "#050307";
   g.fillRect(0, 0, c.width, c.height);
   s = { c, w: b.w, h: b.h, pad: b.pad };
-  _monSil.set(mon, s);
+  if (_monBmp.get(mon) === b) _monSil.set(mon, s); // 原画版の読み込み待ち (空の写し) は覚えない
   return s;
 }
 // drawSpriteFit と同じ見かけの大きさ (12グリッド換算の size) で魔物を描く
 function drawMonster(ctx, mon, cx, cy, size, alpha = 1) {
-  if (!mon || !mon.art) return;
+  if (!mon || !(mon.art || mon.photo)) return;
   drawMonsterBmp(ctx, monsterBitmap(mon), cx, cy, size, alpha);
 }
 function drawMonsterBmp(ctx, b, cx, cy, size, alpha = 1) {
