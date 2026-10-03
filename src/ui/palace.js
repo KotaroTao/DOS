@@ -200,7 +200,7 @@ function renderCodexMon(box) {
     const isOther = idx === -1;
     const roster = rosterOf(idx);
     const seen = roster.filter((k) => g.codex.mon[k]).length;
-    cap.textContent = isOther ? `その他 — 宝箱に潜む魔物　記録 ${seen}/${roster.length}` : `${DUNGEONS[idx].name}　記録 ${seen}/${roster.length}`;
+    cap.textContent = isOther ? `その他 — 宝箱や出来事に潜む魔物　記録 ${seen}/${roster.length}` : `${DUNGEONS[idx].name}　記録 ${seen}/${roster.length}`;
     pagedGrid(area, roster, (key) => {
       const m = MONSTERS[key];
       if (!g.codex.mon[key]) return unknownCard();
@@ -319,7 +319,7 @@ export function codexEventSheet(id) {
   const t = EV_TIERS[e.tier];
   const body = el("div", "pl-detail");
   const tag = el("div", "pl-detail-tags");
-  const tt = el("span", "pl-tag", `${t.label} ・ ${t.name}`);
+  const tt = el("span", "pl-tag", t.name);
   tt.style.color = t.accent;
   tag.appendChild(tt);
   tag.appendChild(el("span", "pl-tag", `遭遇 ${rec.seen[id] || 0}`));
@@ -534,7 +534,7 @@ export function codexJobSheet(key, rank, heading) {
     hd.style.color = color;
     body.appendChild(hd);
   }
-  body.appendChild(setText(el("div", "pl-detail-cat"), `${SOUL_CLASSES[key].label}系 ・ ランク${rank}`));
+  body.appendChild(setText(el("div", "pl-detail-cat"), `${SOUL_CLASSES[key].label}系`));
   const lore = jobLoreFor(key, rank);
   if (lore.desc) body.appendChild(setText(el("div", "pl-detail-desc"), lore.desc));
   if (lore.tips) body.appendChild(setText(el("div", "pl-detail-desc tips"), "活用: " + lore.tips));
