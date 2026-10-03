@@ -82,10 +82,8 @@ export const EVENTS = [
           A.payGold(cost); A.healAll(0.3, 0.3, false);
           A.toast("祭壇が淡く光った ― HP・MPが回復した", "good", "fountain"); A.done(cell);
         } },
-        { label: "祈るだけ ― 半々で小さな癒し", fn: () => {
-          if (chance(0.5)) { A.healAll(0.15, 0, false); A.toast("祈りが届いた ― HPが少し回復した", "good", "fountain"); }
-          else { A.sfx("ng"); A.toast("祭壇は沈黙したままだった", "info"); }
-          A.done(cell);
+        { label: "祈るだけ ― ✦Soul を少し", fn: () => {
+          A.sfx("heal"); A.soul(0.5, "祭壇への祈り"); A.done(cell);
         } },
       ];
     },
