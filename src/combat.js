@@ -1624,8 +1624,10 @@ export class Battle {
     dmg = Math.max(1, dmg);
     tgt.hp -= dmg;
     // 吸血 (lifesteal): 与えた傷の一部を己のHPに変える (敵の能力・味方の吸命のLR装飾品の双方)
+    let stolen = 0; // 吸血で癒えた量 (満タンで切られた分も含む素の値。演出で「+N」と見せる)
     if (actor.lifesteal && actor.alive && dmg > 0) {
       const hl = Math.max(1, Math.round(dmg * actor.lifesteal));
+      stolen = hl;
       actor.hp = Math.min(actor.maxhp, actor.hp + hl);
       this.log(`${actor.name}は精気を吸い取った (${hl})`, "dmg");
     }
@@ -1680,7 +1682,9 @@ export class Battle {
       this._postDamage(tgt);
       if (actor.side === "enemy") { this._perkHurt(tgt, actor, dmg, "phys"); this._tryCounter(tgt, actor); }
     }
-    return status ? { target: tgt, dmg, crit, died, status } : { target: tgt, dmg, crit, died };
+    const out = status ? { target: tgt, dmg, crit, died, status } : { target: tgt, dmg, crit, died };
+    if (stolen) { out.lifesteal = stolen; out.stealer = actor; }
+    return out;
   }
 
   _cast(actor, cmd, res) {

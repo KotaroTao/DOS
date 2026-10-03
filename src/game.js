@@ -8020,6 +8020,16 @@ function applyImpact(res) {
   const partyModHits = res.hits.filter((h) => h.target.side !== "enemy" && (h.buff || h.debuff));
   let partyModIdx = 0;
   for (const h of res.hits) {
+    // 吸血 (吸命の装飾品・吸血する魔物): 打った側に回復量を浮かべる (満タンでも素の値)
+    if (h.lifesteal && h.stealer && !h.miss) {
+      if (h.stealer.side === "enemy") {
+        const sp0 = G.enemyPos[h.stealer.uid];
+        if (sp0) fx.floats.push({ x: sp0.cx, y: sp0.cy - 22, text: "+" + h.lifesteal, color: "#7CFC7C", t0: now + 120, kind: "heal" });
+      } else {
+        G.partyFx.set(h.stealer, "heal");
+        fx.floats.push({ x: VW / 2, y: VH - 44, text: "+" + h.lifesteal, color: "#7CFC7C", t0: now + 120, kind: "heal" });
+      }
+    }
     if (h.target.side === "enemy") {
       const pos = G.enemyPos[h.target.uid];
       if (!pos || h.miss) continue;
@@ -11012,15 +11022,21 @@ const spellHeals = (sp) => (sp.power || 0) > 0;
 // 戦闘外の回復量の基準 (実際はこれ + 0〜3割の揺らぎ。見積もりはこの最低値で行う)
 function campHealPower(caster, sp) { return (sp.power || 0) + Math.round((caster.pie || 0) * 0.5); }
 // 生きている1体へ回復呪文の効果 (状態異常の治療・HP回復) を与える。何か起きたら true
+// 戦闘外の回復で、最後に唱えた回復量 (満タンで上限に切られた分も含む素の値)。結果の表示に使う
+const CAMP_HEAL = new WeakMap();
 function campApplyAlive(caster, sp, t) {
   let did = false;
   if (spellCures(sp) && t.ailment) { t.ailment = null; log(`${sp.name}！ ${t.name}の状態異常が治った`, "heal"); did = true; }
-  if (spellHeals(sp) && t.hp < t.maxhp) {
+  if (spellHeals(sp)) {
+    // 満タンの仲間にも回復量は見せる (HP は増えない・それだけでは「効果あり」にしない)
     const p = campHealPower(caster, sp);
     const heal = p + rand(Math.ceil(p * 0.3) + 1);
-    t.hp = Math.min(t.maxhp, t.hp + heal);
-    log(`${sp.name}！ ${t.name}のHPが ${heal} 回復`, "heal");
-    did = true;
+    CAMP_HEAL.set(t, heal);
+    if (t.hp < t.maxhp) {
+      t.hp = Math.min(t.maxhp, t.hp + heal);
+      log(`${sp.name}！ ${t.name}のHPが ${heal} 回復`, "heal");
+      did = true;
+    }
   }
   return did;
 }
@@ -11335,11 +11351,13 @@ function campCast(caster, spellKey) {
   };
   const finish = () => { caster.mp -= cost; SFX.heal(); buzz(15); renderStatus(); renderParty(); };
   // 1人ぶんの結果 (蘇生 / 満タン / 回復量)
+  // 回復量は満タンでも素の値で見せる (戦闘中の「+N」と同じ)
   const healLineFor = (t, before, wasDead) => {
     if (wasDead && t.alive) return `${t.name}が蘇った (HP ${t.hp}/${t.maxhp})`;
-    if (t.alive && t.hp >= t.maxhp) return `${t.name}は満タン`;
-    const got = t.hp - before;
-    return got > 0 ? `${t.name} HP+${got}` : null;
+    const raw = CAMP_HEAL.get(t);
+    CAMP_HEAL.delete(t);
+    if (raw == null) return null;
+    return `${t.name} HP+${raw}${t.alive && t.hp >= t.maxhp ? "（満タン）" : ""}`;
   };
 
   // 全体呪文は対象選択なしで全員へ
@@ -11352,7 +11370,7 @@ function campCast(caster, spellKey) {
       if (applyTo(t)) any = true;
       if (heals) { const ln = healLineFor(t, before, wasDead); if (ln) lines.push(ln); }
     }
-    if (any) { finish(); showToast(`${sp.name} ― ${lines.length ? lines.slice(0, 3).join(" ・ ") : "パーティを癒した"}`, { tone: "good" }); }
+    if (any) { finish(); showToast(`${sp.name} ― ${lines.length ? lines.join(" ・ ") : "パーティを癒した"}`, { tone: "good" }); }
     else { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg(), { tone: "info" }); SFX.miss(); }
     return;
   }
