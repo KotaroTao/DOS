@@ -45,7 +45,7 @@ const DOCK_SVG = {
   loot: '<path d="M4 9.5h16v10H4Z"/><path d="M4 9.5 6.5 5h11L20 9.5"/><path d="M10 13h4"/>',
   scroll: '<path d="M7 4.5h11v13a2.5 2.5 0 0 1-2.5 2.5H6.5A2.5 2.5 0 0 1 4 17.5V16h11"/><path d="M7 4.5A2.5 2.5 0 0 0 4.5 7v1H7"/><path d="M10 8.5h5M10 11.5h5"/>',
   party: '<path d="M5.6 20.5v-8.3a6.4 6.4 0 0 1 12.8 0v8.3"/><path d="M5.6 13.4h12.8"/><path d="M12 13.4v7.1"/>',
-  gear: '<path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Z"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/>',
+  gear: '<circle cx="12" cy="12" r="3.1"/><path d="M9.9 5.3 9.9 2.6 14.1 2.6 14.1 5.3 15.3 5.8 17.1 3.9 20.1 6.9 18.2 8.7 18.7 9.9 21.4 9.9 21.4 14.1 18.7 14.1 18.2 15.3 20.1 17.1 17.1 20.1 15.3 18.2 14.1 18.7 14.1 21.4 9.9 21.4 9.9 18.7 8.7 18.2 6.9 20.1 3.9 17.1 5.8 15.3 5.3 14.1 2.6 14.1 2.6 9.9 5.3 9.9 5.8 8.7 3.9 6.9 6.9 3.9 8.7 5.8Z"/>',
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.01"/>',
 };
 function dockIcon(kind, cls = "dk-ic") {
@@ -361,7 +361,7 @@ export function openDungeonMenu() {
       grid.appendChild(menuTile("loot", "今回の収穫", `💰${r.gold || 0} ✦${r.soulPts || 0} 品${(r.items || []).length}`, go(openRunLoot)));
       grid.appendChild(menuTile("scroll", "記録を読む", "出来事の全文", go(openLog)));
       grid.appendChild(menuTile("book", "図鑑", "敵・品・見聞", go(() => UI.openCodexSheet && UI.openCodexSheet({ dungeonIdx: g.dungeonIdx }))));
-      grid.appendChild(menuTile("gear", "設定", "音量・振動・背景", go(() => UI.openSettings && UI.openSettings())));
+      grid.appendChild(menuTile("gear", "設定", "音量・倍速・背景", go(() => UI.openSettings && UI.openSettings())));
       const canHome = !combat && (game.canReturnNow ? game.canReturnNow() : false);
       grid.appendChild(menuTile("home", canHome ? "街へ帰還する" : "帰還できない", canHome ? "戦利品を持ち帰る" : combat ? "戦闘中は帰れない" : "帰還陣か主の討伐で",
         canHome ? go(() => game.confirmReturnToTown && game.confirmReturnToTown()) : null, canHome ? "gold" : null));

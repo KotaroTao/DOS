@@ -514,10 +514,12 @@ function buzz(p) {
 // 端末ごとの好み (音量・振動)。セーブデータとは別に保存し、「はじめから」でも消えない
 const PREFS_KEY = "dos-prefs";
 const PREFS = (() => {
-  const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false };
+  const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false, fastWalk: false };
   try { return { ...d, ...(JSON.parse(localStorage.getItem(PREFS_KEY)) || {}) }; } catch { return d; }
 })();
 function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(PREFS)); } catch {} }
+// 迷宮内の移動 (めくり・1歩のスライド・自動歩行の間) の時間。設定「移動 倍速」で半分になる
+const walkMs = (ms) => (PREFS.fastWalk ? Math.round(ms / 2) : ms);
 setVolumes(PREFS.bgm, PREFS.sfx);
 
 // ---- 潜入中の戦利品トラッキング (全滅ペナルティ / Red Soul帰還で使う) ----
@@ -4436,7 +4438,7 @@ function moveStep(nx, ny, onDone) {
 
   // キャラが現在地から次マスへスライド → 中身を解決
   const slide = () => {
-    G.heroAnim = { fromX: G.px, fromY: G.py, toX: nx, toY: ny, t0: performance.now(), dur: 150 };
+    G.heroAnim = { fromX: G.px, fromY: G.py, toX: nx, toY: ny, t0: performance.now(), dur: walkMs(150) };
     const tick = () => {
       renderBoard();
       if (performance.now() - G.heroAnim.t0 >= G.heroAnim.dur) {
@@ -4462,7 +4464,7 @@ function moveStep(nx, ny, onDone) {
     SFX.flip();
     buzz(12);
     cell.revealed = true; // めくり途中に表面を見せる
-    G.flipAnim = { x: nx, y: ny, t0: performance.now(), dur: 240 };
+    G.flipAnim = { x: nx, y: ny, t0: performance.now(), dur: walkMs(240) };
     const ftick = () => {
       renderBoard();
       if (performance.now() - G.flipAnim.t0 >= G.flipAnim.dur) {
@@ -4533,7 +4535,7 @@ function autoWalk(path) {
     }
     moveStep(x, y, () => {
       if (G.state !== "board" || G.prompt) { G.walking = false; walkRedirect = null; return; } // 戦闘/選択で中断
-      if (path.length || walkRedirect) setTimeout(next, 110);
+      if (path.length || walkRedirect) setTimeout(next, walkMs(110));
       else { G.walking = false; renderBoard(); }
     });
   };
