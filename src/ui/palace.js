@@ -260,11 +260,17 @@ export function codexMonSheet(key) {
   });
 }
 
-export function codexItemSheet(id) {
-  const it = ITEMS[id];
+// o: { item (所持品の実体), heading (見出し 例: 鑑定成功した！), headingColor, footer, onClose }
+export function codexItemSheet(id, o = {}) {
+  const it = o.item || ITEMS[id];
   if (!it) return null;
   const rc = (game.itemRankColor && game.itemRankColor(it)) || rarityColor(it);
   const body = el("div", "pl-detail");
+  if (o.heading) {
+    const hd = setText(el("div", "pl-detail-heading"), o.heading);
+    hd.style.color = o.headingColor || rc;
+    body.appendChild(hd);
+  }
   body.appendChild(setText(el("div", "pl-detail-cat"), itemCatText(it)));
   const st = statLines(it);
   if (st) body.appendChild(setText(el("div", "pl-detail-stats"), st));
@@ -272,7 +278,8 @@ export function codexItemSheet(id) {
   return sheet.open({
     kind: "info", banner: game.itemGradeText ? game.itemGradeText(it, "品") : "品", accent: rc, art: it, artScale: 9,
     title: it.name, titleColor: rc, body, className: "pl-detail-sheet",
-    footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
+    footer: o.footer || [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
+    onClose: o.onClose,
   });
 }
 

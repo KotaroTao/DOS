@@ -4423,19 +4423,23 @@ function findPath(tx, ty) {
 }
 
 // 経路に沿って1歩ずつ自動で歩く。戦闘や階段で中断
+// 歩いている途中で別のマスをタップすると walkRedirect に行き先が入り、次の1歩の区切りで経路を引き直す
+let walkRedirect = null;
 function autoWalk(path) {
   if (!path.length) return;
   G.walking = true;
+  walkRedirect = null;
   const next = () => {
-    if (G.state !== "board" || G.prompt || !path.length) { G.walking = false; renderBoard(); return; }
+    if (walkRedirect) { const t = walkRedirect; walkRedirect = null; path = findPath(t.x, t.y); }
+    if (G.state !== "board" || G.prompt || !path.length) { G.walking = false; walkRedirect = null; renderBoard(); return; }
     const { x, y } = path.shift();
     // 念のため隣接・開通を確認
     if (Math.abs(x - G.px) + Math.abs(y - G.py) !== 1 || !edgeOpen(x, y)) {
       G.walking = false; renderBoard(); return;
     }
     moveStep(x, y, () => {
-      if (G.state !== "board" || G.prompt) { G.walking = false; return; } // 戦闘/選択で中断
-      if (path.length) setTimeout(next, 110);
+      if (G.state !== "board" || G.prompt) { G.walking = false; walkRedirect = null; return; } // 戦闘/選択で中断
+      if (path.length || walkRedirect) setTimeout(next, 110);
       else { G.walking = false; renderBoard(); }
     });
   };
@@ -10165,7 +10169,17 @@ view.addEventListener("click", (e) => {
     }
     return;
   }
-  if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
+  if (G.state !== "board" || uiBlocked()) return;
+  // 自動移動中: 別のマスをタップしたら行き先を変更 (いま歩いている1歩を終えてから新しい経路へ)
+  if (G.walking) {
+    const hit = cellAt(sx, sy);
+    if (!hit) return;
+    if (!(hit.x === G.px && hit.y === G.py) && !findPath(hit.x, hit.y).length) { SFX.miss(); log("そこへはまだ行けない。", "sys"); return; }
+    SFX.select();
+    walkRedirect = { x: hit.x, y: hit.y };
+    return;
+  }
+  if (G.anim) return;
   // セル内 (溝のクリックは無視)
   const hit = cellAt(sx, sy);
   if (!hit) return;
