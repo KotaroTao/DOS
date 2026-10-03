@@ -2619,6 +2619,7 @@ export const BUST_FIT = {
   crusader: { zoom: 1.1, dy: -2 },
   brigand: { zoom: 1.1, dy: 3 },
   battlemage: { zoom: 1.2, dx: 1, dy: 1 },
+  darkknight: { zoom: 1.25, dy: 4 },
 };
 const _bustCache = {};
 export function jobBust(jobKey, rank = 2) {

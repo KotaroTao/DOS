@@ -47,6 +47,7 @@ let sheetH = null;        // 迷宮の隊シート
 let dunSeg = null;        // 迷宮の隊シートで表示中の区分 (開くたび「装備」から。街の隊タブの記憶とは別)
 let statOpen = null;      // 能力の説明を開いている能力キー
 let resPage = 0;          // 控えのシートのページ
+let pendingOpen = false;  // UI.openParty で人業・区分を指定して館へ入るときの印 (タブから入るときは既定へ戻す)
 let phase0ItemSheet = null; // Phase 0 の品シートのスタブ (WP-C の本物が来るまでは自前の品の画面を使う)
 
 const SEGS = [{ key: "equip", label: "装備" }, { key: "soul", label: "魂" }, { key: "stats", label: "能力" }];
@@ -583,6 +584,7 @@ export function refresh() {
 // 街の「隊」タブ。api.entered = 他のタブ・迷宮から館に入ってきた描画 (同じタブの描き直しでは false)
 function renderTab(root, api) {
   const entered = !!(api && api.entered);
+  if (entered && !pendingOpen) resetView();
   if (entered) onEnterMansion();
   const wrap = el("div", "pt-root m-town");
   renderView(wrap, "town");
@@ -639,6 +641,15 @@ let greetTimer = null;
 function onEnterMansion() {
   noteVisit();
   curLine = isGreeted() ? nextLine({ entry: true }) : null;
+}
+// 館は前回の位置を覚えない: 入るたびに一番左 (隊の先頭) の人業の「装備」から
+function resetView() {
+  const G = G_();
+  selDoll = (G && G.party && G.party[0]) || allDolls()[0] || null;
+  picked = null;
+  statOpen = null;
+  setPref("partyIdx", 0);
+  remember("seg", "party", "equip");
 }
 function scheduleGreeting() {
   if (greetTimer) return;
@@ -1877,7 +1888,10 @@ function openParty(idx = null, o = {}) {
     if (o.seg) setSeg(o.seg);
     const t = G.town || {};
     if (t.tab === "party" && !t.facility && !t.page) { game.renderTown(); return true; }
-    return UI.shell ? UI.shell.setTab("party") : false;
+    pendingOpen = true; // 指定した人業・区分で入る (既定へ戻さない)
+    const ok = UI.shell ? UI.shell.setTab("party") : false;
+    pendingOpen = false;
+    return ok;
   }
   if (G.state !== "board") return false;
   openSheet(null, o.seg);
