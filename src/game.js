@@ -1573,7 +1573,8 @@ function dockDescend() {
 }
 // ===== 迷宮で唱える技 (kind "field") =====
 // float = 浮遊 (G.run.float: 浮いている残りの階数。この階を含む。落とし穴に落ちず、毒の床のダメージも受けない)
-// sense = 探りの術 (G.board.fsense[enemy|chest|stairs]: この階だけ、まだめくっていない墓石の魔物 / 宝箱 / 階段の位置を示す)
+// sense = 探りの術 (G.board.fsense[enemy|chest|stairs]: この階だけ、まだめくっていない墓石の魔物 / 宝箱 / 階段の位置を示す。
+//         stairs = 道しるべ はさらに階段の周囲8マスの墓石をめくる。階段そのものは伏せたまま ― めくれば、どこからでも降りられてしまうため)
 function floatLeft() { return (inDungeon() && G.run && G.run.float) || 0; }
 function fieldSense(kind) { return !!(inDungeon() && G.board && G.board.fsense && G.board.fsense[kind]); }
 function fieldActive(sp) { return sp.float ? floatLeft() > 0 : sp.sense ? fieldSense(sp.sense) : false; }
@@ -1609,6 +1610,17 @@ function dockField(key) {
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
   castField(key);
 }
+// 道しるべ: 下り階段の周囲8マスの墓石をめくる (階段は伏せたまま。踏破済みにはしないので、踏めば通常どおり出来事は起きる)
+function revealAroundStairs() {
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    if (G.board.cells[y][x].type !== "stairs") continue;
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const nx = x + dx, ny = y + dy;
+      if ((!dx && !dy) || nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) continue;
+      G.board.cells[ny][nx].revealed = true;
+    }
+  }
+}
 function castField(key) {
   if (G.state !== "board" || !inDungeon()) return;
   const sp = SPELLS[key];
@@ -1629,13 +1641,14 @@ function castField(key) {
     showToast(`${sp.name} ― ${sp.float}階のあいだ宙に浮く`, { tone: "good" });
   } else if (sp.sense) {
     G.board.fsense = Object.assign({}, G.board.fsense, { [sp.sense]: true });
+    if (sp.sense === "stairs") revealAroundStairs();
     const n = senseTargets(sp.sense).length;
     const what = { enemy: "魔物の気配", chest: "宝箱", stairs: "階段" }[sp.sense];
-    const msg = sp.sense === "stairs" ? "下へ続く階段の在りかが、墓石の下に淡く光った。"
+    const msg = sp.sense === "stairs" ? "下へ続く階段の在りかが淡く光り、そのまわりの墓石がひとりでにめくれた。"
       : !n ? `この階には、まだ見ぬ${what}はないようだ。`
       : sp.sense === "enemy" ? `墓石の下に、${n}つの赤い気配がぼんやりと浮かび上がった。` : `墓石の下に、${n}つの青い光がぼんやりと灯った。`;
     log(`${c.p.name}は${sp.name}を唱えた。${msg}`, "win");
-    showToast(`${sp.name} ― ${sp.sense === "stairs" ? "階段の在りかが分かった" : n ? `${what} ${n}` : `${what}なし`}`, { tone: "good" });
+    showToast(`${sp.name} ― ${sp.sense === "stairs" ? "階段の在りかとそのまわりが開けた" : n ? `${what} ${n}` : `${what}なし`}`, { tone: "good" });
   }
   renderParty();
   renderBoard();

@@ -15,7 +15,7 @@ export default {
     175 bishopYoin/3 180 BISHOP_SEIKA 185 sanctuary/1 190 SEIMETSUREKKOU 195 BISHOP_SEISOU 200 BISHOP_SHINPAN`,
   skills: {
     // 迷宮で唱える術: 祈りの導きで、この階の下り階段を示す
-    BISHOP_MICHISHIRUBE: { name: "道しるべ", mp: 6, kind: "field", sense: "stairs", target: "all-ally", desc: "この階の下り階段の在りかを示す（迷宮で唱える）" },
+    BISHOP_MICHISHIRUBE: { name: "道しるべ", mp: 6, kind: "field", sense: "stairs", target: "all-ally", desc: "この階の下り階段の在りかを示し、その周囲8マスの墓石をめくる（迷宮で唱える）" },
     BISHOP_SEISUI:     { name: "聖水の雫", mp: 7, kind: "heal", power: 15, cure: true, target: "all-ally", desc: "聖水を撒き、味方全員を癒し穢れを祓う" },
     BISHOP_SENREI:     { name: "洗礼の聖水", mp: 6, kind: "debuff", strip: true, seal: { chance: 0.25, turns: 2 }, target: "all-enemy", desc: "聖水で強化を洗い流し、特技を封じる" },
     BISHOP_SEIHYOU:    { name: "聖氷の祈り", mp: 10, kind: "atk", power: 30, element: "water", prey: { races: UNHOLY, mul: 1.4 }, target: "all-enemy", desc: "聖別した氷雨。不浄の者に強い" },
