@@ -57,7 +57,7 @@ def に直接書く真偽値／数値。`defMonster` がホワイトリスト。
 
 | フィールド | 表示 | 効果 | 値域・数値 | フレーバー目安 |
 |---|---|---|---|---|
-| `physResist` | 物理耐性 | 物理被ダメを割合カット | 0〜0.9（例 0.6＝6割減） | スライム・鎧・ゴーレム・岩 |
+| `physResist` | 物理耐性 | 耐性ランク 1〜3 で物理被ダメを軽減（1＝50%「効きにくい」/ 2＝75%「ほとんど効かない」/ 3＝100%「物理無効」） | 1 / 2 / 3（主・強敵は2まで） | スライム・鎧・ゴーレム・岩 |
 | `magWeak` | 魔法弱点 | 攻撃呪文の被ダメ倍率 | >1（例 1.5＝1.5倍） | 不死・霊・氷 |
 | `regen` | 再生 | 毎ラウンド最大HPの割合だけ自己回復 | 0〜1（例 0.08＝毎T8%） | トロール・植物・粘体 |
 | `swift` | 俊敏 | AGI を +4（先手を取りやすい） | `true` | 獣・蝙蝠・忍 |
@@ -174,7 +174,7 @@ caster: { job: "priest", tier: 1 }   // 僧侶呪文をレベル帯1まで使用
   role: "summoner",      // summoner/healer/guard
   summonKey: "bs_yyy",   // summoner のとき必須
   escort: "bs_zzz",      // guard のとき任意
-  physResist: 0.6, magWeak: 1.5, regen: 0.08,
+  physResist: 1, magWeak: 1.5, regen: 0.08,
   swift: true, evasive: true, pack: true,
   traits: ["..."],       // 表示専用の追加キー（任意）
 

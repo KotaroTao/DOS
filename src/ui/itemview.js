@@ -184,6 +184,7 @@ export function skillDetailLines(sp) {
   if (sp.revive) lines.push(sp.revivePct ? `戦闘不能をHP${Math.round(sp.revivePct * 100)}%で蘇生する` : "戦闘不能も蘇生できる");
   if (sp.kind === "phys") {
     lines.push(`威力 攻撃力の${sp.power}倍${sp.hits ? ` × ${sp.hits}回` : ""}`);
+    if (sp.intScale) lines.push("魔法剣: 使い手のINTでも威力が伸びる");
     if (sp.critBonus) lines.push(`会心率 +${Math.round(sp.critBonus * 100)}%`);
   }
   if (sp.kind === "atk" && sp.critBonus) lines.push(`呪文会心率 +${Math.round(sp.critBonus * 100)}%（会心は×1.5）`);
