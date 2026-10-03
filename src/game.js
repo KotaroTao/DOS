@@ -570,9 +570,16 @@ function addSoulInstance(clsKey, count = 1, level = 1) {
   return s;
 }
 // 全人業を再計算する (魂の Lv/ランク/装備変化を反映)
-function recalcAllDolls() {
+// levelUp = true: 魂のレベルアップ後の再計算。最大HP/MPが増えた分を、いまのHP/MPにも足す
+// (倒れている人業はそのまま)
+function recalcAllDolls({ levelUp = false } = {}) {
   for (const d of allDolls()) {
+    const mh = d.maxhp || 0, mm = d.maxmp || 0;
     recalcDoll(d);
+    if (levelUp && d.alive !== false && d.hp > 0) {
+      if (d.maxhp > mh) d.hp += d.maxhp - mh;
+      if (d.maxmp > mm) d.mp += d.maxmp - mm;
+    }
     d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp);
   }
 }
@@ -6896,7 +6903,7 @@ function distributeBattleSoulExp(soulGot) {
     e.exp = (e.exp || 0) + gain;
     while (e.level < cap && e.exp >= soulTrainCost(e.level)) { e.exp -= soulTrainCost(e.level); e.level++; }
   }
-  recalcAllDolls();
+  recalcAllDolls({ levelUp: true });
   // メンバーごとに「レベルアップ(上昇ステータス付き)→新規スキル」をポップアップ用キューへ
   const STAT_LABEL = { maxhp: "HP", maxmp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
   for (const m of G.party) {
@@ -7702,7 +7709,7 @@ function fuseSoul(targetUid, consumeUid) {
   if (idx >= 0) G.souls.splice(idx, 1);
   unequipSoulEverywhere(c.uid);
   G.stats.fusions++; // 戦績: 魂の融合回数 (勲章用)
-  recalcAllDolls();
+  recalcAllDolls({ levelUp: t.level > beforeLv });
   codexJobSee(t.clsKey, t.count, t.level);
   const after = soulRankOf(t);
   SFX.itemget(); buzz([0, 30, 50, 30]);
@@ -10847,7 +10854,7 @@ const OPS = {
       SFX.ng();
       return { ok: false, levels: 0, spent: 0, from, to: from };
     }
-    recalcAllDolls();
+    recalcAllDolls({ levelUp: true });
     codexJobSee(e.clsKey, e.count, e.level);
     SFX.levelup(); buzz([0, 30, 40, 30]);
     log(`${soulSeriesName(e.clsKey)}の魂が Lv${from}→${e.level} に成長した！ (✦${spent})`, "win");
