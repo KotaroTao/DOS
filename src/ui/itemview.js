@@ -216,7 +216,7 @@ export function skillDetailLines(sp) {
     if (sp.vitScale) lines.push("使い手のVITでも威力が伸びる");
     if (sp.pieScale) lines.push("使い手のPIEでも威力が伸びる");
     if (sp.acc) lines.push(sp.acc >= 1 ? "必中（相手の素早さに関係なく当たる）" : `命中UP（外れる確率を${pct(sp.acc)}減らす）`);
-    if (sp.pierce) lines.push(sp.pierce >= 1 ? "相手の防御（VIT）を無視する" : `相手の防御（VIT）を${pct(sp.pierce)}無視する`);
+    if (sp.pierce) lines.push((sp.pierce >= 1 ? "相手の防御（VIT）を無視する" : `相手の防御（VIT）を${pct(sp.pierce)}無視する`) + "・物理耐性1〜2も無視する（物理無効は貫けない）");
     if (sp.critBonus) lines.push(sp.critBonus >= 1 ? "必ず会心になる" : `会心率 +${pct(sp.critBonus)}`);
     if (sp.desperate) lines.push("自分のHPが減っているほど威力が上がる（最大2倍）");
     if (sp.steal) lines.push(`当てた敵から、所持金の${pct(sp.steal)}を盗む（1体につき1度・逃げても持ち帰る）`);

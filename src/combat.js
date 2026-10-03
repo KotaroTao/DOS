@@ -1609,7 +1609,9 @@ export class Battle {
     let magWeak = false;
     if (magHit && tgt.magWeak && tgt.magWeak > 1) { dmg = Math.round(dmg * tgt.magWeak); magWeak = true; }
     // 物理耐性 (耐性ランク): 耐性1=50% / 耐性2=75% / 耐性3=無効。魔法属性の武器は魔法耐性を受ける
-    const pr = this._resistCut(tgt, dmg, magHit ? "magResist" : "physResist");
+    // 防御無視の技 (pierce) は物理耐性1・2を無視する。物理耐性3 (無効) は防御無視でも通らない
+    const pierceResist = !magHit && (opt.pierce || 0) > 0 && tgt.side === "enemy" && ((tgt.physResist | 0) < 3);
+    const pr = pierceResist ? { dmg, tag: "", immune: false } : this._resistCut(tgt, dmg, magHit ? "magResist" : "physResist");
     if (pr.immune) {
       // 無効: 傷ひとつ付かない (障壁も削れず、毒刃・怯ませ等の命中時効果も乗らない)
       this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}には効かない！ (${magHit ? "魔法" : "物理"}無効)`, tgt.side === "party" ? "dmg" : "hit");
