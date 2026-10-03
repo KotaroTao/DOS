@@ -30,23 +30,28 @@ export const LAYER3_ITEMS = [
     desc: "落盤で閉じ込められた坑夫が、一筋の風を頼りに岩壁を斬り抜けたと伝わる刀。斬り口には必ず風が通り、塞がれた道を開く。" })),
   sr(W("w_sr3_lampbow", "坑灯の弓", "bw", 44, { pow: 1.35, agi: 4, luk: 4, tint: "#d0a050",
     desc: "弓幹に小さな坑灯を括りつけた見張りの弓。灯の届かぬ闇の奥でも、揺れる炎が獲物の影を映し出し、矢はその影の真ん中を射抜く。" })),
+  // 当てるだけで状態異常を与える武器 (onHit)
+  sr(W("w_sr3_mandrakebow", "絶叫根の弓", "bw", 33, { pow: 1.3, onHit: ["confuse", 0.15], agi: 3, tint: "#9a6ab0",
+    desc: "マンドレイクの根を撚って弦を張った弓。放つたびに弦が小さく絶叫し、射抜かれた者は正気を削られて敵味方の見境を失う。" })),
+  sr(W("w_sr3_firedamppick", "坑気の毒鶴嘴", "ax", 40, { pow: 1.25, two: true, onHit: ["poison", 0.3, 0.06], hp: 10, tint: "#7a9a50",
+    desc: "坑気の溜まる袋小路で毒に倒れた坑夫の鶴嘴。先端に染みついた瘴気はいまも抜けず、打ち込んだ傷から毒がじわじわと肉を蝕む。" })),
 
   // ===== スーパーレア: 防具 =====
-  sr(H("h_sr3_foremanhelm", "坑夫頭の灯兜", 24, { weight: "heavy", pow: 1.35, hp: 12, tint: "#8a7040",
+  sr(H("h_sr3_foremanhelm", "坑夫頭の灯兜", 24, { aRes: { confuse: 0.3 }, weight: "heavy", pow: 1.35, hp: 12, tint: "#8a7040",
     desc: "額に坑灯を据えた坑夫頭の鉄兜。落ちてくる岩を幾度となく受け止めて凹みだらけだが、被る者の頭だけは一度も割らせなかった。" })),
-  sr(G("g_sr3_brokenshackles", "断ち枷の籠手", 27, { role: "atk", weight: "heavy", pow: 1.35, hp: 10, tint: "#4a4a52",
+  sr(G("g_sr3_brokenshackles", "断ち枷の籠手", 27, { aRes: { paralyze: 0.3 }, role: "atk", weight: "heavy", pow: 1.35, hp: 10, tint: "#4a4a52",
     desc: "罪人が自らの手枷を叩き割り、その破片を籠手に打ち直したもの。鎖を断ち切った拳の力がいまも宿り、振るう得物に重みを乗せる。" })),
   sr(A("a_sr3_orevest", "鉱石綴りの胴衣", 30, { weight: "light", pow: 1.35, eDef: ["wind", 1], tint: "#7a6a50",
     desc: "薄く剥いだ鉱石の板を革に綴りつけた坑夫の胴衣。落石のつぶても魔物の岩拳も石の板が受け流し、軽さのわりに驚くほど打撃を通さない。" })),
   sr(F("f_sr3_hobnailboots", "坑道踏みのびょう靴", 33, { weight: "heavy", pow: 1.35, agi: 2, eDef: ["wind", 1], tint: "#5a4a3a",
     desc: "底に鉄のびょうを打ち並べた坑夫の重い長靴。崩れる足場にも滑らず踏みとどまり、地の底から突き上げる魔物の一撃にも膝を折らない。" })),
-  sr(R("r_sr3_canarycharm", "カナリアの籠飾り", "amulet", 36, { hp: 20, pie: 3, eDef: ["wind", 1], tint: "#e8d050",
+  sr(R("r_sr3_canarycharm", "カナリアの籠飾り", "amulet", 36, { aRes: { poison: 0.35, stone: 0.25 }, hp: 20, pie: 3, eDef: ["wind", 1], tint: "#e8d050",
     desc: "坑夫たちが毒気の見張りに連れたカナリアの、小さな鳥籠を模した首飾り。悪い風が吹けば籠の鈴が鳴り、持ち主を岩と瘴気の害から遠ざける。" })),
   sr(S("s_sr3_cartboard", "トロッコ板の大盾", 39, { shape: "kite", pow: 1.35, hp: 16, tint: "#6a5a48",
     desc: "鉱石運びのトロッコの側板を外し、鉄の縁で補強した大盾。何十トンの鉱石を受け止めてきた板は、岩の巨人の拳にもびくともしない。" })),
-  sr(A("a_sr3_alchemistrobe", "錬金師の晶衣", 42, { shape: "robe", pow: 1.35, mp: 14, int: 5, tint: "#9ab8d0",
+  sr(A("a_sr3_alchemistrobe", "錬金師の晶衣", 42, { aRes: { stone: 0.3 }, shape: "robe", pow: 1.35, mp: 14, int: 5, tint: "#9ab8d0",
     desc: "廃坑で鉱脈を調べた宮廷錬金術師の長衣。裾に縫い込まれた晶の粉が魔力を蓄え、纏う者の呪文を澄んだ響きで増幅する。" })),
-  sr(H("h_sr3_crystalcirclet", "晶読みの額環", 45, { magStat: "pie", shape: "circlet", weight: "cloth", pow: 1.35, mp: 10, tint: "#c0e0f0",
+  sr(H("h_sr3_crystalcirclet", "晶読みの額環", 45, { aRes: { charm: 0.25, confuse: 0.25 }, magStat: "pie", shape: "circlet", weight: "cloth", pow: 1.35, mp: 10, tint: "#c0e0f0",
     desc: "晶の濁りで鉱脈の吉凶を占った巫女の額環。晶に映る光が着ける者の祈りを静かに研ぎ澄まし、地の底の闇の中でも心を乱さない。" })),
 
   // ===== レジェンドレア (全職共通・1点もの・固有効果) =====

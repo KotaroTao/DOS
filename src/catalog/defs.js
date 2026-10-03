@@ -49,6 +49,8 @@ const ELEM_TINT = {
   earth: "#c89a4a", light: "#ffe27a", dark: "#9b6bd0",
 };
 const ELEM_KEYS = Object.keys(ELEM_TINT);
+// 状態異常の種類 (items.js の AIL_LABEL と同じ並び)
+const AIL_KEYS = ["poison", "paralyze", "sleep", "charm", "confuse", "stone"];
 
 // ===== 形の原型 (24x24) =====
 // 1px の黒縁 k・光源は左上・素材ごとに 4〜5 階調。キーは上の P。
@@ -1812,6 +1814,7 @@ const SHAPE_WEIGHT = {
 // 性能はすべてフラット値 (ATK+10 など)。自動算出値は lv の二次関数で単調増加し、
 // opt.pow (自動主ステの倍率) と各種ボーナス/ペナルティで装備ごとの個性を出す。
 const round = Math.round;
+// 装備の値段は game.js が起動時に性能から付け直す (src/pricing.js)。ここの lv 価格は収集品・道具と、その物差しの元になる
 const priceOf = (lv) => round(10 + lv * lv * 0.30 + lv * 5);
 
 function chk(cond, msg) { if (!cond) throw new Error("catalog: " + msg); }
@@ -1832,6 +1835,16 @@ function base(id, name, slot, lv, artKey, opt) {
   };
   if (opt.eAtk) { chk(ELEM_KEYS.includes(opt.eAtk[0]), "bad eAtk element: " + id); it.eAtk = { el: opt.eAtk[0], lv: opt.eAtk[1] || 1 }; }
   if (opt.eDef) { chk(ELEM_KEYS.includes(opt.eDef[0]), "bad eDef element: " + id); it.eDef = { el: opt.eDef[0], lv: opt.eDef[1] || 1 }; }
+  // 状態異常耐性 aRes: { charm: 0.25, ... } (種類ごとの付与率カット) / 追加効果 onHit: ["paralyze", 0.15] or ["poison", 0.2, 0.06]
+  if (opt.aRes) {
+    for (const k in opt.aRes) chk(AIL_KEYS.includes(k) && opt.aRes[k] > 0 && opt.aRes[k] <= 0.6, "bad aRes: " + id);
+    it.aRes = { ...opt.aRes };
+  }
+  if (opt.onHit) {
+    const [k, chance, pct] = opt.onHit;
+    chk(AIL_KEYS.includes(k) && k !== "stone" && chance > 0 && chance <= 0.5, "bad onHit: " + id);
+    it.onHit = pct ? { k, chance, pct } : { k, chance };
+  }
   if (opt.spd) it.agi = opt.spd;       // 旧称 spd → AGI
   if (opt.agi) it.agi = (it.agi || 0) + opt.agi;
   if (opt.hp) it.hp = opt.hp;
@@ -1914,7 +1927,8 @@ export function A(id, name, lv, opt = {}) {
 }
 
 // 段階装備の役割ステ量 (lv に応じて単調増加)。頭/小手の主ステ算出に使う。
-const roleStatAmt = (lv) => Math.max(1, round(0.8 + lv * 0.16 + lv * lv * 0.0006));
+// pow (自動主ステの倍率) もここに掛かる (VIT がトークンに落ちる品では主ステが役割ステなので)
+const roleStatAmt = (lv, pow = 1) => Math.max(1, round((0.8 + lv * 0.16 + lv * lv * 0.0006) * (pow || 1)));
 const tokenVit = (lv) => Math.max(1, round(lv * 0.05));
 
 // 頭: H(id, 名, lv, opt) — opt.shape: "helm"(既定) | "hat" | "circlet"。opt.def は VIT の上書き
@@ -1927,7 +1941,7 @@ export function H(id, name, lv, opt = {}) {
   it.vit = opt.def != null ? opt.def : Math.max(1, round((1 + lv * 0.10 + lv * lv * 0.0012) * (opt.pow || 1)));
   it.weight = opt.weight || SHAPE_WEIGHT[shape];
   if (opt.magStat === "int" || opt.magStat === "pie") {
-    it[opt.magStat] = (it[opt.magStat] || 0) + roleStatAmt(lv);
+    it[opt.magStat] = (it[opt.magStat] || 0) + roleStatAmt(lv, opt.pow);
     if (opt.def == null) it.vit = tokenVit(lv);
   }
   return it;
@@ -1959,10 +1973,10 @@ export function G(id, name, lv, opt = {}) {
   it.vit = opt.def != null ? opt.def : Math.max(1, round((1 + lv * 0.09 + lv * lv * 0.0010) * (opt.pow || 1)));
   it.weight = opt.weight || SHAPE_WEIGHT[shape];
   if (opt.role === "atk") {
-    it.atk = (it.atk || 0) + roleStatAmt(lv);
+    it.atk = (it.atk || 0) + roleStatAmt(lv, opt.pow);
     if (opt.def == null) it.vit = tokenVit(lv);
   } else if (opt.magStat === "int" || opt.magStat === "pie") {
-    it[opt.magStat] = (it[opt.magStat] || 0) + roleStatAmt(lv);
+    it[opt.magStat] = (it[opt.magStat] || 0) + roleStatAmt(lv, opt.pow);
     if (opt.def == null) it.vit = tokenVit(lv);
   }
   return it;

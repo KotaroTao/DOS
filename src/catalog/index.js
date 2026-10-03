@@ -55,6 +55,45 @@ for (const list of RANK_LISTS) {
 }
 for (const list of [WEAPONS, SHIELDS, ARMORS, HEADS, FEET, HANDS, ACCS]) for (const it of list) { it.rar = "r"; applyRareBoost(it); }
 
+// ===== 状態異常耐性 (aRes) をランク別標準装備に持たせる =====
+// 各ランクの「上の方」(アンコモン) の頭防具と護符だけに、ランクに応じた耐性を付ける (R1 11% → R20 30%)。
+//   頭: 重装 (兜) = 混乱 / 軽装 (頭巾・笠) = 眠り / 布 (額環・帽子) = 魅了 — 頭を守る品は心も守る
+//   装飾 (お守り・護符の系統) = 魅了と混乱
+// 一点物・層の逸品は品ごとに書く (gear.js / layer*.js の aRes)。毒・麻痺・石化は一点物だけが持つ
+RANK_LISTS.forEach((list, bi) => {
+  const v = Math.round((0.10 + 0.01 * (bi + 1)) * 100) / 100;
+  for (const it of list) {
+    if (it.rar !== "uc" || it.aRes) continue;
+    if (it.slot === "head") it.aRes = { [it.weight === "heavy" ? "confuse" : it.weight === "light" ? "sleep" : "charm"]: v };
+    else if (it.slot === "acc") it.aRes = { charm: v, confuse: v };
+  }
+});
+
+// ===== ランク別標準装備は「lv が上なら必ず性能も上」にする =====
+// 能力値は整数に丸めるので、低いランクでは lv の違う品が同じ性能になることがある
+// (例: R1 の籠手 lv5/lv10 がどちらも ATK+2 で、コモンとアンコモンの差が無い)。
+// 部位ごと (武器はカテゴリ、防具は重量) に lv 順に並べ、より低い lv の品をどこも上回っていない品は
+// 主ステ (最も大きい能力) を +1 ずつ上げて差をつける。状態異常耐性を持つ品はそれで上回っているものとみなす
+const RANK_STAT_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"];
+const RANK_STAT_W = { hp: 0.15, mp: 0.25 };
+const notAbove = (u, c) => !(u.aRes && !c.aRes) && RANK_STAT_KEYS.every((k) => (u[k] || 0) <= (c[k] || 0));
+{
+  const groups = new Map();
+  for (const list of RANK_LISTS) for (const it of list) {
+    const key = `${it.slot}|${it.cat || it.weight || ""}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(it);
+  }
+  for (const g of groups.values()) {
+    g.sort((a, b) => a.lv - b.lv);
+    g.forEach((u, i) => {
+      const lower = g.slice(0, i).filter((c) => c.lv < u.lv);
+      const main = RANK_STAT_KEYS.reduce((a, k) => ((u[k] || 0) * (RANK_STAT_W[k] || 1) > (u[a] || 0) * (RANK_STAT_W[a] || 1) ? k : a), "atk");
+      while (lower.some((c) => notAbove(u, c))) u[main] = (u[main] || 0) + 1;
+    });
+  }
+}
+
 // ===== ドロップ対象の厳選 (コモン〜レアは「少数精鋭」) =====
 // 品数が多すぎると拾うたびに新しい名前ばかりで、特別な品との差が見えなくなる。
 // コモン〜レアは帯ごとに出現対象を絞って何度も出会う「いつもの品」にし、スーパーレア以上の感動を際立たせる。

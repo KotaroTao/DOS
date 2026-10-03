@@ -19,7 +19,7 @@ const LEGACY_RANK = {
   d02_harpy: 3, d02_imp: 3, d02_lizard: 3, d02_lord: 3,
   d03_orc: 4, d03_ghost: 4, d03_sahagin: 4,
   d03_mandrake: 5, d03_sentinel: 5, d03_whelp: 5,
-  d04_golem: 6, d04_ogre: 6,
+  d04_golem: 5, d04_ogre: 5, // 第3層の層末 (迷宮15) の深部に出る。層ボス・強敵 (rank5) を超えないよう rank5
   d04_revenant: 7, d04_grudge: 7,
   d04_vritra: 9,
 };
@@ -41,8 +41,8 @@ for (const id in LEGACY) {
 const NEW_DEFS = [
   // -- 第1層「墓地」 (rank 1-2) --
   { id: "bs_gravewisp", name: "墓火", rank: 1, race: "specter", element: "dark", artKey: "hd_gravewisp",
-    magWeak: 1.6, evasive: true, ability: null, // 実体を持たぬ鬼火: 魔法に脆く、刃はすり抜ける
-    desc: "墓地の夜に漂う青い鬼火。死にきれぬ者の未練が、火の玉となってさまよう姿だという。刃は炎をすり抜けてしまうが、ひとたび魔の力を浴びれば、たちまち掻き消える。" },
+    magWeak: 1.6, evasive: true, ability: "confuse", // 実体を持たぬ鬼火: 魔法に脆く、刃はすり抜ける。揺らめく火で惑わせる
+    desc: "墓地の夜に漂う青い鬼火。死にきれぬ者の未練が、火の玉となってさまよう姿だという。揺らめく青火に見入った者は敵と味方の見分けを失う。刃は炎をすり抜けてしまうが、ひとたび魔の力を浴びれば、たちまち掻き消える。" },
   { id: "bs_grasphand", name: "這い寄る腐手", rank: 1, race: "undead", element: "dark", artKey: "hd_grasphand",
     ability: "paralyze", pack: true, // 土から無数に突き出し、掴んで痺れさせる
     desc: "埋葬を拒まれた者たちの、腐り落ちた手だけが土を破って這い出る。足首を掴まれた者は、冷たい指の感触に総毛立ち、その場に縫い止められる。一本では弱いが、墓所では群れを成す。" },
@@ -123,8 +123,8 @@ const NEW_DEFS = [
     ability: "drain", lifesteal: 0.3, // 溺死した恨みで命を吸い、己の存在を保つ
     desc: "下水に流れ着いて溺れ死んだ水夫たちの霊。塩に蝕まれた半透明の体で生者に取り憑き、その温もりと命を吸って束の間この世に留まる。吸った分だけ、輪郭が濃くなる。" },
   { id: "bs_anglerfiend", name: "提灯アンコウ", rank: 4, race: "aquatic", element: "water", artKey: "hd_anglerfiend",
-    ability: "paralyze", magWeak: 1.3, // 誘いの光で痺れさせる。脂の体は火に弱い
-    desc: "下水路の闇を漂う、巨大な口を持つ醜い魚。額から垂らした青白い誘い灯で獲物を惑わせ、痺れたところを丸呑みにする。脂の乗った体は、炎の魔法でよく焼ける。" },
+    ability: "charm", magWeak: 1.3, // 誘いの光で魅了する。脂の体は火に弱い
+    desc: "下水路の闇を漂う、巨大な口を持つ醜い魚。額から垂らした青白い誘い灯に見入った者は心を奪われ、仲間へ刃を向けながら自ら口の中へ歩み寄る。脂の乗った体は、炎の魔法でよく焼ける。" },
   { id: "bs_bloatfly", name: "腐肉バエの群れ", rank: 3, race: "insect", element: "dark", artKey: "hd_bloatfly",
     pack: true, ability: "poison", evasive: true, // 群れで湧き、毒をまき散らし、叩こうにも素早く飛び回る
     desc: "汚水と腐肉に湧いた、握り拳ほどもある肥えた羽虫の群れ。羽音とともに毒の鱗粉をまき散らし、叩き落とそうにも素早く飛び回ってかわす。一匹潰せば、十匹が湧く。" },
@@ -141,8 +141,8 @@ const NEW_DEFS = [
     physResist: 2, barrier: 2, magWeak: 1.3, // 鋼の鱗が刃を弾くが、魔法の熱には脆い
     desc: "幾百年を生きて鋼のごとき鱗をまとった、ぬしと呼ばれる大鯉。並の刃は鱗に弾かれ傷一つ通らない。だが冷たい体は魔法の熱に脆く、火や雷を浴びれば一たまりもない。" },
   { id: "bs_fogspecter", name: "汚水のもや", rank: 3, race: "specter", element: "water", artKey: "hd_fogspecter",
-    ability: "paralyze", evasive: true, magWeak: 1.5, // 実体なく刃をすり抜け、瘴気で痺れさせる。魔には脆い
-    desc: "汚水から立ちのぼる瘴気が、ぼんやりと人の形をなした霊。刃は霧をすり抜けてしまい、まとわりつく毒気に触れた者は痺れて動けなくなる。実体が薄いぶん、魔の力には抗えない。" },
+    ability: "sleep", evasive: true, magWeak: 1.5, // 実体なく刃をすり抜け、瘴気で眠らせる。魔には脆い
+    desc: "汚水から立ちのぼる瘴気が、ぼんやりと人の形をなした霊。刃は霧をすり抜けてしまい、甘く淀んだ毒気を吸った者はまどろみに沈んで動けなくなる。実体が薄いぶん、魔の力には抗えない。" },
   // 第2層の追加 (浅い層の水棲が第1層より弱かった穴を埋める rank3。絵は hd_* の固有原型)
   { id: "bs_ratking", name: "溝鼠の王", rank: 3, race: "beast", element: "none", artKey: "hd_ratking",
     ability: "poison", multistrike: 3, // 尾の絡まった十数匹が四方から噛みつき、疫病を移す
@@ -150,39 +150,39 @@ const NEW_DEFS = [
   { id: "bs_sewerdredger", name: "溝さらいの骸", rank: 3, race: "undead", element: "water", artKey: "hd_sewerdredger",
     ability: "paralyze", endure: true, // かぎ竿で引き倒して痺れさせ、崩れかけても仕事をやめない
     desc: "水路の泥をさらい続けて死んだ人夫の骸。いまも錆びたかぎ竿を手放さず、生者を引っ掛けては汚泥へ引き倒す。骨が砕けかけても、日暮れの鐘が鳴るまで持ち場を離れない。" },
-  // -- 第3層「廃坑」 (rank 4-5・土/採掘。第2層より格上の壁。深部に rank6 の旧坑の主) --
-  { id: "bs_rockworm", name: "岩喰いの大蟲", rank: 4, race: "insect", element: "earth", artKey: "rockworm",
-    physResist: 1, multistrike: 2, // 岩盤ごと喰らう顎で続けざまに噛み砕く
+  // -- 第3層「廃坑」 (rank 4-5・土/採掘。第2層より格上の壁。層末の深部は rank5 で、層ボス・強敵と同格) --
+  { id: "bs_rockworm", name: "岩喰いの大蟲", rank: 4, race: "insect", element: "earth", artKey: "hd_rockworm",
+    physResist: 1, multistrike: 2, ability: null, // 岩盤ごと喰らう顎で続けざまに噛み砕く (虫の既定の麻痺は持たない)
     desc: "坑道の岩盤を喰らって掘り進む、人を丸呑みにする環形の大蟲。円い口にびっしり並んだ歯で岩ごと獲物を削り取り、二度三度と噛み砕く。硬い体節は刃をほとんど通さない。" },
-  { id: "bs_dustwraith", name: "粉塵の亡霊", rank: 4, race: "specter", element: "earth", artKey: "dustwraith",
+  { id: "bs_dustwraith", name: "粉塵の亡霊", rank: 4, race: "specter", element: "earth", artKey: "hd_dustwraith",
     ability: "poison", evasive: true, magWeak: 1.4, // 炭塵を吸わせて蝕み、掴みどころがない。魔には脆い
     desc: "落盤と炭塵に巻かれて窒息した坑夫たちの霊が、黒い粉塵の渦となってさまよう。吸い込めば肺を蝕む毒の塵をまき散らし、刃を向けても渦の中をすり抜ける。光の魔法には掻き消される。" },
-  { id: "bs_crystalcrawler", name: "水晶喰い蟲", rank: 5, race: "insect", element: "earth", artKey: "crystalcrawler",
-    physResist: 1, magResist: 1, barrier: 2, // 鉱脈を喰らい水晶の鎧をまとう。刃も魔も通りにくい
+  { id: "bs_crystalcrawler", name: "水晶喰い蟲", rank: 5, race: "insect", element: "earth", artKey: "hd_crystalcrawler",
+    physResist: 1, magResist: 1, ability: null, // 鉱脈を喰らい水晶の鎧をまとう。刃も魔も通りにくい (二重の耐性が持ち味なので障壁は外す)
     desc: "鉱脈の水晶を喰らって育ち、背に鋭い結晶の鎧を生やした巨大な甲虫。刃は結晶に弾かれ、魔力もまた水晶に吸われて霧散する。生半可な攻撃では、傷一つつけられない。" },
-  { id: "bs_blastsprite", name: "坑火の精", rank: 4, race: "elemental", element: "fire", artKey: "blastsprite",
+  { id: "bs_blastsprite", name: "坑火の精", rank: 4, race: "elemental", element: "fire", artKey: "hd_blastsprite",
     enrage: true, magWeak: 1.4, // 坑道に溜まる可燃ガスの化身。追い詰めると爆ぜる
     desc: "閉ざされた坑道に溜まった可燃ガスが、ゆらめく火の精と化したもの。揺らめきながら近づき、傷つけられて追い詰められると、内に溜めた炎を一気に爆ぜさせる。水気のない体は、魔法でかえって燃え上がる。" },
-  { id: "bs_orehulk", name: "鉱くずの巨塊", rank: 5, race: "construct", element: "earth", artKey: "orehulk",
+  { id: "bs_orehulk", name: "鉱くずの巨塊", rank: 5, race: "construct", element: "earth", artKey: "hd_orehulk",
     physResist: 2, barrier: 2, // 捨てられた鉱くずの塊。分厚い殻が刃を阻む
     desc: "精錬で捨てられた鉱くずが幾年も積もり、熱をはらんだまま動き出した巨塊。光る鉱脈が体を走り、分厚いかすの殻は並の刃を寄せつけない。ひと振りの拳は、坑道の梁すら叩き折る。" },
-  { id: "bs_tunneler", name: "坑道掘りの獣", rank: 4, race: "beast", element: "earth", artKey: "tunneler",
+  { id: "bs_tunneler", name: "坑道掘りの獣", rank: 4, race: "beast", element: "earth", artKey: "hd_tunneler",
     swift: true, multistrike: 2, // 土に潜んで奇襲し、巨大な前肢で素早く掘り貫く
     desc: "盲いた目で土中を泳ぐように掘り進む、巨大な前肢を持つ獣。気配を断って土から飛び出し、岩をも砕くかぎ爪で素早く二度えぐる。気づいた時には、足元の土が崩れている。" },
-  { id: "bs_minelord", name: "坑道の主", rank: 5, boss: true, race: "giant", element: "earth", artKey: "minelord", soulClass: "fighter",
+  { id: "bs_minelord", name: "坑道の主", rank: 5, boss: true, race: "giant", element: "earth", artKey: "hd_minelord", soulClass: "fighter",
     role: "summoner", summonKey: "bs_rockworm", physResist: 1, barrier: 3, enrage: true, // 坑蟲を呼び、刃を阻み、手負いで荒れ狂う
     desc: "廃坑の闇そのものが岩を寄せ集めて形をなした、坑道の主。腹の底で燃える鉱脈を脈打たせ、岩を喰らう蟲を次々と呼び寄せる。分厚い岩の殻は刃を阻み、砕かれるほどに怒りで坑道を揺らす。" },
-  // 第3層の追加 (浅い階に第2層と同格の rank3 が混じっていた穴を埋める rank4。絵は原画待ちの仮の原型 → monart.js で差し替え)
-  { id: "bs_chainedconvict", name: "鎖つなぎの罪人", rank: 4, race: "undead", element: "earth", artKey: "zombie",
+  // 第3層の追加 (浅い階に第2層と同格の rank3 が混じっていた穴を埋める rank4。絵は hd_* の固有原型)
+  { id: "bs_chainedconvict", name: "鎖つなぎの罪人", rank: 4, race: "undead", element: "earth", artKey: "hd_chainedconvict",
     ability: "critical", endure: true, // つるはしで急所を貫き、鎖に縛られたまま倒れても起き上がる
     desc: "坑道に鎖で繋がれ、日の目を見ずに死んだ罪人の骸。足枷の鎖を引きずりながら、いまも錆びたつるはしを振り上げ、生者の頭蓋を岩と見て貫きにくる。刑期は、まだ明けていない。" },
-  { id: "bs_minebat", name: "坑道の吸血蝙蝠", rank: 4, race: "wing", element: "none", artKey: "bat",
-    swift: true, evasive: true, lifesteal: 0.25, // 闇から素早く舞い降りて血をすすり、刃の届く前に飛び去る
-    desc: "坑道の天井に幾千とぶら下がる、翼を広げれば人の背丈ほどもある蝙蝠。灯の届かぬ闇から音もなく舞い降り、首筋の血をすすっては刃が届く前に天井の闇へ消える。" },
-  { id: "bs_koboldsapper", name: "坑掘りのコボルド", rank: 4, race: "humanoid", element: "earth", artKey: "kobold",
+  { id: "bs_minebat", name: "坑道の吸血蝙蝠", rank: 4, race: "wing", element: "none", artKey: "hd_minebat",
+    evasive: true, lifesteal: 0.25, // 闇から舞い降りて血をすすり、刃の届く前に飛び去る
+    desc: "坑道の天井に幾千とぶら下がる、翼を広げれば人の背丈ほどもある蝙蝠。灯の届かぬ闇から音もなく舞い降り、首筋の血をすすってはその分だけ肥え、刃が届く前に天井の闇へ消える。" },
+  { id: "bs_koboldsapper", name: "坑掘りのコボルド", rank: 4, race: "humanoid", element: "earth", artKey: "hd_koboldsapper",
     ability: "goldSteal", swift: true, // 閉山後も勝手に掘り続ける小鬼。光り物を奪って坑の奥へ逃げ込む
     desc: "人が去った後の廃坑に住み着き、勝手に鉱脈を掘り続ける小鬼の工夫。坑道を知り尽くした足で素早く立ち回り、光る物と見れば財布でも奪い取って横穴へ逃げ込む。" },
-  { id: "bs_timbermite", name: "坑木喰いの白アリ", rank: 4, race: "insect", element: "earth", artKey: "beetle",
+  { id: "bs_timbermite", name: "坑木喰いの白アリ", rank: 4, race: "insect", element: "earth", artKey: "hd_timbermite",
     pack: true, ability: "weaken", // 群れで湧き、蟻酸で武具を腐らせて力を削ぐ
     desc: "坑道を支える坑木を内側から喰い尽くす、犬ほどもある白蟻の群れ。落盤の半分はこれの仕業だという。吐きかける蟻酸は鉄も革も腐らせ、浴びた者の得物から力を奪う。" },
   // -- 第4層「捨て砦」 (rank 5-6・武装/戦の亡霊。第3層より格上の壁。深部に rank7 の騎士) --
@@ -209,11 +209,11 @@ const NEW_DEFS = [
     physResist: 1, regen: 0.08, barrier: 2, magWeak: 1.3, // 刃を呑み傷を巻き戻すが、炎には脆い
     desc: "苔と霧をまとって歩く、森の最も古い木の化身。太い幹は刃を呑み込み、刻んだ傷も年輪を巻き戻すように塞がる。ただ、乾いた芯は炎の魔法を浴びると一気に燃え盛る。" },
   { id: "bs_dryadfey", name: "森の妖魔", rank: 6, race: "plant", element: "wind", artKey: "dryadfey",
-    ability: "weaken", regen: 0.06, role: "healer", // 妖しい歌で力を奪い、傷ついた森の眷属を癒す
-    desc: "霧の奥から妖しい歌を響かせる、美しくも恐ろしい森の妖。その歌を聞いた者は四肢の力が抜け、立ち尽くす。傷ついた森の眷属には癒しの旋律を、侵入者には呪いの旋律を歌い分ける。" },
+    ability: "charm", regen: 0.06, role: "healer", // 妖しい歌で心を奪い、傷ついた森の眷属を癒す
+    desc: "霧の奥から妖しい歌を響かせる、美しくも恐ろしい森の妖。その歌に心を奪われた者は、妖の望むまま仲間へ刃を向ける。傷ついた森の眷属には癒しの旋律を、侵入者には呪いの旋律を歌い分ける。" },
   { id: "bs_giantmoth", name: "鱗粉の大蛾", rank: 6, race: "insect", element: "wind", artKey: "giantmoth",
-    ability: "paralyze", evasive: true, swift: true, // 痺れの鱗粉を撒き、霧と灯に紛れてかわす
-    desc: "霧の夜にだけ舞う、両翼を広げれば人の背丈ほどもある大蛾。鱗粉を撒き散らして獲物を痺れさせ、ふらりと不規則に舞っては刃をかわす。灯りを見つけると、吸い寄せられるように群がる。" },
+    ability: "sleep", evasive: true, swift: true, // 眠りの鱗粉を撒き、霧と灯に紛れてかわす
+    desc: "霧の夜にだけ舞う、両翼を広げれば人の背丈ほどもある大蛾。眠りを誘う鱗粉を撒き散らして獲物をまどろませ、ふらりと不規則に舞っては刃をかわす。灯りを見つけると、吸い寄せられるように群がる。" },
   { id: "bs_stranglevine", name: "絞め蔦の魔", rank: 6, race: "plant", element: "earth", artKey: "stranglevine",
     ability: "paralyze", multistrike: 2, physResist: 1, // 樹冠から無数に垂れ、絡め取って締め上げる
     desc: "樹冠から音もなく垂れ下がり、通る者を絡め取る食人の蔦。一本に捉えられれば、たちまち十本が巻きついて締め上げる。しなやかなつるは刃を受け流し、断っても次のつるが伸びてくる。" },
@@ -243,8 +243,8 @@ const NEW_DEFS = [
     swift: true, pack: true, lifesteal: 0.3, // 茨をまとって素早く群れ、噛んで血をすする
     desc: "全身に茨を巻きつけた、森を駆ける痩せた猟犬。群れで素早く取り囲み、棘だらけの顎で噛みついては血をすすって傷を癒す。振り払おうにも、絡みついた茨が肉に食い込む。" },
   { id: "bs_wisplure", name: "惑わしの群火", rank: 6, race: "specter", element: "wind", artKey: "wisplure",
-    ability: "paralyze", evasive: true, magWeak: 1.5, pack: true, // 群れで誘い込み痺れさせる。実体は薄い
-    desc: "霧の中をふわふわと漂う、無数の青い鬼火の群れ。道に迷った旅人を誘い込んでは、触れた者を痺れさせて沼へ沈める。実体に乏しく刃をすり抜けるが、魔の力にはひとたまりもない。" },
+    ability: "confuse", evasive: true, magWeak: 1.5, pack: true, // 群れで誘い込み惑わせる。実体は薄い
+    desc: "霧の中をふわふわと漂う、無数の青い鬼火の群れ。道に迷った旅人を誘い込んでは、方角も敵味方も分からなくさせて沼へ沈める。実体に乏しく刃をすり抜けるが、魔の力にはひとたまりもない。" },
   { id: "bs_satyrpiper", name: "角笛の森人", rank: 7, race: "humanoid", element: "wind", artKey: "satyrpiper",
     ability: "warcry", swift: true, // 角笛の旋律で森の眷属を奮い立たせ、軽やかに跳ね回る
     desc: "山羊の脚を持ち、角笛を吹き鳴らす森の半獣。その旋律は森の獣を奮い立たせ、戦意を煽る。軽やかに跳ね回って間合いを外し、決して正面からは戦わない狡猾な指揮者。" },
@@ -385,8 +385,8 @@ const NEW_DEFS = [
     swift: true, ability: "critical", multistrike: 2, // 氷の鎌で素早く急所を続けざまに刈る
     desc: "氷の鎌をもつ、人の背丈ほどの大カマキリ。鏡のように研ぎ澄まされた鎌は一閃で鎧を断ち、目にも留まらぬ速さで急所を続けざまに刈り取る。祈るような構えのまま、獲物を待っている。" },
   { id: "bs_frostmaiden", name: "氷の乙女", rank: 9, race: "specter", element: "water", artKey: "frostmaiden",
-    ability: "weaken", role: "healer", magWeak: 1.3, // 哀歌で力を奪い、凍れる眷属を癒す。火に弱い
-    desc: "氷柱に閉ざされたまま凍え死んだ乙女の霊。澄んだ哀歌を響かせて生者の力を奪い、傷ついた凍れる眷属には癒しの旋律を捧げる。その美しさは、近づく者を惑わせる罠だ。" },
+    ability: "charm", role: "healer", magWeak: 1.3, // 哀歌で心を奪い、凍れる眷属を癒す。火に弱い
+    desc: "氷柱に閉ざされたまま凍え死んだ乙女の霊。澄んだ哀歌を響かせて生者の心を奪い、傷ついた凍れる眷属には癒しの旋律を捧げる。その美しさは、近づく者を惑わせる罠だ。" },
   { id: "bs_frozenangel", name: "氷漬けの堕天", rank: 9, race: "construct", element: "water", artKey: "frozenangel",
     physResist: 2, magResist: 2, barrier: 2, // 氷柱にはりつけにされた翼の像。刃も魔も凍て阻む
     desc: "翼を広げたまま氷柱にはりつけにされた、堕ちた天使の像。分厚い氷の鎧は刃を弾き、魔力も凍りついた表面を滑り落ちる。祈るように閉じた目は、もう二度と開かない。" },
@@ -394,8 +394,8 @@ const NEW_DEFS = [
     ability: "critical", enrage: true, multistrike: 2, // 冷気をまとう青鬼。爪で急所をえぐり、手負いで荒れる
     desc: "絶対零度の冷気をまとった、青く凍てつく鬼。氷の爪で鎧ごと急所をえぐり、二度三度と斬りつける。傷を負うほど身を覆う氷がきしみ、見境なく荒れ狂う。" },
   { id: "bs_aurorawisp", name: "極光の群火", rank: 8, race: "specter", element: "water", artKey: "aurorawisp",
-    pack: true, ability: "paralyze", evasive: true, magWeak: 1.5, // 揺れる極光の群体。誘い込み痺れさせる。実体は薄い
-    desc: "回廊の天井に揺らめく、極光の色をした鬼火の群れ。美しい光に見惚れた者を誘い込んでは、冷気で痺れさせて凍えさせる。実体に乏しく刃をすり抜けるが、魔の力にはひとたまりもない。" },
+    pack: true, ability: "confuse", evasive: true, magWeak: 1.5, // 揺れる極光の群体。誘い込み惑わせる。実体は薄い
+    desc: "回廊の天井に揺らめく、極光の色をした鬼火の群れ。美しい光に見惚れた者を誘い込んでは正気を奪い、凍える回廊で仲間と斬り合わせる。実体に乏しく刃をすり抜けるが、魔の力にはひとたまりもない。" },
   // -- 第9層「毒沼」 (rank 9-10・毒/腐敗。第8層より格上の壁) --
   { id: "bs_plaguebeast", name: "疫病の獣", rank: 9, race: "beast", element: "earth", artKey: "plaguebeast",
     ability: "poison", enrage: true, multistrike: 2, // 病毒を撒き、手負いで荒れ、連打で薙ぐ
@@ -757,7 +757,7 @@ const NEW_DEFS = [
   { id: "bs_flagellant", name: "鞭打ち苦行者", rank: 10, race: "humanoid", element: "light", artKey: "flagellant",
     ability: "critical", enrage: true, lifesteal: 0.3, desc: "己を鞭打ち、その血を聖油として捧げ続けた苦行者の亡霊。鋭いかぎの鞭で急所を裂き、流れる血を糧に傷を癒す。痛みこそが信仰だと、永遠に己を打ち続ける。" },
   { id: "bs_radiantwraith", name: "まばゆき霊", rank: 10, race: "specter", element: "light", artKey: "radiantwraith",
-    ability: "paralyze", evasive: true, lifesteal: 0.3, desc: "聖堂のまばゆい光に溶け込んだ、輪郭を失った霊。直視できぬ光で獲物の目をくらませて痺れさせ、光となって刃をすり抜ける。美しい後光が、近づく者を惑わせる。" },
+    ability: "confuse", evasive: true, lifesteal: 0.3, desc: "聖堂のまばゆい光に溶け込んだ、輪郭を失った霊。直視できぬ光で獲物の目をくらませて正気を奪い、光となって刃をすり抜ける。美しい後光が、近づく者を惑わせる。" },
   { id: "bs_crusaderghost", name: "亡き聖騎士", rank: 10, race: "armored", element: "light", artKey: "crusaderghost",
     ability: "critical", barrier: 2, multistrike: 2, desc: "聖戦で果て、聖堂に祀られた聖騎士の亡霊。聖別された剣で急所を続けざまに貫き、聖印の盾が刃を阻む。守るべき信仰が偽りだったとは、まだ知らない。" },
   { id: "bs_saintbeast", name: "聖獣", rank: 10, race: "beast", element: "light", artKey: "saintbeast",
@@ -917,7 +917,7 @@ const NEW_DEFS = [
     ability: "poison", physResist: 1, // 心臓を灼く毒針 + 鎧のような甲殻
     desc: "鎧の継ぎ目を断ち切るはさみと、心の臓を直に灼く尾針を併せ持つ大さそり。乾いた床を擦る音が死の予鈴となる。分厚い甲殻は刃をろくに通さない。" },
   // -- rank 4 --
-  { id: "bs_gargoyle", name: "ガーゴイル", rank: 4, race: "construct", element: "earth", artKey: "gargoyle",
+  { id: "bs_gargoyle", name: "ガーゴイル", rank: 4, race: "construct", element: "earth", artKey: "hd_gargoyle",
     physResist: 1, // 石の体が刃をほとんど通さない
     desc: "聖堂の軒先で魔を払っていた石像の成れの果て。守るべき聖域を失い、今は止まり木に来るものすべてを翼と爪で払う。石の体は並の刃を寄せつけず、砕くには相応の力がいる。" },
   { id: "bs_banshee", name: "バンシー", rank: 4, race: "specter", element: "dark", artKey: "banshee",
@@ -928,9 +928,8 @@ const NEW_DEFS = [
     ability: "critical", // 全体重を乗せた突進で急所をえぐる
     desc: "迷路の中心で生贄を待ち続けた牛頭の巨人。捧げられる者が絶えて久しく、自ら狩りに出ることを覚えた。低く構えた角の突進は鎧ごと急所をえぐる。" },
   // -- rank 5 --
-  { id: "bs_troll", name: "トロール", rank: 5, race: "giant", element: "earth", artKey: "ogre",
-    palette: tint(ARTS.ogre.palette, "#4a8a3a", 0.35),
-    regen: 0.12, // 火で灼かぬ限り裂かれた傷もみるみる塞がる
+  { id: "bs_troll", name: "トロール", rank: 5, race: "giant", element: "earth", artKey: "hd_troll",
+    regen: 0.12, ability: null, // 火で灼かぬ限り裂かれた傷もみるみる塞がる (再生ひとつが持ち味。巨人の既定の痛撃は持たない)
     desc: "裂かれた傷がみるみる塞がる再生の巨人。腕をもがれてもすぐに生え直し、火で灼かれた痕だけが、こいつの体に古傷として残っている。" },
   { id: "bs_dullahan", name: "デュラハン", rank: 5, race: "armored", element: "dark", artKey: "dullahan", soulClass: "knight",
     swift: true, ability: "critical", // 首を狙う一閃を音もなく繰り出す
@@ -1038,8 +1037,8 @@ const NEW_DEFS = [
     pack: true, // ハイエナの習いで群れて襲う
     desc: "ハイエナの顎を持つ異形の戦士。骨ごと噛み砕く噛む力を誇り、迷宮で死んだ者の装備を剥いで身につける。一頭では狡猾に間合いを計り、数が揃えば一斉に喉笛へ飛びかかる。" },
   { id: "bs_spiritbat", name: "霊蝙蝠", rank: 2, race: "specter", element: "dark", artKey: "hd_spiritbat",
-    ability: "paralyze", // 体温を奪う冷たい牙で痺れさせる
-    desc: "坑道の亡霊が蝙蝠の形を借りた霊体。噛まれた箇所は寒気を帯び、体温を奪われた者から順に意識が遠のき、やがて手足が痺れて動かなくなる。" },
+    ability: "sleep", // 体温を奪う冷たい羽音で眠りに誘う
+    desc: "坑道の亡霊が蝙蝠の形を借りた霊体。冷たい羽ばたきが寒気を運び、体温を奪われた者から順に意識が遠のいて、抗えぬ眠りへ沈んでいく。" },
   { id: "bs_hobgoblin", name: "ホブゴブリン", rank: 2, race: "humanoid", element: "none", artKey: "goblin", soulClass: "thief",
     palette: tint(ARTS.goblin.palette, "#6a4a1a", 0.35),
     swift: true, ability: "goldSteal", // 退路を断つ奇襲で財布を奪う
@@ -1072,7 +1071,7 @@ const NEW_DEFS = [
   { id: "bs_cultist", name: "邪神の僧", rank: 4, race: "specter", element: "dark", artKey: "cultist", soulClass: "bishop",
     ability: "drain", // 捨てたものを取り戻そうと宿した魂を喰らう
     desc: "禁忌の神をまつり命を捧げた僧侶の亡霊。神に近づくために捨てたものを取り戻そうと手を伸ばし、触れた者の宿した魂のレベルを喰らい取る。" },
-  { id: "bs_stonegorgon", name: "石化の眼", rank: 4, race: "specter", element: "earth", artKey: "gorgon",
+  { id: "bs_stonegorgon", name: "石化の眼", rank: 4, race: "specter", element: "earth", artKey: "hd_stonegorgon",
     ability: "stone", // 直視した者を石へと変える眼
     desc: "ゴルゴンの血を引く蛇髪の霊。その眼を直視した者の皮膚が石灰色に固まり始め、完全に石化するまで意識だけが残るという。" },
   { id: "bs_deepsahagin", name: "深海魚人", rank: 4, race: "aquatic", element: "water", artKey: "hd_deepsahagin",
@@ -1090,8 +1089,7 @@ const NEW_DEFS = [
     palette: tint(ARTS.harpy.palette, "#d4d44a", 0.4),
     swift: true, ability: "paralyze", // 稲光をまとって舞い、触れた者を痺れさせる
     desc: "嵐の中でのみ現れる雷光の鳥。羽ばたきのたびに稲光が走って素早く宙を舞い、その翼に触れた者は心の臓まで痺れて動けなくなる。" },
-  { id: "bs_deepgolem", name: "大地のゴーレム", rank: 5, race: "construct", element: "earth", artKey: "golem",
-    palette: tint(ARTS.golem.palette, "#4a3a2a", 0.5),
+  { id: "bs_deepgolem", name: "大地のゴーレム", rank: 5, race: "construct", element: "earth", artKey: "hd_deepgolem",
     physResist: 2, // 神殿の基礎石そのものの巨体
     desc: "神殿の基礎石が何百年もの呪文の蓄積で自ら動き始めた古代ゴーレム。岩盤そのものの巨体は刃を寄せつけず、一歩踏み出すたびに床が割れ、壁が崩れる。" },
   { id: "bs_shadowmage", name: "影の術師", rank: 5, race: "undead", element: "dark", artKey: "ghost", soulClass: "mage",
@@ -1121,8 +1119,7 @@ const NEW_DEFS = [
     palette: tint(ARTS.harpy.palette, "#c85a2a", 0.45),
     ability: "breath", // 奪われまいと吐き散らす最後の炎
     desc: "溶岩洞の奥に棲む、再生しない鳳凰。かつて不死を誇ったが呪いで再生を失い、今は最後の炎を奪われまいと、前衛後衛もろとも炎を吐き散らして燃え続ける。" },
-  { id: "bs_steelspider", name: "鋼蜘蛛", rank: 6, race: "construct", element: "none", artKey: "spider",
-    palette: tint(ARTS.spider.palette, "#8a9aaa", 0.4),
+  { id: "bs_steelspider", name: "鋼蜘蛛", rank: 5, race: "construct", element: "none", artKey: "hd_steelspider",
     physResist: 1, ability: "paralyze", // 鋼の外殻が刃を弾き、鋼糸で獲物を絡め取る
     desc: "古代の錬金術師が造った鉄製の機械蜘蛛。鋼の外殻は刃を弾き、溶岩に落ちても溶けずに動き続け、絹より細く鋼より強い糸で獲物を絡めて縛り上げる。" },
   // -- rank 7 追加 (+5) --
@@ -1384,8 +1381,8 @@ const NEW_DEFS = [
     desc: "血染めの間で千の生贄を捧げ、最後に自らを捧げた祭主。儀式はまだ完成しておらず、足りない分の血と宿した魂を訪問者から吸い取って補おうとする。" },
   { id: "bs_whisperingidol", name: "囁く神像", rank: 5, boss: true, race: "construct", element: "dark", artKey: "golem",
     palette: tint(ARTS.golem.palette, "#4a4a6a", 0.4),
-    physResist: 2, ability: "paralyze", // 石の像は刃を弾き、頭蓋に響く囁きで体を縛る
-    desc: "迷宮の中心に座し、囁きだけで信徒を操ってきた名もなき神の像。石の体は刃を寄せつけず、耳を塞いでも頭蓋の内側から響く囁きが、聞いた者の体を縛りつける。" },
+    physResist: 2, ability: "charm", // 石の像は刃を弾き、頭蓋に響く囁きで心を操る
+    desc: "迷宮の中心に座し、囁きだけで信徒を操ってきた名もなき神の像。石の体は刃を寄せつけず、耳を塞いでも頭蓋の内側から響く囁きが、聞いた者を新たな信徒に変えて仲間へ刃を向けさせる。" },
   { id: "bs_blazeseraph", name: "燃ゆる聖堂の天使", rank: 5, boss: true, race: "specter", element: "fire", artKey: "harpy",
     palette: tint(ARTS.harpy.palette, "#c85a2a", 0.4),
     ability: "breath", // 翼から降り注ぐ火の粉の聖句が全体を焼く
@@ -1597,7 +1594,7 @@ const NEW_DEFS = [
   { id: "bs_souldragon", name: "魂喰らいの竜", rank: 10, race: "dragon", element: "dark", artKey: "souldragon",
     ability: "breath", lifesteal: 0.3, // 魂ごと喰らう吐息で全体を焼き、奪った魂で自らを癒やす
     desc: "数多の魂を喰らって肥え太った漆黒の竜。その吐息は肉ではなく魂を直接焼き、焼いた魂をそのまますすって傷を塞ぐ。腹の中で今も挑戦者たちが叫び続けている。" },
-  { id: "bs_firstdoll", name: "最初の人形", rank: 10, race: "construct", element: "dark", artKey: "firstdoll",
+  { id: "bs_firstdoll", name: "最初の人業", rank: 10, race: "construct", element: "dark", artKey: "firstdoll",
     ability: "drain", magResist: 3, regen: 0.05, // 最初に魂を宿された器 / 魔法をいなし傷を繕う
     desc: "最初の操霊師が初めて魂を縫い付けた器。完成と呼ぶには歪で、棄てられてなお主を慕い続ける。近づく者から生気を吸い、自らの綻びをひとりでに繕いながら、いつまでも主の帰りを待っている。" },
   { id: "bs_weaversregret", name: "織り手の悔悟", rank: 10, race: "specter", element: "dark", artKey: "weaversregret",
@@ -1645,7 +1642,7 @@ const NEW_DEFS = [
   { id: "bs_firstweaver", name: "最初の操霊師", rank: 10, boss: true, race: "dragon", element: "dark", artKey: "firstweaver",
     ability: "breath", role: "summoner", summonKey: "bs_firstdoll", regen: 0.05, physResist: 2, barrier: true,
     // 最果ての主 / 器を呼び、魂の吐息で全体を灼き、魔の膜と再生で容易には堕ちない
-    desc: "竜の姿を借りた、世界で最初に魂を器へ縫い付けた者。あらゆる操霊師の祖にして、棄てた器たちの父。指を振れば最初の人形が這い出して主を守り、吐く息は魂そのものを灼き尽くす。魔の膜と尽きぬ再生に守られたその懐に辿り着けるのは、第十九層までを越えてなお折れぬ魂だけだ。" },
+    desc: "竜の姿を借りた、世界で最初に魂を器へ縫い付けた者。あらゆる操霊師の祖にして、棄てた器たちの父。指を振れば最初の人業が這い出して主を守り、吐く息は魂そのものを灼き尽くす。魔の膜と尽きぬ再生に守られたその懐に辿り着けるのは、第十九層までを越えてなお折れぬ魂だけだ。" },
 
   // ---- 役割持ちモンスター (role: healer/guard/summoner) ----
   // 取り巻き (escort) を連れて現れる。回復役・呼び手は後衛に立つため、
@@ -1669,10 +1666,9 @@ const NEW_DEFS = [
     role: "summoner", summonKey: "bs_zombie", escort: "bs_zombie", ability: null,
     desc: "土の下の亡者に「まだ終わっていない」と囁き続ける亡霊。その語りを聞いた骸は墓を破って這い出し、語り部の指す方へ歩き出す。" },
   // -- rank 4 --
-  { id: "bs_shieldogre", name: "大盾のオーガ", rank: 4, race: "giant", element: "earth", artKey: "ogre",
-    role: "guard", escort: "d03_orc", ability: null, physResist: 1,
-    palette: tint(ARTS.ogre.palette, "#5a6a8a", 0.4),
-    desc: "城門の残骸を大盾として担ぐオーガの古強者。群れの矢面に立って刃を受け止めることだけを誇りとし、分厚い鉄扉ごと打撃をいなす。その背後でオークどもが斧を研ぐ。" },
+  { id: "bs_shieldogre", name: "大盾のオーガ", rank: 4, race: "giant", element: "earth", artKey: "hd_shieldogre",
+    role: "guard", escort: "d03_orc", ability: null, barrier: 2, // 鉄扉の大盾で仲間をかばい、数度は打撃をいなして半減する
+    desc: "城門の残骸を大盾として担ぐオーガの古強者。群れの矢面に立って刃を受け止めることだけを誇りとし、鉄の帯を打った分厚い扉ごと打撃をいなす。その背後でオークどもが斧を研ぐ。" },
   { id: "bs_plaguepriest", name: "疫病の祈り手", rank: 4, race: "specter", element: "dark", artKey: "ghost",
     role: "healer", escort: "bs_banshee", ability: "poison", soulClass: "priest",
     palette: tint(ARTS.ghost.palette, "#7a8a3a", 0.45),
@@ -1775,7 +1771,7 @@ const ELITE_DEFS = [
     desc: "氷河の裂け目そのものと見紛う、白竜の巨大な顎。氷塊の鱗は刃を弾き、氷ごと獲物を噛み砕いては、前衛後衛もろとも千年溶けない吹雪を吐く。" }, // D64-66
   { id: "el_blizzardwitch", name: "吹雪の魔女", elite: true, rank: 9, race: "specter", element: "wind", artKey: "ghost", soulClass: "mage",
     palette: tint(ARTS.ghost.palette, "#b0d8e8", 0.55),
-    ability: "paralyze", // 子守唄で暖かな眠りごと凍りつかせる
+    ability: "sleep", // 子守唄で暖かな眠りに誘い、凍りつかせる
     desc: "吹雪の夜にだけ氷廊へ現れる魔女の亡霊。彼女が紡ぐ子守唄を聞いた者は、暖かな眠りに誘われるまま手足の感覚を失い、静かに凍りついていく。" }, // D67-70
   // -- 迷宮 71-80 (尖塔帯) / 強敵ランク10 --
   { id: "el_stareater", name: "星喰らい", elite: true, rank: 10, race: "demon", element: "dark", artKey: "imp",
@@ -1837,11 +1833,11 @@ const LAYER_ELITE_DEFS = [
   { id: "el_drownedpaladin", name: "沈みし聖騎士", elite: true, rank: 4, race: "undead", element: "water", artKey: "hd_drownedpaladin", soulClass: "knight",
     physResist: 1, endure: true, enrage: true, // 水を吸った重鎧が刃を阻み、倒れても立ち上がり、手負いで荒れ狂う
     desc: "水路の浄めに遣わされ、そのまま戻らなかった聖騎士。水を吸って錆びた重鎧は刃をろくに通さず、膝をついても祈りの残響に引き起こされる。兜の隙間から、黒い水が絶えず滴っている。" },
-  // 第3層「廃坑」 (絵は原画待ちの仮の原型 → monart.js で差し替え)
-  { id: "el_chainoverseer", name: "鎖鞭の坑監", elite: true, rank: 5, race: "undead", element: "earth", artKey: "soldier", soulClass: "brigand",
+  // 第3層「廃坑」 (絵は hd_* の固有原型)
+  { id: "el_chainoverseer", name: "鎖鞭の坑監", elite: true, rank: 5, race: "undead", element: "earth", artKey: "hd_chainoverseer", soulClass: "brigand",
     role: "summoner", summonKey: "bs_chainedconvict", ability: "warcry", enrage: true, // 鎖鞭で罪人の骸を追い立て、怒号で奮わせ、手負いで荒れ狂う
     desc: "罪人たちを鎖で繋ぎ、鞭で坑の奥へ追い立てた坑監の成れの果て。死んでなお鉄の鞭を鳴らせば、繋がれた骸どもがつるはしを担いで這い出してくる。怒号が坑道に響くたび、骸の腕に力が戻る。" },
-  { id: "el_crystalseer", name: "晶に憑かれし錬金術師", elite: true, rank: 5, race: "humanoid", element: "earth", artKey: "necromancer", soulClass: "hermit",
+  { id: "el_crystalseer", name: "晶に憑かれし錬金術師", elite: true, rank: 5, race: "humanoid", element: "earth", artKey: "hd_crystalseer", soulClass: "hermit",
     magResist: 1, ability: "stone", regen: 0.05, // 晶の体は呪文を吸い、晶眼の凝視で生者を結晶に変える
     desc: "廃坑の最奥で、見てはならぬ鉱脈に魅入られた宮廷錬金術師。皮膚の下から水晶が生え出し、いまや体の半分が晶と化している。呪文は晶に吸われて霧散し、その晶眼に見据えられた者は、足先から結晶へ変わっていく。" },
 ];
@@ -2023,14 +2019,14 @@ export const LAYER_POOLS = {
     // 浅い層を rank3 で揃える (以前は rank1 のスライム・rank2 の毒沼スライムが混じり、迷宮6の浅い階が第1層より弱かった)
     "bs_ratking", "bs_sewerdredger",
   ],
-  // 第3層「廃坑」: 土/構造体/虫中心、rank4-5 (第2層の rank3-4 より格上)。深部に rank6 の旧坑の怪物
+  // 第3層「廃坑」: 土/構造体/虫中心、rank4-5 (第2層の rank3-4 より格上)。層末の深部は rank5 (層ボス・強敵と同格)
   3: [
     // 新規 (固有アート)
     "bs_rockworm", "bs_dustwraith", "bs_crystalcrawler", "bs_blastsprite", "bs_orehulk", "bs_tunneler",
     // 既存の土/構造体/虫を第3層へ再配置 (rank4-5)
     "d03_orc", "bs_gargoyle", "bs_stonegorgon", "bs_shieldogre",
     "d03_mandrake", "bs_troll", "bs_deepgolem",
-    // 深部の強敵 (rank6)
+    // 層末の深部 (rank5。以前は rank6 で、層ボス・強敵より格上の雑魚が出ていた)
     "d04_golem", "d04_ogre", "bs_steelspider",
     // 浅い階を rank4 で揃える (以前は rank3 のさそり・毒蜘蛛・泥ゴーレム・トカゲが混じり、迷宮11の浅い階が第2層と同格だった)
     "bs_chainedconvict", "bs_minebat", "bs_koboldsapper", "bs_timbermite",

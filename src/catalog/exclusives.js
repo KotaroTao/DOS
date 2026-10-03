@@ -72,7 +72,7 @@ const R = [
     desc: "千人の敵を素手で倒した武僧の手の型を、熟練の鍛冶が金属に写し取った手甲。武僧がはめると筋が指先まで金剛石と化す。",
   }), "monk"),
   excl(W("x_hexer_staff", "呪縛の杖", "st", 148, {
-    cls: ["hexer"], eAtk: ["dark", 1], int: 120, mp: 75,
+    onHit: ["charm", 0.15], cls: ["hexer"], eAtk: ["dark", 1], int: 120, mp: 75,
     desc: "縛りの儀式で使われた骨の数珠を頭部に巻いた呪術師の杖。触れた瞬間から呪術師の夢を見始め、手放せなくなると伝わる。",
   }), "hexer"),
   excl(A("x_hermit_robe", "山神の衣", 150, {
@@ -91,7 +91,7 @@ const R = [
 
 // ===== エピック (lv 165-180 / 迷宮ランク7+) =====
 const E = [
-  excl(W("x_crusader_sword", "聖戦の大剣", "ls", 175, {
+  excl(W("x_crusader_sword", "聖戦の誓剣", "ls", 175, {
     cls: ["crusader"], pow: 1.2, eAtk: ["light", 1], pie: 70,
     desc: "聖戦を布告した教団の旗手が討ち死にの間際に戦場に突き立てた剣。光を含む大気が刃に沿って集まり、悪しきものを焼く。",
   }), "crusader"),

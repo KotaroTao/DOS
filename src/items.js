@@ -12,6 +12,9 @@
 // lv: 隠しレベル (1-200)。迷宮の出現帯・出現率・表示ランクを決める
 // cat: 武器のみ。サブカテゴリ (WEAPON_CATS のキー)
 // eAtk/eDef: 属性攻撃/属性防御 { el, lv } (lv1=◯ ±50%, lv2=◎ ±100%)
+// aRes: 状態異常耐性 { poison/paralyze/sleep/charm/confuse/stone: 付与率カット (0.25 = 25%) }。同じ種類は装備どうしで足し合い、上限 AIL_RES_CAP
+// onHit: 武器などの追加効果 { k: poison/paralyze/sleep/charm/confuse, chance, pct? }。当てるだけで敵に状態異常を与える
+// price: 装備の値段は起動時に性能から付け直す (src/pricing.js の repriceEquipment)。ここの値は道具・収集品にだけ効く
 
 // 装備部位 (8か所): 武器・盾・鎧・頭・小手・足・装飾x2
 export const SLOTS = ["weapon", "shield", "body", "head", "hands", "feet", "acc1", "acc2"];
@@ -297,7 +300,7 @@ export const ITEMS = {
 
   // ===== 盾 =====
   woodShield: {
-    id: "woodShield", name: "木の盾", slot: "shield", lv: 2, vit: 3, price: 80, classes: null,
+    id: "woodShield", name: "木の盾", slot: "shield", lv: 2, vit: 2, hp: 5, price: 80, classes: null,
     desc: "カシの板をびょうで重ねた小盾。表面には先代の持ち主のものらしい爪痕が走るが、まだ十分に矢と牙を受け止められる。",
     ...sprite([
       "...........ee...........",
@@ -327,7 +330,7 @@ export const ITEMS = {
     ]),
   },
   kiteShield: {
-    id: "kiteShield", name: "カイトシールド", slot: "shield", lv: 7, vit: 6, price: 240, classes: null,
+    id: "kiteShield", name: "剥げ紋の大盾", slot: "shield", lv: 7, vit: 6, price: 240, classes: null,
     desc: "騎士団の紋章が剥げ落ちた大盾。掲げた誓いは廃れても、鋼の守りは廃れていない。前衛の半身を覆って守る。",
     ...sprite([
       "..eeeeeeeeeeeeeeeeeeee..",
@@ -389,7 +392,7 @@ export const ITEMS = {
     ]),
   },
   leatherArmor: {
-    id: "leatherArmor", name: "革の鎧", slot: "body", lv: 4, vit: 4, price: 160, classes: null, weight: "light",
+    id: "leatherArmor", name: "革の鎧", slot: "body", lv: 4, vit: 3, agi: 1, price: 160, classes: null, weight: "light",
     desc: "魔獣の革をなめした軽鎧。幾針もの縫い直しの跡は、これを着て生き延びた者たちの記録だ。軽くて動きやすい。",
     ...sprite([
       "...DDDD..........DDDD...",
@@ -451,7 +454,7 @@ export const ITEMS = {
 
   // ===== 頭 =====
   cap: {
-    id: "cap", name: "布の帽子", slot: "head", lv: 1, vit: 1, price: 30, classes: null, weight: "light",
+    id: "cap", name: "布の帽子", slot: "head", lv: 1, vit: 1, aRes: { poison: 0.1 }, price: 30, classes: null, weight: "cloth",
     desc: "擦り切れた布の帽子。墓土の冷たさと滴る汚水からは守ってくれる。ないよりはまし、と誰もが言う。",
     ...sprite([
       "........................",
@@ -481,7 +484,7 @@ export const ITEMS = {
     ]),
   },
   ironHelm: {
-    id: "ironHelm", name: "鉄兜", slot: "head", lv: 5, vit: 3, price: 150, classes: null, weight: "heavy",
+    id: "ironHelm", name: "面当ての鉄兜", slot: "head", lv: 5, vit: 3, aRes: { charm: 0.1 }, price: 150, classes: null, weight: "heavy",
     desc: "面当てつきの鉄兜。覗き穴の奥は常に闇で、かぶった者の顔を誰にも思い出させない。頭部をしっかり守る。",
     ...sprite([
       "..............qqq.......",
@@ -513,7 +516,7 @@ export const ITEMS = {
 
   // ===== 足 =====
   leatherBoots: {
-    id: "leatherBoots", name: "革のブーツ", slot: "feet", lv: 2, vit: 1, agi: 1, price: 70, classes: null, weight: "light",
+    id: "leatherBoots", name: "革のブーツ", slot: "feet", lv: 2, vit: 1, agi: 2, price: 70, classes: null, weight: "light",
     desc: "丈夫な革の長靴。底に染みた泥は幾層にも重なり、どの層がどの迷宮のものかもう分からない。素早さがわずかに上がる。",
     ...sprite([
       "........................",
@@ -635,7 +638,7 @@ export const ITEMS = {
     ]),
   },
   ironGauntlets: {
-    id: "ironGauntlets", name: "鉄の籠手", slot: "hands", lv: 6, vit: 4, agi: -1, price: 240, classes: null, weight: "heavy",
+    id: "ironGauntlets", name: "無骨な鉄籠手", slot: "hands", lv: 6, vit: 4, agi: -1, price: 240, classes: null, weight: "heavy",
     desc: "重厚な鉄の籠手。指の自由と引き換えに、握った得物ごと腕を守り抜く。少し動きが鈍る。",
     ...sprite([
       ".........eee............",
@@ -667,7 +670,7 @@ export const ITEMS = {
 
   // ===== アクセサリ =====
   powerRing: {
-    id: "powerRing", name: "力の指輪", slot: "acc", lv: 20, atk: 4, price: 240, classes: null,
+    id: "powerRing", name: "怒りの指輪", slot: "acc", lv: 20, atk: 4, price: 240, classes: null,
     desc: "はめた瞬間、自分のものではない怒りが血管を駆け抜ける指輪。腕力がみなぎり、攻撃力が上がる。",
     ...sprite([
       "........................",
@@ -1176,6 +1179,11 @@ function topElemStat(sums) {
   return best;
 }
 
+// 状態異常の種類と呼び名 (装備の耐性 aRes・追加効果 onHit で使う)
+export const AIL_LABEL = { poison: "毒", paralyze: "麻痺", sleep: "眠り", charm: "魅了", confuse: "混乱", stone: "石化" };
+// 装備だけで積める状態異常耐性の上限 (パッシブ「異常耐性」と合わせた上限は戦闘側で90%)
+export const AIL_RES_CAP = 0.6;
+
 // 六大ステ (ATK/VIT/AGI/INT/PIE/LUK) を base + 装備から再計算
 // 装備はフラット型: stat = base + Σflat (atk/vit/…)
 export function recalc(member) {
@@ -1186,6 +1194,7 @@ export function recalc(member) {
   const mul = { atk: 0, vit: 0, agi: 0, int: 0, pie: 0, luk: 0, hp: 0, mp: 0 };
   const eff = {}; // 戦闘効果 (LR装飾品): actFirst/multistrike/lifesteal/autoRevive/guard/spellCostMul
   const ea = {}, ed = {};
+  const ar = {}, oh = {}; // 状態異常耐性 (種類→合計) / 追加効果 (種類→最も強いもの)
   const counted = new Set();
   for (const slot of SLOTS) {
     const it = member.equip[slot];
@@ -1209,6 +1218,11 @@ export function recalc(member) {
     }
     if (it.eAtk && it.eAtk.el) ea[it.eAtk.el] = (ea[it.eAtk.el] || 0) + (it.eAtk.lv || 1);
     if (it.eDef && it.eDef.el) ed[it.eDef.el] = (ed[it.eDef.el] || 0) + (it.eDef.lv || 1);
+    if (it.aRes) for (const k in it.aRes) ar[k] = (ar[k] || 0) + (it.aRes[k] || 0);
+    if (it.onHit && it.onHit.k) {
+      const cur = oh[it.onHit.k];
+      if (!cur || (it.onHit.chance || 0) > cur.chance) oh[it.onHit.k] = { k: it.onHit.k, chance: it.onHit.chance || 0, ...(it.onHit.pct ? { pct: it.onHit.pct } : {}) };
+    }
   }
   // 装備による増減は整数化 (増は切り上げ・減は切り下げ)。基礎値はそのまま。
   // %補正があれば (基礎+フラット) に乗じてから整数化する
@@ -1233,6 +1247,12 @@ export function recalc(member) {
   member.elemDef = topElemStat(ed);
   // 戦闘効果 (LR装飾品由来)。combat.js が戦闘開始時に actor へ展開する
   member.eff = Object.keys(eff).length ? eff : null;
+  // 状態異常耐性 (装備由来・種類ごとに上限 AIL_RES_CAP) と武器の追加効果。combat.js が読む
+  const arOut = {};
+  for (const k in ar) if (ar[k] > 0) arOut[k] = Math.min(AIL_RES_CAP, Math.round(ar[k] * 100) / 100);
+  member.ailRes = Object.keys(arOut).length ? arOut : null;
+  const ohOut = Object.values(oh).filter((o) => o.chance > 0);
+  member.onHit = ohOut.length ? ohOut : null;
   // 旧体系の派生値 (こうげき/ぼうぎょ/すばやさ/AC) は廃止
   delete member.def; delete member.spd; delete member.ac;
 }

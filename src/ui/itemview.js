@@ -7,7 +7,7 @@ import { el, sheet } from "./kit.js";
 import { ELEMENTS, elemBeats, RACE_LABEL } from "../dungeons/index.js";
 import { SPELLS } from "../combat.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
-import { WEAPON_CAT_LABEL, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip } from "../items.js";
+import { WEAPON_CAT_LABEL, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL } from "../items.js";
 import { HERO, spriteCanvas, crispCanvas } from "../sprites.js";
 
 // 魂のステータス寄与を「HP+7 ATK+2.4 …」形式で列挙 (0は省略)
@@ -85,6 +85,7 @@ const TRAIT_TAG = {
   drain: ["phys", true], soulSteal: ["other"], goldSteal: ["other"], critical: ["phys", true],
   enrage: ["other"], endure: ["other"], lifesteal: ["phys", true], multistrike: ["phys", true],
   barrier: ["other"], warcry: ["other"], weaken: ["phys", true],
+  sleep: ["other"], charm: ["other"], confuse: ["other"],
 };
 function hasElem(e) { return !!(e && e !== "none" && ELEMENTS[e]); }
 // 1枚の札。kind は TAG_KIND のキー、または "el:fire" のような属性
@@ -236,11 +237,13 @@ export function skillDetailLines(sp) {
   if (sp.seal) lines.push(`${pct(sp.seal.chance)}で特技を${sp.seal.turns}ターン封じる（ブレス・状態異常攻撃・回復・呼び出しを使えなくなる・主には半分の確率）`);
   if (sp.strip) lines.push("敵にかかった強化を打ち消す");
   if (sp.instakill) lines.push(`${pct(sp.instakill.chance)}で即死させる${sp.instakill.races ? `（${raceList(sp.instakill.races)}のみ）` : ""}（主には効かない・強敵には半分）`);
-  if (sp.sleepChance) lines.push(`命中後 ${pct(sp.sleepChance)}で対象を眠らせる`);
+  if (sp.sleepChance) lines.push(`命中後 ${pct(sp.sleepChance)}で対象を眠らせる（主には半分）`);
+  if (sp.charm) lines.push(`${pct(sp.charm)}で魅了する（その敵が仲間に襲いかかる・傷を受けると解けやすい・主には効きにくい）`);
+  if (sp.confuse) lines.push(`${pct(sp.confuse)}で混乱させる（敵味方を問わず殴る・ふらつく・主には半分の確率）`);
   if (sp.flinchChance) lines.push(`${pct(sp.flinchChance)}で怯ませる（主には効かない）`);
   if (sp.plunder) lines.push("この技で倒した敵は、落とすゴールドが2倍になる");
   if (sp.partyHeal) lines.push(`攻撃の後、味方全体のHPを ${sp.partyHeal} 回復（術者のPIEで伸びる）`);
-  if (sp.cure) lines.push("状態異常を治す");
+  if (sp.cure || sp.kind === "cure") lines.push("状態異常（毒・麻痺・石化・眠り・魅了・混乱）を治す");
   if (sp.purge) lines.push("かかっている弱体を解く");
   if (sp.grantEndure) lines.push("対象に「致死ダメージをHP1で耐える」を付与（1戦闘1回）");
   if (sp.grantBarrier) lines.push(`魔障壁${sp.grantBarrier}回分（ブレス・呪文の被ダメ半減）を付与`);
@@ -310,6 +313,31 @@ export function skillChips(keys, label) {
   return row;
 }
 
+// ===== 状態異常の耐性・追加効果 (装備の aRes / onHit) =====
+const AIL_SHORT = { poison: "毒", paralyze: "痺", sleep: "眠", charm: "魅", confuse: "乱", stone: "石" };
+// 短い表記: 「魅30・乱30」 / 「痺15%」
+export function ailResShort(r) { return r ? Object.entries(r).map(([k, v]) => `${AIL_SHORT[k] || k}${Math.round(v * 100)}`).join("・") : "—"; }
+export function onHitShort(o) { return o && o.length ? o.map((x) => `${AIL_SHORT[x.k] || x.k}${Math.round(x.chance * 100)}%`).join("・") : "—"; }
+// 一覧の一行用 (statLines に添える)
+function ailStatParts(it) {
+  const out = [];
+  if (it.onHit && it.onHit.k) out.push(`${AIL_LABEL[it.onHit.k]}付与 ${Math.round(it.onHit.chance * 100)}%`);
+  if (it.aRes) out.push(`耐性 ${Object.entries(it.aRes).map(([k, v]) => `${AIL_LABEL[k] || k}${Math.round(v * 100)}%`).join("・")}`);
+  return out;
+}
+// くわしい行 (品の細目)
+export function ailDetailLines(it) {
+  const L = [];
+  if (!it) return L;
+  if (it.onHit && it.onHit.k) {
+    const o = it.onHit;
+    const tail = o.k === "poison" ? `（毎ターン最大HPの${Math.round((o.pct || 0.05) * 100)}%）` : o.k === "charm" ? "（敵が仲間を襲う）" : o.k === "confuse" ? "（敵が見境なく殴る）" : "";
+    L.push(`追加効果: 攻撃が当たると ${Math.round(o.chance * 100)}% で敵を${AIL_LABEL[o.k]}にする${tail}（物理技も同じ・主には効きにくい）`);
+  }
+  if (it.aRes) L.push(`状態異常耐性: ${Object.entries(it.aRes).map(([k, v]) => `${AIL_LABEL[k] || k} −${Math.round(v * 100)}%`).join("・")}（かかる確率を下げる）`);
+  return L;
+}
+
 // ===== 品の表示 =====
 export function statLines(it) {
   if (it && it.unidentified) return "未鑑定 — 鑑定が必要";
@@ -323,6 +351,7 @@ export function statLines(it) {
   const ed = elemStatText("防御", it.eDef);
   if (ea) parts.push(ea);
   if (ed) parts.push(ed);
+  for (const x of ailStatParts(it)) parts.push(x);
   if (it.use && it.use.heal) parts.push(`HP +${it.use.heal}`);
   if (it.use && it.use.mp) parts.push(`MP +${it.use.mp}`);
   if (it.use && it.use.cure) parts.push(`毒を治す`);
@@ -358,6 +387,8 @@ export function equipPreviewDelta(p, cand) {
     crit: Math.round(((fake.critBonus || 0) - (p.critBonus || 0)) * 100),
     elemAtk: { from: p.elemAtk, to: fake.elemAtk },
     elemDef: { from: p.elemDef, to: fake.elemDef },
+    ailRes: { from: p.ailRes || null, to: fake.ailRes || null },
+    onHit: { from: p.onHit || null, to: fake.onHit || null },
   };
 }
 
@@ -384,6 +415,15 @@ export function equipCompareEl(p, cand) {
       if (elemStatEq(ch.from, ch.to)) continue;
       any = true;
       row.appendChild(el("span", "eq-cd-seg elem", `${label} ${elemStatShort(ch.from)}→${elemStatShort(ch.to)}`));
+    }
+    // 状態異常耐性 / 追加効果の変化
+    if (d.ailRes && ailResShort(d.ailRes.from) !== ailResShort(d.ailRes.to)) {
+      any = true;
+      row.appendChild(el("span", "eq-cd-seg elem", `異常耐性 ${ailResShort(d.ailRes.from)}→${ailResShort(d.ailRes.to)}`));
+    }
+    if (d.onHit && onHitShort(d.onHit.from) !== onHitShort(d.onHit.to)) {
+      any = true;
+      row.appendChild(el("span", "eq-cd-seg elem", `追加効果 ${onHitShort(d.onHit.from)}→${onHitShort(d.onHit.to)}`));
     }
   }
   if (!any) row.appendChild(el("span", "eq-cd-same", "変化なし"));
@@ -424,6 +464,11 @@ export function gearScore(doll, delta) {
   s += (delta.crit || 0) * 0.5;
   const lv = (e) => (e && e.el ? Math.min(2, e.lv || 1) : 0);
   for (const ch of [delta.elemAtk, delta.elemDef]) if (ch) s += (lv(ch.to) - lv(ch.from)) * 4;
+  // 状態異常耐性 (合計10%ごとに1点) / 追加効果 (確率10%ごとに1.5点)
+  const resSum = (r) => (r ? Object.values(r).reduce((a, v) => a + v, 0) : 0);
+  const ohSum = (o) => (o ? o.reduce((a, x) => a + (x.chance || 0), 0) : 0);
+  if (delta.ailRes) s += (resSum(delta.ailRes.to) - resSum(delta.ailRes.from)) * 10;
+  if (delta.onHit) s += (ohSum(delta.onHit.to) - ohSum(delta.onHit.from)) * 15;
   return Math.round(s * 10) / 10;
 }
 
@@ -469,6 +514,7 @@ export function detailLines(it) {
   // 属性攻撃/属性防御 (1行ずつのくわしい表記)
   for (const ln of elemDetailLines("攻撃", it.eAtk)) L.push(ln);
   for (const ln of elemDetailLines("防御", it.eDef)) L.push(ln);
+  for (const ln of ailDetailLines(it)) L.push(ln);
   if (isEquippable(it)) L.push(equipClassText(it));
   if (it.align) L.push(`${it.align}属性。`);
   return L;
