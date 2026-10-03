@@ -9330,17 +9330,22 @@ function sealedLines() {
 const TUT_INTRO = [
   "「よくぞ参った、新しき操霊師（ソウルマンサー）よ。…生身のまま、よくぞ辺境まで辿り着いた。」",
   "「だが言うておく。生身で迷宮に入ってはならぬ。深淵は、生きた魂から順に喰らう。」",
-  "「ゆえに死者の魂を器に宿した『人業』を遣わすのだ。まずはその一体を、おのれの手で生み出すがよい。」",
+  "「ゆえに死者の魂を器に宿した『人業』を遣わすのだ。迷宮は一体では渡れぬ。まずは四体、おのれの手で生み出すがよい。」",
   "「戦士・僧侶・盗賊・魔導士の魂を、そして赤い魂を百、くれてやろう。」",
-  "「人業の館へゆけ。赤い魂で器を買い、宿す魂を選び、名を与えよ。」",
-  "「それがそなたの最初の勅命である。人業を一体生み出したら、戻って報告せよ。」",
+  "「人業の館へゆけ。赤い魂で器を買い、四つの魂をひとつずつ宿し、名を与えよ。」",
+  "「それがそなたの最初の勅命である。人業を四体揃えたら、戻って報告せよ。」",
 ];
 const TUT_FINALE = [
-  "「…ほう。良い面構えの人業ではないか。初仕事にしては上出来よ。」",
+  "「…ほう。四体揃って、良い面構えの人業たちではないか。初仕事にしては上出来よ。」",
   "「覚えておけ、操霊師。人業は道具ではない。死者に与えられた、二度目の生だ。」",
   "「粗末に扱えば、魂は器の中で錆びる。労り、鍛え、共に深淵を渡れ。」",
   "「これでそなたも一人前。次は、まことの勅命を授けよう。」",
 ];
+
+// 第0章で仕立てる人業の数 (下賜する魂の数と同じ)。魂が足りない古いセーブでは魂の数まで
+const TUT_DOLLS = 4;
+function tutDollCount() { return allDolls().filter((d) => !d.isEmpty).length; }
+function tutDollGoal() { return Math.max(1, Math.min(TUT_DOLLS, (G.souls || []).length)); }
 
 // 着任の謁見: 戦士/僧侶/盗賊/魔導士の魂×4 + 赤い魂100 を下賜する (人業は館の保管庫で自分の手で仕立てる)
 function grantTutorialGift() {
@@ -9481,7 +9486,8 @@ function objectiveInfo() {
   if (contentSealed()) return { key: "sealed", text: "踏破した迷宮で人業を鍛え、装備を集める", sub: `第${CONTENT_NEXT_LAYER}層は準備中`, act: "出撃", kind: "gate", run: () => departTo(null) };
   if (ms.n === 0 && ms.state === "active") {
     if (!ms.granted) return { key: "audience", text: "王宮で王に謁見する", sub: "着任の挨拶", act: "謁見する", kind: "palace", run: audienceTutorial };
-    if (!allDolls().some((d) => !d.isEmpty)) return { key: "makeDoll", text: "人業を一体、仕立てる", sub: "器を仕立て、魂をひとつ宿す (最初の3体は無料)", act: "仕立てる", kind: "party", run: goMakeDoll };
+    const made = tutDollCount();
+    if (made < tutDollGoal()) return { key: "makeDoll", text: "人業を4体、仕立てる", sub: made ? `いま ${made}/4体 ・ ${emptyDollCost() ? `次の器は赤い魂${emptyDollCost()}` : "残る魂を器に宿す (最初の3体は無料)"}` : "器を仕立て、魂をひとつずつ宿す (最初の3体は無料)", act: "仕立てる", kind: "party", run: goMakeDoll };
     return { key: "reportTut", text: "勅命「人業の生成」の完遂を報告する", act: "王に報告する", kind: "palace", run: reportTutorialQuest };
   }
   if (ms.state === "report") return { key: "report", text: `「${DUNGEONS[ms.n - 1].name}」の踏破を報告する`, act: "王に報告する", kind: "palace", run: reportMainQuest };
@@ -9501,7 +9507,7 @@ function currentObjective() {
 function palaceCallReady() {
   const ms = G.msq;
   if (!ms) return false;
-  if (ms.n === 0 && ms.state === "active") return !ms.granted || allDolls().filter((d) => !d.isEmpty).length >= 1;
+  if (ms.n === 0 && ms.state === "active") return !ms.granted || tutDollCount() >= tutDollGoal();
   if (ms.n > CONTENT_LIMIT) return false; // 公開範囲の先の勅命は準備中
   return ms.state === "report" || ms.state === "offer";
 }
@@ -9513,7 +9519,8 @@ function decreeInfo() {
   if (contentSealed()) return { kind: "sealed", head: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう (準備中)`, text: "次なる層へ続く大門の封は、いまだ固く閉ざされている。", note: "封が解けるまで、踏破した迷宮で人業を鍛え、装備を集めよう。", replay: true };
   if (ms.n === 0 && ms.state === "active") {
     if (!ms.granted) return { kind: "ch0", head: "着任", text: "玉座の老王が、新しき操霊師の到着を待っている。", replay: false };
-    return { kind: "ch0", head: "勅命 「人業の生成」", text: "人業の館で器を仕立て (最初の3体は無料)、いずれかの魂を宿して人業を一体つくれ。", note: "人業が立ち上がったら、王に報告せよ。", replay: true };
+    const made = tutDollCount(), goal = tutDollGoal();
+    return { kind: "ch0", head: "勅命 「人業の生成」", text: "人業の館で器を仕立て (最初の3体は無料)、戦士・僧侶・盗賊・魔導士の魂をひとつずつ宿して人業を四体つくれ。", note: made >= goal ? "四体の人業が揃った。王に報告せよ。" : `四体が揃ったら、王に報告せよ。(いま ${made}/4体)`, replay: true };
   }
   const n = ms.state === "offer" ? Math.min(100, ms.n + 1) : ms.n;
   const head = `第${actOf(n)}層 「${ACTS[actOf(n) - 1].title}」`;
@@ -11622,7 +11629,7 @@ function setupNewGame() {
   G.unlockedDungeons = 0; // 勅命 (第1章) を受けるまで、迷宮の場所は明かされない
   G.shopStock = { ...SHOP_INIT_STOCK };
   G.deliveryQuests = rollDeliveryQuests();
-  // 第0章「人業の生成」: 王宮で謁見 → 戦士・僧侶・盗賊・魔導士の魂×4+🔴100を受ける (granted) → 館の保管庫で人業を1体仕立て → 報告
+  // 第0章「人業の生成」: 王宮で謁見 → 戦士・僧侶・盗賊・魔導士の魂×4+🔴100を受ける (granted) → 館の保管庫で人業を4体仕立て → 報告
   G.msq = { n: 0, state: "active", granted: false };
   codexSweepJobs();
   initQuests();
