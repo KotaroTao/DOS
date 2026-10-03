@@ -793,6 +793,8 @@ export function install() {
     junkList,
     // まとめて売る (確認なし)。既定は装備の候補を残す。{ keepUpgrades:false } で ops と同じ集合 (装備中の品は二重に守る)
     sellJunkAll: (opts) => sellJunk(junkList(opts)),
+    // 渡した売却候補 [{doll, item, price}] だけを売る (確認なし。鑑定の結果の「残りをまとめて売る」)
+    sellItems: sellSubset,
     shopBuy,
     confirmSellJunk,
     confirmIdentifyAll,
