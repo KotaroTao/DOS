@@ -1973,14 +1973,16 @@ function padImage(im) {
     const row = im.art[y - oy];
     art.push(row == null ? blank : (".".repeat(ox) + row).padEnd(W, ".").slice(0, W));
   }
-  return { art, face: [im.face[0] + ox, im.face[1] + oy] };
+  const out = { art, face: [im.face[0] + ox, im.face[1] + oy] };
+  if (im.head) out.head = [im.head[0] + ox, im.head[1] + oy, im.head[2] + oy];
+  return out;
 }
 function imageJobSprite(key, r) {
   const cacheKey = "img:" + key + ":" + r;
   if (_jobSprCache[cacheKey]) return _jobSprCache[cacheKey];
   const c = SOUL_CLASSES[key] || SOUL_CLASSES.fighter;
   const { im, exact } = pickJobImage(key, r);
-  const { art: base, face } = padImage(im);
+  const { art: base, face, head } = padImage(im);
   const palette = { ...im.palette };
   // 見習い (ランク1) を上のランクの絵で代える時は、装いをくすませる
   if (!exact && r === 1) for (const k in palette) palette[k] = mixHex(palette[k], "#6e6a66", 0.32);
@@ -2000,7 +2002,7 @@ function imageJobSprite(key, r) {
     palette["a"] = hexA(c.glow, r === 5 ? 0.42 : 0.34);
     if (r >= 5) palette["b"] = hexA(c.glow, 0.16);
   }
-  return (_jobSprCache[cacheKey] = { palette, art, face });
+  return (_jobSprCache[cacheKey] = head ? { palette, art, face, head } : { palette, art, face });
 }
 
 // ---- 原画そのまま版 (src/jobphotos.js) ----
@@ -2026,15 +2028,20 @@ function photoJobSprite(key, r) {
     photo: { img: photoImage(im.src), sx: -ox * R, sy: -oy * R, sw: W * R, sh: H * R },
     w: W, h: H, face: [im.face[0] + ox, im.face[1] + oy],
   };
+  if (im.head) spr.head = [im.head[0] + ox, im.head[1] + oy, im.head[2] + oy];
   return (_jobSprCache[cacheKey] = spr);
 }
 
 // 職業の胸像 (肖像の小さな額・一覧の札用)。原画のある職は顔を中心に正方形で切り出す。
 // 原画の無い職は従来の 12×12 の小さな全身像 (それ自体が額に収まる大きさ) をそのまま返す
 const BUST = 36;
-// 原画は職ごとに描かれた縮尺が違い、顔のドット数が揃わない (盗賊は大きく、呪術師・隠修士・魔盗賊は小さい)。
-// 戦士の顔を基準として、職ごとに切り出す正方形を BUST × zoom にし、BUST 角へ縮め/伸ばして、
-// どの職も額の中の顔が同じ大きさに見えるようにする。zoom > 1 = 顔が大きく描かれた職 (広く切って縮める) /
+// 顔の大きさを全職で揃える基準: 絵ごとに測った head = [顔の中心x, 瞳の中心y, あご先y] (升目単位) があれば、
+// 「瞳〜あご先」がどの胸像でも BUST_FACE ドットの長さ・瞳が上から BUST_EYE ドットの高さに来るよう正方形を切り出す。
+// 髪型・兜・フードに左右されない顔そのものの寸法なので、職ごと・ランクごとに描かれた縮尺が違っても顔が揃う
+// (値は旧来の戦士の胸像に合わせてある。tools/jobimg.py の同名の定数と同じ値にすること)。
+const BUST_FACE = 4.5, BUST_EYE = 14.5;
+// head の無い絵 (原画を受け取る前のドット絵の職) は従来どおり: 戦士の顔を基準に目で合わせた職ごとの倍率で、
+// 切り出す正方形を BUST × zoom にし、BUST 角へ縮め/伸ばす。zoom > 1 = 顔が大きく描かれた職 (広く切って縮める) /
 // zoom < 1 = 顔が小さい職 (狭く切って伸ばす)。dx/dy = 切り出しの中心を face からずらすドット数 (顔の真ん中へ寄せる)
 export const BUST_FIT = {
   thief: { zoom: 1.2 },
@@ -2080,9 +2087,19 @@ export function jobBust(jobKey, rank = 2) {
   const zoom = fit.zoom || 1;
   const cacheKey = [jobKey, Math.max(1, Math.min(5, Math.round(rank) || 2)), zoom, fit.dx || 0, fit.dy || 0].join(":");
   if (_bustCache[cacheKey]) return _bustCache[cacheKey];
-  const S = Math.max(8, Math.round(BUST * zoom));
-  const cx = spr.face[0] + (fit.dx || 0), cy = spr.face[1] + (fit.dy || 0);
-  const x0 = Math.round(cx - S / 2), y0 = Math.round(cy - S / 2);
+  let S, x0, y0;
+  if (spr.head) {
+    // 測った顔の寸法で切り出す (原画版は升目より細かい位置のまま、ドット絵は升目に丸める)
+    const [hx, eye, chin] = spr.head;
+    const fs = (BUST * Math.max(0.5, chin - eye)) / BUST_FACE;
+    const fx = hx - fs / 2, fy = eye - (BUST_EYE * fs) / BUST;
+    if (spr.photo) { S = fs; x0 = fx; y0 = fy; }
+    else { S = Math.max(8, Math.round(fs)); x0 = Math.round(hx - S / 2); y0 = Math.round(eye - (BUST_EYE * S) / BUST); }
+  } else {
+    S = Math.max(8, Math.round(BUST * zoom));
+    const cx = spr.face[0] + (fit.dx || 0), cy = spr.face[1] + (fit.dy || 0);
+    x0 = Math.round(cx - S / 2); y0 = Math.round(cy - S / 2);
+  }
   if (spr.photo) {
     // 原画版: 全身像と同じ画像から、胸像の正方形を切り出す (縮めるのは描く時)
     const p = spr.photo, R = p.sw / spr.w;
