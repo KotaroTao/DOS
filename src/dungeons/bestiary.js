@@ -172,6 +172,19 @@ const NEW_DEFS = [
   { id: "bs_minelord", name: "坑道の主", rank: 5, boss: true, race: "giant", element: "earth", artKey: "minelord", soulClass: "fighter",
     role: "summoner", summonKey: "bs_rockworm", physResist: 0.85, barrier: 3, enrage: true, // 坑蟲を呼び、刃を阻み、手負いで荒れ狂う
     desc: "廃坑の闇そのものが岩を寄せ集めて形をなした、坑道の主。腹の底で燃える鉱脈を脈打たせ、岩を喰らう蟲を次々と呼び寄せる。分厚い岩の殻は刃を阻み、砕かれるほどに怒りで坑道を揺らす。" },
+  // 第3層の追加 (浅い階に第2層と同格の rank3 が混じっていた穴を埋める rank4。絵は原画待ちの仮の原型 → monart.js で差し替え)
+  { id: "bs_chainedconvict", name: "鎖繋ぎの罪人", rank: 4, race: "undead", element: "earth", artKey: "zombie",
+    ability: "critical", endure: true, // 鶴嘴で急所を穿ち、鎖に縛られたまま倒れても起き上がる
+    desc: "坑道に鎖で繋がれ、日の目を見ずに死んだ罪人の骸。足枷の鎖を引きずりながら、いまも錆びた鶴嘴を振り上げ、生者の頭蓋を岩と見て穿ちにくる。刑期は、まだ明けていない。" },
+  { id: "bs_minebat", name: "坑道の吸血蝙蝠", rank: 4, race: "wing", element: "none", artKey: "bat",
+    swift: true, evasive: true, lifesteal: 0.25, // 闇から素早く舞い降りて血を啜り、刃の届く前に飛び去る
+    desc: "坑道の天井に幾千とぶら下がる、翼を広げれば人の背丈ほどもある蝙蝠。灯の届かぬ闇から音もなく舞い降り、首筋の血を啜っては刃が届く前に天井の闇へ消える。" },
+  { id: "bs_koboldsapper", name: "坑掘りのコボルド", rank: 4, race: "humanoid", element: "earth", artKey: "kobold",
+    ability: "goldSteal", swift: true, // 閉山後も勝手に掘り続ける小鬼。光り物を奪って坑の奥へ逃げ込む
+    desc: "人が去った後の廃坑に住み着き、勝手に鉱脈を掘り続ける小鬼の工夫。坑道を知り尽くした足で素早く立ち回り、光る物と見れば財布でも奪い取って横穴へ逃げ込む。" },
+  { id: "bs_timbermite", name: "坑木喰いの白蟻", rank: 4, race: "insect", element: "earth", artKey: "beetle",
+    pack: true, ability: "weaken", // 群れで湧き、蟻酸で武具を腐らせて力を削ぐ
+    desc: "坑道を支える坑木を内側から喰い尽くす、犬ほどもある白蟻の群れ。落盤の半分はこれの仕業だという。吐きかける蟻酸は鉄も革も腐らせ、浴びた者の得物から力を奪う。" },
   // -- 第4層「捨て砦」 (rank 5-6・武装/戦の亡霊。第3層より格上の壁。深部に rank7 の騎士) --
   { id: "bs_siegeballista", name: "自走弩砲", rank: 6, race: "construct", element: "none", artKey: "siegeballista",
     physResist: 0.85, ability: "critical", // 鉄枠が刃を阻み、狙い澄ました大弩で急所を貫く
@@ -1824,11 +1837,19 @@ const LAYER_ELITE_DEFS = [
   { id: "el_drownedpaladin", name: "沈みし聖騎士", elite: true, rank: 4, race: "undead", element: "water", artKey: "ironknight", soulClass: "knight",
     physResist: 0.8, endure: true, enrage: true, // 水を吸った重鎧が刃を阻み、倒れても立ち上がり、手負いで荒れ狂う
     desc: "水路の浄めに遣わされ、そのまま戻らなかった聖騎士。水を吸って錆びた重鎧は刃をろくに通さず、膝をついても祈りの残響に引き起こされる。兜の隙間から、黒い水が絶えず滴っている。" },
+  // 第3層「廃坑」 (絵は原画待ちの仮の原型 → monart.js で差し替え)
+  { id: "el_chainoverseer", name: "鎖鞭の坑監", elite: true, rank: 5, race: "undead", element: "earth", artKey: "soldier", soulClass: "brigand",
+    role: "summoner", summonKey: "bs_chainedconvict", ability: "warcry", enrage: true, // 鎖鞭で罪人の骸を追い立て、怒号で奮わせ、手負いで荒れ狂う
+    desc: "罪人たちを鎖で繋ぎ、鞭で坑の奥へ追い立てた坑監の成れの果て。死んでなお鉄の鞭を鳴らせば、繋がれた骸どもが鶴嘴を担いで這い出してくる。怒号が坑道に響くたび、骸の腕に力が戻る。" },
+  { id: "el_crystalseer", name: "晶に憑かれし錬金術師", elite: true, rank: 5, race: "humanoid", element: "earth", artKey: "necromancer", soulClass: "hermit",
+    magResist: 0.85, ability: "stone", regen: 0.05, // 晶の体は呪文を吸い、晶眼の凝視で生者を結晶に変える
+    desc: "廃坑の最奥で、見てはならぬ鉱脈に魅入られた宮廷錬金術師。皮膚の下から水晶が生え出し、いまや体の半分が晶と化している。呪文は晶に吸われて霧散し、その晶眼に見据えられた者は、足先から結晶へ変わっていく。" },
 ];
 const LAYER_ELITE_MONSTERS = defMonsters(LAYER_ELITE_DEFS.map((d) => ({ ...monStats(d.rank, true), ...d })));
 export const LAYER_ELITES = {
   1: ["el_cryptlord", "el_palebutcher"],        // 第1層「墓地」
   2: ["el_bloatqueen", "el_drownedpaladin"],    // 第2層「地下水路」
+  3: ["el_chainoverseer", "el_crystalseer"],    // 第3層「廃坑」
 };
 
 // ---- 統合辞書とランク別プール ----
@@ -1986,16 +2007,17 @@ export const LAYER_POOLS = {
     // 浅い層を rank3 で揃える (以前は rank1 のスライム・rank2 の毒沼スライムが混じり、迷宮6の浅い階が第1層より弱かった)
     "bs_ratking", "bs_sewerdredger",
   ],
-  // 第3層「廃坑」: 土/構造体/虫中心、rank4-5主体 (第2層より格上)。深部に rank6 の旧坑の怪物
+  // 第3層「廃坑」: 土/構造体/虫中心、rank4-5 (第2層の rank3-4 より格上)。深部に rank6 の旧坑の怪物
   3: [
     // 新規 (固有アート)
     "bs_rockworm", "bs_dustwraith", "bs_crystalcrawler", "bs_blastsprite", "bs_orehulk", "bs_tunneler",
-    // 既存の土/構造体/虫を第3層へ再配置 (rank3-5)
-    "bs_scorpion", "bs_poisonspider", "bs_marshgolem", "d02_lizard",
+    // 既存の土/構造体/虫を第3層へ再配置 (rank4-5)
     "d03_orc", "bs_gargoyle", "bs_stonegorgon", "bs_shieldogre",
     "d03_mandrake", "bs_troll", "bs_deepgolem",
     // 深部の強敵 (rank6)
     "d04_golem", "d04_ogre", "bs_steelspider",
+    // 浅い階を rank4 で揃える (以前は rank3 のさそり・毒蜘蛛・泥ゴーレム・トカゲが混じり、迷宮11の浅い階が第2層と同格だった)
+    "bs_chainedconvict", "bs_minebat", "bs_koboldsapper", "bs_timbermite",
   ],
   // 第4層「捨て砦」: 武装兵/騎士/戦の亡霊中心、rank5-6主体 (第3層より格上)。深部に rank7 の騎士
   4: [

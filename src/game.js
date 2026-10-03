@@ -693,11 +693,11 @@ function log(msg, cls = "sys") {
 function curDungeon() { return DUNGEONS[G.dungeonIdx] || DUNGEONS[0]; }
 
 // ===== 公開範囲 (作り込み済みの層だけを遊べるようにする) =====
-// 現在は第1層 (迷宮1-5)・第2層 (迷宮6-10) まで公開。第3層以降は「準備中」として閉じ、刷新が済んだ層から引き上げる。
+// 現在は第1層 (迷宮1-5)・第2層 (迷宮6-10)・第3層 (迷宮11-15) まで公開。第4層以降は「準備中」として閉じ、刷新が済んだ層から引き上げる。
 // 既存セーブで先へ進んでいる場合も勅命の進行 (G.msq) は書き換えず、表示と潜入だけを止める。
 // 引き上げる時は CONTENT_LIMIT を上げ、story.js の SEAL_LINES (新しい果ての層) / UNSEAL_LINES (新しく開く層) を足す。
 // 封印の告知を受けていたセーブは読み込み時に「次の勅命待ち」へ戻り、王が封の解けたことを告げてから拝命する
-const CONTENT_LIMIT = 10;
+const CONTENT_LIMIT = 15;
 const CONTENT_NEXT_LAYER = Math.floor(CONTENT_LIMIT / 5) + 1; // 準備中の層番号
 const contentSealed = () => !!G.msq && (G.msq.state === "sealed" || G.msq.n > CONTENT_LIMIT);
 
