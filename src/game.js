@@ -1132,6 +1132,7 @@ function baseEnemyScale() {
   return (cfg.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
 }
 // 迷宮ごとの手直し (generator.js DUNGEON_TUNE) のうち、いまの階の雑魚に掛かる倍率。奈落では掛けない
+// (手直しは出現表の雑魚の強さ合わせ。ランクの曲線から組む単体の強敵・ミミック・出来事の魔物には掛けない → soloFoes)
 function tuneMul() {
   if (abyssActive()) return 1;
   const cfg = activeCfg();
@@ -1147,7 +1148,14 @@ function tuneMul() {
 function mimicRef() {
   const cfg = activeCfg();
   const ranks = sfMonsterPool().map((k) => (MONSTERS[k] && MONSTERS[k].rank) || 0);
-  return { rank: Math.max(1, cfg.rank || 1, ...ranks), scale: enemyScale() };
+  return { rank: Math.max(1, cfg.rank || 1, ...ranks), scale: baseEnemyScale() };
+}
+// 手直し (DUNGEON_TUNE) を掛けずに出す単体の強敵 (強敵・ミミック・出来事の魔物) の印。
+// これらは層相応のランク/固有の強さで組まれていて、雑魚の顔ぶれに合わせた倍率を重ねると強くなりすぎる。
+// startBattle はこの印のある敵からは手直しの倍率を戦果から打ち消さない
+function soloFoes(list) {
+  for (const e of list) e._untuned = true;
+  return list;
 }
 
 // この迷宮に出る強敵のid。作り込み済みの層は層ごとの強敵 (LAYER_ELITES) を階ごとに順に出す。
@@ -4596,7 +4604,7 @@ function resolveCell(cell) {
         if (cell.elite) {
           // 強敵は群れない: 規格外の1体が立ちはだかる
           log(`☠ 強敵 ${name} が立ちはだかる！`, "dmg");
-          startBattle(spawnEliteEnemies(cell.monsterKey, enemyScale()), cell);
+          startBattle(soloFoes(spawnEliteEnemies(cell.monsterKey, baseEnemyScale())), cell);
         } else {
           log(`⚔ ${name} のカードだ！`, "dmg");
           // 迷宮の異変 (飢えた狩場): 敵が常に群れで現れる
@@ -4847,9 +4855,10 @@ function evBuildFoes(specs) {
   const out = [];
   for (const sp of specs || []) {
     if (sp.shadows) { for (const p of evAlive()) out.push(evShadow(p, sp.shadows)); continue; }
-    if (sp.elite) { out.push(...spawnEliteEnemies(sp.key && MONSTERS[sp.key] ? sp.key : eliteKey(), scale * (sp.strong || 1))); continue; }
+    // 強敵・出来事の魔物は手直しを掛けない素の強さで (soloFoes)
+    if (sp.elite) { out.push(...soloFoes(spawnEliteEnemies(sp.key && MONSTERS[sp.key] ? sp.key : eliteKey(), baseEnemyScale() * (sp.strong || 1)))); continue; }
     // 出来事の魔物: その階の雑魚の最上位ランク + ranked の体で現れる (ミミックと同じ基準 mimicRef)
-    if (sp.ranked && sp.key && MONSTERS[sp.key]) { const e = spawnRanked(sp.key, mimicRef().rank, sp.ranked, scale)[0]; if (sp.name) e.name = sp.name; out.push(e); continue; }
+    if (sp.ranked && sp.key && MONSTERS[sp.key]) { const e = soloFoes(spawnRanked(sp.key, mimicRef().rank, sp.ranked, baseEnemyScale()))[0]; if (sp.name) e.name = sp.name; out.push(e); continue; }
     const key = sp.key && MONSTERS[sp.key] ? sp.key : (sp.undead ? undeadKeyForDungeon() : evPoolKey());
     if (sp.strong) { const e = evBoost(spawnEliteEnemies(key, scale)[0], sp.strong); if (sp.name) e.name = sp.name; out.push(e); continue; }
     if (sp.single) { out.push(spawnEliteEnemies(key, scale)[0]); continue; }
@@ -5820,7 +5829,7 @@ function rollChest(cell, allowDanger, done, opener, cRankIn, lvBonus, noGold = f
         accent: master ? "#ffd34d" : "#d4504e", banner: master ? "⚠ 危険 ⚠⚠" : "⚠ 危険 ⚠",
         lines: master ? ["金色に輝く宝箱が牙を剥いた！", "強敵だ。倒せば極上の宝が手に入る。"] : ["宝箱は怪物だった！", "倒せば上質な宝箱を残す。"],
         btnLabel: "戦う",
-        onClose: () => startBattle(spawnMimic(ref.rank, ref.scale, master), cell),
+        onClose: () => startBattle(soloFoes(spawnMimic(ref.rank, ref.scale, master)), cell),
       });
       return;
     }
@@ -6305,7 +6314,7 @@ function startBattle(enemies, cell) {
   if (tn) {
     const tm = tuneMul();
     for (const e of enemies) {
-      const k = e.boss ? (tn.bossMul || 1) : tm;
+      const k = e.boss ? (tn.bossMul || 1) : e._untuned ? 1 : tm;
       if (k !== 1) { e.soul = Math.round((e.soul || 0) / k); e.gold = Math.round((e.gold || 0) / k); }
     }
   }
