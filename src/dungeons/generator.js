@@ -168,6 +168,15 @@ function dungeonFloors(n) {
   return LAYER_DEF[layer - 1].floors[isEnd ? 1 : 0];
 }
 
+// 迷宮ごとの難易度の手直し (層の仕上げで、テスト記録の実測とプレイの手応えから決める)。
+//   enemyMul  = 雑魚・主・ミミック・出来事の魔物の HP/ATK/VIT (と戦果) に掛かる倍率 (enemyScale へ乗る)
+//   bossHpMul = 主の HP だけの倍率 (game.js が主を出す時に掛ける。攻撃力は enemyMul のみ)
+const DUNGEON_TUNE = {
+  // D5 (第1層の層末): 雑魚が D3/D4 と同じランク2・同じ強さで、町で育てた隊 (Lv16前後) には易しかった。
+  // 実測 2026-10: 通常戦の被ダメは1戦あたり隊HPの約9% (D4 は約11%)、主は2ラウンドで倒れた
+  5: { enemyMul: 1.15, bossHpMul: 2 },
+};
+
 export function generateDungeon(n) {
   const layer = layerOf(n);                     // 層 (1-20)
   const def = LAYER_DEF[layer - 1];
@@ -203,7 +212,9 @@ export function generateDungeon(n) {
     // 暫定プールの層は ceil(layer/2) (通常敵と同帯) でボス倍率分だけ強い主にする。
     bossRank: isEnd ? Math.min(10, LAYER_POOLS[layer] ? layer + 2 : Math.ceil(layer / 2)) : 0,
     bossScale: 1.0,
-    enemyScale: Math.round((0.7 + (n - 1) / 99 * 1.4) * 100) / 100, // 全100迷宮で滑らかに上昇 0.7→2.1
+    bossHpMul: (DUNGEON_TUNE[n] && DUNGEON_TUNE[n].bossHpMul) || 1,
+    // 全100迷宮で滑らかに上昇 0.7→2.1 (DUNGEON_TUNE の enemyMul で迷宮ごとに手直し)
+    enemyScale: Math.round((0.7 + (n - 1) / 99 * 1.4) * ((DUNGEON_TUNE[n] && DUNGEON_TUNE[n].enemyMul) || 1) * 100) / 100,
     trapRate: Math.min(0.25, 0.04 + n * 0.002),
     poisonRate: n > 10 ? Math.min(0.10, 0.04 + n * 0.0006) : 0,
     warmChance: Math.min(0.7, 0.38 + n * 0.0032),

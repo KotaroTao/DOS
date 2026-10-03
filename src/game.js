@@ -5646,7 +5646,13 @@ function askDescend(cell) {
     prompt,
     [
       { label, danger: boss, primary: !boss, fn: () => {
-        if (boss) { log("迷宮の主が立ちはだかる！", "dmg"); startBattle(spawnBossEnemies(dn.boss, dn.bossScale * enemyScale(), dn.bossRank), cell); }
+        if (boss) {
+          log("迷宮の主が立ちはだかる！", "dmg");
+          const foes = spawnBossEnemies(dn.boss, dn.bossScale * enemyScale(), dn.bossRank);
+          // 迷宮ごとの手直し (generator.js DUNGEON_TUNE): 主の HP だけを伸ばして長く立ちはだからせる
+          if ((dn.bossHpMul || 1) !== 1) for (const e of foes) e.maxhp = e.hp = Math.max(1, Math.round(e.maxhp * dn.bossHpMul));
+          startBattle(foes, cell);
+        }
         else if (clearNoBoss) clearDungeonNoBoss();
         else descend();
       } },
