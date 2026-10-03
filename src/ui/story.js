@@ -3,16 +3,18 @@
 //   1回目のタップ = 残りの台詞を一度に出す / 次のタップ = 次のページ / 最後のページは「御意」で閉じる。
 //   戻る操作も同じ順 (全文 → 次のページ → 閉じる)。
 // pages: [{ title, lines[], reward?, kicker?, btnLabel?, enter?(), leave?() }]
+//   reward = 受け取るものの一覧 [{ job:"fighter" } | { cur:"gold"|"soul"|"red"|"ember", n }] (文字列でも可)
 //   enter = ページを開く直前 / leave = ページを離れる時 (次のページへ進む・閉じる)。状態の変化はここで行い、順番は呼び出し側が決める。
 // done(): すべて閉じた後 (最後のページの leave の後)。描き直し・トーストは呼び出し側。
 // 提供: UI.playStoryChain(pages, done) (.scene = true で旧来の showStoryScene が委ねる)
 // game.js は import しない (ctx.js の UI / game を通す)。
 
 import { game, registerUI } from "./ctx.js";
-import { el, setText, button } from "./kit.js";
+import { el, setText, button, glyph } from "./kit.js";
 import { nav } from "./nav.js";
 import { animate, reduced } from "./motion.js";
-import { spriteCanvas } from "../sprites.js";
+import { spriteCanvas, crispCanvas } from "../sprites.js";
+import { SOUL_CLASSES, jobBust } from "../souls.js";
 import { KING_PORTRAIT, vignetteCanvas } from "../townart.js";
 import { SFX } from "../audio.js";
 
@@ -24,6 +26,33 @@ function lineKind(t) {
   if (/^──/.test(t)) return "decree";
   if (/^「/.test(t)) return "king";
   return "narr";
+}
+
+// 受け取るもの: 見出し + 1点ずつの札 (魂は職の胸像、通貨は印と数)
+const CUR_NAME = { gold: "金貨", soul: "✦Soul", red: "赤い魂", ember: "魂の残火" };
+function rewardBox(reward) {
+  const box = el("div", "sc-reward");
+  box.appendChild(el("div", "sc-rw-h", "受け取るもの"));
+  if (!Array.isArray(reward)) { box.appendChild(setText(el("div", "sc-rw-t"), reward)); return box; }
+  const list = el("div", "sc-rw-list");
+  for (const r of reward) {
+    const it = el("div", "sc-rw-i");
+    const ic = el("span", "sc-rw-ic");
+    let name;
+    if (r.job) {
+      try { ic.appendChild(crispCanvas(jobBust(r.job, 1), 28)); } catch (e) { /* 絵が無くても動く */ }
+      name = `${(SOUL_CLASSES[r.job] || {}).label || r.job}の魂`;
+    } else {
+      ic.appendChild(glyph(r.cur));
+      name = CUR_NAME[r.cur] || r.cur;
+    }
+    it.appendChild(ic);
+    it.appendChild(el("span", "sc-rw-n", name));
+    if (r.n != null) it.appendChild(el("span", "sc-rw-q", `×${r.n}`));
+    list.appendChild(it);
+  }
+  box.appendChild(list);
+  return box;
 }
 
 let active = null; // 同時に1つだけ (重ねて呼ばれたら、前の語りの後ろに続ける)
@@ -106,7 +135,7 @@ export function playStoryChain(pages, done) {
     }
     page.appendChild(body);
     if (p.reward) {
-      const rw = setText(el("div", "sc-reward"), p.reward);
+      const rw = rewardBox(p.reward);
       rw.style.animationDelay = delay.toFixed(2) + "s";
       delay += 0.3;
       page.appendChild(rw);
