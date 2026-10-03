@@ -6,7 +6,7 @@ export const monsters = defMonsters([
     ability: "critical", enrage: true, // 鎧ごと胸郭を陥没させる急所狙いの一打。痛覚が焼き切れ、手負いほど荒れ狂う
     hp: 44, atk: 16, def: 8, spd: 5, soul: 34, gold: 26, soulClass: "knight",
     desc: "深淵から立ち昇る瘴気を浴び、肉も殺意も常軌を逸して膨れ上がった大型のオーク。岩塊のような拳が急所を捉えれば、鎧ごと胸郭を陥没させる。痛覚はとうに焼き切れ、四肢を失ってなお這い寄って噛みつく。" },
-  { id: "d03_ghost", name: "さまよう亡霊", race: "specter", element: "dark", artKey: "ghost", rank: 3,
+  { id: "d03_ghost", name: "さまよう亡霊", race: "specter", element: "dark", artKey: "hd_wanderghost", rank: 3,
     ability: "soulSteal", // 冷たい指で熱とともにSoulを奪う
     hp: 38, atk: 15, def: 6, spd: 10, soul: 30, gold: 22,
     desc: "回廊で力尽き、骸さえ見つけてもらえなかった者の魂。生者の体温に飢え、音もなく背後へ回り込んでは冷たい指を肋の隙間へ差し入れる。触れられた箇所から熱とともにSoulが吸い出され、心の臓が凍てついていく。" },
@@ -18,7 +18,7 @@ export const monsters = defMonsters([
     ability: "confuse", // 断末魔の絶叫で正気を削る
     hp: 52, atk: 17, def: 9, spd: 4, soul: 40, gold: 30,
     desc: "屍を養分に、人の形を真似て育った歩く毒草。引き抜かれると断末魔の絶叫を放ち、聞いた者の正気を削って敵味方の見分けを奪う。根からまかれる紫の胞子は肺を腐らせ、やがてその体内が次の苗床になる。" },
-  { id: "d03_sentinel", name: "無人の甲冑", race: "armored", element: "light", artKey: "knightmare", rank: 4,
+  { id: "d03_sentinel", name: "無人の甲冑", race: "armored", element: "light", artKey: "hd_sentinel", rank: 4,
     ability: "critical", physResist: 1, // 冴えた剣技で急所を突き、空洞の鎧が刃を弾く
     hp: 60, atk: 19, def: 12, spd: 6, soul: 46, gold: 34, soulClass: "knight",
     desc: "守るべき主も、守るべき意味も失われ、ただ「侵入者を通すな」という最後の誓いだけが宿った無人の鎧。中身は空洞ゆえ刃を通しても手応えなく、磨き抜かれた剣技は生前のまま冴え渡り、隙あらば急所を突く。兜の奥で、消えぬ聖光がぼうと灯る。" },

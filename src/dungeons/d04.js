@@ -10,11 +10,10 @@ export const monsters = defMonsters([
     ability: "critical", // 棍棒の一撃が急所を叩き潰す
     hp: 96, atk: 22, def: 10, spd: 4, soul: 54, gold: 46,
     desc: "墓を暴いて骸を喰らううち、屍肉の魔力で異形に肥え太った人喰い鬼。供物のつもりか、棍棒で急所を叩き潰した獲物を古竜の墓前へ並べる悪癖を持つ。足音だけで石棺の蓋が震えるという。" },
-  { id: "d04_revenant", name: "亡霊騎士", race: "armored", element: "light", artKey: "knightmare", rank: 5,
-    palette: tint(ARTS.knightmare.palette, "#5fb8d6", 0.3),
-    physResist: 1, ability: "critical", // 誇り高き剣技が鎧の継ぎ目=急所を突き、鎧は刃を弾く
+  { id: "d04_revenant", name: "亡霊騎士", race: "armored", element: "light", artKey: "hd_revenant", rank: 5,
+    magResist: 1, ability: "critical", // 誇り高き剣技が鎧の継ぎ目=急所を突き、宿った聖光が呪文を散らす (物理耐性の無人の甲冑と分ける)
     hp: 110, atk: 24, def: 16, spd: 7, soul: 70, gold: 56, soulClass: "knight",
-    desc: "古竜に挑み、誇り高く敗れた騎士の鎧。死してなお誓いを捨てず、磨かれた剣技で挑戦者の鎧の継ぎ目を突き、その身を鎧で固めて刃を弾く。砕けた兜の奥で、あがないを求める弱い光が今も明滅している。" },
+    desc: "砦を守って誇り高く敗れた騎士の鎧。死してなお誓いを捨てず、磨かれた剣技で挑戦者の鎧の継ぎ目を突く。砕けた兜の奥では、あがないを求める弱い聖光が今も明滅し、撃ち込まれた呪文をその光が散らしてしまう。" },
   { id: "d04_grudge", name: "墓所の怨霊", race: "specter", element: "dark", artKey: "wraith", rank: 5,
     palette: tint(ARTS.wraith.palette, "#6a4a8a", 0.4),
     ability: "soulSteal", // 黄金への妄執を呪詛に変え、魂を吸い上げる
