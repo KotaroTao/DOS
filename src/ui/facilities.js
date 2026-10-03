@@ -49,6 +49,10 @@ export function lockedToast() { sfx("ng"); toast("王命を果たすまで閉ざ
 // 1画面に収まる行数ぶんずつ見せる格子 (‹ 1/3 ›)。area は DOM に繋がった、残りの高さを占める箱 (flex:1)。
 // 横に払ってもめくれる。めくったページは key ごとに覚える (この起動の間)
 const pageMemo = {};
+// めくる格子の位置を忘れる (prefix で始まる key / 省略ですべて)。画面・区分・分類に入り直したら 1ページ目から
+export function resetPages(prefixes = null) {
+  for (const k of Object.keys(pageMemo)) if (!prefixes || prefixes.some((p) => k.startsWith(p))) delete pageMemo[k];
+}
 export function pagedGrid(area, items, makeCell, { cols = 3, cellH = 104, gap = 8, key = "", empty = null } = {}) {
   area.textContent = "";
   area.classList.add("wa-parea");
