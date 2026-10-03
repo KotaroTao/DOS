@@ -200,7 +200,7 @@ export function keeperRow(key) {
 // ---------- 通貨の説明 (ヘッダの通貨の札をタップ) ----------
 const CUR = {
   gold: { name: "金貨", key: "gold", desc: ["宿賃・鑑定・装備の売買に使う。", "迷宮の宝箱・戦闘・品の売却で手に入る。"] },
-  soul: { name: "✦Soul", key: "soulPts", desc: ["魂を鍛えるための力。人業ではなく魂に刻まれる。", "迷宮で敵を倒すと得られ、全滅しても失われない。"] },
+  soul: { name: "✦Soul", key: "soulPts", desc: ["魂を強化するための力。人業ではなく魂に刻まれる。", "迷宮で敵を倒すと得られ、全滅しても失われない。"] },
   red: { name: "赤い魂", key: "redSoul", desc: ["人業の器を仕立てる、砕けた人業の帰還を早める、全滅の時に戦利品を守る——に使う。", "赤い魂の祠で授かる。"] },
   ember: { name: "魂の残火", key: "embers", desc: ["魂のLv上限を1つ上げる。", "あたたかい死体の魂を回収すると得ることがある。"] },
 };
@@ -220,7 +220,7 @@ export function currencySheet(kind) {
   } else if (inTown && kind === "gold" && facilityOpen("shop")) {
     footer.push({ label: "商会へ", kind: "secondary", onTap: (h) => { h.close(); if (UI.openShop) UI.openShop(); } });
   } else if (inTown && kind === "soul" && facilityOpen("mansion") && (g.party || []).length) {
-    footer.push({ label: "パーティで魂を鍛える", kind: "secondary", onTap: (h) => { h.close(); if (UI.openTab) UI.openTab("party"); } });
+    footer.push({ label: "パーティで魂を強化", kind: "secondary", onTap: (h) => { h.close(); if (UI.openTab) UI.openTab("party"); } });
   }
   footer.push({ label: "閉じる", kind: "ghost", onTap: (h) => h.close() });
   return sheet.open({ kind: "info", banner: info.name, body, footer, className: "cur-sheet-card" });

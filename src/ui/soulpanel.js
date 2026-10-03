@@ -1,14 +1,14 @@
-// ===== 魂の区分 — メイン魂・鍛える/上限まで・残火・付け替え・吸収・サブ魂・控えの結社 =====
+// ===== 魂の区分 — メイン魂・魂を強化/上限まで・残火・付け替え・吸収・サブ魂・控えの結社 =====
 // 担当: WP-B。隊 (party.js) の「魂」区分を描き、魂の操作のシート (付け替え・宿し技・吸収) を開く。
 //   街でだけ魂を付け替え・鍛えられる (迷宮の中では見るだけ = 旧来と同じ制限)。
-//   鍛える/上限まで は ops.trainTimes (単体の鍛錬のループ・同じ費用) を使い、結果は1つのトーストにまとめ、
-//   その場で Lv の数字が刻み、能力の伸びが浮かぶ。転職・ランクアップは祝祭カード (kit.celebrate)。
+//   魂を強化/上限まで は ops.trainTimes (単体の鍛錬のループ・同じ費用) を使い、結果は1つのトーストにまとめ、
+//   その場で Lv の数字が刻み、強化ボタンの下に「強化の結果」(能力の before→after) が出る。転職・ランクアップは祝祭カード (kit.celebrate)。
 // 提供する契約: UI.trainableList()
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
 import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, button, row, sheet, toast, confirm, statDelta, bar, svgIcon, celebrate, longPress } from "./kit.js";
-import { countUp, deltaFloat } from "./motion.js";
+import { countUp } from "./motion.js";
 import { showSkillPopup, SPELL_KIND_LABEL } from "./itemview.js";
 import {
   SOUL_CLASSES, jobSprite, jobBust, soulByUid, soulRankOf, soulLevelCapOf, nextRankThreshold, jobRankName, soulSeriesName,
@@ -54,19 +54,68 @@ export function trainPlan(e, pts = (G_() || {}).soulPts || 0, max = Infinity) {
   return { n, cost, to: lv, next, cap };
 }
 
-// 鍛える (n = Infinity で上限まで)。結果は1つのトースト + その場の演出
+// 魂を強化 (n = Infinity で上限まで)。結果は1つのトースト + その場の演出 (Lv が刻み、能力の変化を並べる)
 export function train(uid, n = 1) {
   const r = ops.trainTimes ? ops.trainTimes(uid, n) : null;
   if (!r || !r.ok) return r;
+  // 続けて強化したら、最初の値からの変化にまとめる
+  const now = Date.now();
+  const keep = lastTrain && lastTrain.uid === uid && now - lastTrain.at < RESULT_MS;
+  lastTrain = { uid, at: now, from: keep ? lastTrain.from : r.from, to: r.to,
+    before: keep ? lastTrain.before : (r.before || {}), after: r.after || {} };
   requestAnimationFrame(() => {
     const lv = document.querySelector(`[data-sp-lv="${uid}"]`);
     if (lv) countUp(lv, r.from, r.to, 420);
-    const parts = Object.entries(r.deltas || {}).filter(([, v]) => v > 0).map(([k, v]) => `${STAT_L[k] || k}+${v}`);
-    const anchor = document.querySelector(`.sp-card[data-uid="${uid}"] .sp-lv`);
-    if (anchor && parts.length) deltaFloat(anchor, parts.slice(0, 4).join(" "), "up");
+    const card = document.querySelector(`.sp-card[data-uid="${uid}"]`);
+    if (card) attachTrainResult(card, uid, true);
   });
   if (r.wearer && r.gainedSkills && r.gainedSkills.length) toastNewSkills(r.wearer, r.gainedSkills);
   return r;
+}
+
+// ---- 強化の結果 (能力がどう変わったか) ----
+// 強化ボタンの下に重ねて出す (レイアウトを押し広げない = 縦スクロールを生まない)。数秒で消え、タップでも閉じる
+const RESULT_MS = 5000;
+const RESULT_KEYS = ["hp", "mp", "atk", "vit", "agi", "int", "pie", "luk"];
+let lastTrain = null;
+function attachTrainResult(card, uid, fresh) {
+  const t = lastTrain;
+  if (!t || t.uid !== uid) return;
+  const left = RESULT_MS - (Date.now() - t.at);
+  if (left <= 0) return;
+  const anchor = card.querySelector(".sp-acts, .sp-note");
+  if (!anchor) return;
+  const old = anchor.querySelector(".sp-res");
+  if (old) old.remove();
+  anchor.classList.add("sp-res-anchor");
+  const box = el("div", "sp-res" + (fresh ? " fresh" : ""));
+  box.setAttribute("role", "status");
+  const hd = el("div", "sp-res-h");
+  hd.appendChild(el("span", "sp-res-k", "強化の結果"));
+  hd.appendChild(el("span", "sp-res-lv", `Lv${t.from} → ${t.to}`));
+  box.appendChild(hd);
+  const grid = el("div", "sp-res-g");
+  let any = false;
+  for (const k of RESULT_KEYS) {
+    const a = t.before[k], b = t.after[k];
+    if (a == null || b == null || a === b) continue;
+    any = true;
+    const c = el("div", "sp-res-s " + (b > a ? "up" : "dn"));
+    c.appendChild(el("span", "sp-res-n", STAT_L[k] || k));
+    c.appendChild(el("span", "sp-res-v", `${a}→${b}`));
+    c.appendChild(el("span", "sp-res-d", `${b > a ? "+" : ""}${b - a}`));
+    grid.appendChild(c);
+  }
+  if (!any) grid.appendChild(el("div", "sp-res-none", "能力の変化なし"));
+  box.appendChild(grid);
+  const close = () => {
+    if (!box.isConnected || box.classList.contains("out")) return;
+    box.classList.add("out");
+    setTimeout(() => box.remove(), 260);
+  };
+  box.addEventListener("click", () => { lastTrain = null; close(); });
+  setTimeout(close, left);
+  anchor.appendChild(box);
 }
 
 // 新たな技のお知らせ (トースト。「見る」でくわしく)
@@ -121,7 +170,7 @@ export function renderSoulSeg(root, d, ctx = {}) {
   subTiles(more, d, town);
   more.appendChild(orderTile(town));
   root.appendChild(more);
-  if (!town) root.appendChild(el("div", "pt-note c", "魂の付け替え・鍛錬は、街へ戻ってから。"));
+  if (!town) root.appendChild(el("div", "pt-note c", "魂の付け替え・強化は、街へ戻ってから。"));
 }
 function svgSoul() {
   const s = el("span", "sp-ic");
@@ -185,7 +234,7 @@ function mainCard(d, pe, town) {
     if (pe.level < cap) {
       const plan = trainPlan(pe);
       const acts = el("div", "sp-acts");
-      acts.appendChild(button({ label: "鍛える", sub: `Lv${pe.level} → ${pe.level + 1}`, kind: "primary", cost: { kind: "soul", n: plan.next },
+      acts.appendChild(button({ label: "魂を強化", sub: `Lv${pe.level} → ${pe.level + 1}`, kind: "primary", cost: { kind: "soul", n: plan.next },
         disabled: (G.soulPts || 0) < plan.next, onTap: () => train(pe.uid, 1) }));
       if (plan.n >= 2) {
         acts.appendChild(button({ label: plan.to >= cap ? "上限まで" : "まとめて", sub: `→ Lv${plan.to}`, kind: "secondary",
@@ -227,6 +276,7 @@ function mainCard(d, pe, town) {
     foot.appendChild(em);
   }
   if (foot.childElementCount) card.appendChild(foot);
+  if (town && lastTrain && lastTrain.uid === pe.uid) attachTrainResult(card, pe.uid, false);
   return card;
 }
 

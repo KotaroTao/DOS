@@ -11608,19 +11608,19 @@ const OPS = {
     return { ok: true, n, gold, redSoul: red, soulPts: soul };
   },
 
-  // 新種をまとめて奉納 (宝物庫の「新種をまとめて奉納」と同じ)
+  // 未奉納の蒐集品をまとめて奉納 (宝物庫の「蒐集品を奉納」→ 詳細のシートの「奉納する」)
   donateAllNew() {
     const list = opsDonatableList();
     if (!list.length) return { ok: false, n: 0 };
     for (const h of list) donateCollectible(h.doll, h.item);
     SFX.itemget(); autosave();
     log(`蒐集品 ${list.length} 種を宝物庫に奉納した。`, "win");
-    showToast(`${list.length}種を奉納した`);
+    showToast(`蒐集品 ${list.length}種を奉納した`);
     renderTown();
     return { ok: true, n: list.length, rewardReady: treasuryRewardReady() };
   },
 
-  // 魂を n 段鍛える (n = Infinity で上限まで)。1段ごとの費用・上限は trainSoul と同じ。
+  // 魂を n 段強化する (n = Infinity で上限まで)。1段ごとの費用・上限は trainSoul と同じ。
   // 結果に宿主の能力の伸び (deltas) と新たに覚えた技 (gainedSkills) を添える。迷宮の中では鍛えられない
   trainTimes(uid, n = 1) {
     const e = soulByUid(uid);
@@ -11648,12 +11648,19 @@ const OPS = {
     codexJobSee(e.clsKey, e.count, e.level);
     SFX.levelup(); buzz([0, 30, 40, 30]);
     log(`${soulSeriesName(e.clsKey)}の魂が Lv${from}→${e.level} に成長した！ (✦${spent})`, "win");
-    const deltas = {};
-    if (wearer && before) for (const k of KEYS) { const d = (wearer[k] || 0) - before[k]; if (d) deltas[k === "maxhp" ? "hp" : k === "maxmp" ? "mp" : k] = d; }
+    // 能力の伸び: before/after は hp/mp/atk… の表示キーで (魂の区分の「強化の結果」に並べる)
+    const sk = (k) => (k === "maxhp" ? "hp" : k === "maxmp" ? "mp" : k);
+    const deltas = {}, statsBefore = {}, statsAfter = {};
+    if (wearer && before) for (const k of KEYS) {
+      statsBefore[sk(k)] = before[k]; statsAfter[sk(k)] = wearer[k] || 0;
+      const d = (wearer[k] || 0) - before[k]; if (d) deltas[sk(k)] = d;
+    }
     const gainedSkills = wearer ? (wearer.spells || []).filter((k) => !beforeSpells.has(k)) : [];
-    showToast(`${soulSeriesName(e.clsKey)}の魂 Lv${e.level} (✦${spent})`, { tone: "good" });
+    const STAT_N = { hp: "HP", mp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
+    const grow = Object.entries(deltas).filter(([, v]) => v > 0).map(([k, v]) => `${STAT_N[k] || k}+${v}`).join(" ");
+    showToast(`${soulSeriesName(e.clsKey)}の魂を強化 Lv${from}→${e.level}${grow ? ` ― ${grow}` : ""}`, { tone: "good" });
     renderTown();
-    return { ok: true, levels, spent, from, to: e.level, deltas, gainedSkills, wearer };
+    return { ok: true, levels, spent, from, to: e.level, deltas, before: statsBefore, after: statsAfter, gainedSkills, wearer };
   },
 };
 Object.assign(ops, OPS);
