@@ -610,19 +610,27 @@ function renderAch(body) {
 
 // ================= 宝物庫 =================
 // 奉納台帳のランク帯ひとつをシートで (各10種。奉納済みは札、未奉納は手持ちでも ？ = 奉納するまで台帳には記されない)
-function bandSheet(r, ids) {
+// 奉納したばかりの種類は新着の点つきで見せ、見たら帯の札の数字を消す
+function bandSheet(r, ids, onSeen) {
   const ts = game.treasuryState();
+  const fresh = ts.fresh || {};
+  const seen = ids.filter((id) => fresh[id]);
   const body = el("div", "pl-band-sheet");
   const slots = el("div", "pl-band-slots");
   for (const id of ids) {
     if (ts.donated[id]) {
-      const t = itemTile(ITEMS[id], { size: 56, onTap: () => openItem(id) });
+      const t = itemTile(ITEMS[id], { size: 56, isNew: !!fresh[id], onTap: () => openItem(id) });
       t.setAttribute("aria-label", ITEMS[id].name);
       slots.appendChild(t);
     } else { const s = el("span", "pl-band-q"); s.textContent = "？"; slots.appendChild(s); }
   }
   body.appendChild(slots);
   const cnt = ids.filter((id) => ts.donated[id]).length;
+  if (seen.length) {
+    for (const id of seen) delete fresh[id];
+    if (game.autosave) game.autosave();
+    if (onSeen) onSeen();
+  }
   return sheet.open({ kind: "info", banner: `奉納台帳 R${r}`, title: `${cnt} / ${ids.length} 種`, body, className: "pl-band-card",
     footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }] });
 }
@@ -736,22 +744,23 @@ function renderTreasury(body) {
   // 奉納台帳: ランク帯の札 (タップで帯のシート)
   body.appendChild(sectionHead("奉納台帳", { note: "ランク帯ごと・各10種" }));
   const byRank = game.collectiblesByRank ? game.collectiblesByRank() : {};
-  const newIds = new Set(news.map((h) => h.item.id)); // 帯の印 = その帯に奉納できる蒐集品がある
+  const freshIds = ts.fresh || {}; // 帯の印 = その帯に奉納したばかりで、まだ台帳で見ていない種類
   const led = el("div", "pl-ledger");
   for (let r = 1; r <= 10; r++) {
     const ids = byRank[r] || [];
     const cnt = ids.filter((id) => ts.donated[id]).length;
-    const fresh = ids.filter((id) => newIds.has(id)).length;
+    const fresh = ids.filter((id) => ts.donated[id] && freshIds[id]).length;
     const b = el("button", "pl-band" + (ids.length && cnt >= ids.length ? " full" : cnt ? " some" : ""));
     b.type = "button";
     b.appendChild(el("span", "pl-band-r", `R${r}`));
     b.appendChild(el("span", "pl-band-c", `${cnt}/${ids.length}`));
-    if (fresh) b.appendChild(badge(fresh));
+    const bdg = fresh ? badge(fresh) : null;
+    if (bdg) b.appendChild(bdg);
     const fill = el("i", "pl-band-fill");
     fill.style.width = (ids.length ? (cnt / ids.length) * 100 : 0).toFixed(0) + "%";
     b.appendChild(fill);
     b.setAttribute("aria-label", `奉納台帳 R${r} ${cnt}/${ids.length}`);
-    b.addEventListener("click", () => { sfx("select"); bandSheet(r, ids); });
+    b.addEventListener("click", () => { sfx("select"); bandSheet(r, ids, () => { if (bdg) bdg.remove(); }); });
     led.appendChild(b);
   }
   body.appendChild(led);

@@ -9518,6 +9518,7 @@ function treasuryState() {
   if (!G.treasury || typeof G.treasury !== "object") G.treasury = { donated: {}, claimed: {} };
   if (!G.treasury.donated) G.treasury.donated = {};
   if (!G.treasury.claimed) G.treasury.claimed = {};
+  if (!G.treasury.fresh) G.treasury.fresh = {}; // 奉納したばかりで、まだ台帳で見ていない種類 (帯の札の数字)
   return G.treasury;
 }
 // 奉納した蒐集品の総種類数 (ランク帯を問わない)
@@ -9547,7 +9548,7 @@ function donateCollectible(doll, it) {
   const idx = doll.items.indexOf(it);
   if (idx < 0) return false;
   doll.items.splice(idx, 1);
-  if (it.id) { ts.donated[it.id] = true; codexSeeItem(it.id); }
+  if (it.id) { if (!ts.donated[it.id]) ts.fresh[it.id] = true; ts.donated[it.id] = true; codexSeeItem(it.id); }
   return true;
 }
 
