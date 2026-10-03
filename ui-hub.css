@@ -435,6 +435,19 @@
 .pl-card.unknown { cursor: default; background: rgba(10,8,11,0.6); border-style: dashed; border-top-width: 1px; }
 .pl-card-q { font-size: 26px; color: #4c4339; }
 .pl-card.unknown .pl-card-n { color: #5d5246; }
+/* 新着の印 (図鑑の札は詳細を開くと、勲章は拝受すると消える) */
+.pl-card-new {
+  position: absolute; top: 4px; left: 4px; z-index: 1; padding: 0 3px; font-size: 9.5px; font-weight: 800; line-height: 14px; color: #fff3d6;
+  background: radial-gradient(circle at 40% 30%, #ff7a6a, #b3241c 60%, #5a0c08); border: 1px solid #f3d58b; border-radius: 2px; box-shadow: 0 0 6px rgba(228,85,79,0.7);
+  pointer-events: none;
+}
+.pl-card.fresh { border-color: #7a3a30; }
+.pl-card.fresh .pl-card-own { top: 22px; }
+.pl-ach > .pl-card-new { top: 7px; left: auto; right: 30px; }
+.pl-ach.ready .pl-ach-n, .pl-ach.ready .pl-ach-d { padding-right: 44px; }
+.pl-band > .ui-badge { position: absolute; top: 2px; right: 2px; z-index: 2; min-width: 14px; height: 14px; padding: 0 3px; font-size: 9px; }
+.pl-band-pending { border-style: dashed; }
+.pl-band-pending canvas { opacity: 0.55; }
 
 /* 図鑑の詳細のシート */
 .pl-detail-sheet .ui-sheet-body { text-align: left; }
