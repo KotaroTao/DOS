@@ -511,7 +511,7 @@ function sGraveyard(R, A) {
   A.part({ n: 6, col: "#bff0e4", x0: 0.04, x1: 0.96, y0: 0.4, y1: 0.78, sway: 14, swf: 0.25, bob: 6, bobf: 0.5, a: 0.55, blink: 0.4, halo: 0.2, sz: 2 });
 }
 
-// 層 2 地下水路: 煉瓦のアーチ、奥へ続く暗渠、錆びた配管、手前の水路の映り込み、滴る水
+// 層 2 地下水路: 煉瓦のアーチ、奥へ続く下水路、錆びた配管、手前の水路の映り込み、滴る水
 function sWaterway(R, A) {
   const { w: W, h: H } = R, gy = Math.round(H * 0.57), wy = Math.round(H * 0.84), cx = W / 2;
   R.amb = [0.62, 0.72, 0.76];
@@ -705,7 +705,7 @@ function sFort(R, A) {
   A.part({ n: 18, col: "#8a8a90", x0: 0, x1: 1, y0: 0.05, y1: 0.85, vy: 0.012, vx: 0.01, sway: 10, swf: 0.2, a: 0.22, seed: 8 });
 }
 
-// 層 5 霧の森: 霧に溶ける幾重もの幹、張り出した根、光る茸、蛍
+// 層 5 霧の森: 霧に溶ける幾重もの幹、張り出した根、光るキノコ、蛍
 function sForest(R, A) {
   const { w: W, h: H } = R, gy = Math.round(H * 0.58);
   R.amb = [0.68, 0.78, 0.66];
@@ -725,7 +725,7 @@ function sForest(R, A) {
   for (const [x, wd, k] of [[W * 0.3, 7, 0.07], [W * 0.46, 4, 0.05], [W * 0.62, 9, 0.06], [W * 0.72, 4, 0.05]]) {
     for (let y = 0; y < gy; y++) { const xo = x - y * 0.3, f = k * (1 - y / gy); R.span(y, xo, xo + wd, (px) => mul(C("#a8c8a0"), Math.floor(f * 30 + bayer(px, y)) / 30), 1); }
   }
-  // 樹冠 (上辺を覆う葉叢の塊) と垂れる蔓
+  // 樹冠 (上辺を覆う葉叢の塊) と垂れるつる
   R.m = SURF;
   for (let y = 0; y < H * 0.34; y++) for (let x = 0; x < W; x++) {
     const d = fbm(x * 0.07, y * 0.09, 71) + (1 - y / (H * 0.3)) * 0.55 - 0.62 + (Math.abs(x - W / 2) / W) * 0.25;
@@ -751,7 +751,7 @@ function sForest(R, A) {
     R.ellipse(s < 0 ? x0 + w * 0.55 : x0 + w * 0.45, H * 0.35, 3, 5, "#060504"); // 洞
   }
   R.m = SURF; for (let k = 0; k < 3; k++) R.taper(W * 0.15, H * (0.88 + k * 0.04), W * (0.35 + k * 0.08), H * (0.96 + k * 0.02), 3, 1, "#14120d");
-  // 光る茸 (根元)
+  // 光るキノコ (根元)
   for (const [x, y, n, sd] of [[W * 0.17, H * 0.84, 4, 1], [W * 0.82, H * 0.8, 5, 2], [W * 0.08, H * 0.97, 3, 3], [W * 0.93, H * 0.95, 3, 4]]) {
     const q = rnd(sd);
     for (let i = 0; i < n; i++) {
@@ -1166,7 +1166,7 @@ function sOssuary(R, A) {
   A.part({ n: 22, col: "#e0d0a0", x0: 0, x1: 1, y0: 0.05, y1: 0.9, vy: 0.005, sway: 6, swf: 0.2, a: 0.25, tw: 0.8 });
 }
 
-// 層 15 溶鉄炉: 巨大な炉の口、吊られた坩堝と注がれる溶鉄、床を走る溶鉄の溝、鎖、金床と火花
+// 層 15 溶鉄炉: 巨大な炉の口、吊られたるつぼと注がれる溶鉄、床を走る溶鉄の溝、鎖、金床と火花
 function sForge(R, A) {
   const { w: W, h: H } = R, gy = Math.round(H * 0.58), cx = W / 2;
   R.amb = [0.5, 0.4, 0.36];
@@ -1182,10 +1182,10 @@ function sForge(R, A) {
   R.m = SURF; for (let i = -2; i <= 2; i++) R.rect(fx + 6 + i * 6, H * 0.4, 1, H * 0.32, "#1a1210"); R.rect(fx - 9, H * 0.56, 30, 1, "#1a1210");
   R.rect(fx - 16, H * 0.74, 44, 3, "#4a3a32"); R.rect(fx - 16, H * 0.74, 44, 1, "#8a6a50");
   R.glow(fx + 6, H * 0.56, 46, 40, "#a03a08", 0.4); R.light(fx + 6, H * 0.6, 130, "#ff7020", 1.5, 100);
-  // 右の坩堝 (鎖で吊られ、傾いて注ぐ)
+  // 右のるつぼ (鎖で吊られ、傾いて注ぐ)
   const kx = W * 0.85, ky = H * 0.26;
   chainV(R, kx - 8, 0, ky - 10, "#6a5a54"); chainV(R, kx + 10, 0, ky - 13, "#6a5a54");
-  { // 坩堝: 丸底の鉄鍋を左へ傾けて注ぐ
+  { // るつぼ: 丸底の鉄鍋を左へ傾けて注ぐ
     const rot = -0.22, cs = Math.cos(rot), sn = Math.sin(rot), body = [];
     for (let i = 0; i <= 12; i++) { const a = (i / 12) * Math.PI; body.push([Math.cos(a) * 15, -3 + Math.sin(a) * 15]); }
     body.push([-17, -6], [-15, -10], [15, -10], [17, -6]);

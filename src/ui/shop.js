@@ -57,7 +57,7 @@ function baseJunk(opts) {
   const base = typeof ops.junkList === "function" ? ops.junkList(opts) : [];
   return base.filter((j) => j && j.item && !j.item.cursed && !j.item.unidentified && !wornByAnyone(j.item));
 }
-// 売却候補: ops と同じ集合 (呪い・未鑑定・装備中・SR/LR・未奉納の蒐集品・道具を除く) から、
+// 売却候補: ops と同じ集合 (呪い・未鑑定・装備中・SR/LR・未奉納の収集品・道具を除く) から、
 // さらに「誰かの今の装備に勝る品」(装備の候補) を既定で残す。{ keepUpgrades: false } で ops と同じ集合
 export function junkList(opts = {}) {
   const base = baseJunk(opts);
@@ -106,7 +106,7 @@ function affordable(list) {
 const EXCL = [
   { key: "upgrade", label: "装備の候補", note: "誰かの今の装備に勝る品 (▲)。装備するか、確認の画面で売ることもできる" },
   { key: "rare", label: "スーパーレア・レジェンドレア", note: "逸品は一点ずつ確かめて売る" },
-  { key: "misc", label: "未奉納の蒐集品", note: "宝物庫へ奉納すると褒賞が得られる" },
+  { key: "misc", label: "未奉納の収集品", note: "宝物庫へ奉納すると褒賞が得られる" },
   { key: "cursed", label: "呪われた品", note: "" },
   { key: "unid", label: "未鑑定の品", note: "先に鑑定すれば売値がつく" },
   { key: "use", label: "道具", note: "薬草などは迷宮で役に立つ" },
@@ -173,7 +173,8 @@ function tileStrip(list, { max = 24 } = {}) {
 }
 
 // 売る品の一覧 (まとめて売るの確認): 1行に 品の絵・名・持ち主・売値。押せば品シート
-function sellRows(list) {
+// onBack: 品シートを閉じた後 (そこで売る・装備する・捨てた品を一覧から外すため)
+function sellRows(list, onBack) {
   const w = el("div", "wpc-picklist wpc-selllist");
   for (const x of list) {
     const it = x.item;
@@ -193,7 +194,7 @@ function sellRows(list) {
     pr.appendChild(glyph("gold"));
     pr.appendChild(document.createTextNode(String(x.price)));
     main.appendChild(pr);
-    main.addEventListener("click", () => itemSheet(it, { owner: x.doll, context: "bag" }));
+    main.addEventListener("click", () => itemSheet(it, { owner: x.doll, context: "bag", onClose: onBack }));
     r.appendChild(main);
     w.appendChild(r);
   }
@@ -251,7 +252,7 @@ export function confirmIdentifyAll() {
 // 残す品が無い (= ops と同じ集合) なら ops.sellJunkAll、あれば同じ中身の sellSubset で選んだ品だけを売る
 export function confirmSellJunk() {
   let withUp = false;
-  const ups = upgradeKeeps();
+  let ups = upgradeKeeps();
   const pick = () => (withUp ? junkList({ keepUpgrades: false }) : junkList());
   if (!pick().length && !ups.length) { toast("まとめて売れる品はない", { tone: "info" }); return null; }
   let h = null;
@@ -263,11 +264,12 @@ export function confirmSellJunk() {
     if (r && r.gold) floatGold(r.gold, "up");
   };
   const build = () => {
+    ups = upgradeKeeps();
     const list = pick();
     const gold = list.reduce((a, x) => a + x.price, 0);
     const ex = exclusions();
     const body = el("div", "wpc-cbody");
-    if (list.length) body.appendChild(sellRows(list));
+    if (list.length) body.appendChild(sellRows(list, () => refill()));
     else body.appendChild(el("div", "wpc-empty", "売る品がない。"));
     if (ups.length) {
       // 装備の候補も売るか (切り替え)
@@ -540,7 +542,7 @@ function openRevealSheet(items) {
 }
 
 // ---------------------------------------------------------------- 描画
-// ページ全体は流さない (商会タブはスクロールなし)。一覧の箱の高さに収まる行数で頁を切り、‹ n/m › で送る
+// ページ全体は流さない (商会タブはスクロールなし)。一覧の箱の高さに収まる行数でページを切り、‹ n/m › で送る
 function rerender({ top = false } = {}) {
   if (game.renderTown) game.renderTown();
   if (top) {
@@ -549,24 +551,24 @@ function rerender({ top = false } = {}) {
   }
 }
 
-// 頁送りの札 (‹ 1/3 ›)。頁が1つなら出さない
+// ページ送りの札 (‹ 1/3 ›)。ページが1つなら出さない
 function pager(page, pages, onGo) {
   const w = el("div", "wpc-pager");
   if (pages <= 1) return w;
   const prev = el("button", "wpc-pg", "‹");
-  prev.type = "button"; prev.setAttribute("aria-label", "前の頁");
+  prev.type = "button"; prev.setAttribute("aria-label", "前のページ");
   prev.disabled = page <= 0;
   prev.addEventListener("click", () => onGo(page - 1));
   const cur = el("span", "wpc-pg-n", `${page + 1} / ${pages}`);
   const next = el("button", "wpc-pg", "›");
-  next.type = "button"; next.setAttribute("aria-label", "次の頁");
+  next.type = "button"; next.setAttribute("aria-label", "次のページ");
   next.disabled = page >= pages - 1;
   next.addEventListener("click", () => onGo(page + 1));
   w.appendChild(prev); w.appendChild(cur); w.appendChild(next);
   return w;
 }
 
-// 一覧の箱に、行を頁ごとに描く。1行目を描いて高さを測り、収まる行数を決める
+// 一覧の箱に、行をページごとに描く。1行目を描いて高さを測り、収まる行数を決める
 function fillPaged(box, head, items, renderRow, pageKey, gap = 6) {
   box.textContent = "";
   if (!items.length) return;
@@ -584,7 +586,7 @@ function fillPaged(box, head, items, renderRow, pageKey, gap = 6) {
   const old = head.querySelector(".wpc-pager");
   const pg = pager(page, pages, go);
   if (old) old.replaceWith(pg); else head.appendChild(pg);
-  // 左右に払っても頁を送る (横に流れる品の帯の上では送らない)
+  // 左右に払ってもページを送る (横に流れる品の帯の上では送らない)
   if (pages > 1) {
     let x0 = null, y0 = null, skip = false;
     box.addEventListener("pointerdown", (e) => {
@@ -668,7 +670,7 @@ function renderSell(wrap) {
   card.appendChild(exb);
   wrap.appendChild(card);
 
-  // ---- 全員の持ち物 (隊 → 控え)。箱に収まる人数で頁を切る ----
+  // ---- 全員の持ち物 (隊 → 控え)。箱に収まる人数でページを切る ----
   const dolls = allDolls().filter((d) => d && !d.isEmpty);
   const nItems = dolls.reduce((a, d) => a + d.items.length, 0);
   const head = el("div", "wpc-lhead");
@@ -749,7 +751,7 @@ function render(root) {
   wrap.appendChild(bar);
   const fill = seg === "buy" ? renderBuy(wrap) : renderSell(wrap);
   root.appendChild(wrap);
-  // 置いてから高さを測って頁を切る
+  // 置いてから高さを測ってページを切る
   try { fill(); } catch (e) { setTimeout(() => { throw e; }); }
 }
 
@@ -780,7 +782,7 @@ export function install() {
   if (UI.shell && UI.shell.registerTab) {
     UI.shell.registerTab("shop", { render: (root) => render(root), title: "黒鉄商会" });
   }
-  // 画面の大きさが変われば頁の切り方も変わる (商会を開いている時だけ描き直す)
+  // 画面の大きさが変わればページの切り方も変わる (商会を開いている時だけ描き直す)
   if (typeof addEventListener === "function") {
     let tm = null;
     addEventListener("resize", () => {

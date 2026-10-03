@@ -55,7 +55,7 @@ export const RANK11_ITEMS = [
   G("g_r11_jewelgloves", "宝玉の手袋", 103, { magStat: "int", weight: "cloth", tint: "#e8b0e0", desc: "宝玉の紋を縫い込んだ淡紅の薄手の手袋。指先の感覚を保ちつつ、握った触媒へ膨大な魔力を澄んだまま導く。" }),
   G("g_r11_heavenbishopgloves", "天司教の宝手袋", 108, { magStat: "pie", weight: "cloth", tint: "#f0e0a0", desc: "祈りの所作を支える宝玉装飾の聖手袋。掌の聖印が祈祷に魔力を乗せやすくし、癒しの奇跡を大きく後押しする。" }),
   G("g_r11_primordialgloves", "原初の手袋", 104, { role: "atk", tint: "#b8a8d0", desc: "原初の鋼を編んだ手袋。指の自由を残したまま拳を堅く守り、古き力が握った得物の一打に鋭い冴えを加える。" }),
-  G("g_r11_marksmanglove", "流星射手の手袋", 108, { role: "atk", tint: "#8a6438", desc: "流星を射る射手のために誂えた手袋。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を究極まで高める。" }),
+  G("g_r11_marksmanglove", "流星射手の手袋", 108, { role: "atk", tint: "#8a6438", desc: "流星を射る射手のためにあつらえた手袋。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を究極まで高める。" }),
   G("g_r11_mythrilgauntlet", "神話銀の籠手", 105, { role: "atk", shape: "gauntlet", tint: "#e8eef6", desc: "神話銀を関節ごとに連ねた籠手。宿る古き力を帯びた拳が、振るう得物の一撃に冴えと究極の重みを上乗せする。" }),
   G("g_r11_heavenemperorgauntlet", "天帝の籠手", 110, { role: "atk", shape: "gauntlet", tint: "#f0d860", desc: "天帝の証たる黄金の籠手。天威を宿した甲が指先まで包んで握力を損なわず、剣を振る手に絶大な信頼を置かせる。" }),
 

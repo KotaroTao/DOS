@@ -68,7 +68,7 @@ import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 // アイテム: 一点物の手作りカタログ (src/catalog/)。二つ名つきの量産品は廃止。
 // モンスター: ダンジョン単位で手作りした図鑑 (src/dungeons/) を統合。
 Object.assign(ITEMS, CATALOG_ITEMS);
-// レア度の無い装備 (items.js の基本装備など) はコモン扱い。蒐集品・道具はレア度なし。
+// レア度の無い装備 (items.js の基本装備など) はコモン扱い。収集品・道具はレア度なし。
 // 基本装備は商店の品揃え専用とし、迷宮のドロップ表からは外す (ドロップのコモンはランク別標準装備が担う)
 for (const id in ITEMS) {
   const it = ITEMS[id];
@@ -88,13 +88,16 @@ for (const id in ITEMS) {
   if (it.r20 == null) it.r20 = Math.max(1, Math.min(20, Math.ceil(it.lv / 10)));
 }
 
-// アイテムの格の表示名/色。装備はレア度 (コモン〜レジェンドレア) を、蒐集品などは従来のランクを使う
-function itemRankName(it) { return rarityLabel(it) || (it && it.rank ? ITEM_RANK_NAME[it.rank] : null); }
-function itemRankColor(it) { return rarityColor(it) || (it && it.rank ? ITEM_RANK_COLOR[it.rank] : null); }
-// カードの見出し (格): 装備はレア度、職業専用は「専用装備」を添える。蒐集品は従来のランク
+// アイテムの格の表示名/色。装備はレア度 (コモン〜レジェンドレア) を、収集品などは従来のランクを使う
+// 収集品 (slot:"misc") にはランクが無い (格も色も付けない)
+const isCollectible = (it) => !!(it && it.slot === "misc");
+function itemRankName(it) { return rarityLabel(it) || (it && it.rank && !isCollectible(it) ? ITEM_RANK_NAME[it.rank] : null); }
+function itemRankColor(it) { return rarityColor(it) || (it && it.rank && !isCollectible(it) ? ITEM_RANK_COLOR[it.rank] : null); }
+// カードの見出し (格): 装備はレア度、職業専用は「専用装備」を添える。収集品はただ「収集品」
 function itemGradeText(it, fallback = "アイテム") {
   const rl = rarityLabel(it);
   if (rl) return it.forJob ? `${rl} ・ 専用装備` : rl;
+  if (isCollectible(it)) return "収集品";
   return it && it.rank ? `${ITEM_RANK_NAME[it.rank]}級アイテム` : fallback;
 }
 // ログの色: レア以上はレア度の色で記録する
@@ -161,7 +164,7 @@ function itemsByR() {
   if (_itemsByR) return _itemsByR;
   _itemsByR = Array.from({ length: 21 }, () => []);
   _miscLootIds = [];
-  // 蒐集品 (slot:"misc") はランク窓に入れず別枠で全域から抽選する (下記 pickItemByR 参照)。
+  // 収集品 (slot:"misc") はランク窓に入れず別枠で全域から抽選する (下記 pickItemByR 参照)。
   for (const id of LOOT_IDS) {
     if (ITEMS[id].slot === "misc") { _miscLootIds.push(id); continue; }
     _itemsByR[Math.max(1, Math.min(20, ITEMS[id].r20 || 1))].push(id);
@@ -169,10 +172,10 @@ function itemsByR() {
   return _itemsByR;
 }
 function miscLootIds() { itemsByR(); return _miscLootIds; }
-// 蒐集品は LR 装備と同様「深度の上限なし」で出続けるが、LR と違い一点ものではなく
-// 何度でも同じ品が出る。深い迷宮ほど低ランクの蒐集品も拾える (D80 でも D20 帯の品が出る) よう、
-// 自ランク以下の蒐集品をすべて対象にする (上限のみ中心+2 まで許容し、極端な先取りは抑える)。
-const MISC_LOOT_WEIGHT = 0.5; // 装備のランク窓に対する蒐集品1点あたりの相対重み
+// 収集品は LR 装備と同様「深度の上限なし」で出続けるが、LR と違い一点ものではなく
+// 何度でも同じ品が出る。深い迷宮ほど低ランクの収集品も拾える (D80 でも D20 帯の品が出る) よう、
+// 自ランク以下の収集品をすべて対象にする (上限のみ中心+2 まで許容し、極端な先取りは抑える)。
+const MISC_LOOT_WEIGHT = 0.5; // 装備のランク窓に対する収集品1点あたりの相対重み
 // 中心ランク centerR の ±2 から1つ抽選 (中心ほど出やすい)。窓内が空なら最寄りへ広げる
 function pickItemByR(centerR, capR = 20) {
   const idx = itemsByR();
@@ -187,7 +190,7 @@ function pickItemByR(centerR, capR = 20) {
   };
   gather(Math.max(1, centerR - 2), Math.min(capR, centerR + 2), true);
   for (let span = 3; span <= 20 && !total; span++) gather(Math.max(1, centerR - span), Math.min(capR, centerR + span), false);
-  // 蒐集品: 中心+2 以下の全ランク帯を一律の重みで対象に加える (下限なし=深層でも浅層の品が出る)
+  // 収集品: 中心+2 以下の全ランク帯を一律の重みで対象に加える (下限なし=深層でも浅層の品が出る)
   const miscCap = Math.min(20, centerR + 2);
   for (const id of miscLootIds()) {
     if (Math.max(1, Math.min(20, ITEMS[id].r20 || 1)) > miscCap) continue;
@@ -214,7 +217,7 @@ function dropCenterR(opts = {}) {
 // ===== レア度つきドロップ (コモン/アンコモン/レア/スーパーレア/レジェンドレア) =====
 // 装備ドロップのたびに、まずレア度を抽選し (rarity.js rollRarity)、その格の品をランク窓 (中心R±2) から選ぶ。
 // 窓にその格の品が無ければ窓を広げ、それでも無ければ一段下の格に落とす。
-// レジェンドレアだけは実プレイ時間で抽選する (lrTimeRoll)。蒐集品は一定割合で別枠から出る。
+// レジェンドレアだけは実プレイ時間で抽選する (lrTimeRoll)。収集品は一定割合で別枠から出る。
 const MISC_DROP_RATE = 0.08;
 let _byRar = null;
 function lootByRarity() {
@@ -461,7 +464,7 @@ const G = {
   activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
   deliveryQuests: null, // 酒場の納品依頼 [{itemId}] (最大3件。迷宮に潜るたびに入れ替わる)
   codex: { mon: {}, item: {}, job: {}, fresh: { mon: {}, item: {}, job: {} } }, // 図鑑 (モンスター/アイテム/職業)。fresh = 新着 (まだ詳細を見ていない記録)
-  treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={蒐集品id:true}, claimed={"ランク:しきい値":true}
+  treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={収集品id:true}, claimed={"ランク:しきい値":true}
   lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
   lrClock: { since: 0, pend: 0 }, // レジェンドレアの時間抽選 (最後のLRからの/前回抽選からの実プレイms)
   order: { picks: [] }, // 控えの結社: 席に着けた魂のuid配列 (席数=orderSeats()。編成外ランク2以上のみ有効)
@@ -634,9 +637,14 @@ function forfeitRun() {
   for (const rec of r.souls) {
     const k = rec && rec.clsKey;
     if (!k) continue;
-    for (let i = G.souls.length - 1; i >= 0; i--) {
-      const s = G.souls[i];
-      if (s.clsKey === k && !soulWorn(s.uid)) { G.souls.splice(i, 1); break; }
+    // ロックしていない魂から先に取り消す (ロックした魂はできるだけ残す)
+    let gone = false;
+    for (const pass of [false, true]) {
+      for (let i = G.souls.length - 1; i >= 0 && !gone; i--) {
+        const s = G.souls[i];
+        if (s.clsKey === k && !soulWorn(s.uid) && !!s.locked === pass) { G.souls.splice(i, 1); gone = true; }
+      }
+      if (gone) break;
     }
   }
   recalcAllDolls();
@@ -911,7 +919,7 @@ const SPECIAL_FLOORS = [
     lines: ["おびただしい数の死体が横たわっている。", "魂を回収する好機だが、起き上がる者もいるだろう。"],
     board: (b) => sfPlace(b, 4, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = Math.random() < 0.5; }) },
   { id: "marsh", name: "毒の沼", icon: "poison", accent: "#5a8a2a", sym: "≈", minFloor: 2, rate: 0.02, goldMul: 1.5,
-    lines: ["床のいたるところから毒が滲み出している。", "足場は危険だが、沼には金品が沈んでいる。ゴールド 1.5倍。"],
+    lines: ["床のいたるところから毒がにじみ出している。", "足場は危険だが、沼には金品が沈んでいる。ゴールド 1.5倍。"],
     board: (b) => sfEachCell(b, (c) => { if (c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.30) { c.type = "poison"; c.cleared = false; } }) },
   { id: "tailwind", name: "追い風の階", icon: "stairs", accent: "#7fe0a8", sym: "≫", minFloor: 2, rate: 0.02, preempt100: true, noAmbush: true,
     lines: ["不思議と体が軽く、敵の動きがよく見える。", "常に先手を取り、奇襲を受けない。"] },
@@ -2951,7 +2959,7 @@ function drawBackOssuary(r, accent, sym) {
     vctx.fillStyle = "#cfc4a0";
     vctx.beginPath(); vctx.arc(nx, sk, 3.2, Math.PI, 0); vctx.lineTo(nx + 2.4, sk + 3); vctx.lineTo(nx - 2.4, sk + 3); vctx.closePath(); vctx.fill();
     vctx.fillStyle = "#b8ad8a"; vctx.fillRect(nx - 2.4, sk + 3, 4.8, 2); // 顎
-    vctx.fillStyle = "#2a2418"; vctx.fillRect(nx - 2, sk - 1, 1.4, 1.6); vctx.fillRect(nx + 0.6, sk - 1, 1.4, 1.6); // 眼窩
+    vctx.fillStyle = "#2a2418"; vctx.fillRect(nx - 2, sk - 1, 1.4, 1.6); vctx.fillRect(nx + 0.6, sk - 1, 1.4, 1.6); // 目の穴
   }
 
   // 滴る蝋の雫 (右の壁龕から周期的に落下)
@@ -3057,13 +3065,13 @@ function drawBackLibrary(r, accent, sym) {
   vctx.moveTo(cx, by - 1); vctx.lineTo(cx - 10, by + 1); vctx.lineTo(cx - 9, by + 7); vctx.lineTo(cx, by + 5); vctx.closePath(); vctx.fill();
   vctx.beginPath();
   vctx.moveTo(cx, by - 1); vctx.lineTo(cx + 10, by + 1); vctx.lineTo(cx + 9, by + 7); vctx.lineTo(cx, by + 5); vctx.closePath(); vctx.fill();
-  vctx.fillStyle = "#c9c0d8"; // 左頁
+  vctx.fillStyle = "#c9c0d8"; // 左ページ
   vctx.beginPath();
   vctx.moveTo(cx - 0.5, by); vctx.lineTo(cx - 9, by + 1.5); vctx.lineTo(cx - 8, by + 6); vctx.lineTo(cx - 0.5, by + 4.5); vctx.closePath(); vctx.fill();
-  vctx.fillStyle = "#bcb2cc"; // 右頁
+  vctx.fillStyle = "#bcb2cc"; // 右ページ
   vctx.beginPath();
   vctx.moveTo(cx + 0.5, by); vctx.lineTo(cx + 9, by + 1.5); vctx.lineTo(cx + 8, by + 6); vctx.lineTo(cx + 0.5, by + 4.5); vctx.closePath(); vctx.fill();
-  // 頁の文字行
+  // ページの文字行
   vctx.strokeStyle = "rgba(80,60,110,0.5)";
   vctx.lineWidth = 0.4;
   for (let i = 0; i < 3; i++) {
@@ -3371,7 +3379,7 @@ function drawBackSpire(r, accent, sym) {
   vctx.fillRect(2, 2, W - 4, 3);
 }
 
-// 層9「毒沼」のカード裏面: 沸き立つ毒の澱み、ねじれた枯れ木、漂う瘴気と垂れる毒の雫、毒の鬼火
+// 層9「毒沼」のカード裏面: 沸き立つ毒のよどみ、ねじれた枯れ木、漂う瘴気と垂れる毒の雫、毒の鬼火
 function drawBackSwamp(r, accent, sym) {
   const W = r.w, H = r.h, t = performance.now();
   // 淀んだ地
@@ -3430,7 +3438,7 @@ function drawBackSwamp(r, accent, sym) {
   glow.addColorStop(1, "rgba(160,200,60,0.18)");
   vctx.fillStyle = glow;
   vctx.fillRect(0, poolY - 8, W, 10);
-  // 暗い澱み
+  // 暗いよどみ
   vctx.strokeStyle = "rgba(30,40,10,0.5)";
   vctx.lineWidth = 1;
   for (let i = 0; i < 2; i++) {
@@ -3966,7 +3974,7 @@ function drawBackMine(r, accent, sym) {
   vctx.lineTo(tx + ow, openBot);
   vctx.closePath();
   vctx.fill();
-  // 坑奥に滲む土気の残光
+  // 坑奥ににじむ土気の残光
   const gl = vctx.createRadialGradient(tx, openBot - 4, 1, tx, openBot - 4, 14);
   gl.addColorStop(0, "rgba(150,100,40,0.18)");
   gl.addColorStop(1, "rgba(150,100,40,0)");
@@ -4155,7 +4163,7 @@ function drawBackGraveyard(r, accent, sym) {
   vctx.fillStyle = bg;
   vctx.fillRect(0, 0, W, H);
 
-  // 蒼い月 (右上にぼうっと滲む)
+  // 蒼い月 (右上にぼうっとにじむ)
   const mx = W - 14, my = 13;
   const mg = vctx.createRadialGradient(mx, my, 1, mx, my, 12);
   mg.addColorStop(0, "rgba(205,222,236,0.5)");
@@ -4264,7 +4272,7 @@ function drawOldCardBack(r) {
     for (const [dx, dy] of [[7, 7], [r.w - 7, 7], [7, r.h - 7], [r.w - 7, r.h - 7]]) {
       vctx.beginPath(); vctx.arc(dx, dy, 1.6, 0, Math.PI * 2); vctx.fill();
     }
-    // 上辺の血滲み
+    // 上辺の血にじみ
     vctx.fillStyle = "rgba(200,0,0,0.10)";
     vctx.fillRect(2, 2, r.w - 4, 3);
   } else if (specialDef()) {
@@ -4545,7 +4553,7 @@ function resolveCell(cell) {
         if (resist >= 3) { // Lv3: 無効化に加え、渡るたび隊全体をHP2%回復
           let healed = false;
           for (const p of G.party) { if (!p.alive) continue; const h = Math.max(1, Math.ceil(p.maxhp * 0.02)); if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + h); healed = true; } }
-          log(healed ? "毒の床を浄化して渡った。澱みが力に変わり、パーティの傷が癒えた。" : "毒の床を浄化して渡った。", "sys");
+          log(healed ? "毒の床を浄化して渡った。よどみが力に変わり、パーティの傷が癒えた。" : "毒の床を浄化して渡った。", "sys");
           if (healed) renderParty();
         } else {
           log("毒の床だ。だが足音ひとつ立てず無傷で渡った。", "sys");
@@ -5089,7 +5097,7 @@ const evApi = {
   collectible(from, next) {
     const id = evPickCollectible();
     if (!id) { evApi.gold(1, from); if (next) next(); return; }
-    log(`${from}で蒐集品を見つけた。`, "win");
+    log(`${from}で収集品を見つけた。`, "win");
     evGive(id, next);
   },
   price: (id) => (ITEMS[id] && ITEMS[id].price) || 20,
@@ -5114,7 +5122,7 @@ const evApi = {
   identifyAll() {
     let n = 0;
     for (const m of [...G.party, ...(G.reserve || [])]) {
-      for (const it of [...(m.items || []), ...Object.values(m.equip || {})]) if (it && it.unidentified && !it.lr) { it.unidentified = false; it.idHardFail = false; n++; }
+      for (const it of [...(m.items || []), ...Object.values(m.equip || {})]) if (it && it.unidentified && !it.lr) { it.unidentified = false; it.idHardFail = false; codexKnowItem(it.id); n++; }
     }
     return n;
   },
@@ -5394,7 +5402,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
     const it = cloneItem(id);
     markDungeonLoot(it);
     runGainItem(who, it);
-    codexSeeItem(id);
+    codexSeeItem(id, it);
     log(`風化した死体の傍らに ${itemName(it)} が遺されていた。`, "win");
     UI.loot(it, who, { source: "corpse" }, back);
     return;
@@ -5967,7 +5975,7 @@ function presentTrap(res, fin, sink = boardSink()) {
   fin.proceed();
 }
 
-// 宝箱の中身 (ゴールド/装備品/蒐集品)。cRank: 宝箱ランク (1-5、高いほど豪華)
+// 宝箱の中身 (ゴールド/装備品/収集品)。cRank: 宝箱ランク (1-5、高いほど豪華)
 // lvBonus: ミミック撃破後の宝箱などのアイテムレベル底上げ。
 // cell.lootBonus: 特別階 (伝説の眠る階) の「伝説の宝箱」— 中身は必ず装備品で +40レベル
 function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false, sink = boardSink()) {
@@ -6082,7 +6090,7 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
   }
   const ce = codexMonEntry(d.key);
   if (d.rare) ce.rare = true; else ce.normal = true;
-  codexSeeItem(d.id);
+  codexSeeItem(d.id, d.item);
   markDungeonLoot(d.item);
   runGainItem(who, d.item);
   SFX.chest();
@@ -6367,7 +6375,7 @@ function renderCombatCanvas() {
         oy += Math.round(Math.sin(now * 0.0024 + (e.uid || i) * 1.7) * 1.6);
       }
       const feetY = baseY + hh;
-      // 戦闘開始の演出: 闇の奥から1体ずつ這い出る。まず黒い影だけが浮かび、遅れて色 (正体) が滲み出す
+      // 戦闘開始の演出: 闇の奥から1体ずつ這い出る。まず黒い影だけが浮かび、遅れて色 (正体) がにじみ出す
       // (現れきるまで名札やHPは出さない。迷宮の主はひときわ長く闇に留まる)
       if (intro) {
         const kk = b.enemies.indexOf(e);
@@ -6419,7 +6427,7 @@ function renderCombatCanvas() {
         drawMonsterBmp(vctx, monsterFlashBitmap(e.mon), baseX + ox, baseY + oy, size, 0.85 * (1 - (now - hf.t0) / 170));
         vctx.restore();
       }
-      // 対象選択中: 頭上に降りる楔と四隅の鉤
+      // 対象選択中: 頭上に降りる楔と四隅のかぎ
       if (tappable && strongTarget) drawTargetBrackets(baseX, baseY, hh, size, now);
       // 名札 + 血の小瓶 (HP)
       // 名前・HP は討伐数で明かす (enemyReveal): 名前は1体倒すまで「？？？」、HP の小瓶は5体倒すまで出さない
@@ -6495,7 +6503,7 @@ function drawTargetRing(x, y, size, now, strong) {
   }
   vctx.restore();
 }
-// 対象選択中の印: 頭上の楔 (上下に揺れる) と、魔物を囲む四隅の鉤
+// 対象選択中の印: 頭上の楔 (上下に揺れる) と、魔物を囲む四隅のかぎ
 function drawTargetBrackets(x, cy, hh, size, now) {
   const bob = REDUCED_MOTION ? 0 : Math.sin(now * 0.008) * 2.5;
   const w = size * 3.6, top = cy - hh - 4, bot = cy + hh + 2;
@@ -7665,7 +7673,7 @@ function applyImpact(res) {
 }
 
 // 戦闘勝利時: 入手Soulの1/5を、生存しているパーティメンバー全員の全部位の魂に
-// 経験値(soul.exp)として加算する。閾値(soulTrainCost)に達した魂は自動でレベルアップし、
+// 経験値(soul.exp)として加算する。限界(soulTrainCost)に達した魂は自動でレベルアップし、
 // キャラLv上昇/スキル習得を検出してポップアップ用のキューを返す。
 function distributeBattleSoulExp(soulGot) {
   const queue = [];
@@ -8087,7 +8095,7 @@ function renderParty() {
     const pic = partyPortrait(p);
     if (pic) por.appendChild(pic);
     por.appendChild(el("span", "pc-row " + (idx < 3 ? "front" : "back"), idx < 3 ? "前" : "後"));
-    if (!p.alive) por.appendChild(el("span", "pc-seal dead", "斃"));
+    if (!p.alive) por.appendChild(el("span", "pc-seal dead", "死"));
     else if (p.ailment) { const a = AIL_SEAL[p.ailment] || ["呪", "poison"]; const s2 = el("span", "pc-seal " + a[1], a[0]); s2.title = AIL_NAME[p.ailment] || ""; por.appendChild(s2); }
     else if (p.asleep && G.state === "combat") por.appendChild(el("span", "pc-seal sleep", "眠"));
     card.appendChild(por);
@@ -8235,7 +8243,7 @@ const FAC_SHELL = {
   inn: { keeper: "innkeeper", who: "宿の女主 イルザ", lines: [
     "眠りな。夢の底までは、迷宮も追ってこない。",
     "白狼の毛皮は温かいだろう。…あれを狩ったのは、あたしさ。",
-    "扉の閂は三重。それでも夜中に爪の音がしたら、起こしな。"] },
+    "扉のかんぬきは三重。それでも夜中に爪の音がしたら、起こしな。"] },
   palace: { keeper: "minister", who: "宰相 モルデン", lines: [
     "陛下は玉座でお待ちだ。…あまり長くは、お待ちになれぬ。",
     "勅命は果たされねばならぬ。たとえ、器が幾つ砕けようとも。"] },
@@ -8250,7 +8258,7 @@ function allDolls() { return [...G.party, ...G.reserve]; }
 // 街を描き直す (名前と約225の呼び出し元はそのまま)。中身の描き替え・スクロール位置の保持・
 // タブバーの点灯・遷移の演出は街シェル (townshell.refresh) が受け持つ
 function renderTown() {
-  const then = G.town && G.town.facility ? takeLegacyEntry() : null; // 旧来の入口は新しいタブ/頁へ付け替えてから描く
+  const then = G.town && G.town.facility ? takeLegacyEntry() : null; // 旧来の入口は新しいタブ/ページへ付け替えてから描く
   renderRunbar(); // 街では隠す
   autosave(); // 街での操作のたびに保存 (描画はアクション後に呼ばれる)
   updateTopbar();
@@ -8259,7 +8267,7 @@ function renderTown() {
   if (then) queueMicrotask(() => { if (G.state === "town") then(); });
 }
 
-// 旧来の入口 (G.town.facility / sub): 旧セーブの街の現在地や古い呼び出し口から来たら、新しいタブ/頁へ付け替える。
+// 旧来の入口 (G.town.facility / sub): 旧セーブの街の現在地や古い呼び出し口から来たら、新しいタブ/ページへ付け替える。
 //   tab/page = 行き先 / intent = 隊タブに渡す区分・シート / then = 描いた後に開く (王宮の区分・宿のシート・奈落の支度)
 const LEGACY_ENTRY = {
   mansion: { tab: "party" }, party: { tab: "party" },
@@ -8274,7 +8282,7 @@ const LEGACY_ENTRY = {
   codexJob: { tab: "palace", then: () => UI.openPalace && UI.openPalace("codex:job") },
   tavern: { tab: "hub", page: "tavern" }, shrine: { tab: "hub", page: "shrine" },
   inn: { tab: "hub", then: () => UI.openInn && UI.openInn() },
-  abyss: { tab: "hub", then: () => openAbyssSetup() }, // 奈落の支度は出撃シートの1頁
+  abyss: { tab: "hub", then: () => openAbyssSetup() }, // 奈落の支度は出撃シートの1ページ
 };
 function takeLegacyEntry() {
   const t = G.town;
@@ -8508,7 +8516,16 @@ function openSubSkillPicker(d, subRef) { return uiSoulPanel.openSkillStep(d, sub
 // 魂融合: target に同職の余っている魂を融合させる候補
 function fuseCandidates(targetUid) {
   const t = soulByUid(targetUid); if (!t) return [];
-  return G.souls.filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey && !soulWorn(s.uid));
+  return G.souls.filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey && !soulWorn(s.uid) && !s.locked);
+}
+// 魂のロック: ロックした魂は魂融合の素材にできない (宿す・融合先にするのは自由)
+function toggleSoulLock(uid) {
+  const s = soulByUid(uid); if (!s) return null;
+  s.locked = !s.locked;
+  if (!s.locked) delete s.locked;
+  autosave(true);
+  renderTown();
+  return !!s.locked;
 }
 // 融合させる魂を選ぶ (src/ui/soulpanel.js のシート)
 function openFusePicker(targetUid) { return uiSoulPanel.openFusePicker(targetUid); }
@@ -8516,7 +8533,7 @@ function openFusePicker(targetUid) { return uiSoulPanel.openFusePicker(targetUid
 // ランクが上がれば祝祭カード (showRankUp)、据え置きならトーストで知らせる
 function fuseSoul(targetUid, consumeUid) {
   const t = soulByUid(targetUid), c = soulByUid(consumeUid);
-  if (!t || !c || c.clsKey !== t.clsKey || soulWorn(c.uid)) { SFX.ng(); return null; }
+  if (!t || !c || c.clsKey !== t.clsKey || soulWorn(c.uid) || c.locked) { SFX.ng(); return null; }
   const before = soulRankOf(t);
   const beforeLv = t.level;
   // 双方に蓄積していた総 Soul を合算する。新しい上限まではレベルに、超過分は exp に保持する。
@@ -8863,7 +8880,7 @@ function listenRumor() {
   return true;
 }
 
-// 旧来の施設 (G.town.facility) を新しいタブ/頁へ付け替える。描画の最中なので、描き終えてから移る
+// 旧来の施設 (G.town.facility) を新しいタブ/ページへ付け替える。描画の最中なので、描き終えてから移る
 function legacyToPage(page, { tab = "hub", seg = null, after = null } = {}) {
   queueMicrotask(() => {
     const t = G.town;
@@ -9022,7 +9039,7 @@ const ACHIEVEMENTS = [];
   // 層ボス制覇 (4) — 種類で数える (1層1種)
   const bossKinds = () => Object.keys(G.stats.bossIds || {}).length;
   tiers((v) => `lboss${v}`, [
-    [3, "層の覇者", 300, 5], [7, "幾多の主を屠る者", 1000, 10], [13, "玉座の収集家", 2500, 20], [20, "深淵の玉座を統べる者", 6000, 50],
+    [3, "層の覇者", 300, 5], [7, "幾多の主を討つ者", 1000, 10], [13, "玉座の収集家", 2500, 20], [20, "深淵の玉座を統べる者", 6000, 50],
   ], (v) => `層ボスを ${v}種 討伐する`, (v) => bossKinds() >= v);
 
   // ── 一点物・チャレンジ (B) ──
@@ -9157,7 +9174,7 @@ function showStoryScene(title, lines, rewardText, onClose, btnLabel = "御意") 
 }
 
 // ==== 勅命の語り: 報告 → (解放) → 勅命 を1つの連なった場面で語る (UI.playStoryChain) ====
-// 状態の変わる順は従来と同じ: 報告の頁を閉じる時に下賜 → (解放の頁) → 勅命の頁を開く時に拝命 → 閉じる時に記録。
+// 状態の変わる順は従来と同じ: 報告のページを閉じる時に下賜 → (解放のページ) → 勅命のページを開く時に拝命 → 閉じる時に記録。
 // 下賜・解放・新たな迷宮の知らせは語りを閉じた後にトーストでまとめて届け、街 (広場) に降り立つ。
 function landOnHub() {
   if (G.state !== "town" || !G.town) return;
@@ -9174,7 +9191,7 @@ function playMsqChain(pages, toasts = [], after = null) {
   });
 }
 
-// 次章の勅命の頁 (拝命の状態変化は頁を開く時)。公開範囲の先なら「封印の向こう」の頁
+// 次章の勅命のページ (拝命の状態変化はページを開く時)。公開範囲の先なら「封印の向こう」のページ
 function acceptPages(toasts) {
   const ms = G.msq;
   if (ms.n + 1 > CONTENT_LIMIT) {
@@ -9203,7 +9220,7 @@ function acceptPages(toasts) {
   }];
 }
 
-// 踏破報告: 報酬を下賜し、(解放の節目なら機能解放の頁を挟んで) 次章の勅命を自動で拝命する。第100章ならエピローグへ
+// 踏破報告: 報酬を下賜し、(解放の節目なら機能解放のページを挟んで) 次章の勅命を自動で拝命する。第100章ならエピローグへ
 function reportMainQuest() {
   const ms = G.msq;
   const n = ms.n;
@@ -9229,7 +9246,7 @@ function reportMainQuest() {
     playMsqChain(pages, toasts);
     return;
   }
-  // 解放の節目 (D5/10/15/20) は、報告の直後に機能解放の頁を挟む
+  // 解放の節目 (D5/10/15/20) は、報告の直後に機能解放のページを挟む
   const us = unlockSceneFor(n);
   if (us) {
     pages.push({ title: us.title, lines: us.lines, kicker: "秘技の下賜",
@@ -9254,7 +9271,7 @@ function sealedLines() {
 const TUT_INTRO = [
   "「よくぞ参った、新しき魂繰りよ。…生身のまま、よくぞ辺境まで辿り着いた。」",
   "「だが言うておく。生身で迷宮に入ってはならぬ。深淵は、生きた魂から順に喰らう。」",
-  "「ゆえに死者の魂を器に宿した『人業』を遣わすのだ。まずは其の一体を、おのれの手で生み出すがよい。」",
+  "「ゆえに死者の魂を器に宿した『人業』を遣わすのだ。まずはその一体を、おのれの手で生み出すがよい。」",
   "「戦士・僧侶・盗賊・魔導士の魂を、そして赤い魂を百、くれてやろう。」",
   "「人業の館へゆけ。赤い魂で器を買い、宿す魂を選び、名を与えよ。」",
   "「それがそなたの最初の勅命である。人業を一体生み出したら、戻って報告せよ。」",
@@ -9473,8 +9490,8 @@ function sharePalaceRecord() {
   shareProgress(head);
 }
 
-// ==== 王宮の宝物庫 (蒐集品の奉納) ====
-// 蒐集品 (slot:"misc") を奉納すると、ランク帯ごとではなく「奉納した総種類数」の節目で褒賞が下賜される。
+// ==== 王宮の宝物庫 (収集品の奉納) ====
+// 収集品 (slot:"misc") を奉納すると、ランク帯ごとではなく「奉納した総種類数」の節目で褒賞が下賜される。
 // 各しきい値に到達するごとに一度だけ褒賞を受領できる (装備、節目によっては魂も)。
 // soul: 0=装備のみ / 1=魂(通常抽選)+装備 / 2=魂(偉大な抽選)+装備
 // 報酬の種別: cls=特定職の魂のみ / reward:"lrArmor"=未入手LR防具1点 / reward:"lrWeapon5"=未入手LR5武器1点
@@ -9499,35 +9516,21 @@ function milestoneLabel(m) {
   return m.soul ? (m.soul >= 2 ? "魂(偉大)+装備" : "魂+装備") : "装備";
 }
 
-// 蒐集品 → ランク帯 (1-10)。lv1-20=R1 … lv181-200=R10
-function collectibleRank(it) { return Math.min(10, Math.max(1, Math.ceil((it.lv || 1) / 20))); }
-
-// ランク帯ごとの蒐集品id一覧 (ITEMS から一度だけ構築してメモ化)
-let _collByRank = null;
-function collectiblesByRank() {
-  if (_collByRank) return _collByRank;
-  _collByRank = {};
-  for (let r = 1; r <= 10; r++) _collByRank[r] = [];
-  for (const id in ITEMS) { const it = ITEMS[id]; if (it.slot === "misc") _collByRank[collectibleRank(it)].push(id); }
-  for (let r = 1; r <= 10; r++) _collByRank[r].sort((a, b) => (ITEMS[a].lv - ITEMS[b].lv) || a.localeCompare(b));
-  return _collByRank;
-}
-
 // 宝物庫の状態 (旧セーブには無いので遅延初期化)
 function treasuryState() {
   if (!G.treasury || typeof G.treasury !== "object") G.treasury = { donated: {}, claimed: {} };
   if (!G.treasury.donated) G.treasury.donated = {};
   if (!G.treasury.claimed) G.treasury.claimed = {};
-  if (!G.treasury.fresh) G.treasury.fresh = {}; // 奉納したばかりで、まだ台帳で見ていない種類 (帯の札の数字)
+  if (!G.treasury.fresh) G.treasury.fresh = {}; // 奉納したばかりで、まだ台帳で見ていない種類 (台帳の札の「新」)
   return G.treasury;
 }
-// 奉納した蒐集品の総種類数 (ランク帯を問わない)
+// 奉納した収集品の総種類数 (ランク帯を問わない)
 function totalDonatedKinds() {
   const ts = treasuryState();
   return Object.keys(ts.donated).filter((id) => ITEMS[id] && ITEMS[id].slot === "misc").length;
 }
 
-// 手持ち (編成+控え) の蒐集品 [{doll, item}]
+// 手持ち (編成+控え) の収集品 [{doll, item}]
 function heldCollectibles() {
   const out = [];
   for (const d of allDolls()) for (const it of (d.items || [])) if (it.slot === "misc") out.push({ doll: d, item: it });
@@ -9542,14 +9545,17 @@ function treasuryRewardReady() {
   return false;
 }
 
-// 蒐集品を1点奉納する (台帳に種類を記録し、その品は消費される)
+// 収集品を1点奉納する (その品は消費される)。初めての種類は台帳に記し、
+// すでに奉納済みの種類は売却と同じ金貨を宝物庫から受け取る。戻り値 = {kind:"new"|"dup", gold} / 失敗は null
 function donateCollectible(doll, it) {
   const ts = treasuryState();
   const idx = doll.items.indexOf(it);
-  if (idx < 0) return false;
+  if (idx < 0) return null;
   doll.items.splice(idx, 1);
-  if (it.id) { if (!ts.donated[it.id]) ts.fresh[it.id] = true; ts.donated[it.id] = true; codexSeeItem(it.id); }
-  return true;
+  if (it.id && !ts.donated[it.id]) { ts.donated[it.id] = true; ts.fresh[it.id] = true; codexSeeItem(it.id); return { kind: "new", gold: 0 }; }
+  const gold = sellPrice(it);
+  G.gold += gold;
+  return { kind: "dup", gold };
 }
 
 // 褒賞の装備を1点下賜する (所持枠が無ければゴールドに換える)。完了後 onClose を呼ぶ
@@ -9560,7 +9566,7 @@ function grantTreasuryItem(center, onClose) {
     || allDolls().find((d) => !d.isEmpty && d.items.length < MAX_ITEMS);
   if (who && ITEMS[id]) {
     const it = cloneItem(id);
-    runGainItem(who, it); codexSeeItem(id);
+    runGainItem(who, it); codexSeeItem(id, it);
     log(`宝物庫の褒賞として ${itemName(it)} を賜った。(${who.name})`, "win");
     showItemGet(it, who, onClose);
     return;
@@ -9595,7 +9601,7 @@ function grantLR(filter, center, onClose) {
     || G.party.find((m) => m.items.length < MAX_ITEMS)
     || allDolls().find((d) => !d.isEmpty && d.items.length < MAX_ITEMS);
   if (!who) { grantTreasuryItem(center, onClose); return; } // 所持枠が無ければ通常褒賞へ
-  runGainItem(who, it); codexSeeItem(id);
+  runGainItem(who, it); codexSeeItem(id, it);
   G.lrOwned[id] = true; // 1点もの: 以後ドロップしない
   flashScreen("#ff5fae"); SFX.victory(); buzz([0, 60, 50, 60, 50, 60, 240]);
   const nm = itemName(it); // 未鑑定なら伏せ名
@@ -9614,7 +9620,7 @@ function claimTreasury(n) {
   ts.claimed[key] = true;
   const back = () => { autosave(); if (G.state === "town") renderTown(); };
   const center = Math.min(200, Math.max(1, n * 2)); // 節目が深いほど高位の装備
-  const reason = `蒐集品を ${n} 種 宝物庫に納めた褒賞だ。`;
+  const reason = `収集品を ${n} 種 宝物庫に納めた褒賞だ。`;
   if (m.cls) {
     acquireSoul(m.cls, reason, back); // 特定職の魂のみ
   } else if (m.reward === "lrArmor") {
@@ -9682,10 +9688,37 @@ function rollGenericDrop() {
   }
   return null;
 }
-function codexSeeItem(id) {
+// it = 手に入れた品の実体 (あれば)。未鑑定の品は図鑑には載るが「正体を知った品」には数えない
+function codexSeeItem(id, it) {
   if (!id) return;
   if (!G.codex.item[id]) codexFresh().item[id] = 1; // 初めての記録は新着
   G.codex.item[id] = true;
+  if (!it || !it.unidentified) codexKnowItem(id);
+}
+// 正体を知った品 (G.codex.known)。鑑定で初めて正体を知った品に「初ゲット！」を出すための記録。
+// 初めて知ったなら true
+function codexKnowItem(id) {
+  if (!id) return false;
+  const k = G.codex.known || (G.codex.known = {});
+  if (k[id]) return false;
+  k[id] = true;
+  return true;
+}
+// その品の正体を既に知っているか (記録に無くても、正体の知れた同じ品を持っていれば知っている)
+function itemKnown(id) {
+  if (!id) return false;
+  if (G.codex.known && G.codex.known[id]) return true;
+  return heldItems().some((it) => it.id === id && !it.unidentified);
+}
+// 全人業 (隊と控え) の持ち物と装備
+function heldItems() {
+  const out = [];
+  for (const d of [...(G.party || []), ...(G.reserve || [])]) {
+    if (!d) continue;
+    for (const it of (d.items || [])) if (it) out.push(it);
+    for (const it of Object.values(d.equip || {})) if (it) out.push(it);
+  }
+  return out;
 }
 // 図鑑の新着: { mon:{key:1}, item:{id:1}, job:{"職:ランク":1} }。王宮の図鑑で詳細を開くと消える (src/ui/palace.js)
 function codexFresh() {
@@ -9898,6 +9931,7 @@ function shopIdentify(owner, it) {
   G.gold -= cost;
   it.unidentified = false;
   it.idHardFail = false;
+  codexKnowItem(it.id);
   SFX.itemget(); buzz(15);
   log(`鑑定料 💰${cost} を払った。${it.name} と判明した！`, "win");
   showToast(`${it.name} と判明した (💰${cost})`);
@@ -9905,11 +9939,11 @@ function shopIdentify(owner, it) {
   return true;
 }
 
-// 売却時に注意を促すべき品か判定し、警告文を返す (未奉納蒐集品 / LR専用装備)
+// 売却時に注意を促すべき品か判定し、警告文を返す (未奉納収集品 / LR専用装備)
 function sellWarnings(it) {
   const out = [];
   if (it.slot === "misc" && it.id && !treasuryState().donated[it.id]) {
-    out.push("⚠ まだ宝物庫に奉納していない蒐集品です。売ると奉納できなくなり、図鑑の褒賞を取り逃します。");
+    out.push("⚠ まだ宝物庫に奉納していない収集品です。売ると奉納できなくなり、図鑑の褒賞を取り逃します。");
   }
   if (rarityKey(it) === "lr") {
     out.push("⚠ レジェンドレアです。二度と手に入らない1点ものです。本当に売りますか？");
@@ -9928,7 +9962,7 @@ function sellItem(owner, it, price) {
   G.gold += price;
   // 在庫に積む (ボルタック方式)。未鑑定品は並ばない
   if (it.id && !it.unidentified) G.shopStock[it.id] = (G.shopStock[it.id] || 0) + 1;
-  codexSeeItem(it.id);
+  codexSeeItem(it.id, it);
   SFX.select(); buzz(10);
   const shown = itemName(it);
   log(`${shown} を売った (+💰${price})。${it.unidentified ? "" : "商店に並んだ。"}`, "win");
@@ -10146,7 +10180,7 @@ function departAbyss(mods, weekly) {
   uiDungeonHud.sceneTransition(() => { G.prompt = false; enterAbyss(mods, weekly); });
 }
 
-// 奈落の支度は出撃シートの1頁 (誓約・モード・記録)。旧来の入口 (広場の「奈落」) もそこを開く
+// 奈落の支度は出撃シートの1ページ (誓約・モード・記録)。旧来の入口 (広場の「奈落」) もそこを開く
 function openAbyssSetup() {
   if (!featureUnlocked("infinite")) { log("無限迷宮はまだ解放されていない。", "sys"); SFX.ng(); return; }
   UI.openDeparture({ page: "abyss" });
@@ -10625,6 +10659,7 @@ function doIdentifySkill(m, it, { quiet = false } = {}) {
   const ok = Math.random() < ch;
   if (ok) {
     it.unidentified = false;
+    codexKnowItem(it.id);
     log(`${m.name}は ${it.name} を鑑定した！`, "win");
     if (!quiet) { SFX.itemget(); buzz(15); showToast(`${it.name} と判明した (${m.name})`, { tone: "good" }); }
   } else {
@@ -10794,7 +10829,7 @@ function giveItem(id) {
     return null;
   }
   runGainItem(who, it);
-  codexSeeItem(id);
+  codexSeeItem(id, it);
   log(`${itemName(it)} を手に入れた！ (${who.name})`, logClassForItem(it));
   return { item: it, who };
 }
@@ -10804,7 +10839,7 @@ function giveItem(id) {
 const itemGetEl = document.getElementById("item-get");
 
 // 入手の割り込み方針 (§3.6) は src/ui/loot.js の UI.loot が受け持つ:
-//   コモン/アンコモン/レア・道具・蒐集品 = 入手のトースト (収穫バーの数も増える)。onClose はすぐに呼ぶ
+//   コモン/アンコモン/レア・道具・収集品 = 入手のトースト (収穫バーの数も増える)。onClose はすぐに呼ぶ
 //   スーパーレア/レジェンドレア = 祝祭カード (ファンファーレ・閃光・LRは光の柱と揺れ)。閉じてから onClose
 // 旧来どおり「プロンプトは1枠」: 出ている決断/知らせは置き換える (前の onClose は呼ばない)
 let _itemGetDepth = 0; // トーストは続きをその場で呼ぶので入れ子になる。異常な深さ (UI 未登録で互いに呼び合う等) を断つ
@@ -10916,7 +10951,7 @@ const FACILITY_BGM = {
   palace: "palace", codexMon: "palace", codexItem: "palace", codexDungeon: "palace", codexJob: "palace", treasury: "palace", // 図鑑・宝物庫は王宮の間
   shrine: "shrine",
 };
-// 街シェルのタブ・頁ごとのBGM (旧来の施設が立っていればそちらが優先)
+// 街シェルのタブ・ページごとのBGM (旧来の施設が立っていればそちらが優先)
 const TAB_BGM = { party: "mansion", shop: "shop", palace: "palace" };
 const PAGE_BGM = { tavern: "tavern", shrine: "shrine", abyss: "town" };
 function townBgm() {
@@ -11381,6 +11416,14 @@ function loadGame() {
   if (!G.codex) G.codex = { mon: {}, item: {} };
   if (!G.codex.mon) G.codex.mon = {};
   if (!G.codex.item) G.codex.item = {};
+  // 正体を知った品 (後付け): 図鑑の記録から復元し、未鑑定でしか持っていない品は「まだ知らない」とする
+  if (!G.codex.known || typeof G.codex.known !== "object") {
+    const known = {};
+    for (const id in G.codex.item) known[id] = true;
+    const held = heldItems();
+    for (const it of held) if (it.unidentified && it.id && !held.some((x) => x.id === it.id && !x.unidentified)) delete known[it.id];
+    G.codex.known = known;
+  }
   for (const k in G.codex.mon) {
     const v = G.codex.mon[k];
     if (!v || typeof v !== "object") {
@@ -11472,7 +11515,7 @@ function setupNewGame() {
 // トーストは1回にまとめ、街を描き直す。施設が閉ざされている間 (第0章) は動かない。
 function opsFacilityOpen(key) { const a = tutorialAllowed(); return !a || a.includes(key); }
 function opsEquippedBy(d, it) { for (const k in (d.equip || {})) if (d.equip[k] === it) return true; return false; }
-// 売却候補: 呪い・未鑑定・装備中・SR/LR・未奉納の蒐集品 (sellWarnings) は除外 (商店の一括売却と同じ)。
+// 売却候補: 呪い・未鑑定・装備中・SR/LR・未奉納の収集品 (sellWarnings) は除外 (商店の一括売却と同じ)。
 // 消耗品 (薬草など) は既定で除外する。{ includeUse: true } で商店の一括売却と全く同じ集合になる
 function opsJunkList({ includeUse = false } = {}) {
   const out = [];
@@ -11496,18 +11539,22 @@ function opsClaimableAchievements() {
   }
   return out;
 }
-// まだ奉納していない種類の蒐集品 (同じ種類は1点だけ)
+// 奉納できる収集品 = 手持ちの収集品すべて [{doll, item, dup, gold}]。
+// 初めての種類 (同じ種類は最初の1点) が dup:false で台帳に記され、奉納済みの種類と2点目以降は dup:true (売却額の金貨に換わる)。
+// 並びは初めての種類が先
 function opsDonatableList() {
   const ts = treasuryState();
   const seen = new Set();
-  const out = [];
+  const fresh = [], dups = [];
   for (const h of heldCollectibles()) {
-    if (ts.donated[h.item.id] || seen.has(h.item.id)) continue;
+    const dup = !!ts.donated[h.item.id] || seen.has(h.item.id);
     seen.add(h.item.id);
-    out.push(h);
+    (dup ? dups : fresh).push({ ...h, dup, gold: dup ? sellPrice(h.item) : 0 });
   }
-  return out;
+  return fresh.concat(dups);
 }
+// まだ奉納していない種類の数 (宝物庫・王宮の印と街の提案はこれだけで立てる)
+const opsNewKindCount = () => opsDonatableList().filter((h) => !h.dup).length;
 // いま ✦Soul で1段以上鍛えられる、編成の人業のメイン魂
 // 並びはレベルの低い順 (同じなら安い順)。lowest = 上限に届いていない隊の魂のうち最も低いLvか
 // (街の「魂を鍛える」はこれだけを勧め、隊のレベルを揃えていく)
@@ -11546,7 +11593,7 @@ const OPS = {
       unid, unidCost,
       junk: junk.length, junkGold: junk.reduce((a, j) => a + j.price, 0),
       ach,
-      donatable: opsDonatableList().length,
+      donatable: opsNewKindCount(),
       deliverable: (G.deliveryQuests || []).filter((q) => q && deliveryHolder(q.itemId)).length,
       trainable: opsTrainableList().length,
       innCost: innCost(), hastenCost, treasuryReady,
@@ -11556,6 +11603,7 @@ const OPS = {
   trainableList: opsTrainableList,
   claimableAchievements: opsClaimableAchievements,
   donatableList: opsDonatableList,
+  newKindCount: opsNewKindCount,
 
   // 宿で休む (宿屋の「泊まる」と同じ: 宿賃 innCost・生きている者のHP/MP全快と状態異常の回復)
   restParty() {
@@ -11585,6 +11633,7 @@ const OPS = {
       if (G.gold < cost) break;
       G.gold -= cost; spent += cost;
       it.unidentified = false; it.idHardFail = false;
+      codexKnowItem(it.id);
       n++;
     }
     if (n > 0) {
@@ -11606,7 +11655,7 @@ const OPS = {
       doll.items.splice(idx, 1);
       G.gold += price; gold += price;
       if (item.id) G.shopStock[item.id] = (G.shopStock[item.id] || 0) + 1;
-      codexSeeItem(item.id);
+      codexSeeItem(item.id, item);
       n++;
     }
     if (n) {
@@ -11667,27 +11716,48 @@ const OPS = {
     return { ok: true, n, gold, redSoul: red, soulPts: soul };
   },
 
-  // 蒐集品を1点奉納 (宝物庫から開いた品シートの「奉納」)
+  // 収集品を1点奉納 (宝物庫から開いた品シートの「奉納」)
+  // 奉納済みの種類なら売却と同じ金貨を受け取る
   donateOne(doll, it) {
-    if (!doll || !it || it.slot !== "misc" || treasuryState().donated[it.id]) return { ok: false };
-    if (!donateCollectible(doll, it)) return { ok: false };
-    SFX.itemget(); autosave();
-    log(`${itemName(it)} を宝物庫に奉納した。`, "win");
-    showToast(`${itemName(it)} を奉納した`);
+    if (!doll || !it || it.slot !== "misc") return { ok: false };
+    const r = donateCollectible(doll, it);
+    if (!r) return { ok: false };
+    SFX.itemget();
+    if (r.gold) updateTopbar();
+    autosave();
+    if (r.gold) {
+      log(`${itemName(it)} を宝物庫に奉納し、${r.gold} ゴールドを受け取った。`, "win");
+      showToast(`${itemName(it)} を奉納した (💰${r.gold})`);
+    } else {
+      log(`${itemName(it)} を宝物庫に奉納した。`, "win");
+      showToast(`${itemName(it)} を奉納した`);
+    }
     renderTown();
-    return { ok: true, rewardReady: treasuryRewardReady() };
+    return { ok: true, gold: r.gold, rewardReady: treasuryRewardReady() };
   },
 
-  // 未奉納の蒐集品をまとめて奉納 (宝物庫の「蒐集品を奉納」→ 詳細のシートの「奉納する」)
+  // 未奉納の収集品をまとめて奉納 (宝物庫の「収集品を奉納」→ 詳細のシートの「奉納する」)
+  // 奉納済みの種類・重なった品は売却と同じ金貨に換わる
   donateAllNew() {
     const list = opsDonatableList();
     if (!list.length) return { ok: false, n: 0 };
-    for (const h of list) donateCollectible(h.doll, h.item);
-    SFX.itemget(); autosave();
-    log(`蒐集品 ${list.length} 種を宝物庫に奉納した。`, "win");
-    showToast(`蒐集品 ${list.length}種を奉納した`);
+    let kinds = 0, gold = 0;
+    for (const h of list) {
+      const r = donateCollectible(h.doll, h.item);
+      if (!r) continue;
+      if (r.kind === "new") kinds++;
+      gold += r.gold;
+    }
+    SFX.itemget();
+    if (gold) updateTopbar();
+    autosave();
+    const parts = [];
+    if (kinds) parts.push(`新たに ${kinds} 種を台帳に記した`);
+    if (gold) parts.push(`${gold} ゴールドを受け取った`);
+    log(`収集品 ${list.length} 点を宝物庫に奉納した。${parts.join("・")}。`, "win");
+    showToast(`収集品 ${list.length}点を奉納した${gold ? ` (💰${gold})` : ""}`);
     renderTown();
-    return { ok: true, n: list.length, rewardReady: treasuryRewardReady() };
+    return { ok: true, n: list.length, kinds, gold, rewardReady: treasuryRewardReady() };
   },
 
   // 魂を n 段強化する (n = Infinity で上限まで)。1段ごとの費用・上限は trainSoul と同じ。
@@ -11865,7 +11935,7 @@ function wireUI() {
 }
 
 // ==== [WP-A] UI API ==== (街・王宮・物語・設定・タイトル: WP-A が所有)
-// 街タブ・王宮タブ・酒場/祠の頁・宿のシート・設定のシート・物語の場面 (src/ui/hub.js ほか) が使う game.js の内部。
+// 街タブ・王宮タブ・酒場/祠のページ・宿のシート・設定のシート・物語の場面 (src/ui/hub.js ほか) が使う game.js の内部。
 // 読み込み時に一度 bindGame で結ぶ (wireUI の bindGame と同じ窓口に足し込む。名前は重ねない)
 function resetAllData() { _resetting = true; clearSave(); location.reload(); }
 bindGame({
@@ -11873,7 +11943,7 @@ bindGame({
   objectiveInfo, decreeInfo, replayDecree, palaceRecords, sharePalaceRecord, departTo, goMakeDoll, audienceTutorial,
   landOnHub, legacyToPage, townBgm,
   // 勲章・宝物庫・図鑑
-  achievementCards, claimNextTreasury, TREASURY_MILESTONES, milestoneLabel, collectibleRank, collectiblesByRank, totalDonatedKinds,
+  achievementCards, claimNextTreasury, TREASURY_MILESTONES, milestoneLabel, totalDonatedKinds,
   codexMonEntry, dungeonRoster, CODEX_OTHER,
   // 酒場・祠・宿
   listenRumor, RUMOR_PRICE, ensureDeliveryQuests, deliveryRewardDesc, rollTavernCrowd,
@@ -11891,9 +11961,9 @@ bindGame({
 bindGame({
   equipAt, moveItem, campCast, campSpellsOf, healAll, healAllNeed, hastenCostOf, setReviveTimers, RESCUE_SHORTEN_MS,
   emptyDollCost, randomDollName, finalizeBuyDoll, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
-  equipSoulToSlot, fuseCandidates, fuseSoul, openFusePicker, openSubSkillPicker, slotSoul,
+  equipSoulToSlot, fuseCandidates, fuseSoul, toggleSoulLock, openFusePicker, openSubSkillPicker, slotSoul,
   unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail,
-  canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill,
+  canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill, itemKnown,
   showRankUp, announceJobChange, showNameInput,
 });
 // ==== /WP-B ====

@@ -10,7 +10,7 @@ import { W, S, A, H, F, G, R } from "../defs.js";
 
 export const RANK10_ITEMS = [
   // ===== 武器 (8カテゴリ × 2) =====
-  W("w_r10_divinesword", "神器鋼の長剣", "ls", 93, { tint: "#dcdce8", desc: "神器を鋳るための神器鋼を鍛え上げた長剣。刃が清冽な光を放ち、振るう者の技と祈りを余さず一閃へ込める。" }),
+  W("w_r10_divinesword", "神器鋼の長剣", "ls", 93, { tint: "#dcdce8", desc: "神器を鋳るための神器鋼を鍛え上げた長剣。刃が清らかな光を放ち、振るう者の技と祈りを余さず一閃へ込める。" }),
   W("w_r10_holykingsword", "聖王の宝剣", "ls", 99, { eAtk: ["light", 2], desc: "聖王が世を統べた証と伝わる宝剣。抜けば刀身が黄金の聖光に燃え立ち、闇に巣食う者を斬るたびに浄化が爆ぜる。" }),
   W("w_r10_astralitedagger", "星霊銀の短剣", "dg", 93, { tint: "#cfe4f0", desc: "星霊銀を薄く鍛えた短剣。星の光を宿した刃が手に吸いつき、穢れた者の急所を音もなく深々と貫き通す。" }),
   W("w_r10_abyssblade", "深淵の妖刃", "dg", 99, { eAtk: ["dark", 2], desc: "深淵の闇そのものを鍛え込んだ妖刃。刺せば傷口から底なしの暗黒が溢れ、相手の生気を根こそぎ虚へ呑み込む。" }),
@@ -55,7 +55,7 @@ export const RANK10_ITEMS = [
   G("g_r10_treasuregloves", "秘宝の手袋", 93, { magStat: "int", weight: "cloth", tint: "#e0c0f0", desc: "秘宝の紋を縫い込んだ淡紫の薄手の手袋。指先の感覚を保ちつつ、握った触媒へ膨大な魔力を澄んだまま導く。" }),
   G("g_r10_holykinggloves", "聖王の宝手袋", 98, { magStat: "pie", weight: "cloth", tint: "#f0e0a0", desc: "祈りの所作を支える黄金刺繍の宝手袋。掌の聖印が祈祷に魔力を乗せやすくし、癒しの奇跡を大きく後押しする。" }),
   G("g_r10_astralitegloves", "星霊銀の手袋", 94, { role: "atk", tint: "#cfe4f0", desc: "星霊銀を編んだ手袋。指の自由を残したまま拳を堅く守り、星の光を宿した金属が握った得物の一打に鋭い冴えを加える。" }),
-  G("g_r10_marksmanglove", "天弓神の手袋", 98, { role: "atk", tint: "#8a6438", desc: "弓の神域に至った射手のために誂えた手袋。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を究極まで高める。" }),
+  G("g_r10_marksmanglove", "天弓神の手袋", 98, { role: "atk", tint: "#8a6438", desc: "弓の神域に至った射手のためにあつらえた手袋。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を究極まで高める。" }),
   G("g_r10_divinegauntlet", "神器鋼の籠手", 95, { role: "atk", shape: "gauntlet", tint: "#dcdce8", desc: "神器鋼を関節ごとに連ねた籠手。宿る神域の力を帯びた拳が、振るう得物の一撃に冴えと究極の重みを上乗せする。" }),
   G("g_r10_dragonkinggauntlet", "竜王の籠手", 100, { role: "atk", shape: "gauntlet", tint: "#c0a040", desc: "竜王の証たる黄金の籠手。王たる竜鱗を象った甲が指先まで包んで握力を損なわず、剣を振る手に絶大な信頼を置かせる。" }),
 

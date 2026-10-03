@@ -4,7 +4,7 @@
 // 階段を這い上がってくる。門の両脇には顔のない頭巾の巨像が剣を突き立てて立ち、
 // 傾いだ墓標の列の手前に、ランタンを提げた魂繰りがひとり、背を向けて立つ。
 //
-// 光源は 3 つだけ: 門の魂火 (主光・下から)、背後の月 (縁の照り返し)、ランタンの燠火。
+// 光源は 3 つだけ: 門の魂火 (主光・下から)、背後の月 (縁の照り返し)、ランタンのおき火。
 // 静止部分は層ごとに一度だけ描いてキャッシュし、毎フレームは光・霧・粒子・鴉だけを動かす。
 import {
   Layer, Mask, worley, softCanvas, rc, mix, clamp, smooth, fbm, vnoise, h1, h2, rng, glowSprite,
@@ -75,11 +75,11 @@ export function shadeCloaked(Lr, m, fx, feet, h, { light, lamp, rimRamp = R_SOUL
   const c35 = 0.8, s35 = 0.6;
   Lr.paint(m, (x, y, v) => {
     const u = (x + 0.5 - fx) / h, vv = (feet - y - 0.5) / h;
-    if (v === 8) { // 火袋: 揺らめく燠火
+    if (v === 8) { // 火袋: 揺らめくおき火
       const t = (y - (feet - 0.42 * h)) / (0.075 * h);
       return rc(R_EMBER, 0.62 + 0.38 * (1 - Math.abs(t - 0.55) * 1.6) + (h2(x, y, 9) - 0.5) * 0.1);
     }
-    // 衣の地色: ほぼ黒の菫。外套のひだは肩へ向けて集まる縦の起伏
+    // 衣の地色: ほぼ黒のすみれ。外套のひだは肩へ向けて集まる縦の起伏
     let base = 0.08 + base0;
     if (v === 2) {
       const w = 0.15 + (0.83 - vv) * 0.08;
@@ -912,7 +912,7 @@ export class TitleScene {
     g.drawImage(this.fogLow, -sx3, ly); g.drawImage(this.fogLow, W - sx3, ly);
     g.globalAlpha = 1;
     g.drawImage(L.fig, ox, oy);
-    // ランタンの燠火 (ゆらめき)
+    // ランタンのおき火 (ゆらめき)
     const fl = 0.7 + 0.18 * Math.sin(t * 0.013) + 0.12 * Math.sin(t * 0.031 + 1) + (h1(Math.floor(t / 70), 5) - 0.5) * 0.12;
     g.globalCompositeOperation = "lighter";
     g.globalAlpha = clamp(fl * 0.6);

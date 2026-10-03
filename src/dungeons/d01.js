@@ -9,7 +9,7 @@ export const monsters = defMonsters([
   { id: "d01_skeleton", name: "囚人の亡骸", race: "undead", element: "dark", artKey: "hd_skeleton", rank: 2,
     hp: 22, atk: 11, def: 4, spd: 7, soul: 16, gold: 12, soulClass: "thief",
     magWeak: 1.5, // 牢で朽ちた古い骨は脆く、魔法の一撃で砕ける
-    desc: "裁きも赦しも無いまま牢で朽ち果てた者の骨。残った怨みだけが関節を軋ませ、出口を求めて鉄格子を掻きむしり続ける。その虚ろな眼窩は、近づく生者を看守と取り違えて襲いかかる。朽ちた骨は脆く、魔法の衝撃でたやすく崩れ落ちる。" },
+    desc: "裁きも赦しも無いまま牢で朽ち果てた者の骨。残った怨みだけが関節をきしませ、出口を求めて鉄格子を掻きむしり続ける。その虚ろな目の穴は、近づく生者を看守と取り違えて襲いかかる。朽ちた骨は脆く、魔法の衝撃でたやすく崩れ落ちる。" },
   { id: "d01_gaoler", name: "牢番オーク", race: "humanoid", element: "earth", artKey: "orc", rank: 2, boss: true,
     palette: tint(ARTS.orc.palette, "#3a2a1a", 0.2),
     ability: "goldSteal", physResist: 1, // 頑丈な巨体で刃を弾き、奪った遺品を握り込む

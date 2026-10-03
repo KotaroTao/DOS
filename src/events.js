@@ -34,7 +34,7 @@ const pctTxt = (p) => `${Math.round(p * 100)}%`;
 // ---- 怨霊の謎かけ ----
 const RIDDLES = [
   { q: "朝は四つ、昼は二つ、夜は三つの足で歩くものは？", a: "人", w: ["獣", "影"] },
-  { q: "生まれた時から棺を背負い、死ぬまで脱がぬものは？", a: "蝸牛", w: ["亀", "骸骨"] },
+  { q: "生まれた時から棺を背負い、死ぬまで脱がぬものは？", a: "カタツムリ", w: ["亀", "骸骨"] },
   { q: "使えば使うほど小さくなり、灯れば灯るほど影を消すものは？", a: "蝋燭", w: ["剣", "魂"] },
   { q: "名を呼べば消え、黙れば満ちるものは？", a: "静寂", w: ["闇", "霧"] },
   { q: "持ち主には見えず、他人ばかりが口にするものは？", a: "名前", w: ["顔", "罪"] },
@@ -45,19 +45,19 @@ const RIDDLES = [
   { q: "首は無いのに頭を下げ、足は無いのに立って待つものは？", a: "瓶", w: ["案山子", "墓標"] },
 ];
 
-// ---- 魂繰りの遺書 (層ごとの頁) ----
+// ---- 魂繰りの遺書 (層ごとのページ) ----
 export const LORE_PAGES = {
   1: ["……墓所の土は温かい。死者は眠ってなどいない、ただ待っているのだ。",
       "私は人業に魂を移す術を、王家の命で磨いた。だが誰の魂を、何のために？",
       "答えを知る前に、私の器は朽ちるだろう。次に灯を継ぐ者よ、墓の声に耳を貸すな。"],
   2: ["……王都の下には、もう一つの王都がある。水は全てを運び、全てを沈める。",
       "流れてきた魂は数え切れない。誰かが上から捨てているのだ、器ごと。",
-      "私はそれを掬い上げた。救ったのか、盗んだのか、もう分からない。"],
+      "私はそれをすくい上げた。救ったのか、盗んだのか、もう分からない。"],
   3: ["……坑夫たちは銀を掘っていたのではない。眠る『何か』の殻を削っていた。",
       "最初の魂繰りは、その殻から最初の魂を抜き取ったという。",
       "ならば我らの術は、盗掘の延長に過ぎぬ。深く掘るほど、底は近づく。"],
   0: ["……灯を継ぐ者よ。深く潜るほど、魂は重くなる。",
-      "人業の器が軋むのは、魂がまだ自分の体を覚えているからだ。",
+      "人業の器がきしむのは、魂がまだ自分の体を覚えているからだ。",
       "忘れさせてやるな。それが、私にできなかったことだ。"],
 };
 
@@ -82,10 +82,8 @@ export const EVENTS = [
           A.payGold(cost); A.healAll(0.3, 0.3, false);
           A.toast("祭壇が淡く光った ― HP・MPが回復した", "good", "fountain"); A.done(cell);
         } },
-        { label: "祈るだけ ― 半々で小さな癒し", fn: () => {
-          if (chance(0.5)) { A.healAll(0.15, 0, false); A.toast("祈りが届いた ― HPが少し回復した", "good", "fountain"); }
-          else { A.sfx("ng"); A.toast("祭壇は沈黙したままだった", "info"); }
-          A.done(cell);
+        { label: "祈るだけ ― ✦Soul を少し", fn: () => {
+          A.sfx("heal"); A.soul(0.5, "祭壇への祈り"); A.done(cell);
         } },
       ];
     },
@@ -227,7 +225,7 @@ export const EVENTS = [
         A.canPaySoul(s) && { label: `魂を賭ける (✦${s}) ― 1/3で3倍`, fn: () => {
           A.paySoul(s);
           if (chance(1 / 3)) { A.sfx("victory"); A.giveSoulRaw(s * 3, "骸骨との賭け"); }
-          else { A.sfx("ng"); A.toast("骸骨は魂を啜り、満足げにサイコロを振った ― 負けだ", "bad"); }
+          else { A.sfx("ng"); A.toast("骸骨は魂をすすり、満足げにサイコロを振った ― 負けだ", "bad"); }
           A.done(cell);
         } },
       ];
@@ -262,7 +260,7 @@ export const EVENTS = [
         } else {
           A.sfx("trap"); A.flash("#5a3a8a");
           A.hurtAll(0.10);
-          A.toast(`「違う。答えは〈${r.a}〉だ」― 怨嗟が隊を打った`, "bad");
+          A.toast(`「違う。答えは〈${r.a}〉だ」― 恨みの声が隊を打った`, "bad");
         }
         A.done(cell);
       } }));
@@ -278,13 +276,13 @@ export const EVENTS = [
           A.payGold(cost); A.runEv().preempt = (A.runEv().preempt || 0) + 1;
           A.sfx("spell"); A.toast("蝋燭が灯った ― 次の戦闘は必ず先手を取れる", "good"); A.done(cell);
         } },
-        { label: "蝋を持ち帰る ― 蒐集品", fn: () => A.collectible("祈りの燭台", () => A.done(cell)) },
+        { label: "蝋を持ち帰る ― 収集品", fn: () => A.collectible("祈りの燭台", () => A.done(cell)) },
       ];
     },
   },
   {
     id: "c13", name: "瓦礫の下の光", layer: 0, tier: "common", icon: "chest", deep: true,
-    intro: () => ["崩れた瓦礫の隙間から、金属の光が覗いている。天井はまだ不穏に軋んでいる。"],
+    intro: () => ["崩れた瓦礫の隙間から、金属の光が覗いている。天井はまだ不穏にきしんでいる。"],
     choices: (A, cell) => [
       { label: "掘り出す ― 宝箱 / 30%で落盤", primary: true, fn: () => {
         if (chance(0.3)) { A.sfx("trap"); A.flash("#8a7a5a"); A.hurtAll(0.15); A.toast("天井が崩れた ― 隊全体が傷を負った", "bad", "trap"); }
@@ -364,7 +362,7 @@ export const EVENTS = [
   },
   {
     id: "c17", name: "さまよう行商人", layer: 0, tier: "uncommon", icon: "gold",
-    intro: () => ["骨の驢馬を連れた行商人が、ランタンを掲げた。", "「こんな所で客とはね。値は張るが、品は本物だよ」"],
+    intro: () => ["骨のロバを連れた行商人が、ランタンを掲げた。", "「こんな所で客とはね。値は張るが、品は本物だよ」"],
     choices: (A, cell) => {
       const herb = A.price("herb") * 3, mana = A.price("manaDrop") * 3, box = A.goldCost(3);
       return [
@@ -482,12 +480,12 @@ export const EVENTS = [
   },
   {
     id: "c25", name: "鏡の間", layer: 0, tier: "rare", icon: "event", deep: true,
-    intro: () => ["四方を鏡に囲まれた部屋。鏡の中の自分たちが、こちらを見て嗤った。", "鏡の影は、自分たちの七割の力を持つ。"],
+    intro: () => ["四方を鏡に囲まれた部屋。鏡の中の自分たちが、こちらを見てあざ笑った。", "鏡の影は、自分たちの七割の力を持つ。"],
     choices: (A, cell) => [
       { label: "鏡に挑む ― 自分たちの影と戦い、✦Soul (大) と上等な品", danger: true, fn: () => {
         A.fight(cell, [{ shadows: 0.7 }], "mirror", { noChest: true });
       } },
-      { label: "鏡を割る ― 鏡の欠片 (蒐集品) / 全員に小さな傷", fn: () => {
+      { label: "鏡を割る ― 鏡の欠片 (収集品) / 全員に小さな傷", fn: () => {
         A.sfx("hit"); A.hurtAll(0.08);
         A.collectible("鏡の欠片", () => A.done(cell));
       } },
@@ -552,7 +550,7 @@ export const EVENTS = [
     id: "c30", name: "魂繰りの遺書", layer: 0, tier: "mythic", icon: "event", once: "layer",
     intro: () => ["朽ちた机に、革表紙の手記。先代の魂繰りが遺したものだ。", "読めば魂の残火が宿る。焼けば、紙に染みた魂が解き放たれる。"],
     choices: (A, cell) => [
-      { label: "読む ― 物語の頁 (見聞録に記す) と魂の残火 ×2", primary: true, fn: () => {
+      { label: "読む ― 物語のページ (見聞録に記す) と魂の残火 ×2", primary: true, fn: () => {
         const L = A.layer, page = LORE_PAGES[L] || LORE_PAGES[0];
         A.flags().lore = { ...(A.flags().lore || {}), [L]: true };
         A.ember(2, "魂繰りの遺書", true);
@@ -621,7 +619,7 @@ export const EVENTS = [
   },
   {
     id: "l1_05", name: "名を刻まれぬ墓碑", layer: 1, tier: "uncommon", icon: "event",
-    intro: () => ["名の刻まれていない真新しい墓碑。鑿が添えてある。", "生者の名を刻めば、その者は一度だけ死を拒めるという。代わりに、血を少し差し出すことになる。"],
+    intro: () => ["名の刻まれていない真新しい墓碑。のみが添えてある。", "生者の名を刻めば、その者は一度だけ死を拒めるという。代わりに、血を少し差し出すことになる。"],
     choices: (A, cell) => A.aliveList().filter((m) => !A.runEv().saves || !A.runEv().saves[m.uid]).slice(0, 4).map((m) => ({
       label: `${m.name}の名を刻む ― 一度だけ死を免れる (HPを3割失う)`, fn: () => {
         A.hurtOne(m, 0.30);
@@ -676,7 +674,7 @@ export const EVENTS = [
         if (!keys.length) { A.sfx("ng"); A.toast("鐘の音が虚しく響いた ― もう誰も来ない", "info"); A.soul(1, "鐘の余韻"); A.done(cell); return; }
         A.fight(cell, keys.slice(0, 6).map((k) => ({ key: k, single: true })), "bell", { noChest: true });
       } },
-      { label: "鐘舌を外す ― 蒐集品", fn: () => A.collectible("弔鐘の鐘舌", () => A.done(cell)) },
+      { label: "鐘舌を外す ― 収集品", fn: () => A.collectible("弔鐘の鐘舌", () => A.done(cell)) },
     ],
     onWin: (A, cell, f, next) => {
       const n = A.clearMonsters();
@@ -719,9 +717,9 @@ export const EVENTS = [
   // ================= 第2層「地下水路」 (10) =================
   {
     id: "l2_01", name: "漂着物の山", layer: 2, tier: "common", icon: "chest",
-    intro: () => ["流れに運ばれてきた漂着物が、堰に引っかかって山になっている。何かが中で蠢いた。"],
+    intro: () => ["流れに運ばれてきた漂着物が、せきに引っかかって山になっている。何かが中でうごめいた。"],
     choices: (A, cell) => [
-      { label: "漁る ― 金貨と時に蒐集品 / 30%で群れに襲われる", danger: true, fn: () => {
+      { label: "漁る ― 金貨と時に収集品 / 30%で群れに襲われる", danger: true, fn: () => {
         if (chance(0.3)) { A.alarm("群れが飛び出してきた！", ["漂着物の山は巣だった。"], "trap", () => A.fight(cell, [{ pool: true, min: 3 }], "drift", { noChest: true })); return; }
         A.gold(2, "漂着物");
         if (chance(0.3)) A.collectible("漂着物", () => A.done(cell)); else A.done(cell);
@@ -818,7 +816,7 @@ export const EVENTS = [
         }
         A.item({ rare: true }, "大ワニの腹", () => A.done(cell));
       } },
-      { label: "牙を抜く ― 蒐集品", fn: () => A.collectible("大ワニの牙", () => A.done(cell)) },
+      { label: "牙を抜く ― 収集品", fn: () => A.collectible("大ワニの牙", () => A.done(cell)) },
     ],
     onWin: (A, cell, f, next) => A.item({ rare: true }, "大ワニの腹", () => A.done(cell, next)),
   },
@@ -862,7 +860,7 @@ export const EVENTS = [
     choices: (A, cell) => [
       { label: "王に献上する ― 以後、第2層ではどの階も階段が最初から見える", primary: true, fn: () => {
         A.flags().sewerMap = true; A.revealStairs();
-        A.sfx("victory"); A.story("王都の下水図", ["王は図面を広げ、満足げに頷いた。", "「よくぞ見つけた。写しを持って行け」", "以後、第2層の迷宮ではどの階も階段が最初から見える。"], () => A.done(cell));
+        A.sfx("victory"); A.story("王都の下水図", ["王は図面を広げ、満足げにうなずいた。", "「よくぞ見つけた。写しを持って行け」", "以後、第2層の迷宮ではどの階も階段が最初から見える。"], () => A.done(cell));
       } },
       { label: "売る ― 金貨 (特大)", fn: () => { A.gold(15, "下水図"); A.done(cell); } },
     ],
@@ -885,7 +883,7 @@ export const EVENTS = [
   {
     id: "l3_02", name: "カナリアの籠", layer: 3, tier: "common", icon: "event",
     setup: (A, cell) => { cell.evAlive = chance(0.55); },
-    intro: (A, cell) => ["坑道の分かれ目に、カナリアの籠が吊るされている。", cell.evAlive ? "小鳥は元気に囀っている。奥の空気は澄んでいるようだ。" : "小鳥は籠の底で動かない……奥には毒の瘴気が溜まっている。", "奥には、置き去りの荷が見える。"],
+    intro: (A, cell) => ["坑道の分かれ目に、カナリアの籠が吊るされている。", cell.evAlive ? "小鳥は元気にさえずっている。奥の空気は澄んでいるようだ。" : "小鳥は籠の底で動かない……奥には毒の瘴気が溜まっている。", "奥には、置き去りの荷が見える。"],
     choices: (A, cell) => [
       { label: cell.evAlive ? "奥へ進む ― 荷を回収する" : "息を止めて奥へ ― 荷を回収 / 全員が毒", primary: !!cell.evAlive, danger: !cell.evAlive, fn: () => {
         if (!cell.evAlive) { A.ailAll("poison", 1); A.toast("瘴気を吸った ― 全員が毒に侵された", "bad", "poison"); }
@@ -897,7 +895,7 @@ export const EVENTS = [
   {
     id: "l3_03", name: "坑夫の亡霊", layer: 3, tier: "common", icon: "mon:bs_dustwraith",
     cond: (A) => A.countCells((c) => c.type === "corpse" && !c.cleared) >= 1,
-    intro: (A) => ["煤けた坑夫の亡霊が、つるはしに縋って立っている。", `「仲間の亡骸を……この階の亡骸を、すべて弔ってくれ」 (残り ${A.countCells((c) => c.type === "corpse" && !c.cleared)}体)`],
+    intro: (A) => ["煤けた坑夫の亡霊が、つるはしにすがって立っている。", `「仲間の亡骸を……この階の亡骸を、すべて弔ってくれ」 (残り ${A.countCells((c) => c.type === "corpse" && !c.cleared)}体)`],
     choices: (A, cell) => [
       { label: "引き受ける ― この階の死体をすべて調べると ✦Soul と魂の残火", primary: true, fn: () => {
         A.floorEv().miner = true; cell.evQuest = true;

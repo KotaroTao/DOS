@@ -2,7 +2,7 @@
 // 担当: WP-C。
 // 提供する契約:
 //   UI.loot(item, who, { source, celebrate, silent, keepPrompt }, next)
-//       入手の割り込み方針 (§3.6): コモン/アンコモン/レア・道具・蒐集品 = トースト (+収穫バーの数) で
+//       入手の割り込み方針 (§3.6): コモン/アンコモン/レア・道具・収集品 = トースト (+収穫バーの数) で
 //       next をすぐ呼ぶ。スーパーレア/レジェンドレア = 祝祭カード (閉じてから next)。
 //   UI.itemSheet(item, { owner, context, actions, price, stockId, target, onClose })
 //       品シート: レア度の縁・絵・性能・装備できる者・比べる相手との増減・来歴・文脈ごとの操作。
@@ -677,7 +677,7 @@ function defaultActions(st) {
     st.equipFirst = isUpgrade(it, { owner });
   }
 
-  // ---- 渡す (宝物庫から開いた蒐集品は奉納) / 売る (商会が開いている街) / 捨てる ----
+  // ---- 渡す (宝物庫から開いた収集品は奉納) / 売る (商会が開いている街) / 捨てる ----
   if (context === "donate" && inBag && town && ops.donateOne) {
     acts.push({ key: "donate", label: "奉納", onTap: (close) => {
       const res = ops.donateOne(owner, it);
