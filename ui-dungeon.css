@@ -364,9 +364,9 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 .dg-menu .dg-floorhead.tap { min-height: 52px; padding: 4px 8px 6px; margin-bottom: 6px; }
 .dg-menu .dg-fh-depth { font-size: 22px; }
 .dg-fh-more { font-size: 18px; font-weight: 800; color: #8a6d2e; }
-.dg-mgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.dg-mgrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px; }
 .dg-mtile {
-  display: flex; align-items: center; gap: 10px; min-height: 60px; padding: 6px 10px; text-align: left;
+  display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 60px; padding: 6px 10px; text-align: left;
   font-family: var(--font); color: var(--ink); cursor: pointer;
   background: var(--grain), var(--plate); border: 1px solid #33292a; border-radius: 3px; box-shadow: var(--plate-edge);
   touch-action: manipulation; transition: transform var(--t-tap) ease-out, filter var(--t-tap) ease-out;

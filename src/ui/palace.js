@@ -6,6 +6,7 @@
 //   勲章   … まとめて拝受。拝受できる札を先に、2列の札をめくる
 //   宝物庫 … 収集品を奉納 (品の詳細のシート → 奉納する。奉納済みの品は売却額の金貨に)・次の褒賞・奉納台帳 (図鑑と同じ札。総数は伏せる)
 // 提供: UI.openPalace(seg) (seg = "decree" | "codex" | "ach" | "treasury" | "codex:mon|item|job")
+//       UI.openCodexSheet({ dungeonIdx }) (迷宮の中の図鑑。手帳から)
 //       UI.codexMonSheet(key) / UI.codexItemSheet(id) / UI.codexJobSheet(key, rank, heading)
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
@@ -156,7 +157,7 @@ function unknownCard() {
   c.appendChild(el("span", "pl-card-n", "？？？"));
   return c;
 }
-function codexCard(sprite, name, { color = null, onTap = null, sub = null, price = null, fresh = false } = {}) {
+function codexCard(sprite, name, { color = null, onTap = null, sub = null, price = null, kills = null, fresh = false } = {}) {
   const c = el("button", "pl-card" + (fresh ? " fresh" : ""));
   c.type = "button";
   if (color) c.style.setProperty("--edge", color);
@@ -166,6 +167,7 @@ function codexCard(sprite, name, { color = null, onTap = null, sub = null, price
   const n = el("span", "pl-card-n", name);
   if (color) n.style.color = color;
   c.appendChild(n);
+  if (kills != null) c.appendChild(el("span", "pl-card-k" + (kills ? "" : " none"), `討伐 ${kills}体`)); // 魔物の札: 名の下に討伐数
   if (sub) c.appendChild(el("span", "pl-card-s", sub));
   if (price != null) {
     const p = el("span", "pl-card-p");
@@ -174,11 +176,12 @@ function codexCard(sprite, name, { color = null, onTap = null, sub = null, price
     c.appendChild(p);
   }
   if (fresh) c.appendChild(newMark());
-  c.setAttribute("aria-label", name + (price != null ? ` (売却額 ${price})` : "") + (fresh ? " (新着)" : ""));
+  c.setAttribute("aria-label", name + (price != null ? ` (売却額 ${price})` : "") + (kills != null ? ` (討伐 ${kills}体)` : "") + (fresh ? " (新着)" : ""));
   if (onTap) c.addEventListener("click", () => { sfx("select"); onTap(c); });
   return c;
 }
 const CARD_H = 104;
+const MON_CARD_H = 118; // 魔物の札は名の下に討伐数の1行ぶん高い
 
 function renderCodexMon(box) {
   const g = G();
@@ -201,9 +204,9 @@ function renderCodexMon(box) {
     pagedGrid(area, roster, (key) => {
       const m = MONSTERS[key];
       if (!g.codex.mon[key]) return unknownCard();
-      return codexCard(m, m.name, { color: m.rank ? RANK_COLOR[m.rank] : null, sub: m.boss ? "主" : null, fresh: isFreshMon(key),
+      return codexCard(m, m.name, { color: m.rank ? RANK_COLOR[m.rank] : null, sub: m.boss ? "主" : null, kills: monKills(key), fresh: isFreshMon(key),
         onTap: (c) => { codexMonSheet(key); markSeen("mon", key, c); } });
-    }, { cols: 3, cellH: CARD_H, key: "mon:" + idx, empty: el("div", "wa-empty", "記録なし。") });
+    }, { cols: 3, cellH: MON_CARD_H, key: "mon:" + idx, empty: el("div", "wa-empty", "記録なし。") });
   };
   const ch = chips(items, String(idx), (k) => { idx = Number(k); remember("codex", "dungeon", idx); draw(); });
   refresh.list = () => items.forEach((it, i) => setBadge(chipBtn(ch, i), freshIn(Number(it.key))));
@@ -370,6 +373,25 @@ function renderCodex(body) {
   body.appendChild(segEl);
   body.appendChild(box);
   draw(sub);
+}
+
+// 迷宮の中で開く図鑑 (手帳の「図鑑」から)。王宮の図鑑と同じ中身 (魔物/アイテム/職業/見聞) を背の高いシートに収める。
+// 魔物はいま潜っている迷宮の札から開く (dungeonIdx)
+export function openCodexSheet({ dungeonIdx = null } = {}) {
+  const g = G();
+  if (!g) return null;
+  remember("seg", "codex", "mon");
+  if (Number.isInteger(dungeonIdx) && dungeonIdx >= 0 && dungeonIdx < Math.max(1, g.unlockedDungeons || 1)) remember("codex", "dungeon", dungeonIdx);
+  const box = el("div", "pl-body cx-body");
+  refresh.top = refresh.sub = refresh.list = null;
+  const h = sheet.open({
+    kind: "info", banner: "図鑑", className: "cx-sheet", body: box, paged: false,
+    footer: [{ label: "閉じる", kind: "ghost", onTap: (s) => s.close() }],
+    onClose: () => { refresh.sub = refresh.list = null; },
+  });
+  renderCodex(box); // シートが画面に出てから描く (めくる格子が残りの高さを測るため)
+  autoPage(box);
+  return h;
 }
 
 // ---- 図鑑の詳細 (シート) ----
@@ -784,7 +806,7 @@ export function openPalace(seg) {
 }
 
 export function install() {
-  registerUI({ openPalace, codexMonSheet, codexItemSheet, codexJobSheet, codexEventSheet });
+  registerUI({ openPalace, openCodexSheet, codexMonSheet, codexItemSheet, codexJobSheet, codexEventSheet });
   // タブの印: 王の用 (報告・拝命・謁見) は「!」、無ければ拝受できる勲章の数、奉納・褒賞だけなら点
   const tabBadge = (c) => {
     if (game.palaceCallReady && game.palaceCallReady()) return "!";
