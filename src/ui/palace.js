@@ -10,8 +10,8 @@
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
 import { UI, game, ops, registerUI } from "./ctx.js";
-import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, bar, autoPage } from "./kit.js";
-import { remember, getPref, setPref } from "./prefs.js";
+import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, bar, autoPage, badge } from "./kit.js";
+import { remember } from "./prefs.js";
 import { softFade } from "./motion.js";
 import { statLines, itemCatText, showSkillPopup } from "./itemview.js";
 import { MONSTERS, spriteCanvas } from "../sprites.js";
@@ -85,6 +85,51 @@ function renderDecree(body) {
   body.appendChild(rec);
 }
 
+// ================= 新着の印 =================
+// 図鑑の新着は G.codex.fresh (game.js が記録した時に立てる) — 札・迷宮/分類の札・区分・王宮の区分に印を出し、
+// 札の詳細を開くと消える。勲章 (拝受できる) と宝物庫 (奉納できる新種・受け取れる褒賞) は、片付けると消える。
+// 札を開いた時に上の階層の印を数え直す (描いた区分ごとに1つの関数を覚えておく)
+const refresh = { top: null, sub: null, list: null };
+function refreshBadges() { for (const k in refresh) if (refresh[k]) { try { refresh[k](); } catch (e) { /* 印のみ */ } } }
+// 札/区分のボタンの印を付け替える (n: 数 / true = 点 / 0・null = 消す)
+function setBadge(host, n) {
+  if (!host) return;
+  const old = host.querySelector(":scope > .ui-badge");
+  if (old) old.remove();
+  if (n) host.appendChild(badge(n));
+}
+// segmented / chips の i 番目のボタン
+const segBtn = (segEl, i) => segEl && segEl.children[i];
+const chipBtn = (chipsEl, i) => { const inner = chipsEl && chipsEl.querySelector(".ui-chips-in"); return inner && inner.children[i]; };
+function freshOf(kind) {
+  const c = G() && G().codex;
+  const f = c && c.fresh && c.fresh[kind];
+  return f && typeof f === "object" ? f : {};
+}
+const isFreshMon = (k) => !!(freshOf("mon")[k] && G().codex.mon[k] && MONSTERS[k]);
+const isFreshItem = (id) => !!(freshOf("item")[id] && G().codex.item[id] && ITEMS[id]);
+const isFreshJob = (k, r) => !!(freshOf("job")[k + ":" + r] && SOUL_CLASSES[k]);
+function freshCounts() {
+  const g = G();
+  const mon = Object.keys(freshOf("mon")).filter(isFreshMon).length;
+  const item = Object.keys(freshOf("item")).filter(isFreshItem).length;
+  const job = Object.keys(freshOf("job")).filter((kr) => {
+    const [k, r] = kr.split(":");
+    const rec = g.codex.job[k];
+    return isFreshJob(k, r) && rec && Number(r) <= Math.max(1, rec.rank || 1);
+  }).length;
+  return { mon, item, job, total: mon + item + job };
+}
+// 詳細を開いた = 見た。印を消して数え直す
+function markSeen(kind, key, card) {
+  const f = freshOf(kind);
+  if (!f[key]) return;
+  delete f[key];
+  if (card) { const m = card.querySelector(".pl-card-new"); if (m) m.remove(); card.classList.remove("fresh"); }
+  refreshBadges();
+}
+const newMark = () => el("span", "pl-card-new", "新");
+
 // ================= 図鑑 =================
 function unknownCard() {
   const c = el("div", "pl-card unknown");
@@ -94,8 +139,8 @@ function unknownCard() {
   c.appendChild(el("span", "pl-card-n", "？？？"));
   return c;
 }
-function codexCard(sprite, name, { color = null, onTap = null, sub = null, owned = false } = {}) {
-  const c = el("button", "pl-card" + (owned ? " owned" : ""));
+function codexCard(sprite, name, { color = null, onTap = null, sub = null, owned = false, fresh = false } = {}) {
+  const c = el("button", "pl-card" + (owned ? " owned" : "") + (fresh ? " fresh" : ""));
   c.type = "button";
   if (color) c.style.setProperty("--edge", color);
   const a = el("span", "pl-card-art");
@@ -106,8 +151,9 @@ function codexCard(sprite, name, { color = null, onTap = null, sub = null, owned
   c.appendChild(n);
   if (sub) c.appendChild(el("span", "pl-card-s", sub));
   if (owned) c.appendChild(el("span", "pl-card-own", "所持"));
-  c.setAttribute("aria-label", name + (owned ? " (所持)" : ""));
-  if (onTap) c.addEventListener("click", () => { sfx("select"); onTap(); });
+  if (fresh) c.appendChild(newMark());
+  c.setAttribute("aria-label", name + (owned ? " (所持)" : "") + (fresh ? " (新着)" : ""));
+  if (onTap) c.addEventListener("click", () => { sfx("select"); onTap(c); });
   return c;
 }
 const CARD_H = 104;
@@ -120,20 +166,26 @@ function renderCodexMon(box) {
   const items = [];
   for (let i = 0; i < unlocked && i < DUNGEONS.length; i++) items.push({ key: String(i), label: DUNGEONS[i].short || DUNGEONS[i].name });
   items.push({ key: "-1", label: "その他" });
+  const rosterOf = (i) => i === -1 ? (game.CODEX_OTHER || []).filter((k) => MONSTERS[k]) : (game.dungeonRoster ? game.dungeonRoster(DUNGEONS[i]) : []);
+  const freshIn = (i) => rosterOf(i).filter(isFreshMon).length || null;
+  for (const it of items) it.badge = freshIn(Number(it.key));
   const cap = el("div", "pl-codex-cap");
   let area = null;
   const draw = () => {
     const isOther = idx === -1;
-    const roster = isOther ? (game.CODEX_OTHER || []).filter((k) => MONSTERS[k]) : (game.dungeonRoster ? game.dungeonRoster(DUNGEONS[idx]) : []);
+    const roster = rosterOf(idx);
     const seen = roster.filter((k) => g.codex.mon[k]).length;
     cap.textContent = isOther ? `その他 — 宝箱に潜む魔物　記録 ${seen}/${roster.length}` : `${DUNGEONS[idx].name}　記録 ${seen}/${roster.length}`;
     pagedGrid(area, roster, (key) => {
       const m = MONSTERS[key];
       if (!g.codex.mon[key]) return unknownCard();
-      return codexCard(m, m.name, { color: m.rank ? RANK_COLOR[m.rank] : null, sub: m.boss ? "主" : null, onTap: () => codexMonSheet(key) });
+      return codexCard(m, m.name, { color: m.rank ? RANK_COLOR[m.rank] : null, sub: m.boss ? "主" : null, fresh: isFreshMon(key),
+        onTap: (c) => { codexMonSheet(key); markSeen("mon", key, c); } });
     }, { cols: 3, cellH: CARD_H, key: "mon:" + idx, empty: el("div", "wa-empty", "記録なし。") });
   };
-  box.appendChild(chips(items, String(idx), (k) => { idx = Number(k); remember("codex", "dungeon", idx); draw(); }));
+  const ch = chips(items, String(idx), (k) => { idx = Number(k); remember("codex", "dungeon", idx); draw(); });
+  refresh.list = () => items.forEach((it, i) => setBadge(chipBtn(ch, i), freshIn(Number(it.key))));
+  box.appendChild(ch);
   box.appendChild(cap);
   area = fillArea(box);
   draw();
@@ -147,24 +199,36 @@ function renderCodexItem(box) {
   let wcat = remember("codex", "weaponCat") || "all";
   const sub = el("div", "pl-codex-sub");
   const cap = el("div", "pl-codex-cap");
-  let area = null;
+  let area = null, wch = null;
+  // 分類ごとの新着の数 (武器は種別ごとにも)
+  const idsOfCat = (key) => { const d = ITEM_CATS.find((c) => c.key === key); const slots = new Set((d && d.slots) || []); return seenIds.filter((id) => slots.has(ITEMS[id].slot)); };
+  const freshCat = (key) => idsOfCat(key).filter(isFreshItem).length || null;
+  const wItems = [{ key: "all", label: "すべて" }, ...WEAPON_CATS.map((w) => ({ key: w.key, label: w.label }))];
+  const freshW = (wk) => idsOfCat("weapon").filter((id) => isFreshItem(id) && (wk === "all" || ITEMS[id].cat === wk)).length || null;
   const draw = () => {
     sub.textContent = "";
+    wch = null;
     const def = ITEM_CATS.find((c) => c.key === cat) || ITEM_CATS[0];
-    const slots = new Set(def.slots || []);
-    let ids = seenIds.filter((id) => slots.has(ITEMS[id].slot));
+    let ids = idsOfCat(def.key);
     if (def.key === "weapon") {
-      sub.appendChild(chips([{ key: "all", label: "すべて" }, ...WEAPON_CATS.map((w) => ({ key: w.key, label: w.label }))], wcat, (k) => { wcat = k; remember("codex", "weaponCat", k); draw(); }));
+      wch = chips(wItems.map((w) => ({ ...w, badge: freshW(w.key) })), wcat, (k) => { wcat = k; remember("codex", "weaponCat", k); draw(); });
+      sub.appendChild(wch);
       if (wcat !== "all") ids = ids.filter((id) => ITEMS[id].cat === wcat);
     }
     ids.sort((a, b) => (ITEMS[a].lv || 0) - (ITEMS[b].lv || 0) || a.localeCompare(b));
     cap.textContent = `${def.label}　発見 ${ids.length} 種　(所持している品はその場で装備できる)`;
     pagedGrid(area, ids, (id) => {
       const it = ITEMS[id];
-      return codexCard(it, it.name, { color: (game.itemRankColor && game.itemRankColor(it)) || rarityColor(it), owned: !!findOwned(id), onTap: () => openItem(id) });
+      return codexCard(it, it.name, { color: (game.itemRankColor && game.itemRankColor(it)) || rarityColor(it), owned: !!findOwned(id), fresh: isFreshItem(id),
+        onTap: (c) => { openItem(id); markSeen("item", id, c); } });
     }, { cols: 3, cellH: CARD_H, key: "item:" + cat + ":" + wcat, empty: el("div", "wa-empty", "この区分の品は、まだ手にしていない。") });
   };
-  box.appendChild(chips(ITEM_CATS.map((c) => ({ key: c.key, label: c.label })), cat, (k) => { cat = k; remember("codex", "itemCat", k); draw(); }));
+  const ch = chips(ITEM_CATS.map((c) => ({ key: c.key, label: c.label, badge: freshCat(c.key) })), cat, (k) => { cat = k; remember("codex", "itemCat", k); draw(); });
+  refresh.list = () => {
+    ITEM_CATS.forEach((c, i) => setBadge(chipBtn(ch, i), freshCat(c.key)));
+    if (wch) wItems.forEach((w, i) => setBadge(chipBtn(wch, i), freshW(w.key)));
+  };
+  box.appendChild(ch);
   box.appendChild(sub);
   box.appendChild(cap);
   area = fillArea(box);
@@ -180,11 +244,13 @@ function renderCodexJob(box) {
   for (let r = 5; r >= 1; r--) for (const k of known) if (attained(k) >= r) list.push({ k, r });
   box.appendChild(el("div", "pl-codex-cap", "人業に発現した職業を、到達した位階 (ランク) ごとに記す。"));
   const area = fillArea(box);
-  pagedGrid(area, list, ({ k, r }) => codexCard(jobSprite(k, r), jobRankName(k, r), { color: SOUL_CLASSES[k].glow, sub: `R${r}`, onTap: () => codexJobSheet(k, r) }),
+  refresh.list = null;
+  pagedGrid(area, list, ({ k, r }) => codexCard(jobSprite(k, r), jobRankName(k, r), { color: SOUL_CLASSES[k].glow, sub: `R${r}`, fresh: isFreshJob(k, r),
+    onTap: (c) => { codexJobSheet(k, r); markSeen("job", k + ":" + r, c); } }),
     { cols: 3, cellH: CARD_H, key: "job", empty: el("div", "wa-empty", "まだ職業を見つけていない。迷宮で魂を吸収すると職業が記される。") });
 }
 
-// 図鑑の記録の数 (魔物・品・職業)。区分の印 (前回見た時から増えた数) に使う。見た数は端末に覚える (dos-ui)
+// 図鑑の記録の数 (魔物・品・職業)
 function codexTotals() {
   const g = G();
   return {
@@ -193,16 +259,10 @@ function codexTotals() {
     job: Object.keys(g.codex.job).filter((k) => SOUL_CLASSES[k]).length,
   };
 }
-function codexNewCount() {
-  const t = codexTotals();
-  const seen = getPref("codexSeen", null);
-  if (!seen || typeof seen !== "object") { setPref("codexSeen", t); return 0; }
-  return Math.max(0, t.mon - (seen.mon || 0)) + Math.max(0, t.item - (seen.item || 0)) + Math.max(0, t.job - (seen.job || 0));
-}
 function renderCodex(body) {
   const sub = ["mon", "item", "job"].includes(remember("seg", "codex")) ? remember("seg", "codex") : "mon";
   const { mon: mons, item: items, job: jobs } = codexTotals();
-  setPref("codexSeen", { mon: mons, item: items, job: jobs });
+  const fc = freshCounts();
   const box = el("div", "pl-codex");
   const draw = (k) => {
     box.textContent = "";
@@ -210,9 +270,11 @@ function renderCodex(body) {
     else if (k === "item") renderCodexItem(box);
     else renderCodexJob(box);
   };
-  body.appendChild(segmented([
-    { key: "mon", label: `魔物 ${mons}` }, { key: "item", label: `品 ${items}` }, { key: "job", label: `職業 ${jobs}` },
-  ], sub, (k) => { sfx("select"); draw(k); softFade(box); }, { prefKey: "codex" }));
+  const segEl = segmented([
+    { key: "mon", label: `魔物 ${mons}`, badge: fc.mon || null }, { key: "item", label: `品 ${items}`, badge: fc.item || null }, { key: "job", label: `職業 ${jobs}`, badge: fc.job || null },
+  ], sub, (k) => { sfx("select"); draw(k); softFade(box); }, { prefKey: "codex" });
+  refresh.sub = () => { const c = freshCounts(); ["mon", "item", "job"].forEach((k, i) => setBadge(segBtn(segEl, i), c[k] || null)); };
+  body.appendChild(segEl);
   body.appendChild(box);
   draw(sub);
 }
@@ -377,6 +439,7 @@ function renderAch(body) {
   pagedGrid(area, cards, (c) => {
     const card = el("div", "pl-ach" + (c.ready ? " ready" : c.allDone ? " done" : ""));
     card.appendChild(el("span", "pl-medal" + (c.ready ? " ready" : c.allDone ? " done" : "")));
+    if (c.ready) card.appendChild(newMark()); // 拝受すると消える
     // 秘された勲章: 達成するまで名も条件も褒美も伏せる
     const hidden = c.a.secret && !c.ready && !c.allDone;
     const t = el("div", "pl-ach-t");
@@ -400,7 +463,7 @@ function renderAch(body) {
 
 // ================= 宝物庫 =================
 // 奉納台帳のランク帯ひとつをシートで (各10種。奉納済みは札、未奉納は ？)
-function bandSheet(r, ids) {
+function bandSheet(r, ids, newIds = null) {
   const ts = game.treasuryState();
   const body = el("div", "pl-band-sheet");
   const slots = el("div", "pl-band-slots");
@@ -408,6 +471,12 @@ function bandSheet(r, ids) {
     if (ts.donated[id]) {
       const t = itemTile(ITEMS[id], { size: 56, onTap: () => openItem(id) });
       t.setAttribute("aria-label", ITEMS[id].name);
+      slots.appendChild(t);
+    } else if (newIds && newIds.has(id)) {
+      // 手持ちに奉納できる新種がある枠: 品を薄く見せて新着の点
+      const t = itemTile(ITEMS[id], { size: 56, isNew: true, onTap: () => openItem(id) });
+      t.classList.add("pl-band-pending");
+      t.setAttribute("aria-label", ITEMS[id].name + " (未奉納・手持ち)");
       slots.appendChild(t);
     } else { const s = el("span", "pl-band-q"); s.textContent = "？"; slots.appendChild(s); }
   }
@@ -457,7 +526,7 @@ function renderTreasury(body) {
   const row = el("div", "pl-tr-new");
   if (news.length) {
     for (const h of news) {
-      const t = itemTile(h.item, { size: 44, onTap: () => openItem(h.item.id, { instance: h.item, owner: h.doll }) });
+      const t = itemTile(h.item, { size: 44, isNew: true, onTap: () => openItem(h.item.id, { instance: h.item, owner: h.doll }) });
       t.setAttribute("aria-label", `${h.item.name} (${h.doll.name})`);
       row.appendChild(t);
     }
@@ -484,19 +553,22 @@ function renderTreasury(body) {
   // 奉納台帳: ランク帯の札 (タップで帯のシート)
   body.appendChild(sectionHead("奉納台帳", { note: "ランク帯ごと・各10種" }));
   const byRank = game.collectiblesByRank ? game.collectiblesByRank() : {};
+  const newIds = new Set(news.map((h) => h.item.id)); // 帯の印 = その帯に奉納できる新種がある
   const led = el("div", "pl-ledger");
   for (let r = 1; r <= 10; r++) {
     const ids = byRank[r] || [];
     const cnt = ids.filter((id) => ts.donated[id]).length;
+    const fresh = ids.filter((id) => newIds.has(id)).length;
     const b = el("button", "pl-band" + (ids.length && cnt >= ids.length ? " full" : cnt ? " some" : ""));
     b.type = "button";
     b.appendChild(el("span", "pl-band-r", `R${r}`));
     b.appendChild(el("span", "pl-band-c", `${cnt}/${ids.length}`));
+    if (fresh) b.appendChild(badge(fresh));
     const fill = el("i", "pl-band-fill");
     fill.style.width = (ids.length ? (cnt / ids.length) * 100 : 0).toFixed(0) + "%";
     b.appendChild(fill);
     b.setAttribute("aria-label", `奉納台帳 R${r} ${cnt}/${ids.length}`);
-    b.addEventListener("click", () => { sfx("select"); bandSheet(r, ids); });
+    b.addEventListener("click", () => { sfx("select"); bandSheet(r, ids, newIds); });
     led.appendChild(b);
   }
   body.appendChild(led);
@@ -516,13 +588,15 @@ function renderPalace(root) {
   const seg = curSeg();
   const segs = [
     { key: "decree", label: "勅命", badge: call ? true : null },
-    { key: "codex", label: "図鑑", badge: seg !== "codex" ? (codexNewCount() || null) : null },
+    { key: "codex", label: "図鑑", badge: freshCounts().total || null },
     { key: "ach", label: "勲章", badge: counts && counts.ach ? counts.ach : null },
     { key: "treasury", label: "宝物庫", badge: counts && (counts.donatable || counts.treasuryReady) ? true : null },
   ];
   const body = el("div", "pl-body");
+  refresh.top = refresh.sub = refresh.list = null;
   const draw = (k) => {
     body.textContent = "";
+    if (k !== "codex") refresh.sub = refresh.list = null;
     body.scrollTop = 0;
     body.className = "pl-body ui-autopage s-" + k;
     if (k === "codex") renderCodex(body);
@@ -534,8 +608,8 @@ function renderPalace(root) {
     sfx("select");
     draw(k);
     softFade(body);
-    if (k === "codex") { const bd = segEl.children[1] && segEl.children[1].querySelector(".ui-badge"); if (bd) bd.remove(); } // 新しい記録は見た
   }, { prefKey: "palace" });
+  refresh.top = () => setBadge(segBtn(segEl, 1), freshCounts().total || null);
   segEl.classList.add("pl-seg");
   wrap.appendChild(segEl);
   wrap.appendChild(body);
