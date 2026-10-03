@@ -729,11 +729,13 @@ function emptyState() {
   return box;
 }
 
-// ---- 砕けた人業の知らせ + 今すぐ連れ帰る (1行) ----
+// ---- 砕けた人業の知らせ (1行) ----
+// 全滅で迷宮に残された器は連れ帰りを待つ (赤い魂で早められる)。街にある器は、選んで「砕けた魂を修復」
 function RESCUE_MS() { return game.RESCUE_SHORTEN_MS || 20 * 60 * 1000; }
+const waiting = (d) => !!(d && !d.alive && d.reviveAt);
 function deadBanner(mode) {
   const G = G_();
-  // 迷宮の中: 帰還の時は数えない (街へ戻ってから動き出す)。隊の砕けた数だけ知らせる
+  // 迷宮の中: 修復も連れ帰りの時も進まない。隊の砕けた数だけ知らせる
   if (mode === "dungeon" || !inTown()) {
     const down = G.party.filter((d) => d.isDoll && !d.alive);
     if (!down.length || (down.length === 1 && down[0] === selDoll)) return null;
@@ -742,43 +744,54 @@ function deadBanner(mode) {
     t.appendChild(el("span", "pt-dead-mk", "✝"));
     const tx = el("span", "pt-dead-tx");
     tx.appendChild(el("b", null, down.length > 1 ? `${down.length}体` : down[0].name));
-    tx.appendChild(document.createTextNode(" 砕けた ・ 街へ連れ帰れば帰還を待つ"));
+    tx.appendChild(document.createTextNode(" 砕けた ・ 街の人業の館で修復"));
     t.appendChild(tx);
     box.appendChild(t);
     return box;
   }
   const dead = allDolls().filter((d) => d.isDoll && !d.alive);
   if (!dead.length || (dead.length === 1 && dead[0] === selDoll)) return null;
-  const now = Date.now();
-  const soonest = dead.filter((d) => d.reviveAt).sort((a, b) => a.reviveAt - b.reviveAt)[0];
-  const cost = dead.reduce((a, d) => a + (d.reviveAt ? Math.max(1, Math.ceil((d.reviveAt - now) / RESCUE_MS())) : 0), 0);
+  const wait = dead.filter(waiting);
   const box = el("section", "pt-dead");
   const t = el("div", "pt-dead-t");
   t.appendChild(el("span", "pt-dead-mk", "✝"));
   const tx = el("span", "pt-dead-tx");
-  tx.appendChild(el("b", null, dead.length > 1 ? `${dead.length}体` : dead[0].name));
-  tx.appendChild(document.createTextNode(" 砕けた"));
-  if (soonest && game.reviveTimerEl) { tx.appendChild(document.createTextNode(" ・ 帰還 ")); tx.appendChild(game.reviveTimerEl("span", "pt-dead-tm", "", soonest)); }
-  t.appendChild(tx);
-  box.appendChild(t);
-  if (cost > 0) {
+  if (wait.length) {
+    // 連れ帰りを待つ器がいる: 一番早い帰着の時 + 今すぐ連れ帰る
+    const now = Date.now();
+    const soonest = wait.slice().sort((a, b) => a.reviveAt - b.reviveAt)[0];
+    const cost = wait.reduce((a, d) => a + Math.max(1, Math.ceil((d.reviveAt - now) / RESCUE_MS())), 0);
+    tx.appendChild(el("b", null, wait.length > 1 ? `${wait.length}体` : wait[0].name));
+    tx.appendChild(document.createTextNode(" 連れ帰り "));
+    if (game.reviveTimerEl) tx.appendChild(game.reviveTimerEl("span", "pt-dead-tm", "", soonest));
+    t.appendChild(tx);
+    box.appendChild(t);
     const b = button({ label: "今すぐ連れ帰る", kind: "danger", size: "sm", cost: { kind: "red", n: cost }, disabled: (G.redSoul || 0) < 1, onTap: () => confirmHastenAll(cost) });
     b.classList.add("pt-dead-b");
     box.appendChild(b);
+    return box;
   }
+  tx.appendChild(el("b", null, dead.length > 1 ? `${dead.length}体` : dead[0].name));
+  tx.appendChild(document.createTextNode(" 砕けた ・ 選んで魂を修復"));
+  t.appendChild(tx);
+  box.appendChild(t);
+  const first = dead.find((d) => d !== selDoll) || dead[0];
+  const b = button({ label: "選ぶ", kind: "secondary", size: "sm", onTap: () => { select(first); rerender(); } });
+  b.classList.add("pt-dead-b");
+  box.appendChild(b);
   return box;
 }
 function confirmHastenAll(cost) {
   const G = G_();
   const have = G.redSoul || 0;
   confirm({
-    banner: "連れ帰る", title: `赤い魂 ${Math.min(cost, have)} を捧げ、砕けた人業を連れ帰る？`,
-    lines: [cost > have ? `必要 ${cost} のうち、所持の ${have} だけ捧げる (帰還が早まる)。` : "赤い魂1つで帰還が20分早まる。", `所持: 赤い魂 ${have}`],
+    banner: "連れ帰る", title: `赤い魂 ${Math.min(cost, have)} を捧げ、迷宮に残された人業を連れ帰る？`,
+    lines: [cost > have ? `必要 ${cost} のうち、所持の ${have} だけ捧げる (連れ帰りが早まる)。` : "赤い魂1つで連れ帰りが20分早まる。", "届いた器は、館で金貨を払って修復する。", `所持: 赤い魂 ${have}`],
     okLabel: "連れ帰る", danger: false,
   }).then((ok) => {
     if (!ok) return;
     const r = ops.hastenAll ? ops.hastenAll() : null;
-    if (r && r.ok) toast(r.revived ? `${r.revived}体が帰還した (赤い魂 ${r.spent})` : `帰還を早めた (赤い魂 ${r.spent})`, { tone: "good" });
+    if (r && r.ok) toast(r.arrived ? `${r.arrived}体が街へ届いた (赤い魂 ${r.spent})` : `連れ帰りを早めた (赤い魂 ${r.spent})`, { tone: "good" });
     rerender();
   });
 }
@@ -1018,7 +1031,11 @@ function reserveRow(d) {
   tx.appendChild(el("div", "pt-res-n", d.name));
   const st = el("div", "pt-res-c");
   st.appendChild(document.createTextNode(d.primary == null ? "空の人業 ― 魂が宿っていない" : `${d.cls} ・ Lv${d.jobLv || 1}`));
-  if (!d.alive && game.reviveTimerEl && inTown()) { st.appendChild(document.createTextNode(" ・ ")); st.appendChild(game.reviveTimerEl("span", "pt-res-tm", "✝ 帰還 ", d)); }
+  if (!d.alive && inTown()) {
+    st.appendChild(document.createTextNode(" ・ "));
+    if (waiting(d) && game.reviveTimerEl) st.appendChild(game.reviveTimerEl("span", "pt-res-tm", "✝ 連れ帰り ", d));
+    else st.appendChild(el("span", "pt-res-tm", "✝ 要修復"));
+  }
   else if (d.primary != null) st.appendChild(el("span", "pt-res-s", `  HP ${d.hp}/${d.maxhp}`));
   tx.appendChild(st);
   top.appendChild(tx);
@@ -1239,32 +1256,41 @@ function dollHeader(d, mode) {
   return head;
 }
 
-// 砕けた人業: 帰還までの残り + 赤い魂で早める (見出しの2行目)
+// 砕けた人業 (見出しの2行目): 連れ帰り待ちなら残り時間 + 赤い魂で早める。街にあれば「砕けた魂を修復」(金貨・HP/MP満タン)
 function rescueLine(d) {
   const G = G_();
-  if (!inTown()) { // 迷宮の中: 帰還の時は数えず、早めることもできない
-    const box = el("div", "pt-rescue");
-    const t = el("span", "pt-rescue-t");
-    t.appendChild(el("span", "pt-rescue-mk", "✝"));
-    t.appendChild(document.createTextNode("砕けた ・ 街へ戻れば帰還を待つ"));
-    box.appendChild(t);
-    return box;
-  }
-  if (!d.reviveAt && game.setReviveTimers) game.setReviveTimers();
   const box = el("div", "pt-rescue");
   const t = el("span", "pt-rescue-t");
   t.appendChild(el("span", "pt-rescue-mk", "✝"));
-  t.appendChild(document.createTextNode("帰還 "));
-  if (game.reviveTimerEl) t.appendChild(game.reviveTimerEl("b", "pt-rescue-tm", "", d));
+  if (!inTown()) { // 迷宮の中: 修復は街の館でしかできない
+    t.appendChild(document.createTextNode("砕けた ・ 街の人業の館で修復"));
+    box.appendChild(t);
+    return box;
+  }
+  if (waiting(d)) { // 全滅で迷宮に残された器: 連れ帰りを待つ (赤い魂で早める)。届くまで修復はできない
+    t.appendChild(document.createTextNode("連れ帰り "));
+    if (game.reviveTimerEl) t.appendChild(game.reviveTimerEl("b", "pt-rescue-tm", "", d));
+    box.appendChild(t);
+    const n = Math.max(1, Math.ceil((d.reviveAt - Date.now()) / RESCUE_MS()));
+    box.appendChild(button({ label: "早める", kind: "secondary", size: "sm", cost: { kind: "red", n: 1 }, disabled: (G.redSoul || 0) < 1,
+      onTap: () => { if (game.tryHastenRescue) game.tryHastenRescue(d); rerender(); } }));
+    if (n > 1) box.appendChild(button({ label: "今すぐ", kind: "danger", size: "sm", cost: { kind: "red", n }, disabled: (G.redSoul || 0) < 1,
+      onTap: () => confirm({ banner: "連れ帰る", title: `赤い魂 ${n} で ${d.name} を今すぐ連れ帰る？`, lines: ["届いた器は、館で金貨を払って修復する。", `所持: 赤い魂 ${G.redSoul || 0}`], okLabel: "連れ帰る", danger: false })
+        .then((ok) => { if (!ok) return; for (let k = 0; k < n && waiting(d) && (G.redSoul || 0) >= 1; k++) game.tryHastenRescue(d); rerender(); }) }));
+    return box;
+  }
+  t.appendChild(document.createTextNode("砕けた"));
   box.appendChild(t);
-  const n = d.reviveAt ? Math.max(1, Math.ceil((d.reviveAt - Date.now()) / RESCUE_MS())) : 1;
-  box.appendChild(button({ label: "早める", kind: "secondary", size: "sm", cost: { kind: "red", n: 1 }, disabled: (G.redSoul || 0) < 1,
-    onTap: () => { if (game.tryHastenRescue) game.tryHastenRescue(d); rerender(); } }));
-  if (n > 1) box.appendChild(button({ label: "今すぐ", kind: "danger", size: "sm", cost: { kind: "red", n }, disabled: (G.redSoul || 0) < 1,
-    onTap: () => confirm({ banner: "連れ帰る", title: `赤い魂 ${n} で ${d.name} を今すぐ連れ帰る？`, lines: [`所持: 赤い魂 ${G.redSoul || 0}`], okLabel: "連れ帰る", danger: false })
-      .then((ok) => { if (!ok) return; for (let k = 0; k < n && !d.alive && (G.redSoul || 0) >= 1; k++) game.tryHastenRescue(d); rerender(); }) }));
+  const cost = game.repairCostOf ? game.repairCostOf(d) : 0;
+  box.appendChild(button({ label: "砕けた魂を修復", kind: "primary", size: "sm", cost: { kind: "gold", n: cost }, disabled: (G.gold || 0) < cost,
+    onTap: () => confirm({ banner: "魂の修復", title: `${d.name} の砕けた魂を修復する？`,
+      lines: [`金貨 💰${cost} ・ HP/MP 満タンで立ち上がる`, `ランク${d.jobRank || 1} × Lv${d.jobLv || 1} × ${RARITY_LABEL[rarityOfDoll(d)] || "コモン"}`, `所持: 💰${G.gold || 0}`],
+      okLabel: "修復する", danger: false })
+      .then((ok) => { if (!ok) return; if (game.repairDoll) game.repairDoll(d); rerender(); }) }));
   return box;
 }
+const RARITY_LABEL = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド" };
+function rarityOfDoll(d) { const c = d && d.clsKey ? SOUL_CLASSES[d.clsKey] : null; return c ? c.rarity : "common"; }
 
 // ---- 迷宮: 野営 (呪文・道具) をすぐ使える札 ----
 function campSpellsOf(d) {
