@@ -259,12 +259,12 @@ export function spawnEliteEnemies(key, scale = 1) {
 }
 
 // 宝箱から出るミミック。強さは「その階に出る敵の最上位ランク」を基準に組む:
-// 通常のミミックは +1〜2 ランク、マスターミミックは +3 ランクの個体として
+// 通常のミミックは +1 ランク、マスターミミックは +2 ランクの個体として
 // ステータス曲線 (rankStats: rank10 を超えても同じ曲線で伸びる) から直接作る。
 // floorRank: その階の雑魚の最上位ランク / scale: その階の雑魚と同じ強さ補正 (game.js の mimicRef)。
 // 見た目は固定のミミック絵。固有ドロップは無く、上質な宝箱を残す。
 export function mimicRank(floorRank, master = false) {
-  return Math.max(1, floorRank) + (master ? 3 : 1 + rand(2));
+  return Math.max(1, floorRank) + (master ? 2 : 1);
 }
 export function spawnMimic(floorRank, scale = 1, master = false) {
   const rank = mimicRank(floorRank, master);

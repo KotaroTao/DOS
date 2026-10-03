@@ -1069,7 +1069,7 @@ function enemyScale() {
 }
 
 // ミミックの強さの基準: この階に出る雑魚の最上位ランクと、雑魚と同じ強さ補正。
-// (ランクの上乗せ — 通常 +1〜2 / マスター +3 — は combat.js の spawnMimic が行う)
+// (ランクの上乗せ — 通常 +1 / マスター +2 — は combat.js の spawnMimic が行う)
 function mimicRef() {
   const cfg = activeCfg();
   const ranks = sfMonsterPool().map((k) => (MONSTERS[k] && MONSTERS[k].rank) || 0);
@@ -5686,7 +5686,7 @@ function rollChest(cell, allowDanger, done, opener, cRankIn, lvBonus, noGold = f
     // ミミック率: 一律3% (特別階「ミミックの巣」/異変「ミミックの行進」では高い方を採用)
     if (!legendary && Math.random() < Math.max(sfNum("mimicRate", 0.03), mutNum("mimicRate", 0))) {
       // ミミック出現時、10%でマスターミミック。強さはこの階の敵が基準
-      //  (通常=+1〜2ランク / マスター=+3ランク)。固有ドロップは無く、上質な宝箱を残す。
+      //  (通常=+1ランク / マスター=+2ランク)。固有ドロップは無く、上質な宝箱を残す。
       const master = Math.random() < 0.10;
       const ref = mimicRef();
       SFX.trap(); buzz([0, 60, 40, 60]);
