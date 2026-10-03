@@ -1581,6 +1581,40 @@ export function makeDoll(name) {
   };
 }
 
+// ===== スキルの並び・戦闘での表示 (隊の「能力」画面で整理する) =====
+// 人業ごとに doll.skillOrder (並べた順の技キー) と doll.skillOff (戦闘で出さない技キー) を持つ (セーブ対象)。
+// 覚えている技 (doll.spells = 魂・宿し技から recalcDoll が組む) が正で、ここに無い技の設定は無視する。
+// 並べ替えた後に覚えた技は末尾に並ぶ。
+export function orderedSkills(d) {
+  const sp = (d && d.spells) || [];
+  const ord = (d && Array.isArray(d.skillOrder)) ? d.skillOrder : null;
+  if (!ord || !ord.length) return sp.slice();
+  const have = new Set(sp);
+  const out = [];
+  for (const k of ord) if (have.has(k) && !out.includes(k)) out.push(k);
+  for (const k of sp) if (!out.includes(k)) out.push(k);
+  return out;
+}
+export function isSkillOff(d, key) { return !!(d && Array.isArray(d.skillOff) && d.skillOff.includes(key)); }
+// 戦闘のスキル一覧に出す技 (並べた順・オフの技を除く)
+export function battleSkills(d) { return orderedSkills(d).filter((k) => !isSkillOff(d, k)); }
+export function setSkillOff(d, key, off) {
+  if (!d) return;
+  const cur = Array.isArray(d.skillOff) ? d.skillOff.filter((k) => k !== key) : [];
+  if (off) cur.push(key);
+  d.skillOff = cur;
+}
+// 技を1つ前 (dir=-1) / 後ろ (dir=+1) へ。動けば true
+export function moveSkill(d, key, dir) {
+  const list = orderedSkills(d);
+  const i = list.indexOf(key), j = i + dir;
+  if (i < 0 || j < 0 || j >= list.length) return false;
+  [list[i], list[j]] = [list[j], list[i]];
+  d.skillOrder = list;
+  return true;
+}
+export function resetSkillPrefs(d) { if (d) { d.skillOrder = []; d.skillOff = []; } }
+
 // 同じ職業の魂を吸収するたびに伸びる魂レベル上限の増分 (レア度別)。
 // コモン+1 / レア+2 / エピック+5 / レジェンド+10 (吸収数が少なくて済む高レア度ほど1個の伸びが大きい)
 export const LEVELCAP_PER_SOUL = { common: 1, rare: 2, epic: 5, legend: 10 };
