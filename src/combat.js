@@ -1,7 +1,7 @@
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
 import { ITEMS, weaponRange, scaleBonus } from "./items.js";
-import { ELEMENTS, elemDmgMult, monStats, rankStats, resistRate, RESIST_TAG } from "./dungeons/schema.js";
+import { ELEMENTS, elemDmgMult, monStats, rankStats, resistRate, resistHpMul, RESIST_TAG } from "./dungeons/schema.js";
 
 import { SPELLS } from "./skilldefs.js";
 import { JOBKIT_PERKS } from "./jobkit/index.js";
@@ -82,7 +82,7 @@ export function spawnMimic(floorRank, scale = 1, master = false) {
   if (master) e.isMasterMimic = true; // 宝箱の中身がさらに上質 (アイテムLv+30)
   // 単体で隊を相手にする化け物。上位ランクの体を、群れ数体分の HP と連撃で補う
   // (通常 = 上位ランク2体分強 / マスター = 外殻の物理耐性1と合わせて上位ランク3体分以上の耐久と手数)。
-  e.maxhp = Math.max(1, Math.round(st.hp * scale * (master ? 2.6 : 2.4)));
+  e.maxhp = Math.max(1, Math.round(st.hp * scale * (master ? 2.6 : 2.4) * resistHpMul({ physResist: master ? 1 : 0 })));
   e.hp = e.maxhp;
   e.atk = Math.max(1, Math.round(st.atk * scale * (master ? 1.1 : 1.0)));
   e.vit = Math.round(st.def * scale * (master ? 1.6 : 1.3));
@@ -104,7 +104,7 @@ export function spawnRanked(key, floorRank, plus = 1, scale = 1, hpMul = 2.2) {
   const st = rankStats(rank);
   const e = makeEnemy(key, scale);
   e.evRank = rank;
-  e.maxhp = e.hp = Math.max(1, Math.round(st.hp * scale * hpMul));
+  e.maxhp = e.hp = Math.max(1, Math.round(st.hp * scale * hpMul * resistHpMul(e.mon)));
   e.atk = Math.max(1, Math.round(st.atk * scale));
   e.vit = Math.round(st.def * scale * 1.2);
   e.agi = (e.mon && e.mon.swift ? st.spd + 4 : st.spd) + 2;
@@ -121,7 +121,7 @@ function makeEnemy(key, scale = 1, boss = false, bossRank = 0) {
   const baseHp = b ? b.hp : m.maxhp, baseAtk = b ? b.atk : m.atk;
   const baseDef = b ? b.def : m.def, baseSpd = b ? b.spd : m.spd;
   const baseSoul = b ? b.soul : m.soul, baseGold = b ? b.gold : m.gold;
-  const hp = Math.max(1, Math.round(baseHp * scale));
+  const hp = Math.max(1, Math.round(baseHp * scale * resistHpMul(m)));
   return {
     uid: ++_uid, key, mon: m, name: (boss ? m.name : m.name),
     element: m.element || "none",
