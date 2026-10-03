@@ -8,10 +8,10 @@
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
 import { UI, game, ops, registerUI } from "./ctx.js";
-import { el, setText, glyph, svgIcon, sheet, button, whisper, itemTile, portrait, bar, toast } from "./kit.js";
+import { el, setText, glyph, svgIcon, sheet, button, whisper, itemTile, portrait, bar, toast, confirm } from "./kit.js";
 import { getPref, setPref } from "./prefs.js";
 import { keeperCanvas, vignetteCanvas } from "../townart.js";
-import { ITEMS, SLOT_LABEL } from "../items.js";
+import { ITEMS } from "../items.js";
 import { SFX } from "../audio.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
@@ -317,6 +317,43 @@ export function openInn() {
   return innSheet;
 }
 
+// ---------- 納品依頼の札 (酒場と街の広場で共用) ----------
+// 品の札をタップ = 品の詳細 (持っていれば装備・譲渡)。手持ちがあれば「納品する」、
+// 無くても商会の棚にあれば「買って納品」(確認のシート1枚) でその場で納められる。
+// 納品依頼を1タップで進める: 手持ちがあれば納品 / 商会で買えるなら確認のシート1枚を経て買って納品 / どちらも無ければ品の詳細
+export async function runDelivery(q) {
+  const it = q && ITEMS[q.itemId];
+  if (!it) return;
+  const st = game.deliveryStatus ? game.deliveryStatus(q) : null;
+  sfx("select");
+  if (st && st.holder) return game.deliverQuest(q);
+  if (st && st.canBuy) {
+    const gold = G().gold;
+    const ok = await confirm({ banner: "買って納品", title: `「${it.name}」を買って納める`, danger: false, okLabel: `💰${st.price} で買って納品`,
+      lines: [`商会の棚から 💰${st.price} で買い求め、そのまま納品します。`, `所持金 💰${gold} → 💰${gold - st.price}`] });
+    if (ok) game.deliverQuest(q, { buy: true });
+    return;
+  }
+  openItem(q.itemId);
+}
+export function deliveryCard(q, { compact = false } = {}) {
+  const it = ITEMS[q.itemId];
+  const st = (game.deliveryStatus && game.deliveryStatus(q)) || { holder: null, inShop: false, price: 0, canBuy: false };
+  const card = el("div", "fc-quest" + (compact ? " compact" : "") + (st.holder || st.canBuy ? " ready" : ""));
+  card.appendChild(itemTile(it, { size: compact ? 40 : 56, onTap: () => openItem(q.itemId) }));
+  const info = el("div", "fc-quest-i");
+  info.appendChild(game.itemNameEl ? game.itemNameEl("div", "fc-quest-n", it) : el("div", "fc-quest-n", it.name));
+  let hint;
+  if (st.holder) hint = `手持ちにあり — ${st.holder.name}`;
+  else if (st.inShop) hint = st.canBuy ? "商会に並んでいる" : "商会に並んでいる — お金が足りない";
+  else hint = "まだ手元にない";
+  info.appendChild(el("div", "fc-quest-h" + (st.holder || st.canBuy ? " ok" : ""), hint));
+  card.appendChild(info);
+  if (st.holder) card.appendChild(button({ label: "納品する", kind: "primary", size: "sm", onTap: () => runDelivery(q) }));
+  else if (st.canBuy) card.appendChild(button({ label: "買って納品", kind: "primary", size: "sm", cost: { kind: "gold", n: st.price }, onTap: () => runDelivery(q) }));
+  return card;
+}
+
 // ---------- 酒場 (ページ) ----------
 function renderTavern(root) {
   if (legacyJumped()) return;
@@ -326,29 +363,12 @@ function renderTavern(root) {
   const kr = keeperRow("tavern");
   if (kr) wrap.appendChild(kr);
 
-  // 1) 納品依頼: 求められた品を納めると、品の格に応じた職業の魂を授かる。品の札をタップ = 品の詳細 (持っていれば装備・譲渡)
+  // 1) 納品依頼: 求められた品を納めると職業の魂を授かる (札は deliveryCard。街の広場にも同じ札が並ぶ)
   if (game.ensureDeliveryQuests) game.ensureDeliveryQuests();
   const qs = (g.deliveryQuests || []).filter((q) => q && ITEMS[q.itemId]);
   wrap.appendChild(sectionHead("納品依頼", { note: qs.length ? `${qs.length}件・潜るたびに入れ替わる` : null }));
   const dl = el("div", "fc-quests");
-  for (const q of qs) {
-    const it = ITEMS[q.itemId];
-    const r20 = it.r20 || 1;
-    const holder = game.deliveryHolder ? game.deliveryHolder(q.itemId) : null;
-    const inShop = !!(g.shopStock && g.shopStock[q.itemId] > 0);
-    const card = el("div", "fc-quest" + (holder ? " ready" : ""));
-    card.appendChild(itemTile(it, { size: 56, onTap: () => openItem(q.itemId) }));
-    const info = el("div", "fc-quest-i");
-    const nm = game.itemNameEl ? game.itemNameEl("div", "fc-quest-n", it) : el("div", "fc-quest-n", it.name);
-    info.appendChild(nm);
-    const rn = game.itemRankName ? game.itemRankName(it) : null;
-    info.appendChild(el("div", "fc-quest-c", `${SLOT_LABEL[it.slot] || it.slot || ""}${rn ? " ・ " + rn : ""} ・ 格 R${r20}`));
-    info.appendChild(el("div", "fc-quest-r", "褒賞: " + (game.deliveryRewardDesc ? game.deliveryRewardDesc(r20) : "")));
-    info.appendChild(el("div", "fc-quest-h" + (holder ? " ok" : ""), holder ? `手持ちにあり — ${holder.name}` : inShop ? "商会に並んでいる" : "まだ手元にない"));
-    card.appendChild(info);
-    if (holder) card.appendChild(button({ label: "納品する", kind: "primary", size: "sm", onTap: () => { sfx("select"); game.deliverQuest(q); } }));
-    dl.appendChild(card);
-  }
+  for (const q of qs) dl.appendChild(deliveryCard(q));
   if (!qs.length) dl.appendChild(el("div", "wa-empty", "今は納品依頼がない。迷宮に潜れば、新たな品が求められる。"));
   wrap.appendChild(dl);
 

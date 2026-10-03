@@ -12,17 +12,18 @@
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
 import { UI, game, ops, registerUI } from "./ctx.js";
-import { el, setText, glyph, svgIcon, button, portrait, longPress } from "./kit.js";
+import { el, setText, glyph, svgIcon, button, portrait, longPress, itemTile } from "./kit.js";
 import { createTownScene, townSpots, vignetteCanvas } from "../townart.js";
 import { SFX } from "../audio.js";
-import { currencyBar, sectionHead, facilityOpen, lockedToast, restOrDetail, openInn, innStatus, dismissGreet } from "./facilities.js";
+import { ITEMS } from "../items.js";
+import { currencyBar, sectionHead, facilityOpen, lockedToast, restOrDetail, openInn, innStatus, dismissGreet, runDelivery } from "./facilities.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
 const G = () => game.G;
 
 // ---------- 次にすべきこと (提案) ----------
 // 提案: { key, prio, label, short?, sub?, cost?:{kind,n}, icon?:"gold"|"soul"|"red"|svgKey, tone?, run(), hold?() }
-// prio が小さいほど先 (勅命 0 > 砕けた人業 10 > 手負い 20 > 未鑑定 30 > 売れる品 40 > より良い装備 50 > 魂融合 55 > 鍛錬 60 > 勲章 70 > 奉納 80 > 納品 90)
+// prio が小さいほど先 (勅命 0 > 砕けた人業 10 > 手負い 20 > 未鑑定 30 > 売れる品 40 > より良い装備 50 > 魂融合 55 > 鍛錬 60 > 勲章 70 > 奉納 80)
 // 札は3列に並ぶので label は短く (5字ほど。長い時は3枚並びで使う short を添える)、詳しくは sub に
 const extra = []; // 他のパッケージが登録した提案の源 (fn(counts) → 提案 | 提案[] | null)
 export function registerSuggestion(fn) { if (typeof fn === "function" && !extra.includes(fn)) extra.push(fn); }
@@ -118,10 +119,7 @@ function builtinSuggestions(c) {
   } else if (c.treasuryReady) {
     out.push({ key: "treasury", prio: 80, label: "褒賞を受け取る", short: "褒賞を拝受", sub: "宝物庫", icon: "treasury", run: () => game.claimNextTreasury && game.claimNextTreasury() });
   }
-  // 納品できる品 → 酒場へ
-  if (c.deliverable && facilityOpen("tavern")) {
-    out.push({ key: "deliver", prio: 90, label: "納品する", sub: `できる品 ${c.deliverable}`, icon: "tavern", run: () => UI.shell.openPage("tavern") });
-  }
+  // 納品依頼は街の広場に常に札を並べる (deliveries) ので、ここには出さない
   return out;
 }
 
@@ -341,6 +339,53 @@ function tiles() {
   return wrap;
 }
 
+// ---------- 納品依頼 (酒場が開いていれば街に常に並べる。手持ち/商会の品はその場で納品) ----------
+// 「次にすべきこと」と同じ並びの札 (最大3列)。札をタップ = 納品 / 買って納品 (確認1枚) / 品の詳細
+function deliveryChip(q) {
+  const it = ITEMS[q.itemId];
+  const st = (game.deliveryStatus && game.deliveryStatus(q)) || { holder: null, inShop: false, price: 0, canBuy: false };
+  const ready = !!(st.holder || st.canBuy);
+  const b = el("button", "hb-dlv-c" + (ready ? " ready" : ""));
+  b.type = "button";
+  const top = el("span", "hb-dlv-top");
+  try { top.appendChild(itemTile(it, { size: 44 })); } catch (e) { /* 絵が無くても札は出す */ }
+  top.appendChild(game.itemNameEl ? game.itemNameEl("span", "hb-dlv-n", it) : el("span", "hb-dlv-n", it.name));
+  b.appendChild(top);
+  const bot = el("span", "hb-dlv-bot");
+  if (st.holder) {
+    bot.appendChild(el("span", "hb-dlv-s", "手持ち"));
+    bot.appendChild(el("span", "hb-dlv-go", "納品する"));
+  } else if (st.inShop) {
+    bot.appendChild(el("span", "hb-dlv-s", st.canBuy ? "商会" : "金不足"));
+    const c = el("span", "hb-dlv-go" + (st.canBuy ? "" : " off"));
+    c.appendChild(glyph("gold"));
+    c.appendChild(document.createTextNode(String(st.price)));
+    bot.appendChild(c);
+  } else {
+    bot.appendChild(el("span", "hb-dlv-s", "未入手"));
+  }
+  b.appendChild(bot);
+  b.setAttribute("aria-label", `納品依頼 ${it.name}`);
+  b.addEventListener("click", () => runDelivery(q));
+  return b;
+}
+function deliveries() {
+  const g = G();
+  if (!facilityOpen("tavern")) return null;
+  if (game.ensureDeliveryQuests) game.ensureDeliveryQuests();
+  const qs = (g.deliveryQuests || []).filter((q) => q && ITEMS[q.itemId]);
+  const box = el("div", "hb-dlv");
+  box.appendChild(sectionHead("納品依頼", { note: "潜るたびに入れ替わる" }));
+  if (qs.length) {
+    const list = el("div", "hb-sug-list n" + Math.min(3, qs.length));
+    for (const q of qs.slice(0, 3)) list.appendChild(deliveryChip(q));
+    box.appendChild(list);
+  } else {
+    box.appendChild(el("div", "wa-empty hb-dlv-empty", "今は納品依頼がない。迷宮に潜れば、新たな品が求められる。"));
+  }
+  return box;
+}
+
 // ---------- 隊の札 ----------
 function partyStrip() {
   const g = G();
@@ -427,8 +472,11 @@ export function renderHub(root, api) {
     box.appendChild(list);
     mid.appendChild(box);
   }
-  const fac = el("div", "hb-fac");
-  fac.appendChild(sectionHead("街"));
+  const dv = deliveries();
+  if (dv) mid.appendChild(dv);
+  // 納品依頼の段がある時は「街」の見出しを省いて札の高さを守る (札は絵と名で何かわかる)
+  const fac = el("div", "hb-fac" + (dv ? " nohead" : ""));
+  if (!dv) fac.appendChild(sectionHead("街"));
   fac.appendChild(tiles());
   mid.appendChild(fac);
   wrap.appendChild(mid);
