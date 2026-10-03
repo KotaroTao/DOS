@@ -8922,7 +8922,7 @@ function fuseCandidates(targetUid) {
   const t = soulByUid(targetUid); if (!t) return [];
   return G.souls.filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey && !soulWorn(s.uid) && !s.locked);
 }
-// 魂のロック: ロックした魂は魂融合の素材にできない (宿す・融合先にするのは自由)
+// 魂のロック: ロックした魂は魂融合の素材にできない (宿す・融合先にするのは自由)。魂融合した魂 (融合先) は自動でロックする
 function toggleSoulLock(uid) {
   const s = soulByUid(uid); if (!s) return null;
   s.locked = !s.locked;
@@ -8946,6 +8946,8 @@ function fuseSoul(targetUid, consumeUid) {
   const newCap = soulLevelCapOf(t);
   const le = levelExpFromTotal(total, newCap);
   t.level = le.level; t.exp = le.exp;
+  // 融合先は自動でロックする (育てた魂を、うっかり別の融合の素材にしないように。ロックは魂の一覧で外せる)
+  t.locked = true; t.fuseLk = true;
   const idx = G.souls.indexOf(c);
   if (idx >= 0) G.souls.splice(idx, 1);
   unequipSoulEverywhere(c.uid);
@@ -8954,7 +8956,7 @@ function fuseSoul(targetUid, consumeUid) {
   codexJobSee(t.clsKey, t.count, t.level);
   const after = soulRankOf(t);
   SFX.itemget(); buzz([0, 30, 50, 30]);
-  log(`${SOUL_CLASSES[t.clsKey].label}の魂を魂融合させた (魂数 ×${t.count})。`, "win");
+  log(`${SOUL_CLASSES[t.clsKey].label}の魂を魂融合させた (魂数 ×${t.count})。素材にならないようロックした。`, "win");
   if (t.level > beforeLv) log(`蓄積した Soul が反映され、Lv${beforeLv} → Lv${t.level} に上昇した！`, "win");
   autosave(true);
   renderTown();
@@ -8966,7 +8968,7 @@ function fuseSoul(targetUid, consumeUid) {
   }
   // ランク据え置きの融合: 魂の輝きが増したことと、全能力の上昇率をトーストで
   const pct = Math.round((SOUL_STAT_UP[SOUL_CLASSES[t.clsKey].rarity] || 0.01) * 100);
-  showToast(`${soulSeriesName(t.clsKey)}の魂の輝きが増した ― 全能力 +${pct}%（魂数 ${t.count}）${t.level > beforeLv ? ` ・ Lv${beforeLv}→${t.level}` : ""}`, { tone: "good" });
+  showToast(`${soulSeriesName(t.clsKey)}の魂の輝きが増した ― 全能力 +${pct}%（魂数 ${t.count}）${t.level > beforeLv ? ` ・ Lv${beforeLv}→${t.level}` : ""} ・ ロックした`, { tone: "good" });
   return { rankUp: false };
 }
 
@@ -12023,6 +12025,8 @@ function loadGame() {
   // 所持魂 (v5): 配列に整え、無効な職業を除き、人業のメイン魂/サブ魂を実在する魂に整える
   if (!Array.isArray(G.souls)) G.souls = [];
   G.souls = G.souls.filter((s) => s && SOUL_CLASSES[s.clsKey]);
+  // 魂融合した魂は自動でロックする (後付け: 旧セーブの融合済み = 魂数2以上の魂にも一度だけ。外したロックは掛け直さない)
+  for (const s of G.souls) if (s.count > 1 && !s.fuseLk) { s.locked = true; s.fuseLk = true; }
   setSharedSouls(G.souls); // recalcDoll が所持魂を uid で引けるようにする
   syncDollUids([...(G.party || []), ...(G.reserve || [])]); // 人業の通し番号を続きから (重なりも直す)
   for (const d of [...(G.party || []), ...(G.reserve || [])]) {
