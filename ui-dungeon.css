@@ -74,19 +74,22 @@
 #hint.dg-dock.has-float.has-down.has-home .dk-home .dk-ic { display: none; }
 #hint.dg-dock.has-float.has-down.has-home .dk-down { flex: 1 0 auto; }
 #hint.dg-dock.has-float.has-down.has-home .dk-btn { gap: 4px; padding: 4px 6px; }
-/* 札 (絵 + 短い名前): 気配読み・宝探しは常に、ボタンが混む時 (.tight) は帰還・術・回復もこの形 */
-#hint.dg-dock .dk-btn.dk-tag { flex: 0 0 auto; flex-direction: column; gap: 1px; min-width: 44px; padding: 3px 4px; text-align: center; }
+/* 札 (絵 + 短い名前): 迷宮の術が2つ以上ならそれぞれ、ボタンが混む時 (.tight) は帰還・回復 (さらに混めば降りる) もこの形 */
+#hint.dg-dock .dk-btn.dk-tag { flex: 0 0 auto; flex-direction: column; gap: 1px; min-width: 42px; padding: 3px 3px; text-align: center; }
 .dk-tag .dk-ic { display: block !important; width: 20px; height: 20px; }
 .dk-sl { font-size: 9.5px; font-weight: 800; letter-spacing: 0; white-space: nowrap; line-height: 1.1; text-shadow: 0 1px 0 #000; }
-.dk-sense { color: #a89f8c; }
-.dk-sense.k-enemy.on { color: #ffc4bb; border-color: #8a3a32; box-shadow: inset 0 1px 0 rgba(255,200,190,0.12), inset 0 -2px 0 rgba(0,0,0,0.6), 0 0 0 1px rgba(255,70,50,0.22), 0 3px 0 #070507, 0 0 14px rgba(255,60,40,0.3); }
-.dk-sense.k-chest.on { color: #c4dcff; border-color: #3a5a8a; box-shadow: inset 0 1px 0 rgba(200,220,255,0.12), inset 0 -2px 0 rgba(0,0,0,0.6), 0 0 0 1px rgba(80,150,255,0.22), 0 3px 0 #070507, 0 0 14px rgba(70,140,255,0.3); }
-/* 札が並ぶ時: 間を詰め、降りるが残りの幅を取る (文字は切らない) */
-#hint.dg-dock.has-sense { gap: 4px; }
-#hint.dg-dock.has-sense .dk-btn:not(.dk-tag) { gap: 4px; padding: 4px 6px; }
-#hint.dg-dock.has-sense .dk-l { letter-spacing: 0.02em; }
-#hint.dg-dock.has-sense.has-float:not(.tight) .dk-heal .dk-ic, #hint.dg-dock.tight .dk-down .dk-ic { display: none; }
-#hint.dg-dock.tight .dk-down { flex: 1 0 auto; }
+#hint.dg-dock .dk-down.dk-tag { flex: 1 1 auto; }
+/* 気配読み = 赤 (魔物の気配) / 宝探し = 青 (宝箱) に灯る (浮遊・道しるべは .dk-float.on の青緑) */
+.dk-float.k-enemy.on { color: #ffc4bb; border-color: #8a3a32; box-shadow: inset 0 1px 0 rgba(255,200,190,0.12), inset 0 -2px 0 rgba(0,0,0,0.6), 0 0 0 1px rgba(255,70,50,0.22), 0 3px 0 #070507, 0 0 14px rgba(255,60,40,0.3); }
+.dk-float.k-enemy.on .dk-s { color: #e0a49a; }
+.dk-float.k-chest.on { color: #c4dcff; border-color: #3a5a8a; box-shadow: inset 0 1px 0 rgba(200,220,255,0.12), inset 0 -2px 0 rgba(0,0,0,0.6), 0 0 0 1px rgba(80,150,255,0.22), 0 3px 0 #070507, 0 0 14px rgba(70,140,255,0.3); }
+.dk-float.k-chest.on .dk-s { color: #9ab8e0; }
+/* 混む時: 間を詰め、降りるが残りの幅を取る (文字は切らない) */
+#hint.dg-dock.tight { gap: 4px; }
+#hint.dg-dock.tight .dk-btn:not(.dk-tag) { gap: 4px; padding: 4px 6px; }
+#hint.dg-dock.tight .dk-l { letter-spacing: 0.02em; }
+#hint.dg-dock.tight .dk-down .dk-ic { display: none; }
+#hint.dg-dock.tight .dk-down:not(.dk-tag) { flex: 1 0 auto; }
 @keyframes dk-call { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.12); } }
 .dk-idle {
   flex: 1 1 auto; display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 48px; padding: 0 10px;
