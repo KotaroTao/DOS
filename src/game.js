@@ -1516,7 +1516,11 @@ function dockSpec() {
     }
   }
   const home = (G.portalFound || G.bossDown) ? { label: "帰還", sub: G.bossDown && !G.portalFound ? "主を討った" : "帰還陣から", icon: "home" } : null;
-  return { down, home, idle: G.floor <= 1 && !(G.run && G.run.kills) ? "スワイプで進む ・ 光る墓石をめくる" : "階段を見つけると、ここから降りられる" };
+  // 全員を回復 (隊の画面と同じ healAll)。手当ての要る者がいて、唱えられる時だけ光る
+  const dead = G.party.filter((t) => !t.alive).length;
+  const hurt = G.party.some((t) => t.alive && (t.hp < t.maxhp || t.ailment));
+  const heal = { label: "全員を回復", sub: dead ? `倒れた者 ${dead}` : hurt ? "傷ついた者がいる" : "皆 無事", hot: healAllNeed() && (healAllCasters().length > 0 || healAllRevivers().length > 0) };
+  return { down, home, heal, idle: G.floor <= 1 && !(G.run && G.run.kills) ? "スワイプで進む ・ 光る墓石をめくる" : "階段を見つけると、ここから降りられる" };
 }
 function dockDescend() {
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
@@ -1528,6 +1532,11 @@ function dockDescend() {
   const plain = abyssActive() ? !abyssBossPending() : G.floor < (dn.floors || 1);
   if (plain) descend(); else askDescend(cell);
 }
+function dockHealAll() {
+  if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
+  healAll();
+  renderDock();
+}
 function dockReturn() {
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
   SFX.select();
@@ -1537,7 +1546,7 @@ function renderDock() {
   if (!hintEl) return;
   const spec = inDungeon() ? dockSpec() : null;
   hintEl.classList.toggle("hidden", G.state === "combat" || (G.state === "over" && !!G.battle));
-  uiDungeonHud.renderDock(hintEl, spec, { descend: dockDescend, goHome: dockReturn });
+  uiDungeonHud.renderDock(hintEl, spec, { descend: dockDescend, goHome: dockReturn, healAll: dockHealAll });
 }
 
 function renderBoard() {

@@ -34,7 +34,8 @@ const G = () => game.G;
 const sfx = (k) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](); } catch (e) { /* 音が無くても動く */ } };
 
 // ================= 行動ドック =================
-// spec: { down:{key,label,sub,kind,icon} | null, home:{label,sub} | null, idle } (game.js の dockSpec)
+// spec: { down:{key,label,sub,kind,icon} | null, home:{label,sub} | null, heal:{label,sub,hot} | null, idle } (game.js の dockSpec)
+//   heal = 「全員を回復」(隊の画面と同じ game.healAll)。帰還の右に並ぶ
 // 盤面は毎フレーム描き直されるので、中身が変わった時だけ作り直す
 const DOCK_SVG = {
   down: '<path d="M4 5.5h5v4h5v4h5"/><path d="M12 15v5.5M8.6 17.6 12 21l3.4-3.4"/>',
@@ -47,6 +48,7 @@ const DOCK_SVG = {
   party: '<path d="M5.6 20.5v-8.3a6.4 6.4 0 0 1 12.8 0v8.3"/><path d="M5.6 13.4h12.8"/><path d="M12 13.4v7.1"/>',
   gear: '<circle cx="12" cy="12" r="3.1"/><path d="M9.6 5.7 L9.6 2.9 14.4 2.9 14.4 5.7 A6.8 6.8 0 0 1 17.3 7.7 L19.9 6.9 21.4 11.5 18.8 12.4 A6.8 6.8 0 0 1 17.7 15.7 L19.3 17.9 15.4 20.8 13.8 18.6 A6.8 6.8 0 0 1 10.2 18.6 L8.6 20.8 4.7 17.9 6.3 15.7 A6.8 6.8 0 0 1 5.2 12.4 L2.6 11.5 4.1 6.9 6.7 7.7 A6.8 6.8 0 0 1 9.6 5.7Z"/>',
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.01"/>',
+  heal: '<path d="M12 20.2s-7.5-4.6-7.5-10.1A4.1 4.1 0 0 1 12 7.6a4.1 4.1 0 0 1 7.5 2.5c0 5.5-7.5 10.1-7.5 10.1Z"/><path d="M12 10.4v5.2M9.4 13h5.2"/>',
 };
 function dockIcon(kind, cls = "dk-ic") {
   const ns = "http://www.w3.org/2000/svg";
@@ -61,7 +63,7 @@ let _dockKey = "";
 export function renderDock(host, spec, acts = {}) {
   if (!host) return;
   host.classList.add("dg-dock");
-  const key = spec ? JSON.stringify([spec.down, spec.home, spec.idle]) : "none";
+  const key = spec ? JSON.stringify([spec.down, spec.home, spec.heal, spec.idle]) : "none";
   if (key === _dockKey && host.childElementCount) return;
   _dockKey = key;
   host.textContent = "";
@@ -86,7 +88,10 @@ export function renderDock(host, spec, acts = {}) {
     idle.appendChild(el("span", "dk-idle-t", spec.idle || ""));
     host.appendChild(idle);
   }
+  if (spec.heal) host.appendChild(mk("dk-heal" + (spec.heal.hot ? " hot" : ""), "heal", spec.heal.label, spec.heal.sub, acts.healAll || (() => {})));
   host.classList.toggle("one", !!spec.down !== !!spec.home);
+  host.classList.toggle("has-down", !!spec.down);
+  host.classList.toggle("has-home", !!spec.home);
 }
 
 // ================= 小さな部品 =================
