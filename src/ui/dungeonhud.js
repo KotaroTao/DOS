@@ -346,7 +346,7 @@ export function openDungeonMenu() {
       grid.appendChild(menuTile("party", "パーティを見る", "装備・能力・道具", go(() => UI.openParty(0, { context: "dungeon" }))));
       grid.appendChild(menuTile("loot", "今回の収穫", `💰${r.gold || 0} ✦${r.soulPts || 0} 品${(r.items || []).length}`, go(openRunLoot)));
       grid.appendChild(menuTile("scroll", "記録を読む", "出来事の全文", go(openLog)));
-      grid.appendChild(menuTile("book", "図鑑", "魔物・品・見聞", go(() => UI.openCodexSheet && UI.openCodexSheet({ dungeonIdx: g.dungeonIdx }))));
+      grid.appendChild(menuTile("book", "図鑑", "敵・品・見聞", go(() => UI.openCodexSheet && UI.openCodexSheet({ dungeonIdx: g.dungeonIdx }))));
       grid.appendChild(menuTile("gear", "設定", "音量・振動・背景", go(() => UI.openSettings && UI.openSettings())));
       const canHome = game.canReturnNow ? game.canReturnNow() : false;
       grid.appendChild(menuTile("home", canHome ? "街へ帰還する" : "帰還できない", canHome ? "戦利品を持ち帰る" : "帰還陣か主の討伐で",
