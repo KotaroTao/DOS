@@ -891,8 +891,7 @@ export function showFuseResult(info, onClose) {
   const nx = nextRankThreshold(info.clsKey, info.toCount);
   const notes = [];
   if (nx) notes.push(`ランク${info.toRank + 1}まで あと ${nx.next - info.toCount} 体`);
-  notes.push("融合先の魂はロックした");
-  blocks.push(el("div", "sp-fz-note sp-ru-blk", notes.join(" ・ ")));
+  if (notes.length) blocks.push(el("div", "sp-fz-note sp-ru-blk", notes.join(" ・ ")));
   const body = (scroll) => blocks.forEach((b) => scroll.appendChild(b));
   return celebrate({
     banner: "✦ 魂融合 ✦", accent: cl.glow, art, sparkle: false, className: "sp-cel sp-cel-fz",
