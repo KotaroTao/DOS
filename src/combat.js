@@ -409,6 +409,9 @@ const variance = (base) => Math.max(1, base + rand(Math.ceil(base * 0.4)) - rand
 
 // 職業ランクパッシブのLvを引く (souls.js の recalcDoll が passiveMap を埋める)
 const pv = (a, key) => (a && a.passiveMap && a.passiveMap[key]) || 0;
+// テスト記録用の集計の器 (telemetry.js が読む)。pa/pe/pp = 味方の物理 試行/かわされた/見切られた、
+// ea/ee/ep = 敵の物理 同、of/op = 手番で味方が先だった組/総組、ft/fo/fs = 逃走 試行/成功/封じられた
+const newTally = () => ({ pa: 0, pe: 0, pp: 0, ea: 0, ee: 0, ep: 0, of: 0, op: 0, ft: 0, fo: 0, fs: 0 });
 // 破邪・聖刃の対象種族
 const HOLY_PREY = ["undead", "specter", "demon"];
 const enemyRace = (e) => (e && e.mon && e.mon.race) || null;
@@ -458,6 +461,7 @@ export class Battle {
     this.orderFleet = opts.orderFleet || 0; // 控えの結社 逃げ足のLv (0-3): 隊全体の逃走率に上乗せ
     this._roundNo = 0;
     this._bigBarrierUsed = 0;
+    this.tally = newTally(); // テスト記録用の集計 (命中・手番・逃走)。判定には使わない
     for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._endureUsed = 0; a._grantEndure = false; }
     for (const p of party) {
       p._coverLeft = pv(p, "cover");
@@ -640,7 +644,19 @@ export class Battle {
       .filter((a) => a.alive)
       // 加速装置 (actFirst) は必ず手番の最初に行動する。同士の中では AGI 順
       .sort((a, b) => ((b.actFirst ? 1 : 0) - (a.actFirst ? 1 : 0)) || ((eagi(b) + rand(4)) - (eagi(a) + rand(4))));
+    // テスト記録: 味方と敵の組のうち、味方が先に動く組の数 (先制・奇襲の1ラウンド目は片側だけなので数えない)
+    const T = this._tally();
+    let seenP = 0;
+    for (const a of this.queue) {
+      if (a.side === "party") seenP++;
+      else { T.of += seenP; }
+    }
+    const np = this.queue.filter((a) => a.side === "party").length;
+    T.op += np * (this.queue.length - np);
   }
+
+  // テスト記録の集計 (中断セーブから戻った古い戦闘にも器を用意する)
+  _tally() { return this.tally || (this.tally = newTally()); }
 
   // 次の手番へ。味方なら input (行動不能なら stunned)、敵なら enemy フェーズで止まる
   advance() {
@@ -845,7 +861,10 @@ export class Battle {
     }
     if (action === "run") {
       // 迷宮の異変「閉ざされた退路」: 逃走そのものが封じられている
+      const T = this._tally();
+      T.ft++;
       if (this.noFlee) {
+        T.fs++;
         this.log("迷宮の異変が退路を閉ざしている！ 逃げられない！", "dmg");
         res.fledFail = true;
         return res;
@@ -854,7 +873,7 @@ export class Battle {
       const fleetSelf = this.party.some((p) => p.alive && pv(p, "fleetFoot")) ? 0.30 : 0;
       const fleetOrder = this.orderFleet >= 3 ? 0.60 : this.orderFleet >= 2 ? 0.45 : this.orderFleet >= 1 ? 0.30 : 0;
       const fleetBonus = Math.max(fleetSelf, fleetOrder);
-      if (Math.random() < Math.min(0.95, 0.55 + fleetBonus)) { this.result = "flee"; this.log("うまく逃げ出した！", "sys"); res.fled = true; }
+      if (Math.random() < Math.min(0.95, 0.55 + fleetBonus)) { this.result = "flee"; T.fo++; this.log("うまく逃げ出した！", "sys"); res.fled = true; }
       else { this.log(`${actor.name}は逃げられなかった！`, "dmg"); res.fledFail = true; }
       return res;
     }
@@ -1156,15 +1175,20 @@ export class Battle {
         tgt = g;
       }
     }
+    // テスト記録: 物理の試行 / 見切られた / かわされた (攻撃側ごと。味方 = p*、敵 = e*)
+    const T = this._tally(), tk = actor.side === "party" ? "p" : "e";
+    T[tk + "a"]++;
     // 見切り (parry): 確率で完全回避
     const pLvP = pv(tgt, "parry");
     if (pLvP && Math.random() < (pLvP >= 2 ? 0.15 : 0.10)) {
+      T[tk + "p"]++;
       this.log(`${tgt.name}は見切った！`, "sys");
       return { target: tgt, miss: true, evaded: true };
     }
     // 命中判定: 素の命中漏れ + 対象の敏捷(AGI)による回避 + 回避持ちの追加回避
     const evade = Math.min(0.4, Math.max(0, ((tgt.agi || 6) - 6) * 0.012)) + (tgt.evasive ? 0.15 : 0);
     if (Math.random() < 0.06 + evade) {
+      T[tk + "e"]++;
       this.log(`${tgt.name}は攻撃をかわした！`, "sys");
       return { target: tgt, miss: true, evaded: true };
     }

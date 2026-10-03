@@ -63,6 +63,7 @@ const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho",
 // 視差・揺れを抑える設定 (OSの「視差効果を減らす」)。待機アニメなどを止める
 const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } })();
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
+import { tlOn, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd } from "./telemetry.js";
 
 // ===== コンテンツの取り込み =====
 // アイテム: 一点物の手作りカタログ (src/catalog/)。二つ名つきの量産品は廃止。
@@ -1247,6 +1248,18 @@ function newFloor() {
   if (G.run) G.run.floors = Math.max(G.run.floors || 1, G.floor);
   updateTopbar();
   log(`地下 ${G.floor} 階。カードをめくって階段を探せ！`, "sys");
+  if (tlOn()) tlSnapshot("floor", tlWhere(), G.party);
+}
+
+// テスト記録 (telemetry.js): いまの迷宮の欄 (奈落は深度ごと)。n は進行度 (基準AGI) の算出に使う
+function tlWhere() {
+  const cfg = activeCfg();
+  if (abyssActive()) {
+    const d = G.abyss.depth;
+    return { key: `A${d}`, name: `奈落 深度${d}`, n: abyssBaseN(d), floor: G.floor, floors: cfg.floors || 1 };
+  }
+  const n = dungeonNumber(cfg);
+  return { key: `D${n}`, name: cfg.name || "", n, floor: G.floor, floors: cfg.floors || 1 };
 }
 
 // ---- ボード描画 ----
@@ -6265,6 +6278,11 @@ function startBattle(enemies, cell) {
   // ランク帯ごとの戦闘テーマ (ボス・強敵は専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
   playBgm(battleBgm(isBoss || isElite));
   G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot") });
+  // テスト記録: 戦闘の種類 (主 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子
+  if (tlOn() && inDungeon()) {
+    const kind = isBoss ? "b" : (isElite || enemies.some((e) => e.isMimic) || (cell && cell.evFight)) ? "e" : "n";
+    G.battle.tl = tlBattleBegin({ where: tlWhere(), kind, opening, party: G.party, enemies });
+  }
   _maskEnemies = null;
   G.fx = null;
   G.animating = false;
@@ -7509,6 +7527,7 @@ const HIT_STAGGER = 165;
 
 // 結果オブジェクトを演出 (踏み込み → 着弾 → 余韻)
 function animateResult(res, done) {
+  if (G.battle && G.battle.tl) tlHits(G.battle.tl, res); // テスト記録: 与ダメ/被ダメ
   const t0 = performance.now();
   const WIND = (res.side === "enemy" ? 170 : 90) * spdMul();
   // 同一対象への最大ヒット数を数え、多段なら余韻を延ばして全ヒットを見せきる
@@ -7759,6 +7778,7 @@ function distributeBattleSoulExp(soulGot) {
 
 function endBattle() {
   const b = G.battle;
+  if (b.tl) tlBattleEnd(b.tl, { result: b.result, rounds: b._roundNo, tally: b.tally, party: G.party });
   // オートは戦闘ごとに解除。ただし設定「オートを次の戦闘も続ける」(§7 M2) なら勝利の後も持ち越す
   if (!(b.result === "win" && G.autoCombat && uiDungeonHud.getPref("autoKeep"))) G.autoCombat = false;
   if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
@@ -8018,6 +8038,7 @@ function commitDungeonClear(countBoss = true) {
   // クリア = 戦利品確定。記録 (帰還の報告に使う) は残し、全滅しても何も失わない印を付ける
   if (G.run) G.run.secured = true;
   G.bossDown = true; // 主を討ったので、どこからでも帰還できる
+  if (tlOn()) tlSnapshot("clear", tlWhere(), G.party);
   return { idx, isStoryTarget };
 }
 

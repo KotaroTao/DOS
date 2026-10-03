@@ -4,12 +4,14 @@
 //   戦闘    … 振動・戦闘の背景 (情景/漆黒)・戦闘演出の倍速 (セーブの G.fastAnim)
 //   自動化  … オート継続・宝箱は最良の解除役で開ける・朽ちた死体を自動で調べる・戦果を自動で閉じる・帰還時に宿で休む
 //              UI の好み (prefs.js = dos-ui)。読むのは各パッケージ (WP-D の戦闘/盤面/帰還、街の宿)
+//   テスト記録 … 戦闘バランス調整用の記録 (telemetry.js) の ON/OFF・要約の閲覧・書き出し (コピー)・消去
 //   データ  … はじめから (全削除)。決断は二段で、どちらも「やめておく」に手が掛かる並び
 // 提供: UI.openSettings() / UI.settingsSheet({onClose}) (game.js の openSettings が使う) / UI.confirmReset()
 // game.js は import しない (ctx.js の UI / game を通す)。
 
 import { game, registerUI } from "./ctx.js";
-import { el, setText, sheet, segmented } from "./kit.js";
+import { el, setText, sheet, segmented, toast } from "./kit.js";
+import { tlOn, tlSetOn, tlClear, tlHasData, tlSummary, tlExportText } from "../telemetry.js";
 import { getPref, setPref, remember } from "./prefs.js";
 import { SFX } from "../audio.js";
 
@@ -123,6 +125,19 @@ function fillAuto(box) {
   for (const a of AUTO) {
     box.appendChild(toggleRow({ name: a.name, desc: a.desc, on: !!getPref(a.key), onChange: (v) => { setPref(a.key, v); sfx("select"); } }));
   }
+  box.appendChild(sec("テスト記録"));
+  const logRow = el("button", "stg-row stg-danger stg-log");
+  logRow.type = "button";
+  const lt = el("span", "stg-row-t");
+  lt.appendChild(setText(el("span", "stg-row-n"), "記録を見る・書き出す"));
+  logRow.appendChild(lt);
+  logRow.appendChild(el("span", "stg-danger-b stg-log-b", "開く"));
+  logRow.addEventListener("click", () => { sfx("select"); openTestLog(); });
+  box.appendChild(toggleRow({ name: "テスト記録", desc: "戦闘調整用の集計 (端末内のみ・送信しない)", on: tlOn(), onChange: (v) => {
+    tlSetOn(v); sfx("select"); logRow.classList.toggle("hidden", !v && !tlHasData());
+  } }));
+  logRow.classList.toggle("hidden", !tlOn() && !tlHasData());
+  box.appendChild(logRow);
   box.appendChild(sec("データ"));
   const reset = el("button", "stg-row stg-danger");
   reset.type = "button";
@@ -160,6 +175,78 @@ export function settingsSheet({ onClose } = {}) {
     };
   }
   return h;
+}
+
+// ---- テスト記録 (telemetry.js) ----
+// 文字列をクリップボードへ。navigator.clipboard → 隠し textarea + execCommand の順に試す
+function copyText(text) {
+  const legacy = () => {
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.cssText = "position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;";
+      document.body.appendChild(ta);
+      ta.select();
+      ta.setSelectionRange(0, text.length);
+      const ok = document.execCommand("copy");
+      ta.remove();
+      return ok;
+    } catch (e) { return false; }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    return navigator.clipboard.writeText(text).then(() => true, () => legacy());
+  }
+  return Promise.resolve(legacy());
+}
+
+// コピーできなかった時: 全文を選べる枠で見せる (長押し → すべて選択 → コピー)
+function showExportText(text) {
+  sheet.open({
+    kind: "info", banner: "テスト記録", title: "この文字をすべて選んでコピーしてください", className: "stg-sheet stg-log-sheet", paged: false,
+    body: (root) => {
+      const ta = document.createElement("textarea");
+      ta.className = "stg-log-ta";
+      ta.readOnly = true;
+      ta.value = text;
+      root.appendChild(ta);
+      setTimeout(() => { try { ta.focus(); ta.select(); } catch (e) { /* noop */ } }, 50);
+    },
+    footer: [{ label: "閉じる", kind: "secondary", onTap: (s) => { sfx("select"); s.close(); } }],
+  });
+}
+
+function openTestLog() {
+  const sum = tlSummary();
+  sheet.open({
+    kind: "info", banner: "テスト記録", className: "stg-sheet stg-log-sheet",
+    title: tlOn() ? "記録中" : "記録は止まっている",
+    body: (root) => {
+      if (!sum.length) { root.appendChild(setText(el("p", "stg-log-empty"), "まだ記録がない。迷宮に潜ると、階ごと・戦闘ごとに集まっていく。")); return; }
+      for (const d of sum) {
+        const b = el("div", "stg-log-d");
+        b.appendChild(setText(el("div", "stg-log-h"), d.head));
+        for (const l of d.lines) b.appendChild(setText(el("div", "stg-log-l"), l));
+        root.appendChild(b);
+      }
+    },
+    footer: [
+      { label: "書き出す (コピー)", kind: "primary", onTap: () => {
+        sfx("select");
+        const text = tlExportText();
+        copyText(text).then((ok) => {
+          if (ok) toast("テスト記録をコピーした ― そのまま貼り付けて送れる", { tone: "good" });
+          else showExportText(text);
+        });
+      } },
+      { label: "記録を消す", kind: "secondary", onTap: (s) => {
+        sfx("select");
+        dangerConfirm({ banner: "テスト記録", title: "テスト記録を消しますか？", lines: ["集計した能力値と戦闘の記録がすべて消える。", "(セーブデータには影響しない)"], okLabel: "消す" })
+          .then((ok) => { if (ok) { tlClear(); s.close(); toast("テスト記録を消した", { tone: "info" }); } });
+      } },
+      { label: "閉じる", kind: "secondary", onTap: (s) => { sfx("select"); s.close(); } },
+    ],
+  });
 }
 
 // 取り消しが既定の決断 (「やめておく」が先頭でフォーカスを持つ)。Promise<boolean>
