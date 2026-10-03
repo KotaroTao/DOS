@@ -4,6 +4,7 @@ import { ITEMS, weaponRange, scaleBonus } from "./items.js";
 import { ELEMENTS, elemDmgMult, monStats, rankStats, resistRate, RESIST_TAG } from "./dungeons/schema.js";
 
 import { SPELLS } from "./skilldefs.js";
+import { JOBKIT_PERKS } from "./jobkit/index.js";
 export { SPELLS };
 
 // 敵が使う自己強化 (enemyAct の WARCRY 相当) の既定持続ターン数
@@ -150,6 +151,44 @@ const variance = (base) => { const b = Math.round(base); return Math.max(1, b + 
 
 // 職業ランクパッシブのLvを引く (souls.js の recalcDoll が passiveMap を埋める)
 const pv = (a, key) => (a && a.passiveMap && a.passiveMap[key]) || 0;
+// 職ごとの固有パッシブ (jobkit の perks)。passiveMap のうち fx を持つものを {c: 成分, lv, label} の列で返す。
+// passiveMap は recalcDoll が作り直すたびに別の器になるので、器ごとに覚えておく
+const _perkCache = new WeakMap();
+const NO_PERKS = [];
+function perksOf(a) {
+  const pm = a && a.passiveMap;
+  if (!pm || typeof pm !== "object") return NO_PERKS;
+  let list = _perkCache.get(pm);
+  if (list) return list;
+  list = [];
+  for (const k in pm) {
+    const pk = JOBKIT_PERKS[k];
+    if (!pk || !pm[k]) continue;
+    for (const c of pk.fx) list.push({ c, lv: pm[k], label: pk.label });
+  }
+  _perkCache.set(pm, list);
+  return list;
+}
+// Lv ごとの値 (配列なら Lv 番目。足りなければ最後) / 単なる数ならそのまま
+const lvv = (v, lv) => (Array.isArray(v) ? v[Math.min(Math.max(1, lv), v.length) - 1] : v);
+// 技・呪文の消費MPを削る固有パッシブ (cost) の合計 (上限50%)
+function perkCostCut(actor, sp) {
+  let cut = 0;
+  for (const { c, lv } of perksOf(actor)) if (c.t === "cost" && (!c.on || c.on === sp.kind)) cut += lvv(c.v, lv) || 0;
+  return Math.min(0.5, cut);
+}
+// 戦闘に勝った後の固有パッシブ (win): その人が受ける HP/MP 回復の割合 (自分の分 + 味方の party 付きの分)
+export function perkVictory(p, party) {
+  let hp = 0, mp = 0;
+  for (const q of party || [p]) {
+    if (!q || !q.alive) continue;
+    for (const { c, lv } of perksOf(q)) {
+      if (c.t !== "win" || (q !== p && !c.party)) continue;
+      hp += lvv(c.hp, lv) || 0; mp += lvv(c.mp, lv) || 0;
+    }
+  }
+  return { hp, mp };
+}
 // テスト記録用の集計の器 (telemetry.js が読む)。pa/pe/pp = 味方の物理 試行/かわされた/見切られた、
 // ea/ee/ep = 敵の物理 同、of/op = 手番で味方が先だった組/総組、ft/fo/fs = 逃走 試行/成功/封じられた、
 // fp = 逃走を試みた時の成功率の合計 (×1000。実際の成功数と見比べる)
@@ -229,6 +268,8 @@ export function spellCost(actor, sp) {
   const c = pv(actor, "chant");
   if (c) mp = Math.ceil(mp * (c >= 2 ? 0.7 : 0.85));
   if (actor && actor.spellCostMul) mp = Math.ceil(mp * actor.spellCostMul); // 賢者の冠: MP消費を割合カット
+  const pc = perkCostCut(actor, sp); // 固有パッシブ (cost)
+  if (pc) mp = Math.ceil(mp * (1 - pc));
   return Math.max(1, mp);
 }
 
@@ -286,6 +327,8 @@ export class Battle {
     }
     for (const e of enemies) if (e.mind === undefined) e.mind = null;
     for (const a of [...party, ...enemies]) a._ailN = null; // 自然回復の救済の数え (戦いごとに数え直す)
+    for (const p of party) this._recalcBuffs(p); // 固有パッシブの常時の能力倍率 (stat)
+    this._perkStart();
     this._openingStrikes();
     this.advance();
   }
@@ -370,6 +413,13 @@ export class Battle {
   _recalcBuffs(t) {
     const b = { atk: 1, vit: 1, agi: 1 };
     for (const ef of (t.effects || [])) b[ef.stat] = (b[ef.stat] || 1) * ef.mult;
+    // 固有パッシブの能力倍率 (stat)。条件付きのものはラウンドの初めに判定し直す
+    if (t.side === "party") {
+      for (const { c, lv } of perksOf(t)) {
+        if (c.t !== "stat" || (c.when && !this._perkWhen(t, c.when, {}))) continue;
+        for (const k in c.mul) b[k] = (b[k] || 1) * (1 + (lvv(c.mul[k], lv) || 0));
+      }
+    }
     // 旧来の上下限 (×3 / ×0.3) を安全側で維持
     for (const k in b) b[k] = Math.max(0.3, Math.min(3, b[k]));
     t.buffs = b;
@@ -401,6 +451,177 @@ export class Battle {
 
   // 能力倍率 (atk/vit/agi 以外の効果: seal/taunt/shield/ctr/charge/regen/hit/int/r_<属性>) を読む
   _bm(t, k) { return (t && t.buffs && t.buffs[k]) || 1; }
+
+  // ---- 職ごとの固有パッシブ (jobkit の perks。成分の意味は jobkit/index.js 冒頭) ----
+  // 条件 when を満たすか。a = 持ち主、ctx.tgt = 与える時は攻撃先・受ける時は攻撃してきた敵、ctx.el = 攻撃の属性
+  _perkWhen(a, w, ctx) {
+    const t = ctx.tgt || null;
+    const frac = (x) => (x && x.maxhp ? x.hp / x.maxhp : 1);
+    if (w.race && !(t && w.race.includes(enemyRace(t)))) return false;
+    if (w.tgtElem && !(t && t.element === w.tgtElem)) return false;
+    if (w.tgtAil && !(t && (t.ailment || t.asleep || t.mind || t._flinch))) return false;
+    if (w.tgtDebuffed && !(t && (t.effects || []).some((e) => e.mult < 1))) return false;
+    if (w.tgtLow != null && !(t && frac(t) <= w.tgtLow)) return false;
+    if (w.tgtHigh != null && !(t && frac(t) >= w.tgtHigh)) return false;
+    if (w.boss && !(t && t.boss)) return false;
+    if (w.noBoss && t && t.boss) return false;
+    if (w.selfLow != null && frac(a) > w.selfLow) return false;
+    if (w.selfHigh != null && frac(a) < w.selfHigh) return false;
+    if (w.selfAil && !ailing(a)) return false;
+    if (w.buffed && !(a.effects || []).some((e) => e.mult > 1 && ["atk", "vit", "agi", "int"].includes(e.stat))) return false;
+    if (w.defending && !a._defending) return false;
+    if (w.mpHigh != null && !(a.maxmp && a.mp >= a.maxmp * w.mpHigh)) return false;
+    if (w.round1 && (this._roundNo || 0) > 1) return false;
+    if (w.roundGE && (this._roundNo || 0) < w.roundGE) return false;
+    if (w.preempt && this.opening !== "preempt") return false;
+    if (w.front && this.isBackRow(a)) return false;
+    if (w.back && !this.isBackRow(a)) return false;
+    if (w.crowd && this.livingEnemies().length < w.crowd) return false;
+    if (w.lastFoe && this.livingEnemies().length !== 1) return false;
+    if (w.allyDown && !this.party.some((p) => !p.alive)) return false;
+    if (w.alone && this.livingParty().length !== 1) return false;
+    if (w.elem && ctx.el !== w.elem) return false;
+    return true;
+  }
+  // 与ダメ・被ダメ・会心・回避などの値の合計 (自分の分 + 生きている味方の aura 付きの分)。ctx.on = その攻撃の種類の札の配列
+  _perkSum(a, type, ctx = {}) {
+    if (!a || a.side !== "party") return 0;
+    let sum = 0;
+    for (const p of this.party) {
+      if (p !== a && !p.alive) continue;
+      for (const { c, lv } of perksOf(p)) {
+        if (c.t !== type || (p !== a && !c.aura)) continue;
+        if (c.on && !(ctx.on || []).includes(c.on)) continue;
+        if (c.when && !this._perkWhen(a, c.when, ctx)) continue;
+        sum += lvv(c.v, lv) || 0;
+      }
+    }
+    return sum;
+  }
+  // 発動の判定 (chance が無ければ必ず)
+  _perkRoll(c, lv) { return c.chance == null || Math.random() < (lvv(c.chance, lv) || 0); }
+  // 強化をまとめて掛ける ({atk: 1.2} の倍率。Lv ごとの配列可)
+  _perkBuff(t, buff, lv, dur, label) {
+    for (const k in buff) this._applyMod(t, k, lvv(buff[k], lv), dur || 3, label);
+  }
+  _perkHeal(t, pct, label) {
+    if (!pct || !t.alive || t.hp >= t.maxhp) return 0;
+    const h = Math.max(1, Math.round(t.maxhp * pct));
+    t.hp = Math.min(t.maxhp, t.hp + h);
+    return h;
+  }
+  _perkMp(t, pct) {
+    if (!pct || !t.alive || !t.maxmp || t.mp >= t.maxmp) return 0;
+    const g = Math.max(1, Math.round(t.maxmp * pct));
+    t.mp = Math.min(t.maxmp, t.mp + g);
+    return g;
+  }
+  // 戦闘開始時 (start)
+  _perkStart() {
+    for (const p of this.party) {
+      if (!p.alive) continue;
+      for (const { c, lv, label } of perksOf(p)) {
+        if (c.t !== "start" || !this._perkRoll(c, lv) || (c.when && !this._perkWhen(p, c.when, {}))) continue;
+        const tg = c.party ? this.livingParty() : [p];
+        for (const t of tg) {
+          if (c.buff) this._perkBuff(t, c.buff, lv, c.dur, label);
+          if (c.barrier) t._barrierLeft = (t._barrierLeft || 0) + (lvv(c.barrier, lv) || 0);
+          if (c.regen) this._applyMod(t, "regen", 1 + (lvv(c.regen, lv) || 0), c.dur || 3, label);
+          if (c.mp) this._perkMp(t, lvv(c.mp, lv));
+          if (c.endure) t._grantEndure = true;
+          if (c.charge) this._applyMod(t, "charge", lvv(c.charge, lv), c.dur || 3, label);
+        }
+        if (c.taunt) this._applyMod(p, "taunt", 3, c.dur || 2, label);
+        if (c.foe) for (const e of this.livingEnemies()) this._perkBuff(e, c.foe, lv, c.dur, label);
+        this.log(`${p.name}の${label}！`, "heal");
+      }
+    }
+  }
+  // 2ラウンド目以降の毎ラウンド初め (round)
+  _perkRound() {
+    for (const p of this.party) {
+      if (!p.alive) continue;
+      for (const { c, lv, label } of perksOf(p)) {
+        if (c.t !== "round" || (c.when && !this._perkWhen(p, c.when, {})) || !this._perkRoll(c, lv)) continue;
+        let healed = 0;
+        for (const t of (c.party ? this.livingParty() : [p])) {
+          healed += this._perkHeal(t, lvv(c.hp, lv)) + this._perkMp(t, lvv(c.mp, lv));
+          if (c.buff) this._perkBuff(t, c.buff, lv, c.dur || 2, label);
+        }
+        if (healed || c.buff) this.log(`${p.name}の${label}`, "heal");
+      }
+    }
+  }
+  // 敵を倒した時 (kill)。倒したのは今の手番の味方
+  _perkKill(killer) {
+    if (!killer || killer.side !== "party" || !killer.alive) return;
+    for (const { c, lv, label } of perksOf(killer)) {
+      if (c.t !== "kill" || !this._perkRoll(c, lv)) continue;
+      const h = this._perkHeal(killer, lvv(c.hp, lv)), m = this._perkMp(killer, lvv(c.mp, lv));
+      if (c.buff) this._perkBuff(killer, c.buff, lv, c.dur, label);
+      if (h || m || c.buff) this.log(`${label}！ ${killer.name}${h ? ` HP+${h}` : ""}${m ? ` MP+${m}` : ""}`, "heal");
+    }
+  }
+  // 敵の攻撃を受けた時 (hurt)。kind = "phys" | "breath"
+  _perkHurt(t, attacker, dmg, kind) {
+    if (!t || t.side !== "party" || !t.alive || !(dmg > 0)) return;
+    for (const { c, lv, label } of perksOf(t)) {
+      if (c.t !== "hurt" || (c.on || "phys") !== kind || !this._perkRoll(c, lv)) continue;
+      if (c.buff) this._perkBuff(t, c.buff, lv, c.dur || 2, label);
+      const h = this._perkHeal(t, lvv(c.hp, lv)), m = this._perkMp(t, lvv(c.mp, lv));
+      if (c.buff || h || m) this.log(`${t.name}の${label}${h ? ` HP+${h}` : ""}${m ? ` MP+${m}` : ""}`, "heal");
+      if (c.thorns && attacker && attacker.alive && attacker.side === "enemy") {
+        const back = Math.max(1, Math.round(dmg * (lvv(c.thorns, lv) || 0)));
+        attacker.hp -= back;
+        this.log(`${label}！ ${attacker.name}に ${back} ダメージ`, "hit");
+        this._die(attacker);
+      }
+    }
+  }
+  // 自分の物理が敵に当たった時 (hit): 確率で状態異常・弱体を付ける。付いた札を返す
+  _perkHit(actor, tgt, tags, on) {
+    if (actor.side !== "party" || !tgt || tgt.side !== "enemy" || !tgt.alive) return;
+    for (const { c, lv, label } of perksOf(actor)) {
+      if (c.t !== "hit" || (c.on && !on.includes(c.on)) || !this._perkRoll(c, lv)) continue;
+      const a = c.ail;
+      if (a === "atk" || a === "vit" || a === "agi") { this._applyMod(tgt, a, lvv(c.mul, lv) || 0.85, 3, label); this.log(`${label}！ ${tgt.name}の力が削がれた`, "hit"); continue; }
+      const sp = { name: label, dur: 3, quiet: true };
+      if (a === "poison") sp.poison = { chance: 1, pct: lvv(c.pct, lv) || 0.05 };
+      else if (a === "para") sp.para = 1;
+      else if (a === "sleep") sp.sleepChance = 1;
+      else if (a === "confuse") sp.confuse = 1;
+      else if (a === "charm") sp.charm = 1;
+      else if (a === "seal") sp.seal = { chance: 1, turns: c.turns || 2 };
+      else if (a === "flinch") sp.flinchChance = 1;
+      else if (a === "strip") sp.strip = true;
+      else if (a === "vuln") sp.vuln = { [c.el || "all"]: lvv(c.mul, lv) || 0.85 };
+      this._inflict(actor, tgt, sp, tags);
+    }
+  }
+  // 技・呪文を使った後 (cast)
+  _perkCast(actor, sp, cost) {
+    if (!actor || actor.side !== "party" || !actor.alive) return;
+    for (const { c, lv, label } of perksOf(actor)) {
+      if (c.t !== "cast" || (c.on && c.on !== sp.kind) || !this._perkRoll(c, lv)) continue;
+      let note = "";
+      if (c.refund && cost > 0) { actor.mp = Math.min(actor.maxmp || 0, actor.mp + cost); note += ` MP${cost}が戻った`; }
+      let healed = 0;
+      for (const t of (c.party ? this.livingParty() : [actor])) healed += this._perkHeal(t, lvv(c.hp, lv)) + this._perkMp(t, lvv(c.mp, lv));
+      if (note || healed) this.log(`${label}！${note}`, "heal");
+    }
+  }
+  // 味方が倒れた時 (fall): 生きている持ち主に
+  _perkFall(fallen) {
+    for (const p of this.party) {
+      if (p === fallen || !p.alive) continue;
+      for (const { c, lv, label } of perksOf(p)) {
+        if (c.t !== "fall" || !this._perkRoll(c, lv)) continue;
+        if (c.buff) this._perkBuff(p, c.buff, lv, c.dur, label);
+        const h = this._perkHeal(p, lvv(c.hp, lv));
+        this.log(`${p.name}の${label}！${h ? ` HP+${h}` : ""}`, "heal");
+      }
+    }
+  }
   // 属性耐性ダウン: その属性の被ダメ倍率 (r_fire 0.7 → ×1.43)。r_all は全属性に効く
   _vulnMul(t, el) {
     if (!el || el === "none") return 1;
@@ -513,6 +734,7 @@ export class Battle {
   _startRound() {
     this._roundNo++;
     if (this._roundNo > 1) this._tickEffects(); // 2ラウンド目以降、強化/弱体の持続を消化
+    for (const p of this.party) this._recalcBuffs(p); // 固有パッシブの条件付きの能力倍率を判定し直す
     for (const a of [...this.party, ...this.enemies]) {
       if (!a.alive || a.ailment !== "poison") continue;
       // 毒の強さは付けた技しだい (既定5%)。主には半分 (5%以下はそのまま)
@@ -551,6 +773,7 @@ export class Battle {
         this.log(`${p.name}の傷が癒えていく (${h})`, "heal");
       }
     }
+    if (this._roundNo > 1) this._perkRound(); // 固有パッシブ (round)
     // 激昂: HPが3割を切った敵が一度だけ荒れ狂い、ATK/AGI が跳ね上がる
     for (const e of this.livingEnemies()) {
       if (!e.enrage || e._enraged || !e.maxhp || e.hp > e.maxhp * 0.3) continue;
@@ -896,6 +1119,10 @@ export class Battle {
 
   // 行動を実行し、演出用の結果 { actor, action, side, hits:[{target,dmg,crit,miss,heal,sleep,died}] } を返す
   _exec(cmd) {
+    this._actor = cmd.actor; // 固有パッシブ (kill) が「誰が倒したか」を知るための印
+    try { return this._execInner(cmd); } finally { this._actor = null; }
+  }
+  _execInner(cmd) {
     const { actor, action } = cmd;
     const res = { actor, action, side: actor.side, hits: [] };
     if (action === "sleep") {
@@ -999,6 +1226,7 @@ export class Battle {
         let dmg = Math.max(1, Math.round(variance(this._eatk(actor) * 0.85) - this._evit(t) * 0.25));
         if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
         if (t._defending) dmg = Math.ceil(dmg * 0.5);
+        { const pt = this._perkSum(t, "take", { tgt: actor, el: actor.element || "none", on: ["breath"] }); if (pt) dmg = Math.max(1, Math.floor(dmg * Math.max(0.2, 1 - pt))); } // 固有パッシブ (take)
         if (bigB) dmg = Math.max(1, Math.ceil(dmg * 0.5));
         else if (t._barrierLeft > 0) {
           // 魔障壁: 個人のブレス・呪文被ダメ半減 (残回数制)。魔力反射は防いだ分を返す
@@ -1016,7 +1244,7 @@ export class Battle {
         this.log(`${t.name}に ${dmg} ダメージ${em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : ""}`, "dmg");
         this._wake(t);
         const died = this._die(t);
-        if (!died) this._postDamage(t);
+        if (!died) { this._postDamage(t); this._perkHurt(t, actor, dmg, "breath"); }
         res.hits.push({ target: t, dmg, died });
       }
       return res;
@@ -1280,7 +1508,8 @@ export class Battle {
     }
     // 命中判定: 素の命中漏れ + 対象の敏捷(AGI)による回避 + 回避持ちの追加回避。
     // 技の命中補正 (acc) は外れる確率をその割合だけ消す (1 = 必中)。目つぶし (hit<1) は外れる確率を足す
-    const evade = Math.min(0.4, Math.max(0, ((tgt.agi || 6) - 6) * 0.012)) + (tgt.evasive ? 0.15 : 0);
+    const evade = Math.min(0.4, Math.max(0, ((tgt.agi || 6) - 6) * 0.012)) + (tgt.evasive ? 0.15 : 0)
+      + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) : 0); // 固有パッシブ (evade)
     let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
     const blind = this._bm(actor, "hit");
     if (blind < 1) missP += Math.min(0.4, 1 - blind);
@@ -1310,6 +1539,10 @@ export class Battle {
     if (tgt.side === "party") {
       const bastLv = Math.max(0, ...this.party.filter((p) => p.alive && p._defending).map((p) => pv(p, "bastion")));
       if (bastLv >= 2) dmg = Math.floor(dmg * 0.82); else if (bastLv >= 1) dmg = Math.floor(dmg * 0.9);
+      if (actor.side === "enemy") { // 固有パッシブ (take)
+        const pt = this._perkSum(tgt, "take", { tgt: actor, on: ["phys"] });
+        if (pt) dmg = Math.floor(dmg * Math.max(0.2, 1 - pt));
+      }
     }
     if (coverMul !== 1) dmg = Math.floor(dmg * coverMul);
     // 属性相性: 攻撃属性 (技 > 装備の属性攻撃 > 固有属性) × 対象の固有属性/属性防御
@@ -1323,10 +1556,15 @@ export class Battle {
     // 種族特効 (破邪) / 毒の獲物 (毒責め)
     if (pv(actor, "smite") && HOLY_PREY.includes(enemyRace(tgt))) dmg = Math.round(dmg * 1.3);
     if (pv(actor, "gokudoku") && tgt.ailment === "poison") dmg = Math.round(dmg * 1.3);
+    // 固有パッシブ (deal/crit) の札: 物理全般 + 通常攻撃 / 物理技
+    const pOn = opt.basic ? ["phys", "basic"] : opt.skill ? ["phys", "skill"] : ["phys"];
+    const perkFoe = actor.side === "party" && tgt.side === "enemy";
+    if (perkFoe) { const pd = this._perkSum(actor, "deal", { tgt, el: aE, on: pOn }); if (pd) dmg = Math.round(dmg * (1 + pd)); }
     if (actor.side === "party") { const evm = evDealMul(actor, tgt); if (evm !== 1) dmg = Math.round(dmg * evm); }
     // 会心: 基礎 + 会心パッシブ + 幸運(LUK) + 技の会心補正。確定会心系が先に立つ
     const luckCrit = Math.max(0, ((actor.luk || 8) - 8)) * 0.005;
     let critChance = 0.06 + (actor.critBonus || 0) + luckCrit + (opt.critBonus || 0) + (actor._evCrit || 0);
+    if (perkFoe) critChance += this._perkSum(actor, "crit", { tgt, el: aE, on: pOn }); // 固有パッシブ (crit)
     if (pv(actor, "holyEdge") && HOLY_PREY.includes(enemyRace(tgt))) critChance += 0.15;
     const fs = pv(actor, "fightSpirit");
     if (fs >= 2 && actor.maxhp && actor.hp <= actor.maxhp * 0.3) critChance += [0, 0, 0.15, 0.20, 0.25][Math.min(fs, 4)];
@@ -1392,6 +1630,13 @@ export class Battle {
       for (const oh of actor.onHit) this._inflict(actor, tgt, onHitSpell(oh), tags);
       status = statusText(tags);
     }
+    // 固有パッシブ (hit): 当てた敵へ確率で状態異常・弱体
+    if (perkFoe && tgt.alive) {
+      const tags = [];
+      this._perkHit(actor, tgt, tags, pOn);
+      const st = statusText(tags);
+      if (st) status = status ? status : st;
+    }
     // 怯ませ (flinch): 主(ボス)には効かない・既に怯んでいる敵には重ねない
     if (pv(actor, "flinch") && opt.basic && tgt.alive && tgt.side === "enemy" && !tgt.boss && !tgt._flinch && Math.random() < 0.10) {
       tgt._flinch = true;
@@ -1406,14 +1651,15 @@ export class Battle {
     }
     if (!died && tgt.side === "party") {
       this._postDamage(tgt);
-      if (actor.side === "enemy") this._tryCounter(tgt, actor);
+      if (actor.side === "enemy") { this._perkHurt(tgt, actor, dmg, "phys"); this._tryCounter(tgt, actor); }
     }
     return status ? { target: tgt, dmg, crit, died, status } : { target: tgt, dmg, crit, died };
   }
 
   _cast(actor, cmd, res) {
     const sp = SPELLS[cmd.spellKey];
-    actor.mp -= spellCost(actor, sp); // 省詠唱 (chant) 持ちは消費が軽い
+    const cost = spellCost(actor, sp);
+    actor.mp -= cost; // 省詠唱 (chant) 持ちは消費が軽い
     // 捨身 (hpCost): 最大HPの一定割合を代償に払う (HP1で踏みとどまる)。
     // ダメージ計算より先に払うため、自ら瀕死に踏み込んで荒行の果て・背水を起動できる
     if (sp.hpCost) {
@@ -1525,6 +1771,7 @@ export class Battle {
         dmg = mr.dmg;
         if (pv(actor, "gokudoku") && t.ailment === "poison") dmg = Math.round(dmg * 1.3); // 毒責め
         { const evm = evDealMul(actor, t); if (evm !== 1) dmg = Math.max(1, Math.round(dmg * evm)); } // 迷宮のイベントの加護
+        { const pd = this._perkSum(actor, "deal", { tgt: t, el: sp.element || "none", on: ["spell"] }); if (pd) dmg = Math.max(1, Math.round(dmg * (1 + pd))); } // 固有パッシブ (deal)
         // 会心: 呪文会心パッシブ + 技固有の会心補正 (禁呪開帳など)。重力は会心しない
         const crit = !sp.gravity && Math.random() < (([0, 0.10, 0.18, 0.26][Math.min(scLv, 3)] || 0) + (sp.critBonus || 0));
         if (crit) dmg = Math.floor(dmg * 1.5);
@@ -1612,7 +1859,7 @@ export class Battle {
     } else if (sp.kind === "heal") {
       // 回復量は術者の PIE で伸びる。荒行の果て (低HP時) は回復も+30%
       const aMul = pv(actor, "asceticism") && actor.maxhp && actor.hp <= actor.maxhp * 0.3 ? 1.3 : 1;
-      const healPower = (sp.power + (actor.pie || 0) * 0.5) * aMul;
+      const healPower = (sp.power + (actor.pie || 0) * 0.5) * aMul * (1 + this._perkSum(actor, "heal")); // 固有パッシブ (heal)
       // 全体回復
       if (sp.target === "all-ally") {
         let cured = false, revivedAny = false;
@@ -1689,11 +1936,12 @@ export class Battle {
       }
       this.log("敵の力が削がれた", "hit");
     }
+    this._perkCast(actor, sp, cost); // 固有パッシブ (cast)
   }
 
   // 攻撃の後に味方全体を癒す (聖剣奮迅・護摩焚き・天命の剣)。PIEで伸びる
   _partyHeal(actor, base, res) {
-    const hPow = base + (actor.pie || 0) * 0.3;
+    const hPow = (base + (actor.pie || 0) * 0.3) * (1 + this._perkSum(actor, "heal"));
     for (const t of this.livingParty()) {
       const heal = variance(hPow);
       t.hp = Math.min(t.maxhp, t.hp + heal);
@@ -1729,6 +1977,8 @@ export class Battle {
       // 討伐数はこの瞬間に数える (名前・HP の開示が戦闘中でもすぐ反映されるように。「〜を倒した！」より先)
       if (t.side === "enemy" && _onEnemyKilled) { try { _onEnemyKilled(t); } catch (er) { /* 記録の失敗で戦闘を止めない */ } }
       this.log(`${t.name}を倒した！`, t.side === "enemy" ? "win" : "dmg");
+      if (t.side === "enemy") this._perkKill(this._actor); // 固有パッシブ (kill)
+      else this._perkFall(t); // 固有パッシブ (fall)
       // 殉教の祈り: 自分が倒れた時、味方全体を PIE で癒す (1戦闘1回)
       if (t.side === "party" && pv(t, "martyr") && !t._martyrUsed) {
         t._martyrUsed = true;

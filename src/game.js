@@ -1,7 +1,7 @@
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, perkVictory } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas, drawPhoto } from "./sprites.js";
 import {
@@ -7418,6 +7418,30 @@ function nearestEnemyAt(sx, sy, allowed = null) {
   return best && bestD < ((G.enemyPos[best.uid] && G.enemyPos[best.uid].r) || 70) ? best : null;
 }
 
+// オート解除は指が触れた瞬間 (pointerdown) に効かせる。オート中は手番ごとに命令板が描き直されるので、
+// click (押して離す) を待つと、その間に解除ボタンが差し替わってタップが消えてしまう。
+// 解除した直後の click は、いま出たばかりの手動メニュー (攻撃など) に落ちないよう一度だけ握り潰す
+let _swallowClickUntil = 0;
+document.addEventListener("pointerdown", () => { _swallowClickUntil = 0; }, true);
+document.addEventListener("click", (e) => {
+  if (performance.now() >= _swallowClickUntil) return;
+  _swallowClickUntil = 0;
+  e.preventDefault(); e.stopPropagation();
+}, true);
+function stopAutoByTouch() {
+  if (!G.autoCombat) return false;
+  buzz(10);
+  stopAutoCombat();
+  _swallowClickUntil = performance.now() + 800;
+  return true;
+}
+// 命令板のどこに触れても解除 (「次も続ける」の切り替えだけは除く)
+combatMenu.addEventListener("pointerdown", (e) => {
+  if (G.state !== "combat" || !G.autoCombat || combatMenu.dataset.mode !== "auto") return;
+  if (e.button > 0 || e.target.closest(".cmd-keep")) return;
+  stopAutoByTouch();
+});
+
 // オート戦闘の解除 (解除ボタン / 戦闘画面タップの共通処理)
 function stopAutoCombat() {
   if (!G.autoCombat) return;
@@ -7488,12 +7512,26 @@ function renderActingPlate(actor) {
 // オート戦闘中の常設バナー: 演出中も表示し続け、いつでも解除できる。
 // 「次の戦闘も続ける」(§7 M2) もここで切り替えられる (主・強敵・深手の時は自動で止まる)
 function renderAutoBanner(actor) {
+  const plate = actor ? turnPlate(actor.name, "の手番", ["オート"]) : turnPlate("オート戦闘中", "", []);
+  const keep = !!uiDungeonHud.getPref("autoKeep");
+  // 既にバナーが出ていれば手番の札だけ差し替える (ボタンを作り直すと押している最中のタップが消える)
+  const cur = combatMenu.dataset.mode === "auto" ? combatMenu.querySelector(":scope > .cmd-autorow") : null;
+  if (cur && combatMenu.firstElementChild && combatMenu.firstElementChild !== cur) {
+    combatMenu.firstElementChild.replaceWith(plate);
+    const kb = cur.querySelector(".cmd-keep");
+    if (kb) {
+      kb.classList.toggle("on", keep);
+      const sub = kb.querySelector(".cmd-s");
+      if (sub) sub.textContent = keep ? "ON" : "OFF";
+      kb.setAttribute("aria-label", "次も続ける " + (keep ? "ON" : "OFF"));
+    }
+    return;
+  }
   combatMenu.innerHTML = "";
   combatMenu.dataset.mode = "auto";
-  combatMenu.appendChild(actor ? turnPlate(actor.name, "の手番", ["オート"]) : turnPlate("オート戦闘中", "", []));
+  combatMenu.appendChild(plate);
   const row = el("div", "cmd-autorow");
   row.appendChild(cmdBtn("stop", "オート解除", "画面のタップでも解除", stopAutoCombat, "cmd-wide"));
-  const keep = !!uiDungeonHud.getPref("autoKeep");
   row.appendChild(cmdBtn("keep", "次も続ける", keep ? "ON" : "OFF", () => {
     uiDungeonHud.setPref("autoKeep", !uiDungeonHud.getPref("autoKeep"));
     SFX.select();
@@ -7554,8 +7592,11 @@ function skillLocked(actor, key) {
 
 function renderCombatMenu() {
   const b = G.battle;
-  combatMenu.innerHTML = "";
-  combatMenu.dataset.mode = "";
+  // オート中はバナーを作り直さず札だけ差し替える (renderAutoBanner)。解除ボタンへのタップを取りこぼさない
+  if (!(G.autoCombat && (G.animating || b.phase === "input"))) {
+    combatMenu.innerHTML = "";
+    combatMenu.dataset.mode = "";
+  }
   if (G.animating) { if (G.autoCombat) renderAutoBanner(); return; } // アニメーション中は解除のみ可
   if (b.phase === "input") {
     const actor = b.current;
@@ -7974,7 +8015,7 @@ function applyImpact(res) {
   if (anyDeath) setTimeout(() => SFX.die(), 200);
 }
 
-// 戦闘勝利時: 入手Soulの1/5を、生存しているパーティメンバー全員の全部位の魂に
+// 戦闘勝利時: 入手Soulの1/3を、生存しているパーティメンバーが宿す魂 (メイン魂・サブ魂は半分) に
 // 経験値(soul.exp)として加算する。限界(soulTrainCost)に達した魂は自動でレベルアップし、
 // キャラLv上昇/スキル習得を検出してポップアップ用のキューを返す。
 function distributeBattleSoulExp(soulGot) {
@@ -8003,6 +8044,7 @@ function distributeBattleSoulExp(soulGot) {
   const STAT_KEYS = ["maxhp", "maxmp", "atk", "vit", "agi", "int", "pie", "luk"];
   const snap = (m) => { const o = {}; for (const k of STAT_KEYS) o[k] = m[k] || 0; return o; };
   const preStat = new Map(), preLv = new Map(), preSpells = new Map();
+  const preSubLv = new Map(); // サブ魂 uid → 加算前の Lv (サブ魂のレベルアップもお知らせに出す)
   for (const m of G.party) {
     if (!m || !m.alive) continue;
     preStat.set(m, snap(m));
@@ -8010,6 +8052,7 @@ function distributeBattleSoulExp(soulGot) {
     const ps = m.primary != null ? soulByUid(m.primary) : null;
     preLv.set(m, ps ? ps.level : 0);
   }
+  for (const w of worn) if (w.sub) { const e = soulByUid(w.uid); if (e) preSubLv.set(w.uid, e.level); }
   // 宿している魂すべてに Soul を加算してレベルアップ (上限超過分は exp に蓄積)。
   // サブ魂はメイン魂の半分 (share の 1/2) を得る。
   for (const w of worn) {
@@ -8029,12 +8072,25 @@ function distributeBattleSoulExp(soulGot) {
     const ps = m.primary != null ? soulByUid(m.primary) : null;
     const newLv = ps ? ps.level : 0;
     const oldLv = preLv.get(m) || 0;
+    const before = preStat.get(m) || {};
+    const deltas = [];
+    for (const k of STAT_KEYS) { const d = (m[k] || 0) - (before[k] || 0); if (d > 0) deltas.push(`${STAT_LABEL[k]} +${d}`); }
+    // 伸びた能力はその人の最初の行 (メイン魂 → なければ最初のサブ魂) にまとめて載せる
+    let shown = false;
     if (newLv > oldLv) {
-      const before = preStat.get(m) || {};
-      const deltas = [];
-      for (const k of STAT_KEYS) { const d = (m[k] || 0) - (before[k] || 0); if (d > 0) deltas.push(`${STAT_LABEL[k]} +${d}`); }
       queue.push({ kind: "level", member: m, fromLv: oldLv, toLv: newLv, deltas });
+      shown = true;
       runLevel(m, oldLv, newLv); // 今回の記録 (帰還の報告)
+    }
+    // サブ魂のレベルアップ (どの職の魂かを添えて、サブ魂だとわかるようにする)
+    for (const sub of (m.subs || [])) {
+      if (!sub || sub.uid == null || !preSubLv.has(sub.uid)) continue;
+      const e = soulByUid(sub.uid);
+      const from = preSubLv.get(sub.uid);
+      if (!e || e.level <= from) continue;
+      const cls = SOUL_CLASSES[e.clsKey];
+      queue.push({ kind: "level", member: m, fromLv: from, toLv: e.level, deltas: shown ? [] : deltas, sub: true, soulLabel: cls ? cls.label : e.clsKey });
+      shown = true;
     }
     const oldSp = preSpells.get(m) || new Set();
     for (const sk of (m.spells || [])) if (!oldSp.has(sk)) queue.push({ kind: "skill", member: m, skill: sk });
@@ -8061,7 +8117,7 @@ function endBattle() {
     const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1))) + takeStolenGold(b);
     const soulGot = runGainSoulPts(Math.round(soul * (sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1)));
     applyVictoryPassives();
-    // 入手Soulの1/5を生存メンバー全員の全部位の魂に加算 → レベルアップ/スキル習得を集計
+    // 入手Soulの1/3を生存メンバーの魂 (サブ魂は半分) に加算 → レベルアップ/スキル習得を集計
     const progress = distributeBattleSoulExp(soulGot);
     updateTopbar();
     log(`勝利！ ${goldGot} ゴールド と ✦${soulGot} Soul を得た。`, "win");
@@ -8145,7 +8201,7 @@ function endBattle() {
       ? battleChestSpec(drop ? [drop] : [], wasMasterMimic ? 30 : wasMimic ? 15 : 0, wasMimic || wasMasterMimic, after ? ["alarm"] : null)
       : null;
     // 戦果シート (§3.3): 勝利・獲得・成長・魂・宝箱を1枚にまとめる (旧: 勝利・Lv・技・宝箱・罠・中身の札が1枚ずつ)
-    const levels = progress.filter((q) => q.kind === "level").map((q) => ({ name: q.member.name, uid: q.member.uid, from: q.fromLv, to: q.toLv, deltas: q.deltas || [] }));
+    const levels = progress.filter((q) => q.kind === "level").map((q) => ({ name: q.member.name, uid: q.member.uid, from: q.fromLv, to: q.toLv, deltas: q.deltas || [], sub: !!q.sub, soulLabel: q.soulLabel || "" }));
     const skills = progress.filter((q) => q.kind === "skill").map((q) => ({ name: q.member.name, key: q.skill, skill: SPELLS[q.skill] ? SPELLS[q.skill].name : q.skill, desc: SPELLS[q.skill] ? SPELLS[q.skill].desc : "" }));
     uiResults.openResults({
       kind: wasBoss ? "boss" : wasElite ? "elite" : wasGuard ? "guard" : corpse ? "corpse" : "win",
@@ -8182,8 +8238,10 @@ function applyVictoryPassives() {
     const bl = pLv(p, "afterBoth");
     const hpct = HEAL_PCT[Math.max(pLv(p, "afterHeal"), pope)] + (bl >= 2 ? 0.08 : bl === 1 ? 0.03 : 0);
     const ml = pLv(p, "afterMp");
-    const mpct = (ml >= 2 ? 0.10 : ml === 1 ? 0.05 : 0) + (bl >= 2 ? 0.08 : bl === 1 ? 0.03 : 0);
-    if (hpct > 0 && p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * hpct)); healed = true; }
+    const pw = perkVictory(p, G.party); // 職ごとの固有パッシブ (win)
+    const hpct2 = hpct + pw.hp;
+    const mpct = (ml >= 2 ? 0.10 : ml === 1 ? 0.05 : 0) + (bl >= 2 ? 0.08 : bl === 1 ? 0.03 : 0) + pw.mp;
+    if (hpct2 > 0 && p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * hpct2)); healed = true; }
     if (mpct > 0 && p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * mpct)); healed = true; }
   }
   if (healed) log("勝利の余韻がパーティを癒した。", "heal");
@@ -8772,15 +8830,49 @@ function applyEquipSoul(d, uid, s, slotId = "primary") {
   announceJobChange(d, before);
 }
 
+// ある魂を「自分以外の人業」がサブ魂として宿しているなら {doll, index} を返す
+function subWearerOf(uid, self) {
+  for (const dd of allDolls()) {
+    if (dd === self) continue;
+    const j = (dd.subs || []).findIndex((x) => x && x.uid === uid);
+    if (j >= 0) return { doll: dd, index: j };
+  }
+  return null;
+}
+// 他の人業のサブ魂を、d のサブ魂の差し口 si へ付け替える。
+// d がその差し口に魂を宿していれば、その魂は相手の同じ差し口へ移る (交換)。借りている技はそれぞれの魂について行く
+function takeSubSoul(d, uid, si) {
+  const w = subWearerOf(uid, d);
+  if (!w) return false;
+  const other = w.doll;
+  d.subs = d.subs || [];
+  const taken = other.subs[w.index];
+  const mine = d.subs[si] || null;
+  if (mine) other.subs[w.index] = mine;
+  else other.subs.splice(w.index, 1);
+  other.subs = other.subs.filter(Boolean);
+  d.subs[si] = taken;
+  d.subs = d.subs.filter(Boolean);
+  for (const dd of [d, other]) { recalcDoll(dd); dd.hp = Math.min(dd.hp, dd.maxhp); dd.mp = Math.min(dd.mp, dd.maxmp); }
+  SFX.select(); buzz(15);
+  autosave(true);
+  renderTown();
+  return true;
+}
+
 // 差し口 (slotId) に魂を宿す/外す (メイン魂=転職、サブ魂=技の借用)。魂は1体ごとに固有。
 // done(applied) … 実際に宿した/外した (確認で取りやめなら false)
-function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
+// opts.take … サブ魂の差し口で、他の人業のサブ魂を付け替える (確認は呼び出し側で済ませる)。宿していた魂とは交換になる
+function equipSoulToSlot(d, uid, slotId = "primary", done = null, opts = {}) {
   const fin = (v) => { if (typeof done === "function") done(v); return v; };
   const s = soulByUid(uid);
   if (!s || G.state !== "town") return fin(false);
   const si = slotId === "primary" ? -1 : +slotId.slice(3);
   // 別の差し口へ宿す (=付け替え) 場合のみ装備可否を判定する。外す操作は対象外
   const isNewEquip = !(slotId === "primary" && d.primary === uid) && !(si >= 0 && ((d.subs || [])[si] || {}).uid === uid);
+  // メイン魂に宿している魂 (自分のものも含む) はサブ魂にできない
+  if (isNewEquip && si >= 0 && allDolls().some((dd) => dd.primary === uid)) { SFX.ng(); showToast("メイン魂に宿している魂は、サブ魂にできない", { tone: "bad" }); return fin(false); }
+  if (isNewEquip && si >= 0 && opts.take && subWearerOf(uid, d)) return fin(takeSubSoul(d, uid, si));
   if (isNewEquip && soulWornByOther(uid, d)) { log("他の人業が宿している魂は宿せない。", "sys"); SFX.ng(); showToast("他の人業が宿している魂だ", { tone: "bad" }); return fin(false); }
 
   // メイン魂の付け替えで、新しい職では装備できなくなる装備があれば事前に確認する
@@ -11535,6 +11627,8 @@ document.addEventListener("dblclick", (e) => e.preventDefault());
 let _enemyHold = null;
 view.addEventListener("pointerdown", (e) => {
   if (G.state !== "combat" || !G.battle) return;
+  // オート中は戦闘画面に触れた瞬間に解除 (演出中もOK)
+  if (G.autoCombat && !(e.button > 0)) { stopAutoByTouch(); return; }
   const rect = view.getBoundingClientRect();
   const sx = (e.clientX - rect.left) * (VW / rect.width);
   const sy = (e.clientY - rect.top) * (VH / rect.height);
