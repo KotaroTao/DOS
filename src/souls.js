@@ -2031,6 +2031,7 @@ const BUST = 36;
 // どの職も額の中の顔が同じ大きさに見えるようにする。zoom > 1 = 顔が大きく描かれた職 (広く切って縮める) /
 // zoom < 1 = 顔が小さい職 (狭く切って伸ばす)。dx/dy = 切り出しの中心を face からずらすドット数 (顔の真ん中へ寄せる)
 export const BUST_FIT = {
+  fighter: { zoom: 1.3, dy: 2 }, // 原画版 (jobphotos.js): 升目 13.5px で顔が大きめ
   thief: { zoom: 1.2 },
   hermit: { zoom: 0.8, dy: -4 },
   hexer: { zoom: 0.65, dx: 2, dy: -7 },
