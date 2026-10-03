@@ -173,7 +173,7 @@ export function openResults(spec = {}) {
       t.appendChild(nm);
       t.appendChild(el("div", "rs-sub", `${rk && RARITIES[rk] ? RARITIES[rk].label + " ・ " : ""}${item.unidentified ? "未鑑定 ・ " : ""}${who ? who.name + " が持った" : ""}`));
       r.appendChild(t);
-      // 押すと品の詳細 (迷宮では鑑定を試す等)。鑑定済みで装備できる品は「装備」で人業を選んですぐ装備
+      // 押すと品の詳細 (鑑定は街でのみ)。鑑定済みで装備できる品は「装備」で人業を選んですぐ装備
       r.classList.add("tap");
       r.setAttribute("role", "button");
       r.addEventListener("click", (e) => { if (e.target.closest(".rs-equip")) return; try { UI.itemSheet(item, { owner: who, context: "dungeon" }); } catch (er) { /* noop */ } });

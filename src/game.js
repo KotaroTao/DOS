@@ -9734,14 +9734,15 @@ function showItemDetailPopup(p, sel) {
 }
 
 // 未鑑定品の詳細ポップアップ (旧来の .ig-choices) に「鑑定する」アクションを足す。
-// 鑑定済みの心得がある仲間がいればその場で試せる。失敗済み (idHardFail) とレジェンドレアは商会送り。
+// 街でのみ、鑑定の心得がある者 (隊と控え) がいればその場で試せる。失敗済み (idHardFail) とレジェンドレアは商会送り。
 // 新しい品シート (UI.itemSheet) は自前の「鑑定を試す / 鑑定する」を持つ。これは旧画面の互換用
 function addIdentifyAction(acts, it, close) {
   const off = (label) => { const b = btn(label, () => {}); b.disabled = true; acts.appendChild(b); };
   if (it.lr) return off("レジェンドレアは商会でのみ鑑定できる");
   if (it.idHardFail) return off("鑑定に失敗した品 (商会でのみ鑑定できる)");
-  const idmen = G.party.filter((m) => m.alive && canIdentify(m));
-  if (!idmen.length) return off("鑑定できる仲間がいない");
+  if (G.state !== "town") return off("鑑定は街でのみできる");
+  const idmen = townAppraisers();
+  if (!idmen.length) return off("鑑定できる者がいない");
   acts.appendChild(btn("鑑定を試す (スキル)", () => { close(); openIdentifyChooser(it); }));
 }
 
@@ -9749,15 +9750,23 @@ function addIdentifyAction(acts, it, close) {
 // 街で商会が開いていれば、確実な商会の鑑定も先頭に並ぶ
 function openIdentifyChooser(it, onDone) {
   if (UI.identifyChooser) return UI.identifyChooser(it, { onDone });
-  const idmen = G.party.filter((m) => m.alive && canIdentify(m));
-  if (!idmen.length) { log("鑑定できる仲間がいない。", "sys"); return null; }
+  const idmen = townAppraisers();
+  if (!idmen.length) { log(G.state === "town" ? "鑑定できる者がいない。" : "鑑定は街でのみできる。", "sys"); return null; }
   return doIdentifySkill(idmen[0], it);
 }
 
+// 鑑定の心得のある者 (鑑定は街でのみ。隊と控えの生きている全員から)
+function townAppraisers() {
+  if (G.state !== "town") return [];
+  return allDolls().filter((m) => m && !m.isEmpty && m.alive && canIdentify(m));
+}
+
 // スキル鑑定を実行。成功で正体判明、失敗で idHardFail (以後は商店でのみ鑑定可)。成功なら true
+// 鑑定は街でのみ (迷宮では何もしない)
 // quiet: 音・トースト・描き直し・保存を呼び出し側 (鑑定を試みるの演出 src/ui/appraise.js) に任せる
 function doIdentifySkill(m, it, { quiet = false } = {}) {
   if (!it || !it.unidentified || it.lr || it.idHardFail) return false;
+  if (G.state !== "town") return false;
   const ch = identifyChance(m, it.lv || 1);
   const ok = Math.random() < ch;
   if (ok) {
