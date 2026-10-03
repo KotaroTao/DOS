@@ -326,6 +326,19 @@ const pv = (a, key) => (a && a.passiveMap && a.passiveMap[key]) || 0;
 // 破邪・聖刃の対象種族
 const HOLY_PREY = ["undead", "specter", "demon"];
 const enemyRace = (e) => (e && e.mon && e.mon.race) || null;
+// 迷宮のイベント (events.js) の加護: 与ダメ倍率 (_evDmg) と種族特効 (_evPrey)。game.js が戦闘開始時に人業へ付ける
+function evDealMul(actor, tgt) {
+  let m = actor._evDmg || 1;
+  const pr = actor._evPrey;
+  if (pr && pr.races && pr.races.includes(enemyRace(tgt))) m *= pr.mul || 1;
+  return m;
+}
+// 属性防御: イベントの加護 (_evEDef) は、装備の属性防御より強いときだけ使う
+function edefOf(t) {
+  const e = t && t._evEDef;
+  if (e && !(t.elemDef && (t.elemDef.lv || 0) >= (e.lv || 1))) return e;
+  return t ? t.elemDef : null;
+}
 
 // 省詠唱 (chant) 込みの実効MPコスト
 export function spellCost(actor, sp) {
@@ -816,7 +829,7 @@ export class Battle {
         this.log("大結界がパーティを包んだ！", "heal");
       }
       for (const t of this.livingParty()) {
-        const em = elemDmgMult(actor.element || "none", 1, t.element || "none", t.elemDef);
+        const em = elemDmgMult(actor.element || "none", 1, t.element || "none", edefOf(t));
         let dmg = Math.max(1, Math.round(variance(this._eatk(actor) * 0.85) - this._evit(t) * 0.25));
         if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
         if (t._defending) dmg = Math.ceil(dmg * 0.5);
@@ -1049,14 +1062,15 @@ export class Battle {
     // 属性相性: 攻撃属性 (技 > 装備の属性攻撃 > 固有属性) × 対象の固有属性/属性防御
     const aE = opt.element || (actor.elemAtk && actor.elemAtk.el) || actor.element || "none";
     const aLv = (actor.elemAtk && actor.elemAtk.el === aE) ? Math.max(1, actor.elemAtk.lv) : 1;
-    const em = elemDmgMult(aE, aLv, tgt.element || "none", tgt.elemDef);
+    const em = elemDmgMult(aE, aLv, tgt.element || "none", edefOf(tgt));
     if (em !== 1) dmg = Math.round(dmg * em);
     // 種族特効 (破邪) / 毒の獲物 (蠱毒)
     if (pv(actor, "smite") && HOLY_PREY.includes(enemyRace(tgt))) dmg = Math.round(dmg * 1.3);
     if (pv(actor, "gokudoku") && tgt.ailment === "poison") dmg = Math.round(dmg * 1.3);
+    if (actor.side === "party") { const evm = evDealMul(actor, tgt); if (evm !== 1) dmg = Math.round(dmg * evm); }
     // 会心: 基礎 + 会心パッシブ + 幸運(LUK) + 技の会心補正。確定会心系が先に立つ
     const luckCrit = Math.max(0, ((actor.luk || 8) - 8)) * 0.005;
-    let critChance = 0.06 + (actor.critBonus || 0) + luckCrit + (opt.critBonus || 0);
+    let critChance = 0.06 + (actor.critBonus || 0) + luckCrit + (opt.critBonus || 0) + (actor._evCrit || 0);
     if (pv(actor, "holyEdge") && HOLY_PREY.includes(enemyRace(tgt))) critChance += 0.15;
     const fs = pv(actor, "fightSpirit");
     if (fs >= 2 && actor.maxhp && actor.hp <= actor.maxhp * 0.3) critChance += [0, 0, 0.15, 0.20, 0.25][Math.min(fs, 4)];
@@ -1180,7 +1194,7 @@ export class Battle {
         if (!t.alive) continue;
         // 呪文の属性は Lv1 扱い。同属性の属性攻撃を装備していれば、そのレベルで増幅される
         const aLv = (actor.elemAtk && actor.elemAtk.el === sp.element) ? Math.max(1, actor.elemAtk.lv) : 1;
-        let em = elemDmgMult(sp.element || "none", aLv, t.element || "none", t.elemDef);
+        let em = elemDmgMult(sp.element || "none", aLv, t.element || "none", edefOf(t));
         if (em < 1 && pv(actor, "elemFloor")) em = 1; // 森羅の理: 属性不利が出ない
         // 攻撃呪文の威力は術者の INT で伸びる。低HP補正 (荒行の果て) も乗る
         const power = sp.power + (actor.int || 0) * 0.5;
@@ -1193,6 +1207,7 @@ export class Battle {
         let magResisted = false;
         if (t.magResist && t.magResist > 0) { dmg = Math.max(1, Math.round(dmg * (1 - t.magResist))); magResisted = true; }
         if (pv(actor, "gokudoku") && t.ailment === "poison") dmg = Math.round(dmg * 1.3); // 蠱毒
+        { const evm = evDealMul(actor, t); if (evm !== 1) dmg = Math.max(1, Math.round(dmg * evm)); } // 迷宮のイベントの加護
         // 会心: 呪文会心パッシブ + 技固有の会心補正 (禁呪開帳など)
         const crit = Math.random() < (([0, 0.10, 0.18, 0.26][Math.min(scLv, 3)] || 0) + (sp.critBonus || 0));
         if (crit) dmg = Math.floor(dmg * 1.5);
@@ -1329,6 +1344,12 @@ export class Battle {
       if (maxEndure > 0 && (t._endureUsed || 0) < maxEndure) {
         t._endureUsed = (t._endureUsed || 0) + 1; t._grantEndure = false; t.hp = 1;
         this.log(`${t.name}は不屈で持ちこたえた！ (HP1)`, t.side === "enemy" ? "dmg" : "heal");
+        return false;
+      }
+      // 名を刻まれぬ墓碑 (迷宮のイベント): この潜入で一度だけ、致死を HP1 で免れる
+      if (t.side === "party" && t._evSave) {
+        t._evSave = false; t.hp = 1;
+        this.log(`墓碑に刻んだ名が、${t.name}を死の淵から引き戻した！ (HP1)`, "heal");
         return false;
       }
       // 不死鳥の心臓 (autoRevive): 1戦闘1回だけ、戦闘不能を割合HPの蘇生で踏みとどまる (LR装飾品)

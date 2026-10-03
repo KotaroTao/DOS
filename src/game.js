@@ -6,8 +6,9 @@ import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audi
 import { spriteCanvas, crispCanvas } from "./sprites.js";
 import {
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, slotKeyFor, lvToRank, RANGE_LABEL,
-  UNIDENT_SLOTS, itemName,
+  UNIDENT_SLOTS, itemName, applyForge,
 } from "./items.js";
+import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
 import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE, unlockSceneFor, sealLines, unsealLines } from "./story.js";
@@ -276,7 +277,7 @@ function pickLoot(opts = {}) {
     const pool = miscLootIds().filter((id) => Math.max(1, Math.min(20, ITEMS[id].r20 || 1)) <= miscCap);
     if (pool.length) return pool[rand(pool.length)];
   }
-  const lrId = lrTimeRoll();
+  const lrId = opts.noLR ? null : lrTimeRoll(); // noLR: 迷宮のイベントが直接渡す品 (LR の時間抽選は宝箱・戦利品にだけ使う)
   if (lrId) return lrId;
   const order = ["c", "uc", "r", "sr"];
   const capR = lootCapR();
@@ -463,6 +464,7 @@ const G = {
   lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
   lrClock: { since: 0, pend: 0 }, // レジェンドレアの時間抽選 (最後のLRからの/前回抽選からの実プレイms)
   order: { picks: [] }, // 控えの結社: 席に着けた魂のuid配列 (席数=orderSeats()。編成外ランク2以上のみ有効)
+  events: { seen: {}, picks: {}, once: {}, flags: {}, fresh: {} }, // 迷宮のイベント (src/events.js): 見聞録・一度きり・恒久の恵み
   irene: { greeted: false, visits: 0, seen: {}, last: null }, // 人業の館の主イレーヌ: 初訪問の挨拶済み・来館数・聞いた話 (src/ui/irene.js)
   story: 0,           // 王宮ストーリーの進行段階
   dragonSlain: false, // 竜を討ったか
@@ -983,6 +985,11 @@ const MUT_AGG = {
 function activeModifierDefs() {
   const defs = [];
   const md = mutDef(); if (md) defs.push(md);
+  // 迷宮のイベントの効果 (この潜入 / この階)。迷宮の中でだけ効く
+  if (inDungeon() && !abyssActive()) {
+    if (G.run && G.run.ev && Array.isArray(G.run.ev.mods)) defs.push(...G.run.ev.mods);
+    if (G.board && G.board.ev && Array.isArray(G.board.ev.mods)) defs.push(...G.board.ev.mods);
+  }
   if (G.abyss) {
     for (const id of G.abyss.mods || []) { const m = ABYSS_MOD_MAP[id]; if (m) defs.push(m); }
     for (const id of G.abyss.mutations || []) { const m = ABYSS_MUT_MAP[id]; if (m) defs.push(m); }
@@ -1199,6 +1206,7 @@ function newFloor() {
   if (G.floor > G.stats.deepest) G.stats.deepest = G.floor;
   // 酒場の噂を盤面に反映 (潜入直後の階のみ)
   if (G.activeRumor && G.activeRumor.floor === G.floor) applyRumorToBoard(G.board);
+  evNewFloor(); // 迷宮のイベント: 出来事の配置・持ち越しの効果
   G.px = G.board.start.x;
   G.py = G.board.start.y;
   G.portalFound = false; // この階の帰還魔法陣はまだ発見していない
@@ -1612,7 +1620,8 @@ function boardLightSources(now) {
     else if (c.type === "poison") out.push({ x: cx, y: cy + r.h * 0.05, r: 34, a: 0.4, col: "120,210,60", ga: 0.1 + 0.05 * pulse, gr: 30 });
     else if (c.type === "stairs") out.push({ x: cx, y: cy, r: 30, a: 0.4, col: "160,190,255", ga: 0.06, gr: 24 });
     else if (c.type === "corpse" && c.corpseWarm && !c.cleared) out.push({ x: cx + 7, y: cy - 14, r: 26, a: 0.5, col: "127,208,255", ga: 0.16 + 0.06 * pulse, gr: 20 });
-    else if (c.type === "chest" && !c.cleared) out.push({ x: cx, y: cy, r: 22, a: 0.3, col: "255,210,120", ga: 0.06 + 0.04 * pulse, gr: 18 });
+    else if (c.type === "chest" && !c.cleared) out.push({ x: cx, y: cy, r: c.evMark ? 34 : 22, a: c.evMark ? 0.55 : 0.3, col: "255,210,120", ga: (c.evMark ? 0.14 : 0.06) + 0.04 * pulse, gr: 18 });
+    else if (c.type === "event" && !c.cleared) out.push({ x: cx, y: cy, r: 34, a: 0.5, col: "170,120,255", ga: 0.12 + 0.08 * pulse, gr: 28 });
   }
   return out;
 }
@@ -1906,7 +1915,8 @@ function cellIcon(cell) {
     cell.type === "fountain" && !cell.cleared ? ICONS.fountain :
     cell.type === "corpse" ? ICONS.corpse :
     cell.type === "portal" ? ICONS.portal :
-    cell.type === "stairs" ? ICONS.stairs : null;
+    cell.type === "stairs" ? ICONS.stairs :
+    cell.type === "event" && !cell.cleared ? ICONS.event : null;
 }
 function drawBoardIcons(lt, now, hx, hy) {
   const cells = G.board.cells;
@@ -4372,6 +4382,7 @@ function moveStep(nx, ny, onDone) {
         resolveCell(cell);
         // 毒は1歩ごとに蝕む (戦闘/選択へ移っていなければ)
         if (G.state === "board" && !G.prompt) tickPoison();
+        if (G.state === "board" && !G.prompt) evProgress(); // 誓い・頼みの達成
         autosave(true); // 1歩進むたびに保存 (やり直し不可)
         if (onDone) onDone();
       } else {
@@ -4593,8 +4604,598 @@ function resolveCell(cell) {
     case "stairs":
       askDescend(cell);
       break;
+    case "event":
+      if (cell.cleared) break;
+      runEvent(evApi, cell);
+      break;
   }
 }
+
+// ===== 迷宮のイベント (出来事マス) — src/events.js の定義を盤面・戦闘・報酬へつなぐ =====
+// 状態: G.events (見聞録・一度きり・恒久の恵み / 保存) ・ G.run.ev (この潜入) ・ G.board.ev (この階)
+function evRun() {
+  if (!G.run) G.run = newRun();
+  if (!G.run.ev || typeof G.run.ev !== "object") G.run.ev = { mods: [] };
+  if (!Array.isArray(G.run.ev.mods)) G.run.ev.mods = [];
+  return G.run.ev;
+}
+function evFloor() {
+  if (!G.board) return { mods: [] };
+  if (!G.board.ev || typeof G.board.ev !== "object") G.board.ev = { mods: [] };
+  if (!Array.isArray(G.board.ev.mods)) G.board.ev.mods = [];
+  return G.board.ev;
+}
+// 「戦果1」= この迷宮・この階の通常戦闘1回で得る gold (半減前の素の値) / ✦Soul の目安
+function evUnit() {
+  const cfg = activeCfg();
+  const keys = [...(cfg.pool || []), ...(cfg.deepPool || [])].filter((k) => MONSTERS[k]);
+  let g = 0, so = 0;
+  for (const k of keys) { g += MONSTERS[k].gold || 0; so += MONSTERS[k].soul || 0; }
+  const n = Math.max(1, keys.length);
+  const sc = (cfg.enemyScale || 1) * (1 + (G.floor - 1) * 0.06);
+  const per = 1.9; // 1戦の平均の敵数
+  // 戦闘の金貨は endBattle で ×2 → runGainGold で ×0.5。素の値は「1体の金貨×数×2」
+  return { gold: Math.max(6, (g / n) * sc * per * 2), soul: Math.max(3, (so / n) * sc * per) };
+}
+const evJit = () => 0.85 + Math.random() * 0.3;
+function evAlive() { return G.party.filter((p) => p.alive); }
+function evPoolKey() {
+  const rv = evRun();
+  let pool = sfMonsterPool().filter((k) => MONSTERS[k] && !MONSTERS[k].boss && !MONSTERS[k].elite);
+  if (rv.noBeast) { const nb = pool.filter((k) => MONSTERS[k].race !== "beast"); if (nb.length) pool = nb; }
+  return pool.length ? pool[rand(pool.length)] : "cm_slime";
+}
+function evCells(fn) { const out = []; if (G.board) sfEachCell(G.board, (c) => { if (fn(c)) out.push(c); }); return out; }
+function evCellPos(cell) {
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (G.board.cells[y][x] === cell) return { x, y };
+  return null;
+}
+function evRevealStairs() {
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const c = G.board.cells[y][x];
+    if (c.type !== "stairs") continue;
+    c.revealed = true;
+    for (const d in DIRS_G) {
+      if (c.walls[d]) continue;
+      const nx = x + DIRS_G[d][0], ny = y + DIRS_G[d][1];
+      if (nx >= 0 && ny >= 0 && nx < COLS && ny < ROWS) G.board.cells[ny][nx].revealed = true;
+    }
+  }
+}
+// 空きマスに宝箱を置く (rankUp: 宝箱ランクの上乗せ / reveal: 最初から見える / mark: 地図の×印)
+function evPlaceChest({ rankUp = 0, reveal = false, mark = false } = {}) {
+  const cand = evCells((c) => c.type === "empty" && !(G.board.start && G.board.cells[G.board.start.y][G.board.start.x] === c) && !(G.board.cells[G.py] && G.board.cells[G.py][G.px] === c));
+  if (!cand.length) return null;
+  const c = cand[rand(cand.length)];
+  c.type = "chest"; c.cleared = false;
+  c.cRank = Math.min(5, chestRankOf(null) + rankUp);
+  if (reveal) c.revealed = true;
+  if (mark) c.evMark = true;
+  return c;
+}
+function evPurgeBeasts() {
+  let n = 0;
+  for (const c of evCells((c) => c.type === "monster" && !c.cleared && !c.elite && MONSTERS[c.monsterKey] && MONSTERS[c.monsterKey].race === "beast")) {
+    const k = evPoolKey();
+    if (MONSTERS[k] && MONSTERS[k].race !== "beast") c.monsterKey = k;
+    else { c.type = "empty"; c.cleared = true; delete c.monsterKey; }
+    n++;
+  }
+  return n;
+}
+// 自分の隊の影 (鏡の間): 人業の絵を闇色に沈め、能力を ratio 倍で写す
+const _shadeSpr = new Map();
+function evShadeSprite(p) {
+  const key = (p.clsKey || "fighter") + ":" + (p.rank || 2);
+  if (_shadeSpr.has(key)) return _shadeSpr.get(key);
+  let spr = null;
+  try { spr = jobSprite(p.clsKey || "fighter", 2); } catch (e) { spr = null; }
+  if (!spr || !spr.art) spr = HERO;
+  const dark = (hex) => {
+    if (typeof hex !== "string" || !/^#[0-9a-f]{6}$/i.test(hex)) return hex;
+    const n = parseInt(hex.slice(1), 16);
+    const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    const l = (r * 0.3 + g * 0.59 + b * 0.11) / 255;
+    const mix = (base, k) => Math.round(base * 0.35 + k * l * 0.65);
+    return "#" + [mix(40, 150), mix(16, 90), mix(70, 220)].map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, "0")).join("");
+  };
+  const palette = {};
+  for (const k in spr.palette) palette[k] = dark(spr.palette[k]);
+  const out = { ...spr, palette, art: spr.art };
+  _shadeSpr.set(key, out);
+  return out;
+}
+function evShadow(p, ratio) {
+  const e = spawnEliteEnemies(evPoolKey(), enemyScale())[0];
+  const spr = evShadeSprite(p);
+  e.key = "ev_shade";
+  e.mon = { name: `${p.name}の影`, race: "specter", rank: 1, palette: spr.palette, art: spr.art, desc: "鏡に映った己の影。" };
+  e.name = `${p.name}の影`;
+  e.maxhp = e.hp = Math.max(1, Math.round((p.maxhp || 10) * ratio));
+  e.atk = Math.max(1, Math.round(Math.max(p.atk || 1, p.int || 0) * ratio));
+  e.vit = Math.round((p.vit || 0) * ratio);
+  e.agi = Math.max(1, Math.round((p.agi || 1) * ratio));
+  e.soul = Math.round((e.soul || 1) * 1.5);
+  e.ability = null; e.physResist = 0; e.magResist = 0; e.magWeak = 1; e.regen = 0; e.evasive = false;
+  e.role = null; e.summonKey = null; e.element = "dark";
+  return e;
+}
+// 強化個体 (封印の魔物・看守・大鰐など): HP と力を底上げし、報酬も相応に
+function evBoost(e, s) {
+  e.maxhp = e.hp = Math.max(1, Math.round(e.maxhp * s));
+  e.atk = Math.max(1, Math.round(e.atk * (1 + (s - 1) * 0.35)));
+  e.vit = Math.round(e.vit * (1 + (s - 1) * 0.2));
+  e.soul = Math.round(e.soul * s); e.gold = Math.round(e.gold * s);
+  return e;
+}
+// 出来事の戦闘の敵を組み立てる (cell.evFight.specs から。逃げて戻った時も同じ顔ぶれを作り直す)
+function evBuildFoes(specs) {
+  const scale = enemyScale();
+  const out = [];
+  for (const sp of specs || []) {
+    if (sp.shadows) { for (const p of evAlive()) out.push(evShadow(p, sp.shadows)); continue; }
+    if (sp.elite) { out.push(...spawnEliteEnemies(sp.key && MONSTERS[sp.key] ? sp.key : eliteKey(), scale * (sp.strong || 1))); continue; }
+    const key = sp.key && MONSTERS[sp.key] ? sp.key : (sp.undead ? undeadKeyForDungeon() : evPoolKey());
+    if (sp.strong) { const e = evBoost(spawnEliteEnemies(key, scale)[0], sp.strong); if (sp.name) e.name = sp.name; out.push(e); continue; }
+    if (sp.single) { out.push(spawnEliteEnemies(key, scale)[0]); continue; }
+    out.push(...spawnCardEnemies(key, G.floor, scale, { min: Math.max(sp.min || 0, mutNum("packMin", 0)) }));
+  }
+  const list = out.slice(0, 6);
+  // 単体で並べた同種は A/B/C… で呼び分ける (群れは spawnCardEnemies が済ませている)
+  const byKey = {};
+  for (const e of list) if (!/[A-F]$/.test(e.name)) (byKey[e.name] = byKey[e.name] || []).push(e);
+  for (const k in byKey) if (byKey[k].length > 1) byKey[k].forEach((e, i) => { e.name += String.fromCharCode(65 + i); });
+  return list.length ? list : spawnCardEnemies(evPoolKey(), G.floor, scale);
+}
+function evStartFight(cell) {
+  const f = cell.evFight;
+  if (!f) { renderBoard(); return; }
+  G._evOpening = f.opening || null;
+  startBattle(evBuildFoes(f.specs), cell);
+}
+// 戦闘の開始時: イベントの加護を人業へ展開し、開幕の効果 (回復・発破・層主の弱体) を掛ける
+function evBattleStart(enemies, isBoss) {
+  const on = inDungeon() && !abyssActive();
+  const rv = on ? evRun() : {};
+  let dmg = 1, prey = null;
+  if (on) for (const d of activeModifierDefs()) { if (d.dmgMul) dmg *= d.dmgMul; if (d.prey) prey = d.prey; }
+  for (const p of G.party) {
+    p._evDmg = on ? dmg * (rv.ruby && rv.ruby === p.uid ? 1.15 : 1) : 1;
+    p._evPrey = on ? prey : null;
+    p._evCrit = on ? (rv.crit || 0) : 0;
+    p._evEDef = on ? (rv.edef || null) : null;
+    p._evSave = !!(on && rv.saves && rv.saves[p.uid]);
+  }
+  if (!on) return;
+  if (rv.startHeal > 0) {
+    rv.startHeal--;
+    for (const p of evAlive()) p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * 0.10));
+    log("喪服の女の祝福が、戦いの前に傷を癒した。", "heal");
+  }
+  if (rv.bomb > 0) {
+    rv.bomb--;
+    for (const e of enemies) e.hp = Math.max(1, e.hp - Math.ceil(e.maxhp * (e.boss ? 0.12 : 0.30)));
+    log("発破が炸裂した！ 敵全体が爆風に呑まれた。", "win");
+    setTimeout(() => showToast("💥 発破が炸裂 ― 敵全体に痛打", { tone: "gold" }), 300);
+  }
+  const bw = G.events && G.events.flags && G.events.flags.bossWeak;
+  if (isBoss && bw && bw[battleLayer()]) {
+    for (const e of enemies) if (e.boss) { e.maxhp = Math.max(1, Math.round(e.maxhp * 0.9)); e.hp = Math.min(e.hp, e.maxhp); }
+    log("告解室で聞いた秘密が、主の守りの綻びを教えてくれる。(主の最大HP -10%)", "win");
+  }
+}
+// 戦闘の後: 墓碑の加護の消費を記録し、紅玉に血を吸わせる
+function evBattleEnd(won) {
+  if (!inDungeon() || abyssActive() || !G.run || !G.run.ev) return;
+  const rv = G.run.ev;
+  if (rv.saves) for (const p of G.party) if (rv.saves[p.uid] && !p._evSave) delete rv.saves[p.uid];
+  if (won && rv.ruby) {
+    const h = G.party.find((p) => p.uid === rv.ruby && p.alive);
+    if (h) { h.hp = Math.max(1, h.hp - Math.ceil(h.maxhp * 0.05)); log(`紅玉が${h.name}の血を吸った。`, "dmg"); }
+  }
+}
+// 階の情報 (手帳) に並べる、いま効いている出来事の効果
+function eventFacts() {
+  if (!inDungeon() || abyssActive()) return [];
+  const out = [];
+  const ic = ICONS.event;
+  const fe = (G.board && G.board.ev) || {};
+  for (const m of fe.mods || []) out.push({ tone: m.enemyMul ? "bad" : "gold", icon: ic, title: `出来事「${m.name}」`, accent: "#c08aff", lines: [m.desc] });
+  if (fe.oath && !fe.oath.done) out.push({ tone: "gold", icon: ic, title: "誓いの最中", accent: "#c08aff", lines: [`この階の魔物をすべて討て (残り ${evCells((c) => c.type === "monster" && !c.cleared).length}体)`, "果たさずに降りると、次の階の敵が手強くなる。"] });
+  if (fe.miner && !fe.minerDone) out.push({ tone: "gold", icon: ICONS.corpse, title: "坑夫の頼み", accent: "#c08aff", lines: [`この階の亡骸をすべて調べよ (残り ${evCells((c) => c.type === "corpse" && !c.cleared).length}体)`] });
+  const rv = (G.run && G.run.ev) || null;
+  if (!rv) return out;
+  for (const m of rv.mods || []) out.push({ tone: m.enemyMul ? "bad" : "gold", icon: ic, title: `出来事「${m.name}」`, accent: "#c08aff", lines: [m.desc] });
+  const runLines = [];
+  if (rv.preempt > 0) runLines.push(`祈りの蝋燭 ― 次の戦闘は必ず先制 (${rv.preempt}回)`);
+  if (rv.ambushNext > 0) runLines.push("密輸人の待ち伏せ ― 次の戦闘は奇襲される");
+  if (rv.startHeal > 0) runLines.push(`喪服の女の祝福 ― 開戦時にHP10%回復 (残り${rv.startHeal}戦)`);
+  if (rv.bomb > 0) runLines.push(`発破 ― 次の戦闘の開幕に敵全体へ痛打 (${rv.bomb}回)`);
+  if (rv.crit) runLines.push(`黒猫の幸運 ― 会心率 +${Math.round(rv.crit * 100)}%`);
+  if (rv.edef) runLines.push(`土の護り ― 全員に${(ELEMENTS[rv.edef.el] || {}).label || rv.edef.el}の属性防御Lv${rv.edef.lv}`);
+  if (rv.ruby) { const h = G.party.find((p) => p.uid === rv.ruby); if (h) runLines.push(`呪われた紅玉 ― ${h.name}の与ダメ+15% (戦闘のたび血を吸われる)`); }
+  if (rv.saves) { const n = G.party.filter((p) => rv.saves[p.uid]).map((p) => p.name); if (n.length) runLines.push(`名を刻んだ墓碑 ― ${n.join("・")}は一度だけ死を免れる`); }
+  if (rv.noBeast) runLines.push("鼠の王の盟約 ― 獣の魔物が寄りつかない");
+  if (rv.mapChest > 0) runLines.push("宝の地図 ― 次の階に印の付いた宝箱");
+  if (rv.bounty) runLines.push(`密輸の証拠 ― 生きて帰れば報奨金 💰${rv.bounty}`);
+  if (rv.forceElite) runLines.push("縦穴の底 ― 次の階は強敵階");
+  if (runLines.length) out.push({ tone: "gold", icon: ic, title: "この潜入の出来事", accent: "#c08aff", lines: runLines });
+  return out;
+}
+
+// 階が変わった時: 持ち越しの効果を適用し、出来事を1つ置く (確率)
+function evNewFloor() {
+  if (abyssActive() || !G.board) return;
+  G.board.ev = { mods: [] };
+  const rv = evRun();
+  if (Array.isArray(rv.nextFloorMods) && rv.nextFloorMods.length) { G.board.ev.mods.push(...rv.nextFloorMods); rv.nextFloorMods = []; }
+  if (rv.mapChest > 0) { rv.mapChest--; if (evPlaceChest({ rankUp: 2, reveal: true, mark: true })) log("地図の×印 ― この階のどこかに宝箱が眠っている (印が見えている)。", "win"); }
+  if (rv.noBeast) evPurgeBeasts();
+  if (G.events.flags.sewerMap && battleLayer() === 2) evRevealStairs();
+  const cfg = activeCfg();
+  const dn = dungeonNumber(cfg), layer = battleLayer();
+  if (Math.random() >= (dn <= 1 ? EV_FLOOR_RATE_D1 : EV_FLOOR_RATE)) return;
+  const sx = G.board.start.x, sy = G.board.start.y;
+  const ok = (c, x, y) => c.type === "empty" && !(x === sx && y === sy);
+  let cand = [];
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = G.board.cells[y][x]; if (ok(c, x, y) && sfOpenCount(c) === 1) cand.push(c); }
+  if (!cand.length) for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = G.board.cells[y][x]; if (ok(c, x, y) && Math.abs(x - sx) + Math.abs(y - sy) >= 3) cand.push(c); }
+  if (!cand.length) return;
+  const st = { layer, dn, floor: G.floor, floors: cfg.floors || 3, runEv: rv, onceDone: (e) => !!G.events.once[onceKey(e, layer)] };
+  const e = pickEvent(eligibleEvents(st, evApi));
+  if (!e) return;
+  const cell = cand[rand(cand.length)];
+  cell.type = "event"; cell.evId = e.id; cell.cleared = false;
+  if (e.tier === "rare") rv.rareUsed = { ...(rv.rareUsed || {}), [e.id]: true };
+  if (e.setup) e.setup(evApi, cell);
+}
+// 階段を降りる時: 果たしていない誓いは次の階で報いとなる
+function evOnDescend() {
+  const fe = G.board && G.board.ev;
+  if (!fe || !fe.oath || fe.oath.done) return;
+  const rv = evRun();
+  rv.nextFloorMods = [...(rv.nextFloorMods || []), { src: "oath", name: "破られた誓い", desc: "敵の力 1.2倍 (この階)", enemyMul: 1.2 }];
+  fe.oath.done = true;
+  log("誓いを果たさずに降りた……石碑の呪いが後を追ってくる。(次の階の敵の力 1.2倍)", "dmg");
+  showToast("誓いを破った ― 次の階の敵が手強い", { tone: "bad" });
+}
+// 誓い (石碑)・頼み (坑夫) の達成を確かめる (1歩ごと・戦闘の後)
+function evProgress() {
+  const fe = G.board && G.board.ev;
+  if (!fe || abyssActive()) return;
+  if (fe.oath && !fe.oath.done && !evCells((c) => c.type === "monster" && !c.cleared).length) {
+    fe.oath.done = true;
+    const stone = evCells((c) => c.type === "event" && c.evOath)[0];
+    const u = evUnit();
+    const s = runGainSoulPts(Math.round(u.soul * 4 * evJit()));
+    if (stone) { stone.type = "chest"; stone.cleared = false; stone.revealed = true; stone.cRank = Math.min(5, chestRankOf(null) + 2); delete stone.evOath; }
+    SFX.victory(); flashScreen("#ffd84a"); updateTopbar();
+    log(`誓いを果たした！ ✦${s} Soul を授かり、石碑は祝福の宝箱に変わった。`, "win");
+    showToast(`誓いを果たした ― ✦${s} ・ 石碑が宝箱に`, { tone: "gold", icon: ICONS.chest });
+    renderBoard();
+  }
+  if (fe.miner && !fe.minerDone && !evCells((c) => c.type === "corpse" && !c.cleared).length) {
+    fe.minerDone = true;
+    for (const c of evCells((c) => c.type === "event" && c.evQuest)) { c.cleared = true; delete c.evQuest; }
+    const u = evUnit();
+    const s = runGainSoulPts(Math.round(u.soul * 4 * evJit()));
+    G.embers = (G.embers || 0) + 1; runCount("embers", 1);
+    SFX.victory(); updateTopbar();
+    log(`坑夫の亡霊は仲間と共に眠りについた。✦${s} Soul と魂の残火を遺していった。`, "win");
+    showToast(`坑夫の頼みを果たした ― ✦${s} ・ 残火 ×1`, { tone: "gold", icon: ICONS.ember });
+    renderBoard();
+  }
+}
+// 帰還の時 (全滅以外): 密輸の報奨金・紅玉の売却を精算する
+function evOnReturn(runRef, outcome) {
+  const rv = runRef && runRef.ev;
+  if (!rv || outcome === "wipe") return;
+  let pay = 0; const notes = [];
+  if (rv.bounty) { pay += rv.bounty; notes.push(`密輸の報奨金 💰${rv.bounty}`); rv.bounty = 0; }
+  if (rv.ruby && rv.rubyGold) { pay += rv.rubyGold; notes.push(`紅玉の売却 💰${rv.rubyGold}`); rv.ruby = null; rv.rubyGold = 0; }
+  if (!pay) return;
+  G.gold += pay; runRef.gold = (runRef.gold || 0) + pay;
+  log(notes.join(" / "), "win");
+  setTimeout(() => showToast(notes.join(" ・ "), { tone: "gold", icon: ICONS.gold }), 900);
+}
+// 魂の職を選ぶ (rarePlus: レア以上確定 / front: 前衛の職 / common: コモン / 既定: 死体と同じ抽選)
+function evSoulClass(mode) {
+  const keys = Object.keys(SOUL_CLASSES);
+  const of = (rar, f) => keys.filter((k) => SOUL_CLASSES[k].rarity === rar && (!f || f(SOUL_CLASSES[k])));
+  if (mode === "rarePlus") {
+    const r = Math.random();
+    const pool = of(r < 0.02 ? "legend" : r < 0.20 ? "epic" : "rare");
+    return pool[rand(pool.length)];
+  }
+  if (mode === "common") { const pool = of("common"); return pool[rand(pool.length)]; }
+  if (mode === "front") {
+    const rar = (SOUL_CLASSES[rollJobClass()] || {}).rarity || "common";
+    const front = (c) => c.stat && (c.stat.atk || 0) + (c.stat.vit || 0) >= 3.6;
+    const pool = of(rar, front);
+    return pool.length ? pool[rand(pool.length)] : rollJobClass();
+  }
+  return rollJobClass();
+}
+// 品を渡して演出する (誰も持てなければ知らせて次へ)
+function evGive(id, next) {
+  const fin = next || (() => { if (G.state === "board") renderBoard(); });
+  const got = id && ITEMS[id] ? giveItem(id) : null;
+  if (got) { UI.loot(got.item, got.who, { source: "chest" }, fin); return; }
+  if (id && ITEMS[id] && !G.party.some((m) => m.items.length < MAX_ITEMS)) runLost(itemName(markDungeonLoot({ ...ITEMS[id] })));
+  fin();
+}
+function evPickMinRar(rar) {
+  const order = ["c", "uc", "r", "sr"];
+  const lo = Math.max(0, order.indexOf(rar));
+  let k = Math.max(lo, order.indexOf(rollRarity(rarityUp({ rare: true }))));
+  const centerR = dropCenterR({}), capR = lootCapR();
+  for (; k >= lo; k--) { const id = pickOfRarity(order[k], centerR, capR); if (id) return id; }
+  return pickLoot({ rare: true, noLR: true });
+}
+function evPickCollectible() {
+  const cap = Math.min(20, lootBaseR() + 1);
+  const pool = miscLootIds().filter((id) => Math.max(1, Math.min(20, ITEMS[id].r20 || 1)) <= cap);
+  return pool.length ? pool[rand(pool.length)] : null;
+}
+function evOpenChestAt(cell) {
+  const pos = evCellPos(cell);
+  if (G.state !== "board" || !pos || pos.x !== G.px || pos.y !== G.py || cell.type !== "chest" || cell.cleared) { if (G.state === "board") renderBoard(); return; }
+  if (G.prompt || uiBlocked()) { renderBoard(); return; }
+  askOpenChest(cell);
+}
+
+// events.js へ渡す操作の窓口 (A)。events.js は game.js を import しないので、必要な操作はここに集める
+const evApi = {
+  get layer() { return battleLayer(); },
+  get dn() { return dungeonNumber(activeCfg()); },
+  runEv: () => evRun(),
+  floorEv: () => evFloor(),
+  flags: () => G.events.flags,
+  // ---- 画面 ----
+  choice: (title, opts, icon, o) => showChoice(title, opts, icon, o),
+  icon: (e) => (e.icon && e.icon.startsWith("mon:") ? MONSTERS[e.icon.slice(4)] : ICONS[e.icon]) || ICONS.event,
+  toast: (text, tone = "info", icon = null) => showToast(text, { tone, icon: icon ? (ICONS[icon] || undefined) : undefined }),
+  log: (t, c = "sys") => log(t, c),
+  sfx: (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* 音は任意 */ } },
+  flash: (c) => flashScreen(c),
+  refresh: () => { renderParty(); updateTopbar(); },
+  back: () => { if (G.state === "board") renderBoard(); autosave(true); },
+  done(cell, next) {
+    if (cell) cell.cleared = true;
+    updateTopbar(); renderParty();
+    if (next) next(); else if (G.state === "board") renderBoard();
+    autosave(true);
+  },
+  reopen(cell) { if (G.state === "board" && !G.prompt && !uiBlocked() && !cell.cleared) runEvent(evApi, cell); else if (G.state === "board") renderBoard(); },
+  alarm(title, lines, icon, then) {
+    SFX.trap(); buzz([0, 60, 40, 60]);
+    showEvent({ sprite: ICONS[icon] || ICONS.trap, banner: "⚠ 危険 ⚠", title, lines, accent: "#d4504e", btnLabel: "応戦する", onClose: then });
+  },
+  story(title, lines, next) {
+    SFX.itemget();
+    showEvent({ sprite: ICONS.event, banner: "✦ 見聞 ✦", title, lines, accent: "#c08aff", btnLabel: "閉じる", onClose: next });
+  },
+  seen(e, cell) {
+    if (cell.evSeen) return;
+    cell.evSeen = true;
+    const first = !G.events.seen[e.id];
+    G.events.seen[e.id] = (G.events.seen[e.id] || 0) + 1;
+    if (first) {
+      G.events.fresh[e.id] = true;
+      const s = runGainSoulPts(Math.max(1, Math.round(evUnit().soul * 0.5)));
+      updateTopbar();
+      log(`見聞録に新たな出来事「${e.name}」を記した。(✦${s})`, "win");
+      setTimeout(() => showToast(`見聞録に記した「${e.name}」 ✦${s}`, { tone: "gold", icon: ICONS.event }), 250);
+    }
+  },
+  picked(e, label) {
+    const pk = G.events.picks[e.id] || (G.events.picks[e.id] = {});
+    const k = plainText(label).split(" ― ")[0].slice(0, 24);
+    pk[k] = (pk[k] || 0) + 1;
+    if (e.once) G.events.once[onceKey(e, battleLayer())] = true;
+  },
+  // ---- 隊 ----
+  aliveList: () => evAlive(),
+  randomAlive: () => { const a = evAlive(); return a.length ? a[rand(a.length)] : null; },
+  best(stat) { let b = null; for (const p of evAlive()) if (!b || (p[stat] || 0) > (b[stat] || 0)) b = p; return b; },
+  check(stat, who = null) {
+    const m = who || evApi.best(stat);
+    if (!m) return { ok: false, who: null, p: 0 };
+    const need = disarmNeed(1) * 0.5;
+    const p = Math.max(0.15, Math.min(0.92, 0.55 * (m[stat] || 0) / need));
+    return { ok: Math.random() < p, who: m, p };
+  },
+  checkDisarm() {
+    const m = bestDisarmer();
+    if (!m) return { ok: false, who: null, p: 0 };
+    const p = disarmChance(m, 1);
+    return { ok: Math.random() < p, who: m, p };
+  },
+  sense: () => partyPassiveLv("senseEnemy") > 0,
+  appraiser: () => G.party.find((m) => m.alive && canIdentify(m)) || null,
+  healAll(hp, mp, cure) {
+    const list = evAlive();
+    for (const p of list) {
+      if (hp) p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * hp));
+      if (mp) p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * mp));
+      if (cure) p.ailment = null;
+    }
+    flashPartyCards(list, "heal"); updateTopbar();
+  },
+  hurtAll(pct) { const l = evAlive(); for (const p of l) p.hp = Math.max(1, p.hp - Math.ceil(p.maxhp * pct)); flashPartyCards(l, "hit"); buzz([0, 40, 30, 40]); },
+  hurtAllCur(pct) { const l = evAlive(); for (const p of l) p.hp = Math.max(1, p.hp - Math.ceil(p.hp * pct)); flashPartyCards(l, "hit"); },
+  hurtOne(m, pct) { if (!m || !m.alive) return; m.hp = Math.max(1, m.hp - Math.ceil(m.maxhp * pct)); flashPartyCards([m], "hit"); },
+  mpAll(pct) { for (const p of evAlive()) p.mp = Math.max(0, p.mp - Math.ceil(p.maxmp * pct)); renderParty(); },
+  ail(m, kind) { if (!m || !m.alive || m.ailment || (m.eff && m.eff.ailmentImmune)) return; m.ailment = kind; renderParty(); },
+  ailAll(kind, ch) { for (const p of evAlive()) if (Math.random() < ch) evApi.ail(p, kind); flashPartyCards(evAlive(), "hit"); },
+  cureAll() { for (const p of evAlive()) p.ailment = null; renderParty(); },
+  // ---- 通貨 ----
+  goldCost: (u) => Math.max(1, Math.round(evUnit().gold * u * 0.5)),
+  soulCost: (u) => Math.max(1, Math.round(evUnit().soul * u)),
+  canPayGold: (n) => G.gold >= n,
+  canPaySoul: (n) => G.soulPts >= n,
+  payGold(n) { G.gold = Math.max(0, G.gold - n); if (G.run && inDungeon()) G.run.gold = Math.max(0, (G.run.gold || 0) - n); updateTopbar(); },
+  paySoul(n) { G.soulPts = Math.max(0, G.soulPts - n); if (G.run && inDungeon()) G.run.soulPts = Math.max(0, (G.run.soulPts || 0) - n); updateTopbar(); },
+  embers: () => G.embers || 0,
+  payEmber(n) { G.embers = Math.max(0, (G.embers || 0) - n); updateTopbar(); },
+  gold(u, from) {
+    const g = runGainGold(Math.round(evUnit().gold * u * evJit()));
+    SFX.itemget(); updateTopbar();
+    log(`${from}から ${g} ゴールドを得た。`, "win");
+    showToast(`${from}から 💰${g}`, { tone: "gold", icon: ICONS.gold });
+    return g;
+  },
+  soul(u, from) {
+    const s = runGainSoulPts(Math.round(evUnit().soul * u * evJit()));
+    updateTopbar();
+    log(`${from}から ✦${s} Soul を得た。`, "win");
+    showToast(`${from}から ✦${s} Soul`, { tone: "gold", icon: ICONS.wisp });
+    return s;
+  },
+  giveGoldRaw(n, from) { G.gold += n; if (G.run && inDungeon()) G.run.gold += n; updateTopbar(); log(`${from}で 💰${n} を得た。`, "win"); showToast(`${from} ― 💰${n}`, { tone: "gold", icon: ICONS.gold }); },
+  giveSoulRaw(n, from) { G.soulPts += n; if (G.run && inDungeon()) G.run.soulPts += n; updateTopbar(); log(`${from}で ✦${n} Soul を得た。`, "win"); showToast(`${from} ― ✦${n}`, { tone: "gold", icon: ICONS.wisp }); },
+  ember(n, from, quiet = false) {
+    G.embers = (G.embers || 0) + n; runCount("embers", n); updateTopbar();
+    log(`${from} ― 魂の残火を ${n}つ 得た。`, "win");
+    if (!quiet) showToast(`${from} ― 魂の残火 ×${n}`, { tone: "gold", icon: ICONS.ember });
+  },
+  // ---- 品・魂 ----
+  item: (opts, from, next) => { log(`${from}で品を見つけた。`, "win"); evGive(pickLoot({ ...(opts || {}), noLR: true }), next); },
+  itemMinRar: (rar, from, next) => { log(`${from}で品を受け取った。`, "win"); evGive(evPickMinRar(rar), next); },
+  giveItemId: (id, next) => evGive(id, next),
+  collectible(from, next) {
+    const id = evPickCollectible();
+    if (!id) { evApi.gold(1, from); if (next) next(); return; }
+    log(`${from}で蒐集品を見つけた。`, "win");
+    evGive(id, next);
+  },
+  price: (id) => (ITEMS[id] && ITEMS[id].price) || 20,
+  soulDrop: (mode, line, next) => acquireSoul(evSoulClass(mode), line, next),
+  itemName: (it) => itemName(it),
+  equippedForgeable() {
+    const out = [], seen = new Set();
+    for (const m of evAlive()) for (const k of Object.keys(m.equip || {})) {
+      const it = m.equip[k];
+      if (!it || seen.has(it) || it.forge || it.unidentified) continue;
+      if (!["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"].some((s) => (it[s] || 0) > 0)) continue;
+      seen.add(it); out.push({ m, it });
+    }
+    return out.sort((a, b) => (b.it.lv || 0) - (a.it.lv || 0));
+  },
+  forge(m, it) { it.forge = 1; applyForge(it); recalcDoll(m); renderParty(); },
+  breakItem(m, it) {
+    for (const k of Object.keys(m.equip || {})) if (m.equip[k] === it) m.equip[k] = null;
+    const i = m.items.indexOf(it); if (i >= 0) m.items.splice(i, 1);
+    recalcDoll(m); renderParty();
+  },
+  identifyAll() {
+    let n = 0;
+    for (const m of [...G.party, ...(G.reserve || [])]) {
+      for (const it of [...(m.items || []), ...Object.values(m.equip || {})]) if (it && it.unidentified && !it.lr) { it.unidentified = false; it.idHardFail = false; n++; }
+    }
+    return n;
+  },
+  // ---- 盤面 ----
+  countCells: (fn) => evCells(fn).length,
+  revealStairs() { evRevealStairs(); renderBoard(); },
+  revealWhere(fn, limit = Infinity) {
+    let n = 0;
+    for (const c of evCells((c) => fn(c) && !c.revealed)) { if (n >= limit) break; c.revealed = true; n++; }
+    renderBoard();
+    return n;
+  },
+  removeMonsters(n) {
+    const list = evCells((c) => c.type === "monster" && !c.cleared && !c.elite);
+    let k = 0;
+    while (k < n && list.length) { const c = list.splice(rand(list.length), 1)[0]; c.type = "empty"; c.cleared = true; delete c.monsterKey; k++; }
+    return k;
+  },
+  reviveMonsters() { const l = evCells((c) => c.type === "monster" && c.cleared && !c.elite && c.monsterKey); for (const c of l) c.cleared = false; renderBoard(); return l.length; },
+  monsterKeysLeft: () => evCells((c) => c.type === "monster" && !c.cleared && !c.elite && MONSTERS[c.monsterKey]).map((c) => c.monsterKey),
+  clearMonsters() { const l = evCells((c) => c.type === "monster" && !c.cleared && !c.elite); for (const c of l) c.cleared = true; return l.length; },
+  clearPoison() { const l = evCells((c) => c.type === "poison"); for (const c of l) { c.type = "empty"; c.cleared = true; } return l.length; },
+  floodHalf() {
+    const right = G.px < COLS / 2;
+    let n = 0;
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+      if (right ? x < Math.ceil(COLS / 2) : x >= Math.floor(COLS / 2)) continue;
+      const c = G.board.cells[y][x];
+      if (x === G.px && y === G.py) continue;
+      if (["trap", "poison", "chest", "corpse", "fountain"].includes(c.type) || (c.type === "monster" && !c.elite)) {
+        if (c.cleared && c.type !== "poison") continue;
+        c.type = "empty"; c.cleared = true; delete c.monsterKey; n++;
+      }
+    }
+    renderBoard();
+    return n;
+  },
+  warmCorpse() {
+    let best = null, bd = 1e9;
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+      const c = G.board.cells[y][x];
+      if (c.type !== "corpse" || c.cleared) continue;
+      const d = Math.abs(x - G.px) + Math.abs(y - G.py);
+      if (d < bd) { bd = d; best = c; }
+    }
+    if (!best) {
+      const cand = evCells((c) => c.type === "empty");
+      if (!cand.length) return false;
+      best = cand[rand(cand.length)];
+      best.type = "corpse"; best.cleared = false; best.corpseClass = rollJobClass();
+    }
+    best.corpseWarm = true; best.revealed = true;
+    renderBoard();
+    return true;
+  },
+  purgeBeasts: () => evPurgeBeasts(),
+  placeChest: (o) => { const c = evPlaceChest(o); renderBoard(); return c; },
+  chestHere(cell, { rankUp = 0, cRank = 0, lootBonus = 0 } = {}, next = null, noOpen = false) {
+    cell.type = "chest"; cell.cleared = false; cell.revealed = true;
+    cell.cRank = cRank || Math.min(5, chestRankOf(null) + rankUp);
+    if (lootBonus) cell.lootBonus = lootBonus;
+    delete cell.evFight;
+    if (noOpen) return;
+    if (next) { next(); setTimeout(() => evOpenChestAt(cell), 60); }
+    else evOpenChestAt(cell);
+  },
+  openChestAt: (cell) => evOpenChestAt(cell),
+  trap(next) {
+    const trap = pickTrap(activeCfg().rank || 1);
+    const best = bestDisarmer();
+    presentTrap(applyTrap(trap, best), { proceed: next || (() => renderBoard()) }, boardSink());
+  },
+  warpToStairs() {
+    let sp = null;
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (G.board.cells[y][x].type === "stairs") sp = { x, y };
+    if (!sp) { renderBoard(); return; }
+    const st = G.board.cells[sp.y][sp.x];
+    st.revealed = true;
+    let dest = null;
+    for (const d in DIRS_G) {
+      if (st.walls[d]) continue;
+      const nx = sp.x + DIRS_G[d][0], ny = sp.y + DIRS_G[d][1];
+      if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) continue;
+      const c = G.board.cells[ny][nx];
+      if (c.type === "empty" || c.cleared || c.type === "start") { dest = { x: nx, y: ny }; break; }
+    }
+    if (dest) { G.px = dest.x; G.py = dest.y; G.board.cells[dest.y][dest.x].revealed = true; revealByCartography(); renderBoard(); autosave(true); return; }
+    G.px = sp.x; G.py = sp.y; revealByCartography(); renderBoard(); autosave(true);
+    askDescend(st);
+  },
+  skipFloors(n) { G.floor += n; descend(); },
+  // ---- 戦闘 ----
+  poolKey: () => evPoolKey(),
+  eliteKeyHere: () => eliteKey(),
+  monName: (k) => (MONSTERS[k] && MONSTERS[k].name) || "魔物",
+  fight(cell, specs, tag, o = {}) {
+    // 敵の種類はここで確定させる (逃げて戻った時の再戦も同じ顔ぶれにする)
+    const fixed = (specs || []).map((sp) => sp.shadows || (sp.key && MONSTERS[sp.key]) ? { ...sp }
+      : { ...sp, key: sp.elite ? eliteKey() : sp.undead ? undeadKeyForDungeon() : evPoolKey() });
+    cell.evFight = { tag, specs: fixed, noChest: o.noChest !== false, opening: o.opening || null };
+    evStartFight(cell);
+  },
+  refight: (cell) => evStartFight(cell),
+};
 
 // 隊の札を一瞬だけ光らせる (被弾 = 赤 / 回復 = 緑)。盤面でも戦闘と同じ明滅を使う
 function flashPartyCards(list, kind = "hit") {
@@ -5471,6 +6072,7 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
 // 強敵階・特別な階・奈落の変異の知らせは帳の中に2〜3行で添える (後から別の札は出さない)。
 // 見落としても、見出しの迷宮名を押す「階の情報」でいつでも読み返せる
 function descend() {
+  evOnDescend(); // 迷宮のイベント: 誓いの破約など
   SFX.stairs();
   buzz([0, 20, 80, 20]);
   G.floor++;
@@ -5511,6 +6113,8 @@ function descend() {
       if (r < acc) { G.specialFloor = c.id; break; }
     }
   }
+  // 迷宮のイベント (奈落の縦穴): 降りた先は強敵階
+  if (G.run && G.run.ev && G.run.ev.forceElite) { G.run.ev.forceElite = false; G.eliteFloor = true; G.specialFloor = null; }
   const sp = specialDef();
   if (G.eliteFloor) {
     log("…強敵の気配がする。この階には通常では遭遇しない強大な存在が潜む。", "dmg");
@@ -5604,6 +6208,15 @@ function startBattle(enemies, cell) {
     if (r < amb) opening = "ambush";
     else if (r < amb + pre) opening = "preempt";
   }
+  // 迷宮のイベント: 出来事が決めた開幕 (寝首/奇襲) ・ 密輸人の待ち伏せ ・ 祈りの蝋燭
+  if (!isBoss && !isElite) {
+    const rv = G.run && G.run.ev && inDungeon() && !abyssActive() ? G.run.ev : null;
+    if (G._evOpening) opening = G._evOpening;
+    else if (rv && rv.ambushNext > 0) { rv.ambushNext--; opening = "ambush"; log("密輸人どもが荷の仕返しに待ち伏せていた！", "dmg"); }
+    else if (rv && rv.preempt > 0) { rv.preempt--; opening = "preempt"; log("祈りの蝋燭の灯が、闇を味方につけた。", "win"); }
+  } else if (G._evOpening && isElite) opening = null;
+  G._evOpening = null;
+  evBattleStart(enemies, isBoss);
   if (opening === "preempt") { log("先手を取った！", "win"); showToast("⚡ 先制攻撃！"); }
   else if (opening === "ambush") { log("奇襲された！", "dmg"); showToast("⚠ 奇襲された！"); buzz([0, 60, 40, 60]); }
   // ランク帯ごとの戦闘テーマ (ボス・強敵は専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
@@ -6985,7 +7598,7 @@ function endBattle() {
       if (e.element && e.element !== "none") G.stats.elemKills[e.element] = true; // 戦績: 撃破した属性 (勲章用)
       if (e.isMimic) G.stats.mimics++;                       // 戦績: ミミック撃破数
       if (e.isMasterMimic) G.stats.masterMimicSlain = true;  // 戦績: マスターミミック討伐 (一度きり)
-      recordMonsterKill(e.key, G.dungeonIdx); // 図鑑は「倒した時」に記録
+      if (!String(e.key).startsWith("ev_")) recordMonsterKill(e.key, G.dungeonIdx); // 図鑑は「倒した時」に記録 (出来事の影は載せない)
     }
     runCount("kills", kills);
     // 層ボスを1ラウンドで討ち取ったか (勲章: 電光石火)
@@ -7030,7 +7643,12 @@ function endBattle() {
     const wasBoss = !corpse && !abyssActive() && b.enemies.some((e) => e.boss);
     if (wasBoss) { flashScreen("#ffd84a"); buzz([0, 60, 50, 60, 50, 250]); } // 主討伐は特別な瞬間
     else if (wasElite) { flashScreen("#d4504e"); buzz([0, 80, 50, 80, 50, 300]); }
-    if (G.battleCell) G.battleCell.cleared = true;
+    // 出来事の戦闘: マスはイベント側が片付ける (連戦・報酬の続きがある)。勝った印だけ先に残す
+    const evCell = G.battleCell && G.battleCell.type === "event" ? G.battleCell : null;
+    if (evCell) { if (evCell.evFight) evCell.evFight.won = true; }
+    else if (G.battleCell) G.battleCell.cleared = true;
+    evBattleEnd(true);
+    if (wasBoss && G.events && G.events.flags && G.events.flags.bossWeak) delete G.events.flags.bossWeak[battleLayer()];
     // 主討伐の確定処理 (踏破記録・章進行 msq.state="report"・戦利品確定) は演出より先に行い、
     // 直後の finishToBoard の保存に乗せる。演出中に中断されても踏破は失われない
     const clearInfo = wasBoss ? commitDungeonClear() : null;
@@ -7043,7 +7661,7 @@ function endBattle() {
     const after = clearInfo
       ? () => showDungeonClearedPopup(clearInfo)
       : (hordeRewardPending() ? () => grantHordeReward() : null);
-    const hasChest = !corpse && (drop || wasElite || wasMimic || (specialDef() || {}).sureChest || Math.random() < 0.5);
+    const hasChest = !corpse && !(evCell && evCell.evFight && evCell.evFight.noChest) && (drop || wasElite || wasMimic || (specialDef() || {}).sureChest || Math.random() < 0.5);
     const chest = hasChest
       ? battleChestSpec(drop ? [drop] : [], wasMasterMimic ? 30 : wasMimic ? 15 : 0, wasMimic || wasMasterMimic, after ? ["alarm"] : null)
       : null;
@@ -7055,12 +7673,16 @@ function endBattle() {
       gold: goldGot, soul: soulGot, kills,
       levels, skills, souls,
       chest,
-      onDone: () => { if (after) after(); else if (G.state === "board") renderBoard(); },
+      onDone: () => {
+        const fin = () => { if (after) after(); else if (G.state === "board") { renderBoard(); evProgress(); } };
+        if (evCell && G.state === "board") eventFightWon(evApi, evCell, fin); else fin();
+      },
     });
     return;
   } else if (b.result === "flee") {
     // 逃走: 元のマスへ戻る (カードは表のまま)
     SFX.flee();
+    evBattleEnd(false);
     if (G.prevPos) { G.px = G.prevPos.x; G.py = G.prevPos.y; }
     finishToBoard();
   } else if (b.result === "lose") {
@@ -9378,6 +10000,7 @@ function showAbyssSummary({ depth, score, weekly, mods, newDepth, newScore }) {
 function returnToTown(opts = {}) {
   const runRef = opts.run !== undefined ? opts.run : G.run;
   const outcome = opts.outcome || (runRef && runRef.secured ? "clear" : "return");
+  evOnReturn(runRef, outcome); // 迷宮のイベント: 報奨金・紅玉の売却 (全滅以外)
   // 帰還の報告 (D2) は奈落の確定や迷宮選択の巻き戻しより前に要約する (迷宮名・深さを正しく残す)
   const summary = runSummary(runRef, outcome, { forfeited: opts.forfeited || null });
   // 奈落のランは帰還で確定する。記録更新を判定するため、確定前に控えておく
@@ -10373,7 +10996,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "lrClock", "order", "irene", "story", "dragonSlain", "stats",
+  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "lrClock", "order", "irene", "events", "story", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
   "lastRun",
 ];
@@ -10461,6 +11084,7 @@ function reflattenItemStats() {
     delete it.pct;
     for (const k of ITEM_STAT_KEYS) { if (tmpl[k] != null) it[k] = tmpl[k]; else delete it[k]; }
     for (const k of ITEM_TMPL_KEYS) { if (tmpl[k] !== undefined) it[k] = tmpl[k]; else delete it[k]; }
+    if (it.forge) applyForge(it); // 鍛え直し (地の底の鍛冶場) は目録の値に掛け直す
   }
   for (const m of [...(G.party || []), ...(G.reserve || [])]) {
     for (const it of (m.items || [])) refresh(it);
@@ -10517,6 +11141,8 @@ function loadGame() {
   if (!G.order || !Array.isArray(G.order.picks)) G.order = { picks: [] }; // 控えの結社の着席指定
   if (!G.irene || typeof G.irene !== "object") G.irene = { greeted: false, visits: 0, seen: {}, last: null }; // 館の主イレーヌ (後付け: 既存の記録では次の来館で挨拶する)
   if (!G.irene.seen || typeof G.irene.seen !== "object") G.irene.seen = {};
+  if (!G.events || typeof G.events !== "object") G.events = {}; // 迷宮のイベント (後付け)
+  for (const k of ["seen", "picks", "once", "flags", "fresh"]) if (!G.events[k] || typeof G.events[k] !== "object") G.events[k] = {};
   // 旧ステータス体系のセーブを六大ステ (ATK/VIT/AGI/INT/PIE/LUK) へ移行
   // (battle の敵の mon はこの後 MONSTERS の生定義に差し替えられるため触れても無害)
   migrateLegacyStats(snap);
@@ -11095,7 +11721,7 @@ bindGame({
   abyssRecords, ABYSS_MODS, abyssScoreMul, weekSeedId, emptyDollCost,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow,
-  ABYSS_MUT_MAP, dungeonTheme,
+  ABYSS_MUT_MAP, dungeonTheme, eventFacts,
   // 戦果・帰還の報告
   celebrateSoul, leaveDungeon,
   // 記録の履歴 (記録欄のタップ / 手帳の「記録を読む」)
@@ -11124,7 +11750,9 @@ function init() {
   wireUI();
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
   window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACHIEVEMENTS, questProgress, pickLoot, showItemGet, startBattle, spawnCardEnemies, spawnBossEnemies, activeCfg,
-    UI, ops, nav, townshell };
+    UI, ops, nav, townshell,
+    // 迷宮のイベント (出来事) の検証用
+    ev: { evApi, runEvent, eventFightWon, EVENT_MAP, enterDungeon, newFloor, descend, resolveCell, renderBoard, endBattle, evNewFloor, evProgress, eventFacts, makeDoll, addSoulInstance, recalcDoll, evUnit } };
 
   let loaded = false;
   try { loaded = loadGame(); } catch (e) { loaded = false; }
