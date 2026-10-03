@@ -384,7 +384,7 @@ export function openEquipChooser(item, { owner = null, actions = null } = {}) {
 }
 
 // ================= 最適装備 =================
-let bgcMemo = { key: "", n: 0 };
+let bgcMemo = { key: "", n: 0, hints: [] };
 function betterGearCount() {
   const G = G_();
   if (!G || !G.party) return 0;
@@ -392,12 +392,39 @@ function betterGearCount() {
   if (bgcMemo.key === key) return bgcMemo.n;
   memoClear();
   let n = 0;
+  const hints = [];
   for (const d of G.party) {
     if (!d) continue;
-    if (SLOTS.some((k) => slotInfo(d, k).better)) n++;
+    let hit = false;
+    for (const k of SLOTS) {
+      const best = slotCandidates(d, k).find((c) => c.room && !c.cursed && c.gain > 0.05);
+      if (best) { hit = true; hints.push(`b${d.uid}:${k}:${best.it.id}`); }
+    }
+    if (hit) n++;
   }
-  bgcMemo = { key, n };
+  bgcMemo = { key, n, hints };
   return n;
+}
+
+// ================= タブの印 (赤い点) =================
+// 器の砕けた人業 (数) は直るまで出し続ける。
+// 「✦で鍛えられる魂」「袋により良い品」は放っておいても困らないお勧めなので、館を開いたら既読にし、
+// 新しく増えた時だけ点け直す (✦Soul は戦闘のたびに貯まるので、既読にしないと点きっぱなしになる)。
+function tabHints() {
+  const out = [];
+  try { for (const x of (ops.trainableList ? ops.trainableList() : [])) out.push(`t${x.uid}`); } catch (e) { /* noop */ }
+  try { if (betterGearCount() > 0) out.push(...bgcMemo.hints); } catch (e) { /* noop */ }
+  return out;
+}
+function ackTabHints() {
+  const now = tabHints();
+  const seen = getPref("partyHintsSeen", []) || [];
+  if (now.length !== seen.length || now.some((k) => !seen.includes(k))) setPref("partyHintsSeen", now);
+}
+function tabBadge(counts) {
+  if (counts && counts.dead) return counts.dead;
+  const seen = getPref("partyHintsSeen", []) || [];
+  return tabHints().some((k) => !seen.includes(k)) ? true : null;
 }
 
 function autoEquip(target = "all") {
@@ -557,6 +584,7 @@ function renderTab(root, api) {
   const wrap = el("div", "pt-root m-town");
   renderView(wrap, "town");
   root.appendChild(wrap);
+  ackTabHints(); // 館を開いた = お勧めは見た (タブの赤い点を消す)
   // 予約された操作 (旧「館」の入口から: 控え・仕立て / 魂の区分)
   if (intent) {
     const it = intent; intent = null;
@@ -1757,12 +1785,7 @@ export function install() {
     UI.shell.registerTab("party", {
       title: "人業の館",
       render: (root, api) => renderTab(root, api),
-      badge: (counts) => {
-        if (counts && counts.dead) return counts.dead;
-        let better = 0;
-        try { better = betterGearCount(); } catch (e) { better = 0; }
-        return (counts && counts.trainable) || better ? true : null;
-      },
+      badge: tabBadge,
     });
   }
 }

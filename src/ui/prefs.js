@@ -20,6 +20,7 @@ export const UI_PREF_DEFAULTS = {
   autoCloseResults: false, // 戦果を自動で閉じる
   autoRest: false,       // 帰還時に宿で休む
   keeperSeen: {},        // 番人の胸像を見せた街滞在 { key: stamp }
+  partyHintsSeen: [],    // 人業の館で既読にしたお勧め (鍛錬できる魂・より良い品) — タブの赤い点
 };
 
 function load() {
