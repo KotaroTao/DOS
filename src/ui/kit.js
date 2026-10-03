@@ -121,6 +121,8 @@ export const SVG = {
   shop: '<path d="M12 3.2v17.3M7.6 20.5h8.8"/><path d="M4.4 6.8h15.2"/><path d="M4.4 6.8 2 12.6h4.8Z"/><path d="M19.6 6.8 17.2 12.6H22Z"/><path d="M2 12.6a2.4 2.4 0 0 0 4.8 0M17.2 12.6a2.4 2.4 0 0 0 4.8 0"/>',
   palace: '<path d="M3.8 18.2 2.8 7.6l5.4 4.3L12 4.8l3.8 7.1 5.4-4.3-1 10.6Z"/><path d="M4 21h16"/><path d="M12 13.4v1.6"/>',
   gate: '<path d="M4.5 20.5V11a7.5 7.5 0 0 1 15 0v9.5"/><path d="M8 20.5V11.5a4 4 0 0 1 8 0v9"/><path d="M2.5 20.5h19"/>',
+  lock: '<rect x="5" y="10.5" width="14" height="10" rx="1.6"/><path d="M8.2 10.5V7.6a3.8 3.8 0 0 1 7.6 0v2.9"/><path d="M12 14.4v2.6"/>',
+  unlock: '<rect x="5" y="10.5" width="14" height="10" rx="1.6"/><path d="M8.2 10.5V7.6a3.8 3.8 0 0 1 7.4-1.2"/><path d="M12 14.4v2.6"/>',
   chain: '<path d="M10 14.2 7.4 16.8a3 3 0 0 1-4.2-4.2l2.8-2.8a3 3 0 0 1 4.2 0"/><path d="M14 9.8l2.6-2.6a3 3 0 0 1 4.2 4.2L18 14.2a3 3 0 0 1-4.2 0"/><path d="M9.4 14.6l5.2-5.2"/>',
 };
 export function svgIcon(kind, cls = "ui-ic") {
