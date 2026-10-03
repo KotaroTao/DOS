@@ -13,7 +13,7 @@ import { getPref, setPref, remember } from "./prefs.js";
 import { statLines, isEquippable } from "./itemview.js";
 import {
   itemSheet, wearPlan, deltaFor, deltaEl, nameSpan, goldEl, caretIcon, equipTo, floatGold, ownerOf, equipCandidates, shopOpen, isUpgrade,
-  openDollChooser, equipPick, dollIcon, revealSellBtn,
+  openDollChooser, equipPick, dollIcon, revealSellBtn, firstBadge, isFirstGet,
 } from "./loot.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, MAX_ITEMS, canEquip, itemName } from "../items.js";
 import { RARITIES, rarityKey } from "../rarity.js";
@@ -212,6 +212,17 @@ function keeperLine(seg) {
 }
 
 // ---------------------------------------------------------------- 一括の確認
+// まとめて鑑定して (確認なし)、鑑定できた品に NEW 印をつけ、結果の一覧 (初ゲット！つき) を出す。帰還の報告からも使う
+export function identifyAllAndReveal() {
+  const before = unidList().map((x) => x.item);
+  const r = ops.identifyAll ? ops.identifyAll() : { n: 0 };
+  const got = before.filter((it) => !it.unidentified);
+  for (const it of got) it.isNew = true;
+  if (r && r.spent) floatGold(r.spent, "dn");
+  if (game.renderTown && G().state === "town") game.renderTown();
+  if (got.length) openRevealSheet(got);
+  return r;
+}
 // まとめて鑑定 (確認 → ops.identifyAll。鑑定した品は NEW 印をつけ、結果を一覧に出す)
 export function confirmIdentifyAll() {
   if (!unidList().length) { toast("未鑑定の品はない", { tone: "info" }); return null; }
@@ -219,14 +230,7 @@ export function confirmIdentifyAll() {
   let list = [];
   const run = () => {
     h.close("ok", { silent: true });
-    const before = list.map((x) => x.item);
-    const r = ops.identifyAll ? ops.identifyAll() : { n: 0 };
-    const got = before.filter((it) => !it.unidentified);
-    for (const it of got) it.isNew = true;
-    if (r && r.spent) floatGold(r.spent, "dn");
-    if (game.renderTown && G().state === "town") game.renderTown();
-    if (got.length) openRevealSheet(got);
-    return r;
+    return identifyAllAndReveal();
   };
   // 一覧の札から開いた品シートで鑑定・売る・捨てた品があれば、閉じたあとに描き直す
   const opts = () => {
@@ -511,7 +515,12 @@ function openRevealSheet(items) {
       ic.appendChild(spriteCanvas(it, 3));
       main.appendChild(ic);
       const tx = el("span", "wpc-prow-t");
-      tx.appendChild(nameSpan(it, "wpc-prow-title"));
+      if (isFirstGet(it)) {
+        const nm = el("span", "ap-sum-name");
+        nm.appendChild(nameSpan(it, "wpc-prow-title"));
+        nm.appendChild(firstBadge());
+        tx.appendChild(nm);
+      } else tx.appendChild(nameSpan(it, "wpc-prow-title"));
       const sub = el("span", "wpc-prow-sub");
       const plan = isEquippable(it) ? wearPlan(it, { owner: o.doll }) : null;
       const up = plan && plan.target && plan.delta && plan.score > 0;
@@ -537,7 +546,11 @@ function openRevealSheet(items) {
   };
   const view = () => {
     const ups = items.filter((it) => { const o = ownerOf(it); return o && o.where === "bag" && isUp(it); }).length;
-    return { lines: ups ? [`装備すると強くなる品が ${ups}点 ある (▲)`] : [], body: (b) => build(b) };
+    const firsts = items.filter((it) => isFirstGet(it)).length;
+    const lines = [];
+    if (firsts) lines.push(`初めて正体を知った品 (初ゲット！) が ${firsts}点`);
+    if (ups) lines.push(`装備すると強くなる品が ${ups}点 ある (▲)`);
+    return { lines, body: (b) => build(b) };
   };
   h = sheet.open({
     kind: "info", banner: "鑑定の結果", accent: "#7fd0ff",
@@ -783,6 +796,7 @@ export function install() {
     shopBuy,
     confirmSellJunk,
     confirmIdentifyAll,
+    identifyAllAndReveal,
     shopExclusions: exclusions,
     renderShopInto: (root) => render(root),
   });

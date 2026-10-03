@@ -5164,7 +5164,7 @@ const evApi = {
   identifyAll() {
     let n = 0;
     for (const m of [...G.party, ...(G.reserve || [])]) {
-      for (const it of [...(m.items || []), ...Object.values(m.equip || {})]) if (it && it.unidentified && !it.lr) { it.unidentified = false; it.idHardFail = false; codexKnowItem(it.id); n++; }
+      for (const it of [...(m.items || []), ...Object.values(m.equip || {})]) if (it && it.unidentified && !it.lr) { revealIdentity(it); n++; }
     }
     return n;
   },
@@ -6133,8 +6133,8 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
   }
   const ce = codexMonEntry(d.key);
   if (d.rare) ce.rare = true; else ce.normal = true;
+  markDungeonLoot(d.item); // 未鑑定にしてから図鑑へ (先に記すと、まだ知らない品を「正体を知った」と数えてしまう)
   codexSeeItem(d.id, d.item);
-  markDungeonLoot(d.item);
   runGainItem(who, d.item);
   SFX.chest();
   log(`宝箱から ${d.name}の落とした ${itemName(d.item)} を手に入れた！`, logClassForItem(d.item, d.rare ? "win" : "sys"));
@@ -9836,6 +9836,19 @@ function codexKnowItem(id) {
   k[id] = true;
   return true;
 }
+// 鑑定して正体を明かす (商会・鑑定の心得・出来事の共通)。正体を初めて知った品なら「初ゲット！」の印をつけて true。
+// 印はこの起動の間だけ (セーブしない)。UI は isFirstGet(it) で読む
+const firstGets = new WeakSet();
+function revealIdentity(it) {
+  if (!it) return false;
+  const first = !!it.id && !itemKnown(it.id); // 明かす前に聞く (明かした後は自分自身が「知っている品」になる)
+  it.unidentified = false;
+  it.idHardFail = false;
+  codexKnowItem(it.id);
+  if (first) firstGets.add(it);
+  return first;
+}
+function isFirstGet(it) { return !!it && typeof it === "object" && firstGets.has(it); }
 // その品の正体を既に知っているか (記録に無くても、正体の知れた同じ品を持っていれば知っている)
 function itemKnown(id) {
   if (!id) return false;
@@ -10115,12 +10128,10 @@ function shopIdentify(owner, it) {
   const cost = appraiseCost(it);
   if (G.gold < cost) { log("お金が足りない。", "sys"); SFX.ng(); return false; }
   G.gold -= cost;
-  it.unidentified = false;
-  it.idHardFail = false;
-  codexKnowItem(it.id);
+  const first = revealIdentity(it);
   SFX.itemget(); buzz(15);
-  log(`鑑定料 💰${cost} を払った。${it.name} と判明した！`, "win");
-  showToast(`${it.name} と判明した (💰${cost})`);
+  log(`鑑定料 💰${cost} を払った。${it.name} と判明した！${first ? " (初ゲット！)" : ""}`, "win");
+  showToast(`${first ? "初ゲット！ " : ""}${it.name} と判明した (💰${cost})`, first ? { tone: "good" } : undefined);
   renderTown();
   return true;
 }
@@ -10945,10 +10956,9 @@ function doIdentifySkill(m, it, { quiet = false } = {}) {
   const ch = identifyChance(m, it.lv || 1);
   const ok = Math.random() < ch;
   if (ok) {
-    it.unidentified = false;
-    codexKnowItem(it.id);
-    log(`${m.name}は ${it.name} を鑑定した！`, "win");
-    if (!quiet) { SFX.itemget(); buzz(15); showToast(`${it.name} と判明した (${m.name})`, { tone: "good" }); }
+    const first = revealIdentity(it);
+    log(`${m.name}は ${it.name} を鑑定した！${first ? " (初ゲット！)" : ""}`, "win");
+    if (!quiet) { SFX.itemget(); buzz(15); showToast(`${first ? "初ゲット！ " : ""}${it.name} と判明した (${m.name})`, { tone: "good" }); }
   } else {
     it.idHardFail = true;
     log(`${m.name}の鑑定は失敗した… この品は商店でしか鑑定できなくなった。`, "sys");
@@ -11718,6 +11728,13 @@ function loadGame() {
     for (const it of held) if (it.unidentified && it.id && !held.some((x) => x.id === it.id && !x.unidentified)) delete known[it.id];
     G.codex.known = known;
   }
+  // 手当て (一度だけ): 宝箱から取り出した敵の落とし物を、未鑑定のまま「正体を知った品」と記していた。
+  // 未鑑定でしか持っていない品は「まだ知らない」に戻す (鑑定すれば初ゲット！が出る)
+  if (!G.codex.knownFix) {
+    const held = heldItems();
+    for (const it of held) if (it.unidentified && it.id && !held.some((x) => x.id === it.id && !x.unidentified)) delete G.codex.known[it.id];
+    G.codex.knownFix = 1;
+  }
   for (const k in G.codex.mon) {
     const v = G.codex.mon[k];
     if (!v || typeof v !== "object") {
@@ -11928,8 +11945,7 @@ const OPS = {
       const cost = appraiseCost(it);
       if (G.gold < cost) break;
       G.gold -= cost; spent += cost;
-      it.unidentified = false; it.idHardFail = false;
-      codexKnowItem(it.id);
+      revealIdentity(it);
       n++;
     }
     if (n > 0) {
@@ -12260,7 +12276,7 @@ bindGame({
   emptyDollCost, randomDollName, finalizeBuyDoll, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
   equipSoulToSlot, fuseCandidates, fuseSoul, toggleSoulLock, openFusePicker, openSubSkillPicker, slotSoul,
   unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail,
-  canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill, itemKnown,
+  canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill, itemKnown, isFirstGet,
   showRankUp, announceJobChange, showNameInput,
 });
 // ==== /WP-B ====
