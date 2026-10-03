@@ -15,9 +15,9 @@ export const monsters = defMonsters([
     hp: 42, atk: 16, def: 8, spd: 8, soul: 33, gold: 24,
     desc: "陽の射さぬ地底湖に棲む半魚人。退化した眼の代わりに水の震えで獲物を捉え、骨を削ったもりを手に群れをなして岸辺を囲う。捕えた獲物は湖底の祭壇へ引きずり込み、見たこともない深きものへ捧げる。" },
   { id: "d03_mandrake", name: "毒マンドレイク", race: "plant", element: "earth", artKey: "mandrake", rank: 4,
-    ability: "poison", // 肺を腐らせる紫の毒胞子
+    ability: "confuse", // 断末魔の絶叫で正気を削る
     hp: 52, atk: 17, def: 9, spd: 4, soul: 40, gold: 30,
-    desc: "屍を養分に、人の形を真似て育った歩く毒草。引き抜かれると断末魔の絶叫を放ち、聞いた者の正気を削る。根からまかれる紫の胞子は肺を腐らせ、やがてその体内が次の苗床になる。" },
+    desc: "屍を養分に、人の形を真似て育った歩く毒草。引き抜かれると断末魔の絶叫を放ち、聞いた者の正気を削って敵味方の見分けを奪う。根からまかれる紫の胞子は肺を腐らせ、やがてその体内が次の苗床になる。" },
   { id: "d03_sentinel", name: "無人の甲冑", race: "armored", element: "light", artKey: "knightmare", rank: 4,
     ability: "critical", physResist: 1, // 冴えた剣技で急所を突き、空洞の鎧が刃を弾く
     hp: 60, atk: 19, def: 12, spd: 6, soul: 46, gold: 34, soulClass: "knight",

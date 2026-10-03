@@ -41,8 +41,8 @@ for (const id in LEGACY) {
 const NEW_DEFS = [
   // -- 第1層「墓地」 (rank 1-2) --
   { id: "bs_gravewisp", name: "墓火", rank: 1, race: "specter", element: "dark", artKey: "hd_gravewisp",
-    magWeak: 1.6, evasive: true, ability: null, // 実体を持たぬ鬼火: 魔法に脆く、刃はすり抜ける
-    desc: "墓地の夜に漂う青い鬼火。死にきれぬ者の未練が、火の玉となってさまよう姿だという。刃は炎をすり抜けてしまうが、ひとたび魔の力を浴びれば、たちまち掻き消える。" },
+    magWeak: 1.6, evasive: true, ability: "confuse", // 実体を持たぬ鬼火: 魔法に脆く、刃はすり抜ける。揺らめく火で惑わせる
+    desc: "墓地の夜に漂う青い鬼火。死にきれぬ者の未練が、火の玉となってさまよう姿だという。揺らめく青火に見入った者は敵と味方の見分けを失う。刃は炎をすり抜けてしまうが、ひとたび魔の力を浴びれば、たちまち掻き消える。" },
   { id: "bs_grasphand", name: "這い寄る腐手", rank: 1, race: "undead", element: "dark", artKey: "hd_grasphand",
     ability: "paralyze", pack: true, // 土から無数に突き出し、掴んで痺れさせる
     desc: "埋葬を拒まれた者たちの、腐り落ちた手だけが土を破って這い出る。足首を掴まれた者は、冷たい指の感触に総毛立ち、その場に縫い止められる。一本では弱いが、墓所では群れを成す。" },
@@ -123,8 +123,8 @@ const NEW_DEFS = [
     ability: "drain", lifesteal: 0.3, // 溺死した恨みで命を吸い、己の存在を保つ
     desc: "下水に流れ着いて溺れ死んだ水夫たちの霊。塩に蝕まれた半透明の体で生者に取り憑き、その温もりと命を吸って束の間この世に留まる。吸った分だけ、輪郭が濃くなる。" },
   { id: "bs_anglerfiend", name: "提灯アンコウ", rank: 4, race: "aquatic", element: "water", artKey: "hd_anglerfiend",
-    ability: "paralyze", magWeak: 1.3, // 誘いの光で痺れさせる。脂の体は火に弱い
-    desc: "下水路の闇を漂う、巨大な口を持つ醜い魚。額から垂らした青白い誘い灯で獲物を惑わせ、痺れたところを丸呑みにする。脂の乗った体は、炎の魔法でよく焼ける。" },
+    ability: "charm", magWeak: 1.3, // 誘いの光で魅了する。脂の体は火に弱い
+    desc: "下水路の闇を漂う、巨大な口を持つ醜い魚。額から垂らした青白い誘い灯に見入った者は心を奪われ、仲間へ刃を向けながら自ら口の中へ歩み寄る。脂の乗った体は、炎の魔法でよく焼ける。" },
   { id: "bs_bloatfly", name: "腐肉バエの群れ", rank: 3, race: "insect", element: "dark", artKey: "hd_bloatfly",
     pack: true, ability: "poison", evasive: true, // 群れで湧き、毒をまき散らし、叩こうにも素早く飛び回る
     desc: "汚水と腐肉に湧いた、握り拳ほどもある肥えた羽虫の群れ。羽音とともに毒の鱗粉をまき散らし、叩き落とそうにも素早く飛び回ってかわす。一匹潰せば、十匹が湧く。" },
@@ -141,8 +141,8 @@ const NEW_DEFS = [
     physResist: 2, barrier: 2, magWeak: 1.3, // 鋼の鱗が刃を弾くが、魔法の熱には脆い
     desc: "幾百年を生きて鋼のごとき鱗をまとった、ぬしと呼ばれる大鯉。並の刃は鱗に弾かれ傷一つ通らない。だが冷たい体は魔法の熱に脆く、火や雷を浴びれば一たまりもない。" },
   { id: "bs_fogspecter", name: "汚水のもや", rank: 3, race: "specter", element: "water", artKey: "hd_fogspecter",
-    ability: "paralyze", evasive: true, magWeak: 1.5, // 実体なく刃をすり抜け、瘴気で痺れさせる。魔には脆い
-    desc: "汚水から立ちのぼる瘴気が、ぼんやりと人の形をなした霊。刃は霧をすり抜けてしまい、まとわりつく毒気に触れた者は痺れて動けなくなる。実体が薄いぶん、魔の力には抗えない。" },
+    ability: "sleep", evasive: true, magWeak: 1.5, // 実体なく刃をすり抜け、瘴気で眠らせる。魔には脆い
+    desc: "汚水から立ちのぼる瘴気が、ぼんやりと人の形をなした霊。刃は霧をすり抜けてしまい、甘く淀んだ毒気を吸った者はまどろみに沈んで動けなくなる。実体が薄いぶん、魔の力には抗えない。" },
   // 第2層の追加 (浅い層の水棲が第1層より弱かった穴を埋める rank3。絵は hd_* の固有原型)
   { id: "bs_ratking", name: "溝鼠の王", rank: 3, race: "beast", element: "none", artKey: "hd_ratking",
     ability: "poison", multistrike: 3, // 尾の絡まった十数匹が四方から噛みつき、疫病を移す
@@ -209,11 +209,11 @@ const NEW_DEFS = [
     physResist: 1, regen: 0.08, barrier: 2, magWeak: 1.3, // 刃を呑み傷を巻き戻すが、炎には脆い
     desc: "苔と霧をまとって歩く、森の最も古い木の化身。太い幹は刃を呑み込み、刻んだ傷も年輪を巻き戻すように塞がる。ただ、乾いた芯は炎の魔法を浴びると一気に燃え盛る。" },
   { id: "bs_dryadfey", name: "森の妖魔", rank: 6, race: "plant", element: "wind", artKey: "dryadfey",
-    ability: "weaken", regen: 0.06, role: "healer", // 妖しい歌で力を奪い、傷ついた森の眷属を癒す
-    desc: "霧の奥から妖しい歌を響かせる、美しくも恐ろしい森の妖。その歌を聞いた者は四肢の力が抜け、立ち尽くす。傷ついた森の眷属には癒しの旋律を、侵入者には呪いの旋律を歌い分ける。" },
+    ability: "charm", regen: 0.06, role: "healer", // 妖しい歌で心を奪い、傷ついた森の眷属を癒す
+    desc: "霧の奥から妖しい歌を響かせる、美しくも恐ろしい森の妖。その歌に心を奪われた者は、妖の望むまま仲間へ刃を向ける。傷ついた森の眷属には癒しの旋律を、侵入者には呪いの旋律を歌い分ける。" },
   { id: "bs_giantmoth", name: "鱗粉の大蛾", rank: 6, race: "insect", element: "wind", artKey: "giantmoth",
-    ability: "paralyze", evasive: true, swift: true, // 痺れの鱗粉を撒き、霧と灯に紛れてかわす
-    desc: "霧の夜にだけ舞う、両翼を広げれば人の背丈ほどもある大蛾。鱗粉を撒き散らして獲物を痺れさせ、ふらりと不規則に舞っては刃をかわす。灯りを見つけると、吸い寄せられるように群がる。" },
+    ability: "sleep", evasive: true, swift: true, // 眠りの鱗粉を撒き、霧と灯に紛れてかわす
+    desc: "霧の夜にだけ舞う、両翼を広げれば人の背丈ほどもある大蛾。眠りを誘う鱗粉を撒き散らして獲物をまどろませ、ふらりと不規則に舞っては刃をかわす。灯りを見つけると、吸い寄せられるように群がる。" },
   { id: "bs_stranglevine", name: "絞め蔦の魔", rank: 6, race: "plant", element: "earth", artKey: "stranglevine",
     ability: "paralyze", multistrike: 2, physResist: 1, // 樹冠から無数に垂れ、絡め取って締め上げる
     desc: "樹冠から音もなく垂れ下がり、通る者を絡め取る食人の蔦。一本に捉えられれば、たちまち十本が巻きついて締め上げる。しなやかなつるは刃を受け流し、断っても次のつるが伸びてくる。" },
@@ -243,8 +243,8 @@ const NEW_DEFS = [
     swift: true, pack: true, lifesteal: 0.3, // 茨をまとって素早く群れ、噛んで血をすする
     desc: "全身に茨を巻きつけた、森を駆ける痩せた猟犬。群れで素早く取り囲み、棘だらけの顎で噛みついては血をすすって傷を癒す。振り払おうにも、絡みついた茨が肉に食い込む。" },
   { id: "bs_wisplure", name: "惑わしの群火", rank: 6, race: "specter", element: "wind", artKey: "wisplure",
-    ability: "paralyze", evasive: true, magWeak: 1.5, pack: true, // 群れで誘い込み痺れさせる。実体は薄い
-    desc: "霧の中をふわふわと漂う、無数の青い鬼火の群れ。道に迷った旅人を誘い込んでは、触れた者を痺れさせて沼へ沈める。実体に乏しく刃をすり抜けるが、魔の力にはひとたまりもない。" },
+    ability: "confuse", evasive: true, magWeak: 1.5, pack: true, // 群れで誘い込み惑わせる。実体は薄い
+    desc: "霧の中をふわふわと漂う、無数の青い鬼火の群れ。道に迷った旅人を誘い込んでは、方角も敵味方も分からなくさせて沼へ沈める。実体に乏しく刃をすり抜けるが、魔の力にはひとたまりもない。" },
   { id: "bs_satyrpiper", name: "角笛の森人", rank: 7, race: "humanoid", element: "wind", artKey: "satyrpiper",
     ability: "warcry", swift: true, // 角笛の旋律で森の眷属を奮い立たせ、軽やかに跳ね回る
     desc: "山羊の脚を持ち、角笛を吹き鳴らす森の半獣。その旋律は森の獣を奮い立たせ、戦意を煽る。軽やかに跳ね回って間合いを外し、決して正面からは戦わない狡猾な指揮者。" },
@@ -385,8 +385,8 @@ const NEW_DEFS = [
     swift: true, ability: "critical", multistrike: 2, // 氷の鎌で素早く急所を続けざまに刈る
     desc: "氷の鎌をもつ、人の背丈ほどの大カマキリ。鏡のように研ぎ澄まされた鎌は一閃で鎧を断ち、目にも留まらぬ速さで急所を続けざまに刈り取る。祈るような構えのまま、獲物を待っている。" },
   { id: "bs_frostmaiden", name: "氷の乙女", rank: 9, race: "specter", element: "water", artKey: "frostmaiden",
-    ability: "weaken", role: "healer", magWeak: 1.3, // 哀歌で力を奪い、凍れる眷属を癒す。火に弱い
-    desc: "氷柱に閉ざされたまま凍え死んだ乙女の霊。澄んだ哀歌を響かせて生者の力を奪い、傷ついた凍れる眷属には癒しの旋律を捧げる。その美しさは、近づく者を惑わせる罠だ。" },
+    ability: "charm", role: "healer", magWeak: 1.3, // 哀歌で心を奪い、凍れる眷属を癒す。火に弱い
+    desc: "氷柱に閉ざされたまま凍え死んだ乙女の霊。澄んだ哀歌を響かせて生者の心を奪い、傷ついた凍れる眷属には癒しの旋律を捧げる。その美しさは、近づく者を惑わせる罠だ。" },
   { id: "bs_frozenangel", name: "氷漬けの堕天", rank: 9, race: "construct", element: "water", artKey: "frozenangel",
     physResist: 2, magResist: 2, barrier: 2, // 氷柱にはりつけにされた翼の像。刃も魔も凍て阻む
     desc: "翼を広げたまま氷柱にはりつけにされた、堕ちた天使の像。分厚い氷の鎧は刃を弾き、魔力も凍りついた表面を滑り落ちる。祈るように閉じた目は、もう二度と開かない。" },
@@ -394,8 +394,8 @@ const NEW_DEFS = [
     ability: "critical", enrage: true, multistrike: 2, // 冷気をまとう青鬼。爪で急所をえぐり、手負いで荒れる
     desc: "絶対零度の冷気をまとった、青く凍てつく鬼。氷の爪で鎧ごと急所をえぐり、二度三度と斬りつける。傷を負うほど身を覆う氷がきしみ、見境なく荒れ狂う。" },
   { id: "bs_aurorawisp", name: "極光の群火", rank: 8, race: "specter", element: "water", artKey: "aurorawisp",
-    pack: true, ability: "paralyze", evasive: true, magWeak: 1.5, // 揺れる極光の群体。誘い込み痺れさせる。実体は薄い
-    desc: "回廊の天井に揺らめく、極光の色をした鬼火の群れ。美しい光に見惚れた者を誘い込んでは、冷気で痺れさせて凍えさせる。実体に乏しく刃をすり抜けるが、魔の力にはひとたまりもない。" },
+    pack: true, ability: "confuse", evasive: true, magWeak: 1.5, // 揺れる極光の群体。誘い込み惑わせる。実体は薄い
+    desc: "回廊の天井に揺らめく、極光の色をした鬼火の群れ。美しい光に見惚れた者を誘い込んでは正気を奪い、凍える回廊で仲間と斬り合わせる。実体に乏しく刃をすり抜けるが、魔の力にはひとたまりもない。" },
   // -- 第9層「毒沼」 (rank 9-10・毒/腐敗。第8層より格上の壁) --
   { id: "bs_plaguebeast", name: "疫病の獣", rank: 9, race: "beast", element: "earth", artKey: "plaguebeast",
     ability: "poison", enrage: true, multistrike: 2, // 病毒を撒き、手負いで荒れ、連打で薙ぐ
@@ -757,7 +757,7 @@ const NEW_DEFS = [
   { id: "bs_flagellant", name: "鞭打ち苦行者", rank: 10, race: "humanoid", element: "light", artKey: "flagellant",
     ability: "critical", enrage: true, lifesteal: 0.3, desc: "己を鞭打ち、その血を聖油として捧げ続けた苦行者の亡霊。鋭いかぎの鞭で急所を裂き、流れる血を糧に傷を癒す。痛みこそが信仰だと、永遠に己を打ち続ける。" },
   { id: "bs_radiantwraith", name: "まばゆき霊", rank: 10, race: "specter", element: "light", artKey: "radiantwraith",
-    ability: "paralyze", evasive: true, lifesteal: 0.3, desc: "聖堂のまばゆい光に溶け込んだ、輪郭を失った霊。直視できぬ光で獲物の目をくらませて痺れさせ、光となって刃をすり抜ける。美しい後光が、近づく者を惑わせる。" },
+    ability: "confuse", evasive: true, lifesteal: 0.3, desc: "聖堂のまばゆい光に溶け込んだ、輪郭を失った霊。直視できぬ光で獲物の目をくらませて正気を奪い、光となって刃をすり抜ける。美しい後光が、近づく者を惑わせる。" },
   { id: "bs_crusaderghost", name: "亡き聖騎士", rank: 10, race: "armored", element: "light", artKey: "crusaderghost",
     ability: "critical", barrier: 2, multistrike: 2, desc: "聖戦で果て、聖堂に祀られた聖騎士の亡霊。聖別された剣で急所を続けざまに貫き、聖印の盾が刃を阻む。守るべき信仰が偽りだったとは、まだ知らない。" },
   { id: "bs_saintbeast", name: "聖獣", rank: 10, race: "beast", element: "light", artKey: "saintbeast",
@@ -1038,8 +1038,8 @@ const NEW_DEFS = [
     pack: true, // ハイエナの習いで群れて襲う
     desc: "ハイエナの顎を持つ異形の戦士。骨ごと噛み砕く噛む力を誇り、迷宮で死んだ者の装備を剥いで身につける。一頭では狡猾に間合いを計り、数が揃えば一斉に喉笛へ飛びかかる。" },
   { id: "bs_spiritbat", name: "霊蝙蝠", rank: 2, race: "specter", element: "dark", artKey: "hd_spiritbat",
-    ability: "paralyze", // 体温を奪う冷たい牙で痺れさせる
-    desc: "坑道の亡霊が蝙蝠の形を借りた霊体。噛まれた箇所は寒気を帯び、体温を奪われた者から順に意識が遠のき、やがて手足が痺れて動かなくなる。" },
+    ability: "sleep", // 体温を奪う冷たい羽音で眠りに誘う
+    desc: "坑道の亡霊が蝙蝠の形を借りた霊体。冷たい羽ばたきが寒気を運び、体温を奪われた者から順に意識が遠のいて、抗えぬ眠りへ沈んでいく。" },
   { id: "bs_hobgoblin", name: "ホブゴブリン", rank: 2, race: "humanoid", element: "none", artKey: "goblin", soulClass: "thief",
     palette: tint(ARTS.goblin.palette, "#6a4a1a", 0.35),
     swift: true, ability: "goldSteal", // 退路を断つ奇襲で財布を奪う
@@ -1384,8 +1384,8 @@ const NEW_DEFS = [
     desc: "血染めの間で千の生贄を捧げ、最後に自らを捧げた祭主。儀式はまだ完成しておらず、足りない分の血と宿した魂を訪問者から吸い取って補おうとする。" },
   { id: "bs_whisperingidol", name: "囁く神像", rank: 5, boss: true, race: "construct", element: "dark", artKey: "golem",
     palette: tint(ARTS.golem.palette, "#4a4a6a", 0.4),
-    physResist: 2, ability: "paralyze", // 石の像は刃を弾き、頭蓋に響く囁きで体を縛る
-    desc: "迷宮の中心に座し、囁きだけで信徒を操ってきた名もなき神の像。石の体は刃を寄せつけず、耳を塞いでも頭蓋の内側から響く囁きが、聞いた者の体を縛りつける。" },
+    physResist: 2, ability: "charm", // 石の像は刃を弾き、頭蓋に響く囁きで心を操る
+    desc: "迷宮の中心に座し、囁きだけで信徒を操ってきた名もなき神の像。石の体は刃を寄せつけず、耳を塞いでも頭蓋の内側から響く囁きが、聞いた者を新たな信徒に変えて仲間へ刃を向けさせる。" },
   { id: "bs_blazeseraph", name: "燃ゆる聖堂の天使", rank: 5, boss: true, race: "specter", element: "fire", artKey: "harpy",
     palette: tint(ARTS.harpy.palette, "#c85a2a", 0.4),
     ability: "breath", // 翼から降り注ぐ火の粉の聖句が全体を焼く
@@ -1775,7 +1775,7 @@ const ELITE_DEFS = [
     desc: "氷河の裂け目そのものと見紛う、白竜の巨大な顎。氷塊の鱗は刃を弾き、氷ごと獲物を噛み砕いては、前衛後衛もろとも千年溶けない吹雪を吐く。" }, // D64-66
   { id: "el_blizzardwitch", name: "吹雪の魔女", elite: true, rank: 9, race: "specter", element: "wind", artKey: "ghost", soulClass: "mage",
     palette: tint(ARTS.ghost.palette, "#b0d8e8", 0.55),
-    ability: "paralyze", // 子守唄で暖かな眠りごと凍りつかせる
+    ability: "sleep", // 子守唄で暖かな眠りに誘い、凍りつかせる
     desc: "吹雪の夜にだけ氷廊へ現れる魔女の亡霊。彼女が紡ぐ子守唄を聞いた者は、暖かな眠りに誘われるまま手足の感覚を失い、静かに凍りついていく。" }, // D67-70
   // -- 迷宮 71-80 (尖塔帯) / 強敵ランク10 --
   { id: "el_stareater", name: "星喰らい", elite: true, rank: 10, race: "demon", element: "dark", artKey: "imp",

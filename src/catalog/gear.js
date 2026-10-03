@@ -11,7 +11,7 @@ export const HEADS = [
     desc: "夜露と墓土に湿った仕事着の頭巾。かぶると土の匂いが鼻をつくが、不思議と死者への恐れが薄らぐと墓掘り人たちは言う。" }),
   H("h_ratfang_cap", "鼠牙の革帽", 5, { shape: "hat", pow: 0.9, agi: 1, tint: "#8a6438", tintAmt: 0.25,
     desc: "下水に巣食う大鼠どもの革を張り合わせた帽子。縁に縫い止めた牙は仕留めた獲物の証で、鼠捕りたちのささやかな誇りだ。" }),
-  H("h_watch_kettle_helm", "夜番の鉄笠", 9, { pow: 1.2, cls: ["fighter", "knight", "priest"], tint: "#8a92a2", tintAmt: 0.2,
+  H("h_watch_kettle_helm", "夜番の鉄笠", 9, { aRes: { sleep: 0.35 }, pow: 1.2, cls: ["fighter", "knight", "priest"], tint: "#8a92a2", tintAmt: 0.2,
     desc: "城壁の夜番が雨と流れ矢をしのいだつば広の鉄笠。叩けば鈍い鐘の音がして、居眠りの番兵を幾度も死の淵から呼び戻したという。" }),
   H("h_confessor_hood", "懺悔聴きの頭巾", 13, { shape: "hat", mp: 4, pie: 1, cls: ["priest", "bishop"],
     desc: "罪人の最期の告白を聴く僧が顔を隠した深い頭巾。降り積もった懺悔を吸った布は重く、かぶる者の心をほのかな魔力で満たす。" }),
@@ -23,7 +23,7 @@ export const HEADS = [
     desc: "喪に服す貴婦人が顔を覆った黒のベール。葬列を幾度も見送った布は宵闇に溶けて、まばゆい光の矢からそっと目を守る。" }),
 
   // ---- lv6-10 ----
-  H("h_gaoler_visor", "牢番の面当て", 21, { pow: 1.2, agi: -2, cls: ["fighter", "knight"],
+  H("h_gaoler_visor", "牢番の面当て", 21, { aRes: { charm: 0.2 }, pow: 1.2, agi: -2, cls: ["fighter", "knight"],
     desc: "地下牢の看守が囚人の爪から顔を守った鉄の面当て。覗き窓の奥の目が情を映さぬよう、内側には目隠しの布まで当ててある。" }),
   H("h_bog_leech_helm", "沼ヒルの革兜", 24, { eDef: ["water", 1], hp: 12, cls: ["fighter", "knight", "thief"],
     desc: "底なし沼の主と呼ばれた大ヒルの革を縫い合わせた兜。常にじっとりと湿り、燃え盛る炎の息すら触れる端から鎮めてしまう。" }),
@@ -39,7 +39,7 @@ export const HEADS = [
     desc: "火竜の巣を暴いて全滅した傭兵団の形見。鉄の奥でおき火が今も眠り、斬りつける風の刃を熱で焼き鈍らせる。冬でも妙に温かい。" }),
 
   // ---- lv11-15 ----
-  H("h_tollgate_helm", "関守の半兜", 40, { pow: 1.15, hp: 12, cls: ["fighter", "knight", "priest"],
+  H("h_tollgate_helm", "関守の半兜", 40, { aRes: { charm: 0.25, confuse: 0.25 }, pow: 1.15, hp: 12, cls: ["fighter", "knight", "priest"],
     desc: "国境の関で旅人を検め続けた老兵の半兜。嘘を見抜く力が宿るというのは噂だが、額に走る傷はどれも本物の矢を受けた痕だ。" }),
   H("h_plague_beak_mask", "検疫医のくちばし面", 44, { shape: "hat", mp: 6, luk: 2, tint: "#3a3a46", tintAmt: 0.25,
     desc: "疫病に呑まれた街を巡り歩いた医師のくちばし形の面。詰められた香草はとうに朽ちたが、死の瘴気を潜り抜けた験は布に残っている。" }),
@@ -57,7 +57,7 @@ export const HEADS = [
     desc: "冬山から吹き下ろす「狼おろし」を独りで渡り切った狩人の兜。両脇の羽根飾りが風向きを読み、石混じりの突風から目を守ってくれる。" }),
   H("h_forbidden_archive_cap", "禁書庫司書の角帽", 63, { shape: "hat", mp: 12, int: 4, cls: ["mage", "bishop"], tint: "#6b3fa0", tintAmt: 0.25,
     desc: "読む者を狂わせる書物を管理し続けた司書の角帽。ページをめくる音が今も縫い目から漏れ、かぶる者へ禁じられた知識の欠片を囁く。" }),
-  H("h_saltgrave_helm", "塩墓の潜兜", 67, { pow: 1.05, hp: 25, cls: ["fighter", "knight"], tint: "#e8e8f4", tintAmt: 0.25,
+  H("h_saltgrave_helm", "塩墓の潜兜", 67, { aRes: { poison: 0.3, charm: 0.2 }, pow: 1.05, hp: 25, cls: ["fighter", "knight"], tint: "#e8e8f4", tintAmt: 0.25,
     desc: "崩落した岩塩坑、坑夫たちが塩漬けのまま眠る「白い墓」から掘り出された兜。塩の殻は今も清らかに輝き、穢れを寄せ付けない。" }),
   H("h_blackpike_burgonet", "黒槍隊のひさし兜", 71, { atkB: 10, cls: ["fighter", "knight"],
     desc: "敗北を知らぬまま全滅した傭兵隊「黒槍」のひさし付き兜。生き残りがいない以上、彼らの強さを語れるのはもはやこの兜だけだ。" }),
@@ -189,7 +189,7 @@ export const FEET = [
     desc: "石切場の奴隷が落石からすねを守った脚甲。岩盤の冷たさと重さをそのまま宿し、押し流そうとする洪水にもびくともしない。" }),
   F("f_duelist_heel", "果し合いのかかと鉄", 56, { agi: 7, crit: 0.03, cls: ["fighter", "knight", "thief"], tint: "#8a92a2", tintAmt: 0.2,
     desc: "決闘者が踏み込みのひと足に懸けてあつらえたかかと鉄付きの靴。石畳を噛むかかとが火花を散らすたび、間合いはこちらのものになるという。" }),
-  F("f_mausoleum_greaves", "霊廟番の銀脚甲", 56, { shape: "greaves", pow: 1.1, mp: 8, pie: 4, cls: ["fighter", "knight", "priest"], tint: "#e8e8f4", tintAmt: 0.3,
+  F("f_mausoleum_greaves", "霊廟番の銀脚甲", 56, { aRes: { charm: 0.3 }, shape: "greaves", pow: 1.1, mp: 8, pie: 4, cls: ["fighter", "knight", "priest"], tint: "#e8e8f4", tintAmt: 0.3,
     desc: "王家の霊廟を守る衛士の銀の脚甲。死者の眠りを乱す者を蹴り出すための銀は、穢れたものに触れると鈍く曇って主へ報せる。" }),
 
   // ---- lv16-20 ----
@@ -292,7 +292,7 @@ export const FEET = [
 // ===== 小手 (18種) =====
 // items.js の基本3点 (lv1-7) の先、lv9-192 を約20lvごとに埋める。
 export const HANDS = [
-  G("g_ratskin_wraps", "鼠革の手覆い", 9, { pow: 0.9, hp: 4, tint: "#7a6a5a", tintAmt: 0.25,
+  G("g_ratskin_wraps", "鼠革の手覆い", 9, { aRes: { poison: 0.2 }, pow: 0.9, hp: 4, tint: "#7a6a5a", tintAmt: 0.25,
     desc: "下水の大鼠の革を巻いただけの簡素な手覆い。安物だが噛み傷にも毒針にも一度は耐えてくれる。その一度が生死を分ける。" }),
   G("g_gravedigger_mitts", "墓掘りの厚手袋", 13, { pow: 1.15, agi: -1,
     desc: "墓掘り人が棺の釘と土の冷たさから手を守った厚革の手袋。掌に染みた土の匂いは、死者の世界への挨拶代わりになるという。" }),
@@ -334,7 +334,7 @@ export const HANDS = [
     desc: "術師見習いが指先の感覚を掴むために巻く薄布の指包み。詠唱のたびに指先から魔力が染み出るのが分かり、少しだけ呪文が届く気がする。" }),
   G("g_rune_cloth_gloves", "符文の手袋", 20, { weight: "cloth", mp: 5, int: 2, tint: "#6b3fa0", tintAmt: 0.22,
     desc: "掌に呪符を書き込んだ薄手の手袋。符の文字は手を動かすたびに形を変え、握った得物の扱いを秘かに呪文の延長へと変えていく。" }),
-  G("g_hex_finger_guards", "呪法の指貫", 38, { weight: "cloth", int: 4, mp: 8, tint: "#9b6bd0", tintAmt: 0.22,
+  G("g_hex_finger_guards", "呪法の指貫", 38, { aRes: { confuse: 0.2 }, weight: "cloth", int: 4, mp: 8, tint: "#9b6bd0", tintAmt: 0.22,
     desc: "呪法師が術式を指で描くために仕立てた指貫。五指それぞれに異なる呪の型が覚えられており、握るだけで詠唱の下準備が整う。" }),
   G("g_tide_weave_gloves", "潮詠みの手袋", 58, { weight: "cloth", eDef: ["water", 1], mp: 14, pie: 5, tint: "#4aa3ff", tintAmt: 0.22,
     desc: "潮の満ち引きに呼応して魔力を満たすことを覚えた手袋。炎の奔流が来るたびに、手袋はその熱を潮に変えて消し去る。" }),

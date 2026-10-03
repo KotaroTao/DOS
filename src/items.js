@@ -12,6 +12,8 @@
 // lv: 隠しレベル (1-200)。迷宮の出現帯・出現率・表示ランクを決める
 // cat: 武器のみ。サブカテゴリ (WEAPON_CATS のキー)
 // eAtk/eDef: 属性攻撃/属性防御 { el, lv } (lv1=◯ ±50%, lv2=◎ ±100%)
+// aRes: 状態異常耐性 { poison/paralyze/sleep/charm/confuse/stone: 付与率カット (0.25 = 25%) }。同じ種類は装備どうしで足し合い、上限 AIL_RES_CAP
+// onHit: 武器などの追加効果 { k: poison/paralyze/sleep/charm/confuse, chance, pct? }。当てるだけで敵に状態異常を与える
 
 // 装備部位 (8か所): 武器・盾・鎧・頭・小手・足・装飾x2
 export const SLOTS = ["weapon", "shield", "body", "head", "hands", "feet", "acc1", "acc2"];
@@ -1176,6 +1178,11 @@ function topElemStat(sums) {
   return best;
 }
 
+// 状態異常の種類と呼び名 (装備の耐性 aRes・追加効果 onHit で使う)
+export const AIL_LABEL = { poison: "毒", paralyze: "麻痺", sleep: "眠り", charm: "魅了", confuse: "混乱", stone: "石化" };
+// 装備だけで積める状態異常耐性の上限 (パッシブ「異常耐性」と合わせた上限は戦闘側で90%)
+export const AIL_RES_CAP = 0.6;
+
 // 六大ステ (ATK/VIT/AGI/INT/PIE/LUK) を base + 装備から再計算
 // 装備はフラット型: stat = base + Σflat (atk/vit/…)
 export function recalc(member) {
@@ -1186,6 +1193,7 @@ export function recalc(member) {
   const mul = { atk: 0, vit: 0, agi: 0, int: 0, pie: 0, luk: 0, hp: 0, mp: 0 };
   const eff = {}; // 戦闘効果 (LR装飾品): actFirst/multistrike/lifesteal/autoRevive/guard/spellCostMul
   const ea = {}, ed = {};
+  const ar = {}, oh = {}; // 状態異常耐性 (種類→合計) / 追加効果 (種類→最も強いもの)
   const counted = new Set();
   for (const slot of SLOTS) {
     const it = member.equip[slot];
@@ -1209,6 +1217,11 @@ export function recalc(member) {
     }
     if (it.eAtk && it.eAtk.el) ea[it.eAtk.el] = (ea[it.eAtk.el] || 0) + (it.eAtk.lv || 1);
     if (it.eDef && it.eDef.el) ed[it.eDef.el] = (ed[it.eDef.el] || 0) + (it.eDef.lv || 1);
+    if (it.aRes) for (const k in it.aRes) ar[k] = (ar[k] || 0) + (it.aRes[k] || 0);
+    if (it.onHit && it.onHit.k) {
+      const cur = oh[it.onHit.k];
+      if (!cur || (it.onHit.chance || 0) > cur.chance) oh[it.onHit.k] = { k: it.onHit.k, chance: it.onHit.chance || 0, ...(it.onHit.pct ? { pct: it.onHit.pct } : {}) };
+    }
   }
   // 装備による増減は整数化 (増は切り上げ・減は切り下げ)。基礎値はそのまま。
   // %補正があれば (基礎+フラット) に乗じてから整数化する
@@ -1233,6 +1246,12 @@ export function recalc(member) {
   member.elemDef = topElemStat(ed);
   // 戦闘効果 (LR装飾品由来)。combat.js が戦闘開始時に actor へ展開する
   member.eff = Object.keys(eff).length ? eff : null;
+  // 状態異常耐性 (装備由来・種類ごとに上限 AIL_RES_CAP) と武器の追加効果。combat.js が読む
+  const arOut = {};
+  for (const k in ar) if (ar[k] > 0) arOut[k] = Math.min(AIL_RES_CAP, Math.round(ar[k] * 100) / 100);
+  member.ailRes = Object.keys(arOut).length ? arOut : null;
+  const ohOut = Object.values(oh).filter((o) => o.chance > 0);
+  member.onHit = ohOut.length ? ohOut : null;
   // 旧体系の派生値 (こうげき/ぼうぎょ/すばやさ/AC) は廃止
   delete member.def; delete member.spd; delete member.ac;
 }

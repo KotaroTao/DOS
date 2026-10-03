@@ -423,6 +423,7 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
       chips.appendChild(el("span", "dg-chip", w ? `${w.name}` : "素手"));
       if (d.ailment) chips.appendChild(el("span", "dg-chip bad", AIL[d.ailment] || d.ailment));
       if (d.asleep) chips.appendChild(el("span", "dg-chip bad", "眠り"));
+      if (d.mind) chips.appendChild(el("span", "dg-chip bad", d.mind === "charm" ? "魅了" : "混乱"));
       for (const ef of (d.effects || [])) chips.appendChild(el("span", "dg-chip " + (ef.mult > 1 ? "up" : "bad"), `${BUFF_NAME[ef.stat] || (ef.stat || "").toUpperCase()}${ef.mult > 1 ? "▲" : "▼"} 残${ef.turns}`));
       b.appendChild(chips);
       const grid = el("div", "dg-stats");
