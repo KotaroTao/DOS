@@ -9,6 +9,7 @@ import { LEGENDS } from "./legends.js";
 import { EXCLUSIVES } from "./exclusives.js";
 import { LR_ITEMS } from "./lr.js";
 import { LAYER1_ITEMS } from "./layer1.js";
+import { LAYER2_ITEMS } from "./layer2.js";
 import { applyRareBoost } from "../rarity.js";
 // ランク別 標準装備 (R1-R20 を順次拡充。各ランクで全職が全部位2種以上を装備できる素体装備)
 import { RANK1_ITEMS } from "./ranks/r01.js";
@@ -36,7 +37,7 @@ import { RANK20_ITEMS } from "./ranks/r20.js";
 // ランク別標準装備: 各ランク・各部位 (武器はカテゴリ、防具は重量) に2種ずつあり、
 //   隠しレベルの低い方=コモン / 高い方=アンコモン
 // 来歴つきの一点物 = レア (能力を一段底上げ) / 職業専用装備・伝説装備 = スーパーレア / LR = レジェンドレア
-// (層ごとの逸品 layer1.js は自前で sr/lr を持つ)。蒐集品・道具はレア度を持たない
+// (層ごとの逸品 layer1.js / layer2.js は自前で sr/lr と出現する層 layer を持つ)。蒐集品・道具はレア度を持たない
 const RANK_LISTS = [RANK1_ITEMS, RANK2_ITEMS, RANK3_ITEMS, RANK4_ITEMS, RANK5_ITEMS, RANK6_ITEMS, RANK7_ITEMS, RANK8_ITEMS, RANK9_ITEMS, RANK10_ITEMS,
   RANK11_ITEMS, RANK12_ITEMS, RANK13_ITEMS, RANK14_ITEMS, RANK15_ITEMS, RANK16_ITEMS, RANK17_ITEMS, RANK18_ITEMS, RANK19_ITEMS, RANK20_ITEMS];
 for (const list of RANK_LISTS) {
@@ -105,7 +106,7 @@ for (const it of LR_ITEMS) it.rar = "lr";
 
 // { id: item } に統合。ID重複は即エラー (セーブ/図鑑の参照を守る)
 export const CATALOG_ITEMS = {};
-for (const list of [WEAPONS, SHIELDS, ARMORS, HEADS, FEET, HANDS, ACCS, MISC, USABLES, LEGENDS, EXCLUSIVES, LR_ITEMS, LAYER1_ITEMS, RANK1_ITEMS, RANK2_ITEMS, RANK3_ITEMS, RANK4_ITEMS, RANK5_ITEMS, RANK6_ITEMS, RANK7_ITEMS, RANK8_ITEMS, RANK9_ITEMS, RANK10_ITEMS, RANK11_ITEMS, RANK12_ITEMS, RANK13_ITEMS, RANK14_ITEMS, RANK15_ITEMS, RANK16_ITEMS, RANK17_ITEMS, RANK18_ITEMS, RANK19_ITEMS, RANK20_ITEMS]) {
+for (const list of [WEAPONS, SHIELDS, ARMORS, HEADS, FEET, HANDS, ACCS, MISC, USABLES, LEGENDS, EXCLUSIVES, LR_ITEMS, LAYER1_ITEMS, LAYER2_ITEMS, RANK1_ITEMS, RANK2_ITEMS, RANK3_ITEMS, RANK4_ITEMS, RANK5_ITEMS, RANK6_ITEMS, RANK7_ITEMS, RANK8_ITEMS, RANK9_ITEMS, RANK10_ITEMS, RANK11_ITEMS, RANK12_ITEMS, RANK13_ITEMS, RANK14_ITEMS, RANK15_ITEMS, RANK16_ITEMS, RANK17_ITEMS, RANK18_ITEMS, RANK19_ITEMS, RANK20_ITEMS]) {
   for (const it of list) {
     if (CATALOG_ITEMS[it.id]) throw new Error("duplicate item id: " + it.id);
     CATALOG_ITEMS[it.id] = it;

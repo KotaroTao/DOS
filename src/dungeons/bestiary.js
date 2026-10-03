@@ -9,6 +9,7 @@ import * as d01 from "./d01.js";
 import * as d02 from "./d02.js";
 import * as d03 from "./d03.js";
 import * as d04 from "./d04.js";
+import { MONSTER_ART, validateMonsterArt } from "./monart.js";
 
 // ---- 既存モンスターのランク再配置 (旧6段階 → 新10段階) ----
 const LEGACY_RANK = {
@@ -142,6 +143,13 @@ const NEW_DEFS = [
   { id: "bs_fogspecter", name: "汚水の靄", rank: 3, race: "specter", element: "water", artKey: "fogspecter",
     ability: "paralyze", evasive: true, magWeak: 1.5, // 実体なく刃をすり抜け、瘴気で痺れさせる。魔には脆い
     desc: "汚水から立ちのぼる瘴気が、ぼんやりと人の形をなした霊。刃は霧をすり抜けてしまい、まとわりつく毒気に触れた者は痺れて動けなくなる。実体が薄いぶん、魔の力には抗えない。" },
+  // 第2層の追加 (浅い層の水棲が第1層より弱かった穴を埋める rank3。絵は原画待ちの仮の原型 → monart.js で差し替え)
+  { id: "bs_ratking", name: "溝鼠の王", rank: 3, race: "beast", element: "none", artKey: "rat",
+    ability: "poison", multistrike: 3, // 尾の絡まった十数匹が四方から噛みつき、疫病を移す
+    desc: "暗渠の奥で尾が絡まり合い、離れられなくなった十数匹の溝鼠。一つの塊となって転がるように這い寄り、四方の口で同時に噛みつく。どの歯にも、下水の疫病が宿っている。" },
+  { id: "bs_sewerdredger", name: "溝浚いの骸", rank: 3, race: "undead", element: "water", artKey: "zombie",
+    ability: "paralyze", endure: true, // 鉤竿で引き倒して痺れさせ、崩れかけても仕事をやめない
+    desc: "水路の泥を浚い続けて死んだ人夫の骸。いまも錆びた鉤竿を手放さず、生者を引っ掛けては汚泥へ引き倒す。骨が砕けかけても、日暮れの鐘が鳴るまで持ち場を離れない。" },
   // -- 第3層「廃坑」 (rank 4-5・土/採掘。第2層より格上の壁。深部に rank6 の旧坑の主) --
   { id: "bs_rockworm", name: "岩喰いの大蟲", rank: 4, race: "insect", element: "earth", artKey: "rockworm",
     physResist: 0.5, multistrike: 2, // 岩盤ごと喰らう顎で続けざまに噛み砕く
@@ -1804,6 +1812,25 @@ const ELITE_MONSTERS = defMonsters(ELITE_DEFS.map((d) => ({ ...monStats(d.rank, 
 export const ELITE_ORDER = ELITE_DEFS.map((d) => d.id);
 if (ELITE_ORDER.length !== 30) throw new Error("bestiary: ELITE_ORDER must have 30 entries (10 ranks x 3 groups)");
 
+// ---- 層ごとの強敵 (20層構成) ----
+// 旧来の ELITE_ORDER は10迷宮単位の帯で選ぶため、第2層 (迷宮6-10) に墓地の強敵が出ていた。
+// 作り込み済みの層はここで層ごとの強敵を持ち、game.js eliteKey が優先して使う (階ごとに順に入れ替わる)。
+// 強敵の rank は層ボスと同格 (層+2)。並びは追記のみ。
+const LAYER_ELITE_DEFS = [
+  // 第2層「地下水路」 (絵は原画待ちの仮の原型 → monart.js で差し替え)
+  { id: "el_bloatqueen", name: "孕み蛭の女王", elite: true, rank: 4, race: "amorph", element: "water", artKey: "leechswarm", soulClass: "hexer",
+    role: "summoner", summonKey: "bs_giantleech", lifesteal: 0.3, regen: 0.05, // 腹の子を産み落とし、吸った血で膨れ続ける
+    desc: "貯水槽の底を寝床にする、牛ほどもある雌の大蛭。腹の中で蠢く幾百の子を次々と産み落とし、吸い付いた獲物の血で膨れ上がっては傷を塞ぐ。水路の蛭は、すべてこの腹から出た。" },
+  { id: "el_drownedpaladin", name: "沈みし聖騎士", elite: true, rank: 4, race: "undead", element: "water", artKey: "ironknight", soulClass: "knight",
+    physResist: 0.35, endure: true, enrage: true, // 水を吸った重鎧が刃を阻み、倒れても立ち上がり、手負いで荒れ狂う
+    desc: "水路の浄めに遣わされ、そのまま戻らなかった聖騎士。水を吸って錆びた重鎧は刃をろくに通さず、膝をついても祈りの残響に引き起こされる。兜の隙間から、黒い水が絶えず滴っている。" },
+];
+const LAYER_ELITE_MONSTERS = defMonsters(LAYER_ELITE_DEFS.map((d) => ({ ...monStats(d.rank, true), ...d })));
+export const LAYER_ELITES = {
+  1: ["el_cryptlord", "el_palebutcher"],        // 第1層「墓地」
+  2: ["el_bloatqueen", "el_drownedpaladin"],    // 第2層「地下水路」
+};
+
 // ---- 統合辞書とランク別プール ----
 export const BESTIARY = (() => {
   const out = { ...LEGACY };
@@ -1815,6 +1842,18 @@ export const BESTIARY = (() => {
   for (const id in ELITE_MONSTERS) {
     if (out[id]) throw new Error("duplicate monster id: " + id);
     out[id] = ELITE_MONSTERS[id];
+  }
+  for (const id in LAYER_ELITE_MONSTERS) {
+    if (out[id]) throw new Error("duplicate monster id: " + id);
+    out[id] = LAYER_ELITE_MONSTERS[id];
+  }
+  // 原画の差し替え (monart.js): 絵だけを上書きする。id・能力値・特徴はそのまま
+  for (const id in MONSTER_ART) {
+    if (!out[id]) throw new Error("monart: unknown monster id: " + id);
+    const a = MONSTER_ART[id];
+    validateMonsterArt(id, a);
+    out[id].art = a.art;
+    out[id].palette = a.palette;
   }
   return out;
 })();
@@ -1943,7 +1982,9 @@ export const LAYER_POOLS = {
     "bs_sewercrab", "bs_abysstentacle", "bs_brinewraith", "bs_anglerfiend", "bs_bloatfly",
     "bs_waterhag", "bs_mucusworm", "bs_razorshrimp", "bs_ironcarp", "bs_fogspecter",
     // 既存の水棲/不定形を第2層へ再配置
-    "cm_slime", "bs_swampslime", "bs_waterelemental", "d03_sahagin", "bs_deepsahagin",
+    "bs_waterelemental", "d03_sahagin", "bs_deepsahagin",
+    // 浅い層を rank3 で揃える (以前は rank1 のスライム・rank2 の毒沼スライムが混じり、迷宮6の浅い階が第1層より弱かった)
+    "bs_ratking", "bs_sewerdredger",
   ],
   // 第3層「廃坑」: 土/構造体/虫中心、rank4-5主体 (第2層より格上)。深部に rank6 の旧坑の怪物
   3: [

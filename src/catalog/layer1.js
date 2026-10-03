@@ -8,9 +8,9 @@
 // id は append-only (セーブ/図鑑が参照する)。
 import { W, S, A, H, F, G, R } from "./defs.js";
 
-const sr = (it) => { it.rar = "sr"; return it; };
+const sr = (it) => { it.rar = "sr"; it.layer = 1; return it; };
 // LR: tier 1 = 第1層の帯。exclusive で通常のランク窓抽選から外し、時間抽選でのみ出す
-const lr = (it) => { it.rar = "lr"; it.lr = 1; it.exclusive = true; return it; };
+const lr = (it) => { it.rar = "lr"; it.lr = 1; it.layer = 1; it.exclusive = true; return it; };
 
 export const LAYER1_ITEMS = [
   // ===== スーパーレア: 武器 =====

@@ -308,8 +308,10 @@ const LINES = [
   { id: "c_sealed", kind: "chat", fresh: true, when: (c) => c.sealed, say: {
     0: ["次の層への門は、まだ封じられていると聞きます。", "今のうちに、器をお磨きください。"],
     3: ["次の層への門は、まだ封じられているそうね。", "……少し、ほっとしているの。あなたが遠くへ行かずに済むから。"] } },
-  { id: "c_layer2", kind: "chat", bond: 2, when: (c) => c.act >= 6 && !c.sealed,
+  { id: "c_layer2", kind: "chat", bond: 2, fresh: true, when: (c) => c.act >= 6 && !c.sealed,
     say: ["水路へ降りるのね。", "湿気は木の器の大敵よ。帰ったら、よく乾かしてあげて。"] },
+  { id: "h_sewer", kind: "hint", bond: 2, when: (c) => c.act >= 6 && c.act <= 10 && !c.sealed,
+    say: ["水路の魔物は、たいてい水の気を帯びているわ。", "土は水を堰き止める。土の加護を帯びた品なら、牙も鈍るし、刃も通りやすいはずよ。"] },
   { id: "c_layer3", kind: "chat", bond: 2, when: (c) => c.act >= 11 && !c.sealed,
     say: ["廃坑の石の匂いがするわ。", "地の底の闇は、魂の灯をいちばん欲しがるの。"] },
   { id: "c_layer4", kind: "chat", bond: 2, when: (c) => c.act >= 16 && !c.sealed,
