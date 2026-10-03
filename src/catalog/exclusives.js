@@ -91,7 +91,7 @@ const R = [
 
 // ===== エピック (lv 165-180 / 迷宮ランク7+) =====
 const E = [
-  excl(W("x_crusader_sword", "聖戦の大剣", "ls", 175, {
+  excl(W("x_crusader_sword", "聖戦の誓剣", "ls", 175, {
     cls: ["crusader"], pow: 1.2, eAtk: ["light", 1], pie: 70,
     desc: "聖戦を布告した教団の旗手が討ち死にの間際に戦場に突き立てた剣。光を含む大気が刃に沿って集まり、悪しきものを焼く。",
   }), "crusader"),

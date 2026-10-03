@@ -14,6 +14,7 @@
 // eAtk/eDef: 属性攻撃/属性防御 { el, lv } (lv1=◯ ±50%, lv2=◎ ±100%)
 // aRes: 状態異常耐性 { poison/paralyze/sleep/charm/confuse/stone: 付与率カット (0.25 = 25%) }。同じ種類は装備どうしで足し合い、上限 AIL_RES_CAP
 // onHit: 武器などの追加効果 { k: poison/paralyze/sleep/charm/confuse, chance, pct? }。当てるだけで敵に状態異常を与える
+// price: 装備の値段は起動時に性能から付け直す (src/pricing.js の repriceEquipment)。ここの値は道具・収集品にだけ効く
 
 // 装備部位 (8か所): 武器・盾・鎧・頭・小手・足・装飾x2
 export const SLOTS = ["weapon", "shield", "body", "head", "hands", "feet", "acc1", "acc2"];
@@ -299,7 +300,7 @@ export const ITEMS = {
 
   // ===== 盾 =====
   woodShield: {
-    id: "woodShield", name: "木の盾", slot: "shield", lv: 2, vit: 3, price: 80, classes: null,
+    id: "woodShield", name: "木の盾", slot: "shield", lv: 2, vit: 2, hp: 5, price: 80, classes: null,
     desc: "カシの板をびょうで重ねた小盾。表面には先代の持ち主のものらしい爪痕が走るが、まだ十分に矢と牙を受け止められる。",
     ...sprite([
       "...........ee...........",
@@ -329,7 +330,7 @@ export const ITEMS = {
     ]),
   },
   kiteShield: {
-    id: "kiteShield", name: "カイトシールド", slot: "shield", lv: 7, vit: 6, price: 240, classes: null,
+    id: "kiteShield", name: "剥げ紋の大盾", slot: "shield", lv: 7, vit: 6, price: 240, classes: null,
     desc: "騎士団の紋章が剥げ落ちた大盾。掲げた誓いは廃れても、鋼の守りは廃れていない。前衛の半身を覆って守る。",
     ...sprite([
       "..eeeeeeeeeeeeeeeeeeee..",
@@ -391,7 +392,7 @@ export const ITEMS = {
     ]),
   },
   leatherArmor: {
-    id: "leatherArmor", name: "革の鎧", slot: "body", lv: 4, vit: 4, price: 160, classes: null, weight: "light",
+    id: "leatherArmor", name: "革の鎧", slot: "body", lv: 4, vit: 3, agi: 1, price: 160, classes: null, weight: "light",
     desc: "魔獣の革をなめした軽鎧。幾針もの縫い直しの跡は、これを着て生き延びた者たちの記録だ。軽くて動きやすい。",
     ...sprite([
       "...DDDD..........DDDD...",
@@ -453,7 +454,7 @@ export const ITEMS = {
 
   // ===== 頭 =====
   cap: {
-    id: "cap", name: "布の帽子", slot: "head", lv: 1, vit: 1, price: 30, classes: null, weight: "light",
+    id: "cap", name: "布の帽子", slot: "head", lv: 1, vit: 1, aRes: { poison: 0.1 }, price: 30, classes: null, weight: "cloth",
     desc: "擦り切れた布の帽子。墓土の冷たさと滴る汚水からは守ってくれる。ないよりはまし、と誰もが言う。",
     ...sprite([
       "........................",
@@ -483,7 +484,7 @@ export const ITEMS = {
     ]),
   },
   ironHelm: {
-    id: "ironHelm", name: "鉄兜", slot: "head", lv: 5, vit: 3, price: 150, classes: null, weight: "heavy",
+    id: "ironHelm", name: "面当ての鉄兜", slot: "head", lv: 5, vit: 3, aRes: { charm: 0.1 }, price: 150, classes: null, weight: "heavy",
     desc: "面当てつきの鉄兜。覗き穴の奥は常に闇で、かぶった者の顔を誰にも思い出させない。頭部をしっかり守る。",
     ...sprite([
       "..............qqq.......",
@@ -515,7 +516,7 @@ export const ITEMS = {
 
   // ===== 足 =====
   leatherBoots: {
-    id: "leatherBoots", name: "革のブーツ", slot: "feet", lv: 2, vit: 1, agi: 1, price: 70, classes: null, weight: "light",
+    id: "leatherBoots", name: "革のブーツ", slot: "feet", lv: 2, vit: 1, agi: 2, price: 70, classes: null, weight: "light",
     desc: "丈夫な革の長靴。底に染みた泥は幾層にも重なり、どの層がどの迷宮のものかもう分からない。素早さがわずかに上がる。",
     ...sprite([
       "........................",
@@ -637,7 +638,7 @@ export const ITEMS = {
     ]),
   },
   ironGauntlets: {
-    id: "ironGauntlets", name: "鉄の籠手", slot: "hands", lv: 6, vit: 4, agi: -1, price: 240, classes: null, weight: "heavy",
+    id: "ironGauntlets", name: "無骨な鉄籠手", slot: "hands", lv: 6, vit: 4, agi: -1, price: 240, classes: null, weight: "heavy",
     desc: "重厚な鉄の籠手。指の自由と引き換えに、握った得物ごと腕を守り抜く。少し動きが鈍る。",
     ...sprite([
       ".........eee............",
@@ -669,7 +670,7 @@ export const ITEMS = {
 
   // ===== アクセサリ =====
   powerRing: {
-    id: "powerRing", name: "力の指輪", slot: "acc", lv: 20, atk: 4, price: 240, classes: null,
+    id: "powerRing", name: "怒りの指輪", slot: "acc", lv: 20, atk: 4, price: 240, classes: null,
     desc: "はめた瞬間、自分のものではない怒りが血管を駆け抜ける指輪。腕力がみなぎり、攻撃力が上がる。",
     ...sprite([
       "........................",

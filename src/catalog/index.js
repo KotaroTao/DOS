@@ -69,6 +69,31 @@ RANK_LISTS.forEach((list, bi) => {
   }
 });
 
+// ===== ランク別標準装備は「lv が上なら必ず性能も上」にする =====
+// 能力値は整数に丸めるので、低いランクでは lv の違う品が同じ性能になることがある
+// (例: R1 の籠手 lv5/lv10 がどちらも ATK+2 で、コモンとアンコモンの差が無い)。
+// 部位ごと (武器はカテゴリ、防具は重量) に lv 順に並べ、より低い lv の品をどこも上回っていない品は
+// 主ステ (最も大きい能力) を +1 ずつ上げて差をつける。状態異常耐性を持つ品はそれで上回っているものとみなす
+const RANK_STAT_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"];
+const RANK_STAT_W = { hp: 0.15, mp: 0.25 };
+const notAbove = (u, c) => !(u.aRes && !c.aRes) && RANK_STAT_KEYS.every((k) => (u[k] || 0) <= (c[k] || 0));
+{
+  const groups = new Map();
+  for (const list of RANK_LISTS) for (const it of list) {
+    const key = `${it.slot}|${it.cat || it.weight || ""}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(it);
+  }
+  for (const g of groups.values()) {
+    g.sort((a, b) => a.lv - b.lv);
+    g.forEach((u, i) => {
+      const lower = g.slice(0, i).filter((c) => c.lv < u.lv);
+      const main = RANK_STAT_KEYS.reduce((a, k) => ((u[k] || 0) * (RANK_STAT_W[k] || 1) > (u[a] || 0) * (RANK_STAT_W[a] || 1) ? k : a), "atk");
+      while (lower.some((c) => notAbove(u, c))) u[main] = (u[main] || 0) + 1;
+    });
+  }
+}
+
 // ===== ドロップ対象の厳選 (コモン〜レアは「少数精鋭」) =====
 // 品数が多すぎると拾うたびに新しい名前ばかりで、特別な品との差が見えなくなる。
 // コモン〜レアは帯ごとに出現対象を絞って何度も出会う「いつもの品」にし、スーパーレア以上の感動を際立たせる。

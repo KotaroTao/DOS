@@ -83,5 +83,5 @@ export function applyRareBoost(it) {
   for (const k of STAT_KEYS) {
     if (typeof it[k] === "number" && it[k] !== 0) it[k] = Math.round(it[k] * RARE_STAT_MUL);
   }
-  if (typeof it.price === "number") it.price = Math.round(it.price * 1.3);
+  // 値段はここでは触らない (game.js が起動時に性能から付け直す: src/pricing.js)
 }
