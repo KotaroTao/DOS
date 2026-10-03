@@ -213,9 +213,11 @@ export function openTryIdentifyAll({ onDone } = {}) {
     }
     idx++;
     setProg(); drawTally();
-    // 成功: 一拍おいて図鑑と同じ品の画面 (「鑑定成功した！」つき) を重ねる。閉じたら次の品へ
-    advance = ok && UI.codexItemSheet ? () => openDetail(it, first) : () => step();
-    timer = setTimeout(() => { const f = advance; advance = null; if (f) f(); }, ok ? (UI.codexItemSheet ? T().okBeat : T().okHold) : T().ngHold);
+    // 初ゲットの成功だけ: 一拍おいて図鑑と同じ品の画面 (「鑑定成功した！」つき) を重ねる。閉じたら次の品へ
+    // (入手したことのある品は画面を出さず、少し見せてそのまま次の品へ)
+    const pop = first && !!UI.codexItemSheet;
+    advance = pop ? () => openDetail(it, first) : () => step();
+    timer = setTimeout(() => { const f = advance; advance = null; if (f) f(); }, ok ? (pop ? T().okBeat : T().okHold) : T().ngHold);
   };
 
   // 鑑定に成功した品の詳細 (能力・説明文)。「次へ」で続ける / 「早送り」で残りを一度に
