@@ -1121,9 +1121,20 @@ function revealByCartography() {
 }
 
 // 迷宮内の階に応じた敵の強さ倍率 (迷宮ベース × 階で微増 × 特別階 × 迷宮の異変)
-function enemyScale() {
+function enemyScale() { return baseEnemyScale() * tuneMul(); }
+// 手直し (DUNGEON_TUNE) を除いた強さ: 迷宮の素の倍率 × 階 × 特別階/異変。主はこれに bossMul を掛ける
+function baseEnemyScale() {
   const cfg = activeCfg();
   return (cfg.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
+}
+// 迷宮ごとの手直し (generator.js DUNGEON_TUNE) のうち、いまの階の雑魚に掛かる倍率。奈落では掛けない
+function tuneMul() {
+  if (abyssActive()) return 1;
+  const cfg = activeCfg();
+  const t = cfg.tune;
+  if (!t) return 1;
+  const deep = G.floor > (cfg.floors || 3) / 2; // board.js の深階プールと同じ切り替え
+  return (t.enemyMul || 1) * (deep ? (t.deepMul || 1) : 1);
 }
 
 // ミミックの強さの基準: この階に出る雑魚の最上位ランクと、雑魚と同じ強さ補正。
@@ -5646,7 +5657,14 @@ function askDescend(cell) {
     prompt,
     [
       { label, danger: boss, primary: !boss, fn: () => {
-        if (boss) { log("迷宮の主が立ちはだかる！", "dmg"); startBattle(spawnBossEnemies(dn.boss, dn.bossScale * enemyScale(), dn.bossRank), cell); }
+        if (boss) {
+          log("迷宮の主が立ちはだかる！", "dmg");
+          // 迷宮ごとの手直し (generator.js DUNGEON_TUNE): 主は雑魚の倍率ではなく bossMul、HP はさらに bossHpMul
+          const tn = dn.tune || {};
+          const foes = spawnBossEnemies(dn.boss, dn.bossScale * (tn.bossMul || 1) * baseEnemyScale(), dn.bossRank);
+          if ((tn.bossHpMul || 1) !== 1) for (const e of foes) e.maxhp = e.hp = Math.max(1, Math.round(e.maxhp * tn.bossHpMul));
+          startBattle(foes, cell);
+        }
         else if (clearNoBoss) clearDungeonNoBoss();
         else descend();
       } },
@@ -6274,6 +6292,15 @@ function startBattle(enemies, cell) {
   }
   // 迷宮の異変 (血の満潮など): 敵の強さ倍率は HP/ATK/VIT に加えて AGI にも掛ける
   // (enemyScale は HP/ATK/VIT のみ。召喚で呼ばれた仲間も _agiMul を引き継ぐ)
+  // 迷宮ごとの手直し (DUNGEON_TUNE) は強さだけ: 倍率で増減した戦果 (金貨・✦Soul) を元の曲線へ戻す
+  const tn = inDungeon() && !abyssActive() ? activeCfg().tune : null;
+  if (tn) {
+    const tm = tuneMul();
+    for (const e of enemies) {
+      const k = e.boss ? (tn.bossMul || 1) : tm;
+      if (k !== 1) { e.soul = Math.round((e.soul || 0) / k); e.gold = Math.round((e.gold || 0) / k); }
+    }
+  }
   const mutEm = (mutDef() && mutDef().enemyMul) || 1;
   if (mutEm !== 1) for (const e of enemies) { e._agiMul = mutEm; e.agi = Math.max(1, Math.round(e.agi * mutEm)); }
   G.battleCell = cell;
@@ -6295,6 +6322,7 @@ function startBattle(enemies, cell) {
     setTimeout(() => showToast(`${why} ― オートを止めた`, { tone: "info" }), 350);
   }
   let opening = null;
+  let openSrc = null, ambRate = 0; // テスト記録: 開幕の出どころ (rand/event/smuggler/candle) と、抽選の奇襲率
   if (!isBoss && !isElite) {
     const vig = partyPassiveLv("vigilance");
     // 迷宮の異変 (闇討ちの宴): 奇襲率が跳ね上がる (周囲警戒は引き続き有効)
@@ -6307,13 +6335,15 @@ function startBattle(enemies, cell) {
     const r = Math.random();
     if (r < amb) opening = "ambush";
     else if (r < amb + pre) opening = "preempt";
+    ambRate = amb;
+    if (opening) openSrc = "rand";
   }
   // 迷宮のイベント: 出来事が決めた開幕 (寝首/奇襲) ・ 密輸人の待ち伏せ ・ 祈りの蝋燭
   if (!isBoss && !isElite) {
     const rv = G.run && G.run.ev && inDungeon() && !abyssActive() ? G.run.ev : null;
-    if (G._evOpening) opening = G._evOpening;
-    else if (rv && rv.ambushNext > 0) { rv.ambushNext--; opening = "ambush"; log("密輸人どもが荷の仕返しに待ち伏せていた！", "dmg"); }
-    else if (rv && rv.preempt > 0) { rv.preempt--; opening = "preempt"; log("祈りの蝋燭の灯が、闇を味方につけた。", "win"); }
+    if (G._evOpening) { opening = G._evOpening; openSrc = "event"; }
+    else if (rv && rv.ambushNext > 0) { rv.ambushNext--; opening = "ambush"; openSrc = "smuggler"; log("密輸人どもが荷の仕返しに待ち伏せていた！", "dmg"); }
+    else if (rv && rv.preempt > 0) { rv.preempt--; opening = "preempt"; openSrc = "candle"; log("祈りの蝋燭の灯が、闇を味方につけた。", "win"); }
   } else if (G._evOpening && isElite) opening = null;
   G._evOpening = null;
   evBattleStart(enemies, isBoss);
@@ -6330,7 +6360,7 @@ function startBattle(enemies, cell) {
   // テスト記録: 戦闘の種類 (主 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子
   if (tlOn() && inDungeon()) {
     const kind = isBoss ? "b" : (isElite || enemies.some((e) => e.isMimic) || (cell && cell.evFight)) ? "e" : "n";
-    G.battle.tl = tlBattleBegin({ where: tlWhere(), kind, opening, party: G.party, enemies });
+    G.battle.tl = tlBattleBegin({ where: tlWhere(), kind, opening, openSrc, ambRate, party: G.party, enemies });
   }
   _maskEnemies = null;
   G.fx = null;
