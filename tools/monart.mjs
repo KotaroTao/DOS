@@ -2,8 +2,12 @@
 // 魔物の原画 (PNG) → ドット絵 {palette, art} に変換し、src/dungeons/monart.js の登録欄へ書き込む。
 // 依存なし (Node 標準の zlib だけで PNG を読む)。ゲーム本体からは読み込まれない開発用の道具。
 //
-//   node tools/monart.mjs <魔物id> <原画.png> [オプション]
-//     --h <n>         仕上がりの高さ (ドット)。既定 96 (強敵/層ボスは 112〜128 を推奨)
+//   node tools/monart.mjs <魔物id> <原画.png> [オプション]      … 1体ずつ変換して登録
+//   node tools/monart.mjs --dir <フォルダ> [--layer <n>] [オプション]
+//                                                             … フォルダ内の「<魔物id>.png」をまとめて変換して登録
+//                                                               (--layer を付けるとその層の原画待ち (ART_WANTED) だけを対象にする)
+//   node tools/monart.mjs --list <層>                         … その層の原画待ちの一覧 (id・名前・格・差し替え済みか)
+//     --h <n>         仕上がりの高さ (ドット)。既定 96、層ボス/強敵は 120 (--h を指定すると全員それに揃える)
 //     --colors <n>    色数 (透明を除く)。既定 16
 //     --tol <n>       背景抜きの許容差 (0-255)。既定 40。原画に透過があれば背景抜きはしない
 //     --keep-bg       背景を抜かない
@@ -23,7 +27,7 @@ const MONART = path.join(ROOT, "src/dungeons/monart.js");
 
 // ---------- 引数 ----------
 const argv = process.argv.slice(2);
-const opt = { h: 96, colors: 16, tol: 40, keepBg: false, dry: false, preview: false };
+const opt = { h: 0, colors: 16, tol: 40, keepBg: false, dry: false, preview: false, dir: null, layer: 0, list: 0 };
 const pos = [];
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
@@ -33,13 +37,19 @@ for (let i = 0; i < argv.length; i++) {
   else if (a === "--keep-bg") opt.keepBg = true;
   else if (a === "--dry") opt.dry = true;
   else if (a === "--preview") opt.preview = true;
+  else if (a === "--dir") opt.dir = argv[++i];
+  else if (a === "--layer") opt.layer = +argv[++i];
+  else if (a === "--list") opt.list = +argv[++i];
   else pos.push(a);
 }
-if (pos.length < 2 || !(opt.h > 4) || !(opt.colors >= 2 && opt.colors <= 60)) {
-  console.error("使い方: node tools/monart.mjs <魔物id> <原画.png> [--h 96] [--colors 16] [--tol 40] [--keep-bg] [--dry] [--preview]");
+const USAGE = "使い方: node tools/monart.mjs <魔物id> <原画.png> [--h 96] [--colors 16] [--tol 40] [--keep-bg] [--dry] [--preview]\n" +
+  "        node tools/monart.mjs --dir <フォルダ> [--layer 3] [同上のオプション]\n" +
+  "        node tools/monart.mjs --list <層>";
+const single = !opt.dir && !opt.list;
+if ((single && pos.length < 2) || (opt.h && !(opt.h > 4)) || !(opt.colors >= 2 && opt.colors <= 60)) {
+  console.error(USAGE);
   process.exit(1);
 }
-const [monId, srcPath] = pos;
 
 // ---------- PNG を読む (8bit / 非インターレース) ----------
 function readPng(file) {
@@ -184,35 +194,89 @@ function medianCut(colors, k) {
 }
 
 // ---------- 変換 ----------
-const img = readPng(path.resolve(srcPath));
-if (!img.hasAlpha && !opt.keepBg) removeBackground(img, opt.tol);
-const cropped = trim(img);
-const grid = downscale(cropped, opt.h);
-const opaque = grid.flat().filter(Boolean);
 const lum = (c) => 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2];
-const pal = medianCut(opaque, opt.colors).sort((a, b) => lum(a) - lum(b));
 const GLYPHS = "ABCDEFGHIJKLMNPQRSTUVWXYZabcdefghijklmnpqrstuvwxyz0123456789";
 const hex = (c) => "#" + c.map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, "0")).join("");
-const nearest = (c) => {
-  let bi = 0, bd = Infinity;
-  pal.forEach((p, i) => { const d = (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2; if (d < bd) { bd = d; bi = i; } });
-  return bi;
-};
-const used = new Set();
-let art = grid.map((row) => row.map((c) => { if (!c) return "."; const i = nearest(c); used.add(i); return GLYPHS[i]; }).join(""));
-art = art.map((r) => r.replace(/\.+$/, "")); // 右側の透明は詰める (行長は不揃いでよい)
-const palette = {};
-pal.forEach((p, i) => { if (used.has(i)) palette[GLYPHS[i]] = hex(p); });
+function convert(file, h) {
+  const img = readPng(path.resolve(file));
+  if (!img.hasAlpha && !opt.keepBg) removeBackground(img, opt.tol);
+  const cropped = trim(img);
+  const grid = downscale(cropped, h);
+  const opaque = grid.flat().filter(Boolean);
+  const pal = medianCut(opaque, opt.colors).sort((a, b) => lum(a) - lum(b));
+  const nearest = (c) => {
+    let bi = 0, bd = Infinity;
+    pal.forEach((p, i) => { const d = (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2; if (d < bd) { bd = d; bi = i; } });
+    return bi;
+  };
+  const used = new Set();
+  let art = grid.map((row) => row.map((c) => { if (!c) return "."; const i = nearest(c); used.add(i); return GLYPHS[i]; }).join(""));
+  art = art.map((r) => r.replace(/\.+$/, "")); // 右側の透明は詰める (行長は不揃いでよい)
+  const palette = {};
+  pal.forEach((p, i) => { if (used.has(i)) palette[GLYPHS[i]] = hex(p); });
+  return { palette, art };
+}
 
-const width = Math.max(...art.map((r) => r.length));
-console.log(`${monId}: ${width}×${art.length} ドット / ${Object.keys(palette).length} 色`);
-if (opt.preview) for (const r of art) console.log(r.padEnd(width, ".").replace(/\./g, " ").replace(/[^ ]/g, (ch) => ch));
+// 魔物の辞書 (id の確認・層ボス/強敵の判定・一覧表示に使う)。bestiary.js は monart.js も読み込む
+const { BESTIARY } = await import(pathToFileURL(path.join(ROOT, "src/dungeons/bestiary.js")).href);
+const { ART_WANTED, MONSTER_ART } = await import(pathToFileURL(MONART).href + "?t=" + Date.now());
+const bigMon = (id) => !!(BESTIARY[id] && (BESTIARY[id].boss || BESTIARY[id].elite));
+const heightFor = (id) => opt.h || (bigMon(id) ? 120 : 96);
+const kindOf = (m) => (m.boss ? "層ボス" : m.elite ? "強敵" : "通常");
+
+// ---------- 一覧 ----------
+if (opt.list) {
+  const ids = ART_WANTED[opt.list];
+  if (!ids) { console.error(`第${opt.list}層の原画待ち (ART_WANTED) は登録されていない`); process.exit(1); }
+  let done = 0;
+  console.log(`第${opt.list}層の原画待ち (${ids.length}体)  ※ 原画のファイル名は「<id>.png」にすると --dir でまとめて変換できる`);
+  for (const id of ids) {
+    const m = BESTIARY[id];
+    const ok = !!MONSTER_ART[id];
+    if (ok) done++;
+    console.log(`  ${ok ? "済" : "未"}  ${id.padEnd(20)} ${kindOf(m).padEnd(3, "　")} rank${m.rank}  ${m.name}`);
+  }
+  console.log(`差し替え済み ${done} / ${ids.length}`);
+  process.exit(0);
+}
+
+// ---------- 変換する組を決める ----------
+const jobs = [];
+if (opt.dir) {
+  const dir = path.resolve(opt.dir);
+  const files = fs.readdirSync(dir).filter((f) => /\.png$/i.test(f));
+  const want = opt.layer ? new Set(ART_WANTED[opt.layer] || []) : null;
+  if (opt.layer && !want.size) { console.error(`第${opt.layer}層の原画待ち (ART_WANTED) は登録されていない`); process.exit(1); }
+  for (const f of files) {
+    const id = f.replace(/\.png$/i, "");
+    if (!BESTIARY[id]) { console.warn(`… ${f}: 魔物 id「${id}」は存在しないので飛ばす`); continue; }
+    if (want && !want.has(id)) { console.warn(`… ${f}: 第${opt.layer}層の原画待ちではないので飛ばす`); continue; }
+    jobs.push([id, path.join(dir, f)]);
+  }
+  if (!jobs.length) { console.error("変換できる原画 (<魔物id>.png) が見つからなかった"); process.exit(1); }
+  if (want) {
+    const missing = [...want].filter((id) => !jobs.some(([j]) => j === id) && !MONSTER_ART[id]);
+    if (missing.length) console.log(`まだ原画のない魔物 (${missing.length}体): ${missing.join(", ")}`);
+  }
+} else {
+  const [monId, srcPath] = pos;
+  if (!BESTIARY[monId]) { console.error(`魔物 id「${monId}」は存在しない (図鑑の id を確かめてほしい)`); process.exit(1); }
+  jobs.push([monId, srcPath]);
+}
+
+const results = {};
+for (const [id, file] of jobs) {
+  const a = convert(file, heightFor(id));
+  const width = Math.max(...a.art.map((r) => r.length));
+  console.log(`${id} (${BESTIARY[id].name}): ${width}×${a.art.length} ドット / ${Object.keys(a.palette).length} 色`);
+  if (opt.preview) for (const r of a.art) console.log(r.padEnd(width, ".").replace(/\./g, " "));
+  results[id] = a;
+}
 
 if (opt.dry) process.exit(0);
 
 // ---------- monart.js の登録欄を書き直す ----------
-const mod = await import(pathToFileURL(MONART).href + "?t=" + Date.now());
-const all = { ...mod.MONSTER_ART, [monId]: { palette, art } };
+const all = { ...MONSTER_ART, ...results };
 const body = Object.keys(all).sort().map((id) => {
   const a = all[id];
   return `  ${JSON.stringify(id)}: {\n    palette: ${JSON.stringify(a.palette)},\n    art: [\n${a.art.map((r) => "      " + JSON.stringify(r) + ",").join("\n")}\n    ],\n  },`;
@@ -221,4 +285,4 @@ const src = fs.readFileSync(MONART, "utf8");
 const re = /\/\/ <<MONSTER_ART>>[\s\S]*?\/\/ <<\/MONSTER_ART>>/;
 if (!re.test(src)) throw new Error("monart.js の登録欄 (<<MONSTER_ART>>) が見つからない");
 fs.writeFileSync(MONART, src.replace(re, `// <<MONSTER_ART>>\nexport const MONSTER_ART = {\n${body}\n};\n// <</MONSTER_ART>>`));
-console.log(`src/dungeons/monart.js に ${monId} を書き込んだ (sw.js の CACHE を上げるのを忘れずに)`);
+console.log(`src/dungeons/monart.js に ${Object.keys(results).length} 体を書き込んだ (sw.js の CACHE を上げるのを忘れずに)`);
