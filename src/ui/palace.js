@@ -2,7 +2,7 @@
 // 担当: WP-A。王宮タブ (UI.shell.registerTab("palace", …))。宰相のささやき → 区分 (記憶する) → 中身。
 // どの区分も1画面に収める (頁は縦にスクロールさせない)。長い一覧は収まる数ずつ「‹ 1/3 ›」でめくり、詳細はシート。
 //   勅命   … 勅命の札 (報告/拝命/出撃/謁見 をその場で) + 王の言葉を聞き直す + 王の記録 (戦績) と「伝える」
-//   図鑑   … 魔物 (迷宮の札) / 品 (分類の札) / 職業 → 3列の札をめくる → 詳細のシート。持っている品は UI.itemSheet (その場で装備)
+//   図鑑   … 魔物 (迷宮の札) / アイテム (分類の札・売却額の安い順) / 職業 → 3列の札をめくる → 詳細のシート (アイテムは ◀ ▶ で前後へ)
 //   勲章   … まとめて拝受。拝受できる札を先に、2列の札をめくる
 //   宝物庫 … 新種をまとめて奉納・褒賞 (次の節目)・奉納台帳 (ランク帯の札 → 帯のシート)
 // 提供: UI.openPalace(seg) (seg = "decree" | "codex" | "ach" | "treasury" | "codex:mon|item|job")
@@ -26,7 +26,7 @@ import {
 } from "../souls.js";
 import { rarityColor } from "../rarity.js";
 import { SFX } from "../audio.js";
-import { keeperRow, sectionHead, pagedGrid, findOwned, openItem } from "./facilities.js";
+import { keeperRow, sectionHead, pagedGrid, openItem } from "./facilities.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
 const G = () => game.G;
@@ -152,8 +152,8 @@ function unknownCard() {
   c.appendChild(el("span", "pl-card-n", "？？？"));
   return c;
 }
-function codexCard(sprite, name, { color = null, onTap = null, sub = null, owned = false, fresh = false } = {}) {
-  const c = el("button", "pl-card" + (owned ? " owned" : "") + (fresh ? " fresh" : ""));
+function codexCard(sprite, name, { color = null, onTap = null, sub = null, price = null, fresh = false } = {}) {
+  const c = el("button", "pl-card" + (fresh ? " fresh" : ""));
   c.type = "button";
   if (color) c.style.setProperty("--edge", color);
   const a = el("span", "pl-card-art");
@@ -163,9 +163,14 @@ function codexCard(sprite, name, { color = null, onTap = null, sub = null, owned
   if (color) n.style.color = color;
   c.appendChild(n);
   if (sub) c.appendChild(el("span", "pl-card-s", sub));
-  if (owned) c.appendChild(el("span", "pl-card-own", "所持"));
+  if (price != null) {
+    const p = el("span", "pl-card-p");
+    p.appendChild(glyph("gold"));
+    p.appendChild(document.createTextNode(String(price)));
+    c.appendChild(p);
+  }
   if (fresh) c.appendChild(newMark());
-  c.setAttribute("aria-label", name + (owned ? " (所持)" : "") + (fresh ? " (新着)" : ""));
+  c.setAttribute("aria-label", name + (price != null ? ` (売却額 ${price})` : "") + (fresh ? " (新着)" : ""));
   if (onTap) c.addEventListener("click", () => { sfx("select"); onTap(c); });
   return c;
 }
@@ -204,6 +209,9 @@ function renderCodexMon(box) {
   draw();
 }
 
+// 図鑑の札に載せる売却額 (商会で売るときの値と同じ)
+const sellOf = (it) => (game.sellPrice ? game.sellPrice(it) : Math.max(1, Math.floor((it.price || 10) / 2)));
+
 function renderCodexItem(box) {
   const g = G();
   const seenIds = Object.keys(g.codex.item).filter((id) => ITEMS[id]);
@@ -228,13 +236,18 @@ function renderCodexItem(box) {
       sub.appendChild(wch);
       if (wcat !== "all") ids = ids.filter((id) => ITEMS[id].cat === wcat);
     }
-    ids.sort((a, b) => (ITEMS[a].lv || 0) - (ITEMS[b].lv || 0) || a.localeCompare(b));
-    cap.textContent = `${def.label}　発見 ${ids.length} 種　(所持している品はその場で装備できる)`;
+    // 売却額の安い順 (同額は隠しレベル → id)
+    ids.sort((a, b) => sellOf(ITEMS[a]) - sellOf(ITEMS[b]) || (ITEMS[a].lv || 0) - (ITEMS[b].lv || 0) || a.localeCompare(b));
+    cap.textContent = `${def.label}　発見 ${ids.length} 種　(売却額の安い順)`;
+    const cards = new Map(); // 詳細で前後へ送ったら、その札の新着の印も消す
+    const seen = (id) => markSeen("item", id, cards.get(id) || null);
     pagedGrid(area, ids, (id) => {
       const it = ITEMS[id];
-      return codexCard(it, it.name, { color: (game.itemRankColor && game.itemRankColor(it)) || rarityColor(it), owned: !!findOwned(id), fresh: isFreshItem(id),
-        onTap: (c) => { openItem(id); markSeen("item", id, c); } });
-    }, { cols: 3, cellH: CARD_H, key: "item:" + cat + ":" + wcat, empty: el("div", "wa-empty", "この区分の品は、まだ手にしていない。") });
+      const c = codexCard(it, it.name, { color: (game.itemRankColor && game.itemRankColor(it)) || rarityColor(it), price: sellOf(it), fresh: isFreshItem(id),
+        onTap: () => { codexItemSheet(id, { nav: { ids, onShow: seen } }); seen(id); } });
+      cards.set(id, c);
+      return c;
+    }, { cols: 3, cellH: CARD_H, key: "item:" + cat + ":" + wcat, empty: el("div", "wa-empty", "この区分のアイテムは、まだ手にしていない。") });
   };
   const ch = chips(ITEM_CATS.map((c) => ({ key: c.key, label: c.label, badge: freshCat(c.key) })), cat, (k) => { cat = k; remember("codex", "itemCat", k); draw(); });
   refresh.list = () => {
@@ -322,7 +335,7 @@ export function codexEventSheet(id) {
   });
 }
 
-// 図鑑の記録の数 (魔物・品・職業)
+// 図鑑の記録の数 (魔物・アイテム・職業・見聞)
 function codexTotals() {
   const g = G();
   return {
@@ -345,9 +358,10 @@ function renderCodex(body) {
     else renderCodexJob(box);
   };
   const segEl = segmented([
-    { key: "mon", label: `魔物 ${mons}`, badge: fc.mon || null }, { key: "item", label: `品 ${items}`, badge: fc.item || null }, { key: "job", label: `職業 ${jobs}`, badge: fc.job || null },
+    { key: "mon", label: `魔物 ${mons}`, badge: fc.mon || null }, { key: "item", label: `アイテム ${items}`, badge: fc.item || null }, { key: "job", label: `職業 ${jobs}`, badge: fc.job || null },
     { key: "ev", label: `見聞 ${evs}`, badge: fc.ev || null },
   ], sub, (k) => { sfx("select"); draw(k); softFade(box); }, { prefKey: "codex" });
+  segEl.classList.add("pl-codex-seg"); // 4区分 (見聞録つき) を1行に収める
   refresh.sub = () => { const c = freshCounts(); ["mon", "item", "job", "ev"].forEach((k, i) => setBadge(segBtn(segEl, i), c[k] || null)); };
   body.appendChild(segEl);
   body.appendChild(box);
@@ -397,10 +411,9 @@ export function codexMonSheet(key) {
   });
 }
 
-// o: { item (所持品の実体), heading (見出し 例: 鑑定成功した！), headingColor, footer, onClose }
-export function codexItemSheet(id, o = {}) {
-  const it = o.item || ITEMS[id];
-  if (!it) return null;
+// o: { item (所持品の実体), heading (見出し 例: 鑑定成功した！), headingColor, footer, onClose,
+//      nav: { ids, onShow(id) } (図鑑の一覧。画像の左右の ◀ ▶ で、詳細を開いたまま前後のアイテムへ送る) }
+function codexItemView(it, o) {
   const rc = (game.itemRankColor && game.itemRankColor(it)) || rarityColor(it);
   const body = el("div", "pl-detail");
   if (o.heading) {
@@ -419,12 +432,52 @@ export function codexItemSheet(id, o = {}) {
     if (st) body.appendChild(setText(el("div", "pl-detail-stats"), st));
     if (it.desc) body.appendChild(setText(el("div", "pl-detail-desc"), it.desc));
   }
-  return sheet.open({
-    kind: "info", banner: unid ? "未鑑定の品" : game.itemGradeText ? game.itemGradeText(it, "品") : "品", accent: rc, art: it, artScale: 9,
-    title: unid ? itemName(it) : it.name, titleColor: rc, body, className: "pl-detail-sheet",
-    footer: o.footer || [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
+  return {
+    banner: unid ? "未鑑定の品" : game.itemGradeText ? game.itemGradeText(it, "品") : "品", accent: rc, art: it, artScale: 9,
+    title: unid ? itemName(it) : it.name, titleColor: rc, body,
+  };
+}
+// 画像の左右に ◀ ▶ (端では押せない)
+function navArt(it, i, n, go) {
+  const f = document.createDocumentFragment();
+  f.appendChild(spriteCanvas(it, 9));
+  const arrow = (dir) => {
+    const b = el("button", "pl-nav " + (dir < 0 ? "prev" : "next"), dir < 0 ? "◀" : "▶");
+    b.type = "button";
+    b.setAttribute("aria-label", dir < 0 ? "前のアイテム" : "次のアイテム");
+    const to = i + dir;
+    if (to < 0 || to >= n) b.disabled = true;
+    else b.addEventListener("click", (e) => { e.stopPropagation(); go(to); });
+    return b;
+  };
+  f.appendChild(arrow(-1));
+  f.appendChild(arrow(1));
+  return f;
+}
+export function codexItemSheet(id, o = {}) {
+  const it = o.item || ITEMS[id];
+  if (!it) return null;
+  const v = codexItemView(it, o);
+  const nav = o.nav && Array.isArray(o.nav.ids) && o.nav.ids.length > 1 ? o.nav : null;
+  let h = null;
+  const go = (i) => {
+    const nid = nav.ids[i];
+    const nit = ITEMS[nid];
+    if (!nit || !h || h.closed) return;
+    sfx("select");
+    const nv = codexItemView(nit, {});
+    h.el.style.setProperty("--sheet-accent", nv.accent);
+    h.update({ ...nv, art: navArt(nit, i, nav.ids.length, go) });
+    if (nav.onShow) nav.onShow(nid);
+  };
+  const idx = nav ? nav.ids.indexOf(id) : -1;
+  h = sheet.open({
+    kind: "info", ...v, art: idx >= 0 ? navArt(it, idx, nav.ids.length, go) : it,
+    className: "pl-detail-sheet" + (idx >= 0 ? " pl-navsheet" : ""),
+    footer: o.footer || [{ label: "閉じる", kind: "ghost", onTap: (hh) => hh.close() }],
     onClose: o.onClose,
   });
+  return h;
 }
 
 export function codexJobSheet(key, rank, heading) {
