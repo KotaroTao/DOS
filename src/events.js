@@ -6,7 +6,7 @@
 //   common   (常) … どこでも。小さな賭け         (見返り ≒ 戦果1〜2)
 //   uncommon (稀) … やや稀。中くらいの賭け         (≒ 戦果3〜5)
 //   rare     (秘) … 1回の潜入で1度まで             (≒ 戦果8〜12)
-//   mythic   (極) … 一度選べば二度と出ない (セーブ単位) — 恒久の恵み・物語
+//   mythic   (極) … セーブで一度きり。選択肢は無く、踏めばその場で恒久の恵みを授かる (gift)
 // 「戦果1」= その迷宮の通常戦闘1回ぶんの gold / ✦Soul (game.js の evApi が迷宮の魔物から見積もる)。
 // 報酬は既存の経路 (pickLoot / acquireSoul / 宝箱) を通るので、層ごとの出現上限 (lootCapR) は越えない。
 // LR と赤い魂はイベントからは出さない。
@@ -27,9 +27,22 @@ export const EV_FLOOR_RATE_D1 = 0.25;
 // その層の専用イベントは見かけやすく
 const LAYER_W = 1.5;
 
+// 極の出来事が授ける恒久の恵み (G.events.flags のキー → 効き目)。game.js が戦闘・✦Soul の獲得で読む
+export const EV_BOONS = {
+  will:     { soulMul: 0.10, text: "先代の遺志 ― ✦Soul の獲得量 +10%" },
+  blackCat: { crit: 0.03,    text: "黒猫の加護 ― 全員の会心率 +3%" },
+  sewerMap: {                text: "王都の下水図 ― 第2層ではどの階も階段が最初から見える" },
+  temper:   { dmgMul: 1.05,  text: "地の底の焼き入れ ― 全員の与えるダメージ +5%" },
+};
+
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 const chance = (p) => Math.random() < p;
 const pctTxt = (p) => `${Math.round(p * 100)}%`;
+// 隊の手当ての要不要 (何も起きない選択肢は出さない)
+const anyHurt = (A) => A.aliveList().some((m) => m.hp < m.maxhp);
+const anyDrained = (A) => A.aliveList().some((m) => m.mp < m.maxmp);
+const anyAiling = (A) => A.aliveList().some((m) => m.ailment);
+const needsCare = (A) => anyHurt(A) || anyDrained(A) || anyAiling(A);
 
 // ---- 怨霊の謎かけ ----
 const RIDDLES = [
@@ -65,20 +78,22 @@ export const LORE_PAGES = {
 // 共通フィールド:
 //   id, name, layer (0=共通 / 1..=その層専用), tier, icon (ICONS のキー or "mon:<id>"), accent,
 //   minFloor (この階以上), deep (迷宮の後半の階のみ), minDn (迷宮番号の下限), maxSkip (この階から先に必要な階数),
-//   once (極: 一度選べば二度と出ない。true=セーブで1回 / "layer"=層ごとに1回), cond(A) 追加条件,
+//   once (一度きり: true=セーブで1回 / "layer"=層ごとに1回。極はすべて true), cond(A) 追加条件,
 //   intro(A, cell) → 本文の行, choices(A, cell) → 選択肢 [{label, fn, primary?, danger?}],
+//   gift(A, cell) → 極の出来事: 選択肢の代わり。踏んだ時に恒久の恵みを授け、結果の行を返す。boon = 図鑑に出す恵みの説明,
 //   onWin(A, cell, fight, next) … 出来事の戦闘に勝った後の続き (fight.tag で分岐)
 // 選択肢の fn は必ず最後に A.done(cell) か A.back() (または次の画面) へつなぐ。
+// 何も起きない選択肢は作らない (「立ち去る」と重なる)。その場で効き目の無い選択肢は出さない。
 
 export const EVENTS = [
-  // ================= 共通 (30) =================
+  // ================= 共通 (33) =================
   {
     id: "c01", name: "苔むした祭壇", layer: 0, tier: "common", icon: "fountain",
     intro: () => ["苔に覆われた小さな祭壇。供物の皿は空のまま、祈りの跡だけが残っている。"],
     choices: (A, cell) => {
       const cost = A.goldCost(1);
       return [
-        A.canPayGold(cost) && { label: `金貨を供える (💰${cost}) ― HP・MPが3割回復`, primary: true, fn: () => {
+        A.canPayGold(cost) && (anyHurt(A) || anyDrained(A)) && { label: `金貨を供える (💰${cost}) ― HP・MPが3割回復`, primary: true, fn: () => {
           A.payGold(cost); A.healAll(0.3, 0.3, false);
           A.toast("祭壇が淡く光った ― HP・MPが回復した", "good", "fountain"); A.done(cell);
         } },
@@ -503,7 +518,7 @@ export const EVENTS = [
           const n = A.reviveMonsters();
           A.sfx("spell"); A.flash("#7fb0ff"); A.toast(`時が巻き戻った ― ${n}体の魔物が蘇った`, "gold"); A.done(cell);
         } },
-        { label: "砂をすくって飲む ― 全員が全快し、状態異常も消える", primary: true, fn: () => {
+        needsCare(A) && { label: "砂をすくって飲む ― 全員が全快し、状態異常も消える", primary: true, fn: () => {
           A.healAll(1, 1, true); A.sfx("heal"); A.toast("時の砂が傷を無かったことにした ― 全快", "good"); A.done(cell);
         } },
       ];
@@ -548,16 +563,63 @@ export const EVENTS = [
     onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "古強者に囚われていた魂だ。", () => A.done(cell, next)),
   },
   {
-    id: "c30", name: "操霊師の遺書", layer: 0, tier: "mythic", icon: "event", once: "layer",
-    intro: () => ["朽ちた机に、革表紙の手記。先代の操霊師が遺したものだ。", "読めば魂の残火が宿る。焼けば、紙に染みた魂が解き放たれる。"],
+    id: "c30", name: "操霊師の遺書", layer: 0, tier: "mythic", icon: "event", once: true,
+    boon: EV_BOONS.will.text,
+    intro: () => ["朽ちた机に、革表紙の手記。先代の操霊師が遺したものだ。", "頁をめくると、紙に染みた魂が指先から流れ込んできた。"],
+    gift: (A) => {
+      const L = A.layer;
+      A.flags().lore = { ...(A.flags().lore || {}), [L]: true };
+      A.flags().will = true;
+      A.sfx("spell");
+      return [...(LORE_PAGES[L] || LORE_PAGES[0]), `✺ ${EV_BOONS.will.text} (以後ずっと)`];
+    },
+  },
+  // ---- 蘇生の出来事 (倒れた仲間を起こす) ----
+  {
+    id: "c31", name: "生命の雫", layer: 0, tier: "common", icon: "fountain",
+    cond: (A) => A.deadList().length > 0,
+    intro: () => ["天井の鍾乳石から、淡く光る雫が一滴ずつ落ちている。", "一滴だけ受け止められそうだ。倒れた者の口に含ませれば、魂が器へ戻るという。"],
+    choices: (A, cell) => A.deadList().map((m) => ({
+      label: `${m.name}に雫を含ませる ― HP1で蘇る`, primary: true, fn: () => {
+        A.revive(m, false);
+        A.sfx("heal"); A.toast(`${m.name}が息を吹き返した (HP1)`, "good", "fountain"); A.done(cell);
+      },
+    })),
+  },
+  {
+    id: "c32", name: "闇医者", layer: 0, tier: "uncommon", icon: "event",
+    cond: (A) => A.deadList().length > 0 || needsCare(A),
+    intro: () => ["血の染みた前掛けの男が、灯りの下で器具を研いでいる。", "「迷宮の中じゃ、街の三倍だ。砕けた器でも繋いでやるよ」"],
+    choices: (A, cell) => {
+      const heal = A.innCost() * 3;
+      return [
+        needsCare(A) && A.canPayGold(heal) && { label: `手当てを受ける (💰${heal}) ― 生きている者のHP・MP全快と状態異常の回復`, fn: () => {
+          A.payGold(heal); A.healAll(1, 1, true);
+          A.sfx("heal"); A.toast("荒っぽいが、腕は確かだった ― 全快", "good"); A.reopen(cell);
+        } },
+        ...A.deadList().map((m) => {
+          const cost = A.repairCost(m) * 3;
+          return A.canPayGold(cost) && { label: `${m.name}を蘇らせる (💰${cost}) ― HP・MPが満ちて蘇る`, primary: true, fn: () => {
+            A.payGold(cost); A.revive(m, true);
+            A.sfx("heal"); A.toast(`${m.name}が立ち上がった (💰${cost})`, "good"); A.reopen(cell);
+          } };
+        }),
+      ];
+    },
+  },
+  {
+    id: "c33", name: "神聖なる泉", layer: 0, tier: "rare", icon: "fountain", deep: true,
+    intro: (A) => ["白く輝く泉が、闇の底で静かに湧いている。水面に触れた苔が花を咲かせた。", "この水は、倒れた者の魂さえ呼び戻すという。",
+      ...(A.aliveList && A.deadList().length === 0 && !needsCare(A) ? ["いまは癒すべき傷がない。泉は変わらず湧いている。"] : [])],
     choices: (A, cell) => [
-      { label: "読む ― 物語のページ (見聞録に記す) と魂の残火 ×2", primary: true, fn: () => {
-        const L = A.layer, page = LORE_PAGES[L] || LORE_PAGES[0];
-        A.flags().lore = { ...(A.flags().lore || {}), [L]: true };
-        A.ember(2, "操霊師の遺書", true);
-        A.story("操霊師の遺書", page, () => A.done(cell));
+      (A.deadList().length > 0 || needsCare(A)) && { label: "泉に身を浸す ― 倒れた者も蘇り、全員のHP・MPが満ちる", primary: true, fn: () => {
+        const dead = A.deadList();
+        for (const m of dead) A.revive(m, true);
+        A.healAll(1, 1, true);
+        A.sfx("heal"); A.flash("#fff3c0");
+        A.toast(dead.length ? `泉が魂を呼び戻した ― ${dead.map((m) => m.name).join("・")}が蘇り、全員が全快` : "泉が傷を洗い流した ― 全員が全快", "good", "fountain");
+        A.done(cell);
       } },
-      { label: "焼き捨てる ― ✦Soul (特大)", danger: true, fn: () => { A.sfx("fire"); A.soul(10, "燃える遺書"); A.done(cell); } },
     ],
   },
 
@@ -601,7 +663,6 @@ export const EVENTS = [
         if (chance(0.5)) { A.item({}, "棺の副葬品", () => A.done(cell)); return; }
         A.alarm("棺の主が目覚めた！", ["打ち倒せば、棺の中身は手に入る。"], "corpse", () => A.fight(cell, [{ undead: true, strong: 1.4 }], "coffin", { noChest: true }));
       } },
-      { label: "蓋を釘で打ち付ける ― 何も起きない", fn: () => { A.sfx("hit"); A.toast("棺は二度と開かない", "info"); A.done(cell); } },
     ],
     onWin: (A, cell, f, next) => A.chestHere(cell, { rankUp: 0 }, next),
   },
@@ -613,7 +674,7 @@ export const EVENTS = [
         A.floorEv().mods.push({ src: "l1_04", name: "鎮魂の香", desc: "不死・霊の魔物への与ダメージ +30% (この階)", prey: { races: ["undead", "specter"], mul: 1.3 } });
         A.sfx("spell"); A.toast("香煙が満ちた ― 不死の魔物への与ダメ+30%", "good"); A.done(cell);
       } },
-      { label: "灰を撒く ― 全員の状態異常を払う", fn: () => {
+      anyAiling(A) && { label: "灰を撒く ― 全員の状態異常を払う", fn: () => {
         A.cureAll(); A.sfx("heal"); A.toast("清めの灰が穢れを払った", "good"); A.done(cell);
       } },
     ],
@@ -702,17 +763,13 @@ export const EVENTS = [
   },
   {
     id: "l1_10", name: "墓地の黒猫", layer: 1, tier: "mythic", icon: "event", once: true,
-    intro: () => ["金色の目をした黒猫が、墓石の上からこちらを見ている。", "猫はひと声鳴くと、尻尾を立てて歩き出した。"],
-    choices: (A, cell) => [
-      { label: "ついていく ― 隠し部屋の宝箱 (最上等)", primary: true, fn: () => {
-        A.sfx("chest"); A.toast("猫は隠し扉の前で消えた", "gold"); A.chestHere(cell, { cRank: 5, lootBonus: 15 });
-      } },
-      { label: "撫でる ― この潜入の間、会心率+5% (幸運)", fn: () => {
-        A.runEv().crit = Math.max(A.runEv().crit || 0, 0.05);
-        A.sfx("heal"); A.toast("黒猫は喉を鳴らした ― この潜入の間、会心率+5%", "good"); A.done(cell);
-      } },
-    ],
-    leaveLabel: "追い払う",
+    boon: EV_BOONS.blackCat.text,
+    intro: () => ["金色の目をした黒猫が、墓石の上からこちらを見ている。", "猫は音もなく降りてくると、一人ひとりの足元に身をすり寄せ、喉を鳴らした。"],
+    gift: (A) => {
+      A.flags().blackCat = true;
+      A.sfx("heal");
+      return ["顔を上げた時には、もう猫の姿はなかった。", `✺ ${EV_BOONS.blackCat.text} (以後ずっと)`];
+    },
   },
 
   // ================= 第2層「地下水路」 (10) =================
@@ -751,7 +808,7 @@ export const EVENTS = [
         else { A.ailAll("poison", 1); A.sfx("trap"); A.toast("湯は汚れていた ― 全員が毒に侵された", "bad", "poison"); }
         A.done(cell);
       } },
-      { label: "こして飲む ― 全員のMPが3割回復", primary: true, fn: () => {
+      anyDrained(A) && { label: "こして飲む ― 全員のMPが3割回復", primary: true, fn: () => {
         A.healAll(0, 0.3, false); A.sfx("heal"); A.toast("澄んだ水が魔力を満たした", "good", "fountain"); A.done(cell);
       } },
     ],
@@ -852,19 +909,18 @@ export const EVENTS = [
         A.runEv().edef = { el: "earth", lv: 1 };
         A.sfx("spell"); A.toast(`土の護りを得た (この潜入)${hurt.length ? ` ― 溺れかけた: ${hurt.join("・")}` : ""}`, "gold"); A.done(cell);
       } },
-      { label: "水面で祈る ― 全員が全快", primary: true, fn: () => { A.healAll(1, 1, true); A.sfx("heal"); A.toast("水面の祈りが届いた ― 全快", "good", "fountain"); A.done(cell); } },
+      needsCare(A) && { label: "水面で祈る ― 全員が全快", primary: true, fn: () => { A.healAll(1, 1, true); A.sfx("heal"); A.toast("水面の祈りが届いた ― 全快", "good", "fountain"); A.done(cell); } },
     ],
   },
   {
     id: "l2_10", name: "王都の下水図", layer: 2, tier: "mythic", icon: "event", once: true,
-    intro: () => ["防水筒に収められた古い設計図。王都の下水路の全図だ。", "これがあれば、地下水路のどの階でも出口は一目で分かる。"],
-    choices: (A, cell) => [
-      { label: "王に献上する ― 以後、第2層ではどの階も階段が最初から見える", primary: true, fn: () => {
-        A.flags().sewerMap = true; A.revealStairs();
-        A.sfx("victory"); A.story("王都の下水図", ["王は図面を広げ、満足げにうなずいた。", "「よくぞ見つけた。写しを持って行け」", "以後、第2層の迷宮ではどの階も階段が最初から見える。"], () => A.done(cell));
-      } },
-      { label: "売る ― 金貨 (特大)", fn: () => { A.gold(15, "下水図"); A.done(cell); } },
-    ],
+    boon: EV_BOONS.sewerMap.text,
+    intro: () => ["防水筒に収められた古い設計図。王都の下水路の全図だ。", "隅々まで目を通すうち、入り組んだ水路の形がすっかり頭に入った。"],
+    gift: (A) => {
+      A.flags().sewerMap = true; A.revealStairs();
+      A.sfx("victory");
+      return [`✺ ${EV_BOONS.sewerMap.text} (以後ずっと)`];
+    },
   },
 
   // ================= 第3層「廃坑」 (10) =================
@@ -994,18 +1050,12 @@ export const EVENTS = [
   },
   {
     id: "l3_10", name: "地の底の鍛冶場", layer: 3, tier: "mythic", icon: "event", once: true, minDn: 14, deep: true,
-    intro: () => ["地熱で赤く光る火床。ドワーフの霊が、黙々と槌を振るっている。", "「一つだけ鍛え直してやろう。だが、出来損ないは砕ける (1割)。……あるいは、品の正体を見てやろうか」"],
-    choices: (A, cell) => {
-      const eq = A.equippedForgeable();
-      return [
-        ...eq.slice(0, 4).map(({ m, it }) => ({ label: `${A.itemName(it)} (${m.name}) を鍛え直す ― 能力+1割 / 1割で砕ける`, danger: true, fn: () => {
-          if (chance(0.1)) { A.breakItem(m, it); A.sfx("trap"); A.toast(`${A.itemName(it)}は砕け散った……`, "bad"); A.done(cell); return; }
-          A.forge(m, it); A.sfx("victory"); A.flash("#ff9a4a"); A.toast(`${A.itemName(it)} に鍛え直した ― 能力が1割上がった`, "gold"); A.done(cell);
-        } })),
-        { label: "持ち物をすべて鑑定してもらう (無料)", primary: !eq.length, fn: () => {
-          const n = A.identifyAll(); A.sfx("appraiseOk"); A.toast(n ? `${n}点の品の正体が明かされた` : "鑑定すべき品はなかった", n ? "good" : "info"); A.done(cell);
-        } },
-      ];
+    boon: EV_BOONS.temper.text,
+    intro: () => ["地熱で赤く光る火床。ドワーフの霊が、黙々と槌を振るっている。", "霊は無言で隊の得物を取り上げると、火床にくべ、焼き入れを施して返した。"],
+    gift: (A) => {
+      A.flags().temper = true;
+      A.sfx("victory"); A.flash("#ff9a4a");
+      return ["「……これで、少しはましに斬れる」", `✺ ${EV_BOONS.temper.text} (以後ずっと)`];
     },
   },
 ];
@@ -1016,7 +1066,9 @@ export const EVENT_MAP = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
   if (Object.keys(EVENT_MAP).length !== EVENTS.length) throw new Error("events.js: 重複したイベントidがある");
   for (const e of EVENTS) {
     if (!EV_TIERS[e.tier]) throw new Error(`events.js: ${e.id} の tier が不正`);
-    if (typeof e.choices !== "function" || typeof e.intro !== "function") throw new Error(`events.js: ${e.id} に intro/choices がない`);
+    if (typeof e.intro !== "function") throw new Error(`events.js: ${e.id} に intro がない`);
+    // 極は選択肢なし (gift で恒久の恵みを授ける・セーブで一度きり)、それ以外は選択式
+    if (e.tier === "mythic" ? (typeof e.gift !== "function" || e.choices || e.once !== true || !e.boon) : typeof e.choices !== "function") throw new Error(`events.js: ${e.id} の choices/gift が不正`);
   }
 })();
 
@@ -1099,6 +1151,16 @@ export function runEvent(A, cell) {
     if (p) { A.toast(p, "info", e.icon === "event" ? "event" : null); A.back(); return; }
   }
   A.seen(e, cell);
+  // 極: 選択肢は無く、踏んだその場で恒久の恵みを授かる (一度きり)。授け済みのマスを踏み直したら片付けるだけ
+  if (e.gift) {
+    if (cell.evGiven) { A.done(cell); return; }
+    cell.evGiven = true;
+    A.picked(e, "恵みを授かった");
+    const lines = e.gift(A, cell) || [];
+    const t = EV_TIERS[e.tier];
+    A.gift(e.name, [...e.intro(A, cell), ...lines], A.icon(e), { banner: t.banner, accent: e.accent || t.accent }, () => A.done(cell));
+    return;
+  }
   const opts = (e.choices(A, cell) || []).filter(Boolean).map((o) => ({ ...o, fn: () => { A.picked(e, o.label); o.fn(); } }));
   if (!e.noLeave) opts.push({ label: e.leaveLabel || "立ち去る", cancel: true, fn: () => { A.log(`${e.name}を後にした。`, "sys"); A.back(); } });
   const tier = EV_TIERS[e.tier];
