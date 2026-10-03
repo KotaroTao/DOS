@@ -55,7 +55,7 @@ export const RANK17_ITEMS = [
   G("g_r17_majestygloves", "神威の手袋", 163, { magStat: "int", weight: "cloth", tint: "#e0c0e8", desc: "神の威の紋を縫い込んだ薄手の手袋。指先の感覚を保ちつつ、握った触媒へ膨大な魔力を澄んだまま導いてくれる。" }),
   G("g_r17_artifactgloves", "神器の宝手袋", 168, { magStat: "pie", weight: "cloth", tint: "#fff0d0", desc: "神の手になる神器の聖手袋。掌の聖印が祈祷に魔力を乗せやすくし、癒しの奇跡を大きく後押しする。" }),
   G("g_r17_majestyhandsgloves", "神威の鋼手袋", 164, { role: "atk", tint: "#e0d8f0", desc: "神威鋼を編んだ手袋。指の自由を残したまま拳を堅く守り、神の威が握った得物の一打に鋭い冴えを加える。" }),
-  G("g_r17_marksmanglove", "神器射手の手袋", 168, { role: "atk", tint: "#8a6438", desc: "神器を操る射手のために誂えた手袋。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を究極まで高める。" }),
+  G("g_r17_marksmanglove", "神器射手の手袋", 168, { role: "atk", tint: "#8a6438", desc: "神器を操る射手のためにあつらえた手袋。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を究極まで高める。" }),
   G("g_r17_majestygauntlet", "神威の籠手", 165, { role: "atk", shape: "gauntlet", tint: "#e0d8f0", desc: "神威鋼を関節ごとに連ねた籠手。宿る神の威を帯びた拳が、振るう得物の一撃に冴えと究極の重みを上乗せする。" }),
   G("g_r17_artifactgauntlet", "神器の籠手", 170, { role: "atk", shape: "gauntlet", tint: "#fff0d0", desc: "神の手になる神器の籠手。神威の威光をまとう甲が指先まで包んで握力を損なわず、剣を振る手に絶大な信頼を置かせる。" }),
 

@@ -1,5 +1,5 @@
 // ===== UI キット (§5 部品) =====
-// 黒鉄の板・燻した金の縁・明朝の見出し。押せる場所は最低 44×44。絵文字はボタンに置かず、
+// 黒鉄の板・くすぶした金の縁・明朝の見出し。押せる場所は最低 44×44。絵文字はボタンに置かず、
 // 通貨は小さな硬貨/魂玉の印 (.ui-g-*) に、その他の絵文字は取り除く (glyphText)。
 // シートは #ui-layer に積み重なり (z 80+n)、トーストは最大3つ。戻る操作は nav に集まる。
 
@@ -229,13 +229,13 @@ export const sheet = {
       foot.classList.toggle("hidden", !foot.childElementCount);
     };
     fill(opts);
-    // 縦スクロールを出さない: 収まらない中身は頁に分けて ‹ 1/2 › で送る (fitPages)
+    // 縦スクロールを出さない: 収まらない中身はページに分けて ‹ 1/2 › で送る (fitPages)
     const pager = el("div", "ui-sheet-pager hidden");
     card.insertBefore(pager, foot);
     h.pager = pager;
     h.host = card;
     h.page = 0;
-    // pageEnd: 頁に分かれたら最後の頁を見せ続ける (記録など。手で頁を送るまで、割り直しても最後へ寄せる)
+    // pageEnd: ページに分かれたら最後のページを見せ続ける (記録など。手でページを送るまで、割り直しても最後へ寄せる)
     h.pageEnd = !!opts.pageEnd;
 
     h.update = (o) => { h.opts = { ...h.opts, ...o }; h.page = 0; fill(h.opts); schedulePages(h); };
@@ -296,10 +296,10 @@ export const sheet = {
   closeAll() { for (const h of stack.slice().reverse()) h.close("reset", { silent: true }); },
 };
 
-// ================= シートの頁送り (縦スクロールの代わり) =================
-// 中身がシートの高さを超えたら、上から順に「入る分」ずつ頁に割り、他の頁の要素は隠す (要素は動かさない)。
-// 1つで頁より高い箱は、その子へ降りて割る (箱の見出し = 最初の小さな子は、続きの頁にも出す)。
-// 中身が後から変わったら (ResizeObserver) 割り直す。頁は ‹ › ・左右のスワイプ・←→キーで送る
+// ================= シートのページ送り (縦スクロールの代わり) =================
+// 中身がシートの高さを超えたら、上から順に「入る分」ずつページに割り、他のページの要素は隠す (要素は動かさない)。
+// 1つでページより高い箱は、その子へ降りて割る (箱の見出し = 最初の小さな子は、続きのページにも出す)。
+// 中身が後から変わったら (ResizeObserver) 割り直す。ページは ‹ › ・左右のスワイプ・←→キーで送る
 const PG_ATTR = "data-pg";
 function pgReset(body) {
   for (const n of body.querySelectorAll("[" + PG_ATTR + "], .ui-pg-off")) { n.removeAttribute(PG_ATTR); n.classList.remove("ui-pg-off"); }
@@ -358,15 +358,15 @@ function showPage(h, n) {
     const on = u.getAttribute(PG_ATTR).split(" ").includes(String(h.page));
     u.classList.toggle("ui-pg-off", !on);
   }
-  // 割られた箱は、中身が全部隠れた頁では箱ごと隠す (内側の箱から)
+  // 割られた箱は、中身が全部隠れたページでは箱ごと隠す (内側の箱から)
   for (const box of (h._pgBoxes || []).slice().reverse()) {
     const any = box.querySelector("[" + PG_ATTR + "]:not(.ui-pg-off)");
     box.classList.toggle("ui-pg-off", !any);
   }
   const pager = h.pager;
   pager.textContent = "";
-  const prev = el("button", "ui-pg-b prev"); prev.type = "button"; prev.setAttribute("aria-label", "前の頁"); prev.textContent = "‹";
-  const next = el("button", "ui-pg-b next"); next.type = "button"; next.setAttribute("aria-label", "次の頁"); next.textContent = "›";
+  const prev = el("button", "ui-pg-b prev"); prev.type = "button"; prev.setAttribute("aria-label", "前のページ"); prev.textContent = "‹";
+  const next = el("button", "ui-pg-b next"); next.type = "button"; next.setAttribute("aria-label", "次のページ"); next.textContent = "›";
   prev.disabled = h.page <= 0; next.disabled = h.page >= h.pages - 1;
   prev.addEventListener("click", () => turnPage(h, -1));
   next.addEventListener("click", () => turnPage(h, 1));
@@ -397,7 +397,7 @@ function watchPages(h) {
     inner();
     if (typeof MutationObserver === "function") new MutationObserver(() => { inner(); if (!h._pgBusy && !h.closed) schedulePages(h); }).observe(h.body, { childList: true });
   }
-  // 左右のスワイプで頁を送る
+  // 左右のスワイプでページを送る
   let x0 = null, y0 = 0;
   h.body.addEventListener("pointerdown", (e) => { x0 = e.clientX; y0 = e.clientY; });
   h.body.addEventListener("pointerup", (e) => {
@@ -410,7 +410,7 @@ function watchPages(h) {
     else if (e.key === "ArrowLeft") turnPage(h, -1);
   });
 }
-// 画面の中の箱 (タブの本文など) にも同じ頁送りを付ける。pager は box の直後に置く。
+// 画面の中の箱 (タブの本文など) にも同じページ送りを付ける。pager は box の直後に置く。
 // box は高さが決まっている (flex で伸び縮みする) こと。中身を描き直したら自動で割り直す
 export function autoPage(box, { pagerClass = "" } = {}) {
   if (!hasDOM() || !box) return null;

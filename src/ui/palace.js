@@ -1,10 +1,10 @@
 // ===== 王宮 — 勅命 / 図鑑 / 勲章 / 宝物庫 (区分ごとに印) =====
 // 担当: WP-A。王宮タブ (UI.shell.registerTab("palace", …))。宰相のささやき → 区分 (記憶する) → 中身。
-// どの区分も1画面に収める (頁は縦にスクロールさせない)。長い一覧は収まる数ずつ「‹ 1/3 ›」でめくり、詳細はシート。
+// どの区分も1画面に収める (ページは縦にスクロールさせない)。長い一覧は収まる数ずつ「‹ 1/3 ›」でめくり、詳細はシート。
 //   勅命   … 勅命の札 (報告/拝命/出撃/謁見 をその場で) + 王の言葉を聞き直す + 王の記録 (戦績) と「伝える」
 //   図鑑   … 魔物 (迷宮の札) / アイテム (分類の札・売却額の安い順) / 職業 → 3列の札をめくる → 詳細のシート (アイテムは ◀ ▶ で前後へ)
 //   勲章   … まとめて拝受。拝受できる札を先に、2列の札をめくる
-//   宝物庫 … 蒐集品を奉納 (品の詳細のシート → 奉納する)・褒賞 (次の節目)・奉納台帳 (ランク帯の札 → 帯のシート)
+//   宝物庫 … 収集品を奉納 (品の詳細のシート → 奉納する)・褒賞 (次の節目)・奉納台帳 (ランク帯の札 → 帯のシート)
 // 提供: UI.openPalace(seg) (seg = "decree" | "codex" | "ach" | "treasury" | "codex:mon|item|job")
 //       UI.codexMonSheet(key) / UI.codexItemSheet(id) / UI.codexJobSheet(key, rank, heading)
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
@@ -323,11 +323,11 @@ export function codexEventSheet(id) {
   body.appendChild(infoBlock("現れる所", [pairRow(eventWhereText(e))]));
   const picks = Object.entries((rec.picks && rec.picks[id]) || {});
   body.appendChild(infoBlock("選んだ道", picks.length ? picks.map(([k, n]) => pairRow(k, `${n}回`)) : [pairRow("まだ選んだことはない", null, { dim: true })]));
-  // 魂繰りの遺書: 読んだ頁
+  // 魂繰りの遺書: 読んだページ
   if (id === "c30") {
     const lore = (rec.flags && rec.flags.lore) || {};
     const ls = Object.keys(lore).filter((k) => lore[k]).sort();
-    if (ls.length) for (const L of ls) body.appendChild(infoBlock(`第${L}層の頁`, (LORE_PAGES[L] || LORE_PAGES[0]).map((x) => setText(el("div", "pl-detail-desc"), x))));
+    if (ls.length) for (const L of ls) body.appendChild(infoBlock(`第${L}層のページ`, (LORE_PAGES[L] || LORE_PAGES[0]).map((x) => setText(el("div", "pl-detail-desc"), x))));
   }
   return sheet.open({
     kind: "info", banner: t.banner, accent: t.accent, art: evIcon(e), artScale: 6, title: e.name, body, className: "pl-detail-sheet",
@@ -646,7 +646,7 @@ function rung(m, ts, total, inSheet = false) {
   else r.appendChild(el("span", "pl-rung-s", `あと ${m.n - total}`));
   return r;
 }
-// 「蒐集品を奉納」: 奉納する品の詳細を並べたシート → 「奉納する」で奉納 (節目に届けばそのまま褒賞へ)
+// 「収集品を奉納」: 奉納する品の詳細を並べたシート → 「奉納する」で奉納 (節目に届けばそのまま褒賞へ)
 export function donateSheet() {
   const news = ops.donatableList ? ops.donatableList() : [];
   if (!news.length) return null;
@@ -656,7 +656,7 @@ export function donateSheet() {
   const after = total + news.length;
   const next = (game.TREASURY_MILESTONES || []).find((m) => !ts.claimed["m" + m.n] && after >= m.n);
   return sheet.open({
-    kind: "info", banner: "宝物庫に奉納", title: `蒐集品 ${news.length} 種`, className: "pl-donate-card",
+    kind: "info", banner: "宝物庫に奉納", title: `収集品 ${news.length} 種`, className: "pl-donate-card",
     body: (scroll) => {
       scroll.appendChild(el("div", "pl-dn-lead", `奉納すると品は宝物庫に納められ、台帳に記される。（奉納 ${total} → ${after} / 100 種）`));
       const list = el("div", "pl-dn-list");
@@ -698,14 +698,14 @@ function renderTreasury(body) {
   prog.appendChild(el("div", "pl-prog-t", `奉納 ${total} / 100 種`));
   prog.appendChild(bar(total, 100, { tone: "gold" }));
   top.appendChild(prog);
-  const all = button({ label: news.length ? `蒐集品を奉納 ${news.length}` : "奉納できる品なし", kind: news.length ? "primary" : "ghost", size: "sm", disabled: !news.length,
+  const all = button({ label: news.length ? `収集品を奉納 ${news.length}` : "奉納できる品なし", kind: news.length ? "primary" : "ghost", size: "sm", disabled: !news.length,
     onTap: () => donateSheet() });
   all.classList.add("pl-top-b");
   top.appendChild(all);
   body.appendChild(top);
 
-  // 手持ちの未奉納の蒐集品 (同じ種類は1点だけ)。札をタップ = 品の詳細 (持ち主の荷から)
-  body.appendChild(sectionHead("奉納できる蒐集品", { note: news.length ? `${news.length}種` : "なし" }));
+  // 手持ちの未奉納の収集品 (同じ種類は1点だけ)。札をタップ = 品の詳細 (持ち主の荷から)
+  body.appendChild(sectionHead("奉納できる収集品", { note: news.length ? `${news.length}種` : "なし" }));
   const row = el("div", "pl-tr-new");
   if (news.length) {
     for (const h of news) {
@@ -715,7 +715,7 @@ function renderTreasury(body) {
     }
   } else {
     const held = game.heldCollectibles ? game.heldCollectibles().length : 0;
-    row.appendChild(el("div", "pl-tr-none", held ? "手持ちはすべて奉納済みの種類 (重なった品は商会で売れる)" : "迷宮で蒐集品を集めよう"));
+    row.appendChild(el("div", "pl-tr-none", held ? "手持ちはすべて奉納済みの種類 (重なった品は商会で売れる)" : "迷宮で収集品を集めよう"));
   }
   body.appendChild(row);
 
@@ -736,7 +736,7 @@ function renderTreasury(body) {
   // 奉納台帳: ランク帯の札 (タップで帯のシート)
   body.appendChild(sectionHead("奉納台帳", { note: "ランク帯ごと・各10種" }));
   const byRank = game.collectiblesByRank ? game.collectiblesByRank() : {};
-  const newIds = new Set(news.map((h) => h.item.id)); // 帯の印 = その帯に奉納できる蒐集品がある
+  const newIds = new Set(news.map((h) => h.item.id)); // 帯の印 = その帯に奉納できる収集品がある
   const led = el("div", "pl-ledger");
   for (let r = 1; r <= 10; r++) {
     const ids = byRank[r] || [];
@@ -797,7 +797,7 @@ function renderPalace(root) {
   wrap.appendChild(segEl);
   wrap.appendChild(body);
   draw(seg);
-  autoPage(body); // 縦スクロールの代わりに頁送り (収まれば出ない)
+  autoPage(body); // 縦スクロールの代わりにページ送り (収まれば出ない)
 }
 
 // 王宮タブを開く (seg を指定すればその区分。"codex:item" のように図鑑の区分も指定できる)

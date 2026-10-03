@@ -9,7 +9,7 @@
 // (その間にもう一度押せばアプリを閉じられる)。2秒経つか、何か操作すれば再び番兵を積む。
 //
 // 処理の順:
-//   1) 積み重ね (stack): 開いているシート・頁 (上から)
+//   1) 積み重ね (stack): 開いているシート・ページ (上から)
 //   2) 登録された handler (game.js の旧画面アダプタなど。prio の小さい順)。true を返せば消費
 //   3) どれも消費しなければ「根」
 
@@ -81,7 +81,7 @@ export const nav = {
     addEventListener("pageshow", () => { if (!history.state || history.state.dos !== "guard") rearm(); });
   },
 
-  // 積み重ねに載せる (シート・頁)。返り値を remove に渡す
+  // 積み重ねに載せる (シート・ページ)。返り値を remove に渡す
   push(entry) {
     const e = { id: entry && entry.id || "entry", onBack: entry && entry.onBack };
     stack.push(e);

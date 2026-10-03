@@ -166,7 +166,7 @@ const WAX = { o: [40, 32, 22], hi: [240, 230, 196], mid: [212, 196, 152], lo: [1
 const PEBBLE = { o: [16, 14, 12], hi: [124, 116, 102], mid: [88, 82, 72], lo: [54, 50, 44] };
 const SHARD = { o: [18, 10, 6], hi: [150, 92, 60], mid: [112, 64, 40], lo: [66, 36, 22] };
 
-// 頭蓋骨 (斜め上から)。W=骨 B=陰 b=深い陰 k=眼窩 o=輪郭
+// 頭蓋骨 (斜め上から)。W=骨 B=陰 b=深い陰 k=目の穴 o=輪郭
 const SKULL = [
   "...ooooo...",
   "..oWWWWWo..",
@@ -471,7 +471,7 @@ function drainGrate(R, x, y) {
     else R.put(x + i, y + j, [6, 5, 5]);
   }
   for (let i = 0; i < 12; i++) R.mul(x + i, y + 11, 0.6);
-  // 錆の滲み
+  // 錆のにじみ
   for (let i = 0; i < 9; i++) R.over(x + 1 + Math.floor(hash(i, x, y) * 9), y + 11 + Math.floor(hash(y, i, x) * 2), RUST.mid, 0.5);
 }
 // 床に埋め込まれた墓 (碑文の刻まれた敷石)
@@ -645,7 +645,7 @@ function paintSlab(R, x0, y0, w, h, rnd, mat, opt, gx, gy) {
       if (d <= 1 && !(y >= 2 && Math.abs(x) >= 4)) Rz(cx + x, sy + y);
     }
     for (let y = 3; y <= 6; y++) for (let x = -3; x <= 3; x++) Rz(cx + x, sy + y);
-    // 眼窩・鼻は彫り込む
+    // 目の穴・鼻は彫り込む
     for (const ex of [-2, 2]) for (let y = -1; y <= 0; y++) for (let x = 0; x <= 1; x++) C(cx + ex + x - (ex < 0 ? 1 : 0), sy + y);
     C(cx, sy + 2);
     for (let x = -2; x <= 2; x += 2) C(cx + x, sy + 5);
@@ -769,7 +769,7 @@ function paintSlab(R, x0, y0, w, h, rnd, mat, opt, gx, gy) {
     else if (hash(X, Y, s1 + 23) > 0.992) R.tint(X, Y, mat.lichen, 0.7);
   }
 
-  // ---- 強敵階: 隙間から滲む血 ----
+  // ---- 強敵階: 隙間からにじむ血 ----
   if (opt.elite) {
     for (let k = 0; k < 2 + rnd() * 3; k++) {
       let px = x0 + 4 + Math.floor(rnd() * (w - 8)), py = y0 + Math.floor(rnd() * h * 0.6);

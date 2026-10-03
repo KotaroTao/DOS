@@ -489,7 +489,7 @@ function shrine() {
   return s;
 }
 
-// ===== 人業の館: 人形の工房。ゆがんだオルゴールのワルツと、軋む弦 =====
+// ===== 人業の館: 人形の工房。ゆがんだオルゴールのワルツと、きしむ弦 =====
 // ホ短調 3/4 84BPM。後半、オルゴールは巻きが切れていき、弦が魂の動機を不穏になぞる
 function mansion() {
   const s = new Score({ name: "mansion", bpm: 84, bpb: 3, loop: [0, 32], gain: 2.6, fadeIn: 1.0, delay: { l: 1, r: 1.5, fb: 0.3, lp: 2400 } });
@@ -536,7 +536,7 @@ function mansion() {
 
 // ===== 迷宮 第1層「忘れられた地下墓地」: 墓所の空気そのものを鳴らす =====
 // イ調フリギア 60BPM・32小節 (約2分) の長い呼吸。ドローン、死者の吐息、遠い弔鐘、
-// 軋みと鎖、不協和にふくらむ弦、そしてピアノが魂の動機の亡霊を一度だけ
+// きしみと鎖、不協和にふくらむ弦、そしてピアノが魂の動機の亡霊を一度だけ
 function layer1() {
   const s = new Score({ name: "layer1", bpm: 60, loop: [0, 32], gain: 1.29, fadeIn: 2.0, delay: { l: 1.5, r: 2.25, fb: 0.38, lp: 1800 } });
   s.ch("drone", { inst: "drone", vol: 0.25, lp: 650, rev: 0.35 })
@@ -566,7 +566,7 @@ function layer1() {
   for (const m of ["A3", "C4", "E4"]) s.n("chO", s.B(12), m, 14, 0.33);
   for (const m of ["Bb3", "D4", "F4"]) s.n("chO", s.B(20), m, 14, 0.34);
   for (const m of ["A3", "E4"]) s.n("chO", s.B(28), m, 14, 0.3);
-  // 吐息・軋み・鎖・雫
+  // 吐息・きしみ・鎖・雫
   for (const [b, ch] of [[2.5, "br1"], [10, "br2"], [14.75, "br1"], [21.5, "br2"], [27, "br1"], [30.5, "br2"]]) s.n(ch, s.B(b), 60, 3, 0.5);
   for (const b of [3.25, 13.5, 23, 29.75]) s.n("creak", s.B(b), 60, 2, 0.5);
   for (const b of [7, 18.5, 25.5]) s.n("chain", s.B(b), 60, 2, 0.45);
