@@ -2616,6 +2616,7 @@ export const BUST_FIT = {
   hermit: { zoom: 0.8, dy: -4 },
   hexer: { zoom: 0.65, dx: 2, dy: -7 },
   arcthief: { zoom: 0.8, dy: -1 },
+  crusader: { zoom: 1.1, dy: -2 },
 };
 const _bustCache = {};
 export function jobBust(jobKey, rank = 2) {
