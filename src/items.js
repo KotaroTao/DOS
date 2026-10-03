@@ -81,7 +81,18 @@ export function unidentName(it) {
   return UNIDENT_SLOT[it.slot] || "なぞのしなもの？";
 }
 // 表示名: 未鑑定なら伏せ名、鑑定済みなら本来の名前
-export function itemName(it) { return it && it.unidentified ? unidentName(it) : (it ? it.name : ""); }
+export function itemName(it) { return it && it.unidentified ? unidentName(it) : (it ? it.name + (it.forge ? "＋" + it.forge : "") : ""); }
+// 鍛え直し (迷宮のイベント「地の底の鍛冶場」): 品の正の能力値を 1段につき1割 (最低+1) 底上げする。
+// 品の能力はロード時に目録から引き直される (reflattenItemStats) ので、その後にもう一度これを掛ける
+export const FORGE_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"];
+export function applyForge(it) {
+  if (!it || !it.forge) return it;
+  for (const k of FORGE_KEYS) {
+    const v = it[k];
+    if (typeof v === "number" && v > 0) it[k] = v + Math.max(it.forge, Math.round(v * 0.1 * it.forge));
+  }
+  return it;
+}
 
 // 隠しレベル → 表示ランク R1-R20 (図鑑の枠色・発見演出に使う)
 // lv は 1-200 (全100迷宮の lootLv 帯に対応)。10lv ごとに 1 ランク上がり、

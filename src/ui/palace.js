@@ -13,8 +13,9 @@ import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, bar, autoPage, badge } from "./kit.js";
 import { remember } from "./prefs.js";
 import { softFade } from "./motion.js";
-import { statLines, itemCatText, showSkillPopup, showPassivePopup } from "./itemview.js";
-import { MONSTERS, spriteCanvas } from "../sprites.js";
+import { statLines, itemCatText, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds } from "./itemview.js";
+import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
+import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, LORE_PAGES } from "../events.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, itemName } from "../items.js";
 import { RANK_COLOR, RANK_NAME } from "../content.js";
 import { DUNGEONS, ELEMENTS, RACE_LABEL, monsterTraits, isFloating } from "../dungeons/index.js";
@@ -118,7 +119,19 @@ function freshCounts() {
     const rec = g.codex.job[k];
     return isFreshJob(k, r) && rec && Number(r) <= Math.max(1, rec.rank || 1);
   }).length;
-  return { mon, item, job, total: mon + item + job };
+  const ev = Object.keys(evFresh()).filter((id) => EVENT_MAP[id]).length;
+  return { mon, item, job, ev, total: mon + item + job + ev };
+}
+// 見聞録 (迷宮の出来事) の記録と新着
+function evRec() { const g = G(); return (g && g.events) || { seen: {}, picks: {}, fresh: {}, flags: {} }; }
+function evFresh() { const f = evRec().fresh; return f && typeof f === "object" ? f : {}; }
+const isFreshEv = (id) => !!(evFresh()[id] && EVENT_MAP[id]);
+function markSeenEv(id, card) {
+  const f = evFresh();
+  if (!f[id]) return;
+  delete f[id];
+  if (card) { const m = card.querySelector(".pl-card-new"); if (m) m.remove(); card.classList.remove("fresh"); }
+  refreshBadges();
 }
 // 詳細を開いた = 見た。印を消して数え直す
 function markSeen(kind, key, card) {
@@ -263,30 +276,93 @@ function renderCodexJob(box) {
     { cols: 3, cellH: CARD_H, key: "job", empty: el("div", "wa-empty", "まだ職業を見つけていない。迷宮で魂を吸収すると職業が記される。") });
 }
 
-// 図鑑の記録の数 (魔物・アイテム・職業)
+// 見聞録: 迷宮で出会った出来事 (共通 / 層ごと)。出会っていない出来事は「？？？」
+const EV_STUB = { countCells: () => 0, monName: () => "古強者", eliteKeyHere: () => null, sense: () => false, layer: 1 };
+function evIcon(e) { return (e.icon && e.icon.startsWith("mon:") ? MONSTERS[e.icon.slice(4)] : ICONS[e.icon]) || ICONS.event; }
+function renderCodexEvents(box) {
+  const rec = evRec();
+  let gk = remember("codex", "evGroup") || "0";
+  if (!EVENT_GROUPS.some((x) => x.key === gk)) gk = "0";
+  const listOf = (k) => { const L = Number(k); return EVENTS.filter((e) => (e.layer || 0) === L); };
+  const freshIn = (k) => listOf(k).filter((e) => isFreshEv(e.id)).length || null;
+  const cap = el("div", "pl-codex-cap");
+  let area = null;
+  const draw = () => {
+    const list = listOf(gk);
+    const seen = list.filter((e) => rec.seen[e.id]).length;
+    cap.textContent = `${(EVENT_GROUPS.find((x) => x.key === gk) || {}).name || ""}の出来事　見聞 ${seen}/${list.length}`;
+    pagedGrid(area, list, (e) => {
+      if (!rec.seen[e.id]) return unknownCard();
+      const t = EV_TIERS[e.tier];
+      return codexCard(evIcon(e), e.name, { color: t.accent, sub: t.label, fresh: isFreshEv(e.id),
+        onTap: (c) => { codexEventSheet(e.id); markSeenEv(e.id, c); } });
+    }, { cols: 3, cellH: CARD_H, key: "ev:" + gk, empty: el("div", "wa-empty", "記録なし。") });
+  };
+  const ch = chips(EVENT_GROUPS.map((x) => ({ key: x.key, label: x.label, badge: freshIn(x.key) })), gk, (k) => { gk = k; remember("codex", "evGroup", k); draw(); });
+  refresh.list = () => EVENT_GROUPS.forEach((x, i) => setBadge(chipBtn(ch, i), freshIn(x.key)));
+  box.appendChild(ch);
+  box.appendChild(cap);
+  area = fillArea(box);
+  draw();
+}
+export function codexEventSheet(id) {
+  const e = EVENT_MAP[id];
+  if (!e) return null;
+  const rec = evRec();
+  const t = EV_TIERS[e.tier];
+  const body = el("div", "pl-detail");
+  const tag = el("div", "pl-detail-tags");
+  const tt = el("span", "pl-tag", `${t.label} ・ ${t.name}`);
+  tt.style.color = t.accent;
+  tag.appendChild(tt);
+  tag.appendChild(el("span", "pl-tag", `遭遇 ${rec.seen[id] || 0}`));
+  body.appendChild(tag);
+  let intro = [];
+  try { intro = e.intro(EV_STUB, {}) || []; } catch (err) { intro = []; }
+  for (const ln of intro) body.appendChild(setText(el("div", "pl-detail-desc"), ln));
+  body.appendChild(infoBlock("現れる所", [pairRow(eventWhereText(e))]));
+  const picks = Object.entries((rec.picks && rec.picks[id]) || {});
+  body.appendChild(infoBlock("選んだ道", picks.length ? picks.map(([k, n]) => pairRow(k, `${n}回`)) : [pairRow("まだ選んだことはない", null, { dim: true })]));
+  // 魂繰りの遺書: 読んだ頁
+  if (id === "c30") {
+    const lore = (rec.flags && rec.flags.lore) || {};
+    const ls = Object.keys(lore).filter((k) => lore[k]).sort();
+    if (ls.length) for (const L of ls) body.appendChild(infoBlock(`第${L}層の頁`, (LORE_PAGES[L] || LORE_PAGES[0]).map((x) => setText(el("div", "pl-detail-desc"), x))));
+  }
+  return sheet.open({
+    kind: "info", banner: t.banner, accent: t.accent, art: evIcon(e), artScale: 6, title: e.name, body, className: "pl-detail-sheet",
+    footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
+  });
+}
+
+// 図鑑の記録の数 (魔物・アイテム・職業・見聞)
 function codexTotals() {
   const g = G();
   return {
     mon: Object.keys(g.codex.mon).filter((k) => MONSTERS[k]).length,
     item: Object.keys(g.codex.item).filter((k) => ITEMS[k]).length,
     job: Object.keys(g.codex.job).filter((k) => SOUL_CLASSES[k]).length,
+    ev: Object.keys((g.events && g.events.seen) || {}).filter((k) => EVENT_MAP[k]).length,
   };
 }
 function renderCodex(body) {
-  const sub = ["mon", "item", "job"].includes(remember("seg", "codex")) ? remember("seg", "codex") : "mon";
-  const { mon: mons, item: items, job: jobs } = codexTotals();
+  const sub = ["mon", "item", "job", "ev"].includes(remember("seg", "codex")) ? remember("seg", "codex") : "mon";
+  const { mon: mons, item: items, job: jobs, ev: evs } = codexTotals();
   const fc = freshCounts();
   const box = el("div", "pl-codex");
   const draw = (k) => {
     box.textContent = "";
     if (k === "mon") renderCodexMon(box);
     else if (k === "item") renderCodexItem(box);
+    else if (k === "ev") renderCodexEvents(box);
     else renderCodexJob(box);
   };
   const segEl = segmented([
     { key: "mon", label: `魔物 ${mons}`, badge: fc.mon || null }, { key: "item", label: `アイテム ${items}`, badge: fc.item || null }, { key: "job", label: `職業 ${jobs}`, badge: fc.job || null },
+    { key: "ev", label: `見聞 ${evs}`, badge: fc.ev || null },
   ], sub, (k) => { sfx("select"); draw(k); softFade(box); }, { prefKey: "codex" });
-  refresh.sub = () => { const c = freshCounts(); ["mon", "item", "job"].forEach((k, i) => setBadge(segBtn(segEl, i), c[k] || null)); };
+  segEl.classList.add("pl-codex-seg"); // 4区分 (見聞録つき) を1行に収める
+  refresh.sub = () => { const c = freshCounts(); ["mon", "item", "job", "ev"].forEach((k, i) => setBadge(segBtn(segEl, i), c[k] || null)); };
   body.appendChild(segEl);
   body.appendChild(box);
   draw(sub);
@@ -299,10 +375,13 @@ function infoBlock(title, rows) {
   for (const r of rows) b.appendChild(r.nodeType ? r : setText(el("div", "pl-info-r"), r));
   return b;
 }
-function pairRow(name, desc, { dim = false, onTap = null } = {}) {
+function pairRow(name, desc, { dim = false, onTap = null, tags = null } = {}) {
   const r = el(onTap ? "button" : "div", "pl-pair" + (dim ? " dim" : "") + (onTap ? " tap" : ""));
   if (onTap) { r.type = "button"; r.addEventListener("click", onTap); }
-  r.appendChild(setText(el("span", "pl-pair-n"), name));
+  const n = setText(el("span", "pl-pair-n"), name);
+  const tg = tags && tagRow(tags);
+  if (tg) n.appendChild(tg);
+  r.appendChild(n);
   if (desc) r.appendChild(setText(el("span", "pl-pair-d"), desc));
   return r;
 }
@@ -322,10 +401,12 @@ export function codexMonSheet(key) {
   tag.appendChild(el("span", "pl-tag", `討伐 ${e.kills || 0}`));
   if (m.boss) tag.appendChild(el("span", "pl-tag gold", "迷宮の主"));
   body.appendChild(tag);
+  const aff = affinityRow(m.element, "pl-aff");
+  if (aff) body.appendChild(aff);
   if (m.desc) body.appendChild(setText(el("div", "pl-detail-desc"), m.desc));
   body.appendChild(setText(el("div", "pl-detail-stats"), `HP ${m.maxhp}　ATK ${m.atk}　VIT ${m.def}　AGI ${m.spd}　✦${m.soul}　💰${m.gold}`));
   const traits = monsterTraits(m);
-  body.appendChild(infoBlock("特徴・スキル", traits.length ? traits.map((t) => pairRow(t.label, t.desc)) : [pairRow("特筆すべき特徴はない", null, { dim: true })]));
+  body.appendChild(infoBlock("特徴・スキル", traits.length ? traits.map((t) => pairRow(t.label, t.desc, { tags: traitTagKinds(t.key, m.element) })) : [pairRow("特筆すべき特徴はない", null, { dim: true })]));
   const idxs = Object.keys(e.dungeons || {}).map(Number).filter((i) => DUNGEONS[i]);
   body.appendChild(infoBlock("出現した迷宮", idxs.length ? idxs.map((i) => pairRow(DUNGEONS[i].name)) : [pairRow("記録なし", null, { dim: true })]));
   return sheet.open({
@@ -455,7 +536,7 @@ export function codexJobSheet(key, rank, heading) {
       rows.push(reached >= e.lvl ? pairRow(`${lv} ${passiveName(e.passive, e.plv || 1)}`, `[パッシブ] ${passiveDesc(e.passive, e.plv || 1)}`, { onTap: () => showPassivePopup(e.passive, e.plv || 1) }) : pairRow(`${lv} ？？？`, null, { dim: true }));
     } else {
       const sp = SPELLS[e.skill];
-      rows.push(reached >= e.lvl && sp ? pairRow(`${lv} ${sp.name}`, `${sp.desc} (MP${sp.mp})`, { onTap: () => showSkillPopup(e.skill) }) : pairRow(`${lv} ？？？`, null, { dim: true }));
+      rows.push(reached >= e.lvl && sp ? pairRow(`${lv} ${sp.name}`, `${sp.desc} (MP${sp.mp})`, { onTap: () => showSkillPopup(e.skill), tags: spellTagKinds(sp) }) : pairRow(`${lv} ？？？`, null, { dim: true }));
     }
   }
   body.appendChild(infoBlock("技", rows.length ? rows : [pairRow("—", null, { dim: true })]));
@@ -684,7 +765,7 @@ export function openPalace(seg) {
 }
 
 export function install() {
-  registerUI({ openPalace, codexMonSheet, codexItemSheet, codexJobSheet });
+  registerUI({ openPalace, codexMonSheet, codexItemSheet, codexJobSheet, codexEventSheet });
   // タブの印: 王の用 (報告・拝命・謁見) は「!」、無ければ拝受できる勲章の数、奉納・褒賞だけなら点
   const tabBadge = (c) => {
     if (game.palaceCallReady && game.palaceCallReady()) return "!";

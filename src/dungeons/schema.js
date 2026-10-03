@@ -8920,7 +8920,12 @@ export const ARTS = {
 // ・hp はプレイヤーの攻撃力カーブ (魂×5部位+武器) に対し通常2-3撃で倒せる量
 // ・atk はプレイヤーの VIT 半減則 (combat.js) を踏まえた貫通量
 export function monStats(rank, boss = false) {
-  const r = Math.max(1, Math.min(10, rank));
+  return rankStats(Math.min(10, rank), boss);
+}
+// monStats の上限 (rank10) を外した版。ミミックのように「その階の敵より数ランク上」を
+// 組む個体が rank10 を超えても、同じ曲線のまま強くなるようにする。
+export function rankStats(rank, boss = false) {
+  const r = Math.max(1, rank);
   const s = {
     hp: Math.round(30 * Math.pow(r, 1.8)),
     atk: Math.round(12 + 3.2 * r * r),

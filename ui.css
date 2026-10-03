@@ -510,3 +510,23 @@ button.ui-whisper { cursor: pointer; touch-action: manipulation; }
 .ui-sheet.is-paged { height: 88vh; height: 88dvh; } /* 頁ごとに高さが跳ねないよう、送る間は最大の高さに留める */
 .ui-autopage.is-paged { overflow-y: hidden !important; }
 .ui-box-pager { padding: 4px 0 0; }
+
+/* ===== 種別・属性の札 (物/魔/回復/その他 ・ 火/水/風/土/光/闇) ===== */
+.ui-tags { display: inline-flex; align-items: center; gap: 3px; flex: 0 0 auto; vertical-align: middle; white-space: nowrap; }
+.ui-tag {
+  display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
+  min-width: 1.7em; height: 1.7em; padding: 0 0.35em; font-size: 10px; font-weight: 800; line-height: 1; letter-spacing: 0;
+  font-family: var(--font, inherit); color: var(--tag-c, #cdbf9f);
+  border: 1px solid var(--tag-c, #6a5c4a); border-radius: 2px; background: rgba(0,0,0,0.45);
+  background: color-mix(in srgb, var(--tag-c, #6a5c4a) 18%, rgba(8,6,9,0.7));
+  text-shadow: 0 1px 0 #000;
+}
+/* 属性は丸い印、種別は角札 */
+.ui-tag.el { width: 1.7em; padding: 0; border-radius: 50%; }
+.ui-affinity { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 16px; }
+.ui-aff { display: inline-flex; align-items: center; gap: 6px; }
+.ui-aff-l { font-size: 11.5px; font-weight: 800; letter-spacing: 0.15em; }
+.ui-aff.weak .ui-aff-l { color: #ff9a7a; }
+.ui-aff.resist .ui-aff-l { color: #8fb6ff; }
+.ui-aff .ui-tag { font-size: 11.5px; }
+.ui-skill .sk-mp .ui-tags { margin-left: 8px; }

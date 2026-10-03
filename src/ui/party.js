@@ -19,7 +19,7 @@ import {
 import { deltaFloat } from "./motion.js";
 import { remember, setPref, getPref } from "./prefs.js";
 import {
-  statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText,
+  statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds,
 } from "./itemview.js";
 import { renderSoulSeg, openSoulPicker } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
@@ -1551,6 +1551,8 @@ function statsSeg(root, d) {
       const c = el("button", "pt-skill");
       c.type = "button";
       c.appendChild(el("span", "pt-skill-n", sp ? sp.name : key));
+      const tg = sp && tagRow(spellTagKinds(sp, d), "pt-skill-tags");
+      if (tg) c.appendChild(tg);
       if (sp) c.appendChild(el("span", "pt-skill-c", `MP${sp.mp}`));
       c.addEventListener("click", () => showSkillPopup(key));
       sc.appendChild(c);

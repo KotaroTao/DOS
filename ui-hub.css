@@ -418,6 +418,9 @@
 .pl-body .ui-seg-b { min-height: 44px; font-size: 13.5px; letter-spacing: 0.1em; }
 .pl-codex > .ui-chips, .pl-codex-sub > .ui-chips { margin: 6px -12px 0; }
 .pl-codex-sub:empty { display: none; }
+/* 図鑑の区分 (魔物/アイテム/職業/見聞): 4つを1行に収める */
+.pl-codex-seg .ui-seg-b { white-space: nowrap; letter-spacing: 0.04em; gap: 4px; padding: 0 2px; }
+@media (max-width: 380px) { .pl-codex-seg .ui-seg-b { font-size: 13px; letter-spacing: 0; } }
 .pl-codex-cap { margin: 6px 2px 6px; font-size: 11.5px; color: var(--ink-dim); line-height: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pl-card {
   position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 3px;
@@ -468,6 +471,8 @@
 .pl-info-h + .pl-pair { border-top: 0; }
 .pl-pair.tap { min-height: 44px; cursor: pointer; }
 .pl-pair-n { font-size: 12.5px; font-weight: 700; }
+.pl-pair-n .ui-tags { margin-left: 8px; }
+.pl-detail .pl-aff { margin: 8px 0 2px; }
 .pl-pair-d { font-size: 11.5px; color: var(--ink-dim); line-height: 1.55; }
 .pl-pair.dim .pl-pair-n { color: var(--ink-faint); font-weight: 500; }
 
