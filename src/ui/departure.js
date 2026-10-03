@@ -149,14 +149,17 @@ async function runFix(fix) {
   if (fix.act === "hasten") {
     let c = null;
     try { c = ops.counts(); } catch (e) { c = null; }
-    const ok = await kitConfirm({ banner: "今すぐ連れ帰る", danger: false, title: "砕けた人業を今すぐ連れ帰る", lines: [`赤い魂 🔴${c ? c.hastenCost : "?"} (20分ごとに1つ)`], okLabel: "連れ帰る" });
+    const ok = await kitConfirm({ banner: "今すぐ連れ帰る", danger: false, title: "迷宮に残された人業を今すぐ連れ帰る", lines: [`赤い魂 🔴${c ? c.hastenCost : "?"} (20分ごとに1つ)`, "届いた器は、館で金貨を払って修復する。"], okLabel: "連れ帰る" });
     if (ok) ops.hastenAll();
     return;
   }
+
   if (fix.act === "equip") { if (UI.autoEquip) UI.autoEquip("all"); return; } // 結果 (元に戻す付き) は隊の側が知らせる
   // 別の画面へ: シートを閉じてから
   close();
   if (fix.act === "shop") setTimeout(() => { if (UI.openShop) UI.openShop("buy"); }, 0);
+  // 砕けた人業: 人業の館で、その人業を選んだ状態から修復する
+  if (fix.act === "repair") setTimeout(() => { if (UI.openParty) UI.openParty((g.party || []).find((d) => d.uid === fix.uid) || null, { context: "town" }); }, 0);
   if (fix.act === "party") setTimeout(() => { if (UI.openParty) UI.openParty(0, { context: "town" }); }, 0);
   void g;
 }

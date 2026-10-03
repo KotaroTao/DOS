@@ -651,7 +651,7 @@ function forfeitRun() {
   G.run = null;
 }
 
-// 砕けた人業: 死亡を戦績に記録し、街への連れ帰りタイマーをセット
+// 砕けた人業: 死亡を戦績に記録する (修復は人業の館で金貨を払う)
 function imprintFallen() {
   for (const d of G.party) {
     if (d.isDoll && !d.alive && !d._dead) { G.stats.deaths++; d._dead = true; d.diedFloor = G.floor; }
@@ -7942,7 +7942,7 @@ function gameOver() {
   SFX.gameover();
   buzz([0, 90, 70, 90, 70, 250]);
   log("人業はことごとく砕けた…", "dmg");
-  imprintFallen(); // 記憶を刻み、連れ帰りタイマーを開始
+  imprintFallen(); // 記憶を刻む (器は迷宮に残り、街へ戻ってから連れ帰りの時を数える)
   G.autoCombat = false;
   if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
 
@@ -7951,7 +7951,7 @@ function gameOver() {
   const r = G.run || newRun();
   const secured = !!r.secured; // 主を討った後の全滅は失うものがない (戦利品は確定済み)
 
-  // 街へ戻る (死亡人業は連れ帰りを待つ)
+  // 街へ戻る (砕けた人業は連れ帰りを待ち、届いたら館で修復する)
   const goTown = (opts) => {
     if (townBtn) townBtn.classList.add("hidden");
     if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
@@ -7977,12 +7977,12 @@ function gameOver() {
       log("赤い魂が戦利品と人業を守った。一同HP1で生還する。", "win");
       goTown({ outcome: "saved", run });
     },
-    // あきらめる: ゴールド・アイテム・魂を失う (✦Soul は残る)、人業は救出を待つ
+    // あきらめる: ゴールド・アイテム・魂を失う (✦Soul は残る)、人業は連れ帰りを待つ
     onGiveUp: () => {
       const run = G.run;
       const forfeited = secured ? null : { gold: r.gold || 0, items: (r.items || []).map(({ item }) => itemName(item)), souls: (r.souls || []).map((s) => (SOUL_CLASSES[s.clsKey] || {}).label || s.clsKey) };
       forfeitRun();
-      log(secured ? "砕けた人業は、救出を待つ。" : "今回得たゴールド・アイテム・魂は失われた…（✦Soul は残った）", "dmg");
+      log(secured ? "砕けた人業は、連れ帰りを待つ。" : "今回得たゴールド・アイテム・魂は失われた…（✦Soul は残った）", "dmg");
       goTown({ outcome: "wipe", run, forfeited });
     },
   });
@@ -9775,34 +9775,55 @@ function showCodexJobDetail(key, rank, heading) { if (UI.codexJobSheet) UI.codex
 // ---- 宿屋: 全回復 ----
 function innCost() { return G.party.length * 12 + G.maxFloorReached * 6; }
 
-// ---- 帰還システム: 死亡した人業は他の冒険者が街へ連れ帰る (時間経過 or Red Soul短縮) ----
-// 連れ帰り時間: 死亡した階層が深いほど長い。
-//   1〜5階=5分 / 6〜10階=10分 / … 5階ごとに+5分、最大120分
+// ---- 傷ついた魂の修復: 砕けた人業は街へ戻っても自然には戻らない ----
+// 人業の館 (隊) で砕けた人業を選び、金貨を払って修復するとHP/MP満タンで立ち上がる。
+// (全滅で迷宮に残された器は、まず連れ帰りを待つ ― 下の「連れ帰り」)
+// 費用 = ランク (1:10 / 2:20 / 3:40 / 4:80 / 5:160) × 魂レベル × レア度 (コモン1 / レア2 / エピック3 / レジェンド4)
+const REPAIR_RANK_GOLD = [10, 10, 20, 40, 80, 160]; // [0] は魂の宿らぬ器の保険 (ランク1扱い)
+const REPAIR_RARITY_MUL = { common: 1, rare: 2, epic: 3, legend: 4 };
+function repairCostOf(d) {
+  if (!d || d.alive || awaitingRescue(d)) return 0;
+  const rank = Math.max(1, Math.min(5, d.jobRank || 1));
+  const lv = Math.max(1, d.jobLv || 1);
+  const cls = d.clsKey ? SOUL_CLASSES[d.clsKey] : null;
+  const mul = REPAIR_RARITY_MUL[cls ? cls.rarity : "common"] || 1;
+  return REPAIR_RANK_GOLD[rank] * lv * mul;
+}
+function repairCostAll() {
+  return allDolls().reduce((a, d) => a + (d.isDoll && !d.alive ? repairCostOf(d) : 0), 0);
+}
+
+// ---- 連れ帰り (全滅の時だけ): 迷宮に残された器は、ほかの冒険者が時を経て街へ運ぶ ----
+// 連れ帰りを待つ間 (d.reviveAt あり) は館で修復できない。届いても砕けたままで、修復は金貨で行う。
+// 連れ帰り時間: 砕けた階層が深いほど長い。1〜5階=5分 / 6〜10階=10分 / … 5階ごとに+5分、最大120分
 function rescueDurationMs(floor) {
   const minutes = Math.min(120, Math.ceil((floor || 1) / 5) * 5);
   return minutes * 60 * 1000;
 }
 
-// 迷宮を探索中の隊にいる人業か (砕けても、街へ戻るまでは帰還の時を数えない)
+// 迷宮を探索中の隊にいる人業か (連れ帰りの時は、街へ戻るまで数えない)
 function awayInDungeon(d) {
   return G.state !== "town" && G.party.includes(d);
 }
+// 迷宮から連れ帰られるのを待っている人業か (館で修復できない)
+function awaitingRescue(d) {
+  return !!(d && d.isDoll && !d.alive && d.reviveAt);
+}
 
-// 死亡を検知して連れ帰りタイマーをセット (imprintFallen・街への帰還から呼ばれる)
-// 探索中の隊で砕けた人業は砕けた階だけ覚え、タイマーは街へ戻ってから動き出す。
-function setReviveTimers() {
+// 全滅して街へ戻った時に、砕けた人業の連れ帰りタイマーを動かし始める (器は全滅した階に残る)
+function startRescueTimers(dolls) {
   const now = Date.now();
+  for (const d of dolls) {
+    if (!d || !d.isDoll || d.alive || d.reviveAt) continue;
+    const floor = G.floor || d.diedFloor || 1;
+    d.diedFloor = floor;
+    d.reviveAt = now + rescueDurationMs(floor);
+  }
+}
+// 生き返った人業に残った連れ帰りの印を消す (呪文で蘇った時など)
+function setReviveTimers() {
   for (const d of allDolls()) {
-    if (!d.isDoll || d.alive) continue;
-    if (awayInDungeon(d)) {
-      if (d.diedFloor == null) d.diedFloor = G.floor;
-      continue;
-    }
-    if (!d.reviveAt) {
-      const floor = d.diedFloor != null ? d.diedFloor : G.floor;
-      d.diedFloor = floor;
-      d.reviveAt = now + rescueDurationMs(floor);
-    }
+    if (d.isDoll && d.alive) { d.reviveAt = null; d.diedFloor = null; }
   }
 }
 
@@ -9814,7 +9835,7 @@ function fmtRemain(ms) {
   return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
 }
 
-// 帰還タイマーの「生きた」表示要素を作る。class js-revt + dataset を持ち、
+// 連れ帰りタイマーの「生きた」表示要素を作る。class js-revt + dataset を持ち、
 // 下の 1秒ごとのティッカーが残り時間をリアルタイムに描き替える (全画面再描画はしない)。
 function reviveTimerEl(tag, cls, prefix, d) {
   const at = (d.reviveAt || Date.now());
@@ -9825,7 +9846,7 @@ function reviveTimerEl(tag, cls, prefix, d) {
   return node;
 }
 
-// 帰還タイマーを1秒ごとに更新 (DOMのテキストだけ書き替え、秒数が1秒ずつ減る)
+// 連れ帰りタイマーを1秒ごとに更新 (DOMのテキストだけ書き替え、秒数が1秒ずつ減る)
 setInterval(() => {
   const now = Date.now();
   for (const node of document.querySelectorAll(".js-revt")) {
@@ -9834,7 +9855,49 @@ setInterval(() => {
   }
 }, 1000);
 
-// 砕けた人業をすべてHP1で生還させる (生存者がいる帰還・赤い魂帰還で使う)
+// 連れ帰り完了: 器が街へ届く (砕けたまま。館で修復を待つ)
+function rescueArrive(d, byRedSoul = false) {
+  d.reviveAt = null; d.diedFloor = null;
+  SFX.select(); buzz([0, 30, 40, 30]);
+  log(`${d.name} が街へ連れ帰られた。${byRedSoul ? "(赤い魂の力)" : ""} 人業の館で修復できる。`, "sys");
+  showToast(`${d.name} が連れ帰られた ― 館で修復を`, { tone: "info" });
+}
+
+// Red Soul で連れ帰り時間を 20分短縮 (1消費)。残り20分以下なら即帰還
+const RESCUE_SHORTEN_MS = 20 * 60 * 1000;
+// いますぐ連れ帰るのに要る赤い魂の数 (20分ごとに1。押す回数ぶんと同じ値段)
+function hastenCostOf(d) {
+  if (!awaitingRescue(d)) return 0;
+  return Math.max(1, Math.ceil((d.reviveAt - Date.now()) / RESCUE_SHORTEN_MS));
+}
+function tryHastenRescue(d) {
+  if (!awaitingRescue(d)) return;
+  if (G.redSoul < 1) { log("Red Soul が足りない。", "sys"); SFX.ng(); showToast("赤い魂が足りない", { tone: "bad" }); return; }
+  G.redSoul -= 1;
+  d.reviveAt -= RESCUE_SHORTEN_MS;
+  if (d.reviveAt <= Date.now()) rescueArrive(d, true);
+  else { SFX.select(); buzz(15); log(`${d.name} の連れ帰りを早めた。`, "sys"); }
+  updateTopbar();
+  if (G.statusOpen) renderStatus();
+  if (G.state === "town") renderTown();
+  renderParty();
+}
+
+// 連れ帰りタイマーの監視 (5秒ごと)。満了した器を街へ届ける
+setInterval(() => {
+  const now = Date.now();
+  let arrived = false;
+  for (const d of allDolls()) {
+    if (awaitingRescue(d) && now >= d.reviveAt && !awayInDungeon(d)) { rescueArrive(d); arrived = true; }
+  }
+  if (arrived) {
+    if (G.statusOpen) renderStatus();
+    if (G.state === "town") renderTown();
+    renderParty();
+  }
+}, 5000);
+
+// 全滅時に赤い魂で全てを守った時だけ、砕けた人業をHP1で生還させる (自然には戻らない)
 function reviveAllAtHp1() {
   for (const d of allDolls()) {
     if (d.isDoll && !d.alive) {
@@ -9848,50 +9911,29 @@ function reviveAllAtHp1() {
   }
 }
 
-// 復活実行 (連れ帰り完了)
-function reviveDoll(d, byRedSoul = false) {
+// 傷ついた魂を修復する (街の中のみ・金貨を払う)。HP/MP満タンで立ち上がる
+function repairDoll(d) {
+  if (!d || !d.isDoll || d.alive) return { ok: false, reason: "dead" };
+  if (awaitingRescue(d)) { showToast(`${d.name} はまだ迷宮から連れ帰られていない`, { tone: "bad" }); SFX.ng(); return { ok: false, reason: "rescue" }; }
+  if (G.state !== "town") { showToast("修復は街の人業の館でしかできない", { tone: "bad" }); SFX.ng(); return { ok: false, reason: "town" }; }
+  const cost = repairCostOf(d);
+  if (G.gold < cost) { log("金貨が足りない。", "sys"); SFX.ng(); showToast(`金貨が足りない (💰${cost})`, { tone: "bad" }); return { ok: false, reason: "gold", cost }; }
+  G.gold -= cost;
   d.alive = true;
-  d.hp = Math.max(1, Math.floor(d.maxhp * 0.5));
+  d.hp = d.maxhp;
+  d.mp = d.maxmp;
   d.ailment = null;
   d.reviveAt = null; d.diedFloor = null;
   d._dead = false;
   SFX.levelup(); buzz([0, 30, 40, 30]);
-  log(`${d.name} が街に連れ戻された。${byRedSoul ? "(赤い魂の力)" : ""}`, "win");
-  showToast(`${d.name} が帰還した`, { tone: "good" });
-}
-
-// Red Soul で連れ帰り時間を 20分短縮 (1消費)。残り20分以下なら即帰還
-const RESCUE_SHORTEN_MS = 20 * 60 * 1000;
-// いますぐ連れ帰るのに要る赤い魂の数 (20分ごとに1。押す回数ぶんと同じ値段)
-function hastenCostOf(d) {
-  if (!d || d.alive || !d.reviveAt) return 0;
-  return Math.max(1, Math.ceil((d.reviveAt - Date.now()) / RESCUE_SHORTEN_MS));
-}
-function tryHastenRescue(d) {
-  if (G.redSoul < 1) { log("Red Soul が足りない。", "sys"); SFX.ng(); showToast("赤い魂が足りない", { tone: "bad" }); return; }
-  G.redSoul -= 1;
-  d.reviveAt -= RESCUE_SHORTEN_MS;
-  if (d.reviveAt <= Date.now()) reviveDoll(d, true);
-  else { SFX.select(); buzz(15); log(`${d.name} の帰還を早めた。`, "sys"); }
+  log(`${d.name} の傷ついた魂を修復した。(💰${cost})`, "win");
+  showToast(`${d.name} が立ち上がった (💰${cost})`, { tone: "good" });
   updateTopbar();
   if (G.statusOpen) renderStatus();
   if (G.state === "town") renderTown();
   renderParty();
+  return { ok: true, cost };
 }
-
-// 連れ帰りタイマーの監視 (5秒ごと)。満了した人業を自動帰還させる
-setInterval(() => {
-  const now = Date.now();
-  let revived = false;
-  for (const d of allDolls()) {
-    if (d.isDoll && !d.alive && d.reviveAt && now >= d.reviveAt && !awayInDungeon(d)) { reviveDoll(d); revived = true; }
-  }
-  if (revived) {
-    if (G.statusOpen) renderStatus();
-    if (G.state === "town") renderTown();
-    renderParty();
-  }
-}, 5000);
 
 // ---- 赤い魂の祠: Red Soul の入手 (広告/課金) ----
 let _adCooldownUntil = 0;
@@ -10072,13 +10114,18 @@ function townMutatorFor(idx) {
 function preDiveIssues() {
   const lines = [];
   const res = { lines, dolls: false, gear: false, rest: false, items: [] };
-  // 砕けた人業 (連れ帰りを待っている)
+  // 砕けた人業 (全滅で残された器は連れ帰りを待ち、街にある器は館で修復する)
   const dead = G.party.filter((d) => d.isDoll && !d.alive);
   if (dead.length) {
-    const now = Date.now();
-    let cost = 0;
-    for (const d of dead) if (d.reviveAt) cost += Math.max(1, Math.ceil((d.reviveAt - now) / RESCUE_SHORTEN_MS));
-    res.items.push({ kind: "dead", tone: "bad", text: `${namesShort(dead)} は砕けたまま`, fix: cost ? { act: "hasten", label: "今すぐ連れ帰る", cost: { kind: "red", n: cost }, ok: G.redSoul >= 1 } : null });
+    const wait = dead.filter(awaitingRescue), here = dead.filter((d) => !awaitingRescue(d));
+    if (here.length) {
+      const cost = here.reduce((a, d) => a + repairCostOf(d), 0);
+      res.items.push({ kind: "dead", tone: "bad", text: `${namesShort(here)} は砕けたまま`, fix: { act: "repair", label: "館で修復", cost: { kind: "gold", n: cost }, uid: here[0].uid } });
+    }
+    if (wait.length) {
+      const cost = wait.reduce((a, d) => a + hastenCostOf(d), 0);
+      res.items.push({ kind: "rescue", tone: "bad", text: `${namesShort(wait)} は連れ帰りを待っている`, fix: { act: "hasten", label: "今すぐ連れ帰る", cost: { kind: "red", n: cost }, ok: G.redSoul >= 1 } });
+    }
   }
   // 仲間が少ない (宿せる魂と器の余裕がある時だけ)
   const free = G.souls.filter((s) => !soulWorn(s.uid)).length;
@@ -10257,10 +10304,10 @@ function returnToTown(opts = {}) {
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
   G.maxFloorReached = Math.max(G.maxFloorReached, G.floor);
   G.run = null; // 無事帰還 = 戦利品は確定 (BGMは renderTown が施設に応じて切替)
-  // 生存者が1名でもいれば、砕けた人業は仲間に担がれてHP1で生還する。
-  // (全滅時はここに来る前に G.party の生存者ゼロ → 救出待ちのまま帰還する)
-  if (G.party.some((p) => p.alive)) reviveAllAtHp1();
-  setReviveTimers(); // 全滅で戻った人業は、ここから帰還の時を数え始める
+  // 砕けた人業は街へ戻っても自然には戻らない (人業の館で金貨を払って修復する)。
+  // 全滅で戻った時だけ、器は迷宮に残され、ほかの冒険者が時を経て連れ帰る (ここから時を数え始める)
+  setReviveTimers();
+  if (!G.party.some((p) => p.alive)) startRescueTimers(G.party);
   summary.dead = G.party.filter((d) => d && d.isDoll && !d.alive).map((d) => ({ uid: d.uid, name: d.name }));
   G.lastRun = summary;
   rollTavernCrowd(); // 酒場の顔ぶれは帰還のたびに入れ替わる
@@ -11597,22 +11644,24 @@ const OPS = {
     for (const d of dolls) for (const it of (d.items || [])) if (it && it.unidentified) { unid++; unidCost += appraiseCost(it); }
     const junk = opsJunkList();
     const dead = dolls.filter((d) => d.isDoll && !d.alive);
-    let hastenCost = 0;
-    const now = Date.now();
-    for (const d of dead) if (d.reviveAt) hastenCost += Math.max(1, Math.ceil((d.reviveAt - now) / RESCUE_SHORTEN_MS));
+    let repairCost = 0, hastenCost = 0, rescuing = 0;
+    for (const d of dead) {
+      if (awaitingRescue(d)) { rescuing++; hastenCost += hastenCostOf(d); }
+      else repairCost += repairCostOf(d);
+    }
     let ach = 0, treasuryReady = false;
     try { ach = opsClaimableAchievements().length; } catch (e) { ach = 0; }
     try { treasuryReady = treasuryRewardReady(); } catch (e) { treasuryReady = false; }
     return {
       hurt: G.party.filter((p) => p.alive && (p.hp < p.maxhp || p.mp < p.maxmp)).length,
-      dead: dead.length,
+      dead: dead.length, rescuing, repairable: dead.length - rescuing,
       unid, unidCost,
       junk: junk.length, junkGold: junk.reduce((a, j) => a + j.price, 0),
       ach,
       donatable: opsNewKindCount(),
       deliverable: (G.deliveryQuests || []).filter((q) => q && deliveryHolder(q.itemId)).length,
       trainable: opsTrainableList().length,
-      innCost: innCost(), hastenCost, treasuryReady,
+      innCost: innCost(), repairCost, hastenCost, treasuryReady,
     };
   },
   junkList: opsJunkList,
@@ -11683,27 +11732,28 @@ const OPS = {
     return { ok: n > 0, n, gold };
   },
 
-  // 今すぐ連れ帰る (赤い魂1つで20分短縮を、残りの少ない者から順に所持の続く限り。押す回数ぶんと同じ値段)
+  // 今すぐ連れ帰る (全滅で残された器。赤い魂1つで20分短縮を、残りの少ない者から順に所持の続く限り。押す回数ぶんと同じ値段)
   hastenAll() {
-    const dead = allDolls().filter((d) => d.isDoll && !d.alive && d.reviveAt).sort((a, b) => a.reviveAt - b.reviveAt);
-    let spent = 0, revived = 0;
-    for (const d of dead) {
-      while (!d.alive && G.redSoul >= 1) {
+    const wait = allDolls().filter(awaitingRescue).sort((a, b) => a.reviveAt - b.reviveAt);
+    let spent = 0, arrived = 0;
+    for (const d of wait) {
+      while (awaitingRescue(d) && G.redSoul >= 1) {
         G.redSoul -= 1; spent++;
         d.reviveAt -= RESCUE_SHORTEN_MS;
-        if (d.reviveAt <= Date.now()) { reviveDoll(d, true); revived++; }
+        if (d.reviveAt <= Date.now()) { rescueArrive(d, true); arrived++; }
       }
     }
     if (!spent) {
-      if (dead.length) { log("Red Soul が足りない。", "sys"); SFX.ng(); }
-      return { ok: false, spent: 0, revived: 0 };
+      if (wait.length) { log("Red Soul が足りない。", "sys"); SFX.ng(); }
+      return { ok: false, spent: 0, arrived: 0 };
     }
     SFX.select(); buzz(15);
-    if (revived < dead.length) log(`赤い魂を ${spent} 捧げ、帰還を早めた。`, "sys");
+    if (arrived < wait.length) log(`赤い魂を ${spent} 捧げ、連れ帰りを早めた。`, "sys");
+    updateTopbar();
     if (G.statusOpen) renderStatus();
     if (G.state === "town") renderTown();
     renderParty();
-    return { ok: true, spent, revived, left: dead.length - revived };
+    return { ok: true, spent, arrived, left: wait.length - arrived };
   },
 
   // まとめて拝受 (勲章の間で1つずつ拝受するのと同じ報酬。段階表は次の段階が達成済みなら続けて)
@@ -11925,7 +11975,7 @@ function wireUI() {
     tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport,
     trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliverQuest,
-    tryHastenRescue, reviveDoll, reviveTimerEl, fmtRemain,
+    repairDoll, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,
     doEquip, doUnequip, equipFromAnywhere, openEquipChooser, useItem, dropItem, transferItem,
     stopAutoCombat, sceneBgm, playBgm, SFX,
     ACHIEVEMENTS, FACILITIES, FAC_SHELL, CONTENT_LIMIT, DUNGEONS, LAYER_VISUALS,
@@ -11975,7 +12025,7 @@ bindGame({
 // 隊 (src/ui/party.js)・魂 (src/ui/soulpanel.js) が使う game.js の内部を結ぶ (モジュールの読み込み時 = init より前)。
 // 契約 (UI.openParty / autoEquip / betterGearCount / trainableList / equipItemTo / bestWearer) は各モジュールの install() が登録する
 bindGame({
-  equipAt, moveItem, campCast, campSpellsOf, healAll, healAllNeed, hastenCostOf, setReviveTimers, RESCUE_SHORTEN_MS,
+  equipAt, moveItem, campCast, campSpellsOf, healAll, healAllNeed, repairCostOf, repairCostAll, repairDoll, setReviveTimers, hastenCostOf, tryHastenRescue, awaitingRescue, RESCUE_SHORTEN_MS,
   emptyDollCost, randomDollName, finalizeBuyDoll, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
   equipSoulToSlot, fuseCandidates, fuseSoul, toggleSoulLock, openFusePicker, openSubSkillPicker, slotSoul,
   unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail,

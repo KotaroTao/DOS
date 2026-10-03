@@ -7,7 +7,7 @@
 //               SR/LR の品・レア以上の魂は、シートを閉じた後に祝祭の札で祝う
 //   全滅シート … 強制の決断 (赤い魂で全てを守る / あきらめる)。失うもの・残るものを並べる
 //   踏破の祝祭 … 「★ 迷宮踏破 ★」→ 凱旋で闇に溶けて街へ
-//   帰還の報告 … 今回の収穫と、帰ってすぐ片付く用事 (宿で休む・まとめて鑑定・まとめて売る・最適装備・今すぐ連れ帰る)
+//   帰還の報告 … 今回の収穫と、帰ってすぐ片付く用事 (宿で休む・まとめて鑑定・まとめて売る・最適装備・館で修復・今すぐ連れ帰る)
 
 import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, sheet, button, setText, glyph, glyphText, itemTile, toast, celebrate, confirm as kitConfirm, reduced } from "./kit.js";
@@ -310,7 +310,7 @@ export function openWipe(spec = {}) {
     body.appendChild(loss);
   }
   const keep = el("div", "rs-keep");
-  keep.appendChild(glyphText(`✦${spec.soulPts || 0} Soul は失わない。砕けた人業は、時を経て街へ連れ帰られる。`));
+  keep.appendChild(glyphText(`✦${spec.soulPts || 0} Soul は失わない。砕けた人業は、時を経て街へ連れ帰られる。戻った器は、人業の館で金貨を払って修復する。`));
   body.appendChild(keep);
   if (!spec.canSave) body.appendChild(el("div", "rs-note dim", `赤い魂 ${spec.cost} があれば何も失わずに帰れた (所持 ${spec.red || 0})。`));
   const foot = [];
@@ -360,6 +360,13 @@ function rarCounts(items) {
   for (const it of items || []) if (it.rar && cnt[it.rar] != null) cnt[it.rar]++;
   return cnt;
 }
+function confirmHasten(c) {
+  return kitConfirm({
+    banner: "今すぐ連れ帰る", danger: false, title: `迷宮に残された人業を今すぐ連れ帰る`,
+    lines: [`赤い魂 🔴${c.hastenCost} (20分ごとに1つ。帰りの近い者から)`, "届いた器は、館で金貨を払って修復する。"],
+    okLabel: "連れ帰る",
+  });
+}
 function deadDolls() {
   const g = G();
   const all = game.allDolls ? game.allDolls() : (g ? [...g.party, ...g.reserve] : []);
@@ -380,13 +387,6 @@ function confirmIdentify(c) {
     banner: "まとめて鑑定", danger: false, title: `未鑑定 ${c.unid}点を鑑定する`,
     lines: [`鑑定料 合計 💰${c.unidCost}${short ? ` (所持 💰${g.gold}。安い品から払える分だけ)` : ""}`, "鑑定料は商会で1点ずつ鑑定するのと同じ。"],
     okLabel: "鑑定する",
-  });
-}
-function confirmHasten(c) {
-  return kitConfirm({
-    banner: "今すぐ連れ帰る", danger: false, title: `砕けた人業を今すぐ連れ帰る`,
-    lines: [`赤い魂 🔴${c.hastenCost} (20分ごとに1つ。帰りの近い者から)`, "一つずつ早めるのと同じ値段。"],
-    okLabel: "連れ帰る",
   });
 }
 
@@ -456,13 +456,18 @@ export function renderRunReport(root) {
   }
   // 成長
   if ((lr.levels || []).length) card.appendChild(el("div", "rr-line up", lr.levels.map((l) => `${l.name} Lv${l.from}→${l.to}`).join(" ・ ")));
-  // 砕けた人業 (連れ帰りの時)
+  // 砕けた人業 (全滅で残された器は連れ帰りの時、街にある器は修復の費用)
   const dead = deadDolls();
   for (const d of dead.slice(0, 3)) {
     const ln = el("div", "rr-line bad rr-dead");
     ln.appendChild(el("span", "rr-cross", "†"));
-    ln.appendChild(el("span", null, `${d.name} 砕けた ― `));
-    if (game.reviveTimerEl) { try { ln.appendChild(game.reviveTimerEl("span", "rr-timer", "帰還まで ", d)); } catch (e) { /* noop */ } }
+    if (d.reviveAt) {
+      ln.appendChild(el("span", null, `${d.name} 砕けた ― `));
+      if (game.reviveTimerEl) { try { ln.appendChild(game.reviveTimerEl("span", "rr-timer", "連れ帰りまで ", d)); } catch (e) { /* noop */ } }
+    } else {
+      ln.appendChild(el("span", null, `${d.name} 砕けた ― 修復 `));
+      ln.appendChild(glyphText(`💰${game.repairCostOf ? game.repairCostOf(d) : 0}`));
+    }
     card.appendChild(ln);
   }
   if ((lr.lost || []).length) card.appendChild(el("div", "rr-line bad", `持ちきれず置いてきた: ${lr.lost.slice(0, 3).join("・")}${lr.lost.length > 3 ? ` 他${lr.lost.length - 3}` : ""}`));
@@ -490,9 +495,11 @@ export function renderRunReport(root) {
     if (junk && junk.length && shopOpen) act({ label: "まとめて売る", cost: { kind: "gold", n: junk.reduce((a2, j) => a2 + (j.price || 0), 0) },
       run: () => { UI.confirmSellJunk(); } }); // 売ったあとは商会側が街を描き直す
   } else if (c.junk > 0 && shopOpen) act({ label: "まとめて売る", cost: { kind: "gold", n: c.junkGold }, run: async () => { if (await confirmSell(c)) ops.sellJunkAll(); } });
-  if (c.dead > 0 && c.hastenCost > 0) act({ label: "今すぐ連れ帰る", cost: { kind: "red", n: c.hastenCost }, kind: lr.outcome === "wipe" ? "primary" : "secondary", disabled: g.redSoul < 1, run: async () => { if (await confirmHasten(c)) ops.hastenAll(); } });
+  if (c.repairable > 0) act({ label: "館で修復", cost: { kind: "gold", n: c.repairCost || 0 }, kind: "secondary",
+    run: () => { if (UI.openParty) UI.openParty(dead.find((d) => !d.reviveAt) || null, { context: "town" }); } });
+  if (c.rescuing > 0 && c.hastenCost > 0) act({ label: "今すぐ連れ帰る", cost: { kind: "red", n: c.hastenCost }, kind: lr.outcome === "wipe" ? "primary" : "secondary", disabled: g.redSoul < 1, run: async () => { if (await confirmHasten(c)) ops.hastenAll(); } });
   if (acts.childElementCount) card.appendChild(acts);
-  else card.appendChild(el("div", "rr-line dim", lr.outcome === "wipe" ? "人業が戻るのを待とう。" : "片付ける用事はない。次の迷宮へ。"));
+  else card.appendChild(el("div", "rr-line dim", lr.outcome === "wipe" ? "人業が連れ帰られるのを待とう。" : "片付ける用事はない。次の迷宮へ。"));
   if (root) root.insertBefore(card, root.firstChild);
   return card;
 }

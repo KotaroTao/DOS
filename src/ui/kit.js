@@ -708,7 +708,7 @@ export function header(o = {}) {
 const CUR_INFO = {
   gold: { name: "金貨", key: "gold", desc: ["宿屋・鑑定・装備の売買などに使う。", "迷宮の宝箱・戦闘・アイテム売却などで手に入る。"] },
   soul: { name: "✦Soul", key: "soulPts", desc: ["魂を強化するための力 (経験値)。", "迷宮で敵を倒すと得られ、全滅しても失われない。"] },
-  red: { name: "赤い魂", key: "redSoul", desc: ["人業の仕立てや、砕けた人業の連れ帰りを早めるのに使う。", "赤い魂の祠で授かる。"] },
+  red: { name: "赤い魂", key: "redSoul", desc: ["人業の仕立てや、全滅で迷宮に残された人業の連れ帰りを早めるのに使う。", "赤い魂の祠で授かる。"] },
   ember: { name: "魂の残火", key: "embers", desc: ["魂のLv上限を1上げる。", "死体の魂を回収すると得ることがある。"] },
 };
 export function currencyChips({ onTap } = {}) {
