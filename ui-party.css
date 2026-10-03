@@ -833,6 +833,8 @@ button.sp-tile-main { cursor: pointer; }
 .sp-fz-d { font-weight: 800; }
 .sp-fz-d.up { color: #7fd38a; }
 .sp-fz-d.dn { color: #e0726a; }
+.sp-fz-gap { margin-top: 8px; }
+.ui-row.sp-fz-off { opacity: 0.55; }
 .sp-fz-none { grid-column: 1 / -1; font-size: 12px; color: var(--ink-dim); }
 .sp-fz-learn { display: flex; flex-wrap: wrap; gap: 5px; }
 .sp-fz-chip { min-height: 30px; padding: 3px 9px; font-family: var(--font); font-size: 12px; font-weight: 800; color: #f3e4b8; background: rgba(201,162,74,0.12); border: 1px solid #8a6d2e; border-radius: 2px; cursor: pointer; animation: ru-learn 0.5s ease-out both; }

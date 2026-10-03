@@ -675,70 +675,96 @@ function soulEnhanced(s) {
 }
 
 // ---- 魂融合 (同じ職の余っている魂を取り込む) ----
-// onDone: 融合したあとに呼ぶ (魂の一覧シートを描き直すなど)
+// 融合しても画面は閉じず、続けて素材を選べる (結果の札・ランクアップはその都度上に出る)。
+// 素材が尽きたら、結果の札を閉じたところでこの画面も閉じる。
+// onDone: 融合するたびに呼ぶ (魂の一覧シートを描き直すなど)
 export function openFusePicker(targetUid, onDone) {
   const t = soulByUid(targetUid);
   if (!t) return null;
   if (!(game.featureUnlocked && game.featureUnlocked("fusion"))) { sfx("ng"); toast("魂融合は 5 迷宮の踏破を王に報告すると開く", { tone: "info" }); return null; }
-  const cands = (game.fuseCandidates ? game.fuseCandidates(targetUid) : []).sort(game.soulSortCmp || (() => 0));
-  const lockedN = (G_().souls || []).filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey && s.locked).length;
-  if (!cands.length) { sfx("ng"); toast(lockedN ? "素材にできる魂がない (同じ職の魂はロック中)" : "魂融合できる同じ職の魂がない", { tone: "info" }); return null; }
+  const candsNow = () => (game.fuseCandidates ? game.fuseCandidates(targetUid) : []).sort(game.soulSortCmp || (() => 0));
+  // 素材にできない同じ職の魂: ロック中 (この場で外せる) / だれかが宿している (理由だけ見せる)
+  const sameJob = () => (G_().souls || []).filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey);
+  const lockedNow = () => sameJob().filter((s) => s.locked && !wearerOf(s.uid, null)).sort(game.soulSortCmp || (() => 0));
+  const wornNow = () => sameJob().filter((s) => wearerOf(s.uid, null));
+  if (!candsNow().length && !lockedNow().length) { sfx("ng"); toast(wornNow().length ? "同じ職の魂は、どれも人業が宿している" : "魂融合できる同じ職の魂がない", { tone: "info" }); return null; }
   const cl = SOUL_CLASSES[t.clsKey] || SOUL_CLASSES.fighter;
   sfx("select");
-  return sheet.open({
-    kind: "info", className: "sp-pick-sheet", paged: false, banner: "魂融合", accent: cl.glow,
+  let h = null;
+  const view = () => ({
     title: `${soulSeriesName(t.clsKey)}の魂 Lv${t.level} に融合させる`,
     lines: ["素材にした魂は失われ、融合数に応じてLv上限、能力が上昇。一定数の魂を融合するとランクアップ。",
-      "融合先の魂は自動でロックされ、ほかの融合の素材にならない。",
-      ...(lockedN ? [`ロック中の魂 ${lockedN} 体は素材にできない。`] : [])],
-    body: (scroll, h) => {
+      "融合先の魂は自動でロックされ、ほかの融合の素材にならない。素材は続けて選べる。"],
+    body: (scroll) => {
       const list = el("div", "pt-list");
-      for (const c of cands) {
-        const enh = soulEnhanced(c);
-        const tags = [`魂数 ${c.count}`];
-        if (c.count > 1) tags.push("融合済み");
-        if ((c.level || 1) > 1 || (c.exp || 0) > 0) tags.push("強化済み");
-        if (c.capBonus) tags.push(`残火 +${c.capBonus}`);
-        const r = row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulSeriesName(c.clsKey)}の魂 Lv${c.level}`, sub: tags.join(" ・ "), tone: enh ? "gold" : null, chevron: true,
-          onTap: () => {
-            const go = () => {
-              h.close();
-              if (game.fuseSoul) game.fuseSoul(targetUid, c.uid);
-              if (typeof onDone === "function") onDone();
-            };
-            if (!enh) return go();
-            sfx("ng");
-            const lines = [`この魂は Lv${c.level}${c.count > 1 ? `・魂数 ${c.count}` : ""}${c.capBonus ? `・残火 +${c.capBonus}` : ""} まで強化されている。`,
-              "素材にした魂は消える。蓄積した ✦ と魂数は融合先に引き継がれる。"];
-            if (c.capBonus) lines.push(`残火で伸ばした Lv上限 +${c.capBonus} は失われる。`);
-            lines.push("残したい魂は、魂の一覧で「ロック」すれば素材にならない。");
-            confirm({ banner: "注意", title: "強化済みの魂を素材にする？", lines, okLabel: "素材にする" }).then((y) => { if (y) go(); });
-          } });
-        list.appendChild(r);
+      const cands = candsNow();
+      for (const c of cands) list.appendChild(candRow(c));
+      if (!cands.length) list.appendChild(el("div", "pt-note c", "いま素材にできる魂はない。ロックを外すと選べる。"));
+      const locked = lockedNow();
+      if (locked.length) {
+        list.appendChild(el("div", "sp-fz-h sp-fz-gap", "ロック中 ― 外すとすぐ素材にできる"));
+        for (const c of locked) list.appendChild(lockedRow(c));
+      }
+      const worn = wornNow();
+      if (worn.length) {
+        list.appendChild(el("div", "sp-fz-h sp-fz-gap", "宿している魂 ― 外すと素材にできる"));
+        for (const c of worn) {
+          const who = wearerOf(c.uid, null);
+          const r = row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulSeriesName(c.clsKey)}の魂 Lv${c.level}`, sub: `${who ? who.name : "人業"} が宿している ・ 魂数 ${c.count}` });
+          r.classList.add("sp-fz-off");
+          list.appendChild(r);
+        }
       }
       scroll.appendChild(list);
     },
   });
-}
-
-// ================= 祝祭: 転職 =================
-export function celebrateJob(d) {
-  if (!d || !d.jobKey) return null;
-  const cl = SOUL_CLASSES[d.jobKey] || SOUL_CLASSES.fighter;
-  const art = el("div", "sp-cel-art");
-  const rays = el("div", "sp-cel-rays");
-  art.appendChild(rays);
-  art.appendChild(pixelCanvas(jobSprite(d.jobKey, Math.max(1, d.jobRank || 1)), 108));
-  const lines = [`${soulSeriesName(d.jobKey)}の魂 Lv${d.jobLv || 1}`];
-  if (d.spells && d.spells.length) lines.push("技: " + d.spells.map((k) => (SPELLS[k] ? SPELLS[k].name : k)).join("・"));
-  return celebrate({
-    banner: "✦ 転職 ✦", accent: cl.glow, art, sparkle: true, className: "sp-cel",
-    title: `${d.name} は ${d.cls} になった`, titleColor: cl.glow, lines,
-    footer: [
-      { label: "受け取る", kind: "primary", size: "lg", onTap: (h) => h.close("ok") },
-      game.showCodexJobDetail ? { label: "職業を見る", kind: "ghost", onTap: (h) => { h.close("ok"); game.showCodexJobDetail(d.jobKey, d.jobRank); } } : null,
-    ],
-  });
+  // ロック中の素材: 「ロックを外す」で、その場で素材の一覧へ移す
+  const lockedRow = (c) => {
+    const unlock = button({ icon: "unlock", label: "ロックを外す", kind: "secondary", size: "sm", onTap: (e) => {
+      if (e) e.stopPropagation();
+      if (!game.toggleSoulLock) return;
+      game.toggleSoulLock(c.uid);
+      sfx("select");
+      toast(`${soulSeriesName(c.clsKey)}の魂のロックを外した ― 素材にできる`, { tone: "info" });
+      if (h && !h.closed) h.update(view());
+      if (typeof onDone === "function") onDone();
+    } });
+    unlock.classList.add("sp-lock-btn");
+    const tags = [`魂数 ${c.count}`];
+    if ((c.level || 1) > 1 || (c.exp || 0) > 0) tags.push("強化済み");
+    return row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulSeriesName(c.clsKey)}の魂 Lv${c.level}`, sub: tags.join(" ・ "), right: unlock });
+  };
+  // 結果の札が閉じたら: 素材が残っていれば続ける、尽きたら閉じる
+  const afterResult = () => {
+    if (!h || h.closed) return;
+    if (!candsNow().length && !lockedNow().length) h.close();
+  };
+  const fuse = (c) => {
+    if (!game.fuseSoul) return;
+    const r = game.fuseSoul(targetUid, c.uid, afterResult);
+    if (!r) return;
+    if (h && !h.closed) h.update(view()); // 使った素材を一覧から外す (結果の札の下で描き直す)
+    if (typeof onDone === "function") onDone();
+  };
+  const candRow = (c) => {
+    const enh = soulEnhanced(c);
+    const tags = [`魂数 ${c.count}`];
+    if (c.count > 1) tags.push("融合済み");
+    if ((c.level || 1) > 1 || (c.exp || 0) > 0) tags.push("強化済み");
+    if (c.capBonus) tags.push(`残火 +${c.capBonus}`);
+    return row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulSeriesName(c.clsKey)}の魂 Lv${c.level}`, sub: tags.join(" ・ "), tone: enh ? "gold" : null, chevron: true,
+      onTap: () => {
+        if (!enh) return fuse(c);
+        sfx("ng");
+        const lines = [`この魂は Lv${c.level}${c.count > 1 ? `・魂数 ${c.count}` : ""}${c.capBonus ? `・残火 +${c.capBonus}` : ""} まで強化されている。`,
+          "素材にした魂は消える。蓄積した ✦ と魂数は融合先に引き継がれる。"];
+        if (c.capBonus) lines.push(`残火で伸ばした Lv上限 +${c.capBonus} は失われる。`);
+        lines.push("残したい魂は、魂の一覧で「ロック」すれば素材にならない。");
+        confirm({ banner: "注意", title: "強化済みの魂を素材にする？", lines, okLabel: "素材にする" }).then((y) => { if (y) fuse(c); });
+      } });
+  };
+  h = sheet.open({ kind: "info", className: "sp-pick-sheet", paged: false, banner: "魂融合", accent: cl.glow, ...view() });
+  return h;
 }
 
 // ================= 融合の結果 (変わった能力・Lv上限・覚えた技) =================
@@ -813,7 +839,7 @@ function fuseLearned(info) {
 }
 
 // ランク据え置きの魂融合: 結果の札 (game.js の fuseSoul から)
-export function showFuseResult(info) {
+export function showFuseResult(info, onClose) {
   const cl = SOUL_CLASSES[info.clsKey] || SOUL_CLASSES.fighter;
   const art = el("div", "sp-cel-art fz");
   art.appendChild(pixelCanvas(jobSprite(info.clsKey, Math.max(1, info.toRank)), 96));
@@ -833,6 +859,7 @@ export function showFuseResult(info) {
     banner: "✦ 魂融合 ✦", accent: cl.glow, art, sparkle: false, className: "sp-cel sp-cel-fz",
     title: `${soulSeriesName(info.clsKey)}の魂`, titleColor: cl.glow, body,
     footer: [{ label: "とじる", kind: "primary", size: "lg", onTap: (h) => h.close("ok") }],
+    onClose: () => { if (typeof onClose === "function") onClose(); },
   });
 }
 

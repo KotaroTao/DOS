@@ -9052,7 +9052,8 @@ function toggleSoulLock(uid) {
 function openFusePicker(targetUid) { return uiSoulPanel.openFusePicker(targetUid); }
 // 実際の融合: consume を消し、その魂数を target に加える。
 // ランクが上がれば祝祭カード (showRankUp)、据え置きならトーストで知らせる
-function fuseSoul(targetUid, consumeUid) {
+// onResultClose: 結果の札 (またはランクアップの祝祭) を閉じたときに呼ぶ (融合画面で続けて選ぶため)
+function fuseSoul(targetUid, consumeUid, onResultClose = null) {
   const t = soulByUid(targetUid), c = soulByUid(consumeUid);
   if (!t || !c || c.clsKey !== t.clsKey || soulWorn(c.uid) || c.locked) { SFX.ng(); return null; }
   const before = soulRankOf(t);
@@ -9096,13 +9097,13 @@ function fuseSoul(targetUid, consumeUid) {
   // ランクが上がったときは、ファンファーレと昇格の祝祭カード (新しい称号・能力・Lv上限・覚えた技)
   if (after > before) {
     log(`⤴ ${jobRankName(t.clsKey, after)} に昇格！`, "win");
-    showRankUp(result, null);
+    showRankUp(result, onResultClose);
     return { rankUp: true, from: before, to: after };
   }
   // ランク据え置きの融合: 変わった能力・Lv上限などを結果の札で
   SFX.itemget(); buzz([0, 30, 50, 30]);
   result.statUp = Math.round((SOUL_STAT_UP[SOUL_CLASSES[t.clsKey].rarity] || 0.01) * 100);
-  uiSoulPanel.showFuseResult(result);
+  uiSoulPanel.showFuseResult(result, onResultClose);
   return { rankUp: false };
 }
 
