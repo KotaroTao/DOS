@@ -1140,8 +1140,10 @@ export function crispCanvas(spr, size) {
   const { w, h } = dims(spr);
   const dpr = Math.min(3, Math.max(1, Math.round((typeof window !== "undefined" && window.devicePixelRatio) || 1)));
   if (spr.photo) {
-    // 原画版: 枠いっぱいの大きさで、端末の画素密度の解像度に滑らかに描く
-    const k = (size * dpr) / Math.max(w, h, 1);
+    // 原画版: ドット絵と同じ大きさ (升目を物理ピクセルの整数倍) で、端末の画素密度の解像度に滑らかに描く。
+    // 枠いっぱいに伸ばすとドット絵の職より大きく見えて、顔アイコンの大きさが揃わない
+    const s = Math.floor((size * dpr) / Math.max(w, h, 1));
+    const k = s >= 1 ? s : (size * dpr) / Math.max(w, h, 1);
     c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k));
     c.style.width = c.width / dpr + "px"; c.style.height = c.height / dpr + "px";
     c.style.setProperty("--spr-size", size + "px");
