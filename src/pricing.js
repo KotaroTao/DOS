@@ -75,6 +75,7 @@ function featureMul(it) {
   if (it.eAtk) m += 0.15 * (it.eAtk.lv || 1);
   if (it.eDef) m += 0.10 * (it.eDef.lv || 1);
   if (it.aRes) for (const k in it.aRes) m += 0.6 * (it.aRes[k] || 0);
+  if (it.bRes) m += 0.8 * it.bRes; // ブレス耐性
   if (it.onHit) m += (it.onHit.chance || 0) * (it.onHit.pct ? 1.5 : 1);
   return m;
 }

@@ -243,6 +243,9 @@
 .wpc-is-pick .wpc-chooser-el { margin: 0; }
 
 .wpc-chooser .wpc-chooser-el .pt-ch-h { display: none; }
+/* 「すべての変化」の釦だけは残す (変化が2つを超える者がいるとき) */
+.wpc-chooser .wpc-chooser-el .pt-ch-h:has(.pt-ch-all) { display: flex; justify-content: flex-end; }
+.wpc-chooser .wpc-chooser-el .pt-ch-h .pt-ch-t { display: none; }
 /* 人業を選ぶシートの見出し (品の絵と名前) */
 .wpc-ch-hd { display: flex; align-items: center; gap: 10px; text-align: left; margin: 2px 0 10px; }
 .wpc-ch-t { min-width: 0; display: flex; flex-direction: column; gap: 2px; }

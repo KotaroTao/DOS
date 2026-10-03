@@ -68,6 +68,17 @@ RANK_LISTS.forEach((list, bi) => {
     else if (it.slot === "acc") it.aRes = { charm: v, confuse: v };
   }
 });
+// ===== ブレス耐性 (bRes) をランク別標準装備に持たせる =====
+// 各ランクのアンコモンの盾と胴防具に、ランクに応じたブレス耐性を付ける (盾 R1 11% → R20 30% / 胴はその6割)。
+// 盾を持てない術者も胴で少しは凌げる。一点物は品ごとに書く (gear.js の竜鱗の品など)
+RANK_LISTS.forEach((list, bi) => {
+  const v = 0.10 + 0.01 * (bi + 1);
+  for (const it of list) {
+    if (it.rar !== "uc" || it.bRes) continue;
+    if (it.slot === "shield") it.bRes = Math.round(v * 100) / 100;
+    else if (it.slot === "body") it.bRes = Math.round(v * 0.6 * 100) / 100;
+  }
+});
 
 // ===== ランク別標準装備は「lv が上なら必ず性能も上」にする =====
 // 能力値は整数に丸めるので、低いランクでは lv の違う品が同じ性能になることがある
@@ -76,7 +87,7 @@ RANK_LISTS.forEach((list, bi) => {
 // 主ステ (最も大きい能力) を +1 ずつ上げて差をつける。状態異常耐性を持つ品はそれで上回っているものとみなす
 const RANK_STAT_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"];
 const RANK_STAT_W = { hp: 0.15, mp: 0.25 };
-const notAbove = (u, c) => !(u.aRes && !c.aRes) && RANK_STAT_KEYS.every((k) => (u[k] || 0) <= (c[k] || 0));
+const notAbove = (u, c) => !(u.aRes && !c.aRes) && !(u.bRes && !c.bRes) && RANK_STAT_KEYS.every((k) => (u[k] || 0) <= (c[k] || 0));
 {
   const groups = new Map();
   for (const list of RANK_LISTS) for (const it of list) {

@@ -121,7 +121,7 @@ export const HEADS = [
   // ---- lv46-50 ----
   H("h_total_eclipse_cowl", "皆既蝕の頭巾", 180, { shape: "hat", eDef: ["dark", 2], mp: 45, int: 24, cls: ["mage", "bishop"],
     desc: "太陽が喰われた日に織り上げられたという頭巾。布の内側はいかなる正午であろうと完全な夜で、目を灼く聖光さえ蝕の闇が呑み干す。" }),
-  H("h_dragonfall_armet", "竜ほふりの大兜", 184, { pow: 1.3, hp: 120, agi: -12, cls: ["fighter", "knight"],
+  H("h_dragonfall_armet", "竜ほふりの大兜", 184, { pow: 1.3, bRes: 0.25, hp: 120, agi: -12, cls: ["fighter", "knight"],
     desc: "単身で古竜の顎へ潜り込み、内から喉を裂いた英雄の兜。浴びた竜血で鋼は半ば竜鱗と化し、生半可な牙にも爪にももう貫けない。" }),
   H("h_star_sovereign_crown", "星々の王の宝冠", 192, { shape: "circlet", mp: 50, hp: 120, luk: 10,
     desc: "天の星々を臣下に数えたという伝説の王の宝冠。夜空を縮めて鋳たとされる輪の内では今も小さな星が生まれては流れ、祈りを集める。" }),
@@ -261,7 +261,7 @@ export const FEET = [
   // ---- lv46-50 ----
   F("f_storm_sovereign_boots", "嵐王の渡靴", 177, { eDef: ["wind", 2], pow: 0.9, agi: 28,
     desc: "雲の上から地上の戦を見下ろしたという嵐の王の靴。歩むたび足元で旋風が渦を巻き、降り注ぐ岩塊も土砂も届く前に残らず吹き散らす。" }),
-  F("f_elder_dragon_greaves", "老竜鱗の重脚甲", 184, { shape: "greaves", pow: 1.3, hp: 160, agi: -18, cls: ["fighter", "knight"], tint: "#c9a227", tintAmt: 0.3,
+  F("f_elder_dragon_greaves", "老竜鱗の重脚甲", 184, { shape: "greaves", pow: 1.3, bRes: 0.2, hp: 160, agi: -18, cls: ["fighter", "knight"], tint: "#c9a227", tintAmt: 0.3,
     desc: "天寿を全うした老竜が、形見にと鱗を許した——そんな伝説を持つ脚甲。黄金の鱗は山の重みで足を縛るが、竜の永い命を分け与えてくれる。" }),
   F("f_eternal_pilgrim_boots", "永劫巡礼のくつ", 192, { agi: 25, hp: 130, tint: "#e8e8f4", tintAmt: 0.3,
     desc: "世界をひと巡りしてなお歩みを止めない、終わりなき巡礼者のくつ。歩いた道のりの分だけ命を蓄えるといわれ、革はもう擦り切れ方を忘れた。" }),
@@ -316,7 +316,7 @@ export const HANDS = [
     desc: "処刑斧を握り続けた者の黒革籠手。柄を握る形に固まったまま戻らず、はめた者の握力ごと断頭の重さを思い出させる。" }),
   G("g_saintly_mitts", "聖手の祈り手袋", 110, { eDef: ["light", 1], pie: 13, mp: 16, cls: ["priest", "bishop"],
     desc: "千人の傷に触れた癒し手の白手袋。布は祈りを吸って淡く光り、闇の爪はこの手に触れる寸前で躊躇するという。" }),
-  G("g_dragonscale_grips", "竜鱗の手甲", 122, { eDef: ["fire", 1], hp: 75, tint: "#3a7a6a", tintAmt: 0.25,
+  G("g_dragonscale_grips", "竜鱗の手甲", 122, { eDef: ["fire", 1], bRes: 0.2, hp: 75, tint: "#3a7a6a", tintAmt: 0.25,
     desc: "脱皮した竜の鱗を継いだ手甲。鱗は今も己を竜と思っており、炎は同族の手を焼くことを避けて通る。" }),
   G("g_nightprowler_gloves", "夜歩きの絹手袋", 137, { eAtk: ["dark", 1], pow: 0.9, agi: 17, crit: 0.04,
     desc: "月のない夜にだけ仕事をした怪盗の絹手袋。触れたものの輪郭を闇に溶かし、その手刀は影そのものの冷たさで斬りつける。" }),

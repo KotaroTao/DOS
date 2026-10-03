@@ -908,7 +908,7 @@ const SPECIAL_FLOORS = [
     lines: ["死者たちの声がざわめいている。", "この階で得る Soul が 1.5倍 になる。"] },
   { id: "silence", name: "静寂の階", icon: "trap", accent: "#9be88a", sym: "∅", minFloor: 2, rate: 0.02, noTrap: true,
     lines: ["仕掛けという仕掛けが朽ち果てている。", "この階に罠と毒の床は存在しない。"],
-    board: (b) => sfEachCell(b, (c) => { if (c.type === "trap" || c.type === "poison") { c.type = "empty"; c.cleared = true; } }) },
+    board: (b) => sfEachCell(b, (c) => { if (c.type === "trap" || c.type === "poison" || c.type === "pit") { c.type = "empty"; c.cleared = true; } }) },
   { id: "moonlight", name: "月明かりの階", icon: "corpseWarm", accent: "#aef0ff", sym: "☾", minFloor: 2, rate: 0.02,
     lines: ["蒼い光が差し込み、死者の温もりが消えない。", "この階の死体はすべて「あたたかい死体」だ。"],
     board: (b) => {
@@ -1554,7 +1554,11 @@ function dockSpec() {
   const dead = G.party.filter((t) => !t.alive).length;
   const hurt = G.party.some((t) => t.alive && (t.hp < t.maxhp || t.ailment));
   const heal = { label: "全員を回復", sub: dead ? `倒れた者 ${dead}` : hurt ? "傷ついた者がいる" : "皆 無事", hot: healAllNeed() && (healAllCasters().length > 0 || healAllRevivers().length > 0) };
-  return { down, home, heal, idle: G.floor <= 1 && !(G.run && G.run.kills) ? "スワイプで進む ・ 光る墓石をめくる" : "階段を見つけると、ここから降りられる" };
+  // 浮遊 (迷宮で唱える技)。覚えた者が隊にいる時だけ出す
+  const fc = floatCaster(true);
+  const fl = floatLeft();
+  const float = fc ? { label: "浮遊", sub: fl > 0 ? `残り${fl}階` : `MP${fc.cost}`, on: fl > 0 } : null;
+  return { down, home, heal, float, idle: G.floor <= 1 && !(G.run && G.run.kills) ? "スワイプで進む ・ 光る墓石をめくる" : "階段を見つけると、ここから降りられる" };
 }
 function dockDescend() {
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
@@ -1565,6 +1569,39 @@ function dockDescend() {
   const dn = curDungeon();
   const plain = abyssActive() ? !abyssBossPending() : G.floor < (dn.floors || 1);
   if (plain) descend(); else askDescend(cell);
+}
+// ===== 浮遊 (迷宮で唱える技 kind "field" / float) =====
+// 浮いている残りの階数 (この階を含む)。落とし穴に落ちず、毒の床のダメージも受けない
+function floatLeft() { return (inDungeon() && G.run && G.run.float) || 0; }
+// 浮遊を唱えられる者と技: 生きていて MP が足りる者のうち、MP の最も多い者 (any = MP を問わず覚えている者)
+function floatCaster(any = false) {
+  let best = null;
+  for (const p of G.party) {
+    if (!p.alive || p.ailment === "stone") continue;
+    for (const k of p.spells || []) {
+      const sp = SPELLS[k];
+      if (!sp || sp.kind !== "field" || !sp.float) continue;
+      const cost = spellCost(p, sp);
+      if (!any && p.mp < cost) continue;
+      if (!best || (p.mp >= cost) > (best.p.mp >= best.cost) || p.mp > best.p.mp) best = { p, sp, cost };
+    }
+  }
+  return best;
+}
+function dockFloat() {
+  if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
+  const left = floatLeft();
+  if (left > 0) { SFX.select(); showToast(`浮遊中 ― 残り${left}階 (落とし穴に落ちず、毒の床も踏まない)`, { tone: "info" }); return; }
+  const c = floatCaster();
+  if (!c) { SFX.ng(); showToast(floatCaster(true) ? "浮遊を唱える MP が足りない" : "浮遊を唱えられる者がいない", { tone: "info" }); return; }
+  c.p.mp -= c.cost;
+  G.run.float = c.sp.float;
+  SFX.spell();
+  log(`${c.p.name}は${c.sp.name}を唱えた。隊の足が地を離れる ― ${c.sp.float}階のあいだ落とし穴にも毒の床にもかからない。`, "win");
+  showToast(`${c.sp.name} ― ${c.sp.float}階のあいだ宙に浮く`, { tone: "good" });
+  renderParty();
+  renderDock();
+  autosave(true);
 }
 function dockHealAll() {
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
@@ -1580,7 +1617,7 @@ function renderDock() {
   if (!hintEl) return;
   const spec = inDungeon() ? dockSpec() : null;
   hintEl.classList.toggle("hidden", G.state === "combat" || (G.state === "over" && !!G.battle));
-  uiDungeonHud.renderDock(hintEl, spec, { descend: dockDescend, goHome: dockReturn, healAll: dockHealAll });
+  uiDungeonHud.renderDock(hintEl, spec, { descend: dockDescend, goHome: dockReturn, healAll: dockHealAll, float: dockFloat });
 }
 
 function renderBoard() {
@@ -1849,11 +1886,40 @@ function drawBoardFrame() {
   vctx.globalAlpha = 1;
 }
 
+// 落とし穴: 床石の割れ目に口を開けた暗い穴。縁の欠けた石と、底から吹き上がる冷たい塵
+function drawPit(x, y, now) {
+  const r = cellRect(x, y), cx = r.x + r.w / 2, cy = r.y + r.h * 0.56;
+  const rx = r.w * 0.34, ry = r.h * 0.2;
+  vctx.save();
+  // 縁の石 (少し明るい輪) → 穴の闇 (奥へ行くほど黒い) の順に重ねる
+  vctx.fillStyle = "#2a2622";
+  vctx.beginPath(); vctx.ellipse(cx, cy, rx + 3, ry + 2.5, 0, 0, Math.PI * 2); vctx.fill();
+  const g = vctx.createRadialGradient(cx, cy + ry * 0.2, 0, cx, cy, rx);
+  g.addColorStop(0, "#000000"); g.addColorStop(0.7, "#050406"); g.addColorStop(1, "#141012");
+  vctx.fillStyle = g;
+  vctx.beginPath(); vctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); vctx.fill();
+  // 手前の縁の欠け (穴の口のぎざぎざ)
+  vctx.fillStyle = "#3a342e";
+  for (let i = 0; i < 7; i++) {
+    const a = Math.PI * (0.1 + 0.8 * (i / 6)), px = cx + Math.cos(a) * (rx + 1), py = cy + Math.sin(a) * (ry + 1);
+    vctx.fillRect(Math.round(px - 1), Math.round(py - 1), 2 + (h01(i, x + y * 7) > 0.5 ? 1 : 0), 2);
+  }
+  // 底から吹き上がる塵 (ゆっくり昇って消える)
+  const t = REDUCED_MOTION ? 0 : now * 0.001;
+  for (let i = 0; i < 4; i++) {
+    const ph = (t * (0.25 + h01(i, x * 5 + y) * 0.3) + h01(i, 11)) % 1;
+    vctx.globalAlpha = (1 - ph) * 0.5;
+    vctx.fillStyle = "#8a8070";
+    vctx.fillRect(Math.round(cx + (h01(i + 3, x + y) - 0.5) * rx * 1.2), Math.round(cy - ph * r.h * 0.3), 1, 1);
+  }
+  vctx.restore();
+}
 // 地形の動き (闇の上に描く = 闇の中でもぼうっと光る): 毒の汚泥の照り・泡・瘴気
 function drawBoardTerrainFx(now) {
   const cells = G.board.cells;
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
     const c = cells[y][x];
+    if (c.revealed && c.type === "pit") { drawPit(x, y, now); continue; }
     if (!c.revealed || c.type !== "poison") continue;
     const r = cellRect(x, y), cx = r.x + r.w / 2, cy = r.y + r.h * 0.55;
     const t = REDUCED_MOTION ? 0 : now * 0.001;
@@ -4551,7 +4617,12 @@ function moveStep(nx, ny, onDone) {
 // 壁を考慮した最短経路 (現在地 → tx,ty)。歩く順の {x,y} 配列を返す。
 // 途中は「めくり済みのマス」だけを通り、未公開カードは勝手にめくらない。
 // ただし目的地が未公開でも、めくり済み領域に隣接していれば最後の1歩としてめくれる。
+// 自動で歩く道は、見えている落とし穴を通らない道を先に探す (浮いている時・他に道が無い時は通る)
 function findPath(tx, ty) {
+  if (floatLeft() <= 0) { const p = findPathInner(tx, ty, true); if (p.length) return p; }
+  return findPathInner(tx, ty, false);
+}
+function findPathInner(tx, ty, avoidPit) {
   if (tx === G.px && ty === G.py) return [];
   const key = (x, y) => x + "," + y;
   const prev = new Map();
@@ -4566,6 +4637,7 @@ function findPath(tx, ty) {
       const isTarget = nx === tx && ny === ty;
       // 中間マスはめくり済みのみ。目的地のみ未公開カード(最後の1歩)を許可
       if (!G.board.cells[ny][nx].revealed && !isTarget) continue;
+      if (avoidPit && !isTarget && G.board.cells[ny][nx].type === "pit") continue;
       if (seen.has(key(nx, ny))) continue;
       seen.add(key(nx, ny));
       prev.set(key(nx, ny), [x, y]);
@@ -4592,6 +4664,8 @@ function autoWalk(path) {
   G.walking = true;
   walkRedirect = null;
   const next = () => {
+    // 落とし穴に落ちた: 経路は前の階のものなので、ここで歩みを止める
+    if (G._walkAbort) { G._walkAbort = false; G.walking = false; walkRedirect = null; return; }
     if (walkRedirect) { const t = walkRedirect; walkRedirect = null; path = findPath(t.x, t.y); }
     if (G.state !== "board" || G.prompt || !path.length) { G.walking = false; walkRedirect = null; renderBoard(); return; }
     const { x, y } = path.shift();
@@ -4649,7 +4723,25 @@ function resolveCell(cell) {
       presentTrap(applyTrap(trap, best), { proceed: () => renderBoard() }, boardSink());
       break;
     }
+    case "pit": {
+      // 落とし穴: ダメージは無いが、1階下へ強制的に落とされる (最下階には無い)。浮遊していれば落ちない
+      if (floatLeft() > 0) {
+        log("落とし穴だ。だが隊は宙に浮いたまま、穴の上を渡った。", "sys");
+        showToast("落とし穴 ― 浮遊で越えた", { tone: "good", icon: ICONS.trap });
+        break;
+      }
+      if (abyssActive() || G.floor >= (curDungeon().floors || 1)) break; // 念のため (最下階・奈落には置かない)
+      SFX.trap(); buzz([0, 60, 40, 140]); shakeScreen(true); flashScreen("#050308");
+      log("足元が抜けた！ 落とし穴だ ― 隊は暗闇の底へ落ちていく…", "dmg");
+      runCount("pits");
+      G._walkAbort = true;            // 歩いている途中なら、前の階の経路をここで捨てる
+      G.anim = { busy: true };        // 落ちきるまで操作を受けない
+      setTimeout(() => { G.anim = null; if (G.state === "board" && inDungeon()) descend({ fall: true }); }, 420);
+      break;
+    }
     case "poison": {
+      // 浮遊: 毒の床に足が触れない
+      if (floatLeft() > 0) { log("毒の床だ。宙に浮いたまま、汚泥に触れずに渡った。", "sys"); break; }
       // 毒の床: 踏むたびに隊全体を蝕む。毒床耐性 (盗賊系) で半減/無効
       const resist = partyPassiveLv("poisonFloor");
       if (resist >= 2) {
@@ -4942,6 +5034,10 @@ function eventFacts() {
   const ic = ICONS.event;
   const fe = (G.board && G.board.ev) || {};
   const fl = (G.events && G.events.flags) || {};
+  // 浮遊の術 (出来事ではないが、いまの階の性質として並べる)
+  if (floatLeft() > 0) out.push({ tone: "gold", icon: ICONS.portal, title: "浮遊", accent: "#8fd0c8", lines: [`隊は宙に浮いている (この階を含めて残り${floatLeft()}階)。落とし穴に落ちず、毒の床も踏まない。`] });
+  const pits = evCells((c) => c.type === "pit" && c.revealed).length;
+  if (pits) out.push({ tone: "bad", icon: ICONS.trap, title: "落とし穴", accent: "#8a8070", lines: [`見えている落とし穴 ${pits}つ。踏むと1階下へ落とされる (自動の歩みは避けて通る)。`] });
   const perm = Object.keys(EV_BOONS).filter((k) => fl[k] && (k !== "sewerMap" || battleLayer() === 2)).map((k) => EV_BOONS[k].text);
   if (perm.length) out.push({ tone: "gold", icon: ic, title: "極の恵み (恒久)", accent: "#ffcf4a", lines: perm });
   for (const m of fe.mods || []) out.push({ tone: m.enemyMul ? "bad" : "gold", icon: ic, title: `出来事「${m.name}」`, accent: "#c08aff", lines: [m.desc] });
@@ -6220,11 +6316,15 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
 // 階段を降りる: 墨の帳 (約1.3秒・400ms 後はタップで飛ばせる) の暗転のうちに次の階へ。
 // 強敵階・特別な階・奈落の変異の知らせは帳の中に2〜3行で添える (後から別の札は出さない)。
 // 見落としても、見出しの迷宮名を押す「階の情報」でいつでも読み返せる
-function descend() {
+function descend({ fall = false } = {}) {
   evOnDescend(); // 迷宮のイベント: 誓いの破約など
-  SFX.stairs();
-  buzz([0, 20, 80, 20]);
+  if (!fall) { SFX.stairs(); buzz([0, 20, 80, 20]); }
   G.floor++;
+  // 浮遊: 階を移るたびに残りの階数を減らす (唱えた階を含めて float 階のあいだ続く)
+  if (G.run && G.run.float > 0) {
+    G.run.float--;
+    if (G.run.float <= 0) { G.run.float = 0; log("浮遊の術が解け、隊の足が地に着いた。", "sys"); }
+  }
   G.maxFloorReached = Math.max(G.maxFloorReached, G.floor);
   questProgress("floor", G.floor);
   // 奈落: 深度を進め、節目で変異を積む (呪縛の誓は進行が速い)
@@ -6270,11 +6370,11 @@ function descend() {
   } else if (sp) {
     log(`…この階は何かが違う。「${sp.name}」だ。${sp.lines.join("")}`, "win");
   } else {
-    log("階段を降りていく…", "sys");
+    log(fall ? "…落ちた先は、ひとつ下の階だった。" : "階段を降りていく…", "sys");
   }
   if (newMut) log(`${newMut.kind === "boon" ? "奈落の恵み" : "奈落の変異"}「${newMut.name}」: ${newMut.desc}`, newMut.kind === "boon" ? "win" : "dmg");
   // 帳に添える行 (2〜3行)
-  let tone = "", sub = "— さらに深く潜る —", lines = [], color = null;
+  let tone = "", sub = fall ? "— 落とし穴に落ちた —" : "— さらに深く潜る —", lines = [], color = null;
   if (G.eliteFloor) {
     tone = "elite"; sub = "— 禍々しき気配 —";
     const ek = MONSTERS[eliteKey()];
@@ -7181,7 +7281,7 @@ requestAnimationFrame(combatAnimLoop);
 // 敵にかかっている強化(▲)/弱体(▼)を名前プレート付近に小さなピルで描く。
 // 能力(攻/守/速)ごとに集約し、段階ぶんの矢印と最短残ターンを添える。
 const BUFF_KANJI = {
-  atk: "攻", vit: "守", agi: "速", int: "知", hit: "眼", seal: "封", taunt: "挑", shield: "庇", ctr: "返", charge: "溜", regen: "癒",
+  atk: "攻", vit: "守", agi: "速", int: "知", hit: "眼", seal: "封", taunt: "挑", shield: "庇", ctr: "返", charge: "溜", regen: "癒", wardB: "鱗", wardS: "帳",
   r_fire: "火", r_water: "水", r_wind: "風", r_earth: "土", r_light: "光", r_dark: "闇", r_all: "属",
 };
 // 強化/弱体が「かかった瞬間」に出すフロート文字と色 (敵味方共通)。
@@ -7875,7 +7975,9 @@ function applyImpact(res) {
 
   // 効果音 + 振動
   if (res.action === "breath") {
-    SFX.fire(); buzz([0, 50, 40, 80]); shakeScreen(true);
+    // ブレス (炎の効果音) / 敵の全体呪文 (呪文の効果音)
+    if (res.espell) SFX.spell(); else SFX.fire();
+    buzz([0, 50, 40, 80]); shakeScreen(true);
   } else if (res.action === "spell" && res.spellKind !== "phys") {
     if (res.spellKind === "heal" || res.spellKind === "cure" || res.spellKind === "buff") SFX.heal();
     else if (res.spellElement === "fire") SFX.fire();
@@ -11917,7 +12019,7 @@ function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch {} }
 // 個体ごとの状態 (未鑑定・鑑定失敗の印など) は残す。旧セーブの装備も新しいレア度と絵になる
 const ITEM_STAT_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp", "crit"];
 const ITEM_TMPL_KEYS = ["name", "desc", "slot", "lv", "rank", "r20", "rar", "lr", "forJob", "exclusive", "classes", "cat",
-  "twoHanded", "weight", "price", "art", "palette", "eAtk", "eDef", "aRes", "onHit", "scale", "magic", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
+  "twoHanded", "weight", "price", "art", "palette", "eAtk", "eDef", "aRes", "bRes", "onHit", "scale", "magic", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
 function reflattenItemStats() {
   const visited = new Set();
   function refresh(it) {

@@ -7,7 +7,7 @@ export default {
   table: `
     1 SHIELDBASH 2 SHIPPUUGIRI 3 NERAIUCHI 5 dragonknightHishou/1 7 TENSHOU 10 CHOUHATSU
     12 KAENGIRI 15 dragonknightRyuurin/1 20 RYUURIN 22 REPPUU 25 dragonknightIkari/1 30 RYUUKOU
-    35 dragonknightRyuuketsu/1 40 RYUZETSU 45 dragonknightRyuuketsu/2 50 SHINGANGEKI 55 RYUUEN 57 FUUGA
+    35 dragonknightRyuuketsu/1 40 RYUZETSU 45 dragonknightRyuuketsu/2 50 RYUURINJIN 55 RYUUEN 57 FUUGA
     60 dragonknightHishou/2 65 NIOUDACHI 70 dragonknightRyuurin/2 75 dragonknightRyuugan/1 80 DRAGONKNIGHT_RYUUSOU 82 GURENZAN
     85 DRAGONKNIGHT_RYUUYOKU 90 resistAilment/1 95 DRAGONKNIGHT_RYUUGA 100 DRAGONKNIGHT_KOURYUUGEKI 105 dragonknightIkari/2 107 DRAGONKNIGHT_FUURYUU
     110 DRAGONKNIGHT_TENKUU 115 dragonknightRyuuketsu/3 120 DRAGONKNIGHT_RYUUKOTSU 125 dragonknightRyuugan/2 130 DRAGONKNIGHT_RYUUBI 135 dragonknightRyuuketsu/4

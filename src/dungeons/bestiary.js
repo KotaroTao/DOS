@@ -206,59 +206,64 @@ const NEW_DEFS = [
   { id: "bs_fortlord", name: "砦の主", rank: 6, boss: true, race: "armored", element: "none", artKey: "hd_fortlord", soulClass: "fighter",
     role: "summoner", summonKey: "d03_sentinel", ability: "critical", enrage: true, physResist: 1, // 亡兵を呼び、急所を貫き、追い詰められて荒れ狂う
     desc: "砦を枕に討ち死にし、なお退却の許しを待ち続ける将の亡霊。錆びた大剣を提げ、無人の甲冑を次々と起こして陣を布く。分厚い甲冑は刃を阻み、城が落ちる時の絶望が、その剣に宿っている。" },
-  // -- 第5層「霧の森」 (rank 6-7・植物/獣/妖。第4層より格上の壁。火に弱い者が多い) --
-  { id: "bs_misttreant", name: "霧の古木", rank: 6, race: "plant", element: "wind", artKey: "misttreant",
-    physResist: 1, regen: 0.08, barrier: 2, magWeak: 1.3, // 刃を呑み傷を巻き戻すが、炎には脆い
-    desc: "苔と霧をまとって歩く、森の最も古い木の化身。太い幹は刃を呑み込み、刻んだ傷も年輪を巻き戻すように塞がる。ただ、乾いた芯は炎の魔法を浴びると一気に燃え盛る。" },
-  { id: "bs_dryadfey", name: "森の妖魔", rank: 6, race: "plant", element: "wind", artKey: "dryadfey",
-    ability: "charm", regen: 0.06, role: "healer", // 妖しい歌で心を奪い、傷ついた森の眷属を癒す
-    desc: "霧の奥から妖しい歌を響かせる、美しくも恐ろしい森の妖。その歌に心を奪われた者は、妖の望むまま仲間へ刃を向ける。傷ついた森の眷属には癒しの旋律を、侵入者には呪いの旋律を歌い分ける。" },
-  { id: "bs_giantmoth", name: "鱗粉の大蛾", rank: 6, race: "insect", element: "wind", artKey: "giantmoth",
-    ability: "sleep", evasive: true, swift: true, // 眠りの鱗粉を撒き、霧と灯に紛れてかわす
-    desc: "霧の夜にだけ舞う、両翼を広げれば人の背丈ほどもある大蛾。眠りを誘う鱗粉を撒き散らして獲物をまどろませ、ふらりと不規則に舞っては刃をかわす。灯りを見つけると、吸い寄せられるように群がる。" },
-  { id: "bs_stranglevine", name: "絞め蔦の魔", rank: 6, race: "plant", element: "earth", artKey: "stranglevine",
-    ability: "paralyze", multistrike: 2, physResist: 1, // 樹冠から無数に垂れ、絡め取って締め上げる
-    desc: "樹冠から音もなく垂れ下がり、通る者を絡め取る食人の蔦。一本に捉えられれば、たちまち十本が巻きついて締め上げる。しなやかなつるは刃を受け流し、断っても次のつるが伸びてくる。" },
-  { id: "bs_corruptstag", name: "角の魔獣", rank: 7, race: "beast", element: "wind", artKey: "corruptstag",
-    ability: "critical", enrage: true, swift: true, // 捻れた角で急所をえぐり、手負いで猛り狂う
-    desc: "霧の瘴気に呑まれて変じた、森の主だった大鹿。捻れて鋭く尖った角は鎧ごと急所をえぐり、疾風のごとく森を駆ける。傷を負うほどに血走った目で猛り、見境なく突進してくる。" },
-  { id: "bs_fungalhulk", name: "キノコ人の巨体", rank: 6, race: "plant", element: "earth", artKey: "fungalhulk",
-    ability: "poison", regen: 0.1, physResist: 1, // 胞子の毒を撒き、崩しても胞子から蘇る
-    desc: "朽ち木に根を張った菌糸が、人を超える巨体に育ったもの。歩くたびに毒の胞子を撒き散らし、叩き崩しても残った胞子からみるみる再生する。倒しきるには、胞子ごと焼き払うしかない。" },
-  { id: "bs_forestlord", name: "霧の森の主", rank: 7, boss: true, race: "plant", element: "wind", artKey: "forestlord", soulClass: "priest",
-    role: "summoner", summonKey: "bs_stranglevine", regen: 0.08, physResist: 1, magWeak: 1.3, // 蔦を呼び、傷を繕い、刃を呑む。炎には脆い
-    desc: "霧そのものが森の意思を得て、古木の体に宿った主。無数の絞め蔦を従え、刃を幹に呑み込み、霧を吸うたびに傷を繕う。森を統べる古き妖だが、その身もまた木――業火の前には、ただ燃える薪にすぎない。" },
+  // -- 第5層「霧の森」 (rank 6-7・植物/獣/妖。第4層より格上の壁) --
+  // 第5層からは魔物の特色を極端に押し出す: 神速 (1ターンに2度動く) / 特技の多用 (abRate) / ブレス・全体呪文で隊全体を撃つ。
+  // 絵は hd_* の固有原型 (tools/hdart/layer5/)。どの個体も ability を明示する (種族の既定の特技は付けない)
+  { id: "bs_misttreant", name: "霧の古木", rank: 7, race: "plant", element: "wind", artKey: "hd_misttreant",
+    role: "guard", physResist: 2, magWeak: 1.5, ability: null, // 枝を広げて眷属をかばい、刃を呑む。ただし乾いた芯は炎の魔法に脆い
+    desc: "苔と霧をまとって歩く、森の最も古い木の化身。太い枝を広げて森の眷属の前に立ちはだかり、振るわれた刃をその幹で受け止めて呑み込む。ただ、乾いた芯は魔の炎を浴びると一気に燃え盛る。" },
+  { id: "bs_dryadfey", name: "森の妖魔", rank: 6, race: "plant", element: "wind", artKey: "hd_dryadfey",
+    ability: "charm", abRate: 0.5, role: "healer", // 妖しい歌で次々と心を奪い、傷ついた眷属を癒す
+    desc: "霧の奥から妖しい歌を響かせる、美しくも恐ろしい森の妖。指先ひとつで招かれた者は心を奪われ、妖の望むまま仲間へ刃を向ける。その歌は止むことがなく、傷ついた森の眷属には癒しの旋律を歌い分ける。" },
+  { id: "bs_giantmoth", name: "鱗粉の大蛾", rank: 6, race: "insect", element: "wind", artKey: "hd_giantmoth",
+    ability: "sleep", abRate: 0.5, evasive: true, // 眠りの鱗粉を絶えず撒き、ふらりと舞って刃をかわす
+    desc: "霧の夜にだけ舞う、両翼を広げれば人の背丈ほどもある大蛾。羽ばたくたびに眠りの鱗粉が滝のように降り注ぎ、隊はまどろみの底へ沈められる。ふらりと不規則に舞っては刃をかわし、灯りを見つけると吸い寄せられるように群がる。" },
+  { id: "bs_stranglevine", name: "絞め蔦の魔", rank: 6, race: "plant", element: "earth", artKey: "hd_stranglevine",
+    ability: "paralyze", abRate: 0.45, multistrike: 2, // 樹冠から無数に垂れ、絡め取っては痺れの棘で締め上げる
+    desc: "樹冠から音もなく垂れ下がり、通る者を絡め取る食人の蔦。一本に捉えられれば、たちまち十本が巻きつく。つるの棘には痺れの汁が満ち、絡め取られた者は指一本動かせなくなる。" },
+  { id: "bs_corruptstag", name: "角の魔獣", rank: 7, race: "beast", element: "wind", artKey: "hd_corruptstag",
+    haste: true, enrage: true, ability: null, // 目にも止まらぬ速さで駆け、手負いで猛り狂う
+    desc: "霧の瘴気に呑まれて変じた、森の主だった大鹿。捻れて尖った角を振りかざし、目にも止まらぬ速さで森を駆ける。一度狙われれば逃げきれず、傷を負うほどに血走った目で猛り狂う。" },
+  { id: "bs_fungalhulk", name: "キノコ人の巨体", rank: 6, race: "plant", element: "earth", artKey: "hd_fungalhulk",
+    physResist: 2, regen: 0.1, magWeak: 1.5, ability: null, // 菌糸の体は刃をほとんど通さず、胞子から蘇る。炎の魔法でしか焼き払えない
+    desc: "朽ち木に根を張った菌糸が、人を超える巨体に育ったもの。弾力のある繊維の体は刃をほとんど受け付けず、叩き崩しても残った胞子からみるみる再生する。倒しきるには、魔の炎で胞子ごと焼き払うしかない。" },
+  { id: "bs_forestlord", name: "霧の森の主", rank: 7, boss: true, race: "plant", element: "wind", artKey: "hd_forestlord", soulClass: "priest",
+    ability: "spell", abRate: 0.4, role: "summoner", summonKey: "bs_stranglevine", regen: 0.05, magWeak: 1.3, // 霧の大呪で隊全体を撃ち、蔦を呼ぶ。炎には脆い
+    desc: "霧そのものが森の意思を得て、古木の体に宿った主。燐光の呪文の輪をめぐらせ、霧の大呪で森に踏み入った者をまとめて薙ぎ払い、無数の絞め蔦を従える。森を統べる古き妖だが、その身もまた木――業火の前には、ただ燃える薪にすぎない。" },
   // -- 第5層「霧の森」 batch2 (rank 6-7) --
-  { id: "bs_giantowl", name: "霧渡りの梟", rank: 6, race: "avian", element: "wind", artKey: "giantowl",
-    swift: true, evasive: true, multistrike: 2, // 音もなく舞い降り、かぎ爪で素早く二度えぐる
-    desc: "霧の梢を音もなく渡る、両翼を広げれば人を覆う大梟。気配を殺して背後を取り、湾曲したかぎ爪で続けざまにえぐる。羽音が聞こえた時には、もう肩に爪が食い込んでいる。" },
-  { id: "bs_direboar", name: "牙の大猪", rank: 6, race: "beast", element: "earth", artKey: "direboar",
-    enrage: true, multistrike: 2, physResist: 1, // 突進で次々と薙ぎ倒し、手負いで見境なく暴れる
-    desc: "霧の森の下草を突き破って突進する、岩のような巨猪。捻れた牙で次々と薙ぎ倒し、分厚い剛毛と脂は刃を弾く。傷を負えば負うほど血走り、味方も敵も区別なく暴れ回る。" },
-  { id: "bs_willowwitch", name: "柳の魔女", rank: 7, race: "plant", element: "wind", artKey: "willowwitch",
-    ability: "weaken", role: "summoner", summonKey: "bs_stranglevine", regen: 0.07, // 呪歌で力を奪い、蔦を呼び、枝を繕う
-    desc: "枝垂れ柳に成り変わった、森の最も古い魔女。垂れた枝葉の奥から呪いの歌を響かせて生者の力を奪い、絡みつく蔦を次々と這わせる。枝を払っても、根が生きる限り何度でも芽吹く。" },
-  { id: "bs_sporezombie", name: "胞子の苗床", rank: 6, race: "undead", element: "wind", artKey: "sporezombie",
-    ability: "poison", regen: 0.1, pack: true, // キノコに侵された亡骸。胞子を撒き、群れ、崩しても蘇る
-    desc: "森に倒れ、菌糸に乗っ取られた亡骸の群れ。背から生えたキノコの傘から毒の胞子を吐き、近づく者を侵す。打ち崩しても残った胞子から新たな苗床が芽吹き、いつまでも数を減らさない。" },
-  { id: "bs_thornhound", name: "茨の猟犬", rank: 6, race: "beast", element: "earth", artKey: "thornhound",
-    swift: true, pack: true, lifesteal: 0.3, // 茨をまとって素早く群れ、噛んで血をすする
-    desc: "全身に茨を巻きつけた、森を駆ける痩せた猟犬。群れで素早く取り囲み、棘だらけの顎で噛みついては血をすすって傷を癒す。振り払おうにも、絡みついた茨が肉に食い込む。" },
-  { id: "bs_wisplure", name: "惑わしの群火", rank: 6, race: "specter", element: "wind", artKey: "wisplure",
-    ability: "confuse", evasive: true, magWeak: 1.5, pack: true, // 群れで誘い込み惑わせる。実体は薄い
-    desc: "霧の中をふわふわと漂う、無数の青い鬼火の群れ。道に迷った旅人を誘い込んでは、方角も敵味方も分からなくさせて沼へ沈める。実体に乏しく刃をすり抜けるが、魔の力にはひとたまりもない。" },
-  { id: "bs_satyrpiper", name: "角笛の森人", rank: 7, race: "humanoid", element: "wind", artKey: "satyrpiper",
-    ability: "warcry", swift: true, // 角笛の旋律で森の眷属を奮い立たせ、軽やかに跳ね回る
-    desc: "山羊の脚を持ち、角笛を吹き鳴らす森の半獣。その旋律は森の獣を奮い立たせ、戦意を煽る。軽やかに跳ね回って間合いを外し、決して正面からは戦わない狡猾な指揮者。" },
-  { id: "bs_flytrap", name: "大食虫花", rank: 6, race: "plant", element: "earth", artKey: "flytrap",
-    ability: "poison", multistrike: 2, physResist: 1, // 顎で噛みつき、毒液で溶かす。茎は刃を受け流す
-    desc: "人を丸呑みにする、牙の生えた巨大な食虫花。つるを伸ばして獲物を手繰り寄せ、顎で何度も噛みついては毒液で溶かす。しなやかな茎は刃を受け流し、刈ってもまた新たな花を咲かせる。" },
-  { id: "bs_mossgolem", name: "苔生す岩塊", rank: 7, race: "construct", element: "earth", artKey: "mossgolem",
-    physResist: 2, barrier: 2, regen: 0.06, // 苔と根に覆われた巨岩。刃を阻み、苔が傷を埋める
-    desc: "霧の森に幾百年も座した、苔と樹根に覆われた巨岩の番人。分厚い岩肌は刃を寄せつけず、削った傷も森の苔がじわじわと埋めていく。動き出すまでは、ただの苔むした岩にしか見えない。" },
-  { id: "bs_fogpanther", name: "霧豹", rank: 7, race: "beast", element: "wind", artKey: "fogpanther",
-    ability: "critical", swift: true, evasive: true, // 霧に紛れて忍び寄り、急所を一突きで仕留める
-    desc: "霧に体を溶け込ませて忍び寄る、しなやかな大豹。気配を断って背後を取り、急所を狙った一撃で獲物を仕留める。仕損じても霧に翻って間合いを外し、また音もなく回り込んでくる。" },
+  { id: "bs_giantowl", name: "霧渡りの梟", rank: 6, race: "avian", element: "wind", artKey: "hd_giantowl",
+    haste: true, evasive: true, ability: null, // 音もなく二度舞い降り、霧に紛れて刃をかわす
+    desc: "霧の梢を音もなく渡る、両翼を広げれば人を覆う大梟。気配を殺して舞い降り、瞬きの間に二度かぎ爪をえぐり込む。羽音が聞こえた時には、もう肩に爪が食い込んでいる。" },
+  { id: "bs_direboar", name: "牙の大猪", rank: 6, race: "beast", element: "earth", artKey: "hd_direboar",
+    ability: "critical", abRate: 0.4, enrage: true, // 突進で急所を抉り、手負いで見境なく暴れる
+    desc: "霧の森の下草を突き破って突進する、岩のような巨猪。反り返った牙を低く構えた突進は、鎧ごと急所を抉る。傷を負えば負うほど血走り、味方も敵も区別なく暴れ回る。" },
+  { id: "bs_willowwitch", name: "柳の魔女", rank: 7, race: "plant", element: "wind", artKey: "hd_willowwitch",
+    ability: "spell", abRate: 0.5, role: "summoner", summonKey: "bs_stranglevine", // 霧の嵐の呪文を唱え続け、蔦を呼ぶ
+    desc: "枝垂れ柳に成り変わった、森の最も古い魔女。掲げた枝の上に燐光の魔法陣を回し、霧の嵐の呪文を絶え間なく唱えて隊をまとめて切り刻む。足元からは絡みつく蔦が次々と這い出してくる。" },
+  { id: "bs_sporezombie", name: "胞子の苗床", rank: 6, race: "undead", element: "wind", artKey: "hd_sporezombie",
+    ability: "breath", abRate: 0.4, regen: 0.08, // 胞子の雲を吐きかけ、崩しても蘇る
+    desc: "森に倒れ、菌糸に乗っ取られた亡骸。背と頭から生えたキノコの傘と裂けた口から、胞子の雲を前方いっぱいに噴き出して隊を丸ごと蝕む。打ち崩しても残った胞子から、また立ち上がる。" },
+  { id: "bs_thornhound", name: "茨の猟犬", rank: 6, race: "beast", element: "earth", artKey: "hd_thornhound",
+    haste: true, pack: true, ability: null, // 群れで目にも止まらぬ速さで噛みつく
+    desc: "全身に茨を巻きつけた、森を駆ける痩せた猟犬。群れで現れ、目にも止まらぬ速さで二度、三度と噛みつく。背を見せて逃げようものなら、たちまち追いつかれる。" },
+  { id: "bs_wisplure", name: "惑わしの群火", rank: 6, race: "specter", element: "wind", artKey: "hd_wisplure",
+    ability: "confuse", abRate: 0.5, pack: true, magWeak: 1.5, // 群れで絶えず惑わせる。実体は薄く魔の力に脆い
+    desc: "霧の中をふわふわと漂う、無数の青い鬼火の群れ。渦を巻いて旅人を囲み、方角も敵味方も分からなくさせては沼へ沈める。実体に乏しく、魔の力にはひとたまりもない。" },
+  { id: "bs_satyrpiper", name: "角笛の森人", rank: 7, race: "humanoid", element: "wind", artKey: "hd_satyrpiper",
+    haste: true, ability: "warcry", abRate: 0.45, // 跳ね回りながら角笛を吹き鳴らし、森の眷属を奮い立たせ続ける
+    desc: "山羊の脚を持ち、角笛を吹き鳴らす森の半獣。目にも止まらぬ速さで跳ね回り、ひと吹きごとに森の獣の戦意を煽り立てる。決して正面からは戦わない狡猾な指揮者。" },
+  { id: "bs_flytrap", name: "大食虫花", rank: 6, race: "plant", element: "earth", artKey: "hd_flytrap",
+    ability: "poison", multistrike: 3, // 三つの顎で続けざまに噛みつき、毒液で溶かす
+    desc: "人を丸呑みにする、牙の生えた巨大な食虫花。三つの捕虫葉の顎がそれぞれに獲物へ首を伸ばし、続けざまに噛みついては毒液で溶かす。刈ってもまた新たな花を咲かせる。" },
+  { id: "bs_mossgolem", name: "苔生す岩塊", rank: 7, race: "construct", element: "earth", artKey: "hd_mossgolem",
+    physResist: 2, regen: 0.08, ability: null, // 苔と根に覆われた巨岩。刃をほとんど通さず、苔が傷を埋める
+    desc: "霧の森に幾百年も座した、苔と樹根に覆われた巨岩の番人。分厚い岩肌は刃をほとんど寄せつけず、削った傷も森の苔がじわじわと埋めていく。動き出すまでは、ただの苔むした岩にしか見えない。" },
+  { id: "bs_fogpanther", name: "霧豹", rank: 7, race: "beast", element: "wind", artKey: "hd_fogpanther",
+    ability: "critical", abRate: 0.45, evasive: true, // 霧に紛れて忍び寄り、急所を狙い続ける
+    desc: "霧に体を溶け込ませて忍び寄る、しなやかな大豹。体の半ばは霧に溶けて刃が素通りし、気配を断って背後を取っては急所だけを狙ってくる。仕損じても霧に翻り、また音もなく回り込む。" },
+  { id: "bs_stonegazer", name: "石睨みの大蜥蜴", rank: 7, race: "reptile", element: "earth", artKey: "hd_stonegazer",
+    ability: "stone", abRate: 0.45, physResist: 1, // 輝く眼で睨み続け、生者を石に変える
+    desc: "鶏冠と棘を頭に戴いた、苔色の鱗の大蜥蜴。黄緑に輝く眼に睨まれた者は足先から石に変わり、その棲み処の苔の下には、逃げ遅れた旅人の石像がいくつも転がっている。硬い鱗は刃を半ば弾く。" },
   // -- 第6層「沈没神殿」 (rank 7-8・水/神殿。第5層より格上の壁。深部に rank9 の神像・堕天) --
   { id: "bs_drownedpriest", name: "水底の祈り手", rank: 7, race: "specter", element: "water", artKey: "drownedpriest", soulClass: "priest",
     role: "healer", ability: "weaken", // 呪詛で力を奪い、傷ついた眷属を癒す
@@ -941,10 +946,9 @@ const NEW_DEFS = [
     ability: "poison", regen: 0.06, // 焼け続ける噛み傷 + おき火の体が傷をあぶり塞ぐ
     desc: "溶岩の川を寝床とする火トカゲ。鱗の隙間から覗く体内はおき火の色で、噛み傷は永く焼け続ける。その熱は己の傷をもあぶって塞いでしまう。" },
   // -- rank 6 --
-  { id: "bs_chimera", name: "キマイラ", rank: 6, race: "beast", element: "fire", artKey: "beast",
-    palette: tint(ARTS.beast.palette, "#c04a3a", 0.3),
-    ability: "breath", // 三つの首が一斉に吐く炎
-    desc: "獅子と山羊と毒蛇を縫い合わせた禁忌の合成獣。三つの頭は互いを憎みながら、獲物の前でだけ一つになり、前衛後衛もろとも炎を吐きかける。" },
+  { id: "bs_chimera", name: "キマイラ", rank: 6, race: "beast", element: "fire", artKey: "hd_chimera",
+    ability: "breath", abRate: 0.45, multistrike: 3, // 獅子の口から炎を吐き続け、三つの首で噛みつく (第5層)
+    desc: "獅子と山羊と毒蛇を縫い合わせた禁忌の合成獣。三つの頭は互いを憎みながら、獲物の前でだけ一つになる。獅子の口は前衛後衛もろとも炎を浴びせ、近づけば三つの首が続けざまに食らいつく。霧の森の湿った木々さえ、その炎の前では燃え上がる。" },
   { id: "bs_wyvern", name: "ワイバーン", rank: 6, race: "dragon", element: "wind", artKey: "wyvern",
     swift: true, ability: "poison", // 風を切る速さで舞い降り、尾の毒針を突き立てる
     desc: "竜の血が薄れた代わりに翼を肥らせた飛竜。風切り音が聞こえた時には、尾の毒針はもう振り下ろされている。" },
@@ -953,9 +957,8 @@ const NEW_DEFS = [
     ability: "critical", // 岩柱を叩きつける一撃が急所を砕く
     desc: "単眼の巨人。神々の炉で雷を鍛えたという腕は、いま岩柱を棍棒代わりに迷宮の柱ごと侵入者を薙ぎ、その一撃は急所を捉えれば鎧ごと砕く。" },
   // -- rank 7 --
-  { id: "bs_griffon", name: "グリフォン", rank: 7, race: "avian", element: "wind", artKey: "harpy",
-    palette: tint(ARTS.harpy.palette, "#c8a23a", 0.35),
-    swift: true, ability: "critical", // 上空からかぎ爪で急襲し急所をえぐる
+  { id: "bs_griffon", name: "グリフォン", rank: 7, race: "avian", element: "wind", artKey: "hd_griffon",
+    swift: true, multistrike: 2, ability: null, // 上空から急襲し、両の前脚のかぎ爪で続けざまにえぐる (第5層)
     desc: "鷲の眼と獅子の体を併せ持つ空の王。黄金を巣に敷く習性ゆえ財宝の眠る迷宮を縄張りに選び、上空から音もなく舞い降りてかぎ爪で急所をえぐる。" },
   { id: "bs_naga", name: "ナーガ", rank: 7, race: "aquatic", element: "water", artKey: "sahagin",
     palette: tint(ARTS.sahagin.palette, "#7a4aa0", 0.35),
@@ -1086,10 +1089,9 @@ const NEW_DEFS = [
   { id: "bs_ironknight", name: "鉄の騎士", rank: 5, race: "armored", element: "none", artKey: "hd_ironknight", soulClass: "knight",
     physResist: 2, ability: null, // 無骨な鉄塊の体は刃を通さない (物理耐性2ひとつが持ち味)
     desc: "古代の砦を守るために鋳造された鉄の自動人形。命令のみで動き、千年の時を経た今もその命令を忠実に実行し続ける。分厚い鉄塊の体は並の武器をほとんど通さない。" },
-  { id: "bs_thunderbird", name: "雷鳥", rank: 5, race: "avian", element: "wind", artKey: "harpy",
-    palette: tint(ARTS.harpy.palette, "#d4d44a", 0.4),
-    swift: true, ability: "paralyze", // 稲光をまとって舞い、触れた者を痺れさせる
-    desc: "嵐の中でのみ現れる雷光の鳥。羽ばたきのたびに稲光が走って素早く宙を舞い、その翼に触れた者は心の臓まで痺れて動けなくなる。" },
+  { id: "bs_thunderbird", name: "雷鳥", rank: 6, race: "avian", element: "wind", artKey: "hd_thunderbird",
+    ability: "spell", abRate: 0.4, swift: true, // 翼から落雷を降らせて隊全体を撃つ (第5層)
+    desc: "嵐の中でのみ現れる雷光の鳥。黒雲を背負って翼を広げれば、羽の縁から幾筋もの稲妻が地上へ降り注ぎ、隊をまとめて撃ち据える。稲光とともに素早く宙を舞う。" },
   { id: "bs_deepgolem", name: "大地のゴーレム", rank: 5, race: "construct", element: "earth", artKey: "hd_deepgolem",
     physResist: 2, // 神殿の基礎石そのものの巨体
     desc: "神殿の基礎石が何百年もの呪文の蓄積で自ら動き始めた古代ゴーレム。岩盤そのものの巨体は刃を寄せつけず、一歩踏み出すたびに床が割れ、壁が崩れる。" },
@@ -1718,14 +1720,13 @@ const ELITE_DEFS = [
     role: "summoner", summonKey: "d03_ghost", swift: true, // 散った中隊を呼び集め、号令とともに先んじる
     desc: "全滅した守備中隊の魂が、ひとつの巨影に溶け合った亡霊。号令ひとつで散った戦友の霊を呼び集め、百人分の殺意が先んじてひとつの太刀筋に乗る。" }, // D27-30
   // -- 迷宮 31-40 (霧の森帯) / 強敵ランク6 --
-  { id: "el_mistmother", name: "霧の繭母", elite: true, rank: 6, race: "insect", element: "water", artKey: "spider",
-    palette: tint(ARTS.spider.palette, "#c8d4e0", 0.55),
-    ability: "paralyze", regen: 0.06, // 霧の糸で獲物を絡めて麻痺させ、巣を繕い続ける
-    desc: "霧の森の最深部に巣を張る繭の女王。立ち込める霧はすべてこの蜘蛛の吐いた糸であり、絡めとられた獲物は痺れて動けなくなる。裂かれた巣はすぐに繕われ、森に入った時点で、すでに巣の上にいる。" }, // D31-33
-  { id: "el_eldertreant", name: "古樹の巨人", elite: true, rank: 6, race: "plant", element: "earth", artKey: "mandrake",
-    palette: tint(ARTS.mandrake.palette, "#3a5a2a", 0.5),
-    physResist: 2, regen: 0.08, // 太古の樹皮が刃を弾き、根から養分を吸って癒える
-    desc: "森が芽吹くより前からそこに立つ古樹の巨人。分厚い樹皮は刃を寄せつけず、迷宮全体に張り巡らせた根から養分を吸い上げて傷を癒し、梢を騒がせた者を大地ごと締め上げて肥料に変える。" }, // D34-36
+  // 第5層「霧の森」の強敵 (LAYER_ELITES[5]) を兼ねる。rank は層ボスと同格の 7。絵は hd_* の固有原型
+  { id: "el_mistmother", name: "霧の繭母", elite: true, rank: 7, race: "insect", element: "wind", artKey: "hd_mistmother",
+    ability: "paralyze", abRate: 0.5, role: "summoner", summonKey: "bs_giantmoth", // 痺れの糸を吐き続け、繭から大蛾を孵す
+    desc: "霧の森の最深部に巣を張る、白く淡い大蜘蛛の女王。立ち込める霧はすべてこの蜘蛛の吐いた糸であり、牙から垂らす痺れの糸に触れた者は動けなくなる。巣にぶら下がる繭の房からは、鱗粉の大蛾が次々と羽化してくる。" }, // D31-33 / 第5層
+  { id: "el_eldertreant", name: "古樹の巨人", elite: true, rank: 7, race: "plant", element: "earth", artKey: "hd_eldertreant",
+    ability: "breath", abRate: 0.45, physResist: 2, magWeak: 1.3, // 大地の息吹 (土砂と木の葉の嵐) を吐き、樹皮は刃をほとんど通さない
+    desc: "森が芽吹くより前からそこに立つ古樹の巨人。分厚い樹皮は刃をほとんど寄せつけず、胸に裂けた大口から土砂と石くれと木の葉の嵐を吐き出して、隊をまとめて薙ぎ倒す。ただ、古木の身は炎の魔法には弱い。" }, // D34-36 / 第5層
   { id: "el_huntsmanwraith", name: "狩人王の亡霊", elite: true, rank: 6, race: "specter", element: "wind", artKey: "wraith", soulClass: "thief",
     palette: tint(ARTS.wraith.palette, "#3a6a3a", 0.5),
     swift: true, ability: "critical", // 風のごとく追い、狩りの一矢で急所を射抜く
@@ -1843,6 +1844,7 @@ export const LAYER_ELITES = {
   2: ["el_bloatqueen", "el_drownedpaladin"],    // 第2層「地下水路」
   3: ["el_chainoverseer", "el_crystalseer"],    // 第3層「廃坑」
   4: ["el_warbanner", "el_headsman"],           // 第4層「捨て砦」 (旧来の ELITE_ORDER の強敵を層の強敵に)
+  5: ["el_mistmother", "el_eldertreant"],       // 第5層「霧の森」 (同上。神速や特技の多用で特色を極端に押し出す)
 };
 
 // ---- 出来事の魔物 (events.js の出来事にだけ現れる) ----
@@ -2039,12 +2041,12 @@ export const LAYER_POOLS = {
     // 層末の深部 (rank6。以前は rank7 で、層ボス・強敵より格上の雑魚が出ていた)
     "d04_revenant", "bs_thunderknight", "bs_vampire",
   ],
-  // 第5層「霧の森」: 植物/獣/妖中心、rank6-7主体 (第4層より格上)。火に弱い者が多い ※20種へ作成中
+  // 第5層「霧の森」: 植物/獣/妖中心、rank6-7 (第4層の rank5-6 より格上)。神速・特技の多用・ブレス/全体呪文など特色を極端に押し出す
   5: [
     // 新規 (固有アート)
     "bs_misttreant", "bs_dryadfey", "bs_giantmoth", "bs_stranglevine", "bs_corruptstag", "bs_fungalhulk",
     // 既存の獣/鳥/爬虫を第5層へ再配置
-    "bs_thunderbird", "bs_chimera", "bs_griffon", "bs_salamander",
+    "bs_thunderbird", "bs_chimera", "bs_griffon", "bs_stonegazer", // サラマンダー (溶岩の火トカゲ) は森に合わないので石睨みの大蜥蜴へ
     // batch2 新規 (固有アート)
     "bs_giantowl", "bs_direboar", "bs_willowwitch", "bs_sporezombie", "bs_thornhound",
     "bs_wisplure", "bs_satyrpiper", "bs_flytrap", "bs_mossgolem", "bs_fogpanther",
