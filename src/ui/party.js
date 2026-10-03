@@ -46,7 +46,7 @@ let intent = null;        // 次の描画で行うこと ({reserve:true} / {seg}
 let sheetH = null;        // 迷宮の隊シート
 let dunSeg = null;        // 迷宮の隊シートで表示中の区分 (開くたび「装備」から。街の隊タブの記憶とは別)
 let statOpen = null;      // 能力の説明を開いている能力キー
-let resPage = 0;          // 控えのシートの頁
+let resPage = 0;          // 控えのシートのページ
 let phase0ItemSheet = null; // Phase 0 の品シートのスタブ (WP-C の本物が来るまでは自前の品の画面を使う)
 
 const SEGS = [{ key: "equip", label: "装備" }, { key: "soul", label: "魂" }, { key: "stats", label: "能力" }];
@@ -623,7 +623,7 @@ function renderView(root, mode) {
   else statsSeg(body, d, mode);
   root.appendChild(body);
   if (mode === "town") {
-    autoPage(body); // 縦スクロールの代わりに頁送り (収まれば出ない)
+    autoPage(body); // 縦スクロールの代わりにページ送り (収まれば出ない)
     root.classList.add("has-keeper");
     root.appendChild(keeperPanel());
   }
@@ -937,7 +937,7 @@ function bench(d) {
   rerender();
 }
 
-// ================= 控え・仕立て (シート。4体ずつの頁) =================
+// ================= 控え・仕立て (シート。4体ずつのページ) =================
 let reserveH = null;
 const RES_PER_PAGE = 4;
 export function openReserve() {
@@ -1635,7 +1635,7 @@ function openSkillManager(d) {
     });
     return wrap;
   };
-  // 描き直しは箱ごと差し替える (シートの頁割りが差し替えを拾って割り直し、いまの頁を保つ)
+  // 描き直しは箱ごと差し替える (シートのページ割りが差し替えを拾って割り直し、いまのページを保つ)
   const redraw = () => { if (!box) return; const nb = build(); box.replaceWith(nb); box = nb; };
   return sheet.open({
     kind: "info", className: "pt-skm-sheet", banner: "技の整理", title: `${d.name}の技`,
@@ -1658,7 +1658,7 @@ export function openItemDetail(item) {
 
 // ================= 品の画面 =================
 // 袋の装備品 (鑑定済み) = 「誰に装備させるか」が主役の品の画面 (equipChooser)。
-// それ以外 (未鑑定・道具・蒐集品・装備中) は品のシート: WP-C の UI.itemSheet があればそれ、無ければ自前。
+// それ以外 (未鑑定・道具・収集品・装備中) は品のシート: WP-C の UI.itemSheet があればそれ、無ければ自前。
 // actions = シートの足の操作 [{label, sub, kind, cost, disabled, onTap(h)}] (kit の footer と同じ形)
 export function openItem(item, owner = null, sel = {}) {
   if (!item) return null;

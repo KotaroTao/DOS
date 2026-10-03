@@ -251,7 +251,7 @@ export function openRunLoot() {
 
 // ================= 記録 (全文) =================
 // 履歴は game.logHistory (記録欄より長く覚えている)。無ければ記録欄の行から。
-// 頁に分かれたら最新の頁 (最後) から開く: ‹ で過去へ遡る
+// ページに分かれたら最新のページ (最後) から開く: ‹ で過去へ遡る
 export function openLog() {
   let lines = typeof game.logHistory === "function" ? game.logHistory() : null;
   if (!lines) {

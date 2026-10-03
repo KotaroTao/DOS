@@ -398,7 +398,7 @@ export function gearScore(doll, delta) {
 }
 
 // 部位カテゴリ表記
-export const CAT_LABEL = { weapon: "武器", shield: "盾", body: "防具", head: "頭防具", hands: "小手", feet: "足防具", acc: "装飾品", use: "消耗品", misc: "蒐集品", mat: "貴重品" };
+export const CAT_LABEL = { weapon: "武器", shield: "盾", body: "防具", head: "頭防具", hands: "小手", feet: "足防具", acc: "装飾品", use: "消耗品", misc: "収集品", mat: "貴重品" };
 // アイテムの分類表記 (武器はサブカテゴリつき: 「武器（長剣）」)
 export function itemCatText(it) {
   if (it.slot === "weapon" && it.cat) return `武器（${WEAPON_CAT_LABEL[it.cat] || "その他"}）`;
