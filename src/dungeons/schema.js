@@ -76,11 +76,11 @@ export function elemMult(atk, def) {
 export const RESIST_RATE = [0, 0.5, 0.75, 1];
 export function resistRate(rank) { return RESIST_RATE[Math.max(0, Math.min(3, rank | 0))] || 0; }
 // 物理が通りにくい魔物は HP を減らす (魔法でしか削れない相手が長引きすぎないように)。物理耐性を基準にする。
-// 通常の魔物: 物理耐性2 (ほとんど効かない) = ×0.6 / 3 (無効) = ×0.4
-// 主・強敵:   物理耐性2 = ×0.75 / 3 = ×0.5 (もともと手強い相手なので下げ幅を抑える)。耐性1 は据え置き。
+// 通常の魔物: 物理耐性2 (ほとんど効かない) = ×0.7 / 3 (無効) = ×0.4
+// 主・強敵:   物理耐性2 = ×0.8 / 3 = ×0.5 (もともと手強い相手なので下げ幅を抑える)。耐性1 は据え置き。
 // 魔法にも強い魔物 (氷塊のゴーレムなど) も物理耐性で下げる。魔法耐性だけの魔物は下げない
-export const PHYS_RESIST_HP_MUL = [1, 1, 0.6, 0.4];
-export const PHYS_RESIST_HP_MUL_STRONG = [1, 1, 0.75, 0.5];
+export const PHYS_RESIST_HP_MUL = [1, 1, 0.7, 0.4];
+export const PHYS_RESIST_HP_MUL_STRONG = [1, 1, 0.8, 0.5];
 export function resistHpMul(m, strong = false) {
   if (!m) return 1;
   const t = (strong || m.boss || m.elite) ? PHYS_RESIST_HP_MUL_STRONG : PHYS_RESIST_HP_MUL;
