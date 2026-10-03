@@ -7418,6 +7418,30 @@ function nearestEnemyAt(sx, sy, allowed = null) {
   return best && bestD < ((G.enemyPos[best.uid] && G.enemyPos[best.uid].r) || 70) ? best : null;
 }
 
+// オート解除は指が触れた瞬間 (pointerdown) に効かせる。オート中は手番ごとに命令板が描き直されるので、
+// click (押して離す) を待つと、その間に解除ボタンが差し替わってタップが消えてしまう。
+// 解除した直後の click は、いま出たばかりの手動メニュー (攻撃など) に落ちないよう一度だけ握り潰す
+let _swallowClickUntil = 0;
+document.addEventListener("pointerdown", () => { _swallowClickUntil = 0; }, true);
+document.addEventListener("click", (e) => {
+  if (performance.now() >= _swallowClickUntil) return;
+  _swallowClickUntil = 0;
+  e.preventDefault(); e.stopPropagation();
+}, true);
+function stopAutoByTouch() {
+  if (!G.autoCombat) return false;
+  buzz(10);
+  stopAutoCombat();
+  _swallowClickUntil = performance.now() + 800;
+  return true;
+}
+// 命令板のどこに触れても解除 (「次も続ける」の切り替えだけは除く)
+combatMenu.addEventListener("pointerdown", (e) => {
+  if (G.state !== "combat" || !G.autoCombat || combatMenu.dataset.mode !== "auto") return;
+  if (e.button > 0 || e.target.closest(".cmd-keep")) return;
+  stopAutoByTouch();
+});
+
 // オート戦闘の解除 (解除ボタン / 戦闘画面タップの共通処理)
 function stopAutoCombat() {
   if (!G.autoCombat) return;
@@ -7488,12 +7512,26 @@ function renderActingPlate(actor) {
 // オート戦闘中の常設バナー: 演出中も表示し続け、いつでも解除できる。
 // 「次の戦闘も続ける」(§7 M2) もここで切り替えられる (主・強敵・深手の時は自動で止まる)
 function renderAutoBanner(actor) {
+  const plate = actor ? turnPlate(actor.name, "の手番", ["オート"]) : turnPlate("オート戦闘中", "", []);
+  const keep = !!uiDungeonHud.getPref("autoKeep");
+  // 既にバナーが出ていれば手番の札だけ差し替える (ボタンを作り直すと押している最中のタップが消える)
+  const cur = combatMenu.dataset.mode === "auto" ? combatMenu.querySelector(":scope > .cmd-autorow") : null;
+  if (cur && combatMenu.firstElementChild && combatMenu.firstElementChild !== cur) {
+    combatMenu.firstElementChild.replaceWith(plate);
+    const kb = cur.querySelector(".cmd-keep");
+    if (kb) {
+      kb.classList.toggle("on", keep);
+      const sub = kb.querySelector(".cmd-s");
+      if (sub) sub.textContent = keep ? "ON" : "OFF";
+      kb.setAttribute("aria-label", "次も続ける " + (keep ? "ON" : "OFF"));
+    }
+    return;
+  }
   combatMenu.innerHTML = "";
   combatMenu.dataset.mode = "auto";
-  combatMenu.appendChild(actor ? turnPlate(actor.name, "の手番", ["オート"]) : turnPlate("オート戦闘中", "", []));
+  combatMenu.appendChild(plate);
   const row = el("div", "cmd-autorow");
   row.appendChild(cmdBtn("stop", "オート解除", "画面のタップでも解除", stopAutoCombat, "cmd-wide"));
-  const keep = !!uiDungeonHud.getPref("autoKeep");
   row.appendChild(cmdBtn("keep", "次も続ける", keep ? "ON" : "OFF", () => {
     uiDungeonHud.setPref("autoKeep", !uiDungeonHud.getPref("autoKeep"));
     SFX.select();
@@ -7554,8 +7592,11 @@ function skillLocked(actor, key) {
 
 function renderCombatMenu() {
   const b = G.battle;
-  combatMenu.innerHTML = "";
-  combatMenu.dataset.mode = "";
+  // オート中はバナーを作り直さず札だけ差し替える (renderAutoBanner)。解除ボタンへのタップを取りこぼさない
+  if (!(G.autoCombat && (G.animating || b.phase === "input"))) {
+    combatMenu.innerHTML = "";
+    combatMenu.dataset.mode = "";
+  }
   if (G.animating) { if (G.autoCombat) renderAutoBanner(); return; } // アニメーション中は解除のみ可
   if (b.phase === "input") {
     const actor = b.current;
@@ -11586,6 +11627,8 @@ document.addEventListener("dblclick", (e) => e.preventDefault());
 let _enemyHold = null;
 view.addEventListener("pointerdown", (e) => {
   if (G.state !== "combat" || !G.battle) return;
+  // オート中は戦闘画面に触れた瞬間に解除 (演出中もOK)
+  if (G.autoCombat && !(e.button > 0)) { stopAutoByTouch(); return; }
   const rect = view.getBoundingClientRect();
   const sx = (e.clientX - rect.left) * (VW / rect.width);
   const sy = (e.clientY - rect.top) * (VH / rect.height);
