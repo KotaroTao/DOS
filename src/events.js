@@ -393,11 +393,12 @@ export const EVENTS = [
     },
   },
   {
-    id: "c19", name: "檻の中の人業", layer: 0, tier: "uncommon", icon: "event",
-    intro: () => ["鉄の檻に、見知らぬ人業が囚われている。器の奥で魂が助けを求めて瞬いている。", "檻の傍らには、看守の魔物が控えている。"],
+    id: "c19", name: "檻の中の人業", layer: 0, tier: "uncommon", icon: "mon:bs_cagewarden",
+    intro: () => ["鉄の檻に、見知らぬ人業が囚われている。器の奥で魂が助けを求めて瞬いている。", "檻の傍らには、鍵束を提げた看守 ― 檻番の獄卒が控えている。この階の魔物より一段手強い。"],
     choices: (A, cell) => [
-      { label: "檻を開ける ― 看守と戦い、勝てば希少な魂 (レア以上)", danger: true, fn: () => {
-        A.fight(cell, [{ pool: true, strong: 1.6 }], "cage", { noChest: true });
+      { label: "檻を開ける ― 檻番の獄卒 (この階より1ランク上) と戦い、勝てば希少な魂 (レア以上)", danger: true, fn: () => {
+        // 専用の看守。強さは「その階の雑魚の最上位ランク + 1」(どの層でも一段上)
+        A.fight(cell, [{ key: "bs_cagewarden", ranked: 1 }], "cage", { noChest: true });
       } },
     ],
     leaveLabel: "立ち去る (見捨てる)",

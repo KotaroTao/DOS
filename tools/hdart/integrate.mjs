@@ -12,12 +12,17 @@ const HEAD = {
     "  // 濁った水の照り返しと濡れた鏡面、足元の汚水の水溜まりで層の空気を揃える。",
     "  // 生成元: tools/hdart/layer2/*.mjs (node tools/hdart/run.mjs layer2 --apply で描き直せる)",
   ]],
+  // 層に属さない出来事 (events.js) 専用の魔物。第2層の区画の後ろに置く
+  event: ["出来事の魔物", [
+    "  // 層を問わず出来事にだけ現れる魔物。流儀は層の hd_* と同じ (左上の主光源、輪郭線なし、背面に寒色のリム)。",
+    "  // 生成元: tools/hdart/event/*.mjs (node tools/hdart/run.mjs event --apply で描き直せる)",
+  ], { open: "  // ── 出来事の魔物 写実ダーク高解像度プロトタイプ (hd_*): 96x96 ──", close: "  // ── 出来事の魔物 hd_* ここまで ──", after: "  // ── 第2層 hd_* ここまで ──\n" }],
 };
 export function applyLayer(layer, recs) {
-  const [title, notes] = HEAD[layer] || (() => { throw new Error("integrate.mjs の HEAD に " + layer + " がない"); })();
+  const [title, notes, mark] = HEAD[layer] || (() => { throw new Error("integrate.mjs の HEAD に " + layer + " がない"); })();
   const n = layer.replace("layer", "");
-  const open = `  // ── ${title}写実ダーク高解像度プロトタイプ (hd_*): 通常 96x96 / 層ボス・強敵 112x128 ──`;
-  const close = `  // ── 第${n}層 hd_* ここまで ──`;
+  const open = mark ? mark.open : `  // ── ${title}写実ダーク高解像度プロトタイプ (hd_*): 通常 96x96 / 層ボス・強敵 112x128 ──`;
+  const close = mark ? mark.close : `  // ── 第${n}層 hd_* ここまで ──`;
   const lines = [open, ...notes];
   // 層の見出し順 (ボス・強敵は最後) は、呼び出し側の並びをそのまま使う
   for (const a of recs) {
@@ -30,7 +35,7 @@ export function applyLayer(layer, recs) {
   const st = s.indexOf(open), en = s.indexOf(close + "\n");
   if (st >= 0 && en > st) s = s.slice(0, st) + lines.join("\n") + "\n" + s.slice(en + close.length + 1);
   else {
-    const prev = `  // ── 第${n - 1}層 hd_* ここまで ──\n`;
+    const prev = mark ? mark.after : `  // ── 第${n - 1}層 hd_* ここまで ──\n`;
     if (!s.includes(prev)) throw new Error("schema.js に挿入位置 (" + prev.trim() + ") がない");
     s = s.replace(prev, prev + lines.join("\n") + "\n");
   }

@@ -1852,6 +1852,17 @@ export const LAYER_ELITES = {
   3: ["el_chainoverseer", "el_crystalseer"],    // 第3層「廃坑」
 };
 
+// ---- 出来事の魔物 (events.js の出来事にだけ現れる) ----
+// 通常プール・強敵・ミミックの対象外 (evOnly)。どの層の出来事にも出るため、能力値は出現した階で組み直す:
+// game.js evBuildFoes の spec { ranked: n } → combat.js spawnRanked で「その階の雑魚の最上位ランク + n」の体になる。
+// ここの rank/能力値は図鑑に載せる目安。絵は hd_* の固有原型 (tools/hdart/event/)。
+const EVENT_MONSTER_DEFS = [
+  { id: "bs_cagewarden", name: "檻番の獄卒", evOnly: true, rank: 3, race: "demon", element: "none", artKey: "hd_cagewarden",
+    ability: "paralyze", endure: true, // 鎖で縛り上げてすくませ、鍵を守る執念で致命の一撃を一度だけ耐える
+    desc: "迷宮のどこかに据えられた鉄の檻を守る獄卒。己の頭までも鳥籠の檻兜に封じられ、鍵束を鳴らしながら囚われた人業の傍を離れない。振るう鎖は獲物を縛り上げてすくませ、鍵を奪われるまでは膝を折っても倒れない。その力は、いつもその階の魔物より一段上にある。" },
+];
+const EVENT_MONSTERS = defMonsters(EVENT_MONSTER_DEFS.map((d) => ({ ...monStats(d.rank), ...d })));
+
 // ---- 統合辞書とランク別プール ----
 export const BESTIARY = (() => {
   const out = { ...LEGACY };
@@ -1867,6 +1878,11 @@ export const BESTIARY = (() => {
   for (const id in LAYER_ELITE_MONSTERS) {
     if (out[id]) throw new Error("duplicate monster id: " + id);
     out[id] = LAYER_ELITE_MONSTERS[id];
+  }
+  // 出来事の魔物を辞書に統合 (RANK_POOLS からは除外)
+  for (const id in EVENT_MONSTERS) {
+    if (out[id]) throw new Error("duplicate monster id: " + id);
+    out[id] = EVENT_MONSTERS[id];
   }
   // 原画の差し替え (monart.js): 絵だけを上書きする。id・能力値・特徴はそのまま
   for (const id in MONSTER_ART) {
@@ -1884,7 +1900,7 @@ export const RANK_POOLS = (() => {
   const pools = {};
   for (const id in BESTIARY) {
     const m = BESTIARY[id];
-    if (m.elite) continue; // 強敵は通常プールに含めない
+    if (m.elite || m.evOnly) continue; // 強敵・出来事の魔物は通常プールに含めない
     const p = pools[m.rank] || (pools[m.rank] = { regular: [], boss: [] });
     (m.boss ? p.boss : p.regular).push(id);
   }

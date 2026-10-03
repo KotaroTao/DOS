@@ -720,10 +720,24 @@ function emptyState() {
 
 // ---- 砕けた人業の知らせ + 今すぐ連れ帰る (1行) ----
 function RESCUE_MS() { return game.RESCUE_SHORTEN_MS || 20 * 60 * 1000; }
-function deadBanner() {
+function deadBanner(mode) {
+  const G = G_();
+  // 迷宮の中: 帰還の時は数えない (街へ戻ってから動き出す)。隊の砕けた数だけ知らせる
+  if (mode === "dungeon" || !inTown()) {
+    const down = G.party.filter((d) => d.isDoll && !d.alive);
+    if (!down.length || (down.length === 1 && down[0] === selDoll)) return null;
+    const box = el("section", "pt-dead");
+    const t = el("div", "pt-dead-t");
+    t.appendChild(el("span", "pt-dead-mk", "✝"));
+    const tx = el("span", "pt-dead-tx");
+    tx.appendChild(el("b", null, down.length > 1 ? `${down.length}体` : down[0].name));
+    tx.appendChild(document.createTextNode(" 砕けた ・ 街へ連れ帰れば帰還を待つ"));
+    t.appendChild(tx);
+    box.appendChild(t);
+    return box;
+  }
   const dead = allDolls().filter((d) => d.isDoll && !d.alive);
   if (!dead.length || (dead.length === 1 && dead[0] === selDoll)) return null;
-  const G = G_();
   const now = Date.now();
   const soonest = dead.filter((d) => d.reviveAt).sort((a, b) => a.reviveAt - b.reviveAt)[0];
   const cost = dead.reduce((a, d) => a + (d.reviveAt ? Math.max(1, Math.ceil((d.reviveAt - now) / RESCUE_MS())) : 0), 0);
@@ -993,7 +1007,7 @@ function reserveRow(d) {
   tx.appendChild(el("div", "pt-res-n", d.name));
   const st = el("div", "pt-res-c");
   st.appendChild(document.createTextNode(d.primary == null ? "空の人業 ― 魂が宿っていない" : `${d.cls} ・ Lv${d.jobLv || 1}`));
-  if (!d.alive && game.reviveTimerEl) { st.appendChild(document.createTextNode(" ・ ")); st.appendChild(game.reviveTimerEl("span", "pt-res-tm", "✝ 帰還 ", d)); }
+  if (!d.alive && game.reviveTimerEl && inTown()) { st.appendChild(document.createTextNode(" ・ ")); st.appendChild(game.reviveTimerEl("span", "pt-res-tm", "✝ 帰還 ", d)); }
   else if (d.primary != null) st.appendChild(el("span", "pt-res-s", `  HP ${d.hp}/${d.maxhp}`));
   tx.appendChild(st);
   top.appendChild(tx);
@@ -1217,6 +1231,14 @@ function dollHeader(d, mode) {
 // 砕けた人業: 帰還までの残り + 赤い魂で早める (見出しの2行目)
 function rescueLine(d) {
   const G = G_();
+  if (!inTown()) { // 迷宮の中: 帰還の時は数えず、早めることもできない
+    const box = el("div", "pt-rescue");
+    const t = el("span", "pt-rescue-t");
+    t.appendChild(el("span", "pt-rescue-mk", "✝"));
+    t.appendChild(document.createTextNode("砕けた ・ 街へ戻れば帰還を待つ"));
+    box.appendChild(t);
+    return box;
+  }
   if (!d.reviveAt && game.setReviveTimers) game.setReviveTimers();
   const box = el("div", "pt-rescue");
   const t = el("span", "pt-rescue-t");
