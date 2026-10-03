@@ -693,11 +693,11 @@ function log(msg, cls = "sys") {
 function curDungeon() { return DUNGEONS[G.dungeonIdx] || DUNGEONS[0]; }
 
 // ===== 公開範囲 (作り込み済みの層だけを遊べるようにする) =====
-// 現在は第1層 (迷宮1-5)・第2層 (迷宮6-10) まで公開。第3層以降は「準備中」として閉じ、刷新が済んだ層から引き上げる。
+// 現在は第1層 (迷宮1-5)・第2層 (迷宮6-10)・第3層 (迷宮11-15) まで公開。第4層以降は「準備中」として閉じ、刷新が済んだ層から引き上げる。
 // 既存セーブで先へ進んでいる場合も勅命の進行 (G.msq) は書き換えず、表示と潜入だけを止める。
 // 引き上げる時は CONTENT_LIMIT を上げ、story.js の SEAL_LINES (新しい果ての層) / UNSEAL_LINES (新しく開く層) を足す。
 // 封印の告知を受けていたセーブは読み込み時に「次の勅命待ち」へ戻り、王が封の解けたことを告げてから拝命する
-const CONTENT_LIMIT = 10;
+const CONTENT_LIMIT = 15;
 const CONTENT_NEXT_LAYER = Math.floor(CONTENT_LIMIT / 5) + 1; // 準備中の層番号
 const contentSealed = () => !!G.msq && (G.msq.state === "sealed" || G.msq.n > CONTENT_LIMIT);
 
@@ -944,10 +944,10 @@ function grantHordeReward() {
 // キー (enemyMul/goldMul/soulMul/…) を使い、特別階の効果とは独立に重ね掛けされる。
 const MUTATORS = [
   { id: "bloodTide", name: "血の満潮", sym: "🩸", accent: "#d4504e", enemyMul: 1.3, soulMul: 2,
-    risk: "魔物どもが昂ぶり、強くなっている (敵の力 1.3倍)",
+    risk: "魔物どもが昂ぶり、強くなっている (敵の強さ 1.3倍)",
     gain: "得られる Soul が 2倍 になる" },
   { id: "goldRush", name: "黄金熱", sym: "💰", accent: "#ffd84a", enemyMul: 1.25, goldMul: 2,
-    risk: "財の気配に魔物が殺気立っている (敵の力 1.25倍)",
+    risk: "財の気配に魔物が殺気立っている (敵の強さ 1.25倍)",
     gain: "得られるゴールドが 2倍 になる" },
   { id: "sealedExit", name: "閉ざされた退路", sym: "⛓", accent: "#9aa0ac", noFlee: true, chestRankUp: 1,
     risk: "すべての戦闘から逃げられない",
@@ -965,7 +965,7 @@ const MUTATORS = [
     risk: "宝箱の3割はミミックだ",
     gain: "宝箱が 1ランク上等になり、ミミックは上質な宝箱を残す" },
   { id: "abyssalSurge", name: "深淵の脈動", sym: "☠", accent: "#8a2be2", enemyMul: 1.5, soulMul: 2, goldMul: 1.5, lootBonusLv: 8,
-    risk: "迷宮中の敵が大幅に強くなっている (敵の力 1.5倍)",
+    risk: "迷宮中の敵が大幅に強くなっている (敵の強さ 1.5倍)",
     gain: "Soul 2倍・ゴールド 1.5倍・落ちている装備の質が上がる" },
 ];
 // 適用中の異変の定義 (なければ null) / 効果値の取り出し
@@ -5570,6 +5570,10 @@ function startBattle(enemies, cell) {
     const ch = (spFloor && spFloor.elemAll) || mutNum("elemAll", false) ? 1 : 0.5;
     for (const e of enemies) if (!e.boss && !(e.mon && e.mon.elite) && Math.random() < ch) e.element = cfg.element;
   }
+  // 迷宮の異変 (血の満潮など): 敵の強さ倍率は HP/ATK/VIT に加えて AGI にも掛ける
+  // (enemyScale は HP/ATK/VIT のみ。召喚で呼ばれた仲間も _agiMul を引き継ぐ)
+  const mutEm = (mutDef() && mutDef().enemyMul) || 1;
+  if (mutEm !== 1) for (const e of enemies) { e._agiMul = mutEm; e.agi = Math.max(1, Math.round(e.agi * mutEm)); }
   G.battleCell = cell;
   G.state = "combat";
 

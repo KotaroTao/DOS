@@ -8,6 +8,9 @@
 //   1. 原画 (PNG・背景は透過か単色) を用意する
 //   2. node tools/monart.mjs <魔物id> <原画.png> [--h 96] [--colors 16] [--preview]
 //      → 縮小 (1ドット=1画素)・減色・背景抜きをして、下の登録欄に書き込む (同じ id は上書き)
+//      まとめて差し替える時は、原画を「<魔物id>.png」の名で1つのフォルダに置き
+//        node tools/monart.mjs --dir <フォルダ> --layer 3     (層ボス/強敵は自動で高さ120、他は96)
+//      どの id がどの魔物かは  node tools/monart.mjs --list 3  で一覧できる (差し替え済みかも表示)
 //   3. 盤面/戦闘で確認し、sw.js の CACHE を上げる
 //   手で描いた {palette, art} をそのまま書いてもよい (art は行の配列・"." が透明・行長は不揃い可)。
 //   大きさは自由 (第1層の hd_* は 96×96 前後、強敵/層ボスは 112×128 前後)。drawMonster が表示寸法に揃える。
@@ -23,6 +26,14 @@ export const ART_WANTED = {
     "bs_drownedcorpse", "bs_eelfiend", "bs_abysstentacle", "bs_brinewraith", "bs_anglerfiend",
     "bs_waterhag", "bs_ironcarp", "d03_sahagin", "bs_deepsahagin",
     "bs_sewerlord", "el_bloatqueen", "el_drownedpaladin",
+  ],
+  // 第3層「廃坑」(迷宮11-15): 通常20体 + 層ボス + 強敵2体
+  3: [
+    "bs_chainedconvict", "bs_minebat", "bs_koboldsapper", "bs_timbermite", "bs_rockworm",
+    "bs_dustwraith", "bs_blastsprite", "bs_tunneler", "d03_orc", "bs_gargoyle",
+    "bs_stonegorgon", "bs_shieldogre", "bs_crystalcrawler", "bs_orehulk", "d03_mandrake",
+    "bs_troll", "bs_deepgolem", "d04_golem", "d04_ogre", "bs_steelspider",
+    "bs_minelord", "el_chainoverseer", "el_crystalseer",
   ],
 };
 

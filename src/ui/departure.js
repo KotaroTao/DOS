@@ -8,7 +8,7 @@
 //   │ ▒▒ 第2層 ― 大門は鎖で封じられている     │ 公開範囲 (CONTENT_LIMIT) の先は「準備中」
 //   │ ◆ 隊の備え [肖像][肖像][肖像]   入替 ›  │
 //   │ ⚠ フィモンが深手     [宿で休む ●48]      │ 直し方はその場に (別の札は出さない)
-//   │ ◆ 迷宮の異変 [鎮まるのを待つ|異変ごと]  │ §7 M1 (抽選はこのシートで一度だけ)
+//   │ ◆ 迷宮の異変 [異変ごと|鎮まるのを待つ]  │ §7 M1 (抽選はこのシートで一度だけ)
 //   │ [ ◆ 門をくぐる ― B1F ◆ ]                │ 56px の決め手
 //   └──────────────────────────────────────┘
 
@@ -199,7 +199,8 @@ function renderReady(b) {
 function renderMutator(b) {
   const g = G();
   const m = game.townMutatorFor ? game.townMutatorFor(g.dungeonIdx) : null;
-  if (!m) { cur.accept = false; return; }
+  cur.hasMut = !!m;
+  if (!m) return;
   const box = el("div", "dp-mut");
   if (m.accent) box.style.setProperty("--mut", m.accent);
   const h = el("div", "dp-mut-h");
@@ -208,9 +209,10 @@ function renderMutator(b) {
   box.appendChild(h);
   box.appendChild(setText(el("div", "dp-mut-l bad"), `危険 ― ${m.risk}`));
   box.appendChild(setText(el("div", "dp-mut-l good"), `見返り ― ${m.gain}`));
+  // 既定は「異変ごと潜る」(左)。選んだ向きは迷宮を切り替えてもシートを閉じるまで保つ
   box.appendChild(segmented([
-    { key: "wait", label: "鎮まるのを待つ" },
     { key: "accept", label: "異変ごと潜る" },
+    { key: "wait", label: "鎮まるのを待つ" },
   ], cur.accept ? "accept" : "wait", (k) => { cur.accept = k === "accept"; sfx("select"); refreshFooter(); }));
   b.appendChild(box);
 }
@@ -279,7 +281,7 @@ function footerSpec() {
   const dn = D[g.dungeonIdx];
   const alive = g.party.some((p) => p.alive);
   const again = g.dungeonIdx < cleared();
-  const m = cur && cur.accept;
+  const m = cur && cur.accept && cur.hasMut;
   return [{
     label: alive ? (m ? "異変ごと門をくぐる ― B1F" : again ? "ふたたび門をくぐる ― B1F" : "門をくぐる ― B1F") : "動ける人業がいない",
     sub: dn ? `「${dn.name}」` : "",
@@ -301,7 +303,7 @@ function refreshFooter() {
 function depart() {
   const g = G();
   if (!cur) return;
-  const accept = !!cur.accept;
+  const accept = !!(cur.accept && cur.hasMut);
   const idx = g.dungeonIdx;
   sfx("select");
   close();
@@ -341,7 +343,7 @@ export function openDeparture(opts = {}) {
   const qi = questIdx();
   if (!g._departPre && qi >= 0 && qi < openCount()) g.dungeonIdx = qi;
   g._departPre = true;
-  cur = { page, accept: false, h: null, showAll: false };
+  cur = { page, accept: true, hasMut: false, h: null, showAll: false };
   cur.h = sheet.open({
     kind: "info", banner: page === "abyss" ? "奈落の支度" : "出 撃", className: "dp-sheet",
     accent: "#8e6fd0",
