@@ -804,6 +804,52 @@ function jVictory() {
   s.n("tmp", 3, "D2", 1, 0.95); s.n("crash", 3, 60, 4, 0.75); s.n("bell", 3, "D5", 4, 0.45);
   return s;
 }
+// 魂のランクアップ: ティンパニのロールに乗って金管が「タタタ・ターン」と名乗りを上げ、
+// ハ→ヘ→ト と駆け上がった末に、合唱・オルガン・弦・鐘が揃う大きなハ長調で光が満ちる
+function jRankup() {
+  const s = new Score({ name: "j_rankup", bpm: 100, gain: 1.05, fadeIn: 0, bars: 4 });
+  s.ch("brs", { inst: "brass", vol: 0.62, rev: 0.42, human: 0.004 })
+    .ch("brs2", { inst: "brass", vol: 0.5, rev: 0.45, human: 0.004 })
+    .ch("tmp", { inst: "timp", vol: 0.62, rev: 0.35 })
+    .ch("chA", { inst: "choir", vol: 0.52, rev: 0.65, att: 0.2 })
+    .ch("org", { inst: "organ", vol: 0.32, rev: 0.6, att: 0.15 })
+    .ch("str", { inst: "strings", vol: 0.42, rev: 0.55, att: 0.12 })
+    .ch("hp", { inst: "harp", vol: 0.42, rev: 0.5 })
+    .ch("cel", { inst: "celesta", vol: 0.36, rev: 0.6 })
+    .ch("crash", { inst: "crash", vol: 0.32, rev: 0.5 })
+    .ch("cym", { inst: "swell", vol: 0.24, rev: 0.4 })
+    .ch("bell", { inst: "bell", vol: 0.3, rev: 0.7 });
+  // 序: ティンパニのロールと竪琴の駆け上がり、シンバルのふくらみ
+  s.roll("tmp", 0, 2, "G1", 0.25, 0.85, 8);
+  ["C3", "E3", "G3", "C4", "E4", "G4", "C5", "E5", "G5", "C6"].forEach((m, i) => s.n("hp", 1 + i * 0.1, m, 1, 0.38 + i * 0.03));
+  s.swell("cym", 2, 0.6);
+  // 名乗り: G-G-G → C (ハ長調)
+  s.n("crash", 2, 60, 3, 0.6); s.n("tmp", 2, "C2", 1, 0.9);
+  for (const m of ["C3", "G3", "C4", "E4"]) s.n("brs2", 2, m, 1.9, 0.75);
+  for (const b of [2, 2.333, 2.667]) s.n("brs", b, "G4", 0.3, 0.8);
+  s.n("brs", 3, "C5", 0.95, 0.9);
+  for (const m of ["E4", "G4", "C5"]) s.n("str", 2, m, 2, 0.5);
+  // ヘ長調 → ト長調で駆け上がる
+  for (const m of ["F3", "A3", "C4", "F4"]) s.n("brs2", 4, m, 0.95, 0.75);
+  s.n("tmp", 4, "F1", 1, 0.75);
+  s.n("brs", 4, "A4", 0.5, 0.8); s.n("brs", 4.5, "C5", 0.5, 0.85);
+  for (const m of ["F4", "A4", "C5"]) s.n("str", 4, m, 1, 0.5);
+  for (const m of ["G3", "B3", "D4", "G4"]) s.n("brs2", 5, m, 0.95, 0.8);
+  [["G4", 5], ["B4", 5.333], ["D5", 5.667]].forEach(([m, b]) => s.n("brs", b, m, 0.3, 0.85));
+  for (const m of ["G4", "B4", "D5"]) s.n("str", 5, m, 1, 0.55);
+  s.roll("tmp", 5, 1, "G1", 0.45, 0.9, 8);
+  // 頂: 全員でハ長調を高らかに
+  for (const m of ["C3", "G3", "C4", "E4", "G4"]) s.n("brs2", 6, m, 4, 0.9);
+  s.n("brs", 6, "E5", 1, 0.95); s.n("brs", 7, "D5", 0.5, 0.85); s.n("brs", 7.5, "E5", 0.5, 0.88); s.n("brs", 8, "G5", 2.5, 0.95);
+  for (const m of ["C4", "E4", "G4", "C5"]) s.n("chA", 6, m, 4, 0.65);
+  for (const m of ["C2", "C3", "G3", "C4", "E4"]) s.n("org", 6, m, 4, 0.55);
+  for (const m of ["E5", "G5", "C6"]) s.n("str", 6, m, 4, 0.6);
+  s.n("tmp", 6, "C2", 1, 1); s.n("crash", 6, 60, 4, 0.8);
+  s.n("bell", 6, "C6", 4, 0.5); s.n("bell", 6.5, "G5", 3.5, 0.4); s.n("bell", 8, "C6", 3, 0.45);
+  ["C6", "E6", "G6", "C7", "G6", "E6", "C6", "E6", "G6", "C7"].forEach((m, i) => s.n("cel", 6 + i * 0.25, m, 0.8, 0.45));
+  s.roll("tmp", 9, 1, "C2", 0.4, 0.95, 8); s.n("tmp", 10, "C2", 1, 1); s.n("crash", 10, 60, 3, 0.6);
+  return s;
+}
 // レベルアップ: 竪琴が駆け上がり、合唱とチェレスタが光の和音
 function jLevelup() {
   const s = new Score({ name: "j_levelup", bpm: 120, gain: 1.35, fadeIn: 0, bars: 2 });
@@ -863,7 +909,7 @@ const BUILD = {
   battle3: () => battleSong("battle3", 7, 164, 2),
   boss: () => bossSong("boss", 0, 126, 0),
   boss2: () => bossSong("boss2", -2, 132, 1),
-  j_victory: jVictory, j_levelup: jLevelup, j_item: jItem, j_gameover: jGameover,
+  j_victory: jVictory, j_rankup: jRankup, j_levelup: jLevelup, j_item: jItem, j_gameover: jGameover,
 };
 const CACHE = new Map();
 export function newSong(name) {

@@ -250,6 +250,8 @@ export const SFX = {
   levelup() { jingle("j_levelup", "_levelup", 2.2, 0.4); },
   itemget() { jingle("j_item", "_itemget", 1.4, 0.55); },
   victory() { jingle("j_victory", "_victory", 3.6, 0.25); },
+  // 魂のランクアップ: 勝利より長く豪華なファンファーレ (BGM は深く下げる)
+  rankup() { jingle("j_rankup", "_rankup", 7.2, 0.15); },
   gameover() { jingle("j_gameover", "_gameover", 6, 0.2); },
 };
 

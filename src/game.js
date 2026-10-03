@@ -20,7 +20,7 @@ import {
 import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, soulIcon,
   recalcDoll, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
-  soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills,
+  soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills, soulLearnedPassives, subPickCap, jobStatsOf,
   ORDER_PERK, orderPassiveMap,
   PASSIVES,
   SOUL_RANKS, rollJobClass, rollGreatJobClass, SOUL_STAT_UP,
@@ -9055,6 +9055,13 @@ function fuseSoul(targetUid, consumeUid) {
   if (!t || !c || c.clsKey !== t.clsKey || soulWorn(c.uid) || c.locked) { SFX.ng(); return null; }
   const before = soulRankOf(t);
   const beforeLv = t.level;
+  // 融合の前後で見比べる: 宿している人業がいればその能力 (メイン魂を優先)、いなければ魂そのものの能力
+  const wearer = allDolls().find((d) => d.primary === t.uid) || allDolls().find((d) => (d.subs || []).some((x) => x && x.uid === t.uid)) || null;
+  const statsNow = () => (wearer
+    ? { hp: wearer.maxhp, mp: wearer.maxmp, atk: wearer.atk, vit: wearer.vit, agi: wearer.agi, int: wearer.int, pie: wearer.pie, luk: wearer.luk }
+    : jobStatsOf(t.clsKey, t));
+  const snap = () => ({ cap: soulLevelCapOf(t), count: t.count, stats: statsNow(), skills: soulLearnedSkills(t), passives: soulLearnedPassives(t), picks: subPickCap(t) });
+  const was = snap();
   // 双方に蓄積していた総 Soul を合算する。新しい上限まではレベルに、超過分は exp に保持する。
   const total = soulTotalExp(t.level, t.exp) + soulTotalExp(c.level, c.exp);
   t.count += c.count;
@@ -9070,20 +9077,30 @@ function fuseSoul(targetUid, consumeUid) {
   recalcAllDolls({ levelUp: t.level > beforeLv });
   codexJobSee(t.clsKey, t.count, t.level);
   const after = soulRankOf(t);
-  SFX.itemget(); buzz([0, 30, 50, 30]);
+  const now = snap();
+  // 融合の結果 (UI に渡す): 能力・Lv上限・魂数・新たに覚えた技/パッシブ・宿し技の枠
+  const result = {
+    clsKey: t.clsKey, fromRank: before, toRank: after, fromLv: beforeLv, toLv: t.level,
+    fromCap: was.cap, toCap: now.cap, fromCount: was.count, toCount: now.count,
+    statsFrom: was.stats, statsTo: now.stats, statsOf: wearer ? (wearer.primary === t.uid ? wearer.name : `${wearer.name} (サブ魂)`) : null,
+    newSkills: now.skills.filter((k) => !was.skills.includes(k)),
+    newPassives: Object.keys(now.passives).filter((k) => (now.passives[k] || 0) > (was.passives[k] || 0)).map((k) => ({ key: k, lv: now.passives[k] })),
+    fromPicks: was.picks, toPicks: now.picks,
+  };
   log(`${SOUL_CLASSES[t.clsKey].label}の魂を魂融合させた (魂数 ×${t.count})。素材にならないようロックした。`, "win");
   if (t.level > beforeLv) log(`蓄積した Soul が反映され、Lv${beforeLv} → Lv${t.level} に上昇した！`, "win");
   autosave(true);
   renderTown();
-  // ランクが上がったときは、昇格の祝祭カード (新しい称号・伸びた上限を見せる)
+  // ランクが上がったときは、ファンファーレと昇格の祝祭カード (新しい称号・能力・Lv上限・覚えた技)
   if (after > before) {
     log(`⤴ ${jobRankName(t.clsKey, after)} に昇格！`, "win");
-    showRankUp({ clsKey: t.clsKey, fromRank: before, toRank: after, fromLv: beforeLv, toLv: t.level, count: t.count }, null);
+    showRankUp(result, null);
     return { rankUp: true, from: before, to: after };
   }
-  // ランク据え置きの融合: 魂の輝きが増したことと、全能力の上昇率をトーストで
-  const pct = Math.round((SOUL_STAT_UP[SOUL_CLASSES[t.clsKey].rarity] || 0.01) * 100);
-  showToast(`${soulSeriesName(t.clsKey)}の魂の輝きが増した ― 全能力 +${pct}%（魂数 ${t.count}）${t.level > beforeLv ? ` ・ Lv${beforeLv}→${t.level}` : ""} ・ ロックした`, { tone: "good" });
+  // ランク据え置きの融合: 変わった能力・Lv上限などを結果の札で
+  SFX.itemget(); buzz([0, 30, 50, 30]);
+  result.statUp = Math.round((SOUL_STAT_UP[SOUL_CLASSES[t.clsKey].rarity] || 0.01) * 100);
+  uiSoulPanel.showFuseResult(result);
   return { rankUp: false };
 }
 
@@ -11641,16 +11658,15 @@ function showEvent({ sprite, title, lines = [], accent = "#c9a227", btnLabel = "
 // ---- ランクアップの祝祭 (キットの祝祭カード。描画は src/ui/soulpanel.js) ----
 // 昇格の感動を最大化するため: ランク色のフラッシュ + 勝利ファンファーレ + 強い触覚、
 // 回転する光条と火花に包まれた進化した姿、ランクN→N+1 の大きな昇格表示、新たな称号、解放されたもの。
-function showRankUp({ clsKey, fromRank, toRank, fromLv, toLv, count }, onClose) {
+// info: fuseSoul の result (fromCap/toCap・能力・覚えた技まで入っている)
+function showRankUp(info, onClose) {
+  const { clsKey, toRank } = info;
   const cls = SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter;
   const accent = (SOUL_RANKS[toRank] && SOUL_RANKS[toRank].color) || cls.glow || "#ffcf4a";
-  const fromCap = capForRarityRank(cls.rarity, fromRank);
-  const toCap = capForRarityRank(cls.rarity, toRank);
   flashScreen(accent);
-  SFX.victory(); buzz([0, 60, 40, 60, 40, 70, 90, 220]);
+  SFX.rankup(); buzz([0, 60, 40, 60, 40, 70, 90, 220, 120, 320]);
   return uiSoulPanel.celebrateRankUp({
-    clsKey, fromRank, toRank, fromLv, toLv, count, accent, fromCap, toCap,
-    title: jobRankName(clsKey, toRank), hint: rankUnlockHint(toRank),
+    ...info, accent, title: jobRankName(clsKey, toRank), hint: rankUnlockHint(toRank),
   }, onClose);
 }
 

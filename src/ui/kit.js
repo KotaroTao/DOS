@@ -334,7 +334,10 @@ function fitPages(h) {
   pager.classList.remove("hidden"); // 送りの段のぶん本文は低くなる
   h.host.classList.add("is-paged");
   const cs = getComputedStyle(body);
-  const avail = (body.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)) * 0.97;
+  // 現れる演出 (祝祭の札の拡大など) の途中でも割り方が狂わないよう、札の縮尺を寸法に掛ける
+  // (getBoundingClientRect は変形込み、clientHeight は変形抜き)
+  const k = (h.host.offsetHeight ? h.host.getBoundingClientRect().height / h.host.offsetHeight : 1) || 1;
+  const avail = (body.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)) * 0.97 * k;
   const units = [], heads = [], boxes = [];
   pgUnits(body, avail, units, heads, 0, boxes);
   h._pgBoxes = boxes;

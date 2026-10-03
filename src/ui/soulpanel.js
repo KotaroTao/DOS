@@ -741,33 +741,133 @@ export function celebrateJob(d) {
   });
 }
 
+// ================= 融合の結果 (変わった能力・Lv上限・覚えた技) =================
+// info は game.js fuseSoul の result:
+// { clsKey, fromRank, toRank, fromLv, toLv, fromCap, toCap, fromCount, toCount, statsFrom, statsTo, statsOf,
+//   newSkills: [key], newPassives: [{key, lv}], fromPicks, toPicks }
+const FUSE_STATS = [["hp", "HP"], ["mp", "MP"], ["atk", "ATK"], ["vit", "VIT"], ["agi", "AGI"], ["int", "INT"], ["pie", "PIE"], ["luk", "LUK"]];
+const fmtStat = (v) => { const r = Math.round((v || 0) * 10) / 10; return Number.isInteger(r) ? String(r) : r.toFixed(1); };
+// 「Lv上限 20 → 21」の段 (変わらない項目は出さない)
+function fusePerks(info, accent) {
+  const box = el("div", "sp-ru-perks sp-ru-blk");
+  const perk = (k, a, b) => {
+    const p = el("div", "sp-ru-perk");
+    p.appendChild(el("span", "sp-ru-pk", k));
+    const v = el("span", "sp-ru-pv");
+    v.appendChild(el("span", "sp-ru-old", a));
+    v.appendChild(el("span", "sp-ru-to", "→"));
+    const x = el("span", "sp-ru-new", b);
+    if (accent) x.style.color = accent;
+    v.appendChild(x);
+    p.appendChild(v);
+    box.appendChild(p);
+  };
+  if (info.toCap !== info.fromCap) perk("Lv上限", String(info.fromCap), String(info.toCap));
+  if (info.toLv > info.fromLv) perk("魂レベル", `Lv${info.fromLv}`, `Lv${info.toLv}`);
+  if (info.toCount !== info.fromCount) perk("魂数", String(info.fromCount), String(info.toCount));
+  if (info.toPicks > info.fromPicks) perk("宿し技の枠", String(info.fromPicks), String(info.toPicks));
+  return box;
+}
+// 能力の増減 (上がった項目だけ、2列)
+function fuseStats(info) {
+  const wrap = el("div", "sp-fz-sec sp-ru-blk");
+  wrap.appendChild(el("div", "sp-fz-h", info.statsOf ? `${info.statsOf} の能力` : "魂の能力"));
+  const grid = el("div", "sp-fz-stats");
+  const a = info.statsFrom || {}, b = info.statsTo || {};
+  for (const [k, label] of FUSE_STATS) {
+    const d = Math.round(((b[k] || 0) - (a[k] || 0)) * 10) / 10;
+    if (!d) continue;
+    const c = el("div", "sp-fz-st");
+    c.appendChild(el("span", "sp-fz-k", label));
+    c.appendChild(el("span", "sp-fz-v", `${fmtStat(a[k])}→${fmtStat(b[k])}`));
+    c.appendChild(el("span", d > 0 ? "sp-fz-d up" : "sp-fz-d dn", `${d > 0 ? "+" : ""}${fmtStat(d)}`));
+    grid.appendChild(c);
+  }
+  if (!grid.childNodes.length) grid.appendChild(el("div", "sp-fz-none", "能力の変化はわずか (端数のみ)"));
+  wrap.appendChild(grid);
+  return wrap;
+}
+// 新たに覚えた技・パッシブ (押すと説明)
+function fuseLearned(info) {
+  const sk = (info.newSkills || []).filter((k) => SPELLS[k]);
+  const ps = info.newPassives || [];
+  if (!sk.length && !ps.length) return null;
+  const wrap = el("div", "sp-fz-sec sp-ru-blk");
+  wrap.appendChild(el("div", "sp-fz-h", "新たに覚えた"));
+  const list = el("div", "sp-fz-learn");
+  for (const k of sk) {
+    const b = el("button", "sp-fz-chip sk", `技 ${SPELLS[k].name}`);
+    b.type = "button";
+    b.addEventListener("click", () => showSkillPopup(k));
+    list.appendChild(b);
+  }
+  for (const p of ps) {
+    const b = el("button", "sp-fz-chip ps", `パッシブ ${passiveName(p.key, p.lv)}`);
+    b.type = "button";
+    b.title = passiveDesc(p.key, p.lv);
+    b.addEventListener("click", () => toast(`${passiveName(p.key, p.lv)} ― ${passiveDesc(p.key, p.lv)}`, { tone: "info" }));
+    list.appendChild(b);
+  }
+  wrap.appendChild(list);
+  return wrap;
+}
+
+// ランク据え置きの魂融合: 結果の札 (game.js の fuseSoul から)
+export function showFuseResult(info) {
+  const cl = SOUL_CLASSES[info.clsKey] || SOUL_CLASSES.fighter;
+  const art = el("div", "sp-cel-art fz");
+  art.appendChild(pixelCanvas(jobSprite(info.clsKey, Math.max(1, info.toRank)), 96));
+  // 区切りごとに本文へ直に並べる (収まらない画面では区切りでページが分かれる)
+  const blocks = [];
+  if (info.statUp) blocks.push(el("div", "sp-fz-lead", `魂の輝きが増した ― 全能力 +${info.statUp}%`));
+  blocks.push(fusePerks(info, cl.glow), fuseStats(info));
+  const ln = fuseLearned(info);
+  if (ln) blocks.push(ln);
+  const nx = nextRankThreshold(info.clsKey, info.toCount);
+  const notes = [];
+  if (nx) notes.push(`ランク${info.toRank + 1}まで あと ${nx.next - info.toCount} 体`);
+  notes.push("融合先の魂はロックした");
+  blocks.push(el("div", "sp-fz-note sp-ru-blk", notes.join(" ・ ")));
+  const body = (scroll) => blocks.forEach((b) => scroll.appendChild(b));
+  return celebrate({
+    banner: "✦ 魂融合 ✦", accent: cl.glow, art, sparkle: false, className: "sp-cel sp-cel-fz",
+    title: `${soulSeriesName(info.clsKey)}の魂`, titleColor: cl.glow, body,
+    footer: [{ label: "とじる", kind: "primary", size: "lg", onTap: (h) => h.close("ok") }],
+  });
+}
+
 // ================= 祝祭: ランクアップ (game.js の showRankUp から) =================
-// info: { clsKey, fromRank, toRank, fromLv, toLv, accent, fromCap, toCap, title, hint }
+// info: showFuseResult と同じ + { accent, title, hint }
 export function celebrateRankUp(info, onClose) {
-  const { clsKey, fromRank, toRank, fromLv, toLv, accent, fromCap, toCap, title, hint } = info;
+  const { clsKey, fromRank, toRank, accent, title, hint } = info;
   const cl = SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter;
   const art = el("div", "sp-cel-art ru");
+  art.style.setProperty("--ru-accent", accent);
+  // 光の輪 (外へ広がる) + 逆回りの2重の光条
+  art.appendChild(el("div", "sp-ru-burst"));
   const rays = el("div", "sp-cel-rays");
-  rays.style.background = `repeating-conic-gradient(from 0deg, ${accent}55 0deg 8deg, transparent 8deg 26deg)`;
+  rays.style.background = `repeating-conic-gradient(from 0deg, ${accent}66 0deg 8deg, transparent 8deg 26deg)`;
   art.appendChild(rays);
-  art.appendChild(pixelCanvas(jobSprite(clsKey, toRank), 108));
-  const body = el("div", "sp-ru");
+  const rays2 = el("div", "sp-cel-rays rev");
+  rays2.style.background = `repeating-conic-gradient(from 13deg, ${accent}33 0deg 5deg, transparent 5deg 18deg)`;
+  art.appendChild(rays2);
+  art.appendChild(pixelCanvas(jobSprite(clsKey, toRank), 96));
+  const blocks = [];
   const rk = el("div", "sp-ru-row");
   rk.appendChild(el("span", "sp-ru-rk", `ランク${fromRank}`));
   rk.appendChild(el("span", "sp-ru-ar", "→"));
   const nw = el("span", "sp-ru-rk new", `ランク${toRank}`);
   nw.style.color = accent;
   rk.appendChild(nw);
-  body.appendChild(rk);
+  blocks.push(rk);
   const jn = el("div", "sp-ru-job", `「${title || jobRankName(clsKey, toRank)}」`);
   jn.style.color = accent;
-  body.appendChild(jn);
-  const perks = el("div", "sp-ru-perks");
-  const perk = (k, v) => { const p = el("div", "sp-ru-perk"); p.appendChild(el("span", "sp-ru-pk", k)); const x = el("span", "sp-ru-pv", v); x.style.color = accent; p.appendChild(x); perks.appendChild(p); };
-  if (fromCap !== toCap) perk("Lv上限", `${fromCap} → ${toCap}`);
-  if (toLv > fromLv) perk("魂レベル", `Lv${fromLv} → Lv${toLv}`);
-  body.appendChild(perks);
-  if (hint) body.appendChild(el("div", "sp-ru-hint", hint));
+  blocks.push(jn, fusePerks(info, accent));
+  if (info.statsTo) blocks.push(fuseStats(info));
+  const ln = fuseLearned(info);
+  if (ln) blocks.push(ln);
+  if (hint) blocks.push(el("div", "sp-ru-hint sp-ru-blk", hint));
+  const body = (scroll) => blocks.forEach((b) => scroll.appendChild(b));
   return celebrate({
     banner: "✦ RANK UP ✦", accent, art, sparkle: true, className: "sp-cel sp-cel-ru",
     title: `${cl.label}の魂が 昇格した`, body,
