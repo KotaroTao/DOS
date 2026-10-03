@@ -286,6 +286,7 @@
 .ui-choice-list { display: grid; gap: 8px; margin: 10px 0 4px; }
 .ui-skill .sk-mp { margin-top: 0; }
 .ui-skill .sk-lines { margin: 6px 2px 2px; }
+.ui-skill .sk-line.on { color: var(--accent-2, #e8c766); }
 
 /* =====================================================================
    トースト (ヘッダの下・最大3)

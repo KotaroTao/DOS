@@ -19,7 +19,7 @@ import {
 import { deltaFloat } from "./motion.js";
 import { remember, setPref, getPref } from "./prefs.js";
 import {
-  statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, itemCatText,
+  statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText,
 } from "./itemview.js";
 import { renderSoulSeg, openSoulPicker } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
@@ -1513,7 +1513,7 @@ function statsSeg(root, d) {
   root.appendChild(grid);
   fillInfo();
   root.appendChild(info);
-  // 技 (タップ = くわしく)・加護 (長押し = くわしく) の札は横に流れる1列
+  // 技・加護 (どちらもタップ = くわしく) の札は横に流れる1列
   if (d.spells && d.spells.length) {
     const line = el("div", "pt-chiprow");
     line.appendChild(el("span", "pt-chiprow-l", "技"));
@@ -1538,7 +1538,7 @@ function statsSeg(root, d) {
       const c = el("button", "pt-skill pas");
       c.type = "button";
       c.appendChild(el("span", null, p));
-      c.addEventListener("click", () => toast(`加護「${p}」― 常に働く力`, { tone: "info" }));
+      c.addEventListener("click", () => { if (!showPassivePopup(p)) toast(`加護「${p}」― 常に働く力`, { tone: "info" }); });
       sc.appendChild(c);
     }
     line.appendChild(sc);

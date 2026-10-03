@@ -281,6 +281,15 @@ export function passiveDesc(key, lv = 1) {
   const def = PASSIVES[key]; if (!def) return "";
   return def.lv[Math.min(lv, def.lv.length) - 1] || "";
 }
+// 表示名 (「戦闘後回復Lv1」など) から {key, lv} を引く。見つからなければ null
+let PASSIVE_BY_NAME = null;
+export function passiveByName(name) {
+  if (!PASSIVE_BY_NAME) {
+    PASSIVE_BY_NAME = {};
+    for (const key in PASSIVES) for (let lv = 1; lv <= PASSIVES[key].lv.length; lv++) PASSIVE_BY_NAME[passiveName(key, lv)] = { key, lv };
+  }
+  return PASSIVE_BY_NAME[name] || null;
+}
 const P = (key, lv = 1) => ({ name: passiveName(key, lv), desc: passiveDesc(key, lv), grants: { [key]: lv } });
 const U = (name, desc, grants) => ({ name, desc, grants });
 
