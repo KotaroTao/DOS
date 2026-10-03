@@ -6720,7 +6720,7 @@ function drawBattleIntro(intro, now) {
   vctx.restore();
 }
 
-// 奇襲の開幕: 紅い縁が脈打ち、三筋の爪痕が戦場を裂いて「奇 襲」の帯を叩きつける
+// 奇襲の開幕: 紅い縁が脈打ち、「奇 襲」の帯を叩きつける
 function drawAmbushIntro(intro, t) {
   const W = VW, H = VH;
   const cl = (v) => Math.max(0, Math.min(1, v));
@@ -6735,7 +6735,7 @@ function drawAmbushIntro(intro, t) {
   vctx.fillStyle = vg;
   vctx.fillRect(0, 0, W, H);
   // 帯
-  const bh = 60, by = H * 0.74 - bh / 2, cy = by + bh / 2;
+  const bh = 60, by = H * 0.74 - bh / 2;
   vctx.globalAlpha = a;
   const g = vctx.createLinearGradient(0, 0, W, 0);
   g.addColorStop(0, "rgba(20,2,2,0)");
@@ -6750,20 +6750,6 @@ function drawAmbushIntro(intro, t) {
   vctx.fillStyle = "#e0503c";
   vctx.fillRect(W / 2 - lw, by + 3, lw * 2, 1);
   vctx.fillRect(W / 2 - lw, by + bh - 4, lw * 2, 1);
-  // 爪痕: 文字の右で三筋の裂け目が右上から左下へ走る
-  vctx.lineCap = "round";
-  for (let k = 0; k < 3; k++) {
-    const q = cl((t - 80 - k * 60) / 150);
-    if (q <= 0) continue;
-    const x0 = W / 2 + 112 + k * 18, y0 = cy - 40;
-    const x1 = W / 2 + 62 + k * 18, y1 = cy + 40;
-    const xe = x0 + (x1 - x0) * q, ye = y0 + (y1 - y0) * q;
-    vctx.beginPath(); vctx.moveTo(x0, y0); vctx.lineTo(xe, ye);
-    vctx.shadowColor = "rgba(255,40,20,0.9)"; vctx.shadowBlur = 10;
-    vctx.strokeStyle = "rgba(255,60,30,0.6)"; vctx.lineWidth = 6; vctx.stroke();
-    vctx.shadowBlur = 0;
-    vctx.strokeStyle = "rgba(255,232,214,0.92)"; vctx.lineWidth = 1.6; vctx.stroke();
-  }
   // 文字: 小さな前書き + 叩きつけるように縮む「奇 襲」
   vctx.textAlign = "center";
   vctx.textBaseline = "alphabetic";
