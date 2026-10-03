@@ -265,6 +265,10 @@
 }
 .ui-sheet-banner::before, .ui-sheet-banner::after { content: ""; flex: 0 1 46px; height: 1px; background: linear-gradient(90deg, rgba(201,162,74,0), currentColor); opacity: 0.7; }
 .ui-sheet-banner::after { background: linear-gradient(90deg, currentColor, rgba(201,162,74,0)); }
+/* 見出し (「★ レジェンドの魂を入手 ★」など) は折り返さない。幅の狭い祝祭の札では字間と飾り罫を詰める */
+.ui-sheet-banner { white-space: nowrap; }
+.ui-sheet.k-celebrate .ui-sheet-banner { letter-spacing: 0.12em; gap: 8px; }
+.ui-sheet.k-celebrate .ui-sheet-banner::before, .ui-sheet.k-celebrate .ui-sheet-banner::after { flex-basis: 22px; }
 .ui-sheet-body {
   flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
   padding: 2px var(--sp-4) var(--sp-3); text-align: center;
