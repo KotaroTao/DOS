@@ -9395,6 +9395,7 @@ function questProgress(type, key, n = 1) {
 function tavernHintAllowed(req) {
   if (!req) return true;
   if (req === "sub") return unlockedSubSlots() > 0;     // 宿し技 (D10)
+  if (req === "metal") return reportedDungeonCount() >= 10; // 金属の魔物 (第3層から出る)
   return featureUnlocked(req);                           // fusion(D5) / rumor(D15)
 }
 // 酒場の顔ぶれを選び直す (ダンジョン帰還時・初回入店時に呼ぶ)
