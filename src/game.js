@@ -1554,11 +1554,23 @@ function dockSpec() {
   const dead = G.party.filter((t) => !t.alive).length;
   const hurt = G.party.some((t) => t.alive && (t.hp < t.maxhp || t.ailment));
   const heal = { label: "全員を回復", sub: dead ? `倒れた者 ${dead}` : hurt ? "傷ついた者がいる" : "皆 無事", hot: healAllNeed() && (healAllCasters().length > 0 || healAllRevivers().length > 0) };
-  // 浮遊 (迷宮で唱える技)。覚えた者が隊にいる時だけ出す
-  const fc = floatCaster(true);
-  const fl = floatLeft();
-  const float = fc ? { label: "浮遊", sub: fl > 0 ? `残り${fl}階` : `MP${fc.cost}`, on: fl > 0 } : null;
-  return { down, home, heal, float, idle: G.floor <= 1 && !(G.run && G.run.kills) ? "スワイプで進む ・ 光る墓石をめくる" : "階段を見つけると、ここから降りられる" };
+  // 迷宮で唱える技。覚えた者が隊にいる時だけ出す。気配読み・宝探しは専用のボタン (senses) を常に置き、
+  // ほかの術 (浮遊・道しるべ) は1つだけならその技の名前で直に唱え、2つ以上なら「術」から選ぶ
+  const known = knownFieldSkills();
+  const senses = known.filter((k) => dockOwnField(SPELLS[k])).map((k) => {
+    const sp = SPELLS[k], c = fieldCaster(k, true), on = fieldActive(sp);
+    return { key: k, kind: sp.sense, label: sp.name, sub: on ? "この階" : `MP${c.cost}`, on };
+  });
+  const fks = known.filter((k) => !dockOwnField(SPELLS[k]));
+  let field = null;
+  if (fks.length === 1) {
+    const sp = SPELLS[fks[0]], c = fieldCaster(fks[0], true), on = fieldActive(sp);
+    field = { label: sp.name, sub: on ? fieldStateText(sp) : `MP${c.cost}`, on, icon: fieldIcon(sp) };
+  } else if (fks.length > 1) {
+    const n = fks.filter((k) => fieldActive(SPELLS[k])).length;
+    field = { label: "術", sub: n ? `効果中 ${n}` : `${fks.length}つの術`, on: n > 0, icon: "field" };
+  }
+  return { down, home, heal, field, senses, idle: G.floor <= 1 && !(G.run && G.run.kills) ? "スワイプで進む ・ 光る墓石をめくる" : "階段を見つけると、ここから降りられる" };
 }
 function dockDescend() {
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
@@ -1570,37 +1582,95 @@ function dockDescend() {
   const plain = abyssActive() ? !abyssBossPending() : G.floor < (dn.floors || 1);
   if (plain) descend(); else askDescend(cell);
 }
-// ===== 浮遊 (迷宮で唱える技 kind "field" / float) =====
-// 浮いている残りの階数 (この階を含む)。落とし穴に落ちず、毒の床のダメージも受けない
+// ===== 迷宮で唱える技 (kind "field") =====
+// float = 浮遊 (G.run.float: 浮いている残りの階数。この階を含む。落とし穴に落ちず、毒の床のダメージも受けない)
+// sense = 探りの術 (G.board.fsense[enemy|chest|stairs]: この階だけ、まだめくっていない墓石の魔物 / 宝箱 / 階段の位置を示す)
 function floatLeft() { return (inDungeon() && G.run && G.run.float) || 0; }
-// 浮遊を唱えられる者と技: 生きていて MP が足りる者のうち、MP の最も多い者 (any = MP を問わず覚えている者)
-function floatCaster(any = false) {
+function fieldSense(kind) { return !!(inDungeon() && G.board && G.board.fsense && G.board.fsense[kind]); }
+function fieldActive(sp) { return sp.float ? floatLeft() > 0 : sp.sense ? fieldSense(sp.sense) : false; }
+function fieldStateText(sp) { return sp.float ? `残り${floatLeft()}階` : "この階"; }
+function fieldIcon(sp) { return sp.float ? "float" : sp.sense === "chest" ? "loot" : sp.sense === "stairs" ? "down" : "eye"; }
+// ドックに専用のボタンを持つ術 (気配読み・宝探し)
+function dockOwnField(sp) { return sp.sense === "enemy" || sp.sense === "chest"; }
+function fieldCasters() { return G.party.filter((p) => p.alive && p.ailment !== "stone"); }
+// 隊の誰かが覚えている迷宮の技 (技の定義順)
+function knownFieldSkills() {
+  const have = new Set();
+  for (const p of fieldCasters()) for (const k of p.spells || []) if (SPELLS[k] && SPELLS[k].kind === "field") have.add(k);
+  return Object.keys(SPELLS).filter((k) => have.has(k));
+}
+// 技 key を唱えられる者: 生きていて MP が足りる者のうち、MP の最も多い者 (any = MP を問わず覚えている者)
+function fieldCaster(key, any = false) {
+  const sp = SPELLS[key];
+  if (!sp) return null;
   let best = null;
-  for (const p of G.party) {
-    if (!p.alive || p.ailment === "stone") continue;
-    for (const k of p.spells || []) {
-      const sp = SPELLS[k];
-      if (!sp || sp.kind !== "field" || !sp.float) continue;
-      const cost = spellCost(p, sp);
-      if (!any && p.mp < cost) continue;
-      if (!best || (p.mp >= cost) > (best.p.mp >= best.cost) || p.mp > best.p.mp) best = { p, sp, cost };
-    }
+  for (const p of fieldCasters()) {
+    if (!(p.spells || []).includes(key)) continue;
+    const cost = spellCost(p, sp);
+    if (!any && p.mp < cost) continue;
+    if (!best || (p.mp >= cost) > (best.p.mp >= best.cost) || p.mp > best.p.mp) best = { p, sp, cost };
   }
   return best;
 }
-function dockFloat() {
+// まだめくっていない、片付いていない墓石のうち探りの術が示すもの
+function senseTargets(kind) {
+  const want = { enemy: "monster", chest: "chest", stairs: "stairs" }[kind];
+  const out = [];
+  for (const row of G.board.cells) for (const c of row) if (c.type === want && !c.revealed && !c.cleared) out.push(c);
+  return out;
+}
+function dockSense(key) {
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
-  const left = floatLeft();
-  if (left > 0) { SFX.select(); showToast(`浮遊中 ― 残り${left}階 (落とし穴に落ちず、毒の床も踏まない)`, { tone: "info" }); return; }
-  const c = floatCaster();
-  if (!c) { SFX.ng(); showToast(floatCaster(true) ? "浮遊を唱える MP が足りない" : "浮遊を唱えられる者がいない", { tone: "info" }); return; }
+  castField(key);
+}
+function dockField() {
+  if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
+  const fks = knownFieldSkills().filter((k) => !dockOwnField(SPELLS[k]));
+  if (!fks.length) return;
+  if (fks.length === 1) { castField(fks[0]); return; }
+  SFX.select();
+  const opts = fks.map((k) => {
+    const sp = SPELLS[k], c = fieldCaster(k, true), ok = fieldCaster(k);
+    const state = fieldActive(sp) ? `効果中・${fieldStateText(sp)}` : ok ? `MP${c.cost}・${ok.p.name}` : `MP${c.cost}・MP不足`;
+    return { label: `${sp.name}（${state}）`, fn: () => castField(k) };
+  });
+  opts.push({ label: "やめる", cancel: true, fn: () => renderBoard() });
+  showChoice("迷宮の術", opts, null, {
+    banner: "✦ 術 ✦", accent: "#7fb8c8",
+    lines: fks.map((k) => `${SPELLS[k].name}: ${SPELLS[k].desc.replace(/（迷宮で唱える）$/, "")}`),
+    onDismiss: () => renderBoard(),
+  });
+}
+function castField(key) {
+  if (G.state !== "board" || !inDungeon()) return;
+  const sp = SPELLS[key];
+  if (!sp) return;
+  if (fieldActive(sp)) {
+    SFX.select();
+    showToast(sp.float ? `浮遊中 ― 残り${floatLeft()}階 (落とし穴に落ちず、毒の床も踏まない)` : `${sp.name}の効果はこの階のあいだ続いている`, { tone: "info" });
+    return;
+  }
+  if (sp.sense === "stairs" && findRevealedStairs()) { SFX.ng(); showToast("この階の階段はもう見つけている", { tone: "info" }); return; }
+  const c = fieldCaster(key);
+  if (!c) { SFX.ng(); showToast(fieldCaster(key, true) ? `${sp.name}を唱える MP が足りない` : `${sp.name}を唱えられる者がいない`, { tone: "info" }); return; }
   c.p.mp -= c.cost;
-  G.run.float = c.sp.float;
   SFX.spell();
-  log(`${c.p.name}は${c.sp.name}を唱えた。隊の足が地を離れる ― ${c.sp.float}階のあいだ落とし穴にも毒の床にもかからない。`, "win");
-  showToast(`${c.sp.name} ― ${c.sp.float}階のあいだ宙に浮く`, { tone: "good" });
+  if (sp.float) {
+    G.run.float = sp.float;
+    log(`${c.p.name}は${sp.name}を唱えた。隊の足が地を離れる ― ${sp.float}階のあいだ落とし穴にも毒の床にもかからない。`, "win");
+    showToast(`${sp.name} ― ${sp.float}階のあいだ宙に浮く`, { tone: "good" });
+  } else if (sp.sense) {
+    G.board.fsense = Object.assign({}, G.board.fsense, { [sp.sense]: true });
+    const n = senseTargets(sp.sense).length;
+    const what = { enemy: "魔物の気配", chest: "宝箱", stairs: "階段" }[sp.sense];
+    const msg = sp.sense === "stairs" ? "下へ続く階段の在りかが、墓石の下に淡く光った。"
+      : !n ? `この階には、まだ見ぬ${what}はないようだ。`
+      : sp.sense === "enemy" ? `墓石の下に、${n}つの赤い気配がぼんやりと浮かび上がった。` : `墓石の下に、${n}つの青い光がぼんやりと灯った。`;
+    log(`${c.p.name}は${sp.name}を唱えた。${msg}`, "win");
+    showToast(`${sp.name} ― ${sp.sense === "stairs" ? "階段の在りかが分かった" : n ? `${what} ${n}` : `${what}なし`}`, { tone: "good" });
+  }
   renderParty();
-  renderDock();
+  renderBoard();
   autosave(true);
 }
 function dockHealAll() {
@@ -1617,7 +1687,7 @@ function renderDock() {
   if (!hintEl) return;
   const spec = inDungeon() ? dockSpec() : null;
   hintEl.classList.toggle("hidden", G.state === "combat" || (G.state === "over" && !!G.battle));
-  uiDungeonHud.renderDock(hintEl, spec, { descend: dockDescend, goHome: dockReturn, healAll: dockHealAll, float: dockFloat });
+  uiDungeonHud.renderDock(hintEl, spec, { descend: dockDescend, goHome: dockReturn, healAll: dockHealAll, field: dockField, sense: dockSense });
 }
 
 function renderBoard() {
@@ -1876,6 +1946,7 @@ function drawBoardFrame() {
   drawBoardGlows(lt, srcs);
   drawBoardTerrainFx(now);
   drawCandleFlames(now);
+  drawSenseGlows(now);
   drawBoardHighlights(now);
   drawBoardIcons(lt, now, hx, hy);
   drawFlipSlab(now);
@@ -1980,12 +2051,45 @@ function drawCandleFlames(now) {
   }
 }
 
+// 探りの術の光: 墓石の下から滲む、ぼんやりした光 (ゆっくり明滅し、芯が少し揺らぐ)
+const SENSE_GLOW = { enemy: [255, 52, 40], chest: [70, 150, 255] };
+function drawSenseGlow(r, rgb, now, x, y) {
+  const t = REDUCED_MOTION ? 0.5 : 0.5 + 0.5 * Math.sin(now * 0.0017 + x * 1.7 + y * 2.3);
+  const dx = REDUCED_MOTION ? 0 : Math.sin(now * 0.0009 + y) * r.w * 0.06;
+  const dy = REDUCED_MOTION ? 0 : Math.cos(now * 0.0011 + x) * r.h * 0.06;
+  const cx = r.x + r.w / 2 + dx, cy = r.y + r.h / 2 + dy, rad = Math.max(r.w, r.h) * 0.62;
+  const [cr, cg, cb] = rgb;
+  const g = vctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+  g.addColorStop(0, `rgba(${cr},${cg},${cb},${0.34 + 0.16 * t})`);
+  g.addColorStop(0.45, `rgba(${cr},${cg},${cb},${0.16 + 0.08 * t})`);
+  g.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
+  vctx.save();
+  vctx.globalCompositeOperation = "lighter";
+  vctx.fillStyle = g;
+  vctx.fillRect(r.x - r.w * 0.15, r.y - r.h * 0.15, r.w * 1.3, r.h * 1.3);
+  vctx.restore();
+}
+
+// 気配読み (魔物 = ぼんやりした赤い光) / 宝探し (宝箱 = ぼんやりした青い光)。種類・強さは分からない。歩いている間も灯したまま
+function drawSenseGlows(now) {
+  if (G.state !== "board") return;
+  const fsE = fieldSense("enemy"), fsC = fieldSense("chest");
+  if (!fsE && !fsC) return;
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const cell = G.board.cells[y][x];
+    if (cell.revealed || cell.cleared) continue;
+    if (fsE && cell.type === "monster") drawSenseGlow(cellRect(x, y), SENSE_GLOW.enemy, now, x, y);
+    else if (fsC && cell.type === "chest") drawSenseGlow(cellRect(x, y), SENSE_GLOW.chest, now, x, y);
+  }
+}
+
 // めくれる墓石の霊光 (隣接=脈打つ縁取り / 遠隔=淡い縁)
 function drawBoardHighlights(now) {
   if (G.state !== "board" || G.anim || G.walking) return;
   const reach = getReachableCells();
   const pulse = REDUCED_MOTION ? 0.6 : 0.5 + 0.5 * Math.sin(now * 0.0042);
   const senseE = partyPassiveLv("senseEnemy"), senseT = partyPassiveLv("senseTreasure");
+  const fsS = fieldSense("stairs"); // 道しるべ (この階だけ)
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
     const cell = G.board.cells[y][x];
     if (cell.revealed) continue;
@@ -2023,10 +2127,17 @@ function drawBoardHighlights(now) {
         // 属性の暴走中は戦うまで属性が定まらないので色を付けない
         if (senseE >= 3 && !mutNum("elemRandom", false)) { const e2 = (MONSTERS[cell.monsterKey] || {}).element; const ec = (ELEMENTS[e2] || {}).color; if (ec) color = ec; }
         mark = { text: strong ? "‼" : "!", color };
-      } else if (senseT) {
+      } else if (senseT && (cell.type === "chest" || (senseT >= 2 && cell.type === "portal") || (senseT >= 3 && cell.type === "trap"))) {
         if (cell.type === "chest") mark = { text: "✦", color: "#ffd84a" };
-        else if (senseT >= 2 && cell.type === "portal") mark = { text: "◎", color: "#6fe0d0" };
-        else if (senseT >= 3 && cell.type === "trap") mark = { text: "▲", color: "#ff7a5e" };
+        else if (cell.type === "portal") mark = { text: "◎", color: "#6fe0d0" };
+        else mark = { text: "▲", color: "#ff7a5e" };
+      } else if (cell.type === "stairs" && fsS) {                                       // 道しるべ: 階段の墓石を淡く縁取る
+        mark = { text: "▼", color: "#8fd8ff" };
+        vctx.save();
+        vctx.strokeStyle = `rgba(143,216,255,${0.35 + 0.35 * pulse})`;
+        vctx.lineWidth = 1.6;
+        vctx.strokeRect(r.x + 1.5, r.y + 1.5, r.w - 3, r.h - 3);
+        vctx.restore();
       }
       if (mark) {
         const bob = REDUCED_MOTION ? 0 : Math.sin(now * 0.003 + x * 2 + y) * 1.2;

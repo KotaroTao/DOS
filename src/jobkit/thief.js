@@ -4,14 +4,17 @@ export default {
   table: `
     1 kantei/1 2 STEAL 3 POISONSTAB 5 ambushCrit/1 7 FUYUU 10 KEMURIDAMA
     12 SUNAKAKE 15 thiefKasume/1 20 KASUMEGIRI 22 SHIBIREBARI 25 thiefTsukekomi/1 30 ASSASSINATE
-    35 thiefKasume/2 40 OBORO 45 thiefNigegoshi/1 50 MEIJIN 55 MAKIBISHI 57 FUUGA
+    35 thiefKasume/2 40 OBORO 45 thiefNigegoshi/1 50 THIEF_TAKARASAGASHI 55 MAKIBISHI 57 FUUGA
     60 venomBlade/1 65 TSUJIKAZE 70 sleepKill/1 75 thiefShikake/1 80 ZETSUEI 85 SHIPPUTSUKI
     90 thiefKasume/3 95 ENGETSUJIN 100 MOUDOKUSASHI 105 thiefTsukekomi/2 107 KAMIKAZE 110 KAGEUCHI
     115 venomBlade/2 120 KUBIHANE 125 thiefNigegoshi/2 130 RANBUTSUKI 135 thiefKasume/4 140 SHUNSATSU
     145 thiefAsari/1 150 TSUMUJIKAZE 155 thiefShikake/2 160 ZANKOU 162 TENRAN 165 thiefShikake/3
     170 ANSATSU 175 thiefTsukekomi/3 180 SENKOUZAN 185 thiefNigegoshi/3 190 HISSATSU 195 MUGEN
     200 ZANSEI`,
-  skills: {},
+  skills: {
+    // 迷宮で唱える術: 盗人の鼻で、この階の宝箱の在りかを青い光として嗅ぎ当てる
+    THIEF_TAKARASAGASHI: { name: "宝探し", mp: 5, kind: "field", sense: "chest", target: "all-ally", desc: "この階の宝箱の在りかが、墓石の下の青い光として浮かび上がる。中身や罠、ミミックかどうかまでは分からない（迷宮で唱える）" },
+  },
   perks: {
     // 小悪党の手癖: 殴りついでに敵の強化を掠め取る
     thiefKasume: {

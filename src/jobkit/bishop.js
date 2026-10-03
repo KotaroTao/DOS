@@ -6,7 +6,7 @@ import { UNHOLY } from "./common.js";
 export default {
   table: `
     1 kantei/2 3 DIOS 4 HOLYRAY 5 bishopSeisui/1 7 ICENEEDLE 10 CURE
-    15 afterBoth/1 20 SEAL 22 AQUAWAVE 25 bishopJouka/1 30 DIAL 35 bishopTobari/1
+    15 afterBoth/1 20 SEAL 22 BISHOP_MICHISHIRUBE 25 bishopJouka/1 30 DIAL 35 bishopTobari/1
     40 MADIOS 45 bishopYoin/1 47 ICELANCE 50 BISHOP_SEISUI 55 BISHOP_SENREI 60 bishopSeisui/2
     65 BISHOP_SEIHYOU 70 bishopTobari/2 75 afterBoth/2 80 MANAGIFT 85 SAINTRAY 90 bishopJouka/2
     95 BISHOP_SEIHAI 100 BISHOP_SEISEN 105 bishopYoin/2 110 BISHOP_JIU 115 bishopSeisui/3 120 SEALALL
@@ -14,6 +14,8 @@ export default {
     150 BISHOP_KANCHOU 155 elemFloor/1 160 BISHOP_SEIGAI 165 resistAilment/2 170 BISHOP_DANZAI 172 BISHOP_SEIHYOUKAN
     175 bishopYoin/3 180 BISHOP_SEIKA 185 sanctuary/1 190 SEIMETSUREKKOU 195 BISHOP_SEISOU 200 BISHOP_SHINPAN`,
   skills: {
+    // 迷宮で唱える術: 祈りの導きで、この階の下り階段を示す
+    BISHOP_MICHISHIRUBE: { name: "道しるべ", mp: 6, kind: "field", sense: "stairs", target: "all-ally", desc: "この階の下り階段の在りかを示す（迷宮で唱える）" },
     BISHOP_SEISUI:     { name: "聖水の雫", mp: 7, kind: "heal", power: 15, cure: true, target: "all-ally", desc: "聖水を撒き、味方全員を癒し穢れを祓う" },
     BISHOP_SENREI:     { name: "洗礼の聖水", mp: 6, kind: "debuff", strip: true, seal: { chance: 0.25, turns: 2 }, target: "all-enemy", desc: "聖水で強化を洗い流し、特技を封じる" },
     BISHOP_SEIHYOU:    { name: "聖氷の祈り", mp: 10, kind: "atk", power: 30, element: "water", prey: { races: UNHOLY, mul: 1.4 }, target: "all-enemy", desc: "聖別した氷雨。不浄の者に強い" },

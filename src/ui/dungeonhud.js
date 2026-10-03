@@ -49,6 +49,8 @@ const DOCK_SVG = {
   gear: '<circle cx="12" cy="12" r="3.1"/><path d="M9.6 5.7 L9.6 2.9 14.4 2.9 14.4 5.7 A6.8 6.8 0 0 1 17.3 7.7 L19.9 6.9 21.4 11.5 18.8 12.4 A6.8 6.8 0 0 1 17.7 15.7 L19.3 17.9 15.4 20.8 13.8 18.6 A6.8 6.8 0 0 1 10.2 18.6 L8.6 20.8 4.7 17.9 6.3 15.7 A6.8 6.8 0 0 1 5.2 12.4 L2.6 11.5 4.1 6.9 6.7 7.7 A6.8 6.8 0 0 1 9.6 5.7Z"/>',
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.01"/>',
   float: '<path d="M6 9.5c1.6-2 3.6-3 6-3s4.4 1 6 3"/><path d="M12 6.5v8"/><path d="M9.2 12 12 14.8 14.8 12"/><path d="M4.5 19c1.2-.9 2.4-.9 3.6 0s2.4.9 3.6 0 2.4-.9 3.6 0 2.4.9 3.6 0"/>',
+  eye: '<path d="M2.8 12c2.4-4 5.5-6 9.2-6s6.8 2 9.2 6c-2.4 4-5.5 6-9.2 6s-6.8-2-9.2-6Z"/><circle cx="12" cy="12" r="2.6"/>',
+  field: '<path d="M12 3.5v4M12 16.5v4M3.5 12h4M16.5 12h4"/><path d="M12 8.6 13.4 12 12 15.4 10.6 12Z"/><path d="M6.2 6.2l2 2M15.8 15.8l2 2M17.8 6.2l-2 2M8.2 15.8l-2 2"/>',
   heal: '<path d="M12 20.2s-7.5-4.6-7.5-10.1A4.1 4.1 0 0 1 12 7.6a4.1 4.1 0 0 1 7.5 2.5c0 5.5-7.5 10.1-7.5 10.1Z"/><path d="M12 10.4v5.2M9.4 13h5.2"/>',
 };
 function dockIcon(kind, cls = "dk-ic") {
@@ -64,38 +66,52 @@ let _dockKey = "";
 export function renderDock(host, spec, acts = {}) {
   if (!host) return;
   host.classList.add("dg-dock");
-  const key = spec ? JSON.stringify([spec.down, spec.home, spec.heal, spec.float, spec.idle]) : "none";
+  const key = spec ? JSON.stringify([spec.down, spec.home, spec.heal, spec.field, spec.senses, spec.idle]) : "none";
   if (key === _dockKey && host.childElementCount) return;
   _dockKey = key;
   host.textContent = "";
   if (!spec) return;
-  const mk = (cls, icon, label, sub, onTap) => {
+  // 気配読み・宝探しの札が並ぶと幅が足りないので、ボタンが4つ以上の時は降りる以外も札 (絵 + 短い名前) にする
+  const senses = spec.senses || [];
+  const nBtn = [spec.down, spec.home, spec.field, spec.heal].filter(Boolean).length + senses.length;
+  const tight = senses.length > 0 && nBtn >= 4;
+  const mk = (cls, icon, label, sub, onTap, short) => {
     const b = el("button", "dk-btn " + cls);
     b.type = "button";
     b.appendChild(dockIcon(icon));
-    const t = el("span", "dk-t");
-    t.appendChild(el("span", "dk-l", label));
-    if (sub) t.appendChild(el("span", "dk-s", sub));
-    b.appendChild(t);
+    if (short) {
+      b.classList.add("dk-tag");
+      b.appendChild(el("span", "dk-sl", short));
+      b.title = label + (sub ? " (" + sub + ")" : "");
+    } else {
+      const t = el("span", "dk-t");
+      t.appendChild(el("span", "dk-l", label));
+      if (sub) t.appendChild(el("span", "dk-s", sub));
+      b.appendChild(t);
+    }
     b.setAttribute("aria-label", label + (sub ? " " + sub : ""));
     b.addEventListener("click", (e) => { e.stopPropagation(); onTap(); });
     return b;
   };
   if (spec.down) host.appendChild(mk("dk-down k-" + (spec.down.kind || "primary"), spec.down.icon || "down", spec.down.label, spec.down.sub, acts.descend || (() => {})));
-  if (spec.home) host.appendChild(mk("dk-home", "home", spec.home.label, spec.home.sub, acts.goHome || (() => {})));
+  if (spec.home) host.appendChild(mk("dk-home", "home", spec.home.label, spec.home.sub, acts.goHome || (() => {}), tight && spec.home.label));
   if (!spec.down && !spec.home) {
     const idle = el("div", "dk-idle");
     idle.appendChild(el("i", "dk-idle-mark"));
     idle.appendChild(el("span", "dk-idle-t", spec.idle || ""));
     host.appendChild(idle);
   }
-  // 浮遊 (迷宮で唱える技を覚えた者がいる時だけ)。浮いている間は残りの階数を示す
-  if (spec.float) host.appendChild(mk("dk-float" + (spec.float.on ? " on" : ""), "float", spec.float.label, spec.float.sub, acts.float || (() => {})));
-  if (spec.heal) host.appendChild(mk("dk-heal" + (spec.heal.hot ? " hot" : ""), "heal", spec.heal.label, spec.heal.sub, acts.healAll || (() => {})));
+  // 迷宮で唱える技 (浮遊・道しるべ。2つ以上なら「術」。覚えた者がいる時だけ)。効いている間は光り、残りを示す
+  if (spec.field) host.appendChild(mk("dk-float" + (spec.field.on ? " on" : ""), spec.field.icon || "float", spec.field.label, spec.field.sub, acts.field || (() => {}), tight && spec.field.label));
+  // 気配読み・宝探し: 覚えた者がいれば常に置く札 (絵 + 名前)。効いている階は赤 (魔物の気配) / 青 (宝箱) に灯る
+  for (const sn of senses) host.appendChild(mk("dk-sense k-" + sn.kind + (sn.on ? " on" : ""), sn.kind === "chest" ? "loot" : "eye", sn.label, sn.sub, () => (acts.sense || (() => {}))(sn.key), sn.label));
+  if (spec.heal) host.appendChild(mk("dk-heal" + (spec.heal.hot ? " hot" : ""), "heal", spec.heal.label, spec.heal.sub, acts.healAll || (() => {}), tight && "回復"));
   host.classList.toggle("one", !!spec.down !== !!spec.home);
   host.classList.toggle("has-down", !!spec.down);
   host.classList.toggle("has-home", !!spec.home);
-  host.classList.toggle("has-float", !!spec.float);
+  host.classList.toggle("has-float", !!spec.field);
+  host.classList.toggle("has-sense", senses.length > 0);
+  host.classList.toggle("tight", tight);
 }
 
 // ================= 小さな部品 =================
