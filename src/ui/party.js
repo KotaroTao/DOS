@@ -236,11 +236,15 @@ function bestWearer(item) {
 function deltaKeys(delta) {
   return Object.keys(DLABEL).filter((k) => delta[k] && typeof delta[k] === "number" && !(k === "atk" && delta.power === delta.atk));
 }
+// 増減の大きい順
+function sortedDeltaKeys(delta) {
+  return deltaKeys(delta).sort((a, b) => Math.abs(delta[b]) - Math.abs(delta[a]));
+}
+const deltaLabel = (delta, k) => `${delta[k] > 0 ? "▲" : "▼"}${DLABEL[k]}${delta[k] > 0 ? "+" : ""}${delta[k]}`;
+const deltaSpan = (delta, k) => el("span", delta[k] > 0 ? "up" : "dn", deltaLabel(delta, k));
 function deltaText(delta, n = 3) {
   if (!delta) return "";
-  const parts = deltaKeys(delta).sort((a, b) => Math.abs(delta[b]) - Math.abs(delta[a])).slice(0, n)
-    .map((k) => `${delta[k] > 0 ? "▲" : "▼"}${DLABEL[k]}${delta[k] > 0 ? "+" : ""}${delta[k]}`);
-  return parts.join(" ");
+  return sortedDeltaKeys(delta).slice(0, n).map((k) => deltaLabel(delta, k)).join(" ");
 }
 // 品 item を doll の部位 key に装備する (いま持っている袋から)。stashTo = 外した品を入れる袋 (取り替え)。
 // quiet でなければ「元に戻す」つきのトースト。{ ok, key, delta, full, msg }
@@ -317,22 +321,30 @@ function pickWearer(doll, item, { onDone = null, chip = null } = {}) {
 // ================= 品 → 人業を選ぶ (UI.equipChooserEl / UI.equipChooser) =================
 // 全員 (街: 隊+控え / 迷宮: 隊) の札を並べる。付けられる者は ▲▼ の伸び、付けられない者は灰色に理由。
 // 最も伸びる者を金で示す。札を1タップでその人業に装備する (onPick で差し替えられる: 商会の「買って装備」など)
+// 札に並ぶ変化は CH_PER 行まで。それより多い札は CH_CYCLE_MS ごとに次の行へ送り (右下の点 = いまの頁)、
+// 見出しの「すべての変化」で全員の全部の変化を1枚に並べたシートを開く (札の大きさは変えない)。
+const CH_PER = 2;
+const CH_CYCLE_MS = 2600;
 export function equipChooserEl(item, { owner = null, onPick = null, onDone = null, town = null } = {}) {
   const G = G_();
   const inT = town == null ? inTown() : town;
   const wrap = el("div", "pt-ch");
   const head = el("div", "pt-ch-h");
   head.appendChild(el("span", "pt-ch-t", "誰に装備させる？"));
-  head.appendChild(el("span", "pt-ch-s", "▲▼ = いまの装備と比べて"));
   wrap.appendChild(head);
   const dolls = inT ? allDolls() : G.party.slice();
   const infos = dolls.map((d) => {
     const why = canEquipReason(d, item);
     const b = why ? null : bestSlotFor(d, item);
-    return { d, why, b };
+    return { d, why, b, keys: b ? sortedDeltaKeys(b.delta) : [] };
   });
   let best = null;
   for (const x of infos) if (x.b && x.b.gain > 0.05 && (!best || x.b.gain > best.b.gain)) best = x;
+  const act = (x) => {
+    if (onPick) return onPick(x.d, { reason: x.why, best: x.b, chip: x.c });
+    pickWearer(x.d, item, { chip: x.c, onDone });
+  };
+  const rotors = [];
   const grid = el("div", "pt-ch-grid");
   let sepDone = false;
   for (const x of infos) {
@@ -342,6 +354,7 @@ export function equipChooserEl(item, { owner = null, onPick = null, onDone = nul
     }
     const c = el("button", "pt-chc" + (x.why ? " ng" : "") + (x === best ? " best" : "") + (x.d === owner ? " own" : ""));
     c.type = "button";
+    x.c = c;
     const pc = el("span", "pt-chc-p");
     pc.appendChild(partyPortraitCanvas(x.d, 36));
     if (!x.d.alive) pc.appendChild(el("span", "pt-chc-dead", "✝"));
@@ -351,26 +364,89 @@ export function equipChooserEl(item, { owner = null, onPick = null, onDone = nul
     if (x.why) tx.appendChild(el("span", "pt-chc-why", x.why));
     else {
       const dl = el("span", "pt-chc-d");
-      const parts = deltaKeys(x.b.delta).sort((a, b) => Math.abs(x.b.delta[b]) - Math.abs(x.b.delta[a])).slice(0, 2);
-      if (!parts.length) dl.appendChild(el("span", "eq", "変化なし"));
-      for (const k of parts) {
-        const v = x.b.delta[k];
-        dl.appendChild(el("span", v > 0 ? "up" : "dn", `${v > 0 ? "▲" : "▼"}${DLABEL[k]}${v > 0 ? "+" : ""}${v}`));
+      if (!x.keys.length) dl.appendChild(el("span", "eq", "変化なし"));
+      const pages = [];
+      for (let i = 0; i < x.keys.length; i += CH_PER) {
+        const pg = el("span", "pt-chc-pg" + (i ? "" : " on"));
+        for (const k of x.keys.slice(i, i + CH_PER)) pg.appendChild(deltaSpan(x.b.delta, k));
+        dl.appendChild(pg);
+        pages.push(pg);
       }
       tx.appendChild(dl);
+      if (pages.length > 1) {
+        dl.classList.add("multi");
+        const dots = el("span", "pt-chc-dots");
+        const marks = pages.map((_, j) => dots.appendChild(el("i", j ? "" : "on")));
+        c.appendChild(dots);
+        rotors.push({ pages, marks });
+      }
     }
     c.appendChild(tx);
     if (x === best) c.appendChild(el("span", "pt-chc-best", "最良"));
     else if (x.d === owner) c.appendChild(el("span", "pt-chc-own", "所持"));
-    c.setAttribute("aria-label", `${x.d.name}${x.why ? `: ${REASON_TEXT[x.why] || x.why}` : ` に装備 ${deltaText(x.b.delta)}`}`);
-    c.addEventListener("click", () => {
-      if (onPick) return onPick(x.d, { reason: x.why, best: x.b, chip: c });
-      pickWearer(x.d, item, { chip: c, onDone });
-    });
+    c.setAttribute("aria-label", `${x.d.name}${x.why ? `: ${REASON_TEXT[x.why] || x.why}` : ` に装備 ${deltaText(x.b.delta, Infinity)}`}`);
+    c.addEventListener("click", () => act(x));
     grid.appendChild(c);
   }
+  // 変化が CH_PER を超える者がいれば: 見出しに「すべての変化」+ 札の行を送る
+  if (rotors.length) {
+    const all = el("button", "pt-ch-all", "▲▼ すべての変化 ›");
+    all.type = "button";
+    all.addEventListener("click", () => { sfx("select"); openDeltaSheet(item, infos, best, act); });
+    head.appendChild(all);
+    let n = 0, seen = false, idle = 0;
+    const timer = setInterval(() => {
+      // 画面から外れたら止める (まだ置かれていない間は少しだけ待つ)
+      if (!wrap.isConnected) { if (seen || ++idle > 4) clearInterval(timer); return; }
+      seen = true;
+      n++;
+      for (const r of rotors) {
+        const i = n % r.pages.length;
+        r.pages.forEach((p, j) => p.classList.toggle("on", j === i));
+        r.marks.forEach((m, j) => m.classList.toggle("on", j === i));
+      }
+    }, CH_CYCLE_MS);
+  } else head.appendChild(el("span", "pt-ch-s", "▲▼ = いまの装備と比べて"));
   wrap.appendChild(grid);
   return wrap;
+}
+// 「すべての変化」: 付けられる全員の、装備したときの全部の変化を1枚に並べる。行を押せばその人業に装備する
+function openDeltaSheet(item, infos, best, act) {
+  const list = el("div", "pt-chl");
+  list.appendChild(el("div", "pt-chl-s", "▲▼ = いまの装備と比べて ・ 押すとその人業に装備する"));
+  let h = null;
+  let sepDone = false;
+  for (const x of infos) {
+    if (!x.b) continue;
+    if (!sepDone && isReserve(x.d)) {
+      sepDone = true;
+      list.appendChild(el("div", "pt-ch-sep", "控え"));
+    }
+    const r = el("button", "pt-chl-r" + (x === best ? " best" : ""));
+    r.type = "button";
+    const pc = el("span", "pt-chc-p");
+    pc.appendChild(partyPortraitCanvas(x.d, 36));
+    if (!x.d.alive) pc.appendChild(el("span", "pt-chc-dead", "✝"));
+    r.appendChild(pc);
+    const tx = el("span", "pt-chl-t");
+    const nm = el("span", "pt-chl-n", x.d.name);
+    if (x === best) nm.appendChild(el("span", "pt-chl-best", "最良"));
+    tx.appendChild(nm);
+    const ds = el("span", "pt-chl-d");
+    if (!x.keys.length) ds.appendChild(el("span", "eq", "変化なし"));
+    for (const k of x.keys) ds.appendChild(deltaSpan(x.b.delta, k));
+    tx.appendChild(ds);
+    r.appendChild(tx);
+    r.setAttribute("aria-label", `${x.d.name} に装備 ${deltaText(x.b.delta, Infinity) || "変化なし"}`);
+    r.addEventListener("click", () => { if (h) h.close("pick"); act(x); });
+    list.appendChild(r);
+  }
+  const rk = RARITIES[rarityKey(item)];
+  h = sheet.open({
+    kind: "info", banner: "装備したときの変化", accent: rk ? rk.color : null,
+    title: itemName(item), titleColor: rk ? rk.color : null, body: list,
+    footer: [{ label: "もどる", kind: "secondary", onTap: (hh) => hh.close("back") }],
+  });
 }
 // 品の画面 (シート): 品の要約 + 誰に装備させるか (主役) + その他の操作 (使う・渡す・捨てる…)
 export function openEquipChooser(item, { owner = null, actions = null } = {}) {
