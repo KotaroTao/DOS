@@ -10,11 +10,14 @@ const V = {
   cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
 };
 // 見下ろしの傾き: 奥 (z-) ほど画面の上へ、上面が手前を向く
-const PITCH = 20 * Math.PI / 180, CY = 70;
-const T = ([x, y, z]) => [x, CY + (y - CY) * Math.cos(PITCH) + z * Math.sin(PITCH), -(y - CY) * Math.sin(PITCH) + z * Math.cos(PITCH)];
+const PITCH = 26 * Math.PI / 180, CY = 66;
+const K = 1.14, KX = 47, KY = 52;
+const T0 = ([x, y, z]) => [x, CY - 5 + (y - CY) * Math.cos(PITCH) + z * Math.sin(PITCH), -(y - CY) * Math.sin(PITCH) + z * Math.cos(PITCH)];
+const T = p => { const q = T0(p); return [KX + (q[0] - KX) * K, KY + (q[1] - KY) * K, q[2] * K]; };
 const TD = ([x, y, z]) => [x, y * Math.cos(PITCH) + z * Math.sin(PITCH), -y * Math.sin(PITCH) + z * Math.cos(PITCH)];
 // 任意の向きの角材 (中心, 軸 u/v/w, 半径)
 function obox(c, u, v, w, [a, b, d], mat, round = 0.4) {
+  a *= K; b *= K; d *= K; round *= K;
   const C0 = T(c), U0 = V.norm(TD(u)), V0 = V.norm(TD(v)), W0 = V.norm(TD(w));
   return { leaf: true, mat, bound: [...C0, Math.hypot(a, b, d) + 1], f: (x, y, z) => {
     const p = [x - C0[0], y - C0[1], z - C0[2]];
@@ -29,6 +32,7 @@ function beam(p0, p1, side, hw, hh, mat, round = 0.4) {
 }
 // 任意の軸の輪
 function ring(c, axis, R, r, mat) {
+  R *= K; r *= K;
   const C0 = T(c), A = V.norm(TD(axis));
   return { leaf: true, mat, bound: [...C0, R + r + 1], f: (x, y, z) => {
     const p = [x - C0[0], y - C0[1], z - C0[2]], h = V.dot(p, A);
@@ -36,12 +40,12 @@ function ring(c, axis, R, r, mat) {
     return Math.hypot(q, h) - r;
   } };
 }
-const tcyl = (a, b, r, mat, round = 0) => cyl(T(a), T(b), r, mat, round);
-const tcone = (a, b, ra, rb, mat) => cone(T(a), T(b), ra, rb, mat);
-const tsph = (c, r, mat) => sphere(T(c), r, mat);
+const tcyl = (a, b, r, mat, round = 0) => cyl(T(a), T(b), r * K, mat, round * K);
+const tcone = (a, b, ra, rb, mat) => cone(T(a), T(b), ra * K, rb * K, mat);
+const tsph = (c, r, mat) => sphere(T(c), r * K, mat);
 export function build() {
   const mats = {
-    oak: { ramp: ramp(["#030201", "#0b0705", "#150d08", "#20150c", "#2c1d11", "#3a2717", "#4a331e", "#5c4128"], 8), dither: 0.55, spec: 0.3, pow: 18,
+    oak: { ramp: ramp(["#030201", "#0b0705", "#160e08", "#22170d", "#302012", "#402b19", "#523a22", "#684a2c", "#80603a"], 9), dither: 0.55, spec: 0.3, pow: 18,
       shade: p => 0.12 * Math.sin((p.x + p.z) * 0.9 + 3 * fbm(p.x * 0.2, p.y * 0.2, p.z * 0.2)) + 0.06 * fbm(p.x * 0.7, p.y * 0.7, p.z * 0.7) },
     iron: { ramp: ramp(["#020203", "#08090b", "#111317", "#1b1e24", "#272b33", "#363b45", "#4a505c", "#646b78"], 8), spec: 1.3, pow: 38, specCol: "#a4acb8", dither: 0.45,
       shade: p => 0.1 * fbm(p.x * 0.5, p.y * 0.5, p.z * 0.5) },
@@ -51,8 +55,8 @@ export function build() {
     flag: FLAG, stone: STONE, wood: WOOD,
   };
   // 向き: 前 F は左手前、横 L は右手前。上は -y
-  const F = V.norm([-0.55, 0, 0.84]), L = V.norm([0.84, 0, 0.55]), UP = [0, -1, 0];
-  const O = [50, 0, -4];
+  const F = V.norm([-0.8, 0, 0.6]), L = V.norm([0.6, 0, 0.8]), UP = [0, -1, 0];
+  const O = [54, 0, -4];
   const at = (f, l, y) => [O[0] + F[0] * f + L[0] * l, y, O[2] + F[2] * f + L[2] * l];
   const parts = [];
   // 車台: 二本の側桁 + 横木
@@ -76,9 +80,11 @@ export function build() {
   // 車軸
   for (const f of [-18, 16]) parts.push(tcyl(at(f, -16, AY), at(f, 16, AY), 1.4, "iron"));
   // 旋回台: 太い柱と鉄の受け
-  parts.push(tcyl(at(0, 0, 76), at(0, 0, 60), 4.8, "oak", 1), ring(at(0, 0, 64), UP, 5.2, 1.1, "iron"), tcyl(at(0, 0, 60), at(0, 0, 57), 7, "iron", 0.8));
+  parts.push(tcyl(at(0, 0, 76), at(0, 0, 45), 4.4, "oak", 1), ring(at(0, 0, 70), UP, 4.8, 1.1, "iron"), ring(at(0, 0, 56), UP, 4.8, 1.1, "iron"), tcyl(at(0, 0, 46), at(0, 0, 43), 6.6, "iron", 0.8));
+  // 柱を支える斜めの方杖
+  for (const [f, l] of [[-12, 0], [10, 0], [0, -10], [0, 10]]) parts.push(beam(at(f, l, 74), at(f * 0.25, l * 0.25, 60), V.norm(V.cross(UP, V.norm(V.add(V.mul(F, f), V.mul(L, l))))), 1.4, 1.2, "oak", 0.4));
   // 弩床: 前後に長い角材 (照準のため前が少し下がる)
-  const SY = 54, dip = 0.1;
+  const SY = 40, dip = 0.12;
   const sy = f => SY + f * dip;
   parts.push(beam(at(-30, 0, sy(-30)), at(24, 0, sy(24)), L, 3.6, 2.6, "oak", 0.6));
   for (const f of [-24, -8, 10]) parts.push(beam(at(f - 0.9, 0, sy(f)), at(f + 0.9, 0, sy(f)), L, 4.2, 3.2, "iron", 0.3));
@@ -113,7 +119,7 @@ export function build() {
   for (const s of [-1, 1]) parts.push(beam(at(35, 0, BY(35)), at(39, s * 4.6, BY(39)), UP, 1, 0.6, "iron", 0.25));
   // 床: 斜めに見下ろした石畳と崩れた石
   const R = rand(511);
-  const bed = Disp(ellipsoid(T([48, GY + 2, 0]), [46, 3.2, 24], "flag", 0, -PITCH * 180 / Math.PI), (x, y, z) => 0.25 * fbm(x * 0.3, z * 0.3) + (vnoise(x * 0.5, z * 0.5) > 0.55 ? 0.5 : 0));
+  const bed = Disp(ellipsoid(T([48, GY + 2, 0]), [44, 3.2, 17], "flag", 0, -PITCH * 180 / Math.PI), (x, y, z) => 0.25 * fbm(x * 0.3, z * 0.3) + (vnoise(x * 0.5, z * 0.5) > 0.55 ? 0.5 : 0));
   const blocks = [];
   for (const [f, l, s] of [[30, 24, 3.6], [-30, -20, 3.2], [-8, 30, 2.6], [36, -22, 2.4]]) blocks.push(Disp(beam(at(f, l, GY - s * 0.6), at(f + s * 1.6, l + R() * 2, GY - s * 0.6), UP, s * 0.9, s * 0.6, "stone", 0.5), (X, Y, Z) => 0.3 * fbm(X * 0.7, Y * 0.7, Z * 0.7)));
   const rust = (x, y, z, m) => (m === "iron" && fbm(x * 0.35 + 3, y * 0.35, z * 0.35) > 0.3) ? "rust" : m;
@@ -132,7 +138,7 @@ export function build() {
   // 照準器の眼の芯
   C.set(Math.round(S[0]) - 1, Math.round(S[1]) - 1, "#fff0b8");
   grit(C, 513, 48, 88, 40, 20);
-  ash(C, 517, 10, [2, 2, 92, 50], true);
+  ash(C, 517, 7, [2, 2, 92, 40], true);
   ash(C, 519, 12);
   return C.toArt();
 }

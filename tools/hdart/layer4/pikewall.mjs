@@ -20,17 +20,17 @@ export function build() {
     iron: { ramp: ramp(["#020203", "#08090b", "#111317", "#1b1e23", "#262a31", "#343942", "#474d58", "#606874"], 7), spec: 1.1, pow: 35, specCol: "#9ea6b2", dither: 0.5,
       shade: p => 0.1 * fbm(p.x * 0.5, p.y * 0.5, p.z * 0.5) },
     rust: { ramp: ramp(["#040202", "#130805", "#24110a", "#381b0e", "#4e2812", "#663719"], 6), dither: 0.7, shade: p => 0.1 * fbm(p.x * 0.8, p.y * 0.8) },
-    bone: { ramp: ramp(["#040403", "#121009", "#221e14", "#343020", "#4a442e", "#625a3e", "#7c7250", "#968a64"], 8), spec: 0.6, pow: 25, specCol: "#b8ac84", dither: 0.5 },
+    bone: { ramp: ramp(["#040403", "#121009", "#221e14", "#343020", "#4a442e", "#625a3e", "#7c7250", "#968a64"], 8), amb: 0.32, spec: 0.6, pow: 25, specCol: "#b8ac84", dither: 0.5 },
     shaft: { ramp: ramp(["#030202", "#0e0a07", "#1c150e", "#2a2015", "#3a2d1e", "#4a3b28"], 6), dither: 0.4 },
     blade: { ramp: ramp(["#030304", "#0c0d10", "#171a1f", "#242830", "#343a44", "#4c5460", "#6e7682"], 6), spec: 1.6, pow: 40, specCol: "#c4ccd6", dither: 0.4 },
-    paint: { ramp: ramp(["#060202", "#1a0805", "#2e0e08", "#44160c", "#5a2012", "#6e2c18"], 5), dither: 0.7, amb: 0.2 },
+    paint: { ramp: ramp(["#0a0302", "#240a06", "#3e120a", "#5a1c10", "#762a16", "#8e3a20"], 5), dither: 0.7, amb: 0.3 },
     cloth: { ramp: ramp(["#030202", "#0c0605", "#180c09", "#24120d", "#321a12"], 5), dither: 0.6, shade: p => 0.1 * Math.sin(p.x * 0.9 + p.y * 0.3) },
     hole: { ramp: ["#000000", "#000000", "#020203"], amb: 0, dif: 0.1, noRim: true },
     eye: { ramp: ["#0c2a2a", "#2a6a66", "#6ac0b4", "#c8f4ea"], emit: p => 0.5 + 0.4 * Math.max(0, p.nz) },
     flag: FLAG, stone: STONE,
   };
   // 中央の盾に褪せた赤い山形の紋 (擦れて途切れる)
-  const chevron = (x, y, z) => z > 4 && Math.abs(x - 48) < 11 && Math.abs(y - (50 + Math.abs(x - 48) * 0.9)) < 2.6 && fbm(x * 0.5, y * 0.5, 9) > -0.15;
+  const chevron = (x, y, z) => z > 4 && Math.abs(x - 48) < 11 && Math.abs(y - (49 + Math.abs(x - 48) * 0.9)) < 3.4 && fbm(x * 0.5, y * 0.5, 9) > -0.25;
   mats.wood = mats.shaft;
   const rusty0 = (x, y, z, m) => m === "board" && chevron(x, y, z) ? "paint" : m;
   const rusty = (x, y, z, m) => (m = rusty0(x, y, z, m), m) && (m === "iron" || m === "blade") && fbm(x * 0.28 + 3, y * 0.28, z * 0.28) > (m === "blade" ? 0.32 : 0.2) ? "rust" : m;
@@ -73,8 +73,8 @@ export function build() {
     ...spear([44, 60, -8], [27, 3, 18]),
     ...spear([52, 60, -8], [69, 3, 18]),
     ...spear([60, 58, -8], [93, 10, 16]),
-    ...spear([52, 72, -6], [2, 60, 14], { L: 8 }),
-    ...spear([44, 74, -6], [94, 66, 14], { L: 8 }),
+    ...spear([52, 82, -6], [2, 75, 14], { L: 8 }),
+    ...spear([44, 84, -6], [94, 77, 14], { L: 8 }),
   ];
   const hands = [...grip(20.5, 39.6, 2), ...grip(37, 37.6, 6.5), ...grip(59, 37.6, 6.5), ...grip(76, 39.6, 2)];
   // 盾に刺さった折れ矢

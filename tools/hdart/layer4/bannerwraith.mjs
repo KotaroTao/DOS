@@ -17,7 +17,7 @@ export function build() {
       shade: p => 0.12 * Math.sin(p.x * 0.8 + p.y * 0.12) + 0.05 * fbm(p.x * 0.4, p.y * 0.4) },
     bone: { ramp: ramp(["#050504", "#16130e", "#2a251b", "#433c2c", "#605641", "#80765a", "#a29878"], 7), spec: 0.5, pow: 20, dither: 0.45 },
     iron: { ramp: ramp(["#020203", "#0a0b0d", "#16181c", "#252931", "#3a404a", "#56606c"], 6), spec: 1.2, pow: 35, specCol: "#9aa4b0", dither: 0.4 },
-    mist: { ramp: ["#0d1619", "#18282d", "#263b40", "#3a5557", "#587a77", "#80a49c"], emit: p => 0.35 + 0.35 * Math.max(0, p.nz) + 0.25 * fbm(p.x * 0.15, p.y * 0.15, 2), dither: 0.8 },
+    mist: { ramp: ["#0d1619", "#18282d", "#263b40", "#3a5557", "#587a77", "#80a49c"], emit: p => 0.08 + Math.min(0.45, Math.max(0, (p.y - 68) / 40)) + 0.25 * Math.max(0, p.nz) + 0.3 * fbm(p.x * 0.18, p.y * 0.12, 2), dither: 0.9 },
     eye: { ramp: ["#1c4a38", "#4aa078", "#b8f6d4"], emit: p => 0.6 + 0.4 * Math.max(0, p.nz) },
     hole: { ramp: ["#000000", "#000000", "#020203"], amb: 0, dif: 0.1, noRim: true },
     thru: { ramp: ["#000000"], noRim: true },
@@ -61,7 +61,7 @@ export function build() {
   // 霊気の靄: 外套の裾から渦を巻いて流れ落ちる
   const mistB = [];
   for (let i = 0; i < 8; i++) { const t = i / 7, a = t * 5; mistB.push(sphere([48 + Math.sin(a) * (6 - t * 3) - t * 6, 70 + t * 22, Math.cos(a) * 3], 11 - t * 8, "cloth")); }
-  const mist = Paint(Disp(U(3, ...mistB), (x, y, z) => 1.5 * fbm(x * 0.13 + Math.sin(y * 0.15), y * 0.11, z * 0.12, 3)), (x, y, z, m) => y > 70 + 3 * fbm(x * 0.2, y * 0.2) ? "mist" : m);
+  const mist = Paint(Disp(U(3, ...mistB), (x, y, z) => 1.5 * fbm(x * 0.13 + Math.sin(y * 0.15), y * 0.11, z * 0.12, 3)), (x, y, z, m) => y > 68 + 7 * fbm(x * 0.12, y * 0.2, 5) ? "mist" : m);
   const eyes = [sphere([41.5, 33.6, 7.4], 0.8, "eye"), sphere([44.6, 33.6, 7.4], 0.8, "eye")];
   const figure = Sub(U(1.2, hood, torso, U(3, robe, mist)), cowl, 0.6);
   const scene = U(0, banner, pole, finial, figure, face, ...eyes, sleeveA, sleeveB, handA, handB);
