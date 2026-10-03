@@ -148,11 +148,17 @@
   -webkit-mask-image: linear-gradient(180deg, rgba(0,0,0,0.25) 0, #000 34px);
   mask-image: linear-gradient(180deg, rgba(0,0,0,0.25) 0, #000 34px);
 }
+/* 行には opacity/transform のアニメ・トランジションを付けない。iOS Safari では mask-image の欄の中で
+   行が合成レイヤーになると、オート戦闘のように行が次々に積もる時に古い描画が残って文字が重なる。
+   新しい行の現れは GPU を使わない光 (text-shadow) で示す */
 #log > div { flex: 0 0 auto; }
-#log > div { opacity: 0.62; transition: opacity 0.4s ease; text-shadow: 0 1px 0 #000, 0 0 6px rgba(0,0,0,0.9); }
+#log > div { opacity: 0.62; text-shadow: 0 1px 0 #000, 0 0 6px rgba(0,0,0,0.9); }
 #log > div:nth-last-child(2) { opacity: 0.82; }
-#log > div:last-child { opacity: 1; animation: dg-line-in 0.35s ease-out; }
-@keyframes dg-line-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+#log > div:last-child { opacity: 1; animation: dg-line-in 0.45s ease-out; }
+@keyframes dg-line-in {
+  from { text-shadow: 0 1px 0 #000, 0 0 8px rgba(255,236,200,0.55); }
+  to { text-shadow: 0 1px 0 #000, 0 0 6px rgba(0,0,0,0.9); }
+}
 #log.has-scene {
   background:
     var(--grain),
