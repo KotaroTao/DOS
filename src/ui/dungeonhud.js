@@ -256,16 +256,18 @@ export function openRunLoot() {
 
 // ================= 記録 (全文) =================
 // 履歴は game.logHistory (記録欄より長く覚えている)。無ければ記録欄の行から。
-// ページに分かれたら最新のページ (最後) から開く: ‹ で過去へ遡る
+// ページに分けず縦スクロールの1枚で見せる (ユーザー指定の例外)。最新 (最下部) から開き、上へ遡る
 export function openLog() {
   let lines = typeof game.logHistory === "function" ? game.logHistory() : null;
   if (!lines) {
     const src = document.getElementById("log");
     lines = src ? [...src.children].map((ln) => ({ text: ln.textContent, cls: ln.className || "l-sys" })) : [];
   }
-  return sheet.open({
-    kind: "info", banner: "記録", className: "dg-sheet dg-logsheet", pageEnd: true,
+  let body = null;
+  const h = sheet.open({
+    kind: "info", banner: "記録", className: "dg-sheet dg-logsheet", paged: false,
     body: (b) => {
+      body = b;
       const box = el("div", "dg-logfull");
       if (!lines.length) box.appendChild(el("div", "dg-note", "まだ何も記されていない。"));
       for (const ln of lines) box.appendChild(el("div", ln.cls || "l-sys", ln.text));
@@ -273,6 +275,12 @@ export function openLog() {
     },
     footer: [{ label: "閉じる", kind: "ghost", onTap: (x) => x.close() }],
   });
+  // 開く動きで高さが決まってから最下部へ (2フレーム待つ)
+  const toEnd = () => { if (body) body.scrollTop = body.scrollHeight; };
+  toEnd();
+  requestAnimationFrame(() => { toEnd(); requestAnimationFrame(toEnd); });
+  setTimeout(toEnd, 350);
+  return h;
 }
 
 // ================= 手帳 (迷宮の一時停止シート) =================
