@@ -79,10 +79,10 @@ const RESIST_TEXT = {
   physResist: [null, "物理が効きにくい", "物理がほとんど効かない", "物理無効"],
   magResist:  [null, "魔法が効きにくい", "魔法がほとんど効かない", "魔法無効"],
 };
-// 戦闘ログ・浮き文字に添える短い表記
+// 戦闘ログに添える表記 (ランクの数字ではなく効き具合を言葉で伝える)
 export const RESIST_TAG = {
-  physResist: [null, "物理耐性1", "物理耐性2", "物理無効"],
-  magResist:  [null, "魔法耐性1", "魔法耐性2", "魔法無効"],
+  physResist: [null, "物理が効きにくい！", "物理がほとんど効かない！", "物理が効かない！"],
+  magResist:  [null, "魔法が効きにくい！", "魔法がほとんど効かない！", "魔法が効かない！"],
 };
 
 export function elemDmgMult(aE, aLv, tgtElem, tgtDef) {
