@@ -1018,8 +1018,8 @@ const MUTATORS = [
   { id: "nightHunt", name: "闇討ちの宴", sym: "🌘", accent: "#7a5ad0", ambushMul: 4, goldMul: 1.5, soulMul: 1.3,
     risk: "奇襲を受けやすくなる",
     gain: "ゴールド 1.5倍・Soul 1.3倍" },
-  { id: "elemRage", name: "属性の暴走", sym: "✺", accent: "#ff9a4a", elemAll: true, soulMul: 1.5, cond: (cfg) => !!cfg.element,
-    risk: "すべての敵が迷宮の属性を帯びる (属性装備がないと危険)",
+  { id: "elemRage", name: "属性の暴走", sym: "✺", accent: "#ff9a4a", elemRandom: true, soulMul: 1.5,
+    risk: "すべての敵の属性が狂い、でたらめに入れ替わる (火の魔物が水を纏うことも)",
     gain: "得られる Soul が 1.5倍 になる" },
   { id: "mimicMarch", name: "ミミックの行進", sym: "◈", accent: "#e07840", mimicRate: 0.30, chestRankUp: 1,
     risk: "宝箱の3割はミミックだ",
@@ -1037,7 +1037,7 @@ const MUT_AGG = {
   enemyMul: "mul", soulMul: "mul", goldMul: "mul",
   ambushMul: "max", mimicRate: "max",
   lootBonusLv: "add", packMin: "max", chestRankUp: "add",
-  noFlee: "or", elemAll: "or", noTrap: "or", poisonUp: "or",
+  noFlee: "or", elemAll: "or", elemRandom: "or", noTrap: "or", poisonUp: "or",
 };
 // この潜入で効いている全修飾子源 (迷宮の異変 + 奈落の誓約 + 奈落の変異) を列挙
 function activeModifierDefs() {
@@ -1932,7 +1932,8 @@ function drawBoardHighlights(now) {
       if (senseE && cell.type === "monster") {
         const strong = senseE >= 2 && cell.elite;
         let color = strong ? "#ff3b30" : "#ff7a52";
-        if (senseE >= 3) { const e2 = (MONSTERS[cell.monsterKey] || {}).element; const ec = (ELEMENTS[e2] || {}).color; if (ec) color = ec; }
+        // 属性の暴走中は戦うまで属性が定まらないので色を付けない
+        if (senseE >= 3 && !mutNum("elemRandom", false)) { const e2 = (MONSTERS[cell.monsterKey] || {}).element; const ec = (ELEMENTS[e2] || {}).color; if (ec) color = ec; }
         mark = { text: strong ? "‼" : "!", color };
       } else if (senseT) {
         if (cell.type === "chest") mark = { text: "✦", color: "#ffd84a" };
@@ -6285,6 +6286,11 @@ function showToast(text, opts) {
 }
 
 // ---- 戦闘 ----
+// 6属性 (無属性を除く) から1つを無作為に
+function randomElement() {
+  const els = Object.keys(ELEMENTS).filter((k) => k !== "none");
+  return els[Math.floor(Math.random() * els.length)];
+}
 function startBattle(enemies, cell) {
   // 迷宮の属性気配: 属性持ち迷宮では雑魚敵が迷宮属性を帯びやすい (主・強敵は固有属性のまま)
   const cfg = activeCfg();
@@ -6294,6 +6300,8 @@ function startBattle(enemies, cell) {
     const ch = (spFloor && spFloor.elemAll) || mutNum("elemAll", false) ? 1 : 0.5;
     for (const e of enemies) if (!e.boss && !(e.mon && e.mon.elite) && Math.random() < ch) e.element = cfg.element;
   }
+  // 属性の暴走 (異変): 主・強敵も含め、すべての敵の属性を6属性からでたらめに選び直す (召喚された仲間も同じ)
+  if (mutNum("elemRandom", false)) for (const e of enemies) { e._elemRandom = true; e.element = randomElement(); }
   // 迷宮の異変 (血の満潮など): 敵の強さ倍率は HP/ATK/VIT に加えて AGI にも掛ける
   // (enemyScale は HP/ATK/VIT のみ。召喚で呼ばれた仲間も _agiMul を引き継ぐ)
   // 迷宮ごとの手直し (DUNGEON_TUNE) は強さだけ: 倍率で増減した戦果 (金貨・✦Soul) を元の曲線へ戻す
