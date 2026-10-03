@@ -2,7 +2,7 @@
 # 職業キャラの原画 (ユーザー提供の画像) を、ドット化せずにゲームで使える形へ整える開発用ツール。
 # 加工は「軽いにじみ取り・背景抜き・トリミング・縮小」だけ (ドット化・減色はしない)。
 #
-#   python3 tools/jobimg.py <job> <rank1.jpg> ... <rank5.jpg> --head left,right,top,chin ... [--per-dot 14] [--preview out.png]
+#   python3 tools/jobimg.py <job> <rank1.jpg> ... <rank5.jpg> --head left,right,top,chin ... [--per-dot 14[,14,…]] [--preview out.png]
 #
 # 出力: art/jobs/<job>_<rank>.webp (透明背景・WebP) と、src/jobphotos.js の <job> 項目 (自動で書き換え)。
 # 要 Pillow (pip install pillow numpy)。
@@ -134,19 +134,54 @@ def bust_crop(e):
     return cx - S / 2, top - BUST_TOP * S / BUST, S
 
 
-def build(job, paths, per_dot, heads, preview):
+# 全身像の最大の大きさ (升目): 顔の中心から左右 CLIP_HALF_W・高さ CLIP_H まで。全職共通の枠 IMG_BOX
+# (souls.js) はいちばん大きな絵に合わせて広がり、全職の全身像が縮むので、背景の魔法陣・炎のような
+# 大きな飾りはこの外を切り、切り口は CLIP_FADE 升目かけて透明へぼかす (キャラの体は通常この内に収まる)。
+# 背景の飾りが大きい絵は、原画の中でキャラが小さく描かれている。--per-dot をランクごとに変えて
+# 「頭頂〜足裏」を他のランクと同じ升目数にする (例: 14,14,14,12.1,11.2)
+CLIP_HALF_W, CLIP_H, CLIP_FADE = 45, 88, 5
+
+
+def build(job, paths, per_dots, heads, preview):
     out_dir = os.path.join(ROOT, "art", "jobs")
     os.makedirs(out_dir, exist_ok=True)
     entries = {}
     previews = []
     for r, path in enumerate(paths, 1):
+        per_dot = per_dots[min(r - 1, len(per_dots) - 1)]
         im, (x0, y0, x1, y1) = cut_out(path)
         head_px = heads[r - 1] if heads and r - 1 < len(heads) else None
         guessed = head_px is None
         if guessed: head_px = guess_head(im)
-        l, r_, top, chin = head_px
-        head_px = [(l + r_) / 2 - x0, top - y0, chin - y0]  # 原画の座標 → 切り抜いた絵の座標の [中心x, 頭頂y, あご先y]
+        l, r_, top, chin = head_px[:4]
+        sole = head_px[4] if len(head_px) > 4 else None
+        # 大きすぎる絵は枠に収める (顔の中心から左右・足元から上)。足裏 sole を指定すると、
+        # その下 (足元の渦・魔法陣) も切る
+        cxs = (l + r_) / 2
+        cx0, cx1 = max(x0, int(cxs - CLIP_HALF_W * per_dot)), min(x1, int(np.ceil(cxs + CLIP_HALF_W * per_dot)))
+        cy1 = min(y1, int(sole + 2 * per_dot)) if sole else y1
+        cy0 = max(y0, int(cy1 - CLIP_H * per_dot))
+        clipped = (cx0 > x0, cx1 < x1, cy0 > y0, cy1 < y1)
+        x0, x1, y0, y1 = cx0, cx1, cy0, cy1
+        head_px = [cxs - x0, top - y0, chin - y0]  # 原画の座標 → 切り抜いた絵の座標の [中心x, 頭頂y, あご先y]
         im = im.crop((x0, y0, x1, y1))
+        if any(clipped):
+            a = np.asarray(im).copy()
+            h, w = a.shape[:2]
+            f = CLIP_FADE * per_dot
+            ramp = np.ones((h, w))
+            xs, ys = np.arange(w)[None, :], np.arange(h)[:, None]
+            if clipped[0]: ramp = np.minimum(ramp, np.clip(xs / f, 0, 1))
+            if clipped[1]: ramp = np.minimum(ramp, np.clip((w - 1 - xs) / f, 0, 1))
+            if clipped[2]: ramp = np.minimum(ramp, np.clip(ys / f, 0, 1))
+            if clipped[3]: ramp = np.minimum(ramp, np.clip((h - 1 - ys) / (2 * per_dot), 0, 1))
+            a[..., 3] = (a[..., 3] * ramp).astype(np.uint8)
+            im = Image.fromarray(a, "RGBA")
+            # ぼかしで消えた外周を詰める
+            bb = im.getbbox()
+            if bb:
+                im = im.crop(bb)
+                head_px = [head_px[0] - bb[0], head_px[1] - bb[1], head_px[2] - bb[1]]
         # ドット数 (升目の数) に切り上げ、余りは右・下に透明を足す
         wd = int(np.ceil(im.width / per_dot))
         hd = int(np.ceil(im.height / per_dot))
@@ -162,7 +197,7 @@ def build(job, paths, per_dot, heads, preview):
         previews.append(canvas)
         kb = os.path.getsize(os.path.join(out_dir, name)) / 1024
         note = " ※推定値: --preview で確かめること" if guessed else ""
-        print(f"{job} R{r}: {wd}x{hd} ドット / {canvas.width}x{canvas.height}px / {kb:.0f}KB / head {[float(v) for v in head]}{note}")
+        print(f"{job} R{r}: 1ドット={per_dot}px{' (枠外を切った)' if any(clipped) else ''} / {wd}x{hd} ドット / {canvas.width}x{canvas.height}px / {kb:.0f}KB / head {[float(v) for v in head]}{note}")
     write_manifest(job, entries)
     if preview:
         S = 2
@@ -212,9 +247,10 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("job")
     ap.add_argument("images", nargs="+")
-    ap.add_argument("--per-dot", type=float, default=14, help="原画の何 px を1ドットと見なすか")
-    ap.add_argument("--head", nargs="*", help="ランクごとの 顔の左x,右x,頭頂y,あご先y (原画の画素座標)")
+    ap.add_argument("--per-dot", default="14", help="原画の何 px を1ドットと見なすか。ランクごとに変える時は 14,14,14,9.4,7 のようにカンマ区切り "
+                    "(キャラが小さく描かれたランクは、頭頂〜足裏の長さの比で小さくして全ランクの背丈を揃える。胸像は head で別に揃うので頭の大きさは気にしなくてよい)")
+    ap.add_argument("--head", nargs="*", help="ランクごとの 顔の左x,右x,頭頂y,あご先y[,足裏y] (原画の画素座標)。足裏を付けると、その下の飾りを切る")
     ap.add_argument("--preview")
     o = ap.parse_args()
     heads = [list(map(float, f.split(","))) for f in o.head] if o.head else None
-    build(o.job, o.images, o.per_dot, heads, o.preview)
+    build(o.job, o.images, [float(v) for v in o.per_dot.split(",")], heads, o.preview)
