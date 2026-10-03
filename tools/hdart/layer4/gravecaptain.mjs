@@ -5,7 +5,7 @@ export const meta = { id: "bs_gravecaptain", key: "hd_gravecaptain", w: 96, h: 9
   note: "亡き守備隊長: 落城の日に斃れた守備隊長の骸。舟形の鍔が反り返るモリオン兜に色褪せた赤い羽根飾り、へこんだ錆の胸甲、ぼろぼろの肩帯と外套。錆びた指揮刀を前へ突きつけて号令し、髑髏の眼窩には激昂の熾火が燃える" };
 export function build() {
   const mats = {
-    iron: { ramp: ramp(["#030202", "#0a0807", "#14100c", "#1f1912", "#2c2419", "#3a3022", "#4c3e2c", "#62523a"], 7), spec: 1.2, pow: 30, specCol: "#a89070", dither: 0.5,
+    iron: { ramp: ramp(["#030202", "#0a0807", "#14100c", "#1f1912", "#2c2419", "#3a3022", "#4c3e2c", "#62523a"], 6), spec: 1.2, pow: 30, specCol: "#a89070", dither: 0.5,
       shade: p => 0.1 * fbm(p.x * 0.4, p.y * 0.4, p.z * 0.4) },
     rust: { ramp: ramp(["#040201", "#130805", "#24100a", "#38190d", "#4e2612", "#683618"], 5), dither: 0.7, shade: p => 0.1 * fbm(p.x * 0.8, p.y * 0.8) },
     bone: { ramp: ramp(["#060504", "#16130e", "#2a251c", "#40392c", "#58503e", "#726852", "#908670", "#b0a68c"], 6), spec: 0.6, pow: 25, dither: 0.5, amb: 0.18,
@@ -58,19 +58,19 @@ export function build() {
     return Math.hypot(Math.max(v, 0), Math.max(w, 0)) + Math.min(Math.max(v, w), 0) - 0.2;
   } };
   // 鉢: 平らな底のやや尖った丸鉢
-  const bowlE = ellipsoid([Hc[0], 18.6, Hc[2]], [6.2, 5.4, 5], "steel");
+  const bowlE = ellipsoid([Hc[0], 19, Hc[2]], [5.8, 4.8, 4.8], "steel");
   const crownLeaf = { leaf: true, mat: "steel", bound: [Hc[0], Hc[1], Hc[2], 9], f: (x, y, z) => { const [lx, lz] = toL(x, z); return Math.max(bowlE.f(lx, y, lz), y - 20.4); } };
   // 鶏冠: 鉢の頂を前から後ろへ越える半月の板
   const combPts = [];
-  for (let i = 0; i <= 12; i++) { const a = Math.PI * i / 12; combPts.push([Hc[0] - Math.cos(a) * 6.2, 15.6 - Math.sin(a) * 7.6]); }
-  combPts.push([Hc[0] + 5.4, 17.4], [Hc[0] - 5.4, 17.4]);
+  for (let i = 0; i <= 12; i++) { const a = Math.PI * i / 12; combPts.push([Hc[0] - Math.cos(a) * 6.4, 16.4 - Math.sin(a) * 9.6]); }
+  combPts.push([Hc[0] + 5.6, 18.4], [Hc[0] - 5.6, 18.4]);
   const combLeaf = yawLeaf(slab(combPts, Hc[2], 0.75, "steel", 0.35, 0.25), 12);
   const rivets = [-3.2, 0, 3.2].map(t => { const x = Hc[0] + F[0] * t, z = Hc[2] + F[1] * t; return sphere([x + Sd[0] * 5.1, 19.6, z + Sd[1] * 5.1], 0.7, "brass"); });
   // 羽根飾り: 鶏冠の後ろの付け根から後ろ上へ
-  const pb = [Hc[0] - F[0] * 5.2, 15.4, Hc[2] - F[1] * 5.2];
-  const plume = [tube([[pb[0], pb[1], pb[2], 1.4], [pb[0] + 4, 9, pb[2] - 1, 1.6], [pb[0] + 10, 6.5, pb[2] - 2, 1.4], [pb[0] + 16, 8, pb[2] - 3, 1], [pb[0] + 19, 12, pb[2] - 3, 0.5]], "red"),
-    tube([[pb[0], pb[1] + 0.6, pb[2] - 0.6, 1.2], [pb[0] + 5, 12, pb[2] - 1.5, 1.3], [pb[0] + 11, 11, pb[2] - 2.5, 1.1], [pb[0] + 16, 13.5, pb[2] - 3.5, 0.8], [pb[0] + 18, 17.5, pb[2] - 3.5, 0.4]], "red"),
-    tube([[pb[0] - 0.4, pb[1] - 0.6, pb[2] + 0.6, 1], [pb[0] + 2.4, 7.5, pb[2], 1.1], [pb[0] + 7, 4, pb[2] - 1, 0.9], [pb[0] + 12, 3.6, pb[2] - 2, 0.5]], "red")];
+  const pb = [Hc[0] - F[0] * 5.4, 15.6, Hc[2] - F[1] * 5.4];
+  const plume = [tube([[pb[0], pb[1], pb[2] - 1, 1.3], [pb[0] + 1.6, 9, pb[2] - 1.5, 1.6], [pb[0] + 5, 4, pb[2] - 2, 1.5], [pb[0] + 10, 2.4, pb[2] - 2.5, 1.1], [pb[0] + 15, 4.4, pb[2] - 3, 0.6]], "red"),
+    tube([[pb[0] + 0.6, pb[1], pb[2] - 1.5, 1.1], [pb[0] + 3, 10, pb[2] - 2, 1.3], [pb[0] + 7.6, 7, pb[2] - 2.5, 1.1], [pb[0] + 13, 8, pb[2] - 3, 0.8], [pb[0] + 16, 11.6, pb[2] - 3, 0.4]], "red"),
+    tube([[pb[0] - 0.4, pb[1] - 1, pb[2] - 0.5, 1], [pb[0] + 0.4, 6, pb[2] - 1, 1.1], [pb[0] + 3, 1.4, pb[2] - 1.5, 0.8], [pb[0] + 7, 0.6, pb[2] - 2, 0.4]], "red")];
   // 指揮刀の腕 (画面左へ伸ばす): 袖は千切れ、骨の手
   const armS = [tube([[40, 35, 2, 3.2], [30, 38, 5, 2.8], [21, 40, 8, 2.2]], "cloth", { seg: 3 }), cyl([31, 37.8, 5.2], [24, 39.6, 7.4], 2.6, "iron", 1),
     ellipsoid([19.6, 40.6, 9], [2.3, 2, 2.2], "bone")];

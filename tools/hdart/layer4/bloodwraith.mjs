@@ -5,12 +5,12 @@ export const meta = { id: "bs_bloodwraith", key: "hd_bloodwraith", w: 96, h: 96,
 const BAYER = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]];
 export function build() {
   const mats = {
-    blood: { ramp: ramp(["#050102", "#0f0204", "#1c0307", "#2a050b", "#3c0810", "#500c16", "#66121c", "#7e1a22", "#98262a"], 9), spec: 2.6, pow: 50, specCol: "#e89090", dither: 0.5, amb: 0.2, dif: 0.85,
+    blood: { ramp: ramp(["#050102", "#1e0407", "#3e0a0e", "#641418", "#8e2a26"], 8), spec: 1.8, pow: 90, specCol: "#c4544a", dither: 0.5, amb: 0.12, dif: 0.66, gain: 0.85,
       shade: p => 0.12 * fbm(p.x * 0.25, p.y * 0.25, p.z * 0.25) + 0.1 * Math.max(0, p.nz - 0.6) },
-    clot: { ramp: ramp(["#030101", "#0c0405", "#180809", "#281010", "#3c1a16", "#583026", "#7a4c3e"], 7), spec: 1.6, pow: 35, specCol: "#c8948a", dither: 0.6, rimCol: "#4a2a2e",
+    clot: { ramp: ramp(["#030101", "#0c0304", "#170607", "#240b0b", "#341210", "#4a1e18", "#62302a"], 7), spec: 1.4, pow: 70, specCol: "#9a5a4e", dither: 0.6, rimCol: "#4a2a2e",
       shade: p => 0.15 * fbm(p.x * 0.6, p.y * 0.6, p.z * 0.6) },
-    pool: { ramp: ramp(["#050102", "#120205", "#22040a", "#36060f", "#4e0b15", "#681420"], 6), spec: 3, pow: 40, specCol: "#d87070", dither: 0.4, amb: 0.35, noRim: true },
-    eye: { ramp: ["#4a0606", "#a01a10", "#ff6a3a", "#ffd0a0"], emit: p => 0.55 + 0.45 * Math.max(0, p.nz) },
+    pool: { ramp: ramp(["#050102", "#100204", "#1e0407", "#300709", "#460d0f", "#6a1c1a"], 6), spec: 3, pow: 40, specCol: "#a03c36", dither: 0.4, amb: 0.35, noRim: true },
+    eye: { ramp: ["#2a0404", "#5a0e08", "#8a2614", "#b04a36"], emit: p => 0.55 + 0.45 * Math.max(0, p.nz) },
     hole: { ramp: ["#000000", "#000000", "#030101"], amb: 0, dif: 0.1, noRim: true },
     flag: FLAG, stone: STONE,
   };
@@ -69,11 +69,11 @@ export function build() {
   // 鉤爪の先: 硬く凝った先端を明るく
   for (let y = 58; y < 70; y++) for (let x = 0; x < 96; x++) {
     const p = C.pix[y * 96 + x]; if (!p || p.m !== "clot" || C.get(x, y + 1)) continue;
-    C.set(x, y, "#a87264"); if (C.get(x, y - 1)) C.set(x, y - 1, "#7a4c3e");
+    C.set(x, y, "#7e4c40"); if (C.get(x, y - 1)) C.set(x, y - 1, "#5a3228");
   }
-  C.set(45, 26, "#ffd0a0"); C.set(50, 26, "#ffd0a0");
+  C.set(45, 26, "#b8a49c"); C.set(50, 26, "#b8a49c");
   // 滴: 爪先と腕から床へ落ちる血の筋と粒
-  const Dr = ["#3a060e", "#6c0f1a", "#a4242c", "#e07070"];
+  const Dr = ["#2a0508", "#4e0c10", "#741a18", "#a8443c"];
   const drip = (x, y0, y1, gap = 0) => {
     for (let y = y0; y <= y1; y++) {
       if (gap && y > y0 + 3 && ((y - y0) % gap) < gap - 2) continue;
@@ -85,6 +85,6 @@ export function build() {
   drip(79, 66, 73); drip(76, 67, 81, 5); drip(82, 68, 86, 6);
   drip(30, 42, 52, 4); drip(66, 42, 54, 4); drip(44, 37, 41); drip(53, 38, 44);
   // 血溜まりへ落ちた滴の波紋
-  for (const [x, y] of [[20, 89], [76, 89], [14, 90], [82, 90]]) { C.only(x - 2, y, "#a4242c"); C.only(x + 2, y, "#a4242c"); C.only(x - 1, y - 1 + 0, "#6c0f1a"); C.only(x + 1, y - 1 + 0, "#6c0f1a"); }
+  for (const [x, y] of [[20, 89], [76, 89], [14, 90], [82, 90]]) { C.only(x - 2, y, "#741a18"); C.only(x + 2, y, "#741a18"); C.only(x - 1, y - 1, "#4e0c10"); C.only(x + 1, y - 1, "#4e0c10"); }
   return C.toArt();
 }
