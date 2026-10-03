@@ -89,12 +89,15 @@ for (const id in ITEMS) {
 }
 
 // アイテムの格の表示名/色。装備はレア度 (コモン〜レジェンドレア) を、収集品などは従来のランクを使う
-function itemRankName(it) { return rarityLabel(it) || (it && it.rank ? ITEM_RANK_NAME[it.rank] : null); }
-function itemRankColor(it) { return rarityColor(it) || (it && it.rank ? ITEM_RANK_COLOR[it.rank] : null); }
-// カードの見出し (格): 装備はレア度、職業専用は「専用装備」を添える。収集品は従来のランク
+// 収集品 (slot:"misc") にはランクが無い (格も色も付けない)
+const isCollectible = (it) => !!(it && it.slot === "misc");
+function itemRankName(it) { return rarityLabel(it) || (it && it.rank && !isCollectible(it) ? ITEM_RANK_NAME[it.rank] : null); }
+function itemRankColor(it) { return rarityColor(it) || (it && it.rank && !isCollectible(it) ? ITEM_RANK_COLOR[it.rank] : null); }
+// カードの見出し (格): 装備はレア度、職業専用は「専用装備」を添える。収集品はただ「収集品」
 function itemGradeText(it, fallback = "アイテム") {
   const rl = rarityLabel(it);
   if (rl) return it.forJob ? `${rl} ・ 専用装備` : rl;
+  if (isCollectible(it)) return "収集品";
   return it && it.rank ? `${ITEM_RANK_NAME[it.rank]}級アイテム` : fallback;
 }
 // ログの色: レア以上はレア度の色で記録する
@@ -9513,20 +9516,6 @@ function milestoneLabel(m) {
   return m.soul ? (m.soul >= 2 ? "魂(偉大)+装備" : "魂+装備") : "装備";
 }
 
-// 収集品 → ランク帯 (1-10)。lv1-20=R1 … lv181-200=R10
-function collectibleRank(it) { return Math.min(10, Math.max(1, Math.ceil((it.lv || 1) / 20))); }
-
-// ランク帯ごとの収集品id一覧 (ITEMS から一度だけ構築してメモ化)
-let _collByRank = null;
-function collectiblesByRank() {
-  if (_collByRank) return _collByRank;
-  _collByRank = {};
-  for (let r = 1; r <= 10; r++) _collByRank[r] = [];
-  for (const id in ITEMS) { const it = ITEMS[id]; if (it.slot === "misc") _collByRank[collectibleRank(it)].push(id); }
-  for (let r = 1; r <= 10; r++) _collByRank[r].sort((a, b) => (ITEMS[a].lv - ITEMS[b].lv) || a.localeCompare(b));
-  return _collByRank;
-}
-
 // 宝物庫の状態 (旧セーブには無いので遅延初期化)
 function treasuryState() {
   if (!G.treasury || typeof G.treasury !== "object") G.treasury = { donated: {}, claimed: {} };
@@ -9555,14 +9544,17 @@ function treasuryRewardReady() {
   return false;
 }
 
-// 収集品を1点奉納する (台帳に種類を記録し、その品は消費される)
+// 収集品を1点奉納する (その品は消費される)。初めての種類は台帳に記し、
+// すでに奉納済みの種類は売却と同じ金貨を宝物庫から受け取る。戻り値 = {kind:"new"|"dup", gold} / 失敗は null
 function donateCollectible(doll, it) {
   const ts = treasuryState();
   const idx = doll.items.indexOf(it);
-  if (idx < 0) return false;
+  if (idx < 0) return null;
   doll.items.splice(idx, 1);
-  if (it.id) { ts.donated[it.id] = true; codexSeeItem(it.id); }
-  return true;
+  if (it.id && !ts.donated[it.id]) { ts.donated[it.id] = true; codexSeeItem(it.id); return { kind: "new", gold: 0 }; }
+  const gold = sellPrice(it);
+  G.gold += gold;
+  return { kind: "dup", gold };
 }
 
 // 褒賞の装備を1点下賜する (所持枠が無ければゴールドに換える)。完了後 onClose を呼ぶ
@@ -11546,18 +11538,22 @@ function opsClaimableAchievements() {
   }
   return out;
 }
-// まだ奉納していない種類の収集品 (同じ種類は1点だけ)
+// 奉納できる収集品 = 手持ちの収集品すべて [{doll, item, dup, gold}]。
+// 初めての種類 (同じ種類は最初の1点) が dup:false で台帳に記され、奉納済みの種類と2点目以降は dup:true (売却額の金貨に換わる)。
+// 並びは初めての種類が先
 function opsDonatableList() {
   const ts = treasuryState();
   const seen = new Set();
-  const out = [];
+  const fresh = [], dups = [];
   for (const h of heldCollectibles()) {
-    if (ts.donated[h.item.id] || seen.has(h.item.id)) continue;
+    const dup = !!ts.donated[h.item.id] || seen.has(h.item.id);
     seen.add(h.item.id);
-    out.push(h);
+    (dup ? dups : fresh).push({ ...h, dup, gold: dup ? sellPrice(h.item) : 0 });
   }
-  return out;
+  return fresh.concat(dups);
 }
+// まだ奉納していない種類の数 (宝物庫・王宮の印と街の提案はこれだけで立てる)
+const opsNewKindCount = () => opsDonatableList().filter((h) => !h.dup).length;
 // いま ✦Soul で1段以上鍛えられる、編成の人業のメイン魂
 // 並びはレベルの低い順 (同じなら安い順)。lowest = 上限に届いていない隊の魂のうち最も低いLvか
 // (街の「魂を鍛える」はこれだけを勧め、隊のレベルを揃えていく)
@@ -11596,7 +11592,7 @@ const OPS = {
       unid, unidCost,
       junk: junk.length, junkGold: junk.reduce((a, j) => a + j.price, 0),
       ach,
-      donatable: opsDonatableList().length,
+      donatable: opsNewKindCount(),
       deliverable: (G.deliveryQuests || []).filter((q) => q && deliveryHolder(q.itemId)).length,
       trainable: opsTrainableList().length,
       innCost: innCost(), hastenCost, treasuryReady,
@@ -11606,6 +11602,7 @@ const OPS = {
   trainableList: opsTrainableList,
   claimableAchievements: opsClaimableAchievements,
   donatableList: opsDonatableList,
+  newKindCount: opsNewKindCount,
 
   // 宿で休む (宿屋の「泊まる」と同じ: 宿賃 innCost・生きている者のHP/MP全快と状態異常の回復)
   restParty() {
@@ -11719,26 +11716,47 @@ const OPS = {
   },
 
   // 収集品を1点奉納 (宝物庫から開いた品シートの「奉納」)
+  // 奉納済みの種類なら売却と同じ金貨を受け取る
   donateOne(doll, it) {
-    if (!doll || !it || it.slot !== "misc" || treasuryState().donated[it.id]) return { ok: false };
-    if (!donateCollectible(doll, it)) return { ok: false };
-    SFX.itemget(); autosave();
-    log(`${itemName(it)} を宝物庫に奉納した。`, "win");
-    showToast(`${itemName(it)} を奉納した`);
+    if (!doll || !it || it.slot !== "misc") return { ok: false };
+    const r = donateCollectible(doll, it);
+    if (!r) return { ok: false };
+    SFX.itemget();
+    if (r.gold) updateTopbar();
+    autosave();
+    if (r.gold) {
+      log(`${itemName(it)} を宝物庫に奉納し、${r.gold} ゴールドを受け取った。`, "win");
+      showToast(`${itemName(it)} を奉納した (💰${r.gold})`);
+    } else {
+      log(`${itemName(it)} を宝物庫に奉納した。`, "win");
+      showToast(`${itemName(it)} を奉納した`);
+    }
     renderTown();
-    return { ok: true, rewardReady: treasuryRewardReady() };
+    return { ok: true, gold: r.gold, rewardReady: treasuryRewardReady() };
   },
 
   // 未奉納の収集品をまとめて奉納 (宝物庫の「収集品を奉納」→ 詳細のシートの「奉納する」)
+  // 奉納済みの種類・重なった品は売却と同じ金貨に換わる
   donateAllNew() {
     const list = opsDonatableList();
     if (!list.length) return { ok: false, n: 0 };
-    for (const h of list) donateCollectible(h.doll, h.item);
-    SFX.itemget(); autosave();
-    log(`収集品 ${list.length} 種を宝物庫に奉納した。`, "win");
-    showToast(`収集品 ${list.length}種を奉納した`);
+    let kinds = 0, gold = 0;
+    for (const h of list) {
+      const r = donateCollectible(h.doll, h.item);
+      if (!r) continue;
+      if (r.kind === "new") kinds++;
+      gold += r.gold;
+    }
+    SFX.itemget();
+    if (gold) updateTopbar();
+    autosave();
+    const parts = [];
+    if (kinds) parts.push(`新たに ${kinds} 種を台帳に記した`);
+    if (gold) parts.push(`${gold} ゴールドを受け取った`);
+    log(`収集品 ${list.length} 点を宝物庫に奉納した。${parts.join("・")}。`, "win");
+    showToast(`収集品 ${list.length}点を奉納した${gold ? ` (💰${gold})` : ""}`);
     renderTown();
-    return { ok: true, n: list.length, rewardReady: treasuryRewardReady() };
+    return { ok: true, n: list.length, kinds, gold, rewardReady: treasuryRewardReady() };
   },
 
   // 魂を n 段強化する (n = Infinity で上限まで)。1段ごとの費用・上限は trainSoul と同じ。
@@ -11924,7 +11942,7 @@ bindGame({
   objectiveInfo, decreeInfo, replayDecree, palaceRecords, sharePalaceRecord, departTo, goMakeDoll, audienceTutorial,
   landOnHub, legacyToPage, townBgm,
   // 勲章・宝物庫・図鑑
-  achievementCards, claimNextTreasury, TREASURY_MILESTONES, milestoneLabel, collectibleRank, collectiblesByRank, totalDonatedKinds,
+  achievementCards, claimNextTreasury, TREASURY_MILESTONES, milestoneLabel, totalDonatedKinds,
   codexMonEntry, dungeonRoster, CODEX_OTHER,
   // 酒場・祠・宿
   listenRumor, RUMOR_PRICE, ensureDeliveryQuests, deliveryRewardDesc, rollTavernCrowd,
