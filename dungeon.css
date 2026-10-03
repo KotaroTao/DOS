@@ -209,6 +209,8 @@
 .pc-seal.paralyze { color: #ffd84a; }
 .pc-seal.stone { color: #c9c4b8; }
 .pc-seal.sleep { color: #8fc8ff; }
+.pc-seal.charm { color: #ff8fc8; }
+.pc-seal.confuse { color: #ffa860; }
 .pc-seal.dead { color: #ff5a4a; }
 .pc .name { grid-area: name; min-width: 0; display: flex; align-items: baseline; gap: 4px; line-height: 1.25; }
 .pc .pc-n { flex: 1 1 auto; min-width: 0; font-size: 12px; font-weight: 800; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.3px; text-shadow: 0 1px 0 #000; }

@@ -17,6 +17,8 @@
 //   seal({chance, turns}) — 特技封じ (ブレス・状態異常攻撃・回復役・呼び手などの行動を封じる)
 //   poison({chance, pct}) — 毒 (毎ラウンド最大HPの pct を削る。主には半分)
 //   para(確率) — 麻痺 (手番を失いやすい) / sleepChance / flinchChance (怯み) / strip (強化を打ち消す)
+//   charm(確率) — 魅了 (敵がその仲間に襲いかかる。傷を受けると解けやすい・主には35%の確率)
+//   confuse(確率) — 混乱 (敵が敵味方を問わず殴る・ふらつく・主には半分の確率)
 //   instakill({chance, races?}) — 即死 (主には効かない) / steal(盗む: 敵の所持金の割合) / plunder(倒すと金2倍)
 //   drain / mpDrain (与ダメの割合を吸収) / hpCost (最大HPの割合を代償)
 // 攻撃呪文: power (+ 術者INT×0.5) / gravity (敵の今のHPの割合ダメージ) / partyHeal (撃った後に味方全体を回復)
@@ -192,7 +194,13 @@ export const SPELLS = {
   SEAL:     { name: "封魔の印", mp: 4, kind: "debuff", seal: { chance: 0.8, turns: 3 }, target: "enemy", desc: "敵の特技を封じる" },
   SEALALL:  { name: "封魔陣", mp: 10, kind: "debuff", seal: { chance: 0.6, turns: 3 }, target: "all-enemy", desc: "敵全体の特技を封じる" },
   BLIND:    { name: "目くらまし", mp: 3, kind: "debuff", debuff: { hit: 0.7 }, target: "enemy", desc: "敵の命中率を下げる" },
-  BLINDALL: { name: "幻霧", mp: 8, kind: "debuff", debuff: { hit: 0.75 }, target: "all-enemy", desc: "敵全体の命中率を下げる" },
+  BLINDALL: { name: "幻霧", mp: 8, kind: "debuff", debuff: { hit: 0.75 }, confuse: 0.25, target: "all-enemy", desc: "敵全体の命中率を下げ、混乱させることがある" },
+  // 心を乱す術: 魅了 (敵が仲間を襲う) / 混乱 (敵味方を問わず殴る)。魅了した敵を殴ると正気に戻りやすいので、他の敵から倒す
+  MIWAKU:   { name: "魅惑の囁き", mp: 5, kind: "debuff", charm: 0.55, target: "enemy", desc: "心を奪い、敵を仲間に襲いかからせる（魅了）" },
+  KUGUTSU:  { name: "傀儡の糸", mp: 8, kind: "debuff", charm: 0.7, debuff: { agi: 0.85 }, target: "enemy", desc: "魂に糸を掛けて操り、仲間を襲わせる（魅了）" },
+  KEISEI:   { name: "傾城の幻", mp: 16, kind: "debuff", charm: 0.35, target: "all-enemy", desc: "敵全体を妖しい幻で魅了し、同士討ちを誘う" },
+  GENWAKU:  { name: "幻惑", mp: 4, kind: "debuff", confuse: 0.65, target: "enemy", desc: "幻で惑わせ、敵を混乱させる" },
+  KYOURAN:  { name: "狂乱の霧", mp: 10, kind: "debuff", confuse: 0.4, target: "all-enemy", desc: "狂気の霧で敵全体を混乱させる" },
   KAGENUI:  { name: "影縫い", mp: 8, kind: "debuff", debuff: { agi: 0.65 }, target: "all-enemy", desc: "敵全体の素早さを下げる" },
   NOROI:    { name: "呪縛", mp: 5, kind: "debuff", debuff: { atk: 0.8, vit: 0.8, agi: 0.8 }, target: "enemy", desc: "敵の攻撃・防御・素早さを下げる" },
   SUIJAKU:  { name: "衰弱の呪い", mp: 8, kind: "debuff", debuff: { atk: 0.8 }, target: "all-enemy", desc: "敵全体の攻撃力を下げる" },
@@ -285,6 +293,7 @@ export const SPELLS = {
   RINNE:        { name: "六道輪廻", mp: 42, kind: "phys", power: 1.6, hits: 6, desperate: true, acc: 0.9, target: "enemy", desc: "傷が深いほど重い六連の極み" },
   // 武僧・修験者
   HAKKEI:       { name: "発勁", mp: 6, kind: "phys", power: 1.4, pierce: 1, acc: 0.7, target: "enemy", desc: "内に響く掌打。防御を無視する" },
+  NOUTEN:       { name: "脳天打ち", mp: 4, kind: "phys", power: 1.1, acc: 0.6, confuse: 0.4, target: "enemy", desc: "頭を打ち据え、混乱させる" },
   TENKETSU:     { name: "点穴", mp: 5, kind: "phys", power: 0.9, acc: 0.7, seal: { chance: 0.7, turns: 3 }, target: "enemy", desc: "経穴を突き、特技を封じる" },
   KONGOURENDA:  { name: "金剛連打", mp: 12, kind: "phys", power: 0.95, hits: 3, pieScale: 0.3, acc: 0.7, target: "enemy", desc: "PIEも乗る三連打（命中UP）" },
   KONGOUTAI:    { name: "金剛体", mp: 8, kind: "buff", buff: { vit: 1.5 }, regen: { pct: 0.05, turns: 3 }, target: "self", desc: "身を固めて防御を上げ、傷を癒し続ける" },

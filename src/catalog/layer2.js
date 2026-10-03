@@ -30,23 +30,28 @@ export const LAYER2_ITEMS = [
     desc: "下水路の大ウナギを仕留めるために鍛えられた三叉のもり。返しのついた穂先は一度刺されば抜けず、ぬめる獲物を水の外へ引きずり出す。" })),
   sr(W("w_sr2_culvertbow", "下水灯の弓", "bw", 35, { pow: 1.35, agi: 5, luk: 3, tint: "#c0a060",
     desc: "弓の両端に小さな灯を吊るした夜警の弓。下水路の闇でも狙いがぶれず、灯の揺らぎが消える前に矢は獲物の眉間に届いている。" })),
+  // 当てるだけで状態異常を与える武器 (onHit)
+  sr(W("w_sr2_eelstinger", "雷ウナギの刺剣", "dg", 20, { pow: 1.3, onHit: ["paralyze", 0.2], tint: "#c0d860",
+    desc: "帯電する大ウナギの背骨を芯に仕込んだ細身の刺剣。突き入れるたびに青い火花が走り、刺された者の手足を痺れで縛りつける。" })),
+  sr(W("w_sr2_lurelamp", "誘い灯の竿槍", "sp", 28, { pow: 1.3, onHit: ["charm", 0.12], tint: "#9fe0ff",
+    desc: "提灯アンコウの誘い灯を穂先の下に吊るした竿槍。揺れる青い灯に見入った魔物は心を奪われ、己の群れへ牙を向ける。" })),
 
   // ===== スーパーレア: 防具 =====
   sr(G("g_sr2_dredgehooks", "溝さらいのかぎ手甲", 13, { role: "atk", weight: "light", pow: 1.35, hp: 10, tint: "#7a6a50",
     desc: "汚泥の底をさらう人夫のかぎ爪つき手甲。泥に沈んだ重い瓦礫も一息に引き上げる握力が宿り、振るう得物に重みを乗せる。" })),
-  sr(R("r_sr2_leechward", "ヒル封じの指輪", "ring", 16, { hp: 22, def: 3, eDef: ["earth", 1], tint: "#8a3a3a",
+  sr(R("r_sr2_leechward", "ヒル封じの指輪", "ring", 16, { aRes: { poison: 0.3 }, hp: 22, def: 3, eDef: ["earth", 1], tint: "#8a3a3a",
     desc: "血を吸うヒルを寄せつけぬよう、塩と銀で清めた指輪。はめた者の血は不思議と濁らず、水の魔物の牙を鈍らせる。" })),
-  sr(A("a_sr2_ablutionrobe", "清め水の白衣", 19, { shape: "robe", pow: 1.35, mp: 12, pie: 4, tint: "#e4ecf0",
+  sr(A("a_sr2_ablutionrobe", "清め水の白衣", 19, { aRes: { poison: 0.3, charm: 0.2 }, shape: "robe", pow: 1.35, mp: 12, pie: 4, tint: "#e4ecf0",
     desc: "冷たい水を浴びて身を清める行者の白衣。一度も濁りに染まったことがなく、纏う者の祈りを凍てつくほど澄みきらせる。" })),
-  sr(F("f_sr2_waders", "水渡りの長靴", 22, { weight: "light", pow: 1.35, agi: 3, eDef: ["earth", 1], tint: "#4a5a50",
+  sr(F("f_sr2_waders", "水渡りの長靴", 22, { aRes: { paralyze: 0.2 }, weight: "light", pow: 1.35, agi: 3, eDef: ["earth", 1], tint: "#4a5a50",
     desc: "膝まで覆う油引きの長靴。腰まで浸かる汚水の中でも足を取られず、濁流に足元をすくわれても踏みとどまれる。" })),
   sr(A("a_sr2_scalecoat", "鱗綴りの胴着", 26, { weight: "light", pow: 1.35, eDef: ["earth", 1], tint: "#5a8080",
     desc: "鋼鱗の大鯉から剥いだ鱗を綴り合わせた胴着。水の刃も牙も鱗の上を滑り、軽さのわりに驚くほど刃を通さない。" })),
-  sr(H("h_sr2_diverhood", "潜り手の油頭巾", 29, { magStat: "int", shape: "circlet", weight: "cloth", pow: 1.35, mp: 10, tint: "#3a5060",
+  sr(H("h_sr2_diverhood", "潜り手の油頭巾", 29, { aRes: { sleep: 0.3, confuse: 0.2 }, magStat: "int", shape: "circlet", weight: "cloth", pow: 1.35, mp: 10, tint: "#3a5060",
     desc: "水底の遺物を探す潜り手が被った油染みの頭巾。暗い水の中で冷静さを失わぬよう、着ける者の思考を静かに研ぎ澄ます。" })),
   sr(S("s_sr2_floodgate", "水門扉の大盾", 32, { shape: "kite", pow: 1.35, hp: 16, tint: "#5a5a5a",
     desc: "崩れた水門の扉板を切り出して鉄で縁取った大盾。濁流を百年せき止めてきた板は、押し寄せる魔物の群れも揺るがず受け止める。" })),
-  sr(R("r_sr2_clearwater", "澄み水の護符", "amulet", 36, { eDef: ["earth", 1], pie: 4, mp: 8, tint: "#9fd8f0",
+  sr(R("r_sr2_clearwater", "澄み水の護符", "amulet", 36, { aRes: { charm: 0.3, sleep: 0.3 }, eDef: ["earth", 1], pie: 4, mp: 8, tint: "#9fd8f0",
     desc: "王都の水が澄んでいた頃の最後の一滴を封じた護符。胸元で冷たく光り、濁った水の呪いと魔物の飛沫から持ち主を守る。" })),
 
   // ===== レジェンドレア (全職共通・1点もの・固有効果) =====
