@@ -1554,23 +1554,12 @@ function dockSpec() {
   const dead = G.party.filter((t) => !t.alive).length;
   const hurt = G.party.some((t) => t.alive && (t.hp < t.maxhp || t.ailment));
   const heal = { label: "全員を回復", sub: dead ? `倒れた者 ${dead}` : hurt ? "傷ついた者がいる" : "皆 無事", hot: healAllNeed() && (healAllCasters().length > 0 || healAllRevivers().length > 0) };
-  // 迷宮で唱える技。覚えた者が隊にいる時だけ出す。気配読み・宝探しは専用のボタン (senses) を常に置き、
-  // ほかの術 (浮遊・道しるべ) は1つだけならその技の名前で直に唱え、2つ以上なら「術」から選ぶ
-  const known = knownFieldSkills();
-  const senses = known.filter((k) => dockOwnField(SPELLS[k])).map((k) => {
+  // 迷宮で唱える技 (浮遊・気配読み・宝探し・道しるべ)。覚えた者が隊にいる時だけ、技ごとにボタンを出す
+  const fields = knownFieldSkills().map((k) => {
     const sp = SPELLS[k], c = fieldCaster(k, true), on = fieldActive(sp);
-    return { key: k, kind: sp.sense, label: sp.name, sub: on ? "この階" : `MP${c.cost}`, on };
+    return { key: k, kind: sp.float ? "float" : sp.sense, label: sp.name, sub: on ? fieldStateText(sp) : `MP${c.cost}`, on };
   });
-  const fks = known.filter((k) => !dockOwnField(SPELLS[k]));
-  let field = null;
-  if (fks.length === 1) {
-    const sp = SPELLS[fks[0]], c = fieldCaster(fks[0], true), on = fieldActive(sp);
-    field = { label: sp.name, sub: on ? fieldStateText(sp) : `MP${c.cost}`, on, icon: fieldIcon(sp) };
-  } else if (fks.length > 1) {
-    const n = fks.filter((k) => fieldActive(SPELLS[k])).length;
-    field = { label: "術", sub: n ? `効果中 ${n}` : `${fks.length}つの術`, on: n > 0, icon: "field" };
-  }
-  return { down, home, heal, field, senses, idle: G.floor <= 1 && !(G.run && G.run.kills) ? "スワイプで進む ・ 光る墓石をめくる" : "階段を見つけると、ここから降りられる" };
+  return { down, home, heal, fields, idle: G.floor <= 1 && !(G.run && G.run.kills) ? "スワイプで進む ・ 光る墓石をめくる" : "階段を見つけると、ここから降りられる" };
 }
 function dockDescend() {
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
@@ -1590,9 +1579,6 @@ function floatLeft() { return (inDungeon() && G.run && G.run.float) || 0; }
 function fieldSense(kind) { return !!(inDungeon() && G.board && G.board.fsense && G.board.fsense[kind]); }
 function fieldActive(sp) { return sp.float ? floatLeft() > 0 : sp.sense ? fieldSense(sp.sense) : false; }
 function fieldStateText(sp) { return sp.float ? `残り${floatLeft()}階` : "この階"; }
-function fieldIcon(sp) { return sp.float ? "float" : sp.sense === "chest" ? "loot" : sp.sense === "stairs" ? "down" : "eye"; }
-// ドックに専用のボタンを持つ術 (気配読み・宝探し)
-function dockOwnField(sp) { return sp.sense === "enemy" || sp.sense === "chest"; }
 function fieldCasters() { return G.party.filter((p) => p.alive && p.ailment !== "stone"); }
 // 隊の誰かが覚えている迷宮の技 (技の定義順)
 function knownFieldSkills() {
@@ -1620,27 +1606,9 @@ function senseTargets(kind) {
   for (const row of G.board.cells) for (const c of row) if (c.type === want && !c.revealed && !c.cleared) out.push(c);
   return out;
 }
-function dockSense(key) {
+function dockField(key) {
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
   castField(key);
-}
-function dockField() {
-  if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
-  const fks = knownFieldSkills().filter((k) => !dockOwnField(SPELLS[k]));
-  if (!fks.length) return;
-  if (fks.length === 1) { castField(fks[0]); return; }
-  SFX.select();
-  const opts = fks.map((k) => {
-    const sp = SPELLS[k], c = fieldCaster(k, true), ok = fieldCaster(k);
-    const state = fieldActive(sp) ? `効果中・${fieldStateText(sp)}` : ok ? `MP${c.cost}・${ok.p.name}` : `MP${c.cost}・MP不足`;
-    return { label: `${sp.name}（${state}）`, fn: () => castField(k) };
-  });
-  opts.push({ label: "やめる", cancel: true, fn: () => renderBoard() });
-  showChoice("迷宮の術", opts, null, {
-    banner: "✦ 術 ✦", accent: "#7fb8c8",
-    lines: fks.map((k) => `${SPELLS[k].name}: ${SPELLS[k].desc.replace(/（迷宮で唱える）$/, "")}`),
-    onDismiss: () => renderBoard(),
-  });
 }
 // 道しるべ: 下り階段の周囲8マスの墓石をめくる (階段は伏せたまま。踏破済みにはしないので、踏めば通常どおり出来事は起きる)
 function revealAroundStairs() {
@@ -1700,7 +1668,7 @@ function renderDock() {
   if (!hintEl) return;
   const spec = inDungeon() ? dockSpec() : null;
   hintEl.classList.toggle("hidden", G.state === "combat" || (G.state === "over" && !!G.battle));
-  uiDungeonHud.renderDock(hintEl, spec, { descend: dockDescend, goHome: dockReturn, healAll: dockHealAll, field: dockField, sense: dockSense });
+  uiDungeonHud.renderDock(hintEl, spec, { descend: dockDescend, goHome: dockReturn, healAll: dockHealAll, field: dockField });
 }
 
 function renderBoard() {
