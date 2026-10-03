@@ -413,7 +413,7 @@ function autoEquip(target = "all") {
     return { ok: false, moves: 0 };
   }
   const involved = plan.undoSnapshot.map((s) => s.doll);
-  const before = new Map(targets.map((d) => [d, previewStats(d, d.equip, recalc)]));
+  const before = new Map(plan.undoSnapshot.map((s) => [s.doll, previewStats(s.doll, s.equip, recalc)]));
   if (!applyPlan(plan, { recalc })) { sfx("ng"); toast("付け替えられなかった", { tone: "bad" }); return { ok: false, moves: 0 }; }
   const sig = equipSignature(involved);
   for (const m of plan.moves) game.log(`最適装備: ${m.doll.name} ← ${m.item.name}${m.from !== m.doll ? `（${m.from.name}から）` : ""}`, "win");
@@ -424,20 +424,82 @@ function autoEquip(target = "all") {
   const sel = targets.includes(selDoll) ? selDoll : targets[0];
   const d0 = before.get(sel);
   if (d0) floatDelta(".pt-head .pt-port", statsDelta(d0, previewStats(sel, sel.equip, recalc)));
-  const who = targets.length > 1 ? `パーティの${new Set(plan.moves.map((m) => m.doll)).size}体` : targets[0].name;
-  toast(`最適装備: ${who}の ${plan.moves.length}点を付け替えた`, {
-    tone: "good",
-    action: { label: "元に戻す", fn: () => {
-      if (equipSignature(involved) !== sig) { sfx("ng"); toast("装備が変わったため、元に戻せない", { tone: "bad" }); return; }
-      restoreEquip(plan.undoSnapshot, recalc);
-      game.log("最適装備を元に戻した。", "sys");
-      sfx("select"); bgcMemo.key = "";
-      if (game.autosave) game.autosave(true);
-      rerender();
-      toast("元に戻した", { tone: "info" });
-    } },
-  });
+  // 結果のシート: 誰が何を装備し、能力がどう変わったか (+ 元に戻す)
+  const undo = () => {
+    if (equipSignature(involved) !== sig) { sfx("ng"); toast("装備が変わったため、元に戻せない", { tone: "bad" }); return false; }
+    restoreEquip(plan.undoSnapshot, recalc);
+    game.log("最適装備を元に戻した。", "sys");
+    sfx("select"); bgcMemo.key = "";
+    if (game.autosave) game.autosave(true);
+    rerender();
+    toast("元に戻した", { tone: "info" });
+    return true;
+  };
+  openAutoEquipResult(plan, before, undo);
   return { ok: true, moves: plan.moves.length, plan };
+}
+
+// 最適装備の結果: 人業ごとに [部位: 前の品 → 新しい品 (誰から)] と能力の 前→後
+function openAutoEquipResult(plan, before, undo) {
+  const rows = [];
+  for (const s of plan.undoSnapshot) {
+    const d = s.doll;
+    const changes = SLOTS.filter((k) => (s.equip[k] || null) !== (d.equip[k] || null)).map((k) => {
+      const it = d.equip[k] || null;
+      const mv = it && plan.moves.find((m) => m.item === it && m.doll === d);
+      return { k, from: s.equip[k] || null, to: it, giver: mv && mv.from !== d ? mv.from : null };
+    });
+    if (!changes.length) continue;
+    const b = before.get(d), a = previewStats(d, d.equip, recalc);
+    rows.push({ d, changes, b, a });
+  }
+  if (!rows.length) return null;
+  const nameEl = (cls, it) => (game.itemNameEl ? game.itemNameEl("span", cls, it) : el("span", cls, itemName(it)));
+  const body = el("div", "pt-ae");
+  for (const r of rows) {
+    const card = el("div", "pt-ae-card");
+    const top = el("div", "pt-ae-top");
+    top.appendChild(portraitEl(r.d, { size: 36, tag: "span" }));
+    top.appendChild(el("span", "pt-ae-n", r.d.name));
+    card.appendChild(top);
+    const list = el("div", "pt-ae-list");
+    for (const c of r.changes) {
+      const ln = el("div", "pt-ae-ln");
+      ln.appendChild(el("span", "pt-ae-k", SLOT_LABEL[c.k]));
+      const tx = el("span", "pt-ae-tx");
+      if (c.from) { tx.appendChild(nameEl("pt-ae-old", c.from)); tx.appendChild(el("span", "pt-ae-ar", "→")); }
+      if (c.to) tx.appendChild(nameEl("pt-ae-new", c.to));
+      else tx.appendChild(el("span", "pt-ae-none", "外す"));
+      if (c.giver) tx.appendChild(el("span", "pt-ae-from", `（${c.giver.name}から）`));
+      ln.appendChild(tx);
+      list.appendChild(ln);
+    }
+    card.appendChild(list);
+    const st = el("div", "pt-ae-st");
+    const pairs = [["atk", "atk"], ["vit", "vit"], ["agi", "agi"], ["int", "int"], ["pie", "pie"], ["luk", "luk"], ["hp", "maxhp"], ["mp", "maxmp"]];
+    for (const [lab, k] of pairs) {
+      const v0 = r.b[k] || 0, v1 = r.a[k] || 0;
+      if (v0 === v1) continue;
+      const chip = el("span", "pt-ae-s " + (v1 > v0 ? "up" : "dn"));
+      chip.appendChild(el("span", "pt-ae-sk", DLABEL[lab]));
+      chip.appendChild(el("span", null, `${v0}→${v1}`));
+      chip.appendChild(el("span", "pt-ae-sd", `${v1 > v0 ? "▲" : "▼"}${Math.abs(v1 - v0)}`));
+      st.appendChild(chip);
+    }
+    if (!st.childElementCount) st.appendChild(el("span", "pt-ae-s eq", "能力の変化なし"));
+    card.appendChild(st);
+    body.appendChild(card);
+  }
+  const n = plan.moves.length;
+  return sheet.open({
+    kind: "info", banner: "最適装備", className: "pt-ae-sheet",
+    lines: [`${rows.length}体の装備を ${n}点 付け替えた。`],
+    body,
+    footer: [
+      { label: "これでよい", kind: "primary", onTap: (h) => h.close() },
+      { label: "元に戻す", kind: "ghost", onTap: (h) => { if (undo()) h.close(); } },
+    ],
+  });
 }
 
 // 付け替えの増減を、枠の上に浮かべる
