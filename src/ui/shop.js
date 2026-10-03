@@ -140,7 +140,7 @@ function keepReason(it) {
 // 札に載せる数の短い表記 (1万以上は「2.9万」)
 const shortN = (n) => (n >= 100000 ? `${Math.round(n / 10000)}万` : n >= 10000 ? `${(n / 10000).toFixed(1)}万` : String(n));
 // 品の札 (絵・レア度の縁・NEW・未鑑定の封印・値段)。押せば品シート
-function cell(it, d, { price = true, onTap } = {}) {
+function cell(it, d, { price = true, onTap, onBack } = {}) {
   const rk = rarityKey(it);
   const c = el("button", "wpc-cell" + (rk ? " rar-" + rk : "") + (it.unidentified ? " unid" : ""));
   c.type = "button";
@@ -161,13 +161,13 @@ function cell(it, d, { price = true, onTap } = {}) {
   c.setAttribute("aria-label", `${itemName(it)}${it.unidentified ? " 未鑑定" : ""}`);
   const open = onTap || (() => { sfx("select"); itemSheet(it, { owner: d, context: "sell" }); });
   c.addEventListener("click", open);
-  longPress(c, () => itemSheet(it, { owner: d, context: d ? "bag" : "view" }));
+  longPress(c, () => itemSheet(it, { owner: d, context: d ? "bag" : "view", onClose: onBack }));
   return c;
 }
-// 品の札を並べた帯 (確認シート・除外の内訳で使う)
-function tileStrip(list, { max = 24 } = {}) {
+// 品の札を並べた帯 (確認シート・除外の内訳で使う)。onBack: 品シートを閉じた後 (そこで鑑定・売った品を帯から外すため)
+function tileStrip(list, { max = 24, onBack } = {}) {
   const w = el("div", "wpc-strip");
-  for (const x of list.slice(0, max)) w.appendChild(cell(x.item, x.doll, { price: false, onTap: () => itemSheet(x.item, { owner: x.doll, context: "bag" }) }));
+  for (const x of list.slice(0, max)) w.appendChild(cell(x.item, x.doll, { price: false, onBack, onTap: () => itemSheet(x.item, { owner: x.doll, context: "bag", onClose: onBack }) }));
   if (list.length > max) w.appendChild(el("span", "wpc-strip-more", `ほか ${list.length - max}点`));
   return w;
 }
@@ -214,17 +214,9 @@ function keeperLine(seg) {
 // ---------------------------------------------------------------- 一括の確認
 // まとめて鑑定 (確認 → ops.identifyAll。鑑定した品は NEW 印をつけ、結果を一覧に出す)
 export function confirmIdentifyAll() {
-  const list = unidList();
-  if (!list.length) { toast("未鑑定の品はない", { tone: "info" }); return null; }
-  const total = list.reduce((a, x) => a + x.cost, 0);
-  const aff = affordable(list);
-  const g = G();
-  const body = el("div", "wpc-cbody");
-  body.appendChild(tileStrip(list));
-  const lines = [aff.n < list.length
-    ? `所持金 ${g.gold} で鑑定できるのは ${aff.n}点 (安い順)。残り ${list.length - aff.n}点は次の機会に。`
-    : `未鑑定 ${list.length}点を、すべて鑑定する (所持 ${g.gold})。`, "商会の鑑定は必ず正体がわかる。"];
+  if (!unidList().length) { toast("未鑑定の品はない", { tone: "info" }); return null; }
   let h = null;
+  let list = [];
   const run = () => {
     h.close("ok", { silent: true });
     const before = list.map((x) => x.item);
@@ -236,14 +228,29 @@ export function confirmIdentifyAll() {
     if (got.length) openRevealSheet(got);
     return r;
   };
-  h = sheet.open({
-    kind: "choice", banner: "まとめて鑑定", accent: "#7fd0ff", title: `未鑑定 ${aff.n < list.length ? `${aff.n} / ${list.length}` : list.length}点を鑑定する`,
-    lines, body, className: "wpc-confirm",
-    footer: [
-      { label: "鑑定する", kind: "primary", size: "lg", cost: { kind: "gold", n: aff.n < list.length ? aff.cost : total }, disabled: !aff.n, onTap: run },
-      { label: "やめる", kind: "ghost", onTap: (x) => x.close("cancel") },
-    ],
-  });
+  // 一覧の札から開いた品シートで鑑定・売る・捨てた品があれば、閉じたあとに描き直す
+  const opts = () => {
+    list = unidList();
+    const total = list.reduce((a, x) => a + x.cost, 0);
+    const aff = affordable(list);
+    const g = G();
+    const body = el("div", "wpc-cbody");
+    if (list.length) body.appendChild(tileStrip(list, { onBack: () => refill() }));
+    else body.appendChild(el("div", "wpc-empty", "未鑑定の品はない。"));
+    const lines = [!list.length ? "未鑑定の品は残っていない。" : aff.n < list.length
+      ? `所持金 ${g.gold} で鑑定できるのは ${aff.n}点 (安い順)。残り ${list.length - aff.n}点は次の機会に。`
+      : `未鑑定 ${list.length}点を、すべて鑑定する (所持 ${g.gold})。`, "商会の鑑定は必ず正体がわかる。"];
+    return {
+      title: `未鑑定 ${aff.n < list.length ? `${aff.n} / ${list.length}` : list.length}点を鑑定する`,
+      lines, body,
+      footer: [
+        { label: "鑑定する", kind: "primary", size: "lg", cost: { kind: "gold", n: aff.n < list.length ? aff.cost : total }, disabled: !aff.n, onTap: run },
+        { label: "やめる", kind: "ghost", onTap: (x) => x.close("cancel") },
+      ],
+    };
+  };
+  const refill = () => { if (h && !h.closed) h.update(opts()); };
+  h = sheet.open({ kind: "choice", banner: "まとめて鑑定", accent: "#7fd0ff", className: "wpc-confirm", ...opts() });
   return h;
 }
 
