@@ -206,7 +206,8 @@ export function openRunLoot() {
         const sorted = items.slice().sort((a, c) => ((RARITIES[c.item.rar] || {}).order || 0) - ((RARITIES[a.item.rar] || {}).order || 0));
         for (const { owner, item } of sorted) {
           const cellEl = el("div", "dg-tilecell");
-          cellEl.appendChild(itemTile(item, { size: 56, onTap: () => { try { UI.itemSheet(item, { owner, context: "dungeon" }); } catch (e) { /* 品の詳細が無くても動く */ } } }));
+          cellEl.appendChild(itemTile(item, { size: 56, onTap: () => { try { UI.itemSheet(item, { owner, context: "dungeon" }); } catch (e) { /* 品の詳細が無くても動く */ } },
+            onHold: UI.codexItemSheet ? () => UI.codexItemSheet(item.id, { item }) : null }));
           cellEl.appendChild(el("span", "dg-tile-who", owner ? owner.name : ""));
           grid.appendChild(cellEl);
         }
