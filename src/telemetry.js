@@ -77,7 +77,7 @@ export function tlSnapshot(kind, where, party) {
 
 // 戦闘ごとの集計の器 (kind: n=通常 / e=精鋭・ミミック・出来事 / b=主)
 const AGG_KEYS = ["c", "w", "fl", "l", "r", "pre", "amb", "pa", "pe", "pp", "ea", "ee", "ep", "of", "op",
-  "ft", "fo", "fs", "fp", "dd", "dt", "hp0", "hp1", "pAgi", "eAgi", "eAgiAvg", "en"];
+  "ft", "fo", "fs", "fp", "ambR", "ambX", "ambP", "dd", "dt", "hp0", "hp1", "pAgi", "eAgi", "eAgiAvg", "en"];
 function agg(d, kind) {
   if (!d.b[kind]) { d.b[kind] = {}; for (const k of AGG_KEYS) d.b[kind][k] = 0; }
   return d.b[kind];
@@ -90,12 +90,12 @@ const hpRate = (party) => {
 };
 
 // 戦闘の開始: 戦闘ごとのメモを返す (Battle に持たせ、終了時に tlBattleEnd へ渡す)
-export function tlBattleBegin({ where, kind, opening, party, enemies }) {
+export function tlBattleBegin({ where, kind, opening, openSrc, ambRate, party, enemies }) {
   if (!S.on || !where) return null;
   const alive = party.filter((p) => p.alive);
   const eAgis = enemies.map((e) => e.agi || 0);
   return {
-    where, kind, opening: opening || null,
+    where, kind, opening: opening || null, openSrc: openSrc || null, ambRate: ambRate || 0,
     pAgi: alive.length ? alive.reduce((s, p) => s + (p.agi || 0), 0) / alive.length : 0,
     eAgi: eAgis.length ? Math.max(...eAgis) : 0,
     eAgiAvg: eAgis.length ? eAgis.reduce((s, v) => s + v, 0) / eAgis.length : 0,
@@ -125,6 +125,9 @@ export function tlBattleEnd(memo, { result, rounds, tally, party }) {
   if (result === "win") a.w++; else if (result === "flee") a.fl++; else if (result === "lose") a.l++;
   a.r += rounds || 0;
   if (memo.opening === "preempt") a.pre++; else if (memo.opening === "ambush") a.amb++;
+  // 奇襲の出どころ: ambR = 開幕の抽選 / ambX = 出来事・密輸人の待ち伏せ。ambP = 抽選の奇襲率の合計 (×1000。予想回数の元)
+  if (memo.opening === "ambush") { if (memo.openSrc === "rand") a.ambR = (a.ambR || 0) + 1; else if (memo.openSrc) a.ambX = (a.ambX || 0) + 1; }
+  if (memo.ambRate) a.ambP = (a.ambP || 0) + Math.round(memo.ambRate * 1000);
   const t = tally || {};
   // 予想成功率 fp を数える前の記録 (fp の無い器) には、予想付きの試行数 fpn を別に持たせる
   if (a.fpn == null) a.fpn = a.fp ? a.ft : 0;
@@ -143,6 +146,13 @@ export function tlBattleEnd(memo, { result, rounds, tally, party }) {
 // ---- 読み出し ----
 const pct = (n, d) => (d > 0 ? `${Math.round((n / d) * 100)}%` : "―");
 const avg = (n, c, div = 1) => (c > 0 ? Math.round((n / c / div) * 10) / 10 : "―");
+// 奇襲: 受けた回数と、開幕の抽選から見込まれる回数 (出来事・待ち伏せの分は別に添える)。
+// 出どころを記録し始める前の器 (ambP の無いもの) は回数だけ出す
+function ambushNote(a) {
+  if (!a.amb && !a.ambP) return "";
+  const exp = a.ambP != null ? `(予想${(a.ambP / 1000).toFixed(1)}${a.ambX ? `・出来事${a.ambX}` : ""})` : "";
+  return ` 奇襲${a.amb || 0}${exp}`;
+}
 // 逃走の予想成功率 (予想を記録し始める前の試行は除いて平均する。予想の無い記録は出さない)
 function fleeExpect(a) {
   const n = a.fpn != null ? a.fpn : (a.fp ? a.ft : 0);
@@ -168,7 +178,7 @@ export function tlSummary() {
       if (!a || !a.c) continue;
       parts.push(`${KIND_LABEL[kind]}${a.c}戦 ` +
         `敵の命中${pct(a.ea - a.ee - a.ep, a.ea)} 味方の命中${pct(a.pa - a.pe - a.pp, a.pa)} ` +
-        `味方先手${pct(a.of, a.op)} 逃走${a.ft ? `${a.fo}/${a.ft}${fleeExpect(a)}` : "―"} ` +
+        `味方先手${pct(a.of, a.op)}${ambushNote(a)} 逃走${a.ft ? `${a.fo}/${a.ft}${fleeExpect(a)}` : "―"} ` +
         `AGI 隊${avg(a.pAgi, a.c, 10)}/敵${avg(a.eAgi, a.c, 10)}`);
     }
     out.push({ head, lines: parts.length ? parts : ["戦闘の記録なし"] });
@@ -182,7 +192,7 @@ export function tlExportText() {
   for (const s of tlSummary()) { lines.push(s.head); for (const l of s.lines) lines.push("  " + l); }
   lines.push("");
   lines.push("隊の列: 名前,職,ランク,Lv,列,最大HP,最大MP,ATK,VIT,AGI,INT,PIE,LUK,生存 / base=基準AGI");
-  lines.push("戦闘の鍵: c戦闘 w勝 fl逃 l全滅 rラウンド pre先制 amb奇襲 pa/pe/pp=味方の物理 試行/回避された/見切られた " +
+  lines.push("戦闘の鍵: c戦闘 w勝 fl逃 l全滅 rラウンド pre先制 amb奇襲 ambR/ambX=奇襲のうち抽選/出来事・待ち伏せ ambP=抽選の奇襲率×1000の合計 pa/pe/pp=味方の物理 試行/回避された/見切られた " +
     "ea/ee/ep=敵の物理 同 of/op=手番で味方が先だった組/総組 ft/fo/fs=逃走 試行/成功/封じ fp/fpn=逃走を試みた時の成功率×1000の合計/その試行数 dd/dt=与/被ダメ " +
     "hp0/hp1=戦闘前後の隊HP割合×1000の合計 pAgi/eAgi/eAgiAvg=隊平均/敵最大/敵平均AGI×10の合計 en=敵数の合計");
   lines.push(JSON.stringify({ v: S.v, since: S.since, d: S.d }));

@@ -6301,6 +6301,7 @@ function startBattle(enemies, cell) {
     setTimeout(() => showToast(`${why} ― オートを止めた`, { tone: "info" }), 350);
   }
   let opening = null;
+  let openSrc = null, ambRate = 0; // テスト記録: 開幕の出どころ (rand/event/smuggler/candle) と、抽選の奇襲率
   if (!isBoss && !isElite) {
     const vig = partyPassiveLv("vigilance");
     // 迷宮の異変 (闇討ちの宴): 奇襲率が跳ね上がる (周囲警戒は引き続き有効)
@@ -6313,13 +6314,15 @@ function startBattle(enemies, cell) {
     const r = Math.random();
     if (r < amb) opening = "ambush";
     else if (r < amb + pre) opening = "preempt";
+    ambRate = amb;
+    if (opening) openSrc = "rand";
   }
   // 迷宮のイベント: 出来事が決めた開幕 (寝首/奇襲) ・ 密輸人の待ち伏せ ・ 祈りの蝋燭
   if (!isBoss && !isElite) {
     const rv = G.run && G.run.ev && inDungeon() && !abyssActive() ? G.run.ev : null;
-    if (G._evOpening) opening = G._evOpening;
-    else if (rv && rv.ambushNext > 0) { rv.ambushNext--; opening = "ambush"; log("密輸人どもが荷の仕返しに待ち伏せていた！", "dmg"); }
-    else if (rv && rv.preempt > 0) { rv.preempt--; opening = "preempt"; log("祈りの蝋燭の灯が、闇を味方につけた。", "win"); }
+    if (G._evOpening) { opening = G._evOpening; openSrc = "event"; }
+    else if (rv && rv.ambushNext > 0) { rv.ambushNext--; opening = "ambush"; openSrc = "smuggler"; log("密輸人どもが荷の仕返しに待ち伏せていた！", "dmg"); }
+    else if (rv && rv.preempt > 0) { rv.preempt--; opening = "preempt"; openSrc = "candle"; log("祈りの蝋燭の灯が、闇を味方につけた。", "win"); }
   } else if (G._evOpening && isElite) opening = null;
   G._evOpening = null;
   evBattleStart(enemies, isBoss);
@@ -6336,7 +6339,7 @@ function startBattle(enemies, cell) {
   // テスト記録: 戦闘の種類 (主 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子
   if (tlOn() && inDungeon()) {
     const kind = isBoss ? "b" : (isElite || enemies.some((e) => e.isMimic) || (cell && cell.evFight)) ? "e" : "n";
-    G.battle.tl = tlBattleBegin({ where: tlWhere(), kind, opening, party: G.party, enemies });
+    G.battle.tl = tlBattleBegin({ where: tlWhere(), kind, opening, openSrc, ambRate, party: G.party, enemies });
   }
   _maskEnemies = null;
   G.fx = null;
