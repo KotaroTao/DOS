@@ -4,14 +4,15 @@
 //   「盾？を鑑定している」→「．」→「．．」→「．．．」→「鑑定成功！」/「鑑定失敗…」
 // 成功した品はその場で正体と性能を見せる (装備は最後の一覧でまとめて)。
 // 最後に結果の一覧 (成功した品 → 装備。装備した品は一覧から消える / 失敗した品は商会でのみ)。残りは「商会で鑑定」へ続ける。
+// 一覧に残った品は「残りをまとめて売る」で一度に売れる (SR/LR・未奉納の収集品は除く)。
 // 音: 「．」ごとに SFX.appraise(段) が高まり、SFX.appraiseOk (解ける) / appraiseNg (曇る) で答える
 // 提供: UI.tryIdentifyInfo() / UI.openTryIdentifyAll()
 // game.js は import しない (ctx.js の UI / game を通す)。
 
 import { UI, game, registerUI } from "./ctx.js";
-import { el, sheet, button, setText, toast, reduced } from "./kit.js";
+import { el, sheet, button, setText, toast, reduced, confirm } from "./kit.js";
 import { statLines, isEquippable, itemCatText } from "./itemview.js";
-import { wearPlan, deltaEl, nameSpan, openDollChooser, itemSheet, ownerOf, shopOpen, townAppraisers, revealSellBtn,
+import { wearPlan, deltaEl, nameSpan, openDollChooser, itemSheet, ownerOf, shopOpen, townAppraisers, revealSellBtn, floatGold,
   FIRST_LABEL, firstBadge, isFirstGet } from "./loot.js"; // 初ゲット！ = 鑑定で正体を初めて知った品 (game.js の revealIdentity が印をつける)
 import { spriteCanvas } from "../sprites.js";
 import { identifyChance, identifyLabel } from "../souls.js";
@@ -274,8 +275,10 @@ export function openTryIdentifyAll({ onDone } = {}) {
   const refreshOnClose = (ch) => {
     if (!ch || !ch.opts) return;
     const prev = ch.opts.onClose;
-    ch.opts.onClose = (why) => { if (prev) prev(why); if (h && !h.closed) h.update({ body: (bb) => buildSummary(bb) }); };
+    ch.opts.onClose = (why) => { if (prev) prev(why); refreshSummary(); };
   };
+  // 一覧と下のボタン (まとめて売るの点数・金額) を描き直す
+  const refreshSummary = () => { if (h && !h.closed) h.update({ body: (bb) => buildSummary(bb), footer: summaryFooter() }); };
   const buildSummary = (b) => {
     const wrap = el("div", "wpc-picklist ap-sum");
     let worn = 0;
@@ -313,7 +316,7 @@ export function openTryIdentifyAll({ onDone } = {}) {
         eb.classList.add("wpc-prow-act");
         row.appendChild(eb);
       }
-      if (o.where === "bag" && shopOpen()) row.appendChild(revealSellBtn(o.doll, it, () => { if (h && !h.closed) h.update({ body: (bb) => buildSummary(bb) }); }));
+      if (o.where === "bag" && shopOpen()) row.appendChild(revealSellBtn(o.doll, it, refreshSummary));
       wrap.appendChild(row);
     }
     if (worn) wrap.appendChild(el("div", "ap-sum-worn", `装備した品 ${worn}点は一覧から外した。`));
@@ -330,8 +333,43 @@ export function openTryIdentifyAll({ onDone } = {}) {
     b.appendChild(wrap);
   };
 
+  // 一覧に残った品のうち、まとめて売れるもの (袋の中・呪いなし)。SR/LR・未奉納の収集品 (sellWarnings) は一点ずつ「売る」で確かめる
+  const sellables = () => {
+    const out = [];
+    let keep = 0;
+    for (const r of results) {
+      if (!r.ok) continue;
+      const it = r.item;
+      const o = ownerOf(it);
+      if (!o || o.where !== "bag" || it.unidentified) continue;
+      if (it.cursed || (game.sellWarnings && game.sellWarnings(it).length)) { keep++; continue; }
+      out.push({ doll: o.doll, item: it, price: game.sellPrice(it) });
+    }
+    return { list: out, keep };
+  };
+  const sellRest = async () => {
+    const { list, keep } = sellables();
+    if (!list.length || !UI.sellItems) return;
+    const gold = list.reduce((a, j) => a + j.price, 0);
+    const ok = await confirm({
+      banner: "まとめて売る", title: `${list.length}点を売る (+💰${gold})`,
+      lines: [list.map((j) => itemName(j.item)).join("・"),
+        keep ? `スーパーレア・レジェンドレア・未奉納の収集品 ${keep}点は残す (一点ずつ「売る」で売れる)。` : "売った品は商会の棚に並ぶ (買い戻せる)。"],
+      okLabel: "まとめて売る",
+    });
+    if (!ok) return;
+    const res = UI.sellItems(list);
+    if (res && res.gold) floatGold(res.gold);
+    refreshSummary();
+  };
+
   const summaryFooter = () => {
     const out = [];
+    const sell = shopOpen() && UI.sellItems ? sellables() : { list: [] };
+    if (sell.list.length) {
+      out.push({ label: "残りをまとめて売る", sub: `${sell.list.length}点${sell.keep ? ` ・ 逸品${sell.keep}点は残す` : ""}`,
+        cost: { kind: "gold", n: sell.list.reduce((a, j) => a + j.price, 0) }, kind: "secondary", onTap: () => { sellRest(); } });
+    }
     let left = [];
     for (const d of allDolls()) for (const it of (d.items || [])) if (it && it.unidentified) left.push(it);
     if (left.length && shopOpen() && UI.confirmIdentifyAll) {

@@ -2263,6 +2263,27 @@ function drawWallFlash(now) {
   vctx.restore();
 }
 
+// 浮遊中の駒: 地面から浮かせる高さ (論理座標)。ゆっくり上下に漂う。浮いていなければ 0
+function walkerLift(now) {
+  if (floatLeft() <= 0) return 0;
+  return CARD_H * 0.1 + (REDUCED_MOTION ? 0 : Math.sin(now * 0.0025) * 2);
+}
+// 足元の影。浮いている時 (lift > 0) は小さく淡くし、地面に淡い風の輪を残す
+function drawWalkerShadow(x, feet, rx, a, lift, now) {
+  const f = lift > 0 ? Math.max(0.55, 0.78 - lift / (CARD_H * 0.6)) : 1;
+  vctx.save();
+  if (lift > 0) {
+    const pulse = REDUCED_MOTION ? 0.5 : 0.5 + 0.5 * Math.sin(now * 0.004);
+    vctx.strokeStyle = `rgba(170,215,255,${0.18 + 0.12 * pulse})`;
+    vctx.lineWidth = 1;
+    vctx.beginPath(); vctx.ellipse(x, feet - 1, rx[0] * (1.05 + 0.1 * pulse), 5 + pulse, 0, 0, Math.PI * 2); vctx.stroke();
+  }
+  vctx.fillStyle = `rgba(0,0,0,${a[0] * f})`;
+  vctx.beginPath(); vctx.ellipse(x, feet - 1, rx[0] * f, 5 * f, 0, 0, Math.PI * 2); vctx.fill();
+  vctx.fillStyle = `rgba(0,0,0,${a[1] * f})`;
+  vctx.beginPath(); vctx.ellipse(x, feet - 1, rx[1] * f, 3 * f, 0, 0, Math.PI * 2); vctx.fill();
+  vctx.restore();
+}
 // 手番の駒 (先頭の人業の全身像)。足元に影、背に角灯の照り返し
 function drawWalker(hx, hy, now) {
   const wk = walkerSprite();
@@ -2274,14 +2295,9 @@ function drawWalker(hx, hy, now) {
   const x = hx - (share ? CARD_W * 0.2 : 0);
   const maxH = hi ? Math.min(CARD_H * (share ? 0.86 : 0.94), 110) : Math.min(CARD_W * 0.78, CARD_H * 0.66);
   const feet = hy + (hi ? CARD_H * 0.44 : CARD_H * 0.3);
-  // 影
-  vctx.save();
-  vctx.fillStyle = "rgba(0,0,0,0.3)";
-  vctx.beginPath(); vctx.ellipse(x, feet - 1, CARD_W * 0.36, 5, 0, 0, Math.PI * 2); vctx.fill();
-  vctx.fillStyle = "rgba(0,0,0,0.55)";
-  vctx.beginPath(); vctx.ellipse(x, feet - 1, CARD_W * 0.22, 3, 0, 0, Math.PI * 2); vctx.fill();
-  vctx.restore();
-  const box = drawBmpFit(b, x, feet + 1, hi ? CARD_W * 1.1 : maxH, maxH);
+  const lift = walkerLift(now); // 浮遊中は宙に浮く (影は地面に残す)
+  drawWalkerShadow(x, feet, [CARD_W * 0.36, CARD_W * 0.22], [0.3, 0.55], lift, now);
+  const box = drawBmpFit(b, x, feet + 1 - lift, hi ? CARD_W * 1.1 : maxH, maxH);
   drawHandLantern(x - box.W * (hi ? 0.36 : 0.42) - 2, box.y + box.H * (hi ? 0.5 : 0.56), now);
 }
 // 赤い頭巾の人影 (4方向)。端末の画素の格子に整数倍で置き、補間なしでくっきり描く。
@@ -2299,19 +2315,16 @@ function drawHoodedWalker(wk, hx, hy, now) {
   const Wd = cols * k, Hd = rows * k;              // 端末の画素での寸法
   const W = Wd / VSX, H = Hd / VSY;                // 論理座標での寸法
   const feet = hy + CARD_H * 0.42;
-  // 待機の2コマ (約0.6秒ごとに1ドット) / 歩みの弾み
+  // 待機の2コマ (約0.6秒ごとに1ドット) / 歩みの弾み。浮遊中は弾まず、宙をゆっくり漂う
+  const lift = walkerLift(now);
   let bob = 0;
-  if (G.heroAnim) {
+  if (lift > 0) bob = -Math.round(lift * VSY);
+  else if (G.heroAnim) {
     const t = Math.min(1, (performance.now() - G.heroAnim.t0) / Math.max(1, G.heroAnim.dur));
     bob = REDUCED_MOTION ? 0 : -Math.round(Math.sin(t * Math.PI) * 1.5) * k;
   } else if (!REDUCED_MOTION) bob = (Math.floor(now / 620) % 2) ? -k : 0;
-  // 影
-  vctx.save();
-  vctx.fillStyle = "rgba(0,0,0,0.32)";
-  vctx.beginPath(); vctx.ellipse(x, feet - 1, Math.max(CARD_W * 0.3, W * 0.42), 5, 0, 0, Math.PI * 2); vctx.fill();
-  vctx.fillStyle = "rgba(0,0,0,0.55)";
-  vctx.beginPath(); vctx.ellipse(x, feet - 1, Math.max(CARD_W * 0.18, W * 0.26), 3, 0, 0, Math.PI * 2); vctx.fill();
-  vctx.restore();
+  // 影 (浮遊中も地面に残す)
+  drawWalkerShadow(x, feet, [Math.max(CARD_W * 0.3, W * 0.42), Math.max(CARD_W * 0.18, W * 0.26)], [0.32, 0.55], lift, now);
   // 端末の画素の格子へ吸着させて、整数倍・補間なしで描く
   const dx = Math.round(x * VSX - Wd / 2);
   const dy = Math.round((feet + 1) * VSY - Hd) + bob;
@@ -4601,7 +4614,7 @@ function moveStep(nx, ny, onDone) {
       renderBoard();
       if (performance.now() - G.flipAnim.t0 >= G.flipAnim.dur) {
         G.flipAnim = null;
-        SFX.step();
+        if (floatLeft() <= 0) SFX.step(); // 浮遊中は足音を立てない
         slide();
       } else {
         requestAnimationFrame(ftick);
@@ -4609,7 +4622,7 @@ function moveStep(nx, ny, onDone) {
     };
     requestAnimationFrame(ftick);
   } else {
-    SFX.step();
+    if (floatLeft() <= 0) SFX.step(); // 浮遊中は足音を立てない
     slide();
   }
 }
@@ -9024,7 +9037,7 @@ function fuseCandidates(targetUid) {
   const t = soulByUid(targetUid); if (!t) return [];
   return G.souls.filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey && !soulWorn(s.uid) && !s.locked);
 }
-// 魂のロック: ロックした魂は魂融合の素材にできない (宿す・融合先にするのは自由)
+// 魂のロック: ロックした魂は魂融合の素材にできない (宿す・融合先にするのは自由)。魂融合した魂 (融合先) は自動でロックする
 function toggleSoulLock(uid) {
   const s = soulByUid(uid); if (!s) return null;
   s.locked = !s.locked;
@@ -9048,6 +9061,8 @@ function fuseSoul(targetUid, consumeUid) {
   const newCap = soulLevelCapOf(t);
   const le = levelExpFromTotal(total, newCap);
   t.level = le.level; t.exp = le.exp;
+  // 融合先は自動でロックする (育てた魂を、うっかり別の融合の素材にしないように。ロックは魂の一覧で外せる)
+  t.locked = true; t.fuseLk = true;
   const idx = G.souls.indexOf(c);
   if (idx >= 0) G.souls.splice(idx, 1);
   unequipSoulEverywhere(c.uid);
@@ -9056,7 +9071,7 @@ function fuseSoul(targetUid, consumeUid) {
   codexJobSee(t.clsKey, t.count, t.level);
   const after = soulRankOf(t);
   SFX.itemget(); buzz([0, 30, 50, 30]);
-  log(`${SOUL_CLASSES[t.clsKey].label}の魂を魂融合させた (魂数 ×${t.count})。`, "win");
+  log(`${SOUL_CLASSES[t.clsKey].label}の魂を魂融合させた (魂数 ×${t.count})。素材にならないようロックした。`, "win");
   if (t.level > beforeLv) log(`蓄積した Soul が反映され、Lv${beforeLv} → Lv${t.level} に上昇した！`, "win");
   autosave(true);
   renderTown();
@@ -9068,7 +9083,7 @@ function fuseSoul(targetUid, consumeUid) {
   }
   // ランク据え置きの融合: 魂の輝きが増したことと、全能力の上昇率をトーストで
   const pct = Math.round((SOUL_STAT_UP[SOUL_CLASSES[t.clsKey].rarity] || 0.01) * 100);
-  showToast(`${soulSeriesName(t.clsKey)}の魂の輝きが増した ― 全能力 +${pct}%（魂数 ${t.count}）${t.level > beforeLv ? ` ・ Lv${beforeLv}→${t.level}` : ""}`, { tone: "good" });
+  showToast(`${soulSeriesName(t.clsKey)}の魂の輝きが増した ― 全能力 +${pct}%（魂数 ${t.count}）${t.level > beforeLv ? ` ・ Lv${beforeLv}→${t.level}` : ""} ・ ロックした`, { tone: "good" });
   return { rankUp: false };
 }
 
@@ -12125,6 +12140,8 @@ function loadGame() {
   // 所持魂 (v5): 配列に整え、無効な職業を除き、人業のメイン魂/サブ魂を実在する魂に整える
   if (!Array.isArray(G.souls)) G.souls = [];
   G.souls = G.souls.filter((s) => s && SOUL_CLASSES[s.clsKey]);
+  // 魂融合した魂は自動でロックする (後付け: 旧セーブの融合済み = 魂数2以上の魂にも一度だけ。外したロックは掛け直さない)
+  for (const s of G.souls) if (s.count > 1 && !s.fuseLk) { s.locked = true; s.fuseLk = true; }
   setSharedSouls(G.souls); // recalcDoll が所持魂を uid で引けるようにする
   syncDollUids([...(G.party || []), ...(G.reserve || [])]); // 人業の通し番号を続きから (重なりも直す)
   for (const d of [...(G.party || []), ...(G.reserve || [])]) {

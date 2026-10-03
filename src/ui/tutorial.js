@@ -116,7 +116,7 @@ const TUTS = [
       done: () => ((G_().stats || {}).fusions || 0) > (tutState().base.fusions || 0),
       skip: () => !fusableDoll(),
     }],
-    outro: ["同じ職の魂が手に入ったら、融合して魂の格を上げよう。", "大事な魂はロックすれば、融合の素材にならない。"],
+    outro: ["同じ職の魂が手に入ったら、融合して魂の格を上げよう。", "融合した魂は自動でロックされ、融合の素材にならない。"],
   },
   {
     key: "sub1", at: 10, name: "サブ魂", who: "irene",

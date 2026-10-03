@@ -689,6 +689,7 @@ export function openFusePicker(targetUid, onDone) {
     kind: "info", className: "sp-pick-sheet", paged: false, banner: "魂融合", accent: cl.glow,
     title: `${soulSeriesName(t.clsKey)}の魂 Lv${t.level} に融合させる`,
     lines: ["素材にした魂は失われ、融合数に応じてLv上限、能力が上昇。一定数の魂を融合するとランクアップ。",
+      "融合先の魂は自動でロックされ、ほかの融合の素材にならない。",
       ...(lockedN ? [`ロック中の魂 ${lockedN} 体は素材にできない。`] : [])],
     body: (scroll, h) => {
       const list = el("div", "pt-list");
