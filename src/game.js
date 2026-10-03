@@ -8,7 +8,7 @@ import {
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, slotKeyFor, lvToRank, RANGE_LABEL,
   UNIDENT_SLOTS, itemName, applyForge,
 } from "./items.js";
-import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
+import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
 import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE, unlockSceneFor, sealLines, unsealLines } from "./story.js";
@@ -540,7 +540,9 @@ function takeStolenGold(b) {
 }
 function runGainGold(g) { g = Math.round(g * 0.5 * sfNum("goldMul", 1) * mutNum("goldMul", 1) * (1 + partyEffMax("goldUp"))); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; return g; }
 // 魂導の護符 (LR装飾品) の soulUp があれば ✦Soul の獲得量を割合で増やす。
-function runGainSoulPts(s) { s = Math.round(s * sfNum("soulMul", 1) * mutNum("soulMul", 1) * (1 + partyEffMax("soulUp"))); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; return s; }
+// 極の出来事で授かった恒久の恵み (G.events.flags) の効き目。授かっていなければ dflt
+function evBoon(k, field, dflt) { return G.events && G.events.flags && G.events.flags[k] ? EV_BOONS[k][field] : dflt; }
+function runGainSoulPts(s) { s = Math.round(s * sfNum("soulMul", 1) * mutNum("soulMul", 1) * (1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0))); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; return s; }
 function runGainItem(owner, item) {
   if (item) item.isNew = true; // NEW 印 (品シートで見れば消える。セーブには追加の印として残る)
   owner.items.push(item);
@@ -4847,10 +4849,11 @@ function evBattleStart(enemies, isBoss) {
   const rv = on ? evRun() : {};
   let dmg = 1, prey = null;
   if (on) for (const d of activeModifierDefs()) { if (d.dmgMul) dmg *= d.dmgMul; if (d.prey) prey = d.prey; }
+  const permDmg = evBoon("temper", "dmgMul", 1), permCrit = evBoon("blackCat", "crit", 0); // 極の恵み (どの戦闘でも)
   for (const p of G.party) {
-    p._evDmg = on ? dmg * (rv.ruby && rv.ruby === p.uid ? 1.15 : 1) : 1;
+    p._evDmg = (on ? dmg * (rv.ruby && rv.ruby === p.uid ? 1.15 : 1) : 1) * permDmg;
     p._evPrey = on ? prey : null;
-    p._evCrit = on ? (rv.crit || 0) : 0;
+    p._evCrit = (on ? (rv.crit || 0) : 0) + permCrit;
     p._evEDef = on ? (rv.edef || null) : null;
     p._evSave = !!(on && rv.saves && rv.saves[p.uid]);
   }
@@ -4888,6 +4891,9 @@ function eventFacts() {
   const out = [];
   const ic = ICONS.event;
   const fe = (G.board && G.board.ev) || {};
+  const fl = (G.events && G.events.flags) || {};
+  const perm = Object.keys(EV_BOONS).filter((k) => fl[k] && (k !== "sewerMap" || battleLayer() === 2)).map((k) => EV_BOONS[k].text);
+  if (perm.length) out.push({ tone: "gold", icon: ic, title: "極の恵み (恒久)", accent: "#ffcf4a", lines: perm });
   for (const m of fe.mods || []) out.push({ tone: m.enemyMul ? "bad" : "gold", icon: ic, title: `出来事「${m.name}」`, accent: "#c08aff", lines: [m.desc] });
   if (fe.oath && !fe.oath.done) out.push({ tone: "gold", icon: ic, title: "誓いの最中", accent: "#c08aff", lines: [`この階の魔物をすべて討て (残り ${evCells((c) => c.type === "monster" && !c.cleared).length}体)`, "果たさずに降りると、次の階の敵が手強くなる。"] });
   if (fe.miner && !fe.minerDone) out.push({ tone: "gold", icon: ICONS.corpse, title: "坑夫の頼み", accent: "#c08aff", lines: [`この階の亡骸をすべて調べよ (残り ${evCells((c) => c.type === "corpse" && !c.cleared).length}体)`] });
@@ -5059,6 +5065,11 @@ const evApi = {
     SFX.trap(); buzz([0, 60, 40, 60]);
     showEvent({ sprite: ICONS[icon] || ICONS.trap, banner: "⚠ 危険 ⚠", title, lines, accent: "#d4504e", btnLabel: "応戦する", onClose: then });
   },
+  // 極の出来事: 授かった恵みを見せる (閉じるだけ。選択肢は無い)
+  gift(title, lines, icon, { banner, accent }, next) {
+    SFX.victory(); buzz([0, 40, 30, 60]);
+    showEvent({ sprite: icon, banner, title, lines, accent, sparkle: true, btnLabel: "閉じる", onClose: next });
+  },
   story(title, lines, next) {
     SFX.itemget();
     showEvent({ sprite: ICONS.event, banner: "✦ 見聞 ✦", title, lines, accent: "#c08aff", btnLabel: "閉じる", onClose: next });
@@ -5084,6 +5095,18 @@ const evApi = {
   },
   // ---- 隊 ----
   aliveList: () => evAlive(),
+  deadList: () => G.party.filter((p) => !p.alive),
+  // 倒れた者を起こす (full = HP・MP全快 / それ以外は HP1)
+  revive(m, full) {
+    if (!m || m.alive) return;
+    m.alive = true; m._dead = false; m.ailment = null; m.reviveAt = null; m.diedFloor = null;
+    m.hp = full ? m.maxhp : 1;
+    if (full) m.mp = m.maxmp;
+    log(`${m.name}が蘇った (HP ${m.hp})`, "heal");
+    flashPartyCards([m], "heal"); renderParty();
+  },
+  innCost: () => innCost(),
+  repairCost: (m) => Math.max(1, repairCostOf(m)),
   randomAlive: () => { const a = evAlive(); return a.length ? a[rand(a.length)] : null; },
   best(stat) { let b = null; for (const p of evAlive()) if (!b || (p[stat] || 0) > (b[stat] || 0)) b = p; return b; },
   check(stat, who = null) {
@@ -5159,30 +5182,6 @@ const evApi = {
   },
   price: (id) => (ITEMS[id] && ITEMS[id].price) || 20,
   soulDrop: (mode, line, next) => acquireSoul(evSoulClass(mode), line, next),
-  itemName: (it) => itemName(it),
-  equippedForgeable() {
-    const out = [], seen = new Set();
-    for (const m of evAlive()) for (const k of Object.keys(m.equip || {})) {
-      const it = m.equip[k];
-      if (!it || seen.has(it) || it.forge || it.unidentified) continue;
-      if (!["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"].some((s) => (it[s] || 0) > 0)) continue;
-      seen.add(it); out.push({ m, it });
-    }
-    return out.sort((a, b) => (b.it.lv || 0) - (a.it.lv || 0));
-  },
-  forge(m, it) { it.forge = 1; applyForge(it); recalcDoll(m); renderParty(); },
-  breakItem(m, it) {
-    for (const k of Object.keys(m.equip || {})) if (m.equip[k] === it) m.equip[k] = null;
-    const i = m.items.indexOf(it); if (i >= 0) m.items.splice(i, 1);
-    recalcDoll(m); renderParty();
-  },
-  identifyAll() {
-    let n = 0;
-    for (const m of [...G.party, ...(G.reserve || [])]) {
-      for (const it of [...(m.items || []), ...Object.values(m.equip || {})]) if (it && it.unidentified && !it.lr) { revealIdentity(it); n++; }
-    }
-    return n;
-  },
   // ---- 盤面 ----
   countCells: (fn) => evCells(fn).length,
   revealStairs() { evRevealStairs(); renderBoard(); },
@@ -11674,6 +11673,13 @@ function loadGame() {
   if (!G.irene.seen || typeof G.irene.seen !== "object") G.irene.seen = {};
   if (!G.events || typeof G.events !== "object") G.events = {}; // 迷宮のイベント (後付け)
   for (const k of ["seen", "picks", "once", "flags", "fresh"]) if (!G.events[k] || typeof G.events[k] !== "object") G.events[k] = {};
+  { // 極の出来事は「選択肢なし・恒久の恵み・セーブで一度きり」に改めた。旧仕様で出会った者にも同じ恵みを授ける
+    const o = G.events.once, fl = G.events.flags;
+    if (Object.keys(o).some((k) => k.startsWith("c30:"))) { o.c30 = true; fl.will = true; }
+    if (o.l1_10) fl.blackCat = true;
+    if (o.l2_10) fl.sewerMap = true;
+    if (o.l3_10) fl.temper = true;
+  }
   // 旧ステータス体系のセーブを六大ステ (ATK/VIT/AGI/INT/PIE/LUK) へ移行
   // (battle の敵の mon はこの後 MONSTERS の生定義に差し替えられるため触れても無害)
   migrateLegacyStats(snap);
