@@ -11,7 +11,7 @@ import { el, button, row, sheet, toast, confirm, statDelta, bar, svgIcon, celebr
 import { countUp } from "./motion.js";
 import { showSkillPopup, SPELL_KIND_LABEL } from "./itemview.js";
 import {
-  SOUL_CLASSES, jobSprite, jobBust, soulByUid, soulRankOf, soulLevelCapOf, nextRankThreshold, jobRankName, soulSeriesName,
+  SOUL_CLASSES, jobSprite, jobBust, soulByUid, soulRankOf, soulLevelCapOf, emberCostOf, nextRankThreshold, jobRankName, soulSeriesName,
   soulLearnedSkills, soulLearnedPassives, passiveName, passiveDesc, ORDER_PERK, PASSIVES, orderPassiveMap, orderPerkLv,
   jobSkillTable, recalcDoll, subPicks, subPickCap, toggleSubPick, subPickIndex,
 } from "../souls.js";
@@ -270,8 +270,9 @@ function mainCard(d, pe, town) {
     foot.appendChild(r);
   }
   if (town && ((G.embers || 0) > 0 || pe.level >= cap)) {
+    const need = emberCostOf(pe.clsKey);
     const em = button({ label: `残火 ${G.embers || 0}`, sub: `上限 +1${pe.capBonus ? `（済 +${pe.capBonus}）` : ""}`, kind: "secondary", size: "sm",
-      cost: { kind: "ember", n: 1 }, disabled: (G.embers || 0) < 1, onTap: () => confirmRaiseCap(pe) });
+      cost: { kind: "ember", n: need }, disabled: (G.embers || 0) < need, onTap: () => confirmRaiseCap(pe) });
     em.classList.add("sp-ember-b");
     foot.appendChild(em);
   }
@@ -284,14 +285,15 @@ function mainCard(d, pe, town) {
 function confirmRaiseCap(pe) {
   const G = G_();
   const have = G.embers || 0;
+  const need = emberCostOf(pe.clsKey);
   if (!game.raiseSoulCap) return;
-  if (have < 1) { game.raiseSoulCap(pe.uid); return; }
+  if (have < need) { game.raiseSoulCap(pe.uid); return; }
   const cap = soulLevelCapOf(pe);
   sfx("select");
   confirm({
     banner: "魂の残火", danger: false,
-    title: `残火を1つ捧げ、${soulSeriesName(pe.clsKey)}の魂のLv上限を上げますか？`,
-    lines: [`Lv上限 ${cap} → ${cap + 1}`, `残火 ${have} → ${have - 1}`, "捧げた残火は戻らない。"],
+    title: `残火を${need}つ捧げ、${soulSeriesName(pe.clsKey)}の魂のLv上限を上げますか？`,
+    lines: [`Lv上限 ${cap} → ${cap + 1}`, `残火 ${have} → ${have - need}`, "要る残火は職業のレア度で変わる (コモン1・レア2・エピック3・レジェンド5)。", "捧げた残火は戻らない。"],
     okLabel: "捧げる",
   }).then((y) => { if (y) game.raiseSoulCap(pe.uid); });
 }

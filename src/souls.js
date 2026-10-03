@@ -1017,6 +1017,12 @@ export function soulLevelCap(clsKey, count) {
   const per = LEVELCAP_PER_SOUL[rarity] || 1;
   return base + per * Math.max(0, (count || 0) - 1);
 }
+// 魂の残火: Lv上限を1上げるのに要る残火の数 (職業のレア度ごと)
+export const EMBER_PER_CAP = { common: 1, rare: 2, epic: 3, legend: 5 };
+export function emberCostOf(clsKey) {
+  const cls = SOUL_CLASSES[clsKey];
+  return EMBER_PER_CAP[cls ? cls.rarity : "common"] || 1;
+}
 // 魂インスタンスの実効レベル上限: ランク上限 + 魂の残火で得た上乗せ (capBonus)
 export function soulLevelCapOf(s) {
   if (!s) return SOUL_RANKS[1].cap;

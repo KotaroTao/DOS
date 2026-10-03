@@ -19,7 +19,7 @@ import {
 } from "./abyss.js";
 import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, soulIcon,
-  recalcDoll, soulLevelCap, soulLevelCapOf, setSharedSouls, MAX_SUBS, subPicks,
+  recalcDoll, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, MAX_SUBS, subPicks,
   soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills,
   ORDER_PERK, orderPassiveMap,
   PASSIVES,
@@ -8713,18 +8713,20 @@ function levelExpFromTotal(total, cap) {
 // 費用・上限は ops.trainTimes と同じ。結果はトースト1つ + その場の演出 (src/ui/soulpanel.js)
 function trainSoul(uid) { return uiSoulPanel.train(uid, 1); }
 
-// 魂の残火でメイン魂のLv上限を1上げる (上限は capBonus に蓄積される)
+// 魂の残火でメイン魂のLv上限を1上げる (上限は capBonus に蓄積される)。
+// 要る残火は職業のレア度ごと (emberCostOf: コモン1・レア2・エピック3・レジェンド5)
 function raiseSoulCap(uid) {
   const e = soulByUid(uid);
   if (!e) return;
-  if ((G.embers || 0) < 1) { log("魂の残火が足りない。", "sys"); SFX.ng(); showToast("魂の残火が足りない", { tone: "bad" }); return; }
-  G.embers -= 1;
+  const need = emberCostOf(e.clsKey);
+  if ((G.embers || 0) < need) { log(`魂の残火が足りない。(${need}つ要る)`, "sys"); SFX.ng(); showToast(`魂の残火が足りない（${need}つ要る）`, { tone: "bad" }); return; }
+  G.embers -= need;
   e.capBonus = (e.capBonus || 0) + 1;
   recalcAllDolls();
   updateTopbar();
   const cap = soulLevelCapOf(e);
   SFX.levelup(); buzz([0, 30, 50, 30]);
-  log(`魂の残火を捧げ、${soulSeriesName(e.clsKey)}の魂のLv上限が ${cap} になった。`, "win");
+  log(`魂の残火を${need}つ捧げ、${soulSeriesName(e.clsKey)}の魂のLv上限が ${cap} になった。`, "win");
   showToast(`🔥 ${soulSeriesName(e.clsKey)}の魂 ― Lv上限 ${cap}（残火 ${G.embers}）`, { tone: "gold" });
   autosave(true);
   renderTown();
