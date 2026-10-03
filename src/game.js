@@ -1068,13 +1068,12 @@ function enemyScale() {
   return (cfg.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
 }
 
-// ミミックの強さ参照: 現在地より ahead 先のダンジョン (末尾でクランプ) の rank と
-// enemyScale を借りる。これで「D2 のミミックは D3 相当」になる。
-// 階層補正・特別階補正は現在地のものを掛ける。
-function mimicRef(ahead) {
-  const ref = DUNGEONS[Math.min(DUNGEONS.length - 1, G.dungeonIdx + ahead)];
-  const scale = (ref.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
-  return { rank: ref.rank || 1, scale };
+// ミミックの強さの基準: この階に出る雑魚の最上位ランクと、雑魚と同じ強さ補正。
+// (ランクの上乗せ — 通常 +1 / マスター +2 — は combat.js の spawnMimic が行う)
+function mimicRef() {
+  const cfg = activeCfg();
+  const ranks = sfMonsterPool().map((k) => (MONSTERS[k] && MONSTERS[k].rank) || 0);
+  return { rank: Math.max(1, cfg.rank || 1, ...ranks), scale: enemyScale() };
 }
 
 // この迷宮に出る強敵のid。作り込み済みの層は層ごとの強敵 (LAYER_ELITES) を階ごとに順に出す。
@@ -1172,7 +1171,7 @@ function updateTopbar() {
 }
 
 function newFloor() {
-  // 奈落: 強敵・ミミック参照 (eliteKey/mimicRef は G.dungeonIdx を見る) を素体迷宮に同期
+  // 奈落: 強敵参照 (eliteKey は G.dungeonIdx を見る) を素体迷宮に同期
   if (abyssActive()) G.dungeonIdx = abyssBaseN(G.abyss.depth) - 1;
   // ダンジョンが自前で持つ出現プール (pool=浅階 / deepPool=深階) を使う
   const cfg = activeCfg();
@@ -5686,10 +5685,10 @@ function rollChest(cell, allowDanger, done, opener, cRankIn, lvBonus, noGold = f
     const legendary = !!(cell && cell.lootBonus);
     // ミミック率: 一律3% (特別階「ミミックの巣」/異変「ミミックの行進」では高い方を採用)
     if (!legendary && Math.random() < Math.max(sfNum("mimicRate", 0.03), mutNum("mimicRate", 0))) {
-      // ミミック出現時、10%でマスターミミック。強さは先のダンジョンを参照
-      //  (通常=1つ先 / マスター=2つ先)。固有ドロップは無く、上質な宝箱を残す。
+      // ミミック出現時、10%でマスターミミック。強さはこの階の敵が基準
+      //  (通常=+1ランク / マスター=+2ランク)。固有ドロップは無く、上質な宝箱を残す。
       const master = Math.random() < 0.10;
-      const ref = mimicRef(master ? 2 : 1);
+      const ref = mimicRef();
       SFX.trap(); buzz([0, 60, 40, 60]);
       log(master ? "宝箱はマスターミミックだった！" : "宝箱はミミックだった！", "dmg");
       sink.interrupt();
