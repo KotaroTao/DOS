@@ -36,7 +36,7 @@ import { showTitle } from "./title.js";
 import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityUp, lrIntervalH, lrLayerFactor, LR_HAZARD_K, LR_PITY_K } from "./rarity.js";
 // ---- UI 基盤 (Phase 0)。新しい UI モジュールは game.js を import せず、ctx.js の UI/game/ops を通す ----
 import { UI, ops, bindGame, registerUI } from "./ui/ctx.js";
-import { el, btn, button as kitButton, longPress as attachLongPress, uiBlocked, sheet, toast as kitToast, confirm as kitConfirm, plainText, shake as kitShake } from "./ui/kit.js";
+import { el, btn, button as kitButton, longPress as attachLongPress, uiBlocked, sheetDepth, sheet, toast as kitToast, confirm as kitConfirm, plainText, shake as kitShake } from "./ui/kit.js";
 import { nav } from "./ui/nav.js";
 import * as townshell from "./ui/townshell.js";
 import { showSkillPopup,
@@ -1149,7 +1149,9 @@ function ensureTopbarHud() {
     b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h10.5a3 3 0 0 1 3 3v12H8a3 3 0 0 1-3-3Z"/><path d="M5 16.5a3 3 0 0 1 3-3h10.5"/><path d="M9 8h6M9 10.6h4"/></svg>';
     b.appendChild(el("span", "dg-book-l", "手帳"));
     b.addEventListener("click", () => {
-      if (!inDungeon() || G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
+      // 戦闘中も開ける (閉じるまで戦闘は止まる。帰還・隊の編成はできない)
+      if (!inDungeon() || uiBlocked()) return;
+      if (G.state === "board" ? (G.anim || G.walking) : (G.state !== "combat" || !G.battle)) return;
       SFX.select();
       UI.openDungeonMenu();
     });
@@ -6919,6 +6921,8 @@ function combatAnimLoop(ts) {
   requestAnimationFrame(combatAnimLoop);
   if (G.state !== "combat" || !G.battle || G.animating || G.fx) return;
   if (uiBlocked()) return;
+  // 戦闘中に手帳・設定を開いていたら、閉じた時に命令板を描き直す (倍速などの表示を合わせる)
+  if (G._cmdStale) { G._cmdStale = false; renderCombatMenu(); }
   if (ts - _combatAnimLast < 50) return;
   _combatAnimLast = ts;
   renderCombatCanvas();
@@ -7298,7 +7302,8 @@ function renderCombatMenu() {
     if (G.autoCombat) {
       renderAutoBanner(actor);
       if (!G._autoTimer) {
-        G._autoTimer = setTimeout(() => {
+        G._autoTimer = setTimeout(function autoTick() {
+          if (combatHeld()) { G._autoTimer = setTimeout(autoTick, 150); return; } // 手帳などを開いている間は待つ
           G._autoTimer = null;
           const b2 = G.battle;
           if (!b2 || b2.phase !== "input" || !G.autoCombat || G.animating) return;
@@ -7414,9 +7419,18 @@ function showSpells(actor) {
 // ---- 戦闘ループ駆動 (1手ずつ・演出付き) ----
 // 戦闘テンポ: 倍速設定 (fastAnim) かオート中は演出時間を短縮する
 function spdMul() { return (G.fastAnim || G.autoCombat) ? 0.45 : 1; }
+// 戦闘の一時停止: 戦闘中にシート (手帳・設定・覗き見など) が開いている間は次の一手へ進まない。
+// いま演じている一手は最後まで見せ、その次の手番で閉じるのを待つ
+function combatHeld() { return G.state === "combat" && (sheetDepth() > 0 || !!G.settingsOpen || !!G.statusOpen); }
+function whenCombatFree(fn) {
+  if (combatHeld()) { setTimeout(() => whenCombatFree(fn), 150); return; }
+  fn();
+}
 
 function combatStep() {
   const b = G.battle;
+  if (!b) return;
+  if (combatHeld()) { setTimeout(combatStep, 150); return; }
   if (b.result) { endBattle(); return; }
   if (b.phase === "input") { G.animating = false; renderCombat(); return; }
   if (b.phase === "stunned") {
@@ -7484,7 +7498,7 @@ function postResolve() {
     shakeScreen(true); buzz([0, 60, 50, 60]);
     showToast("⚠ 敵が怒り狂っている！");
   }
-  if (b.result) { G.animating = false; setTimeout(endBattle, 300); return; }
+  if (b.result) { G.animating = false; setTimeout(() => whenCombatFree(endBattle), 300); return; }
   b.advance();
   autosave(true);
   setTimeout(combatStep, 150 * spdMul());
