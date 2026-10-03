@@ -737,7 +737,14 @@ export class Battle {
       const fleetSelf = this.party.some((p) => p.alive && pv(p, "fleetFoot")) ? 0.30 : 0;
       const fleetOrder = this.orderFleet >= 3 ? 0.60 : this.orderFleet >= 2 ? 0.45 : this.orderFleet >= 1 ? 0.30 : 0;
       const fleetBonus = Math.max(fleetSelf, fleetOrder);
-      if (Math.random() < Math.min(0.95, 0.55 + fleetBonus)) { this.result = "flee"; T.fo++; this.log("うまく逃げ出した！", "sys"); res.fled = true; }
+      // 基礎の成功率: 逃走を選んだ本人の AGI と、生きている敵の AGI 平均の比で決まる (強化/弱体込み)。
+      // 互角で55%、比1につき±40% (15%〜85%)。主 (ボス) が残っていれば半減
+      const eagi = (a) => Math.max(1, (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1));
+      const foes = this.livingEnemies();
+      const foeAgi = foes.length ? foes.reduce((s, e) => s + eagi(e), 0) / foes.length : 1;
+      const base = Math.max(0.15, Math.min(0.85, 0.55 + 0.40 * (eagi(actor) / foeAgi - 1)));
+      const bossMul = foes.some((e) => e.boss) ? 0.5 : 1;
+      if (Math.random() < Math.min(0.95, (base + fleetBonus) * bossMul)) { this.result = "flee"; T.fo++; this.log("うまく逃げ出した！", "sys"); res.fled = true; }
       else { this.log(`${actor.name}は逃げられなかった！`, "dmg"); res.fledFail = true; }
       return res;
     }
