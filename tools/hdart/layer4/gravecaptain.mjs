@@ -2,7 +2,7 @@ import { sphere, ellipsoid, cone, slab, cyl, box, torus, tube, U, Sub, Disp, Pai
 import { FLAG, STONE, WOOD, RIM, flagstones, arrowShafts, ash, grit } from "../fort.mjs";
 import { fingers } from "../human.mjs";
 export const meta = { id: "bs_gravecaptain", key: "hd_gravecaptain", w: 96, h: 96,
-  note: "亡き守備隊長: 落城の日に斃れた守備隊長の骸。舟形の鍔が反り返るモリオン兜に色褪せた赤い羽根飾り、へこんだ錆の胸甲、ぼろぼろの肩帯と外套。錆びた指揮刀を前へ突きつけて号令し、髑髏の眼窩には激昂の熾火が燃える" };
+  note: "亡き守備隊長: 落城の日に斃れた守備隊長の骸。前後の先が尖って反り上がる舟形の鍔と櫛形の鶏冠を持つ鉄のモリオン兜、鶏冠の付け根に色褪せた赤い羽根飾り、へこんだ錆の胸甲、ぼろぼろの肩帯と外套。錆びた指揮刀を前へ突きつけて号令し、髑髏の眼窩には激昂の熾火が燃える" };
 export function build() {
   const mats = {
     iron: { ramp: ramp(["#030202", "#0a0807", "#14100c", "#1f1912", "#2c2419", "#3a3022", "#4c3e2c", "#62523a"], 6), spec: 1.2, pow: 30, specCol: "#a89070", dither: 0.5,
