@@ -4,7 +4,7 @@
 // キャッシュから返す。これにより「新しい game.js + 古い souls.js」のような
 // モジュール混在 (export 不一致で白画面) が構造的に起きない。
 // 新デプロイは CACHE 名の変更で検出され、ページ側が自動リロードする。
-const CACHE = "dos-v406";
+const CACHE = "dos-v408";
 const ASSETS = [
   "./",
   "./index.html",
@@ -75,6 +75,16 @@ const ASSETS = [
   "./art/jobs/warden_3.webp",
   "./art/jobs/warden_4.webp",
   "./art/jobs/warden_5.webp",
+  "./art/jobs/arcanist_1.webp",
+  "./art/jobs/arcanist_2.webp",
+  "./art/jobs/arcanist_3.webp",
+  "./art/jobs/arcanist_4.webp",
+  "./art/jobs/arcanist_5.webp",
+  "./art/jobs/inquisitor_1.webp",
+  "./art/jobs/inquisitor_2.webp",
+  "./art/jobs/inquisitor_3.webp",
+  "./art/jobs/inquisitor_4.webp",
+  "./art/jobs/inquisitor_5.webp",
   "./src/townart.js",
   "./src/walkerart.js",
   "./src/jobart.js",
