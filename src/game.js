@@ -7747,6 +7747,7 @@ function combatStep() {
     autosave(true);
     setTimeout(() => {
       const res = b.stunnedAct();
+      b._acted = true; // 実行済み (演出中に閉じられても、再開時にやり直さず次の手番へ)
       animateResult(res, postResolve);
     }, 200 * spdMul());
     return;
@@ -7759,6 +7760,7 @@ function combatStep() {
     // 一瞬の間を置いてから敵が動く (ドラクエ風)
     setTimeout(() => {
       const res = b.enemyAct();
+      b._acted = true;
       animateResult(res, postResolve);
     }, 260 * spdMul());
   }
@@ -7792,6 +7794,7 @@ function runCommitted() {
   G.animating = true;
   if (G.autoCombat) renderAutoBanner(); else renderActingPlate((G.battle.pending && G.battle.pending.actor) || G.battle.current);
   const res = G.battle.commit();
+  G.battle._acted = true;
   animateResult(res, postResolve);
 }
 
@@ -7805,6 +7808,7 @@ function postResolve() {
     showToast("⚠ 敵が怒り狂っている！");
   }
   if (b.result) { G.animating = false; setTimeout(() => whenCombatFree(endBattle), 300); return; }
+  b._acted = false;
   b.advance();
   autosave(true);
   setTimeout(combatStep, 150 * spdMul());
@@ -12138,6 +12142,15 @@ function resumeCombat() {
   fitView();
   renderCombat();
   if (b.result) { setTimeout(endBattle, 200); return; }
+  // 行動を実行し終え、その演出の途中で閉じられた (次の手番へ進む前に保存された) →
+  // 同じ行動をやり直さず、次の手番へ進める。旧セーブでは「resolve なのに予約が空」がその印
+  if (b._acted || (b.phase === "resolve" && !b.pending)) {
+    b._acted = false;
+    b.advance();
+    autosave(true);
+    combatStep();
+    return;
+  }
   // resolve フェーズ = 行動が確定済み → そのまま実行 (取り消せない)
   if (b.phase === "resolve" && b.pending) { runCommitted(); return; }
   if (b.phase === "enemy" || b.phase === "stunned") { combatStep(); return; }
