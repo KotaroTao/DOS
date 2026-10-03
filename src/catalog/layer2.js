@@ -28,7 +28,7 @@ export const LAYER2_ITEMS = [
     desc: "井戸の水を浄める儀式で鳴らされた聖鈴を頭に据えた戦鎚。打つたびに澄んだ音が響き、よどみに巣食う穢れを内側から砕く。" })),
   sr(W("w_sr2_eeltrident", "ウナギ突きの三叉", "sp", 31, { pow: 1.35, eAtk: ["earth", 1], agi: 2, tint: "#7a7a68",
     desc: "下水路の大ウナギを仕留めるために鍛えられた三叉のもり。返しのついた穂先は一度刺されば抜けず、ぬめる獲物を水の外へ引きずり出す。" })),
-  sr(W("w_sr2_culvertbow", "下水灯の弓", "bw", 35, { scale: { agi: 0.4 }, pow: 1.35, agi: 5, luk: 3, tint: "#c0a060",
+  sr(W("w_sr2_culvertbow", "下水灯の弓", "bw", 35, { scale: { agi: 0.4 }, magic: true, pow: 1.35, agi: 5, luk: 3, tint: "#c0a060",
     desc: "弓の両端に小さな灯を吊るした夜警の弓。下水路の闇でも狙いがぶれず、灯の揺らぎが消える前に矢は獲物の眉間に届いている。" })),
   // 当てるだけで状態異常を与える武器 (onHit)
   sr(W("w_sr2_eelstinger", "雷ウナギの刺剣", "dg", 20, { pow: 1.3, onHit: ["paralyze", 0.2], tint: "#c0d860",
