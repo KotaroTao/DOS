@@ -127,7 +127,7 @@ export function toastNewSkills(d, keys) {
   const open = () => {
     if (ks.length === 1) { showSkillPopup(ks[0]); return; }
     sheet.open({
-      kind: "info", banner: "新たな技", title: d ? `${d.name} が目覚めた技` : "目覚めた技", className: "sp-pick-sheet",
+      kind: "info", banner: "新たな技", paged: false, title: d ? `${d.name} が目覚めた技` : "目覚めた技", className: "sp-pick-sheet",
       body: (scroll) => {
         const list = el("div", "pt-list");
         for (const k of ks) {
@@ -402,7 +402,7 @@ function orderTile(town) {
 export function openOrderSheet(town = true) {
   let h = null;
   h = sheet.open({
-    kind: "info", banner: "控えの結社", className: "sp-pick-sheet",
+    kind: "info", banner: "控えの結社", className: "sp-pick-sheet", paged: false,
     body: (scroll) => orderBody(scroll, town, () => h && h.update({})),
   });
   return h;
@@ -469,7 +469,7 @@ export function openSoulPicker(d, slotId = "primary") {
   const si = isSub ? +slotId.slice(3) : -1;
   sfx("select");
   return sheet.open({
-    kind: "info", className: "sp-pick-sheet",
+    kind: "info", className: "sp-pick-sheet", paged: false, // 魂の選択は縦スクロールで1ページに
     banner: isSub ? `サブ魂${si + 1} ― ${d.name}` : `メイン魂 ― ${d.name}`,
     lines: [isSub ? "サブ魂は、覚えた技かパッシブを貸し、能力の30%を足す。貸す数は魂のランクで増える (R1-2:1 / R3-4:2 / R5:3)。" : "メイン魂が、職業・能力・技を決める。"],
     body: (scroll, h) => pickerBody(scroll, d, slotId, h),
@@ -611,7 +611,7 @@ export function openSkillStep(d, subRef) {
     refreshSheet(h);
   };
   return sheet.open({
-    kind: "info", className: "sp-pick-sheet", banner: "宿し技をえらぶ",
+    kind: "info", className: "sp-pick-sheet", paged: false, banner: "宿し技をえらぶ",
     title: `${soulSeriesName(s.clsKey)}の魂 ― ${cap}つまで借りられる`,
     onClose: () => { if (game.renderTown) game.renderTown(); },
     body: (scroll, h) => {
@@ -641,8 +641,10 @@ export function openSkillStep(d, subRef) {
 function refreshSheet(h) {
   if (!h || h.closed || !h.update) return;
   const pg = h.page || 0;
+  const top = h.body ? h.body.scrollTop : 0; // 縦スクロールのシートは描き直しても位置を保つ
   h.update({});
   h.page = pg;
+  if (h.body) h.body.scrollTop = top;
 }
 
 // 強化済みの魂 = ✦で鍛えた・融合を重ねた・残火で上限を伸ばした魂
@@ -662,7 +664,7 @@ export function openFusePicker(targetUid, onDone) {
   const cl = SOUL_CLASSES[t.clsKey] || SOUL_CLASSES.fighter;
   sfx("select");
   return sheet.open({
-    kind: "info", className: "sp-pick-sheet", banner: "魂融合", accent: cl.glow,
+    kind: "info", className: "sp-pick-sheet", paged: false, banner: "魂融合", accent: cl.glow,
     title: `${soulSeriesName(t.clsKey)}の魂 Lv${t.level} に融合させる`,
     lines: ["素材にした魂は失われ、融合数に応じてLv上限、能力が上昇。一定数の魂を融合するとランクアップ。",
       ...(lockedN ? [`ロック中の魂 ${lockedN} 体は素材にできない。`] : [])],

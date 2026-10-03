@@ -240,7 +240,7 @@ export const sheet = {
     // pageEnd: ページに分かれたら最後のページを見せ続ける (記録など。手でページを送るまで、割り直しても最後へ寄せる)
     h.pageEnd = !!opts.pageEnd;
 
-    h.update = (o) => { h.opts = { ...h.opts, ...o }; h.page = 0; fill(h.opts); schedulePages(h); };
+    h.update = (o) => { h.opts = { ...h.opts, ...o }; h.page = 0; fill(h.opts); if (h.opts.paged !== false) schedulePages(h); };
     h.close = (reason = "close", { silent = false } = {}) => {
       if (h.closed) return;
       h.closed = true;
