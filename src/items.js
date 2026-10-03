@@ -482,7 +482,7 @@ export const ITEMS = {
   },
   ironHelm: {
     id: "ironHelm", name: "鉄兜", slot: "head", lv: 5, vit: 3, price: 150, classes: null, weight: "heavy",
-    desc: "面頬つきの鉄兜。覗き穴の奥は常に闇で、かぶった者の顔を誰にも思い出させない。頭部をしっかり守る。",
+    desc: "面当てつきの鉄兜。覗き穴の奥は常に闇で、かぶった者の顔を誰にも思い出させない。頭部をしっかり守る。",
     ...sprite([
       "..............qqq.......",
       "...........qqqRRrk......",

@@ -43,8 +43,8 @@ export const RANK3_ITEMS = [
   H("h_r3_greathelm", "騎士兜", 30, { shape: "helm", tint: "#e8eaf0", desc: "顔から後頭までを完全に包む騎士の大兜。視界は犠牲になるが、その守りは全身鎧と並ぶ要となる。" }),
 
   // ===== 足 feet (布2/軽2/重2) =====
-  F("f_r3_silkshoes", "絹裏の沓", 22, { weight: "cloth", tint: "#8a78c0", desc: "内張りに絹を用いた軽い沓。足運びが滑らかで疲れにくく、術者が長丁場を歩き通すのを助ける。" }),
-  F("f_r3_tabi", "軽沓の足袋", 27, { weight: "cloth", tint: "#7c8aa0", desc: "指の分かれた軽い足袋形の沓。床の感触を素直に伝え、忍び足と踏ん張りの双方に利く。" }),
+  F("f_r3_silkshoes", "絹裏の靴", 22, { weight: "cloth", tint: "#8a78c0", desc: "内張りに絹を用いた軽い靴。足運びが滑らかで疲れにくく、術者が長丁場を歩き通すのを助ける。" }),
+  F("f_r3_tabi", "軽やかな足袋", 27, { weight: "cloth", tint: "#7c8aa0", desc: "指の分かれた軽い足袋形の靴。床の感触を素直に伝え、忍び足と踏ん張りの双方に利く。" }),
   F("f_r3_doubleboots", "重ね革のブーツ", 23, { tint: "#a9781f", desc: "革を重ねて補強した丈夫なブーツ。甲も脛も厚く守られ、罠や瓦礫の道でも足を傷めにくい。" }),
   F("f_r3_scaleboots", "鱗のブーツ", 28, { tint: "#aeb4be", desc: "甲に鋼の鱗を綴じたブーツ。軽快さを保ちつつ、足先への斬りつけや踏み抜きを弾いてくれる。" }),
   F("f_r3_steelsabaton", "鋼の具足", 25, { shape: "greaves", tint: "#cfd2da", desc: "脛から爪先までを鋼で覆う具足。重いが、踏み込みの一歩に揺るぎない安定と堅い守りをもたらす。" }),
@@ -54,7 +54,7 @@ export const RANK3_ITEMS = [
   G("g_r3_silkgloves", "絹の手袋", 22, { magStat: "pie", weight: "cloth", tint: "#8a78c0", desc: "薄く滑らかな絹の手袋。指先の感覚を損なわず、印を結び杖を握る術者の繊細な所作を支える。" }),
   G("g_r3_sigilgloves", "印章の手袋", 27, { magStat: "int", weight: "cloth", tint: "#9b6bd0", desc: "掌に魔法の印章を縫い込んだ手袋。握った触媒へ力を導きやすく、呪文の発動を滑らかにする。" }),
   G("g_r3_doublegloves", "重ね革の手袋", 23, { role: "atk", tint: "#a9781f", desc: "革を重ねて甲を厚くした手袋。受けの一手で刃を弾き、握った得物を確と手の内に留める。" }),
-  G("g_r3_archergauntlet", "弓士の手套", 28, { role: "atk", tint: "#8a6438", desc: "引き手と押し手を別々に守る射手用の手套。連射の負担から指を守り、狙いの精度を保たせる。" }),
+  G("g_r3_archergauntlet", "弓士の手袋", 28, { role: "atk", tint: "#8a6438", desc: "引き手と押し手を別々に守る射手用の手袋。連射の負担から指を守り、狙いの精度を保たせる。" }),
   G("g_r3_steelgauntlet", "鋼の籠手", 25, { role: "atk", shape: "gauntlet", tint: "#cfd2da", desc: "鋼板を関節ごとに連ねた籠手。指の自由を残しつつ、拳ごと刃を受け止める堅さを備える。" }),
   G("g_r3_knightgauntlet", "騎士の籠手", 30, { role: "atk", shape: "gauntlet", tint: "#e8eaf0", desc: "指先まで精緻に鋼で覆った騎士の籠手。握力を損なわず、剣を握る手をいかなる打撃からも守り抜く。" }),
 

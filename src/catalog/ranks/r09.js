@@ -44,8 +44,8 @@ export const RANK9_ITEMS = [
   H("h_r9_dragongodhelm", "竜神の兜", 90, { shape: "helm", tint: "#3a90c0", desc: "竜神の証たる威容ある大兜。竜の角を象った前立てが神域の威を放ち、頭部を鉄壁の守りで包み込む。" }),
 
   // ===== 足 feet (布2/軽2/重2) =====
-  F("f_r9_relicshoes", "霊宝の沓", 83, { weight: "cloth", tint: "#d0b0f0", desc: "霊宝の刺繍を施した淡紫の軽い沓。足運びが滑らかになり、術者が陣形を保ったまま静かに動き続けられる。" }),
-  F("f_r9_godspeedshoes", "神速の沓", 88, { weight: "cloth", agi: 4, tint: "#7fd0c0", desc: "神の速さを宿すと伝わる魔法の沓。地を蹴れば体が瞬時に運ばれ、駆け出しの速さと回避の鋭さが飛躍的に増す。" }),
+  F("f_r9_relicshoes", "霊宝の靴", 83, { weight: "cloth", tint: "#d0b0f0", desc: "霊宝の刺繍を施した淡紫の軽い靴。足運びが滑らかになり、術者が陣形を保ったまま静かに動き続けられる。" }),
+  F("f_r9_godspeedshoes", "神速の靴", 88, { weight: "cloth", agi: 4, tint: "#7fd0c0", desc: "神の速さを宿すと伝わる魔法の靴。地を蹴れば体が瞬時に運ばれ、駆け出しの速さと回避の鋭さが飛躍的に増す。" }),
   F("f_r9_celestialboots", "天銀のブーツ", 84, { tint: "#eef2f8", desc: "天界銀で仕立てたブーツ。軽快なのに頑丈無比で、宿した霊力が衝撃を和らげ、罠の刃も瓦礫の縁も寄せつけない。" }),
   F("f_r9_waterdragonboots", "水竜革のブーツ", 88, { tint: "#bcd6e8", desc: "水竜の革で仕立てた長靴。しなやかで足になじみ、水の加護が足取りを軽くして悪路でも俊敏さを保たせる。" }),
   F("f_r9_godsteelsabaton", "神鋼の具足", 85, { shape: "greaves", tint: "#c8d0dc", desc: "神鋼で覆う具足。重装の堅い守りに神域の力の支えを兼ね、踏み込みの一歩に揺るぎない安定をもたらす。" }),
@@ -54,8 +54,8 @@ export const RANK9_ITEMS = [
   // ===== 小手 hands (布2/軽2/重2) =====
   G("g_r9_relicgloves", "霊宝の手袋", 83, { magStat: "int", weight: "cloth", tint: "#d0b0f0", desc: "霊宝の紋を縫い込んだ淡紫の薄手の手袋。指先の感覚を保ちつつ、握った触媒へ魔力を澄んだまま導いてくれる。" }),
   G("g_r9_sacredgloves", "大神官の宝手袋", 88, { magStat: "pie", weight: "cloth", tint: "#f0d8a0", desc: "祈りの所作を支える宝玉装飾の聖手袋。掌の聖印が祈祷に魔力を乗せやすくし、癒しの奇跡を確かに後押しする。" }),
-  G("g_r9_celestialgloves", "天銀の手套", 84, { role: "atk", tint: "#eef2f8", desc: "天界銀を編んだ手套。指の自由を残したまま拳を堅く守り、澄んだ金属が握った得物の一打に鋭い冴えを加える。" }),
-  G("g_r9_marksmanglove", "神域射手の手套", 88, { role: "atk", tint: "#8a6438", desc: "神域に至った射手のために誂えた手套。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を極限まで高める。" }),
+  G("g_r9_celestialgloves", "天銀の手袋", 84, { role: "atk", tint: "#eef2f8", desc: "天界銀を編んだ手袋。指の自由を残したまま拳を堅く守り、澄んだ金属が握った得物の一打に鋭い冴えを加える。" }),
+  G("g_r9_marksmanglove", "神域射手の手袋", 88, { role: "atk", tint: "#8a6438", desc: "神域に至った射手のために誂えた手袋。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を極限まで高める。" }),
   G("g_r9_godsteelgauntlet", "神鋼の籠手", 85, { role: "atk", shape: "gauntlet", tint: "#c8d0dc", desc: "神鋼を関節ごとに連ねた籠手。宿る神域の力を帯びた拳が、振るう得物の一撃に冴えと確かな重みを上乗せする。" }),
   G("g_r9_dragongodgauntlet", "竜神の籠手", 90, { role: "atk", shape: "gauntlet", tint: "#3a90c0", desc: "竜神の証たる精緻な籠手。神域の竜鱗を象った甲が指先まで包んで握力を損なわず、剣を振る手に絶大な信頼を置かせる。" }),
 

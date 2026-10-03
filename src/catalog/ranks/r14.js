@@ -44,8 +44,8 @@ export const RANK14_ITEMS = [
   H("h_r14_dragonkinghelm", "龍王の兜", 140, { shape: "helm", tint: "#d0a030", desc: "龍王の証たる黄金の大兜。龍の角を象った荘厳な前立てが王の威を放ち、頭部を鉄壁の守りで包み込む。" }),
 
   // ===== 足 feet (布2/軽2/重2) =====
-  F("f_r14_dragoneyeshoes", "竜眼の沓", 133, { weight: "cloth", tint: "#c0e0a0", desc: "古龍の眼を刺繍した翠色の軽い沓。足運びが滑らかになり、術者が陣形を保ったまま静かに動き続けられる。" }),
-  F("f_r14_dragonsoarshoes", "竜翔の沓", 138, { weight: "cloth", agi: 6, tint: "#7fd0c0", desc: "龍が天を翔けるがごとき速さを宿す沓。地を蹴れば体が瞬時に運ばれ、駆け出しの速さと回避の鋭さが究極に達する。" }),
+  F("f_r14_dragoneyeshoes", "竜眼の靴", 133, { weight: "cloth", tint: "#c0e0a0", desc: "古龍の眼を刺繍した翠色の軽い靴。足運びが滑らかになり、術者が陣形を保ったまま静かに動き続けられる。" }),
+  F("f_r14_dragonsoarshoes", "竜翔の靴", 138, { weight: "cloth", agi: 6, tint: "#7fd0c0", desc: "龍が天を翔けるがごとき速さを宿す靴。地を蹴れば体が瞬時に運ばれ、駆け出しの速さと回避の鋭さが究極に達する。" }),
   F("f_r14_dragonscaleboots", "竜鱗のブーツ", 134, { tint: "#5aa86a", desc: "古龍の鱗を綴じたブーツ。軽快なのに頑丈無比で、龍の力が衝撃を和らげ、罠の刃も瓦礫の縁も寄せつけない。" }),
   F("f_r14_greendragonboots", "翠竜革のブーツ", 138, { tint: "#a8d0a0", desc: "翠竜の革で仕立てた長靴。しなやかで足になじみ、風の加護が足取りを軽くして悪路でも俊敏さを保たせる。" }),
   F("f_r14_dragonscalesabaton", "竜鱗の具足", 135, { shape: "greaves", tint: "#5aa86a", desc: "竜鱗鋼で覆う具足。重装の堅い守りに龍の力の支えを兼ね、踏み込みの一歩に揺るぎない安定をもたらす。" }),
@@ -54,8 +54,8 @@ export const RANK14_ITEMS = [
   // ===== 小手 hands (布2/軽2/重2) =====
   G("g_r14_dragoneyegloves", "竜眼の手袋", 133, { magStat: "int", weight: "cloth", tint: "#c0e0a0", desc: "古龍の眼の紋を縫い込んだ翠色の薄手の手袋。指先の感覚を保ちつつ、握った触媒へ龍の魔力を澄んだまま導く。" }),
   G("g_r14_dragongodgloves", "龍神の宝手袋", 138, { magStat: "pie", weight: "cloth", tint: "#f0e0a0", desc: "祈りの所作を支える宝玉装飾の聖手袋。掌の聖印が祈祷に魔力を乗せやすくし、癒しの奇跡を大きく後押しする。" }),
-  G("g_r14_dragonscalegloves", "竜鱗の手套", 134, { role: "atk", tint: "#5aa86a", desc: "古龍の鱗を編んだ手套。指の自由を残したまま拳を堅く守り、龍の力が握った得物の一打に鋭い冴えを加える。" }),
-  G("g_r14_marksmanglove", "龍弓手の手套", 138, { role: "atk", tint: "#8a6438", desc: "龍を射る弓手のために誂えた手套。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を究極まで高める。" }),
+  G("g_r14_dragonscalegloves", "竜鱗の手袋", 134, { role: "atk", tint: "#5aa86a", desc: "古龍の鱗を編んだ手袋。指の自由を残したまま拳を堅く守り、龍の力が握った得物の一打に鋭い冴えを加える。" }),
+  G("g_r14_marksmanglove", "龍弓手の手袋", 138, { role: "atk", tint: "#8a6438", desc: "龍を射る弓手のために誂えた手袋。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を究極まで高める。" }),
   G("g_r14_dragonscalegauntlet", "竜鱗の籠手", 135, { role: "atk", shape: "gauntlet", tint: "#5aa86a", desc: "竜鱗鋼を関節ごとに連ねた籠手。宿る龍の力を帯びた拳が、振るう得物の一撃に冴えと究極の重みを上乗せする。" }),
   G("g_r14_dragonkinggauntlet", "龍王の籠手", 140, { role: "atk", shape: "gauntlet", tint: "#d0a030", desc: "龍王の証たる黄金の籠手。王たる龍鱗を象った甲が指先まで包んで握力を損なわず、剣を振る手に絶大な信頼を置かせる。" }),
 

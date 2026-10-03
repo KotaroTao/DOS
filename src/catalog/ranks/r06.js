@@ -44,8 +44,8 @@ export const RANK6_ITEMS = [
   H("h_r6_dragoonhelm", "竜将の兜", 60, { shape: "helm", tint: "#cfd8d0", desc: "竜将の証たる威容ある大兜。竜の角を象った前立てが威を放ち、頭部をまるごと鉄壁の守りで包み込む。" }),
 
   // ===== 足 feet (布2/軽2/重2) =====
-  F("f_r6_starshoes", "星霜の沓", 53, { weight: "cloth", tint: "#6a5ad0", desc: "星明かりを織り込んだ深紫の軽い沓。足運びが滑らかになり、術者が陣形を保ったまま静かに動き続けられる。" }),
-  F("f_r6_swiftshoes", "飛燕の沓", 58, { weight: "cloth", agi: 3, tint: "#7fd0c0", desc: "燕のように身を翻せると評判の魔法の沓。一歩ごとに体が前へ運ばれ、駆け出しの速さと回避の鋭さが格段に増す。" }),
+  F("f_r6_starshoes", "星霜の靴", 53, { weight: "cloth", tint: "#6a5ad0", desc: "星明かりを織り込んだ深紫の軽い靴。足運びが滑らかになり、術者が陣形を保ったまま静かに動き続けられる。" }),
+  F("f_r6_swiftshoes", "飛燕の靴", 58, { weight: "cloth", agi: 3, tint: "#7fd0c0", desc: "燕のように身を翻せると評判の魔法の靴。一歩ごとに体が前へ運ばれ、駆け出しの速さと回避の鋭さが格段に増す。" }),
   F("f_r6_orichalcumboots", "オリハルコンのブーツ", 54, { tint: "#9ad6c0", desc: "オリハルコンで仕立てたブーツ。軽快なのに頑丈無比で、罠の刃も瓦礫の縁も寄せつけず足元を確かに守る。" }),
   F("f_r6_holydragonboots", "聖竜革のブーツ", 58, { tint: "#cfe0d0", desc: "聖竜の革で仕立てた長靴。しなやかで足になじみ、悪路でも俊敏さを保ったまま脛をしっかり守ってくれる。" }),
   F("f_r6_silversabaton", "聖銀の具足", 55, { shape: "greaves", tint: "#e6e9f0", desc: "聖銀で覆う具足。重装の堅い守りに退魔の力を兼ね、踏み込みの一歩に揺るぎない安定をもたらす。" }),
@@ -54,8 +54,8 @@ export const RANK6_ITEMS = [
   // ===== 小手 hands (布2/軽2/重2) =====
   G("g_r6_starhandsgloves", "星霜の手袋", 53, { magStat: "int", weight: "cloth", tint: "#6a5ad0", desc: "星の紋を縫い込んだ深紫の薄手の手袋。指先の感覚を保ちつつ、握った触媒へ魔力を澄んだまま導いてくれる。" }),
   G("g_r6_archbishopgloves", "大司教の手袋", 58, { magStat: "pie", weight: "cloth", tint: "#f0d8a0", desc: "祈りの所作を支える金糸刺繍の手袋。掌の聖印が祈祷に魔力を乗せやすくし、癒しの奇跡を確かに後押しする。" }),
-  G("g_r6_orichalcumgloves", "オリハルコンの手套", 54, { role: "atk", tint: "#9ad6c0", desc: "オリハルコンを編んだ手套。指の自由を残したまま拳を堅く守り、握った得物に確かな一打の重みを加える。" }),
-  G("g_r6_marksmanglove", "妙手の射手套", 58, { role: "atk", tint: "#8a6438", desc: "名手のために誂えた射撃用の手套。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を極限まで高める。" }),
+  G("g_r6_orichalcumgloves", "オリハルコンの手袋", 54, { role: "atk", tint: "#9ad6c0", desc: "オリハルコンを編んだ手袋。指の自由を残したまま拳を堅く守り、握った得物に確かな一打の重みを加える。" }),
+  G("g_r6_marksmanglove", "名射手の手袋", 58, { role: "atk", tint: "#8a6438", desc: "名手のために誂えた射撃用の手袋。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を極限まで高める。" }),
   G("g_r6_silvergauntlet", "聖銀の籠手", 55, { role: "atk", shape: "gauntlet", tint: "#e6e9f0", desc: "聖銀を関節ごとに連ねた籠手。退魔の力を帯びた拳が、振るう得物の一撃に清めの冴えと重みを上乗せする。" }),
   G("g_r6_dragoongauntlet", "竜将の籠手", 60, { role: "atk", shape: "gauntlet", tint: "#cfd8d0", desc: "竜将の証たる精緻な籠手。竜鱗を象った甲が指先まで完璧に守り、剣を振る手に絶大な信頼を置かせる。" }),
 

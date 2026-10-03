@@ -44,8 +44,8 @@ export const RANK5_ITEMS = [
   H("h_r5_captainhelm", "騎士団長の兜", 50, { shape: "helm", tint: "#e8eaf0", desc: "団長の証たる威容ある大兜。視界をわずかに譲る代わりに、頭部をまるごと鉄壁の守りで包み込む。" }),
 
   // ===== 足 feet (布2/軽2/重2) =====
-  F("f_r5_starshoes", "星詠みの沓", 43, { weight: "cloth", tint: "#5a4ac0", desc: "星明かりを織り込んだ軽い沓。足運びが滑らかになり、術者が陣形を保ったまま静かに動き続けられる。" }),
-  F("f_r5_galeshoes", "疾風の沓", 48, { weight: "cloth", agi: 3, tint: "#7fd0c0", desc: "履けば風そのものになったように体が軽くなる魔法の沓。駆け出しの速さと回避の鋭さが格段に増す。" }),
+  F("f_r5_starshoes", "星詠みの靴", 43, { weight: "cloth", tint: "#5a4ac0", desc: "星明かりを織り込んだ軽い靴。足運びが滑らかになり、術者が陣形を保ったまま静かに動き続けられる。" }),
+  F("f_r5_galeshoes", "疾風の靴", 48, { weight: "cloth", agi: 3, tint: "#7fd0c0", desc: "履けば風そのものになったように体が軽くなる魔法の靴。駆け出しの速さと回避の鋭さが格段に増す。" }),
   F("f_r5_adamantboots", "アダマンのブーツ", 44, { tint: "#9aa6b4", desc: "アダマンで仕立てたブーツ。軽快なのに頑丈無比で、罠の刃も瓦礫の縁も寄せつけず足元を確かに守る。" }),
   F("f_r5_wyvernboots", "飛竜革のブーツ", 48, { tint: "#9a7a5a", desc: "飛竜の革で仕立てた長靴。しなやかで足になじみ、悪路でも俊敏さを保ったまま脛をしっかり守る。" }),
   F("f_r5_runesabaton", "ルーンの具足", 45, { shape: "greaves", tint: "#cfd2da", desc: "脛当てにルーンを刻んだ具足。刻印が重さの負担を和らげ、重装の堅い守りのまま踏み込みを支える。" }),
@@ -54,8 +54,8 @@ export const RANK5_ITEMS = [
   // ===== 小手 hands (布2/軽2/重2) =====
   G("g_r5_starhandsgloves", "星詠みの手袋", 43, { magStat: "int", weight: "cloth", tint: "#5a4ac0", desc: "星の紋を縫い込んだ薄手の手袋。指先の感覚を保ちつつ、握った触媒へ魔力を澄んだまま導いてくれる。" }),
   G("g_r5_priestgloves", "司祭の手袋", 48, { magStat: "pie", weight: "cloth", tint: "#e0d0a0", desc: "祈りの所作を支える清らかな手袋。掌の聖印が祈祷に魔力を乗せやすくし、癒しの奇跡を後押しする。" }),
-  G("g_r5_adamantgloves", "アダマンの手套", 44, { role: "atk", tint: "#9aa6b4", desc: "アダマンを編んだ手套。指の自由を残したまま拳を堅く守り、握った得物に確かな一打の重みを加える。" }),
-  G("g_r5_marksmanglove", "射手の妙手", 48, { role: "atk", tint: "#8a6438", desc: "名手のために誂えた射撃用の手套。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を極める。" }),
+  G("g_r5_adamantgloves", "アダマンの手袋", 44, { role: "atk", tint: "#9aa6b4", desc: "アダマンを編んだ手袋。指の自由を残したまま拳を堅く守り、握った得物に確かな一打の重みを加える。" }),
+  G("g_r5_marksmanglove", "射手の妙手", 48, { role: "atk", tint: "#8a6438", desc: "名手のために誂えた射撃用の手袋。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を極める。" }),
   G("g_r5_runegauntlet", "ルーンの籠手", 45, { role: "atk", shape: "gauntlet", tint: "#cfd2da", desc: "甲にルーンを刻んだ籠手。刻印が握る得物に魔力を通し、振るう一撃に冴えと重みを上乗せする。" }),
   G("g_r5_captaingauntlet", "騎士団長の籠手", 50, { role: "atk", shape: "gauntlet", tint: "#e8eaf0", desc: "団長の証たる精緻な籠手。指先まで完璧に守りながら握力を損なわず、剣を振る手に絶大な信頼を置ける。" }),
 

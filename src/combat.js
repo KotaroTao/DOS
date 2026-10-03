@@ -124,7 +124,7 @@ export const SPELLS = {
   ENGETSUJIN: { name: "円月刃", mp: 14, kind: "phys", power: 1.4, critBonus: 0.15, target: "all-enemy", desc: "円を描く刃が敵全体を裂く" },
   MOUDOKUSASHI: { name: "猛毒刺し", mp: 14, kind: "phys", power: 2.6, debuff: { atk: 0.8, vit: 0.85 }, target: "enemy", desc: "猛毒を塗った刃で深く蝕む" },
   KAGEUCHI: { name: "影討ち", mp: 14, kind: "phys", power: 1.0, hits: 3, critBonus: 0.3, target: "enemy", desc: "影から繰り出す三連の刺突" },
-  KUBIHANE: { name: "首刎ね", mp: 18, kind: "phys", power: 5.0, critBonus: 0.4, target: "enemy", desc: "急所を狙う一撃必殺の刃" },
+  KUBIHANE: { name: "首はね", mp: 18, kind: "phys", power: 5.0, critBonus: 0.4, target: "enemy", desc: "急所を狙う一撃必殺の刃" },
   RANBUTSUKI: { name: "乱舞突き", mp: 18, kind: "phys", power: 0.9, hits: 4, target: "enemy", desc: "舞うように刻む四連刺し" },
   SHUNSATSU: { name: "瞬殺", mp: 22, kind: "phys", power: 6.0, critBonus: 0.5, target: "enemy", desc: "瞬きの間に急所を貫く" },
   TSUMUJIKAZE: { name: "旋風乱れ", mp: 22, kind: "phys", power: 1.8, critBonus: 0.2, target: "all-enemy", desc: "旋風となって全体を斬り乱す" },
@@ -141,7 +141,7 @@ export const SPELLS = {
   KOUSHUNOHOUJIN: { name: "攻守の法陣", mp: 14, kind: "buff", buff: { vit: 1.25 }, debuffAll: { atk: 0.85 }, target: "all-ally", desc: "味方を守り敵を縛る二重の法陣" },
   KINJUKAICHOU: { name: "禁呪開帳", mp: 12, kind: "atk", power: 38, element: "dark", critBonus: 0.25, target: "enemy", desc: "禁断の頁を開き闇の呪撃を放つ" },
   // --- 魔導士 高レベル帯 (Lv85-200) ---
-  RAITEI: { name: "雷霆", mp: 9, kind: "atk", power: 28, element: "wind", target: "enemy", desc: "天を裂く雷霆の一撃" },
+  RAITEI: { name: "落雷", mp: 9, kind: "atk", power: 28, element: "wind", target: "enemy", desc: "天を裂く落雷の一撃" },
   HYORETSU: { name: "氷烈", mp: 14, kind: "atk", power: 40, element: "water", target: "enemy", desc: "凍てつく氷烈の槍" },
   ENBU: { name: "炎舞", mp: 14, kind: "atk", power: 40, element: "fire", target: "all-enemy", desc: "渦巻く炎が敵全体を舞い焼く" },
   RAIJIN: { name: "雷神", mp: 16, kind: "atk", power: 46, element: "wind", target: "all-enemy", desc: "雷神の怒りが戦場を貫く" },
@@ -1135,7 +1135,7 @@ export class Battle {
     const aLv = (actor.elemAtk && actor.elemAtk.el === aE) ? Math.max(1, actor.elemAtk.lv) : 1;
     const em = elemDmgMult(aE, aLv, tgt.element || "none", edefOf(tgt));
     if (em !== 1) dmg = Math.round(dmg * em);
-    // 種族特効 (破邪) / 毒の獲物 (蠱毒)
+    // 種族特効 (破邪) / 毒の獲物 (毒責め)
     if (pv(actor, "smite") && HOLY_PREY.includes(enemyRace(tgt))) dmg = Math.round(dmg * 1.3);
     if (pv(actor, "gokudoku") && tgt.ailment === "poison") dmg = Math.round(dmg * 1.3);
     if (actor.side === "party") { const evm = evDealMul(actor, tgt); if (evm !== 1) dmg = Math.round(dmg * evm); }
@@ -1277,7 +1277,7 @@ export class Battle {
         // 魔法耐性: 攻撃呪文の被ダメを割合カット (「魔法がほとんど効かない」)
         let magResisted = false;
         if (t.magResist && t.magResist > 0) { dmg = Math.max(1, Math.round(dmg * (1 - t.magResist))); magResisted = true; }
-        if (pv(actor, "gokudoku") && t.ailment === "poison") dmg = Math.round(dmg * 1.3); // 蠱毒
+        if (pv(actor, "gokudoku") && t.ailment === "poison") dmg = Math.round(dmg * 1.3); // 毒責め
         { const evm = evDealMul(actor, t); if (evm !== 1) dmg = Math.max(1, Math.round(dmg * evm)); } // 迷宮のイベントの加護
         // 会心: 呪文会心パッシブ + 技固有の会心補正 (禁呪開帳など)
         const crit = Math.random() < (([0, 0.10, 0.18, 0.26][Math.min(scLv, 3)] || 0) + (sp.critBonus || 0));

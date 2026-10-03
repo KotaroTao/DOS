@@ -44,8 +44,8 @@ export const RANK10_ITEMS = [
   H("h_r10_dragonkinghelm", "竜王の兜", 100, { shape: "helm", tint: "#c0a040", desc: "竜王の証たる黄金の大兜。竜の角を象った荘厳な前立てが王の威を放ち、頭部を鉄壁の守りで包み込む。" }),
 
   // ===== 足 feet (布2/軽2/重2) =====
-  F("f_r10_treasureshoes", "秘宝の沓", 93, { weight: "cloth", tint: "#e0c0f0", desc: "秘宝の刺繍を施した淡紫の軽い沓。足運びが滑らかになり、術者が陣形を保ったまま静かに動き続けられる。" }),
-  F("f_r10_godsoarshoes", "神翔の沓", 98, { weight: "cloth", agi: 5, tint: "#7fd0c0", desc: "天を翔けるがごとき速さを宿す魔法の沓。地を蹴れば体が瞬時に運ばれ、駆け出しの速さと回避の鋭さが究極に達する。" }),
+  F("f_r10_treasureshoes", "秘宝の靴", 93, { weight: "cloth", tint: "#e0c0f0", desc: "秘宝の刺繍を施した淡紫の軽い靴。足運びが滑らかになり、術者が陣形を保ったまま静かに動き続けられる。" }),
+  F("f_r10_godsoarshoes", "神翔の靴", 98, { weight: "cloth", agi: 5, tint: "#7fd0c0", desc: "天を翔けるがごとき速さを宿す魔法の靴。地を蹴れば体が瞬時に運ばれ、駆け出しの速さと回避の鋭さが究極に達する。" }),
   F("f_r10_astraliteboots", "星霊銀のブーツ", 94, { tint: "#cfe4f0", desc: "星霊銀で仕立てたブーツ。軽快なのに頑丈無比で、宿した力が衝撃を和らげ、罠の刃も瓦礫の縁も寄せつけない。" }),
   F("f_r10_earthdragonboots", "地竜革のブーツ", 98, { tint: "#cabd9a", desc: "地竜の革で仕立てた長靴。しなやかで足になじみ、大地の加護が足取りを支えて悪路でも俊敏さを保たせる。" }),
   F("f_r10_divinesabaton", "神器鋼の具足", 95, { shape: "greaves", tint: "#dcdce8", desc: "神器鋼で覆う具足。重装の堅い守りに神域の力の支えを兼ね、踏み込みの一歩に揺るぎない安定をもたらす。" }),
@@ -54,8 +54,8 @@ export const RANK10_ITEMS = [
   // ===== 小手 hands (布2/軽2/重2) =====
   G("g_r10_treasuregloves", "秘宝の手袋", 93, { magStat: "int", weight: "cloth", tint: "#e0c0f0", desc: "秘宝の紋を縫い込んだ淡紫の薄手の手袋。指先の感覚を保ちつつ、握った触媒へ膨大な魔力を澄んだまま導く。" }),
   G("g_r10_holykinggloves", "聖王の宝手袋", 98, { magStat: "pie", weight: "cloth", tint: "#f0e0a0", desc: "祈りの所作を支える黄金刺繍の宝手袋。掌の聖印が祈祷に魔力を乗せやすくし、癒しの奇跡を大きく後押しする。" }),
-  G("g_r10_astralitegloves", "星霊銀の手套", 94, { role: "atk", tint: "#cfe4f0", desc: "星霊銀を編んだ手套。指の自由を残したまま拳を堅く守り、星の光を宿した金属が握った得物の一打に鋭い冴えを加える。" }),
-  G("g_r10_marksmanglove", "天弓神の手套", 98, { role: "atk", tint: "#8a6438", desc: "弓の神域に至った射手のために誂えた手套。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を究極まで高める。" }),
+  G("g_r10_astralitegloves", "星霊銀の手袋", 94, { role: "atk", tint: "#cfe4f0", desc: "星霊銀を編んだ手袋。指の自由を残したまま拳を堅く守り、星の光を宿した金属が握った得物の一打に鋭い冴えを加える。" }),
+  G("g_r10_marksmanglove", "天弓神の手袋", 98, { role: "atk", tint: "#8a6438", desc: "弓の神域に至った射手のために誂えた手袋。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を究極まで高める。" }),
   G("g_r10_divinegauntlet", "神器鋼の籠手", 95, { role: "atk", shape: "gauntlet", tint: "#dcdce8", desc: "神器鋼を関節ごとに連ねた籠手。宿る神域の力を帯びた拳が、振るう得物の一撃に冴えと究極の重みを上乗せする。" }),
   G("g_r10_dragonkinggauntlet", "竜王の籠手", 100, { role: "atk", shape: "gauntlet", tint: "#c0a040", desc: "竜王の証たる黄金の籠手。王たる竜鱗を象った甲が指先まで包んで握力を損なわず、剣を振る手に絶大な信頼を置かせる。" }),
 
