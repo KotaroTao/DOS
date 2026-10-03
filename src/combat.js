@@ -1092,7 +1092,9 @@ export class Battle {
       this.log(`${tgt.name}の報復！ ${actor.name}に ${cdmg} ダメージ`, "hit");
       this._die(actor);
     }
-    const eff = em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : barriered ? " 障壁!" : resisted ? " 物理耐性!" : "";
+    // 属性・障壁・物理耐性は重なっても全部見えるように併記する
+    const eff = [em > 1 ? "弱点!" : em < 1 ? "耐性…" : "", barriered ? "障壁!" : "", resisted ? "物理耐性!" : ""]
+      .filter(Boolean).map((t) => " " + t).join("");
     this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}${eff}`,
       actor.side === "party" ? "hit" : "dmg");
     if (tgt.asleep) tgt.asleep = false;
@@ -1196,7 +1198,8 @@ export class Battle {
         if (t.guard) dmg = Math.max(1, Math.ceil(dmg * (1 - t.guard))); // 金剛の護符: 呪文・ブレスの被ダメもカット
         t.hp -= dmg;
         dealt += dmg;
-        const eff = em > 1 || magWeak ? " 弱点!" : magResisted ? " 魔法耐性!" : em < 1 ? " 耐性…" : "";
+        const eff = [em > 1 || magWeak ? "弱点!" : em < 1 ? "耐性…" : "", magResisted ? "魔法耐性!" : ""]
+          .filter(Boolean).map((t) => " " + t).join("");
         this.log(`${t.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}${eff}`, "dmg");
         if (t.asleep) t.asleep = false;
         // 状態異常の付与 (毒霧): 命中した生存敵を蝕む

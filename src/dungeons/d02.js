@@ -4,11 +4,11 @@ import { defMonsters, tint, ARTS } from "./schema.js";
 export const monsters = defMonsters([
   { id: "d02_armkobold", name: "鎧コボルド", race: "humanoid", element: "none", artKey: "kobold", rank: 2,
     palette: tint(ARTS.kobold.palette, "#9aa3ab", 0.35),
-    ability: "goldSteal", physResist: 0.35, // 寄せ集めの甲冑で刃を受け、隙を見て遺品を漁る
+    ability: "goldSteal", physResist: 0.8, // 寄せ集めの甲冑で刃を受け、隙を見て遺品を漁る
     hp: 26, atk: 12, def: 6, spd: 6, soul: 18, gold: 14, soulClass: "fighter",
     desc: "落城の際に死んだ兵から鎧を剥ぎ取り、身に纏ったコボルド。寸法の合わぬ甲冑を引きずりながら隊列を組む姿は、滅びた守備隊の悪夢のような模倣だ。継ぎ接ぎの鉄板が刃をいなし、兜の中から、犬の唸りが響く。" },
   { id: "d02_soldier", name: "朽ちた兵士", race: "undead", element: "dark", artKey: "hd_soldier", rank: 2,
-    physResist: 0.4, // 錆びてなお具足が刃を弾く
+    physResist: 0.8, // 錆びてなお具足が刃を弾く
     hp: 30, atk: 13, def: 6, spd: 6, soul: 22, gold: 16, soulClass: "thief",
     desc: "城を守れずに散った衛兵の成れの果て。誰を守るのかも、誰と戦うのかも忘れ、ただ「持ち場を離れるな」という最後の号令だけが骨の髄に焼き付いている。錆びついた具足は刃をよく弾き、崩れた城壁の前で永遠に剣を構え続ける。" },
   { id: "d02_harpy", name: "城砦のハーピー", race: "avian", element: "wind", artKey: "harpy", rank: 2,
@@ -20,7 +20,7 @@ export const monsters = defMonsters([
     hp: 22, atk: 12, def: 4, spd: 11, soul: 19, gold: 13,
     desc: "城の崩落に引き寄せられ、地獄の裂け目から這い出た下級の悪魔。掌に灯した火種で書物やはりを焼き、人の絶望を肴にあざ笑う。ちょこまかと宙を飛び回って刃をかわし、署名を迫る口ぶりは巧みだが、応じた者の魂はその場であぶられる。" },
   { id: "d02_lizard", name: "城砦のトカゲ", race: "reptile", element: "earth", artKey: "lizard", rank: 3,
-    ability: null, physResist: 0.45, // 硬鱗が刃を弾く
+    ability: null, physResist: 0.8, // 硬鱗が刃を弾く
     hp: 34, atk: 14, def: 8, spd: 6, soul: 26, gold: 18,
     desc: "石壁の崩れ目に潜み、冷えた身を岩肌に同化させて獲物を待つ硬鱗の爬虫。微動だにせぬまま何刻も待ち伏せ、間合いに入った瞬間、鉄をも噛み砕く顎で足首を捉えて離さない。厚い鱗は並の刃をはじき返す。" },
   { id: "d02_lord", name: "城主の亡霊", race: "specter", element: "dark", artKey: "wraith", rank: 3, boss: true,
