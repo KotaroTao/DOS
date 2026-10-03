@@ -172,6 +172,34 @@ function tileStrip(list, { max = 24 } = {}) {
   return w;
 }
 
+// 売る品の一覧 (まとめて売るの確認): 1行に 品の絵・名・持ち主・売値。押せば品シート
+function sellRows(list) {
+  const w = el("div", "wpc-picklist wpc-selllist");
+  for (const x of list) {
+    const it = x.item;
+    const r = el("div", "wpc-prow");
+    const main = el("button", "wpc-prow-main");
+    main.type = "button";
+    const rk = rarityKey(it);
+    const ic = el("span", "wpc-srow-ic" + (rk ? " rar-" + rk : ""));
+    if (rk) ic.style.setProperty("--edge", RARITIES[rk].color);
+    ic.appendChild(spriteCanvas(it, 3));
+    main.appendChild(ic);
+    const tx = el("span", "wpc-prow-t");
+    tx.appendChild(nameSpan(it, "wpc-prow-title"));
+    tx.appendChild(setText(el("span", "wpc-prow-sub"), `${x.doll.name} の持ち物${isUp(it) ? " ・ ▲装備の候補" : ""}`));
+    main.appendChild(tx);
+    const pr = el("span", "wpc-prow-r");
+    pr.appendChild(glyph("gold"));
+    pr.appendChild(document.createTextNode(String(x.price)));
+    main.appendChild(pr);
+    main.addEventListener("click", () => itemSheet(it, { owner: x.doll, context: "bag" }));
+    r.appendChild(main);
+    w.appendChild(r);
+  }
+  return w;
+}
+
 // 番人のひとこと (状況で選ぶ)
 function keeperLine(seg) {
   const shell = (game.FAC_SHELL && game.FAC_SHELL.shop) || { lines: [] };
@@ -239,7 +267,7 @@ export function confirmSellJunk() {
     const gold = list.reduce((a, x) => a + x.price, 0);
     const ex = exclusions();
     const body = el("div", "wpc-cbody");
-    if (list.length) body.appendChild(tileStrip(list));
+    if (list.length) body.appendChild(sellRows(list));
     else body.appendChild(el("div", "wpc-empty", "売る品がない。"));
     if (ups.length) {
       // 装備の候補も売るか (切り替え)
@@ -266,7 +294,7 @@ export function confirmSellJunk() {
   const opts = () => {
     const b = build();
     return {
-      title: `${b.list.length}点を売る`, body: b.body,
+      title: `${b.list.length}点を売る (+${b.gold})`, body: b.body,
       footer: [
         { label: "売る", kind: "primary", size: "lg", cost: { kind: "gold", n: b.gold }, disabled: !b.list.length, onTap: run },
         { label: "やめる", kind: "ghost", onTap: (x) => x.close("cancel") },
