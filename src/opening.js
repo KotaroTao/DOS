@@ -203,23 +203,27 @@ export function showOpening(onDone) {
     wrap.classList.add("op-typed");
     if (SCENES[idx].last) showTitleCard();
   };
-  let titleShown = false;
+  // 最後の幕: 語り終えてから題字を掲げるまで、語りを読み切れるだけ待つ (タップで待たずに掲げる)
+  const TITLE_WAIT = 4800;
+  let titleShown = false, titleT = 0;
+  const raiseTitle = () => {
+    clearTimeout(titleT);
+    if (phase === "closed" || phase === "title") return;
+    phase = "title";
+    wrap.classList.add("op-final");
+    sfx("stairs");
+  };
   const showTitleCard = () => {
     if (titleShown) return;
     titleShown = true;
-    setTimeout(() => {
-      if (phase === "closed") return;
-      phase = "title";
-      wrap.classList.add("op-final");
-      sfx("stairs");
-    }, 1400);
+    titleT = setTimeout(raiseTitle, REDUCED ? 2400 : TITLE_WAIT);
   };
 
   const advance = (auto = false) => {
     if (phase !== "play") return;
     if (!typedAll && progress() < 1) { completeText(); return; }
     if (!typedAll) completeText();
-    if (SCENES[idx].last) { if (!titleShown) showTitleCard(); return; }
+    if (SCENES[idx].last) { if (!titleShown) showTitleCard(); else raiseTitle(); return; }
     phase = "out";
     clearTimeout(autoT);
     black.classList.add("on");
@@ -240,7 +244,7 @@ export function showOpening(onDone) {
     if (closed) return;
     closed = true;
     phase = "closed";
-    clearTimeout(autoT);
+    clearTimeout(autoT); clearTimeout(titleT);
     removeEventListener("keydown", onKey, true);
     removeEventListener("resize", onResize);
     wrap.classList.add("op-out");

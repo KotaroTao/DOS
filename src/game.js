@@ -8986,7 +8986,7 @@ const ACHIEVEMENTS = [];
   tiers((v) => (v === 5000 ? "kill5k" : `kill${v}`), [
     [10, "血振るい", 80], [50, "首狩り", 150], [100, "百人斬り", 300, 5], [250, "戦場の影", 500, 5],
     [500, "百戦錬磨", 600, 10], [1000, "千の骸", 1500, 15], [2500, "屍山血河", 3000, 25],
-    [5000, "千殺の魂繰り", 5000, 40], [10000, "万骨の上に立つ者", 10000, 80],
+    [5000, "千殺の操霊師", 5000, 40], [10000, "万骨の上に立つ者", 10000, 80],
   ], (v) => `敵を ${v}体 倒す`, (v) => G.stats.kills >= v);
 
   // 主討伐 (7)
@@ -9052,7 +9052,7 @@ const ACHIEVEMENTS = [];
     (v) => `赤い魂を ${v} 集める`, (v) => G.redSoul >= v);
 
   // 育成: 職業ランク / キャラLv / 魂レベル / 魂ランク (14)
-  tiers((v) => `jrank${v}`, [[3, "位階を昇る者", 300, 5], [4, "高位の魂繰り", 800, 10], [5, "極みに至る者", 2000, 30]],
+  tiers((v) => `jrank${v}`, [[3, "位階を昇る者", 300, 5], [4, "高位の操霊師", 800, 10], [5, "極みに至る者", 2000, 30]],
     (v) => `職業ランク ${v} の人業を持つ`, (v) => allDolls().some((d) => (d.jobRank || 0) >= v));
   tiers((v) => `jlv${v}`, [
     [10, "駆け出しの職人", 150], [20, "熟練の域", 400, 5], [30, "達人の域", 800, 10],
@@ -9300,7 +9300,7 @@ function reportMainQuest() {
     },
   }];
   if (n >= 100) {
-    pages.push({ title: "終章 — 最後の魂繰り", lines: EPILOGUE, btnLabel: "物語を閉じる", kicker: "終章",
+    pages.push({ title: "終章 — 最後の操霊師", lines: EPILOGUE, btnLabel: "物語を閉じる", kicker: "終章",
       enter: () => { G.msq = { n: 101, state: "end" }; flashScreen("#ffd84a"); } });
     playMsqChain(pages, toasts);
     return;
@@ -9328,7 +9328,7 @@ function sealedLines() {
 
 // ---- 第0章「人業の生成」(チュートリアル勅命) ----
 const TUT_INTRO = [
-  "「よくぞ参った、新しき魂繰りよ。…生身のまま、よくぞ辺境まで辿り着いた。」",
+  "「よくぞ参った、新しき操霊師（ソウルマンサー）よ。…生身のまま、よくぞ辺境まで辿り着いた。」",
   "「だが言うておく。生身で迷宮に入ってはならぬ。深淵は、生きた魂から順に喰らう。」",
   "「ゆえに死者の魂を器に宿した『人業』を遣わすのだ。まずはその一体を、おのれの手で生み出すがよい。」",
   "「戦士・僧侶・盗賊・魔導士の魂を、そして赤い魂を百、くれてやろう。」",
@@ -9337,7 +9337,7 @@ const TUT_INTRO = [
 ];
 const TUT_FINALE = [
   "「…ほう。良い面構えの人業ではないか。初仕事にしては上出来よ。」",
-  "「覚えておけ、魂繰り。人業は道具ではない。死者に与えられた、二度目の生だ。」",
+  "「覚えておけ、操霊師。人業は道具ではない。死者に与えられた、二度目の生だ。」",
   "「粗末に扱えば、魂は器の中で錆びる。労り、鍛え、共に深淵を渡れ。」",
   "「これでそなたも一人前。次は、まことの勅命を授けよう。」",
 ];
@@ -9512,7 +9512,7 @@ function decreeInfo() {
   if (!ms || ms.state === "end" || ms.n > 100) return { kind: "end", head: "物語は閉じられた", text: "「百の迷宮は解き放たれた。…余の葬列には、来ずともよいぞ。」", replay: true };
   if (contentSealed()) return { kind: "sealed", head: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう (準備中)`, text: "次なる層へ続く大門の封は、いまだ固く閉ざされている。", note: "封が解けるまで、踏破した迷宮で人業を鍛え、装備を集めよう。", replay: true };
   if (ms.n === 0 && ms.state === "active") {
-    if (!ms.granted) return { kind: "ch0", head: "着任", text: "玉座の老王が、新しき魂繰りの到着を待っている。", replay: false };
+    if (!ms.granted) return { kind: "ch0", head: "着任", text: "玉座の老王が、新しき操霊師の到着を待っている。", replay: false };
     return { kind: "ch0", head: "勅命 「人業の生成」", text: "人業の館で器を仕立て (最初の3体は無料)、いずれかの魂を宿して人業を一体つくれ。", note: "人業が立ち上がったら、王に報告せよ。", replay: true };
   }
   const n = ms.state === "offer" ? Math.min(100, ms.n + 1) : ms.n;
@@ -9525,7 +9525,7 @@ function decreeInfo() {
 // 王の言葉を聞き直す (状態は変えない)
 function replayDecree() {
   const ms = G.msq || {};
-  if (!ms || ms.state === "end" || ms.n > 100) return UI.playStoryChain([{ title: "終章 — 最後の魂繰り", lines: EPILOGUE, kicker: "終章" }]);
+  if (!ms || ms.state === "end" || ms.n > 100) return UI.playStoryChain([{ title: "終章 — 最後の操霊師", lines: EPILOGUE, kicker: "終章" }]);
   if (contentSealed()) return UI.playStoryChain([{ title: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう`, lines: sealedLines() }]);
   if (ms.n === 0) return UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: TUT_INTRO, kicker: "着任の謁見" }]);
   return UI.playStoryChain([{ title: `第${actOf(ms.n)}層 「${ACTS[actOf(ms.n) - 1].title}」`, lines: msqOrderLines(ms.n), kicker: "勅命" }]);
@@ -9545,7 +9545,7 @@ function sharePalaceRecord() {
   SFX.select();
   const ms = G.msq || {};
   const head = ms.state === "end" || ms.n > 100 ? "百の迷宮のすべてを制し、物語を閉じた。"
-    : ms.n >= 1 ? `第${actOf(ms.n)}層「${ACTS[actOf(ms.n) - 1].title}」を探索中。` : "魂繰りとして着任した。";
+    : ms.n >= 1 ? `第${actOf(ms.n)}層「${ACTS[actOf(ms.n) - 1].title}」を探索中。` : "操霊師として着任した。";
   shareProgress(head);
 }
 
@@ -12120,8 +12120,8 @@ bindGame({
 // タイトル画面のセーブ概要 (つづきから): 進行中の章・踏破数・編成の顔ぶれ
 function titleSummary() {
   const ms = G.msq || {};
-  let head = "着任したばかりの魂繰り";
-  if (ms.state === "end" || ms.n > 100) head = "✦ 物語を閉じた魂繰り ✦";
+  let head = "着任したばかりの操霊師";
+  if (ms.state === "end" || ms.n > 100) head = "✦ 物語を閉じた操霊師 ✦";
   else if (ms.n >= 1) head = `第${actOf(ms.n)}層「${ACTS[actOf(ms.n) - 1].title}」`;
   const lines = [`踏破 ${clearedDungeonCount()} / 100 迷宮 ・ 人業 ${allDolls().length}体`];
   if (G.state === "board" || G.state === "combat") {
