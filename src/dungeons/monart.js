@@ -19,7 +19,7 @@
 
 // 原画待ちの魔物 (層 → id)。差し替えが済んだ id はここから外してよい (表示用の目録で、動作には影響しない)
 export const ART_WANTED = {
-  // (第1〜3層は hd_* の固有原型で描き終えた。第3層: tools/hdart/layer3/)
+  // (第1〜4層は hd_* の固有原型で描き終えた。第3層: tools/hdart/layer3/、第4層: tools/hdart/layer4/)
 };
 
 // <<MONSTER_ART>>

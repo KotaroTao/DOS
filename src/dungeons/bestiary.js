@@ -17,10 +17,12 @@ const LEGACY_RANK = {
   d01_skeleton: 2, d01_gaoler: 2,
   d02_armkobold: 2, d02_soldier: 2,
   d02_harpy: 3, d02_imp: 3, d02_lizard: 3, d02_lord: 3,
-  d03_orc: 4, d03_ghost: 4, d03_sahagin: 4,
+  d03_orc: 4, d03_sahagin: 4,
+  d03_ghost: 5, // 第4層の雑魚 (rank5-6)。第3層 (rank4-5) より格上に
   d03_mandrake: 5, d03_sentinel: 5, d03_whelp: 5,
   d04_golem: 5, d04_ogre: 5, // 第3層の層末 (迷宮15) の深部に出る。層ボス・強敵 (rank5) を超えないよう rank5
-  d04_revenant: 7, d04_grudge: 7,
+  d04_revenant: 6, // 第4層の層末の深部。層ボス・強敵 (rank6) を超えないよう rank6
+  d04_grudge: 7,
   d04_vritra: 9,
 };
 
@@ -196,8 +198,8 @@ const NEW_DEFS = [
     ability: "critical", enrage: true, // 号令とともに急所を狙い、追い詰められると鬼気迫る
     desc: "砦と運命を共にした守備隊長の骸。錆びた指揮刀を振るい、配下の亡兵を叱咤しながら自ら先頭で斬りかかる。劣勢になるほど、果たせなかった守備の責で鬼気迫る猛攻に転じる。" },
   { id: "bs_pikewall", name: "亡兵の槍ぶすま", rank: 5, race: "undead", element: "none", artKey: "pikewall",
-    role: "guard", physResist: 1, multistrike: 2, // 盾を並べて前を固く守り、突き出した槍で連突する
-    desc: "盾を並べ、槍を揃えて突き出したまま朽ちた歩兵の隊列。今も崩れぬ陣形で後ろの者を守り、近づく敵には幾本もの槍が連なって襲いかかる。一人を倒しても、隊列は決して退かない。" },
+    role: "guard", multistrike: 2, ability: null, // 盾を並べて前を固く守り、突き出した槍で連突する (不死の既定の吸命は持たない)
+    desc: "盾を並べ、槍を揃えて突き出したまま朽ちた歩兵の隊列。今も崩れぬ陣形で後ろの者をかばい、近づく敵には幾本もの槍が連なって襲いかかる。一人を倒しても、隊列は決して退かない。" },
   { id: "bs_drumwraith", name: "戦鼓の亡霊", rank: 5, race: "specter", element: "none", artKey: "drumwraith",
     role: "healer", ability: "warcry", // 終わらぬ進軍を打ち鳴らし、味方を鼓舞し傷を繕わせる
     desc: "落城の夜から、終わらぬ進軍の太鼓を打ち鳴らし続ける鼓手の霊。その響きは亡兵の士気を煽り、砕けた体を奮い立たせて戦線へ戻す。鼓の音が止まぬ限り、守備隊は立ち上がり続ける。" },
@@ -920,7 +922,7 @@ const NEW_DEFS = [
   { id: "bs_gargoyle", name: "ガーゴイル", rank: 4, race: "construct", element: "earth", artKey: "hd_gargoyle",
     physResist: 1, // 石の体が刃をほとんど通さない
     desc: "聖堂の軒先で魔を払っていた石像の成れの果て。守るべき聖域を失い、今は止まり木に来るものすべてを翼と爪で払う。石の体は並の刃を寄せつけず、砕くには相応の力がいる。" },
-  { id: "bs_banshee", name: "バンシー", rank: 4, race: "specter", element: "dark", artKey: "banshee",
+  { id: "bs_banshee", name: "バンシー", rank: 5, race: "specter", element: "dark", artKey: "banshee",
     ability: "paralyze", // 葬送の絶叫で身をすくませる
     desc: "死を報せる泣き女の霊。その絶叫を聞いた者は、自分の葬列の足音が背後から近づいてくるのを聞き、恐怖に体が縛りつけられて動けなくなる。" },
   { id: "bs_minotaur", name: "ミノタウロス", rank: 4, boss: true, race: "giant", element: "earth", artKey: "ogre",
@@ -932,8 +934,8 @@ const NEW_DEFS = [
     regen: 0.12, ability: null, // 火で灼かぬ限り裂かれた傷もみるみる塞がる (再生ひとつが持ち味。巨人の既定の痛撃は持たない)
     desc: "裂かれた傷がみるみる塞がる再生の巨人。腕をもがれてもすぐに生え直し、火で灼かれた痕だけが、こいつの体に古傷として残っている。" },
   { id: "bs_dullahan", name: "デュラハン", rank: 5, race: "armored", element: "dark", artKey: "dullahan", soulClass: "knight",
-    swift: true, ability: "critical", // 首を狙う一閃を音もなく繰り出す
-    desc: "首を失ってなお戦場を求める黒鎧の騎士。小脇に抱えた己の首が斬るべき相手の名を囁いて教え、音もなく間合いを詰めては首筋へ一閃を浴びせる。" },
+    ability: "critical", endure: true, // 首を狙う一閃を繰り出し、首を失った身は致命の一撃にも一度は倒れない
+    desc: "首を失ってなお戦場を求める黒鎧の騎士。小脇に抱えた己の首が斬るべき相手の名を囁いて教え、間合いを詰めては首筋へ一閃を浴びせる。すでに首の無い体は、斬り伏せられても一度は立ち上がる。" },
   { id: "bs_salamander", name: "サラマンダー", rank: 5, race: "reptile", element: "fire", artKey: "lizard",
     palette: tint(ARTS.lizard.palette, "#d04a2a", 0.4),
     ability: "poison", regen: 0.06, // 焼け続ける噛み傷 + おき火の体が傷をあぶり塞ぐ
@@ -959,7 +961,7 @@ const NEW_DEFS = [
     palette: tint(ARTS.sahagin.palette, "#7a4aa0", 0.35),
     ability: "poison", // 蛇神の眷属の猛毒の牙
     desc: "下半身が大蛇と化した蛇神の眷属。千年の祈りを捧げた古い祭壇を今も鱗のねぐらで抱え込み、近づく者には蛇神譲りの猛毒の牙を剥く。" },
-  { id: "bs_vampire", name: "ヴァンパイア", rank: 7, race: "undead", element: "dark", artKey: "vampire", soulClass: "mage",
+  { id: "bs_vampire", name: "ヴァンパイア", rank: 6, race: "undead", element: "dark", artKey: "vampire", soulClass: "mage",
     ability: "drain", regen: 0.08, // 血とともに宿した魂を吸い、その分だけ若返る
     desc: "夜の貴族。血をすするのは渇きのためではなく、奪った命の記憶を味わうため。すすった血と宿した魂の分だけ己の傷は癒え、月夜には誰も敵わない。" },
   { id: "bs_hydra", name: "九首のヒュドラ", rank: 7, boss: true, race: "dragon", element: "water", artKey: "dragon",
@@ -1065,10 +1067,10 @@ const NEW_DEFS = [
     magWeak: 1.5, swift: true, // 脆い呪骸 (魔法弱点) + 死してなお止まらぬ俊足
     desc: "呪詛の言葉を刻まれ、死してなお走り続ける狼の亡骸。噛まれた傷は癒えず、噛まれた者は夢の中で追われ続ける。脆い呪骸は俊敏だが、術の一撃には脆く崩れる。" },
   // -- rank 4 追加 (+5) --
-  { id: "bs_darksamurai", name: "黒甲の武者", rank: 4, race: "armored", element: "dark", artKey: "samurai", soulClass: "knight",
+  { id: "bs_darksamurai", name: "黒甲の武者", rank: 5, race: "armored", element: "dark", artKey: "samurai", soulClass: "knight",
     swift: true, ability: "critical", // 抜き打ちの一閃で急所を断つ
-    desc: "敗れた戦国の武者が憎しみのまま霧の森をさまよう亡霊の騎士。主の敵を誰にでも重ね、抜刀は一瞬。鞘走った刃は納刀を知らぬまま、急所だけを正確に断つ。" },
-  { id: "bs_cultist", name: "邪神の僧", rank: 4, race: "specter", element: "dark", artKey: "cultist", soulClass: "bishop",
+    desc: "敗れた戦国の武者が憎しみのまま捨て砦をさまよう亡霊の騎士。主の敵を誰にでも重ね、抜刀は一瞬。鞘走った刃は納刀を知らぬまま、急所だけを正確に断つ。" },
+  { id: "bs_cultist", name: "邪神の僧", rank: 5, race: "specter", element: "dark", artKey: "cultist", soulClass: "bishop",
     ability: "drain", // 捨てたものを取り戻そうと宿した魂を喰らう
     desc: "禁忌の神をまつり命を捧げた僧侶の亡霊。神に近づくために捨てたものを取り戻そうと手を伸ばし、触れた者の宿した魂のレベルを喰らい取る。" },
   { id: "bs_stonegorgon", name: "石化の眼", rank: 4, race: "specter", element: "earth", artKey: "hd_stonegorgon",
@@ -1077,14 +1079,13 @@ const NEW_DEFS = [
   { id: "bs_deepsahagin", name: "深海魚人", rank: 4, race: "aquatic", element: "water", artKey: "hd_deepsahagin",
     swift: true, ability: "paralyze", // 水流で先んじて感知し、もりで突いて痺れさせる
     desc: "神殿の地下水脈の最深部に棲む魚人の変種。目が退化し、代わりに僅かな水流の乱れで獲物の位置を先に感知して襲い、毒もりで突いて痺れさせる。" },
-  { id: "bs_bloodorc", name: "血狂いのオーク", rank: 4, race: "humanoid", element: "fire", artKey: "orc", soulClass: "fighter",
-    palette: tint(ARTS.orc.palette, "#8a2a1a", 0.45),
-    swift: true, regen: 0.08, // 血の匂いで猛り、傷つくほど勢いを増す
-    desc: "血の匂いで理性を失うオークの変異体。傷を負うほど凶暴さと速さが増し、自分の傷口まで噛んで己を鼓舞し、浅い傷ならたちまち塞いでしまう。" },
+  { id: "bs_bloodorc", name: "血狂いのオーク", rank: 5, race: "humanoid", element: "fire", artKey: "orc", soulClass: "fighter",
+    enrage: true, regen: 0.08, ability: null, // 血の匂いで猛り、手負いほど荒れ狂い、浅い傷はたちまち塞ぐ (人型の既定の強奪は持たない)
+    desc: "血の匂いで理性を失うオークの変異体。傷を負うほど凶暴さが増して荒れ狂い、自分の傷口まで噛んで己を鼓舞し、浅い傷ならたちまち塞いでしまう。" },
   // -- rank 5 追加 (+5) --
   { id: "bs_ironknight", name: "鉄の騎士", rank: 5, race: "armored", element: "none", artKey: "ironknight", soulClass: "knight",
-    physResist: 2, // 無骨な鉄塊の体は刃を通さない
-    desc: "古代神殿を守るために鋳造された鉄の自動人形。命令のみで動き、千年の時を経た今もその命令を忠実に実行し続ける。分厚い鉄塊の体は並の武器をほとんど通さない。" },
+    physResist: 2, ability: null, // 無骨な鉄塊の体は刃を通さない (物理耐性2ひとつが持ち味)
+    desc: "古代の砦を守るために鋳造された鉄の自動人形。命令のみで動き、千年の時を経た今もその命令を忠実に実行し続ける。分厚い鉄塊の体は並の武器をほとんど通さない。" },
   { id: "bs_thunderbird", name: "雷鳥", rank: 5, race: "avian", element: "wind", artKey: "harpy",
     palette: tint(ARTS.harpy.palette, "#d4d44a", 0.4),
     swift: true, ability: "paralyze", // 稲光をまとって舞い、触れた者を痺れさせる
@@ -1093,8 +1094,7 @@ const NEW_DEFS = [
     physResist: 2, // 神殿の基礎石そのものの巨体
     desc: "神殿の基礎石が何百年もの呪文の蓄積で自ら動き始めた古代ゴーレム。岩盤そのものの巨体は刃を寄せつけず、一歩踏み出すたびに床が割れ、壁が崩れる。" },
   { id: "bs_shadowmage", name: "影の術師", rank: 5, race: "undead", element: "dark", artKey: "ghost", soulClass: "mage",
-    palette: tint(ARTS.ghost.palette, "#2a2a5a", 0.5),
-    role: "summoner", summonKey: "d03_ghost", magWeak: 1.4, // 闇の眷属を召喚するが、本体は術もろとも魔法に脆い
+    role: "summoner", summonKey: "d03_ghost", magWeak: 1.4, ability: null, // 闇の眷属を召喚するが、本体は術もろとも魔法に脆い (不死の既定の吸命は持たない)
     desc: "禁呪に魂を喰われた術師の残りかす。肉体は消え失せ、影だけが闇の眷属を呼び出して術を唱え続ける。実体の薄い身は、魔法を撃ち込まれれば術もろとも掻き消える。" },
   { id: "bs_fireserpent", name: "炎の大蛇", rank: 5, race: "reptile", element: "fire", artKey: "fireserpent",
     swift: true, ability: "poison", // 焼き付く鱗を擦りつけて素早く絡む
@@ -1105,16 +1105,14 @@ const NEW_DEFS = [
     ability: "breath", // 火でなく影を吐き、前衛後衛を呑む
     desc: "竜の血脈が呪いで変質した漆黒の小竜。吐く息は火でなく影であり、前衛後衛もろとも包まれた者はやがて自分の輪郭を失う。" },
   { id: "bs_bloodwraith", name: "血霊", rank: 6, race: "specter", element: "dark", artKey: "wraith",
-    palette: tint(ARTS.wraith.palette, "#8a1a2a", 0.45),
-    ability: "drain", regen: 0.06, // 触れた者の血を引き出して己の一部にする
-    desc: "溶岩洞で大量の血が流された場所に生まれた血の亡霊。触れられた者の血は傷口から引き出されて霊体の一部となり、奪った分だけその身が濃さを増す。" },
+    lifesteal: 0.3, ability: null, // 触れた者の血を引き出して己の一部にする (吸命+再生のヴァンパイアと分けて吸血ひとつに)
+    desc: "落城の夜、砦の石畳に大量の血が流された場所に生まれた血の亡霊。触れられた者の血は傷口から引き出されて霊体の一部となり、奪った分だけその身が濃さを増して傷が塞がる。" },
   { id: "bs_stormgiant", name: "嵐の巨人", rank: 6, race: "giant", element: "wind", artKey: "stormgiant",
     ability: "paralyze", // 振り下ろす拳に伴う落雷で痺れさせる
     desc: "嵐の日にのみ地上に降りてくる雷雲を纏う巨人。一歩ごとに地響きがし、振り下ろす拳は落雷を伴って、打たれた者を痺れさせる。" },
   { id: "bs_bonecolossus", name: "骨の巨兵", rank: 6, race: "undead", element: "dark", artKey: "skeleton",
-    palette: tint(ARTS.skeleton.palette, "#c8c0a0", 0.3),
-    physResist: 1, // 幾十の骸が融合した骨の塊は崩しにくい
-    desc: "幾十の骸が呪力で融合し立ち上がった巨大な骨の兵。分厚く絡み合った骨は刃を弾き、その胴の中には今も生者の叫び声が閉じ込められているという。" },
+    physResist: 1, endure: true, ability: null, // 幾十の骸が融合した骨の塊は崩しにくく、砕けても残りの骸が組み直る
+    desc: "幾十の骸が呪力で融合し立ち上がった巨大な骨の兵。分厚く絡み合った骨は刃を弾き、砕かれても残りの骸がすぐに組み直って一度は立ち上がる。その胴の中には今も生者の叫び声が閉じ込められているという。" },
   { id: "bs_ashphoenix", name: "灰の鳳凰", rank: 6, race: "avian", element: "fire", artKey: "harpy",
     palette: tint(ARTS.harpy.palette, "#c85a2a", 0.45),
     ability: "breath", // 奪われまいと吐き散らす最後の炎
@@ -1138,8 +1136,7 @@ const NEW_DEFS = [
   { id: "bs_soulharvester", name: "魂刈り", rank: 7, race: "specter", element: "dark", artKey: "reaper",
     swift: true, ability: "soulSteal", // 音もなく間合いを詰め、鎌で魂を刈り取る
     desc: "迷宮で死んだ者の魂を回収する役割を帯びた存在。音もなく間合いを詰め、鎌の一振りで肉体と魂の繋がりを断ち、刈り取った魂は籠に集める。" },
-  { id: "bs_thunderknight", name: "雷電の騎士", rank: 7, race: "armored", element: "wind", artKey: "knightmare", soulClass: "knight",
-    palette: tint(ARTS.knightmare.palette, "#4a6a9a", 0.4),
+  { id: "bs_thunderknight", name: "雷電の騎士", rank: 6, race: "armored", element: "wind", artKey: "knightmare", soulClass: "knight",
     swift: true, ability: "paralyze", // 落雷を纏い、金属鎧の者ほど深く痺れさせる
     desc: "嵐の神殿に仕えた騎士の怨霊。雷鳴とともに現れて素早く斬り込み、纏った落雷は金属鎧の者ほど深く通って体を痺れさせ、次の雷鳴で消える。" },
   // -- rank 8 追加 (+7) --
@@ -1709,14 +1706,13 @@ const ELITE_DEFS = [
     role: "summoner", summonKey: "d01_kobold", ability: "goldSteal", // 数千の眷属を呼び、奪い尽くす
     desc: "数千の眷属を従え、坑道の闇に王国を築いた古コボルト。吠えれば際限なく眷属が湧き、混戦に乗じて獲物の懐を漁る。小鬼と侮った者の骸が、玉座への道に敷き詰められている。" }, // D17-20
   // -- 迷宮 21-30 (砦帯) / 強敵ランク5 --
-  { id: "el_warbanner", name: "軍旗の亡将", elite: true, rank: 5, race: "armored", element: "fire", artKey: "knightmare", soulClass: "knight",
-    palette: tint(ARTS.knightmare.palette, "#a03020", 0.5),
-    physResist: 1, ability: "critical", // 焼け鎧が刃を弾き、攻城の一撃が急所を貫く
-    desc: "落城の日、軍旗を握ったまま焼け死んだ将の亡霊。燃える鎧は刃を弾き、目に映るすべてを攻め落とすべき敵城と見なして、城門を割る勢いの一撃を急所へ叩き込む。" }, // D21-23
-  { id: "el_headsman", name: "処刑人の大鬼", elite: true, rank: 5, race: "giant", element: "earth", artKey: "ogre",
-    palette: tint(ARTS.ogre.palette, "#6a2a2a", 0.5),
+  // 第4層「捨て砦」の強敵 (LAYER_ELITES[4]) を兼ねる。rank は層ボスと同格の 6
+  { id: "el_warbanner", name: "軍旗の亡将", elite: true, rank: 6, race: "armored", element: "fire", artKey: "knightmare", soulClass: "knight",
+    physResist: 1, ability: "warcry", enrage: true, // 焼け鎧が刃を弾き、燃える軍旗の号令で奮い立ち、手負いで荒れ狂う
+    desc: "落城の日、軍旗を握ったまま焼け死んだ将の亡霊。燃える鎧は刃を弾き、炎をあげる軍旗を振るって号令をかけるたびに猛り立つ。目に映るすべてを攻め落とすべき敵城と見なし、追い詰められるほど城門を割る勢いで攻めかかる。" },
+  { id: "el_headsman", name: "処刑人の大鬼", elite: true, rank: 6, race: "giant", element: "earth", artKey: "ogre",
     swift: true, ability: "critical", // 首斬りの斧が一閃で急所を断つ
-    desc: "砦の処刑場に飼われていた首斬り役の大鬼。主を失ってなお務めを忘れず、迷い込んだ者を「本日の罪人」として斧の下へ並ばせ、振り下ろす一閃で首筋を狙う。" }, // D24-26
+    desc: "砦の処刑場に飼われていた首斬り役の大鬼。主を失ってなお務めを忘れず、迷い込んだ者を「本日の罪人」として斧の下へ並ばせ、巨体に似合わぬ速さで振り下ろす一閃で首筋を狙う。" },
   { id: "el_phantomcompany", name: "亡霊中隊", elite: true, rank: 5, race: "specter", element: "wind", artKey: "ghost",
     palette: tint(ARTS.ghost.palette, "#7a8aa8", 0.5),
     role: "summoner", summonKey: "d03_ghost", swift: true, // 散った中隊を呼び集め、号令とともに先んじる
@@ -1846,6 +1842,7 @@ export const LAYER_ELITES = {
   1: ["el_cryptlord", "el_palebutcher"],        // 第1層「墓地」
   2: ["el_bloatqueen", "el_drownedpaladin"],    // 第2層「地下水路」
   3: ["el_chainoverseer", "el_crystalseer"],    // 第3層「廃坑」
+  4: ["el_warbanner", "el_headsman"],           // 第4層「捨て砦」 (旧来の ELITE_ORDER の強敵を層の強敵に)
 };
 
 // ---- 出来事の魔物 (events.js の出来事にだけ現れる) ----
@@ -2031,15 +2028,15 @@ export const LAYER_POOLS = {
     // 浅い階を rank4 で揃える (以前は rank3 のさそり・毒蜘蛛・泥ゴーレム・トカゲが混じり、迷宮11の浅い階が第2層と同格だった)
     "bs_chainedconvict", "bs_minebat", "bs_koboldsapper", "bs_timbermite",
   ],
-  // 第4層「捨て砦」: 武装兵/騎士/戦の亡霊中心、rank5-6主体 (第3層より格上)。深部に rank7 の騎士
+  // 第4層「捨て砦」: 武装兵/騎士/戦の亡霊中心、rank5-6 (第3層の rank4-5 より格上)。層末の深部は rank6 (層ボス・強敵と同格)
   4: [
     // 新規 (固有アート)
     "bs_siegeballista", "bs_bannerwraith", "bs_gravecaptain", "bs_pikewall", "bs_drumwraith",
-    // 既存の武装兵/戦の亡霊を第4層へ再配置 (rank4-6)
+    // 既存の武装兵/戦の亡霊を第4層へ再配置 (rank5-6。以前は rank4 の武者・オーク・僧・亡霊・バンシーが混じり、迷宮16の浅い階が第3層と同格だった)
     "bs_darksamurai", "bs_bloodorc", "bs_cultist", "d03_ghost", "bs_banshee",
     "d03_sentinel", "bs_dullahan", "bs_ironknight", "bs_shadowmage",
     "bs_bloodwraith", "bs_bonecolossus", "bs_stormgiant",
-    // 深部の強敵 (rank7)
+    // 層末の深部 (rank6。以前は rank7 で、層ボス・強敵より格上の雑魚が出ていた)
     "d04_revenant", "bs_thunderknight", "bs_vampire",
   ],
   // 第5層「霧の森」: 植物/獣/妖中心、rank6-7主体 (第4層より格上)。火に弱い者が多い ※20種へ作成中
