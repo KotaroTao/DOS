@@ -141,6 +141,10 @@ export function caretIcon(cls = "wpc-caret") {
   return sv;
 }
 // 名前 (レア度の色)
+// 初ゲット！ = 鑑定で正体を初めて知った品 (game.js の revealIdentity が、その起動の間だけ印をつける)
+export const FIRST_LABEL = "初ゲット！";
+export const firstBadge = (cls = "") => el("span", "first-get" + (cls ? " " + cls : ""), FIRST_LABEL);
+export const isFirstGet = (it) => !!(it && game.isFirstGet && game.isFirstGet(it));
 export function nameSpan(it, cls = "wpc-nm") {
   const s = el("span", cls, itemName(it));
   const k = rarityKey(it);
@@ -743,6 +747,7 @@ export function itemSheet(item, o = {}) {
   const st = {
     item, owner: o.owner || (own ? own.doll : null), context: o.context || null,
     price: o.price, stockId: o.stockId || null, target: o.target || null, h: null, flash: false,
+    first: false, // このシートで鑑定して、正体を初めて知った (初ゲット！)
     close: () => { if (st.h) st.h.close("done"); },
   };
   if (!st.context) st.context = st.owner ? (own && own.where === "equip" ? "equipped" : "bag") : "view";
@@ -774,6 +779,7 @@ export function itemSheet(item, o = {}) {
     const hd = el("div", "wpc-is-hd");
     hd.appendChild(nameSpan(it, "wpc-is-name"));
     const grade = el("div", "wpc-is-grade");
+    if (st.first && !it.unidentified) grade.appendChild(firstBadge("wpc-is-first"));
     if (rk) grade.appendChild(el("span", "wpc-rtag rar-" + rk, RARITIES[rk].label));
     const cat = it.slot === "weapon" && it.cat ? `${WEAPON_CAT_LABEL[it.cat] || "武器"} ・ 射程${(RANGE_LABEL[weaponRange(it)] || "").replace("距離", "")}` : itemCatText(it);
     if (cat) grade.appendChild(el("span", "wpc-is-cat", cat));
@@ -852,7 +858,7 @@ export function itemSheet(item, o = {}) {
   st.rerender = ({ revealed = false } = {}) => {
     if (!st.h || st.h.closed) return;
     if (!ownerOf(st.item) && st.context !== "stock" && st.context !== "view") { st.h.close("gone"); return; }
-    if (revealed) st.flash = true;
+    if (revealed) { st.flash = true; st.first = isFirstGet(st.item); }
     pickTarget();
     st.h.update({ accent: rarColor(st.item) || "#8a6d2e" });
     const rk2 = rarityKey(st.item);
