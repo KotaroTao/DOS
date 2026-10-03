@@ -2,7 +2,7 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 export default {
   table: `
-    1 BLIND 2 SHADOWBOLT 3 NOROI 5 soulEater/1 7 KATINO 10 DIOS
+    1 BLIND 2 SHADOWBOLT 3 NOROI 5 soulEater/1 7 KATINO 10 NECROMANCER_SEIKISUI
     15 afterMp/1 20 KUGUTSU 22 DARKMIST 25 chant/1 30 KAGENUI 32 DARKBLAST
     35 spellCrit/1 40 MEIKONGURAI 45 soulLure/1 50 DEATH 55 FUDOKU 60 afterMp/2
     65 REVIVE 70 sleepKill/1 72 DARKNESS 75 spellCrit/2 80 SEALALL 85 GRAVITY
@@ -11,6 +11,9 @@ export default {
     145 spellCrit/3 150 GOKUENRAN 155 scan/1 160 RESURRECT 165 resistAilment/2 170 TENPENCHII
     172 MEIANRAN 175 elemFloor/1 180 MEIFUNOMON 185 reflect/1 190 ZETTAIREIDO 195 HYOUGA
     200 KYOKUDAI`,
-  skills: {},
+  skills: {
+    // 死霊術師は PIE が低く癒しの祈りに向かない: 傷は敵から吸って塞ぐ
+    NECROMANCER_SEIKISUI: { name: "生気吸い", mp: 3, kind: "atk", power: 12, element: "dark", drain: 0.5, target: "enemy", desc: "闇で敵の生気を吸い、己の傷を塞ぐ" },
+  },
   perks: {},
 };

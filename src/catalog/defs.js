@@ -1840,6 +1840,8 @@ function base(id, name, slot, lv, artKey, opt) {
     for (const k in opt.aRes) chk(AIL_KEYS.includes(k) && opt.aRes[k] > 0 && opt.aRes[k] <= 0.6, "bad aRes: " + id);
     it.aRes = { ...opt.aRes };
   }
+  // ブレス耐性 bRes: 0.15 = ブレスの被ダメ −15%
+  if (opt.bRes != null) { chk(opt.bRes > 0 && opt.bRes <= 0.4, "bad bRes: " + id); it.bRes = opt.bRes; }
   if (opt.onHit) {
     const [k, chance, pct] = opt.onHit;
     chk(AIL_KEYS.includes(k) && k !== "stone" && chance > 0 && chance <= 0.5, "bad onHit: " + id);

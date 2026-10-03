@@ -129,7 +129,10 @@ function makeEnemy(key, scale = 1, boss = false, bossRank = 0) {
     // モンスター定義の atk/def/spd を六大ステへ写像 (def→VIT, spd→AGI)
     atk: Math.max(1, Math.round(baseAtk * scale)),
     vit: Math.round(baseDef * scale),
-    agi: m.swift ? baseSpd + 4 : baseSpd, // 俊敏: AGI を底上げして先手を取りやすくする
+    // 俊敏: AGI を底上げして先手を取りやすくする / 神速: さらに大きく底上げし、1ラウンドに2度動く (_startRound)
+    agi: baseSpd + (m.swift ? 4 : 0) + (m.haste ? 8 : 0),
+    haste: !!m.haste,
+    abRate: m.abRate || 0, // 特殊能力を使う確率 (0 = 既定の 25%・ブレス 30%)。第5層からの魔物は特色を強く押し出すため高い
     soul: Math.round(baseSoul * scale), gold: Math.round(baseGold * scale),
     boss: boss || !!m.boss,
     ability: m.ability || null, // 特殊能力 (毒/麻痺/石化/即死/窃盗/ドレイン/ブレス)
@@ -205,6 +208,11 @@ const MIND_CHARM_BREAK = 0.5, CONFUSE_FREE = 0.25, CONFUSE_DAZE = 0.3, CONFUSE_S
 // 手番ごとの自然回復 (魅了・混乱・眠り・麻痺) が何手番も続かないための救済: 治らなかった手番ごとに回復率が
 // AIL_RAMP ずつ上がり、AIL_SURE 回目の判定で必ず治る (= かかったままの手番は最長 AIL_SURE-1 回)
 const AIL_RAMP = 0.15, AIL_SURE = 4;
+// 敵の全体呪文 (ability "spell") の名乗り (属性ごと) と、装備のブレス耐性 (breathRes) の上限
+const ELEM_SPELL = { fire: "業火", water: "濁流", wind: "嵐", earth: "岩雨", light: "裁きの光", dark: "闇の波動" };
+export const BREATH_RES_CAP = 0.5;
+// 祈りの呪文 (INT と PIE の高い方で伸びる): 光の攻撃呪文と faith: true の呪文
+export function isFaithSpell(sp) { return !!sp && sp.kind === "atk" && (!!sp.faith || sp.element === "light"); }
 // 主 (ボス) に付く確率の倍率。魅了された主は仲間がいないと立ち尽くすだけになるので、毒・麻痺 (×0.5) より効きにくい
 const BOSS_CHARM_MUL = 0.35;
 // 状態異常の付与を示す札 (結果の hit.status に載せ、game.js が浮かび文字で見せる)
@@ -790,7 +798,12 @@ export class Battle {
     this.queue = pool
       .filter((a) => a.alive)
       // 加速装置 (actFirst) は必ず手番の最初に行動する。同士の中では AGI 順
-      .sort((a, b) => ((b.actFirst ? 1 : 0) - (a.actFirst ? 1 : 0)) || ((eagi(b) + rand(4)) - (eagi(a) + rand(4))));
+      .sort((a, b) => ((b.actFirst ? 1 : 0) - (a.actFirst ? 1 : 0)) || ((b.haste ? 1 : 0) - (a.haste ? 1 : 0)) || ((eagi(b) + rand(4)) - (eagi(a) + rand(4))));
+    // 神速 (haste): 目にも止まらぬ速さの敵は、ラウンドの頭 (加速装置の次) に動き、後半にもう一度動く
+    for (const e of this.queue.filter((a) => a.haste && a.side === "enemy")) {
+      const from = Math.max(this.queue.indexOf(e) + 1, Math.ceil(this.queue.length / 2));
+      this.queue.splice(from + rand(this.queue.length - from + 1), 0, e);
+    }
     // テスト記録: 味方と敵の組のうち、味方が先に動く組の数 (先制・奇襲の1ラウンド目は片側だけなので数えない)
     const T = this._tally();
     let seenP = 0;
@@ -1064,8 +1077,10 @@ export class Battle {
       }
       if (!cmd) {
         const ab = actor.ability;
-        if (ab && Math.random() < (ab === "breath" ? 0.30 : 0.25)) {
-          cmd = { actor, action: ab === "breath" ? "breath" : "special", kind: ab, target: this._pickPartyTarget() };
+        // ブレス・全体呪文はどちらも隊全体への攻撃 (action "breath"。kind で吐息か呪文かを分ける)
+        const wide = ab === "breath" || ab === "spell";
+        if (ab && Math.random() < (actor.abRate || (wide ? 0.30 : 0.25))) {
+          cmd = { actor, action: wide ? "breath" : "special", kind: ab, target: this._pickPartyTarget() };
         } else {
           cmd = { actor, action: "attack", target: this._pickPartyTarget() };
         }
@@ -1210,9 +1225,15 @@ export class Battle {
       return res;
     }
     if (action === "breath") {
-      // ブレス: 味方全体への属性ダメージ (回避不可・VITで微減)
-      this.log(`${actor.name}は${actor.boss ? "業炎の" : ""}ブレスを吐いた！`, "dmg");
+      // ブレス / 全体呪文 (kind "spell"): 味方全体への属性ダメージ (回避不可)。
+      //  ブレスは VIT で微減し、装備のブレス耐性 (breathRes) と守りの技 (wardB) で軽減する。
+      //  全体呪文は INT・PIE (精神) で微減し、呪文避けの技 (wardS) で軽減する。どちらも大結界・魔障壁で半減できる
+      const spell = cmd.kind === "spell";
+      const what = spell ? "呪文" : "ブレス";
+      this.log(spell ? `${actor.name}は${actor.boss ? "大いなる" : ""}呪文を唱えた！ 隊全体を${ELEM_SPELL[actor.element] || "魔力"}が襲う！`
+        : `${actor.name}は${actor.boss ? "業炎の" : ""}ブレスを吐いた！`, "dmg");
       res.breath = true;
+      res.espell = spell;
       // 大結界: 自動で隊全体の被ダメージを半減する (Lv1=1戦闘1回 / Lv2=2回)
       let bigB = false;
       const bigBMax = Math.max(0, ...this.party.filter((p) => p.alive).map((p) => pv(p, "bigBarrier")));
@@ -1223,17 +1244,23 @@ export class Battle {
       }
       for (const t of this.livingParty()) {
         const em = elemDmgMult(actor.element || "none", 1, t.element || "none", edefOf(t));
-        let dmg = Math.max(1, Math.round(variance(this._eatk(actor) * 0.85) - this._evit(t) * 0.25));
+        const guard = spell ? ((t.int || 0) + (t.pie || 0)) * 0.12 : this._evit(t) * 0.25;
+        let dmg = Math.max(1, Math.round(variance(this._eatk(actor) * (spell ? 0.75 : 0.85)) - guard));
         if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
         if (t._defending) dmg = Math.ceil(dmg * 0.5);
-        { const pt = this._perkSum(t, "take", { tgt: actor, el: actor.element || "none", on: ["breath"] }); if (pt) dmg = Math.max(1, Math.floor(dmg * Math.max(0.2, 1 - pt))); } // 固有パッシブ (take)
+        { const pt = this._perkSum(t, "take", { tgt: actor, el: actor.element || "none", on: [spell ? "spell" : "breath"] }); if (pt) dmg = Math.max(1, Math.floor(dmg * Math.max(0.2, 1 - pt))); } // 固有パッシブ (take)
+        // 守りの技 (風避け・呪文避け): 効果の倍率で割る (重ねても 1/3 まで)
+        const ward = this._bm(t, spell ? "wardS" : "wardB");
+        if (ward > 1) dmg = Math.max(1, Math.round(dmg / ward));
+        // 装備のブレス耐性 (竜鱗の盾など。合計の上限 50%)
+        if (!spell && t.breathRes) dmg = Math.max(1, Math.round(dmg * (1 - Math.min(BREATH_RES_CAP, t.breathRes))));
         if (bigB) dmg = Math.max(1, Math.ceil(dmg * 0.5));
         else if (t._barrierLeft > 0) {
           // 魔障壁: 個人のブレス・呪文被ダメ半減 (残回数制)。魔力反射は防いだ分を返す
           t._barrierLeft--;
           const cut = dmg - Math.ceil(dmg * 0.5);
           dmg = Math.ceil(dmg * 0.5);
-          this.log(`${t.name}の魔障壁がブレスを弱めた！`, "heal");
+          this.log(`${t.name}の魔障壁が${what}を弱めた！`, "heal");
           if (cut > 0 && pv(t, "reflect") && actor.alive) {
             actor.hp -= cut;
             this.log(`魔力反射！ ${actor.name}に ${cut} ダメージ`, "hit");
@@ -1244,7 +1271,7 @@ export class Battle {
         this.log(`${t.name}に ${dmg} ダメージ${em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : ""}`, "dmg");
         this._wake(t);
         const died = this._die(t);
-        if (!died) { this._postDamage(t); this._perkHurt(t, actor, dmg, "breath"); }
+        if (!died) { this._postDamage(t); this._perkHurt(t, actor, dmg, spell ? "spell" : "breath"); }
         res.hits.push({ target: t, dmg, died });
       }
       return res;
@@ -1740,7 +1767,8 @@ export class Battle {
     } else if (sp.kind === "atk") {
       const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
       const scLv = pv(actor, "spellCrit"); // 呪文会心
-      const intv = (actor.int || 0) * this._bm(actor, "int"); // 精神統一: INT強化
+      // 精神統一: INT強化。光の呪文と祈りの呪文 (faith) は INT と PIE の高い方で伸びる (聖職の術者は祈りで撃つ)
+      const intv = Math.max((actor.int || 0) * this._bm(actor, "int"), isFaithSpell(sp) ? (actor.pie || 0) : 0);
       for (const t of targets) {
         if (!t.alive) continue;
         let dmg, em = 1, magWeak = false;
@@ -1811,6 +1839,11 @@ export class Battle {
           this._applyMod(t, "charge", sp.charge, sp.dur, sp.name); mods.charge = sp.charge;
         }
         if (sp.regen) { this._applyMod(t, "regen", 1 + sp.regen.pct, sp.regen.turns, sp.name); mods.regen = 1 + sp.regen.pct; }
+        // 守りの陣 (ward): ブレス (wardB) / 全体呪文 (wardS) の被ダメを割る倍率として持つ (0.5 軽減 = ×2 で割る)
+        if (sp.ward) for (const w in sp.ward) {
+          const st = w === "breath" ? "wardB" : "wardS", m = 1 / (1 - sp.ward[w]);
+          this._applyMod(t, st, m, sp.dur, sp.name); mods[st] = m;
+        }
         // 法障壁 (grantBarrier): 魔障壁の残回数を配る (ブレス・呪文の被ダメ半減)
         if (sp.grantBarrier) t._barrierLeft = (t._barrierLeft || 0) + sp.grantBarrier;
         // 聖域の鐘 (cure / purge): 守りと同時に状態異常・弱体を祓う
@@ -1819,7 +1852,8 @@ export class Battle {
         res.hits.push({ target: t, buff: true, mods });
       }
       const what = sp.taunt ? "敵の注意を引き付けた" : sp.shield ? "仲間の盾となる構えを取った" : sp.stance === "counter" ? "反撃の構えを取った"
-        : sp.charge ? "力を溜めている" : sp.regen && !sp.buff ? "癒しの加護が宿った" : sp.grantBarrier ? "魔障壁が身を包んだ" : "力がみなぎる";
+        : sp.charge ? "力を溜めている" : sp.regen && !sp.buff ? "癒しの加護が宿った" : sp.grantBarrier ? "魔障壁が身を包んだ"
+        : sp.ward ? (sp.ward.breath ? "隊がブレスへの備えを固めた" : "隊が呪文への備えを固めた") : "力がみなぎる";
       this.log(what, "heal");
       if (cured || purged) this.log("穢れが祓われた", "heal");
     } else if (sp.kind === "debuff") {

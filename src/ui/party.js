@@ -1600,6 +1600,7 @@ function statsSeg(root, d) {
     // 装備の状態異常耐性 / 武器の追加効果 (持っている時だけ)
     const AIL_SHORT = { poison: "毒", paralyze: "痺", sleep: "眠", charm: "魅", confuse: "乱", stone: "石" };
     if (d.ailRes) fact("異常耐性", Object.entries(d.ailRes).map(([k, v]) => `${AIL_SHORT[k] || k}${Math.round(v * 100)}`).join(" "));
+    if (d.breathRes) fact("ブレス耐性", `${Math.round(d.breathRes * 100)}%`);
     if (d.onHit) fact("追加効果", d.onHit.map((o) => `${AIL_SHORT[o.k] || o.k}${Math.round(o.chance * 100)}%`).join(" "));
   };
   for (const k of ATTR_KEYS) {

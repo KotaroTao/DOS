@@ -28,7 +28,7 @@
 //               自分 (party なら味方全体) のHPを最大の割合だけ回復 / MPを最大の割合だけ回復
 //  { t:"fall",  chance?, buff?:{stat:[…]}, dur?, hp?:[…] }  味方が倒れた時、生きている自分に
 //  { t:"win",   hp?:[…], mp?:[…], party? }  戦闘に勝った後、HP/MP を最大の割合だけ回復 (party なら味方全体)
-//  on (与/被ダメ・会心・命中時): "phys" = 物理全般 / "basic" = 通常攻撃 / "skill" = 物理技 / "spell" = 攻撃呪文 / "breath" = ブレス
+//  on (与/被ダメ・会心・命中時): "phys" = 物理全般 / "basic" = 通常攻撃 / "skill" = 物理技 / "spell" = 攻撃呪文 (受ける側では敵の全体呪文) / "breath" = ブレス
 //  aura: true = 持ち主が生きている間、味方全員に効く (deal/take/crit/evade)
 //  chance は 0〜1 (配列ならLvごと)。dur は既定3ターン。
 //  when (条件。すべて満たす時だけ効く。tgt = 与える時は攻撃先、受ける時は攻撃してきた敵):
@@ -83,8 +83,9 @@ export const JOBKIT = {
 // ---- 検証 (読み込み時に壊れた定義を弾く) ----
 const SKILL_KEYS = new Set(("name mp kind target desc power hits scatter critBonus element acc pierce intScale agiScale vitScale pieScale " +
   "desperate execute prey debuff vuln seal poison para sleepChance flinchChance strip charm confuse instakill steal plunder drain mpDrain " +
-  "hpCost gravity partyHeal buff taunt shield stance charge regen grantBarrier grantEndure cure purge revive revivePct dur debuffAll tech quiet").split(" "));
-const KINDS = new Set(["phys", "atk", "heal", "cure", "buff", "debuff", "mana", "sleep", "escape"]);
+  "hpCost gravity partyHeal buff taunt shield stance charge regen grantBarrier grantEndure cure purge revive revivePct dur debuffAll tech quiet " +
+  "ward faith float").split(" "));
+const KINDS = new Set(["phys", "atk", "heal", "cure", "buff", "debuff", "mana", "sleep", "escape", "field"]);
 const TARGETS = new Set(["enemy", "all-enemy", "ally", "all-ally", "self"]);
 const ELS = new Set(["fire", "water", "wind", "earth", "light", "dark"]);
 const STATS = new Set(["atk", "vit", "agi", "int", "hit"]);
@@ -108,6 +109,9 @@ function checkSkill(job, key, sp) {
   if ((sp.kind === "phys" || sp.kind === "atk") && !sp.gravity && !(sp.power > 0)) fail(job, key, "攻撃技には power が必要");
   if (sp.kind === "phys" && !/enemy/.test(sp.target)) fail(job, key, "物理技の対象は敵");
   for (const o of ["buff", "debuff", "debuffAll"]) if (sp[o]) for (const s in sp[o]) if (!STATS.has(s)) fail(job, key, `${o}.${s}`);
+  if (sp.ward) for (const s in sp.ward) if (!["breath", "spell"].includes(s) || !(sp.ward[s] > 0 && sp.ward[s] < 1)) fail(job, key, `ward.${s}`);
+  if (sp.faith && sp.kind !== "atk") fail(job, key, "faith は攻撃呪文だけ");
+  if (sp.kind === "field" && !sp.float) fail(job, key, "迷宮で唱える技には効果 (float) が必要");
 }
 function checkPerk(job, key, pk) {
   if (!/^[a-z][A-Za-z0-9]+$/.test(key)) fail(job, key, "パッシブキーは英小文字始まり");

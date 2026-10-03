@@ -9,6 +9,7 @@ import { JOB_IMAGES } from "./jobart.js";
 import { JOB_PHOTOS, PHOTO_RES } from "./jobphotos.js";
 import { ICONS } from "./sprites.js";
 import { JOBKIT_TABLES, JOBKIT_PERKS } from "./jobkit/index.js";
+import { SPELLS } from "./skilldefs.js";
 
 export const PARTS = ["head", "rhand", "lhand", "body", "legs"];
 export const PART_LABEL = { head: "頭", rhand: "右手", lhand: "左手", body: "胴体", legs: "足" };
@@ -769,7 +770,8 @@ export function orderedSkills(d) {
 }
 export function isSkillOff(d, key) { return !!(d && Array.isArray(d.skillOff) && d.skillOff.includes(key)); }
 // 戦闘のスキル一覧に出す技 (並べた順・オフの技を除く)
-export function battleSkills(d) { return orderedSkills(d).filter((k) => !isSkillOff(d, k)); }
+// 迷宮で唱える技 (kind "field": 浮遊など) は戦闘の一覧に出さない
+export function battleSkills(d) { return orderedSkills(d).filter((k) => !isSkillOff(d, k) && !(SPELLS[k] && SPELLS[k].kind === "field")); }
 export function setSkillOff(d, key, off) {
   if (!d) return;
   const cur = Array.isArray(d.skillOff) ? d.skillOff.filter((k) => k !== key) : [];

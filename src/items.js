@@ -13,6 +13,7 @@
 // cat: 武器のみ。サブカテゴリ (WEAPON_CATS のキー)
 // eAtk/eDef: 属性攻撃/属性防御 { el, lv } (lv1=◯ ±50%, lv2=◎ ±100%)
 // aRes: 状態異常耐性 { poison/paralyze/sleep/charm/confuse/stone: 付与率カット (0.25 = 25%) }。同じ種類は装備どうしで足し合い、上限 AIL_RES_CAP
+// bRes: ブレス耐性 (敵のブレスから受けるダメージのカット率 0.15 = 15%)。装備どうしで足し合い、上限 BREATH_RES_CAP (combat.js)
 // onHit: 武器などの追加効果 { k: poison/paralyze/sleep/charm/confuse, chance, pct? }。当てるだけで敵に状態異常を与える
 // scale: 武器の能力補正 { atk/agi/int/…: 係数 }。攻撃力 = ATK + Σ(能力値 × 係数) (attackPower)。物理の攻撃・物理技はこの攻撃力で計算する
 // magic: 魔法属性の武器。通常攻撃 (と残心・連撃などの追撃) の威力は攻撃力のまま、物理耐性ではなく魔法耐性を受け、魔法弱点が効く
@@ -1208,6 +1209,8 @@ function topElemStat(sums) {
 export const AIL_LABEL = { poison: "毒", paralyze: "麻痺", sleep: "眠り", charm: "魅了", confuse: "混乱", stone: "石化" };
 // 装備だけで積める状態異常耐性の上限 (パッシブ「異常耐性」と合わせた上限は戦闘側で90%)
 export const AIL_RES_CAP = 0.6;
+// 装備だけで積めるブレス耐性の上限 (combat.js の BREATH_RES_CAP と同じ)
+export const BREATH_RES_MAX = 0.5;
 
 // 六大ステ (ATK/VIT/AGI/INT/PIE/LUK) を base + 装備から再計算
 // 装備はフラット型: stat = base + Σflat (atk/vit/…)
@@ -1220,6 +1223,7 @@ export function recalc(member) {
   const eff = {}; // 戦闘効果 (LR装飾品): actFirst/multistrike/lifesteal/autoRevive/guard/spellCostMul
   const ea = {}, ed = {};
   const ar = {}, oh = {}; // 状態異常耐性 (種類→合計) / 追加効果 (種類→最も強いもの)
+  let br = 0; // ブレス耐性 (合計)
   const counted = new Set();
   for (const slot of SLOTS) {
     const it = member.equip[slot];
@@ -1244,6 +1248,7 @@ export function recalc(member) {
     if (it.eAtk && it.eAtk.el) ea[it.eAtk.el] = (ea[it.eAtk.el] || 0) + (it.eAtk.lv || 1);
     if (it.eDef && it.eDef.el) ed[it.eDef.el] = (ed[it.eDef.el] || 0) + (it.eDef.lv || 1);
     if (it.aRes) for (const k in it.aRes) ar[k] = (ar[k] || 0) + (it.aRes[k] || 0);
+    br += it.bRes || 0;
     if (it.onHit && it.onHit.k) {
       const cur = oh[it.onHit.k];
       if (!cur || (it.onHit.chance || 0) > cur.chance) oh[it.onHit.k] = { k: it.onHit.k, chance: it.onHit.chance || 0, ...(it.onHit.pct ? { pct: it.onHit.pct } : {}) };
@@ -1276,6 +1281,7 @@ export function recalc(member) {
   const arOut = {};
   for (const k in ar) if (ar[k] > 0) arOut[k] = Math.min(AIL_RES_CAP, Math.round(ar[k] * 100) / 100);
   member.ailRes = Object.keys(arOut).length ? arOut : null;
+  member.breathRes = br > 0 ? Math.min(BREATH_RES_MAX, Math.round(br * 100) / 100) : 0;
   const ohOut = Object.values(oh).filter((o) => o.chance > 0);
   member.onHit = ohOut.length ? ohOut : null;
   // 武器の能力補正 (scale) と魔法属性 (magic)。攻撃力 power = ATK + 能力補正 (combat.js の _eatk も同じ式をバフ込みで使う)

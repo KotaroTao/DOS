@@ -62,6 +62,13 @@
 #hint.dg-dock.has-down.has-home .dk-l { letter-spacing: 0.04em; }
 #hint.dg-dock.has-down.has-home .dk-home { flex: 0 0 auto; }
 #hint.dg-dock.has-down.has-home .dk-heal .dk-ic { display: none; }
+/* 浮遊 (迷宮で唱える技): 小さめの札。浮いている間は淡い青緑に光る */
+.dk-float { flex: 0 0 auto; color: #a8b8b4; }
+.dk-float .dk-s { color: #7a8a86; }
+.dk-float.on { color: #c8f4ec; border-color: #3f8a80; box-shadow: inset 0 1px 0 rgba(200,255,240,0.12), inset 0 -2px 0 rgba(0,0,0,0.6), 0 0 0 1px rgba(120,230,210,0.18), 0 3px 0 #070507, 0 0 14px rgba(120,230,210,0.18); }
+.dk-float.on .dk-s { color: #8fcfc2; }
+#hint.dg-dock.has-float .dk-float .dk-ic, #hint.dg-dock.has-float.has-down .dk-heal .dk-ic { display: none; }
+#hint.dg-dock.has-float .dk-btn { gap: 6px; padding: 4px 8px; }
 @keyframes dk-call { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.12); } }
 .dk-idle {
   flex: 1 1 auto; display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 48px; padding: 0 10px;

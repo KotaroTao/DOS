@@ -24,6 +24,10 @@
 // 攻撃呪文: power (+ 術者INT×0.5) / gravity (敵の今のHPの割合ダメージ) / partyHeal (撃った後に味方全体を回復)
 // 支援: buff(倍率) / taunt(挑発) / shield(仁王立ち) / stance:"counter"(反撃の構え) / charge(溜め) /
 //   regen({pct, turns} リジェネ) / grantBarrier / grantEndure / cure(状態異常) / purge(弱体を解く)
+//   ward({breath?, spell?: 軽減率}) — 守りの陣: 敵のブレス / 全体呪文から受けるダメージをその割合だけ減らす (dur ターン。重ねると最大 1/3 まで)
+// 呪文の伸び: 攻撃呪文は INT で伸びる。光の呪文と faith: true の呪文は「祈りの呪文」で、INT と PIE の高い方で伸びる
+// 迷宮で唱える技: kind "field" (戦闘の技の一覧には出ない。迷宮の手元の「浮遊」から唱える)
+//   float(階数) — 浮遊: 隊を宙に浮かせ、その階数のあいだ落とし穴に落ちず毒の床も踏まない
 // 持続 dur (既定3ターン。ラウンド開始ごとに1減る)
 
 import { UNHOLY, BEASTS, DRAGONS, MACHINES, PREY_GROUPS } from "./jobkit/common.js";
@@ -136,7 +140,7 @@ export const SPELLS = {
   HARAI:          { name: "祓い", mp: 6, kind: "debuff", strip: true, seal: { chance: 0.6, turns: 3 }, target: "enemy", desc: "敵の強化を打ち消し、特技を封じる" },
   KIYOMEMIZU:     { name: "清め水", mp: 5, kind: "debuff", vuln: { light: 0.75 }, target: "all-enemy", desc: "敵全体の光耐性を下げる" },
   DANZAINOTSUCHI: { name: "断罪の鉄槌", mp: 12, kind: "phys", power: 2.2, element: "light", acc: 0.9, execute: 2, flinchChance: 0.35, target: "enemy", desc: "弱った敵に重い聖槌（命中UP・とどめ・怯み）" },
-  KAKEI:          { name: "火刑", mp: 8, kind: "atk", power: 24, element: "fire", vuln: { fire: 0.7 }, target: "enemy", desc: "炎で焼き、火耐性を下げる" },
+  KAKEI:          { name: "火刑", mp: 8, kind: "atk", power: 24, element: "fire", vuln: { fire: 0.7 }, faith: true, target: "enemy", desc: "炎で焼き、火耐性を下げる" },
   SHINMON:        { name: "審問", mp: 6, kind: "debuff", seal: { chance: 0.8, turns: 3 }, debuff: { atk: 0.85 }, target: "enemy", desc: "敵の特技を封じ、攻撃力を下げる" },
   SAIGONOSHINPAN: { name: "最後の審判", mp: 36, kind: "atk", power: 80, element: "light", seal: { chance: 0.6, turns: 3 }, strip: true, target: "all-enemy", desc: "敵全体を裁き、強化を消し、特技を封じる" },
 
@@ -217,6 +221,11 @@ export const SPELLS = {
   KYOMU:    { name: "秘奥・虚無", mp: 36, kind: "atk", power: 120, strip: true, vuln: { all: 0.75 }, target: "enemy", desc: "強化を消し、全属性の耐性を崩す（無属性）" },
   MEIFUNOMON: { name: "冥府の門", mp: 40, kind: "atk", power: 90, element: "dark", instakill: { chance: 0.3 }, target: "all-enemy", desc: "闇で呑み、即死させることがある" },
   KOUSHUNOHOUJIN: { name: "攻守の法陣", mp: 14, kind: "buff", buff: { vit: 1.25 }, debuffAll: { atk: 0.85 }, target: "all-ally", desc: "味方を守り、敵全体の攻撃力を下げる" },
+  // 守りの陣 (第5層からの、ブレス・全体呪文を多用する魔物への備え)
+  RYUURINJIN:     { name: "竜鱗の陣", mp: 10, kind: "buff", ward: { breath: 0.5 }, tech: true, target: "all-ally", desc: "竜鱗の構えで隊を固め、ブレスのダメージを半減する" },
+  MAYOKE:         { name: "魔除けの帳", mp: 10, kind: "buff", ward: { spell: 0.5 }, target: "all-ally", desc: "魔除けの帳で隊を包み、敵の呪文のダメージを半減する" },
+  // 迷宮で唱える (戦闘では使わない)
+  FUYUU:          { name: "浮遊", mp: 8, kind: "field", float: 3, target: "all-ally", desc: "隊を宙に浮かせる。3階のあいだ落とし穴に落ちず、毒の床も踏まない（迷宮で唱える）" },
   HOUSHOUHEKI:    { name: "法障壁", mp: 13, kind: "buff", grantBarrier: 1, target: "all-ally", desc: "味方全体に魔障壁を張る" },
   DAIKEKKAI:      { name: "大結界陣", mp: 30, kind: "buff", buff: { vit: 1.5 }, grantBarrier: 2, purge: true, target: "all-ally", desc: "守りを上げ、魔障壁を重ね、弱体を解く" },
   KASUMINOTOBARI: { name: "霞の帳", mp: 12, kind: "heal", power: 16, debuffAll: { hit: 0.75 }, target: "all-ally", desc: "味方を癒し、敵全体の命中率を下げる" },
@@ -225,7 +234,7 @@ export const SPELLS = {
   MEIKONGURAI:    { name: "冥魂喰らい", mp: 10, kind: "atk", power: 28, element: "dark", drain: 0.5, target: "enemy", desc: "闇で魂を喰らい、己の命とする" },
   KINJUKAICHOU:   { name: "禁呪開帳", mp: 12, kind: "atk", power: 38, element: "dark", critBonus: 0.25, strip: true, target: "enemy", desc: "禁断の呪撃。強化を打ち消す" },
   MARYOKUGOUDATSU:{ name: "魔力強奪", mp: 7, kind: "atk", power: 30, element: "dark", mpDrain: 0.3, strip: true, target: "enemy", desc: "強化を剥ぎ、魔力を奪う" },
-  GOMA:           { name: "護摩焚き", mp: 10, kind: "atk", power: 18, element: "fire", partyHeal: 10, target: "all-enemy", desc: "炎で敵全体を焼き、味方を癒す" },
+  GOMA:           { name: "護摩焚き", mp: 10, kind: "atk", power: 18, element: "fire", partyHeal: 10, faith: true, target: "all-enemy", desc: "炎で敵全体を焼き、味方を癒す" },
   KUJI:           { name: "九字護身法", mp: 10, kind: "debuff", seal: { chance: 0.5, turns: 3 }, target: "all-enemy", desc: "敵全体の特技を封じる" },
 
   // ================= 盗賊・狩人・暗殺 (速さで攻める) =================

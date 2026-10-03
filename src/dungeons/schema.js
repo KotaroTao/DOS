@@ -13987,6 +13987,16 @@ export function defMonster(def) {
   if (def.lifesteal) m.lifesteal = def.lifesteal;
   if (def.multistrike) m.multistrike = def.multistrike;
   if (def.barrier) m.barrier = def.barrier;
+  // 第5層からの「特色を極端に押し出す」ための特性:
+  //   haste  : 神速。AGI を大きく底上げし、1ラウンドに2度動く (ラウンドの頭ともう一度)
+  //   abRate : 特殊能力 (ability) を使う確率 (0〜0.6)。既定は 25% (ブレス・全体呪文は 30%)。0.4 以上は図鑑で「多用」と示す
+  //   (ability に "spell"=全体呪文 (固有属性の呪文で隊全体を撃つ) も指定可)
+  if (def.haste) m.haste = true;
+  if (def.abRate != null) {
+    if (!(def.abRate > 0 && def.abRate <= 0.6)) throw new Error(`abRate must be 0-0.6: ${def.abRate} (${def.id})`);
+    if (!def.ability) throw new Error(`abRate needs an ability (${def.id})`);
+    m.abRate = def.abRate;
+  }
   if (def.traits) m.traits = def.traits; // 表示専用の追加特徴キー
   return m;
 }
@@ -14022,7 +14032,11 @@ export const TRAITS = {
   sleep:      { label: "眠り",   desc: "眠りを誘う息で隊を眠らせてくる" },
   charm:      { label: "魅了",   desc: "心を奪い、仲間に襲いかからせてくる" },
   confuse:    { label: "混乱",   desc: "惑わせて、敵味方の見境をなくさせる" },
+  haste:      { label: "神速",   desc: "目にも止まらぬ速さで、1ターンに2度動く。逃げるのも難しい" },
+  spell:      { label: "全体呪文", desc: "呪文で隊全体を撃つ (精神の強さで少し軽減)" },
 };
+// 特殊能力を多用する魔物 (abRate がこれ以上) は、図鑑の札に「多用」と添える
+export const AB_RATE_HEAVY = 0.4;
 
 // モンスター定義から特徴キーの並びを導く (重複なし、表示順は定義順)。
 // 既存の ability / role と新フィールドを単一の語彙へ正規化する。
@@ -14048,6 +14062,7 @@ export function monsterTraitKeys(m) {
   if (!m) return [];
   const keys = [];
   const add = (k) => { if (k && TRAITS[k] && !keys.includes(k)) keys.push(k); };
+  if (m.haste) add("haste");
   if (m.swift) add("swift");
   if (m.evasive) add("evasive");
   if (m.physResist) add("physResist");
@@ -14063,7 +14078,7 @@ export function monsterTraitKeys(m) {
   if (m.role === "summoner") add("summon");
   if (m.role === "healer") add("heal");
   if (m.role === "guard") add("guard");
-  add(m.ability); // poison/paralyze/stone/drain/soulSteal/goldSteal/critical/breath/warcry/weaken/sleep/charm/confuse
+  add(m.ability); // poison/paralyze/stone/drain/soulSteal/goldSteal/critical/breath/spell/warcry/weaken/sleep/charm/confuse
   for (const t of m.traits || []) add(t);
   return keys;
 }
@@ -14076,6 +14091,8 @@ export function monsterTraits(m) {
       const r = Math.max(1, Math.min(3, m[k] | 0));
       return { key: k, rank: r, label: `${TRAITS[k].label}${r}`, desc: `${RESIST_TEXT[k][r]} (${Math.round(RESIST_RATE[r] * 100)}%軽減)` };
     }
+    // 特殊能力を多用する個体: 札に「多用」を添える
+    if (k === m.ability && m.abRate >= AB_RATE_HEAVY) return { key: k, label: `${TRAITS[k].label}・多用`, desc: `${TRAITS[k].desc} (頻繁に使う)` };
     return { key: k, ...TRAITS[k] };
   });
 }
