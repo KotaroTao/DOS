@@ -7210,11 +7210,15 @@ function renderAutoBanner(actor) {
 
 // 攻撃の既定の狙い (§3.4): 直前に隊が狙った敵がまだ射程内ならそれ (集中して倒す)、なければ最も手前の敵。
 // 画面の何もない所をタップした時と同じ「射程内の最寄り」
+// 物理無効 (物理耐性3) の敵は、ほかに狙える敵がいる限り既定の狙いから外す
+function physImmune(e) { return !!(e && (e.physResist | 0) >= 3); }
 function defaultAttackTarget(actor) {
   const b = G.battle;
   if (!b || !actor) return null;
-  const reach = b.attackableEnemies(actor).filter((e) => e.alive);
-  if (!reach.length) return null;
+  const all = b.attackableEnemies(actor).filter((e) => e.alive);
+  if (!all.length) return null;
+  const hittable = all.filter((e) => !physImmune(e));
+  const reach = hittable.length ? hittable : all;
   const last = G._lastTargetUid != null ? reach.find((e) => e.uid === G._lastTargetUid) : null;
   return last || reach[0];
 }
@@ -7260,8 +7264,16 @@ function renderCombatMenu() {
           G._autoTimer = null;
           const b2 = G.battle;
           if (!b2 || b2.phase !== "input" || !G.autoCombat || G.animating) return;
+          // 射程内が物理無効の敵ばかりなら、殴り続けても終わらないのでオートを止めて手動に戻す
+          const reach = b2.attackableEnemies(b2.current).filter((e) => e.alive);
+          if (reach.length && reach.every(physImmune)) {
+            stopAutoCombat();
+            showToast("物理が効かない敵がいる — 術で戦おう", { tone: "bad" });
+            return;
+          }
           b2.chooseAction("attack");
-          const tgt = b2.targetOptions()[0];
+          const opts = b2.targetOptions();
+          const tgt = opts.find((e) => !physImmune(e)) || opts[0];
           if (!tgt) { b2.cancelTarget(); return; }
           b2.chooseTarget(tgt);
           runCommitted();
@@ -7539,7 +7551,10 @@ function applyImpact(res) {
         fx.slashes.push({ x: pos.cx + dx * 0.5, y: pos.cy, t0: ht0, crit: !!h.crit, big: !!h.crit, flip: idx % 2 === 1, seed: (h.target.uid || 1) * 31 + idx });
       }
       if (idx === 0 || !fx.flash[h.target.uid]) fx.flash[h.target.uid] = { t0: ht0 };
-      if (h.dmg != null) {
+      if (h.immune) {
+        // 耐性3 (物理無効/魔法無効) に弾かれた: 数字の代わりに「無効」と浮かべる
+        fx.floats.push({ x: pos.cx + dx, y: pos.cy - 10, text: "無効", color: "#9aa3b5", t0: ht0, kind: "dmg" });
+      } else if (h.dmg != null) {
         fx.floats.push({ x: pos.cx + dx, y: pos.cy - 10, text: String(h.dmg), color: h.crit ? "#ffd84a" : "#fff", t0: ht0, big: !!h.crit, kind: h.crit ? "crit" : "dmg" });
         if (h.crit) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 40, text: "会心の一撃", color: "#ffb02e", t0: ht0, small: true, kind: "label" });
       }

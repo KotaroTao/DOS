@@ -1,7 +1,7 @@
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
 import { ITEMS, weaponRange } from "./items.js";
-import { elemDmgMult, monStats, rankStats } from "./dungeons/schema.js";
+import { elemDmgMult, monStats, rankStats, resistRate, RESIST_TAG } from "./dungeons/schema.js";
 
 export const SPELLS = {
   HALITO: { name: "ファイアアロー", mp: 2, kind: "atk", power: 10, element: "fire", target: "enemy", desc: "炎の矢" },
@@ -340,14 +340,14 @@ export function spawnMimic(floorRank, scale = 1, master = false) {
   e.isMimic = true; // 撃破時は宝箱が確定出現し、中身が上質になる (game.js の endBattle)
   if (master) e.isMasterMimic = true; // 宝箱の中身がさらに上質 (アイテムLv+30)
   // 単体で隊を相手にする化け物。上位ランクの体を、群れ数体分の HP と連撃で補う
-  // (通常 = 上位ランク2体分 / マスター = 上位ランク3体分の耐久と手数)。
-  e.maxhp = Math.max(1, Math.round(st.hp * scale * (master ? 3.2 : 2.2)));
+  // (通常 = 上位ランク2体分強 / マスター = 外殻の物理耐性1と合わせて上位ランク3体分以上の耐久と手数)。
+  e.maxhp = Math.max(1, Math.round(st.hp * scale * (master ? 2.6 : 2.4)));
   e.hp = e.maxhp;
   e.atk = Math.max(1, Math.round(st.atk * scale * (master ? 1.1 : 1.0)));
   e.vit = Math.round(st.def * scale * (master ? 1.6 : 1.3));
   e.agi = st.spd + (master ? 8 : 4);             // 不意打ちで先手を取りやすい
   e.multistrike = master ? 3 : 2;                // 牙で噛みつき連撃 (一手で複数回)
-  e.physResist = master ? 0.25 : 0.15;           // 硬い外殻
+  e.physResist = master ? 1 : 0;                 // マスターは硬い外殻 (物理耐性1 = 50%軽減)
   if (master) { e.ability = "soulSteal"; e.lifesteal = 0.3; }
   e.gold = Math.round(st.gold * scale * (master ? 3 : 2));
   e.soul = Math.round(st.soul * scale * (master ? 2 : 1.5));
@@ -480,9 +480,15 @@ export class Battle {
       if (pv(p, "openSpell")) {
         const t = this._randAlive(this.enemies);
         if (t) {
-          const dmg = Math.max(1, Math.round(variance((p.int || 1) * 1.2) - this._evit(t) * 0.2));
+          const mr = this._resistCut(t, Math.max(1, Math.round(variance((p.int || 1) * 1.2) - this._evit(t) * 0.2)), "magResist");
+          if (mr.immune) {
+            this.log(`${p.name}の開幕呪撃！ ${t.name}には効かない！ (魔法無効)`, "hit");
+            this.openingResults.push({ side: "party", actor: p, action: "spell", spellKind: "atk", spellElement: "none", opening: "openSpell", hits: [{ target: t, dmg: 0, immune: true, died: false }] });
+            continue;
+          }
+          const dmg = mr.dmg;
           t.hp -= dmg;
-          this.log(`${p.name}の開幕呪撃！ ${t.name}に ${dmg} ダメージ`, "hit");
+          this.log(`${p.name}の開幕呪撃！ ${t.name}に ${dmg} ダメージ${mr.tag ? " " + mr.tag : ""}`, "hit");
           if (t.asleep) t.asleep = false;
           const died = this._die(t);
           this.openingResults.push({ side: "party", actor: p, action: "spell", spellKind: "atk", spellElement: "none", opening: "openSpell", hits: [{ target: t, dmg, died }] });
@@ -1039,13 +1045,20 @@ export class Battle {
       let dmg = Math.max(1, Math.round((variance(Math.round(this._eatk(defender) * mul)) - Math.floor(this._evit(attacker) * 0.5)) * this._rowMul(defender, attacker)));
       let crit = false;
       if (cLv >= 3 && Math.random() < 0.06 + (defender.critBonus || 0)) { crit = true; dmg = Math.floor(dmg * 1.85); }
+      // 反撃も物理なので物理耐性を受ける (無効の敵には通らない)
+      const pr = this._resistCut(attacker, dmg, "physResist");
+      if (pr.immune) { this.log(`${defender.name}の反撃！ ${attacker.name}には効かない！ (物理無効)`, "hit"); return; }
+      dmg = pr.dmg;
       attacker.hp -= dmg;
       this.log(`${defender.name}の反撃！ ${attacker.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}`, "hit");
       this._die(attacker);
       return;
     }
     if (pv(defender, "divineCounter") && Math.random() < 0.20) {
-      const dmg = Math.max(1, variance(Math.round((defender.pie || 1) * 0.8)));
+      // 神罰は聖なる術の一撃: 魔法耐性を受ける
+      const mr = this._resistCut(attacker, Math.max(1, variance(Math.round((defender.pie || 1) * 0.8))), "magResist");
+      if (mr.immune) { this.log(`${defender.name}の神罰の鉄槌！ ${attacker.name}には効かない！ (魔法無効)`, "hit"); return; }
+      const dmg = mr.dmg;
       attacker.hp -= dmg;
       this.log(`${defender.name}の神罰の鉄槌！ ${attacker.name}に ${dmg} ダメージ`, "hit");
       this._die(attacker);
@@ -1074,11 +1087,29 @@ export class Battle {
     }
     // 二刀の理: 30%でINT×0.6の追撃呪文
     if (pv(actor, "twinArts") && Math.random() < 0.30) {
-      const dmg = Math.max(1, Math.round(variance((actor.int || 1) * 0.6) - this._evit(tgt) * 0.2));
+      const mr = this._resistCut(tgt, Math.max(1, Math.round(variance((actor.int || 1) * 0.6) - this._evit(tgt) * 0.2)), "magResist");
+      if (mr.immune) {
+        this.log(`二刀の理！ ${tgt.name}には効かない！ (魔法無効)`, "hit");
+        res.hits.push({ target: tgt, dmg: 0, immune: true, died: false });
+        return;
+      }
+      const dmg = mr.dmg;
       tgt.hp -= dmg;
-      this.log(`二刀の理！ ${tgt.name}に ${dmg} ダメージ`, "hit");
+      this.log(`二刀の理！ ${tgt.name}に ${dmg} ダメージ${mr.tag ? " " + mr.tag : ""}`, "hit");
       res.hits.push({ target: tgt, dmg, died: this._die(tgt) });
     }
+  }
+
+  // 物理耐性・魔法耐性 (耐性ランク 1〜3 → 50% / 75% / 100% 軽減)。key = "physResist" | "magResist"
+  // 敵だけが持つ。耐性3 (無効) なら dmg は 0 になり immune が立つ
+  _resistCut(tgt, dmg, key) {
+    let r = tgt && tgt.side === "enemy" ? (tgt[key] || 0) : 0;
+    if (r > 0 && r < 1) r = r >= 0.6 ? 2 : r >= 0.4 ? 1 : 0; // 旧形式 (割合) のまま保存された戦闘中の敵
+    r = Math.min(3, r | 0);
+    if (!r) return { dmg, tag: "", immune: false };
+    const rate = resistRate(r);
+    if (rate >= 1) return { dmg: 0, tag: RESIST_TAG[key][r] + "!", immune: true };
+    return { dmg: Math.max(1, Math.round(dmg * (1 - rate))), tag: RESIST_TAG[key][r] + "!", immune: false };
   }
 
   _physical(actor, tgt, opt = {}) {
@@ -1155,9 +1186,14 @@ export class Battle {
     // 隊列補正: 後衛は物理の与ダメ・被ダメが半減
     const rm = this._rowMul(actor, tgt);
     if (rm !== 1) dmg = Math.round(dmg * rm);
-    // 物理耐性: 頑強な敵は物理被ダメを割合カット (「物理がほとんど効かない」)
-    let resisted = false;
-    if (tgt.side === "enemy" && tgt.physResist) { dmg = Math.round(dmg * (1 - tgt.physResist)); resisted = true; }
+    // 物理耐性 (耐性ランク): 耐性1=50% / 耐性2=75% / 耐性3=無効
+    const pr = this._resistCut(tgt, dmg, "physResist");
+    if (pr.immune) {
+      // 物理無効: 傷ひとつ付かない (障壁も削れず、毒刃・怯ませ等の命中時効果も乗らない)
+      this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}には効かない！ (物理無効)`, actor.side === "party" ? "hit" : "dmg");
+      return { target: tgt, dmg: 0, crit: false, died: false, immune: true };
+    }
+    if (pr.tag) dmg = pr.dmg;
     // 障壁: 数回だけ被ダメを半減する敵 (回数制)
     let barriered = false;
     if (tgt.side === "enemy" && tgt._barrierLeft > 0) { tgt._barrierLeft--; dmg = Math.ceil(dmg * 0.5); barriered = true; }
@@ -1179,7 +1215,7 @@ export class Battle {
       this._die(actor);
     }
     // 属性・障壁・物理耐性は重なっても全部見えるように併記する
-    const eff = [em > 1 ? "弱点!" : em < 1 ? "耐性…" : "", barriered ? "障壁!" : "", resisted ? "物理耐性!" : ""]
+    const eff = [em > 1 ? "弱点!" : em < 1 ? "耐性…" : "", barriered ? "障壁!" : "", pr.tag]
       .filter(Boolean).map((t) => " " + t).join("");
     this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}${eff}`,
       actor.side === "party" ? "hit" : "dmg");
@@ -1239,7 +1275,7 @@ export class Battle {
           const hit = this._physical(actor, t, { power: sp.power, critBonus: sp.critBonus, debuff: sp.debuff, debuffDur: sp.dur, element: sp.element, intScale: sp.intScale, name: sp.name });
           res.hits.push(hit);
           dealt += hit.dmg || 0;
-          if (!hit.miss) connected = true;
+          if (!hit.miss && !hit.immune) connected = true; // 無効で弾かれた一撃は命中扱いにしない
           // 追い剥ぎ (plunder): この技で倒した敵は落とすゴールドが2倍になる
           if (sp.plunder && hit.died && t.gold) {
             t.gold = Math.round(t.gold * 2);
@@ -1274,9 +1310,14 @@ export class Battle {
         // 魔法弱点: 攻撃呪文の被ダメが増える (「魔法に弱い」)
         let magWeak = false;
         if (t.magWeak && t.magWeak > 1) { dmg = Math.round(dmg * t.magWeak); magWeak = true; }
-        // 魔法耐性: 攻撃呪文の被ダメを割合カット (「魔法がほとんど効かない」)
-        let magResisted = false;
-        if (t.magResist && t.magResist > 0) { dmg = Math.max(1, Math.round(dmg * (1 - t.magResist))); magResisted = true; }
+        // 魔法耐性 (耐性ランク): 耐性1=50% / 耐性2=75% / 耐性3=無効
+        const mr = this._resistCut(t, dmg, "magResist");
+        if (mr.immune) {
+          this.log(`${t.name}には効かない！ (魔法無効)`, "dmg");
+          res.hits.push({ target: t, dmg: 0, immune: true, died: false });
+          continue;
+        }
+        dmg = mr.dmg;
         if (pv(actor, "gokudoku") && t.ailment === "poison") dmg = Math.round(dmg * 1.3); // 毒責め
         { const evm = evDealMul(actor, t); if (evm !== 1) dmg = Math.max(1, Math.round(dmg * evm)); } // 迷宮のイベントの加護
         // 会心: 呪文会心パッシブ + 技固有の会心補正 (禁呪開帳など)
@@ -1285,7 +1326,7 @@ export class Battle {
         if (t.guard) dmg = Math.max(1, Math.ceil(dmg * (1 - t.guard))); // 金剛の護符: 呪文・ブレスの被ダメもカット
         t.hp -= dmg;
         dealt += dmg;
-        const eff = [em > 1 || magWeak ? "弱点!" : em < 1 ? "耐性…" : "", magResisted ? "魔法耐性!" : ""]
+        const eff = [em > 1 || magWeak ? "弱点!" : em < 1 ? "耐性…" : "", mr.tag]
           .filter(Boolean).map((t) => " " + t).join("");
         this.log(`${t.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}${eff}`, "dmg");
         if (t.asleep) t.asleep = false;
