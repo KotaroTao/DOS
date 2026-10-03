@@ -257,7 +257,7 @@ export function openTryIdentifyAll({ onDone } = {}) {
     const ngN = results.length - okN;
     h.update({
       banner: "鑑定の結果",
-      title: okN ? `${okN}点の正体が知れた` : "どの品も見抜けなかった",
+      title: okN ? `${okN}点の鑑定に成功` : "鑑定できなかった…",
       lines: [`成功 ${okN} ・ 失敗 ${ngN}${ngN ? " (失敗した品は商会でのみ鑑定できる)" : ""}`],
       body: (b) => buildSummary(b),
       footer: summaryFooter(),

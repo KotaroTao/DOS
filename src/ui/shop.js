@@ -529,7 +529,7 @@ function openRevealSheet(items) {
   };
   h = sheet.open({
     kind: "info", banner: "鑑定の結果", accent: "#7fd0ff",
-    title: `${items.length}点の正体が知れた`, ...view(),
+    title: `${items.length}点の鑑定に成功`, ...view(),
     className: "wpc-pick wpc-revealsheet",
     footer: [{ label: "閉じる", kind: "primary", onTap: (x) => x.close() }],
   });
