@@ -33,6 +33,10 @@ const G = () => game.G;
 const SEGS = ["decree", "codex", "ach", "treasury"];
 
 function curSeg() { const s = remember("seg", "palace"); return SEGS.includes(s) ? s : "decree"; }
+// 図鑑の既定 (魔物 / 最初の迷宮) へ戻す
+function resetCodexView() { remember("seg", "codex", "mon"); remember("codex", "dungeon", 0); }
+// openPalace(seg) で区分を指定して入るときの印 (街の夜景・タブから入るときは勅命へ戻す)
+let pendingSeg = false;
 // 残りの高さを占める箱 (めくる格子の置き場)
 function fillArea(parent, cls = "") {
   const a = el("div", "pl-area" + (cls ? " " + cls : ""));
@@ -715,9 +719,12 @@ function renderTreasury(body) {
 }
 
 // ================= タブ =================
-function renderPalace(root) {
+function renderPalace(root, api) {
   const g = G();
   if (!g) return;
+  // 他のタブ・街から入ってきた: 区分の指定が無ければ勅命から
+  if (api && api.entered && !pendingSeg) { remember("seg", "palace", "decree"); resetCodexView(); }
+  pendingSeg = false;
   const wrap = el("div", "wa-page wa-fit pl");
   root.appendChild(wrap); // 先に繋ぐ (めくる格子が残りの高さを測るため)
   const kr = keeperRow("palace");
@@ -746,6 +753,7 @@ function renderPalace(root) {
   };
   const segEl = segmented(segs, seg, (k) => {
     sfx("select");
+    if (k === "codex") resetCodexView(); // 図鑑を押したら 魔物 / 最初の迷宮 から
     draw(k);
     softFade(body);
   }, { prefKey: "palace" });
@@ -763,12 +771,16 @@ export function openPalace(seg) {
     const [s, sub] = String(seg).split(":");
     if (SEGS.includes(s)) remember("seg", "palace", s);
     if (sub) remember("seg", "codex", sub);
+    else if (s === "codex") resetCodexView();
   }
   const g = G();
   if (!g || g.state !== "town" || !UI.shell) return false;
+  pendingSeg = !!seg;
   const t = g.town;
-  if (t.tab === "palace" && !t.page && !t.facility) { game.renderTown(); return true; }
-  return UI.shell.setTab("palace");
+  if (t.tab === "palace" && !t.page && !t.facility) { game.renderTown(); pendingSeg = false; return true; }
+  const ok = UI.shell.setTab("palace");
+  pendingSeg = false;
+  return ok;
 }
 
 export function install() {
@@ -779,5 +791,5 @@ export function install() {
     if (!c) return null;
     return c.ach || (c.donatable || c.treasuryReady ? true : null);
   };
-  if (UI.shell) UI.shell.registerTab("palace", { title: "王宮", render: (root) => renderPalace(root), badge: tabBadge });
+  if (UI.shell) UI.shell.registerTab("palace", { title: "王宮", render: (root, api) => renderPalace(root, api), badge: tabBadge });
 }
