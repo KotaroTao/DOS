@@ -265,10 +265,13 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 .rs-line-t { flex: 1 1 auto; min-width: 0; font-size: 13.5px; line-height: 1.45; }
 .rs-line-t b { font-weight: 800; }
 .rs-lvnum { color: var(--accent-hi); font-weight: 800; }
+.rs-subtag { display: inline-block; margin-left: 6px; padding: 0 5px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.05em; line-height: 1.6; vertical-align: 1px; color: #c8b6e8; border: 1px solid #5a4a78; border-radius: 2px; background: rgba(90,74,120,0.22); }
+.rs-lv-sub .rs-lvnum { color: #c8b6e8; }
 .rs-sub { font-size: 11.5px; color: var(--ink-dim); line-height: 1.5; margin-top: 2px; }
 .rs-sub.up { color: var(--up); font-weight: 700; }
 .rs-ic { flex: 0 0 auto; width: 9px; height: 9px; margin-top: 6px; transform: rotate(45deg); }
 .rs-ic.up { background: linear-gradient(135deg, #b9f0b0, #3c9a5a); box-shadow: 0 0 8px rgba(110,220,140,0.7); }
+.rs-ic.up.sub { background: linear-gradient(135deg, #e0d0ff, #6a52a8); box-shadow: 0 0 8px rgba(170,140,240,0.7); }
 .rs-ic.sk { background: linear-gradient(135deg, #bfe0ff, #3c78c8); box-shadow: 0 0 8px rgba(110,170,255,0.7); }
 .rs-chev { flex: 0 0 auto; align-self: center; color: #8a6d2e; font-size: 16px; font-weight: 800; }
 .rs-soul { border-color: color-mix(in srgb, var(--glow, #8a6d2e) 45%, #2c2427); }
