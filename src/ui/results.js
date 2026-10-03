@@ -328,7 +328,7 @@ export function openWipe(spec = {}) {
 }
 
 // ================= 踏破の祝祭 =================
-// spec: { name, layer, isStoryTarget, layerBoss, last, onShare, onGo }
+// spec: { name, layer, isStoryTarget, layerBoss, last, onGo, onStay }
 export function celebrateClear(spec = {}) {
   const g = G();
   if (g) g.prompt = true;
@@ -338,7 +338,8 @@ export function celebrateClear(spec = {}) {
   else if (spec.last) lines.push("すべての迷宮を制覇した。あなたは伝説となった。");
   else lines.push("さらなる深淵が、まだそなたを待っている。");
   const footer = [{ label: "街へ凱旋する", kind: "primary", size: "lg", onTap: (h) => { if (gone) return; gone = true; h.close("ok", { silent: true }); const gg = G(); if (gg) gg.prompt = false; if (spec.onGo) spec.onGo(); } }];
-  if (spec.onShare) footer.push({ label: "戦果を伝える", kind: "ghost", onTap: () => spec.onShare() });
+  // まだ探索する: 街へ戻らず盤面に残る (主は討ったので、下の「帰還」からいつでも凱旋できる)
+  if (spec.onStay) footer.push({ label: "まだ探索する", kind: "ghost", onTap: (h) => { if (gone) return; gone = true; h.close("ok", { silent: true }); const gg = G(); if (gg) gg.prompt = false; spec.onStay(); } });
   goldFlash("#ffd84a");
   return celebrate({
     banner: "★ 迷宮踏破 ★", accent: "#ffd84a", title: spec.name, art: ICONS.stairs, artScale: 8, lines, className: "rs-clear",
