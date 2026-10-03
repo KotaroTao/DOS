@@ -13,7 +13,7 @@ import { showSkillPopup, SPELL_KIND_LABEL } from "./itemview.js";
 import {
   SOUL_CLASSES, jobSprite, jobBust, soulByUid, soulRankOf, soulLevelCapOf, nextRankThreshold, jobRankName, soulSeriesName,
   soulLearnedSkills, soulLearnedPassives, passiveName, passiveDesc, ORDER_PERK, PASSIVES, orderPassiveMap, orderPerkLv,
-  jobSkillTable, recalcDoll,
+  jobSkillTable, recalcDoll, subPicks, subPickCap, toggleSubPick, subPickIndex,
 } from "../souls.js";
 import { SPELLS } from "../combat.js";
 import { crispCanvas } from "../sprites.js";
@@ -336,9 +336,7 @@ function subTiles(more, d, town) {
       r.appendChild(orb(se.clsKey, rank, 28));
       const tx = el("span", "sp-tile-tx");
       tx.appendChild(el("span", "sp-tile-n", `${jobRankName(se.clsKey, rank)} Lv${se.level}`));
-      const borrow = sub.passive ? passiveName(sub.passive, soulLearnedPassives(se)[sub.passive] || 1)
-        : sub.skill && SPELLS[sub.skill] ? SPELLS[sub.skill].name : "技を選ぶ";
-      tx.appendChild(el("span", "sp-tile-s", (sub.passive ? "加護: " : "技: ") + borrow));
+      tx.appendChild(el("span", "sp-tile-s", borrowLabel(sub, se)));
       r.appendChild(tx);
       main.appendChild(r);
     } else {
@@ -355,6 +353,16 @@ function subTiles(more, d, town) {
     }
     more.appendChild(tile);
   }
+}
+// サブ魂タイルの借用表示 (「借 2/3 名A・名B」)。効いている分 (覚えていて上限内) だけ数える
+function borrowLabel(sub, se) {
+  const cap = subPickCap(se);
+  const lp = soulLearnedPassives(se);
+  const learned = soulLearnedSkills(se);
+  const names = subPicks(sub).filter((p) => (p.passive ? lp[p.passive] : learned.includes(p.skill))).slice(0, cap)
+    .map((p) => (p.passive ? passiveName(p.passive, lp[p.passive] || 1) : SPELLS[p.skill] ? SPELLS[p.skill].name : p.skill));
+  if (!names.length) return `技を選ぶ (${cap}つまで)`;
+  return `借 ${names.length}/${cap} ${names.join("・")}`;
 }
 function lockedTile(k, text) {
   const t = el("div", "sp-tile locked");
@@ -461,7 +469,7 @@ export function openSoulPicker(d, slotId = "primary") {
   return sheet.open({
     kind: "info", className: "sp-pick-sheet",
     banner: isSub ? `サブ魂${si + 1} ― ${d.name}` : `メイン魂 ― ${d.name}`,
-    lines: [isSub ? "サブ魂は、覚えた技かパッシブを1つ貸し、能力の30%を足す。" : "メイン魂が、職業・能力・技を決める。"],
+    lines: [isSub ? "サブ魂は、覚えた技かパッシブを貸し、能力の30%を足す。貸す数は魂のランクで増える (R1-2:1 / R3-4:2 / R5:3)。" : "メイン魂が、職業・能力・技を決める。"],
     body: (scroll, h) => pickerBody(scroll, d, slotId, h),
   });
 }
@@ -474,7 +482,7 @@ function wearerOf(uid, self) {
 }
 // 魂を宿したら、能力がどう変わるか (器の写しで計算する。実体は書き換えない)
 function previewSoul(d, slotId, uid) {
-  const fake = { ...d, base: { ...d.base }, subs: (d.subs || []).map((s) => (s ? { ...s } : s)), spells: [], passives: [] };
+  const fake = { ...d, base: { ...d.base }, subs: (d.subs || []).map((s) => (s ? { ...s, picks: subPicks(s).map((p) => ({ ...p })) } : s)), spells: [], passives: [] };
   if (slotId === "primary") {
     fake.primary = uid;
     fake.subs = fake.subs.filter((x) => x && x.uid !== uid);
@@ -482,7 +490,7 @@ function previewSoul(d, slotId, uid) {
     const i = +slotId.slice(3);
     if (fake.primary === uid) fake.primary = null;
     const keep = fake.subs.filter((x) => x && x.uid !== uid);
-    keep[i] = { uid, skill: null };
+    keep[i] = { uid, picks: [] };
     fake.subs = keep.filter(Boolean);
   }
   try { recalcDoll(fake); } catch (e) { return null; }
@@ -574,6 +582,8 @@ function pickerBody(root, d, slotId, h) {
 }
 
 // ---- 宿し技を選ぶ (サブ魂) ----
+// 借りられる数は魂のランクで決まる (subPickCap)。1つの魂は選び直し=入れ替えで閉じ、
+// 2つ以上の魂は押すたびに借りる/外すを切り替え、閉じるまで選び続けられる。
 export function openSkillStep(d, subRef) {
   if (!d || !subRef) return null;
   const s = soulByUid(subRef.uid);
@@ -582,29 +592,43 @@ export function openSkillStep(d, subRef) {
   const passives = soulLearnedPassives(s);
   const pkeys = Object.keys(passives);
   if (!learned.length && !pkeys.length) { sfx("ng"); toast("この魂はまだ技もパッシブも覚えていない", { tone: "info" }); return null; }
-  const apply = (h) => {
-    recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp);
-    sfx("select"); h.close();
+  const cap = subPickCap(s);
+  const refit = () => { recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp); };
+  // 効いている借用 (覚えている分・上限内) の数
+  const usedCount = () => subPicks(subRef).filter((p) => (p.passive ? passives[p.passive] : learned.includes(p.skill))).slice(0, cap).length;
+  const pick = (h, kind, key) => {
+    // 1つしか借りられない魂で、いま借りているものを押した → そのまま閉じる (空にはしない)
+    if (cap === 1 && subPickIndex(subRef, kind, key) >= 0) { sfx("select"); h.close(); return; }
+    // 覚えていない (古い) 借用が枠を塞がないよう、選ぶ前に落としておく
+    const cur = subPicks(subRef);
+    for (let i = cur.length - 1; i >= 0; i--) { const p = cur[i]; if (!(p.passive ? passives[p.passive] : learned.includes(p.skill))) cur.splice(i, 1); }
+    if (!toggleSubPick(subRef, kind, key)) { sfx("ng"); toast(`この魂から借りられるのは${cap}つまで ― 先にどれかを外す`, { tone: "info" }); return; }
+    refit(); sfx("select");
     if (game.autosave) game.autosave(true);
-    if (game.renderTown) game.renderTown();
+    if (cap === 1) { h.close(); return; }
+    refreshSheet(h);
   };
   return sheet.open({
     kind: "info", className: "sp-pick-sheet", banner: "宿し技をえらぶ",
-    title: `${soulSeriesName(s.clsKey)}の魂 ― 1つだけ借りられる`,
+    title: `${soulSeriesName(s.clsKey)}の魂 ― ${cap}つまで借りられる`,
+    onClose: () => { if (game.renderTown) game.renderTown(); },
     body: (scroll, h) => {
+      const n = usedCount();
+      const note = cap >= 3 ? `借りている ${n}/${cap}` : `借りている ${n}/${cap} ・ 魂のランクを上げると借りられる数が増える (R3:2 / R5:3)`;
+      scroll.appendChild(el("div", "pt-note", note));
       const list = el("div", "pt-list");
       for (const sk of learned) {
         const sp = SPELLS[sk];
-        const on = subRef.skill === sk && !subRef.passive;
-        const r = row({ title: `${sp ? sp.name : sk}${on ? "（いま借りている）" : ""}`, sub: sp ? `${SPELL_KIND_LABEL[sp.kind] || ""} ・ MP${sp.mp} ・ ${sp.desc || ""}` : "",
-          tone: on ? "gold" : null, right: "技", onTap: () => { subRef.skill = sk; subRef.passive = null; apply(h); } });
+        const on = subPickIndex(subRef, "skill", sk) >= 0;
+        const r = row({ title: `${sp ? sp.name : sk}${on ? "（借りている）" : ""}`, sub: sp ? `${SPELL_KIND_LABEL[sp.kind] || ""} ・ MP${sp.mp} ・ ${sp.desc || ""}` : "",
+          tone: on ? "gold" : null, right: "技", onTap: () => pick(h, "skill", sk) });
         longPress(r, () => showSkillPopup(sk));
         list.appendChild(r);
       }
       for (const pk of pkeys) {
-        const on = subRef.passive === pk;
-        list.appendChild(row({ title: `${passiveName(pk, passives[pk])}${on ? "（いま借りている）" : ""}`, sub: passiveDesc(pk, passives[pk]),
-          tone: on ? "gold" : null, right: "加護", onTap: () => { subRef.passive = pk; subRef.skill = null; apply(h); } }));
+        const on = subPickIndex(subRef, "passive", pk) >= 0;
+        list.appendChild(row({ title: `${passiveName(pk, passives[pk])}${on ? "（借りている）" : ""}`, sub: passiveDesc(pk, passives[pk]),
+          tone: on ? "gold" : null, right: "加護", onTap: () => pick(h, "passive", pk) }));
       }
       scroll.appendChild(list);
     },

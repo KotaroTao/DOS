@@ -3,269 +3,9 @@ import { MONSTERS } from "./sprites.js";
 import { ITEMS, weaponRange } from "./items.js";
 import { elemDmgMult, monStats, rankStats, resistRate, RESIST_TAG } from "./dungeons/schema.js";
 
-export const SPELLS = {
-  HALITO: { name: "ファイアアロー", mp: 2, kind: "atk", power: 10, element: "fire", target: "enemy", desc: "炎の矢" },
-  MAHALITO: { name: "ファイアストーム", mp: 6, kind: "atk", power: 22, element: "fire", target: "all-enemy", desc: "業火" },
-  DIOS: { name: "ヒール", mp: 2, kind: "heal", power: 14, target: "ally", desc: "傷を癒す" },
-  DIAL: { name: "リカバー", mp: 4, kind: "heal", power: 28, target: "ally", desc: "大きく回復" },
-  KATINO: { name: "スリープ", mp: 3, kind: "sleep", power: 0, target: "all-enemy", desc: "敵を眠らせる" },
-  MADIOS: { name: "フルヒール", mp: 8, kind: "heal", power: 60, target: "ally", revive: true, desc: "大回復・蘇生" },
-  // 僧侶系の上位回復・蘇生
-  DIOSALL: { name: "ヒールオール", mp: 6, kind: "heal", power: 18, target: "all-ally", desc: "味方全員を回復" },
-  REVIVE: { name: "リバイブ", mp: 8, kind: "heal", power: 0, target: "ally", revive: true, revivePct: 0.5, desc: "戦闘不能をHP50%で蘇生" },
-  RESURRECT: { name: "リザレクション", mp: 14, kind: "heal", power: 0, target: "ally", revive: true, revivePct: 1.0, desc: "戦闘不能をHP100%で蘇生" },
-  // 攻撃呪文の頂点
-  TILTOWAIT: { name: "エクスプロージョン", mp: 16, kind: "atk", power: 48, element: "fire", target: "all-enemy", desc: "全体を消し飛ばす業火" },
-  MADALT: { name: "ブリザード", mp: 10, kind: "atk", power: 34, element: "water", target: "all-enemy", desc: "全体を貫く氷嵐" },
-  // 支援・治療・弱体 (バフ/デバフは六大ステ atk/vit/agi への倍率)
-  CURE: { name: "キュア", mp: 3, kind: "cure", target: "ally", desc: "毒・麻痺・石化を治す" },
-  BLESS: { name: "ブレス", mp: 4, kind: "buff", buff: { atk: 1.3 }, target: "ally", desc: "味方単体のATK UP" },
-  PROTECT: { name: "プロテクション", mp: 4, kind: "buff", buff: { vit: 1.3 }, target: "ally", desc: "味方単体のVIT UP" },
-  DISPEL: { name: "ディスペル", mp: 5, kind: "debuff", debuff: { atk: 0.75, vit: 0.8 }, target: "all-enemy", desc: "敵全体の能力DOWN" },
-  WARCRY: { name: "武者震い", mp: 5, kind: "buff", buff: { atk: 1.4 }, target: "self", desc: "自身のATK大UP" },
-  GUARDALL: { name: "守りの号令", mp: 6, kind: "buff", buff: { vit: 1.25 }, target: "all-ally", desc: "味方全体のVIT UP" },
-  IRONWALL: { name: "鉄壁", mp: 5, kind: "buff", buff: { vit: 1.6 }, target: "self", desc: "自身のVIT大UP" },
-  BLIND: { name: "目くらまし", mp: 4, kind: "debuff", debuff: { atk: 0.7 }, target: "enemy", desc: "敵単体のATK DOWN" },
-  // 物理技 (攻撃力依存)。hits=多段, critBonus=会心率加算, debuff=命中時に弱体
-  KYOUGEKI: { name: "強撃", mp: 3, kind: "phys", power: 1.8, target: "enemy", desc: "渾身の一撃" },
-  MIDARE: { name: "乱れ斬り", mp: 7, kind: "phys", power: 0.9, target: "all-enemy", desc: "全体を斬る" },
-  DOUBLE: { name: "二段斬り", mp: 4, kind: "phys", power: 1.0, hits: 2, target: "enemy", desc: "2回連続で斬る" },
-  ISSEN: { name: "一閃", mp: 8, kind: "phys", power: 3.0, target: "enemy", desc: "必殺の一撃" },
-  SHIELDBASH: { name: "シールドバッシュ", mp: 3, kind: "phys", power: 1.4, target: "enemy", desc: "盾で打ち据える" },
-  POISONSTAB: { name: "毒刃", mp: 4, kind: "phys", power: 1.2, debuff: { atk: 0.85 }, target: "enemy", desc: "毒の刃で弱らせる" },
-  ASSASSINATE: { name: "急所突き", mp: 6, kind: "phys", power: 1.6, critBonus: 0.5, target: "enemy", desc: "会心率の高い一撃" },
+import { SPELLS } from "./skilldefs.js";
+export { SPELLS };
 
-  // ---- キャラLv 28-50 帯の上位スキル ----
-  GOUZAN: { name: "豪斬", mp: 10, kind: "phys", power: 2.4, target: "enemy", desc: "鎧ごと断ち割る重い一刀" },
-  SENPUU: { name: "旋風斬", mp: 12, kind: "phys", power: 1.3, target: "all-enemy", desc: "竜巻のごとき回転斬り" },
-  ZANTETSU: { name: "斬鉄", mp: 16, kind: "phys", power: 4.2, target: "enemy", desc: "鉄をも両断する奥義の一閃" },
-  BOUJIN: { name: "防陣", mp: 10, kind: "buff", buff: { vit: 1.4 }, target: "all-ally", desc: "隊列を固める鉄の陣形" },
-  JOUMON: { name: "城門崩し", mp: 14, kind: "phys", power: 3.0, debuff: { vit: 0.8 }, target: "enemy", desc: "城門すら砕く渾身の盾撃" },
-  KAGENUI: { name: "影縫い", mp: 9, kind: "debuff", debuff: { agi: 0.6 }, target: "all-enemy", desc: "影を縫い止め敵全体を鈍らせる" },
-  ZETSUEI: { name: "絶影", mp: 14, kind: "phys", power: 1.1, hits: 3, critBonus: 0.25, target: "enemy", desc: "残像すら斬る神速の三連撃" },
-  LAHALITO: { name: "インフェルノ", mp: 11, kind: "atk", power: 36, element: "fire", target: "enemy", desc: "一体を焼き尽くす灼熱の業炎" },
-  SEISAI: { name: "星砕", mp: 22, kind: "atk", power: 64, target: "all-enemy", desc: "天より墜ちる星々が戦場を砕く" },
-
-  // ---- 職業スキル拡充 (Lv3/5/7/10/25/30/40 帯を埋める中間スキル) ----
-  // 物理技
-  TATEWARI: { name: "兜割り", mp: 4, kind: "phys", power: 1.3, debuff: { vit: 0.85 }, target: "enemy", desc: "兜ごと打ち据えてVITを下げる" },
-  NAGIHARAI: { name: "薙ぎ払い", mp: 6, kind: "phys", power: 0.7, target: "all-enemy", desc: "敵全体を薙ぎ払う" },
-  KIKOKU: { name: "きこく斬", mp: 13, kind: "phys", power: 3.4, target: "enemy", desc: "鬼すら泣かせる怒涛の一刀" },
-  KOTE: { name: "小手打ち", mp: 4, kind: "phys", power: 1.2, debuff: { atk: 0.85 }, target: "enemy", desc: "腕を打ちATKを下げる" },
-  KASUMEGIRI: { name: "霞斬り", mp: 4, kind: "phys", power: 1.0, debuff: { agi: 0.8 }, target: "enemy", desc: "足を裂きAGIを下げる" },
-  TSUJIKAZE: { name: "辻風", mp: 10, kind: "phys", power: 1.0, critBonus: 0.15, target: "all-enemy", desc: "旋風のごとく全体を斬り抜ける" },
-  OBORO: { name: "朧抜き", mp: 12, kind: "phys", power: 2.8, critBonus: 0.4, target: "enemy", desc: "朧の太刀筋で急所をえぐる" },
-  // 攻撃呪文 (属性のバリエーション)
-  ICENEEDLE: { name: "アイスニードル", mp: 3, kind: "atk", power: 13, element: "water", target: "enemy", desc: "氷の針" },
-  KAMAITACHI: { name: "かまいたち", mp: 4, kind: "atk", power: 17, element: "wind", target: "enemy", desc: "真空の刃" },
-  ROCKBLAST: { name: "ストーンブラスト", mp: 8, kind: "atk", power: 30, element: "earth", target: "enemy", desc: "岩塊の弾丸" },
-  HOLYRAY: { name: "聖光", mp: 3, kind: "atk", power: 14, element: "light", target: "enemy", desc: "聖なる光条" },
-  SAINTRAY: { name: "聖閃", mp: 9, kind: "atk", power: 24, element: "light", target: "all-enemy", desc: "敵全体を貫く浄化の閃光" },
-  // 回復・支援
-  DIALALL: { name: "リカバーオール", mp: 12, kind: "heal", power: 40, target: "all-ally", desc: "味方全員を大きく回復" },
-  OUJOU: { name: "王城の構え", mp: 18, kind: "buff", buff: { vit: 1.7 }, target: "all-ally", desc: "パーティ全体を城壁と化す究極の守り" },
-
-  // ---- 混成職のユニークスキル (Lv40 枠・全30職に1つずつ。他職は覚えない) ----
-  // 固有の追加効果プロパティ (該当スキルのみが持つ):
-  //   element(物理技にも属性が乗る) / drain(与ダメの%だけ自分のHP回復) /
-  //   mpDrain(与ダメの%だけ自分のMP回復) / sleepChance・flinchChance(命中後に付与) /
-  //   ailment(攻撃呪文が状態異常を付与) / plunder(この技で倒した敵のゴールド2倍) /
-  //   partyHeal(攻撃後に味方全体を回復) / cure(回復・支援と同時に状態異常を治す) /
-  //   grantEndure(対象に不屈を付与) / grantBarrier(味方全体に魔障壁を配る) /
-  //   debuffAll(本効果に加えて敵全体を弱体) / hpCost(最大HPの%を代償に払う)
-  // --- 戦士ベース ---
-  TSUBAMEGAESHI: { name: "燕返し", mp: 13, kind: "phys", power: 1.7, hits: 2, critBonus: 0.2, target: "enemy", desc: "返す刀が二度閃く侍の秘剣" },
-  MAENZAN: { name: "魔焔斬", mp: 12, kind: "phys", power: 2.8, element: "fire", target: "enemy", desc: "刃に纏わせた魔焔で焼き断つ" },
-  SEIKOUZAN: { name: "聖光斬", mp: 12, kind: "phys", power: 2.4, element: "light", drain: 0.35, target: "enemy", desc: "聖光の斬撃で祓い、己の傷を癒す" },
-  KIJINKUDAKI: { name: "鬼神砕き", mp: 14, kind: "phys", power: 3.1, debuff: { vit: 0.75 }, target: "enemy", desc: "鎧も砦も砕く鬼神の一撃" },
-  HAMANOKEN: { name: "破魔の拳", mp: 12, kind: "phys", power: 2.3, debuff: { atk: 0.8, vit: 0.85 }, target: "enemy", desc: "魔を祓う拳で敵の力を削ぐ" },
-  // --- 戦士 高レベル帯 (Lv85-200) ---
-  SANREN: { name: "三連斬", mp: 9, kind: "phys", power: 1.0, hits: 3, target: "enemy", desc: "三たび刃を振るう連撃" },
-  DAISENPUU: { name: "大旋風", mp: 16, kind: "phys", power: 1.8, target: "all-enemy", desc: "戦場を薙ぐ大回転斬り" },
-  YOROIDACHI: { name: "鎧断ち", mp: 18, kind: "phys", power: 5.0, debuff: { vit: 0.7 }, target: "enemy", desc: "鎧諸共断ち、VITを大きく下げる" },
-  KISHINKA: { name: "鬼神化", mp: 12, kind: "buff", buff: { atk: 1.7, agi: 1.2 }, target: "self", desc: "鬼神の力を宿し攻めを極める" },
-  SHURAZAN: { name: "修羅斬", mp: 20, kind: "phys", power: 5.8, target: "enemy", desc: "修羅の形相で振り下ろす一刀" },
-  RANBU: { name: "乱舞", mp: 16, kind: "phys", power: 0.8, hits: 4, target: "enemy", desc: "四連の乱舞で斬り刻む" },
-  HADAN: { name: "覇断", mp: 24, kind: "phys", power: 6.8, target: "enemy", desc: "覇気を込めて両断する" },
-  AMATSUKAZE: { name: "天津風", mp: 22, kind: "phys", power: 2.4, target: "all-enemy", desc: "天を裂く烈風の全体斬" },
-  TENCHIZAN: { name: "天地斬", mp: 28, kind: "phys", power: 8.0, target: "enemy", desc: "天地を断つ大上段の一刀" },
-  ROKUREN: { name: "六連斬", mp: 22, kind: "phys", power: 0.7, hits: 6, target: "enemy", desc: "六たび閃く神速の連撃" },
-  KIKOKURANBU: { name: "鬼哭乱舞", mp: 30, kind: "phys", power: 3.0, target: "all-enemy", desc: "鬼すら泣く全体乱舞" },
-  HAOUZAN: { name: "覇王斬", mp: 32, kind: "phys", power: 9.0, target: "enemy", desc: "覇王の名を冠す決死の一閃" },
-  METSUKYAKU: { name: "滅却・終ノ太刀", mp: 40, kind: "phys", power: 11.0, target: "enemy", desc: "全てを滅し去る戦士の終ノ太刀" },
-  // --- 騎士ベース ---
-  SEIHEKINOINORI: { name: "聖壁の祈り", mp: 14, kind: "heal", power: 22, buff: { vit: 1.2 }, target: "all-ally", desc: "パーティを癒し、守りを固める祈り" },
-  KOUBOUITTAI: { name: "攻防一体", mp: 10, kind: "buff", buff: { atk: 1.35, vit: 1.35 }, target: "self", desc: "攻めと守りを兼ねる無双の構え" },
-  SAKIGAKENOGOREI: { name: "先駆けの号令", mp: 10, kind: "buff", buff: { agi: 1.35 }, target: "all-ally", desc: "パーティ全体を疾風のごとく駆り立てる" },
-  MAGUINOTACHI: { name: "魔喰いの太刀", mp: 8, kind: "phys", power: 2.4, mpDrain: 0.25, target: "enemy", desc: "斬った魔力を喰らいMPに変える" },
-  SEIIKINOKANE: { name: "聖域の鐘", mp: 12, kind: "buff", buff: { vit: 1.2 }, cure: true, target: "all-ally", desc: "鐘の音がパーティを守り、穢れを祓う" },
-  // --- 騎士 高レベル帯 (Lv85-200) ---
-  SHIELDCHARGE: { name: "盾突進", mp: 10, kind: "phys", power: 2.4, debuff: { vit: 0.85 }, target: "enemy", desc: "盾ごと突進して打ち据える" },
-  SHUGOHOUKOU: { name: "守護咆哮", mp: 10, kind: "buff", buff: { vit: 1.4, atk: 1.2 }, target: "self", desc: "守護の咆哮で身を奮い立たせる" },
-  JOUSAITSUKI: { name: "城塞突き", mp: 18, kind: "phys", power: 5.0, debuff: { vit: 0.7 }, target: "enemy", desc: "城塞すら砕く渾身の突き" },
-  TEPPEKIJIN: { name: "鉄壁陣", mp: 16, kind: "heal", power: 18, buff: { vit: 1.3 }, target: "all-ally", desc: "鉄壁の陣形でパーティを守り癒す" },
-  FURAKUNOTATE: { name: "不落の盾", mp: 20, kind: "buff", buff: { vit: 1.7 }, target: "all-ally", desc: "崩れぬ盾でパーティ全体を守る" },
-  BANRAI: { name: "万雷の盾撃", mp: 24, kind: "phys", power: 6.8, target: "enemy", desc: "万雷のごとき盾の連打" },
-  TESSAINAGI: { name: "鉄盾薙ぎ", mp: 22, kind: "phys", power: 2.4, target: "all-enemy", desc: "大盾で敵全体を薙ぎ払う" },
-  SHUGOKEKKAI: { name: "守護結界", mp: 22, kind: "buff", buff: { vit: 1.5 }, grantBarrier: 1, target: "all-ally", desc: "結界でパーティを守り、魔障壁を配る" },
-  JOUSAIKUZUSHI: { name: "城塞崩し", mp: 28, kind: "phys", power: 8.0, debuff: { vit: 0.7 }, target: "enemy", desc: "城塞を崩す決死の一撃" },
-  KISHIOU: { name: "騎士王の威光", mp: 30, kind: "heal", power: 30, buff: { vit: 1.4 }, target: "all-ally", desc: "王の威光がパーティを癒し守りを高める" },
-  FUDOUJIN: { name: "不動明王陣", mp: 32, kind: "phys", power: 9.0, debuff: { vit: 0.7 }, target: "enemy", desc: "不動の構えから放つ決死の一撃" },
-  DAIGOUREI: { name: "守護の大号令", mp: 30, kind: "buff", buff: { vit: 1.6, atk: 1.25 }, target: "all-ally", desc: "パーティ全体の攻守を奮い立たせる号令" },
-  FURAKUJOU: { name: "不落城", mp: 40, kind: "heal", power: 40, buff: { vit: 1.8 }, target: "all-ally", desc: "パーティを鉄壁の城と化す騎士王の極み" },
-  // --- 盗賊ベース ---
-  KUBIKARI: { name: "首狩り", mp: 13, kind: "phys", power: 2.5, critBonus: 0.45, target: "enemy", desc: "獲物の首筋を狙う必殺の狩技" },
-  OIHAGI: { name: "追い剥ぎ", mp: 10, kind: "phys", power: 2.4, plunder: true, target: "enemy", desc: "倒した敵から金品を根こそぎ奪う" },
-  DOKUGIRI: { name: "毒霧", mp: 12, kind: "atk", power: 16, ailment: { type: "poison", chance: 0.65 }, target: "all-enemy", desc: "敵全体を蝕む毒の霧" },
-  HAJANOTACHI: { name: "破邪の太刀", mp: 12, kind: "phys", power: 2.3, element: "light", critBonus: 0.25, target: "enemy", desc: "聖別された刃で不浄を斬る" },
-  YOIYAMIUCHI: { name: "宵闇打ち", mp: 10, kind: "phys", power: 2.0, sleepChance: 0.5, target: "enemy", desc: "闇の祝詞を乗せた一撃で眠らせる" },
-  // --- 盗賊 高レベル帯 (Lv85-200) ---
-  SHIPPUTSUKI: { name: "疾風突き", mp: 10, kind: "phys", power: 2.4, target: "enemy", desc: "疾風のごとき鋭い刺突" },
-  ENGETSUJIN: { name: "円月刃", mp: 14, kind: "phys", power: 1.4, critBonus: 0.15, target: "all-enemy", desc: "円を描く刃が敵全体を裂く" },
-  MOUDOKUSASHI: { name: "猛毒刺し", mp: 14, kind: "phys", power: 2.6, debuff: { atk: 0.8, vit: 0.85 }, target: "enemy", desc: "猛毒を塗った刃で深く蝕む" },
-  KAGEUCHI: { name: "影討ち", mp: 14, kind: "phys", power: 1.0, hits: 3, critBonus: 0.3, target: "enemy", desc: "影から繰り出す三連の刺突" },
-  KUBIHANE: { name: "首はね", mp: 18, kind: "phys", power: 5.0, critBonus: 0.4, target: "enemy", desc: "急所を狙う一撃必殺の刃" },
-  RANBUTSUKI: { name: "乱舞突き", mp: 18, kind: "phys", power: 0.9, hits: 4, target: "enemy", desc: "舞うように刻む四連刺し" },
-  SHUNSATSU: { name: "瞬殺", mp: 22, kind: "phys", power: 6.0, critBonus: 0.5, target: "enemy", desc: "瞬きの間に急所を貫く" },
-  TSUMUJIKAZE: { name: "旋風乱れ", mp: 22, kind: "phys", power: 1.8, critBonus: 0.2, target: "all-enemy", desc: "旋風となって全体を斬り乱す" },
-  ZANKOU: { name: "斬光", mp: 24, kind: "phys", power: 0.8, hits: 5, critBonus: 0.3, target: "enemy", desc: "光の速さで刻む五連撃" },
-  ANSATSU: { name: "暗殺", mp: 28, kind: "phys", power: 8.0, critBonus: 0.6, target: "enemy", desc: "標的を確実に仕留める暗殺術" },
-  SENKOUZAN: { name: "閃光斬", mp: 28, kind: "phys", power: 2.4, critBonus: 0.25, target: "all-enemy", desc: "閃光のごとく全体を薙ぐ" },
-  HISSATSU: { name: "必殺奥義", mp: 32, kind: "phys", power: 9.0, critBonus: 0.5, target: "enemy", desc: "盗賊の極みたる必殺の一刺し" },
-  MUGEN: { name: "夢幻泡影", mp: 30, kind: "phys", power: 0.7, hits: 6, critBonus: 0.4, target: "enemy", desc: "幻のごとき六連の乱刺" },
-  ZANSEI: { name: "斬星", mp: 40, kind: "phys", power: 11.0, critBonus: 0.7, target: "enemy", desc: "星すら断つ大怪盗の奥義" },
-  // --- 魔術師ベース ---
-  SHINRANOSABAKI: { name: "森羅の裁き", mp: 15, kind: "atk", power: 36, target: "all-enemy", desc: "属性の理を超えた万象の裁き" },
-  MARYOKUGOUDATSU: { name: "魔力強奪", mp: 7, kind: "atk", power: 30, element: "dark", mpDrain: 0.3, target: "enemy", desc: "呪撃で敵を撃ち、魔力を奪い取る" },
-  MAFUUZAN: { name: "魔風斬", mp: 13, kind: "phys", power: 1.2, element: "wind", target: "all-enemy", desc: "理力の風で敵全体を斬り抜ける" },
-  KOUSHUNOHOUJIN: { name: "攻守の法陣", mp: 14, kind: "buff", buff: { vit: 1.25 }, debuffAll: { atk: 0.85 }, target: "all-ally", desc: "味方を守り敵を縛る二重の法陣" },
-  KINJUKAICHOU: { name: "禁呪開帳", mp: 12, kind: "atk", power: 38, element: "dark", critBonus: 0.25, target: "enemy", desc: "禁断のページを開き闇の呪撃を放つ" },
-  // --- 魔導士 高レベル帯 (Lv85-200) ---
-  RAITEI: { name: "落雷", mp: 9, kind: "atk", power: 28, element: "wind", target: "enemy", desc: "天を裂く落雷の一撃" },
-  HYORETSU: { name: "氷烈", mp: 14, kind: "atk", power: 40, element: "water", target: "enemy", desc: "凍てつく氷烈の槍" },
-  ENBU: { name: "炎舞", mp: 14, kind: "atk", power: 40, element: "fire", target: "all-enemy", desc: "渦巻く炎が敵全体を舞い焼く" },
-  RAIJIN: { name: "雷神", mp: 16, kind: "atk", power: 46, element: "wind", target: "all-enemy", desc: "雷神の怒りが戦場を貫く" },
-  DAICHIWARI: { name: "大地割", mp: 16, kind: "atk", power: 50, element: "earth", target: "enemy", desc: "大地ごと敵を断ち割る" },
-  HYOUGA: { name: "氷河", mp: 20, kind: "atk", power: 56, element: "water", target: "all-enemy", desc: "全てを凍てつかせる氷河" },
-  GOKUEN: { name: "獄炎", mp: 20, kind: "atk", power: 64, element: "fire", target: "enemy", desc: "獄の業火で一体を焼き尽くす" },
-  RAIMEIRAN: { name: "雷鳴嵐", mp: 22, kind: "atk", power: 64, element: "wind", target: "all-enemy", desc: "天を裂く雷鳴の大嵐" },
-  METEOR: { name: "メテオ", mp: 26, kind: "atk", power: 80, element: "earth", target: "all-enemy", desc: "天より墜つる隕石の雨" },
-  ZETTAIREIDO: { name: "絶対零度", mp: 26, kind: "atk", power: 90, element: "water", target: "enemy", desc: "絶対零度が一体を凍砕する" },
-  GOKUENRAN: { name: "獄炎嵐", mp: 30, kind: "atk", power: 90, element: "fire", target: "all-enemy", desc: "獄炎の大嵐が戦場を呑む" },
-  KOKUUHA: { name: "虚空波", mp: 30, kind: "atk", power: 100, element: "dark", target: "enemy", desc: "虚空より放つ闇の波動" },
-  TENPENCHII: { name: "天変地異", mp: 36, kind: "atk", power: 110, target: "all-enemy", desc: "天地を覆す大災厄" },
-  KYOKUDAI: { name: "極大消滅", mp: 44, kind: "atk", power: 140, target: "all-enemy", desc: "万象を消滅させる極大呪文" },
-  // --- 僧侶ベース ---
-  SEIMAICHINYO: { name: "聖魔一如", mp: 14, kind: "atk", power: 22, element: "light", partyHeal: 14, target: "all-enemy", desc: "聖光で敵を焼き、返す光でパーティを癒す" },
-  DANZAINOTSUCHI: { name: "断罪の鉄槌", mp: 12, kind: "phys", power: 2.3, element: "light", flinchChance: 0.35, target: "enemy", desc: "断罪の聖槌が敵を打ち据え怯ませる" },
-  KONGOURENDA: { name: "金剛連打", mp: 13, kind: "phys", power: 0.95, hits: 3, target: "enemy", desc: "金剛の拳による怒涛の三連打" },
-  KASUMINOTOBARI: { name: "霞の帳", mp: 12, kind: "heal", power: 16, debuffAll: { atk: 0.8 }, target: "all-ally", desc: "霞がパーティを癒し、敵の目を曇らせる" },
-  DAISEIKITOU: { name: "大聖祈祷", mp: 14, kind: "heal", power: 30, cure: true, target: "all-ally", desc: "パーティを癒し穢れを祓う大いなる祈り" },
-  // --- 僧侶 高レベル帯 (Lv85-200) ---
-  SHINSEIKO: { name: "神聖光", mp: 14, kind: "atk", power: 40, element: "light", target: "enemy", desc: "神聖な光で敵を裁く" },
-  SHINYU: { name: "神癒", mp: 16, kind: "heal", power: 100, target: "ally", desc: "神の癒しで深手を塞ぐ" },
-  SEIBETSU: { name: "聖別", mp: 16, kind: "buff", buff: { vit: 1.3 }, cure: true, target: "all-ally", desc: "聖別の祈りでパーティを守り穢れを祓う" },
-  IYASHINAMI: { name: "癒しの波", mp: 22, kind: "heal", power: 70, target: "all-ally", desc: "癒しの大波がパーティを包む" },
-  SEIMETSUKOU: { name: "聖滅光", mp: 20, kind: "atk", power: 50, element: "light", target: "all-enemy", desc: "全敵を浄化する聖滅の光" },
-  SHINBATSU: { name: "神罰", mp: 24, kind: "atk", power: 70, element: "light", target: "enemy", desc: "天より下る神罰の一閃" },
-  SEISUISHO: { name: "聖水撒", mp: 18, kind: "heal", power: 26, cure: true, target: "all-ally", desc: "聖水を撒き、癒しと共に穢れを祓う" },
-  TENKEINOINORI: { name: "天啓の祈り", mp: 26, kind: "heal", power: 50, buff: { vit: 1.3 }, target: "all-ally", desc: "天啓がパーティを癒し守りを高める" },
-  SEIKOURETSU: { name: "聖光烈", mp: 28, kind: "atk", power: 90, element: "light", target: "enemy", desc: "凝縮した聖光が敵を撃ち抜く" },
-  FUKUIN: { name: "復活の福音", mp: 30, kind: "heal", power: 40, revive: true, revivePct: 0.6, target: "all-ally", desc: "倒れた味方を蘇らせ、パーティを癒す福音" },
-  SEIMETSUREKKOU: { name: "聖滅烈光", mp: 30, kind: "atk", power: 70, element: "light", target: "all-enemy", desc: "全敵を焼き払う聖滅の烈光" },
-  DAIFUKUIN: { name: "大福音", mp: 36, kind: "heal", power: 80, cure: true, target: "all-ally", desc: "パーティ全員を大きく癒し穢れを祓う祈り" },
-  KAMIWAZA: { name: "神の御業", mp: 44, kind: "heal", power: 999, cure: true, revive: true, revivePct: 1.0, target: "all-ally", desc: "倒れた者すら完全に呼び戻す神の御業" },
-  // --- 魔導僧ベース ---
-  SHINENNOHADOU: { name: "深淵の波動", mp: 13, kind: "atk", power: 44, element: "dark", target: "enemy", desc: "深淵より汲み上げた闇の波動" },
-  SEIKUNOKAGO: { name: "聖句の加護", mp: 12, kind: "heal", power: 36, grantEndure: true, target: "ally", desc: "癒しと共に死を退ける聖句を授ける" },
-  SHASHINNOGYOU: { name: "捨身の行", mp: 8, kind: "phys", power: 3.6, hpCost: 0.15, target: "enemy", desc: "身を削って放つ捨身の荒行" },
-  HOUSHOUHEKI: { name: "法障壁", mp: 13, kind: "buff", grantBarrier: 1, target: "all-ally", desc: "パーティ全体に魔を防ぐ障壁を張る" },
-  MEIKONGURAI: { name: "冥魂喰らい", mp: 10, kind: "atk", power: 28, element: "dark", drain: 0.5, target: "enemy", desc: "闇で魂を喰らい己の命とする" },
-  // --- 伝説職固有スキル ---
-  SEIKEN: { name: "聖剣奮迅", mp: 14, kind: "atk", power: 20, element: "light", partyHeal: 16, target: "all-enemy", desc: "聖剣の輝きで敵を薙ぎ、返す光でパーティを癒す" },
-  ASHURAZAN: { name: "阿修羅斬", mp: 15, kind: "phys", power: 0.8, hits: 5, target: "enemy", desc: "阿修羅の怒涛の五連斬" },
-  RYUZETSU: { name: "竜墜とし", mp: 16, kind: "phys", power: 5.0, target: "enemy", desc: "竜の力を解き放つ渾身の一撃" },
-
-  // ===== 属性技の拡充 (6属性 × 物理/呪文を満遍なく。各職の得意属性は souls.js の JOB_AFFINITY) =====
-  // 属性ごとの物理技の持ち味: 火=威力 / 水=AGI低下 / 風=多段・会心 / 土=VIT低下・怯み / 光=HP吸収 / 闇=MP吸収・ATK低下
-  // 段階: 壱(低Lv単体) / 弐(低Lv全体) / 参(中Lv単体) / 肆(高Lv単体) / 伍(高Lv全体)
-  // --- 魔法剣 (魔法剣士系の低Lv技): intScale = INT×倍率×係数を上乗せ (ATKとINTの両方で伸びる) ---
-  MAKEN_FIRE:  { name: "魔法剣・火", mp: 4, kind: "phys", power: 1.4, intScale: 0.6, element: "fire", target: "enemy", desc: "刃に炎の術を宿して斬る" },
-  MAKEN_WATER: { name: "魔法剣・水", mp: 4, kind: "phys", power: 1.2, intScale: 0.6, element: "water", debuff: { agi: 0.85 }, target: "enemy", desc: "冷たい水の術を宿した刃で足を鈍らせる" },
-  MAKEN_WIND:  { name: "魔法剣・風", mp: 4, kind: "phys", power: 0.7, hits: 2, intScale: 0.6, element: "wind", target: "enemy", desc: "風の術を宿した刃で二度斬る" },
-  MAKEN_EARTH: { name: "魔法剣・土", mp: 4, kind: "phys", power: 1.2, intScale: 0.6, element: "earth", debuff: { vit: 0.85 }, target: "enemy", desc: "岩の術を宿した重い刃で守りを削ぐ" },
-  MAKEN_LIGHT: { name: "魔法剣・光", mp: 4, kind: "phys", power: 1.2, intScale: 0.6, element: "light", drain: 0.15, target: "enemy", desc: "光の術を宿した刃で斬り、己を癒す" },
-  MAKEN_DARK:  { name: "魔法剣・闇", mp: 4, kind: "phys", power: 1.2, intScale: 0.6, element: "dark", mpDrain: 0.15, target: "enemy", desc: "闇の術を宿した刃で斬り、魔力をすする" },
-  // --- 火の物理技 (威力重視) ---
-  KAENGIRI:       { name: "火炎斬り", mp: 3, kind: "phys", power: 1.7, element: "fire", target: "enemy", desc: "炎を纏った刃で斬りつける" },
-  KAENNAGI:       { name: "火焔薙ぎ", mp: 8, kind: "phys", power: 0.85, element: "fire", target: "all-enemy", desc: "炎の刃で敵全体を薙ぐ" },
-  GURENZAN:       { name: "紅蓮斬", mp: 11, kind: "phys", power: 3.0, element: "fire", target: "enemy", desc: "紅蓮の炎ごと叩き斬る" },
-  GOUKADAN:       { name: "業火断", mp: 20, kind: "phys", power: 5.6, element: "fire", target: "enemy", desc: "業火を宿した刃で断ち切る" },
-  SHOUNETSURANBU: { name: "焦熱乱舞", mp: 28, kind: "phys", power: 2.6, element: "fire", target: "all-enemy", desc: "焦熱の乱舞が敵陣を焼き尽くす" },
-  // --- 水の物理技 (AGI低下) ---
-  SUIGETSU:   { name: "水月斬り", mp: 4, kind: "phys", power: 1.4, element: "water", debuff: { agi: 0.85 }, target: "enemy", desc: "水面の月のごとき刃で足を鈍らせる" },
-  UZUSHIO:    { name: "渦潮斬り", mp: 9, kind: "phys", power: 0.75, element: "water", debuff: { agi: 0.9 }, target: "all-enemy", desc: "渦巻く斬撃が敵全体を呑み、動きを鈍らせる" },
-  HYOUJIN:    { name: "氷刃", mp: 11, kind: "phys", power: 2.6, element: "water", debuff: { agi: 0.8 }, target: "enemy", desc: "凍てつく刃で斬り、動きを封じる" },
-  TOUGADAN:   { name: "凍牙断", mp: 20, kind: "phys", power: 5.0, element: "water", debuff: { agi: 0.7 }, target: "enemy", desc: "氷の牙で断ち、芯まで凍えさせる" },
-  DAIKAISHOU: { name: "大津波", mp: 28, kind: "phys", power: 2.3, element: "water", debuff: { agi: 0.85 }, target: "all-enemy", desc: "大津波のごとき斬撃が敵陣を呑む" },
-  // --- 風の物理技 (多段・会心) ---
-  SHIPPUUGIRI: { name: "疾風斬り", mp: 4, kind: "phys", power: 0.85, hits: 2, element: "wind", target: "enemy", desc: "疾風のごとき二連撃" },
-  REPPUU:      { name: "烈風斬", mp: 8, kind: "phys", power: 0.8, critBonus: 0.1, element: "wind", target: "all-enemy", desc: "烈風の刃が敵全体を切り裂く" },
-  FUUGA:       { name: "風牙", mp: 11, kind: "phys", power: 1.0, hits: 3, critBonus: 0.1, element: "wind", target: "enemy", desc: "風の牙が三度食らいつく" },
-  KAMIKAZE:    { name: "神風", mp: 21, kind: "phys", power: 1.4, hits: 4, critBonus: 0.15, element: "wind", target: "enemy", desc: "神風のごとき四連の斬撃" },
-  TENRAN:      { name: "天嵐", mp: 27, kind: "phys", power: 2.3, critBonus: 0.2, element: "wind", target: "all-enemy", desc: "天を覆う嵐の刃が敵陣を刻む" },
-  // --- 土の物理技 (VIT低下・怯み) ---
-  IWAKUDAKI:    { name: "岩砕き", mp: 4, kind: "phys", power: 1.4, element: "earth", debuff: { vit: 0.85 }, target: "enemy", desc: "岩をも砕く一撃で守りを削ぐ" },
-  CHIRETSU:     { name: "地裂撃", mp: 9, kind: "phys", power: 0.75, element: "earth", flinchChance: 0.2, target: "all-enemy", desc: "大地を裂く衝撃が敵全体を揺るがす" },
-  GANOTOSHI:    { name: "岩落とし", mp: 12, kind: "phys", power: 2.6, element: "earth", debuff: { vit: 0.8 }, flinchChance: 0.2, target: "enemy", desc: "岩のごとき一撃で叩き伏せる" },
-  YAMAKUZUSHI:  { name: "山崩し", mp: 20, kind: "phys", power: 5.0, element: "earth", debuff: { vit: 0.7 }, target: "enemy", desc: "山をも崩す剛撃で守りを砕く" },
-  DAICHIMEIDOU: { name: "大地鳴動", mp: 28, kind: "phys", power: 2.3, element: "earth", flinchChance: 0.25, target: "all-enemy", desc: "大地を鳴動させ敵陣を打ち砕く" },
-  // --- 光の物理技 (HP吸収) ---
-  KOUJIN:      { name: "光刃", mp: 4, kind: "phys", power: 1.4, element: "light", drain: 0.2, target: "enemy", desc: "光の刃で斬り、己の傷を癒す" },
-  KOURINZAN:   { name: "光輪斬", mp: 9, kind: "phys", power: 0.75, element: "light", drain: 0.1, target: "all-enemy", desc: "光の輪を描く斬撃で敵全体を斬る" },
-  SEIGEKI:     { name: "聖撃", mp: 12, kind: "phys", power: 2.6, element: "light", drain: 0.25, target: "enemy", desc: "聖なる力を込めた一撃で打ち、癒しを得る" },
-  TENKOUKEN:   { name: "天光剣", mp: 21, kind: "phys", power: 5.0, element: "light", drain: 0.3, target: "enemy", desc: "天の光を束ねた剣で断ち、命を取り戻す" },
-  KOUBOURANBU: { name: "光芒乱舞", mp: 28, kind: "phys", power: 2.3, element: "light", drain: 0.15, target: "all-enemy", desc: "光芒の乱舞が敵陣を斬り払う" },
-  // --- 闇の物理技 (MP吸収・ATK低下) ---
-  YAMIBA:     { name: "闇刃", mp: 3, kind: "phys", power: 1.4, element: "dark", mpDrain: 0.15, target: "enemy", desc: "闇を纏う刃が魔力をすする" },
-  KOKUEINAGI: { name: "黒影薙ぎ", mp: 9, kind: "phys", power: 0.75, element: "dark", debuff: { atk: 0.9 }, target: "all-enemy", desc: "黒い影の刃で敵全体の力を削ぐ" },
-  MEIJIN:     { name: "冥刃", mp: 10, kind: "phys", power: 2.6, element: "dark", mpDrain: 0.2, target: "enemy", desc: "冥府の刃で斬り、魔力を奪う" },
-  MEIFUZAN:   { name: "冥府斬", mp: 20, kind: "phys", power: 5.0, element: "dark", mpDrain: 0.2, debuff: { atk: 0.8 }, target: "enemy", desc: "冥府へ引きずり込む斬撃で力と魔力を奪う" },
-  TOKOYAMI:   { name: "常闇", mp: 27, kind: "phys", power: 2.3, element: "dark", debuff: { atk: 0.85 }, target: "all-enemy", desc: "常闇が敵陣を覆い斬り裂く" },
-  // --- 属性呪文の空白を埋める (土・闇の低Lv、水・風・土の全体呪文など) ---
-  ISHITSUBUTE: { name: "石つぶて", mp: 3, kind: "atk", power: 12, element: "earth", target: "enemy", desc: "鋭い石つぶてを撃ち込む" },
-  EARTHQUAKE:  { name: "アースクエイク", mp: 7, kind: "atk", power: 22, element: "earth", target: "all-enemy", desc: "大地を揺らし敵全体を打つ" },
-  LANDSLIDE:   { name: "ランドスライド", mp: 12, kind: "atk", power: 36, element: "earth", target: "all-enemy", desc: "崩れ落ちる土砂が敵全体を呑む" },
-  GANSAI:      { name: "岩砕", mp: 26, kind: "atk", power: 88, element: "earth", target: "enemy", desc: "巨岩を落として一体を押し潰す" },
-  AQUAWAVE:    { name: "アクアウェイブ", mp: 6, kind: "atk", power: 20, element: "water", target: "all-enemy", desc: "押し寄せる水流が敵全体を打つ" },
-  ICELANCE:    { name: "アイスランス", mp: 9, kind: "atk", power: 32, element: "water", target: "enemy", desc: "氷の槍で一体を貫く" },
-  WINDSTORM:   { name: "ウィンドストーム", mp: 6, kind: "atk", power: 20, element: "wind", target: "all-enemy", desc: "吹き荒れる風が敵全体を裂く" },
-  TORNADO:     { name: "トルネード", mp: 10, kind: "atk", power: 34, element: "wind", target: "all-enemy", desc: "竜巻が敵全体を巻き上げる" },
-  GOURAI:      { name: "轟雷", mp: 24, kind: "atk", power: 76, element: "wind", target: "enemy", desc: "轟く雷が一体を撃ち抜く" },
-  HOLYLIGHT:   { name: "ホーリーライト", mp: 6, kind: "atk", power: 18, element: "light", target: "all-enemy", desc: "柔らかな聖光が敵全体を灼く" },
-  SHADOWBOLT:  { name: "シャドウボルト", mp: 3, kind: "atk", power: 13, element: "dark", target: "enemy", desc: "影の矢を放つ" },
-  DARKMIST:    { name: "ダークミスト", mp: 6, kind: "atk", power: 20, element: "dark", target: "all-enemy", desc: "闇の霧が敵全体を蝕む" },
-  DARKBLAST:   { name: "ダークブラスト", mp: 9, kind: "atk", power: 32, element: "dark", target: "enemy", desc: "凝縮した闇を一体に叩きつける" },
-  DARKNESS:    { name: "ダークネス", mp: 12, kind: "atk", power: 36, element: "dark", target: "all-enemy", desc: "深い闇が敵全体を呑み込む" },
-  MEIKOKU:     { name: "冥府の嘆き", mp: 21, kind: "atk", power: 66, element: "dark", target: "enemy", desc: "冥府の泣き声が一体の魂を裂く" },
-  MEIANRAN:    { name: "冥闇嵐", mp: 28, kind: "atk", power: 80, element: "dark", target: "all-enemy", desc: "冥府の闇が嵐となって戦場を呑む" },
-};
-
-// 強化/弱体 (atk/vit/agi 倍率) の持続ターン数を各スキルに個別設定する。
-// 同じ能力への同方向の効果は最大2段階(2回)まで重ねられ、各効果がこのターン数だけ持続する。
-// (ラウンド開始ごとに1減り、0で消える。未掲載の効果持ちスキルは既定3ターン)
-const BUFF_DURATIONS = {
-  BLESS: 3, PROTECT: 3, DISPEL: 3, WARCRY: 3, GUARDALL: 3, IRONWALL: 4, BLIND: 3,
-  POISONSTAB: 3, BOUJIN: 3, JOUMON: 3, KAGENUI: 3,
-  TATEWARI: 3, KOTE: 3, KASUMEGIRI: 3, OUJOU: 4,
-  KIJINKUDAKI: 3, HAMANOKEN: 3,
-  SEIHEKINOINORI: 3, KOUBOUITTAI: 4, SAKIGAKENOGOREI: 3, SEIIKINOKANE: 3,
-  KOUSHUNOHOUJIN: 3, KASUMINOTOBARI: 3,
-};
-for (const key in SPELLS) {
-  const sp = SPELLS[key];
-  if (sp.buff || sp.debuff || sp.debuffAll) sp.dur = BUFF_DURATIONS[key] || 3;
-}
 // 敵が使う自己強化 (enemyAct の WARCRY 相当) の既定持続ターン数
 export const ENEMY_BUFF_DUR = 3;
 
@@ -409,8 +149,12 @@ const variance = (base) => Math.max(1, base + rand(Math.ceil(base * 0.4)) - rand
 
 // 職業ランクパッシブのLvを引く (souls.js の recalcDoll が passiveMap を埋める)
 const pv = (a, key) => (a && a.passiveMap && a.passiveMap[key]) || 0;
+// テスト記録用の集計の器 (telemetry.js が読む)。pa/pe/pp = 味方の物理 試行/かわされた/見切られた、
+// ea/ee/ep = 敵の物理 同、of/op = 手番で味方が先だった組/総組、ft/fo/fs = 逃走 試行/成功/封じられた
+const newTally = () => ({ pa: 0, pe: 0, pp: 0, ea: 0, ee: 0, ep: 0, of: 0, op: 0, ft: 0, fo: 0, fs: 0 });
 // 破邪・聖刃の対象種族
 const HOLY_PREY = ["undead", "specter", "demon"];
+const VULN_LABEL = { fire: "火", water: "水", wind: "風", earth: "土", light: "光", dark: "闇", all: "全属性" };
 const enemyRace = (e) => (e && e.mon && e.mon.race) || null;
 // 迷宮のイベント (events.js) の加護: 与ダメ倍率 (_evDmg) と種族特効 (_evPrey)。game.js が戦闘開始時に人業へ付ける
 function evDealMul(actor, tgt) {
@@ -458,6 +202,8 @@ export class Battle {
     this.orderFleet = opts.orderFleet || 0; // 控えの結社 逃げ足のLv (0-3): 隊全体の逃走率に上乗せ
     this._roundNo = 0;
     this._bigBarrierUsed = 0;
+    this.bonusGold = 0; // 「盗む」で手に入れた金 (勝っても逃げても持ち帰る)
+    this.tally = newTally(); // テスト記録用の集計 (命中・手番・逃走)。判定には使わない
     for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._endureUsed = 0; a._grantEndure = false; }
     for (const p of party) {
       p._coverLeft = pv(p, "cover");
@@ -593,6 +339,99 @@ export class Battle {
     }
   }
 
+  // 能力倍率 (atk/vit/agi 以外の効果: seal/taunt/shield/ctr/charge/regen/hit/int/r_<属性>) を読む
+  _bm(t, k) { return (t && t.buffs && t.buffs[k]) || 1; }
+  // 属性耐性ダウン: その属性の被ダメ倍率 (r_fire 0.7 → ×1.43)。r_all は全属性に効く
+  _vulnMul(t, el) {
+    if (!el || el === "none") return 1;
+    return 1 / (this._bm(t, "r_" + el) * this._bm(t, "r_all"));
+  }
+  // 強化 (倍率>1) を打ち消す
+  _stripUp(t) {
+    if (!t.effects || !t.effects.some((e) => e.mult > 1)) return false;
+    t.effects = t.effects.filter((e) => !(e.mult > 1));
+    this._recalcBuffs(t);
+    return true;
+  }
+  // 弱体 (倍率<1) を解く
+  _purgeDown(t) {
+    if (!t.effects || !t.effects.some((e) => e.mult < 1)) return false;
+    t.effects = t.effects.filter((e) => !(e.mult < 1));
+    this._recalcBuffs(t);
+    return true;
+  }
+  // 溜め: 乗っていれば倍率を返して消費する
+  _takeCharge(a) {
+    const ef = a.effects && a.effects.find((e) => e.stat === "charge");
+    if (!ef) return 1;
+    a.effects.splice(a.effects.indexOf(ef), 1);
+    this._recalcBuffs(a);
+    return ef.mult;
+  }
+  // 仁王立ち: 味方への単体攻撃を肩代わりする者 (本人以外・行動できる者)
+  _shieldFor(tgt) {
+    if (tgt.side !== "party") return null;
+    for (const p of this.party) {
+      if (p === tgt || !p.alive || this._bm(p, "shield") <= 1) continue;
+      if (p.asleep || p.ailment === "paralyze" || p.ailment === "stone") continue;
+      return p;
+    }
+    return null;
+  }
+  // 命中した敵へ付く効果 (物理技・攻撃呪文・弱体の共通): 毒/麻痺/封印/属性耐性ダウン/打ち消し/眠り/怯み/即死。
+  // 主 (ボス) には状態異常・封印の確率が半分。即死は主に効かず、強敵には半分
+  _inflict(actor, t, sp, out) {
+    if (!t || !t.alive || t.side !== "enemy") return;
+    const bossMul = t.boss ? 0.5 : 1;
+    const tags = out || [];
+    if (sp.strip && this._stripUp(t)) { this.log(`${t.name}の強化が消え去った！`, "hit"); tags.push("strip"); }
+    if (sp.vuln) {
+      for (const el in sp.vuln) this._applyMod(t, "r_" + el, sp.vuln[el], sp.dur, sp.name);
+      tags.push("vuln");
+    }
+    if (sp.poison && Math.random() < sp.poison.chance * bossMul) {
+      if (!t.ailment || (t.ailment === "poison" && (t._poisonPct || 0.05) < sp.poison.pct)) {
+        const up = t.ailment === "poison";
+        t.ailment = "poison"; t._poisonPct = sp.poison.pct;
+        this.log(up ? `${t.name}の毒が強まった！` : `${t.name}は毒に侵された！`, "hit");
+        tags.push("poison");
+      }
+    }
+    if (sp.para && !t.ailment && Math.random() < sp.para * bossMul) {
+      t.ailment = "paralyze";
+      this.log(`${t.name}は痺れて動きが鈍った！`, "hit");
+      tags.push("para");
+    }
+    if (sp.seal) {
+      if (Math.random() < sp.seal.chance * bossMul) {
+        this._applyMod(t, "seal", 0.5, sp.seal.turns || 3, sp.name);
+        this.log(`${t.name}の特技を封じた！`, "hit");
+        tags.push("seal");
+      } else this.log(`${t.name}は封印を振り払った`, "sys");
+    }
+    if (sp.sleepChance && !t.asleep && Math.random() < sp.sleepChance) {
+      t.asleep = true;
+      this.log(`${t.name}は深い眠りに落ちた`, "sys");
+    }
+    if (sp.flinchChance && !t.boss && !t._flinch && Math.random() < sp.flinchChance) {
+      t._flinch = true;
+      this.log(`${t.name}は怯んだ！`, "hit");
+    }
+    if (sp.instakill) {
+      const ik = sp.instakill;
+      const race = enemyRace(t);
+      if (t.boss) this.log(`${t.name}に死の力は届かない`, "sys");
+      else if (ik.races && !ik.races.includes(race)) this.log(`${t.name}には効かない`, "sys");
+      else if (Math.random() < ik.chance * (t.mon && t.mon.elite ? 0.5 : 1)) {
+        t.hp = 0;
+        this.log(`${t.name}の命の灯が消えた！`, "hit");
+        tags.push("instakill");
+        return this._die(t);
+      } else this.log(`${t.name}は死を免れた`, "sys");
+    }
+    return false;
+  }
+
   // AGI(+乱数)で行動順を組み直す。ラウンド開始時に毒のダメージが入る。
   // 第1ラウンドは先制/奇襲なら片側のみが行動する
   _startRound() {
@@ -600,7 +439,10 @@ export class Battle {
     if (this._roundNo > 1) this._tickEffects(); // 2ラウンド目以降、強化/弱体の持続を消化
     for (const a of [...this.party, ...this.enemies]) {
       if (!a.alive || a.ailment !== "poison") continue;
-      const d = Math.max(1, Math.round(a.maxhp * 0.05));
+      // 毒の強さは付けた技しだい (既定5%)。主には半分 (5%以下はそのまま)
+      let pct = a._poisonPct || 0.05;
+      if (a.boss && pct > 0.05) pct = Math.max(0.05, pct * 0.5);
+      const d = Math.max(1, Math.round(a.maxhp * pct));
       a.hp -= d;
       this.log(`${a.name}は毒に蝕まれた (${d})`, "dmg");
       this._die(a);
@@ -623,6 +465,16 @@ export class Battle {
         this.log(`${p.name}の傷が再生していく (${h})`, "heal");
       }
     }
+    // リジェネ (技の効果): 2ラウンド目以降、最大HPの割合だけ回復する
+    if (this._roundNo > 1) {
+      for (const p of this.livingParty()) {
+        const rg = this._bm(p, "regen");
+        if (rg <= 1 || p.hp >= p.maxhp) continue;
+        const h = Math.max(1, Math.round(p.maxhp * (rg - 1)));
+        p.hp = Math.min(p.maxhp, p.hp + h);
+        this.log(`${p.name}の傷が癒えていく (${h})`, "heal");
+      }
+    }
     // 激昂: HPが3割を切った敵が一度だけ荒れ狂い、ATK/AGI が跳ね上がる
     for (const e of this.livingEnemies()) {
       if (!e.enrage || e._enraged || !e.maxhp || e.hp > e.maxhp * 0.3) continue;
@@ -640,7 +492,19 @@ export class Battle {
       .filter((a) => a.alive)
       // 加速装置 (actFirst) は必ず手番の最初に行動する。同士の中では AGI 順
       .sort((a, b) => ((b.actFirst ? 1 : 0) - (a.actFirst ? 1 : 0)) || ((eagi(b) + rand(4)) - (eagi(a) + rand(4))));
+    // テスト記録: 味方と敵の組のうち、味方が先に動く組の数 (先制・奇襲の1ラウンド目は片側だけなので数えない)
+    const T = this._tally();
+    let seenP = 0;
+    for (const a of this.queue) {
+      if (a.side === "party") seenP++;
+      else { T.of += seenP; }
+    }
+    const np = this.queue.filter((a) => a.side === "party").length;
+    T.op += np * (this.queue.length - np);
   }
+
+  // テスト記録の集計 (中断セーブから戻った古い戦闘にも器を用意する)
+  _tally() { return this.tally || (this.tally = newTally()); }
 
   // 次の手番へ。味方なら input (行動不能なら stunned)、敵なら enemy フェーズで止まる
   advance() {
@@ -723,7 +587,9 @@ export class Battle {
     const heals = sp.kind === "heal" && (sp.power || 0) > 0;
     const revives = !!sp.revive;
     const cures = sp.kind === "cure" || !!sp.cure;
-    const otherBenefit = !!(sp.buff || sp.grantEndure || sp.grantBarrier); // 満タンでも有効な効果
+    const otherBenefit = !!(sp.buff || sp.grantEndure || sp.grantBarrier || sp.regen); // 満タンでも有効な効果
+    if (sp.kind === "mana") return this.party.filter((t) => t.alive && (t.maxmp || 0) > 0 && t.mp < t.maxmp);
+    if (sp.kind === "cure" && sp.purge) return this.party.filter((t) => t.alive && (t.ailment || (t.effects || []).some((e) => e.mult < 1)));
     return this.party.filter((t) => {
       if (!t.alive) return revives;            // 死者は蘇生呪文のみ
       if (otherBenefit) return true;
@@ -764,8 +630,22 @@ export class Battle {
       this._checkEnd();
       return res;
     }
+    // 麻痺: 35%で解ける。解けなければ 60%で手番を失う
+    if (actor.ailment === "paralyze") {
+      if (Math.random() < 0.35) { actor.ailment = null; this.log(`${actor.name}の痺れが解けた`, "sys"); }
+      else if (Math.random() < 0.6) {
+        this.log(`${actor.name}は痺れて動けない！`, "sys");
+        const res = { actor, action: "stunned", side: actor.side, hits: [] };
+        this._checkEnd();
+        return res;
+      }
+    }
+    // 特技封じ: 役割 (回復・呼び出し) と特殊能力 (ブレス・状態異常など) を使えず、通常攻撃だけになる
+    const sealed = this._bm(actor, "seal") < 1;
     if (actor.asleep) {
       cmd = { actor, action: "sleep" };
+    } else if (sealed) {
+      cmd = { actor, action: "attack", target: this._pickPartyTarget() };
     } else {
       // 役割持ちの行動 (通常攻撃より優先): 回復役は傷ついた仲間を癒し、呼び手は仲間を呼ぶ
       if (actor.role === "healer") {
@@ -823,7 +703,7 @@ export class Battle {
     if (!list.length) return null;
     const pool = [];
     for (const p of list) {
-      const w = (this.isBackRow(p) ? 1 : 3) * (pv(p, "taunt") ? 3 : 1);
+      const w = (this.isBackRow(p) ? 1 : 3) * (pv(p, "taunt") ? 3 : 1) * Math.round(this._bm(p, "taunt"));
       for (let i = 0; i < w; i++) pool.push(p);
     }
     return pool[rand(pool.length)];
@@ -845,7 +725,10 @@ export class Battle {
     }
     if (action === "run") {
       // 迷宮の異変「閉ざされた退路」: 逃走そのものが封じられている
+      const T = this._tally();
+      T.ft++;
       if (this.noFlee) {
+        T.fs++;
         this.log("迷宮の異変が退路を閉ざしている！ 逃げられない！", "dmg");
         res.fledFail = true;
         return res;
@@ -854,7 +737,7 @@ export class Battle {
       const fleetSelf = this.party.some((p) => p.alive && pv(p, "fleetFoot")) ? 0.30 : 0;
       const fleetOrder = this.orderFleet >= 3 ? 0.60 : this.orderFleet >= 2 ? 0.45 : this.orderFleet >= 1 ? 0.30 : 0;
       const fleetBonus = Math.max(fleetSelf, fleetOrder);
-      if (Math.random() < Math.min(0.95, 0.55 + fleetBonus)) { this.result = "flee"; this.log("うまく逃げ出した！", "sys"); res.fled = true; }
+      if (Math.random() < Math.min(0.95, 0.55 + fleetBonus)) { this.result = "flee"; T.fo++; this.log("うまく逃げ出した！", "sys"); res.fled = true; }
       else { this.log(`${actor.name}は逃げられなかった！`, "dmg"); res.fledFail = true; }
       return res;
     }
@@ -866,10 +749,11 @@ export class Battle {
         // 連撃 (multistrike): 一手で続けざまに打つ (倒れたら次の標的へ)。敵の能力・味方のLR装飾品の双方で発動
         const strikes = (actor.multistrike > 1) ? Math.min(4, actor.multistrike) : 1;
         if (strikes > 1) this.log(`${actor.name}の${strikes}連撃！`, "dmg");
+        const chargeMul = actor.side === "party" ? this._takeCharge(actor) : 1; // 溜め: 次の一手が重くなる
         for (let s = 0; s < strikes; s++) {
           const t2 = tgt.alive ? tgt : (actor.side === "party" ? this._randAlive(this.attackableEnemies(actor)) : this._pickPartyTarget());
           if (!t2) break;
-          const h = this._physical(actor, t2, { basic: true });
+          const h = this._physical(actor, t2, { basic: true, chargeMul });
           res.hits.push(h);
           if (actor.side === "party") this._afterBasic(actor, t2, h, res);
         }
@@ -1060,9 +944,10 @@ export class Battle {
   _tryCounter(defender, attacker) {
     if (defender.side !== "party" || !defender.alive || !attacker || !attacker.alive) return;
     if (defender.asleep || defender.ailment === "paralyze" || defender.ailment === "stone") return;
-    const cLv = pv(defender, "counter");
-    if (cLv && Math.random() < [0, 0.15, 0.25, 0.35][cLv]) {
-      const mul = [0, 0.5, 0.7, 1.0][cLv];
+    let cLv = pv(defender, "counter");
+    const stance = this._bm(defender, "ctr") > 1; // 反撃の構え: 必ず ATK×1.0 で反撃
+    if (stance || (cLv && Math.random() < [0, 0.15, 0.25, 0.35][cLv])) {
+      const mul = stance ? 1.0 : [0, 0.5, 0.7, 1.0][cLv];
       // 反撃も物理なので隊列補正を受ける
       let dmg = Math.max(1, Math.round((variance(Math.round(this._eatk(defender) * mul)) - Math.floor(this._evit(attacker) * 0.5)) * this._rowMul(defender, attacker)));
       let crit = false;
@@ -1138,6 +1023,14 @@ export class Battle {
     // かばう: 瀕死の味方への攻撃は護衛役が肩代わりする
     let coverMul = 1;
     if (actor.side === "enemy" && tgt.side === "party") {
+      // 仁王立ち: 単体攻撃は構えた者がすべて受ける (かばうより先)
+      const sh = this._shieldFor(tgt);
+      if (sh) {
+        this.log(`${sh.name}が${tgt.name}の前に立ちはだかった！`, "sys");
+        tgt = sh;
+      }
+    }
+    if (actor.side === "enemy" && tgt.side === "party") {
       const g = this._coverFor(tgt);
       if (g) {
         g._coverLeft--;
@@ -1156,15 +1049,24 @@ export class Battle {
         tgt = g;
       }
     }
+    // テスト記録: 物理の試行 / 見切られた / かわされた (攻撃側ごと。味方 = p*、敵 = e*)
+    const T = this._tally(), tk = actor.side === "party" ? "p" : "e";
+    T[tk + "a"]++;
     // 見切り (parry): 確率で完全回避
     const pLvP = pv(tgt, "parry");
     if (pLvP && Math.random() < (pLvP >= 2 ? 0.15 : 0.10)) {
+      T[tk + "p"]++;
       this.log(`${tgt.name}は見切った！`, "sys");
       return { target: tgt, miss: true, evaded: true };
     }
-    // 命中判定: 素の命中漏れ + 対象の敏捷(AGI)による回避 + 回避持ちの追加回避
+    // 命中判定: 素の命中漏れ + 対象の敏捷(AGI)による回避 + 回避持ちの追加回避。
+    // 技の命中補正 (acc) は外れる確率をその割合だけ消す (1 = 必中)。目つぶし (hit<1) は外れる確率を足す
     const evade = Math.min(0.4, Math.max(0, ((tgt.agi || 6) - 6) * 0.012)) + (tgt.evasive ? 0.15 : 0);
-    if (Math.random() < 0.06 + evade) {
+    let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
+    const blind = this._bm(actor, "hit");
+    if (blind < 1) missP += Math.min(0.4, 1 - blind);
+    if (Math.random() < missP) {
+      T[tk + "e"]++;
       this.log(`${tgt.name}は攻撃をかわした！`, "sys");
       return { target: tgt, miss: true, evaded: true };
     }
@@ -1173,9 +1075,15 @@ export class Battle {
     const sb = pv(actor, "spellBlade");
     const sbAdd = sb ? Math.round((actor.int || 0) * (sb >= 2 ? 1.0 : 0.5) * power) : 0;
     // 魔法剣 (intScale): 技そのものが INT×倍率×係数 を上乗せする (ATKとINTの両方で伸びる)
+    // 同様に AGI (疾風の技) / VIT (盾の技) / PIE (聖なる技) で伸びる技もある
     const ibAdd = opt.intScale ? Math.round((actor.int || 0) * opt.intScale * power) : 0;
+    const stAdd = Math.round(((opt.agiScale || 0) * (actor.agi || 0) + (opt.vitScale || 0) * (actor.vit || 0) + (opt.pieScale || 0) * (actor.pie || 0)) * power);
+    // 背水 (desperate): 自分のHPが減るほど威力が上がる (最大2倍)
+    const despMul = opt.desperate && actor.maxhp ? 1 + Math.max(0, 1 - actor.hp / actor.maxhp) : 1;
+    // 鎧貫き (pierce): 相手のVITによる軽減をその割合だけ無視する
+    const defCut = Math.floor(this._evit(tgt) * 0.5 * (1 - Math.min(1, opt.pierce || 0)));
     // ダメージ = ATK×倍率×低HP補正 − VIT/2 (VITが被ダメージ軽減を担う)
-    let dmg = variance(Math.round(this._eatk(actor) * power * this._lowHpMul(actor))) + sbAdd + ibAdd - Math.floor(this._evit(tgt) * 0.5);
+    let dmg = Math.round((variance(Math.round(this._eatk(actor) * power * this._lowHpMul(actor))) + sbAdd + ibAdd + stAdd) * despMul * (opt.chargeMul || 1)) - defCut;
     if (tgt._defending) dmg = Math.floor(dmg * 0.5);
     // 城壁の構え: 防御中の持ち主がいれば隊全体の被ダメ-10%
     if (tgt.side === "party") {
@@ -1186,8 +1094,11 @@ export class Battle {
     // 属性相性: 攻撃属性 (技 > 装備の属性攻撃 > 固有属性) × 対象の固有属性/属性防御
     const aE = opt.element || (actor.elemAtk && actor.elemAtk.el) || actor.element || "none";
     const aLv = (actor.elemAtk && actor.elemAtk.el === aE) ? Math.max(1, actor.elemAtk.lv) : 1;
-    const em = elemDmgMult(aE, aLv, tgt.element || "none", edefOf(tgt));
+    const em = elemDmgMult(aE, aLv, tgt.element || "none", edefOf(tgt)) * this._vulnMul(tgt, aE);
     if (em !== 1) dmg = Math.round(dmg * em);
+    // とどめ (execute): HP30%以下の敵に倍率 / 種族特効 (prey)
+    if (opt.execute && tgt.maxhp && tgt.hp <= tgt.maxhp * 0.3) dmg = Math.round(dmg * opt.execute);
+    if (opt.prey && opt.prey.races.includes(enemyRace(tgt))) dmg = Math.round(dmg * opt.prey.mul);
     // 種族特効 (破邪) / 毒の獲物 (毒責め)
     if (pv(actor, "smite") && HOLY_PREY.includes(enemyRace(tgt))) dmg = Math.round(dmg * 1.3);
     if (pv(actor, "gokudoku") && tgt.ailment === "poison") dmg = Math.round(dmg * 1.3);
@@ -1273,7 +1184,7 @@ export class Battle {
     const sp = SPELLS[cmd.spellKey];
     actor.mp -= spellCost(actor, sp); // 省詠唱 (chant) 持ちは消費が軽い
     // 捨身 (hpCost): 最大HPの一定割合を代償に払う (HP1で踏みとどまる)。
-    // ダメージ計算より先に払うため、自ら瀕死に踏み込んで荒行の果てを起動できる
+    // ダメージ計算より先に払うため、自ら瀕死に踏み込んで荒行の果て・背水を起動できる
     if (sp.hpCost) {
       const cost = Math.max(1, Math.round((actor.maxhp || 1) * sp.hpCost));
       actor.hp = Math.max(1, actor.hp - cost);
@@ -1284,54 +1195,91 @@ export class Battle {
     res.spellKind = sp.kind;
     res.spellElement = sp.element || null;
     const isPhys = sp.kind === "phys";
-    this.log(isPhys ? `${actor.name}の ${sp.name}！` : `${actor.name}は ${sp.name} を唱えた！`, "hit");
+    this.log(isPhys || sp.tech ? `${actor.name}の ${sp.name}！` : `${actor.name}は ${sp.name} を唱えた！`, "hit");
     let dealt = 0; // この技で与えた総ダメージ (drain / mpDrain の吸収量の基準)
+    if (sp.kind === "escape") {
+      // 確実な逃走 (煙玉など): 迷宮の異変で退路が閉ざされている時だけ失敗する
+      const T = this._tally();
+      T.ft++;
+      if (this.noFlee) {
+        T.fs++;
+        this.log("迷宮の異変が退路を閉ざしている！ 逃げられない！", "dmg");
+        res.fledFail = true;
+      } else {
+        T.fo++;
+        this.result = "flee";
+        this.log("姿をくらまし、戦いから逃れた！", "sys");
+        res.fled = true;
+      }
+      return;
+    }
     if (isPhys) {
       // 物理技は通常攻撃と同じ計算系 (倍率/多段/会心/弱体)。element 持ちは属性が乗る
-      const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
-      const hits = sp.hits || 1;
-      for (const t of targets) {
-        let connected = false; // 1発でも命中したか (命中後の付与効果の条件)
+      const chargeMul = this._takeCharge(actor); // 溜め: この技の全段に乗る
+      const popt = {
+        power: sp.power, critBonus: sp.critBonus, debuff: sp.debuff, debuffDur: sp.dur, element: sp.element,
+        intScale: sp.intScale, agiScale: sp.agiScale, vitScale: sp.vitScale, pieScale: sp.pieScale,
+        acc: sp.acc, pierce: sp.pierce, desperate: sp.desperate, execute: sp.execute, prey: sp.prey,
+        chargeMul, name: sp.name,
+      };
+      // 矢の雨 (scatter): ランダムな敵へ N 回。それ以外は対象ごとに hits 回
+      const plan = [];
+      if (sp.scatter) for (let i = 0; i < sp.scatter; i++) plan.push(null);
+      else for (const t of (sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean))) plan.push(t);
+      const connected = new Set(); // 1発でも命中した敵 (命中後の付与効果の条件)
+      for (const t0 of plan) {
+        const t = t0 || this._randAlive(this.enemies);
+        if (!t) break;
+        const hits = sp.scatter ? 1 : (sp.hits || 1);
         for (let h = 0; h < hits; h++) {
           if (!t.alive) break;
-          const hit = this._physical(actor, t, { power: sp.power, critBonus: sp.critBonus, debuff: sp.debuff, debuffDur: sp.dur, element: sp.element, intScale: sp.intScale, name: sp.name });
+          const hit = this._physical(actor, t, popt);
           res.hits.push(hit);
           dealt += hit.dmg || 0;
-          if (!hit.miss && !hit.immune) connected = true; // 無効で弾かれた一撃は命中扱いにしない
+          const tt = hit.target || t; // 敵の護り手に肩代わりされることがある
+          if (!hit.miss && !hit.immune) connected.add(tt); // 無効で弾かれた一撃は命中扱いにしない
           // 追い剥ぎ (plunder): この技で倒した敵は落とすゴールドが2倍になる
-          if (sp.plunder && hit.died && t.gold) {
-            t.gold = Math.round(t.gold * 2);
-            this.log(`${actor.name}は${t.name}から金品を剥ぎ取った！`, "win");
+          if (sp.plunder && hit.died && tt.gold) {
+            tt.gold = Math.round(tt.gold * 2);
+            this.log(`${actor.name}は${tt.name}から金品を剥ぎ取った！`, "win");
           }
         }
-        // 命中後の付与: 眠らせ (宵闇打ち) / 怯ませ (断罪の鉄槌・主には効かない)
-        if (connected && t.alive && t.side === "enemy") {
-          if (sp.sleepChance && !t.asleep && Math.random() < sp.sleepChance) {
-            t.asleep = true;
-            this.log(`${t.name}は深い眠りに落ちた`, "sys");
-          }
-          if (sp.flinchChance && !t.boss && !t._flinch && Math.random() < sp.flinchChance) {
-            t._flinch = true;
-            this.log(`${t.name}は怯んだ！`, "hit");
-          }
-        }
+      }
+      for (const t of connected) {
+        // 盗む: 当たった敵の所持金の一部を奪う (1体につき1度)
+        if (sp.steal && t.side === "enemy" && !t._stolen && (t.gold || 0) > 0) {
+          const amt = Math.max(1, Math.round(t.gold * sp.steal));
+          t._stolen = true;
+          this.bonusGold = (this.bonusGold || 0) + amt;
+          this.log(`${actor.name}は${t.name}から ${amt}G を盗んだ！`, "win");
+          res.hits.push({ target: t, stole: amt });
+        } else if (sp.steal && t._stolen) this.log(`${t.name}はもう何も持っていない`, "sys");
+        if (t.alive) this._inflict(actor, t, sp);
       }
     } else if (sp.kind === "atk") {
       const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
       const scLv = pv(actor, "spellCrit"); // 呪文会心
+      const intv = (actor.int || 0) * this._bm(actor, "int"); // 精神統一: INT強化
       for (const t of targets) {
         if (!t.alive) continue;
-        // 呪文の属性は Lv1 扱い。同属性の属性攻撃を装備していれば、そのレベルで増幅される
-        const aLv = (actor.elemAtk && actor.elemAtk.el === sp.element) ? Math.max(1, actor.elemAtk.lv) : 1;
-        let em = elemDmgMult(sp.element || "none", aLv, t.element || "none", edefOf(t));
-        if (em < 1 && pv(actor, "elemFloor")) em = 1; // 森羅の理: 属性不利が出ない
-        // 攻撃呪文の威力は術者の INT で伸びる。低HP補正 (荒行の果て) も乗る
-        const power = sp.power + (actor.int || 0) * 0.5;
-        let dmg = Math.max(1, Math.round(variance(power) * this._lowHpMul(actor)) - Math.floor(this._evit(t) * 0.2));
-        if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
-        // 魔法弱点: 攻撃呪文の被ダメが増える (「魔法に弱い」)
-        let magWeak = false;
-        if (t.magWeak && t.magWeak > 1) { dmg = Math.round(dmg * t.magWeak); magWeak = true; }
+        let dmg, em = 1, magWeak = false;
+        if (sp.gravity) {
+          // 重力: 今のHPの割合を削る (属性・INT・会心に依らない)。主には3割しか効かない
+          dmg = Math.max(1, Math.round(t.hp * sp.gravity * (t.boss ? 0.3 : 1)));
+        } else {
+          // 呪文の属性は Lv1 扱い。同属性の属性攻撃を装備していれば、そのレベルで増幅される
+          const aLv = (actor.elemAtk && actor.elemAtk.el === sp.element) ? Math.max(1, actor.elemAtk.lv) : 1;
+          em = elemDmgMult(sp.element || "none", aLv, t.element || "none", edefOf(t));
+          if (em < 1 && pv(actor, "elemFloor")) em = 1; // 森羅の理: 属性不利が出ない
+          em *= this._vulnMul(t, sp.element); // 属性耐性ダウン
+          // 攻撃呪文の威力は術者の INT で伸びる。低HP補正 (荒行の果て) も乗る
+          const power = sp.power + intv * 0.5;
+          dmg = Math.max(1, Math.round(variance(power) * this._lowHpMul(actor)) - Math.floor(this._evit(t) * 0.2));
+          if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
+          // 魔法弱点: 攻撃呪文の被ダメが増える (「魔法に弱い」)
+          if (t.magWeak && t.magWeak > 1) { dmg = Math.round(dmg * t.magWeak); magWeak = true; }
+          if (sp.prey && sp.prey.races.includes(enemyRace(t))) dmg = Math.round(dmg * sp.prey.mul);
+        }
         // 魔法耐性 (耐性ランク): 耐性1=50% / 耐性2=75% / 耐性3=無効
         const mr = this._resistCut(t, dmg, "magResist");
         if (mr.immune) {
@@ -1342,8 +1290,8 @@ export class Battle {
         dmg = mr.dmg;
         if (pv(actor, "gokudoku") && t.ailment === "poison") dmg = Math.round(dmg * 1.3); // 毒責め
         { const evm = evDealMul(actor, t); if (evm !== 1) dmg = Math.max(1, Math.round(dmg * evm)); } // 迷宮のイベントの加護
-        // 会心: 呪文会心パッシブ + 技固有の会心補正 (禁呪開帳など)
-        const crit = Math.random() < (([0, 0.10, 0.18, 0.26][Math.min(scLv, 3)] || 0) + (sp.critBonus || 0));
+        // 会心: 呪文会心パッシブ + 技固有の会心補正 (禁呪開帳など)。重力は会心しない
+        const crit = !sp.gravity && Math.random() < (([0, 0.10, 0.18, 0.26][Math.min(scLv, 3)] || 0) + (sp.critBonus || 0));
         if (crit) dmg = Math.floor(dmg * 1.5);
         if (t.guard) dmg = Math.max(1, Math.ceil(dmg * (1 - t.guard))); // 金剛の護符: 呪文・ブレスの被ダメもカット
         t.hp -= dmg;
@@ -1352,50 +1300,76 @@ export class Battle {
           .filter(Boolean).map((t) => " " + t).join("");
         this.log(`${t.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}${eff}`, "dmg");
         if (t.asleep) t.asleep = false;
-        // 状態異常の付与 (毒霧): 命中した生存敵を蝕む
-        if (sp.ailment && t.alive && t.hp > 0 && !t.ailment && Math.random() < sp.ailment.chance) {
-          t.ailment = sp.ailment.type;
-          this.log(`${t.name}は${sp.ailment.type === "poison" ? "毒" : "異常"}に侵された！`, "hit");
+        const died = this._die(t);
+        const hit = { target: t, dmg, crit, eff: em > 1 || magWeak ? "weak" : em < 1 ? "resist" : null, died };
+        res.hits.push(hit);
+        if (!died && t.alive) {
+          // 呪文に付く弱体 (氷の槍の鈍足など) と、命中後の効果 (毒・麻痺・封印・耐性ダウン…)
+          if (sp.debuff) for (const k in sp.debuff) this._applyMod(t, k, sp.debuff[k], sp.dur, sp.name);
+          if (this._inflict(actor, t, sp)) hit.died = true;
         }
-        res.hits.push({ target: t, dmg, crit, eff: em > 1 || magWeak ? "weak" : em < 1 ? "resist" : null, died: this._die(t) });
       }
       // 聖魔一如 (partyHeal): 撃ち込んだ後、返す光が隊を癒す (PIEで伸びる)
-      if (sp.partyHeal) {
-        const hPow = sp.partyHeal + (actor.pie || 0) * 0.3;
-        for (const t of this.livingParty()) {
-          const heal = variance(hPow);
-          t.hp = Math.min(t.maxhp, t.hp + heal);
-          res.hits.push({ target: t, heal });
-        }
-        this.log("聖なる残光がパーティを癒した", "heal");
-      }
+      if (sp.partyHeal) this._partyHeal(actor, sp.partyHeal, res);
     } else if (sp.kind === "buff") {
       const targets = sp.target === "self" ? [actor] : sp.target === "all-ally" ? this.livingParty() : [cmd.target || actor].filter(Boolean);
-      let cured = false;
+      let cured = false, purged = false;
       for (const t of targets) {
-        for (const k in sp.buff) this._applyMod(t, k, sp.buff[k], sp.dur, sp.name);
+        const mods = { ...(sp.buff || {}) };
+        for (const k in (sp.buff || {})) this._applyMod(t, k, sp.buff[k], sp.dur, sp.name);
+        // 構え: 挑発 / 仁王立ち / 反撃の構え / 溜め / リジェネ (いずれも効果として持続ターンを持つ)
+        if (sp.taunt) { this._applyMod(t, "taunt", 3, sp.dur, sp.name); mods.taunt = 3; }
+        if (sp.shield) { this._applyMod(t, "shield", 2, sp.dur, sp.name); mods.shield = 2; }
+        if (sp.stance === "counter") { this._applyMod(t, "ctr", 2, sp.dur, sp.name); mods.ctr = 2; }
+        if (sp.charge) {
+          t.effects = (t.effects || []).filter((e) => e.stat !== "charge"); // 溜めは重ねず掛け直し
+          this._applyMod(t, "charge", sp.charge, sp.dur, sp.name); mods.charge = sp.charge;
+        }
+        if (sp.regen) { this._applyMod(t, "regen", 1 + sp.regen.pct, sp.regen.turns, sp.name); mods.regen = 1 + sp.regen.pct; }
         // 法障壁 (grantBarrier): 魔障壁の残回数を配る (ブレス・呪文の被ダメ半減)
         if (sp.grantBarrier) t._barrierLeft = (t._barrierLeft || 0) + sp.grantBarrier;
-        // 聖域の鐘 (cure): 守りと同時に状態異常を祓う
+        // 聖域の鐘 (cure / purge): 守りと同時に状態異常・弱体を祓う
         if (sp.cure && t.ailment) { t.ailment = null; cured = true; }
-        res.hits.push({ target: t, buff: true, mods: sp.buff });
+        if (sp.purge && this._purgeDown(t)) purged = true;
+        res.hits.push({ target: t, buff: true, mods });
       }
-      this.log(sp.grantBarrier ? `${sp.name}！ 魔障壁がパーティを包んだ` : `${sp.name}の効果！`, "heal");
-      if (cured) this.log("パーティの穢れが祓われた", "heal");
+      const what = sp.taunt ? "敵の注意を引き付けた" : sp.shield ? "仲間の盾となる構えを取った" : sp.stance === "counter" ? "反撃の構えを取った"
+        : sp.charge ? "力を溜めている" : sp.regen && !sp.buff ? "癒しの加護が宿った" : sp.grantBarrier ? "魔障壁が身を包んだ" : "力がみなぎる";
+      this.log(what, "heal");
+      if (cured || purged) this.log("穢れが祓われた", "heal");
     } else if (sp.kind === "debuff") {
       const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
       for (const t of targets) {
         if (!t.alive) continue;
-        for (const k in sp.debuff) this._applyMod(t, k, sp.debuff[k], sp.dur, sp.name);
-        res.hits.push({ target: t, debuff: true, mods: sp.debuff });
+        const mods = { ...(sp.debuff || {}) };
+        for (const k in (sp.debuff || {})) this._applyMod(t, k, sp.debuff[k], sp.dur, sp.name);
+        if (sp.vuln) for (const el in sp.vuln) mods["r_" + el] = sp.vuln[el];
+        const died = this._inflict(actor, t, sp);
+        res.hits.push(died ? { target: t, dmg: 0, died: true, fatal: true } : { target: t, debuff: true, mods });
       }
-      this.log(`${sp.name}！ 敵の力が削がれた`, "hit");
+      if (sp.debuff && sp.debuff.hit && Object.keys(sp.debuff).length === 1) this.log("敵の狙いが乱れた", "hit");
+      else if (sp.debuff) this.log("敵の力が削がれた", "hit");
+      if (sp.vuln) this.log(`敵の${Object.keys(sp.vuln).map((k) => VULN_LABEL[k] || k).join("・")}への守りに綻びが生じた`, "hit");
     } else if (sp.kind === "cure") {
+      // 治療: 状態異常を治す。purge 付きは弱体 (▼) も解く。全体版は味方全員
+      const targets = sp.target === "all-ally" ? this.livingParty() : [(cmd.target && cmd.target.alive) ? cmd.target : actor];
+      let any = false;
+      for (const t of targets) {
+        const had = !!t.ailment;
+        t.ailment = null;
+        const pg = sp.purge ? this._purgeDown(t) : false;
+        if (had || pg) any = true;
+        res.hits.push({ target: t, cured: had || pg });
+      }
+      this.log(any ? `${sp.name}！ 状態異常と弱体が治った` : `${sp.name}…効果がなかった`, "heal");
+    } else if (sp.kind === "mana") {
+      // 魔力の譲渡: 味方の MP を回復する (術者の INT で少し伸びる)
       const t = (cmd.target && cmd.target.alive) ? cmd.target : actor;
-      const had = t.ailment;
-      t.ailment = null;
-      this.log(had ? `${sp.name}！ ${t.name}の状態異常が治った` : `${sp.name}…効果がなかった`, "heal");
-      res.hits.push({ target: t, cured: !!had });
+      const gain = Math.max(1, Math.round(variance(sp.power + (actor.int || 0) * 0.25)));
+      const before = t.mp;
+      t.mp = Math.min(t.maxmp || 0, t.mp + gain);
+      this.log(`${t.name}のMPが ${t.mp - before} 回復`, "heal");
+      res.hits.push({ target: t, mpHeal: t.mp - before });
     } else if (sp.kind === "heal") {
       // 回復量は術者の PIE で伸びる。荒行の果て (低HP時) は回復も+30%
       const aMul = pv(actor, "asceticism") && actor.maxhp && actor.hp <= actor.maxhp * 0.3 ? 1.3 : 1;
@@ -1418,7 +1392,10 @@ export class Battle {
           t.hp = Math.min(t.maxhp, t.hp + heal);
           // 大聖祈祷 (cure): 癒しと同時に穢れを祓う / 聖壁の祈り (buff): 守りも固める
           if (sp.cure && t.ailment) { t.ailment = null; cured = true; }
+          if (sp.purge && this._purgeDown(t)) cured = true;
           if (sp.buff) for (const k in sp.buff) this._applyMod(t, k, sp.buff[k], sp.dur, sp.name);
+          if (sp.regen) this._applyMod(t, "regen", 1 + sp.regen.pct, sp.regen.turns, sp.name);
+          if (sp.grantBarrier) t._barrierLeft = (t._barrierLeft || 0) + sp.grantBarrier;
           res.hits.push({ target: t, heal });
         }
         this.log(revivedAny ? `福音が倒れた者を呼び戻した！` : `味方全員のHPが回復した`, "heal");
@@ -1426,7 +1403,7 @@ export class Battle {
         if (sp.buff) this.log("パーティの守りも固められた", "heal");
       } else {
         // 蘇生呪文は戦闘不能の味方も対象にできる
-        let t = cmd.target || actor;
+        let t = sp.target === "self" ? actor : (cmd.target || actor);
         if (!t.alive && !sp.revive) t = actor;
         const wasDead = !t.alive;
         if (wasDead && sp.revive) { t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false; }
@@ -1436,6 +1413,8 @@ export class Battle {
         if (wasDead && sp.revive) this.log(`${t.name}は蘇った！ HP ${t.hp}`, "heal");
         else this.log(`${t.name}のHPが ${heal} 回復`, "heal");
         if (sp.cure && t.ailment) { t.ailment = null; this.log(`${t.name}の穢れも祓われた`, "heal"); }
+        if (sp.purge) this._purgeDown(t);
+        if (sp.regen) this._applyMod(t, "regen", 1 + sp.regen.pct, sp.regen.turns, sp.name);
         // 聖句の加護 (grantEndure): 致死ダメージをHP1で耐える力を授ける (1戦闘1回)
         if (sp.grantEndure && t.alive && !t._grantEndure) {
           t._grantEndure = true;
@@ -1445,10 +1424,12 @@ export class Battle {
       }
     } else if (sp.kind === "sleep") {
       for (const t of this.livingEnemies()) {
-        if (Math.random() < 0.6) { t.asleep = true; this.log(`${t.name}は眠った`, "sys"); res.hits.push({ target: t, sleep: true }); }
+        if (Math.random() < (t.boss ? 0.3 : 0.6)) { t.asleep = true; this.log(`${t.name}は眠った`, "sys"); res.hits.push({ target: t, sleep: true }); }
         else this.log(`${t.name}には効かない`, "sys");
       }
     }
+    // 物理技の聖なる余光 (天命の剣など)
+    if (isPhys && sp.partyHeal) this._partyHeal(actor, sp.partyHeal, res);
     // 与えたダメージに応じた吸収 (聖光斬・冥魂喰らい / 魔喰いの太刀・魔力強奪)
     if (dealt > 0 && sp.drain && actor.alive) {
       const heal = Math.max(1, Math.round(dealt * sp.drain));
@@ -1465,9 +1446,21 @@ export class Battle {
     if (sp.debuffAll) {
       for (const t of this.livingEnemies()) {
         for (const k in sp.debuffAll) this._applyMod(t, k, sp.debuffAll[k], sp.dur, sp.name);
+        res.hits.push({ target: t, debuff: true, mods: sp.debuffAll });
       }
       this.log("敵の力が削がれた", "hit");
     }
+  }
+
+  // 攻撃の後に味方全体を癒す (聖剣奮迅・護摩焚き・天命の剣)。PIEで伸びる
+  _partyHeal(actor, base, res) {
+    const hPow = base + (actor.pie || 0) * 0.3;
+    for (const t of this.livingParty()) {
+      const heal = variance(hPow);
+      t.hp = Math.min(t.maxhp, t.hp + heal);
+      res.hits.push({ target: t, heal });
+    }
+    this.log("聖なる残光がパーティを癒した", "heal");
   }
 
   _die(t) {
@@ -1533,7 +1526,7 @@ export class Battle {
   // 旧セーブの戦闘中データは soul を持たないため exp を引き継ぐ
   rewards() {
     const soul = this.enemies.reduce((s, e) => s + (e.alive ? 0 : ((e.soul != null ? e.soul : e.exp) || 0)), 0);
-    const gold = this.enemies.reduce((s, e) => s + (e.alive ? 0 : e.gold), 0);
+    const gold = this.enemies.reduce((s, e) => s + (e.alive ? 0 : e.gold), 0); // 盗んだ金 (bonusGold) は game.js が別に足す
     return { soul, gold };
   }
 }

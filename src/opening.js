@@ -4,7 +4,7 @@
 // 各幕はカメラがゆっくりと滑り (多層の視差)、語りは一文字ずつ墨がにじむように現れる。
 // 幕と幕のあいだは闇へ溶けて切り替わり、最後に題字を掲げて街へ送り出す。
 //
-// 操作: タップ / Enter = 語りを早送り → 次の幕へ。長押し・「とばす」・Esc = 全体をとばす。
+// 操作: タップ / Enter = 語りを早送り → 次の幕へ。長押し・「スキップ」・Esc = 全体をとばす。
 // showOpening(done) — 閉じたあと done() を一度だけ呼ぶ
 import { SFX } from "./audio.js";
 import { pickRes } from "./pxpaint.js";
@@ -81,10 +81,10 @@ export function showOpening(onDone) {
   const skip = document.createElement("button");
   skip.type = "button";
   skip.className = "op-skip";
-  skip.innerHTML = "<span>とばす</span><b>≫</b>";
+  skip.innerHTML = "<span>スキップ</span><b>≫</b>";
   wrap.appendChild(skip);
   const hold = div("op-hold");
-  hold.append(div("op-hold-r"), div("op-hold-t", "長押しでとばす"));
+  hold.append(div("op-hold-r"), div("op-hold-t", "長押しでスキップ"));
   wrap.appendChild(hold);
 
   // 終幕の題字
@@ -203,23 +203,27 @@ export function showOpening(onDone) {
     wrap.classList.add("op-typed");
     if (SCENES[idx].last) showTitleCard();
   };
-  let titleShown = false;
+  // 最後の幕: 語り終えてから題字を掲げるまで、語りを読み切れるだけ待つ (タップで待たずに掲げる)
+  const TITLE_WAIT = 4800;
+  let titleShown = false, titleT = 0;
+  const raiseTitle = () => {
+    clearTimeout(titleT);
+    if (phase === "closed" || phase === "title") return;
+    phase = "title";
+    wrap.classList.add("op-final");
+    sfx("stairs");
+  };
   const showTitleCard = () => {
     if (titleShown) return;
     titleShown = true;
-    setTimeout(() => {
-      if (phase === "closed") return;
-      phase = "title";
-      wrap.classList.add("op-final");
-      sfx("stairs");
-    }, 1400);
+    titleT = setTimeout(raiseTitle, REDUCED ? 2400 : TITLE_WAIT);
   };
 
   const advance = (auto = false) => {
     if (phase !== "play") return;
     if (!typedAll && progress() < 1) { completeText(); return; }
     if (!typedAll) completeText();
-    if (SCENES[idx].last) { if (!titleShown) showTitleCard(); return; }
+    if (SCENES[idx].last) { if (!titleShown) showTitleCard(); else raiseTitle(); return; }
     phase = "out";
     clearTimeout(autoT);
     black.classList.add("on");
@@ -240,7 +244,7 @@ export function showOpening(onDone) {
     if (closed) return;
     closed = true;
     phase = "closed";
-    clearTimeout(autoT);
+    clearTimeout(autoT); clearTimeout(titleT);
     removeEventListener("keydown", onKey, true);
     removeEventListener("resize", onResize);
     wrap.classList.add("op-out");

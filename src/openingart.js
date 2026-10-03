@@ -590,7 +590,7 @@ function scene2(W, H) {
 }
 
 // =====================================================================
-// 幕 3「人業」— 魂繰りの工房の床に、空の器 (木と鋼の関節人形) が打ち捨てられている。
+// 幕 3「人業」— 操霊師の工房の床に、空の器 (木と鋼の関節人形) が打ち捨てられている。
 // 絵はユーザー提供の原画をドット化したもの (art/op_dolls.png: 250×141 ドット)。その上に
 // 蝋燭の揺らぎ・月光に舞う塵・魂が器に宿る光だけを重ねる。手前の壁にもたれた一体の胸に
 // 魂が封じられたとき、のっぺりとした顔に眼が静かに灯る。
@@ -869,7 +869,7 @@ function scene4(W, H) {
 }
 
 // =====================================================================
-// 幕 5「辺境の街ロアダル」— 血の月の昇る丘の上の街。絞首台の脇の道を、魂繰りがひとり往く。
+// 幕 5「辺境の街ロアダル」— 血の月の昇る丘の上の街。絞首台の脇の道を、操霊師がひとり往く。
 function scene5(W, H) {
   const k = Math.min(W / 260, H / 300);
   const wide = W / H > 1.4;
@@ -935,7 +935,7 @@ function scene5(W, H) {
     }
     // 絞首台 (道の脇)
     const m = new Mask(w, h);
-    // 道の右手 (魂繰りと重ならない側) に立ち、腕木を道へ差し出す
+    // 道の右手 (操霊師と重ならない側) に立ち、腕木を道へ差し出す
     const gby = gy + 26 * k, gx2 = road(gby) + (wide ? 118 : 74) * k;
     m.rect(gx2 - 2 * k, gby - 62 * k, 4 * k, 62 * k);
     m.rect(gx2 - 32 * k, gby - 62 * k, 34 * k, 3.5 * k);
@@ -947,7 +947,7 @@ function scene5(W, H) {
     L.paint(m, (x, y) => (m.rim(x, y, 0.3, -1, 1) === 1 || m.rim(x, y, 1, 0, 1) === 1 ? mix(rc(R_NIGHT, 0.05), rc(R_BLOOD, 0.5), 0.6) : rc(R_NIGHT, 0.04)));
   }
   midP.bake(10);
-  // --- 近景: 道を往く魂繰り (背中)
+  // --- 近景: 道を往く操霊師 (背中)
   const fig = {};
   {
     const L = near.L, w = near.w, h = near.h;
@@ -994,73 +994,261 @@ function scene5(W, H) {
 }
 
 // =====================================================================
-// 幕 6「骸の眠る場所」— 地下墓地の大階段。両の壁は頭蓋で埋め尽くされ、底で魂火が待つ。
-// 手前の魂繰りが、ランタンを掲げて一段目に足をかける。
+// 幕 6「骸の眠る場所」— 迷宮の入口から地の底へ下る、石積みの大階段。
+// 壁の松明が切石の目地と穹窿の肋を浮かび上がらせ、左右には闇へ枝分かれする脇道。
+// 突き当たりの拱門の向こうでは、階段がさらに下へ続き、魂火の靄が満ちている。
+// 手前の操霊師が、ランタンを提げて一段目に足をかける。
+
+// 切石積み: 壁面座標 (u = 横, v = 縦) → 石の色味・目地・面取りの傾き。fu/fv = 1 画素の大きさ (目地のにじみ = AA)
+function ashlar(u, v, fu, fv, seed, CH = 0.27, BL = 0.66) {
+  const row = Math.floor(v / CH), tv = v / CH - row;
+  const uu = u + h1(row, seed) * BL;
+  const col = Math.floor(uu / BL), tu = uu / BL - col;
+  const du = Math.min(tu, 1 - tu) * BL, dv = Math.min(tv, 1 - tv) * CH;
+  const JW = 0.011;
+  const gu = smooth(JW - fu * 0.7, JW + fu * 0.7, du), gv = smooth(JW - fv * 0.7, JW + fv * 0.7, dv);
+  const fade = clamp(Math.max(fu / BL, fv / CH) * 2.2 - 0.3); // 遠くて目地が潰れる所は平均の色へ
+  const stone = gu * gv + (0.9 - gu * gv) * fade; // 1 = 石の面 / 0 = 目地
+  const id = h2(col, row, seed);
+  // 面取り: 石の縁ほど面が外へ傾く (上の縁は上を、下の縁は下を向く)
+  const BW = 0.05;
+  const tiltV = dv < BW ? (tv < 0.5 ? -1 : 1) * (1 - dv / BW) : 0;
+  const tiltU = du < BW ? (tu < 0.5 ? -1 : 1) * (1 - du / BW) : 0;
+  const rough = vnoise(u * 9, v * 9, seed + 3) - 0.5;
+  return { stone, id, tiltU: tiltU * (1 - fade), tiltV: tiltV * (1 - fade), rough, col, row };
+}
+
 function scene6(W, H) {
   const k = Math.min(W / 260, H / 300);
   const wide = W / H > 1.4;
   const mx = 6 * k, my = 22 * k;
   const tun = new Plane(W, H, mx, my, 0.45), near = new Plane(W, H, mx, my, 1);
-  // 坑道は「光線を飛ばす」ように画素ごとに奥行きを求めて描く (頭蓋の龕が遠近どおりに並ぶ)
-  const vx = tun.w * (wide ? 0.56 : 0.55), vy = tun.h * 0.5;
-  const lampW = { x: tun.w * (wide ? 0.33 : 0.3), y: tun.h * 0.74 };
+  // 通路は画素ごとに光線を飛ばして描く。座標は通路に沿って傾いた枠 (X = 横 ±1 が壁, Y = 下が正, Z = 奥行き)
+  const F = (wide ? 74 : 66) * k;                 // 焦点距離: 奥行き 1 で壁が F px 横に来る
+  const SLOPE = 0.42;                              // 下りの勾配 (天井・壁の石積みもこれに沿う)
+  const vx = tun.w * (wide ? 0.56 : 0.55), vy = tun.h * 0.5; // 通路の消失点 (= 奥の拱門)
+  const hy = vy - SLOPE * F;                       // 目の高さの水平線 (段の踏み面はこれに対して水平)
+  const EYE = 1.3, SPRING = -0.62;                 // 床までの高さ / 穹窿の起拱線
+  const Z0 = 0.7, STEP = 0.34, RISE = STEP * SLOPE; // 踊り場の奥行き / 段の踏み面と蹴上げ
+  const ZEND = 5.4, GW = 0.56, GSP = -0.12, TH = 0.3; // 奥の壁 / 拱門の半幅・起拱 / 壁の厚み
+  const RIBS = [1.25, 2.65, 4.05];                  // 横断アーチ (穹窿の肋) と壁の付柱
+  const OPEN = [{ side: 1, z0: 1.75, z1: 2.3 }, { side: -1, z0: 3.15, z1: 3.75 }]; // 脇道
+  const TORCH = [{ side: -1, z: 1.95 }, { side: 1, z: 3.45 }, { side: -1, z: 4.75 }].map((t) => ({ ...t, X: t.side * 0.84, Y: -0.3 }));
+  const LAMP = { X: -0.36, Y: 0.9, Z: 0.55 };     // 操霊師のランタン (手前)
+  const GATE = { X: 0, Y: 0.35, Z: ZEND + 0.9 };  // 拱門の向こうの魂火
+  const T_COL = [1.0, 0.56, 0.24], L_COL = [1.0, 0.7, 0.36], G_COL = [0.32, 0.95, 0.7];
+  const proj = (X, Y, Z) => ({ x: vx + (X * F) / Z, y: vy + (Y * F) / Z, s: F / Z });
+  const floorAt = (z) => (z < Z0 ? EYE : EYE + (Math.floor((z - Z0) / STEP) + 1) * RISE) - SLOPE * z; // 傾いた枠での床
+  const doorTop = (o, z) => -0.12 - 0.16 * Math.sqrt(clamp(1 - ((z - (o.z0 + o.z1) / 2) / ((o.z1 - o.z0) / 2)) ** 2));
+  const ribAt = (z) => { // 最寄りの肋 [番号, 距離]
+    let bi = 0, bd = 9;
+    for (let i = 0; i < RIBS.length; i++) { const d = Math.abs(z - RIBS[i]); if (d < bd) { bd = d; bi = i; } }
+    return [bi, bd];
+  };
+  const gateIn = (X, Y) => Math.abs(X) < GW && (Y > GSP || X * X + (Y - GSP) ** 2 < GW * GW);
+
+  // 光: 位置 P・法線 N の面に届く色 (拡散 + 回り込み)。R = 光の届く範囲
+  let lr = 0, lg = 0, lb = 0;
+  const addLight = (P, N, Lx, Ly, Lz, col, s, q, R, wrap) => {
+    const dx = Lx - P[0], dy = Ly - P[1], dz = Lz - P[2];
+    const d2 = dx * dx + dy * dy + dz * dz, d = Math.sqrt(d2) || 1;
+    if (d >= R) return;
+    const nl = (N[0] * dx + N[1] * dy + N[2] * dz) / d;
+    const f = (clamp((nl + wrap) / (1 + wrap)) * s * (1 - d / R) ** 2) / (1 + d2 * q);
+    lr += col[0] * f; lg += col[1] * f; lb += col[2] * f;
+  };
+  const lightAt = (P, N, ao) => {
+    lr = 0.032; lg = 0.042; lb = 0.1;
+    for (const t of TORCH) addLight(P, N, t.X, t.Y, t.z, T_COL, 4.5, 9, 3.2, 0.2);
+    addLight(P, N, LAMP.X, LAMP.Y, LAMP.Z, L_COL, 1.5, 5, 2.2, 0.2);
+    // 拱門から差す魂火 (門の前だけに届く)
+    const gk = smooth(ZEND - 2.6, ZEND, P[2]) * (P[2] <= ZEND + 0.01 ? 1 : 0);
+    if (gk > 0) addLight(P, N, GATE.X, GATE.Y, GATE.Z, G_COL, 1.6 * gk, 0.9, 4, 0.35);
+    return [lr * ao, lg * ao, lb * ao];
+  };
+  // 石の地色 (冷たい灰。個体差・湿り・苔)
+  const stoneCol = (A, depthSeed, damp) => {
+    const t = 0.3 + 0.32 * A.id + A.rough * 0.16;
+    let c = [0.42 + t * 0.3, 0.42 + t * 0.3, 0.46 + t * 0.32];
+    if (damp > 0) c = mix(c, [0.22, 0.27, 0.22], damp);
+    return mix([0.15, 0.14, 0.15], c, A.stone);
+  };
+  const MIST = (a, c) => {
+    const m = Math.exp(-(a * a * 2.2 + (c - 0.12) * (c - 0.12) * 3.2));
+    return [0.06 + 0.3 * m, 0.16 + 0.75 * m, 0.14 + 0.55 * m];
+  };
+
   {
     const L = tun.L, w = tun.w, h = tun.h;
-    const C = (wide ? 70 : 60) * k;          // 壁までの半幅 (画面上で z=1 のとき)
-    const FL = C * 1.15, CE = C * 1.5;        // 床 / 天井の高さ
     L.shade(0, 0, w - 1, h - 1, (x, y) => {
-      const dx = x + 0.5 - vx, dy = y + 0.5 - vy;
-      const zW = C / Math.max(0.01, Math.abs(dx));            // 壁に当たる奥行き
-      const zF = dy > 0 ? FL / dy : 1e9;                       // 床
-      // 天井: 尖頭アーチ (左右から寄る)
-      const zC = dy < 0 ? CE / (-dy + Math.abs(dx) * 0.55) : 1e9;
-      const z = Math.min(zW, zF, zC);
-      const fogK = clamp((z - 1) / 9);                          // 奥ほど闇 (底は魂火)
-      let c;
-      if (z === zW) {
-        // 壁: 龕の格子 (奥行き方向 u, 高さ方向 v)
-        const u = z * 2.4, v = dy * z / C;                      // v: -1.5(天井) .. 1.15(床)
-        const cu = u % 1, cv = ((v + 3) * 3.0) % 1;
-        const inN = cu > 0.12 && cu < 0.88 && cv > 0.14 && cv < 0.86 && v < 1.0 && v > -1.2;
-        c = rc(R_NIGHT, 0.14 + vnoise(u * 3, v * 3, 191) * 0.06);
-        if (inN) {
-          // 龕の中の頭蓋 (遠近に沿って描かれる)
-          const sx = (cu - 0.5) / 0.3, sy = (cv - 0.5) / 0.32;
-          const skull = sx * sx + (sy + 0.1) * (sy + 0.1) < 0.7 || (Math.abs(sx) < 0.45 && sy > 0.25 && sy < 0.75);
-          const eye = Math.hypot(Math.abs(sx) - 0.34, sy + 0.05) < 0.22;
-          const nose = Math.abs(sx) < 0.08 && sy > 0.2 && sy < 0.38;
-          const teeth = Math.abs(sx) < 0.4 && sy > 0.5 && sy < 0.75 && Math.floor((sx + 1) * 6) % 2 === 0;
-          c = rc(R_NIGHT, 0.03);
-          if (skull && !eye && !nose && !teeth) {
-            const sh2 = clamp(0.5 - sx * 0.45 * Math.sign(dx) - sy * 0.25);
-            c = rc(R_BONE, 0.02 + sh2 * 0.2 + h2(Math.floor(u), Math.floor(v * 3), 192) * 0.06);
-          }
+      const a = (x + 0.5 - vx) / F, c = (y + 0.5 - vy) / F, b = (y + 0.5 - hy) / F;
+      const aa = Math.abs(a) || 1e-6, side = a < 0 ? -1 : 1;
+      // --- 床 (踊り場と段の踏み面)
+      let zF = Infinity, tread = -1, tt = 0;
+      if (b > 0) {
+        if (EYE / b < Z0) { zF = EYE / b; tread = -1; }
+        else if (b > SLOPE) for (let i = Math.max(0, Math.floor(((EYE + RISE - SLOPE * Z0) / (b - SLOPE) - Z0) / STEP) - 2), n = i + 6; i < n; i++) {
+          // 勾配の線との交点から当たりの段を見積もり、その前後だけを調べる
+          const z0 = Z0 + i * STEP, z = (EYE + (i + 1) * RISE) / b;
+          if (z0 > 40) break;
+          if (z >= z0 && z < z0 + STEP) { zF = z; tread = i; tt = (z - z0) / STEP; break; }
         }
-        // 手前すぎる壁は闇に (巨大な頭蓋が並ばないように)
-        c = mix(c, rc(R_NIGHT, 0.04), smooth(1.3, 0.6, z));
-      } else if (z === zF) {
-        // 床 = 下り階段 (踏み面と蹴上げ)
-        const u = z * 2.2;
-        const nose = (u % 1) < 0.16;
-        c = rc(R_NIGHT, nose ? 0.22 : 0.09 + vnoise(x * 0.2, u * 4, 193) * 0.04);
-        if (Math.abs(dx) / (C / z) > 0.92) c = rc(R_NIGHT, 0.05);
-      } else {
-        // 天井の肋材
-        const u = z * 1.4;
-        c = rc(R_NIGHT, (u % 1) < 0.12 ? 0.16 : 0.07);
       }
-      // ランタン (手前・左下) の暖かい光: 近いほど強い
-      const lampF = clamp(1.1 - z * 0.38) * Math.pow(clamp(1 - Math.hypot(x - lampW.x, (y - lampW.y) * 0.8) / (w * 0.7)), 1.6);
-      c = mix(c, mix(c, rc(R_EMBER, 0.45), 0.55), lampF);
-      // 奥: 闇、そして底の魂火
-      c = mix(c, rc(R_NIGHT, 0.01), fogK * 0.85);
-      const core = Math.exp(-Math.hypot(dx / (C * 0.18), dy / (C * 0.3)) * 1.4);
-      c = mix(c, rc(R_SOUL, 0.2 + 0.7 * core), clamp(core * 1.2) * fogK);
-      return c;
+      // --- 壁と穹窿
+      const zW = 1 / aa;
+      const A2 = a * a + c * c, B2 = -2 * c * SPRING, C2 = SPRING * SPRING - 1;
+      const zV = (-B2 + Math.sqrt(B2 * B2 - 4 * A2 * C2)) / (2 * A2);
+      let kind, z;
+      if (c * zV < SPRING) { kind = "vault"; z = zV; } else { kind = "wall"; z = zW; }
+      if (zF < z) { kind = "floor"; z = zF; }
+      // --- 奥の壁と拱門
+      let through = false;
+      if (z > ZEND) {
+        const X = a * ZEND, Y = c * ZEND;
+        if (gateIn(X, Y)) {
+          through = true;
+          const zJ = GW / aa; // 拱門の内側の面 (側面)
+          const Yj = c * Math.min(zJ, ZEND + TH);
+          if (zJ < ZEND + TH && Yj > GSP) { kind = "jamb"; z = zJ; }
+          else if (Yj <= GSP && (a * (ZEND + TH)) ** 2 + (c * (ZEND + TH) - GSP) ** 2 > GW * GW) { kind = "soffit"; z = ZEND + TH * 0.5; }
+          else if (zF < Infinity) { kind = "beyond"; z = zF; }
+          else kind = "mist";
+        } else { kind = "end"; z = ZEND; }
+      }
+      // --- 脇道
+      let door = null;
+      if (kind === "wall") {
+        for (const o of OPEN) if (o.side === side && z >= o.z0 && z <= o.z1 && c * z < floorAt(z) && c * z > doorTop(o, z)) door = o;
+        if (door) {
+          const Xf = aa * door.z1, fl = floorAt(door.z0), top = -0.28;
+          if (c * door.z1 > fl) { kind = "dfloor"; z = fl / c; }
+          else if (c * door.z1 < top) { kind = "dceil"; z = top / c; }
+          else if (Xf < 1 + TH) { kind = "djamb"; z = door.z1; }
+          else { kind = "dfar"; z = door.z1; }
+        }
+      }
+      const X = a * z, Y = c * z;
+      const fp = z / F;                // 1 画素の大きさ (正面)
+      const fz = (z * z) / F;          // 1 画素の大きさ (斜めに見る面の奥行き方向)
+      let col, N, ao = 1, P = [X, Y, z];
+      if (kind === "mist") {
+        col = MIST(a, c);
+        return [col[0] * 255, col[1] * 255, col[2] * 255];
+      }
+      if (kind === "wall") {
+        P = [side, Y, z]; N = [-side, 0, 0];
+        const [ri, near] = ribAt(z);
+        let A;
+        if (near < 0.17) { // 付柱: 縦長の石を交互に
+          A = ashlar(z - RIBS[ri] + 0.17 + 0.11, Y + 3, fz, fp, 61 + ri, 0.4, 0.34);
+          A.id = A.id * 0.6 + 0.35;
+          ao *= 0.75 + 0.25 * smooth(0.0, 0.05, 0.17 - near); // 付柱の際の陰
+        } else {
+          A = ashlar(z * (side > 0 ? 1 : -1) + 7, Y + 3, fz, fp, side > 0 ? 31 : 37);
+          ao *= 0.55 + 0.45 * smooth(0.17, 0.42, near); // 付柱の脇は凹んで暗い
+        }
+        N = [-side + A.rough * 0.25, A.tiltV * 0.7, A.tiltU * 0.7 * side];
+        const fl = floorAt(z);
+        const damp = smooth(fl - 0.9, fl - 0.05, Y) * (0.45 + 0.4 * vnoise(z * 3, 1, 70)) + smooth(0.62, 0.75, vnoise(z * 1.4, Y * 3.5, 71)) * 0.6;
+        col = stoneCol(A, 0, clamp(damp));
+        ao *= 0.55 + 0.45 * smooth(0, 0.35, fl - Y);           // 床際の陰
+        ao *= 0.7 + 0.3 * smooth(SPRING - 0.02, SPRING + 0.3, Y); // 起拱線の下の陰
+        for (const o of OPEN) if (o.side === side) { const d = Math.min(Math.abs(z - o.z0), Math.abs(z - o.z1)); if (z > o.z0 - 0.3 && z < o.z1 + 0.3) ao *= 0.7 + 0.3 * smooth(0, 0.22, d); }
+      } else if (kind === "vault") {
+        const ang = Math.atan2(-(Y - SPRING), X); // 0 = 右の起拱 .. π = 左
+        N = [-X, -(Y - SPRING), 0];
+        const [ri, near] = ribAt(z);
+        let A;
+        if (near < 0.17) { // 横断アーチの迫石 (放射状の目地)
+          A = ashlar(z - RIBS[ri] + 0.17 + 0.05, ang * 1.0 + 5, fz, fp, 81, 0.2, 0.34);
+          A.id = A.id * 0.5 + 0.4;
+        } else {
+          A = ashlar(z + 3, ang + 5, fz, fp, 83, 0.27, 0.66);
+          ao *= 0.55 + 0.45 * smooth(0.17, 0.4, near);
+        }
+        N = [N[0] + A.rough * 0.2, N[1], N[2] + A.tiltU * 0.6];
+        col = stoneCol(A, 0, smooth(0.66, 0.78, vnoise(z * 2, ang * 2, 85)) * 0.5);
+        ao *= 0.8 + 0.2 * Math.sin(ang);
+      } else if (kind === "floor" || kind === "beyond") {
+        const Yw = b * z; // 世界の高さ
+        P = [X, Y, z]; N = [0, -1, 0];
+        // 段ごとに 2〜3 枚の石板
+        const seed = 90 + tread * 7;
+        const cut1 = -0.35 + h1(tread, 91) * 0.3, cut2 = 0.2 + h1(tread, 92) * 0.45;
+        const dj = Math.min(Math.abs(X - cut1), Math.abs(X - cut2));
+        const joint = smooth(0.012 - fp * 0.7, 0.012 + fp * 0.7, dj);
+        const slab = X < cut1 ? 0 : X < cut2 ? 1 : 2;
+        const id = h2(tread, slab, seed);
+        const rough = vnoise(X * 8, z * 8, 93) - 0.5;
+        const wear = Math.exp(-X * X * 3); // 中央ほど擦り減って滑らか・明るい
+        let t = 0.32 + id * 0.25 + rough * (0.2 - wear * 0.1) + wear * 0.08;
+        col = [0.48 + t * 0.3, 0.45 + t * 0.28, 0.46 + t * 0.3];
+        col = mix([0.15, 0.14, 0.15], col, joint);
+        if (tread >= 0) {
+          ao *= 0.2 + 0.8 * smooth(0.04, 0.4, tt);           // 蹴上げの影 (段の付け根)
+          if (tt > 0.84) { N = [0, -0.45, -0.89]; col = mix(col, [0.8, 0.76, 0.72], 0.45); ao *= 1.3; } // 段鼻 (擦れて光る)
+        }
+        ao *= 0.5 + 0.5 * smooth(1, 0.72, Math.abs(X));      // 壁際の陰
+        if (kind === "floor") {
+          const pud = smooth(0.7, 0.8, vnoise(X * 2.5, z * 1.5, 95)); // 水たまり (暗く冷たい)
+          col = mix(col, [0.16, 0.2, 0.22], pud * 0.6);
+        }
+        void Yw;
+      } else if (kind === "end") {
+        P = [X, Y, z]; N = [0, 0, -1];
+        const r = Math.hypot(X, Math.min(0, Y - GSP));
+        const inVous = (Y < GSP + 0.02 && r < GW + 0.2) || (Y >= GSP && Math.abs(X) < GW + 0.18);
+        let A;
+        if (inVous) { // 拱門の迫石・抱き石
+          const ang = Y < GSP ? Math.atan2(-(Y - GSP), X) : (X > 0 ? -0.5 - (Y - GSP) * 3 : Math.PI + 0.5 + (Y - GSP) * 3);
+          A = ashlar(r * 4, ang * 1.4 + 9, fp, fp, 97, 0.27, 2);
+          A.id = 0.45 + A.id * 0.4;
+        } else A = ashlar(X + 5, Y + 3, fp, fp, 99);
+        N = [A.tiltU * 0.7 + A.rough * 0.2, A.tiltV * 0.7, -1];
+        col = stoneCol(A, 0, smooth(floorAt(z) - 0.8, floorAt(z), Y) * 0.6);
+        ao *= 0.6 + 0.4 * smooth(0, 0.3, Math.min(1 - Math.abs(X), floorAt(z) - Y, Math.hypot(X, Y - SPRING) < 1 ? 1 - Math.hypot(X, Y - SPRING) : 1));
+      } else if (kind === "jamb" || kind === "soffit") {
+        P = [X, Y, z]; N = kind === "jamb" ? [-side, 0, 0] : [0, 1, 0];
+        const A = ashlar(z * 3, Y * 2 + 5, fp, fp, 101, 0.27, 0.5);
+        col = stoneCol(A, 0, 0);
+      } else if (kind === "djamb" || kind === "dfar") { // 脇道の奥
+        P = [X, Y, z]; N = [0, 0, -1];
+        const A = ashlar(aa * z * 1.2, Y + 3, fp, fp, 103);
+        col = stoneCol(A, 0, 0.3);
+        if (kind === "dfar") ao *= Math.exp(-(aa * z - 1 - TH) * 2.4) * 0.6;
+      } else { // dfloor / dceil
+        P = [X, Y, z]; N = kind === "dfloor" ? [0, -1, 0] : [0, 1, 0];
+        col = [0.4, 0.38, 0.4];
+        ao *= Math.exp(-Math.max(0, aa * z - 1) * 2.2) * 0.7;
+      }
+      const nl = Math.hypot(N[0], N[1], N[2]);
+      N = [N[0] / nl, N[1] / nl, N[2] / nl];
+      const Lc = lightAt(P, N, ao);
+      let o = [col[0] * Lc[0], col[1] * Lc[1], col[2] * Lc[2]];
+      // 霧: 奥ほど闇に沈む。門の向こうは魂火の靄に溶ける
+      const fog = Math.exp(-Math.max(0, z - 1.2) * 0.2);
+      o = mix([0.012, 0.01, 0.022], o, fog);
+      if (kind === "beyond") o = mix(o, MIST(a, c), clamp((z - ZEND) / 3.2));
+      if (through && kind !== "beyond") o = mix(o, MIST(a, c), 0.08);
+      const ex = 255 * 1.3;
+      return [Math.min(255, o[0] * ex), Math.min(255, o[1] * ex), Math.min(255, o[2] * ex)];
     });
+    // 松明の柄と鉄の受け金具 (幕の開始時に一度だけ描く)
+    for (const t of TORCH) {
+      const pw = proj(t.side * 0.995, t.Y + 0.14, t.z), pb = proj(t.X, t.Y + 0.12, t.z);
+      const p0 = proj(t.X, t.Y + 0.16, t.z), p1 = proj(t.X - t.side * 0.03, t.Y - 0.05, t.z);
+      const m = new Mask(w, h);
+      m.line(pw.x, pw.y, pb.x, pb.y, Math.max(1, 0.035 * pw.s), 1);
+      m.line(p0.x, p0.y, p1.x, p1.y, Math.max(1, 0.05 * pw.s), 2);
+      L.paint(m, (x, y, v) => {
+        const lt = clamp(1 - Math.hypot(x - p1.x, y - p1.y) / (0.3 * pw.s));
+        return v === 1 ? rc(R_STEEL, 0.12 + lt * 0.3) : rc(R_WOOD, 0.15 + lt * 0.55);
+      });
+      t.flame = proj(t.X - t.side * 0.03, t.Y - 0.1, t.z);
+    }
   }
-  tun.bake(12);
-  // --- 近景: 背を向けた魂繰りと、手前のアーチの縁
+  tun.bake(10);
+  // --- 近景: 背を向けた操霊師と、手前のアーチの縁
   const fig = {};
   {
     const L = near.L, w = near.w, h = near.h;
@@ -1085,14 +1273,33 @@ function scene6(W, H) {
   }
   near.bake(8);
   const lampG = glowSprite(Math.round(36 * k), R_EMBER.slice(0, 8), { pow: 2.4, levels: 6, core: 0.75 });
-  const deepG = glowSprite(Math.round(30 * k), R_SOUL.slice(2), { pow: 1.6, levels: 6, core: 0.9 });
+  const torchG = TORCH.map((t) => glowSprite(Math.max(4, Math.round(0.7 * t.flame.s)), R_EMBER.slice(0, 8), { pow: 2.2, levels: 5, core: 0.6 }));
+  const gp = proj(0, (GSP + floorAt(ZEND)) / 2, ZEND);
+  const deepG = glowSprite(Math.round(GW * F / ZEND * 2.6), R_SOUL.slice(2), { pow: 1.7, levels: 6, core: 0.75 });
   tun.post = (g, t, o) => {
-    lit(g, deepG, vx + o.x, vy + o.y, 0.4 + 0.15 * Math.sin(t * 0.0018));
-    // 底から昇ってくる魂
-    for (let i = 0; i < 26; i++) {
-      const u = ((t * 0.00007 * (1 + h1(i, 197)) + h1(i, 198)) % 1);
-      const a = (h1(i, 199) - 0.5) * 2;
-      mote(g, vx + o.x + a * u * 90 * k, vy + o.y + (h1(i, 200) - 0.6) * u * 80 * k, Math.sin(u * Math.PI) * 0.8, "#bdeec6", "#275f50");
+    lit(g, deepG, gp.x + o.x, gp.y + o.y, 0.22 + 0.08 * Math.sin(t * 0.0018));
+    // 松明の炎 (揺らめく)
+    TORCH.forEach((tc, i) => {
+      const f = flick(t, i * 3 + 1), fl = tc.flame;
+      lit(g, torchG[i], fl.x + o.x, fl.y + o.y, f * 0.5);
+      const fh = Math.max(2, Math.round(0.16 * fl.s * f)), fw = Math.max(1, Math.round(0.06 * fl.s));
+      const x0 = Math.round(fl.x + o.x - fw / 2), y0 = Math.round(fl.y + o.y);
+      const sway = Math.round(Math.sin(t * 0.01 + i) * 0.6 * (fw > 1 ? 1 : 0));
+      for (let j = 0; j < fh; j++) {
+        const u = j / fh, ww = Math.max(1, Math.round(fw * (1 - u * 0.7)));
+        g.fillStyle = u < 0.35 ? "#fcd77e" : u < 0.7 ? "#f4b04a" : "#c4641c";
+        g.fillRect(x0 + Math.round((fw - ww) / 2) + (u > 0.5 ? sway : 0), y0 - j, ww, 1);
+      }
+      g.fillStyle = "#fff3c4"; g.fillRect(x0 + Math.floor(fw / 2), y0 - 1, 1, 1);
+    });
+    // 拱門の向こうから昇ってくる魂
+    const gs = F / ZEND;
+    for (let i = 0; i < 22; i++) {
+      const u = ((t * 0.00006 * (1 + h1(i, 197)) + h1(i, 198)) % 1);
+      const ax = (h1(i, 199) - 0.5) * 2;
+      const px = gp.x + o.x + ax * GW * gs * (0.6 + u * 2.4);
+      const py = gp.y + o.y + GW * gs * 0.8 - u * (gs * 1.6 + 40 * k * u);
+      mote(g, px, py, Math.sin(u * Math.PI) * 0.75, "#bdeec6", "#275f50");
     }
   };
   near.post = (g, t, o) => {
@@ -1139,8 +1346,9 @@ export const SCENES = [
     cap: "四", title: "王の勅命",
     lines: [
       "魂を繰り、人業を率いて深淵へ送る者。",
-      "人はその業を畏れ、〈魂繰り〉と呼んだ。",
-      "いま、老いた王の勅命が、ひとりの魂繰りを辺境へと召す。",
+      "人はその業を畏れ、こう呼んだ——",
+      { em: "操霊師", ruby: "ソウルマンサー" },
+      "いま、老いた王の勅命が、ひとりの操霊師を辺境へと召す。",
       "——すなわち、あなたを。",
     ],
     pan: { x: [0, 0], y: [1, -0.9] },

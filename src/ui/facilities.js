@@ -377,7 +377,7 @@ function renderTavern(root) {
   const rumorOpen = game.featureUnlocked && game.featureUnlocked("rumor");
   if (!rumorOpen) {
     const c = game.clearedDungeonCount ? game.clearedDungeonCount() : 0;
-    wrap.appendChild(lockedRow("まだ噂は回ってこない", `情報屋が腰を上げるのは、名の知れた魂繰りが現れてから (15迷宮の踏破・いま ${c})。`));
+    wrap.appendChild(lockedRow("まだ噂は回ってこない", `情報屋が腰を上げるのは、名の知れた操霊師が現れてから (15迷宮の踏破・いま ${c})。`));
   } else if (g.rumor) {
     const rb = el("div", "fc-rumor");
     rb.appendChild(setText(el("div", "fc-rumor-s"), `— ${g.rumor.speaker} —`));

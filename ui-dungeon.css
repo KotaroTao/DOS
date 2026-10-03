@@ -358,7 +358,7 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 .ui-btn.rs-auto { overflow: hidden; }
 .rs-auto-bar { position: absolute; left: 0; bottom: 0; height: 2px; width: 100%; background: linear-gradient(90deg, #8a6d2e, #f3d58b); box-shadow: 0 0 6px rgba(243,213,139,0.7); transform-origin: left center; animation: rs-countdown linear forwards; }
 @keyframes rs-countdown { from { transform: scaleX(1); } to { transform: scaleX(0); } }
-#app.in-combat #dg-book { opacity: 0.4; pointer-events: none; }
+/* 戦闘中も手帳は開ける (閉じるまで戦闘は止まる。帰還・隊の編成はできない) */
 /* 手帳: 2列の札・帰還の帯・2×2 のスイッチ (390×844 で巻かずに収まる) */
 .dg-menu .ui-grab { height: 16px; }
 .dg-menu .dg-floorhead.tap { min-height: 52px; padding: 4px 8px 6px; margin-bottom: 6px; }

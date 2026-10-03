@@ -15,7 +15,7 @@ import { countUp, goldFlash, animate } from "./motion.js";
 import { getPref } from "./prefs.js";
 import { showSkillPopup } from "./itemview.js";
 import { ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
-import { SOUL_CLASSES, jobBust } from "../souls.js";
+import { SOUL_CLASSES, soulIcon } from "../souls.js";
 import { RARITIES, rarityKey } from "../rarity.js";
 import { ITEMS, itemName } from "../items.js";
 
@@ -95,7 +95,7 @@ export function openResults(spec = {}) {
     const r = el("div", "rs-line rs-soul" + (s.rare ? " rare" : ""));
     r.style.setProperty("--glow", s.glow || "#c9a24a");
     const ic = el("span", "rs-soul-ic");
-    try { ic.appendChild(crispCanvas(jobBust(s.clsKey, 1), 24)); } catch (e) { /* noop */ }
+    try { ic.appendChild(crispCanvas(soulIcon(s.clsKey), 24)); } catch (e) { /* noop */ }
     r.appendChild(ic);
     const t = el("div", "rs-line-t");
     t.appendChild(el("b", null, `${s.label}の魂`));
@@ -549,7 +549,7 @@ export function openRunReportDetail() {
         const list = el("div", "dg-souls");
         for (const s of lr.souls) {
           const chip = el("span", "dg-soul r-" + (s.rarity || "common"));
-          try { chip.appendChild(crispCanvas(jobBust(s.clsKey, 1), 24)); } catch (e) { /* noop */ }
+          try { chip.appendChild(crispCanvas(soulIcon(s.clsKey), 24)); } catch (e) { /* noop */ }
           chip.appendChild(el("span", null, s.label));
           const cls = SOUL_CLASSES[s.clsKey];
           if (cls && cls.glow) chip.style.setProperty("--glow", cls.glow);

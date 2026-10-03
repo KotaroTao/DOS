@@ -2,7 +2,7 @@
 //
 // 月下の大墓所。その奥に、地の底へ降りる大門が口を開け、喰われた魂の火 (青緑) が
 // 階段を這い上がってくる。門の両脇には顔のない頭巾の巨像が剣を突き立てて立ち、
-// 傾いだ墓標の列の手前に、ランタンを提げた魂繰りがひとり、背を向けて立つ。
+// 傾いだ墓標の列の手前に、ランタンを提げた操霊師がひとり、背を向けて立つ。
 //
 // 光源は 3 つだけ: 門の魂火 (主光・下から)、背後の月 (縁の照り返し)、ランタンのおき火。
 // 静止部分は層ごとに一度だけ描いてキャッシュし、毎フレームは光・霧・粒子・鴉だけを動かす。
@@ -30,7 +30,7 @@ export const fall = (x, y, L) => {
 
 // ---------------------------------------------------------------------------
 // 人の形 (写実の頭身 ≒ 7.5 頭身)。座標は「足元=0 / 頭頂=1」の正規化値 (u: 横, v: 縦)
-// 背を向けた外套の魂繰り。右手 (画面右) にランタンを提げ、外套の裾は風で左へ流れる。
+// 背を向けた外套の操霊師。右手 (画面右) にランタンを提げ、外套の裾は風で左へ流れる。
 export function cloakedBack(m, fx, feet, h, { wind = 1, lantern = true, sword = true, seed = 3 } = {}) {
   const P = (pts) => { const o = []; for (let i = 0; i < pts.length; i += 2) o.push(fx + pts[i] * h, feet - pts[i + 1] * h); return o; };
   // 外套 (肩から裾へ、ぼろぼろの裾)
@@ -70,7 +70,7 @@ export function cloakedBack(m, fx, feet, h, { wind = 1, lantern = true, sword = 
   return { lantern: { x: fx + 0.203 * h, y: feet - 0.382 * h }, head: { x: fx, y: feet - 0.93 * h } };
 }
 
-// 背を向けた魂繰りを塗る。light = 背後の主光 (この方向の縁だけが細く光る) / lamp = 手元のランタン
+// 背を向けた操霊師を塗る。light = 背後の主光 (この方向の縁だけが細く光る) / lamp = 手元のランタン
 export function shadeCloaked(Lr, m, fx, feet, h, { light, lamp, rimRamp = R_SOUL, rimK = 1, moonRim = 0.45, base0 = 0 } = {}) {
   const c35 = 0.8, s35 = 0.6;
   Lr.paint(m, (x, y, v) => {
@@ -229,7 +229,7 @@ const tick = () => new Promise((r) => setTimeout(r, 0));
 export async function paintTitle(W, H, lay) {
   const portrait = H / W > 1.15;
   const top = lay.top, bot = lay.bot;
-  // 主題 (門・巨像・魂繰り) の大きさ k と位置。縦長は門の下に人物、横長は人物を左手前へ
+  // 主題 (門・巨像・操霊師) の大きさ k と位置。縦長は門の下に人物、横長は人物を左手前へ
   let k, gb, gx = Math.round(W / 2);
   if (portrait) {
     k = Math.min(W / 250, (bot - top + 10) / 250);

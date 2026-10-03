@@ -17,9 +17,9 @@ import { getPref, setPref, remember } from "./prefs.js";
 import { sceneTransition } from "./motion.js";
 import { MONSTERS, ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
 import { ELEMENTS, monsterTraits, isFloating } from "../dungeons/index.js";
-import { tagRow, traitTagKinds, affinityRow, MON_REVEAL, monKills, enemyReveal, enemyLabel, revealLock } from "./itemview.js";
+import { tagRow, traitTagKinds, affinityRow, MON_REVEAL, monKills, enemyReveal, enemyLabel, revealLock, BUFF_NAME } from "./itemview.js";
 import { RARITIES } from "../rarity.js";
-import { SOUL_CLASSES, jobBust } from "../souls.js";
+import { SOUL_CLASSES, soulIcon } from "../souls.js";
 import { WALKER as WALKER_ART } from "../walkerart.js";
 
 export { getPref, setPref, remember, sceneTransition };
@@ -227,7 +227,7 @@ export function openRunLoot() {
         for (const s of souls) {
           const c = SOUL_CLASSES[s.clsKey];
           const chip = el("span", "dg-soul r-" + ((c && c.rarity) || "common"));
-          try { chip.appendChild(crispCanvas(jobBust(s.clsKey, 1), 24)); } catch (e) { /* noop */ }
+          try { chip.appendChild(crispCanvas(soulIcon(s.clsKey), 24)); } catch (e) { /* noop */ }
           chip.appendChild(el("span", null, c ? c.label : s.clsKey));
           if (c && c.glow) chip.style.setProperty("--glow", c.glow);
           list.appendChild(chip);
@@ -277,8 +277,18 @@ const TOGGLES = [
   { key: "autoCorpse", label: "死体をすぐ調べる", sub: "風化した死体だけ" },
   { key: "autoCloseResults", label: "戦果を自動で送る", sub: "1.6秒で次へ" },
 ];
+// 戦闘中の手帳に並べる切り替え (倍速はセーブの G.fastAnim、ほかは端末の好み)
+const COMBAT_TOGGLES = [
+  { key: "fastAnim", label: "戦闘演出 倍速", sub: "攻撃や術の演出を速める",
+    get: () => { const g = G(); return !!(g && g.fastAnim); },
+    set: (v) => { const g = G(); if (!g) return; g.fastAnim = v; if (game.autosave) game.autosave(); } },
+  { key: "autoKeep", label: "オートを続ける", sub: "次の戦闘も。主・強敵で止まる" },
+  { key: "autoCloseResults", label: "戦果を自動で送る", sub: "1.6秒で次へ" },
+];
 function toggleRow(t, after) {
-  const on = !!getPref(t.key);
+  // t.get/t.set があれば端末の好み (getPref) ではなくそちらを読み書きする (倍速 = セーブの G.fastAnim)
+  const get = t.get || (() => getPref(t.key)), put = t.set || ((v) => setPref(t.key, v));
+  const on = !!get();
   const r = el("button", "dg-toggle" + (on ? " on" : ""));
   r.type = "button";
   r.setAttribute("role", "switch");
@@ -291,8 +301,8 @@ function toggleRow(t, after) {
   sw.appendChild(el("i"));
   r.appendChild(sw);
   r.addEventListener("click", () => {
-    const v = !getPref(t.key);
-    setPref(t.key, v);
+    const v = !get();
+    put(v);
     r.classList.toggle("on", v);
     r.setAttribute("aria-checked", v ? "true" : "false");
     sfx("select");
@@ -318,7 +328,10 @@ export function openDungeonMenu() {
   if (!g) return null;
   // 迷宮の外 (街) では設定を開く
   if (g.state !== "board" && g.state !== "combat") { if (UI.openSettings) UI.openSettings(); return null; }
-  if (g.state === "combat") return null;
+  // 戦闘中も開ける: 閉じるまで戦闘は止まる (game.js combatHeld)。速さ・オートは変えられるが、
+  // 帰還と隊の編成 (装備の付け替え) はできない
+  const combat = g.state === "combat";
+  if (combat) g._cmdStale = true;
   const f = floorFacts();
   const name = f.abyss ? "無限迷宮「奈落」" : (f.dn ? f.dn.name : "");
   const floors = f.abyss ? 0 : (f.dn && f.dn.floors) || 1;
@@ -343,21 +356,23 @@ export function openDungeonMenu() {
       head.addEventListener("click", go(openFloorInfo));
       b.appendChild(head);
       const grid = el("div", "dg-mgrid");
-      grid.appendChild(menuTile("party", "パーティを見る", "装備・能力・道具", go(() => UI.openParty(0, { context: "dungeon" }))));
+      grid.appendChild(combat ? menuTile("party", "パーティを見る", "戦闘中は開けない", null)
+        : menuTile("party", "パーティを見る", "装備・能力・道具", go(() => UI.openParty(0, { context: "dungeon" }))));
       grid.appendChild(menuTile("loot", "今回の収穫", `💰${r.gold || 0} ✦${r.soulPts || 0} 品${(r.items || []).length}`, go(openRunLoot)));
       grid.appendChild(menuTile("scroll", "記録を読む", "出来事の全文", go(openLog)));
       grid.appendChild(menuTile("book", "図鑑", "敵・品・見聞", go(() => UI.openCodexSheet && UI.openCodexSheet({ dungeonIdx: g.dungeonIdx }))));
       grid.appendChild(menuTile("gear", "設定", "音量・振動・背景", go(() => UI.openSettings && UI.openSettings())));
-      const canHome = game.canReturnNow ? game.canReturnNow() : false;
-      grid.appendChild(menuTile("home", canHome ? "街へ帰還する" : "帰還できない", canHome ? "戦利品を持ち帰る" : "帰還陣か主の討伐で",
+      const canHome = !combat && (game.canReturnNow ? game.canReturnNow() : false);
+      grid.appendChild(menuTile("home", canHome ? "街へ帰還する" : "帰還できない", canHome ? "戦利品を持ち帰る" : combat ? "戦闘中は帰れない" : "帰還陣か主の討伐で",
         canHome ? go(() => game.confirmReturnToTown && game.confirmReturnToTown()) : null, canHome ? "gold" : null));
       b.appendChild(grid);
-      b.appendChild(section("探索の手間を省く"));
+      if (combat) b.appendChild(section("戦闘の速さ"));
+      else b.appendChild(section("探索の手間を省く"));
       const tg = el("div", "dg-toggles grid");
-      for (const t of TOGGLES) tg.appendChild(toggleRow(t));
+      for (const t of combat ? COMBAT_TOGGLES : TOGGLES) tg.appendChild(toggleRow(t));
       b.appendChild(tg);
     },
-    footer: [{ label: "探索に戻る", kind: "primary", size: "lg", onTap: (s) => s.close() }],
+    footer: [{ label: combat ? "戦闘に戻る" : "探索に戻る", kind: "primary", size: "lg", onTap: (s) => s.close() }],
   });
   return h;
 }
@@ -395,7 +410,7 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
       chips.appendChild(el("span", "dg-chip", w ? `${w.name}` : "素手"));
       if (d.ailment) chips.appendChild(el("span", "dg-chip bad", AIL[d.ailment] || d.ailment));
       if (d.asleep) chips.appendChild(el("span", "dg-chip bad", "眠り"));
-      for (const ef of (d.effects || [])) chips.appendChild(el("span", "dg-chip " + (ef.mult > 1 ? "up" : "bad"), `${(ef.stat || "").toUpperCase()}${ef.mult > 1 ? "▲" : "▼"} 残${ef.turns}`));
+      for (const ef of (d.effects || [])) chips.appendChild(el("span", "dg-chip " + (ef.mult > 1 ? "up" : "bad"), `${BUFF_NAME[ef.stat] || (ef.stat || "").toUpperCase()}${ef.mult > 1 ? "▲" : "▼"} 残${ef.turns}`));
       b.appendChild(chips);
       const grid = el("div", "dg-stats");
       for (const [k, lb] of STAT_KEYS) {

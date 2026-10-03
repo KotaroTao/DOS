@@ -100,6 +100,8 @@ function fusable(c) {
   return null;
 }
 const canMake = (c) => c.party.length < 6 && c.freeSouls.length > 0 && (c.G.redSoul || 0) >= safe(() => game.emptyDollCost(), Infinity);
+// 第0章で仕立てる残りの数 (王命は四体。game.js の TUT_DOLLS と同じ)
+const tutLeft = (c) => (c.ms.n === 0 && c.ms.state === "active" && c.ms.granted && c.dolls.length) ? Math.max(0, 4 - c.dolls.length) : 0;
 const jobName = (s) => (s && SOUL_CLASSES[s.clsKey] ? soulSeriesName(s.clsKey) : "宿した");
 
 // ---------- 親しさ (よそよそしい → 親密) ----------
@@ -121,7 +123,7 @@ export function ireneBond() { const c = ctxNow(); return c.bond; }
 const LINES = [
   // ---- 親しさの節目 (その段になった直後の来館で、ほかの新しい話題より先に話す) ----
   { id: "m_bond1", kind: "chat", fresh: true, bond: 1, until: 1,
-    say: ["……また、来られたのですね。", "いえ。この館へ二度来る魂繰りは、珍しいもので。"] },
+    say: ["……また、来られたのですね。", "いえ。この館へ二度来る操霊師は、珍しいもので。"] },
   { id: "m_bond2", kind: "chat", fresh: true, bond: 2, until: 2,
     say: ["……もう、そんなに堅苦しくしなくていいわ。", "わたしも、そうするから。"] },
   { id: "m_bond3", kind: "chat", fresh: true, bond: 3, until: 3,
@@ -135,6 +137,10 @@ const LINES = [
   { id: "n_nodoll", kind: "now", must: true, when: (c) => !c.dolls.length, say: {
     0: ["では、宿す魂をひとつお選びください。", "器はこちらで仕立てます。最初の三体に、お代は要りません。"],
     2: ["さあ、宿す魂をひとつ選んで。", "器はわたしが仕立ててあげる。"] } },
+  // 第0章「人業の生成」: 王命は四体。揃うまで必ず数を告げる
+  { id: "n_tut4", kind: "now", must: true, when: (c) => tutLeft(c) > 0 && canMake(c), say: {
+    0: (c) => [`王命は人業を四体、でございましたね。あと${tutLeft(c)}体です。`, "残る魂を、ひとつずつ器にお宿しください。"],
+    2: (c) => [`王様の命は四体だったわね。あと${tutLeft(c)}体よ。`, "残る魂も、器に宿してあげて。"] } },
   { id: "n_dead", kind: "now", when: (c) => !!deadDoll(c), say: {
     0: (c) => deadDoll(c).reviveAt ? [`${deadDoll(c).name}の器は、まだ迷宮に残されたままです。`, "時が経てば連れ帰られます。赤い魂で迎えを早めることもできます。"]
       : [`${deadDoll(c).name}の器が、砕けたままです。`, "その子を選べば、金貨で砕けた魂を修復いたします。"],
@@ -261,7 +267,7 @@ const LINES = [
   { id: "f_name", kind: "chat", until: 0, say: ["わたしの名ですか。", "……イレーヌ。それ以上は、お仕事に要りませんでしょう。"] },
   { id: "f_tea", kind: "chat", until: 1, say: ["お茶はお出ししておりません。", "ここは工房であって、客間ではございませんので。"] },
   { id: "f_king", kind: "chat", until: 1, when: (c) => c.dolls.length > 0,
-    say: ["王命で参られた魂繰り様、でしたね。", "前の方は……いえ、何でもございません。"] },
+    say: ["王命で参られた操霊師様、でしたね。", "前の方は……いえ、何でもございません。"] },
   { id: "f_candle", kind: "chat", until: 1, say: ["この館の蝋燭は、絶やしたことがありません。", "理由は……お話しするほどのことでは。"] },
   { id: "s1_ask", kind: "chat", bond: 1, until: 1, when: (c) => c.cleared >= 1,
     say: ["迷宮は、いかがでしたか。", "……いえ。器の傷み具合を伺っただけです。"] },
@@ -279,7 +285,7 @@ const LINES = [
   { id: "c_honest", kind: "chat", bond: 2, when: (c) => c.dolls.length > 0,
     say: ["器は嘘をつかないわ。", "傷もひびも、宿した魂の生き様そのものよ。"] },
   { id: "c_firstdoll", kind: "chat", bond: 2, when: (c) => c.dolls.length > 0,
-    say: ["あなたが最初に仕立てた子、覚えている?", "初めての器には、魂繰りの癖がいちばん出るものよ。"] },
+    say: ["あなたが最初に仕立てた子、覚えている?", "初めての器には、操霊師の癖がいちばん出るものよ。"] },
   { id: "c_grave", kind: "chat", when: (c) => c.act >= 1 && c.cleared < 5, say: {
     0: ["墓地の迷宮へ行かれるのですね。", "あそこの死者は眠りが浅い。足音はお静かに。"],
     2: ["墓地の迷宮へゆくのね。", "あそこの死者は眠りが浅いの。足音は静かにね。"] } },
@@ -327,7 +333,7 @@ const LINES = [
   // ---- 親しみ (層の主を討った頃から) ----
   { id: "c_tea", kind: "chat", bond: 3, say: ["お茶はいかが? 夜咲きのすみれを浮かべたの。", "……前は出さなかった? 気が変わったのよ。"] },
   { id: "c_age", kind: "chat", bond: 3, say: ["わたしの歳?", "……人形に歳を聞く人なんて、あなたが初めてよ。"] },
-  { id: "c_hands", kind: "chat", bond: 3, say: ["あなたの手、魂繰りの手ね。", "冷たいのに、魂には温かい。不思議な手。"] },
+  { id: "c_hands", kind: "chat", bond: 3, say: ["あなたの手、操霊師の手ね。", "冷たいのに、魂には温かい。不思議な手。"] },
   { id: "c_warm", kind: "chat", bond: 3, when: (c) => c.dolls.length >= 2,
     say: ["魂を宿すたび、器はほんの少しだけ温かくなるの。", "……あなたにも、わかるかしら。"] },
   { id: "c_wait", kind: "chat", bond: 3, say: ["あなたが迷宮にいる間、扉の音ばかり気になるの。", "……人形たちが、よ。わたしじゃないわ。"] },
@@ -335,14 +341,14 @@ const LINES = [
 
   // ---- 親密 (身の上を語る) ----
   { id: "v_steps", kind: "chat", bond: 4, say: ["あなたの足音、もう覚えてしまったわ。", "扉を開ける前から、あなただとわかるの。"] },
-  { id: "v_master", kind: "chat", bond: 4, say: ["昔、わたしにも魂繰りの師がいたの。", "……あなたを見ていると、少しだけ思い出すわ。"] },
+  { id: "v_master", kind: "chat", bond: 4, say: ["昔、わたしにも操霊師の師がいたの。", "……あなたを見ていると、少しだけ思い出すわ。"] },
   { id: "c_mydoll", kind: "chat", bond: 4, say: ["ねえ、あなたの器も仕立ててあげましょうか。", "……冗談よ。あなたには、温かい体のままでいてほしいもの。"] },
   { id: "c_promise", kind: "chat", bond: 4, say: ["深く潜るほど、帰り道は細くなるわ。", "必ず戻ってきて。約束よ。"] },
   { id: "c_comb", kind: "chat", bond: 4, say: ["たまには、あなたの髪もとかしてあげましょうか?", "……じっとしていられるなら、ね。"] },
 
   // ---- 特別 (秘密を明かす) ----
   { id: "v_secret", kind: "chat", bond: 5, say: ["わたしの胸の奥にも、ひとつ魂が眠っているの。", "誰のものか……あなたにだけは、話してもいいわ。"] },
-  { id: "c_before", kind: "chat", bond: 5, say: ["前の魂繰りは、戻ってこなかったの。", "だからあなたにも、心を開くのが怖かった。……もう遅いけれど。"] },
+  { id: "c_before", kind: "chat", bond: 5, say: ["前の操霊師は、戻ってこなかったの。", "だからあなたにも、心を開くのが怖かった。……もう遅いけれど。"] },
   { id: "c_home", kind: "chat", bond: 5, say: ["あなたが帰ってくる場所が、ここならいいのに。", "……今のは忘れて。蝋燭の煙が目にしみただけ。"] },
 ];
 
@@ -428,7 +434,7 @@ export function greetingPages() {
 
 // ---------- 会話の場面 (全画面) ----------
 // pages: [[1行目, 2行目], …]。1回目のタップ = 文字を出し切る / 次のタップ = 次のページ / 最後のページで閉じる。
-// 「とばす」で最後まで飛ばす。戻る操作はタップと同じ順 (出し切る → 次 → 閉じる)
+// 「スキップ」で最後まで飛ばす。戻る操作はタップと同じ順 (出し切る → 次 → 閉じる)
 let active = null;
 export function playIreneScene(pages, done) {
   const list = (pages || []).filter((p) => p && p.length);
@@ -450,7 +456,7 @@ export function playIreneScene(pages, done) {
   art.appendChild(img);
   wrap.appendChild(art);
   wrap.appendChild(el("div", "iv-veil"));
-  const skip = el("button", "iv-skip", "とばす");
+  const skip = el("button", "iv-skip", "スキップ");
   skip.type = "button";
   wrap.appendChild(skip);
 

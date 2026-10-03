@@ -335,11 +335,11 @@
 .op-pip.done { background: #5a4a30; }
 .op-pip.on { background: #f3d58b; border-color: #f3d58b; box-shadow: 0 0 8px rgba(243,213,139,0.7); }
 
-/* とばす */
+/* スキップ */
 .op-skip {
   position: absolute; z-index: 5; right: clamp(10px, 3vw, 28px); top: calc(var(--safe-top, 0px) + 10px);
   display: flex; align-items: center; gap: 6px; padding: 7px 12px 7px 14px; cursor: pointer;
-  font-family: var(--font); font-size: 12px; letter-spacing: 0.3em; color: #a3967f;
+  font-family: var(--font); font-size: 12px; letter-spacing: 0.12em; white-space: nowrap; color: #a3967f;
   background: rgba(10,8,12,0.55); border: 1px solid #3a3029; border-radius: 2px;
   transition: color 0.2s ease, border-color 0.2s ease;
 }

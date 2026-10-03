@@ -7,6 +7,7 @@ import { recalc, registerJobGear } from "./items.js";
 import { JOB_LORE_RANKS } from "./joblore.js";
 import { JOB_IMAGES } from "./jobart.js";
 import { JOB_PHOTOS, PHOTO_RES } from "./jobphotos.js";
+import { ICONS } from "./sprites.js";
 
 export const PARTS = ["head", "rhand", "lhand", "body", "legs"];
 export const PART_LABEL = { head: "頭", rhand: "右手", lhand: "左手", body: "胴体", legs: "足" };
@@ -358,7 +359,7 @@ export function pLv(m, key) { return (m && m.passiveMap && m.passiveMap[key]) ||
 
 // ===== 職業スキル表 =====
 // 習得レベル: 1,3,5,7,10 のあと5刻みで200まで (全43段)。
-// さらに属性技 (JOB_ELEM_SKILLS) を 2,4,8,12,17,22… の段に織り込む (下の JOB_AFFINITY を参照)。
+// その間の 2,4,8,12,17,22… の段にも、得意属性 (JOB_AFFINITY) の技を置いてある。
 // 表の各エントリは「技」 {lvl, skill} か「パッシブ」 {lvl, passive, plv} のいずれか。
 // 旧仕様の「ランク×10ゲート」は撤廃し、魂レベルが lvl 以上なら習得する。
 export const SKILL_LEVELS = (() => {
@@ -366,830 +367,270 @@ export const SKILL_LEVELS = (() => {
   for (let lv = 15; lv <= 200; lv += 5) a.push(lv);
   return a;
 })();
+// 表は「Lv 技キー」または「Lv パッシブキー/パッシブLv」を空白区切りで並べた文字列 (T で展開)。
+// 技の中身は skilldefs.js。職ごとの持ち味:
+//  AGIの低い物理職 = 命中補正の技 (狙い打ち → 心眼撃 → 必中の大技) と防御無視 / 素早い職 = 連撃・会心・AGIで伸びる技・盗む・逃走 /
+//  守り手 = 挑発・仁王立ち・反撃の構え / 呪い手 = 毒・封印・属性耐性ダウン・即死 / 祈り手 = 回復・リジェネ・弱体解除
+const T = (src) => src.trim().split(/\s+/).reduce((out, tok, i, a) => {
+  if (i % 2) return out;
+  const lvl = +tok, key = a[i + 1];
+  if (key.includes("/")) { const [passive, plv] = key.split("/"); out.push({ lvl, passive, plv: +plv }); }
+  else out.push({ lvl, skill: key });
+  return out;
+}, []);
 export const JOB_SKILLS = {
-  // 戦士: 新仕様 (Lv1-200 / 技とパッシブを織り込み)。Lv40=きこく斬 は宿し技 (signature)
-  fighter:     [
-    { lvl: 1,   skill: "KYOUGEKI" },                 // 強撃
-    { lvl: 3,   skill: "TATEWARI" },                 // 兜割り
-    { lvl: 5,   passive: "extraHit", plv: 1 },       // 連撃Lv1
-    { lvl: 7,   skill: "DOUBLE" },                   // 二段斬り
-    { lvl: 10,  skill: "WARCRY" },                   // 武者震い
-    { lvl: 15,  passive: "fightSpirit", plv: 1 },    // 闘魂Lv1
-    { lvl: 20,  skill: "NAGIHARAI" },                // 薙ぎ払い
-    { lvl: 25,  passive: "vitalEye", plv: 1 },       // 急所読みLv1
-    { lvl: 30,  skill: "MIDARE" },                   // 乱れ斬り
-    { lvl: 35,  passive: "extraHit", plv: 2 },       // 連撃Lv2
-    { lvl: 40,  skill: "KIKOKU" },                   // きこく斬 (看板技)
-    { lvl: 45,  passive: "counter", plv: 1 },        // 反撃Lv1
-    { lvl: 50,  skill: "GOUZAN" },                   // 豪斬
-    { lvl: 55,  skill: "ISSEN" },                    // 一閃
-    { lvl: 60,  passive: "fightSpirit", plv: 2 },    // 闘魂Lv2
-    { lvl: 65,  skill: "SENPUU" },                   // 旋風斬
-    { lvl: 70,  passive: "counter", plv: 2 },        // 反撃Lv2
-    { lvl: 75,  passive: "zanshin", plv: 1 },        // 残心
-    { lvl: 80,  skill: "ZANTETSU" },                 // 斬鉄
-    { lvl: 85,  skill: "SANREN" },                   // 三連斬
-    { lvl: 90,  passive: "vitalEye", plv: 2 },       // 急所読みLv2
-    { lvl: 95,  skill: "DAISENPUU" },                // 大旋風
-    { lvl: 100, skill: "YOROIDACHI" },               // 鎧断ち
-    { lvl: 105, passive: "counter", plv: 3 },        // 反撃Lv3
-    { lvl: 110, skill: "KISHINKA" },                 // 鬼神化
-    { lvl: 115, passive: "extraHit", plv: 3 },       // 連撃Lv3
-    { lvl: 120, skill: "SHURAZAN" },                 // 修羅斬
-    { lvl: 125, passive: "parry", plv: 1 },          // 見切りLv1
-    { lvl: 130, skill: "RANBU" },                    // 乱舞
-    { lvl: 135, passive: "fightSpirit", plv: 3 },    // 闘魂Lv3
-    { lvl: 140, skill: "HADAN" },                    // 覇断
-    { lvl: 145, passive: "endure", plv: 1 },         // 不屈
-    { lvl: 150, skill: "AMATSUKAZE" },               // 天津風
-    { lvl: 155, passive: "parry", plv: 2 },          // 見切りLv2
-    { lvl: 160, skill: "TENCHIZAN" },                // 天地斬
-    { lvl: 165, passive: "endure", plv: 2 },         // 不屈Lv2
-    { lvl: 170, skill: "ROKUREN" },                  // 六連斬
-    { lvl: 175, passive: "resistAilment", plv: 1 },  // 異常耐性Lv1
-    { lvl: 180, skill: "KIKOKURANBU" },              // 鬼哭乱舞
-    { lvl: 185, passive: "extraHit", plv: 4 },       // 連撃Lv4
-    { lvl: 190, skill: "HAOUZAN" },                  // 覇王斬
-    { lvl: 195, passive: "fightSpirit", plv: 4 },    // 闘魂Lv4
-    { lvl: 200, skill: "METSUKYAKU" },               // 滅却・終ノ太刀
-  ],
-  // 騎士: 新仕様 (Lv1-200 / 技とパッシブを織り込み)。Lv40=城門崩し は宿し技 (signature)
-  knight:      [
-    { lvl: 1,   skill: "SHIELDBASH" },               // シールドバッシュ
-    { lvl: 3,   passive: "taunt", plv: 1 },           // 挑発
-    { lvl: 5,   skill: "PROTECT" },                   // プロテクション
-    { lvl: 7,   skill: "KOTE" },                      // 小手打ち
-    { lvl: 10,  skill: "KYOUGEKI" },                  // 強撃
-    { lvl: 15,  passive: "cover", plv: 1 },           // かばうLv1
-    { lvl: 20,  skill: "IRONWALL" },                  // 鉄壁
-    { lvl: 25,  passive: "counter", plv: 1 },         // 反撃Lv1
-    { lvl: 30,  skill: "GUARDALL" },                  // 守りの号令
-    { lvl: 35,  passive: "cover", plv: 2 },           // かばうLv2
-    { lvl: 40,  skill: "JOUMON" },                    // 城門崩し (看板技)
-    { lvl: 45,  passive: "bastion", plv: 1 },         // 城壁の構えLv1
-    { lvl: 50,  skill: "MIDARE" },                    // 乱れ斬り
-    { lvl: 55,  skill: "BOUJIN" },                    // 防陣
-    { lvl: 60,  passive: "counter", plv: 2 },         // 反撃Lv2
-    { lvl: 65,  skill: "GOUZAN" },                    // 豪斬
-    { lvl: 70,  passive: "parry", plv: 1 },           // 見切りLv1
-    { lvl: 75,  passive: "endure", plv: 1 },          // 不屈
-    { lvl: 80,  skill: "OUJOU" },                     // 王城の構え
-    { lvl: 85,  skill: "SHIELDCHARGE" },              // 盾突進
-    { lvl: 90,  passive: "resistAilment", plv: 1 },   // 異常耐性Lv1
-    { lvl: 95,  skill: "SHUGOHOUKOU" },               // 守護咆哮
-    { lvl: 100, skill: "JOUSAITSUKI" },               // 城塞突き
-    { lvl: 105, passive: "counter", plv: 3 },         // 反撃Lv3
-    { lvl: 110, skill: "TEPPEKIJIN" },                // 鉄壁陣
-    { lvl: 115, passive: "cover", plv: 3 },           // かばうLv3
-    { lvl: 120, skill: "ZANTETSU" },                  // 斬鉄
-    { lvl: 125, passive: "bastion", plv: 2 },         // 城壁の構えLv2
-    { lvl: 130, skill: "FURAKUNOTATE" },              // 不落の盾
-    { lvl: 135, passive: "parry", plv: 2 },           // 見切りLv2
-    { lvl: 140, skill: "BANRAI" },                    // 万雷の盾撃
-    { lvl: 145, passive: "bigBarrier", plv: 1 },      // 大結界Lv1
-    { lvl: 150, skill: "SHUGOKEKKAI" },               // 守護結界
-    { lvl: 155, passive: "endure", plv: 2 },          // 不屈Lv2
-    { lvl: 160, skill: "JOUSAIKUZUSHI" },             // 城塞崩し
-    { lvl: 165, passive: "resistAilment", plv: 2 },   // 異常耐性Lv2
-    { lvl: 170, skill: "TESSAINAGI" },                // 鉄盾薙ぎ
-    { lvl: 175, passive: "bigBarrier", plv: 2 },      // 大結界Lv2
-    { lvl: 180, skill: "KISHIOU" },                   // 騎士王の威光
-    { lvl: 185, passive: "holyCover", plv: 1 },       // 聖盾
-    { lvl: 190, skill: "FUDOUJIN" },                  // 不動明王陣
-    { lvl: 195, skill: "DAIGOUREI" },                 // 守護の大号令
-    { lvl: 200, skill: "FURAKUJOU" },                 // 不落城
-  ],
-  // 僧侶: 新仕様 (Lv1-200 / 技とパッシブを織り込み)。Lv40=リカバーオール は宿し技 (signature)
-  priest:      [
-    { lvl: 1,   skill: "DIOS" },                      // ヒール
-    { lvl: 3,   skill: "CURE" },                      // キュア
-    { lvl: 5,   passive: "afterHeal", plv: 1 },       // 戦闘後回復Lv1
-    { lvl: 7,   skill: "HOLYRAY" },                   // 聖光
-    { lvl: 10,  skill: "BLESS" },                     // ブレス
-    { lvl: 15,  passive: "selfPurify", plv: 1 },      // 自浄
-    { lvl: 20,  skill: "DIOSALL" },                   // ヒールオール
-    { lvl: 25,  passive: "afterHeal", plv: 2 },       // 戦闘後回復Lv2
-    { lvl: 30,  skill: "DIAL" },                      // リカバー
-    { lvl: 35,  passive: "chant", plv: 1 },           // 省詠唱Lv1
-    { lvl: 40,  skill: "DIALALL" },                   // リカバーオール (看板技)
-    { lvl: 45,  passive: "purify", plv: 1 },          // 浄化
-    { lvl: 50,  skill: "SAINTRAY" },                  // 聖閃
-    { lvl: 55,  skill: "REVIVE" },                    // リバイブ
-    { lvl: 60,  passive: "afterHeal", plv: 3 },       // 戦闘後回復Lv3
-    { lvl: 65,  skill: "MADIOS" },                    // フルヒール
-    { lvl: 70,  passive: "resistAilment", plv: 1 },   // 異常耐性Lv1
-    { lvl: 75,  passive: "sanctuary", plv: 1 },       // 聖域
-    { lvl: 80,  skill: "RESURRECT" },                 // リザレクション
-    { lvl: 85,  skill: "SHINSEIKO" },                 // 神聖光
-    { lvl: 90,  passive: "afterHeal", plv: 4 },       // 戦闘後回復Lv4
-    { lvl: 95,  skill: "SHINYU" },                    // 神癒
-    { lvl: 100, skill: "SEIBETSU" },                  // 聖別
-    { lvl: 105, passive: "chant", plv: 2 },           // 省詠唱Lv2
-    { lvl: 110, skill: "IYASHINAMI" },                // 癒しの波
-    { lvl: 115, passive: "scripture", plv: 1 },       // 聖典の加護
-    { lvl: 120, skill: "SEIMETSUKOU" },               // 聖滅光
-    { lvl: 125, passive: "resistAilment", plv: 2 },   // 異常耐性Lv2
-    { lvl: 130, skill: "SHINBATSU" },                 // 神罰
-    { lvl: 135, passive: "divineCounter", plv: 1 },   // 神罰の鉄槌
-    { lvl: 140, skill: "SEISUISHO" },                 // 聖水撒
-    { lvl: 145, passive: "martyr", plv: 1 },          // 殉教の祈り
-    { lvl: 150, skill: "TENKEINOINORI" },             // 天啓の祈り
-    { lvl: 155, passive: "mercy", plv: 1 },           // 慈悲の祈り
-    { lvl: 160, skill: "SEIKOURETSU" },               // 聖光烈
-    { lvl: 165, passive: "popePrayer", plv: 1 },      // 教皇の祈り
-    { lvl: 170, skill: "FUKUIN" },                    // 復活の福音
-    { lvl: 175, passive: "holyCover", plv: 1 },       // 聖盾
-    { lvl: 180, skill: "SEIMETSUREKKOU" },            // 聖滅烈光
-    { lvl: 185, skill: "DAISEIKITOU" },               // 大聖祈祷
-    { lvl: 190, skill: "DAIFUKUIN" },                 // 大福音
-    { lvl: 195, passive: "bigBarrier", plv: 1 },      // 大結界
-    { lvl: 200, skill: "KAMIWAZA" },                  // 神の御業
-  ],
-  // 魔導士: 新仕様 (Lv1-200 / 技とパッシブを織り込み)。Lv40=エクスプロージョン は宿し技 (signature)
-  mage:        [
-    { lvl: 1,   skill: "HALITO" },                    // ファイアアロー
-    { lvl: 3,   skill: "ICENEEDLE" },                 // アイスニードル
-    { lvl: 5,   passive: "afterMp", plv: 1 },         // 魔力回路Lv1
-    { lvl: 7,   skill: "KAMAITACHI" },                // かまいたち
-    { lvl: 10,  skill: "KATINO" },                    // スリープ
-    { lvl: 15,  passive: "chant", plv: 1 },           // 省詠唱Lv1
-    { lvl: 20,  skill: "MAHALITO" },                  // ファイアストーム
-    { lvl: 25,  passive: "spellCrit", plv: 1 },       // 呪文会心Lv1
-    { lvl: 30,  skill: "ROCKBLAST" },                 // ストーンブラスト
-    { lvl: 35,  passive: "afterMp", plv: 2 },         // 魔力回路Lv2
-    { lvl: 40,  skill: "TILTOWAIT" },                 // エクスプロージョン (看板技)
-    { lvl: 45,  passive: "chant", plv: 2 },           // 省詠唱Lv2
-    { lvl: 50,  skill: "MADALT" },                    // ブリザード
-    { lvl: 55,  skill: "DISPEL" },                    // ディスペル
-    { lvl: 60,  passive: "spellCrit", plv: 2 },       // 呪文会心Lv2
-    { lvl: 65,  skill: "LAHALITO" },                  // インフェルノ
-    { lvl: 70,  passive: "barrier", plv: 1 },         // 魔障壁Lv1
-    { lvl: 75,  passive: "scan", plv: 1 },            // 弱点看破
-    { lvl: 80,  skill: "SEISAI" },                    // 星砕
-    { lvl: 85,  skill: "RAITEI" },                    // 雷鳴
-    { lvl: 90,  passive: "reflect", plv: 1 },         // 魔力反射
-    { lvl: 95,  skill: "HYORETSU" },                  // 氷烈
-    { lvl: 100, skill: "ENBU" },                      // 炎舞
-    { lvl: 105, passive: "barrier", plv: 2 },         // 魔障壁Lv2
-    { lvl: 110, skill: "RAIJIN" },                    // 雷神
-    { lvl: 115, passive: "resistAilment", plv: 1 },   // 異常耐性Lv1
-    { lvl: 120, skill: "DAICHIWARI" },                // 大地割
-    { lvl: 125, passive: "elemFloor", plv: 1 },       // 森羅の理
-    { lvl: 130, skill: "HYOUGA" },                    // 氷河
-    { lvl: 135, passive: "spellCrit", plv: 3 },       // 呪文会心Lv3
-    { lvl: 140, skill: "GOKUEN" },                    // 獄炎
-    { lvl: 145, passive: "afterBoth", plv: 1 },       // 法力の灯Lv1
-    { lvl: 150, skill: "RAIMEIRAN" },                 // 雷鳴嵐
-    { lvl: 155, passive: "resistAilment", plv: 2 },   // 異常耐性Lv2
-    { lvl: 160, skill: "METEOR" },                    // メテオ
-    { lvl: 165, passive: "afterBoth", plv: 2 },       // 法力の灯Lv2
-    { lvl: 170, skill: "ZETTAIREIDO" },               // 絶対零度
-    { lvl: 175, passive: "bigBarrier", plv: 1 },      // 大結界
-    { lvl: 180, skill: "GOKUENRAN" },                 // 獄炎嵐
-    { lvl: 185, passive: "soulEater", plv: 1 },       // 魂喰い
-    { lvl: 190, skill: "KOKUUHA" },                   // 虚空波
-    { lvl: 195, skill: "TENPENCHII" },                // 天変地異
-    { lvl: 200, skill: "KYOKUDAI" },                  // 極大消滅
-  ],
-  // 盗賊: 新仕様 (Lv1-200 / 技とパッシブを織り込み)。Lv40=朧抜き は宿し技 (signature)
-  thief:       [
-    { lvl: 1,   passive: "kantei", plv: 1 },          // 鑑定Lv1 (簡易・目利き)
-    { lvl: 3,   skill: "POISONSTAB" },                // 毒刃
-    { lvl: 5,   passive: "ambushCrit", plv: 1 },      // 不意打ち
-    { lvl: 7,   skill: "DOUBLE" },                    // 二段斬り
-    { lvl: 10,  skill: "BLIND" },                     // 目くらまし
-    { lvl: 15,  passive: "extraHit", plv: 1 },        // 連撃Lv1
-    { lvl: 20,  skill: "KASUMEGIRI" },                // 霞斬り
-    { lvl: 25,  passive: "vitalEye", plv: 1 },        // 急所読みLv1
-    { lvl: 30,  skill: "ASSASSINATE" },               // 急所突き
-    { lvl: 35,  passive: "extraHit", plv: 2 },        // 連撃Lv2
-    { lvl: 40,  skill: "OBORO" },                     // 朧抜き (看板技)
-    { lvl: 45,  passive: "parry", plv: 1 },           // 見切りLv1
-    { lvl: 50,  skill: "MIDARE" },                    // 乱れ斬り
-    { lvl: 55,  skill: "KAGENUI" },                   // 影縫い
-    { lvl: 60,  passive: "venomBlade", plv: 1 },      // 毒刃Lv1
-    { lvl: 65,  skill: "TSUJIKAZE" },                 // 辻風
-    { lvl: 70,  passive: "sleepKill", plv: 1 },       // 寝込み襲い
-    { lvl: 75,  passive: "initiative", plv: 1 },      // 先制の心得
-    { lvl: 80,  skill: "ZETSUEI" },                   // 絶影
-    { lvl: 85,  skill: "SHIPPUTSUKI" },               // 疾風突き
-    { lvl: 90,  passive: "extraHit", plv: 3 },        // 連撃Lv3
-    { lvl: 95,  skill: "ENGETSUJIN" },                // 円月刃
-    { lvl: 100, skill: "MOUDOKUSASHI" },              // 猛毒刺し
-    { lvl: 105, passive: "vitalEye", plv: 2 },        // 急所読みLv2
-    { lvl: 110, skill: "KAGEUCHI" },                  // 影討ち
-    { lvl: 115, passive: "venomBlade", plv: 2 },      // 毒刃Lv2
-    { lvl: 120, skill: "KUBIHANE" },                  // 首刎ね
-    { lvl: 125, passive: "parry", plv: 2 },           // 見切りLv2
-    { lvl: 130, skill: "RANBUTSUKI" },                // 乱舞突き
-    { lvl: 135, passive: "extraHit", plv: 4 },        // 連撃Lv4
-    { lvl: 140, skill: "SHUNSATSU" },                 // 瞬殺
-    { lvl: 145, passive: "zanshin", plv: 1 },         // 残心
-    { lvl: 150, skill: "TSUMUJIKAZE" },               // 旋風乱れ
-    { lvl: 155, passive: "vigilance", plv: 1 },       // 周囲警戒Lv1
-    { lvl: 160, skill: "ZANKOU" },                    // 斬光
-    { lvl: 165, passive: "vigilance", plv: 2 },       // 周囲警戒Lv2
-    { lvl: 170, skill: "ANSATSU" },                   // 暗殺
-    { lvl: 175, passive: "senseEnemy", plv: 1 },      // 敵感知
-    { lvl: 180, skill: "SENKOUZAN" },                 // 閃光斬
-    { lvl: 185, passive: "fleetFoot", plv: 1 },       // 逃げ足
-    { lvl: 190, skill: "HISSATSU" },                  // 必殺奥義
-    { lvl: 195, skill: "MUGEN" },                     // 夢幻泡影
-    { lvl: 200, skill: "ZANSEI" },                    // 斬星
-  ],
-  // 司教: 新仕様 (Lv1-200 / 攻撃・回復の二道を究める汎用後衛)。Lv40=フルヒール は宿し技 (signature)
-  bishop:      [
-    { lvl: 1,   passive: "kantei", plv: 2 },          // 鑑定Lv2 (高精度)
-    { lvl: 3,   skill: "DIOS" },                      // ヒール
-    { lvl: 5,   passive: "afterMp", plv: 1 },         // 魔力回路Lv1
-    { lvl: 7,   skill: "ICENEEDLE" },                 // アイスニードル
-    { lvl: 10,  skill: "CURE" },                      // キュア
-    { lvl: 15,  passive: "afterBoth", plv: 1 },       // 法力の灯Lv1
-    { lvl: 20,  skill: "MAHALITO" },                  // ファイアストーム
-    { lvl: 25,  passive: "scan", plv: 1 },            // 弱点看破
-    { lvl: 30,  skill: "DIAL" },                      // リカバー
-    { lvl: 35,  passive: "chant", plv: 1 },           // 省詠唱Lv1
-    { lvl: 40,  skill: "MADIOS" },                    // フルヒール (看板技)
-    { lvl: 45,  passive: "afterHeal", plv: 1 },       // 戦闘後回復Lv1
-    { lvl: 50,  skill: "DIOSALL" },                   // ヒールオール
-    { lvl: 55,  skill: "DISPEL" },                    // ディスペル
-    { lvl: 60,  passive: "spellCrit", plv: 1 },       // 呪文会心Lv1
-    { lvl: 65,  skill: "MADALT" },                    // ブリザード
-    { lvl: 70,  passive: "purify", plv: 1 },          // 浄化
-    { lvl: 75,  passive: "afterBoth", plv: 2 },       // 法力の灯Lv2
-    { lvl: 80,  skill: "LAHALITO" },                  // インフェルノ
-    { lvl: 85,  skill: "SAINTRAY" },                  // 聖閃
-    { lvl: 90,  passive: "afterMp", plv: 2 },         // 魔力回路Lv2
-    { lvl: 95,  skill: "DIALALL" },                   // リカバーオール
-    { lvl: 100, skill: "HYORETSU" },                  // 氷烈
-    { lvl: 105, passive: "chant", plv: 2 },           // 省詠唱Lv2
-    { lvl: 110, skill: "REVIVE" },                    // リバイブ
-    { lvl: 115, passive: "spellCrit", plv: 2 },       // 呪文会心Lv2
-    { lvl: 120, skill: "TILTOWAIT" },                 // エクスプロージョン
-    { lvl: 125, passive: "selfPurify", plv: 1 },      // 自浄
-    { lvl: 130, skill: "IYASHINAMI" },                // 癒しの波
-    { lvl: 135, passive: "afterHeal", plv: 2 },       // 戦闘後回復Lv2
-    { lvl: 140, skill: "SEISAI" },                    // 星砕
-    { lvl: 145, passive: "resistAilment", plv: 1 },   // 異常耐性Lv1
-    { lvl: 150, skill: "RAIJIN" },                    // 雷神
-    { lvl: 155, passive: "elemFloor", plv: 1 },       // 森羅の理
-    { lvl: 160, skill: "RESURRECT" },                 // リザレクション
-    { lvl: 165, passive: "resistAilment", plv: 2 },   // 異常耐性Lv2
-    { lvl: 170, skill: "METEOR" },                    // メテオ
-    { lvl: 175, passive: "barrier", plv: 1 },         // 魔障壁Lv1
-    { lvl: 180, skill: "DAIFUKUIN" },                 // 大福音
-    { lvl: 185, passive: "sanctuary", plv: 1 },       // 聖域
-    { lvl: 190, skill: "GOKUENRAN" },                 // 獄炎嵐
-    { lvl: 195, skill: "SEIKOURETSU" },               // 聖光烈
-    { lvl: 200, skill: "KYOKUDAI" },                  // 極大消滅
-  ],
-  // 侍: 居合・先制・会心の剣客。Lv40=燕返し は宿し技 (signature)
-  samurai:     [
-    { lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "TATEWARI" }, { lvl: 5, passive: "iai", plv: 1 },
-    { lvl: 7, skill: "DOUBLE" }, { lvl: 10, skill: "KASUMEGIRI" }, { lvl: 15, passive: "parry", plv: 1 },
-    { lvl: 20, skill: "ASSASSINATE" }, { lvl: 25, passive: "vitalEye", plv: 1 }, { lvl: 30, skill: "TSUJIKAZE" },
-    { lvl: 35, passive: "initiative", plv: 1 }, { lvl: 40, skill: "TSUBAMEGAESHI" }, { lvl: 45, passive: "extraHit", plv: 1 },
-    { lvl: 50, skill: "MIDARE" }, { lvl: 55, skill: "GOUZAN" }, { lvl: 60, passive: "zanshin", plv: 1 },
-    { lvl: 65, skill: "ZETSUEI" }, { lvl: 70, passive: "parry", plv: 2 }, { lvl: 75, passive: "vitalEye", plv: 2 },
-    { lvl: 80, skill: "OBORO" }, { lvl: 85, skill: "SANREN" }, { lvl: 90, passive: "counter", plv: 1 },
-    { lvl: 95, skill: "ISSEN" }, { lvl: 100, skill: "KIKOKU" }, { lvl: 105, passive: "ambushCrit", plv: 1 },
-    { lvl: 110, skill: "ZANTETSU" }, { lvl: 115, passive: "extraHit", plv: 2 }, { lvl: 120, skill: "SHURAZAN" },
-    { lvl: 125, passive: "counter", plv: 2 }, { lvl: 130, skill: "KUBIHANE" }, { lvl: 135, passive: "fightSpirit", plv: 1 },
-    { lvl: 140, skill: "HADAN" }, { lvl: 145, passive: "sleepKill", plv: 1 }, { lvl: 150, skill: "AMATSUKAZE" },
-    { lvl: 155, passive: "extraHit", plv: 3 }, { lvl: 160, skill: "TENCHIZAN" }, { lvl: 165, passive: "resistAilment", plv: 1 },
-    { lvl: 170, skill: "SHUNSATSU" }, { lvl: 175, passive: "fightSpirit", plv: 2 }, { lvl: 180, skill: "KIKOKURANBU" },
-    { lvl: 185, passive: "extraHit", plv: 4 }, { lvl: 190, skill: "HAOUZAN" }, { lvl: 195, skill: "MUGEN" },
-    { lvl: 200, skill: "METSUKYAKU" },
-  ],
-  // 狂戦士: 闘魂・反撃で被弾を火力に。Lv40=鬼神砕き は宿し技 (signature)
-  berserker:   [
-    { lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "TATEWARI" }, { lvl: 5, passive: "counter", plv: 1 },
-    { lvl: 7, skill: "DOUBLE" }, { lvl: 10, skill: "NAGIHARAI" }, { lvl: 15, passive: "fightSpirit", plv: 1 },
-    { lvl: 20, skill: "MIDARE" }, { lvl: 25, passive: "extraHit", plv: 1 }, { lvl: 30, skill: "SENPUU" },
-    { lvl: 35, passive: "vitalEye", plv: 1 }, { lvl: 40, skill: "KIJINKUDAKI" }, { lvl: 45, passive: "fightSpirit", plv: 2 },
-    { lvl: 50, skill: "GOUZAN" }, { lvl: 55, skill: "ISSEN" }, { lvl: 60, passive: "counter", plv: 2 },
-    { lvl: 65, skill: "KIKOKU" }, { lvl: 70, passive: "extraHit", plv: 2 }, { lvl: 75, passive: "endure", plv: 1 },
-    { lvl: 80, skill: "ZANTETSU" }, { lvl: 85, skill: "SANREN" }, { lvl: 90, passive: "fightSpirit", plv: 3 },
-    { lvl: 95, skill: "WARCRY" }, { lvl: 100, skill: "YOROIDACHI" }, { lvl: 105, passive: "counter", plv: 3 },
-    { lvl: 110, skill: "KISHINKA" }, { lvl: 115, passive: "extraHit", plv: 3 }, { lvl: 120, skill: "SHURAZAN" },
-    { lvl: 125, passive: "vitalEye", plv: 2 }, { lvl: 130, skill: "RANBU" }, { lvl: 135, passive: "asceticism", plv: 1 },
-    { lvl: 140, skill: "HADAN" }, { lvl: 145, passive: "resistAilment", plv: 1 }, { lvl: 150, skill: "AMATSUKAZE" },
-    { lvl: 155, passive: "fightSpirit", plv: 4 }, { lvl: 160, skill: "TENCHIZAN" }, { lvl: 165, passive: "endure", plv: 2 },
-    { lvl: 170, skill: "DAISENPUU" }, { lvl: 175, passive: "zanshin", plv: 1 }, { lvl: 180, skill: "KIKOKURANBU" },
-    { lvl: 185, passive: "extraHit", plv: 4 }, { lvl: 190, skill: "HAOUZAN" }, { lvl: 195, skill: "ROKUREN" },
-    { lvl: 200, skill: "METSUKYAKU" },
-  ],
-  // 狩人: 不意打ち・会心・多段の射手。Lv40=首狩り は宿し技 (signature)
-  hunter:      [
-    { lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "BLIND" }, { lvl: 5, passive: "ambushCrit", plv: 1 },
-    { lvl: 7, skill: "POISONSTAB" }, { lvl: 10, skill: "DOUBLE" }, { lvl: 15, passive: "vitalEye", plv: 1 },
-    { lvl: 20, skill: "KASUMEGIRI" }, { lvl: 25, passive: "extraHit", plv: 1 }, { lvl: 30, skill: "ASSASSINATE" },
-    { lvl: 35, passive: "initiative", plv: 1 }, { lvl: 40, skill: "KUBIKARI" }, { lvl: 45, passive: "extraHit", plv: 2 },
-    { lvl: 50, skill: "OBORO" }, { lvl: 55, skill: "TSUJIKAZE" }, { lvl: 60, passive: "vitalEye", plv: 2 },
-    { lvl: 65, skill: "ZETSUEI" }, { lvl: 70, passive: "parry", plv: 1 }, { lvl: 75, passive: "senseEnemy", plv: 1 },
-    { lvl: 80, skill: "GOUZAN" }, { lvl: 85, skill: "SANREN" }, { lvl: 90, passive: "extraHit", plv: 3 },
-    { lvl: 95, skill: "KAGEUCHI" }, { lvl: 100, skill: "KUBIHANE" }, { lvl: 105, passive: "sleepKill", plv: 1 },
-    { lvl: 110, skill: "RANBUTSUKI" }, { lvl: 115, passive: "parry", plv: 2 }, { lvl: 120, skill: "SHUNSATSU" },
-    { lvl: 125, passive: "vigilance", plv: 1 }, { lvl: 130, skill: "SENKOUZAN" }, { lvl: 135, passive: "extraHit", plv: 4 },
-    { lvl: 140, skill: "ANSATSU" }, { lvl: 145, passive: "fleetFoot", plv: 1 }, { lvl: 150, skill: "ZANKOU" },
-    { lvl: 155, passive: "vigilance", plv: 2 }, { lvl: 160, skill: "HADAN" }, { lvl: 165, passive: "resistAilment", plv: 1 },
-    { lvl: 170, skill: "HISSATSU" }, { lvl: 175, passive: "zanshin", plv: 1 }, { lvl: 180, skill: "TSUMUJIKAZE" },
-    { lvl: 185, passive: "venomBlade", plv: 1 }, { lvl: 190, skill: "MUGEN" }, { lvl: 195, skill: "TENCHIZAN" },
-    { lvl: 200, skill: "ZANSEI" },
-  ],
-  // 暗殺者: 催眠・急所・毒で無力化して刈る。Lv40=破邪の太刀 は宿し技 (signature)
-  shadow:      [
-    { lvl: 1, skill: "BLIND" }, { lvl: 3, skill: "POISONSTAB" }, { lvl: 5, passive: "ambushCrit", plv: 1 },
-    { lvl: 7, skill: "DOUBLE" }, { lvl: 10, skill: "ASSASSINATE" }, { lvl: 15, passive: "sleepKill", plv: 1 },
-    { lvl: 20, skill: "KASUMEGIRI" }, { lvl: 25, passive: "vitalEye", plv: 1 }, { lvl: 30, skill: "KAGENUI" },
-    { lvl: 35, passive: "extraHit", plv: 1 }, { lvl: 40, skill: "HAJANOTACHI" }, { lvl: 45, passive: "parry", plv: 1 },
-    { lvl: 50, skill: "OBORO" }, { lvl: 55, skill: "YOIYAMIUCHI" }, { lvl: 60, passive: "venomBlade", plv: 1 },
-    { lvl: 65, skill: "TSUJIKAZE" }, { lvl: 70, passive: "initiative", plv: 1 }, { lvl: 75, passive: "vitalEye", plv: 2 },
-    { lvl: 80, skill: "ZETSUEI" }, { lvl: 85, skill: "KAGEUCHI" }, { lvl: 90, passive: "extraHit", plv: 2 },
-    { lvl: 95, skill: "MOUDOKUSASHI" }, { lvl: 100, skill: "KUBIHANE" }, { lvl: 105, passive: "parry", plv: 2 },
-    { lvl: 110, skill: "RANBUTSUKI" }, { lvl: 115, passive: "vigilance", plv: 1 }, { lvl: 120, skill: "SHUNSATSU" },
-    { lvl: 125, passive: "venomBlade", plv: 2 }, { lvl: 130, skill: "ZANKOU" }, { lvl: 135, passive: "extraHit", plv: 3 },
-    { lvl: 140, skill: "ANSATSU" }, { lvl: 145, passive: "fleetFoot", plv: 1 }, { lvl: 150, skill: "SENKOUZAN" },
-    { lvl: 155, passive: "vigilance", plv: 2 }, { lvl: 160, skill: "HISSATSU" }, { lvl: 165, passive: "resistAilment", plv: 1 },
-    { lvl: 170, skill: "MUGEN" }, { lvl: 175, passive: "zanshin", plv: 1 }, { lvl: 180, skill: "TSUMUJIKAZE" },
-    { lvl: 185, passive: "extraHit", plv: 4 }, { lvl: 190, skill: "TENCHIZAN" }, { lvl: 195, skill: "HAOUZAN" },
-    { lvl: 200, skill: "ZANSEI" },
-  ],
-  // 聖騎士: かばう・回復・破邪を備えた聖なる前衛。Lv40=聖壁の祈り は宿し技 (signature)
-  paladin:     [
-    { lvl: 1, skill: "SHIELDBASH" }, { lvl: 3, skill: "DIOS" }, { lvl: 5, passive: "afterHeal", plv: 1 },
-    { lvl: 7, skill: "HOLYRAY" }, { lvl: 10, skill: "PROTECT" }, { lvl: 15, passive: "cover", plv: 1 },
-    { lvl: 20, skill: "IRONWALL" }, { lvl: 25, passive: "taunt", plv: 1 }, { lvl: 30, skill: "GUARDALL" },
-    { lvl: 35, passive: "smite", plv: 1 }, { lvl: 40, skill: "SEIHEKINOINORI" }, { lvl: 45, passive: "cover", plv: 2 },
-    { lvl: 50, skill: "MIDARE" }, { lvl: 55, skill: "BOUJIN" }, { lvl: 60, passive: "afterHeal", plv: 2 },
-    { lvl: 65, skill: "SAINTRAY" }, { lvl: 70, passive: "holyEdge", plv: 1 }, { lvl: 75, passive: "martyr", plv: 1 },
-    { lvl: 80, skill: "OUJOU" }, { lvl: 85, skill: "DIOSALL" }, { lvl: 90, passive: "resistAilment", plv: 1 },
-    { lvl: 95, skill: "SEIKOUZAN" }, { lvl: 100, skill: "JOUSAITSUKI" }, { lvl: 105, passive: "cover", plv: 3 },
-    { lvl: 110, skill: "TEPPEKIJIN" }, { lvl: 115, passive: "sanctuary", plv: 1 }, { lvl: 120, skill: "SHINBATSU" },
-    { lvl: 125, passive: "divineCounter", plv: 1 }, { lvl: 130, skill: "FURAKUNOTATE" }, { lvl: 135, passive: "resistAilment", plv: 2 },
-    { lvl: 140, skill: "DAIFUKUIN" }, { lvl: 145, passive: "scripture", plv: 1 }, { lvl: 150, skill: "KISHIOU" },
-    { lvl: 155, passive: "holyCover", plv: 1 }, { lvl: 160, skill: "SEIKOURETSU" }, { lvl: 165, passive: "bastion", plv: 1 },
-    { lvl: 170, skill: "FUDOUJIN" }, { lvl: 175, passive: "bigBarrier", plv: 1 }, { lvl: 180, skill: "DAIGOUREI" },
-    { lvl: 185, passive: "parry", plv: 1 }, { lvl: 190, skill: "SEIMETSUREKKOU" }, { lvl: 195, skill: "KAMIWAZA" },
-    { lvl: 200, skill: "FURAKUJOU" },
-  ],
-  // 守護騎士: 城壁の構え・反撃で耐え抜く盾。Lv40=攻防一体 は宿し技 (signature)
-  guardian:    [
-    { lvl: 1, skill: "SHIELDBASH" }, { lvl: 3, skill: "PROTECT" }, { lvl: 5, passive: "taunt", plv: 1 },
-    { lvl: 7, skill: "KOTE" }, { lvl: 10, skill: "KYOUGEKI" }, { lvl: 15, passive: "counter", plv: 1 },
-    { lvl: 20, skill: "IRONWALL" }, { lvl: 25, passive: "bastion", plv: 1 }, { lvl: 30, skill: "GUARDALL" },
-    { lvl: 35, passive: "cover", plv: 1 }, { lvl: 40, skill: "KOUBOUITTAI" }, { lvl: 45, passive: "endure", plv: 1 },
-    { lvl: 50, skill: "BOUJIN" }, { lvl: 55, skill: "JOUMON" }, { lvl: 60, passive: "counter", plv: 2 },
-    { lvl: 65, skill: "GOUZAN" }, { lvl: 70, passive: "parry", plv: 1 }, { lvl: 75, passive: "cover", plv: 2 },
-    { lvl: 80, skill: "OUJOU" }, { lvl: 85, skill: "SHIELDCHARGE" }, { lvl: 90, passive: "bastion", plv: 2 },
-    { lvl: 95, skill: "SHUGOHOUKOU" }, { lvl: 100, skill: "JOUSAITSUKI" }, { lvl: 105, passive: "counter", plv: 3 },
-    { lvl: 110, skill: "TEPPEKIJIN" }, { lvl: 115, passive: "cover", plv: 3 }, { lvl: 120, skill: "ZANTETSU" },
-    { lvl: 125, passive: "parry", plv: 2 }, { lvl: 130, skill: "FURAKUNOTATE" }, { lvl: 135, passive: "resistAilment", plv: 1 },
-    { lvl: 140, skill: "BANRAI" }, { lvl: 145, passive: "bigBarrier", plv: 1 }, { lvl: 150, skill: "SHUGOKEKKAI" },
-    { lvl: 155, passive: "endure", plv: 2 }, { lvl: 160, skill: "JOUSAIKUZUSHI" }, { lvl: 165, passive: "resistAilment", plv: 2 },
-    { lvl: 170, skill: "TESSAINAGI" }, { lvl: 175, passive: "holyCover", plv: 1 }, { lvl: 180, skill: "DAIGOUREI" },
-    { lvl: 185, passive: "bigBarrier", plv: 2 }, { lvl: 190, skill: "FUDOUJIN" }, { lvl: 195, skill: "DAISENPUU" },
-    { lvl: 200, skill: "FURAKUJOU" },
-  ],
-  // 魔法剣士: 剣と呪文を併せ持つ。Lv40=魔焔斬 は宿し技 (signature)
-  spellblade:  [
-    { lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "HALITO" }, { lvl: 5, passive: "spellBlade", plv: 1 },
-    { lvl: 7, skill: "DOUBLE" }, { lvl: 10, skill: "ICENEEDLE" }, { lvl: 15, passive: "chant", plv: 1 },
-    { lvl: 20, skill: "MIDARE" }, { lvl: 25, passive: "spellCrit", plv: 1 }, { lvl: 30, skill: "ROCKBLAST" },
-    { lvl: 35, passive: "extraHit", plv: 1 }, { lvl: 40, skill: "MAENZAN" }, { lvl: 45, passive: "kenma", plv: 1 },
-    { lvl: 50, skill: "GOUZAN" }, { lvl: 55, skill: "MAHALITO" }, { lvl: 60, passive: "spellBlade", plv: 2 },
-    { lvl: 65, skill: "SENPUU" }, { lvl: 70, passive: "vitalEye", plv: 1 }, { lvl: 75, passive: "spellCrit", plv: 2 },
-    { lvl: 80, skill: "ZANTETSU" }, { lvl: 85, skill: "KAMAITACHI" }, { lvl: 90, passive: "barrier", plv: 1 },
-    { lvl: 95, skill: "MADALT" }, { lvl: 100, skill: "SHURAZAN" }, { lvl: 105, passive: "twinArts", plv: 1 },
-    { lvl: 110, skill: "LAHALITO" }, { lvl: 115, passive: "fightSpirit", plv: 1 }, { lvl: 120, skill: "RAITEI" },
-    { lvl: 125, passive: "resistAilment", plv: 1 }, { lvl: 130, skill: "HADAN" }, { lvl: 135, passive: "extraHit", plv: 2 },
-    { lvl: 140, skill: "HYORETSU" }, { lvl: 145, passive: "spellCrit", plv: 3 }, { lvl: 150, skill: "TENCHIZAN" },
-    { lvl: 155, passive: "vitalEye", plv: 2 }, { lvl: 160, skill: "RAIJIN" }, { lvl: 165, passive: "fightSpirit", plv: 2 },
-    { lvl: 170, skill: "GOKUEN" }, { lvl: 175, passive: "barrier", plv: 2 }, { lvl: 180, skill: "HAOUZAN" },
-    { lvl: 185, passive: "elemFloor", plv: 1 }, { lvl: 190, skill: "ZETTAIREIDO" }, { lvl: 195, skill: "METSUKYAKU" },
-    { lvl: 200, skill: "KYOKUDAI" },
-  ],
-  // 武僧: 拳と祈りで戦う。Lv40=金剛連打 は宿し技 (signature)
-  monk:        [
-    { lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "DIOS" }, { lvl: 5, passive: "afterHeal", plv: 1 },
-    { lvl: 7, skill: "CURE" }, { lvl: 10, skill: "DOUBLE" }, { lvl: 15, passive: "smite", plv: 1 },
-    { lvl: 20, skill: "MIDARE" }, { lvl: 25, passive: "extraHit", plv: 1 }, { lvl: 30, skill: "BLESS" },
-    { lvl: 35, passive: "endure", plv: 1 }, { lvl: 40, skill: "KONGOURENDA" }, { lvl: 45, passive: "afterHeal", plv: 2 },
-    { lvl: 50, skill: "GOUZAN" }, { lvl: 55, skill: "DIOSALL" }, { lvl: 60, passive: "fightSpirit", plv: 1 },
-    { lvl: 65, skill: "SENPUU" }, { lvl: 70, passive: "vitalEye", plv: 1 }, { lvl: 75, passive: "holyEdge", plv: 1 },
-    { lvl: 80, skill: "ZANTETSU" }, { lvl: 85, skill: "SANREN" }, { lvl: 90, passive: "extraHit", plv: 2 },
-    { lvl: 95, skill: "KISHINKA" }, { lvl: 100, skill: "SHURAZAN" }, { lvl: 105, passive: "counter", plv: 1 },
-    { lvl: 110, skill: "RANBU" }, { lvl: 115, passive: "asceticism", plv: 1 }, { lvl: 120, skill: "HADAN" },
-    { lvl: 125, passive: "fightSpirit", plv: 2 }, { lvl: 130, skill: "ROKUREN" }, { lvl: 135, passive: "extraHit", plv: 3 },
-    { lvl: 140, skill: "AMATSUKAZE" }, { lvl: 145, passive: "selfPurify", plv: 1 }, { lvl: 150, skill: "TENCHIZAN" },
-    { lvl: 155, passive: "resistAilment", plv: 1 }, { lvl: 160, skill: "KIKOKURANBU" }, { lvl: 165, passive: "scripture", plv: 1 },
-    { lvl: 170, skill: "SHUNSATSU" }, { lvl: 175, passive: "counter", plv: 2 }, { lvl: 180, skill: "HAOUZAN" },
-    { lvl: 185, passive: "extraHit", plv: 4 }, { lvl: 190, skill: "MUGEN" }, { lvl: 195, skill: "DIALALL" },
-    { lvl: 200, skill: "METSUKYAKU" },
-  ],
-  // 呪術師: 毒と呪いで蝕む。Lv40=毒霧 は宿し技 (signature)
-  hexer:       [
-    { lvl: 1, skill: "BLIND" }, { lvl: 3, skill: "POISONSTAB" }, { lvl: 5, passive: "venomBlade", plv: 1 },
-    { lvl: 7, skill: "HALITO" }, { lvl: 10, skill: "KATINO" }, { lvl: 15, passive: "gokudoku", plv: 1 },
-    { lvl: 20, skill: "KAGENUI" }, { lvl: 25, passive: "afterMp", plv: 1 }, { lvl: 30, skill: "MAHALITO" },
-    { lvl: 35, passive: "chant", plv: 1 }, { lvl: 40, skill: "DOKUGIRI" }, { lvl: 45, passive: "spellCrit", plv: 1 },
-    { lvl: 50, skill: "DISPEL" }, { lvl: 55, skill: "MADALT" }, { lvl: 60, passive: "venomBlade", plv: 2 },
-    { lvl: 65, skill: "LAHALITO" }, { lvl: 70, passive: "flinch", plv: 1 }, { lvl: 75, passive: "afterMp", plv: 2 },
-    { lvl: 80, skill: "SEISAI" }, { lvl: 85, skill: "ICENEEDLE" }, { lvl: 90, passive: "spellCrit", plv: 2 },
-    { lvl: 95, skill: "MOUDOKUSASHI" }, { lvl: 100, skill: "MEIKONGURAI" }, { lvl: 105, passive: "resistAilment", plv: 1 },
-    { lvl: 110, skill: "HYORETSU" }, { lvl: 115, passive: "scan", plv: 1 }, { lvl: 120, skill: "RAIJIN" },
-    { lvl: 125, passive: "barrier", plv: 1 }, { lvl: 130, skill: "KINJUKAICHOU" }, { lvl: 135, passive: "chant", plv: 2 },
-    { lvl: 140, skill: "GOKUEN" }, { lvl: 145, passive: "spellCrit", plv: 3 }, { lvl: 150, skill: "METEOR" },
-    { lvl: 155, passive: "soulEater", plv: 1 }, { lvl: 160, skill: "KOKUUHA" }, { lvl: 165, passive: "resistAilment", plv: 2 },
-    { lvl: 170, skill: "GOKUENRAN" }, { lvl: 175, passive: "soulLure", plv: 1 }, { lvl: 180, skill: "ZETTAIREIDO" },
-    { lvl: 185, passive: "elemFloor", plv: 1 }, { lvl: 190, skill: "TENPENCHII" }, { lvl: 195, skill: "SHINENNOHADOU" },
-    { lvl: 200, skill: "KYOKUDAI" },
-  ],
-  // 隠修士: 回復と隠行を兼ねる低リスク後衛。Lv40=霞の帳 は宿し技 (signature)
-  hermit:      [
-    { lvl: 1, skill: "DIOS" }, { lvl: 3, skill: "CURE" }, { lvl: 5, passive: "afterHeal", plv: 1 },
-    { lvl: 7, skill: "BLIND" }, { lvl: 10, skill: "BLESS" }, { lvl: 15, passive: "poisonFloor", plv: 1 },
-    { lvl: 20, skill: "DIOSALL" }, { lvl: 25, passive: "selfPurify", plv: 1 }, { lvl: 30, skill: "KATINO" },
-    { lvl: 35, passive: "fleetFoot", plv: 1 }, { lvl: 40, skill: "KASUMINOTOBARI" }, { lvl: 45, passive: "afterBoth", plv: 1 },
-    { lvl: 50, skill: "KAGENUI" }, { lvl: 55, skill: "DIAL" }, { lvl: 60, passive: "vigilance", plv: 1 },
-    { lvl: 65, skill: "MADIOS" }, { lvl: 70, passive: "afterHeal", plv: 2 }, { lvl: 75, passive: "purify", plv: 1 },
-    { lvl: 80, skill: "RESURRECT" }, { lvl: 85, skill: "DIALALL" }, { lvl: 90, passive: "poisonFloor", plv: 2 },
-    { lvl: 95, skill: "SEISUISHO" }, { lvl: 100, skill: "HOLYRAY" }, { lvl: 105, passive: "vigilance", plv: 2 },
-    { lvl: 110, skill: "IYASHINAMI" }, { lvl: 115, passive: "afterBoth", plv: 2 }, { lvl: 120, skill: "SAINTRAY" },
-    { lvl: 125, passive: "resistAilment", plv: 1 }, { lvl: 130, skill: "REVIVE" }, { lvl: 135, passive: "sanctuary", plv: 1 },
-    { lvl: 140, skill: "TEPPEKIJIN" }, { lvl: 145, passive: "afterHeal", plv: 3 }, { lvl: 150, skill: "DAISEIKITOU" },
-    { lvl: 155, passive: "scripture", plv: 1 }, { lvl: 160, skill: "SHINYU" }, { lvl: 165, passive: "resistAilment", plv: 2 },
-    { lvl: 170, skill: "SHINBATSU" }, { lvl: 175, passive: "mercy", plv: 1 }, { lvl: 180, skill: "DAIFUKUIN" },
-    { lvl: 185, passive: "martyr", plv: 1 }, { lvl: 190, skill: "SEIKOURETSU" }, { lvl: 195, skill: "SEIMETSUKOU" },
-    { lvl: 200, skill: "FUKUIN" },
-  ],
-  // 義賊: 金運と追い剥ぎで稼ぐ遊撃手。Lv40=追い剥ぎ は宿し技 (signature)
-  brigand:     [
-    { lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "BLIND" }, { lvl: 5, passive: "goldLuck", plv: 1 },
-    { lvl: 7, skill: "POISONSTAB" }, { lvl: 10, skill: "KASUMEGIRI" }, { lvl: 15, passive: "appraise", plv: 1 },
-    { lvl: 20, skill: "ASSASSINATE" }, { lvl: 25, passive: "ambushCrit", plv: 1 }, { lvl: 30, skill: "SHIELDBASH" },
-    { lvl: 35, passive: "extraHit", plv: 1 }, { lvl: 40, skill: "OIHAGI" }, { lvl: 45, passive: "vitalEye", plv: 1 },
-    { lvl: 50, skill: "MIDARE" }, { lvl: 55, skill: "OBORO" }, { lvl: 60, passive: "goldLuck", plv: 2 },
-    { lvl: 65, skill: "TSUJIKAZE" }, { lvl: 70, passive: "parry", plv: 1 }, { lvl: 75, passive: "soulLure", plv: 1 },
-    { lvl: 80, skill: "ZETSUEI" }, { lvl: 85, skill: "SHIPPUTSUKI" }, { lvl: 90, passive: "extraHit", plv: 2 },
-    { lvl: 95, skill: "KAGEUCHI" }, { lvl: 100, skill: "KUBIHANE" }, { lvl: 105, passive: "vitalEye", plv: 2 },
-    { lvl: 110, skill: "RANBUTSUKI" }, { lvl: 115, passive: "fleetFoot", plv: 1 }, { lvl: 120, skill: "SHUNSATSU" },
-    { lvl: 125, passive: "parry", plv: 2 }, { lvl: 130, skill: "SENKOUZAN" }, { lvl: 135, passive: "extraHit", plv: 3 },
-    { lvl: 140, skill: "ANSATSU" }, { lvl: 145, passive: "vigilance", plv: 1 }, { lvl: 150, skill: "TSUMUJIKAZE" },
-    { lvl: 155, passive: "zanshin", plv: 1 }, { lvl: 160, skill: "HADAN" }, { lvl: 165, passive: "resistAilment", plv: 1 },
-    { lvl: 170, skill: "HISSATSU" }, { lvl: 175, passive: "extraHit", plv: 4 }, { lvl: 180, skill: "MUGEN" },
-    { lvl: 185, passive: "vigilance", plv: 2 }, { lvl: 190, skill: "TENCHIZAN" }, { lvl: 195, skill: "ZANKOU" },
-    { lvl: 200, skill: "ZANSEI" },
-  ],
-  // 魔盗賊: 先手の呪撃とMP強奪の持久型遊撃。Lv40=魔力強奪 は宿し技 (signature)
-  arcthief:    [
-    { lvl: 1, skill: "BLIND" }, { lvl: 3, skill: "HALITO" }, { lvl: 5, passive: "openSpell", plv: 1 },
-    { lvl: 7, skill: "KASUMEGIRI" }, { lvl: 10, skill: "ICENEEDLE" }, { lvl: 15, passive: "chant", plv: 1 },
-    { lvl: 20, skill: "KATINO" }, { lvl: 25, passive: "spellCrit", plv: 1 }, { lvl: 30, skill: "MAHALITO" },
-    { lvl: 35, passive: "extraHit", plv: 1 }, { lvl: 40, skill: "MARYOKUGOUDATSU" }, { lvl: 45, passive: "initiative", plv: 1 },
-    { lvl: 50, skill: "KAGENUI" }, { lvl: 55, skill: "DISPEL" }, { lvl: 60, passive: "ambushCrit", plv: 1 },
-    { lvl: 65, skill: "OBORO" }, { lvl: 70, passive: "spellCrit", plv: 2 }, { lvl: 75, passive: "vitalEye", plv: 1 },
-    { lvl: 80, skill: "SEISAI" }, { lvl: 85, skill: "ASSASSINATE" }, { lvl: 90, passive: "afterMp", plv: 1 },
-    { lvl: 95, skill: "RAITEI" }, { lvl: 100, skill: "MADALT" }, { lvl: 105, passive: "parry", plv: 1 },
-    { lvl: 110, skill: "KINJUKAICHOU" }, { lvl: 115, passive: "extraHit", plv: 2 }, { lvl: 120, skill: "KUBIHANE" },
-    { lvl: 125, passive: "chant", plv: 2 }, { lvl: 130, skill: "HYORETSU" }, { lvl: 135, passive: "spellCrit", plv: 3 },
-    { lvl: 140, skill: "SHUNSATSU" }, { lvl: 145, passive: "vitalEye", plv: 2 }, { lvl: 150, skill: "RAIJIN" },
-    { lvl: 155, passive: "resistAilment", plv: 1 }, { lvl: 160, skill: "GOKUEN" }, { lvl: 165, passive: "soulEater", plv: 1 },
-    { lvl: 170, skill: "ANSATSU" }, { lvl: 175, passive: "parry", plv: 2 }, { lvl: 180, skill: "METEOR" },
-    { lvl: 185, passive: "elemFloor", plv: 1 }, { lvl: 190, skill: "HISSATSU" }, { lvl: 195, skill: "GOKUENRAN" },
-    { lvl: 200, skill: "KYOKUDAI" },
-  ],
-  // 聖戦士: 破邪と聖光、剣と癒しを併せ持つ。Lv40=聖光斬 は宿し技 (signature)
-  crusader:    [
-    { lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "HOLYRAY" }, { lvl: 5, passive: "smite", plv: 1 },
-    { lvl: 7, skill: "DOUBLE" }, { lvl: 10, skill: "BLESS" }, { lvl: 15, passive: "afterHeal", plv: 1 },
-    { lvl: 20, skill: "NAGIHARAI" }, { lvl: 25, passive: "holyEdge", plv: 1 }, { lvl: 30, skill: "SAINTRAY" },
-    { lvl: 35, passive: "extraHit", plv: 1 }, { lvl: 40, skill: "SEIKOUZAN" }, { lvl: 45, passive: "vitalEye", plv: 1 },
-    { lvl: 50, skill: "MIDARE" }, { lvl: 55, skill: "REVIVE" }, { lvl: 60, passive: "afterHeal", plv: 2 },
-    { lvl: 65, skill: "SENPUU" }, { lvl: 70, passive: "fightSpirit", plv: 1 }, { lvl: 75, passive: "counter", plv: 1 },
-    { lvl: 80, skill: "GOUZAN" }, { lvl: 85, skill: "SEIKEN" }, { lvl: 90, passive: "resistAilment", plv: 1 },
-    { lvl: 95, skill: "SHURAZAN" }, { lvl: 100, skill: "SHINBATSU" }, { lvl: 105, passive: "extraHit", plv: 2 },
-    { lvl: 110, skill: "HADAN" }, { lvl: 115, passive: "sanctuary", plv: 1 }, { lvl: 120, skill: "SEIKOURETSU" },
-    { lvl: 125, passive: "martyr", plv: 1 }, { lvl: 130, skill: "AMATSUKAZE" }, { lvl: 135, passive: "scripture", plv: 1 },
-    { lvl: 140, skill: "TENCHIZAN" }, { lvl: 145, passive: "resistAilment", plv: 2 }, { lvl: 150, skill: "DAIFUKUIN" },
-    { lvl: 155, passive: "holyCover", plv: 1 }, { lvl: 160, skill: "SEIMETSUREKKOU" }, { lvl: 165, passive: "fightSpirit", plv: 2 },
-    { lvl: 170, skill: "HAOUZAN" }, { lvl: 175, passive: "divineCounter", plv: 1 }, { lvl: 180, skill: "KISHIOU" },
-    { lvl: 185, passive: "extraHit", plv: 3 }, { lvl: 190, skill: "DIALALL" }, { lvl: 195, skill: "KAMIWAZA" },
-    { lvl: 200, skill: "METSUKYAKU" },
-  ],
-  // 魔闘士: 拳と法力を組み合わせる。Lv40=破魔の拳 は宿し技 (signature)
-  battlemage:  [
-    { lvl: 1, skill: "SHIELDBASH" }, { lvl: 3, skill: "HALITO" }, { lvl: 5, passive: "spellBlade", plv: 1 },
-    { lvl: 7, skill: "KYOUGEKI" }, { lvl: 10, skill: "ICENEEDLE" }, { lvl: 15, passive: "chant", plv: 1 },
-    { lvl: 20, skill: "MIDARE" }, { lvl: 25, passive: "barrier", plv: 1 }, { lvl: 30, skill: "MAHALITO" },
-    { lvl: 35, passive: "extraHit", plv: 1 }, { lvl: 40, skill: "HAMANOKEN" }, { lvl: 45, passive: "spellCrit", plv: 1 },
-    { lvl: 50, skill: "DISPEL" }, { lvl: 55, skill: "GOUZAN" }, { lvl: 60, passive: "spellBlade", plv: 2 },
-    { lvl: 65, skill: "ROCKBLAST" }, { lvl: 70, passive: "fightSpirit", plv: 1 }, { lvl: 75, passive: "resistAilment", plv: 1 },
-    { lvl: 80, skill: "ZANTETSU" }, { lvl: 85, skill: "KAMAITACHI" }, { lvl: 90, passive: "barrier", plv: 2 },
-    { lvl: 95, skill: "MADALT" }, { lvl: 100, skill: "LAHALITO" }, { lvl: 105, passive: "vitalEye", plv: 1 },
-    { lvl: 110, skill: "SHURAZAN" }, { lvl: 115, passive: "spellCrit", plv: 2 }, { lvl: 120, skill: "RAITEI" },
-    { lvl: 125, passive: "reflect", plv: 1 }, { lvl: 130, skill: "HADAN" }, { lvl: 135, passive: "extraHit", plv: 2 },
-    { lvl: 140, skill: "RAIJIN" }, { lvl: 145, passive: "fightSpirit", plv: 2 }, { lvl: 150, skill: "TENCHIZAN" },
-    { lvl: 155, passive: "resistAilment", plv: 2 }, { lvl: 160, skill: "GOKUEN" }, { lvl: 165, passive: "vitalEye", plv: 2 },
-    { lvl: 170, skill: "HAOUZAN" }, { lvl: 175, passive: "elemFloor", plv: 1 }, { lvl: 180, skill: "ZETTAIREIDO" },
-    { lvl: 185, passive: "spellCrit", plv: 3 }, { lvl: 190, skill: "METSUKYAKU" }, { lvl: 195, skill: "GOKUENRAN" },
-    { lvl: 200, skill: "KYOKUDAI" },
-  ],
-  // 魔騎士: 障壁を盾に魔力を喰らう。Lv40=魔喰いの太刀 は宿し技 (signature)
-  darkknight:  [
-    { lvl: 1, skill: "SHIELDBASH" }, { lvl: 3, skill: "PROTECT" }, { lvl: 5, passive: "barrier", plv: 1 },
-    { lvl: 7, skill: "HALITO" }, { lvl: 10, skill: "KOTE" }, { lvl: 15, passive: "cover", plv: 1 },
-    { lvl: 20, skill: "IRONWALL" }, { lvl: 25, passive: "counter", plv: 1 }, { lvl: 30, skill: "MAHALITO" },
-    { lvl: 35, passive: "taunt", plv: 1 }, { lvl: 40, skill: "MAGUINOTACHI" }, { lvl: 45, passive: "barrier", plv: 2 },
-    { lvl: 50, skill: "BOUJIN" }, { lvl: 55, skill: "DISPEL" }, { lvl: 60, passive: "reflect", plv: 1 },
-    { lvl: 65, skill: "JOUMON" }, { lvl: 70, passive: "fightSpirit", plv: 1 }, { lvl: 75, passive: "resistAilment", plv: 1 },
-    { lvl: 80, skill: "GOUZAN" }, { lvl: 85, skill: "MEIKONGURAI" }, { lvl: 90, passive: "counter", plv: 2 },
-    { lvl: 95, skill: "MADALT" }, { lvl: 100, skill: "SHURAZAN" }, { lvl: 105, passive: "bastion", plv: 1 },
-    { lvl: 110, skill: "KOKUUHA" }, { lvl: 115, passive: "soulEater", plv: 1 }, { lvl: 120, skill: "JOUSAITSUKI" },
-    { lvl: 125, passive: "endure", plv: 1 }, { lvl: 130, skill: "HADAN" }, { lvl: 135, passive: "fightSpirit", plv: 2 },
-    { lvl: 140, skill: "SHINENNOHADOU" }, { lvl: 145, passive: "resistAilment", plv: 2 }, { lvl: 150, skill: "TENCHIZAN" },
-    { lvl: 155, passive: "counter", plv: 3 }, { lvl: 160, skill: "FUDOUJIN" }, { lvl: 165, passive: "bigBarrier", plv: 1 },
-    { lvl: 170, skill: "GOKUENRAN" }, { lvl: 175, passive: "holyCover", plv: 1 }, { lvl: 180, skill: "HAOUZAN" },
-    { lvl: 185, passive: "endure", plv: 2 }, { lvl: 190, skill: "BANRAI" }, { lvl: 195, skill: "ZANTETSU" },
-    { lvl: 200, skill: "METSUKYAKU" },
-  ],
-  // 神殿騎士: 聖域で隊を守る誓いの盾。Lv40=聖域の鐘 は宿し技 (signature)
-  templar:     [
-    { lvl: 1, skill: "SHIELDBASH" }, { lvl: 3, skill: "CURE" }, { lvl: 5, passive: "taunt", plv: 1 },
-    { lvl: 7, skill: "HOLYRAY" }, { lvl: 10, skill: "PROTECT" }, { lvl: 15, passive: "afterHeal", plv: 1 },
-    { lvl: 20, skill: "GUARDALL" }, { lvl: 25, passive: "cover", plv: 1 }, { lvl: 30, skill: "IRONWALL" },
-    { lvl: 35, passive: "selfPurify", plv: 1 }, { lvl: 40, skill: "SEIIKINOKANE" }, { lvl: 45, passive: "cover", plv: 2 },
-    { lvl: 50, skill: "BOUJIN" }, { lvl: 55, skill: "DIOSALL" }, { lvl: 60, passive: "sanctuary", plv: 1 },
-    { lvl: 65, skill: "JOUMON" }, { lvl: 70, passive: "resistAilment", plv: 1 }, { lvl: 75, passive: "holyEdge", plv: 1 },
-    { lvl: 80, skill: "OUJOU" }, { lvl: 85, skill: "SAINTRAY" }, { lvl: 90, passive: "cover", plv: 3 },
-    { lvl: 95, skill: "SEIKOUZAN" }, { lvl: 100, skill: "TEPPEKIJIN" }, { lvl: 105, passive: "divineCounter", plv: 1 },
-    { lvl: 110, skill: "JOUSAITSUKI" }, { lvl: 115, passive: "martyr", plv: 1 }, { lvl: 120, skill: "SHINBATSU" },
-    { lvl: 125, passive: "bastion", plv: 1 }, { lvl: 130, skill: "FURAKUNOTATE" }, { lvl: 135, passive: "resistAilment", plv: 2 },
-    { lvl: 140, skill: "DAIFUKUIN" }, { lvl: 145, passive: "scripture", plv: 1 }, { lvl: 150, skill: "KISHIOU" },
-    { lvl: 155, passive: "holyCover", plv: 1 }, { lvl: 160, skill: "SHUGOKEKKAI" }, { lvl: 165, passive: "bigBarrier", plv: 1 },
-    { lvl: 170, skill: "FUDOUJIN" }, { lvl: 175, passive: "purify", plv: 1 }, { lvl: 180, skill: "DAIGOUREI" },
-    { lvl: 185, passive: "bigBarrier", plv: 2 }, { lvl: 190, skill: "SEIMETSUREKKOU" }, { lvl: 195, skill: "KAMIWAZA" },
-    { lvl: 200, skill: "FURAKUJOU" },
-  ],
-  // 祓魔師: 神速で動き光刃で不浄を斬る遊撃。Lv40=破邪の太刀 は宿し技 (signature)
-  exorcist:    [
-    { lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "HOLYRAY" }, { lvl: 5, passive: "smite", plv: 1 },
-    { lvl: 7, skill: "BLIND" }, { lvl: 10, skill: "CURE" }, { lvl: 15, passive: "holyEdge", plv: 1 },
-    { lvl: 20, skill: "KASUMEGIRI" }, { lvl: 25, passive: "ambushCrit", plv: 1 }, { lvl: 30, skill: "SAINTRAY" },
-    { lvl: 35, passive: "vitalEye", plv: 1 }, { lvl: 40, skill: "HAJANOTACHI" }, { lvl: 45, passive: "extraHit", plv: 1 },
-    { lvl: 50, skill: "ASSASSINATE" }, { lvl: 55, skill: "OBORO" }, { lvl: 60, passive: "purify", plv: 1 },
-    { lvl: 65, skill: "TSUJIKAZE" }, { lvl: 70, passive: "initiative", plv: 1 }, { lvl: 75, passive: "parry", plv: 1 },
-    { lvl: 80, skill: "ZETSUEI" }, { lvl: 85, skill: "SEIKOUZAN" }, { lvl: 90, passive: "vitalEye", plv: 2 },
-    { lvl: 95, skill: "KUBIHANE" }, { lvl: 100, skill: "SHINBATSU" }, { lvl: 105, passive: "extraHit", plv: 2 },
-    { lvl: 110, skill: "SHUNSATSU" }, { lvl: 115, passive: "sleepKill", plv: 1 }, { lvl: 120, skill: "SEIKOURETSU" },
-    { lvl: 125, passive: "parry", plv: 2 }, { lvl: 130, skill: "SENKOUZAN" }, { lvl: 135, passive: "extraHit", plv: 3 },
-    { lvl: 140, skill: "ANSATSU" }, { lvl: 145, passive: "selfPurify", plv: 1 }, { lvl: 150, skill: "SEIMETSUKOU" },
-    { lvl: 155, passive: "resistAilment", plv: 1 }, { lvl: 160, skill: "HISSATSU" }, { lvl: 165, passive: "zanshin", plv: 1 },
-    { lvl: 170, skill: "TENCHIZAN" }, { lvl: 175, passive: "resistAilment", plv: 2 }, { lvl: 180, skill: "MUGEN" },
-    { lvl: 185, passive: "extraHit", plv: 4 }, { lvl: 190, skill: "SEIMETSUREKKOU" }, { lvl: 195, skill: "HAOUZAN" },
-    { lvl: 200, skill: "ZANSEI" },
-  ],
-  // 護法師: 守りの法陣を極めた結界師。Lv40=攻守の法陣 は宿し技 (signature)
-  warden:      [
-    { lvl: 1, skill: "PROTECT" }, { lvl: 3, skill: "HALITO" }, { lvl: 5, passive: "barrier", plv: 1 },
-    { lvl: 7, skill: "BLESS" }, { lvl: 10, skill: "KAMAITACHI" }, { lvl: 15, passive: "afterMp", plv: 1 },
-    { lvl: 20, skill: "IRONWALL" }, { lvl: 25, passive: "chant", plv: 1 }, { lvl: 30, skill: "ROCKBLAST" },
-    { lvl: 35, passive: "scan", plv: 1 }, { lvl: 40, skill: "KOUSHUNOHOUJIN" }, { lvl: 45, passive: "barrier", plv: 2 },
-    { lvl: 50, skill: "GUARDALL" }, { lvl: 55, skill: "DISPEL" }, { lvl: 60, passive: "bigBarrier", plv: 1 },
-    { lvl: 65, skill: "MADALT" }, { lvl: 70, passive: "spellCrit", plv: 1 }, { lvl: 75, passive: "resistAilment", plv: 1 },
-    { lvl: 80, skill: "SEISAI" }, { lvl: 85, skill: "HOUSHOUHEKI" }, { lvl: 90, passive: "reflect", plv: 1 },
-    { lvl: 95, skill: "ICENEEDLE" }, { lvl: 100, skill: "MAHALITO" }, { lvl: 105, passive: "chant", plv: 2 },
-    { lvl: 110, skill: "RAITEI" }, { lvl: 115, passive: "bastion", plv: 1 }, { lvl: 120, skill: "BOUJIN" },
-    { lvl: 125, passive: "afterMp", plv: 2 }, { lvl: 130, skill: "RAIJIN" }, { lvl: 135, passive: "spellCrit", plv: 2 },
-    { lvl: 140, skill: "METEOR" }, { lvl: 145, passive: "bigBarrier", plv: 2 }, { lvl: 150, skill: "SHUGOKEKKAI" },
-    { lvl: 155, passive: "resistAilment", plv: 2 }, { lvl: 160, skill: "GOKUEN" }, { lvl: 165, passive: "sanctuary", plv: 1 },
-    { lvl: 170, skill: "GOKUENRAN" }, { lvl: 175, passive: "holyCover", plv: 1 }, { lvl: 180, skill: "TENPENCHII" },
-    { lvl: 185, passive: "elemFloor", plv: 1 }, { lvl: 190, skill: "FURAKUNOTATE" }, { lvl: 195, skill: "ZETTAIREIDO" },
-    { lvl: 200, skill: "KYOKUDAI" },
-  ],
-  // 秘術師: 省詠唱と呪文会心を両立する攻撃特化。Lv40=禁呪開帳 は宿し技 (signature)
-  arcanist:    [
-    { lvl: 1, skill: "HALITO" }, { lvl: 3, skill: "ICENEEDLE" }, { lvl: 5, passive: "afterMp", plv: 1 },
-    { lvl: 7, skill: "KAMAITACHI" }, { lvl: 10, skill: "KATINO" }, { lvl: 15, passive: "spellCrit", plv: 1 },
-    { lvl: 20, skill: "MAHALITO" }, { lvl: 25, passive: "chant", plv: 1 }, { lvl: 30, skill: "ROCKBLAST" },
-    { lvl: 35, passive: "scan", plv: 1 }, { lvl: 40, skill: "KINJUKAICHOU" }, { lvl: 45, passive: "spellCrit", plv: 2 },
-    { lvl: 50, skill: "MADALT" }, { lvl: 55, skill: "LAHALITO" }, { lvl: 60, passive: "afterMp", plv: 2 },
-    { lvl: 65, skill: "DISPEL" }, { lvl: 70, passive: "elemFloor", plv: 1 }, { lvl: 75, passive: "barrier", plv: 1 },
-    { lvl: 80, skill: "SEISAI" }, { lvl: 85, skill: "RAITEI" }, { lvl: 90, passive: "chant", plv: 2 },
-    { lvl: 95, skill: "HYORETSU" }, { lvl: 100, skill: "ENBU" }, { lvl: 105, passive: "spellCrit", plv: 3 },
-    { lvl: 110, skill: "RAIJIN" }, { lvl: 115, passive: "resistAilment", plv: 1 }, { lvl: 120, skill: "DAICHIWARI" },
-    { lvl: 125, passive: "soulEater", plv: 1 }, { lvl: 130, skill: "TILTOWAIT" }, { lvl: 135, passive: "reflect", plv: 1 },
-    { lvl: 140, skill: "HYOUGA" }, { lvl: 145, passive: "afterBoth", plv: 1 }, { lvl: 150, skill: "GOKUEN" },
-    { lvl: 155, passive: "resistAilment", plv: 2 }, { lvl: 160, skill: "METEOR" }, { lvl: 165, passive: "afterBoth", plv: 2 },
-    { lvl: 170, skill: "ZETTAIREIDO" }, { lvl: 175, passive: "bigBarrier", plv: 1 }, { lvl: 180, skill: "GOKUENRAN" },
-    { lvl: 185, passive: "barrier", plv: 2 }, { lvl: 190, skill: "KOKUUHA" }, { lvl: 195, skill: "TENPENCHII" },
-    { lvl: 200, skill: "KYOKUDAI" },
-  ],
-  // 審問官: 神罰の反撃を備えた前衛兼回復。Lv40=断罪の鉄槌 は宿し技 (signature)
-  inquisitor:  [
-    { lvl: 1, skill: "SHIELDBASH" }, { lvl: 3, skill: "DIOS" }, { lvl: 5, passive: "afterHeal", plv: 1 },
-    { lvl: 7, skill: "HOLYRAY" }, { lvl: 10, skill: "BLESS" }, { lvl: 15, passive: "taunt", plv: 1 },
-    { lvl: 20, skill: "KOTE" }, { lvl: 25, passive: "resistAilment", plv: 1 }, { lvl: 30, skill: "GUARDALL" },
-    { lvl: 35, passive: "cover", plv: 1 }, { lvl: 40, skill: "DANZAINOTSUCHI" }, { lvl: 45, passive: "smite", plv: 1 },
-    { lvl: 50, skill: "MIDARE" }, { lvl: 55, skill: "DIOSALL" }, { lvl: 60, passive: "afterHeal", plv: 2 },
-    { lvl: 65, skill: "SAINTRAY" }, { lvl: 70, passive: "divineCounter", plv: 1 }, { lvl: 75, passive: "holyEdge", plv: 1 },
-    { lvl: 80, skill: "OUJOU" }, { lvl: 85, skill: "GOUZAN" }, { lvl: 90, passive: "cover", plv: 2 },
-    { lvl: 95, skill: "SEIKOUZAN" }, { lvl: 100, skill: "TEPPEKIJIN" }, { lvl: 105, passive: "resistAilment", plv: 2 },
-    { lvl: 110, skill: "SHINBATSU" }, { lvl: 115, passive: "sanctuary", plv: 1 }, { lvl: 120, skill: "JOUSAITSUKI" },
-    { lvl: 125, passive: "scripture", plv: 1 }, { lvl: 130, skill: "SEIKOURETSU" }, { lvl: 135, passive: "cover", plv: 3 },
-    { lvl: 140, skill: "FURAKUNOTATE" }, { lvl: 145, passive: "martyr", plv: 1 }, { lvl: 150, skill: "DAIFUKUIN" },
-    { lvl: 155, passive: "holyCover", plv: 1 }, { lvl: 160, skill: "KISHIOU" }, { lvl: 165, passive: "bastion", plv: 1 },
-    { lvl: 170, skill: "SEIMETSUREKKOU" }, { lvl: 175, passive: "bigBarrier", plv: 1 }, { lvl: 180, skill: "FUDOUJIN" },
-    { lvl: 185, passive: "purify", plv: 1 }, { lvl: 190, skill: "DAIGOUREI" }, { lvl: 195, skill: "SHINSEIKO" },
-    { lvl: 200, skill: "KAMIWAZA" },
-  ],
-  // 大司教: 聖句の加護で倒れた仲間を支える回復の専門家。Lv40=聖句の加護 は宿し技 (signature)
-  archbishop:  [
-    { lvl: 1, skill: "DIOS" }, { lvl: 3, skill: "CURE" }, { lvl: 5, passive: "afterHeal", plv: 1 },
-    { lvl: 7, skill: "HOLYRAY" }, { lvl: 10, skill: "BLESS" }, { lvl: 15, passive: "selfPurify", plv: 1 },
-    { lvl: 20, skill: "DIOSALL" }, { lvl: 25, passive: "afterMp", plv: 1 }, { lvl: 30, skill: "DIAL" },
-    { lvl: 35, passive: "purify", plv: 1 }, { lvl: 40, skill: "SEIKUNOKAGO" }, { lvl: 45, passive: "afterHeal", plv: 2 },
-    { lvl: 50, skill: "REVIVE" }, { lvl: 55, skill: "SAINTRAY" }, { lvl: 60, passive: "afterBoth", plv: 1 },
-    { lvl: 65, skill: "MADIOS" }, { lvl: 70, passive: "sanctuary", plv: 1 }, { lvl: 75, passive: "scripture", plv: 1 },
-    { lvl: 80, skill: "RESURRECT" }, { lvl: 85, skill: "DIALALL" }, { lvl: 90, passive: "afterHeal", plv: 3 },
-    { lvl: 95, skill: "SHINYU" }, { lvl: 100, skill: "IYASHINAMI" }, { lvl: 105, passive: "mercy", plv: 1 },
-    { lvl: 110, skill: "SEISUISHO" }, { lvl: 115, passive: "resistAilment", plv: 1 }, { lvl: 120, skill: "SHINBATSU" },
-    { lvl: 125, passive: "popePrayer", plv: 1 }, { lvl: 130, skill: "TENKEINOINORI" }, { lvl: 135, passive: "martyr", plv: 1 },
-    { lvl: 140, skill: "DAISEIKITOU" }, { lvl: 145, passive: "afterHeal", plv: 4 }, { lvl: 150, skill: "SEIKOURETSU" },
-    { lvl: 155, passive: "holyCover", plv: 1 }, { lvl: 160, skill: "FUKUIN" }, { lvl: 165, passive: "resistAilment", plv: 2 },
-    { lvl: 170, skill: "SEIMETSUKOU" }, { lvl: 175, passive: "bigBarrier", plv: 1 }, { lvl: 180, skill: "DAIFUKUIN" },
-    { lvl: 185, passive: "divineCounter", plv: 1 }, { lvl: 190, skill: "SEIMETSUREKKOU" }, { lvl: 195, skill: "SHINSEIKO" },
-    { lvl: 200, skill: "KAMIWAZA" },
-  ],
-  // 修験者: 身を削って力を引き出す荒行者。Lv40=捨身の行 は宿し技 (signature)
-  ascetic:     [
-    { lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "DIOS" }, { lvl: 5, passive: "asceticism", plv: 1 },
-    { lvl: 7, skill: "HOLYRAY" }, { lvl: 10, skill: "MIDARE" }, { lvl: 15, passive: "afterHeal", plv: 1 },
-    { lvl: 20, skill: "DIOSALL" }, { lvl: 25, passive: "fightSpirit", plv: 1 }, { lvl: 30, skill: "GOUZAN" },
-    { lvl: 35, passive: "smite", plv: 1 }, { lvl: 40, skill: "SHASHINNOGYOU" }, { lvl: 45, passive: "endure", plv: 1 },
-    { lvl: 50, skill: "DIAL" }, { lvl: 55, skill: "SENPUU" }, { lvl: 60, passive: "extraHit", plv: 1 },
-    { lvl: 65, skill: "ZANTETSU" }, { lvl: 70, passive: "afterHeal", plv: 2 }, { lvl: 75, passive: "counter", plv: 1 },
-    { lvl: 80, skill: "CURE" }, { lvl: 85, skill: "SANREN" }, { lvl: 90, passive: "fightSpirit", plv: 2 },
-    { lvl: 95, skill: "KISHINKA" }, { lvl: 100, skill: "SHURAZAN" }, { lvl: 105, passive: "vitalEye", plv: 1 },
-    { lvl: 110, skill: "HADAN" }, { lvl: 115, passive: "selfPurify", plv: 1 }, { lvl: 120, skill: "ROKUREN" },
-    { lvl: 125, passive: "resistAilment", plv: 1 }, { lvl: 130, skill: "AMATSUKAZE" }, { lvl: 135, passive: "extraHit", plv: 2 },
-    { lvl: 140, skill: "TENCHIZAN" }, { lvl: 145, passive: "scripture", plv: 1 }, { lvl: 150, skill: "KIKOKURANBU" },
-    { lvl: 155, passive: "counter", plv: 2 }, { lvl: 160, skill: "SHINBATSU" }, { lvl: 165, passive: "fightSpirit", plv: 3 },
-    { lvl: 170, skill: "HAOUZAN" }, { lvl: 175, passive: "resistAilment", plv: 2 }, { lvl: 180, skill: "DAIFUKUIN" },
-    { lvl: 185, passive: "extraHit", plv: 3 }, { lvl: 190, skill: "MUGEN" }, { lvl: 195, skill: "SEIKOURETSU" },
-    { lvl: 200, skill: "METSUKYAKU" },
-  ],
-  // 勇者: 攻守と聖を兼ねる万能の柱。Lv40=聖剣奮迅 は宿し技 (signature)
-  hero:        [
-    { lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "DIOS" }, { lvl: 5, passive: "smite", plv: 1 },
-    { lvl: 7, skill: "HOLYRAY" }, { lvl: 10, skill: "BLESS" }, { lvl: 15, passive: "cover", plv: 1 },
-    { lvl: 20, skill: "MIDARE" }, { lvl: 25, passive: "afterHeal", plv: 1 }, { lvl: 30, skill: "SAINTRAY" },
-    { lvl: 35, passive: "extraHit", plv: 1 }, { lvl: 40, skill: "SEIKEN" }, { lvl: 45, passive: "vitalEye", plv: 1 },
-    { lvl: 50, skill: "GUARDALL" }, { lvl: 55, skill: "REVIVE" }, { lvl: 60, passive: "fightSpirit", plv: 1 },
-    { lvl: 65, skill: "SENPUU" }, { lvl: 70, passive: "holyEdge", plv: 1 }, { lvl: 75, passive: "cover", plv: 2 },
-    { lvl: 80, skill: "GOUZAN" }, { lvl: 85, skill: "SHURAZAN" }, { lvl: 90, passive: "resistAilment", plv: 1 },
-    { lvl: 95, skill: "SEIKOUZAN" }, { lvl: 100, skill: "SHINBATSU" }, { lvl: 105, passive: "extraHit", plv: 2 },
-    { lvl: 110, skill: "AMATSUKAZE" }, { lvl: 115, passive: "endure", plv: 1 }, { lvl: 120, skill: "TENCHIZAN" },
-    { lvl: 125, passive: "sanctuary", plv: 1 }, { lvl: 130, skill: "DAIFUKUIN" }, { lvl: 135, passive: "martyr", plv: 1 },
-    { lvl: 140, skill: "SEIKOURETSU" }, { lvl: 145, passive: "mercy", plv: 1 }, { lvl: 150, skill: "KISHIOU" },
-    { lvl: 155, passive: "resistAilment", plv: 2 }, { lvl: 160, skill: "KIKOKURANBU" }, { lvl: 165, passive: "holyCover", plv: 1 },
-    { lvl: 170, skill: "HAOUZAN" }, { lvl: 175, passive: "fightSpirit", plv: 2 }, { lvl: 180, skill: "DIALALL" },
-    { lvl: 185, passive: "extraHit", plv: 3 }, { lvl: 190, skill: "METSUKYAKU" }, { lvl: 195, skill: "KAMIWAZA" },
-    { lvl: 200, skill: "FURAKUJOU" },
-  ],
-  // 修羅: 連撃と闘魂で蹂躙する攻撃の化身。Lv40=阿修羅斬 は宿し技 (signature)
-  asura:       [
-    { lvl: 1, skill: "KYOUGEKI" }, { lvl: 3, skill: "TATEWARI" }, { lvl: 5, passive: "extraHit", plv: 1 },
-    { lvl: 7, skill: "DOUBLE" }, { lvl: 10, skill: "ASSASSINATE" }, { lvl: 15, passive: "fightSpirit", plv: 1 },
-    { lvl: 20, skill: "NAGIHARAI" }, { lvl: 25, passive: "vitalEye", plv: 1 }, { lvl: 30, skill: "MIDARE" },
-    { lvl: 35, passive: "extraHit", plv: 2 }, { lvl: 40, skill: "ASHURAZAN" }, { lvl: 45, passive: "counter", plv: 1 },
-    { lvl: 50, skill: "GOUZAN" }, { lvl: 55, skill: "ISSEN" }, { lvl: 60, passive: "fightSpirit", plv: 2 },
-    { lvl: 65, skill: "SENPUU" }, { lvl: 70, passive: "vitalEye", plv: 2 }, { lvl: 75, passive: "zanshin", plv: 1 },
-    { lvl: 80, skill: "ZANTETSU" }, { lvl: 85, skill: "SANREN" }, { lvl: 90, passive: "extraHit", plv: 3 },
-    { lvl: 95, skill: "KIKOKU" }, { lvl: 100, skill: "KISHINKA" }, { lvl: 105, passive: "fightSpirit", plv: 3 },
-    { lvl: 110, skill: "SHURAZAN" }, { lvl: 115, passive: "ambushCrit", plv: 1 }, { lvl: 120, skill: "RANBU" },
-    { lvl: 125, passive: "counter", plv: 2 }, { lvl: 130, skill: "HADAN" }, { lvl: 135, passive: "asceticism", plv: 1 },
-    { lvl: 140, skill: "AMATSUKAZE" }, { lvl: 145, passive: "resistAilment", plv: 1 }, { lvl: 150, skill: "ROKUREN" },
-    { lvl: 155, passive: "fightSpirit", plv: 4 }, { lvl: 160, skill: "TENCHIZAN" }, { lvl: 165, passive: "counter", plv: 3 },
-    { lvl: 170, skill: "SHUNSATSU" }, { lvl: 175, passive: "extraHit", plv: 4 }, { lvl: 180, skill: "KIKOKURANBU" },
-    { lvl: 185, passive: "endure", plv: 1 }, { lvl: 190, skill: "MUGEN" }, { lvl: 195, skill: "HAOUZAN" },
-    { lvl: 200, skill: "METSUKYAKU" },
-  ],
-  // 竜騎士: 竜鱗で耐え一撃で山を砕く。Lv40=竜墜とし は宿し技 (signature)
-  dragonknight:[
-    { lvl: 1, skill: "SHIELDBASH" }, { lvl: 3, skill: "PROTECT" }, { lvl: 5, passive: "taunt", plv: 1 },
-    { lvl: 7, skill: "KYOUGEKI" }, { lvl: 10, skill: "WARCRY" }, { lvl: 15, passive: "barrier", plv: 1 },
-    { lvl: 20, skill: "IRONWALL" }, { lvl: 25, passive: "counter", plv: 1 }, { lvl: 30, skill: "BOUJIN" },
-    { lvl: 35, passive: "endure", plv: 1 }, { lvl: 40, skill: "RYUZETSU" }, { lvl: 45, passive: "fightSpirit", plv: 1 },
-    { lvl: 50, skill: "GOUZAN" }, { lvl: 55, skill: "ISSEN" }, { lvl: 60, passive: "cover", plv: 1 },
-    { lvl: 65, skill: "JOUMON" }, { lvl: 70, passive: "barrier", plv: 2 }, { lvl: 75, passive: "vitalEye", plv: 1 },
-    { lvl: 80, skill: "ZANTETSU" }, { lvl: 85, skill: "GUARDALL" }, { lvl: 90, passive: "resistAilment", plv: 1 },
-    { lvl: 95, skill: "YOROIDACHI" }, { lvl: 100, skill: "SHURAZAN" }, { lvl: 105, passive: "counter", plv: 2 },
-    { lvl: 110, skill: "JOUSAITSUKI" }, { lvl: 115, passive: "endure", plv: 2 }, { lvl: 120, skill: "HADAN" },
-    { lvl: 125, passive: "bastion", plv: 1 }, { lvl: 130, skill: "BANRAI" }, { lvl: 135, passive: "fightSpirit", plv: 2 },
-    { lvl: 140, skill: "TENCHIZAN" }, { lvl: 145, passive: "resistAilment", plv: 2 }, { lvl: 150, skill: "FUDOUJIN" },
-    { lvl: 155, passive: "bigBarrier", plv: 1 }, { lvl: 160, skill: "DAISENPUU" }, { lvl: 165, passive: "counter", plv: 3 },
-    { lvl: 170, skill: "HAOUZAN" }, { lvl: 175, passive: "holyCover", plv: 1 }, { lvl: 180, skill: "KIKOKURANBU" },
-    { lvl: 185, passive: "parry", plv: 1 }, { lvl: 190, skill: "FURAKUNOTATE" }, { lvl: 195, skill: "OUJOU" },
-    { lvl: 200, skill: "METSUKYAKU" },
-  ],
-  // 死霊術師: 魂を喰らい力に変える闇の術者。Lv40=冥魂喰らい は宿し技 (signature)
-  necromancer: [
-    { lvl: 1, skill: "BLIND" }, { lvl: 3, skill: "HALITO" }, { lvl: 5, passive: "soulEater", plv: 1 },
-    { lvl: 7, skill: "KATINO" }, { lvl: 10, skill: "DIOS" }, { lvl: 15, passive: "afterMp", plv: 1 },
-    { lvl: 20, skill: "MAHALITO" }, { lvl: 25, passive: "chant", plv: 1 }, { lvl: 30, skill: "KAGENUI" },
-    { lvl: 35, passive: "spellCrit", plv: 1 }, { lvl: 40, skill: "MEIKONGURAI" }, { lvl: 45, passive: "soulLure", plv: 1 },
-    { lvl: 50, skill: "DISPEL" }, { lvl: 55, skill: "MADALT" }, { lvl: 60, passive: "afterMp", plv: 2 },
-    { lvl: 65, skill: "REVIVE" }, { lvl: 70, passive: "sleepKill", plv: 1 }, { lvl: 75, passive: "spellCrit", plv: 2 },
-    { lvl: 80, skill: "SEISAI" }, { lvl: 85, skill: "ICENEEDLE" }, { lvl: 90, passive: "venomBlade", plv: 1 },
-    { lvl: 95, skill: "KOKUUHA" }, { lvl: 100, skill: "SHINENNOHADOU" }, { lvl: 105, passive: "resistAilment", plv: 1 },
-    { lvl: 110, skill: "RAIJIN" }, { lvl: 115, passive: "barrier", plv: 1 }, { lvl: 120, skill: "MOUDOKUSASHI" },
-    { lvl: 125, passive: "soulLure", plv: 2 }, { lvl: 130, skill: "METEOR" }, { lvl: 135, passive: "chant", plv: 2 },
-    { lvl: 140, skill: "KINJUKAICHOU" }, { lvl: 145, passive: "spellCrit", plv: 3 }, { lvl: 150, skill: "GOKUENRAN" },
-    { lvl: 155, passive: "scan", plv: 1 }, { lvl: 160, skill: "ZETTAIREIDO" }, { lvl: 165, passive: "resistAilment", plv: 2 },
-    { lvl: 170, skill: "TENPENCHII" }, { lvl: 175, passive: "elemFloor", plv: 1 }, { lvl: 180, skill: "RESURRECT" },
-    { lvl: 185, passive: "reflect", plv: 1 }, { lvl: 190, skill: "MARYOKUGOUDATSU" }, { lvl: 195, skill: "GOKUEN" },
-    { lvl: 200, skill: "KYOKUDAI" },
-  ],
-  // 賢者: 魔と聖の理を識り尽くす。Lv40=森羅の裁き は宿し技 (signature)
-  sage:        [
-    { lvl: 1, passive: "kantei", plv: 2 }, { lvl: 3, skill: "DIOS" }, { lvl: 5, passive: "afterMp", plv: 1 },
-    { lvl: 7, skill: "ICENEEDLE" }, { lvl: 10, skill: "CURE" }, { lvl: 15, passive: "scan", plv: 1 },
-    { lvl: 20, skill: "MAHALITO" }, { lvl: 25, passive: "chant", plv: 1 }, { lvl: 30, skill: "DIOSALL" },
-    { lvl: 35, passive: "elemFloor", plv: 1 }, { lvl: 40, skill: "SHINRANOSABAKI" }, { lvl: 45, passive: "spellCrit", plv: 1 },
-    { lvl: 50, skill: "MADALT" }, { lvl: 55, skill: "REVIVE" }, { lvl: 60, passive: "afterHeal", plv: 1 },
-    { lvl: 65, skill: "LAHALITO" }, { lvl: 70, passive: "afterMp", plv: 2 }, { lvl: 75, passive: "afterHeal", plv: 2 },
-    { lvl: 80, skill: "RESURRECT" }, { lvl: 85, skill: "KAMAITACHI" }, { lvl: 90, passive: "chant", plv: 2 },
-    { lvl: 95, skill: "DIALALL" }, { lvl: 100, skill: "RAIJIN" }, { lvl: 105, passive: "spellCrit", plv: 2 },
-    { lvl: 110, skill: "HYOUGA" }, { lvl: 115, passive: "resistAilment", plv: 1 }, { lvl: 120, skill: "METEOR" },
-    { lvl: 125, passive: "sanctuary", plv: 1 }, { lvl: 130, skill: "IYASHINAMI" }, { lvl: 135, passive: "barrier", plv: 1 },
-    { lvl: 140, skill: "GOKUEN" }, { lvl: 145, passive: "spellCrit", plv: 3 }, { lvl: 150, skill: "TENPENCHII" },
-    { lvl: 155, passive: "scripture", plv: 1 }, { lvl: 160, skill: "ZETTAIREIDO" }, { lvl: 165, passive: "resistAilment", plv: 2 },
-    { lvl: 170, skill: "DAIFUKUIN" }, { lvl: 175, passive: "mercy", plv: 1 }, { lvl: 180, skill: "GOKUENRAN" },
-    { lvl: 185, passive: "bigBarrier", plv: 1 }, { lvl: 190, skill: "KOKUUHA" }, { lvl: 195, skill: "SEISAI" },
-    { lvl: 200, skill: "KYOKUDAI" },
-  ],
-  // 枢機卿: 隊全員に祈りを注ぐ教団の頂。Lv40=大聖祈祷 は宿し技 (signature)
-  cardinal:    [
-    { lvl: 1, skill: "DIOS" }, { lvl: 3, skill: "CURE" }, { lvl: 5, passive: "afterHeal", plv: 1 },
-    { lvl: 7, skill: "HOLYRAY" }, { lvl: 10, skill: "BLESS" }, { lvl: 15, passive: "selfPurify", plv: 1 },
-    { lvl: 20, skill: "DIOSALL" }, { lvl: 25, passive: "afterMp", plv: 1 }, { lvl: 30, skill: "DIAL" },
-    { lvl: 35, passive: "purify", plv: 1 }, { lvl: 40, skill: "DAISEIKITOU" }, { lvl: 45, passive: "afterHeal", plv: 2 },
-    { lvl: 50, skill: "REVIVE" }, { lvl: 55, skill: "DIALALL" }, { lvl: 60, passive: "popePrayer", plv: 1 },
-    { lvl: 65, skill: "MADIOS" }, { lvl: 70, passive: "afterBoth", plv: 1 }, { lvl: 75, passive: "sanctuary", plv: 1 },
-    { lvl: 80, skill: "RESURRECT" }, { lvl: 85, skill: "SAINTRAY" }, { lvl: 90, passive: "afterHeal", plv: 3 },
-    { lvl: 95, skill: "SHINYU" }, { lvl: 100, skill: "IYASHINAMI" }, { lvl: 105, passive: "mercy", plv: 1 },
-    { lvl: 110, skill: "SEISUISHO" }, { lvl: 115, passive: "scripture", plv: 1 }, { lvl: 120, skill: "TENKEINOINORI" },
-    { lvl: 125, passive: "martyr", plv: 1 }, { lvl: 130, skill: "SHINBATSU" }, { lvl: 135, passive: "resistAilment", plv: 1 },
-    { lvl: 140, skill: "FUKUIN" }, { lvl: 145, passive: "afterHeal", plv: 4 }, { lvl: 150, skill: "SEIKOURETSU" },
-    { lvl: 155, passive: "holyCover", plv: 1 }, { lvl: 160, skill: "SEIMETSUKOU" }, { lvl: 165, passive: "resistAilment", plv: 2 },
-    { lvl: 170, skill: "DAIFUKUIN" }, { lvl: 175, passive: "divineCounter", plv: 1 }, { lvl: 180, skill: "SEIMETSUREKKOU" },
-    { lvl: 185, passive: "bigBarrier", plv: 1 }, { lvl: 190, skill: "SHINSEIKO" }, { lvl: 195, skill: "KISHIOU" },
-    { lvl: 200, skill: "KAMIWAZA" },
-  ],
-  // 大魔導: 深淵の知識に到達した呪文砲台。Lv40=深淵の波動 は宿し技 (signature)
-  archmage:    [
-    { lvl: 1, skill: "HALITO" }, { lvl: 3, skill: "ICENEEDLE" }, { lvl: 5, passive: "afterMp", plv: 1 },
-    { lvl: 7, skill: "KAMAITACHI" }, { lvl: 10, skill: "MAHALITO" }, { lvl: 15, passive: "chant", plv: 1 },
-    { lvl: 20, skill: "ROCKBLAST" }, { lvl: 25, passive: "spellCrit", plv: 1 }, { lvl: 30, skill: "MADALT" },
-    { lvl: 35, passive: "scan", plv: 1 }, { lvl: 40, skill: "SHINENNOHADOU" }, { lvl: 45, passive: "spellCrit", plv: 2 },
-    { lvl: 50, skill: "LAHALITO" }, { lvl: 55, skill: "DISPEL" }, { lvl: 60, passive: "afterMp", plv: 2 },
-    { lvl: 65, skill: "TILTOWAIT" }, { lvl: 70, passive: "elemFloor", plv: 1 }, { lvl: 75, passive: "chant", plv: 2 },
-    { lvl: 80, skill: "SEISAI" }, { lvl: 85, skill: "RAITEI" }, { lvl: 90, passive: "barrier", plv: 1 },
-    { lvl: 95, skill: "HYORETSU" }, { lvl: 100, skill: "ENBU" }, { lvl: 105, passive: "spellCrit", plv: 3 },
-    { lvl: 110, skill: "RAIJIN" }, { lvl: 115, passive: "reflect", plv: 1 }, { lvl: 120, skill: "DAICHIWARI" },
-    { lvl: 125, passive: "resistAilment", plv: 1 }, { lvl: 130, skill: "HYOUGA" }, { lvl: 135, passive: "soulEater", plv: 1 },
-    { lvl: 140, skill: "GOKUEN" }, { lvl: 145, passive: "afterBoth", plv: 1 }, { lvl: 150, skill: "RAIMEIRAN" },
-    { lvl: 155, passive: "barrier", plv: 2 }, { lvl: 160, skill: "METEOR" }, { lvl: 165, passive: "resistAilment", plv: 2 },
-    { lvl: 170, skill: "ZETTAIREIDO" }, { lvl: 175, passive: "bigBarrier", plv: 1 }, { lvl: 180, skill: "GOKUENRAN" },
-    { lvl: 185, passive: "afterBoth", plv: 2 }, { lvl: 190, skill: "KOKUUHA" }, { lvl: 195, skill: "TENPENCHII" },
-    { lvl: 200, skill: "KYOKUDAI" },
-  ],
-  // 護教官: 法障壁で全てを防ぐ究極の守護聖職者。Lv40=法障壁 は宿し技 (signature)
-  chaplain:    [
-    { lvl: 1, skill: "SHIELDBASH" }, { lvl: 3, skill: "CURE" }, { lvl: 5, passive: "cover", plv: 1 },
-    { lvl: 7, skill: "HOLYRAY" }, { lvl: 10, skill: "PROTECT" }, { lvl: 15, passive: "taunt", plv: 1 },
-    { lvl: 20, skill: "IRONWALL" }, { lvl: 25, passive: "barrier", plv: 1 }, { lvl: 30, skill: "GUARDALL" },
-    { lvl: 35, passive: "afterHeal", plv: 1 }, { lvl: 40, skill: "HOUSHOUHEKI" }, { lvl: 45, passive: "cover", plv: 2 },
-    { lvl: 50, skill: "BOUJIN" }, { lvl: 55, skill: "DIOSALL" }, { lvl: 60, passive: "resistAilment", plv: 1 },
-    { lvl: 65, skill: "JOUMON" }, { lvl: 70, passive: "holyEdge", plv: 1 }, { lvl: 75, passive: "bastion", plv: 1 },
-    { lvl: 80, skill: "OUJOU" }, { lvl: 85, skill: "SAINTRAY" }, { lvl: 90, passive: "cover", plv: 3 },
-    { lvl: 95, skill: "SEIKOUZAN" }, { lvl: 100, skill: "TEPPEKIJIN" }, { lvl: 105, passive: "sanctuary", plv: 1 },
-    { lvl: 110, skill: "JOUSAITSUKI" }, { lvl: 115, passive: "martyr", plv: 1 }, { lvl: 120, skill: "SHINBATSU" },
-    { lvl: 125, passive: "divineCounter", plv: 1 }, { lvl: 130, skill: "FURAKUNOTATE" }, { lvl: 135, passive: "resistAilment", plv: 2 },
-    { lvl: 140, skill: "DAIFUKUIN" }, { lvl: 145, passive: "holyCover", plv: 1 }, { lvl: 150, skill: "SHUGOKEKKAI" },
-    { lvl: 155, passive: "scripture", plv: 1 }, { lvl: 160, skill: "KISHIOU" }, { lvl: 165, passive: "bigBarrier", plv: 1 },
-    { lvl: 170, skill: "FUDOUJIN" }, { lvl: 175, passive: "purify", plv: 1 }, { lvl: 180, skill: "DAIGOUREI" },
-    { lvl: 185, passive: "bigBarrier", plv: 2 }, { lvl: 190, skill: "SEIMETSUREKKOU" }, { lvl: 195, skill: "KAMIWAZA" },
-    { lvl: 200, skill: "FURAKUJOU" },
-  ],
+  fighter: T(`1 KYOUGEKI 2 NERAIUCHI 3 TATEWARI 5 extraHit/1 7 KAENGIRI 10 WARCRY 12 IWAKUDAKI 15 fightSpirit/1
+    20 SHINGANGEKI 22 NAGIHARAI 25 vitalEye/1 30 HAISUI 35 extraHit/2 40 KIKOKU 45 counter/1 50 GOUZAN 55 IATSU
+    57 GURENZAN 60 fightSpirit/2 65 TAME 70 counter/2 75 zanshin/1 80 ZANTETSU 82 GANOTOSHI 85 SANREN
+    90 vitalEye/2 95 DAISENPUU 100 YOROIDACHI 105 counter/3 107 GOUKADAN 110 KISHINKA 115 extraHit/3 120 HADAN
+    125 parry/1 130 RANBU 135 fightSpirit/3 140 AMATSUKAZE 145 endure/1 150 TENCHIZAN 155 parry/2 160 KIKOKURANBU
+    162 SHOUNETSURANBU 165 endure/2 170 ROKUREN 175 resistAilment/1 180 YAMAKUZUSHI 185 extraHit/4 190 HAOUZAN
+    195 fightSpirit/4 200 METSUKYAKU`),
+  knight: T(`1 SHIELDBASH 2 NERAIUCHI 3 taunt/1 5 CHOUHATSU 7 PROTECT 10 KOTE 12 IWAKUDAKI 15 cover/1 20 NIOUDACHI
+    22 KOUJIN 25 counter/1 30 GUARDALL 35 cover/2 40 JOUMON 45 bastion/1 50 SHINGANGEKI 55 IRONWALL 57 GANOTOSHI
+    60 counter/2 65 SHIELDCHARGE 70 parry/1 75 endure/1 80 BOUJIN 82 SEIGEKI 85 HANGEKI 90 resistAilment/1
+    95 SHUGOHOUKOU 100 JOUSAITSUKI 105 counter/3 107 YAMAKUZUSHI 110 TEPPEKIJIN 115 cover/3 120 ZANTETSU
+    125 bastion/2 130 FURAKUNOTATE 135 parry/2 140 BANRAI 145 bigBarrier/1 150 SHUGOKEKKAI 155 endure/2
+    160 JOUSAIKUZUSHI 162 DAICHIMEIDOU 165 resistAilment/2 170 TESSAINAGI 175 bigBarrier/2 180 KISHIOU
+    185 holyCover/1 190 FUDOUJIN 195 DAIGOUREI 200 FURAKUJOU`),
+  priest: T(`1 DIOS 3 CURE 5 afterHeal/1 7 HOLYRAY 10 BLESS 15 selfPurify/1 17 REGEN 20 DIOSALL 25 afterHeal/2 30 DIAL
+    35 chant/1 40 DIALALL 45 purify/1 50 HOLYLIGHT 55 REVIVE 60 afterHeal/3 65 MADIOS 70 resistAilment/1
+    75 sanctuary/1 80 RESURRECT 85 KIYOME 90 afterHeal/4 95 SHINYU 100 SEIBETSU 105 chant/2 110 IYASHINAMI
+    115 scripture/1 120 REGENALL 125 resistAilment/2 130 SHINBATSU 135 divineCounter/1 140 SEISUISHO 145 martyr/1
+    150 TENKEINOINORI 155 mercy/1 160 SEIMETSUKOU 165 popePrayer/1 170 FUKUIN 175 holyCover/1 180 SEIKOURETSU
+    185 DAISEIKITOU 190 DAIFUKUIN 195 bigBarrier/1 200 KAMIWAZA`),
+  mage: T(`1 HALITO 3 ICENEEDLE 4 ISHITSUBUTE 5 afterMp/1 7 KAMAITACHI 8 SHADOWBOLT 10 KATINO 15 chant/1 20 MAHALITO
+    22 AQUAWAVE 25 spellCrit/1 27 WINDSTORM 30 ROCKBLAST 32 EARTHQUAKE 35 afterMp/2 40 TILTOWAIT 45 chant/2
+    50 MADALT 55 SEISHIN 57 ELEMBREAK 60 spellCrit/2 65 LAHALITO 70 barrier/1 72 TORNADO 75 scan/1 80 SEISAI
+    85 RAITEI 90 reflect/1 95 HYORETSU 100 ENBU 105 barrier/2 110 RAIJIN 115 resistAilment/1 120 DAICHIWARI
+    125 elemFloor/1 130 HYOUGA 135 spellCrit/3 140 GOKUEN 145 afterBoth/1 150 RAIMEIRAN 155 resistAilment/2
+    160 METEOR 165 afterBoth/2 170 ZETTAIREIDO 175 bigBarrier/1 180 GOKUENRAN 185 soulEater/1 190 KOKUUHA
+    195 TENPENCHII 200 KYOKUDAI`),
+  thief: T(`1 kantei/1 2 STEAL 3 POISONSTAB 5 ambushCrit/1 7 SHIPPUUGIRI 10 KEMURIDAMA 12 SUNAKAKE 15 extraHit/1
+    20 KASUMEGIRI 22 SHIBIREBARI 25 vitalEye/1 30 ASSASSINATE 35 extraHit/2 40 OBORO 45 parry/1 50 MEIJIN
+    55 MAKIBISHI 57 FUUGA 60 venomBlade/1 65 TSUJIKAZE 70 sleepKill/1 75 initiative/1 80 ZETSUEI 85 SHIPPUTSUKI
+    90 extraHit/3 95 ENGETSUJIN 100 MOUDOKUSASHI 105 vitalEye/2 107 KAMIKAZE 110 KAGEUCHI 115 venomBlade/2
+    120 KUBIHANE 125 parry/2 130 RANBUTSUKI 135 extraHit/4 140 SHUNSATSU 145 zanshin/1 150 TSUMUJIKAZE
+    155 vigilance/1 160 ZANKOU 162 TENRAN 165 vigilance/2 170 ANSATSU 175 senseEnemy/1 180 SENKOUZAN
+    185 fleetFoot/1 190 HISSATSU 195 MUGEN 200 ZANSEI`),
+  bishop: T(`1 kantei/2 3 DIOS 4 HOLYRAY 5 afterMp/1 7 ICENEEDLE 10 CURE 15 afterBoth/1 20 SEAL 22 AQUAWAVE 25 scan/1
+    30 DIAL 35 chant/1 40 MADIOS 45 afterHeal/1 47 ICELANCE 50 DIOSALL 55 DISPEL 60 spellCrit/1 65 MADALT
+    70 purify/1 75 afterBoth/2 80 MANAGIFT 85 SAINTRAY 90 afterMp/2 95 DIALALL 100 HYORETSU 105 chant/2 110 REVIVE
+    115 spellCrit/2 120 SEALALL 125 selfPurify/1 130 IYASHINAMI 132 HYOUGA 135 afterHeal/2 140 SEISAI
+    145 resistAilment/1 150 KIYOME 155 elemFloor/1 160 RESURRECT 165 resistAilment/2 170 SHINBATSU 172 ZETTAIREIDO
+    175 barrier/1 180 DAIFUKUIN 185 sanctuary/1 190 SEIMETSUREKKOU 195 SEIKOURETSU 200 KYOKUDAI`),
+  samurai: T(`1 KYOUGEKI 2 SUIGETSU 3 GONOSEN 5 iai/1 7 DOUBLE 10 KASUMEGIRI 12 SHIPPUUGIRI 15 parry/1 20 ISSEN 22 UZUSHIO
+    25 vitalEye/1 30 MEIKYOU 35 initiative/1 40 TSUBAMEGAESHI 45 extraHit/1 50 TSUJIKAZE 55 TATEWARI 57 HYOUJIN
+    60 zanshin/1 65 ZETSUEI 70 parry/2 75 vitalEye/2 80 ZANTETSU 82 FUUGA 85 SANREN 90 counter/1 95 KUBIHANE
+    100 KIKOKU 105 ambushCrit/1 107 TOUGADAN 110 SHUNSATSU 115 extraHit/2 120 HADAN 125 counter/2 130 RANBU
+    135 fightSpirit/1 140 AMATSUKAZE 145 sleepKill/1 150 TENCHIZAN 155 extraHit/3 160 KIKOKURANBU 162 DAIKAISHOU
+    165 resistAilment/1 170 KAMIKAZE 175 fightSpirit/2 180 ROKUREN 185 extraHit/4 190 HAOUZAN 195 MUGEN
+    200 METSUKYAKU`),
+  berserker: T(`1 KYOUGEKI 2 KAENGIRI 3 NERAIUCHI 5 counter/1 7 SUTEMI 10 HAISUI 12 YAMIBA 15 fightSpirit/1 20 IATSU
+    22 KAENNAGI 25 extraHit/1 30 CHINOKAWAKI 35 vitalEye/1 40 KIJINKUDAKI 45 fightSpirit/2 50 GOUZAN
+    55 SHINGANGEKI 57 GURENZAN 60 counter/2 65 TAME 70 extraHit/2 75 endure/1 80 ZANTETSU 82 MEIJIN 85 MIDARE
+    90 fightSpirit/3 95 KISHINKA 100 YOROIDACHI 105 counter/3 107 GOUKADAN 110 SHURAZAN 115 extraHit/3 120 HADAN
+    125 vitalEye/2 130 DAISENPUU 135 asceticism/1 140 MEIFUZAN 145 resistAilment/1 150 TENCHIZAN 155 fightSpirit/4
+    160 KIKOKURANBU 162 SHOUNETSURANBU 165 endure/2 170 RANBU 175 zanshin/1 180 TOKOYAMI 185 extraHit/4
+    190 HAOUZAN 195 ROKUREN 200 METSUKYAKU`),
+  hunter: T(`1 DOKUYA 2 SUIGETSU 3 ASHIDOME 5 ambushCrit/1 7 SOGEKI 10 YANOAME 12 ABURA 15 vitalEye/1 20 SHIBIREYA
+    22 REPPUU 25 extraHit/1 30 KEMONOGARI 35 initiative/1 40 KUBIKARI 45 extraHit/2 50 TSURANUKI 55 SHIPPUTSUKI
+    57 FUUGA 60 vitalEye/2 65 ZETSUEI 70 parry/1 75 senseEnemy/1 80 HYOUJIN 82 RENSHA 85 KUBIHANE 90 extraHit/3
+    95 SENNYA 100 TOUGADAN 105 sleepKill/1 110 SHUNSATSU 115 parry/2 120 KAMIKAZE 125 vigilance/1 130 SENKOUZAN
+    135 extraHit/4 140 ANSATSU 145 fleetFoot/1 150 ZANKOU 155 vigilance/2 160 RYUUSEISHA 162 TENRAN
+    165 resistAilment/1 170 HISSATSU 175 zanshin/1 180 TSUMUJIKAZE 185 venomBlade/1 190 MUGEN 195 DAIKAISHOU
+    200 ZANSEI`),
+  shadow: T(`1 YAMIUCHI 2 YAMIBA 3 POISONSTAB 5 ambushCrit/1 7 SHIPPUUGIRI 10 KAGEWATARI 12 YOIYAMIUCHI 15 sleepKill/1
+    20 KAGENUI 22 KOKUEINAGI 25 vitalEye/1 30 ASSASSINATE 35 extraHit/1 40 SHINOKOKUIN 45 parry/1 50 MOUDOKUSASHI
+    55 SHIBIREBARI 57 MEIJIN 60 venomBlade/1 65 ZETSUEI 70 initiative/1 75 vitalEye/2 80 KUBIHANE 85 KAGEUCHI
+    90 extraHit/2 95 SHUNSATSU 100 TSUJIKAZE 105 parry/2 107 MEIFUZAN 110 RANBUTSUKI 115 vigilance/1 120 ANSATSU
+    125 venomBlade/2 130 ZANKOU 135 extraHit/3 140 SENKOUZAN 145 fleetFoot/1 150 KAMIKAZE 155 vigilance/2
+    160 HISSATSU 162 TOKOYAMI 165 resistAilment/1 170 TSUMUJIKAZE 175 zanshin/1 180 MUGEN 185 extraHit/4
+    190 MEIDOU 195 TENRAN 200 ZANSEI`),
+  paladin: T(`1 SHIELDBASH 2 KOUJIN 3 DIOS 5 afterHeal/1 7 HAJA 10 NERAIUCHI 12 IWAKUDAKI 15 cover/1 17 HOLYLIGHT
+    20 CHOUHATSU 22 KOURINZAN 25 taunt/1 30 SEINOTATE 35 smite/1 40 SEIKOUZAN 45 cover/2 50 SHINGANGEKI
+    55 GUARDALL 57 SEIGEKI 60 afterHeal/2 65 DIOSALL 70 holyEdge/1 75 martyr/1 80 BOUJIN 85 SAINTRAY
+    90 resistAilment/1 95 SEIBETSU 100 JOUSAITSUKI 105 cover/3 107 TENKOUKEN 110 TEPPEKIJIN 115 sanctuary/1
+    120 SHINBATSU 125 divineCounter/1 130 FURAKUNOTATE 135 resistAilment/2 140 DAIFUKUIN 145 scripture/1
+    150 KISHIOU 155 holyCover/1 160 SEIKOURETSU 165 bastion/1 170 FUDOUJIN 175 bigBarrier/1 180 DAIGOUREI
+    185 parry/1 190 SEIMETSUREKKOU 195 KAMIWAZA 200 FURAKUJOU`),
+  guardian: T(`1 SHIELDBASH 2 NERAIUCHI 3 CHOUHATSU 5 taunt/1 7 IRONWALL 10 SUIGETSU 12 IWAKUDAKI 15 counter/1 20 HANGEKI
+    22 CHIRETSU 25 bastion/1 30 NIOUDACHI 35 cover/1 40 KOUBOUITTAI 45 endure/1 50 SHIELDCHARGE 55 GUARDALL
+    57 GANOTOSHI 60 counter/2 65 SHINGANGEKI 70 parry/1 75 cover/2 80 BOUJIN 85 HYOUJIN 90 bastion/2
+    95 SHUGOHOUKOU 100 JOUSAITSUKI 105 counter/3 107 YAMAKUZUSHI 110 OUJOU 115 cover/3 120 ZANTETSU 125 parry/2
+    130 FURAKUNOTATE 135 resistAilment/1 140 BANRAI 145 bigBarrier/1 150 SHUGOKEKKAI 155 endure/2
+    160 JOUSAIKUZUSHI 162 DAICHIMEIDOU 165 resistAilment/2 170 TESSAINAGI 175 holyCover/1 180 FUDOUJIN
+    185 bigBarrier/2 190 DAIGOUREI 195 TENCHIZAN 200 FURAKUJOU`),
+  spellblade: T(`1 KYOUGEKI 2 MAKEN_FIRE 3 HALITO 4 MAKEN_EARTH 5 spellBlade/1 7 DOUBLE 8 MAKEN_WIND 10 ICENEEDLE
+    12 MAKEN_WATER 15 chant/1 17 MAKEN_LIGHT 20 SHINGANGEKI 22 MAKEN_DARK 25 spellCrit/1 30 ELEMBREAK
+    35 extraHit/1 40 MAENZAN 45 kenma/1 50 GOUZAN 55 MAHALITO 57 GURENZAN 60 spellBlade/2 65 SEISHIN 70 vitalEye/1
+    75 spellCrit/2 80 ZANTETSU 82 HYOUJIN 85 TORNADO 90 barrier/1 95 MADALT 100 YOROIDACHI 105 twinArts/1
+    110 LAHALITO 115 fightSpirit/1 120 RAIJIN 125 resistAilment/1 130 HADAN 135 extraHit/2 140 HYORETSU
+    145 spellCrit/3 150 TENCHIZAN 155 vitalEye/2 160 ROKUDOU 165 fightSpirit/2 170 GOKUEN 175 barrier/2
+    180 HAOUZAN 185 elemFloor/1 190 ZETTAIREIDO 195 METSUKYAKU 200 KYOKUDAI`),
+  monk: T(`1 KYOUGEKI 2 IWAKUDAKI 3 DIOS 5 afterHeal/1 7 TAME 10 HAKKEI 12 SHIPPUUGIRI 15 smite/1 20 TENKETSU 22 CHIRETSU
+    25 extraHit/1 30 SHINTOU 35 endure/1 40 KONGOURENDA 45 afterHeal/2 50 KONGOUTAI 55 SHINGANGEKI 57 GANOTOSHI
+    60 fightSpirit/1 65 DIOSALL 70 vitalEye/1 75 holyEdge/1 80 HOUKEN 82 FUUGA 85 SANREN 90 extraHit/2 95 KISHINKA
+    100 HYAKURETSU 105 counter/1 107 YAMAKUZUSHI 110 KIYOME 115 asceticism/1 120 MUSOUKEN 125 fightSpirit/2
+    130 RANBU 135 extraHit/3 140 TENMAKEN 145 selfPurify/1 150 KAMIKAZE 155 resistAilment/1 160 ROKUREN
+    162 DAICHIMEIDOU 165 scripture/1 170 KIKOKURANBU 175 counter/2 180 DIALALL 185 extraHit/4 190 IYASHINAMI
+    195 MUGEN 200 KONGOUMUSOU`),
+  hexer: T(`1 BLIND 2 SHADOWBOLT 3 NOROI 5 venomBlade/1 7 MARK_WATER 10 KATINO 12 AQUAWAVE 15 gokudoku/1 20 SEAL
+    22 DARKMIST 25 afterMp/1 30 KAGENUI 32 DARKBLAST 35 chant/1 40 DOKUGIRI 45 spellCrit/1 50 SUIJAKU 55 FUDOKU
+    60 venomBlade/2 62 ICELANCE 65 ELEMBREAK 70 flinch/1 72 DARKNESS 75 afterMp/2 80 DEATH 85 SEALALL
+    90 spellCrit/2 95 BLINDALL 100 MADALT 105 resistAilment/1 110 HYORETSU 115 scan/1 120 GRAVITY 122 MEIKOKU
+    125 barrier/1 130 HYOUGA 135 chant/2 140 DEATHALL 145 spellCrit/3 150 KOKUUHA 155 soulEater/1 160 GRAVIGA
+    165 resistAilment/2 170 ZETTAIREIDO 175 soulLure/1 180 MEIANRAN 185 elemFloor/1 190 TENPENCHII 195 MAGATSU
+    200 KYOKUDAI`),
+  hermit: T(`1 DIOS 2 KAMAITACHI 3 CURE 5 afterHeal/1 7 BLIND 10 KASUMIGAKURE 15 poisonFloor/1 17 HOLYLIGHT 20 REGEN
+    22 WINDSTORM 25 selfPurify/1 30 KATINO 35 fleetFoot/1 37 RAITEI 40 KASUMINOTOBARI 45 afterBoth/1 50 DIOSALL
+    55 KAGENUI 60 vigilance/1 65 DIAL 70 afterHeal/2 72 TORNADO 75 purify/1 80 REVIVE 85 KIYOME 90 poisonFloor/2
+    95 REGENALL 100 MADIOS 105 vigilance/2 110 SAINTRAY 115 afterBoth/2 120 DIALALL 125 resistAilment/1
+    130 BLINDALL 135 sanctuary/1 140 IYASHINAMI 142 GOURAI 145 afterHeal/3 150 DAISEIKITOU 155 scripture/1
+    160 RESURRECT 165 resistAilment/2 170 SHINYU 172 RAIMEIRAN 175 mercy/1 180 DAIFUKUIN 185 martyr/1
+    190 SEIKOURETSU 195 SEIMETSUKOU 200 FUKUIN`),
+  brigand: T(`1 KYOUGEKI 2 STEAL 3 SUIGETSU 5 goldLuck/1 7 SUNAKAKE 10 KEMURIDAMA 12 YAMIBA 15 appraise/1 20 ASHIBARAI
+    22 UZUSHIO 25 ambushCrit/1 30 MAKIBISHI 35 extraHit/1 40 OIHAGI 45 vitalEye/1 50 ASSASSINATE 55 POISONSTAB
+    57 HYOUJIN 60 goldLuck/2 65 TSUJIKAZE 70 parry/1 75 soulLure/1 80 SHIPPUTSUKI 85 MOUDOKUSASHI 90 extraHit/2
+    95 KAGEUCHI 100 KUBIHANE 105 vitalEye/2 107 TOUGADAN 110 RANBUTSUKI 115 fleetFoot/1 120 SHUNSATSU 125 parry/2
+    130 SENKOUZAN 135 extraHit/3 140 ANSATSU 145 vigilance/1 150 TSUMUJIKAZE 155 zanshin/1 160 ZANKOU
+    162 DAIKAISHOU 165 resistAilment/1 170 HISSATSU 175 extraHit/4 180 MUGEN 185 vigilance/2 190 TENKAGOMEN
+    195 TOKOYAMI 200 ZANSEI`),
+  arcthief: T(`1 STEAL 2 MAKEN_DARK 3 HALITO 4 SHADOWBOLT 5 openSpell/1 7 KAGEWATARI 10 KATINO 12 SHIPPUUGIRI 15 chant/1
+    20 SEAL 25 spellCrit/1 30 MAHALITO 32 DARKBLAST 35 extraHit/1 40 MARYOKUGOUDATSU 45 initiative/1 50 KAGENUI
+    55 DISPEL 57 MEIJIN 60 ambushCrit/1 65 BLINDALL 70 spellCrit/2 72 DARKNESS 75 vitalEye/1 80 SEISAI
+    85 ASSASSINATE 90 afterMp/1 95 RAITEI 100 MADALT 105 parry/1 110 SEALALL 115 extraHit/2 120 KUBIHANE
+    122 MEIKOKU 125 chant/2 130 HYORETSU 135 spellCrit/3 140 SHUNSATSU 145 vitalEye/2 150 RAIJIN
+    155 resistAilment/1 160 GOKUEN 165 soulEater/1 170 ANSATSU 175 parry/2 180 METEOR 185 elemFloor/1 190 HISSATSU
+    195 GOKUENRAN 200 KYOKUDAI`),
+  crusader: T(`1 KYOUGEKI 2 KOUJIN 3 HOLYRAY 5 smite/1 7 NERAIUCHI 10 BLESS 12 KAENGIRI 15 afterHeal/1 20 HAJA 22 KOURINZAN
+    25 holyEdge/1 30 SEISEN 35 extraHit/1 40 JUUJIZAN 45 vitalEye/1 50 JOUKA 55 SHINGANGEKI 57 SEIGEKI
+    60 afterHeal/2 65 SAINTRAY 70 fightSpirit/1 75 counter/1 80 GOUZAN 82 GURENZAN 85 REVIVE 90 resistAilment/1
+    95 DAISENPUU 100 SHINBATSU 105 extraHit/2 107 TENKOUKEN 110 ZANTETSU 115 sanctuary/1 120 HADAN 125 martyr/1
+    130 KISHINKA 135 scripture/1 140 SEIKOURETSU 145 resistAilment/2 150 TENCHIZAN 155 holyCover/1
+    160 SEIMETSUREKKOU 162 KOUBOURANBU 165 fightSpirit/2 170 HAOUZAN 175 divineCounter/1 180 DAIFUKUIN
+    185 extraHit/3 190 KIKOKURANBU 195 KAMIWAZA 200 METSUKYAKU`),
+  battlemage: T(`1 KYOUGEKI 2 KAENGIRI 3 HALITO 5 spellBlade/1 7 NERAIUCHI 8 ISHITSUBUTE 10 BAKUENKEN 12 IWAKUDAKI 15 chant/1
+    20 SEISHIN 22 KAENNAGI 25 barrier/1 30 MAHALITO 32 EARTHQUAKE 35 extraHit/1 40 HAMANOKEN 45 spellCrit/1
+    50 ELEMBREAK 55 SAIKEN 57 GURENZAN 60 spellBlade/2 65 ROCKBLAST 70 fightSpirit/1 75 resistAilment/1 80 HOUKEN
+    82 GANOTOSHI 85 LAHALITO 90 barrier/2 95 DISPEL 100 MAJINKEN 105 vitalEye/1 110 DAICHIWARI 115 spellCrit/2
+    120 MUSOUKEN 122 YAMAKUZUSHI 125 reflect/1 130 ENBU 135 extraHit/2 140 TENMAKEN 145 fightSpirit/2 150 GOKUEN
+    155 resistAilment/2 160 METEOR 165 vitalEye/2 170 GANSAI 175 elemFloor/1 180 SHOUNETSURANBU 185 spellCrit/3
+    190 GOKUENRAN 195 TOUSHINHAGEKI 200 KYOKUDAI`),
+  darkknight: T(`1 SHIELDBASH 2 YAMIBA 3 NERAIUCHI 5 barrier/1 7 ANKOKU 10 SHADOWBOLT 12 CHOUHATSU 15 cover/1 20 KYUUKETSU
+    22 KOKUEINAGI 25 counter/1 30 YAMINOKOROMO 32 DARKBLAST 35 taunt/1 40 MAGUINOTACHI 45 barrier/2 50 IATSU
+    55 JUBAKU 57 MEIJIN 60 reflect/1 65 SHINGANGEKI 70 fightSpirit/1 75 resistAilment/1 80 HANGEKI 85 DARKNESS
+    90 counter/2 95 ZANTETSU 100 GOUKADAN 105 bastion/1 107 MEIFUZAN 110 KOKUUHA 115 soulEater/1 120 HADAN
+    125 endure/1 130 FUDOUJIN 135 fightSpirit/2 140 MEIKOKU 145 resistAilment/2 150 TENCHIZAN 155 counter/3
+    160 ANKOKUSHUUEN 162 TOKOYAMI 165 bigBarrier/1 170 GOKUENRAN 175 holyCover/1 180 HAOUZAN 185 endure/2
+    190 MEIANRAN 195 BANRAI 200 METSUKYAKU`),
+  templar: T(`1 SHIELDBASH 2 KOUJIN 3 CURE 5 taunt/1 7 CHOUHATSU 10 PROTECT 12 NERAIUCHI 15 afterHeal/1 17 HOLYLIGHT
+    20 FUUMANOTATE 25 cover/1 30 NIOUDACHI 35 selfPurify/1 40 SEIIKINOKANE 45 cover/2 50 DIOSALL 55 SHINGANGEKI
+    57 SEIGEKI 60 sanctuary/1 65 GUARDALL 70 resistAilment/1 75 holyEdge/1 80 KIYOME 82 GANOTOSHI 85 SAINTRAY
+    90 cover/3 95 HANGEKI 100 JOUSAITSUKI 105 divineCounter/1 110 TEPPEKIJIN 115 martyr/1 120 SHINBATSU
+    125 bastion/1 130 FURAKUNOTATE 135 resistAilment/2 140 DAIFUKUIN 145 scripture/1 150 SHUGOKEKKAI
+    155 holyCover/1 160 KISHIOU 162 KOUBOURANBU 165 bigBarrier/1 170 FUDOUJIN 175 purify/1 180 DAIGOUREI
+    185 bigBarrier/2 190 SEIMETSUREKKOU 195 KAMIWAZA 200 FURAKUJOU`),
+  exorcist: T(`1 HAJA 2 SUIGETSU 3 HOLYRAY 5 smite/1 7 KIYOMEMIZU 10 CURE 12 KOUJIN 15 holyEdge/1 20 HARAI 22 UZUSHIO
+    25 ambushCrit/1 30 ASSASSINATE 35 vitalEye/1 40 HAJANOTACHI 45 extraHit/1 50 TAIMA 55 SAINTRAY 57 HYOUJIN
+    60 purify/1 65 TSUJIKAZE 70 initiative/1 75 parry/1 80 ZETSUEI 82 SEIGEKI 85 KIYOME 90 vitalEye/2 95 KUBIHANE
+    100 SHINBATSU 105 extraHit/2 107 TOUGADAN 110 SEALALL 115 sleepKill/1 120 SEIKOURETSU 125 parry/2
+    130 SENKOUZAN 135 extraHit/3 140 SEIMETSUKOU 145 selfPurify/1 150 SHUNSATSU 155 resistAilment/1 160 HISSATSU
+    162 DAIKAISHOU 165 zanshin/1 170 TAIMAJIN 175 resistAilment/2 180 MUGEN 185 extraHit/4 190 SEIMETSUREKKOU
+    195 KOUBOURANBU 200 ZANSEI`),
+  warden: T(`1 PROTECT 2 ISHITSUBUTE 3 SEAL 5 barrier/1 7 BLIND 10 ICENEEDLE 12 AQUAWAVE 15 afterMp/1 20 GUARDALL
+    22 EARTHQUAKE 25 chant/1 30 ROCKBLAST 35 scan/1 40 KOUSHUNOHOUJIN 45 barrier/2 47 ICELANCE 50 SEALALL
+    55 GRAVITY 60 bigBarrier/1 62 LANDSLIDE 65 MADALT 70 spellCrit/1 75 resistAilment/1 80 BOUJIN 85 ELEMBREAK
+    90 reflect/1 95 DISPEL 100 SHUGOKEKKAI 102 DAICHIWARI 105 chant/2 110 HYORETSU 115 bastion/1 120 OUJOU
+    125 afterMp/2 130 GRAVIGA 135 spellCrit/2 140 METEOR 145 bigBarrier/2 150 FURAKUNOTATE 155 resistAilment/2
+    160 HYOUGA 165 sanctuary/1 170 DAIKEKKAI 172 GANSAI 175 holyCover/1 180 TENPENCHII 185 elemFloor/1
+    190 ZETTAIREIDO 195 SEISAI 200 KYOKUDAI`),
+  arcanist: T(`1 SHADOWBOLT 2 HALITO 3 MARK_FIRE 5 afterMp/1 7 ICENEEDLE 10 GRAVITY 15 spellCrit/1 20 DARKMIST 22 MAHALITO
+    25 chant/1 30 ELEMBREAK 35 scan/1 40 KINJUKAICHOU 45 spellCrit/2 47 DARKBLAST 50 SEISHIN 55 DISPEL
+    60 afterMp/2 65 MADALT 70 elemFloor/1 72 DARKNESS 75 barrier/1 80 SEISAI 85 MARYOKUBOUSOU 90 chant/2
+    95 HYORETSU 100 ENBU 105 spellCrit/3 110 GRAVIGA 112 MEIKOKU 115 resistAilment/1 120 RAIJIN 125 soulEater/1
+    130 KOKUUHA 135 reflect/1 140 HYOUGA 145 afterBoth/1 150 GOKUEN 155 resistAilment/2 160 METEOR 165 afterBoth/2
+    170 ZETTAIREIDO 172 MEIANRAN 175 bigBarrier/1 180 GOKUENRAN 185 barrier/2 190 KYOMU 195 TENPENCHII
+    200 KYOKUDAI`),
+  inquisitor: T(`1 SHIELDBASH 2 KAENGIRI 3 DIOS 5 afterHeal/1 7 NERAIUCHI 10 SHINMON 12 HALITO 15 taunt/1 20 KOTE 22 KAENNAGI
+    25 resistAilment/1 30 KAKEI 32 MAHALITO 35 cover/1 40 DANZAINOTSUCHI 45 smite/1 50 JOUKA 55 DIOSALL
+    57 GURENZAN 60 afterHeal/2 65 SHINGANGEKI 70 divineCounter/1 75 holyEdge/1 80 SAINTRAY 85 IATSU 90 cover/2
+    95 SHINBATSU 100 ZANTETSU 105 resistAilment/2 107 GOUKADAN 110 LAHALITO 115 sanctuary/1 120 HADAN
+    125 scripture/1 130 SEIKOURETSU 135 cover/3 140 GOKUEN 145 martyr/1 150 TENCHIZAN 155 holyCover/1
+    160 SEIMETSUREKKOU 162 SHOUNETSURANBU 165 bastion/1 170 HAOUZAN 175 bigBarrier/1 180 GOKUENRAN 185 purify/1
+    190 SAIGONOSHINPAN 195 DAIFUKUIN 200 KAMIWAZA`),
+  archbishop: T(`1 DIOS 3 CURE 5 afterHeal/1 7 HOLYRAY 10 BLESS 12 ICENEEDLE 15 selfPurify/1 17 REGEN 20 DIOSALL 25 afterMp/1
+    30 DIAL 35 purify/1 40 SEIKUNOKAGO 45 afterHeal/2 50 REVIVE 55 KIYOME 60 afterBoth/1 62 ICELANCE 65 MADIOS
+    70 sanctuary/1 75 scripture/1 80 RESURRECT 85 DIALALL 90 afterHeal/3 95 SHINYU 100 REGENALL 105 mercy/1
+    110 SEIBETSU 115 resistAilment/1 120 IYASHINAMI 125 popePrayer/1 130 SHINBATSU 135 martyr/1 140 TENKEINOINORI
+    145 afterHeal/4 150 SEIKOURETSU 155 holyCover/1 160 FUKUIN 165 resistAilment/2 170 SEIMETSUKOU
+    175 bigBarrier/1 180 DAIFUKUIN 185 divineCounter/1 190 SEIMETSUREKKOU 195 SEISUISHO 200 KAMIWAZA`),
+  ascetic: T(`1 KYOUGEKI 2 IWAKUDAKI 3 DIOS 5 asceticism/1 7 NERAIUCHI 8 ISHITSUBUTE 10 TAME 12 HALITO 15 afterHeal/1
+    20 KUJI 22 CHIRETSU 25 fightSpirit/1 30 SHINTOU 32 EARTHQUAKE 35 smite/1 40 SHASHINNOGYOU 45 endure/1 50 GOMA
+    55 SHINGANGEKI 57 GANOTOSHI 60 extraHit/1 65 HAKKEI 70 afterHeal/2 75 counter/1 80 KONGOUTAI 82 GURENZAN
+    85 DIAL 90 fightSpirit/2 95 HOUKEN 100 KISHINKA 105 vitalEye/1 107 YAMAKUZUSHI 110 REGENALL 115 selfPurify/1
+    120 MUSOUKEN 125 resistAilment/1 130 KIYOME 135 extraHit/2 140 HADAN 145 scripture/1 150 DAICHIMEIDOU
+    155 counter/2 160 GOKUEN 165 fightSpirit/3 170 TENMAKEN 175 resistAilment/2 180 IYASHINAMI 185 extraHit/3
+    190 HAOUZAN 195 SHOUNETSURANBU 200 GONGENOROSHI`),
+  hero: T(`1 KYOUGEKI 2 SHIPPUUGIRI 3 DIOS 5 smite/1 7 YUUSHANOICHIGEKI 10 BLESS 12 KOUJIN 15 cover/1 20 KOBU 22 REPPUU
+    25 afterHeal/1 30 RAIKOUKEN 35 extraHit/1 37 RAITEI 40 SEIKEN 45 vitalEye/1 50 DIOSALL 55 NIOUDACHI 57 FUUGA
+    60 fightSpirit/1 65 SEIGEKI 70 holyEdge/1 75 cover/2 80 KIYOME 85 REVIVE 90 resistAilment/1 95 SHINBATSU
+    100 HADAN 105 extraHit/2 107 KAMIKAZE 110 AMATSUKAZE 115 endure/1 120 TENKOUKEN 125 sanctuary/1 130 DIALALL
+    135 martyr/1 140 TENCHIZAN 142 GOURAI 145 mercy/1 150 KISHIOU 155 resistAilment/2 160 SEIKOURETSU
+    165 holyCover/1 170 HAOUZAN 175 fightSpirit/2 180 DAIFUKUIN 185 extraHit/3 190 RAIJINKEN 195 KAMIWAZA
+    200 TENMEINOKEN`),
+  asura: T(`1 KYOUGEKI 2 KAENGIRI 3 DOUBLE 5 extraHit/1 7 SHIPPUUGIRI 10 HAISUI 12 ASSASSINATE 15 fightSpirit/1 20 IATSU
+    22 KAENNAGI 25 vitalEye/1 30 SHURADOU 35 extraHit/2 40 ASHURAZAN 45 counter/1 50 SANREN 55 TAME 57 GURENZAN
+    60 fightSpirit/2 65 ISSEN 70 vitalEye/2 75 zanshin/1 80 KUBIHANE 82 FUUGA 85 RANBU 90 extraHit/3 95 KISHINKA
+    100 SHURAZAN 105 fightSpirit/3 107 GOUKADAN 110 ZETSUEI 115 ambushCrit/1 120 HADAN 125 counter/2 130 ROKUREN
+    135 asceticism/1 140 AMATSUKAZE 145 resistAilment/1 150 SHUNSATSU 155 fightSpirit/4 160 KIKOKURANBU
+    162 SHOUNETSURANBU 165 counter/3 170 KAMIKAZE 175 extraHit/4 180 MUGEN 185 endure/1 190 HAOUZAN 195 TENRAN
+    200 RINNE`),
+  dragonknight: T(`1 SHIELDBASH 2 SHIPPUUGIRI 3 NERAIUCHI 5 taunt/1 7 TENSHOU 10 CHOUHATSU 12 KAENGIRI 15 barrier/1 20 RYUURIN
+    22 REPPUU 25 counter/1 30 RYUUKOU 35 endure/1 40 RYUZETSU 45 fightSpirit/1 50 SHINGANGEKI 55 RYUUEN 57 FUUGA
+    60 cover/1 65 NIOUDACHI 70 barrier/2 75 vitalEye/1 80 ZANTETSU 82 GURENZAN 85 BOUJIN 90 resistAilment/1
+    95 YOROIDACHI 100 JOUSAITSUKI 105 counter/2 107 KAMIKAZE 110 HADAN 115 endure/2 120 TENCHIZAN 125 bastion/1
+    130 BANRAI 135 fightSpirit/2 140 RYUUJINKOURIN 145 resistAilment/2 150 FUDOUJIN 155 bigBarrier/1 160 DAISENPUU
+    162 TENRAN 165 counter/3 170 HAOUZAN 175 holyCover/1 180 KIKOKURANBU 185 parry/1 190 SHOUNETSURANBU 195 OUJOU
+    200 RYUUTEIGEKI`),
+  necromancer: T(`1 BLIND 2 SHADOWBOLT 3 NOROI 5 soulEater/1 7 KATINO 10 DIOS 15 afterMp/1 20 SUIJAKU 22 DARKMIST 25 chant/1
+    30 KAGENUI 32 DARKBLAST 35 spellCrit/1 40 MEIKONGURAI 45 soulLure/1 50 DEATH 55 FUDOKU 60 afterMp/2 65 REVIVE
+    70 sleepKill/1 72 DARKNESS 75 spellCrit/2 80 SEALALL 85 GRAVITY 90 venomBlade/1 95 KOKUUHA 100 DOKUGIRI
+    105 resistAilment/1 110 MADALT 115 barrier/1 117 MEIKOKU 120 DEATHALL 125 soulLure/2 130 METEOR 135 chant/2
+    140 GRAVIGA 145 spellCrit/3 150 GOKUENRAN 155 scan/1 160 RESURRECT 165 resistAilment/2 170 TENPENCHII
+    172 MEIANRAN 175 elemFloor/1 180 MEIFUNOMON 185 reflect/1 190 ZETTAIREIDO 195 HYOUGA 200 KYOKUDAI`),
+  sage: T(`1 kantei/2 3 DIOS 5 afterMp/1 7 ICENEEDLE 10 CURE 15 scan/1 20 MAHALITO 22 AQUAWAVE 25 chant/1 27 WINDSTORM
+    30 MANAGIFT 35 elemFloor/1 40 SHINRANOSABAKI 45 spellCrit/1 47 ICELANCE 50 DIOSALL 55 DISPEL 60 afterHeal/1
+    65 ELEMBREAK 70 afterMp/2 72 TORNADO 75 afterHeal/2 80 REVIVE 85 SEALALL 90 chant/2 92 RAITEI 95 DIALALL
+    100 RAIJIN 105 spellCrit/2 110 HYOUGA 115 resistAilment/1 120 METEOR 125 sanctuary/1 130 IYASHINAMI
+    135 barrier/1 140 GOKUEN 142 GOURAI 145 spellCrit/3 150 RESURRECT 155 scripture/1 160 ZETTAIREIDO
+    165 resistAilment/2 170 DAIFUKUIN 175 mercy/1 180 GOKUENRAN 185 bigBarrier/1 190 KOKUUHA 195 TENPENCHII
+    200 KYOKUDAI`),
+  cardinal: T(`1 DIOS 3 CURE 5 afterHeal/1 7 HOLYRAY 10 PROTECT 15 selfPurify/1 17 REGEN 20 DIOSALL 25 afterMp/1 30 DIAL
+    35 purify/1 40 DAISEIKITOU 45 afterHeal/2 50 REVIVE 55 KIYOME 60 popePrayer/1 65 MADIOS 70 afterBoth/1
+    75 sanctuary/1 80 REGENALL 85 RESURRECT 90 afterHeal/3 95 SHINYU 100 IYASHINAMI 105 mercy/1 110 SEIBETSU
+    115 scripture/1 120 TENKEINOINORI 125 martyr/1 130 SHINBATSU 135 resistAilment/1 140 FUKUIN 145 afterHeal/4
+    150 SEISUISHO 155 holyCover/1 160 SEIMETSUKOU 165 resistAilment/2 170 DAIFUKUIN 175 divineCounter/1
+    180 SEIMETSUREKKOU 185 bigBarrier/1 190 SEIKOURETSU 195 KYOUKOUNOSHUKUFUKU 200 KAMIWAZA`),
+  archmage: T(`1 HALITO 3 SHADOWBOLT 4 ISHITSUBUTE 5 afterMp/1 7 ICENEEDLE 8 KAMAITACHI 10 SEISHIN 15 chant/1 20 MAHALITO
+    22 EARTHQUAKE 25 spellCrit/1 30 ROCKBLAST 35 scan/1 40 SHINENNOHADOU 45 spellCrit/2 47 DARKBLAST 50 MADALT
+    55 ELEMBREAK 60 afterMp/2 62 LANDSLIDE 65 TILTOWAIT 70 elemFloor/1 75 chant/2 80 SEISAI 85 GRAVITY
+    90 barrier/1 95 HYORETSU 100 ENBU 105 spellCrit/3 110 RAIJIN 112 MEIKOKU 115 reflect/1 120 DAICHIWARI
+    125 resistAilment/1 130 HYOUGA 135 soulEater/1 140 GOKUEN 145 afterBoth/1 150 RAIMEIRAN 155 barrier/2
+    160 METEOR 165 resistAilment/2 170 ZETTAIREIDO 172 GANSAI 175 bigBarrier/1 177 MEIANRAN 180 GOKUENRAN
+    185 afterBoth/2 190 KOKUUHA 195 TENPENCHII 200 KYOKUDAI`),
+  chaplain: T(`1 SHIELDBASH 2 KOUJIN 3 CURE 5 cover/1 7 CHOUHATSU 10 PROTECT 12 SUIGETSU 15 taunt/1 17 HOLYLIGHT 20 NIOUDACHI
+    25 barrier/1 30 GUARDALL 35 afterHeal/1 40 HOUSHOUHEKI 45 cover/2 50 SHINGANGEKI 55 KIYOME 57 SEIGEKI
+    60 resistAilment/1 65 HANGEKI 70 holyEdge/1 75 bastion/1 80 BOUJIN 82 HYOUJIN 85 SAINTRAY 90 cover/3
+    95 SEIBETSU 100 JOUSAITSUKI 105 sanctuary/1 107 TENKOUKEN 110 TEPPEKIJIN 115 martyr/1 120 SHINBATSU
+    125 divineCounter/1 130 FURAKUNOTATE 135 resistAilment/2 140 DAIFUKUIN 145 holyCover/1 150 SHUGOKEKKAI
+    155 scripture/1 160 KISHIOU 165 bigBarrier/1 170 FUDOUJIN 175 purify/1 180 DAIGOUREI 185 bigBarrier/2
+    190 SEIMETSUREKKOU 195 KAMIWAZA 200 FURAKUJOU`),
 };
 
-// ===== 得意属性と属性技の拡充 =====
-// 各職に「得意属性」(主・副) を定め、その属性の物理技/呪文 (combat.js の属性技) を上の表に織り込む。
-// 6属性それぞれに物理・呪文の両方の使い手がいるよう配分してある (魔導士・大魔導などは全属性の幅が持ち味)。
-// 習得Lvは既存の段 (1,3,5,7,10,15…) と重ならない 2,4,8,12,17,22… に置き、低Lvでも属性技を覚えられるようにする。
-// Lv40 は宿し技 (JOB_SIGNATURE) の段なので使わない。表に既にある技は二重に足さない。
+// ===== 得意属性 =====
+// 各職の得意属性 (主・副)。職業図鑑に「得意属性」として出す。属性技は上の表にこの属性のものを置いてある
+// (6属性それぞれに物理・呪文の両方の使い手がいるよう配分)。
 export const JOB_AFFINITY = {
   fighter: ["fire", "earth"], knight: ["earth", "light"], priest: ["light"], mage: ["fire", "water", "wind", "earth", "dark"],
   thief: ["wind", "dark"], bishop: ["water", "light"],
@@ -1202,91 +643,6 @@ export const JOB_AFFINITY = {
   hero: ["wind", "light"], asura: ["fire", "wind"], dragonknight: ["wind", "fire"], necromancer: ["dark"],
   sage: ["water", "wind"], cardinal: ["light"], archmage: ["dark", "earth"], chaplain: ["light", "water"],
 };
-// 職ごとに足す属性技 [習得Lv, 技キー]
-const JOB_ELEM_SKILLS = {
-  // 戦士: 火の剛剣 + 土
-  fighter:     [[2, "KAENGIRI"], [12, "IWAKUDAKI"], [22, "KAENNAGI"], [57, "GURENZAN"], [82, "GANOTOSHI"], [107, "GOUKADAN"], [162, "SHOUNETSURANBU"]],
-  // 騎士: 土の重撃 + 光
-  knight:      [[2, "IWAKUDAKI"], [12, "KOUJIN"], [22, "CHIRETSU"], [57, "GANOTOSHI"], [82, "SEIGEKI"], [107, "YAMAKUZUSHI"], [162, "DAICHIMEIDOU"]],
-  // 僧侶: 光の全体呪文
-  priest:      [[17, "HOLYLIGHT"]],
-  // 魔導士: 全属性の呪文 (土・闇も低Lvから)
-  mage:        [[4, "ISHITSUBUTE"], [8, "SHADOWBOLT"], [22, "AQUAWAVE"], [27, "WINDSTORM"], [32, "EARTHQUAKE"], [57, "DARKBLAST"], [72, "TORNADO"]],
-  // 盗賊: 風の連撃 + 闇
-  thief:       [[2, "SHIPPUUGIRI"], [12, "YAMIBA"], [22, "REPPUU"], [57, "FUUGA"], [107, "KAMIKAZE"], [162, "TENRAN"]],
-  // 司教: 水の呪文 + 光
-  bishop:      [[4, "HOLYRAY"], [22, "AQUAWAVE"], [47, "ICELANCE"], [132, "HYOUGA"], [172, "ZETTAIREIDO"]],
-  // 侍: 水の太刀 (水月) + 風
-  samurai:     [[2, "SUIGETSU"], [12, "SHIPPUUGIRI"], [22, "UZUSHIO"], [57, "HYOUJIN"], [82, "FUUGA"], [107, "TOUGADAN"], [162, "DAIKAISHOU"]],
-  // 狂戦士: 火の剛剣 + 闇 (狂気)
-  berserker:   [[2, "KAENGIRI"], [12, "YAMIBA"], [22, "KAENNAGI"], [57, "GURENZAN"], [82, "MEIJIN"], [107, "GOUKADAN"], [162, "SHOUNETSURANBU"]],
-  // 狩人: 風の射撃 + 水
-  hunter:      [[2, "SHIPPUUGIRI"], [12, "SUIGETSU"], [22, "REPPUU"], [57, "FUUGA"], [82, "HYOUJIN"], [162, "TENRAN"]],
-  // 暗殺者: 闇の刃 + 風
-  shadow:      [[2, "YAMIBA"], [12, "SHIPPUUGIRI"], [22, "KOKUEINAGI"], [57, "MEIJIN"], [107, "MEIFUZAN"], [162, "TOKOYAMI"]],
-  // 聖騎士: 光の剣 + 土
-  paladin:     [[2, "KOUJIN"], [12, "IWAKUDAKI"], [17, "HOLYLIGHT"], [22, "KOURINZAN"], [57, "SEIGEKI"], [107, "TENKOUKEN"]],
-  // 守護騎士: 土の怯ませ (守りの攻め) + 水
-  guardian:    [[2, "IWAKUDAKI"], [12, "SUIGETSU"], [22, "CHIRETSU"], [57, "GANOTOSHI"], [107, "YAMAKUZUSHI"], [162, "DAICHIMEIDOU"]],
-  // 魔法剣士: 六属性すべての魔法剣を低Lvで
-  spellblade:  [[2, "MAKEN_FIRE"], [4, "MAKEN_EARTH"], [8, "MAKEN_WIND"], [12, "MAKEN_WATER"], [17, "MAKEN_LIGHT"], [22, "MAKEN_DARK"], [57, "GURENZAN"], [82, "HYOUJIN"]],
-  // 武僧: 土の拳 + 風
-  monk:        [[2, "IWAKUDAKI"], [12, "SHIPPUUGIRI"], [22, "CHIRETSU"], [57, "GANOTOSHI"], [82, "FUUGA"], [107, "YAMAKUZUSHI"], [162, "DAICHIMEIDOU"]],
-  // 呪術師: 闇の呪文 + 水 (毒沼)
-  hexer:       [[2, "SHADOWBOLT"], [12, "AQUAWAVE"], [22, "DARKMIST"], [32, "DARKBLAST"], [62, "ICELANCE"], [72, "DARKNESS"], [122, "MEIKOKU"]],
-  // 隠修士: 風の呪文 (山風) + 光
-  hermit:      [[2, "KAMAITACHI"], [17, "HOLYLIGHT"], [22, "WINDSTORM"], [37, "RAITEI"], [72, "TORNADO"], [142, "GOURAI"], [172, "RAIMEIRAN"]],
-  // 義賊: 水の身のこなし + 闇
-  brigand:     [[2, "SUIGETSU"], [12, "YAMIBA"], [22, "UZUSHIO"], [57, "HYOUJIN"], [107, "TOUGADAN"], [162, "DAIKAISHOU"]],
-  // 魔盗賊: 闇の呪撃と魔法剣 + 風
-  arcthief:    [[2, "MAKEN_DARK"], [4, "SHADOWBOLT"], [12, "SHIPPUUGIRI"], [32, "DARKBLAST"], [57, "MEIJIN"], [72, "DARKNESS"], [122, "MEIKOKU"]],
-  // 聖戦士: 光の剣 + 火 (聖戦の炎)
-  crusader:    [[2, "KOUJIN"], [12, "KAENGIRI"], [22, "KOURINZAN"], [57, "SEIGEKI"], [82, "GURENZAN"], [107, "TENKOUKEN"], [162, "KOUBOURANBU"]],
-  // 魔闘士: 火の拳 + 土 (拳と法力)
-  battlemage:  [[2, "KAENGIRI"], [8, "ISHITSUBUTE"], [12, "IWAKUDAKI"], [22, "KAENNAGI"], [32, "EARTHQUAKE"], [57, "GURENZAN"], [82, "GANOTOSHI"], [122, "GOUKADAN"]],
-  // 魔騎士: 闇の剣と呪文 + 火
-  darkknight:  [[2, "YAMIBA"], [12, "SHADOWBOLT"], [22, "KOKUEINAGI"], [32, "DARKBLAST"], [57, "MEIJIN"], [107, "MEIFUZAN"], [162, "TOKOYAMI"]],
-  // 神殿騎士: 光の剣 + 土 (礎石)
-  templar:     [[2, "KOUJIN"], [12, "IWAKUDAKI"], [17, "HOLYLIGHT"], [57, "SEIGEKI"], [82, "GANOTOSHI"], [162, "KOUBOURANBU"]],
-  // 祓魔師: 水の禊 + 光
-  exorcist:    [[2, "SUIGETSU"], [12, "KOUJIN"], [22, "UZUSHIO"], [57, "HYOUJIN"], [82, "SEIGEKI"], [107, "TOUGADAN"], [162, "DAIKAISHOU"]],
-  // 護法師: 土の呪文 + 水
-  warden:      [[2, "ISHITSUBUTE"], [12, "AQUAWAVE"], [22, "EARTHQUAKE"], [47, "ICELANCE"], [62, "LANDSLIDE"], [102, "DAICHIWARI"], [172, "GANSAI"]],
-  // 秘術師: 闇の秘呪
-  arcanist:    [[2, "SHADOWBOLT"], [22, "DARKMIST"], [47, "DARKBLAST"], [72, "DARKNESS"], [112, "MEIKOKU"], [172, "MEIANRAN"]],
-  // 審問官: 火刑の炎 + 光
-  inquisitor:  [[2, "KAENGIRI"], [12, "HALITO"], [22, "KAENNAGI"], [32, "MAHALITO"], [57, "GURENZAN"], [107, "GOUKADAN"], [162, "SHOUNETSURANBU"]],
-  // 大司教: 光 + 水 (聖水)
-  archbishop:  [[12, "ICENEEDLE"], [17, "HOLYLIGHT"], [62, "ICELANCE"]],
-  // 修験者: 土 (山岳) + 火 (護摩)
-  ascetic:     [[2, "IWAKUDAKI"], [8, "ISHITSUBUTE"], [12, "HALITO"], [22, "CHIRETSU"], [32, "EARTHQUAKE"], [57, "GANOTOSHI"], [82, "GURENZAN"], [107, "YAMAKUZUSHI"]],
-  // 勇者: 風 (雷) + 光
-  hero:        [[2, "SHIPPUUGIRI"], [12, "KOUJIN"], [22, "REPPUU"], [37, "RAITEI"], [57, "FUUGA"], [107, "KAMIKAZE"], [142, "GOURAI"]],
-  // 修羅: 火 + 風
-  asura:       [[2, "KAENGIRI"], [12, "SHIPPUUGIRI"], [22, "KAENNAGI"], [57, "GURENZAN"], [82, "FUUGA"], [107, "GOUKADAN"], [162, "SHOUNETSURANBU"]],
-  // 竜騎士: 風 (飛竜) + 火 (竜炎)
-  dragonknight:[[2, "SHIPPUUGIRI"], [12, "KAENGIRI"], [22, "REPPUU"], [57, "FUUGA"], [82, "GURENZAN"], [107, "KAMIKAZE"], [162, "TENRAN"]],
-  // 死霊術師: 闇の呪文
-  necromancer: [[2, "SHADOWBOLT"], [22, "DARKMIST"], [32, "DARKBLAST"], [72, "DARKNESS"], [117, "MEIKOKU"], [172, "MEIANRAN"]],
-  // 賢者: 水 + 風
-  sage:        [[2, "KAMAITACHI"], [22, "AQUAWAVE"], [27, "WINDSTORM"], [47, "ICELANCE"], [72, "TORNADO"], [92, "RAITEI"], [142, "GOURAI"]],
-  // 枢機卿: 光の全体呪文
-  cardinal:    [[17, "HOLYLIGHT"]],
-  // 大魔導: 闇 + 土 (隕石)
-  archmage:    [[4, "SHADOWBOLT"], [8, "ISHITSUBUTE"], [22, "EARTHQUAKE"], [47, "DARKBLAST"], [62, "LANDSLIDE"], [112, "MEIKOKU"], [172, "GANSAI"], [177, "MEIANRAN"]],
-  // 護教官: 光 + 水
-  chaplain:    [[2, "KOUJIN"], [12, "SUIGETSU"], [17, "HOLYLIGHT"], [57, "SEIGEKI"], [82, "HYOUJIN"], [107, "TENKOUKEN"]],
-};
-for (const k in JOB_ELEM_SKILLS) {
-  const tbl = JOB_SKILLS[k];
-  if (!tbl) continue;
-  for (const [lvl, skill] of JOB_ELEM_SKILLS[k]) {
-    if (lvl === 40 || tbl.some((e) => e.skill === skill)) continue;
-    tbl.push({ lvl, skill });
-  }
-  tbl.sort((a, b) => a.lvl - b.lvl); // 安定ソート: 同Lvは元の並びを保つ
-}
-
 export function jobSkillTable(jobKey) { return JOB_SKILLS[jobKey] || []; }
 
 // ===== 鑑定スキル (ウィザードリィ風) =====
@@ -1520,11 +876,43 @@ export function soulStats(s) {
 // ===== 人業 (器) =====
 // 「本体は魂」: 進行 (count/level/exp) はパーティ共有の魂プール (game.js の G.souls) が持つ。
 // 人業はそこから魂を差し込むだけの器で、primary (主魂=職業・ステ・スキル) と
-// subs (宿し技スロット: 別職の看板スキルだけを借りる、最大 MAX_SUBS 個) を持つ。
+// subs (宿し技スロット: 別職の魂から技/パッシブを借りる、最大 MAX_SUBS 個) を持つ。
 let _dollUid = 0;
 export const MAX_SUBS = 2;
 // サブ魂 (宿し技) のステータス寄与率: 宿した魂の全ステの30%を器に加算する
 export const SUB_STAT_RATE = 0.3;
+// サブ魂1つから借りられる技/パッシブの数は、その魂のランクで増える (R1-2=1 / R3-4=2 / R5=3)
+export function subPickCapOfRank(rank) { return rank >= 5 ? 3 : rank >= 3 ? 2 : 1; }
+export function subPickCap(soul) { return subPickCapOfRank(soul ? soulRankFromCount(soul.clsKey, soul.count) : 0); }
+// サブ魂の借用リスト sub.picks = [{skill} | {passive}] を返す。旧形式 {skill, passive} はここで移し替える
+export function subPicks(sub) {
+  if (!sub) return [];
+  if (!Array.isArray(sub.picks)) {
+    sub.picks = sub.passive ? [{ passive: sub.passive }] : sub.skill ? [{ skill: sub.skill }] : [];
+  }
+  delete sub.skill; delete sub.passive;
+  // 壊れた要素はその場で取り除く (配列の同一性を保つ: 呼び出し側が手元の参照を使い続けられる)
+  for (let i = sub.picks.length - 1; i >= 0; i--) { const p = sub.picks[i]; if (!p || !(p.skill || p.passive)) sub.picks.splice(i, 1); }
+  return sub.picks;
+}
+export function subPickIndex(sub, kind, key) {
+  return subPicks(sub).findIndex((p) => (kind === "passive" ? p.passive === key : p.skill === key));
+}
+// 借用を入れ替える。外す → true / 足す → true / 枠がいっぱいで足せない → false。
+// 枠が1つの魂は、選び直すと入れ替える (旧来の「1つだけ借りる」と同じ手触り)。
+export function toggleSubPick(sub, kind, key) {
+  const picks = subPicks(sub);
+  sub.picked = true; // 一度でも選び直したら、空にしても既定の技で埋めない
+  const i = subPickIndex(sub, kind, key);
+  if (i >= 0) { picks.splice(i, 1); return true; }
+  const cap = subPickCap(soulByUid(sub.uid));
+  if (picks.length >= cap) {
+    if (cap !== 1) return false;
+    picks.length = 0;
+  }
+  picks.push(kind === "passive" ? { passive: key } : { skill: key });
+  return true;
+}
 
 // 共有魂プールへの参照 (game.js が setSharedSouls で注入)。recalcDoll が読む。
 // 新仕様: G.souls は「魂インスタンスの配列」。同じ職業でも1体ずつ個別に Lv/ランクを持つ。
@@ -1572,7 +960,7 @@ export function makeDoll(name) {
   return {
     uid: ++_dollUid, name, isDoll: true,
     primary: null,   // 宿しているメイン魂の uid (祭壇で付け替え)
-    subs: [],        // サブ魂スロット: {uid, skill, passive} の配列 (最大 MAX_SUBS)。skill=借りる技 / passive=借りるパッシブ
+    subs: [],        // サブ魂スロット: {uid, picks:[{skill}|{passive}], picked} の配列 (最大 MAX_SUBS)。picks=借りる技/パッシブ (数は subPickCap)
     clsKey: "fighter", cls: "空の人業", level: 1,
     hp: 1, maxhp: 1, mp: 0, maxmp: 0,
     atk: 0, vit: 0, agi: 1, int: 0, pie: 0, luk: 0,
@@ -1653,9 +1041,9 @@ export function jobStatsOf(clsKey, entry) {
 }
 
 // ===== 宿し技 (サブ魂) =====
-// 各職の「看板スキル」= 職業スキル表のLv40固有技。宿しスロットに別職の魂を差すと、
-// その看板スキルを借りられ、その魂のステの30% (SUB_STAT_RATE) も加算される。共有ランク2以上で技を、
-// ランク4以上でその職のランク2パッシブも借りられる。
+// 各職の「看板スキル」= 職業スキル表のLv40固有技 (職業図鑑などの表示用)。
+// サブ魂の借用そのものは看板に限らない: 宿した魂が覚えた技/パッシブから、ランクに応じた数
+// (subPickCap: R1-2=1 / R3-4=2 / R5=3) を選べ、その魂のステの30% (SUB_STAT_RATE) も加算される。
 export const JOB_SIGNATURE = (() => {
   const out = {};
   for (const k of SOUL_KEYS) {
@@ -1784,7 +1172,7 @@ export function charLevelOf(doll) {
 
 // ===== recalcDoll (器 = 主魂 + 宿し技) =====
 // 主魂 (primary) の共有育成エントリ {count, level} から全ステ・スキル・パッシブを導出し、
-// サブ魂 (subs) が選んだスキルを1つ借りる。進行は所持魂インスタンス (SOULS) が持つ。
+// サブ魂 (subs) が選んだ技/パッシブを魂のランクに応じた数だけ借りる。進行は所持魂インスタンス (SOULS) が持つ。
 export function recalcDoll(doll) {
   if (!doll.subs) doll.subs = [];
   const pe = doll.primary != null ? soulByUid(doll.primary) : null; // メイン魂インスタンス
@@ -1836,39 +1224,38 @@ export function recalcDoll(doll) {
     doll.jobLv = 1;
   }
 
-  // サブ魂: その魂が覚えているスキル「または」パッシブから1つ (doll が設定) を借りる。
-  // sub.passive が設定されていればパッシブを、なければ sub.skill のスキルを借りる。
+  // サブ魂: その魂が覚えている技/パッシブから、ランクに応じた数 (subPickCap) まで借りる。
+  // 借用は sub.picks。覚えていない/上限を超えた分は効かない (外した後の空きは既定で埋めない)。
   // ステータスはその魂のステの SUB_STAT_RATE (=30%) を加算する。
   doll.subInfo = [];
   for (const sub of doll.subs) {
     const se = sub ? soulByUid(sub.uid) : null;
     if (!se) continue;
     const sr = soulRankFromCount(se.clsKey, se.count);
+    const cap = subPickCapOfRank(sr);
     const learned = soulLearnedSkills(se);
     const learnedPassives = soulLearnedPassives(se);
-    let chosenSkill = null, chosenPassive = null;
-    if (sub.passive && learnedPassives[sub.passive]) {
-      // パッシブを借用
-      chosenPassive = sub.passive;
-    } else if (sub.skill && learned.includes(sub.skill)) {
-      // スキルを借用
-      chosenSkill = sub.skill;
-    } else {
-      // 未設定/無効なら看板スキル相当 (覚えている最後のスキル) を既定にする
-      chosenSkill = learned.length ? learned[learned.length - 1] : null;
-      sub.skill = chosenSkill; sub.passive = null;
-    }
-    if (chosenSkill && !spells.includes(chosenSkill)) spells.push(chosenSkill);
-    if (chosenPassive) {
-      const plv = learnedPassives[chosenPassive];
-      passiveMap[chosenPassive] = Math.max(passiveMap[chosenPassive] || 0, plv);
-      const nm = passiveName(chosenPassive, plv);
-      if (!passives.includes(nm)) passives.push(nm);
+    const picks = subPicks(sub);
+    // 宿したばかり (借用が空で未設定) なら看板スキル相当 (覚えている最後のスキル) を既定にする
+    if (!picks.length && !sub.picked && learned.length) picks.push({ skill: learned[learned.length - 1] });
+    const used = [];
+    for (const p of picks) {
+      if (used.length >= cap) break;
+      if (p.passive && learnedPassives[p.passive]) {
+        const plv = learnedPassives[p.passive];
+        passiveMap[p.passive] = Math.max(passiveMap[p.passive] || 0, plv);
+        const nm = passiveName(p.passive, plv);
+        if (!passives.includes(nm)) passives.push(nm);
+        used.push({ passive: p.passive });
+      } else if (p.skill && learned.includes(p.skill)) {
+        if (!spells.includes(p.skill)) spells.push(p.skill);
+        used.push({ skill: p.skill });
+      }
     }
     // サブ魂のステータスを SUB_STAT_RATE ぶん加算
     const sst = jobStatsOf(se.clsKey, se);
     for (const k in st) st[k] += (sst[k] || 0) * SUB_STAT_RATE;
-    doll.subInfo.push({ uid: se.uid, clsKey: se.clsKey, rank: sr, level: se.level, skill: chosenSkill, passive: chosenPassive });
+    doll.subInfo.push({ uid: se.uid, clsKey: se.clsKey, rank: sr, level: se.level, cap, picks: used });
   }
 
   doll.passiveMap = passiveMap;
@@ -2654,6 +2041,31 @@ export const BUST_FIT = {
   darkknight: { zoom: 1.25, dy: 4 },
   templar: { zoom: 1.1, dy: 3 },
 };
+// 人業に宿す前の魂のアイコン: 青い人魂 (ICONS.wisp) をその職の魂の色 (glow) で染め直す。
+// 入手の知らせ (トースト・祝祭の札・戦果) では胸像ではなくこれを使う
+const _soulIconCache = {};
+export function soulIcon(jobKey) {
+  if (_soulIconCache[jobKey]) return _soulIconCache[jobKey];
+  const base = ICONS.wisp;
+  const cl = SOUL_CLASSES[jobKey];
+  const glow = (cl && cl.glow) || "#9fd4e3";
+  const hex = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+  const g = hex(glow);
+  const tint = (col) => {
+    let rgb, alpha = null;
+    const m = /^rgba?\(([^)]+)\)$/.exec(col);
+    if (m) { const v = m[1].split(",").map((x) => parseFloat(x)); rgb = v.slice(0, 3); if (v.length > 3) alpha = v[3]; }
+    else rgb = hex(col);
+    const L = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
+    // 暗部は glow を沈め、明部は白へ寄せる (濃淡の段はそのまま)
+    const out = L < 0.6 ? g.map((c) => Math.round(c * (0.12 + 0.88 * L / 0.6)))
+      : g.map((c) => Math.round(c + (255 - c) * ((L - 0.6) / 0.4)));
+    return alpha != null ? `rgba(${out.join(",")},${alpha})` : `rgb(${out.join(",")})`;
+  };
+  const palette = {};
+  for (const k of Object.keys(base.palette)) palette[k] = tint(base.palette[k]);
+  return (_soulIconCache[jobKey] = { palette, art: base.art });
+}
 const _bustCache = {};
 export function jobBust(jobKey, rank = 2) {
   const spr = jobSprite(jobKey, rank);

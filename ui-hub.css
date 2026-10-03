@@ -635,10 +635,17 @@
 .sc-line.k-minister { color: #b9c4d8; border-left: 2px solid #5a6a88; padding-left: 8px; }
 .sc-line.k-decree { margin-top: 6px; font-weight: 800; text-align: center; color: var(--accent-hi); text-shadow: 0 0 8px rgba(243,213,139,0.3); }
 .sc-reward {
-  margin: 8px auto 0; padding: 6px 14px; width: max-content; max-width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 800; color: var(--accent-hi); background: rgba(201,162,74,0.08); border: 1px solid rgba(201,162,74,0.4); border-radius: 2px;
+  margin: 10px auto 0; padding: 8px 12px 10px; width: max-content; max-width: 100%;
+  background: rgba(201,162,74,0.08); border: 1px solid rgba(201,162,74,0.4); border-radius: 2px;
   opacity: 0; animation: sc-ink 0.6s ease forwards;
 }
+.sc-rw-h { text-align: center; font-size: 11px; letter-spacing: 0.3em; color: var(--accent); margin-bottom: 6px; }
+.sc-rw-t { text-align: center; font-size: 13px; font-weight: 800; color: var(--accent-hi); }
+.sc-rw-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.sc-rw-i { display: flex; align-items: center; gap: 5px; padding: 3px 8px 3px 4px; background: rgba(0,0,0,0.35); border: 1px solid rgba(201,162,74,0.25); border-radius: 2px; font-size: 13px; font-weight: 800; color: var(--accent-hi); white-space: nowrap; }
+.sc-rw-ic { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; }
+.sc-rw-ic canvas { display: block; width: 28px; height: 28px; image-rendering: pixelated; }
+.sc-rw-q { color: #fff3c0; }
 @keyframes sc-ink { from { opacity: 0; transform: translateY(6px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
 .sc-scene.revealed .sc-line, .sc-scene.revealed .sc-reward, .sc-scene.revealed .sc-okb { animation: none; opacity: 1; filter: none; transform: none; }
 .sc-foot { flex: 0 0 auto; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; padding-top: 10px; }
@@ -697,3 +704,14 @@
 /* 職業図鑑の詳細: 原画から起こした全身像はドットの整数倍 (3倍) で大きく見せる */
 .pl-detail-sheet .ui-art canvas.spr { max-width: none; max-height: none; }
 
+
+/* テスト記録 (設定 → 自動化・データ) */
+.stg-log { border-color: #33292a; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.stg-log .stg-row-n { color: var(--ink); }
+.stg-log-b { color: var(--accent-hi); background: linear-gradient(180deg, #2a2216, #18120c); border-color: #6e5626; }
+.stg-log.hidden { display: none; }
+.stg-log-d { padding: 6px 2px; border-bottom: 1px solid #2a2226; text-align: left; }
+.stg-log-h { font-size: 13px; font-weight: 800; color: var(--accent-hi); }
+.stg-log-l { font-size: 11px; line-height: 1.5; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.stg-log-empty { font-size: 12px; color: var(--ink-dim); }
+.stg-log-ta { width: 100%; height: 50vh; font: 11px/1.4 ui-monospace, monospace; color: var(--ink); background: #0d0a0c; border: 1px solid #33292a; border-radius: 3px; padding: 6px; resize: none; }
