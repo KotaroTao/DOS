@@ -334,7 +334,10 @@ function fitPages(h) {
   pager.classList.remove("hidden"); // 送りの段のぶん本文は低くなる
   h.host.classList.add("is-paged");
   const cs = getComputedStyle(body);
-  const avail = (body.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)) * 0.97;
+  // 現れる演出 (祝祭の札の拡大など) の途中でも割り方が狂わないよう、札の縮尺を寸法に掛ける
+  // (getBoundingClientRect は変形込み、clientHeight は変形抜き)
+  const k = (h.host.offsetHeight ? h.host.getBoundingClientRect().height / h.host.offsetHeight : 1) || 1;
+  const avail = (body.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)) * 0.97 * k;
   const units = [], heads = [], boxes = [];
   pgUnits(body, avail, units, heads, 0, boxes);
   h._pgBoxes = boxes;
@@ -806,6 +809,7 @@ export function updateTabbar(bar, tabs, active) {
 
 // ================= 確認 =================
 // confirm({ title, lines, okLabel, cancelLabel, danger, banner }) → Promise<boolean>
+// confirm({ banner, title, lines, body, okLabel, cancelLabel, danger, className }) → Promise<boolean>
 export function confirm(o = {}) {
   return new Promise((resolve) => {
     let done = false;
@@ -814,8 +818,8 @@ export function confirm(o = {}) {
       kind: "choice",
       banner: o.banner || "確認",
       accent: o.danger === false ? null : "#c43a2f",
-      title: o.title, lines: o.lines || [],
-      className: "ui-confirm",
+      title: o.title, lines: o.lines || [], body: o.body || null,
+      className: "ui-confirm" + (o.className ? " " + o.className : ""),
       footer: [
         { label: o.okLabel || "実行する", kind: o.danger === false ? "primary" : "danger", size: "lg", onTap: (s) => finish(true, s) },
         { label: o.cancelLabel || "やめる", kind: "ghost", onTap: (s) => finish(false, s) },

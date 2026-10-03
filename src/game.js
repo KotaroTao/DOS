@@ -20,7 +20,7 @@ import {
 import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, soulIcon,
   recalcDoll, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
-  soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills,
+  soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills, soulLearnedPassives, soulLabel, subPickCap, jobStatsOf,
   ORDER_PERK, orderPassiveMap,
   PASSIVES,
   SOUL_RANKS, rollJobClass, rollGreatJobClass, SOUL_STAT_UP,
@@ -8131,6 +8131,16 @@ function applyImpact(res) {
   const partyModHits = res.hits.filter((h) => h.target.side !== "enemy" && (h.buff || h.debuff));
   let partyModIdx = 0;
   for (const h of res.hits) {
+    // 吸血 (吸命の装飾品・吸血する魔物): 打った側に回復量を浮かべる (満タンでも素の値)
+    if (h.lifesteal && h.stealer && !h.miss) {
+      if (h.stealer.side === "enemy") {
+        const sp0 = G.enemyPos[h.stealer.uid];
+        if (sp0) fx.floats.push({ x: sp0.cx, y: sp0.cy - 22, text: "+" + h.lifesteal, color: "#7CFC7C", t0: now + 120, kind: "heal" });
+      } else {
+        G.partyFx.set(h.stealer, "heal");
+        fx.floats.push({ x: VW / 2, y: VH - 44, text: "+" + h.lifesteal, color: "#7CFC7C", t0: now + 120, kind: "heal" });
+      }
+    }
     if (h.target.side === "enemy") {
       const pos = G.enemyPos[h.target.uid];
       if (!pos || h.miss) continue;
@@ -8245,9 +8255,11 @@ function applyImpact(res) {
   if (anyDeath) setTimeout(() => SFX.die(), 200);
 }
 
-// 戦闘勝利時: 入手Soulの1/3を、生存しているパーティメンバーが宿す魂 (メイン魂・サブ魂は半分) に
+// 戦闘勝利時: 入手Soulの1/3を、生存しているパーティメンバーが宿す魂 (メイン魂・サブ魂はその1/3) に
 // 経験値(soul.exp)として加算する。限界(soulTrainCost)に達した魂は自動でレベルアップし、
 // キャラLv上昇/スキル習得を検出してポップアップ用のキューを返す。
+// 戦闘でサブ魂に入る経験値の割合 (メイン魂の分に対して)
+const SUB_EXP_RATE = 1 / 3;
 function distributeBattleSoulExp(soulGot) {
   const queue = [];
   // 控えの結社 魂の薫陶 (soulTutor): 戦闘後に魂へ入るEXPを底上げ
@@ -8257,7 +8269,7 @@ function distributeBattleSoulExp(soulGot) {
   if (share <= 0) return queue;
   // 経験値は「編成中に宿している魂」(メイン魂・サブ魂とも) ごとに1回ずつ入る。
   // 同じ魂を複数人が宿すことはない (魂は1体ごとに個別) ので重複加算は起きない。
-  // サブ魂が得る経験値はメイン魂の 1/2。どこかでメイン魂として宿していれば全量扱いにする。
+  // サブ魂が得る経験値はメイン魂の 1/3 (SUB_EXP_RATE)。どこかでメイン魂として宿していれば全量扱いにする。
   const worn = []; // {uid, sub}
   const seen = new Set();
   // まずメイン魂 (全量) を集める
@@ -8265,7 +8277,7 @@ function distributeBattleSoulExp(soulGot) {
     if (!m || !m.alive) continue;
     if (m.primary != null && !seen.has(m.primary)) { seen.add(m.primary); worn.push({ uid: m.primary, sub: false }); }
   }
-  // 次にサブ魂 (1/2)。メイン魂として既に集めた魂は除く
+  // 次にサブ魂 (1/3)。メイン魂として既に集めた魂は除く
   for (const m of G.party) {
     if (!m || !m.alive) continue;
     for (const s of (m.subs || [])) if (s && s.uid != null && !seen.has(s.uid)) { seen.add(s.uid); worn.push({ uid: s.uid, sub: true }); }
@@ -8284,11 +8296,11 @@ function distributeBattleSoulExp(soulGot) {
   }
   for (const w of worn) if (w.sub) { const e = soulByUid(w.uid); if (e) preSubLv.set(w.uid, e.level); }
   // 宿している魂すべてに Soul を加算してレベルアップ (上限超過分は exp に蓄積)。
-  // サブ魂はメイン魂の半分 (share の 1/2) を得る。
+  // サブ魂はメイン魂の 1/3 (share × SUB_EXP_RATE) を得る。
   for (const w of worn) {
     const e = soulByUid(w.uid);
     if (!e) continue;
-    const gain = w.sub ? Math.floor(share / 2) : share;
+    const gain = w.sub ? Math.floor(share * SUB_EXP_RATE) : share;
     if (gain <= 0) continue;
     const cap = soulLevelCapOf(e);
     e.exp = (e.exp || 0) + gain;
@@ -8347,7 +8359,7 @@ function endBattle() {
     const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1))) + takeStolenGold(b);
     const soulGot = runGainSoulPts(Math.round(soul * (sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1)));
     applyVictoryPassives();
-    // 入手Soulの1/3を生存メンバーの魂 (サブ魂は半分) に加算 → レベルアップ/スキル習得を集計
+    // 入手Soulの1/3を生存メンバーの魂 (サブ魂はその1/3) に加算 → レベルアップ/スキル習得を集計
     const progress = distributeBattleSoulExp(soulGot);
     updateTopbar();
     log(`勝利！ ${goldGot} ゴールド と ✦${soulGot} Soul を得た。`, "win");
@@ -9117,14 +9129,14 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null, opts = {}) {
         showEvent({
           sprite: jobSprite(s.clsKey, Math.max(1, soulRankOf(s))),
           banner: "付け替えできない", title: "持ち物がいっぱい",
-          lines: [`${soulSeriesName(s.clsKey)}の魂 に付け替えると、次の装備が外れる。`, ...names,
+          lines: [`${soulLabel(s)} に付け替えると、次の装備が外れる。`, ...names,
             `しかし ${d.name} の持ち物に空きが ${free} 枠しかない。持ち物を減らしてから、もう一度。`],
           accent: "#d4504e", btnLabel: "とじる",
         });
         return fin(false);
       }
       kitConfirm({
-        banner: "付け替え", title: `${soulSeriesName(s.clsKey)}の魂 に付け替える？`,
+        banner: "付け替え", title: `${soulLabel(s)} に付け替える？`,
         lines: ["新しい職では次の装備を扱えないため、外して持ち物に戻す。", ...names],
         okLabel: "付け替える", danger: false,
       }).then((ok) => {
@@ -9161,11 +9173,19 @@ function toggleSoulLock(uid) {
 function openFusePicker(targetUid) { return uiSoulPanel.openFusePicker(targetUid); }
 // 実際の融合: consume を消し、その魂数を target に加える。
 // ランクが上がれば祝祭カード (showRankUp)、据え置きならトーストで知らせる
-function fuseSoul(targetUid, consumeUid) {
+// onResultClose: 結果の札 (またはランクアップの祝祭) を閉じたときに呼ぶ (融合画面で続けて選ぶため)
+function fuseSoul(targetUid, consumeUid, onResultClose = null) {
   const t = soulByUid(targetUid), c = soulByUid(consumeUid);
   if (!t || !c || c.clsKey !== t.clsKey || soulWorn(c.uid) || c.locked) { SFX.ng(); return null; }
   const before = soulRankOf(t);
   const beforeLv = t.level;
+  // 融合の前後で見比べる: 宿している人業がいればその能力 (メイン魂を優先)、いなければ魂そのものの能力
+  const wearer = allDolls().find((d) => d.primary === t.uid) || allDolls().find((d) => (d.subs || []).some((x) => x && x.uid === t.uid)) || null;
+  const statsNow = () => (wearer
+    ? { hp: wearer.maxhp, mp: wearer.maxmp, atk: wearer.atk, vit: wearer.vit, agi: wearer.agi, int: wearer.int, pie: wearer.pie, luk: wearer.luk }
+    : jobStatsOf(t.clsKey, t));
+  const snap = () => ({ cap: soulLevelCapOf(t), count: t.count, stats: statsNow(), skills: soulLearnedSkills(t), passives: soulLearnedPassives(t), picks: subPickCap(t) });
+  const was = snap();
   // 双方に蓄積していた総 Soul を合算する。新しい上限まではレベルに、超過分は exp に保持する。
   const total = soulTotalExp(t.level, t.exp) + soulTotalExp(c.level, c.exp);
   t.count += c.count;
@@ -9181,20 +9201,30 @@ function fuseSoul(targetUid, consumeUid) {
   recalcAllDolls({ levelUp: t.level > beforeLv });
   codexJobSee(t.clsKey, t.count, t.level);
   const after = soulRankOf(t);
-  SFX.itemget(); buzz([0, 30, 50, 30]);
-  log(`${SOUL_CLASSES[t.clsKey].label}の魂を魂融合させた (魂数 ×${t.count})。素材にならないようロックした。`, "win");
+  const now = snap();
+  // 融合の結果 (UI に渡す): 能力・Lv上限・魂数・新たに覚えた技/パッシブ・宿し技の枠
+  const result = {
+    clsKey: t.clsKey, fromRank: before, toRank: after, fromLv: beforeLv, toLv: t.level,
+    fromCap: was.cap, toCap: now.cap, fromCount: was.count, toCount: now.count,
+    statsFrom: was.stats, statsTo: now.stats, statsOf: wearer ? (wearer.primary === t.uid ? wearer.name : `${wearer.name} (サブ魂)`) : null,
+    newSkills: now.skills.filter((k) => !was.skills.includes(k)),
+    newPassives: Object.keys(now.passives).filter((k) => (now.passives[k] || 0) > (was.passives[k] || 0)).map((k) => ({ key: k, lv: now.passives[k] })),
+    fromPicks: was.picks, toPicks: now.picks,
+  };
+  log(`魂融合で ${soulLabel(t)} になった。素材にならないようロックした。`, "win");
   if (t.level > beforeLv) log(`蓄積した Soul が反映され、Lv${beforeLv} → Lv${t.level} に上昇した！`, "win");
   autosave(true);
   renderTown();
-  // ランクが上がったときは、昇格の祝祭カード (新しい称号・伸びた上限を見せる)
+  // ランクが上がったときは、ファンファーレと昇格の祝祭カード (新しい称号・能力・Lv上限・覚えた技)
   if (after > before) {
     log(`⤴ ${jobRankName(t.clsKey, after)} に昇格！`, "win");
-    showRankUp({ clsKey: t.clsKey, fromRank: before, toRank: after, fromLv: beforeLv, toLv: t.level, count: t.count }, null);
+    showRankUp(result, onResultClose);
     return { rankUp: true, from: before, to: after };
   }
-  // ランク据え置きの融合: 魂の輝きが増したことと、全能力の上昇率をトーストで
-  const pct = Math.round((SOUL_STAT_UP[SOUL_CLASSES[t.clsKey].rarity] || 0.01) * 100);
-  showToast(`${soulSeriesName(t.clsKey)}の魂の輝きが増した ― 全能力 +${pct}%（魂数 ${t.count}）${t.level > beforeLv ? ` ・ Lv${beforeLv}→${t.level}` : ""} ・ ロックした`, { tone: "good" });
+  // ランク据え置きの融合: 変わった能力・Lv上限などを結果の札で
+  SFX.itemget(); buzz([0, 30, 50, 30]);
+  result.statUp = Math.round((SOUL_STAT_UP[SOUL_CLASSES[t.clsKey].rarity] || 0.01) * 100);
+  uiSoulPanel.showFuseResult(result, onResultClose);
   return { rankUp: false };
 }
 
@@ -9235,8 +9265,8 @@ function raiseSoulCap(uid) {
   updateTopbar();
   const cap = soulLevelCapOf(e);
   SFX.levelup(); buzz([0, 30, 50, 30]);
-  log(`魂の残火を${need}つ捧げ、${soulSeriesName(e.clsKey)}の魂のLv上限が ${cap} になった。`, "win");
-  showToast(`🔥 ${soulSeriesName(e.clsKey)}の魂 ― Lv上限 ${cap}（残火 ${G.embers}）`, { tone: "gold" });
+  log(`魂の残火を${need}つ捧げ、${soulLabel(e)}のLv上限が ${cap} になった。`, "win");
+  showToast(`🔥 ${soulLabel(e)} ― Lv上限 ${cap}（残火 ${G.embers}）`, { tone: "gold" });
   autosave(true);
   renderTown();
 }
@@ -11103,15 +11133,21 @@ const spellHeals = (sp) => (sp.power || 0) > 0;
 // 戦闘外の回復量の基準 (実際はこれ + 0〜3割の揺らぎ。見積もりはこの最低値で行う)
 function campHealPower(caster, sp) { return (sp.power || 0) + Math.round((caster.pie || 0) * 0.5); }
 // 生きている1体へ回復呪文の効果 (状態異常の治療・HP回復) を与える。何か起きたら true
+// 戦闘外の回復で、最後に唱えた回復量 (満タンで上限に切られた分も含む素の値)。結果の表示に使う
+const CAMP_HEAL = new WeakMap();
 function campApplyAlive(caster, sp, t) {
   let did = false;
   if (spellCures(sp) && t.ailment) { t.ailment = null; log(`${sp.name}！ ${t.name}の状態異常が治った`, "heal"); did = true; }
-  if (spellHeals(sp) && t.hp < t.maxhp) {
+  if (spellHeals(sp)) {
+    // 満タンの仲間にも回復量は見せる (HP は増えない・それだけでは「効果あり」にしない)
     const p = campHealPower(caster, sp);
     const heal = p + rand(Math.ceil(p * 0.3) + 1);
-    t.hp = Math.min(t.maxhp, t.hp + heal);
-    log(`${sp.name}！ ${t.name}のHPが ${heal} 回復`, "heal");
-    did = true;
+    CAMP_HEAL.set(t, heal);
+    if (t.hp < t.maxhp) {
+      t.hp = Math.min(t.maxhp, t.hp + heal);
+      log(`${sp.name}！ ${t.name}のHPが ${heal} 回復`, "heal");
+      did = true;
+    }
   }
   return did;
 }
@@ -11426,11 +11462,13 @@ function campCast(caster, spellKey) {
   };
   const finish = () => { caster.mp -= cost; SFX.heal(); buzz(15); renderStatus(); renderParty(); };
   // 1人ぶんの結果 (蘇生 / 満タン / 回復量)
+  // 回復量は満タンでも素の値で見せる (戦闘中の「+N」と同じ)
   const healLineFor = (t, before, wasDead) => {
     if (wasDead && t.alive) return `${t.name}が蘇った (HP ${t.hp}/${t.maxhp})`;
-    if (t.alive && t.hp >= t.maxhp) return `${t.name}は満タン`;
-    const got = t.hp - before;
-    return got > 0 ? `${t.name} HP+${got}` : null;
+    const raw = CAMP_HEAL.get(t);
+    CAMP_HEAL.delete(t);
+    if (raw == null) return null;
+    return `${t.name} HP+${raw}${t.alive && t.hp >= t.maxhp ? "（満タン）" : ""}`;
   };
 
   // 全体呪文は対象選択なしで全員へ
@@ -11443,7 +11481,7 @@ function campCast(caster, spellKey) {
       if (applyTo(t)) any = true;
       if (heals) { const ln = healLineFor(t, before, wasDead); if (ln) lines.push(ln); }
     }
-    if (any) { finish(); showToast(`${sp.name} ― ${lines.length ? lines.slice(0, 3).join(" ・ ") : "パーティを癒した"}`, { tone: "good" }); }
+    if (any) { finish(); showToast(`${sp.name} ― ${lines.length ? lines.join(" ・ ") : "パーティを癒した"}`, { tone: "good" }); }
     else { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg(), { tone: "info" }); SFX.miss(); }
     return;
   }
@@ -11752,16 +11790,15 @@ function showEvent({ sprite, title, lines = [], accent = "#c9a227", btnLabel = "
 // ---- ランクアップの祝祭 (キットの祝祭カード。描画は src/ui/soulpanel.js) ----
 // 昇格の感動を最大化するため: ランク色のフラッシュ + 勝利ファンファーレ + 強い触覚、
 // 回転する光条と火花に包まれた進化した姿、ランクN→N+1 の大きな昇格表示、新たな称号、解放されたもの。
-function showRankUp({ clsKey, fromRank, toRank, fromLv, toLv, count }, onClose) {
+// info: fuseSoul の result (fromCap/toCap・能力・覚えた技まで入っている)
+function showRankUp(info, onClose) {
+  const { clsKey, toRank } = info;
   const cls = SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter;
   const accent = (SOUL_RANKS[toRank] && SOUL_RANKS[toRank].color) || cls.glow || "#ffcf4a";
-  const fromCap = capForRarityRank(cls.rarity, fromRank);
-  const toCap = capForRarityRank(cls.rarity, toRank);
   flashScreen(accent);
-  SFX.victory(); buzz([0, 60, 40, 60, 40, 70, 90, 220]);
+  SFX.rankup(); buzz([0, 60, 40, 60, 40, 70, 90, 220, 120, 320]);
   return uiSoulPanel.celebrateRankUp({
-    clsKey, fromRank, toRank, fromLv, toLv, count, accent, fromCap, toCap,
-    title: jobRankName(clsKey, toRank), hint: rankUnlockHint(toRank),
+    ...info, accent, title: jobRankName(clsKey, toRank), hint: rankUnlockHint(toRank),
   }, onClose);
 }
 
@@ -12689,7 +12726,7 @@ const OPS = {
     recalcAllDolls({ levelUp: true });
     codexJobSee(e.clsKey, e.count, e.level);
     SFX.levelup(); buzz([0, 30, 40, 30]);
-    log(`${soulSeriesName(e.clsKey)}の魂が Lv${from}→${e.level} に成長した！ (✦${spent})`, "win");
+    log(`${soulLabel(e)}が Lv${from}→${e.level} に成長した！ (✦${spent})`, "win");
     // 能力の伸び: before/after は hp/mp/atk… の表示キーで (魂の区分の「強化の結果」に並べる)
     const sk = (k) => (k === "maxhp" ? "hp" : k === "maxmp" ? "mp" : k);
     const deltas = {}, statsBefore = {}, statsAfter = {};
@@ -12700,7 +12737,7 @@ const OPS = {
     const gainedSkills = wearer ? (wearer.spells || []).filter((k) => !beforeSpells.has(k)) : [];
     const STAT_N = { hp: "HP", mp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
     const grow = Object.entries(deltas).filter(([, v]) => v > 0).map(([k, v]) => `${STAT_N[k] || k}+${v}`).join(" ");
-    showToast(`${soulSeriesName(e.clsKey)}の魂を強化 Lv${from}→${e.level}${grow ? ` ― ${grow}` : ""}`, { tone: "good" });
+    showToast(`${soulLabel(e)}を強化 Lv${from}→${e.level}${grow ? ` ― ${grow}` : ""}`, { tone: "good" });
     renderTown();
     return { ok: true, levels, spent, from, to: e.level, deltas, before: statsBefore, after: statsAfter, gainedSkills, wearer };
   },

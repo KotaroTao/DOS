@@ -1,7 +1,7 @@
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
 import { ITEMS, weaponRange, scaleBonus } from "./items.js";
-import { ELEMENTS, elemDmgMult, monStats, rankStats, resistRate, RESIST_TAG } from "./dungeons/schema.js";
+import { ELEMENTS, elemDmgMult, monStats, rankStats, resistRate, resistHpMul, RESIST_TAG } from "./dungeons/schema.js";
 
 import { SPELLS } from "./skilldefs.js";
 import { JOBKIT_PERKS } from "./jobkit/index.js";
@@ -82,7 +82,7 @@ export function spawnMimic(floorRank, scale = 1, master = false) {
   if (master) e.isMasterMimic = true; // 宝箱の中身がさらに上質 (アイテムLv+30)
   // 単体で隊を相手にする化け物。上位ランクの体を、群れ数体分の HP と連撃で補う
   // (通常 = 上位ランク2体分強 / マスター = 外殻の物理耐性1と合わせて上位ランク3体分以上の耐久と手数)。
-  e.maxhp = Math.max(1, Math.round(st.hp * scale * (master ? 2.6 : 2.4)));
+  e.maxhp = Math.max(1, Math.round(st.hp * scale * (master ? 2.6 : 2.4) * resistHpMul({ physResist: master ? 1 : 0 })));
   e.hp = e.maxhp;
   e.atk = Math.max(1, Math.round(st.atk * scale * (master ? 1.1 : 1.0)));
   e.vit = Math.round(st.def * scale * (master ? 1.6 : 1.3));
@@ -104,7 +104,7 @@ export function spawnRanked(key, floorRank, plus = 1, scale = 1, hpMul = 2.2) {
   const st = rankStats(rank);
   const e = makeEnemy(key, scale);
   e.evRank = rank;
-  e.maxhp = e.hp = Math.max(1, Math.round(st.hp * scale * hpMul));
+  e.maxhp = e.hp = Math.max(1, Math.round(st.hp * scale * hpMul * resistHpMul(e.mon)));
   e.atk = Math.max(1, Math.round(st.atk * scale));
   e.vit = Math.round(st.def * scale * 1.2);
   e.agi = (e.mon && e.mon.swift ? st.spd + 4 : st.spd) + 2;
@@ -121,7 +121,7 @@ function makeEnemy(key, scale = 1, boss = false, bossRank = 0) {
   const baseHp = b ? b.hp : m.maxhp, baseAtk = b ? b.atk : m.atk;
   const baseDef = b ? b.def : m.def, baseSpd = b ? b.spd : m.spd;
   const baseSoul = b ? b.soul : m.soul, baseGold = b ? b.gold : m.gold;
-  const hp = Math.max(1, Math.round(baseHp * scale));
+  const hp = Math.max(1, Math.round(baseHp * scale * resistHpMul(m, boss)));
   return {
     uid: ++_uid, key, mon: m, name: (boss ? m.name : m.name),
     element: m.element || "none",
@@ -1609,7 +1609,9 @@ export class Battle {
     let magWeak = false;
     if (magHit && tgt.magWeak && tgt.magWeak > 1) { dmg = Math.round(dmg * tgt.magWeak); magWeak = true; }
     // 物理耐性 (耐性ランク): 耐性1=50% / 耐性2=75% / 耐性3=無効。魔法属性の武器は魔法耐性を受ける
-    const pr = this._resistCut(tgt, dmg, magHit ? "magResist" : "physResist");
+    // 防御無視の技 (pierce) は物理耐性1・2を無視する。物理耐性3 (無効) は防御無視でも通らない
+    const pierceResist = !magHit && (opt.pierce || 0) > 0 && tgt.side === "enemy" && ((tgt.physResist | 0) < 3);
+    const pr = pierceResist ? { dmg, tag: "", immune: false } : this._resistCut(tgt, dmg, magHit ? "magResist" : "physResist");
     if (pr.immune) {
       // 無効: 傷ひとつ付かない (障壁も削れず、毒刃・怯ませ等の命中時効果も乗らない)
       this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}には効かない！ (${magHit ? "魔法" : "物理"}無効)`, tgt.side === "party" ? "dmg" : "hit");
@@ -1624,8 +1626,10 @@ export class Battle {
     dmg = Math.max(1, dmg);
     tgt.hp -= dmg;
     // 吸血 (lifesteal): 与えた傷の一部を己のHPに変える (敵の能力・味方の吸命のLR装飾品の双方)
+    let stolen = 0; // 吸血で癒えた量 (満タンで切られた分も含む素の値。演出で「+N」と見せる)
     if (actor.lifesteal && actor.alive && dmg > 0) {
       const hl = Math.max(1, Math.round(dmg * actor.lifesteal));
+      stolen = hl;
       actor.hp = Math.min(actor.maxhp, actor.hp + hl);
       this.log(`${actor.name}は精気を吸い取った (${hl})`, "dmg");
     }
@@ -1680,7 +1684,9 @@ export class Battle {
       this._postDamage(tgt);
       if (actor.side === "enemy") { this._perkHurt(tgt, actor, dmg, "phys"); this._tryCounter(tgt, actor); }
     }
-    return status ? { target: tgt, dmg, crit, died, status } : { target: tgt, dmg, crit, died };
+    const out = status ? { target: tgt, dmg, crit, died, status } : { target: tgt, dmg, crit, died };
+    if (stolen) { out.lifesteal = stolen; out.stealer = actor; }
+    return out;
   }
 
   _cast(actor, cmd, res) {

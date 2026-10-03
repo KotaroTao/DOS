@@ -288,6 +288,16 @@ export const SFX_DEFS = {
     chord(1.07, [261.6, 329.6, 392], 0.5, 0.25); chord(1.6, [146.8, 293.7, 370, 440, 587.3], 0.9, 0.25);
     return mono(x);
   } },
+  _rankup: { vars: 1, vol: 0.5, rev: 0.45, gen() {
+    const x = new Float32Array(len(4.4));
+    const chord = (at, fs, d, a) => fs.forEach((f) => mixInto(x, modal(SR, d + 0.6, [[f, 1, d], [f * 2, 0.4, d * 0.6], [f * 3, 0.2, d * 0.4]]), len(at), a));
+    [0, 0.2, 0.4].forEach((at) => chord(at, [392], 0.18, 0.3));
+    chord(0.6, [130.8, 261.6, 329.6, 523.3], 0.6, 0.24);
+    chord(1.2, [174.6, 349.2, 440, 523.3], 0.3, 0.24); chord(1.5, [196, 392, 493.9, 587.3], 0.4, 0.24);
+    chord(1.9, [130.8, 261.6, 329.6, 392, 523.3, 659.3], 1.8, 0.24);
+    [1046.5, 1318.5, 1568, 2093].forEach((f, k) => mixInto(x, modal(SR, 1.2, [[f, 1, 0.8], [f * 2.76, 0.1, 0.2]]), len(1.9 + k * 0.12), 0.2));
+    return mono(x);
+  } },
   _levelup: { vars: 1, vol: 0.42, rev: 0.45, gen() {
     const x = new Float32Array(len(1.6));
     [349.2, 440, 523.3, 698.5, 880, 1046.5].forEach((f, k) => mixInto(x, modal(SR, 1.2, [[f, 1, 0.8], [f * 2.76, 0.1, 0.2]]), len(k * 0.07), 0.3));

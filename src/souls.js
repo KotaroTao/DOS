@@ -605,6 +605,19 @@ export function jobRankName(jobKey, rank) {
   return rows ? rows[r - 1].name : jobKey;
 }
 
+// 魂の表示名: 融合した数 (= 魂数 − 1。素材自身も1体と数える) を「+N」で添える。例: 戦士の魂+6
+// (+4 と +2 を融合すると、魂数 5+3=8 → +7)
+export function soulLabel(s) {
+  if (!s) return "";
+  const n = Math.max(0, (s.count || 1) - 1);
+  return `${soulSeriesName(s.clsKey)}の魂${n > 0 ? `+${n}` : ""}`;
+}
+// 次のランクまでの残り「（ランク2まであと4）」。最高ランクなら空
+export function soulRankLeft(s) {
+  if (!s) return "";
+  const nx = nextRankThreshold(s.clsKey, s.count);
+  return nx ? `（ランク${soulRankFromCount(s.clsKey, s.count) + 1}まであと${nx.next - s.count}）` : "";
+}
 // 魂の系列名 (ランクに依らない。例: "戦士"・"盗賊")
 export function soulSeriesName(jobKey) {
   const cls = SOUL_CLASSES[jobKey];

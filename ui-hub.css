@@ -477,7 +477,7 @@
 }
 .pl-card.fresh { border-color: #7a3a30; }
 .pl-ach > .pl-card-new { top: 7px; left: auto; right: 30px; }
-.pl-ach.ready .pl-ach-n, .pl-ach.ready .pl-ach-d { padding-right: 44px; }
+.pl-ach.ready .pl-ach-n { padding-right: 44px; }
 
 /* 図鑑の詳細のシート */
 .pl-detail-sheet .ui-sheet-body { text-align: left; }
@@ -505,7 +505,7 @@
 
 /* 勲章・宝物庫: 進み具合とまとめての操作を1段に */
 .pl-ach {
-  position: relative; display: flex; flex-direction: column; gap: 4px; height: 100%; box-sizing: border-box; padding: 8px 9px; overflow: hidden;
+  position: relative; display: flex; flex-direction: column; gap: 4px; height: 100%; box-sizing: border-box; padding: 6px 9px; overflow: hidden;
   background: var(--grain), var(--plate); border: 1px solid #2c2427; border-radius: 3px; box-shadow: var(--plate-edge);
 }
 .pl-ach.ready { border-color: #8a6d2e; box-shadow: 0 0 0 1px rgba(201,162,74,0.35), 0 0 16px rgba(201,162,74,0.18), var(--plate-edge); }
@@ -514,9 +514,9 @@
 .pl-medal.ready { background: radial-gradient(circle at 38% 32%, #fff3c0, #d6a93c 45%, #6e4c12 100%); box-shadow: 0 0 10px rgba(243,213,139,0.7), inset 0 0 0 1px #6e4c12; }
 .pl-medal.done { background: radial-gradient(circle at 38% 32%, #e8d08a, #9a7a2e 55%, #4a3810 100%); }
 .pl-ach-t { min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; gap: 1px; }
-.pl-ach-n, .pl-ach-d { padding-right: 18px; }
+.pl-ach-n { padding-right: 18px; } /* 右上の印 (勲章・新) は名前の段だけに掛かる */
 .pl-ach-n { font-size: 12.5px; font-weight: 800; color: #eadfc4; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.pl-ach-d { font-size: 10.5px; color: var(--ink-dim); line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-ach-d { font-size: 10.5px; color: var(--ink-dim); line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; } /* 説明は2段まで折り返す */
 .pl-ach-m { display: flex; flex-wrap: nowrap; align-items: center; gap: 2px 8px; margin-top: auto; min-height: 44px; font-size: 11px; }
 .pl-ach-tier { color: var(--ink-faint); }
 .pl-ach-got { color: var(--accent); font-weight: 700; }
