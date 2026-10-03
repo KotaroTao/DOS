@@ -762,6 +762,7 @@ button.sp-tile-main { cursor: pointer; }
 .sp-srow-m { font-size: 11.5px; color: var(--ink-dim); }
 .sp-srow-tag { font-size: 11px; color: #cdbf9f; }
 .sp-srow-tag.cur { color: var(--accent-hi); }
+.sp-srow-tag.swap { color: #c8b6e8; }
 .sp-srow .ui-delta { font-size: 11.5px; }
 .sp-srow-side { flex: 0 0 auto; display: flex; flex-direction: column; justify-content: center; gap: 4px; padding: 6px 8px 6px 0; }
 .sp-srow-side .ui-btn { width: auto; }

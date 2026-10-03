@@ -8787,15 +8787,49 @@ function applyEquipSoul(d, uid, s, slotId = "primary") {
   announceJobChange(d, before);
 }
 
+// ある魂を「自分以外の人業」がサブ魂として宿しているなら {doll, index} を返す
+function subWearerOf(uid, self) {
+  for (const dd of allDolls()) {
+    if (dd === self) continue;
+    const j = (dd.subs || []).findIndex((x) => x && x.uid === uid);
+    if (j >= 0) return { doll: dd, index: j };
+  }
+  return null;
+}
+// 他の人業のサブ魂を、d のサブ魂の差し口 si へ付け替える。
+// d がその差し口に魂を宿していれば、その魂は相手の同じ差し口へ移る (交換)。借りている技はそれぞれの魂について行く
+function takeSubSoul(d, uid, si) {
+  const w = subWearerOf(uid, d);
+  if (!w) return false;
+  const other = w.doll;
+  d.subs = d.subs || [];
+  const taken = other.subs[w.index];
+  const mine = d.subs[si] || null;
+  if (mine) other.subs[w.index] = mine;
+  else other.subs.splice(w.index, 1);
+  other.subs = other.subs.filter(Boolean);
+  d.subs[si] = taken;
+  d.subs = d.subs.filter(Boolean);
+  for (const dd of [d, other]) { recalcDoll(dd); dd.hp = Math.min(dd.hp, dd.maxhp); dd.mp = Math.min(dd.mp, dd.maxmp); }
+  SFX.select(); buzz(15);
+  autosave(true);
+  renderTown();
+  return true;
+}
+
 // 差し口 (slotId) に魂を宿す/外す (メイン魂=転職、サブ魂=技の借用)。魂は1体ごとに固有。
 // done(applied) … 実際に宿した/外した (確認で取りやめなら false)
-function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
+// opts.take … サブ魂の差し口で、他の人業のサブ魂を付け替える (確認は呼び出し側で済ませる)。宿していた魂とは交換になる
+function equipSoulToSlot(d, uid, slotId = "primary", done = null, opts = {}) {
   const fin = (v) => { if (typeof done === "function") done(v); return v; };
   const s = soulByUid(uid);
   if (!s || G.state !== "town") return fin(false);
   const si = slotId === "primary" ? -1 : +slotId.slice(3);
   // 別の差し口へ宿す (=付け替え) 場合のみ装備可否を判定する。外す操作は対象外
   const isNewEquip = !(slotId === "primary" && d.primary === uid) && !(si >= 0 && ((d.subs || [])[si] || {}).uid === uid);
+  // メイン魂に宿している魂 (自分のものも含む) はサブ魂にできない
+  if (isNewEquip && si >= 0 && allDolls().some((dd) => dd.primary === uid)) { SFX.ng(); showToast("メイン魂に宿している魂は、サブ魂にできない", { tone: "bad" }); return fin(false); }
+  if (isNewEquip && si >= 0 && opts.take && subWearerOf(uid, d)) return fin(takeSubSoul(d, uid, si));
   if (isNewEquip && soulWornByOther(uid, d)) { log("他の人業が宿している魂は宿せない。", "sys"); SFX.ng(); showToast("他の人業が宿している魂だ", { tone: "bad" }); return fin(false); }
 
   // メイン魂の付け替えで、新しい職では装備できなくなる装備があれば事前に確認する
