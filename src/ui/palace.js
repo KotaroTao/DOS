@@ -15,7 +15,7 @@ import { remember, getPref, setPref } from "./prefs.js";
 import { softFade } from "./motion.js";
 import { statLines, itemCatText, showSkillPopup } from "./itemview.js";
 import { MONSTERS, spriteCanvas } from "../sprites.js";
-import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL } from "../items.js";
+import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, itemName } from "../items.js";
 import { RANK_COLOR, RANK_NAME } from "../content.js";
 import { DUNGEONS, ELEMENTS, RACE_LABEL, monsterTraits, isFloating } from "../dungeons/index.js";
 import { SPELLS } from "../combat.js";
@@ -271,13 +271,20 @@ export function codexItemSheet(id, o = {}) {
     hd.style.color = o.headingColor || rc;
     body.appendChild(hd);
   }
-  body.appendChild(setText(el("div", "pl-detail-cat"), itemCatText(it)));
-  const st = statLines(it);
-  if (st) body.appendChild(setText(el("div", "pl-detail-stats"), st));
-  if (it.desc) body.appendChild(setText(el("div", "pl-detail-desc"), it.desc));
+  // 所持品の実体が未鑑定なら正体は伏せる (名・性能・説明は鑑定するまで見せない)
+  const unid = !!(o.item && o.item.unidentified);
+  if (unid) {
+    body.appendChild(setText(el("div", "pl-detail-cat"), "未鑑定 ― 正体はまだわからない"));
+    body.appendChild(setText(el("div", "pl-detail-desc"), it.idHardFail ? "鑑定の心得では見抜けなかった。商会 (有料) でなら鑑定できる。" : "商会 (有料) か、鑑定の心得がある仲間に見てもらおう。"));
+  } else {
+    body.appendChild(setText(el("div", "pl-detail-cat"), itemCatText(it)));
+    const st = statLines(it);
+    if (st) body.appendChild(setText(el("div", "pl-detail-stats"), st));
+    if (it.desc) body.appendChild(setText(el("div", "pl-detail-desc"), it.desc));
+  }
   return sheet.open({
-    kind: "info", banner: game.itemGradeText ? game.itemGradeText(it, "品") : "品", accent: rc, art: it, artScale: 9,
-    title: it.name, titleColor: rc, body, className: "pl-detail-sheet",
+    kind: "info", banner: unid ? "未鑑定の品" : game.itemGradeText ? game.itemGradeText(it, "品") : "品", accent: rc, art: it, artScale: 9,
+    title: unid ? itemName(it) : it.name, titleColor: rc, body, className: "pl-detail-sheet",
     footer: o.footer || [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
     onClose: o.onClose,
   });

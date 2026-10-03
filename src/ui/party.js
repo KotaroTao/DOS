@@ -1285,6 +1285,7 @@ function slotCell(d, k) {
   r.appendChild(tx);
   r.setAttribute("aria-label", `${SLOT_LABEL[k]}: ${it ? itemName(it) : "空き"}${info.better ? " (もっと良い品がある)" : ""}`);
   r.addEventListener("click", () => { sfx("select"); openCandidates(d, k); });
+  if (it) longPress(r, () => openItemDetail(it));
   return r;
 }
 
@@ -1306,7 +1307,7 @@ function bagCell(d, it) {
   c.title = itemName(it);
   c.setAttribute("aria-label", itemName(it));
   c.addEventListener("click", () => { sfx("select"); openItem(it, d, { from: "bag" }); });
-  longPress(c, () => openItem(it, d, { from: "bag" }));
+  longPress(c, () => openItemDetail(it));
   return c;
 }
 
@@ -1332,6 +1333,7 @@ function candBody(root, d, k, h, town) {
     cic.type = "button";
     cic.setAttribute("aria-label", `${itemName(cur)} をくわしく`);
     cic.addEventListener("click", () => openItem(cur, d, { from: "equip", key: k }));
+    longPress(cic, () => openItemDetail(cur));
     cic.appendChild(spriteCanvas(cur, 2));
   }
   curBox.appendChild(cic);
@@ -1381,6 +1383,7 @@ function candRow(d, k, c, h) {
   ic.appendChild(spriteCanvas(c.it, 2));
   ic.setAttribute("aria-label", `${itemName(c.it)} ― 誰に装備させるか`);
   ic.addEventListener("click", () => { h.close("replace", { silent: true }); openItem(c.it, c.owner, { from: "bag" }); });
+  longPress(ic, () => openItemDetail(c.it));
   wrap.appendChild(ic);
   const main = el("button", "pt-cand-main");
   main.type = "button";
@@ -1400,7 +1403,7 @@ function candRow(d, k, c, h) {
     if (c.it.cursed) confirm({ title: `${c.it.name} は呪われている`, lines: ["一度装備すると外せない。それでも付ける？"], okLabel: "付ける" }).then((y) => { if (y) go(); });
     else go();
   });
-  longPress(main, () => openItem(c.it, c.owner, { from: "bag" }));
+  longPress(main, () => openItemDetail(c.it));
   wrap.appendChild(main);
   return wrap;
 }
@@ -1484,6 +1487,13 @@ function statsSeg(root, d) {
     r.classList.add("pt-codex");
     root.appendChild(r);
   }
+}
+
+// 長押し = 図鑑と同じ品の詳細 (絵・分類・性能・説明だけの読み物。操作は出さない)
+export function openItemDetail(item) {
+  if (!item) return null;
+  if (UI.codexItemSheet) return UI.codexItemSheet(item.id, { item });
+  return openItem(item);
 }
 
 // ================= 品の画面 =================
