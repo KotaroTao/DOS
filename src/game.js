@@ -654,7 +654,7 @@ function forfeitRun() {
 // 砕けた人業: 死亡を戦績に記録し、街への連れ帰りタイマーをセット
 function imprintFallen() {
   for (const d of G.party) {
-    if (d.isDoll && !d.alive && !d._dead) { G.stats.deaths++; d._dead = true; }
+    if (d.isDoll && !d.alive && !d._dead) { G.stats.deaths++; d._dead = true; d.diedFloor = G.floor; }
   }
   setReviveTimers();
 }
@@ -9779,13 +9779,25 @@ function rescueDurationMs(floor) {
   return minutes * 60 * 1000;
 }
 
-// 死亡を検知して連れ帰りタイマーをセット (imprintFallen から呼ばれる)
+// 迷宮を探索中の隊にいる人業か (砕けても、街へ戻るまでは帰還の時を数えない)
+function awayInDungeon(d) {
+  return G.state !== "town" && G.party.includes(d);
+}
+
+// 死亡を検知して連れ帰りタイマーをセット (imprintFallen・街への帰還から呼ばれる)
+// 探索中の隊で砕けた人業は砕けた階だけ覚え、タイマーは街へ戻ってから動き出す。
 function setReviveTimers() {
   const now = Date.now();
   for (const d of allDolls()) {
-    if (d.isDoll && !d.alive && !d.reviveAt) {
-      d.diedFloor = G.floor;
-      d.reviveAt = now + rescueDurationMs(G.floor);
+    if (!d.isDoll || d.alive) continue;
+    if (awayInDungeon(d)) {
+      if (d.diedFloor == null) d.diedFloor = G.floor;
+      continue;
+    }
+    if (!d.reviveAt) {
+      const floor = d.diedFloor != null ? d.diedFloor : G.floor;
+      d.diedFloor = floor;
+      d.reviveAt = now + rescueDurationMs(floor);
     }
   }
 }
@@ -9825,7 +9837,7 @@ function reviveAllAtHp1() {
       d.alive = true;
       d.hp = 1;
       d.ailment = null;
-      d.reviveAt = null;
+      d.reviveAt = null; d.diedFloor = null;
       d._dead = false;
       log(`${d.name} はHP1で生還した。`, "win");
     }
@@ -9837,7 +9849,7 @@ function reviveDoll(d, byRedSoul = false) {
   d.alive = true;
   d.hp = Math.max(1, Math.floor(d.maxhp * 0.5));
   d.ailment = null;
-  d.reviveAt = null;
+  d.reviveAt = null; d.diedFloor = null;
   d._dead = false;
   SFX.levelup(); buzz([0, 30, 40, 30]);
   log(`${d.name} が街に連れ戻された。${byRedSoul ? "(赤い魂の力)" : ""}`, "win");
@@ -9868,7 +9880,7 @@ setInterval(() => {
   const now = Date.now();
   let revived = false;
   for (const d of allDolls()) {
-    if (d.isDoll && !d.alive && d.reviveAt && now >= d.reviveAt) { reviveDoll(d); revived = true; }
+    if (d.isDoll && !d.alive && d.reviveAt && now >= d.reviveAt && !awayInDungeon(d)) { reviveDoll(d); revived = true; }
   }
   if (revived) {
     if (G.statusOpen) renderStatus();
@@ -10244,6 +10256,7 @@ function returnToTown(opts = {}) {
   // 生存者が1名でもいれば、砕けた人業は仲間に担がれてHP1で生還する。
   // (全滅時はここに来る前に G.party の生存者ゼロ → 救出待ちのまま帰還する)
   if (G.party.some((p) => p.alive)) reviveAllAtHp1();
+  setReviveTimers(); // 全滅で戻った人業は、ここから帰還の時を数え始める
   summary.dead = G.party.filter((d) => d && d.isDoll && !d.alive).map((d) => ({ uid: d.uid, name: d.name }));
   G.lastRun = summary;
   rollTavernCrowd(); // 酒場の顔ぶれは帰還のたびに入れ替わる
