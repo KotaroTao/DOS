@@ -7,12 +7,12 @@ export function build() {
   const mats = {
     iron: { ramp: ramp(["#030202", "#0a0807", "#14100c", "#1f1912", "#2c2419", "#3a3022", "#4c3e2c", "#62523a"], 6), spec: 1.2, pow: 30, specCol: "#a89070", dither: 0.5,
       shade: p => 0.1 * fbm(p.x * 0.4, p.y * 0.4, p.z * 0.4) },
-    rust: { ramp: ramp(["#040201", "#130805", "#24100a", "#38190d", "#4e2612", "#683618"], 5), dither: 0.7, shade: p => 0.1 * fbm(p.x * 0.8, p.y * 0.8) },
+    rust: { ramp: ramp(["#040201", "#130805", "#24100a", "#38190d", "#4e2612", "#683618"], 4), dither: 0.7, shade: p => 0.1 * fbm(p.x * 0.8, p.y * 0.8) },
     bone: { ramp: ramp(["#060504", "#16130e", "#2a251c", "#40392c", "#58503e", "#726852", "#908670", "#b0a68c"], 6), spec: 0.6, pow: 25, dither: 0.5, amb: 0.18,
       shade: p => 0.08 * fbm(p.x * 0.7, p.y * 0.7, p.z * 0.7) },
     red: { ramp: ramp(["#060203", "#170607", "#2a0c0c", "#401412", "#581e18", "#702a20"], 5), dither: 0.6, amb: 0.2,
       shade: p => 0.12 * Math.sin(p.x * 0.9 + p.y * 0.3) },
-    cloth: { ramp: ramp(["#030303", "#09090a", "#121214", "#1c1c1f", "#26272b", "#323439"], 5), dither: 0.65, amb: 0.2,
+    cloth: { ramp: ramp(["#030303", "#09090a", "#121214", "#1c1c1f", "#26272b", "#323439"], 4), dither: 0.65, amb: 0.2,
       shade: p => 0.12 * Math.sin(p.x * 0.7 + p.y * 0.08) },
     leather: { ramp: ramp(["#030202", "#0c0806", "#18100b", "#241811", "#322218", "#422e20"], 5), spec: 0.6, pow: 25, dither: 0.5 },
     brass: { ramp: ramp(["#050302", "#160f05", "#2c1f0a", "#463210", "#644a18", "#866624", "#a88636"], 5), spec: 1.4, pow: 35, specCol: "#f0d890", dither: 0.4 },
@@ -44,16 +44,16 @@ export function build() {
   const eyes = [sphere([49, 24.8, 6.2], 0.6, "eye"), sphere([53.4, 24.8, 6], 0.6, "eye")];
   const neck = [cyl([51, 30, 3], [51, 33, 2], 1.6, "bone", 0.5), cyl([51, 30.4, 2.6], [51, 31.6, 2.6], 4.4, "iron", 0.6)];
   // モリオン兜: 顔をやや左 (刀の向き) へ振った斜めの向きで組む。前後に長く尖って反る舟形の鍔、頭頂を前後に走る櫛形の鶏冠
-  const Hc = [51, 18, 4], yaw = 38 * Math.PI / 180;
+  const Hc = [51, 18, 4], yaw = 22 * Math.PI / 180;
   const F = [-Math.cos(yaw), Math.sin(yaw)], Sd = [Math.sin(yaw), Math.cos(yaw)]; // 前 (左手前) と横 (xz 平面)
   const toL = (x, z) => { const dx = x - Hc[0], dz = z - Hc[2]; return [Hc[0] + dx * F[0] + dz * F[1], Hc[2] + dx * Sd[0] + dz * Sd[1]]; };
   const yawLeaf = (prim, R) => ({ leaf: true, mat: prim.mat, bound: [Hc[0], Hc[1], Hc[2], R], f: (x, y, z) => { const [lx, lz] = toL(x, z); return prim.f(lx, y, lz); } });
   // 鍔: 前後に尖る紡錘形 (左右は短い)、両端が上へ反る
   const brimLeaf = { leaf: true, mat: "steel", bound: [Hc[0], Hc[1], Hc[2], 16], f: (x, y, z) => {
     const [lx, lz] = toL(x, z), dx = lx - Hc[0], dz = lz - Hc[2];
-    const r = 13.1, d = 7.1, b = Math.sqrt(r * r - d * d), px = Math.abs(dz), py = Math.abs(dx);
+    const r = 14.4, d = 8.4, b = Math.sqrt(r * r - d * d), px = Math.abs(dz), py = Math.abs(dx);
     const v = ((py - b) * d > px * b) ? Math.hypot(px, py - b) : Math.hypot(px + d, py) - r;
-    const yc = 20.4 - 0.05 * dx * dx;
+    const yc = 20.6 - 0.045 * dx * dx;
     const w = Math.abs(y - yc) * 0.85 - 0.55;
     return Math.hypot(Math.max(v, 0), Math.max(w, 0)) + Math.min(Math.max(v, w), 0) - 0.2;
   } };
@@ -67,7 +67,7 @@ export function build() {
   const combLeaf = yawLeaf(slab(combPts, Hc[2], 0.75, "steel", 0.35, 0.25), 12);
   const rivets = [-3.2, 0, 3.2].map(t => { const x = Hc[0] + F[0] * t, z = Hc[2] + F[1] * t; return sphere([x + Sd[0] * 5.1, 19.6, z + Sd[1] * 5.1], 0.7, "brass"); });
   // 羽根飾り: 鶏冠の後ろの付け根から後ろ上へ
-  const pb = [Hc[0] - F[0] * 5.4, 15.6, Hc[2] - F[1] * 5.4];
+  const pb = [Hc[0] - F[0] * 6.6, 16.4, Hc[2] - F[1] * 6.6 - 1];
   const plume = [tube([[pb[0], pb[1], pb[2] - 1, 1.3], [pb[0] + 1.6, 9, pb[2] - 1.5, 1.6], [pb[0] + 5, 4, pb[2] - 2, 1.5], [pb[0] + 10, 2.4, pb[2] - 2.5, 1.1], [pb[0] + 15, 4.4, pb[2] - 3, 0.6]], "red"),
     tube([[pb[0] + 0.6, pb[1], pb[2] - 1.5, 1.1], [pb[0] + 3, 10, pb[2] - 2, 1.3], [pb[0] + 7.6, 7, pb[2] - 2.5, 1.1], [pb[0] + 13, 8, pb[2] - 3, 0.8], [pb[0] + 16, 11.6, pb[2] - 3, 0.4]], "red"),
     tube([[pb[0] - 0.4, pb[1] - 1, pb[2] - 0.5, 1], [pb[0] + 0.4, 6, pb[2] - 1, 1.1], [pb[0] + 3, 1.4, pb[2] - 1.5, 0.8], [pb[0] + 7, 0.6, pb[2] - 2, 0.4]], "red")];
@@ -96,6 +96,10 @@ export function build() {
   // 眼窩の熾火
   const E = ["#3a0800", "#9a1c04", "#ff5a14", "#ffc070"];
   for (const ex of [48, 53]) { C.only(ex, 24, E[2]); C.only(ex + 1, 24, E[3]); C.only(ex, 25, E[1]); C.only(ex + 1, 25, E[2]); C.only(ex + (ex < 50 ? -1 : 2), 24, E[0]); }
+  // 鶏冠の縁: 上の弧に鈍い照り、付け根に影の線
+  const scr = (lx, y) => { const t = lx - Hc[0]; return [Hc[0] + F[0] * t, y]; };
+  for (let i = 0; i <= 24; i++) { const a = Math.PI * i / 24; const [sx, sy] = scr(Hc[0] - Math.cos(a) * 6.0, 16.4 - Math.sin(a) * 9.2); if (C.get(Math.round(sx), Math.round(sy))) C.set(sx, sy, i < 13 ? "#92929a" : "#6c6c74"); }
+  for (let t = -5; t <= 5; t += 0.5) { const [sx] = scr(Hc[0] + t, 0); const y = 17.2 - 0.02 * t * t; const p = C.pix[Math.round(y) * 96 + Math.round(sx)]; if (p && p.m === "steel") C.set(sx, y, "#1c1c1f"); }
   // 歯
   for (let x = 49; x <= 53; x += 1) C.only(x, 29, x % 2 ? "#908670" : "#58503e");
   // 刃こぼれと錆
