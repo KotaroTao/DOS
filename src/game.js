@@ -447,7 +447,7 @@ const G = {
   embers: 0,          // 魂の残火: 死体から確定で得る。メイン魂のLv上限を1上げるのに使う
   dollsPurchased: 0,  // 空の人業を購入した回数 (価格の段階に使う)
   dungeonBriefed: false, // 初回潜入時の警備兵の注意事項を表示済みか
-  pendingDoll: null,  // (旧形式) 未生成の人業。現在は「空の人形」(isEmpty) として reserve に残る (ロード時に移行)
+  pendingDoll: null,  // (旧形式) 未生成の人業。現在は「空の人業」(isEmpty) として reserve に残る (ロード時に移行)
   party: [],          // 迷宮に連れて行く人業 (最大6体)
   reserve: [],        // 酒場で待機中の人業
   // 魂は1体ごとに固有のインスタンス (本体は魂、人業は器)。同職でも個別に Lv/ランクを持つ。
@@ -11846,14 +11846,16 @@ function loadGame() {
     if (G.battle.fleeK == null) G.battle.fleeK = fleeScale(); // 逃走の物差しを持たない古い戦闘
     for (const e of (G.battle.enemies || [])) if (e.key && MONSTERS[e.key]) e.mon = MONSTERS[e.key];
   }
-  // 旧形式: 未生成の pendingDoll は「空の人形」として控えへ移す (生成前でも消えない)
+  // 旧形式: 未生成の pendingDoll は「空の人業」として控えへ移す (生成前でも消えない)
   if (G.pendingDoll) {
     const pd = G.pendingDoll;
     pd.isEmpty = true;
-    if (!pd.name || pd.name === "（未生成）") pd.name = "空の人形";
+    if (!pd.name || pd.name === "（未生成）") pd.name = "空の人業";
     G.reserve.push(pd);
     G.pendingDoll = null;
   }
+  // この世界の器は「人業」と呼ぶ。旧版で「空の人形」と名付けられた控えを改める
+  for (const d of (G.reserve || [])) if (d && d.name === "空の人形") d.name = "空の人業";
   // 所持魂 (v5): 配列に整え、無効な職業を除き、人業のメイン魂/サブ魂を実在する魂に整える
   if (!Array.isArray(G.souls)) G.souls = [];
   G.souls = G.souls.filter((s) => s && SOUL_CLASSES[s.clsKey]);
