@@ -5339,10 +5339,11 @@ function resolveCorpse(cell) {
     return;
   }
   // あたたかい死体: 回収するか立ち去るか選べる。立ち去れば死体は残る。
+  // 宿る魂の職業は、回収するまで明かさない (札の色も職業色ではなく魂の青)
   showChoice(`まだあたたかい死体。魂が宿っている。`, [
-    { label: `${clsLabel}の魂を回収する`, primary: true, fn: () => collectWarmCorpse(cell, clsKey, clsLabel) },
+    { label: "魂を回収する", primary: true, fn: () => collectWarmCorpse(cell, clsKey, clsLabel) },
     { label: "立ち去る", fn: () => { log("死体に手を触れず、立ち去った。", "sys"); renderBoard(); } },
-  ], ICONS.corpseWarm, { banner: "✦ あたたかい死体 ✦", accent: SOUL_CLASSES[clsKey].glow, lines: ["まれに死体が起き上がる。勝てば魂は必ず手に入る。"] });
+  ], ICONS.corpseWarm, { banner: "✦ あたたかい死体 ✦", accent: "#7fd0ff", lines: ["まれに死体が起き上がる。勝てば魂は必ず手に入る。"] });
 }
 
 // あたたかい死体/偉大なる死体の回収: 80%で魂を直接入手、20%で死体が起き上がりアンデッド戦。
@@ -8730,9 +8731,8 @@ function rollRumor() {
   cands.push([30, () => {
     const great = layer >= 8;
     const clsKey = great ? rollGreatCorpseClass() : rollJobClass();
-    const cl = SOUL_CLASSES[clsKey].label;
     return { type: "harvest", clsKey, great, floor: 1, speaker,
-      text: `「${dn}の入口あたりで、まだあたたかい〈${cl}〉の死体を見た。${great ? "並の魂ではないぞ。" : "魂が宿っているはずだ。"}」` };
+      text: `「${dn}の入口あたりで、まだあたたかい死体を見た。${great ? "並の魂ではないぞ。" : "魂が宿っているはずだ。"}」` };
   }]);
   // 財宝の予兆: B1F に格の高い宝箱 (中身は装備品確定・層相応のレベル底上げ)
   cands.push([25, () => ({ type: "treasure", floor: 1, speaker,
