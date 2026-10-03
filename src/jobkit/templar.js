@@ -1,16 +1,66 @@
 // 神殿騎士 (templar) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
+// 持ち味: 封魔と結界の門番 — 特技を封じ、強化を剥ぎ、魔障壁を重ねて呪文とブレスを門の外に留める
+import { UNHOLY } from "./common.js";
+
 export default {
   table: `
-    1 SHIELDBASH 2 KOUJIN 3 CURE 5 taunt/1 7 CHOUHATSU 10 PROTECT
-    12 NERAIUCHI 15 afterHeal/1 17 HOLYLIGHT 20 FUUMANOTATE 25 cover/1 30 NIOUDACHI
-    35 selfPurify/1 40 SEIIKINOKANE 45 cover/2 50 DIOSALL 55 SHINGANGEKI 57 SEIGEKI
-    60 sanctuary/1 65 GUARDALL 70 resistAilment/1 75 holyEdge/1 80 KIYOME 82 GANOTOSHI
-    85 SAINTRAY 90 cover/3 95 HANGEKI 100 JOUSAITSUKI 105 divineCounter/1 110 TEPPEKIJIN
-    115 martyr/1 120 SHINBATSU 125 bastion/1 130 FURAKUNOTATE 135 resistAilment/2 140 DAIFUKUIN
-    145 scripture/1 150 SHUGOKEKKAI 155 holyCover/1 160 KISHIOU 162 KOUBOURANBU 165 bigBarrier/1
-    170 FUDOUJIN 175 purify/1 180 DAIGOUREI 185 bigBarrier/2 190 SEIMETSUREKKOU 195 KAMIWAZA
-    200 FURAKUJOU`,
-  skills: {},
-  perks: {},
+    1 SHIELDBASH 2 KOUJIN 3 CURE 5 templarMonshu/1 7 CHOUHATSU 10 PROTECT
+    12 NERAIUCHI 15 templarKairitsu/1 17 HOLYLIGHT 20 FUUMANOTATE 25 templarFuumakusabi/1 30 NIOUDACHI
+    35 templarKairitsu/2 40 SEIIKINOKANE 45 templarMonkekkai/1 50 DIOSALL 55 TEMPLAR_KUSARIUCHI 57 TEMPLAR_SEIINUCHI
+    60 templarMayoke/1 65 TEMPLAR_MONZENNOHARAI 70 resistAilment/1 75 templarFuumakusabi/2 80 TEMPLAR_MISOGI 82 TEMPLAR_HAKAINOISHIZUCHI
+    85 TEMPLAR_HAMANOKOUSA 90 templarMonkekkai/2 95 TEMPLAR_MONBANNOKAMAE 100 TEMPLAR_HAMANOOOZUCHI 105 templarFuumakusabi/3 110 TEMPLAR_SEIIKIKEKKAI
+    115 templarMonshu/2 120 TEMPLAR_DANZAINOFUUIN 125 templarMonkekkai/3 130 TEMPLAR_OOTOBIRA 135 resistAilment/2 140 TEMPLAR_SEIKANOHARAI
+    145 templarMonshu/3 150 TEMPLAR_SANJUUKEKKAI 155 templarFuumakusabi/4 160 TEMPLAR_FUUMANOOOGANE 162 TEMPLAR_KOUSANAGI 165 templarMayoke/2
+    170 TEMPLAR_SHUMONNOJIN 175 templarKairitsu/3 180 TEMPLAR_SEIDOUKISHI 185 templarMonkekkai/4 190 TEMPLAR_SHINDENNOSHINPAN 195 TEMPLAR_SAIRINNOSEIMON
+    200 TEMPLAR_ZETTAIKEKKAI`,
+  skills: {
+    TEMPLAR_KUSARIUCHI: { name: "鎖打ち", mp: 7, kind: "phys", power: 1.3, acc: 0.8, seal: { chance: 0.35, turns: 2 }, target: "enemy", desc: "聖鎖を絡めて打ち、特技を封じる" },
+    TEMPLAR_SEIINUCHI: { name: "聖印打ち", mp: 12, kind: "phys", power: 2.0, pieScale: 0.5, element: "light", acc: 0.6, mpDrain: 0.15, target: "enemy", desc: "聖印を刻んで打ち、魔力を吸い上げる" },
+    TEMPLAR_MONZENNOHARAI: { name: "門前の祓い", mp: 7, kind: "buff", buff: { vit: 1.2 }, purge: true, target: "all-ally", desc: "味方全体の守りを固め、弱体を祓う" },
+    TEMPLAR_MISOGI: { name: "禊の聖水", mp: 9, kind: "buff", cure: true, purge: true, regen: { pct: 0.03, turns: 2 }, target: "all-ally", desc: "聖水で穢れと弱体を流し、わずかに癒し続ける" },
+    TEMPLAR_HAKAINOISHIZUCHI: { name: "破戒の石槌", mp: 12, kind: "phys", power: 2.4, element: "earth", acc: 0.5, strip: true, target: "enemy", desc: "石槌で打ち、敵の強化を打ち砕く" },
+    TEMPLAR_HAMANOKOUSA: { name: "破魔の光鎖", mp: 10, kind: "atk", power: 20, element: "light", seal: { chance: 0.25, turns: 2 }, target: "all-enemy", desc: "光の鎖が敵陣を縛り、特技を封じる" },
+    TEMPLAR_MONBANNOKAMAE: { name: "門番の構え", mp: 6, kind: "buff", stance: "counter", grantBarrier: 1, dur: 2, tech: true, target: "self", desc: "門を背に構え、反撃の構えと魔障壁を得る" },
+    TEMPLAR_HAMANOOOZUCHI: { name: "破魔の大槌", mp: 18, kind: "phys", power: 3.0, vitScale: 1.4, acc: 1, vuln: { all: 0.85 }, target: "enemy", desc: "必中の大槌で、あらゆる属性への守りを崩す" },
+    TEMPLAR_SEIIKIKEKKAI: { name: "聖域結界", mp: 16, kind: "heal", power: 14, grantBarrier: 1, target: "all-ally", desc: "聖域を張って味方全員を癒し、魔障壁を配る" },
+    TEMPLAR_DANZAINOFUUIN: { name: "断罪の封印", mp: 23, kind: "atk", power: 56, element: "light", seal: { chance: 0.5, turns: 3 }, strip: true, target: "enemy", desc: "断罪の光で撃ち、特技と強化を封じ去る" },
+    TEMPLAR_OOTOBIRA: { name: "聖堂の大扉", mp: 20, kind: "buff", buff: { vit: 1.55 }, cure: true, target: "all-ally", desc: "大扉を閉ざして味方全体を守り、異常を祓う" },
+    TEMPLAR_SEIKANOHARAI: { name: "聖火の祓い", mp: 36, kind: "heal", power: 72, cure: true, purge: true, debuffAll: { atk: 0.9 }, target: "all-ally", desc: "聖火で味方を癒し祓い、敵の力を灼き削ぐ" },
+    TEMPLAR_SANJUUKEKKAI: { name: "三重結界", mp: 24, kind: "buff", grantBarrier: 2, target: "all-ally", desc: "味方全体に魔障壁を2回分重ねて張る" },
+    TEMPLAR_FUUMANOOOGANE: { name: "封魔の大鐘", mp: 30, kind: "debuff", seal: { chance: 0.5, turns: 3 }, strip: true, debuff: { atk: 0.85 }, target: "all-enemy", desc: "大鐘の音が敵陣の特技と強化を封じ、力を削ぐ" },
+    TEMPLAR_KOUSANAGI: { name: "光鎖薙ぎ", mp: 28, kind: "phys", power: 2.0, vitScale: 0.3, element: "light", acc: 0.6, flinchChance: 0.2, target: "all-enemy", desc: "光の鎖で敵陣を薙ぎ、怯ませる" },
+    TEMPLAR_SHUMONNOJIN: { name: "守門の陣", mp: 26, kind: "buff", shield: true, buff: { vit: 1.3 }, grantBarrier: 2, tech: true, target: "self", desc: "門となって仲間を庇い、魔障壁を重ねる" },
+    TEMPLAR_SEIDOUKISHI: { name: "聖堂騎士の誓詞", mp: 30, kind: "buff", buff: { vit: 1.35, atk: 1.2 }, cure: true, target: "all-ally", desc: "誓詞が味方全体の攻守を高め、異常を祓う" },
+    TEMPLAR_SHINDENNOSHINPAN: { name: "神殿の審判", mp: 32, kind: "atk", power: 62, element: "light", seal: { chance: 0.35, turns: 2 }, prey: { races: UNHOLY, mul: 1.3 }, target: "all-enemy", desc: "審判の光が敵全体を灼き、特技を封じる" },
+    TEMPLAR_SAIRINNOSEIMON: { name: "再臨の聖門", mp: 44, kind: "heal", power: 100, revive: true, revivePct: 0.5, grantBarrier: 1, purge: true, target: "all-ally", desc: "聖門が倒れた者を呼び戻し、全員に魔障壁を張る" },
+    TEMPLAR_ZETTAIKEKKAI: { name: "絶対結界", mp: 40, kind: "buff", grantBarrier: 3, buff: { vit: 1.4 }, purge: true, target: "all-ally", desc: "味方全体に魔障壁3回分と守りを授け、弱体を解く" },
+  },
+  perks: {
+    templarMonshu: {
+      label: "門守の誓約",
+      lv: ["戦闘開始時、敵を自分に引き付ける (2ターン)", "さらに物理を受けると25%でMPを最大の4%回復", "さらに物理を受けると30%でMPを最大の6%回復"],
+      fx: [{ t: "start", taunt: true }, { t: "hurt", chance: [0, 0.25, 0.3], mp: [0, 0.04, 0.06] }],
+    },
+    templarKairitsu: {
+      label: "戒律の灯",
+      lv: ["戦闘に勝つとMPを最大の5%回復。治療の技の後30%で消費MPが戻る", "戦闘に勝つとMPを最大の8%回復。治療の技の後40%で消費MPが戻る", "戦闘に勝つとMPを最大の11%回復。治療の技の後50%で消費MPが戻る"],
+      fx: [{ t: "win", mp: [0.05, 0.08, 0.11] }, { t: "cast", on: "cure", chance: [0.3, 0.4, 0.5], refund: true }],
+    },
+    templarFuumakusabi: {
+      label: "封魔の楔",
+      lv: ["物理が当たると8%で敵の特技を封じる (2ターン)", "物理が当たると12%で敵の特技を封じる (2ターン)", "物理が当たると16%で敵の特技を封じる (2ターン)", "物理が当たると20%で敵の特技を封じる (2ターン)"],
+      fx: [{ t: "hit", chance: [0.08, 0.12, 0.16, 0.20], ail: "seal", turns: 2 }],
+    },
+    templarMonkekkai: {
+      label: "門番の結界",
+      lv: ["戦闘開始時、30%で味方全員に魔障壁1回", "戦闘開始時、50%で味方全員に魔障壁1回", "戦闘開始時、70%で味方全員に魔障壁1回", "戦闘開始時、必ず味方全員に魔障壁1回"],
+      fx: [{ t: "start", party: true, chance: [0.3, 0.5, 0.7, 1], barrier: 1 }],
+    },
+    templarMayoke: {
+      label: "魔除けの門",
+      lv: ["味方全員のブレスの被ダメージ-6%", "味方全員のブレスの被ダメージ-12%"],
+      fx: [{ t: "take", aura: true, on: "breath", v: [0.06, 0.12] }],
+    },
+  },
 };

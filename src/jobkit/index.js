@@ -124,7 +124,10 @@ function checkPerk(job, key, pk) {
     if (c.when) for (const w in c.when) if (!WHEN.has(w)) fail(job, key, `when.${w}`);
     if (c.t === "hit" && !AILS.has(c.ail)) fail(job, key, `hit.ail ${c.ail}`);
     if (["deal", "take", "crit", "evade", "heal", "cost"].includes(c.t) && c.v == null) fail(job, key, `fx ${c.t} に v が必要`);
-    for (const o of ["buff", "foe", "mul"]) if (c[o]) for (const s in c[o]) if (!STATS.has(s)) fail(job, key, `${o}.${s}`);
+    for (const o of ["buff", "foe"]) if (c[o]) for (const s in c[o]) if (!STATS.has(s)) fail(job, key, `${o}.${s}`);
+    // mul は stat では能力ごとの表、hit では弱体の倍率 (数か Lv ごとの配列)
+    if (c.t === "stat") { if (!c.mul) fail(job, key, "stat に mul が必要"); for (const s in c.mul) if (!STATS.has(s)) fail(job, key, `mul.${s}`); }
+    else if (c.mul != null && !(typeof c.mul === "number" || Array.isArray(c.mul))) fail(job, key, "hit.mul は数か配列");
   }
 }
 

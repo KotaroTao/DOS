@@ -222,7 +222,7 @@ export const SPELLS = {
   MEIFUNOMON: { name: "冥府の門", mp: 40, kind: "atk", power: 90, element: "dark", instakill: { chance: 0.3 }, target: "all-enemy", desc: "闇で呑み、即死させることがある" },
   KOUSHUNOHOUJIN: { name: "攻守の法陣", mp: 14, kind: "buff", buff: { vit: 1.25 }, debuffAll: { atk: 0.85 }, target: "all-ally", desc: "味方を守り、敵全体の攻撃力を下げる" },
   // 守りの陣 (第5層からの、ブレス・全体呪文を多用する魔物への備え)
-  RYUURINJIN:     { name: "竜鱗の陣", mp: 10, kind: "buff", ward: { breath: 0.5 }, tech: true, target: "all-ally", desc: "竜鱗の構えで隊を固め、ブレスのダメージを半減する" },
+  RYUURINJIN:     { name: "鱗壁の陣", mp: 10, kind: "buff", ward: { breath: 0.5 }, tech: true, target: "all-ally", desc: "竜鱗の構えで隊を固め、ブレスのダメージを半減する" },
   MAYOKE:         { name: "魔除けの帳", mp: 10, kind: "buff", ward: { spell: 0.5 }, target: "all-ally", desc: "魔除けの帳で隊を包み、敵の呪文のダメージを半減する" },
   // 迷宮で唱える (戦闘では使わない)
   FUYUU:          { name: "浮遊", mp: 8, kind: "field", float: 3, target: "all-ally", desc: "隊を宙に浮かせる。3階のあいだ落とし穴に落ちず、毒の床も踏まない（迷宮で唱える）" },
