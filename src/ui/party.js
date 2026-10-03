@@ -661,9 +661,10 @@ function scheduleGreeting() {
       ireneState().greeted = true;
       curLine = nextLine({ entry: true });
       if (game.autosave) game.autosave(true);
-      rerender();
+      // 仕立てを開くのはここだけ (先に予約を消す: rerender が wantCreate を見て、もう一枚開いてしまうため)
       const make = wantCreate || !allDolls().length;
       wantCreate = false;
+      rerender();
       if (make && inTown()) setTimeout(() => openCreateDoll(), 120);
     });
   }, 60);
@@ -1109,9 +1110,11 @@ function joinParty(d) {
 }
 
 // 人業を仕立てる: 宿す魂を選ぶ → 名を与える
+let createH = null; // 開いている「宿す魂をえらぶ」シート (二重に開かない: 下に古い一覧が残るため)
 export function openCreateDoll() {
   const G = G_();
   if (!inTown()) return;
+  if (createH && !createH.closed) return createH;
   const cost = game.emptyDollCost ? game.emptyDollCost() : 0;
   if ((G.redSoul || 0) < cost) { sfx("ng"); toast("赤い魂が足りない", { tone: "bad" }); return; }
   if (allDolls().length >= 100) { sfx("ng"); toast("これ以上は仕立てられない (100体まで)", { tone: "bad" }); return; }
@@ -1119,7 +1122,7 @@ export function openCreateDoll() {
   const free = G.souls.filter((s) => !worn(s.uid)).sort(game.soulSortCmp || (() => 0));
   if (!free.length) { sfx("ng"); toast("宿せる魂がない ― 迷宮で魂を集めよう", { tone: "bad" }); return; }
   sfx("select");
-  const h = sheet.open({
+  const h = createH = sheet.open({
     kind: "info", banner: "宿す魂をえらぶ", className: "pt-pick-sheet",
     lines: [cost ? `赤い魂 ${cost} で器を買い、選んだ魂を宿す。` : "無料で器を仕立て、選んだ魂を宿す。"],
     body: (scroll) => {
