@@ -6,7 +6,7 @@ import { game } from "./ctx.js";
 import { el, sheet } from "./kit.js";
 import { ELEMENTS } from "../dungeons/index.js";
 import { SPELLS } from "../combat.js";
-import { ATTR_LABEL, SOUL_CLASSES, dollBust } from "../souls.js";
+import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
 import { WEAPON_CAT_LABEL, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip } from "../items.js";
 import { HERO, spriteCanvas, crispCanvas } from "../sprites.js";
 
@@ -112,6 +112,32 @@ export function showSkillPopup(key) {
   body.appendChild(box);
   return sheet.open({
     kind: "info", banner: "スキル", accent, title: sp.name, titleColor: accent, body,
+    className: "ui-skill-sheet",
+    footer: [{ label: "閉じる", kind: "primary", onTap: (h) => h.close() }],
+  });
+}
+
+// 加護 (パッシブ) の詳細。key+lv か、表示名 (「戦闘後回復Lv1」) で開く
+export function showPassivePopup(keyOrName, lv) {
+  let key = keyOrName;
+  if (!PASSIVES[key]) {
+    const hit = passiveByName(keyOrName);
+    if (!hit) return null;
+    key = hit.key; lv = hit.lv;
+  }
+  const def = PASSIVES[key];
+  const cur = Math.max(1, Math.min(lv || 1, def.lv.length));
+  const accent = "#c9a227";
+  const body = el("div", "ui-skill");
+  body.appendChild(el("div", "sk-mp", def.scope === "party" ? "常に働く力 ― パーティ全体に効く" : "常に働く力 ― 自分にだけ効く"));
+  body.appendChild(el("div", "ig-desc", def.lv[cur - 1] || ""));
+  if (def.lv.length > 1) {
+    const box = el("div", "sk-lines");
+    def.lv.forEach((d, i) => box.appendChild(el("div", "sk-line" + (i + 1 === cur ? " on" : ""), `${i + 1 === cur ? "▶" : "・"} Lv${i + 1}: ${d}`)));
+    body.appendChild(box);
+  }
+  return sheet.open({
+    kind: "info", banner: "加護", accent, title: passiveName(key, cur), titleColor: accent, body,
     className: "ui-skill-sheet",
     footer: [{ label: "閉じる", kind: "primary", onTap: (h) => h.close() }],
   });

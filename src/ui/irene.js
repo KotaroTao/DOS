@@ -312,8 +312,12 @@ const LINES = [
     say: ["水路へ降りるのね。", "湿気は木の器の大敵よ。帰ったら、よく乾かしてあげて。"] },
   { id: "h_sewer", kind: "hint", bond: 2, when: (c) => c.act >= 6 && c.act <= 10 && !c.sealed,
     say: ["水路の魔物は、たいてい水の気を帯びているわ。", "土は水を堰き止める。土の加護を帯びた品なら、牙も鈍るし、刃も通りやすいはずよ。"] },
-  { id: "c_layer3", kind: "chat", bond: 2, when: (c) => c.act >= 11 && !c.sealed,
+  { id: "c_layer3", kind: "chat", bond: 2, fresh: true, when: (c) => c.act >= 11 && !c.sealed,
     say: ["廃坑の石の匂いがするわ。", "地の底の闇は、魂の灯をいちばん欲しがるの。"] },
+  { id: "h_mine", kind: "hint", bond: 2, when: (c) => c.act >= 11 && c.act <= 15 && !c.sealed,
+    say: ["廃坑の魔物は、ほとんどが土の気を帯びているわ。", "風は土を削るもの。風の加護を帯びた品なら、岩の殻も砕けるし、岩の拳も逸らせるはずよ。"] },
+  { id: "c_convict", kind: "chat", bond: 2, when: (c) => c.act >= 12 && c.act <= 15 && !c.sealed,
+    say: ["坑道で鎖に繋がれたまま死んだ人たちがいるのね。", "……器に縛られた魂と、どこが違うのかしら。いいえ、なんでもないわ。"] },
   { id: "c_layer4", kind: "chat", bond: 2, when: (c) => c.act >= 16 && !c.sealed,
     say: ["捨て砦には、器に宿り損ねた魂が溜まっているそうよ。", "……かわいそうに。いつか、連れて帰ってあげて。"] },
 

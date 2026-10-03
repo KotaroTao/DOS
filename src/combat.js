@@ -801,6 +801,7 @@ export class Battle {
       const key = actor.summonKey;
       if (key && MONSTERS[key] && this.livingEnemies().length < MAX_ENEMIES) {
         const e = makeEnemy(key, actor._scale || 1);
+        if (actor._agiMul) { e._agiMul = actor._agiMul; e.agi = Math.max(1, Math.round(e.agi * actor._agiMul)); }
         // ロード復元後の uid 重複を防ぐ (uid カウンタはリロードでリセットされる)
         e.uid = [...this.party, ...this.enemies].reduce((mx, x) => Math.max(mx, x.uid || 0), 0) + 1;
         e.buffs = { atk: 1, vit: 1, agi: 1 }; e.effects = [];
