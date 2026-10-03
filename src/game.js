@@ -5572,6 +5572,7 @@ function closePrompt() {
 
 // 階段: 降りるか選ぶ。最深階の階段は、層末迷宮では層ボスへの扉、それ以外では踏破口。
 function askDescend(cell) {
+  const stay = () => renderBoard(); // 枠外をタップ・戻る = 「まだ探索する」 (帰還魔法陣と同じ)
   // 奈落: 最深部の概念がなく、ひたすら深く潜る。10階ごとに門番が立ちはだかる。
   if (abyssActive()) {
     if (abyssBossPending()) {
@@ -5582,7 +5583,7 @@ function askDescend(cell) {
           { label: "まだ準備する", cancel: true, fn: () => { renderBoard(); } },
         ],
         ICONS.stairs,
-        { banner: "⚠ 奈落の門番 ⚠", accent: "#d4504e" }
+        { banner: "⚠ 奈落の門番 ⚠", accent: "#d4504e", onDismiss: stay }
       );
       return;
     }
@@ -5593,7 +5594,7 @@ function askDescend(cell) {
         { label: "まだ探索する", fn: () => { renderBoard(); } },
       ],
       ICONS.stairs,
-      { banner: "✦ 奈落 ✦", accent: "#b08ac0" }
+      { banner: "✦ 奈落 ✦", accent: "#b08ac0", onDismiss: stay }
     );
     return;
   }
@@ -5608,7 +5609,7 @@ function askDescend(cell) {
         { label: "まだ探索する", fn: () => { renderBoard(); } },
       ],
       ICONS.stairs,
-      { banner: "★ 踏破済み ★", accent: "#ffd84a", lines: ["下の「帰還」からも、いつでも凱旋できる。"] }
+      { banner: "★ 踏破済み ★", accent: "#ffd84a", lines: ["下の「帰還」からも、いつでも凱旋できる。"], onDismiss: stay }
     );
     return;
   }
@@ -5629,7 +5630,7 @@ function askDescend(cell) {
       { label: "まだ探索する", fn: () => { renderBoard(); } },
     ],
     ICONS.stairs,
-    { banner, accent, lines }
+    { banner, accent, lines, onDismiss: stay }
   );
 }
 
