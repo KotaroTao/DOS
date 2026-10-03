@@ -23,12 +23,13 @@ const G = () => game.G;
 
 // ---------- 次にすべきこと (提案) ----------
 // 提案: { key, prio, label, short?, sub?, cost?:{kind,n}, icon?:"gold"|"soul"|"red"|svgKey, tone?, run(), hold?() }
-// prio が小さいほど先 (勅命 0 > 砕けた人業 10 > 手負い 20 > 未鑑定 30 > 売れる品 40 > より良い装備 50 > 魂融合 55 > 鍛錬 60 > 勲章 70 > 奉納 80)
+// prio が小さいほど先 (砕けた人業 -2 > 連れ帰り -1 > 勅命 0 > 手負い 20 > 未鑑定 30 > 売れる品 40 > より良い装備 50 > 魂融合 55 > 鍛錬 60 > 勲章 70 > 奉納 80)
 // 札は3列に並ぶので label は短く (5字ほど。長い時は3枚並びで使う short を添える)、詳しくは sub に
 const extra = []; // 他のパッケージが登録した提案の源 (fn(counts) → 提案 | 提案[] | null)
 export function registerSuggestion(fn) { if (typeof fn === "function" && !extra.includes(fn)) extra.push(fn); }
 // 帰還の報告の札が受け持つ操作 (報告がある間は「次にすべきこと」に重ねて出さない)
-const REPORT_KEYS = new Set(["repair", "hasten", "rest", "identify", "sell", "autoEquip"]);
+// 砕けた人業の修復・連れ帰りは最優先なので、報告があっても「次にすべきこと」の先頭に出す
+const REPORT_KEYS = new Set(["rest", "identify", "sell", "autoEquip"]);
 
 function confirmThen({ banner, title, lines, okLabel, run }) {
   if (!UI.confirm) return run();
@@ -39,17 +40,17 @@ function builtinSuggestions(c) {
   const g = G();
   const out = [];
   if (!c) return out;
-  // 砕けた人業 (街にある器): 人業の館で砕けた魂を修復する (館を開き、砕けた人業を選んだ状態にする)
+  // 砕けた人業 (街にある器): 人業の館で砕けた魂を修復する (館を開き、砕けた人業を選んだ状態にする)。何よりも先に出す
   if (c.repairable) {
     const all = game.allDolls ? game.allDolls() : (g.party || []);
     const d = all.find((x) => x && x.isDoll && !x.alive && !x.reviveAt) || null;
-    out.push({ key: "repair", prio: 10, label: "魂を修復", sub: `砕けた人業 ${c.repairable}`, cost: { kind: "gold", n: c.repairCost || 0 }, tone: "red", icon: "red",
+    out.push({ key: "repair", prio: -2, label: "魂を修復", sub: `砕けた人業 ${c.repairable}`, cost: { kind: "gold", n: c.repairCost || 0 }, tone: "red", icon: "red",
       run: () => { if (UI.openParty) UI.openParty(d, { context: "town" }); } });
   }
   // 全滅で迷宮に残された器: 赤い魂で今すぐ連れ帰る (確認のシート)
   if (c.rescuing && c.hastenCost > 0 && g.redSoul >= 1) {
     const pay = Math.min(c.hastenCost, g.redSoul);
-    out.push({ key: "hasten", prio: 11, label: "連れ帰る", sub: `連れ帰り待ち ${c.rescuing}`, cost: { kind: "red", n: pay }, tone: "red", icon: "red",
+    out.push({ key: "hasten", prio: -1, label: "連れ帰る", sub: `連れ帰り待ち ${c.rescuing}`, cost: { kind: "red", n: pay }, tone: "red", icon: "red",
       run: () => confirmThen({ banner: "今すぐ連れ帰る", title: `赤い魂 ${pay} を捧げ、迷宮に残された人業を連れ帰りますか？`,
         lines: [c.hastenCost > g.redSoul ? `全員の連れ帰りには 🔴${c.hastenCost} が要る。足りる分だけ早める。` : "1つにつき連れ帰りまでの時間を20分縮める (押す回数ぶんと同じ値段)。", "届いた器は、館で金貨を払って修復する。"],
         okLabel: "連れ帰る", run: () => ops.hastenAll() }) });

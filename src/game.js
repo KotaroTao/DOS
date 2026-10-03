@@ -10547,13 +10547,37 @@ function campApplyAlive(caster, sp, t) {
 }
 
 // ---- 全員を回復 (隊の画面の「全員を回復」) ----
-// 傷ついた・状態異常の仲間 (生きている者) が全回復するまで回復呪文を唱える。倒れた仲間は対象外。
-//  - 呪文の組み合わせは、全回復までの総消費 MP が最も少なくなるものを選ぶ (planHealAllDP)。
+// 倒れた・傷ついた・状態異常の仲間が全回復するまで回復呪文を唱える。
+//  - 倒れた仲間は、蘇生の呪文を唱えられる者がいれば真っ先に起こす (1人あたりの MP が最も軽い呪文から)
+//  - 生きている仲間の全回復は、総消費 MP が最も少なくなる組み合わせを選ぶ (planHealAllDP)。
 //    回復量は最低値で見積もる = 実際は必ず足りる。1回唱えるごとに実際の回復量で見積もり直し、揺らぎで多く癒えた分は節約する
 //  - 1回ごとに、その呪文を唱えられる者のうち「いま MP の最も多い者」が唱える
-//  - 全回復に MP が足りなければ何も唱えず「MPが足りない！」
+//  - 全回復に MP が足りなければ、回復できるところまで回復する。優先は 死亡 > 状態異常 > HP
+//    (蘇生 → 状態異常の治療 → 1MP あたりの回復量が大きい呪文から HP を癒す)
 function healAllNeed() {
-  return G.party.some((t) => t.alive && (t.hp < t.maxhp || t.ailment));
+  if (G.party.some((t) => t.alive && (t.hp < t.maxhp || t.ailment))) return true;
+  return G.party.some((t) => !t.alive) && healAllRevivers().length > 0;
+}
+// 倒れた者を起こせる呪文を持つ術者 (生きている者) と、その呪文
+function healAllRevivers() {
+  const out = [];
+  for (const p of G.party) {
+    if (!p.alive) continue;
+    const acts = [];
+    for (const key of campSpellsOf(p)) {
+      const sp = SPELLS[key];
+      if (sp.revive) acts.push({ key, sp, cost: spellCost(p, sp), all: sp.target === "all-ally" });
+    }
+    if (acts.length) out.push({ p, acts });
+  }
+  return out;
+}
+// 倒れた1体を呪文で起こす (campCast と同じ蘇生量)
+function campRevive(caster, sp, t) {
+  const heal = sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : Math.max(1, campHealPower(caster, sp));
+  t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false;
+  t.hp = Math.max(1, Math.min(t.maxhp, heal));
+  log(`${sp.name}！ ${t.name}が蘇った (HP ${t.hp})`, "heal");
 }
 // 回復・治療に使える呪文を持つ術者 (生きている者) と、その呪文 (実効MP・最低回復量)
 function healAllCasters() {
@@ -10691,45 +10715,120 @@ function planHealAllGreedy(def0, ail0, casters) {
   return done() ? out : null;
 }
 function healAll() {
-  const targets = G.party.filter((t) => t.alive);
   const fail = (msg, tone = "info") => { log(msg, "sys"); showToast(msg, { tone }); SFX.miss(); };
-  if (!healAllNeed()) return fail("パーティは皆、傷も穢れもない");
-  const casters = healAllCasters();
-  if (!casters.length) return fail("回復魔法を使える者がいない");
-  const def = targets.map((t) => Math.max(0, t.maxhp - t.hp));
-  const ail = targets.map((t) => !!t.ailment);
-  if (ail.some(Boolean) && !casters.some((c) => c.acts.some((a) => a.cures))) return fail("状態異常を治す呪文を使える者がいない");
-  if (def.some((d) => d > 0) && !casters.some((c) => c.acts.some((a) => a.heals))) return fail("傷を癒す呪文を使える者がいない");
+  if (!healAllNeed()) {
+    if (G.party.some((t) => !t.alive)) return fail("倒れた仲間を蘇らせる呪文を使える者がいない");
+    return fail("パーティは皆、傷も穢れもない");
+  }
+  if (!healAllCasters().length && !healAllRevivers().length) return fail("回復魔法を使える者がいない");
+  const used = new Map(); // 術者 → { 呪文名 → 回数 }
+  let total = 0;
+  // 1回唱える (all = 全体呪文は生死を問わず効く者全員へ、そうでなければ t の1人へ)
+  const cast = (caster, sp, cost, t) => {
+    log(`${caster.name}は${sp.name}を唱えた`, "sys");
+    const hit = t ? [t] : G.party.filter((x) => x.alive || sp.revive);
+    for (const x of hit) {
+      if (!x.alive) campRevive(caster, sp, x);
+      else campApplyAlive(caster, sp, x);
+    }
+    caster.mp -= cost;
+    total += cost;
+    if (!used.has(caster)) used.set(caster, new Map());
+    const m = used.get(caster);
+    m.set(sp.name, (m.get(sp.name) || 0) + 1);
+  };
+  // その手を唱えられる者のうち、いま MP の最も多い者 (同じ呪文でも人により実効 MP が違う)
+  const bestOf = (list, ok) => {
+    let pick = null;
+    for (const c of list) for (const a of c.acts) {
+      if (a.cost > c.p.mp || !ok(a)) continue;
+      const v = ok(a);
+      if (!pick || v > pick.v || (v === pick.v && c.p.mp > pick.c.p.mp)) pick = { c, a, v };
+    }
+    return pick;
+  };
+
+  // 1) 死亡: 起こせる人数あたりの MP が最も軽い蘇生呪文から (同じなら蘇生後の HP が多い方)
+  for (let guard = 0; guard < 50; guard++) {
+    const dead = G.party.filter((t) => !t.alive);
+    if (!dead.length) break;
+    const pick = bestOf(healAllRevivers(), (a) => (a.all ? dead.length : 1) / a.cost + (a.sp.revivePct || 0) * HEAL_CAST_EPS);
+    if (!pick) break;
+    // 単体は回復呪文の使い手を先に (起きればその者も唱える側に回る)、次に HP の大きい者
+    const healer = (x) => (campSpellsOf(x).length ? 1 : 0);
+    const t = pick.a.all ? null : dead.slice().sort((x, y) => healer(y) - healer(x) || (y.maxhp || 0) - (x.maxhp || 0))[0];
+    cast(pick.c.p, pick.a.sp, pick.a.cost, t);
+  }
+
+  // 2) 生きている者の全回復: 総消費 MP の最も少ない組み合わせ (足りれば、ここで全員が全快する)
+  const casters = healAllCasters(); // 蘇った術者も唱える側に入る
+  const targets = G.party.filter((t) => t.alive);
   const planFrom = () => {
     const d = targets.map((t) => Math.max(0, t.maxhp - t.hp)), a = targets.map((t) => !!t.ailment);
+    if (a.some(Boolean) && !casters.some((c) => c.acts.some((x) => x.cures))) return null;
+    if (d.some((v) => v > 0) && !casters.some((c) => c.acts.some((x) => x.heals))) return null;
     const plan = planHealAllDP(d, a, casters);
     return (plan && assignHealCasters(plan.steps, casters)) || planHealAllGreedy(d, a, casters);
   };
-  let steps = planFrom();
-  if (!steps) return fail("MPが足りない！", "bad");
-  // 1回ずつ唱え、残りは実際の回復量で見積もり直す (揺らぎで多く癒えた分の MP を節約する)
-  const used = new Map(); // 術者 → { 呪文名 → 回数 }
-  let total = 0;
+  let steps = casters.length && healAllNeed() ? planFrom() : null;
   for (let guard = 0; steps && steps.length && guard < 300; guard++) {
     const { ci, a, t } = steps[0];
-    const hit = targets.filter((x, i) => (t < 0 || t === i) && ((a.heals && x.hp < x.maxhp) || (a.cures && x.ailment)));
     const caster = casters[ci].p;
+    const hit = targets.filter((x, i) => (t < 0 || t === i) && ((a.heals && x.hp < x.maxhp) || (a.cures && x.ailment)));
     if (!hit.length || caster.mp < a.cost) break;
-    log(`${caster.name}は${a.sp.name}を唱えた`, "sys");
-    for (const x of hit) campApplyAlive(caster, a.sp, x);
-    caster.mp -= a.cost;
-    total += a.cost;
-    if (!used.has(caster)) used.set(caster, new Map());
-    const m = used.get(caster);
-    m.set(a.sp.name, (m.get(a.sp.name) || 0) + 1);
-    if (!healAllNeed()) break;
+    cast(caster, a.sp, a.cost, t < 0 ? null : targets[t]);
+    if (!targets.some((x) => x.hp < x.maxhp || x.ailment)) break;
     steps = planFrom();
+  }
+
+  // 3) 全快に MP が足りない: 回復できるところまで。状態異常の治療 → HP
+  //  治療: 治せる人数あたりの MP が最も軽い呪文から (同じなら回復量の多い方)
+  for (let guard = 0; guard < 100; guard++) {
+    const ill = targets.filter((x) => x.alive && x.ailment);
+    if (!ill.length) break;
+    const pick = bestOf(casters, (a) => a.cures && ((a.all ? ill.length : 1) / a.cost + a.pow * HEAL_CAST_EPS * 1e-3));
+    if (!pick) break;
+    const t = pick.a.all ? null : ill.slice().sort((x, y) => x.hp / x.maxhp - y.hp / y.maxhp)[0];
+    cast(pick.c.p, pick.a.sp, pick.a.cost, t);
+  }
+  //  HP: 1MP あたりの見込み回復量 (最低値・満タンを超える分は数えない) が最も大きい手から。単体は最も深手の者へ
+  for (let guard = 0; guard < 300; guard++) {
+    const hurt = targets.filter((x) => x.alive && x.hp < x.maxhp);
+    if (!hurt.length) break;
+    let pick = null;
+    for (const c of casters) for (const a of c.acts) {
+      if (!a.heals || a.cost > c.p.mp) continue;
+      let gain, t = null;
+      if (a.all) gain = hurt.reduce((n, x) => n + Math.min(x.maxhp - x.hp, a.pow), 0);
+      else {
+        t = hurt.slice().sort((x, y) => Math.min(y.maxhp - y.hp, a.pow) - Math.min(x.maxhp - x.hp, a.pow) || x.hp / x.maxhp - y.hp / y.maxhp)[0];
+        gain = Math.min(t.maxhp - t.hp, a.pow);
+      }
+      if (gain <= 0) continue;
+      const v = gain / a.cost;
+      if (!pick || v > pick.v || (v === pick.v && (gain > pick.gain || (gain === pick.gain && c.p.mp > pick.c.p.mp)))) pick = { c, a, t, v, gain };
+    }
+    if (!pick) break;
+    cast(pick.c.p, pick.a.sp, pick.a.cost, pick.t);
+  }
+
+  if (!total) {
+    const ill = targets.some((x) => x.ailment), hurt = targets.some((x) => x.hp < x.maxhp);
+    const canCure = casters.some((c) => c.acts.some((a) => a.cures)), canHeal = casters.some((c) => c.acts.some((a) => a.heals));
+    if (ill && !canCure && !(hurt && canHeal)) return fail("状態異常を治す呪文を使える者がいない");
+    if (hurt && !canHeal && !(ill && canCure)) return fail("傷を癒す呪文を使える者がいない");
+    return fail("MPが足りない！", "bad");
   }
   SFX.heal(); buzz(15); renderStatus(); renderParty();
   const parts = [];
   for (const [p, m] of used) parts.push(`${p.name} ${[...m].map(([k, c]) => c > 1 ? `${k}×${c}` : k).join("・")}`);
-  if (healAllNeed()) showToast(`回復しきれなかった (消費MP ${total}) ― ${parts.join(" / ")}`, { tone: "bad" });
-  else showToast(`全員を回復した (消費MP ${total}) ― ${parts.join(" / ")}`, { tone: "good" });
+  const dead = G.party.filter((t) => !t.alive).length;
+  const ill = G.party.filter((t) => t.alive && t.ailment).length;
+  const hurt = G.party.filter((t) => t.alive && t.hp < t.maxhp).length;
+  if (dead || ill || hurt) {
+    const left = [dead && `倒れたまま${dead}`, ill && `状態異常${ill}`, hurt && `手負い${hurt}`].filter(Boolean).join("・");
+    showToast(`回復できるところまで回復した (消費MP ${total} / 残り ${left}) ― ${parts.join(" / ")}`, { tone: "bad" });
+  } else showToast(`全員を回復した (消費MP ${total}) ― ${parts.join(" / ")}`, { tone: "good" });
 }
 
 // 戦闘外で回復系呪文を唱える。対象の味方を選び (1人ならそのまま)、HP回復/蘇生/状態異常治療を行う。
@@ -10740,7 +10839,6 @@ function campCast(caster, spellKey) {
   if (caster.mp < cost) { log("MPが足りない。", "sys"); showToast(`MPが足りない (MP ${caster.mp}/${cost})`, { tone: "bad" }); SFX.miss(); return; }
   const cures = spellCures(sp);     // 毒・麻痺・石化を治す
   const heals = spellHeals(sp);     // HP回復量を持つ
-  const powerOf = () => campHealPower(caster, sp);
   const noTargetMsg = () => {
     if (heals && cures) return `${sp.name}: 傷つき・状態異常の仲間がいない`;
     if (cures) return `${sp.name}: 状態異常の仲間がいない`;
@@ -10751,10 +10849,7 @@ function campCast(caster, spellKey) {
   const applyTo = (t) => {
     if (!t.alive) {
       if (!sp.revive) return false;
-      const heal = sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : Math.max(1, powerOf());
-      t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false;
-      t.hp = Math.max(1, Math.min(t.maxhp, heal));
-      log(`${sp.name}！ ${t.name}が蘇った (HP ${t.hp})`, "heal");
+      campRevive(caster, sp, t);
       return true;
     }
     return campApplyAlive(caster, sp, t);
