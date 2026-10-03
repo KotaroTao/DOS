@@ -514,12 +514,12 @@ function buzz(p) {
 // 端末ごとの好み (音量・振動)。セーブデータとは別に保存し、「はじめから」でも消えない
 const PREFS_KEY = "dos-prefs";
 const PREFS = (() => {
-  const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false, fastWalk: false };
+  const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false, fastWalk: true };
   try { return { ...d, ...(JSON.parse(localStorage.getItem(PREFS_KEY)) || {}) }; } catch { return d; }
 })();
 function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(PREFS)); } catch {} }
-// 迷宮内の移動 (めくり・1歩のスライド・自動歩行の間) の時間。設定「移動 倍速」で半分になる
-const walkMs = (ms) => (PREFS.fastWalk ? Math.round(ms / 2) : ms);
+// 迷宮内の移動 (めくり・1歩のスライド・自動歩行の間) の時間。ms は倍速の値、設定「移動 倍速」を切ると倍の時間 (速さ 1/2)
+const walkMs = (ms) => (PREFS.fastWalk ? ms : ms * 2);
 setVolumes(PREFS.bgm, PREFS.sfx);
 
 // ---- 潜入中の戦利品トラッキング (全滅ペナルティ / Red Soul帰還で使う) ----
