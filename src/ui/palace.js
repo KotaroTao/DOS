@@ -16,7 +16,7 @@ import { remember } from "./prefs.js";
 import { softFade } from "./motion.js";
 import { statLines, itemCatText, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, MON_REVEAL, monKills, revealLock } from "./itemview.js";
 import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
-import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, LORE_PAGES } from "../events.js";
+import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LORE_PAGES } from "../events.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, itemName } from "../items.js";
 import { RANK_COLOR, RANK_NAME } from "../content.js";
 import { DUNGEONS, ELEMENTS, RACE_LABEL, monsterTraits, isFloating } from "../dungeons/index.js";
@@ -138,7 +138,7 @@ function freshCounts() {
   return { mon, item, job, ev, total: mon + item + job + ev };
 }
 // 見聞録 (迷宮の出来事) の記録と新着
-function evRec() { const g = G(); return (g && g.events) || { seen: {}, picks: {}, fresh: {}, flags: {} }; }
+function evRec() { const g = G(); return (g && g.events) || { seen: {}, picks: {}, fresh: {}, flags: {}, once: {} }; }
 function evFresh() { const f = evRec().fresh; return f && typeof f === "object" ? f : {}; }
 const isFreshEv = (id) => !!(evFresh()[id] && EVENT_MAP[id]);
 function markSeenEv(id, card) {
@@ -338,8 +338,14 @@ export function codexEventSheet(id) {
   try { intro = e.intro(EV_STUB, {}) || []; } catch (err) { intro = []; }
   for (const ln of intro) body.appendChild(setText(el("div", "pl-detail-desc"), ln));
   body.appendChild(infoBlock("現れる所", [pairRow(eventWhereText(e))]));
-  const picks = Object.entries((rec.picks && rec.picks[id]) || {});
-  body.appendChild(infoBlock("選んだ道", picks.length ? picks.map(([k, n]) => pairRow(k, `${n}回`)) : [pairRow("まだ選んだことはない", null, { dim: true })]));
+  if (e.gift) {
+    // 極: 選択肢は無く、踏めば恒久の恵みを授かる
+    const got = !!(rec.once && rec.once[onceKey(e, e.layer)]);
+    body.appendChild(infoBlock("恒久の恵み", [pairRow(e.boon, got ? "授かった" : "まだ", { dim: !got })]));
+  } else {
+    const picks = Object.entries((rec.picks && rec.picks[id]) || {});
+    body.appendChild(infoBlock("選んだ道", picks.length ? picks.map(([k, n]) => pairRow(k, `${n}回`)) : [pairRow("まだ選んだことはない", null, { dim: true })]));
+  }
   // 操霊師の遺書: 読んだページ
   if (id === "c30") {
     const lore = (rec.flags && rec.flags.lore) || {};

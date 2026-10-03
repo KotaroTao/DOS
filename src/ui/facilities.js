@@ -372,12 +372,12 @@ function renderTavern(root) {
   if (!qs.length) dl.appendChild(el("div", "wa-empty", "今は納品依頼がない。迷宮に潜れば、新たな品が求められる。"));
   wrap.appendChild(dl);
 
-  // 2) 酒場の噂話 (15迷宮踏破で情報屋が動く)
+  // 2) 酒場の噂話 (15迷宮の踏破報告で情報屋が動く)
   wrap.appendChild(sectionHead("酒場の噂話"));
   const rumorOpen = game.featureUnlocked && game.featureUnlocked("rumor");
   if (!rumorOpen) {
-    const c = game.clearedDungeonCount ? game.clearedDungeonCount() : 0;
-    wrap.appendChild(lockedRow("まだ噂は回ってこない", `情報屋が腰を上げるのは、名の知れた操霊師が現れてから (15迷宮の踏破・いま ${c})。`));
+    const c = game.reportedDungeonCount ? game.reportedDungeonCount() : 0;
+    wrap.appendChild(lockedRow("まだ噂は回ってこない", `情報屋が腰を上げるのは、名の知れた操霊師が現れてから (15迷宮の踏破を王に報告・いま ${c})。`));
   } else if (g.rumor) {
     const rb = el("div", "fc-rumor");
     rb.appendChild(setText(el("div", "fc-rumor-s"), `— ${g.rumor.speaker} —`));
