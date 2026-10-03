@@ -13,7 +13,7 @@ import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, bar, autoPage, badge } from "./kit.js";
 import { remember } from "./prefs.js";
 import { softFade } from "./motion.js";
-import { statLines, itemCatText, showSkillPopup, showPassivePopup } from "./itemview.js";
+import { statLines, itemCatText, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds } from "./itemview.js";
 import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
 import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, LORE_PAGES } from "../events.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, itemName } from "../items.js";
@@ -375,10 +375,13 @@ function infoBlock(title, rows) {
   for (const r of rows) b.appendChild(r.nodeType ? r : setText(el("div", "pl-info-r"), r));
   return b;
 }
-function pairRow(name, desc, { dim = false, onTap = null } = {}) {
+function pairRow(name, desc, { dim = false, onTap = null, tags = null } = {}) {
   const r = el(onTap ? "button" : "div", "pl-pair" + (dim ? " dim" : "") + (onTap ? " tap" : ""));
   if (onTap) { r.type = "button"; r.addEventListener("click", onTap); }
-  r.appendChild(setText(el("span", "pl-pair-n"), name));
+  const n = setText(el("span", "pl-pair-n"), name);
+  const tg = tags && tagRow(tags);
+  if (tg) n.appendChild(tg);
+  r.appendChild(n);
   if (desc) r.appendChild(setText(el("span", "pl-pair-d"), desc));
   return r;
 }
@@ -398,10 +401,12 @@ export function codexMonSheet(key) {
   tag.appendChild(el("span", "pl-tag", `討伐 ${e.kills || 0}`));
   if (m.boss) tag.appendChild(el("span", "pl-tag gold", "迷宮の主"));
   body.appendChild(tag);
+  const aff = affinityRow(m.element, "pl-aff");
+  if (aff) body.appendChild(aff);
   if (m.desc) body.appendChild(setText(el("div", "pl-detail-desc"), m.desc));
   body.appendChild(setText(el("div", "pl-detail-stats"), `HP ${m.maxhp}　ATK ${m.atk}　VIT ${m.def}　AGI ${m.spd}　✦${m.soul}　💰${m.gold}`));
   const traits = monsterTraits(m);
-  body.appendChild(infoBlock("特徴・スキル", traits.length ? traits.map((t) => pairRow(t.label, t.desc)) : [pairRow("特筆すべき特徴はない", null, { dim: true })]));
+  body.appendChild(infoBlock("特徴・スキル", traits.length ? traits.map((t) => pairRow(t.label, t.desc, { tags: traitTagKinds(t.key, m.element) })) : [pairRow("特筆すべき特徴はない", null, { dim: true })]));
   const idxs = Object.keys(e.dungeons || {}).map(Number).filter((i) => DUNGEONS[i]);
   body.appendChild(infoBlock("出現した迷宮", idxs.length ? idxs.map((i) => pairRow(DUNGEONS[i].name)) : [pairRow("記録なし", null, { dim: true })]));
   return sheet.open({
@@ -531,7 +536,7 @@ export function codexJobSheet(key, rank, heading) {
       rows.push(reached >= e.lvl ? pairRow(`${lv} ${passiveName(e.passive, e.plv || 1)}`, `[パッシブ] ${passiveDesc(e.passive, e.plv || 1)}`, { onTap: () => showPassivePopup(e.passive, e.plv || 1) }) : pairRow(`${lv} ？？？`, null, { dim: true }));
     } else {
       const sp = SPELLS[e.skill];
-      rows.push(reached >= e.lvl && sp ? pairRow(`${lv} ${sp.name}`, `${sp.desc} (MP${sp.mp})`, { onTap: () => showSkillPopup(e.skill) }) : pairRow(`${lv} ？？？`, null, { dim: true }));
+      rows.push(reached >= e.lvl && sp ? pairRow(`${lv} ${sp.name}`, `${sp.desc} (MP${sp.mp})`, { onTap: () => showSkillPopup(e.skill), tags: spellTagKinds(sp) }) : pairRow(`${lv} ？？？`, null, { dim: true }));
     }
   }
   body.appendChild(infoBlock("技", rows.length ? rows : [pairRow("—", null, { dim: true })]));

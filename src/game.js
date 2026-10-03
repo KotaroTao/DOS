@@ -39,7 +39,7 @@ import { el, btn, button as kitButton, longPress as attachLongPress, uiBlocked, 
 import { nav } from "./ui/nav.js";
 import * as townshell from "./ui/townshell.js";
 import { showSkillPopup,
-  SPELL_KIND_COLOR, isEquippable, equipPreviewDelta, equipCompareEl, detailLines,
+  SPELL_KIND_COLOR, tagRow, spellTagKinds, isEquippable, equipPreviewDelta, equipCompareEl, detailLines,
   equipClassText, equipPartyChips, gearScore,
 } from "./ui/itemview.js";
 import * as uiHub from "./ui/hub.js";
@@ -7166,6 +7166,8 @@ function renderCombatMenu() {
       const locked = skillLocked(actor, quick);
       const qb = cmdBtn("quick", sp.name, `MP ${spellCost(actor, sp)}`, () => { if (locked) { SFX.ng(); showToast(actor.mp < spellCost(actor, sp) ? "MPが足りない" : "効果のある対象がいない", { tone: "info" }); return; } act("spell", quick); }, "cmd-quick" + (locked ? " locked" : ""));
       qb.style.setProperty("--sp-col", SPELL_KIND_COLOR[sp.kind] || "#c9a24a");
+      const qs = qb.querySelector(".cmd-s"), qt = tagRow(spellTagKinds(sp, actor), "sp-tags");
+      if (qs && qt) qs.appendChild(qt);
       attachLongPress(qb, () => { SFX.select(); showSkillPopup(quick); });
       main.appendChild(qb);
     }
@@ -7222,6 +7224,8 @@ function showSpells(actor) {
     b.className = "btn spell spell-" + (sp.kind || "atk") + (key === quick ? " last" : "");
     const top = el("span", "sp-top");
     top.appendChild(el("span", "sp-n", sp.name));
+    const tg = tagRow(spellTagKinds(sp, actor), "sp-tags");
+    if (tg) top.appendChild(tg);
     top.appendChild(el("span", "sp-mp", `MP${cost}`));
     b.appendChild(top);
     b.appendChild(el("span", "sp-d", sp.desc));

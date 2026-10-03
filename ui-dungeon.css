@@ -154,10 +154,14 @@
 .dg-stat-v { font-size: 16px; font-weight: 800; color: var(--accent-hi); font-variant-numeric: tabular-nums; }
 .dg-enemy .ui-sheet-body { text-align: center; }
 .dg-en-meta { font-size: 12.5px; color: #b2a68f; letter-spacing: 0.1em; }
+.dg-en-elem { display: flex; justify-content: center; }
+.dg-en-elem .ui-tag { font-size: 13px; }
 .dg-traits { display: grid; gap: 6px; text-align: left; }
-.dg-trait { display: flex; gap: 10px; align-items: baseline; padding: 8px 10px; border: 1px solid #33292a; border-left: 3px solid #a8231c; border-radius: 3px; background: var(--grain), var(--plate); }
-.dg-trait b { flex: 0 0 auto; min-width: 4.5em; font-size: 13px; color: #ffb4a0; }
-.dg-trait span { font-size: 12.5px; color: #cfc4ab; line-height: 1.5; }
+.dg-trait { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid #33292a; border-left: 3px solid #a8231c; border-radius: 3px; background: var(--grain), var(--plate); }
+.dg-trait-h { flex: 0 0 auto; min-width: 5.2em; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.dg-trait b { font-size: 13px; color: #ffb4a0; }
+.dg-trait > span { font-size: 12.5px; color: #cfc4ab; line-height: 1.5; }
+.dg-enemy .ui-affinity { margin: 8px 0 2px; }
 .dg-en-desc { margin: 10px 2px 2px; font-size: 12px; line-height: 1.75; color: #9a8e78; text-align: left; }
 
 /* ===================== 出撃シート ===================== */
@@ -414,3 +418,9 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 .rr-head .rr-more { flex: 0 0 auto; width: auto; min-width: 56px; min-height: 44px; margin: -8px -2px 0 0; justify-content: center; }
 .rr-acts { margin-bottom: 2px; }
 .rr-card { padding-bottom: 10px; }
+
+/* スキルの種別・属性の札 (戦闘のスキル一覧・早出しボタン) */
+#combat-menu .sp-tags { margin-left: auto; }
+#combat-menu .sp-tags .ui-tag { font-size: 9.5px; }
+#combat-menu .cmd-s .sp-tags { margin-left: 4px; }
+#combat-menu .cmd-s .sp-tags .ui-tag { font-size: 8.5px; }

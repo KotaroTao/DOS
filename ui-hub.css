@@ -471,6 +471,8 @@
 .pl-info-h + .pl-pair { border-top: 0; }
 .pl-pair.tap { min-height: 44px; cursor: pointer; }
 .pl-pair-n { font-size: 12.5px; font-weight: 700; }
+.pl-pair-n .ui-tags { margin-left: 8px; }
+.pl-detail .pl-aff { margin: 8px 0 2px; }
 .pl-pair-d { font-size: 11.5px; color: var(--ink-dim); line-height: 1.55; }
 .pl-pair.dim .pl-pair-n { color: var(--ink-faint); font-weight: 500; }
 

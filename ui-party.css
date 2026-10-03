@@ -526,6 +526,7 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
   font-size: 13px; font-weight: 700; color: #e6dbc2; background: var(--grain), var(--plate-hi); border: 1px solid #4a3d36; border-radius: 2px; cursor: pointer;
 }
 .pt-skill-c { font-size: 11px; font-weight: 500; color: #8fb6ff; }
+.pt-skill-tags .ui-tag { font-size: 9px; }
 .pt-skill.pas { font-weight: 500; font-size: 12px; color: #cdbf9f; background: rgba(10,8,11,0.5); border-color: #33292a; }
 .pt-codex { min-height: 52px; }
 
