@@ -53,9 +53,10 @@ export function build() {
   const ogre = Sub(Disp(U(2.4, body, ...traps, ...delts, ...pecs, ...rolls, ...serratus, ...armL, ...armR, fistL, fistR), grooves), navel, 0.6);
   // 黒革の頭巾: 大きな先の尖った袋状。肩掛けの裾は胸に垂れる。目穴だけ開く
   const hood = U(2, ellipsoid([56, 21, 7], [10.4, 11, 10], "hood"), cone([56, 14, 5], [59, 0, 0], 7.6, 1.4, "hood"),
-    Disp(ellipsoid([56, 35, 4], [20, 6.5, 13.5], "hood"), (x, y, z) => 0.5 * Math.sin(x * 0.8) * Math.max(0, (y - 35) / 5)));
-  const capelet = Disp(slab([[36, 33], [76, 33], [82, 42], [72, 47], [66, 46], [60, 56], [56, 59], [52, 56], [46, 46], [40, 47], [30, 42]], 17, 1.3, "hood", 0.8),
-    (x, y, z) => 0.5 * Math.sin(x * 0.9) + 0.6 * Math.max(0, (y - 44) / 14) * Math.sin(y * 1.1));
+    Disp(ellipsoid([56, 33, 5], [15, 5, 11], "hood"), (x, y, z) => 0.3 * Math.sin(x * 0.7) * Math.max(0, (y - 33) / 5)));
+  // 肩掛けの裾: 胸の上へ尖って垂れる革の前垂れ
+  const capelet = Disp(slab([[45, 31], [67, 31], [70, 37], [64, 41], [59, 49], [56, 53], [53, 49], [48, 41], [42, 37]], 14.5, 1.1, "hood", 0.7, 1.4),
+    (x, y, z) => 0.55 * Math.sin((x - 56) * 0.75 + 0.5) * Math.max(0, (y - 34) / 16));
   const eyeHoles = U(0, ellipsoid([51.8, 22, 16], [2.5, 1.6, 3.4], "hole"), ellipsoid([60.2, 22, 16], [2.5, 1.6, 3.4], "hole"));
   const eyes = [sphere([51.8, 22.2, 14.4], 1, "eye"), sphere([60.2, 22.2, 14.4], 1, "eye")];
   // 革の前掛けとベルト
