@@ -151,8 +151,12 @@ export function affinityRow(element, cls = "") {
 
 // ===== 敵の情報の段階開示 (討伐数しだい) =====
 // 姿は最初から見える。1体 = 名前 / 5体 = 属性とHP / 10体 = 特徴・スキルと説明文。
+// 迷宮の主だけは名前を最初から明かし、1体討てば全てを明かす (BOSS_REVEAL)。
 // 戦闘画面 (名札・HPの小瓶)・「敵の姿」・図鑑の一枚で共通
 export const MON_REVEAL = { name: 1, stats: 5, lore: 10 };
+export const BOSS_REVEAL = { name: 0, stats: 1, lore: 1 };
+// その魔物 (図鑑の定義) の開示段階
+export function revealSteps(m) { return m && m.boss ? BOSS_REVEAL : MON_REVEAL; }
 // その魔物を倒した数 (図鑑の記録を読むだけ。記録を作らない)
 export function monKills(key) {
   const g = game.G;
@@ -166,11 +170,12 @@ export function monKills(key) {
 export function enemyReveal(e) {
   const special = !e || String(e.key || "").startsWith("ev_");
   const kills = special ? 0 : monKills(e.key);
+  const R = revealSteps(e && e.mon);
   return {
-    special, kills,
-    name: special || kills >= MON_REVEAL.name,
-    stats: special || kills >= MON_REVEAL.stats,
-    lore: special || kills >= MON_REVEAL.lore,
+    special, kills, steps: R,
+    name: special || kills >= R.name,
+    stats: special || kills >= R.stats,
+    lore: special || kills >= R.lore,
   };
 }
 // 敵の呼び名: 名前が明かされるまでは「？？？」(同種が並ぶときの A/B… は残して見分けられるように)
