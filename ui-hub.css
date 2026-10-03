@@ -449,8 +449,6 @@
 .pl-ach > .pl-card-new { top: 7px; left: auto; right: 30px; }
 .pl-ach.ready .pl-ach-n, .pl-ach.ready .pl-ach-d { padding-right: 44px; }
 .pl-band > .ui-badge { position: absolute; top: 2px; right: 2px; z-index: 2; min-width: 14px; height: 14px; padding: 0 3px; font-size: 9px; }
-.pl-band-pending { border-style: dashed; }
-.pl-band-pending canvas { opacity: 0.55; }
 
 /* 図鑑の詳細のシート */
 .pl-detail-sheet .ui-sheet-body { text-align: left; }

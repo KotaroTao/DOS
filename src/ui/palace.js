@@ -609,8 +609,8 @@ function renderAch(body) {
 }
 
 // ================= 宝物庫 =================
-// 奉納台帳のランク帯ひとつをシートで (各10種。奉納済みは札、未奉納は ？)
-function bandSheet(r, ids, newIds = null) {
+// 奉納台帳のランク帯ひとつをシートで (各10種。奉納済みは札、未奉納は手持ちでも ？ = 奉納するまで台帳には記されない)
+function bandSheet(r, ids) {
   const ts = game.treasuryState();
   const body = el("div", "pl-band-sheet");
   const slots = el("div", "pl-band-slots");
@@ -618,12 +618,6 @@ function bandSheet(r, ids, newIds = null) {
     if (ts.donated[id]) {
       const t = itemTile(ITEMS[id], { size: 56, onTap: () => openItem(id) });
       t.setAttribute("aria-label", ITEMS[id].name);
-      slots.appendChild(t);
-    } else if (newIds && newIds.has(id)) {
-      // 手持ちに奉納できる新種がある枠: 品を薄く見せて新着の点
-      const t = itemTile(ITEMS[id], { size: 56, isNew: true, onTap: () => openItem(id) });
-      t.classList.add("pl-band-pending");
-      t.setAttribute("aria-label", ITEMS[id].name + " (未奉納・手持ち)");
       slots.appendChild(t);
     } else { const s = el("span", "pl-band-q"); s.textContent = "？"; slots.appendChild(s); }
   }
@@ -670,7 +664,7 @@ export function donateSheet() {
         const def = ITEMS[h.item.id] || h.item;
         const r = Math.max(1, Math.ceil((def.lv || 1) / 20));
         const it = el("div", "pl-dn");
-        it.appendChild(itemTile(h.item, { size: 44, onTap: () => openItem(h.item.id, { instance: h.item, owner: h.doll }) }));
+        it.appendChild(itemTile(h.item, { size: 44, onTap: () => openItem(h.item.id, { instance: h.item, owner: h.doll, context: "donate" }) }));
         const tx = el("div", "pl-dn-tx");
         const nm = el("div", "pl-dn-n", itemName(h.item));
         const col = (game.itemRankColor && game.itemRankColor(h.item)) || rarityColor(h.item);
@@ -715,7 +709,7 @@ function renderTreasury(body) {
   const row = el("div", "pl-tr-new");
   if (news.length) {
     for (const h of news) {
-      const t = itemTile(h.item, { size: 44, isNew: true, onTap: () => openItem(h.item.id, { instance: h.item, owner: h.doll }) });
+      const t = itemTile(h.item, { size: 44, isNew: true, onTap: () => openItem(h.item.id, { instance: h.item, owner: h.doll, context: "donate" }) });
       t.setAttribute("aria-label", `${h.item.name} (${h.doll.name})`);
       row.appendChild(t);
     }
@@ -757,7 +751,7 @@ function renderTreasury(body) {
     fill.style.width = (ids.length ? (cnt / ids.length) * 100 : 0).toFixed(0) + "%";
     b.appendChild(fill);
     b.setAttribute("aria-label", `奉納台帳 R${r} ${cnt}/${ids.length}`);
-    b.addEventListener("click", () => { sfx("select"); bandSheet(r, ids, newIds); });
+    b.addEventListener("click", () => { sfx("select"); bandSheet(r, ids); });
     led.appendChild(b);
   }
   body.appendChild(led);
