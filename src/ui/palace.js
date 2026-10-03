@@ -426,7 +426,7 @@ export function codexMonSheet(key) {
   });
 }
 
-// o: { item (所持品の実体), heading (見出し 例: 鑑定成功した！), headingColor, footer, onClose,
+// o: { item (所持品の実体), heading (見出し 例: 鑑定成功した！), headingColor, badge (見出しの右の札 例: 初ゲット！), footer, onClose,
 //      nav: { ids, onShow(id) } (図鑑の一覧。画像の左右の ◀ ▶ で、詳細を開いたまま前後のアイテムへ送る) }
 function codexItemView(it, o) {
   const rc = (game.itemRankColor && game.itemRankColor(it)) || rarityColor(it);
@@ -434,6 +434,7 @@ function codexItemView(it, o) {
   if (o.heading) {
     const hd = setText(el("div", "pl-detail-heading"), o.heading);
     hd.style.color = o.headingColor || rc;
+    if (o.badge) hd.appendChild(el("span", "first-get", o.badge));
     body.appendChild(hd);
   }
   // 所持品の実体が未鑑定なら正体は伏せる (名・性能・説明は鑑定するまで見せない)

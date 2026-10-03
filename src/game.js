@@ -1,7 +1,7 @@
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, Battle, SPELLS, cloneItem, spellCost } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas } from "./sprites.js";
 import {
@@ -41,7 +41,7 @@ import { nav } from "./ui/nav.js";
 import * as townshell from "./ui/townshell.js";
 import { showSkillPopup,
   SPELL_KIND_COLOR, tagRow, spellTagKinds, isEquippable, equipPreviewDelta, equipCompareEl, detailLines,
-  equipClassText, equipPartyChips, gearScore,
+  equipClassText, equipPartyChips, gearScore, enemyReveal, enemyLabel,
 } from "./ui/itemview.js";
 import * as uiHub from "./ui/hub.js";
 import * as uiPalace from "./ui/palace.js";
@@ -663,7 +663,30 @@ function shakeScreen(strong = false) {
 const LOG_HISTORY_MAX = 300;
 const _logHistory = [];
 function logHistory() { return _logHistory.map((x) => ({ text: x.n > 1 ? `${x.msg} ×${x.n}` : x.msg, cls: "l-" + x.cls })); }
+// 戦闘中の記録は、まだ名前を知らない敵 (討伐数0) の名を「？？？」に伏せる。
+// 個体名 (スライムA) を先に、種の名 (スライム) を後に置き換える。明かされた別の敵の名に含まれる種名は触らない
+// (戦闘の組み立て中 = Battle を作る前の名乗りや開幕の一撃は _maskEnemies を見る)
+let _maskEnemies = null;
+function maskUnknownEnemies(msg) {
+  if (G.state !== "combat" || typeof msg !== "string") return msg;
+  const list = _maskEnemies || (G.battle && G.battle.enemies);
+  if (!list || !list.length) return msg;
+  const known = [], pairs = [];
+  for (const e of list) {
+    if (enemyReveal(e).name) { known.push(e.name); continue; }
+    pairs.push([e.name, enemyLabel(e)]);
+    if (e.mon && e.mon.name) pairs.push([e.mon.name, "？？？"]);
+  }
+  if (!pairs.length) return msg;
+  pairs.sort((x, y) => y[0].length - x[0].length);
+  for (const [from, to] of pairs) {
+    if (!from || from === to || known.some((n) => n.includes(from))) continue;
+    msg = msg.split(from).join(to);
+  }
+  return msg;
+}
 function log(msg, cls = "sys") {
+  msg = maskUnknownEnemies(msg);
   // 直前と同じ文 (壁にぶつかり続けた時など) は行を増やさず「×N」で数える
   const lastH = _logHistory[_logHistory.length - 1];
   if (lastH && lastH.msg === msg && lastH.cls === cls) lastH.n++;
@@ -5091,7 +5114,7 @@ const evApi = {
   identifyAll() {
     let n = 0;
     for (const m of [...G.party, ...(G.reserve || [])]) {
-      for (const it of [...(m.items || []), ...Object.values(m.equip || {})]) if (it && it.unidentified && !it.lr) { it.unidentified = false; it.idHardFail = false; n++; }
+      for (const it of [...(m.items || []), ...Object.values(m.equip || {})]) if (it && it.unidentified && !it.lr) { it.unidentified = false; it.idHardFail = false; codexKnowItem(it.id); n++; }
     }
     return n;
   },
@@ -5371,7 +5394,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
     const it = cloneItem(id);
     markDungeonLoot(it);
     runGainItem(who, it);
-    codexSeeItem(id);
+    codexSeeItem(id, it);
     log(`風化した死体の傍らに ${itemName(it)} が遺されていた。`, "win");
     UI.loot(it, who, { source: "corpse" }, back);
     return;
@@ -6059,7 +6082,7 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
   }
   const ce = codexMonEntry(d.key);
   if (d.rare) ce.rare = true; else ce.normal = true;
-  codexSeeItem(d.id);
+  codexSeeItem(d.id, d.item);
   markDungeonLoot(d.item);
   runGainItem(who, d.item);
   SFX.chest();
@@ -6180,11 +6203,13 @@ function startBattle(enemies, cell) {
   if (mutEm !== 1) for (const e of enemies) { e._agiMul = mutEm; e.agi = Math.max(1, Math.round(e.agi * mutEm)); }
   G.battleCell = cell;
   G.state = "combat";
+  _maskEnemies = enemies;
 
   combatMenu.classList.remove("hidden");
   // 同種の群れは「ゴブリン ×4」とまとめて告げる (個体名は A/B/C… 付き)
   const sameKind = enemies.length > 1 && enemies.every((e) => e.key === enemies[0].key);
-  log(`${sameKind ? `${enemies[0].mon.name} ×${enemies.length}` : enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
+  // 名前は討伐数1で明かす (それまでは「？？？」)
+  log(`${sameKind ? `${enemyReveal(enemies[0]).name ? enemies[0].mon.name : "？？？"} ×${enemies.length}` : enemies.map(enemyLabel).join("・")} が現れた！`, "dmg");
   // 先制・奇襲の判定 (ボス戦・強敵戦では発生しない)。
   // 周囲警戒 (vigilance) が奇襲を抑え、先制の心得 (initiative) が先制を伸ばす
   const isBoss = enemies.some((e) => e.boss);
@@ -6227,6 +6252,7 @@ function startBattle(enemies, cell) {
   // ランク帯ごとの戦闘テーマ (ボス・強敵は専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
   playBgm(battleBgm(isBoss || isElite));
   G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot") });
+  _maskEnemies = null;
   G.fx = null;
   G.animating = false;
   G.enemyPos = {};
@@ -6396,9 +6422,10 @@ function renderCombatCanvas() {
       // 対象選択中: 頭上に降りる楔と四隅のかぎ
       if (tappable && strongTarget) drawTargetBrackets(baseX, baseY, hh, size, now);
       // 名札 + 血の小瓶 (HP)
+      // 名前・HP は討伐数で明かす (enemyReveal): 名前は1体倒すまで「？？？」、HP の小瓶は5体倒すまで出さない
       drawEnemyPlate(e, baseX, plateY, tappable && strongTarget, k);
       const hpY = plateY + 17;
-      drawEnemyHpVial(e, baseX, hpY, now, k);
+      if (enemyReveal(e).stats) drawEnemyHpVial(e, baseX, hpY, now, k);
       // バフ/デバフ表示 (味方カードの buffBadges に相当): 前衛はHPバーの下、後衛はプレートの上
       drawEnemyBadges(e, baseX, row.back ? plateY - 15 : hpY + 9);
     });
@@ -6497,7 +6524,7 @@ function drawEnemyPlate(e, x, y, hot, k) {
   vctx.save();
   vctx.font = `800 ${Math.round(11 * Math.min(k, 1.1))}px ${CANVAS_SERIF}`;
   vctx.textAlign = "center"; vctx.textBaseline = "middle";
-  const label = e.name;
+  const label = enemyLabel(e);
   const tw = vctx.measureText(label).width;
   const pw = tw + 22, ph = 15, x0 = x - pw / 2, x1 = x + pw / 2;
   vctx.beginPath();
@@ -6767,7 +6794,7 @@ function playBattleIntro(done) {
   const ambush = b.opening === "ambush";
   let dur = (boss ? 1900 : 640 + b.enemies.length * 90) * (quick ? 0.6 : 1);
   if (ambush) dur = Math.max(dur, quick ? 1150 : 1500); // 奇襲の帯を読めるだけ留める
-  G.battleIntro = { battle: b, t0: performance.now(), dur, ambush, boss: boss ? (boss.mon && boss.mon.name) || boss.name : null };
+  G.battleIntro = { battle: b, t0: performance.now(), dur, ambush, boss: boss ? (enemyReveal(boss).name ? (boss.mon && boss.mon.name) || boss.name : "？？？") : null };
   G.animating = true;
   combatMenu.innerHTML = "";
   if (G.autoCombat) renderAutoBanner();
@@ -7185,7 +7212,7 @@ function renderActingPlate(actor) {
   const foe = actor.side === "enemy";
   const b = G.battle;
   const ambushTurn = foe && b && b.opening === "ambush" && b._roundNo <= 1; // 奇襲で敵だけが動く1ターン目
-  const w = turnPlate(actor.name, foe ? "の攻勢" : "の行動", ambushTurn ? ["奇襲"] : []);
+  const w = turnPlate(foe ? enemyLabel(actor) : actor.name, foe ? "の攻勢" : "の行動", ambushTurn ? ["奇襲"] : []);
   if (foe) w.classList.add("who-foe");
   combatMenu.appendChild(w);
 }
@@ -7288,7 +7315,7 @@ function renderCombatMenu() {
     const tgt = defaultAttackTarget(actor);
     const quick = lastSkillOf(actor);
     const main = el("div", "cmd-main" + (quick ? " has-quick" : ""));
-    main.appendChild(cmdBtn("attack", "攻撃", tgt ? `→ ${tgt.name}` : "敵をタップでも", () => attackNow(), "primary"));
+    main.appendChild(cmdBtn("attack", "攻撃", tgt ? `→ ${enemyLabel(tgt)}` : "敵をタップでも", () => attackNow(), "primary"));
     if (quick) {
       const sp = SPELLS[quick];
       const locked = skillLocked(actor, quick);
@@ -7321,14 +7348,18 @@ function renderCombatMenu() {
     for (const t of opts) {
       const tb = btn("", () => { if (t.side === "enemy") G._lastTargetUid = t.uid; b.chooseTarget(t); runCommitted(); });
       tb.className = "btn tgt " + (t.side === "enemy" ? "tgt-enemy" : "tgt-ally") + (t.alive ? "" : " tgt-down");
-      const nm = el("span", "tgt-n", (t.side === "enemy" && b.isBackRow(t) ? "【後】" : "") + t.name + (t.side !== "enemy" && !t.alive ? " [気絶]" : ""));
+      // 敵の名前・HP は討伐数で明かす (名前は1体、HP は5体倒すまで伏せる)
+      const isEn = t.side === "enemy";
+      const showHp = !isEn || enemyReveal(t).stats;
+      const nm = el("span", "tgt-n", (isEn && b.isBackRow(t) ? "【後】" : "") + (isEn ? enemyLabel(t) : t.name) + (!isEn && !t.alive ? " [気絶]" : ""));
       tb.appendChild(nm);
       const bar = el("span", "tgt-bar");
       const fill = el("i");
-      fill.style.width = Math.max(0, Math.min(100, (t.hp / (t.maxhp || 1)) * 100)) + "%";
+      fill.style.width = (showHp ? Math.max(0, Math.min(100, (t.hp / (t.maxhp || 1)) * 100)) : 0) + "%";
       bar.appendChild(fill);
+      if (!showHp) bar.style.visibility = "hidden";
       tb.appendChild(bar);
-      tb.appendChild(el("span", "tgt-hp", t.side === "enemy" ? `HP ${t.hp}` : `HP ${t.hp}/${t.maxhp}`));
+      tb.appendChild(el("span", "tgt-hp", !showHp ? "HP ？" : isEn ? `HP ${t.hp}` : `HP ${t.hp}/${t.maxhp}`));
       list.appendChild(tb);
     }
     combatMenu.appendChild(list);
@@ -7735,7 +7766,7 @@ function endBattle() {
       if (e.element && e.element !== "none") G.stats.elemKills[e.element] = true; // 戦績: 撃破した属性 (勲章用)
       if (e.isMimic) G.stats.mimics++;                       // 戦績: ミミック撃破数
       if (e.isMasterMimic) G.stats.masterMimicSlain = true;  // 戦績: マスターミミック討伐 (一度きり)
-      if (!String(e.key).startsWith("ev_")) recordMonsterKill(e.key, G.dungeonIdx); // 図鑑は「倒した時」に記録 (出来事の影は載せない)
+      codexKillNow(e); // 図鑑は倒したその瞬間に記録済み (取りこぼしの保険。二重には数えない)
     }
     runCount("kills", kills);
     // 層ボスを1ラウンドで討ち取ったか (勲章: 電光石火)
@@ -9528,7 +9559,7 @@ function grantTreasuryItem(center, onClose) {
     || allDolls().find((d) => !d.isEmpty && d.items.length < MAX_ITEMS);
   if (who && ITEMS[id]) {
     const it = cloneItem(id);
-    runGainItem(who, it); codexSeeItem(id);
+    runGainItem(who, it); codexSeeItem(id, it);
     log(`宝物庫の褒賞として ${itemName(it)} を賜った。(${who.name})`, "win");
     showItemGet(it, who, onClose);
     return;
@@ -9563,7 +9594,7 @@ function grantLR(filter, center, onClose) {
     || G.party.find((m) => m.items.length < MAX_ITEMS)
     || allDolls().find((d) => !d.isEmpty && d.items.length < MAX_ITEMS);
   if (!who) { grantTreasuryItem(center, onClose); return; } // 所持枠が無ければ通常褒賞へ
-  runGainItem(who, it); codexSeeItem(id);
+  runGainItem(who, it); codexSeeItem(id, it);
   G.lrOwned[id] = true; // 1点もの: 以後ドロップしない
   flashScreen("#ff5fae"); SFX.victory(); buzz([0, 60, 50, 60, 50, 60, 240]);
   const nm = itemName(it); // 未鑑定なら伏せ名
@@ -9620,6 +9651,14 @@ function codexMonEntry(key) {
   if (!e.dungeons) e.dungeons = {};
   return e;
 }
+// 敵 1体の討伐を図鑑に記録する (combat.js の setOnEnemyKilled から、倒したその瞬間に呼ばれる)。
+// 個体ごとに一度だけ。出来事の影 (ev_*) は載せない
+function codexKillNow(e) {
+  if (!e || e._codexKill || String(e.key || "").startsWith("ev_")) return;
+  e._codexKill = true;
+  recordMonsterKill(e.key, G.dungeonIdx);
+}
+setOnEnemyKilled(codexKillNow);
 function recordMonsterKill(key, dungeonIdx) {
   if (!key) return;
   const e = codexMonEntry(key);
@@ -9642,10 +9681,37 @@ function rollGenericDrop() {
   }
   return null;
 }
-function codexSeeItem(id) {
+// it = 手に入れた品の実体 (あれば)。未鑑定の品は図鑑には載るが「正体を知った品」には数えない
+function codexSeeItem(id, it) {
   if (!id) return;
   if (!G.codex.item[id]) codexFresh().item[id] = 1; // 初めての記録は新着
   G.codex.item[id] = true;
+  if (!it || !it.unidentified) codexKnowItem(id);
+}
+// 正体を知った品 (G.codex.known)。鑑定で初めて正体を知った品に「初ゲット！」を出すための記録。
+// 初めて知ったなら true
+function codexKnowItem(id) {
+  if (!id) return false;
+  const k = G.codex.known || (G.codex.known = {});
+  if (k[id]) return false;
+  k[id] = true;
+  return true;
+}
+// その品の正体を既に知っているか (記録に無くても、正体の知れた同じ品を持っていれば知っている)
+function itemKnown(id) {
+  if (!id) return false;
+  if (G.codex.known && G.codex.known[id]) return true;
+  return heldItems().some((it) => it.id === id && !it.unidentified);
+}
+// 全人業 (隊と控え) の持ち物と装備
+function heldItems() {
+  const out = [];
+  for (const d of [...(G.party || []), ...(G.reserve || [])]) {
+    if (!d) continue;
+    for (const it of (d.items || [])) if (it) out.push(it);
+    for (const it of Object.values(d.equip || {})) if (it) out.push(it);
+  }
+  return out;
 }
 // 図鑑の新着: { mon:{key:1}, item:{id:1}, job:{"職:ランク":1} }。王宮の図鑑で詳細を開くと消える (src/ui/palace.js)
 function codexFresh() {
@@ -9858,6 +9924,7 @@ function shopIdentify(owner, it) {
   G.gold -= cost;
   it.unidentified = false;
   it.idHardFail = false;
+  codexKnowItem(it.id);
   SFX.itemget(); buzz(15);
   log(`鑑定料 💰${cost} を払った。${it.name} と判明した！`, "win");
   showToast(`${it.name} と判明した (💰${cost})`);
@@ -9888,7 +9955,7 @@ function sellItem(owner, it, price) {
   G.gold += price;
   // 在庫に積む (ボルタック方式)。未鑑定品は並ばない
   if (it.id && !it.unidentified) G.shopStock[it.id] = (G.shopStock[it.id] || 0) + 1;
-  codexSeeItem(it.id);
+  codexSeeItem(it.id, it);
   SFX.select(); buzz(10);
   const shown = itemName(it);
   log(`${shown} を売った (+💰${price})。${it.unidentified ? "" : "商店に並んだ。"}`, "win");
@@ -10585,6 +10652,7 @@ function doIdentifySkill(m, it, { quiet = false } = {}) {
   const ok = Math.random() < ch;
   if (ok) {
     it.unidentified = false;
+    codexKnowItem(it.id);
     log(`${m.name}は ${it.name} を鑑定した！`, "win");
     if (!quiet) { SFX.itemget(); buzz(15); showToast(`${it.name} と判明した (${m.name})`, { tone: "good" }); }
   } else {
@@ -10754,7 +10822,7 @@ function giveItem(id) {
     return null;
   }
   runGainItem(who, it);
-  codexSeeItem(id);
+  codexSeeItem(id, it);
   log(`${itemName(it)} を手に入れた！ (${who.name})`, logClassForItem(it));
   return { item: it, who };
 }
@@ -11341,6 +11409,14 @@ function loadGame() {
   if (!G.codex) G.codex = { mon: {}, item: {} };
   if (!G.codex.mon) G.codex.mon = {};
   if (!G.codex.item) G.codex.item = {};
+  // 正体を知った品 (後付け): 図鑑の記録から復元し、未鑑定でしか持っていない品は「まだ知らない」とする
+  if (!G.codex.known || typeof G.codex.known !== "object") {
+    const known = {};
+    for (const id in G.codex.item) known[id] = true;
+    const held = heldItems();
+    for (const it of held) if (it.unidentified && it.id && !held.some((x) => x.id === it.id && !x.unidentified)) delete known[it.id];
+    G.codex.known = known;
+  }
   for (const k in G.codex.mon) {
     const v = G.codex.mon[k];
     if (!v || typeof v !== "object") {
@@ -11545,6 +11621,7 @@ const OPS = {
       if (G.gold < cost) break;
       G.gold -= cost; spent += cost;
       it.unidentified = false; it.idHardFail = false;
+      codexKnowItem(it.id);
       n++;
     }
     if (n > 0) {
@@ -11566,7 +11643,7 @@ const OPS = {
       doll.items.splice(idx, 1);
       G.gold += price; gold += price;
       if (item.id) G.shopStock[item.id] = (G.shopStock[item.id] || 0) + 1;
-      codexSeeItem(item.id);
+      codexSeeItem(item.id, item);
       n++;
     }
     if (n) {
@@ -11853,7 +11930,7 @@ bindGame({
   emptyDollCost, randomDollName, finalizeBuyDoll, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
   equipSoulToSlot, fuseCandidates, fuseSoul, openFusePicker, openSubSkillPicker, slotSoul,
   unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail,
-  canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill,
+  canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill, itemKnown,
   showRankUp, announceJobChange, showNameInput,
 });
 // ==== /WP-B ====

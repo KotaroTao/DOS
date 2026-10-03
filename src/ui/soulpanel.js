@@ -13,7 +13,7 @@ import { showSkillPopup, SPELL_KIND_LABEL } from "./itemview.js";
 import {
   SOUL_CLASSES, jobSprite, jobBust, soulByUid, soulRankOf, soulLevelCapOf, nextRankThreshold, jobRankName, soulSeriesName,
   soulLearnedSkills, soulLearnedPassives, passiveName, passiveDesc, ORDER_PERK, PASSIVES, orderPassiveMap, orderPerkLv,
-  jobSkillTable, recalcDoll, SOUL_STAT_UP,
+  jobSkillTable, recalcDoll,
 } from "../souls.js";
 import { SPELLS } from "../combat.js";
 import { crispCanvas } from "../sprites.js";
@@ -604,13 +604,11 @@ export function openFusePicker(targetUid) {
   const cands = (game.fuseCandidates ? game.fuseCandidates(targetUid) : []).sort(game.soulSortCmp || (() => 0));
   if (!cands.length) { sfx("ng"); toast("魂融合できる同じ職の魂がない", { tone: "info" }); return null; }
   const cl = SOUL_CLASSES[t.clsKey] || SOUL_CLASSES.fighter;
-  const pct = Math.round((SOUL_STAT_UP[cl.rarity] || 0.01) * 100);
-  const nr = nextRankThreshold(t.clsKey, t.count);
   sfx("select");
   return sheet.open({
     kind: "info", className: "sp-pick-sheet", banner: "魂融合", accent: cl.glow,
     title: `${soulSeriesName(t.clsKey)}の魂 Lv${t.level} に融合させる`,
-    lines: [`素材にした魂は失われ、魂数がランクに加わる (全能力 +${pct}%/体)。${nr ? `ランク${soulRankOf(t) + 1}まで あと ${nr.next - t.count} 体。` : ""}`],
+    lines: ["素材にした魂は失われ、融合数に応じてLv上限、能力が上昇。一定数の魂を融合するとランクアップ。"],
     body: (scroll, h) => {
       const list = el("div", "pt-list");
       for (const c of cands) {

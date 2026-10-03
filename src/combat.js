@@ -421,6 +421,11 @@ export function spellCost(actor, sp) {
 // 戦闘の状態機械: AGI順に1人ずつ手番が回る。
 // 1手ずつ進め、各行動は結果オブジェクトを返す (演出は game.js 側で行う)。
 // opts.opening: "preempt" (先制) | "ambush" (奇襲) | null — 最初のラウンドで片側のみ行動
+// 敵を倒したその瞬間に呼ぶ合図 (game.js が図鑑の討伐数を記録する)。
+// Battle はセーブから復元されるため、関数はインスタンスでなくモジュールに持たせる
+let _onEnemyKilled = null;
+export function setOnEnemyKilled(fn) { _onEnemyKilled = typeof fn === "function" ? fn : null; }
+
 export class Battle {
   constructor(party, enemies, log, opts = {}) {
     this.party = party;
@@ -1472,6 +1477,8 @@ export class Battle {
         return false;
       }
       t.hp = 0; t.alive = false;
+      // 討伐数はこの瞬間に数える (名前・HP の開示が戦闘中でもすぐ反映されるように。「〜を倒した！」より先)
+      if (t.side === "enemy" && _onEnemyKilled) { try { _onEnemyKilled(t); } catch (er) { /* 記録の失敗で戦闘を止めない */ } }
       this.log(`${t.name}を倒した！`, t.side === "enemy" ? "win" : "dmg");
       // 殉教の祈り: 自分が倒れた時、味方全体を PIE で癒す (1戦闘1回)
       if (t.side === "party" && pv(t, "martyr") && !t._martyrUsed) {
