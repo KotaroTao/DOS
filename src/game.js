@@ -400,7 +400,7 @@ for (const k in MONSTERS) {
 }
 
 // 状態異常の表示定義
-const AIL_NAME = { poison: "毒", paralyze: "麻痺", stone: "石化" };
+const AIL_NAME = { poison: "毒", paralyze: "麻痺", stone: "石化", sleep: "眠り", charm: "魅了", confuse: "混乱" };
 
 const view = document.getElementById("view");
 // 盤面/戦闘のキャンバス。第1層以外の旧裏面を静的な層へ焼く間だけ、描画先を差し替える (paintOldCardBacks)
@@ -1349,6 +1349,7 @@ const appEl = document.getElementById("app");
 const screenEl = document.getElementById("screen");
 const topbarEl = document.getElementById("topbar");
 const LOG_MIN_BOARD = 84, LOG_MIN_COMBAT = 46, MENU_RESERVE = 166;
+const TURN_ORDER_H = 31; // 戦闘の行動順の帯 (#turn-order) の高さ + 下の余白。記録欄を削らず戦場の側で詰める
 let _fitKey = "";
 function outerH(e) {
   if (!e || e.classList.contains("hidden")) return 0;
@@ -1369,7 +1370,7 @@ function fitView(force = false) {
   let used = (parseFloat(csS.paddingTop) || 0) + (parseFloat(csS.paddingBottom) || 0)
     + outerH(topbarEl) + outerH(partyEl) + outerH(hintEl)
     + (csH ? (parseFloat(csH.paddingTop) || 0) + (parseFloat(csH.paddingBottom) || 0) : 0);
-  if (combat) used += MENU_RESERVE + LOG_MIN_COMBAT;
+  if (combat) used += MENU_RESERVE + LOG_MIN_COMBAT + TURN_ORDER_H;
   else used += outerH(runbarEl) + outerH(ctrlEl) + LOG_MIN_BOARD;
   const h = Math.max(cssW * 0.56, Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
   const vh = Math.max(240, Math.round((VW * h) / cssW));
@@ -5923,7 +5924,10 @@ function applyTrap(trap, opener) {
     return p.alive;
   };
   const afflict = (p, ail, chance) => {
-    if (!ail || !p.alive || p.ailment || Math.random() >= chance * ailMul) return;
+    // 装備の状態異常耐性 (ailRes) と解呪の宝珠 (ailmentImmune) も罠に効く
+    if (!ail || !p.alive || p.ailment || (p.eff && p.eff.ailmentImmune)) return;
+    const eqRes = (p.ailRes && p.ailRes[ail]) || 0;
+    if (Math.random() >= chance * ailMul * (1 - eqRes)) return;
     p.ailment = ail;
     lines.push(`${p.name}は${AIL_NAME[ail]}に侵された！`);
     brief.push(`${p.name} ${AIL_NAME[ail]}`);
@@ -6543,6 +6547,89 @@ function renderCombatCanvas() {
 
   if (fx) drawEffects(fx, now);
   if (intro) drawBattleIntro(intro, now);
+  renderTurnOrder();
+}
+
+// ===== 行動順の帯 (記録欄の上): 手番の者を先頭に、このラウンドでまだ動いていない者をアイコンで並べる =====
+// 戦場を描くたびに呼ばれるので、並びが変わった時だけ作り直す
+const turnOrderEl = document.getElementById("turn-order");
+let _turnOrderKey = "";
+const _turnIcons = new WeakMap(); // 敵の魔物 → { b: 元にした絵, c: アイコンの canvas }
+const _turnPics = new WeakMap();  // 人業 → { key, c } (胸像)
+const TURN_ICON_PX = 24;
+function turnIconCanvas(a) {
+  if (a.side === "party") {
+    if (!a.isDoll || a.primary == null) return null;
+    const key = `${a.jobKey || ""}:${a.jobRank || 1}:${a.clsKey || ""}`;
+    let ent = _turnPics.get(a);
+    if (!ent || ent.key !== key) { ent = { key, c: crispCanvas(dollBust(a), TURN_ICON_PX) }; _turnPics.set(a, ent); }
+    return ent.c;
+  }
+  const mon = a.mon;
+  if (!mon || !(mon.art || mon.photo)) return null;
+  const b = monsterBitmap(mon);
+  let ent = _turnIcons.get(mon);
+  // 原画版の魔物は絵が読めた時にビットマップが差し替わるので、その時に描き直す
+  if (!ent || ent.b !== b) {
+    const dpr = Math.min(3, Math.max(1, Math.round(window.devicePixelRatio || 1)));
+    const px = TURN_ICON_PX * dpr;
+    const c = document.createElement("canvas");
+    c.width = px; c.height = px;
+    c.style.width = c.style.height = TURN_ICON_PX + "px";
+    const g = c.getContext("2d");
+    if (g) {
+      const W = b.c.width, H = b.c.height, k = Math.min(px / W, px / H);
+      g.imageSmoothingEnabled = k < 1;
+      if (k < 1) g.imageSmoothingQuality = "high";
+      g.drawImage(b.c, Math.round((px - W * k) / 2), Math.round((px - H * k) / 2), Math.round(W * k), Math.round(H * k));
+    }
+    ent = { b, c };
+    _turnIcons.set(mon, ent);
+  }
+  return ent.c;
+}
+function renderTurnOrder() {
+  if (!turnOrderEl) return;
+  const b = G.battle;
+  const on = G.state === "combat" && b && !b.result && b.current && b.phase !== "done";
+  if (!on) {
+    if (_turnOrderKey) { _turnOrderKey = ""; turnOrderEl.classList.add("hidden"); turnOrderEl.innerHTML = ""; }
+    return;
+  }
+  const stunOf = (a) => (a.asleep || a.ailment === "paralyze" || a.ailment === "stone" ? "z" : a.mind ? "m" : "");
+  const list = [b.current, ...b.queue.filter((a) => a && a.alive && a !== b.current)];
+  const key = `${b._roundNo}|` + list.map((a) => `${a.side}${a.uid != null ? a.uid : a.name}${a.alive ? "" : "x"}${stunOf(a)}${a.side === "enemy" ? enemyLabel(a) : ""}`).join(",");
+  if (key === _turnOrderKey) return;
+  _turnOrderKey = key;
+  turnOrderEl.innerHTML = "";
+  turnOrderEl.classList.remove("hidden");
+  const used = new Set();
+  list.forEach((a, i) => {
+    const enemy = a.side === "enemy";
+    const name = enemy ? enemyLabel(a) : a.name;
+    const st = stunOf(a);
+    const ic = el("div", `to-ic ${enemy ? "e" : "p"}${i === 0 ? " now" : ""}${!a.alive ? " dead" : ""}${st === "z" ? " stun" : st === "m" ? " mind" : ""}${a.boss ? " boss" : ""}`);
+    ic.title = (i === 0 ? "手番: " : "") + name;
+    let c = turnIconCanvas(a);
+    // 同じ魔物が並ぶと同じ canvas を2か所に置けないので、2体目以降は写しを作る
+    if (c && used.has(c)) {
+      const cp = document.createElement("canvas");
+      cp.width = c.width; cp.height = c.height;
+      cp.style.width = c.style.width; cp.style.height = c.style.height;
+      const g = cp.getContext("2d");
+      if (g) g.drawImage(c, 0, 0);
+      c = cp;
+    }
+    if (c) { used.add(c); c.classList.add("to-pic"); ic.appendChild(c); }
+    else ic.appendChild(el("span", "to-ch", (name || "？").replace(/^？？？/, "？").slice(0, 1)));
+    // 同種が並ぶ敵は A/B… の札を添えて見分ける
+    if (enemy) {
+      const m = /[A-Z]$/.exec(name || "");
+      if (m) ic.appendChild(el("span", "to-tag", m[0]));
+    }
+    turnOrderEl.appendChild(ic);
+    if (i === 0 && list.length > 1) turnOrderEl.appendChild(el("span", "to-sep", "›"));
+  });
 }
 
 const _deadShown = new WeakSet(); // 撃破の演出を見せ終えた敵
@@ -6630,6 +6717,7 @@ function drawTargetBrackets(x, cy, hh, size, now) {
 
 // 敵の名札: 両端の尖った黒鉄の札。主は金、強敵は紅の縁。状態異常・属性 (看破) は札の右に印で添える
 const ENEMY_SEAL = { poison: ["毒", "#8ee05a"], paralyze: ["痺", "#ffd84a"], stone: ["石", "#c9c4b8"] };
+const MIND_SEAL = { charm: ["魅", "#ff8fc8"], confuse: ["乱", "#ffa860"] };
 function drawEnemyPlate(e, x, y, hot, k) {
   vctx.save();
   vctx.font = `800 ${Math.round(11 * Math.min(k, 1.1))}px ${CANVAS_SERIF}`;
@@ -6660,6 +6748,7 @@ function drawEnemyPlate(e, x, y, hot, k) {
   if (partyPassiveLv("scan") && e.element && e.element !== "none") { const el2 = ELEMENTS[e.element] || {}; seals.push([el2.label || "?", el2.color || "#ccc"]); }
   if (e.ailment) seals.push(ENEMY_SEAL[e.ailment] || ["呪", "#c080ff"]);
   if (e.asleep) seals.push(["眠", "#8fc8ff"]);
+  if (e.mind && MIND_SEAL[e.mind]) seals.push(MIND_SEAL[e.mind]);
   if (e._flinch) seals.push(["怯", "#d0a0ff"]);
   let sx = x1 + 9;
   vctx.font = `800 9px ${CANVAS_SERIF}`;
@@ -7444,7 +7533,8 @@ function renderCombatMenu() {
           }
           b2.chooseAction("attack");
           const opts = b2.targetOptions();
-          const tgt = opts.find((e) => !physImmune(e)) || opts[0];
+          // 魅了した敵は殴ると正気に戻りやすいので後回し (仲間を襲わせておく)
+          const tgt = opts.find((e) => !physImmune(e) && e.mind !== "charm") || opts.find((e) => !physImmune(e)) || opts[0];
           if (!tgt) { b2.cancelTarget(); return; }
           b2.chooseTarget(tgt);
           runCommitted();
@@ -7751,7 +7841,9 @@ function applyImpact(res) {
       }
       else if (h.heal != null) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 10, text: "+" + h.heal, color: "#7CFC7C", t0: ht0, kind: "heal" }); // 敵の回復役による回復
       // 敵にかかった強化/弱体も発動フロートで知らせる (ピル表示に加えて瞬間を可視化)
-      if (h.buff || h.debuff) { const mt = buffFloatText(h); fx.floats.push({ x: pos.cx + dx, y: pos.cy - 34, text: mt.text, color: mt.color, t0: ht0, kind: "buff" }); }
+      if ((h.buff || h.debuff) && !(h.status && !Object.keys(h.mods || {}).length)) { const mt = buffFloatText(h); fx.floats.push({ x: pos.cx + dx, y: pos.cy - 34, text: mt.text, color: mt.color, t0: ht0, kind: "buff" }); }
+      // 状態異常の付与 (麻痺・眠り・魅了・混乱…): 名札の上に浮かべて知らせる
+      if (h.status) fx.floats.push({ x: pos.cx + dx, y: pos.cy - (h.buff || h.debuff ? 52 : 34), text: h.status, color: "#ff9ad0", t0: ht0 + 60, small: true, kind: "label" });
       if (h.died) {
         anyDeath = true;
         // 撃破: 魔物が白く焼けて灰に崩れる (描画は drawEffects)
@@ -7807,6 +7899,12 @@ function applyImpact(res) {
         partyHit = true;
         G.partyFx.set(h.target, "hit");
         fx.floats.push({ x: VW / 2, y: VH - 26, text: "石化!", color: "#c9c4b8", t0: now });
+      } else if (h.status && h.dmg == null) {
+        // 眠り・魅了・混乱をかけられた (ダメージなし)
+        partyHit = true;
+        G.partyFx.set(h.target, "hit");
+        const n = res.hits.filter((x) => x.status && x.dmg == null).length, i = res.hits.filter((x) => x.status && x.dmg == null).indexOf(h);
+        fx.floats.push({ x: n > 1 ? VW * (i + 1) / (n + 1) : VW / 2, y: VH - 26 - (i % 2) * 16, text: h.status, color: "#ff9ad0", t0: now + i * stag });
       } else if (!h.miss) {
         partyHit = true;
         G.partyFx.set(h.target, "hit");
@@ -8080,7 +8178,8 @@ function applyVictoryPassives() {
 
 function finishToBoard() {
   imprintFallen(); // 戦闘で砕けた人業の魂に記憶を刻む
-  for (const p of G.party) p._defending = false;
+  // 眠り・魅了・混乱は戦闘の中だけの状態
+  for (const p of G.party) { p._defending = false; p.asleep = false; p.mind = null; }
   G.battle = null;
   G.battleCell = null;
   G.state = "board";
@@ -8213,13 +8312,14 @@ function highlightActor(actor) {
 }
 
 const AIL_SEAL = { poison: ["毒", "poison"], paralyze: ["痺", "paralyze"], stone: ["石", "stone"] };
+const PARTY_MIND_SEAL = { charm: ["魅", "charm"], confuse: ["乱", "confuse"] };
 let _partyKey = "";
 function renderParty() {
   const fx = G.partyFx;
   const st = G.state;
   const key = st + "|" + G.party.map((p) => [
     p.uid, p.name, p.cls, p.isDoll ? (p.jobLv || 1) : p.level, p.hp, p.maxhp, p.mp, p.maxmp, p.alive ? 1 : 0,
-    p.ailment || "", p.asleep && st === "combat" ? 1 : 0, fx && fx.has(p) ? fx.get(p) : "", buffBadges(p),
+    p.ailment || "", p.asleep && st === "combat" ? 1 : 0, st === "combat" ? (p.mind || "") : "", fx && fx.has(p) ? fx.get(p) : "", buffBadges(p),
     `${p.jobKey || ""}:${p.jobRank || 1}:${p.clsKey || ""}`,
   ].join(",")).join(";");
   if (key === _partyKey && partyEl.childElementCount === G.party.length) return;
@@ -8260,6 +8360,7 @@ function renderParty() {
     if (!p.alive) por.appendChild(el("span", "pc-seal dead", "死"));
     else if (p.ailment) { const a = AIL_SEAL[p.ailment] || ["呪", "poison"]; const s2 = el("span", "pc-seal " + a[1], a[0]); s2.title = AIL_NAME[p.ailment] || ""; por.appendChild(s2); }
     else if (p.asleep && G.state === "combat") por.appendChild(el("span", "pc-seal sleep", "眠"));
+    else if (p.mind && G.state === "combat" && PARTY_MIND_SEAL[p.mind]) { const m = PARTY_MIND_SEAL[p.mind]; const s3 = el("span", "pc-seal " + m[1], m[0]); s3.title = AIL_NAME[p.mind] || ""; por.appendChild(s3); }
     card.appendChild(por);
     const nm = el("div", "name");
     nm.appendChild(el("span", "pc-n", p.name));
@@ -11647,7 +11748,7 @@ function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch {} }
 // 個体ごとの状態 (未鑑定・鑑定失敗の印など) は残す。旧セーブの装備も新しいレア度と絵になる
 const ITEM_STAT_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp", "crit"];
 const ITEM_TMPL_KEYS = ["name", "desc", "slot", "lv", "rank", "r20", "rar", "lr", "forJob", "exclusive", "classes", "cat",
-  "twoHanded", "weight", "price", "art", "palette", "eAtk", "eDef", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
+  "twoHanded", "weight", "price", "art", "palette", "eAtk", "eDef", "aRes", "onHit", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
 function reflattenItemStats() {
   const visited = new Set();
   function refresh(it) {

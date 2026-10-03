@@ -168,6 +168,39 @@
 }
 @media (max-height: 680px) { #log { height: auto; } }
 
+/* ===== 行動順 (#turn-order): 記録の上に、手番の者 → このラウンドの残りをアイコンで並べる ===== */
+#hud { flex-direction: column; }
+#app:not(.in-combat) #turn-order { display: none; }
+#turn-order {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 3px;
+  height: 28px; margin: 0 0 3px; padding: 0 2px; overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 18px), rgba(0,0,0,0.2));
+  mask-image: linear-gradient(90deg, #000 calc(100% - 18px), rgba(0,0,0,0.2));
+}
+.to-ic {
+  position: relative; flex: 0 1 26px; min-width: 16px; height: 26px;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+  border: 1px solid #3c4f66; border-radius: 3px;
+  background: radial-gradient(80% 80% at 50% 35%, #1d2633, #0b0d12);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.6);
+}
+.to-ic.e { border-color: #6e2a22; background: radial-gradient(80% 80% at 50% 35%, #2e1514, #0e0909); }
+.to-ic.boss { border-color: #a0402c; }
+.to-ic.now {
+  flex: 0 0 28px; height: 28px; border-color: var(--dg-gold-hi);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.7), 0 0 7px rgba(243,213,139,0.55);
+}
+.to-ic.stun > canvas { filter: grayscale(0.85) brightness(0.55); }
+.to-ic.mind { border-style: dashed; }
+.to-ic > canvas { display: block; flex: 0 0 auto; image-rendering: pixelated; }
+.to-ch { font-size: 12px; color: #d8c9a8; }
+.to-tag {
+  position: absolute; right: 0; bottom: 0; padding: 0 2px;
+  font-size: 9px; line-height: 11px; font-weight: 700; color: #f3d58b;
+  background: rgba(0,0,0,0.72); border-top-left-radius: 3px;
+}
+.to-sep { flex: 0 0 auto; color: var(--dg-gold); font-size: 14px; line-height: 1; margin: 0 1px; text-shadow: 0 1px 0 #000; }
+
 /* ===== 隊の札 (#party) ===== */
 /* 名は札の幅いっぱいに。左に肖像 (24×24 ドットの胸像を ~40px)、右に職とLv・血の小瓶 (HP)・魂の小瓶 (MP) */
 #party {
@@ -209,6 +242,8 @@
 .pc-seal.paralyze { color: #ffd84a; }
 .pc-seal.stone { color: #c9c4b8; }
 .pc-seal.sleep { color: #8fc8ff; }
+.pc-seal.charm { color: #ff8fc8; }
+.pc-seal.confuse { color: #ffa860; }
 .pc-seal.dead { color: #ff5a4a; }
 .pc .name { grid-area: name; min-width: 0; display: flex; align-items: baseline; gap: 4px; line-height: 1.25; }
 .pc .pc-n { flex: 1 1 auto; min-width: 0; font-size: 12px; font-weight: 800; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.3px; text-shadow: 0 1px 0 #000; }

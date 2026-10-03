@@ -245,7 +245,7 @@ export const PASSIVES = {
   holyEdge:      { label: "聖刃",         scope: "self",  lv: ["不死・幽鬼・悪魔への会心率+15%"] },
   vitalEye:      { label: "急所読み",     scope: "self",  lv: ["会心ダメージ+25%", "会心ダメージ+45%"] },
   gokudoku:      { label: "毒責め",         scope: "self",  lv: ["毒状態の敵への与ダメージ+30%"] },
-  sleepKill:     { label: "寝込み襲い",   scope: "self",  lv: ["睡眠・麻痺中の敵への攻撃が必ず会心"] },
+  sleepKill:     { label: "寝込み襲い",   scope: "self",  lv: ["眠り・麻痺・魅了・混乱中の敵への攻撃が必ず会心"] },
   ambushCrit:    { label: "不意打ち",     scope: "self",  lv: ["先制時、最初の通常攻撃が必ず会心"] },
   kenma:         { label: "剣魔合一",     scope: "self",  lv: ["呪文を唱えた次の通常攻撃が必ず会心"] },
   zanshin:       { label: "残心",         scope: "self",  lv: ["敵を倒した時25%で追加攻撃 (1ラウンド1回)"] },
@@ -263,7 +263,7 @@ export const PASSIVES = {
   bigBarrier:    { label: "大結界",       scope: "party", lv: ["敵の全体攻撃をパーティ全体で半減 (1戦闘1回・自動)", "敵の全体攻撃をパーティ全体で半減 (1戦闘2回・自動)"] },
   holyCover:     { label: "聖盾",         scope: "party", lv: ["かばうがブレス等の攻撃も肩代わりできる"] },
   bastion:       { label: "城壁の構え",   scope: "party", lv: ["自分が防御中、パーティ全体の被ダメージ-10%", "自分が防御中、パーティ全体の被ダメージ-18%"] },
-  resistAilment: { label: "異常耐性",     scope: "self",  lv: ["毒・麻痺・睡眠の付与率-30%", "毒・麻痺・睡眠-60%、石化・即死-30%"] },
+  resistAilment: { label: "異常耐性",     scope: "self",  lv: ["毒・麻痺・眠り・魅了・混乱の付与率-30%", "毒・麻痺・眠り・魅了・混乱-60%、石化・即死-30%"] },
   sanctuary:     { label: "聖域",         scope: "party", lv: ["パーティ全体に異常耐性Lv1を付与"] },
   martyr:        { label: "殉教の祈り",   scope: "party", lv: ["自分が倒れた時、味方全体をPIE×1.0回復 (1戦闘1回)"] },
   divineCounter: { label: "神罰の鉄槌",   scope: "self",  lv: ["物理被弾時20%でPIE×0.8の聖なる反撃"] },
@@ -370,7 +370,7 @@ export const SKILL_LEVELS = (() => {
 // 表は「Lv 技キー」または「Lv パッシブキー/パッシブLv」を空白区切りで並べた文字列 (T で展開)。
 // 技の中身は skilldefs.js。職ごとの持ち味:
 //  AGIの低い物理職 = 命中補正の技 (狙い打ち → 心眼撃 → 必中の大技) と防御無視 / 素早い職 = 連撃・会心・AGIで伸びる技・盗む・逃走 /
-//  守り手 = 挑発・仁王立ち・反撃の構え / 呪い手 = 毒・封印・属性耐性ダウン・即死 / 祈り手 = 回復・リジェネ・弱体解除
+//  守り手 = 挑発・仁王立ち・反撃の構え / 呪い手 = 毒・封印・魅了・混乱・属性耐性ダウン・即死 / 祈り手 = 回復・リジェネ・弱体解除
 const T = (src) => src.trim().split(/\s+/).reduce((out, tok, i, a) => {
   if (i % 2) return out;
   const lvl = +tok, key = a[i + 1];
@@ -468,21 +468,21 @@ export const JOB_SKILLS = {
     110 LAHALITO 115 fightSpirit/1 120 RAIJIN 125 resistAilment/1 130 HADAN 135 extraHit/2 140 HYORETSU
     145 spellCrit/3 150 TENCHIZAN 155 vitalEye/2 160 ROKUDOU 165 fightSpirit/2 170 GOKUEN 175 barrier/2
     180 HAOUZAN 185 elemFloor/1 190 ZETTAIREIDO 195 METSUKYAKU 200 KYOKUDAI`),
-  monk: T(`1 KYOUGEKI 2 IWAKUDAKI 3 DIOS 5 afterHeal/1 7 TAME 10 HAKKEI 12 SHIPPUUGIRI 15 smite/1 20 TENKETSU 22 CHIRETSU
+  monk: T(`1 KYOUGEKI 2 IWAKUDAKI 3 DIOS 5 afterHeal/1 7 NOUTEN 10 HAKKEI 12 SHIPPUUGIRI 15 smite/1 20 TENKETSU 22 CHIRETSU
     25 extraHit/1 30 SHINTOU 35 endure/1 40 KONGOURENDA 45 afterHeal/2 50 KONGOUTAI 55 SHINGANGEKI 57 GANOTOSHI
     60 fightSpirit/1 65 DIOSALL 70 vitalEye/1 75 holyEdge/1 80 HOUKEN 82 FUUGA 85 SANREN 90 extraHit/2 95 KISHINKA
     100 HYAKURETSU 105 counter/1 107 YAMAKUZUSHI 110 KIYOME 115 asceticism/1 120 MUSOUKEN 125 fightSpirit/2
     130 RANBU 135 extraHit/3 140 TENMAKEN 145 selfPurify/1 150 KAMIKAZE 155 resistAilment/1 160 ROKUREN
     162 DAICHIMEIDOU 165 scripture/1 170 KIKOKURANBU 175 counter/2 180 DIALALL 185 extraHit/4 190 IYASHINAMI
     195 MUGEN 200 KONGOUMUSOU`),
-  hexer: T(`1 BLIND 2 SHADOWBOLT 3 NOROI 5 venomBlade/1 7 MARK_WATER 10 KATINO 12 AQUAWAVE 15 gokudoku/1 20 SEAL
-    22 DARKMIST 25 afterMp/1 30 KAGENUI 32 DARKBLAST 35 chant/1 40 DOKUGIRI 45 spellCrit/1 50 SUIJAKU 55 FUDOKU
+  hexer: T(`1 BLIND 2 SHADOWBOLT 3 NOROI 5 venomBlade/1 7 MARK_WATER 10 KATINO 12 AQUAWAVE 15 gokudoku/1 20 MIWAKU
+    22 DARKMIST 25 afterMp/1 30 KYOURAN 32 DARKBLAST 35 chant/1 40 DOKUGIRI 45 spellCrit/1 50 KEISEI 55 FUDOKU
     60 venomBlade/2 62 ICELANCE 65 ELEMBREAK 70 flinch/1 72 DARKNESS 75 afterMp/2 80 DEATH 85 SEALALL
     90 spellCrit/2 95 BLINDALL 100 MADALT 105 resistAilment/1 110 HYORETSU 115 scan/1 120 GRAVITY 122 MEIKOKU
     125 barrier/1 130 HYOUGA 135 chant/2 140 DEATHALL 145 spellCrit/3 150 KOKUUHA 155 soulEater/1 160 GRAVIGA
     165 resistAilment/2 170 ZETTAIREIDO 175 soulLure/1 180 MEIANRAN 185 elemFloor/1 190 TENPENCHII 195 MAGATSU
     200 KYOKUDAI`),
-  hermit: T(`1 DIOS 2 KAMAITACHI 3 CURE 5 afterHeal/1 7 BLIND 10 KASUMIGAKURE 15 poisonFloor/1 17 HOLYLIGHT 20 REGEN
+  hermit: T(`1 DIOS 2 KAMAITACHI 3 CURE 5 afterHeal/1 7 GENWAKU 10 KASUMIGAKURE 15 poisonFloor/1 17 HOLYLIGHT 20 REGEN
     22 WINDSTORM 25 selfPurify/1 30 KATINO 35 fleetFoot/1 37 RAITEI 40 KASUMINOTOBARI 45 afterBoth/1 50 DIOSALL
     55 KAGENUI 60 vigilance/1 65 DIAL 70 afterHeal/2 72 TORNADO 75 purify/1 80 REVIVE 85 KIYOME 90 poisonFloor/2
     95 REGENALL 100 MADIOS 105 vigilance/2 110 SAINTRAY 115 afterBoth/2 120 DIALALL 125 resistAilment/1
@@ -497,7 +497,7 @@ export const JOB_SKILLS = {
     162 DAIKAISHOU 165 resistAilment/1 170 HISSATSU 175 extraHit/4 180 MUGEN 185 vigilance/2 190 TENKAGOMEN
     195 TOKOYAMI 200 ZANSEI`),
   arcthief: T(`1 STEAL 2 MAKEN_DARK 3 HALITO 4 SHADOWBOLT 5 openSpell/1 7 KAGEWATARI 10 KATINO 12 SHIPPUUGIRI 15 chant/1
-    20 SEAL 25 spellCrit/1 30 MAHALITO 32 DARKBLAST 35 extraHit/1 40 MARYOKUGOUDATSU 45 initiative/1 50 KAGENUI
+    20 SEAL 25 spellCrit/1 30 MAHALITO 32 DARKBLAST 35 extraHit/1 40 MARYOKUGOUDATSU 45 initiative/1 50 GENWAKU
     55 DISPEL 57 MEIJIN 60 ambushCrit/1 65 BLINDALL 70 spellCrit/2 72 DARKNESS 75 vitalEye/1 80 SEISAI
     85 ASSASSINATE 90 afterMp/1 95 RAITEI 100 MADALT 105 parry/1 110 SEALALL 115 extraHit/2 120 KUBIHANE
     122 MEIKOKU 125 chant/2 130 HYORETSU 135 spellCrit/3 140 SHUNSATSU 145 vitalEye/2 150 RAIJIN
@@ -593,7 +593,7 @@ export const JOB_SKILLS = {
     130 BANRAI 135 fightSpirit/2 140 RYUUJINKOURIN 145 resistAilment/2 150 FUDOUJIN 155 bigBarrier/1 160 DAISENPUU
     162 TENRAN 165 counter/3 170 HAOUZAN 175 holyCover/1 180 KIKOKURANBU 185 parry/1 190 SHOUNETSURANBU 195 OUJOU
     200 RYUUTEIGEKI`),
-  necromancer: T(`1 BLIND 2 SHADOWBOLT 3 NOROI 5 soulEater/1 7 KATINO 10 DIOS 15 afterMp/1 20 SUIJAKU 22 DARKMIST 25 chant/1
+  necromancer: T(`1 BLIND 2 SHADOWBOLT 3 NOROI 5 soulEater/1 7 KATINO 10 DIOS 15 afterMp/1 20 KUGUTSU 22 DARKMIST 25 chant/1
     30 KAGENUI 32 DARKBLAST 35 spellCrit/1 40 MEIKONGURAI 45 soulLure/1 50 DEATH 55 FUDOKU 60 afterMp/2 65 REVIVE
     70 sleepKill/1 72 DARKNESS 75 spellCrit/2 80 SEALALL 85 GRAVITY 90 venomBlade/1 95 KOKUUHA 100 DOKUGIRI
     105 resistAilment/1 110 MADALT 115 barrier/1 117 MEIKOKU 120 DEATHALL 125 soulLure/2 130 METEOR 135 chant/2

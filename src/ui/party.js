@@ -1577,7 +1577,8 @@ function statsSeg(root, d) {
       return;
     }
     info.classList.remove("x");
-    const ail = !d.alive ? "砕けた" : d.ailment === "poison" ? "毒" : d.ailment === "paralyze" ? "麻痺" : d.ailment === "stone" ? "石化" : "正常";
+    const ail = !d.alive ? "砕けた" : d.ailment === "poison" ? "毒" : d.ailment === "paralyze" ? "麻痺" : d.ailment === "stone" ? "石化"
+      : d.asleep ? "眠り" : d.mind === "charm" ? "魅了" : d.mind === "confuse" ? "混乱" : "正常";
     const fact = (k, v, cls) => { const f = el("div", "pt-fact" + (cls ? " " + cls : "")); f.appendChild(el("span", "pt-fact-k", k)); f.appendChild(el("span", "pt-fact-v", v)); info.appendChild(f); };
     fact("HP", `${d.alive ? d.hp : 0}/${d.maxhp}`);
     fact("MP", `${d.mp}/${d.maxmp}`);
@@ -1585,6 +1586,10 @@ function statsSeg(root, d) {
     fact("会心", `+${Math.round((d.critBonus || 0) * 100)}%`);
     fact("属性攻", elemStatShort(d.elemAtk));
     fact("属性防", elemStatShort(d.elemDef));
+    // 装備の状態異常耐性 / 武器の追加効果 (持っている時だけ)
+    const AIL_SHORT = { poison: "毒", paralyze: "痺", sleep: "眠", charm: "魅", confuse: "乱", stone: "石" };
+    if (d.ailRes) fact("異常耐性", Object.entries(d.ailRes).map(([k, v]) => `${AIL_SHORT[k] || k}${Math.round(v * 100)}`).join(" "));
+    if (d.onHit) fact("追加効果", d.onHit.map((o) => `${AIL_SHORT[o.k] || o.k}${Math.round(o.chance * 100)}%`).join(" "));
   };
   for (const k of ATTR_KEYS) {
     const c = el("button", "pt-stat" + (statOpen === k ? " on" : ""));

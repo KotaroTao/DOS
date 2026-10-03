@@ -49,6 +49,8 @@ const ELEM_TINT = {
   earth: "#c89a4a", light: "#ffe27a", dark: "#9b6bd0",
 };
 const ELEM_KEYS = Object.keys(ELEM_TINT);
+// 状態異常の種類 (items.js の AIL_LABEL と同じ並び)
+const AIL_KEYS = ["poison", "paralyze", "sleep", "charm", "confuse", "stone"];
 
 // ===== 形の原型 (24x24) =====
 // 1px の黒縁 k・光源は左上・素材ごとに 4〜5 階調。キーは上の P。
@@ -1832,6 +1834,16 @@ function base(id, name, slot, lv, artKey, opt) {
   };
   if (opt.eAtk) { chk(ELEM_KEYS.includes(opt.eAtk[0]), "bad eAtk element: " + id); it.eAtk = { el: opt.eAtk[0], lv: opt.eAtk[1] || 1 }; }
   if (opt.eDef) { chk(ELEM_KEYS.includes(opt.eDef[0]), "bad eDef element: " + id); it.eDef = { el: opt.eDef[0], lv: opt.eDef[1] || 1 }; }
+  // 状態異常耐性 aRes: { charm: 0.25, ... } (種類ごとの付与率カット) / 追加効果 onHit: ["paralyze", 0.15] or ["poison", 0.2, 0.06]
+  if (opt.aRes) {
+    for (const k in opt.aRes) chk(AIL_KEYS.includes(k) && opt.aRes[k] > 0 && opt.aRes[k] <= 0.6, "bad aRes: " + id);
+    it.aRes = { ...opt.aRes };
+  }
+  if (opt.onHit) {
+    const [k, chance, pct] = opt.onHit;
+    chk(AIL_KEYS.includes(k) && k !== "stone" && chance > 0 && chance <= 0.5, "bad onHit: " + id);
+    it.onHit = pct ? { k, chance, pct } : { k, chance };
+  }
   if (opt.spd) it.agi = opt.spd;       // 旧称 spd → AGI
   if (opt.agi) it.agi = (it.agi || 0) + opt.agi;
   if (opt.hp) it.hp = opt.hp;

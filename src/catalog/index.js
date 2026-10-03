@@ -55,6 +55,20 @@ for (const list of RANK_LISTS) {
 }
 for (const list of [WEAPONS, SHIELDS, ARMORS, HEADS, FEET, HANDS, ACCS]) for (const it of list) { it.rar = "r"; applyRareBoost(it); }
 
+// ===== 状態異常耐性 (aRes) をランク別標準装備に持たせる =====
+// 各ランクの「上の方」(アンコモン) の頭防具と護符だけに、ランクに応じた耐性を付ける (R1 11% → R20 30%)。
+//   頭: 重装 (兜) = 混乱 / 軽装 (頭巾・笠) = 眠り / 布 (額環・帽子) = 魅了 — 頭を守る品は心も守る
+//   装飾 (お守り・護符の系統) = 魅了と混乱
+// 一点物・層の逸品は品ごとに書く (gear.js / layer*.js の aRes)。毒・麻痺・石化は一点物だけが持つ
+RANK_LISTS.forEach((list, bi) => {
+  const v = Math.round((0.10 + 0.01 * (bi + 1)) * 100) / 100;
+  for (const it of list) {
+    if (it.rar !== "uc" || it.aRes) continue;
+    if (it.slot === "head") it.aRes = { [it.weight === "heavy" ? "confuse" : it.weight === "light" ? "sleep" : "charm"]: v };
+    else if (it.slot === "acc") it.aRes = { charm: v, confuse: v };
+  }
+});
+
 // ===== ドロップ対象の厳選 (コモン〜レアは「少数精鋭」) =====
 // 品数が多すぎると拾うたびに新しい名前ばかりで、特別な品との差が見えなくなる。
 // コモン〜レアは帯ごとに出現対象を絞って何度も出会う「いつもの品」にし、スーパーレア以上の感動を際立たせる。

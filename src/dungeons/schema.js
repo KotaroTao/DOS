@@ -11556,7 +11556,7 @@ export function defMonster(def) {
   //   lifesteal   : 与えた物理ダメージの割合だけ自己回復 (0〜1)
   //   multistrike : 1手番で続けざまに攻撃する回数 (2〜4)
   //   barrier     : 被ダメを半減できる残り回数 (数回制)
-  //   (ability に "warcry"=鼓舞 / "weaken"=弱体 も指定可)
+  //   (ability に "warcry"=鼓舞 / "weaken"=弱体 / "sleep"=眠り / "charm"=魅了 / "confuse"=混乱 も指定可)
   if (def.magResist) m.magResist = def.magResist;
   if (def.enrage) m.enrage = true;
   if (def.endure) m.endure = true;
@@ -11595,6 +11595,9 @@ export const TRAITS = {
   barrier:    { label: "障壁",   desc: "数度だけ被害を半減する" },
   warcry:     { label: "鼓舞",   desc: "雄叫びで味方を奮い立たせる" },
   weaken:     { label: "弱体",   desc: "力を削ぐ呪いをかける" },
+  sleep:      { label: "眠り",   desc: "眠りを誘う息で隊を眠らせてくる" },
+  charm:      { label: "魅了",   desc: "心を奪い、仲間に襲いかからせてくる" },
+  confuse:    { label: "混乱",   desc: "惑わせて、敵味方の見境をなくさせる" },
 };
 
 // モンスター定義から特徴キーの並びを導く (重複なし、表示順は定義順)。
@@ -11636,7 +11639,7 @@ export function monsterTraitKeys(m) {
   if (m.role === "summoner") add("summon");
   if (m.role === "healer") add("heal");
   if (m.role === "guard") add("guard");
-  add(m.ability); // poison/paralyze/stone/drain/soulSteal/goldSteal/critical/breath/warcry/weaken
+  add(m.ability); // poison/paralyze/stone/drain/soulSteal/goldSteal/critical/breath/warcry/weaken/sleep/charm/confuse
   for (const t of m.traits || []) add(t);
   return keys;
 }
