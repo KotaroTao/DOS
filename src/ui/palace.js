@@ -609,8 +609,8 @@ function renderAch(body) {
 }
 
 // ================= 宝物庫 =================
-// 奉納台帳のランク帯ひとつをシートで (各10種。奉納済みは札、未奉納は ？)
-function bandSheet(r, ids, newIds = null) {
+// 奉納台帳のランク帯ひとつをシートで (各10種。奉納済みは札、未奉納は手持ちでも ？ = 奉納するまで台帳には記されない)
+function bandSheet(r, ids) {
   const ts = game.treasuryState();
   const body = el("div", "pl-band-sheet");
   const slots = el("div", "pl-band-slots");
@@ -618,12 +618,6 @@ function bandSheet(r, ids, newIds = null) {
     if (ts.donated[id]) {
       const t = itemTile(ITEMS[id], { size: 56, onTap: () => openItem(id) });
       t.setAttribute("aria-label", ITEMS[id].name);
-      slots.appendChild(t);
-    } else if (newIds && newIds.has(id)) {
-      // 手持ちに奉納できる新種がある枠: 品を薄く見せて新着の点
-      const t = itemTile(ITEMS[id], { size: 56, isNew: true, onTap: () => openItem(id) });
-      t.classList.add("pl-band-pending");
-      t.setAttribute("aria-label", ITEMS[id].name + " (未奉納・手持ち)");
       slots.appendChild(t);
     } else { const s = el("span", "pl-band-q"); s.textContent = "？"; slots.appendChild(s); }
   }
@@ -757,7 +751,7 @@ function renderTreasury(body) {
     fill.style.width = (ids.length ? (cnt / ids.length) * 100 : 0).toFixed(0) + "%";
     b.appendChild(fill);
     b.setAttribute("aria-label", `奉納台帳 R${r} ${cnt}/${ids.length}`);
-    b.addEventListener("click", () => { sfx("select"); bandSheet(r, ids, newIds); });
+    b.addEventListener("click", () => { sfx("select"); bandSheet(r, ids); });
     led.appendChild(b);
   }
   body.appendChild(led);
