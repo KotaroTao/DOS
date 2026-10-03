@@ -9284,7 +9284,7 @@ function reportMainQuest() {
   const ms = G.msq;
   const n = ms.n;
   const r = msqReward(n);
-  const rwText = `下賜: 💰${r.gold} + ✦${r.soulPts}` + (r.redSoul ? ` + 🔴${r.redSoul}` : "");
+  const rwText = [{ cur: "gold", n: r.gold }, { cur: "soul", n: r.soulPts }, ...(r.redSoul ? [{ cur: "red", n: r.redSoul }] : [])];
   const toasts = [];
   const pages = [{
     title: `第${actOf(n)}層 「${ACTS[actOf(n) - 1].title}」`, lines: msqReportLines(n), reward: rwText, kicker: "踏破の報告",
@@ -9295,7 +9295,7 @@ function reportMainQuest() {
       SFX.itemget(); buzz([0, 30, 60, 30]);
       log(`「${DUNGEONS[n - 1].name}」の踏破を報告した。`, "win");
       updateTopbar();
-      toasts.push({ text: `下賜 💰${r.gold} ✦${r.soulPts}` + (r.redSoul ? ` 🔴${r.redSoul}` : ""), opts: { tone: "gold" } });
+      toasts.push({ text: `受け取った 💰${r.gold} ✦${r.soulPts}` + (r.redSoul ? ` 🔴${r.redSoul}` : ""), opts: { tone: "gold" } });
       if (n < 100) autosave(true);
     },
   }];
@@ -9308,7 +9308,7 @@ function reportMainQuest() {
   // 解放の節目 (D5/10/15/20) は、報告の直後に機能解放のページを挟む
   const us = unlockSceneFor(n);
   if (us) {
-    pages.push({ title: us.title, lines: us.lines, kicker: "秘技の下賜",
+    pages.push({ title: us.title, lines: us.lines, kicker: "秘技の伝授",
       leave: () => { SFX.victory(); buzz([0, 40, 80, 40]); toasts.push({ text: "🔓 新たな技能を授かった", opts: { tone: "good" } }); } });
   }
   pages.push(...acceptPages(toasts)); // 踏破報告と同時に次の勅命を自動拝命
@@ -9330,9 +9330,9 @@ function sealedLines() {
 const TUT_INTRO = [
   "「よくぞ参った、新しき操霊師（ソウルマンサー）よ。…生身のまま、よくぞ辺境まで辿り着いた。」",
   "「だが言うておく。生身で迷宮に入ってはならぬ。深淵は、生きた魂から順に喰らう。」",
-  "「ゆえに死者の魂を器に宿した『人業』を遣わすのだ。迷宮は一体では渡れぬ。まずは四体、おのれの手で生み出すがよい。」",
+  "「ゆえに死者の魂を器に宿した『人業（ドール）』を遣わすのだ。迷宮は一体では渡れぬ。まずは四体、おのれの手で生み出すがよい。」",
   "「戦士・僧侶・盗賊・魔導士の魂を、そして赤い魂を百、くれてやろう。」",
-  "「人業の館へゆけ。赤い魂で器を買い、四つの魂をひとつずつ宿し、名を与えよ。」",
+  "「人業の館へゆけ。赤い魂で人業を買い、四つの魂をひとつずつ宿し、名を与えよ。」",
   "「それがそなたの最初の勅命である。人業を四体揃えたら、戻って報告せよ。」",
 ];
 const TUT_FINALE = [
@@ -9361,14 +9361,14 @@ function grantTutorialGift() {
   codexSweepJobs();
   SFX.itemget(); buzz([0, 30, 60, 30]);
   log("戦士・僧侶・盗賊・魔導士の魂 ×4 ・ 🔴100 を拝受した。", "win");
-  showToast("👑 4つの魂と赤い魂を拝受した");
+  showToast("👑 戦士・僧侶・盗賊・魔導士の魂と 🔴100 を受け取った");
   autosave(true);
   renderTown();
 }
 
 // 着任の謁見の語り → 閉じたら下賜 (grantTutorialGift) して街へ降り立つ
 function audienceTutorial() {
-  UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: TUT_INTRO, reward: "下賜: 戦士・僧侶・盗賊・魔導士の魂 + 🔴100", kicker: "着任の謁見" }], () => {
+  UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: TUT_INTRO, reward: [{ job: "fighter" }, { job: "priest" }, { job: "thief" }, { job: "mage" }, { cur: "red", n: 100 }], kicker: "着任の謁見" }], () => {
     landOnHub();
     grantTutorialGift();
   });
@@ -9378,13 +9378,13 @@ function audienceTutorial() {
 function reportTutorialQuest() {
   const toasts = [];
   const pages = [{
-    title: "勅命「人業の生成」完遂", lines: TUT_FINALE, reward: "下賜: 💰100 + ✦30", kicker: "勅命の完遂",
+    title: "勅命「人業の生成」完遂", lines: TUT_FINALE, reward: [{ cur: "gold", n: 100 }, { cur: "soul", n: 30 }], kicker: "勅命の完遂",
     leave: () => {
       G.gold += 100;
       G.soulPts += 30;
       SFX.itemget(); buzz([0, 30, 60, 30]);
       log("最初の勅命「人業の生成」を果たした。", "win");
-      toasts.push({ text: "下賜 💰100 ✦30", opts: { tone: "gold" } });
+      toasts.push({ text: "受け取った 💰100 ✦30", opts: { tone: "gold" } });
       autosave(true);
     },
   }];
@@ -9524,7 +9524,7 @@ function decreeInfo() {
   }
   const n = ms.state === "offer" ? Math.min(100, ms.n + 1) : ms.n;
   const head = `第${actOf(n)}層 「${ACTS[actOf(n) - 1].title}」`;
-  if (ms.state === "report") return { kind: "report", head, text: `「${DUNGEONS[ms.n - 1].name}」を踏破した。`, note: "王に報告し、下賜を受けよ。", replay: true };
+  if (ms.state === "report") return { kind: "report", head, text: `「${DUNGEONS[ms.n - 1].name}」を踏破した。`, note: "王に報告し、褒美を受け取れ。", replay: true };
   if (ms.state === "offer") return { kind: "offer", head, text: "新たな勅命が下されようとしている。", replay: false };
   const tdn = DUNGEONS[ms.n - 1];
   return { kind: "active", head, text: `「${tdn.name}」を踏破${ms.n % 5 === 0 ? "し、その主を討て。" : "せよ。"}`, note: "果たしたら王に報告せよ。", replay: true };
