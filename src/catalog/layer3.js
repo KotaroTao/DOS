@@ -14,7 +14,7 @@ const lr = (it) => { it.rar = "lr"; it.lr = 3; it.layer = 3; it.exclusive = true
 
 export const LAYER3_ITEMS = [
   // ===== スーパーレア: 武器 =====
-  sr(W("w_sr3_convictpick", "罪人の鶴嘴", "ax", 23, { pow: 1.3, two: true, hp: 12, crit: 0.05, tint: "#7a6a58",
+  sr(W("w_sr3_convictpick", "罪人のつるはし", "ax", 23, { pow: 1.3, two: true, hp: 12, crit: 0.05, tint: "#7a6a58",
     desc: "鎖に繋がれた罪人が死ぬまで振るい続けた鶴嘴。先端は岩を穿つうちに異様なほど研ぎ澄まされ、いまは鎧の継ぎ目を探り当てるように食い込む。" })),
   sr(W("w_sr3_blasterknife", "発破師の短刀", "dg", 26, { pow: 1.35, eAtk: ["wind", 1], agi: 3, tint: "#9ab890",
     desc: "導火線を切り揃えるために発破師が腰に差していた短刀。幾度も爆風を浴びた刃は風を孕み、岩の魔物の身をはじけるように裂く。" })),
@@ -38,9 +38,9 @@ export const LAYER3_ITEMS = [
     desc: "罪人が自らの手枷を叩き割り、その破片を籠手に打ち直したもの。鎖を断ち切った拳の力がいまも宿り、振るう得物に重みを乗せる。" })),
   sr(A("a_sr3_orevest", "鉱石綴りの胴衣", 30, { weight: "light", pow: 1.35, eDef: ["wind", 1], tint: "#7a6a50",
     desc: "薄く剥いだ鉱石の板を革に綴りつけた坑夫の胴衣。落石の礫も魔物の岩拳も石の板が受け流し、軽さのわりに驚くほど打撃を通さない。" })),
-  sr(F("f_sr3_hobnailboots", "坑道踏みの鋲靴", 33, { weight: "heavy", pow: 1.35, agi: 2, eDef: ["wind", 1], tint: "#5a4a3a",
-    desc: "底に鉄の鋲を打ち並べた坑夫の重い長靴。崩れる足場にも滑らず踏みとどまり、地の底から突き上げる魔物の一撃にも膝を折らない。" })),
-  sr(R("r_sr3_canarycharm", "金糸雀の籠飾り", "amulet", 36, { hp: 20, pie: 3, eDef: ["wind", 1], tint: "#e8d050",
+  sr(F("f_sr3_hobnailboots", "坑道踏みのびょう靴", 33, { weight: "heavy", pow: 1.35, agi: 2, eDef: ["wind", 1], tint: "#5a4a3a",
+    desc: "底に鉄のびょうを打ち並べた坑夫の重い長靴。崩れる足場にも滑らず踏みとどまり、地の底から突き上げる魔物の一撃にも膝を折らない。" })),
+  sr(R("r_sr3_canarycharm", "カナリアの籠飾り", "amulet", 36, { hp: 20, pie: 3, eDef: ["wind", 1], tint: "#e8d050",
     desc: "坑夫たちが毒気の見張りに連れた金糸雀の、小さな鳥籠を模した首飾り。悪い風が吹けば籠の鈴が鳴り、持ち主を岩と瘴気の害から遠ざける。" })),
   sr(S("s_sr3_cartboard", "トロッコ板の大盾", 39, { shape: "kite", pow: 1.35, hp: 16, tint: "#6a5a48",
     desc: "鉱石運びのトロッコの側板を外し、鉄の縁で補強した大盾。何十トンの鉱石を受け止めてきた板は、岩の巨人の拳にもびくともしない。" })),
@@ -52,9 +52,9 @@ export const LAYER3_ITEMS = [
   // ===== レジェンドレア (全職共通・1点もの・固有効果) =====
   lr(R("lr_l3_soulore", "魂鉱の首飾り", "amulet", 41, { pow: 1.6, hp: 30, luk: 6, eff: { soulUp: 0.3 }, tint: "#7fd0c0",
     desc: "坑の最奥でまれに掘り出される、魂を吸って育った鉱石の首飾り。持つ者が浄めた魂の欠片を拾い集め、より多くの Soul を手元へ引き寄せる。" })),
-  lr(R("lr_l3_silentcanary", "鳴かぬ金糸雀の指輪", "ring", 42, { pow: 1.6, hp: 24, pie: 6, eff: { ailmentImmune: true }, tint: "#f0e070",
+  lr(R("lr_l3_silentcanary", "鳴かぬカナリアの指輪", "ring", 42, { pow: 1.6, hp: 24, pie: 6, eff: { ailmentImmune: true }, tint: "#f0e070",
     desc: "毒気の満ちた坑で最後まで鳴かずに生き延びた金糸雀を、そのまま金に封じた指輪。嵌めた者は毒にも痺れにも石の呪いにも冒されない。" })),
-  lr(W("lr_l3_firstpick", "掘り当てし者の鶴嘴", "ax", 43, { pow: 1.4, two: true, eAtk: ["wind", 2], hp: 20, eff: { multistrike: 1 }, tint: "#a08860",
+  lr(W("lr_l3_firstpick", "掘り当てし者のつるはし", "ax", 43, { pow: 1.4, two: true, eAtk: ["wind", 2], hp: 20, eff: { multistrike: 1 }, tint: "#a08860",
     desc: "「掘ってはならぬもの」に最初に届いたと囁かれる鶴嘴。その一振りは岩盤を二度穿ち、刃先から吹き出す風が岩の魔物を粉々に砕く。" })),
   lr(W("lr_l3_firedamprod", "坑気爆ぜの杖", "st", 44, { pow: 1.6, eAtk: ["wind", 2], int: 10, mp: 18, eff: { spellCostMul: 0.75 }, tint: "#e0a060",
     desc: "坑道に溜まる燃える気を封じ込めた鉄の杖。唱えた呪文に坑気が混じって爆ぜ、わずかな魔力で岩盤ごと吹き飛ばすほどの旋風を起こす。" })),

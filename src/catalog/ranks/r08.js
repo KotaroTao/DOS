@@ -44,8 +44,8 @@ export const RANK8_ITEMS = [
   H("h_r8_dragonemperorhelm", "竜帝の兜", 80, { shape: "helm", tint: "#d06a3a", desc: "竜帝の証たる威容ある大兜。竜の角を象った前立てが劫火を思わせる威を放ち、頭部を鉄壁の守りで包み込む。" }),
 
   // ===== 足 feet (布2/軽2/重2) =====
-  F("f_r8_arcaneshoes", "魔導の沓", 73, { weight: "cloth", tint: "#7a5ad8", desc: "魔導の刺繍を施した深紫の軽い沓。足運びが滑らかになり、術者が陣形を保ったまま静かに動き続けられる。" }),
-  F("f_r8_flashstepshoes", "瞬歩の沓", 78, { weight: "cloth", agi: 4, tint: "#7fd0c0", desc: "一瞬で間合いを詰めると伝わる魔法の沓。地を蹴れば体が瞬時に運ばれ、駆け出しの速さと回避の鋭さが飛躍的に増す。" }),
+  F("f_r8_arcaneshoes", "魔導の靴", 73, { weight: "cloth", tint: "#7a5ad8", desc: "魔導の刺繍を施した深紫の軽い靴。足運びが滑らかになり、術者が陣形を保ったまま静かに動き続けられる。" }),
+  F("f_r8_flashstepshoes", "瞬歩の靴", 78, { weight: "cloth", agi: 4, tint: "#7fd0c0", desc: "一瞬で間合いを詰めると伝わる魔法の靴。地を蹴れば体が瞬時に運ばれ、駆け出しの速さと回避の鋭さが飛躍的に増す。" }),
   F("f_r8_truesilverboots", "真銀のブーツ", 74, { tint: "#dfe8f0", desc: "真銀で仕立てたブーツ。軽快なのに頑丈無比で、宿した魔力が衝撃を和らげ、罠の刃も瓦礫の縁も寄せつけない。" }),
   F("f_r8_winddragonboots", "風竜革のブーツ", 78, { tint: "#bfe0c8", desc: "風竜の革で仕立てた長靴。しなやかで足になじみ、風の加護が足取りを軽くして悪路でも俊敏さを保たせる。" }),
   F("f_r8_arcanesabaton", "魔導の具足", 75, { shape: "greaves", tint: "#7a5ad8", desc: "魔導合金で覆う具足。重装の堅い守りに魔力の支えを兼ね、踏み込みの一歩に揺るぎない安定をもたらす。" }),
@@ -54,8 +54,8 @@ export const RANK8_ITEMS = [
   // ===== 小手 hands (布2/軽2/重2) =====
   G("g_r8_arcanegloves", "魔導の手袋", 73, { magStat: "int", weight: "cloth", tint: "#7a5ad8", desc: "魔導の紋を縫い込んだ深紫の薄手の手袋。指先の感覚を保ちつつ、握った触媒へ魔力を澄んだまま導いてくれる。" }),
   G("g_r8_highpriestgloves", "大神官の聖手袋", 78, { magStat: "pie", weight: "cloth", tint: "#f0d8a0", desc: "祈りの所作を支える金糸刺繍の聖手袋。掌の聖印が祈祷に魔力を乗せやすくし、癒しの奇跡を確かに後押しする。" }),
-  G("g_r8_truesilvergloves", "真銀の手套", 74, { role: "atk", tint: "#dfe8f0", desc: "真銀を編んだ手套。指の自由を残したまま拳を堅く守り、澄んだ金属が握った得物の一打に鋭い冴えを加える。" }),
-  G("g_r8_marksmanglove", "天弓手の手套", 78, { role: "atk", tint: "#8a6438", desc: "天弓を操る射手のために誂えた手套。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を極限まで高める。" }),
+  G("g_r8_truesilvergloves", "真銀の手袋", 74, { role: "atk", tint: "#dfe8f0", desc: "真銀を編んだ手袋。指の自由を残したまま拳を堅く守り、澄んだ金属が握った得物の一打に鋭い冴えを加える。" }),
+  G("g_r8_marksmanglove", "天弓手の手袋", 78, { role: "atk", tint: "#8a6438", desc: "天弓を操る射手のために誂えた手袋。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を極限まで高める。" }),
   G("g_r8_arcanegauntlet", "魔導の籠手", 75, { role: "atk", shape: "gauntlet", tint: "#7a5ad8", desc: "魔導合金を関節ごとに連ねた籠手。宿る魔力を帯びた拳が、振るう得物の一撃に魔の冴えと確かな重みを上乗せする。" }),
   G("g_r8_dragonemperorgauntlet", "竜帝の籠手", 80, { role: "atk", shape: "gauntlet", tint: "#d06a3a", desc: "竜帝の証たる精緻な籠手。竜鱗を象った甲が指先まで包んで握力を損なわず、剣を振る手に絶大な信頼を置かせる。" }),
 

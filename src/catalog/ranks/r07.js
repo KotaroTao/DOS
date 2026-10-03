@@ -44,8 +44,8 @@ export const RANK7_ITEMS = [
   H("h_r7_spiritgeneralhelm", "霊将の兜", 70, { shape: "helm", tint: "#a8c0d8", desc: "霊将の証たる威容ある大兜。守りの霊力を帯びた鉢が放つ威で敵を怯ませ、頭部を鉄壁の守りで包み込む。" }),
 
   // ===== 足 feet (布2/軽2/重2) =====
-  F("f_r7_astralshoes", "星辰の沓", 63, { weight: "cloth", tint: "#5a4ad0", desc: "星明かりを織り込んだ深青の軽い沓。足運びが滑らかになり、術者が陣形を保ったまま静かに動き続けられる。" }),
-  F("f_r7_shrinkshoes", "縮地の沓", 68, { weight: "cloth", agi: 3, tint: "#7fd0c0", desc: "一歩で間合いを縮めると伝わる魔法の沓。地を蹴るたびに体が前へ運ばれ、駆け出しの速さと回避の鋭さが格段に増す。" }),
+  F("f_r7_astralshoes", "星辰の靴", 63, { weight: "cloth", tint: "#5a4ad0", desc: "星明かりを織り込んだ深青の軽い靴。足運びが滑らかになり、術者が陣形を保ったまま静かに動き続けられる。" }),
+  F("f_r7_shrinkshoes", "縮地の靴", 68, { weight: "cloth", agi: 3, tint: "#7fd0c0", desc: "一歩で間合いを縮めると伝わる魔法の靴。地を蹴るたびに体が前へ運ばれ、駆け出しの速さと回避の鋭さが格段に増す。" }),
   F("f_r7_magisteelboots", "魔鋼のブーツ", 64, { tint: "#8898b8", desc: "魔鋼で仕立てたブーツ。軽快なのに頑丈無比で、宿した魔力が衝撃を和らげ、罠の刃も瓦礫の縁も寄せつけない。" }),
   F("f_r7_faeboots", "妖精革のブーツ", 68, { tint: "#9bd0a8", desc: "妖精の革で仕立てた長靴。しなやかで足になじみ、微風の加護が足取りを軽くして悪路でも俊敏さを保たせる。" }),
   F("f_r7_magisteelsabaton", "魔鋼の具足", 65, { shape: "greaves", tint: "#8898b8", desc: "魔鋼で覆う具足。重装の堅い守りに魔力の支えを兼ね、踏み込みの一歩に揺るぎない安定をもたらす。" }),
@@ -54,8 +54,8 @@ export const RANK7_ITEMS = [
   // ===== 小手 hands (布2/軽2/重2) =====
   G("g_r7_astralgloves", "星辰の手袋", 63, { magStat: "int", weight: "cloth", tint: "#5a4ad0", desc: "星の紋を縫い込んだ深青の薄手の手袋。指先の感覚を保ちつつ、握った触媒へ魔力を澄んだまま導いてくれる。" }),
   G("g_r7_holygloves", "大司教の聖手袋", 68, { magStat: "pie", weight: "cloth", tint: "#f0d8a0", desc: "祈りの所作を支える金糸刺繍の聖手袋。掌の聖印が祈祷に魔力を乗せやすくし、癒しの奇跡を確かに後押しする。" }),
-  G("g_r7_magisteelgloves", "魔鋼の手套", 64, { role: "atk", tint: "#8898b8", desc: "魔鋼を編んだ手套。指の自由を残したまま拳を堅く守り、宿した魔力が握った得物の一打に冴えと重みを加える。" }),
-  G("g_r7_marksmanglove", "神弓手の手套", 68, { role: "atk", tint: "#8a6438", desc: "神域の射手のために誂えた手套。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を極限まで高める。" }),
+  G("g_r7_magisteelgloves", "魔鋼の手袋", 64, { role: "atk", tint: "#8898b8", desc: "魔鋼を編んだ手袋。指の自由を残したまま拳を堅く守り、宿した魔力が握った得物の一打に冴えと重みを加える。" }),
+  G("g_r7_marksmanglove", "神弓手の手袋", 68, { role: "atk", tint: "#8a6438", desc: "神域の射手のために誂えた手袋。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を極限まで高める。" }),
   G("g_r7_magisteelgauntlet", "魔鋼の籠手", 65, { role: "atk", shape: "gauntlet", tint: "#8898b8", desc: "魔鋼を関節ごとに連ねた籠手。宿る魔力を帯びた拳が、振るう得物の一撃に魔の冴えと確かな重みを上乗せする。" }),
   G("g_r7_spiritgeneralgauntlet", "霊将の籠手", 70, { role: "atk", shape: "gauntlet", tint: "#a8c0d8", desc: "霊将の証たる精緻な籠手。守りの霊力が指先まで包んで握力を損なわず、剣を振る手に絶大な信頼を置かせる。" }),
 

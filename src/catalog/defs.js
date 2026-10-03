@@ -348,7 +348,7 @@ export const ARTS = {
       "Jpjk....................",
       ".kk.....................",
     ],
-    [ // 髭斧: 手元へ垂れる長い刃・鋲打ち
+    [ // 髭斧: 手元へ垂れる長い刃・びょう打ち
       "........................",
       "..........ee............",
       "........eexwke......e...",
@@ -751,7 +751,7 @@ export const ARTS = {
     ],
   ],
   round: [ // 丸盾 (2種)
-    [ // 板張りの木盾・鉄の縁・鋲頭
+    [ // 板張りの木盾・鉄の縁・びょう頭
       "...........ee...........",
       ".......eeeewvkeee.......",
       "......ewwwvvvvwwwk......",
@@ -1185,7 +1185,7 @@ export const ARTS = {
       "........................",
       "........................",
     ],
-    [ // 拳闘の籠手袋: 握り拳・鋲・編み上げの腕当て
+    [ // 拳闘の籠手袋: 握り拳・びょう・編み上げの腕当て
       "........................",
       "...............DD.......",
       "............DDDlDkDD....",
@@ -1936,7 +1936,7 @@ export function H(id, name, lv, opt = {}) {
 // 足: F(id, 名, lv, opt) — opt.shape: "boots"(既定) | "greaves"。opt.def は VIT の上書き
 // opt.weight: shape から自動決定 (boots=light, greaves=heavy)。上書き可 (例: weight:"cloth" で布靴)
 // 足は「AGI(すばやさ)の部位」: 重量に応じて AGI を自動付与する (布>軽>重)。
-// opt.agi/opt.spd を渡すと、その分が自動AGIに上乗せされる (韋駄天の沓など俊足の品)。
+// opt.agi/opt.spd を渡すと、その分が自動AGIに上乗せされる (韋駄天の靴など俊足の品)。
 const FEET_AGI_COEF = { cloth: 0.11, light: 0.085, heavy: 0.04 };
 export function F(id, name, lv, opt = {}) {
   const shape = opt.shape || "boots";
