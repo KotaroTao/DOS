@@ -55,7 +55,7 @@ export const RANK18_ITEMS = [
   G("g_r18_astralgloves", "星辰の手袋", 173, { magStat: "int", weight: "cloth", tint: "#7a6ae0", desc: "星辰の紋を縫い込んだ薄手の手袋。指先の感覚を保ちつつ、握った触媒へ膨大な魔力を澄んだまま導いてくれる。" }),
   G("g_r18_cosmosgloves", "星海の宝手袋", 178, { magStat: "pie", weight: "cloth", tint: "#a0c0f0", desc: "祈りの所作を支える星宝装飾の聖手袋。掌の聖印が祈祷に魔力を乗せやすくし、癒しの奇跡を大きく後押しする。" }),
   G("g_r18_astralhandsgloves", "星辰の鋼手袋", 174, { role: "atk", tint: "#5a6ae0", desc: "星辰鋼を編んだ手袋。指の自由を残したまま拳を堅く守り、星の力が握った得物の一打に鋭い冴えを加える。" }),
-  G("g_r18_marksmanglove", "星辰射手の手袋", 178, { role: "atk", tint: "#8a6438", desc: "星辰を射る射手のために誂えた手袋。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を究極まで高める。" }),
+  G("g_r18_marksmanglove", "星辰射手の手袋", 178, { role: "atk", tint: "#8a6438", desc: "星辰を射る射手のためにあつらえた手袋。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を究極まで高める。" }),
   G("g_r18_astralgauntlet", "星辰の籠手", 175, { role: "atk", shape: "gauntlet", tint: "#5a6ae0", desc: "星辰鋼を関節ごとに連ねた籠手。宿る星の力を帯びた拳が、振るう得物の一撃に冴えと究極の重みを上乗せする。" }),
   G("g_r18_cosmosgauntlet", "星海の籠手", 180, { role: "atk", shape: "gauntlet", tint: "#3a4ac0", desc: "星海の威光を宿したと伝わる籠手。星海の輝きをまとう甲が指先まで包んで握力を損なわず、剣を振る手に絶大な信頼を置かせる。" }),
 

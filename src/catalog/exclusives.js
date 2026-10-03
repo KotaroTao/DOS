@@ -17,7 +17,7 @@ const C = [
   }), "fighter"),
   excl(S("x_knight_shield", "鉄壁の誓い盾", 115, {
     cls: ["knight"], pow: 1.25, hp: 80, eDef: ["light", 1],
-    desc: "落とした仲間の紋章を鎧に打ち直した盾。見捨てない、という誓いが金属を硬化させている。騎士の腕にしか嵌らない重さだ。",
+    desc: "落とした仲間の紋章を鎧に打ち直した盾。見捨てない、という誓いが金属を硬化させている。騎士の腕にしかはまらない重さだ。",
   }), "knight"),
   excl(W("x_priest_staff", "癒しの聖錫杖", "st", 118, {
     cls: ["priest"], pie: 95, mp: 70,
@@ -57,7 +57,7 @@ const R = [
   }), "shadow"),
   excl(W("x_paladin_sword", "聖典の剣", "ls", 152, {
     cls: ["paladin"], pow: 1.2, eAtk: ["light", 1], pie: 50,
-    desc: "聖典の最後の頁に記された武装の形をそのまま鍛えた剣。聖騎士が手にすると剣から経文が溢れ、不浄をことごとく焼く。",
+    desc: "聖典の最後のページに記された武装の形をそのまま鍛えた剣。聖騎士が手にすると剣から経文が溢れ、不浄をことごとく焼く。",
   }), "paladin"),
   excl(S("x_guardian_shield", "岩壁の大盾", 142, {
     cls: ["guardian"], pow: 1.3, hp: 150, spd: -12,
@@ -69,7 +69,7 @@ const R = [
   }), "spellblade"),
   excl(G("x_monk_gauntlet", "金剛手甲", 145, {
     cls: ["monk"], shape: "gauntlet", pow: 1.2, atkB: 45,
-    desc: "千人の敵を素手で屠った武僧の手の型を、熟練の鍛冶が金属に写し取った手甲。武僧が嵌めると筋が指先まで金剛石と化す。",
+    desc: "千人の敵を素手で倒した武僧の手の型を、熟練の鍛冶が金属に写し取った手甲。武僧がはめると筋が指先まで金剛石と化す。",
   }), "monk"),
   excl(W("x_hexer_staff", "呪縛の杖", "st", 148, {
     cls: ["hexer"], eAtk: ["dark", 1], int: 120, mp: 75,
@@ -129,7 +129,7 @@ const E = [
   }), "archbishop"),
   excl(A("x_ascetic_robe", "修験の袈裟", 167, {
     cls: ["ascetic"], shape: "robe", pow: 1.2, hp: 200, atkB: 40,
-    desc: "断崖の滝に打たれながら百夜の苦行を終えた修験者が手縫いした袈裟。苦しみが布に記憶され、着た者の痛覚の閾値を引き上げる。",
+    desc: "断崖の滝に打たれながら百夜の苦行を終えた修験者が手縫いした袈裟。苦しみが布に記憶され、着た者の痛覚の限界を引き上げる。",
   }), "ascetic"),
 ];
 
@@ -149,7 +149,7 @@ const L = [
   }), "dragonknight"),
   excl(W("x_necromancer_staff", "死霊術師の秘典", "st", 188, {
     cls: ["necromancer"], eAtk: ["dark", 2], int: 195, mp: 115,
-    desc: "死者の名前を全頁に記し続けた秘典が腐りきる前に杖として固まったもの。握れば過去に術師が呼び出した死者の声が聞こえる。",
+    desc: "死者の名前を全ページに記し続けた秘典が腐りきる前に杖として固まったもの。握れば過去に術師が呼び出した死者の声が聞こえる。",
   }), "necromancer"),
   excl(A("x_sage_robe", "賢者の法衣", 190, {
     cls: ["sage"], shape: "robe", pow: 1.25, eDef: ["light", 1], int: 100, pie: 110, mp: 120,

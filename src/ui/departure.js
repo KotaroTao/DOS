@@ -350,7 +350,7 @@ export function openDeparture(opts = {}) {
     body,
     footer: [],
     onClose: () => { cur = null; },
-    // 戻る: 奈落の頁なら門の選択へ、門の選択なら閉じる
+    // 戻る: 奈落のページなら門の選択へ、門の選択なら閉じる
     onBack: (h) => { if (cur && cur.page === "abyss" && !opts.page) { cur.page = "gates"; refresh(); } else h.close("back"); },
   });
   refreshFooter();

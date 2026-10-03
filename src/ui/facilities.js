@@ -1,10 +1,10 @@
-// ===== 街の施設 — 酒場・赤い魂の祠 (頁) / 宿屋 (シート) / 番人のささやき / 通貨の説明 / 共通の小部品 =====
-// 担当: WP-A。酒場と祠は街タブの1段下の頁 (ヘッダの ‹ で街へ戻る)。宿屋は街の札から1タップで泊まり、詳細はシート。
-// 画面は1枚に収める (頁そのものは縦にスクロールさせない)。長い一覧は「‹ 1/3 ›」でめくる (pagedGrid)。
+// ===== 街の施設 — 酒場・赤い魂の祠 (ページ) / 宿屋 (シート) / 番人のささやき / 通貨の説明 / 共通の小部品 =====
+// 担当: WP-A。酒場と祠は街タブの1段下のページ (ヘッダの ‹ で街へ戻る)。宿屋は街の札から1タップで泊まり、詳細はシート。
+// 画面は1枚に収める (ページそのものは縦にスクロールさせない)。長い一覧は「‹ 1/3 ›」でめくる (pagedGrid)。
 // 番人は見出しの下の1行 (胸像の小窓 + ひとこと。タップで胸像のシート)。その街滞在で初めて訪れた時だけ、
 // その行が大きな胸像と吹き出しになって挨拶する (次に描き直す時は1行に畳む)。
 // 品 (納品の依頼・宝物庫・図鑑) を選ぶと、持っている品は UI.itemSheet (WP-C) でその場で装備・譲渡できる。
-// 提供: UI.keeperWhisper(key) / UI.keeperSheet(key) / UI.currencySheet(kind) / UI.openInn() / 頁 "tavern" "shrine"
+// 提供: UI.keeperWhisper(key) / UI.keeperSheet(key) / UI.currencySheet(kind) / UI.openInn() / ページ "tavern" "shrine"
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
 import { UI, game, ops, registerUI } from "./ctx.js";
@@ -47,7 +47,7 @@ export function facilityOpen(key) {
 export function lockedToast() { sfx("ng"); toast("王命を果たすまで閉ざされている", { tone: "info" }); }
 
 // 1画面に収まる行数ぶんずつ見せる格子 (‹ 1/3 ›)。area は DOM に繋がった、残りの高さを占める箱 (flex:1)。
-// 横に払ってもめくれる。めくった頁は key ごとに覚える (この起動の間)
+// 横に払ってもめくれる。めくったページは key ごとに覚える (この起動の間)
 const pageMemo = {};
 export function pagedGrid(area, items, makeCell, { cols = 3, cellH = 104, gap = 8, key = "", empty = null } = {}) {
   area.textContent = "";
@@ -81,11 +81,11 @@ export function pagedGrid(area, items, makeCell, { cols = 3, cellH = 104, gap = 
     pager = el("div", "wa-pager");
     prev = el("button", "wa-pg-b");
     prev.type = "button";
-    prev.setAttribute("aria-label", "前の頁");
+    prev.setAttribute("aria-label", "前のページ");
     prev.appendChild(svgIcon("back", "wa-pg-ic"));
     next = el("button", "wa-pg-b");
     next.type = "button";
-    next.setAttribute("aria-label", "次の頁");
+    next.setAttribute("aria-label", "次のページ");
     next.appendChild(svgIcon("chevron", "wa-pg-ic"));
     label = el("span", "wa-pg-l");
     prev.addEventListener("click", () => { if (page > 0) { page--; sfx("select"); draw(); } });
@@ -313,7 +313,7 @@ export function openInn() {
   return innSheet;
 }
 
-// ---------- 酒場 (頁) ----------
+// ---------- 酒場 (ページ) ----------
 function renderTavern(root) {
   if (legacyJumped()) return;
   const g = G();
@@ -387,7 +387,7 @@ function renderTavern(root) {
   }, { cols: 1, cellH: 104, gap: 6, key: "crowd" });
 }
 
-// ---------- 赤い魂の祠 (頁) ----------
+// ---------- 赤い魂の祠 (ページ) ----------
 function renderShrine(root) {
   if (legacyJumped()) return;
   const g = G();
@@ -448,7 +448,7 @@ function renderShrine(root) {
   wrap.appendChild(uses);
 }
 
-// 頁を開いたまま旧来の入口 (G.town.facility = …) へ跳ばされた時は、頁を閉じてそちらを描く
+// ページを開いたまま旧来の入口 (G.town.facility = …) へ跳ばされた時は、ページを閉じてそちらを描く
 function legacyJumped() {
   const t = G() && G().town;
   if (!t || !t.facility) return false;

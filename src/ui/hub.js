@@ -71,7 +71,7 @@ function builtinSuggestions(c) {
   if (junkN && facilityOpen("shop")) {
     out.push({ key: "sell", prio: 40, label: "まとめて売る", short: "売り払う", sub: `${junkN}点`, cost: { kind: "gold", n: "+" + junkGold }, icon: "coin",
       run: () => (UI.confirmSellJunk ? UI.confirmSellJunk() : confirmThen({ banner: "まとめて売る", title: `${junkN}点を売り、金貨 ${junkGold} を得ますか？`,
-        lines: ["装備中・呪い・未鑑定・SR/LR・未奉納の蒐集品・道具は売らない。", "売った品は商会の棚に並ぶ (買い戻せる)。"],
+        lines: ["装備中・呪い・未鑑定・SR/LR・未奉納の収集品・道具は売らない。", "売った品は商会の棚に並ぶ (買い戻せる)。"],
         okLabel: "売る", run: () => (UI.sellJunkAll || ops.sellJunkAll)() })) });
   }
   // より良い装備 (WP-B の最適装備)
@@ -104,9 +104,9 @@ function builtinSuggestions(c) {
   }
   // 勲章: 王宮の勲章の区分へ (どれを受け取るかは勲章の画面で選ぶ楽しみとして残す)
   if (c.ach) out.push({ key: "ach", prio: 70, label: "勲章を拝受", sub: `${c.ach} 個`, icon: "medal", run: () => { if (UI.openPalace) UI.openPalace("ach"); } });
-  // 宝物庫: 蒐集品を奉納 → 王宮の宝物庫へ (奉納する品はそこで確かめてから納める) / 褒賞だけ残っている
+  // 宝物庫: 収集品を奉納 → 王宮の宝物庫へ (奉納する品はそこで確かめてから納める) / 褒賞だけ残っている
   if (c.donatable) {
-    out.push({ key: "donate", prio: 80, label: "蒐集品を奉納", sub: `${c.donatable} 種`, icon: "treasury",
+    out.push({ key: "donate", prio: 80, label: "収集品を奉納", sub: `${c.donatable} 種`, icon: "treasury",
       run: () => { if (UI.openPalace) UI.openPalace("treasury"); } });
   } else if (c.treasuryReady) {
     out.push({ key: "treasury", prio: 80, label: "褒賞を受け取る", short: "褒賞を拝受", sub: "宝物庫", icon: "treasury", run: () => game.claimNextTreasury && game.claimNextTreasury() });

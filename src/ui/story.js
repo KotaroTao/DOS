@@ -1,10 +1,10 @@
 // ===== 物語 — 報告 → 解放 → 勅命を1つの連なった語りに (playStoryChain) =====
-// 担当: WP-A。玉座の間の一幕: 上下に黒い帯 (映画の画角)、奥に玉座の間の情景、老王の肖像、台詞が墨のように滲み出る。
-//   1回目のタップ = 残りの台詞を一度に出す / 次のタップ = 次の頁 / 最後の頁は「御意」で閉じる。
-//   戻る操作も同じ順 (全文 → 次の頁 → 閉じる)。
+// 担当: WP-A。玉座の間の一幕: 上下に黒い帯 (映画の画角)、奥に玉座の間の情景、老王の肖像、台詞が墨のようににじみ出る。
+//   1回目のタップ = 残りの台詞を一度に出す / 次のタップ = 次のページ / 最後のページは「御意」で閉じる。
+//   戻る操作も同じ順 (全文 → 次のページ → 閉じる)。
 // pages: [{ title, lines[], reward?, kicker?, btnLabel?, enter?(), leave?() }]
-//   enter = 頁を開く直前 / leave = 頁を離れる時 (次の頁へ進む・閉じる)。状態の変化はここで行い、順番は呼び出し側が決める。
-// done(): すべて閉じた後 (最後の頁の leave の後)。描き直し・トーストは呼び出し側。
+//   enter = ページを開く直前 / leave = ページを離れる時 (次のページへ進む・閉じる)。状態の変化はここで行い、順番は呼び出し側が決める。
+// done(): すべて閉じた後 (最後のページの leave の後)。描き直し・トーストは呼び出し側。
 // 提供: UI.playStoryChain(pages, done) (.scene = true で旧来の showStoryScene が委ねる)
 // game.js は import しない (ctx.js の UI / game を通す)。
 
@@ -112,10 +112,10 @@ export function playStoryChain(pages, done) {
       page.appendChild(rw);
     }
     page.scrollTop = 0;
-    // 頁の印 (● ○ ○)
+    // ページの印 (● ○ ○)
     dots.textContent = "";
     if (list.length > 1) for (let j = 0; j < list.length; j++) dots.appendChild(el("i", j === k ? "on" : j < k ? "past" : ""));
-    // 最後の頁だけ「御意」
+    // 最後のページだけ「御意」
     okBox.textContent = "";
     if (last()) {
       const ok = button({ label: p.btnLabel || "御意", kind: "primary", size: "lg", onTap: (e) => { if (e) e.stopPropagation(); finish(); } });
@@ -133,7 +133,7 @@ export function playStoryChain(pages, done) {
     if (st.closed) return;
     if (!st.revealed) { reveal(); sfx("select"); return; }
     if (!last()) { sfx("select"); show(st.i + 1); return; }
-    // 最後の頁: 「御意」を光らせて促す
+    // 最後のページ: 「御意」を光らせて促す
     const ok = okBox.querySelector("button");
     if (ok) animate(ok, [{ filter: "brightness(1)" }, { filter: "brightness(1.6)" }, { filter: "brightness(1)" }], { duration: 420, fill: "none" });
   };
@@ -156,7 +156,7 @@ export function playStoryChain(pages, done) {
     if (cb) { try { cb(); } catch (e) { setTimeout(() => { throw e; }); } }
   };
 
-  // 戻る操作: 全文 → 次の頁 → (最後の頁なら) 閉じる
+  // 戻る操作: 全文 → 次のページ → (最後のページなら) 閉じる
   const entry = nav.push({ id: "story", onBack: () => { if (!st.revealed) reveal(); else if (!last()) show(st.i + 1); else finish(); } });
   const onKey = (e) => {
     if (st.closed) return;
