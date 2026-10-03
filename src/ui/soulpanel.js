@@ -1,9 +1,9 @@
-// ===== 魂の区分 — メイン魂・魂を強化/上限まで・残火・付け替え・吸収・サブ魂・控えの結社 =====
-// 担当: WP-B。隊 (party.js) の「魂」区分を描き、魂の操作のシート (付け替え・宿し技・吸収) を開く。
+// ===== 魂の区分 — メイン魂・魂を強化/上限まで・残火・付け替え・魂融合・サブ魂・控えの結社 =====
+// 担当: WP-B。隊 (party.js) の「魂」区分を描き、魂の操作のシート (付け替え・宿し技・魂融合) を開く。
 //   街でだけ魂を付け替え・鍛えられる (迷宮の中では見るだけ = 旧来と同じ制限)。
 //   魂を強化/上限まで は ops.trainTimes (単体の鍛錬のループ・同じ費用) を使い、結果は1つのトーストにまとめ、
 //   その場で Lv の数字が刻み、強化ボタンの下に「強化の結果」(能力の before→after) が出る。転職・ランクアップは祝祭カード (kit.celebrate)。
-// 提供する契約: UI.trainableList()
+// 提供する契約: UI.trainableList() / UI.fusableList() / UI.openFusePicker(uid)
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
 import { UI, game, ops, registerUI } from "./ctx.js";
@@ -13,7 +13,7 @@ import { showSkillPopup, SPELL_KIND_LABEL } from "./itemview.js";
 import {
   SOUL_CLASSES, jobSprite, jobBust, soulByUid, soulRankOf, soulLevelCapOf, nextRankThreshold, jobRankName, soulSeriesName,
   soulLearnedSkills, soulLearnedPassives, passiveName, passiveDesc, ORDER_PERK, PASSIVES, orderPassiveMap, orderPerkLv,
-  jobSkillTable, recalcDoll, SOUL_STAT_UP,
+  jobSkillTable, recalcDoll,
 } from "../souls.js";
 import { SPELLS } from "../combat.js";
 import { crispCanvas } from "../sprites.js";
@@ -148,7 +148,7 @@ export function renderSoulSeg(root, d, ctx = {}) {
   const pe = d.primary != null ? soulByUid(d.primary) : null;
   root.appendChild(mainCard(d, pe, town));
   if (!pe) return;
-  // 付け替え・吸収 (1行に並べる)
+  // 付け替え・魂融合 (1行に並べる)
   const acts = el("div", "sp-row2");
   if (town) {
     const ch = el("button", "sp-btn");
@@ -246,7 +246,7 @@ function mainCard(d, pe, town) {
     } else {
       const nx = nextRankThreshold(pe.clsKey, pe.count);
       card.appendChild(el("div", "sp-note", nx
-        ? `Lv上限。同じ${cl.label}の魂をあと ${nx.next - pe.count} 体吸収してランク${rank + 1}になると上限が伸びる。${pe.exp > 0 ? `（蓄積 ✦${pe.exp}）` : ""}`
+        ? `Lv上限。同じ${cl.label}の魂をあと ${nx.next - pe.count} 体ぶん魂融合してランク${rank + 1}になると上限が伸びる。${pe.exp > 0 ? `（蓄積 ✦${pe.exp}）` : ""}`
         : "最高ランク。これ以上、ランクでは上限が伸びない。"));
     }
   }
@@ -271,7 +271,7 @@ function mainCard(d, pe, town) {
   }
   if (town && ((G.embers || 0) > 0 || pe.level >= cap)) {
     const em = button({ label: `残火 ${G.embers || 0}`, sub: `上限 +1${pe.capBonus ? `（済 +${pe.capBonus}）` : ""}`, kind: "secondary", size: "sm",
-      cost: { kind: "ember", n: 1 }, disabled: (G.embers || 0) < 1, onTap: () => { if (game.raiseSoulCap) game.raiseSoulCap(pe.uid); } });
+      cost: { kind: "ember", n: 1 }, disabled: (G.embers || 0) < 1, onTap: () => confirmRaiseCap(pe) });
     em.classList.add("sp-ember-b");
     foot.appendChild(em);
   }
@@ -280,17 +280,33 @@ function mainCard(d, pe, town) {
   return card;
 }
 
-// 同じ魂が余っている → 吸収 (付け替えの隣のボタン)
+// 残火でLv上限を上げる前の確認 (残火は貴重なので、押し間違いで捧げないように)
+function confirmRaiseCap(pe) {
+  const G = G_();
+  const have = G.embers || 0;
+  if (!game.raiseSoulCap) return;
+  if (have < 1) { game.raiseSoulCap(pe.uid); return; }
+  const cap = soulLevelCapOf(pe);
+  sfx("select");
+  confirm({
+    banner: "魂の残火", danger: false,
+    title: `残火を1つ捧げ、${soulSeriesName(pe.clsKey)}の魂のLv上限を上げますか？`,
+    lines: [`Lv上限 ${cap} → ${cap + 1}`, `残火 ${have} → ${have - 1}`, "捧げた残火は戻らない。"],
+    okLabel: "捧げる",
+  }).then((y) => { if (y) game.raiseSoulCap(pe.uid); });
+}
+
+// 同じ魂が余っている → 魂融合 (付け替えの隣のボタン)
 function fuseButton(pe, town) {
   const G = G_();
   const worn = (uid) => allDolls().some((d) => d.primary === uid || (d.subs || []).some((s) => s && s.uid === uid));
-  const spare = G.souls.filter((s) => s.uid !== pe.uid && s.clsKey === pe.clsKey && !worn(s.uid));
+  const spare = G.souls.filter((s) => s.uid !== pe.uid && s.clsKey === pe.clsKey && !worn(s.uid) && !s.locked);
   if (!spare.length) return null;
   const open = game.featureUnlocked ? game.featureUnlocked("fusion") : false;
   const b = el("button", "sp-btn sp-fuse" + (open ? " hot" : " locked"));
   b.type = "button";
   const t = el("span", "sp-btn-t");
-  t.appendChild(el("span", "sp-btn-l", `吸収 ×${spare.length}`));
+  t.appendChild(el("span", "sp-btn-l", `魂融合 ×${spare.length}`));
   t.appendChild(el("span", "sp-btn-s", open ? "同じ魂が余っている" : "5 迷宮の踏破で開く"));
   b.appendChild(t);
   if (!open || !town) b.disabled = true;
@@ -435,7 +451,7 @@ function orderBody(root, town, again) {
 
 
 // ================= 魂を宿す (シート) =================
-// slotId: "primary" | "sub0" | "sub1"。能力の増減を見比べて選ぶ。吸収もここから
+// slotId: "primary" | "sub0" | "sub1"。能力の増減を見比べて選ぶ。魂融合もここから
 export function openSoulPicker(d, slotId = "primary") {
   const G = G_();
   if (!G || G.state !== "town" || !d) return null;
@@ -500,6 +516,7 @@ function pickerBody(root, d, slotId, h) {
     const tx = el("span", "sp-srow-t");
     const nm = el("span", "sp-srow-n", `${soulSeriesName(s.clsKey)}の魂`);
     nm.style.color = cl.glow;
+    if (s.locked) nm.appendChild(svgIcon("lock", "sp-srow-lk"));
     tx.appendChild(nm);
     tx.appendChild(el("span", "sp-srow-m", `Lv${s.level}/${cap} ・ ランク${rank} ・ ${RARITY_NAME[cl.rarity] || ""}`));
     if (isCur) tx.appendChild(el("span", "sp-srow-tag cur", isSub ? "このサブ魂に宿している" : "宿している"));
@@ -533,7 +550,21 @@ function pickerBody(root, d, slotId, h) {
     }
     if (fusion) {
       const n = game.fuseCandidates ? game.fuseCandidates(s.uid).length : 0;
-      if (n) side.appendChild(button({ label: `吸収 ${n}`, kind: "secondary", size: "sm", onTap: () => openFusePicker(s.uid) }));
+      if (n) side.appendChild(button({ label: `魂融合 ${n}`, kind: "secondary", size: "sm", onTap: () => openFusePicker(s.uid, () => refreshSheet(h)) }));
+    }
+    if (game.toggleSoulLock) {
+      const lk = button({ icon: s.locked ? "lock" : "unlock", label: s.locked ? "ロック中" : "ロック", kind: s.locked ? "secondary" : "ghost", size: "sm",
+        title: s.locked ? "ロックを外す" : "魂融合の素材にできないようにする",
+        onTap: (e) => {
+          if (e) e.stopPropagation();
+          const on = game.toggleSoulLock(s.uid);
+          sfx("select");
+          toast(on ? `${soulSeriesName(s.clsKey)}の魂をロックした ― 魂融合の素材にならない` : `${soulSeriesName(s.clsKey)}の魂のロックを外した`, { tone: "info" });
+          refreshSheet(h);
+        } });
+      lk.classList.add("sp-lock-btn");
+      if (s.locked) lk.classList.add("on");
+      side.appendChild(lk);
     }
     if (side.childElementCount) r.appendChild(side);
     list.appendChild(r);
@@ -580,30 +611,59 @@ export function openSkillStep(d, subRef) {
   });
 }
 
-// ---- 吸収 (同じ職の余っている魂を取り込む) ----
-export function openFusePicker(targetUid) {
+// 開いているシートの中身を描き直す (見ていた頁は保つ)
+function refreshSheet(h) {
+  if (!h || h.closed || !h.update) return;
+  const pg = h.page || 0;
+  h.update({});
+  h.page = pg;
+}
+
+// 強化済みの魂 = ✦で鍛えた・融合を重ねた・残火で上限を伸ばした魂
+function soulEnhanced(s) {
+  return !!s && ((s.level || 1) > 1 || (s.exp || 0) > 0 || (s.count || 1) > 1 || (s.capBonus || 0) > 0);
+}
+
+// ---- 魂融合 (同じ職の余っている魂を取り込む) ----
+// onDone: 融合したあとに呼ぶ (魂の一覧シートを描き直すなど)
+export function openFusePicker(targetUid, onDone) {
   const t = soulByUid(targetUid);
   if (!t) return null;
-  if (!(game.featureUnlocked && game.featureUnlocked("fusion"))) { sfx("ng"); toast("魂の吸収は 5 迷宮の踏破で開く", { tone: "info" }); return null; }
+  if (!(game.featureUnlocked && game.featureUnlocked("fusion"))) { sfx("ng"); toast("魂融合は 5 迷宮の踏破で開く", { tone: "info" }); return null; }
   const cands = (game.fuseCandidates ? game.fuseCandidates(targetUid) : []).sort(game.soulSortCmp || (() => 0));
-  if (!cands.length) { sfx("ng"); toast("吸収できる同じ職の魂がない", { tone: "info" }); return null; }
+  const lockedN = (G_().souls || []).filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey && s.locked).length;
+  if (!cands.length) { sfx("ng"); toast(lockedN ? "素材にできる魂がない (同じ職の魂はロック中)" : "魂融合できる同じ職の魂がない", { tone: "info" }); return null; }
   const cl = SOUL_CLASSES[t.clsKey] || SOUL_CLASSES.fighter;
-  const pct = Math.round((SOUL_STAT_UP[cl.rarity] || 0.01) * 100);
-  const nr = nextRankThreshold(t.clsKey, t.count);
   sfx("select");
   return sheet.open({
-    kind: "info", className: "sp-pick-sheet", banner: "魂の吸収", accent: cl.glow,
-    title: `${soulSeriesName(t.clsKey)}の魂 Lv${t.level} に吸収させる`,
-    lines: [`吸収した魂は失われ、魂数がランクに加わる (全能力 +${pct}%/体)。${nr ? `ランク${soulRankOf(t) + 1}まで あと ${nr.next - t.count} 体。` : ""}`],
+    kind: "info", className: "sp-pick-sheet", banner: "魂融合", accent: cl.glow,
+    title: `${soulSeriesName(t.clsKey)}の魂 Lv${t.level} に融合させる`,
+    lines: ["素材にした魂は失われ、融合数に応じてLv上限、能力が上昇。一定数の魂を融合するとランクアップ。",
+      ...(lockedN ? [`ロック中の魂 ${lockedN} 体は素材にできない。`] : [])],
     body: (scroll, h) => {
       const list = el("div", "pt-list");
       for (const c of cands) {
-        list.appendChild(row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulSeriesName(c.clsKey)}の魂 Lv${c.level}`, sub: `魂数 ${c.count}${c.count > 1 ? " ― 融合済みの魂" : ""}`, chevron: true,
+        const enh = soulEnhanced(c);
+        const tags = [`魂数 ${c.count}`];
+        if (c.count > 1) tags.push("融合済み");
+        if ((c.level || 1) > 1 || (c.exp || 0) > 0) tags.push("強化済み");
+        if (c.capBonus) tags.push(`残火 +${c.capBonus}`);
+        const r = row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulSeriesName(c.clsKey)}の魂 Lv${c.level}`, sub: tags.join(" ・ "), tone: enh ? "gold" : null, chevron: true,
           onTap: () => {
-            const go = () => { h.close(); if (game.fuseSoul) game.fuseSoul(targetUid, c.uid); };
-            if (c.count > 1) confirm({ title: "融合済みの魂を素材にする？", lines: [`この魂は ${c.count} 体ぶんを融合した魂。素材にすると、その魂数と蓄積した ✦ はすべて失われる。`], okLabel: "素材にする" }).then((y) => { if (y) go(); });
-            else go();
-          } }));
+            const go = () => {
+              h.close();
+              if (game.fuseSoul) game.fuseSoul(targetUid, c.uid);
+              if (typeof onDone === "function") onDone();
+            };
+            if (!enh) return go();
+            sfx("ng");
+            const lines = [`この魂は Lv${c.level}${c.count > 1 ? `・魂数 ${c.count}` : ""}${c.capBonus ? `・残火 +${c.capBonus}` : ""} まで強化されている。`,
+              "素材にした魂は消える。蓄積した ✦ と魂数は融合先に引き継がれる。"];
+            if (c.capBonus) lines.push(`残火で伸ばした Lv上限 +${c.capBonus} は失われる。`);
+            lines.push("残したい魂は、魂の一覧で「ロック」すれば素材にならない。");
+            confirm({ banner: "注意", title: "強化済みの魂を素材にする？", lines, okLabel: "素材にする" }).then((y) => { if (y) go(); });
+          } });
+        list.appendChild(r);
       }
       scroll.appendChild(list);
     },
@@ -674,6 +734,19 @@ function trainableList() {
   });
 }
 
+// UI.fusableList: 魂融合できる人業のメイン魂 (隊 → 控えの順)。[{ doll, uid, clsKey, n }]
+function fusableList() {
+  if (!(game.featureUnlocked && game.featureUnlocked("fusion")) || !game.fuseCandidates) return [];
+  const out = [];
+  for (const d of allDolls()) {
+    if (!d || d.primary == null) continue;
+    const s = soulByUid(d.primary);
+    const n = s ? game.fuseCandidates(s.uid).length : 0;
+    if (n) out.push({ doll: d, uid: s.uid, clsKey: s.clsKey, n, name: `${soulSeriesName(s.clsKey)}の魂` });
+  }
+  return out;
+}
+
 export function install() {
-  registerUI({ trainableList, trainSoul: (uid, n = 1) => train(uid, n), openSoulPicker });
+  registerUI({ trainableList, fusableList, openFusePicker, trainSoul: (uid, n = 1) => train(uid, n), openSoulPicker });
 }
