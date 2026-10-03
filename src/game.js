@@ -19,7 +19,7 @@ import {
 } from "./abyss.js";
 import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, soulIcon,
-  recalcDoll, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, MAX_SUBS, subPicks,
+  recalcDoll, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
   soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills,
   ORDER_PERK, orderPassiveMap,
   PASSIVES,
@@ -65,6 +65,7 @@ const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 import { tlOn, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd } from "./telemetry.js";
 import { baselineAgi, progressX } from "./baseline.js";
+import { repriceEquipment } from "./pricing.js";
 
 // ===== コンテンツの取り込み =====
 // アイテム: 一点物の手作りカタログ (src/catalog/)。二つ名つきの量産品は廃止。
@@ -79,6 +80,9 @@ for (const id in ITEMS) {
     if (!CATALOG_ITEMS[id]) it.noDrop = true;
   }
 }
+// 装備の値段は性能 (能力値・属性・耐性・効果) から付け直す (src/pricing.js)。
+// 性能が同じ品は同じ値段、どこも同等以上の品は必ず高くなる
+repriceEquipment(ITEMS);
 Object.assign(MONSTERS, DUNGEON_MONSTERS);
 // 隠しレベル lv (1-50) と表示ランクの補完 (カタログ品は定義済み)
 for (const id in ITEMS) {
@@ -443,7 +447,7 @@ const G = {
   embers: 0,          // 魂の残火: 死体から確定で得る。メイン魂のLv上限を1上げるのに使う
   dollsPurchased: 0,  // 空の人業を購入した回数 (価格の段階に使う)
   dungeonBriefed: false, // 初回潜入時の警備兵の注意事項を表示済みか
-  pendingDoll: null,  // (旧形式) 未生成の人業。現在は「空の人形」(isEmpty) として reserve に残る (ロード時に移行)
+  pendingDoll: null,  // (旧形式) 未生成の人業。現在は「空の人業」(isEmpty) として reserve に残る (ロード時に移行)
   party: [],          // 迷宮に連れて行く人業 (最大6体)
   reserve: [],        // 酒場で待機中の人業
   // 魂は1体ごとに固有のインスタンス (本体は魂、人業は器)。同職でも個別に Lv/ランクを持つ。
@@ -1128,6 +1132,7 @@ function baseEnemyScale() {
   return (cfg.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
 }
 // 迷宮ごとの手直し (generator.js DUNGEON_TUNE) のうち、いまの階の雑魚に掛かる倍率。奈落では掛けない
+// (手直しは出現表の雑魚の強さ合わせ。ランクの曲線から組む単体の強敵・ミミック・出来事の魔物には掛けない → soloFoes)
 function tuneMul() {
   if (abyssActive()) return 1;
   const cfg = activeCfg();
@@ -1143,7 +1148,14 @@ function tuneMul() {
 function mimicRef() {
   const cfg = activeCfg();
   const ranks = sfMonsterPool().map((k) => (MONSTERS[k] && MONSTERS[k].rank) || 0);
-  return { rank: Math.max(1, cfg.rank || 1, ...ranks), scale: enemyScale() };
+  return { rank: Math.max(1, cfg.rank || 1, ...ranks), scale: baseEnemyScale() };
+}
+// 手直し (DUNGEON_TUNE) を掛けずに出す単体の強敵 (強敵・ミミック・出来事の魔物) の印。
+// これらは層相応のランク/固有の強さで組まれていて、雑魚の顔ぶれに合わせた倍率を重ねると強くなりすぎる。
+// startBattle はこの印のある敵からは手直しの倍率を戦果から打ち消さない
+function soloFoes(list) {
+  for (const e of list) e._untuned = true;
+  return list;
 }
 
 // この迷宮に出る強敵のid。作り込み済みの層は層ごとの強敵 (LAYER_ELITES) を階ごとに順に出す。
@@ -4593,7 +4605,7 @@ function resolveCell(cell) {
         if (cell.elite) {
           // 強敵は群れない: 規格外の1体が立ちはだかる
           log(`☠ 強敵 ${name} が立ちはだかる！`, "dmg");
-          startBattle(spawnEliteEnemies(cell.monsterKey, enemyScale()), cell);
+          startBattle(soloFoes(spawnEliteEnemies(cell.monsterKey, baseEnemyScale())), cell);
         } else {
           log(`⚔ ${name} のカードだ！`, "dmg");
           // 迷宮の異変 (飢えた狩場): 敵が常に群れで現れる
@@ -4844,9 +4856,10 @@ function evBuildFoes(specs) {
   const out = [];
   for (const sp of specs || []) {
     if (sp.shadows) { for (const p of evAlive()) out.push(evShadow(p, sp.shadows)); continue; }
-    if (sp.elite) { out.push(...spawnEliteEnemies(sp.key && MONSTERS[sp.key] ? sp.key : eliteKey(), scale * (sp.strong || 1))); continue; }
+    // 強敵・出来事の魔物は手直しを掛けない素の強さで (soloFoes)
+    if (sp.elite) { out.push(...soloFoes(spawnEliteEnemies(sp.key && MONSTERS[sp.key] ? sp.key : eliteKey(), baseEnemyScale() * (sp.strong || 1)))); continue; }
     // 出来事の魔物: その階の雑魚の最上位ランク + ranked の体で現れる (ミミックと同じ基準 mimicRef)
-    if (sp.ranked && sp.key && MONSTERS[sp.key]) { const e = spawnRanked(sp.key, mimicRef().rank, sp.ranked, scale)[0]; if (sp.name) e.name = sp.name; out.push(e); continue; }
+    if (sp.ranked && sp.key && MONSTERS[sp.key]) { const e = soloFoes(spawnRanked(sp.key, mimicRef().rank, sp.ranked, baseEnemyScale()))[0]; if (sp.name) e.name = sp.name; out.push(e); continue; }
     const key = sp.key && MONSTERS[sp.key] ? sp.key : (sp.undead ? undeadKeyForDungeon() : evPoolKey());
     if (sp.strong) { const e = evBoost(spawnEliteEnemies(key, scale)[0], sp.strong); if (sp.name) e.name = sp.name; out.push(e); continue; }
     if (sp.single) { out.push(spawnEliteEnemies(key, scale)[0]); continue; }
@@ -5817,7 +5830,7 @@ function rollChest(cell, allowDanger, done, opener, cRankIn, lvBonus, noGold = f
         accent: master ? "#ffd34d" : "#d4504e", banner: master ? "⚠ 危険 ⚠⚠" : "⚠ 危険 ⚠",
         lines: master ? ["金色に輝く宝箱が牙を剥いた！", "強敵だ。倒せば極上の宝が手に入る。"] : ["宝箱は怪物だった！", "倒せば上質な宝箱を残す。"],
         btnLabel: "戦う",
-        onClose: () => startBattle(spawnMimic(ref.rank, ref.scale, master), cell),
+        onClose: () => startBattle(soloFoes(spawnMimic(ref.rank, ref.scale, master)), cell),
       });
       return;
     }
@@ -6309,7 +6322,7 @@ function startBattle(enemies, cell) {
   if (tn) {
     const tm = tuneMul();
     for (const e of enemies) {
-      const k = e.boss ? (tn.bossMul || 1) : tm;
+      const k = e.boss ? (tn.bossMul || 1) : e._untuned ? 1 : tm;
       if (k !== 1) { e.soul = Math.round((e.soul || 0) / k); e.gold = Math.round((e.gold || 0) / k); }
     }
   }
@@ -7508,6 +7521,14 @@ function lastSkillOf(actor) {
   const k = uiDungeonHud.remember("lastSkill", String(actor.uid));
   return k && battleSkills(actor).includes(k) && SPELLS[k] ? k : null; // 戦闘で出さない (オフの) 技は出さない
 }
+// 攻撃の右に常に出す早出しの技: 最後に使った技 (戦闘をまたいで人業ごとに覚える)。
+// まだ使っていなければ、戦闘に出す技の先頭 (隊の「能力」で並べた順)
+function quickSkillOf(actor) {
+  const k = lastSkillOf(actor);
+  if (k) return k;
+  const list = actor ? battleSkills(actor).filter((s) => SPELLS[s]) : [];
+  return list[0] || null;
+}
 function skillLocked(actor, key) {
   const sp = SPELLS[key];
   if (!sp) return true;
@@ -7553,9 +7574,9 @@ function renderCombatMenu() {
     combatMenu.dataset.mode = "input";
     const rowTag = b.isBackRow(actor) ? "後衛" : "前衛";
     combatMenu.appendChild(turnPlate(actor.name, "の手番", [rowTag, "射程 " + RANGE_LABEL[b.attackRange(actor)]]));
-    // 主の段: 攻撃 (狙いを添えて1タップで確定) ・ 最後に使った技 ・ スキル一覧
+    // 主の段: 攻撃 (狙いを添えて1タップで確定) ・ 最後に使った技 (未使用なら先頭の技) ・ スキル一覧
     const tgt = defaultAttackTarget(actor);
-    const quick = lastSkillOf(actor);
+    const quick = quickSkillOf(actor);
     const main = el("div", "cmd-main" + (quick ? " has-quick" : ""));
     main.appendChild(cmdBtn("attack", "攻撃", tgt ? `→ ${enemyLabel(tgt)}` : "敵をタップでも", () => attackNow(), "primary"));
     if (quick) {
@@ -11850,18 +11871,21 @@ function loadGame() {
     if (G.battle.fleeK == null) G.battle.fleeK = fleeScale(); // 逃走の物差しを持たない古い戦闘
     for (const e of (G.battle.enemies || [])) if (e.key && MONSTERS[e.key]) e.mon = MONSTERS[e.key];
   }
-  // 旧形式: 未生成の pendingDoll は「空の人形」として控えへ移す (生成前でも消えない)
+  // 旧形式: 未生成の pendingDoll は「空の人業」として控えへ移す (生成前でも消えない)
   if (G.pendingDoll) {
     const pd = G.pendingDoll;
     pd.isEmpty = true;
-    if (!pd.name || pd.name === "（未生成）") pd.name = "空の人形";
+    if (!pd.name || pd.name === "（未生成）") pd.name = "空の人業";
     G.reserve.push(pd);
     G.pendingDoll = null;
   }
+  // この世界の器は「人業」と呼ぶ。旧版で「空の人形」と名付けられた控えを改める
+  for (const d of (G.reserve || [])) if (d && d.name === "空の人形") d.name = "空の人業";
   // 所持魂 (v5): 配列に整え、無効な職業を除き、人業のメイン魂/サブ魂を実在する魂に整える
   if (!Array.isArray(G.souls)) G.souls = [];
   G.souls = G.souls.filter((s) => s && SOUL_CLASSES[s.clsKey]);
   setSharedSouls(G.souls); // recalcDoll が所持魂を uid で引けるようにする
+  syncDollUids([...(G.party || []), ...(G.reserve || [])]); // 人業の通し番号を続きから (重なりも直す)
   for (const d of [...(G.party || []), ...(G.reserve || [])]) {
     if (!Array.isArray(d.subs)) d.subs = [];
     if (d.primary != null && !soulByUid(d.primary)) d.primary = null;

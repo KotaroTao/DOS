@@ -336,7 +336,7 @@ export const HANDS = [
     desc: "掌に呪符を書き込んだ薄手の手袋。符の文字は手を動かすたびに形を変え、握った得物の扱いを秘かに呪文の延長へと変えていく。" }),
   G("g_hex_finger_guards", "呪法の指貫", 38, { aRes: { confuse: 0.2 }, weight: "cloth", int: 4, mp: 8, tint: "#9b6bd0", tintAmt: 0.22,
     desc: "呪法師が術式を指で描くために仕立てた指貫。五指それぞれに異なる呪の型が覚えられており、握るだけで詠唱の下準備が整う。" }),
-  G("g_tide_weave_gloves", "潮詠みの手袋", 58, { weight: "cloth", eDef: ["water", 1], mp: 14, pie: 5, tint: "#4aa3ff", tintAmt: 0.22,
+  G("g_tide_weave_gloves", "潮織りの手袋", 58, { weight: "cloth", eDef: ["water", 1], mp: 14, pie: 5, tint: "#4aa3ff", tintAmt: 0.22,
     desc: "潮の満ち引きに呼応して魔力を満たすことを覚えた手袋。炎の奔流が来るたびに、手袋はその熱を潮に変えて消し去る。" }),
   G("g_ley_reader_gloves", "地脈詠みの指貫", 78, { weight: "cloth", int: 6, pie: 6, mp: 14, tint: "#c89a4a", tintAmt: 0.22,
     desc: "地脈の流れを手で読んだ占師の指貫。地の底の魔力が指先まで昇ってきて、詠唱と癒しの両方へ均等に分配されていく。" }),

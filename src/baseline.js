@@ -19,9 +19,16 @@ export const PARTY_BASELINE = [
   { n: 4, floor: 3, floors: 3, lv: 10.6, hp: 59, atk: 25.6, vit: 18.4, agi: 19.8, int: 14, pie: 16, luk: 14.4 }, // D4 踏破
   { n: 5, floor: 1, floors: 5, lv: 15, hp: 81, atk: 41, vit: 25.3, agi: 26, int: 27.8, pie: 19.2, luk: 20.8 },   // D5 1階 6人
   { n: 5, floor: 5, floors: 5, lv: 16.3, hp: 86, atk: 43, vit: 26.5, agi: 27.3, int: 29.3, pie: 19.8, luk: 22.2 }, // D5 踏破 (層ボス撃破)
-  // ── 第2層 (暫定)。別のセーブ・以前の版での1点だけ。いまの周回が第2層を終えたら差し替える
-  // 迷宮10「よどみの大溜まり」B3F (全6階)。Lv21-24。6人中5人の実測 (フィモンは未計測)
-  { n: 10, floor: 3, floors: 6, lv: 22.8, hp: 113, atk: 50.4, vit: 37, agi: 32.6, int: 19.4, pie: 32.2, luk: 26.4 },
+  // ── 第2層 (実測 2026-10-03・第1層と同じ周回・6人)。D8 入口の AGI の落ち込みは転職 (戦士→神殿騎士) の分
+  { n: 6, floor: 1, floors: 4, lv: 17.7, hp: 95, atk: 46, vit: 28.3, agi: 29.3, int: 31.8, pie: 21.2, luk: 23.7 },      // D6 1階
+  { n: 6, floor: 4, floors: 4, lv: 17.8, hp: 95, atk: 46.2, vit: 28.3, agi: 29.5, int: 32.2, pie: 21.3, luk: 23.8 },    // D6 踏破
+  { n: 7, floor: 1, floors: 4, lv: 18.8, hp: 100, atk: 50.5, vit: 30.3, agi: 32, int: 32.3, pie: 22, luk: 24.8 },       // D7 1階
+  { n: 7, floor: 4, floors: 4, lv: 18.8, hp: 100, atk: 50.5, vit: 30.3, agi: 32, int: 32.3, pie: 22, luk: 24.8 },       // D7 踏破
+  { n: 8, floor: 1, floors: 4, lv: 17.5, hp: 102, atk: 50.8, vit: 32.3, agi: 29.5, int: 32.7, pie: 25.2, luk: 24.5 },   // D8 1階
+  { n: 8, floor: 4, floors: 4, lv: 19, hp: 108, atk: 52.8, vit: 33.7, agi: 30.8, int: 34.2, pie: 26.8, luk: 25.8 },     // D8 踏破
+  { n: 9, floor: 1, floors: 4, lv: 20.3, hp: 120, atk: 58, vit: 37, agi: 33.7, int: 36.8, pie: 28.5, luk: 27.2 },       // D9 1階
+  { n: 9, floor: 4, floors: 4, lv: 21.3, hp: 125, atk: 59.3, vit: 37.8, agi: 35, int: 38.2, pie: 29.3, luk: 28.3 },     // D9 踏破
+  { n: 10, floor: 1, floors: 6, lv: 22, hp: 127, atk: 60.3, vit: 38.7, agi: 35.7, int: 38.5, pie: 29.8, luk: 29 },      // D10 1階 (踏破は未計測)
 ];
 
 // 進行度 x (迷宮番号と階から)

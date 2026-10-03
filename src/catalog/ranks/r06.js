@@ -37,7 +37,7 @@ export const RANK6_ITEMS = [
 
   // ===== 頭 head (布2/軽2/重2) =====
   H("h_r6_starhat", "星霜の帽子", 53, { magStat: "int", shape: "hat", weight: "cloth", tint: "#6a5ad0", desc: "星図を縫い取った深紫のつば広帽。歳月を経た魔力が宿り、被る者の知を研ぎ、唱える攻撃術の冴えを高める。" }),
-  H("h_r6_archbishopcrown", "大司教の宝冠", 58, { magStat: "pie", shape: "circlet", weight: "cloth", tint: "#f0d8a0", desc: "大司教が儀式で戴く黄金の宝冠。聖句の刻まれた冠が祈りに魔力を乗せやすくし、癒しの奇跡をひと回り強める。" }),
+  H("h_r6_archbishopcrown", "司教座の宝冠", 58, { magStat: "pie", shape: "circlet", weight: "cloth", tint: "#f0d8a0", desc: "大司教が儀式で戴く黄金の宝冠。聖句の刻まれた冠が祈りに魔力を乗せやすくし、癒しの奇跡をひと回り強める。" }),
   H("h_r6_orichalcumcoif", "オリハルコンの鎖頭巾", 54, { shape: "hat", tint: "#9ad6c0", desc: "オリハルコンで編んだ鎖頭巾。羽のように軽く首筋まで堅く守り、俊敏な立ち回りをまったく妨げない。" }),
   H("h_r6_holydragonhood", "聖竜革の帽子", 58, { shape: "hat", tint: "#cfe0d0", desc: "聖竜の革で仕立てた軽い帽子。竜革のしなやかさが頭部への一撃を受け流し、淡い加護が闇をそっと払う。" }),
   H("h_r6_silverhelm", "聖銀の兜", 55, { shape: "helm", tint: "#e6e9f0", desc: "聖銀を打ち出した堅牢な兜。曲面が打撃をいなし、退魔の力が宿って不浄なる者の牙から頭蓋を守り抜く。" }),

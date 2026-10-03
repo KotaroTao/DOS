@@ -19,14 +19,7 @@
 
 // 原画待ちの魔物 (層 → id)。差し替えが済んだ id はここから外してよい (表示用の目録で、動作には影響しない)
 export const ART_WANTED = {
-  // 第3層「廃坑」(迷宮11-15): 通常20体 + 層ボス + 強敵2体
-  3: [
-    "bs_chainedconvict", "bs_minebat", "bs_koboldsapper", "bs_timbermite", "bs_rockworm",
-    "bs_dustwraith", "bs_blastsprite", "bs_tunneler", "d03_orc", "bs_gargoyle",
-    "bs_stonegorgon", "bs_shieldogre", "bs_crystalcrawler", "bs_orehulk", "d03_mandrake",
-    "bs_troll", "bs_deepgolem", "d04_golem", "d04_ogre", "bs_steelspider",
-    "bs_minelord", "el_chainoverseer", "el_crystalseer",
-  ],
+  // (第1〜3層は hd_* の固有原型で描き終えた。第3層: tools/hdart/layer3/)
 };
 
 // <<MONSTER_ART>>

@@ -158,9 +158,14 @@ const FLEE_BASE = 0.55, FLEE_SLOPE = 0.35, FLEE_MIN = 0.05, FLEE_MAX = 0.95, FLE
 // 心の状態異常 (actor.mind = "charm" 魅了 | "confuse" 混乱)。戦闘の中だけの状態で、戦いが終われば解ける。
 //  魅了: 手番ごとに味方へ襲いかかる (仲間がいなければ立ち尽くす)。傷を受けると MIND_CHARM_BREAK で正気に戻る
 //  混乱: 手番ごとに敵味方を問わず誰かを殴る / ふらついて何もできない / たまに正気で動ける
-//  どちらも手番の初めに MIND_RECOVER で正気に戻り、そのままその手番を動ける (主はさらに +MIND_BOSS_RECOVER)
+//        (仲間がいない独りの時は、相手側の誰かか自分自身を殴る — 自分を殴る分は CONFUSE_SELF_MUL の威力で守りを通さない)
+//  どちらも手番の初めに MIND_RECOVER で自然に正気に戻る (主はさらに +MIND_BOSS_RECOVER)。自然に戻った手番は
+//  我に返るのが精一杯で動けない。手番までに殴られて解けた (_wake)・術で治った (cureAil) 時はその手番から普通に動ける
 const MIND_RECOVER = { charm: 0.30, confuse: 0.35 }, MIND_BOSS_RECOVER = 0.2;
-const MIND_CHARM_BREAK = 0.5, CONFUSE_FREE = 0.25, CONFUSE_DAZE = 0.3;
+const MIND_CHARM_BREAK = 0.5, CONFUSE_FREE = 0.25, CONFUSE_DAZE = 0.3, CONFUSE_SELF_MUL = 0.5;
+// 手番ごとの自然回復 (魅了・混乱・眠り・麻痺) が何手番も続かないための救済: 治らなかった手番ごとに回復率が
+// AIL_RAMP ずつ上がり、AIL_SURE 回目の判定で必ず治る (= かかったままの手番は最長 AIL_SURE-1 回)
+const AIL_RAMP = 0.15, AIL_SURE = 4;
 // 主 (ボス) に付く確率の倍率。魅了された主は仲間がいないと立ち尽くすだけになるので、毒・麻痺 (×0.5) より効きにくい
 const BOSS_CHARM_MUL = 0.35;
 // 状態異常の付与を示す札 (結果の hit.status に載せ、game.js が浮かび文字で見せる)
@@ -195,7 +200,7 @@ export function ailing(t) { return !!(t && (t.ailment || t.asleep || t.mind)); }
 // 状態異常を治す (毒・麻痺・石化 + 眠り・魅了・混乱)。何か治れば true
 export function cureAil(t) {
   const had = ailing(t);
-  t.ailment = null; t.asleep = false; t.mind = null;
+  t.ailment = null; t.asleep = false; t.mind = null; t._ailN = null;
   return had;
 }
 // 武器の追加効果 {k, chance, pct?} を _inflict が読む技の形へ (quiet = 外れても「効かなかった」を記録しない。毎撃のログが埋まるため)
@@ -280,6 +285,7 @@ export class Battle {
       p.asleep = false; p.mind = null;
     }
     for (const e of enemies) if (e.mind === undefined) e.mind = null;
+    for (const a of [...party, ...enemies]) a._ailN = null; // 自然回復の救済の数え (戦いごとに数え直す)
     this._openingStrikes();
     this.advance();
   }
@@ -606,8 +612,8 @@ export class Battle {
       if (actor.side === "party") {
         if (actor.asleep || actor.ailment === "paralyze" || actor.ailment === "stone") { this.phase = "stunned"; return; }
         actor._defending = false; // 防御は次の自分の手番まで
-        // 魅了・混乱: 正気に戻れなければ、この手番は勝手に動く (stunnedAct → _mindAct)
-        if (actor.mind && this._mindCheck(actor) === "auto") { this.phase = "stunned"; return; }
+        // 魅了・混乱: 正気に戻れなければ勝手に動き (stunnedAct → _mindAct)、自然に戻ったらこの手番は動けない
+        if (actor.mind && this._mindCheck(actor) !== "free") { this.phase = "stunned"; return; }
         this.phase = "input";
       } else {
         this.phase = "enemy";
@@ -624,25 +630,34 @@ export class Battle {
     const res = { actor: a, action: "stunned", side: a.side, hits: [] };
     if (a.ailment === "stone") this.log(`${a.name}は石化して動けない…`, "sys");
     else if (a.ailment === "paralyze") {
-      if (Math.random() < 0.35) { a.ailment = null; this.log(`${a.name}の麻痺が解けた！`, "heal"); }
+      if (this._naturalRecover(a, "para", 0.35)) { a.ailment = null; this.log(`${a.name}の麻痺が解けた！`, "heal"); }
       else this.log(`${a.name}は痺れて動けない…`, "sys");
     } else if (a.asleep) {
-      if (Math.random() < 0.45) { a.asleep = false; this.log(`${a.name}は目を覚ました`, "sys"); }
+      if (this._naturalRecover(a, "sleep", 0.45)) { a.asleep = false; this.log(`${a.name}は目を覚ました`, "sys"); }
       else this.log(`${a.name}は眠っている…`, "sys");
     }
     this._checkEnd();
     return res;
   }
 
-  // 魅了・混乱の手番の初め: 正気に戻れたか / 混乱していても動けるか。"free" = いつも通り動ける / "auto" = 勝手に動く
+  // 手番の初めの自然回復の判定 (key = mind/sleep/para)。治らなかった手番ごとに AIL_RAMP ずつ治りやすくなり、
+  // AIL_SURE 回目で必ず治る。治ったら数えを戻す
+  _naturalRecover(actor, key, base) {
+    const n = (actor._ailN || (actor._ailN = {}))[key] || 0;
+    if (n + 1 >= AIL_SURE || Math.random() < base + AIL_RAMP * n) { actor._ailN[key] = 0; return true; }
+    actor._ailN[key] = n + 1;
+    return false;
+  }
+  // 魅了・混乱の手番の初め: 正気に戻れたか / 混乱していても動けるか。
+  // "free" = いつも通り動ける / "auto" = 勝手に動く / "lost" = 自然に正気に戻ったが、この手番は動けない
   _mindCheck(actor) {
     const kind = actor.mind;
     if (!kind) return "free";
     const rec = (MIND_RECOVER[kind] || 0.3) + (actor.boss ? MIND_BOSS_RECOVER : 0);
-    if (Math.random() < rec) {
+    if (this._naturalRecover(actor, "mind", rec)) {
       actor.mind = null;
-      this.log(`${actor.name}は正気に戻った！`, actor.side === "party" ? "heal" : "sys");
-      return "free";
+      this.log(`${actor.name}は正気に戻った！ …が、我に返るのが精一杯だ`, actor.side === "party" ? "heal" : "sys");
+      return "lost";
     }
     if (kind === "confuse" && Math.random() < CONFUSE_FREE) {
       this.log(`${actor.name}は混乱しているが、どうにか動けそうだ`, "sys");
@@ -658,13 +673,22 @@ export class Battle {
     if (actor.mind === "charm") {
       const allies = own.filter((x) => x.alive && x !== actor);
       tgt = allies[rand(allies.length)] || null;
-      if (!tgt) { this.log(`${actor.name}はうっとりと立ち尽くしている…`, "sys"); this._checkEnd(); return res; }
+      // 襲う仲間がいない: 魅了されたまま立ち尽くし、手番を失う
+      if (!tgt) { this.log(`${actor.name}は魅了されている…`, "sys"); this._checkEnd(); return res; }
       this.log(`${actor.name}は魅了されている！ ${tgt.name}に襲いかかった！`, actor.side === "party" ? "dmg" : "hit");
     } else {
       if (Math.random() < CONFUSE_DAZE) { this.log(`${actor.name}は混乱してふらついている…`, "sys"); this._checkEnd(); return res; }
       const all = [...this.party, ...this.enemies].filter((x) => x.alive && x !== actor);
+      // 仲間のいない独りの時は、自分自身も殴る相手の候補に入る
+      if (!own.some((x) => x.alive && x !== actor)) all.push(actor);
       tgt = all[rand(all.length)] || null;
       if (!tgt) { this._checkEnd(); return res; }
+      if (tgt === actor) {
+        res.action = "attack";
+        res.hits.push(this._selfHit(actor));
+        this._checkEnd();
+        return res;
+      }
       this.log(`${actor.name}は混乱している！ ${tgt.name}に殴りかかった！`, "sys");
     }
     res.action = "attack";
@@ -672,14 +696,23 @@ export class Battle {
     this._checkEnd();
     return res;
   }
+  // 混乱して自分を殴る (見切り・回避・守りは効かない)
+  _selfHit(actor) {
+    const dmg = Math.max(1, Math.round(variance(this._eatk(actor)) * CONFUSE_SELF_MUL));
+    actor.hp -= dmg;
+    this.log(`${actor.name}は混乱している！ 自分を殴りつけた！ ${dmg} ダメージ`, actor.side === "party" ? "dmg" : "hit");
+    const died = this._die(actor);
+    return { target: actor, dmg, died };
+  }
   // 行動できない (眠り・麻痺・石化) か、心を奪われている (魅了・混乱) — かばう・仁王立ち・反撃ができない
   _incap(p) { return !!(p.asleep || p.ailment === "paralyze" || p.ailment === "stone" || p.mind); }
   // 傷を受けた者の目覚め: 眠りは必ず覚め、魅了は MIND_CHARM_BREAK で正気に戻る (混乱は殴られても解けない)
   _wake(t) {
     if (!t || !t.alive) return;
-    if (t.asleep) t.asleep = false;
+    if (t.asleep) { t.asleep = false; if (t._ailN) t._ailN.sleep = 0; }
     if (t.mind === "charm" && Math.random() < MIND_CHARM_BREAK) {
       t.mind = null;
+      if (t._ailN) t._ailN.mind = 0;
       this.log(`${t.name}は痛みで正気に戻った！`, t.side === "party" ? "heal" : "sys");
     }
   }
@@ -774,7 +807,7 @@ export class Battle {
     }
     // 麻痺: 35%で解ける。解けなければ 60%で手番を失う
     if (actor.ailment === "paralyze") {
-      if (Math.random() < 0.35) { actor.ailment = null; this.log(`${actor.name}の痺れが解けた`, "sys"); }
+      if (this._naturalRecover(actor, "para", 0.35)) { actor.ailment = null; this.log(`${actor.name}の痺れが解けた`, "sys"); }
       else if (Math.random() < 0.6) {
         this.log(`${actor.name}は痺れて動けない！`, "sys");
         const res = { actor, action: "stunned", side: actor.side, hits: [] };
@@ -782,8 +815,16 @@ export class Battle {
         return res;
       }
     }
-    // 魅了・混乱: 正気に戻れなければ、仲間を襲う・誰かれ構わず殴る・ふらつく
-    if (actor.mind && !actor.asleep && this._mindCheck(actor) === "auto") return this._mindAct(actor);
+    // 魅了・混乱: 正気に戻れなければ、仲間を襲う・誰かれ構わず殴る・ふらつく。自然に戻ったらこの手番は動けない
+    if (actor.mind && !actor.asleep) {
+      const m = this._mindCheck(actor);
+      if (m === "auto") return this._mindAct(actor);
+      if (m === "lost") {
+        const res = { actor, action: "stunned", side: actor.side, hits: [] };
+        this._checkEnd();
+        return res;
+      }
+    }
     // 特技封じ: 役割 (回復・呼び出し) と特殊能力 (ブレス・状態異常など) を使えず、通常攻撃だけになる
     const sealed = this._bm(actor, "seal") < 1;
     if (actor.asleep) {
@@ -858,7 +899,7 @@ export class Battle {
     const { actor, action } = cmd;
     const res = { actor, action, side: actor.side, hits: [] };
     if (action === "sleep") {
-      if (Math.random() < 0.45) { actor.asleep = false; this.log(`${actor.name}は目を覚ました`, "sys"); res.woke = true; }
+      if (this._naturalRecover(actor, "sleep", 0.45)) { actor.asleep = false; this.log(`${actor.name}は目を覚ました`, "sys"); res.woke = true; }
       else { this.log(`${actor.name}は眠っている…`, "sys"); res.asleep = true; }
       return res;
     }
@@ -1674,7 +1715,7 @@ export class Battle {
         this.log(`${t.name}は不死鳥の加護で蘇った！ (HP${t.hp})`, "heal");
         return false;
       }
-      t.hp = 0; t.alive = false; t.asleep = false; t.mind = null;
+      t.hp = 0; t.alive = false; t.asleep = false; t.mind = null; t._ailN = null;
       // 討伐数はこの瞬間に数える (名前・HP の開示が戦闘中でもすぐ反映されるように。「〜を倒した！」より先)
       if (t.side === "enemy" && _onEnemyKilled) { try { _onEnemyKilled(t); } catch (er) { /* 記録の失敗で戦闘を止めない */ } }
       this.log(`${t.name}を倒した！`, t.side === "enemy" ? "win" : "dmg");

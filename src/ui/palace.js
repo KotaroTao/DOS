@@ -294,12 +294,22 @@ function renderCodexJob(box) {
 }
 
 // 見聞録: 迷宮で出会った出来事 (共通 / 層ごと)。出会っていない出来事は「？？？」
+// 層の欄は、その層の迷宮が解放されてから出す (まだ行けない層の名を先に明かさない)。
+// 解放より先に記録がある層 (古いセーブ等) は出す
+function evGroupsOpen(rec) {
+  const g = G();
+  const unlocked = Math.min(DUNGEONS.length, Math.max(1, (g && g.unlockedDungeons) || 1));
+  const maxLayer = Math.ceil(unlocked / 5);
+  return EVENT_GROUPS.filter((x) => !x.layer || x.layer <= maxLayer
+    || EVENTS.some((e) => (e.layer || 0) === x.layer && rec.seen[e.id]));
+}
 const EV_STUB = { countCells: () => 0, monName: () => "古強者", eliteKeyHere: () => null, sense: () => false, layer: 1 };
 function evIcon(e) { return (e.icon && e.icon.startsWith("mon:") ? MONSTERS[e.icon.slice(4)] : ICONS[e.icon]) || ICONS.event; }
 function renderCodexEvents(box) {
   const rec = evRec();
+  const groups = evGroupsOpen(rec);
   let gk = remember("codex", "evGroup") || "0";
-  if (!EVENT_GROUPS.some((x) => x.key === gk)) gk = "0";
+  if (!groups.some((x) => x.key === gk)) gk = "0";
   const listOf = (k) => { const L = Number(k); return EVENTS.filter((e) => (e.layer || 0) === L); };
   const freshIn = (k) => listOf(k).filter((e) => isFreshEv(e.id)).length || null;
   const cap = el("div", "pl-codex-cap");
@@ -315,8 +325,8 @@ function renderCodexEvents(box) {
         onTap: (c) => { codexEventSheet(e.id); markSeenEv(e.id, c); } });
     }, { cols: 3, cellH: CARD_H, key: "ev:" + gk, empty: el("div", "wa-empty", "記録なし。") });
   };
-  const ch = chips(EVENT_GROUPS.map((x) => ({ key: x.key, label: x.label, badge: freshIn(x.key) })), gk, (k) => { gk = k; remember("codex", "evGroup", k); resetPages(["ev:"]); draw(); });
-  refresh.list = () => EVENT_GROUPS.forEach((x, i) => setBadge(chipBtn(ch, i), freshIn(x.key)));
+  const ch = chips(groups.map((x) => ({ key: x.key, label: x.label, badge: freshIn(x.key) })), gk, (k) => { gk = k; remember("codex", "evGroup", k); resetPages(["ev:"]); draw(); });
+  refresh.list = () => groups.forEach((x, i) => setBadge(chipBtn(ch, i), freshIn(x.key)));
   box.appendChild(ch);
   box.appendChild(cap);
   area = fillArea(box);

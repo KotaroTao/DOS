@@ -2,11 +2,11 @@
 import { defMonsters, tint, ARTS } from "./schema.js";
 
 export const monsters = defMonsters([
-  { id: "d04_golem", name: "墓守ゴーレム", race: "construct", element: "earth", artKey: "golem", rank: 4,
-    physResist: 2, // 石材そのものの巨体が刃をほとんど通さない
+  { id: "d04_golem", name: "墓守ゴーレム", race: "construct", element: "earth", artKey: "hd_gravegolem", rank: 4,
+    physResist: 1, role: "guard", // 石材の巨体が刃を通しにくく、墓守として仲間の前に立ちはだかる
     hp: 90, atk: 18, def: 18, spd: 2, soul: 50, gold: 40,
-    desc: "古竜の眠りを守るため、墓所の石材そのものから彫り出された番人。命じた術者はとうに塵となったが、その指は今も「荒らす者を砕け」という最初の一文を律儀になぞる。石の巨体は並の刃を寄せつけず、一打ごとに床が陥み、塵が舞う。" },
-  { id: "d04_ogre", name: "墓所の巨人", race: "giant", element: "none", artKey: "ogre", rank: 4,
+    desc: "古竜の眠りを守るため、墓所の石材そのものから彫り出された番人。命じた術者はとうに塵となったが、その指は今も「荒らす者を砕け」という最初の一文を律儀になぞる。石の巨体は並の刃を通しにくく、荒らす者が仲間に刃を向ければ、その前へ黙って立ちはだかる。一打ごとに床が陥み、塵が舞う。" },
+  { id: "d04_ogre", name: "墓所の巨人", race: "giant", element: "none", artKey: "hd_graveogre", rank: 4,
     ability: "critical", // 棍棒の一撃が急所を叩き潰す
     hp: 96, atk: 22, def: 10, spd: 4, soul: 54, gold: 46,
     desc: "墓を暴いて骸を喰らううち、屍肉の魔力で異形に肥え太った人喰い鬼。供物のつもりか、棍棒で急所を叩き潰した獲物を古竜の墓前へ並べる悪癖を持つ。足音だけで石棺の蓋が震えるという。" },
