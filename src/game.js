@@ -40,7 +40,7 @@ import { el, btn, button as kitButton, longPress as attachLongPress, uiBlocked, 
 import { nav } from "./ui/nav.js";
 import * as townshell from "./ui/townshell.js";
 import { showSkillPopup,
-  SPELL_KIND_COLOR, tagRow, spellTagKinds, isEquippable, equipPreviewDelta, equipCompareEl, detailLines,
+  SPELL_KIND_COLOR, BUFF_NAME, tagRow, spellTagKinds, isEquippable, equipPreviewDelta, equipCompareEl, detailLines,
   equipClassText, equipPartyChips, gearScore, enemyReveal, enemyLabel,
 } from "./ui/itemview.js";
 import * as uiHub from "./ui/hub.js";
@@ -526,6 +526,14 @@ const inDungeon = () => G.state === "board" || G.state === "combat" || G.state =
 function partyEffMax(key) { let s = 0; if (G.party) for (const m of G.party) { if (m && m.eff && m.eff[key] > s) s = m.eff[key]; } return s; }
 // 迷宮で得るゴールド (戦闘勝利・宝箱・床イベント) の共通入口。全体の獲得量を半分に抑える。
 // 黄金の指輪 (LR装飾品) の goldUp があれば獲得量を割合で増やす。
+// 戦闘中に「盗む」で得た金を持ち帰る (勝っても逃げても。そのままの額)
+function takeStolenGold(b) {
+  const g = Math.max(0, Math.round((b && b.bonusGold) || 0));
+  if (!g) return 0;
+  b.bonusGold = 0;
+  G.gold += g; if (G.run && inDungeon()) G.run.gold += g;
+  return g;
+}
 function runGainGold(g) { g = Math.round(g * 0.5 * sfNum("goldMul", 1) * mutNum("goldMul", 1) * (1 + partyEffMax("goldUp"))); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; return g; }
 // 魂導の護符 (LR装飾品) の soulUp があれば ✦Soul の獲得量を割合で増やす。
 function runGainSoulPts(s) { s = Math.round(s * sfNum("soulMul", 1) * mutNum("soulMul", 1) * (1 + partyEffMax("soulUp"))); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; return s; }
@@ -6947,14 +6955,18 @@ requestAnimationFrame(combatAnimLoop);
 
 // 敵にかかっている強化(▲)/弱体(▼)を名前プレート付近に小さなピルで描く。
 // 能力(攻/守/速)ごとに集約し、段階ぶんの矢印と最短残ターンを添える。
-const BUFF_KANJI = { atk: "攻", vit: "守", agi: "速" };
+const BUFF_KANJI = {
+  atk: "攻", vit: "守", agi: "速", int: "知", hit: "眼", seal: "封", taunt: "挑", shield: "庇", ctr: "返", charge: "溜", regen: "癒",
+  r_fire: "火", r_water: "水", r_wind: "風", r_earth: "土", r_light: "光", r_dark: "闇", r_all: "属",
+};
 // 強化/弱体が「かかった瞬間」に出すフロート文字と色 (敵味方共通)。
 // mods があれば能力ごとに 攻▲/守▼ … を並べ、無ければ汎用の 強化▲/弱体▼。
 function buffFloatText(h) {
   const up = !!h.buff;
   const m = h.mods || {};
   const ks = Object.keys(m);
-  const body = ks.length ? ks.map((k) => `${BUFF_KANJI[k] || "◆"}${up ? "▲" : "▼"}`).join("") : (up ? "強化▲" : "弱体▼");
+  // 向きは値で決める (捨て身の 守▼ のように強化の中に下がる能力もある)
+  const body = ks.length ? ks.map((k) => `${BUFF_KANJI[k] || "◆"}${m[k] >= 1 ? "▲" : "▼"}`).join("") : (up ? "強化▲" : "弱体▼");
   return { text: body, color: up ? "#7fe0a0" : "#ff9a8a" };
 }
 function drawEnemyBadges(e, baseX, yTop) {
@@ -7624,7 +7636,12 @@ function applyImpact(res) {
         fx.slashes.push({ x: pos.cx + dx * 0.5, y: pos.cy, t0: ht0, crit: !!h.crit, big: !!h.crit, flip: idx % 2 === 1, seed: (h.target.uid || 1) * 31 + idx });
       }
       if (idx === 0 || !fx.flash[h.target.uid]) fx.flash[h.target.uid] = { t0: ht0 };
-      if (h.immune) {
+      if (h.stole != null) {
+        // 盗む: 奪った金額を浮かべる
+        fx.floats.push({ x: pos.cx + dx, y: pos.cy - 34, text: `💰+${h.stole}`, color: "#ffd84a", t0: ht0, kind: "label" });
+      } else if (h.fatal) {
+        fx.floats.push({ x: pos.cx + dx, y: pos.cy - 10, text: "即死!", color: "#ff2a2a", t0: ht0, big: true, kind: "crit" });
+      } else if (h.immune) {
         // 耐性3 (物理無効/魔法無効) に弾かれた: 数字の代わりに「無効」と浮かべる
         fx.floats.push({ x: pos.cx + dx, y: pos.cy - 10, text: "無効", color: "#9aa3b5", t0: ht0, kind: "dmg" });
       } else if (h.dmg != null) {
@@ -7649,10 +7666,16 @@ function applyImpact(res) {
         const fx0 = n > 1 ? VW * (mi + 1) / (n + 1) : VW / 2;
         const fy0 = VH - 26 - (mi % 2) * 16;
         fx.floats.push({ x: fx0, y: fy0, text: mt.text, color: mt.color, t0: now + mi * stag, kind: "buff" });
-      } else if (h.cured) {
-        // 状態異常の治癒も知らせる
+      } else if (h.cured != null) {
+        // 状態異常・弱体の治癒も知らせる
+        if (h.cured) {
+          G.partyFx.set(h.target, "heal");
+          fx.floats.push({ x: VW / 2, y: VH - 26, text: "治癒✚", color: "#9be8ff", t0: now });
+        }
+      } else if (h.mpHeal != null) {
+        // 魔力の譲渡
         G.partyFx.set(h.target, "heal");
-        fx.floats.push({ x: VW / 2, y: VH - 26, text: "治癒✚", color: "#9be8ff", t0: now });
+        fx.floats.push({ x: VW / 2, y: VH - 26, text: "MP+" + h.mpHeal, color: "#7fb8ff", t0: now, kind: "heal" });
       } else if (h.heal != null) {
         G.partyFx.set(h.target, "heal");
         // 複数人を回復する時は横に散らし、順に弾ませて全員の回復を見せる
@@ -7790,7 +7813,7 @@ function endBattle() {
     // 金運 (goldLuck) / 魂寄せ (soulLure) は戦闘報酬を底上げする (隊内最高Lvのみ)
     const { soul, gold } = b.rewards();
     const gl = partyPassiveLv("goldLuck"), sl = partyPassiveLv("soulLure");
-    const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)));
+    const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1))) + takeStolenGold(b);
     const soulGot = runGainSoulPts(Math.round(soul * (sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1)));
     applyVictoryPassives();
     // 入手Soulの1/5を生存メンバー全員の全部位の魂に加算 → レベルアップ/スキル習得を集計
@@ -7891,8 +7914,10 @@ function endBattle() {
     });
     return;
   } else if (b.result === "flee") {
-    // 逃走: 元のマスへ戻る (カードは表のまま)
+    // 逃走: 元のマスへ戻る (カードは表のまま)。盗んだ金は持ち帰る
     SFX.flee();
+    const stolen = takeStolenGold(b);
+    if (stolen) { log(`盗んだ ${stolen} ゴールドを懐に逃げ延びた`, "win"); updateTopbar(); }
     evBattleEnd(false);
     if (G.prevPos) { G.px = G.prevPos.x; G.py = G.prevPos.y; }
     finishToBoard();
@@ -8177,8 +8202,8 @@ function partyPortrait(p) {
 }
 
 // 戦闘中の発動効果バッジ: 能力ごとに 強化(▲)/弱体(▼) を段階数ぶん並べ、残りターンを添える。
-const BUFF_STAT_ICON = { atk: "攻", vit: "守", agi: "速" }; // 絵文字は使わず、敵のピルと同じ漢字の印
-const BUFF_STAT_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI" };
+const BUFF_STAT_ICON = BUFF_KANJI; // 絵文字は使わず、敵のピルと同じ漢字の印
+const BUFF_STAT_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI", ...BUFF_NAME };
 function buffBadges(p) {
   if (G.state !== "combat" || !p.alive || !p.effects || !p.effects.length) return "";
   // (能力, 方向) ごとに集約: 段階数(最大2)と最短残ターンを出す
@@ -10455,7 +10480,7 @@ function renderStatus() {
 
 // 戦闘外で回復系呪文を唱える呪文 (HP回復・蘇生・状態異常の治療)。バフは戦闘外では持続しないため除く
 function campSpellsOf(p) {
-  return (p.spells || []).filter((k) => { const sp = SPELLS[k]; return sp && (sp.kind === "heal" || sp.kind === "cure" || sp.cure); });
+  return (p.spells || []).filter((k) => { const sp = SPELLS[k]; return sp && sp.target !== "self" && (sp.kind === "heal" || sp.kind === "cure" || sp.cure); });
 }
 
 const spellCures = (sp) => sp.kind === "cure" || !!sp.cure;
