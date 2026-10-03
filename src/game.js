@@ -10,9 +10,9 @@ import {
 } from "./items.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
-import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
+import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE, unlockSceneFor, sealLines, unsealLines } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
-import { DUNGEONS, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_BOSS, monsterTraits, layerOf, isFloating } from "./dungeons/index.js";
+import { DUNGEONS, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, layerOf, isFloating } from "./dungeons/index.js";
 import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
@@ -246,11 +246,13 @@ function pickOfRarity(rar, centerR, capR = 20) {
   if (!idx) return null;
   // コモン/アンコモンは窓を狭く (中心±1) して顔ぶれを絞る。レア以上は ±2
   const span0 = rar === "c" || rar === "uc" ? 1 : 2;
+  const L = battleLayer(); // 層の逸品 (layer つき) は、その層に達するまで出さない
   for (let span = span0; span <= 6; span++) {
     let total = 0; const acc = [];
     for (let r = Math.max(1, centerR - span); r <= Math.min(capR, centerR + span); r++) {
       const w = Math.max(1, 3 - Math.abs(r - centerR));
       for (const id of idx[r]) {
+        if ((ITEMS[id].layer || 0) > L) continue;
         const fj = ITEMS[id].forJob; // 職業専用装備は編成にいる職を強く優先
         // 編成の誰かが装備できる品を出やすくする (使えない新品ばかり拾わないように)
         const usable = G.party.some((m) => m.alive !== undefined && canEquip(m, ITEMS[id]));
@@ -305,15 +307,17 @@ setInterval(() => {
   const c = lrClock();
   c.since += 5000 * f; c.pend += 5000 * f;
 }, 5000);
-// 今の深さで出せるLR (1点もの: 入手済みは除く)。第1層の逸品 (tier1) は出現上限 (lootCapR) 以内の隠しLvなら候補、
-// 職業専用LR (tier5以上) は従来どおり lootLv の解禁値を超えてから
+// 今の深さで出せるLR (1点もの: 入手済みは除く)。層の逸品 (tier1-4 = 第1〜4層) はその層に達していて、
+// 出現上限 (lootCapR) 以内の隠しLvなら候補。職業専用LR (tier5以上) は従来どおり lootLv の解禁値を超えてから
 function lrPool() {
   const lv = lootLvAt();
   const capLv = lootCapR() * 10;
+  const L = battleLayer();
   return Object.keys(ITEMS).filter((id) => {
     const it = ITEMS[id];
     if (it.rar !== "lr" || (G.lrOwned && G.lrOwned[id])) return false;
-    return it.lr <= 1 ? (it.lv || 1) <= capLv : lv >= (LR_UNLOCK[it.lr] || 40);
+    if (it.lr < 5) return (it.layer || it.lr) <= L && (it.lv || 1) <= capLv;
+    return lv >= (LR_UNLOCK[it.lr] || 40);
   });
 }
 function lrIntervalMs() { return lrIntervalH(dungeonNumber(activeCfg())) * HOUR_MS; }
@@ -343,7 +347,7 @@ function refundLR(it) {
 
 // ===== 職業専用LR の解禁深度 =====
 // LR (tier5以上 = 職業専用) は lootLv がティアの解禁値を超えてから時間抽選の候補に入る。
-// 第1層の逸品 (tier1) は常に候補。1点もの (G.lrOwned) は以後候補から外れる
+// 層の逸品 (tier1-4) は lrPool の層・出現上限の条件で候補。1点もの (G.lrOwned) は以後候補から外れる
 const LR_UNLOCK = { 5: 40, 10: 90, 15: 140, 20: 190 }; // LR ティア → 解禁 lootLv
 let _exclIds = null;
 function exclIds() {
@@ -682,9 +686,11 @@ function log(msg, cls = "sys") {
 function curDungeon() { return DUNGEONS[G.dungeonIdx] || DUNGEONS[0]; }
 
 // ===== 公開範囲 (作り込み済みの層だけを遊べるようにする) =====
-// 現在は第1層 (迷宮1-5) を作り込み中。第2層以降は「準備中」として閉じ、刷新が済んだ層から引き上げる。
-// 既存セーブで先へ進んでいる場合も勅命の進行 (G.msq) は書き換えず、表示と潜入だけを止める
-const CONTENT_LIMIT = 5;
+// 現在は第1層 (迷宮1-5)・第2層 (迷宮6-10) まで公開。第3層以降は「準備中」として閉じ、刷新が済んだ層から引き上げる。
+// 既存セーブで先へ進んでいる場合も勅命の進行 (G.msq) は書き換えず、表示と潜入だけを止める。
+// 引き上げる時は CONTENT_LIMIT を上げ、story.js の SEAL_LINES (新しい果ての層) / UNSEAL_LINES (新しく開く層) を足す。
+// 封印の告知を受けていたセーブは読み込み時に「次の勅命待ち」へ戻り、王が封の解けたことを告げてから拝命する
+const CONTENT_LIMIT = 10;
 const CONTENT_NEXT_LAYER = Math.floor(CONTENT_LIMIT / 5) + 1; // 準備中の層番号
 const contentSealed = () => !!G.msq && (G.msq.state === "sealed" || G.msq.n > CONTENT_LIMIT);
 
@@ -1057,10 +1063,13 @@ function mimicRef(ahead) {
   return { rank: ref.rank || 1, scale };
 }
 
-// この迷宮に出る強敵のid。各ランク帯 (10迷宮) を 1-3 / 4-6 / 7-10 の
+// この迷宮に出る強敵のid。作り込み済みの層は層ごとの強敵 (LAYER_ELITES) を階ごとに順に出す。
+// それ以外は旧来どおり、各ランク帯 (10迷宮) を 1-3 / 4-6 / 7-10 の
 // 3グループに区切り、グループごとに固有の強敵が決まっている (例: 迷宮1-3, 4-6, 7-10, 11-13, …)
 function eliteKey() {
   const n = G.dungeonIdx + 1;
+  const le = LAYER_ELITES[layerOf(n)];
+  if (le && le.length) return le[(G.floor || 0) % le.length];
   const r = Math.min(10, Math.ceil(n / 10));
   const pos = ((n - 1) % 10) + 1;
   const g = pos <= 3 ? 0 : pos <= 6 ? 1 : 2;
@@ -8347,11 +8356,14 @@ function playMsqChain(pages, toasts = [], after = null) {
 function acceptPages(toasts) {
   const ms = G.msq;
   if (ms.n + 1 > CONTENT_LIMIT) {
-    return [{ title: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう`, lines: SEALED_LINES, enter: () => { ms.state = "sealed"; autosave(true); } }];
+    return [{ title: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう`, lines: sealedLines(), enter: () => { ms.state = "sealed"; delete ms.unsealed; autosave(true); } }];
   }
   const n = ms.n + 1;
   const dn = DUNGEONS[n - 1];
-  return [{
+  // 公開範囲が広がって封が解けた: 勅命の前に、王が封の解けたことを告げる
+  const unseal = ms.unsealed ? [{ title: `第${actOf(n)}層 — 封印の解かれた門`, lines: unsealLines(actOf(n)), kicker: "封印の解呪",
+    leave: () => { delete ms.unsealed; } }] : [];
+  return [...unseal, {
     title: `第${actOf(n)}層 「${ACTS[actOf(n) - 1].title}」`, lines: msqOrderLines(n), kicker: "勅命",
     enter: () => {
       ms.n = n;
@@ -8411,13 +8423,10 @@ function acceptMainQuest() {
   playMsqChain(acceptPages(toasts), toasts);
 }
 
-// 公開範囲の先 (準備中) を告げる王の言葉
-const SEALED_LINES = [
-  "「墓域の主を討ち、第一の層を鎮めたか。…見事であった、魂繰りよ。」",
-  "「だが、次なる層へ続く大門の封は、いまだ固く閉ざされておる。宮廷の術師どもが解呪を急いでおるところだ。」",
-  "「封が解けるまで、墓域で人業を鍛え、魂を集め、装備を整えておけ。深淵は、備えのない者から喰らう。」",
-  `── 第${CONTENT_NEXT_LAYER}層以降は現在制作中です。墓域の迷宮には何度でも挑めます。`,
-];
+// 公開範囲の先 (準備中) を告げる王の言葉 (果ての層ごとの台詞は story.js SEAL_LINES)
+function sealedLines() {
+  return [...sealLines(CONTENT_NEXT_LAYER - 1), `── 第${CONTENT_NEXT_LAYER}層以降は現在制作中です。これまでの迷宮には何度でも挑めます。`];
+}
 
 // ---- 第0章「人業の生成」(チュートリアル勅命) ----
 const TUT_INTRO = [
@@ -8571,7 +8580,7 @@ function goMakeDoll() {
 function objectiveInfo() {
   const ms = G.msq;
   if (!ms || ms.state === "end" || ms.n > 100) return null;
-  if (contentSealed()) return { key: "sealed", text: "墓域で人業を鍛え、装備を集める", sub: `第${CONTENT_NEXT_LAYER}層は準備中`, act: "出撃", kind: "gate", run: () => departTo(null) };
+  if (contentSealed()) return { key: "sealed", text: "踏破した迷宮で人業を鍛え、装備を集める", sub: `第${CONTENT_NEXT_LAYER}層は準備中`, act: "出撃", kind: "gate", run: () => departTo(null) };
   if (ms.n === 0 && ms.state === "active") {
     if (!ms.granted) return { key: "audience", text: "王宮で王に謁見する", sub: "着任の挨拶", act: "謁見する", kind: "palace", run: audienceTutorial };
     if (!allDolls().some((d) => !d.isEmpty)) return { key: "makeDoll", text: "人業を一体、仕立てる", sub: "器を仕立て、魂をひとつ宿す (最初の3体は無料)", act: "仕立てる", kind: "party", run: goMakeDoll };
@@ -8603,7 +8612,7 @@ function palaceCallReady() {
 function decreeInfo() {
   const ms = G.msq;
   if (!ms || ms.state === "end" || ms.n > 100) return { kind: "end", head: "物語は閉じられた", text: "「百の迷宮は解き放たれた。…余の葬列には、来ずともよいぞ。」", replay: true };
-  if (contentSealed()) return { kind: "sealed", head: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう (準備中)`, text: "次なる層へ続く大門の封は、いまだ固く閉ざされている。", note: "封が解けるまで、墓域の迷宮で人業を鍛え、装備を集めよう。", replay: true };
+  if (contentSealed()) return { kind: "sealed", head: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう (準備中)`, text: "次なる層へ続く大門の封は、いまだ固く閉ざされている。", note: "封が解けるまで、踏破した迷宮で人業を鍛え、装備を集めよう。", replay: true };
   if (ms.n === 0 && ms.state === "active") {
     if (!ms.granted) return { kind: "ch0", head: "着任", text: "玉座の老王が、新しき魂繰りの到着を待っている。", replay: false };
     return { kind: "ch0", head: "勅命 「人業の生成」", text: "人業の館で器を仕立て (最初の3体は無料)、いずれかの魂を宿して人業を一体つくれ。", note: "人業が立ち上がったら、王に報告せよ。", replay: true };
@@ -8619,7 +8628,7 @@ function decreeInfo() {
 function replayDecree() {
   const ms = G.msq || {};
   if (!ms || ms.state === "end" || ms.n > 100) return UI.playStoryChain([{ title: "終章 — 最後の魂繰り", lines: EPILOGUE, kicker: "終章" }]);
-  if (contentSealed()) return UI.playStoryChain([{ title: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう`, lines: SEALED_LINES }]);
+  if (contentSealed()) return UI.playStoryChain([{ title: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう`, lines: sealedLines() }]);
   if (ms.n === 0) return UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: TUT_INTRO, kicker: "着任の謁見" }]);
   return UI.playStoryChain([{ title: `第${actOf(ms.n)}層 「${ACTS[actOf(ms.n) - 1].title}」`, lines: msqOrderLines(ms.n), kicker: "勅命" }]);
 }
@@ -10507,6 +10516,8 @@ function loadGame() {
     const n = Math.min(100, Math.max(1, G.unlockedDungeons || 1));
     G.msq = (G.dragonSlain && n >= 100) ? { n: 100, state: "report" } : { n, state: "active" };
   }
+  // 公開範囲が広がった: 封印の告知を受けていたセーブは「次の勅命待ち」に戻し、王が封の解けたことを告げる
+  if (G.msq.state === "sealed" && G.msq.n < CONTENT_LIMIT) { G.msq.state = "offer"; G.msq.unsealed = true; }
   G.autoCombat = false;   // オート戦闘は再開時に解除 (誤動作防止)
   // 図鑑の移行: 旧形式 (mon[key]=true) を {kills,normal,rare,dungeons} に変換
   if (!G.codex) G.codex = { mon: {}, item: {} };
