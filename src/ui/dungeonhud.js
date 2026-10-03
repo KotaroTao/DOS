@@ -66,38 +66,52 @@ let _dockKey = "";
 export function renderDock(host, spec, acts = {}) {
   if (!host) return;
   host.classList.add("dg-dock");
-  const key = spec ? JSON.stringify([spec.down, spec.home, spec.heal, spec.field, spec.idle]) : "none";
+  const key = spec ? JSON.stringify([spec.down, spec.home, spec.heal, spec.field, spec.senses, spec.idle]) : "none";
   if (key === _dockKey && host.childElementCount) return;
   _dockKey = key;
   host.textContent = "";
   if (!spec) return;
-  const mk = (cls, icon, label, sub, onTap) => {
+  // 気配読み・宝探しの札が並ぶと幅が足りないので、ボタンが4つ以上の時は降りる以外も札 (絵 + 短い名前) にする
+  const senses = spec.senses || [];
+  const nBtn = [spec.down, spec.home, spec.field, spec.heal].filter(Boolean).length + senses.length;
+  const tight = senses.length > 0 && nBtn >= 4;
+  const mk = (cls, icon, label, sub, onTap, short) => {
     const b = el("button", "dk-btn " + cls);
     b.type = "button";
     b.appendChild(dockIcon(icon));
-    const t = el("span", "dk-t");
-    t.appendChild(el("span", "dk-l", label));
-    if (sub) t.appendChild(el("span", "dk-s", sub));
-    b.appendChild(t);
+    if (short) {
+      b.classList.add("dk-tag");
+      b.appendChild(el("span", "dk-sl", short));
+      b.title = label + (sub ? " (" + sub + ")" : "");
+    } else {
+      const t = el("span", "dk-t");
+      t.appendChild(el("span", "dk-l", label));
+      if (sub) t.appendChild(el("span", "dk-s", sub));
+      b.appendChild(t);
+    }
     b.setAttribute("aria-label", label + (sub ? " " + sub : ""));
     b.addEventListener("click", (e) => { e.stopPropagation(); onTap(); });
     return b;
   };
   if (spec.down) host.appendChild(mk("dk-down k-" + (spec.down.kind || "primary"), spec.down.icon || "down", spec.down.label, spec.down.sub, acts.descend || (() => {})));
-  if (spec.home) host.appendChild(mk("dk-home", "home", spec.home.label, spec.home.sub, acts.goHome || (() => {})));
+  if (spec.home) host.appendChild(mk("dk-home", "home", spec.home.label, spec.home.sub, acts.goHome || (() => {}), tight && spec.home.label));
   if (!spec.down && !spec.home) {
     const idle = el("div", "dk-idle");
     idle.appendChild(el("i", "dk-idle-mark"));
     idle.appendChild(el("span", "dk-idle-t", spec.idle || ""));
     host.appendChild(idle);
   }
-  // 迷宮で唱える技 (浮遊・気配読み・宝探し・道しるべ。覚えた者がいる時だけ)。効いている間は光り、残りを示す
-  if (spec.field) host.appendChild(mk("dk-float" + (spec.field.on ? " on" : ""), spec.field.icon || "float", spec.field.label, spec.field.sub, acts.field || (() => {})));
-  if (spec.heal) host.appendChild(mk("dk-heal" + (spec.heal.hot ? " hot" : ""), "heal", spec.heal.label, spec.heal.sub, acts.healAll || (() => {})));
+  // 迷宮で唱える技 (浮遊・道しるべ。2つ以上なら「術」。覚えた者がいる時だけ)。効いている間は光り、残りを示す
+  if (spec.field) host.appendChild(mk("dk-float" + (spec.field.on ? " on" : ""), spec.field.icon || "float", spec.field.label, spec.field.sub, acts.field || (() => {}), tight && spec.field.label));
+  // 気配読み・宝探し: 覚えた者がいれば常に置く札 (絵 + 名前)。効いている階は赤 (魔物の気配) / 青 (宝箱) に灯る
+  for (const sn of senses) host.appendChild(mk("dk-sense k-" + sn.kind + (sn.on ? " on" : ""), sn.kind === "chest" ? "loot" : "eye", sn.label, sn.sub, () => (acts.sense || (() => {}))(sn.key), sn.label));
+  if (spec.heal) host.appendChild(mk("dk-heal" + (spec.heal.hot ? " hot" : ""), "heal", spec.heal.label, spec.heal.sub, acts.healAll || (() => {}), tight && "回復"));
   host.classList.toggle("one", !!spec.down !== !!spec.home);
   host.classList.toggle("has-down", !!spec.down);
   host.classList.toggle("has-home", !!spec.home);
   host.classList.toggle("has-float", !!spec.field);
+  host.classList.toggle("has-sense", senses.length > 0);
+  host.classList.toggle("tight", tight);
 }
 
 // ================= 小さな部品 =================
