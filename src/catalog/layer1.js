@@ -14,11 +14,11 @@ const lr = (it) => { it.rar = "lr"; it.lr = 1; it.layer = 1; it.exclusive = true
 
 export const LAYER1_ITEMS = [
   // ===== スーパーレア: 武器 =====
-  sr(W("w_sr1_mourningdagger", "弔鐘の短剣", "dg", 6, { pow: 1.35, luk: 4, crit: 0.06, tint: "#b8b0c8",
+  sr(W("w_sr1_mourningdagger", "弔鐘の短剣", "dg", 6, { magic: true, pow: 1.35, luk: 4, crit: 0.06, tint: "#b8b0c8",
     desc: "葬送の鐘を鋳潰して鍛えたという細身の短剣。刃を振ると微かに鐘の余韻が鳴り、急所へ吸い寄せられるように滑り込む。" })),
   sr(W("w_sr1_bonereaver", "骨砕きの墓守剣", "ls", 9, { pow: 1.35, eAtk: ["light", 1], tint: "#e8dcb0",
     desc: "代々の墓守が眠りを破った死者を還すために振るった長剣。鍔元に刻まれた祈りの文字が、骸の骨を真っ直ぐに断ち割る。" })),
-  sr(W("w_sr1_candlestaff", "葬送の燭台杖", "st", 12, { pow: 1.35, eAtk: ["fire", 1], int: 3, tint: "#e09a50",
+  sr(W("w_sr1_candlestaff", "葬送の燭台杖", "st", 12, { scale: { int: 0.5 }, pow: 1.35, eAtk: ["fire", 1], int: 3, tint: "#e09a50",
     desc: "葬列の先頭で掲げられた燭台を杖に仕立てたもの。決して消えぬ蝋の火が術者の呪文に宿り、闇に潜む者を焼き払う。" })),
   sr(W("w_sr1_sextonaxe", "墓掘りの大斧", "ax", 14, { pow: 1.3, two: true, hp: 12, tint: "#8a7a62",
     desc: "凍てついた墓土をも割る墓掘り人の大斧。幾千の棺を埋めてきた刃は重く、振り下ろせば骸の群れごと地へ還す。" })),
@@ -28,7 +28,7 @@ export const LAYER1_ITEMS = [
     desc: "聖別した灰を詰めた香炉を頭に据えた戦鎚。打ちつけるたびに清めの灰が舞い、不浄なる者の肉と魂を焦がす。" })),
   sr(W("w_sr1_ossuaryspear", "納骨堂の長槍", "sp", 26, { pow: 1.35, vitB: 3, tint: "#d8ccb0",
     desc: "納骨堂の門を守る衛士の長槍。柄には葬られた戦士たちの名が彫られ、突き出すたび彼らの無念が穂先を押し出す。" })),
-  sr(W("w_sr1_ravenbow", "鴉羽の弓", "bw", 29, { pow: 1.35, agi: 5, luk: 3, tint: "#5a5070",
+  sr(W("w_sr1_ravenbow", "鴉羽の弓", "bw", 29, { scale: { agi: 0.4 }, pow: 1.35, agi: 5, luk: 3, tint: "#5a5070",
     desc: "墓地の大鴉の羽で矢羽を揃えた黒い弓。放たれた矢は音もなく夜を渡り、死肉をついばむ鳥のように獲物を逃さない。" })),
   // 当てるだけで状態異常を与える武器 (onHit)。威力は控えめ (pow 1.3) に、付与で戦いを組み立てる
   sr(W("w_sr1_lullabybell", "子守唄の弔鈴", "mc", 16, { pow: 1.3, onHit: ["sleep", 0.18], pie: 3, tint: "#c8c0e0",

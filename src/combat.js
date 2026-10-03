@@ -1,6 +1,6 @@
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
-import { ITEMS, weaponRange } from "./items.js";
+import { ITEMS, weaponRange, scaleBonus } from "./items.js";
 import { elemDmgMult, monStats, rankStats, resistRate, RESIST_TAG } from "./dungeons/schema.js";
 
 import { SPELLS } from "./skilldefs.js";
@@ -1097,7 +1097,12 @@ export class Battle {
   }
 
   // バフ込みの実効ATK・VIT
-  _eatk(a) { return Math.max(1, Math.round(a.atk * ((a.buffs && a.buffs.atk) || 1))); }
+  // 攻撃力 (物理の威力の元): ATK×強化 + 武器の能力補正 (AGI×0.4 など。能力値は強化・弱体込み)
+  _eatk(a) {
+    const atk = a.atk * this._bm(a, "atk");
+    const bonus = a.wScale ? scaleBonus(a.wScale, (k) => (a[k] || 0) * this._bm(a, k)) : 0;
+    return Math.max(1, Math.round(atk + bonus));
+  }
   _evit(t) { return Math.round((t.vit || 0) * ((t.buffs && t.buffs.vit) || 1)); }
 
   // 低HP系パッシブ (闘魂/荒行の果て) の与ダメージ倍率
@@ -1283,6 +1288,8 @@ export class Battle {
       return { target: tgt, miss: true, evaded: true };
     }
     const power = opt.power || 1;       // 技の倍率 (通常攻撃は1)
+    // 魔法属性の武器: 通常攻撃 (と残心・連撃などの追撃) は威力の計算はそのまま、物理耐性の代わりに魔法耐性を受け、魔法弱点が効く。物理技は物理のまま
+    const magHit = actor.side === "party" && !!actor.wMagic && !opt.skill;
     // 魔力撃 (spellBlade): 通常攻撃にINTを上乗せ
     const sb = pv(actor, "spellBlade");
     const sbAdd = sb ? Math.round((actor.int || 0) * (sb >= 2 ? 1.0 : 0.5) * power) : 0;
@@ -1331,11 +1338,14 @@ export class Battle {
     // 隊列補正: 後衛は物理の与ダメ・被ダメが半減
     const rm = this._rowMul(actor, tgt);
     if (rm !== 1) dmg = Math.round(dmg * rm);
-    // 物理耐性 (耐性ランク): 耐性1=50% / 耐性2=75% / 耐性3=無効
-    const pr = this._resistCut(tgt, dmg, "physResist");
+    // 魔法弱点 (魔法属性の武器の一撃だけ): 攻撃呪文と同じく被ダメが増える
+    let magWeak = false;
+    if (magHit && tgt.magWeak && tgt.magWeak > 1) { dmg = Math.round(dmg * tgt.magWeak); magWeak = true; }
+    // 物理耐性 (耐性ランク): 耐性1=50% / 耐性2=75% / 耐性3=無効。魔法属性の武器は魔法耐性を受ける
+    const pr = this._resistCut(tgt, dmg, magHit ? "magResist" : "physResist");
     if (pr.immune) {
-      // 物理無効: 傷ひとつ付かない (障壁も削れず、毒刃・怯ませ等の命中時効果も乗らない)
-      this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}には効かない！ (物理無効)`, tgt.side === "party" ? "dmg" : "hit");
+      // 無効: 傷ひとつ付かない (障壁も削れず、毒刃・怯ませ等の命中時効果も乗らない)
+      this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}には効かない！ (${magHit ? "魔法" : "物理"}無効)`, tgt.side === "party" ? "dmg" : "hit");
       return { target: tgt, dmg: 0, crit: false, died: false, immune: true };
     }
     if (pr.tag) dmg = pr.dmg;
@@ -1354,13 +1364,13 @@ export class Battle {
     }
     // 報復の籠手 (counter): 敵の物理攻撃を受けた味方が反撃する (LR装飾品。反撃の反撃は起きない)
     if (tgt.side === "party" && tgt.counter && tgt.alive && actor.side === "enemy" && actor.alive && !opt._counter && dmg > 0) {
-      const cdmg = Math.max(1, Math.round((tgt.atk || 1) * tgt.counter));
+      const cdmg = Math.max(1, Math.round((tgt.power || tgt.atk || 1) * tgt.counter));
       actor.hp -= cdmg;
       this.log(`${tgt.name}の報復！ ${actor.name}に ${cdmg} ダメージ`, "hit");
       this._die(actor);
     }
     // 属性・障壁・物理耐性は重なっても全部見えるように併記する
-    const eff = [em > 1 ? "弱点!" : em < 1 ? "耐性…" : "", barriered ? "障壁!" : "", pr.tag]
+    const eff = [em > 1 ? "弱点!" : em < 1 ? "耐性…" : "", magWeak ? "魔法弱点!" : "", barriered ? "障壁!" : "", pr.tag]
       .filter(Boolean).map((t) => " " + t).join("");
     this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}${eff}`,
       tgt.side === "party" ? "dmg" : "hit");
@@ -1439,7 +1449,7 @@ export class Battle {
         power: sp.power, critBonus: sp.critBonus, debuff: sp.debuff, debuffDur: sp.dur, element: sp.element,
         intScale: sp.intScale, agiScale: sp.agiScale, vitScale: sp.vitScale, pieScale: sp.pieScale,
         acc: sp.acc, pierce: sp.pierce, desperate: sp.desperate, execute: sp.execute, prey: sp.prey,
-        chargeMul, name: sp.name,
+        chargeMul, name: sp.name, skill: true,
       };
       // 矢の雨 (scatter): ランダムな敵へ N 回。それ以外は対象ごとに hits 回
       const plan = [];

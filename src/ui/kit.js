@@ -648,13 +648,15 @@ export function portrait(d, o = {}) {
 }
 
 // statDelta({atk:+4, agi:-1, …}) → 「ATK+4 AGI-1」(▲緑 / ▼赤)
-const DELTA_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP", crit: "会心" };
+// power = 攻撃力 (ATK + 武器の能力補正)。ATK は攻撃力と増減が同じなら省く (同じ数字が2つ並ばないように)
+const DELTA_LABEL = { power: "攻撃力", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP", crit: "会心" };
 export function statDelta(d = {}, { compact = true } = {}) {
   const w = el("span", "ui-delta");
   let any = false;
   for (const k of Object.keys(DELTA_LABEL)) {
     const v = d[k];
     if (!v || typeof v !== "number") continue;
+    if (k === "atk" && d.power === v) continue;
     any = true;
     const s = el("span", v > 0 ? "up" : "dn", `${compact ? "" : (v > 0 ? "▲" : "▼")}${DELTA_LABEL[k]}${v > 0 ? "+" : ""}${v}${k === "crit" ? "%" : ""}`);
     w.appendChild(s);

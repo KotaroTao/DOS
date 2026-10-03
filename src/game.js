@@ -7482,14 +7482,15 @@ function renderAutoBanner(actor) {
 
 // 攻撃の既定の狙い (§3.4): 直前に隊が狙った敵がまだ射程内ならそれ (集中して倒す)、なければ最も手前の敵。
 // 画面の何もない所をタップした時と同じ「射程内の最寄り」
-// 物理無効 (物理耐性3) の敵は、ほかに狙える敵がいる限り既定の狙いから外す
-function physImmune(e) { return !!(e && (e.physResist | 0) >= 3); }
+// 物理無効 (物理耐性3) の敵は、ほかに狙える敵がいる限り既定の狙いから外す。
+// 魔法属性の武器 (actor.wMagic) を持つ者の通常攻撃は魔法耐性で判定するので、魔法無効 (魔法耐性3) の敵を外す
+function physImmune(e, actor) { return !!(e && ((actor && actor.wMagic ? e.magResist : e.physResist) | 0) >= 3); }
 function defaultAttackTarget(actor) {
   const b = G.battle;
   if (!b || !actor) return null;
   const all = b.attackableEnemies(actor).filter((e) => e.alive);
   if (!all.length) return null;
-  const hittable = all.filter((e) => !physImmune(e));
+  const hittable = all.filter((e) => !physImmune(e, actor));
   const reach = hittable.length ? hittable : all;
   const last = G._lastTargetUid != null ? reach.find((e) => e.uid === G._lastTargetUid) : null;
   return last || reach[0];
@@ -7539,15 +7540,16 @@ function renderCombatMenu() {
           if (!b2 || b2.phase !== "input" || !G.autoCombat || G.animating) return;
           // 射程内が物理無効の敵ばかりなら、殴り続けても終わらないのでオートを止めて手動に戻す
           const reach = b2.attackableEnemies(b2.current).filter((e) => e.alive);
-          if (reach.length && reach.every(physImmune)) {
+          if (reach.length && reach.every((e) => physImmune(e, b2.current))) {
             stopAutoCombat();
-            showToast("物理が効かない敵がいる — 術で戦おう", { tone: "bad" });
+            showToast(b2.current && b2.current.wMagic ? "攻撃が効かない敵がいる — 術で戦おう" : "物理が効かない敵がいる — 術で戦おう", { tone: "bad" });
             return;
           }
           b2.chooseAction("attack");
           const opts = b2.targetOptions();
           // 魅了した敵は殴ると正気に戻りやすいので後回し (仲間を襲わせておく)
-          const tgt = opts.find((e) => !physImmune(e) && e.mind !== "charm") || opts.find((e) => !physImmune(e)) || opts[0];
+          const cur = b2.current;
+          const tgt = opts.find((e) => !physImmune(e, cur) && e.mind !== "charm") || opts.find((e) => !physImmune(e, cur)) || opts[0];
           if (!tgt) { b2.cancelTarget(); return; }
           b2.chooseTarget(tgt);
           runCommitted();
@@ -11761,7 +11763,7 @@ function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch {} }
 // 個体ごとの状態 (未鑑定・鑑定失敗の印など) は残す。旧セーブの装備も新しいレア度と絵になる
 const ITEM_STAT_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp", "crit"];
 const ITEM_TMPL_KEYS = ["name", "desc", "slot", "lv", "rank", "r20", "rar", "lr", "forJob", "exclusive", "classes", "cat",
-  "twoHanded", "weight", "price", "art", "palette", "eAtk", "eDef", "aRes", "onHit", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
+  "twoHanded", "weight", "price", "art", "palette", "eAtk", "eDef", "aRes", "onHit", "scale", "magic", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
 function reflattenItemStats() {
   const visited = new Set();
   function refresh(it) {

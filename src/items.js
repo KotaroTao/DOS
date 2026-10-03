@@ -14,6 +14,8 @@
 // eAtk/eDef: 属性攻撃/属性防御 { el, lv } (lv1=◯ ±50%, lv2=◎ ±100%)
 // aRes: 状態異常耐性 { poison/paralyze/sleep/charm/confuse/stone: 付与率カット (0.25 = 25%) }。同じ種類は装備どうしで足し合い、上限 AIL_RES_CAP
 // onHit: 武器などの追加効果 { k: poison/paralyze/sleep/charm/confuse, chance, pct? }。当てるだけで敵に状態異常を与える
+// scale: 武器の能力補正 { atk/agi/int/…: 係数 }。攻撃力 = ATK + Σ(能力値 × 係数) (attackPower)。物理の攻撃・物理技はこの攻撃力で計算する
+// magic: 魔法属性の武器。通常攻撃 (と残心・連撃などの追撃) の威力は攻撃力のまま、物理耐性ではなく魔法耐性を受け、魔法弱点が効く
 // price: 装備の値段は起動時に性能から付け直す (src/pricing.js の repriceEquipment)。ここの値は道具・収集品にだけ効く
 
 // 装備部位 (8か所): 武器・盾・鎧・頭・小手・足・装飾x2
@@ -67,6 +69,29 @@ const CAT_RANGE = { ls: "near", dg: "near", kt: "near", ax: "near", mc: "near", 
 export function weaponRange(item) {
   if (!item) return "near";
   return item.range || CAT_RANGE[item.cat] || "near";
+}
+
+// ===== 攻撃力 (基本攻撃力 + 武器の能力補正) =====
+// 基本攻撃力 = ATK (魂 + 装備)。武器が scale を持てば、その能力値 × 係数を足したものが「攻撃力」。
+// 例: 弓 { agi: 0.4 } → 攻撃力 = ATK + AGI×0.4。scale の無い武器・素手は 攻撃力 = ATK
+export const SCALE_KEYS = ["atk", "vit", "agi", "int", "pie", "luk"];
+export const SCALE_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
+// 能力補正の上乗せ分 (stat = 能力値を返す関数。戦闘ではバフ込みの実効値を渡す)
+export function scaleBonus(scale, stat) {
+  if (!scale) return 0;
+  let s = 0;
+  for (const k of SCALE_KEYS) if (scale[k]) s += (stat(k) || 0) * scale[k];
+  return s;
+}
+// 攻撃力 (装備画面・比較・おすすめの物差し)。m = 人業 (recalc 済み) か previewStats の結果
+export function attackPower(m) {
+  if (!m) return 0;
+  return Math.max(1, Math.round((m.atk || 0) + scaleBonus(m.wScale, (k) => m[k])));
+}
+// 能力補正の短い表記: 「AGI×0.4」「ATK×0.15 INT×0.3」(無ければ "")
+export function scaleText(scale) {
+  if (!scale) return "";
+  return SCALE_KEYS.filter((k) => scale[k]).map((k) => `${SCALE_LABEL[k]}×${scale[k]}`).join(" ");
 }
 
 // ===== 鑑定システム (ウィザードリィ風) =====
@@ -1253,6 +1278,11 @@ export function recalc(member) {
   member.ailRes = Object.keys(arOut).length ? arOut : null;
   const ohOut = Object.values(oh).filter((o) => o.chance > 0);
   member.onHit = ohOut.length ? ohOut : null;
+  // 武器の能力補正 (scale) と魔法属性 (magic)。攻撃力 power = ATK + 能力補正 (combat.js の _eatk も同じ式をバフ込みで使う)
+  const wpn = member.equip.weapon;
+  member.wScale = wpn && wpn.scale ? { ...wpn.scale } : null;
+  member.wMagic = !!(wpn && wpn.magic);
+  member.power = attackPower(member);
   // 旧体系の派生値 (こうげき/ぼうぎょ/すばやさ/AC) は廃止
   delete member.def; delete member.spd; delete member.ac;
 }
