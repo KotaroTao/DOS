@@ -1,7 +1,7 @@
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
 import { ITEMS, weaponRange } from "./items.js";
-import { elemDmgMult, monStats } from "./dungeons/schema.js";
+import { elemDmgMult, monStats, rankStats } from "./dungeons/schema.js";
 
 export const SPELLS = {
   HALITO: { name: "ファイアアロー", mp: 2, kind: "atk", power: 10, element: "fire", target: "enemy", desc: "炎の矢" },
@@ -258,31 +258,36 @@ export function spawnEliteEnemies(key, scale = 1) {
   return [makeEnemy(key, scale)];
 }
 
-// 宝箱から出るミミック (通常より手強い)。ステータスは「先のダンジョン」相応の個体から借りるが
-// (rank/scale は game.js 側で参照先ダンジョンから算出)、見た目は固定のミミック絵で統一する。
-// master=true でマスターミミック (さらに手強く、見た目も別。固有ドロップは無く宝箱を残す)。
-export function spawnMimic(rank, scale = 1, master = false) {
-  const pool = Object.keys(MONSTERS).filter((k) => MONSTERS[k].rank === rank && !MONSTERS[k].boss && !MONSTERS[k].elite);
-  const key = pool.length ? pool[rand(pool.length)] : "cm_slime";
-  const e = makeEnemy(key, scale);
-  // 見た目を固定のミミック絵に差し替える (key/mon を上書き。ステータスは借りた個体のまま)
-  e.key = master ? "master_mimic" : "mimic";
-  e.mon = MONSTERS[e.key];
+// 宝箱から出るミミック。強さは「その階に出る敵の最上位ランク」を基準に組む:
+// 通常のミミックは +1〜2 ランク、マスターミミックは +3 ランクの個体として
+// ステータス曲線 (rankStats: rank10 を超えても同じ曲線で伸びる) から直接作る。
+// floorRank: その階の雑魚の最上位ランク / scale: その階の雑魚と同じ強さ補正 (game.js の mimicRef)。
+// 見た目は固定のミミック絵。固有ドロップは無く、上質な宝箱を残す。
+export function mimicRank(floorRank, master = false) {
+  return Math.max(1, floorRank) + (master ? 3 : 1 + rand(2));
+}
+export function spawnMimic(floorRank, scale = 1, master = false) {
+  const rank = mimicRank(floorRank, master);
+  const e = makeEnemy(master ? "master_mimic" : "mimic", scale);
+  const st = rankStats(rank);
+  e.mimicRank = rank;
   e.element = "none";
   e.name = master ? "マスターミミック" : "ミミック";
   e.isMimic = true; // 撃破時は宝箱が確定出現し、中身が上質になる (game.js の endBattle)
   if (master) e.isMasterMimic = true; // 宝箱の中身がさらに上質 (アイテムLv+30)
-  // 単体でパーティ6人を相手にする手強い化け物。HP/攻撃/防御を大きく底上げする。
-  e.maxhp = Math.round(e.maxhp * (master ? 4.5 : 3.0));
+  // 単体で隊を相手にする化け物。上位ランクの体を、群れ数体分の HP と連撃で補う
+  // (通常 = 上位ランク2体分 / マスター = 上位ランク3体分の耐久と手数)。
+  e.maxhp = Math.max(1, Math.round(st.hp * scale * (master ? 3.2 : 2.2)));
   e.hp = e.maxhp;
-  e.atk = Math.round(e.atk * (master ? 2.4 : 1.9));
-  e.vit = Math.round(e.vit * (master ? 1.8 : 1.4));
-  e.agi += master ? 8 : 4;                       // 不意打ちで先手を取りやすい
+  e.atk = Math.max(1, Math.round(st.atk * scale * (master ? 1.1 : 1.0)));
+  e.vit = Math.round(st.def * scale * (master ? 1.6 : 1.3));
+  e.agi = st.spd + (master ? 8 : 4);             // 不意打ちで先手を取りやすい
   e.multistrike = master ? 3 : 2;                // 牙で噛みつき連撃 (一手で複数回)
-  e.physResist = Math.max(e.physResist, master ? 0.25 : 0.15); // 硬い外殻
-  if (master) { e.ability = "soulSteal"; e.lifesteal = Math.max(e.lifesteal, 0.3); }
-  e.gold = Math.round(e.gold * (master ? 3 : 2));
-  e.soul = Math.round(e.soul * (master ? 2 : 1.5));
+  e.physResist = master ? 0.25 : 0.15;           // 硬い外殻
+  if (master) { e.ability = "soulSteal"; e.lifesteal = 0.3; }
+  e.gold = Math.round(st.gold * scale * (master ? 3 : 2));
+  e.soul = Math.round(st.soul * scale * (master ? 2 : 1.5));
+  e._scale = scale;
   return [e];
 }
 
