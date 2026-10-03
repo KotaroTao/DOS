@@ -27,7 +27,7 @@ const G = () => game.G;
 const extra = []; // 他のパッケージが登録した提案の源 (fn(counts) → 提案 | 提案[] | null)
 export function registerSuggestion(fn) { if (typeof fn === "function" && !extra.includes(fn)) extra.push(fn); }
 // 帰還の報告の札が受け持つ操作 (報告がある間は「次にすべきこと」に重ねて出さない)
-const REPORT_KEYS = new Set(["hasten", "rest", "identify", "sell", "autoEquip"]);
+const REPORT_KEYS = new Set(["repair", "hasten", "rest", "identify", "sell", "autoEquip"]);
 
 function confirmThen({ banner, title, lines, okLabel, run }) {
   if (!UI.confirm) return run();
@@ -38,12 +38,19 @@ function builtinSuggestions(c) {
   const g = G();
   const out = [];
   if (!c) return out;
-  // 砕けた人業: 赤い魂で今すぐ連れ帰る (確認のシート)
-  if (c.dead && c.hastenCost > 0 && g.redSoul >= 1) {
+  // 砕けた人業 (街にある器): 人業の館で傷ついた魂を修復する (館を開き、砕けた人業を選んだ状態にする)
+  if (c.repairable) {
+    const all = game.allDolls ? game.allDolls() : (g.party || []);
+    const d = all.find((x) => x && x.isDoll && !x.alive && !x.reviveAt) || null;
+    out.push({ key: "repair", prio: 10, label: "魂を修復", sub: `砕けた人業 ${c.repairable}`, cost: { kind: "gold", n: c.repairCost || 0 }, tone: "red", icon: "red",
+      run: () => { if (UI.openParty) UI.openParty(d, { context: "town" }); } });
+  }
+  // 全滅で迷宮に残された器: 赤い魂で今すぐ連れ帰る (確認のシート)
+  if (c.rescuing && c.hastenCost > 0 && g.redSoul >= 1) {
     const pay = Math.min(c.hastenCost, g.redSoul);
-    out.push({ key: "hasten", prio: 10, label: "連れ帰る", sub: `砕けた人業 ${c.dead}`, cost: { kind: "red", n: pay }, tone: "red", icon: "red",
-      run: () => confirmThen({ banner: "今すぐ連れ帰る", title: `赤い魂 ${pay} を捧げ、砕けた人業を連れ帰りますか？`,
-        lines: [c.hastenCost > g.redSoul ? `全員の帰還には 🔴${c.hastenCost} が要る。足りる分だけ早める。` : "1つにつき帰還までの時間を20分縮める (押す回数ぶんと同じ値段)。"],
+    out.push({ key: "hasten", prio: 11, label: "連れ帰る", sub: `連れ帰り待ち ${c.rescuing}`, cost: { kind: "red", n: pay }, tone: "red", icon: "red",
+      run: () => confirmThen({ banner: "今すぐ連れ帰る", title: `赤い魂 ${pay} を捧げ、迷宮に残された人業を連れ帰りますか？`,
+        lines: [c.hastenCost > g.redSoul ? `全員の連れ帰りには 🔴${c.hastenCost} が要る。足りる分だけ早める。` : "1つにつき連れ帰りまでの時間を20分縮める (押す回数ぶんと同じ値段)。", "届いた器は、館で金貨を払って修復する。"],
         okLabel: "連れ帰る", run: () => ops.hastenAll() }) });
   }
   // 手負い: 宿で休む (1タップ)
@@ -371,8 +378,10 @@ function partyStrip() {
       const hp = el("span", "hb-pc-hp" + (r < 0.34 ? " low" : r < 1 ? " hurt" : ""));
       const f = el("i"); f.style.width = (r * 100).toFixed(1) + "%"; hp.appendChild(f);
       c.appendChild(hp);
-    } else if (game.reviveTimerEl) {
-      c.appendChild(game.reviveTimerEl("span", "hb-pc-rv", "帰還 ", d));
+    } else if (d.reviveAt && game.reviveTimerEl) {
+      c.appendChild(game.reviveTimerEl("span", "hb-pc-rv", "連れ帰り ", d));
+    } else {
+      c.appendChild(el("span", "hb-pc-rv", "要修復"));
     }
     c.setAttribute("aria-label", `${d.name} ${d.cls || ""} ${d.alive ? `HP ${d.hp}/${d.maxhp}` : "砕けている"}`);
     c.addEventListener("click", () => { sfx("select"); if (UI.openParty) UI.openParty(i); });
