@@ -66,7 +66,7 @@ export function tabTransition(el, dir = 0) {
   ], { duration: T.tab, easing: EASE.base });
 }
 
-// 頁の出入り: push = 右 24px から滑り込む / pop = 左から戻る (短め)
+// ページの出入り: push = 右 24px から滑り込む / pop = 左から戻る (短め)
 // fn を渡すと描き替えてから動かす (pageTransition(el, "push", () => render()))
 export function pageTransition(el, dir = "push", fn) {
   if (typeof fn === "function") fn();

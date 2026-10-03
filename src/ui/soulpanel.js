@@ -13,7 +13,7 @@ import { showSkillPopup, SPELL_KIND_LABEL } from "./itemview.js";
 import {
   SOUL_CLASSES, jobSprite, jobBust, soulByUid, soulRankOf, soulLevelCapOf, nextRankThreshold, jobRankName, soulSeriesName,
   soulLearnedSkills, soulLearnedPassives, passiveName, passiveDesc, ORDER_PERK, PASSIVES, orderPassiveMap, orderPerkLv,
-  jobSkillTable, recalcDoll, SOUL_STAT_UP,
+  jobSkillTable, recalcDoll,
 } from "../souls.js";
 import { SPELLS } from "../combat.js";
 import { crispCanvas } from "../sprites.js";
@@ -300,7 +300,7 @@ function confirmRaiseCap(pe) {
 function fuseButton(pe, town) {
   const G = G_();
   const worn = (uid) => allDolls().some((d) => d.primary === uid || (d.subs || []).some((s) => s && s.uid === uid));
-  const spare = G.souls.filter((s) => s.uid !== pe.uid && s.clsKey === pe.clsKey && !worn(s.uid));
+  const spare = G.souls.filter((s) => s.uid !== pe.uid && s.clsKey === pe.clsKey && !worn(s.uid) && !s.locked);
   if (!spare.length) return null;
   const open = game.featureUnlocked ? game.featureUnlocked("fusion") : false;
   const b = el("button", "sp-btn sp-fuse" + (open ? " hot" : " locked"));
@@ -516,6 +516,7 @@ function pickerBody(root, d, slotId, h) {
     const tx = el("span", "sp-srow-t");
     const nm = el("span", "sp-srow-n", `${soulSeriesName(s.clsKey)}の魂`);
     nm.style.color = cl.glow;
+    if (s.locked) nm.appendChild(svgIcon("lock", "sp-srow-lk"));
     tx.appendChild(nm);
     tx.appendChild(el("span", "sp-srow-m", `Lv${s.level}/${cap} ・ ランク${rank} ・ ${RARITY_NAME[cl.rarity] || ""}`));
     if (isCur) tx.appendChild(el("span", "sp-srow-tag cur", isSub ? "このサブ魂に宿している" : "宿している"));
@@ -549,7 +550,21 @@ function pickerBody(root, d, slotId, h) {
     }
     if (fusion) {
       const n = game.fuseCandidates ? game.fuseCandidates(s.uid).length : 0;
-      if (n) side.appendChild(button({ label: `魂融合 ${n}`, kind: "secondary", size: "sm", onTap: () => openFusePicker(s.uid) }));
+      if (n) side.appendChild(button({ label: `魂融合 ${n}`, kind: "secondary", size: "sm", onTap: () => openFusePicker(s.uid, () => refreshSheet(h)) }));
+    }
+    if (game.toggleSoulLock) {
+      const lk = button({ icon: s.locked ? "lock" : "unlock", label: s.locked ? "ロック中" : "ロック", kind: s.locked ? "secondary" : "ghost", size: "sm",
+        title: s.locked ? "ロックを外す" : "魂融合の素材にできないようにする",
+        onTap: (e) => {
+          if (e) e.stopPropagation();
+          const on = game.toggleSoulLock(s.uid);
+          sfx("select");
+          toast(on ? `${soulSeriesName(s.clsKey)}の魂をロックした ― 魂融合の素材にならない` : `${soulSeriesName(s.clsKey)}の魂のロックを外した`, { tone: "info" });
+          refreshSheet(h);
+        } });
+      lk.classList.add("sp-lock-btn");
+      if (s.locked) lk.classList.add("on");
+      side.appendChild(lk);
     }
     if (side.childElementCount) r.appendChild(side);
     list.appendChild(r);
@@ -596,30 +611,59 @@ export function openSkillStep(d, subRef) {
   });
 }
 
+// 開いているシートの中身を描き直す (見ていた頁は保つ)
+function refreshSheet(h) {
+  if (!h || h.closed || !h.update) return;
+  const pg = h.page || 0;
+  h.update({});
+  h.page = pg;
+}
+
+// 強化済みの魂 = ✦で鍛えた・融合を重ねた・残火で上限を伸ばした魂
+function soulEnhanced(s) {
+  return !!s && ((s.level || 1) > 1 || (s.exp || 0) > 0 || (s.count || 1) > 1 || (s.capBonus || 0) > 0);
+}
+
 // ---- 魂融合 (同じ職の余っている魂を取り込む) ----
-export function openFusePicker(targetUid) {
+// onDone: 融合したあとに呼ぶ (魂の一覧シートを描き直すなど)
+export function openFusePicker(targetUid, onDone) {
   const t = soulByUid(targetUid);
   if (!t) return null;
   if (!(game.featureUnlocked && game.featureUnlocked("fusion"))) { sfx("ng"); toast("魂融合は 5 迷宮の踏破で開く", { tone: "info" }); return null; }
   const cands = (game.fuseCandidates ? game.fuseCandidates(targetUid) : []).sort(game.soulSortCmp || (() => 0));
-  if (!cands.length) { sfx("ng"); toast("魂融合できる同じ職の魂がない", { tone: "info" }); return null; }
+  const lockedN = (G_().souls || []).filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey && s.locked).length;
+  if (!cands.length) { sfx("ng"); toast(lockedN ? "素材にできる魂がない (同じ職の魂はロック中)" : "魂融合できる同じ職の魂がない", { tone: "info" }); return null; }
   const cl = SOUL_CLASSES[t.clsKey] || SOUL_CLASSES.fighter;
-  const pct = Math.round((SOUL_STAT_UP[cl.rarity] || 0.01) * 100);
-  const nr = nextRankThreshold(t.clsKey, t.count);
   sfx("select");
   return sheet.open({
     kind: "info", className: "sp-pick-sheet", banner: "魂融合", accent: cl.glow,
     title: `${soulSeriesName(t.clsKey)}の魂 Lv${t.level} に融合させる`,
-    lines: [`素材にした魂は失われ、魂数がランクに加わる (全能力 +${pct}%/体)。${nr ? `ランク${soulRankOf(t) + 1}まで あと ${nr.next - t.count} 体。` : ""}`],
+    lines: ["素材にした魂は失われ、融合数に応じてLv上限、能力が上昇。一定数の魂を融合するとランクアップ。",
+      ...(lockedN ? [`ロック中の魂 ${lockedN} 体は素材にできない。`] : [])],
     body: (scroll, h) => {
       const list = el("div", "pt-list");
       for (const c of cands) {
-        list.appendChild(row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulSeriesName(c.clsKey)}の魂 Lv${c.level}`, sub: `魂数 ${c.count}${c.count > 1 ? " ― 融合済みの魂" : ""}`, chevron: true,
+        const enh = soulEnhanced(c);
+        const tags = [`魂数 ${c.count}`];
+        if (c.count > 1) tags.push("融合済み");
+        if ((c.level || 1) > 1 || (c.exp || 0) > 0) tags.push("強化済み");
+        if (c.capBonus) tags.push(`残火 +${c.capBonus}`);
+        const r = row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulSeriesName(c.clsKey)}の魂 Lv${c.level}`, sub: tags.join(" ・ "), tone: enh ? "gold" : null, chevron: true,
           onTap: () => {
-            const go = () => { h.close(); if (game.fuseSoul) game.fuseSoul(targetUid, c.uid); };
-            if (c.count > 1) confirm({ title: "融合済みの魂を素材にする？", lines: [`この魂は ${c.count} 体ぶんを融合した魂。素材にすると、その魂数と蓄積した ✦ はすべて失われる。`], okLabel: "素材にする" }).then((y) => { if (y) go(); });
-            else go();
-          } }));
+            const go = () => {
+              h.close();
+              if (game.fuseSoul) game.fuseSoul(targetUid, c.uid);
+              if (typeof onDone === "function") onDone();
+            };
+            if (!enh) return go();
+            sfx("ng");
+            const lines = [`この魂は Lv${c.level}${c.count > 1 ? `・魂数 ${c.count}` : ""}${c.capBonus ? `・残火 +${c.capBonus}` : ""} まで強化されている。`,
+              "素材にした魂は消える。蓄積した ✦ と魂数は融合先に引き継がれる。"];
+            if (c.capBonus) lines.push(`残火で伸ばした Lv上限 +${c.capBonus} は失われる。`);
+            lines.push("残したい魂は、魂の一覧で「ロック」すれば素材にならない。");
+            confirm({ banner: "注意", title: "強化済みの魂を素材にする？", lines, okLabel: "素材にする" }).then((y) => { if (y) go(); });
+          } });
+        list.appendChild(r);
       }
       scroll.appendChild(list);
     },

@@ -513,7 +513,7 @@ export const INST = {
   },
 
   // ---- 迷宮の環境音 ----
-  creak: { // 朽ちた扉・梁の軋み (固着すべり振動)
+  creak: { // 朽ちた扉・梁のきしみ (固着すべり振動)
     kind: "one", fixed: 60, variants: 3, gain: 0.55, rel: 0.2,
     gen(z, v, seed) {
       const sr = 24000, dur = 1.6, len = Math.round(sr * dur);

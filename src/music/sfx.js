@@ -166,7 +166,7 @@ export const SFX_DEFS = {
   } },
   chest: { vars: 1, vol: 0.52, rev: 0.25, gen(r) {
     const n = len(0.8), x = new Float32Array(n);
-    // 蓋の軋み
+    // 蓋のきしみ
     const ex = new Float32Array(len(0.2));
     let t = 0.005;
     while (t < 0.18) { ex[len(t)] = 0.6 + r() * 0.4; t += 1 / (60 + 90 * (t / 0.18)) * (0.8 + r() * 0.4); }

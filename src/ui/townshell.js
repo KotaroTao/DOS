@@ -1,10 +1,10 @@
 // ===== 街シェル: 見出し + 中身 + 下のタブバー (§3.1) =====
-//   [見出し: ⚙/‹ ・ 題 ・ 通貨]   (header:false のタブ/頁は自前の見出しを持つ)
+//   [見出し: ⚙/‹ ・ 題 ・ 通貨]   (header:false のタブ/ページは自前の見出しを持つ)
 //   [中身 (#town-screen)]         ← game.js の townEl はここを指す
 //   [タブバー: 街 | 隊 | ◆迷宮◆ | 商会 | 王宮]
 //
-// 4つのタブ (registerTab) と頁 (registerPage: 酒場・祠など) は各パッケージが登録する。
-// 旧セーブの街の現在地 (G.town.facility / sub) は game.js の renderTown が新しいタブ/頁へ付け替えてから描く。
+// 4つのタブ (registerTab) とページ (registerPage: 酒場・祠など) は各パッケージが登録する。
+// 旧セーブの街の現在地 (G.town.facility / sub) は game.js の renderTown が新しいタブ/ページへ付け替えてから描く。
 //
 // 夜景のような重い生きた絵は keep(key, factory) で一度だけ作り、描き替えの間は「控え室」へ退避して
 // 生かしたまま次の描画で戻す (createTownScene を描くたびに作り直さない)。
@@ -36,7 +36,7 @@ export const FAC_TAB = {
 
 export function townTabOf(facility) { return facility ? (FAC_TAB[facility] || "hub") : "hub"; }
 
-// 旧セーブの街の現在地 {facility, sub} にタブ/頁を補う (loadGame から)
+// 旧セーブの街の現在地 {facility, sub} にタブ/ページを補う (loadGame から)
 export function migrateTown(t) {
   if (!t || typeof t !== "object") t = {};
   if (t.facility === undefined) t.facility = null;
@@ -158,7 +158,7 @@ function resolveTab() {
   if (t.tab && t.tab !== "hub" && def && def.render) return t.tab;
   return (t.tab = "hub");
 }
-// 深さ (タブの根 = 0、頁 = 1)
+// 深さ (タブの根 = 0、ページ = 1)
 function currentDepth() { return game.G.town.page ? 1 : 0; }
 function screenKey() {
   const t = game.G.town;
@@ -268,7 +268,7 @@ export function openGate() {
   return true;
 }
 
-// 頁 (酒場・祠など、タブの1段下)。登録が無ければ旧来の入口として game.js が付け替える
+// ページ (酒場・祠など、タブの1段下)。登録が無ければ旧来の入口として game.js が付け替える
 export function openPage(key, { parentTab } = {}) {
   const G = game.G;
   if (!G) return;
@@ -288,7 +288,7 @@ export function closePage() {
   if (game.renderTown) game.renderTown();
 }
 
-// 「戻る」: 頁 → タブの根 → 街。街の根なら false (nav が「もう一度で閉じる」)
+// 「戻る」: ページ → タブの根 → 街。街の根なら false (nav が「もう一度で閉じる」)
 export function back() {
   const G = game.G;
   if (!G || G.state !== "town") return false;

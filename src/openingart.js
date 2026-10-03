@@ -377,7 +377,7 @@ function knightKneel(m, x, y, S) {
   const lim = (a, b, t0, t1, val) => { const A = P(...a), B = P(...b); m.line(A[0], A[1], B[0], B[1], Math.max(1, t0 * S), val, Math.max(1, t1 * S)); };
   // 外套 (肩から背へ流れ、段に溜まる)
   m.poly([...P(-0.0, 0.6), ...P(-0.09, 0.52), ...P(-0.16, 0.3), ...P(-0.22, 0.08), ...P(-0.36, 0.0), ...P(-0.08, 0.0), ...P(-0.04, 0.25)], 1);
-  // 奥の脚 (膝をつき、脛は段に寝かせる)
+  // 奥の脚 (膝をつき、すねは段に寝かせる)
   lim([-0.02, 0.26], [-0.06, 0.035], 0.085, 0.06, 3);
   lim([-0.06, 0.035], [-0.27, 0.025], 0.055, 0.045, 3);
   m.ellipse(...P(-0.06, 0.04), 0.04 * S, 0.035 * S, 3);
@@ -711,7 +711,7 @@ function kingOnThrone(m, cx, seat, S) {
     m.rect(cx + sd * 0.27 * S - (sd > 0 ? 0.08 * S : 0), seat - 0.2 * S, 0.08 * S, 0.03 * S, 1);
     m.ellipse(...P(sd * 0.215, 0.2), 0.026 * S, 0.02 * S, 8);
   }
-  // 眼窩
+  // 目の穴
   const eyes = [P(-0.018, 0.565), P(0.018, 0.565)];
   for (const [ex, ey] of eyes) m.ellipse(ex, ey, Math.max(1, 0.011 * S), Math.max(1, 0.007 * S), 9);
   return { eyes, head: P(0, 0.565) };
@@ -1105,7 +1105,7 @@ function scene6(W, H) {
 
 export const SCENES = [
   {
-    cap: "壱", title: "裂けた大地",
+    cap: "一", title: "裂けた大地",
     lines: [
       "ある夜、王国の大地が裂けた。",
       "地の底に口を開けたのは、百の迷宮。",
@@ -1115,7 +1115,7 @@ export const SCENES = [
     build: scene1,
   },
   {
-    cap: "弐", title: "還らぬ者",
+    cap: "二", title: "還らぬ者",
     lines: [
       "幾千の生者が剣を取り、灯を掲げ、闇へと降りた。",
       "還った者は、ひとりもいない。",
@@ -1125,7 +1125,7 @@ export const SCENES = [
     build: scene2,
   },
   {
-    cap: "参", title: "人業",
+    cap: "三", title: "人業",
     lines: [
       "ゆえに人は、木と鋼と祈りで、空の器をこしらえた——",
       { em: "人業", ruby: "ドール" },
@@ -1136,7 +1136,7 @@ export const SCENES = [
     build: scene3,
   },
   {
-    cap: "肆", title: "王の勅命",
+    cap: "四", title: "王の勅命",
     lines: [
       "魂を繰り、人業を率いて深淵へ送る者。",
       "人はその業を畏れ、〈魂繰り〉と呼んだ。",
@@ -1147,7 +1147,7 @@ export const SCENES = [
     build: scene4,
   },
   {
-    cap: "伍", title: "辺境の街ロアダル",
+    cap: "五", title: "辺境の街ロアダル",
     lines: [
       "王国の果て、辺境の街ロアダル。",
       "弔いの鐘は鳴りやまず、墓所の下では、骸が眠りを忘れている。",
@@ -1156,7 +1156,7 @@ export const SCENES = [
     build: scene5,
   },
   {
-    cap: "陸", title: "骸の眠る場所",
+    cap: "六", title: "骸の眠る場所",
     lines: [
       "死者を眠りへ還し、喰われた魂をすくい上げよ。",
       "百の迷宮の底に、何が待つとしても。",
