@@ -27,15 +27,25 @@ import {
 } from "../souls.js";
 import { rarityColor } from "../rarity.js";
 import { SFX } from "../audio.js";
-import { keeperRow, sectionHead, pagedGrid, openItem } from "./facilities.js";
+import { keeperRow, sectionHead, pagedGrid, openItem, resetPages } from "./facilities.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
 const G = () => game.G;
 const SEGS = ["decree", "codex", "ach", "treasury"];
 
 function curSeg() { const s = remember("seg", "palace"); return SEGS.includes(s) ? s : "decree"; }
-// 図鑑の既定 (敵 / 最初の迷宮) へ戻す
-function resetCodexView() { remember("seg", "codex", "mon"); remember("codex", "dungeon", 0); }
+// 図鑑は前回の位置を覚えない: 入るたび・区分を替えるたびに既定 (敵=最初の迷宮 / アイテム=武器・すべて / 見聞=共通、どれも1ページ目) へ戻す
+// 迷宮の手帳から開いた図鑑だけは、敵の既定がいま潜っている迷宮になる (codexHome)
+const codexHome = { dungeon: 0 };
+const CODEX_PAGES = ["mon:", "item:", "job", "ev:"];
+function resetCodexView(sub = "mon") {
+  remember("seg", "codex", sub);
+  remember("codex", "dungeon", codexHome.dungeon);
+  remember("codex", "itemCat", "weapon");
+  remember("codex", "weaponCat", "all");
+  remember("codex", "evGroup", "0");
+  resetPages(CODEX_PAGES);
+}
 // openPalace(seg) で区分を指定して入るときの印 (街の夜景・タブから入るときは勅命へ戻す)
 let pendingSeg = false;
 // 残りの高さを占める箱 (めくる格子の置き場)
@@ -208,7 +218,7 @@ function renderCodexMon(box) {
         onTap: (c) => { codexMonSheet(key); markSeen("mon", key, c); } });
     }, { cols: 3, cellH: MON_CARD_H, key: "mon:" + idx, empty: el("div", "wa-empty", "記録なし。") });
   };
-  const ch = chips(items, String(idx), (k) => { idx = Number(k); remember("codex", "dungeon", idx); draw(); });
+  const ch = chips(items, String(idx), (k) => { idx = Number(k); remember("codex", "dungeon", idx); resetPages(["mon:"]); draw(); });
   refresh.list = () => items.forEach((it, i) => setBadge(chipBtn(ch, i), freshIn(Number(it.key))));
   box.appendChild(ch);
   box.appendChild(cap);
@@ -239,7 +249,7 @@ function renderCodexItem(box) {
     const def = ITEM_CATS.find((c) => c.key === cat) || ITEM_CATS[0];
     let ids = idsOfCat(def.key);
     if (def.key === "weapon") {
-      wch = chips(wItems.map((w) => ({ ...w, badge: freshW(w.key) })), wcat, (k) => { wcat = k; remember("codex", "weaponCat", k); draw(); });
+      wch = chips(wItems.map((w) => ({ ...w, badge: freshW(w.key) })), wcat, (k) => { wcat = k; remember("codex", "weaponCat", k); resetPages(["item:"]); draw(); });
       sub.appendChild(wch);
       if (wcat !== "all") ids = ids.filter((id) => ITEMS[id].cat === wcat);
     }
@@ -256,7 +266,7 @@ function renderCodexItem(box) {
       return c;
     }, { cols: 3, cellH: CARD_H, key: "item:" + cat + ":" + wcat, empty: el("div", "wa-empty", "この区分のアイテムは、まだ手にしていない。") });
   };
-  const ch = chips(ITEM_CATS.map((c) => ({ key: c.key, label: c.label, badge: freshCat(c.key) })), cat, (k) => { cat = k; remember("codex", "itemCat", k); draw(); });
+  const ch = chips(ITEM_CATS.map((c) => ({ key: c.key, label: c.label, badge: freshCat(c.key) })), cat, (k) => { cat = k; wcat = "all"; remember("codex", "itemCat", k); remember("codex", "weaponCat", "all"); resetPages(["item:"]); draw(); });
   refresh.list = () => {
     ITEM_CATS.forEach((c, i) => setBadge(chipBtn(ch, i), freshCat(c.key)));
     if (wch) wItems.forEach((w, i) => setBadge(chipBtn(wch, i), freshW(w.key)));
@@ -305,7 +315,7 @@ function renderCodexEvents(box) {
         onTap: (c) => { codexEventSheet(e.id); markSeenEv(e.id, c); } });
     }, { cols: 3, cellH: CARD_H, key: "ev:" + gk, empty: el("div", "wa-empty", "記録なし。") });
   };
-  const ch = chips(EVENT_GROUPS.map((x) => ({ key: x.key, label: x.label, badge: freshIn(x.key) })), gk, (k) => { gk = k; remember("codex", "evGroup", k); draw(); });
+  const ch = chips(EVENT_GROUPS.map((x) => ({ key: x.key, label: x.label, badge: freshIn(x.key) })), gk, (k) => { gk = k; remember("codex", "evGroup", k); resetPages(["ev:"]); draw(); });
   refresh.list = () => EVENT_GROUPS.forEach((x, i) => setBadge(chipBtn(ch, i), freshIn(x.key)));
   box.appendChild(ch);
   box.appendChild(cap);
@@ -367,7 +377,7 @@ function renderCodex(body) {
   const segEl = segmented([
     { key: "mon", label: `敵 ${mons}`, badge: fc.mon || null }, { key: "item", label: `アイテム ${items}`, badge: fc.item || null }, { key: "job", label: `職業 ${jobs}`, badge: fc.job || null },
     { key: "ev", label: `見聞 ${evs}`, badge: fc.ev || null },
-  ], sub, (k) => { sfx("select"); draw(k); softFade(box); }, { prefKey: "codex" });
+  ], sub, (k) => { sfx("select"); resetCodexView(k); draw(k); softFade(box); }, { prefKey: "codex" });
   segEl.classList.add("pl-codex-seg"); // 4区分 (見聞録つき) を1行に収める
   refresh.sub = () => { const c = freshCounts(); ["mon", "item", "job", "ev"].forEach((k, i) => setBadge(segBtn(segEl, i), c[k] || null)); };
   body.appendChild(segEl);
@@ -380,14 +390,14 @@ function renderCodex(body) {
 export function openCodexSheet({ dungeonIdx = null } = {}) {
   const g = G();
   if (!g) return null;
-  remember("seg", "codex", "mon");
-  if (Number.isInteger(dungeonIdx) && dungeonIdx >= 0 && dungeonIdx < Math.max(1, g.unlockedDungeons || 1)) remember("codex", "dungeon", dungeonIdx);
+  codexHome.dungeon = Number.isInteger(dungeonIdx) && dungeonIdx >= 0 && dungeonIdx < Math.max(1, g.unlockedDungeons || 1) ? dungeonIdx : 0;
+  resetCodexView("mon");
   const box = el("div", "pl-body cx-body");
   refresh.top = refresh.sub = refresh.list = null;
   const h = sheet.open({
     kind: "info", banner: "図鑑", className: "cx-sheet", body: box, paged: false,
     footer: [{ label: "閉じる", kind: "ghost", onTap: (s) => s.close() }],
-    onClose: () => { refresh.sub = refresh.list = null; },
+    onClose: () => { refresh.sub = refresh.list = null; codexHome.dungeon = 0; },
   });
   renderCodex(box); // シートが画面に出てから描く (めくる格子が残りの高さを測るため)
   autoPage(box);
@@ -720,7 +730,7 @@ function renderPalace(root, api) {
   const g = G();
   if (!g) return;
   // 他のタブ・街から入ってきた: 区分の指定が無ければ勅命から
-  if (api && api.entered && !pendingSeg) { remember("seg", "palace", "decree"); resetCodexView(); }
+  if (api && api.entered && !pendingSeg) { remember("seg", "palace", "decree"); resetCodexView(); resetPages(); }
   pendingSeg = false;
   const wrap = el("div", "wa-page wa-fit pl");
   root.appendChild(wrap); // 先に繋ぐ (めくる格子が残りの高さを測るため)
@@ -750,6 +760,7 @@ function renderPalace(root, api) {
   };
   const segEl = segmented(segs, seg, (k) => {
     sfx("select");
+    resetPages(); // 区分を替えたら、どの格子も1ページ目から
     if (k === "codex") resetCodexView(); // 図鑑を押したら 敵 / 最初の迷宮 から
     draw(k);
     softFade(body);
@@ -767,8 +778,8 @@ export function openPalace(seg) {
   if (seg) {
     const [s, sub] = String(seg).split(":");
     if (SEGS.includes(s)) remember("seg", "palace", s);
-    if (sub) remember("seg", "codex", sub);
-    else if (s === "codex") resetCodexView();
+    resetPages();
+    if (s === "codex") resetCodexView(["mon", "item", "job", "ev"].includes(sub) ? sub : "mon");
   }
   const g = G();
   if (!g || g.state !== "town" || !UI.shell) return false;
