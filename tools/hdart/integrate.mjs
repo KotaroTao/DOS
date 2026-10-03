@@ -47,7 +47,7 @@ export function applyLayer(layer, recs) {
   else {
     const prev = mark ? mark.after : `  // ── 第${n - 1}層 hd_* ここまで ──\n`;
     if (!s.includes(prev)) throw new Error("schema.js に挿入位置 (" + prev.trim() + ") がない");
-    s = s.replace(prev, prev + lines.join("\n") + "\n");
+    s = s.replace(prev, () => prev + lines.join("\n") + "\n"); // 置換文字列にすると色記号の $ & が置換パターンとして解釈される
   }
   fs.writeFileSync(SCHEMA, s);
   for (const f of DEFS) {

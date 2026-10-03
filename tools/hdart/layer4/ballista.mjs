@@ -10,10 +10,10 @@ const V = {
   cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
 };
 // 見下ろしの傾き: 奥 (z-) ほど画面の上へ、上面が手前を向く
-const PITCH = 26 * Math.PI / 180, CY = 66;
-const K = 1.14, KX = 47, KY = 52;
+const PITCH = 24 * Math.PI / 180, CY = 66;
+const K = 1.3, KX = 48, KY = 50;
 const T0 = ([x, y, z]) => [x, CY - 7 + (y - CY) * Math.cos(PITCH) + z * Math.sin(PITCH), -(y - CY) * Math.sin(PITCH) + z * Math.cos(PITCH)];
-const T = p => { const q = T0(p); return [KX + (q[0] - KX) * K, KY + (q[1] - KY) * K, q[2] * K]; };
+const T = p => { const q = T0(p); return [KX - 3.5 + (q[0] - KX) * K, KY - 2.5 + (q[1] - KY) * K, q[2] * K]; };
 const TD = ([x, y, z]) => [x, y * Math.cos(PITCH) + z * Math.sin(PITCH), -y * Math.sin(PITCH) + z * Math.cos(PITCH)];
 // 任意の向きの角材 (中心, 軸 u/v/w, 半径)
 function obox(c, u, v, w, [a, b, d], mat, round = 0.4) {
@@ -84,7 +84,7 @@ export function build() {
   // 柱を支える斜めの方杖
   for (const [f, l] of [[-12, 0], [10, 0], [0, -10], [0, 10]]) parts.push(beam(at(f, l, 74), at(f * 0.25, l * 0.25, 60), V.norm(V.cross(UP, V.norm(V.add(V.mul(F, f), V.mul(L, l))))), 1.4, 1.2, "oak", 0.4));
   // 弩床: 前後に長い角材 (照準のため前が少し下がる)
-  const SY = 40, dip = 0.12;
+  const SY = 47, dip = 0.12;
   const sy = f => SY + f * dip;
   parts.push(beam(at(-30, 0, sy(-30)), at(24, 0, sy(24)), L, 3.6, 2.6, "oak", 0.6));
   for (const f of [-24, -8, 10]) parts.push(beam(at(f - 0.9, 0, sy(f)), at(f + 0.9, 0, sy(f)), L, 4.2, 3.2, "iron", 0.3));
@@ -119,11 +119,11 @@ export function build() {
   for (const s of [-1, 1]) parts.push(beam(at(35, 0, BY(35)), at(39, s * 4.6, BY(39)), UP, 1, 0.6, "iron", 0.25));
   // 床: 斜めに見下ろした石畳と崩れた石
   const R = rand(511);
-  const bed = Disp(ellipsoid(T([48, GY + 2, 0]), [44, 3.2, 17], "flag", 0, -PITCH * 180 / Math.PI), (x, y, z) => 0.25 * fbm(x * 0.3, z * 0.3) + (vnoise(x * 0.5, z * 0.5) > 0.55 ? 0.5 : 0));
+  const bed = Disp(ellipsoid(T([48, GY - 0.5, 0]), [36, 2.4, 11], "flag", 0, -PITCH * 180 / Math.PI), (x, y, z) => 0.25 * fbm(x * 0.3, z * 0.3) + (vnoise(x * 0.5, z * 0.5) > 0.55 ? 0.5 : 0));
   const blocks = [];
   for (const [f, l, s] of [[30, 24, 3.6], [-30, -20, 3.2], [-8, 30, 2.6], [36, -22, 2.4]]) blocks.push(Disp(beam(at(f, l, GY - s * 0.6), at(f + s * 1.6, l + R() * 2, GY - s * 0.6), UP, s * 0.9, s * 0.6, "stone", 0.5), (X, Y, Z) => 0.3 * fbm(X * 0.7, Y * 0.7, Z * 0.7)));
   const rust = (x, y, z, m) => (m === "iron" && fbm(x * 0.35 + 3, y * 0.35, z * 0.35) > 0.3) ? "rust" : m;
-  const scene = U(0, bed, ...blocks, ...arrowShafts([[12, 90, 10, -3, -8, 8]]), Paint(U(0, ...parts), rust));
+  const scene = U(0, bed, ...blocks, Paint(U(0, ...parts), rust));
   const S = T(sight);
   const r = render(scene, mats, { w: 96, h: 96, rim: RIM, lights: [{ p: [S[0], S[1], S[2] + 6], r: 16, k: 0.6 }] });
   const C = new Canvas(r);
