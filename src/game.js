@@ -2027,6 +2027,11 @@ function drawBmpFit(b, cx, bottom, maxW, maxH, light = 1, alpha = 1) {
   vctx.restore();
   return { x, y, W, H };
 }
+// 主の待つ最深部の階段は、主の間の扉として描く
+function bossDoorHere() {
+  const dn = G.board && curDungeon();
+  return !!(dn && dn.boss && G.floor >= dn.floors);
+}
 function cellIcon(cell) {
   return cell.type === "monster" && !cell.cleared ? MONSTERS[cell.monsterKey] :
     cell.type === "chest" ? (cell.cleared ? ICONS.chestOpen : ICONS.chest) :
@@ -2034,7 +2039,7 @@ function cellIcon(cell) {
     cell.type === "fountain" && !cell.cleared ? ICONS.fountain :
     cell.type === "corpse" ? ICONS.corpse :
     cell.type === "portal" ? ICONS.portal :
-    cell.type === "stairs" ? ICONS.stairs :
+    cell.type === "stairs" ? (bossDoorHere() ? ICONS.bossDoor : ICONS.stairs) :
     cell.type === "event" && !cell.cleared ? ICONS.event : null;
 }
 function drawBoardIcons(lt, now, hx, hy) {
@@ -5685,7 +5690,7 @@ function askDescend(cell) {
       } },
       { label: "まだ探索する", fn: () => { renderBoard(); } },
     ],
-    ICONS.stairs,
+    boss ? ICONS.bossDoor : ICONS.stairs,
     { banner, accent, lines, onDismiss: stay }
   );
 }
