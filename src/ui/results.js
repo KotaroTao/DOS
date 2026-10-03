@@ -199,14 +199,13 @@ export function openResults(spec = {}) {
     },
   };
   // 宝箱の処理が済んだ (シートが残っていれば「進む」を出す。片付けた後なら続きへ)
-  // 何事もなく開け終えたら (痛手・SR/LR・置いてきた品が無ければ)、結果を一瞬見せてそのまま進む (1タップで済む)。
-  // 目を留めるべき結果がある時は「進む」を待つ。設定「戦果を自動で閉じる」なら常に自動で閉じる
+  // 結果はタップ (「進む」) で閉じる。設定「戦果を自動で閉じる」の時だけ自動で閉じる
   const chestDone = () => {
     if (interrupted) { finalize(); return; }
     chestState = "done";
     renderChest();
-    refreshFooter(!notable || getPref("autoCloseResults"));
-    if (!notable) armAutoClose(true); else armAutoClose();
+    refreshFooter(getPref("autoCloseResults"));
+    armAutoClose();
   };
   function openChestWith(uid) {
     if (chestState !== "closed" || !spec.chest) return;
