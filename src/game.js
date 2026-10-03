@@ -1349,6 +1349,7 @@ const appEl = document.getElementById("app");
 const screenEl = document.getElementById("screen");
 const topbarEl = document.getElementById("topbar");
 const LOG_MIN_BOARD = 84, LOG_MIN_COMBAT = 46, MENU_RESERVE = 166;
+const TURN_ORDER_H = 31; // 戦闘の行動順の帯 (#turn-order) の高さ + 下の余白。記録欄を削らず戦場の側で詰める
 let _fitKey = "";
 function outerH(e) {
   if (!e || e.classList.contains("hidden")) return 0;
@@ -1369,7 +1370,7 @@ function fitView(force = false) {
   let used = (parseFloat(csS.paddingTop) || 0) + (parseFloat(csS.paddingBottom) || 0)
     + outerH(topbarEl) + outerH(partyEl) + outerH(hintEl)
     + (csH ? (parseFloat(csH.paddingTop) || 0) + (parseFloat(csH.paddingBottom) || 0) : 0);
-  if (combat) used += MENU_RESERVE + LOG_MIN_COMBAT;
+  if (combat) used += MENU_RESERVE + LOG_MIN_COMBAT + TURN_ORDER_H;
   else used += outerH(runbarEl) + outerH(ctrlEl) + LOG_MIN_BOARD;
   const h = Math.max(cssW * 0.56, Math.min(cssW * (combat ? 0.98 : 1.32), appH - used));
   const vh = Math.max(240, Math.round((VW * h) / cssW));
@@ -6546,6 +6547,89 @@ function renderCombatCanvas() {
 
   if (fx) drawEffects(fx, now);
   if (intro) drawBattleIntro(intro, now);
+  renderTurnOrder();
+}
+
+// ===== 行動順の帯 (記録欄の上): 手番の者を先頭に、このラウンドでまだ動いていない者をアイコンで並べる =====
+// 戦場を描くたびに呼ばれるので、並びが変わった時だけ作り直す
+const turnOrderEl = document.getElementById("turn-order");
+let _turnOrderKey = "";
+const _turnIcons = new WeakMap(); // 敵の魔物 → { b: 元にした絵, c: アイコンの canvas }
+const _turnPics = new WeakMap();  // 人業 → { key, c } (胸像)
+const TURN_ICON_PX = 24;
+function turnIconCanvas(a) {
+  if (a.side === "party") {
+    if (!a.isDoll || a.primary == null) return null;
+    const key = `${a.jobKey || ""}:${a.jobRank || 1}:${a.clsKey || ""}`;
+    let ent = _turnPics.get(a);
+    if (!ent || ent.key !== key) { ent = { key, c: crispCanvas(dollBust(a), TURN_ICON_PX) }; _turnPics.set(a, ent); }
+    return ent.c;
+  }
+  const mon = a.mon;
+  if (!mon || !(mon.art || mon.photo)) return null;
+  const b = monsterBitmap(mon);
+  let ent = _turnIcons.get(mon);
+  // 原画版の魔物は絵が読めた時にビットマップが差し替わるので、その時に描き直す
+  if (!ent || ent.b !== b) {
+    const dpr = Math.min(3, Math.max(1, Math.round(window.devicePixelRatio || 1)));
+    const px = TURN_ICON_PX * dpr;
+    const c = document.createElement("canvas");
+    c.width = px; c.height = px;
+    c.style.width = c.style.height = TURN_ICON_PX + "px";
+    const g = c.getContext("2d");
+    if (g) {
+      const W = b.c.width, H = b.c.height, k = Math.min(px / W, px / H);
+      g.imageSmoothingEnabled = k < 1;
+      if (k < 1) g.imageSmoothingQuality = "high";
+      g.drawImage(b.c, Math.round((px - W * k) / 2), Math.round((px - H * k) / 2), Math.round(W * k), Math.round(H * k));
+    }
+    ent = { b, c };
+    _turnIcons.set(mon, ent);
+  }
+  return ent.c;
+}
+function renderTurnOrder() {
+  if (!turnOrderEl) return;
+  const b = G.battle;
+  const on = G.state === "combat" && b && !b.result && b.current && b.phase !== "done";
+  if (!on) {
+    if (_turnOrderKey) { _turnOrderKey = ""; turnOrderEl.classList.add("hidden"); turnOrderEl.innerHTML = ""; }
+    return;
+  }
+  const stunOf = (a) => (a.asleep || a.ailment === "paralyze" || a.ailment === "stone" ? "z" : a.mind ? "m" : "");
+  const list = [b.current, ...b.queue.filter((a) => a && a.alive && a !== b.current)];
+  const key = `${b._roundNo}|` + list.map((a) => `${a.side}${a.uid != null ? a.uid : a.name}${a.alive ? "" : "x"}${stunOf(a)}${a.side === "enemy" ? enemyLabel(a) : ""}`).join(",");
+  if (key === _turnOrderKey) return;
+  _turnOrderKey = key;
+  turnOrderEl.innerHTML = "";
+  turnOrderEl.classList.remove("hidden");
+  const used = new Set();
+  list.forEach((a, i) => {
+    const enemy = a.side === "enemy";
+    const name = enemy ? enemyLabel(a) : a.name;
+    const st = stunOf(a);
+    const ic = el("div", `to-ic ${enemy ? "e" : "p"}${i === 0 ? " now" : ""}${!a.alive ? " dead" : ""}${st === "z" ? " stun" : st === "m" ? " mind" : ""}${a.boss ? " boss" : ""}`);
+    ic.title = (i === 0 ? "手番: " : "") + name;
+    let c = turnIconCanvas(a);
+    // 同じ魔物が並ぶと同じ canvas を2か所に置けないので、2体目以降は写しを作る
+    if (c && used.has(c)) {
+      const cp = document.createElement("canvas");
+      cp.width = c.width; cp.height = c.height;
+      cp.style.width = c.style.width; cp.style.height = c.style.height;
+      const g = cp.getContext("2d");
+      if (g) g.drawImage(c, 0, 0);
+      c = cp;
+    }
+    if (c) { used.add(c); c.classList.add("to-pic"); ic.appendChild(c); }
+    else ic.appendChild(el("span", "to-ch", (name || "？").replace(/^？？？/, "？").slice(0, 1)));
+    // 同種が並ぶ敵は A/B… の札を添えて見分ける
+    if (enemy) {
+      const m = /[A-Z]$/.exec(name || "");
+      if (m) ic.appendChild(el("span", "to-tag", m[0]));
+    }
+    turnOrderEl.appendChild(ic);
+    if (i === 0 && list.length > 1) turnOrderEl.appendChild(el("span", "to-sep", "›"));
+  });
 }
 
 const _deadShown = new WeakSet(); // 撃破の演出を見せ終えた敵
