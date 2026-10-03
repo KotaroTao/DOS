@@ -13,7 +13,7 @@ import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, bar, autoPage, badge } from "./kit.js";
 import { remember } from "./prefs.js";
 import { softFade } from "./motion.js";
-import { statLines, itemCatText, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds } from "./itemview.js";
+import { statLines, itemCatText, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, MON_REVEAL, monKills, revealLock } from "./itemview.js";
 import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
 import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, LORE_PAGES } from "../events.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, itemName } from "../items.js";
@@ -394,19 +394,29 @@ export function codexMonSheet(key) {
   const elm = ELEMENTS[m.element] || ELEMENTS.none;
   const isOther = (game.CODEX_OTHER || []).includes(key);
   const body = el("div", "pl-detail");
+  // 倒した数に応じて段階的に明かす (戦闘中の「敵の姿」と同じ MON_REVEAL)
+  const kills = monKills(key);
+  const statsOpen = kills >= MON_REVEAL.stats, loreOpen = kills >= MON_REVEAL.lore;
   const tag = el("div", "pl-detail-tags");
-  const et = el("span", "pl-tag", `属性 ${elm.label}`);
-  et.style.color = elm.color;
-  tag.appendChild(et);
-  tag.appendChild(el("span", "pl-tag", `討伐 ${e.kills || 0}`));
+  if (statsOpen) {
+    const et = el("span", "pl-tag", `属性 ${elm.label}`);
+    et.style.color = elm.color;
+    tag.appendChild(et);
+  }
+  tag.appendChild(el("span", "pl-tag", `討伐数 ${kills}体`));
   if (m.boss) tag.appendChild(el("span", "pl-tag gold", "迷宮の主"));
   body.appendChild(tag);
-  const aff = affinityRow(m.element, "pl-aff");
-  if (aff) body.appendChild(aff);
-  if (m.desc) body.appendChild(setText(el("div", "pl-detail-desc"), m.desc));
-  body.appendChild(setText(el("div", "pl-detail-stats"), `HP ${m.maxhp}　ATK ${m.atk}　VIT ${m.def}　AGI ${m.spd}　✦${m.soul}　💰${m.gold}`));
-  const traits = monsterTraits(m);
-  body.appendChild(infoBlock("特徴・スキル", traits.length ? traits.map((t) => pairRow(t.label, t.desc, { tags: traitTagKinds(t.key, m.element) })) : [pairRow("特筆すべき特徴はない", null, { dim: true })]));
+  if (statsOpen) {
+    const aff = affinityRow(m.element, "pl-aff");
+    if (aff) body.appendChild(aff);
+  }
+  if (loreOpen && m.desc) body.appendChild(setText(el("div", "pl-detail-desc"), m.desc));
+  if (statsOpen) body.appendChild(setText(el("div", "pl-detail-stats"), `HP ${m.maxhp}　ATK ${m.atk}　VIT ${m.def}　AGI ${m.spd}　✦${m.soul}　💰${m.gold}`));
+  else body.appendChild(revealLock(MON_REVEAL.stats, "属性・HP"));
+  if (loreOpen) {
+    const traits = monsterTraits(m);
+    body.appendChild(infoBlock("特徴・スキル", traits.length ? traits.map((t) => pairRow(t.label, t.desc, { tags: traitTagKinds(t.key, m.element) })) : [pairRow("特筆すべき特徴はない", null, { dim: true })]));
+  } else body.appendChild(revealLock(MON_REVEAL.lore, "特徴・スキル・説明文"));
   const idxs = Object.keys(e.dungeons || {}).map(Number).filter((i) => DUNGEONS[i]);
   body.appendChild(infoBlock("出現した迷宮", idxs.length ? idxs.map((i) => pairRow(DUNGEONS[i].name)) : [pairRow("記録なし", null, { dim: true })]));
   return sheet.open({
