@@ -1,7 +1,7 @@
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas } from "./sprites.js";
 import {
@@ -1102,6 +1102,7 @@ function enemyScale() {
 
 // ミミックの強さの基準: この階に出る雑魚の最上位ランクと、雑魚と同じ強さ補正。
 // (ランクの上乗せ — 通常 +1 / マスター +2 — は combat.js の spawnMimic が行う)
+// 出来事の魔物 (檻番の獄卒など、spawnRanked) も同じ基準で「この階より何ランク上」を組む。
 function mimicRef() {
   const cfg = activeCfg();
   const ranks = sfMonsterPool().map((k) => (MONSTERS[k] && MONSTERS[k].rank) || 0);
@@ -4766,6 +4767,8 @@ function evBuildFoes(specs) {
   for (const sp of specs || []) {
     if (sp.shadows) { for (const p of evAlive()) out.push(evShadow(p, sp.shadows)); continue; }
     if (sp.elite) { out.push(...spawnEliteEnemies(sp.key && MONSTERS[sp.key] ? sp.key : eliteKey(), scale * (sp.strong || 1))); continue; }
+    // 出来事の魔物: その階の雑魚の最上位ランク + ranked の体で現れる (ミミックと同じ基準 mimicRef)
+    if (sp.ranked && sp.key && MONSTERS[sp.key]) { const e = spawnRanked(sp.key, mimicRef().rank, sp.ranked, scale)[0]; if (sp.name) e.name = sp.name; out.push(e); continue; }
     const key = sp.key && MONSTERS[sp.key] ? sp.key : (sp.undead ? undeadKeyForDungeon() : evPoolKey());
     if (sp.strong) { const e = evBoost(spawnEliteEnemies(key, scale)[0], sp.strong); if (sp.name) e.name = sp.name; out.push(e); continue; }
     if (sp.single) { out.push(spawnEliteEnemies(key, scale)[0]); continue; }
@@ -9761,8 +9764,8 @@ function dungeonRoster(dn) {
   return out;
 }
 
-// 特定のダンジョンに属さない魔物 (宝箱に潜む類) を集める「その他」タブの面々
-const CODEX_OTHER = ["mimic", "master_mimic"];
+// 特定のダンジョンに属さない魔物 (宝箱に潜む類・出来事にだけ現れる類) を集める「その他」タブの面々
+const CODEX_OTHER = ["mimic", "master_mimic", "bs_cagewarden"];
 
 // 職業図鑑: 詳細のシート (解説/活用/発現条件/装備適性/パッシブ/スキル表)。rank = 図鑑で選んだ位階。
 // heading を渡すと最上部に「○○は●●になった！」等の見出しを大きく出す (職業の発現・変化の演出から呼ぶ)
