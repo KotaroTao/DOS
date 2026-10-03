@@ -173,7 +173,8 @@ function tileStrip(list, { max = 24 } = {}) {
 }
 
 // 売る品の一覧 (まとめて売るの確認): 1行に 品の絵・名・持ち主・売値。押せば品シート
-function sellRows(list) {
+// onBack: 品シートを閉じた後 (そこで売る・装備する・捨てた品を一覧から外すため)
+function sellRows(list, onBack) {
   const w = el("div", "wpc-picklist wpc-selllist");
   for (const x of list) {
     const it = x.item;
@@ -193,7 +194,7 @@ function sellRows(list) {
     pr.appendChild(glyph("gold"));
     pr.appendChild(document.createTextNode(String(x.price)));
     main.appendChild(pr);
-    main.addEventListener("click", () => itemSheet(it, { owner: x.doll, context: "bag" }));
+    main.addEventListener("click", () => itemSheet(it, { owner: x.doll, context: "bag", onClose: onBack }));
     r.appendChild(main);
     w.appendChild(r);
   }
@@ -251,7 +252,7 @@ export function confirmIdentifyAll() {
 // 残す品が無い (= ops と同じ集合) なら ops.sellJunkAll、あれば同じ中身の sellSubset で選んだ品だけを売る
 export function confirmSellJunk() {
   let withUp = false;
-  const ups = upgradeKeeps();
+  let ups = upgradeKeeps();
   const pick = () => (withUp ? junkList({ keepUpgrades: false }) : junkList());
   if (!pick().length && !ups.length) { toast("まとめて売れる品はない", { tone: "info" }); return null; }
   let h = null;
@@ -263,11 +264,12 @@ export function confirmSellJunk() {
     if (r && r.gold) floatGold(r.gold, "up");
   };
   const build = () => {
+    ups = upgradeKeeps();
     const list = pick();
     const gold = list.reduce((a, x) => a + x.price, 0);
     const ex = exclusions();
     const body = el("div", "wpc-cbody");
-    if (list.length) body.appendChild(sellRows(list));
+    if (list.length) body.appendChild(sellRows(list, () => refill()));
     else body.appendChild(el("div", "wpc-empty", "売る品がない。"));
     if (ups.length) {
       // 装備の候補も売るか (切り替え)
