@@ -141,6 +141,8 @@ RANK_LISTS.forEach((list, bi) => {
     for (const it of list) if (!keep.has(it)) it.noDrop = true;
   }
 }
+// 能力補正 (scale) / 魔法属性 (magic) を持つ武器は数が少なく、戦い方を変える品なので必ずドロップ対象に残す
+for (const list of [WEAPONS, ...RANK_LISTS]) for (const it of list) if (it.scale || it.magic) delete it.noDrop;
 for (const list of [LEGENDS, EXCLUSIVES]) for (const it of list) it.rar = "sr";
 for (const it of LR_ITEMS) it.rar = "lr";
 

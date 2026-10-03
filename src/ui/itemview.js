@@ -7,7 +7,7 @@ import { el, sheet } from "./kit.js";
 import { ELEMENTS, elemBeats, RACE_LABEL } from "../dungeons/index.js";
 import { SPELLS } from "../combat.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
-import { WEAPON_CAT_LABEL, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL } from "../items.js";
+import { WEAPON_CAT_LABEL, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, scaleText } from "../items.js";
 import { HERO, spriteCanvas, crispCanvas } from "../sprites.js";
 
 // 魂のステータス寄与を「HP+7 ATK+2.4 …」形式で列挙 (0は省略)
@@ -151,8 +151,12 @@ export function affinityRow(element, cls = "") {
 
 // ===== 敵の情報の段階開示 (討伐数しだい) =====
 // 姿は最初から見える。1体 = 名前 / 5体 = 属性とHP / 10体 = 特徴・スキルと説明文。
+// 迷宮の主だけは名前を最初から明かし、1体討てば全てを明かす (BOSS_REVEAL)。
 // 戦闘画面 (名札・HPの小瓶)・「敵の姿」・図鑑の一枚で共通
 export const MON_REVEAL = { name: 1, stats: 5, lore: 10 };
+export const BOSS_REVEAL = { name: 0, stats: 1, lore: 1 };
+// その魔物 (図鑑の定義) の開示段階
+export function revealSteps(m) { return m && m.boss ? BOSS_REVEAL : MON_REVEAL; }
 // その魔物を倒した数 (図鑑の記録を読むだけ。記録を作らない)
 export function monKills(key) {
   const g = game.G;
@@ -166,11 +170,12 @@ export function monKills(key) {
 export function enemyReveal(e) {
   const special = !e || String(e.key || "").startsWith("ev_");
   const kills = special ? 0 : monKills(e.key);
+  const R = revealSteps(e && e.mon);
   return {
-    special, kills,
-    name: special || kills >= MON_REVEAL.name,
-    stats: special || kills >= MON_REVEAL.stats,
-    lore: special || kills >= MON_REVEAL.lore,
+    special, kills, steps: R,
+    name: special || kills >= R.name,
+    stats: special || kills >= R.stats,
+    lore: special || kills >= R.lore,
   };
 }
 // 敵の呼び名: 名前が明かされるまでは「？？？」(同種が並ぶときの A/B… は残して見分けられるように)
@@ -338,6 +343,15 @@ export function ailDetailLines(it) {
   return L;
 }
 
+// 武器の能力補正 (scale) と魔法属性 (magic) のくわしい表記
+export function weaponTraitLines(it) {
+  const L = [];
+  if (!it || it.slot !== "weapon") return L;
+  if (it.scale) L.push(`能力補正: ${scaleText(it.scale)}（攻撃力 = ATK + ${scaleText(it.scale).replace(/ /g, " + ")}。物理技もこの攻撃力で伸びる）`);
+  if (it.magic) L.push("攻撃属性: 魔法（通常攻撃の威力は攻撃力のまま、物理耐性ではなく魔法耐性で判定され、魔法弱点を突く。物理技は物理のまま）");
+  return L;
+}
+
 // ===== 品の表示 =====
 export function statLines(it) {
   if (it && it.unidentified) return "未鑑定 — 鑑定が必要";
@@ -347,6 +361,8 @@ export function statLines(it) {
   f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
   f("HP", it.hp); f("MP", it.mp);
   if (it.crit) parts.push(`会心 +${Math.round(it.crit * 100)}%`);
+  if (it.scale) parts.push(`補正 ${scaleText(it.scale)}`);
+  if (it.magic) parts.push("魔法属性");
   const ea = elemStatText("攻撃", it.eAtk);
   const ed = elemStatText("防御", it.eDef);
   if (ea) parts.push(ea);
@@ -376,6 +392,8 @@ export function equipPreviewDelta(p, cand) {
   const fake = { base: p.base, equip: eq, hp: p.hp, mp: p.mp };
   recalc(fake);
   return {
+    power: attackPower(fake) - attackPower(p), // 攻撃力 (ATK + 武器の能力補正)
+    weapon: (eq.weapon || null) !== (p.equip.weapon || null),
     atk: fake.atk - p.atk,
     vit: fake.vit - p.vit,
     agi: fake.agi - p.agi,
@@ -399,9 +417,14 @@ export function equipCompareEl(p, cand) {
   row.appendChild(el("span", "eq-cd-lab", "装備すると"));
   let any = false;
   if (d) {
+    // 攻撃力 (基本攻撃力 ATK + 武器の能力補正)。ATK は攻撃力と増減が違う時だけ併記する
+    if (d.power) {
+      any = true;
+      row.appendChild(el("span", "eq-cd-seg " + (d.power > 0 ? "up" : "down"), `攻撃力 ${d.power > 0 ? "▲+" + d.power : "▼" + d.power}`));
+    }
     for (const [label, k] of [["ATK", "atk"], ["VIT", "vit"], ["AGI", "agi"], ["INT", "int"], ["PIE", "pie"], ["LUK", "luk"], ["HP", "hp"], ["MP", "mp"]]) {
       const v = d[k];
-      if (!v) continue;
+      if (!v || (k === "atk" && v === d.power)) continue;
       any = true;
       row.appendChild(el("span", "eq-cd-seg " + (v > 0 ? "up" : "down"), `${label} ${v > 0 ? "▲+" + v : "▼" + v}`));
     }
@@ -456,11 +479,15 @@ export function gearWeights(doll) {
   W.mp = (st.mp || 0) >= 1.5 ? 0.15 : 0.03;
   return (GEAR_W_CACHE[key] = W);
 }
+// ATK の代わりに攻撃力 (ATK + 武器の能力補正) の増減を数える。武器の付け替えは攻撃力の高い順が最優先
+// (攻撃力1 = WEAPON_POWER_W 点。ほかの能力は攻撃力が同じ時の決め手になる)
+const WEAPON_POWER_W = 50;
 export function gearScore(doll, delta) {
   if (!delta) return 0;
   const W = gearWeights(doll);
   let s = 0;
-  for (const k in W) s += (delta[k] || 0) * W[k];
+  for (const k in W) s += (k === "atk" && delta.power != null ? delta.power : (delta[k] || 0)) * W[k];
+  if (delta.weapon) s += (delta.power || 0) * WEAPON_POWER_W;
   s += (delta.crit || 0) * 0.5;
   const lv = (e) => (e && e.el ? Math.min(2, e.lv || 1) : 0);
   for (const ch of [delta.elemAtk, delta.elemDef]) if (ch) s += (lv(ch.to) - lv(ch.from)) * 4;
@@ -510,6 +537,7 @@ export function detailLines(it) {
     f("HP", it.hp); f("MP", it.mp);
     if (it.crit) mod.push(`会心+${Math.round(it.crit * 100)}%`);
     if (mod.length) L.push(mod.join(" / "));
+    for (const ln of weaponTraitLines(it)) L.push(ln);
   }
   // 属性攻撃/属性防御 (1行ずつのくわしい表記)
   for (const ln of elemDetailLines("攻撃", it.eAtk)) L.push(ln);

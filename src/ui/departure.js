@@ -338,6 +338,7 @@ export function openDeparture(opts = {}) {
   if ((g.unlockedDungeons || 0) < 1) { toast("王の勅命を受けるまで、迷宮の在処は明かされない", { tone: "info" }); return null; }
   // 踏破の報告が済むまで門は開かない (王宮へ案内するシートを出す)
   if (game.blockForReport && game.blockForReport()) return null;
+  if (game.blockForTutorial && game.blockForTutorial()) return null;
   if (cur && cur.h && !cur.h.closed) { if (opts.page) { cur.page = opts.page; refresh(); } return cur.h; }
   const page = opts.page === "abyss" && game.featureUnlocked && game.featureUnlocked("infinite") ? "abyss" : "gates";
   if (page === "abyss") { abyssMods = []; abyssWeekly = false; }

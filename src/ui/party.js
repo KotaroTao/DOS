@@ -26,7 +26,7 @@ import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVi
 import {
   planBestEquip, applyPlan, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip,
 } from "../autoequip.js";
-import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName } from "../items.js";
+import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, scaleText } from "../items.js";
 import {
   SOUL_CLASSES, JOB_GEAR, dollSprite, dollBust, jobBust, jobSprite, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulSeriesName, soulByUid,
   orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs,
@@ -75,7 +75,7 @@ const ATTR_DESC = {
   pie: "回復呪文の効果を決める信仰心。HPを回復する魔法の回復量が上がる。",
   luk: "会心（クリティカル）の発生率を左右する幸運。高いほど大ダメージが出やすい。",
 };
-const DLABEL = { atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP" };
+const DLABEL = { power: "攻撃力", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP" };
 
 // ================= 肖像 (隊の絵の差し替え点) =================
 // 人業の肖像を、ドット1つを整数倍で描いた canvas で返す (image-rendering: pixelated)。
@@ -232,9 +232,13 @@ function bestWearer(item) {
 }
 
 // ================= 装備する (元に戻すつき) =================
+// 増減を表示する能力のキー (攻撃力と同じだけ動いた ATK は省く)
+function deltaKeys(delta) {
+  return Object.keys(DLABEL).filter((k) => delta[k] && typeof delta[k] === "number" && !(k === "atk" && delta.power === delta.atk));
+}
 function deltaText(delta, n = 3) {
   if (!delta) return "";
-  const parts = Object.keys(DLABEL).filter((k) => delta[k]).sort((a, b) => Math.abs(delta[b]) - Math.abs(delta[a])).slice(0, n)
+  const parts = deltaKeys(delta).sort((a, b) => Math.abs(delta[b]) - Math.abs(delta[a])).slice(0, n)
     .map((k) => `${delta[k] > 0 ? "▲" : "▼"}${DLABEL[k]}${delta[k] > 0 ? "+" : ""}${delta[k]}`);
   return parts.join(" ");
 }
@@ -347,7 +351,7 @@ export function equipChooserEl(item, { owner = null, onPick = null, onDone = nul
     if (x.why) tx.appendChild(el("span", "pt-chc-why", x.why));
     else {
       const dl = el("span", "pt-chc-d");
-      const parts = Object.keys(DLABEL).filter((k) => x.b.delta[k]).sort((a, b) => Math.abs(x.b.delta[b]) - Math.abs(x.b.delta[a])).slice(0, 2);
+      const parts = deltaKeys(x.b.delta).sort((a, b) => Math.abs(x.b.delta[b]) - Math.abs(x.b.delta[a])).slice(0, 2);
       if (!parts.length) dl.appendChild(el("span", "eq", "変化なし"));
       for (const k of parts) {
         const v = x.b.delta[k];
@@ -507,10 +511,12 @@ function openAutoEquipResult(plan, before, undo) {
     }
     card.appendChild(list);
     const st = el("div", "pt-ae-st");
-    const pairs = [["atk", "atk"], ["vit", "vit"], ["agi", "agi"], ["int", "int"], ["pie", "pie"], ["luk", "luk"], ["hp", "maxhp"], ["mp", "maxmp"]];
+    // 攻撃力 (ATK + 武器の能力補正) を先頭に。ATK は攻撃力と同じだけ動いた時は省く
+    const pairs = [["power", "power"], ["atk", "atk"], ["vit", "vit"], ["agi", "agi"], ["int", "int"], ["pie", "pie"], ["luk", "luk"], ["hp", "maxhp"], ["mp", "maxmp"]];
     for (const [lab, k] of pairs) {
       const v0 = r.b[k] || 0, v1 = r.a[k] || 0;
       if (v0 === v1) continue;
+      if (k === "atk" && v1 - v0 === (r.a.power || 0) - (r.b.power || 0)) continue;
       const chip = el("span", "pt-ae-s " + (v1 > v0 ? "up" : "dn"));
       chip.appendChild(el("span", "pt-ae-sk", DLABEL[lab]));
       chip.appendChild(el("span", null, `${v0}→${v1}`));
@@ -538,7 +544,7 @@ function floatDelta(sel, delta) {
   if (!delta || !hasDOM()) return;
   const t = deltaText(delta);
   if (!t) return;
-  const up = Object.keys(DLABEL).reduce((s, k) => s + (delta[k] || 0), 0) >= 0;
+  const up = Object.keys(DLABEL).reduce((s, k) => s + (k === "power" ? 0 : (delta[k] || 0)), 0) >= 0;
   requestAnimationFrame(() => {
     const scope = (sheetH && !sheetH.closed) ? sheetH.el : document;
     const a = scope && scope.querySelector(sel);
@@ -1574,6 +1580,11 @@ function statsSeg(root, d) {
       info.appendChild(el("div", "pt-statx-d", ATTR_DESC[k] || ""));
       const base = Math.round((d.base && d.base[k]) || 0), tot = Math.round(d[k] || 0);
       info.appendChild(el("div", "pt-statx-v", `いま ${tot}（魂 ${base}${tot - base ? ` ・ 装備 ${tot - base > 0 ? "+" : ""}${tot - base}` : ""}）`));
+      // 攻撃力 = ATK + 武器の能力補正 (補正のある武器の時だけ内訳を出す)
+      if (k === "atk" && d.wScale) {
+        const pw = attackPower(d);
+        info.appendChild(el("div", "pt-statx-v", `攻撃力 ${pw}（ATK ${tot} ＋ 武器の能力補正 ${scaleText(d.wScale)} = ${pw - tot >= 0 ? "+" : ""}${pw - tot}）`));
+      }
       return;
     }
     info.classList.remove("x");

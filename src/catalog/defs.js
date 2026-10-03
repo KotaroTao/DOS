@@ -1845,6 +1845,13 @@ function base(id, name, slot, lv, artKey, opt) {
     chk(AIL_KEYS.includes(k) && k !== "stone" && chance > 0 && chance <= 0.5, "bad onHit: " + id);
     it.onHit = pct ? { k, chance, pct } : { k, chance };
   }
+  // 武器の能力補正 scale: { agi: 0.4 } → 攻撃力 = ATK + AGI×0.4 (items.js attackPower) / 魔法属性 magic: 通常攻撃が魔法耐性で判定される
+  if (opt.scale) {
+    chk(slot === "weapon", "scale is weapon-only: " + id);
+    for (const k in opt.scale) chk(["atk", "vit", "agi", "int", "pie", "luk"].includes(k) && opt.scale[k] > 0 && opt.scale[k] <= 1, "bad scale: " + id);
+    it.scale = { ...opt.scale };
+  }
+  if (opt.magic) { chk(slot === "weapon", "magic is weapon-only: " + id); it.magic = true; }
   if (opt.spd) it.agi = opt.spd;       // 旧称 spd → AGI
   if (opt.agi) it.agi = (it.agi || 0) + opt.agi;
   if (opt.hp) it.hp = opt.hp;
@@ -1879,14 +1886,17 @@ function base(id, name, slot, lv, artKey, opt) {
 }
 
 // 武器: W(id, 名, サブカテゴリ, lv, opt)
-// opt: { desc(必須), eAtk, two, cls, pow(自動ATKの倍率), vitB, spd, mp, hp, atk(絶対値上書き), tint, tintAmt, cursed, align, price }
+// opt: { desc(必須), eAtk, two, cls, pow(自動ATKの倍率), vitB, spd, mp, hp, atk(絶対値上書き), tint, tintAmt, cursed, align, price,
+//        scale({agi:0.4} 等 = 能力補正。自動ATKは係数に応じて控えめになる), magic(true = 魔法属性: 通常攻撃が魔法耐性で判定される) }
 export function W(id, name, cat, lv, opt = {}) {
   chk(W_MUL[cat], "unknown weapon cat: " + cat + " (" + id + ")");
   const it = base(id, name, "weapon", lv, cat, { cls: opt.cls !== undefined ? opt.cls : null, ...opt });
   it.cat = cat;
   const two = !!opt.two || cat === "bw"; // 弓は常に両手
   if (two) it.twoHanded = true;
-  it.atk = opt.atk != null ? opt.atk : Math.max(1, round((2 + lv * 0.82 + lv * lv * 0.0026) * W_MUL[cat] * (two && cat !== "bw" ? 1.25 : 1) * (opt.pow || 1)));
+  // 能力補正 (scale) を持つ武器は、能力値で伸びる分だけ武器そのものの ATK を控えめにする (係数の合計の半分。最大4割減)
+  const scaleCut = opt.scale ? Math.max(0.6, 1 - 0.5 * Object.values(opt.scale).reduce((a, v) => a + v, 0)) : 1;
+  it.atk = opt.atk != null ? opt.atk : Math.max(1, round((2 + lv * 0.82 + lv * lv * 0.0026) * W_MUL[cat] * (two && cat !== "bw" ? 1.25 : 1) * (opt.pow || 1) * scaleCut));
   it.hit = opt.hit != null ? opt.hit : 1 + Math.floor(lv / 25);
   it.dice = opt.dice || ("1d" + (4 + Math.min(20, Math.floor(lv / 9))) + (lv >= 30 ? "+" + Math.min(15, Math.floor(lv / 13)) : ""));
   it.swings = opt.swings || 1;

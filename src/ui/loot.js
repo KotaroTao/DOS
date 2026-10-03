@@ -155,11 +155,12 @@ export function nameSpan(it, cls = "wpc-nm") {
 export function deltaEl(delta, { empty = "変化なし" } = {}) {
   const w = el("span", "ui-delta wpc-delta");
   if (!delta) { w.appendChild(el("span", "eq", empty)); return w; }
-  const L = [["atk", "ATK"], ["vit", "VIT"], ["agi", "AGI"], ["int", "INT"], ["pie", "PIE"], ["luk", "LUK"], ["hp", "HP"], ["mp", "MP"]];
+  // 攻撃力 (ATK + 武器の能力補正) を先頭に。ATK は攻撃力と同じだけ動いた時は省く
+  const L = [["power", "攻撃力"], ["atk", "ATK"], ["vit", "VIT"], ["agi", "AGI"], ["int", "INT"], ["pie", "PIE"], ["luk", "LUK"], ["hp", "HP"], ["mp", "MP"]];
   let any = false;
   for (const [k, lb] of L) {
     const v = delta[k];
-    if (!v) continue;
+    if (!v || typeof v !== "number" || (k === "atk" && delta.power === v)) continue;
     any = true;
     w.appendChild(el("span", v > 0 ? "up" : "dn", `${v > 0 ? "▲" : "▼"}${lb}${v > 0 ? "+" : ""}${v}`));
   }
@@ -369,8 +370,8 @@ export function canEquipReason(d, it, opts) {
 function shortDelta(delta) {
   const w = el("span", "wpc-sd");
   if (!delta) { w.appendChild(el("span", "eq", "変化なし")); return w; }
-  const L = { atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP" };
-  const list = Object.keys(L).filter((k) => delta[k]).map((k) => [k, delta[k]]);
+  const L = { power: "攻撃力", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP" };
+  const list = Object.keys(L).filter((k) => delta[k] && typeof delta[k] === "number" && !(k === "atk" && delta.power === delta.atk)).map((k) => [k, delta[k]]);
   if (delta.crit) list.push(["crit", delta.crit]);
   const lvOf = (e) => (e && e.el ? Math.min(2, e.lv || 1) : 0);
   for (const [k, ch] of [["属攻", delta.elemAtk], ["属防", delta.elemDef]]) if (ch && !elemStatEq(ch.from, ch.to)) list.push([k, (lvOf(ch.to) - lvOf(ch.from)) || 0.1]);

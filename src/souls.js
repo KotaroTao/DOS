@@ -878,6 +878,20 @@ export function soulStats(s) {
 // 人業はそこから魂を差し込むだけの器で、primary (主魂=職業・ステ・スキル) と
 // subs (宿し技スロット: 別職の魂から技/パッシブを借りる、最大 MAX_SUBS 個) を持つ。
 let _dollUid = 0;
+// 読み込んだ人業の uid に通し番号を合わせる (game.js loadGame)。以前は読み込みのたびに 1 から振り直していたため、
+// 読み込み後に仕立てた人業が既存の人業と同じ uid になっていた (最後に使った技・罠の解除役などを取り違える)。
+// 重なっている uid は後ろの人業に新しい番号を振り直す。振り直した人業の数を返す
+export function syncDollUids(dolls) {
+  for (const d of dolls) if (d && Number.isFinite(d.uid) && d.uid > _dollUid) _dollUid = d.uid;
+  const used = new Set();
+  let fixed = 0;
+  for (const d of dolls) {
+    if (!d) continue;
+    if (!Number.isFinite(d.uid) || used.has(d.uid)) { d.uid = ++_dollUid; fixed++; }
+    used.add(d.uid);
+  }
+  return fixed;
+}
 export const MAX_SUBS = 2;
 // サブ魂 (宿し技) のステータス寄与率: 宿した魂の全ステの30%を器に加算する
 export const SUB_STAT_RATE = 0.3;

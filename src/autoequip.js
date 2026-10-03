@@ -13,7 +13,7 @@
 // 実際の付け替えは applyPlan(plan) で、元に戻すのは restoreEquip(plan.undoSnapshot)。
 // どちらも実体 (人業の equip / items) を書き換え、recalc で能力を再計算する。
 
-import { SLOTS, MAX_ITEMS, canEquip as canEquipDefault, recalc as recalcDefault } from "./items.js";
+import { SLOTS, MAX_ITEMS, canEquip as canEquipDefault, recalc as recalcDefault, attackPower } from "./items.js";
 
 const EPS = 0.05;          // これ未満の伸びは「同じ」とみなす (同格の品を入れ替え続けない)
 const EQUIP_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
@@ -38,6 +38,7 @@ export function previewStats(doll, equip, recalcFn = recalcDefault) {
     atk: fake.atk, vit: fake.vit, agi: fake.agi, int: fake.int, pie: fake.pie, luk: fake.luk,
     maxhp: fake.maxhp, maxmp: fake.maxmp, critBonus: fake.critBonus || 0,
     elemAtk: fake.elemAtk || null, elemDef: fake.elemDef || null,
+    power: attackPower(fake), weapon: equip.weapon || null, // 攻撃力 (ATK + 武器の能力補正) と武器
   };
 }
 
@@ -50,6 +51,8 @@ export function statsDelta(from, to) {
     crit: Math.round(((to.critBonus || 0) - (from.critBonus || 0)) * 100),
     elemAtk: { from: from.elemAtk, to: to.elemAtk },
     elemDef: { from: from.elemDef, to: to.elemDef },
+    power: (to.power || 0) - (from.power || 0), // 攻撃力の増減
+    weapon: (from.weapon || null) !== (to.weapon || null), // 武器が替わるか (武器の良し悪しは攻撃力で決める)
   };
 }
 
@@ -198,7 +201,8 @@ export function applyPlan(plan, { recalc: recalcFn = recalcDefault } = {}) {
 function defaultScore(doll, delta) {
   const W = { atk: 1, vit: 1, agi: 0.8, int: 0.6, pie: 0.6, luk: 0.4, hp: 0.2, mp: 0.15 };
   let s = 0;
-  for (const k in W) s += (delta[k] || 0) * W[k];
+  for (const k in W) s += (k === "atk" && delta.power != null ? delta.power : (delta[k] || 0)) * W[k];
+  if (delta.weapon) s += (delta.power || 0) * 50; // 武器は攻撃力の高い順
   return s + (delta.crit || 0) * 0.5;
 }
 
