@@ -1413,7 +1413,8 @@ function dockSpec() {
     } else {
       const dn = curDungeon();
       const atBottom = G.floor >= (dn.floors || 1);
-      if (atBottom && dn.boss) down = { key: "boss", label: "主の間へ", sub: "迷宮の主が待つ", kind: "danger", icon: "boss" };
+      if (atBottom && G.bossDown) down = null; // 踏破済み: 最深部の階段は役目を終えた (下の「帰還」で凱旋)
+      else if (atBottom && dn.boss) down = { key: "boss", label: "主の間へ", sub: "迷宮の主が待つ", kind: "danger", icon: "boss" };
       else if (atBottom) down = { key: "clear", label: "踏破する", sub: "最深部の階段", kind: "primary", icon: "star" };
       else {
         const next = G.floor + 1, last = dn.floors || 1;
@@ -4923,6 +4924,19 @@ function askDescend(cell) {
   }
   const dn = curDungeon();
   const atBottom = G.floor >= dn.floors;
+  // 踏破後に「まだ探索する」を選んで最深部の階段へ戻った: 主戦・踏破を繰り返さず、凱旋を促す
+  if (atBottom && G.bossDown) {
+    showChoice(
+      `「${dn.name}」は踏破済みだ。`,
+      [
+        { label: "街へ凱旋する", primary: true, fn: () => leaveDungeon({ outcome: "clear" }) },
+        { label: "まだ探索する", fn: () => { renderBoard(); } },
+      ],
+      ICONS.stairs,
+      { banner: "★ 踏破済み ★", accent: "#ffd84a", lines: ["下の「帰還」からも、いつでも凱旋できる。"] }
+    );
+    return;
+  }
   const boss = atBottom && !!dn.boss;        // 層末迷宮のみ最深部にボスがいる
   const clearNoBoss = atBottom && !dn.boss;  // 層途中の迷宮は最深部到達で踏破
   let label, banner, accent, prompt, lines = [];
@@ -7196,7 +7210,10 @@ function showDungeonClearedPopup({ idx, isStoryTarget }) {
   uiResults.celebrateClear({
     name: dn.name, layer: dn.layer, isStoryTarget, layerBoss: !!dn.boss,
     last: idx >= DUNGEONS.length - 1,
-    onShare: dn.boss ? () => shareProgress(`第${dn.layer}層の主を討ち、「${dn.name}」を踏破した！`) : null,
+    onStay: () => {
+      log("迷宮は踏破した。下の「帰還」から、いつでも街へ凱旋できる。", "win");
+      if (G.state === "board") renderBoard();
+    },
     onGo: () => {
       if (townBtn) townBtn.classList.add("hidden");
       if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
