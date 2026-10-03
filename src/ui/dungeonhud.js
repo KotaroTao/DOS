@@ -17,7 +17,7 @@ import { getPref, setPref, remember } from "./prefs.js";
 import { sceneTransition } from "./motion.js";
 import { MONSTERS, ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
 import { ELEMENTS, monsterTraits, isFloating } from "../dungeons/index.js";
-import { tagRow, traitTagKinds, affinityRow, MON_REVEAL, monKills, revealLock, silhouetteCanvas } from "./itemview.js";
+import { tagRow, traitTagKinds, affinityRow, MON_REVEAL, monKills, enemyReveal, enemyLabel, revealLock } from "./itemview.js";
 import { RARITIES } from "../rarity.js";
 import { SOUL_CLASSES, jobBust } from "../souls.js";
 import { WALKER as WALKER_ART } from "../walkerart.js";
@@ -120,8 +120,11 @@ function floorFacts() {
   const obj = game.dungeonObjective ? game.dungeonObjective() : null;
   const facts = [];
   if (g.eliteFloor) {
-    const ek = game.eliteKey ? MONSTERS[game.eliteKey()] : null;
-    facts.push({ tone: "bad", icon: ek || ICONS.trap, title: "強敵の気配", lines: ["この階には通常では遭遇しない強大な存在が潜む。", ek ? `強敵「${ek.name}」― 討てば希少な戦利品と魂を残しやすい。` : "討てば希少な戦利品を得られる。"] });
+    const ekey = game.eliteKey ? game.eliteKey() : null;
+    const ek = ekey ? MONSTERS[ekey] : null;
+    // 名前は一度倒すまで「？？？」(敵の情報の段階開示と同じ)
+    const ekName = ek ? (monKills(ekey) >= MON_REVEAL.name ? ek.name : "？？？") : "";
+    facts.push({ tone: "bad", icon: ek || ICONS.trap, title: "強敵の気配", lines: ["この階には通常では遭遇しない強大な存在が潜む。", ek ? `強敵「${ekName}」― 討てば希少な戦利品と魂を残しやすい。` : "討てば希少な戦利品を得られる。"] });
   }
   if (sp) facts.push({ tone: "gold", icon: ICONS[sp.icon] || ICONS.stairs, title: `特別な階「${sp.name}」`, accent: sp.accent, lines: sp.lines });
   if (mu) facts.push({ tone: "gold", icon: ICONS.stairs, title: `迷宮の異変「${mu.name}」`, accent: mu.accent, lines: [`危険 ― ${mu.risk}`, `見返り ― ${mu.gain}`] });
@@ -412,26 +415,25 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
 }
 
 // 敵の一枚: 討伐数・属性・残り体力・特徴とスキル (図鑑の記述)
-// 倒した数に応じて段階的に明かす (MON_REVEAL): 1体 = 姿と名前 / 5体 = 属性とHP / 10体 = 特徴・スキルと説明文
+// 姿は最初から見せ、ほかは倒した数に応じて段階的に明かす (MON_REVEAL / enemyReveal):
+// 1体 = 名前 / 5体 = 属性とHP / 10体 = 特徴・スキルと説明文
 export function peekEnemy(e) {
   if (!e) return null;
   const m = e.mon || MONSTERS[e.key] || {};
-  // 出来事だけの敵 (ev_*: 鏡の影など) は図鑑に載らないので、最初から全て見せる
-  const special = String(e.key || "").startsWith("ev_");
-  const kills = monKills(e.key);
-  const seen = special || kills >= MON_REVEAL.look, statsOpen = special || kills >= MON_REVEAL.stats, loreOpen = special || kills >= MON_REVEAL.lore;
-  const elem = statsOpen && e.element && ELEMENTS[e.element] && e.element !== "none" ? ELEMENTS[e.element] : null;
+  const rv = enemyReveal(e);
+  const { special, kills } = rv;
+  const elem = rv.stats && e.element && ELEMENTS[e.element] && e.element !== "none" ? ELEMENTS[e.element] : null;
   let traits = [];
-  if (loreOpen) { try { traits = monsterTraits(m) || []; } catch (er) { traits = []; } }
+  if (rv.lore) { try { traits = monsterTraits(m) || []; } catch (er) { traits = []; } }
   return sheet.open({
     kind: "info", banner: e.boss ? "迷宮の主" : (m.elite ? "強敵" : "敵の姿"), className: "dg-sheet dg-enemy",
     accent: e.boss || m.elite ? "#d4504e" : (elem ? elem.color : null),
-    art: m.art ? (seen ? m : silhouetteCanvas(m, 4)) : null, artScale: 4, float: isFloating(m, e.key),
-    title: seen ? e.name : "？？？",
+    art: m.art ? m : null, artScale: 4, float: isFloating(m, e.key),
+    title: enemyLabel(e),
     body: (b) => {
       if (!special) b.appendChild(el("div", "dg-en-kills", `討伐数 ${kills}体`));
-      if (!seen) b.appendChild(revealLock(MON_REVEAL.look, "姿・名前"));
-      if (statsOpen) {
+      if (!rv.name) b.appendChild(revealLock(MON_REVEAL.name, "名前"));
+      if (rv.stats) {
         // 名前の下は属性の印だけ (無属性なら出さない)
         const et = elem && tagRow(["el:" + e.element], "dg-en-elem");
         if (et) b.appendChild(et);
@@ -443,7 +445,7 @@ export function peekEnemy(e) {
         const aff = affinityRow(e.element);
         if (aff) b.appendChild(aff);
       } else b.appendChild(revealLock(MON_REVEAL.stats, "属性・HP"));
-      if (!loreOpen) { b.appendChild(revealLock(MON_REVEAL.lore, "特徴・スキル・説明文")); return; }
+      if (!rv.lore) { b.appendChild(revealLock(MON_REVEAL.lore, "特徴・スキル・説明文")); return; }
       if (traits.length) {
         b.appendChild(section("特徴・スキル"));
         const tl = el("div", "dg-traits");
