@@ -19,14 +19,6 @@
 
 // 原画待ちの魔物 (層 → id)。差し替えが済んだ id はここから外してよい (表示用の目録で、動作には影響しない)
 export const ART_WANTED = {
-  // 第2層「地下水路」(迷宮6-10): 通常20体 + 層ボス + 強敵2体
-  2: [
-    "bs_giantleech", "bs_sludgeooze", "bs_toxictoad", "bs_sewercrab", "bs_bloatfly",
-    "bs_mucusworm", "bs_razorshrimp", "bs_fogspecter", "bs_waterelemental", "bs_ratking", "bs_sewerdredger",
-    "bs_drownedcorpse", "bs_eelfiend", "bs_abysstentacle", "bs_brinewraith", "bs_anglerfiend",
-    "bs_waterhag", "bs_ironcarp", "d03_sahagin", "bs_deepsahagin",
-    "bs_sewerlord", "el_bloatqueen", "el_drownedpaladin",
-  ],
   // 第3層「廃坑」(迷宮11-15): 通常20体 + 層ボス + 強敵2体
   3: [
     "bs_chainedconvict", "bs_minebat", "bs_koboldsapper", "bs_timbermite", "bs_rockworm",

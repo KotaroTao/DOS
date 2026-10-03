@@ -95,59 +95,59 @@ const NEW_DEFS = [
     role: "summoner", summonKey: "bs_goblin", ability: "goldSteal", // 配下を盾に呼び、混乱に乗じて奪う
     desc: "屍から剥いだ鎧を勲章のように重ね着た、ゴブリンどもの長。配下を盾に、戦利品の山の上から戦を眺める。形勢が傾けば甲高い号令で新手のゴブリンを呼び寄せ、その隙に懐を狙う。" },
   // -- 第2層「地下水路」 (rank 3-4・水棲/不定形。第1層より明確に格上＝壁) --
-  { id: "bs_giantleech", name: "吸血大蛭", rank: 3, race: "amorph", element: "water", artKey: "giantleech",
+  { id: "bs_giantleech", name: "吸血大蛭", rank: 3, race: "amorph", element: "water", artKey: "hd_giantleech",
     lifesteal: 0.4, regen: 0.06, // 吸い付いて血を奪い、その分だけ膨れて回復する
     desc: "下水の澱みに潜む、人ほどもある肥えた蛭。一度吸い付けば離れず、奪った血の分だけ赤黒く膨れ上がっていく。斬りつけても、貪った命で見る間に傷を塞ぐ。" },
-  { id: "bs_sludgeooze", name: "汚泥の塊", rank: 3, race: "amorph", element: "water", artKey: "sludgeooze",
+  { id: "bs_sludgeooze", name: "汚泥の塊", rank: 3, race: "amorph", element: "water", artKey: "hd_sludgeooze",
     physResist: 0.85, ability: "poison", regen: 0.08, // 刃が沈んで効かず、毒の泥を浴びせ、崩れても寄り集まる
     desc: "幾年もの汚物が澱み、意思を持つに至った毒の泥。刃を突き立てても泥に沈んで手応えがなく、崩した先から寄り集まって元に戻る。触れたものは残らず腐臭の毒に冒される。" },
-  { id: "bs_toxictoad", name: "毒吐き大蛙", rank: 3, race: "aquatic", element: "water", artKey: "toxictoad",
+  { id: "bs_toxictoad", name: "毒吐き大蛙", rank: 3, race: "aquatic", element: "water", artKey: "hd_toxictoad",
     ability: "poison", magWeak: 1.4, // 膨れた毒腺から瘴気を吐く。火球には弱い
     desc: "暗渠の縁にうずくまる、毒腺で膨れ上がった大蛙。喉を膨らませて瘴気を吐き、近づく者を毒で痺れさせる。脂の乗った体は、火の魔法でよく焼ける。" },
-  { id: "bs_drownedcorpse", name: "水死体", rank: 4, race: "undead", element: "water", artKey: "drownedcorpse",
+  { id: "bs_drownedcorpse", name: "水死体", rank: 4, race: "undead", element: "water", artKey: "hd_drownedcorpse",
     ability: "paralyze", enrage: true, // 冷たい手で掴んで痺れさせ、傷つくほど暴れ狂う
     desc: "水路に沈み、膨れて青ざめた溺死者の群れ。冷たくふやけた手で生者を掴み、底へ引きずり込もうとする。痛めつけるほど、満たされぬ恨みで滅茶苦茶に暴れだす。" },
-  { id: "bs_eelfiend", name: "噛みつき大鰻", rank: 4, race: "aquatic", element: "water", artKey: "eelfiend",
+  { id: "bs_eelfiend", name: "噛みつき大鰻", rank: 4, race: "aquatic", element: "water", artKey: "hd_eelfiend",
     ability: "paralyze", swift: true, multistrike: 2, // 帯電した牙で素早く二度噛みつき痺れさせる
     desc: "暗渠を音もなく泳ぐ、腕ほどもある獰猛な鰻。帯電した牙で素早く二度三度と噛みつき、痺れて沈む獲物を悠々と呑み込む。水中では誰よりも速い。" },
-  { id: "bs_sewerlord", name: "水路の主", rank: 4, boss: true, race: "aquatic", element: "water", artKey: "sewerlord", soulClass: "priest",
+  { id: "bs_sewerlord", name: "水路の主", rank: 4, boss: true, race: "aquatic", element: "water", artKey: "hd_sewerlord", soulClass: "priest",
     role: "summoner", summonKey: "bs_sludgeooze", regen: 0.06, physResist: 0.8, // 汚泥を呼び、刃を沈め、澱みで傷を癒す
     desc: "地下水路のすべての澱みを統べる、巨大な両生の主。腹を空かせた汚泥を次々と呼び寄せ、生者を泥の海へ沈める。分厚い粘膜は刃をろくに通さず、濁り水に浸かるたび傷が塞がる。" },
-  { id: "bs_sewercrab", name: "鋏の大蟹", rank: 3, race: "aquatic", element: "water", artKey: "sewercrab",
+  { id: "bs_sewercrab", name: "鋏の大蟹", rank: 3, race: "aquatic", element: "water", artKey: "hd_sewercrab",
     physResist: 0.85, barrier: 2, // 鋼の甲羅が刃を弾き、数度は完全に受け止める
     desc: "汚水に肥え太った、大盾ほどもある巨大蟹。鋼を思わせる甲羅は並の刃をすべて弾き返し、両の鋏は鎧ごと人を断つ。横歩きで間合いを詰めてくる音は、暗渠によく響く。" },
-  { id: "bs_abysstentacle", name: "深淵の触手", rank: 4, race: "aquatic", element: "water", artKey: "abysstentacle",
+  { id: "bs_abysstentacle", name: "深淵の触手", rank: 4, race: "aquatic", element: "water", artKey: "hd_abysstentacle",
     ability: "paralyze", multistrike: 2, // 絡めて痺れさせ、何度も締め上げる
     desc: "排水路の底知れぬ闇から伸びる、吸盤だらけの太い腕。獲物を絡め取って痺れさせ、二度三度と締め上げる。本体がどれほどの大きさなのか、生きて見た者はいない。" },
-  { id: "bs_brinewraith", name: "塩水の亡霊", rank: 4, race: "specter", element: "water", artKey: "brinewraith",
+  { id: "bs_brinewraith", name: "塩水の亡霊", rank: 4, race: "specter", element: "water", artKey: "hd_brinewraith",
     ability: "drain", lifesteal: 0.3, // 溺死した恨みで命を吸い、己の存在を保つ
     desc: "下水に流れ着いて溺れ死んだ水夫たちの霊。塩に蝕まれた半透明の体で生者に取り憑き、その温もりと命を吸って束の間この世に留まる。吸った分だけ、輪郭が濃くなる。" },
-  { id: "bs_anglerfiend", name: "提灯鮟鱇", rank: 4, race: "aquatic", element: "water", artKey: "anglerfiend",
+  { id: "bs_anglerfiend", name: "提灯鮟鱇", rank: 4, race: "aquatic", element: "water", artKey: "hd_anglerfiend",
     ability: "paralyze", magWeak: 1.3, // 誘いの光で痺れさせる。脂の体は火に弱い
     desc: "暗渠の闇を漂う、巨大な口を持つ醜い魚。額から垂らした青白い誘い灯で獲物を惑わせ、痺れたところを丸呑みにする。脂の乗った体は、炎の魔法でよく焼ける。" },
-  { id: "bs_bloatfly", name: "腐肉蠅の群れ", rank: 3, race: "insect", element: "dark", artKey: "bloatfly",
+  { id: "bs_bloatfly", name: "腐肉蠅の群れ", rank: 3, race: "insect", element: "dark", artKey: "hd_bloatfly",
     pack: true, ability: "poison", evasive: true, // 群れで湧き、毒をまき散らし、叩こうにも素早く飛び回る
     desc: "汚水と腐肉に湧いた、握り拳ほどもある肥えた羽虫の群れ。羽音とともに毒の鱗粉をまき散らし、叩き落とそうにも素早く飛び回ってかわす。一匹潰せば、十匹が湧く。" },
-  { id: "bs_waterhag", name: "水路の妖婆", rank: 4, race: "specter", element: "water", artKey: "waterhag", soulClass: "hexer",
+  { id: "bs_waterhag", name: "水路の妖婆", rank: 4, race: "specter", element: "water", artKey: "hd_waterhag", soulClass: "hexer",
     ability: "weaken", regen: 0.07, // 呪詛で力を奪い、藻に塗れた身を濁り水で繕う
     desc: "水路に身を投げ、藻に塗れて妖と化した老婆の霊。濁った目で睨み、しわがれた呪詛を浴びせて生者の力を奪う。濁り水に浸かるたび、崩れた体をつくろい直す。" },
-  { id: "bs_mucusworm", name: "粘液の長虫", rank: 3, race: "amorph", element: "water", artKey: "mucusworm",
+  { id: "bs_mucusworm", name: "粘液の長虫", rank: 3, race: "amorph", element: "water", artKey: "hd_mucusworm",
     ability: "poison", physResist: 0.8, regen: 0.06, // 毒粘液をまとい、刃をすべらせ、ちぎれても繋がる
     desc: "暗渠の壁を這う、半透明の巨大な環形虫。全身を覆う毒の粘液が刃をぬるりとすべらせ、断ち切ってもすぐに繋がり直す。触れた皮膚は、たちまち爛れる。" },
-  { id: "bs_razorshrimp", name: "鎌首の大蝦", rank: 3, race: "aquatic", element: "water", artKey: "razorshrimp",
+  { id: "bs_razorshrimp", name: "鎌首の大蝦", rank: 3, race: "aquatic", element: "water", artKey: "hd_razorshrimp",
     swift: true, multistrike: 2, // 鎌のような前肢で目にも留まらぬ連打を放つ
     desc: "水底に潜み、鎌のような前肢を一閃させる大蝦。その打撃は水を割って轟き、甲羅すら砕く。目にも留まらぬ速さで二度三度と打ち込み、獲物が気づく前に砕いている。" },
-  { id: "bs_ironcarp", name: "鋼鱗の大鯉", rank: 4, race: "aquatic", element: "water", artKey: "ironcarp",
+  { id: "bs_ironcarp", name: "鋼鱗の大鯉", rank: 4, race: "aquatic", element: "water", artKey: "hd_ironcarp",
     physResist: 0.9, barrier: 2, magWeak: 1.3, // 鋼の鱗が刃を弾くが、魔法の熱には脆い
     desc: "幾百年を生きて鋼のごとき鱗をまとった、ぬしと呼ばれる大鯉。並の刃は鱗に弾かれ傷一つ通らない。だが冷たい体は魔法の熱に脆く、火や雷を浴びれば一たまりもない。" },
-  { id: "bs_fogspecter", name: "汚水の靄", rank: 3, race: "specter", element: "water", artKey: "fogspecter",
+  { id: "bs_fogspecter", name: "汚水の靄", rank: 3, race: "specter", element: "water", artKey: "hd_fogspecter",
     ability: "paralyze", evasive: true, magWeak: 1.5, // 実体なく刃をすり抜け、瘴気で痺れさせる。魔には脆い
     desc: "汚水から立ちのぼる瘴気が、ぼんやりと人の形をなした霊。刃は霧をすり抜けてしまい、まとわりつく毒気に触れた者は痺れて動けなくなる。実体が薄いぶん、魔の力には抗えない。" },
-  // 第2層の追加 (浅い層の水棲が第1層より弱かった穴を埋める rank3。絵は原画待ちの仮の原型 → monart.js で差し替え)
-  { id: "bs_ratking", name: "溝鼠の王", rank: 3, race: "beast", element: "none", artKey: "rat",
+  // 第2層の追加 (浅い層の水棲が第1層より弱かった穴を埋める rank3。絵は hd_* の固有原型)
+  { id: "bs_ratking", name: "溝鼠の王", rank: 3, race: "beast", element: "none", artKey: "hd_ratking",
     ability: "poison", multistrike: 3, // 尾の絡まった十数匹が四方から噛みつき、疫病を移す
     desc: "暗渠の奥で尾が絡まり合い、離れられなくなった十数匹の溝鼠。一つの塊となって転がるように這い寄り、四方の口で同時に噛みつく。どの歯にも、下水の疫病が宿っている。" },
-  { id: "bs_sewerdredger", name: "溝浚いの骸", rank: 3, race: "undead", element: "water", artKey: "zombie",
+  { id: "bs_sewerdredger", name: "溝浚いの骸", rank: 3, race: "undead", element: "water", artKey: "hd_sewerdredger",
     ability: "paralyze", endure: true, // 鉤竿で引き倒して痺れさせ、崩れかけても仕事をやめない
     desc: "水路の泥を浚い続けて死んだ人夫の骸。いまも錆びた鉤竿を手放さず、生者を引っ掛けては汚泥へ引き倒す。骨が砕けかけても、日暮れの鐘が鳴るまで持ち場を離れない。" },
   // -- 第3層「廃坑」 (rank 4-5・土/採掘。第2層より格上の壁。深部に rank6 の旧坑の主) --
@@ -1056,7 +1056,7 @@ const NEW_DEFS = [
     palette: tint(ARTS.spider.palette, "#2a6a2a", 0.45),
     ability: "paralyze", evasive: true, // 毒牙で麻痺させてから巻く + 糸を伝って身をかわす
     desc: "砦の天井に巣を張り、人が通るのをじっと待ち続ける大蜘蛛。毒の牙で獲物を麻痺させてから、蜘蛛糸で巻いて食料庫へ運ぶ。糸を伝って跳ね、振るう刃を軽々とかわす。" },
-  { id: "bs_waterelemental", name: "水の精霊", rank: 3, race: "elemental", element: "water", artKey: "waterelemental",
+  { id: "bs_waterelemental", name: "水の精霊", rank: 3, race: "elemental", element: "water", artKey: "hd_waterelemental",
     physResist: 0.85, regen: 0.1, // 斬れば水に戻り、水は再び形を結ぶ
     desc: "砦跡の地下水脈に宿った水の精霊。人の形を模して歩くが、斬れば水に戻り、水に戻れば再び形を結ぶ。刃も槍もその身を通り抜けるばかりで、崩れた形は瞬く間に流れ集まって元に戻る。" },
   { id: "bs_marshgolem", name: "泥のゴーレム", rank: 3, race: "construct", element: "earth", artKey: "marshgolem",
@@ -1075,7 +1075,7 @@ const NEW_DEFS = [
   { id: "bs_stonegorgon", name: "石化の眼", rank: 4, race: "specter", element: "earth", artKey: "gorgon",
     ability: "stone", // 直視した者を石へと変える眼
     desc: "ゴルゴンの血を引く蛇髪の霊。その眼を直視した者の皮膚が石灰色に固まり始め、完全に石化するまで意識だけが残るという。" },
-  { id: "bs_deepsahagin", name: "深海魚人", rank: 4, race: "aquatic", element: "water", artKey: "deepsahagin",
+  { id: "bs_deepsahagin", name: "深海魚人", rank: 4, race: "aquatic", element: "water", artKey: "hd_deepsahagin",
     swift: true, ability: "paralyze", // 水流で先んじて感知し、もりで突いて痺れさせる
     desc: "神殿の地下水脈の最深部に棲む魚人の変種。目が退化し、代わりに僅かな水流の乱れで獲物の位置を先に感知して襲い、毒もりで突いて痺れさせる。" },
   { id: "bs_bloodorc", name: "血狂いのオーク", rank: 4, race: "humanoid", element: "fire", artKey: "orc", soulClass: "fighter",
@@ -1830,11 +1830,11 @@ if (ELITE_ORDER.length !== 30) throw new Error("bestiary: ELITE_ORDER must have 
 // 作り込み済みの層はここで層ごとの強敵を持ち、game.js eliteKey が優先して使う (階ごとに順に入れ替わる)。
 // 強敵の rank は層ボスと同格 (層+2)。並びは追記のみ。
 const LAYER_ELITE_DEFS = [
-  // 第2層「地下水路」 (絵は原画待ちの仮の原型 → monart.js で差し替え)
-  { id: "el_bloatqueen", name: "孕み蛭の女王", elite: true, rank: 4, race: "amorph", element: "water", artKey: "leechswarm", soulClass: "hexer",
+  // 第2層「地下水路」 (絵は hd_* の固有原型)
+  { id: "el_bloatqueen", name: "孕み蛭の女王", elite: true, rank: 4, race: "amorph", element: "water", artKey: "hd_bloatqueen", soulClass: "hexer",
     role: "summoner", summonKey: "bs_giantleech", lifesteal: 0.3, regen: 0.05, // 腹の子を産み落とし、吸った血で膨れ続ける
     desc: "貯水槽の底を寝床にする、牛ほどもある雌の大蛭。腹の中で蠢く幾百の子を次々と産み落とし、吸い付いた獲物の血で膨れ上がっては傷を塞ぐ。水路の蛭は、すべてこの腹から出た。" },
-  { id: "el_drownedpaladin", name: "沈みし聖騎士", elite: true, rank: 4, race: "undead", element: "water", artKey: "ironknight", soulClass: "knight",
+  { id: "el_drownedpaladin", name: "沈みし聖騎士", elite: true, rank: 4, race: "undead", element: "water", artKey: "hd_drownedpaladin", soulClass: "knight",
     physResist: 0.8, endure: true, enrage: true, // 水を吸った重鎧が刃を阻み、倒れても立ち上がり、手負いで荒れ狂う
     desc: "水路の浄めに遣わされ、そのまま戻らなかった聖騎士。水を吸って錆びた重鎧は刃をろくに通さず、膝をついても祈りの残響に引き起こされる。兜の隙間から、黒い水が絶えず滴っている。" },
   // 第3層「廃坑」 (絵は原画待ちの仮の原型 → monart.js で差し替え)
