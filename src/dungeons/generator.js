@@ -169,12 +169,22 @@ function dungeonFloors(n) {
 }
 
 // 迷宮ごとの難易度の手直し (層の仕上げで、テスト記録の実測とプレイの手応えから決める)。
-//   enemyMul  = 雑魚・主・ミミック・出来事の魔物の HP/ATK/VIT (と戦果) に掛かる倍率 (enemyScale へ乗る)
-//   bossHpMul = 主の HP だけの倍率 (game.js が主を出す時に掛ける。攻撃力は enemyMul のみ)
+// 強さだけを変え、戦果 (金貨・✦Soul) は元の曲線のまま (game.js startBattle が打ち消す)。奈落には掛けない。
+//   enemyMul  = 雑魚 (精鋭・ミミック・出来事の魔物を含む) の HP/ATK/VIT 倍率 (game.js enemyScale)
+//   deepMul   = 深い階 (階 > 全階数/2 = 深階プールの階) の雑魚にさらに掛ける倍率
+//   bossMul   = 主の HP/ATK/VIT 倍率 (主には enemyMul/deepMul は掛からない)
+//   bossHpMul = 主の HP だけの倍率
+// 第2層は、第1層の実測 (D1-D5) に合わせた模擬戦で「1戦の被ダメ (隊HP比)」が D6 約9.5% → D10 約14% と
+// なめらかに上がるよう決めた (素のままだと D6/D7 が横ばい → D8 深階からランク4 が混じって急に跳ね、D10 は約3倍重かった)
 const DUNGEON_TUNE = {
   // D5 (第1層の層末): 雑魚が D3/D4 と同じランク2・同じ強さで、町で育てた隊 (Lv16前後) には易しかった。
   // 実測 2026-10: 通常戦の被ダメは1戦あたり隊HPの約9% (D4 は約11%)、主は2ラウンドで倒れた
-  5: { enemyMul: 1.15, bossHpMul: 2 },
+  5: { enemyMul: 1.15, bossMul: 1.15, bossHpMul: 2 },
+  6: { enemyMul: 0.92 },
+  7: { enemyMul: 1.10 },                  // D6 と同じランク3の顔ぶれなので、一段強く
+  8: { enemyMul: 1.15, deepMul: 0.71 },   // 深階でランク4が混じる段差を、浅階の顔ぶれの強さに揃える
+  9: { enemyMul: 0.80 },                  // 全てランク4
+  10: { enemyMul: 0.82, deepMul: 0.80 },  // 全6階で深階ほど敵が多い。主 (層の壁) は素のまま
 };
 
 export function generateDungeon(n) {
@@ -212,9 +222,8 @@ export function generateDungeon(n) {
     // 暫定プールの層は ceil(layer/2) (通常敵と同帯) でボス倍率分だけ強い主にする。
     bossRank: isEnd ? Math.min(10, LAYER_POOLS[layer] ? layer + 2 : Math.ceil(layer / 2)) : 0,
     bossScale: 1.0,
-    bossHpMul: (DUNGEON_TUNE[n] && DUNGEON_TUNE[n].bossHpMul) || 1,
-    // 全100迷宮で滑らかに上昇 0.7→2.1 (DUNGEON_TUNE の enemyMul で迷宮ごとに手直し)
-    enemyScale: Math.round((0.7 + (n - 1) / 99 * 1.4) * ((DUNGEON_TUNE[n] && DUNGEON_TUNE[n].enemyMul) || 1) * 100) / 100,
+    enemyScale: Math.round((0.7 + (n - 1) / 99 * 1.4) * 100) / 100, // 全100迷宮で滑らかに上昇 0.7→2.1
+    tune: DUNGEON_TUNE[n] ? { ...DUNGEON_TUNE[n] } : null,          // 迷宮ごとの手直し (上の DUNGEON_TUNE)
     trapRate: Math.min(0.25, 0.04 + n * 0.002),
     poisonRate: n > 10 ? Math.min(0.10, 0.04 + n * 0.0006) : 0,
     warmChance: Math.min(0.7, 0.38 + n * 0.0032),

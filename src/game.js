@@ -1121,9 +1121,20 @@ function revealByCartography() {
 }
 
 // 迷宮内の階に応じた敵の強さ倍率 (迷宮ベース × 階で微増 × 特別階 × 迷宮の異変)
-function enemyScale() {
+function enemyScale() { return baseEnemyScale() * tuneMul(); }
+// 手直し (DUNGEON_TUNE) を除いた強さ: 迷宮の素の倍率 × 階 × 特別階/異変。主はこれに bossMul を掛ける
+function baseEnemyScale() {
   const cfg = activeCfg();
   return (cfg.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
+}
+// 迷宮ごとの手直し (generator.js DUNGEON_TUNE) のうち、いまの階の雑魚に掛かる倍率。奈落では掛けない
+function tuneMul() {
+  if (abyssActive()) return 1;
+  const cfg = activeCfg();
+  const t = cfg.tune;
+  if (!t) return 1;
+  const deep = G.floor > (cfg.floors || 3) / 2; // board.js の深階プールと同じ切り替え
+  return (t.enemyMul || 1) * (deep ? (t.deepMul || 1) : 1);
 }
 
 // ミミックの強さの基準: この階に出る雑魚の最上位ランクと、雑魚と同じ強さ補正。
@@ -5648,9 +5659,10 @@ function askDescend(cell) {
       { label, danger: boss, primary: !boss, fn: () => {
         if (boss) {
           log("迷宮の主が立ちはだかる！", "dmg");
-          const foes = spawnBossEnemies(dn.boss, dn.bossScale * enemyScale(), dn.bossRank);
-          // 迷宮ごとの手直し (generator.js DUNGEON_TUNE): 主の HP だけを伸ばして長く立ちはだからせる
-          if ((dn.bossHpMul || 1) !== 1) for (const e of foes) e.maxhp = e.hp = Math.max(1, Math.round(e.maxhp * dn.bossHpMul));
+          // 迷宮ごとの手直し (generator.js DUNGEON_TUNE): 主は雑魚の倍率ではなく bossMul、HP はさらに bossHpMul
+          const tn = dn.tune || {};
+          const foes = spawnBossEnemies(dn.boss, dn.bossScale * (tn.bossMul || 1) * baseEnemyScale(), dn.bossRank);
+          if ((tn.bossHpMul || 1) !== 1) for (const e of foes) e.maxhp = e.hp = Math.max(1, Math.round(e.maxhp * tn.bossHpMul));
           startBattle(foes, cell);
         }
         else if (clearNoBoss) clearDungeonNoBoss();
@@ -6280,6 +6292,15 @@ function startBattle(enemies, cell) {
   }
   // 迷宮の異変 (血の満潮など): 敵の強さ倍率は HP/ATK/VIT に加えて AGI にも掛ける
   // (enemyScale は HP/ATK/VIT のみ。召喚で呼ばれた仲間も _agiMul を引き継ぐ)
+  // 迷宮ごとの手直し (DUNGEON_TUNE) は強さだけ: 倍率で増減した戦果 (金貨・✦Soul) を元の曲線へ戻す
+  const tn = inDungeon() && !abyssActive() ? activeCfg().tune : null;
+  if (tn) {
+    const tm = tuneMul();
+    for (const e of enemies) {
+      const k = e.boss ? (tn.bossMul || 1) : tm;
+      if (k !== 1) { e.soul = Math.round((e.soul || 0) / k); e.gold = Math.round((e.gold || 0) / k); }
+    }
+  }
   const mutEm = (mutDef() && mutDef().enemyMul) || 1;
   if (mutEm !== 1) for (const e of enemies) { e._agiMul = mutEm; e.agi = Math.max(1, Math.round(e.agi * mutEm)); }
   G.battleCell = cell;
