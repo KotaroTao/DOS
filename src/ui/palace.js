@@ -559,7 +559,7 @@ export function codexJobSheet(key, rank, heading) {
   body.appendChild(infoBlock("技", rows.length ? rows : [pairRow("—", null, { dim: true })]));
   return sheet.open({
     kind: "info", banner: `ランク${rank}`, accent: color, art: jobSprite(key, rank), artScale: 12,
-    title: jobRankName(key, rank), titleColor: color, body, className: "pl-detail-sheet",
+    title: jobRankName(key, rank), titleColor: color, body, className: "pl-detail-sheet", paged: false, // 職業詳細は縦スクロールで1ページに
     footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
   });
 }
