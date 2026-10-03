@@ -8782,27 +8782,29 @@ function applyRumorToBoard(board) {
   log(`噂どおりだ… (${r.speaker}の話)`, "sys");
 }
 
-// ---- 酒場の納品依頼: 求められた品を納めると、その品の格 (R1-20) に応じて職業の魂を授かる ----
+// ---- 酒場の納品依頼: 求められた品を納めると、その品のレア度 (c/uc/r/sr/lr) に応じて職業の魂を授かる ----
 // 対象は「今 到達している深さまでに出現しうる品」からランダム3件。LR/専用装備は除外
 // (LOOT_IDS が exclusive を弾く)。常時最大3件で、迷宮に潜るたびに入れ替わる (rollDeliveryQuests)。
-const DELIVERY_BANDS = [
-  // max(R20) : [ [rarity, 体数, 確率], … ] (確率は合計1.0)
-  { max: 5,  rows: [["common", 2, 0.70], ["rare", 1, 0.20], ["epic", 1, 0.09], ["legend", 1, 0.01]] },
-  { max: 10, rows: [["common", 3, 0.60], ["rare", 2, 0.25], ["epic", 1, 0.13], ["legend", 1, 0.02]] },
-  { max: 15, rows: [["common", 4, 0.45], ["rare", 2, 0.30], ["epic", 1, 0.20], ["legend", 1, 0.05]] },
-  { max: 20, rows: [["common", 5, 0.40], ["rare", 3, 0.30], ["epic", 2, 0.20], ["legend", 1, 0.10]] },
-];
-function deliveryBand(r20) { return DELIVERY_BANDS.find((b) => r20 <= b.max) || DELIVERY_BANDS[DELIVERY_BANDS.length - 1]; }
+const DELIVERY_REWARDS = {
+  // レア度 : [ [魂のレア度, 体数, 確率], … ] (確率は合計1.0)
+  c:  [["common", 2, 0.70], ["rare", 1, 0.20], ["epic", 1, 0.09], ["legend", 1, 0.01]],
+  uc: [["common", 3, 0.60], ["rare", 2, 0.25], ["epic", 1, 0.13], ["legend", 1, 0.02]],
+  r:  [["common", 4, 0.45], ["rare", 2, 0.30], ["epic", 1, 0.20], ["legend", 1, 0.05]],
+  sr: [["common", 5, 0.40], ["rare", 3, 0.30], ["epic", 2, 0.20], ["legend", 1, 0.10]],
+  lr: [["rare", 5, 0.40], ["epic", 3, 0.40], ["legend", 1, 0.20]],
+};
+function deliveryRewardRows(it) { return DELIVERY_REWARDS[rarityKey(it)] || DELIVERY_REWARDS.c; }
 // 報酬を1つ抽選: [rarity, 体数]
-function rollDeliveryReward(r20) {
+function rollDeliveryReward(it) {
+  const rows = deliveryRewardRows(it);
   let r = Math.random();
-  for (const [rarity, count, p] of deliveryBand(r20).rows) { if ((r -= p) < 0) return [rarity, count]; }
-  const last = deliveryBand(r20).rows[deliveryBand(r20).rows.length - 1];
+  for (const [rarity, count, p] of rows) { if ((r -= p) < 0) return [rarity, count]; }
+  const last = rows[rows.length - 1];
   return [last[0], last[1]];
 }
 // 報酬テーブルの表示文
-function deliveryRewardDesc(r20) {
-  return deliveryBand(r20).rows.map(([rar, c, p]) => `${RARITY_LABEL[rar]}魂×${c} (${Math.round(p * 100)}%)`).join(" / ");
+function deliveryRewardDesc(it) {
+  return deliveryRewardRows(it).map(([rar, c, p]) => `${RARITY_LABEL[rar]}魂×${c} (${Math.round(p * 100)}%)`).join(" / ");
 }
 // 指定レアリティの職業をランダムに選ぶ
 function rollClassOfRarity(rarity) {
@@ -8862,7 +8864,7 @@ function deliverQuest(q, opts = {}) {
     codexSeeItem(q.itemId);
     log(`${it.name} を商会で買い求めた (💰${price})。`, "sys");
   } else { log("納品できる品が手元にない。", "sys"); SFX.ng(); return; }
-  const [rarity, count] = rollDeliveryReward(it.r20 || 1);
+  const [rarity, count] = rollDeliveryReward(it);
   const got = [];
   for (let k = 0; k < count; k++) { const ck = rollClassOfRarity(rarity); addSoulInstance(ck); got.push(ck); }
   recalcAllDolls();
