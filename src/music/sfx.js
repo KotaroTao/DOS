@@ -233,6 +233,18 @@ export const SFX_DEFS = {
     mixInto(x, whoosh(r, 0.3, 400, 2200, 600, 1.3, 0.4), len(0.12), 0.6);
     return mono(x);
   } },
+  // 奇襲: 背後から迫る風切り → 腹に響く衝撃と、三全音でぶつかる金属の一撃
+  ambush: { vars: 1, vol: 0.62, rev: 0.3, gen(r) {
+    const n = len(1.3), x = new Float32Array(n);
+    mixInto(x, whoosh(r, 0.3, 300, 3400, 900, 1.8, 0.85), 0, 0.55);
+    const at = len(0.26);
+    mixInto(x, sweep(0.6, (t) => 46 + 85 * Math.exp(-t / 0.025), 0.35), at, 1.0);
+    const thud = burst(r, 0.2, 0.11); lp1(thud, 520, SR); mixInto(x, thud, at, 0.9);
+    const clang = burst(r, 0.03, 0.012); applyBq(clang, "bp", 3100, 2.2, SR); mixInto(x, clang, at, 0.45);
+    mixInto(x, modal(SR, 1.0, [[466.16, 1, 0.55], [659.26, 0.85, 0.5], [932.33, 0.3, 0.3], [1318.5, 0.22, 0.2], [2510, 0.1, 0.08]]), at, 0.24);
+    softClip(x, 1.3);
+    return mono(x);
+  } },
   appraise1: { vars: 1, vol: 0.5, rev: 0.4, gen(r) { return appraiseTick(r, 1); } },
   appraise2: { vars: 1, vol: 0.52, rev: 0.4, gen(r) { return appraiseTick(r, 2); } },
   appraise3: { vars: 1, vol: 0.55, rev: 0.42, gen(r) { return appraiseTick(r, 3); } },

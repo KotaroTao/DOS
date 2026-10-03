@@ -215,6 +215,7 @@ export const SFX = {
   die() { sfx("die", { jit: 0.04 }); },
   ng() { sfx("ng", { jit: 0.02 }); },
   flee() { sfx("flee", { jit: 0.05 }); },
+  ambush() { sfx("ambush", { jit: 0.02 }); },
   // 鑑定: 「．」の段 (1-3) ごとに高まる鼓動と水晶の響き → 成功 (解ける) / 失敗 (曇る)
   appraise(step = 1) { sfx("appraise" + Math.max(1, Math.min(3, step | 0)), { jit: 0 }); },
   appraiseOk() { sfx("appraiseOk", { jit: 0 }); },

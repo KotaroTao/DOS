@@ -6217,7 +6217,12 @@ function startBattle(enemies, cell) {
   G._evOpening = null;
   evBattleStart(enemies, isBoss);
   if (opening === "preempt") { log("先手を取った！", "win"); showToast("⚡ 先制攻撃！"); }
-  else if (opening === "ambush") { log("奇襲された！", "dmg"); showToast("⚠ 奇襲された！"); buzz([0, 60, 40, 60]); }
+  else if (opening === "ambush") {
+    // 奇襲: 紅い閃光・揺れ・専用の効果音で知らせ、開幕の帯 (drawAmbushIntro) と1ターン目の札で敵の先手を示す
+    log("奇襲された！ 敵が先に動く！", "dmg");
+    showToast("⚠ 奇襲された！ 敵の先手", { tone: "bad" });
+    SFX.ambush(); flashScreen("#9a0a06"); shakeScreen(true); buzz([0, 90, 50, 90, 50, 160]);
+  }
   // ランク帯ごとの戦闘テーマ (ボス・強敵は専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
   playBgm(battleBgm(isBoss || isElite));
   G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot") });
@@ -6279,6 +6284,8 @@ function renderCombatCanvas() {
     ? [{ list: backRow, y: VH * 0.31, back: true }, { list: frontRow, y: VH * 0.5, back: false }]
     : [{ list: frontRow, y: VH * 0.41, back: false }];
   const intro = G.battleIntro && G.battleIntro.battle === b ? G.battleIntro : null;
+  // 奇襲の1ターン目は、魔物の下に紅い縁と「敵の先手」の札を敷く (名札が重なれば名札を優先)
+  if (!intro && b.opening === "ambush" && b._roundNo <= 1 && !b.result) drawAmbushTag(now);
   // タップで狙える敵 = 攻撃が届く敵のみ (対象選択中は候補、入力中は手番キャラの武器射程)
   const targetable = new Set(
     G.animating ? []
@@ -6580,6 +6587,7 @@ function drawBattleIntro(intro, now) {
     vctx.fillRect(0, 0, W, H);
     vctx.restore();
   }
+  if (intro.ambush) { drawAmbushIntro(intro, t); return; }
   if (!intro.boss) return;
   const a = Math.min(1, Math.max(0, (t - 120) / 240)) * Math.min(1, Math.max(0, (intro.dur - t) / 340));
   if (a <= 0) return;
@@ -6642,6 +6650,108 @@ function drawBattleIntro(intro, now) {
   vctx.restore();
 }
 
+// 奇襲の開幕: 紅い縁が脈打ち、三筋の爪痕が戦場を裂いて「奇 襲」の帯を叩きつける
+function drawAmbushIntro(intro, t) {
+  const W = VW, H = VH;
+  const cl = (v) => Math.max(0, Math.min(1, v));
+  const a = cl((t - 40) / 160) * cl((intro.dur - t) / 320);
+  if (a <= 0) return;
+  vctx.save();
+  // 紅い縁 (心拍のように脈打つ)
+  const beat = 0.65 + 0.35 * Math.abs(Math.sin(t * 0.0068));
+  const vg = vctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.22, W / 2, H / 2, Math.max(W, H) * 0.72);
+  vg.addColorStop(0, "rgba(150,0,0,0)");
+  vg.addColorStop(1, `rgba(170,10,6,${0.6 * a * beat})`);
+  vctx.fillStyle = vg;
+  vctx.fillRect(0, 0, W, H);
+  // 帯
+  const bh = 60, by = H * 0.74 - bh / 2, cy = by + bh / 2;
+  vctx.globalAlpha = a;
+  const g = vctx.createLinearGradient(0, 0, W, 0);
+  g.addColorStop(0, "rgba(20,2,2,0)");
+  g.addColorStop(0.16, "rgba(34,4,4,0.93)");
+  g.addColorStop(0.84, "rgba(34,4,4,0.93)");
+  g.addColorStop(1, "rgba(20,2,2,0)");
+  vctx.fillStyle = g;
+  vctx.fillRect(0, by, W, bh);
+  // 紅い罫 (中央から左右へ伸びる)
+  const ease = 1 - Math.pow(1 - cl((t - 40) / 300), 3);
+  const lw = W * 0.38 * ease;
+  vctx.fillStyle = "#e0503c";
+  vctx.fillRect(W / 2 - lw, by + 3, lw * 2, 1);
+  vctx.fillRect(W / 2 - lw, by + bh - 4, lw * 2, 1);
+  // 爪痕: 文字の右で三筋の裂け目が右上から左下へ走る
+  vctx.lineCap = "round";
+  for (let k = 0; k < 3; k++) {
+    const q = cl((t - 80 - k * 60) / 150);
+    if (q <= 0) continue;
+    const x0 = W / 2 + 112 + k * 18, y0 = cy - 40;
+    const x1 = W / 2 + 62 + k * 18, y1 = cy + 40;
+    const xe = x0 + (x1 - x0) * q, ye = y0 + (y1 - y0) * q;
+    vctx.beginPath(); vctx.moveTo(x0, y0); vctx.lineTo(xe, ye);
+    vctx.shadowColor = "rgba(255,40,20,0.9)"; vctx.shadowBlur = 10;
+    vctx.strokeStyle = "rgba(255,60,30,0.6)"; vctx.lineWidth = 6; vctx.stroke();
+    vctx.shadowBlur = 0;
+    vctx.strokeStyle = "rgba(255,232,214,0.92)"; vctx.lineWidth = 1.6; vctx.stroke();
+  }
+  // 文字: 小さな前書き + 叩きつけるように縮む「奇 襲」
+  vctx.textAlign = "center";
+  vctx.textBaseline = "alphabetic";
+  vctx.font = `800 10px ${CANVAS_SERIF}`;
+  if ("letterSpacing" in vctx) vctx.letterSpacing = "4px";
+  vctx.fillStyle = "#ffb4a4";
+  vctx.shadowColor = "rgba(255,40,20,0.8)"; vctx.shadowBlur = 8;
+  vctx.fillText("背後を取られた", W / 2, by + 17);
+  if ("letterSpacing" in vctx) vctx.letterSpacing = "2px";
+  const slam = 1 - Math.pow(1 - cl((t - 60) / 220), 3);
+  const sc = 1.45 - 0.45 * slam;
+  vctx.save();
+  vctx.translate(W / 2, by + 51);
+  vctx.scale(sc, sc);
+  vctx.globalAlpha = a * (0.3 + 0.7 * slam);
+  vctx.font = `800 30px ${CANVAS_SERIF}`;
+  vctx.shadowBlur = 0;
+  vctx.lineJoin = "round";
+  vctx.lineWidth = 5;
+  vctx.strokeStyle = "#000";
+  vctx.strokeText("奇 襲", 0, 0);
+  const tg = vctx.createLinearGradient(0, -22, 0, 2);
+  tg.addColorStop(0, "#fff4ec"); tg.addColorStop(0.5, "#ff8a6a"); tg.addColorStop(1, "#d0301c");
+  vctx.fillStyle = tg;
+  vctx.shadowColor = "rgba(255,50,30,0.7)"; vctx.shadowBlur = 14;
+  vctx.fillText("奇 襲", 0, 0);
+  vctx.restore();
+  vctx.restore();
+}
+
+// 奇襲の1ターン目 (敵だけが動く間): 戦場の縁を薄く紅く脈打たせ、上端に「奇襲 ― 敵の先手」の札を残す
+function drawAmbushTag(now) {
+  const W = VW, H = VH;
+  const pulse = REDUCED_MOTION ? 1 : 0.55 + 0.45 * Math.abs(Math.sin(now * 0.004));
+  vctx.save();
+  const vg = vctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
+  vg.addColorStop(0, "rgba(150,0,0,0)");
+  vg.addColorStop(1, `rgba(160,10,6,${0.28 * pulse})`);
+  vctx.fillStyle = vg;
+  vctx.fillRect(0, 0, W, H);
+  const label = "奇襲 ― 敵の先手";
+  vctx.font = `800 11px ${CANVAS_SERIF}`;
+  if ("letterSpacing" in vctx) vctx.letterSpacing = "1px";
+  const pw = Math.ceil(vctx.measureText(label).width) + 22, ph = 19;
+  const px = Math.round((W - pw) / 2), py = 5;
+  vctx.fillStyle = "rgba(34,4,4,0.86)";
+  vctx.fillRect(px, py, pw, ph);
+  vctx.strokeStyle = `rgba(228,85,79,${0.5 + 0.5 * pulse})`;
+  vctx.lineWidth = 1;
+  vctx.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1);
+  vctx.textAlign = "center";
+  vctx.textBaseline = "middle";
+  vctx.fillStyle = "#ffc4b8";
+  vctx.shadowColor = "rgba(255,40,20,0.7)"; vctx.shadowBlur = 6;
+  vctx.fillText(label, W / 2, py + ph / 2 + 1);
+  vctx.restore();
+}
+
 // 戦闘開始の演出を流してから done (手番処理) へ。演出中は入力を受けない
 function playBattleIntro(done) {
   const b = G.battle;
@@ -6652,8 +6762,11 @@ function playBattleIntro(done) {
   renderParty();
   fitView();
   if (REDUCED_MOTION) { done(); return; }
-  const dur = (boss ? 1900 : 640 + b.enemies.length * 90) * (G.fastAnim || G.autoCombat ? 0.6 : 1);
-  G.battleIntro = { battle: b, t0: performance.now(), dur, boss: boss ? (boss.mon && boss.mon.name) || boss.name : null };
+  const quick = G.fastAnim || G.autoCombat;
+  const ambush = b.opening === "ambush";
+  let dur = (boss ? 1900 : 640 + b.enemies.length * 90) * (quick ? 0.6 : 1);
+  if (ambush) dur = Math.max(dur, quick ? 1150 : 1500); // 奇襲の帯を読めるだけ留める
+  G.battleIntro = { battle: b, t0: performance.now(), dur, ambush, boss: boss ? (boss.mon && boss.mon.name) || boss.name : null };
   G.animating = true;
   combatMenu.innerHTML = "";
   if (G.autoCombat) renderAutoBanner();
@@ -7069,7 +7182,9 @@ function renderActingPlate(actor) {
   combatMenu.dataset.mode = "acting";
   if (!actor) return;
   const foe = actor.side === "enemy";
-  const w = turnPlate(actor.name, foe ? "の攻勢" : "の行動", []);
+  const b = G.battle;
+  const ambushTurn = foe && b && b.opening === "ambush" && b._roundNo <= 1; // 奇襲で敵だけが動く1ターン目
+  const w = turnPlate(actor.name, foe ? "の攻勢" : "の行動", ambushTurn ? ["奇襲"] : []);
   if (foe) w.classList.add("who-foe");
   combatMenu.appendChild(w);
 }
