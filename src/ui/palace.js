@@ -340,7 +340,7 @@ export function codexEventSheet(id) {
   body.appendChild(infoBlock("現れる所", [pairRow(eventWhereText(e))]));
   const picks = Object.entries((rec.picks && rec.picks[id]) || {});
   body.appendChild(infoBlock("選んだ道", picks.length ? picks.map(([k, n]) => pairRow(k, `${n}回`)) : [pairRow("まだ選んだことはない", null, { dim: true })]));
-  // 魂繰りの遺書: 読んだページ
+  // 操霊師の遺書: 読んだページ
   if (id === "c30") {
     const lore = (rec.flags && rec.flags.lore) || {};
     const ls = Object.keys(lore).filter((k) => lore[k]).sort();

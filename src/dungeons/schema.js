@@ -1759,7 +1759,7 @@ export const ARTS = {
       ".oo........oo...",
     ],
   },
-  frozenexplorer: { // 凍てつく先人: 真実に届き氷漬けにされた歴代の魂繰り。命を喰らう
+  frozenexplorer: { // 凍てつく先人: 真実に届き氷漬けにされた歴代の操霊師。命を喰らう
     palette: { o: "#0c1620", B: "#2e587e", C: "#7ec0e0", F: "#a8c8d0", P: "#5a7a8a", E: "#7fe0ff", k: "#0e2030" },
     art: [
       "......CCCC......",
