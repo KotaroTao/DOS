@@ -365,7 +365,8 @@ body.pt-dragging, body.pt-dragging * { cursor: grabbing !important; user-select:
 @media (max-width: 519px) {
   .pt-bagbar-acts .pt-allauto { white-space: normal; line-height: 1.25; text-align: center; padding: 4px 10px; }
 }
-.pt-allauto .ui-badge { position: absolute; top: -5px; right: -5px; }
+/* 札は区分の中身 (.pt-body: 内側スクロール = 横も切られる) の右端に接するので、赤丸は札の内側の角に留める */
+.pt-allauto .ui-badge { position: absolute; top: -5px; right: 0; }
 .pt-bag { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 2px; }
 .pt-bcell {
   position: relative; display: flex; align-items: center; justify-content: center;
