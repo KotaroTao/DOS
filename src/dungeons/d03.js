@@ -2,8 +2,8 @@
 import { defMonsters, tint, ARTS } from "./schema.js";
 
 export const monsters = defMonsters([
-  { id: "d03_orc", name: "奈落のオーク", race: "humanoid", element: "earth", artKey: "orc", rank: 3,
-    ability: "critical", // 鎧ごと胸郭を陥没させる急所狙いの一打
+  { id: "d03_orc", name: "奈落のオーク", race: "humanoid", element: "earth", artKey: "hd_orc3", rank: 3,
+    ability: "critical", enrage: true, // 鎧ごと胸郭を陥没させる急所狙いの一打。痛覚が焼き切れ、手負いほど荒れ狂う
     hp: 44, atk: 16, def: 8, spd: 5, soul: 34, gold: 26, soulClass: "knight",
     desc: "深淵から立ち昇る瘴気を浴び、肉も殺意も常軌を逸して膨れ上がった大型のオーク。岩塊のような拳が急所を捉えれば、鎧ごと胸郭を陥没させる。痛覚はとうに焼き切れ、四肢を失ってなお這い寄って噛みつく。" },
   { id: "d03_ghost", name: "さまよう亡霊", race: "specter", element: "dark", artKey: "ghost", rank: 3,
@@ -14,7 +14,7 @@ export const monsters = defMonsters([
     pack: true, // 骨のもりを手に群れで岸辺を囲う
     hp: 42, atk: 16, def: 8, spd: 8, soul: 33, gold: 24,
     desc: "陽の射さぬ地底湖に棲む半魚人。退化した眼の代わりに水の震えで獲物を捉え、骨を削ったもりを手に群れをなして岸辺を囲う。捕えた獲物は湖底の祭壇へ引きずり込み、見たこともない深きものへ捧げる。" },
-  { id: "d03_mandrake", name: "毒マンドレイク", race: "plant", element: "earth", artKey: "mandrake", rank: 4,
+  { id: "d03_mandrake", name: "毒マンドレイク", race: "plant", element: "earth", artKey: "hd_mandrake3", rank: 4,
     ability: "poison", // 肺を腐らせる紫の毒胞子
     hp: 52, atk: 17, def: 9, spd: 4, soul: 40, gold: 30,
     desc: "屍を養分に、人の形を真似て育った歩く毒草。引き抜かれると断末魔の絶叫を放ち、聞いた者の正気を削る。根からまかれる紫の胞子は肺を腐らせ、やがてその体内が次の苗床になる。" },
