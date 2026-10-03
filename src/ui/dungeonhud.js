@@ -130,6 +130,8 @@ function floorFacts() {
       if (m) facts.push({ tone: m.kind === "boon" ? "gold" : "bad", icon: ICONS.portal, title: `${m.kind === "boon" ? "奈落の恵み" : "奈落の変異"}「${m.name}」`, accent: m.accent, lines: [m.desc] });
     }
   }
+  // 迷宮のイベント (出来事) の効果: この階 / この潜入
+  if (game.eventFacts) { try { facts.push(...game.eventFacts()); } catch (e) { /* 表示のみ */ } }
   return { g, cfg, dn, abyss, theme, sp, mu, obj, facts };
 }
 export function openFloorInfo() {

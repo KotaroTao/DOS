@@ -821,6 +821,39 @@ export const ICONS = {
     ],
   },
   // 毒 (毒状態・毒の床用): 黒緑の毒沼に半ば沈んだ髑髏と、病んだ燐光・泡
+  // 迷宮のイベント (events.js): 紫に灯る印を刻んだ立石。まわりに燐光が漂う
+  event: {
+    palette: {
+      "1": "rgba(150,100,240,0.16)", k: "#0b090e", S: "#17151f", s: "#2c2937", n: "#45415a", N: "#615c78", M: "#8a85a3",
+      m: "#2b3522", v: "#5b2fa8", V: "#a874ff", W: "#efe2ff",
+    },
+    art: [
+      "........................",
+      "...........V............",
+      "....W..............V....",
+      "..........kkkk..........",
+      "........kkNMMNkk........",
+      ".......kNMMNNnnsk.......",
+      "......kNMNNnnnsssk......",
+      "......kNNNnnnssssk......",
+      "......kNNnnvvvsssk...V..",
+      "..V...kNnnvVVVvssk......",
+      "......kNnvVWWWVvsk......",
+      "......kNnvVWkWVvSk......",
+      "......kNnvVWWWVvSk......",
+      "......kNnnvVVVvssk......",
+      "......kNNnnvVvsssk......",
+      "......kNnnnnvssssk......",
+      "......kNnnnnvsssSk......",
+      ".W....kNnnnnVsssSk......",
+      "......kNnnnnvssSSk...W..",
+      "......kmNnnnnssSmk......",
+      ".....kmmmnnnsssSmmk.....",
+      "...11kkkkkkkkkkkkkk11...",
+      "....1111111111111111....",
+      "........................"
+    ],
+  },
   poison: {
     palette: {
       "6": "rgba(130,200,80,0.18)", k: "#0b090e", X: "#08100a", G: "#142410", l: "#2f5a22", L: "#6f9a48",
