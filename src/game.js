@@ -458,7 +458,7 @@ const G = {
   rumorCooldown: 0,   // 次の噂を聞けるUNIXタイムスタンプ(ms) — 30分クールダウン
   activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
   deliveryQuests: null, // 酒場の納品依頼 [{itemId}] (最大3件。迷宮に潜るたびに入れ替わる)
-  codex: { mon: {}, item: {}, job: {} }, // 図鑑 (モンスター/アイテム/職業)
+  codex: { mon: {}, item: {}, job: {}, fresh: { mon: {}, item: {}, job: {} } }, // 図鑑 (モンスター/アイテム/職業)。fresh = 新着 (まだ詳細を見ていない記録)
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={蒐集品id:true}, claimed={"ランク:しきい値":true}
   lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
   lrClock: { since: 0, pend: 0 }, // レジェンドレアの時間抽選 (最後のLRからの/前回抽選からの実プレイms)
@@ -8849,6 +8849,7 @@ function claimNextTreasury() {
 // 記録されるのは「倒した時」のみ。落としたドロップ(通常/レア)も実際に落として初めて開示。
 function codexMonEntry(key) {
   let e = G.codex.mon[key];
+  if (e == null) codexFresh().mon[key] = 1; // 初めての記録は新着
   if (!e || typeof e !== "object") {
     e = { kills: e === true ? 1 : 0, normal: false, rare: false, dungeons: {} };
     G.codex.mon[key] = e;
@@ -8878,7 +8879,18 @@ function rollGenericDrop() {
   }
   return null;
 }
-function codexSeeItem(id) { if (id) G.codex.item[id] = true; }
+function codexSeeItem(id) {
+  if (!id) return;
+  if (!G.codex.item[id]) codexFresh().item[id] = 1; // 初めての記録は新着
+  G.codex.item[id] = true;
+}
+// 図鑑の新着: { mon:{key:1}, item:{id:1}, job:{"職:ランク":1} }。王宮の図鑑で詳細を開くと消える (src/ui/palace.js)
+function codexFresh() {
+  const c = G.codex;
+  if (!c.fresh || typeof c.fresh !== "object") c.fresh = {};
+  for (const k of ["mon", "item", "job"]) if (!c.fresh[k] || typeof c.fresh[k] !== "object") c.fresh[k] = {};
+  return c.fresh;
+}
 
 // ---- 職業図鑑の記録 ----
 // 魂を吸収した時点で「発見」とし、到達ランクと魂レベルの最高値を記録する。
@@ -8893,6 +8905,7 @@ function codexJobSee(clsKey, count, level) {
   const prevLv = e && typeof e === "object" ? (e.lv || 0) : 0;
   const prevRank = e && typeof e === "object" ? (e.rank || 0) : 0;
   G.codex.job[clsKey] = { lv: Math.max(prevLv, lv), rank: Math.max(prevRank, rank) };
+  for (let r = prevRank + 1; r <= rank; r++) codexFresh().job[clsKey + ":" + r] = 1; // 新しく到達した位階の札は新着
 }
 // 所持魂一覧を走査して職業図鑑を更新する (オートセーブのたびに全走査)
 function codexSweepJobs() {
@@ -10575,6 +10588,7 @@ function loadGame() {
     const e = G.codex.job[k];
     if (!e.rank) e.rank = Math.max(1, Math.min(5, Math.ceil((e.lv || 0) / 10)));
   }
+  codexFresh(); // 新着の記録 (後付け。旧セーブは新着なしで始まる)
   delete G.codex.soul; // 魂図鑑は廃止 (スキルが職業帰属になったため)
   codexSweepJobs();
   return true;
