@@ -679,14 +679,3 @@
 /* 職業図鑑の詳細: 原画から起こした全身像はドットの整数倍 (3倍) で大きく見せる */
 .pl-detail-sheet .ui-art canvas.spr { max-width: none; max-height: none; }
 
-/* 図鑑のアイテム詳細: 画像の左右の ◀ ▶ で前後のアイテムへ */
-.pl-navsheet .ui-art { overflow: visible; }
-.pl-nav {
-  position: absolute; top: 50%; width: 44px; height: 44px; margin-top: -22px; display: grid; place-items: center; padding: 0;
-  font-family: var(--font); font-size: 20px; line-height: 1; color: #e8c879; background: rgba(12,9,10,0.55); border: 1px solid #5a4630; border-radius: 3px;
-  cursor: pointer; -webkit-tap-highlight-color: transparent; transition: transform var(--t-tap) ease-out;
-}
-.pl-nav.prev { right: calc(100% + 18px); }
-.pl-nav.next { left: calc(100% + 18px); }
-.pl-nav:active:not([disabled]) { transform: scale(0.92); }
-.pl-nav[disabled] { opacity: 0.25; cursor: default; }

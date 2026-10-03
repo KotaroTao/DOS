@@ -9524,6 +9524,7 @@ function treasuryState() {
   if (!G.treasury || typeof G.treasury !== "object") G.treasury = { donated: {}, claimed: {} };
   if (!G.treasury.donated) G.treasury.donated = {};
   if (!G.treasury.claimed) G.treasury.claimed = {};
+  if (!G.treasury.fresh) G.treasury.fresh = {}; // 奉納したばかりで、まだ台帳で見ていない種類 (台帳の札の「新」)
   return G.treasury;
 }
 // 奉納した収集品の総種類数 (ランク帯を問わない)
@@ -9554,7 +9555,7 @@ function donateCollectible(doll, it) {
   const idx = doll.items.indexOf(it);
   if (idx < 0) return null;
   doll.items.splice(idx, 1);
-  if (it.id && !ts.donated[it.id]) { ts.donated[it.id] = true; codexSeeItem(it.id); return { kind: "new", gold: 0 }; }
+  if (it.id && !ts.donated[it.id]) { ts.donated[it.id] = true; ts.fresh[it.id] = true; codexSeeItem(it.id); return { kind: "new", gold: 0 }; }
   const gold = sellPrice(it);
   G.gold += gold;
   return { kind: "dup", gold };
