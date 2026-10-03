@@ -64,6 +64,7 @@ const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho",
 const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } })();
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 import { tlOn, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd } from "./telemetry.js";
+import { baselineAgi, progressX } from "./baseline.js";
 
 // ===== コンテンツの取り込み =====
 // アイテム: 一点物の手作りカタログ (src/catalog/)。二つ名つきの量産品は廃止。
@@ -1271,6 +1272,19 @@ function newFloor() {
   updateTopbar();
   log(`地下 ${G.floor} 階。カードをめくって階段を探せ！`, "sys");
   if (tlOn()) tlSnapshot("floor", tlWhere(), G.party);
+}
+
+// 逃走判定の追跡の物差し (Battle.fleeK): 敵の AGI は味方よりずっと小さい規模なので、
+// 「この迷宮・階の基準AGI (baseline.js) ÷ この迷宮の雑魚の標準AGI (出現表の素のAGIの中央値)」を掛けて揃える。
+// 俊敏な敵・主・ミミック・鈍足/激昂は、標準からのずれとしてそのまま逃げにくさ/逃げやすさに効く
+function fleeScale() {
+  const cfg = activeCfg();
+  const n = abyssActive() ? abyssBaseN(G.abyss.depth) : dungeonNumber(cfg);
+  const x = progressX(n, G.floor || 1, cfg.floors || 1);
+  const spds = [...new Set([...(cfg.pool || []), ...(cfg.deepPool || [])])]
+    .map((k) => MONSTERS[k] && MONSTERS[k].spd).filter((v) => v > 0).sort((a, b) => a - b);
+  const typical = spds.length ? spds[Math.floor(spds.length / 2)] : 4 + Math.round((cfg.rank || 1) * 0.9);
+  return baselineAgi(x) / Math.max(1, typical);
 }
 
 // テスト記録 (telemetry.js): いまの迷宮の欄 (奈落は深度ごと)。n は進行度 (基準AGI) の算出に使う
@@ -6304,7 +6318,7 @@ function startBattle(enemies, cell) {
   }
   // ランク帯ごとの戦闘テーマ (ボス・強敵は専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
   playBgm(battleBgm(isBoss || isElite));
-  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot") });
+  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale() });
   // テスト記録: 戦闘の種類 (主 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子
   if (tlOn() && inDungeon()) {
     const kind = isBoss ? "b" : (isElite || enemies.some((e) => e.isMimic) || (cell && cell.evFight)) ? "e" : "n";
@@ -7425,7 +7439,8 @@ function renderCombatMenu() {
     combatMenu.appendChild(main);
     const sub = el("div", "cmd-sub");
     sub.appendChild(cmdBtn("defend", "防御", "", () => act("defend")));
-    sub.appendChild(cmdBtn("run", "逃走", "", () => act("run")));
+    // 逃走: 手番の者の AGI で決まる成功率を添える (退路を断たれていれば「不可」)
+    sub.appendChild(cmdBtn("run", "逃走", b.noFlee ? "不可" : `${Math.round(b.fleeChance(actor) * 100)}%`, () => act("run")));
     sub.appendChild(cmdBtn("auto", "オート", uiDungeonHud.getPref("autoKeep") ? "継続" : "", () => { G.autoCombat = true; SFX.select(); renderCombatMenu(); }));
     sub.appendChild(cmdBtn("fast", "倍速", G.fastAnim ? "ON" : "OFF", () => { G.fastAnim = !G.fastAnim; autosave(); renderCombatMenu(); }, G.fastAnim ? "on" : ""));
     combatMenu.appendChild(sub);
@@ -11669,6 +11684,7 @@ function loadGame() {
   if (G.battle) {
     Object.setPrototypeOf(G.battle, Battle.prototype);
     G.battle.log = log;
+    if (G.battle.fleeK == null) G.battle.fleeK = fleeScale(); // 逃走の物差しを持たない古い戦闘
     for (const e of (G.battle.enemies || [])) if (e.key && MONSTERS[e.key]) e.mon = MONSTERS[e.key];
   }
   // 旧形式: 未生成の pendingDoll は「空の人形」として控えへ移す (生成前でも消えない)
