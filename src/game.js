@@ -9775,7 +9775,7 @@ function showCodexJobDetail(key, rank, heading) { if (UI.codexJobSheet) UI.codex
 // ---- 宿屋: 全回復 ----
 function innCost() { return G.party.length * 12 + G.maxFloorReached * 6; }
 
-// ---- 傷ついた魂の修復: 砕けた人業は街へ戻っても自然には戻らない ----
+// ---- 砕けた魂の修復: 砕けた人業は街へ戻っても自然には戻らない ----
 // 人業の館 (隊) で砕けた人業を選び、金貨を払って修復するとHP/MP満タンで立ち上がる。
 // (全滅で迷宮に残された器は、まず連れ帰りを待つ ― 下の「連れ帰り」)
 // 費用 = ランク (1:10 / 2:20 / 3:40 / 4:80 / 5:160) × 魂レベル × レア度 (コモン1 / レア2 / エピック3 / レジェンド4)
@@ -9911,7 +9911,7 @@ function reviveAllAtHp1() {
   }
 }
 
-// 傷ついた魂を修復する (街の中のみ・金貨を払う)。HP/MP満タンで立ち上がる
+// 砕けた魂を修復する (街の中のみ・金貨を払う)。HP/MP満タンで立ち上がる
 function repairDoll(d) {
   if (!d || !d.isDoll || d.alive) return { ok: false, reason: "dead" };
   if (awaitingRescue(d)) { showToast(`${d.name} はまだ迷宮から連れ帰られていない`, { tone: "bad" }); SFX.ng(); return { ok: false, reason: "rescue" }; }
@@ -9926,7 +9926,7 @@ function repairDoll(d) {
   d.reviveAt = null; d.diedFloor = null;
   d._dead = false;
   SFX.levelup(); buzz([0, 30, 40, 30]);
-  log(`${d.name} の傷ついた魂を修復した。(💰${cost})`, "win");
+  log(`${d.name} の砕けた魂を修復した。(💰${cost})`, "win");
   showToast(`${d.name} が立ち上がった (💰${cost})`, { tone: "good" });
   updateTopbar();
   if (G.statusOpen) renderStatus();

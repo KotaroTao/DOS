@@ -730,7 +730,7 @@ function emptyState() {
 }
 
 // ---- 砕けた人業の知らせ (1行) ----
-// 全滅で迷宮に残された器は連れ帰りを待つ (赤い魂で早められる)。街にある器は、選んで「傷ついた魂を修復」
+// 全滅で迷宮に残された器は連れ帰りを待つ (赤い魂で早められる)。街にある器は、選んで「砕けた魂を修復」
 function RESCUE_MS() { return game.RESCUE_SHORTEN_MS || 20 * 60 * 1000; }
 const waiting = (d) => !!(d && !d.alive && d.reviveAt);
 function deadBanner(mode) {
@@ -1256,7 +1256,7 @@ function dollHeader(d, mode) {
   return head;
 }
 
-// 砕けた人業 (見出しの2行目): 連れ帰り待ちなら残り時間 + 赤い魂で早める。街にあれば「傷ついた魂を修復」(金貨・HP/MP満タン)
+// 砕けた人業 (見出しの2行目): 連れ帰り待ちなら残り時間 + 赤い魂で早める。街にあれば「砕けた魂を修復」(金貨・HP/MP満タン)
 function rescueLine(d) {
   const G = G_();
   const box = el("div", "pt-rescue");
@@ -1282,8 +1282,8 @@ function rescueLine(d) {
   t.appendChild(document.createTextNode("砕けた"));
   box.appendChild(t);
   const cost = game.repairCostOf ? game.repairCostOf(d) : 0;
-  box.appendChild(button({ label: "傷ついた魂を修復", kind: "primary", size: "sm", cost: { kind: "gold", n: cost }, disabled: (G.gold || 0) < cost,
-    onTap: () => confirm({ banner: "魂の修復", title: `${d.name} の傷ついた魂を修復する？`,
+  box.appendChild(button({ label: "砕けた魂を修復", kind: "primary", size: "sm", cost: { kind: "gold", n: cost }, disabled: (G.gold || 0) < cost,
+    onTap: () => confirm({ banner: "魂の修復", title: `${d.name} の砕けた魂を修復する？`,
       lines: [`金貨 💰${cost} ・ HP/MP 満タンで立ち上がる`, `ランク${d.jobRank || 1} × Lv${d.jobLv || 1} × ${RARITY_LABEL[rarityOfDoll(d)] || "コモン"}`, `所持: 💰${G.gold || 0}`],
       okLabel: "修復する", danger: false })
       .then((ok) => { if (!ok) return; if (game.repairDoll) game.repairDoll(d); rerender(); }) }));

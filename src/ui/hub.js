@@ -38,7 +38,7 @@ function builtinSuggestions(c) {
   const g = G();
   const out = [];
   if (!c) return out;
-  // 砕けた人業 (街にある器): 人業の館で傷ついた魂を修復する (館を開き、砕けた人業を選んだ状態にする)
+  // 砕けた人業 (街にある器): 人業の館で砕けた魂を修復する (館を開き、砕けた人業を選んだ状態にする)
   if (c.repairable) {
     const all = game.allDolls ? game.allDolls() : (g.party || []);
     const d = all.find((x) => x && x.isDoll && !x.alive && !x.reviveAt) || null;
