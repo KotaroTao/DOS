@@ -8134,9 +8134,11 @@ function applyImpact(res) {
   if (anyDeath) setTimeout(() => SFX.die(), 200);
 }
 
-// 戦闘勝利時: 入手Soulの1/3を、生存しているパーティメンバーが宿す魂 (メイン魂・サブ魂は半分) に
+// 戦闘勝利時: 入手Soulの1/3を、生存しているパーティメンバーが宿す魂 (メイン魂・サブ魂はその1/3) に
 // 経験値(soul.exp)として加算する。限界(soulTrainCost)に達した魂は自動でレベルアップし、
 // キャラLv上昇/スキル習得を検出してポップアップ用のキューを返す。
+// 戦闘でサブ魂に入る経験値の割合 (メイン魂の分に対して)
+const SUB_EXP_RATE = 1 / 3;
 function distributeBattleSoulExp(soulGot) {
   const queue = [];
   // 控えの結社 魂の薫陶 (soulTutor): 戦闘後に魂へ入るEXPを底上げ
@@ -8146,7 +8148,7 @@ function distributeBattleSoulExp(soulGot) {
   if (share <= 0) return queue;
   // 経験値は「編成中に宿している魂」(メイン魂・サブ魂とも) ごとに1回ずつ入る。
   // 同じ魂を複数人が宿すことはない (魂は1体ごとに個別) ので重複加算は起きない。
-  // サブ魂が得る経験値はメイン魂の 1/2。どこかでメイン魂として宿していれば全量扱いにする。
+  // サブ魂が得る経験値はメイン魂の 1/3 (SUB_EXP_RATE)。どこかでメイン魂として宿していれば全量扱いにする。
   const worn = []; // {uid, sub}
   const seen = new Set();
   // まずメイン魂 (全量) を集める
@@ -8154,7 +8156,7 @@ function distributeBattleSoulExp(soulGot) {
     if (!m || !m.alive) continue;
     if (m.primary != null && !seen.has(m.primary)) { seen.add(m.primary); worn.push({ uid: m.primary, sub: false }); }
   }
-  // 次にサブ魂 (1/2)。メイン魂として既に集めた魂は除く
+  // 次にサブ魂 (1/3)。メイン魂として既に集めた魂は除く
   for (const m of G.party) {
     if (!m || !m.alive) continue;
     for (const s of (m.subs || [])) if (s && s.uid != null && !seen.has(s.uid)) { seen.add(s.uid); worn.push({ uid: s.uid, sub: true }); }
@@ -8173,11 +8175,11 @@ function distributeBattleSoulExp(soulGot) {
   }
   for (const w of worn) if (w.sub) { const e = soulByUid(w.uid); if (e) preSubLv.set(w.uid, e.level); }
   // 宿している魂すべてに Soul を加算してレベルアップ (上限超過分は exp に蓄積)。
-  // サブ魂はメイン魂の半分 (share の 1/2) を得る。
+  // サブ魂はメイン魂の 1/3 (share × SUB_EXP_RATE) を得る。
   for (const w of worn) {
     const e = soulByUid(w.uid);
     if (!e) continue;
-    const gain = w.sub ? Math.floor(share / 2) : share;
+    const gain = w.sub ? Math.floor(share * SUB_EXP_RATE) : share;
     if (gain <= 0) continue;
     const cap = soulLevelCapOf(e);
     e.exp = (e.exp || 0) + gain;
@@ -8236,7 +8238,7 @@ function endBattle() {
     const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1))) + takeStolenGold(b);
     const soulGot = runGainSoulPts(Math.round(soul * (sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1)));
     applyVictoryPassives();
-    // 入手Soulの1/3を生存メンバーの魂 (サブ魂は半分) に加算 → レベルアップ/スキル習得を集計
+    // 入手Soulの1/3を生存メンバーの魂 (サブ魂はその1/3) に加算 → レベルアップ/スキル習得を集計
     const progress = distributeBattleSoulExp(soulGot);
     updateTopbar();
     log(`勝利！ ${goldGot} ゴールド と ✦${soulGot} Soul を得た。`, "win");
