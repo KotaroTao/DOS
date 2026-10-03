@@ -213,8 +213,8 @@ export const EVENTS = [
     onWin: (A, cell, f, next) => { A.gold(3, "割れた壺"); A.done(cell, next); },
   },
   {
-    id: "c09", name: "骰子を振る骸骨", layer: 0, tier: "common", icon: "mon:d01_skeleton",
-    intro: () => ["朽ちた卓で、骸骨が骰子を振り続けている。", "「賭けるかね、生者よ。わしは負けたことがない……一度しかな」"],
+    id: "c09", name: "サイコロを振る骸骨", layer: 0, tier: "common", icon: "mon:d01_skeleton",
+    intro: () => ["朽ちた卓で、骸骨がサイコロを振り続けている。", "「賭けるかね、生者よ。わしは負けたことがない……一度しかな」"],
     choices: (A, cell) => {
       const g = A.goldCost(2), s = A.soulCost(2);
       return [
@@ -227,7 +227,7 @@ export const EVENTS = [
         A.canPaySoul(s) && { label: `魂を賭ける (✦${s}) ― 1/3で3倍`, fn: () => {
           A.paySoul(s);
           if (chance(1 / 3)) { A.sfx("victory"); A.giveSoulRaw(s * 3, "骸骨との賭け"); }
-          else { A.sfx("ng"); A.toast("骸骨は魂を啜り、満足げに骰子を振った ― 負けだ", "bad"); }
+          else { A.sfx("ng"); A.toast("骸骨は魂を啜り、満足げにサイコロを振った ― 負けだ", "bad"); }
           A.done(cell);
         } },
       ];
@@ -363,7 +363,7 @@ export const EVENTS = [
     onWin: (A, cell, f, next) => A.item({ rare: true }, "封じられていた品", () => A.done(cell, next)),
   },
   {
-    id: "c17", name: "彷徨う行商人", layer: 0, tier: "uncommon", icon: "gold",
+    id: "c17", name: "さまよう行商人", layer: 0, tier: "uncommon", icon: "gold",
     intro: () => ["骨の驢馬を連れた行商人が、ランタンを掲げた。", "「こんな所で客とはね。値は張るが、品は本物だよ」"],
     choices: (A, cell) => {
       const herb = A.price("herb") * 3, mana = A.price("manaDrop") * 3, box = A.goldCost(3);
@@ -752,7 +752,7 @@ export const EVENTS = [
         else { A.ailAll("poison", 1); A.sfx("trap"); A.toast("湯は汚れていた ― 全員が毒に侵された", "bad", "poison"); }
         A.done(cell);
       } },
-      { label: "濾して飲む ― 全員のMPが3割回復", primary: true, fn: () => {
+      { label: "こして飲む ― 全員のMPが3割回復", primary: true, fn: () => {
         A.healAll(0, 0.3, false); A.sfx("heal"); A.toast("澄んだ水が魔力を満たした", "good", "fountain"); A.done(cell);
       } },
     ],
@@ -807,8 +807,8 @@ export const EVENTS = [
     },
   },
   {
-    id: "l2_07", name: "大鰐の骸", layer: 2, tier: "uncommon", icon: "event", deep: true,
-    intro: () => ["水路を塞ぐほどの大鰐の骸。膨れた腹の中に、呑まれた冒険者の装備が透けて見える。"],
+    id: "l2_07", name: "大ワニの骸", layer: 2, tier: "uncommon", icon: "event", deep: true,
+    intro: () => ["水路を塞ぐほどの大ワニの骸。膨れた腹の中に、呑まれた冒険者の装備が透けて見える。"],
     choices: (A, cell) => [
       { label: "腹を裂く ― 上等な品 / 25%で中の魔物が飛び出す", danger: true, fn: () => {
         if (chance(0.25)) {
@@ -816,11 +816,11 @@ export const EVENTS = [
             () => A.fight(cell, [{ pool: true, strong: 2.0 }], "gator", { noChest: true }));
           return;
         }
-        A.item({ rare: true }, "大鰐の腹", () => A.done(cell));
+        A.item({ rare: true }, "大ワニの腹", () => A.done(cell));
       } },
-      { label: "牙を抜く ― 蒐集品", fn: () => A.collectible("大鰐の牙", () => A.done(cell)) },
+      { label: "牙を抜く ― 蒐集品", fn: () => A.collectible("大ワニの牙", () => A.done(cell)) },
     ],
-    onWin: (A, cell, f, next) => A.item({ rare: true }, "大鰐の腹", () => A.done(cell, next)),
+    onWin: (A, cell, f, next) => A.item({ rare: true }, "大ワニの腹", () => A.done(cell, next)),
   },
   {
     id: "l2_08", name: "鼠の王", layer: 2, tier: "uncommon", icon: "mon:bs_ratking", minFloor: 3,

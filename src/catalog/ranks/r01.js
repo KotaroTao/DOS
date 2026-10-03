@@ -58,10 +58,10 @@ export const RANK1_ITEMS = [
 
   // ===== 足 feet (布2/軽2/重2) =====
   F("f_r1_clothshoes", "布の靴", 2, { weight: "cloth", tint: "#7c8aa0", desc: "底の薄い布の靴。守りは心もとないが、軽くて足音を立てず、長い迷宮歩きでも疲れにくい。" }),
-  F("f_r1_strawsandals", "わらじ", 6, { weight: "cloth", tint: "#c8a06a", desc: "藁を編んだ素朴な草鞋。濡れた石床でも滑りにくく、履き潰してもすぐ作り直せる。" }),
+  F("f_r1_strawsandals", "わらじ", 6, { weight: "cloth", tint: "#c8a06a", desc: "藁を編んだ素朴な草履。濡れた石床でも滑りにくく、履き潰してもすぐ作り直せる。" }),
   F("f_r1_leathershoes", "革靴", 3, { tint: "#a9781f", desc: "丈夫な革で仕立てた靴。底が厚く、罠の小さな棘や尖った瓦礫から足裏を守ってくれる。" }),
   F("f_r1_leathergreave", "革の脚絆", 8, { tint: "#8a6438", desc: "脛まで覆う革の脚絆。茨や牙の浅手を防ぎ、駆ける足取りも乱れない軽装の定番。" }),
-  F("f_r1_ironclogs", "鉄の沓", 5, { shape: "greaves", tint: "#9aa0ac", desc: "爪先に鉄を仕込んだ重い沓。歩みは鈍るが、踏み込みの安定と足元の守りは確かだ。" }),
+  F("f_r1_ironclogs", "鉄の靴", 5, { shape: "greaves", tint: "#9aa0ac", desc: "爪先に鉄を仕込んだ重い靴。歩みは鈍るが、踏み込みの安定と足元の守りは確かだ。" }),
   F("f_r1_heavygreaves", "重い脚甲", 10, { shape: "greaves", tint: "#888e9c", desc: "膝下を鉄板で固めた脚甲。重量はあるが、前線で踏ん張る脚を刃と衝撃から守り抜く。" }),
 
   // ===== 小手 hands (布2/軽2/重2) =====

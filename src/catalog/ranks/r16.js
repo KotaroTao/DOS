@@ -44,8 +44,8 @@ export const RANK16_ITEMS = [
   H("h_r16_genesishelm", "創世の兜", 160, { shape: "helm", tint: "#f0e8d0", desc: "創世の証たる荘厳な大兜。創世の威光をまとう前立てが敵を圧し、頭部を鉄壁の守りで包み込む。" }),
 
   // ===== 足 feet (布2/軽2/重2) =====
-  F("f_r16_godageshoes", "神代の沓", 153, { weight: "cloth", tint: "#d8c0e8", desc: "神代の刺繍を施した軽い沓。足運びが滑らかになり、術者が陣形を保ったまま静かに動き続けられる。" }),
-  F("f_r16_godagestepshoes", "神代天歩の沓", 158, { weight: "cloth", agi: 7, tint: "#7fd0c0", desc: "神代の天を歩むがごとき速さを宿す沓。地を蹴れば体が瞬時に運ばれ、駆け出しの速さと回避の鋭さが究極に達する。" }),
+  F("f_r16_godageshoes", "神代の靴", 153, { weight: "cloth", tint: "#d8c0e8", desc: "神代の刺繍を施した軽い靴。足運びが滑らかになり、術者が陣形を保ったまま静かに動き続けられる。" }),
+  F("f_r16_godagestepshoes", "神代天歩の靴", 158, { weight: "cloth", agi: 7, tint: "#7fd0c0", desc: "神代の天を歩むがごとき速さを宿す靴。地を蹴れば体が瞬時に運ばれ、駆け出しの速さと回避の鋭さが究極に達する。" }),
   F("f_r16_godageboots", "神代のブーツ", 154, { tint: "#b8c0d8", desc: "神代鋼で仕立てたブーツ。軽快なのに頑丈無比で、神話の力が衝撃を和らげ、罠の刃も瓦礫の縁も寄せつけない。" }),
   F("f_r16_primordialdragonboots", "原初竜革のブーツ", 158, { tint: "#6a5a70", desc: "原初竜の革で仕立てた長靴。しなやかで足になじみ、太古の加護が足取りを支えて悪路でも俊敏さを保たせる。" }),
   F("f_r16_godagesabaton", "神代の具足", 155, { shape: "greaves", tint: "#b8c0d8", desc: "神代鋼で覆う具足。重装の堅い守りに神話の力の支えを兼ね、踏み込みの一歩に揺るぎない安定をもたらす。" }),
@@ -54,8 +54,8 @@ export const RANK16_ITEMS = [
   // ===== 小手 hands (布2/軽2/重2) =====
   G("g_r16_godagegloves", "神代の手袋", 153, { magStat: "int", weight: "cloth", tint: "#d8c0e8", desc: "神代の紋を縫い込んだ薄手の手袋。指先の感覚を保ちつつ、握った触媒へ膨大な魔力を澄んだまま導いてくれる。" }),
   G("g_r16_genesisgloves", "創世の宝手袋", 158, { magStat: "pie", weight: "cloth", tint: "#f0e8d0", desc: "祈りの所作を支える宝玉装飾の聖手袋。掌の聖印が祈祷に魔力を乗せやすくし、癒しの奇跡を大きく後押しする。" }),
-  G("g_r16_godagehandsgloves", "神代の手套", 154, { role: "atk", tint: "#b8c0d8", desc: "神代鋼を編んだ手套。指の自由を残したまま拳を堅く守り、神話の力が握った得物の一打に鋭い冴えを加える。" }),
-  G("g_r16_marksmanglove", "神話射手の手套", 158, { role: "atk", tint: "#8a6438", desc: "神話に謳われる射手のために誂えた手套。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を究極まで高める。" }),
+  G("g_r16_godagehandsgloves", "神代の鋼手袋", 154, { role: "atk", tint: "#b8c0d8", desc: "神代鋼を編んだ手袋。指の自由を残したまま拳を堅く守り、神話の力が握った得物の一打に鋭い冴えを加える。" }),
+  G("g_r16_marksmanglove", "神話射手の手袋", 158, { role: "atk", tint: "#8a6438", desc: "神話に謳われる射手のために誂えた手袋。引き手の震えを完全に抑え込み、狙い澄ました一矢の精度を究極まで高める。" }),
   G("g_r16_godagegauntlet", "神代の籠手", 155, { role: "atk", shape: "gauntlet", tint: "#b8c0d8", desc: "神代鋼を関節ごとに連ねた籠手。宿る神話の力を帯びた拳が、振るう得物の一撃に冴えと究極の重みを上乗せする。" }),
   G("g_r16_genesisgauntlet", "創世の籠手", 160, { role: "atk", shape: "gauntlet", tint: "#f0e8d0", desc: "創世の証たる荘厳な籠手。創世の威光をまとう甲が指先まで包んで握力を損なわず、剣を振る手に絶大な信頼を置かせる。" }),
 
