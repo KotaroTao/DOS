@@ -10307,6 +10307,36 @@ function claimTreasury(n) {
   const back = () => { autosave(); if (G.state === "town") renderTown(); };
   const center = Math.min(200, Math.max(1, n * 2)); // 節目が深いほど高位の装備
   const reason = `収集品を ${n} 種 宝物庫に納めた褒賞だ。`;
+  // 玉座の間で老王から褒賞を賜る場面を見せてから、品を渡す (品の演出・効果音は渡す側で鳴る)
+  UI.playStoryChain([{
+    title: `宝物庫の褒賞 ― 奉納 ${n} 種`, kicker: "褒賞の下賜", lines: treasuryRewardLines(m, n),
+    reward: m.cls ? [{ job: m.cls }] : treasuryRewardText(m), btnLabel: "ありがたく賜る",
+  }], () => grantTreasuryReward(m, center, reason, back));
+}
+
+// 褒賞の場面の台詞 (褒賞の種類で王の言葉を変える)
+function treasuryRewardLines(m, n) {
+  const lines = ["宝物庫の番人が奉納の台帳を広げ、老王はその頁をゆっくりと繰った。",
+    `「収集品を ${n} 種も納めてくれたか。迷宮の底から持ち帰られた品々は、どれも闇に呑まれたこの国の記憶だ。」`];
+  if (m.reward === "lrArmor" || m.reward === "lrWeapon5") {
+    lines.push("「これは王家の宝物庫の奥に、長く封じられてきた品だ。いまのそなたにこそ相応しかろう。」");
+  } else if (m.cls || m.soul) {
+    lines.push("「奉納の品に宿っていた魂が、ひとつ形を成した。そなたの隊に加えるがよい。」");
+  } else {
+    lines.push("「その働きに、王家はこれで報いよう。」");
+  }
+  lines.push("「受け取るがよい。そして、これからも失われたものを持ち帰ってくれ。」");
+  return lines;
+}
+// 褒賞の「受け取るもの」の文 (職の決まった魂は札で出すので、それ以外)
+function treasuryRewardText(m) {
+  if (m.reward === "lrArmor") return "LR防具 1点 (未入手のもの・未鑑定)";
+  if (m.reward === "lrWeapon5") return "LR5武器 1点 (未入手のもの・未鑑定)";
+  if (m.soul) return `${m.soul >= 2 ? "偉大な魂" : "魂"} 1つ と 装備 1点`;
+  return "装備 1点";
+}
+// 褒賞の品を渡す (場面を閉じた後)
+function grantTreasuryReward(m, center, reason, back) {
   if (m.cls) {
     acquireSoul(m.cls, reason, back); // 特定職の魂のみ
   } else if (m.reward === "lrArmor") {
