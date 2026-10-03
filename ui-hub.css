@@ -467,6 +467,8 @@
 .pl-card.unknown { cursor: default; background: rgba(10,8,11,0.6); border-style: dashed; border-top-width: 1px; }
 .pl-card-q { font-size: 26px; color: #4c4339; }
 .pl-card.unknown .pl-card-n { color: #5d5246; }
+.pl-card.unknown.boss-unk { cursor: pointer; }
+.pl-card.unknown.boss-unk .pl-card-n { color: #b59b6a; } /* まだ討っていない主: 名前だけ明かす */
 /* 新着の印 (図鑑の札は詳細を開くと、勲章は拝受すると消える) */
 .pl-card-new {
   position: absolute; top: 4px; left: 4px; z-index: 1; padding: 0 3px; font-size: 9.5px; font-weight: 800; line-height: 14px; color: #fff3d6;

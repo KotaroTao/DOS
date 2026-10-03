@@ -19,7 +19,7 @@ import {
 } from "./abyss.js";
 import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, soulIcon,
-  recalcDoll, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, MAX_SUBS, subPicks,
+  recalcDoll, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
   soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills,
   ORDER_PERK, orderPassiveMap,
   PASSIVES,
@@ -1022,8 +1022,8 @@ const MUTATORS = [
   { id: "nightHunt", name: "闇討ちの宴", sym: "🌘", accent: "#7a5ad0", ambushMul: 4, goldMul: 1.5, soulMul: 1.3,
     risk: "奇襲を受けやすくなる",
     gain: "ゴールド 1.5倍・Soul 1.3倍" },
-  { id: "elemRage", name: "属性の暴走", sym: "✺", accent: "#ff9a4a", elemAll: true, soulMul: 1.5, cond: (cfg) => !!cfg.element,
-    risk: "すべての敵が迷宮の属性を帯びる (属性装備がないと危険)",
+  { id: "elemRage", name: "属性の暴走", sym: "✺", accent: "#ff9a4a", elemRandom: true, soulMul: 1.5,
+    risk: "すべての敵の属性が狂い、でたらめに入れ替わる (火の魔物が水を纏うことも)",
     gain: "得られる Soul が 1.5倍 になる" },
   { id: "mimicMarch", name: "ミミックの行進", sym: "◈", accent: "#e07840", mimicRate: 0.30, chestRankUp: 1,
     risk: "宝箱の3割はミミックだ",
@@ -1041,7 +1041,7 @@ const MUT_AGG = {
   enemyMul: "mul", soulMul: "mul", goldMul: "mul",
   ambushMul: "max", mimicRate: "max",
   lootBonusLv: "add", packMin: "max", chestRankUp: "add",
-  noFlee: "or", elemAll: "or", noTrap: "or", poisonUp: "or",
+  noFlee: "or", elemAll: "or", elemRandom: "or", noTrap: "or", poisonUp: "or",
 };
 // この潜入で効いている全修飾子源 (迷宮の異変 + 奈落の誓約 + 奈落の変異) を列挙
 function activeModifierDefs() {
@@ -1132,7 +1132,8 @@ function baseEnemyScale() {
   return (cfg.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
 }
 // 迷宮ごとの手直し (generator.js DUNGEON_TUNE) のうち、いまの階の雑魚に掛かる倍率。奈落では掛けない
-// (手直しは出現表の雑魚の強さ合わせ。ランクの曲線から組む単体の強敵・ミミック・出来事の魔物には掛けない → soloFoes)
+// (手直しは出現表の雑魚の強さ合わせ。ランクの曲線から組む単体の強敵・ミミック・出来事の魔物には掛けず、
+//  それらには別の soloMul だけを掛ける → soloScale / soloFoes)
 function tuneMul() {
   if (abyssActive()) return 1;
   const cfg = activeCfg();
@@ -1148,13 +1149,20 @@ function tuneMul() {
 function mimicRef() {
   const cfg = activeCfg();
   const ranks = sfMonsterPool().map((k) => (MONSTERS[k] && MONSTERS[k].rank) || 0);
-  return { rank: Math.max(1, cfg.rank || 1, ...ranks), scale: baseEnemyScale() };
+  return { rank: Math.max(1, cfg.rank || 1, ...ranks), scale: soloScale() };
 }
-// 手直し (DUNGEON_TUNE) を掛けずに出す単体の強敵 (強敵・ミミック・出来事の魔物) の印。
-// これらは層相応のランク/固有の強さで組まれていて、雑魚の顔ぶれに合わせた倍率を重ねると強くなりすぎる。
-// startBattle はこの印のある敵からは手直しの倍率を戦果から打ち消さない
+// 単体の強敵 (強敵・ミミック・出来事の魔物) の手直し: 雑魚の enemyMul/deepMul ではなく soloMul だけ。奈落では掛けない
+function soloTune() {
+  if (abyssActive()) return 1;
+  const t = activeCfg().tune;
+  return (t && t.soloMul) || 1;
+}
+function soloScale() { return baseEnemyScale() * soloTune(); }
+// 単体の強敵の印。これらは層相応のランク/固有の強さで組まれていて、雑魚の顔ぶれに合わせた倍率を
+// 重ねると強くなりすぎるので soloScale で出す。startBattle はこの印 (_tuneK = 掛けた手直し) で戦果から打ち消す
 function soloFoes(list) {
-  for (const e of list) e._untuned = true;
+  const k = soloTune();
+  for (const e of list) e._tuneK = k;
   return list;
 }
 
@@ -1944,7 +1952,8 @@ function drawBoardHighlights(now) {
       if (senseE && cell.type === "monster") {
         const strong = senseE >= 2 && cell.elite;
         let color = strong ? "#ff3b30" : "#ff7a52";
-        if (senseE >= 3) { const e2 = (MONSTERS[cell.monsterKey] || {}).element; const ec = (ELEMENTS[e2] || {}).color; if (ec) color = ec; }
+        // 属性の暴走中は戦うまで属性が定まらないので色を付けない
+        if (senseE >= 3 && !mutNum("elemRandom", false)) { const e2 = (MONSTERS[cell.monsterKey] || {}).element; const ec = (ELEMENTS[e2] || {}).color; if (ec) color = ec; }
         mark = { text: strong ? "‼" : "!", color };
       } else if (senseT) {
         if (cell.type === "chest") mark = { text: "✦", color: "#ffd84a" };
@@ -2026,6 +2035,11 @@ function drawBmpFit(b, cx, bottom, maxW, maxH, light = 1, alpha = 1) {
   vctx.restore();
   return { x, y, W, H };
 }
+// 主の待つ最深部の階段は、主の間の扉として描く
+function bossDoorHere() {
+  const dn = G.board && curDungeon();
+  return !!(dn && dn.boss && G.floor >= dn.floors);
+}
 function cellIcon(cell) {
   return cell.type === "monster" && !cell.cleared ? MONSTERS[cell.monsterKey] :
     cell.type === "chest" ? (cell.cleared ? ICONS.chestOpen : ICONS.chest) :
@@ -2033,7 +2047,7 @@ function cellIcon(cell) {
     cell.type === "fountain" && !cell.cleared ? ICONS.fountain :
     cell.type === "corpse" ? ICONS.corpse :
     cell.type === "portal" ? ICONS.portal :
-    cell.type === "stairs" ? ICONS.stairs :
+    cell.type === "stairs" ? (bossDoorHere() ? ICONS.bossDoor : ICONS.stairs) :
     cell.type === "event" && !cell.cleared ? ICONS.event : null;
 }
 function drawBoardIcons(lt, now, hx, hy) {
@@ -4604,7 +4618,7 @@ function resolveCell(cell) {
         if (cell.elite) {
           // 強敵は群れない: 規格外の1体が立ちはだかる
           log(`☠ 強敵 ${name} が立ちはだかる！`, "dmg");
-          startBattle(soloFoes(spawnEliteEnemies(cell.monsterKey, baseEnemyScale())), cell);
+          startBattle(soloFoes(spawnEliteEnemies(cell.monsterKey, soloScale())), cell);
         } else {
           log(`⚔ ${name} のカードだ！`, "dmg");
           // 迷宮の異変 (飢えた狩場): 敵が常に群れで現れる
@@ -4855,10 +4869,10 @@ function evBuildFoes(specs) {
   const out = [];
   for (const sp of specs || []) {
     if (sp.shadows) { for (const p of evAlive()) out.push(evShadow(p, sp.shadows)); continue; }
-    // 強敵・出来事の魔物は手直しを掛けない素の強さで (soloFoes)
-    if (sp.elite) { out.push(...soloFoes(spawnEliteEnemies(sp.key && MONSTERS[sp.key] ? sp.key : eliteKey(), baseEnemyScale() * (sp.strong || 1)))); continue; }
+    // 強敵・出来事の魔物は雑魚の手直しではなく soloMul で (soloFoes)
+    if (sp.elite) { out.push(...soloFoes(spawnEliteEnemies(sp.key && MONSTERS[sp.key] ? sp.key : eliteKey(), soloScale() * (sp.strong || 1)))); continue; }
     // 出来事の魔物: その階の雑魚の最上位ランク + ranked の体で現れる (ミミックと同じ基準 mimicRef)
-    if (sp.ranked && sp.key && MONSTERS[sp.key]) { const e = soloFoes(spawnRanked(sp.key, mimicRef().rank, sp.ranked, baseEnemyScale()))[0]; if (sp.name) e.name = sp.name; out.push(e); continue; }
+    if (sp.ranked && sp.key && MONSTERS[sp.key]) { const e = soloFoes(spawnRanked(sp.key, mimicRef().rank, sp.ranked, soloScale()))[0]; if (sp.name) e.name = sp.name; out.push(e); continue; }
     const key = sp.key && MONSTERS[sp.key] ? sp.key : (sp.undead ? undeadKeyForDungeon() : evPoolKey());
     if (sp.strong) { const e = evBoost(spawnEliteEnemies(key, scale)[0], sp.strong); if (sp.name) e.name = sp.name; out.push(e); continue; }
     if (sp.single) { out.push(spawnEliteEnemies(key, scale)[0]); continue; }
@@ -5684,7 +5698,7 @@ function askDescend(cell) {
       } },
       { label: "まだ探索する", fn: () => { renderBoard(); } },
     ],
-    ICONS.stairs,
+    boss ? ICONS.bossDoor : ICONS.stairs,
     { banner, accent, lines, onDismiss: stay }
   );
 }
@@ -6298,6 +6312,11 @@ function showToast(text, opts) {
 }
 
 // ---- 戦闘 ----
+// 6属性 (無属性を除く) から1つを無作為に
+function randomElement() {
+  const els = Object.keys(ELEMENTS).filter((k) => k !== "none");
+  return els[Math.floor(Math.random() * els.length)];
+}
 function startBattle(enemies, cell) {
   // 迷宮の属性気配: 属性持ち迷宮では雑魚敵が迷宮属性を帯びやすい (主・強敵は固有属性のまま)
   const cfg = activeCfg();
@@ -6307,6 +6326,8 @@ function startBattle(enemies, cell) {
     const ch = (spFloor && spFloor.elemAll) || mutNum("elemAll", false) ? 1 : 0.5;
     for (const e of enemies) if (!e.boss && !(e.mon && e.mon.elite) && Math.random() < ch) e.element = cfg.element;
   }
+  // 属性の暴走 (異変): 主・強敵も含め、すべての敵の属性を6属性からでたらめに選び直す (召喚された仲間も同じ)
+  if (mutNum("elemRandom", false)) for (const e of enemies) { e._elemRandom = true; e.element = randomElement(); }
   // 迷宮の異変 (血の満潮など): 敵の強さ倍率は HP/ATK/VIT に加えて AGI にも掛ける
   // (enemyScale は HP/ATK/VIT のみ。召喚で呼ばれた仲間も _agiMul を引き継ぐ)
   // 迷宮ごとの手直し (DUNGEON_TUNE) は強さだけ: 倍率で増減した戦果 (金貨・✦Soul) を元の曲線へ戻す
@@ -6314,7 +6335,7 @@ function startBattle(enemies, cell) {
   if (tn) {
     const tm = tuneMul();
     for (const e of enemies) {
-      const k = e.boss ? (tn.bossMul || 1) : e._untuned ? 1 : tm;
+      const k = e.boss ? (tn.bossMul || 1) : e._tuneK != null ? e._tuneK : tm;
       if (k !== 1) { e.soul = Math.round((e.soul || 0) / k); e.gold = Math.round((e.gold || 0) / k); }
     }
   }
@@ -6327,7 +6348,7 @@ function startBattle(enemies, cell) {
   combatMenu.classList.remove("hidden");
   // 同種の群れは「ゴブリン ×4」とまとめて告げる (個体名は A/B/C… 付き)
   const sameKind = enemies.length > 1 && enemies.every((e) => e.key === enemies[0].key);
-  // 名前は討伐数1で明かす (それまでは「？？？」)
+  // 名前は討伐数1で明かす (それまでは「？？？」。迷宮の主は最初から名乗る)
   log(`${sameKind ? `${enemyReveal(enemies[0]).name ? enemies[0].mon.name : "？？？"} ×${enemies.length}` : enemies.map(enemyLabel).join("・")} が現れた！`, "dmg");
   // 先制・奇襲の判定 (ボス戦・強敵戦では発生しない)。
   // 周囲警戒 (vigilance) が奇襲を抑え、先制の心得 (initiative) が先制を伸ばす
@@ -6549,7 +6570,7 @@ function renderCombatCanvas() {
       // 対象選択中: 頭上に降りる楔と四隅のかぎ
       if (tappable && strongTarget) drawTargetBrackets(baseX, baseY, hh, size, now);
       // 名札 + 血の小瓶 (HP)
-      // 名前・HP は討伐数で明かす (enemyReveal): 名前は1体倒すまで「？？？」、HP の小瓶は5体倒すまで出さない
+      // 名前・HP は討伐数で明かす (enemyReveal): 名前は1体倒すまで「？？？」、HP の小瓶は5体倒すまで出さない (迷宮の主は名前が最初から、HP は1体で)
       drawEnemyPlate(e, baseX, plateY, tappable && strongTarget, k);
       const hpY = plateY + 17;
       if (enemyReveal(e).stats) drawEnemyHpVial(e, baseX, hpY, now, k);
@@ -7514,6 +7535,14 @@ function lastSkillOf(actor) {
   const k = uiDungeonHud.remember("lastSkill", String(actor.uid));
   return k && battleSkills(actor).includes(k) && SPELLS[k] ? k : null; // 戦闘で出さない (オフの) 技は出さない
 }
+// 攻撃の右に常に出す早出しの技: 最後に使った技 (戦闘をまたいで人業ごとに覚える)。
+// まだ使っていなければ、戦闘に出す技の先頭 (隊の「能力」で並べた順)
+function quickSkillOf(actor) {
+  const k = lastSkillOf(actor);
+  if (k) return k;
+  const list = actor ? battleSkills(actor).filter((s) => SPELLS[s]) : [];
+  return list[0] || null;
+}
 function skillLocked(actor, key) {
   const sp = SPELLS[key];
   if (!sp) return true;
@@ -7560,9 +7589,9 @@ function renderCombatMenu() {
     combatMenu.dataset.mode = "input";
     const rowTag = b.isBackRow(actor) ? "後衛" : "前衛";
     combatMenu.appendChild(turnPlate(actor.name, "の手番", [rowTag, "射程 " + RANGE_LABEL[b.attackRange(actor)]]));
-    // 主の段: 攻撃 (狙いを添えて1タップで確定) ・ 最後に使った技 ・ スキル一覧
+    // 主の段: 攻撃 (狙いを添えて1タップで確定) ・ 最後に使った技 (未使用なら先頭の技) ・ スキル一覧
     const tgt = defaultAttackTarget(actor);
-    const quick = lastSkillOf(actor);
+    const quick = quickSkillOf(actor);
     const main = el("div", "cmd-main" + (quick ? " has-quick" : ""));
     main.appendChild(cmdBtn("attack", "攻撃", tgt ? `→ ${enemyLabel(tgt)}` : "敵をタップでも", () => attackNow(), "primary"));
     if (quick) {
@@ -11871,6 +11900,7 @@ function loadGame() {
   if (!Array.isArray(G.souls)) G.souls = [];
   G.souls = G.souls.filter((s) => s && SOUL_CLASSES[s.clsKey]);
   setSharedSouls(G.souls); // recalcDoll が所持魂を uid で引けるようにする
+  syncDollUids([...(G.party || []), ...(G.reserve || [])]); // 人業の通し番号を続きから (重なりも直す)
   for (const d of [...(G.party || []), ...(G.reserve || [])]) {
     if (!Array.isArray(d.subs)) d.subs = [];
     if (d.primary != null && !soulByUid(d.primary)) d.primary = null;

@@ -17,7 +17,7 @@ import { getPref, setPref, remember } from "./prefs.js";
 import { sceneTransition } from "./motion.js";
 import { MONSTERS, ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
 import { ELEMENTS, monsterTraits, isFloating } from "../dungeons/index.js";
-import { tagRow, traitTagKinds, affinityRow, MON_REVEAL, monKills, enemyReveal, enemyLabel, revealLock, BUFF_NAME } from "./itemview.js";
+import { tagRow, traitTagKinds, affinityRow, revealSteps, monKills, enemyReveal, enemyLabel, revealLock, BUFF_NAME } from "./itemview.js";
 import { RARITIES } from "../rarity.js";
 import { SOUL_CLASSES, soulIcon } from "../souls.js";
 import { WALKER as WALKER_ART } from "../walkerart.js";
@@ -128,7 +128,7 @@ function floorFacts() {
     const ekey = game.eliteKey ? game.eliteKey() : null;
     const ek = ekey ? MONSTERS[ekey] : null;
     // 名前は一度倒すまで「？？？」(敵の情報の段階開示と同じ)
-    const ekName = ek ? (monKills(ekey) >= MON_REVEAL.name ? ek.name : "？？？") : "";
+    const ekName = ek ? (monKills(ekey) >= revealSteps(ek).name ? ek.name : "？？？") : "";
     facts.push({ tone: "bad", icon: ek || ICONS.trap, title: "強敵の気配", lines: ["この階には通常では遭遇しない強大な存在が潜む。", ek ? `強敵「${ekName}」― 討てば希少な戦利品と魂を残しやすい。` : "討てば希少な戦利品を得られる。"] });
   }
   if (sp) facts.push({ tone: "gold", icon: ICONS[sp.icon] || ICONS.stairs, title: `特別な階「${sp.name}」`, accent: sp.accent, lines: sp.lines });
@@ -444,7 +444,7 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
 
 // 敵の一枚: 討伐数・属性・残り体力・特徴とスキル (図鑑の記述)
 // 姿は最初から見せ、ほかは倒した数に応じて段階的に明かす (MON_REVEAL / enemyReveal):
-// 1体 = 名前 / 5体 = 属性とHP / 10体 = 特徴・スキルと説明文
+// 1体 = 名前 / 5体 = 属性とHP / 10体 = 特徴・スキルと説明文 (迷宮の主は名前が最初から、1体で全て)
 export function peekEnemy(e) {
   if (!e) return null;
   const m = e.mon || MONSTERS[e.key] || {};
@@ -460,7 +460,7 @@ export function peekEnemy(e) {
     title: enemyLabel(e),
     body: (b) => {
       if (!special) b.appendChild(el("div", "dg-en-kills", `討伐数 ${kills}体`));
-      if (!rv.name) b.appendChild(revealLock(MON_REVEAL.name, "名前"));
+      if (!rv.name) b.appendChild(revealLock(rv.steps.name, "名前"));
       if (rv.stats) {
         // 名前の下は属性の印だけ (無属性なら出さない)
         const et = elem && tagRow(["el:" + e.element], "dg-en-elem");
@@ -472,8 +472,8 @@ export function peekEnemy(e) {
         b.appendChild(hp);
         const aff = affinityRow(e.element);
         if (aff) b.appendChild(aff);
-      } else b.appendChild(revealLock(MON_REVEAL.stats, "属性・HP"));
-      if (!rv.lore) { b.appendChild(revealLock(MON_REVEAL.lore, "特徴・スキル・説明文")); return; }
+      } else b.appendChild(revealLock(rv.steps.stats, "属性・HP"));
+      if (!rv.lore) { b.appendChild(revealLock(rv.steps.lore, "特徴・スキル・説明文")); return; }
       if (traits.length) {
         b.appendChild(section("特徴・スキル"));
         const tl = el("div", "dg-traits");

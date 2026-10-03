@@ -21,11 +21,11 @@ export const EV_TIERS = {
   rare:     { key: "rare",     label: "秘", name: "秘められた出来事", share: 8,  banner: "★ 秘められた出来事 ★",  accent: "#c08aff" },
   mythic:   { key: "mythic",   label: "極", name: "極めて稀な出来事", share: 2,  banner: "✺ 極めて稀なる出来事 ✺", accent: "#ffcf4a" },
 };
-// 1階あたりの出来事の出現率 (迷宮1は控えめ・常のみ)
-export const EV_FLOOR_RATE = 0.42;
+// 1階あたりの出来事の出現率 (迷宮1は控えめ・常のみ)。0.42 では行き止まりを寄り道しない遊び方だと1層で数回しか出会えなかった
+export const EV_FLOOR_RATE = 0.55;
 export const EV_FLOOR_RATE_D1 = 0.25;
-// その層の専用イベントは見かけやすく
-const LAYER_W = 1.5;
+// その層の専用イベントは見かけやすく (1.5 では共通の出来事に埋もれ、1層を通しても専用の10種のうち2-3種しか出会えなかった)
+const LAYER_W = 3;
 
 // 極の出来事が授ける恒久の恵み (G.events.flags のキー → 効き目)。game.js が戦闘・✦Soul の獲得で読む
 export const EV_BOONS = {
