@@ -1594,7 +1594,7 @@ const NEW_DEFS = [
   { id: "bs_souldragon", name: "魂喰らいの竜", rank: 10, race: "dragon", element: "dark", artKey: "souldragon",
     ability: "breath", lifesteal: 0.3, // 魂ごと喰らう吐息で全体を焼き、奪った魂で自らを癒やす
     desc: "数多の魂を喰らって肥え太った漆黒の竜。その吐息は肉ではなく魂を直接焼き、焼いた魂をそのまますすって傷を塞ぐ。腹の中で今も挑戦者たちが叫び続けている。" },
-  { id: "bs_firstdoll", name: "最初の人形", rank: 10, race: "construct", element: "dark", artKey: "firstdoll",
+  { id: "bs_firstdoll", name: "最初の人業", rank: 10, race: "construct", element: "dark", artKey: "firstdoll",
     ability: "drain", magResist: 3, regen: 0.05, // 最初に魂を宿された器 / 魔法をいなし傷を繕う
     desc: "最初の操霊師が初めて魂を縫い付けた器。完成と呼ぶには歪で、棄てられてなお主を慕い続ける。近づく者から生気を吸い、自らの綻びをひとりでに繕いながら、いつまでも主の帰りを待っている。" },
   { id: "bs_weaversregret", name: "織り手の悔悟", rank: 10, race: "specter", element: "dark", artKey: "weaversregret",
@@ -1642,7 +1642,7 @@ const NEW_DEFS = [
   { id: "bs_firstweaver", name: "最初の操霊師", rank: 10, boss: true, race: "dragon", element: "dark", artKey: "firstweaver",
     ability: "breath", role: "summoner", summonKey: "bs_firstdoll", regen: 0.05, physResist: 2, barrier: true,
     // 最果ての主 / 器を呼び、魂の吐息で全体を灼き、魔の膜と再生で容易には堕ちない
-    desc: "竜の姿を借りた、世界で最初に魂を器へ縫い付けた者。あらゆる操霊師の祖にして、棄てた器たちの父。指を振れば最初の人形が這い出して主を守り、吐く息は魂そのものを灼き尽くす。魔の膜と尽きぬ再生に守られたその懐に辿り着けるのは、第十九層までを越えてなお折れぬ魂だけだ。" },
+    desc: "竜の姿を借りた、世界で最初に魂を器へ縫い付けた者。あらゆる操霊師の祖にして、棄てた器たちの父。指を振れば最初の人業が這い出して主を守り、吐く息は魂そのものを灼き尽くす。魔の膜と尽きぬ再生に守られたその懐に辿り着けるのは、第十九層までを越えてなお折れぬ魂だけだ。" },
 
   // ---- 役割持ちモンスター (role: healer/guard/summoner) ----
   // 取り巻き (escort) を連れて現れる。回復役・呼び手は後衛に立つため、
