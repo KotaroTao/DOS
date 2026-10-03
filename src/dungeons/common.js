@@ -6,7 +6,7 @@ export const COMMON_MONSTERS = defMonsters([
   { id: "cm_slime", name: "スライム", race: "amorph", element: "water", artKey: "slime", rank: 1,
     hp: 14, atk: 5, def: 1, spd: 4, soul: 6, gold: 4,
     // 粘体ゆえ刃が通らない (物理耐性) が、魔法の熱や衝撃には脆い (魔法弱点)
-    physResist: 0.9, magWeak: 1.6,
+    physResist: 1, magWeak: 1.6,
     desc: "迷宮の湿気と腐肉が溶け合って生まれた、意思なき粘塊。刃を通しても潰れて再び寄り集まり、物理ではなかなか倒せない。だが炎や雷の魔法には脆く、ひとたび熱を通せばたちまち煮崩れる。" },
   { id: "cm_bat", name: "黒翼蝙蝠", race: "wing", element: "dark", artKey: "bat", rank: 1,
     hp: 11, atk: 6, def: 2, spd: 9, soul: 7, gold: 3,

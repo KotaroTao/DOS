@@ -1,5 +1,5 @@
 // ===== UI キット (§5 部品) =====
-// 黒鉄の板・燻した金の縁・明朝の見出し。押せる場所は最低 44×44。絵文字はボタンに置かず、
+// 黒鉄の板・くすぶした金の縁・明朝の見出し。押せる場所は最低 44×44。絵文字はボタンに置かず、
 // 通貨は小さな硬貨/魂玉の印 (.ui-g-*) に、その他の絵文字は取り除く (glyphText)。
 // シートは #ui-layer に積み重なり (z 80+n)、トーストは最大3つ。戻る操作は nav に集まる。
 
@@ -121,6 +121,8 @@ export const SVG = {
   shop: '<path d="M12 3.2v17.3M7.6 20.5h8.8"/><path d="M4.4 6.8h15.2"/><path d="M4.4 6.8 2 12.6h4.8Z"/><path d="M19.6 6.8 17.2 12.6H22Z"/><path d="M2 12.6a2.4 2.4 0 0 0 4.8 0M17.2 12.6a2.4 2.4 0 0 0 4.8 0"/>',
   palace: '<path d="M3.8 18.2 2.8 7.6l5.4 4.3L12 4.8l3.8 7.1 5.4-4.3-1 10.6Z"/><path d="M4 21h16"/><path d="M12 13.4v1.6"/>',
   gate: '<path d="M4.5 20.5V11a7.5 7.5 0 0 1 15 0v9.5"/><path d="M8 20.5V11.5a4 4 0 0 1 8 0v9"/><path d="M2.5 20.5h19"/>',
+  lock: '<rect x="5" y="10.5" width="14" height="10" rx="1.6"/><path d="M8.2 10.5V7.6a3.8 3.8 0 0 1 7.6 0v2.9"/><path d="M12 14.4v2.6"/>',
+  unlock: '<rect x="5" y="10.5" width="14" height="10" rx="1.6"/><path d="M8.2 10.5V7.6a3.8 3.8 0 0 1 7.4-1.2"/><path d="M12 14.4v2.6"/>',
   chain: '<path d="M10 14.2 7.4 16.8a3 3 0 0 1-4.2-4.2l2.8-2.8a3 3 0 0 1 4.2 0"/><path d="M14 9.8l2.6-2.6a3 3 0 0 1 4.2 4.2L18 14.2a3 3 0 0 1-4.2 0"/><path d="M9.4 14.6l5.2-5.2"/>',
 };
 export function svgIcon(kind, cls = "ui-ic") {
@@ -229,13 +231,13 @@ export const sheet = {
       foot.classList.toggle("hidden", !foot.childElementCount);
     };
     fill(opts);
-    // 縦スクロールを出さない: 収まらない中身は頁に分けて ‹ 1/2 › で送る (fitPages)
+    // 縦スクロールを出さない: 収まらない中身はページに分けて ‹ 1/2 › で送る (fitPages)
     const pager = el("div", "ui-sheet-pager hidden");
     card.insertBefore(pager, foot);
     h.pager = pager;
     h.host = card;
     h.page = 0;
-    // pageEnd: 頁に分かれたら最後の頁を見せ続ける (記録など。手で頁を送るまで、割り直しても最後へ寄せる)
+    // pageEnd: ページに分かれたら最後のページを見せ続ける (記録など。手でページを送るまで、割り直しても最後へ寄せる)
     h.pageEnd = !!opts.pageEnd;
 
     h.update = (o) => { h.opts = { ...h.opts, ...o }; h.page = 0; fill(h.opts); schedulePages(h); };
@@ -296,10 +298,10 @@ export const sheet = {
   closeAll() { for (const h of stack.slice().reverse()) h.close("reset", { silent: true }); },
 };
 
-// ================= シートの頁送り (縦スクロールの代わり) =================
-// 中身がシートの高さを超えたら、上から順に「入る分」ずつ頁に割り、他の頁の要素は隠す (要素は動かさない)。
-// 1つで頁より高い箱は、その子へ降りて割る (箱の見出し = 最初の小さな子は、続きの頁にも出す)。
-// 中身が後から変わったら (ResizeObserver) 割り直す。頁は ‹ › ・左右のスワイプ・←→キーで送る
+// ================= シートのページ送り (縦スクロールの代わり) =================
+// 中身がシートの高さを超えたら、上から順に「入る分」ずつページに割り、他のページの要素は隠す (要素は動かさない)。
+// 1つでページより高い箱は、その子へ降りて割る (箱の見出し = 最初の小さな子は、続きのページにも出す)。
+// 中身が後から変わったら (ResizeObserver) 割り直す。ページは ‹ › ・左右のスワイプ・←→キーで送る
 const PG_ATTR = "data-pg";
 function pgReset(body) {
   for (const n of body.querySelectorAll("[" + PG_ATTR + "], .ui-pg-off")) { n.removeAttribute(PG_ATTR); n.classList.remove("ui-pg-off"); }
@@ -358,15 +360,15 @@ function showPage(h, n) {
     const on = u.getAttribute(PG_ATTR).split(" ").includes(String(h.page));
     u.classList.toggle("ui-pg-off", !on);
   }
-  // 割られた箱は、中身が全部隠れた頁では箱ごと隠す (内側の箱から)
+  // 割られた箱は、中身が全部隠れたページでは箱ごと隠す (内側の箱から)
   for (const box of (h._pgBoxes || []).slice().reverse()) {
     const any = box.querySelector("[" + PG_ATTR + "]:not(.ui-pg-off)");
     box.classList.toggle("ui-pg-off", !any);
   }
   const pager = h.pager;
   pager.textContent = "";
-  const prev = el("button", "ui-pg-b prev"); prev.type = "button"; prev.setAttribute("aria-label", "前の頁"); prev.textContent = "‹";
-  const next = el("button", "ui-pg-b next"); next.type = "button"; next.setAttribute("aria-label", "次の頁"); next.textContent = "›";
+  const prev = el("button", "ui-pg-b prev"); prev.type = "button"; prev.setAttribute("aria-label", "前のページ"); prev.textContent = "‹";
+  const next = el("button", "ui-pg-b next"); next.type = "button"; next.setAttribute("aria-label", "次のページ"); next.textContent = "›";
   prev.disabled = h.page <= 0; next.disabled = h.page >= h.pages - 1;
   prev.addEventListener("click", () => turnPage(h, -1));
   next.addEventListener("click", () => turnPage(h, 1));
@@ -397,7 +399,7 @@ function watchPages(h) {
     inner();
     if (typeof MutationObserver === "function") new MutationObserver(() => { inner(); if (!h._pgBusy && !h.closed) schedulePages(h); }).observe(h.body, { childList: true });
   }
-  // 左右のスワイプで頁を送る
+  // 左右のスワイプでページを送る
   let x0 = null, y0 = 0;
   h.body.addEventListener("pointerdown", (e) => { x0 = e.clientX; y0 = e.clientY; });
   h.body.addEventListener("pointerup", (e) => {
@@ -410,7 +412,7 @@ function watchPages(h) {
     else if (e.key === "ArrowLeft") turnPage(h, -1);
   });
 }
-// 画面の中の箱 (タブの本文など) にも同じ頁送りを付ける。pager は box の直後に置く。
+// 画面の中の箱 (タブの本文など) にも同じページ送りを付ける。pager は box の直後に置く。
 // box は高さが決まっている (flex で伸び縮みする) こと。中身を描き直したら自動で割り直す
 export function autoPage(box, { pagerClass = "" } = {}) {
   if (!hasDOM() || !box) return null;
@@ -704,9 +706,9 @@ export function header(o = {}) {
 
 // 所持の通貨 (金貨 / ✦Soul / 赤い魂 / 残火)。タップで説明のシート
 const CUR_INFO = {
-  gold: { name: "金貨", key: "gold", desc: ["宿賃・鑑定・装備の売買に使う。", "迷宮の宝箱・戦闘・売却で手に入る。"] },
+  gold: { name: "金貨", key: "gold", desc: ["宿屋・鑑定・装備の売買などに使う。", "迷宮の宝箱・戦闘・アイテム売却などで手に入る。"] },
   soul: { name: "✦Soul", key: "soulPts", desc: ["魂を強化するための力 (経験値)。", "迷宮で敵を倒すと得られ、全滅しても失われない。"] },
-  red: { name: "赤い魂", key: "redSoul", desc: ["人業の仕立てや、砕けた人業の連れ帰りを早めるのに使う。", "赤い魂の祠で授かる。"] },
+  red: { name: "赤い魂", key: "redSoul", desc: ["人業の仕立てや、全滅で迷宮に残された人業の連れ帰りを早めるのに使う。", "赤い魂の祠で授かる。"] },
   ember: { name: "魂の残火", key: "embers", desc: ["魂のLv上限を1上げる。", "死体の魂を回収すると得ることがある。"] },
 };
 export function currencyChips({ onTap } = {}) {

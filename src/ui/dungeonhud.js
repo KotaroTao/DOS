@@ -3,7 +3,7 @@
 // 提供する契約: UI.openDungeonMenu() (手帳 = 迷宮の一時停止シート)
 //
 //   行動ドック   … #hint を置き換える画面下の 52px。いま取れる行動だけを大きく (▼ 降りる / ⌂ 帰還)
-//   手帳         … 階の情報・迷宮の異変・隊を見る・記録を読む・今回の収穫・帰還・探索の手間・設定
+//   手帳         … 階の情報・迷宮の異変・隊を見る・記録を読む・図鑑・今回の収穫・帰還・探索の手間・設定
 //   階の情報     … 見出しの迷宮名を押すと開く。特別な階・強敵・異変・奈落の変異の説明を読み返せる
 //   今回の収穫   … 収穫の帯を押すと開く。得た品 (押せば品の詳細)・魂・成長・倒した数
 //   覗き見       … 隊の札を長押し (戦闘中も) / 敵を長押し (特徴・スキル)
@@ -17,7 +17,7 @@ import { getPref, setPref, remember } from "./prefs.js";
 import { sceneTransition } from "./motion.js";
 import { MONSTERS, ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
 import { ELEMENTS, monsterTraits, isFloating } from "../dungeons/index.js";
-import { tagRow, traitTagKinds, affinityRow } from "./itemview.js";
+import { tagRow, traitTagKinds, affinityRow, MON_REVEAL, monKills, enemyReveal, enemyLabel, revealLock } from "./itemview.js";
 import { RARITIES } from "../rarity.js";
 import { SOUL_CLASSES, jobBust } from "../souls.js";
 import { WALKER as WALKER_ART } from "../walkerart.js";
@@ -120,8 +120,11 @@ function floorFacts() {
   const obj = game.dungeonObjective ? game.dungeonObjective() : null;
   const facts = [];
   if (g.eliteFloor) {
-    const ek = game.eliteKey ? MONSTERS[game.eliteKey()] : null;
-    facts.push({ tone: "bad", icon: ek || ICONS.trap, title: "強敵の気配", lines: ["この階には通常では遭遇しない強大な存在が潜む。", ek ? `強敵「${ek.name}」― 討てば希少な戦利品と魂を残しやすい。` : "討てば希少な戦利品を得られる。"] });
+    const ekey = game.eliteKey ? game.eliteKey() : null;
+    const ek = ekey ? MONSTERS[ekey] : null;
+    // 名前は一度倒すまで「？？？」(敵の情報の段階開示と同じ)
+    const ekName = ek ? (monKills(ekey) >= MON_REVEAL.name ? ek.name : "？？？") : "";
+    facts.push({ tone: "bad", icon: ek || ICONS.trap, title: "強敵の気配", lines: ["この階には通常では遭遇しない強大な存在が潜む。", ek ? `強敵「${ekName}」― 討てば希少な戦利品と魂を残しやすい。` : "討てば希少な戦利品を得られる。"] });
   }
   if (sp) facts.push({ tone: "gold", icon: ICONS[sp.icon] || ICONS.stairs, title: `特別な階「${sp.name}」`, accent: sp.accent, lines: sp.lines });
   if (mu) facts.push({ tone: "gold", icon: ICONS.stairs, title: `迷宮の異変「${mu.name}」`, accent: mu.accent, lines: [`危険 ― ${mu.risk}`, `見返り ― ${mu.gain}`] });
@@ -248,7 +251,7 @@ export function openRunLoot() {
 
 // ================= 記録 (全文) =================
 // 履歴は game.logHistory (記録欄より長く覚えている)。無ければ記録欄の行から。
-// 頁に分かれたら最新の頁 (最後) から開く: ‹ で過去へ遡る
+// ページに分かれたら最新のページ (最後) から開く: ‹ で過去へ遡る
 export function openLog() {
   let lines = typeof game.logHistory === "function" ? game.logHistory() : null;
   if (!lines) {
@@ -274,8 +277,18 @@ const TOGGLES = [
   { key: "autoCorpse", label: "死体をすぐ調べる", sub: "風化した死体だけ" },
   { key: "autoCloseResults", label: "戦果を自動で送る", sub: "1.6秒で次へ" },
 ];
+// 戦闘中の手帳に並べる切り替え (倍速はセーブの G.fastAnim、ほかは端末の好み)
+const COMBAT_TOGGLES = [
+  { key: "fastAnim", label: "戦闘演出 倍速", sub: "攻撃や術の演出を速める",
+    get: () => { const g = G(); return !!(g && g.fastAnim); },
+    set: (v) => { const g = G(); if (!g) return; g.fastAnim = v; if (game.autosave) game.autosave(); } },
+  { key: "autoKeep", label: "オートを続ける", sub: "次の戦闘も。主・強敵で止まる" },
+  { key: "autoCloseResults", label: "戦果を自動で送る", sub: "1.6秒で次へ" },
+];
 function toggleRow(t, after) {
-  const on = !!getPref(t.key);
+  // t.get/t.set があれば端末の好み (getPref) ではなくそちらを読み書きする (倍速 = セーブの G.fastAnim)
+  const get = t.get || (() => getPref(t.key)), put = t.set || ((v) => setPref(t.key, v));
+  const on = !!get();
   const r = el("button", "dg-toggle" + (on ? " on" : ""));
   r.type = "button";
   r.setAttribute("role", "switch");
@@ -288,8 +301,8 @@ function toggleRow(t, after) {
   sw.appendChild(el("i"));
   r.appendChild(sw);
   r.addEventListener("click", () => {
-    const v = !getPref(t.key);
-    setPref(t.key, v);
+    const v = !get();
+    put(v);
     r.classList.toggle("on", v);
     r.setAttribute("aria-checked", v ? "true" : "false");
     sfx("select");
@@ -315,7 +328,10 @@ export function openDungeonMenu() {
   if (!g) return null;
   // 迷宮の外 (街) では設定を開く
   if (g.state !== "board" && g.state !== "combat") { if (UI.openSettings) UI.openSettings(); return null; }
-  if (g.state === "combat") return null;
+  // 戦闘中も開ける: 閉じるまで戦闘は止まる (game.js combatHeld)。速さ・オートは変えられるが、
+  // 帰還と隊の編成 (装備の付け替え) はできない
+  const combat = g.state === "combat";
+  if (combat) g._cmdStale = true;
   const f = floorFacts();
   const name = f.abyss ? "無限迷宮「奈落」" : (f.dn ? f.dn.name : "");
   const floors = f.abyss ? 0 : (f.dn && f.dn.floors) || 1;
@@ -340,22 +356,23 @@ export function openDungeonMenu() {
       head.addEventListener("click", go(openFloorInfo));
       b.appendChild(head);
       const grid = el("div", "dg-mgrid");
-      grid.appendChild(menuTile("party", "パーティを見る", "装備・能力・道具", go(() => UI.openParty(0, { context: "dungeon" }))));
+      grid.appendChild(combat ? menuTile("party", "パーティを見る", "戦闘中は開けない", null)
+        : menuTile("party", "パーティを見る", "装備・能力・道具", go(() => UI.openParty(0, { context: "dungeon" }))));
       grid.appendChild(menuTile("loot", "今回の収穫", `💰${r.gold || 0} ✦${r.soulPts || 0} 品${(r.items || []).length}`, go(openRunLoot)));
       grid.appendChild(menuTile("scroll", "記録を読む", "出来事の全文", go(openLog)));
+      grid.appendChild(menuTile("book", "図鑑", "敵・品・見聞", go(() => UI.openCodexSheet && UI.openCodexSheet({ dungeonIdx: g.dungeonIdx }))));
       grid.appendChild(menuTile("gear", "設定", "音量・振動・背景", go(() => UI.openSettings && UI.openSettings())));
+      const canHome = !combat && (game.canReturnNow ? game.canReturnNow() : false);
+      grid.appendChild(menuTile("home", canHome ? "街へ帰還する" : "帰還できない", canHome ? "戦利品を持ち帰る" : combat ? "戦闘中は帰れない" : "帰還陣か主の討伐で",
+        canHome ? go(() => game.confirmReturnToTown && game.confirmReturnToTown()) : null, canHome ? "gold" : null));
       b.appendChild(grid);
-      const canHome = game.canReturnNow ? game.canReturnNow() : false;
-      const home = menuTile("home", canHome ? "街へ帰還する" : "帰還 ― まだ道は閉ざされている", canHome ? "集めた戦利品は持ち帰れる" : "帰還陣を見つけるか、迷宮の主を討つまで",
-        canHome ? go(() => game.confirmReturnToTown && game.confirmReturnToTown()) : null, canHome ? "gold" : null);
-      home.classList.add("wide");
-      b.appendChild(home);
-      b.appendChild(section("探索の手間を省く"));
+      if (combat) b.appendChild(section("戦闘の速さ"));
+      else b.appendChild(section("探索の手間を省く"));
       const tg = el("div", "dg-toggles grid");
-      for (const t of TOGGLES) tg.appendChild(toggleRow(t));
+      for (const t of combat ? COMBAT_TOGGLES : TOGGLES) tg.appendChild(toggleRow(t));
       b.appendChild(tg);
     },
-    footer: [{ label: "探索に戻る", kind: "primary", size: "lg", onTap: (s) => s.close() }],
+    footer: [{ label: combat ? "戦闘に戻る" : "探索に戻る", kind: "primary", size: "lg", onTap: (s) => s.close() }],
   });
   return h;
 }
@@ -411,29 +428,38 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
   });
 }
 
-// 敵の一枚: 種族・属性・残り体力・特徴とスキル (図鑑の記述)
+// 敵の一枚: 討伐数・属性・残り体力・特徴とスキル (図鑑の記述)
+// 姿は最初から見せ、ほかは倒した数に応じて段階的に明かす (MON_REVEAL / enemyReveal):
+// 1体 = 名前 / 5体 = 属性とHP / 10体 = 特徴・スキルと説明文
 export function peekEnemy(e) {
   if (!e) return null;
   const m = e.mon || MONSTERS[e.key] || {};
-  const elem = e.element && ELEMENTS[e.element] && e.element !== "none" ? ELEMENTS[e.element] : null;
+  const rv = enemyReveal(e);
+  const { special, kills } = rv;
+  const elem = rv.stats && e.element && ELEMENTS[e.element] && e.element !== "none" ? ELEMENTS[e.element] : null;
   let traits = [];
-  try { traits = monsterTraits(m) || []; } catch (er) { traits = []; }
+  if (rv.lore) { try { traits = monsterTraits(m) || []; } catch (er) { traits = []; } }
   return sheet.open({
     kind: "info", banner: e.boss ? "迷宮の主" : (m.elite ? "強敵" : "敵の姿"), className: "dg-sheet dg-enemy",
     accent: e.boss || m.elite ? "#d4504e" : (elem ? elem.color : null),
     art: m.art ? m : null, artScale: 4, float: isFloating(m, e.key),
-    title: e.name,
+    title: enemyLabel(e),
     body: (b) => {
-      // 名前の下は属性の印だけ (無属性なら出さない)
-      const et = elem && tagRow(["el:" + e.element], "dg-en-elem");
-      if (et) b.appendChild(et);
-      const hp = el("div", "dg-peek-bar wide");
-      hp.appendChild(el("span", "dg-peek-bl", "HP"));
-      hp.appendChild(bar(e.hp, e.maxhp, { tone: "hp" }));
-      hp.appendChild(el("span", "dg-peek-bv", `${Math.max(0, e.hp)}/${e.maxhp}`));
-      b.appendChild(hp);
-      const aff = affinityRow(e.element);
-      if (aff) b.appendChild(aff);
+      if (!special) b.appendChild(el("div", "dg-en-kills", `討伐数 ${kills}体`));
+      if (!rv.name) b.appendChild(revealLock(MON_REVEAL.name, "名前"));
+      if (rv.stats) {
+        // 名前の下は属性の印だけ (無属性なら出さない)
+        const et = elem && tagRow(["el:" + e.element], "dg-en-elem");
+        if (et) b.appendChild(et);
+        const hp = el("div", "dg-peek-bar wide");
+        hp.appendChild(el("span", "dg-peek-bl", "HP"));
+        hp.appendChild(bar(e.hp, e.maxhp, { tone: "hp" }));
+        hp.appendChild(el("span", "dg-peek-bv", `${Math.max(0, e.hp)}/${e.maxhp}`));
+        b.appendChild(hp);
+        const aff = affinityRow(e.element);
+        if (aff) b.appendChild(aff);
+      } else b.appendChild(revealLock(MON_REVEAL.stats, "属性・HP"));
+      if (!rv.lore) { b.appendChild(revealLock(MON_REVEAL.lore, "特徴・スキル・説明文")); return; }
       if (traits.length) {
         b.appendChild(section("特徴・スキル"));
         const tl = el("div", "dg-traits");

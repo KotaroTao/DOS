@@ -74,7 +74,7 @@ export const JOB_RANKS = {
   guardian:    [{ name: "城門衛士" }, { name: "守護騎士" }, { name: "城塞騎士" }, { name: "大城塞騎士" }, { name: "不落の城壁" }],
   spellblade:  [{ name: "魔剣の徒" }, { name: "魔法剣士" }, { name: "魔刃士" }, { name: "大魔剣士" }, { name: "魔剣聖" }],
   monk:        [{ name: "行者" }, { name: "武僧" }, { name: "大武僧" }, { name: "拳聖" }, { name: "金剛力士" }],
-  hexer:       [{ name: "呪い屋" }, { name: "呪術師" }, { name: "蠱毒師" }, { name: "大呪術師" }, { name: "禍津神" }],
+  hexer:       [{ name: "呪い屋" }, { name: "呪術師" }, { name: "毒呪師" }, { name: "大呪術師" }, { name: "禍津神" }],
   hermit:      [{ name: "庵主" }, { name: "隠修士" }, { name: "山隠れ" }, { name: "深山の隠者" }, { name: "霞の聖人" }],
   brigand:     [{ name: "小盗" }, { name: "義賊" }, { name: "侠盗" }, { name: "大侠盗" }, { name: "伝説の義賊" }],
   arcthief:    [{ name: "魔盗り" }, { name: "魔盗賊" }, { name: "幻影盗" }, { name: "宵闇の魔手" }, { name: "霧の大盗" }],
@@ -242,7 +242,7 @@ export const PASSIVES = {
   smite:         { label: "破邪",         scope: "self",  lv: ["不死・幽鬼・悪魔へのダメージ+30%"] },
   holyEdge:      { label: "聖刃",         scope: "self",  lv: ["不死・幽鬼・悪魔への会心率+15%"] },
   vitalEye:      { label: "急所読み",     scope: "self",  lv: ["会心ダメージ+25%", "会心ダメージ+45%"] },
-  gokudoku:      { label: "蠱毒",         scope: "self",  lv: ["毒状態の敵への与ダメージ+30%"] },
+  gokudoku:      { label: "毒責め",         scope: "self",  lv: ["毒状態の敵への与ダメージ+30%"] },
   sleepKill:     { label: "寝込み襲い",   scope: "self",  lv: ["睡眠・麻痺中の敵への攻撃が必ず会心"] },
   ambushCrit:    { label: "不意打ち",     scope: "self",  lv: ["先制時、最初の通常攻撃が必ず会心"] },
   kenma:         { label: "剣魔合一",     scope: "self",  lv: ["呪文を唱えた次の通常攻撃が必ず会心"] },
@@ -357,6 +357,7 @@ export function pLv(m, key) { return (m && m.passiveMap && m.passiveMap[key]) ||
 
 // ===== 職業スキル表 =====
 // 習得レベル: 1,3,5,7,10 のあと5刻みで200まで (全43段)。
+// さらに属性技 (JOB_ELEM_SKILLS) を 2,4,8,12,17,22… の段に織り込む (下の JOB_AFFINITY を参照)。
 // 表の各エントリは「技」 {lvl, skill} か「パッシブ」 {lvl, passive, plv} のいずれか。
 // 旧仕様の「ランク×10ゲート」は撤廃し、魂レベルが lvl 以上なら習得する。
 export const SKILL_LEVELS = (() => {
@@ -524,7 +525,7 @@ export const JOB_SKILLS = {
     { lvl: 70,  passive: "barrier", plv: 1 },         // 魔障壁Lv1
     { lvl: 75,  passive: "scan", plv: 1 },            // 弱点看破
     { lvl: 80,  skill: "SEISAI" },                    // 星砕
-    { lvl: 85,  skill: "RAITEI" },                    // 雷霆
+    { lvl: 85,  skill: "RAITEI" },                    // 雷鳴
     { lvl: 90,  passive: "reflect", plv: 1 },         // 魔力反射
     { lvl: 95,  skill: "HYORETSU" },                  // 氷烈
     { lvl: 100, skill: "ENBU" },                      // 炎舞
@@ -1183,6 +1184,108 @@ export const JOB_SKILLS = {
   ],
 };
 
+// ===== 得意属性と属性技の拡充 =====
+// 各職に「得意属性」(主・副) を定め、その属性の物理技/呪文 (combat.js の属性技) を上の表に織り込む。
+// 6属性それぞれに物理・呪文の両方の使い手がいるよう配分してある (魔導士・大魔導などは全属性の幅が持ち味)。
+// 習得Lvは既存の段 (1,3,5,7,10,15…) と重ならない 2,4,8,12,17,22… に置き、低Lvでも属性技を覚えられるようにする。
+// Lv40 は宿し技 (JOB_SIGNATURE) の段なので使わない。表に既にある技は二重に足さない。
+export const JOB_AFFINITY = {
+  fighter: ["fire", "earth"], knight: ["earth", "light"], priest: ["light"], mage: ["fire", "water", "wind", "earth", "dark"],
+  thief: ["wind", "dark"], bishop: ["water", "light"],
+  samurai: ["water", "wind"], berserker: ["fire", "dark"], hunter: ["wind", "water"], shadow: ["dark", "wind"],
+  paladin: ["light", "earth"], guardian: ["earth", "water"], spellblade: ["fire", "water", "wind", "earth", "light", "dark"],
+  monk: ["earth", "wind"], hexer: ["dark", "water"], hermit: ["wind", "light"], brigand: ["water", "dark"], arcthief: ["dark", "wind"],
+  crusader: ["light", "fire"], battlemage: ["fire", "earth"], darkknight: ["dark", "fire"], templar: ["light", "earth"],
+  exorcist: ["water", "light"], warden: ["earth", "water"], arcanist: ["dark"], inquisitor: ["fire", "light"],
+  archbishop: ["light", "water"], ascetic: ["earth", "fire"],
+  hero: ["wind", "light"], asura: ["fire", "wind"], dragonknight: ["wind", "fire"], necromancer: ["dark"],
+  sage: ["water", "wind"], cardinal: ["light"], archmage: ["dark", "earth"], chaplain: ["light", "water"],
+};
+// 職ごとに足す属性技 [習得Lv, 技キー]
+const JOB_ELEM_SKILLS = {
+  // 戦士: 火の剛剣 + 土
+  fighter:     [[2, "KAENGIRI"], [12, "IWAKUDAKI"], [22, "KAENNAGI"], [57, "GURENZAN"], [82, "GANOTOSHI"], [107, "GOUKADAN"], [162, "SHOUNETSURANBU"]],
+  // 騎士: 土の重撃 + 光
+  knight:      [[2, "IWAKUDAKI"], [12, "KOUJIN"], [22, "CHIRETSU"], [57, "GANOTOSHI"], [82, "SEIGEKI"], [107, "YAMAKUZUSHI"], [162, "DAICHIMEIDOU"]],
+  // 僧侶: 光の全体呪文
+  priest:      [[17, "HOLYLIGHT"]],
+  // 魔導士: 全属性の呪文 (土・闇も低Lvから)
+  mage:        [[4, "ISHITSUBUTE"], [8, "SHADOWBOLT"], [22, "AQUAWAVE"], [27, "WINDSTORM"], [32, "EARTHQUAKE"], [57, "DARKBLAST"], [72, "TORNADO"]],
+  // 盗賊: 風の連撃 + 闇
+  thief:       [[2, "SHIPPUUGIRI"], [12, "YAMIBA"], [22, "REPPUU"], [57, "FUUGA"], [107, "KAMIKAZE"], [162, "TENRAN"]],
+  // 司教: 水の呪文 + 光
+  bishop:      [[4, "HOLYRAY"], [22, "AQUAWAVE"], [47, "ICELANCE"], [132, "HYOUGA"], [172, "ZETTAIREIDO"]],
+  // 侍: 水の太刀 (水月) + 風
+  samurai:     [[2, "SUIGETSU"], [12, "SHIPPUUGIRI"], [22, "UZUSHIO"], [57, "HYOUJIN"], [82, "FUUGA"], [107, "TOUGADAN"], [162, "DAIKAISHOU"]],
+  // 狂戦士: 火の剛剣 + 闇 (狂気)
+  berserker:   [[2, "KAENGIRI"], [12, "YAMIBA"], [22, "KAENNAGI"], [57, "GURENZAN"], [82, "MEIJIN"], [107, "GOUKADAN"], [162, "SHOUNETSURANBU"]],
+  // 狩人: 風の射撃 + 水
+  hunter:      [[2, "SHIPPUUGIRI"], [12, "SUIGETSU"], [22, "REPPUU"], [57, "FUUGA"], [82, "HYOUJIN"], [162, "TENRAN"]],
+  // 暗殺者: 闇の刃 + 風
+  shadow:      [[2, "YAMIBA"], [12, "SHIPPUUGIRI"], [22, "KOKUEINAGI"], [57, "MEIJIN"], [107, "MEIFUZAN"], [162, "TOKOYAMI"]],
+  // 聖騎士: 光の剣 + 土
+  paladin:     [[2, "KOUJIN"], [12, "IWAKUDAKI"], [17, "HOLYLIGHT"], [22, "KOURINZAN"], [57, "SEIGEKI"], [107, "TENKOUKEN"]],
+  // 守護騎士: 土の怯ませ (守りの攻め) + 水
+  guardian:    [[2, "IWAKUDAKI"], [12, "SUIGETSU"], [22, "CHIRETSU"], [57, "GANOTOSHI"], [107, "YAMAKUZUSHI"], [162, "DAICHIMEIDOU"]],
+  // 魔法剣士: 六属性すべての魔法剣を低Lvで
+  spellblade:  [[2, "MAKEN_FIRE"], [4, "MAKEN_EARTH"], [8, "MAKEN_WIND"], [12, "MAKEN_WATER"], [17, "MAKEN_LIGHT"], [22, "MAKEN_DARK"], [57, "GURENZAN"], [82, "HYOUJIN"]],
+  // 武僧: 土の拳 + 風
+  monk:        [[2, "IWAKUDAKI"], [12, "SHIPPUUGIRI"], [22, "CHIRETSU"], [57, "GANOTOSHI"], [82, "FUUGA"], [107, "YAMAKUZUSHI"], [162, "DAICHIMEIDOU"]],
+  // 呪術師: 闇の呪文 + 水 (毒沼)
+  hexer:       [[2, "SHADOWBOLT"], [12, "AQUAWAVE"], [22, "DARKMIST"], [32, "DARKBLAST"], [62, "ICELANCE"], [72, "DARKNESS"], [122, "MEIKOKU"]],
+  // 隠修士: 風の呪文 (山風) + 光
+  hermit:      [[2, "KAMAITACHI"], [17, "HOLYLIGHT"], [22, "WINDSTORM"], [37, "RAITEI"], [72, "TORNADO"], [142, "GOURAI"], [172, "RAIMEIRAN"]],
+  // 義賊: 水の身のこなし + 闇
+  brigand:     [[2, "SUIGETSU"], [12, "YAMIBA"], [22, "UZUSHIO"], [57, "HYOUJIN"], [107, "TOUGADAN"], [162, "DAIKAISHOU"]],
+  // 魔盗賊: 闇の呪撃と魔法剣 + 風
+  arcthief:    [[2, "MAKEN_DARK"], [4, "SHADOWBOLT"], [12, "SHIPPUUGIRI"], [32, "DARKBLAST"], [57, "MEIJIN"], [72, "DARKNESS"], [122, "MEIKOKU"]],
+  // 聖戦士: 光の剣 + 火 (聖戦の炎)
+  crusader:    [[2, "KOUJIN"], [12, "KAENGIRI"], [22, "KOURINZAN"], [57, "SEIGEKI"], [82, "GURENZAN"], [107, "TENKOUKEN"], [162, "KOUBOURANBU"]],
+  // 魔闘士: 火の拳 + 土 (拳と法力)
+  battlemage:  [[2, "KAENGIRI"], [8, "ISHITSUBUTE"], [12, "IWAKUDAKI"], [22, "KAENNAGI"], [32, "EARTHQUAKE"], [57, "GURENZAN"], [82, "GANOTOSHI"], [122, "GOUKADAN"]],
+  // 魔騎士: 闇の剣と呪文 + 火
+  darkknight:  [[2, "YAMIBA"], [12, "SHADOWBOLT"], [22, "KOKUEINAGI"], [32, "DARKBLAST"], [57, "MEIJIN"], [107, "MEIFUZAN"], [162, "TOKOYAMI"]],
+  // 神殿騎士: 光の剣 + 土 (礎石)
+  templar:     [[2, "KOUJIN"], [12, "IWAKUDAKI"], [17, "HOLYLIGHT"], [57, "SEIGEKI"], [82, "GANOTOSHI"], [162, "KOUBOURANBU"]],
+  // 祓魔師: 水の禊 + 光
+  exorcist:    [[2, "SUIGETSU"], [12, "KOUJIN"], [22, "UZUSHIO"], [57, "HYOUJIN"], [82, "SEIGEKI"], [107, "TOUGADAN"], [162, "DAIKAISHOU"]],
+  // 護法師: 土の呪文 + 水
+  warden:      [[2, "ISHITSUBUTE"], [12, "AQUAWAVE"], [22, "EARTHQUAKE"], [47, "ICELANCE"], [62, "LANDSLIDE"], [102, "DAICHIWARI"], [172, "GANSAI"]],
+  // 秘術師: 闇の秘呪
+  arcanist:    [[2, "SHADOWBOLT"], [22, "DARKMIST"], [47, "DARKBLAST"], [72, "DARKNESS"], [112, "MEIKOKU"], [172, "MEIANRAN"]],
+  // 審問官: 火刑の炎 + 光
+  inquisitor:  [[2, "KAENGIRI"], [12, "HALITO"], [22, "KAENNAGI"], [32, "MAHALITO"], [57, "GURENZAN"], [107, "GOUKADAN"], [162, "SHOUNETSURANBU"]],
+  // 大司教: 光 + 水 (聖水)
+  archbishop:  [[12, "ICENEEDLE"], [17, "HOLYLIGHT"], [62, "ICELANCE"]],
+  // 修験者: 土 (山岳) + 火 (護摩)
+  ascetic:     [[2, "IWAKUDAKI"], [8, "ISHITSUBUTE"], [12, "HALITO"], [22, "CHIRETSU"], [32, "EARTHQUAKE"], [57, "GANOTOSHI"], [82, "GURENZAN"], [107, "YAMAKUZUSHI"]],
+  // 勇者: 風 (雷) + 光
+  hero:        [[2, "SHIPPUUGIRI"], [12, "KOUJIN"], [22, "REPPUU"], [37, "RAITEI"], [57, "FUUGA"], [107, "KAMIKAZE"], [142, "GOURAI"]],
+  // 修羅: 火 + 風
+  asura:       [[2, "KAENGIRI"], [12, "SHIPPUUGIRI"], [22, "KAENNAGI"], [57, "GURENZAN"], [82, "FUUGA"], [107, "GOUKADAN"], [162, "SHOUNETSURANBU"]],
+  // 竜騎士: 風 (飛竜) + 火 (竜炎)
+  dragonknight:[[2, "SHIPPUUGIRI"], [12, "KAENGIRI"], [22, "REPPUU"], [57, "FUUGA"], [82, "GURENZAN"], [107, "KAMIKAZE"], [162, "TENRAN"]],
+  // 死霊術師: 闇の呪文
+  necromancer: [[2, "SHADOWBOLT"], [22, "DARKMIST"], [32, "DARKBLAST"], [72, "DARKNESS"], [117, "MEIKOKU"], [172, "MEIANRAN"]],
+  // 賢者: 水 + 風
+  sage:        [[2, "KAMAITACHI"], [22, "AQUAWAVE"], [27, "WINDSTORM"], [47, "ICELANCE"], [72, "TORNADO"], [92, "RAITEI"], [142, "GOURAI"]],
+  // 枢機卿: 光の全体呪文
+  cardinal:    [[17, "HOLYLIGHT"]],
+  // 大魔導: 闇 + 土 (隕石)
+  archmage:    [[4, "SHADOWBOLT"], [8, "ISHITSUBUTE"], [22, "EARTHQUAKE"], [47, "DARKBLAST"], [62, "LANDSLIDE"], [112, "MEIKOKU"], [172, "GANSAI"], [177, "MEIANRAN"]],
+  // 護教官: 光 + 水
+  chaplain:    [[2, "KOUJIN"], [12, "SUIGETSU"], [17, "HOLYLIGHT"], [57, "SEIGEKI"], [82, "HYOUJIN"], [107, "TENKOUKEN"]],
+};
+for (const k in JOB_ELEM_SKILLS) {
+  const tbl = JOB_SKILLS[k];
+  if (!tbl) continue;
+  for (const [lvl, skill] of JOB_ELEM_SKILLS[k]) {
+    if (lvl === 40 || tbl.some((e) => e.skill === skill)) continue;
+    tbl.push({ lvl, skill });
+  }
+  tbl.sort((a, b) => a.lvl - b.lvl); // 安定ソート: 同Lvは元の並びを保つ
+}
+
 export function jobSkillTable(jobKey) { return JOB_SKILLS[jobKey] || []; }
 
 // ===== 鑑定スキル (ウィザードリィ風) =====
@@ -1234,7 +1337,7 @@ export const JOB_LORE = {
   guardian:    { desc: "難攻不落の城壁のごとき守護騎士の魂。攻めの手は持たず、守ることに特化する。", tips: "城壁の構えでパーティ全体の被ダメを減らし、反撃でわずかに返す。とにかく耐える前衛。" },
   spellblade:  { desc: "刃と呪文を同時に使いこなす魔法剣士の魂。どちらも半端ではない。", tips: "ATKとINTを両方育てて魔力撃の効果を最大化する。剣魔合一で会心をコントロール。" },
   monk:        { desc: "拳と祈りで戦い、己の道を極めた武僧の魂。打ち合うほど祈りが深まる。", tips: "回復もこなせる前衛。金剛連打で手数を稼ぎ、破邪で対魔戦に強い。" },
-  hexer:       { desc: "毒と呪いを武器にする呪術師の魂。倒さず、蝕み、弱らせることを是とする。", tips: "毒霧で全体を蝕み、蠱毒で毒の敵への火力を伸ばす。硬い敵ほど毒が活きる。" },
+  hexer:       { desc: "毒と呪いを武器にする呪術師の魂。倒さず、蝕み、弱らせることを是とする。", tips: "毒霧で全体を蝕み、毒責めで毒の敵への火力を伸ばす。硬い敵ほど毒が活きる。" },
   hermit:      { desc: "俗世を離れ、山奥で自らを鍛えた隠修士の魂。いざとなれば癒しも逃げ足も速い。", tips: "回復と隠行の両方を持つ低リスクの後衛。毒床耐性で危険地帯の踏破向き。" },
   brigand:     { desc: "盗むことで生計を立てながら、弱者に施していた義賊の魂。奪い続けることが強さ。", tips: "金運と追い剥ぎで稼ぎを2倍以上に。戦闘後の実入りを重視したい欲張りな選択。" },
   arcthief:    { desc: "呪文を盗むように操る魔盗賊の魂。先手の呪撃でパーティの負担を減らす。", tips: "開幕呪撃で無消費の先手を取り、魔力強奪でMPを補いながら戦う持久型の術士。" },
@@ -1477,6 +1580,40 @@ export function makeDoll(name) {
     items: [], ailment: null, spells: [], passives: [], alive: true, side: "party",
   };
 }
+
+// ===== スキルの並び・戦闘での表示 (隊の「能力」画面で整理する) =====
+// 人業ごとに doll.skillOrder (並べた順の技キー) と doll.skillOff (戦闘で出さない技キー) を持つ (セーブ対象)。
+// 覚えている技 (doll.spells = 魂・宿し技から recalcDoll が組む) が正で、ここに無い技の設定は無視する。
+// 並べ替えた後に覚えた技は末尾に並ぶ。
+export function orderedSkills(d) {
+  const sp = (d && d.spells) || [];
+  const ord = (d && Array.isArray(d.skillOrder)) ? d.skillOrder : null;
+  if (!ord || !ord.length) return sp.slice();
+  const have = new Set(sp);
+  const out = [];
+  for (const k of ord) if (have.has(k) && !out.includes(k)) out.push(k);
+  for (const k of sp) if (!out.includes(k)) out.push(k);
+  return out;
+}
+export function isSkillOff(d, key) { return !!(d && Array.isArray(d.skillOff) && d.skillOff.includes(key)); }
+// 戦闘のスキル一覧に出す技 (並べた順・オフの技を除く)
+export function battleSkills(d) { return orderedSkills(d).filter((k) => !isSkillOff(d, k)); }
+export function setSkillOff(d, key, off) {
+  if (!d) return;
+  const cur = Array.isArray(d.skillOff) ? d.skillOff.filter((k) => k !== key) : [];
+  if (off) cur.push(key);
+  d.skillOff = cur;
+}
+// 技を1つ前 (dir=-1) / 後ろ (dir=+1) へ。動けば true
+export function moveSkill(d, key, dir) {
+  const list = orderedSkills(d);
+  const i = list.indexOf(key), j = i + dir;
+  if (i < 0 || j < 0 || j >= list.length) return false;
+  [list[i], list[j]] = [list[j], list[i]];
+  d.skillOrder = list;
+  return true;
+}
+export function resetSkillPrefs(d) { if (d) { d.skillOrder = []; d.skillOff = []; } }
 
 // 同じ職業の魂を吸収するたびに伸びる魂レベル上限の増分 (レア度別)。
 // コモン+1 / レア+2 / エピック+5 / レジェンド+10 (吸収数が少なくて済む高レア度ほど1個の伸びが大きい)
@@ -2470,7 +2607,7 @@ function imageJobSprite(key, r) {
 // 職業の胸像 (肖像の小さな額・一覧の札用)。原画のある職は顔を中心に正方形で切り出す。
 // 原画の無い職は従来の 12×12 の小さな全身像 (それ自体が額に収まる大きさ) をそのまま返す
 const BUST = 36;
-// 原画は職ごとに描かれた縮尺が違い、顔のドット数が揃わない (盗賊は大きく、呪術師・隠修士は小さい)。
+// 原画は職ごとに描かれた縮尺が違い、顔のドット数が揃わない (盗賊は大きく、呪術師・隠修士・魔盗賊は小さい)。
 // 戦士の顔を基準として、職ごとに切り出す正方形を BUST × zoom にし、BUST 角へ縮め/伸ばして、
 // どの職も額の中の顔が同じ大きさに見えるようにする。zoom > 1 = 顔が大きく描かれた職 (広く切って縮める) /
 // zoom < 1 = 顔が小さい職 (狭く切って伸ばす)。dx/dy = 切り出しの中心を face からずらすドット数 (顔の真ん中へ寄せる)
@@ -2478,6 +2615,11 @@ export const BUST_FIT = {
   thief: { zoom: 1.2 },
   hermit: { zoom: 0.8, dy: -4 },
   hexer: { zoom: 0.65, dx: 2, dy: -7 },
+  arcthief: { zoom: 0.8, dy: -1 },
+  crusader: { zoom: 1.1, dy: -2 },
+  brigand: { zoom: 1.1, dy: 3 },
+  battlemage: { zoom: 1.2, dx: 1, dy: 1 },
+  darkknight: { zoom: 1.25, dy: 4 },
 };
 const _bustCache = {};
 export function jobBust(jobKey, rank = 2) {

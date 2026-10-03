@@ -5,7 +5,7 @@
 import { BESTIARY, ELITE_ORDER as EO, LAYER_ELITES as LE, LAYER_BOSS as LB } from "./bestiary.js";
 import { DUNGEONS as GENERATED } from "./generator.js";
 
-export { MON_RACES, RACE_LABEL, ELEMENTS, elemMult, elemBeats, elemDmgMult, TRAITS, monsterTraitKeys, monsterTraits, isFloating } from "./schema.js";
+export { MON_RACES, RACE_LABEL, ELEMENTS, elemMult, elemBeats, elemDmgMult, resistRate, RESIST_RATE, RESIST_TAG, TRAITS, monsterTraitKeys, monsterTraits, isFloating } from "./schema.js";
 export { layerOf, LAYER_COUNT } from "./generator.js";
 
 // 全ダンジョン設定 (並び順 = ゲーム内の解放順)

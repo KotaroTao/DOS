@@ -20,6 +20,10 @@ import { RARITIES, rarityKey } from "../rarity.js";
 const G = () => game.G || {};
 const sfx = (k, ...a) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](...a); } catch (e) { /* 音は演出のみ */ } };
 const buzz = (p) => { try { if (game.buzz) game.buzz(p); } catch (e) { /* noop */ } };
+// 正体をまだ知らない品か (鑑定の前に聞く。初めて知ったら「初ゲット！」)
+const isFirst = (it) => !!(it && it.id && game.itemKnown && !game.itemKnown(it.id));
+const FIRST_LABEL = "初ゲット！";
+const firstBadge = (cls = "") => el("span", "first-get" + (cls ? " " + cls : ""), FIRST_LABEL);
 const allDolls = () => { try { return game.allDolls ? game.allDolls() : [...(G().party || []), ...(G().reserve || [])]; } catch (e) { return []; } };
 const RAR_ORDER = { c: 0, uc: 1, r: 2, sr: 3, lr: 4 };
 const DOT = "．";
@@ -173,8 +177,10 @@ export function openTryIdentifyAll({ onDone } = {}) {
 
   // 判定して結果を見せる
   const reveal = (t) => {
+    const fresh = isFirst(t.item);
     const ok = game.doIdentifySkill ? !!game.doIdentifySkill(t.best.m, t.item, { quiet: true }) : false;
-    results.push({ item: t.item, doll: t.doll, m: t.best.m, ok });
+    const first = ok && fresh;
+    results.push({ item: t.item, doll: t.doll, m: t.best.m, ok, first });
     const it = t.item;
     if (ok) {
       it.isNew = true;
@@ -183,6 +189,7 @@ export function openTryIdentifyAll({ onDone } = {}) {
       paintName(it);
       msg.className = "ap-msg ok";
       msg.textContent = "鑑定成功！";
+      if (first) msg.appendChild(firstBadge("ap-first"));
       const rk = rarityKey(it);
       const big = rk === "sr" || rk === "lr";
       sfx("appraiseOk");
@@ -206,17 +213,19 @@ export function openTryIdentifyAll({ onDone } = {}) {
     }
     idx++;
     setProg(); drawTally();
-    // 成功: 一拍おいて図鑑と同じ品の画面 (「鑑定成功した！」つき) を重ねる。閉じたら次の品へ
-    advance = ok && UI.codexItemSheet ? () => openDetail(it) : () => step();
-    timer = setTimeout(() => { const f = advance; advance = null; if (f) f(); }, ok ? (UI.codexItemSheet ? T().okBeat : T().okHold) : T().ngHold);
+    // 初ゲットの成功だけ: 一拍おいて図鑑と同じ品の画面 (「鑑定成功した！」つき) を重ねる。閉じたら次の品へ
+    // (入手したことのある品は画面を出さず、少し見せてそのまま次の品へ)
+    const pop = first && !!UI.codexItemSheet;
+    advance = pop ? () => openDetail(it, first) : () => step();
+    timer = setTimeout(() => { const f = advance; advance = null; if (f) f(); }, ok ? (pop ? T().okBeat : T().okHold) : T().ngHold);
   };
 
   // 鑑定に成功した品の詳細 (能力・説明文)。「次へ」で続ける / 「早送り」で残りを一度に
-  const openDetail = (it) => {
+  const openDetail = (it, first) => {
     if (finished || (h && h.closed)) return;
     const more = list.slice(idx).some((x) => x.item.unidentified && !x.item.idHardFail && ownerOf(x.item));
     const ds = UI.codexItemSheet(it.id, {
-      item: it, heading: "鑑定成功した！", headingColor: "#7fd0ff",
+      item: it, heading: "鑑定成功した！", headingColor: "#7fd0ff", badge: first ? FIRST_LABEL : null,
       footer: [
         ...(more ? [{ label: "早送り", sub: "残りを一度に判定", kind: "ghost", onTap: (x) => x.close("ff") }] : []),
         { label: more ? "次へ" : "結果を見る", kind: "primary", onTap: (x) => x.close("next") },
@@ -236,9 +245,10 @@ export function openTryIdentifyAll({ onDone } = {}) {
       const t = list[idx];
       if (!t.item.unidentified || t.item.idHardFail || !ownerOf(t.item)) continue;
       const b = bestFor(t.item, alive.length ? alive : men);
+      const fresh = isFirst(t.item);
       const ok = game.doIdentifySkill ? !!game.doIdentifySkill(b.m, t.item, { quiet: true }) : false;
       if (ok) t.item.isNew = true;
-      results.push({ item: t.item, doll: t.doll, m: b.m, ok });
+      results.push({ item: t.item, doll: t.doll, m: b.m, ok, first: ok && fresh });
     }
     sfx(results.some((r) => r.ok) ? "appraiseOk" : "appraiseNg");
     finish();
@@ -288,7 +298,12 @@ export function openTryIdentifyAll({ onDone } = {}) {
       ic.appendChild(spriteCanvas(it, 3));
       main.appendChild(ic);
       const tx = el("span", "wpc-prow-t");
-      tx.appendChild(nameSpan(it, "wpc-prow-title"));
+      if (r.first) {
+        const nm = el("span", "ap-sum-name");
+        nm.appendChild(nameSpan(it, "wpc-prow-title"));
+        nm.appendChild(firstBadge());
+        tx.appendChild(nm);
+      } else tx.appendChild(nameSpan(it, "wpc-prow-title"));
       const sub = el("span", "wpc-prow-sub");
       const plan = isEquippable(it) ? wearPlan(it, { owner: o.doll }) : null;
       const up = plan && plan.target && plan.delta && plan.score > 0;

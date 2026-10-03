@@ -1,17 +1,17 @@
-// ===== 街の施設 — 酒場・赤い魂の祠 (頁) / 宿屋 (シート) / 番人のささやき / 通貨の説明 / 共通の小部品 =====
-// 担当: WP-A。酒場と祠は街タブの1段下の頁 (ヘッダの ‹ で街へ戻る)。宿屋は街の札から1タップで泊まり、詳細はシート。
-// 画面は1枚に収める (頁そのものは縦にスクロールさせない)。長い一覧は「‹ 1/3 ›」でめくる (pagedGrid)。
+// ===== 街の施設 — 酒場・赤い魂の祠 (ページ) / 宿屋 (シート) / 番人のささやき / 通貨の説明 / 共通の小部品 =====
+// 担当: WP-A。酒場と祠は街タブの1段下のページ (ヘッダの ‹ で街へ戻る)。宿屋は街の札から1タップで泊まり、詳細はシート。
+// 画面は1枚に収める (ページそのものは縦にスクロールさせない)。長い一覧は「‹ 1/3 ›」でめくる (pagedGrid)。
 // 番人は見出しの下の1行 (胸像の小窓 + ひとこと。タップで胸像のシート)。その街滞在で初めて訪れた時だけ、
 // その行が大きな胸像と吹き出しになって挨拶する (次に描き直す時は1行に畳む)。
 // 品 (納品の依頼・宝物庫・図鑑) を選ぶと、持っている品は UI.itemSheet (WP-C) でその場で装備・譲渡できる。
-// 提供: UI.keeperWhisper(key) / UI.keeperSheet(key) / UI.currencySheet(kind) / UI.openInn() / 頁 "tavern" "shrine"
+// 提供: UI.keeperWhisper(key) / UI.keeperSheet(key) / UI.currencySheet(kind) / UI.openInn() / ページ "tavern" "shrine"
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
 import { UI, game, ops, registerUI } from "./ctx.js";
-import { el, setText, glyph, svgIcon, sheet, button, whisper, itemTile, portrait, bar, toast } from "./kit.js";
+import { el, setText, glyph, svgIcon, sheet, button, whisper, itemTile, portrait, bar, toast, confirm } from "./kit.js";
 import { getPref, setPref } from "./prefs.js";
 import { keeperCanvas, vignetteCanvas } from "../townart.js";
-import { ITEMS, SLOT_LABEL } from "../items.js";
+import { ITEMS } from "../items.js";
 import { SFX } from "../audio.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
@@ -47,8 +47,12 @@ export function facilityOpen(key) {
 export function lockedToast() { sfx("ng"); toast("王命を果たすまで閉ざされている", { tone: "info" }); }
 
 // 1画面に収まる行数ぶんずつ見せる格子 (‹ 1/3 ›)。area は DOM に繋がった、残りの高さを占める箱 (flex:1)。
-// 横に払ってもめくれる。めくった頁は key ごとに覚える (この起動の間)
+// 横に払ってもめくれる。めくったページは key ごとに覚える (この起動の間)
 const pageMemo = {};
+// めくる格子の位置を忘れる (prefix で始まる key / 省略ですべて)。画面・区分・分類に入り直したら 1ページ目から
+export function resetPages(prefixes = null) {
+  for (const k of Object.keys(pageMemo)) if (!prefixes || prefixes.some((p) => k.startsWith(p))) delete pageMemo[k];
+}
 export function pagedGrid(area, items, makeCell, { cols = 3, cellH = 104, gap = 8, key = "", empty = null } = {}) {
   area.textContent = "";
   area.classList.add("wa-parea");
@@ -81,11 +85,11 @@ export function pagedGrid(area, items, makeCell, { cols = 3, cellH = 104, gap = 
     pager = el("div", "wa-pager");
     prev = el("button", "wa-pg-b");
     prev.type = "button";
-    prev.setAttribute("aria-label", "前の頁");
+    prev.setAttribute("aria-label", "前のページ");
     prev.appendChild(svgIcon("back", "wa-pg-ic"));
     next = el("button", "wa-pg-b");
     next.type = "button";
-    next.setAttribute("aria-label", "次の頁");
+    next.setAttribute("aria-label", "次のページ");
     next.appendChild(svgIcon("chevron", "wa-pg-ic"));
     label = el("span", "wa-pg-l");
     prev.addEventListener("click", () => { if (page > 0) { page--; sfx("select"); draw(); } });
@@ -119,9 +123,9 @@ export function findOwned(itemId) {
   }
   return null;
 }
-export function openItem(itemId, { instance = null, owner = null } = {}) {
+export function openItem(itemId, { instance = null, owner = null, context = "bag" } = {}) {
   sfx("select");
-  const own = instance && owner ? { doll: owner, item: instance, index: (owner.items || []).indexOf(instance), context: "bag" } : findOwned(itemId);
+  const own = instance && owner ? { doll: owner, item: instance, index: (owner.items || []).indexOf(instance), context } : findOwned(itemId);
   if (own && UI.itemSheet) return UI.itemSheet(own.item, { owner: own.doll, context: own.context, index: own.index, slot: own.slot });
   if (UI.codexItemSheet) return UI.codexItemSheet(itemId);
   return null;
@@ -199,9 +203,9 @@ export function keeperRow(key) {
 
 // ---------- 通貨の説明 (ヘッダの通貨の札をタップ) ----------
 const CUR = {
-  gold: { name: "金貨", key: "gold", desc: ["宿賃・鑑定・装備の売買に使う。", "迷宮の宝箱・戦闘・品の売却で手に入る。"] },
+  gold: { name: "金貨", key: "gold", desc: ["宿屋・鑑定・装備の売買などに使う。", "迷宮の宝箱・戦闘・アイテム売却などで手に入る。"] },
   soul: { name: "✦Soul", key: "soulPts", desc: ["魂を強化するための力。人業ではなく魂に刻まれる。", "迷宮で敵を倒すと得られ、全滅しても失われない。"] },
-  red: { name: "赤い魂", key: "redSoul", desc: ["人業の器を仕立てる、砕けた人業の帰還を早める、全滅の時に戦利品を守る——に使う。", "赤い魂の祠で授かる。"] },
+  red: { name: "赤い魂", key: "redSoul", desc: ["人業の器を仕立てる、全滅で迷宮に残された人業の連れ帰りを早める、全滅の時に戦利品を守る——に使う。", "赤い魂の祠で授かる。"] },
   ember: { name: "魂の残火", key: "embers", desc: ["魂のLv上限を1つ上げる。", "あたたかい死体の魂を回収すると得ることがある。"] },
 };
 export function currencySheet(kind) {
@@ -313,7 +317,44 @@ export function openInn() {
   return innSheet;
 }
 
-// ---------- 酒場 (頁) ----------
+// ---------- 納品依頼の札 (酒場と街の広場で共用) ----------
+// 品の札をタップ = 品の詳細 (持っていれば装備・譲渡)。手持ちがあれば「納品する」、
+// 無くても商会の棚にあれば「買って納品」(確認のシート1枚) でその場で納められる。
+// 納品依頼を1タップで進める: 手持ちがあれば納品 / 商会で買えるなら確認のシート1枚を経て買って納品 / どちらも無ければ品の詳細
+export async function runDelivery(q) {
+  const it = q && ITEMS[q.itemId];
+  if (!it) return;
+  const st = game.deliveryStatus ? game.deliveryStatus(q) : null;
+  sfx("select");
+  if (st && st.holder) return game.deliverQuest(q);
+  if (st && st.canBuy) {
+    const gold = G().gold;
+    const ok = await confirm({ banner: "買って納品", title: `「${it.name}」を買って納める`, danger: false, okLabel: `💰${st.price} で買って納品`,
+      lines: [`商会の棚から 💰${st.price} で買い求め、そのまま納品します。`, `所持金 💰${gold} → 💰${gold - st.price}`] });
+    if (ok) game.deliverQuest(q, { buy: true });
+    return;
+  }
+  openItem(q.itemId);
+}
+export function deliveryCard(q, { compact = false } = {}) {
+  const it = ITEMS[q.itemId];
+  const st = (game.deliveryStatus && game.deliveryStatus(q)) || { holder: null, inShop: false, price: 0, canBuy: false };
+  const card = el("div", "fc-quest" + (compact ? " compact" : "") + (st.holder || st.canBuy ? " ready" : ""));
+  card.appendChild(itemTile(it, { size: compact ? 40 : 56, onTap: () => openItem(q.itemId) }));
+  const info = el("div", "fc-quest-i");
+  info.appendChild(game.itemNameEl ? game.itemNameEl("div", "fc-quest-n", it) : el("div", "fc-quest-n", it.name));
+  let hint;
+  if (st.holder) hint = `手持ちにあり — ${st.holder.name}`;
+  else if (st.inShop) hint = st.canBuy ? "商会に並んでいる" : "商会に並んでいる — お金が足りない";
+  else hint = "まだ手元にない";
+  info.appendChild(el("div", "fc-quest-h" + (st.holder || st.canBuy ? " ok" : ""), hint));
+  card.appendChild(info);
+  if (st.holder) card.appendChild(button({ label: "納品する", kind: "primary", size: "sm", onTap: () => runDelivery(q) }));
+  else if (st.canBuy) card.appendChild(button({ label: "買って納品", kind: "primary", size: "sm", cost: { kind: "gold", n: st.price }, onTap: () => runDelivery(q) }));
+  return card;
+}
+
+// ---------- 酒場 (ページ) ----------
 function renderTavern(root) {
   if (legacyJumped()) return;
   const g = G();
@@ -322,29 +363,12 @@ function renderTavern(root) {
   const kr = keeperRow("tavern");
   if (kr) wrap.appendChild(kr);
 
-  // 1) 納品依頼: 求められた品を納めると、品の格に応じた職業の魂を授かる。品の札をタップ = 品の詳細 (持っていれば装備・譲渡)
+  // 1) 納品依頼: 求められた品を納めると職業の魂を授かる (札は deliveryCard。街の広場にも同じ札が並ぶ)
   if (game.ensureDeliveryQuests) game.ensureDeliveryQuests();
   const qs = (g.deliveryQuests || []).filter((q) => q && ITEMS[q.itemId]);
   wrap.appendChild(sectionHead("納品依頼", { note: qs.length ? `${qs.length}件・潜るたびに入れ替わる` : null }));
   const dl = el("div", "fc-quests");
-  for (const q of qs) {
-    const it = ITEMS[q.itemId];
-    const r20 = it.r20 || 1;
-    const holder = game.deliveryHolder ? game.deliveryHolder(q.itemId) : null;
-    const inShop = !!(g.shopStock && g.shopStock[q.itemId] > 0);
-    const card = el("div", "fc-quest" + (holder ? " ready" : ""));
-    card.appendChild(itemTile(it, { size: 56, onTap: () => openItem(q.itemId) }));
-    const info = el("div", "fc-quest-i");
-    const nm = game.itemNameEl ? game.itemNameEl("div", "fc-quest-n", it) : el("div", "fc-quest-n", it.name);
-    info.appendChild(nm);
-    const rn = game.itemRankName ? game.itemRankName(it) : null;
-    info.appendChild(el("div", "fc-quest-c", `${SLOT_LABEL[it.slot] || it.slot || ""}${rn ? " ・ " + rn : ""} ・ 格 R${r20}`));
-    info.appendChild(el("div", "fc-quest-r", "褒賞: " + (game.deliveryRewardDesc ? game.deliveryRewardDesc(r20) : "")));
-    info.appendChild(el("div", "fc-quest-h" + (holder ? " ok" : ""), holder ? `手持ちにあり — ${holder.name}` : inShop ? "商会に並んでいる" : "まだ手元にない"));
-    card.appendChild(info);
-    if (holder) card.appendChild(button({ label: "納品する", kind: "primary", size: "sm", onTap: () => { sfx("select"); game.deliverQuest(q); } }));
-    dl.appendChild(card);
-  }
+  for (const q of qs) dl.appendChild(deliveryCard(q));
   if (!qs.length) dl.appendChild(el("div", "wa-empty", "今は納品依頼がない。迷宮に潜れば、新たな品が求められる。"));
   wrap.appendChild(dl);
 
@@ -387,7 +411,7 @@ function renderTavern(root) {
   }, { cols: 1, cellH: 104, gap: 6, key: "crowd" });
 }
 
-// ---------- 赤い魂の祠 (頁) ----------
+// ---------- 赤い魂の祠 (ページ) ----------
 function renderShrine(root) {
   if (legacyJumped()) return;
   const g = G();
@@ -443,12 +467,12 @@ function renderShrine(root) {
   const uses = el("div", "fc-uses wa-scroll");
   const use = (t, s) => { const r = el("div", "fc-use"); r.appendChild(el("i", "wa-dia")); const tx = el("div"); tx.appendChild(setText(el("div", "fc-use-t"), t)); tx.appendChild(setText(el("div", "fc-use-s"), s)); r.appendChild(tx); uses.appendChild(r); };
   use("人業の器を仕立てる", "人業の館で (最初の3体は無料)");
-  use("砕けた人業を早く連れ帰る", "🔴1 で帰還までの時間を 20 分縮める");
+  use("迷宮に残された人業を早く連れ帰る", "全滅の時。🔴1 で連れ帰りまでの時間を 20 分縮める");
   use("全滅の時に戦利品を守る", `🔴${game.GUARDIAN_COST || 20} で拾った品を失わずに帰還する`);
   wrap.appendChild(uses);
 }
 
-// 頁を開いたまま旧来の入口 (G.town.facility = …) へ跳ばされた時は、頁を閉じてそちらを描く
+// ページを開いたまま旧来の入口 (G.town.facility = …) へ跳ばされた時は、ページを閉じてそちらを描く
 function legacyJumped() {
   const t = G() && G().town;
   if (!t || !t.facility) return false;

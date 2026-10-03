@@ -27,7 +27,10 @@ import {
   planBestEquip, applyPlan, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip,
 } from "../autoequip.js";
 import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName } from "../items.js";
-import { SOUL_CLASSES, JOB_GEAR, dollSprite, dollBust, jobBust, jobSprite, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulSeriesName, soulByUid } from "../souls.js";
+import {
+  SOUL_CLASSES, JOB_GEAR, dollSprite, dollBust, jobBust, jobSprite, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulSeriesName, soulByUid,
+  orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs,
+} from "../souls.js";
 import { SPELLS, spellCost } from "../combat.js";
 import { spriteCanvas, crispCanvas } from "../sprites.js";
 import { rarityKey, RARITIES } from "../rarity.js";
@@ -43,7 +46,8 @@ let intent = null;        // 次の描画で行うこと ({reserve:true} / {seg}
 let sheetH = null;        // 迷宮の隊シート
 let dunSeg = null;        // 迷宮の隊シートで表示中の区分 (開くたび「装備」から。街の隊タブの記憶とは別)
 let statOpen = null;      // 能力の説明を開いている能力キー
-let resPage = 0;          // 控えのシートの頁
+let resPage = 0;          // 控えのシートのページ
+let pendingOpen = false;  // UI.openParty で人業・区分を指定して館へ入るときの印 (タブから入るときは既定へ戻す)
 let phase0ItemSheet = null; // Phase 0 の品シートのスタブ (WP-C の本物が来るまでは自前の品の画面を使う)
 
 const SEGS = [{ key: "equip", label: "装備" }, { key: "soul", label: "魂" }, { key: "stats", label: "能力" }];
@@ -580,6 +584,7 @@ export function refresh() {
 // 街の「隊」タブ。api.entered = 他のタブ・迷宮から館に入ってきた描画 (同じタブの描き直しでは false)
 function renderTab(root, api) {
   const entered = !!(api && api.entered);
+  if (entered && !pendingOpen) resetView();
   if (entered) onEnterMansion();
   const wrap = el("div", "pt-root m-town");
   renderView(wrap, "town");
@@ -620,7 +625,7 @@ function renderView(root, mode) {
   else statsSeg(body, d, mode);
   root.appendChild(body);
   if (mode === "town") {
-    autoPage(body); // 縦スクロールの代わりに頁送り (収まれば出ない)
+    autoPage(body); // 縦スクロールの代わりにページ送り (収まれば出ない)
     root.classList.add("has-keeper");
     root.appendChild(keeperPanel());
   }
@@ -636,6 +641,15 @@ let greetTimer = null;
 function onEnterMansion() {
   noteVisit();
   curLine = isGreeted() ? nextLine({ entry: true }) : null;
+}
+// 館は前回の位置を覚えない: 入るたびに一番左 (隊の先頭) の人業の「装備」から
+function resetView() {
+  const G = G_();
+  selDoll = (G && G.party && G.party[0]) || allDolls()[0] || null;
+  picked = null;
+  statOpen = null;
+  setPref("partyIdx", 0);
+  remember("seg", "party", "equip");
 }
 function scheduleGreeting() {
   if (greetTimer) return;
@@ -715,42 +729,69 @@ function emptyState() {
   return box;
 }
 
-// ---- 砕けた人業の知らせ + 今すぐ連れ帰る (1行) ----
+// ---- 砕けた人業の知らせ (1行) ----
+// 全滅で迷宮に残された器は連れ帰りを待つ (赤い魂で早められる)。街にある器は、選んで「砕けた魂を修復」
 function RESCUE_MS() { return game.RESCUE_SHORTEN_MS || 20 * 60 * 1000; }
-function deadBanner() {
+const waiting = (d) => !!(d && !d.alive && d.reviveAt);
+function deadBanner(mode) {
+  const G = G_();
+  // 迷宮の中: 修復も連れ帰りの時も進まない。隊の砕けた数だけ知らせる
+  if (mode === "dungeon" || !inTown()) {
+    const down = G.party.filter((d) => d.isDoll && !d.alive);
+    if (!down.length || (down.length === 1 && down[0] === selDoll)) return null;
+    const box = el("section", "pt-dead");
+    const t = el("div", "pt-dead-t");
+    t.appendChild(el("span", "pt-dead-mk", "✝"));
+    const tx = el("span", "pt-dead-tx");
+    tx.appendChild(el("b", null, down.length > 1 ? `${down.length}体` : down[0].name));
+    tx.appendChild(document.createTextNode(" 砕けた ・ 街の人業の館で修復"));
+    t.appendChild(tx);
+    box.appendChild(t);
+    return box;
+  }
   const dead = allDolls().filter((d) => d.isDoll && !d.alive);
   if (!dead.length || (dead.length === 1 && dead[0] === selDoll)) return null;
-  const G = G_();
-  const now = Date.now();
-  const soonest = dead.filter((d) => d.reviveAt).sort((a, b) => a.reviveAt - b.reviveAt)[0];
-  const cost = dead.reduce((a, d) => a + (d.reviveAt ? Math.max(1, Math.ceil((d.reviveAt - now) / RESCUE_MS())) : 0), 0);
+  const wait = dead.filter(waiting);
   const box = el("section", "pt-dead");
   const t = el("div", "pt-dead-t");
   t.appendChild(el("span", "pt-dead-mk", "✝"));
   const tx = el("span", "pt-dead-tx");
-  tx.appendChild(el("b", null, dead.length > 1 ? `${dead.length}体` : dead[0].name));
-  tx.appendChild(document.createTextNode(" 砕けた"));
-  if (soonest && game.reviveTimerEl) { tx.appendChild(document.createTextNode(" ・ 帰還 ")); tx.appendChild(game.reviveTimerEl("span", "pt-dead-tm", "", soonest)); }
-  t.appendChild(tx);
-  box.appendChild(t);
-  if (cost > 0) {
+  if (wait.length) {
+    // 連れ帰りを待つ器がいる: 一番早い帰着の時 + 今すぐ連れ帰る
+    const now = Date.now();
+    const soonest = wait.slice().sort((a, b) => a.reviveAt - b.reviveAt)[0];
+    const cost = wait.reduce((a, d) => a + Math.max(1, Math.ceil((d.reviveAt - now) / RESCUE_MS())), 0);
+    tx.appendChild(el("b", null, wait.length > 1 ? `${wait.length}体` : wait[0].name));
+    tx.appendChild(document.createTextNode(" 連れ帰り "));
+    if (game.reviveTimerEl) tx.appendChild(game.reviveTimerEl("span", "pt-dead-tm", "", soonest));
+    t.appendChild(tx);
+    box.appendChild(t);
     const b = button({ label: "今すぐ連れ帰る", kind: "danger", size: "sm", cost: { kind: "red", n: cost }, disabled: (G.redSoul || 0) < 1, onTap: () => confirmHastenAll(cost) });
     b.classList.add("pt-dead-b");
     box.appendChild(b);
+    return box;
   }
+  tx.appendChild(el("b", null, dead.length > 1 ? `${dead.length}体` : dead[0].name));
+  tx.appendChild(document.createTextNode(" 砕けた ・ 選んで魂を修復"));
+  t.appendChild(tx);
+  box.appendChild(t);
+  const first = dead.find((d) => d !== selDoll) || dead[0];
+  const b = button({ label: "選ぶ", kind: "secondary", size: "sm", onTap: () => { select(first); rerender(); } });
+  b.classList.add("pt-dead-b");
+  box.appendChild(b);
   return box;
 }
 function confirmHastenAll(cost) {
   const G = G_();
   const have = G.redSoul || 0;
   confirm({
-    banner: "連れ帰る", title: `赤い魂 ${Math.min(cost, have)} を捧げ、砕けた人業を連れ帰る？`,
-    lines: [cost > have ? `必要 ${cost} のうち、所持の ${have} だけ捧げる (帰還が早まる)。` : "赤い魂1つで帰還が20分早まる。", `所持: 赤い魂 ${have}`],
+    banner: "連れ帰る", title: `赤い魂 ${Math.min(cost, have)} を捧げ、迷宮に残された人業を連れ帰る？`,
+    lines: [cost > have ? `必要 ${cost} のうち、所持の ${have} だけ捧げる (連れ帰りが早まる)。` : "赤い魂1つで連れ帰りが20分早まる。", "届いた器は、館で金貨を払って修復する。", `所持: 赤い魂 ${have}`],
     okLabel: "連れ帰る", danger: false,
   }).then((ok) => {
     if (!ok) return;
     const r = ops.hastenAll ? ops.hastenAll() : null;
-    if (r && r.ok) toast(r.revived ? `${r.revived}体が帰還した (赤い魂 ${r.spent})` : `帰還を早めた (赤い魂 ${r.spent})`, { tone: "good" });
+    if (r && r.ok) toast(r.arrived ? `${r.arrived}体が街へ届いた (赤い魂 ${r.spent})` : `連れ帰りを早めた (赤い魂 ${r.spent})`, { tone: "good" });
     rerender();
   });
 }
@@ -934,7 +975,7 @@ function bench(d) {
   rerender();
 }
 
-// ================= 控え・仕立て (シート。4体ずつの頁) =================
+// ================= 控え・仕立て (シート。4体ずつのページ) =================
 let reserveH = null;
 const RES_PER_PAGE = 4;
 export function openReserve() {
@@ -990,7 +1031,11 @@ function reserveRow(d) {
   tx.appendChild(el("div", "pt-res-n", d.name));
   const st = el("div", "pt-res-c");
   st.appendChild(document.createTextNode(d.primary == null ? "空の人業 ― 魂が宿っていない" : `${d.cls} ・ Lv${d.jobLv || 1}`));
-  if (!d.alive && game.reviveTimerEl) { st.appendChild(document.createTextNode(" ・ ")); st.appendChild(game.reviveTimerEl("span", "pt-res-tm", "✝ 帰還 ", d)); }
+  if (!d.alive && inTown()) {
+    st.appendChild(document.createTextNode(" ・ "));
+    if (waiting(d) && game.reviveTimerEl) st.appendChild(game.reviveTimerEl("span", "pt-res-tm", "✝ 連れ帰り ", d));
+    else st.appendChild(el("span", "pt-res-tm", "✝ 要修復"));
+  }
   else if (d.primary != null) st.appendChild(el("span", "pt-res-s", `  HP ${d.hp}/${d.maxhp}`));
   tx.appendChild(st);
   top.appendChild(tx);
@@ -1211,24 +1256,41 @@ function dollHeader(d, mode) {
   return head;
 }
 
-// 砕けた人業: 帰還までの残り + 赤い魂で早める (見出しの2行目)
+// 砕けた人業 (見出しの2行目): 連れ帰り待ちなら残り時間 + 赤い魂で早める。街にあれば「砕けた魂を修復」(金貨・HP/MP満タン)
 function rescueLine(d) {
   const G = G_();
-  if (!d.reviveAt && game.setReviveTimers) game.setReviveTimers();
   const box = el("div", "pt-rescue");
   const t = el("span", "pt-rescue-t");
   t.appendChild(el("span", "pt-rescue-mk", "✝"));
-  t.appendChild(document.createTextNode("帰還 "));
-  if (game.reviveTimerEl) t.appendChild(game.reviveTimerEl("b", "pt-rescue-tm", "", d));
+  if (!inTown()) { // 迷宮の中: 修復は街の館でしかできない
+    t.appendChild(document.createTextNode("砕けた ・ 街の人業の館で修復"));
+    box.appendChild(t);
+    return box;
+  }
+  if (waiting(d)) { // 全滅で迷宮に残された器: 連れ帰りを待つ (赤い魂で早める)。届くまで修復はできない
+    t.appendChild(document.createTextNode("連れ帰り "));
+    if (game.reviveTimerEl) t.appendChild(game.reviveTimerEl("b", "pt-rescue-tm", "", d));
+    box.appendChild(t);
+    const n = Math.max(1, Math.ceil((d.reviveAt - Date.now()) / RESCUE_MS()));
+    box.appendChild(button({ label: "早める", kind: "secondary", size: "sm", cost: { kind: "red", n: 1 }, disabled: (G.redSoul || 0) < 1,
+      onTap: () => { if (game.tryHastenRescue) game.tryHastenRescue(d); rerender(); } }));
+    if (n > 1) box.appendChild(button({ label: "今すぐ", kind: "danger", size: "sm", cost: { kind: "red", n }, disabled: (G.redSoul || 0) < 1,
+      onTap: () => confirm({ banner: "連れ帰る", title: `赤い魂 ${n} で ${d.name} を今すぐ連れ帰る？`, lines: ["届いた器は、館で金貨を払って修復する。", `所持: 赤い魂 ${G.redSoul || 0}`], okLabel: "連れ帰る", danger: false })
+        .then((ok) => { if (!ok) return; for (let k = 0; k < n && waiting(d) && (G.redSoul || 0) >= 1; k++) game.tryHastenRescue(d); rerender(); }) }));
+    return box;
+  }
+  t.appendChild(document.createTextNode("砕けた"));
   box.appendChild(t);
-  const n = d.reviveAt ? Math.max(1, Math.ceil((d.reviveAt - Date.now()) / RESCUE_MS())) : 1;
-  box.appendChild(button({ label: "早める", kind: "secondary", size: "sm", cost: { kind: "red", n: 1 }, disabled: (G.redSoul || 0) < 1,
-    onTap: () => { if (game.tryHastenRescue) game.tryHastenRescue(d); rerender(); } }));
-  if (n > 1) box.appendChild(button({ label: "今すぐ", kind: "danger", size: "sm", cost: { kind: "red", n }, disabled: (G.redSoul || 0) < 1,
-    onTap: () => confirm({ banner: "連れ帰る", title: `赤い魂 ${n} で ${d.name} を今すぐ連れ帰る？`, lines: [`所持: 赤い魂 ${G.redSoul || 0}`], okLabel: "連れ帰る", danger: false })
-      .then((ok) => { if (!ok) return; for (let k = 0; k < n && !d.alive && (G.redSoul || 0) >= 1; k++) game.tryHastenRescue(d); rerender(); }) }));
+  const cost = game.repairCostOf ? game.repairCostOf(d) : 0;
+  box.appendChild(button({ label: "砕けた魂を修復", kind: "primary", size: "sm", cost: { kind: "gold", n: cost }, disabled: (G.gold || 0) < cost,
+    onTap: () => confirm({ banner: "魂の修復", title: `${d.name} の砕けた魂を修復する？`,
+      lines: [`金貨 💰${cost} ・ HP/MP 満タンで立ち上がる`, `ランク${d.jobRank || 1} × Lv${d.jobLv || 1} × ${RARITY_LABEL[rarityOfDoll(d)] || "コモン"}`, `所持: 💰${G.gold || 0}`],
+      okLabel: "修復する", danger: false })
+      .then((ok) => { if (!ok) return; if (game.repairDoll) game.repairDoll(d); rerender(); }) }));
   return box;
 }
+const RARITY_LABEL = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド" };
+function rarityOfDoll(d) { const c = d && d.clsKey ? SOUL_CLASSES[d.clsKey] : null; return c ? c.rarity : "common"; }
 
 // ---- 迷宮: 野営 (呪文・道具) をすぐ使える札 ----
 function campSpellsOf(d) {
@@ -1541,16 +1603,18 @@ function statsSeg(root, d) {
   root.appendChild(grid);
   fillInfo();
   root.appendChild(info);
-  // 技・加護 (どちらもタップ = くわしく) の札は横に流れる1列
+  // 技・加護 (どちらもタップ = くわしく) の札は横に流れる1列。技は並べた順で、戦闘で出さない技は沈めて見せる
   if (d.spells && d.spells.length) {
     const line = el("div", "pt-chiprow");
     line.appendChild(el("span", "pt-chiprow-l", "技"));
     const sc = el("div", "pt-chiprow-in");
-    for (const key of d.spells) {
+    for (const key of orderedSkills(d)) {
       const sp = SPELLS[key];
-      const c = el("button", "pt-skill");
+      const off = isSkillOff(d, key);
+      const c = el("button", "pt-skill" + (off ? " off" : ""));
       c.type = "button";
       c.appendChild(el("span", "pt-skill-n", sp ? sp.name : key));
+      if (off) c.appendChild(el("span", "pt-skill-off", "非表示"));
       const tg = sp && tagRow(spellTagKinds(sp, d), "pt-skill-tags");
       if (tg) c.appendChild(tg);
       if (sp) c.appendChild(el("span", "pt-skill-c", `MP${sp.mp}`));
@@ -1558,6 +1622,12 @@ function statsSeg(root, d) {
       sc.appendChild(c);
     }
     line.appendChild(sc);
+    const org = el("button", "pt-chiprow-b");
+    org.type = "button";
+    org.textContent = "整理";
+    org.setAttribute("aria-label", `${d.name}の技の並べ替え・表示`);
+    org.addEventListener("click", () => { sfx("select"); openSkillManager(d); });
+    line.appendChild(org);
     root.appendChild(line);
   }
   if (d.passives && d.passives.length) {
@@ -1581,6 +1651,63 @@ function statsSeg(root, d) {
   }
 }
 
+// ---- 技の整理: 戦闘での表示のオン/オフと並べ替え ----
+// オフの技は戦闘のスキル一覧 (と「最後に使った技」) に出ない。並びは戦闘の一覧とこの画面の札に効く
+function openSkillManager(d) {
+  if (!d || !(d.spells && d.spells.length)) return null;
+  const save = () => { if (game.autosave) game.autosave(true); };
+  let box = null;
+  const build = () => {
+    const list = orderedSkills(d);
+    const wrap = el("div", "pt-skm");
+    const shown = list.filter((k) => !isSkillOff(d, k)).length;
+    wrap.appendChild(el("div", "pt-skm-sum", `戦闘で出す技 ${shown} / ${list.length}`));
+    list.forEach((key, i) => {
+      const sp = SPELLS[key];
+      const off = isSkillOff(d, key);
+      const r = el("div", "pt-skm-row" + (off ? " off" : ""));
+      const tg = el("button", "pt-skm-tg" + (off ? "" : " on"), off ? "非表示" : "表示");
+      tg.type = "button";
+      tg.setAttribute("aria-pressed", off ? "false" : "true");
+      tg.setAttribute("aria-label", `${sp ? sp.name : key}を戦闘で${off ? "表示する" : "出さない"}`);
+      tg.addEventListener("click", () => { setSkillOff(d, key, !off); sfx("select"); save(); redraw(); });
+      r.appendChild(tg);
+      const nm = el("button", "pt-skm-n");
+      nm.type = "button";
+      nm.appendChild(el("span", "pt-skm-nm", sp ? sp.name : key));
+      const tgs = sp && tagRow(spellTagKinds(sp, d), "pt-skill-tags");
+      if (tgs) nm.appendChild(tgs);
+      if (sp) nm.appendChild(el("span", "pt-skill-c", `MP${sp.mp}`));
+      nm.addEventListener("click", () => showSkillPopup(key));
+      r.appendChild(nm);
+      const mv = (dir, label, glyph, dis) => {
+        const b = el("button", "pt-skm-mv", glyph);
+        b.type = "button";
+        b.disabled = dis;
+        b.setAttribute("aria-label", `${sp ? sp.name : key}を${label}`);
+        b.addEventListener("click", () => { if (moveSkill(d, key, dir)) { sfx("select"); save(); redraw(); } });
+        return b;
+      };
+      r.appendChild(mv(-1, "前へ", "▲", i === 0));
+      r.appendChild(mv(1, "後ろへ", "▼", i === list.length - 1));
+      wrap.appendChild(r);
+    });
+    return wrap;
+  };
+  // 描き直しは箱ごと差し替える (シートのページ割りが差し替えを拾って割り直し、いまのページを保つ)
+  const redraw = () => { if (!box) return; const nb = build(); box.replaceWith(nb); box = nb; };
+  return sheet.open({
+    kind: "info", className: "pt-skm-sheet", banner: "技の整理", title: `${d.name}の技`,
+    lines: ["「表示」を切った技は戦闘のスキル一覧に出ない。▲▼ で戦闘での並び順を変える。"],
+    body: (scroll) => { box = build(); scroll.appendChild(box); },
+    footer: [
+      { label: "初期に戻す", kind: "ghost", onTap: () => { resetSkillPrefs(d); sfx("select"); save(); redraw(); } },
+      { label: "閉じる", kind: "primary", onTap: (h) => h.close() },
+    ],
+    onClose: () => rerender(),
+  });
+}
+
 // 長押し = 図鑑と同じ品の詳細 (絵・分類・性能・説明だけの読み物。操作は出さない)
 export function openItemDetail(item) {
   if (!item) return null;
@@ -1590,7 +1717,7 @@ export function openItemDetail(item) {
 
 // ================= 品の画面 =================
 // 袋の装備品 (鑑定済み) = 「誰に装備させるか」が主役の品の画面 (equipChooser)。
-// それ以外 (未鑑定・道具・蒐集品・装備中) は品のシート: WP-C の UI.itemSheet があればそれ、無ければ自前。
+// それ以外 (未鑑定・道具・収集品・装備中) は品のシート: WP-C の UI.itemSheet があればそれ、無ければ自前。
 // actions = シートの足の操作 [{label, sub, kind, cost, disabled, onTap(h)}] (kit の footer と同じ形)
 export function openItem(item, owner = null, sel = {}) {
   if (!item) return null;
@@ -1761,7 +1888,10 @@ function openParty(idx = null, o = {}) {
     if (o.seg) setSeg(o.seg);
     const t = G.town || {};
     if (t.tab === "party" && !t.facility && !t.page) { game.renderTown(); return true; }
-    return UI.shell ? UI.shell.setTab("party") : false;
+    pendingOpen = true; // 指定した人業・区分で入る (既定へ戻さない)
+    const ok = UI.shell ? UI.shell.setTab("party") : false;
+    pendingOpen = false;
+    return ok;
   }
   if (G.state !== "board") return false;
   openSheet(null, o.seg);

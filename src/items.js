@@ -4,7 +4,7 @@
 //
 // slot: head | weapon | shield | body | feet | acc | use | misc
 //   weapon→右手, shield→左手, head/body/feet, acc→アクセサリ枠(2), use→消耗品
-//   misc→蒐集品(戦利品。装備/使用不可。売却するか王宮の宝物庫に奉納する)
+//   misc→収集品(戦利品。装備/使用不可。売却するか王宮の宝物庫に奉納する)
 // twoHanded: 両手武器 (左手をふさぐ)
 // classes: 装備可能な職業キー配列 (null=全職)
 // cursed: 呪い (一度装備すると外せない)
@@ -30,7 +30,7 @@ export const ITEM_CATS = [
   { key: "hands", label: "小手", slots: ["hands"] },
   { key: "feet", label: "足", slots: ["feet"] },
   { key: "acc", label: "装飾", slots: ["acc"] },
-  { key: "misc", label: "蒐集品", slots: ["misc"] },
+  { key: "misc", label: "収集品", slots: ["misc"] },
 ];
 // 武器サブカテゴリ (図鑑の武器タブをさらに分ける)
 export const WEAPON_CATS = [
@@ -69,7 +69,7 @@ export function weaponRange(item) {
 // ===== 鑑定システム (ウィザードリィ風) =====
 // ダンジョンで拾った装備は「未鑑定 (unidentified)」状態で手に入り、伏せ名で表示され
 // 鑑定するまで装備できない。鑑定は商店 (有料・確実) か一部職業のスキルで行う。
-// 消耗品・蒐集品 (use/misc) は鑑定済みで出るため対象外。
+// 消耗品・収集品 (use/misc) は鑑定済みで出るため対象外。
 export const UNIDENT_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
 // 武器はサブカテゴリごとに伏せ名を変える (剣・斧・杖… の見当はつく、というていの表記)
 const UNIDENT_WEAPON = { ls: "けん？", dg: "ナイフ？", kt: "かたな？", ax: "おの？", mc: "つち？", sp: "やり？", bw: "ゆみ？", st: "つえ？" };
@@ -482,7 +482,7 @@ export const ITEMS = {
   },
   ironHelm: {
     id: "ironHelm", name: "鉄兜", slot: "head", lv: 5, vit: 3, price: 150, classes: null, weight: "heavy",
-    desc: "面頬つきの鉄兜。覗き穴の奥は常に闇で、かぶった者の顔を誰にも思い出させない。頭部をしっかり守る。",
+    desc: "面当てつきの鉄兜。覗き穴の奥は常に闇で、かぶった者の顔を誰にも思い出させない。頭部をしっかり守る。",
     ...sprite([
       "..............qqq.......",
       "...........qqqRRrk......",
@@ -881,7 +881,7 @@ export const ITEMS = {
   },
   galeAnklet: {
     id: "galeAnklet", name: "風切りの足環", slot: "acc", lv: 99, agi: 7, price: 3460, classes: null,
-    desc: "墜ちたハーピーの風切羽を編み込んだ足環。一歩ごとに体が軽くなり、踏んだ床の軋みすら置き去りにする。",
+    desc: "墜ちたハーピーの風切羽を編み込んだ足環。一歩ごとに体が軽くなり、踏んだ床のきしみすら置き去りにする。",
     ...sprite([
       "........................",
       "..........tttt..........",
@@ -1128,7 +1128,7 @@ export const ITEMS = {
   },
   manaDrop: {
     id: "manaDrop", name: "マナの雫", slot: "use", lv: 3, use: { mp: 20 }, price: 60, classes: null,
-    desc: "地脈の傷口から滲み出した魔力の雫。飲み干せば、冷たい光が喉を伝い落ちていく。MPを20回復する。",
+    desc: "地脈の傷口からにじみ出した魔力の雫。飲み干せば、冷たい光が喉を伝い落ちていく。MPを20回復する。",
     ...sprite([
       "........................",
       "..........DDDD..........",

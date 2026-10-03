@@ -12,22 +12,23 @@
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
 import { UI, game, ops, registerUI } from "./ctx.js";
-import { el, setText, glyph, svgIcon, button, portrait, longPress } from "./kit.js";
+import { el, setText, glyph, svgIcon, button, portrait, longPress, itemTile } from "./kit.js";
 import { createTownScene, townSpots, vignetteCanvas } from "../townart.js";
 import { SFX } from "../audio.js";
-import { currencyBar, sectionHead, facilityOpen, lockedToast, restOrDetail, openInn, innStatus, dismissGreet } from "./facilities.js";
+import { ITEMS } from "../items.js";
+import { currencyBar, sectionHead, facilityOpen, lockedToast, restOrDetail, openInn, innStatus, dismissGreet, runDelivery } from "./facilities.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
 const G = () => game.G;
 
 // ---------- 次にすべきこと (提案) ----------
 // 提案: { key, prio, label, short?, sub?, cost?:{kind,n}, icon?:"gold"|"soul"|"red"|svgKey, tone?, run(), hold?() }
-// prio が小さいほど先 (勅命 0 > 砕けた人業 10 > 手負い 20 > 未鑑定 30 > 売れる品 40 > より良い装備 50 > 鍛錬 60 > 勲章 70 > 奉納 80 > 納品 90)
+// prio が小さいほど先 (勅命 0 > 砕けた人業 10 > 手負い 20 > 未鑑定 30 > 売れる品 40 > より良い装備 50 > 魂融合 55 > 鍛錬 60 > 勲章 70 > 奉納 80)
 // 札は3列に並ぶので label は短く (5字ほど。長い時は3枚並びで使う short を添える)、詳しくは sub に
 const extra = []; // 他のパッケージが登録した提案の源 (fn(counts) → 提案 | 提案[] | null)
 export function registerSuggestion(fn) { if (typeof fn === "function" && !extra.includes(fn)) extra.push(fn); }
 // 帰還の報告の札が受け持つ操作 (報告がある間は「次にすべきこと」に重ねて出さない)
-const REPORT_KEYS = new Set(["hasten", "rest", "identify", "sell", "autoEquip"]);
+const REPORT_KEYS = new Set(["repair", "hasten", "rest", "identify", "sell", "autoEquip"]);
 
 function confirmThen({ banner, title, lines, okLabel, run }) {
   if (!UI.confirm) return run();
@@ -38,12 +39,19 @@ function builtinSuggestions(c) {
   const g = G();
   const out = [];
   if (!c) return out;
-  // 砕けた人業: 赤い魂で今すぐ連れ帰る (確認のシート)
-  if (c.dead && c.hastenCost > 0 && g.redSoul >= 1) {
+  // 砕けた人業 (街にある器): 人業の館で砕けた魂を修復する (館を開き、砕けた人業を選んだ状態にする)
+  if (c.repairable) {
+    const all = game.allDolls ? game.allDolls() : (g.party || []);
+    const d = all.find((x) => x && x.isDoll && !x.alive && !x.reviveAt) || null;
+    out.push({ key: "repair", prio: 10, label: "魂を修復", sub: `砕けた人業 ${c.repairable}`, cost: { kind: "gold", n: c.repairCost || 0 }, tone: "red", icon: "red",
+      run: () => { if (UI.openParty) UI.openParty(d, { context: "town" }); } });
+  }
+  // 全滅で迷宮に残された器: 赤い魂で今すぐ連れ帰る (確認のシート)
+  if (c.rescuing && c.hastenCost > 0 && g.redSoul >= 1) {
     const pay = Math.min(c.hastenCost, g.redSoul);
-    out.push({ key: "hasten", prio: 10, label: "連れ帰る", sub: `砕けた人業 ${c.dead}`, cost: { kind: "red", n: pay }, tone: "red", icon: "red",
-      run: () => confirmThen({ banner: "今すぐ連れ帰る", title: `赤い魂 ${pay} を捧げ、砕けた人業を連れ帰りますか？`,
-        lines: [c.hastenCost > g.redSoul ? `全員の帰還には 🔴${c.hastenCost} が要る。足りる分だけ早める。` : "1つにつき帰還までの時間を20分縮める (押す回数ぶんと同じ値段)。"],
+    out.push({ key: "hasten", prio: 11, label: "連れ帰る", sub: `連れ帰り待ち ${c.rescuing}`, cost: { kind: "red", n: pay }, tone: "red", icon: "red",
+      run: () => confirmThen({ banner: "今すぐ連れ帰る", title: `赤い魂 ${pay} を捧げ、迷宮に残された人業を連れ帰りますか？`,
+        lines: [c.hastenCost > g.redSoul ? `全員の連れ帰りには 🔴${c.hastenCost} が要る。足りる分だけ早める。` : "1つにつき連れ帰りまでの時間を20分縮める (押す回数ぶんと同じ値段)。", "届いた器は、館で金貨を払って修復する。"],
         okLabel: "連れ帰る", run: () => ops.hastenAll() }) });
   }
   // 手負い: 宿で休む (1タップ)
@@ -71,7 +79,7 @@ function builtinSuggestions(c) {
   if (junkN && facilityOpen("shop")) {
     out.push({ key: "sell", prio: 40, label: "まとめて売る", short: "売り払う", sub: `${junkN}点`, cost: { kind: "gold", n: "+" + junkGold }, icon: "coin",
       run: () => (UI.confirmSellJunk ? UI.confirmSellJunk() : confirmThen({ banner: "まとめて売る", title: `${junkN}点を売り、金貨 ${junkGold} を得ますか？`,
-        lines: ["装備中・呪い・未鑑定・SR/LR・未奉納の蒐集品・道具は売らない。", "売った品は商会の棚に並ぶ (買い戻せる)。"],
+        lines: ["装備中・呪い・未鑑定・SR/LR・未奉納の収集品・道具は売らない。", "売った品は商会の棚に並ぶ (買い戻せる)。"],
         okLabel: "売る", run: () => (UI.sellJunkAll || ops.sellJunkAll)() })) });
   }
   // より良い装備 (WP-B の最適装備)
@@ -79,6 +87,16 @@ function builtinSuggestions(c) {
   try { better = UI.betterGearCount ? (UI.betterGearCount() || 0) : 0; } catch (e) { better = 0; }
   if (better > 0 && facilityOpen("mansion") && UI.autoEquip) {
     out.push({ key: "autoEquip", prio: 50, label: "最適装備", sub: `より良い品 ${better}`, icon: "party", run: () => UI.autoEquip("all") });
+  }
+  // 魂融合できる魂 (同じ職の魂が余っている)。タップで融合させる魂を選ぶシート、長押しで隊の魂の区分
+  let fl = [];
+  try { fl = UI.fusableList ? (UI.fusableList() || []) : []; } catch (e) { fl = []; }
+  if (fl.length && facilityOpen("mansion") && UI.openFusePicker) {
+    const f = fl[0];
+    const idx = (g.party || []).indexOf(f.doll);
+    out.push({ key: "fuse", prio: 55, label: "魂融合", sub: `${f.name} ×${f.n}`, icon: "soul",
+      run: () => UI.openFusePicker(f.uid),
+      hold: () => { if (UI.openParty) UI.openParty(f.doll || Math.max(0, idx), { seg: "soul" }); } });
   }
   // 鍛えられる魂 (1タップで1段。長押しで隊の魂の画面)。隊のレベルが揃うよう、いちばん低いLvの魂だけを勧める
   // (その魂に ✦ が足りなければ、高いLvの魂を先に鍛えはしない)
@@ -94,17 +112,14 @@ function builtinSuggestions(c) {
   }
   // 勲章: 王宮の勲章の区分へ (どれを受け取るかは勲章の画面で選ぶ楽しみとして残す)
   if (c.ach) out.push({ key: "ach", prio: 70, label: "勲章を拝受", sub: `${c.ach} 個`, icon: "medal", run: () => { if (UI.openPalace) UI.openPalace("ach"); } });
-  // 宝物庫: 蒐集品を奉納 → 王宮の宝物庫へ (奉納する品はそこで確かめてから納める) / 褒賞だけ残っている
+  // 宝物庫: 収集品を奉納 → 王宮の宝物庫へ (奉納する品はそこで確かめてから納める) / 褒賞だけ残っている
   if (c.donatable) {
-    out.push({ key: "donate", prio: 80, label: "蒐集品を奉納", sub: `${c.donatable} 種`, icon: "treasury",
+    out.push({ key: "donate", prio: 80, label: "収集品を奉納", sub: `${c.donatable} 種`, icon: "treasury",
       run: () => { if (UI.openPalace) UI.openPalace("treasury"); } });
   } else if (c.treasuryReady) {
     out.push({ key: "treasury", prio: 80, label: "褒賞を受け取る", short: "褒賞を拝受", sub: "宝物庫", icon: "treasury", run: () => game.claimNextTreasury && game.claimNextTreasury() });
   }
-  // 納品できる品 → 酒場へ
-  if (c.deliverable && facilityOpen("tavern")) {
-    out.push({ key: "deliver", prio: 90, label: "納品する", sub: `できる品 ${c.deliverable}`, icon: "tavern", run: () => UI.shell.openPage("tavern") });
-  }
+  // 納品依頼は街の広場に常に札を並べる (deliveries) ので、ここには出さない
   return out;
 }
 
@@ -324,6 +339,53 @@ function tiles() {
   return wrap;
 }
 
+// ---------- 納品依頼 (酒場が開いていれば街に常に並べる。手持ち/商会の品はその場で納品) ----------
+// 「次にすべきこと」と同じ並びの札 (最大3列)。札をタップ = 納品 / 買って納品 (確認1枚) / 品の詳細
+function deliveryChip(q) {
+  const it = ITEMS[q.itemId];
+  const st = (game.deliveryStatus && game.deliveryStatus(q)) || { holder: null, inShop: false, price: 0, canBuy: false };
+  const ready = !!(st.holder || st.canBuy);
+  const b = el("button", "hb-dlv-c" + (ready ? " ready" : ""));
+  b.type = "button";
+  const top = el("span", "hb-dlv-top");
+  try { top.appendChild(itemTile(it, { size: 44 })); } catch (e) { /* 絵が無くても札は出す */ }
+  top.appendChild(game.itemNameEl ? game.itemNameEl("span", "hb-dlv-n", it) : el("span", "hb-dlv-n", it.name));
+  b.appendChild(top);
+  const bot = el("span", "hb-dlv-bot");
+  if (st.holder) {
+    bot.appendChild(el("span", "hb-dlv-s", "手持ち"));
+    bot.appendChild(el("span", "hb-dlv-go", "納品する"));
+  } else if (st.inShop) {
+    bot.appendChild(el("span", "hb-dlv-s", st.canBuy ? "商会" : "金不足"));
+    const c = el("span", "hb-dlv-go" + (st.canBuy ? "" : " off"));
+    c.appendChild(glyph("gold"));
+    c.appendChild(document.createTextNode(String(st.price)));
+    bot.appendChild(c);
+  } else {
+    bot.appendChild(el("span", "hb-dlv-s", "未入手"));
+  }
+  b.appendChild(bot);
+  b.setAttribute("aria-label", `納品依頼 ${it.name}`);
+  b.addEventListener("click", () => runDelivery(q));
+  return b;
+}
+function deliveries() {
+  const g = G();
+  if (!facilityOpen("tavern")) return null;
+  if (game.ensureDeliveryQuests) game.ensureDeliveryQuests();
+  const qs = (g.deliveryQuests || []).filter((q) => q && ITEMS[q.itemId]);
+  const box = el("div", "hb-dlv");
+  box.appendChild(sectionHead("納品依頼", { note: "潜るたびに入れ替わる" }));
+  if (qs.length) {
+    const list = el("div", "hb-sug-list n" + Math.min(3, qs.length));
+    for (const q of qs.slice(0, 3)) list.appendChild(deliveryChip(q));
+    box.appendChild(list);
+  } else {
+    box.appendChild(el("div", "wa-empty hb-dlv-empty", "今は納品依頼がない。迷宮に潜れば、新たな品が求められる。"));
+  }
+  return box;
+}
+
 // ---------- 隊の札 ----------
 function partyStrip() {
   const g = G();
@@ -361,8 +423,10 @@ function partyStrip() {
       const hp = el("span", "hb-pc-hp" + (r < 0.34 ? " low" : r < 1 ? " hurt" : ""));
       const f = el("i"); f.style.width = (r * 100).toFixed(1) + "%"; hp.appendChild(f);
       c.appendChild(hp);
-    } else if (game.reviveTimerEl) {
-      c.appendChild(game.reviveTimerEl("span", "hb-pc-rv", "帰還 ", d));
+    } else if (d.reviveAt && game.reviveTimerEl) {
+      c.appendChild(game.reviveTimerEl("span", "hb-pc-rv", "連れ帰り ", d));
+    } else {
+      c.appendChild(el("span", "hb-pc-rv", "要修復"));
     }
     c.setAttribute("aria-label", `${d.name} ${d.cls || ""} ${d.alive ? `HP ${d.hp}/${d.maxhp}` : "砕けている"}`);
     c.addEventListener("click", () => { sfx("select"); if (UI.openParty) UI.openParty(i); });
@@ -408,8 +472,11 @@ export function renderHub(root, api) {
     box.appendChild(list);
     mid.appendChild(box);
   }
-  const fac = el("div", "hb-fac");
-  fac.appendChild(sectionHead("街"));
+  const dv = deliveries();
+  if (dv) mid.appendChild(dv);
+  // 納品依頼の段がある時は「街」の見出しを省いて札の高さを守る (札は絵と名で何かわかる)
+  const fac = el("div", "hb-fac" + (dv ? " nohead" : ""));
+  if (!dv) fac.appendChild(sectionHead("街"));
   fac.appendChild(tiles());
   mid.appendChild(fac);
   wrap.appendChild(mid);

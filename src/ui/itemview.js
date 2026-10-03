@@ -145,6 +145,46 @@ export function affinityRow(element, cls = "") {
   return r;
 }
 
+// ===== 敵の情報の段階開示 (討伐数しだい) =====
+// 姿は最初から見える。1体 = 名前 / 5体 = 属性とHP / 10体 = 特徴・スキルと説明文。
+// 戦闘画面 (名札・HPの小瓶)・「敵の姿」・図鑑の一枚で共通
+export const MON_REVEAL = { name: 1, stats: 5, lore: 10 };
+// その魔物を倒した数 (図鑑の記録を読むだけ。記録を作らない)
+export function monKills(key) {
+  const g = game.G;
+  const e = g && g.codex && g.codex.mon ? g.codex.mon[key] : null;
+  if (!e) return 0;
+  if (e === true) return 1;
+  return Math.max(0, Number(e.kills) || 0);
+}
+// 戦闘中の敵 1体について、いま何が明かされているか。
+// 出来事だけの敵 (ev_*: 鏡の影など) は図鑑に載らないので、最初から全て明かす
+export function enemyReveal(e) {
+  const special = !e || String(e.key || "").startsWith("ev_");
+  const kills = special ? 0 : monKills(e.key);
+  return {
+    special, kills,
+    name: special || kills >= MON_REVEAL.name,
+    stats: special || kills >= MON_REVEAL.stats,
+    lore: special || kills >= MON_REVEAL.lore,
+  };
+}
+// 敵の呼び名: 名前が明かされるまでは「？？？」(同種が並ぶときの A/B… は残して見分けられるように)
+export function enemyLabel(e) {
+  if (!e) return "";
+  if (enemyReveal(e).name) return e.name;
+  const base = e.mon && e.mon.name;
+  const tail = base && String(e.name || "").startsWith(base) ? String(e.name).slice(base.length) : "";
+  return "？？？" + tail;
+}
+// まだ明かされていない項目の札: 「属性・HP　5体討伐で開示」
+export function revealLock(need, what, cls = "") {
+  const r = el("div", "ui-reveal-lock" + (cls ? " " + cls : ""));
+  if (what) r.appendChild(el("span", "ui-reveal-w", what));
+  r.appendChild(el("span", "ui-reveal-n", `${need}体討伐で開示`));
+  return r;
+}
+
 // スキルの効果をくわしい行に展開する
 export function skillDetailLines(sp) {
   const lines = [];
@@ -155,6 +195,7 @@ export function skillDetailLines(sp) {
   if (sp.revive) lines.push(sp.revivePct ? `戦闘不能をHP${Math.round(sp.revivePct * 100)}%で蘇生する` : "戦闘不能も蘇生できる");
   if (sp.kind === "phys") {
     lines.push(`威力 攻撃力の${sp.power}倍${sp.hits ? ` × ${sp.hits}回` : ""}`);
+    if (sp.intScale) lines.push("魔法剣: 使い手のINTでも威力が伸びる");
     if (sp.critBonus) lines.push(`会心率 +${Math.round(sp.critBonus * 100)}%`);
   }
   if (sp.kind === "atk" && sp.critBonus) lines.push(`呪文会心率 +${Math.round(sp.critBonus * 100)}%（会心は×1.5）`);
@@ -357,7 +398,7 @@ export function gearScore(doll, delta) {
 }
 
 // 部位カテゴリ表記
-export const CAT_LABEL = { weapon: "武器", shield: "盾", body: "防具", head: "頭防具", hands: "小手", feet: "足防具", acc: "装飾品", use: "消耗品", misc: "蒐集品", mat: "貴重品" };
+export const CAT_LABEL = { weapon: "武器", shield: "盾", body: "防具", head: "頭防具", hands: "小手", feet: "足防具", acc: "装飾品", use: "消耗品", misc: "収集品", mat: "貴重品" };
 // アイテムの分類表記 (武器はサブカテゴリつき: 「武器（長剣）」)
 export function itemCatText(it) {
   if (it.slot === "weapon" && it.cat) return `武器（${WEAPON_CAT_LABEL[it.cat] || "その他"}）`;

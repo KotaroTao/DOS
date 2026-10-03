@@ -25,7 +25,7 @@ export function slotKeysFor(item) {
   return [item.slot];
 }
 
-// 最適装備の候補になる品か (呪い・未鑑定・消耗品/蒐集品は除く)
+// 最適装備の候補になる品か (呪い・未鑑定・消耗品/収集品は除く)
 export function isAutoCandidate(item) {
   return !!item && EQUIP_SLOTS.has(item.slot) && !item.unidentified && !item.cursed;
 }
