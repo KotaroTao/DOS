@@ -14,21 +14,21 @@ const lr = (it) => { it.rar = "lr"; it.lr = 2; it.layer = 2; it.exclusive = true
 
 export const LAYER2_ITEMS = [
   // ===== スーパーレア: 武器 =====
-  sr(W("w_sr2_ratcatcher", "鼠捕りの細身刀", "dg", 12, { pow: 1.35, luk: 4, crit: 0.07, tint: "#8a8070",
+  sr(W("w_sr2_ratcatcher", "鼠捕りの細身刀", "dg", 12, { scale: { agi: 0.3 }, pow: 1.35, luk: 4, crit: 0.07, tint: "#8a8070",
     desc: "王都の溝鼠を何万匹と仕留めてきた鼠捕り人の錐。細い刃は鼠の急所を貫くために研がれ、人の鎧の継ぎ目にもするりと入る。" })),
-  sr(W("w_sr2_sluiceblade", "水門番の長剣", "ls", 15, { pow: 1.35, eAtk: ["earth", 1], tint: "#a08a60",
+  sr(W("w_sr2_sluiceblade", "水門番の長剣", "ls", 15, { scale: { atk: 0.15, int: 0.25 }, pow: 1.35, eAtk: ["earth", 1], tint: "#a08a60",
     desc: "水門の番兵が代々受け継いだ長剣。刃に練り込まれた堤の土が、濁流から生まれた魔物の身を泥のように崩し、斬り口を乾かす。" })),
-  sr(W("w_sr2_murkstaff", "よどみ読みの杖", "st", 18, { pow: 1.35, eAtk: ["water", 1], int: 3, tint: "#5aa0b0",
+  sr(W("w_sr2_murkstaff", "よどみ読みの杖", "st", 18, { scale: { int: 0.5 }, pow: 1.35, eAtk: ["water", 1], int: 3, tint: "#5aa0b0",
     desc: "水の濁り具合で地の底の異変を読んだ水路の占い師の杖。先端の水晶には一滴の黒水が封じられ、唱えた呪文を冷たい奔流に変える。" })),
   sr(W("w_sr2_lockbreaker", "水門砕きの大斧", "ax", 21, { pow: 1.3, two: true, hp: 14, tint: "#6a6258",
     desc: "錆びついて動かなくなった水門を叩き割るための工兵の大斧。鉄の扉を一撃で裂く重い刃は、甲羅や鱗に覆われた水棲の怪物をも割る。" })),
   sr(W("w_sr2_wetcrow", "濡れ鴉", "kt", 24, { pow: 1.35, agi: 4, tint: "#3a4458",
     desc: "水路の底から引き揚げられた無銘の刀。いくら拭っても刃が黒く濡れたまま乾かず、振れば水滴の軌跡だけを残して音もなく斬る。" })),
-  sr(W("w_sr2_cleansingbell", "浄水の聖鈴鎚", "mc", 27, { pow: 1.3, eAtk: ["light", 1], pie: 5, tint: "#e8e0b0",
+  sr(W("w_sr2_cleansingbell", "浄水の聖鈴鎚", "mc", 27, { magic: true, pow: 1.3, eAtk: ["light", 1], pie: 5, tint: "#e8e0b0",
     desc: "井戸の水を浄める儀式で鳴らされた聖鈴を頭に据えた戦鎚。打つたびに澄んだ音が響き、よどみに巣食う穢れを内側から砕く。" })),
   sr(W("w_sr2_eeltrident", "ウナギ突きの三叉", "sp", 31, { pow: 1.35, eAtk: ["earth", 1], agi: 2, tint: "#7a7a68",
     desc: "下水路の大ウナギを仕留めるために鍛えられた三叉のもり。返しのついた穂先は一度刺されば抜けず、ぬめる獲物を水の外へ引きずり出す。" })),
-  sr(W("w_sr2_culvertbow", "下水灯の弓", "bw", 35, { pow: 1.35, agi: 5, luk: 3, tint: "#c0a060",
+  sr(W("w_sr2_culvertbow", "下水灯の弓", "bw", 35, { scale: { agi: 0.4 }, pow: 1.35, agi: 5, luk: 3, tint: "#c0a060",
     desc: "弓の両端に小さな灯を吊るした夜警の弓。下水路の闇でも狙いがぶれず、灯の揺らぎが消える前に矢は獲物の眉間に届いている。" })),
   // 当てるだけで状態異常を与える武器 (onHit)
   sr(W("w_sr2_eelstinger", "雷ウナギの刺剣", "dg", 20, { pow: 1.3, onHit: ["paralyze", 0.2], tint: "#c0d860",

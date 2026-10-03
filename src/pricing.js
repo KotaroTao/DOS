@@ -58,9 +58,20 @@ function statScore(it) {
   return s;
 }
 
+// 武器の能力補正 (scale) の点: その lv の品を使う頃の隊の能力値の目安 (基準の隊 baseline.js の実測からの概算) × 係数。
+// 攻撃力に直接足されるので ATK と同じ重みで数える
+const statAtLv = (lv) => 8 + 1.7 * lv;
+function scaleScore(it) {
+  if (!it.scale) return 0;
+  let s = 0;
+  for (const k in it.scale) s += (it.scale[k] || 0) * statAtLv(it.lv || 1);
+  return s;
+}
+
 // 属性・状態異常耐性・追加効果の上乗せ率 (能力値の点に掛ける)
 function featureMul(it) {
   let m = 1;
+  if (it.magic) m += 0.15; // 魔法属性の武器 (物理耐性の敵に通る)
   if (it.eAtk) m += 0.15 * (it.eAtk.lv || 1);
   if (it.eDef) m += 0.10 * (it.eDef.lv || 1);
   if (it.aRes) for (const k in it.aRes) m += 0.6 * (it.aRes[k] || 0);
@@ -70,7 +81,7 @@ function featureMul(it) {
 
 // 装備の性能点
 export function equipScore(it) {
-  const s = statScore(it);
+  const s = statScore(it) + scaleScore(it);
   return (s > 0 ? s * featureMul(it) : s) + effScore(it);
 }
 
