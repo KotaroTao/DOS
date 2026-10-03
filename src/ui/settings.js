@@ -119,7 +119,7 @@ function fillSound(box) {
   box.appendChild(toggleRow({ name: "移動 倍速", desc: "迷宮内の歩み・カードめくりを速める", on: !!P.fastWalk, onChange: (v) => {
     P.fastWalk = v; if (game.savePrefs) game.savePrefs(); sfx("select");
   } }));
-  box.appendChild(toggleRow({ name: "戦闘演出 倍速", desc: "戦闘のアニメーションを速める", on: !!G.fastAnim, onChange: (v) => {
+  box.appendChild(toggleRow({ name: "戦闘演出 倍速", desc: "戦闘のアニメーションを速める (切ると速さ 1/2)", on: !!G.fastAnim, onChange: (v) => {
     G.fastAnim = v; sfx("select"); if (game.autosave) game.autosave();
   } }));
 }

@@ -457,7 +457,8 @@ const G = {
   subQuestSeen: [],   // 酒場で一度表示した迷宮index (別の迷宮を選んでも依頼を残す)
   msq: null,          // メインストーリー { n: 章=迷宮番号(1-100), state: "active"|"report"|"offer"|"end" }
   ach: {},            // 受領済みの勲章 (実績) { id: true }
-  fastAnim: false,    // 戦闘演出の倍速設定 (永続)
+  fastAnim: true,     // 戦闘演出の倍速設定 (永続)。ON = 標準の速さ、OFF = その 1/2 の速さ
+  animTempo: 2,       // 倍速の意味を改めた版 (2 = ON が旧来の標準)。この印の無い旧セーブは読み込み時に倍速 ON へ
   autoCombat: false,  // オート戦闘中 (セッション内のみ)
   tavernCrowd: null,  // 酒場に居合わせる者たち (帰還ごとに3〜5名を選び直す) [{type,icon,name,line}]
   rumor: null,        // 酒場で表示中の噂 (次回潜入で現実化)
@@ -6833,10 +6834,11 @@ function playBattleIntro(done) {
   renderParty();
   fitView();
   if (REDUCED_MOTION) { done(); return; }
-  const quick = G.fastAnim || G.autoCombat;
+  // 開幕の演出: オート中は短く、倍速 ON は標準、OFF はその 1/2 の速さ
+  const introMul = G.autoCombat ? 0.6 : G.fastAnim ? 1 : 2;
   const ambush = b.opening === "ambush";
-  let dur = (boss ? 1900 : 640 + b.enemies.length * 90) * (quick ? 0.6 : 1);
-  if (ambush) dur = Math.max(dur, quick ? 1150 : 1500); // 奇襲の帯を読めるだけ留める
+  let dur = (boss ? 1900 : 640 + b.enemies.length * 90) * introMul;
+  if (ambush) dur = Math.max(dur, G.autoCombat ? 1150 : 1500); // 奇襲の帯を読めるだけ留める
   G.battleIntro = { battle: b, t0: performance.now(), dur, ambush, boss: boss ? (enemyReveal(boss).name ? (boss.mon && boss.mon.name) || boss.name : "？？？") : null };
   G.animating = true;
   combatMenu.innerHTML = "";
@@ -7491,8 +7493,8 @@ function showSpells(actor) {
   combatMenu.appendChild(cmdBtn("back", "戻る", "", () => renderCombatMenu(), "cmd-wide cmd-backb"));
 }
 // ---- 戦闘ループ駆動 (1手ずつ・演出付き) ----
-// 戦闘テンポ: 倍速設定 (fastAnim) かオート中は演出時間を短縮する
-function spdMul() { return (G.fastAnim || G.autoCombat) ? 0.45 : 1; }
+// 戦闘テンポ (演出時間の倍率): 倍速 ON = 標準 (1) / OFF = その 1/2 の速さ (2)。オート中は倍速の設定によらず短縮する
+function spdMul() { return G.autoCombat ? 0.45 : G.fastAnim ? 1 : 2; }
 // 戦闘の一時停止: 戦闘中にシート (手帳・設定・覗き見など) が開いている間は次の一手へ進まない。
 // いま演じている一手は最後まで見せ、その次の手番で閉じるのを待つ
 function combatHeld() { return G.state === "combat" && (sheetDepth() > 0 || !!G.settingsOpen || !!G.statusOpen); }
@@ -11506,7 +11508,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "lrClock", "order", "irene", "events", "story", "dragonSlain", "stats",
+  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "lrClock", "order", "irene", "events", "story", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
   "lastRun",
 ];
@@ -11644,6 +11646,8 @@ function loadGame() {
   try { snap = refDeserialize(JSON.parse(raw)); } catch (e) { return false; }
   if (!snap || !snap.party || !snap.party.length) return false;
   for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
+  // 戦闘演出の倍速を改めた: 旧来の標準の速さが「倍速 ON」、OFF はその 1/2。旧セーブは ON (= これまでの速さ) から始める
+  if (!("animTempo" in snap)) { G.fastAnim = true; G.animTempo = 2; }
   if (!G.lrOwned || typeof G.lrOwned !== "object") G.lrOwned = {}; // LR入手済み記録 (1点もの)
   // 街UIの現在地 (後付け: tab/page)。旧 {facility, sub} はそれが属するタブへ写す
   G.town = townshell.migrateTown(G.town);
