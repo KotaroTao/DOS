@@ -3,7 +3,7 @@
 // 侍 = 居合と見切り・一太刀。抜き打ち (AGI・会心)、鎬の受け、介錯 (とどめ)、乱れ斬り (scatter)
 export default {
   table: `
-    1 KYOUGEKI 2 SUIGETSU 3 GONOSEN 5 iai/1 7 DOUBLE 10 SAMURAI_SAYABASHIRI
+    1 KYOUGEKI 2 SUIGETSU 3 GONOSEN 5 iai/1 7 KEHAIYOMI 10 SAMURAI_SAYABASHIRI
     12 SHIPPUUGIRI 15 samuraiShingan/1 20 ISSEN 22 UZUSHIO 25 samuraiNukimi/1 30 MEIKYOU
     35 initiative/1 40 TSUBAMEGAESHI 45 samuraiChiburi/1 50 SAMURAI_OBOROZUKI 55 SAMURAI_SHINOGI 57 HYOUJIN
     60 zanshin/1 65 SAMURAI_RYUUSUI 70 samuraiShingan/2 75 samuraiNukimi/2 80 SAMURAI_ITTOU 82 FUUGA

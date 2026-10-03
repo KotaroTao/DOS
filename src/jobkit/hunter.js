@@ -5,7 +5,7 @@ import { BEASTS } from "./common.js";
 export default {
   table: `
     1 DOKUYA 2 SUIGETSU 3 ASHIDOME 5 hunterKemono/1 7 SOGEKI 10 YANOAME
-    12 ABURA 15 hunterKoei/1 20 SHIBIREYA 22 REPPUU 25 hunterAshinerai/1 30 KEMONOGARI
+    12 ABURA 15 hunterKoei/1 20 SHIBIREYA 22 KEHAIYOMI 25 hunterAshinerai/1 30 KEMONOGARI
     35 hunterKemono/2 40 KUBIKARI 45 hunterAshinerai/2 50 TSURANUKI 55 HUNTER_HAYATEYA 57 FUUGA
     60 hunterKoei/2 65 HUNTER_KABURAYA 70 hunterKazeyomi/1 75 senseEnemy/1 80 HYOUJIN 82 RENSHA
     85 HUNTER_TORABASAMI 90 hunterAshinerai/3 95 SENNYA 100 HUNTER_ITEYA 105 hunterKemono/3 110 HUNTER_TAKAOTOSHI

@@ -6,7 +6,7 @@ import { UNHOLY } from "./common.js";
 export default {
   table: `
     1 kantei/2 3 DIOS 4 HOLYRAY 5 bishopSeisui/1 7 ICENEEDLE 10 CURE
-    15 afterBoth/1 20 SEAL 22 AQUAWAVE 25 bishopJouka/1 30 DIAL 35 bishopTobari/1
+    15 afterBoth/1 20 SEAL 22 MICHISHIRUBE 25 bishopJouka/1 30 DIAL 35 bishopTobari/1
     40 MADIOS 45 bishopYoin/1 47 ICELANCE 50 BISHOP_SEISUI 55 BISHOP_SENREI 60 bishopSeisui/2
     65 BISHOP_SEIHYOU 70 bishopTobari/2 75 afterBoth/2 80 MANAGIFT 85 SAINTRAY 90 bishopJouka/2
     95 BISHOP_SEIHAI 100 BISHOP_SEISEN 105 bishopYoin/2 110 BISHOP_JIU 115 bishopSeisui/3 120 SEALALL

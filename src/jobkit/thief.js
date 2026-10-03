@@ -4,7 +4,7 @@ export default {
   table: `
     1 kantei/1 2 STEAL 3 POISONSTAB 5 ambushCrit/1 7 FUYUU 10 KEMURIDAMA
     12 SUNAKAKE 15 thiefKasume/1 20 KASUMEGIRI 22 SHIBIREBARI 25 thiefTsukekomi/1 30 ASSASSINATE
-    35 thiefKasume/2 40 OBORO 45 thiefNigegoshi/1 50 MEIJIN 55 MAKIBISHI 57 FUUGA
+    35 thiefKasume/2 40 OBORO 45 thiefNigegoshi/1 50 TAKARASAGASHI 55 MAKIBISHI 57 FUUGA
     60 venomBlade/1 65 TSUJIKAZE 70 sleepKill/1 75 thiefShikake/1 80 ZETSUEI 85 SHIPPUTSUKI
     90 thiefKasume/3 95 ENGETSUJIN 100 MOUDOKUSASHI 105 thiefTsukekomi/2 107 KAMIKAZE 110 KAGEUCHI
     115 venomBlade/2 120 KUBIHANE 125 thiefNigegoshi/2 130 RANBUTSUKI 135 thiefKasume/4 140 SHUNSATSU

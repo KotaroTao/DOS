@@ -26,8 +26,9 @@
 //   regen({pct, turns} リジェネ) / grantBarrier / grantEndure / cure(状態異常) / purge(弱体を解く)
 //   ward({breath?, spell?: 軽減率}) — 守りの陣: 敵のブレス / 全体呪文から受けるダメージをその割合だけ減らす (dur ターン。重ねると最大 1/3 まで)
 // 呪文の伸び: 攻撃呪文は INT で伸びる。光の呪文と faith: true の呪文は「祈りの呪文」で、INT と PIE の高い方で伸びる
-// 迷宮で唱える技: kind "field" (戦闘の技の一覧には出ない。迷宮の手元の「浮遊」から唱える)
+// 迷宮で唱える技: kind "field" (戦闘の技の一覧には出ない。迷宮の手元のボタン (覚えた術が2つ以上なら「術」) から唱える)
 //   float(階数) — 浮遊: 隊を宙に浮かせ、その階数のあいだ落とし穴に落ちず毒の床も踏まない
+//   sense("enemy"|"chest"|"stairs") — 探りの術: その階のあいだ、まだめくっていない墓石の魔物 (種類・強さは分からない) / 宝箱 / 階段の位置を示す
 // 持続 dur (既定3ターン。ラウンド開始ごとに1減る)
 
 import { UNHOLY, BEASTS, DRAGONS, MACHINES, PREY_GROUPS } from "./jobkit/common.js";
@@ -226,6 +227,10 @@ export const SPELLS = {
   MAYOKE:         { name: "魔除けの帳", mp: 10, kind: "buff", ward: { spell: 0.5 }, target: "all-ally", desc: "魔除けの帳で隊を包み、敵の呪文のダメージを半減する" },
   // 迷宮で唱える (戦闘では使わない)
   FUYUU:          { name: "浮遊", mp: 8, kind: "field", float: 3, target: "all-ally", desc: "隊を宙に浮かせる。3階のあいだ落とし穴に落ちず、毒の床も踏まない（迷宮で唱える）" },
+  // 探りの術 (その階だけ。種類はミミックも含めて見分けられない)
+  KEHAIYOMI:      { name: "気配読み", mp: 4, kind: "field", sense: "enemy", target: "all-ally", desc: "この階の魔物の居場所を墓石の上に浮かび上がらせる。何が潜むかまでは分からない（迷宮で唱える）" },
+  TAKARASAGASHI:  { name: "宝探し", mp: 5, kind: "field", sense: "chest", target: "all-ally", desc: "この階の宝箱の在りかを示す。中身や罠、ミミックかどうかまでは分からない（迷宮で唱える）" },
+  MICHISHIRUBE:   { name: "道しるべ", mp: 6, kind: "field", sense: "stairs", target: "all-ally", desc: "この階の下り階段の在りかを示す（迷宮で唱える）" },
   HOUSHOUHEKI:    { name: "法障壁", mp: 13, kind: "buff", grantBarrier: 1, target: "all-ally", desc: "味方全体に魔障壁を張る" },
   DAIKEKKAI:      { name: "大結界陣", mp: 30, kind: "buff", buff: { vit: 1.5 }, grantBarrier: 2, purge: true, target: "all-ally", desc: "守りを上げ、魔障壁を重ね、弱体を解く" },
   KASUMINOTOBARI: { name: "霞の帳", mp: 12, kind: "heal", power: 16, debuffAll: { hit: 0.75 }, target: "all-ally", desc: "味方を癒し、敵全体の命中率を下げる" },

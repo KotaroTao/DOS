@@ -84,7 +84,7 @@ export const JOBKIT = {
 const SKILL_KEYS = new Set(("name mp kind target desc power hits scatter critBonus element acc pierce intScale agiScale vitScale pieScale " +
   "desperate execute prey debuff vuln seal poison para sleepChance flinchChance strip charm confuse instakill steal plunder drain mpDrain " +
   "hpCost gravity partyHeal buff taunt shield stance charge regen grantBarrier grantEndure cure purge revive revivePct dur debuffAll tech quiet " +
-  "ward faith float").split(" "));
+  "ward faith float sense").split(" "));
 const KINDS = new Set(["phys", "atk", "heal", "cure", "buff", "debuff", "mana", "sleep", "escape", "field"]);
 const TARGETS = new Set(["enemy", "all-enemy", "ally", "all-ally", "self"]);
 const ELS = new Set(["fire", "water", "wind", "earth", "light", "dark"]);
@@ -111,7 +111,7 @@ function checkSkill(job, key, sp) {
   for (const o of ["buff", "debuff", "debuffAll"]) if (sp[o]) for (const s in sp[o]) if (!STATS.has(s)) fail(job, key, `${o}.${s}`);
   if (sp.ward) for (const s in sp.ward) if (!["breath", "spell"].includes(s) || !(sp.ward[s] > 0 && sp.ward[s] < 1)) fail(job, key, `ward.${s}`);
   if (sp.faith && sp.kind !== "atk") fail(job, key, "faith は攻撃呪文だけ");
-  if (sp.kind === "field" && !sp.float) fail(job, key, "迷宮で唱える技には効果 (float) が必要");
+  if (sp.kind === "field" && !sp.float && !["enemy", "chest", "stairs"].includes(sp.sense)) fail(job, key, "迷宮で唱える技には効果 (float / sense) が必要");
 }
 function checkPerk(job, key, pk) {
   if (!/^[a-z][A-Za-z0-9]+$/.test(key)) fail(job, key, "パッシブキーは英小文字始まり");

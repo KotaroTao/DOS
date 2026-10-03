@@ -2,7 +2,7 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 export default {
   table: `
-    1 YAMIUCHI 2 YAMIBA 3 SHADOW_YADOKU 5 shadowIchishi/1 7 SHIPPUUGIRI 10 KAGEWATARI
+    1 YAMIUCHI 2 YAMIBA 3 SHADOW_YADOKU 5 shadowIchishi/1 7 KEHAIYOMI 10 KAGEWATARI
     12 YOIYAMIUCHI 15 shadowShinoNioi/1 20 KAGENUI 22 KOKUEINAGI 25 shadowDokugou/1 30 SHADOW_SESASHI
     35 shadowYain/1 40 SHINOKOKUIN 45 shadowYamiTokeru/1 50 SHADOW_KURASASORI 55 SHADOW_KAGEITO 57 MEIJIN
     60 shadowDokugou/2 65 SHADOW_SAKUYA 70 shadowIchishi/2 75 shadowShinoNioi/2 80 SHADOW_TODOME 85 SHADOW_NODOBUE
