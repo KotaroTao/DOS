@@ -21,8 +21,8 @@ export function build() {
   };
   // 骨格: 腰から首へ斜めに曲がった背骨。頭を前へ低く突き出し、口を大きく開く
   const spine = tube([[34, 62, 0, 6.6], [36, 53, 0, 7.2], [42, 44, 0, 7.6], [50, 39, 1, 6.6], [56, 40, 3, 3]], "skin", { seg: 4, k: 1 });
-  const head = ellipsoid([61, 44, 6], [5.6, 5.4, 5.2], "skin", 25);
-  const brow = ellipsoid([62.5, 41.5, 9.5], [3.6, 1.5, 2.4], "skin", -10);
+  const head = ellipsoid([60.5, 44.5, 6], [6.4, 4.8, 5], "skin", 35);
+  const brow = ellipsoid([61.5, 43, 9], [3, 1.3, 2], "skin", 30);
   const jaw = ellipsoid([63.5, 51, 7], [3.4, 2.3, 3.6], "skin", 40);
   const maw = U(0, ellipsoid([65.5, 47.5, 10], [3.2, 3, 3.4], "maw", 35), ellipsoid([66.5, 48, 6], [3.2, 2.8, 3.4], "maw", 35));
   // 背骨の瘤と浮いた肋
@@ -54,8 +54,7 @@ export function build() {
   shroom(30, 48, 0, -1, -0.6, 5, 5.4);
   shroom(45, 35, 2, 0.1, -1, 5.5, 5.6);
   shroom(51, 33.5, 3, 0.4, -1, 3.6, 3.6);
-  shroom(57, 38, 5, 0.2, -1, 3, 3.2);
-  shroom(62, 39, 6, 0.8, -1, 2.2, 2.2);
+  shroom(55, 37.5, 2, -0.5, -1, 4, 4.6);
   shroom(28, 56, 0, -1, 0.1, 3.6, 3.6);
   shroom(41, 38, 6, -0.1, -1, 2.6, 2.6);
   shroom(33, 45, 4, -0.7, -1, 2.6, 2.4);
@@ -64,9 +63,9 @@ export function build() {
   const R = rand(901);
   const puffs = [];
   for (let i = 0; i <= 8; i++) {
-    const t = i / 8, x = 67 + t * 18, y = 48 - t * 2 + Math.sin(t * 5) * 2, r = 2.4 + t * 7.4;
+    const t = i / 8, x = 67 + t * 17, y = 48 - t * 2 + Math.sin(t * 5) * 2, r = 2.4 + t * 9.4;
     puffs.push(sphere([x, y, 6 - t * 6], r, "spore"));
-    if (i > 1) for (const s of [-1, 1]) puffs.push(sphere([x + (R() - 0.5) * 4, y + s * r * (0.8 + R() * 0.3), 7 - t * 6 + (R() - 0.3) * 4], r * (0.5 + R() * 0.2), "spore"));
+    if (i > 1) for (const s of [-1, 1]) puffs.push(sphere([x + (R() - 0.5) * 4, y + s * r * (0.85 + R() * 0.3), 7 - t * 6 + (R() - 0.3) * 4], r * (0.5 + R() * 0.2), "spore"));
     if (i > 4) puffs.push(sphere([x + (R() - 0.5) * 4, y + (R() - 0.5) * r, 9], r * 0.45, "spore"));
   }
   const cloud = Disp(U(0.4, ...puffs), (x, y, z) => 0.5 * fbm(x * 0.3, y * 0.3, z * 0.3));
