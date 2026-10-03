@@ -1373,7 +1373,7 @@ function equipSeg(root, d) {
   if (unid) t.appendChild(el("span", "pt-bagbar-x", `未鑑定${unid}`));
   h.appendChild(t);
   const acts = el("div", "pt-bagbar-acts");
-  // 全員を回復: MP の多い術者から、最少の MP で全員を全回復する呪文を唱える (game.js healAll)
+  // 全員を回復: MP の多い術者から、最少の MP で全員を全回復する呪文を唱える。MP が足りなければ 死亡>状態異常>HP の順に回復できるところまで (game.js healAll)
   if (game.healAll) {
     const hurt = game.healAllNeed ? game.healAllNeed() : false;
     const b = el("button", "pt-allauto pt-allheal" + (hurt ? " hot" : ""));

@@ -150,8 +150,11 @@ const variance = (base) => Math.max(1, base + rand(Math.ceil(base * 0.4)) - rand
 // 職業ランクパッシブのLvを引く (souls.js の recalcDoll が passiveMap を埋める)
 const pv = (a, key) => (a && a.passiveMap && a.passiveMap[key]) || 0;
 // テスト記録用の集計の器 (telemetry.js が読む)。pa/pe/pp = 味方の物理 試行/かわされた/見切られた、
-// ea/ee/ep = 敵の物理 同、of/op = 手番で味方が先だった組/総組、ft/fo/fs = 逃走 試行/成功/封じられた
-const newTally = () => ({ pa: 0, pe: 0, pp: 0, ea: 0, ee: 0, ep: 0, of: 0, op: 0, ft: 0, fo: 0, fs: 0 });
+// ea/ee/ep = 敵の物理 同、of/op = 手番で味方が先だった組/総組、ft/fo/fs = 逃走 試行/成功/封じられた、
+// fp = 逃走を試みた時の成功率の合計 (×1000。実際の成功数と見比べる)
+// 逃走率の式の定数 (Battle.fleeChance)。主のいる戦いは追跡AGI を ×1.3 して逃げにくくする
+const FLEE_BASE = 0.55, FLEE_SLOPE = 0.35, FLEE_MIN = 0.05, FLEE_MAX = 0.95, FLEE_BOSS_MUL = 1.3;
+const newTally = () => ({ pa: 0, pe: 0, pp: 0, ea: 0, ee: 0, ep: 0, of: 0, op: 0, ft: 0, fo: 0, fs: 0, fp: 0 });
 // 破邪・聖刃の対象種族
 const HOLY_PREY = ["undead", "specter", "demon"];
 const VULN_LABEL = { fire: "火", water: "水", wind: "風", earth: "土", light: "光", dark: "闇", all: "全属性" };
@@ -200,6 +203,9 @@ export class Battle {
     this.opening = opts.opening || null;
     this.noFlee = !!opts.noFlee; // 迷宮の異変「閉ざされた退路」: 逃走不可
     this.orderFleet = opts.orderFleet || 0; // 控えの結社 逃げ足のLv (0-3): 隊全体の逃走率に上乗せ
+    // 追跡の物差し: 敵の AGI をこの倍率で味方の AGI と同じ規模に直してから逃走率を出す
+    // (game.js の fleeScale = その迷宮・階の基準AGI ÷ その迷宮の雑魚の標準AGI)
+    this.fleeK = opts.fleeK || 1;
     this._roundNo = 0;
     this._bigBarrierUsed = 0;
     this.bonusGold = 0; // 「盗む」で手に入れた金 (勝っても逃げても持ち帰る)
@@ -503,6 +509,24 @@ export class Battle {
     T.op += np * (this.queue.length - np);
   }
 
+  // 逃走率 (5%〜95%)。逃走を選んだ者の実効AGI と、生存する敵の「追跡AGI」の平均の比で決まる:
+  //   55% + 35% × log2(本人のAGI ÷ 追跡AGI) + 逃げ足 → 5%〜95% に収める
+  //   追跡AGI = 敵の実効AGI の平均 × fleeK (主がいれば ×FLEE_BOSS_MUL)。互角で55%、本人が2倍速ければ90%、半分なら20%
+  //   実効AGI はバフ/デバフ込み (水技の鈍足・影縫い・激昂・先駆けの号令が効く)
+  fleeChance(actor) {
+    if (this.noFlee) return 0;
+    const foes = this.livingEnemies();
+    if (!foes.length) return FLEE_MAX;
+    const agiOf = (a) => Math.max(1, (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1));
+    let chase = (foes.reduce((s, e) => s + agiOf(e), 0) / foes.length) * (this.fleeK || 1);
+    if (foes.some((e) => e.boss)) chase *= FLEE_BOSS_MUL;
+    // 逃げ足 (fleetFoot): 個人の習得は+30%、控えの結社は Lv に応じ +30/45/60%。高い方を採用
+    const fleetSelf = this.party.some((p) => p.alive && pv(p, "fleetFoot")) ? 0.30 : 0;
+    const fleetOrder = this.orderFleet >= 3 ? 0.60 : this.orderFleet >= 2 ? 0.45 : this.orderFleet >= 1 ? 0.30 : 0;
+    const p = FLEE_BASE + FLEE_SLOPE * Math.log2(agiOf(actor) / chase) + Math.max(fleetSelf, fleetOrder);
+    return Math.min(FLEE_MAX, Math.max(FLEE_MIN, p));
+  }
+
   // テスト記録の集計 (中断セーブから戻った古い戦闘にも器を用意する)
   _tally() { return this.tally || (this.tally = newTally()); }
 
@@ -733,11 +757,9 @@ export class Battle {
         res.fledFail = true;
         return res;
       }
-      // 逃げ足 (fleetFoot): 個人の習得は+30%、控えの結社は Lv に応じ +30/45/60%。高い方を採用
-      const fleetSelf = this.party.some((p) => p.alive && pv(p, "fleetFoot")) ? 0.30 : 0;
-      const fleetOrder = this.orderFleet >= 3 ? 0.60 : this.orderFleet >= 2 ? 0.45 : this.orderFleet >= 1 ? 0.30 : 0;
-      const fleetBonus = Math.max(fleetSelf, fleetOrder);
-      if (Math.random() < Math.min(0.95, 0.55 + fleetBonus)) { this.result = "flee"; T.fo++; this.log("うまく逃げ出した！", "sys"); res.fled = true; }
+      const chance = this.fleeChance(actor);
+      T.fp = (T.fp || 0) + Math.round(chance * 1000);
+      if (Math.random() < chance) { this.result = "flee"; T.fo++; this.log("うまく逃げ出した！", "sys"); res.fled = true; }
       else { this.log(`${actor.name}は逃げられなかった！`, "dmg"); res.fledFail = true; }
       return res;
     }
@@ -1015,8 +1037,8 @@ export class Battle {
     r = Math.min(3, r | 0);
     if (!r) return { dmg, tag: "", immune: false };
     const rate = resistRate(r);
-    if (rate >= 1) return { dmg: 0, tag: RESIST_TAG[key][r] + "!", immune: true };
-    return { dmg: Math.max(1, Math.round(dmg * (1 - rate))), tag: RESIST_TAG[key][r] + "!", immune: false };
+    if (rate >= 1) return { dmg: 0, tag: RESIST_TAG[key][r], immune: true };
+    return { dmg: Math.max(1, Math.round(dmg * (1 - rate))), tag: RESIST_TAG[key][r], immune: false };
   }
 
   _physical(actor, tgt, opt = {}) {

@@ -45,7 +45,7 @@ const DOCK_SVG = {
   loot: '<path d="M4 9.5h16v10H4Z"/><path d="M4 9.5 6.5 5h11L20 9.5"/><path d="M10 13h4"/>',
   scroll: '<path d="M7 4.5h11v13a2.5 2.5 0 0 1-2.5 2.5H6.5A2.5 2.5 0 0 1 4 17.5V16h11"/><path d="M7 4.5A2.5 2.5 0 0 0 4.5 7v1H7"/><path d="M10 8.5h5M10 11.5h5"/>',
   party: '<path d="M5.6 20.5v-8.3a6.4 6.4 0 0 1 12.8 0v8.3"/><path d="M5.6 13.4h12.8"/><path d="M12 13.4v7.1"/>',
-  gear: '<path d="M12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8Z"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/>',
+  gear: '<circle cx="12" cy="12" r="3.1"/><path d="M9.6 5.7 L9.6 2.9 14.4 2.9 14.4 5.7 A6.8 6.8 0 0 1 17.3 7.7 L19.9 6.9 21.4 11.5 18.8 12.4 A6.8 6.8 0 0 1 17.7 15.7 L19.3 17.9 15.4 20.8 13.8 18.6 A6.8 6.8 0 0 1 10.2 18.6 L8.6 20.8 4.7 17.9 6.3 15.7 A6.8 6.8 0 0 1 5.2 12.4 L2.6 11.5 4.1 6.9 6.7 7.7 A6.8 6.8 0 0 1 9.6 5.7Z"/>',
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.01"/>',
 };
 function dockIcon(kind, cls = "dk-ic") {
@@ -279,7 +279,7 @@ const TOGGLES = [
 ];
 // 戦闘中の手帳に並べる切り替え (倍速はセーブの G.fastAnim、ほかは端末の好み)
 const COMBAT_TOGGLES = [
-  { key: "fastAnim", label: "戦闘演出 倍速", sub: "攻撃や術の演出を速める",
+  { key: "fastAnim", label: "戦闘演出 倍速", sub: "切ると演出が 1/2 の速さに",
     get: () => { const g = G(); return !!(g && g.fastAnim); },
     set: (v) => { const g = G(); if (!g) return; g.fastAnim = v; if (game.autosave) game.autosave(); } },
   { key: "autoKeep", label: "オートを続ける", sub: "次の戦闘も。主・強敵で止まる" },
@@ -361,7 +361,7 @@ export function openDungeonMenu() {
       grid.appendChild(menuTile("loot", "今回の収穫", `💰${r.gold || 0} ✦${r.soulPts || 0} 品${(r.items || []).length}`, go(openRunLoot)));
       grid.appendChild(menuTile("scroll", "記録を読む", "出来事の全文", go(openLog)));
       grid.appendChild(menuTile("book", "図鑑", "敵・品・見聞", go(() => UI.openCodexSheet && UI.openCodexSheet({ dungeonIdx: g.dungeonIdx }))));
-      grid.appendChild(menuTile("gear", "設定", "音量・振動・背景", go(() => UI.openSettings && UI.openSettings())));
+      grid.appendChild(menuTile("gear", "設定", "音量・倍速・背景", go(() => UI.openSettings && UI.openSettings())));
       const canHome = !combat && (game.canReturnNow ? game.canReturnNow() : false);
       grid.appendChild(menuTile("home", canHome ? "街へ帰還する" : "帰還できない", canHome ? "戦利品を持ち帰る" : combat ? "戦闘中は帰れない" : "帰還陣か主の討伐で",
         canHome ? go(() => game.confirmReturnToTown && game.confirmReturnToTown()) : null, canHome ? "gold" : null));

@@ -11,7 +11,8 @@
 import { UI, game, registerUI } from "./ctx.js";
 import { el, sheet, button, setText, toast, reduced } from "./kit.js";
 import { statLines, isEquippable, itemCatText } from "./itemview.js";
-import { wearPlan, deltaEl, nameSpan, openDollChooser, itemSheet, ownerOf, shopOpen, townAppraisers, revealSellBtn } from "./loot.js";
+import { wearPlan, deltaEl, nameSpan, openDollChooser, itemSheet, ownerOf, shopOpen, townAppraisers, revealSellBtn,
+  FIRST_LABEL, firstBadge, isFirstGet } from "./loot.js"; // 初ゲット！ = 鑑定で正体を初めて知った品 (game.js の revealIdentity が印をつける)
 import { spriteCanvas } from "../sprites.js";
 import { identifyChance, identifyLabel } from "../souls.js";
 import { itemName } from "../items.js";
@@ -20,10 +21,6 @@ import { RARITIES, rarityKey } from "../rarity.js";
 const G = () => game.G || {};
 const sfx = (k, ...a) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](...a); } catch (e) { /* 音は演出のみ */ } };
 const buzz = (p) => { try { if (game.buzz) game.buzz(p); } catch (e) { /* noop */ } };
-// 正体をまだ知らない品か (鑑定の前に聞く。初めて知ったら「初ゲット！」)
-const isFirst = (it) => !!(it && it.id && game.itemKnown && !game.itemKnown(it.id));
-const FIRST_LABEL = "初ゲット！";
-const firstBadge = (cls = "") => el("span", "first-get" + (cls ? " " + cls : ""), FIRST_LABEL);
 const allDolls = () => { try { return game.allDolls ? game.allDolls() : [...(G().party || []), ...(G().reserve || [])]; } catch (e) { return []; } };
 const RAR_ORDER = { c: 0, uc: 1, r: 2, sr: 3, lr: 4 };
 const DOT = "．";
@@ -177,9 +174,8 @@ export function openTryIdentifyAll({ onDone } = {}) {
 
   // 判定して結果を見せる
   const reveal = (t) => {
-    const fresh = isFirst(t.item);
     const ok = game.doIdentifySkill ? !!game.doIdentifySkill(t.best.m, t.item, { quiet: true }) : false;
-    const first = ok && fresh;
+    const first = ok && isFirstGet(t.item);
     results.push({ item: t.item, doll: t.doll, m: t.best.m, ok, first });
     const it = t.item;
     if (ok) {
@@ -245,10 +241,9 @@ export function openTryIdentifyAll({ onDone } = {}) {
       const t = list[idx];
       if (!t.item.unidentified || t.item.idHardFail || !ownerOf(t.item)) continue;
       const b = bestFor(t.item, alive.length ? alive : men);
-      const fresh = isFirst(t.item);
       const ok = game.doIdentifySkill ? !!game.doIdentifySkill(b.m, t.item, { quiet: true }) : false;
       if (ok) t.item.isNew = true;
-      results.push({ item: t.item, doll: t.doll, m: b.m, ok, first: ok && fresh });
+      results.push({ item: t.item, doll: t.doll, m: b.m, ok, first: ok && isFirstGet(t.item) });
     }
     sfx(results.some((r) => r.ok) ? "appraiseOk" : "appraiseNg");
     finish();
