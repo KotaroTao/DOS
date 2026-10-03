@@ -2,7 +2,7 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 export default {
   table: `
-    1 kantei/1 2 STEAL 3 POISONSTAB 5 ambushCrit/1 7 SHIPPUUGIRI 10 KEMURIDAMA
+    1 kantei/1 2 STEAL 3 POISONSTAB 5 ambushCrit/1 7 FUYUU 10 KEMURIDAMA
     12 SUNAKAKE 15 thiefKasume/1 20 KASUMEGIRI 22 SHIBIREBARI 25 thiefTsukekomi/1 30 ASSASSINATE
     35 thiefKasume/2 40 OBORO 45 thiefNigegoshi/1 50 MEIJIN 55 MAKIBISHI 57 FUUGA
     60 venomBlade/1 65 TSUJIKAZE 70 sleepKill/1 75 thiefShikake/1 80 ZETSUEI 85 SHIPPUTSUKI

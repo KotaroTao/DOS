@@ -220,5 +220,18 @@ export function makeBoard(floor, cfg = null) {
     }
   }
 
+  // 落とし穴: 通路に口を開け、踏むと1階下へ落とされる (ダメージは無い)。最下階には置かない。
+  // 浮遊の術で越えられる。毒の床と同じく行き止まり以外の通路に敷く (第2層以降。dn.pitRate)
+  const pitRate = dn.pitRate || 0;
+  if (pitRate > 0 && floor < (dn.floors || 1)) {
+    for (let y = 0; y < ROWS; y++) {
+      for (let x = 0; x < COLS; x++) {
+        const c = cells[y][x];
+        if (c.type !== "empty" || openCount(c) < 2) continue;
+        if (Math.random() < pitRate) { c.type = "pit"; c.cleared = false; }
+      }
+    }
+  }
+
   return { cells, start: { x: sx, y: sy }, floor };
 }

@@ -3,15 +3,17 @@
 export default {
   table: `
     1 STEAL 2 ARCTHIEF_KASUMEBA 3 HALITO 4 SHADOWBOLT 5 openSpell/1 7 ARCTHIEF_NUSUMIMI
-    10 ARCTHIEF_YUMETORI 12 SHIPPUUGIRI 15 arcthiefKarimono/1 20 SEAL 25 arcthiefSae/1 30 MAHALITO
+    10 ARCTHIEF_YUMETORI 12 FUYUU 15 arcthiefKarimono/1 20 SEAL 25 arcthiefSae/1 30 MAHALITO
     32 DARKBLAST 35 arcthiefSuritoru/1 40 MARYOKUGOUDATSU 45 arcthiefTeguse/1 50 ARCTHIEF_GENTOU 55 DISPEL
-    57 MEIJIN 60 arcthiefTeguse/2 65 ARCTHIEF_ENMAKU 70 arcthiefKarimono/2 72 ARCTHIEF_KAGEKUI 75 arcthiefSae/2
+    57 ARCTHIEF_MAREIJIN 60 arcthiefTeguse/2 65 ARCTHIEF_ENMAKU 70 arcthiefKarimono/2 72 ARCTHIEF_KAGEKUI 75 arcthiefSae/2
     80 ARCTHIEF_TOUSEI 85 ARCTHIEF_MASHU 90 arcthiefSuritoru/2 95 ARCTHIEF_KASUMERAI 100 MADALT 105 arcthiefSurinuke/1
     110 ARCTHIEF_JUTSUAMI 115 arcthiefSuritoru/3 120 ARCTHIEF_MANAWA 122 ARCTHIEF_TAMANUKI 125 arcthiefKarimono/3 130 ARCTHIEF_NUSUMISHIMO
     135 arcthiefSae/3 140 ARCTHIEF_KAGENUKE 145 arcthiefTeguse/3 150 ARCTHIEF_NUSUMIARASHI 155 resistAilment/1 160 ARCTHIEF_NUSUMIBI
     165 arcthiefSuritoru/4 170 ARCTHIEF_TAMANUSUMI 175 arcthiefSurinuke/2 180 ARCTHIEF_TOUTENSEKI 185 arcthiefSae/4 190 ARCTHIEF_MAKUHIKI
     195 ARCTHIEF_DATSUENRAN 200 ARCTHIEF_BANSHOU`,
   skills: {
+    // INT でも伸びる魔刃 (共通の冥刃は ATK だけで伸び、INT型の魔盗賊に合わない)
+    ARCTHIEF_MAREIJIN:   { name: "魔霊刃", mp: 10, kind: "phys", power: 1.7, intScale: 0.5, element: "dark", mpDrain: 0.2, target: "enemy", desc: "魔力を纏った冥い刃で斬り、魔力を奪う（INTでも伸びる）" },
     ARCTHIEF_KASUMEBA:     { name: "掠め魔刃", mp: 4, kind: "phys", power: 1.1, intScale: 0.5, element: "dark", mpDrain: 0.2, target: "enemy", desc: "闇の刃で斬り、魔力を掠め取る（闇）" },
     ARCTHIEF_NUSUMIMI:     { name: "盗み見", mp: 3, kind: "debuff", vuln: { all: 0.85 }, target: "enemy", desc: "術式を盗み見て、全属性の守りを崩す" },
     ARCTHIEF_YUMETORI:     { name: "夢盗り", mp: 3, kind: "debuff", sleepChance: 0.75, strip: true, target: "enemy", desc: "眠りに誘い、その隙に強化を盗む" },
@@ -28,7 +30,7 @@ export default {
     ARCTHIEF_KAGENUKE:     { name: "影抜け", mp: 22, kind: "phys", power: 4.0, agiScale: 1.0, intScale: 0.6, critBonus: 0.3, element: "wind", target: "enemy", desc: "影を抜け、風の魔刃で刺す（風）" },
     ARCTHIEF_NUSUMIARASHI: { name: "盗み嵐", mp: 16, kind: "atk", power: 42, element: "wind", debuff: { hit: 0.85 }, target: "all-enemy", desc: "盗んだ嵐が敵陣を裂き、狙いを乱す（風）" },
     ARCTHIEF_NUSUMIBI:     { name: "盗み火", mp: 20, kind: "atk", power: 58, element: "fire", vuln: { fire: 0.8 }, target: "enemy", desc: "盗んだ業火で焼き、火への守りを崩す（火）" },
-    ARCTHIEF_TAMANUSUMI:   { name: "魂盗み", mp: 28, kind: "phys", power: 4.4, critBonus: 0.4, mpDrain: 0.2, instakill: { chance: 0.3 }, target: "enemy", desc: "命と魔力を盗み取る。即死させることも" },
+    ARCTHIEF_TAMANUSUMI:   { name: "魂盗み", mp: 28, kind: "phys", power: 3.0, intScale: 0.5, critBonus: 0.4, mpDrain: 0.2, instakill: { chance: 0.3 }, target: "enemy", desc: "命と魔力を盗み取る。即死させることも（INTでも伸びる）" },
     ARCTHIEF_TOUTENSEKI:   { name: "盗天の隕石", mp: 26, kind: "atk", power: 74, element: "earth", flinchChance: 0.25, target: "all-enemy", desc: "盗んだ天の石を降らせ、怯ませる（土）" },
     ARCTHIEF_MAKUHIKI:     { name: "怪盗の幕引き", mp: 32, kind: "phys", power: 7.0, intScale: 0.5, critBonus: 0.4, execute: 2, element: "dark", target: "enemy", desc: "魔を帯びた刃で弱った敵を葬る（闇）" },
     ARCTHIEF_DATSUENRAN:   { name: "奪焔嵐", mp: 30, kind: "atk", power: 84, element: "fire", debuff: { vit: 0.85 }, target: "all-enemy", desc: "奪った業火の嵐で敵陣の守りを焼く（火）" },

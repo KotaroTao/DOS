@@ -61,12 +61,12 @@ export function elemStatEq(a, b) {
 export function elemStatShort(e) { return e && e.el ? `${elemName(e.el)}${e.lv >= 2 ? "◎" : "◯"}` : "—"; }
 
 // ===== スキル詳細 =====
-export const SPELL_KIND_LABEL = { atk: "攻撃呪文", heal: "回復呪文", phys: "物理技", buff: "支援", debuff: "弱体", sleep: "状態異常", cure: "治療", mana: "魔力譲渡", escape: "逃走" };
+export const SPELL_KIND_LABEL = { atk: "攻撃呪文", heal: "回復呪文", phys: "物理技", buff: "支援", debuff: "弱体", sleep: "状態異常", cure: "治療", mana: "魔力譲渡", escape: "逃走", field: "迷宮の術" };
 // 能力の倍率キーの呼び名 (ATK/VIT… 以外の効果)
-export const BUFF_NAME = { hit: "命中率", int: "INT", taunt: "挑発", shield: "仁王立ち", ctr: "反撃の構え", charge: "溜め", regen: "リジェネ", seal: "特技封じ",
+export const BUFF_NAME = { hit: "命中率", int: "INT", taunt: "挑発", shield: "仁王立ち", ctr: "反撃の構え", charge: "溜め", regen: "リジェネ", seal: "特技封じ", wardB: "ブレス避け", wardS: "呪文避け",
   r_fire: "火耐性", r_water: "水耐性", r_wind: "風耐性", r_earth: "土耐性", r_light: "光耐性", r_dark: "闇耐性", r_all: "全属性耐性" };
 export const SPELL_TARGET_LABEL = { enemy: "敵単体", "all-enemy": "敵全体", ally: "味方単体", "all-ally": "味方全体", self: "自分" };
-export const SPELL_KIND_COLOR = { atk: "#e0743f", heal: "#46c08f", phys: "#d8b04a", buff: "#5fa8e0", debuff: "#a06fd6", sleep: "#a06fd6", cure: "#46c08f", mana: "#5fa8e0", escape: "#8f96a3" };
+export const SPELL_KIND_COLOR = { atk: "#e0743f", heal: "#46c08f", phys: "#d8b04a", buff: "#5fa8e0", debuff: "#a06fd6", sleep: "#a06fd6", cure: "#46c08f", mana: "#5fa8e0", escape: "#8f96a3", field: "#8fd0c8" };
 
 // ===== 種別・属性アイコン (敵の特徴・味方のスキルに添える小さな札) =====
 // 物 = 物理 / 魔 = 魔法 (ブレス含む) / 回復 / その他 (強化・弱体・招来など)。属性は「火」「水」…の札を並べる
@@ -85,7 +85,7 @@ const TRAIT_TAG = {
   drain: ["phys", true], soulSteal: ["other"], goldSteal: ["other"], critical: ["phys", true],
   enrage: ["other"], endure: ["other"], lifesteal: ["phys", true], multistrike: ["phys", true],
   barrier: ["other"], warcry: ["other"], weaken: ["phys", true],
-  sleep: ["other"], charm: ["other"], confuse: ["other"],
+  sleep: ["other"], charm: ["other"], confuse: ["other"], haste: ["other"], spell: ["mag", true],
 };
 function hasElem(e) { return !!(e && e !== "none" && ELEMENTS[e]); }
 // 1枚の札。kind は TAG_KIND のキー、または "el:fire" のような属性
@@ -203,7 +203,7 @@ export function skillDetailLines(sp) {
   lines.push(`種別: ${SPELL_KIND_LABEL[sp.kind] || sp.kind}　対象: ${SPELL_TARGET_LABEL[sp.target] || sp.target}`);
   if (sp.element && sp.element !== "none" && ELEMENTS[sp.element]) lines.push(`属性: ${ELEMENTS[sp.element].label}`);
   if (sp.kind === "atk" && sp.gravity) lines.push(`敵の今のHPの${pct(sp.gravity)}を削る（主には3割しか効かない・魔法耐性は受ける）`);
-  else if (sp.kind === "atk") lines.push(`威力 ${sp.power}（術者のINTで伸びる）`);
+  else if (sp.kind === "atk") lines.push(`威力 ${sp.power}（術者の${sp.faith || sp.element === "light" ? "INT と PIE の高い方" : "INT"}で伸びる）`);
   if (sp.kind === "heal" && sp.power) lines.push(`回復量 ${sp.power}（術者のPIEで伸びる）`);
   if (sp.kind === "mana") lines.push(`味方のMPを ${sp.power} 回復（術者のINTで少し伸びる）`);
   if (sp.kind === "escape") lines.push("必ず戦闘から逃げられる（迷宮の異変で退路が閉ざされている時を除く）");
@@ -233,6 +233,9 @@ export function skillDetailLines(sp) {
   if (sp.stance === "counter") lines.push("反撃の構え: 物理攻撃を受けると必ず反撃する");
   if (sp.charge) lines.push(`溜め: 次の物理攻撃・物理技の威力 ×${sp.charge}`);
   if (sp.regen) lines.push(`リジェネ: 毎ターン最大HPの${pct(sp.regen.pct)}を回復（${sp.regen.turns}ターン）`);
+  if (sp.ward && sp.ward.breath) lines.push(`ブレス避け: 敵のブレスから受けるダメージ −${pct(sp.ward.breath)}（${sp.dur || 3}ターン）`);
+  if (sp.ward && sp.ward.spell) lines.push(`呪文避け: 敵の全体呪文から受けるダメージ −${pct(sp.ward.spell)}（${sp.dur || 3}ターン）`);
+  if (sp.float) lines.push(`迷宮で唱える: ${sp.float}階のあいだ隊が宙に浮き、落とし穴に落ちず毒の床のダメージも受けない（戦闘では使わない）`);
   // ---- 固有の追加効果 ----
   if (sp.hpCost) lines.push(`代償: 自分の最大HPの${pct(sp.hpCost)}を失う（HP1で踏みとどまる）`);
   if (sp.drain) lines.push(`与えたダメージの${pct(sp.drain)}だけ自分のHPを回復`);
@@ -328,6 +331,7 @@ function ailStatParts(it) {
   const out = [];
   if (it.onHit && it.onHit.k) out.push(`${AIL_LABEL[it.onHit.k]}付与 ${Math.round(it.onHit.chance * 100)}%`);
   if (it.aRes) out.push(`耐性 ${Object.entries(it.aRes).map(([k, v]) => `${AIL_LABEL[k] || k}${Math.round(v * 100)}%`).join("・")}`);
+  if (it.bRes) out.push(`ブレス耐性 ${Math.round(it.bRes * 100)}%`);
   return out;
 }
 // くわしい行 (品の細目)
@@ -340,6 +344,7 @@ export function ailDetailLines(it) {
     L.push(`追加効果: 攻撃が当たると ${Math.round(o.chance * 100)}% で敵を${AIL_LABEL[o.k]}にする${tail}（物理技も同じ・主には効きにくい）`);
   }
   if (it.aRes) L.push(`状態異常耐性: ${Object.entries(it.aRes).map(([k, v]) => `${AIL_LABEL[k] || k} −${Math.round(v * 100)}%`).join("・")}（かかる確率を下げる）`);
+  if (it.bRes) L.push(`ブレス耐性: 敵のブレスから受けるダメージ −${Math.round(it.bRes * 100)}%（装備どうしで足し合い、上限50%）`);
   return L;
 }
 
@@ -406,6 +411,7 @@ export function equipPreviewDelta(p, cand) {
     elemAtk: { from: p.elemAtk, to: fake.elemAtk },
     elemDef: { from: p.elemDef, to: fake.elemDef },
     ailRes: { from: p.ailRes || null, to: fake.ailRes || null },
+    breathRes: Math.round(((fake.breathRes || 0) - (p.breathRes || 0)) * 100),
     onHit: { from: p.onHit || null, to: fake.onHit || null },
   };
 }
@@ -443,6 +449,10 @@ export function equipCompareEl(p, cand) {
     if (d.ailRes && ailResShort(d.ailRes.from) !== ailResShort(d.ailRes.to)) {
       any = true;
       row.appendChild(el("span", "eq-cd-seg elem", `異常耐性 ${ailResShort(d.ailRes.from)}→${ailResShort(d.ailRes.to)}`));
+    }
+    if (d.breathRes) {
+      any = true;
+      row.appendChild(el("span", "eq-cd-seg " + (d.breathRes > 0 ? "up" : "down"), `ブレス耐性 ${d.breathRes > 0 ? "▲+" + d.breathRes : "▼" + d.breathRes}%`));
     }
     if (d.onHit && onHitShort(d.onHit.from) !== onHitShort(d.onHit.to)) {
       any = true;
@@ -496,6 +506,7 @@ export function gearScore(doll, delta) {
   const ohSum = (o) => (o ? o.reduce((a, x) => a + (x.chance || 0), 0) : 0);
   if (delta.ailRes) s += (resSum(delta.ailRes.to) - resSum(delta.ailRes.from)) * 10;
   if (delta.onHit) s += (ohSum(delta.onHit.to) - ohSum(delta.onHit.from)) * 15;
+  if (delta.breathRes) s += delta.breathRes * 0.8; // ブレス耐性 (10%ごとに8点)
   return Math.round(s * 10) / 10;
 }
 

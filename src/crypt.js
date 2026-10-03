@@ -343,6 +343,7 @@ export function paintCryptFloor(W, H, opt) {
         poisonStain(R, r, cr, s1);
         continue;
       }
+      if (c.type === "pit") continue; // 落とし穴: 穴そのものは game.js が毎フレーム描く (床の飾りは置かない)
       const roll = cr();
       if (roll < 0.13 && !busy) floorTomb(R, r, cr);
       else if (roll < 0.17 && !busy) drainGrate(R, r.x + Math.round(r.w / 2) - 5, r.y + Math.round(r.h / 2) - 5);

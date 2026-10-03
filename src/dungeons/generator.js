@@ -243,6 +243,8 @@ export function generateDungeon(n) {
     tune: DUNGEON_TUNE[n] ? { ...DUNGEON_TUNE[n] } : null,          // 迷宮ごとの手直し (上の DUNGEON_TUNE)
     trapRate: Math.min(0.25, 0.04 + n * 0.002),
     poisonRate: n > 10 ? Math.min(0.10, 0.04 + n * 0.0006) : 0,
+    // 落とし穴 (第2層から。踏むと1階下へ落ちる。最下階には無い — board.js)
+    pitRate: n > 5 ? Math.min(0.05, 0.02 + n * 0.0003) : 0,
     warmChance: Math.min(0.7, 0.38 + n * 0.0032),
     soulLevelBonus: Math.floor((Math.sqrt(n) - 1) * 1.6),
     rankBonus: Math.round(1.15 * Math.log2(1 + n / 2) * 100) / 100,

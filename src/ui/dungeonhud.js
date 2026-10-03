@@ -48,6 +48,7 @@ const DOCK_SVG = {
   party: '<path d="M5.6 20.5v-8.3a6.4 6.4 0 0 1 12.8 0v8.3"/><path d="M5.6 13.4h12.8"/><path d="M12 13.4v7.1"/>',
   gear: '<circle cx="12" cy="12" r="3.1"/><path d="M9.6 5.7 L9.6 2.9 14.4 2.9 14.4 5.7 A6.8 6.8 0 0 1 17.3 7.7 L19.9 6.9 21.4 11.5 18.8 12.4 A6.8 6.8 0 0 1 17.7 15.7 L19.3 17.9 15.4 20.8 13.8 18.6 A6.8 6.8 0 0 1 10.2 18.6 L8.6 20.8 4.7 17.9 6.3 15.7 A6.8 6.8 0 0 1 5.2 12.4 L2.6 11.5 4.1 6.9 6.7 7.7 A6.8 6.8 0 0 1 9.6 5.7Z"/>',
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.01"/>',
+  float: '<path d="M6 9.5c1.6-2 3.6-3 6-3s4.4 1 6 3"/><path d="M12 6.5v8"/><path d="M9.2 12 12 14.8 14.8 12"/><path d="M4.5 19c1.2-.9 2.4-.9 3.6 0s2.4.9 3.6 0 2.4-.9 3.6 0 2.4.9 3.6 0"/>',
   heal: '<path d="M12 20.2s-7.5-4.6-7.5-10.1A4.1 4.1 0 0 1 12 7.6a4.1 4.1 0 0 1 7.5 2.5c0 5.5-7.5 10.1-7.5 10.1Z"/><path d="M12 10.4v5.2M9.4 13h5.2"/>',
 };
 function dockIcon(kind, cls = "dk-ic") {
@@ -63,7 +64,7 @@ let _dockKey = "";
 export function renderDock(host, spec, acts = {}) {
   if (!host) return;
   host.classList.add("dg-dock");
-  const key = spec ? JSON.stringify([spec.down, spec.home, spec.heal, spec.idle]) : "none";
+  const key = spec ? JSON.stringify([spec.down, spec.home, spec.heal, spec.float, spec.idle]) : "none";
   if (key === _dockKey && host.childElementCount) return;
   _dockKey = key;
   host.textContent = "";
@@ -88,10 +89,13 @@ export function renderDock(host, spec, acts = {}) {
     idle.appendChild(el("span", "dk-idle-t", spec.idle || ""));
     host.appendChild(idle);
   }
+  // 浮遊 (迷宮で唱える技を覚えた者がいる時だけ)。浮いている間は残りの階数を示す
+  if (spec.float) host.appendChild(mk("dk-float" + (spec.float.on ? " on" : ""), "float", spec.float.label, spec.float.sub, acts.float || (() => {})));
   if (spec.heal) host.appendChild(mk("dk-heal" + (spec.heal.hot ? " hot" : ""), "heal", spec.heal.label, spec.heal.sub, acts.healAll || (() => {})));
   host.classList.toggle("one", !!spec.down !== !!spec.home);
   host.classList.toggle("has-down", !!spec.down);
   host.classList.toggle("has-home", !!spec.home);
+  host.classList.toggle("has-float", !!spec.float);
 }
 
 // ================= 小さな部品 =================

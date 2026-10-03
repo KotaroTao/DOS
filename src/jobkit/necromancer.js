@@ -4,7 +4,7 @@
 const LIVING = ["humanoid", "giant", "beast", "avian"];
 export default {
   table: `
-    1 NECROMANCER_MOUJANOTE 2 SHADOWBOLT 3 NECROMANCER_SHISOU 5 necromancerShikuirai/1 7 NECROMANCER_KOMORIUTA 10 DIOS
+    1 NECROMANCER_MOUJANOTE 2 SHADOWBOLT 3 NECROMANCER_SHISOU 5 necromancerShikuirai/1 7 NECROMANCER_KOMORIUTA 10 NECROMANCER_SEIKISUI
     15 necromancerMeifuIzumi/1 20 KUGUTSU 22 NECROMANCER_ONRYOU 25 necromancerShishaSasayaki/1 30 NECROMANCER_HAKAMORI 32 DARKBLAST
     35 necromancerShinigamiMe/1 40 MEIKONGURAI 45 necromancerShikabaneKate/1 50 NECROMANCER_SHIMEI 55 NECROMANCER_SHIDOKU 60 necromancerShikuirai/2
     65 REVIVE 70 necromancerShinigamiMe/2 72 NECROMANCER_KOUSHIN 75 necromancerShishaSasayaki/2 80 NECROMANCER_KONBAKU 85 NECROMANCER_INOCHISOGI
@@ -14,6 +14,8 @@ export default {
     172 NECROMANCER_TAMAGARI 175 necromancerMeifuIzumi/3 180 MEIFUNOMON 185 necromancerShikabaneKate/3 190 NECROMANCER_SANZU 195 NECROMANCER_MEIGA
     200 NECROMANCER_SOUSOU`,
   skills: {
+    // 死霊術師は PIE が低く癒しの祈りに向かない: 傷は敵から吸って塞ぐ
+    NECROMANCER_SEIKISUI: { name: "生気吸い", mp: 3, kind: "atk", power: 12, element: "dark", drain: 0.5, target: "enemy", desc: "闇で敵の生気を吸い、己の傷を塞ぐ" },
     NECROMANCER_MOUJANOTE: { name: "亡者の手", mp: 3, kind: "debuff", debuff: { agi: 0.8, hit: 0.85 }, target: "enemy", desc: "地から亡者の手が伸び、足と狙いを鈍らせる" },
     NECROMANCER_SHISOU: { name: "死相の刻印", mp: 5, kind: "debuff", debuff: { vit: 0.75 }, vuln: { dark: 0.8 }, target: "enemy", desc: "死相を刻み、守りと闇への耐性を削ぐ" },
     NECROMANCER_KOMORIUTA: { name: "死者の子守唄", mp: 4, kind: "debuff", sleepChance: 0.5, debuff: { agi: 0.9 }, target: "all-enemy", desc: "死者の唄で敵全体を眠りに誘い、鈍らせる" },

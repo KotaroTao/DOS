@@ -3,9 +3,9 @@
 // 持ち味: 山岳の荒行。滝行・火渡りで己を鍛え、身を削って打ち・癒し、護摩の炎と山の土で敵を焼き崩す (土・火)
 export default {
   table: `
-    1 KYOUGEKI 2 IWAKUDAKI 3 DIOS 5 asceticAragyou/1 7 NERAIUCHI 8 ISHITSUBUTE
-    10 ASCETIC_TAKIGYOU 12 HALITO 15 asceticYoujou/1 20 KUJI 22 CHIRETSU 25 asceticAragyou/2
-    30 ASCETIC_HIWATARI 32 EARTHQUAKE 35 asceticNyuubu/1 40 SHASHINNOGYOU 45 asceticDoukou/1 50 GOMA
+    1 KYOUGEKI 2 IWAKUDAKI 3 DIOS 5 asceticAragyou/1 7 NERAIUCHI 8 ASCETIC_TSUBUTE
+    10 ASCETIC_TAKIGYOU 12 ASCETIC_FUDOUBI 15 asceticYoujou/1 20 KUJI 22 CHIRETSU 25 asceticAragyou/2
+    30 ASCETIC_HIWATARI 32 ASCETIC_JISHIN 35 asceticNyuubu/1 40 SHASHINNOGYOU 45 asceticDoukou/1 50 GOMA
     55 SHINGANGEKI 57 GANOTOSHI 60 asceticNyuubu/2 65 ASCETIC_SHAKUJOU 70 asceticYoujou/2 75 asceticMoeagari/1
     80 ASCETIC_SARASHIMI 82 ASCETIC_KAENSHAKUJOU 85 ASCETIC_YAMABUSHIGUSURI 90 asceticAragyou/3 95 ASCETIC_IWAOTOOSHI 100 ASCETIC_ZAOU
     105 asceticNyuubu/3 107 ASCETIC_REIHOU 110 ASCETIC_MIGAWARIGOMA 115 asceticYoujou/3 120 ASCETIC_SANKO 125 resistAilment/1
@@ -13,6 +13,10 @@ export default {
     160 ASCETIC_KASHOUZANMAI 165 asceticAragyou/4 170 ASCETIC_SHAKUJOURANBU 175 resistAilment/2 180 ASCETIC_SHASHINKUYOU 185 asceticYoujou/4
     190 ASCETIC_SHASHINJOUBUTSU 195 ASCETIC_FUDOUKAEN 200 GONGENOROSHI`,
   skills: {
+    // 験力の術 (faith)。共通の呪文は INT 依存で修験者 (PIE型) に合わないので置き換える
+    ASCETIC_TSUBUTE:  { name: "験力の礫", mp: 3, kind: "atk", power: 12, element: "earth", faith: true, target: "enemy", desc: "念を込めた礫を打つ（PIEでも伸びる）" },
+    ASCETIC_FUDOUBI:  { name: "不動の火焔", mp: 2, kind: "atk", power: 10, element: "fire", faith: true, target: "enemy", desc: "不動明王の火焔で焼く（PIEでも伸びる）" },
+    ASCETIC_JISHIN: { name: "山鳴りの法", mp: 7, kind: "atk", power: 22, element: "earth", faith: true, target: "all-enemy", desc: "霊山を鳴動させ敵全体を打つ（PIEでも伸びる）" },
     ASCETIC_TAKIGYOU: { name: "滝行", mp: 3, kind: "buff", charge: 1.7, cure: true, target: "self", tech: true, desc: "滝に打たれて身を清め、次の一撃に力を溜める" },
     ASCETIC_HIWATARI: { name: "火渡りの行", mp: 6, kind: "heal", power: 24, cure: true, regen: { pct: 0.04, turns: 3 }, target: "self", tech: true, desc: "火の上を渡り、身を清め癒し続ける" },
     ASCETIC_SHAKUJOU: { name: "錫杖打ち", mp: 6, kind: "phys", power: 1.3, acc: 0.7, flinchChance: 0.3, target: "enemy", desc: "錫杖を鳴らして打ち、怯ませる" },
@@ -27,7 +31,7 @@ export default {
     ASCETIC_GOMANOKEMURI: { name: "護摩の煙", mp: 9, kind: "cure", purge: true, debuffAll: { hit: 0.9 }, target: "all-ally", desc: "煙で全員の穢れを祓い、敵の目を燻す" },
     ASCETIC_NYUUBU: { name: "入峰の一撃", mp: 24, kind: "phys", power: 4.8, acc: 1, desperate: true, target: "enemy", desc: "必中の一撃。傷が深いほど重い" },
     ASCETIC_YAMANARI: { name: "山鳴り", mp: 28, kind: "phys", power: 2.1, element: "earth", acc: 0.6, debuff: { vit: 0.85 }, target: "all-enemy", desc: "山を鳴らす踏み込みで全敵の守りを崩す" },
-    ASCETIC_KASHOUZANMAI: { name: "火生三昧", mp: 20, kind: "atk", power: 56, element: "fire", poison: { chance: 0.5, pct: 0.05 }, target: "enemy", desc: "不動の火炎で焼き、焼け爛れさせる" },
+    ASCETIC_KASHOUZANMAI: { name: "火生三昧", mp: 20, kind: "atk", power: 56, element: "fire", poison: { chance: 0.5, pct: 0.05 }, faith: true, target: "enemy", desc: "不動の火炎で焼き、焼け爛れさせる（PIEでも伸びる）" },
     ASCETIC_SHAKUJOURANBU: { name: "錫杖乱舞", mp: 26, kind: "phys", power: 2.3, acc: 0.8, strip: true, target: "all-enemy", desc: "錫杖の音が全敵を打ち、加護を祓う" },
     ASCETIC_SHASHINKUYOU: { name: "捨身供養", mp: 18, kind: "heal", power: 76, hpCost: 0.12, target: "all-ally", desc: "己の身を削り、全員を大きく癒す" },
     ASCETIC_SHASHINJOUBUTSU: { name: "捨身成仏", mp: 32, kind: "phys", power: 9.4, acc: 1, hpCost: 0.15, target: "enemy", desc: "身を削って放つ必中の大喝" },
