@@ -236,7 +236,8 @@ export function skillDetailLines(sp) {
   if (sp.ward && sp.ward.breath) lines.push(`ブレス避け: 敵のブレスから受けるダメージ −${pct(sp.ward.breath)}（${sp.dur || 3}ターン）`);
   if (sp.ward && sp.ward.spell) lines.push(`呪文避け: 敵の全体呪文から受けるダメージ −${pct(sp.ward.spell)}（${sp.dur || 3}ターン）`);
   if (sp.float) lines.push(`迷宮で唱える: ${sp.float}階のあいだ隊が宙に浮き、落とし穴に落ちず毒の床のダメージも受けない（戦闘では使わない）`);
-  if (sp.sense) lines.push(`迷宮で唱える: この階のあいだ、まだめくっていない墓石の${{ enemy: "魔物の居場所を赤い光で（種類は分からない）", chest: "宝箱の在りかを青い光で", stairs: "下り階段を" }[sp.sense]}示す（戦闘では使わない）`);
+  if (sp.sense === "stairs") lines.push("迷宮で唱える: この階の下り階段の在りかを示し、その周囲8マスの墓石をめくる（戦闘では使わない）");
+  else if (sp.sense) lines.push(`迷宮で唱える: この階のあいだ、まだめくっていない墓石の${{ enemy: "魔物の居場所を赤い光で（種類は分からない）", chest: "宝箱の在りかを青い光で" }[sp.sense]}示す（戦闘では使わない）`);
   // ---- 固有の追加効果 ----
   if (sp.hpCost) lines.push(`代償: 自分の最大HPの${pct(sp.hpCost)}を失う（HP1で踏みとどまる）`);
   if (sp.drain) lines.push(`与えたダメージの${pct(sp.drain)}だけ自分のHPを回復`);
