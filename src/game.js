@@ -19,7 +19,7 @@ import {
 } from "./abyss.js";
 import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust,
-  recalcDoll, soulLevelCap, soulLevelCapOf, setSharedSouls, MAX_SUBS,
+  recalcDoll, soulLevelCap, soulLevelCapOf, setSharedSouls, MAX_SUBS, subPicks,
   soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills,
   ORDER_PERK, orderPassiveMap,
   PASSIVES,
@@ -8489,8 +8489,7 @@ function applyEquipSoul(d, uid, s, slotId = "primary") {
     if (slotId === "primary") {
       d.primary = uid;
     } else {
-      const learned = soulLearnedSkills(s);
-      d.subs[si] = { uid, skill: learned.length ? learned[learned.length - 1] : null };
+      d.subs[si] = { uid, picks: [] }; // 借用は recalcDoll が既定 (覚えている最後の技) で埋める
       d.subs = d.subs.filter(Boolean);
     }
   }
@@ -11510,10 +11509,17 @@ function loadGame() {
   for (const d of [...(G.party || []), ...(G.reserve || [])]) {
     if (!Array.isArray(d.subs)) d.subs = [];
     if (d.primary != null && !soulByUid(d.primary)) d.primary = null;
-    // サブ魂を {uid, skill, passive} 形式へ正規化し、実在する魂・メイン魂と別の魂だけ残す
-    // (passive を落とすと、宿しているパッシブ設定がロード時に失われ既定スキルへ戻ってしまう)
+    // サブ魂を {uid, picks, picked} 形式へ正規化し、実在する魂・メイン魂と別の魂だけ残す
+    // (旧形式 {skill, passive} は subPicks が picks へ移し替える。passive も落とさず引き継ぐ)
     d.subs = d.subs
-      .map((x) => (x && typeof x === "object") ? { uid: x.uid, skill: x.skill || null, passive: x.passive || null } : null)
+      .map((x) => {
+        if (!x || typeof x !== "object") return null;
+        const sub = { uid: x.uid, picks: Array.isArray(x.picks) ? x.picks.slice() : undefined, skill: x.skill || null, passive: x.passive || null };
+        if (Array.isArray(sub.picks)) { delete sub.skill; delete sub.passive; }
+        subPicks(sub);
+        if (x.picked) sub.picked = true;
+        return sub;
+      })
       .filter((x) => x && soulByUid(x.uid) && x.uid !== d.primary)
       .slice(0, MAX_SUBS);
     try { recalcDoll(d); } catch {}
