@@ -111,8 +111,35 @@ function hookLifecycle() {
     }
   });
   // iOS は着信などで "interrupted" になる。次の操作で起こす
-  const wake = () => { if (actx && !muted && !document.hidden && actx.state !== "running") actx.resume().catch(() => {}); };
+  const wake = () => {
+    if (!actx || muted || document.hidden) return;
+    if (kickPending) { kick(); return; }
+    if (actx.state !== "running") actx.resume().catch(() => {});
+  };
   for (const ev of ["pointerdown", "touchend", "keydown"]) document.addEventListener(ev, wake, { passive: true });
+  // 文字入力 (人業の名付けなど) でソフトキーボードが出ると、iOS は音声セッションを奪い、
+  // 閉じた後も state は "running" のまま無音になることがある。入力欄を離れたら一度止めて起こし直す
+  // (キーボードが閉じるのを待ってすぐ試し、次のタップでもう一度 = 操作の中でないと起きない端末向け)
+  document.addEventListener("focusout", (e) => {
+    if (!isTextInput(e.target)) return;
+    kickPending = true;
+    setTimeout(() => { if (kickPending && !isTextInput(document.activeElement)) kick(true); }, 400);
+  });
+  if ("onstatechange" in actx) actx.addEventListener("statechange", () => { if (actx.state === "interrupted") kickPending = true; });
+}
+let kickPending = false;
+function isTextInput(t) {
+  if (!t || !t.tagName) return false;
+  if (t.isContentEditable || t.tagName === "TEXTAREA") return true;
+  return t.tagName === "INPUT" && !/^(button|submit|reset|checkbox|radio|range|color|file|image|hidden)$/i.test(t.type || "");
+}
+// 音声の出口を起こし直す。keep = 次のタップでの起こし直しを残す (操作外の試みは効かないことがある)
+function kick(keep = false) {
+  if (!actx || muted || document.hidden) return;
+  if (!keep) kickPending = false;
+  const up = () => actx.resume().catch(() => {});
+  if (actx.state === "running") actx.suspend().then(up, up);
+  else up();
 }
 
 // ---- BGM ----

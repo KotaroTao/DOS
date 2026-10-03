@@ -4,7 +4,7 @@
 
 import { game } from "./ctx.js";
 import { el, sheet } from "./kit.js";
-import { ELEMENTS, elemBeats } from "../dungeons/index.js";
+import { ELEMENTS, elemBeats, RACE_LABEL } from "../dungeons/index.js";
 import { SPELLS } from "../combat.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
 import { WEAPON_CAT_LABEL, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip } from "../items.js";
@@ -61,9 +61,12 @@ export function elemStatEq(a, b) {
 export function elemStatShort(e) { return e && e.el ? `${elemName(e.el)}${e.lv >= 2 ? "◎" : "◯"}` : "—"; }
 
 // ===== スキル詳細 =====
-export const SPELL_KIND_LABEL = { atk: "攻撃呪文", heal: "回復呪文", phys: "物理技", buff: "支援", debuff: "弱体", sleep: "状態異常", cure: "治療" };
+export const SPELL_KIND_LABEL = { atk: "攻撃呪文", heal: "回復呪文", phys: "物理技", buff: "支援", debuff: "弱体", sleep: "状態異常", cure: "治療", mana: "魔力譲渡", escape: "逃走" };
+// 能力の倍率キーの呼び名 (ATK/VIT… 以外の効果)
+export const BUFF_NAME = { hit: "命中率", int: "INT", taunt: "挑発", shield: "仁王立ち", ctr: "反撃の構え", charge: "溜め", regen: "リジェネ", seal: "特技封じ",
+  r_fire: "火耐性", r_water: "水耐性", r_wind: "風耐性", r_earth: "土耐性", r_light: "光耐性", r_dark: "闇耐性", r_all: "全属性耐性" };
 export const SPELL_TARGET_LABEL = { enemy: "敵単体", "all-enemy": "敵全体", ally: "味方単体", "all-ally": "味方全体", self: "自分" };
-export const SPELL_KIND_COLOR = { atk: "#e0743f", heal: "#46c08f", phys: "#d8b04a", buff: "#5fa8e0", debuff: "#a06fd6", sleep: "#a06fd6", cure: "#46c08f" };
+export const SPELL_KIND_COLOR = { atk: "#e0743f", heal: "#46c08f", phys: "#d8b04a", buff: "#5fa8e0", debuff: "#a06fd6", sleep: "#a06fd6", cure: "#46c08f", mana: "#5fa8e0", escape: "#8f96a3" };
 
 // ===== 種別・属性アイコン (敵の特徴・味方のスキルに添える小さな札) =====
 // 物 = 物理 / 魔 = 魔法 (ブレス含む) / 回復 / その他 (強化・弱体・招来など)。属性は「火」「水」…の札を並べる
@@ -73,7 +76,7 @@ const TAG_KIND = {
   heal:  { t: "回復", c: "#46c08f" },
   other: { t: "その他", c: "#8f96a3" },
 };
-const SPELL_TAG_KIND = { phys: "phys", atk: "mag", heal: "heal", cure: "heal" };
+const SPELL_TAG_KIND = { phys: "phys", atk: "mag", heal: "heal", cure: "heal", mana: "heal" };
 // 敵の特徴 → 種別。elem = 攻撃に魔物の固有属性が乗る (物理攻撃・ブレスは固有属性で打つ)
 const TRAIT_TAG = {
   swift: ["other"], evasive: ["phys"], physResist: ["phys"], magWeak: ["mag"], magResist: ["mag"],
@@ -186,37 +189,64 @@ export function revealLock(need, what, cls = "") {
 }
 
 // スキルの効果をくわしい行に展開する
+const pct = (v) => `${Math.round(v * 100)}%`;
+const raceList = (rs) => [...new Set((rs || []).map((r) => RACE_LABEL[r] || r))].join("・");
+const ELEM_NAME = (k) => (k === "all" ? "全属性" : (ELEMENTS[k] ? ELEMENTS[k].label : k));
 export function skillDetailLines(sp) {
   const lines = [];
   lines.push(`種別: ${SPELL_KIND_LABEL[sp.kind] || sp.kind}　対象: ${SPELL_TARGET_LABEL[sp.target] || sp.target}`);
   if (sp.element && sp.element !== "none" && ELEMENTS[sp.element]) lines.push(`属性: ${ELEMENTS[sp.element].label}`);
-  if (sp.kind === "atk") lines.push(`威力 ${sp.power}（術者のINTで伸びる）`);
+  if (sp.kind === "atk" && sp.gravity) lines.push(`敵の今のHPの${pct(sp.gravity)}を削る（主には3割しか効かない・魔法耐性は受ける）`);
+  else if (sp.kind === "atk") lines.push(`威力 ${sp.power}（術者のINTで伸びる）`);
   if (sp.kind === "heal" && sp.power) lines.push(`回復量 ${sp.power}（術者のPIEで伸びる）`);
-  if (sp.revive) lines.push(sp.revivePct ? `戦闘不能をHP${Math.round(sp.revivePct * 100)}%で蘇生する` : "戦闘不能も蘇生できる");
+  if (sp.kind === "mana") lines.push(`味方のMPを ${sp.power} 回復（術者のINTで少し伸びる）`);
+  if (sp.kind === "escape") lines.push("必ず戦闘から逃げられる（迷宮の異変で退路が閉ざされている時を除く）");
+  if (sp.kind === "sleep") lines.push("敵全体を60%で眠らせる（主には30%）");
+  if (sp.revive) lines.push(sp.revivePct ? `戦闘不能をHP${pct(sp.revivePct)}で蘇生する` : "戦闘不能も蘇生できる");
   if (sp.kind === "phys") {
-    lines.push(`威力 攻撃力の${sp.power}倍${sp.hits ? ` × ${sp.hits}回` : ""}`);
-    if (sp.intScale) lines.push("魔法剣: 使い手のINTでも威力が伸びる");
-    if (sp.critBonus) lines.push(`会心率 +${Math.round(sp.critBonus * 100)}%`);
+    lines.push(sp.scatter ? `威力 攻撃力の${sp.power}倍 × ランダムな敵へ${sp.scatter}回` : `威力 攻撃力の${sp.power}倍${sp.hits ? ` × ${sp.hits}回` : ""}`);
+    if (sp.intScale) lines.push("使い手のINTでも威力が伸びる");
+    if (sp.agiScale) lines.push("使い手のAGIでも威力が伸びる");
+    if (sp.vitScale) lines.push("使い手のVITでも威力が伸びる");
+    if (sp.pieScale) lines.push("使い手のPIEでも威力が伸びる");
+    if (sp.acc) lines.push(sp.acc >= 1 ? "必中（相手の素早さに関係なく当たる）" : `命中UP（外れる確率を${pct(sp.acc)}減らす）`);
+    if (sp.pierce) lines.push(sp.pierce >= 1 ? "相手の防御（VIT）を無視する" : `相手の防御（VIT）を${pct(sp.pierce)}無視する`);
+    if (sp.critBonus) lines.push(sp.critBonus >= 1 ? "必ず会心になる" : `会心率 +${pct(sp.critBonus)}`);
+    if (sp.desperate) lines.push("自分のHPが減っているほど威力が上がる（最大2倍）");
+    if (sp.steal) lines.push(`当てた敵から、所持金の${pct(sp.steal)}を盗む（1体につき1度・逃げても持ち帰る）`);
   }
-  if (sp.kind === "atk" && sp.critBonus) lines.push(`呪文会心率 +${Math.round(sp.critBonus * 100)}%（会心は×1.5）`);
-  const fx = (obj) => Object.entries(obj).map(([k, v]) => `${ATTR_LABEL[k] || k.toUpperCase()} ×${v}`).join("・");
+  if (sp.execute) lines.push(`HP30%以下の敵には ×${sp.execute}（とどめ）`);
+  if (sp.prey) lines.push(`${raceList(sp.prey.races)}に ×${sp.prey.mul}`);
+  if (sp.kind === "atk" && sp.critBonus) lines.push(`呪文会心率 +${pct(sp.critBonus)}（会心は×1.5）`);
+  const fx = (obj) => Object.entries(obj).map(([k, v]) => `${ATTR_LABEL[k] || BUFF_NAME[k] || k.toUpperCase()} ×${v}`).join("・");
   if (sp.buff) lines.push(`強化: ${fx(sp.buff)}`);
   if (sp.debuff) lines.push(`弱体: ${fx(sp.debuff)}`);
-  // ---- 混成職ユニークスキルの固有効果 ----
-  if (sp.hpCost) lines.push(`代償: 自分の最大HPの${Math.round(sp.hpCost * 100)}%を失う（HP1で踏みとどまる）`);
-  if (sp.drain) lines.push(`与えたダメージの${Math.round(sp.drain * 100)}%だけ自分のHPを回復`);
-  if (sp.mpDrain) lines.push(`与えたダメージの${Math.round(sp.mpDrain * 100)}%だけ自分のMPを回復`);
-  if (sp.sleepChance) lines.push(`命中後 ${Math.round(sp.sleepChance * 100)}%で対象を眠らせる`);
-  if (sp.flinchChance) lines.push(`命中後 ${Math.round(sp.flinchChance * 100)}%で対象を怯ませる（主には効かない）`);
-  if (sp.ailment) lines.push(`${Math.round(sp.ailment.chance * 100)}%で対象を${sp.ailment.type === "poison" ? "毒" : "異常"}に侵す`);
+  if (sp.vuln) { const nm = Object.keys(sp.vuln).map(ELEM_NAME).join("・"); lines.push(`${nm}耐性を下げる（${nm}の攻撃から受けるダメージ ×${(1 / Object.values(sp.vuln)[0]).toFixed(2)}）`); }
+  if (sp.taunt) lines.push("挑発: 敵の単体攻撃が自分に向かいやすくなる");
+  if (sp.shield) lines.push("仁王立ち: 味方への単体の物理攻撃を代わりに受ける");
+  if (sp.stance === "counter") lines.push("反撃の構え: 物理攻撃を受けると必ず反撃する");
+  if (sp.charge) lines.push(`溜め: 次の物理攻撃・物理技の威力 ×${sp.charge}`);
+  if (sp.regen) lines.push(`リジェネ: 毎ターン最大HPの${pct(sp.regen.pct)}を回復（${sp.regen.turns}ターン）`);
+  // ---- 固有の追加効果 ----
+  if (sp.hpCost) lines.push(`代償: 自分の最大HPの${pct(sp.hpCost)}を失う（HP1で踏みとどまる）`);
+  if (sp.drain) lines.push(`与えたダメージの${pct(sp.drain)}だけ自分のHPを回復`);
+  if (sp.mpDrain) lines.push(`与えたダメージの${pct(sp.mpDrain)}だけ自分のMPを回復`);
+  if (sp.poison) lines.push(`${pct(sp.poison.chance)}で毒にする（毎ターン最大HPの${pct(sp.poison.pct)}・主には半分）`);
+  if (sp.para) lines.push(`${pct(sp.para)}で麻痺させる（手番を失いやすくなる・主には半分の確率）`);
+  if (sp.seal) lines.push(`${pct(sp.seal.chance)}で特技を${sp.seal.turns}ターン封じる（ブレス・状態異常攻撃・回復・呼び出しを使えなくなる・主には半分の確率）`);
+  if (sp.strip) lines.push("敵にかかった強化を打ち消す");
+  if (sp.instakill) lines.push(`${pct(sp.instakill.chance)}で即死させる${sp.instakill.races ? `（${raceList(sp.instakill.races)}のみ）` : ""}（主には効かない・強敵には半分）`);
+  if (sp.sleepChance) lines.push(`命中後 ${pct(sp.sleepChance)}で対象を眠らせる`);
+  if (sp.flinchChance) lines.push(`${pct(sp.flinchChance)}で怯ませる（主には効かない）`);
   if (sp.plunder) lines.push("この技で倒した敵は、落とすゴールドが2倍になる");
   if (sp.partyHeal) lines.push(`攻撃の後、味方全体のHPを ${sp.partyHeal} 回復（術者のPIEで伸びる）`);
-  if (sp.cure) lines.push("同時に状態異常も治す");
+  if (sp.cure) lines.push("状態異常を治す");
+  if (sp.purge) lines.push("かかっている弱体を解く");
   if (sp.grantEndure) lines.push("対象に「致死ダメージをHP1で耐える」を付与（1戦闘1回）");
-  if (sp.grantBarrier) lines.push(`味方全体に魔障壁${sp.grantBarrier}回分（ブレス・呪文の被ダメ半減）を付与`);
+  if (sp.grantBarrier) lines.push(`魔障壁${sp.grantBarrier}回分（ブレス・呪文の被ダメ半減）を付与`);
   if (sp.debuffAll) lines.push(`さらに敵全体を弱体: ${fx(sp.debuffAll)}`);
-  // 強化/弱体の持続ターン数 (同方向は最大2段階まで重ねられる)
-  if (sp.dur && (sp.buff || sp.debuff || sp.debuffAll)) lines.push(`効果は ${sp.dur} ターン持続（同じ能力は最大2段階）`);
+  // 効果の持続ターン数 (同方向は最大2段階まで重ねられる)
+  if (sp.dur && (sp.buff || sp.debuff || sp.debuffAll || sp.vuln || sp.taunt || sp.shield || sp.stance || sp.charge)) lines.push(`効果は ${sp.dur} ターン持続（同じ能力は最大2段階）`);
   return lines;
 }
 

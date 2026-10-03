@@ -484,7 +484,7 @@ export function renderRunReport(root) {
   let tryId = null;
   try { tryId = UI.tryIdentifyInfo ? UI.tryIdentifyInfo() : null; } catch (e) { tryId = null; }
   if (tryId) act({ label: "鑑定を試みる", sub: `${tryId.n}点 ・ ${tryId.top.m.name}${tryId.men.length > 1 ? "ら" : ""}`, kind: c.hurt > 0 ? "secondary" : "primary", run: () => new Promise((res) => { if (!UI.openTryIdentifyAll({ onDone: res })) res(); }) });
-  else if (c.unid > 0 && shopOpen) act({ label: "まとめて鑑定", cost: { kind: "gold", n: c.unidCost }, kind: c.hurt > 0 ? "secondary" : "primary", run: async () => { if (await confirmIdentify(c)) ops.identifyAll(); } });
+  else if (c.unid > 0 && shopOpen) act({ label: "まとめて鑑定", cost: { kind: "gold", n: c.unidCost }, kind: c.hurt > 0 ? "secondary" : "primary", run: async () => { if (await confirmIdentify(c)) (UI.identifyAllAndReveal || ops.identifyAll)(); } });
   let better = 0;
   try { better = UI.betterGearCount ? UI.betterGearCount() || 0 : 0; } catch (e) { better = 0; }
   if (better > 0) act({ label: "最適装備", sub: `${better}体に よりよい品`, run: () => { if (UI.autoEquip) UI.autoEquip("all"); } });
