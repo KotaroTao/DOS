@@ -24,7 +24,7 @@ export const JOB_PHOTOS = {
     2: { src: "art/jobs/necromancer_2.webp", w: 48, h: 85, face: [22, 11], head: [21.75, 0.0, 21.21] },
     3: { src: "art/jobs/necromancer_3.webp", w: 52, h: 83, face: [22, 10], head: [21.61, 0.0, 20.36] },
     4: { src: "art/jobs/necromancer_4.webp", w: 65, h: 83, face: [24, 10], head: [23.89, 0.0, 20.21] },
-    5: { src: "art/jobs/necromancer_5.webp", w: 77, h: 88, face: [31, 14], head: [31.0, 4.07, 24.79] },
+    5: { src: "art/jobs/necromancer_5.webp", w: 80, h: 86, face: [35, 14], head: [34.71, 3.86, 24.57] },
   },
   warden: {
     1: { src: "art/jobs/warden_1.webp", w: 61, h: 85, face: [26, 17], head: [26.11, 6.86, 27.0] },
