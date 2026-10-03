@@ -11718,6 +11718,9 @@ function loadGame() {
       .filter((x) => x && soulByUid(x.uid) && x.uid !== d.primary)
       .slice(0, MAX_SUBS);
     try { recalcDoll(d); } catch {}
+    // 旧版の回復で小数になったHP/MPを整数に戻す (四捨五入)
+    if (typeof d.hp === "number") d.hp = Math.round(d.hp);
+    if (typeof d.mp === "number") d.mp = Math.round(d.mp);
   }
   if (!G.stats) G.stats = {};
   // 後付けの戦績フィールドを既存セーブにも補完する (勲章 cond が参照する)
