@@ -20,7 +20,7 @@ import {
 import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, soulIcon,
   recalcDoll, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
-  soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills, soulLearnedPassives, subPickCap, jobStatsOf,
+  soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills, soulLearnedPassives, soulLabel, subPickCap, jobStatsOf,
   ORDER_PERK, orderPassiveMap,
   PASSIVES,
   SOUL_RANKS, rollJobClass, rollGreatJobClass, SOUL_STAT_UP,
@@ -9008,14 +9008,14 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null, opts = {}) {
         showEvent({
           sprite: jobSprite(s.clsKey, Math.max(1, soulRankOf(s))),
           banner: "付け替えできない", title: "持ち物がいっぱい",
-          lines: [`${soulSeriesName(s.clsKey)}の魂 に付け替えると、次の装備が外れる。`, ...names,
+          lines: [`${soulLabel(s)} に付け替えると、次の装備が外れる。`, ...names,
             `しかし ${d.name} の持ち物に空きが ${free} 枠しかない。持ち物を減らしてから、もう一度。`],
           accent: "#d4504e", btnLabel: "とじる",
         });
         return fin(false);
       }
       kitConfirm({
-        banner: "付け替え", title: `${soulSeriesName(s.clsKey)}の魂 に付け替える？`,
+        banner: "付け替え", title: `${soulLabel(s)} に付け替える？`,
         lines: ["新しい職では次の装備を扱えないため、外して持ち物に戻す。", ...names],
         okLabel: "付け替える", danger: false,
       }).then((ok) => {
@@ -9090,7 +9090,7 @@ function fuseSoul(targetUid, consumeUid, onResultClose = null) {
     newPassives: Object.keys(now.passives).filter((k) => (now.passives[k] || 0) > (was.passives[k] || 0)).map((k) => ({ key: k, lv: now.passives[k] })),
     fromPicks: was.picks, toPicks: now.picks,
   };
-  log(`${SOUL_CLASSES[t.clsKey].label}の魂を魂融合させた (魂数 ×${t.count})。素材にならないようロックした。`, "win");
+  log(`魂融合で ${soulLabel(t)} になった。素材にならないようロックした。`, "win");
   if (t.level > beforeLv) log(`蓄積した Soul が反映され、Lv${beforeLv} → Lv${t.level} に上昇した！`, "win");
   autosave(true);
   renderTown();
@@ -9144,8 +9144,8 @@ function raiseSoulCap(uid) {
   updateTopbar();
   const cap = soulLevelCapOf(e);
   SFX.levelup(); buzz([0, 30, 50, 30]);
-  log(`魂の残火を${need}つ捧げ、${soulSeriesName(e.clsKey)}の魂のLv上限が ${cap} になった。`, "win");
-  showToast(`🔥 ${soulSeriesName(e.clsKey)}の魂 ― Lv上限 ${cap}（残火 ${G.embers}）`, { tone: "gold" });
+  log(`魂の残火を${need}つ捧げ、${soulLabel(e)}のLv上限が ${cap} になった。`, "win");
+  showToast(`🔥 ${soulLabel(e)} ― Lv上限 ${cap}（残火 ${G.embers}）`, { tone: "gold" });
   autosave(true);
   renderTown();
 }
@@ -12597,7 +12597,7 @@ const OPS = {
     recalcAllDolls({ levelUp: true });
     codexJobSee(e.clsKey, e.count, e.level);
     SFX.levelup(); buzz([0, 30, 40, 30]);
-    log(`${soulSeriesName(e.clsKey)}の魂が Lv${from}→${e.level} に成長した！ (✦${spent})`, "win");
+    log(`${soulLabel(e)}が Lv${from}→${e.level} に成長した！ (✦${spent})`, "win");
     // 能力の伸び: before/after は hp/mp/atk… の表示キーで (魂の区分の「強化の結果」に並べる)
     const sk = (k) => (k === "maxhp" ? "hp" : k === "maxmp" ? "mp" : k);
     const deltas = {}, statsBefore = {}, statsAfter = {};
@@ -12608,7 +12608,7 @@ const OPS = {
     const gainedSkills = wearer ? (wearer.spells || []).filter((k) => !beforeSpells.has(k)) : [];
     const STAT_N = { hp: "HP", mp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
     const grow = Object.entries(deltas).filter(([, v]) => v > 0).map(([k, v]) => `${STAT_N[k] || k}+${v}`).join(" ");
-    showToast(`${soulSeriesName(e.clsKey)}の魂を強化 Lv${from}→${e.level}${grow ? ` ― ${grow}` : ""}`, { tone: "good" });
+    showToast(`${soulLabel(e)}を強化 Lv${from}→${e.level}${grow ? ` ― ${grow}` : ""}`, { tone: "good" });
     renderTown();
     return { ok: true, levels, spent, from, to: e.level, deltas, before: statsBefore, after: statsAfter, gainedSkills, wearer };
   },

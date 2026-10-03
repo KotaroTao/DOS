@@ -28,7 +28,7 @@ import {
 } from "../autoequip.js";
 import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, scaleText } from "../items.js";
 import {
-  SOUL_CLASSES, JOB_GEAR, dollSprite, dollBust, jobBust, jobSprite, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulSeriesName, soulByUid,
+  SOUL_CLASSES, JOB_GEAR, dollSprite, dollBust, jobBust, jobSprite, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulLabel, soulRankLeft, soulByUid,
   orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs,
 } from "../souls.js";
 import { SPELLS, spellCost } from "../combat.js";
@@ -1220,7 +1220,7 @@ export function openCreateDoll() {
         const ic = el("span", "pt-orb");
         ic.style.setProperty("--glow", cl.glow);
         ic.appendChild(pixelCanvas(jobBust(s.clsKey, Math.max(1, soulRank(s))), 36));
-        const r = row({ icon: ic, title: `${soulSeriesName(s.clsKey)}の魂`, sub: `Lv${s.level} ・ ${rarityName(cl.rarity)}`, chevron: true,
+        const r = row({ icon: ic, title: soulLabel(s), sub: `Lv${s.level} ・ ${rarityName(cl.rarity)}${soulRankLeft(s) ? ` ・ ${soulRankLeft(s).slice(1, -1)}` : ""}`, chevron: true,
           onTap: () => { h.close(); openCreateName(s.uid); } });
         r.classList.add("pt-soulrow");
         list.appendChild(r);
@@ -1274,7 +1274,7 @@ export function openCreateName(uid) {
   if (!s) return;
   const cost = game.emptyDollCost ? game.emptyDollCost() : 0;
   nameSheet({
-    banner: "人業を仕立てる", title: `${soulSeriesName(s.clsKey)}の魂を宿す器に、名を`,
+    banner: "人業を仕立てる", title: `${soulLabel(s)}を宿す器に、名を`,
     desc: "名はあとから変えられる。",
     value: game.randomDollName ? game.randomDollName() : "", random: game.randomDollName,
     okLabel: "生成する", cost: cost ? { kind: "red", n: cost } : "無料",

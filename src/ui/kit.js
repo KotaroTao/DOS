@@ -809,6 +809,7 @@ export function updateTabbar(bar, tabs, active) {
 
 // ================= 確認 =================
 // confirm({ title, lines, okLabel, cancelLabel, danger, banner }) → Promise<boolean>
+// confirm({ banner, title, lines, body, okLabel, cancelLabel, danger, className }) → Promise<boolean>
 export function confirm(o = {}) {
   return new Promise((resolve) => {
     let done = false;
@@ -817,8 +818,8 @@ export function confirm(o = {}) {
       kind: "choice",
       banner: o.banner || "確認",
       accent: o.danger === false ? null : "#c43a2f",
-      title: o.title, lines: o.lines || [],
-      className: "ui-confirm",
+      title: o.title, lines: o.lines || [], body: o.body || null,
+      className: "ui-confirm" + (o.className ? " " + o.className : ""),
       footer: [
         { label: o.okLabel || "実行する", kind: o.danger === false ? "primary" : "danger", size: "lg", onTap: (s) => finish(true, s) },
         { label: o.cancelLabel || "やめる", kind: "ghost", onTap: (s) => finish(false, s) },

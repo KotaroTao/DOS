@@ -12,7 +12,7 @@ import { countUp } from "./motion.js";
 import { showSkillPopup, SPELL_KIND_LABEL } from "./itemview.js";
 import {
   SOUL_CLASSES, jobSprite, jobBust, soulByUid, soulRankOf, soulLevelCapOf, emberCostOf, nextRankThreshold, jobRankName, soulSeriesName,
-  soulLearnedSkills, soulLearnedPassives, passiveName, passiveDesc, ORDER_PERK, PASSIVES, orderPassiveMap, orderPerkLv,
+  soulLearnedSkills, soulLearnedPassives, soulLabel, soulRankLeft, passiveName, passiveDesc, ORDER_PERK, PASSIVES, orderPassiveMap, orderPerkLv,
   jobSkillTable, recalcDoll, subPicks, subPickCap, toggleSubPick, subPickIndex,
 } from "../souls.js";
 import { SPELLS } from "../combat.js";
@@ -198,9 +198,10 @@ function mainCard(d, pe, town) {
   head.appendChild(orb(pe.clsKey, rank, 40));
   const tx = el("div", "sp-head-tx");
   const nm = el("div", "sp-name");
-  const nmT = el("span", null, `${soulSeriesName(pe.clsKey)}の魂`);
+  const nmT = el("span", null, `${soulLabel(pe)}`);
   nmT.style.color = cl.glow;
   nm.appendChild(nmT);
+  if (soulRankLeft(pe)) nm.appendChild(el("span", "sp-left", soulRankLeft(pe)));
   nm.appendChild(el("span", "sp-card-k", "メイン魂"));
   tx.appendChild(nm);
   const meta = el("div", "sp-meta");
@@ -292,7 +293,7 @@ function confirmRaiseCap(pe) {
   sfx("select");
   confirm({
     banner: "魂の残火", danger: false,
-    title: `残火を${need}つ捧げ、${soulSeriesName(pe.clsKey)}の魂のLv上限を上げますか？`,
+    title: `残火を${need}つ捧げ、${soulLabel(pe)}のLv上限を上げますか？`,
     lines: [`Lv上限 ${cap} → ${cap + 1}`, `残火 ${have} → ${have - need}`, "要る残火は職業のレア度で変わる (コモン1・レア2・エピック3・レジェンド5)。", "捧げた残火は戻らない。"],
     okLabel: "捧げる",
   }).then((y) => { if (y) game.raiseSoulCap(pe.uid); });
@@ -483,9 +484,18 @@ function wearerOf(uid, self) {
   }
   return null;
 }
-// 魂を宿したら、能力がどう変わるか (器の写しで計算する。実体は書き換えない)
-function previewSoul(d, slotId, uid) {
-  const fake = { ...d, base: { ...d.base }, subs: (d.subs || []).map((s) => (s ? { ...s, picks: subPicks(s).map((p) => ({ ...p })) } : s)), spells: [], passives: [] };
+// 器の写しに手を加えて能力を計算し直す (実体は書き換えない)。apply(fake) で魂の差し替えを行う。
+// 返り値: { from, to } (能力の前後) / 計算できなければ null
+const DOLL_STATS = { hp: "maxhp", mp: "maxmp", atk: "atk", vit: "vit", agi: "agi", int: "int", pie: "pie", luk: "luk" };
+function statsOfDoll(x) { const o = {}; for (const k in DOLL_STATS) o[k] = x[DOLL_STATS[k]] || 0; return o; }
+function previewDoll(dd, apply) {
+  const fake = { ...dd, base: { ...dd.base }, subs: (dd.subs || []).map((s) => (s ? { ...s, picks: subPicks(s).map((p) => ({ ...p })) } : s)), spells: [], passives: [] };
+  apply(fake);
+  try { recalcDoll(fake); } catch (e) { return null; }
+  return { from: statsOfDoll(dd), to: statsOfDoll(fake) };
+}
+// 魂 uid を d の slotId (primary / subN) に宿したときの差し替え
+function placeSoul(fake, slotId, uid) {
   if (slotId === "primary") {
     fake.primary = uid;
     fake.subs = fake.subs.filter((x) => x && x.uid !== uid);
@@ -496,11 +506,43 @@ function previewSoul(d, slotId, uid) {
     keep[i] = { uid, picks: [] };
     fake.subs = keep.filter(Boolean);
   }
-  try { recalcDoll(fake); } catch (e) { return null; }
-  return {
-    hp: fake.maxhp - d.maxhp, mp: fake.maxmp - d.maxmp,
-    atk: fake.atk - d.atk, vit: fake.vit - d.vit, agi: fake.agi - d.agi, int: fake.int - d.int, pie: fake.pie - d.pie, luk: fake.luk - d.luk,
-  };
+}
+// 魂を宿したら、能力がどう変わるか (差分)
+function previewSoul(d, slotId, uid) {
+  const r = previewDoll(d, (f) => placeSoul(f, slotId, uid));
+  if (!r) return null;
+  const o = {};
+  for (const k in r.to) o[k] = r.to[k] - r.from[k];
+  return o;
+}
+// サブ魂を宿す前の確かめ: 宿す人業と、交換になる相手の人業の能力の変化を並べ、承認されたら宿す
+// subTaker: いまその魂をサブ魂に宿している別の人業 (交換・付け替え) / cur: d がこの差し口に宿している魂
+function confirmSubEquip(d, slotId, s, subTaker, cur) {
+  const si = +slotId.slice(3);
+  const nm = `${soulLabel(s)}`;
+  const body = el("div", "sp-eqc");
+  const mine = previewDoll(d, (f) => placeSoul(f, slotId, s.uid));
+  if (mine) body.appendChild(fuseStats({ statsOf: d.name, statsFrom: mine.from, statsTo: mine.to }, "能力は変わらない"));
+  let lines;
+  if (subTaker) {
+    // 相手は、その魂の差し口に d が宿していた魂を受け取る (無ければ空く)
+    const theirs = previewDoll(subTaker, (f) => {
+      const i = f.subs.findIndex((x) => x && x.uid === s.uid);
+      if (i < 0) return;
+      if (cur) f.subs[i] = { uid: cur.uid, picks: [] };
+      else f.subs.splice(i, 1);
+    });
+    if (theirs) body.appendChild(fuseStats({ statsOf: subTaker.name, statsFrom: theirs.from, statsTo: theirs.to }, "能力は変わらない"));
+    lines = [`${subTaker.name} のサブ魂「${nm}」を外し、${d.name} のサブ魂${si + 1}に宿す。`,
+      cur ? `${d.name} が宿していた「${soulLabel(cur)}」は、${subTaker.name} のサブ魂に移る (交換)。` : `${subTaker.name} のサブ魂は1つ空く。`];
+  } else {
+    lines = [cur ? `サブ魂${si + 1}の「${soulLabel(cur)}」を外し、「${nm}」を宿す。` : `「${nm}」を ${d.name} のサブ魂${si + 1}に宿す。`];
+  }
+  lines.push("借りる技・パッシブは、宿したあとに選ぶ。");
+  return confirm({
+    banner: "サブ魂", title: subTaker ? (cur ? "サブ魂を交換する？" : "サブ魂を付け替える？") : "このサブ魂を宿す？",
+    lines, body, className: "sp-eqc-sheet", okLabel: subTaker && cur ? "交換する" : "宿す", danger: false,
+  });
 }
 function pickerBody(root, d, slotId, h) {
   const G = G_();
@@ -531,8 +573,9 @@ function pickerBody(root, d, slotId, h) {
     main.type = "button";
     main.appendChild(orb(s.clsKey, rank, 36));
     const tx = el("span", "sp-srow-t");
-    const nm = el("span", "sp-srow-n", `${soulSeriesName(s.clsKey)}の魂`);
+    const nm = el("span", "sp-srow-n", `${soulLabel(s)}`);
     nm.style.color = cl.glow;
+    if (soulRankLeft(s)) nm.appendChild(el("span", "sp-left", soulRankLeft(s)));
     if (s.locked) nm.appendChild(svgIcon("lock", "sp-srow-lk"));
     tx.appendChild(nm);
     tx.appendChild(el("span", "sp-srow-m", `Lv${s.level}/${cap} ・ ランク${rank} ・ ${RARITY_NAME[cl.rarity] || ""}`));
@@ -560,15 +603,10 @@ function pickerBody(root, d, slotId, h) {
           if (sub) openSkillStep(d, sub);
         }
       }, opts);
-      if (!subTaker) { go(); return; }
-      // 他の人業のサブ魂: 付け替えてよいか確かめる。宿していた魂があれば相手へ渡す (交換)
-      const nm = `${soulSeriesName(s.clsKey)}の魂`;
+      if (!isSub) { go(); return; }
+      // サブ魂: 能力の変化 (交換になる相手の分も) を見せ、承認されたら宿す
       const cur = curUid != null ? soulByUid(curUid) : null;
-      const lines = [`${subTaker.name} のサブ魂「${nm}」を外し、${d.name} のサブ魂${si + 1}に宿す。`];
-      if (cur) lines.push(`${d.name} が宿していた「${soulSeriesName(cur.clsKey)}の魂」は、${subTaker.name} のサブ魂に移る (交換)。`);
-      else lines.push(`${subTaker.name} のサブ魂は1つ空く。`);
-      confirm({ banner: "サブ魂", title: cur ? "サブ魂を交換する？" : "サブ魂を付け替える？", lines, okLabel: cur ? "交換する" : "付け替える" })
-        .then((y) => { if (y) go({ take: true }); });
+      confirmSubEquip(d, slotId, s, subTaker, cur).then((y) => { if (y) go(subTaker ? { take: true } : undefined); });
     });
     r.appendChild(main);
     const side = el("div", "sp-srow-side");
@@ -590,7 +628,7 @@ function pickerBody(root, d, slotId, h) {
           if (e) e.stopPropagation();
           const on = game.toggleSoulLock(s.uid);
           sfx("select");
-          toast(on ? `${soulSeriesName(s.clsKey)}の魂をロックした ― 魂融合の素材にならない` : `${soulSeriesName(s.clsKey)}の魂のロックを外した`, { tone: "info" });
+          toast(on ? `${soulLabel(s)}をロックした ― 魂融合の素材にならない` : `${soulLabel(s)}のロックを外した`, { tone: "info" });
           refreshSheet(h);
         } });
       lk.classList.add("sp-lock-btn");
@@ -634,7 +672,7 @@ export function openSkillStep(d, subRef) {
   };
   return sheet.open({
     kind: "info", className: "sp-pick-sheet", paged: false, banner: "宿し技をえらぶ",
-    title: `${soulSeriesName(s.clsKey)}の魂 ― ${cap}つまで借りられる`,
+    title: `${soulLabel(s)} ― ${cap}つまで借りられる`,
     onClose: () => { tutSeen(); if (game.renderTown) game.renderTown(); },
     body: (scroll, h) => {
       const n = usedCount();
@@ -692,9 +730,11 @@ export function openFusePicker(targetUid, onDone) {
   sfx("select");
   let h = null;
   const view = () => ({
-    title: `${soulSeriesName(t.clsKey)}の魂 Lv${t.level} に融合させる`,
+    title: `${soulLabel(t)} Lv${t.level} に融合させる`,
+    // 融合先の次のランクまで (素材は自身も1体と数える: +N の魂は N+1 体ぶん)
     lines: ["素材にした魂は失われ、融合数に応じてLv上限、能力が上昇。一定数の魂を融合するとランクアップ。",
-      "融合先の魂は自動でロックされ、ほかの融合の素材にならない。素材は続けて選べる。"],
+      "融合先の魂は自動でロックされ、ほかの融合の素材にならない。素材は続けて選べる。",
+      ...(soulRankLeft(t) ? [`いま ${soulLabel(t)}${soulRankLeft(t)}。+N の素材は N+1 体ぶんとして数える。`] : [`いま ${soulLabel(t)} (最高ランク)。`])],
     body: (scroll) => {
       const list = el("div", "pt-list");
       const cands = candsNow();
@@ -710,7 +750,7 @@ export function openFusePicker(targetUid, onDone) {
         list.appendChild(el("div", "sp-fz-h sp-fz-gap", "宿している魂 ― 外すと素材にできる"));
         for (const c of worn) {
           const who = wearerOf(c.uid, null);
-          const r = row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulSeriesName(c.clsKey)}の魂 Lv${c.level}`, sub: `${who ? who.name : "人業"} が宿している ・ 魂数 ${c.count}` });
+          const r = row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulLabel(c)} Lv${c.level}`, sub: `${who ? who.name : "人業"} が宿している ・ ランク${soulRankOf(c)}` });
           r.classList.add("sp-fz-off");
           list.appendChild(r);
         }
@@ -725,14 +765,14 @@ export function openFusePicker(targetUid, onDone) {
       if (!game.toggleSoulLock) return;
       game.toggleSoulLock(c.uid);
       sfx("select");
-      toast(`${soulSeriesName(c.clsKey)}の魂のロックを外した ― 素材にできる`, { tone: "info" });
+      toast(`${soulLabel(c)}のロックを外した ― 素材にできる`, { tone: "info" });
       if (h && !h.closed) h.update(view());
       if (typeof onDone === "function") onDone();
     } });
     unlock.classList.add("sp-lock-btn");
-    const tags = [`魂数 ${c.count}`];
+    const tags = [`ランク${soulRankOf(c)}`];
     if ((c.level || 1) > 1 || (c.exp || 0) > 0) tags.push("強化済み");
-    return row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulSeriesName(c.clsKey)}の魂 Lv${c.level}`, sub: tags.join(" ・ "), right: unlock });
+    return row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulLabel(c)} Lv${c.level}`, sub: tags.join(" ・ "), right: unlock });
   };
   // 結果の札が閉じたら: 素材が残っていれば続ける、尽きたら閉じる
   const afterResult = () => {
@@ -748,16 +788,15 @@ export function openFusePicker(targetUid, onDone) {
   };
   const candRow = (c) => {
     const enh = soulEnhanced(c);
-    const tags = [`魂数 ${c.count}`];
-    if (c.count > 1) tags.push("融合済み");
+    const tags = [`ランク${soulRankOf(c)}`];
     if ((c.level || 1) > 1 || (c.exp || 0) > 0) tags.push("強化済み");
     if (c.capBonus) tags.push(`残火 +${c.capBonus}`);
-    return row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulSeriesName(c.clsKey)}の魂 Lv${c.level}`, sub: tags.join(" ・ "), tone: enh ? "gold" : null, chevron: true,
+    return row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulLabel(c)} Lv${c.level}`, sub: tags.join(" ・ "), tone: enh ? "gold" : null, chevron: true,
       onTap: () => {
         if (!enh) return fuse(c);
         sfx("ng");
-        const lines = [`この魂は Lv${c.level}${c.count > 1 ? `・魂数 ${c.count}` : ""}${c.capBonus ? `・残火 +${c.capBonus}` : ""} まで強化されている。`,
-          "素材にした魂は消える。蓄積した ✦ と魂数は融合先に引き継がれる。"];
+        const lines = [`この魂は Lv${c.level}${c.count > 1 ? `・+${c.count - 1}` : ""}${c.capBonus ? `・残火 +${c.capBonus}` : ""} まで強化されている。`,
+          "素材にした魂は消える。蓄積した ✦ と融合数 (自身の1体を含む) は融合先に引き継がれる。"];
         if (c.capBonus) lines.push(`残火で伸ばした Lv上限 +${c.capBonus} は失われる。`);
         lines.push("残したい魂は、魂の一覧で「ロック」すれば素材にならない。");
         confirm({ banner: "注意", title: "強化済みの魂を素材にする？", lines, okLabel: "素材にする" }).then((y) => { if (y) fuse(c); });
@@ -790,12 +829,12 @@ function fusePerks(info, accent) {
   };
   if (info.toCap !== info.fromCap) perk("Lv上限", String(info.fromCap), String(info.toCap));
   if (info.toLv > info.fromLv) perk("魂レベル", `Lv${info.fromLv}`, `Lv${info.toLv}`);
-  if (info.toCount !== info.fromCount) perk("魂数", String(info.fromCount), String(info.toCount));
+  if (info.toCount !== info.fromCount) perk("融合数", `+${info.fromCount - 1}`, `+${info.toCount - 1}`);
   if (info.toPicks > info.fromPicks) perk("宿し技の枠", String(info.fromPicks), String(info.toPicks));
   return box;
 }
 // 能力の増減 (上がった項目だけ、2列)
-function fuseStats(info) {
+function fuseStats(info, noneText = "能力の変化はわずか (端数のみ)") {
   const wrap = el("div", "sp-fz-sec sp-ru-blk");
   wrap.appendChild(el("div", "sp-fz-h", info.statsOf ? `${info.statsOf} の能力` : "魂の能力"));
   const grid = el("div", "sp-fz-stats");
@@ -809,7 +848,7 @@ function fuseStats(info) {
     c.appendChild(el("span", d > 0 ? "sp-fz-d up" : "sp-fz-d dn", `${d > 0 ? "+" : ""}${fmtStat(d)}`));
     grid.appendChild(c);
   }
-  if (!grid.childNodes.length) grid.appendChild(el("div", "sp-fz-none", "能力の変化はわずか (端数のみ)"));
+  if (!grid.childNodes.length) grid.appendChild(el("div", "sp-fz-none", noneText));
   wrap.appendChild(grid);
   return wrap;
 }
@@ -857,7 +896,7 @@ export function showFuseResult(info, onClose) {
   const body = (scroll) => blocks.forEach((b) => scroll.appendChild(b));
   return celebrate({
     banner: "✦ 魂融合 ✦", accent: cl.glow, art, sparkle: false, className: "sp-cel sp-cel-fz",
-    title: `${soulSeriesName(info.clsKey)}の魂`, titleColor: cl.glow, body,
+    title: soulLabel({ clsKey: info.clsKey, count: info.toCount }), titleColor: cl.glow, body,
     footer: [{ label: "とじる", kind: "primary", size: "lg", onTap: (h) => h.close("ok") }],
     onClose: () => { if (typeof onClose === "function") onClose(); },
   });
@@ -897,7 +936,7 @@ export function celebrateRankUp(info, onClose) {
   const body = (scroll) => blocks.forEach((b) => scroll.appendChild(b));
   return celebrate({
     banner: "✦ RANK UP ✦", accent, art, sparkle: true, className: "sp-cel sp-cel-ru",
-    title: `${cl.label}の魂が 昇格した`, body,
+    title: `${soulLabel({ clsKey, count: info.toCount })} が昇格した`, body,
     footer: [{ label: "受け取る", kind: "primary", size: "lg", onTap: (h) => h.close("ok") }],
     onClose: () => { if (typeof onClose === "function") onClose(); },
   });
@@ -920,7 +959,7 @@ function fusableList() {
     if (!d || d.primary == null) continue;
     const s = soulByUid(d.primary);
     const n = s ? game.fuseCandidates(s.uid).length : 0;
-    if (n) out.push({ doll: d, uid: s.uid, clsKey: s.clsKey, n, name: `${soulSeriesName(s.clsKey)}の魂` });
+    if (n) out.push({ doll: d, uid: s.uid, clsKey: s.clsKey, n, name: `${soulLabel(s)}` });
   }
   return out;
 }
