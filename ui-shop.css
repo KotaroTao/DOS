@@ -452,6 +452,10 @@
 .ap-pip.ok { color: var(--accent-hi); font-weight: 800; }
 .ap-pip.ng { color: #c4544a; }
 @keyframes ap-pulse-t { 50% { opacity: 0.35; } }
+.ap-sum > .wpc-prow { min-width: 0; }
+.ap-sum-name { display: flex; align-items: center; min-width: 0; }
+.ap-sum-name .wpc-prow-title { min-width: 0; }
+.ap-msg .ap-first { font-size: 12px; letter-spacing: 0.08em; }
 .ap-sum-worn { padding: 2px 4px; font-size: 12px; color: var(--ink-dim); text-align: center; }
 .ap-sum-fail { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; font-size: 12.5px; border: 1px dashed #4a3433; border-radius: 3px; }
 .ap-sum-fail-l { font-weight: 700; color: #c9a6a0; letter-spacing: 0.1em; }

@@ -5114,7 +5114,7 @@ const evApi = {
   identifyAll() {
     let n = 0;
     for (const m of [...G.party, ...(G.reserve || [])]) {
-      for (const it of [...(m.items || []), ...Object.values(m.equip || {})]) if (it && it.unidentified && !it.lr) { it.unidentified = false; it.idHardFail = false; n++; }
+      for (const it of [...(m.items || []), ...Object.values(m.equip || {})]) if (it && it.unidentified && !it.lr) { it.unidentified = false; it.idHardFail = false; codexKnowItem(it.id); n++; }
     }
     return n;
   },
@@ -5394,7 +5394,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
     const it = cloneItem(id);
     markDungeonLoot(it);
     runGainItem(who, it);
-    codexSeeItem(id);
+    codexSeeItem(id, it);
     log(`風化した死体の傍らに ${itemName(it)} が遺されていた。`, "win");
     UI.loot(it, who, { source: "corpse" }, back);
     return;
@@ -6082,7 +6082,7 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
   }
   const ce = codexMonEntry(d.key);
   if (d.rare) ce.rare = true; else ce.normal = true;
-  codexSeeItem(d.id);
+  codexSeeItem(d.id, d.item);
   markDungeonLoot(d.item);
   runGainItem(who, d.item);
   SFX.chest();
@@ -9559,7 +9559,7 @@ function grantTreasuryItem(center, onClose) {
     || allDolls().find((d) => !d.isEmpty && d.items.length < MAX_ITEMS);
   if (who && ITEMS[id]) {
     const it = cloneItem(id);
-    runGainItem(who, it); codexSeeItem(id);
+    runGainItem(who, it); codexSeeItem(id, it);
     log(`宝物庫の褒賞として ${itemName(it)} を賜った。(${who.name})`, "win");
     showItemGet(it, who, onClose);
     return;
@@ -9594,7 +9594,7 @@ function grantLR(filter, center, onClose) {
     || G.party.find((m) => m.items.length < MAX_ITEMS)
     || allDolls().find((d) => !d.isEmpty && d.items.length < MAX_ITEMS);
   if (!who) { grantTreasuryItem(center, onClose); return; } // 所持枠が無ければ通常褒賞へ
-  runGainItem(who, it); codexSeeItem(id);
+  runGainItem(who, it); codexSeeItem(id, it);
   G.lrOwned[id] = true; // 1点もの: 以後ドロップしない
   flashScreen("#ff5fae"); SFX.victory(); buzz([0, 60, 50, 60, 50, 60, 240]);
   const nm = itemName(it); // 未鑑定なら伏せ名
@@ -9681,10 +9681,37 @@ function rollGenericDrop() {
   }
   return null;
 }
-function codexSeeItem(id) {
+// it = 手に入れた品の実体 (あれば)。未鑑定の品は図鑑には載るが「正体を知った品」には数えない
+function codexSeeItem(id, it) {
   if (!id) return;
   if (!G.codex.item[id]) codexFresh().item[id] = 1; // 初めての記録は新着
   G.codex.item[id] = true;
+  if (!it || !it.unidentified) codexKnowItem(id);
+}
+// 正体を知った品 (G.codex.known)。鑑定で初めて正体を知った品に「初ゲット！」を出すための記録。
+// 初めて知ったなら true
+function codexKnowItem(id) {
+  if (!id) return false;
+  const k = G.codex.known || (G.codex.known = {});
+  if (k[id]) return false;
+  k[id] = true;
+  return true;
+}
+// その品の正体を既に知っているか (記録に無くても、正体の知れた同じ品を持っていれば知っている)
+function itemKnown(id) {
+  if (!id) return false;
+  if (G.codex.known && G.codex.known[id]) return true;
+  return heldItems().some((it) => it.id === id && !it.unidentified);
+}
+// 全人業 (隊と控え) の持ち物と装備
+function heldItems() {
+  const out = [];
+  for (const d of [...(G.party || []), ...(G.reserve || [])]) {
+    if (!d) continue;
+    for (const it of (d.items || [])) if (it) out.push(it);
+    for (const it of Object.values(d.equip || {})) if (it) out.push(it);
+  }
+  return out;
 }
 // 図鑑の新着: { mon:{key:1}, item:{id:1}, job:{"職:ランク":1} }。王宮の図鑑で詳細を開くと消える (src/ui/palace.js)
 function codexFresh() {
@@ -9897,6 +9924,7 @@ function shopIdentify(owner, it) {
   G.gold -= cost;
   it.unidentified = false;
   it.idHardFail = false;
+  codexKnowItem(it.id);
   SFX.itemget(); buzz(15);
   log(`鑑定料 💰${cost} を払った。${it.name} と判明した！`, "win");
   showToast(`${it.name} と判明した (💰${cost})`);
@@ -9927,7 +9955,7 @@ function sellItem(owner, it, price) {
   G.gold += price;
   // 在庫に積む (ボルタック方式)。未鑑定品は並ばない
   if (it.id && !it.unidentified) G.shopStock[it.id] = (G.shopStock[it.id] || 0) + 1;
-  codexSeeItem(it.id);
+  codexSeeItem(it.id, it);
   SFX.select(); buzz(10);
   const shown = itemName(it);
   log(`${shown} を売った (+💰${price})。${it.unidentified ? "" : "商店に並んだ。"}`, "win");
@@ -10624,6 +10652,7 @@ function doIdentifySkill(m, it, { quiet = false } = {}) {
   const ok = Math.random() < ch;
   if (ok) {
     it.unidentified = false;
+    codexKnowItem(it.id);
     log(`${m.name}は ${it.name} を鑑定した！`, "win");
     if (!quiet) { SFX.itemget(); buzz(15); showToast(`${it.name} と判明した (${m.name})`, { tone: "good" }); }
   } else {
@@ -10793,7 +10822,7 @@ function giveItem(id) {
     return null;
   }
   runGainItem(who, it);
-  codexSeeItem(id);
+  codexSeeItem(id, it);
   log(`${itemName(it)} を手に入れた！ (${who.name})`, logClassForItem(it));
   return { item: it, who };
 }
@@ -11380,6 +11409,14 @@ function loadGame() {
   if (!G.codex) G.codex = { mon: {}, item: {} };
   if (!G.codex.mon) G.codex.mon = {};
   if (!G.codex.item) G.codex.item = {};
+  // 正体を知った品 (後付け): 図鑑の記録から復元し、未鑑定でしか持っていない品は「まだ知らない」とする
+  if (!G.codex.known || typeof G.codex.known !== "object") {
+    const known = {};
+    for (const id in G.codex.item) known[id] = true;
+    const held = heldItems();
+    for (const it of held) if (it.unidentified && it.id && !held.some((x) => x.id === it.id && !x.unidentified)) delete known[it.id];
+    G.codex.known = known;
+  }
   for (const k in G.codex.mon) {
     const v = G.codex.mon[k];
     if (!v || typeof v !== "object") {
@@ -11584,6 +11621,7 @@ const OPS = {
       if (G.gold < cost) break;
       G.gold -= cost; spent += cost;
       it.unidentified = false; it.idHardFail = false;
+      codexKnowItem(it.id);
       n++;
     }
     if (n > 0) {
@@ -11605,7 +11643,7 @@ const OPS = {
       doll.items.splice(idx, 1);
       G.gold += price; gold += price;
       if (item.id) G.shopStock[item.id] = (G.shopStock[item.id] || 0) + 1;
-      codexSeeItem(item.id);
+      codexSeeItem(item.id, item);
       n++;
     }
     if (n) {
@@ -11892,7 +11930,7 @@ bindGame({
   emptyDollCost, randomDollName, finalizeBuyDoll, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
   equipSoulToSlot, fuseCandidates, fuseSoul, openFusePicker, openSubSkillPicker, slotSoul,
   unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail,
-  canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill,
+  canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill, itemKnown,
   showRankUp, announceJobChange, showNameInput,
 });
 // ==== /WP-B ====
