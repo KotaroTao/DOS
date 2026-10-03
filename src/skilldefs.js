@@ -26,11 +26,9 @@
 //   regen({pct, turns} リジェネ) / grantBarrier / grantEndure / cure(状態異常) / purge(弱体を解く)
 // 持続 dur (既定3ターン。ラウンド開始ごとに1減る)
 
-const UNHOLY = ["undead", "specter", "demon"];
-const BEASTS = ["beast", "wing", "insect", "reptile", "plant", "aquatic"];
-const DRAGONS = ["dragon", "reptile", "wing"];
-const MACHINES = ["construct", "armored", "elemental"];
-export const PREY_GROUPS = { UNHOLY, BEASTS, DRAGONS, MACHINES };
+import { UNHOLY, BEASTS, DRAGONS, MACHINES, PREY_GROUPS } from "./jobkit/common.js";
+import { JOBKIT_SKILLS } from "./jobkit/index.js";
+export { PREY_GROUPS };
 
 export const SPELLS = {
   // ================= 剛剣 (遅い物理職の柱: 命中を上げて当てにいく) =================
@@ -381,6 +379,19 @@ const TECHS = [
   "KASUMIGAKURE", "MAKIBISHI", "ABURA", "GONOSEN", "MEIKYOU", "SUTEMI", "KONGOUTAI", "GONGENOROSHI", "RYUURIN", "RYUUKOU",
   "RYUUJINKOURIN", "KOBU", "SHINTOU",
 ];
+// 職ごとの固有技 (src/jobkit/<職>.js の skills) を合流する。キー・名前の重複は読み込み時に弾く
+for (const key in JOBKIT_SKILLS) {
+  if (SPELLS[key]) throw new Error(`skilldefs: 固有技 ${key} が共通の技と重複`);
+  SPELLS[key] = JOBKIT_SKILLS[key];
+}
+{
+  const seen = {};
+  for (const key in SPELLS) {
+    const nm = SPELLS[key].name;
+    if (seen[nm]) console.warn(`skilldefs: 技の名前「${nm}」が ${seen[nm]} と ${key} で重複`);
+    seen[nm] = key;
+  }
+}
 for (const key in SPELLS) {
   const sp = SPELLS[key];
   if (sp.dur == null) sp.dur = 3; // 強化/弱体などの持続ターン (既定3)
