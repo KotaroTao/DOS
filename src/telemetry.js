@@ -77,7 +77,7 @@ export function tlSnapshot(kind, where, party) {
 
 // 戦闘ごとの集計の器 (kind: n=通常 / e=精鋭・ミミック・出来事 / b=主)
 const AGG_KEYS = ["c", "w", "fl", "l", "r", "pre", "amb", "pa", "pe", "pp", "ea", "ee", "ep", "of", "op",
-  "ft", "fo", "fs", "dd", "dt", "hp0", "hp1", "pAgi", "eAgi", "eAgiAvg", "en"];
+  "ft", "fo", "fs", "fp", "dd", "dt", "hp0", "hp1", "pAgi", "eAgi", "eAgiAvg", "en"];
 function agg(d, kind) {
   if (!d.b[kind]) { d.b[kind] = {}; for (const k of AGG_KEYS) d.b[kind][k] = 0; }
   return d.b[kind];
@@ -126,7 +126,7 @@ export function tlBattleEnd(memo, { result, rounds, tally, party }) {
   a.r += rounds || 0;
   if (memo.opening === "preempt") a.pre++; else if (memo.opening === "ambush") a.amb++;
   const t = tally || {};
-  for (const k of ["pa", "pe", "pp", "ea", "ee", "ep", "of", "op", "ft", "fo", "fs"]) a[k] += t[k] || 0;
+  for (const k of ["pa", "pe", "pp", "ea", "ee", "ep", "of", "op", "ft", "fo", "fs", "fp"]) a[k] = (a[k] || 0) + (t[k] || 0);
   a.dd += memo.dd; a.dt += memo.dt;
   a.hp0 += Math.round(memo.hp0 * 1000);
   a.hp1 += Math.round(hpRate(party) * 1000);
@@ -160,7 +160,7 @@ export function tlSummary() {
       if (!a || !a.c) continue;
       parts.push(`${KIND_LABEL[kind]}${a.c}戦 ` +
         `敵の命中${pct(a.ea - a.ee - a.ep, a.ea)} 味方の命中${pct(a.pa - a.pe - a.pp, a.pa)} ` +
-        `味方先手${pct(a.of, a.op)} 逃走${a.ft ? `${a.fo}/${a.ft}` : "―"} ` +
+        `味方先手${pct(a.of, a.op)} 逃走${a.ft ? `${a.fo}/${a.ft}(予想${pct((a.fp || 0) / 1000, a.ft)})` : "―"} ` +
         `AGI 隊${avg(a.pAgi, a.c, 10)}/敵${avg(a.eAgi, a.c, 10)}`);
     }
     out.push({ head, lines: parts.length ? parts : ["戦闘の記録なし"] });
@@ -175,7 +175,7 @@ export function tlExportText() {
   lines.push("");
   lines.push("隊の列: 名前,職,ランク,Lv,列,最大HP,最大MP,ATK,VIT,AGI,INT,PIE,LUK,生存 / base=基準AGI");
   lines.push("戦闘の鍵: c戦闘 w勝 fl逃 l全滅 rラウンド pre先制 amb奇襲 pa/pe/pp=味方の物理 試行/回避された/見切られた " +
-    "ea/ee/ep=敵の物理 同 of/op=手番で味方が先だった組/総組 ft/fo/fs=逃走 試行/成功/封じ dd/dt=与/被ダメ " +
+    "ea/ee/ep=敵の物理 同 of/op=手番で味方が先だった組/総組 ft/fo/fs=逃走 試行/成功/封じ fp=逃走を試みた時の成功率×1000の合計 dd/dt=与/被ダメ " +
     "hp0/hp1=戦闘前後の隊HP割合×1000の合計 pAgi/eAgi/eAgiAvg=隊平均/敵最大/敵平均AGI×10の合計 en=敵数の合計");
   lines.push(JSON.stringify({ v: S.v, since: S.since, d: S.d }));
   return lines.join("\n");
