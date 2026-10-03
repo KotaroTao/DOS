@@ -12,7 +12,7 @@ const V = {
 // 見下ろしの傾き: 奥 (z-) ほど画面の上へ、上面が手前を向く
 const PITCH = 26 * Math.PI / 180, CY = 66;
 const K = 1.14, KX = 47, KY = 52;
-const T0 = ([x, y, z]) => [x, CY - 5 + (y - CY) * Math.cos(PITCH) + z * Math.sin(PITCH), -(y - CY) * Math.sin(PITCH) + z * Math.cos(PITCH)];
+const T0 = ([x, y, z]) => [x, CY - 7 + (y - CY) * Math.cos(PITCH) + z * Math.sin(PITCH), -(y - CY) * Math.sin(PITCH) + z * Math.cos(PITCH)];
 const T = p => { const q = T0(p); return [KX + (q[0] - KX) * K, KY + (q[1] - KY) * K, q[2] * K]; };
 const TD = ([x, y, z]) => [x, y * Math.cos(PITCH) + z * Math.sin(PITCH), -y * Math.sin(PITCH) + z * Math.cos(PITCH)];
 // 任意の向きの角材 (中心, 軸 u/v/w, 半径)

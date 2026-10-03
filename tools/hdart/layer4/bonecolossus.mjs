@@ -4,10 +4,10 @@ export const meta = { id: "bs_bonecolossus", key: "hd_bonecolossus", w: 96, h: 9
   note: "骨の巨兵: 幾十の骸が融け合って立ち上がった巨大な骨の兵。肋骨の籠と埋もれた頭蓋で膨れた胴、片腕は大腿骨を束ねた棍棒、大きな頭蓋に小さな頭蓋が群がる。骨の隙間から閉じ込められた魂の青白い光が漏れる" };
 export function build() {
   const mats = {
-    bone: { ramp: ramp(["#040302", "#100c07", "#1e170d", "#2e2414", "#40331d", "#544427", "#6a5733", "#826c42", "#9c8654"], 9), spec: 0.6, pow: 22, specCol: "#c4b07c", dither: 0.55, gain: 0.9,
-      shade: p => 0.12 * fbm(p.x * 0.45, p.y * 0.45, p.z * 0.45) - 0.18 * Math.pow(1 - Math.abs(vnoise(p.x * 0.28, p.y * 0.2, p.z * 0.28)), 8) },
+    bone: { ramp: ramp(["#050504", "#0c0b09", "#1a1814", "#2a2620", "#3a352c", "#4e483c", "#655e4f", "#7e7664", "#9a917c"], 9), spec: 0.6, pow: 22, specCol: "#bdb6a2", dither: 0.55, gain: 0.95,
+      shade: p => 0.12 * fbm(p.x * 0.45, p.y * 0.45, p.z * 0.45) - 0.3 * Math.pow(1 - Math.abs(vnoise(p.x * 0.28, p.y * 0.2, p.z * 0.28)), 8) },
     skull: null,
-    marrow: { ramp: ramp(["#030201", "#0c0805", "#170f09", "#22170e"], 4), dither: 0.5 },
+    marrow: { ramp: ramp(["#020202", "#070706", "#0e0d0b", "#17150f"], 4), dither: 0.5 },
     soul: { ramp: ["#0c2a3a", "#1e5a74", "#4aa0c0", "#a6e4f4", "#e8fcff"], emit: p => 0.3 + 0.55 * Math.max(0, p.nz) * Math.max(0, p.nz) },
     hole: { ramp: ["#000000", "#000000", "#020203"], amb: 0, dif: 0.1, noRim: true },
     flag: FLAG, stone: { ...STONE, ramp: ramp(["#030303", "#0f0f11", "#1f2023", "#33353a", "#4c4f56"], 5) },
@@ -71,7 +71,8 @@ export function build() {
   for (const fx of [33, 63]) for (let i = 0; i < 3; i++) toes.push(cone([fx - 3 + i * 3, 89, 4], [fx - 4.5 + i * 4.5, 91, 10], 1.6, 0.8, "bone"));
   const body = Disp(U(1.4, mass, sternum, neck, armL, armR, ...legs), (x, y, z) => 0.15 * fbm(x * 0.8, y * 0.8, z * 0.8));
   // 骨の継ぎ目に沈む影の溝 (融け合った骸の境目)
-  const seams = (x, y, z, m) => (m === "bone" && Math.abs(vnoise(x * 0.16, y * 0.13, z * 0.16)) < 0.035) ? "marrow" : m;
+  // 縦に走る溝 (束なった長骨の境目) を足して、骨が寄り集まった感じを出す
+  const seams = (x, y, z, m) => (m === "bone" && (Math.abs(vnoise(x * 0.16, y * 0.13, z * 0.16)) < 0.055 || Math.abs(vnoise(x * 0.5, y * 0.06, z * 0.5 + 5)) < 0.075)) ? "marrow" : m;
   const scene = U(0, flagstones(48, 92, 46, 14, { n: 6, seed: 137 }), Paint(body, seams), ...ribs, ...shards, ...souls, ...emb, ...bigSkull, ...cluster, ...claws, ...club, ...lashing, ...toes);
   const r = render(scene, mats, { w: 96, h: 96, rim: RIM, lights: [{ p: [48, 43, 10], r: 22, k: 0.9 }, { p: [48, 60, 16], r: 14, k: 0.4 }] });
   const C = new Canvas(r);

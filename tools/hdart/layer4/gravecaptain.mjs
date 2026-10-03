@@ -16,7 +16,8 @@ export function build() {
       shade: p => 0.12 * Math.sin(p.x * 0.7 + p.y * 0.08) },
     leather: { ramp: ramp(["#030202", "#0c0806", "#18100b", "#241811", "#322218", "#422e20"], 5), spec: 0.6, pow: 25, dither: 0.5 },
     brass: { ramp: ramp(["#050302", "#160f05", "#2c1f0a", "#463210", "#644a18", "#866624", "#a88636"], 5), spec: 1.4, pow: 35, specCol: "#f0d890", dither: 0.4 },
-    blade: { ramp: ramp(["#14100c", "#2e2620", "#4a4034", "#6c604e", "#948670"], 5), spec: 1.6, pow: 30, specCol: "#d8ccb0", dither: 0.45, amb: 0.35 },
+    steel: { ramp: ramp(["#0b0b0c", "#1c1c1f", "#303035", "#4a4a50", "#6c6c74", "#92929a"], 6), spec: 1.8, pow: 30, specCol: "#d4d4dc", dither: 0.45, amb: 0.3,
+      shade: p => 0.06 * fbm(p.x * 0.5, p.y * 0.5, p.z * 0.5) },
     eye: { ramp: ["#3a0800", "#9a1c04", "#ff5a14", "#ffc070"], emit: p => 0.6 + 0.4 * Math.max(0, p.nz) },
     void: { ramp: ["#000000", "#000000", "#020101"], amb: 0, dif: 0.05, noRim: true },
     flag: FLAG, stone: STONE, wood: WOOD,
@@ -42,14 +43,34 @@ export function build() {
       box([51.2, 29.6, 8.6], [2.6, 0.55, 2], "void", 0.2)), 0.4);
   const eyes = [sphere([49, 24.8, 6.2], 0.6, "eye"), sphere([53.4, 24.8, 6], 0.6, "eye")];
   const neck = [cyl([51, 30, 3], [51, 33, 2], 1.6, "bone", 0.5), cyl([51, 30.4, 2.6], [51, 31.6, 2.6], 4.4, "iron", 0.6)];
-  // モリオン兜: 舟形に反った鍔、とさか、羽根飾り
-  const brim = Disp(ellipsoid([51, 20.2, 4], [11.5, 1.3, 7.4], "iron"), (x, y, z) => -0.0 + 0.0 * x + (Math.abs(x - 51) > 0 ? 0 : 0));
-  const brimUp = U(0.8, brim, ellipsoid([40.6, 18.4, 4], [2.4, 1.3, 3.6], "iron", 40), ellipsoid([61.4, 18.4, 4], [2.4, 1.3, 3.6], "iron", -40));
-  const crown = Sub(ellipsoid([51, 18.4, 4], [5.6, 5.2, 5.4], "iron"), box([51, 24, 4], [8, 4, 8], "iron"));
-  const comb = slab([[45.6, 16], [47, 12], [49.4, 9.4], [52.6, 9.4], [55, 12], [56.4, 16]], 4, 0.6, "iron", 0.3, 0.2);
-  const plume = [tube([[54, 11, 1, 1.4], [58, 6, 0, 1.6], [64, 4, -1, 1.4], [70, 6, -2, 1], [74, 10, -2, 0.5]], "red"),
-    tube([[54, 12, 0, 1.2], [59, 9, -1, 1.3], [65, 9, -2, 1.1], [70, 12, -3, 0.8], [72, 16, -3, 0.4]], "red"),
-    tube([[53, 10, 2, 1], [56, 5, 1, 1.1], [61, 2, 0, 0.9], [66, 2, -1, 0.5]], "red")];
+  // モリオン兜: 顔をやや左 (刀の向き) へ振った斜めの向きで組む。前後に長く尖って反る舟形の鍔、頭頂を前後に走る櫛形の鶏冠
+  const Hc = [51, 18, 4], yaw = 38 * Math.PI / 180;
+  const F = [-Math.cos(yaw), Math.sin(yaw)], Sd = [Math.sin(yaw), Math.cos(yaw)]; // 前 (左手前) と横 (xz 平面)
+  const toL = (x, z) => { const dx = x - Hc[0], dz = z - Hc[2]; return [Hc[0] + dx * F[0] + dz * F[1], Hc[2] + dx * Sd[0] + dz * Sd[1]]; };
+  const yawLeaf = (prim, R) => ({ leaf: true, mat: prim.mat, bound: [Hc[0], Hc[1], Hc[2], R], f: (x, y, z) => { const [lx, lz] = toL(x, z); return prim.f(lx, y, lz); } });
+  // 鍔: 前後に尖る紡錘形 (左右は短い)、両端が上へ反る
+  const brimLeaf = { leaf: true, mat: "steel", bound: [Hc[0], Hc[1], Hc[2], 16], f: (x, y, z) => {
+    const [lx, lz] = toL(x, z), dx = lx - Hc[0], dz = lz - Hc[2];
+    const r = 13.1, d = 7.1, b = Math.sqrt(r * r - d * d), px = Math.abs(dz), py = Math.abs(dx);
+    const v = ((py - b) * d > px * b) ? Math.hypot(px, py - b) : Math.hypot(px + d, py) - r;
+    const yc = 20.4 - 0.05 * dx * dx;
+    const w = Math.abs(y - yc) * 0.85 - 0.55;
+    return Math.hypot(Math.max(v, 0), Math.max(w, 0)) + Math.min(Math.max(v, w), 0) - 0.2;
+  } };
+  // 鉢: 平らな底のやや尖った丸鉢
+  const bowlE = ellipsoid([Hc[0], 18.6, Hc[2]], [6.2, 5.4, 5], "steel");
+  const crownLeaf = { leaf: true, mat: "steel", bound: [Hc[0], Hc[1], Hc[2], 9], f: (x, y, z) => { const [lx, lz] = toL(x, z); return Math.max(bowlE.f(lx, y, lz), y - 20.4); } };
+  // 鶏冠: 鉢の頂を前から後ろへ越える半月の板
+  const combPts = [];
+  for (let i = 0; i <= 12; i++) { const a = Math.PI * i / 12; combPts.push([Hc[0] - Math.cos(a) * 6.2, 15.6 - Math.sin(a) * 7.6]); }
+  combPts.push([Hc[0] + 5.4, 17.4], [Hc[0] - 5.4, 17.4]);
+  const combLeaf = yawLeaf(slab(combPts, Hc[2], 0.75, "steel", 0.35, 0.25), 12);
+  const rivets = [-3.2, 0, 3.2].map(t => { const x = Hc[0] + F[0] * t, z = Hc[2] + F[1] * t; return sphere([x + Sd[0] * 5.1, 19.6, z + Sd[1] * 5.1], 0.7, "brass"); });
+  // 羽根飾り: 鶏冠の後ろの付け根から後ろ上へ
+  const pb = [Hc[0] - F[0] * 5.2, 15.4, Hc[2] - F[1] * 5.2];
+  const plume = [tube([[pb[0], pb[1], pb[2], 1.4], [pb[0] + 4, 9, pb[2] - 1, 1.6], [pb[0] + 10, 6.5, pb[2] - 2, 1.4], [pb[0] + 16, 8, pb[2] - 3, 1], [pb[0] + 19, 12, pb[2] - 3, 0.5]], "red"),
+    tube([[pb[0], pb[1] + 0.6, pb[2] - 0.6, 1.2], [pb[0] + 5, 12, pb[2] - 1.5, 1.3], [pb[0] + 11, 11, pb[2] - 2.5, 1.1], [pb[0] + 16, 13.5, pb[2] - 3.5, 0.8], [pb[0] + 18, 17.5, pb[2] - 3.5, 0.4]], "red"),
+    tube([[pb[0] - 0.4, pb[1] - 0.6, pb[2] + 0.6, 1], [pb[0] + 2.4, 7.5, pb[2], 1.1], [pb[0] + 7, 4, pb[2] - 1, 0.9], [pb[0] + 12, 3.6, pb[2] - 2, 0.5]], "red")];
   // 指揮刀の腕 (画面左へ伸ばす): 袖は千切れ、骨の手
   const armS = [tube([[40, 35, 2, 3.2], [30, 38, 5, 2.8], [21, 40, 8, 2.2]], "cloth", { seg: 3 }), cyl([31, 37.8, 5.2], [24, 39.6, 7.4], 2.6, "iron", 1),
     ellipsoid([19.6, 40.6, 9], [2.3, 2, 2.2], "bone")];
@@ -62,13 +83,13 @@ export function build() {
   const back = [], edge = [];
   cur.forEach(([x, y], i) => { const q = cur[Math.min(cur.length - 1, i + 1)], o = cur[Math.max(0, i - 1)]; const tx = q[0] - o[0], ty = q[1] - o[1], l = Math.hypot(tx, ty) || 1, nx = ty / l, ny = -tx / l, w = 1.9 * (1 - i / (cur.length - 1)) + 0.2;
     back.push([x - nx * w * 0.3, y - ny * w * 0.3]); edge.push([x + nx * w, y + ny * w]); });
-  const blade = slab(back.concat(edge.reverse()), 9, 0.55, "blade", 0.2, 0.3);
+  const blade = slab(back.concat(edge.reverse()), 9, 0.55, "steel", 0.2, 0.3);
   // 脚: 膨らんだ半ズボンと長靴
   const legs = [tube([[45, 60, -1, 4.6], [43, 72, 1, 3.8]], "cloth"), tube([[55, 60, -1, 4.6], [58, 72, 0, 3.8]], "cloth"),
     tube([[43, 72, 1.4, 3.6], [41.6, 80, 2, 3.3], [41, 86, 2, 3]], "leather"), tube([[58, 72, 0.6, 3.6], [59.6, 80, 1, 3.3], [60.6, 86, 1, 3]], "leather"),
     ellipsoid([40, 88.4, 4], [4.4, 2.4, 6], "leather"), ellipsoid([62, 88.4, 3], [4.4, 2.4, 6], "leather")];
   const scene = U(0, flagstones(50, 92, 44, 13, { n: 5, seed: 111 }),
-    cape, Paint(U(0, breast, ...tassets, ...pauldR, ...pauldL, brimUp, crown, comb), rusty), belt, sash, sashEnd, skull, ...eyes, ...neck, ...plume,
+    cape, Paint(U(0, breast, ...tassets, ...pauldR, ...pauldL), rusty), brimLeaf, crownLeaf, combLeaf, ...rivets, belt, sash, sashEnd, skull, ...eyes, ...neck, ...plume,
     ...armS, ...armH, hilt, blade, ...legs);
   const r = render(scene, mats, { w: 96, h: 96, rim: RIM, lights: [{ p: [51, 25, 14], r: 11, k: 0.35 }] });
   const C = new Canvas(r);
