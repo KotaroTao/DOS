@@ -54,6 +54,7 @@ const ASSETS = [
   "./src/townart.js",
   "./src/walkerart.js",
   "./src/jobart.js",
+  "./src/jobphotos.js",
   "./src/backdrops.js",
   "./src/crypt.js",
   "./src/rarity.js",

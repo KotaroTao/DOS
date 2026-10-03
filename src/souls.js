@@ -6,6 +6,7 @@
 import { recalc, registerJobGear } from "./items.js";
 import { JOB_LORE_RANKS } from "./joblore.js";
 import { JOB_IMAGES } from "./jobart.js";
+import { JOB_PHOTOS, PHOTO_RES } from "./jobphotos.js";
 
 export const PARTS = ["head", "rhand", "lhand", "body", "legs"];
 export const PART_LABEL = { head: "頭", rhand: "右手", lhand: "左手", body: "胴体", legs: "足" };
@@ -2486,6 +2487,7 @@ const _jobSprCache = {};
 // rank は職業ランク = 魂ランク (1〜5)。
 export function jobSprite(jobKey, rank = 2) {
   const r = Math.max(1, Math.min(5, Math.round(rank) || 2));
+  if (JOB_PHOTOS[jobKey]) return photoJobSprite(jobKey, r);
   if (JOB_IMAGES[jobKey]) return imageJobSprite(jobKey, r);
   const key = JOB_ARTS[jobKey] ? jobKey : "fighter";
   const cacheKey = key + ":" + r;
@@ -2556,10 +2558,14 @@ const IMG_BOX = (() => {
     w = Math.max(w, 2 * Math.max(im.face[0], iw - im.face[0]));
     h = Math.max(h, im.art.length);
   }
+  // 原画そのまま版 (jobphotos.js) も同じ升目単位で同じ枠に入れる
+  for (const set of Object.values(JOB_PHOTOS)) for (const im of Object.values(set)) {
+    w = Math.max(w, 2 * Math.max(im.face[0], im.w - im.face[0]));
+    h = Math.max(h, im.h);
+  }
   return [w + 4, h + 2]; // 光を纏う余白
 })();
-function pickJobImage(key, r) {
-  const set = JOB_IMAGES[key];
+function pickJobImage(key, r, set = JOB_IMAGES[key]) {
   if (set[r]) return { im: set[r], exact: true };
   const near = Object.keys(set).map(Number).sort((a, b) => Math.abs(a - r) - Math.abs(b - r) || b - a)[0];
   return { im: set[near], exact: false };
@@ -2604,6 +2610,32 @@ function imageJobSprite(key, r) {
   return (_jobSprCache[cacheKey] = { palette, art, face });
 }
 
+// ---- 原画そのまま版 (src/jobphotos.js) ----
+// 画像は職・ランクごとに1枚。読み込みは最初に要った時 (以後は使い回す)。
+// 返す絵 = { photo: { img, sx, sy, sw, sh }, w, h, face } — 枠 IMG_BOX の升目単位で、顔の列を中央・足元を揃えて置く
+// (原画の外にはみ出す切り出し矩形は透明として描かれる)。そのランクの絵が無ければ近いランクの絵をそのまま使う
+const _photoImg = {};
+function photoImage(src) {
+  if (_photoImg[src]) return _photoImg[src];
+  let img;
+  if (typeof Image !== "undefined") { img = new Image(); img.decoding = "async"; img.src = src; }
+  else img = { complete: false, naturalWidth: 0 }; // DOM の無い検証環境
+  return (_photoImg[src] = img);
+}
+function photoJobSprite(key, r) {
+  const cacheKey = "photo:" + key + ":" + r;
+  if (_jobSprCache[cacheKey]) return _jobSprCache[cacheKey];
+  const { im } = pickJobImage(key, r, JOB_PHOTOS[key]);
+  const [W, H] = IMG_BOX;
+  const ox = Math.round(W / 2 - im.face[0]), oy = H - 1 - im.h;
+  const R = PHOTO_RES;
+  const spr = {
+    photo: { img: photoImage(im.src), sx: -ox * R, sy: -oy * R, sw: W * R, sh: H * R },
+    w: W, h: H, face: [im.face[0] + ox, im.face[1] + oy],
+  };
+  return (_jobSprCache[cacheKey] = spr);
+}
+
 // 職業の胸像 (肖像の小さな額・一覧の札用)。原画のある職は顔を中心に正方形で切り出す。
 // 原画の無い職は従来の 12×12 の小さな全身像 (それ自体が額に収まる大きさ) をそのまま返す
 const BUST = 36;
@@ -2633,6 +2665,12 @@ export function jobBust(jobKey, rank = 2) {
   const S = Math.max(8, Math.round(BUST * zoom));
   const cx = spr.face[0] + (fit.dx || 0), cy = spr.face[1] + (fit.dy || 0);
   const x0 = Math.round(cx - S / 2), y0 = Math.round(cy - S / 2);
+  if (spr.photo) {
+    // 原画版: 全身像と同じ画像から、胸像の正方形を切り出す (縮めるのは描く時)
+    const p = spr.photo, R = p.sw / spr.w;
+    const bust = { photo: { img: p.img, sx: p.sx + x0 * R, sy: p.sy + y0 * R, sw: S * R, sh: S * R }, w: BUST, h: BUST };
+    return (_bustCache[cacheKey] = bust);
+  }
   const at = (x, y) => { const ch = y < 0 || x < 0 ? "" : (spr.art[y] || "")[x]; return ch || "."; };
   const k = S / BUST;
   const art = [];
