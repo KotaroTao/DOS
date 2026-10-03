@@ -8833,16 +8833,35 @@ function ensureDeliveryQuests() { if (!Array.isArray(G.deliveryQuests)) G.delive
 function deliveryHolder(itemId) {
   return allDolls().find((d) => (d.items || []).some((it) => it.id === itemId && !it.unidentified)) || null;
 }
-// 納品を実行: 手持ちから1つ消費し、品の格に応じた魂を授かる
-function deliverQuest(q) {
+// 納品依頼の状態: 手持ち (holder) があればそのまま納品、無くても商会の棚にあれば買ってその場で納品できる
+function deliveryStatus(q) {
+  const it = q && ITEMS[q.itemId];
+  if (!it) return null;
+  const holder = deliveryHolder(q.itemId);
+  const inShop = !!(G.shopStock && G.shopStock[q.itemId] > 0);
+  const price = buyPrice(it);
+  return { holder, inShop, price, canBuy: !holder && inShop && G.gold >= price };
+}
+// 納品を実行: 手持ちから1つ消費し、品の格に応じた魂を授かる。
+// opts.buy = 手持ちが無い時、商会の棚から買ってそのまま納める (袋は経由しないので所持枠は要らない)
+function deliverQuest(q, opts = {}) {
   const it = ITEMS[q.itemId];
   if (!it) return;
   const holder = deliveryHolder(q.itemId);
-  if (!holder) { log("納品できる品が手元にない。", "sys"); SFX.ng(); return; }
-  const i = holder.items.findIndex((x) => x.id === q.itemId && !x.unidentified);
-  if (i < 0) { log("納品できる品が手元にない。", "sys"); SFX.ng(); return; }
-  holder.items.splice(i, 1);
-  recalcDoll(holder); holder.hp = Math.min(holder.hp, holder.maxhp); holder.mp = Math.min(holder.mp, holder.maxmp);
+  if (holder) {
+    const i = holder.items.findIndex((x) => x.id === q.itemId && !x.unidentified);
+    if (i < 0) { log("納品できる品が手元にない。", "sys"); SFX.ng(); return; }
+    holder.items.splice(i, 1);
+    recalcDoll(holder); holder.hp = Math.min(holder.hp, holder.maxhp); holder.mp = Math.min(holder.mp, holder.maxmp);
+  } else if (opts.buy) {
+    const price = buyPrice(it);
+    if ((G.shopStock[q.itemId] || 0) <= 0) { log("商会の棚に品がない。", "sys"); SFX.ng(); return; }
+    if (G.gold < price) { log("お金が足りない。", "sys"); SFX.ng(); return; }
+    G.gold -= price;
+    G.shopStock[q.itemId]--;
+    codexSeeItem(q.itemId);
+    log(`${it.name} を商会で買い求めた (💰${price})。`, "sys");
+  } else { log("納品できる品が手元にない。", "sys"); SFX.ng(); return; }
   const [rarity, count] = rollDeliveryReward(it.r20 || 1);
   const got = [];
   for (let k = 0; k < count; k++) { const ck = rollClassOfRarity(rarity); addSoulInstance(ck); got.push(ck); }
@@ -11924,7 +11943,7 @@ function wireUI() {
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
     tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport,
     trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
-    claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliverQuest,
+    claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     tryHastenRescue, reviveDoll, reviveTimerEl, fmtRemain,
     doEquip, doUnequip, equipFromAnywhere, openEquipChooser, useItem, dropItem, transferItem,
     stopAutoCombat, sceneBgm, playBgm, SFX,
