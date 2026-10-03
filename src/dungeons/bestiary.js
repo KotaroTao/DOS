@@ -1858,6 +1858,21 @@ const EVENT_MONSTER_DEFS = [
 ];
 const EVENT_MONSTERS = defMonsters(EVENT_MONSTER_DEFS.map((d) => ({ ...monStats(d.rank), ...d })));
 
+// ---- 金属の魔物 (メタル系・この遊びのマスコット) ----
+// 呪文・状態異常・弱体が効かず、物理は会心でない限り1ダメージ。素早く、よくかわし、すぐ逃げる。
+// 倒せばその階の普通の戦闘1回分の✦Soul の 10 / 25 / 60 倍 (schema.js METAL_TIERS)。
+// 出現表には入らず (metal)、第3層から game.js の newFloor が稀に盤面の魔物の札と入れ替える。
+// 能力値は出現した階の雑魚の最上位ランクで組み直す (combat.js spawnMetal)。ここの rank/能力値は図鑑の目安
+const METAL_MONSTER_DEFS = [
+  { id: "mt_silver", name: "銀業", metal: 1, rank: 4, hp: 8, race: "construct", element: "none", artKey: "hd_mt_silver", ability: null,
+    desc: "手のひらほどの銀の人業。人業になりそこねた魂が、墓に納められた銀の聖具へ溶け込んで生まれたという。中には魂がぎっしりと詰まっていて、たたけば澄んだ鈴の音がする。剣も呪文も滑らかな銀肌に弾かれるが、会心の一撃だけは芯まで届く。目が合うと、ちょこちょこ逃げていく。" },
+  { id: "mt_gold", name: "金業", metal: 2, rank: 5, hp: 12, race: "construct", element: "none", artKey: "hd_mt_gold", ability: null,
+    desc: "金の聖具から生まれた銀業の兄貴分。ひらひらの金の飾り布を尾びれのようになびかせ、銀業よりさらにすばしこい。うっかり街の金魚鉢に紛れ込んでいたという噂がある。倒せば銀業の倍以上の魂がこぼれ出す。" },
+  { id: "mt_king", name: "銀業の王", metal: 3, rank: 6, hp: 30, race: "construct", element: "none", artKey: "hd_mt_king", ability: "spell", abRate: 0.2,
+    desc: "迷宮じゅうの銀業が集まって溶け合い、ひとつになったと伝わる大きな白金の人業。小さな王冠をちょこんと頭に載せ、逃げ足はやや遅いが、銀の体はなかなか削りきれない。ときおり気まぐれに呪文を唱える。その胸には百の魂が眠っている。" },
+];
+const METAL_MONSTERS = defMonsters(METAL_MONSTER_DEFS.map((d) => ({ ...monStats(d.rank), ...d, hp: d.hp })));
+
 // ---- 統合辞書とランク別プール ----
 export const BESTIARY = (() => {
   const out = { ...LEGACY };
@@ -1879,6 +1894,11 @@ export const BESTIARY = (() => {
     if (out[id]) throw new Error("duplicate monster id: " + id);
     out[id] = EVENT_MONSTERS[id];
   }
+  // 金属の魔物を辞書に統合 (RANK_POOLS からは除外)
+  for (const id in METAL_MONSTERS) {
+    if (out[id]) throw new Error("duplicate monster id: " + id);
+    out[id] = METAL_MONSTERS[id];
+  }
   // 原画の差し替え (monart.js): 絵だけを上書きする。id・能力値・特徴はそのまま
   for (const id in MONSTER_ART) {
     if (!out[id]) throw new Error("monart: unknown monster id: " + id);
@@ -1895,7 +1915,7 @@ export const RANK_POOLS = (() => {
   const pools = {};
   for (const id in BESTIARY) {
     const m = BESTIARY[id];
-    if (m.elite || m.evOnly) continue; // 強敵・出来事の魔物は通常プールに含めない
+    if (m.elite || m.evOnly || m.metal) continue; // 強敵・出来事の魔物・金属の魔物は通常プールに含めない
     const p = pools[m.rank] || (pools[m.rank] = { regular: [], boss: [] });
     (m.boss ? p.boss : p.regular).push(id);
   }
