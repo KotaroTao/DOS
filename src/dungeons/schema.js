@@ -6555,12 +6555,17 @@ export function defMonster(def) {
   if (def.summonKey) m.summonKey = def.summonKey;
   if (def.ability !== undefined) m.ability = def.ability;
   // 個体ごとの戦闘特性 (図鑑にも掲載される):
-  //   physResist : 物理被ダメを割合カット (0〜0.9)。「物理がほとんど効かない」表現
+  //   physResist : 物理被ダメを割合カット (0.8〜0.9)。「物理がほとんど効かない」表現
+  //                図鑑の表記どおり 8割以上を削る。半端な値 (半減程度) は表記と食い違うので不可
   //   magWeak    : 攻撃呪文の被ダメ倍率 (>1)。「魔法に弱い」表現
   //   regen      : 毎ラウンド最大HPの割合だけ自己回復 (0〜1)
   //   swift      : 出現時に AGI を底上げ (先手を取りやすい)
   //   evasive    : 物理攻撃を確率で大きく回避する
   //   pack       : 群れで現れる (出現数の下限を引き上げる)
+  // 耐性は表記 (「ほとんど効かない」) と実態を一致させるため 0.8〜0.9 に限る
+  for (const k of ["physResist", "magResist"]) {
+    if (def[k] && (def[k] < 0.8 || def[k] > 0.9)) throw new Error(`${k} must be 0.8-0.9: ${def[k]} (${def.id})`);
+  }
   if (def.physResist) m.physResist = def.physResist;
   if (def.magWeak) m.magWeak = def.magWeak;
   if (def.regen) m.regen = def.regen;
@@ -6568,7 +6573,7 @@ export function defMonster(def) {
   if (def.evasive) m.evasive = true;
   if (def.pack) m.pack = true;
   // 追加の戦闘特性 (combat.js が解釈):
-  //   magResist   : 攻撃呪文の被ダメを割合カット (0〜0.9)。「魔法がほとんど効かない」
+  //   magResist   : 攻撃呪文の被ダメを割合カット (0.8〜0.9)。「魔法がほとんど効かない」
   //   enrage      : HPが3割を切ると一度だけ ATK/AGI が跳ね上がる
   //   endure      : 致死の一撃を一度だけ HP1 で耐える
   //   lifesteal   : 与えた物理ダメージの割合だけ自己回復 (0〜1)

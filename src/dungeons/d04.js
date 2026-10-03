@@ -3,7 +3,7 @@ import { defMonsters, tint, ARTS } from "./schema.js";
 
 export const monsters = defMonsters([
   { id: "d04_golem", name: "墓守ゴーレム", race: "construct", element: "earth", artKey: "golem", rank: 4,
-    physResist: 0.6, // 石材そのものの巨体が刃をほとんど通さない
+    physResist: 0.9, // 石材そのものの巨体が刃をほとんど通さない
     hp: 90, atk: 18, def: 18, spd: 2, soul: 50, gold: 40,
     desc: "古竜の眠りを守るため、墓所の石材そのものから彫り出された番人。命じた術者はとうに塵となったが、その指は今も「荒らす者を砕け」という最初の一文を律儀になぞる。石の巨体は並の刃を寄せつけず、一打ごとに床が陥み、塵が舞う。" },
   { id: "d04_ogre", name: "墓所の巨人", race: "giant", element: "none", artKey: "ogre", rank: 4,
@@ -12,7 +12,7 @@ export const monsters = defMonsters([
     desc: "墓を暴いて骸を喰らううち、屍肉の魔力で異形に肥え太った人喰い鬼。供物のつもりか、棍棒で急所を叩き潰した獲物を古竜の墓前へ並べる悪癖を持つ。足音だけで石棺の蓋が震えるという。" },
   { id: "d04_revenant", name: "亡霊騎士", race: "armored", element: "light", artKey: "knightmare", rank: 5,
     palette: tint(ARTS.knightmare.palette, "#5fb8d6", 0.3),
-    physResist: 0.5, ability: "critical", // 誇り高き剣技が鎧の継ぎ目=急所を突き、鎧は刃を弾く
+    physResist: 0.85, ability: "critical", // 誇り高き剣技が鎧の継ぎ目=急所を突き、鎧は刃を弾く
     hp: 110, atk: 24, def: 16, spd: 7, soul: 70, gold: 56, soulClass: "knight",
     desc: "古竜に挑み、誇り高く敗れた騎士の鎧。死してなお誓いを捨てず、磨かれた剣技で挑戦者の鎧の継ぎ目を突き、その身を鎧で固めて刃を弾く。砕けた兜の奥で、あがないを求める弱い光が今も明滅している。" },
   { id: "d04_grudge", name: "墓所の怨霊", race: "specter", element: "dark", artKey: "wraith", rank: 5,
