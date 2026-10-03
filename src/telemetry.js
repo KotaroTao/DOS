@@ -126,6 +126,9 @@ export function tlBattleEnd(memo, { result, rounds, tally, party }) {
   a.r += rounds || 0;
   if (memo.opening === "preempt") a.pre++; else if (memo.opening === "ambush") a.amb++;
   const t = tally || {};
+  // 予想成功率 fp を数える前の記録 (fp の無い器) には、予想付きの試行数 fpn を別に持たせる
+  if (a.fpn == null) a.fpn = a.fp ? a.ft : 0;
+  if (t.fp != null) a.fpn += t.ft || 0;
   for (const k of ["pa", "pe", "pp", "ea", "ee", "ep", "of", "op", "ft", "fo", "fs", "fp"]) a[k] = (a[k] || 0) + (t[k] || 0);
   a.dd += memo.dd; a.dt += memo.dt;
   a.hp0 += Math.round(memo.hp0 * 1000);
@@ -140,6 +143,11 @@ export function tlBattleEnd(memo, { result, rounds, tally, party }) {
 // ---- 読み出し ----
 const pct = (n, d) => (d > 0 ? `${Math.round((n / d) * 100)}%` : "―");
 const avg = (n, c, div = 1) => (c > 0 ? Math.round((n / c / div) * 10) / 10 : "―");
+// 逃走の予想成功率 (予想を記録し始める前の試行は除いて平均する。予想の無い記録は出さない)
+function fleeExpect(a) {
+  const n = a.fpn != null ? a.fpn : (a.fp ? a.ft : 0);
+  return n > 0 ? `(予想${pct((a.fp || 0) / 1000, n)})` : "";
+}
 const KIND_LABEL = { n: "通常", e: "精鋭等", b: "主" };
 
 function sortedKeys() {
@@ -160,7 +168,7 @@ export function tlSummary() {
       if (!a || !a.c) continue;
       parts.push(`${KIND_LABEL[kind]}${a.c}戦 ` +
         `敵の命中${pct(a.ea - a.ee - a.ep, a.ea)} 味方の命中${pct(a.pa - a.pe - a.pp, a.pa)} ` +
-        `味方先手${pct(a.of, a.op)} 逃走${a.ft ? `${a.fo}/${a.ft}(予想${pct((a.fp || 0) / 1000, a.ft)})` : "―"} ` +
+        `味方先手${pct(a.of, a.op)} 逃走${a.ft ? `${a.fo}/${a.ft}${fleeExpect(a)}` : "―"} ` +
         `AGI 隊${avg(a.pAgi, a.c, 10)}/敵${avg(a.eAgi, a.c, 10)}`);
     }
     out.push({ head, lines: parts.length ? parts : ["戦闘の記録なし"] });
@@ -175,7 +183,7 @@ export function tlExportText() {
   lines.push("");
   lines.push("隊の列: 名前,職,ランク,Lv,列,最大HP,最大MP,ATK,VIT,AGI,INT,PIE,LUK,生存 / base=基準AGI");
   lines.push("戦闘の鍵: c戦闘 w勝 fl逃 l全滅 rラウンド pre先制 amb奇襲 pa/pe/pp=味方の物理 試行/回避された/見切られた " +
-    "ea/ee/ep=敵の物理 同 of/op=手番で味方が先だった組/総組 ft/fo/fs=逃走 試行/成功/封じ fp=逃走を試みた時の成功率×1000の合計 dd/dt=与/被ダメ " +
+    "ea/ee/ep=敵の物理 同 of/op=手番で味方が先だった組/総組 ft/fo/fs=逃走 試行/成功/封じ fp/fpn=逃走を試みた時の成功率×1000の合計/その試行数 dd/dt=与/被ダメ " +
     "hp0/hp1=戦闘前後の隊HP割合×1000の合計 pAgi/eAgi/eAgiAvg=隊平均/敵最大/敵平均AGI×10の合計 en=敵数の合計");
   lines.push(JSON.stringify({ v: S.v, since: S.since, d: S.d }));
   return lines.join("\n");
