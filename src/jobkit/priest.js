@@ -1,15 +1,31 @@
 // 僧侶 (priest) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
+// 持ち味: 素朴な癒しの基本。村の僧が枕元で祈るような、質素で粘り強い手当て (蘇生は身を削ってでも)
 export default {
   table: `
     1 DIOS 3 CURE 5 afterHeal/1 7 HOLYRAY 10 BLESS 15 selfPurify/1
     17 REGEN 20 DIOSALL 25 afterHeal/2 30 DIAL 35 chant/1 40 DIALALL
-    45 purify/1 50 HOLYLIGHT 55 REVIVE 60 afterHeal/3 65 MADIOS 70 resistAilment/1
-    75 sanctuary/1 80 RESURRECT 85 KIYOME 90 afterHeal/4 95 SHINYU 100 SEIBETSU
-    105 chant/2 110 IYASHINAMI 115 scripture/1 120 REGENALL 125 resistAilment/2 130 SHINBATSU
-    135 divineCounter/1 140 SEISUISHO 145 martyr/1 150 TENKEINOINORI 155 mercy/1 160 SEIMETSUKOU
-    165 popePrayer/1 170 FUKUIN 175 holyCover/1 180 SEIKOURETSU 185 DAISEIKITOU 190 DAIFUKUIN
-    195 bigBarrier/1 200 KAMIWAZA`,
-  skills: {},
-  perks: {},
+    45 purify/1 50 PRIEST_GOKOU 55 PRIEST_MEZAME 60 afterHeal/3 65 PRIEST_TEATE 70 resistAilment/1
+    75 priestShisso/1 80 PRIEST_SHINMYOU 85 PRIEST_KEGAREOTOSHI 90 afterHeal/4 95 SHINYU 100 SEIBETSU
+    105 chant/2 110 IYASHINAMI 115 priestYoake/1 120 REGENALL 125 resistAilment/2 130 SHINBATSU
+    135 priestTeate/1 140 SEISUISHO 145 priestMitori/1 150 TENKEINOINORI 155 priestShisso/2 160 SEIMETSUKOU
+    165 priestYoake/2 170 FUKUIN 175 priestTeate/2 180 SEIKOURETSU 185 DAISEIKITOU 190 DAIFUKUIN
+    195 priestMitori/2 200 KAMIWAZA`,
+  skills: {
+    PRIEST_GOKOU: { name: "後光", mp: 6, kind: "atk", power: 15, element: "light", debuff: { hit: 0.85 }, target: "all-enemy", desc: "後光で敵全体を灼き、目を眩ませる" },
+    PRIEST_MEZAME: { name: "目覚めの祈り", mp: 8, kind: "heal", power: 0, revive: true, revivePct: 0.4, regen: { pct: 0.05, turns: 3 }, target: "ally", desc: "倒れた者をHP40%で起こし、癒しを残す" },
+    PRIEST_TEATE: { name: "手当ての祈り", mp: 8, kind: "heal", power: 50, revive: true, cure: true, target: "ally", desc: "傷と穢れを癒す。倒れた者も起こす" },
+    PRIEST_SHINMYOU: { name: "身命の祈り", mp: 10, kind: "heal", power: 0, revive: true, revivePct: 1, hpCost: 0.15, target: "ally", desc: "己の命を削り、倒れた者を完全に呼び戻す" },
+    PRIEST_KEGAREOTOSHI: { name: "穢れ落とし", mp: 9, kind: "heal", power: 10, cure: true, purge: true, target: "all-ally", desc: "全員の異常と弱体を払い、軽く癒す" },
+  },
+  perks: {
+    priestShisso: { label: "質素な祈り", lv: ["回復の技・呪文の消費MP−10%", "回復の技・呪文の消費MP−18%"],
+      fx: [{ t: "cost", on: "heal", v: [0.1, 0.18] }] },
+    priestYoake: { label: "夜明けの祈り", scope: "party", lv: ["戦闘開始時、味方全員に毎ターン最大HP2%の癒し (3ターン)", "戦闘開始時、味方全員に毎ターン最大HP3.5%の癒し (3ターン)"],
+      fx: [{ t: "start", party: true, regen: [0.02, 0.035], dur: 3 }] },
+    priestTeate: { label: "手当ての心得", lv: ["回復の技・呪文の回復量+10%", "回復の技・呪文の回復量+20%"],
+      fx: [{ t: "heal", v: [0.1, 0.2] }] },
+    priestMitori: { label: "看取りの祈り", lv: ["倒れた味方がいる間、毎ラウンドMP3%回復", "倒れた味方がいる間、毎ラウンドMP5%回復"],
+      fx: [{ t: "round", when: { allyDown: true }, mp: [0.03, 0.05] }] },
+  },
 };
