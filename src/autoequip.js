@@ -4,6 +4,7 @@
 //   dolls … 装備を整える人業 (1体 or 隊の全員)
 //   pool  … 品を出してよい人業 (既定 = dolls)。隊・控えの全員の所持品を候補にする
 //   候補から除くもの: 呪い・未鑑定・装備品でないもの・他人が装備中の品 (装備中の品は所持品に無いので候補にならない)
+//   allow … (人業, 品) → false ならその人業には選ばない (例: 後衛に近接物理の武器を持たせない)
 //   呪われた装備は外さない (その部位・両手武器⇄盾で押し出す場合も含む)。
 //   両手武器を持てば盾を、盾を持てば両手武器を外して所持品へ戻す (items.js の equip() と同じ規則)。
 //   所持枠 (8) を超える付け替えはしない。
@@ -13,7 +14,7 @@
 // 実際の付け替えは applyPlan(plan) で、元に戻すのは restoreEquip(plan.undoSnapshot)。
 // どちらも実体 (人業の equip / items) を書き換え、recalc で能力を再計算する。
 
-import { SLOTS, MAX_ITEMS, canEquip as canEquipDefault, recalc as recalcDefault, attackPower } from "./items.js";
+import { SLOTS, MAX_ITEMS, canEquip as canEquipDefault, recalc as recalcDefault, attackPower, weaponRange } from "./items.js";
 
 const EPS = 0.05;          // これ未満の伸びは「同じ」とみなす (同格の品を入れ替え続けない)
 const EQUIP_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
@@ -28,6 +29,11 @@ export function slotKeysFor(item) {
 // 最適装備の候補になる品か (呪い・未鑑定・消耗品/収集品は除く)
 export function isAutoCandidate(item) {
   return !!item && EQUIP_SLOTS.has(item.slot) && !item.unidentified && !item.cursed;
+}
+
+// 近接物理の武器 (射程が近距離。杖は呪文の補助なので除く)。後衛では与ダメが半減し、敵の前列にしか届かない
+export function isMeleeWeapon(item) {
+  return !!item && item.slot === "weapon" && item.cat !== "st" && weaponRange(item) === "near";
 }
 
 // 仮の装備で能力を計算する (実体は書き換えない)
@@ -128,6 +134,7 @@ export function planBestEquip(dolls, opts = {}) {
   const recalcFn = opts.recalc || recalcDefault;
   const recalcPreview = opts.recalcPreview || ((doll, equip) => previewStats(doll, equip, recalcFn));
   const score = opts.score || defaultScore;
+  const allow = opts.allow || (() => true);
   const maxItems = opts.maxItems || MAX_ITEMS;
   const maxMoves = opts.maxMoves || Math.max(16, targets.length * 12);
 
@@ -150,7 +157,7 @@ export function planBestEquip(dolls, opts = {}) {
           if (!isAutoCandidate(item)) continue;
           let ok = false;
           try { ok = canEquip(t, item); } catch (e) { ok = false; }
-          if (!ok) continue;
+          if (!ok || !allow(t, item)) continue;
           for (const key of slotKeysFor(item)) {
             const tr = trialEquip(st.equip, item, key);
             if (!tr) continue;

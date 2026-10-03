@@ -930,8 +930,8 @@ export const EVENTS = [
     choices: (A, cell) => {
       const c = A.check("atk");
       return [
-        { label: `掘る ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) / 失敗で落盤`, primary: true, fn: () => {
-          if (c.ok) { A.sfx("hit"); if (chance(0.5)) A.collectible("鉱脈", () => A.done(cell)); else { A.gold(3, "鉱脈"); A.done(cell); } return; }
+        { label: `掘る ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― 金貨 / 失敗で落盤`, primary: true, fn: () => {
+          if (c.ok) { A.sfx("hit"); A.gold(2, "鉱脈"); A.done(cell); return; } // 通常戦闘の約2倍の金貨
           A.sfx("trap"); A.hurtAll(0.10); A.toast("岩が崩れた ― 全員に小さな傷", "bad", "trap"); A.done(cell);
         } },
       ];
