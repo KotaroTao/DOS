@@ -400,6 +400,7 @@ function orderTile(town) {
   return t;
 }
 export function openOrderSheet(town = true) {
+  if (UI.tutorialEvent) UI.tutorialEvent("order"); // 手ほどき「控えの結社」: 結社を開いた
   let h = null;
   h = sheet.open({
     kind: "info", banner: "控えの結社", className: "sp-pick-sheet", paged: false,
@@ -590,10 +591,11 @@ export function openSkillStep(d, subRef) {
   if (!d || !subRef) return null;
   const s = soulByUid(subRef.uid);
   if (!s) return null;
+  const tutSeen = () => { if (UI.tutorialEvent) UI.tutorialEvent("subSkill"); }; // 手ほどき「サブ魂」: 借りる技を見届けた
   const learned = soulLearnedSkills(s);
   const passives = soulLearnedPassives(s);
   const pkeys = Object.keys(passives);
-  if (!learned.length && !pkeys.length) { sfx("ng"); toast("この魂はまだ技もパッシブも覚えていない", { tone: "info" }); return null; }
+  if (!learned.length && !pkeys.length) { sfx("ng"); toast("この魂はまだ技もパッシブも覚えていない", { tone: "info" }); tutSeen(); return null; }
   const cap = subPickCap(s);
   const refit = () => { recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp); };
   // 効いている借用 (覚えている分・上限内) の数
@@ -613,7 +615,7 @@ export function openSkillStep(d, subRef) {
   return sheet.open({
     kind: "info", className: "sp-pick-sheet", paged: false, banner: "宿し技をえらぶ",
     title: `${soulSeriesName(s.clsKey)}の魂 ― ${cap}つまで借りられる`,
-    onClose: () => { if (game.renderTown) game.renderTown(); },
+    onClose: () => { tutSeen(); if (game.renderTown) game.renderTown(); },
     body: (scroll, h) => {
       const n = usedCount();
       const note = cap >= 3 ? `借りている ${n}/${cap}` : `借りている ${n}/${cap} ・ 魂のランクを上げると借りられる数が増える (R3:2 / R5:3)`;

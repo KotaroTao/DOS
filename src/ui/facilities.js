@@ -389,9 +389,11 @@ function renderTavern(root) {
     if (left > 0) {
       wrap.appendChild(lockedRow("しばらく待て", `情報屋はまだ動いていない。あと約 ${Math.ceil(left / 60000)} 分。`));
     } else {
-      const price = game.RUMOR_PRICE || 100;
+      const price = game.rumorPrice ? game.rumorPrice() : (game.RUMOR_PRICE || 100);
       const dn = game.curDungeon ? game.curDungeon() : null;
-      wrap.appendChild(button({ label: "噂を聞く", sub: `情報屋は「${dn ? dn.name : "—"}」を読む`, kind: "primary", cost: { kind: "gold", n: price }, disabled: g.gold < price, onTap: () => game.listenRumor() }));
+      const rb = button({ label: "噂を聞く", sub: price ? `情報屋は「${dn ? dn.name : "—"}」を読む` : `今回は情報屋のおごり ・「${dn ? dn.name : "—"}」を読む`, kind: "primary", cost: price ? { kind: "gold", n: price } : null, disabled: g.gold < price, onTap: () => game.listenRumor() });
+      rb.classList.add("fc-rumor-btn");
+      wrap.appendChild(rb);
     }
   }
 

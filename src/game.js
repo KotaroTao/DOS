@@ -57,6 +57,7 @@ import * as uiDeparture from "./ui/departure.js";
 import * as uiDungeonHud from "./ui/dungeonhud.js";
 import * as uiResults from "./ui/results.js";
 import * as uiAppraise from "./ui/appraise.js";
+import * as uiTutorial from "./ui/tutorial.js";
 
 // キャンバスに描く文字の書体 (画面の明朝と揃える)
 const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", "Noto Serif CJK JP", serif';
@@ -477,6 +478,7 @@ const G = {
   order: { picks: [] }, // 控えの結社: 席に着けた魂のuid配列 (席数=orderSeats()。編成外ランク2以上のみ有効)
   events: { seen: {}, picks: {}, once: {}, flags: {}, fresh: {} }, // 迷宮のイベント (src/events.js): 見聞録・一度きり・恒久の恵み
   irene: { greeted: false, visits: 0, seen: {}, last: null }, // 人業の館の主イレーヌ: 初訪問の挨拶済み・来館数・聞いた話 (src/ui/irene.js)
+  tut: { done: {}, cur: null, step: 0, ev: {}, base: {} }, // 解放された要素の手ほどき: 済んだもの・最中のもの (src/ui/tutorial.js)
   story: 0,           // 王宮ストーリーの進行段階
   dragonSlain: false, // 竜を討ったか
   // 戦績。bossIds/elemKills は集合 ({key:true})、swiftBoss/masterMimicSlain は一度きりの達成フラグ
@@ -9193,11 +9195,14 @@ function deliverQuest(q, opts = {}) {
 // 噂話を一つ買う (💰100・30分に一度)。情報屋は今選んでいる迷宮を読む (rollRumor)
 const RUMOR_PRICE = 100;
 const RUMOR_COOLDOWN_MS = 30 * 60 * 1000;
+// 噂の値段。手ほどき「酒場の噂話」の最中の一度は情報屋のおごり (無料)
+function rumorPrice() { return UI.tutorialFree && UI.tutorialFree("rumor") ? 0 : RUMOR_PRICE; }
 function listenRumor() {
   if (!featureUnlocked("rumor") || G.rumor) return false;
   if ((G.rumorCooldown || 0) > Date.now()) return false;
-  if (G.gold < RUMOR_PRICE) { log("ゴールドが足りない。", "bad"); SFX.ng(); return false; }
-  G.gold -= RUMOR_PRICE;
+  const price = rumorPrice();
+  if (G.gold < price) { log("ゴールドが足りない。", "bad"); SFX.ng(); return false; }
+  G.gold -= price;
   G.rumor = rollRumor();
   G.rumorCooldown = Date.now() + RUMOR_COOLDOWN_MS;
   SFX.select();
@@ -9579,7 +9584,8 @@ function reportMainQuest() {
       leave: () => { SFX.victory(); buzz([0, 40, 80, 40]); toasts.push({ text: "🔓 新たな技能を授かった", opts: { tone: "good" } }); } });
   }
   pages.push(...acceptPages(toasts)); // 踏破報告と同時に次の勅命を自動拝命
-  playMsqChain(pages, toasts);
+  // 解放の節目なら、語りを閉じた後にその要素の手ほどきを始める (済むまで迷宮には入れない)
+  playMsqChain(pages, toasts, us ? () => { if (UI.tutorialAfterReport) UI.tutorialAfterReport(); } : null);
 }
 
 // 次章の勅命を拝命: 新たな迷宮が地図に現れる (公開範囲の先なら封印を告げる)
@@ -9757,6 +9763,9 @@ function goMakeDoll() {
 function objectiveInfo() {
   const ms = G.msq;
   if (!ms || ms.state === "end" || ms.n > 100) return null;
+  // 解放された要素の手ほどき (済ませるまで迷宮には入れない)。踏破の報告が先
+  const tut = ms.state !== "report" ? tutorialPending() : null;
+  if (tut) return { key: "tut", text: tut.text, sub: `手ほどき「${tut.name}」・ 済ませるまで迷宮の門は閉ざされる`, act: tut.started ? "続ける" : "手ほどき", kind: "party", run: () => UI.tutorialResume && UI.tutorialResume() };
   if (contentSealed()) return { key: "sealed", text: "踏破した迷宮で人業を鍛え、装備を集める", sub: `第${CONTENT_NEXT_LAYER}層は準備中`, act: "出撃", kind: "gate", run: () => departTo(null) };
   if (ms.n === 0 && ms.state === "active") {
     if (!ms.granted) return { key: "audience", text: "王宮で王に謁見する", sub: "着任の挨拶", act: "謁見する", kind: "palace", run: audienceTutorial };
@@ -10420,6 +10429,21 @@ function blockForReport() {
   }).then((ok) => { if (ok && reportPending()) reportMainQuest(); });
   return true;
 }
+// 解放された要素の手ほどきが済んでいないか (src/ui/tutorial.js)。{ key, name, text } / null
+function tutorialPending() { return UI.tutorialPending ? UI.tutorialPending() : null; }
+// 迷宮へ向かおうとした時、手ほどきが先なら引き止める (手ほどきへ案内するシート)。引き止めたら true
+function blockForTutorial() {
+  const t = tutorialPending();
+  if (!t) return false;
+  SFX.ng(); buzz([0, 30, 40, 30]);
+  kitConfirm({
+    banner: "手ほどき", danger: false,
+    title: "手ほどきを終えるのが先だ",
+    lines: [`新たに授かった「${t.name}」の手ほどきが、まだ済んでいない。`, "手ほどきを終えるまで、迷宮の門は開かれない。"],
+    okLabel: t.started ? "手ほどきを続ける" : "手ほどきを始める", cancelLabel: "あとで",
+  }).then((ok) => { if (ok && UI.tutorialResume) UI.tutorialResume(); });
+  return true;
+}
 
 // 門をくぐる (出撃シートの決め手)。idx = 迷宮の番号 (0始まり) / accept = 迷宮の異変ごと潜るか。
 // 闇に溶けて (sceneTransition) その底で潜入する。潜れない時は理由を返す
@@ -10427,6 +10451,7 @@ function departNow({ idx = G.dungeonIdx, accept = false } = {}) {
   if (G.state !== "town") return { ok: false, reason: "state" };
   if (G.unlockedDungeons < 1) return { ok: false, reason: "locked" };
   if (blockForReport()) return { ok: false, reason: "report" };
+  if (blockForTutorial()) return { ok: false, reason: "tutorial" };
   const open = Math.min(G.unlockedDungeons, CONTENT_LIMIT);
   if (idx < 0 || idx >= open) { showToast("その先は準備中だ", { tone: "info" }); return { ok: false, reason: "sealed" }; }
   if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); SFX.ng(); return { ok: false, reason: "party" }; }
@@ -10584,7 +10609,7 @@ function enterAbyss(mods, weekly) {
 function departAbyss(mods, weekly) {
   if (G.state !== "town") return;
   if (!featureUnlocked("infinite")) { SFX.ng(); return; }
-  if (blockForReport()) return;
+  if (blockForReport() || blockForTutorial()) return;
   if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); SFX.ng(); return; }
   G.prompt = true;
   uiDungeonHud.sceneTransition(() => { G.prompt = false; enterAbyss(mods, weekly); });
@@ -11713,7 +11738,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "lrClock", "order", "irene", "events", "story", "dragonSlain", "stats",
+  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "lrClock", "order", "irene", "tut", "events", "story", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
   "lastRun",
 ];
@@ -11860,6 +11885,7 @@ function loadGame() {
   if (!G.order || !Array.isArray(G.order.picks)) G.order = { picks: [] }; // 控えの結社の着席指定
   if (!G.irene || typeof G.irene !== "object") G.irene = { greeted: false, visits: 0, seen: {}, last: null }; // 館の主イレーヌ (後付け: 既存の記録では次の来館で挨拶する)
   if (!G.irene.seen || typeof G.irene.seen !== "object") G.irene.seen = {};
+  if (!G.tut || typeof G.tut !== "object") G.tut = { done: {}, cur: null, step: 0, ev: {}, base: {} }; // 手ほどき (後付け: 解放済みで未使用の要素は目標の札から手ほどきする)
   if (!G.events || typeof G.events !== "object") G.events = {}; // 迷宮のイベント (後付け)
   for (const k of ["seen", "picks", "once", "flags", "fresh"]) if (!G.events[k] || typeof G.events[k] !== "object") G.events[k] = {};
   { // 極の出来事は「選択肢なし・恒久の恵み・セーブで一度きり」に改めた。旧仕様で出会った者にも同じ恵みを授ける
@@ -12443,7 +12469,7 @@ function wireUI() {
     itemRankName, itemRankColor, itemGradeText, itemNameEl, logClassForItem,
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
-    tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport,
+    tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
     trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,
@@ -12466,7 +12492,7 @@ function wireUI() {
     }).observe(itemGetEl, { attributes: true, attributeFilter: ["class"] });
   }
   // 各パッケージの UI を登録 (スタブを差し替える)。A→B→C→D の順
-  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiAppraise, uiDeparture, uiDungeonHud, uiResults]) {
+  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiAppraise, uiDeparture, uiDungeonHud, uiResults, uiTutorial]) {
     try { m.install(); } catch (e) { console.error(e); }
   }
 }
@@ -12483,7 +12509,7 @@ bindGame({
   achievementCards, claimNextTreasury, TREASURY_MILESTONES, milestoneLabel, totalDonatedKinds,
   codexMonEntry, dungeonRoster, CODEX_OTHER,
   // 酒場・祠・宿
-  listenRumor, RUMOR_PRICE, ensureDeliveryQuests, deliveryRewardDesc, rollTavernCrowd,
+  listenRumor, RUMOR_PRICE, rumorPrice, ensureDeliveryQuests, deliveryRewardDesc, rollTavernCrowd,
   adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)
   PREFS, savePrefs, setVolumes, isMuted, toggleMute, ensureAudio, updateMuteBtn, resetAllData, confirmReset,
@@ -12499,7 +12525,7 @@ bindGame({
   equipAt, moveItem, campCast, campSpellsOf, healAll, healAllNeed, repairCostOf, repairCostAll, repairDoll, setReviveTimers, hastenCostOf, tryHastenRescue, awaitingRescue, RESCUE_SHORTEN_MS,
   emptyDollCost, randomDollName, finalizeBuyDoll, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
   equipSoulToSlot, fuseCandidates, fuseSoul, toggleSoulLock, openFusePicker, openSubSkillPicker, slotSoul,
-  unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail,
+  unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail, addSoulInstance, codexSweepJobs,
   canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill, itemKnown, isFirstGet,
   showRankUp, announceJobChange, showNameInput,
 });
