@@ -6,14 +6,14 @@
 //       next をすぐ呼ぶ。スーパーレア/レジェンドレア = 祝祭カード (閉じてから next)。
 //   UI.itemSheet(item, { owner, context, actions, price, stockId, target, onClose })
 //       品シート: レア度の縁・絵・性能・装備できる者・比べる相手との増減・来歴・文脈ごとの操作。
-//       context: "bag" (所持品) | "sell" (商会の売る) | "stock" (商会の棚) | "equipped" | "loot" | "view" (見るだけ)
+//       context: "bag" (所持品) | "donate" (宝物庫: 渡す→奉納) | "sell" (商会の売る) | "stock" (商会の棚) | "equipped" | "loot" | "view" (見るだけ)
 //   UI.identifyChooser(item, { onDone })  … 鑑定する者を選ぶシート (成功率つき・街なら商会の確実な鑑定も)
 //   UI.openDollChooser(item, { owner, mode, buyId }) … 人業を選んで装備 (/袋へ) するシート。押せばその場で装備・「元に戻す」
 //       (持ち物の品で WP-B の UI.equipChooser があればそちらを開く。装備できない理由は UI.canEquipReason があればそれ)
 //   UI.markSeen(item) / UI.newCount()     … NEW 印 (入手で付き、品シートを開くと消える)
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
-import { UI, game, registerUI } from "./ctx.js";
+import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, sheet, toast, button, confirm, setText, glyph, plainText } from "./kit.js";
 import { deltaFloat } from "./motion.js";
 import {
@@ -677,8 +677,15 @@ function defaultActions(st) {
     st.equipFirst = isUpgrade(it, { owner });
   }
 
-  // ---- 渡す / 売る (商会が開いている街) / 捨てる ----
-  if (inBag && giveCandidates(owner).length) acts.push({ key: "give", label: "渡す", caret: true, onTap: () => openGivePicker(owner, it, { onDone: () => st.close() }) });
+  // ---- 渡す (宝物庫から開いた蒐集品は奉納) / 売る (商会が開いている街) / 捨てる ----
+  if (context === "donate" && inBag && town && ops.donateOne) {
+    acts.push({ key: "donate", label: "奉納", onTap: (close) => {
+      const res = ops.donateOne(owner, it);
+      if (!res || !res.ok) return;
+      close();
+      if (res.rewardReady && game.claimNextTreasury) game.claimNextTreasury();
+    } });
+  } else if (inBag && giveCandidates(owner).length) acts.push({ key: "give", label: "渡す", caret: true, onTap: () => openGivePicker(owner, it, { onDone: () => st.close() }) });
   if (town && shopOpen() && inBag) {
     const price = it.unidentified ? 0 : game.sellPrice(it);
     const warn = !it.unidentified && game.sellWarnings && game.sellWarnings(it).length;

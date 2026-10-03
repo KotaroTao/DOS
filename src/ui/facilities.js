@@ -119,9 +119,9 @@ export function findOwned(itemId) {
   }
   return null;
 }
-export function openItem(itemId, { instance = null, owner = null } = {}) {
+export function openItem(itemId, { instance = null, owner = null, context = "bag" } = {}) {
   sfx("select");
-  const own = instance && owner ? { doll: owner, item: instance, index: (owner.items || []).indexOf(instance), context: "bag" } : findOwned(itemId);
+  const own = instance && owner ? { doll: owner, item: instance, index: (owner.items || []).indexOf(instance), context } : findOwned(itemId);
   if (own && UI.itemSheet) return UI.itemSheet(own.item, { owner: own.doll, context: own.context, index: own.index, slot: own.slot });
   if (UI.codexItemSheet) return UI.codexItemSheet(itemId);
   return null;

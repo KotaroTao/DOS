@@ -13,7 +13,7 @@ import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, bar, autoPage, badge } from "./kit.js";
 import { remember } from "./prefs.js";
 import { softFade } from "./motion.js";
-import { statLines, itemCatText, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds } from "./itemview.js";
+import { statLines, itemCatText, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, MON_REVEAL, monKills, revealLock } from "./itemview.js";
 import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
 import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, LORE_PAGES } from "../events.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, itemName } from "../items.js";
@@ -22,7 +22,7 @@ import { DUNGEONS, ELEMENTS, RACE_LABEL, monsterTraits, isFloating } from "../du
 import { SPELLS } from "../combat.js";
 import {
   SOUL_CLASSES, jobSprite, jobRankName, jobLoreFor, jobRankCondText, SOUL_STAT_UP, JOB_GEAR,
-  jobPassiveTable, rankThresholds, soulLevelCap, jobSkillTable, passiveName, passiveDesc,
+  jobPassiveTable, rankThresholds, soulLevelCap, jobSkillTable, passiveName, passiveDesc, JOB_AFFINITY,
 } from "../souls.js";
 import { rarityColor } from "../rarity.js";
 import { SFX } from "../audio.js";
@@ -394,19 +394,29 @@ export function codexMonSheet(key) {
   const elm = ELEMENTS[m.element] || ELEMENTS.none;
   const isOther = (game.CODEX_OTHER || []).includes(key);
   const body = el("div", "pl-detail");
+  // 倒した数に応じて段階的に明かす (戦闘中の「敵の姿」と同じ MON_REVEAL)
+  const kills = monKills(key);
+  const statsOpen = kills >= MON_REVEAL.stats, loreOpen = kills >= MON_REVEAL.lore;
   const tag = el("div", "pl-detail-tags");
-  const et = el("span", "pl-tag", `属性 ${elm.label}`);
-  et.style.color = elm.color;
-  tag.appendChild(et);
-  tag.appendChild(el("span", "pl-tag", `討伐 ${e.kills || 0}`));
+  if (statsOpen) {
+    const et = el("span", "pl-tag", `属性 ${elm.label}`);
+    et.style.color = elm.color;
+    tag.appendChild(et);
+  }
+  tag.appendChild(el("span", "pl-tag", `討伐数 ${kills}体`));
   if (m.boss) tag.appendChild(el("span", "pl-tag gold", "迷宮の主"));
   body.appendChild(tag);
-  const aff = affinityRow(m.element, "pl-aff");
-  if (aff) body.appendChild(aff);
-  if (m.desc) body.appendChild(setText(el("div", "pl-detail-desc"), m.desc));
-  body.appendChild(setText(el("div", "pl-detail-stats"), `HP ${m.maxhp}　ATK ${m.atk}　VIT ${m.def}　AGI ${m.spd}　✦${m.soul}　💰${m.gold}`));
-  const traits = monsterTraits(m);
-  body.appendChild(infoBlock("特徴・スキル", traits.length ? traits.map((t) => pairRow(t.label, t.desc, { tags: traitTagKinds(t.key, m.element) })) : [pairRow("特筆すべき特徴はない", null, { dim: true })]));
+  if (statsOpen) {
+    const aff = affinityRow(m.element, "pl-aff");
+    if (aff) body.appendChild(aff);
+  }
+  if (loreOpen && m.desc) body.appendChild(setText(el("div", "pl-detail-desc"), m.desc));
+  if (statsOpen) body.appendChild(setText(el("div", "pl-detail-stats"), `HP ${m.maxhp}　ATK ${m.atk}　VIT ${m.def}　AGI ${m.spd}　✦${m.soul}　💰${m.gold}`));
+  else body.appendChild(revealLock(MON_REVEAL.stats, "属性・HP"));
+  if (loreOpen) {
+    const traits = monsterTraits(m);
+    body.appendChild(infoBlock("特徴・スキル", traits.length ? traits.map((t) => pairRow(t.label, t.desc, { tags: traitTagKinds(t.key, m.element) })) : [pairRow("特筆すべき特徴はない", null, { dim: true })]));
+  } else body.appendChild(revealLock(MON_REVEAL.lore, "特徴・スキル・説明文"));
   const idxs = Object.keys(e.dungeons || {}).map(Number).filter((i) => DUNGEONS[i]);
   body.appendChild(infoBlock("出現した迷宮", idxs.length ? idxs.map((i) => pairRow(DUNGEONS[i].name)) : [pairRow("記録なし", null, { dim: true })]));
   return sheet.open({
@@ -504,14 +514,18 @@ export function codexJobSheet(key, rank, heading) {
   // 発現の条件
   const upPct = Math.round((SOUL_STAT_UP[SOUL_CLASSES[key].rarity] || 0.01) * 100);
   body.appendChild(infoBlock("発現の条件", [pairRow(jobRankCondText(key, rank)), pairRow(`魂を1つ吸収するごと、全能力 基礎値×${upPct}% UP`, null, { dim: true })]));
-  // 装備適性
+  // 装備適性 + 得意属性 (その属性の物理技・呪文を多く覚える)
   const gg = JOB_GEAR[key];
+  const aff = JOB_AFFINITY[key] || [];
+  const affRow = aff.length ? pairRow("得意属性", null, { tags: aff.map((e) => "el:" + e) }) : null;
   if (gg) {
     const armor = gg.armor === "heavy" ? "重装可" : gg.armor === "light" ? "軽装まで" : "布装のみ";
     body.appendChild(infoBlock("装備適性", [
       pairRow("武器", gg.weapons ? gg.weapons.map((w) => WEAPON_CAT_LABEL[w] || w).join("・") : "—"),
-      pairRow("防具", armor), pairRow("盾", gg.shield ? "装備できる" : "装備できない"),
-    ]));
+      pairRow("防具", armor), pairRow("盾", gg.shield ? "装備できる" : "装備できない"), affRow,
+    ].filter(Boolean)));
+  } else if (affRow) {
+    body.appendChild(infoBlock("得意属性", [affRow]));
   }
   // パッシブ: 上位の位階に呑まれた同系統の下位Lvは省く
   const pTbl = jobPassiveTable(key);
@@ -595,8 +609,8 @@ function renderAch(body) {
 }
 
 // ================= 宝物庫 =================
-// 奉納台帳のランク帯ひとつをシートで (各10種。奉納済みは札、未奉納は ？)
-function bandSheet(r, ids, newIds = null) {
+// 奉納台帳のランク帯ひとつをシートで (各10種。奉納済みは札、未奉納は手持ちでも ？ = 奉納するまで台帳には記されない)
+function bandSheet(r, ids) {
   const ts = game.treasuryState();
   const body = el("div", "pl-band-sheet");
   const slots = el("div", "pl-band-slots");
@@ -604,12 +618,6 @@ function bandSheet(r, ids, newIds = null) {
     if (ts.donated[id]) {
       const t = itemTile(ITEMS[id], { size: 56, onTap: () => openItem(id) });
       t.setAttribute("aria-label", ITEMS[id].name);
-      slots.appendChild(t);
-    } else if (newIds && newIds.has(id)) {
-      // 手持ちに奉納できる新種がある枠: 品を薄く見せて新着の点
-      const t = itemTile(ITEMS[id], { size: 56, isNew: true, onTap: () => openItem(id) });
-      t.classList.add("pl-band-pending");
-      t.setAttribute("aria-label", ITEMS[id].name + " (未奉納・手持ち)");
       slots.appendChild(t);
     } else { const s = el("span", "pl-band-q"); s.textContent = "？"; slots.appendChild(s); }
   }
@@ -656,7 +664,7 @@ export function donateSheet() {
         const def = ITEMS[h.item.id] || h.item;
         const r = Math.max(1, Math.ceil((def.lv || 1) / 20));
         const it = el("div", "pl-dn");
-        it.appendChild(itemTile(h.item, { size: 44, onTap: () => openItem(h.item.id, { instance: h.item, owner: h.doll }) }));
+        it.appendChild(itemTile(h.item, { size: 44, onTap: () => openItem(h.item.id, { instance: h.item, owner: h.doll, context: "donate" }) }));
         const tx = el("div", "pl-dn-tx");
         const nm = el("div", "pl-dn-n", itemName(h.item));
         const col = (game.itemRankColor && game.itemRankColor(h.item)) || rarityColor(h.item);
@@ -701,7 +709,7 @@ function renderTreasury(body) {
   const row = el("div", "pl-tr-new");
   if (news.length) {
     for (const h of news) {
-      const t = itemTile(h.item, { size: 44, isNew: true, onTap: () => openItem(h.item.id, { instance: h.item, owner: h.doll }) });
+      const t = itemTile(h.item, { size: 44, isNew: true, onTap: () => openItem(h.item.id, { instance: h.item, owner: h.doll, context: "donate" }) });
       t.setAttribute("aria-label", `${h.item.name} (${h.doll.name})`);
       row.appendChild(t);
     }
@@ -743,7 +751,7 @@ function renderTreasury(body) {
     fill.style.width = (ids.length ? (cnt / ids.length) * 100 : 0).toFixed(0) + "%";
     b.appendChild(fill);
     b.setAttribute("aria-label", `奉納台帳 R${r} ${cnt}/${ids.length}`);
-    b.addEventListener("click", () => { sfx("select"); bandSheet(r, ids, newIds); });
+    b.addEventListener("click", () => { sfx("select"); bandSheet(r, ids); });
     led.appendChild(b);
   }
   body.appendChild(led);

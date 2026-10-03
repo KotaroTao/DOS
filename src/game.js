@@ -26,6 +26,7 @@ import {
   SOUL_RANKS, rollJobClass, rollGreatJobClass, SOUL_STAT_UP,
   soulRankFromCount, capForRarityRank, jobRankName, soulSeriesName, pLv,
   identifyChance, canIdentify,
+  battleSkills,
 } from "./souls.js";
 import { showOpening } from "./opening.js";
 import { KING_PORTRAIT, prewarmTown } from "./townart.js";
@@ -7209,11 +7210,15 @@ function renderAutoBanner(actor) {
 
 // 攻撃の既定の狙い (§3.4): 直前に隊が狙った敵がまだ射程内ならそれ (集中して倒す)、なければ最も手前の敵。
 // 画面の何もない所をタップした時と同じ「射程内の最寄り」
+// 物理無効 (物理耐性3) の敵は、ほかに狙える敵がいる限り既定の狙いから外す
+function physImmune(e) { return !!(e && (e.physResist | 0) >= 3); }
 function defaultAttackTarget(actor) {
   const b = G.battle;
   if (!b || !actor) return null;
-  const reach = b.attackableEnemies(actor).filter((e) => e.alive);
-  if (!reach.length) return null;
+  const all = b.attackableEnemies(actor).filter((e) => e.alive);
+  if (!all.length) return null;
+  const hittable = all.filter((e) => !physImmune(e));
+  const reach = hittable.length ? hittable : all;
   const last = G._lastTargetUid != null ? reach.find((e) => e.uid === G._lastTargetUid) : null;
   return last || reach[0];
 }
@@ -7234,7 +7239,7 @@ function attackNow(target) {
 function lastSkillOf(actor) {
   if (!actor || !actor.spells || !actor.spells.length) return null;
   const k = uiDungeonHud.remember("lastSkill", String(actor.uid));
-  return k && actor.spells.includes(k) && SPELLS[k] ? k : null;
+  return k && battleSkills(actor).includes(k) && SPELLS[k] ? k : null; // 戦闘で出さない (オフの) 技は出さない
 }
 function skillLocked(actor, key) {
   const sp = SPELLS[key];
@@ -7259,8 +7264,16 @@ function renderCombatMenu() {
           G._autoTimer = null;
           const b2 = G.battle;
           if (!b2 || b2.phase !== "input" || !G.autoCombat || G.animating) return;
+          // 射程内が物理無効の敵ばかりなら、殴り続けても終わらないのでオートを止めて手動に戻す
+          const reach = b2.attackableEnemies(b2.current).filter((e) => e.alive);
+          if (reach.length && reach.every(physImmune)) {
+            stopAutoCombat();
+            showToast("物理が効かない敵がいる — 術で戦おう", { tone: "bad" });
+            return;
+          }
           b2.chooseAction("attack");
-          const tgt = b2.targetOptions()[0];
+          const opts = b2.targetOptions();
+          const tgt = opts.find((e) => !physImmune(e)) || opts[0];
           if (!tgt) { b2.cancelTarget(); return; }
           b2.chooseTarget(tgt);
           runCommitted();
@@ -7287,7 +7300,8 @@ function renderCombatMenu() {
       main.appendChild(qb);
     }
     const mpTxt = actor.maxmp > 0 ? `MP ${actor.mp}/${actor.maxmp}` : "技なし";
-    if (actor.spells.length) main.appendChild(cmdBtn("skill", "スキル", mpTxt, () => showSpells(actor)));
+    if (battleSkills(actor).length) main.appendChild(cmdBtn("skill", "スキル", mpTxt, () => showSpells(actor)));
+    else if (actor.spells.length) main.appendChild(cmdBtn("skill", "スキル", "すべてオフ", () => showToast("技はすべて非表示 ― 隊の「能力」で表示を戻せる", { tone: "info" }), "muted"));
     else main.appendChild(cmdBtn("skill", "スキル", "使えない", () => log("スキルを使えない", "sys"), "muted"));
     combatMenu.appendChild(main);
     const sub = el("div", "cmd-sub");
@@ -7326,10 +7340,12 @@ function showSpells(actor) {
   combatMenu.innerHTML = "";
   combatMenu.dataset.mode = "spells";
   combatMenu.appendChild(turnPlate(actor.name, "のスキル", [`MP ${actor.mp}`, "長押しで詳細"]));
-  // 呪文が多い職 (魔導士・賢者など最大11個) は2列に並べて縦に伸びすぎないようにする
-  const list = el("div", "target-list" + (actor.spells.length > 4 ? " cols2" : ""));
+  // 並べた順に、オフにした技を除いて出す (隊の「能力」画面で整理)。
+  // 呪文が多い職は2列に並べて縦に伸びすぎないようにする
+  const skills = battleSkills(actor);
+  const list = el("div", "target-list" + (skills.length > 4 ? " cols2" : ""));
   const quick = lastSkillOf(actor);
-  for (const key of actor.spells) {
+  for (const key of skills) {
     const sp = SPELLS[key];
     const cost = spellCost(actor, sp); // 省詠唱 (chant) 持ちは消費が軽い
     // 使えない技も長押しで詳細を見られるよう、native disabled ではなく soft-lock にする
@@ -7535,7 +7551,10 @@ function applyImpact(res) {
         fx.slashes.push({ x: pos.cx + dx * 0.5, y: pos.cy, t0: ht0, crit: !!h.crit, big: !!h.crit, flip: idx % 2 === 1, seed: (h.target.uid || 1) * 31 + idx });
       }
       if (idx === 0 || !fx.flash[h.target.uid]) fx.flash[h.target.uid] = { t0: ht0 };
-      if (h.dmg != null) {
+      if (h.immune) {
+        // 耐性3 (物理無効/魔法無効) に弾かれた: 数字の代わりに「無効」と浮かべる
+        fx.floats.push({ x: pos.cx + dx, y: pos.cy - 10, text: "無効", color: "#9aa3b5", t0: ht0, kind: "dmg" });
+      } else if (h.dmg != null) {
         fx.floats.push({ x: pos.cx + dx, y: pos.cy - 10, text: String(h.dmg), color: h.crit ? "#ffd84a" : "#fff", t0: ht0, big: !!h.crit, kind: h.crit ? "crit" : "dmg" });
         if (h.crit) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 40, text: "会心の一撃", color: "#ffb02e", t0: ht0, small: true, kind: "label" });
       }
@@ -8455,12 +8474,12 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
 // サブ魂が借りる技/パッシブを選ぶ (src/ui/soulpanel.js のシート)
 function openSubSkillPicker(d, subRef) { return uiSoulPanel.openSkillStep(d, subRef); }
 
-// 融合: target に同職の余っている魂を吸収させる候補
+// 魂融合: target に同職の余っている魂を融合させる候補
 function fuseCandidates(targetUid) {
   const t = soulByUid(targetUid); if (!t) return [];
   return G.souls.filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey && !soulWorn(s.uid));
 }
-// 吸収させる魂を選ぶ (src/ui/soulpanel.js のシート)
+// 融合させる魂を選ぶ (src/ui/soulpanel.js のシート)
 function openFusePicker(targetUid) { return uiSoulPanel.openFusePicker(targetUid); }
 // 実際の融合: consume を消し、その魂数を target に加える。
 // ランクが上がれば祝祭カード (showRankUp)、据え置きならトーストで知らせる
@@ -8483,7 +8502,7 @@ function fuseSoul(targetUid, consumeUid) {
   codexJobSee(t.clsKey, t.count, t.level);
   const after = soulRankOf(t);
   SFX.itemget(); buzz([0, 30, 50, 30]);
-  log(`${SOUL_CLASSES[t.clsKey].label}の魂を吸収させた (魂数 ×${t.count})。`, "win");
+  log(`${SOUL_CLASSES[t.clsKey].label}の魂を魂融合させた (魂数 ×${t.count})。`, "win");
   if (t.level > beforeLv) log(`蓄積した Soul が反映され、Lv${beforeLv} → Lv${t.level} に上昇した！`, "win");
   autosave(true);
   renderTown();
@@ -11606,6 +11625,17 @@ const OPS = {
     updateTopbar();
     renderTown();
     return { ok: true, n, gold, redSoul: red, soulPts: soul };
+  },
+
+  // 蒐集品を1点奉納 (宝物庫から開いた品シートの「奉納」)
+  donateOne(doll, it) {
+    if (!doll || !it || it.slot !== "misc" || treasuryState().donated[it.id]) return { ok: false };
+    if (!donateCollectible(doll, it)) return { ok: false };
+    SFX.itemget(); autosave();
+    log(`${itemName(it)} を宝物庫に奉納した。`, "win");
+    showToast(`${itemName(it)} を奉納した`);
+    renderTown();
+    return { ok: true, rewardReady: treasuryRewardReady() };
   },
 
   // 未奉納の蒐集品をまとめて奉納 (宝物庫の「蒐集品を奉納」→ 詳細のシートの「奉納する」)

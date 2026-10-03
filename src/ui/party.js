@@ -27,7 +27,10 @@ import {
   planBestEquip, applyPlan, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip,
 } from "../autoequip.js";
 import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName } from "../items.js";
-import { SOUL_CLASSES, JOB_GEAR, dollSprite, dollBust, jobBust, jobSprite, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulSeriesName, soulByUid } from "../souls.js";
+import {
+  SOUL_CLASSES, JOB_GEAR, dollSprite, dollBust, jobBust, jobSprite, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulSeriesName, soulByUid,
+  orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs,
+} from "../souls.js";
 import { SPELLS, spellCost } from "../combat.js";
 import { spriteCanvas, crispCanvas } from "../sprites.js";
 import { rarityKey, RARITIES } from "../rarity.js";
@@ -1541,16 +1544,18 @@ function statsSeg(root, d) {
   root.appendChild(grid);
   fillInfo();
   root.appendChild(info);
-  // 技・加護 (どちらもタップ = くわしく) の札は横に流れる1列
+  // 技・加護 (どちらもタップ = くわしく) の札は横に流れる1列。技は並べた順で、戦闘で出さない技は沈めて見せる
   if (d.spells && d.spells.length) {
     const line = el("div", "pt-chiprow");
     line.appendChild(el("span", "pt-chiprow-l", "技"));
     const sc = el("div", "pt-chiprow-in");
-    for (const key of d.spells) {
+    for (const key of orderedSkills(d)) {
       const sp = SPELLS[key];
-      const c = el("button", "pt-skill");
+      const off = isSkillOff(d, key);
+      const c = el("button", "pt-skill" + (off ? " off" : ""));
       c.type = "button";
       c.appendChild(el("span", "pt-skill-n", sp ? sp.name : key));
+      if (off) c.appendChild(el("span", "pt-skill-off", "非表示"));
       const tg = sp && tagRow(spellTagKinds(sp, d), "pt-skill-tags");
       if (tg) c.appendChild(tg);
       if (sp) c.appendChild(el("span", "pt-skill-c", `MP${sp.mp}`));
@@ -1558,6 +1563,12 @@ function statsSeg(root, d) {
       sc.appendChild(c);
     }
     line.appendChild(sc);
+    const org = el("button", "pt-chiprow-b");
+    org.type = "button";
+    org.textContent = "整理";
+    org.setAttribute("aria-label", `${d.name}の技の並べ替え・表示`);
+    org.addEventListener("click", () => { sfx("select"); openSkillManager(d); });
+    line.appendChild(org);
     root.appendChild(line);
   }
   if (d.passives && d.passives.length) {
@@ -1579,6 +1590,63 @@ function statsSeg(root, d) {
     r.classList.add("pt-codex");
     root.appendChild(r);
   }
+}
+
+// ---- 技の整理: 戦闘での表示のオン/オフと並べ替え ----
+// オフの技は戦闘のスキル一覧 (と「最後に使った技」) に出ない。並びは戦闘の一覧とこの画面の札に効く
+function openSkillManager(d) {
+  if (!d || !(d.spells && d.spells.length)) return null;
+  const save = () => { if (game.autosave) game.autosave(true); };
+  let box = null;
+  const build = () => {
+    const list = orderedSkills(d);
+    const wrap = el("div", "pt-skm");
+    const shown = list.filter((k) => !isSkillOff(d, k)).length;
+    wrap.appendChild(el("div", "pt-skm-sum", `戦闘で出す技 ${shown} / ${list.length}`));
+    list.forEach((key, i) => {
+      const sp = SPELLS[key];
+      const off = isSkillOff(d, key);
+      const r = el("div", "pt-skm-row" + (off ? " off" : ""));
+      const tg = el("button", "pt-skm-tg" + (off ? "" : " on"), off ? "非表示" : "表示");
+      tg.type = "button";
+      tg.setAttribute("aria-pressed", off ? "false" : "true");
+      tg.setAttribute("aria-label", `${sp ? sp.name : key}を戦闘で${off ? "表示する" : "出さない"}`);
+      tg.addEventListener("click", () => { setSkillOff(d, key, !off); sfx("select"); save(); redraw(); });
+      r.appendChild(tg);
+      const nm = el("button", "pt-skm-n");
+      nm.type = "button";
+      nm.appendChild(el("span", "pt-skm-nm", sp ? sp.name : key));
+      const tgs = sp && tagRow(spellTagKinds(sp, d), "pt-skill-tags");
+      if (tgs) nm.appendChild(tgs);
+      if (sp) nm.appendChild(el("span", "pt-skill-c", `MP${sp.mp}`));
+      nm.addEventListener("click", () => showSkillPopup(key));
+      r.appendChild(nm);
+      const mv = (dir, label, glyph, dis) => {
+        const b = el("button", "pt-skm-mv", glyph);
+        b.type = "button";
+        b.disabled = dis;
+        b.setAttribute("aria-label", `${sp ? sp.name : key}を${label}`);
+        b.addEventListener("click", () => { if (moveSkill(d, key, dir)) { sfx("select"); save(); redraw(); } });
+        return b;
+      };
+      r.appendChild(mv(-1, "前へ", "▲", i === 0));
+      r.appendChild(mv(1, "後ろへ", "▼", i === list.length - 1));
+      wrap.appendChild(r);
+    });
+    return wrap;
+  };
+  // 描き直しは箱ごと差し替える (シートの頁割りが差し替えを拾って割り直し、いまの頁を保つ)
+  const redraw = () => { if (!box) return; const nb = build(); box.replaceWith(nb); box = nb; };
+  return sheet.open({
+    kind: "info", className: "pt-skm-sheet", banner: "技の整理", title: `${d.name}の技`,
+    lines: ["「表示」を切った技は戦闘のスキル一覧に出ない。▲▼ で戦闘での並び順を変える。"],
+    body: (scroll) => { box = build(); scroll.appendChild(box); },
+    footer: [
+      { label: "初期に戻す", kind: "ghost", onTap: () => { resetSkillPrefs(d); sfx("select"); save(); redraw(); } },
+      { label: "閉じる", kind: "primary", onTap: (h) => h.close() },
+    ],
+    onClose: () => rerender(),
+  });
 }
 
 // 長押し = 図鑑と同じ品の詳細 (絵・分類・性能・説明だけの読み物。操作は出さない)

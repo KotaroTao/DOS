@@ -17,7 +17,7 @@ import { getPref, setPref, remember } from "./prefs.js";
 import { sceneTransition } from "./motion.js";
 import { MONSTERS, ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
 import { ELEMENTS, monsterTraits, isFloating } from "../dungeons/index.js";
-import { tagRow, traitTagKinds, affinityRow } from "./itemview.js";
+import { tagRow, traitTagKinds, affinityRow, MON_REVEAL, monKills, revealLock, silhouetteCanvas } from "./itemview.js";
 import { RARITIES } from "../rarity.js";
 import { SOUL_CLASSES, jobBust } from "../souls.js";
 import { WALKER as WALKER_ART } from "../walkerart.js";
@@ -411,29 +411,39 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
   });
 }
 
-// 敵の一枚: 種族・属性・残り体力・特徴とスキル (図鑑の記述)
+// 敵の一枚: 討伐数・属性・残り体力・特徴とスキル (図鑑の記述)
+// 倒した数に応じて段階的に明かす (MON_REVEAL): 1体 = 姿と名前 / 5体 = 属性とHP / 10体 = 特徴・スキルと説明文
 export function peekEnemy(e) {
   if (!e) return null;
   const m = e.mon || MONSTERS[e.key] || {};
-  const elem = e.element && ELEMENTS[e.element] && e.element !== "none" ? ELEMENTS[e.element] : null;
+  // 出来事だけの敵 (ev_*: 鏡の影など) は図鑑に載らないので、最初から全て見せる
+  const special = String(e.key || "").startsWith("ev_");
+  const kills = monKills(e.key);
+  const seen = special || kills >= MON_REVEAL.look, statsOpen = special || kills >= MON_REVEAL.stats, loreOpen = special || kills >= MON_REVEAL.lore;
+  const elem = statsOpen && e.element && ELEMENTS[e.element] && e.element !== "none" ? ELEMENTS[e.element] : null;
   let traits = [];
-  try { traits = monsterTraits(m) || []; } catch (er) { traits = []; }
+  if (loreOpen) { try { traits = monsterTraits(m) || []; } catch (er) { traits = []; } }
   return sheet.open({
     kind: "info", banner: e.boss ? "迷宮の主" : (m.elite ? "強敵" : "敵の姿"), className: "dg-sheet dg-enemy",
     accent: e.boss || m.elite ? "#d4504e" : (elem ? elem.color : null),
-    art: m.art ? m : null, artScale: 4, float: isFloating(m, e.key),
-    title: e.name,
+    art: m.art ? (seen ? m : silhouetteCanvas(m, 4)) : null, artScale: 4, float: isFloating(m, e.key),
+    title: seen ? e.name : "？？？",
     body: (b) => {
-      // 名前の下は属性の印だけ (無属性なら出さない)
-      const et = elem && tagRow(["el:" + e.element], "dg-en-elem");
-      if (et) b.appendChild(et);
-      const hp = el("div", "dg-peek-bar wide");
-      hp.appendChild(el("span", "dg-peek-bl", "HP"));
-      hp.appendChild(bar(e.hp, e.maxhp, { tone: "hp" }));
-      hp.appendChild(el("span", "dg-peek-bv", `${Math.max(0, e.hp)}/${e.maxhp}`));
-      b.appendChild(hp);
-      const aff = affinityRow(e.element);
-      if (aff) b.appendChild(aff);
+      if (!special) b.appendChild(el("div", "dg-en-kills", `討伐数 ${kills}体`));
+      if (!seen) b.appendChild(revealLock(MON_REVEAL.look, "姿・名前"));
+      if (statsOpen) {
+        // 名前の下は属性の印だけ (無属性なら出さない)
+        const et = elem && tagRow(["el:" + e.element], "dg-en-elem");
+        if (et) b.appendChild(et);
+        const hp = el("div", "dg-peek-bar wide");
+        hp.appendChild(el("span", "dg-peek-bl", "HP"));
+        hp.appendChild(bar(e.hp, e.maxhp, { tone: "hp" }));
+        hp.appendChild(el("span", "dg-peek-bv", `${Math.max(0, e.hp)}/${e.maxhp}`));
+        b.appendChild(hp);
+        const aff = affinityRow(e.element);
+        if (aff) b.appendChild(aff);
+      } else b.appendChild(revealLock(MON_REVEAL.stats, "属性・HP"));
+      if (!loreOpen) { b.appendChild(revealLock(MON_REVEAL.lore, "特徴・スキル・説明文")); return; }
       if (traits.length) {
         b.appendChild(section("特徴・スキル"));
         const tl = el("div", "dg-traits");

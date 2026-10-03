@@ -22,7 +22,7 @@ const G = () => game.G;
 
 // ---------- 次にすべきこと (提案) ----------
 // 提案: { key, prio, label, short?, sub?, cost?:{kind,n}, icon?:"gold"|"soul"|"red"|svgKey, tone?, run(), hold?() }
-// prio が小さいほど先 (勅命 0 > 砕けた人業 10 > 手負い 20 > 未鑑定 30 > 売れる品 40 > より良い装備 50 > 鍛錬 60 > 勲章 70 > 奉納 80 > 納品 90)
+// prio が小さいほど先 (勅命 0 > 砕けた人業 10 > 手負い 20 > 未鑑定 30 > 売れる品 40 > より良い装備 50 > 魂融合 55 > 鍛錬 60 > 勲章 70 > 奉納 80 > 納品 90)
 // 札は3列に並ぶので label は短く (5字ほど。長い時は3枚並びで使う short を添える)、詳しくは sub に
 const extra = []; // 他のパッケージが登録した提案の源 (fn(counts) → 提案 | 提案[] | null)
 export function registerSuggestion(fn) { if (typeof fn === "function" && !extra.includes(fn)) extra.push(fn); }
@@ -79,6 +79,16 @@ function builtinSuggestions(c) {
   try { better = UI.betterGearCount ? (UI.betterGearCount() || 0) : 0; } catch (e) { better = 0; }
   if (better > 0 && facilityOpen("mansion") && UI.autoEquip) {
     out.push({ key: "autoEquip", prio: 50, label: "最適装備", sub: `より良い品 ${better}`, icon: "party", run: () => UI.autoEquip("all") });
+  }
+  // 魂融合できる魂 (同じ職の魂が余っている)。タップで融合させる魂を選ぶシート、長押しで隊の魂の区分
+  let fl = [];
+  try { fl = UI.fusableList ? (UI.fusableList() || []) : []; } catch (e) { fl = []; }
+  if (fl.length && facilityOpen("mansion") && UI.openFusePicker) {
+    const f = fl[0];
+    const idx = (g.party || []).indexOf(f.doll);
+    out.push({ key: "fuse", prio: 55, label: "魂融合", sub: `${f.name} ×${f.n}`, icon: "soul",
+      run: () => UI.openFusePicker(f.uid),
+      hold: () => { if (UI.openParty) UI.openParty(f.doll || Math.max(0, idx), { seg: "soul" }); } });
   }
   // 鍛えられる魂 (1タップで1段。長押しで隊の魂の画面)。隊のレベルが揃うよう、いちばん低いLvの魂だけを勧める
   // (その魂に ✦ が足りなければ、高いLvの魂を先に鍛えはしない)

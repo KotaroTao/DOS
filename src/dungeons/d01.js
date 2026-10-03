@@ -12,7 +12,7 @@ export const monsters = defMonsters([
     desc: "裁きも赦しも無いまま牢で朽ち果てた者の骨。残った怨みだけが関節を軋ませ、出口を求めて鉄格子を掻きむしり続ける。その虚ろな眼窩は、近づく生者を看守と取り違えて襲いかかる。朽ちた骨は脆く、魔法の衝撃でたやすく崩れ落ちる。" },
   { id: "d01_gaoler", name: "牢番オーク", race: "humanoid", element: "earth", artKey: "orc", rank: 2, boss: true,
     palette: tint(ARTS.orc.palette, "#3a2a1a", 0.2),
-    ability: "goldSteal", physResist: 0.8, // 頑丈な巨体で刃を弾き、奪った遺品を握り込む
+    ability: "goldSteal", physResist: 1, // 頑丈な巨体で刃を弾き、奪った遺品を握り込む
     hp: 70, atk: 16, def: 7, spd: 5, soul: 60, gold: 80, soulClass: "knight",
     desc: "主が去った後も、ただ「番をする」という命令だけを忠実に守り続ける巨漢のオーク。錆びた大鍵を棍棒のように振るい、逃げ出そうとする者を骨ごと砕く。牢の主は、とうの昔にこいつ自身になっていた。" },
 ]);

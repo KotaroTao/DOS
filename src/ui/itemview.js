@@ -145,6 +145,35 @@ export function affinityRow(element, cls = "") {
   return r;
 }
 
+// ===== 敵の情報の段階開示 (討伐数しだい) =====
+// 1体 = 姿と名前 / 5体 = 属性とHP / 10体 = 特徴・スキルと説明文。戦闘中の「敵の姿」と図鑑の一枚で共通
+export const MON_REVEAL = { look: 1, stats: 5, lore: 10 };
+// その魔物を倒した数 (図鑑の記録を読むだけ。記録を作らない)
+export function monKills(key) {
+  const g = game.G;
+  const e = g && g.codex && g.codex.mon ? g.codex.mon[key] : null;
+  if (!e) return 0;
+  if (e === true) return 1;
+  return Math.max(0, Number(e.kills) || 0);
+}
+// まだ明かされていない項目の札: 「属性・HP　5体討伐で開示」
+export function revealLock(need, what, cls = "") {
+  const r = el("div", "ui-reveal-lock" + (cls ? " " + cls : ""));
+  if (what) r.appendChild(el("span", "ui-reveal-w", what));
+  r.appendChild(el("span", "ui-reveal-n", `${need}体討伐で開示`));
+  return r;
+}
+// 名も知らぬ敵の影 (姿を塗りつぶした影絵)
+export function silhouetteCanvas(spr, scale = 4) {
+  const c = spriteCanvas(spr, scale);
+  const x = c.getContext("2d");
+  x.globalCompositeOperation = "source-in";
+  x.fillStyle = "#2b2631";
+  x.fillRect(0, 0, c.width, c.height);
+  c.classList.add("ui-silhouette");
+  return c;
+}
+
 // スキルの効果をくわしい行に展開する
 export function skillDetailLines(sp) {
   const lines = [];
@@ -155,6 +184,7 @@ export function skillDetailLines(sp) {
   if (sp.revive) lines.push(sp.revivePct ? `戦闘不能をHP${Math.round(sp.revivePct * 100)}%で蘇生する` : "戦闘不能も蘇生できる");
   if (sp.kind === "phys") {
     lines.push(`威力 攻撃力の${sp.power}倍${sp.hits ? ` × ${sp.hits}回` : ""}`);
+    if (sp.intScale) lines.push("魔法剣: 使い手のINTでも威力が伸びる");
     if (sp.critBonus) lines.push(`会心率 +${Math.round(sp.critBonus * 100)}%`);
   }
   if (sp.kind === "atk" && sp.critBonus) lines.push(`呪文会心率 +${Math.round(sp.critBonus * 100)}%（会心は×1.5）`);
