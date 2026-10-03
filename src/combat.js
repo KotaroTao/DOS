@@ -1037,8 +1037,8 @@ export class Battle {
     r = Math.min(3, r | 0);
     if (!r) return { dmg, tag: "", immune: false };
     const rate = resistRate(r);
-    if (rate >= 1) return { dmg: 0, tag: RESIST_TAG[key][r] + "!", immune: true };
-    return { dmg: Math.max(1, Math.round(dmg * (1 - rate))), tag: RESIST_TAG[key][r] + "!", immune: false };
+    if (rate >= 1) return { dmg: 0, tag: RESIST_TAG[key][r], immune: true };
+    return { dmg: Math.max(1, Math.round(dmg * (1 - rate))), tag: RESIST_TAG[key][r], immune: false };
   }
 
   _physical(actor, tgt, opt = {}) {
