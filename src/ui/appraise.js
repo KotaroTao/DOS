@@ -25,8 +25,8 @@ const RAR_ORDER = { c: 0, uc: 1, r: 2, sr: 3, lr: 4 };
 const DOT = "．";
 // 間 (ms)。動きを減らす設定では短く
 const T = () => (reduced && reduced()
-  ? { dot: 160, okHold: 900, ngHold: 600 }
-  : { dot: 480, okHold: 1500, ngHold: 1000 });
+  ? { dot: 160, okHold: 900, ngHold: 600, okBeat: 250 }
+  : { dot: 480, okHold: 1500, ngHold: 1000, okBeat: 700 });
 
 // ---------------------------------------------------------------- 数え上げ
 // 鑑定の心得がある者 (街でのみ。隊と控えの生きている全員。迷宮では鑑定できない)
@@ -206,8 +206,24 @@ export function openTryIdentifyAll({ onDone } = {}) {
     }
     idx++;
     setProg(); drawTally();
-    advance = () => step();
-    timer = setTimeout(() => { const f = advance; advance = null; if (f) f(); }, ok ? T().okHold : T().ngHold);
+    // 成功: 一拍おいて図鑑と同じ品の画面 (「鑑定成功した！」つき) を重ねる。閉じたら次の品へ
+    advance = ok && UI.codexItemSheet ? () => openDetail(it) : () => step();
+    timer = setTimeout(() => { const f = advance; advance = null; if (f) f(); }, ok ? (UI.codexItemSheet ? T().okBeat : T().okHold) : T().ngHold);
+  };
+
+  // 鑑定に成功した品の詳細 (能力・説明文)。「次へ」で続ける / 「早送り」で残りを一度に
+  const openDetail = (it) => {
+    if (finished || (h && h.closed)) return;
+    const more = list.slice(idx).some((x) => x.item.unidentified && !x.item.idHardFail && ownerOf(x.item));
+    const ds = UI.codexItemSheet(it.id, {
+      item: it, heading: "鑑定成功した！", headingColor: "#7fd0ff",
+      footer: [
+        ...(more ? [{ label: "早送り", sub: "残りを一度に判定", kind: "ghost", onTap: (x) => x.close("ff") }] : []),
+        { label: more ? "次へ" : "結果を見る", kind: "primary", onTap: (x) => x.close("next") },
+      ],
+      onClose: (why) => { if (why === "ff") fastForward(); else step(); },
+    });
+    if (!ds) step();
   };
 
   // 残りを一度に判定して、結果の一覧へ

@@ -483,7 +483,13 @@ export function renderRunReport(root) {
   let better = 0;
   try { better = UI.betterGearCount ? UI.betterGearCount() || 0 : 0; } catch (e) { better = 0; }
   if (better > 0) act({ label: "最適装備", sub: `${better}体に よりよい品`, run: () => { if (UI.autoEquip) UI.autoEquip("all"); } });
-  if (c.junk > 0 && shopOpen) act({ label: "まとめて売る", cost: { kind: "gold", n: c.junkGold }, run: async () => { if (await confirmSell(c)) ops.sellJunkAll(); } });
+  // まとめて売る: 商会の確認 (売る品と売値の一覧・装備の候補を残す守りつき) があればそちら
+  if (UI.confirmSellJunk && UI.junkList) {
+    let junk = null;
+    try { junk = UI.junkList(); } catch (e) { junk = null; }
+    if (junk && junk.length && shopOpen) act({ label: "まとめて売る", cost: { kind: "gold", n: junk.reduce((a2, j) => a2 + (j.price || 0), 0) },
+      run: () => { UI.confirmSellJunk(); } }); // 売ったあとは商会側が街を描き直す
+  } else if (c.junk > 0 && shopOpen) act({ label: "まとめて売る", cost: { kind: "gold", n: c.junkGold }, run: async () => { if (await confirmSell(c)) ops.sellJunkAll(); } });
   if (c.dead > 0 && c.hastenCost > 0) act({ label: "今すぐ連れ帰る", cost: { kind: "red", n: c.hastenCost }, kind: lr.outcome === "wipe" ? "primary" : "secondary", disabled: g.redSoul < 1, run: async () => { if (await confirmHasten(c)) ops.hastenAll(); } });
   if (acts.childElementCount) card.appendChild(acts);
   else card.appendChild(el("div", "rr-line dim", lr.outcome === "wipe" ? "人業が戻るのを待とう。" : "片付ける用事はない。次の迷宮へ。"));

@@ -41,13 +41,20 @@ let selDoll = null;       // 表示中の人業 (隊・控えのどちらでも)
 let picked = null;        // 隊列の入れ替えで持ち上げた人業 (タップで移す先を選ぶ代替操作)
 let intent = null;        // 次の描画で行うこと ({reserve:true} / {seg})
 let sheetH = null;        // 迷宮の隊シート
+let dunSeg = null;        // 迷宮の隊シートで表示中の区分 (開くたび「装備」から。街の隊タブの記憶とは別)
 let statOpen = null;      // 能力の説明を開いている能力キー
 let resPage = 0;          // 控えのシートの頁
 let phase0ItemSheet = null; // Phase 0 の品シートのスタブ (WP-C の本物が来るまでは自前の品の画面を使う)
 
 const SEGS = [{ key: "equip", label: "装備" }, { key: "soul", label: "魂" }, { key: "stats", label: "能力" }];
-function curSeg() { const s = remember("seg", "party"); return SEGS.some((x) => x.key === s) ? s : "equip"; }
-function setSeg(k) { if (SEGS.some((x) => x.key === k)) remember("seg", "party", k); }
+function curSeg() {
+  if (dunSeg) return dunSeg;
+  const s = remember("seg", "party"); return SEGS.some((x) => x.key === s) ? s : "equip";
+}
+function setSeg(k) {
+  if (!SEGS.some((x) => x.key === k)) return;
+  if (dunSeg) dunSeg = k; else remember("seg", "party", k);
+}
 
 const G_ = () => game.G;
 const allDolls = () => (game.allDolls ? game.allDolls() : [...(G_().party || []), ...(G_().reserve || [])]);
@@ -1179,9 +1186,9 @@ function campStrip(d) {
 }
 
 // ---- 区分 + 最適装備 ----
-function segBar(d) {
+function segBar(d, mode) {
   const wrap = el("div", "pt-segbar");
-  const seg = segmented(SEGS, curSeg(), (k) => { setSeg(k); sfx("select"); rerender(); }, { prefKey: "party" });
+  const seg = segmented(SEGS, curSeg(), (k) => { setSeg(k); sfx("select"); rerender(); }, { prefKey: mode === "dungeon" ? null : "party" });
   seg.classList.add("pt-seg");
   wrap.appendChild(seg);
   if (d.primary != null) {
@@ -1615,16 +1622,17 @@ export function pickTarget({ banner = "対象", accent = null, title = "誰に�
 }
 
 // ================= 迷宮の隊シート =================
-export function openSheet(d) {
+export function openSheet(d, seg = null) {
   const G = G_();
   if (d) select(d);
-  if (sheetH && !sheetH.closed) { refreshSheet(); return sheetH; }
+  if (sheetH && !sheetH.closed) { if (seg) setSeg(seg); refreshSheet(); return sheetH; }
   G.statusOpen = true;
+  dunSeg = SEGS.some((x) => x.key === seg) ? seg : "equip"; // 開くたび「装備」から (指定があればその区分)
   sheetH = sheet.open({
     kind: "info", className: "pt-sheet", banner: "パーティの様子",
     body: (scroll) => { const w = el("div", "pt-root m-dungeon"); renderView(w, "dungeon"); scroll.appendChild(w); },
     footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
-    onClose: () => { G.statusOpen = false; sheetH = null; picked = null; if (game.renderParty) { try { game.renderParty(); } catch (e) { /* noop */ } } },
+    onClose: () => { G.statusOpen = false; sheetH = null; dunSeg = null; picked = null; if (game.renderParty) { try { game.renderParty(); } catch (e) { /* noop */ } } },
   });
   return sheetH;
 }
@@ -1646,15 +1654,15 @@ function openParty(idx = null, o = {}) {
   const context = o.context || (G.state === "town" ? "town" : "dungeon");
   const d = idx && typeof idx === "object" ? idx : (G.party[idx == null ? (getPref("partyIdx", 0) || 0) : idx] || null);
   if (d) select(d);
-  if (o.seg) setSeg(o.seg);
   if (context === "town") {
     if (G.state !== "town") return false;
+    if (o.seg) setSeg(o.seg);
     const t = G.town || {};
     if (t.tab === "party" && !t.facility && !t.page) { game.renderTown(); return true; }
     return UI.shell ? UI.shell.setTab("party") : false;
   }
   if (G.state !== "board") return false;
-  openSheet();
+  openSheet(null, o.seg);
   return true;
 }
 
