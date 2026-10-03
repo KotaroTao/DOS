@@ -705,7 +705,7 @@ export function header(o = {}) {
 // 所持の通貨 (金貨 / ✦Soul / 赤い魂 / 残火)。タップで説明のシート
 const CUR_INFO = {
   gold: { name: "金貨", key: "gold", desc: ["宿賃・鑑定・装備の売買に使う。", "迷宮の宝箱・戦闘・売却で手に入る。"] },
-  soul: { name: "✦Soul", key: "soulPts", desc: ["魂を鍛えるための力 (経験値)。", "迷宮で敵を倒すと得られ、全滅しても失われない。"] },
+  soul: { name: "✦Soul", key: "soulPts", desc: ["魂を強化するための力 (経験値)。", "迷宮で敵を倒すと得られ、全滅しても失われない。"] },
   red: { name: "赤い魂", key: "redSoul", desc: ["人業の仕立てや、砕けた人業の連れ帰りを早めるのに使う。", "赤い魂の祠で授かる。"] },
   ember: { name: "魂の残火", key: "embers", desc: ["魂のLv上限を1上げる。", "死体の魂を回収すると得ることがある。"] },
 };
