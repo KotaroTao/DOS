@@ -121,7 +121,7 @@ function makeEnemy(key, scale = 1, boss = false, bossRank = 0) {
   const baseHp = b ? b.hp : m.maxhp, baseAtk = b ? b.atk : m.atk;
   const baseDef = b ? b.def : m.def, baseSpd = b ? b.spd : m.spd;
   const baseSoul = b ? b.soul : m.soul, baseGold = b ? b.gold : m.gold;
-  const hp = Math.max(1, Math.round(baseHp * scale * resistHpMul(m)));
+  const hp = Math.max(1, Math.round(baseHp * scale * resistHpMul(m, boss)));
   return {
     uid: ++_uid, key, mon: m, name: (boss ? m.name : m.name),
     element: m.element || "none",
