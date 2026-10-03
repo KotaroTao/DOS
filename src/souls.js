@@ -6,6 +6,7 @@
 import { recalc, registerJobGear } from "./items.js";
 import { JOB_LORE_RANKS } from "./joblore.js";
 import { JOB_IMAGES } from "./jobart.js";
+import { ICONS } from "./sprites.js";
 
 export const PARTS = ["head", "rhand", "lhand", "body", "legs"];
 export const PART_LABEL = { head: "頭", rhand: "右手", lhand: "左手", body: "胴体", legs: "足" };
@@ -2652,6 +2653,31 @@ export const BUST_FIT = {
   battlemage: { zoom: 1.2, dx: 1, dy: 1 },
   darkknight: { zoom: 1.25, dy: 4 },
 };
+// 人業に宿す前の魂のアイコン: 青い人魂 (ICONS.wisp) をその職の魂の色 (glow) で染め直す。
+// 入手の知らせ (トースト・祝祭の札・戦果) では胸像ではなくこれを使う
+const _soulIconCache = {};
+export function soulIcon(jobKey) {
+  if (_soulIconCache[jobKey]) return _soulIconCache[jobKey];
+  const base = ICONS.wisp;
+  const cl = SOUL_CLASSES[jobKey];
+  const glow = (cl && cl.glow) || "#9fd4e3";
+  const hex = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+  const g = hex(glow);
+  const tint = (col) => {
+    let rgb, alpha = null;
+    const m = /^rgba?\(([^)]+)\)$/.exec(col);
+    if (m) { const v = m[1].split(",").map((x) => parseFloat(x)); rgb = v.slice(0, 3); if (v.length > 3) alpha = v[3]; }
+    else rgb = hex(col);
+    const L = (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
+    // 暗部は glow を沈め、明部は白へ寄せる (濃淡の段はそのまま)
+    const out = L < 0.6 ? g.map((c) => Math.round(c * (0.12 + 0.88 * L / 0.6)))
+      : g.map((c) => Math.round(c + (255 - c) * ((L - 0.6) / 0.4)));
+    return alpha != null ? `rgba(${out.join(",")},${alpha})` : `rgb(${out.join(",")})`;
+  };
+  const palette = {};
+  for (const k of Object.keys(base.palette)) palette[k] = tint(base.palette[k]);
+  return (_soulIconCache[jobKey] = { palette, art: base.art });
+}
 const _bustCache = {};
 export function jobBust(jobKey, rank = 2) {
   const spr = jobSprite(jobKey, rank);

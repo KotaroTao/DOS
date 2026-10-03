@@ -18,7 +18,7 @@ import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
 import {
-  SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust,
+  SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, soulIcon,
   recalcDoll, soulLevelCap, soulLevelCapOf, setSharedSouls, MAX_SUBS, subPicks,
   soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills,
   ORDER_PERK, orderPassiveMap,
@@ -5477,7 +5477,7 @@ function celebrateSoul(s, onClose) {
   SFX.itemget(); buzz([0, 40, 50, 40, 50, 150]);
   if (cls.rarity === "legend") { flashScreen("#ffcf4a"); SFX.victory(); }
   showEvent({
-    sprite: jobSprite(s.clsKey, 1),
+    sprite: soulIcon(s.clsKey),
     banner: `★ ${RARITY_LABEL[cls.rarity] || "希少"}の魂を入手 ★`,
     title: `${cls.label}の魂`,
     lines: [s.line, "所持魂の一覧に加わった。", ...(s.embers > 0 ? [`魂の残火を ${s.embers}つ 手に入れた (魂のLv上限を上げる)`] : [])].filter(Boolean),
@@ -5495,7 +5495,7 @@ function acquireSoul(clsKey, sourceLine, onClose, emberCount = 0) {
   const s = grantSoulQuiet(clsKey, sourceLine, emberCount);
   if (s.rare) { celebrateSoul(s, after); return; }
   SFX.itemget(); buzz([0, 30, 60, 30]);
-  showToast(`${s.label}の魂を手に入れた${s.embers > 0 ? ` ・ 残火 ${s.embers}` : ""}`, { tone: "good", icon: jobBust(clsKey, 1) });
+  showToast(`${s.label}の魂を手に入れた${s.embers > 0 ? ` ・ 残火 ${s.embers}` : ""}`, { tone: "good", icon: soulIcon(clsKey) });
   after();
 }
 
@@ -8907,7 +8907,7 @@ function deliverQuest(q, opts = {}) {
   if (rarity === "legend") { flashScreen("#ffcf4a"); SFX.victory(); }
   log(`${itemName(it)} を納品し、${RARITY_LABEL[rarity]}の魂を ${count} 体授かった。(${names.join("・")})`, "win");
   showEvent({
-    sprite: jobSprite(got[0], 1),
+    sprite: soulIcon(got[0]),
     banner: rare ? `★ ${RARITY_LABEL[rarity]}の魂 ×${count} ★` : `✦ 魂 ×${count} ✦`,
     title: `「${it.name}」を納品`,
     lines: [`${RARITY_LABEL[rarity]}の魂を ${count} 体 授かった。`, `${names.join("・")} の魂`, "所持魂 一覧に追加した。"],

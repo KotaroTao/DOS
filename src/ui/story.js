@@ -14,7 +14,7 @@ import { el, setText, button, glyph } from "./kit.js";
 import { nav } from "./nav.js";
 import { animate, reduced } from "./motion.js";
 import { spriteCanvas, crispCanvas } from "../sprites.js";
-import { SOUL_CLASSES, jobBust } from "../souls.js";
+import { SOUL_CLASSES, soulIcon } from "../souls.js";
 import { KING_PORTRAIT, vignetteCanvas } from "../townart.js";
 import { SFX } from "../audio.js";
 
@@ -40,7 +40,7 @@ function rewardBox(reward) {
     const ic = el("span", "sc-rw-ic");
     let name;
     if (r.job) {
-      try { ic.appendChild(crispCanvas(jobBust(r.job, 1), 28)); } catch (e) { /* 絵が無くても動く */ }
+      try { ic.appendChild(crispCanvas(soulIcon(r.job), 28)); } catch (e) { /* 絵が無くても動く */ }
       name = `${(SOUL_CLASSES[r.job] || {}).label || r.job}の魂`;
     } else {
       ic.appendChild(glyph(r.cur));
