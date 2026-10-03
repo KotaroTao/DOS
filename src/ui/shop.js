@@ -13,7 +13,7 @@ import { getPref, setPref, remember } from "./prefs.js";
 import { statLines, isEquippable } from "./itemview.js";
 import {
   itemSheet, wearPlan, deltaFor, deltaEl, nameSpan, goldEl, caretIcon, equipTo, floatGold, ownerOf, equipCandidates, shopOpen, isUpgrade,
-  openDollChooser, equipPick, dollIcon,
+  openDollChooser, equipPick, dollIcon, revealSellBtn,
 } from "./loot.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, MAX_ITEMS, canEquip, itemName } from "../items.js";
 import { RARITIES, rarityKey } from "../rarity.js";
@@ -478,7 +478,7 @@ function openBuyChooser(id) {
   });
 }
 
-// 鑑定の結果 (まとめて鑑定のあと): 正体が知れた品。押せば品シート / 「装備」で人業を選ぶ
+// 鑑定の結果 (まとめて鑑定のあと): 正体が知れた品。押せば品シート / 「装備」で人業を選ぶ / 「売る」でその場で売る
 // 品シート・装備の選択を閉じたら一覧を描き直す (装備した品は一覧から消す)
 function openRevealSheet(items) {
   let h = null;
@@ -507,7 +507,7 @@ function openRevealSheet(items) {
       const plan = isEquippable(it) ? wearPlan(it, { owner: o.doll }) : null;
       const up = plan && plan.target && plan.delta && plan.score > 0;
       if (up) { sub.appendChild(deltaEl(plan.delta)); sub.appendChild(el("span", "wpc-srow-who", plan.target.name)); }
-      else sub.appendChild(document.createTextNode(`${o.doll.name} の持ち物 ・ 売値 ${game.sellPrice(it)}`));
+      else sub.appendChild(document.createTextNode(`${o.doll.name} の持ち物${o.where === "bag" && shopOpen() ? "" : ` ・ 売値 ${game.sellPrice(it)}`}`)); // 売値は「売る」に載る
       tx.appendChild(sub);
       main.appendChild(tx);
       main.addEventListener("click", () => refreshOnClose(itemSheet(it, { owner: o.doll, context: "sell" })));
@@ -517,9 +517,12 @@ function openRevealSheet(items) {
         eb.classList.add("wpc-prow-act");
         r.appendChild(eb);
       }
+      if (o.where === "bag" && shopOpen()) r.appendChild(revealSellBtn(o.doll, it, () => { if (h && !h.closed) h.update(view()); }));
       wrap.appendChild(r);
     }
     if (worn) wrap.appendChild(el("div", "ap-sum-worn", `装備した品 ${worn}点は一覧から外した。`));
+    const sold = items.filter((it) => !ownerOf(it)).length;
+    if (sold) wrap.appendChild(el("div", "ap-sum-worn", `売った品 ${sold}点は一覧から外した。`));
     if (!wrap.childElementCount) wrap.appendChild(el("div", "wpc-empty", "正体の知れた品はない。"));
     b.appendChild(wrap);
   };
