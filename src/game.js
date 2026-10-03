@@ -6340,7 +6340,7 @@ function startBattle(enemies, cell) {
   combatMenu.classList.remove("hidden");
   // 同種の群れは「ゴブリン ×4」とまとめて告げる (個体名は A/B/C… 付き)
   const sameKind = enemies.length > 1 && enemies.every((e) => e.key === enemies[0].key);
-  // 名前は討伐数1で明かす (それまでは「？？？」)
+  // 名前は討伐数1で明かす (それまでは「？？？」。迷宮の主は最初から名乗る)
   log(`${sameKind ? `${enemyReveal(enemies[0]).name ? enemies[0].mon.name : "？？？"} ×${enemies.length}` : enemies.map(enemyLabel).join("・")} が現れた！`, "dmg");
   // 先制・奇襲の判定 (ボス戦・強敵戦では発生しない)。
   // 周囲警戒 (vigilance) が奇襲を抑え、先制の心得 (initiative) が先制を伸ばす
@@ -6562,7 +6562,7 @@ function renderCombatCanvas() {
       // 対象選択中: 頭上に降りる楔と四隅のかぎ
       if (tappable && strongTarget) drawTargetBrackets(baseX, baseY, hh, size, now);
       // 名札 + 血の小瓶 (HP)
-      // 名前・HP は討伐数で明かす (enemyReveal): 名前は1体倒すまで「？？？」、HP の小瓶は5体倒すまで出さない
+      // 名前・HP は討伐数で明かす (enemyReveal): 名前は1体倒すまで「？？？」、HP の小瓶は5体倒すまで出さない (迷宮の主は名前が最初から、HP は1体で)
       drawEnemyPlate(e, baseX, plateY, tappable && strongTarget, k);
       const hpY = plateY + 17;
       if (enemyReveal(e).stats) drawEnemyHpVial(e, baseX, hpY, now, k);
