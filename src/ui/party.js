@@ -24,7 +24,7 @@ import {
 import { renderSoulSeg, openSoulPicker } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
 import {
-  planBestEquip, applyPlan, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip,
+  planBestEquip, applyPlan, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isMeleeWeapon,
 } from "../autoequip.js";
 import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, scaleText } from "../items.js";
 import {
@@ -160,7 +160,7 @@ function slotCandidatesRaw(d, key, includeUnid) {
 // 部位ごとの「もっと良い品がある」(▲) と候補の数
 function slotInfo(d, key) {
   const cands = slotCandidates(d, key);
-  const best = cands.find((c) => c.room && !c.cursed && c.gain > 0.05);
+  const best = cands.find((c) => c.room && !c.cursed && c.gain > 0.05 && autoAllow(d, c.it));
   return { count: cands.length, better: !!best, bestGain: best ? best.gain : 0 };
 }
 // 品 it をこの人業に付けるなら、どの部位が最良か ({key, gain, delta, displaced})
@@ -468,6 +468,12 @@ export function openEquipChooser(item, { owner = null, actions = null } = {}) {
 }
 
 // ================= 最適装備 =================
+// 後衛 (隊の4人目以降) には近接物理の武器を選ばない (与ダメ半減・敵の前列にしか届かない)。手で付けるのは自由
+function autoAllow(d, it) {
+  const G = G_();
+  const pi = G && G.party ? G.party.indexOf(d) : -1;
+  return !(pi >= 3 && isMeleeWeapon(it));
+}
 let bgcMemo = { key: "", n: 0, hints: [] };
 function betterGearCount() {
   const G = G_();
@@ -481,7 +487,7 @@ function betterGearCount() {
     if (!d) continue;
     let hit = false;
     for (const k of SLOTS) {
-      const best = slotCandidates(d, k).find((c) => c.room && !c.cursed && c.gain > 0.05);
+      const best = slotCandidates(d, k).find((c) => c.room && !c.cursed && c.gain > 0.05 && autoAllow(d, c.it));
       if (best) { hit = true; hints.push(`b${d.uid}:${k}:${best.it.id}`); }
     }
     if (hit) n++;
@@ -517,7 +523,7 @@ function autoEquip(target = "all") {
   const targets = target === "all" ? G.party.filter(Boolean) : [target].filter(Boolean);
   if (!targets.length) return { ok: false, moves: 0 };
   const pool = itemsPool();
-  const plan = planBestEquip(targets, { pool, canEquip, score: gearScore, recalc });
+  const plan = planBestEquip(targets, { pool, canEquip, score: gearScore, recalc, allow: autoAllow });
   if (!plan.moves.length) {
     sfx("select");
     toast(targets.length > 1 ? "パーティの装備は、いまが最良だ" : `${targets[0].name}の装備は、いまが最良だ`, { tone: "info" });
