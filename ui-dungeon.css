@@ -54,9 +54,10 @@
 .dk-heal.hot { color: #d4f5c8; border-color: #4f8a45; box-shadow: inset 0 1px 0 rgba(220,255,200,0.12), inset 0 -2px 0 rgba(0,0,0,0.6), 0 0 0 1px rgba(120,220,100,0.18), 0 3px 0 #070507, 0 0 14px rgba(120,220,100,0.18); }
 .dk-heal.hot .dk-s { color: #9ccf8e; }
 .dk-heal .dk-l { letter-spacing: 0.04em; }
-/* 降りる・待機の横では、回復は文字の幅だけ取る (残りは降りる・案内へ) */
-#hint.dg-dock .dk-idle + .dk-heal, #hint.dg-dock.has-down .dk-heal { flex: 0 0 auto; }
-#hint.dg-dock .dk-idle { min-width: 0; }
+/* 降りる・待機の横では、回復は文字の幅だけ取る (残りは降りる・案内へ)。間に浮遊が挟まっても同じ。
+   縮むのは案内の文 (…で切れる) だけで、ボタンの文字は切らない */
+#hint.dg-dock .dk-idle ~ .dk-heal, #hint.dg-dock.has-down .dk-heal { flex: 0 0 auto; }
+#hint.dg-dock .dk-idle { flex: 1 1 0; min-width: 0; }
 /* 降りる・帰還・回復の3つ並び: 帰還と回復を詰める */
 #hint.dg-dock.has-down.has-home .dk-btn { gap: 6px; padding: 4px 8px; }
 #hint.dg-dock.has-down.has-home .dk-l { letter-spacing: 0.04em; }
@@ -69,6 +70,10 @@
 .dk-float.on .dk-s { color: #8fcfc2; }
 #hint.dg-dock.has-float .dk-float .dk-ic, #hint.dg-dock.has-float.has-down .dk-heal .dk-ic { display: none; }
 #hint.dg-dock.has-float .dk-btn { gap: 6px; padding: 4px 8px; }
+/* 降りる・帰還・浮遊・回復の4つ並び: 帰還の絵も外し、降りるが残りの幅を取る (文字は切らない) */
+#hint.dg-dock.has-float.has-down.has-home .dk-home .dk-ic { display: none; }
+#hint.dg-dock.has-float.has-down.has-home .dk-down { flex: 1 0 auto; }
+#hint.dg-dock.has-float.has-down.has-home .dk-btn { gap: 4px; padding: 4px 6px; }
 @keyframes dk-call { 0%, 100% { filter: brightness(1); } 50% { filter: brightness(1.12); } }
 .dk-idle {
   flex: 1 1 auto; display: flex; align-items: center; justify-content: center; gap: 9px; min-height: 48px; padding: 0 10px;
