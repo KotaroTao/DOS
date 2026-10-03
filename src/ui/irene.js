@@ -434,7 +434,7 @@ export function greetingPages() {
 
 // ---------- 会話の場面 (全画面) ----------
 // pages: [[1行目, 2行目], …]。1回目のタップ = 文字を出し切る / 次のタップ = 次のページ / 最後のページで閉じる。
-// 「とばす」で最後まで飛ばす。戻る操作はタップと同じ順 (出し切る → 次 → 閉じる)
+// 「スキップ」で最後まで飛ばす。戻る操作はタップと同じ順 (出し切る → 次 → 閉じる)
 let active = null;
 export function playIreneScene(pages, done) {
   const list = (pages || []).filter((p) => p && p.length);
@@ -456,7 +456,7 @@ export function playIreneScene(pages, done) {
   art.appendChild(img);
   wrap.appendChild(art);
   wrap.appendChild(el("div", "iv-veil"));
-  const skip = el("button", "iv-skip", "とばす");
+  const skip = el("button", "iv-skip", "スキップ");
   skip.type = "button";
   wrap.appendChild(skip);
 

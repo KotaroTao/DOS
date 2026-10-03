@@ -661,9 +661,10 @@ function scheduleGreeting() {
       ireneState().greeted = true;
       curLine = nextLine({ entry: true });
       if (game.autosave) game.autosave(true);
-      rerender();
+      // 仕立てを開くのはここだけ (先に予約を消す: rerender が wantCreate を見て、もう一枚開いてしまうため)
       const make = wantCreate || !allDolls().length;
       wantCreate = false;
+      rerender();
       if (make && inTown()) setTimeout(() => openCreateDoll(), 120);
     });
   }, 60);
@@ -1109,9 +1110,11 @@ function joinParty(d) {
 }
 
 // 人業を仕立てる: 宿す魂を選ぶ → 名を与える
+let createH = null; // 開いている「宿す魂をえらぶ」シート (二重に開かない: 下に古い一覧が残るため)
 export function openCreateDoll() {
   const G = G_();
   if (!inTown()) return;
+  if (createH && !createH.closed) return createH;
   const cost = game.emptyDollCost ? game.emptyDollCost() : 0;
   if ((G.redSoul || 0) < cost) { sfx("ng"); toast("赤い魂が足りない", { tone: "bad" }); return; }
   if (allDolls().length >= 100) { sfx("ng"); toast("これ以上は仕立てられない (100体まで)", { tone: "bad" }); return; }
@@ -1119,7 +1122,7 @@ export function openCreateDoll() {
   const free = G.souls.filter((s) => !worn(s.uid)).sort(game.soulSortCmp || (() => 0));
   if (!free.length) { sfx("ng"); toast("宿せる魂がない ― 迷宮で魂を集めよう", { tone: "bad" }); return; }
   sfx("select");
-  const h = sheet.open({
+  const h = createH = sheet.open({
     kind: "info", banner: "宿す魂をえらぶ", className: "pt-pick-sheet",
     lines: [cost ? `赤い魂 ${cost} で器を買い、選んだ魂を宿す。` : "無料で器を仕立て、選んだ魂を宿す。"],
     body: (scroll) => {
@@ -1284,13 +1287,11 @@ function rescueLine(d) {
   const cost = game.repairCostOf ? game.repairCostOf(d) : 0;
   box.appendChild(button({ label: "砕けた魂を修復", kind: "primary", size: "sm", cost: { kind: "gold", n: cost }, disabled: (G.gold || 0) < cost,
     onTap: () => confirm({ banner: "魂の修復", title: `${d.name} の砕けた魂を修復する？`,
-      lines: [`金貨 💰${cost} ・ HP/MP 満タンで立ち上がる`, `ランク${d.jobRank || 1} × Lv${d.jobLv || 1} × ${RARITY_LABEL[rarityOfDoll(d)] || "コモン"}`, `所持: 💰${G.gold || 0}`],
+      lines: [`金貨 💰${cost} ・ HP/MP 満タンで立ち上がる`, `所持: 💰${G.gold || 0}`],
       okLabel: "修復する", danger: false })
       .then((ok) => { if (!ok) return; if (game.repairDoll) game.repairDoll(d); rerender(); }) }));
   return box;
 }
-const RARITY_LABEL = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド" };
-function rarityOfDoll(d) { const c = d && d.clsKey ? SOUL_CLASSES[d.clsKey] : null; return c ? c.rarity : "common"; }
 
 // ---- 迷宮: 野営 (呪文・道具) をすぐ使える札 ----
 function campSpellsOf(d) {

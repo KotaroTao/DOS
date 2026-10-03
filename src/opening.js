@@ -4,7 +4,7 @@
 // 各幕はカメラがゆっくりと滑り (多層の視差)、語りは一文字ずつ墨がにじむように現れる。
 // 幕と幕のあいだは闇へ溶けて切り替わり、最後に題字を掲げて街へ送り出す。
 //
-// 操作: タップ / Enter = 語りを早送り → 次の幕へ。長押し・「とばす」・Esc = 全体をとばす。
+// 操作: タップ / Enter = 語りを早送り → 次の幕へ。長押し・「スキップ」・Esc = 全体をとばす。
 // showOpening(done) — 閉じたあと done() を一度だけ呼ぶ
 import { SFX } from "./audio.js";
 import { pickRes } from "./pxpaint.js";
@@ -81,10 +81,10 @@ export function showOpening(onDone) {
   const skip = document.createElement("button");
   skip.type = "button";
   skip.className = "op-skip";
-  skip.innerHTML = "<span>とばす</span><b>≫</b>";
+  skip.innerHTML = "<span>スキップ</span><b>≫</b>";
   wrap.appendChild(skip);
   const hold = div("op-hold");
-  hold.append(div("op-hold-r"), div("op-hold-t", "長押しでとばす"));
+  hold.append(div("op-hold-r"), div("op-hold-t", "長押しでスキップ"));
   wrap.appendChild(hold);
 
   // 終幕の題字

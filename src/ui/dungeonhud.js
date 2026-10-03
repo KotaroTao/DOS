@@ -19,7 +19,7 @@ import { MONSTERS, ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
 import { ELEMENTS, monsterTraits, isFloating } from "../dungeons/index.js";
 import { tagRow, traitTagKinds, affinityRow, MON_REVEAL, monKills, enemyReveal, enemyLabel, revealLock, BUFF_NAME } from "./itemview.js";
 import { RARITIES } from "../rarity.js";
-import { SOUL_CLASSES, jobBust } from "../souls.js";
+import { SOUL_CLASSES, soulIcon } from "../souls.js";
 import { WALKER as WALKER_ART } from "../walkerart.js";
 
 export { getPref, setPref, remember, sceneTransition };
@@ -227,7 +227,7 @@ export function openRunLoot() {
         for (const s of souls) {
           const c = SOUL_CLASSES[s.clsKey];
           const chip = el("span", "dg-soul r-" + ((c && c.rarity) || "common"));
-          try { chip.appendChild(crispCanvas(jobBust(s.clsKey, 1), 24)); } catch (e) { /* noop */ }
+          try { chip.appendChild(crispCanvas(soulIcon(s.clsKey), 24)); } catch (e) { /* noop */ }
           chip.appendChild(el("span", null, c ? c.label : s.clsKey));
           if (c && c.glow) chip.style.setProperty("--glow", c.glow);
           list.appendChild(chip);
