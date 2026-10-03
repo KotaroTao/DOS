@@ -9486,11 +9486,12 @@ function reportTutorialQuest() {
   playMsqChain(pages, toasts);
 }
 
-// 機能解放: ダンジョン踏破数に応じて段階的に解放される (層末の節目で授かる)。
+// 機能解放: 王に報告した踏破数に応じて段階的に解放される (層末の節目の報告で王から授かる)。
+//   踏破しただけ (報告前) では開かない ― 解放のページ (UNLOCKS) を見てから使えるようにする
 //   D5→魂融合 / D10→サブ魂1枠 / D15→酒場の噂・依頼 / D20→控えの結社(席1) /
 //   D25→納品+1 / D30→結社席+1 / D35→納品+1 / D40→サブ魂2枠目 / D45→結社席+1 / D50→無限迷宮
 function featureUnlocked(key) {
-  const c = clearedDungeonCount();
+  const c = reportedDungeonCount();
   if (key === "fusion") return c >= 5;
   if (key === "rumor") return c >= 15;
   if (key === "order") return c >= 20;
@@ -9499,12 +9500,12 @@ function featureUnlocked(key) {
 }
 // 解放済みのサブ魂 (宿し技) スロット数 (0/1/2)。MAX_SUBS が上限。2枠目は D40 で解放
 function unlockedSubSlots() {
-  const c = clearedDungeonCount();
+  const c = reportedDungeonCount();
   return Math.min(MAX_SUBS, c >= 40 ? 2 : c >= 10 ? 1 : 0);
 }
 // 控えの結社の席数 (0/1/2/3)。D20 で席1、D30 で席2、D45 で席3
 function orderSeats() {
-  const c = clearedDungeonCount();
+  const c = reportedDungeonCount();
   return c >= 45 ? 3 : c >= 30 ? 2 : c >= 20 ? 1 : 0;
 }
 // 結社の席に実際に着いている魂uid (編成外・ランク2以上・有効な加護持ち・席数上限でクリーン)。
@@ -9544,7 +9545,7 @@ function toggleOrderSeat(uid) {
 }
 // 同時に受けられる納品依頼の件数。D15(酒場解放)=1 / D25=2 / D35=3
 function deliveryQuestCap() {
-  const c = clearedDungeonCount();
+  const c = reportedDungeonCount();
   return c >= 35 ? 3 : c >= 25 ? 2 : 1;
 }
 
@@ -9554,6 +9555,12 @@ function clearedDungeonCount() {
   if (!ms) return Math.max(0, (G.unlockedDungeons || 1) - 1);
   if (ms.state === "active") return Math.max(0, ms.n - 1); // 第0章 (チュートリアル) 中は 0
   return Math.min(DUNGEONS.length, ms.n); // report/offer/end は第n章を踏破済み
+}
+// 王に報告済みの迷宮数 (機能解放の基準)。踏破して報告を待つ間 (report) は、その迷宮をまだ数えない
+function reportedDungeonCount() {
+  const ms = G.msq;
+  if (ms && ms.state === "report") return Math.max(0, ms.n - 1);
+  return clearedDungeonCount();
 }
 
 // ==== いまの目標 (街の勅書・王宮の勅命の札) ====
@@ -12252,7 +12259,7 @@ function wireUI() {
   bindGame({
     G, log, autosave, buzz, flashScreen, shakeScreen,
     renderTown, renderBoard, renderParty, renderRunbar, updateTopbar, renderStatus,
-    allDolls, recalcAllDolls, inDungeon, curDungeon, activeCfg, dungeonNumber, clearedDungeonCount,
+    allDolls, recalcAllDolls, inDungeon, curDungeon, activeCfg, dungeonNumber, clearedDungeonCount, reportedDungeonCount,
     sellPrice, buyPrice, appraiseCost, innCost, sellWarnings, bargainMul,
     itemRankName, itemRankColor, itemGradeText, itemNameEl, logClassForItem,
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
