@@ -1287,13 +1287,11 @@ function rescueLine(d) {
   const cost = game.repairCostOf ? game.repairCostOf(d) : 0;
   box.appendChild(button({ label: "砕けた魂を修復", kind: "primary", size: "sm", cost: { kind: "gold", n: cost }, disabled: (G.gold || 0) < cost,
     onTap: () => confirm({ banner: "魂の修復", title: `${d.name} の砕けた魂を修復する？`,
-      lines: [`金貨 💰${cost} ・ HP/MP 満タンで立ち上がる`, `ランク${d.jobRank || 1} × Lv${d.jobLv || 1} × ${RARITY_LABEL[rarityOfDoll(d)] || "コモン"}`, `所持: 💰${G.gold || 0}`],
+      lines: [`金貨 💰${cost} ・ HP/MP 満タンで立ち上がる`, `所持: 💰${G.gold || 0}`],
       okLabel: "修復する", danger: false })
       .then((ok) => { if (!ok) return; if (game.repairDoll) game.repairDoll(d); rerender(); }) }));
   return box;
 }
-const RARITY_LABEL = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド" };
-function rarityOfDoll(d) { const c = d && d.clsKey ? SOUL_CLASSES[d.clsKey] : null; return c ? c.rarity : "common"; }
 
 // ---- 迷宮: 野営 (呪文・道具) をすぐ使える札 ----
 function campSpellsOf(d) {

@@ -18,7 +18,7 @@ import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
 import {
-  SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust,
+  SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, soulIcon,
   recalcDoll, soulLevelCap, soulLevelCapOf, setSharedSouls, MAX_SUBS, subPicks,
   soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills,
   ORDER_PERK, orderPassiveMap,
@@ -891,7 +891,18 @@ const SPECIAL_FLOORS = [
     board: (b) => sfEachCell(b, (c) => { if (c.type === "trap" || c.type === "poison") { c.type = "empty"; c.cleared = true; } }) },
   { id: "moonlight", name: "月明かりの階", icon: "corpseWarm", accent: "#aef0ff", sym: "☾", minFloor: 2, rate: 0.02,
     lines: ["蒼い光が差し込み、死者の温もりが消えない。", "この階の死体はすべて「あたたかい死体」だ。"],
-    board: (b) => sfEachCell(b, (c) => { if (c.type === "corpse" && !c.cleared) c.corpseWarm = true; }) },
+    board: (b) => {
+      let n = 0;
+      sfEachCell(b, (c) => { if (c.type === "corpse" && !c.cleared) { c.corpseWarm = true; n++; } });
+      // 死体が1つも無い階でも、必ず1つは「あたたかい死体」を置く (行き止まりを優先)
+      if (!n) {
+        const dead = [];
+        sfEachCell(b, (c) => { if (c.type === "empty" && sfOpenCount(c) === 1) dead.push(c); });
+        const put = (c) => { c.type = "corpse"; c.cleared = false; c.corpseWarm = true; c.corpseClass = rollJobClass(); };
+        if (dead.length) put(dead[rand(dead.length)]);
+        else sfPlace(b, 1, put);
+      }
+    } },
   { id: "vault", name: "黄金の蔵", icon: "chest", accent: "#e8c47a", sym: "▣", minFloor: 2, rate: 0.02,
     lines: ["ここは何者かの貯蔵庫だったようだ。", "宝箱が多く眠っている。"],
     board: (b) => sfPlace(b, 3, (c) => { c.type = "chest"; c.cleared = false; }) },
@@ -5328,10 +5339,11 @@ function resolveCorpse(cell) {
     return;
   }
   // あたたかい死体: 回収するか立ち去るか選べる。立ち去れば死体は残る。
+  // 宿る魂の職業は、回収するまで明かさない (札の色も職業色ではなく魂の青)
   showChoice(`まだあたたかい死体。魂が宿っている。`, [
-    { label: `${clsLabel}の魂を回収する`, primary: true, fn: () => collectWarmCorpse(cell, clsKey, clsLabel) },
+    { label: "魂を回収する", primary: true, fn: () => collectWarmCorpse(cell, clsKey, clsLabel) },
     { label: "立ち去る", fn: () => { log("死体に手を触れず、立ち去った。", "sys"); renderBoard(); } },
-  ], ICONS.corpseWarm, { banner: "✦ あたたかい死体 ✦", accent: SOUL_CLASSES[clsKey].glow, lines: ["まれに死体が起き上がる。勝てば魂は必ず手に入る。"] });
+  ], ICONS.corpseWarm, { banner: "✦ あたたかい死体 ✦", accent: "#7fd0ff", lines: ["まれに死体が起き上がる。勝てば魂は必ず手に入る。"] });
 }
 
 // あたたかい死体/偉大なる死体の回収: 80%で魂を直接入手、20%で死体が起き上がりアンデッド戦。
@@ -5465,7 +5477,7 @@ function celebrateSoul(s, onClose) {
   SFX.itemget(); buzz([0, 40, 50, 40, 50, 150]);
   if (cls.rarity === "legend") { flashScreen("#ffcf4a"); SFX.victory(); }
   showEvent({
-    sprite: jobSprite(s.clsKey, 1),
+    sprite: soulIcon(s.clsKey),
     banner: `★ ${RARITY_LABEL[cls.rarity] || "希少"}の魂を入手 ★`,
     title: `${cls.label}の魂`,
     lines: [s.line, "所持魂の一覧に加わった。", ...(s.embers > 0 ? [`魂の残火を ${s.embers}つ 手に入れた (魂のLv上限を上げる)`] : [])].filter(Boolean),
@@ -5483,7 +5495,7 @@ function acquireSoul(clsKey, sourceLine, onClose, emberCount = 0) {
   const s = grantSoulQuiet(clsKey, sourceLine, emberCount);
   if (s.rare) { celebrateSoul(s, after); return; }
   SFX.itemget(); buzz([0, 30, 60, 30]);
-  showToast(`${s.label}の魂を手に入れた${s.embers > 0 ? ` ・ 残火 ${s.embers}` : ""}`, { tone: "good", icon: jobBust(clsKey, 1) });
+  showToast(`${s.label}の魂を手に入れた${s.embers > 0 ? ` ・ 残火 ${s.embers}` : ""}`, { tone: "good", icon: soulIcon(clsKey) });
   after();
 }
 
@@ -6709,7 +6721,7 @@ function drawBattleIntro(intro, now) {
   vctx.restore();
 }
 
-// 奇襲の開幕: 紅い縁が脈打ち、三筋の爪痕が戦場を裂いて「奇 襲」の帯を叩きつける
+// 奇襲の開幕: 紅い縁が脈打ち、「奇 襲」の帯を叩きつける
 function drawAmbushIntro(intro, t) {
   const W = VW, H = VH;
   const cl = (v) => Math.max(0, Math.min(1, v));
@@ -6724,7 +6736,7 @@ function drawAmbushIntro(intro, t) {
   vctx.fillStyle = vg;
   vctx.fillRect(0, 0, W, H);
   // 帯
-  const bh = 60, by = H * 0.74 - bh / 2, cy = by + bh / 2;
+  const bh = 60, by = H * 0.74 - bh / 2;
   vctx.globalAlpha = a;
   const g = vctx.createLinearGradient(0, 0, W, 0);
   g.addColorStop(0, "rgba(20,2,2,0)");
@@ -6739,20 +6751,6 @@ function drawAmbushIntro(intro, t) {
   vctx.fillStyle = "#e0503c";
   vctx.fillRect(W / 2 - lw, by + 3, lw * 2, 1);
   vctx.fillRect(W / 2 - lw, by + bh - 4, lw * 2, 1);
-  // 爪痕: 文字の右で三筋の裂け目が右上から左下へ走る
-  vctx.lineCap = "round";
-  for (let k = 0; k < 3; k++) {
-    const q = cl((t - 80 - k * 60) / 150);
-    if (q <= 0) continue;
-    const x0 = W / 2 + 112 + k * 18, y0 = cy - 40;
-    const x1 = W / 2 + 62 + k * 18, y1 = cy + 40;
-    const xe = x0 + (x1 - x0) * q, ye = y0 + (y1 - y0) * q;
-    vctx.beginPath(); vctx.moveTo(x0, y0); vctx.lineTo(xe, ye);
-    vctx.shadowColor = "rgba(255,40,20,0.9)"; vctx.shadowBlur = 10;
-    vctx.strokeStyle = "rgba(255,60,30,0.6)"; vctx.lineWidth = 6; vctx.stroke();
-    vctx.shadowBlur = 0;
-    vctx.strokeStyle = "rgba(255,232,214,0.92)"; vctx.lineWidth = 1.6; vctx.stroke();
-  }
   // 文字: 小さな前書き + 叩きつけるように縮む「奇 襲」
   vctx.textAlign = "center";
   vctx.textBaseline = "alphabetic";
@@ -8733,9 +8731,8 @@ function rollRumor() {
   cands.push([30, () => {
     const great = layer >= 8;
     const clsKey = great ? rollGreatCorpseClass() : rollJobClass();
-    const cl = SOUL_CLASSES[clsKey].label;
     return { type: "harvest", clsKey, great, floor: 1, speaker,
-      text: `「${dn}の入口あたりで、まだあたたかい〈${cl}〉の死体を見た。${great ? "並の魂ではないぞ。" : "魂が宿っているはずだ。"}」` };
+      text: `「${dn}の入口あたりで、まだあたたかい死体を見た。${great ? "並の魂ではないぞ。" : "魂が宿っているはずだ。"}」` };
   }]);
   // 財宝の予兆: B1F に格の高い宝箱 (中身は装備品確定・層相応のレベル底上げ)
   cands.push([25, () => ({ type: "treasure", floor: 1, speaker,
@@ -8910,7 +8907,7 @@ function deliverQuest(q, opts = {}) {
   if (rarity === "legend") { flashScreen("#ffcf4a"); SFX.victory(); }
   log(`${itemName(it)} を納品し、${RARITY_LABEL[rarity]}の魂を ${count} 体授かった。(${names.join("・")})`, "win");
   showEvent({
-    sprite: jobSprite(got[0], 1),
+    sprite: soulIcon(got[0]),
     banner: rare ? `★ ${RARITY_LABEL[rarity]}の魂 ×${count} ★` : `✦ 魂 ×${count} ✦`,
     title: `「${it.name}」を納品`,
     lines: [`${RARITY_LABEL[rarity]}の魂を ${count} 体 授かった。`, `${names.join("・")} の魂`, "所持魂 一覧に追加した。"],
