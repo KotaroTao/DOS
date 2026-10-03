@@ -4,9 +4,9 @@
 
 import { game } from "./ctx.js";
 import { el, sheet } from "./kit.js";
-import { ELEMENTS } from "../dungeons/index.js";
+import { ELEMENTS, elemBeats } from "../dungeons/index.js";
 import { SPELLS } from "../combat.js";
-import { ATTR_LABEL, SOUL_CLASSES, dollBust } from "../souls.js";
+import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
 import { WEAPON_CAT_LABEL, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip } from "../items.js";
 import { HERO, spriteCanvas, crispCanvas } from "../sprites.js";
 
@@ -65,6 +65,86 @@ export const SPELL_KIND_LABEL = { atk: "攻撃呪文", heal: "回復呪文", phy
 export const SPELL_TARGET_LABEL = { enemy: "敵単体", "all-enemy": "敵全体", ally: "味方単体", "all-ally": "味方全体", self: "自分" };
 export const SPELL_KIND_COLOR = { atk: "#e0743f", heal: "#46c08f", phys: "#d8b04a", buff: "#5fa8e0", debuff: "#a06fd6", sleep: "#a06fd6", cure: "#46c08f" };
 
+// ===== 種別・属性アイコン (敵の特徴・味方のスキルに添える小さな札) =====
+// 物 = 物理 / 魔 = 魔法 (ブレス含む) / 回復 / その他 (強化・弱体・招来など)。属性は「火」「水」…の札を並べる
+const TAG_KIND = {
+  phys:  { t: "物", c: "#d8b04a" },
+  mag:   { t: "魔", c: "#b48ae8" },
+  heal:  { t: "回復", c: "#46c08f" },
+  other: { t: "その他", c: "#8f96a3" },
+};
+const SPELL_TAG_KIND = { phys: "phys", atk: "mag", heal: "heal", cure: "heal" };
+// 敵の特徴 → 種別。elem = 攻撃に魔物の固有属性が乗る (物理攻撃・ブレスは固有属性で打つ)
+const TRAIT_TAG = {
+  swift: ["other"], evasive: ["phys"], physResist: ["phys"], magWeak: ["mag"], magResist: ["mag"],
+  regen: ["heal"], pack: ["other"], summon: ["other"], heal: ["heal"], guard: ["other"],
+  breath: ["mag", true], poison: ["phys", true], paralyze: ["phys", true], stone: ["other"],
+  drain: ["phys", true], soulSteal: ["other"], goldSteal: ["other"], critical: ["phys", true],
+  enrage: ["other"], endure: ["other"], lifesteal: ["phys", true], multistrike: ["phys", true],
+  barrier: ["other"], warcry: ["other"], weaken: ["phys", true],
+};
+function hasElem(e) { return !!(e && e !== "none" && ELEMENTS[e]); }
+// 1枚の札。kind は TAG_KIND のキー、または "el:fire" のような属性
+export function tagIcon(kind) {
+  const isEl = kind.startsWith("el:");
+  const d = isEl ? ELEMENTS[kind.slice(3)] : TAG_KIND[kind];
+  if (!d) return null;
+  const t = el("span", "ui-tag" + (isEl ? " el" : " k-" + kind), isEl ? d.label : d.t);
+  t.style.setProperty("--tag-c", isEl ? d.color : d.c);
+  return t;
+}
+// 札の並び (span.ui-tags)。空なら null
+export function tagRow(kinds, cls = "") {
+  const ks = (kinds || []).filter(Boolean);
+  if (!ks.length) return null;
+  const r = el("span", "ui-tags" + (cls ? " " + cls : ""));
+  for (const k of ks) { const t = tagIcon(k); if (t) r.appendChild(t); }
+  return r;
+}
+// 味方のスキルの札: 種別 + 属性。物理技に属性が無ければ、使い手の武器の属性攻撃が乗る (actor 指定時)
+export function spellTagKinds(sp, actor) {
+  if (!sp) return [];
+  const out = [SPELL_TAG_KIND[sp.kind] || "other"];
+  let elk = sp.element;
+  if (!hasElem(elk) && sp.kind === "phys" && actor && actor.elemAtk) elk = actor.elemAtk.el;
+  if (hasElem(elk)) out.push("el:" + elk);
+  return out;
+}
+// 敵の特徴の札。element = その魔物の固有属性
+export function traitTagKinds(key, element) {
+  const d = TRAIT_TAG[key] || ["other"];
+  const out = [d[0]];
+  if (d[1] && hasElem(element)) out.push("el:" + element);
+  return out;
+}
+// 固有属性から見た弱点 (受けるダメージ増) と耐性 (受けるダメージ減) の属性
+export function elemAffinity(element) {
+  const weak = [], resist = [];
+  if (!hasElem(element)) return { weak, resist };
+  for (const k of Object.keys(ELEMENTS)) {
+    if (k === "none") continue;
+    if (elemBeats(k, element)) weak.push(k);
+    else if (elemBeats(element, k)) resist.push(k);
+  }
+  return { weak, resist };
+}
+// 「弱点 [土]　耐性 [火]」の行 (無属性なら null)
+export function affinityRow(element, cls = "") {
+  const { weak, resist } = elemAffinity(element);
+  if (!weak.length && !resist.length) return null;
+  const r = el("div", "ui-affinity" + (cls ? " " + cls : ""));
+  const part = (label, list, tone) => {
+    if (!list.length) return;
+    const g = el("span", "ui-aff " + tone);
+    g.appendChild(el("span", "ui-aff-l", label));
+    g.appendChild(tagRow(list.map((k) => "el:" + k)));
+    r.appendChild(g);
+  };
+  part("弱点", weak, "weak");
+  part("耐性", resist, "resist");
+  return r;
+}
+
 // スキルの効果をくわしい行に展開する
 export function skillDetailLines(sp) {
   const lines = [];
@@ -105,13 +185,42 @@ export function showSkillPopup(key) {
   if (!sp) return null;
   const accent = SPELL_KIND_COLOR[sp.kind] || "#c9a227";
   const body = el("div", "ui-skill");
-  body.appendChild(el("div", "sk-mp", `消費MP ${sp.mp}`));
+  const mpRow = el("div", "sk-mp", `消費MP ${sp.mp}`);
+  const tg = tagRow(spellTagKinds(sp));
+  if (tg) mpRow.appendChild(tg);
+  body.appendChild(mpRow);
   if (sp.desc) body.appendChild(el("div", "ig-desc", sp.desc));
   const box = el("div", "sk-lines");
   for (const ln of skillDetailLines(sp)) box.appendChild(el("div", "sk-line", ln));
   body.appendChild(box);
   return sheet.open({
     kind: "info", banner: "スキル", accent, title: sp.name, titleColor: accent, body,
+    className: "ui-skill-sheet",
+    footer: [{ label: "閉じる", kind: "primary", onTap: (h) => h.close() }],
+  });
+}
+
+// 加護 (パッシブ) の詳細。key+lv か、表示名 (「戦闘後回復Lv1」) で開く
+export function showPassivePopup(keyOrName, lv) {
+  let key = keyOrName;
+  if (!PASSIVES[key]) {
+    const hit = passiveByName(keyOrName);
+    if (!hit) return null;
+    key = hit.key; lv = hit.lv;
+  }
+  const def = PASSIVES[key];
+  const cur = Math.max(1, Math.min(lv || 1, def.lv.length));
+  const accent = "#c9a227";
+  const body = el("div", "ui-skill");
+  body.appendChild(el("div", "sk-mp", def.scope === "party" ? "常に働く力 ― パーティ全体に効く" : "常に働く力 ― 自分にだけ効く"));
+  body.appendChild(el("div", "ig-desc", def.lv[cur - 1] || ""));
+  if (def.lv.length > 1) {
+    const box = el("div", "sk-lines");
+    def.lv.forEach((d, i) => box.appendChild(el("div", "sk-line" + (i + 1 === cur ? " on" : ""), `${i + 1 === cur ? "▶" : "・"} Lv${i + 1}: ${d}`)));
+    body.appendChild(box);
+  }
+  return sheet.open({
+    kind: "info", banner: "加護", accent, title: passiveName(key, cur), titleColor: accent, body,
     className: "ui-skill-sheet",
     footer: [{ label: "閉じる", kind: "primary", onTap: (h) => h.close() }],
   });

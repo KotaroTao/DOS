@@ -88,16 +88,16 @@ function builtinSuggestions(c) {
   if (t && facilityOpen("mansion")) {
     const idx = (g.party || []).indexOf(t.doll);
     // 1段鍛える (WP-B の train は新たな技もトーストで知らせる)。長押しで隊の魂の区分 (上限まで鍛えるなど)
-    out.push({ key: "train", prio: 60, label: "魂を鍛える", sub: `${t.doll ? t.doll.name : ""} Lv${t.level}→${t.level + 1}`, cost: { kind: "soul", n: t.cost }, icon: "soul",
+    out.push({ key: "train", prio: 60, label: "魂を強化", sub: `${t.doll ? t.doll.name : ""} Lv${t.level}→${t.level + 1}`, cost: { kind: "soul", n: t.cost }, icon: "soul",
       run: () => (typeof t.train === "function" ? t.train(1) : ops.trainTimes(t.uid, 1)),
       hold: () => { if (UI.openParty) UI.openParty(t.doll || Math.max(0, idx), { seg: "soul" }); } });
   }
   // 勲章: 王宮の勲章の区分へ (どれを受け取るかは勲章の画面で選ぶ楽しみとして残す)
   if (c.ach) out.push({ key: "ach", prio: 70, label: "勲章を拝受", sub: `${c.ach} 個`, icon: "medal", run: () => { if (UI.openPalace) UI.openPalace("ach"); } });
-  // 宝物庫: 新種をまとめて奉納 → 節目に届けばそのまま褒賞へ / 褒賞だけ残っている
+  // 宝物庫: 蒐集品を奉納 → 王宮の宝物庫へ (奉納する品はそこで確かめてから納める) / 褒賞だけ残っている
   if (c.donatable) {
-    out.push({ key: "donate", prio: 80, label: "新種を奉納", sub: `${c.donatable} 種`, icon: "treasury",
-      run: () => { const r = ops.donateAllNew(); if (r && r.rewardReady && game.claimNextTreasury) game.claimNextTreasury(); } });
+    out.push({ key: "donate", prio: 80, label: "蒐集品を奉納", sub: `${c.donatable} 種`, icon: "treasury",
+      run: () => { if (UI.openPalace) UI.openPalace("treasury"); } });
   } else if (c.treasuryReady) {
     out.push({ key: "treasury", prio: 80, label: "褒賞を受け取る", short: "褒賞を拝受", sub: "宝物庫", icon: "treasury", run: () => game.claimNextTreasury && game.claimNextTreasury() });
   }

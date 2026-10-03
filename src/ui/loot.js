@@ -272,6 +272,14 @@ export async function sellOne(owner, it) {
   floatGold(price);
   return true;
 }
+// 鑑定の結果の行の「売る」(売値つき)。警告のある品は sellOne が確かめる。売れたら一覧を描き直す (売った品は消える)
+export function revealSellBtn(doll, it, onSold) {
+  const b = button({ label: "売る", sub: String(game.sellPrice(it)), kind: "secondary", size: "sm",
+    onTap: async () => { if (await sellOne(doll, it)) onSold(); } });
+  b.classList.add("wpc-prow-act", "sell");
+  b.dataset.act = "sell";
+  return b;
+}
 // 金貨が増えた/減った印を見出しの金貨の上に浮かべる
 export function floatGold(n, tone = "up") {
   if (!n) return;
@@ -300,6 +308,11 @@ const ARMOR_RANK = { heavy: 2, light: 1, cloth: 0 };
 const isReserve = (d) => (G().reserve || []).includes(d);
 // 並べる人業 (隊 → 控え。魂の無い空の器は除く)
 export function chooserDolls() { return allDolls().filter((d) => d && !d.isEmpty); }
+// 鑑定の心得のある者 (鑑定は街でのみ。隊と控えの全員から。迷宮では誰も鑑定できない)
+export function townAppraisers() {
+  if (!inTown()) return [];
+  return chooserDolls().filter((m) => m.alive && canIdentify(m));
+}
 
 // 付け替えで持ち物があふれるか (items.js の equip() と同じ数え方)。incoming = 他人の袋/棚から移ってくる
 function bagOverflow(d, it, incoming) {
@@ -546,7 +559,7 @@ export function openGivePicker(owner, it, { onDone } = {}) {
 export function identifyChooser(it, { onDone } = {}) {
   const g = G();
   const own = ownerOf(it);
-  const men = (g.party || []).filter((m) => m.alive && canIdentify(m));
+  const men = townAppraisers();
   const body = el("div", "wpc-picklist");
   let h = null;
   const done = (ok) => { if (onDone) onDone(ok); };
@@ -577,7 +590,8 @@ export function identifyChooser(it, { onDone } = {}) {
   const lines = [];
   if (it.lr) lines.push("レジェンドレアは、商会でしか鑑定できない。");
   else if (it.idHardFail) lines.push("一度鑑定に失敗した品。もう商会でしか鑑定できない。");
-  else if (!men.length) lines.push("鑑定の心得のある者がパーティにいない。");
+  else if (!inTown()) lines.push("鑑定は街でしかできない。");
+  else if (!men.length) lines.push("鑑定の心得のある者がいない。");
   else lines.push("失敗すると、この品はもう商会でしか鑑定できない。");
   if (!body.childElementCount) body.appendChild(el("div", "wpc-empty", inTown() ? "商会で鑑定しよう。" : "街へ持ち帰って、商会で鑑定しよう。"));
   h = sheet.open({
@@ -623,19 +637,22 @@ function defaultActions(st) {
     if (town && shopOpen() && inBag) {
       const cost = game.appraiseCost(it);
       // 鑑定の心得のある者がいれば ▾ で「鑑定を試す (無料・失敗あり)」も選べる
-      const skill = !it.lr && !it.idHardFail && (g.party || []).some((m) => m.alive && canIdentify(m));
+      const skill = !it.lr && !it.idHardFail && townAppraisers().length > 0;
       acts.push({ key: "appraise", primary: true, label: "鑑定して装備", sub: "商会で鑑定 → 人業を選ぶ", cost, disabled: (g.gold || 0) < cost,
         onTap: () => { if (shopIdentifyOne(owner, it)) st.rerender({ revealed: true }); },
         menu: skill ? () => identifyChooser(it, { onDone: (ok) => st.rerender({ revealed: !!ok }) }) : null });
+    } else if (!town) {
+      // 鑑定は街でのみ (迷宮では心得のある者でも鑑定できない)
+      acts.push({ key: "tryId", primary: true, label: "鑑定は街でのみ", sub: "持ち帰って鑑定する", disabled: true });
     } else if (!it.lr && !it.idHardFail) {
-      const men = (g.party || []).filter((m) => m.alive && canIdentify(m));
+      const men = townAppraisers();
       if (men.length) {
         const best = men.map((m) => ({ m, ch: identifyChance(m, it.lv || 1) })).sort((a, b) => b.ch - a.ch)[0];
         acts.push({ key: "tryId", primary: true, label: "鑑定を試す", sub: `${best.m.name} ${Math.round(best.ch * 100)}%`,
           onTap: () => { const ok = game.doIdentifySkill ? game.doIdentifySkill(best.m, it) : false; st.rerender({ revealed: !!ok }); },
           menu: men.length > 1 || (town && shopOpen()) ? () => identifyChooser(it, { onDone: (ok) => st.rerender({ revealed: !!ok }) }) : null });
       } else {
-        acts.push({ key: "tryId", primary: true, label: "鑑定の心得のある者がいない", sub: town ? "商会で鑑定できる" : "街の商会で鑑定できる", disabled: true });
+        acts.push({ key: "tryId", primary: true, label: "鑑定の心得のある者がいない", sub: "商会で鑑定できる", disabled: true });
       }
     } else {
       acts.push({ key: "tryId", primary: true, label: it.lr ? "商会でのみ鑑定できる" : "鑑定に失敗した品", sub: "街の商会で鑑定する", disabled: true });
@@ -660,7 +677,8 @@ function defaultActions(st) {
     st.equipFirst = isUpgrade(it, { owner });
   }
 
-  // ---- 売る (商会が開いている街) ----
+  // ---- 渡す / 売る (商会が開いている街) / 捨てる ----
+  if (inBag && giveCandidates(owner).length) acts.push({ key: "give", label: "渡す", caret: true, onTap: () => openGivePicker(owner, it, { onDone: () => st.close() }) });
   if (town && shopOpen() && inBag) {
     const price = it.unidentified ? 0 : game.sellPrice(it);
     const warn = !it.unidentified && game.sellWarnings && game.sellWarnings(it).length;
@@ -668,11 +686,7 @@ function defaultActions(st) {
       label: it.unidentified ? "鑑定せず売る" : "売る", cost: price,
       onTap: async (close) => { if (await sellOne(owner, it)) close(); } });
   }
-  // ---- 渡す / 捨てる ----
-  if (inBag) {
-    if (giveCandidates(owner).length) acts.push({ key: "give", label: "渡す", caret: true, onTap: () => openGivePicker(owner, it, { onDone: () => st.close() }) });
-    acts.push({ key: "drop", label: "捨てる", kind: "ghost", onTap: async (close) => { if (await discard(owner, it)) close(); } });
-  }
+  if (inBag) acts.push({ key: "drop", label: "捨てる", kind: "ghost", onTap: async (close) => { if (await discard(owner, it)) close(); } });
   return acts;
 }
 
@@ -876,14 +890,11 @@ function bumpRunbar(rk) {
   });
 }
 
-// トーストの操作: 迷宮の未鑑定品 = 鑑定 (心得のある者がいれば) / 街の未鑑定品 = 品シート / 装備で得をする者がいれば = 装備
+// トーストの操作: 街の未鑑定品 = 品シート (迷宮では鑑定できない) / 装備で得をする者がいれば = 装備
 function toastAction(it, who) {
-  const g = G();
   if (it.unidentified) {
     if (inTown()) return shopOpen() ? { label: "鑑定", fn: () => itemSheet(it, { owner: ownerOf(it) ? ownerOf(it).doll : who }) } : null;
-    if (it.lr || it.idHardFail) return null;
-    if (!(g.party || []).some((m) => m.alive && canIdentify(m))) return null;
-    return { label: "鑑定", fn: () => identifyChooser(it) };
+    return null;
   }
   if (!isEquippable(it)) return null;
   const plan = wearPlan(it, { owner: who });
@@ -1014,6 +1025,9 @@ export function install() {
     markSeen,
     newCount,
     wearPlan,
+    sellOne,
+    shopOpen,
+    townAppraisers,
     lootPolicy: (it) => (CELEBRATE_RARITIES.has(rarityKey(it)) ? "celebrate" : "toast"),
   });
 }

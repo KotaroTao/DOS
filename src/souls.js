@@ -270,7 +270,7 @@ export const PASSIVES = {
   spellCrit:     { label: "呪文会心",     scope: "self",  lv: ["攻撃呪文が10%で会心 (×1.5)", "攻撃呪文が18%で会心 (×1.5)", "攻撃呪文が26%で会心 (×1.5)"] },
   scan:          { label: "弱点看破",     scope: "party", lv: ["戦闘中、敵の属性が見える"] },
   elemFloor:     { label: "森羅の理",     scope: "self",  lv: ["自分の攻撃呪文に属性の不利が出なくなる"] },
-  kantei:        { label: "鑑定",         scope: "self",  lv: ["未鑑定の装備をその場で鑑定できる (簡易・安物向き)", "未鑑定の装備を高い精度で鑑定できる (高lv品にも強い)"] },
+  kantei:        { label: "鑑定",         scope: "self",  lv: ["街で未鑑定の装備を無料で鑑定できる (簡易・安物向き。控えにいても担える)", "街で未鑑定の装備を高い精度で鑑定できる (高lv品にも強い。控えにいても担える)"] },
 };
 
 export function passiveName(key, lv = 1) {
@@ -280,6 +280,15 @@ export function passiveName(key, lv = 1) {
 export function passiveDesc(key, lv = 1) {
   const def = PASSIVES[key]; if (!def) return "";
   return def.lv[Math.min(lv, def.lv.length) - 1] || "";
+}
+// 表示名 (「戦闘後回復Lv1」など) から {key, lv} を引く。見つからなければ null
+let PASSIVE_BY_NAME = null;
+export function passiveByName(name) {
+  if (!PASSIVE_BY_NAME) {
+    PASSIVE_BY_NAME = {};
+    for (const key in PASSIVES) for (let lv = 1; lv <= PASSIVES[key].lv.length; lv++) PASSIVE_BY_NAME[passiveName(key, lv)] = { key, lv };
+  }
+  return PASSIVE_BY_NAME[name] || null;
 }
 const P = (key, lv = 1) => ({ name: passiveName(key, lv), desc: passiveDesc(key, lv), grants: { [key]: lv } });
 const U = (name, desc, grants) => ({ name, desc, grants });
@@ -1178,9 +1187,9 @@ export function jobSkillTable(jobKey) { return JOB_SKILLS[jobKey] || []; }
 
 // ===== 鑑定スキル (ウィザードリィ風) =====
 // 鑑定は職業スキル「鑑定 (kantei)」として実装。スキルを覚えた人業は未鑑定の装備を
-// その場で鑑定できる。ただし成功率は決して 100% にならず (上限95%)、失敗するとその品は
+// 街で無料で鑑定できる (迷宮では不可。隊にいなくても控えから担える)。ただし成功率は決して 100% にならず (上限95%)、失敗するとその品は
 // スキルでは二度と鑑定できなくなる (idHardFail フラグが立ち、確実だが有料の商店鑑定に頼る)。
-// 「育てれば道中で無料鑑定できるが、確実さは商店が握る」という住み分け。
+// 「育てれば街で無料鑑定できるが、確実さは商店が握る」という住み分け。
 //   司教 (bishop)・賢者 (sage) = 鑑定Lv2 (高精度) / 盗賊 (thief) = 鑑定Lv1 (簡易)
 // 鑑定スキルレベル (1/2) ごとの成功率パラメータ:
 //   base: 基準成功率 / perLv: 魂レベル1ごとの上昇 / lvPenalty: 品のlv1ごとの低下 / floor: 下限
@@ -2461,18 +2470,48 @@ function imageJobSprite(key, r) {
 // 職業の胸像 (肖像の小さな額・一覧の札用)。原画のある職は顔を中心に正方形で切り出す。
 // 原画の無い職は従来の 12×12 の小さな全身像 (それ自体が額に収まる大きさ) をそのまま返す
 const BUST = 36;
+// 原画は職ごとに描かれた縮尺が違い、顔のドット数が揃わない (盗賊は大きく、呪術師・隠修士は小さい)。
+// 戦士の顔を基準として、職ごとに切り出す正方形を BUST × zoom にし、BUST 角へ縮め/伸ばして、
+// どの職も額の中の顔が同じ大きさに見えるようにする。zoom > 1 = 顔が大きく描かれた職 (広く切って縮める) /
+// zoom < 1 = 顔が小さい職 (狭く切って伸ばす)。dx/dy = 切り出しの中心を face からずらすドット数 (顔の真ん中へ寄せる)
+export const BUST_FIT = {
+  thief: { zoom: 1.2 },
+  hermit: { zoom: 0.8, dy: -4 },
+  hexer: { zoom: 0.65, dx: 2, dy: -7 },
+};
 const _bustCache = {};
 export function jobBust(jobKey, rank = 2) {
   const spr = jobSprite(jobKey, rank);
   if (!spr.face) return spr;
-  const cacheKey = jobKey + ":" + Math.max(1, Math.min(5, Math.round(rank) || 2));
+  const fit = BUST_FIT[jobKey] || {};
+  const zoom = fit.zoom || 1;
+  const cacheKey = [jobKey, Math.max(1, Math.min(5, Math.round(rank) || 2)), zoom, fit.dx || 0, fit.dy || 0].join(":");
   if (_bustCache[cacheKey]) return _bustCache[cacheKey];
-  const x0 = Math.round(spr.face[0] - BUST / 2), y0 = Math.round(spr.face[1] - BUST / 2);
+  const S = Math.max(8, Math.round(BUST * zoom));
+  const cx = spr.face[0] + (fit.dx || 0), cy = spr.face[1] + (fit.dy || 0);
+  const x0 = Math.round(cx - S / 2), y0 = Math.round(cy - S / 2);
+  const at = (x, y) => { const ch = y < 0 || x < 0 ? "" : (spr.art[y] || "")[x]; return ch || "."; };
+  const k = S / BUST;
   const art = [];
-  for (let y = y0; y < y0 + BUST; y++) {
-    const row = spr.art[y] || "";
+  for (let oy = 0; oy < BUST; oy++) {
+    const ya = Math.floor(oy * k), yb = Math.max(ya + 1, Math.floor((oy + 1) * k));
     let line = "";
-    for (let x = x0; x < x0 + BUST; x++) line += (y < 0 || x < 0 || !row[x]) ? "." : row[x];
+    for (let ox = 0; ox < BUST; ox++) {
+      const xa = Math.floor(ox * k), xb = Math.max(xa + 1, Math.floor((ox + 1) * k));
+      if (xb - xa === 1 && yb - ya === 1) { line += at(x0 + xa, y0 + ya); continue; }
+      // 縮める時は、まとめる升目でいちばん多い色 (透明が過半なら透明)。同数なら左上寄りの色
+      const tally = new Map();
+      let n = 0, clear = 0;
+      for (let y = ya; y < yb; y++) for (let x = xa; x < xb; x++) {
+        const ch = at(x0 + x, y0 + y);
+        n++;
+        if (ch === ".") { clear++; continue; }
+        tally.set(ch, (tally.get(ch) || 0) + 1);
+      }
+      let best = ".", bn = 0;
+      for (const [ch, c] of tally) if (c > bn) { best = ch; bn = c; }
+      line += clear * 2 > n ? "." : best;
+    }
     art.push(line);
   }
   return (_bustCache[cacheKey] = { palette: spr.palette, art });

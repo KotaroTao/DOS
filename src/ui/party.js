@@ -19,7 +19,7 @@ import {
 import { deltaFloat } from "./motion.js";
 import { remember, setPref, getPref } from "./prefs.js";
 import {
-  statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, itemCatText,
+  statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds,
 } from "./itemview.js";
 import { renderSoulSeg, openSoulPicker } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
@@ -41,13 +41,20 @@ let selDoll = null;       // 表示中の人業 (隊・控えのどちらでも)
 let picked = null;        // 隊列の入れ替えで持ち上げた人業 (タップで移す先を選ぶ代替操作)
 let intent = null;        // 次の描画で行うこと ({reserve:true} / {seg})
 let sheetH = null;        // 迷宮の隊シート
+let dunSeg = null;        // 迷宮の隊シートで表示中の区分 (開くたび「装備」から。街の隊タブの記憶とは別)
 let statOpen = null;      // 能力の説明を開いている能力キー
 let resPage = 0;          // 控えのシートの頁
 let phase0ItemSheet = null; // Phase 0 の品シートのスタブ (WP-C の本物が来るまでは自前の品の画面を使う)
 
 const SEGS = [{ key: "equip", label: "装備" }, { key: "soul", label: "魂" }, { key: "stats", label: "能力" }];
-function curSeg() { const s = remember("seg", "party"); return SEGS.some((x) => x.key === s) ? s : "equip"; }
-function setSeg(k) { if (SEGS.some((x) => x.key === k)) remember("seg", "party", k); }
+function curSeg() {
+  if (dunSeg) return dunSeg;
+  const s = remember("seg", "party"); return SEGS.some((x) => x.key === s) ? s : "equip";
+}
+function setSeg(k) {
+  if (!SEGS.some((x) => x.key === k)) return;
+  if (dunSeg) dunSeg = k; else remember("seg", "party", k);
+}
 
 const G_ = () => game.G;
 const allDolls = () => (game.allDolls ? game.allDolls() : [...(G_().party || []), ...(G_().reserve || [])]);
@@ -377,7 +384,7 @@ export function openEquipChooser(item, { owner = null, actions = null } = {}) {
 }
 
 // ================= 最適装備 =================
-let bgcMemo = { key: "", n: 0 };
+let bgcMemo = { key: "", n: 0, hints: [] };
 function betterGearCount() {
   const G = G_();
   if (!G || !G.party) return 0;
@@ -385,12 +392,39 @@ function betterGearCount() {
   if (bgcMemo.key === key) return bgcMemo.n;
   memoClear();
   let n = 0;
+  const hints = [];
   for (const d of G.party) {
     if (!d) continue;
-    if (SLOTS.some((k) => slotInfo(d, k).better)) n++;
+    let hit = false;
+    for (const k of SLOTS) {
+      const best = slotCandidates(d, k).find((c) => c.room && !c.cursed && c.gain > 0.05);
+      if (best) { hit = true; hints.push(`b${d.uid}:${k}:${best.it.id}`); }
+    }
+    if (hit) n++;
   }
-  bgcMemo = { key, n };
+  bgcMemo = { key, n, hints };
   return n;
+}
+
+// ================= タブの印 (赤い点) =================
+// 器の砕けた人業 (数) は直るまで出し続ける。
+// 「✦で鍛えられる魂」「袋により良い品」は放っておいても困らないお勧めなので、館を開いたら既読にし、
+// 新しく増えた時だけ点け直す (✦Soul は戦闘のたびに貯まるので、既読にしないと点きっぱなしになる)。
+function tabHints() {
+  const out = [];
+  try { for (const x of (ops.trainableList ? ops.trainableList() : [])) out.push(`t${x.uid}`); } catch (e) { /* noop */ }
+  try { if (betterGearCount() > 0) out.push(...bgcMemo.hints); } catch (e) { /* noop */ }
+  return out;
+}
+function ackTabHints() {
+  const now = tabHints();
+  const seen = getPref("partyHintsSeen", []) || [];
+  if (now.length !== seen.length || now.some((k) => !seen.includes(k))) setPref("partyHintsSeen", now);
+}
+function tabBadge(counts) {
+  if (counts && counts.dead) return counts.dead;
+  const seen = getPref("partyHintsSeen", []) || [];
+  return tabHints().some((k) => !seen.includes(k)) ? true : null;
 }
 
 function autoEquip(target = "all") {
@@ -406,7 +440,7 @@ function autoEquip(target = "all") {
     return { ok: false, moves: 0 };
   }
   const involved = plan.undoSnapshot.map((s) => s.doll);
-  const before = new Map(targets.map((d) => [d, previewStats(d, d.equip, recalc)]));
+  const before = new Map(plan.undoSnapshot.map((s) => [s.doll, previewStats(s.doll, s.equip, recalc)]));
   if (!applyPlan(plan, { recalc })) { sfx("ng"); toast("付け替えられなかった", { tone: "bad" }); return { ok: false, moves: 0 }; }
   const sig = equipSignature(involved);
   for (const m of plan.moves) game.log(`最適装備: ${m.doll.name} ← ${m.item.name}${m.from !== m.doll ? `（${m.from.name}から）` : ""}`, "win");
@@ -417,20 +451,82 @@ function autoEquip(target = "all") {
   const sel = targets.includes(selDoll) ? selDoll : targets[0];
   const d0 = before.get(sel);
   if (d0) floatDelta(".pt-head .pt-port", statsDelta(d0, previewStats(sel, sel.equip, recalc)));
-  const who = targets.length > 1 ? `パーティの${new Set(plan.moves.map((m) => m.doll)).size}体` : targets[0].name;
-  toast(`最適装備: ${who}の ${plan.moves.length}点を付け替えた`, {
-    tone: "good",
-    action: { label: "元に戻す", fn: () => {
-      if (equipSignature(involved) !== sig) { sfx("ng"); toast("装備が変わったため、元に戻せない", { tone: "bad" }); return; }
-      restoreEquip(plan.undoSnapshot, recalc);
-      game.log("最適装備を元に戻した。", "sys");
-      sfx("select"); bgcMemo.key = "";
-      if (game.autosave) game.autosave(true);
-      rerender();
-      toast("元に戻した", { tone: "info" });
-    } },
-  });
+  // 結果のシート: 誰が何を装備し、能力がどう変わったか (+ 元に戻す)
+  const undo = () => {
+    if (equipSignature(involved) !== sig) { sfx("ng"); toast("装備が変わったため、元に戻せない", { tone: "bad" }); return false; }
+    restoreEquip(plan.undoSnapshot, recalc);
+    game.log("最適装備を元に戻した。", "sys");
+    sfx("select"); bgcMemo.key = "";
+    if (game.autosave) game.autosave(true);
+    rerender();
+    toast("元に戻した", { tone: "info" });
+    return true;
+  };
+  openAutoEquipResult(plan, before, undo);
   return { ok: true, moves: plan.moves.length, plan };
+}
+
+// 最適装備の結果: 人業ごとに [部位: 前の品 → 新しい品 (誰から)] と能力の 前→後
+function openAutoEquipResult(plan, before, undo) {
+  const rows = [];
+  for (const s of plan.undoSnapshot) {
+    const d = s.doll;
+    const changes = SLOTS.filter((k) => (s.equip[k] || null) !== (d.equip[k] || null)).map((k) => {
+      const it = d.equip[k] || null;
+      const mv = it && plan.moves.find((m) => m.item === it && m.doll === d);
+      return { k, from: s.equip[k] || null, to: it, giver: mv && mv.from !== d ? mv.from : null };
+    });
+    if (!changes.length) continue;
+    const b = before.get(d), a = previewStats(d, d.equip, recalc);
+    rows.push({ d, changes, b, a });
+  }
+  if (!rows.length) return null;
+  const nameEl = (cls, it) => (game.itemNameEl ? game.itemNameEl("span", cls, it) : el("span", cls, itemName(it)));
+  const body = el("div", "pt-ae");
+  for (const r of rows) {
+    const card = el("div", "pt-ae-card");
+    const top = el("div", "pt-ae-top");
+    top.appendChild(portraitEl(r.d, { size: 36, tag: "span" }));
+    top.appendChild(el("span", "pt-ae-n", r.d.name));
+    card.appendChild(top);
+    const list = el("div", "pt-ae-list");
+    for (const c of r.changes) {
+      const ln = el("div", "pt-ae-ln");
+      ln.appendChild(el("span", "pt-ae-k", SLOT_LABEL[c.k]));
+      const tx = el("span", "pt-ae-tx");
+      if (c.from) { tx.appendChild(nameEl("pt-ae-old", c.from)); tx.appendChild(el("span", "pt-ae-ar", "→")); }
+      if (c.to) tx.appendChild(nameEl("pt-ae-new", c.to));
+      else tx.appendChild(el("span", "pt-ae-none", "外す"));
+      if (c.giver) tx.appendChild(el("span", "pt-ae-from", `（${c.giver.name}から）`));
+      ln.appendChild(tx);
+      list.appendChild(ln);
+    }
+    card.appendChild(list);
+    const st = el("div", "pt-ae-st");
+    const pairs = [["atk", "atk"], ["vit", "vit"], ["agi", "agi"], ["int", "int"], ["pie", "pie"], ["luk", "luk"], ["hp", "maxhp"], ["mp", "maxmp"]];
+    for (const [lab, k] of pairs) {
+      const v0 = r.b[k] || 0, v1 = r.a[k] || 0;
+      if (v0 === v1) continue;
+      const chip = el("span", "pt-ae-s " + (v1 > v0 ? "up" : "dn"));
+      chip.appendChild(el("span", "pt-ae-sk", DLABEL[lab]));
+      chip.appendChild(el("span", null, `${v0}→${v1}`));
+      chip.appendChild(el("span", "pt-ae-sd", `${v1 > v0 ? "▲" : "▼"}${Math.abs(v1 - v0)}`));
+      st.appendChild(chip);
+    }
+    if (!st.childElementCount) st.appendChild(el("span", "pt-ae-s eq", "能力の変化なし"));
+    card.appendChild(st);
+    body.appendChild(card);
+  }
+  const n = plan.moves.length;
+  return sheet.open({
+    kind: "info", banner: "最適装備", className: "pt-ae-sheet",
+    lines: [`${rows.length}体の装備を ${n}点 付け替えた。`],
+    body,
+    footer: [
+      { label: "これでよい", kind: "primary", onTap: (h) => h.close() },
+      { label: "元に戻す", kind: "ghost", onTap: (h) => { if (undo()) h.close(); } },
+    ],
+  });
 }
 
 // 付け替えの増減を、枠の上に浮かべる
@@ -488,6 +584,7 @@ function renderTab(root, api) {
   const wrap = el("div", "pt-root m-town");
   renderView(wrap, "town");
   root.appendChild(wrap);
+  ackTabHints(); // 館を開いた = お勧めは見た (タブの赤い点を消す)
   // 予約された操作 (旧「館」の入口から: 控え・仕立て / 魂の区分)
   if (intent) {
     const it = intent; intent = null;
@@ -1179,9 +1276,9 @@ function campStrip(d) {
 }
 
 // ---- 区分 + 最適装備 ----
-function segBar(d) {
+function segBar(d, mode) {
   const wrap = el("div", "pt-segbar");
-  const seg = segmented(SEGS, curSeg(), (k) => { setSeg(k); sfx("select"); rerender(); }, { prefKey: "party" });
+  const seg = segmented(SEGS, curSeg(), (k) => { setSeg(k); sfx("select"); rerender(); }, { prefKey: mode === "dungeon" ? null : "party" });
   seg.classList.add("pt-seg");
   wrap.appendChild(seg);
   if (d.primary != null) {
@@ -1278,6 +1375,7 @@ function slotCell(d, k) {
   r.appendChild(tx);
   r.setAttribute("aria-label", `${SLOT_LABEL[k]}: ${it ? itemName(it) : "空き"}${info.better ? " (もっと良い品がある)" : ""}`);
   r.addEventListener("click", () => { sfx("select"); openCandidates(d, k); });
+  if (it) longPress(r, () => openItemDetail(it));
   return r;
 }
 
@@ -1299,7 +1397,7 @@ function bagCell(d, it) {
   c.title = itemName(it);
   c.setAttribute("aria-label", itemName(it));
   c.addEventListener("click", () => { sfx("select"); openItem(it, d, { from: "bag" }); });
-  longPress(c, () => openItem(it, d, { from: "bag" }));
+  longPress(c, () => openItemDetail(it));
   return c;
 }
 
@@ -1325,6 +1423,7 @@ function candBody(root, d, k, h, town) {
     cic.type = "button";
     cic.setAttribute("aria-label", `${itemName(cur)} をくわしく`);
     cic.addEventListener("click", () => openItem(cur, d, { from: "equip", key: k }));
+    longPress(cic, () => openItemDetail(cur));
     cic.appendChild(spriteCanvas(cur, 2));
   }
   curBox.appendChild(cic);
@@ -1374,6 +1473,7 @@ function candRow(d, k, c, h) {
   ic.appendChild(spriteCanvas(c.it, 2));
   ic.setAttribute("aria-label", `${itemName(c.it)} ― 誰に装備させるか`);
   ic.addEventListener("click", () => { h.close("replace", { silent: true }); openItem(c.it, c.owner, { from: "bag" }); });
+  longPress(ic, () => openItemDetail(c.it));
   wrap.appendChild(ic);
   const main = el("button", "pt-cand-main");
   main.type = "button";
@@ -1393,7 +1493,7 @@ function candRow(d, k, c, h) {
     if (c.it.cursed) confirm({ title: `${c.it.name} は呪われている`, lines: ["一度装備すると外せない。それでも付ける？"], okLabel: "付ける" }).then((y) => { if (y) go(); });
     else go();
   });
-  longPress(main, () => openItem(c.it, c.owner, { from: "bag" }));
+  longPress(main, () => openItemDetail(c.it));
   wrap.appendChild(main);
   return wrap;
 }
@@ -1441,7 +1541,7 @@ function statsSeg(root, d) {
   root.appendChild(grid);
   fillInfo();
   root.appendChild(info);
-  // 技 (タップ = くわしく)・加護 (長押し = くわしく) の札は横に流れる1列
+  // 技・加護 (どちらもタップ = くわしく) の札は横に流れる1列
   if (d.spells && d.spells.length) {
     const line = el("div", "pt-chiprow");
     line.appendChild(el("span", "pt-chiprow-l", "技"));
@@ -1451,6 +1551,8 @@ function statsSeg(root, d) {
       const c = el("button", "pt-skill");
       c.type = "button";
       c.appendChild(el("span", "pt-skill-n", sp ? sp.name : key));
+      const tg = sp && tagRow(spellTagKinds(sp, d), "pt-skill-tags");
+      if (tg) c.appendChild(tg);
       if (sp) c.appendChild(el("span", "pt-skill-c", `MP${sp.mp}`));
       c.addEventListener("click", () => showSkillPopup(key));
       sc.appendChild(c);
@@ -1466,7 +1568,7 @@ function statsSeg(root, d) {
       const c = el("button", "pt-skill pas");
       c.type = "button";
       c.appendChild(el("span", null, p));
-      c.addEventListener("click", () => toast(`加護「${p}」― 常に働く力`, { tone: "info" }));
+      c.addEventListener("click", () => { if (!showPassivePopup(p)) toast(`加護「${p}」― 常に働く力`, { tone: "info" }); });
       sc.appendChild(c);
     }
     line.appendChild(sc);
@@ -1477,6 +1579,13 @@ function statsSeg(root, d) {
     r.classList.add("pt-codex");
     root.appendChild(r);
   }
+}
+
+// 長押し = 図鑑と同じ品の詳細 (絵・分類・性能・説明だけの読み物。操作は出さない)
+export function openItemDetail(item) {
+  if (!item) return null;
+  if (UI.codexItemSheet) return UI.codexItemSheet(item.id, { item });
+  return openItem(item);
 }
 
 // ================= 品の画面 =================
@@ -1514,18 +1623,9 @@ function itemActions(it, owner, ctx, { equip = true } = {}) {
     if (town) {
       acts.push({ label: "商会で鑑定する", sub: game.appraiseCost ? `鑑定料 ${game.appraiseCost(it)}` : "", kind: "primary",
         onTap: (h) => { close(h); if (UI.openShop) UI.openShop("sell"); } });
-    } else if (it.lr || it.idHardFail) {
-      acts.push({ label: it.lr ? "レジェンドレアは商会でのみ鑑定できる" : "鑑定に失敗済み ― 商会でのみ", kind: "ghost", disabled: true });
     } else {
-      const men = G.party.filter((m) => m.alive && game.canIdentify && game.canIdentify(m));
-      if (!men.length) acts.push({ label: "鑑定の心得がある仲間がいない", kind: "ghost", disabled: true });
-      else {
-        const ch = (m) => (game.identifyChance ? game.identifyChance(m, it.lv || 1) : 0);
-        const best = men.slice().sort((a, b) => ch(b) - ch(a))[0];
-        acts.push({ label: `鑑定を試す ― ${best.name} ${Math.round(ch(best) * 100)}%`, sub: "失敗すると商会でしか鑑定できなくなる", kind: "primary",
-          onTap: (h) => { close(h); if (game.doIdentifySkill) game.doIdentifySkill(best, it); rerender(); } });
-        if (men.length > 1) acts.push({ label: "他の者が鑑定する", kind: "secondary", onTap: (h) => { close(h); if (game.openIdentifyChooser) game.openIdentifyChooser(it); } });
-      }
+      // 鑑定は街でのみ (迷宮では心得のある者でも鑑定できない)
+      acts.push({ label: "鑑定は街でのみ", sub: "持ち帰って鑑定する", kind: "ghost", disabled: true });
     }
   } else if (it.slot === "use") {
     acts.push({ label: `${owner.name}が使う`, kind: "primary", onTap: (h) => { close(h); const i = owner.items.indexOf(it); if (i >= 0 && game.useItem) game.useItem(owner, i); } });
@@ -1535,6 +1635,12 @@ function itemActions(it, owner, ctx, { equip = true } = {}) {
     acts.push({ label: town ? "商会で売るか、王宮の宝物庫へ奉納する" : "街へ持ち帰ろう (商会・宝物庫)", kind: "ghost", disabled: true });
   }
   if (transferTargets(owner).length) acts.push({ label: "渡す", kind: "secondary", onTap: (h) => { close(h); openTransfer(owner, it); } });
+  // 売る (商会が開いている街。鑑定済みの品。値段・警告・確認は商会と同じ UI.sellOne)
+  if (town && !it.unidentified && UI.sellOne && UI.shopOpen && UI.shopOpen() && owner.items.includes(it) && game.sellPrice) {
+    const warn = game.sellWarnings && game.sellWarnings(it).length;
+    acts.push({ key: "sell", label: "売る", kind: warn ? "danger" : "secondary", cost: game.sellPrice(it),
+      onTap: async (h) => { if (await UI.sellOne(owner, it)) close(h); } });
+  }
   acts.push({ label: "捨てる", kind: "danger", onTap: (h) => { close(h); const i = owner.items.indexOf(it); if (i >= 0 && game.dropItem) game.dropItem(owner, i); } });
   return acts;
 }
@@ -1618,16 +1724,17 @@ export function pickTarget({ banner = "対象", accent = null, title = "誰に�
 }
 
 // ================= 迷宮の隊シート =================
-export function openSheet(d) {
+export function openSheet(d, seg = null) {
   const G = G_();
   if (d) select(d);
-  if (sheetH && !sheetH.closed) { refreshSheet(); return sheetH; }
+  if (sheetH && !sheetH.closed) { if (seg) setSeg(seg); refreshSheet(); return sheetH; }
   G.statusOpen = true;
+  dunSeg = SEGS.some((x) => x.key === seg) ? seg : "equip"; // 開くたび「装備」から (指定があればその区分)
   sheetH = sheet.open({
     kind: "info", className: "pt-sheet", banner: "パーティの様子",
     body: (scroll) => { const w = el("div", "pt-root m-dungeon"); renderView(w, "dungeon"); scroll.appendChild(w); },
     footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
-    onClose: () => { G.statusOpen = false; sheetH = null; picked = null; if (game.renderParty) { try { game.renderParty(); } catch (e) { /* noop */ } } },
+    onClose: () => { G.statusOpen = false; sheetH = null; dunSeg = null; picked = null; if (game.renderParty) { try { game.renderParty(); } catch (e) { /* noop */ } } },
   });
   return sheetH;
 }
@@ -1649,15 +1756,15 @@ function openParty(idx = null, o = {}) {
   const context = o.context || (G.state === "town" ? "town" : "dungeon");
   const d = idx && typeof idx === "object" ? idx : (G.party[idx == null ? (getPref("partyIdx", 0) || 0) : idx] || null);
   if (d) select(d);
-  if (o.seg) setSeg(o.seg);
   if (context === "town") {
     if (G.state !== "town") return false;
+    if (o.seg) setSeg(o.seg);
     const t = G.town || {};
     if (t.tab === "party" && !t.facility && !t.page) { game.renderTown(); return true; }
     return UI.shell ? UI.shell.setTab("party") : false;
   }
   if (G.state !== "board") return false;
-  openSheet();
+  openSheet(null, o.seg);
   return true;
 }
 
@@ -1680,12 +1787,7 @@ export function install() {
     UI.shell.registerTab("party", {
       title: "人業の館",
       render: (root, api) => renderTab(root, api),
-      badge: (counts) => {
-        if (counts && counts.dead) return counts.dead;
-        let better = 0;
-        try { better = betterGearCount(); } catch (e) { better = 0; }
-        return (counts && counts.trainable) || better ? true : null;
-      },
+      badge: tabBadge,
     });
   }
 }

@@ -365,7 +365,8 @@ body.pt-dragging, body.pt-dragging * { cursor: grabbing !important; user-select:
 @media (max-width: 519px) {
   .pt-bagbar-acts .pt-allauto { white-space: normal; line-height: 1.25; text-align: center; padding: 4px 10px; }
 }
-.pt-allauto .ui-badge { position: absolute; top: -5px; right: -5px; }
+/* 札は区分の中身 (.pt-body: 内側スクロール = 横も切られる) の右端に接するので、赤丸は札の内側の角に留める */
+.pt-allauto .ui-badge { position: absolute; top: -5px; right: 0; }
 .pt-bag { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 2px; }
 .pt-bcell {
   position: relative; display: flex; align-items: center; justify-content: center;
@@ -390,6 +391,30 @@ body.pt-dragging, body.pt-dragging * { cursor: grabbing !important; user-select:
   .pt-bagwrap .pt-bagbar-acts .pt-allauto { flex: 1 1 0; min-height: 40px; padding: 3px 6px; font-size: 11px; text-align: center; }
   .pt-bag { grid-template-columns: repeat(4, 44px); gap: 4px; }
 }
+
+/* ---------- 最適装備の結果 (シート): 誰が何を装備し、能力がどう変わったか ---------- */
+.pt-ae-sheet .ui-sheet-body { text-align: left; }
+.pt-ae { display: flex; flex-direction: column; gap: 6px; }
+.pt-ae-card { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; background: var(--grain), var(--plate); border: 1px solid #2f2628; border-radius: 3px; }
+.pt-ae-top { display: flex; align-items: center; gap: 8px; }
+.pt-ae-top .pt-port { width: 36px; height: 36px; flex: 0 0 auto; }
+.pt-ae-n { font-size: 14px; font-weight: 800; letter-spacing: 0.08em; color: var(--accent-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt-ae-list { display: flex; flex-direction: column; gap: 1px; }
+.pt-ae-ln { display: grid; grid-template-columns: 3.2em minmax(0, 1fr); align-items: baseline; gap: 6px; font-size: 12.5px; line-height: 1.4; }
+.pt-ae-k { font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; color: #8a6d2e; }
+.pt-ae-tx { min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 4px; }
+.pt-ae-old { color: #7d7262; font-weight: 500; text-decoration: line-through; text-decoration-color: rgba(228,85,79,0.6); }
+.pt-ae-new { font-weight: 700; }
+.pt-ae-ar { color: var(--accent); }
+.pt-ae-none { color: #7d7262; }
+.pt-ae-from { font-size: 11px; color: #9a8e78; }
+.pt-ae-st { display: flex; flex-wrap: wrap; gap: 3px 10px; padding-top: 3px; border-top: 1px solid rgba(138,109,46,0.25); font-size: 12px; font-variant-numeric: tabular-nums; }
+.pt-ae-s { display: inline-flex; align-items: baseline; gap: 4px; color: var(--ink); white-space: nowrap; }
+.pt-ae-sk { font-size: 10.5px; font-weight: 700; color: #9a8e78; }
+.pt-ae-sd { font-weight: 800; }
+.pt-ae-s.up .pt-ae-sd { color: var(--up); }
+.pt-ae-s.dn .pt-ae-sd { color: var(--down); }
+.pt-ae-s.eq { color: var(--ink-faint, #7d7262); }
 
 /* ---------- 装備候補 (シート) ---------- */
 .pt-cand-sheet .ui-sheet-body, .pt-pick-sheet .ui-sheet-body, .pt-res-sheet .ui-sheet-body, .pt-item-sheet .ui-sheet-body,
@@ -501,6 +526,7 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
   font-size: 13px; font-weight: 700; color: #e6dbc2; background: var(--grain), var(--plate-hi); border: 1px solid #4a3d36; border-radius: 2px; cursor: pointer;
 }
 .pt-skill-c { font-size: 11px; font-weight: 500; color: #8fb6ff; }
+.pt-skill-tags .ui-tag { font-size: 9px; }
 .pt-skill.pas { font-weight: 500; font-size: 12px; color: #cdbf9f; background: rgba(10,8,11,0.5); border-color: #33292a; }
 .pt-codex { min-height: 52px; }
 
@@ -626,6 +652,30 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
 .sp-next-k { color: #8f8372; font-size: 10.5px; letter-spacing: 0.08em; }
 .sp-next-v { color: #e6dbc2; font-weight: 700; }
 .sp-next-sk .sp-next-v { text-decoration: underline; text-decoration-color: rgba(201,162,74,0.45); text-underline-offset: 3px; }
+/* 強化の結果 (能力の before→after)。強化ボタンの下に重ねる = レイアウトを押し広げない */
+.sp-res-anchor { position: relative; }
+.sp-res {
+  position: absolute; z-index: 6; left: 0; right: 0; top: calc(100% + 4px);
+  display: flex; flex-direction: column; gap: 4px; padding: 6px 8px 7px;
+  background: linear-gradient(180deg, rgba(24,19,14,0.97), rgba(12,10,9,0.97));
+  border: 1px solid rgba(201,162,74,0.6); border-radius: 3px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.7), 0 0 14px color-mix(in srgb, var(--glow, #c9a24a) 25%, transparent);
+  cursor: pointer; transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.sp-res.fresh { animation: sp-res-in 0.28s ease-out; }
+.sp-res.out { opacity: 0; transform: translateY(-4px); }
+@keyframes sp-res-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+.sp-res-h { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.sp-res-k { font-size: 11px; font-weight: 700; letter-spacing: 0.2em; color: var(--accent-hi); }
+.sp-res-lv { font-size: 12px; font-weight: 800; color: #f5ecd6; font-variant-numeric: tabular-nums; }
+.sp-res-g { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px 6px; }
+.sp-res-s { display: grid; grid-template-columns: auto 1fr; grid-template-areas: "n d" "v v"; align-items: baseline; gap: 0 4px; min-width: 0; padding: 2px 4px; background: rgba(255,255,255,0.03); border-radius: 2px; font-variant-numeric: tabular-nums; }
+.sp-res-n { grid-area: n; font-size: 10px; color: #8f8372; letter-spacing: 0.06em; }
+.sp-res-d { grid-area: d; justify-self: end; font-size: 11.5px; font-weight: 800; }
+.sp-res-v { grid-area: v; font-size: 11.5px; color: #e6dbc2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-res-s.up .sp-res-d { color: var(--up, #7fd88a); }
+.sp-res-s.dn .sp-res-d { color: var(--down, #e07a6a); }
+.sp-res-none { grid-column: 1 / -1; font-size: 11.5px; color: #b2a68f; }
 .sp-ember-b { width: auto; margin-left: auto; padding: 2px 8px; gap: 6px; font-size: 12.5px; }
 .sp-ember-b .ui-btn-s { font-size: 10px; }
 .sp-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
@@ -734,7 +784,7 @@ button.sp-tile-main { cursor: pointer; }
 
 /* ---------- 視差を減らす設定 ---------- */
 @media (prefers-reduced-motion: reduce) {
-  .pt-port.target, .pt-bench.target, .pt-port-hp.low i, .sp-cel-rays, .sp-cel-art .pt-px, .sp-ru-rk.new { animation: none !important; }
+  .pt-port.target, .pt-bench.target, .pt-port-hp.low i, .sp-cel-rays, .sp-cel-art .pt-px, .sp-ru-rk.new, .sp-res.fresh { animation: none !important; }
   .pt-port, .pt-slot, .pt-chc { transition-duration: 0.12s !important; }
 }
 

@@ -6,13 +6,14 @@ import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audi
 import { spriteCanvas, crispCanvas } from "./sprites.js";
 import {
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, slotKeyFor, lvToRank, RANGE_LABEL,
-  UNIDENT_SLOTS, itemName,
+  UNIDENT_SLOTS, itemName, applyForge,
 } from "./items.js";
+import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
-import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
+import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE, unlockSceneFor, sealLines, unsealLines } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
-import { DUNGEONS, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_BOSS, monsterTraits, layerOf, isFloating } from "./dungeons/index.js";
+import { DUNGEONS, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, layerOf, isFloating } from "./dungeons/index.js";
 import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
@@ -38,7 +39,7 @@ import { el, btn, button as kitButton, longPress as attachLongPress, uiBlocked, 
 import { nav } from "./ui/nav.js";
 import * as townshell from "./ui/townshell.js";
 import { showSkillPopup,
-  SPELL_KIND_COLOR, isEquippable, equipPreviewDelta, equipCompareEl, detailLines,
+  SPELL_KIND_COLOR, tagRow, spellTagKinds, isEquippable, equipPreviewDelta, equipCompareEl, detailLines,
   equipClassText, equipPartyChips, gearScore,
 } from "./ui/itemview.js";
 import * as uiHub from "./ui/hub.js";
@@ -246,11 +247,13 @@ function pickOfRarity(rar, centerR, capR = 20) {
   if (!idx) return null;
   // コモン/アンコモンは窓を狭く (中心±1) して顔ぶれを絞る。レア以上は ±2
   const span0 = rar === "c" || rar === "uc" ? 1 : 2;
+  const L = battleLayer(); // 層の逸品 (layer つき) は、その層に達するまで出さない
   for (let span = span0; span <= 6; span++) {
     let total = 0; const acc = [];
     for (let r = Math.max(1, centerR - span); r <= Math.min(capR, centerR + span); r++) {
       const w = Math.max(1, 3 - Math.abs(r - centerR));
       for (const id of idx[r]) {
+        if ((ITEMS[id].layer || 0) > L) continue;
         const fj = ITEMS[id].forJob; // 職業専用装備は編成にいる職を強く優先
         // 編成の誰かが装備できる品を出やすくする (使えない新品ばかり拾わないように)
         const usable = G.party.some((m) => m.alive !== undefined && canEquip(m, ITEMS[id]));
@@ -274,7 +277,7 @@ function pickLoot(opts = {}) {
     const pool = miscLootIds().filter((id) => Math.max(1, Math.min(20, ITEMS[id].r20 || 1)) <= miscCap);
     if (pool.length) return pool[rand(pool.length)];
   }
-  const lrId = lrTimeRoll();
+  const lrId = opts.noLR ? null : lrTimeRoll(); // noLR: 迷宮のイベントが直接渡す品 (LR の時間抽選は宝箱・戦利品にだけ使う)
   if (lrId) return lrId;
   const order = ["c", "uc", "r", "sr"];
   const capR = lootCapR();
@@ -305,15 +308,17 @@ setInterval(() => {
   const c = lrClock();
   c.since += 5000 * f; c.pend += 5000 * f;
 }, 5000);
-// 今の深さで出せるLR (1点もの: 入手済みは除く)。第1層の逸品 (tier1) は出現上限 (lootCapR) 以内の隠しLvなら候補、
-// 職業専用LR (tier5以上) は従来どおり lootLv の解禁値を超えてから
+// 今の深さで出せるLR (1点もの: 入手済みは除く)。層の逸品 (tier1-4 = 第1〜4層) はその層に達していて、
+// 出現上限 (lootCapR) 以内の隠しLvなら候補。職業専用LR (tier5以上) は従来どおり lootLv の解禁値を超えてから
 function lrPool() {
   const lv = lootLvAt();
   const capLv = lootCapR() * 10;
+  const L = battleLayer();
   return Object.keys(ITEMS).filter((id) => {
     const it = ITEMS[id];
     if (it.rar !== "lr" || (G.lrOwned && G.lrOwned[id])) return false;
-    return it.lr <= 1 ? (it.lv || 1) <= capLv : lv >= (LR_UNLOCK[it.lr] || 40);
+    if (it.lr < 5) return (it.layer || it.lr) <= L && (it.lv || 1) <= capLv;
+    return lv >= (LR_UNLOCK[it.lr] || 40);
   });
 }
 function lrIntervalMs() { return lrIntervalH(dungeonNumber(activeCfg())) * HOUR_MS; }
@@ -343,7 +348,7 @@ function refundLR(it) {
 
 // ===== 職業専用LR の解禁深度 =====
 // LR (tier5以上 = 職業専用) は lootLv がティアの解禁値を超えてから時間抽選の候補に入る。
-// 第1層の逸品 (tier1) は常に候補。1点もの (G.lrOwned) は以後候補から外れる
+// 層の逸品 (tier1-4) は lrPool の層・出現上限の条件で候補。1点もの (G.lrOwned) は以後候補から外れる
 const LR_UNLOCK = { 5: 40, 10: 90, 15: 140, 20: 190 }; // LR ティア → 解禁 lootLv
 let _exclIds = null;
 function exclIds() {
@@ -454,11 +459,12 @@ const G = {
   rumorCooldown: 0,   // 次の噂を聞けるUNIXタイムスタンプ(ms) — 30分クールダウン
   activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
   deliveryQuests: null, // 酒場の納品依頼 [{itemId}] (最大3件。迷宮に潜るたびに入れ替わる)
-  codex: { mon: {}, item: {}, job: {} }, // 図鑑 (モンスター/アイテム/職業)
+  codex: { mon: {}, item: {}, job: {}, fresh: { mon: {}, item: {}, job: {} } }, // 図鑑 (モンスター/アイテム/職業)。fresh = 新着 (まだ詳細を見ていない記録)
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={蒐集品id:true}, claimed={"ランク:しきい値":true}
   lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
   lrClock: { since: 0, pend: 0 }, // レジェンドレアの時間抽選 (最後のLRからの/前回抽選からの実プレイms)
   order: { picks: [] }, // 控えの結社: 席に着けた魂のuid配列 (席数=orderSeats()。編成外ランク2以上のみ有効)
+  events: { seen: {}, picks: {}, once: {}, flags: {}, fresh: {} }, // 迷宮のイベント (src/events.js): 見聞録・一度きり・恒久の恵み
   irene: { greeted: false, visits: 0, seen: {}, last: null }, // 人業の館の主イレーヌ: 初訪問の挨拶済み・来館数・聞いた話 (src/ui/irene.js)
   story: 0,           // 王宮ストーリーの進行段階
   dragonSlain: false, // 竜を討ったか
@@ -570,9 +576,16 @@ function addSoulInstance(clsKey, count = 1, level = 1) {
   return s;
 }
 // 全人業を再計算する (魂の Lv/ランク/装備変化を反映)
-function recalcAllDolls() {
+// levelUp = true: 魂のレベルアップ後の再計算。最大HP/MPが増えた分を、いまのHP/MPにも足す
+// (倒れている人業はそのまま)
+function recalcAllDolls({ levelUp = false } = {}) {
   for (const d of allDolls()) {
+    const mh = d.maxhp || 0, mm = d.maxmp || 0;
     recalcDoll(d);
+    if (levelUp && d.alive !== false && d.hp > 0) {
+      if (d.maxhp > mh) d.hp += d.maxhp - mh;
+      if (d.maxmp > mm) d.mp += d.maxmp - mm;
+    }
     d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp);
   }
 }
@@ -682,9 +695,11 @@ function log(msg, cls = "sys") {
 function curDungeon() { return DUNGEONS[G.dungeonIdx] || DUNGEONS[0]; }
 
 // ===== 公開範囲 (作り込み済みの層だけを遊べるようにする) =====
-// 現在は第1層 (迷宮1-5) を作り込み中。第2層以降は「準備中」として閉じ、刷新が済んだ層から引き上げる。
-// 既存セーブで先へ進んでいる場合も勅命の進行 (G.msq) は書き換えず、表示と潜入だけを止める
-const CONTENT_LIMIT = 5;
+// 現在は第1層 (迷宮1-5)・第2層 (迷宮6-10)・第3層 (迷宮11-15) まで公開。第4層以降は「準備中」として閉じ、刷新が済んだ層から引き上げる。
+// 既存セーブで先へ進んでいる場合も勅命の進行 (G.msq) は書き換えず、表示と潜入だけを止める。
+// 引き上げる時は CONTENT_LIMIT を上げ、story.js の SEAL_LINES (新しい果ての層) / UNSEAL_LINES (新しく開く層) を足す。
+// 封印の告知を受けていたセーブは読み込み時に「次の勅命待ち」へ戻り、王が封の解けたことを告げてから拝命する
+const CONTENT_LIMIT = 15;
 const CONTENT_NEXT_LAYER = Math.floor(CONTENT_LIMIT / 5) + 1; // 準備中の層番号
 const contentSealed = () => !!G.msq && (G.msq.state === "sealed" || G.msq.n > CONTENT_LIMIT);
 
@@ -931,10 +946,10 @@ function grantHordeReward() {
 // キー (enemyMul/goldMul/soulMul/…) を使い、特別階の効果とは独立に重ね掛けされる。
 const MUTATORS = [
   { id: "bloodTide", name: "血の満潮", sym: "🩸", accent: "#d4504e", enemyMul: 1.3, soulMul: 2,
-    risk: "魔物どもが昂ぶり、強くなっている (敵の力 1.3倍)",
+    risk: "魔物どもが昂ぶり、強くなっている (敵の強さ 1.3倍)",
     gain: "得られる Soul が 2倍 になる" },
   { id: "goldRush", name: "黄金熱", sym: "💰", accent: "#ffd84a", enemyMul: 1.25, goldMul: 2,
-    risk: "財の気配に魔物が殺気立っている (敵の力 1.25倍)",
+    risk: "財の気配に魔物が殺気立っている (敵の強さ 1.25倍)",
     gain: "得られるゴールドが 2倍 になる" },
   { id: "sealedExit", name: "閉ざされた退路", sym: "⛓", accent: "#9aa0ac", noFlee: true, chestRankUp: 1,
     risk: "すべての戦闘から逃げられない",
@@ -952,7 +967,7 @@ const MUTATORS = [
     risk: "宝箱の3割はミミックだ",
     gain: "宝箱が 1ランク上等になり、ミミックは上質な宝箱を残す" },
   { id: "abyssalSurge", name: "深淵の脈動", sym: "☠", accent: "#8a2be2", enemyMul: 1.5, soulMul: 2, goldMul: 1.5, lootBonusLv: 8,
-    risk: "迷宮中の敵が大幅に強くなっている (敵の力 1.5倍)",
+    risk: "迷宮中の敵が大幅に強くなっている (敵の強さ 1.5倍)",
     gain: "Soul 2倍・ゴールド 1.5倍・落ちている装備の質が上がる" },
 ];
 // 適用中の異変の定義 (なければ null) / 効果値の取り出し
@@ -970,6 +985,11 @@ const MUT_AGG = {
 function activeModifierDefs() {
   const defs = [];
   const md = mutDef(); if (md) defs.push(md);
+  // 迷宮のイベントの効果 (この潜入 / この階)。迷宮の中でだけ効く
+  if (inDungeon() && !abyssActive()) {
+    if (G.run && G.run.ev && Array.isArray(G.run.ev.mods)) defs.push(...G.run.ev.mods);
+    if (G.board && G.board.ev && Array.isArray(G.board.ev.mods)) defs.push(...G.board.ev.mods);
+  }
   if (G.abyss) {
     for (const id of G.abyss.mods || []) { const m = ABYSS_MOD_MAP[id]; if (m) defs.push(m); }
     for (const id of G.abyss.mutations || []) { const m = ABYSS_MUT_MAP[id]; if (m) defs.push(m); }
@@ -1048,19 +1068,21 @@ function enemyScale() {
   return (cfg.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
 }
 
-// ミミックの強さ参照: 現在地より ahead 先のダンジョン (末尾でクランプ) の rank と
-// enemyScale を借りる。これで「D2 のミミックは D3 相当」になる。
-// 階層補正・特別階補正は現在地のものを掛ける。
-function mimicRef(ahead) {
-  const ref = DUNGEONS[Math.min(DUNGEONS.length - 1, G.dungeonIdx + ahead)];
-  const scale = (ref.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
-  return { rank: ref.rank || 1, scale };
+// ミミックの強さの基準: この階に出る雑魚の最上位ランクと、雑魚と同じ強さ補正。
+// (ランクの上乗せ — 通常 +1 / マスター +2 — は combat.js の spawnMimic が行う)
+function mimicRef() {
+  const cfg = activeCfg();
+  const ranks = sfMonsterPool().map((k) => (MONSTERS[k] && MONSTERS[k].rank) || 0);
+  return { rank: Math.max(1, cfg.rank || 1, ...ranks), scale: enemyScale() };
 }
 
-// この迷宮に出る強敵のid。各ランク帯 (10迷宮) を 1-3 / 4-6 / 7-10 の
+// この迷宮に出る強敵のid。作り込み済みの層は層ごとの強敵 (LAYER_ELITES) を階ごとに順に出す。
+// それ以外は旧来どおり、各ランク帯 (10迷宮) を 1-3 / 4-6 / 7-10 の
 // 3グループに区切り、グループごとに固有の強敵が決まっている (例: 迷宮1-3, 4-6, 7-10, 11-13, …)
 function eliteKey() {
   const n = G.dungeonIdx + 1;
+  const le = LAYER_ELITES[layerOf(n)];
+  if (le && le.length) return le[(G.floor || 0) % le.length];
   const r = Math.min(10, Math.ceil(n / 10));
   const pos = ((n - 1) % 10) + 1;
   const g = pos <= 3 ? 0 : pos <= 6 ? 1 : 2;
@@ -1149,7 +1171,7 @@ function updateTopbar() {
 }
 
 function newFloor() {
-  // 奈落: 強敵・ミミック参照 (eliteKey/mimicRef は G.dungeonIdx を見る) を素体迷宮に同期
+  // 奈落: 強敵参照 (eliteKey は G.dungeonIdx を見る) を素体迷宮に同期
   if (abyssActive()) G.dungeonIdx = abyssBaseN(G.abyss.depth) - 1;
   // ダンジョンが自前で持つ出現プール (pool=浅階 / deepPool=深階) を使う
   const cfg = activeCfg();
@@ -1183,6 +1205,7 @@ function newFloor() {
   if (G.floor > G.stats.deepest) G.stats.deepest = G.floor;
   // 酒場の噂を盤面に反映 (潜入直後の階のみ)
   if (G.activeRumor && G.activeRumor.floor === G.floor) applyRumorToBoard(G.board);
+  evNewFloor(); // 迷宮のイベント: 出来事の配置・持ち越しの効果
   G.px = G.board.start.x;
   G.py = G.board.start.y;
   G.portalFound = false; // この階の帰還魔法陣はまだ発見していない
@@ -1397,7 +1420,8 @@ function dockSpec() {
     } else {
       const dn = curDungeon();
       const atBottom = G.floor >= (dn.floors || 1);
-      if (atBottom && dn.boss) down = { key: "boss", label: "主の間へ", sub: "迷宮の主が待つ", kind: "danger", icon: "boss" };
+      if (atBottom && G.bossDown) down = null; // 踏破済み: 最深部の階段は役目を終えた (下の「帰還」で凱旋)
+      else if (atBottom && dn.boss) down = { key: "boss", label: "主の間へ", sub: "迷宮の主が待つ", kind: "danger", icon: "boss" };
       else if (atBottom) down = { key: "clear", label: "踏破する", sub: "最深部の階段", kind: "primary", icon: "star" };
       else {
         const next = G.floor + 1, last = dn.floors || 1;
@@ -1595,7 +1619,8 @@ function boardLightSources(now) {
     else if (c.type === "poison") out.push({ x: cx, y: cy + r.h * 0.05, r: 34, a: 0.4, col: "120,210,60", ga: 0.1 + 0.05 * pulse, gr: 30 });
     else if (c.type === "stairs") out.push({ x: cx, y: cy, r: 30, a: 0.4, col: "160,190,255", ga: 0.06, gr: 24 });
     else if (c.type === "corpse" && c.corpseWarm && !c.cleared) out.push({ x: cx + 7, y: cy - 14, r: 26, a: 0.5, col: "127,208,255", ga: 0.16 + 0.06 * pulse, gr: 20 });
-    else if (c.type === "chest" && !c.cleared) out.push({ x: cx, y: cy, r: 22, a: 0.3, col: "255,210,120", ga: 0.06 + 0.04 * pulse, gr: 18 });
+    else if (c.type === "chest" && !c.cleared) out.push({ x: cx, y: cy, r: c.evMark ? 34 : 22, a: c.evMark ? 0.55 : 0.3, col: "255,210,120", ga: (c.evMark ? 0.14 : 0.06) + 0.04 * pulse, gr: 18 });
+    else if (c.type === "event" && !c.cleared) out.push({ x: cx, y: cy, r: 34, a: 0.5, col: "170,120,255", ga: 0.12 + 0.08 * pulse, gr: 28 });
   }
   return out;
 }
@@ -1889,7 +1914,8 @@ function cellIcon(cell) {
     cell.type === "fountain" && !cell.cleared ? ICONS.fountain :
     cell.type === "corpse" ? ICONS.corpse :
     cell.type === "portal" ? ICONS.portal :
-    cell.type === "stairs" ? ICONS.stairs : null;
+    cell.type === "stairs" ? ICONS.stairs :
+    cell.type === "event" && !cell.cleared ? ICONS.event : null;
 }
 function drawBoardIcons(lt, now, hx, hy) {
   const cells = G.board.cells;
@@ -4355,6 +4381,7 @@ function moveStep(nx, ny, onDone) {
         resolveCell(cell);
         // 毒は1歩ごとに蝕む (戦闘/選択へ移っていなければ)
         if (G.state === "board" && !G.prompt) tickPoison();
+        if (G.state === "board" && !G.prompt) evProgress(); // 誓い・頼みの達成
         autosave(true); // 1歩進むたびに保存 (やり直し不可)
         if (onDone) onDone();
       } else {
@@ -4423,19 +4450,23 @@ function findPath(tx, ty) {
 }
 
 // 経路に沿って1歩ずつ自動で歩く。戦闘や階段で中断
+// 歩いている途中で別のマスをタップすると walkRedirect に行き先が入り、次の1歩の区切りで経路を引き直す
+let walkRedirect = null;
 function autoWalk(path) {
   if (!path.length) return;
   G.walking = true;
+  walkRedirect = null;
   const next = () => {
-    if (G.state !== "board" || G.prompt || !path.length) { G.walking = false; renderBoard(); return; }
+    if (walkRedirect) { const t = walkRedirect; walkRedirect = null; path = findPath(t.x, t.y); }
+    if (G.state !== "board" || G.prompt || !path.length) { G.walking = false; walkRedirect = null; renderBoard(); return; }
     const { x, y } = path.shift();
     // 念のため隣接・開通を確認
     if (Math.abs(x - G.px) + Math.abs(y - G.py) !== 1 || !edgeOpen(x, y)) {
       G.walking = false; renderBoard(); return;
     }
     moveStep(x, y, () => {
-      if (G.state !== "board" || G.prompt) { G.walking = false; return; } // 戦闘/選択で中断
-      if (path.length) setTimeout(next, 110);
+      if (G.state !== "board" || G.prompt) { G.walking = false; walkRedirect = null; return; } // 戦闘/選択で中断
+      if (path.length || walkRedirect) setTimeout(next, 110);
       else { G.walking = false; renderBoard(); }
     });
   };
@@ -4572,8 +4603,598 @@ function resolveCell(cell) {
     case "stairs":
       askDescend(cell);
       break;
+    case "event":
+      if (cell.cleared) break;
+      runEvent(evApi, cell);
+      break;
   }
 }
+
+// ===== 迷宮のイベント (出来事マス) — src/events.js の定義を盤面・戦闘・報酬へつなぐ =====
+// 状態: G.events (見聞録・一度きり・恒久の恵み / 保存) ・ G.run.ev (この潜入) ・ G.board.ev (この階)
+function evRun() {
+  if (!G.run) G.run = newRun();
+  if (!G.run.ev || typeof G.run.ev !== "object") G.run.ev = { mods: [] };
+  if (!Array.isArray(G.run.ev.mods)) G.run.ev.mods = [];
+  return G.run.ev;
+}
+function evFloor() {
+  if (!G.board) return { mods: [] };
+  if (!G.board.ev || typeof G.board.ev !== "object") G.board.ev = { mods: [] };
+  if (!Array.isArray(G.board.ev.mods)) G.board.ev.mods = [];
+  return G.board.ev;
+}
+// 「戦果1」= この迷宮・この階の通常戦闘1回で得る gold (半減前の素の値) / ✦Soul の目安
+function evUnit() {
+  const cfg = activeCfg();
+  const keys = [...(cfg.pool || []), ...(cfg.deepPool || [])].filter((k) => MONSTERS[k]);
+  let g = 0, so = 0;
+  for (const k of keys) { g += MONSTERS[k].gold || 0; so += MONSTERS[k].soul || 0; }
+  const n = Math.max(1, keys.length);
+  const sc = (cfg.enemyScale || 1) * (1 + (G.floor - 1) * 0.06);
+  const per = 1.9; // 1戦の平均の敵数
+  // 戦闘の金貨は endBattle で ×2 → runGainGold で ×0.5。素の値は「1体の金貨×数×2」
+  return { gold: Math.max(6, (g / n) * sc * per * 2), soul: Math.max(3, (so / n) * sc * per) };
+}
+const evJit = () => 0.85 + Math.random() * 0.3;
+function evAlive() { return G.party.filter((p) => p.alive); }
+function evPoolKey() {
+  const rv = evRun();
+  let pool = sfMonsterPool().filter((k) => MONSTERS[k] && !MONSTERS[k].boss && !MONSTERS[k].elite);
+  if (rv.noBeast) { const nb = pool.filter((k) => MONSTERS[k].race !== "beast"); if (nb.length) pool = nb; }
+  return pool.length ? pool[rand(pool.length)] : "cm_slime";
+}
+function evCells(fn) { const out = []; if (G.board) sfEachCell(G.board, (c) => { if (fn(c)) out.push(c); }); return out; }
+function evCellPos(cell) {
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (G.board.cells[y][x] === cell) return { x, y };
+  return null;
+}
+function evRevealStairs() {
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const c = G.board.cells[y][x];
+    if (c.type !== "stairs") continue;
+    c.revealed = true;
+    for (const d in DIRS_G) {
+      if (c.walls[d]) continue;
+      const nx = x + DIRS_G[d][0], ny = y + DIRS_G[d][1];
+      if (nx >= 0 && ny >= 0 && nx < COLS && ny < ROWS) G.board.cells[ny][nx].revealed = true;
+    }
+  }
+}
+// 空きマスに宝箱を置く (rankUp: 宝箱ランクの上乗せ / reveal: 最初から見える / mark: 地図の×印)
+function evPlaceChest({ rankUp = 0, reveal = false, mark = false } = {}) {
+  const cand = evCells((c) => c.type === "empty" && !(G.board.start && G.board.cells[G.board.start.y][G.board.start.x] === c) && !(G.board.cells[G.py] && G.board.cells[G.py][G.px] === c));
+  if (!cand.length) return null;
+  const c = cand[rand(cand.length)];
+  c.type = "chest"; c.cleared = false;
+  c.cRank = Math.min(5, chestRankOf(null) + rankUp);
+  if (reveal) c.revealed = true;
+  if (mark) c.evMark = true;
+  return c;
+}
+function evPurgeBeasts() {
+  let n = 0;
+  for (const c of evCells((c) => c.type === "monster" && !c.cleared && !c.elite && MONSTERS[c.monsterKey] && MONSTERS[c.monsterKey].race === "beast")) {
+    const k = evPoolKey();
+    if (MONSTERS[k] && MONSTERS[k].race !== "beast") c.monsterKey = k;
+    else { c.type = "empty"; c.cleared = true; delete c.monsterKey; }
+    n++;
+  }
+  return n;
+}
+// 自分の隊の影 (鏡の間): 人業の絵を闇色に沈め、能力を ratio 倍で写す
+const _shadeSpr = new Map();
+function evShadeSprite(p) {
+  const key = (p.clsKey || "fighter") + ":" + (p.rank || 2);
+  if (_shadeSpr.has(key)) return _shadeSpr.get(key);
+  let spr = null;
+  try { spr = jobSprite(p.clsKey || "fighter", 2); } catch (e) { spr = null; }
+  if (!spr || !spr.art) spr = HERO;
+  const dark = (hex) => {
+    if (typeof hex !== "string" || !/^#[0-9a-f]{6}$/i.test(hex)) return hex;
+    const n = parseInt(hex.slice(1), 16);
+    const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    const l = (r * 0.3 + g * 0.59 + b * 0.11) / 255;
+    const mix = (base, k) => Math.round(base * 0.35 + k * l * 0.65);
+    return "#" + [mix(40, 150), mix(16, 90), mix(70, 220)].map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, "0")).join("");
+  };
+  const palette = {};
+  for (const k in spr.palette) palette[k] = dark(spr.palette[k]);
+  const out = { ...spr, palette, art: spr.art };
+  _shadeSpr.set(key, out);
+  return out;
+}
+function evShadow(p, ratio) {
+  const e = spawnEliteEnemies(evPoolKey(), enemyScale())[0];
+  const spr = evShadeSprite(p);
+  e.key = "ev_shade";
+  e.mon = { name: `${p.name}の影`, race: "specter", rank: 1, palette: spr.palette, art: spr.art, desc: "鏡に映った己の影。" };
+  e.name = `${p.name}の影`;
+  e.maxhp = e.hp = Math.max(1, Math.round((p.maxhp || 10) * ratio));
+  e.atk = Math.max(1, Math.round(Math.max(p.atk || 1, p.int || 0) * ratio));
+  e.vit = Math.round((p.vit || 0) * ratio);
+  e.agi = Math.max(1, Math.round((p.agi || 1) * ratio));
+  e.soul = Math.round((e.soul || 1) * 1.5);
+  e.ability = null; e.physResist = 0; e.magResist = 0; e.magWeak = 1; e.regen = 0; e.evasive = false;
+  e.role = null; e.summonKey = null; e.element = "dark";
+  return e;
+}
+// 強化個体 (封印の魔物・看守・大鰐など): HP と力を底上げし、報酬も相応に
+function evBoost(e, s) {
+  e.maxhp = e.hp = Math.max(1, Math.round(e.maxhp * s));
+  e.atk = Math.max(1, Math.round(e.atk * (1 + (s - 1) * 0.35)));
+  e.vit = Math.round(e.vit * (1 + (s - 1) * 0.2));
+  e.soul = Math.round(e.soul * s); e.gold = Math.round(e.gold * s);
+  return e;
+}
+// 出来事の戦闘の敵を組み立てる (cell.evFight.specs から。逃げて戻った時も同じ顔ぶれを作り直す)
+function evBuildFoes(specs) {
+  const scale = enemyScale();
+  const out = [];
+  for (const sp of specs || []) {
+    if (sp.shadows) { for (const p of evAlive()) out.push(evShadow(p, sp.shadows)); continue; }
+    if (sp.elite) { out.push(...spawnEliteEnemies(sp.key && MONSTERS[sp.key] ? sp.key : eliteKey(), scale * (sp.strong || 1))); continue; }
+    const key = sp.key && MONSTERS[sp.key] ? sp.key : (sp.undead ? undeadKeyForDungeon() : evPoolKey());
+    if (sp.strong) { const e = evBoost(spawnEliteEnemies(key, scale)[0], sp.strong); if (sp.name) e.name = sp.name; out.push(e); continue; }
+    if (sp.single) { out.push(spawnEliteEnemies(key, scale)[0]); continue; }
+    out.push(...spawnCardEnemies(key, G.floor, scale, { min: Math.max(sp.min || 0, mutNum("packMin", 0)) }));
+  }
+  const list = out.slice(0, 6);
+  // 単体で並べた同種は A/B/C… で呼び分ける (群れは spawnCardEnemies が済ませている)
+  const byKey = {};
+  for (const e of list) if (!/[A-F]$/.test(e.name)) (byKey[e.name] = byKey[e.name] || []).push(e);
+  for (const k in byKey) if (byKey[k].length > 1) byKey[k].forEach((e, i) => { e.name += String.fromCharCode(65 + i); });
+  return list.length ? list : spawnCardEnemies(evPoolKey(), G.floor, scale);
+}
+function evStartFight(cell) {
+  const f = cell.evFight;
+  if (!f) { renderBoard(); return; }
+  G._evOpening = f.opening || null;
+  startBattle(evBuildFoes(f.specs), cell);
+}
+// 戦闘の開始時: イベントの加護を人業へ展開し、開幕の効果 (回復・発破・層主の弱体) を掛ける
+function evBattleStart(enemies, isBoss) {
+  const on = inDungeon() && !abyssActive();
+  const rv = on ? evRun() : {};
+  let dmg = 1, prey = null;
+  if (on) for (const d of activeModifierDefs()) { if (d.dmgMul) dmg *= d.dmgMul; if (d.prey) prey = d.prey; }
+  for (const p of G.party) {
+    p._evDmg = on ? dmg * (rv.ruby && rv.ruby === p.uid ? 1.15 : 1) : 1;
+    p._evPrey = on ? prey : null;
+    p._evCrit = on ? (rv.crit || 0) : 0;
+    p._evEDef = on ? (rv.edef || null) : null;
+    p._evSave = !!(on && rv.saves && rv.saves[p.uid]);
+  }
+  if (!on) return;
+  if (rv.startHeal > 0) {
+    rv.startHeal--;
+    for (const p of evAlive()) p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * 0.10));
+    log("喪服の女の祝福が、戦いの前に傷を癒した。", "heal");
+  }
+  if (rv.bomb > 0) {
+    rv.bomb--;
+    for (const e of enemies) e.hp = Math.max(1, e.hp - Math.ceil(e.maxhp * (e.boss ? 0.12 : 0.30)));
+    log("発破が炸裂した！ 敵全体が爆風に呑まれた。", "win");
+    setTimeout(() => showToast("💥 発破が炸裂 ― 敵全体に痛打", { tone: "gold" }), 300);
+  }
+  const bw = G.events && G.events.flags && G.events.flags.bossWeak;
+  if (isBoss && bw && bw[battleLayer()]) {
+    for (const e of enemies) if (e.boss) { e.maxhp = Math.max(1, Math.round(e.maxhp * 0.9)); e.hp = Math.min(e.hp, e.maxhp); }
+    log("告解室で聞いた秘密が、主の守りの綻びを教えてくれる。(主の最大HP -10%)", "win");
+  }
+}
+// 戦闘の後: 墓碑の加護の消費を記録し、紅玉に血を吸わせる
+function evBattleEnd(won) {
+  if (!inDungeon() || abyssActive() || !G.run || !G.run.ev) return;
+  const rv = G.run.ev;
+  if (rv.saves) for (const p of G.party) if (rv.saves[p.uid] && !p._evSave) delete rv.saves[p.uid];
+  if (won && rv.ruby) {
+    const h = G.party.find((p) => p.uid === rv.ruby && p.alive);
+    if (h) { h.hp = Math.max(1, h.hp - Math.ceil(h.maxhp * 0.05)); log(`紅玉が${h.name}の血を吸った。`, "dmg"); }
+  }
+}
+// 階の情報 (手帳) に並べる、いま効いている出来事の効果
+function eventFacts() {
+  if (!inDungeon() || abyssActive()) return [];
+  const out = [];
+  const ic = ICONS.event;
+  const fe = (G.board && G.board.ev) || {};
+  for (const m of fe.mods || []) out.push({ tone: m.enemyMul ? "bad" : "gold", icon: ic, title: `出来事「${m.name}」`, accent: "#c08aff", lines: [m.desc] });
+  if (fe.oath && !fe.oath.done) out.push({ tone: "gold", icon: ic, title: "誓いの最中", accent: "#c08aff", lines: [`この階の魔物をすべて討て (残り ${evCells((c) => c.type === "monster" && !c.cleared).length}体)`, "果たさずに降りると、次の階の敵が手強くなる。"] });
+  if (fe.miner && !fe.minerDone) out.push({ tone: "gold", icon: ICONS.corpse, title: "坑夫の頼み", accent: "#c08aff", lines: [`この階の亡骸をすべて調べよ (残り ${evCells((c) => c.type === "corpse" && !c.cleared).length}体)`] });
+  const rv = (G.run && G.run.ev) || null;
+  if (!rv) return out;
+  for (const m of rv.mods || []) out.push({ tone: m.enemyMul ? "bad" : "gold", icon: ic, title: `出来事「${m.name}」`, accent: "#c08aff", lines: [m.desc] });
+  const runLines = [];
+  if (rv.preempt > 0) runLines.push(`祈りの蝋燭 ― 次の戦闘は必ず先制 (${rv.preempt}回)`);
+  if (rv.ambushNext > 0) runLines.push("密輸人の待ち伏せ ― 次の戦闘は奇襲される");
+  if (rv.startHeal > 0) runLines.push(`喪服の女の祝福 ― 開戦時にHP10%回復 (残り${rv.startHeal}戦)`);
+  if (rv.bomb > 0) runLines.push(`発破 ― 次の戦闘の開幕に敵全体へ痛打 (${rv.bomb}回)`);
+  if (rv.crit) runLines.push(`黒猫の幸運 ― 会心率 +${Math.round(rv.crit * 100)}%`);
+  if (rv.edef) runLines.push(`土の護り ― 全員に${(ELEMENTS[rv.edef.el] || {}).label || rv.edef.el}の属性防御Lv${rv.edef.lv}`);
+  if (rv.ruby) { const h = G.party.find((p) => p.uid === rv.ruby); if (h) runLines.push(`呪われた紅玉 ― ${h.name}の与ダメ+15% (戦闘のたび血を吸われる)`); }
+  if (rv.saves) { const n = G.party.filter((p) => rv.saves[p.uid]).map((p) => p.name); if (n.length) runLines.push(`名を刻んだ墓碑 ― ${n.join("・")}は一度だけ死を免れる`); }
+  if (rv.noBeast) runLines.push("鼠の王の盟約 ― 獣の魔物が寄りつかない");
+  if (rv.mapChest > 0) runLines.push("宝の地図 ― 次の階に印の付いた宝箱");
+  if (rv.bounty) runLines.push(`密輸の証拠 ― 生きて帰れば報奨金 💰${rv.bounty}`);
+  if (rv.forceElite) runLines.push("縦穴の底 ― 次の階は強敵階");
+  if (runLines.length) out.push({ tone: "gold", icon: ic, title: "この潜入の出来事", accent: "#c08aff", lines: runLines });
+  return out;
+}
+
+// 階が変わった時: 持ち越しの効果を適用し、出来事を1つ置く (確率)
+function evNewFloor() {
+  if (abyssActive() || !G.board) return;
+  G.board.ev = { mods: [] };
+  const rv = evRun();
+  if (Array.isArray(rv.nextFloorMods) && rv.nextFloorMods.length) { G.board.ev.mods.push(...rv.nextFloorMods); rv.nextFloorMods = []; }
+  if (rv.mapChest > 0) { rv.mapChest--; if (evPlaceChest({ rankUp: 2, reveal: true, mark: true })) log("地図の×印 ― この階のどこかに宝箱が眠っている (印が見えている)。", "win"); }
+  if (rv.noBeast) evPurgeBeasts();
+  if (G.events.flags.sewerMap && battleLayer() === 2) evRevealStairs();
+  const cfg = activeCfg();
+  const dn = dungeonNumber(cfg), layer = battleLayer();
+  if (Math.random() >= (dn <= 1 ? EV_FLOOR_RATE_D1 : EV_FLOOR_RATE)) return;
+  const sx = G.board.start.x, sy = G.board.start.y;
+  const ok = (c, x, y) => c.type === "empty" && !(x === sx && y === sy);
+  let cand = [];
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = G.board.cells[y][x]; if (ok(c, x, y) && sfOpenCount(c) === 1) cand.push(c); }
+  if (!cand.length) for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = G.board.cells[y][x]; if (ok(c, x, y) && Math.abs(x - sx) + Math.abs(y - sy) >= 3) cand.push(c); }
+  if (!cand.length) return;
+  const st = { layer, dn, floor: G.floor, floors: cfg.floors || 3, runEv: rv, onceDone: (e) => !!G.events.once[onceKey(e, layer)] };
+  const e = pickEvent(eligibleEvents(st, evApi));
+  if (!e) return;
+  const cell = cand[rand(cand.length)];
+  cell.type = "event"; cell.evId = e.id; cell.cleared = false;
+  if (e.tier === "rare") rv.rareUsed = { ...(rv.rareUsed || {}), [e.id]: true };
+  if (e.setup) e.setup(evApi, cell);
+}
+// 階段を降りる時: 果たしていない誓いは次の階で報いとなる
+function evOnDescend() {
+  const fe = G.board && G.board.ev;
+  if (!fe || !fe.oath || fe.oath.done) return;
+  const rv = evRun();
+  rv.nextFloorMods = [...(rv.nextFloorMods || []), { src: "oath", name: "破られた誓い", desc: "敵の力 1.2倍 (この階)", enemyMul: 1.2 }];
+  fe.oath.done = true;
+  log("誓いを果たさずに降りた……石碑の呪いが後を追ってくる。(次の階の敵の力 1.2倍)", "dmg");
+  showToast("誓いを破った ― 次の階の敵が手強い", { tone: "bad" });
+}
+// 誓い (石碑)・頼み (坑夫) の達成を確かめる (1歩ごと・戦闘の後)
+function evProgress() {
+  const fe = G.board && G.board.ev;
+  if (!fe || abyssActive()) return;
+  if (fe.oath && !fe.oath.done && !evCells((c) => c.type === "monster" && !c.cleared).length) {
+    fe.oath.done = true;
+    const stone = evCells((c) => c.type === "event" && c.evOath)[0];
+    const u = evUnit();
+    const s = runGainSoulPts(Math.round(u.soul * 4 * evJit()));
+    if (stone) { stone.type = "chest"; stone.cleared = false; stone.revealed = true; stone.cRank = Math.min(5, chestRankOf(null) + 2); delete stone.evOath; }
+    SFX.victory(); flashScreen("#ffd84a"); updateTopbar();
+    log(`誓いを果たした！ ✦${s} Soul を授かり、石碑は祝福の宝箱に変わった。`, "win");
+    showToast(`誓いを果たした ― ✦${s} ・ 石碑が宝箱に`, { tone: "gold", icon: ICONS.chest });
+    renderBoard();
+  }
+  if (fe.miner && !fe.minerDone && !evCells((c) => c.type === "corpse" && !c.cleared).length) {
+    fe.minerDone = true;
+    for (const c of evCells((c) => c.type === "event" && c.evQuest)) { c.cleared = true; delete c.evQuest; }
+    const u = evUnit();
+    const s = runGainSoulPts(Math.round(u.soul * 4 * evJit()));
+    G.embers = (G.embers || 0) + 1; runCount("embers", 1);
+    SFX.victory(); updateTopbar();
+    log(`坑夫の亡霊は仲間と共に眠りについた。✦${s} Soul と魂の残火を遺していった。`, "win");
+    showToast(`坑夫の頼みを果たした ― ✦${s} ・ 残火 ×1`, { tone: "gold", icon: ICONS.ember });
+    renderBoard();
+  }
+}
+// 帰還の時 (全滅以外): 密輸の報奨金・紅玉の売却を精算する
+function evOnReturn(runRef, outcome) {
+  const rv = runRef && runRef.ev;
+  if (!rv || outcome === "wipe") return;
+  let pay = 0; const notes = [];
+  if (rv.bounty) { pay += rv.bounty; notes.push(`密輸の報奨金 💰${rv.bounty}`); rv.bounty = 0; }
+  if (rv.ruby && rv.rubyGold) { pay += rv.rubyGold; notes.push(`紅玉の売却 💰${rv.rubyGold}`); rv.ruby = null; rv.rubyGold = 0; }
+  if (!pay) return;
+  G.gold += pay; runRef.gold = (runRef.gold || 0) + pay;
+  log(notes.join(" / "), "win");
+  setTimeout(() => showToast(notes.join(" ・ "), { tone: "gold", icon: ICONS.gold }), 900);
+}
+// 魂の職を選ぶ (rarePlus: レア以上確定 / front: 前衛の職 / common: コモン / 既定: 死体と同じ抽選)
+function evSoulClass(mode) {
+  const keys = Object.keys(SOUL_CLASSES);
+  const of = (rar, f) => keys.filter((k) => SOUL_CLASSES[k].rarity === rar && (!f || f(SOUL_CLASSES[k])));
+  if (mode === "rarePlus") {
+    const r = Math.random();
+    const pool = of(r < 0.02 ? "legend" : r < 0.20 ? "epic" : "rare");
+    return pool[rand(pool.length)];
+  }
+  if (mode === "common") { const pool = of("common"); return pool[rand(pool.length)]; }
+  if (mode === "front") {
+    const rar = (SOUL_CLASSES[rollJobClass()] || {}).rarity || "common";
+    const front = (c) => c.stat && (c.stat.atk || 0) + (c.stat.vit || 0) >= 3.6;
+    const pool = of(rar, front);
+    return pool.length ? pool[rand(pool.length)] : rollJobClass();
+  }
+  return rollJobClass();
+}
+// 品を渡して演出する (誰も持てなければ知らせて次へ)
+function evGive(id, next) {
+  const fin = next || (() => { if (G.state === "board") renderBoard(); });
+  const got = id && ITEMS[id] ? giveItem(id) : null;
+  if (got) { UI.loot(got.item, got.who, { source: "chest" }, fin); return; }
+  if (id && ITEMS[id] && !G.party.some((m) => m.items.length < MAX_ITEMS)) runLost(itemName(markDungeonLoot({ ...ITEMS[id] })));
+  fin();
+}
+function evPickMinRar(rar) {
+  const order = ["c", "uc", "r", "sr"];
+  const lo = Math.max(0, order.indexOf(rar));
+  let k = Math.max(lo, order.indexOf(rollRarity(rarityUp({ rare: true }))));
+  const centerR = dropCenterR({}), capR = lootCapR();
+  for (; k >= lo; k--) { const id = pickOfRarity(order[k], centerR, capR); if (id) return id; }
+  return pickLoot({ rare: true, noLR: true });
+}
+function evPickCollectible() {
+  const cap = Math.min(20, lootBaseR() + 1);
+  const pool = miscLootIds().filter((id) => Math.max(1, Math.min(20, ITEMS[id].r20 || 1)) <= cap);
+  return pool.length ? pool[rand(pool.length)] : null;
+}
+function evOpenChestAt(cell) {
+  const pos = evCellPos(cell);
+  if (G.state !== "board" || !pos || pos.x !== G.px || pos.y !== G.py || cell.type !== "chest" || cell.cleared) { if (G.state === "board") renderBoard(); return; }
+  if (G.prompt || uiBlocked()) { renderBoard(); return; }
+  askOpenChest(cell);
+}
+
+// events.js へ渡す操作の窓口 (A)。events.js は game.js を import しないので、必要な操作はここに集める
+const evApi = {
+  get layer() { return battleLayer(); },
+  get dn() { return dungeonNumber(activeCfg()); },
+  runEv: () => evRun(),
+  floorEv: () => evFloor(),
+  flags: () => G.events.flags,
+  // ---- 画面 ----
+  choice: (title, opts, icon, o) => showChoice(title, opts, icon, o),
+  icon: (e) => (e.icon && e.icon.startsWith("mon:") ? MONSTERS[e.icon.slice(4)] : ICONS[e.icon]) || ICONS.event,
+  toast: (text, tone = "info", icon = null) => showToast(text, { tone, icon: icon ? (ICONS[icon] || undefined) : undefined }),
+  log: (t, c = "sys") => log(t, c),
+  sfx: (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* 音は任意 */ } },
+  flash: (c) => flashScreen(c),
+  refresh: () => { renderParty(); updateTopbar(); },
+  back: () => { if (G.state === "board") renderBoard(); autosave(true); },
+  done(cell, next) {
+    if (cell) cell.cleared = true;
+    updateTopbar(); renderParty();
+    if (next) next(); else if (G.state === "board") renderBoard();
+    autosave(true);
+  },
+  reopen(cell) { if (G.state === "board" && !G.prompt && !uiBlocked() && !cell.cleared) runEvent(evApi, cell); else if (G.state === "board") renderBoard(); },
+  alarm(title, lines, icon, then) {
+    SFX.trap(); buzz([0, 60, 40, 60]);
+    showEvent({ sprite: ICONS[icon] || ICONS.trap, banner: "⚠ 危険 ⚠", title, lines, accent: "#d4504e", btnLabel: "応戦する", onClose: then });
+  },
+  story(title, lines, next) {
+    SFX.itemget();
+    showEvent({ sprite: ICONS.event, banner: "✦ 見聞 ✦", title, lines, accent: "#c08aff", btnLabel: "閉じる", onClose: next });
+  },
+  seen(e, cell) {
+    if (cell.evSeen) return;
+    cell.evSeen = true;
+    const first = !G.events.seen[e.id];
+    G.events.seen[e.id] = (G.events.seen[e.id] || 0) + 1;
+    if (first) {
+      G.events.fresh[e.id] = true;
+      const s = runGainSoulPts(Math.max(1, Math.round(evUnit().soul * 0.5)));
+      updateTopbar();
+      log(`見聞録に新たな出来事「${e.name}」を記した。(✦${s})`, "win");
+      setTimeout(() => showToast(`見聞録に記した「${e.name}」 ✦${s}`, { tone: "gold", icon: ICONS.event }), 250);
+    }
+  },
+  picked(e, label) {
+    const pk = G.events.picks[e.id] || (G.events.picks[e.id] = {});
+    const k = plainText(label).split(" ― ")[0].slice(0, 24);
+    pk[k] = (pk[k] || 0) + 1;
+    if (e.once) G.events.once[onceKey(e, battleLayer())] = true;
+  },
+  // ---- 隊 ----
+  aliveList: () => evAlive(),
+  randomAlive: () => { const a = evAlive(); return a.length ? a[rand(a.length)] : null; },
+  best(stat) { let b = null; for (const p of evAlive()) if (!b || (p[stat] || 0) > (b[stat] || 0)) b = p; return b; },
+  check(stat, who = null) {
+    const m = who || evApi.best(stat);
+    if (!m) return { ok: false, who: null, p: 0 };
+    const need = disarmNeed(1) * 0.5;
+    const p = Math.max(0.15, Math.min(0.92, 0.55 * (m[stat] || 0) / need));
+    return { ok: Math.random() < p, who: m, p };
+  },
+  checkDisarm() {
+    const m = bestDisarmer();
+    if (!m) return { ok: false, who: null, p: 0 };
+    const p = disarmChance(m, 1);
+    return { ok: Math.random() < p, who: m, p };
+  },
+  sense: () => partyPassiveLv("senseEnemy") > 0,
+  appraiser: () => G.party.find((m) => m.alive && canIdentify(m)) || null,
+  healAll(hp, mp, cure) {
+    const list = evAlive();
+    for (const p of list) {
+      if (hp) p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * hp));
+      if (mp) p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * mp));
+      if (cure) p.ailment = null;
+    }
+    flashPartyCards(list, "heal"); updateTopbar();
+  },
+  hurtAll(pct) { const l = evAlive(); for (const p of l) p.hp = Math.max(1, p.hp - Math.ceil(p.maxhp * pct)); flashPartyCards(l, "hit"); buzz([0, 40, 30, 40]); },
+  hurtAllCur(pct) { const l = evAlive(); for (const p of l) p.hp = Math.max(1, p.hp - Math.ceil(p.hp * pct)); flashPartyCards(l, "hit"); },
+  hurtOne(m, pct) { if (!m || !m.alive) return; m.hp = Math.max(1, m.hp - Math.ceil(m.maxhp * pct)); flashPartyCards([m], "hit"); },
+  mpAll(pct) { for (const p of evAlive()) p.mp = Math.max(0, p.mp - Math.ceil(p.maxmp * pct)); renderParty(); },
+  ail(m, kind) { if (!m || !m.alive || m.ailment || (m.eff && m.eff.ailmentImmune)) return; m.ailment = kind; renderParty(); },
+  ailAll(kind, ch) { for (const p of evAlive()) if (Math.random() < ch) evApi.ail(p, kind); flashPartyCards(evAlive(), "hit"); },
+  cureAll() { for (const p of evAlive()) p.ailment = null; renderParty(); },
+  // ---- 通貨 ----
+  goldCost: (u) => Math.max(1, Math.round(evUnit().gold * u * 0.5)),
+  soulCost: (u) => Math.max(1, Math.round(evUnit().soul * u)),
+  canPayGold: (n) => G.gold >= n,
+  canPaySoul: (n) => G.soulPts >= n,
+  payGold(n) { G.gold = Math.max(0, G.gold - n); if (G.run && inDungeon()) G.run.gold = Math.max(0, (G.run.gold || 0) - n); updateTopbar(); },
+  paySoul(n) { G.soulPts = Math.max(0, G.soulPts - n); if (G.run && inDungeon()) G.run.soulPts = Math.max(0, (G.run.soulPts || 0) - n); updateTopbar(); },
+  embers: () => G.embers || 0,
+  payEmber(n) { G.embers = Math.max(0, (G.embers || 0) - n); updateTopbar(); },
+  gold(u, from) {
+    const g = runGainGold(Math.round(evUnit().gold * u * evJit()));
+    SFX.itemget(); updateTopbar();
+    log(`${from}から ${g} ゴールドを得た。`, "win");
+    showToast(`${from}から 💰${g}`, { tone: "gold", icon: ICONS.gold });
+    return g;
+  },
+  soul(u, from) {
+    const s = runGainSoulPts(Math.round(evUnit().soul * u * evJit()));
+    updateTopbar();
+    log(`${from}から ✦${s} Soul を得た。`, "win");
+    showToast(`${from}から ✦${s} Soul`, { tone: "gold", icon: ICONS.wisp });
+    return s;
+  },
+  giveGoldRaw(n, from) { G.gold += n; if (G.run && inDungeon()) G.run.gold += n; updateTopbar(); log(`${from}で 💰${n} を得た。`, "win"); showToast(`${from} ― 💰${n}`, { tone: "gold", icon: ICONS.gold }); },
+  giveSoulRaw(n, from) { G.soulPts += n; if (G.run && inDungeon()) G.run.soulPts += n; updateTopbar(); log(`${from}で ✦${n} Soul を得た。`, "win"); showToast(`${from} ― ✦${n}`, { tone: "gold", icon: ICONS.wisp }); },
+  ember(n, from, quiet = false) {
+    G.embers = (G.embers || 0) + n; runCount("embers", n); updateTopbar();
+    log(`${from} ― 魂の残火を ${n}つ 得た。`, "win");
+    if (!quiet) showToast(`${from} ― 魂の残火 ×${n}`, { tone: "gold", icon: ICONS.ember });
+  },
+  // ---- 品・魂 ----
+  item: (opts, from, next) => { log(`${from}で品を見つけた。`, "win"); evGive(pickLoot({ ...(opts || {}), noLR: true }), next); },
+  itemMinRar: (rar, from, next) => { log(`${from}で品を受け取った。`, "win"); evGive(evPickMinRar(rar), next); },
+  giveItemId: (id, next) => evGive(id, next),
+  collectible(from, next) {
+    const id = evPickCollectible();
+    if (!id) { evApi.gold(1, from); if (next) next(); return; }
+    log(`${from}で蒐集品を見つけた。`, "win");
+    evGive(id, next);
+  },
+  price: (id) => (ITEMS[id] && ITEMS[id].price) || 20,
+  soulDrop: (mode, line, next) => acquireSoul(evSoulClass(mode), line, next),
+  itemName: (it) => itemName(it),
+  equippedForgeable() {
+    const out = [], seen = new Set();
+    for (const m of evAlive()) for (const k of Object.keys(m.equip || {})) {
+      const it = m.equip[k];
+      if (!it || seen.has(it) || it.forge || it.unidentified) continue;
+      if (!["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"].some((s) => (it[s] || 0) > 0)) continue;
+      seen.add(it); out.push({ m, it });
+    }
+    return out.sort((a, b) => (b.it.lv || 0) - (a.it.lv || 0));
+  },
+  forge(m, it) { it.forge = 1; applyForge(it); recalcDoll(m); renderParty(); },
+  breakItem(m, it) {
+    for (const k of Object.keys(m.equip || {})) if (m.equip[k] === it) m.equip[k] = null;
+    const i = m.items.indexOf(it); if (i >= 0) m.items.splice(i, 1);
+    recalcDoll(m); renderParty();
+  },
+  identifyAll() {
+    let n = 0;
+    for (const m of [...G.party, ...(G.reserve || [])]) {
+      for (const it of [...(m.items || []), ...Object.values(m.equip || {})]) if (it && it.unidentified && !it.lr) { it.unidentified = false; it.idHardFail = false; n++; }
+    }
+    return n;
+  },
+  // ---- 盤面 ----
+  countCells: (fn) => evCells(fn).length,
+  revealStairs() { evRevealStairs(); renderBoard(); },
+  revealWhere(fn, limit = Infinity) {
+    let n = 0;
+    for (const c of evCells((c) => fn(c) && !c.revealed)) { if (n >= limit) break; c.revealed = true; n++; }
+    renderBoard();
+    return n;
+  },
+  removeMonsters(n) {
+    const list = evCells((c) => c.type === "monster" && !c.cleared && !c.elite);
+    let k = 0;
+    while (k < n && list.length) { const c = list.splice(rand(list.length), 1)[0]; c.type = "empty"; c.cleared = true; delete c.monsterKey; k++; }
+    return k;
+  },
+  reviveMonsters() { const l = evCells((c) => c.type === "monster" && c.cleared && !c.elite && c.monsterKey); for (const c of l) c.cleared = false; renderBoard(); return l.length; },
+  monsterKeysLeft: () => evCells((c) => c.type === "monster" && !c.cleared && !c.elite && MONSTERS[c.monsterKey]).map((c) => c.monsterKey),
+  clearMonsters() { const l = evCells((c) => c.type === "monster" && !c.cleared && !c.elite); for (const c of l) c.cleared = true; return l.length; },
+  clearPoison() { const l = evCells((c) => c.type === "poison"); for (const c of l) { c.type = "empty"; c.cleared = true; } return l.length; },
+  floodHalf() {
+    const right = G.px < COLS / 2;
+    let n = 0;
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+      if (right ? x < Math.ceil(COLS / 2) : x >= Math.floor(COLS / 2)) continue;
+      const c = G.board.cells[y][x];
+      if (x === G.px && y === G.py) continue;
+      if (["trap", "poison", "chest", "corpse", "fountain"].includes(c.type) || (c.type === "monster" && !c.elite)) {
+        if (c.cleared && c.type !== "poison") continue;
+        c.type = "empty"; c.cleared = true; delete c.monsterKey; n++;
+      }
+    }
+    renderBoard();
+    return n;
+  },
+  warmCorpse() {
+    let best = null, bd = 1e9;
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+      const c = G.board.cells[y][x];
+      if (c.type !== "corpse" || c.cleared) continue;
+      const d = Math.abs(x - G.px) + Math.abs(y - G.py);
+      if (d < bd) { bd = d; best = c; }
+    }
+    if (!best) {
+      const cand = evCells((c) => c.type === "empty");
+      if (!cand.length) return false;
+      best = cand[rand(cand.length)];
+      best.type = "corpse"; best.cleared = false; best.corpseClass = rollJobClass();
+    }
+    best.corpseWarm = true; best.revealed = true;
+    renderBoard();
+    return true;
+  },
+  purgeBeasts: () => evPurgeBeasts(),
+  placeChest: (o) => { const c = evPlaceChest(o); renderBoard(); return c; },
+  chestHere(cell, { rankUp = 0, cRank = 0, lootBonus = 0 } = {}, next = null, noOpen = false) {
+    cell.type = "chest"; cell.cleared = false; cell.revealed = true;
+    cell.cRank = cRank || Math.min(5, chestRankOf(null) + rankUp);
+    if (lootBonus) cell.lootBonus = lootBonus;
+    delete cell.evFight;
+    if (noOpen) return;
+    if (next) { next(); setTimeout(() => evOpenChestAt(cell), 60); }
+    else evOpenChestAt(cell);
+  },
+  openChestAt: (cell) => evOpenChestAt(cell),
+  trap(next) {
+    const trap = pickTrap(activeCfg().rank || 1);
+    const best = bestDisarmer();
+    presentTrap(applyTrap(trap, best), { proceed: next || (() => renderBoard()) }, boardSink());
+  },
+  warpToStairs() {
+    let sp = null;
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) if (G.board.cells[y][x].type === "stairs") sp = { x, y };
+    if (!sp) { renderBoard(); return; }
+    const st = G.board.cells[sp.y][sp.x];
+    st.revealed = true;
+    let dest = null;
+    for (const d in DIRS_G) {
+      if (st.walls[d]) continue;
+      const nx = sp.x + DIRS_G[d][0], ny = sp.y + DIRS_G[d][1];
+      if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) continue;
+      const c = G.board.cells[ny][nx];
+      if (c.type === "empty" || c.cleared || c.type === "start") { dest = { x: nx, y: ny }; break; }
+    }
+    if (dest) { G.px = dest.x; G.py = dest.y; G.board.cells[dest.y][dest.x].revealed = true; revealByCartography(); renderBoard(); autosave(true); return; }
+    G.px = sp.x; G.py = sp.y; revealByCartography(); renderBoard(); autosave(true);
+    askDescend(st);
+  },
+  skipFloors(n) { G.floor += n; descend(); },
+  // ---- 戦闘 ----
+  poolKey: () => evPoolKey(),
+  eliteKeyHere: () => eliteKey(),
+  monName: (k) => (MONSTERS[k] && MONSTERS[k].name) || "魔物",
+  fight(cell, specs, tag, o = {}) {
+    // 敵の種類はここで確定させる (逃げて戻った時の再戦も同じ顔ぶれにする)
+    const fixed = (specs || []).map((sp) => sp.shadows || (sp.key && MONSTERS[sp.key]) ? { ...sp }
+      : { ...sp, key: sp.elite ? eliteKey() : sp.undead ? undeadKeyForDungeon() : evPoolKey() });
+    cell.evFight = { tag, specs: fixed, noChest: o.noChest !== false, opening: o.opening || null };
+    evStartFight(cell);
+  },
+  refight: (cell) => evStartFight(cell),
+};
 
 // 隊の札を一瞬だけ光らせる (被弾 = 赤 / 回復 = 緑)。盤面でも戦闘と同じ明滅を使う
 function flashPartyCards(list, kind = "hit") {
@@ -4903,6 +5524,19 @@ function askDescend(cell) {
   }
   const dn = curDungeon();
   const atBottom = G.floor >= dn.floors;
+  // 踏破後に「まだ探索する」を選んで最深部の階段へ戻った: 主戦・踏破を繰り返さず、凱旋を促す
+  if (atBottom && G.bossDown) {
+    showChoice(
+      `「${dn.name}」は踏破済みだ。`,
+      [
+        { label: "街へ凱旋する", primary: true, fn: () => leaveDungeon({ outcome: "clear" }) },
+        { label: "まだ探索する", fn: () => { renderBoard(); } },
+      ],
+      ICONS.stairs,
+      { banner: "★ 踏破済み ★", accent: "#ffd84a", lines: ["下の「帰還」からも、いつでも凱旋できる。"] }
+    );
+    return;
+  }
   const boss = atBottom && !!dn.boss;        // 層末迷宮のみ最深部にボスがいる
   const clearNoBoss = atBottom && !dn.boss;  // 層途中の迷宮は最深部到達で踏破
   let label, banner, accent, prompt, lines = [];
@@ -5051,10 +5685,10 @@ function rollChest(cell, allowDanger, done, opener, cRankIn, lvBonus, noGold = f
     const legendary = !!(cell && cell.lootBonus);
     // ミミック率: 一律3% (特別階「ミミックの巣」/異変「ミミックの行進」では高い方を採用)
     if (!legendary && Math.random() < Math.max(sfNum("mimicRate", 0.03), mutNum("mimicRate", 0))) {
-      // ミミック出現時、10%でマスターミミック。強さは先のダンジョンを参照
-      //  (通常=1つ先 / マスター=2つ先)。固有ドロップは無く、上質な宝箱を残す。
+      // ミミック出現時、10%でマスターミミック。強さはこの階の敵が基準
+      //  (通常=+1ランク / マスター=+2ランク)。固有ドロップは無く、上質な宝箱を残す。
       const master = Math.random() < 0.10;
-      const ref = mimicRef(master ? 2 : 1);
+      const ref = mimicRef();
       SFX.trap(); buzz([0, 60, 40, 60]);
       log(master ? "宝箱はマスターミミックだった！" : "宝箱はミミックだった！", "dmg");
       sink.interrupt();
@@ -5437,6 +6071,7 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
 // 強敵階・特別な階・奈落の変異の知らせは帳の中に2〜3行で添える (後から別の札は出さない)。
 // 見落としても、見出しの迷宮名を押す「階の情報」でいつでも読み返せる
 function descend() {
+  evOnDescend(); // 迷宮のイベント: 誓いの破約など
   SFX.stairs();
   buzz([0, 20, 80, 20]);
   G.floor++;
@@ -5477,6 +6112,8 @@ function descend() {
       if (r < acc) { G.specialFloor = c.id; break; }
     }
   }
+  // 迷宮のイベント (奈落の縦穴): 降りた先は強敵階
+  if (G.run && G.run.ev && G.run.ev.forceElite) { G.run.ev.forceElite = false; G.eliteFloor = true; G.specialFloor = null; }
   const sp = specialDef();
   if (G.eliteFloor) {
     log("…強敵の気配がする。この階には通常では遭遇しない強大な存在が潜む。", "dmg");
@@ -5536,6 +6173,10 @@ function startBattle(enemies, cell) {
     const ch = (spFloor && spFloor.elemAll) || mutNum("elemAll", false) ? 1 : 0.5;
     for (const e of enemies) if (!e.boss && !(e.mon && e.mon.elite) && Math.random() < ch) e.element = cfg.element;
   }
+  // 迷宮の異変 (血の満潮など): 敵の強さ倍率は HP/ATK/VIT に加えて AGI にも掛ける
+  // (enemyScale は HP/ATK/VIT のみ。召喚で呼ばれた仲間も _agiMul を引き継ぐ)
+  const mutEm = (mutDef() && mutDef().enemyMul) || 1;
+  if (mutEm !== 1) for (const e of enemies) { e._agiMul = mutEm; e.agi = Math.max(1, Math.round(e.agi * mutEm)); }
   G.battleCell = cell;
   G.state = "combat";
 
@@ -5566,8 +6207,22 @@ function startBattle(enemies, cell) {
     if (r < amb) opening = "ambush";
     else if (r < amb + pre) opening = "preempt";
   }
+  // 迷宮のイベント: 出来事が決めた開幕 (寝首/奇襲) ・ 密輸人の待ち伏せ ・ 祈りの蝋燭
+  if (!isBoss && !isElite) {
+    const rv = G.run && G.run.ev && inDungeon() && !abyssActive() ? G.run.ev : null;
+    if (G._evOpening) opening = G._evOpening;
+    else if (rv && rv.ambushNext > 0) { rv.ambushNext--; opening = "ambush"; log("密輸人どもが荷の仕返しに待ち伏せていた！", "dmg"); }
+    else if (rv && rv.preempt > 0) { rv.preempt--; opening = "preempt"; log("祈りの蝋燭の灯が、闇を味方につけた。", "win"); }
+  } else if (G._evOpening && isElite) opening = null;
+  G._evOpening = null;
+  evBattleStart(enemies, isBoss);
   if (opening === "preempt") { log("先手を取った！", "win"); showToast("⚡ 先制攻撃！"); }
-  else if (opening === "ambush") { log("奇襲された！", "dmg"); showToast("⚠ 奇襲された！"); buzz([0, 60, 40, 60]); }
+  else if (opening === "ambush") {
+    // 奇襲: 紅い閃光・揺れ・専用の効果音で知らせ、開幕の帯 (drawAmbushIntro) と1ターン目の札で敵の先手を示す
+    log("奇襲された！ 敵が先に動く！", "dmg");
+    showToast("⚠ 奇襲された！ 敵の先手", { tone: "bad" });
+    SFX.ambush(); flashScreen("#9a0a06"); shakeScreen(true); buzz([0, 90, 50, 90, 50, 160]);
+  }
   // ランク帯ごとの戦闘テーマ (ボス・強敵は専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
   playBgm(battleBgm(isBoss || isElite));
   G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot") });
@@ -5629,6 +6284,8 @@ function renderCombatCanvas() {
     ? [{ list: backRow, y: VH * 0.31, back: true }, { list: frontRow, y: VH * 0.5, back: false }]
     : [{ list: frontRow, y: VH * 0.41, back: false }];
   const intro = G.battleIntro && G.battleIntro.battle === b ? G.battleIntro : null;
+  // 奇襲の1ターン目は、魔物の下に紅い縁と「敵の先手」の札を敷く (名札が重なれば名札を優先)
+  if (!intro && b.opening === "ambush" && b._roundNo <= 1 && !b.result) drawAmbushTag(now);
   // タップで狙える敵 = 攻撃が届く敵のみ (対象選択中は候補、入力中は手番キャラの武器射程)
   const targetable = new Set(
     G.animating ? []
@@ -5930,6 +6587,7 @@ function drawBattleIntro(intro, now) {
     vctx.fillRect(0, 0, W, H);
     vctx.restore();
   }
+  if (intro.ambush) { drawAmbushIntro(intro, t); return; }
   if (!intro.boss) return;
   const a = Math.min(1, Math.max(0, (t - 120) / 240)) * Math.min(1, Math.max(0, (intro.dur - t) / 340));
   if (a <= 0) return;
@@ -5992,6 +6650,108 @@ function drawBattleIntro(intro, now) {
   vctx.restore();
 }
 
+// 奇襲の開幕: 紅い縁が脈打ち、三筋の爪痕が戦場を裂いて「奇 襲」の帯を叩きつける
+function drawAmbushIntro(intro, t) {
+  const W = VW, H = VH;
+  const cl = (v) => Math.max(0, Math.min(1, v));
+  const a = cl((t - 40) / 160) * cl((intro.dur - t) / 320);
+  if (a <= 0) return;
+  vctx.save();
+  // 紅い縁 (心拍のように脈打つ)
+  const beat = 0.65 + 0.35 * Math.abs(Math.sin(t * 0.0068));
+  const vg = vctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.22, W / 2, H / 2, Math.max(W, H) * 0.72);
+  vg.addColorStop(0, "rgba(150,0,0,0)");
+  vg.addColorStop(1, `rgba(170,10,6,${0.6 * a * beat})`);
+  vctx.fillStyle = vg;
+  vctx.fillRect(0, 0, W, H);
+  // 帯
+  const bh = 60, by = H * 0.74 - bh / 2, cy = by + bh / 2;
+  vctx.globalAlpha = a;
+  const g = vctx.createLinearGradient(0, 0, W, 0);
+  g.addColorStop(0, "rgba(20,2,2,0)");
+  g.addColorStop(0.16, "rgba(34,4,4,0.93)");
+  g.addColorStop(0.84, "rgba(34,4,4,0.93)");
+  g.addColorStop(1, "rgba(20,2,2,0)");
+  vctx.fillStyle = g;
+  vctx.fillRect(0, by, W, bh);
+  // 紅い罫 (中央から左右へ伸びる)
+  const ease = 1 - Math.pow(1 - cl((t - 40) / 300), 3);
+  const lw = W * 0.38 * ease;
+  vctx.fillStyle = "#e0503c";
+  vctx.fillRect(W / 2 - lw, by + 3, lw * 2, 1);
+  vctx.fillRect(W / 2 - lw, by + bh - 4, lw * 2, 1);
+  // 爪痕: 文字の右で三筋の裂け目が右上から左下へ走る
+  vctx.lineCap = "round";
+  for (let k = 0; k < 3; k++) {
+    const q = cl((t - 80 - k * 60) / 150);
+    if (q <= 0) continue;
+    const x0 = W / 2 + 112 + k * 18, y0 = cy - 40;
+    const x1 = W / 2 + 62 + k * 18, y1 = cy + 40;
+    const xe = x0 + (x1 - x0) * q, ye = y0 + (y1 - y0) * q;
+    vctx.beginPath(); vctx.moveTo(x0, y0); vctx.lineTo(xe, ye);
+    vctx.shadowColor = "rgba(255,40,20,0.9)"; vctx.shadowBlur = 10;
+    vctx.strokeStyle = "rgba(255,60,30,0.6)"; vctx.lineWidth = 6; vctx.stroke();
+    vctx.shadowBlur = 0;
+    vctx.strokeStyle = "rgba(255,232,214,0.92)"; vctx.lineWidth = 1.6; vctx.stroke();
+  }
+  // 文字: 小さな前書き + 叩きつけるように縮む「奇 襲」
+  vctx.textAlign = "center";
+  vctx.textBaseline = "alphabetic";
+  vctx.font = `800 10px ${CANVAS_SERIF}`;
+  if ("letterSpacing" in vctx) vctx.letterSpacing = "4px";
+  vctx.fillStyle = "#ffb4a4";
+  vctx.shadowColor = "rgba(255,40,20,0.8)"; vctx.shadowBlur = 8;
+  vctx.fillText("背後を取られた", W / 2, by + 17);
+  if ("letterSpacing" in vctx) vctx.letterSpacing = "2px";
+  const slam = 1 - Math.pow(1 - cl((t - 60) / 220), 3);
+  const sc = 1.45 - 0.45 * slam;
+  vctx.save();
+  vctx.translate(W / 2, by + 51);
+  vctx.scale(sc, sc);
+  vctx.globalAlpha = a * (0.3 + 0.7 * slam);
+  vctx.font = `800 30px ${CANVAS_SERIF}`;
+  vctx.shadowBlur = 0;
+  vctx.lineJoin = "round";
+  vctx.lineWidth = 5;
+  vctx.strokeStyle = "#000";
+  vctx.strokeText("奇 襲", 0, 0);
+  const tg = vctx.createLinearGradient(0, -22, 0, 2);
+  tg.addColorStop(0, "#fff4ec"); tg.addColorStop(0.5, "#ff8a6a"); tg.addColorStop(1, "#d0301c");
+  vctx.fillStyle = tg;
+  vctx.shadowColor = "rgba(255,50,30,0.7)"; vctx.shadowBlur = 14;
+  vctx.fillText("奇 襲", 0, 0);
+  vctx.restore();
+  vctx.restore();
+}
+
+// 奇襲の1ターン目 (敵だけが動く間): 戦場の縁を薄く紅く脈打たせ、上端に「奇襲 ― 敵の先手」の札を残す
+function drawAmbushTag(now) {
+  const W = VW, H = VH;
+  const pulse = REDUCED_MOTION ? 1 : 0.55 + 0.45 * Math.abs(Math.sin(now * 0.004));
+  vctx.save();
+  const vg = vctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
+  vg.addColorStop(0, "rgba(150,0,0,0)");
+  vg.addColorStop(1, `rgba(160,10,6,${0.28 * pulse})`);
+  vctx.fillStyle = vg;
+  vctx.fillRect(0, 0, W, H);
+  const label = "奇襲 ― 敵の先手";
+  vctx.font = `800 11px ${CANVAS_SERIF}`;
+  if ("letterSpacing" in vctx) vctx.letterSpacing = "1px";
+  const pw = Math.ceil(vctx.measureText(label).width) + 22, ph = 19;
+  const px = Math.round((W - pw) / 2), py = 5;
+  vctx.fillStyle = "rgba(34,4,4,0.86)";
+  vctx.fillRect(px, py, pw, ph);
+  vctx.strokeStyle = `rgba(228,85,79,${0.5 + 0.5 * pulse})`;
+  vctx.lineWidth = 1;
+  vctx.strokeRect(px + 0.5, py + 0.5, pw - 1, ph - 1);
+  vctx.textAlign = "center";
+  vctx.textBaseline = "middle";
+  vctx.fillStyle = "#ffc4b8";
+  vctx.shadowColor = "rgba(255,40,20,0.7)"; vctx.shadowBlur = 6;
+  vctx.fillText(label, W / 2, py + ph / 2 + 1);
+  vctx.restore();
+}
+
 // 戦闘開始の演出を流してから done (手番処理) へ。演出中は入力を受けない
 function playBattleIntro(done) {
   const b = G.battle;
@@ -6002,8 +6762,11 @@ function playBattleIntro(done) {
   renderParty();
   fitView();
   if (REDUCED_MOTION) { done(); return; }
-  const dur = (boss ? 1900 : 640 + b.enemies.length * 90) * (G.fastAnim || G.autoCombat ? 0.6 : 1);
-  G.battleIntro = { battle: b, t0: performance.now(), dur, boss: boss ? (boss.mon && boss.mon.name) || boss.name : null };
+  const quick = G.fastAnim || G.autoCombat;
+  const ambush = b.opening === "ambush";
+  let dur = (boss ? 1900 : 640 + b.enemies.length * 90) * (quick ? 0.6 : 1);
+  if (ambush) dur = Math.max(dur, quick ? 1150 : 1500); // 奇襲の帯を読めるだけ留める
+  G.battleIntro = { battle: b, t0: performance.now(), dur, ambush, boss: boss ? (boss.mon && boss.mon.name) || boss.name : null };
   G.animating = true;
   combatMenu.innerHTML = "";
   if (G.autoCombat) renderAutoBanner();
@@ -6419,7 +7182,9 @@ function renderActingPlate(actor) {
   combatMenu.dataset.mode = "acting";
   if (!actor) return;
   const foe = actor.side === "enemy";
-  const w = turnPlate(actor.name, foe ? "の攻勢" : "の行動", []);
+  const b = G.battle;
+  const ambushTurn = foe && b && b.opening === "ambush" && b._roundNo <= 1; // 奇襲で敵だけが動く1ターン目
+  const w = turnPlate(actor.name, foe ? "の攻勢" : "の行動", ambushTurn ? ["奇襲"] : []);
   if (foe) w.classList.add("who-foe");
   combatMenu.appendChild(w);
 }
@@ -6516,6 +7281,8 @@ function renderCombatMenu() {
       const locked = skillLocked(actor, quick);
       const qb = cmdBtn("quick", sp.name, `MP ${spellCost(actor, sp)}`, () => { if (locked) { SFX.ng(); showToast(actor.mp < spellCost(actor, sp) ? "MPが足りない" : "効果のある対象がいない", { tone: "info" }); return; } act("spell", quick); }, "cmd-quick" + (locked ? " locked" : ""));
       qb.style.setProperty("--sp-col", SPELL_KIND_COLOR[sp.kind] || "#c9a24a");
+      const qs = qb.querySelector(".cmd-s"), qt = tagRow(spellTagKinds(sp, actor), "sp-tags");
+      if (qs && qt) qs.appendChild(qt);
       attachLongPress(qb, () => { SFX.select(); showSkillPopup(quick); });
       main.appendChild(qb);
     }
@@ -6572,6 +7339,8 @@ function showSpells(actor) {
     b.className = "btn spell spell-" + (sp.kind || "atk") + (key === quick ? " last" : "");
     const top = el("span", "sp-top");
     top.appendChild(el("span", "sp-n", sp.name));
+    const tg = tagRow(spellTagKinds(sp, actor), "sp-tags");
+    if (tg) top.appendChild(tg);
     top.appendChild(el("span", "sp-mp", `MP${cost}`));
     b.appendChild(top);
     b.appendChild(el("span", "sp-d", sp.desc));
@@ -6892,7 +7661,7 @@ function distributeBattleSoulExp(soulGot) {
     e.exp = (e.exp || 0) + gain;
     while (e.level < cap && e.exp >= soulTrainCost(e.level)) { e.exp -= soulTrainCost(e.level); e.level++; }
   }
-  recalcAllDolls();
+  recalcAllDolls({ levelUp: true });
   // メンバーごとに「レベルアップ(上昇ステータス付き)→新規スキル」をポップアップ用キューへ
   const STAT_LABEL = { maxhp: "HP", maxmp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
   for (const m of G.party) {
@@ -6947,7 +7716,7 @@ function endBattle() {
       if (e.element && e.element !== "none") G.stats.elemKills[e.element] = true; // 戦績: 撃破した属性 (勲章用)
       if (e.isMimic) G.stats.mimics++;                       // 戦績: ミミック撃破数
       if (e.isMasterMimic) G.stats.masterMimicSlain = true;  // 戦績: マスターミミック討伐 (一度きり)
-      recordMonsterKill(e.key, G.dungeonIdx); // 図鑑は「倒した時」に記録
+      if (!String(e.key).startsWith("ev_")) recordMonsterKill(e.key, G.dungeonIdx); // 図鑑は「倒した時」に記録 (出来事の影は載せない)
     }
     runCount("kills", kills);
     // 層ボスを1ラウンドで討ち取ったか (勲章: 電光石火)
@@ -6992,7 +7761,12 @@ function endBattle() {
     const wasBoss = !corpse && !abyssActive() && b.enemies.some((e) => e.boss);
     if (wasBoss) { flashScreen("#ffd84a"); buzz([0, 60, 50, 60, 50, 250]); } // 主討伐は特別な瞬間
     else if (wasElite) { flashScreen("#d4504e"); buzz([0, 80, 50, 80, 50, 300]); }
-    if (G.battleCell) G.battleCell.cleared = true;
+    // 出来事の戦闘: マスはイベント側が片付ける (連戦・報酬の続きがある)。勝った印だけ先に残す
+    const evCell = G.battleCell && G.battleCell.type === "event" ? G.battleCell : null;
+    if (evCell) { if (evCell.evFight) evCell.evFight.won = true; }
+    else if (G.battleCell) G.battleCell.cleared = true;
+    evBattleEnd(true);
+    if (wasBoss && G.events && G.events.flags && G.events.flags.bossWeak) delete G.events.flags.bossWeak[battleLayer()];
     // 主討伐の確定処理 (踏破記録・章進行 msq.state="report"・戦利品確定) は演出より先に行い、
     // 直後の finishToBoard の保存に乗せる。演出中に中断されても踏破は失われない
     const clearInfo = wasBoss ? commitDungeonClear() : null;
@@ -7005,7 +7779,7 @@ function endBattle() {
     const after = clearInfo
       ? () => showDungeonClearedPopup(clearInfo)
       : (hordeRewardPending() ? () => grantHordeReward() : null);
-    const hasChest = !corpse && (drop || wasElite || wasMimic || (specialDef() || {}).sureChest || Math.random() < 0.5);
+    const hasChest = !corpse && !(evCell && evCell.evFight && evCell.evFight.noChest) && (drop || wasElite || wasMimic || (specialDef() || {}).sureChest || Math.random() < 0.5);
     const chest = hasChest
       ? battleChestSpec(drop ? [drop] : [], wasMasterMimic ? 30 : wasMimic ? 15 : 0, wasMimic || wasMasterMimic, after ? ["alarm"] : null)
       : null;
@@ -7017,12 +7791,16 @@ function endBattle() {
       gold: goldGot, soul: soulGot, kills,
       levels, skills, souls,
       chest,
-      onDone: () => { if (after) after(); else if (G.state === "board") renderBoard(); },
+      onDone: () => {
+        const fin = () => { if (after) after(); else if (G.state === "board") { renderBoard(); evProgress(); } };
+        if (evCell && G.state === "board") eventFightWon(evApi, evCell, fin); else fin();
+      },
     });
     return;
   } else if (b.result === "flee") {
     // 逃走: 元のマスへ戻る (カードは表のまま)
     SFX.flee();
+    evBattleEnd(false);
     if (G.prevPos) { G.px = G.prevPos.x; G.py = G.prevPos.y; }
     finishToBoard();
   } else if (b.result === "lose") {
@@ -7176,7 +7954,10 @@ function showDungeonClearedPopup({ idx, isStoryTarget }) {
   uiResults.celebrateClear({
     name: dn.name, layer: dn.layer, isStoryTarget, layerBoss: !!dn.boss,
     last: idx >= DUNGEONS.length - 1,
-    onShare: dn.boss ? () => shareProgress(`第${dn.layer}層の主を討ち、「${dn.name}」を踏破した！`) : null,
+    onStay: () => {
+      log("迷宮は踏破した。下の「帰還」から、いつでも街へ凱旋できる。", "win");
+      if (G.state === "board") renderBoard();
+    },
     onGo: () => {
       if (townBtn) townBtn.classList.add("hidden");
       if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
@@ -7698,7 +8479,7 @@ function fuseSoul(targetUid, consumeUid) {
   if (idx >= 0) G.souls.splice(idx, 1);
   unequipSoulEverywhere(c.uid);
   G.stats.fusions++; // 戦績: 魂の融合回数 (勲章用)
-  recalcAllDolls();
+  recalcAllDolls({ levelUp: t.level > beforeLv });
   codexJobSee(t.clsKey, t.count, t.level);
   const after = soulRankOf(t);
   SFX.itemget(); buzz([0, 30, 50, 30]);
@@ -8347,11 +9128,14 @@ function playMsqChain(pages, toasts = [], after = null) {
 function acceptPages(toasts) {
   const ms = G.msq;
   if (ms.n + 1 > CONTENT_LIMIT) {
-    return [{ title: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう`, lines: SEALED_LINES, enter: () => { ms.state = "sealed"; autosave(true); } }];
+    return [{ title: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう`, lines: sealedLines(), enter: () => { ms.state = "sealed"; delete ms.unsealed; autosave(true); } }];
   }
   const n = ms.n + 1;
   const dn = DUNGEONS[n - 1];
-  return [{
+  // 公開範囲が広がって封が解けた: 勅命の前に、王が封の解けたことを告げる
+  const unseal = ms.unsealed ? [{ title: `第${actOf(n)}層 — 封印の解かれた門`, lines: unsealLines(actOf(n)), kicker: "封印の解呪",
+    leave: () => { delete ms.unsealed; } }] : [];
+  return [...unseal, {
     title: `第${actOf(n)}層 「${ACTS[actOf(n) - 1].title}」`, lines: msqOrderLines(n), kicker: "勅命",
     enter: () => {
       ms.n = n;
@@ -8411,13 +9195,10 @@ function acceptMainQuest() {
   playMsqChain(acceptPages(toasts), toasts);
 }
 
-// 公開範囲の先 (準備中) を告げる王の言葉
-const SEALED_LINES = [
-  "「墓域の主を討ち、第一の層を鎮めたか。…見事であった、魂繰りよ。」",
-  "「だが、次なる層へ続く大門の封は、いまだ固く閉ざされておる。宮廷の術師どもが解呪を急いでおるところだ。」",
-  "「封が解けるまで、墓域で人業を鍛え、魂を集め、装備を整えておけ。深淵は、備えのない者から喰らう。」",
-  `── 第${CONTENT_NEXT_LAYER}層以降は現在制作中です。墓域の迷宮には何度でも挑めます。`,
-];
+// 公開範囲の先 (準備中) を告げる王の言葉 (果ての層ごとの台詞は story.js SEAL_LINES)
+function sealedLines() {
+  return [...sealLines(CONTENT_NEXT_LAYER - 1), `── 第${CONTENT_NEXT_LAYER}層以降は現在制作中です。これまでの迷宮には何度でも挑めます。`];
+}
 
 // ---- 第0章「人業の生成」(チュートリアル勅命) ----
 const TUT_INTRO = [
@@ -8571,7 +9352,7 @@ function goMakeDoll() {
 function objectiveInfo() {
   const ms = G.msq;
   if (!ms || ms.state === "end" || ms.n > 100) return null;
-  if (contentSealed()) return { key: "sealed", text: "墓域で人業を鍛え、装備を集める", sub: `第${CONTENT_NEXT_LAYER}層は準備中`, act: "出撃", kind: "gate", run: () => departTo(null) };
+  if (contentSealed()) return { key: "sealed", text: "踏破した迷宮で人業を鍛え、装備を集める", sub: `第${CONTENT_NEXT_LAYER}層は準備中`, act: "出撃", kind: "gate", run: () => departTo(null) };
   if (ms.n === 0 && ms.state === "active") {
     if (!ms.granted) return { key: "audience", text: "王宮で王に謁見する", sub: "着任の挨拶", act: "謁見する", kind: "palace", run: audienceTutorial };
     if (!allDolls().some((d) => !d.isEmpty)) return { key: "makeDoll", text: "人業を一体、仕立てる", sub: "器を仕立て、魂をひとつ宿す (最初の3体は無料)", act: "仕立てる", kind: "party", run: goMakeDoll };
@@ -8603,7 +9384,7 @@ function palaceCallReady() {
 function decreeInfo() {
   const ms = G.msq;
   if (!ms || ms.state === "end" || ms.n > 100) return { kind: "end", head: "物語は閉じられた", text: "「百の迷宮は解き放たれた。…余の葬列には、来ずともよいぞ。」", replay: true };
-  if (contentSealed()) return { kind: "sealed", head: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう (準備中)`, text: "次なる層へ続く大門の封は、いまだ固く閉ざされている。", note: "封が解けるまで、墓域の迷宮で人業を鍛え、装備を集めよう。", replay: true };
+  if (contentSealed()) return { kind: "sealed", head: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう (準備中)`, text: "次なる層へ続く大門の封は、いまだ固く閉ざされている。", note: "封が解けるまで、踏破した迷宮で人業を鍛え、装備を集めよう。", replay: true };
   if (ms.n === 0 && ms.state === "active") {
     if (!ms.granted) return { kind: "ch0", head: "着任", text: "玉座の老王が、新しき魂繰りの到着を待っている。", replay: false };
     return { kind: "ch0", head: "勅命 「人業の生成」", text: "人業の館で器を仕立て (最初の3体は無料)、いずれかの魂を宿して人業を一体つくれ。", note: "人業が立ち上がったら、王に報告せよ。", replay: true };
@@ -8619,7 +9400,7 @@ function decreeInfo() {
 function replayDecree() {
   const ms = G.msq || {};
   if (!ms || ms.state === "end" || ms.n > 100) return UI.playStoryChain([{ title: "終章 — 最後の魂繰り", lines: EPILOGUE, kicker: "終章" }]);
-  if (contentSealed()) return UI.playStoryChain([{ title: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう`, lines: SEALED_LINES }]);
+  if (contentSealed()) return UI.playStoryChain([{ title: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう`, lines: sealedLines() }]);
   if (ms.n === 0) return UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: TUT_INTRO, kicker: "着任の謁見" }]);
   return UI.playStoryChain([{ title: `第${actOf(ms.n)}層 「${ACTS[actOf(ms.n) - 1].title}」`, lines: msqOrderLines(ms.n), kicker: "勅命" }]);
 }
@@ -8812,6 +9593,7 @@ function claimNextTreasury() {
 // 記録されるのは「倒した時」のみ。落としたドロップ(通常/レア)も実際に落として初めて開示。
 function codexMonEntry(key) {
   let e = G.codex.mon[key];
+  if (e == null) codexFresh().mon[key] = 1; // 初めての記録は新着
   if (!e || typeof e !== "object") {
     e = { kills: e === true ? 1 : 0, normal: false, rare: false, dungeons: {} };
     G.codex.mon[key] = e;
@@ -8841,7 +9623,18 @@ function rollGenericDrop() {
   }
   return null;
 }
-function codexSeeItem(id) { if (id) G.codex.item[id] = true; }
+function codexSeeItem(id) {
+  if (!id) return;
+  if (!G.codex.item[id]) codexFresh().item[id] = 1; // 初めての記録は新着
+  G.codex.item[id] = true;
+}
+// 図鑑の新着: { mon:{key:1}, item:{id:1}, job:{"職:ランク":1} }。王宮の図鑑で詳細を開くと消える (src/ui/palace.js)
+function codexFresh() {
+  const c = G.codex;
+  if (!c.fresh || typeof c.fresh !== "object") c.fresh = {};
+  for (const k of ["mon", "item", "job"]) if (!c.fresh[k] || typeof c.fresh[k] !== "object") c.fresh[k] = {};
+  return c.fresh;
+}
 
 // ---- 職業図鑑の記録 ----
 // 魂を吸収した時点で「発見」とし、到達ランクと魂レベルの最高値を記録する。
@@ -8856,6 +9649,7 @@ function codexJobSee(clsKey, count, level) {
   const prevLv = e && typeof e === "object" ? (e.lv || 0) : 0;
   const prevRank = e && typeof e === "object" ? (e.rank || 0) : 0;
   G.codex.job[clsKey] = { lv: Math.max(prevLv, lv), rank: Math.max(prevRank, rank) };
+  for (let r = prevRank + 1; r <= rank; r++) codexFresh().job[clsKey + ":" + r] = 1; // 新しく到達した位階の札は新着
 }
 // 所持魂一覧を走査して職業図鑑を更新する (オートセーブのたびに全走査)
 function codexSweepJobs() {
@@ -9324,6 +10118,7 @@ function showAbyssSummary({ depth, score, weekly, mods, newDepth, newScore }) {
 function returnToTown(opts = {}) {
   const runRef = opts.run !== undefined ? opts.run : G.run;
   const outcome = opts.outcome || (runRef && runRef.secured ? "clear" : "return");
+  evOnReturn(runRef, outcome); // 迷宮のイベント: 報奨金・紅玉の売却 (全滅以外)
   // 帰還の報告 (D2) は奈落の確定や迷宮選択の巻き戻しより前に要約する (迷宮名・深さを正しく残す)
   const summary = runSummary(runRef, outcome, { forfeited: opts.forfeited || null });
   // 奈落のランは帰還で確定する。記録更新を判定するため、確定前に控えておく
@@ -9734,14 +10529,15 @@ function showItemDetailPopup(p, sel) {
 }
 
 // 未鑑定品の詳細ポップアップ (旧来の .ig-choices) に「鑑定する」アクションを足す。
-// 鑑定済みの心得がある仲間がいればその場で試せる。失敗済み (idHardFail) とレジェンドレアは商会送り。
+// 街でのみ、鑑定の心得がある者 (隊と控え) がいればその場で試せる。失敗済み (idHardFail) とレジェンドレアは商会送り。
 // 新しい品シート (UI.itemSheet) は自前の「鑑定を試す / 鑑定する」を持つ。これは旧画面の互換用
 function addIdentifyAction(acts, it, close) {
   const off = (label) => { const b = btn(label, () => {}); b.disabled = true; acts.appendChild(b); };
   if (it.lr) return off("レジェンドレアは商会でのみ鑑定できる");
   if (it.idHardFail) return off("鑑定に失敗した品 (商会でのみ鑑定できる)");
-  const idmen = G.party.filter((m) => m.alive && canIdentify(m));
-  if (!idmen.length) return off("鑑定できる仲間がいない");
+  if (G.state !== "town") return off("鑑定は街でのみできる");
+  const idmen = townAppraisers();
+  if (!idmen.length) return off("鑑定できる者がいない");
   acts.appendChild(btn("鑑定を試す (スキル)", () => { close(); openIdentifyChooser(it); }));
 }
 
@@ -9749,15 +10545,23 @@ function addIdentifyAction(acts, it, close) {
 // 街で商会が開いていれば、確実な商会の鑑定も先頭に並ぶ
 function openIdentifyChooser(it, onDone) {
   if (UI.identifyChooser) return UI.identifyChooser(it, { onDone });
-  const idmen = G.party.filter((m) => m.alive && canIdentify(m));
-  if (!idmen.length) { log("鑑定できる仲間がいない。", "sys"); return null; }
+  const idmen = townAppraisers();
+  if (!idmen.length) { log(G.state === "town" ? "鑑定できる者がいない。" : "鑑定は街でのみできる。", "sys"); return null; }
   return doIdentifySkill(idmen[0], it);
 }
 
+// 鑑定の心得のある者 (鑑定は街でのみ。隊と控えの生きている全員から)
+function townAppraisers() {
+  if (G.state !== "town") return [];
+  return allDolls().filter((m) => m && !m.isEmpty && m.alive && canIdentify(m));
+}
+
 // スキル鑑定を実行。成功で正体判明、失敗で idHardFail (以後は商店でのみ鑑定可)。成功なら true
+// 鑑定は街でのみ (迷宮では何もしない)
 // quiet: 音・トースト・描き直し・保存を呼び出し側 (鑑定を試みるの演出 src/ui/appraise.js) に任せる
 function doIdentifySkill(m, it, { quiet = false } = {}) {
   if (!it || !it.unidentified || it.lr || it.idHardFail) return false;
+  if (G.state !== "town") return false;
   const ch = identifyChance(m, it.lv || 1);
   const ok = Math.random() < ch;
   if (ok) {
@@ -10156,7 +10960,17 @@ view.addEventListener("click", (e) => {
     }
     return;
   }
-  if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
+  if (G.state !== "board" || uiBlocked()) return;
+  // 自動移動中: 別のマスをタップしたら行き先を変更 (いま歩いている1歩を終えてから新しい経路へ)
+  if (G.walking) {
+    const hit = cellAt(sx, sy);
+    if (!hit) return;
+    if (!(hit.x === G.px && hit.y === G.py) && !findPath(hit.x, hit.y).length) { SFX.miss(); log("そこへはまだ行けない。", "sys"); return; }
+    SFX.select();
+    walkRedirect = { x: hit.x, y: hit.y };
+    return;
+  }
+  if (G.anim) return;
   // セル内 (溝のクリックは無視)
   const hit = cellAt(sx, sy);
   if (!hit) return;
@@ -10300,7 +11114,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "lrClock", "order", "irene", "story", "dragonSlain", "stats",
+  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "lrClock", "order", "irene", "events", "story", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
   "lastRun",
 ];
@@ -10388,6 +11202,7 @@ function reflattenItemStats() {
     delete it.pct;
     for (const k of ITEM_STAT_KEYS) { if (tmpl[k] != null) it[k] = tmpl[k]; else delete it[k]; }
     for (const k of ITEM_TMPL_KEYS) { if (tmpl[k] !== undefined) it[k] = tmpl[k]; else delete it[k]; }
+    if (it.forge) applyForge(it); // 鍛え直し (地の底の鍛冶場) は目録の値に掛け直す
   }
   for (const m of [...(G.party || []), ...(G.reserve || [])]) {
     for (const it of (m.items || [])) refresh(it);
@@ -10444,6 +11259,8 @@ function loadGame() {
   if (!G.order || !Array.isArray(G.order.picks)) G.order = { picks: [] }; // 控えの結社の着席指定
   if (!G.irene || typeof G.irene !== "object") G.irene = { greeted: false, visits: 0, seen: {}, last: null }; // 館の主イレーヌ (後付け: 既存の記録では次の来館で挨拶する)
   if (!G.irene.seen || typeof G.irene.seen !== "object") G.irene.seen = {};
+  if (!G.events || typeof G.events !== "object") G.events = {}; // 迷宮のイベント (後付け)
+  for (const k of ["seen", "picks", "once", "flags", "fresh"]) if (!G.events[k] || typeof G.events[k] !== "object") G.events[k] = {};
   // 旧ステータス体系のセーブを六大ステ (ATK/VIT/AGI/INT/PIE/LUK) へ移行
   // (battle の敵の mon はこの後 MONSTERS の生定義に差し替えられるため触れても無害)
   migrateLegacyStats(snap);
@@ -10498,6 +11315,8 @@ function loadGame() {
     const n = Math.min(100, Math.max(1, G.unlockedDungeons || 1));
     G.msq = (G.dragonSlain && n >= 100) ? { n: 100, state: "report" } : { n, state: "active" };
   }
+  // 公開範囲が広がった: 封印の告知を受けていたセーブは「次の勅命待ち」に戻し、王が封の解けたことを告げる
+  if (G.msq.state === "sealed" && G.msq.n < CONTENT_LIMIT) { G.msq.state = "offer"; G.msq.unsealed = true; }
   G.autoCombat = false;   // オート戦闘は再開時に解除 (誤動作防止)
   // 図鑑の移行: 旧形式 (mon[key]=true) を {kills,normal,rare,dungeons} に変換
   if (!G.codex) G.codex = { mon: {}, item: {} };
@@ -10517,6 +11336,7 @@ function loadGame() {
     const e = G.codex.job[k];
     if (!e.rank) e.rank = Math.max(1, Math.min(5, Math.ceil((e.lv || 0) / 10)));
   }
+  codexFresh(); // 新着の記録 (後付け。旧セーブは新着なしで始まる)
   delete G.codex.soul; // 魂図鑑は廃止 (スキルが職業帰属になったため)
   codexSweepJobs();
   return true;
@@ -10788,19 +11608,19 @@ const OPS = {
     return { ok: true, n, gold, redSoul: red, soulPts: soul };
   },
 
-  // 新種をまとめて奉納 (宝物庫の「新種をまとめて奉納」と同じ)
+  // 未奉納の蒐集品をまとめて奉納 (宝物庫の「蒐集品を奉納」→ 詳細のシートの「奉納する」)
   donateAllNew() {
     const list = opsDonatableList();
     if (!list.length) return { ok: false, n: 0 };
     for (const h of list) donateCollectible(h.doll, h.item);
     SFX.itemget(); autosave();
     log(`蒐集品 ${list.length} 種を宝物庫に奉納した。`, "win");
-    showToast(`${list.length}種を奉納した`);
+    showToast(`蒐集品 ${list.length}種を奉納した`);
     renderTown();
     return { ok: true, n: list.length, rewardReady: treasuryRewardReady() };
   },
 
-  // 魂を n 段鍛える (n = Infinity で上限まで)。1段ごとの費用・上限は trainSoul と同じ。
+  // 魂を n 段強化する (n = Infinity で上限まで)。1段ごとの費用・上限は trainSoul と同じ。
   // 結果に宿主の能力の伸び (deltas) と新たに覚えた技 (gainedSkills) を添える。迷宮の中では鍛えられない
   trainTimes(uid, n = 1) {
     const e = soulByUid(uid);
@@ -10824,16 +11644,23 @@ const OPS = {
       SFX.ng();
       return { ok: false, levels: 0, spent: 0, from, to: from };
     }
-    recalcAllDolls();
+    recalcAllDolls({ levelUp: true });
     codexJobSee(e.clsKey, e.count, e.level);
     SFX.levelup(); buzz([0, 30, 40, 30]);
     log(`${soulSeriesName(e.clsKey)}の魂が Lv${from}→${e.level} に成長した！ (✦${spent})`, "win");
-    const deltas = {};
-    if (wearer && before) for (const k of KEYS) { const d = (wearer[k] || 0) - before[k]; if (d) deltas[k === "maxhp" ? "hp" : k === "maxmp" ? "mp" : k] = d; }
+    // 能力の伸び: before/after は hp/mp/atk… の表示キーで (魂の区分の「強化の結果」に並べる)
+    const sk = (k) => (k === "maxhp" ? "hp" : k === "maxmp" ? "mp" : k);
+    const deltas = {}, statsBefore = {}, statsAfter = {};
+    if (wearer && before) for (const k of KEYS) {
+      statsBefore[sk(k)] = before[k]; statsAfter[sk(k)] = wearer[k] || 0;
+      const d = (wearer[k] || 0) - before[k]; if (d) deltas[sk(k)] = d;
+    }
     const gainedSkills = wearer ? (wearer.spells || []).filter((k) => !beforeSpells.has(k)) : [];
-    showToast(`${soulSeriesName(e.clsKey)}の魂 Lv${e.level} (✦${spent})`, { tone: "good" });
+    const STAT_N = { hp: "HP", mp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
+    const grow = Object.entries(deltas).filter(([, v]) => v > 0).map(([k, v]) => `${STAT_N[k] || k}+${v}`).join(" ");
+    showToast(`${soulSeriesName(e.clsKey)}の魂を強化 Lv${from}→${e.level}${grow ? ` ― ${grow}` : ""}`, { tone: "good" });
     renderTown();
-    return { ok: true, levels, spent, from, to: e.level, deltas, gainedSkills, wearer };
+    return { ok: true, levels, spent, from, to: e.level, deltas, before: statsBefore, after: statsAfter, gainedSkills, wearer };
   },
 };
 Object.assign(ops, OPS);
@@ -11019,7 +11846,7 @@ bindGame({
   abyssRecords, ABYSS_MODS, abyssScoreMul, weekSeedId, emptyDollCost,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow,
-  ABYSS_MUT_MAP, dungeonTheme,
+  ABYSS_MUT_MAP, dungeonTheme, eventFacts,
   // 戦果・帰還の報告
   celebrateSoul, leaveDungeon,
   // 記録の履歴 (記録欄のタップ / 手帳の「記録を読む」)
@@ -11048,7 +11875,9 @@ function init() {
   wireUI();
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
   window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACHIEVEMENTS, questProgress, pickLoot, showItemGet, startBattle, spawnCardEnemies, spawnBossEnemies, activeCfg,
-    UI, ops, nav, townshell };
+    UI, ops, nav, townshell,
+    // 迷宮のイベント (出来事) の検証用
+    ev: { evApi, runEvent, eventFightWon, EVENT_MAP, enterDungeon, newFloor, descend, resolveCell, renderBoard, endBattle, evNewFloor, evProgress, eventFacts, makeDoll, addSoulInstance, recalcDoll, evUnit } };
 
   let loaded = false;
   try { loaded = loadGame(); } catch (e) { loaded = false; }

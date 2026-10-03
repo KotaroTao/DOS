@@ -13,7 +13,7 @@ import { getPref, setPref, remember } from "./prefs.js";
 import { statLines, isEquippable } from "./itemview.js";
 import {
   itemSheet, wearPlan, deltaFor, deltaEl, nameSpan, goldEl, caretIcon, equipTo, floatGold, ownerOf, equipCandidates, shopOpen, isUpgrade,
-  openDollChooser, equipPick, dollIcon,
+  openDollChooser, equipPick, dollIcon, revealSellBtn,
 } from "./loot.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, MAX_ITEMS, canEquip, itemName } from "../items.js";
 import { RARITIES, rarityKey } from "../rarity.js";
@@ -172,6 +172,34 @@ function tileStrip(list, { max = 24 } = {}) {
   return w;
 }
 
+// 売る品の一覧 (まとめて売るの確認): 1行に 品の絵・名・持ち主・売値。押せば品シート
+function sellRows(list) {
+  const w = el("div", "wpc-picklist wpc-selllist");
+  for (const x of list) {
+    const it = x.item;
+    const r = el("div", "wpc-prow");
+    const main = el("button", "wpc-prow-main");
+    main.type = "button";
+    const rk = rarityKey(it);
+    const ic = el("span", "wpc-srow-ic" + (rk ? " rar-" + rk : ""));
+    if (rk) ic.style.setProperty("--edge", RARITIES[rk].color);
+    ic.appendChild(spriteCanvas(it, 3));
+    main.appendChild(ic);
+    const tx = el("span", "wpc-prow-t");
+    tx.appendChild(nameSpan(it, "wpc-prow-title"));
+    tx.appendChild(setText(el("span", "wpc-prow-sub"), `${x.doll.name} の持ち物${isUp(it) ? " ・ ▲装備の候補" : ""}`));
+    main.appendChild(tx);
+    const pr = el("span", "wpc-prow-r");
+    pr.appendChild(glyph("gold"));
+    pr.appendChild(document.createTextNode(String(x.price)));
+    main.appendChild(pr);
+    main.addEventListener("click", () => itemSheet(it, { owner: x.doll, context: "bag" }));
+    r.appendChild(main);
+    w.appendChild(r);
+  }
+  return w;
+}
+
 // 番人のひとこと (状況で選ぶ)
 function keeperLine(seg) {
   const shell = (game.FAC_SHELL && game.FAC_SHELL.shop) || { lines: [] };
@@ -239,7 +267,7 @@ export function confirmSellJunk() {
     const gold = list.reduce((a, x) => a + x.price, 0);
     const ex = exclusions();
     const body = el("div", "wpc-cbody");
-    if (list.length) body.appendChild(tileStrip(list));
+    if (list.length) body.appendChild(sellRows(list));
     else body.appendChild(el("div", "wpc-empty", "売る品がない。"));
     if (ups.length) {
       // 装備の候補も売るか (切り替え)
@@ -266,7 +294,7 @@ export function confirmSellJunk() {
   const opts = () => {
     const b = build();
     return {
-      title: `${b.list.length}点を売る`, body: b.body,
+      title: `${b.list.length}点を売る (+${b.gold})`, body: b.body,
       footer: [
         { label: "売る", kind: "primary", size: "lg", cost: { kind: "gold", n: b.gold }, disabled: !b.list.length, onTap: run },
         { label: "やめる", kind: "ghost", onTap: (x) => x.close("cancel") },
@@ -450,43 +478,62 @@ function openBuyChooser(id) {
   });
 }
 
-// 鑑定の結果 (まとめて鑑定のあと): 正体が知れた品。押せば品シート / 「装備」で人業を選ぶ
+// 鑑定の結果 (まとめて鑑定のあと): 正体が知れた品。押せば品シート / 「装備」で人業を選ぶ / 「売る」でその場で売る
+// 品シート・装備の選択を閉じたら一覧を描き直す (装備した品は一覧から消す)
 function openRevealSheet(items) {
-  const body = el("div", "wpc-picklist wpc-reveal");
   let h = null;
-  for (const it of items) {
-    const o = ownerOf(it);
-    if (!o) continue;
-    const r = el("div", "wpc-prow");
-    const main = el("button", "wpc-prow-main");
-    main.type = "button";
-    const ic = el("span", "wpc-srow-ic" + (rarityKey(it) ? " rar-" + rarityKey(it) : ""));
-    if (rarityKey(it)) ic.style.setProperty("--edge", RARITIES[rarityKey(it)].color);
-    ic.appendChild(spriteCanvas(it, 3));
-    main.appendChild(ic);
-    const tx = el("span", "wpc-prow-t");
-    tx.appendChild(nameSpan(it, "wpc-prow-title"));
-    const sub = el("span", "wpc-prow-sub");
-    const plan = isEquippable(it) ? wearPlan(it, { owner: o.doll }) : null;
-    const up = plan && plan.target && plan.delta && plan.score > 0;
-    if (up) { sub.appendChild(deltaEl(plan.delta)); sub.appendChild(el("span", "wpc-srow-who", plan.target.name)); }
-    else sub.appendChild(document.createTextNode(`${o.doll.name} の持ち物 ・ 売値 ${game.sellPrice(it)}`));
-    tx.appendChild(sub);
-    main.appendChild(tx);
-    main.addEventListener("click", () => itemSheet(it, { owner: o.doll, context: "sell" }));
-    r.appendChild(main);
-    if (isEquippable(it) && o.where === "bag") {
-      const eb = button({ label: "装備", kind: up ? "primary" : "secondary", size: "sm", onTap: () => openDollChooser(it, { owner: o.doll }) });
-      eb.classList.add("wpc-prow-act");
-      r.appendChild(eb);
+  const refreshOnClose = (ch) => {
+    if (!ch || !ch.opts) return;
+    const prev = ch.opts.onClose;
+    ch.opts.onClose = (why) => { if (prev) prev(why); if (h && !h.closed) h.update(view()); };
+  };
+  const build = (b) => {
+    const wrap = el("div", "wpc-picklist wpc-reveal");
+    let worn = 0;
+    for (const it of items) {
+      const o = ownerOf(it);
+      if (!o) continue;
+      if (o.where === "equip") { worn++; continue; } // 装備した品は一覧から消す
+      const r = el("div", "wpc-prow");
+      const main = el("button", "wpc-prow-main");
+      main.type = "button";
+      const ic = el("span", "wpc-srow-ic" + (rarityKey(it) ? " rar-" + rarityKey(it) : ""));
+      if (rarityKey(it)) ic.style.setProperty("--edge", RARITIES[rarityKey(it)].color);
+      ic.appendChild(spriteCanvas(it, 3));
+      main.appendChild(ic);
+      const tx = el("span", "wpc-prow-t");
+      tx.appendChild(nameSpan(it, "wpc-prow-title"));
+      const sub = el("span", "wpc-prow-sub");
+      const plan = isEquippable(it) ? wearPlan(it, { owner: o.doll }) : null;
+      const up = plan && plan.target && plan.delta && plan.score > 0;
+      if (up) { sub.appendChild(deltaEl(plan.delta)); sub.appendChild(el("span", "wpc-srow-who", plan.target.name)); }
+      else sub.appendChild(document.createTextNode(`${o.doll.name} の持ち物${o.where === "bag" && shopOpen() ? "" : ` ・ 売値 ${game.sellPrice(it)}`}`)); // 売値は「売る」に載る
+      tx.appendChild(sub);
+      main.appendChild(tx);
+      main.addEventListener("click", () => refreshOnClose(itemSheet(it, { owner: o.doll, context: "sell" })));
+      r.appendChild(main);
+      if (isEquippable(it) && o.where === "bag") {
+        const eb = button({ label: "装備", kind: up ? "primary" : "secondary", size: "sm", onTap: () => refreshOnClose(openDollChooser(it, { owner: o.doll })) });
+        eb.classList.add("wpc-prow-act");
+        r.appendChild(eb);
+      }
+      if (o.where === "bag" && shopOpen()) r.appendChild(revealSellBtn(o.doll, it, () => { if (h && !h.closed) h.update(view()); }));
+      wrap.appendChild(r);
     }
-    body.appendChild(r);
-  }
-  const ups = items.filter((it) => isUp(it)).length;
+    if (worn) wrap.appendChild(el("div", "ap-sum-worn", `装備した品 ${worn}点は一覧から外した。`));
+    const sold = items.filter((it) => !ownerOf(it)).length;
+    if (sold) wrap.appendChild(el("div", "ap-sum-worn", `売った品 ${sold}点は一覧から外した。`));
+    if (!wrap.childElementCount) wrap.appendChild(el("div", "wpc-empty", "正体の知れた品はない。"));
+    b.appendChild(wrap);
+  };
+  const view = () => {
+    const ups = items.filter((it) => { const o = ownerOf(it); return o && o.where === "bag" && isUp(it); }).length;
+    return { lines: ups ? [`装備すると強くなる品が ${ups}点 ある (▲)`] : [], body: (b) => build(b) };
+  };
   h = sheet.open({
     kind: "info", banner: "鑑定の結果", accent: "#7fd0ff",
-    title: `${items.length}点の正体が知れた`, lines: ups ? [`装備すると強くなる品が ${ups}点 ある (▲)`] : [],
-    body, className: "wpc-pick wpc-revealsheet",
+    title: `${items.length}点の鑑定に成功`, ...view(),
+    className: "wpc-pick wpc-revealsheet",
     footer: [{ label: "閉じる", kind: "primary", onTap: (x) => x.close() }],
   });
   return h;

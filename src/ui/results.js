@@ -173,7 +173,7 @@ export function openResults(spec = {}) {
       t.appendChild(nm);
       t.appendChild(el("div", "rs-sub", `${rk && RARITIES[rk] ? RARITIES[rk].label + " ・ " : ""}${item.unidentified ? "未鑑定 ・ " : ""}${who ? who.name + " が持った" : ""}`));
       r.appendChild(t);
-      // 押すと品の詳細 (迷宮では鑑定を試す等)。鑑定済みで装備できる品は「装備」で人業を選んですぐ装備
+      // 押すと品の詳細 (鑑定は街でのみ)。鑑定済みで装備できる品は「装備」で人業を選んですぐ装備
       r.classList.add("tap");
       r.setAttribute("role", "button");
       r.addEventListener("click", (e) => { if (e.target.closest(".rs-equip")) return; try { UI.itemSheet(item, { owner: who, context: "dungeon" }); } catch (er) { /* noop */ } });
@@ -199,14 +199,13 @@ export function openResults(spec = {}) {
     },
   };
   // 宝箱の処理が済んだ (シートが残っていれば「進む」を出す。片付けた後なら続きへ)
-  // 何事もなく開け終えたら (痛手・SR/LR・置いてきた品が無ければ)、結果を一瞬見せてそのまま進む (1タップで済む)。
-  // 目を留めるべき結果がある時は「進む」を待つ。設定「戦果を自動で閉じる」なら常に自動で閉じる
+  // 結果はタップ (「進む」) で閉じる。設定「戦果を自動で閉じる」の時だけ自動で閉じる
   const chestDone = () => {
     if (interrupted) { finalize(); return; }
     chestState = "done";
     renderChest();
-    refreshFooter(!notable || getPref("autoCloseResults"));
-    if (!notable) armAutoClose(true); else armAutoClose();
+    refreshFooter(getPref("autoCloseResults"));
+    armAutoClose();
   };
   function openChestWith(uid) {
     if (chestState !== "closed" || !spec.chest) return;
@@ -328,7 +327,7 @@ export function openWipe(spec = {}) {
 }
 
 // ================= 踏破の祝祭 =================
-// spec: { name, layer, isStoryTarget, layerBoss, last, onShare, onGo }
+// spec: { name, layer, isStoryTarget, layerBoss, last, onGo, onStay }
 export function celebrateClear(spec = {}) {
   const g = G();
   if (g) g.prompt = true;
@@ -338,7 +337,8 @@ export function celebrateClear(spec = {}) {
   else if (spec.last) lines.push("すべての迷宮を制覇した。あなたは伝説となった。");
   else lines.push("さらなる深淵が、まだそなたを待っている。");
   const footer = [{ label: "街へ凱旋する", kind: "primary", size: "lg", onTap: (h) => { if (gone) return; gone = true; h.close("ok", { silent: true }); const gg = G(); if (gg) gg.prompt = false; if (spec.onGo) spec.onGo(); } }];
-  if (spec.onShare) footer.push({ label: "戦果を伝える", kind: "ghost", onTap: () => spec.onShare() });
+  // まだ探索する: 街へ戻らず盤面に残る (主は討ったので、下の「帰還」からいつでも凱旋できる)
+  if (spec.onStay) footer.push({ label: "まだ探索する", kind: "ghost", onTap: (h) => { if (gone) return; gone = true; h.close("ok", { silent: true }); const gg = G(); if (gg) gg.prompt = false; spec.onStay(); } });
   goldFlash("#ffd84a");
   return celebrate({
     banner: "★ 迷宮踏破 ★", accent: "#ffd84a", title: spec.name, art: ICONS.stairs, artScale: 8, lines, className: "rs-clear",
@@ -483,7 +483,13 @@ export function renderRunReport(root) {
   let better = 0;
   try { better = UI.betterGearCount ? UI.betterGearCount() || 0 : 0; } catch (e) { better = 0; }
   if (better > 0) act({ label: "最適装備", sub: `${better}体に よりよい品`, run: () => { if (UI.autoEquip) UI.autoEquip("all"); } });
-  if (c.junk > 0 && shopOpen) act({ label: "まとめて売る", cost: { kind: "gold", n: c.junkGold }, run: async () => { if (await confirmSell(c)) ops.sellJunkAll(); } });
+  // まとめて売る: 商会の確認 (売る品と売値の一覧・装備の候補を残す守りつき) があればそちら
+  if (UI.confirmSellJunk && UI.junkList) {
+    let junk = null;
+    try { junk = UI.junkList(); } catch (e) { junk = null; }
+    if (junk && junk.length && shopOpen) act({ label: "まとめて売る", cost: { kind: "gold", n: junk.reduce((a2, j) => a2 + (j.price || 0), 0) },
+      run: () => { UI.confirmSellJunk(); } }); // 売ったあとは商会側が街を描き直す
+  } else if (c.junk > 0 && shopOpen) act({ label: "まとめて売る", cost: { kind: "gold", n: c.junkGold }, run: async () => { if (await confirmSell(c)) ops.sellJunkAll(); } });
   if (c.dead > 0 && c.hastenCost > 0) act({ label: "今すぐ連れ帰る", cost: { kind: "red", n: c.hastenCost }, kind: lr.outcome === "wipe" ? "primary" : "secondary", disabled: g.redSoul < 1, run: async () => { if (await confirmHasten(c)) ops.hastenAll(); } });
   if (acts.childElementCount) card.appendChild(acts);
   else card.appendChild(el("div", "rr-line dim", lr.outcome === "wipe" ? "人業が戻るのを待とう。" : "片付ける用事はない。次の迷宮へ。"));

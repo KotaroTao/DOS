@@ -16,7 +16,8 @@ import { el, sheet, row, setText, glyph, itemTile, portrait, bar, reduced } from
 import { getPref, setPref, remember } from "./prefs.js";
 import { sceneTransition } from "./motion.js";
 import { MONSTERS, ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
-import { RACE_LABEL, ELEMENTS, monsterTraits, isFloating } from "../dungeons/index.js";
+import { ELEMENTS, monsterTraits, isFloating } from "../dungeons/index.js";
+import { tagRow, traitTagKinds, affinityRow } from "./itemview.js";
 import { RARITIES } from "../rarity.js";
 import { SOUL_CLASSES, jobBust } from "../souls.js";
 import { WALKER as WALKER_ART } from "../walkerart.js";
@@ -130,6 +131,8 @@ function floorFacts() {
       if (m) facts.push({ tone: m.kind === "boon" ? "gold" : "bad", icon: ICONS.portal, title: `${m.kind === "boon" ? "奈落の恵み" : "奈落の変異"}「${m.name}」`, accent: m.accent, lines: [m.desc] });
     }
   }
+  // 迷宮のイベント (出来事) の効果: この階 / この潜入
+  if (game.eventFacts) { try { facts.push(...game.eventFacts()); } catch (e) { /* 表示のみ */ } }
   return { g, cfg, dn, abyss, theme, sp, mu, obj, facts };
 }
 export function openFloorInfo() {
@@ -206,7 +209,8 @@ export function openRunLoot() {
         const sorted = items.slice().sort((a, c) => ((RARITIES[c.item.rar] || {}).order || 0) - ((RARITIES[a.item.rar] || {}).order || 0));
         for (const { owner, item } of sorted) {
           const cellEl = el("div", "dg-tilecell");
-          cellEl.appendChild(itemTile(item, { size: 56, onTap: () => { try { UI.itemSheet(item, { owner, context: "dungeon" }); } catch (e) { /* 品の詳細が無くても動く */ } } }));
+          cellEl.appendChild(itemTile(item, { size: 56, onTap: () => { try { UI.itemSheet(item, { owner, context: "dungeon" }); } catch (e) { /* 品の詳細が無くても動く */ } },
+            onHold: UI.codexItemSheet ? () => UI.codexItemSheet(item.id, { item }) : null }));
           cellEl.appendChild(el("span", "dg-tile-who", owner ? owner.name : ""));
           grid.appendChild(cellEl);
         }
@@ -420,19 +424,26 @@ export function peekEnemy(e) {
     art: m.art ? m : null, artScale: 4, float: isFloating(m, e.key),
     title: e.name,
     body: (b) => {
-      const meta = [RACE_LABEL[m.race] || "", elem ? `${elem.label}属性` : "無属性"].filter(Boolean);
-      b.appendChild(el("div", "dg-en-meta", meta.join(" ・ ")));
+      // 名前の下は属性の印だけ (無属性なら出さない)
+      const et = elem && tagRow(["el:" + e.element], "dg-en-elem");
+      if (et) b.appendChild(et);
       const hp = el("div", "dg-peek-bar wide");
       hp.appendChild(el("span", "dg-peek-bl", "HP"));
       hp.appendChild(bar(e.hp, e.maxhp, { tone: "hp" }));
       hp.appendChild(el("span", "dg-peek-bv", `${Math.max(0, e.hp)}/${e.maxhp}`));
       b.appendChild(hp);
+      const aff = affinityRow(e.element);
+      if (aff) b.appendChild(aff);
       if (traits.length) {
         b.appendChild(section("特徴・スキル"));
         const tl = el("div", "dg-traits");
         for (const t of traits) {
           const c = el("div", "dg-trait");
-          c.appendChild(el("b", null, t.label));
+          const hd = el("div", "dg-trait-h");
+          hd.appendChild(el("b", null, t.label));
+          const tg = tagRow(traitTagKinds(t.key, e.element));
+          if (tg) hd.appendChild(tg);
+          c.appendChild(hd);
           c.appendChild(el("span", null, t.desc));
           tl.appendChild(c);
         }
