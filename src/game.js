@@ -11627,6 +11627,17 @@ const OPS = {
     return { ok: true, n, gold, redSoul: red, soulPts: soul };
   },
 
+  // 蒐集品を1点奉納 (宝物庫から開いた品シートの「奉納」)
+  donateOne(doll, it) {
+    if (!doll || !it || it.slot !== "misc" || treasuryState().donated[it.id]) return { ok: false };
+    if (!donateCollectible(doll, it)) return { ok: false };
+    SFX.itemget(); autosave();
+    log(`${itemName(it)} を宝物庫に奉納した。`, "win");
+    showToast(`${itemName(it)} を奉納した`);
+    renderTown();
+    return { ok: true, rewardReady: treasuryRewardReady() };
+  },
+
   // 未奉納の蒐集品をまとめて奉納 (宝物庫の「蒐集品を奉納」→ 詳細のシートの「奉納する」)
   donateAllNew() {
     const list = opsDonatableList();

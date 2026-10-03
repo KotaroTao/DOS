@@ -670,7 +670,7 @@ export function donateSheet() {
         const def = ITEMS[h.item.id] || h.item;
         const r = Math.max(1, Math.ceil((def.lv || 1) / 20));
         const it = el("div", "pl-dn");
-        it.appendChild(itemTile(h.item, { size: 44, onTap: () => openItem(h.item.id, { instance: h.item, owner: h.doll }) }));
+        it.appendChild(itemTile(h.item, { size: 44, onTap: () => openItem(h.item.id, { instance: h.item, owner: h.doll, context: "donate" }) }));
         const tx = el("div", "pl-dn-tx");
         const nm = el("div", "pl-dn-n", itemName(h.item));
         const col = (game.itemRankColor && game.itemRankColor(h.item)) || rarityColor(h.item);
@@ -715,7 +715,7 @@ function renderTreasury(body) {
   const row = el("div", "pl-tr-new");
   if (news.length) {
     for (const h of news) {
-      const t = itemTile(h.item, { size: 44, isNew: true, onTap: () => openItem(h.item.id, { instance: h.item, owner: h.doll }) });
+      const t = itemTile(h.item, { size: 44, isNew: true, onTap: () => openItem(h.item.id, { instance: h.item, owner: h.doll, context: "donate" }) });
       t.setAttribute("aria-label", `${h.item.name} (${h.doll.name})`);
       row.appendChild(t);
     }
