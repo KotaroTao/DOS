@@ -34,7 +34,7 @@ const KIND = {
   chest: { banner: "✦ 宝箱 ✦", title: "宝箱", accent: "#c9a24a" },
 };
 
-// spec: { kind, gold, soul, kills, levels[{name,from,to,deltas[]}], skills[{name,key,skill,desc}],
+// spec: { kind, gold, soul, kills, levels[{name,from,to,deltas[],sub?,soulLabel?}], skills[{name,key,skill,desc}],
 //         souls[{clsKey,label,rarity,rare,glow,line,embers}], chest:{name,cRank,openers[{uid,name,pct}],open(uid,sink,done)}|null, onDone }
 export function openResults(spec = {}) {
   const g = G();
@@ -69,10 +69,12 @@ export function openResults(spec = {}) {
   const list = el("div", "rs-list");
   // 成長は1人1行 (名・Lv・伸びた能力)。新しい技は押すと詳細
   for (const lv of spec.levels || []) {
-    const r = el("div", "rs-line rs-lv");
-    r.appendChild(el("i", "rs-ic up"));
+    const r = el("div", "rs-line rs-lv" + (lv.sub ? " rs-lv-sub" : ""));
+    r.appendChild(el("i", "rs-ic up" + (lv.sub ? " sub" : "")));
     const t = el("div", "rs-line-t one");
     t.appendChild(el("b", null, `${lv.name}`));
+    // サブ魂のレベルアップは「サブ魂 〇〇」の札を添える
+    if (lv.sub) t.appendChild(el("span", "rs-subtag", `サブ魂 ${lv.soulLabel || ""}`.trim()));
     t.appendChild(el("span", "rs-lvnum", ` Lv${lv.from}→${lv.to}`));
     if (lv.deltas && lv.deltas.length) t.appendChild(el("span", "rs-delta", "  " + lv.deltas.map((d) => d.replace(" +", "+")).join(" ")));
     r.appendChild(t);

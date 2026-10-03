@@ -509,7 +509,11 @@ function pickerBody(root, d, slotId, h) {
   const curUid = isSub ? ((d.subs || [])[si] || {}).uid : d.primary;
   const fusion = game.featureUnlocked ? game.featureUnlocked("fusion") : false;
   const souls = [...G.souls].sort(game.soulSortCmp || (() => 0));
-  const order = (s) => (s.uid === curUid ? 0 : wearerOf(s.uid, d) ? 2 : 1);
+  // サブ魂の差し口では、メイン魂に宿している魂 (自分のものも含む) は選べない。
+  // 他の人業のサブ魂は選べる (確認のうえ付け替え。宿していた魂とは交換)
+  const isMainOf = (uid) => allDolls().find((dd) => dd.primary === uid) || null;
+  const subOf = (uid) => (isSub ? allDolls().find((dd) => dd !== d && (dd.subs || []).some((x) => x && x.uid === uid)) || null : null);
+  const order = (s) => (s.uid === curUid ? 0 : (wearerOf(s.uid, d) && !subOf(s.uid)) || (isSub && d.primary === s.uid) ? 3 : subOf(s.uid) ? 2 : 1);
   souls.sort((a, b) => order(a) - order(b));
   const list = el("div", "pt-list sp-plist");
   for (const s of souls) {
@@ -517,9 +521,11 @@ function pickerBody(root, d, slotId, h) {
     const rank = soulRankOf(s);
     const cap = soulLevelCapOf(s);
     const isCur = s.uid === curUid;
-    const other = wearerOf(s.uid, d);
-    const inOther = !isCur && (d.primary === s.uid || (d.subs || []).some((x) => x && x.uid === s.uid));
-    const r = el("div", "sp-srow" + (isCur ? " cur" : "") + (other ? " taken" : ""));
+    const mainOf = isSub && !isCur ? isMainOf(s.uid) : null; // サブ魂の差し口: メイン魂は選べない
+    const subTaker = !isCur && !mainOf ? subOf(s.uid) : null; // 他の人業のサブ魂 (付け替え・交換)
+    const other = mainOf || (subTaker ? null : wearerOf(s.uid, d));
+    const inOther = !isCur && !mainOf && (d.primary === s.uid || (d.subs || []).some((x) => x && x.uid === s.uid));
+    const r = el("div", "sp-srow" + (isCur ? " cur" : "") + (other ? " taken" : "") + (subTaker ? " swap" : ""));
     r.style.setProperty("--glow", cl.glow);
     const main = el("button", "sp-srow-main");
     main.type = "button";
@@ -531,8 +537,13 @@ function pickerBody(root, d, slotId, h) {
     tx.appendChild(nm);
     tx.appendChild(el("span", "sp-srow-m", `Lv${s.level}/${cap} ・ ランク${rank} ・ ${RARITY_NAME[cl.rarity] || ""}`));
     if (isCur) tx.appendChild(el("span", "sp-srow-tag cur", isSub ? "このサブ魂に宿している" : "宿している"));
+    else if (mainOf) tx.appendChild(el("span", "sp-srow-tag", mainOf === d ? "メイン魂に宿している" : `${mainOf.name} がメイン魂に宿している`));
     else if (other) tx.appendChild(el("span", "sp-srow-tag", `${other.name} が宿している`));
-    else {
+    else if (subTaker) {
+      tx.appendChild(el("span", "sp-srow-tag swap", `${subTaker.name} のサブ魂 ― 選ぶと${curUid != null ? "交換" : "付け替え"}`));
+      const dl = previewSoul(d, slotId, s.uid);
+      if (dl) tx.appendChild(statDelta(dl));
+    } else {
       if (inOther) tx.appendChild(el("span", "sp-srow-tag", isSub ? "メイン魂/別のサブ魂から移す" : "サブ魂から移す"));
       const dl = previewSoul(d, slotId, s.uid);
       if (dl) tx.appendChild(statDelta(dl));
@@ -541,14 +552,23 @@ function pickerBody(root, d, slotId, h) {
     if (other || isCur) main.disabled = !!other;
     main.addEventListener("click", () => {
       if (isCur || other) return;
-      game.equipSoulToSlot(d, s.uid, slotId, (applied) => {
+      const go = (opts) => game.equipSoulToSlot(d, s.uid, slotId, (applied) => {
         if (!applied) return;
         h.close();
         if (isSub) {
           const sub = (d.subs || []).find((x) => x && x.uid === s.uid);
           if (sub) openSkillStep(d, sub);
         }
-      });
+      }, opts);
+      if (!subTaker) { go(); return; }
+      // 他の人業のサブ魂: 付け替えてよいか確かめる。宿していた魂があれば相手へ渡す (交換)
+      const nm = `${soulSeriesName(s.clsKey)}の魂`;
+      const cur = curUid != null ? soulByUid(curUid) : null;
+      const lines = [`${subTaker.name} のサブ魂「${nm}」を外し、${d.name} のサブ魂${si + 1}に宿す。`];
+      if (cur) lines.push(`${d.name} が宿していた「${soulSeriesName(cur.clsKey)}の魂」は、${subTaker.name} のサブ魂に移る (交換)。`);
+      else lines.push(`${subTaker.name} のサブ魂は1つ空く。`);
+      confirm({ banner: "サブ魂", title: cur ? "サブ魂を交換する？" : "サブ魂を付け替える？", lines, okLabel: cur ? "交換する" : "付け替える" })
+        .then((y) => { if (y) go({ take: true }); });
     });
     r.appendChild(main);
     const side = el("div", "sp-srow-side");
