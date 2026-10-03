@@ -40,5 +40,12 @@ export const JOB_PHOTOS = {
     4: { src: "art/jobs/arcanist_4.webp", w: 71, h: 87, face: [32, 14], head: [31.68, 2.07, 25.86] },
     5: { src: "art/jobs/arcanist_5.webp", w: 79, h: 86, face: [36, 12], head: [35.96, 1.93, 22.79] },
   },
+  inquisitor: {
+    1: { src: "art/jobs/inquisitor_1.webp", w: 47, h: 80, face: [22, 13], head: [21.93, 1.64, 24.5] },
+    2: { src: "art/jobs/inquisitor_2.webp", w: 51, h: 80, face: [23, 13], head: [23.29, 1.64, 24.5] },
+    3: { src: "art/jobs/inquisitor_3.webp", w: 67, h: 82, face: [26, 12], head: [26.29, 2.21, 22.07] },
+    4: { src: "art/jobs/inquisitor_4.webp", w: 62, h: 81, face: [27, 10], head: [27.46, 1.0, 18.21] },
+    5: { src: "art/jobs/inquisitor_5.webp", w: 75, h: 85, face: [32, 12], head: [31.96, 2.0, 21.29] },
+  },
   // <<JOB_PHOTOS>>
 };
