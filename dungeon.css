@@ -467,7 +467,8 @@
 #combat-menu .tgt-ally { border-left: 3px solid #3c7a4e; }
 #combat-menu .tgt-ally .tgt-bar > i { background: linear-gradient(180deg, #9ff0b0, #3c9a5a 60%, #1c4a2a); }
 #combat-menu .tgt-down { opacity: 0.6; }
-#combat-menu .btn.spell { border-left: 3px solid var(--sp-col, #c9a24a); }
+/* .btn 共通の justify-content: center がグリッドの列を中身の幅に縮めて中央へ寄せるので、列を札いっぱいに広げる */
+#combat-menu .btn.spell { border-left: 3px solid var(--sp-col, #c9a24a); grid-template-columns: minmax(0, 1fr); justify-content: stretch; }
 #combat-menu .sp-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
 #combat-menu .sp-n { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #f0e4cc; }
 /* 道具の一覧: 品の絵を名前の前に添え、名前は残りの幅で切る */
