@@ -12,8 +12,8 @@ const trophy = (layer, elite, it) => { it.rar = "sr"; it.layer = layer; it.noDro
 export const NAMED_ITEMS = [
   trophy(1, "el_palebutcher", W("w_nm_palebutcher", "蒼白鬼の肉切り包丁", "ax", 14, { pow: 1.45, onHit: ["paralyze", 0.2], hp: 10, tint: "#d8d0c0",
     desc: "墓守に化けた喰人鬼が研ぎ続けた分厚い包丁。刃に映った自分の顔を見た者は、なぜか足がすくむ。蒼白の首切り鬼の首級。" })),
-  trophy(1, "el_cryptlord", R("r_nm_cryptlord", "墓所の君主の指輪", "ring", 22, { pow: 1.4, mp: 12, int: 4, pie: 4, eDef: ["dark", 1], eff: { soulUp: 0.2 },
-    desc: "最も古い棺の主が嵌めていた黒い印章の指輪。死者に慕われた王の印であり、嵌めた者のもとへ迷う魂が寄ってくる。墓所の君主の首級。" })),
+  trophy(1, "el_cryptlord", R("r_nm_cryptlord", "墓所の君主の指輪", "ring", 22, { pow: 1.4, mp: 12, int: 4, pie: 4, eDef: ["light", 1], eff: { soulUp: 0.2 },
+    desc: "最も古い棺の主が嵌めていた黒い印章の指輪。死者に慕われた王の印であり、闇の眷属はこれを嵌めた者に爪を鈍らせ、迷う魂が寄ってくる。墓所の君主の首級。" })),
   trophy(2, "el_bloatqueen", G("g_nm_bloatqueen", "女王ヒルの吸血手甲", 30, { role: "atk", weight: "light", pow: 1.45, hp: 16, eff: { lifesteal: 0.15 },
     desc: "子産みヒルの女王のぬめる皮をなめして仕立てた手甲。斬りつけた相手の血を吸い上げ、着けた者の傷を塞ぐ。子産みヒルの女王の首級。" })),
   trophy(2, "el_drownedpaladin", S("s_nm_drownedpaladin", "沈みし聖騎士の大盾", 32, { shape: "kite", pow: 1.45, hp: 20, eDef: ["earth", 1], eff: { guard: 0.08 },
