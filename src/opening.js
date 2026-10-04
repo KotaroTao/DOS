@@ -9,6 +9,7 @@
 import { SFX } from "./audio.js";
 import { pickRes } from "./pxpaint.js";
 import { SCENES, setReduced } from "./openingart.js";
+import { phraseBreaks } from "./ui/phrase.js";
 
 const REDUCED = (() => {
   try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; }
@@ -152,7 +153,9 @@ export function showOpening(onDone) {
       const em = typeof ln !== "string";
       const row = div(em ? "op-ln op-em" : "op-ln");
       const word = em ? div("op-em-w") : row;
+      const brk = phraseBreaks(lineText(ln)); // 文節の切れ目にだけ折り返しの候補 (<wbr>) を置く
       [...lineText(ln)].forEach((ch, j) => {
+        if (brk.has(j)) word.appendChild(document.createElement("wbr"));
         const s = document.createElement("span");
         s.className = "op-ch";
         s.textContent = ch;

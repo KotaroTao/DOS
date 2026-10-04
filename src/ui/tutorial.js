@@ -13,6 +13,7 @@
 
 import { UI, game, registerUI } from "./ctx.js";
 import { el, setText, sheet, toast, celebrate, sheetDepth } from "./kit.js";
+import { unphrase } from "./phrase.js";
 import { playIreneScene, ireneBond, sceneActive } from "./irene.js";
 import { vignetteCanvas } from "../townart.js";
 import { SOUL_CLASSES, soulByUid } from "../souls.js";
@@ -407,8 +408,8 @@ function updateBar() {
   const st = tutState();
   const t = `${d.name}${d.steps.length > 1 ? ` ${st.step + 1}/${d.steps.length}` : ""} ・ ${s.text}`;
   const tEl = bar.querySelector(".tut-bar-t"), sEl = bar.querySelector(".tut-bar-s");
-  if (tEl.textContent !== t) setText(tEl, t);
-  if (sEl.textContent !== s.hint) setText(sEl, s.hint);
+  if (unphrase(tEl.textContent) !== t) setText(tEl, t);
+  if (unphrase(sEl.textContent) !== s.hint) setText(sEl, s.hint);
   bar.setAttribute("aria-label", `手ほどき: ${s.text} (${s.hint})。タップでその場所へ`);
   bar.classList.remove("hidden");
 }
