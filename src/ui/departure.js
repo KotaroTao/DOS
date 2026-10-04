@@ -4,7 +4,7 @@
 //
 //   ┌ ━━ 出 撃 ━━ ─────────────────────────┐
 //   │ ┌ 迷宮の顔 (迷宮ごとの情景) ─────────┐ │ 上半分 = 選んでいる迷宮: 情景・名・説明
-//   │ │ 朽ちた骸の修道院            目標  │ │ 推奨Lv・全階数・発見した魔物 n/m・固有クエスト n/m
+//   │ │ 朽ちた骸の修道院            目標  │ │ 推奨Lv・全階数・発見した魔物 n/m・固有クエスト n/m (押すと詳細のポップアップ)
 //   │ └───────────────────────┘ │ 迷宮の掟・格上の注意
 //   │ (●) 忘れられた地下墓地 推奨Lv1・全5階 踏破 │ 門は 5 行ぶん見せ、6 つ目からは一覧を縦に巻く
 //   │ ▒▒ まだ地図にない迷宮 ― 解放の手がかり  │ 台帳 (world.js) の unlock を満たすと現れる
@@ -21,6 +21,7 @@ import { el, sheet, button, setText, portrait, segmented, toast, confirm as kitC
 import { ELEMENTS } from "../dungeons/index.js";
 import { iconCanvas } from "../townart.js";
 import { drawDungeonVista } from "../backdrops.js";
+import { dungeonQuestSheet } from "./questboard.js";
 
 const G = () => game.G;
 const sfx = (k) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](); } catch (e) { /* 音が無くても動く */ } };
@@ -86,10 +87,17 @@ function gateStatus(dn, i) {
   if (i === questIdx()) return { text: "目標", cls: "quest" };
   return { text: "未踏破", cls: "" };
 }
-function fact(label, value, cls) {
-  const f = el("span", "dp-fact" + (cls ? " " + cls : ""));
+// onTap を渡すと押せる札になる (詳細のポップアップを開く。右に › の印)
+function fact(label, value, cls, onTap = null) {
+  const f = el(onTap ? "button" : "span", "dp-fact" + (cls ? " " + cls : "") + (onTap ? " tap" : ""));
   f.appendChild(el("span", "dp-fact-l", label));
   f.appendChild(el("span", "dp-fact-v", value));
+  if (onTap) {
+    f.type = "button";
+    f.setAttribute("aria-label", `${label} ${value} ― 詳しく見る`);
+    f.appendChild(el("span", "dp-fact-c", "›"));
+    f.addEventListener("click", onTap);
+  }
   return f;
 }
 function renderHero(b) {
@@ -118,8 +126,12 @@ function renderHero(b) {
   let f = null;
   try { f = game.dungeonFacts ? game.dungeonFacts(dn) : null; } catch (e) { f = null; }
   if (f) {
-    facts.appendChild(fact("発見した魔物", `${f.monSeen}/${f.monTotal}`, f.monTotal && f.monSeen >= f.monTotal ? "full" : ""));
-    facts.appendChild(fact("固有クエスト", f.fqTotal ? `${f.fqDone}/${f.fqTotal}` : "なし", f.fqTotal && f.fqDone >= f.fqTotal ? "full" : !f.fqTotal ? "none" : ""));
+    // 押すと詳細: 発見した魔物 = その迷宮の魔物の札 (図鑑) / 固有クエスト = 依頼人の頼みの一覧 (状態・現れる条件)
+    const di = g.dungeonIdx;
+    facts.appendChild(fact("発見した魔物", `${f.monSeen}/${f.monTotal}`, f.monTotal && f.monSeen >= f.monTotal ? "full" : "",
+      f.monTotal && UI.dungeonMonSheet ? () => UI.dungeonMonSheet(di) : null));
+    facts.appendChild(fact("固有クエスト", f.fqTotal ? `${f.fqDone}/${f.fqTotal}` : "なし", f.fqTotal && f.fqDone >= f.fqTotal ? "full" : !f.fqTotal ? "none" : "",
+      f.fqTotal ? () => dungeonQuestSheet(dn, { onChange: () => refresh() }) : null));
   }
   hero.appendChild(facts);
   // 迷宮の掟 (その迷宮だけの決まりごと。world.js の trait)

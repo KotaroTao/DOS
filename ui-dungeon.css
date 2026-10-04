@@ -512,6 +512,10 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 .dp-fact.full { border-color: #8a6d2e; }
 .dp-fact.full .dp-fact-v { color: var(--accent-hi); }
 .dp-fact.none .dp-fact-v { font-size: 11px; font-weight: 700; color: #7d7468; }
+/* 押せる記録 (発見した魔物・固有クエスト → 詳細のポップアップ) */
+.dp-fact.tap { font: inherit; font-size: 11px; color: inherit; text-align: left; cursor: pointer; border-color: #5a4630; -webkit-tap-highlight-color: transparent; }
+.dp-fact.tap:active { filter: brightness(1.25); transform: scale(0.97); }
+.dp-fact-c { align-self: center; margin-left: 1px; font-size: 13px; line-height: 1; color: var(--accent-hi); }
 .dp-hero .dp-trait { margin-top: 7px; }
 .dp-hero .dp-issue { margin-top: 6px; }
 .dp-gates { position: relative; --dp-row: 50px; max-height: calc(var(--dp-row) * 5 + 4px); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; border: 1px solid #2c2427; border-radius: 3px; background: rgba(8,6,9,0.45); }
