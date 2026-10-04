@@ -15,8 +15,8 @@ const lr = (it) => { it.rar = "lr"; it.lr = 4; it.layer = 4; it.exclusive = true
 
 export const LAYER4_ITEMS = [
   // ===== スーパーレア: 武器 =====
-  sr(W("w_sr4_bannerpike", "旗手の槍", "sp", 33, { pow: 1.35, hp: 14, eAtk: ["light", 1], tint: "#c8b080",
-    desc: "守備隊の旗手が軍旗を括りつけて掲げた長槍。援軍を待ち続けた百年の祈りが穂先に宿り、闇に堕ちた亡者の身を白く焼く。" })),
+  sr(W("w_sr4_bannerpike", "旗手の槍", "sp", 33, { pow: 1.35, two: true, hp: 14, eAtk: ["light", 1], tint: "#c8b080",
+    desc: "守備隊の旗手が軍旗を括りつけ、両手で掲げ通した長槍。援軍を待ち続けた百年の祈りが穂先に宿り、闇に堕ちた亡者の身を白く焼く。" })),
   sr(W("w_sr4_garrisonblade", "守備隊長の佩刀", "ls", 36, { pow: 1.35, vitB: 3, hp: 12, tint: "#9a9aa8",
     desc: "砦の守備隊長が最後の夜まで帯びていた長剣。刃こぼれひとつ無いのは、部下の前で一度も退かなかった証だという。" })),
   sr(W("w_sr4_siegebolt", "攻城弩の太矢弓", "bw", 39, { scale: { agi: 0.4 }, pow: 1.35, eAtk: ["fire", 1], luk: 3, tint: "#c07a40",
@@ -43,6 +43,12 @@ export const LAYER4_ITEMS = [
     desc: "伝令が雷雨の城壁を駆け抜けるのに履いた長靴。焦げた靴底は濡れた石にも滑らず、落雷の閃きより先に足を運ぶ。" })),
   sr(S("s_sr4_pavise", "攻城の置き盾", 47, { shape: "kite", pow: 1.35, hp: 20, bRes: 0.15, tint: "#5a4a3a",
     desc: "弩兵が身を隠した大きな置き盾。矢も火も受け止めるよう厚い板に鉄を打ち重ね、背に隠れた仲間を一斉射から守る。" })),
+  sr(S("s_sr4_couriertarge", "伝令の烽火盾", 45, { shape: "buckler", pow: 1.35, eDef: ["fire", 1], aRes: { paralyze: 0.2 }, tint: "#a85a3a",
+    desc: "大手門と本丸を走り継いだ伝令の小盾。矢を受け止めず斜めに払い流すよう軽く鍛えられ、表に焼き付けた烽火の紋が、痺れを運ぶ雷の刃を逸らす。" })),
+  sr(S("s_sr4_beaconorb", "烽火台の火種玉", 48, { shape: "orb", pow: 1.35, eAtk: ["fire", 1], tint: "#ff9a50",
+    desc: "援軍を呼ぶ最後の夜に焚かれ、ついに誰にも見られなかった烽火の火種を水晶に封じた宝珠。呪文を通せば烽火が再び燃え上がり、雷雨をまとう亡兵を焼き払う。" })),
+  sr(S("s_sr4_cellbook", "獄中の聖典", 50, { shape: "tome", pow: 1.35, eDef: ["light", 1], aRes: { charm: 0.15 }, tint: "#d8c8a0",
+    desc: "地下牢の囚われ人たちが回し読み、余白に祈りと名を書き足していった聖典。読み上げれば幾人もの声が重なって傷を癒し、牢の闇を読み手から遠ざける。" })),
   sr(A("a_sr4_chaplainrobe", "従軍司祭の法衣", 50, { aRes: { charm: 0.3 }, shape: "robe", pow: 1.35, mp: 16, pie: 5, eDef: ["light", 1], tint: "#d8d0b8",
     desc: "従軍司祭が籠城の最後の夜に纏った法衣。煤けた白布には死者のための祈りが縫い込まれ、闇の呪いを寄せつけない。" })),
   sr(H("h_sr4_inquisitorhood", "牢の審問頭巾", 53, { aRes: { charm: 0.25, confuse: 0.25 }, magStat: "int", shape: "circlet", weight: "cloth", pow: 1.35, mp: 12, tint: "#4a3a4a",
