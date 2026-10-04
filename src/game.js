@@ -40,6 +40,7 @@ import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityU
 import { UI, ops, bindGame, registerUI } from "./ui/ctx.js";
 import { el, btn, button as kitButton, longPress as attachLongPress, uiBlocked, sheetDepth, sheet, toast as kitToast, confirm as kitConfirm, plainText, shake as kitShake } from "./ui/kit.js";
 import { nav } from "./ui/nav.js";
+import { installPhraseWrap } from "./ui/phrase.js";
 import * as townshell from "./ui/townshell.js";
 import { showSkillPopup,
   SPELL_KIND_COLOR, BUFF_NAME, tagRow, spellTagKinds, isEquippable, equipPreviewDelta, equipCompareEl, detailLines,
@@ -13200,6 +13201,7 @@ function wireUI() {
     isOpeningActive: () => openingActive,
     resetTownSelection: () => { altarSel = null; },
   });
+  installPhraseWrap(); // 説明文は全画面で文節ごとに折り返す (ui/phrase.js)
   nav.init();
   nav.handle(legacyBack, 10);
   nav.handle(dungeonBack, 70);

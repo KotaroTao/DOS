@@ -31,6 +31,10 @@ html, body {
   overscroll-behavior: none;
 }
 
+/* 文節で折り返す (全画面共通): 字と字の間では折らず、src/ui/phrase.js が入れる折り目
+   (句読点・括弧・助詞の後) でだけ改行する。一つの文節が1行に収まらないときだけ途中で折る */
+html, body { word-break: keep-all; overflow-wrap: break-word; line-break: strict; }
+
 /* ページ自体はスクロールさせず、画面内に収める */
 html, body { height: 100%; overflow: hidden; }
 

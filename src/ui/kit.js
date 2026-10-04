@@ -12,6 +12,7 @@ import { dollBust, SOUL_CLASSES } from "../souls.js";
 import { rarityKey, RARITIES } from "../rarity.js";
 import { keeperCanvas, iconCanvas } from "../townart.js";
 import { isFloating } from "../dungeons/schema.js";
+import { phrase } from "./phrase.js";
 
 const hasDOM = () => typeof document !== "undefined" && typeof document.createElement === "function";
 
@@ -19,7 +20,7 @@ const hasDOM = () => typeof document !== "undefined" && typeof document.createEl
 export function el(tag, cls, text) {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
-  if (text != null) e.textContent = text;
+  if (text != null) e.textContent = phrase(text); // 文節で折り返す (phrase.js)
   return e;
 }
 export function btn(label, onClick) {
@@ -71,7 +72,7 @@ export function glyphText(text) {
   if (text == null) return frag;
   const s = String(text);
   let buf = "";
-  const flush = () => { if (buf) { frag.appendChild(document.createTextNode(buf)); buf = ""; } };
+  const flush = () => { if (buf) { frag.appendChild(document.createTextNode(phrase(buf))); buf = ""; } };
   const chars = Array.from(s);
   for (let i = 0; i < chars.length; i++) {
     const c = chars[i];

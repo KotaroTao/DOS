@@ -76,7 +76,7 @@ function splitPages(pages) {
     const lines = p.lines || [];
     const head = p.art ? artH() + 10 : (p.who === "none" ? 0 : 150);
     const room = (pRw) => vh * 0.91 - 40 - head - 70 - 110 - (pRw ? 96 : 0);
-    const cost = (t) => Math.ceil(t.length / cpl) * 26 + 8;
+    const cost = (t) => Math.ceil(t.length * 1.12 / cpl) * 26 + 8; // 文節で折る分 (phrase.js) 行末が少し余る
     const chunks = [];
     let cur = [], used = 0;
     for (const t of lines) {
