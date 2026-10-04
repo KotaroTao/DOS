@@ -9939,9 +9939,21 @@ function unequippableUnder(d, newCls) {
   return bad;
 }
 
+// 魂の付け替えの前後で HP/MP の割合を保つ (満タンなら満タンのまま・付け替えを往復しても減らない)。
+// 倒れている人業はそのまま
+function hpMpRatio(d) {
+  return { hp: d.maxhp > 0 ? d.hp / d.maxhp : 1, mp: d.maxmp > 0 ? d.mp / d.maxmp : 1 };
+}
+function keepHpMpRatio(d, r) {
+  if (d.alive === false || d.hp <= 0) { d.hp = Math.min(Math.max(0, d.hp), d.maxhp); d.mp = Math.min(d.mp, d.maxmp); return; }
+  d.hp = Math.max(1, Math.min(d.maxhp, Math.round(d.maxhp * r.hp)));
+  d.mp = Math.max(0, Math.min(d.maxmp, Math.round(d.maxmp * r.mp)));
+}
+
 // 実際に魂を差し口へ宿す/外す処理 (装備の事前確認を通過した後に呼ぶ)
 function applyEquipSoul(d, uid, s, slotId = "primary") {
   const before = jobSig(d);
+  const vit = hpMpRatio(d);
   d.subs = d.subs || [];
   const si = slotId === "primary" ? -1 : +slotId.slice(3);
   if (slotId === "primary" && d.primary === uid) {
@@ -9961,7 +9973,7 @@ function applyEquipSoul(d, uid, s, slotId = "primary") {
     }
   }
   recalcDoll(d);
-  d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp);
+  keepHpMpRatio(d, vit);
   SFX.select(); buzz(15);
   autosave(true);
   renderTown();
@@ -9989,9 +10001,10 @@ function takeSubSoul(d, uid, si) {
   if (mine) other.subs[w.index] = mine;
   else other.subs.splice(w.index, 1);
   other.subs = other.subs.filter(Boolean);
+  const vits = [d, other].map(hpMpRatio);
   d.subs[si] = taken;
   d.subs = d.subs.filter(Boolean);
-  for (const dd of [d, other]) { recalcDoll(dd); dd.hp = Math.min(dd.hp, dd.maxhp); dd.mp = Math.min(dd.mp, dd.maxmp); }
+  [d, other].forEach((dd, i) => { recalcDoll(dd); keepHpMpRatio(dd, vits[i]); });
   SFX.select(); buzz(15);
   autosave(true);
   renderTown();
