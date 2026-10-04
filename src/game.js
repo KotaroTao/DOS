@@ -3,7 +3,7 @@ import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
 import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, perkVictory } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
-import { spriteCanvas, crispCanvas, drawPhoto } from "./sprites.js";
+import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto } from "./sprites.js";
 import {
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, slotKeyFor, lvToRank, RANGE_LABEL,
   UNIDENT_SLOTS, itemName, applyForge, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
@@ -352,7 +352,7 @@ setInterval(() => {
   const c = lrClock();
   c.since += 5000 * f; c.pend += 5000 * f;
 }, 5000);
-// 今の深さで出せるLR (1点もの: 入手済みは除く)。層の逸品 (tier1-4 = 第1〜4層) はその層に達していて、
+// 今の深さで出せるLR (1点もの: 入手済みは除く)。層の逸品 (layer つき = 第1〜5層) はその層に達していて、
 // 出現上限 (lootCapR) 以内の隠しLvなら候補。職業専用LR (tier5以上) は従来どおり lootLv の解禁値を超えてから
 function lrPool() {
   const lv = lootLvAt();
@@ -361,7 +361,8 @@ function lrPool() {
   return Object.keys(ITEMS).filter((id) => {
     const it = ITEMS[id];
     if (it.rar !== "lr" || (G.lrOwned && G.lrOwned[id])) return false;
-    if (it.lr < 5) return (it.layer || it.lr) <= L && (it.lv || 1) <= capLv;
+    // 層の逸品 (layer つき・第5層からは tier も 5 以上) は層と出現上限で、職業専用LR は lootLv の解禁値で
+    if (it.layer || it.lr < 5) return (it.layer || it.lr) <= L && (it.lv || 1) <= capLv;
     return lv >= (LR_UNLOCK[it.lr] || 40);
   });
 }
@@ -501,7 +502,7 @@ const G = {
   rumor: null,        // 酒場で表示中の噂 (次回潜入で現実化)
   rumorCooldown: 0,   // 次の噂を聞けるUNIXタイムスタンプ(ms) — 30分クールダウン
   activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
-  codex: { mon: {}, item: {}, job: {}, fresh: { mon: {}, item: {}, job: {} } }, // 図鑑 (モンスター/アイテム/職業)。fresh = 新着 (まだ詳細を見ていない記録)
+  codex: { mon: {}, item: {}, job: {}, met: {}, fresh: { mon: {}, item: {}, job: {} } }, // 図鑑 (モンスター/アイテム/職業)。fresh = 新着 (まだ詳細を見ていない記録)。met = 遭遇した迷宮の主 (討つ前でも図鑑に名だけ出す)
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={収集品id:true}, claimed={"ランク:しきい値":true}
   lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
   lrClock: { since: 0, pend: 0 }, // レジェンドレアの時間抽選 (最後のLRからの/前回抽選からの実プレイms)
@@ -723,7 +724,7 @@ function shakeScreen(strong = false) {
 // 記録の履歴 (記録欄をタップして読む全文)。欄に残す行 (80) より長く覚えておく
 const LOG_HISTORY_MAX = 300;
 const _logHistory = [];
-function logHistory() { return _logHistory.map((x) => ({ text: x.n > 1 ? `${x.msg} ×${x.n}` : x.msg, cls: "l-" + x.cls })); }
+function logHistory() { return _logHistory.map((x) => ({ text: x.msg, cls: "l-" + x.cls })); }
 // 戦闘中の記録は、まだ名前を知らない敵 (討伐数0) の名を不確定名 (「蠢く粘塊？」など、dungeons/unknown.js) に伏せる。
 // 不確定名は unknownTag の印で囲み、記録欄では .unk-name の色で正式な名と見分ける (setLogText)
 // 個体名 (スライムA) を先に、種の名 (スライム) を後に置き換える。明かされた別の敵の名に含まれる種名は触らない
@@ -752,25 +753,12 @@ function maskUnknownEnemies(msg) {
 }
 function log(msg, cls = "sys") {
   msg = maskUnknownEnemies(msg);
-  // 直前と同じ文 (壁にぶつかり続けた時など) は行を増やさず「×N」で数える
-  const lastH = _logHistory[_logHistory.length - 1];
-  if (lastH && lastH.msg === msg && lastH.cls === cls) lastH.n++;
-  else {
-    _logHistory.push({ msg, cls, n: 1 });
-    if (_logHistory.length > LOG_HISTORY_MAX) _logHistory.splice(0, _logHistory.length - LOG_HISTORY_MAX);
-  }
-  const last = logEl.lastElementChild;
-  if (last && last._msg === msg && last.className === "l-" + cls) {
-    last._n = (last._n || 1) + 1;
-    setLogText(last, `${msg} ×${last._n}`);
-    _logPinned = true;
-    scrollLogBottom();
-    return;
-  }
+  // 直前と同じ文が続いても「×N」にまとめず、そのまま1行ずつ出す
+  _logHistory.push({ msg, cls });
+  if (_logHistory.length > LOG_HISTORY_MAX) _logHistory.splice(0, _logHistory.length - LOG_HISTORY_MAX);
   const div = document.createElement("div");
   div.className = "l-" + cls;
   setLogText(div, msg);
-  div._msg = msg;
   logEl.appendChild(div);
   while (logEl.children.length > 80) logEl.removeChild(logEl.firstChild);
   // 新しいメッセージが来たら最下部へ貼り付け直す。iOS Safari 等では appendChild 直後の
@@ -815,6 +803,7 @@ function worldUnlockMet(cfg) {
   if (u.story) return !!w.found[u.story];
   if (u.treasury) return !!treasuryState().claimed["m" + u.treasury];
   if (u.quest) return !!questState().fixed[u.quest]; // 酒場の固定クエストを受けた
+  if (u.all) return u.all.every((id) => !!w.reported[id]); // 挙げた迷宮すべての踏破を報告した
   return false;
 }
 // 条件を満たした迷宮を地図に載せる。新たに現れた迷宮の設定を返す
@@ -843,7 +832,7 @@ function currentChapter() {
 // 公開している章の結びまで語り終えた (次章は準備中)
 const contentSealed = () => { const c = CHAPTERS[CHAPTERS.length - 1]; return !!worldState().beats["ch" + c.no + "_end"]; };
 // 物語の文の差し替えに渡す小さな窓 (story.js の lines(s))
-function storyCtx() { const w = worldState(); return { open: (id) => !!w.open[id], found: (k) => !!w.found[k], cleared: (id) => !!w.cleared[id] }; }
+function storyCtx() { const w = worldState(); return { open: (id) => !!w.open[id], found: (k) => !!w.found[k], cleared: (id) => !!w.cleared[id], reported: (id) => !!w.reported[id] }; }
 const storyLines = (l) => (typeof l === "function" ? l(storyCtx()) : l) || [];
 
 // ===== 無限迷宮「奈落」 =====
@@ -1049,8 +1038,8 @@ const SPECIAL_FLOORS = [
     board: (b) => sfEachCell(b, (c) => { if (c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.30) { c.type = "poison"; c.cleared = false; } }) },
   { id: "tailwind", name: "追い風の階", icon: "stairs", accent: "#7fe0a8", sym: "≫", minFloor: 2, rate: 0.02, preempt100: true, noAmbush: true,
     lines: ["不思議と体が軽く、敵の動きがよく見える。", "常に先手を取り、奇襲を受けない。"] },
-  { id: "elemSurge", name: "属性の奔流", icon: "wisp", accent: "#ff9a4a", sym: "✺", minFloor: 2, rate: 0.02, elemAll: true, cond: (cfg) => !!cfg.element,
-    lines: ["迷宮の属性が荒れ狂っている。", "この階の敵はすべて迷宮の属性を帯びる。属性装備が鍵だ。"] },
+  { id: "elemSurge", name: "属性の奔流", icon: "wisp", accent: "#ff9a4a", sym: "✺", minFloor: 2, rate: 0.02, elemRandom: true,
+    lines: ["六つの属性が荒れ狂い、渦を巻いている。", "この階の敵の属性は、戦うたびにでたらめに定まる。"] },
   { id: "mimicNest", name: "ミミックの巣", icon: "chest", accent: "#e07840", sym: "◈", minFloor: 3, rate: 0.015, mimicRate: 0.50,
     lines: ["不自然なほど宝箱が多い…罠の匂いがする。", "宝箱の半分はミミックだ。だが倒せば上質な宝箱を残す。"],
     board: (b) => sfPlace(b, 3, (c) => { c.type = "chest"; c.cleared = false; }) },
@@ -1128,6 +1117,36 @@ const MUTATORS = [
     risk: "迷宮中の敵が大幅に強くなっている (敵の強さ 1.5倍)",
     gain: "Soul 2倍・ゴールド 1.5倍・落ちている装備の質が上がる" },
 ];
+// ===== 迷宮の掟 (world.js の trait) =====
+// 迷宮ごとの決まりごと。効果は異変と同じキー (mods) で activeModifierDefs に加わり、盤面の加工 (board) は
+// 階を作るたびに TRAIT_BOARD で行う。奈落・町では効かない
+function dungeonTrait(cfg = null) {
+  if (!cfg) { if (!inDungeon() || abyssActive()) return null; cfg = curDungeon(); }
+  return (cfg && cfg.trait) || null;
+}
+const TRAIT_BOARD = {
+  // 根の縦穴: 通路に落とし穴を2つ (最下階には無い)。壁の根に絡まった遺品の宝箱をひとつ
+  shaft: (b) => {
+    const st = b.start ? b.cells[b.start.y][b.start.x] : null;
+    if (G.floor < (curDungeon().floors || 1)) {
+      const cand = [];
+      sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) >= 2) cand.push(c); });
+      for (let i = 0; i < 2 && cand.length; i++) { const c = cand.splice(rand(cand.length), 1)[0]; c.type = "pit"; c.cleared = false; }
+    }
+    sfPlace(b, 1, (c) => { c.type = "chest"; c.cleared = false; });
+  },
+  // 閉ざされた獄: 獄死した囚人の骸を2つ (半分はまだ温かい)
+  prison: (b) => sfPlace(b, 2, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = Math.random() < 0.5; }),
+  // 迷い霧: 通路の2割強が胞子の床 (毒の床) に。霧の奥 (行き止まり優先) に癒しの泉をひとつ
+  mist: (b) => {
+    const st = b.start ? b.cells[b.start.y][b.start.x] : null;
+    sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.12) { c.type = "poison"; c.cleared = false; } });
+    const dead = [];
+    sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) === 1) dead.push(c); });
+    const put = (c) => { c.type = "fountain"; c.cleared = false; c.fountainKind = "pure"; };
+    if (dead.length) put(dead[rand(dead.length)]); else sfPlace(b, 1, put);
+  },
+};
 // 適用中の異変の定義 (なければ null) / 効果値の取り出し
 function mutDef() { return G.mutator ? MUTATORS.find((m) => m.id === G.mutator) || null : null; }
 
@@ -1143,6 +1162,8 @@ const MUT_AGG = {
 function activeModifierDefs() {
   const defs = [];
   const md = mutDef(); if (md) defs.push(md);
+  // 迷宮の掟 (world.js の trait.mods): その迷宮に潜っている間ずっと効く
+  const tr = dungeonTrait(); if (tr && tr.mods) defs.push(tr.mods);
   // 迷宮のイベントの効果 (この潜入 / この階)。迷宮の中でだけ効く
   if (inDungeon() && !abyssActive()) {
     if (G.run && G.run.ev && Array.isArray(G.run.ev.mods)) defs.push(...G.run.ev.mods);
@@ -1153,6 +1174,11 @@ function activeModifierDefs() {
     for (const id of G.abyss.mutations || []) { const m = ABYSS_MUT_MAP[id]; if (m) defs.push(m); }
   }
   return defs;
+}
+// 敵の属性がでたらめに定まるか (異変「属性の暴走」/ 特別な階「属性の奔流」)
+function elemRandomHere() {
+  const sp = specialDef();
+  return !!((sp && sp.elemRandom) || mutNum("elemRandom", false));
 }
 function mutNum(key, dflt) {
   const vals = [];
@@ -1275,18 +1301,25 @@ function pickMetalKey(layer) {
   for (const o of pool) { r -= o.T.w[band]; if (r < 0) return o.k; }
   return pool.length ? pool[0].k : null;
 }
+// 迷宮の掟 (銀の里) は出やすさ trait.metalRate と、1階に入れ替わる札の最大数 trait.metalMax を持つ
 function placeMetal() {
-  if (battleLayer() < 3 || Math.random() >= METAL_FLOOR_RATE) return;
+  const tr = dungeonTrait();
+  const rate = (tr && tr.metalRate) || METAL_FLOOR_RATE;
+  if (battleLayer() < 3 || Math.random() >= rate) return;
   const cells = [];
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
     const c = G.board.cells[y][x];
     if (c.type === "monster" && !c.cleared && !c.elite) cells.push(c);
   }
-  const key = cells.length ? pickMetalKey(battleLayer()) : null;
-  if (!key) return;
-  const c = cells[rand(cells.length)];
-  c.monsterKey = key;
-  c.metal = true;
+  const max = (tr && tr.metalMax) || 1;
+  for (let i = 0; i < max && cells.length; i++) {
+    if (i > 0 && Math.random() >= 0.5) break; // 2枚目からは半々
+    const key = pickMetalKey(battleLayer());
+    if (!key) return;
+    const c = cells.splice(rand(cells.length), 1)[0];
+    c.monsterKey = key;
+    c.metal = true;
+  }
 }
 // この階で普通の戦闘1回に得る✦Soul・金貨の目安 (出現表の雑魚の平均 × 群れの期待数 × 強さ倍率。手直し前)
 function typicalBattleSpoils() {
@@ -1442,6 +1475,9 @@ function newFloor() {
   // 特別階: 盤面への効果 (宝箱の追加・罠の消滅など) を適用
   const spf = specialDef();
   if (spf && spf.board) spf.board(G.board);
+  // 迷宮の掟: 盤面の加工 (獄の骸・霧の胞子と泉・縦穴の落とし穴)。静寂の階 (罠・毒の床・落とし穴なし) では胞子も穴も撒かない
+  const trf = dungeonTrait();
+  if (trf && trf.board && TRAIT_BOARD[trf.board] && !(spf && spf.noTrap && (trf.board === "mist" || trf.board === "shaft"))) TRAIT_BOARD[trf.board](G.board);
   if (G.floor > G.stats.deepest) G.stats.deepest = G.floor;
   // 酒場の噂を盤面に反映 (潜入直後の階のみ)
   if (G.activeRumor && G.activeRumor.floor === G.floor) applyRumorToBoard(G.board);
@@ -2260,8 +2296,8 @@ function drawBoardHighlights(now) {
       if (senseE && cell.type === "monster") {
         const strong = senseE >= 2 && cell.elite;
         let color = strong ? "#ff3b30" : "#ff7a52";
-        // 属性の暴走中は戦うまで属性が定まらないので色を付けない
-        if (senseE >= 3 && !mutNum("elemRandom", false)) { const e2 = (MONSTERS[cell.monsterKey] || {}).element; const ec = (ELEMENTS[e2] || {}).color; if (ec) color = ec; }
+        // 属性の暴走・奔流の中は戦うまで属性が定まらないので色を付けない
+        if (senseE >= 3 && !elemRandomHere()) { const e2 = (MONSTERS[cell.monsterKey] || {}).element; const ec = (ELEMENTS[e2] || {}).color; if (ec) color = ec; }
         mark = { text: strong ? "‼" : "!", color };
       } else if (senseT && (cell.type === "chest" || (senseT >= 2 && isPortalCell(cell)) || (senseT >= 3 && cell.type === "trap"))) {
         if (cell.type === "chest") mark = { text: "✦", color: "#ffd84a" };
@@ -5323,6 +5359,9 @@ function eventFacts() {
   const ic = ICONS.event;
   const fe = (G.board && G.board.ev) || {};
   const fl = (G.events && G.events.flags) || {};
+  // 迷宮の掟 (この迷宮のあいだずっと)
+  const tr = dungeonTrait();
+  if (tr) out.push({ tone: "gold", icon: ICONS.portal, title: `迷宮の掟「${tr.name}」`, accent: tr.accent || "#c9a26a", lines: tr.lines });
   // 浮遊の術 (出来事ではないが、いまの階の性質として並べる)
   if (floatLeft() > 0) out.push({ tone: "gold", icon: ICONS.portal, title: "浮遊", accent: "#8fd0c8", lines: [`隊は宙に浮いている (この階を含めて残り${floatLeft()}階)。落とし穴に落ちず、毒の床も踏まない。`] });
   const pits = evCells((c) => c.type === "pit" && c.revealed).length;
@@ -5418,7 +5457,7 @@ function runStoryCell(cell) {
 // 館の語り (イレーヌ): 要る手がかりを見つけていて、まだ語っていないもの
 function pendingIreneBeat() {
   const w = worldState();
-  return IRENE_BEATS.find((b) => !w.beats[b.id] && (!b.need || w.found[b.need])) || null;
+  return IRENE_BEATS.find((b) => !w.beats[b.id] && (!b.need || w.found[b.need]) && (!b.after || w.reported[b.after])) || null;
 }
 // 館に入った時に語る (party.js から)。語ったら true
 function playIreneBeat(done) {
@@ -6679,6 +6718,7 @@ function descend({ fall = false } = {}) {
   evOnDescend(); // 迷宮のイベント: 誓いの破約など
   if (!fall) { SFX.stairs(); buzz([0, 20, 80, 20]); }
   G.floor++;
+  if (G.run) G.run.descended = true;
   // 浮遊: 階を移るたびに残りの階数を減らす (唱えた階を含めて float 階のあいだ続く)
   if (G.run && G.run.float > 0) {
     G.run.float--;
@@ -6707,17 +6747,21 @@ function descend({ fall = false } = {}) {
     if (healed) log("結社の戦間回復: 階を降りる道すがら、パーティの傷が癒えていく。", "win");
   }
   // 強敵階判定: 5階層以上の迷宮のみ、3F以降で10%の確率で発生
-  G.eliteFloor = (activeCfg().floors || 3) >= 5 && G.floor >= 3 && Math.random() < 0.10;
+  // 迷宮の掟 (軍議の間) は強敵階が出やすい (trait.eliteRate)
+  const eliteRate = (dungeonTrait() && dungeonTrait().eliteRate) || 0.10;
+  G.eliteFloor = (activeCfg().floors || 3) >= 5 && G.floor >= 3 && Math.random() < eliteRate;
   // 特別階判定: 強敵階でなければ、各候補の出現条件 (階数) と出現率で抽選。
   // 1F には特別な階は出現しない (2F以降のみ)。
   G.specialFloor = null;
+  // 迷宮の掟 (移ろう霧) は特別な階が出やすい (trait.specialRate 倍)
+  const specialMul = (dungeonTrait() && dungeonTrait().specialRate) || 1;
   if (!G.eliteFloor && G.floor >= 2) {
     const r = Math.random();
     let acc = 0;
     for (const c of SPECIAL_FLOORS) {
       if (G.floor < c.minFloor) continue;
       if (c.cond && !c.cond(activeCfg())) continue;
-      acc += c.rate;
+      acc += c.rate * (specialMul || 1);
       if (r < acc) { G.specialFloor = c.id; break; }
     }
   }
@@ -6737,7 +6781,9 @@ function descend({ fall = false } = {}) {
   if (G.eliteFloor) {
     tone = "elite"; sub = "— 禍々しき気配 —";
     const ek = MONSTERS[eliteKey()];
-    lines = ["この階には通常では遭遇しない強大な存在が潜む。", ek ? `強敵「${ek.name}」― 討てば希少な戦利品` : "討てば希少な戦利品が得られる。"];
+    // 名前は一度倒すまで不確定名 (階の情報・戦闘の名乗りと同じ enemyReveal)
+    const ekName = ek ? (enemyReveal({ key: eliteKey(), mon: ek }).name ? ek.name : unknownTag(unknownLabel(ek))) : "";
+    lines = ["この階には通常では遭遇しない強大な存在が潜む。", ek ? `強敵「${ekName}」― 討てば希少な戦利品` : "討てば希少な戦利品が得られる。"];
   } else if (sp) {
     tone = "special"; sub = `— ${sp.name} —`; color = sp.accent;
     lines = sp.lines.slice(0, 2);
@@ -6787,8 +6833,8 @@ function startBattle(enemies, cell) {
     const ch = (spFloor && spFloor.elemAll) || mutNum("elemAll", false) ? 1 : 0.5;
     for (const e of enemies) if (!e.boss && !(e.mon && e.mon.elite) && !e.metal && Math.random() < ch) e.element = cfg.element;
   }
-  // 属性の暴走 (異変): 主・強敵も含め、すべての敵の属性を6属性からでたらめに選び直す (召喚された仲間も同じ)
-  if (mutNum("elemRandom", false)) for (const e of enemies) if (!e.metal) { e._elemRandom = true; e.element = randomElement(); }
+  // 属性の暴走 (異変) / 属性の奔流 (特別な階): 主・強敵も含め、すべての敵の属性を6属性からでたらめに選び直す (召喚された仲間も同じ)
+  if (elemRandomHere()) for (const e of enemies) if (!e.metal) { e._elemRandom = true; e.element = randomElement(); }
   // 迷宮の異変 (血の満潮など): 敵の強さ倍率は HP/ATK/VIT に加えて AGI にも掛ける
   // (enemyScale は HP/ATK/VIT のみ。召喚で呼ばれた仲間も _agiMul を引き継ぐ)
   // 迷宮ごとの手直し (DUNGEON_TUNE) は強さだけ: 倍率で増減した戦果 (金貨・✦Soul) を元の曲線へ戻す
@@ -6803,6 +6849,16 @@ function startBattle(enemies, cell) {
   const mutEm = (mutDef() && mutDef().enemyMul) || 1;
   if (mutEm !== 1) for (const e of enemies) { e._agiMul = mutEm; e.agi = Math.max(1, Math.round(e.agi * mutEm)); }
   G.battleCell = cell;
+  // 迷宮の掟: 敵は樹液を吸って再生する (trait.foeRegen) / 根が開幕に隊の MP を吸う (trait.mpDrain)
+  const trB = dungeonTrait();
+  if (trB && trB.foeRegen) for (const e of enemies) if (!e.metal) e.regen = Math.max(e.regen || 0, trB.foeRegen);
+  if (trB && trB.mpDrain) {
+    let drained = 0;
+    for (const p of G.party) if (p.alive && p.mp > 0) { const d = Math.ceil(p.maxmp * trB.mpDrain); drained += Math.min(p.mp, d); p.mp = Math.max(0, p.mp - d); }
+    if (drained) log(`足元の根が脈打ち、隊の魔力を吸い上げた (MP -${drained})。`, "dmg");
+  }
+  // 迷宮の主に遭遇した: 討つ前でも図鑑に名だけ載せる (遭遇するまでは「？？？」のまま)
+  for (const e of enemies) if (e.boss && e.key && MONSTERS[e.key]) { if (!G.codex.met) G.codex.met = {}; G.codex.met[e.key] = 1; }
   G.state = "combat";
   _maskEnemies = enemies;
 
@@ -6825,12 +6881,14 @@ function startBattle(enemies, cell) {
   if (!isBoss && !isElite) {
     const vig = partyPassiveLv("vigilance");
     // 迷宮の異変 (闇討ちの宴): 奇襲率が跳ね上がる (周囲警戒は引き続き有効)
-    const amb = (spFloor && spFloor.noAmbush) ? 0 : 0.08 * mutNum("ambushMul", 1) * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1);
+    // 極の恵み「霧渡りの目」は奇襲を半分に
+    const amb = (spFloor && spFloor.noAmbush) ? 0 : 0.08 * mutNum("ambushMul", 1) * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1) * evBoon("mistEye", "ambush", 1);
     // 追い風の階 (preempt100) では必ず先手を取れる。
     // 先制の心得 (initiative) で +15/25/40%、周囲警戒Lv3 で挑戦時さらに +10%
     const ini = partyPassiveLv("initiative");
     const iniBonus = ini >= 3 ? 0.40 : ini >= 2 ? 0.25 : ini >= 1 ? 0.15 : 0;
-    const pre = (spFloor && spFloor.preempt100) ? 1 : 0.08 + iniBonus + (vig >= 3 ? 0.10 : 0);
+    // 極の恵み「守備隊の敬礼」は先手 +8%
+    const pre = (spFloor && spFloor.preempt100) ? 1 : 0.08 + iniBonus + (vig >= 3 ? 0.10 : 0) + evBoon("salute", "preempt", 0);
     const r = Math.random();
     if (r < amb) opening = "ambush";
     else if (r < amb + pre) opening = "preempt";
@@ -7548,7 +7606,7 @@ function photoMonsterBitmap(mon) {
   const c = document.createElement("canvas");
   c.width = (w + pad * 2) * R; c.height = (h + pad * 2) * R;
   const b = { c, w, h, pad };
-  if (!(p.img && p.img.complete && p.img.naturalWidth > 0)) return b;
+  if (!photoReady(p)) { whenPhoto(mon, () => {}); return b; } // 写しを始めておく (焼けるまでは空)
   const body = document.createElement("canvas");
   body.width = w * R; body.height = h * R;
   const bg = body.getContext("2d");
@@ -8859,8 +8917,8 @@ function applyVictoryPassives() {
     if (mpct > 0 && p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * mpct)); healed = true; }
   }
   if (healed) log("勝利の余韻がパーティを癒した。", "heal");
-  // 特別階 (癒しの霊気): 戦闘勝利のたび隊全体のHP・MPが回復する
-  const fh = sfNum("victoryHeal", 0);
+  // 特別階 (癒しの霊気)・迷宮の掟 (癒しの樹液): 戦闘勝利のたび隊全体のHP・MPが回復する
+  const fh = Math.max(sfNum("victoryHeal", 0), (dungeonTrait() && dungeonTrait().victoryHeal) || 0);
   if (fh > 0) {
     let mist = false;
     for (const p of G.party) {
@@ -8868,7 +8926,7 @@ function applyVictoryPassives() {
       if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * fh)); mist = true; }
       if (p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * fh)); mist = true; }
     }
-    if (mist) log("癒しの霊気が傷を塞ぎ、魔力を満たした。", "heal");
+    if (mist) log(sfNum("victoryHeal", 0) > 0 ? "癒しの霊気が傷を塞ぎ、魔力を満たした。" : "樹液の香りが傷を塞ぎ、魔力を満たした。", "heal");
   }
   // 浄化 (隊全体) / 自浄 (自分): 毒・麻痺を治す (石化は対象外)
   const hasPurify = G.party.some((p) => p.alive && pLv(p, "purify"));
@@ -9737,6 +9795,7 @@ function fixedQuestAppears(def) {
   if (a.cleared && !w.cleared[a.cleared]) return false;
   if (a.open && !w.open[a.open]) return false;
   if (a.found && !w.found[a.found]) return false;
+  if (a.claimed) { const f = questState().fixed[a.claimed]; if (!f || f.state !== "claimed") return false; } // 前の依頼を報告し終えた
   return true;
 }
 // 酒場で受けられる固定クエスト (現れていて、まだ受けていないもの)
@@ -9804,11 +9863,63 @@ function questHereCount(cfg) {
   if (!cfg) return 0;
   const s = questState();
   return s.active.filter((q) => q.state === "active" && q.dungeon === cfg.id).length +
-    FIXED_QUESTS.filter((d) => s.fixed[d.id] && s.fixed[d.id].state === "active" && d.goal && d.goal.dungeon === cfg.id).length;
+    FIXED_QUESTS.filter((d) => s.fixed[d.id] && s.fixed[d.id].state === "active" && fixedQuestTargets(d, cfg)).length;
+}
+// 依頼人の頼みがこの迷宮を指しているか: 到達/踏破はその迷宮、討伐は狙う魔物が出る迷宮 (出現表の帯・主。金属の魔物は第3層から)
+function fixedQuestTargets(def, cfg) {
+  const g = def.goal || {};
+  if (g.dungeon) return g.dungeon === cfg.id;
+  if (g.type !== "kill" || !g.keys) return false;
+  return questKillHere(g.keys, cfg);
+}
+// 狙う魔物がその迷宮に出るか (出現表の帯・主。金属の魔物は第3層から)
+function questKillHere(keys, cfg) {
+  const roster = new Set([...(cfg.bands ? cfg.bands.flat() : [...(cfg.pool || []), ...(cfg.deepPool || [])]), cfg.boss].filter(Boolean));
+  return (keys || []).some((k) => roster.has(k) || (MONSTERS[k] && MONSTERS[k].metal && (cfg.layer || 0) >= 3));
+}
+// 階の情報 (迷宮の手帳) に並べる依頼: 受注中のうち、いま潜っている迷宮で進められるもの (+ 達成して報告待ちのもの)
+//   討伐 = 狙う魔物がここに出る / 到達・踏破 = この迷宮 / 魂・宝箱 = どこでも進む / 納品 = 迷宮では進まないので出さない
+function questsHere() {
+  const cfg = activeCfg();
+  if (!cfg) return [];
+  const here = G.abyss ? null : cfg.id;
+  const fits = (q) => {
+    if (q.type === "soul" || q.type === "chest") return true;
+    if (q.type === "kill") return questKillHere(q.keys, cfg);
+    if (q.type === "floor" || q.type === "clear") return !!here && q.dungeon === here;
+    return false;
+  };
+  return questLists().active.filter((q) => (q.state === "active" || q.state === "done") && fits(q))
+    .sort((a, b) => (a.state === "done") - (b.state === "done"));
 }
 // 出撃シートの添え書き: 酒場の依頼で開いた迷宮なら「依頼の迷宮」(受けた依頼の対象かどうかは名の横の印 questHereCount)
 function questHereNote(cfg) {
   return cfg && cfg.side ? "依頼の迷宮" : null;
+}
+// 迷宮ごとの記録 (出撃シートの迷宮の顔): 図鑑に記録した魔物 / その迷宮の魔物 (雑魚・強敵・主) と、
+// その迷宮の固定クエスト (依頼人の頼み) の報告済み / 総数。
+// 固定クエストの「家」= 到達・踏破の迷宮 → 地図に開く迷宮 → 狙う魔物が最初に出る迷宮 (地図の並び)。魂・宝箱は家なし
+function fixedQuestHome(def) {
+  const g = def.goal || {};
+  if (g.dungeon) return g.dungeon;
+  if (def.opens && def.opens.length) return def.opens[0];
+  if (g.type !== "kill" || !g.keys) return null;
+  const hit = DUNGEONS.find((d) => {
+    const roster = new Set(dungeonRoster(d));
+    return g.keys.some((k) => roster.has(k) || (MONSTERS[k] && MONSTERS[k].metal && (d.layer || 0) >= 3));
+  });
+  return hit ? hit.id : null;
+}
+function dungeonFacts(cfg) {
+  if (!cfg) return null;
+  const roster = dungeonRoster(cfg);
+  const mon = (G.codex && G.codex.mon) || {};
+  const s = questState();
+  const fq = FIXED_QUESTS.filter((d) => fixedQuestHome(d) === cfg.id);
+  return {
+    monSeen: roster.filter((k) => mon[k]).length, monTotal: roster.length,
+    fqDone: fq.filter((d) => s.fixed[d.id] && s.fixed[d.id].state === "claimed").length, fqTotal: fq.length,
+  };
 }
 // 報告できる依頼の数 (達成済み + 手持ちで納められる納品)。街の札・酒場の札の印
 function questReadyCount() {
@@ -9936,7 +10047,26 @@ function rewardRows(r, jobs = []) {
   if (r.red) out.push({ cur: "red", n: r.red });
   if (r.embers) out.push({ cur: "ember", n: r.embers });
   for (const j of jobs) out.push({ job: j });
+  for (const [id, n] of (r.items || [])) if (ITEMS[id]) out.push({ item: ITEMS[id], n });
   return out;
+}
+// 報酬の品 ([[id, 数]]) を隊 → 控えの袋の空きへ入れる。入らない分は数を返す
+function rewardItemsRoom(r) {
+  let need = 0;
+  for (const [id, n] of (r.items || [])) if (ITEMS[id]) need += n;
+  const room = allDolls().reduce((a, d) => a + Math.max(0, MAX_ITEMS - (d.items || []).length), 0);
+  return room - need;
+}
+function grantRewardItems(r) {
+  for (const [id, n] of (r.items || [])) {
+    for (let k = 0; k < n; k++) {
+      const it = cloneItem(id);
+      const who = it && allDolls().find((d) => (d.items || []).length < MAX_ITEMS);
+      if (!who) break;
+      who.items.push(it);
+      codexSeeItem(id, it);
+    }
+  }
 }
 function grantCurrencies(r) {
   G.gold += r.gold || 0;
@@ -9968,6 +10098,12 @@ function claimQuest(uid) {
   }
   const i = s.active.findIndex((q) => q.uid === uid && q.state === "done");
   if (i < 0) return false;
+  // 礼の品 (帰還の鈴) を受け取る袋の空きが無ければ、報告は待ってもらう
+  if (rewardItemsRoom(s.active[i].reward || {}) < 0) {
+    SFX.ng();
+    showToast("持ち物がいっぱいで、礼の品を受け取れない。袋を空けてから報告しよう", { tone: "bad" });
+    return false;
+  }
   const q = s.active.splice(i, 1)[0];
   finishFreeQuest(q, q.reward || {});
   return true;
@@ -9986,6 +10122,7 @@ function finishFreeQuest(q, r, extraJobs = [], title = null) {
   const tip = rand(100) < TIP_RATE ? questTip(r) : null;
   const bond = bondGiftAt(count);
   grantCurrencies(r);
+  grantRewardItems(r);
   const jobs = [...extraJobs, ...grantRewardSouls(r.souls)];
   if (tip) grantCurrencies(tip);
   const bondJobs = bond ? grantRewardSouls(bond.gift.souls) : [];
@@ -10035,6 +10172,8 @@ function tavernHintAllowed(req) {
   if (!req) return true;
   if (req === "sub") return unlockedSubSlots() > 0;     // 宿し技
   if (req === "metal") return DUNGEONS.some((d) => d.layer >= 3 && worldOpenId(d.id)); // 金属の魔物 (第3層の景色の迷宮から出る)
+  if (req === "fort") return DUNGEONS.some((d) => d.layer >= 4 && worldOpenId(d.id));  // 捨て砦 (第4層の迷宮が地図に現れた後)
+  if (req === "roots") return worldOpenId("w10");                                   // 管の根 (大穴の下の縦穴が地図に現れた後)
   return featureUnlocked(req);                           // fusion / rumor
 }
 // 酒場の顔ぶれを選び直す (ダンジョン帰還時・初回入店時に呼ぶ)
@@ -10275,7 +10414,7 @@ function legacyToPage(page, { tab = "hub", seg = null, after = null } = {}) {
 //
 // 報酬の物差し: 迷宮の初踏破の報告 (msqReward) が 100〜350G・赤い魂 2〜10、第1章の迷宮をひと通り潜って得る金貨が 1万G ほど。
 // 序盤の段は 30〜150G (赤い魂なし〜1)、第1章の終わり頃に届く段で 300G・赤い魂2〜3、その先の段で 500G〜・赤い魂 3〜15。
-// 刻みで延びた段は、手書きの最後の段の報酬を k ごとに +30% (金貨・✦Soul)、赤い魂は +1 ずつ (上限 ACH_RED_CAP)。
+// 刻みで延びた段は、手書きの最後の段の報酬を k ごとに +30% (金貨・✦Soul)、赤い魂は +1 ずつ (上限 ACH_RED_CAP。最後の段がそれを越えていれば据え置き)。
 const ACH_SERIES = [];
 const ACH_GROW = 0.3;
 const ACH_RED_CAP = 20;
@@ -10304,7 +10443,7 @@ function achTier(s, i) {
     if (v == null) return null;
     const grow = (n) => (n ? Math.round(n * (1 + ACH_GROW * k) / 10) * 10 : 0);
     row = { v, name: `${last.name}・其の${kanjiNum(k + 1)}`, id: `${s.key}#${k}`,
-      gold: grow(last.gold), red: last.red ? Math.min(ACH_RED_CAP, Math.max(last.red, last.red + k)) : 0, soul: grow(last.soul) };
+      gold: grow(last.gold), red: last.red ? Math.max(last.red, Math.min(ACH_RED_CAP, last.red + k)) : 0, soul: grow(last.soul) };
   }
   const reward = {};
   if (row.gold) reward.gold = row.gold;
@@ -10507,27 +10646,50 @@ function achNext(s) {
     [70, "限界の先へ", 1500, 6, 0, "slv70"], [100, "魂の深奥", 3000, 10, 0, "slv100"],
   ], (v) => `魂を Lv${v} まで育てる`, () => allSouls().reduce((m, s) => Math.max(m, s.level || 1), 0), { more: step(10) });
 
-  // 職業の覚醒と位階 — ランクN以上に育てた職業の数 (職業ごとの極め)。最後の段は職業の総数 (達成まで伏せる)
-  series("awk", jobRows([
-    [6, "六魂の覚醒", 300, 2, 0, "await6"], [12, "十二魂の覚醒", 600, 3], [18, "十八魂の覚醒", 1000, 5, 200, "await18"],
-    [24, "二十四魂の覚醒", 1500, 6, 200], [30, "三十魂の覚醒", 2000, 8, 300],
-  ], "万魂覚醒の祖", [3000, 15, 500], "awakeAll"), (v) => `${v}種の職業をランク2以上に覚醒させる`, () => jobsAtRank(2), jobOpt("awk"));
-  series("jr3", jobRows([
-    [1, "位階を昇る者", 150, 1, 0, "jrank3"], [3, "三つの位階", 400, 2], [6, "位階の導き手", 800, 3], [12, "位階の織り手", 1500, 5],
-    [18, "位階の守り手", 2000, 6], [24, "位階の司", 2500, 8],
-  ], "万職の位階", [4000, 12]), (v) => (v === 1 ? "職業をランク3に育てる" : `${v}種の職業をランク3以上に育てる`), () => jobsAtRank(3), jobOpt("jr3"));
-  series("jr4", jobRows([
-    [1, "高位の操霊師", 400, 3, 0, "jrank4"], [3, "高位の三魂", 1000, 5], [6, "高位の六魂", 1800, 6], [12, "高位の十二魂", 3000, 8],
-    [24, "高位の群れ", 4500, 10],
-  ], "万職の高み", [6000, 15]), (v) => (v === 1 ? "職業をランク4に育てる" : `${v}種の職業をランク4以上に育てる`), () => jobsAtRank(4), jobOpt("jr4"));
-  series("jr5", jobRows([
-    [1, "極みに至る者", 1000, 6, 0, "jrank5"], [3, "三つの極み", 2500, 8], [6, "極みの六魂", 4000, 10], [12, "極みの十二魂", 6000, 12],
-    [24, "極みの群れ", 9000, 15],
-  ], "万職の極み", [12000, 20]), (v) => (v === 1 ? "職業をランク5に育てる" : `${v}種の職業をランク5に育てる`), () => jobsAtRank(5), jobOpt("jr5"));
-  // Lv100 に届いた職業の数
-  series("jl100", jobRows([
-    [1, "百の頂", 1000, 5], [3, "三つの頂", 2000, 6], [6, "六つの頂", 3000, 8], [12, "十二の頂", 5000, 10], [24, "頂の連なり", 8000, 12],
-  ], "万職の頂", [12000, 20]), (v) => (v === 1 ? "職業の魂を Lv100 まで育てる" : `${v}種の職業の魂を Lv100 まで育てる`), () => jobsAtLv(100), jobOpt("jl100"));
+  // 職業ランク — ランクR以上に育てた職業の種類で数える (魂の所持数 → ランク。宿していない魂も数える)。
+  // 段はランク2〜5で共通 (RANK_STEPS)、その先も5種ずつ続く (職業はこれからも増えるので、いまの職業数を越える段も置く)。
+  // 旧 jrank3/4/5 (その段の人業を持つ) と await6 は同じ段階表の1段として ID を残す (消した await18/awakeAll/rank2j24 は受領済みとして残るだけ)
+  const RANK_STEPS = [1, 2, 3, 4, 5, 6, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+  const OLD_RANK_ID = { "2:6": "await6", "3:1": "jrank3", "4:1": "jrank4", "5:1": "jrank5" };
+  // rows = RANK_STEPS と同じ並びの [称号, gold, redSoul, soulPts]
+  const rankSeries = (r, rows) => {
+    if (rows.length !== RANK_STEPS.length) throw new Error(`rankSeries(${r}): 段の数が RANK_STEPS と合わない`);
+    series(`rank${r}`, rows.map((row, i) => [RANK_STEPS[i], ...row]),
+      (v) => `${v === 1 ? "ひとつの" : `${v}種の`}職業をランク${r}${r < 5 ? "以上" : ""}にする`,
+      () => jobsAtRank(r), { id: (v) => OLD_RANK_ID[`${r}:${v}`] || `rank${r}j${v}`, more: step(5) });
+  };
+  rankSeries(2, [ // 覚醒
+    ["目覚めの魂", 50], ["ふたつの覚醒", 80], ["三魂の覚醒", 120], ["四魂の覚醒", 150, 1], ["五魂の覚醒", 200, 1],
+    ["六魂の覚醒", 300, 2], ["十魂の覚醒", 500, 3], ["十五魂の覚醒", 800, 4], ["二十魂の覚醒", 1000, 5, 200],
+    ["二十五魂の覚醒", 1300, 6, 250], ["三十魂の覚醒", 1600, 7, 300], ["三十五魂の覚醒", 2000, 8, 400],
+    ["四十魂の覚醒", 2500, 10, 500], ["四十五魂の覚醒", 3000, 12, 600], ["万魂覚醒の祖", 3500, 15, 700],
+  ]);
+  rankSeries(3, [
+    ["位階を昇る者", 150, 1], ["ふたつの位階", 250, 1], ["三つの位階", 400, 2], ["四つの位階", 500, 2], ["五つの位階", 700, 3],
+    ["六つの位階", 800, 3], ["十の位階", 1200, 5], ["十五の位階", 1800, 6], ["位階の殿堂", 2500, 8, 300],
+    ["二十五の位階", 3000, 9, 350], ["三十の位階", 3500, 10, 400], ["三十五の位階", 4000, 12, 500],
+    ["四十の位階", 5000, 14, 600], ["四十五の位階", 5500, 16, 700], ["位階の頂", 6000, 20, 800],
+  ]);
+  rankSeries(4, [
+    ["高位の操霊師", 400, 3], ["高位の双璧", 700, 4], ["三柱の高位", 1000, 5], ["高位の四天", 1200, 5], ["高位の五柱", 1500, 6, 200],
+    ["高位の六柱", 1700, 7, 200], ["高位の十傑", 3000, 10, 400], ["高位の十五柱", 4000, 12, 500], ["高位の二十柱", 5000, 14, 600],
+    ["高位の二十五柱", 6000, 16, 700], ["高位の三十柱", 7000, 18, 800], ["高位の三十五柱", 8000, 20, 900],
+    ["高位の四十柱", 9000, 22, 1000], ["高位の四十五柱", 10000, 25, 1100], ["高位の五十柱", 12000, 30, 1200],
+  ]);
+  rankSeries(5, [
+    ["極みに至る者", 1000, 6], ["双極の操霊師", 1500, 8], ["三極の操霊師", 2000, 10, 200], ["四極の操霊師", 2500, 11, 300],
+    ["五極の操霊師", 3000, 12, 400], ["六極の操霊師", 3500, 13, 450], ["十の極み", 5000, 20, 800], ["十五の極み", 7000, 24, 1000],
+    ["二十の極み", 9000, 28, 1200], ["二十五の極み", 11000, 32, 1400], ["三十の極み", 13000, 36, 1600],
+    ["三十五の極み", 15000, 40, 1800], ["四十の極み", 17000, 45, 2000], ["四十五の極み", 19000, 50, 2200], ["五十の極み", 22000, 60, 2500],
+  ]);
+  // Lv100 に届いた職業の数 (職業ランクと同じ段で、その先も5種ずつ続く)
+  series("jl100", [
+    [1, "百の頂", 1000, 5], [2, "ふたつの頂", 1500, 5], [3, "三つの頂", 2000, 6], [4, "四つの頂", 2500, 6], [5, "五つの頂", 3000, 7],
+    [6, "六つの頂", 3500, 8], [10, "十の頂", 5000, 10], [15, "十五の頂", 7000, 12], [20, "二十の頂", 9000, 14],
+    [25, "二十五の頂", 11000, 15], [30, "三十の頂", 13000, 16], [35, "三十五の頂", 15000, 17], [40, "四十の頂", 17000, 18],
+    [45, "四十五の頂", 19000, 19], [50, "五十の頂", 22000, 20],
+  ], (v) => (v === 1 ? "職業の魂を Lv100 まで育てる" : `${v}種の職業の魂を Lv100 まで育てる`), () => jobsAtLv(100),
+  { id: (v) => `jl100_${v}`, more: step(5) });
 
   // 魂の融合
   series("fuse", [
@@ -10696,7 +10858,7 @@ function reportMainQuest() {
   const rwText = [{ cur: "gold", n: r.gold }, { cur: "soul", n: r.soulPts }, ...(r.redSoul ? [{ cur: "red", n: r.redSoul }] : [])];
   const rep = REPORTS[id] || { title: cfg.name, lines: ["「果たしたか。…見たものを、すべて話せ。」"] };
   // この報告で地図に現れる迷宮 (解放条件 reported:id) を、王の言葉の結びに添える
-  const opens = DUNGEONS.filter((d) => !w.open[d.id] && d.unlock && d.unlock.reported === id);
+  const opens = DUNGEONS.filter((d) => !w.open[d.id] && d.unlock && (d.unlock.reported === id || (d.unlock.all && d.unlock.all.includes(id) && d.unlock.all.every((x) => x === id || w.reported[x]))));
   const lines = [...storyLines(rep.lines), ...opens.map((d) => `── 新たな迷宮「${d.name}」が地図に記された。`)];
   const toasts = [];
   const count = Object.keys(w.reported).filter((k) => worldById(k)).length + 1; // この報告で何迷宮目か
@@ -10806,9 +10968,9 @@ function reportTutorialQuest() {
 
 // 機能解放: 王に初踏破を報告した迷宮の数に応じて段階的に解放される (節目の報告で王から授かる)。
 //   踏破しただけ (報告前) では開かない ― 解放のページ (story.js UNLOCKS) を見てから使えるようにする。
-//   いまの台帳 (5迷宮) では 2→魂融合 / 3→サブ魂1枠 / 4→酒場の噂・依頼 / 5→控えの結社(席1)。
+//   いまの台帳 (章の迷宮13) では 2→魂融合 / 3→サブ魂1枠 / 4→酒場の噂・依頼 / 5→控えの結社(席1) / 7→結社の席2 / 11→結社の席3。
 //   その先の節目は迷宮が増えた時に詰め直す (今は届かない数のまま置いておく)
-const FEATURE_AT = { fusion: 2, sub1: 3, rumor: 4, order: 5, order2: 30, sub2: 40, order3: 45, infinite: 50 };
+const FEATURE_AT = { fusion: 2, sub1: 3, rumor: 4, order: 5, order2: 7, sub2: 40, order3: 11, infinite: 50 };
 function featureUnlocked(key) {
   const c = reportedDungeonCount();
   if (key === "infinite") return c >= FEATURE_AT.infinite && CONTENT_LIMIT >= 50; // 奈落は迷宮が50を超えるまで閉じる
@@ -10924,7 +11086,7 @@ function objectiveInfo() {
   }
   if (w.report && worldById(w.report)) return { key: "report", text: `「${worldById(w.report).name}」の踏破を王に報告する`, sub: "見たものを王に話す", act: "王に報告する", kind: "palace", run: reportMainQuest };
   const ib = pendingIreneBeat();
-  if (ib) return { key: "irene", text: "持ち帰ったものを、館のイレーヌに見せる", sub: ib.title, act: "館へ", kind: "party", run: () => (UI.enterMansion ? UI.enterMansion() : UI.shell && UI.shell.setTab("party")) };
+  if (ib) return { key: "irene", text: ib.need ? "持ち帰ったものを、館のイレーヌに見せる" : "館のイレーヌのもとへ立ち寄る", sub: ib.title, act: "館へ", kind: "party", run: () => (UI.enterMansion ? UI.enterMansion() : UI.shell && UI.shell.setTab("party")) };
   if (contentSealed()) return { key: "sealed", text: "迷宮で人業を鍛え、装備を集める", sub: `${CHAPTERS[CHAPTERS.length - 1].next}は準備中`, act: "出撃", kind: "gate", run: () => departTo(null) };
   const g = storyGoal();
   if (!g) return { key: "free", text: "迷宮で人業を鍛え、装備を集める", act: "出撃", kind: "gate", run: () => departTo(null) };
@@ -10962,7 +11124,7 @@ function decreeInfo() {
   const ch = currentChapter();
   const head = `第${["", "一", "二", "三", "四", "五"][ch.no] || ch.no}章 「${ch.title}」`;
   if (w.report && worldById(w.report)) return { kind: "report", head, text: `「${worldById(w.report).name}」を踏破した。`, note: "王に報告し、見たものを話せ。", replay: true };
-  if (contentSealed()) return { kind: "sealed", head: `${head} ── 完`, text: "師は捨て砦の地下へ向かった。封が解けるまで、人業を鍛えておけ。", note: `${ch.next}は準備中。これまでの迷宮には何度でも挑める。`, replay: true };
+  if (contentSealed()) return { kind: "sealed", head: `${head} ── 完`, text: `${ch.nextNote || "その先は、まだ封じられている"}。封が解けるまで、人業を鍛えておけ。`, note: `${ch.next}は準備中。これまでの迷宮には何度でも挑める。`, replay: true };
   const g = storyGoal();
   const done = ch.dungeons.filter((id) => w.reported[id]).length;
   return { kind: "active", head, text: g ? g.text + "。" : "師の足跡を追え。", note: `章の迷宮 ${done}/${ch.dungeons.length} を報告済み`, replay: true };
@@ -11193,7 +11355,7 @@ function claimNextTreasury() {
 
 // ---- 図鑑 (王宮書庫) ----
 // モンスター図鑑の記録単位: { kills, normal, rare, dungeons:{idx:true} }
-// 記録されるのは「倒した時」のみ。落としたドロップ(通常/レア)も実際に落として初めて開示。
+// 記録されるのは「倒した時」のみ (迷宮の主だけは、遭遇した時に G.codex.met へ印を付け、図鑑に名だけ出す)。落としたドロップ(通常/レア)も実際に落として初めて開示。
 function codexMonEntry(key) {
   let e = G.codex.mon[key];
   if (e == null) codexFresh().mon[key] = 1; // 初めての記録は新着
@@ -11540,7 +11702,7 @@ const buyPrice = (it) => Math.max(1, Math.round((it && it.price || 30) * bargain
 const APPRAISE_MUL = { c: 0.5, uc: 0.75, r: 1, sr: 1.5, lr: 4 };
 const appraiseCost = (it) => {
   if (!it) return 1;
-  const mul = it.lr >= 5 ? 20 : (APPRAISE_MUL[rarityKey(it)] || 1);
+  const mul = it.lr >= 5 && !it.layer ? 20 : (APPRAISE_MUL[rarityKey(it)] || 1); // 深い職業専用LRだけ ×20 (層の逸品は除く)
   return Math.max(1, Math.round(sellPrice(it) * mul * bargainMul()));
 };
 
@@ -11770,11 +11932,14 @@ function enterDungeon(mutatorId, startFloor = 1) {
   G.stats.runs++;
   // 今回の戦利品トラッキングを初期化 (帰還の報告は次の帰還で書き直す)
   G.run = newRun();
+  G.run.startFloor = G.floor; // 潜り始めの階 (そこから降りずに何もせず戻ったら、帰還で酒場を貼り替えない)
   G.lastRun = null;
   G._townMutator = null; G._departPre = false;
   G._lastTargetUid = null;
-  // 表示中の噂を確定し、この迷宮で現実化させる
-  if (G.rumor) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
+  // 表示中の噂を確定し、この迷宮で現実化させる。
+  // ただし「特別な階」を呼び込む噂は1階で潜る時のためのもの: 帰還魔法陣から潜り始める時は持ち越す
+  // (潜り始めの階は特別な階にならない)
+  if (G.rumor && !(G.floor > 1 && G.rumor.type === "special")) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
   G.state = "board";
   playBgm(fieldBgm());
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
@@ -11903,8 +12068,12 @@ function returnToTown(opts = {}) {
   if (!G.party.some((p) => p.alive)) startRescueTimers(G.party);
   summary.dead = G.party.filter((d) => d && d.isDoll && !d.alive).map((d) => ({ uid: d.uid, name: d.name }));
   G.lastRun = summary;
-  rollTavernCrowd(); // 酒場の顔ぶれは帰還のたびに入れ替わる
-  rollQuestBoard();  // 掲示板の依頼も帰還のたびに貼り替わる (受けた依頼は残る)
+  // 酒場の顔ぶれと掲示板の依頼は帰還のたびに入れ替わる (受けた依頼は残る)。
+  // ただし潜り始めの階から降りず、何も得ずに戻っただけ (帰還魔法陣で入ってすぐ出た) なら貼り替えない
+  if (!idleRun(runRef)) {
+    rollTavernCrowd();
+    rollQuestBoard();
+  }
   updateTopbar();
   log(outcome === "wipe" ? "砕けた人業を残し、街へ戻った。" : "街へ帰還した。", "sys");
   G.town.facility = null; G.town.sub = null; G.town.page = null; G.town.tab = "hub";
@@ -11922,6 +12091,11 @@ function returnToTown(opts = {}) {
     try { c = ops.counts(); } catch (e) { c = null; }
     if (c && c.hurt > 0 && G.gold >= c.innCost) setTimeout(() => { if (G.state === "town") ops.restParty(); }, 600);
   }
+}
+// 潜り始めの階から降りず、戦わず、何も得ずに帰ってきた潜入か
+function idleRun(r) {
+  if (!r || r.startFloor == null || r.descended) return false;
+  return !(r.kills || r.gold || r.soulPts || (r.items || []).length || (r.souls || []).length);
 }
 // 闇に溶けて街へ戻る (帰還陣・踏破の凱旋・全滅の決断の後)
 function leaveDungeon(opts = {}) {
@@ -11986,7 +12160,7 @@ function askGate(cell, { arrival = false } = {}) {
   updateReturnBtn();
   const next = G.floor + 1;
   const bottom = next >= (cfg.floors || 1);
-  showChoice(arrival ? `帰還魔法陣を抜けて、B${G.floor}F に降り立った。` : "下り階段の代わりに、帰還魔法陣が淡く輝いている。", [
+  showChoice(arrival ? `帰還魔法陣を抜けて、B${G.floor}F に降り立った。` : "帰還魔法陣が淡く輝いている。", [
     { label: `先へ進む ― B${next}F${bottom ? (cfg.boss ? " (主の間)" : " (最下階)") : ""}`, primary: true, fn: () => descend() },
     { label: "街へ帰還する ― 戦利品は持ち帰る", fn: () => leaveDungeon({ outcome: G.run && G.run.secured ? "clear" : "return" }) },
     { label: arrival ? "この階を探索する" : "まだ探索する", fn: () => renderBoard() },
@@ -12568,6 +12742,22 @@ function useItem(p, index, target) {
     log(`${p.name}は${it.name}を使った。隊の足が地を離れる ― ${u.float}階のあいだ落とし穴にも毒の床にもかからない。`, "win");
     showToast(`${it.name} ― ${u.float}階のあいだ宙に浮く`, { tone: "good" });
     renderStatus(); renderParty(); renderBoard(); autosave(true);
+    return;
+  }
+  if (u.recall) {
+    // 帰還の鈴: 迷宮を歩いている時だけ。確かめてから鈴を鳴らし、戦利品を持って街へ戻る
+    if (G.state !== "board" || !inDungeon() || G.anim || G.walking) { SFX.ng(); showToast(`${it.name}は迷宮を歩いている時にしか使えない`, { tone: "info" }); return; }
+    showChoice(`${it.name}を鳴らし、街へ帰還する？`, [
+      { label: "鳴らして帰還する ― 戦利品は持ち帰る", primary: true, fn: () => {
+        const i = p.items.indexOf(it);
+        if (i < 0) { renderBoard(); return; }
+        p.items.splice(i, 1);
+        SFX.spell();
+        log(`${p.name}は${it.name}を鳴らした。灯の下へ、隊が引き戻されていく…`, "win");
+        leaveDungeon({ outcome: G.run && G.run.secured ? "clear" : "return" });
+      } },
+      { label: "やめておく", fn: () => renderBoard() },
+    ], ICONS.portal, { banner: "✦ 帰還の鈴 ✦", accent: "#e8c070", lines: useLines(it), onDismiss: () => renderBoard() });
     return;
   }
   const tk = useTarget(it);
@@ -13309,6 +13499,7 @@ function loadGame() {
   if (!G.codex) G.codex = { mon: {}, item: {} };
   if (!G.codex.mon) G.codex.mon = {};
   if (!G.codex.item) G.codex.item = {};
+  if (!G.codex.met || typeof G.codex.met !== "object") G.codex.met = {};
   // 正体を知った品 (後付け): 図鑑の記録から復元し、未鑑定でしか持っていない品は「まだ知らない」とする
   if (!G.codex.known || typeof G.codex.known !== "object") {
     const known = {};
@@ -13431,8 +13622,9 @@ function setupNewGame() {
 function opsFacilityOpen(key) { const a = tutorialAllowed(); return !a || a.includes(key); }
 function opsEquippedBy(d, it) { for (const k in (d.equip || {})) if (d.equip[k] === it) return true; return false; }
 // 売却候補: 呪い・未鑑定・装備中・SR/LR・未奉納の収集品 (sellWarnings) は除外 (商店の一括売却と同じ)。
-// 消耗品 (薬草など) は既定で除外する。{ includeUse: true } で商店の一括売却と全く同じ集合になる
-function opsJunkList({ includeUse = false } = {}) {
+// 消耗品 (薬草など) は設定「まとめて売るに道具を含める」(UI の好み sellUse) が入っている時だけ含める。
+// { includeUse } を渡せばその値が優先
+function opsJunkList({ includeUse = !!uiDungeonHud.getPref("sellUse") } = {}) {
   const out = [];
   for (const d of allDolls()) {
     for (const it of (d.items || [])) {
@@ -13828,7 +14020,7 @@ function wireUI() {
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
     tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
-    worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURE_AT, storyGoal, currentChapter,
+    worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURE_AT, storyGoal, currentChapter, dungeonTrait,
     trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,
@@ -13870,7 +14062,7 @@ bindGame({
   codexMonEntry, dungeonRoster, CODEX_OTHER,
   // 酒場・祠・宿
   listenRumor, RUMOR_PRICE, rumorPrice, rollTavernCrowd,
-  questState, questLists, questByUid, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount,
+  questState, questLists, questByUid, questsHere, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount,
   adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)
   PREFS, savePrefs, setVolumes, isMuted, toggleMute, ensureAudio, updateMuteBtn, resetAllData, confirmReset,
@@ -13906,7 +14098,7 @@ bindGame({
 // モジュールの評価時 (init より前) に結ぶ。init の wireUI が同じ game へ残りを足す
 bindGame({
   // 出撃
-  departNow, departAbyss, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, partyLevel, storyCellPending,
+  departNow, departAbyss, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, partyLevel, storyCellPending, dungeonFacts,
   abyssRecords, ABYSS_MODS, abyssScoreMul, weekSeedId, emptyDollCost,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow,

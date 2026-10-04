@@ -11,6 +11,8 @@ import { LR_ITEMS } from "./lr.js";
 import { LAYER1_ITEMS } from "./layer1.js";
 import { LAYER2_ITEMS } from "./layer2.js";
 import { LAYER3_ITEMS } from "./layer3.js";
+import { LAYER4_ITEMS } from "./layer4.js";
+import { LAYER5_ITEMS } from "./layer5.js";
 import { applyRareBoost } from "../rarity.js";
 // ランク別 標準装備 (R1-R20 を順次拡充。各ランクで全職が全部位2種以上を装備できる素体装備)
 import { RANK1_ITEMS } from "./ranks/r01.js";
@@ -38,7 +40,7 @@ import { RANK20_ITEMS } from "./ranks/r20.js";
 // ランク別標準装備: 各ランク・各部位 (武器はカテゴリ、防具は重量) に2種ずつあり、
 //   隠しレベルの低い方=コモン / 高い方=アンコモン
 // 来歴つきの一点物 = レア (能力を一段底上げ) / 職業専用装備・伝説装備 = スーパーレア / LR = レジェンドレア
-// (層ごとの逸品 layer1.js / layer2.js / layer3.js は自前で sr/lr と出現する層 layer を持つ)。収集品・道具はレア度を持たない
+// (層ごとの逸品 layer1.js … layer5.js は自前で sr/lr と出現する層 layer を持つ)。収集品・道具はレア度を持たない
 const RANK_LISTS = [RANK1_ITEMS, RANK2_ITEMS, RANK3_ITEMS, RANK4_ITEMS, RANK5_ITEMS, RANK6_ITEMS, RANK7_ITEMS, RANK8_ITEMS, RANK9_ITEMS, RANK10_ITEMS,
   RANK11_ITEMS, RANK12_ITEMS, RANK13_ITEMS, RANK14_ITEMS, RANK15_ITEMS, RANK16_ITEMS, RANK17_ITEMS, RANK18_ITEMS, RANK19_ITEMS, RANK20_ITEMS];
 for (const list of RANK_LISTS) {
@@ -159,7 +161,7 @@ for (const it of LR_ITEMS) it.rar = "lr";
 
 // { id: item } に統合。ID重複は即エラー (セーブ/図鑑の参照を守る)
 export const CATALOG_ITEMS = {};
-for (const list of [WEAPONS, SHIELDS, ARMORS, HEADS, FEET, HANDS, ACCS, MISC, USABLES, LEGENDS, EXCLUSIVES, LR_ITEMS, LAYER1_ITEMS, LAYER2_ITEMS, LAYER3_ITEMS, RANK1_ITEMS, RANK2_ITEMS, RANK3_ITEMS, RANK4_ITEMS, RANK5_ITEMS, RANK6_ITEMS, RANK7_ITEMS, RANK8_ITEMS, RANK9_ITEMS, RANK10_ITEMS, RANK11_ITEMS, RANK12_ITEMS, RANK13_ITEMS, RANK14_ITEMS, RANK15_ITEMS, RANK16_ITEMS, RANK17_ITEMS, RANK18_ITEMS, RANK19_ITEMS, RANK20_ITEMS]) {
+for (const list of [WEAPONS, SHIELDS, ARMORS, HEADS, FEET, HANDS, ACCS, MISC, USABLES, LEGENDS, EXCLUSIVES, LR_ITEMS, LAYER1_ITEMS, LAYER2_ITEMS, LAYER3_ITEMS, LAYER4_ITEMS, LAYER5_ITEMS, RANK1_ITEMS, RANK2_ITEMS, RANK3_ITEMS, RANK4_ITEMS, RANK5_ITEMS, RANK6_ITEMS, RANK7_ITEMS, RANK8_ITEMS, RANK9_ITEMS, RANK10_ITEMS, RANK11_ITEMS, RANK12_ITEMS, RANK13_ITEMS, RANK14_ITEMS, RANK15_ITEMS, RANK16_ITEMS, RANK17_ITEMS, RANK18_ITEMS, RANK19_ITEMS, RANK20_ITEMS]) {
   for (const it of list) {
     if (CATALOG_ITEMS[it.id]) throw new Error("duplicate item id: " + it.id);
     CATALOG_ITEMS[it.id] = it;

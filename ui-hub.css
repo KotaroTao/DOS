@@ -3,26 +3,16 @@
    ui.css のトークン (--iron-*, --gold*, --t-*, --sp-*) と kit の部品を土台に重ねる。
    押せる場所は最低 44×44。絵文字は使わず、通貨は .ui-g-* の印、その他は SVG の線画。
    画面は1枚に収める (.wa-fit = 中身の高さちょうど。頁は縦にスクロールしない)。
-   長い一覧はめくる (.wa-parea / .wa-pager)。背の低い端末では1つの段だけが内側で流れる。
+   長い一覧は残りの高さの箱 (.wa-parea) の中で縦にスクロールする。
    ===================================================================== */
 
 /* ---------- 1画面に収める器 ---------- */
 #town-screen > .wa-fit { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
 .wa-fit > * { flex: 0 0 auto; }
 .wa-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
-.wa-parea { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-.wa-pgrid { display: grid; align-content: start; }
+.wa-parea { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin; }
+.wa-pgrid { display: grid; align-content: start; flex: 0 0 auto; }
 .wa-pgrid > * { min-width: 0; min-height: 0; }
-.wa-pager { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; gap: 14px; height: 52px; margin-top: auto; padding-top: 6px; }
-.wa-pg-b {
-  display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 44px; padding: 0;
-  color: var(--accent-hi); background: var(--grain), var(--plate-hi); border: 1px solid #4a3d36; border-radius: 3px; cursor: pointer;
-  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
-}
-.wa-pg-b:disabled { opacity: 0.3; cursor: default; }
-.wa-pg-b:active:not(:disabled) { transform: scale(0.95); }
-.wa-pg-ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.wa-pg-l { min-width: 56px; text-align: center; font-size: 13px; font-weight: 800; letter-spacing: 0.12em; color: #cdbf9f; font-variant-numeric: tabular-nums; }
 
 /* ---------- 共通: 金の菱の見出し・注記・空・鎖 ---------- */
 .wa-page { gap: 0; }
@@ -491,7 +481,6 @@
 /* 迷宮の中の図鑑 (手帳から開くシート)。王宮の図鑑と同じ中身を、背の高いシートに1画面で収める */
 .ui-sheet.cx-sheet { height: 88vh; height: calc(100dvh - 28px); max-height: calc(100dvh - 28px); }
 .cx-sheet .ui-sheet-body { display: flex; flex-direction: column; overflow: hidden; text-align: left; padding-bottom: 6px; }
-.cx-sheet .ui-sheet-body > .ui-sheet-pager { flex: 0 0 auto; }
 .cx-sheet .ui-sheet-foot .ui-btn { min-height: 48px; }
 .cx-sheet .pl-codex > .ui-chips, .cx-sheet .pl-codex-sub > .ui-chips { margin-left: 0; margin-right: 0; } /* はみ出すと札の選択が箱ごと横へ送ってしまう */
 .cx-body { overflow-x: hidden; }

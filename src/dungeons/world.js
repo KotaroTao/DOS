@@ -17,11 +17,31 @@
 //             { story: key }          物語の手がかり (story.js の物語マス) を見つけた時
 //             { treasury: n }         宝物庫の n 種奉納の褒賞 (坑口の通行証など) を受け取った時
 //             { quest: id }           酒場の固定クエスト (src/quests.js FIXED_QUESTS) を受けた時
+//             { all: [id, …] }        挙げた迷宮すべての踏破を王に報告した時
 //   side    依頼の迷宮 (章の筋の外)。初めて踏破しても王への報告は無く、依頼人に報告する (機能解放の数にも数えない)
 //   hint    まだ現れていない時に出撃シートで示す、解放の手がかり
 //   about   出撃シートの一行の説明
+//   element 迷宮の属性気配 (省略時は素体 = 層の属性)。雑魚は半分の確率でこの属性を帯びる (掟の elemAll なら全員)
+//   trait   迷宮の掟 (その迷宮だけの決まりごと。出撃シートと「階の情報」に出る) — game.js dungeonTrait:
+//             name / sym / accent / lines (説明2行)
+//             mods     迷宮の異変と同じ効果キー (packMin / soulMul / goldMul / noFlee / chestRankUp / elemAll /
+//                      ambushMul / lootBonusLv …)。潜っている間ずっと activeModifierDefs に加わる
+//             eliteRate 強敵階の出やすさ (既定 10%)   board  盤面の加工 (game.js TRAIT_BOARD のキー)
+//             specialRate 特別な階の出やすさの倍率   victoryHeal 勝つたび隊のHP・MPを回復する割合
+//             foeRegen 敵の毎ラウンドの再生 (最大HP比)   mpDrain 戦闘の開幕に吸われる隊のMP (最大MP比)
+//             metalRate / metalMax 金属の魔物の出やすさ (既定 7%) / 1階で入れ替わる札の最大数 (既定 1)
+//   tune    強さの手直し (generator.js DUNGEON_TUNE と同じ欄)。第4層からはテスト記録がまだ無いので、模擬戦で既存の迷宮に
+//           つないだ: 装備なしの6人 (戦士2・侍・僧侶・魔導士・盗賊、魂の Lv = その階の推奨Lv) が出現表の雑魚と通常攻撃だけで
+//           戦い (本物の combat.js Battle、浅階/深階ごとに150戦)、1戦の被ダメ (隊HP比) を比べる。この物差しで
+//           石切り場 ws2 = 浅59%・深54% / 坑口 w05 = 54%・69% (第3層の壁)。第4層は 外郭 55%・59% → 地下牢 54%・63% →
+//           大手門 52%・60% (奇襲×2 の分だけ軽め) → 本丸 55%・68% (第4層の壁) / 迷い森 58%・68% に合わせた。
+//           第5層 (第三章) は 縦穴 54%・61% → 霧森 55%・60% (特別な階が多い分だけ軽め) / 苗床 54%・60% →
+//           大樹 63%・68% (第5層の壁) / 銀の里 54%・63%。
+//           掟 (隊伍・奇襲・逃走不可) の重さは模擬戦に入らないので、その分は控えめにしてある。
+//           主は「主の強さ ÷ 最下階の雑魚の強さ」(sqrt(HP×ATK)) を坑口の主 2.15 / 水路の主 2.39 の間 (本丸の主 2.30・大樹の主 2.39) に置いた。
+//           テスト記録が届いたら実測で合わせ直す
 import { DUNGEONS as GENERATED } from "./generator.js";
-import { LAYER_BOSS, LAYER_ELITES } from "./bestiary.js";
+import { LAYER_BOSS, LAYER_ELITES, BESTIARY } from "./bestiary.js";
 import { baselineLv, progressX } from "../baseline.js";
 
 const WORLD_DEF = [
@@ -77,6 +97,7 @@ const WORLD_DEF = [
     id: "w05", n: 10, nTo: 13, layer: 3, floors: 15,
     name: "鎖の垂れる坑口", short: "坑口",
     about: "先代の王が封じた古の坑道。罪人たちの鎖が、今も闇に垂れている",
+    element: "earth", // 素体の n10 は第2層 (水) なので、坑道の土を明示する
     bands: [
       ["bs_blastsprite", "bs_chainedconvict", "bs_dustwraith", "bs_koboldsapper", "bs_minebat", "bs_timbermite"],
       ["bs_rockworm", "bs_tunneler", "bs_gargoyle"],
@@ -86,6 +107,162 @@ const WORLD_DEF = [
     tune: { enemyMul: 1.50, deepMul: 0.70, soloMul: 0.92, bossMul: 0.80 }, // DUNGEON_TUNE の D11 の雑魚 + D15 の主 (第3層は厳しめ)
     unlock: { treasury: 3 },
     hint: "王家の宝物庫に収集品を3種奉納すると、王が坑口の通行証を授ける",
+  },
+  // ---- 第二章「捨て砦」(第4層) ── 国境の砦。百年前に王都が見捨て、守備隊はいまも持ち場を守っている ----
+  {
+    id: "w06", n: 14, nTo: 16, layer: 4, floors: 10,
+    name: "亡兵の守る外郭", short: "外郭",
+    about: "国境の捨て砦の城壁と兵舎。百年前に死んだ守備隊が、いまも隊伍を組んで持ち場を守る",
+    element: null, // 守備隊は人の亡霊。属性の気配は無い (素体の n は第3層の土なので明示する)
+    bands: [
+      ["bs_pikewall", "bs_bannerwraith", "bs_drumwraith", "d03_sentinel", "bs_darksamurai", "bs_ironknight"],
+      ["bs_gravecaptain", "bs_siegeballista", "d04_revenant"],
+    ],
+    trait: {
+      id: "ranks", name: "隊伍を組む亡兵", sym: "⚔", accent: "#c9a26a",
+      lines: ["亡兵は持ち場を離れず、つねに三体以上の隊伍で現れる (旗手・鼓手・槍ぶすまが組む)。", "数は多いが、討てば得られる ✦Soul が 1.25倍。"],
+      mods: { packMin: 3, soulMul: 1.25 },
+    },
+    tune: { enemyMul: 0.62, deepMul: 0.88, soloMul: 0.95 }, // 隊伍 (つねに3体以上) の分だけ1体ずつは軽く
+    unlock: { reported: "w05" },
+    hint: "「鎖の垂れる坑口」の踏破を王に報告すると、捨て砦の封が解かれる",
+  },
+  {
+    id: "w07", n: 15, nTo: 17, layer: 4, floors: 10,
+    name: "捨て砦の地下牢", short: "地下牢",
+    about: "砦の地下に掘られた牢。捕虜と罪人と、王に背いた者たちが、鍵を掛けられたまま忘れられた",
+    element: "dark",
+    bands: [
+      ["d03_ghost", "bs_banshee", "bs_cultist", "bs_shadowmage", "bs_dullahan", "bs_bloodorc"],
+      ["bs_bloodwraith", "bs_vampire", "bs_bonecolossus"],
+    ],
+    elites: ["el_headsman"],
+    trait: {
+      id: "prison", name: "閉ざされた獄", sym: "⛓", accent: "#8a8fa8",
+      lines: ["獄の扉は内から開かない。この迷宮の戦闘からは逃げられない。", "獄死した囚人の骸が多く (各階に骸が2つ増える)、押収品の宝箱は1ランク上等。"],
+      mods: { noFlee: true, chestRankUp: 1 },
+      board: "prison",
+    },
+    tune: { enemyMul: 1.25, deepMul: 0.78, soloMul: 0.95 },
+    unlock: { story: "w06_roll" },
+    hint: "「亡兵の守る外郭」の当直簿に、地下牢の鍵の在処が記されているという",
+  },
+  {
+    id: "w08", n: 16, nTo: 18, layer: 4, floors: 10,
+    name: "雷雨の大手門", short: "大手門",
+    about: "寄せ手が最後に破った砦の正門。あの日の雷雨はいまも止まず、討ち死にした両軍の亡者が門を奪い合う",
+    element: "wind",
+    bands: [
+      ["bs_bloodorc", "bs_darksamurai", "bs_thunderknight", "bs_bannerwraith", "bs_siegeballista", "bs_cultist"],
+      ["bs_stormgiant", "bs_bonecolossus", "bs_gravecaptain"],
+    ],
+    trait: {
+      id: "storm", name: "止まぬ雷雨", sym: "⚡", accent: "#9ab8ff",
+      lines: ["雷雨が門を叩き続け、魔物はみな風 (雷) の気を帯びる。火の刃が通り、火の護りが雷を逸らす。", "雷鳴に足音が紛れ、奇襲を受けやすい (×2)。戦場に散った遺品で、得るゴールドは 1.3倍。"],
+      mods: { elemAll: true, ambushMul: 2, goldMul: 1.3 },
+    },
+    tune: { enemyMul: 1.02, deepMul: 0.85, soloMul: 1.00 }, // 奇襲 ×2 の分だけ控えめ
+    unlock: { reported: "w06" },
+    hint: "「亡兵の守る外郭」の踏破を王に報告すると、正門への道が示される",
+  },
+  {
+    id: "w09", n: 17, nTo: 20, layer: 4, floors: 15,
+    name: "捨て砦の本丸", short: "本丸",
+    about: "砦の主が最後まで立てこもった本丸。軍議の間には、いまも将たちの亡霊が卓を囲む",
+    element: null,
+    bands: [
+      ["bs_gravecaptain", "bs_ironknight", "bs_dullahan", "bs_drumwraith", "bs_shadowmage", "d03_sentinel"],
+      ["bs_siegeballista", "d04_revenant", "bs_vampire"],
+      ["bs_thunderknight", "bs_stormgiant", "bs_bloodwraith"],
+    ],
+    trait: {
+      id: "council", name: "軍議の間", sym: "♜", accent: "#e0a050",
+      lines: ["将の亡霊が階ごとに陣を敷く。強敵の気配する階が多い (3F以降 30%)。", "将の遺品で、落ちている装備の質が少し上がる。"],
+      mods: { lootBonusLv: 4 },
+      eliteRate: 0.30,
+    },
+    boss: LAYER_BOSS[3], bossRank: 6,
+    tune: { enemyMul: 1.12, deepMul: 0.78, soloMul: 1.05, bossMul: 0.85 }, // 第4層の壁。主は会心と招来持ち
+    unlock: { all: ["w07", "w08"] },
+    hint: "「捨て砦の地下牢」と「雷雨の大手門」の両方を踏破して王に報告すると、本丸の門が開く",
+  },
+  // ---- 第三章「管の根」(第5層の顔ぶれ) ── 本丸の大穴の下。魂を吸う「管」は、地の底の大樹の根だった ----
+  {
+    id: "w10", n: 20, nTo: 22, layer: 5, floors: 10,
+    name: "根の這う縦穴", short: "縦穴",
+    about: "本丸の床に開いた大穴。壁という壁を太い根が這い、底の見えない闇へ垂れ下がっている",
+    element: "earth",
+    bands: [
+      ["bs_giantowl", "bs_stranglevine", "bs_sporezombie", "bs_giantmoth", "bs_fungalhulk", "bs_flytrap"],
+      ["bs_mossgolem", "bs_stonegazer", "bs_griffon"],
+    ],
+    elites: ["el_eldertreant"],
+    trait: {
+      id: "shaft", name: "根の縦穴", sym: "⇣", accent: "#b08a5a",
+      lines: ["縦穴の足場は脆い。落とし穴が多い (各階に2つ増える)。落ちても傷は負わないが、その階は探れない。", "壁の根に、落ちた者たちの遺品が絡まっている (各階に宝箱が1つ増える)。"],
+      board: "shaft",
+    },
+    tune: { enemyMul: 0.72, deepMul: 0.76, soloMul: 1.05 }, // 落とし穴で階を飛ばされる分、深階はやや重い
+    unlock: { reported: "w09" },
+    hint: "「捨て砦の本丸」の踏破を王に報告すると、大穴へ降りる許しが出る",
+  },
+  {
+    id: "w11", n: 21, nTo: 23, layer: 5, floors: 10,
+    name: "地の底の霧森", short: "霧森",
+    about: "縦穴の底に広がる、陽の届かない森。木々は魂の灯で淡く光り、霧が階ごとに姿を変える",
+    element: "wind",
+    bands: [
+      ["bs_dryadfey", "bs_wisplure", "bs_thornhound", "bs_direboar", "bs_chimera", "bs_thunderbird"],
+      ["bs_fogpanther", "bs_corruptstag", "bs_satyrpiper"],
+    ],
+    trait: {
+      id: "shifting", name: "移ろう霧", sym: "≋", accent: "#9ab8c8",
+      lines: ["霧が森の姿を変え続ける。特別な階がとても出やすい (ふだんの2倍・およそ3階に2階)。", "豊穣の間も、瘴気の階も、ミミックの巣も。何が出るかは霧しだい。"],
+      specialRate: 2,
+    },
+    tune: { enemyMul: 0.62, deepMul: 0.82, soloMul: 1.05 }, // 特別な階 (瘴気・群れ) が2倍出る分だけ軽め
+    unlock: { story: "w10_rope" },
+    hint: "「根の這う縦穴」のどこかに、師の残した綱が垂れているという",
+  },
+  {
+    id: "w12", n: 22, nTo: 24, layer: 5, floors: 10,
+    name: "樹液の苗床", short: "苗床",
+    about: "大樹の根が魂を溶かし、樹液に変える苗床。甘い香りが傷を癒し、魔物までも癒す",
+    element: "earth",
+    bands: [
+      ["bs_fungalhulk", "bs_flytrap", "bs_sporezombie", "bs_dryadfey", "bs_giantmoth", "bs_wisplure"],
+      ["bs_willowwitch", "bs_misttreant", "bs_stonegazer"],
+    ],
+    elites: ["el_mistmother"],
+    trait: {
+      id: "sap", name: "癒しの樹液", sym: "✚", accent: "#a8d070",
+      lines: ["樹液の香りが満ちている。戦闘に勝つたび、隊のHP・MPが8%回復する。", "魔物もまた樹液を吸う。敵はすべて、ラウンドごとに最大HPの3%ずつ再生する。"],
+      victoryHeal: 0.08, foeRegen: 0.03,
+    },
+    tune: { enemyMul: 0.76, deepMul: 0.82, soloMul: 1.05 }, // 敵の再生と勝利ごとの回復でおおむね相殺
+    unlock: { reported: "w10" },
+    hint: "「根の這う縦穴」の踏破を王に報告すると、根の行き着く先が示される",
+  },
+  {
+    id: "w13", n: 23, nTo: 26, layer: 5, floors: 15,
+    name: "魂喰らいの大樹", short: "大樹",
+    about: "百の迷宮から魂を吸い上げる大樹の根元。幹は王都へ向かって、地の底を這い上がっている",
+    element: null,
+    bands: [
+      ["bs_thornhound", "bs_stranglevine", "bs_chimera", "bs_giantowl", "bs_thunderbird", "bs_direboar"],
+      ["bs_misttreant", "bs_willowwitch", "bs_griffon"],
+      ["bs_corruptstag", "bs_mossgolem", "bs_fogpanther"],
+    ],
+    trait: {
+      id: "roots", name: "魂を吸う根", sym: "ψ", accent: "#c070a0",
+      lines: ["根が足元で脈打つ。戦闘が始まるたび、隊のMPが1割吸われる。", "吸われた魂の名残が漂い、得られる ✦Soul は 1.4倍。"],
+      mods: { soulMul: 1.4 },
+      mpDrain: 0.10,
+    },
+    boss: LAYER_BOSS[4], bossRank: 7,
+    tune: { enemyMul: 0.68, deepMul: 0.80, soloMul: 1.10, bossMul: 0.52 }, // 第5層の壁。開幕にMPを吸われる。主 (ランク7・全体呪文と招来) は雑魚比を本丸の主並み (2.4) に
+    unlock: { all: ["w11", "w12"] },
+    hint: "「地の底の霧森」と「樹液の苗床」の両方を踏破して王に報告すると、大樹の根元への道が開く",
   },
   // ---- 依頼の迷宮 (酒場の固定クエストを受けると地図に現れる) ----
   {
@@ -112,6 +289,43 @@ const WORLD_DEF = [
     tune: { enemyMul: 1.30, deepMul: 0.73, soloMul: 1.0 }, // DUNGEON_TUNE の D13 の行
     unlock: { quest: "fq_morga" },
     hint: "酒場の薬師の依頼「石になった鉱夫たち」を受けると、道が示される",
+  },
+  {
+    id: "ws3", n: 18, nTo: 21, layer: 5, floors: 10, side: true,
+    name: "霧の迷い森", short: "迷い森",
+    about: "捨て砦の裏手に広がる森。霧が道を食い、胞子が足を取る。迷い込んだ者は二度と同じ道を歩けない",
+    element: "wind",
+    bands: [
+      ["bs_thornhound", "bs_giantmoth", "bs_flytrap", "bs_wisplure", "bs_stranglevine", "bs_direboar"],
+      ["bs_fogpanther", "bs_willowwitch", "bs_misttreant"],
+    ],
+    trait: {
+      id: "mist", name: "迷い霧", sym: "☁", accent: "#9ad0b8",
+      lines: ["胞子の床が多い (毒の床が増える)。霧の奥に、ひとつだけ癒しの泉が湧く。", "霧に紛れて奇襲を受けやすい (×1.5)。迷い込んだ魂は多く、得る ✦Soul は 1.3倍。"],
+      mods: { ambushMul: 1.5, soulMul: 1.3 },
+      board: "mist",
+    },
+    tune: { enemyMul: 0.80, deepMul: 0.76, soloMul: 1.00 }, // 第5層の顔ぶれ (ランク6-7) を本丸並みに
+    unlock: { quest: "fq_wren" },
+    hint: "酒場の猟師の依頼「霧に呑まれた娘」を受けると、道が示される",
+  },
+  {
+    id: "ws4", n: 20, nTo: 23, layer: 5, floors: 10, side: true,
+    name: "銀業の隠れ里", short: "銀の里",
+    about: "器になりそこねた魂が流れ着く、霧の奥の隠れ里。空の鎧と石の人形が、銀の小人を守っている",
+    element: null,
+    bands: [
+      ["bs_siegeballista", "bs_gravecaptain", "d04_revenant", "bs_thunderknight", "bs_bonecolossus", "bs_fungalhulk"],
+      ["bs_goldgolem", "bs_mossgolem", "bs_misttreant"],
+    ],
+    trait: {
+      id: "silver", name: "銀の里", sym: "◇", accent: "#d0d8e8",
+      lines: ["銀業の隠れ里。金属の魔物がとても出やすい (各階45%・2体の札まで)。会心の一撃で仕留めよ。", "里の番人は空の鎧と石の人形。物理に固い者が多い。"],
+      metalRate: 0.45, metalMax: 2,
+    },
+    tune: { enemyMul: 0.92, deepMul: 0.76, soloMul: 1.05 },
+    unlock: { quest: "fq_zakka2" },
+    hint: "酒場の行商人の依頼「銀の欠片の行方」を受けると、道が示される",
   },
 ];
 
@@ -201,5 +415,13 @@ export function levelBand(cfg) { return [dungeonLevel(cfg, 1), dungeonLevel(cfg,
     const kinds = new Set(d.bands.flat());
     if (kinds.size !== 3 + 3 * want) throw new Error(`world: ${d.id} duplicate kinds in bands`);
     if (!d.unlock) throw new Error(`world: ${d.id} has no unlock`);
+    if (d.unlock.all && !d.unlock.all.every((id) => WORLD_DEF.some((x) => x.id === id))) throw new Error(`world: ${d.id} unlock.all names an unknown dungeon`);
+    for (const k of d.bands.flat()) if (!BESTIARY[k]) throw new Error(`world: ${d.id} unknown monster ${k}`);
+    if (d.trait) {
+      const t = d.trait;
+      if (!t.id || !t.name || !Array.isArray(t.lines)) throw new Error(`world: ${d.id} trait needs id/name/lines`);
+      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "metalRate", "metalMax"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
+    }
+    for (const k of d.elites || []) if (!BESTIARY[k]) throw new Error(`world: ${d.id} unknown elite ${k}`);
   }
 }

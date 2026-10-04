@@ -14,7 +14,7 @@
 
 import { UI, game, ops, registerUI } from "./ctx.js";
 import {
-  el, button, row, segmented, sheet, toast, confirm, statDelta, bar, badge, setText, longPress, shake, autoPage,
+  el, button, row, segmented, sheet, toast, confirm, statDelta, bar, badge, setText, longPress, shake, scrollBox,
 } from "./kit.js";
 import { deltaFloat } from "./motion.js";
 import { remember, setPref, getPref } from "./prefs.js";
@@ -46,7 +46,6 @@ let intent = null;        // 次の描画で行うこと ({reserve:true} / {seg}
 let sheetH = null;        // 迷宮の隊シート
 let dunSeg = null;        // 迷宮の隊シートで表示中の区分 (開くたび「装備」から。街の隊タブの記憶とは別)
 let statOpen = null;      // 能力の説明を開いている能力キー
-let resPage = 0;          // 控えのシートのページ
 let pendingOpen = false;  // UI.openParty で人業・区分を指定して館へ入るときの印 (タブから入るときは既定へ戻す)
 let phase0ItemSheet = null; // Phase 0 の品シートのスタブ (WP-C の本物が来るまでは自前の品の画面を使う)
 
@@ -725,7 +724,7 @@ function renderView(root, mode) {
   else statsSeg(body, d, mode);
   root.appendChild(body);
   if (mode === "town") {
-    autoPage(body); // 縦スクロールの代わりにページ送り (収まれば出ない)
+    scrollBox(body); // 収まらなければ内側で縦にスクロール
     root.classList.add("has-keeper");
     root.appendChild(keeperPanel());
   }
@@ -1076,13 +1075,11 @@ function bench(d) {
   rerender();
 }
 
-// ================= 控え・仕立て (シート。4体ずつのページ) =================
+// ================= 控え・仕立て (シート。全員を並べ、縦にスクロール) =================
 let reserveH = null;
-const RES_PER_PAGE = 4;
 export function openReserve() {
   if (!inTown()) return null;
   if (reserveH && !reserveH.closed) { reserveH.update({}); return reserveH; }
-  resPage = 0;
   reserveH = sheet.open({
     kind: "info", banner: "控えの人業", className: "pt-res-sheet",
     body: (scroll) => reserveBody(scroll),
@@ -1102,21 +1099,10 @@ function createButton() {
 }
 function reserveBody(root) {
   const G = G_();
-  const pages = Math.max(1, Math.ceil(G.reserve.length / RES_PER_PAGE));
-  if (resPage >= pages) resPage = pages - 1;
   const list = el("div", "pt-res");
   if (!G.reserve.length) list.appendChild(el("div", "pt-res-none", "控えはいない。パーティの札を「控え」へ引けば下げられる。"));
-  for (const d of G.reserve.slice(resPage * RES_PER_PAGE, (resPage + 1) * RES_PER_PAGE)) list.appendChild(reserveRow(d));
+  for (const d of G.reserve) list.appendChild(reserveRow(d));
   root.appendChild(list);
-  if (pages > 1) {
-    const pg = el("div", "pt-pager");
-    const prev = button({ label: "‹ 前", kind: "ghost", size: "sm", disabled: resPage <= 0, onTap: () => { resPage--; reserveH.update({}); } });
-    const next = button({ label: "次 ›", kind: "ghost", size: "sm", disabled: resPage >= pages - 1, onTap: () => { resPage++; reserveH.update({}); } });
-    pg.appendChild(prev);
-    pg.appendChild(el("span", "pt-pager-n", `${resPage + 1} / ${pages}`));
-    pg.appendChild(next);
-    root.appendChild(pg);
-  }
   const cost = game.emptyDollCost ? game.emptyDollCost() : 0;
   root.appendChild(el("div", "pt-note c", `仕立ての費用: 3体目まで無料 ・ 4体目 赤い魂30 ・ 5体目 50 ・ 以降 100${cost ? "" : "（いまは無料）"}。札の長押しで名を変える。`));
 }

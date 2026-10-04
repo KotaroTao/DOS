@@ -269,6 +269,7 @@
 .dp-mut-l { font-size: 12px; line-height: 1.5; margin: 1px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dp-mut-l.bad { color: #ffb0a4; } .dp-mut-l.good { color: #f3d58b; }
 .dp-mut .ui-seg { margin-top: 6px; }
+.dp-trait .dp-mut-l { white-space: normal; overflow: visible; color: #d8cfbf; font-size: 11.5px; line-height: 1.45; }
 .dp-brief { margin: 8px 0 0; padding: 6px 10px 6px; border: 1px solid #2c5a6a; border-radius: 3px; background: rgba(20,50,64,0.25); }
 .dp-brief-h { font-size: 12px; font-weight: 800; letter-spacing: 0.1em; color: #a8e4f4; margin-bottom: 2px; }
 .dp-brief-h::before { content: "◆"; margin-right: 6px; font-size: 9px; color: #7fd0ff; }
@@ -488,3 +489,51 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 /* 長い説明 (推奨Lv・師の手がかり…) で行が枠を押し広げないように (grid の既定 min-width: auto を外す) */
 .dp-gates { grid-template-columns: minmax(0, 1fr); }
 .dp-gate { box-sizing: border-box; min-width: 0; }
+/* 階の情報: ここで果たせる依頼 (札の印は酒場と同じ qb-mark を小さく) */
+.dg-sheet .ui-row .qb-mark { width: 32px; height: 32px; }
+.dg-sheet .ui-row .qb-mark .ui-tile { width: 30px; height: 30px; }
+.dg-sheet .ui-row .qb-mark-c { font-size: 16px; }
+
+/* ===== 出撃シート (2026-10 改): 上半分 = 迷宮の顔 / 門の一覧は5行ぶん見せて巻く / 異変は門をくぐる欄へ ===== */
+.ui-sheet.dp-sheet.dp-full { height: calc(100vh - 28px); height: calc(100dvh - 28px); }
+.dp-hero { margin: 0 0 8px; }
+.dp-vista { position: relative; height: clamp(120px, 26vh, 250px); height: clamp(120px, 26dvh, 250px); margin: 0 calc(-1 * var(--sp-4)); overflow: hidden; background: #050407; border-top: 1px solid #241d22; border-bottom: 1px solid #2c2427; }
+.dp-vista-cv { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 62%; image-rendering: pixelated; }
+.dp-vista-cap { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: flex-end; gap: 8px; padding: 30px var(--sp-4) 8px; background: linear-gradient(180deg, rgba(8,6,9,0), rgba(8,6,9,0.82) 62%); pointer-events: none; }
+.dp-hero-t { flex: 1 1 auto; min-width: 0; }
+.dp-hero-s { margin-top: 1px; font-size: 11.5px; letter-spacing: 0.04em; color: #c8bca4; text-shadow: 0 1px 0 #000, 0 0 6px #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dp-hero-n { font-size: 20px; font-weight: 800; letter-spacing: 0.12em; line-height: 1.3; color: #f3e6c8; text-shadow: 0 1px 0 #000, 0 0 10px #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dp-vista-cap .dp-gate-st { margin-bottom: 3px; background: rgba(8,6,9,0.7); }
+.dp-hero-about { margin: 7px 0 6px; font-size: 12.5px; line-height: 1.6; color: #cdbf9f; }
+.dp-facts { display: flex; flex-wrap: wrap; gap: 5px 6px; }
+.dp-fact { display: inline-flex; align-items: baseline; gap: 5px; padding: 3px 8px; font-size: 11px; line-height: 1.3; border: 1px solid #3a3029; border-radius: 2px; background: rgba(8,6,9,0.55); }
+.dp-fact-l { color: #9a8e78; letter-spacing: 0.06em; }
+.dp-fact-v { font-size: 12px; font-weight: 800; color: #f0e2c0; font-variant-numeric: tabular-nums; }
+.dp-fact.full { border-color: #8a6d2e; }
+.dp-fact.full .dp-fact-v { color: var(--accent-hi); }
+.dp-fact.none .dp-fact-v { font-size: 11px; font-weight: 700; color: #7d7468; }
+.dp-hero .dp-trait { margin-top: 7px; }
+.dp-hero .dp-issue { margin-top: 6px; }
+.dp-gates { position: relative; --dp-row: 50px; max-height: calc(var(--dp-row) * 5 + 4px); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; border: 1px solid #2c2427; border-radius: 3px; background: rgba(8,6,9,0.45); }
+.dp-gates .dp-gate { height: var(--dp-row); min-height: 0; flex: 0 0 auto; }
+.dp-gates .dp-sealed, .dp-gates .dp-abyss { margin: 0; border: 0; border-top: 1px solid #1e181c; border-radius: 0; }
+.dp-gates .dp-sealed .dp-gate-c.dp-hint { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; font-size: 11.5px; line-height: 1.35; }
+.dp-gates .dp-sealed .dp-gate-ic { height: 30px; }
+.dp-sheet .ui-sheet-foot { grid-template-columns: minmax(0, 1fr); }
+.dp-sheet .ui-sheet-foot .dp-mut-foot { min-width: 0; display: flex; align-items: center; gap: 8px; margin: 0; padding: 5px 6px 6px 10px; }
+.dp-mut-tx { flex: 1 1 auto; min-width: 0; }
+.dp-mut-foot .dp-mut-n { font-size: 13px; }
+.dp-mut-foot .dp-mut-l { font-size: 11px; line-height: 1.45; margin: 0; }
+.dp-mut-foot:not(.on) .dp-mut-tx { opacity: 0.55; }
+.dp-mut-sw { flex: 0 0 auto; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-width: 84px; min-height: 52px; padding: 4px 6px; font-family: var(--font); font-size: 10.5px; font-weight: 800; letter-spacing: 0.04em; color: #b2a68f; background: rgba(8,6,9,0.6); border: 1px solid #4d3f37; border-radius: 3px; cursor: pointer; touch-action: manipulation; }
+.dp-mut-foot.on .dp-mut-sw { color: var(--mut, #d7b8ff); border-color: color-mix(in srgb, var(--mut, #8e6fd0) 60%, #000); }
+.dp-mut-sw[aria-checked="true"] .dg-switch { background: linear-gradient(180deg, #3a2c14, #1f170b); border-color: #8a6d2e; }
+.dp-mut-sw[aria-checked="true"] .dg-switch i { transform: translateX(20px); background: radial-gradient(circle at 40% 35%, #fff1c4, #c9a24a); box-shadow: 0 0 8px rgba(243,213,139,0.7), 0 1px 2px #000; }
+@media (max-height: 720px) {
+  .dp-vista { height: clamp(110px, 21vh, 250px); height: clamp(110px, 21dvh, 250px); }
+  .dp-hero-about { margin: 5px 0 5px; font-size: 12px; line-height: 1.5; }
+  .dp-hero .dp-trait .dp-mut-l { font-size: 11px; line-height: 1.4; }
+}
+@media (max-width: 390px) {
+  .dp-sheet .ui-sheet-foot .ui-btn.dp-cta { letter-spacing: 0.08em; font-size: 16px; }
+}

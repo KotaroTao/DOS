@@ -1691,6 +1691,9 @@ const _jobSprCache = {};
 // rank は職業ランク = 魂ランク (1〜5)。
 export function jobSprite(jobKey, rank = 2) {
   const r = Math.max(1, Math.min(5, Math.round(rank) || 2));
+  // ランクごとに選ぶ: そのランクのドット絵があればそれ、無ければ原画そのまま版、どちらも無ければ近いランクのドット絵
+  // (竜騎士はランク1だけドット絵、2〜5は原画そのまま版)
+  if (JOB_IMAGES[jobKey] && JOB_IMAGES[jobKey][r]) return imageJobSprite(jobKey, r);
   if (JOB_PHOTOS[jobKey]) return photoJobSprite(jobKey, r);
   if (JOB_IMAGES[jobKey]) return imageJobSprite(jobKey, r);
   const key = JOB_ARTS[jobKey] ? jobKey : "fighter";
@@ -1824,7 +1827,7 @@ const _photoImg = {};
 function photoImage(src) {
   if (_photoImg[src]) return _photoImg[src];
   let img;
-  if (typeof Image !== "undefined") { img = new Image(); img.decoding = "async"; img.src = src; }
+  if (typeof Image !== "undefined") { img = new Image(); img.src = src; }
   else img = { complete: false, naturalWidth: 0 }; // DOM の無い検証環境
   return (_photoImg[src] = img);
 }

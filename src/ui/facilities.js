@@ -1,6 +1,6 @@
 // ===== 街の施設 — 酒場・赤い魂の祠 (ページ) / 宿屋 (シート) / 番人のささやき / 通貨の説明 / 共通の小部品 =====
 // 担当: WP-A。酒場と祠は街タブの1段下のページ (ヘッダの ‹ で街へ戻る)。宿屋は街の札から1タップで泊まり、詳細はシート。
-// 画面は1枚に収める (ページそのものは縦にスクロールさせない)。長い一覧は「‹ 1/3 ›」でめくる (pagedGrid)。
+// 長い一覧は残りの高さの箱の中で縦にスクロールする (scrollGrid)。
 // 番人は見出しの下の1行 (胸像の小窓 + ひとこと。タップで胸像のシート)。その街滞在で初めて訪れた時だけ、
 // その行が大きな胸像と吹き出しになって挨拶する (次に描き直す時は1行に畳む)。
 // 酒場の依頼の札・シートは questboard.js。品 (納品の依頼・宝物庫・図鑑) を選ぶと、持っている品は UI.itemSheet (WP-C) でその場で装備・譲渡できる。
@@ -47,14 +47,15 @@ export function facilityOpen(key) {
 }
 export function lockedToast() { sfx("ng"); toast("王命を果たすまで閉ざされている", { tone: "info" }); }
 
-// 1画面に収まる行数ぶんずつ見せる格子 (‹ 1/3 ›)。area は DOM に繋がった、残りの高さを占める箱 (flex:1)。
-// 横に払ってもめくれる。めくったページは key ごとに覚える (この起動の間)
-const pageMemo = {};
-// めくる格子の位置を忘れる (prefix で始まる key / 省略ですべて)。画面・区分・分類に入り直したら 1ページ目から
+// 格子の一覧 (図鑑・酒場など)。area は DOM に繋がった、残りの高さを占める箱 (flex:1)。
+// すべての札を並べ、収まらなければ area の内側で縦にスクロールする。
+// スクロールの位置は key ごとに覚える (この起動の間。描き直しても同じところを見せる)
+const scrollMemo = {};
+// 覚えたスクロールの位置を忘れる (prefix で始まる key / 省略ですべて)。画面・区分・分類に入り直したら先頭から
 export function resetPages(prefixes = null) {
-  for (const k of Object.keys(pageMemo)) if (!prefixes || prefixes.some((p) => k.startsWith(p))) delete pageMemo[k];
+  for (const k of Object.keys(scrollMemo)) if (!prefixes || prefixes.some((p) => k.startsWith(p))) delete scrollMemo[k];
 }
-export function pagedGrid(area, items, makeCell, { cols = 3, cellH = 104, gap = 8, key = "", empty = null } = {}) {
+export function scrollGrid(area, items, makeCell, { cols = 3, cellH = 104, gap = 8, key = "", empty = null } = {}) {
   area.textContent = "";
   area.classList.add("wa-parea");
   if (!items.length) { if (empty) area.appendChild(empty); return; }
@@ -62,53 +63,10 @@ export function pagedGrid(area, items, makeCell, { cols = 3, cellH = 104, gap = 
   grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
   grid.style.gridAutoRows = cellH + "px";
   grid.style.gap = gap + "px";
+  for (const it of items) grid.appendChild(makeCell(it));
   area.appendChild(grid);
-  const PAGER_H = 52;
-  const h = area.clientHeight || 0;
-  const fitRows = (avail) => Math.max(1, Math.floor((avail + gap) / (cellH + gap)));
-  let rows = h > 0 ? fitRows(h) : 3;
-  if (h > 0 && Math.ceil(items.length / cols) > rows) rows = fitRows(h - PAGER_H); // めくりが要るなら、その分を空ける
-  const per = rows * cols;
-  const pages = Math.max(1, Math.ceil(items.length / per));
-  let page = Math.min(pageMemo[key] || 0, pages - 1);
-  let pager = null, label = null, prev = null, next = null;
-  const draw = () => {
-    grid.textContent = "";
-    for (const it of items.slice(page * per, page * per + per)) grid.appendChild(makeCell(it));
-    pageMemo[key] = page;
-    if (pager) {
-      label.textContent = `${page + 1} / ${pages}`;
-      prev.disabled = page <= 0;
-      next.disabled = page >= pages - 1;
-    }
-  };
-  if (pages > 1) {
-    pager = el("div", "wa-pager");
-    prev = el("button", "wa-pg-b");
-    prev.type = "button";
-    prev.setAttribute("aria-label", "前のページ");
-    prev.appendChild(svgIcon("back", "wa-pg-ic"));
-    next = el("button", "wa-pg-b");
-    next.type = "button";
-    next.setAttribute("aria-label", "次のページ");
-    next.appendChild(svgIcon("chevron", "wa-pg-ic"));
-    label = el("span", "wa-pg-l");
-    prev.addEventListener("click", () => { if (page > 0) { page--; sfx("select"); draw(); } });
-    next.addEventListener("click", () => { if (page < pages - 1) { page++; sfx("select"); draw(); } });
-    pager.appendChild(prev); pager.appendChild(label); pager.appendChild(next);
-    area.appendChild(pager);
-    // 横に払ってめくる
-    let x0 = null, y0 = null;
-    grid.addEventListener("pointerdown", (e) => { x0 = e.clientX; y0 = e.clientY; });
-    grid.addEventListener("pointerup", (e) => {
-      if (x0 == null) return;
-      const dx = e.clientX - x0, dy = e.clientY - y0;
-      x0 = null;
-      if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-      if (dx < 0 && page < pages - 1) { page++; draw(); } else if (dx > 0 && page > 0) { page--; draw(); }
-    });
-  }
-  draw();
+  if (scrollMemo[key]) area.scrollTop = scrollMemo[key];
+  area.onscroll = () => { scrollMemo[key] = area.scrollTop; };
 }
 
 // 品をひらく: 持っている品 (誰かの荷・装備) なら UI.itemSheet (その場で装備・譲渡)、無ければ図鑑の詳細
@@ -354,12 +312,12 @@ function renderTavern(root) {
       body.appendChild(sectionHead("受けている依頼", { note: "依頼人の頼みも枠に数える" }));
       body.appendChild(area);
       const empty = el("div", "wa-empty", "受けている依頼はない。掲示板で依頼を受けよう。");
-      pagedGrid(area, L.active, (q) => questCard(q), { cols: 1, cellH: 84, gap: 6, key: "tav-active", empty });
+      scrollGrid(area, L.active, (q) => questCard(q), { cols: 1, cellH: 84, gap: 6, key: "tav-active", empty });
     } else {
       body.appendChild(sectionHead("掲示板", { note: "帰還のたびに貼り替わる" }));
       body.appendChild(area);
       const empty = el("div", "wa-empty", "いまは貼り紙がない。迷宮から戻れば、新たな依頼が貼られる。");
-      pagedGrid(area, L.offers, (q) => questCard(q), { cols: 1, cellH: 84, gap: 6, key: "tav-board", empty });
+      scrollGrid(area, L.offers, (q) => questCard(q), { cols: 1, cellH: 84, gap: 6, key: "tav-board", empty });
     }
   };
   drawSeg();
@@ -398,7 +356,7 @@ function renderTalk(wrap) {
   wrap.appendChild(sectionHead("居合わせる者たち", { note: "帰還のたびに入れ替わる" }));
   const area = el("div", "fc-crowd");
   wrap.appendChild(area);
-  pagedGrid(area, g.tavernCrowd || [], (m) => {
+  scrollGrid(area, g.tavernCrowd || [], (m) => {
     const r = el("div", "fc-voice");
     const h = el("div", "fc-voice-h");
     h.appendChild(setText(el("span", "fc-voice-n"), m.name));

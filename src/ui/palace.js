@@ -11,7 +11,7 @@
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
 import { UI, game, ops, registerUI } from "./ctx.js";
-import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, autoPage, badge } from "./kit.js";
+import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, scrollBox, badge } from "./kit.js";
 import { remember } from "./prefs.js";
 import { softFade } from "./motion.js";
 import { statLines, itemCatText, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock } from "./itemview.js";
@@ -27,7 +27,7 @@ import {
 } from "../souls.js";
 import { rarityColor } from "../rarity.js";
 import { SFX } from "../audio.js";
-import { keeperRow, sectionHead, pagedGrid, openItem, resetPages } from "./facilities.js";
+import { keeperRow, sectionHead, scrollGrid, openItem, resetPages } from "./facilities.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
 const G = () => game.G;
@@ -190,7 +190,7 @@ function codexCard(sprite, name, { color = null, onTap = null, sub = null, price
   if (onTap) c.addEventListener("click", () => { sfx("select"); onTap(c); });
   return c;
 }
-// まだ討っていない迷宮の主: 名前だけ明かす (姿・能力は1体討つまで伏せる)
+// 遭遇したが、まだ討っていない迷宮の主: 名前だけ明かす (姿・能力は1体討つまで伏せる)
 function bossNameCard(key, m) {
   const c = el("button", "pl-card unknown boss-unk");
   c.type = "button";
@@ -228,9 +228,10 @@ function renderCodexMon(box) {
     const roster = rosterOf(idx);
     const seen = roster.filter((k) => g.codex.mon[k]).length;
     cap.textContent = isOther ? `その他 — 宝箱や出来事に潜む敵・まれに紛れ込む者　記録 ${seen}/${roster.length}` : `${DUNGEONS[idx].name}　記録 ${seen}/${roster.length}`;
-    pagedGrid(area, roster, (key) => {
+    scrollGrid(area, roster, (key) => {
       const m = MONSTERS[key];
-      if (!g.codex.mon[key]) return m.boss ? bossNameCard(key, m) : unknownCard();
+      // 迷宮の主は遭遇した後だけ名を出す (遭遇前はほかの敵と同じ「？？？」)
+      if (!g.codex.mon[key]) return m.boss && g.codex.met && g.codex.met[key] ? bossNameCard(key, m) : unknownCard();
       return codexCard(m, m.name, { color: m.rank ? RANK_COLOR[m.rank] : null, sub: m.boss ? "主" : m.elite ? "強敵" : null, kills: monKills(key), fresh: isFreshMon(key),
         onTap: (c) => { codexMonSheet(key); markSeen("mon", key, c); } });
     }, { cols: 3, cellH: MON_CARD_H, key: "mon:" + idx, empty: el("div", "wa-empty", "記録なし。") });
@@ -275,7 +276,7 @@ function renderCodexItem(box) {
     cap.textContent = `${def.label}　発見 ${ids.length} 種　(売却額の安い順)`;
     const cards = new Map(); // 詳細で前後へ送ったら、その札の新着の印も消す
     const seen = (id) => markSeen("item", id, cards.get(id) || null);
-    pagedGrid(area, ids, (id) => {
+    scrollGrid(area, ids, (id) => {
       const it = ITEMS[id];
       const c = codexCard(it, it.name, { color: (game.itemRankColor && game.itemRankColor(it)) || rarityColor(it), price: sellOf(it), fresh: isFreshItem(id),
         onTap: () => { codexItemSheet(id); seen(id); } });
@@ -305,7 +306,7 @@ function renderCodexJob(box) {
   box.appendChild(el("div", "pl-codex-cap", "人業に発現した職業を、到達した位階 (ランク) ごとに記す。"));
   const area = fillArea(box);
   refresh.list = null;
-  pagedGrid(area, list, ({ k, r }) => codexCard(jobSprite(k, r), jobRankName(k, r), { color: SOUL_CLASSES[k].glow, sub: `R${r}`, fresh: isFreshJob(k, r),
+  scrollGrid(area, list, ({ k, r }) => codexCard(jobSprite(k, r), jobRankName(k, r), { color: SOUL_CLASSES[k].glow, sub: `R${r}`, fresh: isFreshJob(k, r),
     onTap: (c) => { codexJobSheet(k, r); markSeen("job", k + ":" + r, c); } }),
     { cols: 3, cellH: CARD_H, key: "job", empty: el("div", "wa-empty", "まだ職業を見つけていない。迷宮で魂を吸収すると職業が記される。") });
 }
@@ -334,7 +335,7 @@ function renderCodexEvents(box) {
     const list = listOf(gk);
     const seen = list.filter((e) => rec.seen[e.id]).length;
     cap.textContent = `${(EVENT_GROUPS.find((x) => x.key === gk) || {}).name || ""}の出来事　見聞 ${seen}/${list.length}`;
-    pagedGrid(area, list, (e) => {
+    scrollGrid(area, list, (e) => {
       if (!rec.seen[e.id]) return unknownCard();
       const t = EV_TIERS[e.tier];
       return codexCard(evIcon(e), e.name, { color: t.accent, sub: t.label, fresh: isFreshEv(e.id),
@@ -427,12 +428,12 @@ export function openCodexSheet({ dungeonIdx = null } = {}) {
   const box = el("div", "pl-body cx-body");
   refresh.top = refresh.sub = refresh.list = null;
   const h = sheet.open({
-    kind: "info", banner: "図鑑", className: "cx-sheet", body: box, paged: false,
+    kind: "info", banner: "図鑑", className: "cx-sheet", body: box,
     footer: [{ label: "閉じる", kind: "ghost", onTap: (s) => s.close() }],
     onClose: () => { refresh.sub = refresh.list = null; codexHome.dungeon = 0; },
   });
   renderCodex(box); // シートが画面に出てから描く (めくる格子が残りの高さを測るため)
-  autoPage(box);
+  scrollBox(box);
   return h;
 }
 
@@ -597,7 +598,7 @@ export function codexJobSheet(key, rank, heading) {
   body.appendChild(infoBlock("技", rows.length ? rows : [pairRow("—", null, { dim: true })]));
   return sheet.open({
     kind: "info", banner: `ランク${rank}`, accent: color, art: jobSprite(key, rank), artScale: 12,
-    title: jobRankName(key, rank), titleColor: color, body, className: "pl-detail-sheet", paged: false, // 職業詳細は縦スクロールで1ページに
+    title: jobRankName(key, rank), titleColor: color, body, className: "pl-detail-sheet", // 職業詳細は縦スクロールで1ページに
     footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
   });
 }
@@ -627,7 +628,7 @@ function renderAch(body) {
   top.appendChild(all);
   body.appendChild(top);
   const area = fillArea(body);
-  pagedGrid(area, cards, (c) => {
+  scrollGrid(area, cards, (c) => {
     const card = el("div", "pl-ach" + (c.ready ? " ready" : c.allDone ? " done" : ""));
     card.appendChild(el("span", "pl-medal" + (c.ready ? " ready" : c.allDone ? " done" : "")));
     if (c.ready) card.appendChild(newMark()); // 拝受すると消える
@@ -753,7 +754,7 @@ function renderTreasury(body) {
   body.appendChild(sectionHead("奉納台帳", { note: `${ids.length} 種` }));
   const area = fillArea(body, "pl-ledger-area");
   const fresh = ts.fresh || {}; // 奉納したばかりで、まだ開いていない札に「新」 (開いたら消す)
-  pagedGrid(area, ids, (id) => {
+  scrollGrid(area, ids, (id) => {
     const it = ITEMS[id];
     return codexCard(it, it.name, { color: (game.itemRankColor && game.itemRankColor(it)) || rarityColor(it), price: sellOf(it), fresh: !!fresh[id],
       onTap: (c) => {
@@ -813,7 +814,7 @@ function renderPalace(root, api) {
   wrap.appendChild(segEl);
   wrap.appendChild(body);
   draw(seg);
-  autoPage(body); // 縦スクロールの代わりにページ送り (収まれば出ない)
+  scrollBox(body); // 収まらなければ内側で縦にスクロール
 }
 
 // 王宮タブを開く (seg を指定すればその区分。"codex:item" のように図鑑の区分も指定できる)
