@@ -2,6 +2,8 @@
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
 import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, perkVictory } from "./combat.js";
+import { decideAuto, tacticOf } from "./autotactics.js";
+import { STAGED, effectStage, stageOf, stageLabel } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto } from "./sprites.js";
 import {
@@ -837,7 +839,7 @@ function refreshWorldUnlocks() {
 function announceNewDungeons(list) {
   for (const d of list) {
     log(`新たな迷宮「${d.name}」が地図に記された。`, "win");
-    showToast(`🗺 新たな迷宮「${d.short}」が地図に記された`, { tone: "info" });
+    showToast(`🗺 新たな迷宮「${d.name}」が地図に記された`, { tone: "info" });
   }
 }
 // いまの章 (章の迷宮のうち、まだ報告していない迷宮がある最初の章。すべて済んだら最後の章)
@@ -7420,8 +7422,9 @@ function renderTurnOrder() {
     return;
   }
   const stunOf = (a) => (a.asleep || a.ailment === "paralyze" || a.ailment === "stone" ? "z" : a.mind ? "m" : "");
+  const omenOf = (a) => a.side === "enemy" && (a.effects || []).some((e) => e.stat === "omen");
   const list = [b.current, ...b.queue.filter((a) => a && a.alive && a !== b.current)];
-  const key = `${b._roundNo}|` + list.map((a) => `${a.side}${a.uid != null ? a.uid : a.name}${a.alive ? "" : "x"}${stunOf(a)}${a.side === "enemy" ? enemyLabel(a) : ""}`).join(",");
+  const key = `${b._roundNo}|` + list.map((a) => `${a.side}${a.uid != null ? a.uid : a.name}${a.alive ? "" : "x"}${stunOf(a)}${omenOf(a) ? "!" : ""}${a.side === "enemy" ? enemyLabel(a) : ""}`).join(",");
   if (key === _turnOrderKey) return;
   _turnOrderKey = key;
   turnOrderEl.innerHTML = "";
@@ -7431,8 +7434,8 @@ function renderTurnOrder() {
     const enemy = a.side === "enemy";
     const name = enemy ? enemyLabel(a) : a.name;
     const st = stunOf(a);
-    const ic = el("div", `to-ic ${enemy ? "e" : "p"}${i === 0 ? " now" : ""}${!a.alive ? " dead" : ""}${st === "z" ? " stun" : st === "m" ? " mind" : ""}${a.boss ? " boss" : ""}`);
-    ic.title = (i === 0 ? "手番: " : "") + name;
+    const ic = el("div", `to-ic ${enemy ? "e" : "p"}${i === 0 ? " now" : ""}${!a.alive ? " dead" : ""}${st === "z" ? " stun" : st === "m" ? " mind" : ""}${a.boss ? " boss" : ""}${omenOf(a) ? " omen" : ""}`);
+    ic.title = (i === 0 ? "手番: " : "") + name + (omenOf(a) ? " (大技の予兆)" : "");
     let c = turnIconCanvas(a);
     // 同じ魔物が並ぶと同じ canvas を2か所に置けないので、2体目以降は写しを作る
     if (c && used.has(c)) {
@@ -7449,6 +7452,7 @@ function renderTurnOrder() {
     if (enemy) {
       const m = /[A-Z]$/.exec(name || "");
       if (m) ic.appendChild(el("span", "to-tag", m[0]));
+      if (omenOf(a)) ic.appendChild(el("span", "to-omen", "溜"));
     }
     turnOrderEl.appendChild(ic);
     if (i === 0 && list.length > 1) turnOrderEl.appendChild(el("span", "to-sep", "›"));
@@ -7969,32 +7973,43 @@ requestAnimationFrame(combatAnimLoop);
 // 敵にかかっている強化(▲)/弱体(▼)を名前プレート付近に小さなピルで描く。
 // 能力(攻/守/速)ごとに集約し、段階ぶんの矢印と最短残ターンを添える。
 const BUFF_KANJI = {
-  atk: "攻", vit: "守", agi: "速", int: "知", hit: "眼", seal: "封", taunt: "挑", shield: "庇", ctr: "返", charge: "溜", regen: "癒", wardB: "鱗", wardS: "帳",
+  atk: "攻", vit: "守", agi: "速", int: "知", pie: "信", hit: "眼", seal: "封", taunt: "挑", shield: "庇", ctr: "返", charge: "溜", omen: "溜", regen: "癒", wardB: "鱗", wardS: "帳",
   r_fire: "火", r_water: "水", r_wind: "風", r_earth: "土", r_light: "光", r_dark: "闇", r_all: "属",
 };
 // 強化/弱体が「かかった瞬間」に出すフロート文字と色 (敵味方共通)。
-// mods があれば能力ごとに 攻▲/守▼ … を並べ、無ければ汎用の 強化▲/弱体▼。
+// mods があれば能力ごとに 攻▲/守▼ … を並べ (段の能力は段数ぶんの矢印)、無ければ汎用の 強化▲/弱体▼。
+// note があればそれを出す (予兆・払いのけ・加護の剥奪など)
 function buffFloatText(h) {
   const up = !!h.buff;
+  if (h.note) return { text: h.note, color: up ? "#ffc35a" : "#ff9a8a" };
   const m = h.mods || {};
   const ks = Object.keys(m);
   // 向きは値で決める (捨て身の 守▼ のように強化の中に下がる能力もある)
-  const body = ks.length ? ks.map((k) => `${BUFF_KANJI[k] || "◆"}${m[k] >= 1 ? "▲" : "▼"}`).join("") : (up ? "強化▲" : "弱体▼");
+  const arrows = (k) => { const n = STAGED.has(k) ? Math.abs(stageOf(m[k])) : 1; return (m[k] >= 1 ? "▲" : "▼").repeat(Math.max(1, n)); };
+  const body = ks.length ? ks.map((k) => `${BUFF_KANJI[k] || "◆"}${arrows(k)}`).join("") : (up ? "強化▲" : "弱体▼");
   return { text: body, color: up ? "#7fe0a0" : "#ff9a8a" };
+}
+// 効果を (能力, 向き) ごとに集約する: 段の能力は今の段 (1本)、それ以外は数を段とみなす。予兆 (omen) は別扱い
+function buffGroups(list) {
+  const groups = new Map();
+  for (const ef of list || []) {
+    const st = STAGED.has(ef.stat) ? effectStage(ef) : 0;
+    const up = STAGED.has(ef.stat) ? st > 0 : ef.mult > 1;
+    const key = ef.stat + (up ? "+" : "-");
+    const g = groups.get(key) || { stat: ef.stat, up, stages: 0, turns: Infinity, omen: ef.stat === "omen" };
+    g.stages += STAGED.has(ef.stat) ? Math.abs(st) : 1;
+    g.turns = Math.min(g.turns, ef.turns);
+    groups.set(key, g);
+  }
+  return [...groups.values()].filter((g) => g.stages > 0);
 }
 function drawEnemyBadges(e, baseX, yTop) {
   if (!e.alive || !e.effects || !e.effects.length) return;
-  const groups = new Map();
-  for (const ef of e.effects) {
-    const up = ef.mult > 1;
-    const key = ef.stat + (up ? "+" : "-");
-    const g = groups.get(key) || { stat: ef.stat, up, stages: 0, turns: Infinity };
-    g.stages++; g.turns = Math.min(g.turns, ef.turns);
-    groups.set(key, g);
-  }
   const segs = [];
-  for (const g of groups.values()) {
-    const arrow = (g.up ? "▲" : "▼").repeat(Math.min(2, g.stages));
+  for (const g of buffGroups(e.effects)) {
+    // 予兆は「溜!」の琥珀色の札 (残りターンは出さない)
+    if (g.omen) { segs.push({ text: "溜!", up: true, omen: true }); continue; }
+    const arrow = (g.up ? "▲" : "▼").repeat(Math.min(3, g.stages));
     segs.push({ text: `${BUFF_KANJI[g.stat] || "◆"}${arrow}${g.turns}`, up: g.up });
   }
   if (!segs.length) return;
@@ -8009,14 +8024,14 @@ function drawEnemyBadges(e, baseX, yTop) {
   const cy = yTop + h / 2;
   segs.forEach((s, i) => {
     const w = widths[i];
-    vctx.fillStyle = s.up ? "rgba(36,84,40,0.88)" : "rgba(108,40,40,0.88)";
+    vctx.fillStyle = s.omen ? "rgba(120,72,10,0.92)" : s.up ? "rgba(36,84,40,0.88)" : "rgba(108,40,40,0.88)";
     vctx.beginPath();
     vctx.roundRect ? vctx.roundRect(x, yTop, w, h, 4) : vctx.rect(x, yTop, w, h);
     vctx.fill();
-    vctx.strokeStyle = s.up ? "#6fcf6f" : "#ff7a72";
+    vctx.strokeStyle = s.omen ? "#ffb43a" : s.up ? "#6fcf6f" : "#ff7a72";
     vctx.lineWidth = 1;
     vctx.stroke();
-    vctx.fillStyle = s.up ? "#c8f0c8" : "#ffc9c5";
+    vctx.fillStyle = s.omen ? "#ffe2a8" : s.up ? "#c8f0c8" : "#ffc9c5";
     vctx.fillText(s.text, x + pad, cy + 0.5);
     x += w + gap;
   });
@@ -8274,7 +8289,7 @@ function renderActingPlate(actor) {
 // オート戦闘中の常設バナー: 演出中も表示し続け、いつでも解除できる。
 // 「次の戦闘も続ける」(§7 M2) もここで切り替えられる (主・強敵・深手の時は自動で止まる)
 function renderAutoBanner(actor) {
-  const plate = actor ? turnPlate(actor.name, "の手番", ["オート"]) : turnPlate("オート戦闘中", "", []);
+  const plate = actor ? turnPlate(actor.name, "の手番", ["オート", tacticOf(actor).short]) : turnPlate("オート戦闘中", "", []);
   const keep = !!uiDungeonHud.getPref("autoKeep");
   // 既にバナーが出ていれば手番の札だけ差し替える (ボタンを作り直すと押している最中のタップが消える)
   const cur = combatMenu.dataset.mode === "auto" ? combatMenu.querySelector(":scope > .cmd-autorow") : null;
@@ -8363,7 +8378,7 @@ function renderCombatMenu() {
   if (b.phase === "input") {
     const actor = b.current;
     highlightActor(actor);
-    // オート戦闘: 全員が手近な敵を通常攻撃し続ける (周回用)。解除ボタンか画面タップで解除
+    // オート戦闘: 人業ごとの作戦 (autotactics.js) で一手を選び続ける (周回用)。解除ボタンか画面タップで解除
     if (G.autoCombat) {
       renderAutoBanner(actor);
       if (!G._autoTimer) {
@@ -8372,20 +8387,25 @@ function renderCombatMenu() {
           G._autoTimer = null;
           const b2 = G.battle;
           if (!b2 || b2.phase !== "input" || !G.autoCombat || G.animating) return;
-          // 射程内が物理無効の敵ばかりなら、殴り続けても終わらないのでオートを止めて手動に戻す
-          const reach = b2.attackableEnemies(b2.current).filter((e) => e.alive);
-          if (reach.length && reach.every((e) => physImmune(e, b2.current))) {
+          // 人業ごとの作戦 (autotactics.js) で一手を決める。誰も何も通せない (物理無効の敵ばかりで、役に立つ技も無い)
+          // 手番が隊の人数ぶん続いたら、殴り続けても終わらないのでオートを止めて手動に戻す
+          const cur = b2.current;
+          const plan = decideAuto(b2, cur);
+          b2._autoIdle = plan.idle ? (b2._autoIdle || 0) + 1 : 0;
+          if (plan.idle && b2._autoIdle > b2.livingParty().length) {
+            b2._autoIdle = 0;
             stopAutoCombat();
-            showToast(b2.current && b2.current.wMagic ? "攻撃が効かない敵がいる — 術で戦おう" : "物理が効かない敵がいる — 術で戦おう", { tone: "bad" });
+            showToast(cur && cur.wMagic ? "攻撃が効かない敵がいる — 術で戦おう" : "物理が効かない敵がいる — 術で戦おう", { tone: "bad" });
             return;
           }
-          b2.chooseAction("attack");
-          const opts = b2.targetOptions();
-          // 魅了した敵は殴ると正気に戻りやすいので後回し (仲間を襲わせておく)
-          const cur = b2.current;
-          const tgt = opts.find((e) => !physImmune(e, cur) && e.mind !== "charm") || opts.find((e) => !physImmune(e, cur)) || opts[0];
-          if (!tgt) { b2.cancelTarget(); return; }
-          b2.chooseTarget(tgt);
+          const r = b2.chooseAction(plan.action, plan.spellKey);
+          if (r && r.invalid) { b2.pending = null; b2.phase = "input"; b2.chooseAction("defend"); }
+          else if (b2.phase === "target") {
+            const opts = b2.targetOptions();
+            const tgt = (plan.target && opts.includes(plan.target)) ? plan.target : opts[0];
+            if (!tgt) { b2.cancelTarget(); b2.chooseAction("defend"); }
+            else b2.chooseTarget(tgt);
+          }
           runCommitted();
         }, 200 * spdMul());
       }
@@ -8424,7 +8444,10 @@ function renderCombatMenu() {
     }
     // 逃走: 手番の者の AGI で決まる成功率を添える (退路を断たれていれば「不可」)
     sub.appendChild(cmdBtn("run", "逃走", b.noFlee ? "不可" : `${Math.round(b.fleeChance(actor) * 100)}%`, () => act("run")));
-    sub.appendChild(cmdBtn("auto", "オート", uiDungeonHud.getPref("autoKeep") ? "継続" : "", () => { G.autoCombat = true; SFX.select(); renderCombatMenu(); }));
+    // オート: 人業ごとの作戦 (隊の「能力」で選ぶ) に従って動く。長押しで隊の作戦をまとめて見る・変える
+    const autoB = cmdBtn("auto", "オート", uiDungeonHud.getPref("autoKeep") ? "継続" : "長押しで作戦", () => { G.autoCombat = true; SFX.select(); renderCombatMenu(); });
+    if (UI.openPartyTactics) attachLongPress(autoB, () => { SFX.select(); UI.openPartyTactics(G.party.filter((p) => p), { onDone: () => { if (G.state === "combat" && !G.autoCombat) renderCombatMenu(); } }); });
+    sub.appendChild(autoB);
     sub.appendChild(cmdBtn("fast", "倍速", G.fastAnim ? "ON" : "OFF", () => { G.fastAnim = !G.fastAnim; autosave(); renderCombatMenu(); }, G.fastAnim ? "on" : ""));
     combatMenu.appendChild(sub);
   } else if (b.phase === "target") {
@@ -8753,7 +8776,12 @@ function applyImpact(res) {
   }
 
   // 効果音 + 振動
-  if (res.action === "breath") {
+  if (res.windup) {
+    // 大技の予兆: 不穏な音と小さな揺れ (この手番は攻撃しない)
+    SFX.ambush(); buzz([0, 30, 30, 30]);
+  } else if (res.shake) {
+    SFX.spell();
+  } else if (res.action === "breath") {
     // ブレス (炎の効果音) / 敵の全体呪文 (呪文の効果音)
     if (res.espell) SFX.spell(); else SFX.fire();
     buzz([0, 50, 40, 80]); shakeScreen(true);
@@ -8774,6 +8802,8 @@ function applyImpact(res) {
   }
 
   let partyHit = false, anyDeath = false;
+  // 隊の複数人を打つ物理 (溜めた猛威など) は数字を各人の札の上に分けて出す
+  const partyDmgN = res.hits.filter((x) => x.target && x.target.side !== "enemy" && x.dmg != null && !x.miss).length;
   // 多段ヒット (二段斬り等) は同じ対象・同座標に重なって1回に見えてしまうため、
   // 対象ごとにヒット順で時間差(stagger)と位置差(横ずらし)を付けて、回数分はっきり見せる
   const spd = spdMul();
@@ -8845,7 +8875,7 @@ function applyImpact(res) {
           spawnFx(fx.skill, r.type, pos.cx, pos.cy, ht0 + 40 * spd, spd, { seed, col: r.col, el: prof.el, rot: prof.rot, s: r.s || 1, tx: VW / 2 });
         }
       }
-      if (idx === 0 || !fx.flash[h.target.uid]) fx.flash[h.target.uid] = { t0: ht0 };
+      if (!h.note && (idx === 0 || !fx.flash[h.target.uid])) fx.flash[h.target.uid] = { t0: ht0 };
       if (h.stole != null) {
         // 盗む: 奪った金額を浮かべる
         fx.floats.push({ x: pos.cx + dx, y: pos.cy - 34, text: `💰+${h.stole}`, color: "#ffd84a", t0: ht0, kind: "label" });
@@ -8945,7 +8975,7 @@ function applyImpact(res) {
           setPartyFxV(h.target, h.crit ? "claw crit" : "claw");
           spawnFx(fx.skill, "pclaw", partyFxX(h.target), VH - 6, now, spd, { crit: !!h.crit });
         }
-        fx.floats.push({ x: VW / 2, y: VH - 26, text: String(h.dmg) + (h.fatal ? " 即死!" : ""), color: h.fatal ? "#ff2a2a" : "#ff6b6b", t0: now, kind: "pdmg" });
+        fx.floats.push({ x: partyDmgN > 1 ? partyFxX(h.target) : VW / 2, y: VH - 26, text: String(h.dmg) + (h.fatal ? " 即死!" : ""), color: h.fatal ? "#ff2a2a" : "#ff6b6b", t0: now, kind: "pdmg" });
         if (h.died) anyDeath = true;
         // レベルドレイン: 宿しているメイン魂のレベルを永続的に1下げる
         if (h.drain && h.target.isDoll && h.target.primary != null) {
@@ -9551,22 +9581,15 @@ function partyPortrait(p) {
 
 // 戦闘中の発動効果バッジ: 能力ごとに 強化(▲)/弱体(▼) を段階数ぶん並べ、残りターンを添える。
 const BUFF_STAT_ICON = BUFF_KANJI; // 絵文字は使わず、敵のピルと同じ漢字の印
-const BUFF_STAT_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI", ...BUFF_NAME };
+const BUFF_STAT_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI", pie: "PIE", ...BUFF_NAME };
 function buffBadges(p) {
   if (G.state !== "combat" || !p.alive || !p.effects || !p.effects.length) return "";
-  // (能力, 方向) ごとに集約: 段階数(最大2)と最短残ターンを出す
-  const groups = new Map();
-  for (const ef of p.effects) {
-    const up = ef.mult > 1;
-    const key = ef.stat + (up ? "+" : "-");
-    const g = groups.get(key) || { stat: ef.stat, up, stages: 0, turns: Infinity };
-    g.stages++; g.turns = Math.min(g.turns, ef.turns);
-    groups.set(key, g);
-  }
+  // (能力, 方向) ごとに集約: 段数 (ATK〜PIE は −3〜+3 の段) と最短残ターンを出す
   let html = "";
-  for (const g of groups.values()) {
-    const arrow = (g.up ? "▲" : "▼").repeat(Math.min(2, g.stages));
-    const title = `${BUFF_STAT_LABEL[g.stat] || g.stat} ${g.up ? "強化" : "弱体"}${g.stages}段階・残り${g.turns}T`;
+  for (const g of buffGroups(p.effects)) {
+    const arrow = (g.up ? "▲" : "▼").repeat(Math.min(3, g.stages));
+    const title = STAGED.has(g.stat) ? `${BUFF_STAT_LABEL[g.stat] || g.stat} ${stageLabel(g.up ? g.stages : -g.stages)}・残り${g.turns}T`
+      : `${BUFF_STAT_LABEL[g.stat] || g.stat} ${g.up ? "強化" : "弱体"}・残り${g.turns}T`;
     html += `<span class="bf ${g.up ? "up" : "dn"}" title="${title}">${BUFF_STAT_ICON[g.stat] || "◆"}${arrow}<b>${g.turns}</b></span>`;
   }
   return `<div class="buffs">${html}</div>`;
@@ -10112,9 +10135,9 @@ function namedInfo(id) {
   const homes = DUNGEONS.filter((d) => (d.elites || []).includes(id));
   return {
     id, name: MONSTERS[id] ? MONSTERS[id].name : id, layer: (NAMED_FOES[id] || {}).layer || 0,
-    seen, seenAt: seen && seen.dungeon ? (seen.dungeon === "abyss" ? "奈落" : (worldById(seen.dungeon) || {}).short || "") : "",
+    seen, seenAt: seen && seen.dungeon ? (seen.dungeon === "abyss" ? "奈落" : (worldById(seen.dungeon) || {}).name || "") : "",
     kills: codexKills(id), trophy: !!st.trophy[id], trophyId: (NAMED_FOES[id] || {}).trophy || null,
-    bounty: f ? f.state : null, homes: homes.map((d) => d.short || d.name),
+    bounty: f ? f.state : null, homes: homes.map((d) => d.name),
   };
 }
 // その迷宮を縄張りにする名のある強敵 (出撃シートの迷宮の顔)
@@ -10131,7 +10154,15 @@ function questState() {
   if (!s.seen || typeof s.seen !== "object") s.seen = {};
   if (!s.npcs || typeof s.npcs !== "object") s.npcs = {}; // 掲示板の依頼人ごとの報告の回数 (なじみ)
   if (!(s.seq > 0)) s.seq = 1;
+  for (const q of [...(s.board || []), ...s.active]) fixQuestDungeonName(q);
   return s;
+}
+// 古いセーブの依頼は説明・手がかりに迷宮の略称 (「囁く回廊」) が残っている → 正式名 (「亡骸の囁く回廊」) に直す
+function fixQuestDungeonName(q) {
+  const cfg = q && q.dungeon ? worldById(q.dungeon) : null;
+  if (!cfg || !cfg.short || cfg.short === cfg.name) return;
+  const from = `「${cfg.short}」`, to = `「${cfg.name}」`;
+  for (const k of ["desc", "note"]) if (typeof q[k] === "string" && q[k].includes(from)) q[k] = q[k].split(from).join(to);
 }
 // 依頼の戦果 (その迷宮・階の普通の戦闘1回分の金貨/✦Soul)。出来事の evUnit と同じ物差しを、街から任意の迷宮で測る
 function questUnit(cfg, floor = 1) {
@@ -11303,7 +11334,7 @@ function reportMainQuest() {
       log(`「${cfg.name}」の踏破を報告した。`, "win");
       updateTopbar();
       toasts.push({ text: `受け取った 💰${r.gold} ✦${r.soulPts}` + (r.redSoul ? ` 🔴${r.redSoul}` : ""), opts: { tone: "gold" } });
-      for (const d of refreshWorldUnlocks()) toasts.push({ text: `🗺 新たな迷宮「${d.short}」が地図に記された`, opts: { tone: "info" } });
+      for (const d of refreshWorldUnlocks()) toasts.push({ text: `🗺 新たな迷宮「${d.name}」が地図に記された`, opts: { tone: "info" } });
       autosave(true);
     },
   }];
@@ -11386,7 +11417,7 @@ function reportTutorialQuest() {
     G.msq = { n: 1, state: "world" };
     const added = refreshWorldUnlocks();
     if (added[0]) G.dungeonIdx = worldIndexOf(added[0].id);
-    for (const d of added) toasts.push({ text: `🗺 新たな迷宮「${d.short}」が地図に記された`, opts: { tone: "info" } });
+    for (const d of added) toasts.push({ text: `🗺 新たな迷宮「${d.name}」が地図に記された`, opts: { tone: "info" } });
     worldState().last = { kind: "ch0" };
     autosave(true);
   };
@@ -11445,7 +11476,7 @@ function featureNote(key) {
   if (!ch) return `${label}で開く (準備中)`;
   if (f.report === "finale") {
     const fin = worldById(ch.finale);
-    return `${label}の結び「${fin ? fin.short : ch.finale}」を王に報告すると開く`;
+    return `${label}の結び「${fin ? fin.name : ch.finale}」を王に報告すると開く`;
   }
   return `${label}の迷宮を${f.report}つ王に報告すると開く (いま ${Math.min(chapterReports(ch), f.report)}/${f.report})`;
 }
