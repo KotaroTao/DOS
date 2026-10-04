@@ -8534,10 +8534,14 @@ function distributeBattleSoulExp(soulGot) {
     const before = preStat.get(m) || {};
     const deltas = [];
     for (const k of STAT_KEYS) { const d = (m[k] || 0) - (before[k] || 0); if (d > 0) deltas.push(`${STAT_LABEL[k]} +${d}`); }
+    // レベルアップの祝祭用: 能力の before/after (hp/mp… の表示キー)
+    const sk = (k) => (k === "maxhp" ? "hp" : k === "maxmp" ? "mp" : k);
+    const statsFrom = {}, statsTo = {};
+    for (const k of STAT_KEYS) { statsFrom[sk(k)] = before[k] || 0; statsTo[sk(k)] = m[k] || 0; }
     // 伸びた能力はその人の最初の行 (メイン魂 → なければ最初のサブ魂) にまとめて載せる
     let shown = false;
     if (newLv > oldLv) {
-      queue.push({ kind: "level", member: m, fromLv: oldLv, toLv: newLv, deltas });
+      queue.push({ kind: "level", member: m, uid: m.primary, fromLv: oldLv, toLv: newLv, deltas, statsFrom, statsTo });
       shown = true;
       runLevel(m, oldLv, newLv); // 今回の記録 (帰還の報告)
     }
@@ -8548,13 +8552,32 @@ function distributeBattleSoulExp(soulGot) {
       const from = preSubLv.get(sub.uid);
       if (!e || e.level <= from) continue;
       const cls = SOUL_CLASSES[e.clsKey];
-      queue.push({ kind: "level", member: m, fromLv: from, toLv: e.level, deltas: shown ? [] : deltas, sub: true, soulLabel: cls ? cls.label : e.clsKey });
+      queue.push({ kind: "level", member: m, uid: sub.uid, fromLv: from, toLv: e.level, deltas: shown ? [] : deltas, sub: true, soulLabel: cls ? cls.label : e.clsKey, statsFrom, statsTo });
       shown = true;
     }
     const oldSp = preSpells.get(m) || new Set();
     for (const sk of (m.spells || [])) if (!oldSp.has(sk)) queue.push({ kind: "skill", member: m, skill: sk });
   }
   return queue;
+}
+
+// 戦闘の成長キュー (distributeBattleSoulExp) を、レベルアップの祝祭 (UI.celebrateLevelUp) に渡す1人1件の形へまとめる。
+// { name, doll, uid (メイン魂), main: {from, to} | null, subs: [{uid, label, from, to}], statsFrom, statsTo, skills: [key] }
+function levelUpEntries(progress) {
+  const byMember = new Map();
+  const entryOf = (m) => {
+    if (!byMember.has(m)) byMember.set(m, { name: m.name, doll: m, uid: m.primary, main: null, subs: [], statsFrom: null, statsTo: null, skills: [] });
+    return byMember.get(m);
+  };
+  for (const q of progress) {
+    if (q.kind === "level") {
+      const e = entryOf(q.member);
+      if (q.sub) e.subs.push({ uid: q.uid, label: q.soulLabel || "", from: q.fromLv, to: q.toLv });
+      else e.main = { from: q.fromLv, to: q.toLv };
+      if (!e.statsFrom && q.statsFrom) { e.statsFrom = q.statsFrom; e.statsTo = q.statsTo; }
+    } else if (q.kind === "skill") entryOf(q.member).skills.push(q.skill);
+  }
+  return [...byMember.values()].filter((e) => e.main || e.subs.length);
 }
 
 function endBattle() {
@@ -8665,7 +8688,7 @@ function endBattle() {
     uiResults.openResults({
       kind: wasBoss ? "boss" : wasElite ? "elite" : wasGuard ? "guard" : corpse ? "corpse" : "win",
       gold: goldGot, soul: soulGot, kills,
-      levels, skills, souls,
+      levels, skills, souls, levelUps: levelUpEntries(progress),
       chest,
       onDone: () => {
         const fin = () => { if (after) after(); else if (G.state === "board") { renderBoard(); evProgress(); } };
@@ -12307,7 +12330,7 @@ const itemGetEl = document.getElementById("item-get");
 
 // 入手の割り込み方針 (§3.6) は src/ui/loot.js の UI.loot が受け持つ:
 //   コモン/アンコモン・道具 = 入手のトースト (収穫バーの数も増える)。onClose はすぐに呼ぶ
-//   レア/スーパーレア/レジェンドレア・収集品 = 祝祭カード (ファンファーレ・閃光・LRは光の柱と揺れ)。閉じてから onClose
+//   レア/スーパーレア/レジェンドレア・宝物庫にまだ無い収集品 = 祝祭カード (ファンファーレ・閃光・LRは光の柱と揺れ)。閉じてから onClose
 // 旧来どおり「プロンプトは1枠」: 出ている決断/知らせは置き換える (前の onClose は呼ばない)
 let _itemGetDepth = 0; // トーストは続きをその場で呼ぶので入れ子になる。異常な深さ (UI 未登録で互いに呼び合う等) を断つ
 function showItemGet(item, who, onClose) {
@@ -13294,6 +13317,8 @@ const OPS = {
     const KEYS = ["maxhp", "maxmp", "atk", "vit", "agi", "int", "pie", "luk"];
     const before = wearer ? Object.fromEntries(KEYS.map((k) => [k, wearer[k] || 0])) : null;
     const beforeSpells = new Set(wearer ? (wearer.spells || []) : []);
+    const soulBefore = wearer ? null : jobStatsOf(e.clsKey, e); // 誰も宿していない魂は魂そのものの能力を見比べる
+    const beforeSkills = wearer ? null : soulLearnedSkills(e);
     const from = e.level;
     let spent = 0, levels = 0;
     for (let i = 0; i < n; i++) {
@@ -13311,7 +13336,6 @@ const OPS = {
     }
     recalcAllDolls({ levelUp: true });
     codexJobSee(e.clsKey, e.count, e.level);
-    SFX.levelup(); buzz([0, 30, 40, 30]);
     log(`${soulLabel(e)}が Lv${from}→${e.level} に成長した！ (✦${spent})`, "win");
     // 能力の伸び: before/after は hp/mp/atk… の表示キーで (魂の区分の「強化の結果」に並べる)
     const sk = (k) => (k === "maxhp" ? "hp" : k === "maxmp" ? "mp" : k);
@@ -13320,12 +13344,17 @@ const OPS = {
       statsBefore[sk(k)] = before[k]; statsAfter[sk(k)] = wearer[k] || 0;
       const d = (wearer[k] || 0) - before[k]; if (d) deltas[sk(k)] = d;
     }
-    const gainedSkills = wearer ? (wearer.spells || []).filter((k) => !beforeSpells.has(k)) : [];
-    const STAT_N = { hp: "HP", mp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
-    const grow = Object.entries(deltas).filter(([, v]) => v > 0).map(([k, v]) => `${STAT_N[k] || k}+${v}`).join(" ");
-    showToast(`${soulLabel(e)}を強化 Lv${from}→${e.level}${grow ? ` ― ${grow}` : ""}`, { tone: "good" });
+    if (soulBefore) {
+      const soulAfter = jobStatsOf(e.clsKey, e);
+      for (const k of Object.keys(soulAfter)) {
+        statsBefore[k] = soulBefore[k]; statsAfter[k] = soulAfter[k];
+        const d = Math.round((soulAfter[k] - soulBefore[k]) * 10) / 10; if (d) deltas[k] = d;
+      }
+    }
+    // 結果は UI (soulpanel.js の train → レベルアップの祝祭カード) が見せる
+    const gainedSkills = wearer ? (wearer.spells || []).filter((k) => !beforeSpells.has(k)) : soulLearnedSkills(e).filter((k) => !beforeSkills.includes(k));
     renderTown();
-    return { ok: true, levels, spent, from, to: e.level, deltas, before: statsBefore, after: statsAfter, gainedSkills, wearer };
+    return { ok: true, uid, levels, spent, from, to: e.level, deltas, before: statsBefore, after: statsAfter, gainedSkills, wearer };
   },
 };
 Object.assign(ops, OPS);

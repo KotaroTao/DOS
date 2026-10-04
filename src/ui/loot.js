@@ -3,7 +3,7 @@
 // 提供する契約:
 //   UI.loot(item, who, { source, celebrate, silent, keepPrompt }, next)
 //       入手の割り込み方針 (§3.6): コモン/アンコモン・道具 = トースト (+収穫バーの数) で
-//       next をすぐ呼ぶ。レア/スーパーレア/レジェンドレア・収集品 = 祝祭カード (閉じてから next)。
+//       next をすぐ呼ぶ。レア/スーパーレア/レジェンドレア・宝物庫にまだ無い収集品 = 祝祭カード (閉じてから next)。
 //   UI.itemSheet(item, { owner, context, actions, price, stockId, target, onClose })
 //       品シート: レア度の縁・絵・性能・装備できる者・比べる相手との増減・来歴・文脈ごとの操作。
 //       context: "bag" (所持品) | "donate" (宝物庫: 渡す→奉納) | "sell" (商会の売る) | "stock" (商会の棚) | "equipped" | "loot" | "view" (見るだけ)
@@ -37,8 +37,14 @@ export const RARITY_FANFARE = {
 const MISC_FANFARE = { banner: "✦ 収集品発見！ ✦", buzz: [0, 40, 50, 40] };
 // 祝祭カード (ポップアップ) で割り込む格 (§3.6・レア以上)。それ未満はトースト
 export const CELEBRATE_RARITIES = new Set(["r", "sr", "lr"]);
-// 祝祭カードで知らせる品か (レア以上の装備と収集品)
-export const isCelebrated = (it) => !!it && (CELEBRATE_RARITIES.has(rarityKey(it)) || it.slot === "misc");
+// 宝物庫にまだ奉納していない収集品か (奉納済みの種類は売るだけの品なのでトーストで足りる)
+const isNewCollectible = (it) => {
+  if (!it || it.slot !== "misc") return false;
+  const don = G().treasury && G().treasury.donated;
+  return !(don && don[it.id]);
+};
+// 祝祭カードで知らせる品か (レア以上の装備と、宝物庫にまだ無い収集品)
+export const isCelebrated = (it) => !!it && (CELEBRATE_RARITIES.has(rarityKey(it)) || isNewCollectible(it));
 
 // ---------------------------------------------------------------- 小道具
 const G = () => game.G || {};
@@ -992,10 +998,7 @@ function lootCelebrate(item, who, opts, next) {
       }
     }
     scroll.appendChild(el("div", "ig-desc", unid ? "なんだかよくわからない品だ。鑑定すれば正体がわかるだろう。" : (item.desc || "")));
-    if (misc && !unid) {
-      const don = G().treasury && G().treasury.donated;
-      scroll.appendChild(el("div", "ig-stat", don && don[item.id] ? "宝物庫に奉納済みの品。商会で売れる。" : "まだ宝物庫に無い品。王宮の宝物庫に奉納できる。"));
-    }
+    if (misc && !unid) scroll.appendChild(el("div", "ig-stat", isNewCollectible(item) ? "まだ宝物庫に無い品。王宮の宝物庫に奉納できる。" : "宝物庫に奉納済みの品。商会で売れる。"));
     if (who) scroll.appendChild(el("div", "ig-who", `${who.name} が手に入れた`));
   };
   let finished = false;

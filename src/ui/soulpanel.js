@@ -1,9 +1,9 @@
 // ===== 魂の区分 — メイン魂・魂を強化/上限まで・残火・付け替え・魂融合・サブ魂・控えの結社 =====
 // 担当: WP-B。隊 (party.js) の「魂」区分を描き、魂の操作のシート (付け替え・宿し技・魂融合) を開く。
 //   街でだけ魂を付け替え・鍛えられる (迷宮の中では見るだけ = 旧来と同じ制限)。
-//   魂を強化/上限まで は ops.trainTimes (単体の鍛錬のループ・同じ費用) を使い、結果は1つのトーストにまとめ、
-//   その場で Lv の数字が刻み、強化ボタンの下に「強化の結果」(能力の before→after) が出る。転職・ランクアップは祝祭カード (kit.celebrate)。
-// 提供する契約: UI.trainableList() / UI.fusableList() / UI.openFusePicker(uid)
+//   魂を強化/上限まで は ops.trainTimes (単体の鍛錬のループ・同じ費用) を使い、結果はレベルアップの祝祭カード1枚にまとめる。
+//   転職・ランクアップ・魂融合・レベルアップは祝祭カード (kit.celebrate)。
+// 提供する契約: UI.trainableList() / UI.fusableList() / UI.openFusePicker(uid) / UI.celebrateLevelUp(entries, onClose)
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
 import { UI, game, ops, registerUI } from "./ctx.js";
@@ -54,68 +54,22 @@ export function trainPlan(e, pts = (G_() || {}).soulPts || 0, max = Infinity) {
   return { n, cost, to: lv, next, cap };
 }
 
-// 魂を強化 (n = Infinity で上限まで)。結果は1つのトースト + その場の演出 (Lv が刻み、能力の変化を並べる)
+// 魂を強化 (n = Infinity で上限まで)。その場で Lv の数字が刻み、レベルアップの祝祭カード (能力の伸び・覚えた技) を出す
 export function train(uid, n = 1) {
   const r = ops.trainTimes ? ops.trainTimes(uid, n) : null;
   if (!r || !r.ok) return r;
-  // 続けて強化したら、最初の値からの変化にまとめる
-  const now = Date.now();
-  const keep = lastTrain && lastTrain.uid === uid && now - lastTrain.at < RESULT_MS;
-  lastTrain = { uid, at: now, from: keep ? lastTrain.from : r.from, to: r.to,
-    before: keep ? lastTrain.before : (r.before || {}), after: r.after || {} };
   requestAnimationFrame(() => {
     const lv = document.querySelector(`[data-sp-lv="${uid}"]`);
     if (lv) countUp(lv, r.from, r.to, 420);
-    const card = document.querySelector(`.sp-card[data-uid="${uid}"]`);
-    if (card) attachTrainResult(card, uid, true);
   });
-  if (r.wearer && r.gainedSkills && r.gainedSkills.length) toastNewSkills(r.wearer, r.gainedSkills);
+  const d = r.wearer || null;
+  celebrateLevelUp([{
+    name: d ? d.name : null, doll: d, uid,
+    main: d && d.primary !== uid ? null : { from: r.from, to: r.to },
+    subs: d && d.primary !== uid ? [{ uid, label: (SOUL_CLASSES[(soulByUid(uid) || {}).clsKey] || {}).label || "", from: r.from, to: r.to }] : [],
+    statsFrom: r.before, statsTo: r.after, skills: r.gainedSkills || [], spent: r.spent,
+  }]);
   return r;
-}
-
-// ---- 強化の結果 (能力がどう変わったか) ----
-// 強化ボタンの下に重ねて出す (レイアウトを押し広げない = 縦スクロールを生まない)。数秒で消え、タップでも閉じる
-const RESULT_MS = 5000;
-const RESULT_KEYS = ["hp", "mp", "atk", "vit", "agi", "int", "pie", "luk"];
-let lastTrain = null;
-function attachTrainResult(card, uid, fresh) {
-  const t = lastTrain;
-  if (!t || t.uid !== uid) return;
-  const left = RESULT_MS - (Date.now() - t.at);
-  if (left <= 0) return;
-  const anchor = card.querySelector(".sp-acts, .sp-note");
-  if (!anchor) return;
-  const old = anchor.querySelector(".sp-res");
-  if (old) old.remove();
-  anchor.classList.add("sp-res-anchor");
-  const box = el("div", "sp-res" + (fresh ? " fresh" : ""));
-  box.setAttribute("role", "status");
-  const hd = el("div", "sp-res-h");
-  hd.appendChild(el("span", "sp-res-k", "強化の結果"));
-  hd.appendChild(el("span", "sp-res-lv", `Lv${t.from} → ${t.to}`));
-  box.appendChild(hd);
-  const grid = el("div", "sp-res-g");
-  let any = false;
-  for (const k of RESULT_KEYS) {
-    const a = t.before[k], b = t.after[k];
-    if (a == null || b == null || a === b) continue;
-    any = true;
-    const c = el("div", "sp-res-s " + (b > a ? "up" : "dn"));
-    c.appendChild(el("span", "sp-res-n", STAT_L[k] || k));
-    c.appendChild(el("span", "sp-res-v", `${a}→${b}`));
-    c.appendChild(el("span", "sp-res-d", `${b > a ? "+" : ""}${b - a}`));
-    grid.appendChild(c);
-  }
-  if (!any) grid.appendChild(el("div", "sp-res-none", "能力の変化なし"));
-  box.appendChild(grid);
-  const close = () => {
-    if (!box.isConnected || box.classList.contains("out")) return;
-    box.classList.add("out");
-    setTimeout(() => box.remove(), 260);
-  };
-  box.addEventListener("click", () => { lastTrain = null; close(); });
-  setTimeout(close, left);
-  anchor.appendChild(box);
 }
 
 // 新たな技のお知らせ (トースト。「見る」でくわしく)
@@ -278,7 +232,6 @@ function mainCard(d, pe, town) {
     foot.appendChild(em);
   }
   if (foot.childElementCount) card.appendChild(foot);
-  if (town && lastTrain && lastTrain.uid === pe.uid) attachTrainResult(card, pe.uid, false);
   return card;
 }
 
@@ -940,6 +893,222 @@ export function celebrateRankUp(info, onClose) {
   });
 }
 
+// ================= 祝祭: レベルアップ (戦果シートの後 / 街で魂を強化) =================
+// 成長はこのゲームの芯なので、魂融合・ランクアップと同じ祝祭カードで1枚にまとめて見せる:
+//   光条と光の輪に包まれた職の姿 → 「Lv12 → Lv15」の数字が刻んで判を押す → 能力が1つずつ伸びて並ぶ →
+//   覚えた技が光って現れる → 次の目標 (次の技まであと何Lv / Lv上限なら魂融合・残火) で締める。
+//   何人も上がった時は、1人1枚の札を順に光らせて並べる (収まらなければ人の区切りでページが分かれる)。
+// entries: [{ name, doll, uid (主に見せる魂), main: {from, to} | null, subs: [{uid, label, from, to}],
+//             statsFrom, statsTo (hp/mp/atk… の表示キー), skills: [key], spent? }]
+const buzzLv = (p) => { try { if (game.buzz) game.buzz(p); } catch (e) { /* 振動は演出のみ */ } };
+const isInt = (v) => Number.isInteger(Math.round((v || 0) * 10) / 10);
+// 数字を刻む (端数のある能力は刻まずにそのまま出す)。delay ms 後に始める
+function tickNum(node, from, to, delay, ms = 520, fmt = fmtStat) {
+  node.textContent = fmt(from);
+  const go = () => { if (isInt(from) && isInt(to)) countUp(node, Math.round(from), Math.round(to), ms, fmt); else node.textContent = fmt(to); };
+  if (delay > 0) setTimeout(go, delay); else requestAnimationFrame(go);
+}
+// 主に見せる魂の情報 (メイン魂が上がっていればそれ、なければ最初のサブ魂)
+function luSoul(e) {
+  const uid = e.main ? e.uid : (e.subs[0] && e.subs[0].uid);
+  const soul = uid != null ? soulByUid(uid) : null;
+  const clsKey = soul ? soul.clsKey : "fighter";
+  return { soul, clsKey, rank: soul ? Math.max(1, soulRankOf(soul)) : 1, cl: SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter, lv: e.main || e.subs[0] };
+}
+// 次の目標の1行: Lv上限 (→ 魂融合・残火) / 次の技まであと何Lv
+function luNext(soul) {
+  if (!soul) return null;
+  const cap = soulLevelCapOf(soul);
+  if (soul.level >= cap) {
+    const nx = nextRankThreshold(soul.clsKey, soul.count);
+    return { cap: true, text: nx ? `Lv上限 ${cap} に到達 ― 同じ魂をあと ${nx.next - soul.count} 体 魂融合すると、ランク${soulRankOf(soul) + 1}で上限が伸びる` : `Lv上限 ${cap} に到達 ― 魂の残火で上限を伸ばせる` };
+  }
+  const nxSkill = jobSkillTable(soul.clsKey).find((t) => t.skill && t.lvl > soul.level && SPELLS[t.skill]);
+  if (nxSkill) return { skill: nxSkill.skill, text: `次の技「${SPELLS[nxSkill.skill].name}」まで あと ${nxSkill.lvl - soul.level} Lv` };
+  return null;
+}
+function luNextEl(soul, cls = "") {
+  const nx = luNext(soul);
+  if (!nx) return null;
+  const b = el(nx.skill ? "button" : "div", "sp-lu-next" + (nx.cap ? " cap" : "") + (cls ? " " + cls : ""), nx.text);
+  if (nx.skill) { b.type = "button"; b.addEventListener("click", () => showSkillPopup(nx.skill)); }
+  return b;
+}
+// 「Lv12 → Lv15」(新しい数字が刻んで判を押す)。gained = 上がった段数
+function luLvRow(lv, accent, { big = true, delay = 0 } = {}) {
+  const r = el("div", "sp-lu-lv" + (big ? " big" : ""));
+  r.appendChild(el("span", "sp-lu-old", `Lv${lv.from}`));
+  r.appendChild(el("span", "sp-lu-ar", "→"));
+  const nw = el("span", "sp-lu-new");
+  nw.appendChild(el("span", "sp-lu-lvk", "Lv"));
+  const num = el("span", "sp-lu-num");
+  nw.appendChild(num);
+  if (accent) nw.style.color = accent;
+  nw.style.animationDelay = `${delay + 250}ms, ${delay + 900}ms`;
+  r.appendChild(nw);
+  tickNum(num, lv.from, lv.to, delay + 250, Math.min(900, 300 + (lv.to - lv.from) * 90), (v) => String(Math.round(v)));
+  if (lv.to - lv.from > 1) { const g = el("span", "sp-lu-gain", `+${lv.to - lv.from}`); g.style.animationDelay = `${delay + 950}ms`; r.appendChild(g); }
+  return r;
+}
+// 能力の伸び (伸びた項目だけ。1つずつ光って並び、数字が刻む)
+function luStats(e, delay0, step = 90) {
+  const a = e.statsFrom || {}, b = e.statsTo || {};
+  const grid = el("div", "sp-lu-stats sp-ru-blk");
+  let i = 0;
+  for (const [k, label] of FUSE_STATS) {
+    const d = Math.round(((b[k] || 0) - (a[k] || 0)) * 10) / 10;
+    if (!(d > 0)) continue;
+    const delay = delay0 + i * step;
+    const c = el("div", "sp-lu-st");
+    c.style.animationDelay = `${delay}ms`;
+    c.appendChild(el("span", "sp-lu-k", label));
+    const v = el("span", "sp-lu-v");
+    v.appendChild(el("span", "sp-lu-was", fmtStat(a[k])));
+    v.appendChild(el("span", "sp-lu-to", "→"));
+    const now = el("span", "sp-lu-now");
+    v.appendChild(now);
+    c.appendChild(v);
+    c.appendChild(el("span", "sp-lu-d", `+${fmtStat(d)}`));
+    tickNum(now, a[k] || 0, b[k] || 0, delay + 120, 420);
+    grid.appendChild(c);
+    i++;
+  }
+  if (!i) grid.appendChild(el("div", "sp-fz-none", "能力の伸びはわずか (端数のみ)"));
+  return { grid, n: i };
+}
+// 覚えた技 (押すと説明)。光って現れる
+function luSkills(keys, delay, { head = true } = {}) {
+  const ks = (keys || []).filter((k) => SPELLS[k]);
+  if (!ks.length) return null;
+  const wrap = el("div", "sp-fz-sec sp-ru-blk sp-lu-learn");
+  if (head) wrap.appendChild(el("div", "sp-fz-h", "新たな技を覚えた"));
+  const list = el("div", "sp-fz-learn");
+  ks.forEach((k, i) => {
+    const b = el("button", "sp-fz-chip sk sp-lu-chip", `技 ${SPELLS[k].name}`);
+    b.type = "button";
+    b.style.animationDelay = `${delay + i * 140}ms, ${delay + i * 140 + 500}ms`;
+    b.addEventListener("click", () => showSkillPopup(k));
+    list.appendChild(b);
+  });
+  wrap.appendChild(list);
+  return wrap;
+}
+// サブ魂の成長 (小さな札)
+function luSubs(subs, accent) {
+  if (!subs || !subs.length) return null;
+  const w = el("div", "sp-lu-subs");
+  for (const x of subs) {
+    const t = el("span", "sp-lu-sub");
+    t.appendChild(el("span", "sp-lu-subk", `サブ魂 ${x.label}`));
+    const v = el("span", "sp-lu-subv", `Lv${x.from}→${x.to}`);
+    if (accent) v.style.color = accent;
+    t.appendChild(v);
+    w.appendChild(t);
+  }
+  return w;
+}
+// 光条・光の輪・立ちのぼる火の粉で包んだ絵
+function luArt(sprites, accent, cls = "") {
+  const art = el("div", "sp-cel-art lu" + (cls ? " " + cls : ""));
+  art.style.setProperty("--ru-accent", accent);
+  art.appendChild(el("div", "sp-ru-burst"));
+  const rays = el("div", "sp-cel-rays");
+  rays.style.background = `repeating-conic-gradient(from 0deg, ${accent}55 0deg 7deg, transparent 7deg 24deg)`;
+  art.appendChild(rays);
+  for (let i = 0; i < 9; i++) {
+    const sp = el("i", "sp-lu-spark");
+    sp.style.left = `${8 + ((i * 37) % 84)}%`;
+    sp.style.animationDelay = `${(i * 0.23) % 1.6}s`;
+    sp.style.animationDuration = `${1.5 + (i % 3) * 0.35}s`;
+    art.appendChild(sp);
+  }
+  const row = el("div", "sp-lu-figs");
+  for (const s of sprites) row.appendChild(s);
+  art.appendChild(row);
+  return art;
+}
+
+export function celebrateLevelUp(entries, onClose) {
+  const list = (entries || []).filter((e) => e && (e.main || (e.subs || []).length));
+  const done = () => { if (typeof onClose === "function") onClose(); };
+  if (!list.length) { done(); return null; }
+  const learned = list.some((e) => (e.skills || []).some((k) => SPELLS[k]));
+  sfx("levelup");
+  buzzLv(learned ? [0, 40, 40, 40, 40, 60, 80, 160] : [0, 40, 40, 40, 40, 90]);
+  if (learned) { try { if (game.flashScreen) game.flashScreen("#ffe7a0"); } catch (e) { /* 演出のみ */ } }
+  if (learned) setTimeout(() => sfx("itemget"), 900);
+  const blocks = [];
+  const short = typeof window !== "undefined" && window.innerHeight < 720; // 背の低い画面は絵を小さく (1枚に収める)
+  let art, title, accent;
+  if (list.length === 1) {
+    // ---- 1人 (街の強化・1人だけ上がった戦い): 大きな姿と数字、能力を1つずつ ----
+    const e = list[0];
+    const { soul, clsKey, rank, cl, lv } = luSoul(e);
+    accent = cl.glow || "#ffd77a";
+    art = luArt([pixelCanvas(jobSprite(clsKey, rank), 96)], accent);
+    title = e.name ? `${e.name} が成長した` : `${soulLabel(soul || { clsKey, count: 1 })} が成長した`;
+    const who = el("div", "sp-lu-who");
+    const label = soulLabel(soul || { clsKey, count: 1 });
+    who.appendChild(el("span", "sp-lu-soul", !e.name ? "まだ誰も宿していない魂" : e.main ? label : `サブ魂 ${label}`));
+    who.lastChild.style.color = accent;
+    blocks.push(who, luLvRow(lv, accent));
+    const st = luStats(e, 1150);
+    blocks.push(st.grid);
+    const sk = luSkills(e.skills, 1250 + st.n * 90);
+    if (sk) blocks.push(sk);
+    const subs = luSubs(e.main ? e.subs : e.subs.slice(1), accent);
+    if (subs) blocks.push(subs);
+    if (e.spent) blocks.push(el("div", "sp-fz-note sp-ru-blk", `✦${e.spent} を注いだ`));
+    const nx = luNextEl(soul, "sp-ru-blk");
+    if (nx) blocks.push(nx);
+  } else {
+    // ---- 何人も (戦いの後): 並んだ姿と、1人1枚の札を順に光らせる ----
+    accent = "#ffd77a";
+    const figs = list.slice(0, 6).map((e) => { const { clsKey, rank } = luSoul(e); return pixelCanvas(jobBust(clsKey, rank), short || list.length > 4 ? 36 : 48); });
+    art = luArt(figs, accent, "multi");
+    title = `${list.length}人が成長した`;
+    list.forEach((e, i) => {
+      const { soul, clsKey, rank, cl, lv } = luSoul(e);
+      const delay = 350 + i * 260;
+      const card = el("div", "sp-lu-mem sp-ru-blk");
+      card.style.setProperty("--glow", cl.glow || accent);
+      card.style.animationDelay = `${delay}ms`;
+      card.appendChild(orb(clsKey, rank, 40));
+      const t = el("div", "sp-lu-mt");
+      const hd = el("div", "sp-lu-mh");
+      hd.appendChild(el("b", "sp-lu-mn", e.name || ""));
+      const sl = el("span", "sp-lu-ms", e.main ? soulLabel(soul || { clsKey, count: 1 }) : `サブ魂 ${(SOUL_CLASSES[clsKey] || {}).label || ""}`);
+      sl.style.color = cl.glow || accent;
+      hd.appendChild(sl);
+      t.appendChild(hd);
+      t.appendChild(luLvRow(lv, cl.glow || accent, { big: false, delay }));
+      // 伸びた能力は短い札で (HP+12 ATK+3 …)
+      const a = e.statsFrom || {}, b = e.statsTo || {};
+      const chips = el("div", "sp-lu-chips");
+      for (const [k, label] of FUSE_STATS) {
+        const d = Math.round(((b[k] || 0) - (a[k] || 0)) * 10) / 10;
+        if (d > 0) chips.appendChild(el("span", "sp-lu-c", `${label}+${fmtStat(d)}`));
+      }
+      if (chips.childElementCount) t.appendChild(chips);
+      const subs = luSubs(e.main ? e.subs : e.subs.slice(1), cl.glow || accent);
+      if (subs) t.appendChild(subs);
+      const sk = luSkills(e.skills, delay + 700, { head: false });
+      if (sk) t.appendChild(sk);
+      const nx = luNext(soul);
+      if (nx && nx.cap) t.appendChild(el("div", "sp-lu-next cap sm", `Lv上限 ${soulLevelCapOf(soul)} に到達`));
+      card.appendChild(t);
+      blocks.push(card);
+    });
+  }
+  const body = (scroll) => blocks.forEach((b) => scroll.appendChild(b));
+  return celebrate({
+    banner: "✦ LEVEL UP ✦", accent, art, sparkle: true, className: "sp-cel sp-cel-lu" + (list.length > 1 ? " multi" : ""),
+    title, body,
+    footer: [{ label: "とじる", kind: "primary", size: "lg", onTap: (h) => h.close("ok") }],
+    onClose: done,
+  });
+}
+
 // UI.trainableList: いま ✦ で1段以上鍛えられる隊のメイン魂 (上限までの見積り toCap を添える)
 function trainableList() {
   const list = ops.trainableList ? ops.trainableList() : [];
@@ -963,5 +1132,5 @@ function fusableList() {
 }
 
 export function install() {
-  registerUI({ trainableList, fusableList, openFusePicker, trainSoul: (uid, n = 1) => train(uid, n), openSoulPicker });
+  registerUI({ trainableList, fusableList, openFusePicker, trainSoul: (uid, n = 1) => train(uid, n), openSoulPicker, celebrateLevelUp });
 }
