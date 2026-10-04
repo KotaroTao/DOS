@@ -2,8 +2,8 @@
 // 担当: WP-C。
 // 提供する契約:
 //   UI.loot(item, who, { source, celebrate, silent, keepPrompt }, next)
-//       入手の割り込み方針 (§3.6): コモン/アンコモン/レア・道具・収集品 = トースト (+収穫バーの数) で
-//       next をすぐ呼ぶ。スーパーレア/レジェンドレア = 祝祭カード (閉じてから next)。
+//       入手の割り込み方針 (§3.6): コモン/アンコモン・道具・収集品 = トースト (+収穫バーの数) で
+//       next をすぐ呼ぶ。レア/スーパーレア/レジェンドレア = 祝祭カード (閉じてから next)。
 //   UI.itemSheet(item, { owner, context, actions, price, stockId, target, onClose })
 //       品シート: レア度の縁・絵・性能・装備できる者・比べる相手との増減・来歴・文脈ごとの操作。
 //       context: "bag" (所持品) | "donate" (宝物庫: 渡す→奉納) | "sell" (商会の売る) | "stock" (商会の棚) | "equipped" | "loot" | "view" (見るだけ)
@@ -33,8 +33,8 @@ export const RARITY_FANFARE = {
   sr: { banner: "★ スーパーレア発見！ ★", flash: "#ff9a2e", buzz: [0, 60, 50, 60, 50, 120], big: true },
   lr: { banner: "★★ レジェンドレア ★★", flash: "#ff3b3b", buzz: [0, 80, 60, 80, 60, 80, 300], big: true, legend: true },
 };
-// 祝祭カードで割り込む格 (§3.6)。それ未満はトースト
-export const CELEBRATE_RARITIES = new Set(["sr", "lr"]);
+// 祝祭カード (ポップアップ) で割り込む格 (§3.6・レア以上)。それ未満はトースト
+export const CELEBRATE_RARITIES = new Set(["r", "sr", "lr"]);
 
 // ---------------------------------------------------------------- 小道具
 const G = () => game.G || {};
@@ -956,8 +956,8 @@ function lootCelebrate(item, who, opts, next) {
   const rk = rarityKey(item);
   const fan = RARITY_FANFARE[rk] || RARITY_FANFARE.r;
   const color = rarColor(item) || "#c9a227";
-  // 演出 (従来の入手カードと同じ: ファンファーレ・振動・閃光・LRは画面の揺れ)
-  sfx("victory"); setTimeout(() => sfx("itemget"), 380);
+  // 演出 (従来の入手カードと同じ: ファンファーレ・振動・閃光・LRは画面の揺れ)。レアはファンファーレ抜きで控えめに
+  if (fan.big) { sfx("victory"); setTimeout(() => sfx("itemget"), 380); } else sfx("itemget");
   buzz(fan.buzz || [0, 30, 60, 30]);
   try { if (fan.flash && game.flashScreen) game.flashScreen(fan.flash); } catch (e) { /* 演出のみ */ }
   try { if (fan.legend && game.shakeScreen) game.shakeScreen(true); } catch (e) { /* 演出のみ */ }

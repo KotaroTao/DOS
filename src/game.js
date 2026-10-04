@@ -5961,14 +5961,15 @@ function grantSoulQuiet(clsKey, sourceLine = "", emberCount = 0) {
   return { clsKey, label: cls.label, rarity: cls.rarity, rare: cls.rarity !== "common", glow: cls.glow || "#c9a227", line: sourceLine, embers: emberCount };
 }
 
-// 魂の祝祭の札 (レア以上)。残火があれば同じ札にまとめる
+// 魂の祝祭の札 (迷宮で拾った魂はコモンも・街ではレア以上)。残火があれば同じ札にまとめる
 function celebrateSoul(s, onClose) {
   const cls = SOUL_CLASSES[s.clsKey] || SOUL_CLASSES.fighter;
-  SFX.itemget(); buzz([0, 40, 50, 40, 50, 150]);
+  const common = cls.rarity === "common";
+  SFX.itemget(); buzz(common ? [0, 30, 60, 30] : [0, 40, 50, 40, 50, 150]);
   if (cls.rarity === "legend") { flashScreen("#ffcf4a"); SFX.victory(); }
   showEvent({
     sprite: soulIcon(s.clsKey),
-    banner: `★ ${RARITY_LABEL[cls.rarity] || "希少"}の魂を入手 ★`,
+    banner: common ? "✦ 魂を入手 ✦" : `★ ${RARITY_LABEL[cls.rarity] || "希少"}の魂を入手 ★`,
     title: `${cls.label}の魂`,
     lines: [s.line, "所持魂の一覧に加わった。", ...(s.embers > 0 ? [`魂の残火を ${s.embers}つ 手に入れた (魂のLv上限を上げる)`] : [])].filter(Boolean),
     accent: cls.glow || "#c9a227",
@@ -5979,11 +5980,12 @@ function celebrateSoul(s, onClose) {
 }
 
 // 魂の入手処理: 拾った魂は1体の魂インスタンスとして自動で「所持魂 一覧」に追加される。
-// コモンの魂はトースト (歩みを止めない)、レア以上は祝祭の札。死体の残火は同じ知らせにまとめる
+// 迷宮で拾った魂は格を問わず祝祭の札 (ポップアップ)。街ではコモンはトースト (歩みを止めない)、レア以上は祝祭の札。
+// 死体の残火は同じ知らせにまとめる
 function acquireSoul(clsKey, sourceLine, onClose, emberCount = 0) {
   const after = onClose || (() => { if (G.state === "board") renderBoard(); });
   const s = grantSoulQuiet(clsKey, sourceLine, emberCount);
-  if (s.rare) { celebrateSoul(s, after); return; }
+  if (s.rare || G.state !== "town") { celebrateSoul(s, after); return; }
   SFX.itemget(); buzz([0, 30, 60, 30]);
   showToast(`${s.label}の魂を手に入れた${s.embers > 0 ? ` ・ 残火 ${s.embers}` : ""}`, { tone: "good", icon: soulIcon(clsKey) });
   after();
@@ -12304,8 +12306,8 @@ function giveItem(id) {
 const itemGetEl = document.getElementById("item-get");
 
 // 入手の割り込み方針 (§3.6) は src/ui/loot.js の UI.loot が受け持つ:
-//   コモン/アンコモン/レア・道具・収集品 = 入手のトースト (収穫バーの数も増える)。onClose はすぐに呼ぶ
-//   スーパーレア/レジェンドレア = 祝祭カード (ファンファーレ・閃光・LRは光の柱と揺れ)。閉じてから onClose
+//   コモン/アンコモン・道具・収集品 = 入手のトースト (収穫バーの数も増える)。onClose はすぐに呼ぶ
+//   レア/スーパーレア/レジェンドレア = 祝祭カード (ファンファーレ・閃光・LRは光の柱と揺れ)。閉じてから onClose
 // 旧来どおり「プロンプトは1枠」: 出ている決断/知らせは置き換える (前の onClose は呼ばない)
 let _itemGetDepth = 0; // トーストは続きをその場で呼ぶので入れ子になる。異常な深さ (UI 未登録で互いに呼び合う等) を断つ
 function showItemGet(item, who, onClose) {
