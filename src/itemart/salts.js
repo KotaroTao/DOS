@@ -28,7 +28,6 @@ export const ART_SALT = {
   "r_r2_silvercharm": 2,
   "r_rabbitfoot": 1,
   "w_icicle_dirk": 1,
-  "w_r18_meteortachi": 1,
   "w_r1_huntbow": 1,
   "w_r9_godsteelaxe": 1,
   "woodShield": 1,

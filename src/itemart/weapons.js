@@ -47,7 +47,6 @@ function blade(g, th, aB, aT, o) {
   const c = (a) => {
     const u = t(a);
     let v = o.c0 || 0;
-    if (shape === "wavy") v += Math.round(Math.sin(u * Math.PI * 5) * 0.9);
     if (cv) v -= cv * u * u;
     return v;
   };
@@ -58,6 +57,7 @@ function blade(g, th, aB, aT, o) {
     else if (shape === "leaf") k = 0.75 + 0.45 * Math.sin(Math.min(1, u * 1.15) * Math.PI);
     else if (shape === "broad") k = 1.05;
     else if (shape === "spatula") k = u > 0.6 ? 1.25 : 1;
+    else if (shape === "wavy") k = 1 + 0.38 * Math.sin(u * Math.PI * 6);
     return k;
   };
   // 切っ先: 最後の数歩で両側 (または影の側だけ) が細る
@@ -242,46 +242,58 @@ function dagger(g, th, it) {
 // ===== 刀 =====
 function katana(g, th, it) {
   const r = th.r, o = th.deco, two = !!it.twoHanded;
-  const aT = r.pick([19, 20, 21, 22]), aG = two ? r.pick([-8, -7]) : r.pick([-6, -5, -4]);
+  const aT = r.pick([20, 21, 22]), aG = two ? r.pick([-8, -7]) : r.pick([-6, -5, -4]);
   const gripN = two ? r.pick([9, 10]) : r.pick([6, 7, 8]);
   const aP = aG - 2 - gripN;
-  const curve = r.pick([1.4, 1.8, 2.4, 3.0]);
-  const lw = two ? r.pick([2, 3]) : r.pick([1, 2, 2]), hw = 1;
-  // 刀身: 鎬 (しのぎ) と刃文 (はもん) — 刃の側 (影の側の縁) に明るい波
-  const { c } = blade(g, th, aG + 1, aT, { shape: "curved", lw, hw, curve, tip: "chisel", fuller: r.chance(0.3 + o * 0.08) ? (th.glow && o >= 2 ? "glow" : "plain") : null, edgeGlow: !!it.eAtk });
-  const hamon = r.pick(["straight", "wave", "gunome", "choji", "none"]);
-  for (let a = aG + 2; a < aT - 3; a++) {
+  const curve = r.pick([6, 7, 8]);
+  const lw = two ? 2 : r.pick([1, 2]), hw = 1;
+  // 刀身: 峰 (光の側・左上) は暗く、鎬は明るく、刃 (影の側・右下) に刃文の白い線。先へ行くほど左上へ反る
+  const len = aT - aG - 1;
+  const c = (a) => -curve * ((a - aG - 1) / len) ** 2;
+  const tipK = (a) => Math.max(0, Math.min(1, (aT - a) / 3));
+  diagFill(g, aG + 1, aT, (a) => Math.round(c(a) - lw * Math.max(0.3, tipK(a))), (a) => Math.round(c(a) + hw), "M", (a, p, lo, hi) => {
+    const n = hi - lo, k = p - lo;
+    if (n <= 1) return k === 0 ? 3 : 4;
+    if (k === 0) return 1;        // 峰
+    if (k === 1) return 4;        // 鎬の照り
+    if (k === n) return 2;        // 刃 (刃文は下で描く)
+    return 2;
+  });
+  const hamon = r.pick(["straight", "wave", "gunome", "choji"]);
+  const hm = it.eAtk ? "E" : "M";
+  for (let a = aG + 2; a < aT - 1; a++) {
     const p = Math.round(c(a) + hw);
     const [x, y] = diagXY(a, p);
     if (!Number.isInteger(x) || !g.get(x, y)) continue;
-    const on = hamon === "straight" ? true : hamon === "wave" ? Math.sin(a * 0.8) > -0.2 : hamon === "gunome" ? (a % 5) < 3 : hamon === "choji" ? (a % 3) !== 0 : false;
-    if (on) g.set(x, y, it.eAtk ? "E" : "M", 4);
+    const on = hamon === "straight" ? true : hamon === "wave" ? Math.sin(a * 0.8) > -0.3 : hamon === "gunome" ? (((a % 5) + 5) % 5) < 3 : (((a % 3) + 3) % 3) !== 0;
+    g.set(x, y, hm, on ? 4 : 3);
   }
+  // 樋
+  if (r.chance(0.3 + o * 0.08)) for (let a = aG + 3; a < aT - 6; a++) { const p = Math.round(c(a)) - 1; const [x, y] = diagXY(a, p); if (Number.isInteger(x) && g.get(x, y)) g.set(x, y, th.glow && o >= 2 ? "E" : "M", th.glow && o >= 2 ? 3 : 0); }
   // 鎺 (はばき)
-  diagFill(g, aG + 1, aG + 2, () => -lw, () => hw, "T", (a, p, lo, hi) => (p === lo ? 3 : 2));
-  // 鍔: 丸・角・木瓜・花・透かし・葵
-  const tsuba = pickW(r, [["disc", 3], ["square", 1.5], ["mokko", 1], ["flower", 1], ["open", 1.2], ["aoi", 0.8], ["small", 1]]);
-  const tr = r.pick([1.8, 2.2, 2.6]);
-  if (tsuba === "disc") blob(g, aG, 0, tr, "T");
-  else if (tsuba === "small") blob(g, aG, 0, 1.3, "T");
-  else if (tsuba === "open") { blob(g, aG, 0, tr, "T"); const [x, y] = diagXY(aG, -2); if (Number.isInteger(x)) g.set(x, y, null); const [x2, y2] = diagXY(aG, 3); if (Number.isInteger(x2)) g.set(x2, y2, null); }
-  else if (tsuba === "square") diagFill(g, aG - 1, aG, () => -3, () => 3, "T", (a, p, lo, hi) => (p - lo < 2 ? 3 : hi - p < 1 ? 0 : 2));
-  else if (tsuba === "flower") for (const [da, dp] of [[0, -3], [0, 3], [-2, 0], [2, 0]]) blob(g, aG + da, dp, 1.1, "T");
-  else if (tsuba === "aoi") { blob(g, aG, -2, 1.3, "T"); blob(g, aG, 2, 1.3, "T"); blob(g, aG - 2, 0, 1.2, "T"); }
-  else { blob(g, aG, -2, 1.3, "T"); blob(g, aG, 2, 1.3, "T"); blob(g, aG, 0, 1.5, "T"); }
-  if (o >= 3) blob(g, aG, 0, 0.8, "G", 3);
-  // 柄: 鮫皮 + 柄巻 (菱)
+  diagFill(g, aG + 1, aG + 2, () => -lw - 1, () => hw, "T", (a, p, lo, hi) => (p === lo ? 3 : p === hi ? 1 : 2));
+  // 鍔: 軸に直交する楕円 (角・木瓜・花・透かし)
+  const tsuba = pickW(r, [["oval", 3], ["square", 1.5], ["mokko", 1], ["flower", 1], ["open", 1.2], ["small", 1]]);
+  const tr = tsuba === "small" ? 2 : r.pick([3, 3, 4]);
+  const ends = (p) => Math.abs(p) >= tr - 1;
+  if (tsuba === "flower") for (const [da, dp] of [[0, -4], [0, 4], [-2, 0], [2, 0], [0, 0]]) blob(g, aG + da, dp, 1.1, "T");
+  else diagFill(g, aG - 2, aG + 1, (a) => -tr + (tsuba === "square" ? 0 : Math.abs(a - aG + 0.5) > 1 ? 1 : 0), (a) => tr - (tsuba === "square" ? 0 : Math.abs(a - aG + 0.5) > 1 ? 1 : 0), (a, p) => (tsuba === "open" && Math.abs(p) === tr - 2 && a === aG - 1 ? null : tsuba === "mokko" && Math.abs(p) === 1 && a === aG + 1 ? null : "T"), (a, p) => {
+    let t = a >= aG ? 3 : 1;
+    if (p < -tr + 2) t = Math.min(4, t + 1);
+    if (ends(p) && p > 0) t = Math.max(0, t - 1);
+    return t;
+  });
+  if (o >= 3) blob(g, aG - 0.5, 0, 0.8, "G", 3);
+  // 柄: 柄巻の地 (布) に、鮫皮の白い菱がのぞく
   g.def("H", tintRamp(MAT.bone, "#ffffff", 0.2));
-  diagFill(g, aP + 1, aG - 2, () => -1, () => 0, "H", (a, p, lo, hi) => rodTone(p, lo, hi));
-  const wrapM = r.pick(["C", "L", "C", "D"]);
-  const wrapPat = r.pick([4, 4, 3, 6]);
-  diagFill(g, aP + 1, aG - 2, () => -1, () => 0, (a, p) => ((((a + p) % wrapPat) + wrapPat) % wrapPat < 2 ? wrapM : null), (a, p, lo, hi) => (p === lo ? 2 : 1));
+  const wrapM = r.pick(["C", "L", "C", "D", "J" in g.mats ? "C" : "C"]);
+  diagFill(g, aP + 1, aG - 2, () => -1, () => 1, (a, p) => (((a + p + 1) % 4 + 4) % 4 === 0 && p === 0 ? "H" : wrapM), (a, p, lo, hi) => (p === lo ? 3 : p === hi ? 1 : 2));
   // 柄頭 (かしら)
   const kas = r.pick(["cap", "ring", "long"]);
   if (kas === "ring") blob(g, aP - 1, 0, 1.2, "T");
-  else diagFill(g, aP - (kas === "long" ? 3 : 1), aP, () => -1, () => 0, "T", (a, p, lo) => (p === lo ? 3 : 1));
+  else diagFill(g, aP - (kas === "long" ? 3 : 1), aP, () => -1, () => 1, "T", (a, p, lo, hi) => (p === lo ? 3 : p === hi ? 0 : 2));
   // 下げ緒 (房)
-  if (r.chance(0.35 + o * 0.12)) { const n = r.pick([3, 4, 5]); for (let k = 1; k <= n; k++) { const [x, y] = diagXY(aP - k, k + 1); if (Number.isInteger(x)) g.set(x, y, "C", 3); else { const [x2, y2] = diagXY(aP - k + 1, k + 1); g.set(x2, y2, "C", 2); } } }
+  if (r.chance(0.35 + o * 0.12)) { const n = r.pick([2, 3]); const [x0, y0] = diagXY(aP + 1, 2); for (let k = 0; k < n; k++) { g.set(Math.round(x0) + k, Math.round(y0) + k, "D", 3 - (k & 1)); g.set(Math.round(x0) + k + 1, Math.round(y0) + k, "D", 1); } }
 }
 
 // ===== 斧 =====
