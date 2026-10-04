@@ -11593,6 +11593,14 @@ function preDiveIssues() {
   return res;
 }
 
+// 門をくぐる前の念押し (出撃シートの「門をくぐる」で出すポップアップ): HP/MPが減っている・状態異常の者
+// → { list: [{ name, hp, maxhp, mp, maxmp, ail }], innOpen, cost }。list が空なら念押しは要らない
+function departWoes() {
+  const list = G.party.filter((d) => d.alive && (d.hp < d.maxhp || d.mp < d.maxmp || d.ailment))
+    .map((d) => ({ name: d.name, hp: d.hp, maxhp: d.maxhp, mp: d.mp, maxmp: d.maxmp, ail: d.ailment ? (AIL_NAME[d.ailment] || d.ailment) : null }));
+  return { list, innOpen: opsFacilityOpen("inn"), cost: innCost() };
+}
+
 // 名前の短い並び (3人以上は「Aほか2人」)
 function namesShort(list) { return list.length > 2 ? `${list[0].name}ほか${list.length - 1}人` : list.map((d) => d.name).join("・"); }
 
@@ -13374,7 +13382,7 @@ const OPS = {
   restParty() {
     if (G.state !== "town" || !opsFacilityOpen("inn")) return { ok: false, reason: "closed" };
     const cost = innCost();
-    const need = G.party.filter((p) => p.alive && (p.hp < p.maxhp || p.mp < p.maxmp));
+    const need = G.party.filter((p) => p.alive && (p.hp < p.maxhp || p.mp < p.maxmp || p.ailment));
     if (!need.length) return { ok: false, reason: "none", cost };
     if (G.gold < cost) { log("お金が足りない。", "sys"); SFX.ng(); return { ok: false, reason: "gold", cost }; }
     G.gold -= cost;
@@ -13756,7 +13764,7 @@ bindGame({
 // モジュールの評価時 (init より前) に結ぶ。init の wireUI が同じ game へ残りを足す
 bindGame({
   // 出撃
-  departNow, departAbyss, townMutatorFor, preDiveIssues, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, partyLevel, storyCellPending,
+  departNow, departAbyss, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, partyLevel, storyCellPending,
   abyssRecords, ABYSS_MODS, abyssScoreMul, weekSeedId, emptyDollCost,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow,
