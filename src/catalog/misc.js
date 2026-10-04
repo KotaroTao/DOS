@@ -3,8 +3,8 @@
 // 商店で金に換わるか、王宮の宝物庫に奉納される (game.js の renderTreasury が ceil(lv/20) でランク帯に束ねる)。
 // 収集品はランク帯 (ceil(lv/20) = R1〜R10) ごとに ちょうど10種ずつ。新たに追加するときも各帯10種を保つこと。
 // 鍵のような「どこかで使えそう」に見える品は置かない (鍵を使う仕組みはなく、使用価値があると誤解させるため)。
-// shape 14種 (fang/gem/ore/bone/coin/vial/cloth/eye/bell/skull/horn/book/orb/pouch) を満遍なく使い、
-// 同じ形は tint で見分ける。
+// 収集品の絵は 1品ごとの固有の絵 (miscart.js、id で引く)。shape は品の種類の目印 (fang/gem/ore/bone/coin/vial/cloth/
+// eye/bell/skull/horn/book/orb/pouch) として残しているだけで、絵には使わない。tint も収集品では効かない。
 import { M, U } from "./defs.js";
 
 export const MISC = [
