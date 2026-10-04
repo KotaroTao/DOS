@@ -607,6 +607,17 @@ function openAutoEquipResult(plan, before, undo) {
       chip.appendChild(el("span", "pt-ae-sd", `${v1 > v0 ? "▲" : "▼"}${Math.abs(v1 - v0)}`));
       st.appendChild(chip);
     }
+    // 能力値以外で点数に効くもの (ブレス耐性・状態異常耐性の合計) も、付け替えの理由がわかるように出す
+    const resSum = (o) => Math.round(Object.values(o || {}).reduce((a, v) => a + (v || 0), 0) * 100);
+    for (const [lab, v0, v1] of [["ブレス耐性", Math.round((r.b.breathRes || 0) * 100), Math.round((r.a.breathRes || 0) * 100)],
+      ["異常耐性", resSum(r.b.ailRes), resSum(r.a.ailRes)]]) {
+      if (v0 === v1) continue;
+      const chip = el("span", "pt-ae-s " + (v1 > v0 ? "up" : "dn"));
+      chip.appendChild(el("span", "pt-ae-sk", lab));
+      chip.appendChild(el("span", null, `${v0}→${v1}%`));
+      chip.appendChild(el("span", "pt-ae-sd", `${v1 > v0 ? "▲" : "▼"}${Math.abs(v1 - v0)}`));
+      st.appendChild(chip);
+    }
     if (!st.childElementCount) st.appendChild(el("span", "pt-ae-s eq", "能力の変化なし"));
     card.appendChild(st);
     body.appendChild(card);

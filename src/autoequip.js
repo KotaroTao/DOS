@@ -44,6 +44,7 @@ export function previewStats(doll, equip, recalcFn = recalcDefault) {
     atk: fake.atk, vit: fake.vit, agi: fake.agi, int: fake.int, pie: fake.pie, luk: fake.luk,
     maxhp: fake.maxhp, maxmp: fake.maxmp, critBonus: fake.critBonus || 0,
     elemAtk: fake.elemAtk || null, elemDef: fake.elemDef || null, breathRes: fake.breathRes || 0,
+    ailRes: fake.ailRes || null, onHit: fake.onHit || null, // 状態異常耐性・追加効果 (itemview の gearScore が数える)
     power: attackPower(fake), weapon: equip.weapon || null, shield: equip.shield || null, // 攻撃力 (ATK + 武器の能力補正) と武器・盾
   };
 }
@@ -58,6 +59,8 @@ export function statsDelta(from, to) {
     elemAtk: { from: from.elemAtk, to: to.elemAtk },
     elemDef: { from: from.elemDef, to: to.elemDef },
     breathRes: Math.round(((to.breathRes || 0) - (from.breathRes || 0)) * 100), // ブレス耐性 (%)
+    ailRes: { from: from.ailRes || null, to: to.ailRes || null },
+    onHit: { from: from.onHit || null, to: to.onHit || null },
     power: (to.power || 0) - (from.power || 0), // 攻撃力の増減
     weapon: (from.weapon || null) !== (to.weapon || null), // 武器が替わるか (武器の良し悪しは攻撃力で決める)
     // 持ち方の付け替え (片手+盾 ⇄ 両手武器)。攻撃力と盾の能力を同じ物差しで比べる (itemview の gearScore)
