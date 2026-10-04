@@ -1458,6 +1458,8 @@ export class Battle {
       const key = actor.summonKey;
       if (key && MONSTERS[key] && this.livingEnemies().length < MAX_ENEMIES) {
         const e = makeEnemy(key, actor._scale || 1);
+        // 戦果の写し (game.js startBattle が推奨Lv の基準に合わせた比) を引き継ぐ
+        if (actor._rk) { e._rk = actor._rk; e.soul = Math.max(1, Math.round(e.soul * actor._rk[0])); e.gold = Math.max(1, Math.round(e.gold * actor._rk[1])); }
         if (actor._agiMul) { e._agiMul = actor._agiMul; e.agi = Math.max(1, Math.round(e.agi * actor._agiMul)); }
         // 属性の暴走 (異変): 呼ばれた仲間の属性もでたらめに
         if (actor._elemRandom) { const els = Object.keys(ELEMENTS).filter((k) => k !== "none"); e._elemRandom = true; e.element = els[Math.floor(Math.random() * els.length)]; }
