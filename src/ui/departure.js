@@ -134,6 +134,27 @@ function renderHero(b) {
     for (const ln of tr.lines || []) box.appendChild(setText(el("div", "dp-mut-l"), ln));
     hero.appendChild(box);
   }
+  // 名のある強敵 (縄張り = この迷宮の強敵階に出る)。名・目撃・討伐・首級・懸賞
+  const named = game.namedHere ? game.namedHere(dn) : [];
+  if (named.length) {
+    const box = el("div", "dp-mut dp-trait dp-named");
+    box.style.setProperty("--mut", "#e0604a");
+    const h = el("div", "dp-mut-h");
+    h.appendChild(el("span", "dp-mut-k", "名のある強敵"));
+    h.appendChild(el("span", "dp-mut-n", named.map((n) => `⚔ ${n.name}`).join("　")));
+    box.appendChild(h);
+    for (const n of named) {
+      const st = [];
+      st.push(n.kills ? `討伐 ${n.kills}` : n.seen ? `目撃 ${n.seenAt ? n.seenAt + " " : ""}B${n.seen.floor}F` : "まだ姿を見せていない (3F以降の強敵階に出る)");
+      if (n.trophy) st.push("首級 ✓");
+      else if (n.kills) st.push("首級を取り戻せる");
+      if (n.bounty === "active") st.push("懸賞を受けている (強敵階が出やすい)");
+      else if (n.bounty === "done") st.push("懸賞を果たした (酒場で報告)");
+      else if (n.seen && n.bounty !== "claimed") st.push("酒場に懸賞あり");
+      box.appendChild(setText(el("div", "dp-mut-l"), `${named.length > 1 ? n.name + ": " : ""}${st.join(" ・ ")}`));
+    }
+    hero.appendChild(box);
+  }
   const dg = dangerOf(dn);
   if (dg && dg.note) {
     const r = el("div", "dp-issue t-" + (dg.cls === "reckless" ? "bad" : "warn"));

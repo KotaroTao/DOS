@@ -17,7 +17,7 @@
 //   layer   景色・探索BGM・出来事の層 (1-20)。出現表 (pool/deepPool) と強敵 (elites) もこの層の顔ぶれから選ぶ
 //   floors  全階数。5の倍数の階 (最下階を除く) は下り階段の代わりに「帰還魔法陣」が立つ (game.js / board.js)
 //   bands   雑魚の顔ぶれ (5階ごとの帯。下の poolAt)。boss = 最下階の主 (無ければ最下階の階段で踏破)
-//   elites  強敵階に出る強敵 (省略時は層の LAYER_ELITES)
+//   elites  強敵階に出る強敵 (省略時は層の LAYER_ELITES)。名のある強敵 (named.js) の縄張り — 迷宮ごとに1体へ絞ると狩りに行ける
 //   unlock  地図に現れる条件 (game.js worldUnlocked):
 //             { start: true }         第0章 (人業の生成) を終えた時
 //             { reported: id }        その迷宮の踏破を王に報告した時
@@ -72,6 +72,7 @@ const WORLD_DEF = [
       ["bs_mournshade", "bs_ghoul", "bs_pettyrevenant", "bs_sarcoguard", "bs_skullswarm", "bs_spiritbat"],
       ["bs_shroudstrangler", "bs_tombwarden", "bs_weepangel"],
     ],
+    elites: ["el_palebutcher"], // 名のある強敵の縄張り (named.js)
     tune: { enemyMul: 0.92 }, // generator.js DUNGEON_TUNE の D3 (2026-10 の改定後の表)
     unlock: { reported: "w01" },
     hint: "「忘れられた地下墓地」の踏破を王に報告すると、道が示される",
@@ -85,6 +86,7 @@ const WORLD_DEF = [
       ["bs_sarcoguard", "bs_ghoul", "bs_skullswarm"],
       ["d02_soldier", "bs_bonechanter", "bs_gravecaller"],
     ],
+    elites: ["el_cryptlord"], // 名のある強敵の縄張り (named.js)
     boss: LAYER_BOSS[0], bossRank: 3,
     tune: { enemyMul: 0.90, bossMul: 1.00, bossHpMul: 2 }, // DUNGEON_TUNE の D4 の雑魚 + D5 の主 (主の HP ×2)
     unlock: { reported: "w02" },
@@ -98,6 +100,7 @@ const WORLD_DEF = [
       ["bs_bloatfly", "bs_fogspecter", "bs_giantleech", "bs_ratking", "bs_razorshrimp", "bs_sewercrab"],
       ["bs_mucusworm", "bs_toxictoad", "bs_drownedcorpse"],
     ],
+    elites: ["el_bloatqueen"], // 名のある強敵の縄張り (named.js)
     tune: { enemyMul: 1.40, deepMul: 0.87, soloMul: 0.85 }, // DUNGEON_TUNE の D7 (改定後の表)
     unlock: { story: "w02_sigil" },
     hint: "「亡骸の囁く回廊」のどこかに、師の残した印があるという",
@@ -112,6 +115,7 @@ const WORLD_DEF = [
       ["bs_rockworm", "bs_tunneler", "bs_gargoyle"],
       ["bs_crystalcrawler", "bs_troll", "bs_steelspider"],
     ],
+    elites: ["el_chainoverseer"], // 名のある強敵の縄張り (named.js)
     boss: LAYER_BOSS[2], bossRank: 5,
     tune: { enemyMul: 1.50, deepMul: 0.70, soloMul: 0.92, bossMul: 0.80 }, // DUNGEON_TUNE の D11 の雑魚 + D15 の主 (第3層は厳しめ)
     unlock: { treasury: 3 },
@@ -127,6 +131,7 @@ const WORLD_DEF = [
       ["bs_pikewall", "bs_bannerwraith", "bs_drumwraith", "d03_sentinel", "bs_darksamurai", "bs_ironknight"],
       ["bs_gravecaptain", "bs_siegeballista", "d04_revenant"],
     ],
+    elites: ["el_warbanner"], // 名のある強敵の縄張り (named.js)
     trait: {
       id: "ranks", name: "隊伍を組む亡兵", sym: "⚔", accent: "#c9a26a",
       lines: ["亡兵は持ち場を離れず、つねに三体以上の隊伍で現れる (旗手・鼓手・槍ぶすまが組む)。", "数は多いが、討てば得られる ✦Soul が 1.25倍。"],
@@ -165,6 +170,7 @@ const WORLD_DEF = [
       ["bs_bloodorc", "bs_darksamurai", "bs_thunderknight", "bs_bannerwraith", "bs_siegeballista", "bs_cultist"],
       ["bs_stormgiant", "bs_bonecolossus", "bs_gravecaptain"],
     ],
+    elites: ["el_warbanner"], // 名のある強敵の縄張り (named.js)
     trait: {
       id: "storm", name: "止まぬ雷雨", sym: "⚡", accent: "#9ab8ff",
       lines: ["雷雨が門を叩き続け、魔物はみな風 (雷) の気を帯びる。火の刃が通り、火の護りが雷を逸らす。", "雷鳴に足音が紛れ、奇襲を受けやすい (×2)。戦場に散った遺品で、得るゴールドは 1.3倍。"],
@@ -224,6 +230,7 @@ const WORLD_DEF = [
       ["bs_dryadfey", "bs_wisplure", "bs_thornhound", "bs_direboar", "bs_chimera", "bs_thunderbird"],
       ["bs_fogpanther", "bs_corruptstag", "bs_satyrpiper"],
     ],
+    elites: ["el_mistmother"], // 名のある強敵の縄張り (named.js)
     trait: {
       id: "shifting", name: "移ろう霧", sym: "≋", accent: "#9ab8c8",
       lines: ["霧が森の姿を変え続ける。特別な階がとても出やすい (ふだんの2倍・およそ3階に2階)。", "豊穣の間も、瘴気の階も、ミミックの巣も。何が出るかは霧しだい。"],
@@ -282,6 +289,7 @@ const WORLD_DEF = [
       ["bs_sludgeooze", "bs_waterelemental", "bs_sewerdredger", "bs_brinewraith", "bs_waterhag", "bs_eelfiend"],
       ["bs_anglerfiend", "d03_sahagin", "bs_abysstentacle"],
     ],
+    elites: ["el_drownedpaladin"], // 名のある強敵の縄張り (named.js)
     boss: LAYER_BOSS[1], bossRank: 4,
     tune: { enemyMul: 1.28, deepMul: 0.75, soloMul: 0.85, bossMul: 0.85 }, // DUNGEON_TUNE の D9 の雑魚 + D10 の主
     unlock: { quest: "fq_oswald" },
@@ -295,6 +303,7 @@ const WORLD_DEF = [
       ["d03_orc", "bs_shieldogre", "bs_stonegorgon", "bs_rockworm", "bs_dustwraith", "bs_tunneler"],
       ["d03_mandrake", "bs_orehulk", "bs_deepgolem"],
     ],
+    elites: ["el_crystalseer"], // 名のある強敵の縄張り (named.js)
     tune: { enemyMul: 1.30, deepMul: 0.73, soloMul: 1.0 }, // DUNGEON_TUNE の D13 の行
     unlock: { quest: "fq_morga" },
     hint: "酒場の薬師の依頼「石になった鉱夫たち」を受けると、道が示される",
@@ -308,6 +317,7 @@ const WORLD_DEF = [
       ["bs_thornhound", "bs_giantmoth", "bs_flytrap", "bs_wisplure", "bs_stranglevine", "bs_direboar"],
       ["bs_fogpanther", "bs_willowwitch", "bs_misttreant"],
     ],
+    elites: ["el_mistmother"], // 名のある強敵の縄張り (named.js)
     trait: {
       id: "mist", name: "迷い霧", sym: "☁", accent: "#9ad0b8",
       lines: ["胞子の床が多い (毒の床が増える)。霧の奥に、ひとつだけ癒しの泉が湧く。", "霧に紛れて奇襲を受けやすい (×1.5)。迷い込んだ魂は多く、得る ✦Soul は 1.3倍。"],

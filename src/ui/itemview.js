@@ -156,7 +156,9 @@ export function affinityRow(element, cls = "") {
 export const MON_REVEAL = { name: 1, stats: 5, lore: 10 };
 export const BOSS_REVEAL = { name: 0, stats: 1, lore: 1 };
 // その魔物 (図鑑の定義) の開示段階
-export function revealSteps(m) { return m && m.boss ? BOSS_REVEAL : MON_REVEAL; }
+// 名のある強敵 (dungeons/named.js) は名だけ最初から明かす (噂で知れ渡っている)。能力・伝承は倒して知る
+export const NAMED_REVEAL = { name: 0, stats: MON_REVEAL.stats, lore: MON_REVEAL.lore };
+export function revealSteps(m) { return m && m.boss ? BOSS_REVEAL : m && m.named ? NAMED_REVEAL : MON_REVEAL; }
 // その魔物を倒した数 (図鑑の記録を読むだけ。記録を作らない)
 export function monKills(key) {
   const g = game.G;
