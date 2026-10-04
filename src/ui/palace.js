@@ -614,10 +614,13 @@ function renderAch(body) {
   const cards = game.achievementCards ? game.achievementCards() : [];
   const ready = cards.filter((c) => c.ready).length;
   const got = Object.keys(g.ach || {}).length;
-  // 受領数とまとめて拝受を1段に。勲章の総数・段の総数は見せない (どこまで先があるかは伏せる)
+  // 受領数・勲位とまとめて拝受を1段に。勲章の総数・段の総数は見せない (段はどの系統も尽きない)
   const top = el("div", "pl-top");
   const prog = el("div", "pl-prog");
-  prog.appendChild(el("div", "pl-prog-t", `受領した勲章 ${got}`));
+  const pt = el("div", "pl-prog-t", `受領した勲章 ${got}`);
+  const rank = game.medalRank ? game.medalRank(got) : null;
+  if (rank) pt.appendChild(el("span", "pl-prog-s", `勲位 ${rank.name}・次まで ${rank.next}`));
+  prog.appendChild(pt);
   top.appendChild(prog);
   const all = button({ label: ready ? `まとめて拝受 ${ready}` : "拝受できる勲章なし", kind: ready ? "primary" : "ghost", size: "sm", disabled: !ready, onTap: () => ops.claimAllAchievements() });
   all.classList.add("pl-top-b");
@@ -632,7 +635,9 @@ function renderAch(body) {
     const hidden = c.a.secret && !c.ready && !c.allDone;
     const t = el("div", "pl-ach-t");
     t.appendChild(setText(el("div", "pl-ach-n"), hidden ? "秘された勲章" : c.a.name));
-    t.appendChild(setText(el("div", "pl-ach-d"), hidden ? "その条件は、まだ闇の中にある" : c.a.desc));
+    // いまの値 (回数・種類) を添えて、次の段までの道のりを見せる
+    const now = !hidden && !c.ready && c.now != null ? `（いま ${c.now}）` : "";
+    t.appendChild(setText(el("div", "pl-ach-d"), hidden ? "その条件は、まだ闇の中にある" : c.a.desc + now));
     const meta = el("div", "pl-ach-m");
     if (c.total > 1) meta.appendChild(el("span", "pl-ach-tier", `段 ${c.tier}`));
     if (c.allDone) meta.appendChild(el("span", "pl-ach-got", "受領済"));

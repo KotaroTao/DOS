@@ -514,7 +514,7 @@ const G = {
   // 戦績。bossIds/elemKills は集合 ({key:true})、swiftBoss/masterMimicSlain は一度きりの達成フラグ
   stats: { runs: 0, deepest: 0, kills: 0, deaths: 0, soulsFound: 0, bossKills: 0,
     chests: 0, mimics: 0, trapsDisarmed: 0, trapsSprung: 0, fusions: 0, questsDone: 0, playMs: 0,
-    swiftBoss: false, masterMimicSlain: false, bossIds: {}, elemKills: {} },
+    elites: 0, metals: 0, swiftBoss: false, masterMimicSlain: false, bossIds: {}, elemKills: {} },
   battle: null,
   battleCell: null,   // 戦闘中のモンスターカード
   prevPos: null,      // 逃走時の戻り先
@@ -8735,6 +8735,8 @@ function endBattle() {
       if (e.element && e.element !== "none") G.stats.elemKills[e.element] = true; // 戦績: 撃破した属性 (勲章用)
       if (e.isMimic) G.stats.mimics++;                       // 戦績: ミミック撃破数
       if (e.isMasterMimic) G.stats.masterMimicSlain = true;  // 戦績: マスターミミック討伐 (一度きり)
+      if (e.mon && e.mon.elite) G.stats.elites = (G.stats.elites || 0) + 1; // 戦績: 精鋭撃破数
+      if (e.metal) G.stats.metals = (G.stats.metals || 0) + 1;               // 戦績: 金属の魔物の撃破数
       codexKillNow(e); // 図鑑は倒したその瞬間に記録済み (取りこぼしの保険。二重には数えない)
     }
     runCount("kills", kills);
@@ -10262,180 +10264,311 @@ function legacyToPage(page, { tab = "hub", seg = null, after = null } = {}) {
 }
 
 // ---- 実績 (勲章) ----
-// 戦績・図鑑・職業発見・育成に紐づく称号 (約120種)。達成すると王宮で報酬を受け取れる。
-// 「カテゴリ × 段階表」から一括登録する。cond は毎回評価する純粋関数なので
-// 追跡用の状態は不要 (G.ach は受領済みのみ記録)。ID はセーブに残るため変更禁止。
-const ACHIEVEMENTS = [];
+// 受領した勲章の数は「やり込みの度合い」を表す指標なので、早いうちに枯れないよう、どの系統も段が尽きない:
+//  ・回数の系統 (潜入・撃破・宝箱…) は手書きの段の先も、決まった刻み (more) で段が延々と続く
+//  ・中身の数の系統 (迷宮・魔物・品・出来事・主…) も刻みで続き、迷宮や魔物が増えれば届く段が増える
+//  ・「迷宮ごと・魔物ごと・職業ごと」の極め (N回踏破した迷宮の数 / N体倒した魔物の種類 / ランクNの職業の数) は
+//    中身が増えるほど伸びしろが広がる
+// 系統 (series) = 段の並び。勲章の間には系統ごとに「次の段」だけを1枠で出す。cond は毎回評価する純粋関数なので
+// 追跡用の状態は不要 (G.ach は受領済みの段の ID だけを記録)。ID はセーブに残るため変更禁止:
+// 手書きの段は旧来の ID、刻みで延びた段は `${系統}#${k}` (k = 手書きの最後の段から数えた番号)。
+//
+// 報酬の物差し: 迷宮の初踏破の報告 (msqReward) が 100〜350G・赤い魂 2〜10、第1章の迷宮をひと通り潜って得る金貨が 1万G ほど。
+// 序盤の段は 30〜150G (赤い魂なし〜1)、第1章の終わり頃に届く段で 300G・赤い魂2〜3、その先の段で 500G〜・赤い魂 3〜15。
+// 刻みで延びた段は、手書きの最後の段の報酬を k ごとに +30% (金貨・✦Soul)、赤い魂は +1 ずつ (上限 ACH_RED_CAP)。
+const ACH_SERIES = [];
+const ACH_GROW = 0.3;
+const ACH_RED_CAP = 20;
+const KANJI_D = ["", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+// 1〜9999 を漢数字に (段の名前「〜・其の十二」用)
+function kanjiNum(n) {
+  n = Math.max(1, Math.floor(n));
+  let s = "";
+  for (const [u, c] of [[1000, "千"], [100, "百"], [10, "十"]]) {
+    const d = Math.floor(n / u) % 10;
+    if (d) s += (d > 1 ? KANJI_D[d] : "") + c;
+  }
+  return s + KANJI_D[n % 10];
+}
+// 系統の第 i 段 (0 始まり)。尽きた系統は null。段は作るたびに覚えておく
+function achTier(s, i) {
+  if (s.tiers[i]) return s.tiers[i];
+  const rows = s.rows();
+  let row;
+  if (i < rows.length) row = { ...rows[i] };
+  else {
+    if (!s.more || !rows.length) return null;
+    const last = rows[rows.length - 1], k = i - rows.length + 1;
+    const prev = achTier(s, i - 1);
+    const v = s.more(prev.v, k);
+    if (v == null) return null;
+    const grow = (n) => (n ? Math.round(n * (1 + ACH_GROW * k) / 10) * 10 : 0);
+    row = { v, name: `${last.name}・其の${kanjiNum(k + 1)}`, id: `${s.key}#${k}`,
+      gold: grow(last.gold), red: last.red ? Math.min(ACH_RED_CAP, Math.max(last.red, last.red + k)) : 0, soul: grow(last.soul) };
+  }
+  const reward = {};
+  if (row.gold) reward.gold = row.gold;
+  if (row.red) reward.redSoul = row.red;
+  if (row.soul) reward.soulPts = row.soul;
+  const v = row.v;
+  const t = { id: row.id, name: row.name, desc: s.desc(v), v, reward, series: s.key,
+    cond: () => s.value() >= v, secret: !!(s.secret && s.secret(v)) };
+  // 中身の総数で決まる系統 (職業の数など) は、総数が変わった時に作り直せるよう覚えない
+  if (!s.dynamic) s.tiers[i] = t;
+  return t;
+}
+// 系統の次の段 (受領していない最初の段)。全段を受領した有限の系統は {done:true, tier:最後の段}
+function achNext(s) {
+  for (let i = 0; i < 100000; i++) {
+    const t = achTier(s, i);
+    if (!t) return { done: true, i: i - 1, tier: achTier(s, i - 1) };
+    if (!G.ach[t.id]) return { done: false, i, tier: t };
+  }
+  return { done: true, i: 0, tier: achTier(s, 0) };
+}
 {
-  const push = (id, name, desc, cond, gold, redSoul, series, soulPts) => {
-    const reward = {};
-    if (gold) reward.gold = gold;
-    if (redSoul) reward.redSoul = redSoul;
-    if (soulPts) reward.soulPts = soulPts;
-    ACHIEVEMENTS.push({ id, name, desc, cond, reward, series: series || id });
+  // series(key, rows, desc, value, opt)
+  //   rows  = [しきい値, 称号, gold, redSoul, soulPts, id?][] (gold以降は省略可。id 省略時は opt.id(v))
+  //   value = いまの値 (数) を返す関数。段は value() >= しきい値 で達成
+  //   opt.more(v, k) = 手書きの段の先のしきい値 (前の段のしきい値 v → 次)。無ければ有限の系統
+  //   opt.id(v) = 手書きの段の ID / opt.secret(v) = 達成するまで伏せる段 / opt.dynamic = 段を覚えない
+  //   opt.flag = 一度きりの達成 (いまの値を出さない)
+  const series = (key, rows, desc, value, opt = {}) => {
+    const idOf = opt.id || ((v) => `${key}${v}`);
+    const norm = (r) => ({ v: r[0], name: r[1], gold: r[2] || 0, red: r[3] || 0, soul: r[4] || 0, id: r[5] || idOf(r[0]) });
+    const fixed = typeof rows === "function" ? null : rows.map(norm);
+    ACH_SERIES.push({ key, desc, value, more: opt.more || null, secret: opt.secret || null, dynamic: !!opt.dynamic,
+      flag: !!opt.flag, tiers: [], rows: fixed ? () => fixed : () => rows().map(norm) });
   };
-  // 段階表: rows = [しきい値, 称号, gold, redSoul, soulPts][] (gold以降は省略可)
-  // 同じ段階表の勲章は series で束ね、勲章の間では「次の段階」だけを1枠に表示する
-  const tiers = (idOf, rows, descOf, condOf) =>
-    rows.forEach(([v, name, gold, redSoul, soulPts]) => push(idOf(v), name, descOf(v), () => condOf(v), gold, redSoul, idOf(rows[0][0]), soulPts));
-  const allDolls = () => [...(G.party || []), ...(G.reserve || [])];
+  // 一度きりの勲章 (段は1つ)
+  const once = (id, name, desc, cond, gold, red, soul) =>
+    series(id, [[1, name, gold, red, soul, id]], () => desc, () => (cond() ? 1 : 0), { flag: true });
+  const step = (n) => (v) => v + n;       // 一定の刻みで続く
+  const dbl = (v) => v * 2;               // 倍々で続く (貯蔵)
   const allSouls = () => (G.souls || []);
   const monSeen = () => Object.keys(G.codex.mon).filter((k) => MONSTERS[k]).length;
   const itemSeen = () => Object.keys(G.codex.item).filter((k) => ITEMS[k]).length;
+  const itemSeenOf = (rar) => Object.keys(G.codex.item).filter((k) => ITEMS[k] && ITEMS[k].rar === rar).length;
   const hybSeen = () => Object.keys(G.codex.job).filter((k) => SOUL_CLASSES[k]).length;
+  const JOB_TOTAL = () => Object.keys(SOUL_CLASSES).length; // 全職業数 (いまは36)
+  // 職業ごとの最高ランク / 最高Lv (同じ職の魂が複数あれば高い方)
+  const jobsAtRank = (r) => new Set(allSouls().filter((s) => soulRankFromCount(s.clsKey, s.count) >= r).map((s) => s.clsKey)).size;
+  const jobsAtLv = (lv) => new Set(allSouls().filter((s) => (s.level || 1) >= lv).map((s) => s.clsKey)).size;
+  // 職業の数の段: 指定の段のうち総数未満のもの + 総数ちょうど (最後の段は総数に合わせて動き、達成まで伏せる)
+  // (最後の段の旧ID は総数が36の時だけ。職業が増えたら総数ごとの新しい段になる)
+  const jobRows = (list, lastName, lastRw, lastId) => () => {
+    const T = JOB_TOTAL();
+    const last = [T, lastName, ...lastRw];
+    while (last.length < 5) last.push(0);
+    if (lastId && T === 36) last.push(lastId);
+    return [...list.filter((r) => r[0] < T), last];
+  };
+  const jobOpt = (key) => ({ id: (v) => `${key}_${v}`, dynamic: true, secret: (v) => v >= JOB_TOTAL() });
+  const monKilledAtLeast = (n) => Object.keys(G.codex.mon).filter((k) => MONSTERS[k] && (G.codex.mon[k].kills || 0) >= n).length;
+  const dunClearedAtLeast = (n) => { const c = worldState().cleared; return DUNGEONS.filter((d) => (c[d.id] || 0) >= n).length; };
+  const eventsSeen = () => Object.keys((G.events && G.events.seen) || {}).length;
 
-  // 報酬の物差し (2026-10 見直し): 迷宮の初踏破の報告 (msqReward) が 100〜350G・赤い魂 2〜10、
-  // 第1章の迷宮をひと通り潜って得る金貨が 1万G ほど。勲章はそれを上回らないよう、
-  // 序盤の段は 30〜150G (赤い魂なし〜1)、第1章の終わり頃に届く段で 300G・赤い魂2〜3、
-  // その先 (いまの迷宮の外) の段で 500G〜・赤い魂 3〜15 に抑える。
-  // 段は「節目」だけに置く (1階ごと・数回ごとに鳴らない)。消した段の ID は受領済みとして残るだけで害はない
-
-  // 潜入回数 (6)
-  tiers((v) => `run${v}`, [
+  // ── 探索 ──
+  // 潜入回数
+  series("run", [
     [1, "初陣", 30], [10, "迷宮通い", 100], [25, "迷宮の住人", 150, 1], [50, "深淵の常連", 300, 2],
     [100, "百度参り", 600, 3], [200, "迷宮に魅入られた者", 1200, 5], [500, "帰らずの探索者", 3000, 10],
-  ], (v) => `迷宮に ${v}回 潜る`, (v) => G.stats.runs >= v);
+  ], (v) => `迷宮に ${v}回 潜る`, () => G.stats.runs, { more: step(250) });
 
-  // 撃破数 (6)
-  tiers((v) => (v === 5000 ? "kill5k" : `kill${v}`), [
-    [50, "首狩り", 50], [250, "戦場の影", 150, 1], [1000, "千の骸", 400, 3], [2500, "屍山血河", 800, 5],
-    [5000, "千殺の操霊師", 1500, 8], [10000, "万骨の上に立つ者", 3000, 15],
-  ], (v) => `敵を ${v}体 倒す`, (v) => G.stats.kills >= v);
-
-  // 主討伐 (6) — 同じ主を何度討っても数える
-  tiers((v) => `boss${v}`, [
-    [1, "主殺し", 100, 1], [5, "玉座荒らし", 250, 2], [10, "玉座のさんだつ者", 400, 3],
-    [20, "主喰らい", 800, 5], [50, "王なき迷宮", 1500, 8], [100, "玉座の墓守", 3000, 15],
-  ], (v) => `迷宮の主を ${v}体 討つ`, (v) => G.stats.bossKills >= v);
-
-  // 到達最深階 (6) — 帰還の門 (5階ごと) に合わせた節目。20階より先は奈落か、これから増える深い迷宮で
-  tiers((v) => `deep${v}`, [
+  // 到達最深階 — 帰還の門 (5階ごと) に合わせた節目。20階より先は奈落か、これから増える深い迷宮で
+  series("deep", [
     [5, "底知らず", 50], [10, "闇の淵", 150, 1], [15, "光の届かぬ場所", 250, 2],
     [20, "闇に溶ける者", 500, 3], [30, "奈落の踏破者", 1000, 5], [50, "底なき底", 2000, 10],
-  ], (v) => `地下 ${v}階 に到達する`, (v) => G.stats.deepest >= v);
+  ], (v) => `地下 ${v}階 に到達する`, () => G.stats.deepest, { more: step(25) });
 
-  // 魂の回収 (6)
-  tiers((v) => `soul${v}`, [
-    [10, "魂集め", 80], [50, "魂の商人", 200, 1], [100, "千魂の器", 400, 2], [250, "魂の収集家", 800, 4],
-    [500, "魂の大河", 1500, 8], [1000, "魂の海", 3000, 15],
-  ], (v) => `魂を ${v}個 回収する`, (v) => G.stats.soulsFound >= v);
-
-  // 喪失 (5) — 敗北の数だけ強くなる (慰めの品。砕けるほど得をしないよう控えめに)
-  tiers((v) => `death${v}`, [
-    [1, "初めての喪失", 30], [10, "不屈の心", 100], [25, "砕けても なお", 200, 1],
-    [50, "屍を越えて", 400, 2], [100, "喪失の果てに", 800, 3],
-  ], (v) => `人業が ${v}体 砕ける`, (v) => G.stats.deaths >= v);
-
-  // 迷宮踏破 (13)。旧ID互換のため id は dun{踏破数+1}。初踏破は王への報告でも報われるので、勲章は節目の上乗せ
-  tiers((v) => `dun${v + 1}`, [
+  // 迷宮踏破 (旧ID互換のため id は dun{踏破数+1})。初踏破は王への報告でも報われるので、勲章は節目の上乗せ
+  series("dun", [
     [1, "最初の踏破", 100], [5, "五つの迷宮", 300, 3], [10, "十の迷宮を越えて", 500, 5], [20, "異界の旅人", 800, 5],
     [30, "迷宮の覇者", 1200, 8], [40, "迷宮の地図屋", 1500, 8], [50, "五十の碑", 2000, 10],
     [60, "深層の覇者", 2500, 10], [70, "終わりの始まり", 3000, 12], [80, "終末の歩み", 3500, 12],
-    [90, "冥府の門前", 4000, 15], [95, "冥府の深奥", 4500, 15], [99, "終焉を望む者", 5000, 20],
-  ], (v) => `迷宮を ${v} 踏破する`, (v) => clearedDungeonCount() >= v);
+    [90, "冥府の門前", 4000, 15], [100, "百の迷宮を越えし者", 5000, 15],
+  ], (v) => `迷宮を ${v} 踏破する`, () => clearedDungeonCount(), { id: (v) => `dun${v + 1}`, more: step(10) });
 
-  // モンスター図鑑 (6) — 迷宮ひとつで 6〜12種 に出会う
-  tiers((v) => `mon${v}`, [
+  // 迷宮ごとの極め — 同じ迷宮を何度も踏破する (迷宮が増えるほど伸びしろが広がる)
+  series("dr3_", [
+    [1, "通い慣れた道", 80], [3, "勝手知ったる迷宮", 200, 1], [5, "迷宮の古株", 400, 2], [10, "地図いらず", 800, 4],
+  ], (v) => `3回以上 踏破した迷宮を ${v}つ にする`, () => dunClearedAtLeast(3), { more: step(5) });
+  series("dr10_", [
+    [1, "迷宮を極めし者", 300, 2], [3, "庭のごとく", 600, 3], [5, "迷宮の番人", 1000, 5], [10, "迷宮に棲む者", 2000, 8],
+  ], (v) => `10回以上 踏破した迷宮を ${v}つ にする`, () => dunClearedAtLeast(10), { more: step(5) });
+
+  // 宝箱開封
+  series("chest", [
+    [10, "宝箱漁り", 50], [50, "財宝の嗅覚", 150, 1], [200, "蔵荒らし", 400, 3], [500, "宝箱の王", 1000, 6],
+  ], (v) => `宝箱を ${v}回 開ける`, () => G.stats.chests || 0, { more: step(500) });
+
+  // 罠解除 — 盗賊の見せ場
+  series("disarm", [
+    [10, "罠外し", 60], [50, "罠師の目", 200, 1], [150, "罠殺し", 500, 3], [400, "全ての罠を見抜く者", 1200, 6],
+  ], (v) => `罠を ${v}回 解除する`, () => G.stats.trapsDisarmed || 0, { more: step(400) });
+
+  // 罠の被害 — 痛い目を見た数だけ語れる (踏むほど得をしないよう控えめに)
+  series("trapped", [
+    [10, "うっかり者", 50], [50, "痛みを知る者", 150], [150, "罠の常連", 300, 1],
+  ], (v) => `罠を ${v}回 踏み抜く`, () => G.stats.trapsSprung || 0, { more: step(150) });
+
+  // 出来事 (見聞録) — 迷宮の出来事に出会った種類 (出来事が増えるほど伸びる)
+  series("ev", [
+    [5, "噂を確かめる者", 60], [10, "見聞の徒", 150], [20, "迷宮の語り部", 300, 1], [30, "奇譚の蒐集家", 500, 2],
+    [50, "見聞録の主", 1000, 4],
+  ], (v) => `迷宮の出来事に ${v}種 出会う`, eventsSeen, { more: step(10) });
+
+  // ── 戦い ──
+  // 撃破数
+  series("kill", [
+    [50, "首狩り", 50], [250, "戦場の影", 150, 1], [1000, "千の骸", 400, 3], [2500, "屍山血河", 800, 5],
+    [5000, "千殺の操霊師", 1500, 8, 0, "kill5k"], [10000, "万骨の上に立つ者", 3000, 15],
+  ], (v) => `敵を ${v}体 倒す`, () => G.stats.kills, { more: step(5000) });
+
+  // 魔物ごとの極め — 同じ種類を何体も倒す (魔物が増えるほど伸びしろが広がる)
+  series("mk10_", [
+    [10, "狩りの手ほどき", 80], [25, "狩人の目", 200, 1], [50, "魔物狩りの名手", 400, 2], [100, "百種狩り", 800, 4],
+    [150, "群れを散らす者", 1200, 5], [200, "異形を狩り尽くす者", 1600, 6],
+  ], (v) => `10体以上 倒した魔物を ${v}種 にする`, () => monKilledAtLeast(10), { more: step(50) });
+  series("mk100_", [
+    [1, "宿敵", 150, 1], [5, "天敵", 400, 2], [10, "根絶やしの刃", 800, 4], [25, "種を絶つ者", 1500, 6], [50, "百鬼の天敵", 2500, 10],
+  ], (v) => `100体以上 倒した魔物を ${v}種 にする`, () => monKilledAtLeast(100), { more: step(25) });
+
+  // 主討伐 — 同じ主を何度討っても数える
+  series("boss", [
+    [1, "主殺し", 100, 1], [5, "玉座荒らし", 250, 2], [10, "玉座のさんだつ者", 400, 3],
+    [20, "主喰らい", 800, 5], [50, "王なき迷宮", 1500, 8], [100, "玉座の墓守", 3000, 15],
+  ], (v) => `迷宮の主を ${v}体 討つ`, () => G.stats.bossKills, { more: step(50) });
+
+  // 主の種類 — 迷宮の主を種類で数える (主のいる迷宮が増えるほど伸びる)
+  series("lboss", [
+    [3, "主の覇者", 300, 3], [7, "幾多の主を討つ者", 700, 5], [13, "玉座の収集家", 1500, 8], [20, "深淵の玉座を統べる者", 3000, 15],
+  ], (v) => `迷宮の主を ${v}種 討伐する`, () => Object.keys(G.stats.bossIds || {}).length, { more: step(5) });
+
+  // 精鋭撃破
+  series("elite", [
+    [1, "精鋭狩り", 100], [10, "猛者を退ける者", 300, 2], [30, "精鋭殺し", 600, 3], [100, "強者の墓標", 1500, 6],
+  ], (v) => `精鋭を ${v}体 倒す`, () => G.stats.elites || 0, { more: step(100) });
+
+  // ミミック撃破
+  series("mimic", [
+    [1, "化け箱殺し", 80], [10, "擬態の天敵", 300, 2], [50, "ミミックの宿敵", 1000, 5],
+  ], (v) => `ミミックを ${v}体 倒す`, () => G.stats.mimics || 0, { more: step(50) });
+
+  // 金属の魔物 (銀業・金業・銀業の王) — 逃げ去ったものは数えない
+  series("metal", [
+    [1, "銀を砕く者", 150, 1], [10, "銀業狩り", 500, 3], [30, "白銀の狩人", 1000, 5], [100, "銀業の天敵", 2500, 10],
+  ], (v) => `金属の魔物を ${v}体 倒す`, () => G.stats.metals || 0, { more: step(50) });
+
+  // 喪失 — 敗北の数だけ強くなる (慰めの品。砕けるほど得をしないよう控えめに)
+  series("death", [
+    [1, "初めての喪失", 30], [10, "不屈の心", 100], [25, "砕けても なお", 200, 1],
+    [50, "屍を越えて", 400, 2], [100, "喪失の果てに", 800, 3],
+  ], (v) => `人業が ${v}体 砕ける`, () => G.stats.deaths, { more: step(100) });
+
+  // ── 収集 ──
+  // モンスター図鑑 — 迷宮ひとつで 6〜12種 に出会う
+  series("mon", [
     [10, "魔物の観察者", 50], [30, "魔物の目利き", 150, 1], [60, "魔物学の徒", 300, 2],
     [100, "深淵の博物学者", 600, 4], [150, "異形の語り部", 1200, 6], [250, "百鬼を記す者", 2000, 10],
-  ], (v) => `モンスター図鑑 ${v}種`, (v) => monSeen() >= v);
+  ], (v) => `モンスター図鑑 ${v}種`, monSeen, { more: step(50) });
 
-  // アイテム図鑑 (6)
-  tiers((v) => `item${v}`, [
+  // アイテム図鑑
+  series("item", [
     [25, "目利き見習い", 80], [50, "収集家", 150, 1], [100, "蔵の主", 300, 2],
     [150, "宝物庫の主", 500, 3], [250, "伝説の収集家", 1000, 5], [350, "千の宝を知る者", 2000, 10],
-  ], (v) => `アイテム図鑑 ${v}種`, (v) => itemSeen() >= v);
+  ], (v) => `アイテム図鑑 ${v}種`, itemSeen, { more: step(100) });
 
-  // 職業発現 (6) — 最初の4体ぶんは始めから持っているので 6種から
-  tiers((v) => `hyb${v}`, [
+  // スーパーレア / レジェンドレアの図鑑 (LR は遊んだ時間で落ちる1点もの。いつまでも少しずつ届く)
+  series("sr", [
+    [3, "橙の輝き", 150, 1], [10, "名品の目利き", 400, 2], [25, "名品の蒐集家", 800, 4], [50, "百名品の主", 1500, 6],
+  ], (v) => `スーパーレアの品を ${v}種 図鑑に記す`, () => itemSeenOf("sr"), { more: step(25) });
+  series("lr", [
+    [1, "伝説との邂逅", 300, 3], [3, "伝説を携える者", 800, 5], [5, "伝説の担い手", 1500, 8], [10, "伝説を統べる者", 3000, 12],
+  ], (v) => `レジェンドレアの品を ${v}種 図鑑に記す`, () => itemSeenOf("lr"), { more: step(5) });
+
+  // 魂の回収
+  series("soul", [
+    [10, "魂集め", 80], [50, "魂の商人", 200, 1], [100, "千魂の器", 400, 2], [250, "魂の収集家", 800, 4],
+    [500, "魂の大河", 1500, 8], [1000, "魂の海", 3000, 15],
+  ], (v) => `魂を ${v}個 回収する`, () => G.stats.soulsFound, { more: step(500) });
+
+  // 職業発現 — 最初の4体ぶんは始めから持っているので 6種から。最後の段は職業の総数 (達成まで伏せる)
+  series("hyb", jobRows([
     [6, "職業の解放者", 100], [12, "職業の織り手", 250, 1], [18, "魂の錬金術師", 400, 2],
-    [24, "異端の指導者", 700, 3], [30, "万職の祖", 1000, 5], [36, "万魂の支配者", 2000, 10],
-  ], (v) => `${v}種の職業を発現させる`, (v) => hybSeen() >= v);
+    [24, "異端の指導者", 700, 3], [30, "万職の祖", 1000, 5],
+  ], "万魂の支配者", [2000, 10], "hyb36"), (v) => `${v}種の職業を発現させる`, hybSeen, { ...jobOpt("hyb"), id: (v) => `hyb${v}` });
 
-  // 蓄財 (4) — 受領時にも所持金を再判定する
-  tiers((v) => `gold${v}`, [
-    [1000, "小金持ち", 0, 1], [5000, "商人の財布", 0, 2], [20000, "貴族の財", 0, 4], [100000, "王より富める者", 0, 10],
-  ], (v) => `所持金 ${v}G を貯める`, (v) => G.gold >= v);
+  // ── 育成 ──
+  // 魂のLv (キャラLv = 宿した魂のLv)。魂の残火で上限を上げれば 100 の先へも続く
+  series("lv", [
+    [10, "駆け出しの職人", 50, 0, 0, "jlv10"], [20, "熟練の域", 150, 1, 0, "jlv20"], [30, "達人の域", 300, 2, 0, "jlv30"],
+    [40, "名人の域", 600, 3, 0, "jlv40"], [50, "神域", 1000, 5, 0, "jlv50"],
+    [70, "限界の先へ", 1500, 6, 0, "slv70"], [100, "魂の深奥", 3000, 10, 0, "slv100"],
+  ], (v) => `魂を Lv${v} まで育てる`, () => allSouls().reduce((m, s) => Math.max(m, s.level || 1), 0), { more: step(10) });
 
-  // Soul・赤い魂の貯蔵 (4)
-  tiers((v) => `sp${v}`, [[500, "魂の貯蔵庫", 50], [5000, "魂の泉", 300, 2]],
-    (v) => `✦Soul を ${v} 貯める`, (v) => G.soulPts >= v);
-  tiers((v) => `rs${v}`, [[100, "赤の収集者", 200], [500, "緋色の王", 1000]],
-    (v) => `赤い魂を ${v} 集める`, (v) => G.redSoul >= v);
+  // 職業の覚醒と位階 — ランクN以上に育てた職業の数 (職業ごとの極め)。最後の段は職業の総数 (達成まで伏せる)
+  series("awk", jobRows([
+    [6, "六魂の覚醒", 300, 2, 0, "await6"], [12, "十二魂の覚醒", 600, 3], [18, "十八魂の覚醒", 1000, 5, 200, "await18"],
+    [24, "二十四魂の覚醒", 1500, 6, 200], [30, "三十魂の覚醒", 2000, 8, 300],
+  ], "万魂覚醒の祖", [3000, 15, 500], "awakeAll"), (v) => `${v}種の職業をランク2以上に覚醒させる`, () => jobsAtRank(2), jobOpt("awk"));
+  series("jr3", jobRows([
+    [1, "位階を昇る者", 150, 1, 0, "jrank3"], [3, "三つの位階", 400, 2], [6, "位階の導き手", 800, 3], [12, "位階の織り手", 1500, 5],
+    [18, "位階の守り手", 2000, 6], [24, "位階の司", 2500, 8],
+  ], "万職の位階", [4000, 12]), (v) => (v === 1 ? "職業をランク3に育てる" : `${v}種の職業をランク3以上に育てる`), () => jobsAtRank(3), jobOpt("jr3"));
+  series("jr4", jobRows([
+    [1, "高位の操霊師", 400, 3, 0, "jrank4"], [3, "高位の三魂", 1000, 5], [6, "高位の六魂", 1800, 6], [12, "高位の十二魂", 3000, 8],
+    [24, "高位の群れ", 4500, 10],
+  ], "万職の高み", [6000, 15]), (v) => (v === 1 ? "職業をランク4に育てる" : `${v}種の職業をランク4以上に育てる`), () => jobsAtRank(4), jobOpt("jr4"));
+  series("jr5", jobRows([
+    [1, "極みに至る者", 1000, 6, 0, "jrank5"], [3, "三つの極み", 2500, 8], [6, "極みの六魂", 4000, 10], [12, "極みの十二魂", 6000, 12],
+    [24, "極みの群れ", 9000, 15],
+  ], "万職の極み", [12000, 20]), (v) => (v === 1 ? "職業をランク5に育てる" : `${v}種の職業をランク5に育てる`), () => jobsAtRank(5), jobOpt("jr5"));
+  // Lv100 に届いた職業の数
+  series("jl100", jobRows([
+    [1, "百の頂", 1000, 5], [3, "三つの頂", 2000, 6], [6, "六つの頂", 3000, 8], [12, "十二の頂", 5000, 10], [24, "頂の連なり", 8000, 12],
+  ], "万職の頂", [12000, 20]), (v) => (v === 1 ? "職業の魂を Lv100 まで育てる" : `${v}種の職業の魂を Lv100 まで育てる`), () => jobsAtLv(100), jobOpt("jl100"));
 
-  // 育成: 職業ランク / キャラLv / 魂レベル (10)。キャラLv = 宿した魂のLv なので、魂レベルの段は キャラLv の先 (70/100) だけ
-  tiers((v) => `jrank${v}`, [[3, "位階を昇る者", 150, 1], [4, "高位の操霊師", 400, 3], [5, "極みに至る者", 1000, 6]],
-    (v) => `職業ランク ${v} の人業を持つ`, (v) => allDolls().some((d) => (d.jobRank || 0) >= v));
-  tiers((v) => `jlv${v}`, [
-    [10, "駆け出しの職人", 50], [20, "熟練の域", 150, 1], [30, "達人の域", 300, 2],
-    [40, "名人の域", 600, 3], [50, "神域", 1000, 5],
-  ], (v) => `キャラLv ${v} に到達する`, (v) => allDolls().some((d) => (d.jobLv || 0) >= v));
-  tiers((v) => `slv${v}`, [[70, "限界の先へ", 1500, 6], [100, "魂の深奥", 3000, 10]],
-    (v) => `Lv${v} の魂を育てる`, (v) => allSouls().some((s) => (s.level || 1) >= v));
-
-  // ── 探索の所作 (A: これまで未計測だった行動を勲章化) ──
-  // 宝箱開封 (4)
-  tiers((v) => `chest${v}`, [
-    [10, "宝箱漁り", 50], [50, "財宝の嗅覚", 150, 1], [200, "蔵荒らし", 400, 3], [500, "宝箱の王", 1000, 6],
-  ], (v) => `宝箱を ${v}回 開ける`, (v) => (G.stats.chests || 0) >= v);
-
-  // 罠解除 (4) — 盗賊の見せ場
-  tiers((v) => `disarm${v}`, [
-    [10, "罠外し", 60], [50, "罠師の目", 200, 1], [150, "罠殺し", 500, 3], [400, "全ての罠を見抜く者", 1200, 6],
-  ], (v) => `罠を ${v}回 解除する`, (v) => (G.stats.trapsDisarmed || 0) >= v);
-
-  // 罠の被害 (3) — 痛い目を見た数だけ語れる (踏むほど得をしないよう控えめに)
-  tiers((v) => `trapped${v}`, [
-    [10, "うっかり者", 50], [50, "痛みを知る者", 150], [150, "罠の常連", 300, 1],
-  ], (v) => `罠を ${v}回 踏み抜く`, (v) => (G.stats.trapsSprung || 0) >= v);
-
-  // 魂の融合 (4)
-  tiers((v) => `fuse${v}`, [
+  // 魂の融合
+  series("fuse", [
     [1, "はじめての融合", 50], [10, "魂の鍛冶", 200, 1], [50, "融合の達人", 600, 3], [150, "魂を束ねる者", 1500, 6],
-  ], (v) => `魂を ${v}回 融合する`, (v) => (G.stats.fusions || 0) >= v);
+  ], (v) => `魂を ${v}回 融合する`, () => G.stats.fusions || 0, { more: step(100) });
 
-  // 依頼の達成 (4) — 酒場のクエスト (帰るたびに掲示板が貼り替わるので、数は伸びやすい)
-  tiers((v) => `quest${v}`, [
+  // 依頼の達成 — 酒場のクエスト (帰るたびに掲示板が貼り替わるので、数は伸びやすい)
+  series("quest", [
     [5, "駆け出しの請負人", 80], [25, "酒場の常連", 250, 1], [75, "万能の請負人", 600, 3], [200, "伝説の請負人", 1500, 6],
-  ], (v) => `依頼を ${v}件 達成する`, (v) => (G.stats.questsDone || 0) >= v);
+  ], (v) => `依頼を ${v}件 達成する`, () => G.stats.questsDone || 0, { more: step(100) });
 
-  // ミミック撃破 (3)
-  tiers((v) => `mimic${v}`, [
-    [1, "化け箱殺し", 80], [10, "擬態の天敵", 300, 2], [50, "ミミックの宿敵", 1000, 5],
-  ], (v) => `ミミックを ${v}体 倒す`, (v) => (G.stats.mimics || 0) >= v);
+  // ── 蓄え ── (受領時にも所持数を再判定する。倍々で続く)
+  series("gold", [
+    [1000, "小金持ち", 0, 1], [5000, "商人の財布", 0, 2], [20000, "貴族の財", 0, 4], [100000, "王より富める者", 0, 10],
+  ], (v) => `所持金 ${v}G を貯める`, () => G.gold, { more: dbl });
+  series("sp", [[500, "魂の貯蔵庫", 50], [5000, "魂の泉", 300, 2]],
+    (v) => `✦Soul を ${v} 貯める`, () => G.soulPts, { more: dbl });
+  series("rs", [[100, "赤の収集者", 200], [500, "緋色の王", 1000]],
+    (v) => `赤い魂を ${v} 集める`, () => G.redSoul, { more: dbl });
 
-  // 主の種類 (4) — 迷宮の主を種類で数える (主殺し の段は同じ主の再戦も数える)
-  const bossKinds = () => Object.keys(G.stats.bossIds || {}).length;
-  tiers((v) => `lboss${v}`, [
-    [3, "主の覇者", 300, 3], [7, "幾多の主を討つ者", 700, 5], [13, "玉座の収集家", 1500, 8], [20, "深淵の玉座を統べる者", 3000, 15],
-  ], (v) => `迷宮の主を ${v}種 討伐する`, (v) => bossKinds() >= v);
+  // ── 一度きり ──
+  once("party6", "六人の隊列", "人業 6体 で編成する", () => G.party.length >= 6, 200);
+  once("swiftBoss", "電光石火", "迷宮の主を 1ラウンド で討ち取る", () => !!G.stats.swiftBoss, 500, 3, 100);
+  once("masterMimic", "黄金を喰らう者", "マスターミミックを討ち取る", () => !!G.stats.masterMimicSlain, 600, 3, 150);
+  once("allElements", "六属を統べる者", "火・水・風・土・光・闇 すべての属性の敵を倒す",
+    () => ["fire", "water", "wind", "earth", "light", "dark"].every((el) => G.stats.elemKills && G.stats.elemKills[el]), 400, 2, 100);
+}
 
-  // ── 一点物・チャレンジ (B) ──
-  push("party6", "六人の隊列", "人業 6体 で編成する", () => G.party.length >= 6, 200);
-  push("swiftBoss", "電光石火", "迷宮の主を 1ラウンド で討ち取る",
-    () => !!G.stats.swiftBoss, 500, 3, null, 100);
-  push("masterMimic", "黄金を喰らう者", "マスターミミックを討ち取る",
-    () => !!G.stats.masterMimicSlain, 600, 3, null, 150);
-  push("allElements", "六属を統べる者", "火・水・風・土・光・闇 すべての属性の敵を倒す",
-    () => ["fire", "water", "wind", "earth", "light", "dark"].every((el) => G.stats.elemKills && G.stats.elemKills[el]),
-    400, 2, null, 100);
-
-  // ── コンプリート (C) ── 達成可能な収集の最終目標
-  const JOB_TOTAL = Object.keys(SOUL_CLASSES).length; // 全職業数 (=36)
-  const awakenedJobs = () => new Set(allSouls().filter((s) => soulRankFromCount(s.clsKey, s.count) >= 2).map((s) => s.clsKey)).size;
-  push("await6", "六魂の覚醒", "6種の職業をランク2以上に覚醒させる",
-    () => awakenedJobs() >= 6, 300, 2);
-  push("await18", "十八魂の覚醒", "18種の職業をランク2以上に覚醒させる",
-    () => awakenedJobs() >= 18, 1000, 5, null, 200);
-  push("awakeAll", "万魂覚醒の祖", "すべての職業をランク2以上に覚醒させる",
-    () => awakenedJobs() >= JOB_TOTAL, 3000, 15, null, 500);
-
-  // ── 秘された勲章 ── 職業の総数に届く段は、達成するまで名も条件も伏せる
-  // (勲章から「職業がいくつあるか」を数えられないように。迷宮と主は地図とともに増え続けるので伏せない)
-  for (const id of ["hyb36", "awakeAll"]) {
-    const a = ACHIEVEMENTS.find((x) => x.id === id);
-    if (a) a.secret = true;
+// 勲位: 受領した勲章の数で決まる位 (やり込みの度合い)。決まった位の先も「・其の二」…と続く
+const MEDAL_RANKS = [[0, "無位"], [10, "銅章"], [25, "銀章"], [50, "金章"], [80, "白金章"], [120, "紅玉章"], [170, "蒼玉章"],
+  [230, "翠玉章"], [300, "金剛章"]];
+const MEDAL_RANK_STEP = 100;
+function medalRank(n = Object.keys(G.ach || {}).length) {
+  const last = MEDAL_RANKS[MEDAL_RANKS.length - 1];
+  if (n < last[0]) {
+    let i = 0;
+    while (i + 1 < MEDAL_RANKS.length && MEDAL_RANKS[i + 1][0] <= n) i++;
+    return { name: MEDAL_RANKS[i][1], next: MEDAL_RANKS[i + 1][0] - n, count: n };
   }
+  const k = Math.floor((n - last[0]) / MEDAL_RANK_STEP);
+  return { name: k ? `${last[1]}・其の${kanjiNum(k + 1)}` : last[1], next: last[0] + (k + 1) * MEDAL_RANK_STEP - n, count: n };
 }
 
 function claimAchievement(a) {
@@ -10453,21 +10586,15 @@ function claimAchievement(a) {
   renderTown();
 }
 
-// 勲章の札: 段階表 (series) を1枠に束ね、受領済みの次の段階だけを出す。全段階を受領し終えた series は
-// 最終段階を「受領済」として残す。並びは「拝受できる → 未達成 → 受領済」(同順位は定義順)
+// 勲章の札: 系統ごとに受領していない次の段だけを1枠に出す。全段を受領し終えた有限の系統は
+// 最後の段を「受領済」として残す。並びは「拝受できる → 未達成 → 受領済」(同順位は定義順)
 function achievementCards() {
-  const groups = [];
-  const byKey = {};
-  for (const a of ACHIEVEMENTS) {
-    let g = byKey[a.series];
-    if (!g) { g = []; byKey[a.series] = g; groups.push(g); }
-    g.push(a);
-  }
-  const cards = groups.map((g) => {
-    const idx = g.findIndex((a) => !G.ach[a.id]);
-    const allDone = idx < 0;
-    const a = allDone ? g[g.length - 1] : g[idx];
-    return { a, tier: allDone ? g.length : idx + 1, total: g.length, allDone, ready: !allDone && a.cond() };
+  const cards = ACH_SERIES.map((s) => {
+    const n = achNext(s);
+    const a = n.tier;
+    const ready = !n.done && a.cond();
+    return { a, tier: n.i + 1, total: s.more ? Infinity : s.rows().length, allDone: n.done, ready,
+      now: s.flag || n.done ? null : s.value() };
   });
   const ord = (c) => (c.allDone ? 2 : c.ready ? 0 : 1);
   return cards.sort((x, y) => ord(x) - ord(y));
@@ -13166,7 +13293,7 @@ function loadGame() {
   // 後付けの戦績フィールドを既存セーブにも補完する (勲章 cond が参照する)
   const _statDefaults = { runs: 0, deepest: 0, kills: 0, deaths: 0, soulsFound: 0, bossKills: 0,
     chests: 0, mimics: 0, trapsDisarmed: 0, trapsSprung: 0, fusions: 0, questsDone: 0, playMs: 0,
-    swiftBoss: false, masterMimicSlain: false };
+    elites: 0, metals: 0, swiftBoss: false, masterMimicSlain: false };
   for (const k in _statDefaults) if (G.stats[k] == null) G.stats[k] = _statDefaults[k];
   if (!G.stats.bossIds || typeof G.stats.bossIds !== "object") G.stats.bossIds = {};
   if (!G.stats.elemKills || typeof G.stats.elemKills !== "object") G.stats.elemKills = {};
@@ -13318,12 +13445,10 @@ function opsJunkList({ includeUse = false } = {}) {
 }
 // 拝受できる勲章 (段階表は「次の段階」だけ。勲章の間と同じ判定)
 function opsClaimableAchievements() {
-  const seen = new Set();
   const out = [];
-  for (const a of ACHIEVEMENTS) {
-    if (seen.has(a.series) || G.ach[a.id]) continue;
-    seen.add(a.series);
-    if (a.cond()) out.push(a);
+  for (const s of ACH_SERIES) {
+    const n = achNext(s);
+    if (!n.done && n.tier.cond()) out.push(n.tier);
   }
   return out;
 }
@@ -13709,7 +13834,7 @@ function wireUI() {
     repairDoll, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,
     doEquip, doUnequip, equipFromAnywhere, openEquipChooser, useItem, dropItem, transferItem,
     stopAutoCombat, sceneBgm, playBgm, SFX,
-    ACHIEVEMENTS, FACILITIES, FAC_SHELL, CONTENT_LIMIT, DUNGEONS, LAYER_VISUALS,
+    ACH_SERIES, FACILITIES, FAC_SHELL, CONTENT_LIMIT, DUNGEONS, LAYER_VISUALS,
     isTitleActive: () => titleActive,
     isOpeningActive: () => openingActive,
     resetTownSelection: () => { altarSel = null; },
@@ -13741,7 +13866,7 @@ bindGame({
   objectiveInfo, decreeInfo, replayDecree, palaceRecords, sharePalaceRecord, departTo, goMakeDoll, audienceTutorial,
   landOnHub, legacyToPage, townBgm,
   // 勲章・宝物庫・図鑑
-  achievementCards, claimNextTreasury, TREASURY_MILESTONES, milestoneLabel, totalDonatedKinds,
+  achievementCards, medalRank, claimNextTreasury, TREASURY_MILESTONES, milestoneLabel, totalDonatedKinds,
   codexMonEntry, dungeonRoster, CODEX_OTHER,
   // 酒場・祠・宿
   listenRumor, RUMOR_PRICE, rumorPrice, rollTavernCrowd,
@@ -13812,7 +13937,7 @@ function init() {
   // UI 基盤 (ctx の結線・戻る操作・街シェル・各パッケージ) を最初の描画より前に整える
   wireUI();
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
-  window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACHIEVEMENTS, questProgress, pickLoot, showItemGet, startBattle, spawnCardEnemies, spawnBossEnemies, activeCfg,
+  window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACH_SERIES, achievementCards, medalRank, questProgress, pickLoot, showItemGet, startBattle, spawnCardEnemies, spawnBossEnemies, activeCfg,
     UI, ops, nav, townshell,
     // 酒場の依頼の検証用
     quest: { questState, questLists, rollQuestBoard, acceptQuest, claimQuest, deliverQuest, questProgress },
