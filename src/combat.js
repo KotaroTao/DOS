@@ -1880,7 +1880,7 @@ export class Battle {
     this._wake(tgt);
     // 命中時の弱体 (毒刃など)
     if (opt.debuff && tgt.alive) { for (const k in opt.debuff) this._applyMod(tgt, k, opt.debuff[k], opt.debuffDur, opt.name); }
-    // 毒刃 (venomBlade): 敵を毒に侵す
+    // 仕込み毒 (venomBlade): 敵を毒に侵す
     const vb = pv(actor, "venomBlade");
     if (vb && tgt.alive && tgt.side === "enemy" && !metalHit && !tgt.ailment && Math.random() < this._rate(actor, tgt, vb >= 2 ? 0.30 : 0.15)) {
       tgt.ailment = "poison";
