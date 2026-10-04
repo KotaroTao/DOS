@@ -387,7 +387,8 @@ export const deliveryRewardRows = (rar) => DELIVERY_REWARDS[rar] || DELIVERY_REW
 // ===== 固定クエスト (依頼人の頼み) =====
 //   id      保存用の名 (変えない)       giver  依頼人 { name, title }
 //   appear  酒場に現れる条件: { reported: 迷宮id } 王に踏破を報告 / { cleared: id } 踏破 / { open: id } 地図にある /
-//           { found: 物語マスの鍵 } / { claimed: 固定クエストid } その依頼を報告し終えた / { seen: 強敵id } 名のある強敵を目撃した (複数書けばすべて)
+//           { found: 物語マスの鍵 } / { claimed: 固定クエストid } その依頼を報告し終えた / { seen: 強敵id } 名のある強敵を目撃した /
+//           { openAny: [迷宮id] } どれか1つが地図にある (複数の条件を書けばすべて)
 //   goal    { type:"kill", keys:[魔物id], n } 討伐 / { type:"floor", dungeon, n } その迷宮の地下n階へ /
 //           { type:"clear", dungeon } 踏破 (最下階・主) / { type:"soul", n } / { type:"chest", n }
 //   desc    目的の一行   lines = 依頼の語り (受ける前)   done = 報告の語り
@@ -713,14 +714,17 @@ export const FIXED_QUESTS = [
     ],
   },
 ];
-// 名のある強敵の懸賞 (dungeons/named.js の bounty から作る): 目撃すると酒場に現れる (appear.seen)。
-// ref = 縄張りの迷宮 (その強敵だけが出る迷宮を優先)。bounty = 狙う強敵の id (game.js の狩りの強敵階・出撃シートが読む)
+// 名のある強敵の懸賞 (dungeons/named.js の bounty から作る): 縄張りの迷宮が地図に現れた時点で酒場に並ぶ (appear.openAny)。
+// 縄張り = その強敵だけが出る迷宮 (層の強敵2体がどちらも出る迷宮は数えない — 無ければ、出る迷宮すべて)。
+// ref = 縄張りの迷宮のうち最初のもの。bounty = 狙う強敵の id (game.js の狩りの強敵階・出撃シートが読む)
 for (const id of NAMED_IDS) {
   const b = NAMED_FOES[id].bounty;
   if (!b) continue;
-  const home = WORLD.find((d) => (d.elites || []).length === 1 && d.elites[0] === id) || WORLD.find((d) => (d.elites || []).includes(id));
+  const own = WORLD.filter((d) => (d.elites || []).length === 1 && d.elites[0] === id);
+  const lands = own.length ? own : WORLD.filter((d) => (d.elites || []).includes(id));
+  const home = lands[0];
   FIXED_QUESTS.push({
-    id: bountyId(id), bounty: id, name: b.name, giver: BOUNTY_GIVER, appear: { seen: id },
+    id: bountyId(id), bounty: id, name: b.name, giver: BOUNTY_GIVER, appear: { openAny: lands.length ? lands.map((d) => d.id) : ["w01"] },
     goal: { type: "kill", keys: [id], n: 1 }, desc: `名のある強敵「${BESTIARY[id] ? BESTIARY[id].name : id}」を討つ`,
     ref: home ? home.id : "w01", reward: { ...b.reward }, lines: b.lines, done: b.done,
   });

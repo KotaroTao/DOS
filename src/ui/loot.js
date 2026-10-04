@@ -89,9 +89,19 @@ const scoreOf = (d, delta) => {
   try { return (typeof UI.gearScore === "function" ? UI.gearScore : baseGearScore)(d, delta); } catch (e) { return baseGearScore(d, delta); }
 };
 
+// この人業が今この品を付けられるか。魂の宿らない器 (primary なし) は付けられない
+// (items.js の canEquip は器を戦士とみなして通すので、装備候補の見立てに器が入り、どの品も ▲ になっていた)。
+// 共有の判定 (WP-B の UI.canEquipReason: 魂なし・職業・盾種・重量・呪いで外せない…) があればそれに揃える
+function canWear(d, it) {
+  if (!d || !it || it.unidentified || !isEquippable(it) || d.primary == null) return false;
+  if (typeof UI.canEquipReason === "function") {
+    try { return !UI.canEquipReason(d, it); } catch (e) { /* 手元の判定へ */ }
+  }
+  return canEquip(d, it);
+}
 // この人業がこの品を装備したときの増減 (装備できなければ null)
 export function deltaFor(d, it) {
-  if (!d || !it || it.unidentified || !isEquippable(it) || !canEquip(d, it)) return null;
+  if (!canWear(d, it)) return null;
   try { return equipPreviewDelta(d, it); } catch (e) { return null; }
 }
 function equippedBy(d, it) { for (const k of SLOTS) if (d.equip && d.equip[k] === it) return k; return null; }
@@ -101,7 +111,7 @@ function equippedBy(d, it) { for (const k of SLOTS) if (d.equip && d.equip[k] ==
 export function wearPlan(it, { owner = null, pool = null } = {}) {
   const cands = pool || equipCandidates();
   const scores = cands.map((d) => {
-    const can = !it.unidentified && isEquippable(it) && canEquip(d, it);
+    const can = canWear(d, it);
     const delta = can && !equippedBy(d, it) ? deltaFor(d, it) : null;
     return { d, can, delta, score: delta ? scoreOf(d, delta) : (can ? 0 : -Infinity) };
   });
@@ -589,7 +599,7 @@ export function identifyChooser(it, { onDone } = {}) {
   const skillOk = !it.lr && !it.idHardFail;
   if (skillOk) {
     for (const m of men) {
-      const ch = identifyChance(m, it.lv || 1);
+      const ch = identifyChance(m, it);
       const pct = Math.round(ch * 100);
       const sub = el("span", "wpc-prow-sub");
       sub.appendChild(document.createTextNode(`${m.cls || ""} ・ ${identifyLabel(m)}`));
@@ -662,7 +672,7 @@ function defaultActions(st) {
     } else if (!it.lr && !it.idHardFail) {
       const men = townAppraisers();
       if (men.length) {
-        const best = men.map((m) => ({ m, ch: identifyChance(m, it.lv || 1) })).sort((a, b) => b.ch - a.ch)[0];
+        const best = men.map((m) => ({ m, ch: identifyChance(m, it) })).sort((a, b) => b.ch - a.ch)[0];
         acts.push({ key: "tryId", primary: true, label: "鑑定を試す", sub: `${best.m.name} ${Math.round(best.ch * 100)}%`,
           onTap: () => { const ok = game.doIdentifySkill ? game.doIdentifySkill(best.m, it) : false; st.rerender({ revealed: !!ok }); },
           menu: men.length > 1 || (town && shopOpen()) ? () => identifyChooser(it, { onDone: (ok) => st.rerender({ revealed: !!ok }) }) : null });

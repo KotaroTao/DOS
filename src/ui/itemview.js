@@ -546,7 +546,9 @@ export function gearScore(doll, delta) {
   const ohSum = (o) => (o ? o.reduce((a, x) => a + (x.chance || 0), 0) : 0);
   if (delta.ailRes) s += (resSum(delta.ailRes.to) - resSum(delta.ailRes.from)) * 10;
   if (delta.onHit) s += (ohSum(delta.onHit.to) - ohSum(delta.onHit.from)) * 15;
-  if (delta.breathRes) s += delta.breathRes * 0.8; // ブレス耐性 (10%ごとに8点)
+  // ブレス耐性 (10%ごとに1点 = 状態異常耐性と同じ)。以前は10%ごとに8点で、ブレス耐性つきの小盾が
+  // AGI −4 の付け替えでも「伸び」と見なされ、最適装備が弱い品を選んでいた
+  if (delta.breathRes) s += delta.breathRes * 0.1;
   return Math.round(s * 10) / 10;
 }
 

@@ -45,7 +45,7 @@ export function skillTargets() {
 function bestFor(it, men) {
   let b = null;
   for (const m of men) {
-    const ch = identifyChance(m, it.lv || 1);
+    const ch = identifyChance(m, it);
     if (!b || ch > b.ch) b = { m, ch };
   }
   return b;

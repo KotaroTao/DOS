@@ -447,13 +447,17 @@ export function identifyLabel(member) {
   const t = IDENTIFY_TIERS[identifyTier(member)];
   return t ? t.label : "鑑定";
 }
-// このメンバーが 魂レベル jobLv で 隠しレベル itemLv の品を鑑定できる確率 (0=不可)
-export function identifyChance(member, itemLv) {
+// レア度ごとの鑑定成功率の引き下げ (上限・目利きを足した後の率から引く。ユーザーの指示、2026-10)
+export const IDENTIFY_RAR_PENALTY = { c: 0, uc: 0.10, r: 0.20, sr: 0.30, lr: 0.40 };
+// このメンバーが 魂レベル jobLv で品 it (隠しレベル it.lv・レア度 it.rar) を鑑定できる確率 (0=不可)
+export function identifyChance(member, it) {
   const j = IDENTIFY_TIERS[identifyTier(member)];
   if (!j) return 0;
   const jobLv = (member && (member.jobLv || member.level)) || 1;
-  const c = j.base + (jobLv - 1) * j.perLv - (itemLv || 1) * j.lvPenalty;
-  return Math.min(IDENTIFY_CAP, Math.max(j.floor, Math.min(IDENTIFY_CAP, c)) + appraiseBonus());
+  const itemLv = (it && it.lv) || 1;
+  const c = j.base + (jobLv - 1) * j.perLv - itemLv * j.lvPenalty;
+  const ch = Math.min(IDENTIFY_CAP, Math.max(j.floor, Math.min(IDENTIFY_CAP, c)) + appraiseBonus());
+  return Math.max(0, ch - (IDENTIFY_RAR_PENALTY[it && it.rar] || 0));
 }
 // 目利き (appraiseEye): 鑑定の成功率 +5/10/15% (隊と控えで一番高いLvだけ)。game.js が setAppraiseSource で人業の一覧を渡す
 let APPRAISE_SRC = () => [];

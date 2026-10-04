@@ -558,7 +558,7 @@ export function codexMonSheet(key) {
   const ni = m.named && game.namedInfo ? game.namedInfo(key) : null;
   if (ni) {
     const tro = ni.trophyId && ITEMS[ni.trophyId] ? ITEMS[ni.trophyId].name : "";
-    const bountyTxt = { offer: "酒場に懸賞あり", active: "受けている", done: "果たした (酒場で報告)", claimed: "報告済み" }[ni.bounty] || (ni.seen ? "酒場に懸賞あり" : "目撃すると酒場に出る");
+    const bountyTxt = { offer: "酒場に懸賞あり", active: "受けている", done: "果たした (酒場で報告)", claimed: "報告済み" }[ni.bounty] || (ni.posted ? "酒場に懸賞あり" : "縄張りの迷宮が地図に現れると酒場に出る");
     body.appendChild(infoBlock("名のある強敵", [
       pairRow("縄張り", (ni.homes || []).join("・") || "—"),
       pairRow("目撃", ni.seen ? `${ni.seenAt ? ni.seenAt + " " : ""}B${ni.seen.floor}F` : "まだ姿を見せていない"),
