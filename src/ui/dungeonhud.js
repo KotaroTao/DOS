@@ -16,7 +16,7 @@ import { el, sheet, row, setText, glyph, itemTile, portrait, bar, reduced } from
 import { getPref, setPref, remember } from "./prefs.js";
 import { sceneTransition } from "./motion.js";
 import { MONSTERS, ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
-import { ELEMENTS, monsterTraits, isFloating } from "../dungeons/index.js";
+import { ELEMENTS, monsterTraits, isFloating, unknownName } from "../dungeons/index.js";
 import { tagRow, traitTagKinds, affinityRow, revealSteps, monKills, enemyReveal, enemyLabel, revealLock, BUFF_NAME } from "./itemview.js";
 import { RARITIES } from "../rarity.js";
 import { SOUL_CLASSES, soulIcon } from "../souls.js";
@@ -150,8 +150,8 @@ function floorFacts() {
   if (g.eliteFloor) {
     const ekey = game.eliteKey ? game.eliteKey() : null;
     const ek = ekey ? MONSTERS[ekey] : null;
-    // 名前は一度倒すまで「？？？」(敵の情報の段階開示と同じ)
-    const ekName = ek ? (monKills(ekey) >= revealSteps(ek).name ? ek.name : "？？？") : "";
+    // 名前は一度倒すまで不確定名 (敵の情報の段階開示と同じ)
+    const ekName = ek ? (monKills(ekey) >= revealSteps(ek).name ? ek.name : unknownName(ek)) : "";
     facts.push({ tone: "bad", icon: ek || ICONS.trap, title: "強敵の気配", lines: ["この階には通常では遭遇しない強大な存在が潜む。", ek ? `強敵「${ekName}」― 討てば希少な戦利品と魂を残しやすい。` : "討てば希少な戦利品を得られる。"] });
   }
   if (sp) facts.push({ tone: "gold", icon: ICONS[sp.icon] || ICONS.stairs, title: `特別な階「${sp.name}」`, accent: sp.accent, lines: sp.lines });

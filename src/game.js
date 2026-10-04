@@ -15,7 +15,7 @@ import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows } fr
 import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
-import { DUNGEONS, GEN_DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, levelBand, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, layerOf, isFloating, METAL_TIERS } from "./dungeons/index.js";
+import { DUNGEONS, GEN_DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, levelBand, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, layerOf, isFloating, METAL_TIERS, unknownName } from "./dungeons/index.js";
 import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
@@ -696,8 +696,9 @@ function shakeScreen(strong = false) {
 const LOG_HISTORY_MAX = 300;
 const _logHistory = [];
 function logHistory() { return _logHistory.map((x) => ({ text: x.n > 1 ? `${x.msg} ×${x.n}` : x.msg, cls: "l-" + x.cls })); }
-// 戦闘中の記録は、まだ名前を知らない敵 (討伐数0) の名を「？？？」に伏せる。
+// 戦闘中の記録は、まだ名前を知らない敵 (討伐数0) の名を不確定名 (「蠢く粘塊」など、dungeons/unknown.js) に伏せる。
 // 個体名 (スライムA) を先に、種の名 (スライム) を後に置き換える。明かされた別の敵の名に含まれる種名は触らない
+// (置き換えた不確定名が別の敵の名を含んでも二重に化けないよう、いったん印に置き換えてから戻す)
 // (戦闘の組み立て中 = Battle を作る前の名乗りや開幕の一撃は _maskEnemies を見る)
 let _maskEnemies = null;
 function maskUnknownEnemies(msg) {
@@ -708,15 +709,17 @@ function maskUnknownEnemies(msg) {
   for (const e of list) {
     if (enemyReveal(e).name) { known.push(e.name); continue; }
     pairs.push([e.name, enemyLabel(e)]);
-    if (e.mon && e.mon.name) pairs.push([e.mon.name, "？？？"]);
+    if (e.mon && e.mon.name) pairs.push([e.mon.name, unknownName(e.mon)]);
   }
   if (!pairs.length) return msg;
   pairs.sort((x, y) => y[0].length - x[0].length);
+  const outs = [];
   for (const [from, to] of pairs) {
     if (!from || from === to || known.some((n) => n.includes(from))) continue;
-    msg = msg.split(from).join(to);
+    msg = msg.split(from).join(`\u0001${outs.length}\u0002`);
+    outs.push(to);
   }
-  return msg;
+  return msg.replace(/\u0001(\d+)\u0002/g, (_, i) => outs[i]);
 }
 function log(msg, cls = "sys") {
   msg = maskUnknownEnemies(msg);
@@ -4938,15 +4941,14 @@ function resolveCell(cell) {
       if (!cell.cleared) {
         const mon = MONSTERS[cell.monsterKey];
         // 名前は討伐数で明かす (enemyReveal) — 戦闘前の名乗りでも、まだ知らない敵の名は出さない
-        const known = enemyReveal({ key: cell.monsterKey, mon }).name;
-        const name = mon.name;
+        const name = enemyReveal({ key: cell.monsterKey, mon }).name ? mon.name : unknownName(mon);
         if (mon.metal) {
           // 金属の魔物: 倒せば莫大な✦Soul。ただしすぐ逃げる
-          log(known ? `✦ ${name} だ！ 逃がすな！` : "✦ 妖しく光る何かが蠢いている！ 逃がすな！", "win");
+          log(`✦ ${name} だ！ 逃がすな！`, "win");
           startBattle(spawnMetal(cell.monsterKey, metalRef(cell.monsterKey)), cell);
         } else if (cell.elite) {
           // 強敵は群れない: 規格外の1体が立ちはだかる
-          log(known ? `☠ 強敵 ${name} が立ちはだかる！` : "☠ ただならぬ気配 ― 強敵が立ちはだかる！", "dmg");
+          log(`☠ 強敵 ${name} が立ちはだかる！`, "dmg");
           startBattle(soloFoes(spawnEliteEnemies(cell.monsterKey, soloScale())), cell);
         } else {
           log("⚔ 石札の下から、魔物が這い出してきた！", "dmg");
@@ -5733,7 +5735,8 @@ const evApi = {
   // ---- 戦闘 ----
   poolKey: () => evPoolKey(),
   eliteKeyHere: () => eliteKey(),
-  monName: (k) => (MONSTERS[k] && MONSTERS[k].name) || "魔物",
+  // 出来事の文に出す魔物の名 (まだ倒していない魔物は不確定名)
+  monName: (k) => (MONSTERS[k] ? (enemyReveal({ key: k, mon: MONSTERS[k] }).name ? MONSTERS[k].name : unknownName(MONSTERS[k])) : "魔物"),
   fight(cell, specs, tag, o = {}) {
     // 敵の種類はここで確定させる (逃げて戻った時の再戦も同じ顔ぶれにする)
     const fixed = (specs || []).map((sp) => sp.shadows || (sp.key && MONSTERS[sp.key]) ? { ...sp }
@@ -6763,8 +6766,8 @@ function startBattle(enemies, cell) {
   combatMenu.classList.remove("hidden");
   // 同種の群れは「ゴブリン ×4」とまとめて告げる (個体名は A/B/C… 付き)
   const sameKind = enemies.length > 1 && enemies.every((e) => e.key === enemies[0].key);
-  // 名前は討伐数1で明かす (それまでは「？？？」。迷宮の主は最初から名乗る)
-  log(`${sameKind ? `${enemyReveal(enemies[0]).name ? enemies[0].mon.name : "？？？"} ×${enemies.length}` : enemies.map(enemyLabel).join("・")} が現れた！`, "dmg");
+  // 名前は討伐数1で明かす (それまでは不確定名「小さく蠢くもの」など。迷宮の主は最初から名乗る)
+  log(`${sameKind ? `${enemyReveal(enemies[0]).name ? enemies[0].mon.name : unknownName(enemies[0].mon)} ×${enemies.length}` : enemies.map(enemyLabel).join("・")} が現れた！`, "dmg");
   // 先制・奇襲の判定 (ボス戦・強敵戦では発生しない)。
   // 周囲警戒 (vigilance) が奇襲を抑え、先制の心得 (initiative) が先制を伸ばす
   const isBoss = enemies.some((e) => e.boss);
@@ -6999,7 +7002,7 @@ function renderCombatCanvas() {
       // 対象選択中: 頭上に降りる楔と四隅のかぎ
       if (tappable && strongTarget) drawTargetBrackets(baseX, baseY, hh, size, now);
       // 名札 + 血の小瓶 (HP)
-      // 名前・HP は討伐数で明かす (enemyReveal): 名前は1体倒すまで「？？？」、HP の小瓶は5体倒すまで出さない (迷宮の主は名前が最初から、HP は1体で)
+      // 名前・HP は討伐数で明かす (enemyReveal): 名前は1体倒すまで不確定名、HP の小瓶は5体倒すまで出さない (迷宮の主は名前が最初から、HP は1体で)
       if (fleeFx) return; // 逃げる姿には名札を付けない
       drawEnemyPlate(e, baseX, plateY, tappable && strongTarget, k);
       const hpY = plateY + 17;
@@ -7085,7 +7088,7 @@ function renderTurnOrder() {
       c = cp;
     }
     if (c) { used.add(c); c.classList.add("to-pic"); ic.appendChild(c); }
-    else ic.appendChild(el("span", "to-ch", (name || "？").replace(/^？？？/, "？").slice(0, 1)));
+    else ic.appendChild(el("span", "to-ch", (name || "？").slice(0, 1)));
     // 同種が並ぶ敵は A/B… の札を添えて見分ける
     if (enemy) {
       const m = /[A-Z]$/.exec(name || "");
@@ -7444,7 +7447,7 @@ function playBattleIntro(done) {
   const ambush = b.opening === "ambush";
   let dur = (boss ? 1900 : 640 + b.enemies.length * 90) * introMul;
   if (ambush) dur = Math.max(dur, G.autoCombat ? 1150 : 1500); // 奇襲の帯を読めるだけ留める
-  G.battleIntro = { battle: b, t0: performance.now(), dur, ambush, boss: boss ? (enemyReveal(boss).name ? (boss.mon && boss.mon.name) || boss.name : "？？？") : null };
+  G.battleIntro = { battle: b, t0: performance.now(), dur, ambush, boss: boss ? (enemyReveal(boss).name ? (boss.mon && boss.mon.name) || boss.name : unknownName(boss.mon)) : null };
   G.animating = true;
   combatMenu.innerHTML = "";
   if (G.autoCombat) renderAutoBanner();
