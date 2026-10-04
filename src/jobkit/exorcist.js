@@ -7,10 +7,10 @@ export default {
   awaken: "exorcistHama/1",
   table: `
     1 EXORCIST_HARAIBA 2 SUIGETSU 3 HOLYRAY 5 exorcistTaima/1 7 KIYOMEMIZU 10 CURE
-    12 KOUJIN 15 EXORCIST_HAMANOYA 15 holySense/1 20 HARAI 22 UZUSHIO 25 exorcistSakibarai/1 30 EXORCIST_KEGAREDACHI
-    35 exorcistMisogi/1 40 HAJANOTACHI 45 exorcistSeikon/1 50 TAIMA 50 holySense/2 55 EXORCIST_KOUU 57 HYOUJIN
+    12 KOUJIN 15 EXORCIST_HAMANOYA 15 exorcistTaisan/1 20 HARAI 22 UZUSHIO 25 exorcistSakibarai/1 30 EXORCIST_KEGAREDACHI
+    35 exorcistMisogi/1 40 HAJANOTACHI 45 exorcistSeikon/1 50 TAIMA 50 exorcistTaisan/2 55 EXORCIST_KOUU 57 HYOUJIN
     60 exorcistMisogi/2 65 EXORCIST_KIYOBARAI 70 exorcistSakibarai/2 75 exorcistHama/2 80 EXORCIST_SANKO 82 SEIGEKI
-    85 KIYOME 90 exorcistTaima/2 95 EXORCIST_INDOU 100 EXORCIST_SEISA 100 holySense/3 105 exorcistSeikon/2 107 EXORCIST_REISUI
+    85 KIYOME 90 exorcistTaima/2 95 EXORCIST_INDOU 100 EXORCIST_SEISA 100 exorcistTaisan/3 105 exorcistSeikon/2 107 EXORCIST_REISUI
     110 EXORCIST_KEKKAIFUDA 115 exorcistSakibarai/3 120 EXORCIST_HAMAYA 125 exorcistMisogi/3 130 EXORCIST_SEISUINAGI 135 exorcistSeikon/3
     140 EXORCIST_KOURIN 145 exorcistHama/3 150 EXORCIST_JINRAI 155 resistAilment/1 160 EXORCIST_CHOUBUKU 162 EXORCIST_MISOGI
     165 exorcistTaima/3 170 TAIMAJIN 175 resistAilment/2 180 EXORCIST_ROKKON 185 exorcistSeikon/4 190 EXORCIST_OOHARAE
@@ -39,6 +39,15 @@ export default {
     EXORCIST_KENSHOU:     { name: "破邪顕正", mp: 40, kind: "phys", power: 9.0, agiScale: 1.8, pieScale: 0.5, critBonus: 0.5, element: "light", prey: { races: UNHOLY, mul: 1.3 }, target: "enemy", desc: "邪を破り正を顕す究極の一閃（光）" },
   },
   perks: {
+    // Lv15 の目玉パッシブ: 悪霊退散
+    exorcistTaisan: {
+      label: "悪霊退散",
+      lv: ["不死・霊・悪魔への与ダメージ+10%、受けるダメージ-10%", "不死・霊・悪魔への与ダメージ+20%、受けるダメージ-20%", "不死・霊・悪魔への与ダメージ+30%、受けるダメージ-30%"],
+      fx: [
+        { t: "deal", when: { race: UNHOLY }, v: [0.10, 0.20, 0.30] },
+        { t: "take", when: { race: UNHOLY }, v: [0.10, 0.20, 0.30] },
+      ],
+    },
     // 不浄の者を祓うための修練
     exorcistTaima: {
       label: "退魔の心得",

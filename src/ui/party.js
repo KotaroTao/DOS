@@ -31,7 +31,7 @@ import {
   SOUL_CLASSES, JOB_GEAR, dollSprite, dollBust, jobBust, jobSprite, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulLabel, soulRankLeft, soulByUid,
   orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs,
 } from "../souls.js";
-import { SPELLS, spellCost } from "../combat.js";
+import { SPELLS, spellCost, spellMpLabel } from "../combat.js";
 import { spriteCanvas, crispCanvas } from "../sprites.js";
 import { rarityKey, RARITIES } from "../rarity.js";
 
@@ -1716,7 +1716,7 @@ function statsSeg(root, d) {
       if (off) c.appendChild(el("span", "pt-skill-off", "非表示"));
       const tg = sp && tagRow(spellTagKinds(sp, d), "pt-skill-tags");
       if (tg) c.appendChild(tg);
-      if (sp) c.appendChild(el("span", "pt-skill-c", `MP${sp.mp}`));
+      if (sp) c.appendChild(el("span", "pt-skill-c", spellMpLabel(sp)));
       c.addEventListener("click", () => showSkillPopup(key));
       sc.appendChild(c);
     }
@@ -1776,7 +1776,7 @@ function openSkillManager(d) {
       nm.appendChild(el("span", "pt-skm-nm", sp ? sp.name : key));
       const tgs = sp && tagRow(spellTagKinds(sp, d), "pt-skill-tags");
       if (tgs) nm.appendChild(tgs);
-      if (sp) nm.appendChild(el("span", "pt-skill-c", `MP${sp.mp}`));
+      if (sp) nm.appendChild(el("span", "pt-skill-c", spellMpLabel(sp)));
       nm.addEventListener("click", () => showSkillPopup(key));
       r.appendChild(nm);
       const mv = (dir, label, glyph, dis) => {

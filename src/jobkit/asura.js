@@ -6,10 +6,10 @@ export default {
   awaken: "asuraShisen/1",
   table: `
     1 KYOUGEKI 2 KAENGIRI 3 DOUBLE 5 asuraTakaburi/1 7 SHIPPUUGIRI 10 ASURA_KIKI
-    12 ASURA_SOUGA 15 ASURA_SANKAZAN 15 asuraRensen/1 20 ASURA_SAKKI 22 KAENNAGI 25 asuraMe/1 30 SHURADOU
-    35 asuraTakaburi/2 40 ASHURAZAN 45 asuraSakki/1 50 ASURA_SANMEN 50 asuraRensen/2 55 ASURA_KOKYUU 57 GURENZAN
+    12 ASURA_SOUGA 15 ASURA_SANKAZAN 15 asuraChishio/1 20 ASURA_SAKKI 22 KAENNAGI 25 asuraMe/1 30 SHURADOU
+    35 asuraTakaburi/2 40 ASHURAZAN 45 asuraSakki/1 50 ASURA_SANMEN 50 asuraChishio/2 55 ASURA_KOKYUU 57 GURENZAN
     60 asuraShisen/2 65 ASURA_KYUUSHO 70 asuraMe/2 75 asuraSogi/1 80 ASURA_SHIZAN 82 FUUGA
-    85 ASURA_ROPPI 90 asuraTakaburi/3 95 ASURA_SOU 100 ASURA_KEKKA 100 asuraRensen/3 105 asuraShisen/3 107 ASURA_KARIN
+    85 ASURA_ROPPI 90 asuraTakaburi/3 95 ASURA_SOU 100 ASURA_KEKKA 100 asuraChishio/3 105 asuraShisen/3 107 ASURA_KARIN
     110 ASURA_MUKEN 115 asuraSakki/2 120 ASURA_RASETSU 125 asuraSogi/2 130 ASURA_HYAKKI 135 asuraShisen/4
     140 ASURA_GOUFUU 145 resistAilment/1 150 ASURA_SETSUNA 155 asuraMe/3 160 ASURA_ABI 162 ASURA_GOUKA
     165 asuraSakki/3 170 ASURA_SENPUU 175 asuraTakaburi/4 180 ASURA_RENGOKU 185 asuraSogi/3 190 ASURA_SHURAOU
@@ -41,12 +41,6 @@ export default {
     ASURA_KYOUHYOU: { name: "狂飆", mp: 27, kind: "phys", power: 1.15, hits: 2, element: "wind", critBonus: 0.2, target: "all-enemy", desc: "荒れ狂う嵐の刃が敵陣を二度刻む" },
   },
   perks: {
-    // Lv15 の目玉パッシブ: 勝てば勝つほど昂ぶる
-    asuraRensen: {
-      label: "連戦の昂ぶり",
-      lv: ["前の戦闘に勝っていれば、開始時に自分のATK×1.05 (3ターン)", "前の戦闘に勝っていれば、開始時に自分のATK×1.08 (3ターン)", "前の戦闘に勝っていれば、開始時に自分のATK×1.12 (3ターン)"],
-      fx: [{ t: "start", when: { wonLast: true }, dur: 3, buff: { atk: [1.05, 1.08, 1.12] } }],
-    },
     // 戦いが長引くほど修羅の血が昂ぶる
     asuraTakaburi: {
       label: "修羅の昂ぶり",

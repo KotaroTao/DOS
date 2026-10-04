@@ -20,7 +20,7 @@ import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LOR
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, itemName } from "../items.js";
 import { RANK_COLOR, RANK_NAME } from "../content.js";
 import { DUNGEONS, ELEMENTS, RACE_LABEL, monsterTraits, isFloating, resistHpMul, METAL_TIERS } from "../dungeons/index.js";
-import { SPELLS } from "../combat.js";
+import { SPELLS, spellMpLabel } from "../combat.js";
 import {
   SOUL_CLASSES, jobSprite, jobRankName, jobLoreFor, jobRankCondText, SOUL_STAT_UP, JOB_GEAR,
   awakenPerkOf, rankThresholds, soulLevelCap, jobSkillTable, passiveName, passiveDesc, JOB_AFFINITY,
@@ -586,7 +586,7 @@ export function codexJobSheet(key, rank, heading) {
       rows.push(reached >= e.lvl ? pairRow(`${lv} ${passiveName(e.passive, e.plv || 1)}`, `[パッシブ] ${passiveDesc(e.passive, e.plv || 1)}`, { onTap: () => showPassivePopup(e.passive, e.plv || 1) }) : pairRow(`${lv} ？？？`, null, { dim: true }));
     } else {
       const sp = SPELLS[e.skill];
-      rows.push(reached >= e.lvl && sp ? pairRow(`${lv} ${sp.name}`, `${sp.desc} (MP${sp.mp})`, { onTap: () => showSkillPopup(e.skill), tags: spellTagKinds(sp) }) : pairRow(`${lv} ？？？`, null, { dim: true }));
+      rows.push(reached >= e.lvl && sp ? pairRow(`${lv} ${sp.name}`, `${sp.desc} (${spellMpLabel(sp)})`, { onTap: () => showSkillPopup(e.skill), tags: spellTagKinds(sp) }) : pairRow(`${lv} ？？？`, null, { dim: true }));
     }
   }
   body.appendChild(infoBlock("技", rows.length ? rows : [pairRow("—", null, { dim: true })]));

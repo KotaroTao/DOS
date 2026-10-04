@@ -2219,7 +2219,7 @@ function drawCandleFlames(now) {
 }
 
 // 探りの術の光: 墓石の下から滲む、ぼんやりした光 (ゆっくり明滅し、芯が少し揺らぐ)
-const SENSE_GLOW = { enemy: [255, 52, 40], chest: [70, 150, 255], stairs: [90, 220, 200] };
+const SENSE_GLOW = { enemy: [255, 52, 40], chest: [70, 150, 255] };
 function drawSenseGlow(r, rgb, now, x, y, k = 1) {
   const t = REDUCED_MOTION ? 0.5 : 0.5 + 0.5 * Math.sin(now * 0.0017 + x * 1.7 + y * 2.3);
   const dx = REDUCED_MOTION ? 0 : Math.sin(now * 0.0009 + y) * r.w * 0.06;
@@ -2238,8 +2238,21 @@ function drawSenseGlow(r, rgb, now, x, y, k = 1) {
 }
 
 // 気配読み (魔物 = ぼんやりした赤い光) / 宝探し (宝箱 = ぼんやりした青い光)。種類・強さは分からない。歩いている間も灯したまま
+// 清めの歩み (聖騎士): まだめくっていない墓石をめくるたび、全員の HP を 5/15/30・MP を 1/2/3 回復 (隊で一番高いLv)
+function cleanseStepHeal() {
+  const lv = Math.min(3, partyPassiveLv("cleanseStep"));
+  if (!lv) return;
+  const hp = [0, 5, 15, 30][lv], mp = [0, 1, 2, 3][lv];
+  let any = false;
+  for (const p of G.party) {
+    if (!p.alive) continue;
+    if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + hp); any = true; }
+    if (p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + mp); any = true; }
+  }
+  if (any) renderParty();
+}
 // 感知のパッシブ (この階で示す墓石を最初に決めて覚える。めくられたものは示さない):
-//  敵感知 (senseEnemy) = 魔物を Lv 体 / 財宝感知 (senseTreasure) = 宝箱を Lv 個 / 天翔る眼 (skyEye) = 下り階段のあたり (Lv1 5×5 → Lv2 3×3 → Lv3 その墓石)
+//  敵感知 (senseEnemy) = 魔物を Lv 体 / 財宝感知 (senseTreasure) = 宝箱を Lv 個
 function passiveSensePlan() {
   const b = G.board;
   if (b.psense) return b.psense;
@@ -2249,41 +2262,18 @@ function passiveSensePlan() {
     for (let i = out.length - 1; i > 0; i--) { const j = rand(i + 1); [out[i], out[j]] = [out[j], out[i]]; }
     return out.slice(0, 3);
   };
-  let stairs = null;
-  for (let y = 0; y < ROWS && !stairs; y++) for (let x = 0; x < COLS; x++) if (b.cells[y][x].type === "stairs") { stairs = { x, y }; break; }
-  if (stairs) {
-    const box = (n) => [Math.max(0, Math.min(COLS - n, stairs.x - rand(n))), Math.max(0, Math.min(ROWS - n, stairs.y - rand(n)))];
-    stairs.b5 = box(5); stairs.b3 = box(3);
-  }
-  b.psense = { enemy: pick("monster"), chest: pick("chest"), stairs };
+  b.psense = { enemy: pick("monster"), chest: pick("chest") };
   return b.psense;
 }
 function drawSenseGlows(now) {
   if (G.state !== "board") return;
   const fsE = fieldSense("enemy"), fsC = fieldSense("chest");
-  const psE = partyPassiveLv("senseEnemy"), psT = partyPassiveLv("senseTreasure"), psS = partyPassiveLv("skyEye");
-  if ((psE || psT || psS) && inDungeon()) {
+  const psE = partyPassiveLv("senseEnemy"), psT = partyPassiveLv("senseTreasure");
+  if ((psE || psT) && inDungeon()) {
     const plan = passiveSensePlan();
     const hidden = ([x, y]) => { const c = G.board.cells[y] && G.board.cells[y][x]; return c && !c.revealed && !c.cleared; };
     if (!fsE) for (const p of plan.enemy.slice(0, Math.min(3, psE))) if (hidden(p)) drawSenseGlow(cellRect(p[0], p[1]), SENSE_GLOW.enemy, now, p[0], p[1], 0.7);
     if (!fsC) for (const p of plan.chest.slice(0, Math.min(3, psT))) if (hidden(p)) drawSenseGlow(cellRect(p[0], p[1]), SENSE_GLOW.chest, now, p[0], p[1], 0.7);
-    const st = plan.stairs;
-    if (psS && st && hidden([st.x, st.y])) {
-      if (psS >= 3) drawSenseGlow(cellRect(st.x, st.y), SENSE_GLOW.stairs, now, st.x, st.y, 0.8);
-      else {
-        const n = psS >= 2 ? 3 : 5, [x0, y0] = psS >= 2 ? st.b3 : st.b5;
-        const a = cellRect(x0, y0), z = cellRect(x0 + n - 1, y0 + n - 1);
-        const t = REDUCED_MOTION ? 0.5 : 0.5 + 0.5 * Math.sin(now * 0.0015);
-        vctx.save();
-        vctx.globalCompositeOperation = "lighter";
-        vctx.fillStyle = `rgba(${SENSE_GLOW.stairs.join(",")},${0.07 + 0.05 * t})`;
-        vctx.fillRect(a.x, a.y, z.x + z.w - a.x, z.y + z.h - a.y);
-        vctx.strokeStyle = `rgba(${SENSE_GLOW.stairs.join(",")},${0.22 + 0.14 * t})`;
-        vctx.lineWidth = 1.2;
-        vctx.strokeRect(a.x + 0.5, a.y + 0.5, z.x + z.w - a.x - 1, z.y + z.h - a.y - 1);
-        vctx.restore();
-      }
-    }
   }
   if (!fsE && !fsC) return;
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
@@ -4938,6 +4928,7 @@ function moveStep(nx, ny, onDone) {
     SFX.flip();
     buzz(12);
     cell.revealed = true; // めくり途中に表面を見せる
+    cleanseStepHeal();
     G.flipAnim = { x: nx, y: ny, t0: performance.now(), dur: walkMs(240) };
     const ftick = () => {
       renderBoard();
@@ -5068,7 +5059,6 @@ function resolveCell(cell) {
         showToast(`床の罠「${trap.name}」― ${best.name}が見抜いて解除`, { tone: "good", icon: ICONS.trap });
         break;
       }
-      if (trapSealed(trap)) { renderBoard(); break; }
       presentTrap(applyTrap(trap, best), { proceed: () => renderBoard() }, boardSink());
       break;
     }
@@ -5080,14 +5070,6 @@ function resolveCell(cell) {
         break;
       }
       if (abyssActive() || G.floor >= (curDungeon().floors || 1)) break; // 念のため (最下階・奈落には置かない)
-      // 験力の足 (sureFoot): 確率で穴の縁に踏みとどまる (穴は開いたまま残る)
-      const sfLv = partyPassiveLv("sureFoot");
-      if (sfLv && Math.random() < ([0, 0.3, 0.5, 0.7][Math.min(3, sfLv)] || 0)) {
-        SFX.ng(); buzz([0, 30]);
-        log("足元が抜けた！ ― だが験力の足で、穴の縁に踏みとどまった。", "sys");
-        showToast("落とし穴 ― 験力の足で踏みとどまった", { tone: "good", icon: ICONS.trap });
-        break;
-      }
       SFX.trap(); buzz([0, 60, 40, 140]); shakeScreen(true); flashScreen("#050308");
       log("足元が抜けた！ 落とし穴だ ― 隊は暗闇の底へ落ちていく…", "dmg");
       runCount("pits");
@@ -5826,7 +5808,6 @@ const evApi = {
   trap(next) {
     const trap = pickTrap(activeCfg().rank || 1);
     const best = bestDisarmer();
-    if (trapSealed(trap)) { (next || (() => renderBoard()))(); return; }
     presentTrap(applyTrap(trap, best), { proceed: next || (() => renderBoard()) }, boardSink());
   },
   warpToStairs() {
@@ -6274,8 +6255,8 @@ function disarmChance(m, cRank = 1) {
   if ((specialDef() || {}).sureDisarm) return 1; // 盗賊の洞察: 罠解除率100%
   // 得意職は最大95%まで伸びるが、それ以外は上限55% (適正レベルで約50%、過剰育成でも頭打ち)
   const cap = disarmExpert(m) ? 0.95 : 0.55;
-  // 隊のパッシブ 盗賊の眼 (trapEye): 解除率 +10/15/20% (上限を越えて足せるが、最大95%)
-  const eye = [0, 0.10, 0.15, 0.20][Math.min(3, partyPassiveLv("trapEye"))] || 0;
+  // 隊のパッシブ 盗賊の眼 (trapEye): 解除率 +10/20/30% (上限を越えて足せるが、最大95%)
+  const eye = [0, 0.10, 0.20, 0.30][Math.min(3, partyPassiveLv("trapEye"))] || 0;
   return Math.min(0.95, Math.max(0.05, Math.min(cap, disarmPower(m) / disarmNeed(cRank))) + eye);
 }
 
@@ -6324,31 +6305,10 @@ function boardSink() {
 // 宝箱: 最も解除に向いた者が開けるのを既定とし、1タップで開ける (§7 M5)。
 // 他の者に任せる・開けないも選べる。設定「宝箱は最良の解除役で開ける」なら問わずに開ける。
 // 宝箱にはランク (1-5) があり、高ランクほど中身が豪華だが解除難度が上がる
-// この宝箱がミミックか (盤面の宝箱は最初に問われた時に決めて覚える。門番の眼が開ける前に見破れるように)
-function chestIsMimic(cell) {
-  if (cell && cell._mimic != null) return cell._mimic;
-  const m = Math.random() < Math.max(sfNum("mimicRate", 0.03), mutNum("mimicRate", 0)); // ミミック率: 一律3% (特別階「ミミックの巣」/異変「ミミックの行進」では高い方)
-  if (cell) cell._mimic = m;
-  return m;
-}
 function askOpenChest(cell) {
   const cRank = chestRankOf(cell);
   const best = bestChestOpener(cRank);
   if (!best) { renderBoard(); return; }
-  // 門番の眼 (mimicEye): ミミックなら、開ける前に確率で見破る (1つの宝箱につき1度だけ判定)
-  const meLv = partyPassiveLv("mimicEye");
-  if (cell && meLv && !cell._mimicJudged && !cell.lootBonus) {
-    cell._mimicJudged = true;
-    if (chestIsMimic(cell) && Math.random() < ([0, 0.3, 0.5, 0.7][Math.min(3, meLv)] || 0)) cell._mimicSeen = true;
-  }
-  if (cell && cell._mimicSeen) {
-    SFX.ng(); buzz([0, 40, 40, 40]);
-    showChoice("ミミックだ！", [
-      { label: `戦う ― ${best.name}が蓋に手を掛ける`, primary: true, fn: () => openChest(cell, best) },
-      { label: "立ち去る", cancel: true, fn: () => { renderBoard(); } },
-    ], ICONS.chest, { banner: "⚠ 門番の眼 ⚠", lines: ["門番の眼が見抜いた。この宝箱は、獲物を待つミミックだ。"] });
-    return;
-  }
   if (uiDungeonHud.getPref("chestAuto")) { openChest(cell, best); return; }
   const pct = (p) => Math.round(disarmChance(p, cRank) * 100);
   const others = G.party.filter((p) => p.alive && p !== best);
@@ -6381,8 +6341,7 @@ function rollChest(cell, allowDanger, done, opener, cRankIn, lvBonus, noGold = f
     // 伝説の宝箱 (cell.lootBonus) はミミック/黒い宝箱に化けない
     const legendary = !!(cell && cell.lootBonus);
     // ミミック率: 一律3% (特別階「ミミックの巣」/異変「ミミックの行進」では高い方を採用)
-    if (!legendary && chestIsMimic(cell)) {
-      if (cell) { cell._mimic = false; cell._mimicSeen = false; } // 化けの皮が剥がれた (同じ宝箱が二度ミミックにはならない)
+    if (!legendary && Math.random() < Math.max(sfNum("mimicRate", 0.03), mutNum("mimicRate", 0))) {
       // ミミック出現時、10%でマスターミミック。強さはこの階の敵が基準
       //  (通常=+1ランク / マスター=+2ランク)。固有ドロップは無く、上質な宝箱を残す。
       const master = Math.random() < 0.10;
@@ -6438,7 +6397,6 @@ function chestTrapPhase(opener, contents, cRank = 1, abort, excludeKinds, sink =
     }
     // 解除失敗: 罠が発動。生き残れば中身は手に入る (テレポーター/警報は中身を失う)
     if (who) log(`${who.name}は罠「${trap.name}」の解除に失敗した！`, "dmg");
-    if (trapSealed(trap, sink)) { contents(); return; }
     presentTrap(applyTrap(trap, who), { chest: true, proceed: contents, abort }, sink);
     return;
   }
@@ -6462,16 +6420,6 @@ function trapBaseDmg() {
 // 罠の効果を適用し、何が起きたかを返す (知らせ方は presentTrap が決める)。
 // opener: 開けた者/先頭の解除役 (opener型の罠が狙う)。
 // 返り値 kind: "teleport" (飛ばされる・中身を失う) | "alarm" (戦闘・中身を失う) | "harm" (痛手/吸収。fallen/wiped を伴う)
-// 封の結界 (trapSeal): 発動した罠を確率で打ち消す。打ち消したら true (罠は何も起こさない)
-function trapSealed(trap, sink = boardSink()) {
-  const lv = partyPassiveLv("trapSeal");
-  if (!lv || Math.random() >= ([0, 0.10, 0.15, 0.20][Math.min(3, lv)] || 0)) return false;
-  SFX.chest();
-  log(`罠「${trap.name}」が動いたが、封の結界が打ち消した！`, "sys");
-  sink.note(`罠「${trap.name}」― 封の結界が打ち消した`, "good", ICONS.trap);
-  return true;
-}
-
 function applyTrap(trap, opener) {
   SFX.trap(); buzz([0, 60, 40, 60]);
   G.stats.trapsSprung++; // 戦績: 発動させてしまった罠 (勲章用)
@@ -6493,15 +6441,10 @@ function applyTrap(trap, opener) {
   }
 
   // 残りはダメージ/吸収系: 効果を適用して結果をまとめる。
-  // 隊のパッシブ 堅牢 (trapGuard)=罠ダメ軽減 / 呪い除け (wardField)=状態異常付与率を抑える
-  const tgLv = partyPassiveLv("trapGuard");
-  const trapDmgMul = tgLv >= 3 ? 0.5 : tgLv >= 2 ? 0.65 : tgLv >= 1 ? 0.8 : 1;
-  const wfLv = partyPassiveLv("wardField");
-  const ailMul = wfLv >= 3 ? 0.3 : wfLv >= 2 ? 0.5 : wfLv >= 1 ? 0.7 : 1;
   const lines = [trap.flavor];
   const fallen = [], hurtList = [], brief = [];
   const hurt = (p, mult) => {
-    const dmg = Math.max(1, Math.round(trapBaseDmg() * mult * trapDmgMul));
+    const dmg = Math.max(1, Math.round(trapBaseDmg() * mult));
     p.hp = Math.max(0, p.hp - dmg);
     lines.push(`${p.name}に ${dmg} ダメージ！`);
     brief.push(`${p.name} -${dmg}`);
@@ -6517,7 +6460,7 @@ function applyTrap(trap, opener) {
     // 装備の状態異常耐性 (ailRes) と解呪の宝珠 (ailmentImmune) も罠に効く
     if (!ail || !p.alive || p.ailment || (p.eff && p.eff.ailmentImmune)) return;
     const eqRes = (p.ailRes && p.ailRes[ail]) || 0;
-    if (Math.random() >= chance * ailMul * (1 - eqRes)) return;
+    if (Math.random() >= chance * (1 - eqRes)) return;
     p.ailment = ail;
     lines.push(`${p.name}は${AIL_NAME[ail]}に侵された！`);
     brief.push(`${p.name} ${AIL_NAME[ail]}`);
@@ -6804,21 +6747,18 @@ function descend({ fall = false } = {}) {
     G.abyss._pendingMut = null;
   }
   // 隊のパッシブ (階を移動するたび。どれも隊で一番高いLvの1人分だけ):
-  //  束の間の休息 (fieldRegen) = 全員のHP 10/15/20% / 魔力の循環 (manaFlow) = 全員のMP 5/8/12% / 清めの歩み (cleanseStep) = 毒 (Lv2 麻痺・Lv3 石化も) を治す
-  const frLv = partyPassiveLv("fieldRegen"), mfLv = partyPassiveLv("manaFlow"), csLv = partyPassiveLv("cleanseStep");
-  if (frLv || mfLv || csLv) {
-    const hpPct = [0, 0.10, 0.15, 0.20][Math.min(3, frLv)] || 0, mpPct = [0, 0.05, 0.08, 0.12][Math.min(3, mfLv)] || 0;
-    const cureKinds = ["poison", "paralyze", "stone"].slice(0, Math.min(3, csLv));
-    let healed = false, mana = false, cured = false;
+  //  束の間の休息 (fieldRegen) = 全員のHP 10/20/30% / 魔力の循環 (manaFlow) = 全員のMP 5/10/15%
+  const frLv = partyPassiveLv("fieldRegen"), mfLv = partyPassiveLv("manaFlow");
+  if (frLv || mfLv) {
+    const hpPct = [0, 0.10, 0.20, 0.30][Math.min(3, frLv)] || 0, mpPct = [0, 0.05, 0.10, 0.15][Math.min(3, mfLv)] || 0;
+    let healed = false, mana = false;
     for (const p of G.party) {
       if (!p.alive) continue;
       if (hpPct && p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * hpPct)); healed = true; }
       if (mpPct && p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * mpPct)); mana = true; }
-      if (p.ailment && cureKinds.includes(p.ailment)) { p.ailment = null; cured = true; }
     }
     if (healed) log("束の間の休息: 階を移る合間に、パーティの傷が癒えた。", "win");
     if (mana) log("魔力の循環: 階を移る合間に、パーティの魔力が満ちてきた。", "win");
-    if (cured) log("清めの歩み: 階を移る合間に、パーティの穢れが祓われた。", "win");
   }
   // 強敵階判定: 5階層以上の迷宮のみ、3F以降で10%の確率で発生
   // 迷宮の掟 (軍議の間) は強敵階が出やすい (trait.eliteRate)
@@ -6956,17 +6896,15 @@ function startBattle(enemies, cell) {
     const vig = partyPassiveLv("vigilance");
     // 迷宮の異変 (闇討ちの宴): 奇襲率が跳ね上がる (周囲警戒は引き続き有効)
     // 極の恵み「霧渡りの目」は奇襲を半分に
-    // 夜営の番 (nightWatch): 奇襲される確率 −20/35/50%
-    const nw = 1 - ([0, 0.20, 0.35, 0.50][Math.min(3, partyPassiveLv("nightWatch"))] || 0);
+    // 夜営の番 (nightWatch): 奇襲される確率 −50/75/100%
+    const nw = 1 - ([0, 0.50, 0.75, 1][Math.min(3, partyPassiveLv("nightWatch"))] || 0);
     const amb = (spFloor && spFloor.noAmbush) ? 0 : 0.08 * mutNum("ambushMul", 1) * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1) * evBoon("mistEye", "ambush", 1) * nw;
     // 追い風の階 (preempt100) では必ず先手を取れる。
     // 先制の心得 (initiative) で +15/25/40%、周囲警戒Lv3 で挑戦時さらに +10%
     const ini = partyPassiveLv("initiative");
-    // 忍び足 (stealthStep) +10/15/20% / 退魔の気配 (holySense): 不死・霊・悪魔がいれば +10/15/20%
-    const unholy = enemies.some((e) => ["undead", "specter", "demon"].includes(e.mon && e.mon.race));
+    // 忍び足 (stealthStep) +10/15/20%
     const iniBonus = (ini >= 3 ? 0.40 : ini >= 2 ? 0.25 : ini >= 1 ? 0.15 : 0)
-      + ([0, 0.10, 0.15, 0.20][Math.min(3, partyPassiveLv("stealthStep"))] || 0)
-      + (unholy ? [0, 0.10, 0.15, 0.20][Math.min(3, partyPassiveLv("holySense"))] || 0 : 0);
+      + ([0, 0.10, 0.15, 0.20][Math.min(3, partyPassiveLv("stealthStep"))] || 0);
     // 極の恵み「守備隊の敬礼」は先手 +8%
     const pre = (spFloor && spFloor.preempt100) ? 1 : 0.08 + iniBonus + (vig >= 3 ? 0.10 : 0) + evBoon("salute", "preempt", 0);
     const r = Math.random();
@@ -6996,19 +6934,7 @@ function startBattle(enemies, cell) {
   // 敵のLv = その迷宮・階の基準Lv (状態異常・即死の成功率はLv差で決まる — combat.js lvRate)
   const foeLv = foeLevelHere();
   for (const e of enemies) e.lv = foeLv;
-  // 見破りの眼 (trueName): まだ倒したことのない魔物の名を、種ごとに確率で見破る (この戦闘の間だけ)
-  const tnLv = partyPassiveLv("trueName");
-  if (tnLv) {
-    const seen = {};
-    for (const e of enemies) {
-      if (enemyReveal(e).name) continue;
-      if (seen[e.key] == null) seen[e.key] = Math.random() < ([0, 0.3, 0.6, 1][Math.min(3, tnLv)] || 0);
-      if (seen[e.key]) e._named = true;
-    }
-    if (Object.values(seen).some(Boolean)) log("見破りの眼が、魔物の正体を見抜いた。", "sys");
-  }
   G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), foeLv });
-  G.battle._aliveAtStart = G.party.filter((p) => p.alive); // 蘇りの祈り: この戦闘で倒れた者を見分ける
   if (foeLv - partyLevel() >= 4) log(`格上の敵だ (Lv${foeLv})。眠りや毒、即死の術はほとんど効かず、敵の術はよく効く。`, "sys");
   // テスト記録: 戦闘の種類 (主 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子
   if (tlOn() && inDungeon()) {
@@ -7406,7 +7332,7 @@ function drawEnemyPlate(e, x, y, hot, k) {
   vctx.shadowOffsetY = 0;
   // 右に添える印 (属性看破 / 状態異常 / 眠り / 怯み)
   const seals = [];
-  if ((partyPassiveLv("scan") || partyPassiveLv("spellbladeMikiwame")) && e.element && e.element !== "none") { const el2 = ELEMENTS[e.element] || {}; seals.push([el2.label || "?", el2.color || "#ccc"]); }
+  if (partyPassiveLv("scan") && e.element && e.element !== "none") { const el2 = ELEMENTS[e.element] || {}; seals.push([el2.label || "?", el2.color || "#ccc"]); }
   if (e.ailment) seals.push(ENEMY_SEAL[e.ailment] || ["呪", "#c080ff"]);
   if (e.asleep) seals.push(["眠", "#8fc8ff"]);
   if (e.mind && MIND_SEAL[e.mind]) seals.push(MIND_SEAL[e.mind]);
@@ -8751,8 +8677,8 @@ function distributeBattleSoulExp(soulGot) {
   const queue = [];
   const share = Math.floor((soulGot || 0) / 3);
   if (share <= 0) return queue;
-  // 魂の薫陶 (soulTutor): その人業が宿す魂 (メイン・サブ) の得るEXP +10/15/20%
-  const tutorMul = (m) => 1 + ([0, 0.10, 0.15, 0.20][Math.min(3, pLv(m, "soulTutor"))] || 0);
+  // 魂の薫陶 (soulTutor): その人業が宿す魂 (メイン・サブ) の得るEXP +10/20/30%
+  const tutorMul = (m) => 1 + ([0, 0.10, 0.20, 0.30][Math.min(3, pLv(m, "soulTutor"))] || 0);
   // 経験値は「編成中に宿している魂」(メイン魂・サブ魂とも) ごとに1回ずつ入る。
   // 同じ魂を複数人が宿すことはない (魂は1体ごとに個別) ので重複加算は起きない。
   // サブ魂が得る経験値はメイン魂の 1/3 (SUB_EXP_RATE)。どこかでメイン魂として宿していれば全量扱いにする。
@@ -8856,7 +8782,6 @@ function endBattle() {
   if (!(b.result === "win" && G.autoCombat && uiDungeonHud.getPref("autoKeep"))) G.autoCombat = false;
   if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
   renderCombat();
-  for (const p of G.party) p._wonLast = b.result === "win"; // 連戦の昂ぶり (修羅): 次の戦闘の開始時に見る
   if (b.result === "win") {
     // 死体戦 (まだあたたかい/偉大なる死体が起き上がった戦闘): 宝箱なし・魂を100%回収する
     const corpse = (G.battleCell && G.battleCell._corpseRise)
@@ -8866,9 +8791,8 @@ function endBattle() {
     // 金運 (goldLuck) / 魂寄せ (soulLure) は戦闘報酬を底上げする (隊内最高Lvのみ)
     const { soul, gold } = b.rewards();
     const gl = partyPassiveLv("goldLuck"), sl = partyPassiveLv("soulLure");
-    const pf = [0, 0.05, 0.08, 0.12][Math.min(3, partyPassiveLv("pilfer"))] || 0; // ちょろまかし
-    const goldGot = runGainGold(Math.round(gold * 2 * ((gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1) + pf))) + takeStolenGold(b);
-    const soulGot = runGainSoulPts(Math.round(soul * (1 + ([0, 0.05, 0.08, 0.12][Math.min(3, sl)] || 0))));
+    const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1))) + takeStolenGold(b);
+    const soulGot = runGainSoulPts(Math.round(soul * (sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1)));
     applyVictoryPassives();
     // 入手Soulの1/3を生存メンバーの魂 (サブ魂はその1/3) に加算 → レベルアップ/スキル習得を集計
     const progress = distributeBattleSoulExp(soulGot);
@@ -9040,21 +8964,6 @@ function applyVictoryPassives() {
       log(`慈悲の祈り！ ${dead.name}が立ち上がった`, "win");
       setTimeout(() => showToast(`慈悲の祈り ― ${dead.name}が立ち上がった`, { tone: "good" }), 400);
     }
-  }
-  // 蘇りの祈り (riseAgain): この戦闘で倒れた味方が、それぞれ確率で HP1 で起き上がる
-  const raLv = partyPassiveLv("riseAgain");
-  const fellHere = (G.battle && G.battle._aliveAtStart) || [];
-  if (raLv) for (const p of G.party) {
-    if (p.alive || !fellHere.includes(p) || Math.random() >= ([0, 0.10, 0.20, 0.30][Math.min(3, raLv)] || 0)) continue;
-    p.alive = true; p.hp = 1; p.ailment = null; p.reviveAt = null; p._dead = false;
-    log(`蘇りの祈り！ ${p.name}が起き上がった (HP1)`, "win");
-    setTimeout(() => showToast(`蘇りの祈り ― ${p.name}が起き上がった`, { tone: "good" }), 450);
-  }
-  // 薬草摘み (herbPick): 確率で薬草を拾う
-  const hpLv = partyPassiveLv("herbPick");
-  if (hpLv && inDungeon() && Math.random() < ([0, 0.05, 0.08, 0.12][Math.min(3, hpLv)] || 0)) {
-    const got = giveItem("herb");
-    if (got) setTimeout(() => showToast(`薬草摘み ― ${itemName(got.item)}を拾った`, { tone: "good" }), 500);
   }
 }
 
@@ -12766,7 +12675,6 @@ function useItem(p, index, target) {
   p.items.splice(index, 1);
   const kinds = useCureKinds(u);
   const notes = [];
-  const alc = 1 + ([0, 0.10, 0.20, 0.30][Math.min(3, partyPassiveLv("alchemy"))] || 0); // 錬金の知恵: 道具の回復量
   for (const t of targets) {
     if (u.revive) {
       t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false;
@@ -12776,8 +12684,8 @@ function useItem(p, index, target) {
       continue;
     }
     const bits = [];
-    if (u.heal || u.full) { const b = t.hp; t.hp = Math.min(t.maxhp, t.hp + (u.full ? t.maxhp : Math.round(u.heal * alc))); if (t.hp > b) bits.push(`HP+${t.hp - b}`); }
-    if ((u.mp || u.mpFull) && (t.maxmp || 0) > 0) { const b = t.mp; t.mp = Math.min(t.maxmp, t.mp + (u.mpFull ? t.maxmp : Math.round(u.mp * alc))); if (t.mp > b) bits.push(`MP+${t.mp - b}`); }
+    if (u.heal || u.full) { const b = t.hp; t.hp = Math.min(t.maxhp, t.hp + (u.full ? t.maxhp : u.heal)); if (t.hp > b) bits.push(`HP+${t.hp - b}`); }
+    if ((u.mp || u.mpFull) && (t.maxmp || 0) > 0) { const b = t.mp; t.mp = Math.min(t.maxmp, t.mp + (u.mpFull ? t.maxmp : u.mp)); if (t.mp > b) bits.push(`MP+${t.mp - b}`); }
     if (kinds.length && t.ailment && kinds.includes(t.ailment)) { bits.push(`${AIL_NAME[t.ailment] || "状態異常"}が治った`); t.ailment = null; }
     if (bits.length) { notes.push(`${t.name} ${bits.join(" ")}`); log(`${p.name}は${it.name}を使った。${t.name}: ${bits.join("・")}`, "heal"); }
   }

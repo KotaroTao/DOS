@@ -5,11 +5,11 @@ export default {
   // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
   awaken: "sageChouwa/1",
   table: `
-    1 kantei/2 3 DIOS 5 sageJunkan/1 7 ICENEEDLE 10 CURE 15 SAGE_SEIRYUU 15 alchemy/1
+    1 kantei/2 3 DIOS 5 sageJunkan/1 7 ICENEEDLE 10 CURE 15 SAGE_SEIRYUU 15 sageZoufuku/1
     20 MAHALITO 22 AQUAWAVE 25 sageIzumi/1 27 WINDSTORM 30 SAGE_CHIE 35 sageSuifuu/1
-    40 SHINRANOSABAKI 45 sageJunkan/2 47 ICELANCE 50 DIOSALL 50 alchemy/2 55 MAYOKE 60 sageJihi/1
+    40 SHINRANOSABAKI 45 sageJunkan/2 47 ICELANCE 50 DIOSALL 50 sageZoufuku/2 55 MAYOKE 60 sageJihi/1
     65 SAGE_SHINRI 70 sageChouwa/2 72 SAGE_SEIFUU 75 sageIzumi/2 80 SAGE_KAZEGAERI 85 SAGE_NAGI
-    90 sageSuifuu/2 92 SAGE_JINRAI 95 SAGE_FUUU 100 SAGE_HAYATE 100 alchemy/3 105 sageJunkan/3 110 SAGE_SUIKYOU
+    90 sageSuifuu/2 92 SAGE_JINRAI 95 SAGE_FUUU 100 SAGE_HAYATE 100 sageZoufuku/3 105 sageJunkan/3 110 SAGE_SUIKYOU
     115 resistAilment/1 120 SAGE_DAICHI 125 sageJihi/2 130 SAGE_KANRO 135 sageSuifuu/3 140 SAGE_EICHIEN
     142 SAGE_TENRAI 145 sageChouwa/3 150 SAGE_HANGON 155 sageIzumi/3 160 SAGE_REIHYOU 165 resistAilment/2
     170 SAGE_CHOUWA 175 sageJunkan/4 180 SAGE_HOMURA 185 sageJihi/3 190 SAGE_SHINEN 195 SAGE_SHINRA
@@ -39,6 +39,15 @@ export default {
     SAGE_SHUUKYOKU: { name: "叡智の終極", mp: 46, kind: "atk", power: 128, partyHeal: 30, target: "all-enemy", desc: "極大の理が敵を滅し、余光が味方を癒す" },
   },
   perks: {
+    // Lv15 の目玉パッシブ: 魔力を惜しまず注ぎ込む (消費MPの増加は combat.js の spellCost が読む)
+    sageZoufuku: {
+      label: "叡智の奔流",
+      lv: ["攻撃呪文・回復の消費MP+10%、効果+10%", "攻撃呪文・回復の消費MP+20%、効果+20%", "攻撃呪文・回復の消費MP+30%、効果+30%"],
+      fx: [
+        { t: "deal", on: "spell", v: [0.10, 0.20, 0.30] },
+        { t: "heal", v: [0.10, 0.20, 0.30] },
+      ],
+    },
     sageJunkan: {
       label: "叡智の循環",
       lv: ["攻撃呪文の後、味方全員のHPを最大の1.5%回復", "攻撃呪文の後、味方全員のHPを最大の2.5%回復",

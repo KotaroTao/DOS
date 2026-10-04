@@ -6,10 +6,10 @@ export default {
   awaken: "guardianHoufuku/1",
   table: `
     1 SHIELDBASH 2 NERAIUCHI 3 CHOUHATSU 5 guardianNone/1 7 GUARDIAN_NEHARI 10 SUIGETSU
-    12 IWAKUDAKI 15 GUARDIAN_OOTATEOTOSHI 15 trapGuard/1 20 HANGEKI 22 CHIRETSU 25 guardianTatenochikai/1 30 NIOUDACHI
-    35 guardianToride/1 40 KOUBOUITTAI 45 guardianNone/2 50 GUARDIAN_KORAEGAESHI 50 trapGuard/2 55 RYUURINJIN 57 GUARDIAN_GANBANGAESHI
+    12 IWAKUDAKI 15 GUARDIAN_OOTATEOTOSHI 15 guardianKenrou/1 20 HANGEKI 22 CHIRETSU 25 guardianTatenochikai/1 30 NIOUDACHI
+    35 guardianToride/1 40 KOUBOUITTAI 45 guardianNone/2 50 GUARDIAN_KORAEGAESHI 50 guardianKenrou/2 55 RYUURINJIN 57 GUARDIAN_GANBANGAESHI
     60 guardianHoufuku/2 65 GUARDIAN_SUKIUGACHI 70 guardianUtaregatame/1 75 guardianToride/2 80 GUARDIAN_SEKIHEKI 85 GUARDIAN_SOUJUN
-    90 guardianTatenochikai/2 95 GUARDIAN_GAJOU 100 GUARDIAN_OMOTATE 100 trapGuard/3 105 guardianHoufuku/3 107 GUARDIAN_JIBANSHIZUME 110 OUJOU
+    90 guardianTatenochikai/2 95 GUARDIAN_GAJOU 100 GUARDIAN_OMOTATE 100 guardianKenrou/3 105 guardianHoufuku/3 107 GUARDIAN_JIBANSHIZUME 110 OUJOU
     115 guardianToride/3 120 GUARDIAN_JUUGAITOOSHI 125 guardianUtaregatame/2 130 GUARDIAN_SENNENJOUHEKI 135 resistAilment/1 140 GUARDIAN_MIDARETATE
     145 bigBarrier/1 150 GUARDIAN_UZUSHIO 155 guardianNone/3 160 GUARDIAN_DAIBANJAKU 162 GUARDIAN_JIJIKUYURASHI 165 resistAilment/2
     170 GUARDIAN_TAKANAMI 175 holyCover/1 180 GUARDIAN_KINJOUTEPPEKI 185 bigBarrier/2 190 GUARDIAN_ROUJOU 195 GUARDIAN_TENCHIGAESHI
@@ -39,6 +39,12 @@ export default {
     GUARDIAN_EIGOUJOUSAI: { name: "永劫城塞", mp: 40, kind: "heal", power: 30, buff: { vit: 1.7 }, regen: { pct: 0.05, turns: 4 }, grantBarrier: 1, target: "all-ally", desc: "味方全体を癒し、城塞と障壁で守り続ける" },
   },
   perks: {
+    // Lv15 の目玉パッシブ: どんな攻撃も城壁のように受け止める
+    guardianKenrou: {
+      label: "堅牢",
+      lv: ["受ける最終ダメージ-10%", "受ける最終ダメージ-15%", "受ける最終ダメージ-20%"],
+      fx: [{ t: "take", v: [0.10, 0.15, 0.20] }],
+    },
     guardianNone: {
       label: "不動の根",
       lv: ["戦闘開始時、敵を自分に引き付ける (2ターン)", "さらに戦闘ごとに一度、致死をHP1で耐える", "さらに戦闘開始時、VIT×1.2 (3ターン)"],

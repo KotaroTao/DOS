@@ -5,10 +5,10 @@ export default {
   awaken: "arcthiefKarimono/1",
   table: `
     1 STEAL 2 ARCTHIEF_KASUMEBA 3 HALITO 4 SHADOWBOLT 5 openSpell/1 7 ARCTHIEF_NUSUMIMI
-    10 ARCTHIEF_YUMETORI 12 FUYUU 15 ARCTHIEF_KASUMEJUDAN 15 pilfer/1 20 SEAL 25 arcthiefSae/1 30 MAHALITO
-    32 DARKBLAST 35 arcthiefSuritoru/1 40 MARYOKUGOUDATSU 45 arcthiefTeguse/1 50 ARCTHIEF_GENTOU 50 pilfer/2 55 DISPEL
+    10 ARCTHIEF_YUMETORI 12 FUYUU 15 ARCTHIEF_KASUMEJUDAN 15 arcthiefGenei/1 20 SEAL 25 arcthiefSae/1 30 MAHALITO
+    32 DARKBLAST 35 arcthiefSuritoru/1 40 MARYOKUGOUDATSU 45 arcthiefTeguse/1 50 ARCTHIEF_GENTOU 50 arcthiefGenei/2 55 DISPEL
     57 ARCTHIEF_MAREIJIN 60 arcthiefTeguse/2 65 ARCTHIEF_ENMAKU 70 arcthiefKarimono/2 72 ARCTHIEF_KAGEKUI 75 arcthiefSae/2
-    80 ARCTHIEF_TOUSEI 85 ARCTHIEF_MASHU 90 arcthiefSuritoru/2 95 ARCTHIEF_KASUMERAI 100 MADALT 100 pilfer/3 105 arcthiefSurinuke/1
+    80 ARCTHIEF_TOUSEI 85 ARCTHIEF_MASHU 90 arcthiefSuritoru/2 95 ARCTHIEF_KASUMERAI 100 MADALT 100 arcthiefGenei/3 105 arcthiefSurinuke/1
     110 ARCTHIEF_JUTSUAMI 115 arcthiefSuritoru/3 120 ARCTHIEF_MANAWA 122 ARCTHIEF_TAMANUKI 125 arcthiefKarimono/3 130 ARCTHIEF_NUSUMISHIMO
     135 arcthiefSae/3 140 ARCTHIEF_KAGENUKE 145 arcthiefTeguse/3 150 ARCTHIEF_NUSUMIARASHI 155 resistAilment/1 160 ARCTHIEF_NUSUMIBI
     165 arcthiefSuritoru/4 170 ARCTHIEF_TAMANUSUMI 175 arcthiefSurinuke/2 180 ARCTHIEF_TOUTENSEKI 185 arcthiefSae/4 190 ARCTHIEF_MAKUHIKI
@@ -41,6 +41,12 @@ export default {
     ARCTHIEF_BANSHOU:      { name: "万象盗り", mp: 44, kind: "atk", power: 130, mpDrain: 0.1, strip: true, target: "all-enemy", desc: "万象の理を盗み、敵陣を消し去る" },
   },
   perks: {
+    // Lv15 の目玉パッシブ: 幻を残して身を翻す
+    arcthiefGenei: {
+      label: "幻影歩法",
+      lv: ["敵の物理を10%でかわす", "敵の物理を15%でかわす", "敵の物理を20%でかわす"],
+      fx: [{ t: "evade", v: [0.10, 0.15, 0.20] }],
+    },
     // 盗んだ術は懐が痛まない
     arcthiefKarimono: {
       label: "借り物の術",

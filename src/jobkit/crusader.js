@@ -7,10 +7,10 @@ export default {
   awaken: "crusaderSeikaKate/1",
   table: `
     1 KYOUGEKI 2 KOUJIN 3 HOLYRAY 5 crusaderFujouUchi/1 7 NERAIUCHI 10 BLESS
-    12 KAENGIRI 15 CRUSADER_SEIKAZAN 15 crusaderNushiuchi/1 20 CRUSADER_SEIINTSUKI 22 CRUSADER_JUUJISENKOU 25 crusaderFujouUchi/2 30 SEISEN
-    35 crusaderTotsugekiIkioi/1 40 JUUJIZAN 45 crusaderSeinaruKouyou/1 50 JOUKA 50 crusaderNushiuchi/2 55 SHINGANGEKI 57 SEIGEKI
+    12 KAENGIRI 15 CRUSADER_SEIKAZAN 15 crusaderToki/1 20 CRUSADER_SEIINTSUKI 22 CRUSADER_JUUJISENKOU 25 crusaderFujouUchi/2 30 SEISEN
+    35 crusaderTotsugekiIkioi/1 40 JUUJIZAN 45 crusaderSeinaruKouyou/1 50 JOUKA 50 crusaderToki/2 55 SHINGANGEKI 57 SEIGEKI
     60 crusaderSeikaKate/2 65 CRUSADER_SEISHOU 70 crusaderJunkyoushin/1 75 crusaderJunkyoushin/2 80 CRUSADER_SEIENTOTSU 82 GURENZAN
-    85 REVIVE 90 resistAilment/1 95 CRUSADER_JUUJIBARAI 100 CRUSADER_KOUCHUU 100 crusaderNushiuchi/3 105 crusaderTotsugekiIkioi/2 107 CRUSADER_SHOKUZAI
+    85 REVIVE 90 resistAilment/1 95 CRUSADER_JUUJIBARAI 100 CRUSADER_KOUCHUU 100 crusaderToki/3 105 crusaderTotsugekiIkioi/2 107 CRUSADER_SHOKUZAI
     110 CRUSADER_SHAKUNETSU 115 crusaderFujouUchi/3 120 CRUSADER_SEISENTOTSU 125 crusaderJunkyoushin/3 130 CRUSADER_SEIENCHIKAI 135 crusaderSeikaKate/3
     140 CRUSADER_JUUJISABAKI 145 resistAilment/2 150 CRUSADER_DAITOTSUGEKI 155 crusaderSeinaruKouyou/2 160 CRUSADER_JOUMETSU 162 KOUBOURANBU
     165 crusaderJunkyoushin/4 170 CRUSADER_SEIRAKU 175 crusaderSeinaruKouyou/3 180 CRUSADER_GAIKA 185 crusaderTotsugekiIkioi/3 190 CRUSADER_TOTSUGEKIJIN
@@ -38,12 +38,6 @@ export default {
     CRUSADER_SEIJUUJI: { name: "聖十字・終焉", mp: 40, kind: "phys", power: 5.6, hits: 2, element: "light", acc: 1, pierce: 0.8, prey: { races: UNHOLY, mul: 1.3 }, target: "enemy", desc: "鎧を貫く必中の十字二連。不浄の者に強い" },
   },
   perks: {
-    // Lv15 の目玉パッシブ: 迷宮の主を討つ誓いで隊を奮い立たせる
-    crusaderNushiuchi: {
-      label: "主討ちの誓い",
-      lv: ["主のいる戦闘の開始時、味方全員のATK×1.05 (3ターン)", "主のいる戦闘の開始時、味方全員のATK×1.08 (3ターン)", "主のいる戦闘の開始時、味方全員のATK×1.12 (3ターン)"],
-      fx: [{ t: "start", when: { bossFight: true }, party: true, dur: 3, buff: { atk: [1.05, 1.08, 1.12] } }],
-    },
     crusaderFujouUchi: { label: "不浄討ちの誓い", lv: ["不死・幽鬼・悪魔への与ダメ+20%・会心+5%", "不死・幽鬼・悪魔への与ダメ+30%・会心+10%", "不死・幽鬼・悪魔への与ダメ+40%・会心+15%"],
       fx: [{ t: "deal", v: [0.2, 0.3, 0.4], when: { race: UNHOLY } }, { t: "crit", v: [0.05, 0.1, 0.15], when: { race: UNHOLY } }] },
     crusaderSeikaKate: { label: "聖火の糧", lv: ["敵を倒すとHP4%回復", "敵を倒すとHP6%回復", "敵を倒すとHP8%回復"],

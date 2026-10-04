@@ -34,11 +34,11 @@ export default {
     SPELLBLADE_KENKAI: { name: "万魔剣界", mp: 44, kind: "atk", power: 135, debuff: { vit: 0.85 }, target: "all-enemy", desc: "無数の魔剣が降り注ぎ、鎧を穿つ" },
   },
   perks: {
-    // Lv15 の目玉パッシブ: 敵の属性を見極め、弱みに刃を通す (属性が見えるのは game.js が読む)
+    // Lv15 の目玉パッシブ: 敵の属性を見極め、弱みに刃と術を通す
     spellbladeMikiwame: {
       label: "属性の見極め",
-      lv: ["戦闘中、敵の属性が見える", "敵の属性が見え、弱点の属性で攻めると与ダメージ+5%", "敵の属性が見え、弱点の属性で攻めると与ダメージ+10%"],
-      fx: [{ t: "deal", when: { tgtWeak: true }, v: [0, 0.05, 0.10] }],
+      lv: ["属性の弱点を突いた与ダメージ+10%", "属性の弱点を突いた与ダメージ+20%", "属性の弱点を突いた与ダメージ+30%"],
+      fx: [{ t: "deal", when: { tgtWeak: true }, v: [0.10, 0.20, 0.30] }],
     },
     // 斬撃に詠唱を乗せ、魔力を無駄にしない
     spellbladeEishou: {

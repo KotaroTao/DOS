@@ -19,7 +19,7 @@ export default {
     // Lv15 (覚醒のパッシブが抜けた段): 聖水を撒いて群れを清める祈りの呪文
     BISHOP_SEISUIMAKI: { name: "聖水撒き", mp: 6, kind: "atk", power: 14, element: "water", faith: true, prey: { races: UNHOLY, mul: 1.3 }, target: "all-enemy", desc: "聖水を撒き、敵全体を清める。不浄の者に強い（PIEでも伸びる）" },
     // 迷宮で唱える術: 祈りの導きで、この階の下り階段を示す
-    BISHOP_MICHISHIRUBE: { name: "道しるべ", mp: 6, kind: "field", sense: "stairs", target: "all-ally", desc: "この階の下り階段の在りかを示し、その周囲8マスの墓石をめくる（迷宮で唱える）" },
+    BISHOP_MICHISHIRUBE: { name: "道しるべ", mpPct: 0.3, mp: 6, kind: "field", sense: "stairs", target: "all-ally", desc: "この階の下り階段の在りかを示し、その周囲8マスの墓石をめくる（迷宮で唱える。効くのはこの階だけ）" },
     BISHOP_SEISUI:     { name: "聖水の雫", mp: 7, kind: "heal", power: 15, cure: true, target: "all-ally", desc: "聖水を撒き、味方全員を癒し穢れを祓う" },
     BISHOP_SENREI:     { name: "洗礼の聖水", mp: 6, kind: "debuff", strip: true, seal: { chance: 0.25, turns: 2 }, target: "all-enemy", desc: "聖水で強化を洗い流し、特技を封じる" },
     BISHOP_SEIHYOU:    { name: "聖氷の祈り", mp: 10, kind: "atk", power: 30, element: "water", prey: { races: UNHOLY, mul: 1.4 }, target: "all-enemy", desc: "聖別した氷雨。不浄の者に強い" },

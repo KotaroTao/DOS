@@ -6,10 +6,10 @@ export default {
   awaken: "archmageMeido/1",
   table: `
     1 HALITO 3 SHADOWBOLT 4 ISHITSUBUTE 5 archmageJuushou/1 7 ICENEEDLE 8 KAMAITACHI
-    10 ARCHMAGE_JUUEI 15 ARCHMAGE_KOKUYOU 15 archmageJuueisonae/1 20 MAHALITO 22 EARTHQUAKE 25 archmageUtsuwa/1 30 ARCHMAGE_GANSOU
-    35 archmageMasen/1 40 SHINENNOHADOU 45 archmageJuushou/2 47 DARKBLAST 50 MADALT 50 archmageJuueisonae/2 55 ELEMBREAK
+    10 ARCHMAGE_JUUEI 15 ARCHMAGE_KOKUYOU 15 archmageChoei/1 20 MAHALITO 22 EARTHQUAKE 25 archmageUtsuwa/1 30 ARCHMAGE_GANSOU
+    35 archmageMasen/1 40 SHINENNOHADOU 45 archmageJuushou/2 47 DARKBLAST 50 MADALT 50 archmageChoei/2 55 ELEMBREAK
     60 archmageUtsuwa/2 62 ARCHMAGE_DOSEKIRYUU 65 ARCHMAGE_GOUKARIN 70 archmageMakaku/1 75 archmageMeido/2 80 ARCHMAGE_TENKYUU
-    85 ARCHMAGE_NIJUUIN 90 archmageMasen/2 95 ARCHMAGE_SOUCHUU 100 ARCHMAGE_YOUGAN 100 archmageJuueisonae/3 105 archmageJuushou/3 110 ARCHMAGE_TENMEI
+    85 ARCHMAGE_NIJUUIN 90 archmageMasen/2 95 ARCHMAGE_SOUCHUU 100 ARCHMAGE_YOUGAN 100 archmageChoei/3 105 archmageJuushou/3 110 ARCHMAGE_TENMEI
     112 ARCHMAGE_MEIOU 115 archmageMakaku/2 120 ARCHMAGE_NARAKU 125 resistAilment/1 130 ARCHMAGE_GOKKAN 135 archmageUtsuwa/3
     140 ARCHMAGE_SHOUKON 145 archmageMeido/3 150 ARCHMAGE_RAIGOU 155 archmageMasen/3 160 ARCHMAGE_INTETSU 165 resistAilment/2
     170 ARCHMAGE_EIKYUU 172 ARCHMAGE_AGITO 175 archmageMakaku/3 177 ARCHMAGE_TOKOYAMI 180 ARCHMAGE_SHUUEN 185 archmageJuushou/4
@@ -41,12 +41,6 @@ export default {
     ARCHMAGE_BANSHOU:    { name: "万象崩壊", mp: 46, kind: "atk", power: 132, critBonus: 0.15, target: "all-enemy", desc: "重ねた詠唱で万象を砕く極大呪文（無属性）" },
   },
   perks: {
-    // Lv15 の目玉パッシブ: 戦いの前から詠唱を重ねておく
-    archmageJuueisonae: {
-      label: "重詠の備え",
-      lv: ["戦闘開始時、自分のINT×1.05 (3ターン)", "戦闘開始時、自分のINT×1.08 (3ターン)", "戦闘開始時、自分のINT×1.12 (3ターン)"],
-      fx: [{ t: "start", dur: 3, buff: { int: [1.05, 1.08, 1.12] } }],
-    },
     archmageJuushou: {
       label: "重唱の昂り",
       lv: ["2ラウンド目から毎ラウンド、INT×1.04 (2段まで重なる)", "2ラウンド目から毎ラウンド、INT×1.07 (2段まで重なる)",

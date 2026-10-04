@@ -5,7 +5,7 @@
 import { game } from "./ctx.js";
 import { el, sheet } from "./kit.js";
 import { ELEMENTS, elemBeats, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dungeons/index.js";
-import { SPELLS } from "../combat.js";
+import { SPELLS, spellMpLabel } from "../combat.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
 import { WEAPON_CAT_LABEL, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, scaleText, useLines } from "../items.js";
 import { HERO, spriteCanvas, crispCanvas } from "../sprites.js";
@@ -173,7 +173,7 @@ export function enemyReveal(e) {
   const R = revealSteps(e && e.mon);
   return {
     special, kills, steps: R,
-    name: special || kills >= R.name || !!(e && e._named), // _named = 見破りの眼 (trueName) がこの戦闘で正体を見破った
+    name: special || kills >= R.name,
     stats: special || kills >= R.stats,
     lore: special || kills >= R.lore,
   };
@@ -290,7 +290,7 @@ export function showSkillPopup(key) {
   if (!sp) return null;
   const accent = SPELL_KIND_COLOR[sp.kind] || "#c9a227";
   const body = el("div", "ui-skill");
-  const mpRow = el("div", "sk-mp", `消費MP ${sp.mp}`);
+  const mpRow = el("div", "sk-mp", sp.mpPct ? `消費 ${spellMpLabel(sp)}` : `消費MP ${sp.mp}`);
   const tg = tagRow(spellTagKinds(sp));
   if (tg) mpRow.appendChild(tg);
   body.appendChild(mpRow);

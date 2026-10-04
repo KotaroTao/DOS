@@ -15,7 +15,7 @@ import {
   soulLearnedSkills, soulLearnedPassives, soulLabel, soulRankLeft, passiveName, passiveDesc, orderStatBonus, orderStatRateOfRank, ORDER_STAT_RATES,
   jobSkillTable, recalcDoll, subPicks, subPickCap, toggleSubPick, subPickIndex,
 } from "../souls.js";
-import { SPELLS } from "../combat.js";
+import { SPELLS, spellMpLabel } from "../combat.js";
 import { crispCanvas } from "../sprites.js";
 
 const sfx = (k) => { try { const S = game.SFX; if (S && S[k]) S[k](); } catch (e) { /* 音は演出のみ */ } };
@@ -86,7 +86,7 @@ export function toastNewSkills(d, keys) {
         const list = el("div", "pt-list");
         for (const k of ks) {
           const sp = SPELLS[k];
-          list.appendChild(row({ title: sp.name, sub: `${SPELL_KIND_LABEL[sp.kind] || ""} ・ MP${sp.mp} ・ ${sp.desc || ""}`, chevron: true, onTap: () => showSkillPopup(k) }));
+          list.appendChild(row({ title: sp.name, sub: `${SPELL_KIND_LABEL[sp.kind] || ""} ・ ${spellMpLabel(sp)} ・ ${sp.desc || ""}`, chevron: true, onTap: () => showSkillPopup(k) }));
         }
         scroll.appendChild(list);
       },
@@ -631,7 +631,7 @@ export function openSkillStep(d, subRef) {
       for (const sk of learned) {
         const sp = SPELLS[sk];
         const on = subPickIndex(subRef, "skill", sk) >= 0;
-        const r = row({ title: `${sp ? sp.name : sk}${on ? "（借りている）" : ""}`, sub: sp ? `${SPELL_KIND_LABEL[sp.kind] || ""} ・ MP${sp.mp} ・ ${sp.desc || ""}` : "",
+        const r = row({ title: `${sp ? sp.name : sk}${on ? "（借りている）" : ""}`, sub: sp ? `${SPELL_KIND_LABEL[sp.kind] || ""} ・ ${spellMpLabel(sp)} ・ ${sp.desc || ""}` : "",
           tone: on ? "gold" : null, right: "技", onTap: () => pick(h, "skill", sk) });
         longPress(r, () => showSkillPopup(sk));
         list.appendChild(r);

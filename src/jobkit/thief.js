@@ -17,7 +17,7 @@ export default {
     // Lv15 (覚醒のパッシブが抜けた段): 脇をすり抜けざまに二度斬り、懐を掠める (素早さで伸びる)
     THIEF_SURINUKE: { name: "すり抜け斬り", mp: 4, kind: "phys", power: 0.8, hits: 2, agiScale: 0.4, steal: 0.3, target: "enemy", desc: "敵の脇をすり抜けざまに二度斬り、懐の金品を掠め取る（AGIで伸びる）" },
     // 迷宮で唱える術: 盗人の鼻で、この階の宝箱の在りかを青い光として嗅ぎ当てる
-    THIEF_TAKARASAGASHI: { name: "宝探し", mp: 5, kind: "field", sense: "chest", target: "all-ally", desc: "この階の宝箱の在りかが、墓石の下の青い光として浮かび上がる。中身や罠、ミミックかどうかまでは分からない（迷宮で唱える）" },
+    THIEF_TAKARASAGASHI: { name: "宝探し", mpPct: 0.3, mp: 5, kind: "field", sense: "chest", target: "all-ally", desc: "この階の宝箱の在りかが、墓石の下の青い光として浮かび上がる。中身や罠、ミミックかどうかまでは分からない（迷宮で唱える。効くのはこの階だけ）" },
   },
   perks: {
     // 小悪党の手癖: 殴りついでに敵の強化を掠め取る

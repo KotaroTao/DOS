@@ -36,11 +36,11 @@ export default {
     BERSERKER_SENKETSU: { name: "鮮血の終焉", mp: 40, kind: "phys", power: 11.5, acc: 1, pierce: 0.8, hpCost: 0.15, drain: 0.2, target: "enemy", desc: "血を捧げる必中の終撃。命を吸い返す" },
   },
   perks: {
-    // Lv15 の目玉パッシブ: 勝つたびに血の匂いで傷を忘れる
+    // Lv15 の目玉パッシブ: 血の匂いが常に体を昂らせる
     berserkerChinonioi: {
       label: "血の匂い",
-      lv: ["戦闘に勝つと、HPを最大の3%回復", "戦闘に勝つと、HPを最大の5%回復", "戦闘に勝つと、HPを最大の8%回復"],
-      fx: [{ t: "win", hp: [0.03, 0.05, 0.08] }],
+      lv: ["戦闘中の攻撃力+10%", "戦闘中の攻撃力+20%", "戦闘中の攻撃力+30%"],
+      fx: [{ t: "stat", mul: { atk: [0.10, 0.20, 0.30] } }],
     },
     // 斬られた痛みをそのまま相手に叩き返す
     berserkerMukui: {
