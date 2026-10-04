@@ -5,10 +5,25 @@ import { ELEMENTS, elemDmgMult, elemBeats, monStats, rankStats, resistRate, resi
 
 import { SPELLS } from "./skilldefs.js";
 import { JOBKIT_PERKS } from "./jobkit/index.js";
+import { STAGED, STAGE_MAX, STRONG_MIN, stageMul, stageOf, effectStage } from "./buffstage.js";
 export { SPELLS };
 
 // 敵が使う自己強化 (enemyAct の WARCRY 相当) の既定持続ターン数
 export const ENEMY_BUFF_DUR = 3;
+// 大技の予兆 (溜め): 主・精鋭が手番に溜めを始める確率と、放つ大技の倍率
+const CHARGE_RATE = { boss: 0.30, elite: 0.25 };
+const CHARGED = { smash: 2.2, smashAcc: 0.5, wide: 0.85, breath: 1.6 };
+const OMEN_TEXT = {
+  smash: (n) => `${n}は身を沈め、力を溜めている……！`,
+  wide: (n) => `${n}の殺気が膨れ上がっていく……！`,
+  breath: (n) => `${n}は深く息を吸い込んだ……！`,
+  spell: (n) => `${n}の周りに魔力が渦を巻く……！`,
+};
+const OMEN_NOTE = "力を溜めている！";
+// 払いのけ: 主・精鋭は弱体の厚み (段の合計) がこれ以上になると、手番にこの確率で振り払う
+const SHAKE_AT = 3, SHAKE_RATE = 0.5;
+// 打ち消し (特技 "dispel"): 隊の強化の厚みがこれ以上の時だけ使う
+const DISPEL_AT = 2;
 
 // アイテムは個体ごとに複製して持たせる (装備状態を個別管理するため)
 export function cloneItem(id) {
@@ -583,12 +598,15 @@ export class Battle {
     for (const k in b) b[k] = Math.max(0.3, Math.min(3, b[k]));
     t.buffs = b;
   }
-  // 1つの能力強化/弱体を付与する。同じ能力への同方向(強化 or 弱体)の効果は最大2段階まで。
-  // すでに2つ乗っていたら最も古いものを置き換える(=掛け直しで持続を更新できる)。
+  // 1つの能力強化/弱体を付与する。
+  //  ATK・VIT・AGI・INT・PIE は「段」(buffstage.js): 能力ごとに1本の効果を持ち、強化と弱体は段の足し算で打ち消し合う。
+  //   ±3段で止まり、主・精鋭には弱体が −2段までしか入らず持続も1ターン短い。戻り値 = 実際に動いた段数 (符号つき)
+  //  それ以外 (命中・封印・挑発・属性耐性…) は従来どおり、同じ向きの効果は2つまで (古いものから入れ替え)
   _applyMod(t, stat, mult, dur, srcName) {
-    if (!t || mult === 1) return;
-    if (mult < 1 && isMetal(t)) return; // 金属の体: 弱体は効かない
+    if (!t || mult === 1) return 0;
+    if (mult < 1 && isMetal(t)) return 0; // 金属の体: 弱体は効かない
     t.effects = t.effects || [];
+    if (STAGED.has(stat)) return this._applyStage(t, stat, stageOf(mult), dur, srcName);
     const up = mult > 1;
     const same = t.effects.filter((e) => e.stat === stat && (e.mult > 1) === up);
     if (same.length >= 2) {
@@ -598,6 +616,48 @@ export class Battle {
     }
     t.effects.push({ stat, mult, turns: Math.max(1, dur || 3), src: srcName || "" });
     this._recalcBuffs(t);
+    return up ? 1 : -1;
+  }
+  // 段の加算 (d = 符号つきの段数)
+  _applyStage(t, stat, d, dur, srcName) {
+    if (!d) return 0;
+    const strong = this._strongFoe(t);
+    let turns = Math.max(1, dur || 3);
+    if (d < 0 && strong) turns = Math.max(2, turns - 1); // 主・精鋭: 弱体の持続 −1
+    // 旧来の記録 (同じ能力に複数) もここで1本にまとめる
+    const olds = t.effects.filter((e) => e.stat === stat);
+    const s0 = Math.max(-STAGE_MAX, Math.min(STAGE_MAX, olds.reduce((a, e) => a + effectStage(e), 0)));
+    const t0 = olds.reduce((a, e) => Math.max(a, e.turns || 0), 0);
+    const lo = strong ? STRONG_MIN : -STAGE_MAX;
+    // 底・天井を越えて入れない (すでに越えている分は削らない)
+    const s1 = d > 0 ? Math.min(s0 + d, Math.max(STAGE_MAX, s0)) : Math.max(s0 + d, Math.min(lo, s0));
+    t.effects = t.effects.filter((e) => e.stat !== stat);
+    if (s1 !== 0) {
+      // 同じ向きへ掛け直せば長い方に延び、押し戻しただけなら元の持続のまま。向きが裏返ったら新しい持続
+      const nt = Math.sign(s1) !== Math.sign(d) ? t0 : Math.sign(s0) === Math.sign(d) ? Math.max(t0, turns) : turns;
+      t.effects.push({ stat, stage: s1, mult: stageMul(s1), turns: Math.max(1, nt), src: srcName || "" });
+    }
+    this._recalcBuffs(t);
+    return s1 - s0;
+  }
+  // 弱体に強い相手 (主・精鋭)
+  _strongFoe(t) { return !!(t && t.side === "enemy" && (t.boss || (t.mon && t.mon.elite))); }
+  // 能力の今の段
+  stageOf(t, stat) {
+    let n = 0;
+    for (const e of (t && t.effects) || []) if (e.stat === stat) n += effectStage(e);
+    return n;
+  }
+  // 強化・弱体の厚み: 上げている段の合計 (+ 段を持たない強化の数) / 下げている段の合計 (+ 段を持たない弱体の数)
+  _upWeight(t) {
+    let w = 0;
+    for (const e of (t && t.effects) || []) { const s = effectStage(e); w += STAGED.has(e.stat) ? Math.max(0, s) : e.mult > 1 && e.stat !== "omen" ? 1 : 0; }
+    return w;
+  }
+  _downWeight(t) {
+    let w = 0;
+    for (const e of (t && t.effects) || []) { const s = effectStage(e); w += STAGED.has(e.stat) ? Math.max(0, -s) : e.mult < 1 ? 1 : 0; }
+    return w;
   }
   // ラウンド開始時に全員の効果ターンを1減らし、切れたものを除く。
   _tickEffects() {
@@ -792,6 +852,7 @@ export class Battle {
   // 強化 (倍率>1) を打ち消す
   _stripUp(t) {
     if (!t.effects || !t.effects.some((e) => e.mult > 1)) return false;
+    if (this._omenOf(t)) { t._chargeCd = 1; this.log(`${t.name}の溜めた力が霧散した！`, "hit"); }
     t.effects = t.effects.filter((e) => !(e.mult > 1));
     this._recalcBuffs(t);
     return true;
@@ -891,6 +952,7 @@ export class Battle {
       t._flinch = true;
       this.log(`${t.name}は怯んだ！`, "hit");
     }
+    if (this._omenOf(t) && this._omenBroken(t)) this._breakOmen(t); // 封じ・眠り・麻痺・心の乱れ・怯みで溜めが潰れる
     if (sp.instakill) {
       const ik = sp.instakill;
       const race = enemyRace(t);
@@ -1260,6 +1322,9 @@ export class Battle {
   enemyAct() {
     const actor = this.current;
     let cmd;
+    // 大技の予兆: 眠り・麻痺・石化・心の乱れ・怯み・特技封じを受けていれば、溜めた力は霧散する
+    if (this._omenOf(actor) && this._omenBroken(actor)) this._breakOmen(actor);
+    if (actor._chargeCd > 0) actor._chargeCd--;
     if (actor._nailed) {
       // 五寸釘 (呪術師): 最初の手番を失う
       actor._nailed = false;
@@ -1299,19 +1364,40 @@ export class Battle {
     } else if (sealed) {
       cmd = { actor, action: "attack", target: this._pickPartyTarget() };
     } else {
-      // 役割持ちの行動 (通常攻撃より優先): 回復役は傷ついた仲間を癒し、呼び手は仲間を呼ぶ
-      if (actor.role === "healer") {
+      const omen = this._omenOf(actor);
+      if (omen) {
+        // 溜めた力を放つ。溜めたのと同じラウンド (神速の2手目) はまだ放たず、溜めたまま普通に殴る
+        cmd = omen.round < this._roundNo ? { actor, action: "charged", omen } : { actor, action: "attack", target: this._pickPartyTarget() };
+      } else if (this._strongFoe(actor) && this._downWeight(actor) >= SHAKE_AT && Math.random() < SHAKE_RATE) {
+        // 払いのけ: 主・精鋭は弱体が深くなると身を震わせて振り払う (特技封じ中は使えない)
+        cmd = { actor, action: "shake" };
+      }
+      // 役割持ちの行動 (通常攻撃より優先): 回復役は傷ついた仲間を癒し (いなければ弱体を浄め)、呼び手は仲間を呼ぶ
+      if (!cmd && actor.role === "healer") {
         const t = this._woundedAlly(actor);
         if (t && Math.random() < 0.70) cmd = { actor, action: "eheal", target: t };
-      } else if (actor.role === "summoner") {
+        else {
+          const d = this._debuffedAlly();
+          if (d && Math.random() < 0.60) cmd = { actor, action: "ecleanse", target: d };
+        }
+      } else if (!cmd && actor.role === "summoner") {
         if (this.livingEnemies().length < MAX_ENEMIES && Math.random() < 0.50) cmd = { actor, action: "summon" };
       }
+      // 主・精鋭の溜め (特技とは別枠)
+      if (!cmd && !(actor._chargeCd > 0) && Math.random() < this._chargeRate(actor)) cmd = { actor, action: "windup" };
       if (!cmd) {
         const ab = actor.ability;
         // ブレス・全体呪文はどちらも隊全体への攻撃 (action "breath"。kind で吐息か呪文かを分ける)
         const wide = ab === "breath" || ab === "spell";
-        if (ab && Math.random() < (actor.abRate || (wide ? 0.30 : 0.25)) * (1 - this._rkParty("templarIkou", [0.10, 0.15, 0.20, 0.30]))) { // 封魔の威光 (神殿騎士のランク)
-          cmd = { actor, action: wide ? "breath" : "special", kind: ab, target: this._pickPartyTarget() };
+        const ikou = 1 - this._rkParty("templarIkou", [0.10, 0.15, 0.20, 0.30]); // 封魔の威光 (神殿騎士のランク)
+        let rate = (actor.abRate || (wide ? 0.30 : 0.25)) * ikou;
+        // 状況を見る特技: 打ち消しは隊の加護が厚い時だけ (厚いほど狙う)、雄叫びは仲間がもう奮い立っていれば控える、溜めは冷めるまで待つ
+        if (ab === "dispel") rate = this._partyUpWeight() >= DISPEL_AT ? Math.max(rate, 0.5 * ikou) : 0;
+        else if (ab === "warcry" && this.livingEnemies().every((e) => this.stageOf(e, "atk") >= 2)) rate = 0;
+        else if (ab === "charge" && actor._chargeCd > 0) rate = 0;
+        if (ab && Math.random() < rate) {
+          cmd = ab === "charge" ? { actor, action: "windup" }
+            : { actor, action: wide ? "breath" : "special", kind: ab, target: ab === "weaken" ? this._weakenTarget() : this._pickPartyTarget() };
         } else {
           cmd = { actor, action: "attack", target: this._pickPartyTarget() };
         }
@@ -1346,6 +1432,53 @@ export class Battle {
       if (!best || e.hp / e.maxhp < best.hp / best.maxhp) best = e;
     }
     return best;
+  }
+
+  // 浄めの標的: 弱体が一番深い仲間 (段の合計で2以上)
+  _debuffedAlly() {
+    let best = null, bw = 1;
+    for (const e of this.livingEnemies()) { const w = this._downWeight(e); if (w > bw) { best = e; bw = w; } }
+    return best;
+  }
+  // 隊にかかっている強化の厚み (打ち消しの判断)
+  _partyUpWeight() { return this.livingParty().reduce((a, p) => a + this._upWeight(p), 0); }
+  // 力を削ぐ呪いの標的: 一番攻撃力の高い者 (もう −3段まで下がっている者は除く)。挑発には乗らない
+  _weakenTarget() {
+    const list = this.livingParty().filter((p) => this.stageOf(p, "atk") > -STAGE_MAX);
+    if (!list.length) return this._pickPartyTarget();
+    return list.reduce((a, p) => (this._eatk(p) > this._eatk(a) ? p : a), list[0]);
+  }
+
+  // ---- 大技の予兆 (溜め) ----
+  // 主・精鋭 (手番ごとに CHARGE_RATE の確率) と特技 "charge" の魔物は、力を溜めて予兆を見せ (効果 omen・札「溜」)、
+  // 次のラウンド以降の手番で大技を放つ。隊は 防御・仁王立ち・挑発・守りの陣で受けるか、
+  // 打ち消し (strip)・特技封じ・眠り・麻痺・魅了・混乱・怯みで溜めを潰すかを選ぶ
+  _omenOf(e) { return e && e.effects ? e.effects.find((x) => x.stat === "omen") : null; }
+  _omenBroken(e) {
+    return !!(e.asleep || e._flinch || e.mind || e.ailment === "paralyze" || e.ailment === "stone" || this._bm(e, "seal") < 1);
+  }
+  _breakOmen(e) {
+    const om = this._omenOf(e);
+    if (!om) return false;
+    e.effects.splice(e.effects.indexOf(om), 1);
+    this._recalcBuffs(e);
+    e._chargeCd = 1;
+    this.log(`${e.name}の溜めた力が霧散した！`, "hit");
+    return true;
+  }
+  // 手番ごとに溜めを始める確率 (特技 "charge" の魔物は特技の抽選で溜める)
+  _chargeRate(e) {
+    if (e.metal || e.ability === "charge") return 0;
+    if (e.boss) return CHARGE_RATE.boss;
+    if (e.mon && e.mon.elite) return CHARGE_RATE.elite;
+    return 0;
+  }
+  // 放つ大技の種類: ブレス・全体呪文の使い手はそれを強めて、主はそれ以外なら 単体の痛打 → 全体の猛威 を交互に
+  _chargeKind(e) {
+    if (e.ability === "breath") return "breath";
+    if (e.ability === "spell") return "spell";
+    if (e.boss) return (e._chargeN || 0) % 2 ? "wide" : "smash";
+    return "smash";
   }
 
   // 護り手 (guard): 仲間への物理攻撃を一定確率で肩代わりする (回数制)。
@@ -1436,6 +1569,59 @@ export class Battle {
       this._useItem(actor, cmd, res);
       return res;
     }
+    if (action === "windup") {
+      // 予兆: 力を溜める (この手番は攻撃しない)
+      const kind = this._chargeKind(actor);
+      actor._chargeN = (actor._chargeN || 0) + 1;
+      actor.effects = actor.effects || [];
+      actor.effects.push({ stat: "omen", mult: 2, turns: 3, src: "予兆", kind, round: this._roundNo });
+      this._recalcBuffs(actor);
+      this.log(OMEN_TEXT[kind](actor.name), "dmg");
+      res.action = "special"; res.windup = kind;
+      res.hits.push({ target: actor, buff: true, mods: {}, note: OMEN_NOTE });
+      return res;
+    }
+    if (action === "charged") {
+      // 溜めた大技を放つ
+      const om = cmd.omen;
+      const i = (actor.effects || []).indexOf(om);
+      if (i >= 0) actor.effects.splice(i, 1);
+      this._recalcBuffs(actor);
+      actor._chargeCd = 2;
+      res.charged = om.kind;
+      if (om.kind === "breath" || om.kind === "spell") {
+        const r = this._execInner({ actor, action: "breath", kind: om.kind, mul: CHARGED.breath });
+        r.charged = om.kind;
+        return r;
+      }
+      res.action = "attack";
+      if (om.kind === "wide") {
+        this.log(`${actor.name}の猛威が隊を呑み込む！`, "dmg");
+        for (const p of this.livingParty()) res.hits.push(this._physical(actor, p, { power: CHARGED.wide, name: "猛威", area: true }));
+      } else {
+        const t = this._pickPartyTarget();
+        if (t) res.hits.push(this._physical(actor, t, { power: CHARGED.smash, acc: CHARGED.smashAcc, name: "渾身の一撃" }));
+      }
+      return res;
+    }
+    if (action === "shake") {
+      // 払いのけ: 主・精鋭がまとわりつく弱体をすべて振り払う
+      this._purgeDown(actor);
+      this.log(`${actor.name}は身を震わせ、まとわりつく呪いを振り払った！`, "dmg");
+      res.action = "special"; res.shake = true;
+      res.hits.push({ target: actor, buff: true, mods: {}, note: "払いのけ" });
+      return res;
+    }
+    if (action === "ecleanse") {
+      // 敵の回復役: 仲間にかかった弱体を浄める
+      res.action = "spell"; res.spellKind = "cure"; res.spellName = "浄めの詠唱";
+      const t = (cmd.target && cmd.target.alive) ? cmd.target : this._debuffedAlly();
+      if (t && this._purgeDown(t)) {
+        this.log(`${actor.name}の浄めの詠唱！ ${t.name}の弱体が解けた`, "dmg");
+        res.hits.push({ target: t, buff: true, mods: {}, note: "浄め" });
+      } else this.log(`${actor.name}は何事か唱えたが、何も起きなかった`, "sys");
+      return res;
+    }
     if (action === "eheal") {
       // 敵の回復役: 傷ついた仲間を癒す (演出は味方の回復呪文と同系統で流用)
       res.action = "spell"; res.spellKind = "heal"; res.spellName = "癒しの詠唱";
@@ -1479,7 +1665,9 @@ export class Battle {
       //  全体呪文は INT・PIE (精神) で微減し、呪文避けの技 (wardS) で軽減する。どちらも大結界・魔障壁で半減できる
       const spell = cmd.kind === "spell";
       const what = spell ? "呪文" : "ブレス";
-      this.log(spell ? `${actor.name}は${actor.boss ? "大いなる" : ""}呪文を唱えた！ 隊全体を${ELEM_SPELL[actor.element] || "魔力"}が襲う！`
+      if (cmd.mul > 1) this.log(spell ? `${actor.name}は練り上げた大呪文を解き放った！ 隊全体を${ELEM_SPELL[actor.element] || "魔力"}が呑み込む！`
+        : `${actor.name}は溜めに溜めた息を一気に吐き出した！`, "dmg");
+      else this.log(spell ? `${actor.name}は${actor.boss ? "大いなる" : ""}呪文を唱えた！ 隊全体を${ELEM_SPELL[actor.element] || "魔力"}が襲う！`
         : `${actor.name}は${actor.boss ? "業炎の" : ""}ブレスを吐いた！`, "dmg");
       res.breath = true;
       res.espell = spell;
@@ -1494,7 +1682,7 @@ export class Battle {
       for (const t of this.livingParty()) {
         const em = elemDmgMult(actor.element || "none", 1, t.element || "none", edefOf(t));
         const guard = spell ? ((t.int || 0) + (t.pie || 0)) * 0.12 : this._evit(t) * 0.25;
-        let dmg = Math.max(1, Math.round(variance(this._eatk(actor) * (spell ? 0.75 : 0.85)) - guard));
+        let dmg = Math.max(1, Math.round(variance(this._eatk(actor) * (spell ? 0.75 : 0.85) * (cmd.mul || 1)) - guard));
         if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
         if (t._defending) dmg = Math.ceil(dmg * 0.5);
         { const pt = this._perkSum(t, "take", { tgt: actor, el: actor.element || "none", on: [spell ? "spell" : "breath"] }); if (pt) dmg = Math.max(1, Math.floor(dmg * Math.max(0.2, 1 - pt))); } // 固有パッシブ (take)
@@ -1601,14 +1789,33 @@ export class Battle {
       } else if (k === "warcry") {
         // 鼓舞: 自分を含む味方 (敵側) 全体の ATK を数ターン上げる
         this.log(`${actor.name}の雄叫び！`, "dmg");
-        for (const e of this.livingEnemies()) this._applyMod(e, "atk", 1.3, ENEMY_BUFF_DUR, "雄叫び");
+        for (const e of this.livingEnemies()) this._applyMod(e, "atk", stageMul(1), ENEMY_BUFF_DUR, "雄叫び");
         res.warcry = true;
       } else if (k === "weaken") {
         // 弱体: 近接 (×0.9) + 命中したプレイヤーの ATK を数ターン下げる
         const h = this._physical(actor, t, { power: 0.9, name: "呪いの一撃" });
         res.hits.push(h);
         const tt = h.target; // かばうで対象が替わることがある
-        if (!h.miss && tt.alive) { this._applyMod(tt, "atk", 0.75, ENEMY_BUFF_DUR, "弱体"); this.log(`${tt.name}の力が削がれた…`, "dmg"); }
+        if (!h.miss && !h.immune && tt.alive) {
+          if (this._applyMod(tt, "atk", stageMul(-1), ENEMY_BUFF_DUR, "弱体")) this.log(`${tt.name}の力が削がれた… (ATK −1段)`, "dmg");
+          else this.log(`${tt.name}の力はもう削がれきっている`, "sys");
+        }
+      } else if (k === "sunder") {
+        // 守り崩し: 打撃 (×0.9) + 命中した相手の VIT を1段下げる
+        const h = this._physical(actor, t, { power: 0.9, name: "鎧砕き" });
+        res.hits.push(h);
+        const tt = h.target;
+        if (!h.miss && !h.immune && tt.alive && this._applyMod(tt, "vit", stageMul(-1), ENEMY_BUFF_DUR, "鎧砕き")) this.log(`${tt.name}の守りが砕かれた… (VIT −1段)`, "dmg");
+      } else if (k === "dispel") {
+        // 打ち消し: 隊にかかった強化・構えをすべて剥ぎ取る
+        this.log(`${actor.name}は禍言を唱えた！`, "dmg");
+        let any = false;
+        for (const p of this.livingParty()) {
+          if (!this._stripUp(p)) continue;
+          any = true;
+          res.hits.push({ target: p, debuff: true, mods: {}, note: "加護が剥がれた" });
+        }
+        this.log(any ? "隊の加護が剥がれ落ちていく…" : "しかし、剥がれる加護はなかった", any ? "dmg" : "sys");
       }
       return res;
     }
@@ -1797,7 +2004,8 @@ export class Battle {
   _physical(actor, tgt, opt = {}) {
     // かばう: 瀕死の味方への攻撃は護衛役が肩代わりする
     let coverMul = 1;
-    if (actor.side === "enemy" && tgt.side === "party") {
+    // area = 全体への打撃 (溜めた猛威): 仁王立ち・かばうでは肩代わりできない
+    if (actor.side === "enemy" && tgt.side === "party" && !opt.area) {
       // 仁王立ち: 単体攻撃は構えた者がすべて受ける (かばうより先)
       const sh = this._shieldFor(tgt);
       if (sh) {
@@ -1805,7 +2013,7 @@ export class Battle {
         tgt = sh;
       }
     }
-    if (actor.side === "enemy" && tgt.side === "party") {
+    if (actor.side === "enemy" && tgt.side === "party" && !opt.area) {
       const g = this._coverFor(tgt);
       if (g) {
         g._coverLeft--;
@@ -2396,7 +2604,7 @@ export class Battle {
     } else if (sp.kind === "sleep") {
       for (const t of this.livingEnemies()) {
         if (isMetal(t)) { this.log(`${t.name}には効かない`, "sys"); res.hits.push({ target: t, miss: true, resisted: true }); continue; }
-        if (Math.random() < this._rate(actor, t, t.boss ? 0.3 : 0.6)) { t.asleep = true; this._holdAil(t, "sleep"); this.log(`${t.name}は眠った`, "sys"); res.hits.push({ target: t, sleep: true, status: "眠り!" }); }
+        if (Math.random() < this._rate(actor, t, t.boss ? 0.3 : 0.6)) { t.asleep = true; this._holdAil(t, "sleep"); this.log(`${t.name}は眠った`, "sys"); this._breakOmen(t); res.hits.push({ target: t, sleep: true, status: "眠り!" }); }
         else this.log(`${t.name}には効かない`, "sys");
       }
     }

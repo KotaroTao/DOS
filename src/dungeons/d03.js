@@ -11,9 +11,9 @@ export const monsters = defMonsters([
     hp: 38, atk: 15, def: 6, spd: 10, soul: 30, gold: 22,
     desc: "回廊で力尽き、骸さえ見つけてもらえなかった者の魂。生者の体温に飢え、音もなく背後へ回り込んでは冷たい指を肋の隙間へ差し入れる。触れられた箇所から熱とともにSoulが吸い出され、心の臓が凍てついていく。" },
   { id: "d03_sahagin", name: "深淵のサハギン", race: "aquatic", element: "water", artKey: "hd_sahagin", rank: 3,
-    pack: true, // 骨のもりを手に群れで岸辺を囲う
+    pack: true, ability: "sunder", // 骨のもりを手に群れで岸辺を囲い、寄ってたかって鎧の継ぎ目を穿つ (守り崩し)
     hp: 42, atk: 16, def: 8, spd: 8, soul: 33, gold: 24,
-    desc: "陽の射さぬ地底湖に棲む半魚人。退化した眼の代わりに水の震えで獲物を捉え、骨を削ったもりを手に群れをなして岸辺を囲う。捕えた獲物は湖底の祭壇へ引きずり込み、見たこともない深きものへ捧げる。" },
+    desc: "陽の射さぬ地底湖に棲む半魚人。退化した眼の代わりに水の震えで獲物を捉え、骨を削ったもりを手に群れをなして岸辺を囲う。もりの穂先は鎧の継ぎ目を探り当て、寄ってたかって守りを剥がしにかかる。捕えた獲物は湖底の祭壇へ引きずり込み、見たこともない深きものへ捧げる。" },
   { id: "d03_mandrake", name: "毒マンドレイク", race: "plant", element: "earth", artKey: "hd_mandrake3", rank: 4,
     ability: "confuse", // 断末魔の絶叫で正気を削る
     hp: 52, atk: 17, def: 9, spd: 4, soul: 40, gold: 30,

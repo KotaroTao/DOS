@@ -12,6 +12,7 @@
 
 import { SPELLS, spellCost, isMetal } from "./combat.js";
 import { autoSkills } from "./souls.js";
+import { STAGED, STAGE_MAX, STRONG_MIN, stageMul, stageOf } from "./buffstage.js";
 
 // 作戦。key はセーブに残る (変えない)
 export const TACTICS = [
@@ -100,6 +101,7 @@ function makeCtx(b, actor) {
       if (e.asleep) v *= 0.3;
       if (e.ailment === "paralyze") v *= 0.5;
       if (e._flinch) v *= 0.5;
+      if (b._omenOf && b._omenOf(e)) v *= 2; // 大技の予兆 (溜め): 次の手番に重い一撃が来る
       return v;
     }),
     // 味方 a の通常攻撃の期待ダメージ (届く敵の平均)
@@ -162,6 +164,21 @@ function ailValue(ctx, a) {
   return v;
 }
 const debuffed = (a) => (a.effects || []).some((e) => e.mult < 1);
+// 能力 stat に倍率 mult の強化・弱体を掛けた時、実効の倍率がどれだけ動くか (強化は +、弱体は −)。
+// ATK・VIT・AGI・INT・PIE は段 (buffstage.js: ±3段で止まり、主・精鋭は −2段まで) なので重ねがけも段で見る。
+// それ以外 (命中など) は同じ向きが既に掛かっていれば重ねない
+function modGain(b, t, stat, mult) {
+  if (!mult || mult === 1) return 0;
+  if (STAGED.has(stat) && b.stageOf) {
+    const s0 = b.stageOf(t, stat), d = stageOf(mult);
+    const lo = b._strongFoe && b._strongFoe(t) ? STRONG_MIN : -STAGE_MAX;
+    const s1 = Math.max(Math.min(lo, s0), Math.min(Math.max(STAGE_MAX, s0), s0 + d));
+    return stageMul(s1) - stageMul(s0);
+  }
+  const cur = b._bm(t, stat);
+  if (mult > 1) return mult > cur ? mult - Math.max(1, cur) : 0;
+  return cur < 1 ? 0 : mult - 1;
+}
 
 // 技 key の候補 (狙いごと) を値打ちの成分つきで返す
 function skillCands(b, ctx, actor, key, sp) {
@@ -241,6 +258,18 @@ function foeEffects(b, ctx, actor, sp, t) {
   if (sp.seal && (t.ability || t.role) && b._bm(t, "seal") >= 1) v += rate(sp.seal.chance * bossMul) * th * 0.6 * ctx.left(sp.seal.turns || 3);
   if (sp.flinchChance && !t.boss && !t._flinch) v += sp.flinchChance * th;
   if (sp.strip && (t.effects || []).some((e) => e.mult > 1)) v += th * 0.5 * Math.min(2, ctx.rounds);
+  // 大技の予兆: 封じ・眠り・麻痺・魅了・混乱・怯み・打ち消しのどれかが通れば溜めた力が霧散する
+  if (b._omenOf && b._omenOf(t)) {
+    let keep = 1;
+    if (sp.seal) keep *= 1 - rate(sp.seal.chance * bossMul);
+    if (sp.para && !t.ailment) keep *= 1 - rate(sp.para * bossMul);
+    if (sp.sleepChance && !t.asleep) keep *= 1 - rate(sp.sleepChance * bossMul);
+    if (sp.charm && !t.mind) keep *= 1 - rate(sp.charm * (t.boss ? 0.35 : 1));
+    if (sp.confuse && !t.mind) keep *= 1 - rate(sp.confuse * bossMul);
+    if (sp.flinchChance && !t.boss) keep *= 1 - sp.flinchChance;
+    if (sp.strip) keep = 0;
+    v += (1 - keep) * th * 0.5; // threat は予兆で2倍にしてある。その上乗せ分を防ぐ
+  }
   if (sp.debuff) v += statMods(b, ctx, sp.debuff, sp.dur, t);
   if (sp.vuln) for (const el in sp.vuln) {
     if (b._bm(t, "r_" + el) < 1) continue;
@@ -248,19 +277,20 @@ function foeEffects(b, ctx, actor, sp, t) {
   }
   return v;
 }
-// 敵の能力を下げる弱体 ({atk|vit|agi|hit|int: 倍率}) の値打ち。同じ能力が既に下がっていれば重ねない
+// 敵の能力を下げる弱体 ({atk|vit|agi|hit|int: 倍率}) の値打ち。段の底まで下がっていれば値打ちは無い
 function statMods(b, ctx, mods, dur, t) {
   if (!t.alive || isMetal(t)) return 0;
   const th = ctx.threat(t), n = ctx.left(dur);
   let v = 0;
   for (const k in mods) {
-    const m = mods[k];
-    if (!(m < 1) || b._bm(t, k) < 1) continue;
-    if (k === "atk") v += (1 - m) * th * n;
-    else if (k === "vit") v += (1 - m) * b._evit(t) * 0.5 * ctx.allies.filter((p) => b.estPhys(p, t, { basic: true }) > 0).length * n * 0.6 * ctx.dmgK;
-    else if (k === "agi") v += (1 - m) * th * 0.3 * n;
-    else if (k === "hit") v += (1 - m) * th * n;
-    else if (k === "int" && (t.ability === "spell" || t.ability === "breath")) v += (1 - m) * th * 0.5 * n;
+    if (!(mods[k] < 1)) continue;
+    const down = -modGain(b, t, k, mods[k]); // 実効の倍率が下がる幅
+    if (!(down > 0)) continue;
+    if (k === "atk") v += down * th * n;
+    else if (k === "vit") v += down * b._evit(t) * 0.5 * ctx.allies.filter((p) => b.estPhys(p, t, { basic: true }) > 0).length * n * 0.6 * ctx.dmgK;
+    else if (k === "agi") v += down * th * 0.3 * n;
+    else if (k === "hit") v += down * th * n;
+    else if (k === "int" && (t.ability === "spell" || t.ability === "breath")) v += down * th * 0.5 * n;
   }
   return v;
 }
@@ -288,9 +318,8 @@ function allyEffects(b, ctx, actor, sp, a, c, W) {
     c.guard += amt * 0.6;
   }
   if (sp.buff) for (const k in sp.buff) {
-    const m = sp.buff[k], cur = b._bm(a, k);
-    if (!(m > cur)) continue;
-    const up = m - Math.max(1, cur);
+    const up = sp.buff[k] > 1 ? modGain(b, a, k, sp.buff[k]) : 0; // 段で重ねた時に実効の倍率が上がる幅
+    if (!(up > 0)) continue;
     if (k === "atk") c.edge += up * ctx.basic(a) * ctx.dmgK * n * 0.7;
     else if (k === "vit") c.guard += up * b._evit(a) * 0.5 * ctx.hitsOn(a) * n;
     else if (k === "agi") c.edge += up * ctx.basic(a) * ctx.dmgK * 0.2 * n;

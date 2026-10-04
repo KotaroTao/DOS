@@ -31,6 +31,9 @@
 //   sense("enemy"|"chest"|"stairs") — 探りの術: その階のあいだ、まだめくっていない墓石の魔物 (種類・強さは分からない) / 宝箱 / 階段の位置を示す (stairs はさらに階段の周囲8マスの墓石をめくる)
 //     (狩人の気配読み・盗賊の宝探し・司教の道しるべ。気配読みと宝探しはドックに専用のボタンを持つ)
 // 持続 dur (既定3ターン。ラウンド開始ごとに1減る)
+// buff / debuff の ATK・VIT・AGI・INT・PIE は倍率で書くが、戦闘では「段」(buffstage.js: 表で一番近い段、最低1段) に直る:
+//   +1 ×1.25 / +2 ×1.5 / +3 ×1.75、−1 ×0.8 / −2 ×0.65 / −3 ×0.5。強化と弱体は段の足し算で打ち消し合い、±3段で止まる
+//   (主・精鋭への弱体は −2段まで・持続 −1)。命中 (hit) などそれ以外の倍率は段を持たない
 
 import { UNHOLY, BEASTS, DRAGONS, MACHINES, PREY_GROUPS } from "./jobkit/common.js";
 import { JOBKIT_SKILLS } from "./jobkit/index.js";

@@ -3,6 +3,7 @@ import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
 import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, perkVictory } from "./combat.js";
 import { decideAuto, tacticOf } from "./autotactics.js";
+import { STAGED, effectStage, stageOf, stageLabel } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto } from "./sprites.js";
 import {
@@ -5565,7 +5566,7 @@ function evProgress() {
     G.embers = (G.embers || 0) + 1; runCount("embers", 1);
     SFX.victory(); updateTopbar();
     log(`坑夫の亡霊は仲間と共に眠りについた。✦${s} Soul と魂の残火を遺していった。`, "win");
-    showToast(`坑夫の頼みを果たした ― ✦${s} ・ 残火 ×1`, { tone: "gold", icon: ICONS.ember });
+    showToast(`坑夫の頼みを果たした ― ✦${s} ・ 魂の残火 ×1`, { tone: "gold", icon: ICONS.ember });
     renderBoard();
   }
 }
@@ -6025,7 +6026,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
     emberDone = true;
     G.embers = (G.embers || 0) + ember; runCount("embers", ember);
     log(`風化した死体に、魂の残火が ${ember}つ 燻っていた。`, "win");
-    return ` ・ 残火 ${ember}`;
+    return ` ・ 魂の残火 ×${ember}`;
   };
 
   // 懐に残された金品 (Gold) を渡す処理 (装備を渡せない時のフォールバックにも使う)
@@ -6139,7 +6140,7 @@ function acquireSoul(clsKey, sourceLine, onClose, emberCount = 0) {
   const s = grantSoulQuiet(clsKey, sourceLine, emberCount);
   if (s.rare || G.state !== "town") { celebrateSoul(s, after); return; }
   SFX.itemget(); buzz([0, 30, 60, 30]);
-  showToast(`${s.label}の魂を手に入れた${s.embers > 0 ? ` ・ 残火 ${s.embers}` : ""}`, { tone: "good", icon: soulIcon(clsKey) });
+  showToast(`${s.label}の魂を手に入れた${s.embers > 0 ? ` ・ 魂の残火 ×${s.embers}` : ""}`, { tone: "good", icon: soulIcon(clsKey) });
   after();
 }
 
@@ -7259,8 +7260,9 @@ function renderTurnOrder() {
     return;
   }
   const stunOf = (a) => (a.asleep || a.ailment === "paralyze" || a.ailment === "stone" ? "z" : a.mind ? "m" : "");
+  const omenOf = (a) => a.side === "enemy" && (a.effects || []).some((e) => e.stat === "omen");
   const list = [b.current, ...b.queue.filter((a) => a && a.alive && a !== b.current)];
-  const key = `${b._roundNo}|` + list.map((a) => `${a.side}${a.uid != null ? a.uid : a.name}${a.alive ? "" : "x"}${stunOf(a)}${a.side === "enemy" ? enemyLabel(a) : ""}`).join(",");
+  const key = `${b._roundNo}|` + list.map((a) => `${a.side}${a.uid != null ? a.uid : a.name}${a.alive ? "" : "x"}${stunOf(a)}${omenOf(a) ? "!" : ""}${a.side === "enemy" ? enemyLabel(a) : ""}`).join(",");
   if (key === _turnOrderKey) return;
   _turnOrderKey = key;
   turnOrderEl.innerHTML = "";
@@ -7270,8 +7272,8 @@ function renderTurnOrder() {
     const enemy = a.side === "enemy";
     const name = enemy ? enemyLabel(a) : a.name;
     const st = stunOf(a);
-    const ic = el("div", `to-ic ${enemy ? "e" : "p"}${i === 0 ? " now" : ""}${!a.alive ? " dead" : ""}${st === "z" ? " stun" : st === "m" ? " mind" : ""}${a.boss ? " boss" : ""}`);
-    ic.title = (i === 0 ? "手番: " : "") + name;
+    const ic = el("div", `to-ic ${enemy ? "e" : "p"}${i === 0 ? " now" : ""}${!a.alive ? " dead" : ""}${st === "z" ? " stun" : st === "m" ? " mind" : ""}${a.boss ? " boss" : ""}${omenOf(a) ? " omen" : ""}`);
+    ic.title = (i === 0 ? "手番: " : "") + name + (omenOf(a) ? " (大技の予兆)" : "");
     let c = turnIconCanvas(a);
     // 同じ魔物が並ぶと同じ canvas を2か所に置けないので、2体目以降は写しを作る
     if (c && used.has(c)) {
@@ -7288,6 +7290,7 @@ function renderTurnOrder() {
     if (enemy) {
       const m = /[A-Z]$/.exec(name || "");
       if (m) ic.appendChild(el("span", "to-tag", m[0]));
+      if (omenOf(a)) ic.appendChild(el("span", "to-omen", "溜"));
     }
     turnOrderEl.appendChild(ic);
     if (i === 0 && list.length > 1) turnOrderEl.appendChild(el("span", "to-sep", "›"));
@@ -7808,32 +7811,43 @@ requestAnimationFrame(combatAnimLoop);
 // 敵にかかっている強化(▲)/弱体(▼)を名前プレート付近に小さなピルで描く。
 // 能力(攻/守/速)ごとに集約し、段階ぶんの矢印と最短残ターンを添える。
 const BUFF_KANJI = {
-  atk: "攻", vit: "守", agi: "速", int: "知", hit: "眼", seal: "封", taunt: "挑", shield: "庇", ctr: "返", charge: "溜", regen: "癒", wardB: "鱗", wardS: "帳",
+  atk: "攻", vit: "守", agi: "速", int: "知", pie: "信", hit: "眼", seal: "封", taunt: "挑", shield: "庇", ctr: "返", charge: "溜", omen: "溜", regen: "癒", wardB: "鱗", wardS: "帳",
   r_fire: "火", r_water: "水", r_wind: "風", r_earth: "土", r_light: "光", r_dark: "闇", r_all: "属",
 };
 // 強化/弱体が「かかった瞬間」に出すフロート文字と色 (敵味方共通)。
-// mods があれば能力ごとに 攻▲/守▼ … を並べ、無ければ汎用の 強化▲/弱体▼。
+// mods があれば能力ごとに 攻▲/守▼ … を並べ (段の能力は段数ぶんの矢印)、無ければ汎用の 強化▲/弱体▼。
+// note があればそれを出す (予兆・払いのけ・加護の剥奪など)
 function buffFloatText(h) {
   const up = !!h.buff;
+  if (h.note) return { text: h.note, color: up ? "#ffc35a" : "#ff9a8a" };
   const m = h.mods || {};
   const ks = Object.keys(m);
   // 向きは値で決める (捨て身の 守▼ のように強化の中に下がる能力もある)
-  const body = ks.length ? ks.map((k) => `${BUFF_KANJI[k] || "◆"}${m[k] >= 1 ? "▲" : "▼"}`).join("") : (up ? "強化▲" : "弱体▼");
+  const arrows = (k) => { const n = STAGED.has(k) ? Math.abs(stageOf(m[k])) : 1; return (m[k] >= 1 ? "▲" : "▼").repeat(Math.max(1, n)); };
+  const body = ks.length ? ks.map((k) => `${BUFF_KANJI[k] || "◆"}${arrows(k)}`).join("") : (up ? "強化▲" : "弱体▼");
   return { text: body, color: up ? "#7fe0a0" : "#ff9a8a" };
+}
+// 効果を (能力, 向き) ごとに集約する: 段の能力は今の段 (1本)、それ以外は数を段とみなす。予兆 (omen) は別扱い
+function buffGroups(list) {
+  const groups = new Map();
+  for (const ef of list || []) {
+    const st = STAGED.has(ef.stat) ? effectStage(ef) : 0;
+    const up = STAGED.has(ef.stat) ? st > 0 : ef.mult > 1;
+    const key = ef.stat + (up ? "+" : "-");
+    const g = groups.get(key) || { stat: ef.stat, up, stages: 0, turns: Infinity, omen: ef.stat === "omen" };
+    g.stages += STAGED.has(ef.stat) ? Math.abs(st) : 1;
+    g.turns = Math.min(g.turns, ef.turns);
+    groups.set(key, g);
+  }
+  return [...groups.values()].filter((g) => g.stages > 0);
 }
 function drawEnemyBadges(e, baseX, yTop) {
   if (!e.alive || !e.effects || !e.effects.length) return;
-  const groups = new Map();
-  for (const ef of e.effects) {
-    const up = ef.mult > 1;
-    const key = ef.stat + (up ? "+" : "-");
-    const g = groups.get(key) || { stat: ef.stat, up, stages: 0, turns: Infinity };
-    g.stages++; g.turns = Math.min(g.turns, ef.turns);
-    groups.set(key, g);
-  }
   const segs = [];
-  for (const g of groups.values()) {
-    const arrow = (g.up ? "▲" : "▼").repeat(Math.min(2, g.stages));
+  for (const g of buffGroups(e.effects)) {
+    // 予兆は「溜!」の琥珀色の札 (残りターンは出さない)
+    if (g.omen) { segs.push({ text: "溜!", up: true, omen: true }); continue; }
+    const arrow = (g.up ? "▲" : "▼").repeat(Math.min(3, g.stages));
     segs.push({ text: `${BUFF_KANJI[g.stat] || "◆"}${arrow}${g.turns}`, up: g.up });
   }
   if (!segs.length) return;
@@ -7848,14 +7862,14 @@ function drawEnemyBadges(e, baseX, yTop) {
   const cy = yTop + h / 2;
   segs.forEach((s, i) => {
     const w = widths[i];
-    vctx.fillStyle = s.up ? "rgba(36,84,40,0.88)" : "rgba(108,40,40,0.88)";
+    vctx.fillStyle = s.omen ? "rgba(120,72,10,0.92)" : s.up ? "rgba(36,84,40,0.88)" : "rgba(108,40,40,0.88)";
     vctx.beginPath();
     vctx.roundRect ? vctx.roundRect(x, yTop, w, h, 4) : vctx.rect(x, yTop, w, h);
     vctx.fill();
-    vctx.strokeStyle = s.up ? "#6fcf6f" : "#ff7a72";
+    vctx.strokeStyle = s.omen ? "#ffb43a" : s.up ? "#6fcf6f" : "#ff7a72";
     vctx.lineWidth = 1;
     vctx.stroke();
-    vctx.fillStyle = s.up ? "#c8f0c8" : "#ffc9c5";
+    vctx.fillStyle = s.omen ? "#ffe2a8" : s.up ? "#c8f0c8" : "#ffc9c5";
     vctx.fillText(s.text, x + pad, cy + 0.5);
     x += w + gap;
   });
@@ -8600,7 +8614,12 @@ function applyImpact(res) {
   }
 
   // 効果音 + 振動
-  if (res.action === "breath") {
+  if (res.windup) {
+    // 大技の予兆: 不穏な音と小さな揺れ (この手番は攻撃しない)
+    SFX.ambush(); buzz([0, 30, 30, 30]);
+  } else if (res.shake) {
+    SFX.spell();
+  } else if (res.action === "breath") {
     // ブレス (炎の効果音) / 敵の全体呪文 (呪文の効果音)
     if (res.espell) SFX.spell(); else SFX.fire();
     buzz([0, 50, 40, 80]); shakeScreen(true);
@@ -8621,6 +8640,8 @@ function applyImpact(res) {
   }
 
   let partyHit = false, anyDeath = false;
+  // 隊の複数人を打つ物理 (溜めた猛威など) は数字を各人の札の上に分けて出す
+  const partyDmgN = res.hits.filter((x) => x.target && x.target.side !== "enemy" && x.dmg != null && !x.miss).length;
   // 多段ヒット (二段斬り等) は同じ対象・同座標に重なって1回に見えてしまうため、
   // 対象ごとにヒット順で時間差(stagger)と位置差(横ずらし)を付けて、回数分はっきり見せる
   const spd = spdMul();
@@ -8692,7 +8713,7 @@ function applyImpact(res) {
           spawnFx(fx.skill, r.type, pos.cx, pos.cy, ht0 + 40 * spd, spd, { seed, col: r.col, el: prof.el, rot: prof.rot, s: r.s || 1, tx: VW / 2 });
         }
       }
-      if (idx === 0 || !fx.flash[h.target.uid]) fx.flash[h.target.uid] = { t0: ht0 };
+      if (!h.note && (idx === 0 || !fx.flash[h.target.uid])) fx.flash[h.target.uid] = { t0: ht0 };
       if (h.stole != null) {
         // 盗む: 奪った金額を浮かべる
         fx.floats.push({ x: pos.cx + dx, y: pos.cy - 34, text: `💰+${h.stole}`, color: "#ffd84a", t0: ht0, kind: "label" });
@@ -8792,7 +8813,7 @@ function applyImpact(res) {
           setPartyFxV(h.target, h.crit ? "claw crit" : "claw");
           spawnFx(fx.skill, "pclaw", partyFxX(h.target), VH - 6, now, spd, { crit: !!h.crit });
         }
-        fx.floats.push({ x: VW / 2, y: VH - 26, text: String(h.dmg) + (h.fatal ? " 即死!" : ""), color: h.fatal ? "#ff2a2a" : "#ff6b6b", t0: now, kind: "pdmg" });
+        fx.floats.push({ x: partyDmgN > 1 ? partyFxX(h.target) : VW / 2, y: VH - 26, text: String(h.dmg) + (h.fatal ? " 即死!" : ""), color: h.fatal ? "#ff2a2a" : "#ff6b6b", t0: now, kind: "pdmg" });
         if (h.died) anyDeath = true;
         // レベルドレイン: 宿しているメイン魂のレベルを永続的に1下げる
         if (h.drain && h.target.isDoll && h.target.primary != null) {
@@ -9397,22 +9418,15 @@ function partyPortrait(p) {
 
 // 戦闘中の発動効果バッジ: 能力ごとに 強化(▲)/弱体(▼) を段階数ぶん並べ、残りターンを添える。
 const BUFF_STAT_ICON = BUFF_KANJI; // 絵文字は使わず、敵のピルと同じ漢字の印
-const BUFF_STAT_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI", ...BUFF_NAME };
+const BUFF_STAT_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI", pie: "PIE", ...BUFF_NAME };
 function buffBadges(p) {
   if (G.state !== "combat" || !p.alive || !p.effects || !p.effects.length) return "";
-  // (能力, 方向) ごとに集約: 段階数(最大2)と最短残ターンを出す
-  const groups = new Map();
-  for (const ef of p.effects) {
-    const up = ef.mult > 1;
-    const key = ef.stat + (up ? "+" : "-");
-    const g = groups.get(key) || { stat: ef.stat, up, stages: 0, turns: Infinity };
-    g.stages++; g.turns = Math.min(g.turns, ef.turns);
-    groups.set(key, g);
-  }
+  // (能力, 方向) ごとに集約: 段数 (ATK〜PIE は −3〜+3 の段) と最短残ターンを出す
   let html = "";
-  for (const g of groups.values()) {
-    const arrow = (g.up ? "▲" : "▼").repeat(Math.min(2, g.stages));
-    const title = `${BUFF_STAT_LABEL[g.stat] || g.stat} ${g.up ? "強化" : "弱体"}${g.stages}段階・残り${g.turns}T`;
+  for (const g of buffGroups(p.effects)) {
+    const arrow = (g.up ? "▲" : "▼").repeat(Math.min(3, g.stages));
+    const title = STAGED.has(g.stat) ? `${BUFF_STAT_LABEL[g.stat] || g.stat} ${stageLabel(g.up ? g.stages : -g.stages)}・残り${g.turns}T`
+      : `${BUFF_STAT_LABEL[g.stat] || g.stat} ${g.up ? "強化" : "弱体"}・残り${g.turns}T`;
     html += `<span class="bf ${g.up ? "up" : "dn"}" title="${title}">${BUFF_STAT_ICON[g.stat] || "◆"}${arrow}<b>${g.turns}</b></span>`;
   }
   return `<div class="buffs">${html}</div>`;
