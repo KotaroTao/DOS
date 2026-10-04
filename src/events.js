@@ -1207,7 +1207,7 @@ export const EVENTS = [
     },
   },
 
-  // ================= 第5層「霧の森」 (7) =================
+  // ================= 第5層「霧の森」 (12) =================
   {
     id: "l5_01", name: "光る茸の輪", layer: 5, tier: "common", icon: "fountain",
     intro: () => ["霧の底に、青白く光る茸が輪を描いて生えている。", "輪の中だけ、霧が晴れている。"],
@@ -1292,6 +1292,73 @@ export const EVENTS = [
       A.sfx("heal");
       return ["霧が、ほんの少しだけ薄く見える。", `✺ ${EV_BOONS.mistEye.text} (以後ずっと)`];
     },
+  },  // ---- 第三章「管の根」で増やした第5層の出来事 ----
+  {
+    id: "l5_08", name: "魂の実る木", layer: 5, tier: "common", icon: "fountain",
+    intro: () => ["枝という枝に、淡く光る実をつけた木。実のひとつひとつに、小さな顔が浮かんでいる。", "根に呑まれた魂が、ここで実になるのだ。"],
+    choices: (A, cell) => [
+      { label: "実をもぐ ― ✦Soul / 30%で木の番人が目を覚ます", danger: true, fn: () => {
+        if (chance(0.3)) { A.alarm("木が身じろぎした！", ["実を守る番人が、根の中から這い出してきた。"], "trap", () => A.fight(cell, [{ pool: true, min: 2 }], "soulfruit", { noChest: true })); return; }
+        A.sfx("heal"); A.soul(2, "魂の実"); A.done(cell);
+      } },
+      { label: "実を土に還す ― 近くの骸に魂が宿る", primary: true, fn: () => {
+        const ok = A.warmCorpse();
+        A.sfx("spell"); A.toast(ok ? "落ちた実が土に溶け、近くの骸が温もりを取り戻した" : "実は土に溶けて消えた", ok ? "good" : "info", "corpseWarm"); A.done(cell);
+      } },
+    ],
+    onWin: (A, cell, f, next) => { A.soul(3, "魂の実"); A.done(cell, next); },
+  },
+  {
+    id: "l5_09", name: "樹液の瘤", layer: 5, tier: "common", icon: "fountain",
+    cond: (A) => A.aliveList().some((m) => m.mp < m.maxmp || m.hp < m.maxhp),
+    intro: () => ["根の瘤から、琥珀色の樹液がとろりと滴っている。甘い香り。", "魂が溶けたものだと知っていても、喉が鳴る。"],
+    choices: (A, cell) => [
+      anyDrained(A) && { label: "樹液を舐める ― 全員のMP5割回復 / 25%で一人が痺れる", primary: true, fn: () => {
+        A.healAll(0, 0.5, false); A.sfx("heal");
+        if (chance(0.25)) { const m = A.randomAlive(); if (m) { A.ail(m, "paralyze"); A.toast(`${m.name}は樹液に痺れた ― MPは満ちたが…`, "bad", "trap"); } }
+        else A.toast("樹液が魔力を満たした", "good", "fountain");
+        A.done(cell);
+      } },
+      anyHurt(A) && { label: "傷に塗る ― 全員のHP3割回復", fn: () => { A.healAll(0.3, 0, false); A.sfx("heal"); A.toast("樹液が傷を塞いだ", "good", "fountain"); A.done(cell); } },
+    ],
+  },
+  {
+    id: "l5_10", name: "根の中の声", layer: 5, tier: "uncommon", icon: "event", minFloor: 2,
+    intro: () => ["太い根の中から、くぐもった声が聞こえる。誰かが、根の中に閉じ込められている。", "「……出して……まだ、木になりたくない……」"],
+    choices: (A, cell) => [
+      { label: "根を裂く ― 根の番人と戦い、勝てば希少な魂 (レア以上)", danger: true, fn: () => {
+        A.fight(cell, [{ key: "bs_stranglevine", strong: 1.7, name: "根の番人" }], "rootvoice", { noChest: true });
+      } },
+      { label: "声に道を尋ねる ― この階の魔物の居場所がすべて見える", primary: true, fn: () => {
+        const n = A.revealWhere((c) => c.type === "monster" && !c.cleared);
+        A.sfx("spell"); A.toast(n ? `声が根の震えを教えた ― 魔物 ${n}体の居場所が見えた` : "声は、もう誰もいないと囁いた", n ? "good" : "info"); A.done(cell);
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "根の中に閉じ込められていた魂だ。", () => A.done(cell, next)),
+  },
+  {
+    id: "l5_11", name: "庭師の鋏", layer: 5, tier: "uncommon", icon: "trap", deep: true,
+    intro: () => ["根の分かれ目に、金の装飾の大鋏が突き立っている。柄に彫られた紋は──宰相府の印。", "庭師は、ここで根の手入れをしていたのだ。"],
+    choices: (A, cell) => [
+      { label: "鋏で根を断つ ― この階の植物の魔物への与ダメ+30% (大樹が叫び、全員に小さな傷)", primary: true, fn: () => {
+        A.hurtAll(0.08); A.flash("#7a9a50");
+        A.floorEv().mods.push({ src: "l5_11", name: "断たれた根", desc: "植物の魔物への与ダメージ +30% (この階)", prey: { races: ["plant"], mul: 1.3 } });
+        A.sfx("hit"); A.toast("根を断った ― 大樹の叫びが響く。植物の魔物への与ダメ+30%", "gold"); A.done(cell);
+      } },
+      { label: "鋏を持ち帰る ― 収集品", fn: () => A.collectible("庭師の鋏", () => A.done(cell)) },
+    ],
+  },
+  {
+    id: "l5_12", name: "楔を打った操霊師", layer: 5, tier: "rare", icon: "event", deep: true, minDn: 22,
+    intro: () => ["幹に半ば呑まれた人影。古い操霊師の法衣を着て、手には鉄の楔と槌を握ったまま、木になりかけている。", "「……わしは、ヴェルナーより前の操霊師。大樹の主に楔を一本、打ち込んでやった」", "「その楔の場所を教えよう。……それとも、わしの杖を持ってゆくか」"],
+    choices: (A, cell) => [
+      { label: "楔の場所を聞く ― 第5層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
+        A.flags().bossWeak = { ...(A.flags().bossWeak || {}), 5: true };
+        A.sfx("spell");
+        A.story("木になりかけた操霊師", ["「主の胸の、苔の剥げたところだ。楔はまだ、そこに刺さっておる」", "「……オルドとかいう若いのにも、同じことを教えた。あれは、楔ごと根を断っていった」", "第5層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
+      } },
+      { label: "杖を受け取る ― 上等な品 (レア以上)", fn: () => { A.sfx("itemget"); A.itemMinRar("r", "操霊師の遺品", () => A.done(cell)); } },
+    ],
   },
 ];
 
