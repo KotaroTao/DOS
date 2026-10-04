@@ -5,8 +5,15 @@
 //
 // 台帳の1行 = 1迷宮。並び順 = 地図 (出撃シート・図鑑) の並び。id は保存されるので変えない・使い回さない。
 //   id      保存用の名 ("w01"…)
-//   n / nTo 難度の物差し (旧来の迷宮番号 1-100 と同じ尺度) の1階 / 最下階。敵のLv (= 推奨Lv) は階に沿って n → nTo へ上がる。
-//           敵の強さ・戦果・落とし物の帯は n の素体 (generator.js の generateDungeon(n)) を下の欄で上書きして決まる
+//   lv / lvTo 推奨Lv (= 敵のLv) の1階 / 最下階。階に沿って lv → lvTo へ上がる。src/levelcurve.js の目標
+//           (6人を均等に育てて 7時間で Lv50・20時間で Lv100・以降 20時間ごとに +100) から付ける:
+//           本筋の迷宮を順に潜ると1階 MIN_PER_FLOOR (3.1分) として、その階に着く時間の levelAtMinutes。
+//           依頼の迷宮 (side) は時間に数えず、前後の本筋に合わせる (潜った分だけ先へ進んだ時に余裕が出る)。
+//           敵の強さ = 素体 n の強さ × lvPow(推奨Lv) ÷ lvPow(n の物差しの Lv) (lvStrength)、
+//           戦果 (✦Soul・金貨) = levelcurve の refSoul(推奨Lv) を基準にした1戦の値、落とし物の帯 = 推奨Lv から (lootBand)。
+//           新しい迷宮は、前の本筋の最下階の lvTo から levelcurve の分数ぶん先の Lv を付ける (10階 ≒ 2〜3Lv)
+//   n / nTo 素体の難度の物差し (旧来の迷宮番号 1-100 と同じ尺度) の1階 / 最下階。罠・毒の床・属性などの素体と、
+//           敵の強さの元の値 (tune を合わせた時の物差し — 模擬戦の隊は「魂の Lv = n の物差しの Lv」) を決める
 //   layer   景色・探索BGM・出来事の層 (1-20)。出現表 (pool/deepPool) と強敵 (elites) もこの層の顔ぶれから選ぶ
 //   floors  全階数。5の倍数の階 (最下階を除く) は下り階段の代わりに「帰還魔法陣」が立つ (game.js / board.js)
 //   bands   雑魚の顔ぶれ (5階ごとの帯。下の poolAt)。boss = 最下階の主 (無ければ最下階の階段で踏破)
@@ -31,7 +38,8 @@
 //             foeRegen 敵の毎ラウンドの再生 (最大HP比)   mpDrain 戦闘の開幕に吸われる隊のMP (最大MP比)
 //             metalRate / metalMax 金属の魔物の出やすさ (既定 7%) / 1階で入れ替わる札の最大数 (既定 1)
 //   tune    強さの手直し (generator.js DUNGEON_TUNE と同じ欄)。第4層からはテスト記録がまだ無いので、模擬戦で既存の迷宮に
-//           つないだ: 装備なしの6人 (戦士2・侍・僧侶・魔導士・盗賊、魂の Lv = その階の推奨Lv) が出現表の雑魚と通常攻撃だけで
+//           つないだ: 装備なしの6人 (戦士2・侍・僧侶・魔導士・盗賊、魂の Lv = その階の n の物差しの Lv — 当時の推奨Lv。
+//           いまの推奨Lv の隊へは lvStrength で写すので、tune はこの物差しのまま合わせる) が出現表の雑魚と通常攻撃だけで
 //           戦い (本物の combat.js Battle、浅階/深階ごとに150戦)、1戦の被ダメ (隊HP比) を比べる。この物差しで
 //           石切り場 ws2 = 浅59%・深54% / 坑口 w05 = 54%・69% (第3層の壁)。第4層は 外郭 55%・59% → 地下牢 54%・63% →
 //           大手門 52%・60% (奇襲×2 の分だけ軽め) → 本丸 55%・68% (第4層の壁) / 迷い森 58%・68% に合わせた。
@@ -43,10 +51,11 @@
 import { DUNGEONS as GENERATED } from "./generator.js";
 import { LAYER_BOSS, LAYER_ELITES, BESTIARY } from "./bestiary.js";
 import { baselineLv, progressX } from "../baseline.js";
+import { lvPow } from "../levelcurve.js";
 
 const WORLD_DEF = [
   {
-    id: "w01", n: 1, nTo: 1, layer: 1, floors: 5,
+    id: "w01", n: 1, nTo: 1, lv: 1, lvTo: 3, layer: 1, floors: 5,
     name: "忘れられた地下墓地", short: "地下墓地",
     about: "ロアダルの墓所の下。師オルドが最後に降りたと伝わる",
     bands: [
@@ -56,7 +65,7 @@ const WORLD_DEF = [
     hint: "第0章「人業の生成」を果たすと、王が在処を明かす",
   },
   {
-    id: "w02", n: 2, nTo: 4, layer: 1, floors: 10,
+    id: "w02", n: 2, nTo: 4, lv: 5, lvTo: 10, layer: 1, floors: 10,
     name: "亡骸の囁く回廊", short: "囁く回廊",
     about: "墓地の奥へ続く長い回廊。壁の向こうから死者の囁きが漏れる",
     bands: [
@@ -68,7 +77,7 @@ const WORLD_DEF = [
     hint: "「忘れられた地下墓地」の踏破を王に報告すると、道が示される",
   },
   {
-    id: "w03", n: 4, nTo: 6, layer: 1, floors: 15,
+    id: "w03", n: 4, nTo: 6, lv: 10, lvTo: 17, layer: 1, floors: 15,
     name: "朽ちた骸の修道院", short: "骸の修道院",
     about: "死者を弔い続けた修道士たちの成れの果て。最下階に骸の修道院長が待つ",
     bands: [
@@ -82,7 +91,7 @@ const WORLD_DEF = [
     hint: "「亡骸の囁く回廊」の踏破を王に報告すると、道が示される",
   },
   {
-    id: "w04", n: 6, nTo: 8, layer: 2, floors: 10,
+    id: "w04", n: 6, nTo: 8, lv: 18, lvTo: 21, layer: 2, floors: 10,
     name: "黒水の取水口", short: "取水口",
     about: "王都へ流れる黒い水の入口。水に触れた者は影が薄くなるという",
     bands: [
@@ -94,7 +103,7 @@ const WORLD_DEF = [
     hint: "「亡骸の囁く回廊」のどこかに、師の残した印があるという",
   },
   {
-    id: "w05", n: 10, nTo: 13, layer: 3, floors: 15,
+    id: "w05", n: 10, nTo: 13, lv: 22, lvTo: 27, layer: 3, floors: 15,
     name: "鎖の垂れる坑口", short: "坑口",
     about: "先代の王が封じた古の坑道。罪人たちの鎖が、今も闇に垂れている",
     element: "earth", // 素体の n10 は第2層 (水) なので、坑道の土を明示する
@@ -110,7 +119,7 @@ const WORLD_DEF = [
   },
   // ---- 第二章「捨て砦」(第4層) ── 国境の砦。百年前に王都が見捨て、守備隊はいまも持ち場を守っている ----
   {
-    id: "w06", n: 14, nTo: 16, layer: 4, floors: 10,
+    id: "w06", n: 14, nTo: 16, lv: 27, lvTo: 30, layer: 4, floors: 10,
     name: "亡兵の守る外郭", short: "外郭",
     about: "国境の捨て砦の城壁と兵舎。百年前に死んだ守備隊が、いまも隊伍を組んで持ち場を守る",
     element: null, // 守備隊は人の亡霊。属性の気配は無い (素体の n は第3層の土なので明示する)
@@ -128,7 +137,7 @@ const WORLD_DEF = [
     hint: "「鎖の垂れる坑口」の踏破を王に報告すると、捨て砦の封が解かれる",
   },
   {
-    id: "w07", n: 15, nTo: 17, layer: 4, floors: 10,
+    id: "w07", n: 15, nTo: 17, lv: 31, lvTo: 33, layer: 4, floors: 10,
     name: "捨て砦の地下牢", short: "地下牢",
     about: "砦の地下に掘られた牢。捕虜と罪人と、王に背いた者たちが、鍵を掛けられたまま忘れられた",
     element: "dark",
@@ -148,7 +157,7 @@ const WORLD_DEF = [
     hint: "「亡兵の守る外郭」の当直簿に、地下牢の鍵の在処が記されているという",
   },
   {
-    id: "w08", n: 16, nTo: 18, layer: 4, floors: 10,
+    id: "w08", n: 16, nTo: 18, lv: 34, lvTo: 36, layer: 4, floors: 10,
     name: "雷雨の大手門", short: "大手門",
     about: "寄せ手が最後に破った砦の正門。あの日の雷雨はいまも止まず、討ち死にした両軍の亡者が門を奪い合う",
     element: "wind",
@@ -166,7 +175,7 @@ const WORLD_DEF = [
     hint: "「亡兵の守る外郭」の踏破を王に報告すると、正門への道が示される",
   },
   {
-    id: "w09", n: 17, nTo: 20, layer: 4, floors: 15,
+    id: "w09", n: 17, nTo: 20, lv: 37, lvTo: 41, layer: 4, floors: 15,
     name: "捨て砦の本丸", short: "本丸",
     about: "砦の主が最後まで立てこもった本丸。軍議の間には、いまも将たちの亡霊が卓を囲む",
     element: null,
@@ -188,7 +197,7 @@ const WORLD_DEF = [
   },
   // ---- 第三章「管の根」(第5層の顔ぶれ) ── 本丸の大穴の下。魂を吸う「管」は、地の底の大樹の根だった ----
   {
-    id: "w10", n: 20, nTo: 22, layer: 5, floors: 10,
+    id: "w10", n: 20, nTo: 22, lv: 41, lvTo: 43, layer: 5, floors: 10,
     name: "根の這う縦穴", short: "縦穴",
     about: "本丸の床に開いた大穴。壁という壁を太い根が這い、底の見えない闇へ垂れ下がっている",
     element: "earth",
@@ -207,7 +216,7 @@ const WORLD_DEF = [
     hint: "「捨て砦の本丸」の踏破を王に報告すると、大穴へ降りる許しが出る",
   },
   {
-    id: "w11", n: 21, nTo: 23, layer: 5, floors: 10,
+    id: "w11", n: 21, nTo: 23, lv: 44, lvTo: 46, layer: 5, floors: 10,
     name: "地の底の霧森", short: "霧森",
     about: "縦穴の底に広がる、陽の届かない森。木々は魂の灯で淡く光り、霧が階ごとに姿を変える",
     element: "wind",
@@ -225,7 +234,7 @@ const WORLD_DEF = [
     hint: "「根の這う縦穴」のどこかに、師の残した綱が垂れているという",
   },
   {
-    id: "w12", n: 22, nTo: 24, layer: 5, floors: 10,
+    id: "w12", n: 22, nTo: 24, lv: 46, lvTo: 48, layer: 5, floors: 10,
     name: "樹液の苗床", short: "苗床",
     about: "大樹の根が魂を溶かし、樹液に変える苗床。甘い香りが傷を癒し、魔物までも癒す",
     element: "earth",
@@ -244,7 +253,7 @@ const WORLD_DEF = [
     hint: "「根の這う縦穴」の踏破を王に報告すると、根の行き着く先が示される",
   },
   {
-    id: "w13", n: 23, nTo: 26, layer: 5, floors: 15,
+    id: "w13", n: 23, nTo: 26, lv: 49, lvTo: 52, layer: 5, floors: 15,
     name: "魂喰らいの大樹", short: "大樹",
     about: "百の迷宮から魂を吸い上げる大樹の根元。幹は王都へ向かって、地の底を這い上がっている",
     element: null,
@@ -266,7 +275,7 @@ const WORLD_DEF = [
   },
   // ---- 依頼の迷宮 (酒場の固定クエストを受けると地図に現れる) ----
   {
-    id: "ws1", n: 7, nTo: 9, layer: 2, floors: 10, side: true,
+    id: "ws1", n: 7, nTo: 9, lv: 20, lvTo: 23, layer: 2, floors: 10, side: true,
     name: "沈んだ礼拝堂", short: "沈んだ礼拝堂",
     about: "黒い水の底に沈んだ礼拝堂。夜ごと、水の下から鐘が鳴る",
     bands: [
@@ -279,7 +288,7 @@ const WORLD_DEF = [
     hint: "酒場の破戒僧の依頼「沈んだ鐘」を受けると、道が示される",
   },
   {
-    id: "ws2", n: 12, nTo: 14, layer: 3, floors: 10, side: true,
+    id: "ws2", n: 12, nTo: 14, lv: 24, lvTo: 28, layer: 3, floors: 10, side: true,
     name: "石眠りの石切り場", short: "石切り場",
     about: "王都の城壁を切り出した古い石切り場。鉱夫たちは鑿を握ったまま石になった",
     bands: [
@@ -291,7 +300,7 @@ const WORLD_DEF = [
     hint: "酒場の薬師の依頼「石になった鉱夫たち」を受けると、道が示される",
   },
   {
-    id: "ws3", n: 18, nTo: 21, layer: 5, floors: 10, side: true,
+    id: "ws3", n: 18, nTo: 21, lv: 37, lvTo: 42, layer: 5, floors: 10, side: true,
     name: "霧の迷い森", short: "迷い森",
     about: "捨て砦の裏手に広がる森。霧が道を食い、胞子が足を取る。迷い込んだ者は二度と同じ道を歩けない",
     element: "wind",
@@ -310,7 +319,7 @@ const WORLD_DEF = [
     hint: "酒場の猟師の依頼「霧に呑まれた娘」を受けると、道が示される",
   },
   {
-    id: "ws4", n: 20, nTo: 23, layer: 5, floors: 10, side: true,
+    id: "ws4", n: 20, nTo: 23, lv: 41, lvTo: 45, layer: 5, floors: 10, side: true,
     name: "銀業の隠れ里", short: "銀の里",
     about: "器になりそこねた魂が流れ着く、霧の奥の隠れ里。空の鎧と石の人形が、銀の小人を守っている",
     element: null,
@@ -348,6 +357,46 @@ export function poolAt(cfg, floor) {
   return ((deep ? cfg.deepPool : cfg.pool) || cfg.pool || ["cm_slime"]).slice();
 }
 
+// ===== 迷宮のLv =====
+// 推奨Lv (= 敵のLv) は台帳の lv / lvTo が決める (src/levelcurve.js の目標の曲線から付けた値)。
+// 「n の物差しの Lv」(naturalLevel) は旧来の推奨Lv: 基準の隊 (baseline.js) の Lv を ×LV_EST で縮めた曲線。
+// 敵の強さの元の値 (素体の enemyScale と台帳の tune) はこの物差しの隊に合わせてあるので、
+// 推奨Lv との能力値の伸びの比 (lvStrength) を掛けて、推奨Lv の隊に同じ手応えになるよう強くする
+export const LV_EST = 0.78;
+const estLv = (v) => 1 + (v - 1) * LV_EST;
+// n の物差しの Lv (小数)。台帳の迷宮は1階 = n の入口 → 最下階 = nTo の入口〜奥へ、階に沿ってなめらかに上がる
+export function naturalLevelRaw(cfg, floor = 1) {
+  if (!cfg) return 1;
+  const n = cfg.n || 1, floors = cfg.floors || 1;
+  if (cfg.nTo != null) {
+    const t = floors > 1 ? (Math.max(1, floor) - 1) / (floors - 1) : 0;
+    const x = (n - 1) + t * (cfg.nTo - n + (floors >= 10 ? 0.6 : 0.5));
+    return Math.max(1, estLv(baselineLv(x)));
+  }
+  return Math.max(1, estLv(baselineLv(progressX(n, floor, floors))));
+}
+// n の物差しの Lv がちょうど L になる素体の難度 n (小数・逆引き)。落とし物の帯を推奨Lv から決めるのに使う
+export function nAtLevel(L) {
+  let lo = 0, hi = 400;
+  if (estLv(baselineLv(hi)) < L) return 1 + hi;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (estLv(baselineLv(mid)) < L) lo = mid; else hi = mid;
+  }
+  return 1 + hi;
+}
+// 落とし物の帯 (品の隠しLv)。旧来の「難度 n の迷宮 = [n×1.5, n×2]」を、推奨Lv と同じ Lv の n で引く
+const _lootBands = new Map(); // 奈落は階ごとに設定を組み直すので、逆引きの結果を覚えておく
+export function lootBand(lv, lvTo = lv) {
+  const key = lv + "|" + lvTo;
+  let b = _lootBands.get(key);
+  if (!b) {
+    b = [Math.max(1, Math.round(nAtLevel(lv) * 1.5)), Math.max(1, Math.min(200, Math.round(nAtLevel(lvTo) * 2)))];
+    _lootBands.set(key, b);
+  }
+  return b.slice();
+}
+
 // 素体 (generateDungeon(n)) に台帳の欄を重ねて、迷宮の設定を組み立てる
 function build(def) {
   const base = GENERATED[def.n - 1];
@@ -356,8 +405,8 @@ function build(def) {
   cfg.pool = [...def.bands[0]];
   cfg.deepPool = def.bands.length > 1 ? def.bands.slice(1).flat() : [...def.bands[0]];
   cfg.tune = def.tune ? { ...def.tune } : null;
-  // 落とし物の帯は1階 (n) から最下階 (nTo) まで広がる (game.js が階の深さで帯の中を補間する)
-  if (def.nTo && GENERATED[def.nTo - 1]) cfg.lootLv = [base.lootLv[0], GENERATED[def.nTo - 1].lootLv[1]];
+  // 落とし物の帯は推奨Lv の1階 (lv) から最下階 (lvTo) まで広がる (game.js が階の深さで帯の中を補間する)
+  cfg.lootLv = lootBand(def.lv, def.lvTo);
   // 階ごとの強さの上がり幅 (旧来は 1階ごとに +6%)。深い迷宮は帯ごとに顔ぶれが強くなるので、1階ごとの上げ幅は緩める
   cfg.floorRamp = def.floorRamp != null ? def.floorRamp : 0.06 * Math.min(1, 5 / Math.max(5, def.floors));
   cfg.elites = def.elites || LAYER_ELITES[def.layer] || [];
@@ -381,24 +430,50 @@ export function gateFloors(cfg) {
 }
 export function isGateFloor(cfg, floor) { return !!(cfg && cfg.gates && floor % 5 === 0 && floor < (cfg.floors || 1)); }
 
-// 迷宮のLv (その階の敵のLv。基準の隊の平均Lv)。推奨Lv の帯は1階〜最下階。
-// 基準の隊 (baseline.js) の Lv は「経験値2倍・サブ魂の能力加算をランク別に」の改定前の実測で、改定後の隊は
-// Lv で約5低い見込み (第3層の入口で Lv24 → 19 前後)。Lv1 を据えたまま ×LV_EST で縮めて見込みに寄せる。
-// 改定後のテスト記録で基準の隊の行が測り直されたら 1 に戻す
-export const LV_EST = 0.78;
-const estLv = (v) => 1 + (v - 1) * LV_EST;
-export function dungeonLevel(cfg, floor = 1) {
-  if (!cfg) return 1;
-  const n = cfg.n || 1, floors = cfg.floors || 1;
-  // 台帳の迷宮: 1階 = n の入口 → 最下階 = nTo の入口〜奥へ、階に沿ってなめらかに上がる
-  if (cfg.nTo != null) {
-    const t = floors > 1 ? (Math.max(1, floor) - 1) / (floors - 1) : 0;
-    const x = (n - 1) + t * (cfg.nTo - n + (floors >= 10 ? 0.6 : 0.5));
-    return Math.max(1, Math.round(estLv(baselineLv(x))));
+// 台帳の外 (奈落の素体) の推奨Lv: n の物差しの Lv を、本筋の迷宮の「n の物差しの Lv → 推奨Lv」の対応で写す。
+// 本筋の最後の迷宮より先は、その最下階の比 (推奨Lv ÷ n の物差しの Lv) のまま延ばす
+let _remap = null;
+function remapPoints() {
+  if (_remap) return _remap;
+  const pts = [];
+  for (const d of WORLD) {
+    if (d.side) continue;
+    pts.push({ a: naturalLevelRaw(d, 1), b: d.lv }, { a: naturalLevelRaw(d, d.floors), b: d.lvTo });
   }
-  return Math.max(1, Math.round(estLv(baselineLv(progressX(n, floor, floors)))));
+  pts.sort((p, q) => p.a - q.a || p.b - q.b);
+  for (let i = 1; i < pts.length; i++) pts[i].b = Math.max(pts[i].b, pts[i - 1].b);
+  _remap = pts;
+  return pts;
 }
+export function remapLevel(nat) {
+  const pts = remapPoints();
+  if (!pts.length) return nat;
+  const first = pts[0], last = pts[pts.length - 1];
+  if (nat <= first.a) return Math.max(1, first.b * nat / Math.max(1, first.a));
+  if (nat >= last.a) return last.b * nat / last.a;
+  for (let i = 1; i < pts.length; i++) {
+    const p = pts[i - 1], q = pts[i];
+    if (nat <= q.a) return q.a > p.a ? p.b + (q.b - p.b) * (nat - p.a) / (q.a - p.a) : q.b;
+  }
+  return last.b;
+}
+// 迷宮のLv (その階の敵のLv・推奨Lv)。台帳の迷宮は lv → lvTo を階で補間、それ以外は remapLevel
+export function dungeonLevelRaw(cfg, floor = 1) {
+  if (!cfg) return 1;
+  if (cfg.lv != null) {
+    const floors = cfg.floors || 1;
+    const t = floors > 1 ? Math.min(1, (Math.max(1, floor) - 1) / (floors - 1)) : 0;
+    return cfg.lv + t * ((cfg.lvTo != null ? cfg.lvTo : cfg.lv) - cfg.lv);
+  }
+  return remapLevel(naturalLevelRaw(cfg, floor));
+}
+export function dungeonLevel(cfg, floor = 1) { return Math.max(1, Math.round(dungeonLevelRaw(cfg, floor))); }
 export function levelBand(cfg) { return [dungeonLevel(cfg, 1), dungeonLevel(cfg, cfg.floors || 1)]; }
+// 敵の強さの Lv 補正: 推奨Lv の隊と n の物差しの隊の能力値の伸びの比 (souls.js の lvlFactor と同じ式)
+export function lvStrength(cfg, floor = 1) {
+  return lvPow(dungeonLevelRaw(cfg, floor)) / lvPow(naturalLevelRaw(cfg, floor));
+}
+
 
 // 検証: id の重複・素体の欠け・出現表の空
 {
@@ -415,6 +490,7 @@ export function levelBand(cfg) { return [dungeonLevel(cfg, 1), dungeonLevel(cfg,
     const kinds = new Set(d.bands.flat());
     if (kinds.size !== 3 + 3 * want) throw new Error(`world: ${d.id} duplicate kinds in bands`);
     if (!d.unlock) throw new Error(`world: ${d.id} has no unlock`);
+    if (!(d.lv >= 1) || !(d.lvTo >= d.lv)) throw new Error(`world: ${d.id} needs lv / lvTo (lvTo >= lv >= 1)`);
     if (d.unlock.all && !d.unlock.all.every((id) => WORLD_DEF.some((x) => x.id === id))) throw new Error(`world: ${d.id} unlock.all names an unknown dungeon`);
     for (const k of d.bands.flat()) if (!BESTIARY[k]) throw new Error(`world: ${d.id} unknown monster ${k}`);
     if (d.trait) {

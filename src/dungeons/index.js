@@ -14,7 +14,7 @@ export { unknownName, unknownLabel, unknownTag, UNKNOWN_MARK, UNK_OPEN, UNK_CLOS
 export const DUNGEONS = WORLD;
 // 難度の物差し n (1-100) ごとの素体。無限迷宮「奈落」が深度から素体を引く
 export const GEN_DUNGEONS = GENERATED;
-export { WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, levelBand } from "./world.js";
+export { WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, naturalLevelRaw, lvStrength, lootBand, levelBand } from "./world.js";
 
 // 全モンスター辞書。sprites.js の MONSTERS に統合する
 export const DUNGEON_MONSTERS = BESTIARY;

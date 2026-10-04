@@ -15,7 +15,7 @@ import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPC
 import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
-import { DUNGEONS, GEN_DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, levelBand, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, layerOf, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
+import { DUNGEONS, GEN_DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, naturalLevelRaw, lootBand, levelBand, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, layerOf, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
 import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
@@ -68,6 +68,7 @@ const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho",
 // 視差・揺れを抑える設定 (OSの「視差効果を減らす」)。待機アニメなどを止める
 const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } })();
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
+import { refSoul, refGold, trainCost, lvPow, emberMul } from "./levelcurve.js";
 import { tlOn, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlPlayTick, tlSoul } from "./telemetry.js";
 import { baselineAgi, progressX } from "./baseline.js";
 import { repriceEquipment } from "./pricing.js";
@@ -868,7 +869,8 @@ function abyssCfg() {
     warmChance: 0.45,
     soulLevelBonus: Math.floor((Math.sqrt(d) - 1) * 1.8),
     rankBonus: Math.round(1.25 * Math.log2(1 + d / 2) * 100) / 100,
-    lootLv: [Math.min(200, Math.round(18 + d * 1.8)), Math.min(200, Math.round(18 + d * 2.5))],
+    // 落とし物の帯は推奨Lv から (台帳の迷宮と同じ world.js lootBand)
+    lootLv: lootBand(dungeonLevelRaw({ n: abyssBaseN(d), floors: 1 }, 1)),
     _abyss: true,
   };
 }
@@ -1252,7 +1254,31 @@ function baseEnemyScale() {
   const cfg = activeCfg();
   // 1階ごとの上がり幅は迷宮ごと (cfg.floorRamp。深い迷宮は帯で顔ぶれが強くなるので緩い。既定 +6%)
   const ramp = cfg.floorRamp != null ? cfg.floorRamp : 0.06;
-  return (cfg.enemyScale || 1) * (1 + (G.floor - 1) * ramp) * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
+  return (cfg.enemyScale || 1) * (1 + (G.floor - 1) * ramp) * sfNum("enemyMul", 1) * mutNum("enemyMul", 1) * lvStrengthHere();
+}
+// いまの階の推奨Lv (= 敵のLv) と n の物差しの Lv (どちらも小数。world.js)。奈落は素体の難度 n の1階相当を本筋の対応で写す
+function levelHere() {
+  const ab = abyssActive();
+  const c = ab ? { n: abyssBaseN(G.abyss.depth), floors: 1 } : activeCfg();
+  const f = ab ? 1 : (G.floor || 1);
+  return { lv: dungeonLevelRaw(c, f), nat: naturalLevelRaw(c, f) };
+}
+// 敵の強さの Lv 補正 (world.js lvStrength と同じ): 素体と手直しは n の物差しの隊に合わせてあるので、推奨Lv の隊との能力値の伸びの比を掛ける
+function lvStrengthHere() { const h = levelHere(); return lvPow(h.lv) / lvPow(h.nat); }
+// 旧来の式の「普通の1戦」の ✦Soul / 金貨 (出現表の平均 × 迷宮の倍率 × 階 × その階の群れの数の見込み。Lv 補正・異変・手直しは含めない)。
+// startBattle はこれと推奨Lv の基準 (levelcurve.js refSoul / refGold) の比で、どの敵の戦果も写す → どの階でも普通の1戦の平均が基準の値になる
+function rawBattleUnit() {
+  const cfg = activeCfg();
+  const p = Math.min(0.62, 0.18 + (G.floor || 1) * 0.08);
+  let cnt = 0;
+  for (let i = 0; i < 6; i++) cnt += Math.pow(p, i); // spawnCardEnemies の群れの数の見込み (typicalBattleSpoils と同じ)
+  const keys = sfMonsterPool().filter((k) => MONSTERS[k]);
+  let g = 0, so = 0;
+  for (const k of keys) { const m = MONSTERS[k], c = m.pack ? Math.max(3, cnt) : cnt; g += (m.gold || 0) * c; so += (m.soul || 0) * c; }
+  const n = Math.max(1, keys.length);
+  const ramp = cfg.floorRamp != null ? cfg.floorRamp : 0.06;
+  const sc = (cfg.enemyScale || 1) * (1 + ((G.floor || 1) - 1) * ramp);
+  return { soul: Math.max(1, (so / n) * sc), gold: Math.max(1, (g / n) * sc) };
 }
 // 迷宮ごとの手直し (generator.js DUNGEON_TUNE) のうち、いまの階の雑魚に掛かる倍率。奈落では掛けない
 // (手直しは出現表の雑魚の強さ合わせ。ランクの曲線から組む単体の強敵・ミミック・出来事の魔物には掛けず、
@@ -1344,7 +1370,7 @@ function metalRef(key) {
   while (count < T.max && Math.random() < 0.35) count++;
   return {
     rank: mimicRef().rank, scale: baseEnemyScale(), count,
-    agi: baselineAgi(progressX(n, G.floor || 1, cfg.floors || 1)) * T.agiMul,
+    agi: baselineAgi(progressX(n, G.floor || 1, cfg.floors || 1)) * T.agiMul * lvStrengthHere(),
     soul: sp.soul * T.soulMul, gold: sp.gold * T.goldMul,
   };
 }
@@ -1503,14 +1529,13 @@ function fleeScale() {
   const spds = [...new Set([...(cfg.pool || []), ...(cfg.deepPool || [])])]
     .map((k) => MONSTERS[k] && MONSTERS[k].spd).filter((v) => v > 0).sort((a, b) => a - b);
   const typical = spds.length ? spds[Math.floor(spds.length / 2)] : 4 + Math.round((cfg.rank || 1) * 0.9);
-  return baselineAgi(x) / Math.max(1, typical);
+  // 基準の隊 (baseline.js) は n の物差しの Lv の隊なので、推奨Lv の隊の AGI の伸び (lvStrengthHere) を掛ける
+  return baselineAgi(x) / Math.max(1, typical) * lvStrengthHere();
 }
 
 // この迷宮・階の敵のLv (台帳の迷宮は world.js dungeonLevel。奈落は素体の難度 n の1階相当)
 function foeLevelHere() {
-  const cfg = activeCfg();
-  if (abyssActive()) return dungeonLevel({ n: abyssBaseN(G.abyss.depth), floors: 1 }, 1);
-  return dungeonLevel(cfg, G.floor || 1);
+  return Math.max(1, Math.round(levelHere().lv));
 }
 // テスト記録 (telemetry.js): いまの迷宮の欄 (奈落は深度ごと)。n は進行度 (基準AGI) の算出に使う
 function tlWhere() {
@@ -5203,15 +5228,9 @@ function evFloor() {
 }
 // 「戦果1」= この迷宮・この階の通常戦闘1回で得る gold (半減前の素の値) / ✦Soul の目安
 function evUnit() {
-  const cfg = activeCfg();
-  const keys = sfMonsterPool().filter((k) => MONSTERS[k]);
-  let g = 0, so = 0;
-  for (const k of keys) { g += MONSTERS[k].gold || 0; so += MONSTERS[k].soul || 0; }
-  const n = Math.max(1, keys.length);
-  const sc = (cfg.enemyScale || 1) * (1 + (G.floor - 1) * (cfg.floorRamp != null ? cfg.floorRamp : 0.06));
-  const per = 1.9; // 1戦の平均の敵数
-  // 戦闘の金貨は endBattle で ×2 → runGainGold で ×0.5。素の値は「1体の金貨×数×2」
-  return { gold: Math.max(6, (g / n) * sc * per * 2), soul: Math.max(3, (so / n) * sc * per) };
+  // 推奨Lv の普通の1戦 (levelcurve.js refSoul / refGold)。戦闘の金貨は endBattle で ×2 → runGainGold で ×0.5 なので、金貨は ×2 の値
+  const lv = levelHere().lv;
+  return { gold: Math.max(6, refGold(lv) * 2), soul: Math.max(3, refSoul(lv)) };
 }
 const evJit = () => 0.85 + Math.random() * 0.3;
 function evAlive() { return G.party.filter((p) => p.alive); }
@@ -5982,16 +6001,27 @@ function undeadKeyForDungeon() {
 // 結果はトースト (魂のレア以上・SR/LR の品だけ祝祭の札) で知らせ、歩みは止めない
 function investigateCorpse(cell, clsKey, clsLabel) {
   cell.cleared = true;
-  const dn = activeCfg();
   const back = () => { if (G.state === "board") renderBoard(); };
+  // 半分の確率で魂の残火も残っている (下の4つのどれとも別に)。魂なら同じ知らせにまとめ、ほかは知らせの末尾に添える
+  const ember = Math.random() < EMBER_COLD_RATE ? EMBER_COLD * emberMul(levelHere().lv) : 0;
+  let emberDone = false;
+  const emberTail = () => {
+    if (!ember || emberDone) return "";
+    emberDone = true;
+    G.embers = (G.embers || 0) + ember; runCount("embers", ember);
+    log(`風化した死体に、魂の残火が ${ember}つ 燻っていた。`, "win");
+    return ` ・ 残火 ${ember}`;
+  };
 
   // 懐に残された金品 (Gold) を渡す処理 (装備を渡せない時のフォールバックにも使う)
   const giveGold = () => {
-    const g = runGainGold(Math.round((18 + G.floor * 9) * (0.7 + Math.random() * 0.6)));
+    // 普通の1戦の金貨の半分ほど (evUnit の金貨は runGainGold で半分になる前の値)
+    const g = runGainGold(Math.round(evUnit().gold * 0.5 * (0.7 + Math.random() * 0.6)));
     SFX.itemget(); buzz([0, 30, 60, 30]);
     log(`風化した死体の懐から ${g} ゴールドを見つけた。`, "win");
+    const tail = emberTail();
     updateTopbar();
-    showToast(`風化した死体の懐から 💰${g}`, { tone: "gold", icon: ICONS.gold });
+    showToast(`風化した死体の懐から 💰${g}${tail}`, { tone: "gold", icon: ICONS.gold });
     back();
   };
 
@@ -5999,17 +6029,19 @@ function investigateCorpse(cell, clsKey, clsLabel) {
 
   // 20%: 職能の記憶を宿した「魂」
   if (roll < 0.20) {
-    acquireSoul(clsKey, `風化した死体の残りかすに、まだ職能の記憶が宿っていた。`, back);
+    acquireSoul(clsKey, `風化した死体の残りかすに、まだ職能の記憶が宿っていた。`, back, ember);
     return;
   }
 
   // 30%: 亡骸に残る ✦ Soul (ソウルポイント) を集める
   if (roll < 0.50) {
-    const got = runGainSoulPts(Math.round((20 + G.floor * 8 + (dn.rank || 1) * 6) * (0.7 + Math.random() * 0.6)));
+    // 普通の1戦の ✦Soul の半分ほど
+    const got = runGainSoulPts(Math.round(evUnit().soul * 0.5 * (0.7 + Math.random() * 0.6)));
     SFX.itemget(); buzz([0, 30, 60, 30]);
     log(`風化した死体から ✦${got} Soul を集めた。`, "win");
+    const tail = emberTail();
     updateTopbar();
-    showToast(`風化した死体から ✦${got} Soul`, { tone: "gold", icon: ICONS.wisp });
+    showToast(`風化した死体から ✦${got} Soul${tail}`, { tone: "gold", icon: ICONS.wisp });
     back();
     return;
   }
@@ -6027,17 +6059,18 @@ function investigateCorpse(cell, clsKey, clsLabel) {
     runGainItem(who, it);
     codexSeeItem(id, it);
     log(`風化した死体の傍らに ${itemName(it)} が遺されていた。`, "win");
+    if (emberTail()) { updateTopbar(); showToast(`風化した死体に 魂の残火 ×${ember}`, { tone: "gold" }); }
     UI.loot(it, who, { source: "corpse" }, back);
     return;
   }
   giveGold();
 }
 
-// 魂の残火: まだあたたかい死体=50%で1個 / 偉大なる死体=100%で5個
-const EMBER_WARM = 1, EMBER_GREAT = 5, EMBER_WARM_RATE = 0.5;
+// 魂の残火: まだあたたかい死体 = 必ず1個 / 偉大なる死体 = 必ず5個 / 風化した死体 = 50%で1個 (investigateCorpse)。
+// どれも敵Lv で数が増える (levelcurve.js emberMul: Lv1〜50 ×1・51〜100 ×2 … Lv400 ×8)
+const EMBER_WARM = 1, EMBER_GREAT = 5, EMBER_COLD = 1, EMBER_COLD_RATE = 0.5;
 function emberReward(great) {
-  if (great) return EMBER_GREAT;                              // 偉大なる死体: 確定
-  return Math.random() < EMBER_WARM_RATE ? EMBER_WARM : 0;    // あたたかい死体: 50%
+  return (great ? EMBER_GREAT : EMBER_WARM) * emberMul(levelHere().lv);
 }
 function collectSoul(cell, clsKey, clsLabel) {
   cell.cleared = true;
@@ -6254,8 +6287,9 @@ function disarmNeed(cRank = 1) {
   const f = 1 + (L - 1) * 0.12;                          // souls.js の lvlFactor と同式
   const q = 1 + ((cfg.rank || 1) - 1) * 0.14;            // ダンジョンランク: 深部は高ランク魂が前提
   const c = 1 + ((cRank || 1) - 1) * 0.16;               // 宝箱ランク: 上等な箱ほど狡猾な錠前
-  // 基準値: 得意職以外が適正レベルで約50%に収まる難度 (得意職は ×1.5 ボーナスで上回る)
-  return 34 * f * q * c;
+  // 基準値: 得意職以外が適正レベルで約50%に収まる難度 (得意職は ×1.5 ボーナスで上回る)。
+  // 魂レベルの目安は n の物差しなので、推奨Lv の隊の伸び (lvStrengthHere) を掛ける
+  return 34 * f * q * c * lvStrengthHere();
 }
 
 function disarmChance(m, cRank = 1) {
@@ -6423,7 +6457,7 @@ function trapBaseDmg() {
   const L = 2 + (cfg.soulLevelBonus || 0) * 2.4;
   const f = 1 + (L - 1) * 0.12;
   const q = 1 + ((cfg.rank || 1) - 1) * 0.12;
-  return (5 + G.floor * 3 + rand(6)) * f * q;
+  return (5 + G.floor * 3 + rand(6)) * f * q * lvStrengthHere(); // 推奨Lv の隊の HP の伸びに合わせる
 }
 
 // 罠の効果を適用し、何が起きたかを返す (知らせ方は presentTrap が決める)。
@@ -6867,6 +6901,17 @@ function startBattle(enemies, cell) {
     for (const e of enemies) {
       const k = e.boss ? (tn.bossMul || 1) : e._tuneK != null ? e._tuneK : tm;
       if (k !== 1) { e.soul = Math.round((e.soul || 0) / k); e.gold = Math.round((e.gold || 0) / k); }
+    }
+  }
+  // 戦果は推奨Lv から (levelcurve.js): 出現表の雑魚との普通の1戦が refSoul / refGold になる比で、どの敵 (精鋭・主・ミミック・金属も) の戦果も写す。
+  // 強さの Lv 補正 (lvStrengthHere) で増えた分もここで打ち消す。召喚された仲間は _rk を引き継ぐ (combat.js)
+  if (inDungeon()) {
+    const u = rawBattleUnit(), h = levelHere(), ls = lvPow(h.lv) / lvPow(h.nat);
+    const rk = [refSoul(h.lv) / (u.soul * ls), refGold(h.lv) / (u.gold * ls)];
+    for (const e of enemies) {
+      e.soul = Math.max(1, Math.round((e.soul || 0) * rk[0]));
+      e.gold = Math.max(1, Math.round((e.gold || 0) * rk[1]));
+      e._rk = rk;
     }
   }
   const mutEm = (mutDef() && mutDef().enemyMul) || 1;
@@ -9706,11 +9751,9 @@ function fuseSoul(targetUid, consumeUid, onResultClose = null) {
 }
 
 // 魂を1レベル上げるのに要する Soul (レベルが高いほど高い)
-// 次レベルへ必要な ✦Soul。レベルが上がるほど指数的に増え、レベリングのペースを抑える。
-// 基準 40 × 1.13^(level-1) → Lv1≈40 / Lv10≈120 / Lv20≈408 / Lv30≈1384 / Lv50≈15960。
-// 2026-10: テスト記録 (D15 で Lv32 前後・ほぼオートで勝てた) を受けて、必要量を従来 (20 × …) の2倍にした
-const SOUL_TRAIN_BASE = 40;
-function soulTrainCost(level) { return Math.max(1, Math.round(SOUL_TRAIN_BASE * Math.pow(1.13, (level || 1) - 1))); }
+// 次レベルへ必要な ✦Soul (Lv → Lv+1) は levelcurve.js trainCost: 推奨Lv の迷宮の1戦の ✦Soul × 1Lv の目標分数ぶん
+// (Lv1≈27 / Lv10≈181 / Lv30≈2164 / Lv50≈9729 / Lv100≈29714)。2026-10 までは 40 × 1.13^(Lv−1) で、Lv150 から先は事実上届かなかった
+function soulTrainCost(level) { return trainCost(level || 1); }
 
 // 魂に蓄積している総 Soul = 現レベルまでに消費した分 + 次レベルへの途中分(exp)。
 // 融合時の合算や、上限突破後の一括レベルアップ計算に使う。
@@ -9773,13 +9816,9 @@ function questState() {
 }
 // 依頼の戦果 (その迷宮・階の普通の戦闘1回分の金貨/✦Soul)。出来事の evUnit と同じ物差しを、街から任意の迷宮で測る
 function questUnit(cfg, floor = 1) {
-  const keys = poolAt(cfg, floor).filter((k) => MONSTERS[k]);
-  let g = 0, so = 0;
-  for (const k of keys) { g += MONSTERS[k].gold || 0; so += MONSTERS[k].soul || 0; }
-  const n = Math.max(1, keys.length);
-  const sc = (cfg.enemyScale || 1) * (1 + (Math.max(1, floor) - 1) * (cfg.floorRamp != null ? cfg.floorRamp : 0.06));
-  const per = 1.9; // 1戦の平均の敵数
-  return { gold: Math.max(6, (g / n) * sc * per), soul: Math.max(3, (so / n) * sc * per) };
+  // その迷宮・階の推奨Lv の普通の1戦 (levelcurve.js refSoul / refGold)
+  const lv = dungeonLevelRaw(cfg, Math.max(1, floor));
+  return { gold: Math.max(6, refGold(lv)), soul: Math.max(3, refSoul(lv)) };
 }
 // 掲示板の生成に渡す窓 (src/quests.js)
 // 掲示板の依頼に選ぶ迷宮: 地図にある迷宮を地図に現れた順 (古い→新しい。G.world.open の鍵の並び) に並べ、
