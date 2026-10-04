@@ -39,7 +39,7 @@
 //             specialRate 特別な階の出やすさの倍率   victoryHeal 勝つたび隊のHP・MPを回復する割合
 //             foeRegen 敵の毎ラウンドの再生 (最大HP比)   mpDrain 戦闘の開幕に吸われる隊のMP (最大MP比)
 //             metalRate / metalMax 金属の魔物の出やすさ (既定 7%) / 1階で入れ替わる札の最大数 (既定 1)
-//   tune    強さの手直し (generator.js DUNGEON_TUNE と同じ欄)。第4層からはテスト記録がまだ無いので、模擬戦で既存の迷宮に
+//   tune    強さの手直し (旧来の DUNGEON_TUNE と同じ欄)。第4層からはテスト記録がまだ無いので、模擬戦で既存の迷宮に
 //           つないだ: 装備なしの6人 (戦士2・侍・僧侶・魔導士・盗賊、魂の Lv = その階の n の物差しの Lv — 当時の推奨Lv。
 //           その後 power に写したので、tune の値はそのまま使える) が出現表の雑魚と通常攻撃だけで
 //           戦い (本物の combat.js Battle、浅階/深階ごとに150戦)、1戦の被ダメ (隊HP比) を比べる。この物差しで
@@ -50,9 +50,12 @@
 //           掟 (隊伍・奇襲・逃走不可) の重さは模擬戦に入らないので、その分は控えめにしてある。
 //           主は「主の強さ ÷ 最下階の雑魚の強さ」(sqrt(HP×ATK)) を坑口の主 2.15 / 水路の主 2.39 の間 (本丸の主 2.30・大樹の主 2.39) に置いた。
 //           テスト記録が届いたら実測で合わせ直す
-import { LAYER_ELEMENT } from "./generator.js";
 import { LAYER_BOSS, LAYER_ELITES, LAYER_POOLS, BESTIARY } from "./bestiary.js";
 import { baselineLv } from "../baseline.js";
+
+// 層ごとの属性の気配 (迷宮の element を省いた時の既定。null = 気配なし)。第1層 → 第20層
+export const LAYER_ELEMENT = ["dark", "water", "earth", null, "wind", "water", "fire", "water", "earth", "wind",
+  null, "earth", "dark", "dark", "fire", "light", "water", "dark", "fire", "dark"];
 import { lvPow } from "../levelcurve.js";
 
 const WORLD_DEF = [
@@ -77,7 +80,7 @@ const WORLD_DEF = [
       ["bs_shroudstrangler", "bs_tombwarden", "bs_weepangel"],
     ],
     elites: ["el_palebutcher"], // 名のある強敵の縄張り (named.js)
-    tune: { enemyMul: 0.92 }, // generator.js DUNGEON_TUNE の D3 (2026-10 の改定後の表)
+    tune: { enemyMul: 0.92 }, // 旧来の DUNGEON_TUNE の D3 (2026-10 の改定後の表)
     unlock: { reported: "w01" },
     hint: "「忘れられた地下墓地」の踏破を王に報告すると、道が示される",
   },

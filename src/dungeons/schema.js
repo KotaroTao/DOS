@@ -16657,16 +16657,16 @@ export function rankStats(rank, boss = false) {
   const s = {
     hp: Math.round(30 * Math.pow(r, 1.8)),
     atk: Math.round(12 + 3.2 * r * r),
-    def: Math.round(2 * Math.pow(r, 1.5)),
-    spd: 4 + Math.round(r * 0.9),
+    vit: Math.round(2 * Math.pow(r, 1.5)),
+    agi: 4 + Math.round(r * 0.9),
     soul: Math.round(10 * Math.pow(1.65, r - 1)),
     gold: Math.round(8 * Math.pow(1.7, r - 1)),
   };
   if (boss) {
     s.hp = Math.round(s.hp * 4.0);
     s.atk = Math.round(s.atk * 1.4);
-    s.def = Math.round(s.def * 1.3);
-    s.spd += 3;
+    s.vit = Math.round(s.vit * 1.3);
+    s.agi += 3;
     s.soul *= 8;
     s.gold *= 10;
   }
@@ -16675,11 +16675,9 @@ export function rankStats(rank, boss = false) {
 
 // ===== モンスター定義ヘルパー =====
 // すべてのモンスターはここを通る。スキーマ:
-// { id, key, name, race, rank, desc, maxhp, hp, atk, def, spd, soul, gold,
+// { id, key, name, race, rank, desc, maxhp, hp, atk, vit, agi, soul, gold,
 //   art, palette, boss?, dropNormal?, dropRare?, soulClass? }
 // soul は撃破時に回収できる Soul 量 (経験値の役割を兼ねる)。
-// 注: def/spd は定義用の名前のまま。出現時に六大ステへ写像される
-//     (combat.js makeEnemy: atk→ATK, def→VIT, spd→AGI)。
 // dropNormal/dropRare は省略可 (省略時は game.js がランクから決定的に割り当てる)。
 // soulClass を持つ人型は撃破時にまれに魂を落とす。
 export function defMonster(def) {
@@ -16694,7 +16692,7 @@ export function defMonster(def) {
     rank: def.rank || 1,
     desc: def.desc || "",
     maxhp: def.hp || 10, hp: def.hp || 10,
-    atk: def.atk || 1, def: def.def || 0, spd: def.spd || 5,
+    atk: def.atk || 1, vit: def.vit || 0, agi: def.agi || 5,
     soul: def.soul || 5, gold: def.gold || 3,
     art: def.art || base.art,
     palette: def.palette || base.palette,

@@ -26,7 +26,7 @@
 | 4 | [済] B1 尺度の統一の残り (n を tune に畳み込む) | 中 | なし (挙動は変えない) |
 | 5 | [済] A1 奈落の作り直し (第5章の結びで開く) | 中 | 第5章の公開と同時に遊べる |
 | 6 | [済] E2 第6〜20層の名のある強敵の割り当て | 小 (データ) | 各層の公開と同時 |
-| 7 | R1 旧仕組みを捨てる → R2 データの分割 → R3 game.js の分割 | 大 | なし (開発が速くなる) |
+| 7 | R1 旧仕組みを捨てる [済] → R2 データの分割 → R3 game.js の分割 | 大 | なし (開発が速くなる) |
 | いつでも | D1 CLAUDE.md を地図と決まり事に絞る | 小 | なし (毎回のセッションの読み込みが軽くなる) |
 | 公開前 | S1 公開前の速い検査 (CI) / S2 通しテストとバランス検査 / S3 セーブの版数 | 中 | なし |
 
@@ -155,7 +155,10 @@
 
 ## R. 整理 (計画書の第2・4・5段)
 
-### R1 旧仕組みを捨てる
+### [済] R1 旧仕組みを捨てる
+- **やったこと (2026-10-04)**: (1) 旧来の職業専用装備 `x_` (`catalog/exclusives.js`) を削除し、専用装備を LR に一本化。(2) `migrateLegacyStats`・`LEGACY_ENTRY`/`takeLegacyEntry`/`legacyToPage`・`G.town.facility/sub`・使われていない `#item-get` の枠を削除。(3) 旧100迷宮の生成器 `generator.js` と、それだけが使っていた `RANK_POOLS`・`BOSS_ORDER`・`ELITE_ORDER`・`layerOf` を削除 (層の属性は world.js、層の主は20体の表に)。(4) `common.js`/`d01`〜`d04.js` を `bestiary.js` に統合し、魔物の能力値を `atk/vit/agi` で持つようにした (`makeEnemy` の読み替えを廃止)。
+- **残したもの**: `showChoice`/`showEvent`/`showItemGet` は、すでにキットの `sheet`/`toast` の上の薄い入口 (盤面のプロンプトの1枠と `G.prompt` を管理する) になっていたので残した。呼び出し40か所の書き換えは R3 (game.js の分割) でまとめて見る。`cfg.rank` (罠・宝箱のランク) と `baseline.js`・`LV_EST` (落とし物の帯 `lootBand`) はまだ使う。
+- **確かめたこと**: 台帳の全迷宮・全階の強さ・戦果・逃走・解除が変更前と完全一致。全魔物 (約600体) の出現時の能力値が変更前と一致。人業4体で 街の全タブ → 出撃 → 戦闘 → 勝利 → 帰還 の通しでエラーなし。
 - 旧ポップアップ (`showChoice`・`showEvent`・`showItemGet`) を kit の `sheet`/`toast` へ。`migrateLegacyStats`・`LEGACY_ENTRY` を削除。`x_` 専用装備を LR に一本化。`common.js`/`d01`〜`d04.js` を `bestiary.js` に統合し、最初から `atk/vit/agi` で書く。
 - **分け方**: 項目ごとに1 PR。**依存**: S1。
 

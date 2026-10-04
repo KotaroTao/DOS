@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const SCHEMA = path.join(ROOT, "src/dungeons/schema.js");
-const DEFS = ["bestiary.js", "common.js", "d01.js", "d02.js", "d03.js", "d04.js"].map(f => path.join(ROOT, "src/dungeons", f));
+const DEFS = ["bestiary.js"].map(f => path.join(ROOT, "src/dungeons", f));
 // 層ごとの見出し (区画の目印)。新しい層を足す時はここにも足す
 const HEAD = {
   layer2: ["第2層「地下水路」", [

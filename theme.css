@@ -177,7 +177,7 @@ button, input, select, textarea { font-family: var(--font); }
 .ft-sub { font-family: var(--font); letter-spacing: 6px; color: #b5a68a; }
 
 /* ===== 中央カード (入手・イベント・選択肢): 金細工の額 ===== */
-#item-get, .confirm-overlay { background: radial-gradient(ellipse at 50% 40%, rgba(30,18,26,0.82), rgba(3,2,4,0.92) 70%); }
+.confirm-overlay { background: radial-gradient(ellipse at 50% 40%, rgba(30,18,26,0.82), rgba(3,2,4,0.92) 70%); }
 .ig-card {
   background: var(--corners), var(--grain), radial-gradient(120% 70% at 50% 0%, rgba(201,162,74,0.10), rgba(0,0,0,0) 60%), linear-gradient(180deg, #1e181e 0%, #141015 55%, #0e0b0f 100%);
   border-radius: 4px;
