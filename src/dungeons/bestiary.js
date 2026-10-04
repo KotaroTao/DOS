@@ -2,7 +2,6 @@
 // ・既存モンスター (cm_/d01-d04) はランクを再配置し、monStats で再ステータス化する
 //   (id は append-only: セーブ/図鑑が参照するため改名・削除禁止)
 // ・新規モンスターは bs_ 接頭辞。アートは ARTS の原型 × palette/tint で描き分ける
-// ・各ランクに通常数体 + ボス1体以上を必ず置く (generator.js が抽選する)
 import { defMonsters, monStats, tint, ARTS } from "./schema.js";
 import { COMMON_MONSTERS } from "./common.js";
 import * as d01 from "./d01.js";
@@ -1227,7 +1226,7 @@ const NEW_DEFS = [
     ability: "breath", physResist: 2, // 星すら焼く終焉の炎を吐き、灼熱の鱗は刃を弾く
     desc: "世界の終わりを告げるために遣わされた炎の竜。その到来は終わりそのものであり、前衛後衛もろとも呑んで星すら焼く炎を吐き、灼熱の鱗は並の刃を弾く。" },
 
-  // ==== 迷宮固有ボス (全100迷宮にひとりずつ。割り当ては BOSS_ORDER) ====
+  // ==== 主 (旧来の100迷宮にひとりずつ置いた主。いまは層の主 LAYER_BOSS と、図鑑・出来事の材料) ====
   // -- rank 1 (迷宮1-10: 地下墓地帯) --
   { id: "bs_cryptabbot", name: "骸の修道院長", rank: 1, boss: true, race: "undead", element: "dark", artKey: "hd_cryptabbot", soulClass: "priest",
     ability: null, role: "summoner", summonKey: "d01_skeleton", regen: 0.05, // 死者を呼び、自らも朽ちない
@@ -1682,7 +1681,7 @@ const NEW_MONSTERS = defMonsters(NEW_DEFS.map((d) => ({ ...monStats(d.rank, d.bo
 // 旧来は10迷宮の帯ごとに3体ずつ (計30体) を持っていた。いまは層ごとの強敵 (LAYER_ELITES) が正で、
 // ここの30体はその材料 (docs/tasks.md E2: 第6〜20層へ2体ずつ割り当て、rank は層ボスと同格の 層+2・上限10)。
 // 第6層から先の絵は、使われなくなった旧来の固有原型を借りている。その層を作るときに hd_* の固有原型へ描き直し、
-// 特色を1〜2個に絞り直す (C1)。下の「-- 迷宮 … --」の見出しは旧来の帯 (並びは ELITE_ORDER のため変えない)。
+// 特色を1〜2個に絞り直す (C1)。下の「-- 迷宮 … --」の見出しは旧来の帯 (並びは図鑑の並び)。
 const ELITE_DEFS = [
   // -- 迷宮 1-10 (墓地帯) / 強敵ランク3 --
   { id: "el_cryptlord", name: "墓所の君主", elite: true, rank: 3, race: "undead", element: "dark", artKey: "hd_cryptlord", soulClass: "mage",
@@ -1807,14 +1806,9 @@ const ELITE_DEFS = [
 // 強敵はボス相当のステータスを与える (elite フラグで通常プールから除外される)
 const ELITE_MONSTERS = defMonsters(ELITE_DEFS.map((d) => ({ ...monStats(d.rank, true), ...d })));
 
-// 強敵の割り当て順: ランク帯 r (1-10)・帯内グループ g (0: 1-3 / 1: 4-6 / 2: 7-10) →
-// ELITE_ORDER[(r-1)*3 + g]。BOSS_ORDER と同じく並び順は変更禁止 (追記のみ)。
-export const ELITE_ORDER = ELITE_DEFS.map((d) => d.id);
-if (ELITE_ORDER.length !== 30) throw new Error("bestiary: ELITE_ORDER must have 30 entries (10 ranks x 3 groups)");
 
 // ---- 層ごとの強敵 (20層構成) ----
-// 旧来の ELITE_ORDER は10迷宮単位の帯で選ぶため、第2層 (迷宮6-10) に墓地の強敵が出ていた。
-// 作り込み済みの層はここで層ごとの強敵を持ち、game.js eliteKey が優先して使う (階ごとに順に入れ替わる)。
+// 層ごとの強敵。game.js eliteKey が使う (台帳の迷宮に elites が無ければ、階ごとに順に入れ替わる)。
 // 強敵の rank は層ボスと同格 (層+2)。並びは追記のみ。
 const LAYER_ELITE_DEFS = [
   // 第2層「地下水路」 (絵は hd_* の固有原型)
@@ -1860,7 +1854,7 @@ export const LAYER_ELITES = {
   1: ["el_cryptlord", "el_palebutcher"],        // 第1層「墓地」
   2: ["el_bloatqueen", "el_drownedpaladin"],    // 第2層「地下水路」
   3: ["el_chainoverseer", "el_crystalseer"],    // 第3層「廃坑」
-  4: ["el_warbanner", "el_headsman"],           // 第4層「捨て砦」 (旧来の ELITE_ORDER の強敵を層の強敵に)
+  4: ["el_warbanner", "el_headsman"],           // 第4層「捨て砦」 (旧来の帯の強敵を層の強敵に)
   5: ["el_mistmother", "el_eldertreant"],       // 第5層「霧の森」 (同上。神速や特技の多用で特色を極端に押し出す)
   // 第6〜20層 (docs/tasks.md E2 の割り当て。その層を作るときに名のある強敵 (named.js) にし、絵と特色を仕上げる)
   6: ["el_fallenidol", "el_heresiarch"],        // 沈没神殿
@@ -1913,7 +1907,7 @@ export const BESTIARY = (() => {
     if (out[id]) throw new Error("duplicate monster id: " + id);
     out[id] = NEW_MONSTERS[id];
   }
-  // 強敵を辞書に統合 (RANK_POOLS からは除外)
+  // 強敵を辞書に統合 (層の顔ぶれには入れない)
   for (const id in ELITE_MONSTERS) {
     if (out[id]) throw new Error("duplicate monster id: " + id);
     out[id] = ELITE_MONSTERS[id];
@@ -1922,12 +1916,12 @@ export const BESTIARY = (() => {
     if (out[id]) throw new Error("duplicate monster id: " + id);
     out[id] = LAYER_ELITE_MONSTERS[id];
   }
-  // 出来事の魔物を辞書に統合 (RANK_POOLS からは除外)
+  // 出来事の魔物を辞書に統合 (層の顔ぶれには入れない)
   for (const id in EVENT_MONSTERS) {
     if (out[id]) throw new Error("duplicate monster id: " + id);
     out[id] = EVENT_MONSTERS[id];
   }
-  // 金属の魔物を辞書に統合 (RANK_POOLS からは除外)
+  // 金属の魔物を辞書に統合 (層の顔ぶれには入れない)
   for (const id in METAL_MONSTERS) {
     if (out[id]) throw new Error("duplicate monster id: " + id);
     out[id] = METAL_MONSTERS[id];
@@ -1943,100 +1937,35 @@ export const BESTIARY = (() => {
   return out;
 })();
 
-// ランク → { regular: [id], boss: [id] } (generator.js が出現テーブルを組むのに使う)
-export const RANK_POOLS = (() => {
-  const pools = {};
-  for (const id in BESTIARY) {
-    const m = BESTIARY[id];
-    if (m.elite || m.evOnly || m.metal) continue; // 強敵・出来事の魔物・金属の魔物は通常プールに含めない
-    const p = pools[m.rank] || (pools[m.rank] = { regular: [], boss: [] });
-    (m.boss ? p.boss : p.regular).push(id);
-  }
-  for (let r = 1; r <= 10; r++) {
-    const p = pools[r];
-    if (!p || !p.regular.length) throw new Error("bestiary: no regular monsters for rank " + r);
-    if (!p.boss.length) throw new Error("bestiary: no boss for rank " + r);
-  }
-  return pools;
-})();
-
-// ===== 迷宮ごとの固有ボス割り当て =====
-// BOSS_ORDER[rank][p] = そのランク帯の p 番目 (迷宮番号 n = (rank-1)*10 + p + 1) の主。
-// 全100迷宮のボスはすべて異なる個体になる。並び順はセーブ/図鑑の体験に直結するため
-// 変更禁止 (新ランク帯を作る時だけ追記する)。
-export const BOSS_ORDER = {
-  1: ["bs_cryptabbot", "bs_whispercollector", "bs_bloodcoffin", "bs_ossuarygiant", "bs_slimeking",
-      "bs_ashprelate", "bs_welldweller", "bs_chainwarden", "bs_sarcophaguslord", "bs_boneemperor"],
-  2: ["bs_foremanwraith", "bs_bonecollier", "bs_goblinchief", "bs_saltcolossus", "bs_frostmaggot",
-      "bs_brimstonefiend", "bs_steamtyrant", "d01_gaoler", "bs_leadenking", "bs_rustwyrm"],
-  3: ["d02_lord", "bs_lastbanneret", "bs_bloodfeastogre", "bs_squareghost", "bs_frozenarcher",
-      "bs_granarymaw", "bs_headsmanwraith", "bs_ironcagewarden", "bs_duskcastellan", "bs_warhostrevenant"],
-  4: ["bs_mistwolfking", "bs_hollowkodama", "bs_bloodbriar", "bs_minotaur", "bs_birchwitch",
-      "bs_pyretreant", "bs_bogtyrant", "bs_curseroot", "bs_rotgardener", "bs_mireforestking"],
-  5: ["bs_drownedpontiff", "bs_altarguardian", "bs_sacrificelord", "bs_whisperingidol", "d03_whelp",
-      "bs_blazeseraph", "bs_nagamatriarch", "bs_cursedpontifex", "bs_duskapostle", "bs_ordealavatar"],
-  6: ["bs_magmacentipede", "bs_cinderknight", "bs_boilingmass", "bs_fumarolelord", "bs_venomhydra",
-      "bs_cyclops", "bs_calderawyrm", "bs_flameheresiarch", "bs_emberking", "bs_infernowyrm"],
-  7: ["bs_crystalwyrm", "bs_snowsexton", "bs_frozenwarden", "bs_blizzardvoice", "bs_glacialgiant",
-      "bs_paradoxgenie", "bs_hydra", "bs_rimecastellan", "bs_eternalsnowbeast", "bs_iciclequeen"],
-  8: ["bs_stormroc", "bs_skywarden", "bs_thunderprelate", "bs_cyclonedjinn", "bs_stormfrostgiant",
-      "bs_stormdrake", "bs_darkcloudspawn", "bs_archdemon", "bs_ruincore", "bs_galesovereign"],
-  9: ["bs_hellgatehound", "bs_ferrymanshade", "bs_bloodjudge", "bs_processionlord", "bs_palefrostking",
-      "bs_hellfirejailer", "d04_vritra", "bs_styxcrone", "bs_duskmausoleum", "bs_soulgaoler"],
-  10: ["bs_elderwyrmking", "bs_hoardwarden", "bs_broodmother", "bs_dracolich", "bs_frostwyrmlord",
-       "bs_reddragon", "bs_abyssdrake", "bs_dragongodshade", "bs_twilightdragon", "bs_abysslord"],
-};
-{ // 検証: 各ランク10体・全体で重複なし・実在し boss かつランク一致
-  const seen = new Set();
-  for (let r = 1; r <= 10; r++) {
-    const list = BOSS_ORDER[r] || [];
-    if (list.length !== 10) throw new Error("BOSS_ORDER: rank " + r + " must list exactly 10 bosses");
-    for (const id of list) {
-      const m = BESTIARY[id];
-      if (!m || !m.boss || m.rank !== r) throw new Error("BOSS_ORDER: invalid boss " + id + " for rank " + r);
-      if (seen.has(id)) throw new Error("BOSS_ORDER: duplicate boss " + id);
-      seen.add(id);
-    }
-  }
-}
-
-// ===== 20層構成の層ボス (各層に1体・計20体) =====
-// 100迷宮 = 20層 × 5迷宮。各層の最終迷宮 (D5,10,…,100) でのみ層ボスと戦う。
-// 既存ボスから決定的に20体を選ぶ (層 L → ランク ceil(L/2) の 0 番目 / 5 番目)。
-// ※ 段階リリースの基盤フェーズ用の暫定割り当て。各層の専用ボスは層ごとのPRで差し替える。
-// 層のテーマに合う固有ボスの上書き (層を整備するたびに専用ボスへ差し替える)。
-// 未指定の層は BOSS_ORDER からの暫定割り当てを使う。
-const LAYER_BOSS_OVERRIDE = {
-  20: "bs_firstweaver", // 第20層「終焉の玄室」: 最初の操霊師 (rank10・闇ボス・最終)
-  19: "bs_elderdragon", // 第19層「竜の巣」: 竜の巣の主 (rank10・火ボス)
-  18: "bs_gatewarden", // 第18層「冥府の門」: 冥府の門の主 (rank10・闇ボス)
-  17: "bs_frostmonarch", // 第17層「凍てつく王墓」: 凍てつく王墓の主 (rank10・水ボス)
-  16: "bs_highpontiff", // 第16層「深淵の聖堂」: 深淵の聖堂の主 (rank10・光ボス)
-  15: "bs_forgemaster", // 第15層「溶鉄炉」: 溶鉄炉の主 (rank10・火ボス)
-  14: "bs_cryptking", // 第14層「屍蝋の回廊」: 屍蝋の回廊の主 (rank10・闇ボス)
-  13: "bs_archivist", // 第13層「魔導書庫」: 大書庫の主 (rank10・闇ボス)
-  12: "bs_cavernlord", // 第12層「地底大空洞」: 大空洞の主 (rank10・土ボス)
-  11: "bs_arenalord", // 第11層「闘技場跡」: 闘技場の支配者 (rank10・剣闘ボス)
-  10: "bs_stormlord", // 第10層「嵐の尖塔」: 嵐の尖塔の主 (rank10・風ボス)
-  9: "bs_swamplord", // 第9層「毒沼」: よどみの主 (rank10・毒ボス)
-  8: "bs_glaciallord", // 第8層「氷結回廊」: 氷結回廊の主 (rank9・氷ボス)
-  7: "bs_infernolord", // 第7層「灼熱の洞」: 業火の主 (rank9・火/悪魔ボス)
-  6: "bs_templelord", // 第6層「沈没神殿」: 沈める神官王 (rank8・水/神殿ボス)
-  5: "bs_forestlord", // 第5層「霧の森」: 霧の森の主 (rank7・植物ボス)
-  4: "bs_fortlord",  // 第4層「捨て砦」: 砦の主 (rank6・armoredボス)
-  2: "bs_sewerlord", // 第2層「地下水路」: 水路の主 (rank4・水棲ボス)
-  3: "bs_minelord",  // 第3層「廃坑」: 坑道の主 (rank5・土ボス)
-};
-export const LAYER_BOSS = Array.from({ length: 20 }, (_, i) => {
-  const L = i + 1;
-  if (LAYER_BOSS_OVERRIDE[L]) return LAYER_BOSS_OVERRIDE[L];
-  const r = Math.ceil(L / 2);
-  return BOSS_ORDER[r][((L - 1) % 2) * 5];
-});
+// ===== 層の主 (各層に1体・計20体) =====
+// 各層の最後の迷宮の主。奈落では層の最後の階 (10階ごと) に門番として立つ。第1層 → 第20層
+export const LAYER_BOSS = [
+  "bs_cryptabbot",   // 第1層「墓地」: 骸の修道院長
+  "bs_sewerlord",    // 第2層「地下水路」: 水路の主
+  "bs_minelord",     // 第3層「廃坑」: 坑道の主
+  "bs_fortlord",     // 第4層「捨て砦」: 砦の主
+  "bs_forestlord",   // 第5層「霧の森」: 霧の森の主
+  "bs_templelord",   // 第6層「沈没神殿」: 沈める神官王
+  "bs_infernolord",  // 第7層「灼熱の洞」: 業火の主
+  "bs_glaciallord",  // 第8層「氷結回廊」: 氷結回廊の主
+  "bs_swamplord",    // 第9層「毒沼」: よどみの主
+  "bs_stormlord",    // 第10層「嵐の尖塔」: 嵐の尖塔の主
+  "bs_arenalord",    // 第11層「闘技場跡」: 闘技場の支配者
+  "bs_cavernlord",   // 第12層「地底大空洞」: 大空洞の主
+  "bs_archivist",    // 第13層「魔導書庫」: 大書庫の主
+  "bs_cryptking",    // 第14層「屍蝋の回廊」: 屍蝋の回廊の主
+  "bs_forgemaster",  // 第15層「溶鉄炉」: 溶鉄炉の主
+  "bs_highpontiff",  // 第16層「深淵の聖堂」: 深淵の聖堂の主
+  "bs_frostmonarch", // 第17層「凍てつく王墓」: 凍てつく王墓の主
+  "bs_gatewarden",   // 第18層「冥府の門」: 冥府の門の主
+  "bs_elderdragon",  // 第19層「竜の巣」: 竜の巣の主
+  "bs_firstweaver",  // 第20層「終焉の玄室」: 最初の操霊師
+];
+for (const id of LAYER_BOSS) if (!BESTIARY[id] || !BESTIARY[id].boss) throw new Error("LAYER_BOSS: invalid boss " + id);
 
 // ===== 層ごとの専用ロスター (フェーズC: 層が変わると別のモンスターが出る) =====
 // LAYER_POOLS[layer] = その層に出る通常モンスター id の配列 (ボス除く)。
-// 定義済みの層は generator がここから抽選し、未定義の層は暫定のランクプールにフォールバックする。
+// 台帳の迷宮の帯 (world.js bands) はここから選び、台帳の迷宮がまだ無い層の奈落もここから出す。
 // 各層は固有アートのモンスターで構成し、最低20種を目標に層ごとのPRで充実させる。
 export const LAYER_POOLS = {
   // 第20層「終焉の玄室」: 最果ての闇。器・鎖・堕ちた織り手と、闇竜系を再配置 (全20種)

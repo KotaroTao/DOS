@@ -16,7 +16,7 @@ import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_FINALE, STORY_CELLS, storyCellAt,
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
 import { NAMED_FOES, NAMED_IDS, TROPHY_OF, HUNT_ELITE_RATE, bountyId } from "./dungeons/named.js";
-import { DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, strengthAt, lootBand, abyssLayer, ABYSS_LAYER_FLOORS, hazardsAt, levelBand, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
+import { DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, strengthAt, lootBand, abyssLayer, ABYSS_LAYER_FLOORS, hazardsAt, levelBand, DUNGEON_MONSTERS, ELEMENTS, LAYER_ELITES, LAYER_BOSS, monsterTraits, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
 import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
@@ -1259,7 +1259,7 @@ function revealByCartography() {
 
 // 迷宮内の階に応じた敵の強さ倍率 (迷宮ベース × 階で微増 × 特別階 × 迷宮の異変)
 function enemyScale() { return baseEnemyScale() * tuneMul(); }
-// 手直し (DUNGEON_TUNE) を除いた強さ: 迷宮の素の倍率 × 階 × 特別階/異変。主はこれに bossMul を掛ける
+// 手直し (tune) を除いた強さ: 迷宮の素の倍率 × 階 × 特別階/異変。主はこれに bossMul を掛ける
 function baseEnemyScale() {
   return strengthHere() * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
 }
@@ -1286,7 +1286,7 @@ function battleRewardK() {
   const u = rawBattleUnit(), lv = levelHere().lv;
   return [refSoul(lv) / u.soul, refGold(lv) / u.gold];
 }
-// 迷宮ごとの手直し (generator.js DUNGEON_TUNE) のうち、いまの階の雑魚に掛かる倍率。奈落では掛けない
+// 迷宮ごとの手直し (world.js の tune) のうち、いまの階の雑魚に掛かる倍率。奈落では掛けない
 // (手直しは出現表の雑魚の強さ合わせ。ランクの曲線から組む単体の強敵・ミミック・出来事の魔物には掛けず、
 //  それらには別の soloMul だけを掛ける → soloScale / soloFoes)
 function tuneMul() {
@@ -1379,18 +1379,12 @@ function metalRef(key) {
   };
 }
 
-// この迷宮に出る強敵のid。台帳の迷宮は cfg.elites、作り込み済みの層は層ごとの強敵 (LAYER_ELITES) を階ごとに順に出す。
-// それ以外 (強敵の決まっていない層) は旧来の、層のランク帯の強敵を階ごとに順に出す
+// この迷宮に出る強敵のid。台帳の迷宮は cfg.elites、無ければ層ごとの強敵 (LAYER_ELITES) を階ごとに順に出す
 function eliteKey() {
   const cfg = activeCfg();
-  const L = cfg.layer || 1;
-  const le = (cfg.elites && cfg.elites.length) ? cfg.elites : LAYER_ELITES[L];
-  if (le && le.length) {
-    const hunt = le.find((id) => namedHunted(id)); // 懸賞を受けている名のある強敵は、縄張りの強敵階に必ず出る
-    return hunt || le[(G.floor || 0) % le.length];
-  }
-  const r = Math.min(10, Math.ceil(L / 2));
-  return ELITE_ORDER[(r - 1) * 3 + ((G.floor || 0) % 3)];
+  const le = (cfg.elites && cfg.elites.length) ? cfg.elites : LAYER_ELITES[Math.min(20, cfg.layer || 1)];
+  const hunt = le.find((id) => namedHunted(id)); // 懸賞を受けている名のある強敵は、縄張りの強敵階に必ず出る
+  return hunt || le[(G.floor || 0) % le.length];
 }
 
 // ===== 迷宮の見出し (#topbar) =====
@@ -6253,7 +6247,7 @@ function askDescend(cell) {
       { label, danger: boss, primary: !boss, fn: () => {
         if (boss) {
           log("迷宮の主が立ちはだかる！", "dmg");
-          // 迷宮ごとの手直し (generator.js DUNGEON_TUNE): 主は雑魚の倍率ではなく bossMul、HP はさらに bossHpMul
+          // 迷宮ごとの手直し (world.js の tune): 主は雑魚の倍率ではなく bossMul、HP はさらに bossHpMul
           const tn = dn.tune || {};
           const foes = spawnBossEnemies(dn.boss, dn.bossScale * (tn.bossMul || 1) * baseEnemyScale(), dn.bossRank);
           if ((tn.bossHpMul || 1) !== 1) for (const e of foes) e.maxhp = e.hp = Math.max(1, Math.round(e.maxhp * tn.bossHpMul));
@@ -6898,7 +6892,7 @@ function startBattle(enemies, cell) {
   if (elemRandomHere()) for (const e of enemies) if (!e.metal) { e._elemRandom = true; e.element = randomElement(); }
   // 迷宮の異変 (血の満潮など): 敵の強さ倍率は HP/ATK/VIT に加えて AGI にも掛ける
   // (enemyScale は HP/ATK/VIT のみ。召喚で呼ばれた仲間も _agiMul を引き継ぐ)
-  // 迷宮ごとの手直し (DUNGEON_TUNE) は強さだけ: 倍率で増減した戦果 (金貨・✦Soul) を元の曲線へ戻す
+  // 迷宮ごとの手直し (tune) は強さだけ: 倍率で増減した戦果 (金貨・✦Soul) を元の曲線へ戻す
   const tn = inDungeon() && !abyssActive() ? activeCfg().tune : null;
   if (tn) {
     const tm = tuneMul();

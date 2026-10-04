@@ -133,7 +133,7 @@ export function spawnMetal(key, ref = {}) {
     e.element = "none";
     e.soul = Math.max(1, Math.round(ref.soul || st.soul * T.soulMul));
     e.gold = Math.max(1, Math.round(ref.gold || st.gold * T.goldMul));
-    e._tuneK = 1; // 迷宮の手直し (DUNGEON_TUNE) で戦果を割り戻さない
+    e._tuneK = 1; // 迷宮の手直し (tune) で戦果を割り戻さない
     return e;
   });
   if (list.length > 1) list.forEach((e, i) => { e.name += String.fromCharCode(65 + i); });
