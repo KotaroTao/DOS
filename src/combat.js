@@ -241,7 +241,8 @@ const EVADE_EVEN = 0.20, EVADE_SLOPE = 0.20, EVADE_MAX = 0.40;
 const MIND_RECOVER = { charm: 0.30, confuse: 0.35 }, MIND_BOSS_RECOVER = 0.2;
 const MIND_CHARM_BREAK = 0.5, CONFUSE_FREE = 0.25, CONFUSE_DAZE = 0.3, CONFUSE_SELF_MUL = 0.5;
 // 手番ごとの自然回復 (魅了・混乱・眠り・麻痺) が何手番も続かないための救済: 治らなかった手番ごとに回復率が
-// AIL_RAMP ずつ上がり、AIL_SURE 回目の判定で必ず治る (= かかったままの手番は最長 AIL_SURE-1 回)
+// AIL_RAMP ずつ上がり、AIL_SURE 回目の判定で必ず治る (= かかったままの手番は最長 AIL_SURE-1 回)。
+// かかった直後の最初の判定は必ず外れる (_holdAil: 殴られて覚める・術や道具で治る以外は、最低1手番は続く)
 const AIL_RAMP = 0.15, AIL_SURE = 4;
 // 敵の全体呪文 (ability "spell") の名乗り (属性ごと) と、装備のブレス耐性 (breathRes) の上限
 const ELEM_SPELL = { fire: "業火", water: "濁流", wind: "嵐", earth: "岩雨", light: "裁きの光", dark: "闇の波動" };
@@ -855,7 +856,7 @@ export class Battle {
       }
     }
     if (sp.para && !t.ailment && Math.random() < this._rate(actor, t, sp.para * bossMul)) {
-      t.ailment = "paralyze";
+      t.ailment = "paralyze"; this._holdAil(t, "para");
       this.log(`${t.name}は痺れて動きが鈍った！`, "hit");
       tags.push("para");
     }
@@ -867,21 +868,21 @@ export class Battle {
       } else this.log(`${t.name}は封印を振り払った`, "sys");
     }
     if (sp.sleepChance && !t.asleep && Math.random() < this._rate(actor, t, sp.sleepChance * bossMul)) {
-      t.asleep = true;
+      t.asleep = true; this._holdAil(t, "sleep");
       this.log(`${t.name}は深い眠りに落ちた`, "sys");
       tags.push("sleep");
     }
     // 魅了・混乱 (心の状態異常は1つだけ。先にかかった方が残る)
     if (sp.charm && !t.mind) {
       if (Math.random() < this._rate(actor, t, sp.charm * (t.boss ? BOSS_CHARM_MUL : 1))) {
-        t.mind = "charm";
+        t.mind = "charm"; this._holdAil(t, "mind");
         this.log(`${t.name}は魅了された！ 仲間に襲いかかる…`, "hit");
         tags.push("charm");
       } else if (!sp.confuse && !sp.quiet) this.log(`${t.name}は誘いに乗らなかった`, "sys");
     }
     if (sp.confuse && !t.mind) {
       if (Math.random() < this._rate(actor, t, sp.confuse * bossMul)) {
-        t.mind = "confuse";
+        t.mind = "confuse"; this._holdAil(t, "mind");
         this.log(`${t.name}は混乱した！`, "hit");
         tags.push("confuse");
       } else if (!sp.quiet) this.log(`${t.name}は惑わされなかった`, "sys");
@@ -1060,10 +1061,13 @@ export class Battle {
   // AIL_SURE 回目で必ず治る。治ったら数えを戻す
   _naturalRecover(actor, key, base) {
     const n = (actor._ailN || (actor._ailN = {}))[key] || 0;
+    if (n < 0) { actor._ailN[key] = 1; return false; } // かかったばかり: この手番は必ず続く (救済の数えは1回目とする)
     if (n + 1 >= AIL_SURE || Math.random() < base + AIL_RAMP * n) { actor._ailN[key] = 0; return true; }
     actor._ailN[key] = n + 1;
     return false;
   }
+  // 状態異常にかけた瞬間の印: 次の自然回復の判定は必ず外れる (key = mind/sleep/para)
+  _holdAil(t, key) { (t._ailN || (t._ailN = {}))[key] = -1; }
   // 魅了・混乱の手番の初め: 正気に戻れたか / 混乱していても動けるか。
   // "free" = いつも通り動ける (自然に正気に戻った手番も含む) / "auto" = 勝手に動く
   _mindCheck(actor) {
@@ -1544,6 +1548,7 @@ export class Battle {
         const tt = h.target; // かばうで対象が替わることがある
         if (!h.miss && !h.immune && tt.alive && !tt.ailment && Math.random() < this._rate(actor, tt, 0.4) * (1 - this._ailRes(tt, k))) {
           tt.ailment = k;
+          if (k === "paralyze") this._holdAil(tt, "para");
           h.ailment = k;
           this.log(`${tt.name}は${k === "poison" ? "毒" : "麻痺"}に侵された！`, "dmg");
         }
@@ -1557,7 +1562,7 @@ export class Battle {
         for (const p of this.livingParty()) {
           if (p.asleep || p.ailment === "stone") continue;
           if (Math.random() < this._rate(actor, p, 0.25) * (1 - this._ailRes(p, "sleep"))) {
-            p.asleep = true;
+            p.asleep = true; this._holdAil(p, "sleep");
             this.log(`${p.name}は眠ってしまった！`, "dmg");
             res.hits.push({ target: p, status: "眠り!" });
           } else res.hits.push({ target: p, miss: true, resisted: true });
@@ -1570,7 +1575,7 @@ export class Battle {
           this.log(`${t.name}は${charm ? "誘いを振り払った" : "惑わされなかった"}`, "sys");
           res.hits.push({ target: t, miss: true, resisted: true });
         } else {
-          t.mind = k;
+          t.mind = k; this._holdAil(t, "mind");
           this.log(charm ? `${t.name}は魅了されてしまった！` : `${t.name}は混乱してしまった！`, "dmg");
           res.hits.push({ target: t, status: charm ? "魅了!" : "混乱!" });
         }
@@ -2292,7 +2297,7 @@ export class Battle {
     } else if (sp.kind === "sleep") {
       for (const t of this.livingEnemies()) {
         if (isMetal(t)) { this.log(`${t.name}には効かない`, "sys"); res.hits.push({ target: t, miss: true, resisted: true }); continue; }
-        if (Math.random() < this._rate(actor, t, t.boss ? 0.3 : 0.6)) { t.asleep = true; this.log(`${t.name}は眠った`, "sys"); res.hits.push({ target: t, sleep: true, status: "眠り!" }); }
+        if (Math.random() < this._rate(actor, t, t.boss ? 0.3 : 0.6)) { t.asleep = true; this._holdAil(t, "sleep"); this.log(`${t.name}は眠った`, "sys"); res.hits.push({ target: t, sleep: true, status: "眠り!" }); }
         else this.log(`${t.name}には効かない`, "sys");
       }
     }
