@@ -11,7 +11,7 @@ import {
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
-import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE } from "./quests.js";
+import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS } from "./quests.js";
 import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
@@ -9757,6 +9757,7 @@ function raiseSoulCap(uid) {
 //   fixed:  { id: { state:"active"|"done"|"claimed", progress } }  受けた固定クエスト (報告するまで FREE_CAP の枠を使う)
 //   seen:   { id:1 }  酒場で一度見た固定クエスト (「新」の印を消す)
 //   seq:    依頼の通し番号
+//   bellAt: 帰還の鈴を最後に受け取った時の実プレイ時間 (G.stats.playMs)。ここから1時間で次の鈴の依頼が貼られる
 // }
 // 依頼の状態: offer (掲示板) → active (受注中) → done (達成・報告待ち) → 報告で消える (固定は claimed で残す)
 function questState() {
@@ -9806,8 +9807,15 @@ function questCtx() {
     dungeons,
     unit: questUnit, deliverIds: eligibleDeliveryItemIds(), itemName: (id) => (ITEMS[id] || {}).name || id,
     isMisc: (id) => (ITEMS[id] || {}).slot === "misc",
-    rand, avoid, uid: () => "q" + (s.seq++),
+    rand, avoid, uid: () => "q" + (s.seq++), bell: bellDue(),
   };
+}
+// 帰還の鈴の頃合いか: 前回の鈴を受け取ってから実プレイ (G.stats.playMs) が BELL_EVERY_MS を超え、
+// 鈴を礼にくれる依頼をまだ受けていない (受けて報告前の間は、新たな鈴の依頼は貼られない)
+function bellDue() {
+  const s = questState();
+  if (s.active.some(hasBell)) return false;
+  return (G.stats.playMs || 0) - (s.bellAt || 0) >= BELL_EVERY_MS;
 }
 // 掲示板を貼り替える (迷宮から帰還した時・初めて酒場が開いた時)
 function rollQuestBoard() {
@@ -10133,6 +10141,7 @@ function claimQuest(uid) {
     return false;
   }
   const q = s.active.splice(i, 1)[0];
+  if (hasBell(q)) s.bellAt = G.stats.playMs || 0; // 次の鈴は、ここから実プレイ1時間後
   finishFreeQuest(q, q.reward || {});
   return true;
 }
