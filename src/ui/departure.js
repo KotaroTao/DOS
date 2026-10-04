@@ -6,7 +6,7 @@
 //   │ 迷宮の地図 第1章「師の灯」     踏破 0/5  │ 門は 56px の行。物語の目標の迷宮を最初から選ぶ
 //   │ (●) 忘れられた地下墓地 推奨Lv1〜2・全5階 目標 │ 推奨Lvより遥かに格上なら「危険」「無謀」の札
 //   │ ▒▒ まだ地図にない迷宮 ― 解放の手がかり  │ 台帳 (world.js) の unlock を満たすと現れる
-//   │ 潜り始める階 [B1F|B5F 陣]               │ 到達した帰還魔法陣の階から潜れる
+//   │ 潜り始める階 [B1F|B5F]                  │ 到達した帰還魔法陣の階から潜れる
 //   │ ◆ 隊の備え [肖像][肖像][肖像]   入替 ›  │
 //   │ ⚠ フィモンが深手     [宿で休む ●48]      │ 直し方はその場に (別の札は出さない)
 //   │ ◆ 迷宮の異変 [異変ごと|鎮まるのを待つ]  │ §7 M1 (抽選はこのシートで一度だけ)
@@ -180,7 +180,7 @@ function renderStartFloor(b) {
   if (floors.length > 1) {
     const row = el("div", "dp-from");
     row.appendChild(el("span", "dp-from-l", "潜り始める階"));
-    row.appendChild(segmented(floors.map((f) => ({ key: String(f), label: f === 1 ? "B1F" : `B${f}F 陣` })), String(cur.from), (k) => { cur.from = Number(k) || 1; sfx("select"); refresh(); }));
+    row.appendChild(segmented(floors.map((f) => ({ key: String(f), label: `B${f}F` })), String(cur.from), (k) => { cur.from = Number(k) || 1; sfx("select"); refresh(); }));
     b.appendChild(row);
   }
   // 迷宮の掟 (その迷宮だけの決まりごと。world.js の trait)

@@ -723,7 +723,7 @@ function shakeScreen(strong = false) {
 // 記録の履歴 (記録欄をタップして読む全文)。欄に残す行 (80) より長く覚えておく
 const LOG_HISTORY_MAX = 300;
 const _logHistory = [];
-function logHistory() { return _logHistory.map((x) => ({ text: x.n > 1 ? `${x.msg} ×${x.n}` : x.msg, cls: "l-" + x.cls })); }
+function logHistory() { return _logHistory.map((x) => ({ text: x.msg, cls: "l-" + x.cls })); }
 // 戦闘中の記録は、まだ名前を知らない敵 (討伐数0) の名を不確定名 (「蠢く粘塊？」など、dungeons/unknown.js) に伏せる。
 // 不確定名は unknownTag の印で囲み、記録欄では .unk-name の色で正式な名と見分ける (setLogText)
 // 個体名 (スライムA) を先に、種の名 (スライム) を後に置き換える。明かされた別の敵の名に含まれる種名は触らない
@@ -752,25 +752,12 @@ function maskUnknownEnemies(msg) {
 }
 function log(msg, cls = "sys") {
   msg = maskUnknownEnemies(msg);
-  // 直前と同じ文 (壁にぶつかり続けた時など) は行を増やさず「×N」で数える
-  const lastH = _logHistory[_logHistory.length - 1];
-  if (lastH && lastH.msg === msg && lastH.cls === cls) lastH.n++;
-  else {
-    _logHistory.push({ msg, cls, n: 1 });
-    if (_logHistory.length > LOG_HISTORY_MAX) _logHistory.splice(0, _logHistory.length - LOG_HISTORY_MAX);
-  }
-  const last = logEl.lastElementChild;
-  if (last && last._msg === msg && last.className === "l-" + cls) {
-    last._n = (last._n || 1) + 1;
-    setLogText(last, `${msg} ×${last._n}`);
-    _logPinned = true;
-    scrollLogBottom();
-    return;
-  }
+  // 直前と同じ文が続いても「×N」にまとめず、そのまま1行ずつ出す
+  _logHistory.push({ msg, cls });
+  if (_logHistory.length > LOG_HISTORY_MAX) _logHistory.splice(0, _logHistory.length - LOG_HISTORY_MAX);
   const div = document.createElement("div");
   div.className = "l-" + cls;
   setLogText(div, msg);
-  div._msg = msg;
   logEl.appendChild(div);
   while (logEl.children.length > 80) logEl.removeChild(logEl.firstChild);
   // 新しいメッセージが来たら最下部へ貼り付け直す。iOS Safari 等では appendChild 直後の
@@ -1050,8 +1037,8 @@ const SPECIAL_FLOORS = [
     board: (b) => sfEachCell(b, (c) => { if (c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.30) { c.type = "poison"; c.cleared = false; } }) },
   { id: "tailwind", name: "追い風の階", icon: "stairs", accent: "#7fe0a8", sym: "≫", minFloor: 2, rate: 0.02, preempt100: true, noAmbush: true,
     lines: ["不思議と体が軽く、敵の動きがよく見える。", "常に先手を取り、奇襲を受けない。"] },
-  { id: "elemSurge", name: "属性の奔流", icon: "wisp", accent: "#ff9a4a", sym: "✺", minFloor: 2, rate: 0.02, elemAll: true, cond: (cfg) => !!cfg.element,
-    lines: ["迷宮の属性が荒れ狂っている。", "この階の敵はすべて迷宮の属性を帯びる。属性装備が鍵だ。"] },
+  { id: "elemSurge", name: "属性の奔流", icon: "wisp", accent: "#ff9a4a", sym: "✺", minFloor: 2, rate: 0.02, elemRandom: true,
+    lines: ["六つの属性が荒れ狂い、渦を巻いている。", "この階の敵の属性は、戦うたびにでたらめに定まる。"] },
   { id: "mimicNest", name: "ミミックの巣", icon: "chest", accent: "#e07840", sym: "◈", minFloor: 3, rate: 0.015, mimicRate: 0.50,
     lines: ["不自然なほど宝箱が多い…罠の匂いがする。", "宝箱の半分はミミックだ。だが倒せば上質な宝箱を残す。"],
     board: (b) => sfPlace(b, 3, (c) => { c.type = "chest"; c.cleared = false; }) },
@@ -1176,6 +1163,11 @@ function activeModifierDefs() {
     for (const id of G.abyss.mutations || []) { const m = ABYSS_MUT_MAP[id]; if (m) defs.push(m); }
   }
   return defs;
+}
+// 敵の属性がでたらめに定まるか (異変「属性の暴走」/ 特別な階「属性の奔流」)
+function elemRandomHere() {
+  const sp = specialDef();
+  return !!((sp && sp.elemRandom) || mutNum("elemRandom", false));
 }
 function mutNum(key, dflt) {
   const vals = [];
@@ -2286,8 +2278,8 @@ function drawBoardHighlights(now) {
       if (senseE && cell.type === "monster") {
         const strong = senseE >= 2 && cell.elite;
         let color = strong ? "#ff3b30" : "#ff7a52";
-        // 属性の暴走中は戦うまで属性が定まらないので色を付けない
-        if (senseE >= 3 && !mutNum("elemRandom", false)) { const e2 = (MONSTERS[cell.monsterKey] || {}).element; const ec = (ELEMENTS[e2] || {}).color; if (ec) color = ec; }
+        // 属性の暴走・奔流の中は戦うまで属性が定まらないので色を付けない
+        if (senseE >= 3 && !elemRandomHere()) { const e2 = (MONSTERS[cell.monsterKey] || {}).element; const ec = (ELEMENTS[e2] || {}).color; if (ec) color = ec; }
         mark = { text: strong ? "‼" : "!", color };
       } else if (senseT && (cell.type === "chest" || (senseT >= 2 && isPortalCell(cell)) || (senseT >= 3 && cell.type === "trap"))) {
         if (cell.type === "chest") mark = { text: "✦", color: "#ffd84a" };
@@ -6708,6 +6700,7 @@ function descend({ fall = false } = {}) {
   evOnDescend(); // 迷宮のイベント: 誓いの破約など
   if (!fall) { SFX.stairs(); buzz([0, 20, 80, 20]); }
   G.floor++;
+  if (G.run) G.run.descended = true;
   // 浮遊: 階を移るたびに残りの階数を減らす (唱えた階を含めて float 階のあいだ続く)
   if (G.run && G.run.float > 0) {
     G.run.float--;
@@ -6768,7 +6761,9 @@ function descend({ fall = false } = {}) {
   if (G.eliteFloor) {
     tone = "elite"; sub = "— 禍々しき気配 —";
     const ek = MONSTERS[eliteKey()];
-    lines = ["この階には通常では遭遇しない強大な存在が潜む。", ek ? `強敵「${ek.name}」― 討てば希少な戦利品` : "討てば希少な戦利品が得られる。"];
+    // 名前は一度倒すまで不確定名 (階の情報・戦闘の名乗りと同じ enemyReveal)
+    const ekName = ek ? (enemyReveal({ key: eliteKey(), mon: ek }).name ? ek.name : unknownTag(unknownLabel(ek))) : "";
+    lines = ["この階には通常では遭遇しない強大な存在が潜む。", ek ? `強敵「${ekName}」― 討てば希少な戦利品` : "討てば希少な戦利品が得られる。"];
   } else if (sp) {
     tone = "special"; sub = `— ${sp.name} —`; color = sp.accent;
     lines = sp.lines.slice(0, 2);
@@ -6818,8 +6813,8 @@ function startBattle(enemies, cell) {
     const ch = (spFloor && spFloor.elemAll) || mutNum("elemAll", false) ? 1 : 0.5;
     for (const e of enemies) if (!e.boss && !(e.mon && e.mon.elite) && !e.metal && Math.random() < ch) e.element = cfg.element;
   }
-  // 属性の暴走 (異変): 主・強敵も含め、すべての敵の属性を6属性からでたらめに選び直す (召喚された仲間も同じ)
-  if (mutNum("elemRandom", false)) for (const e of enemies) if (!e.metal) { e._elemRandom = true; e.element = randomElement(); }
+  // 属性の暴走 (異変) / 属性の奔流 (特別な階): 主・強敵も含め、すべての敵の属性を6属性からでたらめに選び直す (召喚された仲間も同じ)
+  if (elemRandomHere()) for (const e of enemies) if (!e.metal) { e._elemRandom = true; e.element = randomElement(); }
   // 迷宮の異変 (血の満潮など): 敵の強さ倍率は HP/ATK/VIT に加えて AGI にも掛ける
   // (enemyScale は HP/ATK/VIT のみ。召喚で呼ばれた仲間も _agiMul を引き継ぐ)
   // 迷宮ごとの手直し (DUNGEON_TUNE) は強さだけ: 倍率で増減した戦果 (金貨・✦Soul) を元の曲線へ戻す
@@ -9845,8 +9840,27 @@ function fixedQuestTargets(def, cfg) {
   const g = def.goal || {};
   if (g.dungeon) return g.dungeon === cfg.id;
   if (g.type !== "kill" || !g.keys) return false;
+  return questKillHere(g.keys, cfg);
+}
+// 狙う魔物がその迷宮に出るか (出現表の帯・主。金属の魔物は第3層から)
+function questKillHere(keys, cfg) {
   const roster = new Set([...(cfg.bands ? cfg.bands.flat() : [...(cfg.pool || []), ...(cfg.deepPool || [])]), cfg.boss].filter(Boolean));
-  return g.keys.some((k) => roster.has(k) || (MONSTERS[k] && MONSTERS[k].metal && (cfg.layer || 0) >= 3));
+  return (keys || []).some((k) => roster.has(k) || (MONSTERS[k] && MONSTERS[k].metal && (cfg.layer || 0) >= 3));
+}
+// 階の情報 (迷宮の手帳) に並べる依頼: 受注中のうち、いま潜っている迷宮で進められるもの (+ 達成して報告待ちのもの)
+//   討伐 = 狙う魔物がここに出る / 到達・踏破 = この迷宮 / 魂・宝箱 = どこでも進む / 納品 = 迷宮では進まないので出さない
+function questsHere() {
+  const cfg = activeCfg();
+  if (!cfg) return [];
+  const here = G.abyss ? null : cfg.id;
+  const fits = (q) => {
+    if (q.type === "soul" || q.type === "chest") return true;
+    if (q.type === "kill") return questKillHere(q.keys, cfg);
+    if (q.type === "floor" || q.type === "clear") return !!here && q.dungeon === here;
+    return false;
+  };
+  return questLists().active.filter((q) => (q.state === "active" || q.state === "done") && fits(q))
+    .sort((a, b) => (a.state === "done") - (b.state === "done"));
 }
 // 出撃シートの添え書き: 酒場の依頼で開いた迷宮なら「依頼の迷宮」(受けた依頼の対象かどうかは名の横の印 questHereCount)
 function questHereNote(cfg) {
@@ -9978,7 +9992,26 @@ function rewardRows(r, jobs = []) {
   if (r.red) out.push({ cur: "red", n: r.red });
   if (r.embers) out.push({ cur: "ember", n: r.embers });
   for (const j of jobs) out.push({ job: j });
+  for (const [id, n] of (r.items || [])) if (ITEMS[id]) out.push({ item: ITEMS[id], n });
   return out;
+}
+// 報酬の品 ([[id, 数]]) を隊 → 控えの袋の空きへ入れる。入らない分は数を返す
+function rewardItemsRoom(r) {
+  let need = 0;
+  for (const [id, n] of (r.items || [])) if (ITEMS[id]) need += n;
+  const room = allDolls().reduce((a, d) => a + Math.max(0, MAX_ITEMS - (d.items || []).length), 0);
+  return room - need;
+}
+function grantRewardItems(r) {
+  for (const [id, n] of (r.items || [])) {
+    for (let k = 0; k < n; k++) {
+      const it = cloneItem(id);
+      const who = it && allDolls().find((d) => (d.items || []).length < MAX_ITEMS);
+      if (!who) break;
+      who.items.push(it);
+      codexSeeItem(id, it);
+    }
+  }
 }
 function grantCurrencies(r) {
   G.gold += r.gold || 0;
@@ -10010,6 +10043,12 @@ function claimQuest(uid) {
   }
   const i = s.active.findIndex((q) => q.uid === uid && q.state === "done");
   if (i < 0) return false;
+  // 礼の品 (帰還の鈴) を受け取る袋の空きが無ければ、報告は待ってもらう
+  if (rewardItemsRoom(s.active[i].reward || {}) < 0) {
+    SFX.ng();
+    showToast("持ち物がいっぱいで、礼の品を受け取れない。袋を空けてから報告しよう", { tone: "bad" });
+    return false;
+  }
   const q = s.active.splice(i, 1)[0];
   finishFreeQuest(q, q.reward || {});
   return true;
@@ -10028,6 +10067,7 @@ function finishFreeQuest(q, r, extraJobs = [], title = null) {
   const tip = rand(100) < TIP_RATE ? questTip(r) : null;
   const bond = bondGiftAt(count);
   grantCurrencies(r);
+  grantRewardItems(r);
   const jobs = [...extraJobs, ...grantRewardSouls(r.souls)];
   if (tip) grantCurrencies(tip);
   const bondJobs = bond ? grantRewardSouls(bond.gift.souls) : [];
@@ -11688,11 +11728,14 @@ function enterDungeon(mutatorId, startFloor = 1) {
   G.stats.runs++;
   // 今回の戦利品トラッキングを初期化 (帰還の報告は次の帰還で書き直す)
   G.run = newRun();
+  G.run.startFloor = G.floor; // 潜り始めの階 (そこから降りずに何もせず戻ったら、帰還で酒場を貼り替えない)
   G.lastRun = null;
   G._townMutator = null; G._departPre = false;
   G._lastTargetUid = null;
-  // 表示中の噂を確定し、この迷宮で現実化させる
-  if (G.rumor) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
+  // 表示中の噂を確定し、この迷宮で現実化させる。
+  // ただし「特別な階」を呼び込む噂は1階で潜る時のためのもの: 帰還魔法陣から潜り始める時は持ち越す
+  // (潜り始めの階は特別な階にならない)
+  if (G.rumor && !(G.floor > 1 && G.rumor.type === "special")) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
   G.state = "board";
   playBgm(fieldBgm());
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
@@ -11821,8 +11864,12 @@ function returnToTown(opts = {}) {
   if (!G.party.some((p) => p.alive)) startRescueTimers(G.party);
   summary.dead = G.party.filter((d) => d && d.isDoll && !d.alive).map((d) => ({ uid: d.uid, name: d.name }));
   G.lastRun = summary;
-  rollTavernCrowd(); // 酒場の顔ぶれは帰還のたびに入れ替わる
-  rollQuestBoard();  // 掲示板の依頼も帰還のたびに貼り替わる (受けた依頼は残る)
+  // 酒場の顔ぶれと掲示板の依頼は帰還のたびに入れ替わる (受けた依頼は残る)。
+  // ただし潜り始めの階から降りず、何も得ずに戻っただけ (帰還魔法陣で入ってすぐ出た) なら貼り替えない
+  if (!idleRun(runRef)) {
+    rollTavernCrowd();
+    rollQuestBoard();
+  }
   updateTopbar();
   log(outcome === "wipe" ? "砕けた人業を残し、街へ戻った。" : "街へ帰還した。", "sys");
   G.town.facility = null; G.town.sub = null; G.town.page = null; G.town.tab = "hub";
@@ -11840,6 +11887,11 @@ function returnToTown(opts = {}) {
     try { c = ops.counts(); } catch (e) { c = null; }
     if (c && c.hurt > 0 && G.gold >= c.innCost) setTimeout(() => { if (G.state === "town") ops.restParty(); }, 600);
   }
+}
+// 潜り始めの階から降りず、戦わず、何も得ずに帰ってきた潜入か
+function idleRun(r) {
+  if (!r || r.startFloor == null || r.descended) return false;
+  return !(r.kills || r.gold || r.soulPts || (r.items || []).length || (r.souls || []).length);
 }
 // 闇に溶けて街へ戻る (帰還陣・踏破の凱旋・全滅の決断の後)
 function leaveDungeon(opts = {}) {
@@ -11904,7 +11956,7 @@ function askGate(cell, { arrival = false } = {}) {
   updateReturnBtn();
   const next = G.floor + 1;
   const bottom = next >= (cfg.floors || 1);
-  showChoice(arrival ? `帰還魔法陣を抜けて、B${G.floor}F に降り立った。` : "下り階段の代わりに、帰還魔法陣が淡く輝いている。", [
+  showChoice(arrival ? `帰還魔法陣を抜けて、B${G.floor}F に降り立った。` : "帰還魔法陣が淡く輝いている。", [
     { label: `先へ進む ― B${next}F${bottom ? (cfg.boss ? " (主の間)" : " (最下階)") : ""}`, primary: true, fn: () => descend() },
     { label: "街へ帰還する ― 戦利品は持ち帰る", fn: () => leaveDungeon({ outcome: G.run && G.run.secured ? "clear" : "return" }) },
     { label: arrival ? "この階を探索する" : "まだ探索する", fn: () => renderBoard() },
@@ -12486,6 +12538,22 @@ function useItem(p, index, target) {
     log(`${p.name}は${it.name}を使った。隊の足が地を離れる ― ${u.float}階のあいだ落とし穴にも毒の床にもかからない。`, "win");
     showToast(`${it.name} ― ${u.float}階のあいだ宙に浮く`, { tone: "good" });
     renderStatus(); renderParty(); renderBoard(); autosave(true);
+    return;
+  }
+  if (u.recall) {
+    // 帰還の鈴: 迷宮を歩いている時だけ。確かめてから鈴を鳴らし、戦利品を持って街へ戻る
+    if (G.state !== "board" || !inDungeon() || G.anim || G.walking) { SFX.ng(); showToast(`${it.name}は迷宮を歩いている時にしか使えない`, { tone: "info" }); return; }
+    showChoice(`${it.name}を鳴らし、街へ帰還する？`, [
+      { label: "鳴らして帰還する ― 戦利品は持ち帰る", primary: true, fn: () => {
+        const i = p.items.indexOf(it);
+        if (i < 0) { renderBoard(); return; }
+        p.items.splice(i, 1);
+        SFX.spell();
+        log(`${p.name}は${it.name}を鳴らした。灯の下へ、隊が引き戻されていく…`, "win");
+        leaveDungeon({ outcome: G.run && G.run.secured ? "clear" : "return" });
+      } },
+      { label: "やめておく", fn: () => renderBoard() },
+    ], ICONS.portal, { banner: "✦ 帰還の鈴 ✦", accent: "#e8c070", lines: useLines(it), onDismiss: () => renderBoard() });
     return;
   }
   const tk = useTarget(it);
@@ -13350,8 +13418,9 @@ function setupNewGame() {
 function opsFacilityOpen(key) { const a = tutorialAllowed(); return !a || a.includes(key); }
 function opsEquippedBy(d, it) { for (const k in (d.equip || {})) if (d.equip[k] === it) return true; return false; }
 // 売却候補: 呪い・未鑑定・装備中・SR/LR・未奉納の収集品 (sellWarnings) は除外 (商店の一括売却と同じ)。
-// 消耗品 (薬草など) は既定で除外する。{ includeUse: true } で商店の一括売却と全く同じ集合になる
-function opsJunkList({ includeUse = false } = {}) {
+// 消耗品 (薬草など) は設定「まとめて売るに道具を含める」(UI の好み sellUse) が入っている時だけ含める。
+// { includeUse } を渡せばその値が優先
+function opsJunkList({ includeUse = !!uiDungeonHud.getPref("sellUse") } = {}) {
   const out = [];
   for (const d of allDolls()) {
     for (const it of (d.items || [])) {
@@ -13791,7 +13860,7 @@ bindGame({
   codexMonEntry, dungeonRoster, CODEX_OTHER,
   // 酒場・祠・宿
   listenRumor, RUMOR_PRICE, rumorPrice, rollTavernCrowd,
-  questState, questLists, questByUid, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount,
+  questState, questLists, questByUid, questsHere, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount,
   adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)
   PREFS, savePrefs, setVolumes, isMuted, toggleMute, ensureAudio, updateMuteBtn, resetAllData, confirmReset,

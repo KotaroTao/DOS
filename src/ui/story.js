@@ -7,7 +7,7 @@
 //   art = 物語の一枚絵の鍵 (src/storyart.js)。あれば肖像の代わりに絵を掲げ、背景もその絵を沈めて敷く
 //   who = 語り手 "king" (既定・老王の肖像) | "irene" (館の主の肖像) | "none" (肖像なし・地の文)
 //         | { name, sub?, art?() } (酒場の依頼人など: 枠に art() の絵 (依頼の魔物・品など) を掲げ、名と肩書きを添える)
-//   reward = 受け取るものの一覧 [{ job:"fighter" } | { cur:"gold"|"soul"|"red"|"ember", n }] (文字列でも可)
+//   reward = 受け取るものの一覧 [{ job:"fighter" } | { cur:"gold"|"soul"|"red"|"ember", n } | { item: 品, n }] (文字列でも可)
 //            各札に tag (「心付け」など小さな添え書き) を付けられる
 //   enter = ページを開く直前 / leave = ページを離れる時 (次のページへ進む・閉じる)。状態の変化はここで行い、順番は呼び出し側が決める。
 // done(): すべて閉じた後 (最後のページの leave の後)。描き直し・トーストは呼び出し側。
@@ -49,7 +49,10 @@ function rewardBox(reward) {
     const it = el("div", "sc-rw-i");
     const ic = el("span", "sc-rw-ic");
     let name;
-    if (r.job) {
+    if (r.item) {
+      try { ic.appendChild(spriteCanvas(r.item, 2)); } catch (e) { /* 絵が無くても動く */ }
+      name = r.item.name;
+    } else if (r.job) {
       try { ic.appendChild(crispCanvas(soulIcon(r.job), 28)); } catch (e) { /* 絵が無くても動く */ }
       name = `${(SOUL_CLASSES[r.job] || {}).label || r.job}の魂`;
     } else {

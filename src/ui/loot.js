@@ -950,9 +950,6 @@ function lootToast(item, who, opts) {
       l2.appendChild(deltaEl(act.plan.delta));
       if (act.plan.target !== who) l2.appendChild(el("span", "wpc-lt-tgt", `${act.plan.target.name}なら`));
       tx.appendChild(l2);
-    } else if (!item.unidentified && item.slot === "use") {
-      const s = statLines(item);
-      if (s) tx.appendChild(setText(el("span", "wpc-lt-l2 dim"), s));
     }
   }
   return t;

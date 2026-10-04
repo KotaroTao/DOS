@@ -15,6 +15,7 @@ import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, setText, glyph, svgIcon, button, portrait, longPress, itemTile } from "./kit.js";
 import { createTownScene, townSpots, vignetteCanvas } from "../townart.js";
 import { SFX } from "../audio.js";
+import { getPref } from "./prefs.js";
 import { ITEMS } from "../items.js";
 import { currencyBar, sectionHead, facilityOpen, lockedToast, restOrDetail, openInn, innStatus, dismissGreet } from "./facilities.js";
 import { questChip, hubQuests, lists as questLists } from "./questboard.js";
@@ -81,7 +82,7 @@ function builtinSuggestions(c) {
   if (junkN && facilityOpen("shop")) {
     out.push({ key: "sell", prio: 40, label: "まとめて売る", short: "売り払う", sub: `${junkN}点`, cost: { kind: "gold", n: "+" + junkGold }, icon: "coin",
       run: () => (UI.confirmSellJunk ? UI.confirmSellJunk() : confirmThen({ banner: "まとめて売る", title: `${junkN}点を売り、金貨 ${junkGold} を得ますか？`,
-        lines: ["装備中・呪い・未鑑定・SR/LR・未奉納の収集品・道具は売らない。", "売った品は商会の棚に並ぶ (買い戻せる)。"],
+        lines: [`装備中・呪い・未鑑定・SR/LR・未奉納の収集品${getPref("sellUse") ? "" : "・道具"}は売らない。`, "売った品は商会の棚に並ぶ (買い戻せる)。"],
         okLabel: "売る", run: () => (UI.sellJunkAll || ops.sellJunkAll)() })) });
   }
   // より良い装備 (WP-B の最適装備)

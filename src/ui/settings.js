@@ -2,7 +2,7 @@
 // 担当: WP-A。⚙ (タブの見出し・盤面のトップバー) から開く。戻る操作 / 背景タップ / 下へ引く で閉じる。
 //   音      … サウンド ON/OFF・BGM と効果音の目盛り (指で引ける 0〜100)。端末の好み (dos-prefs)
 //   戦闘    … 振動・戦闘の背景 (情景/漆黒)・移動の倍速 (端末の好み PREFS.fastWalk)・戦闘演出の倍速 (セーブの G.fastAnim)
-//   自動化  … オート継続・宝箱は最良の解除役で開ける・朽ちた死体を自動で調べる・戦果を自動で閉じる・帰還時に宿で休む
+//   自動化  … オート継続・宝箱は最良の解除役で開ける・朽ちた死体を自動で調べる・戦果を自動で閉じる・帰還時に宿で休む・まとめて売るに道具を含める
 //              UI の好み (prefs.js = dos-ui)。読むのは各パッケージ (WP-D の戦闘/盤面/帰還、街の宿)
 //   テスト記録 … 戦闘バランス調整用の記録 (telemetry.js) の ON/OFF・要約の閲覧・書き出し (コピー)・消去
 //   データ  … はじめから (全削除)。決断は二段で、どちらも「やめておく」に手が掛かる並び
@@ -24,6 +24,7 @@ const AUTO = [
   { key: "autoCorpse", name: "朽ちた死体は自動で調べる", desc: "危険の無い死体は、立ち止まらずに調べて進む" },
   { key: "autoCloseResults", name: "戦果を自動で閉じる", desc: "勝利の知らせを、しばらくして自動で閉じる" },
   { key: "autoRest", name: "帰還したら宿で休む", desc: "金貨が足りれば、帰るなり宿賃を払って全快する" },
+  { key: "sellUse", name: "まとめて売るに道具を含める", desc: "薬草などの道具も、まとめて売る品に入れる" },
 ];
 
 // 切り替えの1行 (行全体が押せる・role=switch)
@@ -206,7 +207,7 @@ function copyText(text) {
 // コピーできなかった時: 全文を選べる枠で見せる (長押し → すべて選択 → コピー)
 function showExportText(text) {
   sheet.open({
-    kind: "info", banner: "テスト記録", title: "この文字をすべて選んでコピーしてください", className: "stg-sheet stg-log-sheet", paged: false,
+    kind: "info", banner: "テスト記録", title: "この文字をすべて選んでコピーしてください", className: "stg-sheet stg-log-sheet",
     body: (root) => {
       const ta = document.createElement("textarea");
       ta.className = "stg-log-ta";
