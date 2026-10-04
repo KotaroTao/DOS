@@ -5084,7 +5084,7 @@ function autoWalk(path) {
 //  ・スワイプ・方向キーで歩けば手で動かしたものとして止まる
 const AUTO_MOVE_HURT = 0.3;
 let autoMoveTimer = null;
-let autoMoveVia = null;   // 寄り道の行き先 (タップしたマス)
+let autoMoveVia = null;   // 寄り道の行き先 (タップしたマス)。着くか戦闘が始まるまで覚えておき、選択で止まっても続きを歩く
 let autoMoveHold = null;  // 1歩の終わりを待って行うドック・手帳などの操作
 let autoMoveHurt = null;  // ON にした時点で深手・戦闘不能だった者 (uid) ― これ以外が深手になれば止まる
 function autoMoveFoes() {
@@ -5128,13 +5128,14 @@ function holdForAutoMove(fn) {
 }
 // オート移動中に盤面のマスをタップした: そこへ寄り道する (着いたら、また近くの墓石へ)
 function autoMoveDetour(x, y) {
-  if (G.walking) { walkRedirect = { x, y }; return; }
   autoMoveVia = { x, y };
+  if (G.walking) walkRedirect = { x, y };
 }
 function autoMoveTick() {
   autoMoveTimer = null;
   if (!G.autoMove) return;
   if (!inDungeon() || (G.state !== "board" && G.state !== "combat")) { setAutoMove(false); return; } // 街へ帰った・全滅
+  if (G.state === "combat") autoMoveVia = null; // 寄り道の先で戦いになった (逃げても、また挑みには行かない)
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) { autoMoveSchedule(150); return; }
   if (autoMoveHold) { const fn = autoMoveHold; autoMoveHold = null; fn(); autoMoveSchedule(150); return; }
   // 新たに深手を負った・倒れた者がいる: 歩みを止めて手当てを促す
@@ -5146,9 +5147,10 @@ function autoMoveTick() {
   }
   autoMoveHurt = autoMoveWounded(); // 癒えた者は数え直す (また深手になれば止まる)
   if (autoMoveVia) {
-    const t = autoMoveVia; autoMoveVia = null;
-    const path = findPath(t.x, t.y);
+    const t = autoMoveVia;
+    const path = t.x === G.px && t.y === G.py ? [] : findPath(t.x, t.y);
     if (path.length) { autoWalk(path); autoMoveSchedule(150); return; }
+    autoMoveVia = null; // 着いた・もう行けない
   }
   const step = autoMovePlan();
   if (!step) {
