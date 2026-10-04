@@ -33,6 +33,8 @@ export const EV_BOONS = {
   blackCat: { crit: 0.03,    text: "黒猫の加護 ― 全員の会心率 +3%" },
   sewerMap: {                text: "王都の下水図 ― 第2層ではどの階も階段が最初から見える" },
   temper:   { dmgMul: 1.05,  text: "地の底の焼き入れ ― 全員の与えるダメージ +5%" },
+  salute:   { preempt: 0.08, text: "守備隊の敬礼 ― 戦闘で先手を取る確率 +8%" },
+  mistEye:  { ambush: 0.5,   text: "霧渡りの目 ― 奇襲を受ける確率が半分になる" },
 };
 
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
@@ -69,6 +71,12 @@ export const LORE_PAGES = {
   3: ["……坑夫たちは銀を掘っていたのではない。眠る『何か』の殻を削っていた。",
       "最初の操霊師は、その殻から最初の魂を抜き取ったという。",
       "ならば我らの術は、盗掘の延長に過ぎぬ。深く掘るほど、底は近づく。"],
+  4: ["……砦は捨てられたのではない。差し出されたのだ。",
+      "守備隊は最後まで援軍を待った。届いたのは、魂を汲む管の口だけだった。",
+      "私の師は、それを王に問うた。そして牢に入った。次は私の番だろう。"],
+  5: ["……霧は森の吐息だ。迷い込んだ魂を、森は管より先に呑み込む。",
+      "森に呑まれた魂は、木になり、灯になり、やがて霧になる。",
+      "管に吸われるよりは、ましな終わりかもしれない。私は、そう思いたい。"],
   0: ["……灯を継ぐ者よ。深く潜るほど、魂は重くなる。",
       "人業の器がきしむのは、魂がまだ自分の体を覚えているからだ。",
       "忘れさせてやるな。それが、私にできなかったことだ。"],
@@ -1061,6 +1069,230 @@ export const EVENTS = [
       return ["「……これで、少しはましに斬れる」", `✺ ${EV_BOONS.temper.text} (以後ずっと)`];
     },
   },
+  // ================= 第4層「捨て砦」 (10) =================
+  {
+    id: "l4_01", name: "兵糧庫", layer: 4, tier: "common", icon: "chest",
+    intro: () => ["籠城のために蓄えられた兵糧庫。樽も木箱も、百年の埃をかぶっている。", "奥で、何かが齧る音がする。"],
+    choices: (A, cell) => [
+      { label: "木箱をこじ開ける ― 品 / 30%で巣食った群れに襲われる", danger: true, fn: () => {
+        if (chance(0.3)) { A.alarm("群れが飛び出してきた！", ["兵糧庫は、とうに魔物の巣だった。"], "trap", () => A.fight(cell, [{ pool: true, min: 3 }], "larder", { noChest: true })); return; }
+        A.item({}, "兵糧庫の木箱", () => A.done(cell));
+      } },
+      anyHurt(A) && { label: "封の固い樽を開ける ― 半々で全員のHP3割回復 / 腐っていて全員が毒", fn: () => {
+        if (chance(0.5)) { A.healAll(0.3, 0, false); A.sfx("heal"); A.toast("塩漬けの干し肉は、まだ食べられた ― HPが回復した", "good", "fountain"); }
+        else { A.ailAll("poison", 0.7); A.sfx("trap"); A.toast("樽の中身は腐っていた ― 毒に当たった", "bad", "poison"); }
+        A.done(cell);
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.item({}, "兵糧庫の木箱", () => A.done(cell, next)),
+  },
+  {
+    id: "l4_02", name: "点呼の亡霊", layer: 4, tier: "common", icon: "mon:bs_pikewall",
+    intro: () => ["槍を立てた亡兵が、壁の名簿を指でなぞっている。", "「……点呼。答えぬ者は、脱走とみなす」"],
+    choices: (A, cell) => [
+      { label: "名乗りを上げる ― 隊の一員と認められ、この階の与ダメ+15%", primary: true, fn: () => {
+        A.floorEv().mods.push({ src: "l4_02", name: "点呼の名乗り", desc: "亡兵に隊の一員と認められた ― 与えるダメージ +15% (この階)", dmgMul: 1.15 });
+        A.sfx("spell"); A.toast("「よし。持ち場につけ」― この階の与ダメ+15%", "good"); A.done(cell);
+      } },
+      { label: "黙って敬礼する ― ✦Soul を少し", fn: () => { A.sfx("heal"); A.soul(1, "亡兵の答礼"); A.done(cell); } },
+    ],
+  },
+  {
+    id: "l4_03", name: "放棄された投石機", layer: 4, tier: "common", icon: "trap",
+    intro: () => ["城壁の上に、縄の朽ちた投石機が据えられたままになっている。", "傍らには、まだ火薬壺がいくつか残っている。"],
+    choices: (A, cell) => {
+      const c = A.check("atk");
+      return [
+        { label: `巻き上げる ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― 次の戦闘の開幕に敵全体へ痛打 / 失敗で腕木が跳ねる`, primary: true, fn: () => {
+          if (c.ok) { A.runEv().bomb = (A.runEv().bomb || 0) + 1; A.sfx("itemget"); A.toast("投石機に火薬壺を込めた ― 次の戦闘の開幕に敵全体へ痛打", "good"); }
+          else if (c.who) { A.hurtOne(c.who, 0.2); A.sfx("trap"); A.toast(`${c.who.name}は跳ねた腕木に打たれた`, "bad", "trap"); }
+          A.done(cell);
+        } },
+        { label: "金具を外す ― 金貨", fn: () => { A.gold(1.5, "投石機の金具"); A.done(cell); } },
+      ];
+    },
+  },
+  {
+    id: "l4_04", name: "戦死者の名札", layer: 4, tier: "common", icon: "corpse",
+    intro: () => ["鎧ごと朽ちた兵の骸。首から下げた真鍮の名札だけが、鈍く光っている。"],
+    choices: (A, cell) => [
+      { label: "名札を持ち帰る ― 収集品", fn: () => A.collectible("戦死者の名札", () => A.done(cell)) },
+      { label: "名を呼んで弔う ― ✦Soul と、近くの骸に魂が宿る", primary: true, fn: () => {
+        A.sfx("heal"); A.soul(1, "戦死者の弔い");
+        if (A.warmCorpse()) A.toast("呼ばれた名に応えて、近くの骸が温もりを取り戻した", "good", "corpseWarm");
+        A.done(cell);
+      } },
+    ],
+  },
+  {
+    id: "l4_05", name: "封じられた武器庫", layer: 4, tier: "uncommon", icon: "chest",
+    intro: (A, cell) => ["鉄板で補強された武器庫の扉。錠前には守備隊の紋。", cell.evTry ? "番兵は倒した。錠前はまだそこにある。" : "扉の前に、錆びた甲冑が一体、じっと立っている。"],
+    choices: (A, cell) => {
+      const d = A.checkDisarm();
+      return [
+        { label: `錠前を外す ― ${d.who ? d.who.name : "誰か"} (成功 ${pctTxt(d.p)}) ― 上等な品 / 失敗で番兵が動く`, primary: true, fn: () => {
+          if (d.ok || cell.evTry) { A.sfx("chest"); A.item({ rare: true }, "守備隊の武器庫", () => A.done(cell)); return; }
+          A.alarm("番兵が動いた！", ["武器庫の番兵が、錆びた剣を抜いた。打ち倒せば扉は開く。"], "trap", () => A.fight(cell, [{ key: "d03_sentinel", strong: 1.6, name: "武器庫の番兵" }], "armory", { noChest: true }));
+        } },
+        { label: "扉ごと叩き壊す ― 番兵と戦い、勝てば武器庫の品", danger: true, fn: () => A.fight(cell, [{ key: "d03_sentinel", strong: 1.6, name: "武器庫の番兵" }], "armory", { noChest: true }) },
+      ];
+    },
+    onWin: (A, cell, f, next) => { cell.evTry = 1; A.item({ rare: true }, "守備隊の武器庫", () => A.done(cell, next)); },
+  },
+  {
+    id: "l4_06", name: "脱走兵の亡霊", layer: 4, tier: "uncommon", icon: "mon:d03_ghost", minFloor: 2,
+    intro: () => ["城壁の隙間に身を潜めた亡霊が、震える声で囁く。", "「頼む……見逃してくれ。抜け道なら教える。下へ降りる、近道だ」"],
+    choices: (A, cell) => [
+      { label: "見逃す ― 抜け道を通って階段の傍へ", primary: true, fn: () => {
+        cell.cleared = true; A.sfx("step"); A.toast("亡霊の抜け道を抜けた ― 階段の傍に出た", "good", "stairs"); A.warpToStairs();
+      } },
+      { label: "持ち場へ連れ戻す ― 亡霊と戦い、勝てば希少な魂 (レア以上)", danger: true, fn: () => {
+        A.fight(cell, [{ key: "d03_ghost", strong: 1.8, name: "脱走兵の亡霊" }], "deserter", { noChest: true });
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "持ち場に戻された脱走兵の魂だ。", () => A.done(cell, next)),
+  },
+  {
+    id: "l4_07", name: "軍鼓", layer: 4, tier: "uncommon", icon: "mon:bs_drumwraith", deep: true,
+    intro: () => ["城壁の上に、獣の皮を張った大きな軍鼓が据えられている。", "打ち鳴らせば兵は奮い立ち、敵もまた目を覚ますだろう。"],
+    choices: (A, cell) => [
+      { label: "打ち鳴らす ― この階の与ダメ+25% (敵も昂ぶり強さ×1.15)", danger: true, fn: () => {
+        A.floorEv().mods.push({ src: "l4_07", name: "軍鼓の響き", desc: "与えるダメージ +25%・敵の強さ ×1.15 (この階)", dmgMul: 1.25, enemyMul: 1.15 });
+        A.sfx("spell"); A.flash("#c9a26a"); A.toast("軍鼓が鳴り響いた ― 与ダメ+25% (敵も昂ぶる)", "gold"); A.done(cell);
+      } },
+      { label: "皮を裂く ― 亡兵が怯んで退く (この階の魔物 2体が消える)", primary: true, fn: () => {
+        const n = A.removeMonsters(2);
+        A.sfx("hit"); A.toast(n ? `鼓の音を失った亡兵が、${n}体退いていった` : "退く亡兵は、もういなかった", n ? "good" : "info"); A.done(cell);
+      } },
+    ],
+  },
+  {
+    id: "l4_08", name: "伝令の亡霊", layer: 4, tier: "uncommon", icon: "mon:bs_bannerwraith", minFloor: 2,
+    intro: () => ["封書を握りしめた伝令の亡霊が、同じ廊下を行きつ戻りつしている。", "「援軍の報せだ……王都へ……届けねば……」"],
+    choices: (A, cell) => [
+      { label: "封書を預かる ― 伝令は安らぎ、階段と宝箱の在処を教える", primary: true, fn: () => {
+        A.revealStairs();
+        const n = A.revealWhere((c) => c.type === "chest" && !c.cleared, 2);
+        A.sfx("heal"); A.toast(`伝令は消えた ― 階段${n ? `と宝箱${n}つ` : ""}の在処が見えた`, "good", "stairs"); A.done(cell);
+      } },
+      { label: "封書を奪う ― 伝令と戦い、勝てば魂の残火", danger: true, fn: () => {
+        A.fight(cell, [{ key: "bs_bannerwraith", strong: 1.7, name: "伝令の亡霊" }], "courier", { noChest: true });
+      } },
+    ],
+    onWin: (A, cell, f, next) => { A.ember(1, "伝令の封書に宿っていた残火"); A.done(cell, next); },
+  },
+  {
+    id: "l4_09", name: "処刑台", layer: 4, tier: "rare", icon: "mon:el_headsman", deep: true,
+    intro: () => ["中庭の処刑台。吊るされた縄の下で、首の無い亡霊が膝をついている。", "「……わしは、砦の主に門を開けよと進言して、首を刎ねられた」", "「主の鎧の継ぎ目を、わしは知っておる。縄を断ってくれれば、教えよう」"],
+    choices: (A, cell) => [
+      { label: "縄を断つ ― 第4層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
+        A.flags().bossWeak = { ...(A.flags().bossWeak || {}), 4: true };
+        A.sfx("spell");
+        A.story("首の無い進言者", ["「主の胸当ての左、三枚目の板の下だ。あの男は、そこだけ古傷を庇う」", "「……ありがとう。やっと、首を探しに行ける」", "第4層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
+      } },
+      { label: "処刑人を呼び出す ― 強敵と戦い、勝てば上等な宝箱と希少な魂", danger: true, fn: () => {
+        A.fight(cell, [{ elite: true, key: "el_headsman" }], "headsman", { noChest: true });
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "処刑台に縛られていた魂だ。", () => A.chestHere(cell, { rankUp: 2 }, next)),
+  },
+  {
+    id: "l4_10", name: "最後の点呼", layer: 4, tier: "mythic", icon: "event", once: true, minDn: 16, deep: true,
+    boon: EV_BOONS.salute.text,
+    intro: () => ["崩れた練兵場に、百年前の守備隊が整列していた。", "隊長の亡霊が一歩進み出て、こちらの隊に向かって剣を掲げた。", "「──援軍、着到。持ち場を、引き継ぐ」"],
+    gift: (A) => {
+      A.flags().salute = true;
+      A.sfx("victory"); A.flash("#c9a26a");
+      return ["亡兵たちは一斉に敬礼すると、霧のように消えていった。", `✺ ${EV_BOONS.salute.text} (以後ずっと)`];
+    },
+  },
+
+  // ================= 第5層「霧の森」 (7) =================
+  {
+    id: "l5_01", name: "光る茸の輪", layer: 5, tier: "common", icon: "fountain",
+    intro: () => ["霧の底に、青白く光る茸が輪を描いて生えている。", "輪の中だけ、霧が晴れている。"],
+    choices: (A, cell) => [
+      anyDrained(A) && { label: "輪の中で休む ― 半々で全員のMP4割回復 / 胞子を吸って全員が毒", fn: () => {
+        if (chance(0.5)) { A.healAll(0, 0.4, false); A.sfx("heal"); A.toast("茸の光が魔力を満たした", "good", "fountain"); }
+        else { A.ailAll("poison", 0.8); A.sfx("trap"); A.toast("胞子が舞った ― 毒に侵された", "bad", "poison"); }
+        A.done(cell);
+      } },
+      { label: "茸を摘む ― 収集品", primary: true, fn: () => A.collectible("光る茸", () => A.done(cell)) },
+    ],
+  },
+  {
+    id: "l5_02", name: "迷い子の足跡", layer: 5, tier: "common", icon: "event",
+    intro: () => ["湿った土に、小さな足跡が続いている。霧の奥へ、まっすぐに。"],
+    choices: (A, cell) => [
+      { label: "足跡を辿る ― 半々で置き去りの荷 (宝箱) / 霧に潜む群れ", danger: true, fn: () => {
+        if (chance(0.5)) { A.chestHere(cell, { rankUp: 0 }); return; }
+        A.alarm("足跡の先にいたのは、子どもではなかった！", ["霧に潜む魔物が、獲物を誘っていた。"], "trap", () => A.fight(cell, [{ pool: true, min: 2 }], "lure", { noChest: true }));
+      } },
+    ],
+    leaveLabel: "辿らない",
+    onWin: (A, cell, f, next) => A.chestHere(cell, { rankUp: 0 }, next),
+  },
+  {
+    id: "l5_03", name: "霧の中の灯", layer: 5, tier: "uncommon", icon: "mon:bs_wisplure",
+    intro: () => ["霧の向こうに、ランタンのような灯がひとつ揺れている。", "灯は、ついて来いと言うように遠ざかっていく。"],
+    choices: (A, cell) => [
+      { label: "灯について行く ― 70%で階段の傍へ / 30%で惑わしの群火の罠", danger: true, fn: () => {
+        if (chance(0.7)) { cell.cleared = true; A.sfx("step"); A.toast("灯は、階段の傍で消えた", "good", "stairs"); A.warpToStairs(); return; }
+        A.alarm("灯が、牙を剥いた！", ["それは迷い人を喰らう群火だった。"], "trap", () => A.fight(cell, [{ key: "bs_wisplure", strong: 1.6, name: "誘い火" }], "wisp", { noChest: true }));
+      } },
+      { label: "灯を払い散らす ― ✦Soul", primary: true, fn: () => { A.sfx("spell"); A.soul(2, "散った灯"); A.done(cell); } },
+    ],
+    onWin: (A, cell, f, next) => { A.soul(4, "誘い火"); A.done(cell, next); },
+  },
+  {
+    id: "l5_04", name: "古木のうろ", layer: 5, tier: "uncommon", icon: "chest",
+    intro: () => ["苔むした古木の幹に、人の頭ほどのうろが開いている。", "奥で、何かが金色に光った。"],
+    choices: (A, cell) => {
+      const c = A.check("agi");
+      return [
+        { label: `手を入れる ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― 上等な品 / 失敗で絞め蔦が目覚める`, primary: true, fn: () => {
+          if (c.ok) { A.item({ rare: true }, "古木のうろ", () => A.done(cell)); return; }
+          A.alarm("蔦が腕に絡みついた！", ["うろは、絞め蔦の口だった。"], "trap", () => A.fight(cell, [{ key: "bs_stranglevine", strong: 1.5, name: "うろの絞め蔦" }], "hollow", { noChest: true }));
+        } },
+      ];
+    },
+    onWin: (A, cell, f, next) => A.item({ rare: true }, "古木のうろ", () => A.done(cell, next)),
+  },
+  {
+    id: "l5_05", name: "狩人の罠小屋", layer: 5, tier: "uncommon", icon: "event",
+    intro: () => ["朽ちかけた狩人の小屋。壁には獣用の罠と、毒を塗った矢が掛けてある。"],
+    choices: (A, cell) => [
+      { label: "罠と毒矢を借りる ― この潜入の間、獣への与ダメ+30%", primary: true, fn: () => {
+        A.runEv().mods = [...(A.runEv().mods || []), { src: "l5_05", name: "狩人の罠", desc: "獣への与ダメージ +30% (この潜入)", prey: { races: ["beast"], mul: 1.3 } }];
+        A.sfx("itemget"); A.toast("狩人の道具を借りた ― 獣への与ダメ+30%", "good"); A.done(cell);
+      } },
+      anyHurt(A) && { label: "小屋で一息つく ― 全員のHP2割回復", fn: () => { A.healAll(0.2, 0, false); A.sfx("heal"); A.toast("小屋で傷の手当てをした", "good", "fountain"); A.done(cell); } },
+    ],
+  },
+  {
+    id: "l5_06", name: "霧の湖の乙女", layer: 5, tier: "rare", icon: "fountain", deep: true,
+    intro: () => ["霧の晴れた湖のほとりに、白い衣の乙女が座っている。足は、水に溶けている。", "「霧の森で迷った者は、みなわたしの湖に来るの。あなたは、何を落としたの?」"],
+    choices: (A, cell) => {
+      const s = A.soulCost(4);
+      return [
+        A.canPaySoul(s) && { label: `魂を湖に沈める (✦${s}) ― 魂の残火 ×2`, fn: () => { A.paySoul(s); A.sfx("heal"); A.ember(2, "湖の乙女"); A.done(cell); } },
+        { label: "「迷っていない」と答える ― 湖の底の品 (レア以上)", primary: true, fn: () => {
+          A.sfx("spell"); A.itemMinRar("r", "湖の乙女", () => A.done(cell));
+        } },
+        needsCare(A) && { label: "湖の水を飲む ― 全員が全快", fn: () => { A.healAll(1, 1, true); A.sfx("heal"); A.toast("澄んだ水が、霧の毒まで洗い流した", "good", "fountain"); A.done(cell); } },
+      ];
+    },
+  },
+  {
+    id: "l5_07", name: "森の古老", layer: 5, tier: "mythic", icon: "event", once: true, deep: true,
+    boon: EV_BOONS.mistEye.text,
+    intro: () => ["霧の中から、苔に覆われた鹿の古老が現れた。角には、無数の小さな灯がともっている。", "古老は隊の一人ひとりの額に、そっと鼻先を寄せた。"],
+    gift: (A) => {
+      A.flags().mistEye = true;
+      A.sfx("heal");
+      return ["霧が、ほんの少しだけ薄く見える。", `✺ ${EV_BOONS.mistEye.text} (以後ずっと)`];
+    },
+  },
 ];
 
 export const EVENT_MAP = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
@@ -1081,6 +1313,8 @@ export const EVENT_GROUPS = [
   { key: "1", label: "墓地", name: "第1層 墓地", layer: 1 },
   { key: "2", label: "水路", name: "第2層 地下水路", layer: 2 },
   { key: "3", label: "廃坑", name: "第3層 廃坑", layer: 3 },
+  { key: "4", label: "捨て砦", name: "第4層 捨て砦", layer: 4 },
+  { key: "5", label: "霧の森", name: "第5層 霧の森", layer: 5 },
 ];
 
 // 出現条件の説明 (見聞録用)

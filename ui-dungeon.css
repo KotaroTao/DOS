@@ -269,6 +269,7 @@
 .dp-mut-l { font-size: 12px; line-height: 1.5; margin: 1px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dp-mut-l.bad { color: #ffb0a4; } .dp-mut-l.good { color: #f3d58b; }
 .dp-mut .ui-seg { margin-top: 6px; }
+.dp-trait .dp-mut-l { white-space: normal; overflow: visible; color: #d8cfbf; font-size: 11.5px; line-height: 1.45; }
 .dp-brief { margin: 8px 0 0; padding: 6px 10px 6px; border: 1px solid #2c5a6a; border-radius: 3px; background: rgba(20,50,64,0.25); }
 .dp-brief-h { font-size: 12px; font-weight: 800; letter-spacing: 0.1em; color: #a8e4f4; margin-bottom: 2px; }
 .dp-brief-h::before { content: "◆"; margin-right: 6px; font-size: 9px; color: #7fd0ff; }

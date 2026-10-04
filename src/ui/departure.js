@@ -126,6 +126,7 @@ function renderGates(b) {
     const near = (d) => {
       const u = d.unlock || {};
       if (u.reported) return isOpen(D.findIndex((x) => x.id === u.reported));
+      if (u.all) return u.all.some((id) => isOpen(D.findIndex((x) => x.id === id)));
       if (u.story) return (game.STORY_CELLS && game.STORY_CELLS[u.story]) ? isOpen(D.findIndex((x) => x.id === game.STORY_CELLS[u.story].dungeon)) : true;
       return true;
     };
@@ -147,7 +148,7 @@ function renderGates(b) {
     sealed.appendChild(gateIcon("gateSealed"));
     const info = el("span", "dp-gate-i");
     info.appendChild(el("span", "dp-gate-n", ch.next || "次の章"));
-    info.appendChild(el("span", "dp-gate-c", "捨て砦の地下へ続く大門は、鎖で封じられている"));
+    info.appendChild(el("span", "dp-gate-c", ch.nextNote || "その先へ続く道は、まだ封じられている"));
     sealed.appendChild(info);
     sealed.appendChild(el("span", "dp-gate-st sealed", "準備中"));
     b.appendChild(sealed);
@@ -181,6 +182,18 @@ function renderStartFloor(b) {
     row.appendChild(el("span", "dp-from-l", "潜り始める階"));
     row.appendChild(segmented(floors.map((f) => ({ key: String(f), label: f === 1 ? "B1F" : `B${f}F 陣` })), String(cur.from), (k) => { cur.from = Number(k) || 1; sfx("select"); refresh(); }));
     b.appendChild(row);
+  }
+  // 迷宮の掟 (その迷宮だけの決まりごと。world.js の trait)
+  const tr = game.dungeonTrait ? game.dungeonTrait(dn) : null;
+  if (tr) {
+    const box = el("div", "dp-mut dp-trait");
+    if (tr.accent) box.style.setProperty("--mut", tr.accent);
+    const h = el("div", "dp-mut-h");
+    h.appendChild(el("span", "dp-mut-k", "迷宮の掟"));
+    h.appendChild(el("span", "dp-mut-n", `${tr.sym ? tr.sym + " " : ""}「${tr.name}」`));
+    box.appendChild(h);
+    for (const ln of tr.lines || []) box.appendChild(setText(el("div", "dp-mut-l"), ln));
+    b.appendChild(box);
   }
   const dg = dangerOf(dn);
   if (dg && dg.note) {
