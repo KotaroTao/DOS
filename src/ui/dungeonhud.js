@@ -76,11 +76,11 @@ export function renderDock(host, spec, acts = {}) {
   host.textContent = "";
   if (!spec) return;
   // 迷宮の術は技ごとにボタンを出す。並びきらない時は札 (絵 + 短い名前) に詰める:
-  //  術が2つ以上 → 術は札 / 術があってボタンが4つ以上 (または5つ以上) → 帰還・回復も札 / 7つ以上 → 降りるも札
+  //  術が2つ以上 → 術は札 / ボタンが4つ以上 → 帰還・回復も札 (降りるは札2つ分の幅まで) / 7つ以上 → 降りるも札
   const fields = spec.fields || [];
   // オートの札 (細い) は1つと数える
   const nBtn = [spec.down, spec.home, spec.heal, spec.auto].filter(Boolean).length + fields.length;
-  const tight = nBtn >= 5 || (nBtn >= 4 && fields.length >= 1);
+  const tight = nBtn >= 4;
   const fieldTag = tight || fields.length >= 2;
   const downTag = nBtn >= 7;
   const DOWN_SHORT = { down: "降りる", boss: "主の間", clear: "踏破", guard: "門番" };
@@ -116,7 +116,7 @@ export function renderDock(host, spec, acts = {}) {
   for (const f of fields) host.appendChild(mk("dk-float k-" + f.kind + (f.on ? " on" : ""), FIELD_ICON[f.kind] || "float", f.label, f.sub, () => (acts.field || (() => {}))(f.key), fieldTag && f.label));
   if (spec.heal) host.appendChild(mk("dk-heal" + (spec.heal.hot ? " hot" : ""), "heal", spec.heal.label, spec.heal.sub, acts.healAll || (() => {}), tight && "回復"));
   if (spec.auto) {
-    const a = mk("dk-auto" + (spec.auto.on ? " on" : ""), "auto", spec.auto.on ? "オート移動 ON" : "オート移動", spec.auto.sub, acts.auto || (() => {}), "オート");
+    const a = mk("dk-auto" + (spec.auto.on ? " on" : ""), "auto", spec.auto.on ? "オート移動 ON" : "オート移動", spec.auto.sub, acts.auto || (() => {}), "オート移動");
     a.setAttribute("aria-pressed", spec.auto.on ? "true" : "false");
     host.appendChild(a);
   }
