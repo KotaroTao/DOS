@@ -6,6 +6,7 @@ import { game } from "./ctx.js";
 import { el, sheet } from "./kit.js";
 import { ELEMENTS, elemBeats, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dungeons/index.js";
 import { SPELLS, spellMpLabel } from "../combat.js";
+import { STAGED, stageOf, stageMul, stageLabel } from "../buffstage.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
 import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, scaleText, useLines } from "../items.js";
 import { HERO, spriteCanvas, crispCanvas } from "../sprites.js";
@@ -63,7 +64,7 @@ export function elemStatShort(e) { return e && e.el ? `${elemName(e.el)}${e.lv >
 // ===== スキル詳細 =====
 export const SPELL_KIND_LABEL = { atk: "攻撃呪文", heal: "回復呪文", phys: "物理技", buff: "支援", debuff: "弱体", sleep: "状態異常", cure: "治療", mana: "魔力譲渡", escape: "逃走", field: "迷宮の術" };
 // 能力の倍率キーの呼び名 (ATK/VIT… 以外の効果)
-export const BUFF_NAME = { hit: "命中率", int: "INT", taunt: "挑発", shield: "仁王立ち", ctr: "反撃の構え", charge: "溜め", regen: "リジェネ", seal: "特技封じ", wardB: "ブレス避け", wardS: "呪文避け",
+export const BUFF_NAME = { hit: "命中率", int: "INT", pie: "PIE", omen: "大技の予兆", taunt: "挑発", shield: "仁王立ち", ctr: "反撃の構え", charge: "溜め", regen: "リジェネ", seal: "特技封じ", wardB: "ブレス避け", wardS: "呪文避け",
   r_fire: "火耐性", r_water: "水耐性", r_wind: "風耐性", r_earth: "土耐性", r_light: "光耐性", r_dark: "闇耐性", r_all: "全属性耐性" };
 export const SPELL_TARGET_LABEL = { enemy: "敵単体", "all-enemy": "敵全体", ally: "味方単体", "all-ally": "味方全体", self: "自分" };
 export const SPELL_KIND_COLOR = { atk: "#e0743f", heal: "#46c08f", phys: "#d8b04a", buff: "#5fa8e0", debuff: "#a06fd6", sleep: "#a06fd6", cure: "#46c08f", mana: "#5fa8e0", escape: "#8f96a3", field: "#8fd0c8" };
@@ -86,6 +87,7 @@ const TRAIT_TAG = {
   enrage: ["other"], endure: ["other"], lifesteal: ["phys", true], multistrike: ["phys", true],
   barrier: ["other"], warcry: ["other"], weaken: ["phys", true],
   sleep: ["other"], charm: ["other"], confuse: ["other"], haste: ["other"], spell: ["mag", true],
+  charge: ["phys", true], sunder: ["phys", true], dispel: ["other"], shake: ["other"],
 };
 function hasElem(e) { return !!(e && e !== "none" && ELEMENTS[e]); }
 // 1枚の札。kind は TAG_KIND のキー、または "el:fire" のような属性
@@ -246,7 +248,13 @@ export function skillDetailLines(sp) {
   if (sp.execute) lines.push(`HP30%以下の敵には ×${sp.execute}（とどめ）`);
   if (sp.prey) lines.push(`${raceList(sp.prey.races)}に ×${sp.prey.mul}`);
   if (sp.kind === "atk" && sp.critBonus) lines.push(`呪文会心率 +${pct(sp.critBonus)}（会心は×1.5）`);
-  const fx = (obj) => Object.entries(obj).map(([k, v]) => `${ATTR_LABEL[k] || BUFF_NAME[k] || k.toUpperCase()} ×${v}`).join("・");
+  // ATK・VIT・AGI・INT・PIE は段 (buffstage.js) で示す: 「ATK +2段 (×1.5)」
+  const fx = (obj) => Object.entries(obj).map(([k, v]) => {
+    const nm = ATTR_LABEL[k] || BUFF_NAME[k] || k.toUpperCase();
+    if (!STAGED.has(k)) return `${nm} ×${v}`;
+    const n = stageOf(v);
+    return `${nm} ${stageLabel(n)}（×${stageMul(n)}）`;
+  }).join("・");
   if (sp.buff) lines.push(`強化: ${fx(sp.buff)}`);
   if (sp.debuff) lines.push(`弱体: ${fx(sp.debuff)}`);
   if (sp.vuln) { const nm = Object.keys(sp.vuln).map(ELEM_NAME).join("・"); lines.push(`${nm}耐性を下げる（${nm}の攻撃から受けるダメージ ×${(1 / Object.values(sp.vuln)[0]).toFixed(2)}）`); }
@@ -266,7 +274,7 @@ export function skillDetailLines(sp) {
   if (sp.mpDrain) lines.push(`与えたダメージの${pct(sp.mpDrain)}だけ自分のMPを回復`);
   if (sp.poison) lines.push(`${pct(sp.poison.chance)}で毒にする（毎ターン最大HPの${pct(sp.poison.pct)}・主には半分）`);
   if (sp.para) lines.push(`${pct(sp.para)}で麻痺させる（手番を失いやすくなる・主には半分の確率）`);
-  if (sp.seal) lines.push(`${pct(sp.seal.chance)}で特技を${sp.seal.turns}ターン封じる（ブレス・状態異常攻撃・回復・呼び出しを使えなくなる・主には半分の確率）`);
+  if (sp.seal) lines.push(`${pct(sp.seal.chance)}で特技を${sp.seal.turns}ターン封じる（ブレス・状態異常攻撃・回復・呼び出し・大技の溜めを使えなくなる・主には半分の確率）`);
   if (sp.strip) lines.push("敵にかかった強化を打ち消す");
   if (sp.instakill) lines.push(`${pct(sp.instakill.chance)}で即死させる${sp.instakill.races ? `（${raceList(sp.instakill.races)}のみ）` : ""}（主には効かない・強敵には半分）`);
   if (sp.sleepChance) lines.push(`命中後 ${pct(sp.sleepChance)}で対象を眠らせる（主には半分）`);
@@ -281,8 +289,10 @@ export function skillDetailLines(sp) {
   if (sp.grantEndure) lines.push("対象に「致死ダメージをHP1で耐える」を付与（1戦闘1回）");
   if (sp.grantBarrier) lines.push(`魔障壁${sp.grantBarrier}回分（ブレス・呪文の被ダメ半減）を付与`);
   if (sp.debuffAll) lines.push(`さらに敵全体を弱体: ${fx(sp.debuffAll)}`);
-  // 効果の持続ターン数 (同方向は最大2段階まで重ねられる)
-  if (sp.dur && (sp.buff || sp.debuff || sp.debuffAll || sp.vuln || sp.taunt || sp.shield || sp.stance || sp.charge)) lines.push(`効果は ${sp.dur} ターン持続（同じ能力は最大2段階）`);
+  // 効果の持続ターン数。ATK〜PIE の段は強化と弱体で打ち消し合い、±3段で止まる (主・精鋭への弱体は −2段まで・持続 −1)
+  if (sp.dur && (sp.buff || sp.debuff || sp.debuffAll || sp.vuln || sp.taunt || sp.shield || sp.stance || sp.charge)) lines.push(`効果は ${sp.dur} ターン持続`);
+  if ([sp.buff, sp.debuff, sp.debuffAll].some((o) => o && Object.keys(o).some((k) => STAGED.has(k)))) lines.push("能力の段は強化と弱体で打ち消し合い、±3段で止まる（主・精鋭への弱体は −2段まで・持続 −1）");
+  if (sp.strip) lines.push("敵の大技の予兆（溜め）も打ち消せる");
   return lines;
 }
 
