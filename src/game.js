@@ -7821,6 +7821,14 @@ function playBattleIntro(done) {
   G.animating = true;
   combatMenu.innerHTML = "";
   if (G.autoCombat) renderAutoBanner();
+  else if (ambush) {
+    // 奇襲: 敵が一巡するまで命令板が出ないので、開幕の演出の間からオートを押せるようにする
+    combatMenu.dataset.mode = "acting";
+    const w = turnPlate("奇襲", "敵の先手", []);
+    w.classList.add("who-foe");
+    combatMenu.appendChild(w);
+    appendAutoStart();
+  }
   renderParty();
   const tick = () => {
     if (!G.battleIntro || G.battle !== b) return;
@@ -8295,6 +8303,20 @@ function renderActingPlate(actor) {
   if (foe) w.classList.add("who-foe");
   if (foe && enemyUnknown(actor)) w.classList.add("who-unk");
   combatMenu.appendChild(w);
+  // 敵の手番の間もオートを始められる (奇襲で敵が先に一巡する間も、押した次の手番からオートの速さになる)
+  if (foe) appendAutoStart();
+}
+// 演出の間の「オート」: 手番を待たずにオートへ切り替える。オートの速さ (spdMul) は次の手番から効く
+function appendAutoStart() {
+  if (G.autoCombat || !G.battle || G.battle.result) return;
+  const keep = !!uiDungeonHud.getPref("autoKeep");
+  combatMenu.appendChild(cmdBtn("auto", "オート", keep ? "継続" : "敵の手番から速める", () => {
+    if (G.autoCombat || G.state !== "combat" || !G.battle || G.battle.result) return;
+    G.autoCombat = true;
+    SFX.select();
+    if (G.animating) renderAutoBanner();
+    else renderCombatMenu();
+  }, "cmd-wide"));
 }
 
 // オート戦闘中の常設バナー: 演出中も表示し続け、いつでも解除できる。
