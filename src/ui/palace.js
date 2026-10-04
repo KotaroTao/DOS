@@ -191,6 +191,24 @@ function codexCard(sprite, name, { color = null, onTap = null, sub = null, price
   return c;
 }
 // 遭遇したが、まだ討っていない迷宮の主: 名前だけ明かす (姿・能力は1体討つまで伏せる)
+// 名のある強敵の札: 名は最初から出す。討つまでは絵を伏せ、縄張りと目撃・首級を添える
+function namedCard(key, m, n) {
+  const g = G();
+  const killed = !!g.codex.mon[key];
+  const sub = n ? (n.trophy ? "首級 ✓" : killed ? "首級なし" : n.seen ? `目撃 ${n.seenAt}` : (n.homes || []).join("・") || "名のある強敵") : "名のある強敵";
+  if (killed) return codexCard(m, m.name, { color: "#ff7a5a", sub, kills: monKills(key), fresh: isFreshMon(key), onTap: (c) => { codexMonSheet(key); markSeen("mon", key, c); } });
+  const c = el("button", "pl-card unknown boss-unk");
+  c.type = "button";
+  const a = el("span", "pl-card-art");
+  a.appendChild(el("span", "pl-card-q", "？"));
+  c.appendChild(a);
+  c.appendChild(el("span", "pl-card-n", m.name));
+  c.appendChild(el("span", "pl-card-k none", "討伐 0体"));
+  c.appendChild(el("span", "pl-card-s", sub));
+  c.setAttribute("aria-label", `${m.name} (${sub})`);
+  c.addEventListener("click", () => { sfx("select"); codexMonSheet(key); });
+  return c;
+}
 function bossNameCard(key, m) {
   const c = el("button", "pl-card unknown boss-unk");
   c.type = "button";
@@ -214,22 +232,28 @@ function renderCodexMon(box) {
   const opened = DUNGEONS.map((d, i) => i).filter(dunOpen);
   if (!opened.length) opened.push(0);
   let idx = Number(remember("codex", "dungeon"));
-  if (!Number.isFinite(idx) || (idx !== -1 && !opened.includes(idx))) idx = opened[0];
+  // 名のある強敵 (縄張りが地図に現れた者)。区分 -2
+  const named = game.namedList ? game.namedList() : [];
+  const namedBy = Object.fromEntries(named.map((n) => [n.id, n]));
+  if (!Number.isFinite(idx) || (idx !== -1 && !(idx === -2 && named.length) && !opened.includes(idx))) idx = opened[0];
   const items = [];
+  if (named.length) items.push({ key: "-2", label: "名のある強敵" });
   for (const i of opened) items.push({ key: String(i), label: DUNGEONS[i].short || DUNGEONS[i].name });
   items.push({ key: "-1", label: "その他" });
-  const rosterOf = (i) => i === -1 ? (game.CODEX_OTHER || []).filter((k) => MONSTERS[k]) : (game.dungeonRoster ? game.dungeonRoster(DUNGEONS[i]) : []);
+  const rosterOf = (i) => i === -2 ? named.map((n) => n.id) : i === -1 ? (game.CODEX_OTHER || []).filter((k) => MONSTERS[k]) : (game.dungeonRoster ? game.dungeonRoster(DUNGEONS[i]) : []);
   const freshIn = (i) => rosterOf(i).filter(isFreshMon).length || null;
   for (const it of items) it.badge = freshIn(Number(it.key));
   const cap = el("div", "pl-codex-cap");
   let area = null;
   const draw = () => {
-    const isOther = idx === -1;
+    const isOther = idx === -1, isNamed = idx === -2;
     const roster = rosterOf(idx);
     const seen = roster.filter((k) => g.codex.mon[k]).length;
-    cap.textContent = isOther ? `その他 — 宝箱や出来事に潜む敵・まれに紛れ込む者　記録 ${seen}/${roster.length}` : `${DUNGEONS[idx].name}　記録 ${seen}/${roster.length}`;
+    cap.textContent = isNamed ? `名のある強敵 — 縄張りの迷宮の強敵階に出る。初めて討てば首級　討伐 ${seen}/${roster.length}`
+      : isOther ? `その他 — 宝箱や出来事に潜む敵・まれに紛れ込む者　記録 ${seen}/${roster.length}` : `${DUNGEONS[idx].name}　記録 ${seen}/${roster.length}`;
     scrollGrid(area, roster, (key) => {
       const m = MONSTERS[key];
+      if (isNamed) return namedCard(key, m, namedBy[key]);
       // 迷宮の主は遭遇した後だけ名を出す (遭遇前はほかの敵と同じ「？？？」)
       if (!g.codex.mon[key]) return m.boss && g.codex.met && g.codex.met[key] ? bossNameCard(key, m) : unknownCard();
       return codexCard(m, m.name, { color: m.rank ? RANK_COLOR[m.rank] : null, sub: m.boss ? "主" : m.elite ? "強敵" : null, kills: monKills(key), fresh: isFreshMon(key),
@@ -477,6 +501,7 @@ export function codexMonSheet(key) {
   }
   tag.appendChild(el("span", "pl-tag", `討伐数 ${kills}体`));
   if (m.boss) tag.appendChild(el("span", "pl-tag gold", "迷宮の主"));
+  if (m.named) tag.appendChild(el("span", "pl-tag gold", "名のある強敵"));
   body.appendChild(tag);
   if (statsOpen) {
     const aff = affinityRow(m.element, "pl-aff");
@@ -492,11 +517,23 @@ export function codexMonSheet(key) {
     const traits = monsterTraits(m);
     body.appendChild(infoBlock("特徴・スキル", traits.length ? traits.map((t) => pairRow(t.label, t.desc, { tags: traitTagKinds(t.key, m.element) })) : [pairRow("特筆すべき特徴はない", null, { dim: true })]));
   } else body.appendChild(revealLock(R.lore, "特徴・スキル・説明文"));
+  // 名のある強敵: 縄張り・目撃・首級・懸賞
+  const ni = m.named && game.namedInfo ? game.namedInfo(key) : null;
+  if (ni) {
+    const tro = ni.trophyId && ITEMS[ni.trophyId] ? ITEMS[ni.trophyId].name : "";
+    const bountyTxt = { offer: "酒場に懸賞あり", active: "受けている", done: "果たした (酒場で報告)", claimed: "報告済み" }[ni.bounty] || (ni.seen ? "酒場に懸賞あり" : "目撃すると酒場に出る");
+    body.appendChild(infoBlock("名のある強敵", [
+      pairRow("縄張り", (ni.homes || []).join("・") || "—"),
+      pairRow("目撃", ni.seen ? `${ni.seenAt ? ni.seenAt + " " : ""}B${ni.seen.floor}F` : "まだ姿を見せていない"),
+      pairRow("首級", ni.trophy ? `${tro} ✓` : kills > 0 ? `${tro} (いま手元にない — 次に討てばまた落とす)` : "初めて討てば手に入る"),
+      pairRow("懸賞", bountyTxt),
+    ]));
+  }
   const idxs = Object.keys(e.dungeons || {}).map(Number).filter((i) => DUNGEONS[i]);
   body.appendChild(infoBlock("出現した迷宮", idxs.length ? idxs.map((i) => pairRow(DUNGEONS[i].name)) : [pairRow("記録なし", null, { dim: true })]));
   return sheet.open({
     kind: "info", banner: isOther ? "その他" : `${RACE_LABEL[m.race] || "敵"}${m.rank ? "・" + RANK_NAME[m.rank] + "級" : ""}`,
-    accent: rc, art: kills > 0 || !m.boss ? m : null, artScale: 8, float: isFloating(m, key), title: m.name, body, className: "pl-detail-sheet",
+    accent: rc, art: kills > 0 || !(m.boss || m.named) ? m : null, artScale: 8, float: isFloating(m, key), title: m.name, body, className: "pl-detail-sheet",
     footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
   });
 }

@@ -325,13 +325,11 @@ function renderTavern(root) {
 // 噂話と居合わせる者たち
 function renderTalk(wrap) {
   const g = G();
-  // 酒場の噂話 (FEATURE_AT.rumor 迷宮の踏破報告で情報屋が動く)
+  // 酒場の噂話 (game.js FEATURES.rumor の報告で情報屋が動く)
   wrap.appendChild(sectionHead("酒場の噂話"));
   const rumorOpen = game.featureUnlocked && game.featureUnlocked("rumor");
   if (!rumorOpen) {
-    const c = game.reportedDungeonCount ? game.reportedDungeonCount() : 0;
-    const at = (game.FEATURE_AT && game.FEATURE_AT.rumor) || 4;
-    wrap.appendChild(lockedRow("まだ噂は回ってこない", `情報屋が腰を上げるのは、名の知れた操霊師が現れてから (${at}迷宮の踏破を王に報告・いま ${c})。`));
+    wrap.appendChild(lockedRow("まだ噂は回ってこない", `情報屋が腰を上げるのは、名の知れた操霊師が現れてから (${game.featureNote ? game.featureNote("rumor") : "踏破を王に報告すると開く"})。`));
   } else if (g.rumor) {
     const rb = el("div", "fc-rumor");
     rb.appendChild(setText(el("div", "fc-rumor-s"), `— ${g.rumor.speaker} —`));

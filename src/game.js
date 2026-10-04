@@ -15,6 +15,7 @@ import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPC
 import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
+import { NAMED_FOES, NAMED_IDS, TROPHY_OF, HUNT_ELITE_RATE, bountyId } from "./dungeons/named.js";
 import { DUNGEONS, GEN_DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, naturalLevelRaw, lootBand, levelBand, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, layerOf, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
 import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
@@ -90,6 +91,8 @@ for (const id in ITEMS) {
 // 性能が同じ品は同じ値段、どこも同等以上の品は必ず高くなる
 repriceEquipment(ITEMS);
 Object.assign(MONSTERS, DUNGEON_MONSTERS);
+// 名のある強敵 (dungeons/named.js): 名は噂で知れ渡っている → 最初から本当の名で呼ぶ (itemview.js revealSteps)
+for (const id of NAMED_IDS) if (MONSTERS[id]) MONSTERS[id].named = true;
 // 隠しレベル lv (1-50) と表示ランクの補完 (カタログ品は定義済み)
 for (const id in ITEMS) {
   const it = ITEMS[id];
@@ -506,6 +509,7 @@ const G = {
   codex: { mon: {}, item: {}, job: {}, met: {}, fresh: { mon: {}, item: {}, job: {} } }, // 図鑑 (モンスター/アイテム/職業)。fresh = 新着 (まだ詳細を見ていない記録)。met = 遭遇した迷宮の主 (討つ前でも図鑑に名だけ出す)
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={収集品id:true}, claimed={"ランク:しきい値":true}
   lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
+  named: { seen: {}, trophy: {} }, // 名のある強敵: seen={id:{dungeon, floor}} 目撃 / trophy={id:true} 首級を手にした (全滅で失えば消す)
   lrClock: { since: 0, pend: 0 }, // レジェンドレアの時間抽選 (最後のLRからの/前回抽選からの実プレイms)
   order: { picks: [] }, // 控えの結社: 席に着けた魂のuid配列 (席数=orderSeats()。編成外の魂のみ有効。能力の一部を全員に足す)
   events: { seen: {}, picks: {}, once: {}, flags: {}, fresh: {} }, // 迷宮のイベント (src/events.js): 見聞録・一度きり・恒久の恵み
@@ -588,6 +592,7 @@ function runGainItem(owner, item) {
   owner.items.push(item);
   if (G.run && inDungeon()) G.run.items.push({ owner, item });
   if (item && item.rar === "lr") { if (!G.lrOwned) G.lrOwned = {}; G.lrOwned[item.id] = true; } // LRは1点もの
+  if (item && TROPHY_OF[item.id]) namedState().trophy[TROPHY_OF[item.id]] = true; // 名のある強敵の首級を手にした
 }
 // 魂の吸収を記録 (全滅没収で巻き戻すため {doll, clsKey} で覚える)
 // 魂の入手を記録 (全滅没収で巻き戻すため)。kind: "awaken"(共有countへ) | "bag"(未覚醒)
@@ -680,6 +685,7 @@ function forfeitRun() {
   // 入手したアイテム/装備を現在の持ち主から除去 (潜入中に「渡す」/他メンバーが
   // 装備した品も追跡し、全員の所持品・装備を走査して取り上げる)
   for (const { item } of r.items) {
+    if (item && TROPHY_OF[item.id]) delete namedState().trophy[TROPHY_OF[item.id]]; // 首級を失った → 次に倒した時にまた落とす
     let gone = false;
     for (const d of allDolls()) {
       const bi = d.items.indexOf(item);
@@ -1381,7 +1387,10 @@ function eliteKey() {
   const cfg = activeCfg();
   const n = dungeonNumber(cfg);
   const le = (cfg.elites && cfg.elites.length) ? cfg.elites : LAYER_ELITES[cfg.layer || layerOf(n)];
-  if (le && le.length) return le[(G.floor || 0) % le.length];
+  if (le && le.length) {
+    const hunt = le.find((id) => namedHunted(id)); // 懸賞を受けている名のある強敵は、縄張りの強敵階に必ず出る
+    return hunt || le[(G.floor || 0) % le.length];
+  }
   const r = Math.min(10, Math.ceil(n / 10));
   const pos = ((n - 1) % 10) + 1;
   const g = pos <= 3 ? 0 : pos <= 6 ? 1 : 2;
@@ -1497,6 +1506,7 @@ function newFloor() {
       target.elite = true;
       target.cleared = false;
     }
+    namedSighted(ek);
   }
   placeMetal(); // 金属の魔物: 第3層から稀に魔物の札1枚と入れ替わる
   // 特別階: 盤面への効果 (宝箱の追加・罠の消滅など) を適用
@@ -6805,7 +6815,9 @@ function descend({ fall = false } = {}) {
   }
   // 強敵階判定: 5階層以上の迷宮のみ、3F以降で10%の確率で発生
   // 迷宮の掟 (軍議の間) は強敵階が出やすい (trait.eliteRate)
-  const eliteRate = (dungeonTrait() && dungeonTrait().eliteRate) || 0.10;
+  let eliteRate = (dungeonTrait() && dungeonTrait().eliteRate) || 0.10;
+  // 名のある強敵の懸賞を受けていて、ここがその縄張りなら強敵階が出やすい (named.js HUNT_ELITE_RATE)
+  if (!abyssActive() && (activeCfg().elites || []).some((id) => namedHunted(id))) eliteRate = Math.max(eliteRate, HUNT_ELITE_RATE);
   G.eliteFloor = (activeCfg().floors || 3) >= 5 && G.floor >= 3 && Math.random() < eliteRate;
   // 特別階判定: 強敵階でなければ、各候補の出現条件 (階数) と出現率で抽選。
   // 1F には特別な階は出現しない (2F以降のみ)。
@@ -6840,7 +6852,7 @@ function descend({ fall = false } = {}) {
     const ek = MONSTERS[eliteKey()];
     // 名前は一度倒すまで不確定名 (階の情報・戦闘の名乗りと同じ enemyReveal)
     const ekName = ek ? (enemyReveal({ key: eliteKey(), mon: ek }).name ? ek.name : unknownTag(unknownLabel(ek))) : "";
-    lines = ["この階には通常では遭遇しない強大な存在が潜む。", ek ? `強敵「${ekName}」― 討てば希少な戦利品` : "討てば希少な戦利品が得られる。"];
+    lines = ["この階には通常では遭遇しない強大な存在が潜む。", ek ? (ek.named ? `名のある強敵「${ek.name}」― ${namedState().trophy[eliteKey()] ? "討てば希少な戦利品" : "初めて討てば首級が手に入る"}` : `強敵「${ekName}」― 討てば希少な戦利品`) : "討てば希少な戦利品が得られる。"];
   } else if (sp) {
     tone = "special"; sub = `— ${sp.name} —`; color = sp.accent;
     lines = sp.lines.slice(0, 2);
@@ -8880,6 +8892,15 @@ function endBattle() {
       const eid = pickLoot({ elite: true }); // 適正帯より2ランク上のアイテム
       if (ITEMS[eid]) drop = { key: "elite", name: "強敵", id: eid, item: cloneItem(eid), rare: true };
     }
+    // 名のある強敵を初めて討った (首級をまだ手にしていない): 首級を宝箱に必ず入れる (固有ドロップ廃止の例外)
+    const trophies = [];
+    for (const e of b.enemies) {
+      const nf = !e.alive && !e._fled && e.mon && e.mon.named ? NAMED_FOES[e.key] : null;
+      if (nf && ITEMS[nf.trophy] && !namedState().trophy[e.key] && !trophies.some((t) => t.id === nf.trophy)) {
+        trophies.push({ key: "trophy", name: "首級", id: nf.trophy, item: cloneItem(nf.trophy), rare: true });
+        log(`名のある強敵「${e.name}」を討ち取った！`, "win");
+      }
+    }
     // 奈落の門番: boss フラグを持つが踏破=帰還ではない。撃破で適正帯より上等な戦利品を残す
     const wasGuard = abyssActive() && !corpse && b.enemies.some((e) => e.boss);
     if (wasGuard) {
@@ -8930,9 +8951,9 @@ function endBattle() {
     const after = clearInfo
       ? () => showDungeonClearedPopup(clearInfo)
       : (hordeRewardPending() ? () => grantHordeReward() : null);
-    const hasChest = !corpse && !(evCell && evCell.evFight && evCell.evFight.noChest) && (drop || wasElite || wasMimic || (specialDef() || {}).sureChest || Math.random() < 0.5);
+    const hasChest = !corpse && (trophies.length || !(evCell && evCell.evFight && evCell.evFight.noChest)) && (drop || trophies.length || wasElite || wasMimic || (specialDef() || {}).sureChest || Math.random() < 0.5);
     const chest = hasChest
-      ? battleChestSpec(drop ? [drop] : [], wasMasterMimic ? 30 : wasMimic ? 15 : 0, wasMimic || wasMasterMimic, after ? ["alarm"] : null)
+      ? battleChestSpec([...trophies, ...(drop ? [drop] : [])], wasMasterMimic ? 30 : wasMimic ? 15 : 0, wasMimic || wasMasterMimic, after ? ["alarm"] : null)
       : null;
     // 戦果シート (§3.3): 勝利・獲得・成長・魂・宝箱を1枚にまとめる (旧: 勝利・Lv・技・宝箱・罠・中身の札が1枚ずつ)
     const levels = progress.filter((q) => q.kind === "level").map((q) => ({ name: q.member.name, uid: q.member.uid, from: q.fromLv, to: q.toLv, deltas: q.deltas || [], sub: !!q.sub, soulLabel: q.soulLabel || "" }));
@@ -9803,6 +9824,44 @@ function raiseSoulCap(uid) {
 //   bellAt: 帰還の鈴を最後に受け取った時の実プレイ時間 (G.stats.playMs)。ここから1時間で次の鈴の依頼が貼られる
 // }
 // 依頼の状態: offer (掲示板) → active (受注中) → done (達成・報告待ち) → 報告で消える (固定は claimed で残す)
+// ===== 名のある強敵 (dungeons/named.js) =====
+// G.named = { seen: {id: {dungeon, floor}}, trophy: {id: true} }。討伐数は図鑑 (G.codex.mon) を読む
+function namedState() {
+  if (!G.named || typeof G.named !== "object") G.named = {};
+  const s = G.named;
+  if (!s.seen || typeof s.seen !== "object") s.seen = {};
+  if (!s.trophy || typeof s.trophy !== "object") s.trophy = {};
+  return s;
+}
+const codexKills = (key) => { const e = G.codex && G.codex.mon ? G.codex.mon[key] : null; return !e ? 0 : e === true ? 1 : Math.max(0, Number(e.kills) || 0); };
+// 懸賞を受けていて、まだ討っていない (受けている間は縄張りの強敵階に必ず出る・強敵階が出やすい)
+function namedHunted(id) { const f = questState().fixed[bountyId(id)]; return !!(f && f.state === "active"); }
+// 強敵階に降りた: 名のある強敵なら目撃を記録する (初めてなら、酒場に懸賞が出る)
+function namedSighted(id) {
+  if (!id || !MONSTERS[id] || !MONSTERS[id].named) return;
+  const st = namedState();
+  const first = !st.seen[id];
+  st.seen[id] = { dungeon: abyssActive() ? "abyss" : (activeCfg() || {}).id || null, floor: G.floor };
+  if (first) log(`名のある強敵「${MONSTERS[id].name}」を目撃した。酒場に懸賞が出るだろう。`, "dmg");
+}
+// 名のある強敵1体の記録 (出撃シート・図鑑)
+function namedInfo(id) {
+  const st = namedState();
+  const f = questState().fixed[bountyId(id)];
+  const seen = st.seen[id] || null;
+  const homes = DUNGEONS.filter((d) => (d.elites || []).includes(id));
+  return {
+    id, name: MONSTERS[id] ? MONSTERS[id].name : id, layer: (NAMED_FOES[id] || {}).layer || 0,
+    seen, seenAt: seen && seen.dungeon ? (seen.dungeon === "abyss" ? "奈落" : (worldById(seen.dungeon) || {}).short || "") : "",
+    kills: codexKills(id), trophy: !!st.trophy[id], trophyId: (NAMED_FOES[id] || {}).trophy || null,
+    bounty: f ? f.state : null, homes: homes.map((d) => d.short || d.name),
+  };
+}
+// その迷宮を縄張りにする名のある強敵 (出撃シートの迷宮の顔)
+function namedHere(cfg) { return ((cfg && cfg.elites) || []).filter((id) => MONSTERS[id] && MONSTERS[id].named).map(namedInfo); }
+// 図鑑に並べる名のある強敵 (地図に縄張りが現れた者だけ)
+function namedList() { return NAMED_IDS.filter((id) => MONSTERS[id] && DUNGEONS.some((d, i) => worldOpenIdx(i) && (d.elites || []).includes(id))).map(namedInfo); }
+
 function questState() {
   if (!G.quest || typeof G.quest !== "object") G.quest = {};
   const s = G.quest;
@@ -9870,6 +9929,7 @@ function fixedQuestAppears(def) {
   if (a.cleared && !w.cleared[a.cleared]) return false;
   if (a.open && !w.open[a.open]) return false;
   if (a.found && !w.found[a.found]) return false;
+  if (a.seen && !namedState().seen[a.seen]) return false; // 名のある強敵を目撃した (懸賞)
   if (a.claimed) { const f = questState().fixed[a.claimed]; if (!f || f.state !== "claimed") return false; } // 前の依頼を報告し終えた
   return true;
 }
@@ -9949,7 +10009,7 @@ function fixedQuestTargets(def, cfg) {
 }
 // 狙う魔物がその迷宮に出るか (出現表の帯・主。金属の魔物は第3層から)
 function questKillHere(keys, cfg) {
-  const roster = new Set([...(cfg.bands ? cfg.bands.flat() : [...(cfg.pool || []), ...(cfg.deepPool || [])]), cfg.boss].filter(Boolean));
+  const roster = new Set([...(cfg.bands ? cfg.bands.flat() : [...(cfg.pool || []), ...(cfg.deepPool || [])]), ...(cfg.elites || []), cfg.boss].filter(Boolean));
   return (keys || []).some((k) => roster.has(k) || (MONSTERS[k] && MONSTERS[k].metal && (cfg.layer || 0) >= 3));
 }
 // 階の情報 (迷宮の手帳) に並べる依頼: 受注中のうち、いま潜っている迷宮で進められるもの (+ 達成して報告待ちのもの)
@@ -9976,6 +10036,7 @@ function questHereNote(cfg) {
 // 固定クエストの「家」= 到達・踏破の迷宮 → 地図に開く迷宮 → 狙う魔物が最初に出る迷宮 (地図の並び)。魂・宝箱は家なし
 function fixedQuestHome(def) {
   const g = def.goal || {};
+  if (def.bounty) return def.ref || null; // 懸賞の家は縄張りの迷宮
   if (g.dungeon) return g.dungeon;
   if (def.opens && def.opens.length) return def.opens[0];
   if (g.type !== "kill" || !g.keys) return null;
@@ -10665,6 +10726,11 @@ function achNext(s) {
     [1, "精鋭狩り", 100], [10, "猛者を退ける者", 300, 2], [30, "精鋭殺し", 600, 3], [100, "強者の墓標", 1500, 6],
   ], (v) => `精鋭を ${v}体 倒す`, () => G.stats.elites || 0, { more: step(100) });
 
+  // 名のある強敵 — 討った種類 (層が増えるほど伸びる)。首級は持ち帰らなくても、討てば数える
+  series("named", [
+    [1, "賞金首を討つ者", 150, 1], [3, "名を刈る者", 400, 2], [6, "賞金稼ぎの鑑", 900, 4], [10, "名のある者の墓標", 2000, 8],
+  ], (v) => `名のある強敵を ${v}種 討つ`, () => NAMED_IDS.filter((id) => codexKills(id) > 0).length, { more: step(5) });
+
   // ミミック撃破
   series("mimic", [
     [1, "化け箱殺し", 80], [10, "擬態の天敵", 300, 2], [50, "ミミックの宿敵", 1000, 5],
@@ -10937,7 +11003,9 @@ function reportMainQuest() {
   const opens = DUNGEONS.filter((d) => !w.open[d.id] && d.unlock && (d.unlock.reported === id || (d.unlock.all && d.unlock.all.includes(id) && d.unlock.all.every((x) => x === id || w.reported[x]))));
   const lines = [...storyLines(rep.lines), ...opens.map((d) => `── 新たな迷宮「${d.name}」が地図に記された。`)];
   const toasts = [];
-  const count = Object.keys(w.reported).filter((k) => worldById(k)).length + 1; // この報告で何迷宮目か
+  // この報告で開く機能 (報告の前後で比べる)
+  const after = { ...w, reported: { ...w.reported, [id]: 1 } };
+  const newly = FEATURE_KEYS.filter((k) => !featureMet(k, w) && featureMet(k, after));
   const pages = [{
     title: rep.title, lines, reward: rwText, kicker: `踏破の報告 ― ${cfg.name}`,
     leave: () => {
@@ -10956,9 +11024,9 @@ function reportMainQuest() {
       autosave(true);
     },
   }];
-  // 解放の節目 (報告した迷宮の数) は、報告の直後に機能解放のページを挟む
-  const us = unlockSceneFor(count);
-  if (us) {
+  // 機能の解放は、報告の直後に解放のページを挟む (同じ報告で2つ開くこともある)
+  const scenes = newly.map(unlockSceneFor).filter(Boolean);
+  for (const us of scenes) {
     pages.push({ title: us.title, lines: us.lines, kicker: "秘技の伝授",
       leave: () => { SFX.victory(); buzz([0, 40, 80, 40]); toasts.push({ text: "🔓 新たな技能を授かった", opts: { tone: "good" } }); } });
   }
@@ -10969,7 +11037,7 @@ function reportMainQuest() {
     pages.push({ title: end.title, lines: end.lines, kicker: "章の結び", who: "none", art: "candle", btnLabel: "物語を閉じる",
       leave: () => { w.beats["ch" + ch.no + "_end"] = 1; w.last = { kind: "chapter", no: ch.no }; flashScreen("#ffd84a"); autosave(true); } });
   }
-  playMsqChain(pages, toasts, us ? () => { if (UI.tutorialAfterReport) UI.tutorialAfterReport(); } : null);
+  playMsqChain(pages, toasts, scenes.length ? () => { if (UI.tutorialAfterReport) UI.tutorialAfterReport(); } : null);
 }
 // 旧来の入口 (次章の拝命)。迷宮は条件で地図に現れるので、拝命の手続きは無い
 function acceptMainQuest() { renderTown(); }
@@ -11042,26 +11110,55 @@ function reportTutorialQuest() {
   playMsqChain(pages, toasts);
 }
 
-// 機能解放: 王に初踏破を報告した迷宮の数に応じて段階的に解放される (節目の報告で王から授かる)。
+// 機能解放: 章 (story.js CHAPTERS) と、その章で王に報告した本筋の迷宮の数で決める (節目の報告で王から授かる)。
+//   第一章は入門なので4つ、第二章からは1章に1つ (docs/tasks.md U1)。report = その章で報告した数 / "finale" = 章の結びの迷宮。
+//   報告の総数で決めないので、迷宮を回る順 (黒水の取水口を後回しにする等) に左右されない。
 //   踏破しただけ (報告前) では開かない ― 解放のページ (story.js UNLOCKS) を見てから使えるようにする。
-//   いまの台帳 (章の迷宮13) では 2→魂融合 / 3→サブ魂1枠 / 4→酒場の噂・依頼 / 5→控えの結社(席1) / 7→結社の席2 / 11→結社の席3。
-//   その先の節目は迷宮が増えた時に詰め直す (今は届かない数のまま置いておく)
-const FEATURE_AT = { fusion: 2, sub1: 3, rumor: 4, order: 5, order2: 7, sub2: 40, order3: 11, infinite: 50 };
-function featureUnlocked(key) {
-  const c = reportedDungeonCount();
-  if (key === "infinite") return c >= FEATURE_AT.infinite && CONTENT_LIMIT >= 50; // 奈落は迷宮が50を超えるまで閉じる
-  if (FEATURE_AT[key] != null) return c >= FEATURE_AT[key];
-  return false;
+//   まだ無い章の分 (第四章のサブ魂2枠・第五章の奈落) は、その章が台帳に載るまで開かない
+const FEATURES = {
+  fusion: { chapter: 1, report: 2 },          // 魂の融合
+  sub1: { chapter: 1, report: 3 },            // サブ魂 1枠
+  rumor: { chapter: 1, report: 4 },           // 酒場の噂話
+  order: { chapter: 1, report: "finale" },    // 控えの結社 (席1)
+  order2: { chapter: 2, report: 2 },          // 結社の席2
+  order3: { chapter: 3, report: 2 },          // 結社の席3
+  sub2: { chapter: 4, report: "finale" },     // サブ魂 2枠
+  infinite: { chapter: 5, report: "finale" }, // 奈落 (無限迷宮)
+};
+const FEATURE_KEYS = Object.keys(FEATURES);
+const chapterLabel = (no) => `第${kanjiNum(no)}章`;
+// その章で王に報告した本筋の迷宮の数
+function chapterReports(ch, w = worldState()) { return ch.dungeons.filter((id) => w.reported[id]).length; }
+// 結びの迷宮を報告した章の数 (イレーヌの親しさ・章ごとの台詞が読む)
+function chaptersDone(w = worldState()) { return CHAPTERS.filter((c) => w.reported[c.finale]).length; }
+// w (worldState の形) の報告の状態で、その機能が開いているか (報告の前後を比べるために w を渡せる)
+function featureMet(key, w = worldState()) {
+  const f = FEATURES[key];
+  const ch = f && CHAPTERS.find((c) => c.no === f.chapter);
+  if (!ch) return false; // その章がまだ無い
+  return f.report === "finale" ? !!w.reported[ch.finale] : chapterReports(ch, w) >= f.report;
+}
+function featureUnlocked(key) { return featureMet(key); }
+// まだ開いていない機能の条件の説明 (錠の札・案内文)
+function featureNote(key) {
+  const f = FEATURES[key];
+  if (!f) return "";
+  const ch = CHAPTERS.find((c) => c.no === f.chapter);
+  const label = chapterLabel(f.chapter);
+  if (!ch) return `${label}で開く (準備中)`;
+  if (f.report === "finale") {
+    const fin = worldById(ch.finale);
+    return `${label}の結び「${fin ? fin.short : ch.finale}」を王に報告すると開く`;
+  }
+  return `${label}の迷宮を${f.report}つ王に報告すると開く (いま ${Math.min(chapterReports(ch), f.report)}/${f.report})`;
 }
 // 解放済みのサブ魂 (宿し技) スロット数 (0/1/2)。MAX_SUBS が上限
 function unlockedSubSlots() {
-  const c = reportedDungeonCount();
-  return Math.min(MAX_SUBS, c >= FEATURE_AT.sub2 ? 2 : c >= FEATURE_AT.sub1 ? 1 : 0);
+  return Math.min(MAX_SUBS, featureUnlocked("sub2") ? 2 : featureUnlocked("sub1") ? 1 : 0);
 }
 // 控えの結社の席数 (0/1/2/3)
 function orderSeats() {
-  const c = reportedDungeonCount();
-  return c >= FEATURE_AT.order3 ? 3 : c >= FEATURE_AT.order2 ? 2 : c >= FEATURE_AT.order ? 1 : 0;
+  return featureUnlocked("order3") ? 3 : featureUnlocked("order2") ? 2 : featureUnlocked("order") ? 1 : 0;
 }
 // 結社の席に実際に着いている魂uid (編成外・席数上限でクリーン)。
 // G.order.picks の順を尊重しつつ、無効になった指定 (編成入り/消失) は除外する。
@@ -13369,7 +13466,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "lrClock", "order", "irene", "tut", "events", "story", "world", "dragonSlain", "stats",
+  "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "lrClock", "named", "order", "irene", "tut", "events", "story", "world", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
   "lastRun",
 ];
@@ -13510,6 +13607,7 @@ function loadGame() {
   // 戦闘演出の倍速を改めた: 旧来の標準の速さが「倍速 ON」、OFF はその 1/2。旧セーブは ON (= これまでの速さ) から始める
   if (!("animTempo" in snap)) { G.fastAnim = true; G.animTempo = 2; }
   if (!G.lrOwned || typeof G.lrOwned !== "object") G.lrOwned = {}; // LR入手済み記録 (1点もの)
+  namedState(); // 名のある強敵の記録 (旧セーブには無い)
   // 街UIの現在地 (後付け: tab/page)。旧 {facility, sub} はそれが属するタブへ写す
   G.town = townshell.migrateTown(G.town);
   if (G.lastRun === undefined) G.lastRun = null; // 帰還の報告 (後付け)
@@ -14123,7 +14221,7 @@ function wireUI() {
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
     tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
-    worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURE_AT, storyGoal, currentChapter, dungeonTrait,
+    worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait,
     trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,
@@ -14201,7 +14299,7 @@ bindGame({
 // モジュールの評価時 (init より前) に結ぶ。init の wireUI が同じ game へ残りを足す
 bindGame({
   // 出撃
-  departNow, departAbyss, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, partyLevel, storyCellPending, dungeonFacts,
+  departNow, departAbyss, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, partyLevel, storyCellPending, dungeonFacts, namedHere, namedList, namedInfo,
   abyssRecords, ABYSS_MODS, abyssScoreMul, weekSeedId, emptyDollCost,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow,

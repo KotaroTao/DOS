@@ -50,6 +50,7 @@ function ctxNow() {
   const stats = G.stats || {};
   const cleared = safe(() => game.clearedDungeonCount(), 0);
   const reported = safe(() => game.reportedDungeonCount(), 0);
+  const chapters = safe(() => game.chaptersDone(), 0);
   const w = safe(() => game.worldState(), {}) || {};
   const feature = (k) => safe(() => !!game.featureUnlocked(k), false);
   const worn = (uid) => dolls.some((d) => d.primary === uid || (d.subs || []).some((s) => s && s.uid === uid));
@@ -57,7 +58,8 @@ function ctxNow() {
   return {
     G, party, reserve, dolls, items, ms, stats, cleared,
     visits: ireneState().visits || 0,
-    bond: bondOf(reported, ireneState().visits || 0),    // 親しさの段 (0〜5)
+    chapters,                                            // 結びを迎えた章の数 (章ごとの台詞は when: (c) => c.chapters >= n で)
+    bond: bondOf(reported, chapters, ireneState().visits || 0), // 親しさの段 (0〜5)
     act: ms.n || 0,                                      // 0 = 第0章の途中 / 1 = 師を捜す旅の途中
     open: (id) => !!(w.open && w.open[id]),              // 迷宮が地図にあるか (world.js の id)
     done: (id) => !!(w.cleared && w.cleared[id]),        // 迷宮を踏破したか
@@ -112,17 +114,17 @@ const tutLeft = (c) => (c.ms.n === 0 && c.ms.granted && c.dolls.length) ? Math.m
 const jobName = (s) => (s && SOUL_CLASSES[s.clsKey] ? soulSeriesName(s.clsKey) : "宿した");
 
 // ---------- 親しさ (よそよそしい → 親密) ----------
-// 段 0〜5。王に報告した章の迷宮の数 (物語の進み) で深まり、章の結びごとに1段ずつ打ち解ける。
+// 段 0〜5 = min(2, 王に報告した本筋の迷宮の数) + 結びを報告した章の数。章の結びごとに1段ずつ打ち解ける。
+// 報告の総数でなく章の結びで数えるので、迷宮を回る順 (黒水の取水口を後回しにする等) でずれない。
 // 依頼の迷宮は数えない (寄り道の多少で口調が変わらないように)。ただし館に通った回数でも頭打ちにする
 // (記録の深い所から初めて館に来ても、出会いはよそよそしい所から始まる)。
 //   0 他人行儀 (です・ます、冷ややか) / 1 顔見知り (最初の報告。丁寧だが少し和らぐ) / 2 打ち解け (2つ目の報告。くだけた口調)
 //   3 親しみ (第一章の結び。名で呼ばせる) / 4 親密 (第二章の結び。身の上を語る) / 5 特別 (第三章の結び。秘密を明かす)
-// 第四章からは段を増やさず、章ごとの話題 (LINES) で深める
-const BOND_REPORTED = [0, 1, 2, 5, 9, 13]; // その段に要る報告数 (story.js CHAPTERS の章の結び = 5 / 9 / 13)
+// 第四章からは段を増やさず、章ごとの話題 (LINES の when: (c) => c.chapters >= 3 など) で深める
 const BOND_VISITS = [0, 2, 4, 6, 9, 12];   // その段に要る来館数
 export const BOND_NAME = ["他人行儀", "顔見知り", "打ち解け", "親しみ", "親密", "特別"];
 const stageOf = (v, th) => { let s = 0; for (let i = 0; i < th.length; i++) if (v >= th[i]) s = i; return s; };
-function bondOf(reported, visits) { return Math.min(stageOf(reported, BOND_REPORTED), stageOf(visits, BOND_VISITS)); }
+function bondOf(reported, chapters, visits) { return Math.min(5, Math.min(2, reported) + chapters, stageOf(visits, BOND_VISITS)); }
 export function ireneBond() { const c = ctxNow(); return c.bond; }
 
 // ---------- 話題 ----------
