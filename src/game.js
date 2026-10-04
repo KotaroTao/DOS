@@ -1421,7 +1421,7 @@ function newFloor() {
   G.portalFound = false; // この階の帰還魔法陣はまだ発見していない
   if (G.run) G.run.floors = Math.max(G.run.floors || 1, G.floor);
   updateTopbar();
-  log(`地下 ${G.floor} 階。カードをめくって階段を探せ！`, "sys");
+  log(`地下 ${G.floor} 階。伏せられた石札をめくり、下り階段を探せ。`, "sys");
   if (tlOn()) tlSnapshot("floor", tlWhere(), G.party);
 }
 
@@ -4937,17 +4937,20 @@ function resolveCell(cell) {
   switch (cell.type) {
     case "monster":
       if (!cell.cleared) {
-        const name = MONSTERS[cell.monsterKey].name;
-        if (MONSTERS[cell.monsterKey].metal) {
+        const mon = MONSTERS[cell.monsterKey];
+        // 名前は討伐数で明かす (enemyReveal) — 戦闘前の名乗りでも、まだ知らない敵の名は出さない
+        const known = enemyReveal({ key: cell.monsterKey, mon }).name;
+        const name = mon.name;
+        if (mon.metal) {
           // 金属の魔物: 倒せば莫大な✦Soul。ただしすぐ逃げる
-          log(`✦ ${name} だ！ 逃がすな！`, "win");
+          log(known ? `✦ ${name} だ！ 逃がすな！` : "✦ 妖しく光る何かが蠢いている！ 逃がすな！", "win");
           startBattle(spawnMetal(cell.monsterKey, metalRef(cell.monsterKey)), cell);
         } else if (cell.elite) {
           // 強敵は群れない: 規格外の1体が立ちはだかる
-          log(`☠ 強敵 ${name} が立ちはだかる！`, "dmg");
+          log(known ? `☠ 強敵 ${name} が立ちはだかる！` : "☠ ただならぬ気配 ― 強敵が立ちはだかる！", "dmg");
           startBattle(soloFoes(spawnEliteEnemies(cell.monsterKey, soloScale())), cell);
         } else {
-          log(`⚔ ${name} のカードだ！`, "dmg");
+          log("⚔ 石札の下から、魔物が這い出してきた！", "dmg");
           // 迷宮の異変 (飢えた狩場): 敵が常に群れで現れる
           startBattle(spawnCardEnemies(cell.monsterKey, G.floor, enemyScale(), { min: mutNum("packMin", 0) }), cell);
         }
