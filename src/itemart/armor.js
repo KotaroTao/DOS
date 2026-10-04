@@ -45,7 +45,7 @@ function fieldAt(pat, x, y, top, bottom) {
 }
 
 function kiteShield(g, th, it) {
-  const r = th.r, o = th.orn;
+  const r = th.r, o = th.deco;
   const top = r.pick([1, 2]), bot = 22;
   const Wd = r.pick([9.5, 10, 10.5]);
   const form = r.wpick([["heater", 3], ["kite", 2], ["tower", 1.2], ["flared", 1]]);
@@ -268,7 +268,7 @@ function openTome(g, th, it, r, o) {
 
 // ===================== 鎧 =====================
 function plateArmor(g, th, it) {
-  const r = th.r, o = th.orn;
+  const r = th.r, o = th.deco;
   const light = it.weight === "light";
   const body = light ? r.pick(["L", "L", "L", "M"]) : "M";
   const shoulder = r.wpick(light ? [["pad", 3], ["none", 1.2], ["round", 1], ["fur", th.motifs.has("beast") ? 3 : 1]] : [["round", 3], ["layered", 2], ["spiked", th.motifs.has("demon") ? 3 : 1], ["flared", 1.5]]);
@@ -363,7 +363,7 @@ function plateArmor(g, th, it) {
 }
 
 function robe(g, th, it) {
-  const r = th.r, o = th.orn;
+  const r = th.r, o = th.deco;
   const top = r.pick([3, 4]), bot = 22;
   const sleeve = r.wpick([["bell", 3], ["narrow", 1.5], ["cape", 1.5]]);
   const hood = r.wpick([["hood", 2], ["collar", 2], ["mantle", 1.5], ["none", 1]]);

@@ -198,7 +198,7 @@ function shaftDeco(g, th, a0, a1, opt = {}) {
 
 // ===== 長剣 (片手 / 両手の大剣) =====
 function longsword(g, th, it) {
-  const r = th.r, o = th.orn, two = !!it.twoHanded;
+  const r = th.r, o = th.deco, two = !!it.twoHanded;
   const shape = pickW(r, two
     ? [["broad", 3], ["straight", 2], ["serrated", 1.5], ["wavy", th.motifs.has("flame") ? 3 : 0.8], ["taper", 1]]
     : [["straight", 3], ["taper", 1.5], ["leaf", 1], ["wavy", th.motifs.has("flame") ? 3 : 0.4], ["curved", 0.8], ["broad", 1]]);
@@ -223,7 +223,7 @@ function longsword(g, th, it) {
 
 // ===== 短剣 =====
 function dagger(g, th, it) {
-  const r = th.r, o = th.orn;
+  const r = th.r, o = th.deco;
   const shape = pickW(r, [["straight", 2], ["leaf", 2], ["taper", 2], ["curved", 1.5], ["wavy", th.motifs.has("serpent") || th.motifs.has("flame") ? 3 : 0.6], ["serrated", 0.8]]);
   const aT = r.pick([19, 20, 21]), aG = r.pick([1, 2, 3]);
   const aP = aG - 2 - r.pick([5, 6]);
@@ -286,36 +286,37 @@ function katana(g, th, it) {
 
 // ===== 斧 =====
 function axe(g, th, it) {
-  const r = th.r, o = th.orn, two = !!it.twoHanded;
-  const aTop = r.pick([17, 18, 19]);
-  const aBot = two ? -21 : r.pick([-17, -15]);
+  const r = th.r, o = th.deco, two = !!it.twoHanded;
+  const aTop = two ? r.pick([13, 14]) : r.pick([14, 15, 16]);
+  const aBot = two ? -21 : r.pick([-19, -17]);
   // 柄
   grip(g, th, aBot, aTop, 0, { mat: "W", w: 1, wrap: "plain" });
   if (r.chance(0.6)) grip(g, th, aBot, aBot + r.pick([5, 7]), 0, { mat: "L", w: 1, wrap: "band" });
   // 斧頭: 柄の上寄り、光の側 (左上) へ張り出す刃 + 反対側の峰
-  const aH = aTop - r.pick([5, 6, 7]);
+  const aH = aTop - r.pick([4, 5, 6]);
   const kind = pickW(r, two ? [["double", 3], ["crescent", 2], ["bearded", 1.5], ["single", 1]] : [["single", 3], ["bearded", 2], ["crescent", 1.5], ["double", 1]]);
   const reach = two ? r.pick([12, 13, 14]) : r.pick([9, 10, 11]);
   const halfA = two ? r.pick([6, 7, 8]) : r.pick([5, 6]);
   const bit = (side) => {
-    // side = -1 (左上) / +1 (右下)。p が離れるほど a の幅が広がる (三日月の刃)
+    // side = -1 (左上) / +1 (右下)。柄の近く (首) は細く、刃先へ大きく広がる。刃先は外へ膨らむ弧
     for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
       const [a, p] = diagAP(x, y);
       const d = side < 0 ? -p - 1 : p;
       if (d < 1) continue;
-      const da0 = a - aH;
-      const rch = reach + Math.round(3 * Math.max(0, 1 - (da0 / (halfA * 1.15)) ** 2)) - 2;
-      if (d > rch) continue;
       const u = Math.min(1, d / reach);
-      let ha = halfA * (kind === "crescent" ? 0.3 + 0.85 * u ** 1.3 : kind === "bearded" ? 0.3 + 0.7 * u ** 1.6 : 0.35 + 0.7 * u ** 1.4);
-      let off = kind === "bearded" ? -u * 2.5 : 0;
-      if (kind === "crescent" && d === reach) ha += 1;
-      if (Math.abs(a - aH - off) > ha) continue;
-      // 刃の縁 (遠い側) は鏡面、根元は暗い
-      let t = d >= rch - 1 ? 4 : d >= rch - 3 ? 3 : 2;
-      if (a - aH - off > ha - 1.2) t = Math.min(t, 3);
-      if (a - aH - off < -ha + 1.2) t = Math.max(0, t - 1);
+      const ha = halfA * (kind === "crescent" ? 0.22 + 0.95 * u ** 2.2 : kind === "bearded" ? 0.25 + 0.8 * u ** 1.8 : 0.28 + 0.78 * u ** 1.9) + (kind === "crescent" && u > 0.85 ? 1 : 0);
+      const off = kind === "bearded" ? -u * u * 3 : 0;
+      const da = a - aH - off;
+      if (Math.abs(da) > ha) continue;
+      // 刃先は外へ膨らむ (中央が遠く、上下の角は手前)
+      const rch = reach + Math.round(2.2 * (1 - (da / Math.max(1, ha)) ** 2)) - 1;
+      if (d > rch) continue;
+      // 陰影: 刃の面は上 (a の大きい側) が明るく、刃先の帯 (2升) は鏡面
+      let t = da > ha * 0.35 ? 3 : da < -ha * 0.45 ? 1 : 2;
+      if (d >= rch - 1) t = 4;
+      else if (d >= rch - 2) t = 3;
       if (d <= 2) t = 1;
+      if (Math.abs(da) > ha - 1 && d < rch - 1) t = Math.max(0, t - 1); // 上下の縁
       g.set(x, y, "M", t);
     }
   };
@@ -332,14 +333,14 @@ function axe(g, th, it) {
   if (o >= 1 && r.chance(0.5)) blob(g, aH, -1, 0.8, "G", 3);
   // 柄の先の石突き
   diagFill(g, aTop + 1, aTop + 2, () => -1, () => 0, "T", (a, p, lo) => (p === lo ? 3 : 1));
-  if (o >= 3) { // 刃の刻印
-    for (let k = 0; k < 3; k++) { const [x, y] = diagXY(aH + r.i(-2, 2), -2 - k * 2); if (Number.isInteger(x) && g.get(x, y)) g.set(x, y, "E", 4); }
+  if (o >= 3 || th.motifs.has("rune") || (th.glow && o >= 2)) { // 刃の刻印 (ルーン・属性の光)
+    for (let k = 0; k < 3; k++) { const pp = -4 - k * 2, aa = aH + (k - 1) * 2; for (const da of [0, 1]) { const [x, y] = diagXY(aa + da, pp); if (Number.isInteger(x) && g.get(x, y) && g.get(x, y).m === "M") { g.set(x, y, "E", 4); break; } } }
   }
 }
 
 // ===== 槌・鎚矛 =====
 function mace(g, th, it) {
-  const r = th.r, o = th.orn, two = !!it.twoHanded;
+  const r = th.r, o = th.deco, two = !!it.twoHanded;
   const R0 = two ? r.pick([4.4, 4.8, 5.2]) : r.pick([3.4, 3.8, 4.2, 4.6]);
   const ac = two ? r.pick([9, 10]) : r.pick([10, 11, 12, 13]);
   const aTop = ac - Math.round(R0 * 1.2);
@@ -399,7 +400,7 @@ function mace(g, th, it) {
 
 // ===== 槍 =====
 function spear(g, th, it) {
-  const r = th.r, o = th.orn;
+  const r = th.r, o = th.deco;
   const aTip = 22, aBot = -22;
   const kind = pickW(r, [["leaf", 3], ["long", 2], ["winged", 2], ["halberd", it.twoHanded ? 2.5 : 1], ["trident", th.motifs.has("wave") ? 3 : 1], ["hook", 1], ["flame", th.motifs.has("flame") ? 3 : 0.3]]);
   const hLen = kind === "long" ? 15 : kind === "trident" ? 12 : r.pick([12, 13, 14]);
@@ -451,7 +452,7 @@ function spear(g, th, it) {
 
 // ===== 杖 =====
 function staff(g, th, it) {
-  const r = th.r, o = th.orn, two = !!it.twoHanded;
+  const r = th.r, o = th.deco, two = !!it.twoHanded;
   const gemR = two ? r.pick([3.0, 3.4]) : r.pick([2.3, 2.6, 2.9, 3.2]);
   const ac = two ? r.pick([11, 12]) : r.pick([12, 13, 14]);
   const aTop = ac - Math.round(gemR * 2) - 1;
