@@ -4,6 +4,7 @@
 // 上下の向き (縁までの距離) で面の向きを決める。1枚 192×108 ドット (16:9)、描いた絵は使い回す (cache)。
 //   lantern = 師のランタン (地下墓地) / sigil = 壁に刻まれた印 (回廊) / arm = 流れ着いた腕 (取水口・館)
 //   abbot = 修道院長の記憶 / camp = 師の野営跡 (坑口) / candle = 館の燭台 (章の結び)
+//   第二章: roll = 守備隊の当直簿・軍議の卓 / cell = 牢壁の名 / head = 独房の人業の頭 / banner = 焼けた軍旗 (大手門) / hole = 本丸の大穴
 // 画像ファイルは使わない。描き直すときは ux の確かめ用ページ (scratchpad) で拡大して目で見ること。
 import { Mask, Layer, PAL, R_NIGHT, R_BONE, R_SOUL, R_EMBER, R_BLOOD, R_FOG, R_WOOD, R_STEEL, R_SOULSTONE, R_DUSK,
   rc, mix, clamp, smooth, fbm, vnoise, h2, worley, rng } from "./pxpaint.js";
@@ -551,7 +552,345 @@ function sceneCandle() {
   return L.canvas(12);
 }
 
-const SCENES = { lantern: sceneLantern, sigil: sceneSigil, arm: sceneArm, abbot: sceneAbbot, camp: sceneCamp, candle: sceneCandle };
+// ======================= 第二章「捨て砦」 =======================
+// 7. 守備隊の当直簿 (詰所の机。矢狭間の月明かりと蝋燭、開いた帳面と鍵束)
+function sceneRoll() {
+  const W = ART_W, H = ART_H, L = new Layer(W, H);
+  const CX = 162, CY = 44;
+  const lights = [
+    { x: CX, y: CY, r: 130, c: C_CANDLE, k: 1.25, p: 1.6 },
+    { x: 46, y: 24, r: 90, c: C_MOON, k: 0.7, p: 1.3 },
+  ];
+  stoneRoom(L, lights, { floorY: 90, seed: 19, wallAlb: [86, 82, 92], amb: [0.05, 0.05, 0.08] });
+  // 矢狭間 (細い縦の窓) と、そこから射す月の筋
+  const slit = new Mask(W, H); slit.rect(44, 10, 5, 30); slit.ellipse(46.5, 10, 2.5, 2.5);
+  L.paint(slit, (x, y) => [70 + y, 86 + y, 140 + y]);
+  L.shade(30, 38, 110, 100, (x, y) => {
+    const t = (y - 38) / 62, cx = 46 + t * 34, half = 3 + t * 16;
+    const d = Math.abs(x + 0.5 - cx) / half;
+    if (d >= 1) return null;
+    L.add(x, y, [C_MOON[0] * 40, C_MOON[1] * 44, C_MOON[2] * 60], (1 - d) * (1 - t * 0.6));
+    return null;
+  });
+  // 壁の槍立て (左奥): 3本の槍
+  for (let i = 0; i < 3; i++) {
+    const sp = new Mask(W, H); const x = 14 + i * 7;
+    sp.rect(x, 22, 2, 66); sp.poly([x - 1, 22, x + 3, 22, x + 1, 13]);
+    paintLit(L, sp, (xx, yy) => (yy < 23 ? [170, 176, 188] : ALB_WOOD), lights, { nxMax: 1, amb: [0.16, 0.16, 0.2] });
+  }
+  const rack = new Mask(W, H); rack.rect(10, 70, 26, 3); rack.rect(10, 40, 26, 2);
+  paintLit(L, rack, () => ALB_WOOD, lights, { amb: [0.12, 0.12, 0.15] });
+  // 机 (天板と脚)
+  const desk = new Mask(W, H);
+  desk.poly([62, 68, 186, 68, 190, 75, 58, 75]); desk.rect(64, 75, 5, 24); desk.rect(180, 75, 5, 24);
+  paintLit(L, desk, (x, y) => {
+    if (y < 70) return mix(ALB_WOOD, [180, 140, 90], 0.3);
+    return mix(ALB_WOOD_D, ALB_WOOD, Math.sin(x * 0.7 + vnoise(x * 0.2, y, 3) * 6) * 0.25 + 0.4);
+  }, lights, { ny: (x, y) => (y < 70 ? -1 : 0.3), amb: [0.06, 0.05, 0.08] });
+  // 開いた当直簿 (机に寝かせた見開き: 奥の縁が狭い台形。左頁は古い茶色の字、右頁の下に新しい黒い字)
+  const BL = 92, BM = 124, BR = 156, BT = 55, BB = 67;
+  const xAt = (x0, y) => x0 + (BM - x0) * (BB - y) / (BB - BT) * 0.22; // 奥ほど内へ寄る
+  const book = new Mask(W, H);
+  book.poly([xAt(BL, BT), BT, BM, BT + 1, xAt(BR, BT), BT, BR, BB, BM, BB - 1, BL, BB]);
+  paintLit(L, book, (x, y) => {
+    if (x === BM) return [110, 90, 66];
+    const left = x < BM;
+    const inner = left ? x > xAt(BL, y) + 3 && x < BM - 3 : x > BM + 3 && x < xAt(BR, y) - 3;
+    const ln = inner && (y % 2 === 0) && y > BT + 1 && y < BB - 1 && h2(x >> 1, y, 9) > 0.18;
+    if (ln && !left && y >= BB - 5) return [26, 22, 30];  // 新しい墨の行
+    if (ln) return [128, 90, 62];
+    return mix(ALB_PAPER, [240, 226, 186], (y - BT) / (BB - BT) * 0.5);
+  }, lights, { amb: [0.22, 0.21, 0.22] });
+  const edge = new Mask(W, H); edge.rect(BL, 67, BR - BL + 1, 2);
+  paintLit(L, edge, () => [190, 176, 140], lights, { amb: [0.1, 0.1, 0.1] });
+  // 綴じ紐と、結ばれた鍵束 (机から垂れる)
+  for (let i = 0; i < 10; i++) L.px(BM, 69 + i, [170, 140, 96]);
+  const ring = new Mask(W, H);
+  for (let a = 0; a < Math.PI * 2; a += 0.05) ring.rect(Math.round(BM + Math.cos(a) * 4), Math.round(83 + Math.sin(a) * 4), 1, 1);
+  const keys = new Mask(W, H);
+  for (const [x0, y0, x1, y1] of [[BM - 3, 86, BM - 8, 97], [BM + 1, 87, BM + 2, 99], [BM + 4, 86, BM + 9, 96]]) {
+    keys.line(x0, y0, x1, y1, 1.6); keys.rect(x1 - 1, y1, 3, 2);
+  }
+  paintLit(L, ring, () => mix(ALB_RUST, ALB_IRON, 0.4), lights, { amb: [0.3, 0.22, 0.18] });
+  paintLit(L, keys, (x, y) => mix(ALB_RUST, ALB_BRASS, vnoise(x, y, 3) * 0.6), lights, { amb: [0.3, 0.22, 0.18] });
+  // 兜 (机の左端) と、蝋燭 (右)
+  const helm = new Mask(W, H); helm.ellipse(78, 61, 9, 7); helm.rect(69, 61, 18, 6);
+  paintLit(L, helm, (x, y) => (y === 64 && x > 72 && x < 84 ? [20, 18, 22] : mix(ALB_IRON, [130, 134, 146], 0.5)), lights, { ny: (x, y) => vNormal(helm, x, y, 4), amb: [0.12, 0.12, 0.15] });
+  const cnd = new Mask(W, H); cnd.rect(CX - 1, CY + 8, 4, 16); cnd.ellipse(CX + 1, CY + 24, 5, 1.6);
+  paintLit(L, cnd, (x, y) => (y > CY + 22 ? [150, 120, 80] : [236, 226, 200]), lights, { amb: [0.25, 0.25, 0.25] });
+  const fl = new Mask(W, H); fl.poly([CX + 1, CY - 3, CX + 3.6, CY + 4, CX + 1, CY + 8, CX - 1.6, CY + 4]);
+  L.paint(fl, (x, y) => (Math.abs(x - CX - 0.5) < 1 && y > CY + 3 ? [255, 250, 220] : rc(R_EMBER, clamp(0.98 - (CY + 8 - y) * 0.03))));
+  glow(L, CX + 1, CY + 3, 26, C_CANDLE, 0.28, 2.4);
+  motes(L, lights, 40, 23, C_CANDLE);
+  vignette(L, 0.88);
+  return L.canvas(12);
+}
+
+// 8. 牢壁に刻まれた名 (鉄格子の窓から月明かり。壁一面の刻み、いちばん下に師の印が淡く光る)
+function sceneCell() {
+  const W = ART_W, H = ART_H, L = new Layer(W, H);
+  const SX = 132, SY = 80;
+  const lights = [
+    { x: 150, y: 4, r: 170, c: C_MOON, k: 1.5, p: 1.1 },
+    { x: 40, y: 104, r: 90, c: C_CANDLE, k: 0.55, p: 1.5 },   // 手元の灯 (隊のランタン)
+    { x: SX, y: SY, r: 36, c: C_SOUL, k: 0.7, p: 1.6 },
+  ];
+  // 壁 (近い。大きな粗い石)
+  L.shade(0, 0, W - 1, 96, (x, y) => {
+    const a = ashlar(x, y, 30, 15, 41);
+    const n = (fbm(x * 0.15, y * 0.15, 5) - 0.5) * 0.4 + (a.id - 0.5) * 0.25;
+    let alb = mix([110, 106, 116], [76, 72, 84], clamp(0.45 - n));
+    if (a.joint) alb = [22, 20, 28];
+    return lit(alb, lightAt(x, y, lights, a.left ? -0.5 : 0, a.top ? -0.6 : 0), [0.07, 0.07, 0.1]);
+  });
+  L.shade(0, 97, W - 1, H - 1, (x, y) => lit(mix([70, 64, 60], [104, 96, 80], vnoise(x * 0.5, y * 0.8, 4)), lightAt(x, y, lights, 0, -0.9), [0.05, 0.05, 0.07]));
+  // 刻まれた名: 縦に並ぶ小さな字 (3×3 の刻み)。古い列ほど浅く、右の新しい列ほど深く白い
+  const R = rng(91);
+  for (let col = 0; col < 12; col++) {
+    const x0 = 30 + col * 12 + (R() * 3 | 0), n = 4 + (R() * 5 | 0), y0 = 8 + (R() * 12 | 0);
+    const depth = 0.3 + col / 12 * 0.7;
+    const cut = (x, y) => {
+      const c = L.get(x, y); if (!c) return;
+      L.px(x, y, [c[0] * (1 - depth * 0.55), c[1] * (1 - depth * 0.55), c[2] * (1 - depth * 0.5)]);
+      const c2 = L.get(x, y + 1); if (c2 && depth > 0.45) L.px(x, y + 1, [c2[0] + 40 * depth, c2[1] + 40 * depth, c2[2] + 46 * depth]); // 削れた縁
+    };
+    for (let k = 0; k < n; k++) {
+      const y = y0 + k * 5;
+      const g = (R() * 7) | 0; // 字の形 (横画・縦画・はね の組み合わせ)
+      if (g & 1) { cut(x0, y); cut(x0 + 1, y); cut(x0 + 2, y); }
+      if (g & 2) { cut(x0 + 1, y + 1); cut(x0 + 1, y + 2); }
+      if (g & 4) { cut(x0, y + 2); cut(x0 + 2, y + 1); } else { cut(x0 + 2, y + 2); cut(x0, y + 1); }
+    }
+    // 肩書きの刻み (名の下の横線)
+    for (let k = -1; k < 5; k++) cut(x0 + k, y0 + n * 5 + 1);
+  }
+  // いちばん下の深い刻みと、師の印 (魂火色に淡く光る溝)
+  const gr = new Mask(W, H); sigilLines(gr, SX, SY, 0.62, 1.1);
+  L.paint(gr, (x, y) => rc(R_SOUL, 0.66 + 0.2 * vnoise(x, y, 7)));
+  glow(L, SX, SY, 20, C_SOUL, 0.22, 2);
+  // 鉄格子の窓 (右上)
+  const win = new Mask(W, H); win.rect(140, 0, 26, 12);
+  L.paint(win, (x, y) => [90, 104, 150]);
+  const bars = new Mask(W, H); for (let x = 142; x < 166; x += 5) bars.rect(x, 0, 2, 13); bars.rect(138, 11, 30, 2);
+  paintLit(L, bars, () => [70, 72, 82], lights, { nxMax: 1, amb: [0.06, 0.06, 0.08] });
+  // 窓から射す月の筋
+  L.shade(120, 12, 191, 107, (x, y) => {
+    const t = (y - 12) / 95, cx = 153 - t * 26, half = 13 + t * 18;
+    const d = Math.abs(x + 0.5 - cx) / half;
+    if (d >= 1) return null;
+    L.add(x, y, [C_MOON[0] * 34, C_MOON[1] * 38, C_MOON[2] * 54], (1 - d) * (1 - t * 0.7));
+    return null;
+  });
+  // 壁から垂れた鎖と枷 (左)
+  const ch = new Mask(W, H);
+  for (let y = 6; y < 70; y += 4) { if ((y / 4) % 2 < 1) ch.rect(16, y, 2, 4); else ch.rect(15, y + 1, 4, 2); }
+  ch.ellipse(17, 74, 5, 4);
+  const hole = new Mask(W, H); hole.ellipse(17, 74, 2.6, 2);
+  paintLit(L, ch, (x, y) => (hole.at(x, y) ? null : mix([120, 124, 134], ALB_RUST, 0.4)), lights, { nxMax: 1, amb: [0.16, 0.15, 0.17] });
+  // 床の藁と、割れた椀
+  for (let i = 0; i < 70; i++) { const x = 30 + R() * 140, y = 98 + R() * 9; L.px(x, y, mix([170, 146, 80], [100, 84, 48], R())); L.px(x + 1, y + (R() < 0.5 ? 0 : 1), [140, 116, 64]); }
+  const bowl = new Mask(W, H); bowl.ellipse(60, 101, 6, 3); bowl.rect(54, 98, 12, 3);
+  paintLit(L, bowl, (x, y) => (y < 99 && x > 56 && x < 64 ? [30, 26, 24] : [150, 126, 96]), lights, { amb: [0.1, 0.1, 0.12] });
+  motes(L, lights, 60, 31, [0.7, 0.75, 1.0]);
+  vignette(L, 0.85);
+  return L.canvas(12);
+}
+
+// 9. 独房の人業の頭 (藁の上の木彫りの頭。額の師の印と、閉じた瞼の隙間が魂火で光る)
+function sceneHead() {
+  const W = ART_W, H = ART_H, L = new Layer(W, H);
+  const HX = 96, HY = 58;
+  const lights = [
+    { x: 62, y: 84, r: 110, c: C_CANDLE, k: 1.2, p: 1.25 },     // 手元のランタン (左下から)
+    { x: HX + 2, y: HY, r: 34, c: C_SOUL, k: 0.5, p: 1.8 },
+    { x: 140, y: -10, r: 120, c: C_MOON, k: 0.45, p: 1.3 },
+  ];
+  // 奥の壁と床 (暗い独房)
+  stoneRoom(L, lights, { floorY: 76, seed: 53, wallAlb: [76, 72, 84], amb: [0.03, 0.03, 0.05] });
+  // 藁の寝床
+  const R = rng(57);
+  const straw = new Mask(W, H); straw.ellipse(HX, 84, 50, 10);
+  paintLit(L, straw, (x, y) => mix([180, 150, 80], [100, 80, 42], vnoise(x * 1.2, y * 2.4, 4)), lights, { ny: (x, y) => vNormal(straw, x, y, 4), amb: [0.05, 0.05, 0.06] });
+  for (let i = 0; i < 90; i++) { const a = R() * Math.PI * 2, r = R(); const x = HX + Math.cos(a) * 54 * r, y = 84 + Math.sin(a) * 11 * r; const m = new Mask(W, H); m.line(x, y, x + (R() - 0.5) * 8, y + (R() - 0.5) * 2, 0.8); paintLit(L, m, () => [200, 170, 96], lights, { amb: [0.05, 0.05, 0.06] }); }
+  // 長い髪 (黒い木彫り。頭頂から左右へ流れ、藁の上に広がる)
+  const hair = new Mask(W, H);
+  hair.ellipse(HX, HY - 3, 19, 17);
+  hair.poly([HX - 16, HY - 2, HX - 9, HY + 12, HX - 22, HY + 26, HX - 42, HY + 28, HX - 30, HY + 18]);
+  hair.poly([HX + 16, HY - 2, HX + 10, HY + 12, HX + 22, HY + 26, HX + 40, HY + 27, HX + 28, HY + 16]);
+  paintLit(L, hair, (x, y) => {
+    const g = Math.sin((x - HX) * 0.8 + (y - HY) * 0.25) * 0.5 + 0.5; // 彫りの筋
+    return mix([54, 40, 36], [110, 84, 66], g * 0.8);
+  }, lights, { ny: (x, y) => vNormal(hair, x, y, 5), amb: [0.05, 0.05, 0.06] });
+  // 顔 (淡い木肌の楕円。前髪の下に、閉じた瞼と小さな口)
+  const face = new Mask(W, H); face.ellipse(HX, HY + 3, 13, 15);
+  const bang = new Mask(W, H); bang.ellipse(HX, HY - 11, 14, 5);
+  paintLit(L, face, (x, y) => {
+    if (bang.at(x, y)) return null;
+    const lid = (cx) => y === HY + 2 + (Math.abs(x - cx) > 2 ? 1 : 0) && Math.abs(x - cx) < 4;
+    if (lid(HX - 6) || lid(HX + 6)) return [60, 36, 28];
+    if (y === HY + 11 && Math.abs(x - HX) < 2) return [120, 66, 56];
+    return mix([236, 204, 160], [196, 156, 112], vnoise(x * 0.6, y * 0.6, 2) * 0.5);
+  }, lights, { ny: (x, y) => vNormal(face, x, y, 6) * 0.4, nxMax: 3, amb: [0.16, 0.14, 0.14] });
+  // 瞼の隙間から漏れる魂火
+  for (const ex of [HX - 6, HX + 6]) for (let k = -2; k <= 2; k++) L.add(ex + k, HY + 3, [60, 220, 160], 0.35);
+  // 額の印 (前髪の間に覗く小さな灯の手)
+  const sg = new Mask(W, H); sigilMask(sg, HX, HY - 5, 0.2);
+  L.paint(sg, () => rc(R_SOUL, 0.9));
+  // 首の黒鉄の継ぎ目 (断ち切れて、木がささくれている)
+  const neck = new Mask(W, H); neck.rect(HX - 5, HY + 15, 11, 4);
+  paintLit(L, neck, (x, y) => (y === HY + 18 && h2(x, 1, 3) > 0.5 ? [190, 150, 100] : [70, 72, 82]), lights, { amb: [0.1, 0.1, 0.12] });
+  glow(L, HX, HY - 6, 10, C_SOUL, 0.18, 2.2);
+  // 手前の鉄格子 (暗い影)
+  const bars = new Mask(W, H);
+  for (const x of [6, 28, 160, 182]) bars.rect(x, 0, 5, H);
+  bars.rect(0, 6, W, 3);
+  L.paint(bars, (x, y) => [14 + (x % 5 === 1 ? 20 : 0), 12, 16]);
+  motes(L, lights, 40, 59, C_CANDLE);
+  vignette(L, 0.9);
+  return L.canvas(12);
+}
+
+// 10. 焼けた軍旗 (雷雨の大手門。崩れた門の前に、雷に焼かれた旗竿。稲妻と雨と水たまり)
+function sceneBanner() {
+  const W = ART_W, H = ART_H, L = new Layer(W, H);
+  const BX = 112;
+  const lights = [
+    { x: 150, y: 0, r: 200, c: [0.75, 0.8, 1.0], k: 1.15, p: 1.15 },   // 稲妻
+    { x: 20, y: 96, r: 70, c: C_EMBER, k: 0.35, p: 1.5 },             // 燻る焚き火
+  ];
+  // 空 (嵐雲)
+  L.shade(0, 0, W - 1, 60, (x, y) => {
+    const n = fbm(x * 0.05, y * 0.09, 7);
+    const l = lightAt(x, y, lights);
+    const b = clamp(n * 0.9 + (l[2] - 0.4) * 0.35);
+    return [20 + b * 70, 22 + b * 76, 34 + b * 100];
+  });
+  // 稲妻 (枝分かれ)
+  const bolt = new Mask(W, H);
+  let x = 150, y = 0;
+  const R = rng(17);
+  while (y < 40) { const nx = x + (R() - 0.55) * 10, ny = y + 4 + R() * 4; bolt.line(x, y, nx, ny, 1.4); if (R() < 0.3) bolt.line(nx, ny, nx + (R() - 0.5) * 18, ny + 8, 0.8); x = nx; y = ny; }
+  L.paint(bolt, () => [235, 240, 255]);
+  glow(L, 148, 22, 40, [0.7, 0.75, 1.0], 0.28, 2);
+  // 崩れた門 (左右の塔と、折れたアーチ)
+  const gate = new Mask(W, H);
+  gate.rect(28, 20, 34, 70); gate.rect(146, 26, 36, 64);
+  gate.poly([62, 34, 84, 26, 90, 32, 70, 42, 62, 44]); gate.poly([146, 36, 128, 30, 124, 36, 140, 44, 146, 46]);
+  for (let i = 0; i < 5; i++) { gate.rect(28 + i * 7, 15, 4, 6); gate.rect(146 + i * 7, 21, 4, 6); } // 胸壁
+  L.paint(gate, (xx, yy) => {
+    const a = ashlar(xx, yy, 12, 6, 61);
+    let alb = mix([80, 80, 90], [56, 56, 66], fbm(xx * 0.2, yy * 0.2, 3));
+    if (a.joint) alb = [22, 22, 30];
+    return lit(alb, lightAt(xx, yy, lights, xx < 96 ? 0.6 : -0.6, a.top ? -0.5 : 0), [0.05, 0.05, 0.08]);
+  });
+  // 地面 (濡れた石畳と水たまり)
+  L.shade(0, 61, W - 1, H - 1, (xx, yy) => {
+    if (gate.at(xx, yy)) return null;
+    const w = worley(xx * 0.09, yy * 0.2, 13);
+    const pud = fbm(xx * 0.06, yy * 0.15, 9) > 0.58;
+    const l = lightAt(xx, yy, lights, 0, -0.9);
+    if (pud) { const s = clamp(0.3 + Math.sin(xx * 0.5 + yy * 2) * 0.2) * (l[2] + 0.2); return [14 + s * 70, 16 + s * 80, 26 + s * 110]; }
+    let alb = mix([70, 70, 80], [96, 96, 104], w[2] * 0.6);
+    if (w[1] - w[0] < 0.08) alb = [20, 20, 28];
+    return lit(alb, l, [0.05, 0.05, 0.08]);
+  });
+  // 旗竿 (炭のように黒い) と、焼け残った軍旗 (裂けて、端が焦げている)
+  const pole = new Mask(W, H); pole.rect(BX, 14, 3, 84); pole.ellipse(BX + 1.5, 13, 2.5, 2.5);
+  paintLit(L, pole, () => [40, 34, 32], lights, { nxMax: 1, amb: [0.05, 0.05, 0.06] });
+  const flag = new Mask(W, H);
+  for (let fx = 0; fx < 40; fx++) {
+    const top = 18 + Math.sin(fx * 0.18) * 2.4, bot = 46 + Math.sin(fx * 0.18 + 0.6) * 2.4 - (fx > 26 ? (fx - 26) * 1.1 : 0);
+    for (let fy = Math.round(top); fy < bot; fy++) if (!(fx > 30 && vnoise(fx * 0.6, fy * 0.6, 5) > 0.62)) flag.rect(BX + 3 + fx, fy, 1, 1);
+  }
+  paintLit(L, flag, (fx, fy) => {
+    const dx = fx - BX - 3;
+    const burn = clamp((dx - 20) / 18 + vnoise(fx * 0.4, fy * 0.4, 8) * 0.5 - 0.25);
+    const fold = Math.sin(dx * 0.35) * 0.5 + 0.5;
+    const cloth = mix([140, 40, 36], [96, 26, 26], fold);
+    // 紋章 (塔を描いた白い印)
+    const ex = dx - 10, ey = fy - 31;
+    if (ex >= 0 && ex < 6 && ey >= -6 && ey < 6 && !(ex >= 2 && ex < 4 && ey < -3)) return mix([200, 190, 160], [40, 30, 30], burn);
+    return mix(cloth, [30, 22, 20], burn);
+  }, lights, { amb: [0.08, 0.07, 0.08] });
+  // 燻る焚き火 (左下) と、崩れた槍
+  glow(L, 20, 96, 14, C_EMBER, 0.5, 2.2);
+  for (let i = 0; i < 4; i++) { const m = new Mask(W, H); m.line(60 + i * 9, 102 - i, 80 + i * 8, 90 - i * 2, 1.2); paintLit(L, m, () => [90, 84, 80], lights, { amb: [0.05, 0.05, 0.07] }); }
+  // 雨 (斜めの細い筋)
+  const R2 = rng(29);
+  for (let i = 0; i < 260; i++) {
+    const rx = R2() * (W + 30) - 10, ry = R2() * H, len = 3 + (R2() * 4 | 0);
+    for (let k = 0; k < len; k++) { const px = Math.round(rx - k * 0.5), py = Math.round(ry + k); const c = L.get(px, py); if (c) L.px(px, py, [c[0] * 0.6 + 90, c[1] * 0.6 + 96, c[2] * 0.6 + 120]); }
+  }
+  vignette(L, 0.82);
+  return L.canvas(12);
+}
+
+// 11. 本丸の大穴 (割れた石床の大穴へ、魂の流れが渦を巻いて落ちてゆく)
+function sceneHole() {
+  const W = ART_W, H = ART_H, L = new Layer(W, H);
+  const PX = 96, PY = 76;
+  const lights = [
+    { x: PX, y: PY, r: 120, c: C_SOUL, k: 1.05, p: 1.6 },
+    { x: 20, y: 10, r: 70, c: C_EMBER, k: 0.3, p: 1.4 },
+  ];
+  // 奥の壁と柱
+  L.shade(0, 0, W - 1, 56, (x, y) => {
+    const a = ashlar(x, y, 20, 10, 71);
+    let alb = mix([72, 68, 82], [52, 48, 60], fbm(x * 0.12, y * 0.12, 6));
+    if (a.joint) alb = [16, 14, 22];
+    return lit(alb, lightAt(x, y, lights, 0, 0.4), [0.04, 0.04, 0.06]);
+  });
+  for (const cx of [26, 70, 122, 166]) {
+    const col = new Mask(W, H); col.rect(cx - 5, 0, 10, 58); col.rect(cx - 7, 52, 14, 5);
+    paintLit(L, col, (x, y) => mix([110, 104, 118], [76, 72, 86], vnoise(x, y * 0.3, cx)), lights, { amb: [0.05, 0.05, 0.07] });
+  }
+  // 床 (奥行きのある敷石) と、中央の楕円の大穴
+  L.shade(0, 57, W - 1, H - 1, (x, y) => {
+    const t = (y - 57) / (H - 57);
+    const w = worley(x * 0.08 * (1.4 - t * 0.6), y * 0.2, 77);
+    let alb = mix([78, 74, 86], [110, 104, 112], w[2] * 0.6);
+    if (w[1] - w[0] < 0.07) alb = [18, 16, 24];
+    return lit(alb, lightAt(x, y, lights, 0, -0.9), [0.04, 0.04, 0.06]);
+  });
+  const hole = new Mask(W, H); hole.ellipse(PX, PY, 44, 14);
+  // 割れ目の縁をぎざぎざに
+  for (let a = 0; a < Math.PI * 2; a += 0.12) { const r = 1 + vnoise(a * 3, 1, 4) * 0.25; hole.ellipse(PX + Math.cos(a) * 44 * r, PY + Math.sin(a) * 14 * r, 3, 2); }
+  L.paint(hole, (x, y) => {
+    // 底の見えない闇 (中ほどが最も暗く、縁の内壁だけが魂火を照り返す)
+    const d = Math.hypot((x - PX) / 44, (y - PY) / 14);
+    const v = 0.05 + 0.42 * smooth(0.35, 1.0, d);
+    return rc(R_SOUL, v);
+  });
+  // 穴の縁の内壁 (手前側だけ見える)
+  L.shade(PX - 46, PY - 2, PX + 46, PY + 18, (x, y) => {
+    if (!hole.at(x, y) || hole.at(x, y - 3)) return null;
+    return [40, 46, 52];
+  });
+  // 魂の流れ: 四方から穴へ渦を巻いて落ちる光の帯 (点の列)
+  const R = rng(83);
+  for (let s = 0; s < 9; s++) {
+    let a = s / 9 * Math.PI * 2 + R(), r = 1.6;
+    for (let k = 0; k < 120; k++) {
+      const x = PX + Math.cos(a) * 44 * r, y = PY - 26 * Math.max(0, r - 1) + Math.sin(a) * 14 * r;
+      const v = clamp(0.5 + Math.min(1, r) * 0.5) * clamp(r * 1.6);   // 穴の奥へ吸い込まれて消えてゆく
+      if (k % 2 === 0) L.add(Math.round(x), Math.round(y), [C_SOUL[0] * 255, C_SOUL[1] * 255, C_SOUL[2] * 255], 0.35 * v);
+      a += 0.06; r -= 0.013;
+      if (r < 0.1) break;
+    }
+  }
+  // 漂う魂 (小さな灯)
+  for (let i = 0; i < 14; i++) { const x = PX + (R() - 0.5) * 140, y = 20 + R() * 60; glow(L, x, y, 3 + R() * 3, C_SOUL, 0.5, 1.6); }
+  glow(L, PX, PY, 50, C_SOUL, 0.3, 2.2);
+  // 縁に置かれた、師のランタンの燭台跡 (小さな人影の代わりに、灯の消えた鉤)
+  const hook = new Mask(W, H); hook.rect(146, 70, 2, 12); hook.rect(146, 70, 7, 2); hook.rect(151, 70, 2, 5);
+  paintLit(L, hook, () => ALB_IRON, lights, { amb: [0.1, 0.1, 0.12] });
+  motes(L, lights, 60, 87);
+  vignette(L, 0.9);
+  return L.canvas(12);
+}
+
+const SCENES = { lantern: sceneLantern, sigil: sceneSigil, arm: sceneArm, abbot: sceneAbbot, camp: sceneCamp, candle: sceneCandle,
+  roll: sceneRoll, cell: sceneCell, head: sceneHead, banner: sceneBanner, hole: sceneHole };
 const cache = {};
 // 物語の一枚絵 (192×108 の canvas)。無ければ null
 export function storyArt(key) {
