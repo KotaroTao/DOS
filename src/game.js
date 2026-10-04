@@ -554,7 +554,7 @@ function runGainSoulPts(s) { s = Math.round(s * sfNum("soulMul", 1) * mutNum("so
 function runGainItem(owner, item) {
   if (item) item.isNew = true; // NEW 印 (品シートで見れば消える。セーブには追加の印として残る)
   // テスト記録: 迷宮で手に入れた品 (図鑑の記録は呼び出し側がこの後で行うので、ここで見れば新種かがわかる)
-  if (item && tlOn() && inDungeon()) tlLoot(tlWhere(), item, !(G.codex && G.codex.item && G.codex.item[item.id]));
+  if (item && tlOn() && inDungeon()) tlLoot(tlWhere(), item, !item.unidentified && !(G.codex && G.codex.item && G.codex.item[item.id]));
   owner.items.push(item);
   if (G.run && inDungeon()) G.run.items.push({ owner, item });
   if (item && item.rar === "lr") { if (!G.lrOwned) G.lrOwned = {}; G.lrOwned[item.id] = true; } // LRは1点もの
@@ -10901,12 +10901,12 @@ function rollGenericDrop() {
   }
   return null;
 }
-// it = 手に入れた品の実体 (あれば)。未鑑定の品は図鑑には載るが「正体を知った品」には数えない
+// it = 手に入れた品の実体 (あれば)。未鑑定の品はまだ図鑑に載せない (鑑定して正体を知ったとき revealIdentity が載せる)
 function codexSeeItem(id, it) {
-  if (!id) return;
+  if (!id || (it && it.unidentified)) return;
   if (!G.codex.item[id]) codexFresh().item[id] = 1; // 初めての記録は新着
   G.codex.item[id] = true;
-  if (!it || !it.unidentified) codexKnowItem(id);
+  codexKnowItem(id);
 }
 // 正体を知った品 (G.codex.known)。鑑定で初めて正体を知った品に「初ゲット！」を出すための記録。
 // 初めて知ったなら true
@@ -10925,7 +10925,7 @@ function revealIdentity(it) {
   const first = !!it.id && !itemKnown(it.id); // 明かす前に聞く (明かした後は自分自身が「知っている品」になる)
   it.unidentified = false;
   it.idHardFail = false;
-  codexKnowItem(it.id);
+  codexSeeItem(it.id, it); // 正体を知ったこの時に図鑑へ載せる
   if (first) firstGets.add(it);
   return first;
 }
@@ -12929,6 +12929,12 @@ function loadGame() {
     const held = heldItems();
     for (const it of held) if (it.unidentified && it.id && !held.some((x) => x.id === it.id && !x.unidentified)) delete G.codex.known[it.id];
     G.codex.knownFix = 1;
+  }
+  // 手当て (一度だけ): 未鑑定のまま図鑑に載せていた品 (正体をまだ知らない品) を図鑑から外す。鑑定すれば載る
+  if (!G.codex.unidFix) {
+    const fresh = codexFresh().item;
+    for (const id in G.codex.item) if (!itemKnown(id)) { delete G.codex.item[id]; delete fresh[id]; }
+    G.codex.unidFix = 1;
   }
   for (const k in G.codex.mon) {
     const v = G.codex.mon[k];
