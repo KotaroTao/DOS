@@ -351,7 +351,7 @@ function renderTavern(root) {
     const L = qbLists();
     const area = el("div", "fc-qarea");
     if (tavernSeg === "active") {
-      body.appendChild(sectionHead("受けている依頼", { note: "依頼人の頼みは枠に数えない" }));
+      body.appendChild(sectionHead("受けている依頼", { note: "依頼人の頼みも枠に数える" }));
       body.appendChild(area);
       const empty = el("div", "wa-empty", "受けている依頼はない。掲示板で依頼を受けよう。");
       pagedGrid(area, L.active, (q) => questCard(q), { cols: 1, cellH: 84, gap: 6, key: "tav-active", empty });

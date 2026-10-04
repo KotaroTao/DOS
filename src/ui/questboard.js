@@ -2,7 +2,7 @@
 // 担当: WP-A (酒場のページ facilities.js と、街の広場 hub.js の「酒場の依頼」の段で共用)。
 // 依頼の中身・状態は game.js (questLists / acceptQuest / abandonQuest / claimQuest / deliverQuest) と src/quests.js。
 //   フリークエスト (掲示板) … 受けられるのは同時に game.FREE_CAP 件まで。達成して報告するか、放棄すると枠が空く
-//   固定クエスト (依頼人)   … 一度きり。受注の上限は無く、5件の枠にも数えない
+//   固定クエスト (依頼人)   … 一度きり。フリーと合わせて game.FREE_CAP 件の枠に数える。達成前なら放棄でき、酒場に戻る
 // 札をタップ = 詳細シート (依頼人の口上・目的・報酬・操作)。札の右の釦で、報告する / 納品する は1タップで。
 // 受注だけは札の「受ける」も詳細シートを開き、内容を確かめてから「依頼を受ける / 受けない」を選ぶ。
 // game.js は import しない (ctx.js の UI / game を通す)。
@@ -80,7 +80,7 @@ export async function runDelivery(q) {
   openItem(q.itemId);
 }
 function accept(q) {
-  if (!q.fixed && full()) {
+  if (full()) {
     sfx("ng");
     toast(`受けられる依頼は ${cap()}件まで。達成して報告するか、放棄してから`, { tone: "bad" });
     return false;
@@ -89,14 +89,14 @@ function accept(q) {
 }
 async function abandon(q) {
   const ok = await confirm({ banner: "依頼の放棄", title: `「${q.name}」を放棄する`, okLabel: "放棄する",
-    lines: ["受注の枠が1つ空く。", q.progress ? `進み (${q.progress}/${q.goal}) は失われる。` : "この依頼は掲示板から消える。"] });
+    lines: ["受注の枠が1つ空く。", q.progress ? `進み (${q.progress}/${q.goal}) は失われる。` : q.fixed ? "依頼人の頼みは酒場に戻り、また受けられる。" : "この依頼は掲示板から消える。"] });
   if (ok) game.abandonQuest(q.uid);
   return ok;
 }
 // 札の右の釦 (無ければ null)
 function actionBtn(q) {
   if (q.state === "offer") {
-    const off = !q.fixed && full();
+    const off = full();
     return button({ label: "受ける", kind: off ? "secondary" : "primary", size: "sm", disabled: false,
       onTap: (e) => { if (e) e.stopPropagation(); sfx("select"); openQuestSheet(q.uid); } });
   }
@@ -167,7 +167,7 @@ export function openQuestSheet(uid) {
     fact("報酬", rewardText(q));
     if (q.type === "deliver" && ITEMS[q.itemId] && game.deliveryRewardDesc) fact("魂の格", game.deliveryRewardDesc(ITEMS[q.itemId]));
     if (q.fixed && q.def.opens && q.state === "offer") fact("道", "受けると、地図に新たな迷宮が記される");
-    if (!q.fixed && q.state === "offer") fact("受注", `${lists().freeCount} / ${cap()} 件` + (full() ? " ・ 枠が空いていない" : ""), full() ? "bad" : "");
+    if (q.state === "offer") fact("受注", `${lists().freeCount} / ${cap()} 件` + (full() ? " ・ 枠が空いていない" : ""), full() ? "bad" : "");
     box.appendChild(facts);
     root.appendChild(box);
   };
@@ -176,8 +176,8 @@ export function openQuestSheet(uid) {
     const close = { label: q && q.state === "offer" ? "受けない" : "閉じる", kind: "ghost", onTap: (s) => s.close() };
     if (!q) return [close];
     const out = [];
-    if (q.state === "offer") out.push({ label: "依頼を受ける", kind: "primary", size: "lg", disabled: !q.fixed && full(),
-      sub: !q.fixed && full() ? `受注は${cap()}件まで` : null, onTap: (s) => { if (accept(q)) { s.close(); toast(`依頼「${q.name}」を受けた`); } } });
+    if (q.state === "offer") out.push({ label: "依頼を受ける", kind: "primary", size: "lg", disabled: full(),
+      sub: full() ? `受注は${cap()}件まで` : null, onTap: (s) => { if (accept(q)) { s.close(); toast(`依頼「${q.name}」を受けた`); } } });
     else if (q.state === "done") out.push({ label: "報告する", kind: "primary", size: "lg", onTap: (s) => { s.close(); game.claimQuest(q.uid); } });
     else if (q.type === "deliver") {
       const st = deliverSt(q) || {};
@@ -185,7 +185,7 @@ export function openQuestSheet(uid) {
       else if (st.canBuy) out.push({ label: "買って納品", kind: "primary", size: "lg", cost: { kind: "gold", n: st.price }, onTap: (s) => { s.close(); runDelivery(q); } });
       else out.push({ label: "品を見る", kind: "secondary", onTap: () => openItem(q.itemId) });
     }
-    if (!q.fixed && (q.state === "active" || q.state === "done")) out.push({ label: "放棄する", kind: "danger", size: "sm", onTap: async (s) => { if (await abandon(q)) s.close(); } });
+    if (q.fixed ? q.state === "active" : (q.state === "active" || q.state === "done")) out.push({ label: "放棄する", kind: "danger", size: "sm", onTap: async (s) => { if (await abandon(q)) s.close(); } });
     out.push(close);
     return out;
   };
