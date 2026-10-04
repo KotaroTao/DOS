@@ -166,6 +166,9 @@ The UI was rebuilt into packages under `src/ui/` (plain ES modules; **they never
 - Legacy popups `showChoice`/`showEvent`/`showItemGet` in game.js still exist as thin entry points (`showItemGet` routes to `UI.loot`); prefer `sheet`/`toast` for new UI. Styles: `ui.css` (kit), `ui-hub.css`, `ui-party.css`, `ui-shop.css`, `ui-dungeon.css`.
 - Dev harnesses (not shipped) live in the session scratchpad (`ux/harness*.mjs`).
 
+## 整理の計画 (未着手) — `docs/refactor-plan.md`
+巨大ファイル (`game.js` / `schema.js` の `ARTS` / `jobart.js`) の分割と、旧仕様の二重構造 (難しさの尺度6種・旧100迷宮の生成器・旧魔物定義・`x_` 層・旧ポップアップ) の一本化の計画。リリース前なので仕様は変えてよい (ユーザーの方針)。分割・統合・CI・セーブ形式に触れる作業の前に読み、段ごとにユーザーの了解を取って進める。
+
 ## Conventions
 - **Always reply to the user in Japanese (日本語).** All assistant chat responses, plans, questions, and PR descriptions for this repo must be written in Japanese — this is mandatory, regardless of the language the user writes in. (Code identifiers stay in English; comments and in-game strings stay Japanese as below.)
 - Comments and all in-game/user-facing strings are in **Japanese**; match the surrounding tone (dark-fantasy flavor for monster/event text).
