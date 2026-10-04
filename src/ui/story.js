@@ -2,7 +2,8 @@
 // 担当: WP-A。玉座の間の一幕: 上下に黒い帯 (映画の画角)、奥に玉座の間の情景、老王の肖像、台詞が墨のようににじみ出る。
 //   1回目のタップ = 残りの台詞を一度に出す / 次のタップ = 次のページ / 最後のページは「御意」で閉じる。
 //   戻る操作も同じ順 (全文 → 次のページ → 閉じる)。
-// pages: [{ title, lines[], reward?, kicker?, btnLabel?, art?, who?, enter?(), leave?() }]
+// pages: [{ title, lines[], reward?, kicker?, btnLabel?, art?, who?, place?, enter?(), leave?() }]
+//   place = 背景の情景 (townart の vignetteCanvas の鍵。既定 "palace"。最初のページのものを使う)
 //   art = 物語の一枚絵の鍵 (src/storyart.js)。あれば肖像の代わりに絵を掲げ、背景もその絵を沈めて敷く
 //   who = 語り手 "king" (既定・老王の肖像) | "irene" (館の主の肖像) | "none" (肖像なし・地の文)
 //   reward = 受け取るものの一覧 [{ job:"fighter" } | { cur:"gold"|"soul"|"red"|"ember", n }] (文字列でも可)
@@ -118,7 +119,8 @@ export function playStoryChain(pages, done) {
   wrap.tabIndex = -1;
   const bg = el("div", "sc-bg");
   let palaceBg = null;
-  try { palaceBg = vignetteCanvas("palace"); } catch (e) { palaceBg = null; }
+  // 背景の情景: 既定は玉座の間。最初のページの place で替えられる (酒場の依頼は "tavern")
+  try { palaceBg = vignetteCanvas((list[0] && list[0].place) || "palace"); } catch (e) { palaceBg = null; }
   wrap.appendChild(bg);
   wrap.appendChild(el("div", "sc-veil"));
   wrap.appendChild(el("div", "sc-bar top"));

@@ -91,6 +91,7 @@ function renderGates(b) {
     if (dn.boss) meta.push("主が待つ");
     else if (dn.element && ELEMENTS[dn.element] && dn.element !== "none") meta.push(`${ELEMENTS[dn.element].label}の気配`);
     if (game.storyCellPending && game.storyCellPending(dn)) meta.push("師の手がかり");
+    { const qn = game.questHereNote ? game.questHereNote(dn) : null; if (qn) meta.push(qn); }
     info.appendChild(el("span", "dp-gate-c", meta.join(" ・ ")));
     r.appendChild(info);
     const st = dg && dg.cls !== "easy" ? dg.text : isDone ? "★ 踏破" : i === qi ? "目標" : "未踏破";

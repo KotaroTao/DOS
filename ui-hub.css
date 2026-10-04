@@ -345,6 +345,54 @@
 .fc-quest-h.ok { color: #9ee07a; font-weight: 700; }
 .fc-quest .ui-btn { flex: 0 0 auto; width: auto; }
 .fc-quest .ui-tile { flex: 0 0 auto; }
+/* 酒場の依頼 (区分: 受注中 / 掲示板 / 噂と顔ぶれ)。札は src/ui/questboard.js */
+.fc-tavern .ui-seg { margin: 4px 0 2px; }
+.wa-fit > .fc-tav-body { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
+.fc-tav-body > * { flex: 0 0 auto; }
+.fc-tav-body > .fc-qarea, .fc-tav-body > .fc-crowd { flex: 1 1 0; min-height: 0; }
+.qb-card {
+  position: relative; display: flex; align-items: center; gap: 9px; height: 100%; box-sizing: border-box; padding: 6px 8px; cursor: pointer;
+  background: var(--grain), var(--plate); border: 1px solid #33292a; border-left: 2px solid #6e5528; border-radius: 3px; box-shadow: var(--plate-edge);
+}
+.qb-card:active { filter: brightness(0.9); }
+.qb-card.fixed { border-left-color: #b98a3c; background: linear-gradient(90deg, rgba(185,138,60,0.10), transparent 60%), var(--grain), var(--plate); }
+.qb-card.ready { border-left-color: #6fbf5a; box-shadow: 0 0 12px rgba(111,191,90,0.16), var(--plate-edge); }
+.qb-card .ui-btn { flex: 0 0 auto; width: auto; }
+.qb-mark { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; border: 1px solid #3a2f2a; border-radius: 3px; background: rgba(10,8,9,0.6); overflow: hidden; }
+.qb-mark canvas { image-rendering: pixelated; max-width: 100%; max-height: 100%; }
+.qb-mark .ui-tile { width: 40px; height: 40px; border: 0; background: none; }
+.qb-mark-c { font-size: 20px; color: var(--accent-hi); line-height: 1; }
+.qb-mark.t-kill .qb-mark-c { color: #e07a6a; }
+.qb-mark.t-soul .qb-mark-c { color: #a9c8ff; }
+.qb-mark.t-clear .qb-mark-c { color: #ffd36a; }
+.qb-i { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.qb-top { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.qb-n { min-width: 0; font-size: 13.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qb-tag { flex: 0 0 auto; padding: 0 5px; font-size: 10px; letter-spacing: 0.1em; color: #1a1209; background: #c9a046; border-radius: 2px; }
+.qb-new { flex: 0 0 auto; padding: 0 4px; font-size: 10px; color: #fff; background: #b8382e; border-radius: 2px; }
+.qb-d { font-size: 11.5px; color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qb-s { font-size: 11px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.qb-s.ok { color: #9ee07a; font-weight: 700; }
+.qb-rw { color: var(--accent-hi); }
+.qb-sheet { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+.qb-who { display: flex; align-items: center; gap: 10px; }
+.qb-who .qb-mark { width: 52px; height: 52px; }
+.qb-who-n { font-size: 14px; font-weight: 800; color: #e2cf9f; }
+.qb-who-k { font-size: 11px; letter-spacing: 0.08em; color: var(--ink-faint); }
+.qb-text { padding: 8px 10px; background: rgba(16,12,13,0.7); border: 1px solid #2a2226; border-radius: 3px; }
+.qb-text p { margin: 0 0 4px; font-size: 13px; line-height: 1.7; color: #d8ccb2; }
+.qb-text p:last-child { margin-bottom: 0; }
+.qb-facts { display: flex; flex-direction: column; gap: 4px; }
+.qb-f { display: flex; gap: 10px; align-items: baseline; font-size: 12.5px; }
+.qb-f-k { flex: 0 0 4.5em; font-size: 11px; letter-spacing: 0.1em; color: var(--accent); }
+.qb-f-v { flex: 1 1 auto; min-width: 0; color: var(--ink); }
+.qb-f.ok .qb-f-v { color: #9ee07a; font-weight: 700; }
+.qb-f.bad .qb-f-v { color: #e08a7a; }
+.hb-dlv-board { min-height: 52px; justify-content: center; }
+.hb-q .qb-mark { width: 24px; height: 24px; }
+.hb-q .qb-mark .ui-tile { width: 22px; height: 22px; }
+.hb-q .qb-mark-c { font-size: 13px; }
+.hb-q .hb-dlv-n { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 11.5px; line-height: 1.25; }
 .fc-rumor { padding: 10px 12px; background: var(--grain), var(--plate); border: 1px solid #33292a; border-left: 2px solid #6e5528; border-radius: 3px; }
 .fc-rumor-s { font-size: 11px; letter-spacing: 0.15em; color: var(--accent); }
 .fc-rumor-t { margin-top: 3px; font-size: 13px; line-height: 1.7; color: #e6dbc2; }
