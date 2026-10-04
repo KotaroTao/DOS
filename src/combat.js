@@ -5,7 +5,7 @@ import { ELEMENTS, elemDmgMult, elemBeats, monStats, rankStats, resistRate, resi
 
 import { SPELLS } from "./skilldefs.js";
 import { JOBKIT_PERKS } from "./jobkit/index.js";
-import { STAGED, STAGE_MAX, STRONG_MIN, stageMul, stageOf, effectStage } from "./buffstage.js";
+import { STAGED, STAGE_MAX, STRONG_MIN, BATTLE_LONG, stageMul, stageOf, effectStage } from "./buffstage.js";
 export { SPELLS };
 
 // 敵が使う自己強化 (enemyAct の WARCRY 相当) の既定持続ターン数
@@ -1026,8 +1026,8 @@ export class Battle {
     for (const e of this.livingEnemies()) {
       if (!e.enrage || e._enraged || !e.maxhp || e.hp > e.maxhp * 0.3) continue;
       e._enraged = true;
-      this._applyMod(e, "atk", 1.5, 99, "激昂");
-      this._applyMod(e, "agi", 1.3, 99, "激昂");
+      this._applyMod(e, "atk", 1.5, BATTLE_LONG, "激昂");
+      this._applyMod(e, "agi", 1.3, BATTLE_LONG, "激昂");
       this.log(`${e.name}は激昂した！`, "dmg");
     }
     this._checkEnd();

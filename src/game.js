@@ -3,7 +3,7 @@ import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
 import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, setElemKnown, perkVictory } from "./combat.js";
 import { decideAuto, tacticOf } from "./autotactics.js";
-import { STAGED, effectStage, stageOf, stageLabel } from "./buffstage.js";
+import { STAGED, effectStage, stageOf, stageLabel, isBattleLong, turnsLeftLabel } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
 import { makeItemSpriteResolver } from "./itemart/index.js";
@@ -8021,7 +8021,7 @@ function drawEnemyBadges(e, baseX, yTop, opt = {}) {
     // 予兆は「溜!」の琥珀色の札 (残りターンは出さない)
     if (g.omen) { segs.push({ text: "溜!", up: true, omen: true }); continue; }
     const arrow = (g.up ? "▲" : "▼").repeat(Math.min(3, g.stages));
-    segs.push({ text: `${BUFF_KANJI[g.stat] || "◆"}${arrow}${g.turns}`, up: g.up });
+    segs.push({ text: `${BUFF_KANJI[g.stat] || "◆"}${arrow}${turnsLeftLabel(g.turns)}`, up: g.up });
   }
   if (!segs.length) return;
   vctx.save();
@@ -9656,9 +9656,11 @@ function buffBadges(p) {
   let html = "";
   for (const g of buffGroups(p.effects)) {
     const arrow = (g.up ? "▲" : "▼").repeat(Math.min(3, g.stages));
-    const title = STAGED.has(g.stat) ? `${BUFF_STAT_LABEL[g.stat] || g.stat} ${stageLabel(g.up ? g.stages : -g.stages)}・残り${g.turns}T`
-      : `${BUFF_STAT_LABEL[g.stat] || g.stat} ${g.up ? "強化" : "弱体"}・残り${g.turns}T`;
-    html += `<span class="bf ${g.up ? "up" : "dn"}" title="${title}">${BUFF_STAT_ICON[g.stat] || "◆"}${arrow}<b>${g.turns}</b></span>`;
+    const left = isBattleLong(g.turns) ? "戦闘の終わりまで" : `残り${g.turns}T`;
+    const title = STAGED.has(g.stat) ? `${BUFF_STAT_LABEL[g.stat] || g.stat} ${stageLabel(g.up ? g.stages : -g.stages)}・${left}`
+      : `${BUFF_STAT_LABEL[g.stat] || g.stat} ${g.up ? "強化" : "弱体"}・${left}`;
+    const n = turnsLeftLabel(g.turns);
+    html += `<span class="bf ${g.up ? "up" : "dn"}" title="${title}">${BUFF_STAT_ICON[g.stat] || "◆"}${arrow}${n ? `<b>${n}</b>` : ""}</span>`;
   }
   return `<div class="buffs">${html}</div>`;
 }
