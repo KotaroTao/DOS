@@ -13557,7 +13557,7 @@ function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch {} }
 // 個体ごとの状態 (未鑑定・鑑定失敗の印など) は残す。旧セーブの装備も新しいレア度と絵になる
 const ITEM_STAT_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp", "crit"];
 const ITEM_TMPL_KEYS = ["name", "desc", "slot", "lv", "rank", "r20", "rar", "lr", "forJob", "exclusive", "classes", "cat",
-  "twoHanded", "weight", "price", "art", "palette", "eAtk", "eDef", "aRes", "bRes", "onHit", "scale", "magic", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
+  "twoHanded", "sk", "weight", "price", "art", "palette", "eAtk", "eDef", "aRes", "bRes", "onHit", "scale", "magic", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
 function reflattenItemStats() {
   const visited = new Set();
   function refresh(it) {
@@ -13573,6 +13573,25 @@ function reflattenItemStats() {
   for (const m of [...(G.party || []), ...(G.reserve || [])]) {
     for (const it of (m.items || [])) refresh(it);
     for (const k of Object.keys(m.equip || {})) refresh(m.equip[k]);
+  }
+}
+
+// 片手/両手と盾のジャンルを入れた後の旧セーブの整え直し:
+//   両手武器になった武器と盾を同時に持っている / 職のジャンルに合わなくなった盾を持っている → 盾を外して袋へ
+//   (自分の袋が満杯なら、隊・控えの空きのある人業の袋へ。誰も空いていなければ自分の袋に入れる)。呪いの盾はそのまま
+function fixHandsAndShields() {
+  const all = [...(G.party || []), ...(G.reserve || [])].filter((d) => d && d.equip);
+  for (const d of all) {
+    const sh = d.equip.shield;
+    if (!sh || sh.cursed) continue;
+    const w = d.equip.weapon;
+    const clash = w && w.twoHanded;
+    const bad = d.clsKey && !canEquip(d, sh);
+    if (!clash && !bad) continue;
+    d.equip.shield = null;
+    if (!Array.isArray(d.items)) d.items = [];
+    const room = d.items.length < MAX_ITEMS ? d : all.find((x) => Array.isArray(x.items) && x.items.length < MAX_ITEMS);
+    (room || d).items.push(sh);
   }
 }
 
@@ -13642,6 +13661,7 @@ function loadGame() {
   // (battle の敵の mon はこの後 MONSTERS の生定義に差し替えられるため触れても無害)
   migrateLegacyStats(snap);
   reflattenItemStats();
+  fixHandsAndShields();
   // 一時状態はリセット
   G.anim = null; G.flipAnim = null; G.heroAnim = null; G.walking = false; G.prompt = false;
   G.fx = null; G.animating = false; G.enemyPos = {}; G.partyFx = new Map(); G.wallFlash = null;

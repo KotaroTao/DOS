@@ -186,6 +186,7 @@ export const REASON_TEXT = {
   "職業": "この職業には扱えない",
   "武器種": "この職業には扱えない武器",
   "盾不可": "この職業は盾を持てない",
+  "盾種": "この職業には扱えない種類の盾",
   "重量": "この職業には重すぎる防具",
   "属性": "属性が合わない",
   "呪い": "呪われた装備が外れない",
@@ -202,7 +203,7 @@ export function canEquipReason(d, it) {
     const gear = JOB_GEAR[d.clsKey];
     if (gear) {
       if (it.slot === "weapon") return "武器種";
-      if (it.slot === "shield") return "盾不可";
+      if (it.slot === "shield") return gear.shields && gear.shields.length ? "盾種" : "盾不可";
       if (it.weight && (ARMOR_RANK[it.weight] || 0) > (ARMOR_RANK[gear.armor] || 0)) return "重量";
     }
     return "職業";
