@@ -165,7 +165,6 @@ export function openQuestSheet(uid) {
     const pt = progressText(q);
     if (pt) fact("進み", pt, isReady(q) ? "ok" : "");
     fact("報酬", rewardText(q));
-    if (q.type === "deliver" && ITEMS[q.itemId] && game.deliveryRewardDesc) fact("魂の格", game.deliveryRewardDesc(ITEMS[q.itemId]));
     if (q.fixed && q.def.opens && q.state === "offer") fact("道", "受けると、地図に新たな迷宮が記される");
     if (q.state === "offer") fact("受注", `${lists().freeCount} / ${cap()} 件` + (full() ? " ・ 枠が空いていない" : ""), full() ? "bad" : "");
     box.appendChild(facts);

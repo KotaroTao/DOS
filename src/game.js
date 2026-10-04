@@ -10174,10 +10174,6 @@ function rollDeliveryReward(it) {
   const last = rows[rows.length - 1];
   return [last[0], last[1]];
 }
-// 報酬テーブルの表示文
-function deliveryRewardDesc(it) {
-  return deliveryRewardRowsOf(it).map(([rar, c, p]) => `${RARITY_LABEL[rar]}魂×${c} (${Math.round(p * 100)}%)`).join(" / ");
-}
 // 指定レアリティの職業をランダムに選ぶ
 function rollClassOfRarity(rarity) {
   const pool = SOUL_KEYS.filter((k) => SOUL_CLASSES[k].rarity === rarity);
@@ -13748,7 +13744,7 @@ bindGame({
   achievementCards, claimNextTreasury, TREASURY_MILESTONES, milestoneLabel, totalDonatedKinds,
   codexMonEntry, dungeonRoster, CODEX_OTHER,
   // 酒場・祠・宿
-  listenRumor, RUMOR_PRICE, rumorPrice, deliveryRewardDesc, rollTavernCrowd,
+  listenRumor, RUMOR_PRICE, rumorPrice, rollTavernCrowd,
   questState, questLists, questByUid, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount,
   adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)

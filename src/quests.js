@@ -371,14 +371,14 @@ export function composeReport(q, count, opt = {}) {
   return out;
 }
 
-// ---- 納品の報酬: 納めた品のレア度 (c/uc/r/sr/lr) で、授かる魂の格と数を抽選する ----
-// レア度 : [ [魂のレア度, 体数, 確率], … ] (確率は合計1.0)
+// ---- 納品の報酬: 納めた品のレア度 (c/uc/r/sr/lr) で、授かる魂の格を抽選する (数はどの格でも1つ) ----
+// レア度 : [ [魂のレア度, 体数, 確率], … ] (確率は合計1.0)。確率は画面に出さない (報酬は「職業の魂 (ランダム)」とだけ見せる)
 export const DELIVERY_REWARDS = {
-  c:  [["common", 2, 0.70], ["rare", 1, 0.20], ["epic", 1, 0.09], ["legend", 1, 0.01]],
-  uc: [["common", 3, 0.60], ["rare", 2, 0.25], ["epic", 1, 0.13], ["legend", 1, 0.02]],
-  r:  [["common", 4, 0.45], ["rare", 2, 0.30], ["epic", 1, 0.20], ["legend", 1, 0.05]],
-  sr: [["common", 5, 0.40], ["rare", 3, 0.30], ["epic", 2, 0.20], ["legend", 1, 0.10]],
-  lr: [["rare", 5, 0.40], ["epic", 3, 0.40], ["legend", 1, 0.20]],
+  c:  [["common", 1, 0.70], ["rare", 1, 0.20], ["epic", 1, 0.09], ["legend", 1, 0.01]],
+  uc: [["common", 1, 0.60], ["rare", 1, 0.25], ["epic", 1, 0.13], ["legend", 1, 0.02]],
+  r:  [["common", 1, 0.45], ["rare", 1, 0.30], ["epic", 1, 0.20], ["legend", 1, 0.05]],
+  sr: [["common", 1, 0.40], ["rare", 1, 0.30], ["epic", 1, 0.20], ["legend", 1, 0.10]],
+  lr: [["rare", 1, 0.40], ["epic", 1, 0.40], ["legend", 1, 0.20]],
 };
 export const deliveryRewardRows = (rar) => DELIVERY_REWARDS[rar] || DELIVERY_REWARDS.c;
 
