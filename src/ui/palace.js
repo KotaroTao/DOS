@@ -207,13 +207,16 @@ function bossNameCard(key, m) {
 const CARD_H = 104;
 const MON_CARD_H = 118; // 敵の札は名の下に討伐数の1行ぶん高い
 
+// 敵の図鑑はダンジョン単位: 地図に現れた迷宮ごとの札 (台帳の並び) + その他。札の中身は、その迷宮に出る雑魚・強敵・主
+const dunOpen = (i) => { try { return game.worldOpenIdx ? game.worldOpenIdx(i) : i < Math.max(1, G().unlockedDungeons || 1); } catch (e) { return i === 0; } };
 function renderCodexMon(box) {
   const g = G();
-  const unlocked = Math.max(1, g.unlockedDungeons || 1);
+  const opened = DUNGEONS.map((d, i) => i).filter(dunOpen);
+  if (!opened.length) opened.push(0);
   let idx = Number(remember("codex", "dungeon"));
-  if (!Number.isFinite(idx) || idx >= unlocked || idx < -1) idx = 0;
+  if (!Number.isFinite(idx) || (idx !== -1 && !opened.includes(idx))) idx = opened[0];
   const items = [];
-  for (let i = 0; i < unlocked && i < DUNGEONS.length; i++) items.push({ key: String(i), label: DUNGEONS[i].short || DUNGEONS[i].name });
+  for (const i of opened) items.push({ key: String(i), label: DUNGEONS[i].short || DUNGEONS[i].name });
   items.push({ key: "-1", label: "その他" });
   const rosterOf = (i) => i === -1 ? (game.CODEX_OTHER || []).filter((k) => MONSTERS[k]) : (game.dungeonRoster ? game.dungeonRoster(DUNGEONS[i]) : []);
   const freshIn = (i) => rosterOf(i).filter(isFreshMon).length || null;
@@ -228,7 +231,7 @@ function renderCodexMon(box) {
     pagedGrid(area, roster, (key) => {
       const m = MONSTERS[key];
       if (!g.codex.mon[key]) return m.boss ? bossNameCard(key, m) : unknownCard();
-      return codexCard(m, m.name, { color: m.rank ? RANK_COLOR[m.rank] : null, sub: m.boss ? "主" : null, kills: monKills(key), fresh: isFreshMon(key),
+      return codexCard(m, m.name, { color: m.rank ? RANK_COLOR[m.rank] : null, sub: m.boss ? "主" : m.elite ? "強敵" : null, kills: monKills(key), fresh: isFreshMon(key),
         onTap: (c) => { codexMonSheet(key); markSeen("mon", key, c); } });
     }, { cols: 3, cellH: MON_CARD_H, key: "mon:" + idx, empty: el("div", "wa-empty", "記録なし。") });
   };
@@ -311,10 +314,9 @@ function renderCodexJob(box) {
 // 層の欄は、その層の迷宮が解放されてから出す (まだ行けない層の名を先に明かさない)。
 // 解放より先に記録がある層 (古いセーブ等) は出す
 function evGroupsOpen(rec) {
-  const g = G();
-  const unlocked = Math.min(DUNGEONS.length, Math.max(1, (g && g.unlockedDungeons) || 1));
-  const maxLayer = Math.ceil(unlocked / 5);
-  return EVENT_GROUPS.filter((x) => !x.layer || x.layer <= maxLayer
+  // 層の欄は、その層の景色の迷宮が地図に現れてから出す
+  const layers = new Set(DUNGEONS.filter((d, i) => dunOpen(i)).map((d) => d.layer));
+  return EVENT_GROUPS.filter((x) => !x.layer || layers.has(x.layer)
     || EVENTS.some((e) => (e.layer || 0) === x.layer && rec.seen[e.id]));
 }
 const EV_STUB = { countCells: () => 0, monName: () => "古強者", eliteKeyHere: () => null, sense: () => false, layer: 1 };
@@ -420,7 +422,7 @@ function renderCodex(body) {
 export function openCodexSheet({ dungeonIdx = null } = {}) {
   const g = G();
   if (!g) return null;
-  codexHome.dungeon = Number.isInteger(dungeonIdx) && dungeonIdx >= 0 && dungeonIdx < Math.max(1, g.unlockedDungeons || 1) ? dungeonIdx : 0;
+  codexHome.dungeon = Number.isInteger(dungeonIdx) && dungeonIdx >= 0 && dunOpen(dungeonIdx) ? dungeonIdx : 0;
   resetCodexView("mon");
   const box = el("div", "pl-body cx-body");
   refresh.top = refresh.sub = refresh.list = null;

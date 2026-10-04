@@ -4,6 +4,7 @@
 // 進捗は迷宮・階を問わず、条件 (討伐/魂/宝箱/到達/主) を満たせば加算される。
 // このため依頼文には特定の階 (B○F) を書かない。
 import { DUNGEONS } from "./dungeons/index.js";
+import { poolAt } from "./dungeons/world.js";
 import { MONSTERS } from "./sprites.js";
 
 // 決定的ハッシュ (generator.js と同系)
@@ -74,8 +75,7 @@ const BOSS_TEXTS = [
 // 討伐対象を決定的に選ぶ。その迷宮に実際に出現する帯
 // (浅階=pool / 深階=deepPool。board.js と同じ判定) から選ぶ
 function pickMonster(dn, h, floor) {
-  const deep = floor > dn.floors / 2;
-  const band = ((deep ? dn.deepPool : dn.pool) || dn.pool || []).filter((k) => MONSTERS[k] && !MONSTERS[k].boss);
+  const band = poolAt(dn, floor).filter((k) => MONSTERS[k] && !MONSTERS[k].boss);
   if (!band.length) return null;
   return band[h % band.length];
 }

@@ -4,12 +4,16 @@
 // ・モンスター追加 = bestiary.js に追記するだけ。該当ランクの迷宮に自動で出現する
 import { BESTIARY, ELITE_ORDER as EO, LAYER_ELITES as LE, LAYER_BOSS as LB } from "./bestiary.js";
 import { DUNGEONS as GENERATED } from "./generator.js";
+import { WORLD } from "./world.js";
 
 export { MON_RACES, RACE_LABEL, ELEMENTS, elemMult, elemBeats, elemDmgMult, resistRate, resistHpMul, RESIST_RATE, RESIST_TAG, METAL_TIERS, TRAITS, monsterTraitKeys, monsterTraits, isFloating } from "./schema.js";
 export { layerOf, LAYER_COUNT } from "./generator.js";
 
-// 全ダンジョン設定 (並び順 = ゲーム内の解放順)
-export const DUNGEONS = GENERATED;
+// 地図に並ぶ迷宮 (world.js の台帳。並び順 = 出撃シート・図鑑の並び)。G.dungeonIdx はこの添字
+export const DUNGEONS = WORLD;
+// 難度の物差し n (1-100) ごとの素体。無限迷宮「奈落」が深度から素体を引く
+export const GEN_DUNGEONS = GENERATED;
+export { WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, levelBand } from "./world.js";
 
 // 全モンスター辞書。sprites.js の MONSTERS に統合する
 export const DUNGEON_MONSTERS = BESTIARY;
