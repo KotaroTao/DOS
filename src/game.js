@@ -9866,6 +9866,31 @@ function questsHere() {
 function questHereNote(cfg) {
   return cfg && cfg.side ? "依頼の迷宮" : null;
 }
+// 迷宮ごとの記録 (出撃シートの迷宮の顔): 図鑑に記録した魔物 / その迷宮の魔物 (雑魚・強敵・主) と、
+// その迷宮の固定クエスト (依頼人の頼み) の報告済み / 総数。
+// 固定クエストの「家」= 到達・踏破の迷宮 → 地図に開く迷宮 → 狙う魔物が最初に出る迷宮 (地図の並び)。魂・宝箱は家なし
+function fixedQuestHome(def) {
+  const g = def.goal || {};
+  if (g.dungeon) return g.dungeon;
+  if (def.opens && def.opens.length) return def.opens[0];
+  if (g.type !== "kill" || !g.keys) return null;
+  const hit = DUNGEONS.find((d) => {
+    const roster = new Set(dungeonRoster(d));
+    return g.keys.some((k) => roster.has(k) || (MONSTERS[k] && MONSTERS[k].metal && (d.layer || 0) >= 3));
+  });
+  return hit ? hit.id : null;
+}
+function dungeonFacts(cfg) {
+  if (!cfg) return null;
+  const roster = dungeonRoster(cfg);
+  const mon = (G.codex && G.codex.mon) || {};
+  const s = questState();
+  const fq = FIXED_QUESTS.filter((d) => fixedQuestHome(d) === cfg.id);
+  return {
+    monSeen: roster.filter((k) => mon[k]).length, monTotal: roster.length,
+    fqDone: fq.filter((d) => s.fixed[d.id] && s.fixed[d.id].state === "claimed").length, fqTotal: fq.length,
+  };
+}
 // 報告できる依頼の数 (達成済み + 手持ちで納められる納品)。街の札・酒場の札の印
 function questReadyCount() {
   if (!facilityOpenKey("tavern")) return 0;
@@ -13896,7 +13921,7 @@ bindGame({
 // モジュールの評価時 (init より前) に結ぶ。init の wireUI が同じ game へ残りを足す
 bindGame({
   // 出撃
-  departNow, departAbyss, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, partyLevel, storyCellPending,
+  departNow, departAbyss, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, partyLevel, storyCellPending, dungeonFacts,
   abyssRecords, ABYSS_MODS, abyssScoreMul, weekSeedId, emptyDollCost,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow,
