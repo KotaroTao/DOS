@@ -2,9 +2,11 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 火・水・風・土・闇の五属性の基本呪文を一通り修める術者。属性を巡らせて撃ち続け、群れを薙ぐ。
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "mageMeguri/1",
   table: `
     1 HALITO 3 ICENEEDLE 4 ISHITSUBUTE 5 afterMp/1 7 KAMAITACHI 8 SHADOWBOLT
-    10 KATINO 15 mageMeguri/1 20 MAHALITO 22 AQUAWAVE 25 spellCrit/1 27 WINDSTORM
+    10 KATINO 15 MAGE_HYOUMU 20 MAHALITO 22 AQUAWAVE 25 spellCrit/1 27 WINDSTORM
     30 ROCKBLAST 32 EARTHQUAKE 35 afterMp/2 40 TILTOWAIT 45 mageMeguri/2 50 MADALT
     55 SEISHIN 57 MAGE_GOGYOUKUZUSHI 60 spellCrit/2 65 LAHALITO 70 barrier/1 72 TORNADO
     75 scan/1 80 SEISAI 85 RAITEI 90 mageMasokurai/1 95 HYORETSU 100 ENBU
@@ -13,6 +15,8 @@ export default {
     165 mageMeguri/3 170 ZETTAIREIDO 175 mageMasokurai/2 180 GOKUENRAN 185 mageOkibi/2 190 KOKUUHA
     195 TENPENCHII 200 KYOKUDAI`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 凍える霧で群れを撃ち、足を鈍らせる (水の全体・浅い版)
+    MAGE_HYOUMU: { name: "氷霧", mp: 5, kind: "atk", power: 14, element: "water", debuff: { agi: 0.85 }, target: "all-enemy", desc: "凍える霧が敵全体を撃ち、動きを鈍らせる" },
     // 五行の乱れで敵全体を撃ち、全属性への守りをわずかに緩める (属性崩しの全体・浅い版)
     MAGE_GOGYOUKUZUSHI: { name: "五行崩し", mp: 9, kind: "atk", power: 14, vuln: { all: 0.88 }, target: "all-enemy", desc: "五行の乱れで敵全体を撃ち、全属性の守りを緩める" },
   },

@@ -2,9 +2,11 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 修羅 = 止まらない連撃と殺気。六臂の多段斬り、殺気で敵を竦ませ (弱体)、戦いが長引くほど昂ぶる
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "asuraShisen/1",
   table: `
     1 KYOUGEKI 2 KAENGIRI 3 DOUBLE 5 asuraTakaburi/1 7 SHIPPUUGIRI 10 ASURA_KIKI
-    12 ASURA_SOUGA 15 asuraShisen/1 20 ASURA_SAKKI 22 KAENNAGI 25 asuraMe/1 30 SHURADOU
+    12 ASURA_SOUGA 15 ASURA_SANKAZAN 20 ASURA_SAKKI 22 KAENNAGI 25 asuraMe/1 30 SHURADOU
     35 asuraTakaburi/2 40 ASHURAZAN 45 asuraSakki/1 50 ASURA_SANMEN 55 ASURA_KOKYUU 57 GURENZAN
     60 asuraShisen/2 65 ASURA_KYUUSHO 70 asuraMe/2 75 asuraSogi/1 80 ASURA_SHIZAN 82 FUUGA
     85 ASURA_ROPPI 90 asuraTakaburi/3 95 ASURA_SOU 100 ASURA_KEKKA 105 asuraShisen/3 107 ASURA_KARIN
@@ -13,6 +15,8 @@ export default {
     165 asuraSakki/3 170 ASURA_SENPUU 175 asuraTakaburi/4 180 ASURA_RENGOKU 185 asuraSogi/3 190 ASURA_SHURAOU
     195 ASURA_KYOUHYOU 200 RINNE`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 三面六臂のごとく炎刃を三度振るう
+    ASURA_SANKAZAN: { name: "三火斬", mp: 6, kind: "phys", power: 0.7, hits: 3, acc: 0.4, element: "fire", target: "enemy", desc: "三面六臂のごとく炎の刃を三度振るう（火）" },
     ASURA_KIKI: { name: "鬼気斬り", mp: 6, kind: "phys", power: 1.4, acc: 0.3, debuff: { atk: 0.85 }, target: "enemy", desc: "鬼気を纏う斬撃。敵の力を削ぐ" },
     ASURA_SOUGA: { name: "双牙", mp: 5, kind: "phys", power: 0.7, hits: 2, critBonus: 0.35, target: "enemy", desc: "二本の牙のごとく急所を二度突く" },
     ASURA_SAKKI: { name: "殺気", mp: 6, kind: "debuff", debuff: { agi: 0.8 }, target: "all-enemy", tech: true, desc: "殺気で敵全体を竦ませ、素早さを下げる" },

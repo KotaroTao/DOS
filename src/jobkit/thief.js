@@ -1,9 +1,11 @@
 // 盗賊 (thief) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "thiefKasume/1",
   table: `
     1 kantei/1 2 STEAL 3 POISONSTAB 5 ambushCrit/1 7 FUYUU 10 KEMURIDAMA
-    12 SUNAKAKE 15 thiefKasume/1 20 KASUMEGIRI 22 SHIBIREBARI 25 thiefTsukekomi/1 30 ASSASSINATE
+    12 SUNAKAKE 15 THIEF_SURINUKE 20 KASUMEGIRI 22 SHIBIREBARI 25 thiefTsukekomi/1 30 ASSASSINATE
     35 thiefKasume/2 40 OBORO 45 thiefNigegoshi/1 50 THIEF_TAKARASAGASHI 55 MAKIBISHI 57 FUUGA
     60 venomBlade/1 65 TSUJIKAZE 70 sleepKill/1 75 thiefShikake/1 80 ZETSUEI 85 SHIPPUTSUKI
     90 thiefKasume/3 95 ENGETSUJIN 100 MOUDOKUSASHI 105 thiefTsukekomi/2 107 KAMIKAZE 110 KAGEUCHI
@@ -12,6 +14,8 @@ export default {
     170 ANSATSU 175 thiefTsukekomi/3 180 SENKOUZAN 185 thiefNigegoshi/3 190 HISSATSU 195 MUGEN
     200 ZANSEI`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 脇をすり抜けざまに二度斬り、懐を掠める (素早さで伸びる)
+    THIEF_SURINUKE: { name: "すり抜け斬り", mp: 4, kind: "phys", power: 0.8, hits: 2, agiScale: 0.4, steal: 0.3, target: "enemy", desc: "敵の脇をすり抜けざまに二度斬り、懐の金品を掠め取る（AGIで伸びる）" },
     // 迷宮で唱える術: 盗人の鼻で、この階の宝箱の在りかを青い光として嗅ぎ当てる
     THIEF_TAKARASAGASHI: { name: "宝探し", mp: 5, kind: "field", sense: "chest", target: "all-ally", desc: "この階の宝箱の在りかが、墓石の下の青い光として浮かび上がる。中身や罠、ミミックかどうかまでは分からない（迷宮で唱える）" },
   },

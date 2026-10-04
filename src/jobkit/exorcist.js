@@ -3,9 +3,11 @@
 import { UNHOLY } from "./common.js";
 
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "exorcistHama/1",
   table: `
     1 EXORCIST_HARAIBA 2 SUIGETSU 3 HOLYRAY 5 exorcistTaima/1 7 KIYOMEMIZU 10 CURE
-    12 KOUJIN 15 exorcistHama/1 20 HARAI 22 UZUSHIO 25 exorcistSakibarai/1 30 EXORCIST_KEGAREDACHI
+    12 KOUJIN 15 EXORCIST_HAMANOYA 20 HARAI 22 UZUSHIO 25 exorcistSakibarai/1 30 EXORCIST_KEGAREDACHI
     35 exorcistMisogi/1 40 HAJANOTACHI 45 exorcistSeikon/1 50 TAIMA 55 EXORCIST_KOUU 57 HYOUJIN
     60 exorcistMisogi/2 65 EXORCIST_KIYOBARAI 70 exorcistSakibarai/2 75 exorcistHama/2 80 EXORCIST_SANKO 82 SEIGEKI
     85 KIYOME 90 exorcistTaima/2 95 EXORCIST_INDOU 100 EXORCIST_SEISA 105 exorcistSeikon/2 107 EXORCIST_REISUI
@@ -14,6 +16,8 @@ export default {
     165 exorcistTaima/3 170 TAIMAJIN 175 resistAilment/2 180 EXORCIST_ROKKON 185 exorcistSeikon/4 190 EXORCIST_OOHARAE
     195 EXORCIST_GOUMA 200 EXORCIST_KENSHOU`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 破魔の矢。不浄の者に深く刺さる光の呪文
+    EXORCIST_HAMANOYA: { name: "破魔矢", mp: 5, kind: "atk", power: 18, element: "light", prey: { races: UNHOLY, mul: 1.4 }, target: "enemy", desc: "破魔の矢を放つ。不浄の者に大きく効く（光）" },
     EXORCIST_HARAIBA:     { name: "祓い刃", mp: 4, kind: "phys", power: 1.1, pieScale: 0.3, element: "light", prey: { races: UNHOLY, mul: 1.8 }, target: "enemy", desc: "祈りを込めた刃。不浄の者に大ダメージ（光）" },
     EXORCIST_KEGAREDACHI: { name: "穢れ断ち", mp: 5, kind: "phys", power: 1.2, critBonus: 0.35, strip: true, target: "enemy", desc: "穢れごと強化を断ち切る（会心UP）" },
     EXORCIST_KOUU:        { name: "祓いの光雨", mp: 9, kind: "atk", power: 22, element: "light", debuff: { hit: 0.9 }, target: "all-enemy", desc: "光の雨が敵陣を打ち、目を眩ませる（光）" },

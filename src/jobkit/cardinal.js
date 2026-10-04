@@ -4,8 +4,10 @@
 import { UNHOLY } from "./common.js";
 
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "cardinalIgen/1",
   table: `
-    1 DIOS 3 CURE 5 cardinalShiboku/1 7 HOLYRAY 10 PROTECT 15 cardinalIgen/1
+    1 DIOS 3 CURE 5 cardinalShiboku/1 7 HOLYRAY 10 PROTECT 15 CARDINAL_HAMONNOCHOKU
     17 REGEN 20 DIOSALL 25 cardinalMeisou/1 30 DIAL 35 cardinalKekkai/1 40 CARDINAL_SEIYU
     45 cardinalShiboku/2 50 REVIVE 55 CARDINAL_TAISHA 60 cardinalMeisou/2 65 CARDINAL_SHIKYOUJOU 70 cardinalMeisou/3
     75 cardinalIgen/2 80 CARDINAL_SHOUROU 85 CARDINAL_RESSEI 90 cardinalShiboku/3 95 CARDINAL_SEIIBUTSU 100 CARDINAL_SHIEI
@@ -14,6 +16,8 @@ export default {
     165 resistAilment/2 170 CARDINAL_SHUKUSEI 175 cardinalIshi/3 180 CARDINAL_TENJOU 185 cardinalKekkai/3 190 CARDINAL_KOUCHUU
     195 KYOUKOUNOSHUKUFUKU 200 CARDINAL_SEIZA`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 破門を言い渡し、強化を剥いで特技を封じる
+    CARDINAL_HAMONNOCHOKU: { name: "破門の勅書", mp: 5, kind: "debuff", strip: true, seal: { chance: 0.6, turns: 3 }, target: "enemy", desc: "破門を言い渡し、敵の強化を剥いで特技を封じる" },
     CARDINAL_SEIYU: { name: "聖油の秘跡", mp: 14, kind: "heal", power: 26, cure: true, grantBarrier: 1, target: "all-ally", desc: "聖油で全員を癒し清め、魔障壁を授ける" },
     CARDINAL_TAISHA: { name: "大赦の勅", mp: 9, kind: "cure", purge: true, debuffAll: { atk: 0.9 }, target: "all-ally", desc: "全員の異常と弱体を赦し、敵の気勢を削ぐ" },
     CARDINAL_SHIKYOUJOU: { name: "司教杖の癒し", mp: 8, kind: "heal", power: 52, revive: true, purge: true, target: "ally", desc: "杖をかざし大きく癒す。倒れた者も起こす" },

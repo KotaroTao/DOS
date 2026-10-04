@@ -2,8 +2,10 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 水と風の叡智。攻めの呪文の余光で隊を癒し、癒しと守りを同じ手で編む。品の真贋を見抜く鑑定の目も持つ (鑑定Lv2)。
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "sageChouwa/1",
   table: `
-    1 kantei/2 3 DIOS 5 sageJunkan/1 7 ICENEEDLE 10 CURE 15 sageChouwa/1
+    1 kantei/2 3 DIOS 5 sageJunkan/1 7 ICENEEDLE 10 CURE 15 SAGE_SEIRYUU
     20 MAHALITO 22 AQUAWAVE 25 sageIzumi/1 27 WINDSTORM 30 SAGE_CHIE 35 sageSuifuu/1
     40 SHINRANOSABAKI 45 sageJunkan/2 47 ICELANCE 50 DIOSALL 55 MAYOKE 60 sageJihi/1
     65 SAGE_SHINRI 70 sageChouwa/2 72 SAGE_SEIFUU 75 sageIzumi/2 80 SAGE_KAZEGAERI 85 SAGE_NAGI
@@ -13,6 +15,8 @@ export default {
     170 SAGE_CHOUWA 175 sageJunkan/4 180 SAGE_HOMURA 185 sageJihi/3 190 SAGE_SHINEN 195 SAGE_SHINRA
     200 SAGE_SHUUKYOKU`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 清流の調べで群れを打ち、余韻で隊を癒す
+    SAGE_SEIRYUU: { name: "清流の調べ", mp: 7, kind: "atk", power: 13, element: "water", partyHeal: 5, target: "all-enemy", desc: "清流の調べが敵全体を打ち、その余韻で味方全員を癒す" },
     SAGE_CHIE:      { name: "叡智の授け", mp: 7, kind: "buff", buff: { int: 1.3 }, purge: true, target: "ally", desc: "味方のINTを高め、弱体を解く" },
     SAGE_SHINRI:    { name: "真理の暴き", mp: 9, kind: "debuff", vuln: { all: 0.8 }, strip: true, target: "enemy", desc: "強化を暴き崩し、全属性の守りを下げる" },
     SAGE_SEIFUU:    { name: "清風の渦", mp: 11, kind: "atk", power: 30, element: "wind", partyHeal: 8, target: "all-enemy", desc: "清風の渦が敵を裂き、味方を癒す" },

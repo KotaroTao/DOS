@@ -1,9 +1,11 @@
 // 義賊 (brigand) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "appraise/1",
   table: `
     1 KYOUGEKI 2 STEAL 3 SUIGETSU 5 goldLuck/1 7 BRIGAND_ZENITSUBUTE 10 BRIGAND_TEBIKI
-    12 YAMIBA 15 appraise/1 20 ASHIBARAI 22 UZUSHIO 25 brigandGifun/1 30 BRIGAND_HAIKAGURA
+    12 YAMIBA 15 BRIGAND_MINEUCHI 20 ASHIBARAI 22 UZUSHIO 25 brigandGifun/1 30 BRIGAND_HAIKAGURA
     35 brigandUdekujiki/1 40 OIHAGI 45 brigandKabau/1 50 BRIGAND_KUJIKI 55 BRIGAND_AIKUCHI 57 HYOUJIN
     60 goldLuck/2 65 BRIGAND_TACHIMAWARI 70 brigandUdekujiki/2 75 brigandHodokoshi/1 80 BRIGAND_HODOKOSHI 85 BRIGAND_MIZUZEME
     90 brigandGifun/2 95 BRIGAND_KAGEFUMI 100 BRIGAND_AKUDAIKAN 105 brigandKabau/2 107 BRIGAND_HISAME 110 BRIGAND_JINGI
@@ -12,6 +14,8 @@ export default {
     170 BRIGAND_TENCHUU 175 brigandKabau/3 180 BRIGAND_SENRYOU 185 brigandHodokoshi/3 190 TENKAGOMEN 195 BRIGAND_YATOU
     200 BRIGAND_HONKAI`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 峰で打って怯ませ、懐から抜き取る
+    BRIGAND_MINEUCHI: { name: "峰打ち", mp: 4, kind: "phys", power: 1.0, flinchChance: 0.3, steal: 0.5, target: "enemy", desc: "峰で打ち据えて怯ませ、懐から金品を抜き取る" },
     BRIGAND_ZENITSUBUTE: { name: "銭つぶて", mp: 3, kind: "phys", power: 0.55, acc: 0.8, flinchChance: 0.4, target: "enemy", desc: "銭を投げつけて怯ませる" },
     BRIGAND_TEBIKI:      { name: "義の手引き", mp: 3, kind: "buff", buff: { agi: 1.3 }, target: "ally", tech: true, desc: "仲間の手を引き、素早さを上げる" },
     BRIGAND_HAIKAGURA:   { name: "灰神楽", mp: 7, kind: "debuff", debuff: { hit: 0.8 }, target: "all-enemy", tech: true, desc: "灰を巻き上げ、敵全体の狙いを乱す" },

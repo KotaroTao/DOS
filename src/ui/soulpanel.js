@@ -12,7 +12,7 @@ import { countUp } from "./motion.js";
 import { showSkillPopup, SPELL_KIND_LABEL } from "./itemview.js";
 import {
   SOUL_CLASSES, jobSprite, jobBust, soulByUid, soulRankOf, soulLevelCapOf, emberCostOf, nextRankThreshold, jobRankName, soulSeriesName,
-  soulLearnedSkills, soulLearnedPassives, soulLabel, soulRankLeft, passiveName, passiveDesc, ORDER_PERK, PASSIVES, orderPassiveMap, orderPerkLv,
+  soulLearnedSkills, soulLearnedPassives, soulLabel, soulRankLeft, passiveName, passiveDesc, orderStatBonus, orderStatRateOfRank, ORDER_STAT_RATES,
   jobSkillTable, recalcDoll, subPicks, subPickCap, toggleSubPick, subPickIndex,
 } from "../souls.js";
 import { SPELLS } from "../combat.js";
@@ -333,7 +333,15 @@ function lockedTile(k, text) {
   return t;
 }
 
-// ---- 控えの結社: タイル (席の数・発動中の加護) → シート ----
+// ---- 控えの結社: タイル (席の数・全員への上乗せ) → シート ----
+// 席の魂の能力の一部 (魂ランクで R1 3% 〜 R5 8%) が人業の全員に加わる。技・パッシブは関係しない (souls.js orderStatBonus)
+const ORDER_RATE_TEXT = `R1 ${Math.round(ORDER_STAT_RATES[1] * 100)}% 〜 R5 ${Math.round(ORDER_STAT_RATES[5] * 100)}%`;
+// 能力の上乗せを「HP+12 ATK+3 …」に (1未満は省く)
+function bonusText(b) {
+  const parts = [];
+  for (const k in STAT_L) { const v = Math.round((b && b[k]) || 0); if (v > 0) parts.push(`${STAT_L[k]}+${v}`); }
+  return parts.join(" ");
+}
 function orderTile(town) {
   const open = game.featureUnlocked ? game.featureUnlocked("order") : false;
   if (!open) {
@@ -341,16 +349,14 @@ function orderTile(town) {
     const at = (game.FEATURE_AT && game.FEATURE_AT.order) || 5;
     return lockedTile("控えの結社", `${at} 迷宮の踏破報告で開く (${c}/${at})`);
   }
-  const G = G_();
   const seats = game.orderSeats ? game.orderSeats() : 0;
   const seated = game.orderSeatedUids ? game.orderSeatedUids() : [];
-  const activeMap = orderPassiveMap(G.party, seated);
-  const parts = Object.entries(activeMap).map(([p, lv]) => passiveName(p, lv));
+  const bt = seated.length ? bonusText(orderStatBonus(seated)) : "";
   const t = el("div", "sp-tile sp-order");
   const m = el("button", "sp-tile-main");
   m.type = "button";
   m.appendChild(el("span", "sp-tile-k", `控えの結社 ・ 席 ${seated.length}/${seats}`));
-  m.appendChild(el("span", "sp-tile-s", parts.length ? `加護: ${parts.join("・")}` : "パーティに出していない魂を席に着ける"));
+  m.appendChild(el("span", "sp-tile-s", bt ? `全員に ${bt}` : "パーティに出していない魂を席に着ける"));
   m.addEventListener("click", () => openOrderSheet(town));
   t.appendChild(m);
   return t;
@@ -360,6 +366,7 @@ export function openOrderSheet(town = true) {
   let h = null;
   h = sheet.open({
     kind: "info", banner: "控えの結社", className: "sp-pick-sheet",
+    lines: [`席に着けた魂の能力の一部 (${ORDER_RATE_TEXT}) が、人業の全員に加わる。パーティに出している魂は席に着けない。`],
     body: (scroll) => orderBody(scroll, town, () => h && h.update({})),
   });
   return h;
@@ -368,49 +375,36 @@ function orderBody(root, town, again) {
   const G = G_();
   const fielded = new Set();
   for (const dd of G.party) { if (dd.primary != null) fielded.add(dd.primary); for (const s of (dd.subs || [])) if (s) fielded.add(s.uid); }
-  const benched = G.souls.filter((s) => !fielded.has(s.uid) && soulRankOf(s) >= 2).sort(game.soulSortCmp || (() => 0));
+  const benched = G.souls.filter((s) => !fielded.has(s.uid));
   const seats = game.orderSeats ? game.orderSeats() : 0;
   const seated = game.orderSeatedUids ? game.orderSeatedUids() : [];
   const seatedSet = new Set(seated);
   const full = seated.length >= seats;
-  const nextSeatAt = seats >= 3 ? null : seats >= 2 ? 45 : seats >= 1 ? 30 : 20;
+  const FA = game.FEATURE_AT || {};
+  const nextSeatAt = seats >= 3 ? null : seats >= 2 ? FA.order3 : seats >= 1 ? FA.order2 : FA.order;
   const info = el("div", "sp-order-info");
   info.appendChild(el("span", "sp-order-seats", `席 ${seated.length} / ${seats}`));
   if (nextSeatAt) info.appendChild(el("span", "pt-note", `次の席は ${nextSeatAt} 迷宮の踏破報告で`));
   root.appendChild(info);
-  const activeMap = orderPassiveMap(G.party, seated);
-  if (seated.length) {
-    const parts = Object.entries(activeMap).map(([p, lv]) => passiveName(p, lv));
-    root.appendChild(el("div", "sp-order-on", `発動中の加護: ${parts.length ? parts.join("・") : "なし"}`));
-  }
+  if (seated.length) root.appendChild(el("div", "sp-order-on", `全員に: ${bonusText(orderStatBonus(seated)) || "なし"}`));
   if (!benched.length) {
-    root.appendChild(el("div", "pt-note", "パーティに出していない魂をランク2以上に育てると、席に着けてパーティ全体の加護を授けられる。同じ加護は最も高いLvだけが効く。"));
+    root.appendChild(el("div", "pt-note", "パーティに出していない魂がいない。控えの魂を席に着けると、その能力の一部が全員に加わる。"));
     return;
   }
-  const perkOf = (s) => ORDER_PERK[s.clsKey] || "";
-  const perkLvOf = (s) => { const p = perkOf(s); return p && PASSIVES[p] ? Math.min(PASSIVES[p].lv.length, orderPerkLv(soulRankOf(s))) : 0; };
-  const provider = {};
-  for (const uid of seated) {
-    const s = soulByUid(uid); if (!s) continue;
-    const p = perkOf(s);
-    if (p && perkLvOf(s) === activeMap[p] && provider[p] == null) provider[p] = uid;
-  }
-  const sorted = benched.slice().sort((a, b) =>
-    (seatedSet.has(b.uid) ? 1 : 0) - (seatedSet.has(a.uid) ? 1 : 0) || perkOf(a).localeCompare(perkOf(b)) || soulRankOf(b) - soulRankOf(a));
+  // 席に着いている魂 → 全員に足す能力の大きい順
+  const weight = (s) => { const b = orderStatBonus([s.uid]); return b.hp * 0.15 + b.mp * 0.25 + b.atk + b.vit + b.agi + b.int * 0.7 + b.pie * 0.7 + b.luk * 0.6; };
+  const sorted = benched.slice().sort((a, b) => (seatedSet.has(b.uid) ? 1 : 0) - (seatedSet.has(a.uid) ? 1 : 0) || weight(b) - weight(a));
   const list = el("div", "pt-list");
   for (const s of sorted) {
-    const perk = perkOf(s);
-    if (!perk || !PASSIVES[perk]) continue;
     const rank = soulRankOf(s);
-    const lv = perkLvOf(s);
     const isSeated = seatedSet.has(s.uid);
-    const redundant = isSeated && provider[perk] !== s.uid;
-    const sub = el("span", "ui-row-sub", `${passiveName(perk, lv)}: ${passiveDesc(perk, lv)}${redundant ? " ― 同じ加護を上位の席が供給中" : ""}`);
+    const rate = Math.round(orderStatRateOfRank(rank) * 100);
+    const sub = el("span", "ui-row-sub", `全員に ${rate}%: ${bonusText(orderStatBonus([s.uid])) || "—"}`);
     const right = town ? button({ label: isSeated ? "外す" : "着席", kind: isSeated ? "ghost" : "primary", size: "sm", disabled: !isSeated && full,
       onTap: (e) => { if (e) e.stopPropagation(); if (game.toggleOrderSeat) game.toggleOrderSeat(s.uid); again(); } }) : (isSeated ? "着席中" : "");
-    const r = row({ icon: orb(s.clsKey, rank, 32), title: `${jobRankName(s.clsKey, rank)}（R${rank}）${isSeated ? " ・ 着席中" : ""}`, sub, right });
+    const r = row({ icon: orb(s.clsKey, rank, 32), title: `${soulLabel(s)} Lv${s.level}${isSeated ? " ・ 着席中" : ""}`, sub, right });
     r.classList.add("sp-orow");
-    if (isSeated) r.classList.add(redundant ? "redundant" : "seated");
+    if (isSeated) r.classList.add("seated");
     list.appendChild(r);
   }
   root.appendChild(list);

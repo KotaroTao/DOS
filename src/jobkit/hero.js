@@ -2,9 +2,11 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 仲間を鼓舞し何でもこなす希望の剣と雷の剣。強敵にこそ燃え、倒れた仲間の分まで立つ (風/光)
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "heroKaisenGourei/1",
   table: `
     1 KYOUGEKI 2 SHIPPUUGIRI 3 DIOS 5 heroKyoutekiFunki/1 7 YUUSHANOICHIGEKI 10 BLESS
-    12 KOUJIN 15 heroKaisenGourei/1 20 KOBU 22 REPPUU 25 heroKibouHidamari/1 30 RAIKOUKEN
+    12 KOUJIN 15 HERO_CHIKAINOHATA 20 KOBU 22 REPPUU 25 heroKibouHidamari/1 30 RAIKOUKEN
     35 heroYuushaSenaka/1 37 HERO_JINRAI 40 SEIKEN 45 heroKyoutekiFunki/2 50 DIOSALL 55 NIOUDACHI
     57 FUUGA 60 heroOrenuKokoro/1 65 SEIGEKI 70 heroKyoutekiFunki/3 75 heroKaisenGourei/2 80 HERO_YUUKITOMOSHIBI
     85 HERO_SAIKI 90 resistAilment/1 95 HERO_KIBOUSENKOU 100 HERO_SHIPPUUTAIKEN 105 heroYuushaSenaka/2 107 HERO_FUURAI
@@ -13,6 +15,8 @@ export default {
     165 heroKaisenGourei/3 170 HERO_KIBOUICHITOU 175 heroKyoutekiFunki/4 180 HERO_DAIKAGO 185 heroYuushaSenaka/3 190 RAIJINKEN
     195 HERO_YOAKE 200 TENMEINOKEN`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 誓いを掲げて隊を奮い立たせる
+    HERO_CHIKAINOHATA: { name: "誓いの旗", mp: 7, kind: "buff", buff: { atk: 1.15, vit: 1.1 }, target: "all-ally", desc: "誓いを掲げて隊を奮い立たせ、味方全体の攻撃力と防御を上げる" },
     HERO_JINRAI: { name: "迅雷", mp: 9, kind: "atk", power: 26, element: "wind", para: 0.25, flinchChance: 0.15, target: "enemy", desc: "迅き雷で撃ち、痺れさせ怯ませる" },
     HERO_YUUKITOMOSHIBI: { name: "勇気の灯", mp: 10, kind: "buff", buff: { atk: 1.1 }, cure: true, purge: true, target: "all-ally", desc: "全員の異常と弱体を祓い、奮い立たせる" },
     HERO_SAIKI: { name: "再起の呼び声", mp: 9, kind: "heal", power: 0, revive: true, revivePct: 0.4, grantEndure: true, target: "ally", desc: "倒れた仲間を呼び起こし (HP40%)、致死を一度耐えさせる" },

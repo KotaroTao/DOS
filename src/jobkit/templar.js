@@ -4,9 +4,11 @@
 import { UNHOLY } from "./common.js";
 
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "templarKairitsu/1",
   table: `
     1 SHIELDBASH 2 KOUJIN 3 CURE 5 templarMonshu/1 7 CHOUHATSU 10 PROTECT
-    12 NERAIUCHI 15 templarKairitsu/1 17 HOLYLIGHT 20 FUUMANOTATE 25 templarFuumakusabi/1 30 NIOUDACHI
+    12 NERAIUCHI 15 TEMPLAR_MONKEKKAI 17 HOLYLIGHT 20 FUUMANOTATE 25 templarFuumakusabi/1 30 NIOUDACHI
     35 templarKairitsu/2 40 SEIIKINOKANE 45 templarMonkekkai/1 50 DIOSALL 55 TEMPLAR_KUSARIUCHI 57 TEMPLAR_SEIINUCHI
     60 templarMayoke/1 65 TEMPLAR_MONZENNOHARAI 70 resistAilment/1 75 templarFuumakusabi/2 80 TEMPLAR_MISOGI 82 TEMPLAR_HAKAINOISHIZUCHI
     85 TEMPLAR_HAMANOKOUSA 90 templarMonkekkai/2 95 TEMPLAR_MONBANNOKAMAE 100 TEMPLAR_HAMANOOOZUCHI 105 templarFuumakusabi/3 110 TEMPLAR_SEIIKIKEKKAI
@@ -15,6 +17,8 @@ export default {
     170 TEMPLAR_SHUMONNOJIN 175 templarKairitsu/3 180 TEMPLAR_SEIDOUKISHI 185 templarMonkekkai/4 190 TEMPLAR_SHINDENNOSHINPAN 195 TEMPLAR_SAIRINNOSEIMON
     200 TEMPLAR_ZETTAIKEKKAI`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 門に立ち塞がって敵を引き付け、魔障壁を張る
+    TEMPLAR_MONKEKKAI: { name: "門の結界", mp: 5, kind: "buff", taunt: true, grantBarrier: 1, target: "self", desc: "門に立ち塞がって敵を引き付け、魔障壁を張る" },
     TEMPLAR_KUSARIUCHI: { name: "鎖打ち", mp: 7, kind: "phys", power: 1.3, acc: 0.8, seal: { chance: 0.35, turns: 2 }, target: "enemy", desc: "聖鎖を絡めて打ち、特技を封じる" },
     TEMPLAR_SEIINUCHI: { name: "聖印打ち", mp: 12, kind: "phys", power: 2.0, pieScale: 0.5, element: "light", acc: 0.6, mpDrain: 0.15, target: "enemy", desc: "聖印を刻んで打ち、魔力を吸い上げる" },
     TEMPLAR_MONZENNOHARAI: { name: "門前の祓い", mp: 7, kind: "buff", buff: { vit: 1.2 }, purge: true, target: "all-ally", desc: "味方全体の守りを固め、弱体を祓う" },

@@ -1,5 +1,6 @@
 // 職ごとの技・パッシブの集約窓口 (jobkit)。
-// 各職のファイル (fighter.js …) が { table, skills, perks } を持つ:
+// 各職のファイル (fighter.js …) が { awaken, table, skills, perks } を持つ:
+//   awaken = 覚醒のパッシブ「パッシブキー/Lv」。魂がランク2に上がると目覚める (souls.js の JOB_PASSIVES。宿し技として貸せる)
 //   table  = 習得表。「Lv 技キー」または「Lv パッシブキー/パッシブLv」を空白区切りで並べた文字列 (souls.js の T が展開する)
 //   skills = その職だけの固有技。skilldefs.js の SPELLS に合流する (項目の意味は skilldefs.js 冒頭)
 //   perks  = その職だけの固有パッシブ。souls.js の PASSIVES に合流し (名前・説明)、効果 fx は combat.js が読む
@@ -134,9 +135,12 @@ function checkPerk(job, key, pk) {
 export const JOBKIT_SKILLS = {};
 export const JOBKIT_PERKS = {};
 export const JOBKIT_TABLES = {};
+export const JOBKIT_AWAKEN = {};
 for (const job in JOBKIT) {
   const kit = JOBKIT[job];
   JOBKIT_TABLES[job] = kit.table;
+  if (!/^[a-z][A-Za-z0-9]+\/\d$/.test(kit.awaken || "")) fail(job, "awaken", "「パッシブキー/Lv」が必要");
+  JOBKIT_AWAKEN[job] = kit.awaken;
   for (const key in kit.skills || {}) {
     if (JOBKIT_SKILLS[key]) fail(job, key, "技キーが他の職と重複");
     checkSkill(job, key, kit.skills[key]);

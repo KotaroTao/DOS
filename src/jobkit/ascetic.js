@@ -2,9 +2,11 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 山岳の荒行。滝行・火渡りで己を鍛え、身を削って打ち・癒し、護摩の炎と山の土で敵を焼き崩す (土・火)
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "asceticYoujou/1",
   table: `
     1 KYOUGEKI 2 IWAKUDAKI 3 DIOS 5 asceticAragyou/1 7 NERAIUCHI 8 ASCETIC_TSUBUTE
-    10 ASCETIC_TAKIGYOU 12 ASCETIC_FUDOUBI 15 asceticYoujou/1 20 KUJI 22 CHIRETSU 25 asceticAragyou/2
+    10 ASCETIC_TAKIGYOU 12 ASCETIC_FUDOUBI 15 ASCETIC_GENRIKISHOU 20 KUJI 22 CHIRETSU 25 asceticAragyou/2
     30 ASCETIC_HIWATARI 32 ASCETIC_JISHIN 35 asceticNyuubu/1 40 SHASHINNOGYOU 45 asceticDoukou/1 50 GOMA
     55 SHINGANGEKI 57 GANOTOSHI 60 asceticNyuubu/2 65 ASCETIC_SHAKUJOU 70 asceticYoujou/2 75 asceticMoeagari/1
     80 ASCETIC_SARASHIMI 82 ASCETIC_KAENSHAKUJOU 85 ASCETIC_YAMABUSHIGUSURI 90 asceticAragyou/3 95 ASCETIC_IWAOTOOSHI 100 ASCETIC_ZAOU
@@ -13,6 +15,8 @@ export default {
     160 ASCETIC_KASHOUZANMAI 165 asceticAragyou/4 170 ASCETIC_SHAKUJOURANBU 175 resistAilment/2 180 ASCETIC_SHASHINKUYOU 185 asceticYoujou/4
     190 ASCETIC_SHASHINJOUBUTSU 195 ASCETIC_FUDOUKAEN 200 GONGENOROSHI`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 験力を込めた掌打 (土)。PIE でも伸びる
+    ASCETIC_GENRIKISHOU: { name: "験力の掌", mp: 5, kind: "phys", power: 1.2, pieScale: 0.4, element: "earth", flinchChance: 0.25, target: "enemy", desc: "験力を込めた掌打で打ち、怯ませる（PIEでも伸びる・土）" },
     // 験力の術 (faith)。共通の呪文は INT 依存で修験者 (PIE型) に合わないので置き換える
     ASCETIC_TSUBUTE:  { name: "験力の礫", mp: 3, kind: "atk", power: 12, element: "earth", faith: true, target: "enemy", desc: "念を込めた礫を打つ（PIEでも伸びる）" },
     ASCETIC_FUDOUBI:  { name: "不動の火焔", mp: 2, kind: "atk", power: 10, element: "fire", faith: true, target: "enemy", desc: "不動明王の火焔で焼く（PIEでも伸びる）" },

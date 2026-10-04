@@ -3,9 +3,11 @@
 import { BEASTS } from "./common.js";
 
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "hunterKoei/1",
   table: `
     1 DOKUYA 2 SUIGETSU 3 ASHIDOME 5 hunterKemono/1 7 SOGEKI 10 YANOAME
-    12 ABURA 15 hunterKoei/1 20 SHIBIREYA 22 HUNTER_KEHAIYOMI 25 hunterAshinerai/1 30 KEMONOGARI
+    12 ABURA 15 HUNTER_NINOYA 20 SHIBIREYA 22 HUNTER_KEHAIYOMI 25 hunterAshinerai/1 30 KEMONOGARI
     35 hunterKemono/2 40 KUBIKARI 45 hunterAshinerai/2 50 TSURANUKI 55 HUNTER_HAYATEYA 57 FUUGA
     60 hunterKoei/2 65 HUNTER_KABURAYA 70 hunterKazeyomi/1 75 senseEnemy/1 80 HYOUJIN 82 RENSHA
     85 HUNTER_TORABASAMI 90 hunterAshinerai/3 95 SENNYA 100 HUNTER_ITEYA 105 hunterKemono/3 110 HUNTER_TAKAOTOSHI
@@ -14,6 +16,8 @@ export default {
     170 HUNTER_TOMEYA 175 hunterKemono/4 180 HUNTER_AMIUCHI 185 hunterKazeyomi/2 190 HUNTER_KARIGAMI 195 HUNTER_BAKUFU
     200 HUNTER_HOSHIOTOSHI`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 間を置かず二の矢を継ぐ確実な連射
+    HUNTER_NINOYA: { name: "二の矢", mp: 5, kind: "phys", power: 0.85, hits: 2, acc: 0.6, agiScale: 0.3, target: "enemy", desc: "間を置かずに二の矢を継ぎ、確実に射抜く（AGIで伸びる）" },
     // 迷宮で唱える術: 獣を追う勘で、この階の魔物の居場所を赤い気配として浮かび上がらせる
     HUNTER_KEHAIYOMI:    { name: "気配読み", mp: 4, kind: "field", sense: "enemy", target: "all-ally", desc: "この階の魔物の居場所が、墓石の下の赤い気配として浮かび上がる。何が潜むかまでは分からない（迷宮で唱える）" },
     HUNTER_HAYATEYA:     { name: "疾風の一矢", mp: 9, kind: "phys", power: 1.3, agiScale: 0.9, acc: 0.4, element: "wind", target: "enemy", desc: "風に乗せた速射（風・命中UP）" },

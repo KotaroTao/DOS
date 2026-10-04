@@ -4,9 +4,11 @@
 import { DRAGONS } from "./common.js";
 
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "dragonknightRyuurin/1",
   table: `
     1 SHIELDBASH 2 SHIPPUUGIRI 3 NERAIUCHI 5 dragonknightHishou/1 7 TENSHOU 10 CHOUHATSU
-    12 KAENGIRI 15 dragonknightRyuurin/1 20 RYUURIN 22 REPPUU 25 dragonknightIkari/1 30 RYUUKOU
+    12 KAENGIRI 15 DRAGONKNIGHT_RYUUSOUTSUKI 20 RYUURIN 22 REPPUU 25 dragonknightIkari/1 30 RYUUKOU
     35 dragonknightRyuuketsu/1 40 RYUZETSU 45 dragonknightRyuuketsu/2 50 RYUURINJIN 55 RYUUEN 57 FUUGA
     60 dragonknightHishou/2 65 NIOUDACHI 70 dragonknightRyuurin/2 75 dragonknightRyuugan/1 80 DRAGONKNIGHT_RYUUSOU 82 GURENZAN
     85 DRAGONKNIGHT_RYUUYOKU 90 resistAilment/1 95 DRAGONKNIGHT_RYUUGA 100 DRAGONKNIGHT_KOURYUUGEKI 105 dragonknightIkari/2 107 DRAGONKNIGHT_FUURYUU
@@ -15,6 +17,8 @@ export default {
     165 dragonknightIkari/3 170 DRAGONKNIGHT_RYUUOUDAN 175 dragonknightRyuugan/3 180 DRAGONKNIGHT_RYUUSEIRAKU 185 dragonknightHishou/3 190 DRAGONKNIGHT_GOUKA
     195 DRAGONKNIGHT_RYUURINJIN 200 RYUUTEIGEKI`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 竜をも貫く槍の一突き
+    DRAGONKNIGHT_RYUUSOUTSUKI: { name: "竜槍突き", mp: 5, kind: "phys", power: 1.4, acc: 0.6, pierce: 0.3, prey: { races: DRAGONS, mul: 1.3 }, target: "enemy", desc: "竜をも貫く槍の一突き。防御を一部抜き、竜に強い" },
     DRAGONKNIGHT_RYUUSOU: { name: "竜爪裂き", mp: 16, kind: "phys", power: 2.0, hits: 2, pierce: 0.4, acc: 0.7, target: "enemy", desc: "竜の爪のごとく二度裂く（防御を一部無視）" },
     DRAGONKNIGHT_RYUUYOKU: { name: "竜翼の庇い", mp: 10, kind: "buff", buff: { vit: 1.3, agi: 1.1 }, tech: true, target: "all-ally", desc: "竜の翼を広げ、味方全体の守りと身のこなしを上げる" },
     DRAGONKNIGHT_RYUUGA: { name: "竜牙穿ち", mp: 14, kind: "phys", power: 2.3, acc: 0.7, debuff: { vit: 0.8 }, flinchChance: 0.25, target: "enemy", desc: "竜の牙で鎧を穿ち、怯ませる" },

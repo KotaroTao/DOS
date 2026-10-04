@@ -2,9 +2,11 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 魔闘士 = 拳と呪文を織り交ぜる剛の魔法 (土/火)。拳で魔力を巡らせ、怯ませ・焼き印を刻み、そこへ呪文を叩き込む
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "battlemageKuzushi/1",
   table: `
     1 KYOUGEKI 2 KAENGIRI 3 HALITO 5 battlemageJunkan/1 7 NERAIUCHI 8 ISHITSUBUTE
-    10 BAKUENKEN 12 IWAKUDAKI 15 battlemageKuzushi/1 20 BATTLEMAGE_GOUMA 22 KAENNAGI 25 battlemageGoutai/1
+    10 BAKUENKEN 12 IWAKUDAKI 15 BATTLEMAGE_GANKEN 20 BATTLEMAGE_GOUMA 22 KAENNAGI 25 battlemageGoutai/1
     30 MAHALITO 32 EARTHQUAKE 35 battlemageYakiin/1 40 HAMANOKEN 45 battlemageKuzushi/2 50 ELEMBREAK
     55 SAIKEN 57 BATTLEMAGE_KASHA 60 battlemageJunkan/2 65 BATTLEMAGE_GANKENDAN 70 battlemageKutsuu/1 75 resistAilment/1
     80 BATTLEMAGE_HAPPA 82 BATTLEMAGE_JINARI 85 BATTLEMAGE_ENDAN 90 battlemageGoutai/2 95 BATTLEMAGE_MACHIRASHI 100 MAJINKEN
@@ -13,6 +15,8 @@ export default {
     160 BATTLEMAGE_INTETSU 165 battlemageYakiin/4 170 GANSAI 175 battlemageJunkan/3 180 BATTLEMAGE_BAKUENRANDA 185 battlemageKuzushi/4
     190 BATTLEMAGE_SHAKUNETSU 195 TOUSHINHAGEKI 200 BATTLEMAGE_TENPOU`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 魔力で岩を纏った拳。INT で伸び、守りを砕く
+    BATTLEMAGE_GANKEN: { name: "岩拳", mp: 5, kind: "phys", power: 1.2, intScale: 0.4, acc: 0.5, element: "earth", debuff: { vit: 0.85 }, target: "enemy", desc: "魔力で岩を纏った拳。守りを砕く（INTでも伸びる・土）" },
     BATTLEMAGE_GOUMA: { name: "剛魔の構え", mp: 4, kind: "buff", buff: { int: 1.3, vit: 1.2 }, target: "self", tech: true, desc: "魔力を練り、身を岩のように固める" },
     BATTLEMAGE_KASHA: { name: "火車拳", mp: 11, kind: "phys", power: 1.2, hits: 2, intScale: 0.4, element: "fire", acc: 0.4, target: "enemy", desc: "炎の車輪のごとく二度打ち込む" },
     BATTLEMAGE_GANKENDAN: { name: "岩拳弾", mp: 8, kind: "atk", power: 28, element: "earth", debuff: { vit: 0.85 }, target: "enemy", desc: "岩の拳を撃ち出し、守りを砕く" },

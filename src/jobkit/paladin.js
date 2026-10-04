@@ -4,9 +4,11 @@
 import { UNHOLY } from "./common.js";
 
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "paladinKoukan/1",
   table: `
     1 SHIELDBASH 2 KOUJIN 3 DIOS 5 paladinGaisen/1 7 HAJA 10 NERAIUCHI
-    12 IWAKUDAKI 15 paladinKoukan/1 17 HOLYLIGHT 20 CHOUHATSU 22 KOURINZAN 25 paladinNanori/1
+    12 IWAKUDAKI 15 PALADIN_INORINOKEN 17 HOLYLIGHT 20 CHOUHATSU 22 KOURINZAN 25 paladinNanori/1
     30 SEINOTATE 35 smite/1 40 SEIKOUZAN 45 paladinKoukan/2 50 SHINGANGEKI 55 GUARDALL
     57 PALADIN_JIKOUZAN 60 paladinGaisen/2 65 PALADIN_KENNOSHUKUTOU 70 holyEdge/1 75 martyr/1 80 PALADIN_HIKARINOJOUHEKI
     85 PALADIN_JOUKOURIN 90 resistAilment/1 95 PALADIN_SEIYAKUNOGI 100 PALADIN_SABAKINOSEIKEN 105 paladinKoukan/3 107 TENKOUKEN
@@ -15,6 +17,8 @@ export default {
     170 PALADIN_JUNKYOUNOTATE 175 paladinFukutsu/2 180 PALADIN_SEIKISHIDAN 185 paladinSeikenkago/2 190 PALADIN_REIMEI 195 PALADIN_SEIKIGAN
     200 PALADIN_SEIKENKOURIN`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 祈りを込めた一太刀。返す光が隊を癒す
+    PALADIN_INORINOKEN: { name: "祈りの剣", mp: 6, kind: "phys", power: 1.2, element: "light", partyHeal: 6, target: "enemy", desc: "祈りを込めて斬り、返す光で味方全員を癒す" },
     PALADIN_JIKOUZAN: { name: "慈光斬", mp: 12, kind: "phys", power: 2.0, pieScale: 0.5, element: "light", acc: 0.6, partyHeal: 8, target: "enemy", desc: "祈りを込めて斬り、光の余韻が隊を癒す" },
     PALADIN_KENNOSHUKUTOU: { name: "剣の祝祷", mp: 7, kind: "heal", power: 15, buff: { atk: 1.1 }, target: "all-ally", desc: "剣を掲げて祈り、味方全員を癒し攻撃を少し上げる" },
     PALADIN_HIKARINOJOUHEKI: { name: "光の城壁", mp: 10, kind: "buff", buff: { vit: 1.3 }, cure: true, target: "all-ally", desc: "光の壁で味方全体を守り、状態異常を祓う" },

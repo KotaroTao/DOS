@@ -4,9 +4,11 @@
 import { UNHOLY } from "./common.js";
 
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "chaplainKouei/1",
   table: `
     1 SHIELDBASH 2 KOUJIN 3 CURE 5 chaplainJungo/1 7 CHOUHATSU 10 PROTECT
-    12 SUIGETSU 15 chaplainKouei/1 17 HOLYLIGHT 20 NIOUDACHI 25 chaplainNamida/1 30 GUARDALL
+    12 SUIGETSU 15 CHAPLAIN_INORINOTATE 17 HOLYLIGHT 20 NIOUDACHI 25 chaplainNamida/1 30 GUARDALL
     35 chaplainZankyou/1 40 HOUSHOUHEKI 45 chaplainJungo/2 50 CHAPLAIN_INORINOTATEUCHI 55 CHAPLAIN_JOUSUI 57 CHAPLAIN_MABAYUKISEITSUI
     60 resistAilment/1 65 CHAPLAIN_MIGAWARI 70 chaplainSeiku/1 75 chaplainKouei/2 80 CHAPLAIN_MIZUKAGAMI 82 CHAPLAIN_NAGI
     85 CHAPLAIN_INORINOKOUHA 90 chaplainJungo/3 95 CHAPLAIN_SHUGONOSEIIN 100 CHAPLAIN_JUNREI 105 chaplainZankyou/2 107 CHAPLAIN_MAMORINOKOUKEN
@@ -15,6 +17,8 @@ export default {
     170 CHAPLAIN_JUNKYOUSHA 175 chaplainZankyou/3 180 CHAPLAIN_SEIDAN 185 chaplainNamida/3 190 CHAPLAIN_SEIRYUUKOU 195 CHAPLAIN_YOMIGAERI
     200 CHAPLAIN_SEIGOJOU`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 祈りの盾で味方を包む
+    CHAPLAIN_INORINOTATE: { name: "祈りの盾", mp: 5, kind: "buff", buff: { vit: 1.25 }, grantBarrier: 1, target: "ally", desc: "祈りの盾で味方を包み、防御を上げて魔障壁を張る" },
     CHAPLAIN_INORINOTATEUCHI: { name: "祈りの盾打ち", mp: 6, kind: "phys", power: 1.3, vitScale: 0.3, acc: 0.9, flinchChance: 0.25, target: "enemy", desc: "祈りを込めた盾で打ち、怯ませる（命中UP）" },
     CHAPLAIN_JOUSUI: { name: "浄水の撒布", mp: 9, kind: "heal", power: 6, cure: true, purge: true, target: "all-ally", desc: "聖水を撒いて穢れと弱体を流し、少し癒す" },
     CHAPLAIN_MABAYUKISEITSUI: { name: "眩き聖槌", mp: 12, kind: "phys", power: 2.0, pieScale: 0.5, element: "light", acc: 0.6, debuff: { hit: 0.85 }, target: "enemy", desc: "眩い聖槌で打ち、敵の狙いを乱す" },

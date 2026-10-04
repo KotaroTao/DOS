@@ -2,9 +2,11 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 断罪の鉄槌と浄火。罪を封じ、弱った罪人の急所を打ち据える (火/光)
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "inquisitorShinmonNirami/1",
   table: `
     1 SHIELDBASH 2 KAENGIRI 3 DIOS 5 inquisitorKokkaiTomoshibi/1 7 NERAIUCHI 10 SHINMON
-    12 INQUISITOR_SHOKUZAI 15 inquisitorShinmonNirami/1 20 INQUISITOR_KASEUCHI 22 KAENNAGI 25 resistAilment/1 30 KAKEI
+    12 INQUISITOR_SHOKUZAI 15 INQUISITOR_DANZAI 20 INQUISITOR_KASEUCHI 22 KAENNAGI 25 resistAilment/1 30 KAKEI
     32 INQUISITOR_HAMON 35 inquisitorShinmonNirami/2 40 DANZAINOTSUCHI 45 inquisitorIhanShirushi/1 50 INQUISITOR_YAKIIN 55 DIOSALL
     57 GURENZAN 60 inquisitorKokkaiTomoshibi/2 65 SHINGANGEKI 70 inquisitorZaininKyuusho/1 75 inquisitorIhanShirushi/2 80 INQUISITOR_IHANHAGI
     85 INQUISITOR_MANAZASHI 90 inquisitorShinmonNirami/3 95 INQUISITOR_SABAKIYARI 100 INQUISITOR_GOUMON 105 resistAilment/2 107 INQUISITOR_JOUKATSUCHI
@@ -13,6 +15,8 @@ export default {
     165 inquisitorShinmonNirami/4 170 INQUISITOR_DANTOU 175 inquisitorJoukaKokoroe/3 180 INQUISITOR_JOUZAI 185 inquisitorKokkaiTomoshibi/3 190 SAIGONOSHINPAN
     195 INQUISITOR_YURUSHI 200 INQUISITOR_SHAMEN`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 罪人を鉄槌で打つ。弱った者に重く、特技を封じる
+    INQUISITOR_DANZAI: { name: "罪人打ち", mp: 5, kind: "phys", power: 1.3, acc: 0.5, execute: 1.6, seal: { chance: 0.3, turns: 2 }, target: "enemy", desc: "罪人を鉄槌で打ち据える。弱った敵に重く、特技を封じる" },
     // 信仰の火 (faith)。共通の炎の呪文は INT 依存で審問官 (PIE型) に合わないので置き換える
     INQUISITOR_SHOKUZAI: { name: "贖罪の火矢", mp: 2, kind: "atk", power: 10, element: "fire", faith: true, target: "enemy", desc: "罪を贖わせる火の矢（PIEでも伸びる）" },
     INQUISITOR_HAMON:    { name: "破門の炎", mp: 6, kind: "atk", power: 22, element: "fire", faith: true, target: "all-enemy", desc: "破門を告げる炎が敵全体を焼く（PIEでも伸びる）" },

@@ -3,9 +3,11 @@
 // 持ち味: 死者の力を借り、命と魂を吸い、即死で刈り取る (闇)。死に近い者ほど深く刺さる
 const LIVING = ["humanoid", "giant", "beast", "avian"];
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "necromancerMeifuIzumi/1",
   table: `
     1 NECROMANCER_MOUJANOTE 2 SHADOWBOLT 3 NECROMANCER_SHISOU 5 necromancerShikuirai/1 7 NECROMANCER_KOMORIUTA 10 NECROMANCER_SEIKISUI
-    15 necromancerMeifuIzumi/1 20 KUGUTSU 22 NECROMANCER_ONRYOU 25 necromancerShishaSasayaki/1 30 NECROMANCER_HAKAMORI 32 DARKBLAST
+    15 NECROMANCER_SHIREIMANEKI 20 KUGUTSU 22 NECROMANCER_ONRYOU 25 necromancerShishaSasayaki/1 30 NECROMANCER_HAKAMORI 32 DARKBLAST
     35 necromancerShinigamiMe/1 40 MEIKONGURAI 45 necromancerShikabaneKate/1 50 NECROMANCER_SHIMEI 55 NECROMANCER_SHIDOKU 60 necromancerShikuirai/2
     65 REVIVE 70 necromancerShinigamiMe/2 72 NECROMANCER_KOUSHIN 75 necromancerShishaSasayaki/2 80 NECROMANCER_KONBAKU 85 NECROMANCER_INOCHISOGI
     90 necromancerMeifuIzumi/2 95 NECROMANCER_SEIJANETAMI 100 NECROMANCER_KUSARESHOUKI 105 resistAilment/1 110 MADALT 115 necromancerShikabaneKate/2
@@ -14,6 +16,8 @@ export default {
     172 NECROMANCER_TAMAGARI 175 necromancerMeifuIzumi/3 180 MEIFUNOMON 185 necromancerShikabaneKate/3 190 NECROMANCER_SANZU 195 NECROMANCER_MEIGA
     200 NECROMANCER_SOUSOU`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 死霊を招いて撃ち、まれに魂を刈る
+    NECROMANCER_SHIREIMANEKI: { name: "死霊招き", mp: 5, kind: "atk", power: 16, element: "dark", instakill: { chance: 0.08 }, target: "enemy", desc: "死霊を招いて撃つ。まれに魂を刈り取る（即死・主には効かない）" },
     // 死霊術師は PIE が低く癒しの祈りに向かない: 傷は敵から吸って塞ぐ
     NECROMANCER_SEIKISUI: { name: "生気吸い", mp: 3, kind: "atk", power: 12, element: "dark", drain: 0.5, target: "enemy", desc: "闇で敵の生気を吸い、己の傷を塞ぐ" },
     NECROMANCER_MOUJANOTE: { name: "亡者の手", mp: 3, kind: "debuff", debuff: { agi: 0.8, hit: 0.85 }, target: "enemy", desc: "地から亡者の手が伸び、足と狙いを鈍らせる" },

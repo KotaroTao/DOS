@@ -2,9 +2,11 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 規律と槍突きの忠義 — 隊列を守る前衛の鉄則、強化を剥ぎ力を削ぐ槍、倒れた仲間に報いる誓い
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "cover/1",
   table: `
     1 SHIELDBASH 2 NERAIUCHI 3 taunt/1 5 CHOUHATSU 7 PROTECT 10 KOTE
-    12 IWAKUDAKI 15 cover/1 20 NIOUDACHI 22 KOUJIN 25 knightTessoku/1 30 RYUURINJIN
+    12 IWAKUDAKI 15 KNIGHT_JINTOTSU 20 NIOUDACHI 22 KOUJIN 25 knightTessoku/1 30 RYUURINJIN
     35 cover/2 40 JOUMON 45 bastion/1 50 SHINGANGEKI 55 IRONWALL 57 GANOTOSHI
     60 knightTessoku/2 65 SHIELDCHARGE 70 parry/1 75 knightFutai/1 80 BOUJIN 82 KNIGHT_HAJINSOU
     85 KNIGHT_YARIBUSUMA 90 resistAilment/1 95 SHUGOHOUKOU 100 JOUSAITSUKI 105 knightTessoku/3 107 KNIGHT_JINARI
@@ -13,6 +15,8 @@ export default {
     165 resistAilment/2 170 TESSAINAGI 175 knightHoujin/2 180 KISHIOU 185 knightOath/1 190 FUDOUJIN
     195 DAIGOUREI 200 FURAKUJOU`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 隊列を崩さず槍を突き入れ、強化を剥いで力を削ぐ
+    KNIGHT_JINTOTSU: { name: "陣突き", mp: 5, kind: "phys", power: 1.2, acc: 0.6, strip: true, debuff: { atk: 0.85 }, target: "enemy", desc: "隊列を崩さず槍を突き入れ、敵の強化を剥いで力を削ぐ" },
     KNIGHT_HAJINSOU: { name: "破陣の聖槍", mp: 12, kind: "phys", power: 2.0, pieScale: 0.3, element: "light", acc: 0.7, strip: true, target: "enemy", desc: "光の槍で突き、敵の強化を剥ぐ" },
     KNIGHT_YARIBUSUMA: { name: "槍衾", mp: 6, kind: "buff", stance: "counter", buff: { vit: 1.15 }, dur: 2, tech: true, target: "self", desc: "穂先を揃えて待ち、物理に必ず突き返す" },
     KNIGHT_JINARI: { name: "地鳴りの槍", mp: 20, kind: "phys", power: 4.6, element: "earth", acc: 0.8, pierce: 0.3, debuff: { atk: 0.8 }, target: "enemy", desc: "踏み込みの突きで鎧を穿ち、力を削ぐ" },

@@ -8,7 +8,7 @@ import { JOB_LORE_RANKS } from "./joblore.js";
 import { JOB_IMAGES } from "./jobart.js";
 import { JOB_PHOTOS, PHOTO_RES } from "./jobphotos.js";
 import { ICONS } from "./sprites.js";
-import { JOBKIT_TABLES, JOBKIT_PERKS } from "./jobkit/index.js";
+import { JOBKIT_TABLES, JOBKIT_PERKS, JOBKIT_AWAKEN } from "./jobkit/index.js";
 import { SPELLS } from "./skilldefs.js";
 
 export const PARTS = ["head", "rhand", "lhand", "body", "legs"];
@@ -313,54 +313,14 @@ const P = (key, lv = 1) => ({ name: passiveName(key, lv), desc: passiveDesc(key,
 const U = (name, desc, grants) => ({ name, desc, grants });
 
 // ===== 職業パッシブ表 [ランク2,3,4,5] =====
-export const JOB_PASSIVES = {
-  // コモン
-  // 戦士はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
-  fighter:     [],
-  // 騎士はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
-  knight:      [],
-  // 僧侶はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
-  priest:      [],
-  // 魔導士はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
-  mage:        [],
-  // 盗賊はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
-  thief:       [],
-  // 司教はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
-  bishop:      [],
-  // レア (パッシブはレベルスキル表 JOB_SKILLS に織り込み済み)
-  samurai:     [],
-  berserker:   [],
-  hunter:      [],
-  shadow:      [],
-  paladin:     [],
-  guardian:    [],
-  spellblade:  [],
-  monk:        [],
-  hexer:       [],
-  hermit:      [],
-  brigand:     [],
-  arcthief:    [],
-  // エピック (パッシブはレベルスキル表 JOB_SKILLS に織り込み済み)
-  crusader:    [],
-  battlemage:  [],
-  darkknight:  [],
-  templar:     [],
-  exorcist:    [],
-  warden:      [],
-  arcanist:    [],
-  inquisitor:  [],
-  archbishop:  [],
-  ascetic:     [],
-  // レジェンド (パッシブはレベルスキル表 JOB_SKILLS に織り込み済み)
-  hero:        [],
-  asura:       [],
-  dragonknight:[],
-  necromancer: [],
-  sage:        [],
-  cardinal:    [],
-  archmage:    [],
-  chaplain:    [],
-};
+// ランク2 = 覚醒のパッシブ (jobkit の awaken。以前は Lv15 で覚えていたパッシブ)。ランク3以上の行は無い
+// (他のパッシブはレベルスキル表 JOB_SKILLS に織り込み済み)
+export const JOB_PASSIVES = {};
+for (const k in JOBKIT_AWAKEN) {
+  const [key, lv] = JOBKIT_AWAKEN[k].split("/");
+  if (!PASSIVES[key]) throw new Error(`souls: ${k} の覚醒のパッシブ ${key} が無い`);
+  JOB_PASSIVES[k] = [P(key, +lv)];
+}
 
 export function jobPassiveTable(jobKey) { return JOB_PASSIVES[jobKey] || []; }
 export function passivesUpTo(jobKey, rank) {
@@ -863,31 +823,34 @@ export const JOB_SIGNATURE = (() => {
 })();
 export function signatureSkillOf(clsKey) { return JOB_SIGNATURE[clsKey] || null; }
 
-// ===== 控えの結社 (ベンチの加護) =====
+// その職の魂がランク rank で得ている覚醒のパッシブ {key, lv, name, desc}。ランク1なら null
+export function awakenPerkOf(clsKey, rank) {
+  const e = (rank || 1) >= 2 ? (JOB_PASSIVES[clsKey] || [])[0] : null;
+  if (!e) return null;
+  const [key, lv] = Object.entries(e.grants)[0];
+  return { key, lv, name: e.name, desc: e.desc };
+}
+
+// ===== 控えの結社 =====
 // 編成に出していない (primary/sub いずれにも使っていない) 魂を「結社」の席に着けると、
-// 職業テーマ別のパーティ全体パッシブを供給する。加護Lvは魂ランク連動 (orderPerkLv: R2=Lv1 / R3・R4=Lv2 / R5=Lv3)。
-// 席数は game.js の orderSeats() (D20で1, D30で2, D45で3)。着席選択は orderPassiveMap の picks 引数で渡す。
-// 効果は探索ユーティリティのパーティ範囲パッシブに限定。職テーマ別に分散し、同一加護は最大3職まで。
-export const ORDER_PERK = {
-  // 戦士系: 警戒 / 先制 / 逃げ足
-  fighter: "vigilance", knight: "vigilance", guardian: "vigilance",
-  samurai: "initiative", hero: "initiative", asura: "initiative",
-  berserker: "fleetFoot", monk: "fleetFoot", dragonknight: "fleetFoot",
-  // 術者系: 敵感知 / 弱点看破 / 踏破の地図
-  mage: "senseEnemy", battlemage: "senseEnemy", warden: "senseEnemy",
-  spellblade: "scan", hexer: "scan", darkknight: "scan",
-  sage: "cartography", archmage: "cartography", arcanist: "cartography",
-  // 聖職系: 戦間回復 / 加護の祈り / 毒床耐性
-  priest: "fieldRegen", chaplain: "fieldRegen", exorcist: "fieldRegen",
-  paladin: "wardField", templar: "wardField", crusader: "wardField",
-  ascetic: "poisonFloor", hermit: "poisonFloor",
-  // 司教/特殊系: 魂寄せ / 魂の薫陶 / 目利き
-  archbishop: "soulLure", necromancer: "soulLure",
-  cardinal: "soulTutor", inquisitor: "appraise",
-  // 盗賊系: 金運 / 値切り / 罠師の目 / 宝物庫 / 財宝感知
-  thief: "goldLuck", brigand: "goldLuck",
-  arcthief: "bargain", shadow: "trapEye", bishop: "vault", hunter: "senseTreasure",
-};
+// その魂の能力 (jobStatsOf) の一部が人業の全員に加わる (サブ魂の能力加算と同じ形)。技・パッシブは関係しない。
+// 割合は魂ランクで決まる (ORDER_STAT_RATES: R1 3% 〜 R5 8%。全員に効くのでサブ魂より薄い)。
+// 席数は game.js の orderSeats() (報告5で1, 7で2, 11で3)。席に着いている魂は game.js が setOrderSource で渡す。
+export const ORDER_STAT_RATES = [0, 0.03, 0.04, 0.05, 0.06, 0.08];
+export function orderStatRateOfRank(rank) { return ORDER_STAT_RATES[Math.max(1, Math.min(5, rank || 1))]; }
+let ORDER_SRC = () => [];
+export function setOrderSource(fn) { ORDER_SRC = typeof fn === "function" ? fn : () => []; }
+// 結社の席の魂が人業1人に足す能力 {hp, mp, atk…} (端数のまま)。uids 省略時は今の席
+export function orderStatBonus(uids) {
+  const out = { hp: 0, mp: 0, atk: 0, vit: 0, agi: 0, int: 0, pie: 0, luk: 0 };
+  for (const uid of (uids || ORDER_SRC() || [])) {
+    const s = soulByUid(uid);
+    if (!s) continue;
+    const st = jobStatsOf(s.clsKey, s), rate = orderStatRateOfRank(soulRankOf(s));
+    for (const k in out) out[k] += (st[k] || 0) * rate;
+  }
+  return out;
+}
 // 編成中の魂 (primary/sub) の uid 集合を返す
 export function fieldedSoulUids(party) {
   const set = new Set();
@@ -897,34 +860,6 @@ export function fieldedSoulUids(party) {
     for (const s of (d.subs || [])) if (s && s.uid != null) set.add(s.uid);
   }
   return set;
-}
-// 魂ランク → 結社加護Lv。R2=Lv1 / R3・R4=Lv2 / R5=Lv3 (案A)
-export function orderPerkLv(rank) { return rank >= 5 ? 3 : rank >= 3 ? 2 : 1; }
-// その職の魂がランク rank で得ている覚醒のパッシブ (= 控えの結社の加護)。ランク1/加護の無い職は null
-export function awakenPerkOf(clsKey, rank) {
-  const key = ORDER_PERK[clsKey];
-  if (!key || !PASSIVES[key] || (rank || 1) < 2) return null;
-  const lv = Math.min(PASSIVES[key].lv.length, orderPerkLv(rank));
-  return { key, lv, name: passiveName(key, lv), desc: passiveDesc(key, lv) };
-}
-// 結社が供給するパーティパッシブ {passiveKey: lv}。編成外ランク2以上の魂が対象。
-// picks (席に着けた魂uidの配列/Set) を渡すと、その魂だけを集計する (席選択UI用)。未指定なら全控え魂。
-export function orderPassiveMap(party, picks) {
-  const fielded = fieldedSoulUids(party);
-  const pickSet = picks ? (picks instanceof Set ? picks : new Set(picks)) : null;
-  const map = {};
-  for (const s of SOULS) {
-    if (!s || fielded.has(s.uid)) continue;
-    if (pickSet && !pickSet.has(s.uid)) continue; // 席に着いた魂のみ加護を送る
-    const rank = soulRankFromCount(s.clsKey, s.count);
-    if (rank < 2) continue;
-    const perk = ORDER_PERK[s.clsKey];
-    if (!perk || !PASSIVES[perk]) continue;
-    const lvMax = PASSIVES[perk].lv.length;
-    const lv = Math.min(lvMax, orderPerkLv(rank));
-    map[perk] = Math.max(map[perk] || 0, lv);
-  }
-  return map;
 }
 
 export function dollSouls(doll) { return PARTS.map((p) => doll.parts[p]).filter(Boolean); }
@@ -1056,7 +991,8 @@ export function recalcDoll(doll) {
     const had = picks.length;
     for (let i = picks.length - 1; i >= 0; i--) {
       const p = picks[i];
-      if (!tbl.some((t) => (p.skill ? t.skill === p.skill : t.passive === p.passive))) picks.splice(i, 1);
+      const awk = awakenPerkOf(se.clsKey, 5);
+      if (!tbl.some((t) => (p.skill ? t.skill === p.skill : t.passive === p.passive)) && !(p.passive && awk && awk.key === p.passive)) picks.splice(i, 1);
     }
     if (had && !picks.length) sub.picked = false;
     // 宿したばかり (借用が空で未設定) なら看板スキル相当 (覚えている最後のスキル) を既定にする
@@ -1080,6 +1016,16 @@ export function recalcDoll(doll) {
     const rate = subStatRateOfRank(sr);
     for (const k in st) st[k] += (sst[k] || 0) * rate;
     doll.subInfo.push({ uid: se.uid, clsKey: se.clsKey, rank: sr, level: se.level, cap, picks: used, rate });
+  }
+
+  // 控えの結社: 席の魂の能力の一部を全員に加える (魂を宿していない人業は除く)
+  doll.orderBonus = null;
+  if (pe) {
+    const ob = orderStatBonus();
+    if (Object.values(ob).some((v) => v > 0)) {
+      for (const k in ob) st[k] += ob[k];
+      doll.orderBonus = ob;
+    }
   }
 
   doll.passiveMap = passiveMap;

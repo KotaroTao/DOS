@@ -2,9 +2,11 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 拳と祈りの両立。打つほどに功徳が仲間を癒し、数珠と経で敵の業を封じる (土・風の拳法)
 export default {
+  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
+  awaken: "monkJuzu/1",
   table: `
     1 KYOUGEKI 2 IWAKUDAKI 3 DIOS 5 monkKudoku/1 7 NOUTEN 10 HAKKEI
-    12 FUYUU 15 monkJuzu/1 20 TENKETSU 22 CHIRETSU 25 monkRenkan/1 30 SHINTOU
+    12 FUYUU 15 MONK_KUDOKUSHOU 20 TENKETSU 22 CHIRETSU 25 monkRenkan/1 30 SHINTOU
     35 monkFue/1 40 KONGOURENDA 45 monkKudoku/2 50 KONGOUTAI 55 SHINGANGEKI 57 GANOTOSHI
     60 monkFue/2 65 DIOSALL 70 monkRenkan/2 75 monkJuzu/2 80 HOUKEN 82 FUUGA
     85 MONK_SEKEN 90 monkRenkan/3 95 MONK_MYOUOU 100 HYAKURETSU 105 monkOuhou/1 107 MONK_CHIMYAKU
@@ -13,6 +15,8 @@ export default {
     165 scripture/1 170 MONK_HOURIN 175 monkOuhou/2 180 MONK_GASSHOU 185 monkKudoku/4 190 MONK_KUDOKUNOHIKARI
     195 MONK_NEHAN 200 KONGOUMUSOU`,
   skills: {
+    // Lv15 (覚醒のパッシブが抜けた段): 功徳を込めた掌打。打てば仲間が癒える
+    MONK_KUDOKUSHOU: { name: "功徳掌", mp: 6, kind: "phys", power: 1.2, pierce: 0.3, partyHeal: 4, target: "enemy", desc: "功徳を込めた掌打。防御を一部抜き、味方全員を少し癒す" },
     MONK_SEKEN: { name: "施拳", mp: 10, kind: "phys", power: 1.3, hits: 2, acc: 0.4, partyHeal: 6, target: "enemy", desc: "二打ちの拳の余韻が仲間を癒す" },
     MONK_MYOUOU: { name: "明王の構え", mp: 12, kind: "buff", buff: { atk: 1.4 }, stance: "counter", target: "self", tech: true, desc: "明王の怒りを宿し、攻めつつ反撃に構える" },
     MONK_CHIMYAKU: { name: "地脈掌", mp: 20, kind: "phys", power: 4.4, element: "earth", acc: 0.6, drain: 0.15, target: "enemy", desc: "大地の気を通す掌打。生気を吸い上げる" },
