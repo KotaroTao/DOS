@@ -312,6 +312,9 @@
 #app.in-combat #combat-menu[data-mode="acting"], #app.in-combat #combat-menu[data-mode=""] { justify-content: center; flex: 1 1 auto; }
 #combat-menu .who.who-foe .who-mark { background: linear-gradient(135deg, #ff9a80, #8a120c); box-shadow: 0 0 8px rgba(255,60,40,0.85); }
 #combat-menu .who.who-foe .who-n { color: #ff9a86; text-shadow: 0 0 10px rgba(255,60,40,0.45), 0 1px 0 #000; }
+/* 不確定名 (まだ名を知らない敵「羽ばたく小さなもの？」): 正式な名と見分けるため淡い藤色 (itemview.js UNKNOWN_COLOR と揃える) */
+.unk-name { color: #b9acd9; font-weight: 700; }
+#combat-menu .who.who-unk .who-n, #combat-menu .tgt-n.unk { color: #b9acd9; text-shadow: 0 0 10px rgba(150,130,210,0.4), 0 1px 0 #000; }
 #combat-menu { display: flex; flex-direction: column; gap: 6px; min-height: 0; }
 #combat-menu .who {
   display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 3px 6px;
