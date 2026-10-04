@@ -900,6 +900,13 @@ export function fieldedSoulUids(party) {
 }
 // 魂ランク → 結社加護Lv。R2=Lv1 / R3・R4=Lv2 / R5=Lv3 (案A)
 export function orderPerkLv(rank) { return rank >= 5 ? 3 : rank >= 3 ? 2 : 1; }
+// その職の魂がランク rank で得ている覚醒のパッシブ (= 控えの結社の加護)。ランク1/加護の無い職は null
+export function awakenPerkOf(clsKey, rank) {
+  const key = ORDER_PERK[clsKey];
+  if (!key || !PASSIVES[key] || (rank || 1) < 2) return null;
+  const lv = Math.min(PASSIVES[key].lv.length, orderPerkLv(rank));
+  return { key, lv, name: passiveName(key, lv), desc: passiveDesc(key, lv) };
+}
 // 結社が供給するパーティパッシブ {passiveKey: lv}。編成外ランク2以上の魂が対象。
 // picks (席に着けた魂uidの配列/Set) を渡すと、その魂だけを集計する (席選択UI用)。未指定なら全控え魂。
 export function orderPassiveMap(party, picks) {

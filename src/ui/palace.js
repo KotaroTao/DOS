@@ -23,7 +23,7 @@ import { DUNGEONS, ELEMENTS, RACE_LABEL, monsterTraits, isFloating, resistHpMul,
 import { SPELLS } from "../combat.js";
 import {
   SOUL_CLASSES, jobSprite, jobRankName, jobLoreFor, jobRankCondText, SOUL_STAT_UP, JOB_GEAR,
-  jobPassiveTable, rankThresholds, soulLevelCap, jobSkillTable, passiveName, passiveDesc, JOB_AFFINITY,
+  awakenPerkOf, rankThresholds, soulLevelCap, jobSkillTable, passiveName, passiveDesc, JOB_AFFINITY,
 } from "../souls.js";
 import { rarityColor } from "../rarity.js";
 import { SFX } from "../audio.js";
@@ -569,17 +569,13 @@ export function codexJobSheet(key, rank, heading) {
   } else if (affRow) {
     body.appendChild(infoBlock("得意属性", [affRow]));
   }
-  // パッシブ: 上位の位階に呑まれた同系統の下位Lvは省く
-  const pTbl = jobPassiveTable(key);
-  const claimed = {};
-  const actives = [];
-  for (let r = Math.min(rank, 5); r >= 2; r--) {
-    const e = pTbl[r - 2];
-    if (!e || !Object.entries(e.grants).some(([k, lv]) => lv > (claimed[k] || 0))) continue;
-    for (const k in e.grants) claimed[k] = Math.max(claimed[k] || 0, e.grants[k]);
-    actives.unshift(e);
-  }
-  body.appendChild(infoBlock("パッシブ", actives.length ? actives.map((e) => pairRow(e.name, e.desc)) : [pairRow("なし (ランク2以上で発現)", null, { dim: true })]));
+  // 覚醒のパッシブ (ランク2で目覚め、ランクで強まる)。Lvで覚えるパッシブは下の技の表に並ぶ
+  const perk = awakenPerkOf(key, rank);
+  const perkRows = perk
+    ? [pairRow(perk.name, perk.desc, { onTap: () => showPassivePopup(perk.key, perk.lv) })]
+    : [pairRow(rank >= 2 ? "なし" : "なし (ランク2で目覚める)", null, { dim: true })];
+  if (perk && game.featureUnlocked && game.featureUnlocked("order")) perkRows.push(pairRow("控えの結社の席に着けると、隊全体に効く", null, { dim: true }));
+  body.appendChild(infoBlock("覚醒のパッシブ", perkRows));
   // スキル表: このランクのLv上限まで。到達したLvのものだけ開示
   const reached = (rec && typeof rec === "object" && rec.lv) || 0;
   const capCount = (rankThresholds(SOUL_CLASSES[key].rarity)[rank - 1]) || 1;

@@ -23,7 +23,7 @@ import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, soulIcon,
   recalcDoll, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
   soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills, soulLearnedPassives, soulLabel, subPickCap, jobStatsOf,
-  ORDER_PERK, orderPassiveMap,
+  ORDER_PERK, orderPassiveMap, awakenPerkOf, subPickCapOfRank, subStatRateOfRank,
   PASSIVES,
   SOUL_RANKS, rollJobClass, rollGreatJobClass, SOUL_STAT_UP,
   soulRankFromCount, capForRarityRank, jobRankName, soulSeriesName, pLv,
@@ -12803,17 +12803,29 @@ function showRankUp(info, onClose) {
   flashScreen(accent);
   SFX.rankup(); buzz([0, 60, 40, 60, 40, 70, 90, 220, 120, 320]);
   return uiSoulPanel.celebrateRankUp({
-    ...info, accent, title: jobRankName(clsKey, toRank), hint: rankUnlockHint(toRank),
+    ...info, accent, title: jobRankName(clsKey, toRank), hint: rankUnlockHint(toRank, clsKey),
   }, onClose);
 }
 
-// 各ランク到達で新たに開ける道のヒント (節目を強調)
-function rankUnlockHint(rank) {
-  if (rank === 2) return "★ 覚醒 — 控えの結社パッシブが芽吹き、宿し技として他の人業に貸せるようになった。";
-  if (rank === 3) return "★ 上位の技 — 伸びたLv上限の先に、新たなスキル・パッシブが見えてきた。";
-  if (rank === 4) return "★ 真髄 — 宿し先へランク2パッシブまで託せるようになった。";
-  if (rank === 5) return "★ 極致 — 魂は最高位に至り、Lvの天井が解き放たれた。";
-  return null;
+// 各ランク到達で新たに得たもののヒント (行の配列)。覚醒のパッシブはその名前と効果だけを書き、
+// まだ開いていない仕組み (控えの結社・宿し魂) には触れない
+function rankUnlockHint(rank, clsKey) {
+  const lines = [];
+  const head = { 2: "★ 覚醒", 3: "★ 上位の技 — 伸びたLv上限の先に、新たな技が見えてきた。", 4: "★ 真髄 — Lv上限が大きく伸びた。", 5: "★ 極致 — 魂は最高位に至り、Lvの天井が解き放たれた。" }[rank];
+  if (!head) return null;
+  const perk = awakenPerkOf(clsKey, rank), prev = awakenPerkOf(clsKey, rank - 1);
+  if (perk && (!prev || prev.lv < perk.lv)) {
+    const what = prev ? `覚醒のパッシブが「${perk.name}」に高まった` : `パッシブ「${perk.name}」に目覚めた`;
+    lines.push(rank === 2 ? `${head} — ${what}` : head, ...(rank === 2 ? [] : [what]), perk.desc);
+    if (featureUnlocked("order")) lines.push("控えの結社の席に着けると、隊全体に効く。");
+  } else lines.push(head);
+  if (featureUnlocked("sub1")) {
+    const pc = subPickCapOfRank(rank), pp = subPickCapOfRank(rank - 1);
+    if (pc > pp) lines.push(`宿し魂として、技・パッシブを${pc}つまで貸せるようになった。`);
+    const sr = Math.round(subStatRateOfRank(rank) * 100), sp = Math.round(subStatRateOfRank(rank - 1) * 100);
+    if (sr > sp) lines.push(`宿し先へ分ける能力が ${sp}% → ${sr}% に増えた。`);
+  }
+  return lines;
 }
 
 // 毒のダメージ (盤面を1歩進むごと)

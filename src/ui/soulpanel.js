@@ -883,7 +883,12 @@ export function celebrateRankUp(info, onClose) {
   if (info.statsTo) blocks.push(fuseStats(info));
   const ln = fuseLearned(info);
   if (ln) blocks.push(ln);
-  if (hint) blocks.push(el("div", "sp-ru-hint sp-ru-blk", hint));
+  const hl = Array.isArray(hint) ? hint : hint ? [hint] : [];
+  if (hl.length) {
+    const hb = el("div", "sp-ru-hint sp-ru-blk");
+    hl.forEach((t) => hb.appendChild(el("div", null, t)));
+    blocks.push(hb);
+  }
   const body = (scroll) => blocks.forEach((b) => scroll.appendChild(b));
   return celebrate({
     banner: "✦ RANK UP ✦", accent, art, sparkle: true, className: "sp-cel sp-cel-ru",
