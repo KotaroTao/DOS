@@ -85,6 +85,8 @@ function renderGates(b) {
     const info = el("span", "dp-gate-i");
     const nm = el("span", "dp-gate-n", dn.name);
     if (w.fresh && w.fresh[dn.id] && !isDone) nm.appendChild(el("span", "dp-new", "新"));
+    // 受けている依頼の対象の迷宮: 依頼の印 (2件以上なら件数も)
+    { const qc = game.questHereCount ? game.questHereCount(dn) : 0; if (qc) nm.appendChild(el("span", "dp-qmark", qc > 1 ? `依頼×${qc}` : "依頼")); }
     info.appendChild(nm);
     const band = game.levelBand ? game.levelBand(dn) : [1, 1];
     const meta = [`推奨Lv${band[0]}${band[1] > band[0] ? `〜${band[1]}` : ""}`, `全${dn.floors}階`];
@@ -334,7 +336,7 @@ function footerSpec() {
   const g = G();
   if (cur && cur.page === "abyss") {
     const mul = game.abyssScoreMul ? game.abyssScoreMul(abyssMods) : 1;
-    return [{ label: "奈落へ降りる", sub: `スコア ×${mul.toFixed(2)}`, kind: "primary", size: "lg", onTap: () => { close(); if (game.departAbyss) game.departAbyss(abyssMods, abyssWeekly); } }];
+    return [{ label: "奈落へ降りる", sub: `スコア ×${mul.toFixed(2)}`, kind: "primary", size: "lg", onTap: () => checkWoes(() => { close(); if (game.departAbyss) game.departAbyss(abyssMods, abyssWeekly); }) }];
   }
   const D = game.DUNGEONS || [];
   const dn = D[g.dungeonIdx];
@@ -361,7 +363,44 @@ function refreshFooter() {
   }
   foot.classList.remove("hidden");
 }
+// 門をくぐる前の念押し: HP/MPが減っている・状態異常の者がいれば、ポップアップで知らせてから潜る。
+// 宿が開いていれば「宿で休んでから潜る」(宿賃は宿屋と同じ) も選べる。go() = 実際に潜る
+function checkWoes(go) {
+  let w = null;
+  try { w = game.departWoes ? game.departWoes() : null; } catch (e) { w = null; }
+  if (!w || !w.list.length) { go(); return; }
+  const lines = w.list.map((d) => {
+    const p = [];
+    if (d.ail) p.push(d.ail);
+    if (d.hp < d.maxhp) p.push(`HP ${d.hp}/${d.maxhp}`);
+    if (d.mp < d.maxmp) p.push(`MP ${d.mp}/${d.maxmp}`);
+    return `${d.name} ― ${p.join(" ・ ")}`;
+  });
+  const ail = w.list.some((d) => d.ail);
+  const hurt = w.list.some((d) => d.hp < d.maxhp || d.mp < d.maxmp);
+  const what = ail && hurt ? "傷も異常も" : ail ? "状態異常が" : "HP・MPが";
+  const footer = [];
+  if (w.innOpen) {
+    const ok = (G().gold || 0) >= w.cost;
+    footer.push({ label: "宿で休んでから潜る", sub: ok ? `💰${w.cost} ・ 全快して門をくぐる` : `💰${w.cost} ・ お金が足りない`, kind: "primary", size: "lg", disabled: !ok,
+      onTap: (h) => { h.close("ok", { silent: true }); const r = ops.restParty ? ops.restParty() : null; if (r && r.ok) go(); } });
+  }
+  footer.push({ label: "このまま潜る", kind: w.innOpen ? "danger" : "primary", size: w.innOpen ? undefined : "lg", onTap: (h) => { h.close("ok", { silent: true }); go(); } });
+  footer.push({ label: "やめる", kind: "ghost", onTap: (h) => h.close("cancel") });
+  sfx("select");
+  sheet.open({
+    kind: "choice", banner: "念押し", accent: "#c98a2a",
+    title: `${what}癒えていない者がいる`,
+    lines: [...lines, "迷宮の中では宿に泊まれない。このまま門をくぐるか？"],
+    className: "ui-confirm dp-woes",
+    footer,
+  });
+}
 function depart() {
+  if (!cur) return;
+  checkWoes(departGo);
+}
+function departGo() {
   const g = G();
   if (!cur) return;
   const accept = !!(cur.accept && cur.hasMut);
