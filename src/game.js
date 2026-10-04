@@ -72,6 +72,7 @@ import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 import { refSoul, refGold, trainCost, lvPow, emberMul, partyAgi, LOCK_K, TRAP_K, lockPow } from "./levelcurve.js";
 import { tlOn, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlPlayTick, tlSoul } from "./telemetry.js";
 import { repriceEquipment } from "./pricing.js";
+import { spawnFx, drawBattleFx, weaponFxStyle, statusFxKind, ELEM_FX_COL } from "./battlefx.js";
 
 // ===== コンテンツの取り込み =====
 // アイテム: 一点物の手作りカタログ (src/catalog/)。二つ名つきの量産品は廃止。
@@ -532,6 +533,7 @@ const G = {
   animating: false,   // 戦闘アニメーション中
   enemyPos: {},       // 敵の画面座標 (エフェクト配置用)
   partyFx: null,      // 味方カードの被弾/回復フラッシュ (Map)
+  partyFxV: null,     // 味方カードに重ねる戦闘の演出 (爪痕・属性・回復の光…。renderParty の .pc-fx)
   wallFlash: null,    // ブロックされた壁の赤フラッシュ { x, y, dir, t0 }
   statusOpen: false,  // ステータス画面表示中
   statusIdx: 0,       // ステータス画面で選択中のメンバー
@@ -7018,6 +7020,7 @@ function startBattle(enemies, cell) {
   G.animating = false;
   G.enemyPos = {};
   if (G.partyFx) G.partyFx.clear();
+  G.partyFxV = null;
   autosave(true); // 戦闘開始を保存
   // 居合・開幕呪撃の演出を先に流してから手番処理へ (発動を視覚的に伝える)
   const opens = G.battle.openingResults || [];
@@ -7909,7 +7912,7 @@ function drawEffects(fx, now) {
     const a0 = -1.4, a1 = a0 + 2.6 * sweep;
     vctx.globalCompositeOperation = "lighter";
     vctx.globalAlpha = fade * 0.55;
-    vctx.strokeStyle = s.crit ? "#ffb040" : "#ff5a3a";
+    vctx.strokeStyle = s.el && ELEM_FX_COL[s.el] && s.el !== "none" ? ELEM_FX_COL[s.el][1] : s.crit ? "#ffb040" : "#ff5a3a";
     vctx.lineWidth = 9;
     vctx.lineCap = "round";
     vctx.beginPath(); vctx.arc(0, 0, R, a0, a1); vctx.stroke();
@@ -7933,36 +7936,8 @@ function drawEffects(fx, now) {
     }
     vctx.restore();
   }
-  // 魔法: 属性色の閃光 → 広がる環 → 火花
-  for (const m of fx.magic) {
-    const t = (now - m.t0) / 380;
-    if (t < 0 || t > 1) continue;
-    vctx.save();
-    vctx.globalCompositeOperation = "lighter";
-    const flash = Math.max(0, 1 - t * 2.2);
-    if (flash > 0) {
-      const g = vctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, 46);
-      g.addColorStop(0, `rgba(255,255,255,${0.75 * flash})`);
-      g.addColorStop(0.35, hexA(m.color, 0.55 * flash));
-      g.addColorStop(1, hexA(m.color, 0));
-      vctx.fillStyle = g;
-      vctx.fillRect(m.x - 46, m.y - 46, 92, 92);
-    }
-    vctx.globalAlpha = 1 - t;
-    vctx.strokeStyle = m.color;
-    vctx.lineWidth = 3.5 * (1 - t) + 0.5;
-    vctx.beginPath(); vctx.arc(m.x, m.y, 6 + t * 40, 0, Math.PI * 2); vctx.stroke();
-    vctx.strokeStyle = "rgba(255,255,255,0.8)";
-    vctx.lineWidth = 1;
-    vctx.beginPath(); vctx.arc(m.x, m.y, 4 + t * 28, 0, Math.PI * 2); vctx.stroke();
-    vctx.fillStyle = m.color;
-    for (let kk = 0; kk < 10; kk++) {
-      const a = (kk / 10) * Math.PI * 2 + t * 2.6;
-      const r = 8 + t * 36;
-      vctx.fillRect(m.x + Math.cos(a) * r - 1.5, m.y + Math.sin(a) * r - 1.5, 3, 3);
-    }
-    vctx.restore();
-  }
+  // 武器・属性・状態異常ごとの演出 (battlefx.js)
+  drawBattleFx(vctx, fx.skill, now, VW, VH, REDUCED_MOTION);
   // 画面の縁が紅く脈打つ (味方被弾)
   if (fx.screen) {
     const t = (now - fx.screen.t0) / 300;
@@ -8537,8 +8512,11 @@ function animateResult(res, done) {
   const staggerSteps = Math.max(maxStack - 1, partyHealN - 1);
   const TOTAL = WIND + (360 + staggerSteps * HIT_STAGGER) * spdMul();
   G.fx = { lunge: res.side === "enemy" && res.action !== "eflee" ? { uid: res.actor.uid, p: 0 } : null,
-           slashes: [], magic: [], floats: [], screen: null, flash: {}, deaths: [] };
+           slashes: [], skill: [], floats: [], screen: null, flash: {}, deaths: [] };
   G.partyFx = G.partyFx || new Map();
+  G.partyFxV = new Map();
+  // 隊の札の演出の長さも一手の余韻に合わせる (テンポを落とさない)
+  partyEl.style.setProperty("--fxd", Math.max(0.16, Math.min(0.5, 0.36 * spdMul())).toFixed(2) + "s");
   let impacted = false;
   const tick = () => {
     const t = performance.now() - t0;
@@ -8552,6 +8530,7 @@ function animateResult(res, done) {
     if (t >= TOTAL) {
       G.fx = null;
       G.partyFx.clear();
+      if (G.partyFxV) G.partyFxV.clear();
       renderCombat();
       done();
     } else {
@@ -8561,10 +8540,17 @@ function animateResult(res, done) {
   requestAnimationFrame(tick);
 }
 
-function magicColor(res) {
-  if (res.spellElement === "fire") return "#ff8a3c"; // 炎系
-  if (res.spellKind === "sleep") return "#9ad1ff";
-  return "#b06bff";
+// 隊の札 (戦場の下) のおおよその横位置: 札は3枚ずつ並ぶ (3人以下は人数で割る)
+function partyFxX(p) {
+  const n = G.party.length, i = Math.max(0, G.party.indexOf(p));
+  const cols = n >= 4 ? 3 : Math.max(1, n);
+  const row = Math.floor(i / cols), inRow = n >= 4 ? Math.min(cols, n - row * cols) : cols;
+  return VW * ((i % cols) + 0.5) / inRow;
+}
+// 隊の札に重ねる演出の種類 (renderParty が .pc-fx の印にする)
+function setPartyFxV(p, v) {
+  if (!G.partyFxV) G.partyFxV = new Map();
+  G.partyFxV.set(p, v);
 }
 
 // 着弾の瞬間: 効果音・エフェクト生成・ダメージ表示
@@ -8606,7 +8592,8 @@ function applyImpact(res) {
   let partyHit = false, anyDeath = false;
   // 多段ヒット (二段斬り等) は同じ対象・同座標に重なって1回に見えてしまうため、
   // 対象ごとにヒット順で時間差(stagger)と位置差(横ずらし)を付けて、回数分はっきり見せる
-  const stag = HIT_STAGGER * spdMul();
+  const spd = spdMul();
+  const stag = HIT_STAGGER * spd;
   const stackIdx = {};
   // 全体回復は対象全員が同じ中央下に重なって1人分にしか見えないため、
   // 回復対象ごとに横位置をずらし、わずかな時間差を付けて全員ぶんはっきり見せる
@@ -8633,10 +8620,27 @@ function applyImpact(res) {
       const ht0 = now + idx * stag;
       const dx = idx === 0 ? 0 : (idx % 2 ? 1 : -1) * (14 + 4 * idx); // 左右に振って重なり回避
       if (idx > 0) setTimeout(() => SFX.hit(), idx * stag); // 2撃目以降にも手応えの効果音
+      const seed = (h.target.uid || 1) * 31 + idx;
       if (res.action === "spell" && res.spellKind !== "heal" && res.spellKind !== "phys") {
-        fx.magic.push({ x: pos.cx, y: pos.cy, t0: ht0, color: magicColor(res) });
+        // 呪文: 攻撃は属性ごと (火柱・水しぶき・旋風・岩の牙・光の柱・闇の渦)、弱体・状態異常はその種類ごと
+        const st = statusFxKind(h.status);
+        const kind = res.spellKind === "atk" ? (ELEM_FX_COL[res.spellElement] ? res.spellElement : "none")
+          : st || (res.spellKind === "sleep" ? "sleep" : h.buff && !h.debuff ? "rise" : "hex");
+        spawnFx(fx.skill, kind, pos.cx, pos.cy, ht0, spd, { seed, col: kind === "rise" ? "#ffd84a" : null });
+        if (res.spellKind === "atk" && st) spawnFx(fx.skill, st, pos.cx, pos.cy, ht0 + 50 * spd, spd, { seed }); // 攻撃呪文の状態異常
       } else if (res.action === "attack" || res.spellKind === "phys") {
-        fx.slashes.push({ x: pos.cx + dx * 0.5, y: pos.cy, t0: ht0, crit: !!h.crit, big: !!h.crit, flip: idx % 2 === 1, seed: (h.target.uid || 1) * 31 + idx });
+        // 物理: 味方は武器ごと (長剣=三日月 / 短剣=×字 / 刀=一閃 / 槍=突き / 斧・槌=衝撃 / 弓=矢 / 杖・素手=打撃)。
+        // 属性の技・属性武器は刃がその色になり、属性の名残を小さく重ねる
+        const mine = res.side === "party" && res.actor && res.actor.equip;
+        const style = mine ? weaponFxStyle(res.actor.equip.weapon) : "slash";
+        const el = res.spellKind === "phys" ? res.spellElement : mine && res.actor.elemAtk ? res.actor.elemAtk.el : null;
+        if (style === "slash") {
+          fx.slashes.push({ x: pos.cx + dx * 0.5, y: pos.cy, t0: ht0, crit: !!h.crit, big: !!h.crit, flip: idx % 2 === 1, seed, el });
+          if (el && el !== "none" && ELEM_FX_COL[el]) spawnFx(fx.skill, el, pos.cx, pos.cy, ht0, spd, { seed, s: 0.55, trace: true });
+        } else spawnFx(fx.skill, style, pos.cx + dx * 0.5, pos.cy, ht0, spd, { seed, crit: !!h.crit, flip: idx % 2 === 1, el });
+        if (h.crit) spawnFx(fx.skill, "crit", pos.cx + dx * 0.5, pos.cy, ht0, spd, { seed });
+        const st = statusFxKind(h.status);
+        if (st) spawnFx(fx.skill, st, pos.cx, pos.cy, ht0 + 50 * spd, spd, { seed }); // 武器の追加効果・技の状態異常
       }
       if (idx === 0 || !fx.flash[h.target.uid]) fx.flash[h.target.uid] = { t0: ht0 };
       if (h.stole != null) {
@@ -8651,7 +8655,11 @@ function applyImpact(res) {
         fx.floats.push({ x: pos.cx + dx, y: pos.cy - 10, text: String(h.dmg), color: h.crit ? "#ffd84a" : "#fff", t0: ht0, big: !!h.crit, kind: h.crit ? "crit" : "dmg" });
         if (h.crit) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 40, text: "会心の一撃", color: "#ffb02e", t0: ht0, small: true, kind: "label" });
       }
-      else if (h.heal != null) fx.floats.push({ x: pos.cx + dx, y: pos.cy - 10, text: "+" + h.heal, color: "#7CFC7C", t0: ht0, kind: "heal" }); // 敵の回復役による回復
+      else if (h.heal != null) { // 敵の回復役による回復
+        fx.floats.push({ x: pos.cx + dx, y: pos.cy - 10, text: "+" + h.heal, color: "#7CFC7C", t0: ht0, kind: "heal" });
+        spawnFx(fx.skill, "rise", pos.cx, pos.cy, ht0, spd, { seed, col: "#7CFC7C" });
+      }
+      if (h.buff && res.action !== "spell") spawnFx(fx.skill, "rise", pos.cx, pos.cy, ht0, spd, { seed, col: "#ffd84a" }); // 雄叫びなど敵の強化
       // 敵にかかった強化/弱体も発動フロートで知らせる (ピル表示に加えて瞬間を可視化)
       if ((h.buff || h.debuff) && !(h.status && !Object.keys(h.mods || {}).length)) { const mt = buffFloatText(h); fx.floats.push({ x: pos.cx + dx, y: pos.cy - 34, text: mt.text, color: mt.color, t0: ht0, kind: "buff" }); }
       // 状態異常の付与 (麻痺・眠り・魅了・混乱…): 名札の上に浮かべて知らせる
@@ -8667,6 +8675,7 @@ function applyImpact(res) {
         // 強化/弱体が味方にかかった: 緑(▲)/赤(▼)のフロートで発動を知らせる (敵のピル表示と同様に可視化)
         const mt = buffFloatText(h);
         G.partyFx.set(h.target, h.buff ? "heal" : "hit");
+        setPartyFxV(h.target, h.buff ? "buff" : "debuff");
         const n = partyModHits.length, mi = partyModIdx++;
         const fx0 = n > 1 ? VW * (mi + 1) / (n + 1) : VW / 2;
         const fy0 = VH - 26 - (mi % 2) * 16;
@@ -8675,11 +8684,13 @@ function applyImpact(res) {
         // 状態異常・弱体の治癒も知らせる
         if (h.cured) {
           G.partyFx.set(h.target, "heal");
+          setPartyFxV(h.target, "cure");
           fx.floats.push({ x: VW / 2, y: VH - 26, text: "治癒✚", color: "#9be8ff", t0: now });
         }
       } else if (h.mpHeal != null) {
         // 魔力の譲渡
         G.partyFx.set(h.target, "heal");
+        setPartyFxV(h.target, "mana");
         fx.floats.push({ x: VW / 2, y: VH - 26, text: "MP+" + h.mpHeal, color: "#7fb8ff", t0: now, kind: "heal" });
       } else if (h.heal != null) {
         G.partyFx.set(h.target, "heal");
@@ -8689,10 +8700,13 @@ function applyImpact(res) {
         const fx0 = n > 1 ? VW * (i + 1) / (n + 1) : VW / 2;
         const fy0 = VH - 26 - (i % 2) * 16; // 重なり回避に上下も少しずらす
         fx.floats.push({ x: fx0, y: fy0, text: "+" + h.heal, color: "#7CFC7C", t0: now + i * stag, kind: "heal" });
+        setPartyFxV(h.target, "heal");
+        spawnFx(fx.skill, "rise", partyFxX(h.target), VH - 8, now + i * stag, spd, { seed: i + 3, s: 0.8, col: "#7CFC7C" });
       } else if (h.steal) {
         // 窃盗: ゴールド/Soul の控除はここで行う (combat.js は G を知らない)
         partyHit = true;
         G.partyFx.set(h.target, "hit");
+        setPartyFxV(h.target, "claw");
         if (h.steal === "goldSteal") {
           const s = Math.min(G.gold, h.stealAmt || 0);
           G.gold -= s;
@@ -8710,16 +8724,24 @@ function applyImpact(res) {
       } else if (h.stoned) {
         partyHit = true;
         G.partyFx.set(h.target, "hit");
+        setPartyFxV(h.target, "stone");
         fx.floats.push({ x: VW / 2, y: VH - 26, text: "石化!", color: "#c9c4b8", t0: now });
       } else if (h.status && h.dmg == null) {
         // 眠り・魅了・混乱をかけられた (ダメージなし)
         partyHit = true;
         G.partyFx.set(h.target, "hit");
+        setPartyFxV(h.target, "status");
         const n = res.hits.filter((x) => x.status && x.dmg == null).length, i = res.hits.filter((x) => x.status && x.dmg == null).indexOf(h);
         fx.floats.push({ x: n > 1 ? VW * (i + 1) / (n + 1) : VW / 2, y: VH - 26 - (i % 2) * 16, text: h.status, color: "#ff9ad0", t0: now + i * stag });
       } else if (!h.miss) {
         partyHit = true;
         G.partyFx.set(h.target, "hit");
+        // 札の上の演出: ブレス・全体呪文は属性の色、打撃は爪痕 (会心は金)。打撃は戦場の下端にも爪痕を走らせる
+        if (res.action === "breath") setPartyFxV(h.target, "el-" + (ELEM_FX_COL[res.actor.element] ? res.actor.element : "none"));
+        else {
+          setPartyFxV(h.target, h.crit ? "claw crit" : "claw");
+          spawnFx(fx.skill, "pclaw", partyFxX(h.target), VH - 6, now, spd, { crit: !!h.crit });
+        }
         fx.floats.push({ x: VW / 2, y: VH - 26, text: String(h.dmg) + (h.fatal ? " 即死!" : ""), color: h.fatal ? "#ff2a2a" : "#ff6b6b", t0: now, kind: "pdmg" });
         if (h.died) anyDeath = true;
         // レベルドレイン: 宿しているメイン魂のレベルを永続的に1下げる
@@ -8734,6 +8756,20 @@ function applyImpact(res) {
           }
         }
       }
+    }
+  }
+  // ブレス: 敵から隊へ属性の奔流が押し寄せる / 全体呪文: 隊の札の上で属性の呪文が弾ける
+  if (res.action === "breath") {
+    const el = ELEM_FX_COL[res.actor.element] ? res.actor.element : "none";
+    const sp0 = G.enemyPos[res.actor.uid];
+    if (!res.espell && sp0) spawnFx(fx.skill, "breath", sp0.cx, sp0.cy, now, spd, { el, seed: res.actor.uid || 1 });
+    else if (res.espell) {
+      const seen = new Set();
+      res.hits.forEach((h, i) => {
+        if (!h.target || h.target.side === "enemy" || seen.has(h.target)) return;
+        seen.add(h.target);
+        spawnFx(fx.skill, el, partyFxX(h.target), VH - 22, now + i * 30 * spd, spd, { seed: i + 11, s: 0.7 });
+      });
     }
   }
   if (partyHit) { fx.screen = { color: "#d4504e", t0: now }; buzz([0, 50, 50, 50]); shakeScreen(true); }
@@ -9212,7 +9248,7 @@ function renderParty() {
   const st = G.state;
   const key = st + "|" + G.party.map((p) => [
     p.uid, p.name, p.cls, p.isDoll ? (p.jobLv || 1) : p.level, p.hp, p.maxhp, p.mp, p.maxmp, p.alive ? 1 : 0,
-    p.ailment || "", p.asleep && st === "combat" ? 1 : 0, st === "combat" ? (p.mind || "") : "", fx && fx.has(p) ? fx.get(p) : "", buffBadges(p),
+    p.ailment || "", p.asleep && st === "combat" ? 1 : 0, st === "combat" ? (p.mind || "") : "", fx && fx.has(p) ? fx.get(p) : "", (G.partyFxV && G.partyFxV.get(p)) || "", buffBadges(p),
     `${p.jobKey || ""}:${p.jobRank || 1}:${p.clsKey || ""}`,
   ].join(",")).join(";");
   if (key === _partyKey && partyEl.childElementCount === G.party.length) return;
@@ -9274,6 +9310,9 @@ function renderParty() {
     card.appendChild(vial("mp", p.mp, p.maxmp));
     const bb = buffBadges(p);
     if (bb) card.insertAdjacentHTML("beforeend", bb);
+    // 戦闘の演出 (爪痕・属性の奔流・回復の光…): 札の上に一度だけ走る薄い膜
+    const fv = G.partyFxV && G.partyFxV.get(p);
+    if (fv) card.appendChild(el("span", "pc-fx " + fv.split(" ").map((c) => "v-" + c).join(" ")));
     partyEl.appendChild(card);
   });
 }
@@ -13652,7 +13691,7 @@ function loadGame() {
   reflattenItemStats();
   // 一時状態はリセット
   G.anim = null; G.flipAnim = null; G.heroAnim = null; G.walking = false; G.prompt = false;
-  G.fx = null; G.animating = false; G.enemyPos = {}; G.partyFx = new Map(); G.wallFlash = null;
+  G.fx = null; G.animating = false; G.enemyPos = {}; G.partyFx = new Map(); G.partyFxV = null; G.wallFlash = null;
   G.statusOpen = false; G.settingsOpen = false;
   // クラス/参照の再リンク (Battleのメソッド・敵のmon・派生値)
   if (G.battle) {
@@ -13795,7 +13834,7 @@ function resumeFromState() {
 function resumeCombat() {
   const b = G.battle;
   if (!b) { finishToBoard(); return; }
-  G.animating = false; G.fx = null; G.partyFx = new Map(); G.enemyPos = {};
+  G.animating = false; G.fx = null; G.partyFx = new Map(); G.partyFxV = null; G.enemyPos = {};
   renderRunbar();
   renderParty();
   fitView();
