@@ -5564,7 +5564,7 @@ function evProgress() {
     G.embers = (G.embers || 0) + 1; runCount("embers", 1);
     SFX.victory(); updateTopbar();
     log(`坑夫の亡霊は仲間と共に眠りについた。✦${s} Soul と魂の残火を遺していった。`, "win");
-    showToast(`坑夫の頼みを果たした ― ✦${s} ・ 残火 ×1`, { tone: "gold", icon: ICONS.ember });
+    showToast(`坑夫の頼みを果たした ― ✦${s} ・ 魂の残火 ×1`, { tone: "gold", icon: ICONS.ember });
     renderBoard();
   }
 }
@@ -6024,7 +6024,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
     emberDone = true;
     G.embers = (G.embers || 0) + ember; runCount("embers", ember);
     log(`風化した死体に、魂の残火が ${ember}つ 燻っていた。`, "win");
-    return ` ・ 残火 ${ember}`;
+    return ` ・ 魂の残火 ×${ember}`;
   };
 
   // 懐に残された金品 (Gold) を渡す処理 (装備を渡せない時のフォールバックにも使う)
@@ -6138,7 +6138,7 @@ function acquireSoul(clsKey, sourceLine, onClose, emberCount = 0) {
   const s = grantSoulQuiet(clsKey, sourceLine, emberCount);
   if (s.rare || G.state !== "town") { celebrateSoul(s, after); return; }
   SFX.itemget(); buzz([0, 30, 60, 30]);
-  showToast(`${s.label}の魂を手に入れた${s.embers > 0 ? ` ・ 残火 ${s.embers}` : ""}`, { tone: "good", icon: soulIcon(clsKey) });
+  showToast(`${s.label}の魂を手に入れた${s.embers > 0 ? ` ・ 魂の残火 ×${s.embers}` : ""}`, { tone: "good", icon: soulIcon(clsKey) });
   after();
 }
 
