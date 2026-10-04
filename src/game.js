@@ -557,12 +557,18 @@ function buzz(p) {
 // 端末ごとの好み (音量・振動)。セーブデータとは別に保存し、「はじめから」でも消えない
 const PREFS_KEY = "dos-prefs";
 const PREFS = (() => {
-  const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false, fastWalk: true };
-  try { return { ...d, ...(JSON.parse(localStorage.getItem(PREFS_KEY)) || {}) }; } catch { return d; }
+  const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false, walkSpeed: 2 };
+  let p;
+  try { p = { ...d, ...(JSON.parse(localStorage.getItem(PREFS_KEY)) || {}) }; } catch { p = { ...d }; }
+  // 旧来の「移動 倍速」(fastWalk: ON = 2倍 / OFF = 1倍) を移動の速さ (1〜3倍) へ引き継ぐ
+  if (typeof p.fastWalk === "boolean") { p.walkSpeed = p.fastWalk ? 2 : 1; delete p.fastWalk; }
+  if (![1, 2, 3].includes(p.walkSpeed)) p.walkSpeed = 2;
+  return p;
 })();
 function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(PREFS)); } catch {} }
-// 迷宮内の移動 (めくり・1歩のスライド・自動歩行の間) の時間。ms は倍速の値、設定「移動 倍速」を切ると倍の時間 (速さ 1/2)
-const walkMs = (ms) => (PREFS.fastWalk ? ms : ms * 2);
+// 迷宮内の移動 (めくり・1歩のスライド・自動歩行の間) の時間。ms は2倍速の値。設定「移動の速さ」(PREFS.walkSpeed)
+// 1倍 = ms × 2 / 2倍 = ms / 3倍 = ms × 2/3
+const walkMs = (ms) => Math.round(ms * 2 / (PREFS.walkSpeed || 2));
 setVolumes(PREFS.bgm, PREFS.sfx);
 
 // ---- 潜入中の戦利品トラッキング (全滅ペナルティ / Red Soul帰還で使う) ----
@@ -10478,12 +10484,14 @@ function deliveryStatus(q) {
   const price = buyPrice(it);
   return { holder, inShop, price, canBuy: !holder && inShop && G.gold >= price };
 }
-// 納品を実行 (受けた納品の依頼だけ): 手持ちから1つ消費し、品の格に応じた魂を授かる。
+// 納品を実行: 手持ちから1つ消費し、品の格に応じた魂を授かる。
+// 受けた依頼のほか、掲示板の依頼もその場で納められる (受けてすぐ納めるので、受注の枠は使わない)。
 // opts.buy = 手持ちが無い時、商会の棚から買ってそのまま納める (袋は経由しないので所持枠は要らない)
 function deliverQuest(q, opts = {}) {
   const s = questState();
-  const qi = s.active.indexOf(q);
-  if (qi < 0 || q.type !== "deliver") return;
+  if (!q || q.type !== "deliver") return;
+  const from = s.active.includes(q) ? s.active : (s.board || []).includes(q) ? s.board : null;
+  if (!from) return;
   const it = ITEMS[q.itemId];
   if (!it) return;
   const holder = deliveryHolder(q.itemId);
@@ -10502,7 +10510,7 @@ function deliverQuest(q, opts = {}) {
     log(`${it.name} を商会で買い求めた (💰${price})。`, "sys");
   } else { log("納品できる品が手元にない。", "sys"); SFX.ng(); return; }
   const [rarity, count] = rollDeliveryReward(it);
-  s.active.splice(qi, 1);
+  from.splice(from.indexOf(q), 1);
   finishFreeQuest(q, {}, grantRewardSouls([[rarity, count]]), `「${it.name}」を納品`);
 }
 
