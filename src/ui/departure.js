@@ -4,7 +4,7 @@
 //
 //   ┌ ━━ 出 撃 ━━ ─────────────────────────┐
 //   │ ┌ 迷宮の顔 (迷宮ごとの情景) ─────────┐ │ 上半分 = 選んでいる迷宮: 情景・名・説明
-//   │ │ 朽ちた骸の修道院            目標  │ │ 推奨Lv・全階数・発見した魔物 n/m・固有クエスト n/m (押すと詳細のポップアップ)
+//   │ │ 朽ちた骸の修道院            目標  │ │ 推奨Lv・全階数・発見した魔物 n/m・受注中の依頼 n件・固有クエスト n/m (押すと詳細のポップアップ)
 //   │ └───────────────────────┘ │ 迷宮の掟・格上の注意
 //   │ (●) 忘れられた地下墓地 推奨Lv1・全5階 踏破 │ 門は 5 行ぶん見せ、6 つ目からは一覧を縦に巻く
 //   │ ▒▒ まだ地図にない迷宮 ― 解放の手がかり  │ 台帳 (world.js) の unlock を満たすと現れる
@@ -21,7 +21,7 @@ import { el, sheet, button, setText, portrait, segmented, toast, confirm as kitC
 import { ELEMENTS } from "../dungeons/index.js";
 import { iconCanvas } from "../townart.js";
 import { drawDungeonVista } from "../backdrops.js";
-import { dungeonQuestSheet } from "./questboard.js";
+import { dungeonQuestSheet, dungeonActiveQuestSheet } from "./questboard.js";
 
 const G = () => game.G;
 const sfx = (k) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](); } catch (e) { /* 音が無くても動く */ } };
@@ -130,6 +130,11 @@ function renderHero(b) {
     const di = g.dungeonIdx;
     facts.appendChild(fact("発見した魔物", `${f.monSeen}/${f.monTotal}`, f.monTotal && f.monSeen >= f.monTotal ? "full" : "",
       f.monTotal && UI.dungeonMonSheet ? () => UI.dungeonMonSheet(di) : null));
+    // 受注中の依頼 = この迷宮を対象にしている依頼 (名の横の「依頼」の印と同じ数え方)。押すと札の一覧
+    let qs = [];
+    try { qs = game.questsTargeting ? game.questsTargeting(dn) : []; } catch (e) { qs = []; }
+    facts.appendChild(fact("受注中の依頼", qs.length ? `${qs.length}件` : "なし", qs.length ? "" : "none",
+      qs.length ? () => dungeonActiveQuestSheet(dn, { onChange: () => refresh() }) : null));
     facts.appendChild(fact("固有クエスト", f.fqTotal ? `${f.fqDone}/${f.fqTotal}` : "なし", f.fqTotal && f.fqDone >= f.fqTotal ? "full" : !f.fqTotal ? "none" : "",
       f.fqTotal ? () => dungeonQuestSheet(dn, { onChange: () => refresh() }) : null));
   }
