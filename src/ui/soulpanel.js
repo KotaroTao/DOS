@@ -274,9 +274,7 @@ function fuseButton(pe, town) {
 function subTiles(more, d, town) {
   const n = game.unlockedSubSlots ? game.unlockedSubSlots() : 0;
   if (!n) {
-    const c = game.reportedDungeonCount ? game.reportedDungeonCount() : 0;
-    const at = (game.FEATURE_AT && game.FEATURE_AT.sub1) || 3;
-    more.appendChild(lockedTile("サブ魂", `${at} 迷宮の踏破報告で開く (${c}/${at})`));
+    more.appendChild(lockedTile("サブ魂", game.featureNote ? game.featureNote("sub1") : ""));
     return;
   }
   for (let i = 0; i < n; i++) {
@@ -345,9 +343,7 @@ function bonusText(b) {
 function orderTile(town) {
   const open = game.featureUnlocked ? game.featureUnlocked("order") : false;
   if (!open) {
-    const c = game.reportedDungeonCount ? game.reportedDungeonCount() : 0;
-    const at = (game.FEATURE_AT && game.FEATURE_AT.order) || 5;
-    return lockedTile("控えの結社", `${at} 迷宮の踏破報告で開く (${c}/${at})`);
+    return lockedTile("控えの結社", game.featureNote ? game.featureNote("order") : "");
   }
   const seats = game.orderSeats ? game.orderSeats() : 0;
   const seated = game.orderSeatedUids ? game.orderSeatedUids() : [];
@@ -380,11 +376,10 @@ function orderBody(root, town, again) {
   const seated = game.orderSeatedUids ? game.orderSeatedUids() : [];
   const seatedSet = new Set(seated);
   const full = seated.length >= seats;
-  const FA = game.FEATURE_AT || {};
-  const nextSeatAt = seats >= 3 ? null : seats >= 2 ? FA.order3 : seats >= 1 ? FA.order2 : FA.order;
+  const nextSeat = seats >= 3 ? null : seats >= 2 ? "order3" : seats >= 1 ? "order2" : "order";
   const info = el("div", "sp-order-info");
   info.appendChild(el("span", "sp-order-seats", `席 ${seated.length} / ${seats}`));
-  if (nextSeatAt) info.appendChild(el("span", "pt-note", `次の席は ${nextSeatAt} 迷宮の踏破報告で`));
+  if (nextSeat && game.featureNote) info.appendChild(el("span", "pt-note", `次の席: ${game.featureNote(nextSeat)}`));
   root.appendChild(info);
   if (seated.length) root.appendChild(el("div", "sp-order-on", `全員に: ${bonusText(orderStatBonus(seated)) || "なし"}`));
   if (!benched.length) {
@@ -668,7 +663,7 @@ function soulEnhanced(s) {
 export function openFusePicker(targetUid, onDone) {
   const t = soulByUid(targetUid);
   if (!t) return null;
-  if (!(game.featureUnlocked && game.featureUnlocked("fusion"))) { sfx("ng"); toast(`魂融合は ${(game.FEATURE_AT && game.FEATURE_AT.fusion) || 2} 迷宮の踏破を王に報告すると開く`, { tone: "info" }); return null; }
+  if (!(game.featureUnlocked && game.featureUnlocked("fusion"))) { sfx("ng"); toast(`魂融合は、${game.featureNote ? game.featureNote("fusion") : "踏破を王に報告すると開く"}`, { tone: "info" }); return null; }
   const candsNow = () => (game.fuseCandidates ? game.fuseCandidates(targetUid) : []).sort(game.soulSortCmp || (() => 0));
   // 素材にできない同じ職の魂: ロック中 (この場で外せる) / だれかが宿している (理由だけ見せる)
   const sameJob = () => (G_().souls || []).filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey);

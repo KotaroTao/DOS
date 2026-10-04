@@ -10937,7 +10937,9 @@ function reportMainQuest() {
   const opens = DUNGEONS.filter((d) => !w.open[d.id] && d.unlock && (d.unlock.reported === id || (d.unlock.all && d.unlock.all.includes(id) && d.unlock.all.every((x) => x === id || w.reported[x]))));
   const lines = [...storyLines(rep.lines), ...opens.map((d) => `── 新たな迷宮「${d.name}」が地図に記された。`)];
   const toasts = [];
-  const count = Object.keys(w.reported).filter((k) => worldById(k)).length + 1; // この報告で何迷宮目か
+  // この報告で開く機能 (報告の前後で比べる)
+  const after = { ...w, reported: { ...w.reported, [id]: 1 } };
+  const newly = FEATURE_KEYS.filter((k) => !featureMet(k, w) && featureMet(k, after));
   const pages = [{
     title: rep.title, lines, reward: rwText, kicker: `踏破の報告 ― ${cfg.name}`,
     leave: () => {
@@ -10956,9 +10958,9 @@ function reportMainQuest() {
       autosave(true);
     },
   }];
-  // 解放の節目 (報告した迷宮の数) は、報告の直後に機能解放のページを挟む
-  const us = unlockSceneFor(count);
-  if (us) {
+  // 機能の解放は、報告の直後に解放のページを挟む (同じ報告で2つ開くこともある)
+  const scenes = newly.map(unlockSceneFor).filter(Boolean);
+  for (const us of scenes) {
     pages.push({ title: us.title, lines: us.lines, kicker: "秘技の伝授",
       leave: () => { SFX.victory(); buzz([0, 40, 80, 40]); toasts.push({ text: "🔓 新たな技能を授かった", opts: { tone: "good" } }); } });
   }
@@ -10969,7 +10971,7 @@ function reportMainQuest() {
     pages.push({ title: end.title, lines: end.lines, kicker: "章の結び", who: "none", art: "candle", btnLabel: "物語を閉じる",
       leave: () => { w.beats["ch" + ch.no + "_end"] = 1; w.last = { kind: "chapter", no: ch.no }; flashScreen("#ffd84a"); autosave(true); } });
   }
-  playMsqChain(pages, toasts, us ? () => { if (UI.tutorialAfterReport) UI.tutorialAfterReport(); } : null);
+  playMsqChain(pages, toasts, scenes.length ? () => { if (UI.tutorialAfterReport) UI.tutorialAfterReport(); } : null);
 }
 // 旧来の入口 (次章の拝命)。迷宮は条件で地図に現れるので、拝命の手続きは無い
 function acceptMainQuest() { renderTown(); }
@@ -11042,26 +11044,55 @@ function reportTutorialQuest() {
   playMsqChain(pages, toasts);
 }
 
-// 機能解放: 王に初踏破を報告した迷宮の数に応じて段階的に解放される (節目の報告で王から授かる)。
+// 機能解放: 章 (story.js CHAPTERS) と、その章で王に報告した本筋の迷宮の数で決める (節目の報告で王から授かる)。
+//   第一章は入門なので4つ、第二章からは1章に1つ (docs/tasks.md U1)。report = その章で報告した数 / "finale" = 章の結びの迷宮。
+//   報告の総数で決めないので、迷宮を回る順 (黒水の取水口を後回しにする等) に左右されない。
 //   踏破しただけ (報告前) では開かない ― 解放のページ (story.js UNLOCKS) を見てから使えるようにする。
-//   いまの台帳 (章の迷宮13) では 2→魂融合 / 3→サブ魂1枠 / 4→酒場の噂・依頼 / 5→控えの結社(席1) / 7→結社の席2 / 11→結社の席3。
-//   その先の節目は迷宮が増えた時に詰め直す (今は届かない数のまま置いておく)
-const FEATURE_AT = { fusion: 2, sub1: 3, rumor: 4, order: 5, order2: 7, sub2: 40, order3: 11, infinite: 50 };
-function featureUnlocked(key) {
-  const c = reportedDungeonCount();
-  if (key === "infinite") return c >= FEATURE_AT.infinite && CONTENT_LIMIT >= 50; // 奈落は迷宮が50を超えるまで閉じる
-  if (FEATURE_AT[key] != null) return c >= FEATURE_AT[key];
-  return false;
+//   まだ無い章の分 (第四章のサブ魂2枠・第五章の奈落) は、その章が台帳に載るまで開かない
+const FEATURES = {
+  fusion: { chapter: 1, report: 2 },          // 魂の融合
+  sub1: { chapter: 1, report: 3 },            // サブ魂 1枠
+  rumor: { chapter: 1, report: 4 },           // 酒場の噂話
+  order: { chapter: 1, report: "finale" },    // 控えの結社 (席1)
+  order2: { chapter: 2, report: 2 },          // 結社の席2
+  order3: { chapter: 3, report: 2 },          // 結社の席3
+  sub2: { chapter: 4, report: "finale" },     // サブ魂 2枠
+  infinite: { chapter: 5, report: "finale" }, // 奈落 (無限迷宮)
+};
+const FEATURE_KEYS = Object.keys(FEATURES);
+const chapterLabel = (no) => `第${kanjiNum(no)}章`;
+// その章で王に報告した本筋の迷宮の数
+function chapterReports(ch, w = worldState()) { return ch.dungeons.filter((id) => w.reported[id]).length; }
+// 結びの迷宮を報告した章の数 (イレーヌの親しさ・章ごとの台詞が読む)
+function chaptersDone(w = worldState()) { return CHAPTERS.filter((c) => w.reported[c.finale]).length; }
+// w (worldState の形) の報告の状態で、その機能が開いているか (報告の前後を比べるために w を渡せる)
+function featureMet(key, w = worldState()) {
+  const f = FEATURES[key];
+  const ch = f && CHAPTERS.find((c) => c.no === f.chapter);
+  if (!ch) return false; // その章がまだ無い
+  return f.report === "finale" ? !!w.reported[ch.finale] : chapterReports(ch, w) >= f.report;
+}
+function featureUnlocked(key) { return featureMet(key); }
+// まだ開いていない機能の条件の説明 (錠の札・案内文)
+function featureNote(key) {
+  const f = FEATURES[key];
+  if (!f) return "";
+  const ch = CHAPTERS.find((c) => c.no === f.chapter);
+  const label = chapterLabel(f.chapter);
+  if (!ch) return `${label}で開く (準備中)`;
+  if (f.report === "finale") {
+    const fin = worldById(ch.finale);
+    return `${label}の結び「${fin ? fin.short : ch.finale}」を王に報告すると開く`;
+  }
+  return `${label}の迷宮を${f.report}つ王に報告すると開く (いま ${Math.min(chapterReports(ch), f.report)}/${f.report})`;
 }
 // 解放済みのサブ魂 (宿し技) スロット数 (0/1/2)。MAX_SUBS が上限
 function unlockedSubSlots() {
-  const c = reportedDungeonCount();
-  return Math.min(MAX_SUBS, c >= FEATURE_AT.sub2 ? 2 : c >= FEATURE_AT.sub1 ? 1 : 0);
+  return Math.min(MAX_SUBS, featureUnlocked("sub2") ? 2 : featureUnlocked("sub1") ? 1 : 0);
 }
 // 控えの結社の席数 (0/1/2/3)
 function orderSeats() {
-  const c = reportedDungeonCount();
-  return c >= FEATURE_AT.order3 ? 3 : c >= FEATURE_AT.order2 ? 2 : c >= FEATURE_AT.order ? 1 : 0;
+  return featureUnlocked("order3") ? 3 : featureUnlocked("order2") ? 2 : featureUnlocked("order") ? 1 : 0;
 }
 // 結社の席に実際に着いている魂uid (編成外・席数上限でクリーン)。
 // G.order.picks の順を尊重しつつ、無効になった指定 (編成入り/消失) は除外する。
@@ -14123,7 +14154,7 @@ function wireUI() {
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
     tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
-    worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURE_AT, storyGoal, currentChapter, dungeonTrait,
+    worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait,
     trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,

@@ -1,5 +1,5 @@
 // ===== 手ほどき — 層の踏破で解放された要素を、その場で1度ずつ実際に触って覚える =====
-// 王への踏破報告で新しい要素 (魂融合 2迷宮 / サブ魂 3 / 酒場の噂話 4 / 控えの結社 5 ― game.js FEATURE_AT) が解放されると、
+// 王への踏破報告で新しい要素 (魂融合 / サブ魂 / 酒場の噂話 / 控えの結社 ― 開く時期は game.js FEATURES) が解放されると、
 // 語りを閉じた直後に、その要素の手ほどきが始まる。手ほどきを終えるまで迷宮の門は開かない
 // (game.js blockForTutorial ← 出撃シート・departNow・奈落)。
 //   流れ: 導入 (館の主イレーヌ / 酒場の情報屋の語り) → 手順 (実際に操作する。画面下の札に今の手順、
@@ -86,7 +86,7 @@ function goTavern() {
 //   intro(note) = 導入 / steps = [{ text, hint, go(), target[], done?(), on?, skip?() }] / outro = 完了のカードの行
 const TUTS = [
   {
-    key: "fusion", at: 2, name: "魂融合", who: "irene",
+    key: "fusion", name: "魂融合", who: "irene",
     open: () => !!(game.featureUnlocked && game.featureUnlocked("fusion")),
     used: () => ((G_().stats || {}).fusions || 0) > 0,
     prepare() {
@@ -121,7 +121,7 @@ const TUTS = [
     outro: ["同じ職の魂が手に入ったら、融合して魂の格を上げよう。", "融合した魂は自動でロックされ、融合の素材にならない。"],
   },
   {
-    key: "sub1", at: 3, name: "サブ魂", who: "irene",
+    key: "sub1", name: "サブ魂", who: "irene",
     open: () => !!(game.unlockedSubSlots && game.unlockedSubSlots() > 0),
     used: () => allDolls().some((d) => (d.subs || []).some(Boolean)),
     prepare() {
@@ -164,7 +164,7 @@ const TUTS = [
     outro: ["メイン魂と別の職の魂を宿せば、職の垣根を越えた一手になる。", "借りる技は、サブ魂の札の『技』からいつでも選び直せる。"],
   },
   {
-    key: "rumor", at: 4, name: "酒場の噂話", who: "tavern",
+    key: "rumor", name: "酒場の噂話", who: "tavern",
     open: () => !!(game.featureUnlocked && game.featureUnlocked("rumor")),
     used: () => { const G = G_(); return !!(G.rumor || G.activeRumor || (G.rumorCooldown || 0) > 0); },
     prepare: () => null,
@@ -181,7 +181,7 @@ const TUTS = [
     outro: ["情報屋は「いま選んでいる迷宮」を読んで語る。潜る迷宮を選んでから聞こう。"],
   },
   {
-    key: "order", at: 5, name: "控えの結社", who: "irene",
+    key: "order", name: "控えの結社", who: "irene",
     open: () => !!(game.featureUnlocked && game.featureUnlocked("order")),
     used: () => { const o = G_().order; return !!(o && Array.isArray(o.picks) && o.picks.length); },
     prepare: () => null,
@@ -202,15 +202,13 @@ const TUTS = [
 const TUT_MAP = Object.fromEntries(TUTS.map((t) => [t.key, t]));
 
 // ---- 進み具合 ----
-function reported() { return safe(() => game.reportedDungeonCount(), 0); }
 // 済ませていない手ほどき (解放の順)。始めていない旧セーブの分は、もう使っていれば済み扱い
 function dueKeys() {
   const st = tutState();
   if (!st) return [];
-  const c = reported();
   const out = [];
   for (const t of TUTS) {
-    if (st.done[t.key] || c < t.at || !safe(t.open, false)) continue;
+    if (st.done[t.key] || !safe(t.open, false)) continue;
     if (st.cur !== t.key && safe(t.used, false)) { st.done[t.key] = true; continue; }
     out.push(t.key);
   }
