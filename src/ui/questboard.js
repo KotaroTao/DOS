@@ -11,7 +11,7 @@ import { UI, game } from "./ctx.js";
 import { el, setText, glyphText, sheet, button, itemTile, toast, confirm } from "./kit.js";
 import { ITEMS } from "../items.js";
 import { MONSTERS, crispCanvas } from "../sprites.js";
-import { npcOf } from "../quests.js";
+import { npcOf, npcBondLabel } from "../quests.js";
 import { SFX } from "../audio.js";
 import { openItem } from "./facilities.js";
 
@@ -149,7 +149,9 @@ export function openQuestSheet(uid) {
     wh.appendChild(markOf(q, 48));
     const wt = el("div", "qb-who-t");
     wt.appendChild(setText(el("div", "qb-who-n"), who ? who.name : "依頼人"));
-    if (who && who.title) wt.appendChild(setText(el("div", "qb-who-k"), who.title + (q.fixed ? " ・ 一度きりの依頼" : " ・ 掲示板の依頼")));
+    let bond = null;
+    try { if (!q.fixed) bond = npcBondLabel((game.questState().npcs || {})[q.npc] || 0); } catch (e) { /* noop */ }
+    if (who && who.title) wt.appendChild(setText(el("div", "qb-who-k"), who.title + (q.fixed ? " ・ 一度きりの依頼" : " ・ 掲示板の依頼") + (bond ? ` ・ ${bond}` : "")));
     wh.appendChild(wt);
     box.appendChild(wh);
     const tx = el("div", "qb-text");

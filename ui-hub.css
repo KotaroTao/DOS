@@ -773,6 +773,14 @@
 .sc-art.hidden, .sc-head.hidden { display: none; }
 @keyframes sc-art-in { from { opacity: 0; filter: brightness(0.3) blur(2px); } to { opacity: 1; filter: none; } }
 .sc-scene.has-art .sc-bg canvas { filter: brightness(0.32) saturate(0.7) blur(3px); transform: scale(1.08); }
+/* 酒場の依頼人が語り手の時: 枠に依頼の魔物・品を掲げ (縦横比はそのまま)、名と肩書きを添える */
+.sc-portrait.mark { display: flex; align-items: center; justify-content: center; background: radial-gradient(60% 60% at 50% 55%, #2a1d16, #0a0709 75%); }
+.sc-portrait.mark canvas { width: auto !important; height: auto !important; max-width: 96px; max-height: 96px; }
+.sc-who.npc { display: flex; flex-direction: column; align-items: center; gap: 1px; letter-spacing: 0.12em; padding-left: 0.12em; }
+.sc-who-n { font-size: 13px; font-weight: 800; color: #e8d6a8; }
+.sc-who-k { font-size: 10.5px; color: #a8957a; letter-spacing: 0.08em; }
+.sc-rw-i.tagged { position: relative; margin-top: 7px; }
+.sc-rw-tag { position: absolute; top: -7px; left: 50%; transform: translateX(-50%); padding: 0 5px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.08em; color: #1a1208; background: #c9a24a; border-radius: 2px; white-space: nowrap; }
 .sc-pf-img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; }
 .sc-line.k-irene { color: #f0dce6; border-left: 2px solid #8a5a78; padding-left: 8px; }
 .sc-line.k-letter { font-size: 13.5px; font-style: italic; color: #d8cfb4; text-align: center; letter-spacing: 0.04em; }

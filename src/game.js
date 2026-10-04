@@ -11,7 +11,7 @@ import {
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
-import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows } from "./quests.js";
+import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE } from "./quests.js";
 import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
@@ -9533,6 +9533,7 @@ function questState() {
   if (!Array.isArray(s.active)) s.active = [];
   if (!s.fixed || typeof s.fixed !== "object") s.fixed = {};
   if (!s.seen || typeof s.seen !== "object") s.seen = {};
+  if (!s.npcs || typeof s.npcs !== "object") s.npcs = {}; // 掲示板の依頼人ごとの報告の回数 (なじみ)
   if (!(s.seq > 0)) s.seq = 1;
   return s;
 }
@@ -9559,6 +9560,7 @@ function questCtx() {
   return {
     dungeons: dungeons.length ? dungeons : [DUNGEONS[0]],
     unit: questUnit, deliverIds: eligibleDeliveryItemIds(), itemName: (id) => (ITEMS[id] || {}).name || id,
+    isMisc: (id) => (ITEMS[id] || {}).slot === "misc",
     rand, avoid, uid: () => "q" + (s.seq++),
   };
 }
@@ -9594,14 +9596,18 @@ function fixedQuestView(def) {
     giver: def.giver, reward: fixedQuestReward(def), fresh: !st && !questState().seen[def.id],
   };
 }
+// 迷宮の深部 (8割の階) の戦果 / 地図でいちばん深い迷宮のそれ
+const questDeepUnit = (cfg) => questUnit(cfg, Math.max(1, Math.ceil((cfg.floors || 1) * 0.8)));
+function questFrontUnit() {
+  const open = DUNGEONS.filter((d) => worldOpenId(d.id));
+  return questDeepUnit(open.length ? open.reduce((a, d) => (d.nTo > a.nTo ? d : a)) : DUNGEONS[0]);
+}
 // 固定クエストの報酬 (戦果の倍数を、物差しの迷宮の深部で金貨/✦Soul に直す)
 function fixedQuestReward(def) {
   const r = def.reward || {};
-  const deepU = (cfg) => questUnit(cfg, Math.max(1, Math.ceil((cfg.floors || 1) * 0.8)));
-  const u0 = deepU(worldById(def.ref) || DUNGEONS[0]);
+  const u0 = questDeepUnit(worldById(def.ref) || DUNGEONS[0]);
   // 後回しにした依頼も見劣りしないよう、地図でいちばん深い迷宮の戦果の 7割 を下限にする
-  const open = DUNGEONS.filter((d) => worldOpenId(d.id));
-  const front = open.length ? deepU(open.reduce((a, d) => (d.nTo > a.nTo ? d : a))) : u0;
+  const front = questFrontUnit();
   const u = { gold: Math.max(u0.gold, front.gold * 0.7), soul: Math.max(u0.soul, front.soul * 0.7) };
   const out = {};
   if (r.gold) out.gold = Math.max(1, Math.round(u.gold * r.gold / 10) * 10);
@@ -9696,8 +9702,9 @@ function abandonQuest(uid) {
   return true;
 }
 function questDone(q) {
-  log(`依頼「${q.name}」を果たした！ — 酒場で報告しよう`, "win");
-  showToast(`📜 依頼達成: ${q.name}`, { tone: "good" });
+  const who = q.giver ? q.giver.name : (q.npc != null ? npcOf(q.npc).name : null);
+  log(`依頼「${q.name}」を果たした！ — 酒場で${who ? who + "に" : ""}報告しよう`, "win");
+  showToast(`📜 依頼達成: ${q.name}` + (who ? ` ― ${who}が待っている` : ""), { tone: "good" });
 }
 
 // 依頼の進みを加算する (迷宮・階を問わず、条件さえ満たせば進む)。
@@ -9769,7 +9776,8 @@ function claimQuest(uid) {
     autosave(true);
     SFX.itemget(); buzz([0, 30, 60, 30]);
     log(`依頼「${def.name}」を報告した。(${def.giver.name})`, "win");
-    UI.playStoryChain([{ title: def.name, lines: def.done || [], reward: rewardRows(r, jobs), kicker: `依頼の報告 ― ${def.giver.name}`, who: "none", place: "tavern", btnLabel: "受け取る" }], () => {
+    UI.playStoryChain([{ title: def.name, lines: def.done || [], reward: rewardRows(r, jobs), kicker: `依頼の報告 ― ${def.giver.name}`, place: "tavern", btnLabel: "受け取る",
+      who: { name: def.giver.name, sub: `${def.giver.title} ・ 一度きりの依頼`, art: () => questMarkCanvas(fixedQuestView(def), jobs) } }], () => {
       updateTopbar(); renderTown();
       showToast(`📜 依頼「${def.name}」を果たした`, { tone: "gold" });
     });
@@ -9781,40 +9789,61 @@ function claimQuest(uid) {
   finishFreeQuest(q, q.reward || {});
   return true;
 }
-// フリークエストの報酬を渡して締める (納品も同じ道)
+// フリークエストの報酬を渡して締める (納品も同じ道)。
+// 依頼人が酒場で迎える一幕 (UI.playStoryChain) に、依頼の言葉・依頼人の礼・受け取るものを並べる。
+// 同じ依頼人への報告を重ねるほど「なじみ」になり、礼の言葉が変わる。3・6・10回目 (以後5回ごと) は節目の品
+// (quests.js BOND_GIFTS)、ときどき (TIP_RATE %) 心付けが上乗せされる
 function finishFreeQuest(q, r, extraJobs = [], title = null) {
+  const s = questState();
   G.stats.questsDone = (G.stats.questsDone || 0) + 1;
+  const ni = NPCS[q.npc] ? q.npc : 0;
+  const npc = npcOf(ni);
+  const count = (s.npcs[ni] || 0) + 1;
+  s.npcs[ni] = count;
+  const tip = rand(100) < TIP_RATE ? questTip(r) : null;
+  const bond = bondGiftAt(count);
   grantCurrencies(r);
   const jobs = [...extraJobs, ...grantRewardSouls(r.souls)];
+  if (tip) grantCurrencies(tip);
+  const bondJobs = bond ? grantRewardSouls(bond.gift.souls) : [];
+  if (bond) grantCurrencies(bond.gift);
+  const rows = [...rewardRows(r, jobs), ...rewardRows(tip || {}).map((x) => ({ ...x, tag: "心付け" })),
+    ...(bond ? rewardRows(bond.gift, bondJobs).map((x) => ({ ...x, tag: "なじみの礼" })) : [])];
   updateTopbar();
   const parts = [];
-  if (r.gold) parts.push(`💰${r.gold}`);
-  if (r.soulPts) parts.push(`✦${r.soulPts}`);
-  const names = jobs.map((k) => SOUL_CLASSES[k].label);
-  log(`依頼「${q.name}」を報告した。` + (parts.length ? ` ${parts.join(" ")}` : "") + (names.length ? ` 魂: ${names.join("・")}` : ""), "win");
-  const rareJob = jobs.find((k) => SOUL_CLASSES[k].rarity !== "common");
-  if (jobs.length) {
-    SFX.itemget(); buzz(rareJob ? [0, 40, 50, 40, 50, 150] : [0, 30, 60, 30]);
-    if (jobs.some((k) => SOUL_CLASSES[k].rarity === "legend")) { flashScreen("#ffcf4a"); SFX.victory(); }
-    const lines = [];
-    if (parts.length) lines.push(`${parts.join("  ")} を受け取った。`);
-    lines.push(`${names.join("・")} の魂を授かった。`, "所持魂 一覧に追加した。");
-    showEvent({
-      sprite: soulIcon(rareJob || jobs[0]),
-      banner: rareJob ? `★ ${RARITY_LABEL[SOUL_CLASSES[rareJob].rarity]}の魂 ★` : `✦ 魂 ×${jobs.length} ✦`,
-      title: title || `依頼「${q.name}」を果たした`,
-      lines,
-      accent: (SOUL_CLASSES[rareJob || jobs[0]] || {}).glow || "#c9a227",
-      sparkle: !!rareJob,
-      btnLabel: "受け取る",
-      onClose: () => { updateTopbar(); renderTown(); },
-    });
-  } else {
-    SFX.itemget(); buzz([0, 30, 60, 30]);
-    showToast(`📜 ${q.name} ― ${parts.join(" ")}`, { tone: "gold" });
-    renderTown();
-  }
+  const gold = (r.gold || 0) + ((tip && tip.gold) || 0), soul = (r.soulPts || 0) + ((tip && tip.soulPts) || 0);
+  if (gold) parts.push(`💰${gold}`);
+  if (soul) parts.push(`✦${soul}`);
+  const allJobs = [...jobs, ...bondJobs];
+  const names = allJobs.map((k) => SOUL_CLASSES[k].label);
+  log(`依頼「${q.name}」を${npc.name}に報告した。` + (parts.length ? ` ${parts.join(" ")}` : "") + (names.length ? ` 魂: ${names.join("・")}` : ""), "win");
   autosave(true);
+  const rareJob = allJobs.find((k) => SOUL_CLASSES[k].rarity !== "common");
+  SFX.itemget(); buzz(rareJob || bond ? [0, 40, 50, 40, 50, 150] : [0, 30, 60, 30]);
+  if (allJobs.some((k) => SOUL_CLASSES[k].rarity === "legend")) { flashScreen("#ffcf4a"); SFX.victory(); }
+  const lines = composeReport(q, count, { rand, tip: !!tip, bond });
+  const bl = npcBondLabel(count);
+  UI.playStoryChain([{
+    title: title || q.name, lines, reward: rows, kicker: `依頼の報告 ― ${npc.name}`, place: "tavern", btnLabel: "受け取る",
+    who: { name: npc.name, sub: npc.title + (bl ? ` ・ ${bl}` : ""), art: () => questMarkCanvas(q, jobs) },
+  }], () => {
+    updateTopbar(); renderTown();
+    showToast(`📜 依頼「${q.name}」を果たした` + (bond ? ` ― ${npc.name}と${bl}に` : ""), { tone: "gold" });
+  });
+}
+// 心付け: 報酬の金貨 (無ければ ✦Soul) の 3〜5割。納品 (魂だけの報酬) は地図の最深部の戦果 2〜4回分の金貨
+function questTip(r) {
+  const k = 0.3 + rand(3) * 0.1;
+  if (r.gold) return { gold: Math.max(1, Math.round(r.gold * k)) };
+  if (r.soulPts) return { soulPts: Math.max(1, Math.round(r.soulPts * k)) };
+  return { gold: Math.max(10, Math.round(questFrontUnit().gold * (2 + rand(3)))) };
+}
+// 報告の一幕の肖像の枠に掲げる絵: 討伐 = 倒した魔物 / 納品 = 納めた品 / 魂 = 授かった魂 / 宝箱 / 到達 = 階段
+function questMarkCanvas(q, jobs = []) {
+  const spr = (q.type === "kill" && q.keys && MONSTERS[q.keys[0]]) || (q.type === "deliver" && ITEMS[q.itemId]) ||
+    (q.type === "soul" && jobs[0] && soulIcon(jobs[0])) || (q.type === "chest" && ICONS.chest) || (q.type === "floor" && ICONS.stairs) || (q.type === "clear" && ICONS.bossDoor) ||
+    (jobs[0] && soulIcon(jobs[0])) || ICONS.chest;
+  return crispCanvas(spr, 96);
 }
 
 // ---- 酒場に居合わせる者たち: 帰還ごとに3〜5名を選び、各人が世界の噂・冒険のヒントを語る ----
@@ -13541,6 +13570,8 @@ function init() {
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
   window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACHIEVEMENTS, questProgress, pickLoot, showItemGet, startBattle, spawnCardEnemies, spawnBossEnemies, activeCfg,
     UI, ops, nav, townshell,
+    // 酒場の依頼の検証用
+    quest: { questState, questLists, rollQuestBoard, acceptQuest, claimQuest, deliverQuest, questProgress },
     // 迷宮のイベント (出来事) の検証用
     ev: { evApi, runEvent, eventFightWon, EVENT_MAP, enterDungeon, newFloor, descend, resolveCell, renderBoard, endBattle, evNewFloor, evProgress, eventFacts, makeDoll, addSoulInstance, recalcDoll, evUnit },
     // 迷宮の台帳・物語の進みの検証用
