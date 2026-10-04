@@ -14263,10 +14263,10 @@ const OPS = {
     for (const d of dolls) for (const it of (d.items || [])) if (it && it.unidentified) { unid++; unidCost += appraiseCost(it); }
     const junk = opsJunkList();
     const dead = dolls.filter((d) => d.isDoll && !d.alive);
-    let repairCost = 0, hastenCost = 0, rescuing = 0;
+    let repairCost = 0, hastenCost = 0, rescuing = 0, repairNow = 0;
     for (const d of dead) {
       if (awaitingRescue(d)) { rescuing++; hastenCost += hastenCostOf(d); }
-      else repairCost += repairCostOf(d);
+      else { const c = repairCostOf(d); repairCost += c; if (c <= G.gold) repairNow++; }
     }
     let ach = 0, treasuryReady = false;
     try { ach = opsClaimableAchievements().length; } catch (e) { ach = 0; }
@@ -14274,6 +14274,7 @@ const OPS = {
     return {
       hurt: G.party.filter((p) => p.alive && (p.hp < p.maxhp || p.mp < p.maxmp)).length,
       dead: dead.length, rescuing, repairable: dead.length - rescuing,
+      repairNow, // いま館で修復できる (連れ帰り済み・金貨が足りる) 砕けた人業の数 — 人業の館のタブの印
       unid, unidCost,
       junk: junk.length, junkGold: junk.reduce((a, j) => a + j.price, 0),
       ach,

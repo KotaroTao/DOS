@@ -133,7 +133,7 @@ function badgeOf(key, counts) {
   const def = tabDefs[key];
   if (def && typeof def.badge === "function") { try { return def.badge(counts); } catch (e) { return null; } }
   if (!counts) return null;
-  if (key === "party") return counts.dead || (counts.trainable ? true : null);
+  if (key === "party") return counts.repairNow || (counts.trainable ? true : null);
   if (key === "shop") return counts.unid || null;
   if (key === "palace") {
     let call = false;
