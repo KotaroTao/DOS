@@ -9973,12 +9973,13 @@ function rollClassOfRarity(rarity) {
   const pool = SOUL_KEYS.filter((k) => SOUL_CLASSES[k].rarity === rarity);
   return pool.length ? pool[rand(pool.length)] : "fighter";
 }
-// 「今 到達している深さまでに出現しうる」品のid (LOOT_IDS = exclusive/LR を除く通常ドロップ品)
+// 「今 到達している深さまでに出現しうる」品のid (LOOT_IDS = exclusive/LR を除く通常ドロップ品)。
+// 商会の初期在庫 (SHOP_INIT_STOCK) の品は、買えば済むだけなので納品に求めない
 function eligibleDeliveryItemIds() {
   // 地図にある迷宮のうち、いちばん深い落とし物の帯の上限 lv
   const open = DUNGEONS.filter((d) => worldOpenId(d.id));
   const cap = Math.max(1, ...(open.length ? open : [DUNGEONS[0]]).map((d) => (d.lootLv || [1, 1])[1]));
-  return LOOT_IDS.filter((id) => (ITEMS[id].lv || 1) <= cap);
+  return LOOT_IDS.filter((id) => (ITEMS[id].lv || 1) <= cap && !(id in SHOP_INIT_STOCK));
 }
 // 対象アイテムが手持ち (人業の所持品。装備中・未鑑定は除く) にあるか
 function deliveryHolder(itemId) {
