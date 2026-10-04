@@ -12,6 +12,10 @@
 export const STAGED = new Set(["atk", "vit", "agi", "int", "pie"]);
 export const STAGE_MAX = 3;
 export const STRONG_MIN = -2;   // 主・精鋭に入る弱体の底
+// この持続以上の効果は「戦闘の終わりまで」(激昂など)。札には残りターンを出さない
+export const BATTLE_LONG = 99;
+export const isBattleLong = (n) => n > BATTLE_LONG / 2; // 毎ラウンド減るので半分を越えていれば戦闘中ずっと
+export const turnsLeftLabel = (n) => (isBattleLong(n) ? "" : String(n));
 export const STAGE_UP = [1, 1.25, 1.5, 1.75];
 export const STAGE_DOWN = [1, 0.8, 0.65, 0.5];
 
