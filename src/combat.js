@@ -310,6 +310,13 @@ function edefOf(t) {
   if (e && !(t.elemDef && (t.elemDef.lv || 0) >= (e.lv || 1))) return e;
   return t ? t.elemDef : null;
 }
+// オートの見積もりが敵の属性を知っているか (game.js が図鑑の開示段階で判定する関数を渡す)。
+// 知らない敵は「属性なし」とみなし、相性を手の選び方に入れない (実際のダメージ計算には関わらない)
+let _elemKnown = null;
+export function setElemKnown(fn) { _elemKnown = typeof fn === "function" ? fn : null; }
+const elemSeen = (t) => !(t && t.side === "enemy" && _elemKnown && !_elemKnown(t));
+// 属性を知らない敵の見かけ (固有属性だけ「なし」に見せ、ほかは本体を読む)。固有パッシブの「弱点を突いた時」の判定用
+const elemMask = (t) => (elemSeen(t) ? t : Object.create(t, { element: { value: "none" } }));
 
 // 状態異常を抱えているか (戦闘中の眠り・魅了・混乱も含む)。治療の対象選び・オートの判断に使う
 export function ailing(t) { return !!(t && (t.ailment || t.asleep || t.mind)); }
@@ -2259,18 +2266,20 @@ export class Battle {
     if (tgt._defending) dmg *= 0.5;
     const aE = opt.element || (actor.elemAtk && actor.elemAtk.el) || actor.element || "none";
     const aLv = (actor.elemAtk && actor.elemAtk.el === aE) ? Math.max(1, actor.elemAtk.lv) : 1;
-    dmg *= elemDmgMult(aE, aLv, tgt.element || "none", edefOf(tgt)) * this._vulnMul(tgt, aE);
+    // 属性相性は、図鑑で属性が明かされた敵にだけ見込む (setElemKnown)。打ち込んだ属性耐性ダウンは見えているので数える
+    dmg *= (elemSeen(tgt) ? elemDmgMult(aE, aLv, tgt.element || "none", edefOf(tgt)) : 1) * this._vulnMul(tgt, aE);
     if (opt.execute && tgt.maxhp && tgt.hp <= tgt.maxhp * 0.3) dmg *= opt.execute;
     if (opt.prey && opt.prey.races.includes(enemyRace(tgt))) dmg *= opt.prey.mul;
     if (pv(actor, "smite") && HOLY_PREY.includes(enemyRace(tgt))) dmg *= 1.3;
     if (pv(actor, "gokudoku") && tgt.ailment === "poison") dmg *= 1.3;
     const pOn = opt.basic ? ["phys", "basic"] : opt.skill ? ["phys", "skill"] : ["phys"];
     const perkFoe = actor.side === "party" && tgt.side === "enemy";
-    if (perkFoe) dmg *= 1 + this._perkSum(actor, "deal", { tgt, el: aE, on: pOn });
+    const tv = elemMask(tgt);
+    if (perkFoe) dmg *= 1 + this._perkSum(actor, "deal", { tgt: tv, el: aE, on: pOn });
     if (actor.side === "party") dmg *= evDealMul(actor, tgt);
     const luckCrit = Math.max(0, ((actor.luk || 8) - 8)) * 0.005;
     let critP = 0.06 + (actor.critBonus || 0) + luckCrit + (opt.critBonus || 0) + (actor._evCrit || 0);
-    if (perkFoe) critP += this._perkSum(actor, "crit", { tgt, el: aE, on: pOn });
+    if (perkFoe) critP += this._perkSum(actor, "crit", { tgt: tv, el: aE, on: pOn });
     if (pv(actor, "holyEdge") && HOLY_PREY.includes(enemyRace(tgt))) critP += 0.15;
     const fs = pv(actor, "fightSpirit");
     if (fs >= 2 && actor.maxhp && actor.hp <= actor.maxhp * 0.3) critP += [0, 0, 0.15, 0.20, 0.25][Math.min(fs, 4)];
@@ -2298,7 +2307,7 @@ export class Battle {
     else {
       const intv = Math.max((actor.int || 0) * this._bm(actor, "int"), isFaithSpell(sp) ? (actor.pie || 0) * this._bm(actor, "pie") : 0);
       const aLv = (actor.elemAtk && actor.elemAtk.el === sp.element) ? Math.max(1, actor.elemAtk.lv) : 1;
-      let em = elemDmgMult(sp.element || "none", aLv, t.element || "none", edefOf(t));
+      let em = elemSeen(t) ? elemDmgMult(sp.element || "none", aLv, t.element || "none", edefOf(t)) : 1;
       if (em < 1 && pv(actor, "elemFloor")) em = 1;
       em *= this._vulnMul(t, sp.element);
       dmg = Math.max(1, (sp.power + intv * 0.5) * this._lowHpMul(actor) - Math.floor(this._evit(t) * 0.2)) * em;
@@ -2311,7 +2320,7 @@ export class Battle {
     if (r >= 3) return 0;
     if (r > 0) dmg *= 1 - resistRate(r) * (1 - this._rk(actor, "archmageShinen", [0.25, 0.50, 0.75, 1]));
     if (pv(actor, "gokudoku") && t.ailment === "poison") dmg *= 1.3;
-    dmg *= evDealMul(actor, t) * (1 + this._perkSum(actor, "deal", { tgt: t, el: sp.element || "none", on: ["spell"] }));
+    dmg *= evDealMul(actor, t) * (1 + this._perkSum(actor, "deal", { tgt: elemMask(t), el: sp.element || "none", on: ["spell"] }));
     const critP = sp.gravity ? 0 : Math.min(1, ([0, 0.10, 0.18, 0.26][Math.min(pv(actor, "spellCrit"), 3)] || 0) + (sp.critBonus || 0)
       + this._rk(actor, "arcanistShinen", [0.05, 0.08, 0.12, 0.20]));
     dmg *= 1 + critP * 0.5;

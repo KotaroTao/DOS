@@ -1,7 +1,7 @@
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, perkVictory } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, setElemKnown, perkVictory } from "./combat.js";
 import { decideAuto, tacticOf } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageLabel } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -19,7 +19,7 @@ import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_FINALE, STORY_CELLS, storyCellAt,
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
 import { NAMED_FOES, NAMED_IDS, TROPHY_OF, HUNT_ELITE_RATE, bountyId } from "./dungeons/named.js";
-import { DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, strengthAt, lootBand, abyssLayer, ABYSS_LAYER_FLOORS, hazardsAt, levelBand, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
+import { DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, strengthAt, lootBand, abyssLayer, ABYSS_LAYER_FLOORS, hazardsAt, levelBand, DUNGEON_MONSTERS, ELEMENTS, elemDmgMult, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
 import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
@@ -7380,9 +7380,13 @@ function renderCombatCanvas() {
       if (fleeFx) return; // 逃げる姿には名札を付けない
       drawEnemyPlate(e, baseX, plateY, tappable && strongTarget, k);
       const hpY = plateY + 17;
-      if (enemyReveal(e).stats) drawEnemyHpVial(e, baseX, hpY, now, k);
-      // バフ/デバフ表示 (味方カードの buffBadges に相当): 前衛はHPバーの下、後衛はプレートの上
-      drawEnemyBadges(e, baseX, row.back ? plateY - 15 : hpY + 9);
+      const showHp = enemyReveal(e).stats;
+      if (showHp) drawEnemyHpVial(e, baseX, hpY, now, k);
+      // 状態異常の札は名前の下 (HP の小瓶があればその下)。バフ/デバフ (味方カードの buffBadges に相当) は
+      // 前衛なら同じ段に続けて、後衛はプレートの上 (下に並べると奥の魔物の頭に掛かるため)
+      const statY = showHp ? hpY + 9 : plateY + 18;
+      if (row.back) { drawEnemyBadges(e, baseX, statY, { buffs: false }); drawEnemyBadges(e, baseX, plateY - 15, { ails: false }); }
+      else drawEnemyBadges(e, baseX, statY);
     });
   }
 
@@ -7558,7 +7562,7 @@ function drawTargetBrackets(x, cy, hh, size, now) {
   vctx.restore();
 }
 
-// 敵の名札: 両端の尖った黒鉄の札。主は金、強敵は紅の縁。状態異常・属性 (看破) は札の右に印で添える
+// 敵の名札: 両端の尖った黒鉄の札。主は金、強敵は紅の縁。属性 (明かされていれば) は札の右に印で添える
 const ENEMY_SEAL = { poison: ["毒", "#8ee05a"], paralyze: ["痺", "#ffd84a"], stone: ["石", "#c9c4b8"] };
 const MIND_SEAL = { charm: ["魅", "#ff8fc8"], confuse: ["乱", "#ffa860"] };
 function drawEnemyPlate(e, x, y, hot, k) {
@@ -7587,24 +7591,26 @@ function drawEnemyPlate(e, x, y, hot, k) {
   vctx.shadowColor = "#000"; vctx.shadowBlur = 0; vctx.shadowOffsetY = 1;
   vctx.fillText(label, x, y + ph / 2 + 0.5);
   vctx.shadowOffsetY = 0;
-  // 右に添える印 (属性看破 / 状態異常 / 眠り / 怯み)
+  // 右に添える印は属性だけ (図鑑で属性が明かされた敵 / 弱点看破)。状態異常は名前の下の札 (enemyAilSeals → drawEnemyBadges)
+  if (e.element && e.element !== "none" && ELEMENTS[e.element] && enemyElemKnown(e)) {
+    const el2 = ELEMENTS[e.element], sx = x1 + 9;
+    vctx.font = `800 9px ${CANVAS_SERIF}`;
+    vctx.fillStyle = "rgba(6,4,6,0.9)";
+    vctx.beginPath(); vctx.arc(sx, y + ph / 2, 7, 0, Math.PI * 2); vctx.fill();
+    vctx.strokeStyle = el2.color || "#ccc"; vctx.lineWidth = 1; vctx.stroke();
+    vctx.fillStyle = el2.color || "#ccc";
+    vctx.fillText(el2.label || "?", sx, y + ph / 2 + 0.5);
+  }
+  vctx.restore();
+}
+// 名前の下に並べる状態異常の印 (毒・麻痺・石化 / 眠り / 魅了・混乱 / 怯み): [字, 色]
+function enemyAilSeals(e) {
   const seals = [];
-  if (partyPassiveLv("scan") && e.element && e.element !== "none") { const el2 = ELEMENTS[e.element] || {}; seals.push([el2.label || "?", el2.color || "#ccc"]); }
   if (e.ailment) seals.push(ENEMY_SEAL[e.ailment] || ["呪", "#c080ff"]);
   if (e.asleep) seals.push(["眠", "#8fc8ff"]);
   if (e.mind && MIND_SEAL[e.mind]) seals.push(MIND_SEAL[e.mind]);
   if (e._flinch) seals.push(["怯", "#d0a0ff"]);
-  let sx = x1 + 9;
-  vctx.font = `800 9px ${CANVAS_SERIF}`;
-  for (const [t, c] of seals) {
-    vctx.fillStyle = "rgba(6,4,6,0.9)";
-    vctx.beginPath(); vctx.arc(sx, y + ph / 2, 7, 0, Math.PI * 2); vctx.fill();
-    vctx.strokeStyle = c; vctx.lineWidth = 1; vctx.stroke();
-    vctx.fillStyle = c;
-    vctx.fillText(t, sx, y + ph / 2 + 0.5);
-    sx += 16;
-  }
-  vctx.restore();
+  return seals;
 }
 // 敵の HP: 硝子の小瓶に満ちた血。削られた分は淡い紅の名残として遅れて消える
 const _hpLag = new WeakMap();
@@ -8019,10 +8025,12 @@ function buffGroups(list) {
   }
   return [...groups.values()].filter((g) => g.stages > 0);
 }
-function drawEnemyBadges(e, baseX, yTop) {
-  if (!e.alive || !e.effects || !e.effects.length) return;
+// opt.ails = 状態異常の札 (名前の下に先頭から) / opt.buffs = 強化・弱体の札。既定はどちらも
+function drawEnemyBadges(e, baseX, yTop, opt = {}) {
+  if (!e.alive) return;
   const segs = [];
-  for (const g of buffGroups(e.effects)) {
+  if (opt.ails !== false) for (const [t, c] of enemyAilSeals(e)) segs.push({ text: t, ail: c });
+  if (opt.buffs !== false) for (const g of buffGroups(e.effects)) {
     // 予兆は「溜!」の琥珀色の札 (残りターンは出さない)
     if (g.omen) { segs.push({ text: "溜!", up: true, omen: true }); continue; }
     const arrow = (g.up ? "▲" : "▼").repeat(Math.min(3, g.stages));
@@ -8040,14 +8048,14 @@ function drawEnemyBadges(e, baseX, yTop) {
   const cy = yTop + h / 2;
   segs.forEach((s, i) => {
     const w = widths[i];
-    vctx.fillStyle = s.omen ? "rgba(120,72,10,0.92)" : s.up ? "rgba(36,84,40,0.88)" : "rgba(108,40,40,0.88)";
+    vctx.fillStyle = s.ail ? "rgba(6,4,6,0.9)" : s.omen ? "rgba(120,72,10,0.92)" : s.up ? "rgba(36,84,40,0.88)" : "rgba(108,40,40,0.88)";
     vctx.beginPath();
     vctx.roundRect ? vctx.roundRect(x, yTop, w, h, 4) : vctx.rect(x, yTop, w, h);
     vctx.fill();
-    vctx.strokeStyle = s.omen ? "#ffb43a" : s.up ? "#6fcf6f" : "#ff7a72";
+    vctx.strokeStyle = s.ail || (s.omen ? "#ffb43a" : s.up ? "#6fcf6f" : "#ff7a72");
     vctx.lineWidth = 1;
     vctx.stroke();
-    vctx.fillStyle = s.omen ? "#ffe2a8" : s.up ? "#c8f0c8" : "#ffc9c5";
+    vctx.fillStyle = s.ail || (s.omen ? "#ffe2a8" : s.up ? "#c8f0c8" : "#ffc9c5");
     vctx.fillText(s.text, x + pad, cy + 0.5);
     x += w + gap;
   });
@@ -8442,6 +8450,8 @@ function renderCombatMenu() {
       qb.style.setProperty("--sp-col", SPELL_KIND_COLOR[sp.kind] || "#c9a24a");
       const qs = qb.querySelector(".cmd-s"), qt = tagRow(spellTagKinds(sp, actor), "sp-tags");
       if (qs && qt) qs.appendChild(qt);
+      const qe = qs && skillEdgeTags(actor, sp);
+      if (qe) qs.appendChild(qe);
       attachLongPress(qb, () => { SFX.select(); showSkillPopup(quick); });
       main.appendChild(qb);
     }
@@ -8490,12 +8500,48 @@ function renderCombatMenu() {
       bar.appendChild(fill);
       if (!showHp) bar.style.visibility = "hidden";
       tb.appendChild(bar);
-      tb.appendChild(el("span", "tgt-hp", !showHp ? "HP ？" : isEn ? `HP ${t.hp}` : `HP ${t.hp}/${t.maxhp}`));
+      const hpEl = el("span", "tgt-hp", !showHp ? "HP ？" : isEn ? `HP ${t.hp}` : `HP ${t.hp}/${t.maxhp}`);
+      // 属性を帯びた技なら、属性の明かされた敵に「弱点」「耐性」を添える
+      const edge = isEn && sp ? skillEdgeOn(b.current, sp, t) : 0;
+      if (edge) hpEl.prepend(el("span", "sp-edge " + (edge > 0 ? "good" : "bad"), edge > 0 ? "弱点" : "耐性"));
+      tb.appendChild(hpEl);
       list.appendChild(tb);
     }
     combatMenu.appendChild(list);
     combatMenu.appendChild(cmdBtn("back", "戻る", "", () => { b.cancelTarget(); renderCombatMenu(); }, "cmd-wide cmd-backb"));
   }
+}
+
+// ---- 技の属性の有利・不利 (属性の明かされた敵だけを見る: enemyElemKnown) ----
+// 技 (攻撃呪文・物理技) が打つ属性と、その強さ (combat.js の _cast / _physical と同じ: 技の属性 > 武器の属性攻撃)
+function skillElem(actor, sp) {
+  if (!sp || !(sp.kind === "atk" || sp.kind === "phys") || sp.gravity) return null;
+  const ea = actor && actor.elemAtk;
+  const aE = sp.element && sp.element !== "none" ? sp.element : sp.kind === "phys" && ea && ea.el ? ea.el : "none";
+  if (aE === "none" || !ELEMENTS[aE]) return null;
+  return { el: aE, lv: ea && ea.el === aE ? Math.max(1, ea.lv) : 1 };
+}
+// その敵に対して 1 = 有利 (弱点を突く) / -1 = 不利 (耐えられる) / 0 = 相性なし・属性が明かされていない
+function skillEdgeOn(actor, sp, e) {
+  const se = skillElem(actor, sp);
+  if (!se || !e || !e.alive || !enemyElemKnown(e)) return 0;
+  let m = elemDmgMult(se.el, se.lv, e.element || "none", null);
+  if (m < 1 && sp.kind === "atk" && pLv(actor, "elemFloor")) m = 1; // 森羅の理: 呪文の属性不利が出ない
+  return m > 1 ? 1 : m < 1 ? -1 : 0;
+}
+// 技の一覧に添える「有利」「不利」の札 (届く敵のうち、属性の明かされた敵に1体でも当てはまれば)。無ければ null
+function skillEdgeTags(actor, sp) {
+  const b = G.battle;
+  if (!b || !skillElem(actor, sp)) return null;
+  const foes = sp.kind === "phys" && sp.target !== "all-enemy" ? b.attackableEnemies(actor) : b.livingEnemies();
+  let good = 0, bad = 0;
+  for (const e of foes) { const d = skillEdgeOn(actor, sp, e); if (d > 0) good++; else if (d < 0) bad++; }
+  if (!good && !bad) return null;
+  const r = el("span", "sp-edges");
+  if (good) r.appendChild(el("span", "sp-edge good", "有利"));
+  if (bad) r.appendChild(el("span", "sp-edge bad", "不利"));
+  r.title = [good ? `弱点を突ける敵 ${good}体` : "", bad ? `属性で耐えられる敵 ${bad}体` : ""].filter(Boolean).join("・");
+  return r;
 }
 
 function showSpells(actor) {
@@ -8519,6 +8565,8 @@ function showSpells(actor) {
     top.appendChild(el("span", "sp-n", sp.name));
     const tg = tagRow(spellTagKinds(sp, actor), "sp-tags");
     if (tg) top.appendChild(tg);
+    const edge = skillEdgeTags(actor, sp);
+    if (edge) { if (!tg) edge.classList.add("lead"); top.appendChild(edge); }
     top.appendChild(el("span", "sp-mp", `MP${cost}`));
     b.appendChild(top);
     b.appendChild(el("span", "sp-d", sp.desc));
@@ -11921,6 +11969,10 @@ function codexKillNow(e) {
   recordMonsterKill(e.key, abyssActive() ? null : G.dungeonIdx);
 }
 setOnEnemyKilled(codexKillNow);
+// 敵の属性が明かされているか: 図鑑で属性の項目が解放済み (enemyReveal の stats = 5体討伐・主は1体) か、
+// 隊の誰かが弱点看破 (scan) を持つ。戦闘の名札の属性の印・技の有利/不利・オートの見積もり (combat.js) が共通で使う
+function enemyElemKnown(e) { return !!e && (enemyReveal(e).stats || partyPassiveLv("scan") > 0); }
+setElemKnown(enemyElemKnown);
 function recordMonsterKill(key, dungeonIdx) {
   if (!key) return;
   const e = codexMonEntry(key);
