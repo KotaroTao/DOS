@@ -723,7 +723,7 @@ function shakeScreen(strong = false) {
 // 記録の履歴 (記録欄をタップして読む全文)。欄に残す行 (80) より長く覚えておく
 const LOG_HISTORY_MAX = 300;
 const _logHistory = [];
-function logHistory() { return _logHistory.map((x) => ({ text: x.n > 1 ? `${x.msg} ×${x.n}` : x.msg, cls: "l-" + x.cls })); }
+function logHistory() { return _logHistory.map((x) => ({ text: x.msg, cls: "l-" + x.cls })); }
 // 戦闘中の記録は、まだ名前を知らない敵 (討伐数0) の名を不確定名 (「蠢く粘塊？」など、dungeons/unknown.js) に伏せる。
 // 不確定名は unknownTag の印で囲み、記録欄では .unk-name の色で正式な名と見分ける (setLogText)
 // 個体名 (スライムA) を先に、種の名 (スライム) を後に置き換える。明かされた別の敵の名に含まれる種名は触らない
@@ -752,25 +752,12 @@ function maskUnknownEnemies(msg) {
 }
 function log(msg, cls = "sys") {
   msg = maskUnknownEnemies(msg);
-  // 直前と同じ文 (壁にぶつかり続けた時など) は行を増やさず「×N」で数える
-  const lastH = _logHistory[_logHistory.length - 1];
-  if (lastH && lastH.msg === msg && lastH.cls === cls) lastH.n++;
-  else {
-    _logHistory.push({ msg, cls, n: 1 });
-    if (_logHistory.length > LOG_HISTORY_MAX) _logHistory.splice(0, _logHistory.length - LOG_HISTORY_MAX);
-  }
-  const last = logEl.lastElementChild;
-  if (last && last._msg === msg && last.className === "l-" + cls) {
-    last._n = (last._n || 1) + 1;
-    setLogText(last, `${msg} ×${last._n}`);
-    _logPinned = true;
-    scrollLogBottom();
-    return;
-  }
+  // 直前と同じ文が続いても「×N」にまとめず、そのまま1行ずつ出す
+  _logHistory.push({ msg, cls });
+  if (_logHistory.length > LOG_HISTORY_MAX) _logHistory.splice(0, _logHistory.length - LOG_HISTORY_MAX);
   const div = document.createElement("div");
   div.className = "l-" + cls;
   setLogText(div, msg);
-  div._msg = msg;
   logEl.appendChild(div);
   while (logEl.children.length > 80) logEl.removeChild(logEl.firstChild);
   // 新しいメッセージが来たら最下部へ貼り付け直す。iOS Safari 等では appendChild 直後の
