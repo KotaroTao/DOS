@@ -119,7 +119,7 @@ export const SPELLS = {
   SEIIKINOKANE: { name: "聖域の鐘", mp: 12, kind: "buff", buff: { vit: 1.2 }, cure: true, purge: true, target: "all-ally", desc: "味方を守り、状態異常と弱体を祓う鐘の音" },
   KYOUKOUNOSHUKUFUKU: { name: "教皇の祝福", mp: 36, kind: "buff", buff: { atk: 1.3, vit: 1.3, agi: 1.2 }, regen: { pct: 0.08, turns: 4 }, target: "all-ally", desc: "味方全体の攻守と素早さを上げ、癒しを残す" },
   MANAGIFT:   { name: "魔力の譲渡", mp: 8, kind: "mana", power: 8, target: "ally", desc: "自分の魔力を味方に分け与える" },
-  SHINTOU:    { name: "心頭滅却", mp: 6, kind: "heal", power: 30, cure: true, purge: true, target: "self", desc: "自分を癒し、状態異常と弱体を払う" },
+  SHINTOU:    { name: "調息", mp: 6, kind: "heal", power: 30, cure: true, purge: true, target: "self", desc: "自分を癒し、状態異常と弱体を払う" },
 
   // ================= 聖なる攻め =================
   HOLYRAY:        { name: "聖光", mp: 3, kind: "atk", power: 14, element: "light", prey: { races: UNHOLY, mul: 1.5 }, target: "enemy", desc: "聖なる光条。不浄の者に強い" },
@@ -133,7 +133,7 @@ export const SPELLS = {
   HAJA:           { name: "破邪の剣", mp: 4, kind: "phys", power: 1.3, element: "light", acc: 0.6, prey: { races: UNHOLY, mul: 1.8 }, target: "enemy", desc: "不死・幽鬼・悪魔に大ダメージ" },
   SEIKOUZAN:      { name: "聖光斬", mp: 12, kind: "phys", power: 2.2, pieScale: 0.8, element: "light", drain: 0.3, acc: 0.9, target: "enemy", desc: "PIEを乗せた聖剣で斬り、傷を癒す（命中UP）" },
   JUUJIZAN:       { name: "十字斬", mp: 12, kind: "phys", power: 1.5, hits: 2, pieScale: 0.4, element: "light", acc: 0.9, prey: { races: UNHOLY, mul: 1.5 }, target: "enemy", desc: "十字に斬る二連撃。不浄の者に強い" },
-  SEISEN:         { name: "聖戦の鬨", mp: 10, kind: "buff", buff: { atk: 1.25, agi: 1.1 }, target: "all-ally", desc: "味方全体の攻撃力と素早さを上げる" },
+  SEISEN:         { name: "進軍の聖歌", mp: 10, kind: "buff", buff: { atk: 1.25, agi: 1.1 }, target: "all-ally", desc: "味方全体の攻撃力と素早さを上げる" },
   JOUKA:          { name: "浄火", mp: 8, kind: "phys", power: 1.6, element: "fire", acc: 0.6, vuln: { fire: 0.75 }, target: "enemy", desc: "浄めの炎で斬り、火耐性を下げる" },
   SEIKEN:         { name: "聖剣奮迅", mp: 14, kind: "atk", power: 20, element: "light", partyHeal: 16, target: "all-enemy", desc: "聖剣の輝きで敵を薙ぎ、味方を癒す" },
   HAJANOTACHI:    { name: "破邪の太刀", mp: 12, kind: "phys", power: 2.2, element: "light", critBonus: 0.25, prey: { races: UNHOLY, mul: 2.0 }, target: "enemy", desc: "不浄の者に2倍のダメージ" },
