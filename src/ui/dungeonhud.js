@@ -547,7 +547,8 @@ export function floorTransition({ floor, tone = "", sub = "", color = null, line
   ov.appendChild(s);
   if (lines && lines.length) {
     const box = el("div", "ft-lines");
-    for (const ln of lines.slice(0, 3)) box.appendChild(setText(el("div", "ft-line"), ln));
+    // 不確定名の印 (unknownTag) は淡い藤色で (記録の欄と同じ setLogText)
+    for (const ln of lines.slice(0, 3)) box.appendChild(setLogText(el("div", "ft-line"), ln));
     ov.appendChild(box);
   }
   const tap = el("div", "ft-tap", "タップで進む");

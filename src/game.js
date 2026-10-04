@@ -6737,7 +6737,9 @@ function descend({ fall = false } = {}) {
   if (G.eliteFloor) {
     tone = "elite"; sub = "— 禍々しき気配 —";
     const ek = MONSTERS[eliteKey()];
-    lines = ["この階には通常では遭遇しない強大な存在が潜む。", ek ? `強敵「${ek.name}」― 討てば希少な戦利品` : "討てば希少な戦利品が得られる。"];
+    // 名前は一度倒すまで不確定名 (階の情報・戦闘の名乗りと同じ enemyReveal)
+    const ekName = ek ? (enemyReveal({ key: eliteKey(), mon: ek }).name ? ek.name : unknownTag(unknownLabel(ek))) : "";
+    lines = ["この階には通常では遭遇しない強大な存在が潜む。", ek ? `強敵「${ekName}」― 討てば希少な戦利品` : "討てば希少な戦利品が得られる。"];
   } else if (sp) {
     tone = "special"; sub = `— ${sp.name} —`; color = sp.accent;
     lines = sp.lines.slice(0, 2);
