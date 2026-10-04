@@ -74,7 +74,7 @@ def uniform_cuts(e, p0, lo, hi):
     return [int(round(v)) for v in best[1] if v < len(e)]
 
 
-def dotify(path, period, uniform=False):
+def dotify(path, period, uniform=False, mode=0.0, outline=0.0):
     a = np.asarray(Image.open(path).convert("RGB")).astype(float)
     x0, x1, y0, y1 = content_box(a)
     m = int(period * 1.5)
@@ -84,12 +84,25 @@ def dotify(path, period, uniform=False):
     ys = cut(edge_profile(a, 0), period, max(0, y0 - m), min(H - 1, y1 + m))
     gh, gw = len(ys) - 1, len(xs) - 1
     cells = np.zeros((gh, gw, 3)); bg = np.zeros((gh, gw), bool)
+    if mode:
+        # 原画のドットが升目より細かい時: 先に減色し、升の中でいちばん多い色を取る。
+        # 細い輪郭線が消えないよう、暗い色は mode 倍に数える
+        qi = Image.fromarray(a.astype(np.uint8)).quantize(colors=64, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+        qpal = np.array(qi.getpalette()[:64 * 3]).reshape(-1, 3).astype(float)
+        qa = np.array(qi)
+        wgt = np.where(qpal.mean(axis=1) < 70, mode, 1.0)
     for j in range(gh):
         for i in range(gw):
             ya, yb, xa, xb = ys[j], ys[j + 1], xs[i], xs[i + 1]
-            sy, sx = (yb - ya) * 0.28, (xb - xa) * 0.28
-            blk = a[int(ya + sy):max(int(ya + sy) + 1, int(yb - sy)), int(xa + sx):max(int(xa + sx) + 1, int(xb - sx))]
-            c = np.median(blk.reshape(-1, 3), axis=0)
+            if mode:
+                sy, sx = (yb - ya) * 0.1, (xb - xa) * 0.1
+                blk = qa[int(ya + sy):max(int(ya + sy) + 1, int(yb - sy)), int(xa + sx):max(int(xa + sx) + 1, int(xb - sx))]
+                cnt = np.bincount(blk.reshape(-1), minlength=len(qpal)) * wgt
+                c = qpal[int(np.argmax(cnt))]
+            else:
+                sy, sx = (yb - ya) * 0.28, (xb - xa) * 0.28
+                blk = a[int(ya + sy):max(int(ya + sy) + 1, int(yb - sy)), int(xa + sx):max(int(xa + sx) + 1, int(xb - sx))]
+                c = np.median(blk.reshape(-1, 3), axis=0)
             cells[j, i] = c
             bg[j, i] = is_white(c)
     # 背景 = 縁から繋がる白。輪郭線に囲まれた白も、囲みの過半が暗い輪郭なら背景 (刀身・瞳の光は残す)
@@ -129,6 +142,17 @@ def dotify(path, period, uniform=False):
     rows = np.nonzero((~out).any(axis=1))[0]; cols = np.nonzero((~out).any(axis=0))[0]
     cells = cells[rows[0]:rows[-1] + 1, cols[0]:cols[-1] + 1]
     out = out[rows[0]:rows[-1] + 1, cols[0]:cols[-1] + 1]
+    if outline:
+        # 外周の縁取り: 背景に接する升を、原画の輪郭色 (いちばん暗い色) へ outline の割合で寄せる
+        # (縮める時に細い輪郭線が途切れ、淡い髪や肌が背景に溶けるのを防ぐ)
+        op = ~out
+        ink = cells[op]
+        dark = ink[np.argsort(ink.mean(axis=1))[:max(1, len(ink) // 50)]].mean(axis=0)
+        pad = np.pad(out, 1, constant_values=True)
+        edge = op & (pad[:-2, 1:-1] | pad[2:, 1:-1] | pad[1:-1, :-2] | pad[1:-1, 2:])
+        lum = cells.mean(axis=2)
+        k = np.where(lum > dark.mean() + 30, outline, 0.0)[..., None]
+        cells = np.where(edge[..., None], cells * (1 - k) + dark * k, cells)
     origin = (xs[cols[0]], ys[rows[0]])  # 切り出した左上の升の、原画での画素位置
     return cells, out, origin
 
@@ -233,13 +257,15 @@ def main():
     ap.add_argument("--period", type=float, default=16.5)
     ap.add_argument("--colors", type=int, default=32)
     ap.add_argument("--uniform", action="store_true", help="升目を周期一定にする (背丈がランク間で揃う)")
+    ap.add_argument("--outline", type=float, default=0.0, help="外周の升を輪郭色へ寄せる割合 (例 0.8)")
+    ap.add_argument("--mode", type=float, default=0.0, help="升の最多色を取る (原画のドットが升目より細かい時)。値 = 暗い輪郭色の重み (例 2.5)")
     ap.add_argument("--head", nargs="*", default=[])
     ap.add_argument("--head-px", help="顔の中心x,頭頂y,あご先y を原画の画素で (全ランク共通)")
     ap.add_argument("--preview"); ap.add_argument("--apply", action="store_true")
     o = ap.parse_args()
     results = []
     for n, f in enumerate(o.images):
-        cells, mask, (ox, oy) = dotify(f, o.period, o.uniform)
+        cells, mask, (ox, oy) = dotify(f, o.period, o.uniform, o.mode, o.outline)
         palette, art = quantize(cells, mask, o.colors)
         if o.head_px:
             # 原画の画素で測った頭 (全ランク同じ位置に描かれた原画向け) を、この絵の升目に換算

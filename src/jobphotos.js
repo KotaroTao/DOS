@@ -40,12 +40,5 @@ export const JOB_PHOTOS = {
     4: { src: "art/jobs/inquisitor_4.webp", w: 62, h: 81, face: [27, 10], head: [27.46, 1.0, 18.21] },
     5: { src: "art/jobs/inquisitor_5.webp", w: 75, h: 85, face: [32, 12], head: [31.96, 2.0, 21.29] },
   },
-  dragonknight: {
-    1: { src: "art/jobs/dragonknight_1.webp", w: 70, h: 84, face: [36, 15], head: [36.43, 4.21, 25.29] },
-    2: { src: "art/jobs/dragonknight_2.webp", w: 86, h: 85, face: [42, 15], head: [41.57, 4.57, 25.86] },
-    3: { src: "art/jobs/dragonknight_3.webp", w: 87, h: 86, face: [42, 15], head: [41.82, 4.79, 25.64] },
-    4: { src: "art/jobs/dragonknight_4.webp", w: 87, h: 87, face: [42, 16], head: [41.86, 5.93, 27.0] },
-    5: { src: "art/jobs/dragonknight_5.webp", w: 87, h: 86, face: [42, 16], head: [41.82, 5.79, 26.29] },
-  },
   // <<JOB_PHOTOS>>
 };
