@@ -85,6 +85,8 @@ function renderGates(b) {
     const info = el("span", "dp-gate-i");
     const nm = el("span", "dp-gate-n", dn.name);
     if (w.fresh && w.fresh[dn.id] && !isDone) nm.appendChild(el("span", "dp-new", "新"));
+    // 受けている依頼の対象の迷宮: 依頼の印 (2件以上なら件数も)
+    { const qc = game.questHereCount ? game.questHereCount(dn) : 0; if (qc) nm.appendChild(el("span", "dp-qmark", qc > 1 ? `依頼×${qc}` : "依頼")); }
     info.appendChild(nm);
     const band = game.levelBand ? game.levelBand(dn) : [1, 1];
     const meta = [`推奨Lv${band[0]}${band[1] > band[0] ? `〜${band[1]}` : ""}`, `全${dn.floors}階`];

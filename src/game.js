@@ -9790,13 +9790,16 @@ function questByUid(uid) {
   return s.active.find((q) => q.uid === uid) || (s.board || []).find((q) => q.uid === uid) || null;
 }
 // 出撃シートの添え書き: 受けている依頼がこの迷宮を指していれば「依頼の地」/ 依頼の迷宮なら「依頼の迷宮」
-function questHereNote(cfg) {
-  if (!cfg) return null;
+// その迷宮を対象にしている受注中の依頼の数 (討伐の出る迷宮・到達/踏破の迷宮)。出撃シートの「依頼」の印
+function questHereCount(cfg) {
+  if (!cfg) return 0;
   const s = questState();
-  const hit = s.active.some((q) => q.state === "active" && q.dungeon === cfg.id) ||
-    FIXED_QUESTS.some((d) => s.fixed[d.id] && s.fixed[d.id].state === "active" && d.goal && d.goal.dungeon === cfg.id);
-  if (hit) return "依頼の地";
-  return cfg.side ? "依頼の迷宮" : null;
+  return s.active.filter((q) => q.state === "active" && q.dungeon === cfg.id).length +
+    FIXED_QUESTS.filter((d) => s.fixed[d.id] && s.fixed[d.id].state === "active" && d.goal && d.goal.dungeon === cfg.id).length;
+}
+// 出撃シートの添え書き: 酒場の依頼で開いた迷宮なら「依頼の迷宮」(受けた依頼の対象かどうかは名の横の印 questHereCount)
+function questHereNote(cfg) {
+  return cfg && cfg.side ? "依頼の迷宮" : null;
 }
 // 報告できる依頼の数 (達成済み + 手持ちで納められる納品)。街の札・酒場の札の印
 function questReadyCount() {
@@ -13715,7 +13718,7 @@ bindGame({
   codexMonEntry, dungeonRoster, CODEX_OTHER,
   // 酒場・祠・宿
   listenRumor, RUMOR_PRICE, rumorPrice, deliveryRewardDesc, rollTavernCrowd,
-  questState, questLists, questByUid, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote,
+  questState, questLists, questByUid, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount,
   adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)
   PREFS, savePrefs, setVolumes, isMuted, toggleMute, ensureAudio, updateMuteBtn, resetAllData, confirmReset,
