@@ -75,3 +75,24 @@ export function baselineAgi(x) {
   }
   return last.v;
 }
+
+// 基準 Lv (隊の平均の魂Lv)。迷宮の「敵のLv」と推奨Lvの物差し (状態異常・即死の成功率はこの差で決まる)。
+// 実測点どうしは直線で結び、最初の実測点より前は (x=0, Lv1) から、最後の実測点より先は +1.7/迷宮で延ばす
+const LV_SLOPE = 1.7;
+export function baselineLv(x) {
+  const pts = PARTY_BASELINE
+    .filter((r) => r.lv != null)
+    .map((r) => ({ x: progressX(r.n, r.floor, r.floors), v: r.lv }))
+    .sort((a, b) => a.x - b.x);
+  // 転職で一時的に下がった実測もあるので、先へ進むほど下がらないよう累積の最大で均す
+  for (let i = 1; i < pts.length; i++) pts[i].v = Math.max(pts[i].v, pts[i - 1].v);
+  if (!pts.length) return 1 + LV_SLOPE * x;
+  const first = pts[0], last = pts[pts.length - 1];
+  if (x <= first.x) return first.v;
+  if (x >= last.x) return last.v + LV_SLOPE * (x - last.x);
+  for (let i = 1; i < pts.length; i++) {
+    const a = pts[i - 1], b = pts[i];
+    if (x <= b.x) return a.v + (b.v - a.v) * ((x - a.x) / (b.x - a.x || 1));
+  }
+  return last.v;
+}

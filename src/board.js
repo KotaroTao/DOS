@@ -7,6 +7,7 @@
 // walls: その辺に壁があれば true (隣接セルと共有)
 
 import { rollJobClass } from "./souls.js";
+import { poolAt } from "./dungeons/world.js";
 
 export const COLS = 8;
 export const ROWS = 6;
@@ -157,13 +158,17 @@ export function makeBoard(floor, cfg = null) {
   cells[st.y][st.x].type = "stairs";
   cells[st.y][st.x].cleared = false;
 
-  // 帰還魔法陣: 最深階 (主のいる階) と5の倍数の階には必ず、その他の階にも20%で出現する。
+  // 帰還魔法陣 (奈落など台帳の外の迷宮): 最深階 (主のいる階) と5の倍数の階には必ず、その他の階にも20%で出現する。
   // ただし主のいない迷宮の最深階には出さない (階段で踏破すれば凱旋できる)。
   // 各階に1つだけ (cand から1マスのみ選ぶ)。
   // 迷宮に入ると、これを踏むか主を倒すまで街へは帰れない (game.js が帰還を制限する)。
   const bottom = floor >= dn.floors;
   const noBossBottom = bottom && !dn.boss;
-  if (!noBossBottom && (bottom || floor % 5 === 0 || Math.random() < 0.20)) {
+  // 台帳の迷宮 (dn.gates): 5の倍数の階 (最下階を除く) だけ、下り階段そのものが帰還魔法陣になる (gate)。
+  // 踏むと「街へ帰る / 先へ進む」を選び、到達した陣の階からは次回そこから潜れる (game.js)。ほかの階に陣は無い
+  if (dn.gates) {
+    if (!bottom && floor % 5 === 0) cells[st.y][st.x].gate = true;
+  } else if (!noBossBottom && (bottom || floor % 5 === 0 || Math.random() < 0.20)) {
     const cand = [];
     for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
       const c = cells[y][x];
@@ -179,8 +184,8 @@ export function makeBoard(floor, cfg = null) {
   // イベントは行き止まり (開いた辺が1つ) にのみ50%
   // 回復の泉は 1階層に最大1つ (0 の場合もある)
   // モンスターの種類は迷宮の浅い/深い階で変わる
-  const deep = floor > dn.floors / 2;
-  const pool = (deep ? dn.deepPool : dn.pool) || dn.pool;
+  // 台帳の迷宮は5階ごとの帯 (いまの帯 + ひとつ前の帯)、それ以外は浅階/深階 (world.js poolAt)
+  const pool = poolAt(dn, floor);
   const trapRate = dn.trapRate;       // イベントが罠になる割合
   const warmChance = dn.warmChance;
   let fountainCount = 0;

@@ -2,7 +2,9 @@
 // 担当: WP-A。玉座の間の一幕: 上下に黒い帯 (映画の画角)、奥に玉座の間の情景、老王の肖像、台詞が墨のようににじみ出る。
 //   1回目のタップ = 残りの台詞を一度に出す / 次のタップ = 次のページ / 最後のページは「御意」で閉じる。
 //   戻る操作も同じ順 (全文 → 次のページ → 閉じる)。
-// pages: [{ title, lines[], reward?, kicker?, btnLabel?, enter?(), leave?() }]
+// pages: [{ title, lines[], reward?, kicker?, btnLabel?, art?, who?, enter?(), leave?() }]
+//   art = 物語の一枚絵の鍵 (src/storyart.js)。あれば肖像の代わりに絵を掲げ、背景もその絵を沈めて敷く
+//   who = 語り手 "king" (既定・老王の肖像) | "irene" (館の主の肖像) | "none" (肖像なし・地の文)
 //   reward = 受け取るものの一覧 [{ job:"fighter" } | { cur:"gold"|"soul"|"red"|"ember", n }] (文字列でも可)
 //   enter = ページを開く直前 / leave = ページを離れる時 (次のページへ進む・閉じる)。状態の変化はここで行い、順番は呼び出し側が決める。
 // done(): すべて閉じた後 (最後のページの leave の後)。描き直し・トーストは呼び出し側。
@@ -16,13 +18,18 @@ import { animate, reduced } from "./motion.js";
 import { spriteCanvas, crispCanvas } from "../sprites.js";
 import { SOUL_CLASSES, soulIcon } from "../souls.js";
 import { KING_PORTRAIT, vignetteCanvas } from "../townart.js";
+import { storyArt, ART_W, ART_H } from "../storyart.js";
+import { IRENE_ART } from "./irene.js";
 import { SFX } from "../audio.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
 
-// 行の種類で書式を変える: 「…」= 王の台詞 / 宰相… = 宰相の台詞 / ── = 勅命の要旨 / それ以外 = 地の文
+// 行の種類で書式を変える: 「…」= 語り手 (王) の台詞 / イレーヌ「…」/ 宰相… = 宰相の台詞 /
+// ──『…』= 手紙・手記 / ── = 要旨 / それ以外 = 地の文
 function lineKind(t) {
   if (/^宰相/.test(t)) return "minister";
+  if (/^イレーヌ「/.test(t)) return "irene";
+  if (/^──『/.test(t)) return "letter";
   if (/^──/.test(t)) return "decree";
   if (/^「/.test(t)) return "king";
   return "narr";
@@ -57,8 +64,45 @@ function rewardBox(reward) {
 
 let active = null; // 同時に1つだけ (重ねて呼ばれたら、前の語りの後ろに続ける)
 
+// 長いページは、画面に収まる分ずつに分ける (縦に巻かせない)。一枚絵のあるページは文字の場所が狭い。
+// 分けたページは題・絵・語り手を引き継ぎ、enter は最初の分・leave と受け取るもの・決め手の文言は最後の分に付ける
+function splitPages(pages) {
+  const vw = typeof innerWidth === "number" ? innerWidth : 390, vh = typeof innerHeight === "number" ? innerHeight : 844;
+  const dpr = (typeof devicePixelRatio === "number" && devicePixelRatio > 0) ? devicePixelRatio : 1;
+  const cpl = Math.max(12, Math.floor((Math.min(vw, 480) - 48) / 14.2)); // 1行に入る字数 (14px)
+  const artH = () => { const room = Math.min(440, vw - 40); return Math.round(ART_H * Math.max(1, Math.floor(room * dpr / ART_W)) / dpr); };
+  const out = [];
+  for (const p of pages) {
+    const lines = p.lines || [];
+    const head = p.art ? artH() + 10 : (p.who === "none" ? 0 : 150);
+    const room = (pRw) => vh * 0.91 - 40 - head - 70 - 110 - (pRw ? 96 : 0);
+    const cost = (t) => Math.ceil(t.length / cpl) * 26 + 8;
+    const chunks = [];
+    let cur = [], used = 0;
+    for (const t of lines) {
+      const c = cost(t);
+      if (cur.length && used + c > room(false)) { chunks.push(cur); cur = []; used = 0; }
+      cur.push(t); used += c;
+    }
+    if (cur.length || !chunks.length) chunks.push(cur);
+    // 受け取るものの札が付く最後の分が溢れるなら、最後の行を次の分へ送る
+    if (p.reward) {
+      const last = chunks[chunks.length - 1];
+      while (last.length > 1 && last.reduce((a, t) => a + cost(t), 0) > room(true)) {
+        const moved = last.pop();
+        if (chunks[chunks.length - 1] === last) chunks.push([moved]); else chunks[chunks.length - 1].unshift(moved);
+      }
+    }
+    chunks.forEach((ls, i) => {
+      const first = i === 0, lastOne = i === chunks.length - 1;
+      out.push({ ...p, lines: ls, enter: first ? p.enter : null, leave: lastOne ? p.leave : null, reward: lastOne ? p.reward : null, btnLabel: lastOne ? p.btnLabel : null });
+    });
+  }
+  return out;
+}
+
 export function playStoryChain(pages, done) {
-  const list = (pages || []).filter(Boolean);
+  const list = splitPages((pages || []).filter(Boolean));
   if (!list.length || typeof document === "undefined" || !document.body) { if (done) done(); return null; }
   if (active) { // 語りの最中にもう一つ: 今の語りが閉じてから続けて語る
     const prev = active.done;
@@ -73,7 +117,8 @@ export function playStoryChain(pages, done) {
   wrap.setAttribute("aria-modal", "true");
   wrap.tabIndex = -1;
   const bg = el("div", "sc-bg");
-  try { const v = vignetteCanvas("palace"); if (v) bg.appendChild(v); } catch (e) { /* 演出のみ */ }
+  let palaceBg = null;
+  try { palaceBg = vignetteCanvas("palace"); } catch (e) { palaceBg = null; }
   wrap.appendChild(bg);
   wrap.appendChild(el("div", "sc-veil"));
   wrap.appendChild(el("div", "sc-bar top"));
@@ -82,10 +127,48 @@ export function playStoryChain(pages, done) {
   const stage = el("div", "sc-stage");
   const head = el("div", "sc-head");
   const pf = el("div", "sc-portrait");
-  try { pf.appendChild(spriteCanvas(KING_PORTRAIT, 10.5, 12)); } catch (e) { /* 演出のみ */ }
   head.appendChild(pf);
-  head.appendChild(el("div", "sc-who", "老王"));
+  const whoEl = el("div", "sc-who", "老王");
+  head.appendChild(whoEl);
   stage.appendChild(head);
+  const artBox = el("div", "sc-art hidden");
+  stage.appendChild(artBox);
+  // 語り手の肖像 (ページごとに替わる時だけ描き直す)
+  let curWho = null, curArt = null;
+  const setWho = (who) => {
+    if (who === curWho) return;
+    curWho = who;
+    pf.textContent = "";
+    if (who === "irene") {
+      const img = el("img", "sc-pf-img");
+      img.src = IRENE_ART; img.alt = ""; img.draggable = false; img.decoding = "async";
+      pf.appendChild(img);
+      whoEl.textContent = "イレーヌ";
+    } else {
+      try { pf.appendChild(spriteCanvas(KING_PORTRAIT, 10.5, 12)); } catch (e) { /* 演出のみ */ }
+      whoEl.textContent = "老王";
+    }
+  };
+  // 一枚絵: 整数倍で拡大してくっきり見せる (幅は舞台の内側に収まる最大の倍率)
+  const setArt = (key) => {
+    if (key === curArt) return;
+    curArt = key;
+    artBox.textContent = "";
+    bg.textContent = "";
+    const c = key ? storyArt(key) : null;
+    artBox.classList.toggle("hidden", !c);
+    wrap.classList.toggle("has-art", !!c);
+    if (c) {
+      const dpr = (typeof devicePixelRatio === "number" && devicePixelRatio > 0) ? devicePixelRatio : 1;
+      const room = Math.min(440, (typeof innerWidth === "number" ? innerWidth : 390) - 40);
+      const k = Math.max(1, Math.floor(room * dpr / ART_W)) / dpr;
+      c.style.width = Math.round(ART_W * k) + "px";
+      c.style.height = Math.round(ART_H * k) + "px";
+      artBox.appendChild(c);
+      const b = storyArt(key);
+      if (b) bg.appendChild(b);
+    } else if (palaceBg) bg.appendChild(palaceBg);
+  };
   const kicker = el("div", "sc-kicker");
   const title = el("div", "sc-title");
   stage.appendChild(kicker);
@@ -122,6 +205,10 @@ export function playStoryChain(pages, done) {
     if (p.enter) { try { p.enter(); } catch (e) { setTimeout(() => { throw e; }); } }
     st.revealed = false;
     wrap.classList.remove("revealed");
+    const who = p.who || "king";
+    setArt(p.art || null);
+    head.classList.toggle("hidden", !!p.art || who === "none");
+    if (!p.art && who !== "none") setWho(who);
     kicker.textContent = p.kicker ? `✦ ${p.kicker} ✦` : "✦ 玉座の間 ✦";
     setText(title, p.title || "");
     page.textContent = "";

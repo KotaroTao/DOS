@@ -322,7 +322,8 @@ function subTiles(more, d, town) {
   const n = game.unlockedSubSlots ? game.unlockedSubSlots() : 0;
   if (!n) {
     const c = game.reportedDungeonCount ? game.reportedDungeonCount() : 0;
-    more.appendChild(lockedTile("サブ魂", `10 迷宮の踏破報告で開く (${c}/10)`));
+    const at = (game.FEATURE_AT && game.FEATURE_AT.sub1) || 3;
+    more.appendChild(lockedTile("サブ魂", `${at} 迷宮の踏破報告で開く (${c}/${at})`));
     return;
   }
   for (let i = 0; i < n; i++) {
@@ -384,7 +385,8 @@ function orderTile(town) {
   const open = game.featureUnlocked ? game.featureUnlocked("order") : false;
   if (!open) {
     const c = game.reportedDungeonCount ? game.reportedDungeonCount() : 0;
-    return lockedTile("控えの結社", `20 迷宮の踏破報告で開く (${c}/20)`);
+    const at = (game.FEATURE_AT && game.FEATURE_AT.order) || 5;
+    return lockedTile("控えの結社", `${at} 迷宮の踏破報告で開く (${c}/${at})`);
   }
   const G = G_();
   const seats = game.orderSeats ? game.orderSeats() : 0;

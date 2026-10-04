@@ -248,6 +248,19 @@ const ELEM_SPELL = { fire: "業火", water: "濁流", wind: "嵐", earth: "岩�
 export const BREATH_RES_CAP = 0.5;
 // 祈りの呪文 (INT と PIE の高い方で伸びる): 光の攻撃呪文と faith: true の呪文
 export function isFaithSpell(sp) { return !!sp && sp.kind === "atk" && (!!sp.faith || sp.element === "light"); }
+// ===== 状態異常・即死の成功率はLv差で決まる =====
+// 率 = 基礎の率 × 2^((仕掛ける側のLv − 受ける側のLv) ÷ LV_HALF) を 5%〜95% に収める。
+// 4Lv 上の相手には半分、8Lv 上なら 1/4 … 格上の強敵を眠り・即死で倒してLvを稼ぐ抜け道を塞ぐ (逆に格上の敵の術は隊によく効く)。
+// 味方のLv = 宿した魂のLv (jobLv)、敵のLv = その迷宮・階の基準Lv (game.js が e.lv / opts.foeLv で渡す)。
+// 隊の耐性 (異常耐性・装備) は、この率に掛けて差し引く (耐性100% なら効かない)
+export const LV_HALF = 4;
+export const LV_RATE_MIN = 0.05, LV_RATE_MAX = 0.95;
+export function lvRate(base, atkLv, defLv) {
+  if (!(base > 0)) return 0;
+  const d = (Number(atkLv) || 1) - (Number(defLv) || 1);
+  const r = base * Math.pow(2, d / LV_HALF);
+  return Math.min(LV_RATE_MAX, Math.max(LV_RATE_MIN, r));
+}
 // 主 (ボス) に付く確率の倍率。魅了された主は仲間がいないと立ち尽くすだけになるので、毒・麻痺 (×0.5) より効きにくい
 const BOSS_CHARM_MUL = 0.35;
 // 状態異常の付与を示す札 (結果の hit.status に載せ、game.js が浮かび文字で見せる)
@@ -345,6 +358,7 @@ export class Battle {
     // 追跡の物差し: 敵の AGI をこの倍率で味方の AGI と同じ規模に直してから逃走率を出す
     // (game.js の fleeScale = その迷宮・階の基準AGI ÷ その迷宮の雑魚の標準AGI)
     this.fleeK = opts.fleeK || 1;
+    this.foeLv = opts.foeLv || 1; // 敵のLv の既定 (個体の e.lv が無い時。戦闘中に呼ばれた手下など)
     this._roundNo = 0;
     this._bigBarrierUsed = 0;
     this.bonusGold = 0; // 「盗む」で手に入れた金 (勝っても逃げても持ち帰る)
@@ -708,7 +722,20 @@ export class Battle {
     }
     return null;
   }
+  // 行動者のLv (状態異常・即死の成功率に使う)
+  lvOf(a) {
+    if (!a) return this.foeLv;
+    if (a.side === "enemy") return a.lv || this.foeLv;
+    return a.jobLv || a.level || 1;
+  }
+  // Lv差を織り込んだ成功率 (5〜95%)。actor が無い時 (持続効果など) は隊の平均Lvで見る
+  _rate(actor, t, base) {
+    let al = actor ? this.lvOf(actor) : null;
+    if (al == null) { const ps = this.party.filter((p) => p.alive); al = ps.length ? ps.reduce((a, p) => a + this.lvOf(p), 0) / ps.length : 1; }
+    return lvRate(base, al, this.lvOf(t));
+  }
   // 命中した敵へ付く効果 (物理技・攻撃呪文・弱体の共通): 毒/麻痺/封印/属性耐性ダウン/打ち消し/眠り/怯み/即死。
+  // 毒・麻痺・封印・眠り・魅了・混乱・即死の成功率は Lv差で決まる (lvRate)
   // 主 (ボス) には状態異常・封印の確率が半分。即死は主に効かず、強敵には半分
   _inflict(actor, t, sp, out) {
     if (!t || !t.alive || t.side !== "enemy") return;
@@ -720,7 +747,7 @@ export class Battle {
       for (const el in sp.vuln) this._applyMod(t, "r_" + el, sp.vuln[el], sp.dur, sp.name);
       tags.push("vuln");
     }
-    if (sp.poison && Math.random() < sp.poison.chance * bossMul) {
+    if (sp.poison && Math.random() < this._rate(actor, t, sp.poison.chance * bossMul)) {
       if (!t.ailment || (t.ailment === "poison" && (t._poisonPct || 0.05) < sp.poison.pct)) {
         const up = t.ailment === "poison";
         t.ailment = "poison"; t._poisonPct = sp.poison.pct;
@@ -728,33 +755,33 @@ export class Battle {
         tags.push("poison");
       }
     }
-    if (sp.para && !t.ailment && Math.random() < sp.para * bossMul) {
+    if (sp.para && !t.ailment && Math.random() < this._rate(actor, t, sp.para * bossMul)) {
       t.ailment = "paralyze";
       this.log(`${t.name}は痺れて動きが鈍った！`, "hit");
       tags.push("para");
     }
     if (sp.seal) {
-      if (Math.random() < sp.seal.chance * bossMul) {
+      if (Math.random() < this._rate(actor, t, sp.seal.chance * bossMul)) {
         this._applyMod(t, "seal", 0.5, sp.seal.turns || 3, sp.name);
         this.log(`${t.name}の特技を封じた！`, "hit");
         tags.push("seal");
       } else this.log(`${t.name}は封印を振り払った`, "sys");
     }
-    if (sp.sleepChance && !t.asleep && Math.random() < sp.sleepChance * bossMul) {
+    if (sp.sleepChance && !t.asleep && Math.random() < this._rate(actor, t, sp.sleepChance * bossMul)) {
       t.asleep = true;
       this.log(`${t.name}は深い眠りに落ちた`, "sys");
       tags.push("sleep");
     }
     // 魅了・混乱 (心の状態異常は1つだけ。先にかかった方が残る)
     if (sp.charm && !t.mind) {
-      if (Math.random() < sp.charm * (t.boss ? BOSS_CHARM_MUL : 1)) {
+      if (Math.random() < this._rate(actor, t, sp.charm * (t.boss ? BOSS_CHARM_MUL : 1))) {
         t.mind = "charm";
         this.log(`${t.name}は魅了された！ 仲間に襲いかかる…`, "hit");
         tags.push("charm");
       } else if (!sp.confuse && !sp.quiet) this.log(`${t.name}は誘いに乗らなかった`, "sys");
     }
     if (sp.confuse && !t.mind) {
-      if (Math.random() < sp.confuse * bossMul) {
+      if (Math.random() < this._rate(actor, t, sp.confuse * bossMul)) {
         t.mind = "confuse";
         this.log(`${t.name}は混乱した！`, "hit");
         tags.push("confuse");
@@ -769,7 +796,7 @@ export class Battle {
       const race = enemyRace(t);
       if (t.boss) this.log(`${t.name}に死の力は届かない`, "sys");
       else if (ik.races && !ik.races.includes(race)) this.log(`${t.name}には効かない`, "sys");
-      else if (Math.random() < ik.chance * (t.mon && t.mon.elite ? 0.5 : 1)) {
+      else if (Math.random() < this._rate(actor, t, ik.chance * (t.mon && t.mon.elite ? 0.5 : 1))) {
         t.hp = 0;
         this.log(`${t.name}の命の灯が消えた！`, "hit");
         tags.push("instakill");
@@ -1351,21 +1378,21 @@ export class Battle {
         const h = this._physical(actor, t, { power: 0.9, name: k === "poison" ? "毒の牙" : "麻痺の爪" });
         res.hits.push(h);
         const tt = h.target; // かばうで対象が替わることがある
-        if (!h.miss && !h.immune && tt.alive && !tt.ailment && Math.random() < 0.4 * (1 - this._ailRes(tt, k))) {
+        if (!h.miss && !h.immune && tt.alive && !tt.ailment && Math.random() < this._rate(actor, tt, 0.4) * (1 - this._ailRes(tt, k))) {
           tt.ailment = k;
           h.ailment = k;
           this.log(`${tt.name}は${k === "poison" ? "毒" : "麻痺"}に侵された！`, "dmg");
         }
       } else if (k === "stone") {
         this.log(`${actor.name}の石化の凝視！`, "dmg");
-        if (t.ailment || Math.random() >= 0.32 * (1 - this._hardRes(t, "stone"))) { this.log(`${t.name}は目を逸らした`, "sys"); res.hits.push({ target: t, miss: true }); }
+        if (t.ailment || Math.random() >= this._rate(actor, t, 0.32) * (1 - this._hardRes(t, "stone"))) { this.log(`${t.name}は目を逸らした`, "sys"); res.hits.push({ target: t, miss: true }); }
         else { t.ailment = "stone"; this.log(`${t.name}は石になった！`, "dmg"); res.hits.push({ target: t, stoned: true }); }
       } else if (k === "sleep") {
         // 眠りの息 (鱗粉・子守唄など): 隊全体を眠りに誘う。眠った者は手番を失い、傷を受けるまで覚めにくい
         this.log(`${actor.name}は眠りを誘う息を吐いた！`, "dmg");
         for (const p of this.livingParty()) {
           if (p.asleep || p.ailment === "stone") continue;
-          if (Math.random() < 0.25 * (1 - this._ailRes(p, "sleep"))) {
+          if (Math.random() < this._rate(actor, p, 0.25) * (1 - this._ailRes(p, "sleep"))) {
             p.asleep = true;
             this.log(`${p.name}は眠ってしまった！`, "dmg");
             res.hits.push({ target: p, status: "眠り!" });
@@ -1375,7 +1402,7 @@ export class Battle {
         // 魅惑の眼差し / 惑わしの声: 1人の心を奪う。魅了 = 仲間を襲う / 混乱 = 誰かれ構わず殴る
         const charm = k === "charm";
         this.log(charm ? `${actor.name}の魅惑の眼差し！` : `${actor.name}の惑わしの声！`, "dmg");
-        if (t.mind || t.ailment === "stone" || Math.random() >= (charm ? 0.4 : 0.45) * (1 - this._ailRes(t, k))) {
+        if (t.mind || t.ailment === "stone" || Math.random() >= this._rate(actor, t, charm ? 0.4 : 0.45) * (1 - this._ailRes(t, k))) {
           this.log(`${t.name}は${charm ? "誘いを振り払った" : "惑わされなかった"}`, "sys");
           res.hits.push({ target: t, miss: true, resisted: true });
         } else {
@@ -1386,7 +1413,7 @@ export class Battle {
       } else if (k === "critical") {
         const h = this._physical(actor, t, { power: 1.1, name: "死神の一撃" });
         res.hits.push(h);
-        if (!h.miss && t.alive && Math.random() < 0.15 * (1 - this._hardRes(t))) {
+        if (!h.miss && t.alive && Math.random() < this._rate(actor, t, 0.15) * (1 - this._hardRes(t))) {
           this.log(`${actor.name}は${t.name}の急所を貫いた！`, "dmg");
           t.hp = 0;
           h.fatal = true;
@@ -1722,7 +1749,7 @@ export class Battle {
     if (opt.debuff && tgt.alive) { for (const k in opt.debuff) this._applyMod(tgt, k, opt.debuff[k], opt.debuffDur, opt.name); }
     // 毒刃 (venomBlade): 敵を毒に侵す
     const vb = pv(actor, "venomBlade");
-    if (vb && tgt.alive && tgt.side === "enemy" && !metalHit && !tgt.ailment && Math.random() < (vb >= 2 ? 0.30 : 0.15)) {
+    if (vb && tgt.alive && tgt.side === "enemy" && !metalHit && !tgt.ailment && Math.random() < this._rate(actor, tgt, vb >= 2 ? 0.30 : 0.15)) {
       tgt.ailment = "poison";
       this.log(`${tgt.name}は毒に侵された！`, "hit");
     }
@@ -2024,7 +2051,7 @@ export class Battle {
     } else if (sp.kind === "sleep") {
       for (const t of this.livingEnemies()) {
         if (isMetal(t)) { this.log(`${t.name}には効かない`, "sys"); res.hits.push({ target: t, miss: true, resisted: true }); continue; }
-        if (Math.random() < (t.boss ? 0.3 : 0.6)) { t.asleep = true; this.log(`${t.name}は眠った`, "sys"); res.hits.push({ target: t, sleep: true, status: "眠り!" }); }
+        if (Math.random() < this._rate(actor, t, t.boss ? 0.3 : 0.6)) { t.asleep = true; this.log(`${t.name}は眠った`, "sys"); res.hits.push({ target: t, sleep: true, status: "眠り!" }); }
         else this.log(`${t.name}には効かない`, "sys");
       }
     }

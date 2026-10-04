@@ -11,9 +11,10 @@ import {
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
-import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE, unlockSceneFor, sealLines, unsealLines } from "./story.js";
+import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
-import { DUNGEONS, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, layerOf, isFloating, METAL_TIERS } from "./dungeons/index.js";
+import { poolAt } from "./dungeons/world.js";
+import { DUNGEONS, GEN_DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, levelBand, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, layerOf, isFloating, METAL_TIERS } from "./dungeons/index.js";
 import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
@@ -30,6 +31,7 @@ import {
 } from "./souls.js";
 import { showOpening } from "./opening.js";
 import { KING_PORTRAIT, prewarmTown } from "./townart.js";
+import { prewarmStoryArt } from "./storyart.js";
 import { drawBattleBackdrop } from "./backdrops.js";
 import { paintCryptFloor, paintCryptSlabs, paintCryptWalls, CATACOMB, genericMaterial, boardSeed, hexRgb } from "./crypt.js";
 import { showTitle } from "./title.js";
@@ -462,7 +464,8 @@ const G = {
   dailyQuests: null,  // 日替わりクエスト { seed, list:[] } (日付が変わると再生成)
   subQuests: {},      // 受注済みサブクエスト { id: {…def, state, progress} } (定義は決定的に再生成可能)
   subQuestSeen: [],   // 酒場で一度表示した迷宮index (別の迷宮を選んでも依頼を残す)
-  msq: null,          // メインストーリー { n: 章=迷宮番号(1-100), state: "active"|"report"|"offer"|"end" }
+  msq: null,          // 第0章の進み { n: 0, state: "active", granted } → 果たした後は { n: 1, state: "world" } (物語の進みは G.world)
+  world: null,        // 迷宮の地図と物語の進み (worldState() が整える)
   ach: {},            // 受領済みの勲章 (実績) { id: true }
   fastAnim: true,     // 戦闘演出の倍速設定 (永続)。ON = 標準の速さ、OFF = その 1/2 の速さ
   animTempo: 2,       // 倍速の意味を改めた版 (2 = ON が旧来の標準)。この印の無い旧セーブは読み込み時に倍速 ON へ
@@ -750,14 +753,67 @@ function log(msg, cls = "sys") {
 // 現在の迷宮設定
 function curDungeon() { return DUNGEONS[G.dungeonIdx] || DUNGEONS[0]; }
 
-// ===== 公開範囲 (作り込み済みの層だけを遊べるようにする) =====
-// 現在は第1層 (迷宮1-5)・第2層 (迷宮6-10)・第3層 (迷宮11-15) まで公開。第4層以降は「準備中」として閉じ、刷新が済んだ層から引き上げる。
-// 既存セーブで先へ進んでいる場合も勅命の進行 (G.msq) は書き換えず、表示と潜入だけを止める。
-// 引き上げる時は CONTENT_LIMIT を上げ、story.js の SEAL_LINES (新しい果ての層) / UNSEAL_LINES (新しく開く層) を足す。
-// 封印の告知を受けていたセーブは読み込み時に「次の勅命待ち」へ戻り、王が封の解けたことを告げてから拝命する
-const CONTENT_LIMIT = 15;
-const CONTENT_NEXT_LAYER = Math.floor(CONTENT_LIMIT / 5) + 1; // 準備中の層番号
-const contentSealed = () => !!G.msq && (G.msq.state === "sealed" || G.msq.n > CONTENT_LIMIT);
+// ===== 迷宮の地図 (src/dungeons/world.js の台帳) と物語の進み (G.world) =====
+// 迷宮は一本道ではない: 解放条件を満たした迷宮が地図に現れ、どれに潜るかは自由 (推奨Lvより遥かに強い迷宮にも入れる)。
+// 物語は「どの迷宮で何を見つけたか」で進む (src/story.js)。王への報告は、迷宮を初めて踏破した時だけ。
+// G.world = {
+//   open: {id:1}        地図に現れた迷宮          cleared: {id:回数}   踏破した回数
+//   reported: {id:1}    初踏破を王に報告した迷宮  report: id|null     王への報告待ち (済むまで門は開かない)
+//   found: {鍵:1}       見つけた物語マス          beats: {鍵:1}       語り終えた主の記憶・館の語り・章の結び
+//   gates: {id:階}      到達した最深の帰還魔法陣の階 (次回そこから潜れる)
+//   fresh: {id:1}       地図に現れたばかり (出撃シートの「新」)      last: 最後に語られた物語のページ (聞き直し用)
+// }
+// CONTENT_LIMIT = 地図に載せている迷宮の数 (旧来の名を保つ)。章の最後の迷宮を報告すると、次章は「準備中」
+const CONTENT_LIMIT = DUNGEONS.length;
+function worldState() {
+  if (!G.world || typeof G.world !== "object") G.world = {};
+  const w = G.world;
+  for (const k of ["open", "cleared", "reported", "found", "beats", "gates", "fresh"]) if (!w[k] || typeof w[k] !== "object") w[k] = {};
+  if (w.report === undefined) w.report = null;
+  return w;
+}
+// 第0章 (人業の生成) を終えたか
+const worldStarted = () => !!G.msq && G.msq.n >= 1;
+function worldOpenId(id) { return !!worldState().open[id]; }
+function worldOpenIdx(idx) { const d = DUNGEONS[idx]; return !!d && worldOpenId(d.id); }
+function worldOpenCount() { return DUNGEONS.filter((d) => worldOpenId(d.id)).length; }
+// 台帳の解放条件を満たしたか (world.js の unlock)
+function worldUnlockMet(cfg) {
+  const u = cfg.unlock || {}, w = worldState();
+  if (u.start) return worldStarted();
+  if (u.reported) return !!w.reported[u.reported];
+  if (u.story) return !!w.found[u.story];
+  if (u.treasury) return !!treasuryState().claimed["m" + u.treasury];
+  return false;
+}
+// 条件を満たした迷宮を地図に載せる。新たに現れた迷宮の設定を返す
+function refreshWorldUnlocks() {
+  const w = worldState(), added = [];
+  for (const d of DUNGEONS) {
+    if (w.open[d.id] || !worldUnlockMet(d)) continue;
+    w.open[d.id] = 1; w.fresh[d.id] = 1;
+    added.push(d);
+  }
+  G.unlockedDungeons = worldOpenCount(); // 旧来の「解放済みの数」(UI の「迷宮が1つでもあるか」の判定に使う)
+  return added;
+}
+// 新たに地図に現れた迷宮を知らせる (トースト・記録)
+function announceNewDungeons(list) {
+  for (const d of list) {
+    log(`新たな迷宮「${d.name}」が地図に記された。`, "win");
+    showToast(`🗺 新たな迷宮「${d.short}」が地図に記された`, { tone: "info" });
+  }
+}
+// いまの章 (章の迷宮のうち、まだ報告していない迷宮がある最初の章。すべて済んだら最後の章)
+function currentChapter() {
+  const w = worldState();
+  return CHAPTERS.find((c) => c.dungeons.some((id) => !w.reported[id])) || CHAPTERS[CHAPTERS.length - 1];
+}
+// 公開している章の結びまで語り終えた (次章は準備中)
+const contentSealed = () => { const c = CHAPTERS[CHAPTERS.length - 1]; return !!worldState().beats["ch" + c.no + "_end"]; };
+// 物語の文の差し替えに渡す小さな窓 (story.js の lines(s))
+function storyCtx() { const w = worldState(); return { open: (id) => !!w.open[id], found: (k) => !!w.found[k], cleared: (id) => !!w.cleared[id] }; }
+const storyLines = (l) => (typeof l === "function" ? l(storyCtx()) : l) || [];
 
 // ===== 無限迷宮「奈落」 =====
 // 奈落は実在の100迷宮を「素体」として循環参照し (themed なロスターを再利用)、
@@ -770,11 +826,12 @@ function abyssBaseN(d) {
 }
 function abyssCfg() {
   const d = G.abyss.depth;
-  const base = DUNGEONS[abyssBaseN(d) - 1];
+  const base = GEN_DUNGEONS[abyssBaseN(d) - 1];
   const rank = Math.min(10, Math.ceil(d / 4)); // d40 で rank10 に達し、以降は据え置き (火力は enemyScale が伸ばす)
   return {
     ...base,
-    id: base.id,                 // 層テーマ・dungeonNumber が参照するので素体のidを保つ
+    id: base.id,                 // 素体のid (n は素体の難度をそのまま引き継ぐ)
+    n: abyssBaseN(d),
     name: `無限迷宮 奈落 B${d}F`,
     short: `奈落${d}`,
     rank,
@@ -890,8 +947,11 @@ const LAYER_VISUALS = [
   { name: "竜の巣",     sym: "♦", accent: "#c8503a", bgm: "layer19", back: drawBackDragonNest, floorBase: "#170d0a", floorTiles: ["#21120c", "#1b0f0a", "#150b07"], glow: "rgba(235,90,60,0.06)" },   // 19
   { name: "終焉の玄室", sym: "✺", accent: "#b08ac0", bgm: "layer20", back: drawBackThrone, floorBase: "#0f0c13", floorTiles: ["#161019", "#120d15", "#0e0b11"], glow: "rgba(180,130,210,0.06)" }, // 20
 ];
-// 迷宮番号 (1-100)。cfg.id = "g001" から取り出す
-function dungeonNumber(cfg) { return cfg && cfg.id ? parseInt(cfg.id.slice(1), 10) : (G.dungeonIdx + 1); }
+// 迷宮の難度の物差し n (旧来の迷宮番号と同じ尺度 1-100)。台帳の迷宮は cfg.n、素体は id "g001" から
+function dungeonNumber(cfg) {
+  if (cfg && cfg.n) return cfg.n;
+  return cfg && cfg.id && cfg.id[0] === "g" ? parseInt(cfg.id.slice(1), 10) : 1;
+}
 // 現在の迷宮の層テーマ (全100迷宮 = 20層)
 function dungeonTheme(cfg = activeCfg()) {
   const L = cfg && cfg.layer ? cfg.layer : layerOf(dungeonNumber(cfg));
@@ -1085,11 +1145,9 @@ function sfPlace(b, n, fn) {
   sfEachCell(b, (c) => { if (c.type === "empty") cand.push(c); });
   for (let i = 0; i < n && cand.length; i++) fn(cand.splice(rand(cand.length), 1)[0]);
 }
-// この迷宮・この階の雑魚プール (board.js と同じ浅階/深階の切り替え)
+// この迷宮・この階の雑魚プール (board.js と同じ切り替え: 台帳の迷宮は5階ごとの帯、ほかは浅階/深階)
 function sfMonsterPool() {
-  const cfg = activeCfg();
-  const deep = G.floor > (cfg.floors || 3) / 2;
-  return (deep ? cfg.deepPool : cfg.pool) || cfg.pool || ["cm_slime"];
+  return poolAt(activeCfg(), G.floor || 1);
 }
 // テーマ色の明度変換 (カード裏面の地色・枠色を accent から作る)
 function shadeHex(hex, f) {
@@ -1134,7 +1192,9 @@ function enemyScale() { return baseEnemyScale() * tuneMul(); }
 // 手直し (DUNGEON_TUNE) を除いた強さ: 迷宮の素の倍率 × 階 × 特別階/異変。主はこれに bossMul を掛ける
 function baseEnemyScale() {
   const cfg = activeCfg();
-  return (cfg.enemyScale || 1) * (1 + (G.floor - 1) * 0.06) * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
+  // 1階ごとの上がり幅は迷宮ごと (cfg.floorRamp。深い迷宮は帯で顔ぶれが強くなるので緩い。既定 +6%)
+  const ramp = cfg.floorRamp != null ? cfg.floorRamp : 0.06;
+  return (cfg.enemyScale || 1) * (1 + (G.floor - 1) * ramp) * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
 }
 // 迷宮ごとの手直し (generator.js DUNGEON_TUNE) のうち、いまの階の雑魚に掛かる倍率。奈落では掛けない
 // (手直しは出現表の雑魚の強さ合わせ。ランクの曲線から組む単体の強敵・ミミック・出来事の魔物には掛けず、
@@ -1224,12 +1284,12 @@ function metalRef(key) {
   };
 }
 
-// この迷宮に出る強敵のid。作り込み済みの層は層ごとの強敵 (LAYER_ELITES) を階ごとに順に出す。
-// それ以外は旧来どおり、各ランク帯 (10迷宮) を 1-3 / 4-6 / 7-10 の
-// 3グループに区切り、グループごとに固有の強敵が決まっている (例: 迷宮1-3, 4-6, 7-10, 11-13, …)
+// この迷宮に出る強敵のid。台帳の迷宮は cfg.elites、作り込み済みの層は層ごとの強敵 (LAYER_ELITES) を階ごとに順に出す。
+// それ以外 (奈落の深い素体) は旧来どおり、難度 n のランク帯 (10迷宮) を 1-3 / 4-6 / 7-10 の3グループに区切った強敵
 function eliteKey() {
-  const n = G.dungeonIdx + 1;
-  const le = LAYER_ELITES[layerOf(n)];
+  const cfg = activeCfg();
+  const n = dungeonNumber(cfg);
+  const le = (cfg.elites && cfg.elites.length) ? cfg.elites : LAYER_ELITES[cfg.layer || layerOf(n)];
   if (le && le.length) return le[(G.floor || 0) % le.length];
   const r = Math.min(10, Math.ceil(n / 10));
   const pos = ((n - 1) % 10) + 1;
@@ -1321,8 +1381,6 @@ function updateTopbar() {
 }
 
 function newFloor() {
-  // 奈落: 強敵参照 (eliteKey は G.dungeonIdx を見る) を素体迷宮に同期
-  if (abyssActive()) G.dungeonIdx = abyssBaseN(G.abyss.depth) - 1;
   // ダンジョンが自前で持つ出現プール (pool=浅階 / deepPool=深階) を使う
   const cfg = activeCfg();
   G.board = makeBoard(G.floor, cfg);
@@ -1357,6 +1415,7 @@ function newFloor() {
   // 酒場の噂を盤面に反映 (潜入直後の階のみ)
   if (G.activeRumor && G.activeRumor.floor === G.floor) applyRumorToBoard(G.board);
   evNewFloor(); // 迷宮のイベント: 出来事の配置・持ち越しの効果
+  storyNewFloor(); // 物語マス: 師の手がかり (決まった迷宮の決まった階に、見つけるまで毎回置く)
   G.px = G.board.start.x;
   G.py = G.board.start.y;
   G.portalFound = false; // この階の帰還魔法陣はまだ発見していない
@@ -1379,6 +1438,12 @@ function fleeScale() {
   return baselineAgi(x) / Math.max(1, typical);
 }
 
+// この迷宮・階の敵のLv (台帳の迷宮は world.js dungeonLevel。奈落は素体の難度 n の1階相当)
+function foeLevelHere() {
+  const cfg = activeCfg();
+  if (abyssActive()) return dungeonLevel({ n: abyssBaseN(G.abyss.depth), floors: 1 }, 1);
+  return dungeonLevel(cfg, G.floor || 1);
+}
 // テスト記録 (telemetry.js): いまの迷宮の欄 (奈落は深度ごと)。n は進行度 (基準AGI) の算出に使う
 function tlWhere() {
   const cfg = activeCfg();
@@ -1625,6 +1690,7 @@ function dockDescend() {
   SFX.select();
   // 途中の階はそのまま降りる (確認なし)。主の間・踏破・奈落の門番は決断のシートを挟む
   const dn = curDungeon();
+  if (cell.gate && !abyssActive()) { askGate(cell); return; } // 帰還魔法陣の階: 帰るか進むかを選ぶ
   const plain = abyssActive() ? !abyssBossPending() : G.floor < (dn.floors || 1);
   if (plain) descend(); else askDescend(cell);
 }
@@ -1888,7 +1954,8 @@ function boardLightSources(now) {
     if (!c.revealed) continue;
     const r = cellRect(x, y), cx = r.x + r.w / 2, cy = r.y + r.h / 2;
     const pulse = REDUCED_MOTION ? 0.5 : 0.5 + 0.5 * Math.sin(now * 0.003 + x + y);
-    if (c.type === "portal") out.push({ x: cx, y: cy, r: 46, a: 0.7, col: "90,220,235", ga: 0.18 + 0.1 * pulse, gr: 40 });
+    if (isPortalCell(c)) out.push({ x: cx, y: cy, r: 46, a: 0.7, col: "90,220,235", ga: 0.18 + 0.1 * pulse, gr: 40 });
+    else if (c.type === "story" && !c.cleared) out.push({ x: cx, y: cy, r: 40, a: 0.62, col: "120,235,200", ga: 0.16 + 0.1 * pulse, gr: 34 });
     else if (c.type === "fountain" && !c.cleared) out.push({ x: cx, y: cy, r: 36, a: 0.5, col: "100,170,255", ga: 0.12, gr: 30 });
     else if (c.type === "poison") out.push({ x: cx, y: cy + r.h * 0.05, r: 34, a: 0.4, col: "120,210,60", ga: 0.1 + 0.05 * pulse, gr: 30 });
     else if (c.type === "stairs") out.push({ x: cx, y: cy, r: 30, a: 0.4, col: "160,190,255", ga: 0.06, gr: 24 });
@@ -2165,9 +2232,9 @@ function drawBoardHighlights(now) {
         // 属性の暴走中は戦うまで属性が定まらないので色を付けない
         if (senseE >= 3 && !mutNum("elemRandom", false)) { const e2 = (MONSTERS[cell.monsterKey] || {}).element; const ec = (ELEMENTS[e2] || {}).color; if (ec) color = ec; }
         mark = { text: strong ? "‼" : "!", color };
-      } else if (senseT && (cell.type === "chest" || (senseT >= 2 && cell.type === "portal") || (senseT >= 3 && cell.type === "trap"))) {
+      } else if (senseT && (cell.type === "chest" || (senseT >= 2 && isPortalCell(cell)) || (senseT >= 3 && cell.type === "trap"))) {
         if (cell.type === "chest") mark = { text: "✦", color: "#ffd84a" };
-        else if (cell.type === "portal") mark = { text: "◎", color: "#6fe0d0" };
+        else if (isPortalCell(cell)) mark = { text: "◎", color: "#6fe0d0" };
         else mark = { text: "▲", color: "#ff7a5e" };
       } else if (cell.type === "stairs" && fsS) {                                       // 道しるべ: 階段の墓石を淡く縁取る
         mark = { text: "▼", color: "#8fd8ff" };
@@ -2263,10 +2330,13 @@ function cellIcon(cell) {
     cell.type === "trap" && !cell.cleared ? ICONS.trap :
     cell.type === "fountain" && !cell.cleared ? ICONS.fountain :
     cell.type === "corpse" ? ICONS.corpse :
-    cell.type === "portal" ? ICONS.portal :
+    isPortalCell(cell) ? ICONS.portal :
     cell.type === "stairs" ? (bossDoorHere() ? ICONS.bossDoor : ICONS.stairs) :
-    cell.type === "event" && !cell.cleared ? ICONS.event : null;
+    cell.type === "event" && !cell.cleared ? ICONS.event :
+    cell.type === "story" && !cell.cleared ? (ICONS.story || ICONS.event) : null;
 }
+// 帰還魔法陣のマス (奈落の陣 / 台帳の迷宮で下り階段の代わりに立つ陣)
+function isPortalCell(c) { return !!c && (c.type === "portal" || (c.type === "stairs" && !!c.gate)); }
 function drawBoardIcons(lt, now, hx, hy) {
   const cells = G.board.cells;
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
@@ -2279,8 +2349,8 @@ function drawBoardIcons(lt, now, hx, hy) {
     // 駒と同じマスなら、中身を右奥へ寄せて駒と重ならないようにする
     const here = x === G.px && y === G.py && !G.heroAnim;
     let cx = r.x + r.w / 2 + (here ? r.w * 0.2 : 0);
-    const light = 0.35 + 0.65 * Math.max(lightAt(lt, cx, r.y + r.h / 2), cell.type === "portal" ? 0.6 : 0);
-    if (cell.type === "portal") {
+    const light = 0.35 + 0.65 * Math.max(lightAt(lt, cx, r.y + r.h / 2), isPortalCell(cell) || cell.type === "story" ? 0.6 : 0);
+    if (isPortalCell(cell)) {
       // 床に刻まれた魔法陣 (ゆっくり回る青緑の環)
       const cy = r.y + r.h * 0.62, rx = r.w * 0.4, ry = Math.min(r.h * 0.16, rx * 0.45);
       const rot = REDUCED_MOTION ? 0 : now * 0.0006;
@@ -5009,7 +5079,12 @@ function resolveCell(cell) {
       break;
     }
     case "stairs":
-      askDescend(cell);
+      if (cell.gate && !abyssActive()) askGate(cell);
+      else askDescend(cell);
+      break;
+    case "story":
+      if (cell.cleared) break;
+      runStoryCell(cell);
       break;
     case "event":
       if (cell.cleared) break;
@@ -5035,11 +5110,11 @@ function evFloor() {
 // 「戦果1」= この迷宮・この階の通常戦闘1回で得る gold (半減前の素の値) / ✦Soul の目安
 function evUnit() {
   const cfg = activeCfg();
-  const keys = [...(cfg.pool || []), ...(cfg.deepPool || [])].filter((k) => MONSTERS[k]);
+  const keys = sfMonsterPool().filter((k) => MONSTERS[k]);
   let g = 0, so = 0;
   for (const k of keys) { g += MONSTERS[k].gold || 0; so += MONSTERS[k].soul || 0; }
   const n = Math.max(1, keys.length);
-  const sc = (cfg.enemyScale || 1) * (1 + (G.floor - 1) * 0.06);
+  const sc = (cfg.enemyScale || 1) * (1 + (G.floor - 1) * (cfg.floorRamp != null ? cfg.floorRamp : 0.06));
   const per = 1.9; // 1戦の平均の敵数
   // 戦闘の金貨は endBattle で ×2 → runGainGold で ×0.5。素の値は「1体の金貨×数×2」
   return { gold: Math.max(6, (g / n) * sc * per * 2), soul: Math.max(3, (so / n) * sc * per) };
@@ -5270,6 +5345,62 @@ function evNewFloor() {
   if (e.tier === "rare") rv.rareUsed = { ...(rv.rareUsed || {}), [e.id]: true };
   if (e.setup) e.setup(evApi, cell);
 }
+// ===== 物語マス (src/story.js STORY_CELLS) =====
+// 決まった迷宮の決まった階に、見つけるまで毎回置く。最初から表を向いて淡く光る (見落とさないように)。
+// 踏むと一枚絵つきの語り → 手がかりを記録し、条件 (story) の迷宮を地図に載せる
+function storyNewFloor() {
+  if (abyssActive() || !G.board) return;
+  const cfg = curDungeon();
+  const key = storyCellAt(cfg.id, G.floor);
+  if (!key || worldState().found[key]) return;
+  const sx = G.board.start.x, sy = G.board.start.y;
+  const ok = (c, x, y) => c.type === "empty" && !(x === sx && y === sy);
+  const pick = (pred) => { const out = []; for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = G.board.cells[y][x]; if (ok(c, x, y) && pred(c, x, y)) out.push(c); } return out; };
+  // 遠い行き止まり → 遠いマス → どこでも
+  let cand = pick((c, x, y) => sfOpenCount(c) === 1 && Math.abs(x - sx) + Math.abs(y - sy) >= 4);
+  if (!cand.length) cand = pick((c, x, y) => Math.abs(x - sx) + Math.abs(y - sy) >= 3);
+  if (!cand.length) cand = pick(() => true);
+  if (!cand.length) return;
+  const cell = cand[rand(cand.length)];
+  cell.type = "story"; cell.storyKey = key; cell.cleared = false; cell.revealed = true;
+  log(`この階のどこかで、師の手がかりが淡く光っている。`, "win");
+}
+function runStoryCell(cell) {
+  const key = cell.storyKey;
+  const def = STORY_CELLS[key];
+  if (!def) { cell.cleared = true; cell.type = "empty"; renderBoard(); return; }
+  const w = worldState();
+  SFX.itemget(); buzz([0, 30, 60, 30]);
+  UI.playStoryChain([{ title: def.title, lines: storyLines(def.lines), art: def.art, who: "none", kicker: "師の手がかり", btnLabel: "胸に刻む" }], () => {
+    w.found[key] = 1;
+    w.last = { kind: "cell", key };
+    cell.cleared = true; cell.type = "empty";
+    log(`${def.toast || def.name}。`, "win");
+    showToast(`✦ ${def.toast || def.name}`, { tone: "good" });
+    announceNewDungeons(refreshWorldUnlocks());
+    autosave(true);
+    renderBoard();
+  });
+}
+// 館の語り (イレーヌ): 要る手がかりを見つけていて、まだ語っていないもの
+function pendingIreneBeat() {
+  const w = worldState();
+  return IRENE_BEATS.find((b) => !w.beats[b.id] && (!b.need || w.found[b.need])) || null;
+}
+// 館に入った時に語る (party.js から)。語ったら true
+function playIreneBeat(done) {
+  const b = pendingIreneBeat();
+  if (!b) return false;
+  const w = worldState();
+  UI.playStoryChain([{ title: b.title, lines: storyLines(b.lines), art: b.art, who: "irene", kicker: "人業の館", btnLabel: "うなずく" }], () => {
+    w.beats[b.id] = 1;
+    w.last = { kind: "irene", id: b.id };
+    autosave(true);
+    if (done) done();
+  });
+  return true;
+}
+
 // 階段を降りる時: 果たしていない誓いは次の階で報いとなる
 function evOnDescend() {
   const fe = G.board && G.board.ev;
@@ -6199,8 +6330,7 @@ function applyTrap(trap, opener) {
   // 警報: 怪物を呼び寄せ戦闘になる。宝箱の中身を検める暇はない
   if (trap.kind === "alarm") {
     const cfg = activeCfg();
-    const deep = G.floor > (cfg.floors || 3) / 2;
-    const pool = ((trap.horde || deep) ? cfg.deepPool : cfg.pool) || cfg.pool || ["cm_slime"];
+    const pool = trap.horde ? poolAt(cfg, Math.max(G.floor, cfg.floors || 1)) : poolAt(cfg, G.floor);
     const key = pool[rand(pool.length)];
     return {
       kind: "alarm", trap, key, scale: enemyScale() * (trap.horde ? 1.25 : 1), opts: trap.horde ? { min: 4 } : null,
@@ -6677,7 +6807,11 @@ function startBattle(enemies, cell) {
   }
   // ランク帯ごとの戦闘テーマ (ボス・強敵は専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
   playBgm(battleBgm(isBoss || isElite));
-  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale() });
+  // 敵のLv = その迷宮・階の基準Lv (状態異常・即死の成功率はLv差で決まる — combat.js lvRate)
+  const foeLv = foeLevelHere();
+  for (const e of enemies) e.lv = foeLv;
+  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), foeLv });
+  if (foeLv - partyLevel() >= 4) log(`格上の敵だ (Lv${foeLv})。眠りや毒、即死の術はほとんど効かず、敵の術はよく効く。`, "sys");
   // テスト記録: 戦闘の種類 (主 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子
   if (tlOn() && inDungeon()) {
     const kind = isBoss ? "b" : (isElite || enemies.some((e) => e.isMimic || e.metal) || (cell && cell.evFight)) ? "e" : "n";
@@ -8502,7 +8636,7 @@ function endBattle() {
     else if (G.battleCell) G.battleCell.cleared = true;
     evBattleEnd(true);
     if (wasBoss && G.events && G.events.flags && G.events.flags.bossWeak) delete G.events.flags.bossWeak[battleLayer()];
-    // 主討伐の確定処理 (踏破記録・章進行 msq.state="report"・戦利品確定) は演出より先に行い、
+    // 主討伐の確定処理 (踏破記録・初踏破なら王への報告待ち G.world.report・戦利品確定) は演出より先に行い、
     // 直後の finishToBoard の保存に乗せる。演出中に中断されても踏破は失われない
     const clearInfo = wasBoss ? commitDungeonClear() : null;
     finishToBoard();
@@ -8686,10 +8820,13 @@ function commitDungeonClear(countBoss = true) {
     const bk = DUNGEONS[idx] && DUNGEONS[idx].boss;
     if (bk) G.stats.bossIds[bk] = true; // 戦績: 討伐した層ボスの種類 (勲章用)
   }
-  G.dragonSlain = G.dragonSlain || idx === DUNGEONS.length - 1;
-  // 新迷宮の解放は王宮の勅命ループが担う: 勅命対象を踏破 → 王宮で報告 → 次章拝命で解放
-  const isStoryTarget = G.msq && G.msq.state === "active" && idx + 1 === G.msq.n;
-  if (isStoryTarget) G.msq.state = "report";
+  const cfg = DUNGEONS[idx];
+  G.dragonSlain = G.dragonSlain || dungeonNumber(cfg) >= 100;
+  // 初めての踏破は王への報告待ちにする (報告で褒美・物語・新たな迷宮・機能解放)。2度目からは記録だけ
+  const w = worldState();
+  const isStoryTarget = !!cfg && !w.cleared[cfg.id];
+  if (cfg) w.cleared[cfg.id] = (w.cleared[cfg.id] || 0) + 1;
+  if (isStoryTarget && !w.reported[cfg.id]) w.report = cfg.id;
   // クリア = 戦利品確定。記録 (帰還の報告に使う) は残し、全滅しても何も失わない印を付ける
   if (G.run) G.run.secured = true;
   G.bossDown = true; // 主を討ったので、どこからでも帰還できる
@@ -8698,13 +8835,26 @@ function commitDungeonClear(countBoss = true) {
 }
 
 // 踏破の凱旋 (確定処理は commitDungeonClear 済み): 「★ 迷宮踏破 ★」の祝祭 → 凱旋で闇に溶けて街へ
-function showDungeonClearedPopup({ idx, isStoryTarget }) {
+function showDungeonClearedPopup(info) {
+  // 主の記憶 (初めて討った時だけ): ほどけた魂の記憶を一枚絵で語ってから凱旋の祝祭へ
+  const dn0 = DUNGEONS[info.idx];
+  const mem = dn0 && BOSS_MEMORIES[dn0.id];
+  const w = worldState();
+  if (mem && !w.beats["mem_" + dn0.id]) {
+    w.beats["mem_" + dn0.id] = 1;
+    autosave(true);
+    UI.playStoryChain([{ title: mem.title, lines: storyLines(mem.lines), art: mem.art, who: "none", kicker: "魂の記憶", btnLabel: "胸に刻む" }], () => celebrateDungeonClear(info));
+    return;
+  }
+  celebrateDungeonClear(info);
+}
+function celebrateDungeonClear({ idx, isStoryTarget }) {
   const dn = DUNGEONS[idx];
   SFX.victory(); buzz([0, 40, 50, 40, 50, 200]);
   flashScreen("#ffd84a");
   uiResults.celebrateClear({
     name: dn.name, layer: dn.layer, isStoryTarget, layerBoss: !!dn.boss,
-    last: idx >= DUNGEONS.length - 1,
+    last: dungeonNumber(dn) >= 100,
     onStay: () => {
       log("迷宮は踏破した。下の「帰還」から、いつでも街へ凱旋できる。", "win");
       if (G.state === "board") renderBoard();
@@ -8720,7 +8870,7 @@ function showDungeonClearedPopup({ idx, isStoryTarget }) {
 const GAME_URL = "https://kotarotao.github.io/DOS/";
 function shareProgress(headline) {
   const text = `${headline}\n` +
-    `踏破 ${clearedDungeonCount()}/100迷宮 ・ 最深 B${G.stats.deepest}F ・ 討伐 ${G.stats.kills}体\n` +
+    `踏破 ${clearedDungeonCount()}迷宮 ・ 最深 B${G.stats.deepest}F ・ 討伐 ${G.stats.kills}体\n` +
     `#百の迷宮と魂の王`;
   const data = { title: "百の迷宮と 魂の王", text, url: GAME_URL };
   try {
@@ -8924,6 +9074,7 @@ const FACILITIES = [
 
 // 街の絵 (夜景・施設の情景) はアイドル時間に下ごしらえしておく (タイトル画面の間に描き溜め、初回の引っかかりを消す)
 try { prewarmTown(FACILITIES.map((f) => f.key)); } catch (e) { /* 演出のみ */ }
+try { prewarmStoryArt(); } catch (e) { /* 演出のみ */ }
 
 // 施設の番人 (keeper) のひとこと。lines は帰還のたびに巡る (酒場・祠・宿・王宮の胸像のささやき、商会の番人の一言)
 const FAC_SHELL = {
@@ -8992,7 +9143,7 @@ let townBandOpen = null; // 迷宮選択で開いている層 (null = 選択中�
 
 // 第0章 (人業の生成) の間に開いている施設 (null = 制限なし)
 function tutorialAllowed() {
-  const tut = G.msq && G.msq.n === 0 && G.msq.state === "active";
+  const tut = G.msq && G.msq.n === 0;
   return tut ? (G.msq.granted ? ["palace", "mansion"] : ["palace"]) : null;
 }
 
@@ -9399,9 +9550,9 @@ function questProgress(type, key, n = 1) {
 // req を持つヒントは、その機能が解放されるまで出さない (未解放システムを匂わせない)。
 function tavernHintAllowed(req) {
   if (!req) return true;
-  if (req === "sub") return unlockedSubSlots() > 0;     // 宿し技 (D10)
-  if (req === "metal") return reportedDungeonCount() >= 10; // 金属の魔物 (第3層から出る)
-  return featureUnlocked(req);                           // fusion(D5) / rumor(D15)
+  if (req === "sub") return unlockedSubSlots() > 0;     // 宿し技
+  if (req === "metal") return DUNGEONS.some((d) => d.layer >= 3 && worldOpenId(d.id)); // 金属の魔物 (第3層の景色の迷宮から出る)
+  return featureUnlocked(req);                           // fusion / rumor
 }
 // 酒場の顔ぶれを選び直す (ダンジョン帰還時・初回入店時に呼ぶ)
 function rollTavernCrowd() {
@@ -9562,8 +9713,9 @@ function rollClassOfRarity(rarity) {
 }
 // 「今 到達している深さまでに出現しうる」品のid (LOOT_IDS = exclusive/LR を除く通常ドロップ品)
 function eligibleDeliveryItemIds() {
-  const idx = Math.min(DUNGEONS.length - 1, Math.max(0, (G.unlockedDungeons || 1) - 1));
-  const cap = (DUNGEONS[idx].lootLv || [1, 1])[1]; // 到達済み最深ダンジョンのドロップ帯上限 lv
+  // 地図にある迷宮のうち、いちばん深い落とし物の帯の上限 lv
+  const open = DUNGEONS.filter((d) => worldOpenId(d.id));
+  const cap = Math.max(1, ...(open.length ? open : [DUNGEONS[0]]).map((d) => (d.lootLv || [1, 1])[1]));
   return LOOT_IDS.filter((id) => (ITEMS[id].lv || 1) <= cap);
 }
 // 納品依頼を引き直す (重複なし)。同時件数は解放段階に応じて 1→2→3
@@ -9737,7 +9889,7 @@ const ACHIEVEMENTS = [];
     [30, "中層の覇者", 1500, 20], [40, "迷宮の地図屋", 2000, 20], [50, "折り返しの碑", 2500, 25],
     [60, "深層の覇者", 3000, 30], [70, "終わりの始まり", 4000, 35], [80, "終末の歩み", 5000, 40],
     [90, "冥府の門前", 6000, 45], [95, "冥府の深奥", 7000, 50], [99, "終焉を望む者", 8000, 60],
-  ], (v) => `迷宮を ${v} 踏破する`, (v) => G.unlockedDungeons >= v + 1);
+  ], (v) => `迷宮を ${v} 踏破する`, (v) => clearedDungeonCount() >= v);
 
   // モンスター図鑑 (5)
   tiers((v) => `mon${v}`, [
@@ -9882,10 +10034,10 @@ function achievementCards() {
   return cards.sort((x, y) => ord(x) - ord(y));
 }
 
-// ---- 王宮: メインストーリー「百の迷宮と、魂の王」 ----
-// 勅命を受ける → 対象迷宮が出現 → 踏破 → 王宮で報告し報酬 → 次の勅命、のループ。
-// 物語テキスト/報酬は story.js (20層構成・1層=5迷宮。層の最初でオープニング、層末でエンディング)。
-// G.msq = { n: 迷宮番号 (1-100), state: "active"(攻略中) | "report"(報告可) | "offer"(次の勅命待ち) | "end" }
+// ---- 王宮: メインストーリー「百の迷宮と、魂の王」 (師を捜す物語) ----
+// 迷宮を初めて踏破する → 王宮で報告し報酬と物語 → 条件を満たした迷宮が地図に現れる。
+// 物語テキスト/報酬は story.js (章ごとの迷宮・物語マス・主の記憶・報告・館の語り)。
+// G.msq は第0章 (人業の生成) の進みだけを持つ。迷宮の初踏破の報告・物語の節は G.world (上の「迷宮の地図」)
 
 // 勅命シーン: 金縁のカードで台詞を流す
 // 王の語り (勅命・報告・解放・終章)。玉座の老王の肖像を掲げ、台詞を1行ずつ浮かび上がらせる。
@@ -9967,99 +10119,64 @@ function playMsqChain(pages, toasts = [], after = null) {
   });
 }
 
-// 次章の勅命のページ (拝命の状態変化はページを開く時)。公開範囲の先なら「封印の向こう」のページ
-function acceptPages(toasts) {
-  const ms = G.msq;
-  if (ms.n + 1 > CONTENT_LIMIT) {
-    return [{ title: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう`, lines: sealedLines(), enter: () => { ms.state = "sealed"; delete ms.unsealed; autosave(true); } }];
-  }
-  const n = ms.n + 1;
-  const dn = DUNGEONS[n - 1];
-  // 公開範囲が広がって封が解けた: 勅命の前に、王が封の解けたことを告げる
-  const unseal = ms.unsealed ? [{ title: `第${actOf(n)}層 — 封印の解かれた門`, lines: unsealLines(actOf(n)), kicker: "封印の解呪",
-    leave: () => { delete ms.unsealed; } }] : [];
-  return [...unseal, {
-    title: `第${actOf(n)}層 「${ACTS[actOf(n) - 1].title}」`, lines: msqOrderLines(n), kicker: "勅命",
-    enter: () => {
-      ms.n = n;
-      ms.state = "active";
-      G.unlockedDungeons = Math.max(G.unlockedDungeons, ms.n);
-      G.dungeonIdx = ms.n - 1;  // 新しい迷宮を選択しておく
-      townBandOpen = null;      // 迷宮選択は新迷宮の層域を開いた状態に戻す
-    },
-    leave: () => {
-      SFX.itemget(); buzz([0, 30, 60, 30]);
-      log(`新たな勅命を拝命した。「${dn.name}」が地図に記された。`, "win");
-      toasts.push({ text: `🗺 新たな迷宮「${dn.short}」出現`, opts: { tone: "info" } });
-      autosave(true);
-    },
-  }];
-}
-
-// 踏破報告: 報酬を下賜し、(解放の節目なら機能解放のページを挟んで) 次章の勅命を自動で拝命する。第100章ならエピローグへ
+// 迷宮の初踏破を王に報告する: 報酬を下賜し、(物語の手がかりで) 新たな迷宮を地図に記す。
+// 報告した数が節目なら機能解放のページを挟み (手ほどきへ)、章の最後の迷宮なら章の結びを語る
 function reportMainQuest() {
-  const ms = G.msq;
-  const n = ms.n;
-  const r = msqReward(n);
+  const w = worldState();
+  const id = w.report;
+  const cfg = worldById(id);
+  if (!cfg) { w.report = null; renderTown(); return; }
+  const r = msqReward(cfg.n, !!cfg.boss);
   const rwText = [{ cur: "gold", n: r.gold }, { cur: "soul", n: r.soulPts }, ...(r.redSoul ? [{ cur: "red", n: r.redSoul }] : [])];
+  const rep = REPORTS[id] || { title: cfg.name, lines: ["「果たしたか。…見たものを、すべて話せ。」"] };
+  // この報告で地図に現れる迷宮 (解放条件 reported:id) を、王の言葉の結びに添える
+  const opens = DUNGEONS.filter((d) => !w.open[d.id] && d.unlock && d.unlock.reported === id);
+  const lines = [...storyLines(rep.lines), ...opens.map((d) => `── 新たな迷宮「${d.name}」が地図に記された。`)];
   const toasts = [];
+  const count = Object.keys(w.reported).filter((k) => worldById(k)).length + 1; // この報告で何迷宮目か
   const pages = [{
-    title: `第${actOf(n)}層 「${ACTS[actOf(n) - 1].title}」`, lines: msqReportLines(n), reward: rwText, kicker: "踏破の報告",
+    title: rep.title, lines, reward: rwText, kicker: `踏破の報告 ― ${cfg.name}`,
     leave: () => {
+      if (w.reported[id]) return;
       G.gold += r.gold;
       G.soulPts += r.soulPts;
       G.redSoul += r.redSoul || 0;
+      w.reported[id] = 1;
+      w.report = null;
+      w.last = { kind: "report", id };
       SFX.itemget(); buzz([0, 30, 60, 30]);
-      log(`「${DUNGEONS[n - 1].name}」の踏破を報告した。`, "win");
+      log(`「${cfg.name}」の踏破を報告した。`, "win");
       updateTopbar();
       toasts.push({ text: `受け取った 💰${r.gold} ✦${r.soulPts}` + (r.redSoul ? ` 🔴${r.redSoul}` : ""), opts: { tone: "gold" } });
-      if (n < 100) autosave(true);
+      for (const d of refreshWorldUnlocks()) toasts.push({ text: `🗺 新たな迷宮「${d.short}」が地図に記された`, opts: { tone: "info" } });
+      autosave(true);
     },
   }];
-  if (n >= 100) {
-    pages.push({ title: "終章 — 最後の操霊師", lines: EPILOGUE, btnLabel: "物語を閉じる", kicker: "終章",
-      enter: () => { G.msq = { n: 101, state: "end" }; flashScreen("#ffd84a"); } });
-    playMsqChain(pages, toasts);
-    return;
-  }
-  // 解放の節目 (D5/10/15/20) は、報告の直後に機能解放のページを挟む
-  const us = unlockSceneFor(n);
+  // 解放の節目 (報告した迷宮の数) は、報告の直後に機能解放のページを挟む
+  const us = unlockSceneFor(count);
   if (us) {
     pages.push({ title: us.title, lines: us.lines, kicker: "秘技の伝授",
       leave: () => { SFX.victory(); buzz([0, 40, 80, 40]); toasts.push({ text: "🔓 新たな技能を授かった", opts: { tone: "good" } }); } });
   }
-  pages.push(...acceptPages(toasts)); // 踏破報告と同時に次の勅命を自動拝命
-  // 解放の節目なら、語りを閉じた後にその要素の手ほどきを始める (済むまで迷宮には入れない)
+  // 章の最後の迷宮: 章の結び
+  const ch = CHAPTERS.find((c) => c.finale === id);
+  const end = ch && CHAPTER_END[ch.no];
+  if (end && !w.beats["ch" + ch.no + "_end"]) {
+    pages.push({ title: end.title, lines: end.lines, kicker: "章の結び", who: "none", art: "candle", btnLabel: "物語を閉じる",
+      leave: () => { w.beats["ch" + ch.no + "_end"] = 1; w.last = { kind: "chapter", no: ch.no }; flashScreen("#ffd84a"); autosave(true); } });
+  }
   playMsqChain(pages, toasts, us ? () => { if (UI.tutorialAfterReport) UI.tutorialAfterReport(); } : null);
 }
+// 旧来の入口 (次章の拝命)。迷宮は条件で地図に現れるので、拝命の手続きは無い
+function acceptMainQuest() { renderTown(); }
 
-// 次章の勅命を拝命: 新たな迷宮が地図に現れる (公開範囲の先なら封印を告げる)
-function acceptMainQuest() {
-  const toasts = [];
-  playMsqChain(acceptPages(toasts), toasts);
-}
-
-// 公開範囲の先 (準備中) を告げる王の言葉 (果ての層ごとの台詞は story.js SEAL_LINES)
+// 章の結びの言葉 (公開している最後の章。次章は準備中)
 function sealedLines() {
-  return [...sealLines(CONTENT_NEXT_LAYER - 1), `── 第${CONTENT_NEXT_LAYER}層以降は現在制作中です。これまでの迷宮には何度でも挑めます。`];
+  const c = CHAPTERS[CHAPTERS.length - 1];
+  return (CHAPTER_END[c.no] || { lines: [] }).lines;
 }
 
 // ---- 第0章「人業の生成」(チュートリアル勅命) ----
-const TUT_INTRO = [
-  "「よくぞ参った、新しき操霊師（ソウルマンサー）よ。…生身のまま、よくぞ辺境まで辿り着いた。」",
-  "「だが言うておく。生身で迷宮に入ってはならぬ。深淵は、生きた魂から順に喰らう。」",
-  "「ゆえに死者の魂を器に宿した『人業（ドール）』を遣わすのだ。迷宮は一体では渡れぬ。まずは四体、おのれの手で生み出すがよい。」",
-  "「戦士・僧侶・盗賊・魔導士の魂を、そして赤い魂を百、くれてやろう。」",
-  "「人業の館へゆけ。赤い魂で器を買い、四つの魂をひとつずつ宿し、名を与えよ。」",
-  "「それがそなたの最初の勅命である。人業を四体揃えたら、戻って報告せよ。」",
-];
-const TUT_FINALE = [
-  "「…ほう。四体揃って、良い面構えの人業たちではないか。初仕事にしては上出来よ。」",
-  "「覚えておけ、操霊師。人業は道具ではない。死者に与えられた、二度目の生だ。」",
-  "「粗末に扱えば、魂は器の中で錆びる。労り、鍛え、共に深淵を渡れ。」",
-  "「これでそなたも一人前。次は、まことの勅命を授けよう。」",
-];
-
 // 第0章で仕立てる人業の数 (下賜する魂の数と同じ)。魂が足りない古いセーブでは魂の数まで
 const TUT_DOLLS = 4;
 function tutDollCount() { return allDolls().filter((d) => !d.isEmpty).length; }
@@ -10106,31 +10223,41 @@ function reportTutorialQuest() {
       autosave(true);
     },
   }];
-  pages.push(...acceptPages(toasts)); // チュートリアル完了後も自動で第1章を拝命
+  // 王が最初の迷宮の在処を明かす: 第0章を閉じ、台帳の迷宮 (start) を地図に載せる
+  pages[0].lines = [...pages[0].lines, ...DUNGEONS.filter((d) => d.unlock && d.unlock.start).map((d) => `── 新たな迷宮「${d.name}」が地図に記された。`)];
+  const leave0 = pages[0].leave;
+  pages[0].leave = () => {
+    leave0();
+    G.msq = { n: 1, state: "world" };
+    const added = refreshWorldUnlocks();
+    if (added[0]) G.dungeonIdx = worldIndexOf(added[0].id);
+    for (const d of added) toasts.push({ text: `🗺 新たな迷宮「${d.short}」が地図に記された`, opts: { tone: "info" } });
+    worldState().last = { kind: "ch0" };
+    autosave(true);
+  };
   playMsqChain(pages, toasts);
 }
 
-// 機能解放: 王に報告した踏破数に応じて段階的に解放される (層末の節目の報告で王から授かる)。
-//   踏破しただけ (報告前) では開かない ― 解放のページ (UNLOCKS) を見てから使えるようにする
-//   D5→魂融合 / D10→サブ魂1枠 / D15→酒場の噂・依頼 / D20→控えの結社(席1) /
-//   D25→納品+1 / D30→結社席+1 / D35→納品+1 / D40→サブ魂2枠目 / D45→結社席+1 / D50→無限迷宮
+// 機能解放: 王に初踏破を報告した迷宮の数に応じて段階的に解放される (節目の報告で王から授かる)。
+//   踏破しただけ (報告前) では開かない ― 解放のページ (story.js UNLOCKS) を見てから使えるようにする。
+//   いまの台帳 (5迷宮) では 2→魂融合 / 3→サブ魂1枠 / 4→酒場の噂・依頼 / 5→控えの結社(席1)。
+//   その先の節目は迷宮が増えた時に詰め直す (今は届かない数のまま置いておく)
+const FEATURE_AT = { fusion: 2, sub1: 3, rumor: 4, order: 5, delivery2: 25, order2: 30, delivery3: 35, sub2: 40, order3: 45, infinite: 50 };
 function featureUnlocked(key) {
   const c = reportedDungeonCount();
-  if (key === "fusion") return c >= 5;
-  if (key === "rumor") return c >= 15;
-  if (key === "order") return c >= 20;
-  if (key === "infinite") return c >= 50 && CONTENT_LIMIT >= 50; // 奈落は第10層の公開まで閉じる
+  if (key === "infinite") return c >= FEATURE_AT.infinite && CONTENT_LIMIT >= 50; // 奈落は迷宮が50を超えるまで閉じる
+  if (FEATURE_AT[key] != null) return c >= FEATURE_AT[key];
   return false;
 }
-// 解放済みのサブ魂 (宿し技) スロット数 (0/1/2)。MAX_SUBS が上限。2枠目は D40 で解放
+// 解放済みのサブ魂 (宿し技) スロット数 (0/1/2)。MAX_SUBS が上限
 function unlockedSubSlots() {
   const c = reportedDungeonCount();
-  return Math.min(MAX_SUBS, c >= 40 ? 2 : c >= 10 ? 1 : 0);
+  return Math.min(MAX_SUBS, c >= FEATURE_AT.sub2 ? 2 : c >= FEATURE_AT.sub1 ? 1 : 0);
 }
-// 控えの結社の席数 (0/1/2/3)。D20 で席1、D30 で席2、D45 で席3
+// 控えの結社の席数 (0/1/2/3)
 function orderSeats() {
   const c = reportedDungeonCount();
-  return c >= 45 ? 3 : c >= 30 ? 2 : c >= 20 ? 1 : 0;
+  return c >= FEATURE_AT.order3 ? 3 : c >= FEATURE_AT.order2 ? 2 : c >= FEATURE_AT.order ? 1 : 0;
 }
 // 結社の席に実際に着いている魂uid (編成外・ランク2以上・有効な加護持ち・席数上限でクリーン)。
 // G.order.picks の順を尊重しつつ、無効になった指定 (編成入り/ランク低下/消失) は除外する。
@@ -10167,24 +10294,21 @@ function toggleOrderSeat(uid) {
   G.order.picks = picks.filter((u) => soulByUid(u));
   autosave(); renderTown();
 }
-// 同時に受けられる納品依頼の件数。D15(酒場解放)=1 / D25=2 / D35=3
+// 同時に受けられる納品依頼の件数。酒場解放=1 / 以後の節目で +1
 function deliveryQuestCap() {
   const c = reportedDungeonCount();
-  return c >= 35 ? 3 : c >= 25 ? 2 : 1;
+  return c >= FEATURE_AT.delivery3 ? 3 : c >= FEATURE_AT.delivery2 ? 2 : 1;
 }
 
-// 踏破済みの迷宮数 (メインストーリー基準: 第n章攻略中 = n-1 踏破)
+// 踏破した迷宮の数 (台帳の迷宮のうち、一度でも踏破したもの)
 function clearedDungeonCount() {
-  const ms = G.msq;
-  if (!ms) return Math.max(0, (G.unlockedDungeons || 1) - 1);
-  if (ms.state === "active") return Math.max(0, ms.n - 1); // 第0章 (チュートリアル) 中は 0
-  return Math.min(DUNGEONS.length, ms.n); // report/offer/end は第n章を踏破済み
+  const w = worldState();
+  return DUNGEONS.filter((d) => w.cleared[d.id]).length;
 }
-// 王に報告済みの迷宮数 (機能解放の基準)。踏破して報告を待つ間 (report) は、その迷宮をまだ数えない
+// 王に初踏破を報告した迷宮の数 (機能解放の基準)。踏破して報告を待つ間は、その迷宮をまだ数えない
 function reportedDungeonCount() {
-  const ms = G.msq;
-  if (ms && ms.state === "report") return Math.max(0, ms.n - 1);
-  return clearedDungeonCount();
+  const w = worldState();
+  return DUNGEONS.filter((d) => w.reported[d.id]).length;
 }
 
 // ==== いまの目標 (街の勅書・王宮の勅命の札) ====
@@ -10205,25 +10329,51 @@ function goMakeDoll() {
   G.town.page = null; G.town.facility = "mansion"; G.town.sub = "manage";
   renderTown();
 }
+// 次に追う物語の目標: 物語の順 (章の迷宮の並び) で、地図にあってまだ踏破していない最初の迷宮。
+// すべて踏破済みなら、まだ現れていない迷宮の手がかり (解放条件) を示す
+function storyGoal() {
+  const w = worldState();
+  const ch = currentChapter();
+  for (const id of ch.dungeons) {
+    const d = worldById(id);
+    if (!d || !w.open[id] || w.cleared[id]) continue;
+    const [a, b] = levelBand(d);
+    const cell = Object.keys(STORY_CELLS).find((k) => STORY_CELLS[k].dungeon === id && !w.found[k]);
+    return { kind: "dive", d, text: `師の足跡を追い、「${d.name}」を踏破する`,
+      sub: `推奨 Lv${a}${b > a ? `〜${b}` : ""} ・ 全${d.floors}階${d.boss ? " ・ 主が待つ" : ""}${cell ? " ・ 師の手がかりがある" : ""}` };
+  }
+  for (const id of ch.dungeons) {
+    const d = worldById(id);
+    if (!d || w.open[id]) continue;
+    return { kind: "hint", d, text: d.hint || "新たな迷宮の手がかりを探す", sub: "まだ地図にない迷宮" };
+  }
+  return null;
+}
 function objectiveInfo() {
   const ms = G.msq;
-  if (!ms || ms.state === "end" || ms.n > 100) return null;
+  if (!ms) return null;
+  const w = worldState();
   // 解放された要素の手ほどき (済ませるまで迷宮には入れない)。踏破の報告が先
-  const tut = ms.state !== "report" ? tutorialPending() : null;
+  const tut = !w.report ? tutorialPending() : null;
   if (tut) return { key: "tut", text: tut.text, sub: `手ほどき「${tut.name}」・ 済ませるまで迷宮の門は閉ざされる`, act: tut.started ? "続ける" : "手ほどき", kind: "party", run: () => UI.tutorialResume && UI.tutorialResume() };
-  if (contentSealed()) return { key: "sealed", text: "踏破した迷宮で人業を鍛え、装備を集める", sub: `第${CONTENT_NEXT_LAYER}層は準備中`, act: "出撃", kind: "gate", run: () => departTo(null) };
-  if (ms.n === 0 && ms.state === "active") {
+  if (ms.n === 0) {
     if (!ms.granted) return { key: "audience", text: "王宮で王に謁見する", sub: "着任の挨拶", act: "謁見する", kind: "palace", run: audienceTutorial };
     const made = tutDollCount();
     if (made < tutDollGoal()) return { key: "makeDoll", text: "人業を4体、仕立てる", sub: made ? `いま ${made}/4体 ・ ${emptyDollCost() ? `次の器は赤い魂${emptyDollCost()}` : "残る魂を器に宿す (最初の3体は無料)"}` : "器を仕立て、魂をひとつずつ宿す (最初の3体は無料)", act: "仕立てる", kind: "party", run: goMakeDoll };
     return { key: "reportTut", text: "勅命「人業の生成」の完遂を報告する", act: "王に報告する", kind: "palace", run: reportTutorialQuest };
   }
-  if (ms.state === "report") return { key: "report", text: `「${DUNGEONS[ms.n - 1].name}」の踏破を報告する`, act: "王に報告する", kind: "palace", run: reportMainQuest };
-  if (ms.state === "offer") return { key: "offer", text: "新たな勅命を受ける", act: "拝命する", kind: "palace", run: acceptMainQuest };
-  if (ms.state === "active" && ms.n >= 1 && DUNGEONS[ms.n - 1]) {
-    return { key: "dive", text: `「${DUNGEONS[ms.n - 1].name}」を踏破する`, sub: ms.n % 5 === 0 ? "その主を討て" : null, act: "出撃", kind: "gate", run: () => departTo(ms.n - 1) };
+  if (w.report && worldById(w.report)) return { key: "report", text: `「${worldById(w.report).name}」の踏破を王に報告する`, sub: "見たものを王に話す", act: "王に報告する", kind: "palace", run: reportMainQuest };
+  const ib = pendingIreneBeat();
+  if (ib) return { key: "irene", text: "持ち帰ったものを、館のイレーヌに見せる", sub: ib.title, act: "館へ", kind: "party", run: () => (UI.enterMansion ? UI.enterMansion() : UI.shell && UI.shell.setTab("party")) };
+  if (contentSealed()) return { key: "sealed", text: "迷宮で人業を鍛え、装備を集める", sub: `${CHAPTERS[CHAPTERS.length - 1].next}は準備中`, act: "出撃", kind: "gate", run: () => departTo(null) };
+  const g = storyGoal();
+  if (!g) return { key: "free", text: "迷宮で人業を鍛え、装備を集める", act: "出撃", kind: "gate", run: () => departTo(null) };
+  if (g.kind === "hint") {
+    const tre = g.d.unlock && g.d.unlock.treasury;
+    if (tre) return { key: "hint", text: g.text, sub: `奉納 ${totalDonatedKinds()}/${tre}種`, act: "宝物庫へ", kind: "palace", run: () => UI.openPalace && UI.openPalace("treasury") };
+    return { key: "hint", text: g.text, sub: g.sub, act: "出撃", kind: "gate", run: () => departTo(null) };
   }
-  return null;
+  return { key: "dive", text: g.text, sub: g.sub, act: "出撃", kind: "gate", run: () => departTo(worldIndexOf(g.d.id)) };
 }
 // 旧来の形 { text, go() } (呼び出し元の互換)
 function currentObjective() {
@@ -10231,39 +10381,40 @@ function currentObjective() {
   return o ? { text: o.text, go: o.run } : null;
 }
 
-// 王宮に用があるか (踏破の報告 or 次章の拝命 / 第0章の謁見・報告)
+// 王宮に用があるか (初踏破の報告 / 第0章の謁見・報告)
 function palaceCallReady() {
   const ms = G.msq;
   if (!ms) return false;
-  if (ms.n === 0 && ms.state === "active") return !ms.granted || tutDollCount() >= tutDollGoal();
-  if (ms.n > CONTENT_LIMIT) return false; // 公開範囲の先の勅命は準備中
-  return ms.state === "report" || ms.state === "offer";
+  if (ms.n === 0) return !ms.granted || tutDollCount() >= tutDollGoal();
+  return !!worldState().report;
 }
 
 // 王宮の勅命の札の中身: { kind, head, text, note, replay:bool }
 function decreeInfo() {
   const ms = G.msq;
-  if (!ms || ms.state === "end" || ms.n > 100) return { kind: "end", head: "物語は閉じられた", text: "「百の迷宮は解き放たれた。…余の葬列には、来ずともよいぞ。」", replay: true };
-  if (contentSealed()) return { kind: "sealed", head: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう (準備中)`, text: "次なる層へ続く大門の封は、いまだ固く閉ざされている。", note: "封が解けるまで、踏破した迷宮で人業を鍛え、装備を集めよう。", replay: true };
-  if (ms.n === 0 && ms.state === "active") {
-    if (!ms.granted) return { kind: "ch0", head: "着任", text: "玉座の老王が、新しき操霊師の到着を待っている。", replay: false };
+  if (!ms) return { kind: "none", head: "", text: "", replay: false };
+  if (ms.n === 0) {
+    if (!ms.granted) return { kind: "ch0", head: "着任", text: "玉座の老王が、オルドの弟子の到着を待っている。", replay: false };
     const made = tutDollCount(), goal = tutDollGoal();
-    return { kind: "ch0", head: "勅命 「人業の生成」", text: "人業の館で器を仕立て (最初の3体は無料)、戦士・僧侶・盗賊・魔導士の魂をひとつずつ宿して人業を四体つくれ。", note: made >= goal ? "四体の人業が揃った。王に報告せよ。" : `四体が揃ったら、王に報告せよ。(いま ${made}/4体)`, replay: true };
+    return { kind: "ch0", head: "勅命 「人業の生成」", text: "オルドの館で器を仕立て (最初の3体は無料)、戦士・僧侶・盗賊・魔導士の魂をひとつずつ宿して人業を四体つくれ。", note: made >= goal ? "四体の人業が揃った。王に報告せよ。" : `四体が揃ったら、王に報告せよ。(いま ${made}/4体)`, replay: true };
   }
-  const n = ms.state === "offer" ? Math.min(100, ms.n + 1) : ms.n;
-  const head = `第${actOf(n)}層 「${ACTS[actOf(n) - 1].title}」`;
-  if (ms.state === "report") return { kind: "report", head, text: `「${DUNGEONS[ms.n - 1].name}」を踏破した。`, note: "王に報告し、褒美を受け取れ。", replay: true };
-  if (ms.state === "offer") return { kind: "offer", head, text: "新たな勅命が下されようとしている。", replay: false };
-  const tdn = DUNGEONS[ms.n - 1];
-  return { kind: "active", head, text: `「${tdn.name}」を踏破${ms.n % 5 === 0 ? "し、その主を討て。" : "せよ。"}`, note: "果たしたら王に報告せよ。", replay: true };
+  const w = worldState();
+  const ch = currentChapter();
+  const head = `第${["", "一", "二", "三", "四", "五"][ch.no] || ch.no}章 「${ch.title}」`;
+  if (w.report && worldById(w.report)) return { kind: "report", head, text: `「${worldById(w.report).name}」を踏破した。`, note: "王に報告し、見たものを話せ。", replay: true };
+  if (contentSealed()) return { kind: "sealed", head: `${head} ── 完`, text: "師は捨て砦の地下へ向かった。封が解けるまで、人業を鍛えておけ。", note: `${ch.next}は準備中。これまでの迷宮には何度でも挑める。`, replay: true };
+  const g = storyGoal();
+  const done = ch.dungeons.filter((id) => w.reported[id]).length;
+  return { kind: "active", head, text: g ? g.text + "。" : "師の足跡を追え。", note: `章の迷宮 ${done}/${ch.dungeons.length} を報告済み`, replay: true };
 }
-// 王の言葉を聞き直す (状態は変えない)
+// 王の言葉を聞き直す (状態は変えない): 最後に語られた物語のページ
 function replayDecree() {
   const ms = G.msq || {};
-  if (!ms || ms.state === "end" || ms.n > 100) return UI.playStoryChain([{ title: "終章 — 最後の操霊師", lines: EPILOGUE, kicker: "終章" }]);
-  if (contentSealed()) return UI.playStoryChain([{ title: `第${CONTENT_NEXT_LAYER}層 — 封印の向こう`, lines: sealedLines() }]);
-  if (ms.n === 0) return UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: TUT_INTRO, kicker: "着任の謁見" }]);
-  return UI.playStoryChain([{ title: `第${actOf(ms.n)}層 「${ACTS[actOf(ms.n) - 1].title}」`, lines: msqOrderLines(ms.n), kicker: "勅命" }]);
+  if (!ms.n) return UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: TUT_INTRO, kicker: "着任の謁見" }]);
+  const last = worldState().last || {};
+  if (last.kind === "chapter" && CHAPTER_END[last.no]) return UI.playStoryChain([{ title: CHAPTER_END[last.no].title, lines: CHAPTER_END[last.no].lines, kicker: "章の結び", who: "none", art: "candle" }]);
+  if (last.kind === "report" && REPORTS[last.id]) return UI.playStoryChain([{ title: REPORTS[last.id].title, lines: storyLines(REPORTS[last.id].lines), kicker: "踏破の報告" }]);
+  return UI.playStoryChain([{ title: "勅命 「人業の生成」 完遂", lines: TUT_FINALE, kicker: "勅命の完遂" }]);
 }
 
 // 王の記録 (戦績) と、その共有
@@ -10279,8 +10430,8 @@ function palaceRecords() {
 function sharePalaceRecord() {
   SFX.select();
   const ms = G.msq || {};
-  const head = ms.state === "end" || ms.n > 100 ? "百の迷宮のすべてを制し、物語を閉じた。"
-    : ms.n >= 1 ? `第${actOf(ms.n)}層「${ACTS[actOf(ms.n) - 1].title}」を探索中。` : "操霊師として着任した。";
+  const ch = currentChapter();
+  const head = ms.n >= 1 ? `師オルドを捜して、第${ch.no}章「${ch.title}」を探索中。` : "操霊師オルドの弟子として着任した。";
   shareProgress(head);
 }
 
@@ -10292,6 +10443,7 @@ function sharePalaceRecord() {
 //             soul=従来の「魂(+装備)」(soul:1=通常魂 / soul:2=偉大な魂 + 節目相応の装備)
 // ※25種以降は未定のため、従来の魂+装備をプレースホルダとして残してある。
 const TREASURY_MILESTONES = [
+  { n: 3, reward: "minePass" }, // 坑口の通行証: 台帳の迷宮「鎖の垂れる坑口」が地図に現れる (world.js unlock treasury:3)
   { n: 5, cls: "bishop" },   // 司教の魂
   { n: 10, cls: "samurai" },   // 侍の魂
   { n: 15, reward: "lrArmor" }, // LR防具1つ (未入手のもの)
@@ -10304,6 +10456,7 @@ const TREASURY_MILESTONES = [
 const LR_ARMOR_SLOTS = ["body", "head", "feet", "hands", "shield"];
 // 節目の褒賞ラベル (UI表示用)
 function milestoneLabel(m) {
+  if (m.reward === "minePass") return "坑口の通行証";
   if (m.cls) return ((SOUL_CLASSES[m.cls] || {}).label || m.cls) + "の魂";
   if (m.reward === "lrArmor") return "LR防具";
   if (m.reward === "lrWeapon5") return "LR5武器";
@@ -10415,6 +10568,15 @@ function claimTreasury(n) {
   const back = () => { autosave(); if (G.state === "town") renderTown(); };
   const center = Math.min(200, Math.max(1, n * 2)); // 節目が深いほど高位の装備
   const reason = `収集品を ${n} 種 宝物庫に納めた褒賞だ。`;
+  // 坑口の通行証: 品の代わりに、封じられた迷宮を地図に記す
+  if (m.reward === "minePass") {
+    UI.playStoryChain([{ title: MINE_PASS.title, kicker: `宝物庫の褒賞 ― 奉納 ${n} 種`, lines: MINE_PASS.lines, reward: "坑口の通行証 (新たな迷宮)", btnLabel: "ありがたく賜る" }], () => {
+      SFX.itemget(); buzz([0, 30, 60, 30]);
+      announceNewDungeons(refreshWorldUnlocks());
+      back();
+    });
+    return;
+  }
   // 玉座の間で老王から褒賞を賜る場面を見せてから、品を渡す (品の演出・効果音は渡す側で鳴る)
   UI.playStoryChain([{
     title: `宝物庫の褒賞 ― 奉納 ${n} 種`, kicker: "褒賞の下賜", lines: treasuryRewardLines(m, n),
@@ -10487,7 +10649,7 @@ function codexMonEntry(key) {
 function codexKillNow(e) {
   if (!e || e._codexKill || String(e.key || "").startsWith("ev_")) return;
   e._codexKill = true;
-  recordMonsterKill(e.key, G.dungeonIdx);
+  recordMonsterKill(e.key, abyssActive() ? null : G.dungeonIdx);
 }
 setOnEnemyKilled(codexKillNow);
 function recordMonsterKill(key, dungeonIdx) {
@@ -10593,7 +10755,7 @@ function showCodexMonDetail(key) { if (UI.codexMonSheet) UI.codexMonSheet(key); 
 function dungeonRoster(dn) {
   const seen = new Set();
   const out = [];
-  for (const k of [...(dn.pool || []), ...(dn.deepPool || []), dn.boss]) {
+  for (const k of [...(dn.pool || []), ...(dn.deepPool || []), ...(dn.elites || []), dn.boss]) {
     if (k && MONSTERS[k] && !seen.has(k)) { seen.add(k); out.push(k); }
   }
   return out;
@@ -10885,12 +11047,13 @@ function buyItem(id, price, who) {
 // 出撃は「出撃シート」(src/ui/departure.js) に集めた: 門の選択・隊の備え (その場で直す)・迷宮の異変・初回の注意。
 // 旧来の入口 (広場の「迷宮へ潜る」・目標など) もこのシートを開く
 function tryEnterDungeon() {
-  if (G.unlockedDungeons < 1) { log("王の勅命を受けるまで、迷宮には入れない。", "sys"); showToast("王の勅命を受けるまで、迷宮の在処は明かされない", { tone: "info" }); return; }
+  if (worldOpenCount() < 1) { log("王の勅命を果たすまで、迷宮には入れない。", "sys"); showToast("王の勅命を果たすまで、迷宮の在処は明かされない", { tone: "info" }); return; }
   UI.openDeparture();
 }
-// 踏破の報告が済んでいないか (済むまで迷宮には入れない)。公開範囲の先 (準備中) の報告は対象外
+// 初踏破の報告が済んでいないか (済むまで迷宮には入れない)
 function reportPending() {
-  return !!G.msq && G.msq.state === "report" && !contentSealed() && !!DUNGEONS[G.msq.n - 1];
+  const w = worldState();
+  return !!w.report && !!worldById(w.report);
 }
 // 迷宮へ向かおうとした時、報告が先なら引き止める (王宮へ案内するシート)。引き止めたら true
 function blockForReport() {
@@ -10899,7 +11062,7 @@ function blockForReport() {
   kitConfirm({
     banner: "勅 命", danger: false,
     title: "王に報告するのが先だ",
-    lines: [`「${DUNGEONS[G.msq.n - 1].name}」の踏破を、まだ王に報告していない。`, "報告を済ませるまで、迷宮の門は開かれない。"],
+    lines: [`「${worldById(worldState().report).name}」の踏破を、まだ王に報告していない。`, "報告を済ませるまで、迷宮の門は開かれない。"],
     okLabel: "王に報告する", cancelLabel: "あとで",
   }).then((ok) => { if (ok && reportPending()) reportMainQuest(); });
   return true;
@@ -10922,20 +11085,21 @@ function blockForTutorial() {
 
 // 門をくぐる (出撃シートの決め手)。idx = 迷宮の番号 (0始まり) / accept = 迷宮の異変ごと潜るか。
 // 闇に溶けて (sceneTransition) その底で潜入する。潜れない時は理由を返す
-function departNow({ idx = G.dungeonIdx, accept = false } = {}) {
+// from = 潜り始める階 (1 か、到達した帰還魔法陣の階)
+function departNow({ idx = G.dungeonIdx, accept = false, from = 1 } = {}) {
   if (G.state !== "town") return { ok: false, reason: "state" };
-  if (G.unlockedDungeons < 1) return { ok: false, reason: "locked" };
+  if (worldOpenCount() < 1) return { ok: false, reason: "locked" };
   if (blockForReport()) return { ok: false, reason: "report" };
   if (blockForTutorial()) return { ok: false, reason: "tutorial" };
-  const open = Math.min(G.unlockedDungeons, CONTENT_LIMIT);
-  if (idx < 0 || idx >= open) { showToast("その先は準備中だ", { tone: "info" }); return { ok: false, reason: "sealed" }; }
+  if (!worldOpenIdx(idx)) { showToast("その迷宮は、まだ地図に記されていない", { tone: "info" }); return { ok: false, reason: "sealed" }; }
   if (!G.party.some((p) => p.alive)) { log("動ける人業がいない。", "sys"); SFX.ng(); return { ok: false, reason: "party" }; }
   G.dungeonIdx = idx;
   const mut = townMutatorFor(idx);
   const mutId = accept && mut ? mut.id : null;
   G.dungeonBriefed = true; // 初回の注意は出撃シートの中で済ませた
   G.prompt = true;
-  uiDungeonHud.sceneTransition(() => { G.prompt = false; enterDungeon(mutId); });
+  const start = startFloorsOf(DUNGEONS[idx]).includes(from) ? from : 1;
+  uiDungeonHud.sceneTransition(() => { G.prompt = false; enterDungeon(mutId, start); });
   return { ok: true };
 }
 
@@ -11011,19 +11175,22 @@ function namesShort(list) { return list.length > 2 ? `${list[0].name}ほか${lis
 
 // 初回潜入時の警備兵の注意 (出撃シートの中に短い注記として出す。札は使わない)
 const DUNGEON_BRIEFING = [
-  "■ 主を倒すか「帰還魔法陣」を見つけるまで、街へは戻れない。",
+  "■ 迷宮を踏破するか「帰還魔法陣」を踏むまで、街へは戻れない。陣は5階・10階…と5階ごとに、下り階段の代わりに立つ。",
+  "■ 一度たどり着いた陣の階からは、次からそこから潜り始められる。",
   "■ 全滅すれば今回の収穫 (金・品・魂) を失う。✦Soul だけは残る。赤い魂があれば何も失わずに帰れる。",
 ];
 // 潜入の実体。mutatorId を渡すと「迷宮の異変」を受け入れた状態で潜る
-function enterDungeon(mutatorId) {
+function enterDungeon(mutatorId, startFloor = 1) {
   G.mutator = mutatorId || null;
   G.bossDown = false; // 帰還制限: 魔法陣を見つけるか主を討つまで帰れない
   SFX.stairs();
   sheet.closeAll();
   townEl.classList.add("hidden");
   G.town.facility = null; G.town.sub = null;
-  G.floor = 1; // 迷宮は常に1階から (街に戻ると入り直し)
-  G.eliteFloor = false; // 1Fは強敵階・特別階にならない
+  // 迷宮は1階から。到達した帰還魔法陣の階 (5・10…) からも潜り始められる
+  G.floor = Math.max(1, Math.min(curDungeon().floors || 1, startFloor | 0 || 1));
+  G.maxFloorReached = Math.max(G.maxFloorReached || 0, G.floor);
+  G.eliteFloor = false; // 潜り始めの階は強敵階・特別階にならない
   G.specialFloor = null;
   G.stats.runs++;
   // 今回の戦利品トラッキングを初期化 (帰還の報告は次の帰還で書き直す)
@@ -11039,10 +11206,16 @@ function enterDungeon(mutatorId) {
   playBgm(fieldBgm());
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
   newFloor();
+  const viaGate = G.floor > 1;
+  if (viaGate) arriveAtGate();
   const mu = mutDef();
   if (mu) log(`異変「${mu.name}」の中を行く。${mu.gain}。`, "win");
   renderBoard();
   autosave(true);
+  if (viaGate) {
+    const cell = G.board.cells[G.py][G.px];
+    setTimeout(() => { if (G.state === "board" && !G.prompt) askGate(cell, { arrival: true }); }, 380);
+  }
 }
 
 // ===== 無限迷宮「奈落」への潜入 =====
@@ -11061,7 +11234,6 @@ function enterAbyss(mods, weekly) {
   townEl.classList.add("hidden");
   G.town.facility = null; G.town.sub = null;
   G.floor = 1;
-  G.dungeonIdx = abyssBaseN(1) - 1;
   G.eliteFloor = false;
   G.specialFloor = null;
   G.stats.runs++;
@@ -11186,7 +11358,7 @@ function leaveDungeon(opts = {}) {
 // 帰還できるか (帰還陣を発見済み/その上に立っている/主を討った)
 function canReturnNow() {
   const cell = G.board && G.board.cells[G.py] && G.board.cells[G.py][G.px];
-  const onPortal = cell && cell.type === "portal";
+  const onPortal = cell && (cell.type === "portal" || (cell.type === "stairs" && cell.gate));
   return !!(onPortal || G.bossDown || G.portalFound);
 }
 function confirmReturnToTown() {
@@ -11197,7 +11369,7 @@ function confirmReturnToTown() {
     showEvent({
       sprite: ICONS.portal, banner: "⚠ 帰還できない ⚠", title: "帰り道は閉ざされている",
       accent: "#7fd0ff",
-      lines: ["迷宮は一度入ると容易には出られない。", "「帰還魔法陣」を見つけて踏むか、迷宮の主を討てば帰還できる。", "魔法陣は5の倍数の階には必ずある。"],
+      lines: ["迷宮は一度入ると容易には出られない。", "「帰還魔法陣」を見つけて踏むか、迷宮を踏破すれば帰還できる。", abyssActive() ? "魔法陣は5の倍数の階には必ずある。" : "魔法陣は5階・10階…と5階ごとに、下り階段の代わりに立つ。"],
       btnLabel: "心得た",
       onClose: () => renderBoard(),
     });
@@ -11219,6 +11391,60 @@ function askPortalReturn() {
   ], ICONS.portal, { banner: "✦ 帰還魔法陣 ✦", accent: "#7fd0ff",
     lines: ["この陣を見つけたので、この階のどこからでも下の「帰還」で街へ戻れる。"],
     onDismiss: () => renderBoard() });
+}
+
+// ===== 帰還魔法陣の階 (台帳の迷宮: 5階・10階…・最下階を除く) =====
+// 下り階段の代わりに立つ陣。踏むと「先へ進む / 街へ帰る」を選ぶ。到達した陣の階は記録され、
+// 次に潜る時は出撃シートでその階から潜り始められる (G.world.gates[id] = 到達した最深の陣の階)
+function noteGateReached(cfg, floor) {
+  const w = worldState();
+  if (!cfg || !cfg.id || (w.gates[cfg.id] || 0) >= floor) return false;
+  w.gates[cfg.id] = floor;
+  log(`帰還魔法陣 B${floor}F に到達した。次からは、ここから潜り始められる。`, "win");
+  showToast(`✦ 帰還魔法陣 B${floor}F ― 次回はここから潜れる`, { tone: "good" });
+  autosave(true);
+  return true;
+}
+function askGate(cell, { arrival = false } = {}) {
+  const cfg = curDungeon();
+  noteGateReached(cfg, G.floor);
+  G.portalFound = true;
+  updateReturnBtn();
+  const next = G.floor + 1;
+  const bottom = next >= (cfg.floors || 1);
+  showChoice(arrival ? `帰還魔法陣を抜けて、B${G.floor}F に降り立った。` : "下り階段の代わりに、帰還魔法陣が淡く輝いている。", [
+    { label: `先へ進む ― B${next}F${bottom ? (cfg.boss ? " (主の間)" : " (最下階)") : ""}`, primary: true, fn: () => descend() },
+    { label: "街へ帰還する ― 戦利品は持ち帰る", fn: () => leaveDungeon({ outcome: G.run && G.run.secured ? "clear" : "return" }) },
+    { label: arrival ? "この階を探索する" : "まだ探索する", fn: () => renderBoard() },
+  ], ICONS.portal, { banner: `✦ 帰還魔法陣 B${G.floor}F ✦`, accent: "#7fd0ff",
+    lines: ["この階のどこからでも、下の「帰還」で街へ戻れる。", "陣に至った階からは、次回そこから潜り始められる。"],
+    onDismiss: () => renderBoard() });
+}
+// 潜り始められる階 (1 と、到達した帰還魔法陣の階)
+function startFloorsOf(cfg) {
+  if (!cfg || !cfg.id) return [1];
+  const reach = worldState().gates[cfg.id] || 0;
+  return [1, ...gateFloors(cfg).filter((f) => f <= reach)];
+}
+// 隊のLv (編成の魂Lvの平均。出撃シートの推奨Lvとの比べに使う)
+function partyLevel() {
+  const ds = (G.party || []).filter((d) => d && d.primary != null);
+  if (!ds.length) return 1;
+  return Math.round(ds.reduce((a, d) => a + (d.jobLv || 1), 0) / ds.length);
+}
+// まだ見つけていない師の手がかりがある迷宮か (出撃シートの印)
+function storyCellPending(cfg) {
+  const w = worldState();
+  return !!cfg && Object.keys(STORY_CELLS).some((k) => STORY_CELLS[k].dungeon === cfg.id && !w.found[k]);
+}
+// 帰還魔法陣から潜入した: 陣の上に降り立つ (陣は見えている)
+function arriveAtGate() {
+  const b = G.board;
+  if (!b) return;
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const c = b.cells[y][x];
+    if (c.type === "stairs" && c.gate) { G.px = x; G.py = y; c.revealed = true; G.portalFound = true; updateReturnBtn(); return; }
+  }
 }
 
 // ---- 個別ステータス (旧) → 隊 (src/ui/party.js) ----
@@ -12216,13 +12442,13 @@ if (settingsBtn) settingsBtn.addEventListener("click", () => {
 // 一度選択した行動は取り消せない。タスクキルされても直前の状態 (戦闘なら確定済みの
 // 行動が実行される直前) から再開する。
 // v2: 全コンテンツ再編 (隠しレベル1-200 / 迷宮100 / 魂cap拡張)。v1セーブとは互換しない
-const SAVE_KEY = "dos-save-v6"; // v6 = 100迷宮を20層×5迷宮へ再構成 (旧セーブは孤立させる)
+const SAVE_KEY = "dos-save-v7"; // v7 = 迷宮の台帳 (選んで潜る迷宮・師を捜す物語)。v6 以前のセーブは孤立させる (消さずに残す)
 // 保存する G のフィールド (アニメーション等の一時状態は除外)
 const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "lrClock", "order", "irene", "tut", "events", "story", "dragonSlain", "stats",
+  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "lrClock", "order", "irene", "tut", "events", "story", "world", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
   "lastRun",
 ];
@@ -12443,14 +12669,11 @@ function loadGame() {
   if (!G.ach) G.ach = {}; // 勲章 (後付け)
   if (!G.subQuests) G.subQuests = {}; // サブクエスト (後付け)
   if (!Array.isArray(G.subQuestSeen)) G.subQuestSeen = []; // 表示済みの迷宮 (後付け)
-  // メインストーリー (後付け): 解放済みの最前線の迷宮を現在章とみなす。
-  // 既に最後の迷宮まで終えたセーブは、第100章の報告から再開できる
-  if (!G.msq) {
-    const n = Math.min(100, Math.max(1, G.unlockedDungeons || 1));
-    G.msq = (G.dragonSlain && n >= 100) ? { n: 100, state: "report" } : { n, state: "active" };
-  }
-  // 公開範囲が広がった: 封印の告知を受けていたセーブは「次の勅命待ち」に戻し、王が封の解けたことを告げる
-  if (G.msq.state === "sealed" && G.msq.n < CONTENT_LIMIT) { G.msq.state = "offer"; G.msq.unsealed = true; }
+  // メインストーリー: 第0章の途中か、師を捜す旅の途中 ({n:1, state:"world"})。迷宮の地図と物語の進みは G.world
+  if (!G.msq) G.msq = { n: 0, state: "active", granted: false };
+  if (G.msq.n >= 1) G.msq = { n: 1, state: "world" };
+  refreshWorldUnlocks();
+  if (!worldOpenIdx(G.dungeonIdx)) G.dungeonIdx = Math.max(0, DUNGEONS.findIndex((d) => worldOpenId(d.id)));
   G.autoCombat = false;   // オート戦闘は再開時に解除 (誤動作防止)
   // 図鑑の移行: 旧形式 (mon[key]=true) を {kills,normal,rare,dungeons} に変換
   if (!G.codex) G.codex = { mon: {}, item: {} };
@@ -12556,7 +12779,8 @@ function setupNewGame() {
   G.souls = [];       // 所持魂 一覧 (魂インスタンスの配列)
   setSharedSouls(G.souls);
   G.redSoul = 0;
-  G.unlockedDungeons = 0; // 勅命 (第1章) を受けるまで、迷宮の場所は明かされない
+  G.unlockedDungeons = 0; // 第0章を果たすまで、迷宮の場所は明かされない
+  G.world = {}; worldState();
   G.shopStock = { ...SHOP_INIT_STOCK };
   G.deliveryQuests = rollDeliveryQuests();
   // 第0章「人業の生成」: 王宮で謁見 → 戦士・僧侶・盗賊・魔導士の魂×4+🔴100を受ける (granted) → 館の保管庫で人業を4体仕立て → 報告
@@ -12965,6 +13189,7 @@ function wireUI() {
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
     tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
+    worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURE_AT, storyGoal, currentChapter,
     trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,
@@ -13040,7 +13265,7 @@ bindGame({
 // モジュールの評価時 (init より前) に結ぶ。init の wireUI が同じ game へ残りを足す
 bindGame({
   // 出撃
-  departNow, departAbyss, townMutatorFor, preDiveIssues, DUNGEON_BRIEFING, CONTENT_NEXT_LAYER,
+  departNow, departAbyss, townMutatorFor, preDiveIssues, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, partyLevel, storyCellPending,
   abyssRecords, ABYSS_MODS, abyssScoreMul, weekSeedId, emptyDollCost,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow,
@@ -13057,9 +13282,8 @@ bindGame({
 function titleSummary() {
   const ms = G.msq || {};
   let head = "着任したばかりの操霊師";
-  if (ms.state === "end" || ms.n > 100) head = "✦ 物語を閉じた操霊師 ✦";
-  else if (ms.n >= 1) head = `第${actOf(ms.n)}層「${ACTS[actOf(ms.n) - 1].title}」`;
-  const lines = [`踏破 ${clearedDungeonCount()} / 100 迷宮 ・ 人業 ${allDolls().length}体`];
+  if (ms.n >= 1) { const ch = currentChapter(); head = `第${ch.no}章「${ch.title}」 ― 師を捜す旅`; }
+  const lines = [`踏破 ${clearedDungeonCount()} 迷宮 ・ 人業 ${allDolls().length}体`];
   if (G.state === "board" || G.state === "combat") {
     lines.push(abyssActive() ? `探索中 — 奈落 B${G.abyss.depth}F` : `探索中 — ${curDungeon().name} B${G.floor}F`);
   }
@@ -13075,7 +13299,10 @@ function init() {
   window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACHIEVEMENTS, questProgress, pickLoot, showItemGet, startBattle, spawnCardEnemies, spawnBossEnemies, activeCfg,
     UI, ops, nav, townshell,
     // 迷宮のイベント (出来事) の検証用
-    ev: { evApi, runEvent, eventFightWon, EVENT_MAP, enterDungeon, newFloor, descend, resolveCell, renderBoard, endBattle, evNewFloor, evProgress, eventFacts, makeDoll, addSoulInstance, recalcDoll, evUnit } };
+    ev: { evApi, runEvent, eventFightWon, EVENT_MAP, enterDungeon, newFloor, descend, resolveCell, renderBoard, endBattle, evNewFloor, evProgress, eventFacts, makeDoll, addSoulInstance, recalcDoll, evUnit },
+    // 迷宮の台帳・物語の進みの検証用
+    world: { worldState, refreshWorldUnlocks, reportMainQuest, reportTutorialQuest, grantTutorialGift, commitDungeonClear, showDungeonClearedPopup, askGate, departNow, storyGoal, objectiveInfo, decreeInfo,
+      playIreneBeat, pendingIreneBeat, runStoryCell, startFloorsOf, foeLevelHere, claimTreasury, partyLevel, leaveDungeon, DUNGEONS, finalizeBuyDoll, totalDonatedKinds, treasuryState } };
 
   let loaded = false;
   try { loaded = loadGame(); } catch (e) { loaded = false; }

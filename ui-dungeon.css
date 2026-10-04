@@ -470,3 +470,16 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 #combat-menu .cmd-s .sp-tags { margin-left: 4px; }
 #combat-menu .cmd-s .sp-tags .ui-tag { font-size: 8.5px; }
 .dg-en-kills { margin: -2px 0 6px; font-size: 12.5px; color: #b2a68f; letter-spacing: 0.12em; font-variant-numeric: tabular-nums; }
+
+/* ---- 迷宮の地図 (台帳): 新しく現れた迷宮・危うさの札・解放の手がかり・潜り始める階 ---- */
+.dp-map .dp-layer-h { cursor: default; }
+.dp-new { display: inline-block; margin-left: 6px; padding: 0 4px; font-size: 10px; font-weight: 800; line-height: 15px; color: #1a0d05; background: #f3d58b; border-radius: 2px; vertical-align: 2px; }
+.dp-gate-st.danger { color: #ffd2a0; border-color: #b0661c; background: rgba(140,70,10,0.32); }
+.dp-gate-st.reckless { color: #ffc6bc; border-color: #c0281e; background: rgba(140,16,10,0.45); box-shadow: 0 0 8px rgba(220,40,20,0.35); }
+.dp-sealed .dp-gate-c.dp-hint { white-space: normal; line-height: 1.35; color: #b5a888; }
+.dp-from { display: flex; align-items: center; gap: 10px; margin: 6px 0 4px; }
+.dp-from-l { flex: 0 0 auto; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; color: var(--accent-hi); }
+.dp-from > :last-child { flex: 1 1 auto; }
+/* 長い説明 (推奨Lv・師の手がかり…) で行が枠を押し広げないように (grid の既定 min-width: auto を外す) */
+.dp-gates { grid-template-columns: minmax(0, 1fr); }
+.dp-gate { box-sizing: border-box; min-width: 0; }

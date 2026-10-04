@@ -686,6 +686,18 @@ function renderTab(root, api) {
   }
   if (!isGreeted()) { if (entered || wantCreate) scheduleGreeting(); }
   else if (wantCreate) { wantCreate = false; setTimeout(() => openCreateDoll(), 0); }
+  else if (game.pendingIreneBeat && game.pendingIreneBeat()) scheduleBeat();
+}
+// 館の語り (src/story.js IRENE_BEATS): 師の手がかりを持ち帰った後に館へ入ると、イレーヌが語る (一度だけ)
+let beatTimer = null;
+function scheduleBeat() {
+  if (beatTimer) return;
+  beatTimer = setTimeout(() => {
+    beatTimer = null;
+    const G = G_();
+    if (!G || G.state !== "town" || !G.town || G.town.tab !== "party" || G.town.page || G.prompt || sceneActive()) return;
+    if (game.playIreneBeat) game.playIreneBeat(() => { curLine = nextLine({ entry: true }); rerender(); });
+  }, 120);
 }
 
 function renderView(root, mode) {
