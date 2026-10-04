@@ -4,7 +4,7 @@
 
 import { game } from "./ctx.js";
 import { el, sheet } from "./kit.js";
-import { ELEMENTS, elemBeats, RACE_LABEL } from "../dungeons/index.js";
+import { ELEMENTS, elemBeats, RACE_LABEL, unknownName } from "../dungeons/index.js";
 import { SPELLS } from "../combat.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
 import { WEAPON_CAT_LABEL, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, scaleText } from "../items.js";
@@ -178,13 +178,13 @@ export function enemyReveal(e) {
     lore: special || kills >= R.lore,
   };
 }
-// 敵の呼び名: 名前が明かされるまでは「？？？」(同種が並ぶときの A/B… は残して見分けられるように)
+// 敵の呼び名: 名前が明かされるまでは不確定名「小さく蠢くもの」など (dungeons/unknown.js。同種が並ぶときの A/B… は残して見分けられるように)
 export function enemyLabel(e) {
   if (!e) return "";
   if (enemyReveal(e).name) return e.name;
   const base = e.mon && e.mon.name;
   const tail = base && String(e.name || "").startsWith(base) ? String(e.name).slice(base.length) : "";
-  return "？？？" + tail;
+  return unknownName(e.mon) + tail;
 }
 // まだ明かされていない項目の札: 「属性・HP　5体討伐で開示」
 export function revealLock(need, what, cls = "") {

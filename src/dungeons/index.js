@@ -8,6 +8,7 @@ import { WORLD } from "./world.js";
 
 export { MON_RACES, RACE_LABEL, ELEMENTS, elemMult, elemBeats, elemDmgMult, resistRate, resistHpMul, RESIST_RATE, RESIST_TAG, METAL_TIERS, TRAITS, monsterTraitKeys, monsterTraits, isFloating } from "./schema.js";
 export { layerOf, LAYER_COUNT } from "./generator.js";
+export { unknownName } from "./unknown.js";
 
 // 地図に並ぶ迷宮 (world.js の台帳。並び順 = 出撃シート・図鑑の並び)。G.dungeonIdx はこの添字
 export const DUNGEONS = WORLD;
