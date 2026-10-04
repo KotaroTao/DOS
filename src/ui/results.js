@@ -4,7 +4,7 @@
 //
 //   戦果シート … 勝利・獲得 (数え上げ)・魂の成長・新しい技・拾った魂・宝箱 (開ける者を選んで1タップ) を1枚に。
 //               宝箱の罠と中身はシートの中に行として足す。倒れた者・飛ばされた・呼び寄せた時だけ札へ切り替える。
-//               SR/LR の品・レア以上の魂は、シートを閉じた後に祝祭の札で祝う
+//               レベルアップ・レア以上の品・宝物庫にまだ無い収集品・拾った魂は、シートを閉じた後に祝祭の札 (ポップアップ) で祝う
 //   全滅シート … 強制の決断 (赤い魂で全てを守る / あきらめる)。失うもの・残るものを並べる
 //   踏破の祝祭 … 「★ 迷宮踏破 ★」→ 凱旋で闇に溶けて街へ
 //   帰還の報告 … 今回の収穫と、帰ってすぐ片付く用事 (宿で休む・まとめて鑑定・まとめて売る・最適装備・館で修復・今すぐ連れ帰る)
@@ -35,11 +35,12 @@ const KIND = {
 };
 
 // spec: { kind, gold, soul, kills, levels[{name,from,to,deltas[],sub?,soulLabel?}], skills[{name,key,skill,desc}],
+//         levelUps[{name,uid,main,subs,statsFrom,statsTo,skills}] (UI.celebrateLevelUp へ),
 //         souls[{clsKey,label,rarity,rare,glow,line,embers}], chest:{name,cRank,openers[{uid,name,pct}],open(uid,sink,done)}|null, onDone }
 export function openResults(spec = {}) {
   const g = G();
   const k = KIND[spec.kind] || KIND.win;
-  const celebrations = []; // シートを閉じた後に祝う (SR/LR の品・レア以上の魂)
+  const celebrations = []; // シートを閉じた後に祝う (レベルアップ・レア以上の品・宝物庫にまだ無い収集品・拾った魂)
   let chestState = spec.chest ? "closed" : "none"; // closed (未開封) | busy (開けている) | done (済み) | left (置いて進む)
   let finished = false, interrupted = false, autoTimer = null, h = null;
   let notable = false; // 宝箱の結果に目を留めるべきもの (痛手・SR/LR・置いてきた品) があったか
@@ -67,8 +68,21 @@ export function openResults(spec = {}) {
   }
   // ---- 成長・技・魂 ----
   const list = el("div", "rs-list");
-  // 成長は1人1行 (名・Lv・伸びた能力)。新しい技は押すと詳細
-  for (const lv of spec.levels || []) {
+  // レベルアップはシートを閉じた後の祝祭カードで大きく見せる (成長はこのゲームの芯)。シートには予告の1行だけ
+  const luCard = typeof UI.celebrateLevelUp === "function" && (spec.levelUps || []).length > 0;
+  if (luCard) {
+    const ups = spec.levelUps;
+    celebrations.push((next) => UI.celebrateLevelUp(ups, next));
+    const r = el("div", "rs-line rs-lvup");
+    r.appendChild(el("i", "rs-ic up"));
+    const t = el("div", "rs-line-t one");
+    t.appendChild(el("b", null, "レベルアップ！"));
+    t.appendChild(el("span", "rs-delta", "  " + ups.map((u) => u.name).join("・")));
+    r.appendChild(t);
+    list.appendChild(r);
+  }
+  // 成長は1人1行 (名・Lv・伸びた能力)。新しい技は押すと詳細 (祝祭カードで見せる時は省く)
+  for (const lv of luCard ? [] : spec.levels || []) {
     const r = el("div", "rs-line rs-lv" + (lv.sub ? " rs-lv-sub" : ""));
     r.appendChild(el("i", "rs-ic up" + (lv.sub ? " sub" : "")));
     const t = el("div", "rs-line-t one");
@@ -80,7 +94,7 @@ export function openResults(spec = {}) {
     r.appendChild(t);
     list.appendChild(r);
   }
-  for (const sk of spec.skills || []) {
+  for (const sk of luCard ? [] : spec.skills || []) {
     const r = el("button", "rs-line rs-skill");
     r.type = "button";
     r.appendChild(el("i", "rs-ic sk"));
@@ -105,7 +119,7 @@ export function openResults(spec = {}) {
     t.appendChild(el("div", "rs-sub", (s.line || "所持魂の一覧に加わった。") + (s.embers ? ` 魂の残火 ×${s.embers}` : "")));
     r.appendChild(t);
     list.appendChild(r);
-    if (s.rare && game.celebrateSoul) celebrations.push((next) => game.celebrateSoul(s, next));
+    if (game.celebrateSoul) celebrations.push((next) => game.celebrateSoul(s, next));
   }
   if (list.childElementCount) box.appendChild(list);
 
@@ -184,8 +198,9 @@ export function openResults(spec = {}) {
         r.lastChild.classList.add("rs-equip");
       }
       addOut(r);
-      // SR/LR は閉じた後に祝祭の札 (WP-C の UI.loot。Phase 0 では入手の札)
-      if (rk === "sr" || rk === "lr") { notable = true; celebrations.push((cont) => UI.loot(item, who, { source: "results", celebrate: true }, cont)); }
+      // レア以上・宝物庫にまだ無い収集品は閉じた後に祝祭の札 (WP-C の UI.loot の方針 = lootPolicy に従う)
+      const big = typeof UI.lootPolicy === "function" ? UI.lootPolicy(item) === "celebrate" : (rk === "r" || rk === "sr" || rk === "lr");
+      if (big) { notable = true; celebrations.push((cont) => UI.loot(item, who, { source: "results", celebrate: true }, cont)); }
       if (next) next();
     },
     lost(name) { if (interrupted) return toast(`持ちきれず置いてきた: ${name}`, { tone: "bad" }); notable = true; addOut(setText(el("div", "rs-out t-bad"), `持ちきれず置いてきた: ${name}`)); },
