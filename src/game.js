@@ -1001,7 +1001,7 @@ const SPECIAL_FLOORS = [
   { id: "soulTide", name: "魂の奔流", icon: "wisp", accent: "#7fd0ff", sym: "✧", minFloor: 2, rate: 0.03, soulMul: 1.5,
     lines: ["死者たちの声がざわめいている。", "この階で得る Soul が 1.5倍 になる。"] },
   { id: "silence", name: "静寂の階", icon: "trap", accent: "#9be88a", sym: "∅", minFloor: 2, rate: 0.02, noTrap: true,
-    lines: ["仕掛けという仕掛けが朽ち果てている。", "この階に罠と毒の床は存在しない。"],
+    lines: ["仕掛けという仕掛けが朽ち果てている。", "この階に罠・毒の床・落とし穴は存在しない。"],
     board: (b) => sfEachCell(b, (c) => { if (c.type === "trap" || c.type === "poison" || c.type === "pit") { c.type = "empty"; c.cleared = true; } }) },
   { id: "moonlight", name: "月明かりの階", icon: "corpseWarm", accent: "#aef0ff", sym: "☾", minFloor: 2, rate: 0.02,
     lines: ["蒼い光が差し込み、死者の温もりが消えない。", "この階の死体はすべて「あたたかい死体」だ。"],
