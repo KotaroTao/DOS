@@ -12611,9 +12611,20 @@ document.addEventListener("pointermove", (e) => {
 document.addEventListener("pointerup", () => { stopSwipe(); });
 document.addEventListener("pointercancel", () => { stopSwipe(); });
 
+// 文字入力中 (人業の名付けなど) のキーは近道に使わない。M で消音・WASD で歩くと、
+// 名前に m を打っただけで BGM が消えてしまう。IME の変換中・修飾キー付き (⌘M など) も同様
+function typingKey(e) {
+  if (e.isComposing || e.keyCode === 229 || e.ctrlKey || e.metaKey || e.altKey) return true;
+  const t = e.target;
+  if (!t || !t.tagName) return false;
+  if (t.isContentEditable || t.tagName === "TEXTAREA" || t.tagName === "SELECT") return true;
+  return t.tagName === "INPUT" && !/^(button|submit|reset|checkbox|radio|range|color|file|image|hidden)$/i.test(t.type || "");
+}
+
 document.addEventListener("keydown", (e) => {
-  if (e.key === "m" || e.key === "M") { updateMuteBtn(toggleMute()); return; }
-  if (e.key === "Escape") { e.preventDefault(); nav.back(); return; } // 戻る操作は nav に一本化 (§3.2)
+  if (e.key === "Escape" && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); nav.back(); return; } // 戻る操作は nav に一本化 (§3.2)
+  if (typingKey(e)) return;
+  if (e.key === "m" || e.key === "M") { if (!e.repeat) updateMuteBtn(toggleMute()); return; }
   if (G.state !== "board" || uiBlocked()) return;
   switch (e.key) {
     case "ArrowUp": case "w": tryMove(0, -1); break;
