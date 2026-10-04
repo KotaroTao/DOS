@@ -557,12 +557,18 @@ function buzz(p) {
 // 端末ごとの好み (音量・振動)。セーブデータとは別に保存し、「はじめから」でも消えない
 const PREFS_KEY = "dos-prefs";
 const PREFS = (() => {
-  const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false, fastWalk: true };
-  try { return { ...d, ...(JSON.parse(localStorage.getItem(PREFS_KEY)) || {}) }; } catch { return d; }
+  const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false, walkSpeed: 2 };
+  let p;
+  try { p = { ...d, ...(JSON.parse(localStorage.getItem(PREFS_KEY)) || {}) }; } catch { p = { ...d }; }
+  // 旧来の「移動 倍速」(fastWalk: ON = 2倍 / OFF = 1倍) を移動の速さ (1〜3倍) へ引き継ぐ
+  if (typeof p.fastWalk === "boolean") { p.walkSpeed = p.fastWalk ? 2 : 1; delete p.fastWalk; }
+  if (![1, 2, 3].includes(p.walkSpeed)) p.walkSpeed = 2;
+  return p;
 })();
 function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(PREFS)); } catch {} }
-// 迷宮内の移動 (めくり・1歩のスライド・自動歩行の間) の時間。ms は倍速の値、設定「移動 倍速」を切ると倍の時間 (速さ 1/2)
-const walkMs = (ms) => (PREFS.fastWalk ? ms : ms * 2);
+// 迷宮内の移動 (めくり・1歩のスライド・自動歩行の間) の時間。ms は2倍速の値。設定「移動の速さ」(PREFS.walkSpeed)
+// 1倍 = ms × 2 / 2倍 = ms / 3倍 = ms × 2/3
+const walkMs = (ms) => Math.round(ms * 2 / (PREFS.walkSpeed || 2));
 setVolumes(PREFS.bgm, PREFS.sfx);
 
 // ---- 潜入中の戦利品トラッキング (全滅ペナルティ / Red Soul帰還で使う) ----
