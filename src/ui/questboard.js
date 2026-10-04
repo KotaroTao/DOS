@@ -23,7 +23,7 @@ const TYPE_MARK = { kill: "⚔", soul: "✦", chest: "◆", floor: "▼", clear:
 export function lists() {
   try { return game.questLists ? game.questLists() : { active: [], offers: [], freeCount: 0, cap: 5 }; } catch (e) { setTimeout(() => { throw e; }); return { active: [], offers: [], freeCount: 0, cap: 5 }; }
 }
-const cap = () => (game.FREE_CAP || 5);
+const cap = () => (game.FREE_CAP || 6);
 const full = () => lists().freeCount >= cap();
 const deliverSt = (q) => (q.type === "deliver" && game.deliveryStatus ? game.deliveryStatus(q) : null);
 // 納品の品の在りか: 手持ち / 商店の棚 / どちらにも無い (掲示板の依頼も受注中の依頼も同じ言い方)
