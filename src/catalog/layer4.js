@@ -15,8 +15,8 @@ const lr = (it) => { it.rar = "lr"; it.lr = 4; it.layer = 4; it.exclusive = true
 
 export const LAYER4_ITEMS = [
   // ===== スーパーレア: 武器 =====
-  sr(W("w_sr4_bannerpike", "旗手の槍", "sp", 33, { pow: 1.35, hp: 14, eAtk: ["light", 1], tint: "#c8b080",
-    desc: "守備隊の旗手が軍旗を括りつけて掲げた長槍。援軍を待ち続けた百年の祈りが穂先に宿り、闇に堕ちた亡者の身を白く焼く。" })),
+  sr(W("w_sr4_bannerpike", "旗手の槍", "sp", 33, { pow: 1.35, two: true, hp: 14, eAtk: ["light", 1], tint: "#c8b080",
+    desc: "守備隊の旗手が軍旗を括りつけ、両手で掲げ通した長槍。援軍を待ち続けた百年の祈りが穂先に宿り、闇に堕ちた亡者の身を白く焼く。" })),
   sr(W("w_sr4_garrisonblade", "守備隊長の佩刀", "ls", 36, { pow: 1.35, vitB: 3, hp: 12, tint: "#9a9aa8",
     desc: "砦の守備隊長が最後の夜まで帯びていた長剣。刃こぼれひとつ無いのは、部下の前で一度も退かなかった証だという。" })),
   sr(W("w_sr4_siegebolt", "攻城弩の太矢弓", "bw", 39, { scale: { agi: 0.4 }, pow: 1.35, eAtk: ["fire", 1], luk: 3, tint: "#c07a40",
@@ -33,21 +33,27 @@ export const LAYER4_ITEMS = [
     desc: "寄せ手が大手門の閂を叩き割った大斧。轟音とともに打ち込まれた一撃は、隊伍を組む亡兵の陣形ごと揺さぶり、正気を奪う。" })),
 
   // ===== スーパーレア: 防具 =====
-  sr(H("h_sr4_sentryhelm", "見張りの鉢金", 34, { aRes: { confuse: 0.3, sleep: 0.2 }, weight: "light", shape: "hat", pow: 1.35, hp: 12, tint: "#7a7068",
-    desc: "百年、城壁の上で夜番に立ち続けた見張りの鉢金。眠りの誘いにも惑わしの声にも揺らがず、ただ遠くの闇だけを見据える。" })),
-  sr(A("a_sr4_garrisonmail", "守備隊の鎖帷子", 38, { bRes: 0.15, weight: "heavy", pow: 1.35, hp: 18, tint: "#8a8a92",
-    desc: "砦の守備隊に配られた鎖帷子。攻城の火矢と爆風に何度も晒されたが、着た兵を炎の息から守り抜き、輪のひとつも欠けていない。" })),
+  sr(H("h_sr4_sentryhelm", "見張りの鉢金", 34, { aRes: { paralyze: 0.3 }, eDef: ["fire", 1], weight: "light", shape: "hat", pow: 1.35, hp: 12, tint: "#7a7068",
+    desc: "百年、城壁の上で夜番に立ち続けた見張りの鉢金。雷雨に打たれても痺れに膝を折らず、吹きつける烈風にも揺らがず、ただ遠くの闇だけを見据える。" })),
+  sr(A("a_sr4_garrisonmail", "守備隊の鎖帷子", 38, { eDef: ["fire", 1], weight: "heavy", pow: 1.35, hp: 18, tint: "#8a8a92",
+    desc: "砦の守備隊に配られた鎖帷子。雷雨の大手門で稲妻と烈風に何度も晒されたが、焼き入れた輪が嵐の力を散らして着た兵を守り抜き、輪のひとつも欠けていない。" })),
   sr(G("g_sr4_drumgauntlet", "鼓手の籠手", 41, { role: "atk", weight: "heavy", shape: "gauntlet", pow: 1.35, hp: 10, agi: 2, tint: "#a07050",
     desc: "陣太鼓を打ち続けた鼓手の籠手。拍子を刻む腕は疲れを知らず、振るう得物にも太鼓の重い響きが乗る。" })),
   sr(F("f_sr4_rampartboots", "城壁走りの長靴", 44, { weight: "light", pow: 1.35, agi: 3, eDef: ["fire", 1], tint: "#6a5040",
     desc: "伝令が雷雨の城壁を駆け抜けるのに履いた長靴。焦げた靴底は濡れた石にも滑らず、落雷の閃きより先に足を運ぶ。" })),
-  sr(S("s_sr4_pavise", "攻城の置き盾", 47, { shape: "kite", pow: 1.35, hp: 20, bRes: 0.15, tint: "#5a4a3a",
-    desc: "弩兵が身を隠した大きな置き盾。矢も火も受け止めるよう厚い板に鉄を打ち重ね、背に隠れた仲間を一斉射から守る。" })),
-  sr(A("a_sr4_chaplainrobe", "従軍司祭の法衣", 50, { aRes: { charm: 0.3 }, shape: "robe", pow: 1.35, mp: 16, pie: 5, eDef: ["light", 1], tint: "#d8d0b8",
+  sr(S("s_sr4_pavise", "攻城の置き盾", 47, { shape: "kite", pow: 1.35, hp: 20, eDef: ["light", 1], tint: "#5a4a3a",
+    desc: "弩兵が身を隠した大きな置き盾。厚い板に聖別の鉄を打ち重ねてあり、闇から放たれる矢も亡者の爪も受け止めて、背に隠れた仲間を一斉射から守る。" })),
+  sr(S("s_sr4_couriertarge", "伝令の烽火盾", 45, { shape: "buckler", pow: 1.35, eDef: ["fire", 1], aRes: { paralyze: 0.2 }, tint: "#a85a3a",
+    desc: "大手門と本丸を走り継いだ伝令の小盾。矢を受け止めず斜めに払い流すよう軽く鍛えられ、表に焼き付けた烽火の紋が、痺れを運ぶ雷の刃を逸らす。" })),
+  sr(S("s_sr4_beaconorb", "烽火台の火種玉", 48, { shape: "orb", pow: 1.35, eAtk: ["fire", 1], tint: "#ff9a50",
+    desc: "援軍を呼ぶ最後の夜に焚かれ、ついに誰にも見られなかった烽火の火種を水晶に封じた宝珠。呪文を通せば烽火が再び燃え上がり、雷雨をまとう亡兵を焼き払う。" })),
+  sr(S("s_sr4_cellbook", "獄中の聖典", 50, { shape: "tome", pow: 1.35, eDef: ["light", 1], aRes: { paralyze: 0.15 }, tint: "#d8c8a0",
+    desc: "地下牢の囚われ人たちが回し読み、余白に祈りと名を書き足していった聖典。読み上げれば幾人もの声が重なって傷を癒し、牢の闇を読み手から遠ざける。" })),
+  sr(A("a_sr4_chaplainrobe", "従軍司祭の法衣", 50, { shape: "robe", pow: 1.35, mp: 16, pie: 8, eDef: ["light", 1], tint: "#d8d0b8",
     desc: "従軍司祭が籠城の最後の夜に纏った法衣。煤けた白布には死者のための祈りが縫い込まれ、闇の呪いを寄せつけない。" })),
-  sr(H("h_sr4_inquisitorhood", "牢の審問頭巾", 53, { aRes: { charm: 0.25, confuse: 0.25 }, magStat: "int", shape: "circlet", weight: "cloth", pow: 1.35, mp: 12, tint: "#4a3a4a",
-    desc: "地下牢で操霊師たちを審問した役人の頭巾。目の部分だけが開いた黒布は、被る者の思考を冷たく研ぎ、心を誰にも覗かせない。" })),
-  sr(R("r_sr4_rollcall", "点呼の名札", "amulet", 56, { aRes: { paralyze: 0.3, stone: 0.2 }, hp: 24, vitB: 4, eDef: ["light", 1], tint: "#c8a860",
+  sr(H("h_sr4_inquisitorhood", "牢の審問頭巾", 53, { aRes: { paralyze: 0.25 }, magStat: "int", shape: "circlet", weight: "cloth", pow: 1.35, mp: 18, tint: "#4a3a4a",
+    desc: "地下牢で操霊師たちを審問した役人の頭巾。目の部分だけが開いた黒布は、被る者の思考を冷たく研ぎ、枷の痺れにも拷問の痛みにも手足を竦ませない。" })),
+  sr(R("r_sr4_rollcall", "点呼の名札", "amulet", 56, { aRes: { paralyze: 0.3 }, hp: 32, vitB: 4, eDef: ["light", 1], tint: "#c8a860",
     desc: "守備隊の兵が首から下げた真鍮の名札。点呼に答えるたびに擦れて文字は消えたが、持ち主の名を呼ぶ声だけは、いまも札に残っている。" })),
 
   // ===== レジェンドレア (全職共通・1点もの・固有効果) =====

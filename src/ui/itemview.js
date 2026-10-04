@@ -7,7 +7,7 @@ import { el, sheet } from "./kit.js";
 import { ELEMENTS, elemBeats, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dungeons/index.js";
 import { SPELLS, spellMpLabel } from "../combat.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
-import { WEAPON_CAT_LABEL, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, scaleText, useLines } from "../items.js";
+import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, scaleText, useLines } from "../items.js";
 import { HERO, spriteCanvas, crispCanvas } from "../sprites.js";
 
 // 魂のステータス寄与を「HP+7 ATK+2.4 …」形式で列挙 (0は省略)
@@ -422,6 +422,8 @@ export function equipPreviewDelta(p, cand) {
   return {
     power: attackPower(fake) - attackPower(p), // 攻撃力 (ATK + 武器の能力補正)
     weapon: (eq.weapon || null) !== (p.equip.weapon || null),
+    // 持ち方の付け替え (両手武器に持ち替えて盾が外れる)。武器の良し悪しを攻撃力だけでなく盾の能力とも比べる
+    handSwap: (eq.weapon || null) !== (p.equip.weapon || null) && (eq.shield || null) !== (p.equip.shield || null),
     atk: fake.atk - p.atk,
     vit: fake.vit - p.vit,
     agi: fake.agi - p.agi,
@@ -513,14 +515,19 @@ export function gearWeights(doll) {
   return (GEAR_W_CACHE[key] = W);
 }
 // ATK の代わりに攻撃力 (ATK + 武器の能力補正) の増減を数える。武器の付け替えは攻撃力の高い順が最優先
-// (攻撃力1 = WEAPON_POWER_W 点。ほかの能力は攻撃力が同じ時の決め手になる)
+// (攻撃力1 = WEAPON_POWER_W 点。ほかの能力は攻撃力が同じ時の決め手になる)。
+// ただし盾が付け外しされる持ち替え (片手+盾 ⇄ 両手武器、handSwap) は、攻撃力と盾の能力を同じ物差しで比べる:
+// 全体を「攻撃力1 = WEAPON_POWER_W 点」に引き伸ばす (盾の VIT などはその職の重み ÷ ATK の重み で攻撃力に換算)
 const WEAPON_POWER_W = 50;
 export function gearScore(doll, delta) {
   if (!delta) return 0;
   const W = gearWeights(doll);
   let s = 0;
   for (const k in W) s += (k === "atk" && delta.power != null ? delta.power : (delta[k] || 0)) * W[k];
-  if (delta.weapon) s += (delta.power || 0) * WEAPON_POWER_W;
+  if (delta.weapon) {
+    if (delta.handSwap) s = s * WEAPON_POWER_W / Math.max(0.35, W.atk || 1);
+    else s += (delta.power || 0) * WEAPON_POWER_W;
+  }
   s += (delta.crit || 0) * 0.5;
   const lv = (e) => (e && e.el ? Math.min(2, e.lv || 1) : 0);
   for (const ch of [delta.elemAtk, delta.elemDef]) if (ch) s += (lv(ch.to) - lv(ch.from)) * 4;
@@ -537,7 +544,8 @@ export function gearScore(doll, delta) {
 export const CAT_LABEL = { weapon: "武器", shield: "盾", body: "防具", head: "頭防具", hands: "小手", feet: "足防具", acc: "装飾品", use: "消耗品", misc: "収集品", mat: "貴重品" };
 // アイテムの分類表記 (武器はサブカテゴリつき: 「武器（長剣）」)
 export function itemCatText(it) {
-  if (it.slot === "weapon" && it.cat) return `武器（${WEAPON_CAT_LABEL[it.cat] || "その他"}）`;
+  if (it.slot === "weapon" && it.cat) return `武器（${WEAPON_CAT_LABEL[it.cat] || "その他"}・${HAND_LABEL[handOf(it)]}）`;
+  if (it.slot === "shield") return `盾（${SHIELD_KIND_LABEL[shieldKind(it)] || "盾"}）`;
   return CAT_LABEL[it.slot] || "";
 }
 
@@ -561,6 +569,7 @@ export function detailLines(it) {
     // 射程は隊列システムで実際に使われるので表示する。旧 Wizardry 風の
     // 命中/ダイス/攻撃回数 は戦闘で使われないため表示しない
     if (it.slot === "weapon") L.push(`射程: ${RANGE_LABEL[weaponRange(it)]}`);
+    if (it.slot === "weapon") L.push(handLine(it));
     // 六大ステ (ATK/VIT/AGI/INT/PIE/LUK) への補正
     const mod = [];
     const f = (label, v) => { if (v) mod.push(`${label}${v >= 0 ? "+" : ""}${v}`); };
@@ -582,6 +591,16 @@ export function detailLines(it) {
 
 function clsLabel(k) { return (SOUL_CLASSES[k] || {}).label || k; }
 
+// 武器の持ち方の説明 (片手 = 盾と併せて持てる / 両手 = 盾の欄をふさぐ代わりに能力が高い)
+export function handLine(it) {
+  return it.twoHanded ? "両手持ち: 盾は持てないが、能力が高い" : "片手持ち: 盾を併せて持てる";
+}
+// 盾のジャンルを持てる職のおおまかな括り
+const SHIELD_KIND_WHO = {
+  kite: "重装の盾の職", round: "重装の盾の職", buckler: "軽装の職・盾の職",
+  orb: "攻めの術者", tome: "癒し手・祈りの職",
+};
+
 // 装備可能条件のバッジ表示 (36職対応)。装備制限は実際の対応職をそのまま表示する
 // (未発見職を「？」で伏せる旧仕様は廃止。所持・装備画面で条件が読めないと不便なため)。
 export function equipClassText(it) {
@@ -593,7 +612,10 @@ export function equipClassText(it) {
     return "装備可: " + it.classes.map((k) => clsLabel(k)).join("・");
   }
   if (it.slot === "weapon") return `武器適性: ${WEAPON_CAT_LABEL[it.cat] || it.cat}`;
-  if (it.slot === "shield") return "適性: 盾持ち職";
+  if (it.slot === "shield") {
+    const k = shieldKind(it);
+    return `適性: ${SHIELD_KIND_LABEL[k] || "盾"}を持てる職 (${SHIELD_KIND_WHO[k] || "盾の職"})`;
+  }
   const w = it.weight;
   if (w === "heavy") return "装備: 重装職";
   if (w === "cloth") return "装備: 布装職";

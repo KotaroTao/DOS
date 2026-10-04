@@ -5,7 +5,8 @@
 // slot: head | weapon | shield | body | feet | acc | use | misc
 //   weapon→右手, shield→左手, head/body/feet, acc→アクセサリ枠(2), use→消耗品
 //   misc→収集品(戦利品。装備/使用不可。売却するか王宮の宝物庫に奉納する)
-// twoHanded: 両手武器 (左手をふさぐ)
+// twoHanded: 両手武器 (左手 = 盾の欄をふさぐ。能力は片手武器の TWO_MUL 倍)
+// sk: 盾のジャンル (kite 大盾 / round 円盾 / buckler 小盾 / orb 宝珠 / tome 聖典)
 // classes: 装備可能な職業キー配列 (null=全職)
 // cursed: 呪い (一度装備すると外せない)
 // 性能キー: atk/vit/agi/int/pie/luk (六大ステ加算) / hp/mp (最大値加算) / crit (会心率加算)
@@ -54,6 +55,31 @@ export const WEAPON_CAT_LABEL = (() => {
   for (const c of WEAPON_CATS) m[c.key] = c.label;
   return m;
 })();
+// 武器の持ち方: 両手武器 (twoHanded) は盾の欄をふさぐ代わりに能力が高い。片手武器は盾と併せて持てる
+export const HAND_LABEL = { 1: "片手", 2: "両手" };
+export function handOf(item) { return item && item.slot === "weapon" ? (item.twoHanded ? 2 : 1) : 0; }
+// 盾のジャンル (catalog/defs.js の S ビルダーが形から sk を付ける)。職ごとに持てるジャンルは souls.js の JOB_GEAR.shields
+export const SHIELD_KINDS = [
+  { key: "kite", label: "大盾" },
+  { key: "round", label: "円盾" },
+  { key: "buckler", label: "小盾" },
+  { key: "orb", label: "宝珠" },
+  { key: "tome", label: "聖典" },
+];
+export const SHIELD_KIND_LABEL = (() => {
+  const m = {};
+  for (const c of SHIELD_KINDS) m[c.key] = c.label;
+  return m;
+})();
+export function shieldKind(item) {
+  if (!item || item.slot !== "shield") return null;
+  return item.sk || (item.weight === "light" ? "round" : "kite");
+}
+// 職が持てる盾のジャンル (配列。持てなければ空)
+export function jobShieldKinds(clsKey) {
+  const g = _jobGear[clsKey];
+  return g && g.shields ? g.shields : [];
+}
 
 // 職業ギアマトリクス (souls.js が registerJobGear で注入する)
 let _jobGear = {};
@@ -326,8 +352,8 @@ export const ITEMS = {
 
   // ===== 盾 =====
   woodShield: {
-    id: "woodShield", name: "木の盾", slot: "shield", lv: 2, vit: 2, hp: 5, price: 80, classes: null,
-    desc: "カシの板をびょうで重ねた小盾。表面には先代の持ち主のものらしい爪痕が走るが、まだ十分に矢と牙を受け止められる。",
+    id: "woodShield", name: "木の小盾", slot: "shield", sk: "buckler", weight: "light", lv: 2, vit: 1, agi: 1, hp: 5, price: 80, classes: null,
+    desc: "カシの板をびょうで重ねた小さな盾。軽く、拳の先で受け流すように使う。表面には先代の持ち主のものらしい爪痕が走るが、まだ十分に矢と牙をそらせる。",
     ...sprite([
       "...........ee...........",
       ".......eeeewvkeee.......",
@@ -356,7 +382,7 @@ export const ITEMS = {
     ]),
   },
   kiteShield: {
-    id: "kiteShield", name: "剥げ紋の大盾", slot: "shield", lv: 7, vit: 6, price: 240, classes: null,
+    id: "kiteShield", name: "剥げ紋の大盾", slot: "shield", sk: "kite", weight: "heavy", lv: 7, vit: 6, price: 240, classes: null,
     desc: "騎士団の紋章が剥げ落ちた大盾。掲げた誓いは廃れても、鋼の守りは廃れていない。前衛の半身を覆って守る。",
     ...sprite([
       "..eeeeeeeeeeeeeeeeeeee..",
@@ -1425,7 +1451,7 @@ export function canEquip(member, item) {
   const gear = _jobGear[member.clsKey];
   if (!gear) return true; // 未登録職業はオープン
   if (item.slot === "weapon") return !gear.weapons || gear.weapons.includes(item.cat);
-  if (item.slot === "shield") return !!gear.shield;
+  if (item.slot === "shield") return !!gear.shields && gear.shields.includes(shieldKind(item));
   if (item.weight) return (ARMOR_RANK[item.weight] || 0) <= (ARMOR_RANK[gear.armor] || 0);
   return true; // アクセサリ等は全職OK
 }

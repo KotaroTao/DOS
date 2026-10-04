@@ -40,8 +40,8 @@ const C = [
 // ===== レア (lv 140-158 / 迷宮ランク5+) =====
 const R = [
   excl(W("x_samurai_sword", "菊一文字", "kt", 155, {
-    cls: ["samurai"], pow: 1.2, crit: 0.06,
-    desc: "一振りに菊紋を刻む刀鍛冶が百夜の断食の果てに打ち上げた極刀。刃紋は月光の下でのみ見え、侍の手に渡ったその夜から斬れぬものがなくなると語り継がれる。",
+    two: true, cls: ["samurai"], pow: 1.2, crit: 0.06,
+    desc: "一振りに菊紋を刻む刀鍛冶が百夜の断食の果てに打ち上げた、長尺の極刀。刃紋は月光の下でのみ見え、侍が両手に構えたその夜から斬れぬものがなくなると語り継がれる。",
   }), "samurai"),
   excl(W("x_berserker_hammer", "壊神の鉄槌", "mc", 150, {
     cls: ["berserker"], two: true, pow: 1.25, hp: 120, vitB: -20,
@@ -64,8 +64,8 @@ const R = [
     desc: "山の一枚岩を鎧職人が十年がかりで成形した盾。守護騎士の腕に収めると岩が脈打ち始め、どんな衝撃もその震えの中に溶ける。",
   }), "guardian"),
   excl(W("x_spellblade_sword", "魔導の太刀", "kt", 156, {
-    cls: ["spellblade"], pow: 1.15, eAtk: ["dark", 1], int: 60,
-    desc: "術式を刀身に焼き付けた魔法剣士の専用刀。斬撃と同時に呪文が走り、斬られた傷口から魔力が流出して二重に蝕む。",
+    two: true, cls: ["spellblade"], pow: 1.15, eAtk: ["dark", 1], int: 60,
+    desc: "術式を長い刀身いっぱいに焼き付けた、魔法剣士専用の大太刀。両手で振り抜けば斬撃と同時に呪文が走り、斬られた傷口から魔力が流出して二重に蝕む。",
   }), "spellblade"),
   excl(G("x_monk_gauntlet", "金剛手甲", 145, {
     cls: ["monk"], shape: "gauntlet", pow: 1.2, atkB: 45,
@@ -116,8 +116,8 @@ const E = [
     desc: "法護師が生涯かけて記した護符を布地に縫い込んだ法衣。着た者の周囲に不可視の結界が張られ、呪詛の侵入を一段ずつ弾く。",
   }), "warden"),
   excl(W("x_arcanist_staff", "秘術の大杖", "st", 178, {
-    cls: ["arcanist"], int: 175, mp: 105,
-    desc: "秘術師の全生涯の研究が凝縮された術式が心材に封印されている大杖。握った者の思考速度が術式の流れに引き上げられる。",
+    two: true, cls: ["arcanist"], int: 175, mp: 105,
+    desc: "秘術師の全生涯の研究が凝縮された術式を、両腕で抱えるほどの心材に封印した大杖。握った者の思考速度が術式の流れに引き上げられる。",
   }), "arcanist"),
   excl(W("x_inquisitor_hammer", "審問の鉄槌", "mc", 167, {
     cls: ["inquisitor"], pow: 1.2, pie: 60,
@@ -160,8 +160,8 @@ const L = [
     desc: "教国の頂点に立つ枢機卿のみが戴ける聖冠。冠に触れた者の祈りは余さず神に届くと言われ、奇跡の発動が一段速くなる。",
   }), "cardinal"),
   excl(W("x_archmage_staff", "大魔導の神杖", "st", 200, {
-    cls: ["archmage"], eAtk: ["dark", 2], int: 210, mp: 125,
-    desc: "世界に三本しか作られなかった神杖のうち、現存する唯一の一本。握った者の脳裏に宇宙の術式が投影され、思うだけで魔力が形を取る。",
+    two: true, cls: ["archmage"], eAtk: ["dark", 2], int: 210, mp: 125,
+    desc: "世界に三本しか作られなかった神杖のうち、現存する唯一の一本。身の丈を越す杖を両手で掲げれば、脳裏に宇宙の術式が投影され、思うだけで魔力が形を取る。",
   }), "archmage"),
   excl(A("x_chaplain_plate", "護教官の鎧", 195, {
     cls: ["chaplain"], pow: 1.25, eDef: ["light", 1], hp: 250, pie: 70,
