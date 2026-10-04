@@ -731,10 +731,7 @@ export function openFusePicker(targetUid, onDone) {
   let h = null;
   const view = () => ({
     title: `${soulLabel(t)} Lv${t.level} に融合させる`,
-    // 融合先の次のランクまで (素材は自身も1体と数える: +N の魂は N+1 体ぶん)
-    lines: ["素材にした魂は失われ、融合数に応じてLv上限、能力が上昇。一定数の魂を融合するとランクアップ。",
-      "融合先の魂は自動でロックされ、ほかの融合の素材にならない。素材は続けて選べる。",
-      ...(soulRankLeft(t) ? [`いま ${soulLabel(t)}${soulRankLeft(t)}。+N の素材は N+1 体ぶんとして数える。`] : [`いま ${soulLabel(t)} (最高ランク)。`])],
+    lines: ["素材にした魂は失われ、融合数に応じてLv上限、能力が上昇。一定数の魂を融合するとランクアップ。"],
     body: (scroll) => {
       const list = el("div", "pt-list");
       const cands = candsNow();
