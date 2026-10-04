@@ -151,7 +151,6 @@ function cell(it, d, { price = true, onTap, onBack } = {}) {
   art.appendChild(spriteCanvas(it, 3));
   c.appendChild(art);
   if (it.isNew) c.appendChild(el("span", "wpc-cell-new", "NEW"));
-  if (it.unidentified) c.appendChild(el("span", "wpc-cell-seal", "?"));
   else if (keepReason(it) && it.slot !== "use") c.appendChild(el("span", "wpc-cell-keep"));
   else if (isUp(it)) c.appendChild(el("span", "wpc-cell-up", "▲"));
   if (price) {

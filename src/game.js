@@ -4,7 +4,8 @@ import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
 import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, perkVictory } from "./combat.js";
 import { STAGED, effectStage, stageOf, stageLabel } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
-import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto } from "./sprites.js";
+import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
+import { makeItemSpriteResolver } from "./itemart/index.js";
 import {
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, slotKeyFor, lvToRank, RANGE_LABEL,
   UNIDENT_SLOTS, itemName, applyForge, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
@@ -88,6 +89,9 @@ for (const id in ITEMS) {
     if (!CATALOG_ITEMS[id]) it.noDrop = true;
   }
 }
+// 装備の絵: どの装備もその品だけの絵で描く (SR・LR は手描き、ほかは部品の組み合わせ — src/itemart/)。
+// 未鑑定の品はジャンルごとの伏せ絵 (剣の影 + ？ など) で描き、鑑定に成功して初めて本来の絵を見せる
+setSpriteResolver(makeItemSpriteResolver(ITEMS));
 // 装備の値段は性能 (能力値・属性・耐性・効果) から付け直す (src/pricing.js)。
 // 性能が同じ品は同じ値段、どこも同等以上の品は必ず高くなる
 repriceEquipment(ITEMS);

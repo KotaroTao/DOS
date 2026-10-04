@@ -495,7 +495,6 @@ export function itemTile(item, o = {}) {
     const rk = rarityKey(item);
     if (rk) { t.classList.add("rar-" + rk); t.style.setProperty("--tile-edge", RARITIES[rk].color); }
     t.appendChild(spriteCanvas(item, size >= 56 ? 3 : 2));
-    if (item.unidentified) t.appendChild(el("span", "ui-tile-seal", "?"));
     if (o.isNew || item.isNew) t.appendChild(el("span", "ui-tile-new"));
     if (o.price != null) t.appendChild(setText(el("span", "ui-tile-price"), String(o.price)));
     t.title = item.name || "";

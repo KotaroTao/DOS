@@ -1219,7 +1219,17 @@ function photoInto(c, spr, dx, dy, dw, dh) {
 // cx,cy: 中心座標 / size: 1ドットの大きさ(px)
 // size が小数でも隙間が出ないよう、各ドットの矩形は「隣のドットの開始位置まで」
 // をピクセル整数に丸めて敷き詰める (位置と幅を別々に丸めると格子状の線が入る)。
+// 描く絵の差し替え口: game.js が装備の絵 (品ごとの固有の絵・未鑑定の伏せ絵) を返す関数を登録する。
+// 戻り値が null ならそのまま描く。drawSprite / crispCanvas / spriteCanvas の入口で一度だけ通す
+let spriteResolver = null;
+export function setSpriteResolver(fn) { spriteResolver = fn; }
+function resolveSprite(spr) {
+  if (!spriteResolver || !spr) return spr;
+  try { return spriteResolver(spr) || spr; } catch (e) { return spr; }
+}
+
 export function drawSprite(ctx, mon, cx, cy, size, alpha = 1) {
+  mon = resolveSprite(mon);
   const { w, h, rows } = dims(mon);
   const ox = cx - (w * size) / 2;
   const oy = cy - (h * size) / 2;
@@ -1250,6 +1260,7 @@ export function drawSprite(ctx, mon, cx, cy, size, alpha = 1) {
 // size は「12x12 アートでの 1 ドット px」。32px 級の高解像度アートは
 // 同じ見かけの大きさのままドットが細かくなる。
 export function drawSpriteFit(ctx, mon, cx, cy, size, alpha = 1) {
+  mon = resolveSprite(mon);
   const { w, h } = dims(mon);
   const k = Math.max(12, w, h) / 12;
   drawSprite(ctx, mon, cx, cy, size / k, alpha);
@@ -1287,6 +1298,7 @@ function artBitmap(spr) {
 // 一辺 size (CSS px) の枠に、ドットを物理ピクセルの整数倍で描いた canvas を返す (肖像・胸像用)。
 // 入りきらない大きな絵だけは滑らかに縮める。canvas の CSS 寸法は描いた絵の大きさそのもの
 export function crispCanvas(spr, size) {
+  spr = resolveSprite(spr);
   const c = document.createElement("canvas");
   c.className = "spr";
   const { w, h } = dims(spr);
@@ -1324,6 +1336,7 @@ export function crispCanvas(spr, size) {
 }
 
 export function spriteCanvas(spr, scale = 4, box = 12) {
+  spr = resolveSprite(spr);
   const c = document.createElement("canvas");
   c.className = "spr";
   const css = box * scale;
