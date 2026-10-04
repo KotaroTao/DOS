@@ -822,7 +822,18 @@ export function moveSkill(d, key, dir) {
   d.skillOrder = list;
   return true;
 }
-export function resetSkillPrefs(d) { if (d) { d.skillOrder = []; d.skillOff = []; } }
+export function resetSkillPrefs(d) { if (d) { d.skillOrder = []; d.skillOff = []; d.autoOff = []; } }
+// オートで使わない技 (doll.autoOff。セーブ対象)。戦闘で出さない技 (skillOff) もオートは使わない。
+// 作戦 (doll.tactic) と組で autotactics.js が読む
+export function isAutoOff(d, key) { return !!(d && Array.isArray(d.autoOff) && d.autoOff.includes(key)); }
+export function setAutoOff(d, key, off) {
+  if (!d) return;
+  const cur = Array.isArray(d.autoOff) ? d.autoOff.filter((k) => k !== key) : [];
+  if (off) cur.push(key);
+  d.autoOff = cur;
+}
+// オートが選んでよい技 (戦闘の一覧に出ていて、オートを切っていない技)
+export function autoSkills(d) { return battleSkills(d).filter((k) => !isAutoOff(d, k)); }
 
 // 同じ職業の魂を吸収するたびに伸びる魂レベル上限の増分 (レア度別)。
 // コモン+1 / レア+2 / エピック+5 / レジェンド+10 (吸収数が少なくて済む高レア度ほど1個の伸びが大きい)

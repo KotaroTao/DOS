@@ -2,6 +2,7 @@
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
 import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, perkVictory } from "./combat.js";
+import { decideAuto, tacticOf } from "./autotactics.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto } from "./sprites.js";
 import {
@@ -8112,7 +8113,7 @@ function renderActingPlate(actor) {
 // オート戦闘中の常設バナー: 演出中も表示し続け、いつでも解除できる。
 // 「次の戦闘も続ける」(§7 M2) もここで切り替えられる (主・強敵・深手の時は自動で止まる)
 function renderAutoBanner(actor) {
-  const plate = actor ? turnPlate(actor.name, "の手番", ["オート"]) : turnPlate("オート戦闘中", "", []);
+  const plate = actor ? turnPlate(actor.name, "の手番", ["オート", tacticOf(actor).short]) : turnPlate("オート戦闘中", "", []);
   const keep = !!uiDungeonHud.getPref("autoKeep");
   // 既にバナーが出ていれば手番の札だけ差し替える (ボタンを作り直すと押している最中のタップが消える)
   const cur = combatMenu.dataset.mode === "auto" ? combatMenu.querySelector(":scope > .cmd-autorow") : null;
@@ -8201,7 +8202,7 @@ function renderCombatMenu() {
   if (b.phase === "input") {
     const actor = b.current;
     highlightActor(actor);
-    // オート戦闘: 全員が手近な敵を通常攻撃し続ける (周回用)。解除ボタンか画面タップで解除
+    // オート戦闘: 人業ごとの作戦 (autotactics.js) で一手を選び続ける (周回用)。解除ボタンか画面タップで解除
     if (G.autoCombat) {
       renderAutoBanner(actor);
       if (!G._autoTimer) {
@@ -8210,20 +8211,25 @@ function renderCombatMenu() {
           G._autoTimer = null;
           const b2 = G.battle;
           if (!b2 || b2.phase !== "input" || !G.autoCombat || G.animating) return;
-          // 射程内が物理無効の敵ばかりなら、殴り続けても終わらないのでオートを止めて手動に戻す
-          const reach = b2.attackableEnemies(b2.current).filter((e) => e.alive);
-          if (reach.length && reach.every((e) => physImmune(e, b2.current))) {
+          // 人業ごとの作戦 (autotactics.js) で一手を決める。誰も何も通せない (物理無効の敵ばかりで、役に立つ技も無い)
+          // 手番が隊の人数ぶん続いたら、殴り続けても終わらないのでオートを止めて手動に戻す
+          const cur = b2.current;
+          const plan = decideAuto(b2, cur);
+          b2._autoIdle = plan.idle ? (b2._autoIdle || 0) + 1 : 0;
+          if (plan.idle && b2._autoIdle > b2.livingParty().length) {
+            b2._autoIdle = 0;
             stopAutoCombat();
-            showToast(b2.current && b2.current.wMagic ? "攻撃が効かない敵がいる — 術で戦おう" : "物理が効かない敵がいる — 術で戦おう", { tone: "bad" });
+            showToast(cur && cur.wMagic ? "攻撃が効かない敵がいる — 術で戦おう" : "物理が効かない敵がいる — 術で戦おう", { tone: "bad" });
             return;
           }
-          b2.chooseAction("attack");
-          const opts = b2.targetOptions();
-          // 魅了した敵は殴ると正気に戻りやすいので後回し (仲間を襲わせておく)
-          const cur = b2.current;
-          const tgt = opts.find((e) => !physImmune(e, cur) && e.mind !== "charm") || opts.find((e) => !physImmune(e, cur)) || opts[0];
-          if (!tgt) { b2.cancelTarget(); return; }
-          b2.chooseTarget(tgt);
+          const r = b2.chooseAction(plan.action, plan.spellKey);
+          if (r && r.invalid) { b2.pending = null; b2.phase = "input"; b2.chooseAction("defend"); }
+          else if (b2.phase === "target") {
+            const opts = b2.targetOptions();
+            const tgt = (plan.target && opts.includes(plan.target)) ? plan.target : opts[0];
+            if (!tgt) { b2.cancelTarget(); b2.chooseAction("defend"); }
+            else b2.chooseTarget(tgt);
+          }
           runCommitted();
         }, 200 * spdMul());
       }
@@ -8262,7 +8268,10 @@ function renderCombatMenu() {
     }
     // 逃走: 手番の者の AGI で決まる成功率を添える (退路を断たれていれば「不可」)
     sub.appendChild(cmdBtn("run", "逃走", b.noFlee ? "不可" : `${Math.round(b.fleeChance(actor) * 100)}%`, () => act("run")));
-    sub.appendChild(cmdBtn("auto", "オート", uiDungeonHud.getPref("autoKeep") ? "継続" : "", () => { G.autoCombat = true; SFX.select(); renderCombatMenu(); }));
+    // オート: 人業ごとの作戦 (隊の「能力」で選ぶ) に従って動く。長押しで隊の作戦をまとめて見る・変える
+    const autoB = cmdBtn("auto", "オート", uiDungeonHud.getPref("autoKeep") ? "継続" : "長押しで作戦", () => { G.autoCombat = true; SFX.select(); renderCombatMenu(); });
+    if (UI.openPartyTactics) attachLongPress(autoB, () => { SFX.select(); UI.openPartyTactics(G.party.filter((p) => p), { onDone: () => { if (G.state === "combat" && !G.autoCombat) renderCombatMenu(); } }); });
+    sub.appendChild(autoB);
     sub.appendChild(cmdBtn("fast", "倍速", G.fastAnim ? "ON" : "OFF", () => { G.fastAnim = !G.fastAnim; autosave(); renderCombatMenu(); }, G.fastAnim ? "on" : ""));
     combatMenu.appendChild(sub);
   } else if (b.phase === "target") {
