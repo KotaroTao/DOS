@@ -11124,6 +11124,20 @@ const FEATURES = {
   order3: { chapter: 3, report: 2 },          // 結社の席3
   sub2: { chapter: 4, report: "finale" },     // サブ魂 2枠
   infinite: { chapter: 5, report: "finale" }, // 奈落 (無限迷宮)
+  // ── 第六章から (docs/unlocks.md の年表。ユーザーの了解済み)。章がまだ無いので開かない。仕組みはその章を作る時に足す ──
+  expedition: { chapter: 6, report: "finale" }, // 遠征 (控えの人業が踏破済みの迷宮を回る)
+  resonance: { chapter: 7, report: "finale" },  // 魂の共鳴 (職の組み合わせの効果)
+  order4: { chapter: 8, report: "finale" },     // 結社の席4
+  rematch: { chapter: 9, report: "finale" },    // 宿敵の再戦 (名のある強敵・主の強化版)
+  subPick: { chapter: 10, report: "finale" },   // サブ魂で借りられる技 +1
+  enchant: { chapter: 11, report: "finale" },   // 付呪
+  order5: { chapter: 12, report: "finale" },    // 結社の席5
+  forge: { chapter: 13, report: "finale" },     // 鍛え直しの工房
+  rebirth: { chapter: 14, report: "finale" },   // 魂の転生
+  mutPick: { chapter: 15, report: "finale" },   // 異変を選ぶ
+  vow: { chapter: 16, report: "finale" },       // 誓約
+  sub3: { chapter: 17, report: "finale" },      // サブ魂 3枠
+  abyssDeep: { chapter: 18, report: "finale" }, // 奈落の底を開く
 };
 const FEATURE_KEYS = Object.keys(FEATURES);
 const chapterLabel = (no) => `第${kanjiNum(no)}章`;
@@ -11156,9 +11170,9 @@ function featureNote(key) {
 function unlockedSubSlots() {
   return Math.min(MAX_SUBS, featureUnlocked("sub2") ? 2 : featureUnlocked("sub1") ? 1 : 0);
 }
-// 控えの結社の席数 (0/1/2/3)
+// 控えの結社の席数 (0〜5)
 function orderSeats() {
-  return featureUnlocked("order3") ? 3 : featureUnlocked("order2") ? 2 : featureUnlocked("order") ? 1 : 0;
+  return ["order5", "order4", "order3", "order2", "order"].reduce((n, k, i) => n || (featureUnlocked(k) ? 5 - i : 0), 0);
 }
 // 結社の席に実際に着いている魂uid (編成外・席数上限でクリーン)。
 // G.order.picks の順を尊重しつつ、無効になった指定 (編成入り/消失) は除外する。
