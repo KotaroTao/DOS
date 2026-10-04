@@ -51,7 +51,7 @@ export const SPELLS = {
   MIDARE:      { name: "乱れ斬り", mp: 9, kind: "phys", power: 0.95, acc: 0.3, target: "all-enemy", desc: "敵全体を斬り乱す" },
   KIKOKU:      { name: "きこく斬", mp: 13, kind: "phys", power: 3.0, acc: 0.9, execute: 2, target: "enemy", desc: "弱った敵を確実に仕留める（命中UP・とどめ）" },
   GOUZAN:      { name: "豪斬", mp: 10, kind: "phys", power: 2.6, acc: 0.5, pierce: 0.3, target: "enemy", desc: "鎧ごと断ち割る重い一刀" },
-  ZANTETSU:    { name: "斬鉄", mp: 16, kind: "phys", power: 3.8, acc: 0.8, pierce: 0.6, target: "enemy", desc: "鉄をも断つ（防御を無視・命中UP）" },
+  ZANTETSU:    { name: "鉄断ち", mp: 16, kind: "phys", power: 3.8, acc: 0.8, pierce: 0.6, target: "enemy", desc: "鉄をも断つ（防御を無視・命中UP）" },
   YOROIDACHI:  { name: "鎧断ち", mp: 14, kind: "phys", power: 2.4, acc: 0.7, debuff: { vit: 0.65 }, target: "enemy", desc: "鎧を断ち、防御を大きく下げる" },
   SANREN:      { name: "三連斬", mp: 10, kind: "phys", power: 1.0, hits: 3, acc: 0.4, target: "enemy", desc: "三たび刃を振るう" },
   DAISENPUU:   { name: "大旋風", mp: 18, kind: "phys", power: 1.9, acc: 0.6, target: "all-enemy", desc: "戦場を薙ぐ大回転斬り" },
@@ -92,7 +92,7 @@ export const SPELLS = {
   FURAKUJOU:      { name: "不落城", mp: 40, kind: "heal", power: 40, buff: { vit: 1.8 }, grantBarrier: 1, purge: true, target: "all-ally", desc: "味方全体を癒し、守り、弱体を解く" },
   KOUBOUITTAI:    { name: "攻防一体", mp: 10, kind: "buff", buff: { atk: 1.35, vit: 1.35 }, stance: "counter", dur: 3, target: "self", desc: "攻守を上げ、物理攻撃に必ず反撃する構え" },
   FUUMANOTATE:    { name: "封魔の盾", mp: 8, kind: "phys", power: 1.0, vitScale: 0.8, acc: 0.7, seal: { chance: 0.7, turns: 3 }, target: "enemy", desc: "盾撃と共に敵の特技を封じる" },
-  SEINOTATE:      { name: "聖なる盾", mp: 8, kind: "buff", shield: true, buff: { vit: 1.3 }, grantBarrier: 1, dur: 2, target: "self", desc: "味方を庇い、自分に魔障壁を張る" },
+  SEINOTATE:      { name: "庇護の聖盾", mp: 8, kind: "buff", shield: true, buff: { vit: 1.3 }, grantBarrier: 1, dur: 2, target: "self", desc: "味方を庇い、自分に魔障壁を張る" },
 
   // ================= 回復・祈り =================
   DIOS:       { name: "ヒール", mp: 2, kind: "heal", power: 14, target: "ally", desc: "傷を癒す" },
@@ -119,7 +119,7 @@ export const SPELLS = {
   SEIIKINOKANE: { name: "聖域の鐘", mp: 12, kind: "buff", buff: { vit: 1.2 }, cure: true, purge: true, target: "all-ally", desc: "味方を守り、状態異常と弱体を祓う鐘の音" },
   KYOUKOUNOSHUKUFUKU: { name: "教皇の祝福", mp: 36, kind: "buff", buff: { atk: 1.3, vit: 1.3, agi: 1.2 }, regen: { pct: 0.08, turns: 4 }, target: "all-ally", desc: "味方全体の攻守と素早さを上げ、癒しを残す" },
   MANAGIFT:   { name: "魔力の譲渡", mp: 8, kind: "mana", power: 8, target: "ally", desc: "自分の魔力を味方に分け与える" },
-  SHINTOU:    { name: "心頭滅却", mp: 6, kind: "heal", power: 30, cure: true, purge: true, target: "self", desc: "自分を癒し、状態異常と弱体を払う" },
+  SHINTOU:    { name: "調息", mp: 6, kind: "heal", power: 30, cure: true, purge: true, target: "self", desc: "自分を癒し、状態異常と弱体を払う" },
 
   // ================= 聖なる攻め =================
   HOLYRAY:        { name: "聖光", mp: 3, kind: "atk", power: 14, element: "light", prey: { races: UNHOLY, mul: 1.5 }, target: "enemy", desc: "聖なる光条。不浄の者に強い" },
@@ -133,7 +133,7 @@ export const SPELLS = {
   HAJA:           { name: "破邪の剣", mp: 4, kind: "phys", power: 1.3, element: "light", acc: 0.6, prey: { races: UNHOLY, mul: 1.8 }, target: "enemy", desc: "不死・幽鬼・悪魔に大ダメージ" },
   SEIKOUZAN:      { name: "聖光斬", mp: 12, kind: "phys", power: 2.2, pieScale: 0.8, element: "light", drain: 0.3, acc: 0.9, target: "enemy", desc: "PIEを乗せた聖剣で斬り、傷を癒す（命中UP）" },
   JUUJIZAN:       { name: "十字斬", mp: 12, kind: "phys", power: 1.5, hits: 2, pieScale: 0.4, element: "light", acc: 0.9, prey: { races: UNHOLY, mul: 1.5 }, target: "enemy", desc: "十字に斬る二連撃。不浄の者に強い" },
-  SEISEN:         { name: "聖戦の鬨", mp: 10, kind: "buff", buff: { atk: 1.25, agi: 1.1 }, target: "all-ally", desc: "味方全体の攻撃力と素早さを上げる" },
+  SEISEN:         { name: "進軍の聖歌", mp: 10, kind: "buff", buff: { atk: 1.25, agi: 1.1 }, target: "all-ally", desc: "味方全体の攻撃力と素早さを上げる" },
   JOUKA:          { name: "浄火", mp: 8, kind: "phys", power: 1.6, element: "fire", acc: 0.6, vuln: { fire: 0.75 }, target: "enemy", desc: "浄めの炎で斬り、火耐性を下げる" },
   SEIKEN:         { name: "聖剣奮迅", mp: 14, kind: "atk", power: 20, element: "light", partyHeal: 16, target: "all-enemy", desc: "聖剣の輝きで敵を薙ぎ、味方を癒す" },
   HAJANOTACHI:    { name: "破邪の太刀", mp: 12, kind: "phys", power: 2.2, element: "light", critBonus: 0.25, prey: { races: UNHOLY, mul: 2.0 }, target: "enemy", desc: "不浄の者に2倍のダメージ" },
@@ -306,7 +306,7 @@ export const SPELLS = {
   TENKETSU:     { name: "点穴", mp: 5, kind: "phys", power: 0.9, acc: 0.7, seal: { chance: 0.7, turns: 3 }, target: "enemy", desc: "経穴を突き、特技を封じる" },
   KONGOURENDA:  { name: "金剛連打", mp: 12, kind: "phys", power: 0.95, hits: 3, pieScale: 0.3, acc: 0.7, target: "enemy", desc: "PIEも乗る三連打（命中UP）" },
   KONGOUTAI:    { name: "金剛体", mp: 8, kind: "buff", buff: { vit: 1.5 }, regen: { pct: 0.05, turns: 3 }, target: "self", desc: "身を固めて防御を上げ、傷を癒し続ける" },
-  HOUKEN:       { name: "崩拳", mp: 16, kind: "phys", power: 3.6, pierce: 1, acc: 0.9, target: "enemy", desc: "防御を無視する剛拳（命中UP）" },
+  HOUKEN:       { name: "崩山拳", mp: 16, kind: "phys", power: 3.6, pierce: 1, acc: 0.9, target: "enemy", desc: "防御を無視する剛拳（命中UP）" },
   HYAKURETSU:   { name: "百裂拳", mp: 20, kind: "phys", power: 0.6, hits: 6, acc: 0.6, target: "enemy", desc: "拳の嵐で六連打" },
   MUSOUKEN:     { name: "無想拳", mp: 24, kind: "phys", power: 6.5, acc: 1, pierce: 0.5, target: "enemy", desc: "無想の一撃は外れない（必中）" },
   TENMAKEN:     { name: "天魔拳", mp: 26, kind: "phys", power: 2.4, acc: 0.8, flinchChance: 0.25, target: "all-enemy", desc: "敵全体を打ち据え、怯ませる" },

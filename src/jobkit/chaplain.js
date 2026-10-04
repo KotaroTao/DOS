@@ -4,17 +4,21 @@
 import { UNHOLY } from "./common.js";
 
 export default {
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "chaplainSeitate",
   table: `
     1 SHIELDBASH 2 KOUJIN 3 CURE 5 chaplainJungo/1 7 CHOUHATSU 10 PROTECT
-    12 SUIGETSU 15 chaplainKouei/1 17 HOLYLIGHT 20 NIOUDACHI 25 chaplainNamida/1 30 GUARDALL
-    35 chaplainZankyou/1 40 HOUSHOUHEKI 45 chaplainJungo/2 50 CHAPLAIN_INORINOTATEUCHI 55 CHAPLAIN_JOUSUI 57 CHAPLAIN_MABAYUKISEITSUI
-    60 resistAilment/1 65 CHAPLAIN_MIGAWARI 70 chaplainSeiku/1 75 chaplainKouei/2 80 CHAPLAIN_MIZUKAGAMI 82 CHAPLAIN_NAGI
-    85 CHAPLAIN_INORINOKOUHA 90 chaplainJungo/3 95 CHAPLAIN_SHUGONOSEIIN 100 CHAPLAIN_JUNREI 105 chaplainZankyou/2 107 CHAPLAIN_MAMORINOKOUKEN
-    110 CHAPLAIN_MIZUGAKI 115 chaplainSeiku/2 120 CHAPLAIN_INORINOSABAKI 125 chaplainKouei/3 130 CHAPLAIN_RENTOU 135 resistAilment/2
+    12 SUIGETSU 15 CHAPLAIN_INORINOTATE 15 firstGuard/1 17 HOLYLIGHT 20 NIOUDACHI 25 chaplainNamida/1 30 GUARDALL
+    35 chaplainZankyou/1 40 HOUSHOUHEKI 45 chaplainJungo/2 50 CHAPLAIN_INORINOTATEUCHI 50 firstGuard/2 55 CHAPLAIN_JOUSUI 57 CHAPLAIN_MABAYUKISEITSUI
+    60 resistAilment/1 65 CHAPLAIN_MIGAWARI 70 chaplainSeiku/1 75 chaplainKouei/1 80 CHAPLAIN_MIZUKAGAMI 82 CHAPLAIN_NAGI
+    85 CHAPLAIN_INORINOKOUHA 90 chaplainJungo/3 95 CHAPLAIN_SHUGONOSEIIN 100 CHAPLAIN_JUNREI 100 firstGuard/3 105 chaplainZankyou/2 107 CHAPLAIN_MAMORINOKOUKEN
+    110 CHAPLAIN_MIZUGAKI 115 chaplainSeiku/2 120 CHAPLAIN_INORINOSABAKI 125 chaplainKouei/2 130 CHAPLAIN_RENTOU 135 resistAilment/2
     140 CHAPLAIN_INOCHIZUNA 145 chaplainJungo/4 150 CHAPLAIN_SEISUIKEKKAI 155 chaplainSeiku/3 160 CHAPLAIN_DAIKITOU 165 chaplainNamida/2
     170 CHAPLAIN_JUNKYOUSHA 175 chaplainZankyou/3 180 CHAPLAIN_SEIDAN 185 chaplainNamida/3 190 CHAPLAIN_SEIRYUUKOU 195 CHAPLAIN_YOMIGAERI
     200 CHAPLAIN_SEIGOJOU`,
   skills: {
+    // Lv15 の固有技: 祈りの盾で味方を包む
+    CHAPLAIN_INORINOTATE: { name: "祈りの盾", mp: 5, kind: "buff", buff: { vit: 1.25 }, grantBarrier: 1, target: "ally", desc: "祈りの盾で味方を包み、防御を上げて魔障壁を張る" },
     CHAPLAIN_INORINOTATEUCHI: { name: "祈りの盾打ち", mp: 6, kind: "phys", power: 1.3, vitScale: 0.3, acc: 0.9, flinchChance: 0.25, target: "enemy", desc: "祈りを込めた盾で打ち、怯ませる（命中UP）" },
     CHAPLAIN_JOUSUI: { name: "浄水の撒布", mp: 9, kind: "heal", power: 6, cure: true, purge: true, target: "all-ally", desc: "聖水を撒いて穢れと弱体を流し、少し癒す" },
     CHAPLAIN_MABAYUKISEITSUI: { name: "眩き聖槌", mp: 12, kind: "phys", power: 2.0, pieScale: 0.5, element: "light", acc: 0.6, debuff: { hit: 0.85 }, target: "enemy", desc: "眩い聖槌で打ち、敵の狙いを乱す" },
@@ -38,6 +42,12 @@ export default {
     CHAPLAIN_SEIGOJOU: { name: "聖護城", mp: 40, kind: "heal", power: 40, buff: { vit: 1.6 }, grantBarrier: 1, regen: { pct: 0.04, turns: 3 }, target: "all-ally", desc: "味方全体を癒し、守りと障壁と癒しで包む" },
   },
   perks: {
+    // ランクのパッシブ: 祈りの盾が、隊のすべてを覆う
+    chaplainSeitate: {
+      label: "聖なる盾",
+      lv: ["護教官が生きている間、味方全員の受けるダメージ-3%", "護教官が生きている間、味方全員の受けるダメージ-5%", "護教官が生きている間、味方全員の受けるダメージ-8%", "護教官が生きている間、味方全員の受けるダメージ-12%"],
+      fx: [{ t: "take", aura: true, v: [0.03, 0.05, 0.08, 0.12] }],
+    },
     chaplainJungo: {
       label: "殉護の祈り",
       lv: ["戦闘開始時、20%で味方全員に「致死をHP1で一度耐える」加護", "戦闘開始時、30%で味方全員に「致死をHP1で一度耐える」加護", "戦闘開始時、40%で味方全員に「致死をHP1で一度耐える」加護", "戦闘開始時、50%で味方全員に「致死をHP1で一度耐える」加護"],

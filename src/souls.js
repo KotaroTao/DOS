@@ -8,7 +8,7 @@ import { JOB_LORE_RANKS } from "./joblore.js";
 import { JOB_IMAGES } from "./jobart.js";
 import { JOB_PHOTOS, PHOTO_RES } from "./jobphotos.js";
 import { ICONS } from "./sprites.js";
-import { JOBKIT_TABLES, JOBKIT_PERKS } from "./jobkit/index.js";
+import { JOBKIT_TABLES, JOBKIT_PERKS, JOBKIT_AWAKEN } from "./jobkit/index.js";
 import { SPELLS } from "./skilldefs.js";
 
 export const PARTS = ["head", "rhand", "lhand", "body", "legs"];
@@ -223,25 +223,73 @@ export const PASSIVES = {
   popePrayer:    { label: "教皇の祈り",   scope: "party", lv: ["自分の戦闘後回復をパーティ全体に適用する"] },
   soulEater:     { label: "魂喰い",       scope: "self",  lv: ["敵を倒した時、MP5%回復"] },
   vigilance:     { label: "周囲警戒",     scope: "party", lv: ["奇襲される確率が半減", "奇襲を受けなくなる", "奇襲を受けず、自分から挑むと先制率+10%"] },
-  senseEnemy:    { label: "敵感知",       scope: "party", lv: ["まだめくっていないカードの敵の気配が見える", "強敵(エリート)が際立って見える", "敵カードの属性まで読める"] },
-  senseTreasure: { label: "財宝感知",     scope: "party", lv: ["まだめくっていないカードの財宝の気配が見える", "帰還ポータルの気配も見える", "罠の気配も見える"] },
+  senseEnemy:    { label: "敵感知",       scope: "party", lv: ["まだめくっていない墓石の魔物を1体、ぼんやり示す", "まだめくっていない墓石の魔物を2体、ぼんやり示す", "まだめくっていない墓石の魔物を3体、ぼんやり示す"] },
+  senseTreasure: { label: "財宝感知",     scope: "party", lv: ["まだめくっていない墓石の宝箱を1つ、ぼんやり示す", "まだめくっていない墓石の宝箱を2つ、ぼんやり示す", "まだめくっていない墓石の宝箱を3つ、ぼんやり示す"] },
   initiative:    { label: "先制の心得",   scope: "party", lv: ["先制攻撃の発生率+15%", "先制攻撃の発生率+25%", "先制攻撃の発生率+40%"] },
   poisonFloor:   { label: "毒床耐性",     scope: "party", lv: ["毒の床から受けるダメージ半減", "毒の床のダメージを無効化", "毒の床を無効化し、渡るたびHP2%回復"] },
   fleetFoot:     { label: "逃げ足",       scope: "party", lv: ["逃走の成功率+30%", "逃走の成功率+45%", "逃走の成功率+60%"] },
   goldLuck:      { label: "金運",         scope: "party", lv: ["戦闘で得るゴールド+15%", "戦闘で得るゴールド+30%", "戦闘で得るゴールド+50%"] },
   soulLure:      { label: "魂寄せ",       scope: "party", lv: ["戦闘で得るSoul+10%", "戦闘で得るSoul+20%", "戦闘で得るSoul+35%"] },
-  appraise:      { label: "目利き",       scope: "party", lv: ["敵の戦利品ドロップ率+15%", "敵の戦利品ドロップ率+25%", "敵の戦利品ドロップ率+40%"] },
+  appraise:      { label: "掘り出しの勘", scope: "party", lv: ["敵の戦利品ドロップ率+15%", "敵の戦利品ドロップ率+25%", "敵の戦利品ドロップ率+40%"] },
   cartography:   { label: "踏破の地図",   scope: "party", lv: ["着地ごとに周囲1マスのカードが見える", "着地ごとに周囲2マスのカードが見える", "着地ごとに周囲3マスのカードが見える"] },
-  fieldRegen:    { label: "戦間回復",     scope: "party", lv: ["階を降りるたびHP/MP2%回復", "階を降りるたびHP/MP4%回復", "階を降りるたびHP/MP6%回復"] },
-  wardField:     { label: "加護の祈り",   scope: "party", lv: ["床・罠の状態異常付与率-30%", "床・罠の状態異常付与率-50%", "床・罠の状態異常付与率-70%"] },
-  soulTutor:     { label: "魂の薫陶",     scope: "party", lv: ["戦闘後の魂EXP+10%", "戦闘後の魂EXP+20%", "戦闘後の魂EXP+35%"] },
-  bargain:       { label: "値切り",       scope: "party", lv: ["店の買値・鑑定費-8%", "店の買値・鑑定費-15%", "店の買値・鑑定費-25%"] },
-  trapEye:       { label: "罠師の目",     scope: "party", lv: ["罠ダメージ-20%・解除率+10%", "罠ダメージ-35%・解除率+20%", "罠ダメージ-50%・解除率+30%"] },
-  vault:         { label: "宝物庫",       scope: "party", lv: ["宝箱ランク+1の確率15%", "宝箱ランク+1の確率30%", "宝箱ランク+1の確率50%"] },
+  fieldRegen:    { label: "束の間の休息", scope: "party", lv: ["階を移動すると、全員のHPを10%回復", "階を移動すると、全員のHPを20%回復", "階を移動すると、全員のHPを30%回復"] },
+  soulTutor:     { label: "魂の薫陶",     scope: "self",  lv: ["自分の宿す魂が得るEXP+10%", "自分の宿す魂が得るEXP+20%", "自分の宿す魂が得るEXP+30%"] },
+  trapEye:       { label: "盗賊の眼",     scope: "party", lv: ["宝箱・床の罠の解除率+10% (最大95%)", "宝箱・床の罠の解除率+20% (最大95%)", "宝箱・床の罠の解除率+30% (最大95%)"] },
+  // ===== 職ごとのランクのパッシブ (ランク2で目覚め、3・4・5で Lv2・3・4 に強まる。jobkit の awaken) =====
+  priestInochi:   { label: "生命の灯", scope: "self", lv: ["蘇生した味方のHPが、さらに最大HPの10%増える", "蘇生した味方のHPが、さらに最大HPの20%増える", "蘇生した味方のHPが、さらに最大HPの30%増える", "蘇生した味方のHPが、さらに最大HPの50%増える"] },
+  thiefNukeme:    { label: "抜け目なさ", scope: "party", lv: ["宝箱のランクが一段上がる確率10%", "宝箱のランクが一段上がる確率15%", "宝箱のランクが一段上がる確率20%", "宝箱のランクが一段上がる確率30%"] },
+  bishopSeibetsu: { label: "魂の聖別", scope: "party", lv: ["戦闘で得る✦Soul+5%", "戦闘で得る✦Soul+10%", "戦闘で得る✦Soul+15%", "戦闘で得る✦Soul+25%"] },
+  samuraiZantetsu: { label: "斬鉄", scope: "self", lv: ["物理攻撃が敵の防御を10%無視", "物理攻撃が敵の防御を20%無視", "物理攻撃が敵の防御を30%無視", "物理攻撃が敵の防御を50%無視"] },
+  berserkerKyouhon: { label: "狂奔", scope: "self", lv: ["敵か仲間が倒れるたびATK+5% (3段まで・その戦闘中)", "敵か仲間が倒れるたびATK+5% (5段まで)", "敵か仲間が倒れるたびATK+5% (7段まで)", "敵か仲間が倒れるたびATK+5% (10段まで)"] },
+  hunterSaihai:   { label: "狩りの采配", scope: "party", lv: ["戦闘開始時、敵全体のAGI×0.9 (3ターン)", "戦闘開始時、敵全体のAGI×0.8 (3ターン)", "戦闘開始時、敵全体のAGI×0.7 (3ターン)", "戦闘開始時、敵全体のAGI×0.6 (3ターン)"] },
+  shadowHissatsu: { label: "必殺", scope: "self", lv: ["物理が当たると2%で即死 (主・金属の魔物には効かない)", "物理が当たると3%で即死", "物理が当たると4%で即死", "物理が当たると6%で即死"] },
+  paladinIyashi:  { label: "癒しの剣", scope: "self", lv: ["物理で与えたダメージの3%だけ味方全員を回復", "物理で与えたダメージの5%だけ味方全員を回復", "物理で与えたダメージの8%だけ味方全員を回復", "物理で与えたダメージの12%だけ味方全員を回復"] },
+  guardianKongou: { label: "金剛の守り", scope: "self", lv: ["敵の物理を5%で完全に受け止める (無傷)", "敵の物理を8%で完全に受け止める", "敵の物理を12%で完全に受け止める", "敵の物理を20%で完全に受け止める"] },
+  spellbladeMajin: { label: "魔刃一体", scope: "self", lv: ["物理技に INT の10%を上乗せ", "物理技に INT の20%を上乗せ", "物理技に INT の30%を上乗せ", "物理技に INT の50%を上乗せ"] },
+  hexerSae:       { label: "呪詛の冴え", scope: "self", lv: ["状態異常の成功率+5%", "状態異常の成功率+10%", "状態異常の成功率+15%", "状態異常の成功率+25%"] },
+  hermitSenyaku:  { label: "仙薬", scope: "party", lv: ["道具のHP・MP回復量+20%", "道具のHP・MP回復量+30%", "道具のHP・MP回復量+40%", "道具のHP・MP回復量+60%"] },
+  brigandGi:      { label: "義の報い", scope: "party", lv: ["味方のHPが50%以下になった時、1戦闘1回、その味方を最大HPの20%回復", "味方のHPが50%以下になった時、1戦闘1回、その味方を最大HPの40%回復", "味方のHPが50%以下になった時、1戦闘1回、その味方を最大HPの60%回復", "味方のHPが50%以下になった時、1戦闘1回、その味方を最大HPの80%回復"] },
+  arcthiefKaeshi: { label: "呪文返し", scope: "self", lv: ["敵の呪文を受けた時、10%で跳ね返す", "敵の呪文を受けた時、15%で跳ね返す", "敵の呪文を受けた時、20%で跳ね返す", "敵の呪文を受けた時、30%で跳ね返す"] },
+  crusaderTsuigeki: { label: "聖光の追撃", scope: "self", lv: ["物理が当たると10%で光の追撃 (ATK×0.5)", "物理が当たると15%で光の追撃 (ATK×0.5)", "物理が当たると20%で光の追撃 (ATK×0.5)", "物理が当たると30%で光の追撃 (ATK×0.5)"] },
+  bmHouken:       { label: "崩拳", scope: "self", lv: ["通常攻撃が10%で敵を怯ませる (主には効かない)", "通常攻撃が15%で敵を怯ませる", "通常攻撃が20%で敵を怯ませる", "通常攻撃が30%で敵を怯ませる"] },
+  dkKeiyaku:      { label: "暗黒の契約", scope: "self", lv: ["HPを払う技の代償-20%", "HPを払う技の代償-35%", "HPを払う技の代償-50%", "HPを払う技の代償がなくなる"] },
+  templarIkou:    { label: "封魔の威光", scope: "party", lv: ["敵が特技を使う確率-10%", "敵が特技を使う確率-15%", "敵が特技を使う確率-20%", "敵が特技を使う確率-30%"] },
+  exorcistJouka:  { label: "浄化の光", scope: "party", lv: ["毎ラウンドの終わりに20%で、味方1人の状態異常と弱体を治す", "毎ラウンドの終わりに40%で、味方1人の状態異常と弱体を治す", "毎ラウンドの終わりに60%で、味方1人の状態異常と弱体を治す", "毎ラウンドの終わりに80%で、味方1人の状態異常と弱体を治す"] },
+  wardenKekkai:   { label: "護法の結界", scope: "party", lv: ["隊全員が受ける呪文・ブレスのダメージ-5%", "隊全員が受ける呪文・ブレスのダメージ-8%", "隊全員が受ける呪文・ブレスのダメージ-12%", "隊全員が受ける呪文・ブレスのダメージ-20%"] },
+  arcanistShinen: { label: "深淵の知", scope: "self", lv: ["攻撃呪文の会心率+5%", "攻撃呪文の会心率+8%", "攻撃呪文の会心率+12%", "攻撃呪文の会心率+20%"] },
+  heroDensetsu:   { label: "伝説の勇者", scope: "party", lv: ["勇者が生きている間、味方全員のATK・VIT・AGI・INT・PIE+3%", "勇者が生きている間、味方全員のATK・VIT・AGI・INT・PIE+5%", "勇者が生きている間、味方全員のATK・VIT・AGI・INT・PIE+8%", "勇者が生きている間、味方全員のATK・VIT・AGI・INT・PIE+15%"] },
+  asuraMugen:     { label: "無限の闘争", scope: "self", lv: ["自分の手番の後、10%でもう一度行動 (1ラウンド1回)", "自分の手番の後、15%でもう一度行動", "自分の手番の後、20%でもう一度行動", "自分の手番の後、30%でもう一度行動"] },
+  dragonknightIbuki: { label: "竜の息吹", scope: "self", lv: ["毎ラウンドの初めに15%で、敵全体へ火のブレス (ATK×0.5)", "毎ラウンドの初めに20%で、敵全体へ火のブレス (ATK×0.6)", "毎ラウンドの初めに25%で、敵全体へ火のブレス (ATK×0.8)", "毎ラウンドの初めに40%で、敵全体へ火のブレス (ATK×1.2)"] },
+  necroSenkoku:   { label: "死の宣告", scope: "party", lv: ["戦闘開始時、主以外の敵それぞれが3%で即死 (金属の魔物には効かない)", "戦闘開始時、主以外の敵それぞれが5%で即死 (金属の魔物には効かない)", "戦闘開始時、主以外の敵それぞれが8%で即死 (金属の魔物には効かない)", "戦闘開始時、主以外の敵それぞれが15%で即死 (金属の魔物には効かない)"] },
+  sageKiwami:     { label: "叡智の極み", scope: "self", lv: ["呪文 (技以外) が10%でMPを使わずに唱えられる", "呪文が15%でMPを使わずに唱えられる", "呪文が20%でMPを使わずに唱えられる", "呪文が30%でMPを使わずに唱えられる"] },
+  cardinalKiseki: { label: "聖座の奇跡", scope: "party", lv: ["戦闘中1回、最後の1人が倒れる時、全員をHP10%で蘇らせる", "戦闘中1回、最後の1人が倒れる時、全員をHP20%で蘇らせる", "戦闘中1回、最後の1人が倒れる時、全員をHP30%で蘇らせる", "戦闘中1回、最後の1人が倒れる時、全員をHP50%で蘇らせる"] },
+  archmageShinen: { label: "魔導の深淵", scope: "self", lv: ["攻撃呪文が敵の魔法耐性を25%無視 (魔法無効には効かない)", "攻撃呪文が敵の魔法耐性を50%無視", "攻撃呪文が敵の魔法耐性を75%無視", "攻撃呪文が敵の魔法耐性を100%無視 (魔法無効には効かない)"] },
+  // ===== 職ごとの Lv15 の目玉パッシブ (Lv50 で Lv2、Lv100 で Lv3)。効果は game.js / combat.js が読む =====
+  // scope party は隊で一番高いLvの1人分だけが効く (重複不可)。self は持ち主だけ
+  appraiseEye:   { label: "目利き",       scope: "party", lv: ["鑑定の成功率+5% (最大95%)", "鑑定の成功率+10% (最大95%)", "鑑定の成功率+15% (最大95%)"] },
+  firstGuard:    { label: "加護の祈り",   scope: "self",  lv: ["戦闘中、最初に受ける物理ダメージを1回だけ無効にする", "戦闘中、最初に受ける物理ダメージを2回まで無効にする", "戦闘中、最初に受ける物理ダメージを3回まで無効にする"] },
+  toughBody:     { label: "歴戦の体",     scope: "self",  lv: ["最大HP+10%", "最大HP+20%", "最大HP+30%"] },
+  nightWatch:    { label: "夜営の番",     scope: "party", lv: ["奇襲される確率-50%", "奇襲される確率-75%", "奇襲を受けなくなる"] },
+  manaFlow:      { label: "魔力の循環",   scope: "party", lv: ["階を移動すると、全員のMPを5%回復", "階を移動すると、全員のMPを10%回復", "階を移動すると、全員のMPを15%回復"] },
+  stealthStep:   { label: "忍び足",       scope: "party", lv: ["先制攻撃の発生率+10%", "先制攻撃の発生率+15%", "先制攻撃の発生率+20%"] },
+  cleanseStep:   { label: "清めの歩み",   scope: "party", lv: ["まだめくっていない墓石をめくるたび、全員のHPを5・MPを1回復", "まだめくっていない墓石をめくるたび、全員のHPを15・MPを2回復", "まだめくっていない墓石をめくるたび、全員のHPを30・MPを3回復"] },
+  hexerGosun:    { label: "五寸釘",       scope: "party", lv: ["戦闘の始め、敵1体を動けなくする (その敵の最初の手番を奪う。金属の魔物には効かない)", "戦闘の始め、敵2体を動けなくする (最初の手番を奪う)", "戦闘の始め、敵3体を動けなくする (最初の手番を奪う)"] },
+  hermitZokusei: { label: "俗世拒絶",     scope: "self",  lv: ["敵から状態異常 (毒・麻痺・石化・即死・眠り・魅了・混乱) を受ける確率-10%", "敵から状態異常を受ける確率-20%", "敵から状態異常を受ける確率-30%"] },
+  crusaderToki:  { label: "聖戦の鬨",     scope: "party", lv: ["戦闘の開始時、味方全員のATK×1.2 (3ターン)", "戦闘の開始時、味方全員のATK×1.5 (3ターン)", "戦闘の開始時、味方全員のATK×1.8 (3ターン)"] },
+  bmManaCycle:   { label: "魔力循環",     scope: "self",  lv: ["通常攻撃で与えたダメージの5%だけMPを回復", "通常攻撃で与えたダメージの10%だけMPを回復", "通常攻撃で与えたダメージの15%だけMPを回復"] },
+  dkEnchant:     { label: "魔力付与",     scope: "self",  lv: ["通常攻撃に INT×0.8 の固定ダメージを上乗せ (金属の魔物には効かない)", "通常攻撃に INT×1.2 の固定ダメージを上乗せ (金属の魔物には効かない)", "通常攻撃に INT×1.6 の固定ダメージを上乗せ (金属の魔物には効かない)"] },
+  spellGuard:    { label: "封の結界",     scope: "self",  lv: ["戦闘中、最初に受ける魔法 (呪文・ブレス) のダメージを1回だけ無効にする", "戦闘中、最初に受ける魔法 (呪文・ブレス) のダメージを2回まで無効にする", "戦闘中、最初に受ける魔法 (呪文・ブレス) のダメージを3回まで無効にする"] },
+  inqBrand:      { label: "罪の刻印",     scope: "party", lv: ["戦闘の開始時、敵全体に弱点の属性を1つ刻む (3ターン)", "戦闘の開始時、敵全体に弱点の属性を2つ刻む (3ターン)", "戦闘の開始時、敵全体に弱点の属性を3つ刻む (3ターン)"] },
+  riseAgain:     { label: "復活の祈り",   scope: "party", lv: ["戦闘で倒れた味方が、1回だけHP1で起き上がる (1戦闘)", "戦闘で倒れた味方が、2回までHP1で起き上がる (1戦闘)", "戦闘で倒れた味方が、3回までHP1で起き上がる (1戦闘)"] },
+  asceticShintou:{ label: "心頭滅却",     scope: "self",  lv: ["属性を帯びた攻撃・ブレス・呪文のダメージ-10%", "属性を帯びた攻撃・ブレス・呪文のダメージ-15%", "属性を帯びた攻撃・ブレス・呪文のダメージ-20%"] },
+  heroIji:       { label: "勇者の意地",   scope: "self",  lv: ["戦闘中1回、致死ダメージをHP1で耐える (HP1の時は効かない)", "戦闘中2回まで、致死ダメージをHP1で耐える (HP1の時は効かない)", "戦闘中3回まで、致死ダメージをHP1で耐える (HP1の時は効かない)"] },
+  asuraChishio:  { label: "たぎる血潮",   scope: "self",  lv: ["同じ敵に続けてダメージを与えるたび、物理ダメージ+10% (最大+200%)", "同じ敵に続けてダメージを与えるたび、物理ダメージ+15% (最大+200%)", "同じ敵に続けてダメージを与えるたび、物理ダメージ+20% (最大+200%)"] },
+  necroLegion:   { label: "死者の軍勢",   scope: "self",  lv: ["自分の手番の終わりに、ランダムな敵へ INT×0.5 の固定ダメージを1回 (金属の魔物には効かない)", "自分の手番の終わりに、ランダムな敵へ INT×0.5 の固定ダメージを2回 (金属の魔物には効かない)", "自分の手番の終わりに、ランダムな敵へ INT×0.5 の固定ダメージを3回 (金属の魔物には効かない)"] },
+  archmageChoei: { label: "重詠",         scope: "self",  lv: ["攻撃呪文が20%でもう一度放たれる (2回目はMPを使わない)", "攻撃呪文が40%でもう一度放たれる (2回目はMPを使わない)", "攻撃呪文が60%でもう一度放たれる (2回目はMPを使わない)"] },
   extraHit:      { label: "連撃",         scope: "self",  lv: ["通常攻撃が10%で2撃目を放つ (威力60%)", "通常攻撃が20%で2撃目を放つ (威力60%)", "通常攻撃が30%で2撃目を放つ (威力60%)", "通常攻撃が40%で2撃目を放つ (威力60%)"] },
   fightSpirit:   { label: "闘魂",         scope: "self",  lv: ["HP30%以下の時、ATK+25%", "HP30%以下の時、ATK+40%・会心+15%", "HP30%以下の時、ATK+55%・会心+20%", "HP30%以下の時、ATK+70%・会心+25%"] },
   spellBlade:    { label: "魔力撃",       scope: "self",  lv: ["通常攻撃にINTの50%を上乗せ", "通常攻撃にINTの100%を上乗せ"] },
-  venomBlade:    { label: "毒刃",         scope: "self",  lv: ["通常攻撃が15%で敵を毒にする", "通常攻撃が30%で敵を毒にする"] },
+  venomBlade:    { label: "仕込み毒",     scope: "self",  lv: ["通常攻撃が15%で敵を毒にする", "通常攻撃が30%で敵を毒にする"] },
   flinch:        { label: "怯ませ",       scope: "self",  lv: ["通常攻撃が10%で敵を怯ませる (主には効かない)"] },
   smite:         { label: "破邪",         scope: "self",  lv: ["不死・幽鬼・悪魔へのダメージ+30%"] },
   holyEdge:      { label: "聖刃",         scope: "self",  lv: ["不死・幽鬼・悪魔への会心率+15%"] },
@@ -254,8 +302,8 @@ export const PASSIVES = {
   twinArts:      { label: "二刀の理",     scope: "self",  lv: ["通常攻撃の後30%でINT×0.6の追撃呪文"] },
   iai:           { label: "居合",         scope: "self",  lv: ["戦闘開始時、敵1体へ自動で抜き打ち (奇襲時は不発)"] },
   openSpell:     { label: "開幕呪撃",     scope: "self",  lv: ["戦闘開始時、敵1体へ無消費の呪撃INT×1.2 (奇襲時は不発)"] },
-  asceticism:    { label: "荒行の果て",   scope: "self",  lv: ["HP30%以下の間、与ダメージ・回復量+30%"] },
-  taunt:         { label: "挑発",         scope: "self",  lv: ["敵の単体攻撃が自分に向かいやすくなる"] },
+  asceticism:    { label: "窮地の底力",   scope: "self",  lv: ["HP30%以下の間、与ダメージ・回復量+30%"] },
+  taunt:         { label: "矢面の構え",   scope: "self",  lv: ["敵の単体攻撃が自分に向かいやすくなる"] },
   cover:         { label: "かばう",       scope: "party", lv: ["瀕死(HP25%以下)の味方への攻撃を肩代わり (1戦闘1回)", "肩代わりが1戦闘2回になり、その被ダメ-30%", "肩代わりが1戦闘3回になり、その被ダメ-40%"] },
   parry:         { label: "見切り",       scope: "self",  lv: ["敵の物理攻撃を10%で完全回避", "敵の物理攻撃を15%で完全回避"] },
   counter:       { label: "反撃",         scope: "self",  lv: ["物理被弾時15%でATK×0.5の反撃", "物理被弾時25%でATK×0.7の反撃", "物理被弾時35%でATK×1.0の反撃 (会心あり)"] },
@@ -313,54 +361,14 @@ const P = (key, lv = 1) => ({ name: passiveName(key, lv), desc: passiveDesc(key,
 const U = (name, desc, grants) => ({ name, desc, grants });
 
 // ===== 職業パッシブ表 [ランク2,3,4,5] =====
-export const JOB_PASSIVES = {
-  // コモン
-  // 戦士はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
-  fighter:     [],
-  // 騎士はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
-  knight:      [],
-  // 僧侶はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
-  priest:      [],
-  // 魔導士はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
-  mage:        [],
-  // 盗賊はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
-  thief:       [],
-  // 司教はパッシブをレベルスキル表 (JOB_SKILLS) に織り込んだため、ランク別パッシブは無し
-  bishop:      [],
-  // レア (パッシブはレベルスキル表 JOB_SKILLS に織り込み済み)
-  samurai:     [],
-  berserker:   [],
-  hunter:      [],
-  shadow:      [],
-  paladin:     [],
-  guardian:    [],
-  spellblade:  [],
-  monk:        [],
-  hexer:       [],
-  hermit:      [],
-  brigand:     [],
-  arcthief:    [],
-  // エピック (パッシブはレベルスキル表 JOB_SKILLS に織り込み済み)
-  crusader:    [],
-  battlemage:  [],
-  darkknight:  [],
-  templar:     [],
-  exorcist:    [],
-  warden:      [],
-  arcanist:    [],
-  inquisitor:  [],
-  archbishop:  [],
-  ascetic:     [],
-  // レジェンド (パッシブはレベルスキル表 JOB_SKILLS に織り込み済み)
-  hero:        [],
-  asura:       [],
-  dragonknight:[],
-  necromancer: [],
-  sage:        [],
-  cardinal:    [],
-  archmage:    [],
-  chaplain:    [],
-};
+// ランクのパッシブ (jobkit の awaken): ランク2で目覚め、ランク3・4・5で Lv2・3・4 に強まる。
+// Lv で覚えるパッシブ (レベルスキル表 JOB_SKILLS) とは別物で、重ならないように選んである
+export const JOB_PASSIVES = {};
+for (const k in JOBKIT_AWAKEN) {
+  const key = JOBKIT_AWAKEN[k];
+  if (!PASSIVES[key] || PASSIVES[key].lv.length !== 4) throw new Error(`souls: ${k} のランクのパッシブ ${key} が無いか、4段でない`);
+  JOB_PASSIVES[k] = [P(key, 1), P(key, 2), P(key, 3), P(key, 4)]; // ランク2〜5 = Lv1〜4
+}
 
 export function jobPassiveTable(jobKey) { return JOB_PASSIVES[jobKey] || []; }
 export function passivesUpTo(jobKey, rank) {
@@ -445,7 +453,15 @@ export function identifyChance(member, itemLv) {
   if (!j) return 0;
   const jobLv = (member && (member.jobLv || member.level)) || 1;
   const c = j.base + (jobLv - 1) * j.perLv - (itemLv || 1) * j.lvPenalty;
-  return Math.max(j.floor, Math.min(IDENTIFY_CAP, c));
+  return Math.min(IDENTIFY_CAP, Math.max(j.floor, Math.min(IDENTIFY_CAP, c)) + appraiseBonus());
+}
+// 目利き (appraiseEye): 鑑定の成功率 +5/10/15% (隊と控えで一番高いLvだけ)。game.js が setAppraiseSource で人業の一覧を渡す
+let APPRAISE_SRC = () => [];
+export function setAppraiseSource(fn) { APPRAISE_SRC = typeof fn === "function" ? fn : () => []; }
+function appraiseBonus() {
+  let lv = 0;
+  for (const d of (APPRAISE_SRC() || [])) if (d && d.alive !== false) lv = Math.max(lv, pLv(d, "appraiseEye"));
+  return [0, 0.05, 0.10, 0.15][Math.min(3, lv)] || 0;
 }
 
 // ===== 職業図鑑テキスト =====
@@ -863,31 +879,35 @@ export const JOB_SIGNATURE = (() => {
 })();
 export function signatureSkillOf(clsKey) { return JOB_SIGNATURE[clsKey] || null; }
 
-// ===== 控えの結社 (ベンチの加護) =====
+// その職の魂がランク rank で得ているランクのパッシブ {key, lv, name, desc}。ランク1なら null
+export function awakenPerkOf(clsKey, rank) {
+  const r = Math.min(5, rank || 1);
+  const e = r >= 2 ? (JOB_PASSIVES[clsKey] || [])[r - 2] : null;
+  if (!e) return null;
+  const [key, lv] = Object.entries(e.grants)[0];
+  return { key, lv, name: e.name, desc: e.desc };
+}
+
+// ===== 控えの結社 =====
 // 編成に出していない (primary/sub いずれにも使っていない) 魂を「結社」の席に着けると、
-// 職業テーマ別のパーティ全体パッシブを供給する。加護Lvは魂ランク連動 (orderPerkLv: R2=Lv1 / R3・R4=Lv2 / R5=Lv3)。
-// 席数は game.js の orderSeats() (D20で1, D30で2, D45で3)。着席選択は orderPassiveMap の picks 引数で渡す。
-// 効果は探索ユーティリティのパーティ範囲パッシブに限定。職テーマ別に分散し、同一加護は最大3職まで。
-export const ORDER_PERK = {
-  // 戦士系: 警戒 / 先制 / 逃げ足
-  fighter: "vigilance", knight: "vigilance", guardian: "vigilance",
-  samurai: "initiative", hero: "initiative", asura: "initiative",
-  berserker: "fleetFoot", monk: "fleetFoot", dragonknight: "fleetFoot",
-  // 術者系: 敵感知 / 弱点看破 / 踏破の地図
-  mage: "senseEnemy", battlemage: "senseEnemy", warden: "senseEnemy",
-  spellblade: "scan", hexer: "scan", darkknight: "scan",
-  sage: "cartography", archmage: "cartography", arcanist: "cartography",
-  // 聖職系: 戦間回復 / 加護の祈り / 毒床耐性
-  priest: "fieldRegen", chaplain: "fieldRegen", exorcist: "fieldRegen",
-  paladin: "wardField", templar: "wardField", crusader: "wardField",
-  ascetic: "poisonFloor", hermit: "poisonFloor",
-  // 司教/特殊系: 魂寄せ / 魂の薫陶 / 目利き
-  archbishop: "soulLure", necromancer: "soulLure",
-  cardinal: "soulTutor", inquisitor: "appraise",
-  // 盗賊系: 金運 / 値切り / 罠師の目 / 宝物庫 / 財宝感知
-  thief: "goldLuck", brigand: "goldLuck",
-  arcthief: "bargain", shadow: "trapEye", bishop: "vault", hunter: "senseTreasure",
-};
+// その魂の能力 (jobStatsOf) の一部が人業の全員に加わる (サブ魂の能力加算と同じ形)。技・パッシブは関係しない。
+// 割合は魂ランクで決まる (ORDER_STAT_RATES: R1 3% 〜 R5 8%。全員に効くのでサブ魂より薄い)。
+// 席数は game.js の orderSeats() (報告5で1, 7で2, 11で3)。席に着いている魂は game.js が setOrderSource で渡す。
+export const ORDER_STAT_RATES = [0, 0.03, 0.04, 0.05, 0.06, 0.08];
+export function orderStatRateOfRank(rank) { return ORDER_STAT_RATES[Math.max(1, Math.min(5, rank || 1))]; }
+let ORDER_SRC = () => [];
+export function setOrderSource(fn) { ORDER_SRC = typeof fn === "function" ? fn : () => []; }
+// 結社の席の魂が人業1人に足す能力 {hp, mp, atk…} (端数のまま)。uids 省略時は今の席
+export function orderStatBonus(uids) {
+  const out = { hp: 0, mp: 0, atk: 0, vit: 0, agi: 0, int: 0, pie: 0, luk: 0 };
+  for (const uid of (uids || ORDER_SRC() || [])) {
+    const s = soulByUid(uid);
+    if (!s) continue;
+    const st = jobStatsOf(s.clsKey, s), rate = orderStatRateOfRank(soulRankOf(s));
+    for (const k in out) out[k] += (st[k] || 0) * rate;
+  }
+  return out;
+}
 // 編成中の魂 (primary/sub) の uid 集合を返す
 export function fieldedSoulUids(party) {
   const set = new Set();
@@ -897,27 +917,6 @@ export function fieldedSoulUids(party) {
     for (const s of (d.subs || [])) if (s && s.uid != null) set.add(s.uid);
   }
   return set;
-}
-// 魂ランク → 結社加護Lv。R2=Lv1 / R3・R4=Lv2 / R5=Lv3 (案A)
-export function orderPerkLv(rank) { return rank >= 5 ? 3 : rank >= 3 ? 2 : 1; }
-// 結社が供給するパーティパッシブ {passiveKey: lv}。編成外ランク2以上の魂が対象。
-// picks (席に着けた魂uidの配列/Set) を渡すと、その魂だけを集計する (席選択UI用)。未指定なら全控え魂。
-export function orderPassiveMap(party, picks) {
-  const fielded = fieldedSoulUids(party);
-  const pickSet = picks ? (picks instanceof Set ? picks : new Set(picks)) : null;
-  const map = {};
-  for (const s of SOULS) {
-    if (!s || fielded.has(s.uid)) continue;
-    if (pickSet && !pickSet.has(s.uid)) continue; // 席に着いた魂のみ加護を送る
-    const rank = soulRankFromCount(s.clsKey, s.count);
-    if (rank < 2) continue;
-    const perk = ORDER_PERK[s.clsKey];
-    if (!perk || !PASSIVES[perk]) continue;
-    const lvMax = PASSIVES[perk].lv.length;
-    const lv = Math.min(lvMax, orderPerkLv(rank));
-    map[perk] = Math.max(map[perk] || 0, lv);
-  }
-  return map;
 }
 
 export function dollSouls(doll) { return PARTS.map((p) => doll.parts[p]).filter(Boolean); }
@@ -1049,7 +1048,8 @@ export function recalcDoll(doll) {
     const had = picks.length;
     for (let i = picks.length - 1; i >= 0; i--) {
       const p = picks[i];
-      if (!tbl.some((t) => (p.skill ? t.skill === p.skill : t.passive === p.passive))) picks.splice(i, 1);
+      const awk = awakenPerkOf(se.clsKey, 5);
+      if (!tbl.some((t) => (p.skill ? t.skill === p.skill : t.passive === p.passive)) && !(p.passive && awk && awk.key === p.passive)) picks.splice(i, 1);
     }
     if (had && !picks.length) sub.picked = false;
     // 宿したばかり (借用が空で未設定) なら看板スキル相当 (覚えている最後のスキル) を既定にする
@@ -1073,6 +1073,19 @@ export function recalcDoll(doll) {
     const rate = subStatRateOfRank(sr);
     for (const k in st) st[k] += (sst[k] || 0) * rate;
     doll.subInfo.push({ uid: se.uid, clsKey: se.clsKey, rank: sr, level: se.level, cap, picks: used, rate });
+  }
+
+  // 歴戦の体 (toughBody): 最大HPを割合で底上げ
+  if (passiveMap.toughBody) st.hp *= 1 + ([0, 0.10, 0.20, 0.30][Math.min(3, passiveMap.toughBody)] || 0);
+
+  // 控えの結社: 席の魂の能力の一部を全員に加える (魂を宿していない人業は除く)
+  doll.orderBonus = null;
+  if (pe) {
+    const ob = orderStatBonus();
+    if (Object.values(ob).some((v) => v > 0)) {
+      for (const k in ob) st[k] += ob[k];
+      doll.orderBonus = ob;
+    }
   }
 
   doll.passiveMap = passiveMap;

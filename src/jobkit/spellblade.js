@@ -2,17 +2,21 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 魔法剣士 = 剣に属性を宿す魔法剣。INTで伸びる斬撃 (intScale)、属性の守りを裂き (vuln)、裂いた所へ呪文を撃ち込む
 export default {
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "spellbladeMajin",
   table: `
     1 KYOUGEKI 2 MAKEN_FIRE 3 HALITO 4 MAKEN_EARTH 5 spellBlade/1 7 DOUBLE
-    8 MAKEN_WIND 10 ICENEEDLE 12 MAKEN_WATER 15 spellbladeEishou/1 17 MAKEN_LIGHT 20 SHINGANGEKI
+    8 MAKEN_WIND 10 ICENEEDLE 12 MAKEN_WATER 15 SPELLBLADE_KENJURENKAN 15 spellbladeMikiwame/1 17 MAKEN_LIGHT 20 SHINGANGEKI
     22 MAKEN_DARK 25 spellbladeKyoumei/1 30 ELEMBREAK 35 spellbladeRenkan/1 40 MAENZAN 45 kenma/1
-    50 SPELLBLADE_KASANE 55 MAHALITO 57 GURENZAN 60 spellBlade/2 65 SPELLBLADE_RENSEI 70 spellbladeMagan/1
+    50 SPELLBLADE_KASANE 50 spellbladeMikiwame/2 55 MAHALITO 57 GURENZAN 60 spellBlade/2 65 SPELLBLADE_RENSEI 70 spellbladeMagan/1
     75 spellbladeKyoumei/2 80 SPELLBLADE_YOROIDOOSHI 82 HYOUJIN 85 SPELLBLADE_FUUJIN 90 spellbladeMayoroi/1 95 MADALT
-    100 SPELLBLADE_FUUMA 105 twinArts/1 110 SPELLBLADE_HIEN 115 spellbladeEishou/2 120 SPELLBLADE_RAITEI 125 resistAilment/1
+    100 SPELLBLADE_FUUMA 100 spellbladeMikiwame/3 105 twinArts/1 110 SPELLBLADE_HIEN 115 spellbladeEishou/1 120 SPELLBLADE_RAITEI 125 resistAilment/1
     130 SPELLBLADE_TENSHOU 135 spellbladeRenkan/2 140 SPELLBLADE_SOURYUU 145 spellbladeKyoumei/3 150 SPELLBLADE_KOKUU 155 spellbladeMagan/2
-    160 ROKUDOU 165 spellbladeEishou/3 170 SPELLBLADE_ENTEI 175 spellbladeMayoroi/2 180 SPELLBLADE_KYOKKOU 185 spellbladeRenkan/3
+    160 ROKUDOU 165 spellbladeEishou/2 170 SPELLBLADE_ENTEI 175 spellbladeMayoroi/2 180 SPELLBLADE_KYOKKOU 185 spellbladeRenkan/3
     190 SPELLBLADE_HYOUGOKU 195 SPELLBLADE_BANSHOU 200 SPELLBLADE_KENKAI`,
   skills: {
+    // Lv15 の固有技: 剣に術を重ね、全属性の守りを緩める
+    SPELLBLADE_KENJURENKAN: { name: "剣呪連環", mp: 6, kind: "phys", power: 1.1, intScale: 0.4, vuln: { all: 0.9 }, target: "enemy", desc: "剣に術を重ねて斬り、全属性の守りを緩める（INTでも伸びる）" },
     SPELLBLADE_KASANE: { name: "魔刃重ね", mp: 10, kind: "phys", power: 1.6, intScale: 0.7, acc: 0.5, target: "enemy", desc: "魔力を重ねた刃で斬る（INTで伸びる）" },
     SPELLBLADE_RENSEI: { name: "剣気練成", mp: 4, kind: "buff", buff: { int: 1.25, atk: 1.15 }, target: "self", tech: true, desc: "剣気と魔力を同時に練り上げる" },
     SPELLBLADE_YOROIDOOSHI: { name: "魔刃・鎧通し", mp: 16, kind: "phys", power: 2.2, intScale: 0.7, pierce: 0.6, acc: 0.7, target: "enemy", desc: "魔力の刃を鎧の隙へ通す（防御無視）" },
@@ -30,6 +34,12 @@ export default {
     SPELLBLADE_KENKAI: { name: "万魔剣界", mp: 44, kind: "atk", power: 135, debuff: { vit: 0.85 }, target: "all-enemy", desc: "無数の魔剣が降り注ぎ、鎧を穿つ" },
   },
   perks: {
+    // Lv15 の目玉パッシブ: 敵の属性を見極め、弱みに刃と術を通す
+    spellbladeMikiwame: {
+      label: "属性の見極め",
+      lv: ["属性の弱点を突いた与ダメージ+10%", "属性の弱点を突いた与ダメージ+20%", "属性の弱点を突いた与ダメージ+30%"],
+      fx: [{ t: "deal", when: { tgtWeak: true }, v: [0.10, 0.20, 0.30] }],
+    },
     // 斬撃に詠唱を乗せ、魔力を無駄にしない
     spellbladeEishou: {
       label: "刃の詠唱",

@@ -1,5 +1,6 @@
 // 職ごとの技・パッシブの集約窓口 (jobkit)。
-// 各職のファイル (fighter.js …) が { table, skills, perks } を持つ:
+// 各職のファイル (fighter.js …) が { awaken, table, skills, perks } を持つ:
+//   awaken = ランクのパッシブのキー (4段)。魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES。宿し技として貸せる)
 //   table  = 習得表。「Lv 技キー」または「Lv パッシブキー/パッシブLv」を空白区切りで並べた文字列 (souls.js の T が展開する)
 //   skills = その職だけの固有技。skilldefs.js の SPELLS に合流する (項目の意味は skilldefs.js 冒頭)
 //   perks  = その職だけの固有パッシブ。souls.js の PASSIVES に合流し (名前・説明)、効果 fx は combat.js が読む
@@ -35,7 +36,8 @@
 //    race:[種族…] / tgtElem:"fire" / tgtAil (状態異常・怯み中) / tgtDebuffed (弱体中) / tgtLow:0.5 (HP割合以下) / tgtHigh:0.8 (以上) /
 //    boss / noBoss / selfLow:0.5 / selfHigh:0.8 / selfAil / buffed (自分が強化中) / defending / mpHigh:0.5 /
 //    round1 / roundGE:3 / preempt (先制した戦闘) / front / back (自分の隊列) / crowd:3 (敵の数以上) / lastFoe (敵が残り1体) /
-//    allyDown (倒れた味方がいる) / alone (生き残りが自分だけ) / elem:"fire" (攻撃の属性)
+//    allyDown (倒れた味方がいる) / alone (生き残りが自分だけ) / elem:"fire" (攻撃の属性) /
+//    tgtWeak (攻撃の属性が相手の弱点) / tgtWeakened (相手が状態異常・怯み・弱体のどれか)
 import fighter from "./fighter.js";
 import knight from "./knight.js";
 import priest from "./priest.js";
@@ -84,11 +86,11 @@ export const JOBKIT = {
 const SKILL_KEYS = new Set(("name mp kind target desc power hits scatter critBonus element acc pierce intScale agiScale vitScale pieScale " +
   "desperate execute prey debuff vuln seal poison para sleepChance flinchChance strip charm confuse instakill steal plunder drain mpDrain " +
   "hpCost gravity partyHeal buff taunt shield stance charge regen grantBarrier grantEndure cure purge revive revivePct dur debuffAll tech quiet " +
-  "ward faith float sense").split(" "));
+  "ward faith float sense mpPct").split(" "));
 const KINDS = new Set(["phys", "atk", "heal", "cure", "buff", "debuff", "mana", "sleep", "escape", "field"]);
 const TARGETS = new Set(["enemy", "all-enemy", "ally", "all-ally", "self"]);
 const ELS = new Set(["fire", "water", "wind", "earth", "light", "dark"]);
-const STATS = new Set(["atk", "vit", "agi", "int", "hit"]);
+const STATS = new Set(["atk", "vit", "agi", "int", "pie", "hit"]);
 const FX_FIELDS = {
   deal: "v on when aura", take: "v on when aura", crit: "v on when aura", evade: "v when aura", heal: "v", cost: "v on",
   stat: "mul when", start: "chance when party dur buff foe barrier regen mp endure taunt charge",
@@ -96,7 +98,7 @@ const FX_FIELDS = {
   hit: "chance on ail pct turns mul el", cast: "chance on refund hp mp party", fall: "chance buff dur hp", win: "hp mp party",
 };
 const WHEN = new Set(("race tgtElem tgtAil tgtDebuffed tgtLow tgtHigh boss noBoss selfLow selfHigh selfAil buffed defending mpHigh " +
-  "round1 roundGE preempt front back crowd lastFoe allyDown alone elem").split(" "));
+  "round1 roundGE preempt front back crowd lastFoe allyDown alone elem tgtWeak tgtWeakened").split(" "));
 const AILS = new Set(["poison", "para", "sleep", "confuse", "charm", "seal", "flinch", "strip", "atk", "vit", "agi", "vuln"]);
 function fail(job, what, msg) { throw new Error(`jobkit/${job}: ${what}: ${msg}`); }
 function checkSkill(job, key, sp) {
@@ -134,9 +136,12 @@ function checkPerk(job, key, pk) {
 export const JOBKIT_SKILLS = {};
 export const JOBKIT_PERKS = {};
 export const JOBKIT_TABLES = {};
+export const JOBKIT_AWAKEN = {};
 for (const job in JOBKIT) {
   const kit = JOBKIT[job];
   JOBKIT_TABLES[job] = kit.table;
+  if (!/^[a-z][A-Za-z0-9]+$/.test(kit.awaken || "")) fail(job, "awaken", "ランクのパッシブのキーが必要");
+  JOBKIT_AWAKEN[job] = kit.awaken;
   for (const key in kit.skills || {}) {
     if (JOBKIT_SKILLS[key]) fail(job, key, "技キーが他の職と重複");
     checkSkill(job, key, kit.skills[key]);

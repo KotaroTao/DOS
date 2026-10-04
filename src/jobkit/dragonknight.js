@@ -4,17 +4,21 @@
 import { DRAGONS } from "./common.js";
 
 export default {
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "dragonknightIbuki",
   table: `
     1 SHIELDBASH 2 SHIPPUUGIRI 3 NERAIUCHI 5 dragonknightHishou/1 7 TENSHOU 10 CHOUHATSU
-    12 KAENGIRI 15 dragonknightRyuurin/1 20 RYUURIN 22 REPPUU 25 dragonknightIkari/1 30 RYUUKOU
-    35 dragonknightRyuuketsu/1 40 RYUZETSU 45 dragonknightRyuuketsu/2 50 RYUURINJIN 55 RYUUEN 57 FUUGA
-    60 dragonknightHishou/2 65 NIOUDACHI 70 dragonknightRyuurin/2 75 dragonknightRyuugan/1 80 DRAGONKNIGHT_RYUUSOU 82 GURENZAN
-    85 DRAGONKNIGHT_RYUUYOKU 90 resistAilment/1 95 DRAGONKNIGHT_RYUUGA 100 DRAGONKNIGHT_KOURYUUGEKI 105 dragonknightIkari/2 107 DRAGONKNIGHT_FUURYUU
+    12 KAENGIRI 15 DRAGONKNIGHT_RYUUSOUTSUKI 15 dragonknightGekirin/1 20 RYUURIN 22 REPPUU 25 dragonknightIkari/1 30 RYUUKOU
+    35 dragonknightRyuuketsu/1 40 RYUZETSU 45 dragonknightRyuuketsu/2 50 RYUURINJIN 50 dragonknightGekirin/2 55 RYUUEN 57 FUUGA
+    60 dragonknightHishou/2 65 NIOUDACHI 70 dragonknightRyuurin/1 75 dragonknightRyuugan/1 80 DRAGONKNIGHT_RYUUSOU 82 GURENZAN
+    85 DRAGONKNIGHT_RYUUYOKU 90 resistAilment/1 95 DRAGONKNIGHT_RYUUGA 100 DRAGONKNIGHT_KOURYUUGEKI 100 dragonknightGekirin/3 105 dragonknightIkari/2 107 DRAGONKNIGHT_FUURYUU
     110 DRAGONKNIGHT_TENKUU 115 dragonknightRyuuketsu/3 120 DRAGONKNIGHT_RYUUKOTSU 125 dragonknightRyuugan/2 130 DRAGONKNIGHT_RYUUBI 135 dragonknightRyuuketsu/4
-    140 RYUUJINKOURIN 145 resistAilment/2 150 DRAGONKNIGHT_GEKIRIN 155 dragonknightRyuurin/3 160 DRAGONKNIGHT_TATSUMAKI 162 DRAGONKNIGHT_ARASHIRYUU
+    140 RYUUJINKOURIN 145 resistAilment/2 150 DRAGONKNIGHT_GEKIRIN 155 dragonknightRyuurin/2 160 DRAGONKNIGHT_TATSUMAKI 162 DRAGONKNIGHT_ARASHIRYUU
     165 dragonknightIkari/3 170 DRAGONKNIGHT_RYUUOUDAN 175 dragonknightRyuugan/3 180 DRAGONKNIGHT_RYUUSEIRAKU 185 dragonknightHishou/3 190 DRAGONKNIGHT_GOUKA
     195 DRAGONKNIGHT_RYUURINJIN 200 RYUUTEIGEKI`,
   skills: {
+    // Lv15 の固有技: 竜をも貫く槍の一突き
+    DRAGONKNIGHT_RYUUSOUTSUKI: { name: "竜槍突き", mp: 5, kind: "phys", power: 1.4, acc: 0.6, pierce: 0.3, prey: { races: DRAGONS, mul: 1.3 }, target: "enemy", desc: "竜をも貫く槍の一突き。防御を一部抜き、竜に強い" },
     DRAGONKNIGHT_RYUUSOU: { name: "竜爪裂き", mp: 16, kind: "phys", power: 2.0, hits: 2, pierce: 0.4, acc: 0.7, target: "enemy", desc: "竜の爪のごとく二度裂く（防御を一部無視）" },
     DRAGONKNIGHT_RYUUYOKU: { name: "竜翼の庇い", mp: 10, kind: "buff", buff: { vit: 1.3, agi: 1.1 }, tech: true, target: "all-ally", desc: "竜の翼を広げ、味方全体の守りと身のこなしを上げる" },
     DRAGONKNIGHT_RYUUGA: { name: "竜牙穿ち", mp: 14, kind: "phys", power: 2.3, acc: 0.7, debuff: { vit: 0.8 }, flinchChance: 0.25, target: "enemy", desc: "竜の牙で鎧を穿ち、怯ませる" },
@@ -32,6 +36,12 @@ export default {
     DRAGONKNIGHT_RYUURINJIN: { name: "竜鱗の陣", mp: 20, kind: "buff", buff: { vit: 1.4 }, grantBarrier: 1, tech: true, target: "all-ally", desc: "竜鱗の加護を味方全体に分け与える" },
   },
   perks: {
+    // Lv15 の目玉パッシブ: 逆鱗に触れられた竜は止まらない
+    dragonknightGekirin: {
+      label: "逆鱗",
+      lv: ["HPが50%以下の間、攻撃力+50%", "HPが50%以下の間、攻撃力+100%", "HPが50%以下の間、攻撃力+150%"],
+      fx: [{ t: "stat", when: { selfLow: 0.5 }, mul: { atk: [0.5, 1.0, 1.5] } }],
+    },
     dragonknightHishou: {
       label: "飛竜の跳躍",
       lv: ["敵の物理を4%でかわす。1ラウンド目の与ダメージ+10%", "敵の物理を7%でかわす。1ラウンド目の与ダメージ+15%", "敵の物理を10%でかわす。1ラウンド目の与ダメージ+20%"],

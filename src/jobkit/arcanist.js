@@ -2,17 +2,21 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 禁じられた闇の秘術。己の血 (HP) を代償に威力を買い、重力で圧し潰し、呪いで蝕んだ敵を仕留める。
 export default {
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "arcanistShinen",
   table: `
     1 SHADOWBOLT 2 HALITO 3 MARK_FIRE 5 arcanistChikei/1 7 ICENEEDLE 10 ARCANIST_KOJUU
-    15 arcanistChoushuu/1 20 ARCANIST_KOKUMU 22 MAHALITO 25 arcanistJushoku/1 30 ELEMBREAK 35 arcanistTsuuren/1
-    40 KINJUKAICHOU 45 arcanistChikei/2 47 DARKBLAST 50 ARCANIST_KETSUIN 55 MAYOKE 60 arcanistSeiyaku/1
+    15 ARCANIST_CHIIN 15 cartography/1 20 ARCANIST_KOKUMU 22 MAHALITO 25 arcanistJushoku/1 30 ELEMBREAK 35 arcanistTsuuren/1
+    40 KINJUKAICHOU 45 arcanistChikei/2 47 DARKBLAST 50 ARCANIST_KETSUIN 50 cartography/2 55 MAYOKE 60 arcanistSeiyaku/1
     65 MADALT 70 arcanistTsuuren/2 72 ARCANIST_YAMITOBARI 75 arcanistJushoku/2 80 ARCANIST_KINSEI 85 MARYOKUBOUSOU
-    90 arcanistChoushuu/2 95 ARCANIST_HYOUJU 100 ARCANIST_JUEN 105 arcanistChikei/3 110 ARCANIST_JUUATSU 112 ARCANIST_KONSAKI
+    90 arcanistChoushuu/1 95 ARCANIST_HYOUJU 100 ARCANIST_JUEN 100 cartography/3 105 arcanistChikei/3 110 ARCANIST_JUUATSU 112 ARCANIST_KONSAKI
     115 resistAilment/1 120 ARCANIST_JURAI 125 arcanistTsuuren/3 130 ARCANIST_KYOKOU 135 arcanistSeiyaku/2 140 ARCANIST_KINIKI
-    145 arcanistJushoku/3 150 ARCANIST_KENKA 155 resistAilment/2 160 ARCANIST_RAKUSEI 165 arcanistChoushuu/3 170 ARCANIST_TOUKON
+    145 arcanistJushoku/3 150 ARCANIST_KENKA 155 resistAilment/2 160 ARCANIST_RAKUSEI 165 arcanistChoushuu/2 170 ARCANIST_TOUKON
     172 ARCANIST_MEIJU 175 arcanistChikei/4 180 ARCANIST_GOUKASHO 185 arcanistSeiyaku/3 190 KYOMU 195 ARCANIST_KAIKAI
     200 ARCANIST_SHUUENSHO`,
   skills: {
+    // Lv15 の固有技: 己の血で印を描き、重い闇の呪弾を撃つ
+    ARCANIST_CHIIN: { name: "血印の呪弾", mp: 5, kind: "atk", power: 22, element: "dark", hpCost: 0.06, target: "enemy", desc: "己の血で印を描き、重い闇の呪弾を撃つ（HPを代償）" },
     ARCANIST_KOJUU:      { name: "虚重の秘法", mp: 6, kind: "atk", gravity: 0.3, hpCost: 0.04, target: "enemy", desc: "身を削り、敵の今のHPの30%を潰す" },
     ARCANIST_KOKUMU:     { name: "魔喰いの黒霧", mp: 6, kind: "atk", power: 16, element: "dark", mpDrain: 0.1, target: "all-enemy", desc: "黒い霧が敵全体を撃ち、魔力を啜る" },
     ARCANIST_KETSUIN:    { name: "血の契約", mp: 3, kind: "buff", buff: { int: 1.6 }, hpCost: 0.1, target: "self", desc: "血を捧げ、自分のINTを大きく高める" },

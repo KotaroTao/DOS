@@ -1,17 +1,21 @@
 // 魔盗賊 (arcthief) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 export default {
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "arcthiefKaeshi",
   table: `
     1 STEAL 2 ARCTHIEF_KASUMEBA 3 HALITO 4 SHADOWBOLT 5 openSpell/1 7 ARCTHIEF_NUSUMIMI
-    10 ARCTHIEF_YUMETORI 12 FUYUU 15 arcthiefKarimono/1 20 SEAL 25 arcthiefSae/1 30 MAHALITO
-    32 DARKBLAST 35 arcthiefSuritoru/1 40 MARYOKUGOUDATSU 45 arcthiefTeguse/1 50 ARCTHIEF_GENTOU 55 DISPEL
-    57 ARCTHIEF_MAREIJIN 60 arcthiefTeguse/2 65 ARCTHIEF_ENMAKU 70 arcthiefKarimono/2 72 ARCTHIEF_KAGEKUI 75 arcthiefSae/2
-    80 ARCTHIEF_TOUSEI 85 ARCTHIEF_MASHU 90 arcthiefSuritoru/2 95 ARCTHIEF_KASUMERAI 100 MADALT 105 arcthiefSurinuke/1
-    110 ARCTHIEF_JUTSUAMI 115 arcthiefSuritoru/3 120 ARCTHIEF_MANAWA 122 ARCTHIEF_TAMANUKI 125 arcthiefKarimono/3 130 ARCTHIEF_NUSUMISHIMO
+    10 ARCTHIEF_YUMETORI 12 FUYUU 15 ARCTHIEF_KASUMEJUDAN 15 arcthiefGenei/1 20 SEAL 25 arcthiefSae/1 30 MAHALITO
+    32 DARKBLAST 35 arcthiefSuritoru/1 40 MARYOKUGOUDATSU 45 arcthiefTeguse/1 50 ARCTHIEF_GENTOU 50 arcthiefGenei/2 55 DISPEL
+    57 ARCTHIEF_MAREIJIN 60 arcthiefTeguse/2 65 ARCTHIEF_ENMAKU 70 arcthiefKarimono/1 72 ARCTHIEF_KAGEKUI 75 arcthiefSae/2
+    80 ARCTHIEF_TOUSEI 85 ARCTHIEF_MASHU 90 arcthiefSuritoru/2 95 ARCTHIEF_KASUMERAI 100 MADALT 100 arcthiefGenei/3 105 arcthiefSurinuke/1
+    110 ARCTHIEF_JUTSUAMI 115 arcthiefSuritoru/3 120 ARCTHIEF_MANAWA 122 ARCTHIEF_TAMANUKI 125 arcthiefKarimono/2 130 ARCTHIEF_NUSUMISHIMO
     135 arcthiefSae/3 140 ARCTHIEF_KAGENUKE 145 arcthiefTeguse/3 150 ARCTHIEF_NUSUMIARASHI 155 resistAilment/1 160 ARCTHIEF_NUSUMIBI
     165 arcthiefSuritoru/4 170 ARCTHIEF_TAMANUSUMI 175 arcthiefSurinuke/2 180 ARCTHIEF_TOUTENSEKI 185 arcthiefSae/4 190 ARCTHIEF_MAKUHIKI
     195 ARCTHIEF_DATSUENRAN 200 ARCTHIEF_BANSHOU`,
   skills: {
+    // Lv15 の固有技: 闇の呪弾で撃ち、魔力を掠め取る
+    ARCTHIEF_KASUMEJUDAN: { name: "掠め呪弾", mp: 5, kind: "atk", power: 16, element: "dark", mpDrain: 0.2, target: "enemy", desc: "闇の呪弾で撃ち、敵の魔力を掠め取る" },
     // INT でも伸びる魔刃 (共通の冥刃は ATK だけで伸び、INT型の魔盗賊に合わない)
     ARCTHIEF_MAREIJIN:   { name: "魔霊刃", mp: 10, kind: "phys", power: 1.7, intScale: 0.5, element: "dark", mpDrain: 0.2, target: "enemy", desc: "魔力を纏った冥い刃で斬り、魔力を奪う（INTでも伸びる）" },
     ARCTHIEF_KASUMEBA:     { name: "掠め魔刃", mp: 4, kind: "phys", power: 1.1, intScale: 0.5, element: "dark", mpDrain: 0.2, target: "enemy", desc: "闇の刃で斬り、魔力を掠め取る（闇）" },
@@ -37,6 +41,12 @@ export default {
     ARCTHIEF_BANSHOU:      { name: "万象盗り", mp: 44, kind: "atk", power: 130, mpDrain: 0.1, strip: true, target: "all-enemy", desc: "万象の理を盗み、敵陣を消し去る" },
   },
   perks: {
+    // Lv15 の目玉パッシブ: 幻を残して身を翻す
+    arcthiefGenei: {
+      label: "幻影歩法",
+      lv: ["敵の物理を10%でかわす", "敵の物理を15%でかわす", "敵の物理を20%でかわす"],
+      fx: [{ t: "evade", v: [0.10, 0.15, 0.20] }],
+    },
     // 盗んだ術は懐が痛まない
     arcthiefKarimono: {
       label: "借り物の術",

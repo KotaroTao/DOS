@@ -20,10 +20,10 @@ import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LOR
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, itemName } from "../items.js";
 import { RANK_COLOR, RANK_NAME } from "../content.js";
 import { DUNGEONS, ELEMENTS, RACE_LABEL, monsterTraits, isFloating, resistHpMul, METAL_TIERS } from "../dungeons/index.js";
-import { SPELLS } from "../combat.js";
+import { SPELLS, spellMpLabel } from "../combat.js";
 import {
   SOUL_CLASSES, jobSprite, jobRankName, jobLoreFor, jobRankCondText, SOUL_STAT_UP, JOB_GEAR,
-  jobPassiveTable, rankThresholds, soulLevelCap, jobSkillTable, passiveName, passiveDesc, JOB_AFFINITY,
+  awakenPerkOf, rankThresholds, soulLevelCap, jobSkillTable, passiveName, passiveDesc, JOB_AFFINITY,
 } from "../souls.js";
 import { rarityColor } from "../rarity.js";
 import { SFX } from "../audio.js";
@@ -569,17 +569,16 @@ export function codexJobSheet(key, rank, heading) {
   } else if (affRow) {
     body.appendChild(infoBlock("得意属性", [affRow]));
   }
-  // パッシブ: 上位の位階に呑まれた同系統の下位Lvは省く
-  const pTbl = jobPassiveTable(key);
-  const claimed = {};
-  const actives = [];
-  for (let r = Math.min(rank, 5); r >= 2; r--) {
-    const e = pTbl[r - 2];
-    if (!e || !Object.entries(e.grants).some(([k, lv]) => lv > (claimed[k] || 0))) continue;
-    for (const k in e.grants) claimed[k] = Math.max(claimed[k] || 0, e.grants[k]);
-    actives.unshift(e);
+  // ランクのパッシブ (ランク2で目覚め、3・4・5で強まる。Lvで覚えるパッシブは下の技の表に並ぶ)
+  const rkRows = [];
+  for (let r = 2; r <= 5; r++) {
+    const pk = awakenPerkOf(key, r);
+    if (!pk) continue;
+    rkRows.push(r <= rank
+      ? pairRow(`ランク${r} ${pk.name}`, `[パッシブ] ${pk.desc}`, { onTap: () => showPassivePopup(pk.key, pk.lv) })
+      : pairRow(`ランク${r} ？？？`, null, { dim: true }));
   }
-  body.appendChild(infoBlock("パッシブ", actives.length ? actives.map((e) => pairRow(e.name, e.desc)) : [pairRow("なし (ランク2以上で発現)", null, { dim: true })]));
+  body.appendChild(infoBlock("ランクのパッシブ", rkRows.length ? rkRows : [pairRow("—", null, { dim: true })]));
   // スキル表: このランクのLv上限まで。到達したLvのものだけ開示
   const reached = (rec && typeof rec === "object" && rec.lv) || 0;
   const capCount = (rankThresholds(SOUL_CLASSES[key].rarity)[rank - 1]) || 1;
@@ -592,7 +591,7 @@ export function codexJobSheet(key, rank, heading) {
       rows.push(reached >= e.lvl ? pairRow(`${lv} ${passiveName(e.passive, e.plv || 1)}`, `[パッシブ] ${passiveDesc(e.passive, e.plv || 1)}`, { onTap: () => showPassivePopup(e.passive, e.plv || 1) }) : pairRow(`${lv} ？？？`, null, { dim: true }));
     } else {
       const sp = SPELLS[e.skill];
-      rows.push(reached >= e.lvl && sp ? pairRow(`${lv} ${sp.name}`, `${sp.desc} (MP${sp.mp})`, { onTap: () => showSkillPopup(e.skill), tags: spellTagKinds(sp) }) : pairRow(`${lv} ？？？`, null, { dim: true }));
+      rows.push(reached >= e.lvl && sp ? pairRow(`${lv} ${sp.name}`, `${sp.desc} (${spellMpLabel(sp)})`, { onTap: () => showSkillPopup(e.skill), tags: spellTagKinds(sp) }) : pairRow(`${lv} ？？？`, null, { dim: true }));
     }
   }
   body.appendChild(infoBlock("技", rows.length ? rows : [pairRow("—", null, { dim: true })]));

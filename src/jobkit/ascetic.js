@@ -2,17 +2,21 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 山岳の荒行。滝行・火渡りで己を鍛え、身を削って打ち・癒し、護摩の炎と山の土で敵を焼き崩す (土・火)
 export default {
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "asceticHatate",
   table: `
     1 KYOUGEKI 2 IWAKUDAKI 3 DIOS 5 asceticAragyou/1 7 NERAIUCHI 8 ASCETIC_TSUBUTE
-    10 ASCETIC_TAKIGYOU 12 ASCETIC_FUDOUBI 15 asceticYoujou/1 20 KUJI 22 CHIRETSU 25 asceticAragyou/2
-    30 ASCETIC_HIWATARI 32 ASCETIC_JISHIN 35 asceticNyuubu/1 40 SHASHINNOGYOU 45 asceticDoukou/1 50 GOMA
-    55 SHINGANGEKI 57 GANOTOSHI 60 asceticNyuubu/2 65 ASCETIC_SHAKUJOU 70 asceticYoujou/2 75 asceticMoeagari/1
-    80 ASCETIC_SARASHIMI 82 ASCETIC_KAENSHAKUJOU 85 ASCETIC_YAMABUSHIGUSURI 90 asceticAragyou/3 95 ASCETIC_IWAOTOOSHI 100 ASCETIC_ZAOU
-    105 asceticNyuubu/3 107 ASCETIC_REIHOU 110 ASCETIC_MIGAWARIGOMA 115 asceticYoujou/3 120 ASCETIC_SANKO 125 resistAilment/1
+    10 ASCETIC_TAKIGYOU 12 ASCETIC_FUDOUBI 15 ASCETIC_GENRIKISHOU 15 asceticShintou/1 20 KUJI 22 CHIRETSU 25 asceticAragyou/2
+    30 ASCETIC_HIWATARI 32 ASCETIC_JISHIN 35 asceticNyuubu/1 40 SHASHINNOGYOU 45 asceticDoukou/1 50 GOMA 50 asceticShintou/2
+    55 SHINGANGEKI 57 GANOTOSHI 60 asceticNyuubu/2 65 ASCETIC_SHAKUJOU 70 asceticYoujou/1 75 asceticMoeagari/1
+    80 ASCETIC_SARASHIMI 82 ASCETIC_KAENSHAKUJOU 85 ASCETIC_YAMABUSHIGUSURI 90 asceticAragyou/3 95 ASCETIC_IWAOTOOSHI 100 ASCETIC_ZAOU 100 asceticShintou/3
+    105 asceticNyuubu/3 107 ASCETIC_REIHOU 110 ASCETIC_MIGAWARIGOMA 115 asceticYoujou/2 120 ASCETIC_SANKO 125 resistAilment/1
     130 ASCETIC_GOMANOKEMURI 135 asceticMoeagari/2 140 ASCETIC_NYUUBU 145 asceticDoukou/2 150 ASCETIC_YAMANARI 155 asceticMoeagari/3
-    160 ASCETIC_KASHOUZANMAI 165 asceticAragyou/4 170 ASCETIC_SHAKUJOURANBU 175 resistAilment/2 180 ASCETIC_SHASHINKUYOU 185 asceticYoujou/4
+    160 ASCETIC_KASHOUZANMAI 165 asceticAragyou/4 170 ASCETIC_SHAKUJOURANBU 175 resistAilment/2 180 ASCETIC_SHASHINKUYOU 185 asceticYoujou/3
     190 ASCETIC_SHASHINJOUBUTSU 195 ASCETIC_FUDOUKAEN 200 GONGENOROSHI`,
   skills: {
+    // Lv15 の固有技: 験力を込めた掌打 (土)。PIE でも伸びる
+    ASCETIC_GENRIKISHOU: { name: "験力の掌", mp: 5, kind: "phys", power: 1.2, pieScale: 0.4, element: "earth", flinchChance: 0.25, target: "enemy", desc: "験力を込めた掌打で打ち、怯ませる（PIEでも伸びる・土）" },
     // 験力の術 (faith)。共通の呪文は INT 依存で修験者 (PIE型) に合わないので置き換える
     ASCETIC_TSUBUTE:  { name: "験力の礫", mp: 3, kind: "atk", power: 12, element: "earth", faith: true, target: "enemy", desc: "念を込めた礫を打つ（PIEでも伸びる）" },
     ASCETIC_FUDOUBI:  { name: "不動の火焔", mp: 2, kind: "atk", power: 10, element: "fire", faith: true, target: "enemy", desc: "不動明王の火焔で焼く（PIEでも伸びる）" },
@@ -38,6 +42,12 @@ export default {
     ASCETIC_FUDOUKAEN: { name: "不動火炎陣", mp: 28, kind: "phys", power: 2.3, element: "fire", acc: 0.7, partyHeal: 8, target: "all-enemy", desc: "不動の炎が全敵を焼き、仲間を癒す" },
   },
   perks: {
+    // ランクのパッシブ: 死の淵でこそ、荒行で鍛えた身が目覚める
+    asceticHatate: {
+      label: "荒行の果て",
+      lv: ["HP30%以下の間、ATK・VIT・AGI・INT・PIE+15%", "HP30%以下の間、ATK・VIT・AGI・INT・PIE+30%", "HP30%以下の間、ATK・VIT・AGI・INT・PIE+50%", "HP30%以下の間、ATK・VIT・AGI・INT・PIE+80%"],
+      fx: [{ t: "stat", when: { selfLow: 0.3 }, mul: { atk: [0.15, 0.30, 0.50, 0.80], vit: [0.15, 0.30, 0.50, 0.80], agi: [0.15, 0.30, 0.50, 0.80], int: [0.15, 0.30, 0.50, 0.80], pie: [0.15, 0.30, 0.50, 0.80] } }],
+    },
     asceticAragyou: { label: "荒行の誓い", lv: ["HP40%以下の時、与ダメージ+10%・会心+4%", "HP40%以下の時、与ダメージ+15%・会心+6%", "HP40%以下の時、与ダメージ+20%・会心+8%", "HP40%以下の時、与ダメージ+25%・会心+10%"],
       fx: [{ t: "deal", when: { selfLow: 0.4 }, v: [0.1, 0.15, 0.2, 0.25] }, { t: "crit", when: { selfLow: 0.4 }, v: [0.04, 0.06, 0.08, 0.1] }] },
     asceticYoujou: { label: "山伏の養生", lv: ["HP50%以下の間、毎ラウンドHP3%回復", "HP50%以下の間、毎ラウンドHP4%回復", "HP50%以下の間、毎ラウンドHP5%回復", "HP50%以下の間、毎ラウンドHP6%回復"],

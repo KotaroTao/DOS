@@ -23,7 +23,7 @@ import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, soulIcon,
   recalcDoll, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
   soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills, soulLearnedPassives, soulLabel, subPickCap, jobStatsOf,
-  ORDER_PERK, orderPassiveMap,
+  awakenPerkOf, subPickCapOfRank, subStatRateOfRank, setOrderSource, orderStatRateOfRank, setAppraiseSource,
   PASSIVES,
   SOUL_RANKS, rollJobClass, rollGreatJobClass, SOUL_STAT_UP,
   soulRankFromCount, capForRarityRank, jobRankName, soulSeriesName, pLv,
@@ -506,7 +506,7 @@ const G = {
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={収集品id:true}, claimed={"ランク:しきい値":true}
   lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
   lrClock: { since: 0, pend: 0 }, // レジェンドレアの時間抽選 (最後のLRからの/前回抽選からの実プレイms)
-  order: { picks: [] }, // 控えの結社: 席に着けた魂のuid配列 (席数=orderSeats()。編成外ランク2以上のみ有効)
+  order: { picks: [] }, // 控えの結社: 席に着けた魂のuid配列 (席数=orderSeats()。編成外の魂のみ有効。能力の一部を全員に足す)
   events: { seen: {}, picks: {}, once: {}, flags: {}, fresh: {} }, // 迷宮のイベント (src/events.js): 見聞録・一度きり・恒久の恵み
   irene: { greeted: false, visits: 0, seen: {}, last: null }, // 人業の館の主イレーヌ: 初訪問の挨拶済み・来館数・聞いた話 (src/ui/irene.js)
   tut: { done: {}, cur: null, step: 0, ev: {}, base: {} }, // 解放された要素の手ほどき: 済んだもの・最中のもの (src/ui/tutorial.js)
@@ -1216,19 +1216,18 @@ function shadeHex(hex, f) {
 // 偉大なる死体の職業: レア30% / エピック50% / レジェンド20% (souls.js の共通定義を使う)
 function rollGreatCorpseClass() { return rollGreatJobClass(); }
 
-// 生存パーティが持つ職業ランクパッシブの最高Lv (隊全体効果の判定用。重複しない)。
-// 控えの結社 (編成外の魂が供給するパーティ範囲パッシブ) も合算する。
+// ランクのパッシブの Lv (1-4 = ランク2-5) から、その段の値を引く (combat.js の _rk と同じ)
+function rankVal(m, key, table) { const lv = pLv(m, key); return lv ? (table[Math.min(table.length, lv) - 1] || 0) : 0; }
+// 隊で一番高い段の値 (重複不可)
+function rankParty(key, table) { let v = 0; for (const p of G.party || []) if (p.alive) v = Math.max(v, rankVal(p, key, table)); return v; }
+// 生存パーティが持つ職業ランクパッシブの最高Lv (隊全体効果の判定用。重複しない)
 function partyPassiveLv(key) {
   let lv = 0;
   for (const p of G.party || []) if (p.alive) lv = Math.max(lv, pLv(p, key));
-  if (featureUnlocked("order")) {
-    const om = orderPassiveMap(G.party || [], orderSeatedUids());
-    if (om[key]) lv = Math.max(lv, om[key]);
-  }
   return lv;
 }
 
-// 控えの結社 踏破の地図 (cartography): 着地ごとに周囲 N マス (マンハッタン距離) の
+// 隊のパッシブ 踏破の地図 (cartography): 着地ごとに周囲 N マス (マンハッタン距離) の
 // カードを自動で表にする。踏破済みにはしないので、踏めば通常どおりイベントは起きる。
 function revealByCartography() {
   const rad = partyPassiveLv("cartography");
@@ -2227,15 +2226,15 @@ function drawCandleFlames(now) {
 
 // 探りの術の光: 墓石の下から滲む、ぼんやりした光 (ゆっくり明滅し、芯が少し揺らぐ)
 const SENSE_GLOW = { enemy: [255, 52, 40], chest: [70, 150, 255] };
-function drawSenseGlow(r, rgb, now, x, y) {
+function drawSenseGlow(r, rgb, now, x, y, k = 1) {
   const t = REDUCED_MOTION ? 0.5 : 0.5 + 0.5 * Math.sin(now * 0.0017 + x * 1.7 + y * 2.3);
   const dx = REDUCED_MOTION ? 0 : Math.sin(now * 0.0009 + y) * r.w * 0.06;
   const dy = REDUCED_MOTION ? 0 : Math.cos(now * 0.0011 + x) * r.h * 0.06;
   const cx = r.x + r.w / 2 + dx, cy = r.y + r.h / 2 + dy, rad = Math.max(r.w, r.h) * 0.62;
   const [cr, cg, cb] = rgb;
   const g = vctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
-  g.addColorStop(0, `rgba(${cr},${cg},${cb},${0.34 + 0.16 * t})`);
-  g.addColorStop(0.45, `rgba(${cr},${cg},${cb},${0.16 + 0.08 * t})`);
+  g.addColorStop(0, `rgba(${cr},${cg},${cb},${(0.34 + 0.16 * t) * k})`);
+  g.addColorStop(0.45, `rgba(${cr},${cg},${cb},${(0.16 + 0.08 * t) * k})`);
   g.addColorStop(1, `rgba(${cr},${cg},${cb},0)`);
   vctx.save();
   vctx.globalCompositeOperation = "lighter";
@@ -2245,9 +2244,43 @@ function drawSenseGlow(r, rgb, now, x, y) {
 }
 
 // 気配読み (魔物 = ぼんやりした赤い光) / 宝探し (宝箱 = ぼんやりした青い光)。種類・強さは分からない。歩いている間も灯したまま
+// 清めの歩み (聖騎士): まだめくっていない墓石をめくるたび、全員の HP を 5/15/30・MP を 1/2/3 回復 (隊で一番高いLv)
+function cleanseStepHeal() {
+  const lv = Math.min(3, partyPassiveLv("cleanseStep"));
+  if (!lv) return;
+  const hp = [0, 5, 15, 30][lv], mp = [0, 1, 2, 3][lv];
+  let any = false;
+  for (const p of G.party) {
+    if (!p.alive) continue;
+    if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + hp); any = true; }
+    if (p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + mp); any = true; }
+  }
+  if (any) renderParty();
+}
+// 感知のパッシブ (この階で示す墓石を最初に決めて覚える。めくられたものは示さない):
+//  敵感知 (senseEnemy) = 魔物を Lv 体 / 財宝感知 (senseTreasure) = 宝箱を Lv 個
+function passiveSensePlan() {
+  const b = G.board;
+  if (b.psense) return b.psense;
+  const pick = (type) => {
+    const out = [];
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = b.cells[y][x]; if (c.type === type && !c.revealed && !c.cleared) out.push([x, y]); }
+    for (let i = out.length - 1; i > 0; i--) { const j = rand(i + 1); [out[i], out[j]] = [out[j], out[i]]; }
+    return out.slice(0, 3);
+  };
+  b.psense = { enemy: pick("monster"), chest: pick("chest") };
+  return b.psense;
+}
 function drawSenseGlows(now) {
   if (G.state !== "board") return;
   const fsE = fieldSense("enemy"), fsC = fieldSense("chest");
+  const psE = partyPassiveLv("senseEnemy"), psT = partyPassiveLv("senseTreasure");
+  if ((psE || psT) && inDungeon()) {
+    const plan = passiveSensePlan();
+    const hidden = ([x, y]) => { const c = G.board.cells[y] && G.board.cells[y][x]; return c && !c.revealed && !c.cleared; };
+    if (!fsE) for (const p of plan.enemy.slice(0, Math.min(3, psE))) if (hidden(p)) drawSenseGlow(cellRect(p[0], p[1]), SENSE_GLOW.enemy, now, p[0], p[1], 0.7);
+    if (!fsC) for (const p of plan.chest.slice(0, Math.min(3, psT))) if (hidden(p)) drawSenseGlow(cellRect(p[0], p[1]), SENSE_GLOW.chest, now, p[0], p[1], 0.7);
+  }
   if (!fsE && !fsC) return;
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
     const cell = G.board.cells[y][x];
@@ -2262,7 +2295,6 @@ function drawBoardHighlights(now) {
   if (G.state !== "board" || G.anim || G.walking) return;
   const reach = getReachableCells();
   const pulse = REDUCED_MOTION ? 0.6 : 0.5 + 0.5 * Math.sin(now * 0.0042);
-  const senseE = partyPassiveLv("senseEnemy"), senseT = partyPassiveLv("senseTreasure");
   const fsS = fieldSense("stairs"); // 道しるべ (この階だけ)
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
     const cell = G.board.cells[y][x];
@@ -2292,20 +2324,10 @@ function drawBoardHighlights(now) {
       }
       vctx.restore();
     }
-    // 感知パッシブ: 敵感知 (!) / 財宝感知 (✦) の気配。Lv2: 強敵を強調・帰還陣も / Lv3: 属性色・罠も
+    // 道しるべの印 (敵感知・財宝感知はぼんやりした光で示す ― drawSenseGlows)
     if (!cell.cleared) {
       let mark = null;
-      if (senseE && cell.type === "monster") {
-        const strong = senseE >= 2 && cell.elite;
-        let color = strong ? "#ff3b30" : "#ff7a52";
-        // 属性の暴走・奔流の中は戦うまで属性が定まらないので色を付けない
-        if (senseE >= 3 && !elemRandomHere()) { const e2 = (MONSTERS[cell.monsterKey] || {}).element; const ec = (ELEMENTS[e2] || {}).color; if (ec) color = ec; }
-        mark = { text: strong ? "‼" : "!", color };
-      } else if (senseT && (cell.type === "chest" || (senseT >= 2 && isPortalCell(cell)) || (senseT >= 3 && cell.type === "trap"))) {
-        if (cell.type === "chest") mark = { text: "✦", color: "#ffd84a" };
-        else if (isPortalCell(cell)) mark = { text: "◎", color: "#6fe0d0" };
-        else mark = { text: "▲", color: "#ff7a5e" };
-      } else if (cell.type === "stairs" && fsS) {                                       // 道しるべ: 階段の墓石を淡く縁取る
+      if (cell.type === "stairs" && fsS) {                                       // 道しるべ: 階段の墓石を淡く縁取る
         mark = { text: "▼", color: "#8fd8ff" };
         vctx.save();
         vctx.strokeStyle = `rgba(143,216,255,${0.35 + 0.35 * pulse})`;
@@ -4912,6 +4934,7 @@ function moveStep(nx, ny, onDone) {
     SFX.flip();
     buzz(12);
     cell.revealed = true; // めくり途中に表面を見せる
+    cleanseStepHeal();
     G.flipAnim = { x: nx, y: ny, t0: performance.now(), dur: walkMs(240) };
     const ftick = () => {
       renderBoard();
@@ -6239,8 +6262,9 @@ function disarmChance(m, cRank = 1) {
   if ((specialDef() || {}).sureDisarm) return 1; // 盗賊の洞察: 罠解除率100%
   // 得意職は最大95%まで伸びるが、それ以外は上限55% (適正レベルで約50%、過剰育成でも頭打ち)
   const cap = disarmExpert(m) ? 0.95 : 0.55;
-  const teLv = partyPassiveLv("trapEye"); // 控えの結社 罠師の目: 解除力 +10/20/30%
-  return Math.max(0.05, Math.min(cap, disarmPower(m) / disarmNeed(cRank) * (1 + 0.10 * teLv)));
+  // 隊のパッシブ 盗賊の眼 (trapEye): 解除率 +10/20/30% (上限を越えて足せるが、最大95%)
+  const eye = [0, 0.10, 0.20, 0.30][Math.min(3, partyPassiveLv("trapEye"))] || 0;
+  return Math.min(0.95, Math.max(0.05, Math.min(cap, disarmPower(m) / disarmNeed(cRank))) + eye);
 }
 
 // 宝箱ランク (1-5) を取得。セルに未設定ならその場で抽選して保存する
@@ -6251,10 +6275,9 @@ function chestRankOf(cell) {
   const floors = Math.max(1, cfg.floors || 3);
   const depth = floors > 1 ? Math.min(1, (G.floor - 1) / (floors - 1)) : 0;
   // 特別階 (商隊の遺品) / 迷宮の異変 (閉ざされた退路など): 宝箱ランクが上がる。
-  // 控えの結社 宝物庫 (vault): Lvに応じた確率で宝箱ランク+1
-  const vLv = partyPassiveLv("vault");
-  const vaultBump = (vLv && Math.random() < (vLv >= 3 ? 0.50 : vLv >= 2 ? 0.30 : 0.15)) ? 1 : 0;
-  const r = Math.min(5, rollChestRank(depth, cfg.rank || 1) + sfNum("chestRankUp", 0) + mutNum("chestRankUp", 0) + vaultBump);
+  // 抜け目なさ (盗賊のランク): 宝箱のランクが一段上がる確率 10/15/20/30%
+  const nk = Math.random() < rankParty("thiefNukeme", [0.10, 0.15, 0.20, 0.30]) ? 1 : 0;
+  const r = Math.min(5, rollChestRank(depth, cfg.rank || 1) + sfNum("chestRankUp", 0) + mutNum("chestRankUp", 0) + nk);
   if (cell) cell.cRank = r;
   return r;
 }
@@ -6427,15 +6450,10 @@ function applyTrap(trap, opener) {
   }
 
   // 残りはダメージ/吸収系: 効果を適用して結果をまとめる。
-  // 控えの結社 罠師の目 (trapEye)=罠ダメ軽減 / 加護の祈り (wardField)=状態異常付与率を抑える
-  const teLv = partyPassiveLv("trapEye");
-  const trapDmgMul = teLv >= 3 ? 0.5 : teLv >= 2 ? 0.65 : teLv >= 1 ? 0.8 : 1;
-  const wfLv = partyPassiveLv("wardField");
-  const ailMul = wfLv >= 3 ? 0.3 : wfLv >= 2 ? 0.5 : wfLv >= 1 ? 0.7 : 1;
   const lines = [trap.flavor];
   const fallen = [], hurtList = [], brief = [];
   const hurt = (p, mult) => {
-    const dmg = Math.max(1, Math.round(trapBaseDmg() * mult * trapDmgMul));
+    const dmg = Math.max(1, Math.round(trapBaseDmg() * mult));
     p.hp = Math.max(0, p.hp - dmg);
     lines.push(`${p.name}に ${dmg} ダメージ！`);
     brief.push(`${p.name} -${dmg}`);
@@ -6451,7 +6469,7 @@ function applyTrap(trap, opener) {
     // 装備の状態異常耐性 (ailRes) と解呪の宝珠 (ailmentImmune) も罠に効く
     if (!ail || !p.alive || p.ailment || (p.eff && p.eff.ailmentImmune)) return;
     const eqRes = (p.ailRes && p.ailRes[ail]) || 0;
-    if (Math.random() >= chance * ailMul * (1 - eqRes)) return;
+    if (Math.random() >= chance * (1 - eqRes)) return;
     p.ailment = ail;
     lines.push(`${p.name}は${AIL_NAME[ail]}に侵された！`);
     brief.push(`${p.name} ${AIL_NAME[ail]}`);
@@ -6737,17 +6755,19 @@ function descend({ fall = false } = {}) {
     if (G.floor % every === 0) newMut = addAbyssMutation();
     G.abyss._pendingMut = null;
   }
-  // 控えの結社 戦間回復 (fieldRegen): 階を降りるたび隊全体のHP/MPを少し回復
-  const frLv = partyPassiveLv("fieldRegen");
-  if (frLv) {
-    const pct = frLv >= 3 ? 0.06 : frLv >= 2 ? 0.04 : 0.02;
-    let healed = false;
+  // 隊のパッシブ (階を移動するたび。どれも隊で一番高いLvの1人分だけ):
+  //  束の間の休息 (fieldRegen) = 全員のHP 10/20/30% / 魔力の循環 (manaFlow) = 全員のMP 5/10/15%
+  const frLv = partyPassiveLv("fieldRegen"), mfLv = partyPassiveLv("manaFlow");
+  if (frLv || mfLv) {
+    const hpPct = [0, 0.10, 0.20, 0.30][Math.min(3, frLv)] || 0, mpPct = [0, 0.05, 0.10, 0.15][Math.min(3, mfLv)] || 0;
+    let healed = false, mana = false;
     for (const p of G.party) {
       if (!p.alive) continue;
-      if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * pct)); healed = true; }
-      if (p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * pct)); healed = true; }
+      if (hpPct && p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * hpPct)); healed = true; }
+      if (mpPct && p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * mpPct)); mana = true; }
     }
-    if (healed) log("結社の戦間回復: 階を降りる道すがら、パーティの傷が癒えていく。", "win");
+    if (healed) log("束の間の休息: 階を移る合間に、パーティの傷が癒えた。", "win");
+    if (mana) log("魔力の循環: 階を移る合間に、パーティの魔力が満ちてきた。", "win");
   }
   // 強敵階判定: 5階層以上の迷宮のみ、3F以降で10%の確率で発生
   // 迷宮の掟 (軍議の間) は強敵階が出やすい (trait.eliteRate)
@@ -6885,11 +6905,15 @@ function startBattle(enemies, cell) {
     const vig = partyPassiveLv("vigilance");
     // 迷宮の異変 (闇討ちの宴): 奇襲率が跳ね上がる (周囲警戒は引き続き有効)
     // 極の恵み「霧渡りの目」は奇襲を半分に
-    const amb = (spFloor && spFloor.noAmbush) ? 0 : 0.08 * mutNum("ambushMul", 1) * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1) * evBoon("mistEye", "ambush", 1);
+    // 夜営の番 (nightWatch): 奇襲される確率 −50/75/100%
+    const nw = 1 - ([0, 0.50, 0.75, 1][Math.min(3, partyPassiveLv("nightWatch"))] || 0);
+    const amb = (spFloor && spFloor.noAmbush) ? 0 : 0.08 * mutNum("ambushMul", 1) * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1) * evBoon("mistEye", "ambush", 1) * nw;
     // 追い風の階 (preempt100) では必ず先手を取れる。
     // 先制の心得 (initiative) で +15/25/40%、周囲警戒Lv3 で挑戦時さらに +10%
     const ini = partyPassiveLv("initiative");
-    const iniBonus = ini >= 3 ? 0.40 : ini >= 2 ? 0.25 : ini >= 1 ? 0.15 : 0;
+    // 忍び足 (stealthStep) +10/15/20%
+    const iniBonus = (ini >= 3 ? 0.40 : ini >= 2 ? 0.25 : ini >= 1 ? 0.15 : 0)
+      + ([0, 0.10, 0.15, 0.20][Math.min(3, partyPassiveLv("stealthStep"))] || 0);
     // 極の恵み「守備隊の敬礼」は先手 +8%
     const pre = (spFloor && spFloor.preempt100) ? 1 : 0.08 + iniBonus + (vig >= 3 ? 0.10 : 0) + evBoon("salute", "preempt", 0);
     const r = Math.random();
@@ -8660,11 +8684,10 @@ function applyImpact(res) {
 const SUB_EXP_RATE = 1 / 3;
 function distributeBattleSoulExp(soulGot) {
   const queue = [];
-  // 控えの結社 魂の薫陶 (soulTutor): 戦闘後に魂へ入るEXPを底上げ
-  const stLv = partyPassiveLv("soulTutor");
-  const stMul = stLv >= 3 ? 1.35 : stLv >= 2 ? 1.20 : stLv >= 1 ? 1.10 : 1;
-  const share = Math.floor((soulGot || 0) * stMul / 3);
+  const share = Math.floor((soulGot || 0) / 3);
   if (share <= 0) return queue;
+  // 魂の薫陶 (soulTutor): その人業が宿す魂 (メイン・サブ) の得るEXP +10/20/30%
+  const tutorMul = (m) => 1 + ([0, 0.10, 0.20, 0.30][Math.min(3, pLv(m, "soulTutor"))] || 0);
   // 経験値は「編成中に宿している魂」(メイン魂・サブ魂とも) ごとに1回ずつ入る。
   // 同じ魂を複数人が宿すことはない (魂は1体ごとに個別) ので重複加算は起きない。
   // サブ魂が得る経験値はメイン魂の 1/3 (SUB_EXP_RATE)。どこかでメイン魂として宿していれば全量扱いにする。
@@ -8673,12 +8696,12 @@ function distributeBattleSoulExp(soulGot) {
   // まずメイン魂 (全量) を集める
   for (const m of G.party) {
     if (!m || !m.alive) continue;
-    if (m.primary != null && !seen.has(m.primary)) { seen.add(m.primary); worn.push({ uid: m.primary, sub: false }); }
+    if (m.primary != null && !seen.has(m.primary)) { seen.add(m.primary); worn.push({ uid: m.primary, sub: false, mul: tutorMul(m) }); }
   }
   // 次にサブ魂 (1/3)。メイン魂として既に集めた魂は除く
   for (const m of G.party) {
     if (!m || !m.alive) continue;
-    for (const s of (m.subs || [])) if (s && s.uid != null && !seen.has(s.uid)) { seen.add(s.uid); worn.push({ uid: s.uid, sub: true }); }
+    for (const s of (m.subs || [])) if (s && s.uid != null && !seen.has(s.uid)) { seen.add(s.uid); worn.push({ uid: s.uid, sub: true, mul: tutorMul(m) }); }
   }
   // レベルアップ前の各メンバーのステータス・スキル・メイン魂Lvを記録 (上昇量の算出用)
   const STAT_KEYS = ["maxhp", "maxmp", "atk", "vit", "agi", "int", "pie", "luk"];
@@ -8698,7 +8721,7 @@ function distributeBattleSoulExp(soulGot) {
   for (const w of worn) {
     const e = soulByUid(w.uid);
     if (!e) continue;
-    const gain = w.sub ? Math.floor(share * SUB_EXP_RATE) : share;
+    const gain = Math.floor((w.sub ? share * SUB_EXP_RATE : share) * (w.mul || 1));
     if (gain <= 0) continue;
     const cap = soulLevelCapOf(e);
     e.exp = (e.exp || 0) + gain;
@@ -8778,7 +8801,8 @@ function endBattle() {
     const { soul, gold } = b.rewards();
     const gl = partyPassiveLv("goldLuck"), sl = partyPassiveLv("soulLure");
     const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1))) + takeStolenGold(b);
-    const soulGot = runGainSoulPts(Math.round(soul * (sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1)));
+    const sb = rankParty("bishopSeibetsu", [0.05, 0.10, 0.15, 0.25]); // 魂の聖別 (司教のランク)
+    const soulGot = runGainSoulPts(Math.round(soul * ((sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1) + sb)));
     applyVictoryPassives();
     // 入手Soulの1/3を生存メンバーの魂 (サブ魂はその1/3) に加算 → レベルアップ/スキル習得を集計
     const progress = distributeBattleSoulExp(soulGot);
@@ -9321,6 +9345,7 @@ function allDolls() { return [...G.party, ...G.reserve]; }
 function renderTown() {
   const then = G.town && G.town.facility ? takeLegacyEntry() : null; // 旧来の入口は新しいタブ/ページへ付け替えてから描く
   renderRunbar(); // 街では隠す
+  refreshOrderBonus(); // 編成・魂の付け替えで結社の席が変わっていれば、全員の能力を付け直す
   autosave(); // 街での操作のたびに保存 (描画はアクション後に呼ばれる)
   updateTopbar();
   playBgm(sceneBgm()); // 施設ごとのBGM (同じ曲なら継続)
@@ -10990,8 +11015,8 @@ function orderSeats() {
   const c = reportedDungeonCount();
   return c >= FEATURE_AT.order3 ? 3 : c >= FEATURE_AT.order2 ? 2 : c >= FEATURE_AT.order ? 1 : 0;
 }
-// 結社の席に実際に着いている魂uid (編成外・ランク2以上・有効な加護持ち・席数上限でクリーン)。
-// G.order.picks の順を尊重しつつ、無効になった指定 (編成入り/ランク低下/消失) は除外する。
+// 結社の席に実際に着いている魂uid (編成外・席数上限でクリーン)。
+// G.order.picks の順を尊重しつつ、無効になった指定 (編成入り/消失) は除外する。
 function orderSeatedUids() {
   if (!featureUnlocked("order")) return [];
   const seats = orderSeats();
@@ -11003,13 +11028,19 @@ function orderSeatedUids() {
   for (const uid of picks) {
     if (out.length >= seats) break;
     if (out.includes(uid) || fielded.has(uid)) continue;
-    const s = soulByUid(uid);
-    if (!s || soulRankOf(s) < 2) continue;
-    const perk = ORDER_PERK[s.clsKey];
-    if (!perk || !PASSIVES[perk]) continue;
+    if (!soulByUid(uid)) continue;
     out.push(uid);
   }
   return out;
+}
+// 結社の席が変わったら (着席・編成の入れ替え・魂の付け替え・席数の解放) 全員を再計算して、
+// 席の魂の能力の分け前 (souls.js orderStatBonus) を付け直す。変わっていなければ何もしない
+let orderSig = null;
+function refreshOrderBonus() {
+  const sig = orderSeatedUids().map((u) => { const s = soulByUid(u); return s ? `${u}:${s.count}:${s.level}` : u; }).join(",");
+  if (sig === orderSig) return;
+  orderSig = sig;
+  recalcAllDolls();
 }
 // 結社の席に魂を着ける/外す。空席が無ければ着席不可
 function toggleOrderSeat(uid) {
@@ -11023,6 +11054,7 @@ function toggleOrderSeat(uid) {
   }
   // 消失した魂のuidを掃除しておく
   G.order.picks = picks.filter((u) => soulByUid(u));
+  refreshOrderBonus();
   autosave(); renderTown();
 }
 // 踏破した迷宮の数 (台帳の迷宮のうち、一度でも踏破したもの)
@@ -11697,8 +11729,8 @@ function shopStockAdd(id) {
   G.shopStock[id] = Math.min(SHOP_STOCK_MAX, (G.shopStock[id] || 0) + 1);
 }
 const sellPrice = (it) => Math.max(1, Math.floor((it.price || 10) / 2));
-// 控えの結社 値切り (bargain): 店の買値・鑑定費を -8/15/25% 割引
-function bargainMul() { const lv = partyPassiveLv("bargain"); return lv >= 3 ? 0.75 : lv >= 2 ? 0.85 : lv >= 1 ? 0.92 : 1; }
+// 店の買値・鑑定費の割引 (値切りのパッシブは廃止。いまは割引なし。呼び出し側のために残す)
+function bargainMul() { return 1; }
 const buyPrice = (it) => Math.max(1, Math.round((it && it.price || 30) * bargainMul()));
 // 鑑定料: 売値 × レア度の倍率 (コモン0.5 / アンコモン0.75 / レア1 / スーパーレア1.5 / レジェンドレア4)。
 // 深層の職業専用LR (tier5以上) は従来どおり約20倍。LRは商店でのみ鑑定できる。値切りで割引
@@ -12276,7 +12308,8 @@ function healAllRevivers() {
 }
 // 倒れた1体を呪文で起こす (campCast と同じ蘇生量)
 function campRevive(caster, sp, t) {
-  const heal = sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : Math.max(1, campHealPower(caster, sp));
+  const heal = (sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : Math.max(1, campHealPower(caster, sp)))
+    + Math.round(t.maxhp * rankVal(caster, "priestInochi", [0.10, 0.20, 0.30, 0.50])); // 生命の灯 (僧侶のランク)
   t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false;
   t.hp = Math.max(1, Math.min(t.maxhp, heal));
   log(`${sp.name}！ ${t.name}が蘇った (HP ${t.hp})`, "heal");
@@ -12788,6 +12821,7 @@ function useItem(p, index, target) {
   p.items.splice(index, 1);
   const kinds = useCureKinds(u);
   const notes = [];
+  const alc = 1 + rankParty("hermitSenyaku", [0.20, 0.30, 0.40, 0.60]); // 仙薬 (隠修士のランク): 道具の回復量
   for (const t of targets) {
     if (u.revive) {
       t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false;
@@ -12797,8 +12831,8 @@ function useItem(p, index, target) {
       continue;
     }
     const bits = [];
-    if (u.heal || u.full) { const b = t.hp; t.hp = Math.min(t.maxhp, t.hp + (u.full ? t.maxhp : u.heal)); if (t.hp > b) bits.push(`HP+${t.hp - b}`); }
-    if ((u.mp || u.mpFull) && (t.maxmp || 0) > 0) { const b = t.mp; t.mp = Math.min(t.maxmp, t.mp + (u.mpFull ? t.maxmp : u.mp)); if (t.mp > b) bits.push(`MP+${t.mp - b}`); }
+    if (u.heal || u.full) { const b = t.hp; t.hp = Math.min(t.maxhp, t.hp + (u.full ? t.maxhp : Math.round(u.heal * alc))); if (t.hp > b) bits.push(`HP+${t.hp - b}`); }
+    if ((u.mp || u.mpFull) && (t.maxmp || 0) > 0) { const b = t.mp; t.mp = Math.min(t.maxmp, t.mp + (u.mpFull ? t.maxmp : Math.round(u.mp * alc))); if (t.mp > b) bits.push(`MP+${t.mp - b}`); }
     if (kinds.length && t.ailment && kinds.includes(t.ailment)) { bits.push(`${AIL_NAME[t.ailment] || "状態異常"}が治った`); t.ailment = null; }
     if (bits.length) { notes.push(`${t.name} ${bits.join(" ")}`); log(`${p.name}は${it.name}を使った。${t.name}: ${bits.join("・")}`, "heal"); }
   }
@@ -12956,17 +12990,32 @@ function showRankUp(info, onClose) {
   flashScreen(accent);
   SFX.rankup(); buzz([0, 60, 40, 60, 40, 70, 90, 220, 120, 320]);
   return uiSoulPanel.celebrateRankUp({
-    ...info, accent, title: jobRankName(clsKey, toRank), hint: rankUnlockHint(toRank),
+    ...info, accent, title: jobRankName(clsKey, toRank), hint: rankUnlockHint(toRank, clsKey),
   }, onClose);
 }
 
-// 各ランク到達で新たに開ける道のヒント (節目を強調)
-function rankUnlockHint(rank) {
-  if (rank === 2) return "★ 覚醒 — 控えの結社パッシブが芽吹き、宿し技として他の人業に貸せるようになった。";
-  if (rank === 3) return "★ 上位の技 — 伸びたLv上限の先に、新たなスキル・パッシブが見えてきた。";
-  if (rank === 4) return "★ 真髄 — 宿し先へランク2パッシブまで託せるようになった。";
-  if (rank === 5) return "★ 極致 — 魂は最高位に至り、Lvの天井が解き放たれた。";
-  return null;
+// 各ランク到達で新たに得たもののヒント (行の配列)。ランクのパッシブはその名前と効果だけを書き、
+// まだ開いていない仕組み (宿し魂・控えの結社) には触れない
+function rankUnlockHint(rank, clsKey) {
+  const head = { 2: "★ 覚醒", 3: "★ 上位の技 — 伸びたLv上限の先に、新たな技が見えてきた。", 4: "★ 真髄 — Lv上限が大きく伸びた。", 5: "★ 極致 — 魂は最高位に至り、Lvの天井が解き放たれた。" }[rank];
+  if (!head) return null;
+  const lines = [];
+  // ランクのパッシブ: ランク2で目覚め、3・4・5で強まる (名前と効果だけ)
+  const perk = awakenPerkOf(clsKey, rank);
+  if (perk && rank === 2) lines.push(`${head} — パッシブ「${perk.name}」に目覚めた`, perk.desc);
+  else if (perk) lines.push(head, `パッシブ「${perk.name}」に強まった`, perk.desc);
+  else lines.push(head);
+  if (featureUnlocked("sub1")) {
+    const pc = subPickCapOfRank(rank), pp = subPickCapOfRank(rank - 1);
+    if (pc > pp) lines.push(`宿し魂として、技・パッシブを${pc}つまで貸せるようになった。`);
+    const sr = Math.round(subStatRateOfRank(rank) * 100), sp = Math.round(subStatRateOfRank(rank - 1) * 100);
+    if (sr > sp) lines.push(`宿し先へ分ける能力が ${sp}% → ${sr}% に増えた。`);
+  }
+  if (featureUnlocked("order")) {
+    const or = Math.round(orderStatRateOfRank(rank) * 100), op = Math.round(orderStatRateOfRank(rank - 1) * 100);
+    if (or > op) lines.push(`控えの結社の席から全員へ分ける能力が ${op}% → ${or}% に増えた。`);
+  }
+  return lines;
 }
 
 // 毒のダメージ (盤面を1歩進むごと)
@@ -13460,6 +13509,9 @@ function loadGame() {
   // 魂融合した魂は自動でロックする (後付け: 旧セーブの融合済み = 魂数2以上の魂にも一度だけ。外したロックは掛け直さない)
   for (const s of G.souls) if (s.count > 1 && !s.fuseLk) { s.locked = true; s.fuseLk = true; }
   setSharedSouls(G.souls); // recalcDoll が所持魂を uid で引けるようにする
+  orderSig = null;
+  setOrderSource(() => { try { return orderSeatedUids(); } catch (e) { return []; } }); // 結社の席の魂の能力を全員に分ける
+  setAppraiseSource(() => allDolls()); // 目利き (鑑定の成功率) は隊と控えで一番高いLvを見る
   syncDollUids([...(G.party || []), ...(G.reserve || [])]); // 人業の通し番号を続きから (重なりも直す)
   for (const d of [...(G.party || []), ...(G.reserve || [])]) {
     if (!Array.isArray(d.subs)) d.subs = [];

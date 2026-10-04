@@ -2,17 +2,21 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 闇と土を極めた極大呪文の使い手。詠唱を重ねて INT を積み上げ、二重の烙印で守りを剥いでから大火力を叩き込む。
 export default {
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "archmageShinen",
   table: `
     1 HALITO 3 SHADOWBOLT 4 ISHITSUBUTE 5 archmageJuushou/1 7 ICENEEDLE 8 KAMAITACHI
-    10 ARCHMAGE_JUUEI 15 archmageMeido/1 20 MAHALITO 22 EARTHQUAKE 25 archmageUtsuwa/1 30 ARCHMAGE_GANSOU
-    35 archmageMasen/1 40 SHINENNOHADOU 45 archmageJuushou/2 47 DARKBLAST 50 MADALT 55 ELEMBREAK
-    60 archmageUtsuwa/2 62 ARCHMAGE_DOSEKIRYUU 65 ARCHMAGE_GOUKARIN 70 archmageMakaku/1 75 archmageMeido/2 80 ARCHMAGE_TENKYUU
-    85 ARCHMAGE_NIJUUIN 90 archmageMasen/2 95 ARCHMAGE_SOUCHUU 100 ARCHMAGE_YOUGAN 105 archmageJuushou/3 110 ARCHMAGE_TENMEI
+    10 ARCHMAGE_JUUEI 15 ARCHMAGE_KOKUYOU 15 archmageChoei/1 20 MAHALITO 22 EARTHQUAKE 25 archmageUtsuwa/1 30 ARCHMAGE_GANSOU
+    35 archmageMasen/1 40 SHINENNOHADOU 45 archmageJuushou/2 47 DARKBLAST 50 MADALT 50 archmageChoei/2 55 ELEMBREAK
+    60 archmageUtsuwa/2 62 ARCHMAGE_DOSEKIRYUU 65 ARCHMAGE_GOUKARIN 70 archmageMakaku/1 75 archmageMeido/1 80 ARCHMAGE_TENKYUU
+    85 ARCHMAGE_NIJUUIN 90 archmageMasen/2 95 ARCHMAGE_SOUCHUU 100 ARCHMAGE_YOUGAN 100 archmageChoei/3 105 archmageJuushou/3 110 ARCHMAGE_TENMEI
     112 ARCHMAGE_MEIOU 115 archmageMakaku/2 120 ARCHMAGE_NARAKU 125 resistAilment/1 130 ARCHMAGE_GOKKAN 135 archmageUtsuwa/3
-    140 ARCHMAGE_SHOUKON 145 archmageMeido/3 150 ARCHMAGE_RAIGOU 155 archmageMasen/3 160 ARCHMAGE_INTETSU 165 resistAilment/2
+    140 ARCHMAGE_SHOUKON 145 archmageMeido/2 150 ARCHMAGE_RAIGOU 155 archmageMasen/3 160 ARCHMAGE_INTETSU 165 resistAilment/2
     170 ARCHMAGE_EIKYUU 172 ARCHMAGE_AGITO 175 archmageMakaku/3 177 ARCHMAGE_TOKOYAMI 180 ARCHMAGE_SHUUEN 185 archmageJuushou/4
     190 ARCHMAGE_SHINENKOU 195 ARCHMAGE_SOUSEI 200 ARCHMAGE_BANSHOU`,
   skills: {
+    // Lv15 の固有技: 黒曜の槍で守りを砕く闇の呪文
+    ARCHMAGE_KOKUYOU: { name: "黒曜の槍", mp: 5, kind: "atk", power: 20, element: "dark", debuff: { vit: 0.85 }, target: "enemy", desc: "黒曜の槍を撃ち込み、守りを砕く（闇）" },
     ARCHMAGE_JUUEI:      { name: "重詠の構え", mp: 4, kind: "buff", buff: { int: 1.5, agi: 0.8 }, target: "self", desc: "詠唱を重ねる構え。INT大幅上昇・素早さ低下" },
     ARCHMAGE_GANSOU:     { name: "岩葬の礫", mp: 8, kind: "atk", power: 28, element: "earth", debuff: { vit: 0.85 }, target: "enemy", desc: "墓石の礫で打ち据え、守りを砕く" },
     ARCHMAGE_DOSEKIRYUU: { name: "土石の奔流", mp: 12, kind: "atk", power: 32, element: "earth", debuff: { agi: 0.85 }, target: "all-enemy", desc: "土石流が敵全体を呑み、足を奪う" },

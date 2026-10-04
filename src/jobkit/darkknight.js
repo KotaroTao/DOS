@@ -2,17 +2,21 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 闇の剣と魔障壁。身を削る暗黒剣で斬り、手負いになるほど凶暴に (闇/火)
 export default {
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "dkKeiyaku",
   table: `
     1 SHIELDBASH 2 YAMIBA 3 NERAIUCHI 5 darkknightYaminoShouheki/1 7 ANKOKU 10 SHADOWBOLT
-    12 CHOUHATSU 15 darkknightKurokiBanpei/1 20 KYUUKETSU 22 KOKUEINAGI 25 darkknightKaeshiba/1 30 YAMINOKOROMO
-    32 DARKBLAST 35 darkknightKurokiBanpei/2 40 MAGUINOTACHI 45 darkknightYaminoShouheki/2 50 DARKKNIGHT_KOKUSHOU 55 JUBAKU
+    12 CHOUHATSU 15 DARKKNIGHT_CHIYAMI 15 dkEnchant/1 20 KYUUKETSU 22 KOKUEINAGI 25 darkknightKaeshiba/1 30 YAMINOKOROMO
+    32 DARKBLAST 35 darkknightKurokiBanpei/1 40 MAGUINOTACHI 45 darkknightYaminoShouheki/2 50 DARKKNIGHT_KOKUSHOU 50 dkEnchant/2 55 JUBAKU
     57 MEIJIN 60 darkknightShikobami/1 65 SHINGANGEKI 70 darkknightTeoiMashou/1 75 resistAilment/1 80 HANGEKI
-    85 DARKKNIGHT_KETSURUI 90 darkknightKaeshiba/2 95 DARKKNIGHT_KUROGANE 100 DARKKNIGHT_GOKUENMAKEN 105 darkknightKurokiBanpei/3 107 DARKKNIGHT_YAMIKURAI
+    85 DARKKNIGHT_KETSURUI 90 darkknightKaeshiba/2 95 DARKKNIGHT_KUROGANE 100 DARKKNIGHT_GOKUENMAKEN 100 dkEnchant/3 105 darkknightKurokiBanpei/2 107 DARKKNIGHT_YAMIKURAI
     110 DARKKNIGHT_NARAKUSOU 115 darkknightTeoiMashou/2 120 DARKKNIGHT_SHUKUMEI 125 darkknightShikobami/2 130 DARKKNIGHT_KUROJOUSAI 135 darkknightTeoiMashou/3
     140 DARKKNIGHT_MEIOUKUSARI 145 resistAilment/2 150 DARKKNIGHT_GOUMADAN 155 darkknightKaeshiba/3 160 ANKOKUSHUUEN 162 DARKKNIGHT_KOKUUZUGIRI
-    165 darkknightYaminoShouheki/3 170 DARKKNIGHT_RENGOKU 175 darkknightKurokiBanpei/4 180 DARKKNIGHT_ZANSHU 185 darkknightTeoiMashou/4 190 DARKKNIGHT_TOKOYO
+    165 darkknightYaminoShouheki/3 170 DARKKNIGHT_RENGOKU 175 darkknightKurokiBanpei/3 180 DARKKNIGHT_ZANSHU 185 darkknightTeoiMashou/4 190 DARKKNIGHT_TOKOYO
     195 DARKKNIGHT_MAJUN 200 DARKKNIGHT_KOKUTEN`,
   skills: {
+    // Lv15 の固有技: 身を削って闇を纏い、斬った血で傷を塞ぐ
+    DARKKNIGHT_CHIYAMI: { name: "血闇の剣", mp: 5, kind: "phys", power: 1.5, element: "dark", hpCost: 0.06, drain: 0.2, target: "enemy", desc: "身を削って闇を纏い斬りつけ、その血で傷を塞ぐ" },
     DARKKNIGHT_KOKUSHOU: { name: "黒瘴の威圧", mp: 6, kind: "debuff", debuff: { atk: 0.85, hit: 0.9 }, target: "all-enemy", tech: true, desc: "黒い瘴気をまとい、敵全体の力と狙いを鈍らせる" },
     DARKKNIGHT_KETSURUI: { name: "血涙の闇波", mp: 12, kind: "atk", power: 42, element: "dark", hpCost: 0.06, target: "all-enemy", desc: "HPを代償に、闇の波で敵全体を呑む" },
     DARKKNIGHT_KUROGANE: { name: "黒鉄断ち", mp: 16, kind: "phys", power: 3.4, element: "dark", acc: 0.7, pierce: 0.5, vuln: { dark: 0.85 }, target: "enemy", desc: "闇の刃で鎧ごと断ち、闇に脆くする" },

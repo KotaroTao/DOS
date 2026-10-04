@@ -4,17 +4,21 @@
 import { UNHOLY } from "./common.js";
 
 export default {
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "templarIkou",
   table: `
     1 SHIELDBASH 2 KOUJIN 3 CURE 5 templarMonshu/1 7 CHOUHATSU 10 PROTECT
-    12 NERAIUCHI 15 templarKairitsu/1 17 HOLYLIGHT 20 FUUMANOTATE 25 templarFuumakusabi/1 30 NIOUDACHI
-    35 templarKairitsu/2 40 SEIIKINOKANE 45 templarMonkekkai/1 50 DIOSALL 55 TEMPLAR_KUSARIUCHI 57 TEMPLAR_SEIINUCHI
+    12 NERAIUCHI 15 TEMPLAR_MONKEKKAI 15 templarShinsei/1 17 HOLYLIGHT 20 FUUMANOTATE 25 templarFuumakusabi/1 30 NIOUDACHI
+    35 templarKairitsu/1 40 SEIIKINOKANE 45 templarMonkekkai/1 50 DIOSALL 50 templarShinsei/2 55 TEMPLAR_KUSARIUCHI 57 TEMPLAR_SEIINUCHI
     60 templarMayoke/1 65 TEMPLAR_MONZENNOHARAI 70 resistAilment/1 75 templarFuumakusabi/2 80 TEMPLAR_MISOGI 82 TEMPLAR_HAKAINOISHIZUCHI
-    85 TEMPLAR_HAMANOKOUSA 90 templarMonkekkai/2 95 TEMPLAR_MONBANNOKAMAE 100 TEMPLAR_HAMANOOOZUCHI 105 templarFuumakusabi/3 110 TEMPLAR_SEIIKIKEKKAI
+    85 TEMPLAR_HAMANOKOUSA 90 templarMonkekkai/2 95 TEMPLAR_MONBANNOKAMAE 100 TEMPLAR_HAMANOOOZUCHI 100 templarShinsei/3 105 templarFuumakusabi/3 110 TEMPLAR_SEIIKIKEKKAI
     115 templarMonshu/2 120 TEMPLAR_DANZAINOFUUIN 125 templarMonkekkai/3 130 TEMPLAR_OOTOBIRA 135 resistAilment/2 140 TEMPLAR_SEIKANOHARAI
     145 templarMonshu/3 150 TEMPLAR_SANJUUKEKKAI 155 templarFuumakusabi/4 160 TEMPLAR_FUUMANOOOGANE 162 TEMPLAR_KOUSANAGI 165 templarMayoke/2
-    170 TEMPLAR_SHUMONNOJIN 175 templarKairitsu/3 180 TEMPLAR_SEIDOUKISHI 185 templarMonkekkai/4 190 TEMPLAR_SHINDENNOSHINPAN 195 TEMPLAR_SAIRINNOSEIMON
+    170 TEMPLAR_SHUMONNOJIN 175 templarKairitsu/2 180 TEMPLAR_SEIDOUKISHI 185 templarMonkekkai/4 190 TEMPLAR_SHINDENNOSHINPAN 195 TEMPLAR_SAIRINNOSEIMON
     200 TEMPLAR_ZETTAIKEKKAI`,
   skills: {
+    // Lv15 の固有技: 門に立ち塞がって敵を引き付け、魔障壁を張る
+    TEMPLAR_MONKEKKAI: { name: "門の結界", mp: 5, kind: "buff", taunt: true, grantBarrier: 1, target: "self", desc: "門に立ち塞がって敵を引き付け、魔障壁を張る" },
     TEMPLAR_KUSARIUCHI: { name: "鎖打ち", mp: 7, kind: "phys", power: 1.3, acc: 0.8, seal: { chance: 0.35, turns: 2 }, target: "enemy", desc: "聖鎖を絡めて打ち、特技を封じる" },
     TEMPLAR_SEIINUCHI: { name: "聖印打ち", mp: 12, kind: "phys", power: 2.0, pieScale: 0.5, element: "light", acc: 0.6, mpDrain: 0.15, target: "enemy", desc: "聖印を刻んで打ち、魔力を吸い上げる" },
     TEMPLAR_MONZENNOHARAI: { name: "門前の祓い", mp: 7, kind: "buff", buff: { vit: 1.2 }, purge: true, target: "all-ally", desc: "味方全体の守りを固め、弱体を祓う" },
@@ -37,6 +41,12 @@ export default {
     TEMPLAR_ZETTAIKEKKAI: { name: "絶対結界", mp: 40, kind: "buff", grantBarrier: 3, buff: { vit: 1.4 }, purge: true, target: "all-ally", desc: "味方全体に魔障壁3回分と守りを授け、弱体を解く" },
   },
   perks: {
+    // Lv15 の目玉パッシブ: 傷ひとつない門番は、神聖な防壁に守られる
+    templarShinsei: {
+      label: "神聖防壁",
+      lv: ["HPが満タンの時、受けるダメージ-30%", "HPが満タンの時、受けるダメージ-50%", "HPが満タンの時、受けるダメージ-70%"],
+      fx: [{ t: "take", when: { selfHigh: 1 }, v: [0.30, 0.50, 0.70] }],
+    },
     templarMonshu: {
       label: "門守の誓約",
       lv: ["戦闘開始時、敵を自分に引き付ける (2ターン)", "さらに物理を受けると25%でMPを最大の4%回復", "さらに物理を受けると30%でMPを最大の6%回復"],

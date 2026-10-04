@@ -2,17 +2,21 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 魔闘士 = 拳と呪文を織り交ぜる剛の魔法 (土/火)。拳で魔力を巡らせ、怯ませ・焼き印を刻み、そこへ呪文を叩き込む
 export default {
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "bmHouken",
   table: `
     1 KYOUGEKI 2 KAENGIRI 3 HALITO 5 battlemageJunkan/1 7 NERAIUCHI 8 ISHITSUBUTE
-    10 BAKUENKEN 12 IWAKUDAKI 15 battlemageKuzushi/1 20 BATTLEMAGE_GOUMA 22 KAENNAGI 25 battlemageGoutai/1
-    30 MAHALITO 32 EARTHQUAKE 35 battlemageYakiin/1 40 HAMANOKEN 45 battlemageKuzushi/2 50 ELEMBREAK
+    10 BAKUENKEN 12 IWAKUDAKI 15 BATTLEMAGE_GANKEN 15 bmManaCycle/1 20 BATTLEMAGE_GOUMA 22 KAENNAGI 25 battlemageGoutai/1
+    30 MAHALITO 32 EARTHQUAKE 35 battlemageYakiin/1 40 HAMANOKEN 45 battlemageKuzushi/1 50 ELEMBREAK 50 bmManaCycle/2
     55 SAIKEN 57 BATTLEMAGE_KASHA 60 battlemageJunkan/2 65 BATTLEMAGE_GANKENDAN 70 battlemageKutsuu/1 75 resistAilment/1
-    80 BATTLEMAGE_HAPPA 82 BATTLEMAGE_JINARI 85 BATTLEMAGE_ENDAN 90 battlemageGoutai/2 95 BATTLEMAGE_MACHIRASHI 100 MAJINKEN
-    105 battlemageYakiin/2 110 BATTLEMAGE_DAICHIKEN 115 battlemageKuzushi/3 120 BATTLEMAGE_KONGOU 122 BATTLEMAGE_GANSAISHOU 125 reflect/1
+    80 BATTLEMAGE_HAPPA 82 BATTLEMAGE_JINARI 85 BATTLEMAGE_ENDAN 90 battlemageGoutai/2 95 BATTLEMAGE_MACHIRASHI 100 MAJINKEN 100 bmManaCycle/3
+    105 battlemageYakiin/2 110 BATTLEMAGE_DAICHIKEN 115 battlemageKuzushi/2 120 BATTLEMAGE_KONGOU 122 BATTLEMAGE_GANSAISHOU 125 reflect/1
     130 BATTLEMAGE_HIBASHIRA 135 battlemageYakiin/3 140 BATTLEMAGE_SHOUMA 145 battlemageKutsuu/2 150 BATTLEMAGE_GURENMASHOU 155 resistAilment/2
-    160 BATTLEMAGE_INTETSU 165 battlemageYakiin/4 170 GANSAI 175 battlemageJunkan/3 180 BATTLEMAGE_BAKUENRANDA 185 battlemageKuzushi/4
+    160 BATTLEMAGE_INTETSU 165 battlemageYakiin/4 170 GANSAI 175 battlemageJunkan/3 180 BATTLEMAGE_BAKUENRANDA 185 battlemageKuzushi/3
     190 BATTLEMAGE_SHAKUNETSU 195 TOUSHINHAGEKI 200 BATTLEMAGE_TENPOU`,
   skills: {
+    // Lv15 の固有技: 魔力で岩を纏った拳。INT で伸び、守りを砕く
+    BATTLEMAGE_GANKEN: { name: "岩拳", mp: 5, kind: "phys", power: 1.2, intScale: 0.4, acc: 0.5, element: "earth", debuff: { vit: 0.85 }, target: "enemy", desc: "魔力で岩を纏った拳。守りを砕く（INTでも伸びる・土）" },
     BATTLEMAGE_GOUMA: { name: "剛魔の構え", mp: 4, kind: "buff", buff: { int: 1.3, vit: 1.2 }, target: "self", tech: true, desc: "魔力を練り、身を岩のように固める" },
     BATTLEMAGE_KASHA: { name: "火車拳", mp: 11, kind: "phys", power: 1.2, hits: 2, intScale: 0.4, element: "fire", acc: 0.4, target: "enemy", desc: "炎の車輪のごとく二度打ち込む" },
     BATTLEMAGE_GANKENDAN: { name: "岩拳弾", mp: 8, kind: "atk", power: 28, element: "earth", debuff: { vit: 0.85 }, target: "enemy", desc: "岩の拳を撃ち出し、守りを砕く" },

@@ -2,17 +2,21 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 狂戦士 = 捨て身と血。己の血を代償 (hpCost) に重い一撃、斬って啜る (drain)、傷が深いほど猛る
 export default {
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "berserkerKyouhon",
   table: `
     1 KYOUGEKI 2 KAENGIRI 3 NERAIUCHI 5 berserkerMukui/1 7 SUTEMI 10 BERSERKER_CHIZOME
-    12 YAMIBA 15 berserkerTeoi/1 20 BERSERKER_HOUKOU 22 KAENNAGI 25 berserkerTakeri/1 30 CHINOKAWAKI
-    35 berserkerFukade/1 40 KIJINKUDAKI 45 berserkerTeoi/2 50 BERSERKER_HONEKUDAKI 55 SHINGANGEKI 57 GURENZAN
+    12 YAMIBA 15 BERSERKER_ABAREUCHI 15 berserkerChinonioi/1 20 BERSERKER_HOUKOU 22 KAENNAGI 25 berserkerTakeri/1 30 CHINOKAWAKI
+    35 berserkerFukade/1 40 KIJINKUDAKI 45 berserkerTeoi/1 50 BERSERKER_HONEKUDAKI 50 berserkerChinonioi/2 55 SHINGANGEKI 57 GURENZAN
     60 berserkerMukui/2 65 BERSERKER_KUIKOMI 70 berserkerTakeri/2 75 endure/1 80 BERSERKER_KURAISAKI 82 MEIJIN
-    85 MIDARE 90 berserkerTeoi/3 95 BERSERKER_FUKKETSU 100 BERSERKER_TATAKIWARI 105 berserkerMukui/3 107 BERSERKER_KEKKEN
+    85 MIDARE 90 berserkerTeoi/2 95 BERSERKER_FUKKETSU 100 BERSERKER_TATAKIWARI 100 berserkerChinonioi/3 105 berserkerMukui/3 107 BERSERKER_KEKKEN
     110 SHURAZAN 115 berserkerTakeri/3 120 BERSERKER_BOUGYAKU 125 berserkerFukade/2 130 BERSERKER_CHIKAZAGURUMA 135 asceticism/1
-    140 MEIFUZAN 145 resistAilment/1 150 BERSERKER_DANTOUDAI 155 berserkerTeoi/4 160 BERSERKER_KETSUEN 162 BERSERKER_ENGOKU
+    140 MEIFUZAN 145 resistAilment/1 150 BERSERKER_DANTOUDAI 155 berserkerTeoi/3 160 BERSERKER_KETSUEN 162 BERSERKER_ENGOKU
     165 endure/2 170 BERSERKER_METTAUCHI 175 berserkerChiniyou/1 180 TOKOYAMI 185 berserkerChiniyou/2 190 BERSERKER_KYOUOU
     195 BERSERKER_YATSUZAKI 200 BERSERKER_SENKETSU`,
   skills: {
+    // Lv15 の固有技: 狂ったように三度打ち据える。傷が深いほど重い
+    BERSERKER_ABAREUCHI: { name: "暴れ打ち", mp: 6, kind: "phys", power: 0.7, hits: 3, acc: 0.2, desperate: true, target: "enemy", desc: "狂ったように三度打ち据える。傷が深いほど重い" },
     BERSERKER_CHIZOME: { name: "血染めの斧", mp: 6, kind: "phys", power: 1.9, hpCost: 0.06, acc: 0.3, target: "enemy", desc: "己の血を代償に重く叩きつける" },
     BERSERKER_HOUKOU: { name: "血の咆哮", mp: 6, kind: "debuff", debuff: { vit: 0.85 }, flinchChance: 0.25, target: "all-enemy", tech: true, desc: "血走った咆哮で敵陣を竦ませ、守りを崩す" },
     BERSERKER_HONEKUDAKI: { name: "骨砕き", mp: 10, kind: "phys", power: 2.5, pierce: 0.2, acc: 0.4, flinchChance: 0.3, target: "enemy", desc: "骨ごと叩き砕き、怯ませる" },
@@ -32,6 +36,12 @@ export default {
     BERSERKER_SENKETSU: { name: "鮮血の終焉", mp: 40, kind: "phys", power: 11.5, acc: 1, pierce: 0.8, hpCost: 0.15, drain: 0.2, target: "enemy", desc: "血を捧げる必中の終撃。命を吸い返す" },
   },
   perks: {
+    // Lv15 の目玉パッシブ: 血の匂いが常に体を昂らせる
+    berserkerChinonioi: {
+      label: "血の匂い",
+      lv: ["戦闘中の攻撃力+10%", "戦闘中の攻撃力+20%", "戦闘中の攻撃力+30%"],
+      fx: [{ t: "stat", mul: { atk: [0.10, 0.20, 0.30] } }],
+    },
     // 斬られた痛みをそのまま相手に叩き返す
     berserkerMukui: {
       label: "血の報い",
