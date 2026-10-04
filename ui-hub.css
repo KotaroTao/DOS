@@ -556,7 +556,8 @@
 .pl-ach-n { font-size: 12.5px; font-weight: 800; color: #eadfc4; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pl-ach-d { font-size: 10.5px; color: var(--ink-dim); line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; } /* 説明は2段まで折り返す */
 .pl-ach-m { display: flex; flex-wrap: nowrap; align-items: center; gap: 2px 8px; margin-top: auto; min-height: 44px; font-size: 11px; }
-.pl-ach-tier { color: var(--ink-faint); }
+.pl-ach-tier { color: var(--ink-faint); white-space: nowrap; }
+.pl-prog-s { margin-left: 10px; font-size: 11px; color: var(--accent); white-space: nowrap; } /* 勲位 (受領した勲章の数で決まる位) */
 .pl-ach-got { color: var(--accent); font-weight: 700; }
 .pl-reward { display: inline-flex; flex-wrap: wrap; gap: 2px 8px; font-weight: 700; color: var(--accent-hi); font-variant-numeric: tabular-nums; }
 .pl-reward > span { display: inline-flex; align-items: center; }
