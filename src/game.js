@@ -12306,8 +12306,8 @@ function giveItem(id) {
 const itemGetEl = document.getElementById("item-get");
 
 // 入手の割り込み方針 (§3.6) は src/ui/loot.js の UI.loot が受け持つ:
-//   コモン/アンコモン・道具・収集品 = 入手のトースト (収穫バーの数も増える)。onClose はすぐに呼ぶ
-//   レア/スーパーレア/レジェンドレア = 祝祭カード (ファンファーレ・閃光・LRは光の柱と揺れ)。閉じてから onClose
+//   コモン/アンコモン・道具 = 入手のトースト (収穫バーの数も増える)。onClose はすぐに呼ぶ
+//   レア/スーパーレア/レジェンドレア・収集品 = 祝祭カード (ファンファーレ・閃光・LRは光の柱と揺れ)。閉じてから onClose
 // 旧来どおり「プロンプトは1枠」: 出ている決断/知らせは置き換える (前の onClose は呼ばない)
 let _itemGetDepth = 0; // トーストは続きをその場で呼ぶので入れ子になる。異常な深さ (UI 未登録で互いに呼び合う等) を断つ
 function showItemGet(item, who, onClose) {

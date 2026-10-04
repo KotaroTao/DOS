@@ -4,7 +4,7 @@
 //
 //   戦果シート … 勝利・獲得 (数え上げ)・魂の成長・新しい技・拾った魂・宝箱 (開ける者を選んで1タップ) を1枚に。
 //               宝箱の罠と中身はシートの中に行として足す。倒れた者・飛ばされた・呼び寄せた時だけ札へ切り替える。
-//               レア以上の品・拾った魂は、シートを閉じた後に祝祭の札 (ポップアップ) で祝う
+//               レア以上の品・収集品・拾った魂は、シートを閉じた後に祝祭の札 (ポップアップ) で祝う
 //   全滅シート … 強制の決断 (赤い魂で全てを守る / あきらめる)。失うもの・残るものを並べる
 //   踏破の祝祭 … 「★ 迷宮踏破 ★」→ 凱旋で闇に溶けて街へ
 //   帰還の報告 … 今回の収穫と、帰ってすぐ片付く用事 (宿で休む・まとめて鑑定・まとめて売る・最適装備・館で修復・今すぐ連れ帰る)
@@ -39,7 +39,7 @@ const KIND = {
 export function openResults(spec = {}) {
   const g = G();
   const k = KIND[spec.kind] || KIND.win;
-  const celebrations = []; // シートを閉じた後に祝う (レア以上の品・拾った魂)
+  const celebrations = []; // シートを閉じた後に祝う (レア以上の品・収集品・拾った魂)
   let chestState = spec.chest ? "closed" : "none"; // closed (未開封) | busy (開けている) | done (済み) | left (置いて進む)
   let finished = false, interrupted = false, autoTimer = null, h = null;
   let notable = false; // 宝箱の結果に目を留めるべきもの (痛手・SR/LR・置いてきた品) があったか
@@ -184,8 +184,8 @@ export function openResults(spec = {}) {
         r.lastChild.classList.add("rs-equip");
       }
       addOut(r);
-      // レア以上は閉じた後に祝祭の札 (WP-C の UI.loot の方針 = lootPolicy に従う)
-      const big = typeof UI.lootPolicy === "function" ? UI.lootPolicy(item) === "celebrate" : (rk === "r" || rk === "sr" || rk === "lr");
+      // レア以上・収集品は閉じた後に祝祭の札 (WP-C の UI.loot の方針 = lootPolicy に従う)
+      const big = typeof UI.lootPolicy === "function" ? UI.lootPolicy(item) === "celebrate" : (rk === "r" || rk === "sr" || rk === "lr" || item.slot === "misc");
       if (big) { notable = true; celebrations.push((cont) => UI.loot(item, who, { source: "results", celebrate: true }, cont)); }
       if (next) next();
     },

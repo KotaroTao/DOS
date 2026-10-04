@@ -2,8 +2,8 @@
 // 担当: WP-C。
 // 提供する契約:
 //   UI.loot(item, who, { source, celebrate, silent, keepPrompt }, next)
-//       入手の割り込み方針 (§3.6): コモン/アンコモン・道具・収集品 = トースト (+収穫バーの数) で
-//       next をすぐ呼ぶ。レア/スーパーレア/レジェンドレア = 祝祭カード (閉じてから next)。
+//       入手の割り込み方針 (§3.6): コモン/アンコモン・道具 = トースト (+収穫バーの数) で
+//       next をすぐ呼ぶ。レア/スーパーレア/レジェンドレア・収集品 = 祝祭カード (閉じてから next)。
 //   UI.itemSheet(item, { owner, context, actions, price, stockId, target, onClose })
 //       品シート: レア度の縁・絵・性能・装備できる者・比べる相手との増減・来歴・文脈ごとの操作。
 //       context: "bag" (所持品) | "donate" (宝物庫: 渡す→奉納) | "sell" (商会の売る) | "stock" (商会の棚) | "equipped" | "loot" | "view" (見るだけ)
@@ -33,8 +33,12 @@ export const RARITY_FANFARE = {
   sr: { banner: "★ スーパーレア発見！ ★", flash: "#ff9a2e", buzz: [0, 60, 50, 60, 50, 120], big: true },
   lr: { banner: "★★ レジェンドレア ★★", flash: "#ff3b3b", buzz: [0, 80, 60, 80, 60, 80, 300], big: true, legend: true },
 };
+// 収集品 (レア度を持たない) の入手演出
+const MISC_FANFARE = { banner: "✦ 収集品発見！ ✦", buzz: [0, 40, 50, 40] };
 // 祝祭カード (ポップアップ) で割り込む格 (§3.6・レア以上)。それ未満はトースト
 export const CELEBRATE_RARITIES = new Set(["r", "sr", "lr"]);
+// 祝祭カードで知らせる品か (レア以上の装備と収集品)
+export const isCelebrated = (it) => !!it && (CELEBRATE_RARITIES.has(rarityKey(it)) || it.slot === "misc");
 
 // ---------------------------------------------------------------- 小道具
 const G = () => game.G || {};
@@ -954,7 +958,8 @@ function lootCelebrate(item, who, opts, next) {
   const g = G();
   g.prompt = true;
   const rk = rarityKey(item);
-  const fan = RARITY_FANFARE[rk] || RARITY_FANFARE.r;
+  const misc = item.slot === "misc";
+  const fan = RARITY_FANFARE[rk] || (misc ? MISC_FANFARE : RARITY_FANFARE.r);
   const color = rarColor(item) || "#c9a227";
   // 演出 (従来の入手カードと同じ: ファンファーレ・振動・閃光・LRは画面の揺れ)。レアはファンファーレ抜きで控えめに
   if (fan.big) { sfx("victory"); setTimeout(() => sfx("itemget"), 380); } else sfx("itemget");
@@ -974,6 +979,7 @@ function lootCelebrate(item, who, opts, next) {
     scroll.appendChild(art);
     scroll.appendChild(nameSpan(item, "ig-name wpc-cel-name"));
     if (rk) scroll.appendChild(el("div", "ig-rarity rar-" + rk, RARITIES[rk].label + (unid ? " ・ 未鑑定" : "")));
+    else if (misc) scroll.appendChild(el("div", "ig-rarity", "収集品"));
     const sl = statLines(item);
     if (sl && !unid) scroll.appendChild(setText(el("div", "ig-stat"), sl));
     if (!unid && isEquippable(item)) {
@@ -986,6 +992,10 @@ function lootCelebrate(item, who, opts, next) {
       }
     }
     scroll.appendChild(el("div", "ig-desc", unid ? "なんだかよくわからない品だ。鑑定すれば正体がわかるだろう。" : (item.desc || "")));
+    if (misc && !unid) {
+      const don = G().treasury && G().treasury.donated;
+      scroll.appendChild(el("div", "ig-stat", don && don[item.id] ? "宝物庫に奉納済みの品。商会で売れる。" : "まだ宝物庫に無い品。王宮の宝物庫に奉納できる。"));
+    }
     if (who) scroll.appendChild(el("div", "ig-who", `${who.name} が手に入れた`));
   };
   let finished = false;
@@ -1019,7 +1029,7 @@ export function loot(item, who, opts = {}, next) {
   opts = opts || {};
   if (!item) { proceed(opts, next); return { kind: "none" }; }
   const rk = rarityKey(item);
-  const big = opts.celebrate === true || (opts.celebrate !== false && CELEBRATE_RARITIES.has(rk));
+  const big = opts.celebrate === true || (opts.celebrate !== false && isCelebrated(item));
   if (big) { lootCelebrate(item, who, opts, next); return { kind: "celebrate" }; }
   lootToast(item, who, opts);
   proceed(opts, next);
@@ -1043,6 +1053,6 @@ export function install() {
     sellOne,
     shopOpen,
     townAppraisers,
-    lootPolicy: (it) => (CELEBRATE_RARITIES.has(rarityKey(it)) ? "celebrate" : "toast"),
+    lootPolicy: (it) => (isCelebrated(it) ? "celebrate" : "toast"),
   });
 }
