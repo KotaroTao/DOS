@@ -9691,9 +9691,21 @@ function questUnit(cfg, floor = 1) {
   return { gold: Math.max(6, (g / n) * sc * per), soul: Math.max(3, (so / n) * sc * per) };
 }
 // 掲示板の生成に渡す窓 (src/quests.js)
+// 掲示板の依頼に選ぶ迷宮: 地図にある迷宮を地図に現れた順 (古い→新しい。G.world.open の鍵の並び) に並べ、
+// 推奨Lvが隊のLvを大きく超える迷宮 (出撃シートの「無謀」= 差 QUEST_LV_GAP 以上) は除く。
+// 新しい迷宮ほど選ばれやすい (quests.js pickDungeon)。すべて除かれたら推奨Lvのいちばん低い迷宮だけ
+const QUEST_LV_GAP = 8;
+function questDungeons() {
+  const order = Object.keys(worldState().open);
+  const open = DUNGEONS.filter((d) => worldOpenId(d.id)).sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+  if (!open.length) return [DUNGEONS[0]];
+  const pl = partyLevel();
+  const fit = open.filter((d) => levelBand(d)[0] - pl < QUEST_LV_GAP);
+  return fit.length ? fit : [open.reduce((a, d) => (levelBand(d)[0] < levelBand(a)[0] ? d : a))];
+}
 function questCtx() {
   const s = questState();
-  const dungeons = DUNGEONS.filter((d) => worldOpenId(d.id)).sort((a, b) => (a.n - b.n) || (a.nTo - b.nTo));
+  const dungeons = questDungeons();
   const avoid = new Set();
   for (const q of s.active) {
     for (const k of (q.keys || [])) avoid.add("k:" + k);
@@ -9701,7 +9713,7 @@ function questCtx() {
     if (q.type === "floor" && q.dungeon) avoid.add("f:" + q.dungeon);
   }
   return {
-    dungeons: dungeons.length ? dungeons : [DUNGEONS[0]],
+    dungeons,
     unit: questUnit, deliverIds: eligibleDeliveryItemIds(), itemName: (id) => (ITEMS[id] || {}).name || id,
     isMisc: (id) => (ITEMS[id] || {}).slot === "misc",
     rand, avoid, uid: () => "q" + (s.seq++),

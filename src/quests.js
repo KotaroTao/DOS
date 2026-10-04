@@ -539,7 +539,7 @@ export const FIXED_BY_ID = Object.fromEntries(FIXED_QUESTS.map((q) => [q.id, q])
 
 // ===== 掲示板 (フリークエスト) の生成 =====
 // ctx = {
-//   dungeons: [cfg]          地図にある迷宮 (浅い順)
+//   dungeons: [cfg]          依頼に選んでよい迷宮 (地図に現れた順。推奨Lvが隊を大きく超える迷宮は除いてある)
 //   unit(cfg, floor)         その迷宮・階の戦果 { gold, soul }
 //   deliverIds: [itemId]     納品に求めてよい品
 //   itemName(id)             品の名         isMisc(id)  収集品か (装備でない品)
@@ -555,8 +555,8 @@ function pickWeighted(list, w, rand) {
   for (let i = 0; i < list.length; i++) { if ((r -= w(list[i], i)) < 0) return list[i]; }
   return list[list.length - 1];
 }
-// 深い迷宮ほど選ばれやすい (いちばん深い迷宮が最多)
-const pickDungeon = (ctx, list = ctx.dungeons) => pickWeighted(list, (d, i) => 1 + i * 1.5, ctx.rand);
+// 新しく地図に現れた迷宮ほど選ばれやすい (1つ新しいごとに重み ×2 — いちばん新しい迷宮がおよそ半分)
+const pickDungeon = (ctx, list = ctx.dungeons) => pickWeighted(list, (d, i) => 2 ** i, ctx.rand);
 const round = (v) => Math.max(1, Math.round(v));
 // その魔物が初めて現れる階
 function firstFloorOf(cfg, key) {
@@ -565,6 +565,8 @@ function firstFloorOf(cfg, key) {
 }
 // 迷宮の「深部」(後ろ半分の真ん中あたり) の戦果。魂・宝箱の依頼の物差し
 const deepUnit = (ctx, cfg) => ctx.unit(cfg, Math.max(1, Math.ceil((cfg.floors || 1) * 0.6)));
+// 依頼に選んでよい迷宮のうち、いちばん深い迷宮 (どの迷宮でもよい依頼の報酬の物差し)
+const deepestOf = (ctx) => ctx.dungeons.reduce((a, d) => (((d.nTo || d.n) > (a.nTo || a.n)) ? d : a));
 
 // 依頼文と依頼人を選ぶ: 依頼文を1つ引き、その who (無ければ この種類を貼る依頼人) から1人。
 // 同じ掲示板に同じ顔が並ばないよう、もう選ばれた依頼人は (ほかに候補がいる限り) 避ける
@@ -610,14 +612,14 @@ function genKill(ctx) {
   return null;
 }
 function genSoul(ctx) {
-  const cfg = ctx.dungeons[ctx.dungeons.length - 1];
+  const cfg = deepestOf(ctx);
   const goal = 1 + ctx.rand(2);
   const u = deepUnit(ctx, cfg);
   const reward = { soulPts: round(u.soul * (goal * 2 + 1)), souls: [[ctx.rand(100) < 25 ? "rare" : "common", 1]] };
   return offerOf("soul", pickText(ctx, "soul"), { goal }, { goal, desc: `迷宮の死体から魂を ${goal}つ 拾う`, note: "どの迷宮でもよい", reward });
 }
 function genChest(ctx) {
-  const cfg = ctx.dungeons[ctx.dungeons.length - 1];
+  const cfg = deepestOf(ctx);
   const goal = 2 + ctx.rand(3);
   const u = deepUnit(ctx, cfg);
   const reward = { gold: round(u.gold * (goal * 1.3 + 1.5)), soulPts: round(u.soul * 1.5) };
