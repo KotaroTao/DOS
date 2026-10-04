@@ -10484,12 +10484,14 @@ function deliveryStatus(q) {
   const price = buyPrice(it);
   return { holder, inShop, price, canBuy: !holder && inShop && G.gold >= price };
 }
-// 納品を実行 (受けた納品の依頼だけ): 手持ちから1つ消費し、品の格に応じた魂を授かる。
+// 納品を実行: 手持ちから1つ消費し、品の格に応じた魂を授かる。
+// 受けた依頼のほか、掲示板の依頼もその場で納められる (受けてすぐ納めるので、受注の枠は使わない)。
 // opts.buy = 手持ちが無い時、商会の棚から買ってそのまま納める (袋は経由しないので所持枠は要らない)
 function deliverQuest(q, opts = {}) {
   const s = questState();
-  const qi = s.active.indexOf(q);
-  if (qi < 0 || q.type !== "deliver") return;
+  if (!q || q.type !== "deliver") return;
+  const from = s.active.includes(q) ? s.active : (s.board || []).includes(q) ? s.board : null;
+  if (!from) return;
   const it = ITEMS[q.itemId];
   if (!it) return;
   const holder = deliveryHolder(q.itemId);
@@ -10508,7 +10510,7 @@ function deliverQuest(q, opts = {}) {
     log(`${it.name} を商会で買い求めた (💰${price})。`, "sys");
   } else { log("納品できる品が手元にない。", "sys"); SFX.ng(); return; }
   const [rarity, count] = rollDeliveryReward(it);
-  s.active.splice(qi, 1);
+  from.splice(from.indexOf(q), 1);
   finishFreeQuest(q, {}, grantRewardSouls([[rarity, count]]), `「${it.name}」を納品`);
 }
 
