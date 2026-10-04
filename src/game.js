@@ -68,7 +68,7 @@ const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho",
 // 視差・揺れを抑える設定 (OSの「視差効果を減らす」)。待機アニメなどを止める
 const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } })();
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
-import { tlOn, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlPlayTick } from "./telemetry.js";
+import { tlOn, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlPlayTick, tlSoul } from "./telemetry.js";
 import { baselineAgi, progressX } from "./baseline.js";
 import { repriceEquipment } from "./pricing.js";
 
@@ -591,6 +591,8 @@ function runGainItem(owner, item) {
 // 魂の吸収を記録 (全滅没収で巻き戻すため {doll, clsKey} で覚える)
 // 魂の入手を記録 (全滅没収で巻き戻すため)。kind: "awaken"(共有countへ) | "bag"(未覚醒)
 function runTrackSoul(clsKey, kind) { if (G.run && inDungeon()) G.run.souls.push({ clsKey, kind }); }
+// テスト記録: 職業の魂を1つ手に入れた (迷宮の中ならその迷宮の欄、町なら次に入る迷宮の「町」の欄へ)
+function tlSoulGot(clsKey) { if (tlOn()) tlSoul(inDungeon() ? tlWhere() : null, (SOUL_CLASSES[clsKey] || {}).rarity); }
 // 今回の潜入の記録 (D1): 戦利品に加え、倒した数・魂の成長・持ちきれず置いてきた品・到達階を数える。
 // 旧セーブの G.run はこれらを持たないので、読む側は必ず || の既定値で受ける
 function newRun() {
@@ -6055,6 +6057,7 @@ function grantSoulQuiet(clsKey, sourceLine = "", emberCount = 0) {
   questProgress("soul", null, 1);
   addSoulInstance(clsKey);
   runTrackSoul(clsKey, "bag");
+  tlSoulGot(clsKey);
   codexJobSee(clsKey, 1, 1);
   if (emberCount > 0) { G.embers = (G.embers || 0) + emberCount; runCount("embers", emberCount); }
   updateTopbar();
@@ -10058,7 +10061,7 @@ function questProgress(type, key, n = 1) {
 // 報酬の魂を抽選して受け取る: [[魂のレア度, 体数]] → 職の鍵の配列
 function grantRewardSouls(list) {
   const got = [];
-  for (const [rar, cnt] of (list || [])) for (let k = 0; k < cnt; k++) { const ck = rollClassOfRarity(rar); addSoulInstance(ck); got.push(ck); }
+  for (const [rar, cnt] of (list || [])) for (let k = 0; k < cnt; k++) { const ck = rollClassOfRarity(rar); addSoulInstance(ck); tlSoulGot(ck); got.push(ck); }
   if (got.length) recalcAllDolls();
   return got;
 }
