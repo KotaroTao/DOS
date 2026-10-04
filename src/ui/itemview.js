@@ -4,7 +4,7 @@
 
 import { game } from "./ctx.js";
 import { el, sheet } from "./kit.js";
-import { ELEMENTS, elemBeats, RACE_LABEL, unknownName } from "../dungeons/index.js";
+import { ELEMENTS, elemBeats, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dungeons/index.js";
 import { SPELLS } from "../combat.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
 import { WEAPON_CAT_LABEL, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, scaleText, useLines } from "../items.js";
@@ -178,13 +178,33 @@ export function enemyReveal(e) {
     lore: special || kills >= R.lore,
   };
 }
-// 敵の呼び名: 名前が明かされるまでは不確定名「小さく蠢くもの」など (dungeons/unknown.js。同種が並ぶときの A/B… は残して見分けられるように)
+// 敵の呼び名: 名前が明かされるまでは不確定名「小さく蠢くもの？」など (dungeons/unknown.js。正式な名と見分けるため「？」を添える。
+// 同種が並ぶときの A/B… は残して見分けられるように)
 export function enemyLabel(e) {
   if (!e) return "";
   if (enemyReveal(e).name) return e.name;
   const base = e.mon && e.mon.name;
   const tail = base && String(e.name || "").startsWith(base) ? String(e.name).slice(base.length) : "";
-  return unknownName(e.mon) + tail;
+  return unknownLabel(e.mon) + tail;
+}
+// 名前がまだ明かされていない敵か (名札・ボタンの色分け用)
+export function enemyUnknown(e) { return !!e && !enemyReveal(e).name; }
+// 不確定名の色 (戦闘の名札・敵の姿シートの題。CSS の .unk-name と揃える)
+export const UNKNOWN_COLOR = "#b9acd9";
+// 記録の1行を書く: UNK_OPEN…UNK_CLOSE で囲んだ不確定名だけ .unk-name の色で (dungeons/unknown.js の unknownTag)
+const UNK_RE = new RegExp(UNK_OPEN + "([^" + UNK_CLOSE + "]*)" + UNK_CLOSE, "g");
+export function setLogText(node, text) {
+  text = String(text == null ? "" : text);
+  if (!text.includes(UNK_OPEN)) { node.textContent = text; return node; }
+  node.textContent = "";
+  let at = 0;
+  for (const m of text.matchAll(UNK_RE)) {
+    if (m.index > at) node.appendChild(document.createTextNode(text.slice(at, m.index)));
+    node.appendChild(el("span", "unk-name", m[1]));
+    at = m.index + m[0].length;
+  }
+  if (at < text.length) node.appendChild(document.createTextNode(text.slice(at)));
+  return node;
 }
 // まだ明かされていない項目の札: 「属性・HP　5体討伐で開示」
 export function revealLock(need, what, cls = "") {
