@@ -3,12 +3,13 @@
 // 画面は1枚に収める (ページそのものは縦にスクロールさせない)。長い一覧は「‹ 1/3 ›」でめくる (pagedGrid)。
 // 番人は見出しの下の1行 (胸像の小窓 + ひとこと。タップで胸像のシート)。その街滞在で初めて訪れた時だけ、
 // その行が大きな胸像と吹き出しになって挨拶する (次に描き直す時は1行に畳む)。
-// 品 (納品の依頼・宝物庫・図鑑) を選ぶと、持っている品は UI.itemSheet (WP-C) でその場で装備・譲渡できる。
+// 酒場の依頼の札・シートは questboard.js。品 (納品の依頼・宝物庫・図鑑) を選ぶと、持っている品は UI.itemSheet (WP-C) でその場で装備・譲渡できる。
 // 提供: UI.keeperWhisper(key) / UI.keeperSheet(key) / UI.currencySheet(kind) / UI.openInn() / ページ "tavern" "shrine"
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
 import { UI, game, ops, registerUI } from "./ctx.js";
-import { el, setText, glyph, svgIcon, sheet, button, whisper, itemTile, portrait, bar, toast, confirm } from "./kit.js";
+import { el, setText, glyph, svgIcon, sheet, button, whisper, itemTile, portrait, bar, toast, confirm, segmented } from "./kit.js";
+import { questCard, lists as qbLists, isReady as qbReady } from "./questboard.js";
 import { getPref, setPref } from "./prefs.js";
 import { keeperCanvas, vignetteCanvas } from "../townart.js";
 import { ITEMS } from "../items.js";
@@ -317,62 +318,56 @@ export function openInn() {
   return innSheet;
 }
 
-// ---------- 納品依頼の札 (酒場と街の広場で共用) ----------
-// 品の札をタップ = 品の詳細 (持っていれば装備・譲渡)。手持ちがあれば「納品する」、
-// 無くても商会の棚にあれば「買って納品」(確認のシート1枚) でその場で納められる。
-// 納品依頼を1タップで進める: 手持ちがあれば納品 / 商会で買えるなら確認のシート1枚を経て買って納品 / どちらも無ければ品の詳細
-export async function runDelivery(q) {
-  const it = q && ITEMS[q.itemId];
-  if (!it) return;
-  const st = game.deliveryStatus ? game.deliveryStatus(q) : null;
-  sfx("select");
-  if (st && st.holder) return game.deliverQuest(q);
-  if (st && st.canBuy) {
-    const gold = G().gold;
-    const ok = await confirm({ banner: "買って納品", title: `「${it.name}」を買って納める`, danger: false, okLabel: `💰${st.price} で買って納品`,
-      lines: [`商会の棚から 💰${st.price} で買い求め、そのまま納品します。`, `所持金 💰${gold} → 💰${gold - st.price}`] });
-    if (ok) game.deliverQuest(q, { buy: true });
-    return;
-  }
-  openItem(q.itemId);
-}
-export function deliveryCard(q, { compact = false } = {}) {
-  const it = ITEMS[q.itemId];
-  const st = (game.deliveryStatus && game.deliveryStatus(q)) || { holder: null, inShop: false, price: 0, canBuy: false };
-  const card = el("div", "fc-quest" + (compact ? " compact" : "") + (st.holder || st.canBuy ? " ready" : ""));
-  card.appendChild(itemTile(it, { size: compact ? 40 : 56, onTap: () => openItem(q.itemId) }));
-  const info = el("div", "fc-quest-i");
-  info.appendChild(game.itemNameEl ? game.itemNameEl("div", "fc-quest-n", it) : el("div", "fc-quest-n", it.name));
-  let hint;
-  if (st.holder) hint = `手持ちにあり — ${st.holder.name}`;
-  else if (st.inShop) hint = st.canBuy ? "商会に並んでいる" : "商会に並んでいる — お金が足りない";
-  else hint = "まだ手元にない";
-  info.appendChild(el("div", "fc-quest-h" + (st.holder || st.canBuy ? " ok" : ""), hint));
-  card.appendChild(info);
-  if (st.holder) card.appendChild(button({ label: "納品する", kind: "primary", size: "sm", onTap: () => runDelivery(q) }));
-  else if (st.canBuy) card.appendChild(button({ label: "買って納品", kind: "primary", size: "sm", cost: { kind: "gold", n: st.price }, onTap: () => runDelivery(q) }));
-  return card;
-}
-
 // ---------- 酒場 (ページ) ----------
+// 区分: 受注中 (受けた依頼・報告) / 掲示板 (依頼人の頼み + 帰還ごとに貼り替わる依頼) / 噂と顔ぶれ (噂話・居合わせる者たち)
+let tavernSeg = null;
+function tavernSegments() {
+  const L = qbLists();
+  const ready = L.active.filter(qbReady).length;
+  const fresh = L.offers.filter((q) => q.fresh).length;
+  return [
+    { key: "active", label: `受注 ${L.freeCount}/${L.cap}`, badge: ready || null },
+    { key: "board", label: "掲示板", badge: fresh || null },
+    { key: "talk", label: "噂と顔ぶれ" },
+  ];
+}
 function renderTavern(root) {
   if (legacyJumped()) return;
-  const g = G();
   const wrap = el("div", "wa-page wa-fit fc-tavern");
   root.appendChild(wrap);
   const kr = keeperRow("tavern");
   if (kr) wrap.appendChild(kr);
-
-  // 1) 納品依頼: 求められた品を納めると職業の魂を授かる (札は deliveryCard。街の広場にも同じ札が並ぶ)
-  if (game.ensureDeliveryQuests) game.ensureDeliveryQuests();
-  const qs = (g.deliveryQuests || []).filter((q) => q && ITEMS[q.itemId]);
-  wrap.appendChild(sectionHead("納品依頼", { note: qs.length ? `${qs.length}件・潜るたびに入れ替わる` : null }));
-  const dl = el("div", "fc-quests");
-  for (const q of qs) dl.appendChild(deliveryCard(q));
-  if (!qs.length) dl.appendChild(el("div", "wa-empty", "今は納品依頼がない。迷宮に潜れば、新たな品が求められる。"));
-  wrap.appendChild(dl);
-
-  // 2) 酒場の噂話 (FEATURE_AT.rumor 迷宮の踏破報告で情報屋が動く)
+  if (!tavernSeg) {
+    const L = qbLists();
+    tavernSeg = L.active.length ? "active" : "board";
+  }
+  const segs = tavernSegments();
+  const body = el("div", "fc-tav-body");
+  wrap.appendChild(segmented(segs, tavernSeg, (k) => { tavernSeg = k; drawSeg(); }));
+  wrap.appendChild(body);
+  const drawSeg = () => {
+    body.textContent = "";
+    if (tavernSeg === "talk") return renderTalk(body);
+    const L = qbLists();
+    const area = el("div", "fc-qarea");
+    if (tavernSeg === "active") {
+      body.appendChild(sectionHead("受けている依頼", { note: "依頼人の頼みは枠に数えない" }));
+      body.appendChild(area);
+      const empty = el("div", "wa-empty", "受けている依頼はない。掲示板で依頼を受けよう。");
+      pagedGrid(area, L.active, (q) => questCard(q), { cols: 1, cellH: 84, gap: 6, key: "tav-active", empty });
+    } else {
+      body.appendChild(sectionHead("掲示板", { note: "帰還のたびに貼り替わる" }));
+      body.appendChild(area);
+      const empty = el("div", "wa-empty", "いまは貼り紙がない。迷宮から戻れば、新たな依頼が貼られる。");
+      pagedGrid(area, L.offers, (q) => questCard(q), { cols: 1, cellH: 84, gap: 6, key: "tav-board", empty });
+    }
+  };
+  drawSeg();
+}
+// 噂話と居合わせる者たち
+function renderTalk(wrap) {
+  const g = G();
+  // 酒場の噂話 (FEATURE_AT.rumor 迷宮の踏破報告で情報屋が動く)
   wrap.appendChild(sectionHead("酒場の噂話"));
   const rumorOpen = game.featureUnlocked && game.featureUnlocked("rumor");
   if (!rumorOpen) {
@@ -493,6 +488,8 @@ export function install() {
   });
   if (UI.shell) {
     UI.shell.registerPage("tavern", { title: "酒場「沈まぬ灯」", parentTab: "hub", render: (root) => renderTavern(root) });
+    // 酒場を区分つきで開く (手ほどき「酒場の噂話」は "talk")
+    registerUI({ openTavern: (seg = null) => { tavernSeg = seg; UI.shell.openPage("tavern", { parentTab: "hub" }); } });
     UI.shell.registerPage("shrine", { title: "赤い魂の祠", parentTab: "hub", render: (root) => renderShrine(root) });
   }
   // 街シェルの見出しの通貨の札 (キット) をタップした時は、祠への案内つきの説明を出す

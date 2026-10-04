@@ -16,7 +16,8 @@ import { el, setText, glyph, svgIcon, button, portrait, longPress, itemTile } fr
 import { createTownScene, townSpots, vignetteCanvas } from "../townart.js";
 import { SFX } from "../audio.js";
 import { ITEMS } from "../items.js";
-import { currencyBar, sectionHead, facilityOpen, lockedToast, restOrDetail, openInn, innStatus, dismissGreet, runDelivery } from "./facilities.js";
+import { currencyBar, sectionHead, facilityOpen, lockedToast, restOrDetail, openInn, innStatus, dismissGreet } from "./facilities.js";
+import { questChip, hubQuests, lists as questLists } from "./questboard.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
 const G = () => game.G;
@@ -120,7 +121,7 @@ function builtinSuggestions(c) {
   } else if (c.treasuryReady) {
     out.push({ key: "treasury", prio: 80, label: "褒賞を受け取る", short: "褒賞を拝受", sub: "宝物庫", icon: "treasury", run: () => game.claimNextTreasury && game.claimNextTreasury() });
   }
-  // 納品依頼は街の広場に常に札を並べる (deliveries) ので、ここには出さない
+  // 酒場の依頼は街の広場に常に札を並べる (questStrip) ので、ここには出さない
   return out;
 }
 
@@ -315,9 +316,9 @@ function tiles() {
   const g = G();
   const wrap = el("div", "hb-tiles");
   const tav = facilityOpen("tavern");
-  const deliverable = (g.deliveryQuests || []).filter((q) => q && game.deliveryHolder && game.deliveryHolder(q.itemId)).length;
-  wrap.appendChild(tile("tavern", "酒場", tav ? (deliverable ? `納品できる品 ${deliverable}` : "噂・納品の依頼") : "閉ざされている",
-    { locked: !tav, badge: tav && deliverable ? String(deliverable) : null, onTap: () => { sfx("select"); UI.shell.openPage("tavern"); } }));
+  const ready = tav && game.questReadyCount ? game.questReadyCount() : 0;
+  wrap.appendChild(tile("tavern", "酒場", tav ? (ready ? `報告できる依頼 ${ready}` : "依頼・噂話") : "閉ざされている",
+    { locked: !tav, badge: ready ? String(ready) : null, onTap: () => { sfx("select"); if (UI.openTavern) UI.openTavern(); else UI.shell.openPage("tavern"); } }));
   const innOk = facilityOpen("inn");
   let innSub = "閉ざされている";
   let innCls = "";
@@ -340,49 +341,26 @@ function tiles() {
   return wrap;
 }
 
-// ---------- 納品依頼 (酒場が開いていれば街に常に並べる。手持ち/商会の品はその場で納品) ----------
-// 「次にすべきこと」と同じ並びの札 (最大3列)。札をタップ = 納品 / 買って納品 (確認1枚) / 品の詳細
-function deliveryChip(q) {
-  const it = ITEMS[q.itemId];
-  const st = (game.deliveryStatus && game.deliveryStatus(q)) || { holder: null, inShop: false, price: 0, canBuy: false };
-  const ready = !!(st.holder || st.canBuy);
-  const b = el("button", "hb-dlv-c" + (ready ? " ready" : ""));
-  b.type = "button";
-  const top = el("span", "hb-dlv-top");
-  try { top.appendChild(itemTile(it, { size: 44 })); } catch (e) { /* 絵が無くても札は出す */ }
-  top.appendChild(game.itemNameEl ? game.itemNameEl("span", "hb-dlv-n", it) : el("span", "hb-dlv-n", it.name));
-  b.appendChild(top);
-  const bot = el("span", "hb-dlv-bot");
-  if (st.holder) {
-    bot.appendChild(el("span", "hb-dlv-s", "手持ち"));
-    bot.appendChild(el("span", "hb-dlv-go", "納品する"));
-  } else if (st.inShop) {
-    bot.appendChild(el("span", "hb-dlv-s", st.canBuy ? "商会" : "金不足"));
-    const c = el("span", "hb-dlv-go" + (st.canBuy ? "" : " off"));
-    c.appendChild(glyph("gold"));
-    c.appendChild(document.createTextNode(String(st.price)));
-    bot.appendChild(c);
-  } else {
-    bot.appendChild(el("span", "hb-dlv-s", "未入手"));
-  }
-  b.appendChild(bot);
-  b.setAttribute("aria-label", `納品依頼 ${it.name}`);
-  b.addEventListener("click", () => runDelivery(q));
-  return b;
-}
-function deliveries() {
-  const g = G();
+// ---------- 酒場の依頼 (酒場が開いていれば街に常に並べる。報告・納品はその場で) ----------
+// 「次にすべきこと」と同じ並びの札 (最大3列)。受けている依頼が無ければ、掲示板へ誘う札を1枚
+function questStrip() {
   if (!facilityOpen("tavern")) return null;
-  if (game.ensureDeliveryQuests) game.ensureDeliveryQuests();
-  const qs = (g.deliveryQuests || []).filter((q) => q && ITEMS[q.itemId]);
+  const L = questLists();
+  const qs = hubQuests();
   const box = el("div", "hb-dlv");
-  box.appendChild(sectionHead("納品依頼", { note: "潜るたびに入れ替わる" }));
+  box.appendChild(sectionHead("酒場の依頼", { note: `受注 ${L.freeCount}/${L.cap}` }));
   if (qs.length) {
     const list = el("div", "hb-sug-list n" + Math.min(3, qs.length));
-    for (const q of qs.slice(0, 3)) list.appendChild(deliveryChip(q));
+    for (const q of qs.slice(0, 3)) list.appendChild(questChip(q));
     box.appendChild(list);
   } else {
-    box.appendChild(el("div", "wa-empty hb-dlv-empty", "今は納品依頼がない。迷宮に潜れば、新たな品が求められる。"));
+    const fresh = L.offers.filter((q) => q.fresh).length;
+    const b = el("button", "hb-dlv-c hb-dlv-board" + (fresh ? " ready" : ""));
+    b.type = "button";
+    b.appendChild(setText(el("span", "hb-dlv-n"), fresh ? `新たな依頼人が ${fresh}人 待っている` : `掲示板に依頼が ${L.offers.length}件`));
+    b.appendChild(setText(el("span", "hb-dlv-s"), "酒場で依頼を受けよう"));
+    b.addEventListener("click", () => { sfx("select"); if (UI.openTavern) UI.openTavern("board"); });
+    box.appendChild(b);
   }
   return box;
 }
@@ -473,9 +451,9 @@ export function renderHub(root, api) {
     box.appendChild(list);
     mid.appendChild(box);
   }
-  const dv = deliveries();
+  const dv = questStrip();
   if (dv) mid.appendChild(dv);
-  // 納品依頼の段がある時は「街」の見出しを省いて札の高さを守る (札は絵と名で何かわかる)
+  // 酒場の依頼の段がある時は「街」の見出しを省いて札の高さを守る (札は絵と名で何かわかる)
   const fac = el("div", "hb-fac" + (dv ? " nohead" : ""));
   if (!dv) fac.appendChild(sectionHead("街"));
   fac.appendChild(tiles());

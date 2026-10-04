@@ -11,6 +11,7 @@ import {
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
+import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows } from "./quests.js";
 import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
@@ -461,10 +462,7 @@ const G = {
   run: null,          // 今回の潜入で得た戦利品 { gold, soulPts, items:[{owner,item}], souls:[] }
   town: { facility: null, sub: null, tab: "hub", page: null }, // 街UIの現在地 (tab: 下のタブ / page: タブの1段下 / facility・sub: 旧画面アダプタ用)
   lastRun: null,      // 直前の潜入のまとめ (帰還の報告カード用。名前・レア度・数・砕けた人業など素のデータ)
-  quests: [],         // 受注可能/進行中のクエスト
-  dailyQuests: null,  // 日替わりクエスト { seed, list:[] } (日付が変わると再生成)
-  subQuests: {},      // 受注済みサブクエスト { id: {…def, state, progress} } (定義は決定的に再生成可能)
-  subQuestSeen: [],   // 酒場で一度表示した迷宮index (別の迷宮を選んでも依頼を残す)
+  quest: null,        // 酒場の依頼 (掲示板・受注中のフリークエスト・固定クエスト。questState() が整える)
   msq: null,          // 第0章の進み { n: 0, state: "active", granted } → 果たした後は { n: 1, state: "world" } (物語の進みは G.world)
   world: null,        // 迷宮の地図と物語の進み (worldState() が整える)
   ach: {},            // 受領済みの勲章 (実績) { id: true }
@@ -475,7 +473,6 @@ const G = {
   rumor: null,        // 酒場で表示中の噂 (次回潜入で現実化)
   rumorCooldown: 0,   // 次の噂を聞けるUNIXタイムスタンプ(ms) — 30分クールダウン
   activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
-  deliveryQuests: null, // 酒場の納品依頼 [{itemId}] (最大3件。迷宮に潜るたびに入れ替わる)
   codex: { mon: {}, item: {}, job: {}, fresh: { mon: {}, item: {}, job: {} } }, // 図鑑 (モンスター/アイテム/職業)。fresh = 新着 (まだ詳細を見ていない記録)
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={収集品id:true}, claimed={"ランク:しきい値":true}
   lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
@@ -785,6 +782,7 @@ function worldUnlockMet(cfg) {
   if (u.reported) return !!w.reported[u.reported];
   if (u.story) return !!w.found[u.story];
   if (u.treasury) return !!treasuryState().claimed["m" + u.treasury];
+  if (u.quest) return !!questState().fixed[u.quest]; // 酒場の固定クエストを受けた
   return false;
 }
 // 条件を満たした迷宮を地図に載せる。新たに現れた迷宮の設定を返す
@@ -8820,7 +8818,7 @@ function gameOver() {
 function commitDungeonClear(countBoss = true) {
   const idx = G.dungeonIdx;
   if (countBoss) {
-    G.stats.bossKills++; questProgress("boss", null, 1);
+    G.stats.bossKills++;
     const bk = DUNGEONS[idx] && DUNGEONS[idx].boss;
     if (bk) G.stats.bossIds[bk] = true; // 戦績: 討伐した層ボスの種類 (勲章用)
   }
@@ -8830,7 +8828,9 @@ function commitDungeonClear(countBoss = true) {
   const w = worldState();
   const isStoryTarget = !!cfg && !w.cleared[cfg.id];
   if (cfg) w.cleared[cfg.id] = (w.cleared[cfg.id] || 0) + 1;
-  if (isStoryTarget && !w.reported[cfg.id]) w.report = cfg.id;
+  // 依頼の迷宮 (side) は王への報告が無い (踏破は依頼人に報告する)
+  if (isStoryTarget && !w.reported[cfg.id] && !cfg.side) w.report = cfg.id;
+  if (cfg) questProgress("clear", cfg.id);
   // クリア = 戦利品確定。記録 (帰還の報告に使う) は残し、全滅しても何も失わない印を付ける
   if (G.run) G.run.secured = true;
   G.bossDown = true; // 主を討ったので、どこからでも帰還できる
@@ -9514,40 +9514,304 @@ function raiseSoulCap(uid) {
   renderTown();
 }
 
-// ---- 酒場「沈まぬ灯」: パーティ編成 + クエスト ----
-// kill クエストは種族(race)で判定する (ダンジョン毎にモンスターIDが異なるため)
-const QUEST_DEFS = [
-  { id: "q_slime", name: "ぬめる脅威", desc: "不定形の魔物を 3体 倒す", type: "kill", race: "amorph", goal: 3, reward: { gold: 80 } },
-  { id: "q_bat", name: "夜翼の駆除", desc: "飛獣を 3体 倒す", type: "kill", race: "wing", goal: 3, reward: { gold: 100 } },
-  { id: "q_souls", name: "魂の回収者", desc: "死体から魂を 3個 回収する", type: "soul", goal: 3, reward: { gold: 150 } },
-  { id: "q_b2", name: "深淵への一歩", desc: "地下2階に到達する", type: "floor", goal: 2, reward: { gold: 150, soul: "priest" } },
-  { id: "q_skel", name: "骸の掃除", desc: "不死者を 2体 倒す", type: "kill", race: "undead", goal: 2, reward: { gold: 180, soul: "knight" } },
-  { id: "q_dragon", name: "竜殺し", desc: "竜を討つ", type: "kill", race: "dragon", goal: 1, reward: { gold: 1000 } },
-];
-
-function initQuests() {
-  G.quests = QUEST_DEFS.map((q) => ({ ...q, state: "avail", progress: 0 }));
+// ---- 酒場「沈まぬ灯」の依頼 (クエスト。定義と掲示板の生成は src/quests.js) ----
+// G.quest = {
+//   board:  [q]   掲示板に貼られたフリークエスト (受ける前)。迷宮から帰還するたびに貼り替わる
+//   active: [q]   受けたフリークエスト (最大 FREE_CAP 件)。帰還しても残り、達成して報告するか放棄するまで枠を使う
+//   fixed:  { id: { state:"active"|"done"|"claimed", progress } }  受けた固定クエスト (上限なし・枠に数えない)
+//   seen:   { id:1 }  酒場で一度見た固定クエスト (「新」の印を消す)
+//   seq:    依頼の通し番号
+// }
+// 依頼の状態: offer (掲示板) → active (受注中) → done (達成・報告待ち) → 報告で消える (固定は claimed で残す)
+function questState() {
+  if (!G.quest || typeof G.quest !== "object") G.quest = {};
+  const s = G.quest;
+  if (!Array.isArray(s.board)) s.board = null;
+  if (!Array.isArray(s.active)) s.active = [];
+  if (!s.fixed || typeof s.fixed !== "object") s.fixed = {};
+  if (!s.seen || typeof s.seen !== "object") s.seen = {};
+  if (!(s.seq > 0)) s.seq = 1;
+  return s;
+}
+// 依頼の戦果 (その迷宮・階の普通の戦闘1回分の金貨/✦Soul)。出来事の evUnit と同じ物差しを、街から任意の迷宮で測る
+function questUnit(cfg, floor = 1) {
+  const keys = poolAt(cfg, floor).filter((k) => MONSTERS[k]);
+  let g = 0, so = 0;
+  for (const k of keys) { g += MONSTERS[k].gold || 0; so += MONSTERS[k].soul || 0; }
+  const n = Math.max(1, keys.length);
+  const sc = (cfg.enemyScale || 1) * (1 + (Math.max(1, floor) - 1) * (cfg.floorRamp != null ? cfg.floorRamp : 0.06));
+  const per = 1.9; // 1戦の平均の敵数
+  return { gold: Math.max(6, (g / n) * sc * per), soul: Math.max(3, (so / n) * sc * per) };
+}
+// 掲示板の生成に渡す窓 (src/quests.js)
+function questCtx() {
+  const s = questState();
+  const dungeons = DUNGEONS.filter((d) => worldOpenId(d.id)).sort((a, b) => (a.n - b.n) || (a.nTo - b.nTo));
+  const avoid = new Set();
+  for (const q of s.active) {
+    for (const k of (q.keys || [])) avoid.add("k:" + k);
+    if (q.itemId) avoid.add("i:" + q.itemId);
+    if (q.type === "floor" && q.dungeon) avoid.add("f:" + q.dungeon);
+  }
+  return {
+    dungeons: dungeons.length ? dungeons : [DUNGEONS[0]],
+    unit: questUnit, deliverIds: eligibleDeliveryItemIds(), itemName: (id) => (ITEMS[id] || {}).name || id,
+    rand, avoid, uid: () => "q" + (s.seq++),
+  };
+}
+// 掲示板を貼り替える (迷宮から帰還した時・初めて酒場が開いた時)
+function rollQuestBoard() {
+  const s = questState();
+  s.board = rollBoard(questCtx());
+  return s.board;
+}
+function ensureQuestBoard() { const s = questState(); if (!s.board) rollQuestBoard(); return s.board; }
+// 固定クエストが酒場に現れる条件を満たしたか
+function fixedQuestAppears(def) {
+  const a = def.appear || {}, w = worldState();
+  if (a.reported && !w.reported[a.reported]) return false;
+  if (a.cleared && !w.cleared[a.cleared]) return false;
+  if (a.open && !w.open[a.open]) return false;
+  if (a.found && !w.found[a.found]) return false;
+  return true;
+}
+// 酒場で受けられる固定クエスト (現れていて、まだ受けていないもの)
+function fixedQuestOffers() {
+  const s = questState();
+  return FIXED_QUESTS.filter((d) => !s.fixed[d.id] && fixedQuestAppears(d));
+}
+// 固定クエストを1件の依頼の形にまとめる (UI はフリーと同じ形で扱う)
+function fixedQuestView(def) {
+  const st = questState().fixed[def.id] || null;
+  const g = def.goal || {};
+  return {
+    uid: def.id, fixed: true, def, type: g.type, keys: g.keys, dungeon: g.dungeon,
+    goal: g.type === "clear" ? 1 : (g.n || 1), progress: st ? st.progress || 0 : 0,
+    state: st ? st.state : "offer", name: def.name, text: (def.lines || []).join(""), desc: def.desc,
+    giver: def.giver, reward: fixedQuestReward(def), fresh: !st && !questState().seen[def.id],
+  };
+}
+// 固定クエストの報酬 (戦果の倍数を、物差しの迷宮の深部で金貨/✦Soul に直す)
+function fixedQuestReward(def) {
+  const r = def.reward || {};
+  const deepU = (cfg) => questUnit(cfg, Math.max(1, Math.ceil((cfg.floors || 1) * 0.8)));
+  const u0 = deepU(worldById(def.ref) || DUNGEONS[0]);
+  // 後回しにした依頼も見劣りしないよう、地図でいちばん深い迷宮の戦果の 7割 を下限にする
+  const open = DUNGEONS.filter((d) => worldOpenId(d.id));
+  const front = open.length ? deepU(open.reduce((a, d) => (d.nTo > a.nTo ? d : a))) : u0;
+  const u = { gold: Math.max(u0.gold, front.gold * 0.7), soul: Math.max(u0.soul, front.soul * 0.7) };
+  const out = {};
+  if (r.gold) out.gold = Math.max(1, Math.round(u.gold * r.gold / 10) * 10);
+  if (r.soul) out.soulPts = Math.max(1, Math.round(u.soul * r.soul / 5) * 5);
+  if (r.red) out.red = r.red;
+  if (r.embers) out.embers = r.embers;
+  if (r.souls) out.souls = r.souls.map((x) => [...x]);
+  return out;
+}
+// 受注中・報告待ちの依頼 (フリー + 固定) と、掲示板・依頼人の依頼
+function questLists() {
+  const s = questState();
+  ensureQuestBoard();
+  const fixedActive = FIXED_QUESTS.filter((d) => s.fixed[d.id] && s.fixed[d.id].state !== "claimed").map(fixedQuestView);
+  return {
+    active: [...fixedActive, ...s.active],
+    offers: [...fixedQuestOffers().map(fixedQuestView), ...(s.board || [])],
+    freeCount: s.active.length, cap: FREE_CAP,
+  };
+}
+// 依頼を探す (uid = フリーの通し番号 / 固定の id)
+function questByUid(uid) {
+  const s = questState();
+  if (FIXED_BY_ID[uid]) return fixedQuestView(FIXED_BY_ID[uid]);
+  return s.active.find((q) => q.uid === uid) || (s.board || []).find((q) => q.uid === uid) || null;
+}
+// 出撃シートの添え書き: 受けている依頼がこの迷宮を指していれば「依頼の地」/ 依頼の迷宮なら「依頼の迷宮」
+function questHereNote(cfg) {
+  if (!cfg) return null;
+  const s = questState();
+  const hit = s.active.some((q) => q.state === "active" && q.dungeon === cfg.id) ||
+    FIXED_QUESTS.some((d) => s.fixed[d.id] && s.fixed[d.id].state === "active" && d.goal && d.goal.dungeon === cfg.id);
+  if (hit) return "依頼の地";
+  return cfg.side ? "依頼の迷宮" : null;
+}
+// 報告できる依頼の数 (達成済み + 手持ちで納められる納品)。街の札・酒場の札の印
+function questReadyCount() {
+  if (!facilityOpenKey("tavern")) return 0;
+  const s = questState();
+  let n = s.active.filter((q) => q.state === "done" || (q.type === "deliver" && deliveryHolder(q.itemId))).length;
+  n += Object.values(s.fixed).filter((f) => f && f.state === "done").length;
+  return n;
+}
+function facilityOpenKey(key) {
+  const a = tutorialAllowed();
+  return !a || a.includes(key);
 }
 
-// 進行中クエストへ進捗を加算。達成したら通知
-function questProgress(type, key, n = 1) {
-  const all = [...G.quests, ...((G.dailyQuests && G.dailyQuests.list) || []), ...Object.values(G.subQuests || {})];
-  for (const q of all) {
-    if (q.state !== "active" || q.type !== type) continue;
-    // サブクエストも迷宮・階を問わず、条件さえ満たせば進む (場所の縛りなし)
-    // kill: q.race 指定なら倒した敵の種族で判定 / それ以外は従来のキー一致
-    if (q.type === "kill") {
-      if (q.race) { const m = MONSTERS[key]; if (!m || m.race !== q.race) continue; }
-      else if (q.key !== key) continue;
-    }
-    if (q.type === "floor") { q.progress = Math.max(q.progress, key); }
-    else q.progress += n;
-    if (q.progress >= q.goal && q.state === "active") {
-      q.state = "done";
-      log(`クエスト達成！「${q.name}」— 酒場で報告しよう`, "win");
-      showToast(`📜 クエスト達成: ${q.name}`);
-    }
+// 依頼を受ける。フリーは同時に FREE_CAP 件まで。固定は上限なし (受けると地図に迷宮が現れるものもある)
+function acceptQuest(uid) {
+  const s = questState();
+  const def = FIXED_BY_ID[uid];
+  if (def) {
+    if (s.fixed[uid] || !fixedQuestAppears(def)) return false;
+    s.fixed[uid] = { state: "active", progress: 0 };
+    s.seen[uid] = 1;
+    SFX.select();
+    log(`依頼「${def.name}」を受けた。(${def.giver.name})`, "sys");
+    const added = refreshWorldUnlocks();
+    announceNewDungeons(added);
+    autosave(true);
+    renderTown();
+    return true;
   }
+  const i = (s.board || []).findIndex((q) => q.uid === uid);
+  if (i < 0) return false;
+  if (s.active.length >= FREE_CAP) {
+    SFX.ng();
+    showToast(`受けられる依頼は ${FREE_CAP}件まで。達成して報告するか、放棄してから`, { tone: "bad" });
+    return false;
+  }
+  const q = s.board.splice(i, 1)[0];
+  q.state = "active"; q.progress = 0;
+  s.active.push(q);
+  SFX.select();
+  log(`依頼「${q.name}」を受けた。`, "sys");
+  autosave(true);
+  renderTown();
+  return true;
+}
+// 受けたフリークエストを放棄する (枠が1つ空く。進みは失われる)
+function abandonQuest(uid) {
+  const s = questState();
+  const i = s.active.findIndex((q) => q.uid === uid);
+  if (i < 0) return false;
+  const q = s.active.splice(i, 1)[0];
+  SFX.select();
+  log(`依頼「${q.name}」を放棄した。`, "sys");
+  showToast(`依頼「${q.name}」を放棄した`, { tone: "info" });
+  autosave(true);
+  renderTown();
+  return true;
+}
+function questDone(q) {
+  log(`依頼「${q.name}」を果たした！ — 酒場で報告しよう`, "win");
+  showToast(`📜 依頼達成: ${q.name}`, { tone: "good" });
+}
+
+// 依頼の進みを加算する (迷宮・階を問わず、条件さえ満たせば進む)。
+//   kill: key = 倒した魔物 / soul・chest: 数 / floor: key = 着いた階 (その迷宮の依頼だけ) / clear: key = 踏破した迷宮の id
+function questProgress(type, key, n = 1) {
+  const s = questState();
+  const here = G.abyss ? null : (DUNGEONS[G.dungeonIdx] || {}).id;
+  const step = (goal, prog) => {
+    if (goal.type !== type) return null;
+    if (type === "kill" && !(goal.keys || []).includes(key)) return null;
+    if (type === "floor") return goal.dungeon && goal.dungeon !== here ? null : Math.max(prog, key || 0);
+    if (type === "clear") return goal.dungeon === key ? 1 : null;
+    return prog + n;
+  };
+  for (const q of s.active) {
+    if (q.state !== "active") continue;
+    const v = step({ type: q.type, keys: q.keys, dungeon: q.dungeon }, q.progress || 0);
+    if (v == null) continue;
+    q.progress = Math.min(q.goal, v);
+    if (q.progress >= q.goal) { q.state = "done"; questDone(q); }
+  }
+  for (const def of FIXED_QUESTS) {
+    const st = s.fixed[def.id];
+    if (!st || st.state !== "active") continue;
+    const g = def.goal || {};
+    const v = step(g, st.progress || 0);
+    if (v == null) continue;
+    const goal = g.type === "clear" ? 1 : (g.n || 1);
+    st.progress = Math.min(goal, v);
+    if (st.progress >= goal) { st.state = "done"; questDone(def); }
+  }
+}
+
+// 報酬の魂を抽選して受け取る: [[魂のレア度, 体数]] → 職の鍵の配列
+function grantRewardSouls(list) {
+  const got = [];
+  for (const [rar, cnt] of (list || [])) for (let k = 0; k < cnt; k++) { const ck = rollClassOfRarity(rar); addSoulInstance(ck); got.push(ck); }
+  if (got.length) recalcAllDolls();
+  return got;
+}
+// 報酬の表示 (物語のページの「受け取るもの」)
+function rewardRows(r, jobs = []) {
+  const out = [];
+  if (r.gold) out.push({ cur: "gold", n: r.gold });
+  if (r.soulPts) out.push({ cur: "soul", n: r.soulPts });
+  if (r.red) out.push({ cur: "red", n: r.red });
+  if (r.embers) out.push({ cur: "ember", n: r.embers });
+  for (const j of jobs) out.push({ job: j });
+  return out;
+}
+function grantCurrencies(r) {
+  G.gold += r.gold || 0;
+  G.soulPts += r.soulPts || 0;
+  G.redSoul += r.red || 0;
+  G.embers = (G.embers || 0) + (r.embers || 0);
+}
+// 達成した依頼を報告して報酬を受け取る
+function claimQuest(uid) {
+  const s = questState();
+  const def = FIXED_BY_ID[uid];
+  if (def) {
+    const st = s.fixed[uid];
+    if (!st || st.state !== "done") return false;
+    const r = fixedQuestReward(def);
+    st.state = "claimed";
+    G.stats.questsDone = (G.stats.questsDone || 0) + 1;
+    grantCurrencies(r);
+    const jobs = grantRewardSouls(r.souls);
+    autosave(true);
+    SFX.itemget(); buzz([0, 30, 60, 30]);
+    log(`依頼「${def.name}」を報告した。(${def.giver.name})`, "win");
+    UI.playStoryChain([{ title: def.name, lines: def.done || [], reward: rewardRows(r, jobs), kicker: `依頼の報告 ― ${def.giver.name}`, who: "none", place: "tavern", btnLabel: "受け取る" }], () => {
+      updateTopbar(); renderTown();
+      showToast(`📜 依頼「${def.name}」を果たした`, { tone: "gold" });
+    });
+    return true;
+  }
+  const i = s.active.findIndex((q) => q.uid === uid && q.state === "done");
+  if (i < 0) return false;
+  const q = s.active.splice(i, 1)[0];
+  finishFreeQuest(q, q.reward || {});
+  return true;
+}
+// フリークエストの報酬を渡して締める (納品も同じ道)
+function finishFreeQuest(q, r, extraJobs = [], title = null) {
+  G.stats.questsDone = (G.stats.questsDone || 0) + 1;
+  grantCurrencies(r);
+  const jobs = [...extraJobs, ...grantRewardSouls(r.souls)];
+  updateTopbar();
+  const parts = [];
+  if (r.gold) parts.push(`💰${r.gold}`);
+  if (r.soulPts) parts.push(`✦${r.soulPts}`);
+  const names = jobs.map((k) => SOUL_CLASSES[k].label);
+  log(`依頼「${q.name}」を報告した。` + (parts.length ? ` ${parts.join(" ")}` : "") + (names.length ? ` 魂: ${names.join("・")}` : ""), "win");
+  const rareJob = jobs.find((k) => SOUL_CLASSES[k].rarity !== "common");
+  if (jobs.length) {
+    SFX.itemget(); buzz(rareJob ? [0, 40, 50, 40, 50, 150] : [0, 30, 60, 30]);
+    if (jobs.some((k) => SOUL_CLASSES[k].rarity === "legend")) { flashScreen("#ffcf4a"); SFX.victory(); }
+    const lines = [];
+    if (parts.length) lines.push(`${parts.join("  ")} を受け取った。`);
+    lines.push(`${names.join("・")} の魂を授かった。`, "所持魂 一覧に追加した。");
+    showEvent({
+      sprite: soulIcon(rareJob || jobs[0]),
+      banner: rareJob ? `★ ${RARITY_LABEL[SOUL_CLASSES[rareJob].rarity]}の魂 ★` : `✦ 魂 ×${jobs.length} ✦`,
+      title: title || `依頼「${q.name}」を果たした`,
+      lines,
+      accent: (SOUL_CLASSES[rareJob || jobs[0]] || {}).glow || "#c9a227",
+      sparkle: !!rareJob,
+      btnLabel: "受け取る",
+      onClose: () => { updateTopbar(); renderTown(); },
+    });
+  } else {
+    SFX.itemget(); buzz([0, 30, 60, 30]);
+    showToast(`📜 ${q.name} ― ${parts.join(" ")}`, { tone: "gold" });
+    renderTown();
+  }
+  autosave(true);
 }
 
 // ---- 酒場に居合わせる者たち: 帰還ごとに3〜5名を選び、各人が世界の噂・冒険のヒントを語る ----
@@ -9686,21 +9950,12 @@ function applyRumorToBoard(board) {
   log(`噂どおりだ… (${r.speaker}の話)`, "sys");
 }
 
-// ---- 酒場の納品依頼: 求められた品を納めると、その品のレア度 (c/uc/r/sr/lr) に応じて職業の魂を授かる ----
-// 対象は「今 到達している深さまでに出現しうる品」からランダム3件。LR/専用装備は除外
-// (LOOT_IDS が exclusive を弾く)。常時最大3件で、迷宮に潜るたびに入れ替わる (rollDeliveryQuests)。
-const DELIVERY_REWARDS = {
-  // レア度 : [ [魂のレア度, 体数, 確率], … ] (確率は合計1.0)
-  c:  [["common", 2, 0.70], ["rare", 1, 0.20], ["epic", 1, 0.09], ["legend", 1, 0.01]],
-  uc: [["common", 3, 0.60], ["rare", 2, 0.25], ["epic", 1, 0.13], ["legend", 1, 0.02]],
-  r:  [["common", 4, 0.45], ["rare", 2, 0.30], ["epic", 1, 0.20], ["legend", 1, 0.05]],
-  sr: [["common", 5, 0.40], ["rare", 3, 0.30], ["epic", 2, 0.20], ["legend", 1, 0.10]],
-  lr: [["rare", 5, 0.40], ["epic", 3, 0.40], ["legend", 1, 0.20]],
-};
-function deliveryRewardRows(it) { return DELIVERY_REWARDS[rarityKey(it)] || DELIVERY_REWARDS.c; }
+// ---- 納品の依頼 (フリークエストの一種): 求められた品を納めると、その品のレア度 (c/uc/r/sr/lr) に応じて職業の魂を授かる ----
+// 求める品は「地図にある迷宮で出うる品」(LOOT_IDS = exclusive/LR を除く通常ドロップ品)。報酬の表は src/quests.js DELIVERY_REWARDS
+const deliveryRewardRowsOf = (it) => deliveryRewardRows(rarityKey(it));
 // 報酬を1つ抽選: [rarity, 体数]
 function rollDeliveryReward(it) {
-  const rows = deliveryRewardRows(it);
+  const rows = deliveryRewardRowsOf(it);
   let r = Math.random();
   for (const [rarity, count, p] of rows) { if ((r -= p) < 0) return [rarity, count]; }
   const last = rows[rows.length - 1];
@@ -9708,7 +9963,7 @@ function rollDeliveryReward(it) {
 }
 // 報酬テーブルの表示文
 function deliveryRewardDesc(it) {
-  return deliveryRewardRows(it).map(([rar, c, p]) => `${RARITY_LABEL[rar]}魂×${c} (${Math.round(p * 100)}%)`).join(" / ");
+  return deliveryRewardRowsOf(it).map(([rar, c, p]) => `${RARITY_LABEL[rar]}魂×${c} (${Math.round(p * 100)}%)`).join(" / ");
 }
 // 指定レアリティの職業をランダムに選ぶ
 function rollClassOfRarity(rarity) {
@@ -9722,25 +9977,11 @@ function eligibleDeliveryItemIds() {
   const cap = Math.max(1, ...(open.length ? open : [DUNGEONS[0]]).map((d) => (d.lootLv || [1, 1])[1]));
   return LOOT_IDS.filter((id) => (ITEMS[id].lv || 1) <= cap);
 }
-// 納品依頼を引き直す (重複なし)。同時件数は解放段階に応じて 1→2→3
-function rollDeliveryQuests() {
-  const pool = eligibleDeliveryItemIds();
-  const cap = deliveryQuestCap();
-  const out = [], used = new Set();
-  for (let i = 0; i < cap && pool.length; i++) {
-    let id, tries = 0;
-    do { id = pool[rand(pool.length)]; tries++; } while (used.has(id) && tries < 24);
-    if (used.has(id)) break;
-    used.add(id); out.push({ itemId: id });
-  }
-  return out;
-}
-function ensureDeliveryQuests() { if (!Array.isArray(G.deliveryQuests)) G.deliveryQuests = rollDeliveryQuests(); }
 // 対象アイテムが手持ち (人業の所持品。装備中・未鑑定は除く) にあるか
 function deliveryHolder(itemId) {
   return allDolls().find((d) => (d.items || []).some((it) => it.id === itemId && !it.unidentified)) || null;
 }
-// 納品依頼の状態: 手持ち (holder) があればそのまま納品、無くても商会の棚にあれば買ってその場で納品できる
+// 納品の依頼の状態: 手持ち (holder) があればそのまま納品、無くても商会の棚にあれば買ってその場で納品できる
 function deliveryStatus(q) {
   const it = q && ITEMS[q.itemId];
   if (!it) return null;
@@ -9749,9 +9990,12 @@ function deliveryStatus(q) {
   const price = buyPrice(it);
   return { holder, inShop, price, canBuy: !holder && inShop && G.gold >= price };
 }
-// 納品を実行: 手持ちから1つ消費し、品の格に応じた魂を授かる。
+// 納品を実行 (受けた納品の依頼だけ): 手持ちから1つ消費し、品の格に応じた魂を授かる。
 // opts.buy = 手持ちが無い時、商会の棚から買ってそのまま納める (袋は経由しないので所持枠は要らない)
 function deliverQuest(q, opts = {}) {
+  const s = questState();
+  const qi = s.active.indexOf(q);
+  if (qi < 0 || q.type !== "deliver") return;
   const it = ITEMS[q.itemId];
   if (!it) return;
   const holder = deliveryHolder(q.itemId);
@@ -9770,27 +10014,8 @@ function deliverQuest(q, opts = {}) {
     log(`${it.name} を商会で買い求めた (💰${price})。`, "sys");
   } else { log("納品できる品が手元にない。", "sys"); SFX.ng(); return; }
   const [rarity, count] = rollDeliveryReward(it);
-  const got = [];
-  for (let k = 0; k < count; k++) { const ck = rollClassOfRarity(rarity); addSoulInstance(ck); got.push(ck); }
-  recalcAllDolls();
-  // 納めた依頼は消える (次に潜るまで補充されない)
-  G.deliveryQuests = (G.deliveryQuests || []).filter((x) => x !== q);
-  const names = got.map((k) => SOUL_CLASSES[k].label);
-  const rare = rarity !== "common";
-  SFX.itemget(); buzz(rare ? [0, 40, 50, 40, 50, 150] : [0, 30, 60, 30]);
-  if (rarity === "legend") { flashScreen("#ffcf4a"); SFX.victory(); }
-  log(`${itemName(it)} を納品し、${RARITY_LABEL[rarity]}の魂を ${count} 体授かった。(${names.join("・")})`, "win");
-  showEvent({
-    sprite: soulIcon(got[0]),
-    banner: rare ? `★ ${RARITY_LABEL[rarity]}の魂 ×${count} ★` : `✦ 魂 ×${count} ✦`,
-    title: `「${it.name}」を納品`,
-    lines: [`${RARITY_LABEL[rarity]}の魂を ${count} 体 授かった。`, `${names.join("・")} の魂`, "所持魂 一覧に追加した。"],
-    accent: (SOUL_CLASSES[got[0]] || {}).glow || "#c9a227",
-    sparkle: rare,
-    btnLabel: "受け取る",
-    onClose: () => { updateTopbar(); renderTown(); },
-  });
-  autosave(true);
+  s.active.splice(qi, 1);
+  finishFreeQuest(q, {}, grantRewardSouls([[rarity, count]]), `「${it.name}」を納品`);
 }
 
 // 噂話を一つ買う (💰100・30分に一度)。情報屋は今選んでいる迷宮を読む (rollRumor)
@@ -10246,7 +10471,7 @@ function reportTutorialQuest() {
 //   踏破しただけ (報告前) では開かない ― 解放のページ (story.js UNLOCKS) を見てから使えるようにする。
 //   いまの台帳 (5迷宮) では 2→魂融合 / 3→サブ魂1枠 / 4→酒場の噂・依頼 / 5→控えの結社(席1)。
 //   その先の節目は迷宮が増えた時に詰め直す (今は届かない数のまま置いておく)
-const FEATURE_AT = { fusion: 2, sub1: 3, rumor: 4, order: 5, delivery2: 25, order2: 30, delivery3: 35, sub2: 40, order3: 45, infinite: 50 };
+const FEATURE_AT = { fusion: 2, sub1: 3, rumor: 4, order: 5, order2: 30, sub2: 40, order3: 45, infinite: 50 };
 function featureUnlocked(key) {
   const c = reportedDungeonCount();
   if (key === "infinite") return c >= FEATURE_AT.infinite && CONTENT_LIMIT >= 50; // 奈落は迷宮が50を超えるまで閉じる
@@ -10298,12 +10523,6 @@ function toggleOrderSeat(uid) {
   G.order.picks = picks.filter((u) => soulByUid(u));
   autosave(); renderTown();
 }
-// 同時に受けられる納品依頼の件数。酒場解放=1 / 以後の節目で +1
-function deliveryQuestCap() {
-  const c = reportedDungeonCount();
-  return c >= FEATURE_AT.delivery3 ? 3 : c >= FEATURE_AT.delivery2 ? 2 : 1;
-}
-
 // 踏破した迷宮の数 (台帳の迷宮のうち、一度でも踏破したもの)
 function clearedDungeonCount() {
   const w = worldState();
@@ -11204,14 +11423,13 @@ function enterDungeon(mutatorId, startFloor = 1) {
   G._lastTargetUid = null;
   // 表示中の噂を確定し、この迷宮で現実化させる
   if (G.rumor) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
-  // 納品依頼は迷宮に潜るたびに入れ替わる
-  G.deliveryQuests = rollDeliveryQuests();
   G.state = "board";
   playBgm(fieldBgm());
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
   newFloor();
   const viaGate = G.floor > 1;
   if (viaGate) arriveAtGate();
+  questProgress("floor", G.floor); // 帰還魔法陣から潜り始めても、その階に着いたと数える
   const mu = mutDef();
   if (mu) log(`異変「${mu.name}」の中を行く。${mu.gain}。`, "win");
   renderBoard();
@@ -11245,7 +11463,6 @@ function enterAbyss(mods, weekly) {
   G.lastRun = null;
   G._townMutator = null; G._departPre = false;
   G.rumor = null; G.activeRumor = null; // 奈落では街の噂は持ち込まない
-  G.deliveryQuests = rollDeliveryQuests();
   G.state = "board";
   playBgm(fieldBgm());
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
@@ -11335,6 +11552,7 @@ function returnToTown(opts = {}) {
   summary.dead = G.party.filter((d) => d && d.isDoll && !d.alive).map((d) => ({ uid: d.uid, name: d.name }));
   G.lastRun = summary;
   rollTavernCrowd(); // 酒場の顔ぶれは帰還のたびに入れ替わる
+  rollQuestBoard();  // 掲示板の依頼も帰還のたびに貼り替わる (受けた依頼は残る)
   updateTopbar();
   log(outcome === "wipe" ? "砕けた人業を残し、街へ戻った。" : "街へ帰還した。", "sys");
   G.town.facility = null; G.town.sub = null; G.town.page = null; G.town.tab = "hub";
@@ -12452,7 +12670,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quests", "dailyQuests", "subQuests", "subQuestSeen", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "deliveryQuests", "codex", "treasury", "lrOwned", "lrClock", "order", "irene", "tut", "events", "story", "world", "dragonSlain", "stats",
+  "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "lrClock", "order", "irene", "tut", "events", "story", "world", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
   "lastRun",
 ];
@@ -12671,8 +12889,7 @@ function loadGame() {
   if (!G.stats.bossIds || typeof G.stats.bossIds !== "object") G.stats.bossIds = {};
   if (!G.stats.elemKills || typeof G.stats.elemKills !== "object") G.stats.elemKills = {};
   if (!G.ach) G.ach = {}; // 勲章 (後付け)
-  if (!G.subQuests) G.subQuests = {}; // サブクエスト (後付け)
-  if (!Array.isArray(G.subQuestSeen)) G.subQuestSeen = []; // 表示済みの迷宮 (後付け)
+  questState(); // 酒場の依頼 (後付け。旧来の納品依頼・サブクエストは捨てて、掲示板を貼り直す)
   // メインストーリー: 第0章の途中か、師を捜す旅の途中 ({n:1, state:"world"})。迷宮の地図と物語の進みは G.world
   if (!G.msq) G.msq = { n: 0, state: "active", granted: false };
   if (G.msq.n >= 1) G.msq = { n: 1, state: "world" };
@@ -12786,11 +13003,10 @@ function setupNewGame() {
   G.unlockedDungeons = 0; // 第0章を果たすまで、迷宮の場所は明かされない
   G.world = {}; worldState();
   G.shopStock = { ...SHOP_INIT_STOCK };
-  G.deliveryQuests = rollDeliveryQuests();
+  G.quest = null; questState();
   // 第0章「人業の生成」: 王宮で謁見 → 戦士・僧侶・盗賊・魔導士の魂×4+🔴100を受ける (granted) → 館の保管庫で人業を4体仕立て → 報告
   G.msq = { n: 0, state: "active", granted: false };
   codexSweepJobs();
-  initQuests();
 }
 
 // ==== OPS: 一括操作 (Phase 0 が所有。以後は凍結し、拡張は UI 経由) ====
@@ -12880,7 +13096,7 @@ const OPS = {
       junk: junk.length, junkGold: junk.reduce((a, j) => a + j.price, 0),
       ach,
       donatable: opsNewKindCount(),
-      deliverable: (G.deliveryQuests || []).filter((q) => q && deliveryHolder(q.itemId)).length,
+      questReady: questReadyCount(),
       trainable: opsTrainableList().length,
       innCost: innCost(), repairCost, hastenCost, treasuryReady,
     };
@@ -13234,7 +13450,8 @@ bindGame({
   achievementCards, claimNextTreasury, TREASURY_MILESTONES, milestoneLabel, totalDonatedKinds,
   codexMonEntry, dungeonRoster, CODEX_OTHER,
   // 酒場・祠・宿
-  listenRumor, RUMOR_PRICE, rumorPrice, ensureDeliveryQuests, deliveryRewardDesc, rollTavernCrowd,
+  listenRumor, RUMOR_PRICE, rumorPrice, deliveryRewardDesc, rollTavernCrowd,
+  questState, questLists, questByUid, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote,
   adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)
   PREFS, savePrefs, setVolumes, isMuted, toggleMute, ensureAudio, updateMuteBtn, resetAllData, confirmReset,

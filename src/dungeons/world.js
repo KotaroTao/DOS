@@ -16,6 +16,8 @@
 //             { reported: id }        その迷宮の踏破を王に報告した時
 //             { story: key }          物語の手がかり (story.js の物語マス) を見つけた時
 //             { treasury: n }         宝物庫の n 種奉納の褒賞 (坑口の通行証など) を受け取った時
+//             { quest: id }           酒場の固定クエスト (src/quests.js FIXED_QUESTS) を受けた時
+//   side    依頼の迷宮 (章の筋の外)。初めて踏破しても王への報告は無く、依頼人に報告する (機能解放の数にも数えない)
 //   hint    まだ現れていない時に出撃シートで示す、解放の手がかり
 //   about   出撃シートの一行の説明
 import { DUNGEONS as GENERATED } from "./generator.js";
@@ -84,6 +86,32 @@ const WORLD_DEF = [
     tune: { enemyMul: 1.50, deepMul: 0.70, soloMul: 0.92, bossMul: 0.80 }, // DUNGEON_TUNE の D11 の雑魚 + D15 の主 (第3層は厳しめ)
     unlock: { treasury: 3 },
     hint: "王家の宝物庫に収集品を3種奉納すると、王が坑口の通行証を授ける",
+  },
+  // ---- 依頼の迷宮 (酒場の固定クエストを受けると地図に現れる) ----
+  {
+    id: "ws1", n: 7, nTo: 9, layer: 2, floors: 10, side: true,
+    name: "沈んだ礼拝堂", short: "沈んだ礼拝堂",
+    about: "黒い水の底に沈んだ礼拝堂。夜ごと、水の下から鐘が鳴る",
+    bands: [
+      ["bs_sludgeooze", "bs_waterelemental", "bs_sewerdredger", "bs_brinewraith", "bs_waterhag", "bs_eelfiend"],
+      ["bs_anglerfiend", "d03_sahagin", "bs_abysstentacle"],
+    ],
+    boss: LAYER_BOSS[1], bossRank: 4,
+    tune: { enemyMul: 1.28, deepMul: 0.75, soloMul: 0.85, bossMul: 0.85 }, // DUNGEON_TUNE の D9 の雑魚 + D10 の主
+    unlock: { quest: "fq_oswald" },
+    hint: "酒場の破戒僧の依頼「沈んだ鐘」を受けると、道が示される",
+  },
+  {
+    id: "ws2", n: 12, nTo: 14, layer: 3, floors: 10, side: true,
+    name: "石眠りの石切り場", short: "石切り場",
+    about: "王都の城壁を切り出した古い石切り場。鉱夫たちは鑿を握ったまま石になった",
+    bands: [
+      ["d03_orc", "bs_shieldogre", "bs_stonegorgon", "bs_rockworm", "bs_dustwraith", "bs_tunneler"],
+      ["d03_mandrake", "bs_orehulk", "bs_deepgolem"],
+    ],
+    tune: { enemyMul: 1.30, deepMul: 0.73, soloMul: 1.0 }, // DUNGEON_TUNE の D13 の行
+    unlock: { quest: "fq_morga" },
+    hint: "酒場の薬師の依頼「石になった鉱夫たち」を受けると、道が示される",
   },
 ];
 
