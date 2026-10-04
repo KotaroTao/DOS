@@ -181,6 +181,7 @@ const ASSETS = [
   "./src/catalog/layer2.js",
   "./src/catalog/layer3.js",
   "./src/catalog/layer4.js",
+  "./src/catalog/layer5.js",
   "./src/catalog/ranks/r01.js",
   "./src/catalog/ranks/r02.js",
   "./src/catalog/ranks/r03.js",
