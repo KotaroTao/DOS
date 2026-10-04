@@ -6,10 +6,10 @@ export default {
   awaken: "darkknightKurokiBanpei/1",
   table: `
     1 SHIELDBASH 2 YAMIBA 3 NERAIUCHI 5 darkknightYaminoShouheki/1 7 ANKOKU 10 SHADOWBOLT
-    12 CHOUHATSU 15 DARKKNIGHT_CHIYAMI 20 KYUUKETSU 22 KOKUEINAGI 25 darkknightKaeshiba/1 30 YAMINOKOROMO
-    32 DARKBLAST 35 darkknightKurokiBanpei/2 40 MAGUINOTACHI 45 darkknightYaminoShouheki/2 50 DARKKNIGHT_KOKUSHOU 55 JUBAKU
+    12 CHOUHATSU 15 DARKKNIGHT_CHIYAMI 15 darkknightShisenkate/1 20 KYUUKETSU 22 KOKUEINAGI 25 darkknightKaeshiba/1 30 YAMINOKOROMO
+    32 DARKBLAST 35 darkknightKurokiBanpei/2 40 MAGUINOTACHI 45 darkknightYaminoShouheki/2 50 DARKKNIGHT_KOKUSHOU 50 darkknightShisenkate/2 55 JUBAKU
     57 MEIJIN 60 darkknightShikobami/1 65 SHINGANGEKI 70 darkknightTeoiMashou/1 75 resistAilment/1 80 HANGEKI
-    85 DARKKNIGHT_KETSURUI 90 darkknightKaeshiba/2 95 DARKKNIGHT_KUROGANE 100 DARKKNIGHT_GOKUENMAKEN 105 darkknightKurokiBanpei/3 107 DARKKNIGHT_YAMIKURAI
+    85 DARKKNIGHT_KETSURUI 90 darkknightKaeshiba/2 95 DARKKNIGHT_KUROGANE 100 DARKKNIGHT_GOKUENMAKEN 100 darkknightShisenkate/3 105 darkknightKurokiBanpei/3 107 DARKKNIGHT_YAMIKURAI
     110 DARKKNIGHT_NARAKUSOU 115 darkknightTeoiMashou/2 120 DARKKNIGHT_SHUKUMEI 125 darkknightShikobami/2 130 DARKKNIGHT_KUROJOUSAI 135 darkknightTeoiMashou/3
     140 DARKKNIGHT_MEIOUKUSARI 145 resistAilment/2 150 DARKKNIGHT_GOUMADAN 155 darkknightKaeshiba/3 160 ANKOKUSHUUEN 162 DARKKNIGHT_KOKUUZUGIRI
     165 darkknightYaminoShouheki/3 170 DARKKNIGHT_RENGOKU 175 darkknightKurokiBanpei/4 180 DARKKNIGHT_ZANSHU 185 darkknightTeoiMashou/4 190 DARKKNIGHT_TOKOYO
@@ -35,6 +35,12 @@ export default {
     DARKKNIGHT_KOKUTEN: { name: "終焉・黒天", mp: 40, kind: "phys", power: 12, element: "dark", acc: 1, pierce: 0.6, hpCost: 0.2, target: "enemy", desc: "身の二割を捧げる必中の闇の極剣" },
   },
   perks: {
+    // Lv15 の目玉パッシブ: 死線をくぐった勝利が闇の剣を癒す
+    darkknightShisenkate: {
+      label: "死線の糧",
+      lv: ["HPが半分以下で戦闘に勝つと、HPを最大の8%回復", "HPが半分以下で戦闘に勝つと、HPを最大の12%回復", "HPが半分以下で戦闘に勝つと、HPを最大の16%回復"],
+      fx: [{ t: "win", when: { selfLow: 0.5 }, hp: [0.08, 0.12, 0.16] }],
+    },
     darkknightYaminoShouheki: { label: "闇の障壁", lv: ["戦闘開始時、魔障壁を1回分まとう (ブレス・呪文半減)", "戦闘開始時、魔障壁を2回分まとう", "戦闘開始時、魔障壁を3回分まとう"],
       fx: [{ t: "start", barrier: [1, 2, 3] }] },
     darkknightKurokiBanpei: { label: "黒き番兵", lv: ["戦闘開始時に敵を引き付け (2ターン)、物理の被ダメ−5%", "開幕に引き付け、物理の被ダメ−8%", "開幕に引き付け、物理の被ダメ−11%", "開幕に引き付け、物理の被ダメ−14%"],

@@ -7,10 +7,10 @@ export default {
   // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
   awaken: "cardinalIgen/1",
   table: `
-    1 DIOS 3 CURE 5 cardinalShiboku/1 7 HOLYRAY 10 PROTECT 15 CARDINAL_HAMONNOCHOKU
+    1 DIOS 3 CURE 5 cardinalShiboku/1 7 HOLYRAY 10 PROTECT 15 CARDINAL_HAMONNOCHOKU 15 soulTutor/1
     17 REGEN 20 DIOSALL 25 cardinalMeisou/1 30 DIAL 35 cardinalKekkai/1 40 CARDINAL_SEIYU
-    45 cardinalShiboku/2 50 REVIVE 55 CARDINAL_TAISHA 60 cardinalMeisou/2 65 CARDINAL_SHIKYOUJOU 70 cardinalMeisou/3
-    75 cardinalIgen/2 80 CARDINAL_SHOUROU 85 CARDINAL_RESSEI 90 cardinalShiboku/3 95 CARDINAL_SEIIBUTSU 100 CARDINAL_SHIEI
+    45 cardinalShiboku/2 50 REVIVE 50 soulTutor/2 55 CARDINAL_TAISHA 60 cardinalMeisou/2 65 CARDINAL_SHIKYOUJOU 70 cardinalMeisou/3
+    75 cardinalIgen/2 80 CARDINAL_SHOUROU 85 CARDINAL_RESSEI 90 cardinalShiboku/3 95 CARDINAL_SEIIBUTSU 100 CARDINAL_SHIEI 100 soulTutor/3
     105 cardinalKekkai/2 110 CARDINAL_HAMON 115 cardinalIshi/1 120 CARDINAL_TAIKAN 125 cardinalIshi/2 130 CARDINAL_SEIZANORAI
     135 resistAilment/1 140 CARDINAL_BANKON 145 cardinalShiboku/4 150 CARDINAL_SEITOU 155 cardinalIgen/3 160 CARDINAL_IKOU
     165 resistAilment/2 170 CARDINAL_SHUKUSEI 175 cardinalIshi/3 180 CARDINAL_TENJOU 185 cardinalKekkai/3 190 CARDINAL_KOUCHUU

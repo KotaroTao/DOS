@@ -173,7 +173,7 @@ export function enemyReveal(e) {
   const R = revealSteps(e && e.mon);
   return {
     special, kills, steps: R,
-    name: special || kills >= R.name,
+    name: special || kills >= R.name || !!(e && e._named), // _named = 見破りの眼 (trueName) がこの戦闘で正体を見破った
     stats: special || kills >= R.stats,
     lore: special || kills >= R.lore,
   };

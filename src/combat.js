@@ -1,7 +1,7 @@
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
 import { ITEMS, weaponRange, scaleBonus, useTarget, useHelps, useCureKinds, useWhere } from "./items.js";
-import { ELEMENTS, elemDmgMult, monStats, rankStats, resistRate, resistHpMul, RESIST_TAG, METAL_TIERS } from "./dungeons/schema.js";
+import { ELEMENTS, elemDmgMult, elemBeats, monStats, rankStats, resistRate, resistHpMul, RESIST_TAG, METAL_TIERS } from "./dungeons/schema.js";
 
 import { SPELLS } from "./skilldefs.js";
 import { JOBKIT_PERKS } from "./jobkit/index.js";
@@ -216,6 +216,8 @@ export function perkVictory(p, party) {
     if (!q || !q.alive) continue;
     for (const { c, lv } of perksOf(q)) {
       if (c.t !== "win" || (q !== p && !c.party)) continue;
+      const f = q.maxhp ? q.hp / q.maxhp : 1;
+      if (c.when && ((c.when.selfLow != null && f > c.when.selfLow) || (c.when.selfHigh != null && f < c.when.selfHigh))) continue;
       hp += lvv(c.hp, lv) || 0; mp += lvv(c.mp, lv) || 0;
     }
   }
@@ -372,7 +374,7 @@ export class Battle {
     this._bigBarrierUsed = 0;
     this.bonusGold = 0; // 「盗む」で手に入れた金 (勝っても逃げても持ち帰る)
     this.tally = newTally(); // テスト記録用の集計 (命中・手番・逃走)。判定には使わない
-    for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._endureUsed = 0; a._grantEndure = false; }
+    for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._endureUsed = 0; a._grantEndure = false; a._fgUsed = 0; a._hopeUsed = false; }
     for (const p of party) {
       p._coverLeft = pv(p, "cover");
       p._barrierLeft = pv(p, "barrier");
@@ -553,6 +555,10 @@ export class Battle {
     if (w.allyDown && !this.party.some((p) => !p.alive)) return false;
     if (w.alone && this.livingParty().length !== 1) return false;
     if (w.elem && ctx.el !== w.elem) return false;
+    if (w.eliteFight && !this.enemies.some((e) => e.boss || (e.mon && e.mon.elite))) return false;
+    if (w.bossFight && !this.enemies.some((e) => e.boss)) return false;
+    if (w.tgtWeak && !(t && ctx.el && ctx.el !== "none" && t.element && elemBeats(ctx.el, t.element))) return false;
+    if (w.wonLast && !a._wonLast) return false;
     return true;
   }
   // 与ダメ・被ダメ・会心・回避などの値の合計 (自分の分 + 生きている味方の aura 付きの分)。ctx.on = その攻撃の種類の札の配列
@@ -1390,6 +1396,7 @@ export class Battle {
             this._die(actor);
           }
         }
+        if (this._firstGuard(t)) { res.hits.push({ target: t, dmg: 0, immune: true, died: false }); continue; }
         t.hp -= dmg;
         this.log(`${t.name}に ${dmg} ダメージ${em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : ""}`, "dmg");
         this._wake(t);
@@ -1753,6 +1760,7 @@ export class Battle {
     // 金剛の護符 (guard): 被ダメを常に割合カット (LR装飾品)
     if (tgt.guard) dmg = Math.ceil(dmg * (1 - tgt.guard));
     dmg = Math.max(1, dmg);
+    if (actor.side === "enemy" && this._firstGuard(tgt)) return { target: tgt, dmg: 0, crit: false, died: false, immune: true };
     tgt.hp -= dmg;
     // 吸血 (lifesteal): 与えた傷の一部を己のHPに変える (敵の能力・味方の吸命のLR装飾品の双方)
     let stolen = 0; // 吸血で癒えた量 (満タンで切られた分も含む素の値。演出で「+N」と見せる)
@@ -2119,6 +2127,8 @@ export class Battle {
     const idx = owner && owner.items ? owner.items.indexOf(it) : -1;
     if (idx < 0) { this.log(`${actor.name}は道具を探したが、見当たらない…`, "sys"); return; }
     owner.items.splice(idx, 1); // 使えば (効かなくても) 無くなる
+    // 錬金の知恵 (alchemy): 道具の HP・MP 回復量が増える (隊で一番高いLvだけ)
+    const alc = 1 + ([0, 0.10, 0.20, 0.30][Math.min(3, Math.max(0, ...this.party.filter((p) => p.alive).map((p) => pv(p, "alchemy"))))] || 0);
     res.action = "spell"; res.item = it; res.spellName = it.name; res.spellElement = null;
     this.log(`${actor.name}は ${it.name} を使った！${owner !== actor ? ` (${owner.name}の袋から)` : ""}`, "hit");
     if (u.escape) {
@@ -2188,7 +2198,7 @@ export class Battle {
       }
       if (!t.alive) continue;
       if (u.heal || u.full) {
-        const heal = u.full ? t.maxhp : u.heal;
+        const heal = u.full ? t.maxhp : Math.round(u.heal * alc);
         const before = t.hp;
         t.hp = Math.min(t.maxhp, t.hp + heal);
         if (t.hp > before) { this.log(`${t.name}のHPが ${t.hp - before} 回復`, "heal"); any = true; }
@@ -2196,7 +2206,7 @@ export class Battle {
       }
       if ((u.mp || u.mpFull) && (t.maxmp || 0) > 0) {
         const before = t.mp;
-        t.mp = Math.min(t.maxmp, t.mp + (u.mpFull ? t.maxmp : u.mp));
+        t.mp = Math.min(t.maxmp, t.mp + (u.mpFull ? t.maxmp : Math.round(u.mp * alc)));
         if (t.mp > before) { this.log(`${t.name}のMPが ${t.mp - before} 回復`, "heal"); any = true; }
         res.hits.push({ target: t, mpHeal: t.mp - before });
       }
@@ -2226,6 +2236,16 @@ export class Battle {
     this.log("聖なる残光がパーティを癒した", "heal");
   }
 
+  // 加護の祈り (firstGuard): 戦闘中、最初に受けるダメージを Lv 回まで無効にする。無効にしたら true
+  _firstGuard(t) {
+    if (!t || t.side !== "party") return false;
+    const lv = pv(t, "firstGuard");
+    if (!lv || (t._fgUsed || 0) >= lv) return false;
+    t._fgUsed = (t._fgUsed || 0) + 1;
+    this.log(`加護の祈りが${t.name}を守った！ (無傷)`, "heal");
+    return true;
+  }
+
   _die(t) {
     if (t.hp <= 0 && t.alive) {
       // 不屈: 致死を HP1 で耐える (Lv2 で1戦闘2回 / 味方=聖句の加護付与分も同じ回数を共有 / 敵=def の endure)
@@ -2234,6 +2254,12 @@ export class Battle {
       if (maxEndure > 0 && (t._endureUsed || 0) < maxEndure) {
         t._endureUsed = (t._endureUsed || 0) + 1; t._grantEndure = false; t.hp = 1;
         this.log(`${t.name}は不屈で持ちこたえた！ (HP1)`, t.side === "enemy" ? "dmg" : "heal");
+        return false;
+      }
+      // 最後の希望 (lastHope): 1戦闘1回、確率で致死を HP1 で耐える
+      if (t.side === "party" && !t._hopeUsed && pv(t, "lastHope") && Math.random() < ([0, 0.3, 0.5, 0.7][Math.min(3, pv(t, "lastHope"))] || 0)) {
+        t._hopeUsed = true; t.hp = 1;
+        this.log(`${t.name}は最後の希望にすがり、踏みとどまった！ (HP1)`, "heal");
         return false;
       }
       // 名を刻まれぬ墓碑 (迷宮のイベント): この潜入で一度だけ、致死を HP1 で免れる

@@ -223,21 +223,40 @@ export const PASSIVES = {
   popePrayer:    { label: "教皇の祈り",   scope: "party", lv: ["自分の戦闘後回復をパーティ全体に適用する"] },
   soulEater:     { label: "魂喰い",       scope: "self",  lv: ["敵を倒した時、MP5%回復"] },
   vigilance:     { label: "周囲警戒",     scope: "party", lv: ["奇襲される確率が半減", "奇襲を受けなくなる", "奇襲を受けず、自分から挑むと先制率+10%"] },
-  senseEnemy:    { label: "敵感知",       scope: "party", lv: ["まだめくっていないカードの敵の気配が見える", "強敵(エリート)が際立って見える", "敵カードの属性まで読める"] },
-  senseTreasure: { label: "財宝感知",     scope: "party", lv: ["まだめくっていないカードの財宝の気配が見える", "帰還ポータルの気配も見える", "罠の気配も見える"] },
+  senseEnemy:    { label: "敵感知",       scope: "party", lv: ["まだめくっていない墓石の魔物を1体、ぼんやり示す", "まだめくっていない墓石の魔物を2体、ぼんやり示す", "まだめくっていない墓石の魔物を3体、ぼんやり示す"] },
+  senseTreasure: { label: "財宝感知",     scope: "party", lv: ["まだめくっていない墓石の宝箱を1つ、ぼんやり示す", "まだめくっていない墓石の宝箱を2つ、ぼんやり示す", "まだめくっていない墓石の宝箱を3つ、ぼんやり示す"] },
   initiative:    { label: "先制の心得",   scope: "party", lv: ["先制攻撃の発生率+15%", "先制攻撃の発生率+25%", "先制攻撃の発生率+40%"] },
   poisonFloor:   { label: "毒床耐性",     scope: "party", lv: ["毒の床から受けるダメージ半減", "毒の床のダメージを無効化", "毒の床を無効化し、渡るたびHP2%回復"] },
   fleetFoot:     { label: "逃げ足",       scope: "party", lv: ["逃走の成功率+30%", "逃走の成功率+45%", "逃走の成功率+60%"] },
   goldLuck:      { label: "金運",         scope: "party", lv: ["戦闘で得るゴールド+15%", "戦闘で得るゴールド+30%", "戦闘で得るゴールド+50%"] },
-  soulLure:      { label: "魂寄せ",       scope: "party", lv: ["戦闘で得るSoul+10%", "戦闘で得るSoul+20%", "戦闘で得るSoul+35%"] },
-  appraise:      { label: "目利き",       scope: "party", lv: ["敵の戦利品ドロップ率+15%", "敵の戦利品ドロップ率+25%", "敵の戦利品ドロップ率+40%"] },
+  soulLure:      { label: "魂寄せ",       scope: "party", lv: ["戦闘で得る✦Soul+5%", "戦闘で得る✦Soul+8%", "戦闘で得る✦Soul+12%"] },
+  appraise:      { label: "掘り出しの勘", scope: "party", lv: ["敵の戦利品ドロップ率+15%", "敵の戦利品ドロップ率+25%", "敵の戦利品ドロップ率+40%"] },
   cartography:   { label: "踏破の地図",   scope: "party", lv: ["着地ごとに周囲1マスのカードが見える", "着地ごとに周囲2マスのカードが見える", "着地ごとに周囲3マスのカードが見える"] },
-  fieldRegen:    { label: "戦間回復",     scope: "party", lv: ["階を降りるたびHP/MP2%回復", "階を降りるたびHP/MP4%回復", "階を降りるたびHP/MP6%回復"] },
-  wardField:     { label: "加護の祈り",   scope: "party", lv: ["床・罠の状態異常付与率-30%", "床・罠の状態異常付与率-50%", "床・罠の状態異常付与率-70%"] },
-  soulTutor:     { label: "魂の薫陶",     scope: "party", lv: ["戦闘後の魂EXP+10%", "戦闘後の魂EXP+20%", "戦闘後の魂EXP+35%"] },
-  bargain:       { label: "値切り",       scope: "party", lv: ["店の買値・鑑定費-8%", "店の買値・鑑定費-15%", "店の買値・鑑定費-25%"] },
-  trapEye:       { label: "罠師の目",     scope: "party", lv: ["罠ダメージ-20%・解除率+10%", "罠ダメージ-35%・解除率+20%", "罠ダメージ-50%・解除率+30%"] },
-  vault:         { label: "宝物庫",       scope: "party", lv: ["宝箱ランク+1の確率15%", "宝箱ランク+1の確率30%", "宝箱ランク+1の確率50%"] },
+  fieldRegen:    { label: "束の間の休息", scope: "party", lv: ["階を移動すると、全員のHPを10%回復", "階を移動すると、全員のHPを15%回復", "階を移動すると、全員のHPを20%回復"] },
+  wardField:     { label: "呪い除け",     scope: "party", lv: ["床・罠で状態異常にかかる確率-30%", "床・罠で状態異常にかかる確率-50%", "床・罠で状態異常にかかる確率-70%"] },
+  soulTutor:     { label: "魂の薫陶",     scope: "self",  lv: ["自分の宿す魂が得るEXP+10%", "自分の宿す魂が得るEXP+15%", "自分の宿す魂が得るEXP+20%"] },
+  trapEye:       { label: "盗賊の眼",     scope: "party", lv: ["宝箱・床の罠の解除率+10% (最大95%)", "宝箱・床の罠の解除率+15% (最大95%)", "宝箱・床の罠の解除率+20% (最大95%)"] },
+  // ===== 職ごとの Lv15 の目玉パッシブ (Lv50 で Lv2、Lv100 で Lv3)。効果は game.js / combat.js が読む =====
+  // 「重複不可」(scope party) は隊で一番高いLvの1人分だけが効く (partyPassiveLv)
+  trapGuard:     { label: "堅牢",         scope: "party", lv: ["罠のダメージ-20%", "罠のダメージ-35%", "罠のダメージ-50%"] },
+  appraiseEye:   { label: "目利き",       scope: "party", lv: ["鑑定の成功率+5% (最大95%)", "鑑定の成功率+8% (最大95%)", "鑑定の成功率+12% (最大95%)"] },
+  firstGuard:    { label: "加護の祈り",   scope: "self",  lv: ["戦闘中、最初に受けるダメージを1回だけ無効にする", "戦闘中、最初に受けるダメージを2回まで無効にする", "戦闘中、最初に受けるダメージを3回まで無効にする"] },
+  toughBody:     { label: "歴戦の体",     scope: "self",  lv: ["最大HP+5%", "最大HP+8%", "最大HP+12%"] },
+  nightWatch:    { label: "夜営の番",     scope: "party", lv: ["奇襲される確率-20%", "奇襲される確率-35%", "奇襲される確率-50%"] },
+  manaFlow:      { label: "魔力の循環",   scope: "party", lv: ["階を移動すると、全員のMPを5%回復", "階を移動すると、全員のMPを8%回復", "階を移動すると、全員のMPを12%回復"] },
+  stealthStep:   { label: "忍び足",       scope: "party", lv: ["先制攻撃の発生率+10%", "先制攻撃の発生率+15%", "先制攻撃の発生率+20%"] },
+  cleanseStep:   { label: "清めの歩み",   scope: "party", lv: ["階を移動すると、全員の毒を治す", "階を移動すると、全員の毒・麻痺を治す", "階を移動すると、全員の毒・麻痺・石化を治す"] },
+  herbPick:      { label: "薬草摘み",     scope: "party", lv: ["戦闘に勝つと5%で薬草を拾う", "戦闘に勝つと8%で薬草を拾う", "戦闘に勝つと12%で薬草を拾う"] },
+  pilfer:        { label: "ちょろまかし", scope: "party", lv: ["戦闘で得るゴールド+5%", "戦闘で得るゴールド+8%", "戦闘で得るゴールド+12%"] },
+  mimicEye:      { label: "門番の眼",     scope: "party", lv: ["宝箱がミミックなら、開ける前に30%で見破る", "宝箱がミミックなら、開ける前に50%で見破る", "宝箱がミミックなら、開ける前に70%で見破る"] },
+  holySense:     { label: "退魔の気配",   scope: "party", lv: ["不死・霊・悪魔との戦闘で先制攻撃の発生率+10%", "不死・霊・悪魔との戦闘で先制攻撃の発生率+15%", "不死・霊・悪魔との戦闘で先制攻撃の発生率+20%"] },
+  trapSeal:      { label: "封の結界",     scope: "party", lv: ["罠が発動しても、10%で打ち消す", "罠が発動しても、15%で打ち消す", "罠が発動しても、20%で打ち消す"] },
+  trueName:      { label: "見破りの眼",   scope: "party", lv: ["まだ倒したことのない魔物の名を、30%で見破る", "まだ倒したことのない魔物の名を、60%で見破る", "まだ倒したことのない魔物の名を、必ず見破る"] },
+  riseAgain:     { label: "蘇りの祈り",   scope: "party", lv: ["戦闘で倒れた味方が、勝利後10%でHP1で起き上がる", "戦闘で倒れた味方が、勝利後20%でHP1で起き上がる", "戦闘で倒れた味方が、勝利後30%でHP1で起き上がる"] },
+  sureFoot:      { label: "験力の足",     scope: "party", lv: ["落とし穴を踏んでも、30%で踏みとどまる", "落とし穴を踏んでも、50%で踏みとどまる", "落とし穴を踏んでも、70%で踏みとどまる"] },
+  lastHope:      { label: "最後の希望",   scope: "self",  lv: ["致死ダメージを30%でHP1で耐える (1戦闘1回)", "致死ダメージを50%でHP1で耐える (1戦闘1回)", "致死ダメージを70%でHP1で耐える (1戦闘1回)"] },
+  skyEye:        { label: "天翔る眼",     scope: "party", lv: ["階に降り立つと、下り階段のあたり (5×5) がぼんやり光る", "階に降り立つと、下り階段のあたり (3×3) がぼんやり光る", "階に降り立つと、下り階段の墓石がぼんやり光る"] },
+  alchemy:       { label: "錬金の知恵",   scope: "party", lv: ["道具のHP・MP回復量+10%", "道具のHP・MP回復量+20%", "道具のHP・MP回復量+30%"] },
   extraHit:      { label: "連撃",         scope: "self",  lv: ["通常攻撃が10%で2撃目を放つ (威力60%)", "通常攻撃が20%で2撃目を放つ (威力60%)", "通常攻撃が30%で2撃目を放つ (威力60%)", "通常攻撃が40%で2撃目を放つ (威力60%)"] },
   fightSpirit:   { label: "闘魂",         scope: "self",  lv: ["HP30%以下の時、ATK+25%", "HP30%以下の時、ATK+40%・会心+15%", "HP30%以下の時、ATK+55%・会心+20%", "HP30%以下の時、ATK+70%・会心+25%"] },
   spellBlade:    { label: "魔力撃",       scope: "self",  lv: ["通常攻撃にINTの50%を上乗せ", "通常攻撃にINTの100%を上乗せ"] },
@@ -405,7 +424,15 @@ export function identifyChance(member, itemLv) {
   if (!j) return 0;
   const jobLv = (member && (member.jobLv || member.level)) || 1;
   const c = j.base + (jobLv - 1) * j.perLv - (itemLv || 1) * j.lvPenalty;
-  return Math.max(j.floor, Math.min(IDENTIFY_CAP, c));
+  return Math.min(IDENTIFY_CAP, Math.max(j.floor, Math.min(IDENTIFY_CAP, c)) + appraiseBonus());
+}
+// 目利き (appraiseEye): 鑑定の成功率 +5/8/12% (隊と控えで一番高いLvだけ)。game.js が setAppraiseSource で人業の一覧を渡す
+let APPRAISE_SRC = () => [];
+export function setAppraiseSource(fn) { APPRAISE_SRC = typeof fn === "function" ? fn : () => []; }
+function appraiseBonus() {
+  let lv = 0;
+  for (const d of (APPRAISE_SRC() || [])) if (d && d.alive !== false) lv = Math.max(lv, pLv(d, "appraiseEye"));
+  return [0, 0.05, 0.08, 0.12][Math.min(3, lv)] || 0;
 }
 
 // ===== 職業図鑑テキスト =====
@@ -1017,6 +1044,9 @@ export function recalcDoll(doll) {
     for (const k in st) st[k] += (sst[k] || 0) * rate;
     doll.subInfo.push({ uid: se.uid, clsKey: se.clsKey, rank: sr, level: se.level, cap, picks: used, rate });
   }
+
+  // 歴戦の体 (toughBody): 最大HPを割合で底上げ
+  if (passiveMap.toughBody) st.hp *= 1 + ([0, 0.05, 0.08, 0.12][Math.min(3, passiveMap.toughBody)] || 0);
 
   // 控えの結社: 席の魂の能力の一部を全員に加える (魂を宿していない人業は除く)
   doll.orderBonus = null;

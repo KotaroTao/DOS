@@ -5,10 +5,10 @@ export default {
   // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
   awaken: "selfPurify/1",
   table: `
-    1 DIOS 3 CURE 5 afterHeal/1 7 HOLYRAY 10 BLESS 15 PRIEST_MAKURABE
+    1 DIOS 3 CURE 5 afterHeal/1 7 HOLYRAY 10 BLESS 15 PRIEST_MAKURABE 15 fieldRegen/1
     17 REGEN 20 DIOSALL 25 afterHeal/2 30 DIAL 35 chant/1 40 DIALALL
-    45 purify/1 50 PRIEST_GOKOU 55 PRIEST_MEZAME 60 afterHeal/3 65 PRIEST_TEATE 70 resistAilment/1
-    75 priestShisso/1 80 PRIEST_SHINMYOU 85 PRIEST_KEGAREOTOSHI 90 afterHeal/4 95 SHINYU 100 SEIBETSU
+    45 purify/1 50 PRIEST_GOKOU 50 fieldRegen/2 55 PRIEST_MEZAME 60 afterHeal/3 65 PRIEST_TEATE 70 resistAilment/1
+    75 priestShisso/1 80 PRIEST_SHINMYOU 85 PRIEST_KEGAREOTOSHI 90 afterHeal/4 95 SHINYU 100 SEIBETSU 100 fieldRegen/3
     105 chant/2 110 IYASHINAMI 115 priestYoake/1 120 REGENALL 125 resistAilment/2 130 SHINBATSU
     135 priestTeate/1 140 SEISUISHO 145 priestMitori/1 150 TENKEINOINORI 155 priestShisso/2 160 SEIMETSUKOU
     165 priestYoake/2 170 FUKUIN 175 priestTeate/2 180 SEIKOURETSU 185 DAISEIKITOU 190 DAIFUKUIN

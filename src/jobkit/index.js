@@ -28,7 +28,7 @@
 //  { t:"cast",  chance?, on?, refund?, hp?:[…], mp?:[…], party? }  技・呪文を使った後 (on = 技の種別): 消費MPを返す /
 //               自分 (party なら味方全体) のHPを最大の割合だけ回復 / MPを最大の割合だけ回復
 //  { t:"fall",  chance?, buff?:{stat:[…]}, dur?, hp?:[…] }  味方が倒れた時、生きている自分に
-//  { t:"win",   hp?:[…], mp?:[…], party? }  戦闘に勝った後、HP/MP を最大の割合だけ回復 (party なら味方全体)
+//  { t:"win",   hp?:[…], mp?:[…], party?, when? }  戦闘に勝った後、HP/MP を最大の割合だけ回復 (party なら味方全体。when は selfLow / selfHigh だけ)
 //  on (与/被ダメ・会心・命中時): "phys" = 物理全般 / "basic" = 通常攻撃 / "skill" = 物理技 / "spell" = 攻撃呪文 (受ける側では敵の全体呪文) / "breath" = ブレス
 //  aura: true = 持ち主が生きている間、味方全員に効く (deal/take/crit/evade)
 //  chance は 0〜1 (配列ならLvごと)。dur は既定3ターン。
@@ -36,7 +36,8 @@
 //    race:[種族…] / tgtElem:"fire" / tgtAil (状態異常・怯み中) / tgtDebuffed (弱体中) / tgtLow:0.5 (HP割合以下) / tgtHigh:0.8 (以上) /
 //    boss / noBoss / selfLow:0.5 / selfHigh:0.8 / selfAil / buffed (自分が強化中) / defending / mpHigh:0.5 /
 //    round1 / roundGE:3 / preempt (先制した戦闘) / front / back (自分の隊列) / crowd:3 (敵の数以上) / lastFoe (敵が残り1体) /
-//    allyDown (倒れた味方がいる) / alone (生き残りが自分だけ) / elem:"fire" (攻撃の属性)
+//    allyDown (倒れた味方がいる) / alone (生き残りが自分だけ) / elem:"fire" (攻撃の属性) /
+//    eliteFight (精鋭か主のいる戦闘) / bossFight (主のいる戦闘) / tgtWeak (攻撃の属性が相手の弱点) / wonLast (前の戦闘に勝った)
 import fighter from "./fighter.js";
 import knight from "./knight.js";
 import priest from "./priest.js";
@@ -94,10 +95,10 @@ const FX_FIELDS = {
   deal: "v on when aura", take: "v on when aura", crit: "v on when aura", evade: "v when aura", heal: "v", cost: "v on",
   stat: "mul when", start: "chance when party dur buff foe barrier regen mp endure taunt charge",
   round: "chance when party hp mp buff dur", kill: "chance hp mp buff dur", hurt: "chance on buff dur thorns mp hp",
-  hit: "chance on ail pct turns mul el", cast: "chance on refund hp mp party", fall: "chance buff dur hp", win: "hp mp party",
+  hit: "chance on ail pct turns mul el", cast: "chance on refund hp mp party", fall: "chance buff dur hp", win: "hp mp party when",
 };
 const WHEN = new Set(("race tgtElem tgtAil tgtDebuffed tgtLow tgtHigh boss noBoss selfLow selfHigh selfAil buffed defending mpHigh " +
-  "round1 roundGE preempt front back crowd lastFoe allyDown alone elem").split(" "));
+  "round1 roundGE preempt front back crowd lastFoe allyDown alone elem eliteFight bossFight tgtWeak wonLast").split(" "));
 const AILS = new Set(["poison", "para", "sleep", "confuse", "charm", "seal", "flinch", "strip", "atk", "vit", "agi", "vuln"]);
 function fail(job, what, msg) { throw new Error(`jobkit/${job}: ${what}: ${msg}`); }
 function checkSkill(job, key, sp) {

@@ -6,10 +6,10 @@ export default {
   awaken: "samuraiShingan/1",
   table: `
     1 KYOUGEKI 2 SUIGETSU 3 GONOSEN 5 iai/1 7 DOUBLE 10 SAMURAI_SAYABASHIRI
-    12 SHIPPUUGIRI 15 SAMURAI_ZANGETSUGAESHI 20 ISSEN 22 UZUSHIO 25 samuraiNukimi/1 30 MEIKYOU
-    35 initiative/1 40 TSUBAMEGAESHI 45 samuraiChiburi/1 50 SAMURAI_OBOROZUKI 55 SAMURAI_SHINOGI 57 HYOUJIN
+    12 SHIPPUUGIRI 15 SAMURAI_ZANGETSUGAESHI 15 samuraiHomare/1 20 ISSEN 22 UZUSHIO 25 samuraiNukimi/1 30 MEIKYOU
+    35 initiative/1 40 TSUBAMEGAESHI 45 samuraiChiburi/1 50 SAMURAI_OBOROZUKI 50 samuraiHomare/2 55 SAMURAI_SHINOGI 57 HYOUJIN
     60 zanshin/1 65 SAMURAI_RYUUSUI 70 samuraiShingan/2 75 samuraiNukimi/2 80 SAMURAI_ITTOU 82 FUUGA
-    85 SAMURAI_SAMIDARE 90 samuraiMinegaeshi/1 95 SAMURAI_KAISHAKU 100 SAMURAI_ZANGETSU 105 samuraiIkkiuchi/1 107 TOUGADAN
+    85 SAMURAI_SAMIDARE 90 samuraiMinegaeshi/1 95 SAMURAI_KAISHAKU 100 SAMURAI_ZANGETSU 100 samuraiHomare/3 105 samuraiIkkiuchi/1 107 TOUGADAN
     110 SAMURAI_SHIDEN 115 samuraiChiburi/2 120 SAMURAI_MUNEN 125 samuraiMinegaeshi/2 130 SAMURAI_HANAFUBUKI 135 samuraiIkkiuchi/2
     140 SAMURAI_GUFUU 145 samuraiShingan/3 150 SAMURAI_UNYOU 155 samuraiChiburi/3 160 SAMURAI_HAPPOU 162 DAIKAISHOU
     165 resistAilment/1 170 SAMURAI_NOWAKI 175 samuraiIkkiuchi/3 180 SAMURAI_RIKKA 185 samuraiNukimi/3 190 SAMURAI_GEKKA
@@ -38,6 +38,12 @@ export default {
     SAMURAI_MUKYUU: { name: "一閃無窮", mp: 40, kind: "phys", power: 9.5, acc: 1, pierce: 1, critBonus: 0.3, target: "enemy", desc: "必中・防御無視の終の抜刀" },
   },
   perks: {
+    // Lv15 の目玉パッシブ: 強敵との一騎打ちに燃える
+    samuraiHomare: {
+      label: "一騎の誉れ",
+      lv: ["精鋭・主のいる戦闘で与ダメージ+10%", "精鋭・主のいる戦闘で与ダメージ+15%", "精鋭・主のいる戦闘で与ダメージ+20%"],
+      fx: [{ t: "deal", when: { eliteFight: true }, v: [0.10, 0.15, 0.20] }],
+    },
     // 心眼で太刀筋を読み、刃をかわす
     samuraiShingan: {
       label: "心眼の見切り",

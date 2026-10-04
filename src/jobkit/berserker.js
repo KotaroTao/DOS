@@ -6,10 +6,10 @@ export default {
   awaken: "berserkerTeoi/1",
   table: `
     1 KYOUGEKI 2 KAENGIRI 3 NERAIUCHI 5 berserkerMukui/1 7 SUTEMI 10 BERSERKER_CHIZOME
-    12 YAMIBA 15 BERSERKER_ABAREUCHI 20 BERSERKER_HOUKOU 22 KAENNAGI 25 berserkerTakeri/1 30 CHINOKAWAKI
-    35 berserkerFukade/1 40 KIJINKUDAKI 45 berserkerTeoi/2 50 BERSERKER_HONEKUDAKI 55 SHINGANGEKI 57 GURENZAN
+    12 YAMIBA 15 BERSERKER_ABAREUCHI 15 berserkerChinonioi/1 20 BERSERKER_HOUKOU 22 KAENNAGI 25 berserkerTakeri/1 30 CHINOKAWAKI
+    35 berserkerFukade/1 40 KIJINKUDAKI 45 berserkerTeoi/2 50 BERSERKER_HONEKUDAKI 50 berserkerChinonioi/2 55 SHINGANGEKI 57 GURENZAN
     60 berserkerMukui/2 65 BERSERKER_KUIKOMI 70 berserkerTakeri/2 75 endure/1 80 BERSERKER_KURAISAKI 82 MEIJIN
-    85 MIDARE 90 berserkerTeoi/3 95 BERSERKER_FUKKETSU 100 BERSERKER_TATAKIWARI 105 berserkerMukui/3 107 BERSERKER_KEKKEN
+    85 MIDARE 90 berserkerTeoi/3 95 BERSERKER_FUKKETSU 100 BERSERKER_TATAKIWARI 100 berserkerChinonioi/3 105 berserkerMukui/3 107 BERSERKER_KEKKEN
     110 SHURAZAN 115 berserkerTakeri/3 120 BERSERKER_BOUGYAKU 125 berserkerFukade/2 130 BERSERKER_CHIKAZAGURUMA 135 asceticism/1
     140 MEIFUZAN 145 resistAilment/1 150 BERSERKER_DANTOUDAI 155 berserkerTeoi/4 160 BERSERKER_KETSUEN 162 BERSERKER_ENGOKU
     165 endure/2 170 BERSERKER_METTAUCHI 175 berserkerChiniyou/1 180 TOKOYAMI 185 berserkerChiniyou/2 190 BERSERKER_KYOUOU
@@ -36,6 +36,12 @@ export default {
     BERSERKER_SENKETSU: { name: "鮮血の終焉", mp: 40, kind: "phys", power: 11.5, acc: 1, pierce: 0.8, hpCost: 0.15, drain: 0.2, target: "enemy", desc: "血を捧げる必中の終撃。命を吸い返す" },
   },
   perks: {
+    // Lv15 の目玉パッシブ: 勝つたびに血の匂いで傷を忘れる
+    berserkerChinonioi: {
+      label: "血の匂い",
+      lv: ["戦闘に勝つと、HPを最大の3%回復", "戦闘に勝つと、HPを最大の5%回復", "戦闘に勝つと、HPを最大の8%回復"],
+      fx: [{ t: "win", hp: [0.03, 0.05, 0.08] }],
+    },
     // 斬られた痛みをそのまま相手に叩き返す
     berserkerMukui: {
       label: "血の報い",

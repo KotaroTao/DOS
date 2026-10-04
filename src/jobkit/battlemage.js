@@ -6,10 +6,10 @@ export default {
   awaken: "battlemageKuzushi/1",
   table: `
     1 KYOUGEKI 2 KAENGIRI 3 HALITO 5 battlemageJunkan/1 7 NERAIUCHI 8 ISHITSUBUTE
-    10 BAKUENKEN 12 IWAKUDAKI 15 BATTLEMAGE_GANKEN 20 BATTLEMAGE_GOUMA 22 KAENNAGI 25 battlemageGoutai/1
-    30 MAHALITO 32 EARTHQUAKE 35 battlemageYakiin/1 40 HAMANOKEN 45 battlemageKuzushi/2 50 ELEMBREAK
+    10 BAKUENKEN 12 IWAKUDAKI 15 BATTLEMAGE_GANKEN 15 battlemageTougiyoroi/1 20 BATTLEMAGE_GOUMA 22 KAENNAGI 25 battlemageGoutai/1
+    30 MAHALITO 32 EARTHQUAKE 35 battlemageYakiin/1 40 HAMANOKEN 45 battlemageKuzushi/2 50 ELEMBREAK 50 battlemageTougiyoroi/2
     55 SAIKEN 57 BATTLEMAGE_KASHA 60 battlemageJunkan/2 65 BATTLEMAGE_GANKENDAN 70 battlemageKutsuu/1 75 resistAilment/1
-    80 BATTLEMAGE_HAPPA 82 BATTLEMAGE_JINARI 85 BATTLEMAGE_ENDAN 90 battlemageGoutai/2 95 BATTLEMAGE_MACHIRASHI 100 MAJINKEN
+    80 BATTLEMAGE_HAPPA 82 BATTLEMAGE_JINARI 85 BATTLEMAGE_ENDAN 90 battlemageGoutai/2 95 BATTLEMAGE_MACHIRASHI 100 MAJINKEN 100 battlemageTougiyoroi/3
     105 battlemageYakiin/2 110 BATTLEMAGE_DAICHIKEN 115 battlemageKuzushi/3 120 BATTLEMAGE_KONGOU 122 BATTLEMAGE_GANSAISHOU 125 reflect/1
     130 BATTLEMAGE_HIBASHIRA 135 battlemageYakiin/3 140 BATTLEMAGE_SHOUMA 145 battlemageKutsuu/2 150 BATTLEMAGE_GURENMASHOU 155 resistAilment/2
     160 BATTLEMAGE_INTETSU 165 battlemageYakiin/4 170 GANSAI 175 battlemageJunkan/3 180 BATTLEMAGE_BAKUENRANDA 185 battlemageKuzushi/4
@@ -36,6 +36,12 @@ export default {
     BATTLEMAGE_TENPOU: { name: "魔闘・天崩", mp: 44, kind: "atk", power: 130, flinchChance: 0.25, target: "all-enemy", desc: "天を崩す魔力の奔流。敵陣を怯ませる" },
   },
   perks: {
+    // Lv15 の目玉パッシブ: 闘気を鎧のように纏って戦いに入る
+    battlemageTougiyoroi: {
+      label: "闘気の鎧",
+      lv: ["戦闘開始時、自分のVIT×1.05 (3ターン)", "戦闘開始時、自分のVIT×1.08 (3ターン)", "戦闘開始時、自分のVIT×1.12 (3ターン)"],
+      fx: [{ t: "start", dur: 3, buff: { vit: [1.05, 1.08, 1.12] } }],
+    },
     // 拳を振るうたび、闘気が魔力となって巡る
     battlemageJunkan: {
       label: "闘気循環",

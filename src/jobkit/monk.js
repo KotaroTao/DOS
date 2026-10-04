@@ -6,10 +6,10 @@ export default {
   awaken: "monkJuzu/1",
   table: `
     1 KYOUGEKI 2 IWAKUDAKI 3 DIOS 5 monkKudoku/1 7 NOUTEN 10 HAKKEI
-    12 FUYUU 15 MONK_KUDOKUSHOU 20 TENKETSU 22 CHIRETSU 25 monkRenkan/1 30 SHINTOU
-    35 monkFue/1 40 KONGOURENDA 45 monkKudoku/2 50 KONGOUTAI 55 SHINGANGEKI 57 GANOTOSHI
+    12 FUYUU 15 MONK_KUDOKUSHOU 15 monkMeisou/1 20 TENKETSU 22 CHIRETSU 25 monkRenkan/1 30 SHINTOU
+    35 monkFue/1 40 KONGOURENDA 45 monkKudoku/2 50 KONGOUTAI 50 monkMeisou/2 55 SHINGANGEKI 57 GANOTOSHI
     60 monkFue/2 65 DIOSALL 70 monkRenkan/2 75 monkJuzu/2 80 HOUKEN 82 FUUGA
-    85 MONK_SEKEN 90 monkRenkan/3 95 MONK_MYOUOU 100 HYAKURETSU 105 monkOuhou/1 107 MONK_CHIMYAKU
+    85 MONK_SEKEN 90 monkRenkan/3 95 MONK_MYOUOU 100 HYAKURETSU 100 monkMeisou/3 105 monkOuhou/1 107 MONK_CHIMYAKU
     110 KIYOME 115 monkFue/3 120 MUSOUKEN 125 monkJuzu/3 130 MONK_NENJU 135 monkRenkan/4
     140 TENMAKEN 145 monkKudoku/3 150 MONK_SENPUUKYAKU 155 resistAilment/1 160 MONK_ROKKON 162 MONK_SHINKYAKU
     165 scripture/1 170 MONK_HOURIN 175 monkOuhou/2 180 MONK_GASSHOU 185 monkKudoku/4 190 MONK_KUDOKUNOHIKARI
@@ -30,6 +30,12 @@ export default {
     MONK_NEHAN: { name: "涅槃掌", mp: 30, kind: "phys", power: 3.4, pieScale: 0.5, critBonus: 0.3, acc: 0.8, target: "enemy", desc: "祈りを込めた掌。PIEが乗り会心が出やすい" },
   },
   perks: {
+    // Lv15 の目玉パッシブ: 戦いの後の静かな瞑想
+    monkMeisou: {
+      label: "瞑想",
+      lv: ["戦闘に勝つと、HPとMPを最大の3%回復", "戦闘に勝つと、HPとMPを最大の5%回復", "戦闘に勝つと、HPとMPを最大の8%回復"],
+      fx: [{ t: "win", hp: [0.03, 0.05, 0.08], mp: [0.03, 0.05, 0.08] }],
+    },
     monkKudoku: { label: "功徳の拳", scope: "party", lv: ["物理技を使うと、味方全員のHP1%回復", "物理技を使うと、味方全員のHP1.5%回復", "物理技を使うと、味方全員のHP2%回復", "物理技を使うと、味方全員のHP2.5%回復"],
       fx: [{ t: "cast", on: "phys", party: true, hp: [0.01, 0.015, 0.02, 0.025] }] },
     monkJuzu: { label: "降魔の数珠", lv: ["物理が当たると10%で特技封じ (2ターン)", "物理が当たると15%で特技封じ (2ターン)", "物理が当たると20%で特技封じ (2ターン)"],
