@@ -22,7 +22,7 @@ import {
 } from "./itemview.js";
 import { spriteCanvas } from "../sprites.js";
 import { dollSprite, SOUL_CLASSES, canIdentify, identifyChance, identifyLabel, JOB_GEAR } from "../souls.js";
-import { ITEMS, itemName, canEquip, slotKeyFor, MAX_ITEMS, SLOTS, SLOT_LABEL, weaponRange, RANGE_LABEL, WEAPON_CAT_LABEL } from "../items.js";
+import { ITEMS, itemName, canEquip, slotKeyFor, MAX_ITEMS, SLOTS, SLOT_LABEL, weaponRange, RANGE_LABEL, WEAPON_CAT_LABEL, useLines } from "../items.js";
 import { RARITIES, rarityKey } from "../rarity.js";
 
 // レア度ごとの入手演出: 見出し・振動・画面の閃光 (game.js の showItemGet から移設)
@@ -836,9 +836,7 @@ export function itemSheet(item, o = {}) {
       if (it.twoHanded) det.push("両手持ち (盾と併用できない)");
       if (it.align) det.push(`${it.align}属性`);
       if (it.slot === "misc") det.push("王宮の宝物庫に奉納できる。商会では売れる。");
-      if (it.use && it.use.heal) det.push(`HPを ${it.use.heal} 回復`);
-      if (it.use && it.use.mp) det.push(`MPを ${it.use.mp} 回復`);
-      if (it.use && it.use.cure) det.push("毒を治す");
+      if (it.use) for (const x of useLines(it)) det.push(x);
       if (det.length) {
         const box = el("div", "wpc-is-lines");
         for (const ln of det) box.appendChild(setText(el("div"), ln));

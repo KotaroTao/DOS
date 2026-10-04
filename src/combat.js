@@ -1,6 +1,6 @@
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
-import { ITEMS, weaponRange, scaleBonus } from "./items.js";
+import { ITEMS, weaponRange, scaleBonus, useTarget, useHelps, useCureKinds, useWhere } from "./items.js";
 import { ELEMENTS, elemDmgMult, monStats, rankStats, resistRate, resistHpMul, RESIST_TAG, METAL_TIERS } from "./dungeons/schema.js";
 
 import { SPELLS } from "./skilldefs.js";
@@ -301,6 +301,15 @@ export function ailing(t) { return !!(t && (t.ailment || t.asleep || t.mind)); }
 export function cureAil(t) {
   const had = ailing(t);
   t.ailment = null; t.asleep = false; t.mind = null; t._ailN = null;
+  return had;
+}
+// 指定の種類 (USE_AIL のキー) の状態異常だけを治す (道具)。何か治れば true
+export function cureKinds(t, kinds) {
+  let had = false;
+  if (t.ailment && kinds.includes(t.ailment)) { t.ailment = null; had = true; }
+  if (t.asleep && kinds.includes("sleep")) { t.asleep = false; had = true; }
+  if (t.mind && kinds.includes(t.mind)) { t.mind = null; had = true; }
+  if (had) t._ailN = null;
   return had;
 }
 // 武器の追加効果 {k, chance, pct?} を _inflict が読む技の形へ (quiet = 外れても「効かなかった」を記録しない。毎撃のログが埋まるため)
@@ -1034,8 +1043,21 @@ export class Battle {
   }
 
   // 手番の味方の行動を選択。{ needTarget } を返す
-  chooseAction(action, spellKey = null) {
+  chooseAction(action, spellKey = null, extra = null) {
     const actor = this.current;
+    if (action === "item") {
+      // 道具: extra = { item, owner } (owner = その品を袋に入れている人業。手番の者でなくてもよい)
+      const it = extra && extra.item;
+      if (!it || !it.use || useWhere(it) === "field") return { invalid: true }; // 浮遊の羽などは迷宮を歩く時だけ
+      const tk = useTarget(it);
+      this.pending = { actor, action: "item", item: it, owner: extra.owner || actor };
+      if ((tk === "ally" || tk === "dead") && this._itemTargets(it).length === 0) {
+        this.log("効果のある対象がいない。", "sys"); this.pending = null; return { invalid: true };
+      }
+      if (tk === "ally" || tk === "dead" || tk === "enemy") { this.phase = "target"; return { needTarget: true }; }
+      this.phase = "resolve";
+      return { needTarget: false };
+    }
     if (action === "attack") {
       this.pending = { actor, action: "attack" };
       this.phase = "target";
@@ -1065,6 +1087,7 @@ export class Battle {
     const p = this.pending;
     if (!p) return [];
     if (p.action === "attack") return this.attackableEnemies(p.actor); // 武器の射程内のみ
+    if (p.action === "item") return useTarget(p.item) === "enemy" ? this.livingEnemies() : this._itemTargets(p.item); // 投げ物は射程に依らず届く
     const sp = SPELLS[p.spellKey];
     if (sp.target === "enemy") return sp.kind === "phys" ? this.attackableEnemies(p.actor) : this.livingEnemies(); // 物理技は射程に従う。呪文は全体に届く
     if (sp.target === "ally") return this._allyTargets(sp);
@@ -1090,6 +1113,9 @@ export class Battle {
       return false;
     });
   }
+
+  // 道具を使って効果のある味方 (満タンへの回復・かかっていない状態異常の治療は除く。蘇生は倒れた者だけ)
+  _itemTargets(it) { return this.party.filter((t) => useHelps(it, t)); }
 
   chooseTarget(target) {
     this.pending = { ...this.pending, target };
@@ -1280,6 +1306,10 @@ export class Battle {
     }
     if (action === "spell") {
       this._cast(actor, cmd, res);
+      return res;
+    }
+    if (action === "item") {
+      this._useItem(actor, cmd, res);
       return res;
     }
     if (action === "eheal") {
@@ -2079,6 +2109,110 @@ export class Battle {
       this.log("敵の力が削がれた", "hit");
     }
     this._perkCast(actor, sp, cost); // 固有パッシブ (cast)
+  }
+
+  // 道具を使う。効き目は品で決まり、使い手の能力では伸びない (妨害だけは Lv差が効く)。
+  // 結果は呪文と同じ形 (action "spell" + spellKind) で返し、game.js の演出をそのまま使う
+  _useItem(actor, cmd, res) {
+    const it = cmd.item, u = (it && it.use) || {};
+    const owner = cmd.owner || actor;
+    const idx = owner && owner.items ? owner.items.indexOf(it) : -1;
+    if (idx < 0) { this.log(`${actor.name}は道具を探したが、見当たらない…`, "sys"); return; }
+    owner.items.splice(idx, 1); // 使えば (効かなくても) 無くなる
+    res.action = "spell"; res.item = it; res.spellName = it.name; res.spellElement = null;
+    this.log(`${actor.name}は ${it.name} を使った！${owner !== actor ? ` (${owner.name}の袋から)` : ""}`, "hit");
+    if (u.escape) {
+      res.spellKind = "escape";
+      const T = this._tally();
+      T.ft++;
+      if (this.noFlee) { T.fs++; this.log("迷宮の異変が退路を閉ざしている！ 逃げられない！", "dmg"); res.fledFail = true; }
+      else { T.fo++; this.result = "flee"; this.log("煙に紛れて、戦いから逃れた！", "sys"); res.fled = true; }
+      return;
+    }
+    const tk = useTarget(it);
+    if (u.bomb) {
+      const b = u.bomb;
+      res.spellKind = "atk"; res.spellElement = b.el || null;
+      const targets = tk === "all-enemy" ? this.livingEnemies() : [(cmd.target && cmd.target.alive) ? cmd.target : this._randAlive(this.enemies)].filter(Boolean);
+      for (const t of targets) {
+        if (!t.alive) continue;
+        let em = elemDmgMult(b.el || "none", 1, t.element || "none", edefOf(t));
+        em *= this._vulnMul(t, b.el);
+        let dmg = Math.max(1, variance(b.power) - Math.floor(this._evit(t) * 0.2));
+        if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
+        const weak = !!(t.magWeak && t.magWeak > 1);
+        if (weak) dmg = Math.round(dmg * t.magWeak);
+        if (b.prey && HOLY_PREY.includes(enemyRace(t))) dmg = Math.round(dmg * 1.5);
+        const mr = this._resistCut(t, dmg, "magResist");
+        if (mr.immune) { this.log(`${t.name}には効かない！`, "dmg"); res.hits.push({ target: t, dmg: 0, immune: true, died: false }); continue; }
+        dmg = mr.dmg;
+        if (t.guard) dmg = Math.max(1, Math.ceil(dmg * (1 - t.guard)));
+        t.hp -= dmg;
+        const eff = [em > 1 || weak ? "弱点!" : em < 1 ? "耐性…" : "", mr.tag].filter(Boolean).map((x) => " " + x).join("");
+        this.log(`${t.name}に ${dmg} ダメージ${eff}`, "dmg");
+        this._wake(t);
+        const died = this._die(t);
+        res.hits.push({ target: t, dmg, eff: em > 1 || weak ? "weak" : em < 1 ? "resist" : null, died });
+      }
+      return;
+    }
+    if (u.hex) {
+      res.spellKind = "debuff";
+      const hx = u.hex;
+      const sp = { name: it.name, sleepChance: hx.kind === "sleep" ? hx.chance : 0, para: hx.kind === "paralyze" ? hx.chance : 0, confuse: hx.kind === "confuse" ? hx.chance : 0, quiet: true };
+      const targets = tk === "all-enemy" ? this.livingEnemies() : [(cmd.target && cmd.target.alive) ? cmd.target : this._randAlive(this.enemies)].filter(Boolean);
+      for (const t of targets) {
+        if (!t.alive) continue;
+        const tags = [];
+        this._inflict(actor, t, sp, tags);
+        const st = statusText(tags);
+        if (st) res.hits.push({ target: t, debuff: true, mods: {}, status: st });
+        else { this.log(`${t.name}には効かなかった`, "sys"); res.hits.push({ target: t, miss: true, resisted: true }); }
+      }
+      return;
+    }
+    // 味方へ: 回復・治療・蘇生・強化
+    const targets = tk === "all-ally" ? this.livingParty() : [cmd.target || actor].filter(Boolean);
+    res.spellKind = u.buff ? "buff" : (u.heal || u.full || u.revive) ? "heal" : (u.mp || u.mpFull) ? "mana" : "cure";
+    const kinds = useCureKinds(u);
+    let any = false;
+    for (const t of targets) {
+      if (u.revive) {
+        if (t.alive) continue;
+        t.alive = true; t.ailment = null; t.asleep = false; t.mind = null; t.reviveAt = null; t._dead = false; t._ailN = null;
+        t.hp = Math.max(1, Math.min(t.maxhp, Math.round(t.maxhp * u.revive)));
+        this.log(`${t.name}は蘇った！ HP ${t.hp}`, "heal");
+        res.hits.push({ target: t, heal: t.hp, revived: true });
+        any = true;
+        continue;
+      }
+      if (!t.alive) continue;
+      if (u.heal || u.full) {
+        const heal = u.full ? t.maxhp : u.heal;
+        const before = t.hp;
+        t.hp = Math.min(t.maxhp, t.hp + heal);
+        if (t.hp > before) { this.log(`${t.name}のHPが ${t.hp - before} 回復`, "heal"); any = true; }
+        res.hits.push({ target: t, heal: u.full ? t.hp - before : heal });
+      }
+      if ((u.mp || u.mpFull) && (t.maxmp || 0) > 0) {
+        const before = t.mp;
+        t.mp = Math.min(t.maxmp, t.mp + (u.mpFull ? t.maxmp : u.mp));
+        if (t.mp > before) { this.log(`${t.name}のMPが ${t.mp - before} 回復`, "heal"); any = true; }
+        res.hits.push({ target: t, mpHeal: t.mp - before });
+      }
+      if (kinds.length) {
+        const had = cureKinds(t, kinds);
+        if (had) { this.log(`${t.name}の状態異常が治った`, "heal"); any = true; }
+        if (!(u.heal || u.full || u.mp || u.mpFull)) res.hits.push({ target: t, cured: had });
+      }
+      if (u.buff) {
+        for (const k in u.buff) this._applyMod(t, k, u.buff[k], u.dur || 3, it.name);
+        res.hits.push({ target: t, buff: true, mods: { ...u.buff } });
+        any = true;
+      }
+    }
+    if (u.buff) this.log(u.all ? "隊の誰もが力をみなぎらせた" : "力がみなぎる", "heal");
+    else if (!any) this.log("…効果がなかった", "sys");
   }
 
   // 攻撃の後に味方全体を癒す (聖剣奮迅・護摩焚き・天命の剣)。PIEで伸びる
