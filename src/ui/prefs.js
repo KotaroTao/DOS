@@ -19,6 +19,7 @@ export const UI_PREF_DEFAULTS = {
   autoCorpse: true,      // 朽ちた死体は自動で調べる
   autoCloseResults: false, // 戦果を自動で閉じる
   autoRest: false,       // 帰還時に宿で休む
+  sellUse: false,        // まとめて売るに道具 (消耗品) も含める
   keeperSeen: {},        // 番人の胸像を見せた街滞在 { key: stamp }
   partyHintsSeen: [],    // 人業の館で既読にしたお勧め (鍛錬できる魂・より良い品) — タブの赤い点
 };

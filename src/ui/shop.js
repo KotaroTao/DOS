@@ -57,7 +57,7 @@ function baseJunk(opts) {
   const base = typeof ops.junkList === "function" ? ops.junkList(opts) : [];
   return base.filter((j) => j && j.item && !j.item.cursed && !j.item.unidentified && !wornByAnyone(j.item));
 }
-// 売却候補: ops と同じ集合 (呪い・未鑑定・装備中・SR/LR・未奉納の収集品・道具を除く) から、
+// 売却候補: ops と同じ集合 (呪い・未鑑定・装備中・SR/LR・未奉納の収集品、設定で含めない限り道具も除く) から、
 // さらに「誰かの今の装備に勝る品」(装備の候補) を既定で残す。{ keepUpgrades: false } で ops と同じ集合
 export function junkList(opts = {}) {
   const base = baseJunk(opts);
@@ -102,6 +102,8 @@ function affordable(list) {
   for (const c of list.map((x) => x.cost).sort((a, b) => a - b)) { if (gold < c) break; gold -= c; cost += c; n++; }
   return { n, cost };
 }
+// 設定「まとめて売るに道具を含める」(ops.junkList と同じ好み)
+const sellUse = () => !!getPref("sellUse");
 // まとめて売るから外れる品と、その理由
 const EXCL = [
   { key: "upgrade", label: "装備の候補", note: "誰かの今の装備に勝る品 (▲)。装備するか、確認の画面で売ることもできる" },
@@ -109,7 +111,7 @@ const EXCL = [
   { key: "misc", label: "未奉納の収集品", note: "宝物庫へ奉納すると褒賞が得られる" },
   { key: "cursed", label: "呪われた品", note: "" },
   { key: "unid", label: "未鑑定の品", note: "先に鑑定すれば売値がつく" },
-  { key: "use", label: "道具", note: "薬草などは迷宮で役に立つ" },
+  { key: "use", label: "道具", note: "薬草などは迷宮で役に立つ (設定「まとめて売るに道具を含める」で売る品に入れられる)" },
 ];
 export function exclusions() {
   const g = { upgrade: [], rare: [], misc: [], cursed: [], unid: [], use: [] };
@@ -120,7 +122,7 @@ export function exclusions() {
       if (it.unidentified) { g.unid.push({ doll: d, item: it }); continue; }
       const w = game.sellWarnings ? game.sellWarnings(it) : [];
       if (w.length) { (it.slot === "misc" ? g.misc : g.rare).push({ doll: d, item: it }); continue; }
-      if (it.slot === "use") { g.use.push({ doll: d, item: it }); continue; }
+      if (it.slot === "use" && !sellUse()) { g.use.push({ doll: d, item: it }); continue; }
       if (isUp(it)) g.upgrade.push({ doll: d, item: it });
     }
   }
@@ -132,7 +134,7 @@ function keepReason(it) {
   if (it.cursed) return "cursed";
   if (it.unidentified) return "unid";
   if (game.sellWarnings && game.sellWarnings(it).length) return it.slot === "misc" ? "misc" : "rare";
-  if (it.slot === "use") return "use";
+  if (it.slot === "use" && !sellUse()) return "use";
   return null;
 }
 
@@ -685,7 +687,7 @@ function renderSell(wrap) {
   const short = { upgrade: "装備候補▲", rare: "SR・LR", misc: "未奉納", cursed: "呪い", unid: "未鑑定", use: "道具" };
   exl.appendChild(document.createTextNode(kept.length
     ? `残す: ${kept.map(([e, n]) => `${short[e.key]}${n}`).join("・")}`
-    : "SR・LR・未奉納・呪い・未鑑定・道具・装備中は売らない"));
+    : `SR・LR・未奉納・呪い・未鑑定・${sellUse() ? "" : "道具・"}装備中は売らない`));
   exb.appendChild(exl);
   exb.appendChild(el("span", "wpc-exbtn-more", "内訳"));
   exb.addEventListener("click", () => { sfx("select"); openExclusions(); });

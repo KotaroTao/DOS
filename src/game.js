@@ -11925,7 +11925,7 @@ function askGate(cell, { arrival = false } = {}) {
   updateReturnBtn();
   const next = G.floor + 1;
   const bottom = next >= (cfg.floors || 1);
-  showChoice(arrival ? `帰還魔法陣を抜けて、B${G.floor}F に降り立った。` : "下り階段の代わりに、帰還魔法陣が淡く輝いている。", [
+  showChoice(arrival ? `帰還魔法陣を抜けて、B${G.floor}F に降り立った。` : "帰還魔法陣が淡く輝いている。", [
     { label: `先へ進む ― B${next}F${bottom ? (cfg.boss ? " (主の間)" : " (最下階)") : ""}`, primary: true, fn: () => descend() },
     { label: "街へ帰還する ― 戦利品は持ち帰る", fn: () => leaveDungeon({ outcome: G.run && G.run.secured ? "clear" : "return" }) },
     { label: arrival ? "この階を探索する" : "まだ探索する", fn: () => renderBoard() },
@@ -13371,8 +13371,9 @@ function setupNewGame() {
 function opsFacilityOpen(key) { const a = tutorialAllowed(); return !a || a.includes(key); }
 function opsEquippedBy(d, it) { for (const k in (d.equip || {})) if (d.equip[k] === it) return true; return false; }
 // 売却候補: 呪い・未鑑定・装備中・SR/LR・未奉納の収集品 (sellWarnings) は除外 (商店の一括売却と同じ)。
-// 消耗品 (薬草など) は既定で除外する。{ includeUse: true } で商店の一括売却と全く同じ集合になる
-function opsJunkList({ includeUse = false } = {}) {
+// 消耗品 (薬草など) は設定「まとめて売るに道具を含める」(UI の好み sellUse) が入っている時だけ含める。
+// { includeUse } を渡せばその値が優先
+function opsJunkList({ includeUse = !!uiDungeonHud.getPref("sellUse") } = {}) {
   const out = [];
   for (const d of allDolls()) {
     for (const it of (d.items || [])) {
