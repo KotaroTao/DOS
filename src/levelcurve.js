@@ -65,3 +65,26 @@ export function lvPow(L) { return 1 + (Math.max(1, L) - 1) * 0.12; }
 
 // 魂の残火: 1回に得る数は敵Lv で増える (Lv1〜50 = 1、51〜100 = 2 … Lv400 = 8)
 export function emberMul(L) { return Math.max(1, Math.ceil(Math.max(1, L) / 50)); }
+
+// ===== 推奨Lv で引く隊の物差し (docs/tasks.md B1) =====
+// 基準の隊の AGI ÷ lvPow(Lv)。旧来は基準の隊 (baseline.js) を迷宮の番号 n で引き、推奨Lv の伸びを掛けていた。
+// 本筋の迷宮ごとの値 (2026-10 の実測から) をその迷宮の真ん中の推奨Lv に置き、間を直線で結ぶ。端の先は端の値のまま。
+// 逃走 (game.js fleeScale)・敵の物理の回避・金属の魔物の AGI が読む。テスト記録が届いたら測り直す
+const AGI_K = [[1, 7.5], [7.5, 7.8], [13.5, 9.0], [19.5, 11.2], [24.5, 11.6], [28.5, 16.0], [52, 15.8]];
+export function partyAgi(L) {
+  L = Math.max(1, L);
+  let k = AGI_K[AGI_K.length - 1][1];
+  if (L <= AGI_K[0][0]) k = AGI_K[0][1];
+  else for (let i = 1; i < AGI_K.length; i++) {
+    const [a, ka] = AGI_K[i - 1], [b, kb] = AGI_K[i];
+    if (L <= b) { k = ka + (kb - ka) * (L - a) / (b - a); break; }
+  }
+  return k * lvPow(L);
+}
+// 罠の解除の難しさ・罠のダメージの物差し: 推奨Lv の伸び (序盤は下限 LOCK_POW_MIN = 推奨Lv 7.25 相当で止める)。
+// 旧来の「魂レベルの目安 (素体の soulLevelBonus) × 迷宮ランク × 推奨Lv の伸び ÷ n の物差しの伸び」は第2層から
+// 解除 ≒ 22 × lvPow・罠 ≒ 0.62 × lvPow でほぼ一定だったので、その値に揃えた (第1層は下限で旧来並み)
+export const LOCK_K = 22;
+export const TRAP_K = 0.62;
+export const LOCK_POW_MIN = 1.75;
+export function lockPow(L) { return Math.max(LOCK_POW_MIN, lvPow(L)); }
