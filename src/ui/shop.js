@@ -566,7 +566,7 @@ function openRevealSheet(items) {
 }
 
 // ---------------------------------------------------------------- 描画
-// ページ全体は流さない (商会タブはスクロールなし)。一覧の箱の高さに収まる行数でページを切り、‹ n/m › で送る
+// ページ全体は流さない。一覧の箱 (.wpc-list) だけが内側で縦にスクロールする
 function rerender({ top = false } = {}) {
   if (game.renderTown) game.renderTown();
   if (top) {
@@ -575,56 +575,14 @@ function rerender({ top = false } = {}) {
   }
 }
 
-// ページ送りの札 (‹ 1/3 ›)。ページが1つなら出さない
-function pager(page, pages, onGo) {
-  const w = el("div", "wpc-pager");
-  if (pages <= 1) return w;
-  const prev = el("button", "wpc-pg", "‹");
-  prev.type = "button"; prev.setAttribute("aria-label", "前のページ");
-  prev.disabled = page <= 0;
-  prev.addEventListener("click", () => onGo(page - 1));
-  const cur = el("span", "wpc-pg-n", `${page + 1} / ${pages}`);
-  const next = el("button", "wpc-pg", "›");
-  next.type = "button"; next.setAttribute("aria-label", "次のページ");
-  next.disabled = page >= pages - 1;
-  next.addEventListener("click", () => onGo(page + 1));
-  w.appendChild(prev); w.appendChild(cur); w.appendChild(next);
-  return w;
-}
-
-// 一覧の箱に、行をページごとに描く。1行目を描いて高さを測り、収まる行数を決める
-function fillPaged(box, head, items, renderRow, pageKey, gap = 6) {
+// 一覧の箱に、行をすべて描く。収まらなければ箱の内側で縦にスクロールする。
+// スクロールの位置は view[key] に覚え、描き直しても同じところを見せる
+function fillList(box, items, renderRow, key) {
   box.textContent = "";
   if (!items.length) return;
-  const first = renderRow(items[0]);
-  box.appendChild(first);
-  const rowH = first.offsetHeight || 64;
-  const H = box.clientHeight;
-  const per = Math.max(1, Math.floor((H + gap) / (rowH + gap)));
-  const pages = Math.max(1, Math.ceil(items.length / per));
-  const page = Math.min(Math.max(0, view[pageKey] || 0), pages - 1);
-  view[pageKey] = page;
-  box.textContent = "";
-  for (const x of items.slice(page * per, page * per + per)) box.appendChild(renderRow(x));
-  const go = (pg) => { view[pageKey] = Math.max(0, Math.min(pages - 1, pg)); sfx("select"); rerender(); };
-  const old = head.querySelector(".wpc-pager");
-  const pg = pager(page, pages, go);
-  if (old) old.replaceWith(pg); else head.appendChild(pg);
-  // 左右に払ってもページを送る (横に流れる品の帯の上では送らない)
-  if (pages > 1) {
-    let x0 = null, y0 = null, skip = false;
-    box.addEventListener("pointerdown", (e) => {
-      const strip = e.target && e.target.closest ? e.target.closest(".wpc-drow-tiles") : null;
-      skip = !!(strip && strip.scrollWidth > strip.clientWidth + 2);
-      x0 = e.clientX; y0 = e.clientY;
-    });
-    box.addEventListener("pointerup", (e) => {
-      if (x0 == null || skip) { x0 = null; return; }
-      const dx = e.clientX - x0, dy = e.clientY - y0;
-      x0 = null;
-      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 2) go(page + (dx < 0 ? 1 : -1));
-    });
-  }
+  for (const x of items) box.appendChild(renderRow(x));
+  if (view[key]) box.scrollTop = view[key];
+  box.onscroll = () => { view[key] = box.scrollTop; };
 }
 
 // 人業ごとの持ち物の行 (高さ一定): 見出し (名・控え・数・売値) + 品の札の帯 (はみ出せば横に流れる)
@@ -694,7 +652,7 @@ function renderSell(wrap) {
   card.appendChild(exb);
   wrap.appendChild(card);
 
-  // ---- 全員の持ち物 (隊 → 控え)。箱に収まる人数でページを切る ----
+  // ---- 全員の持ち物 (隊 → 控え)。収まらなければ箱の中で縦にスクロール ----
   const dolls = allDolls().filter((d) => d && !d.isEmpty);
   const nItems = dolls.reduce((a, d) => a + d.items.length, 0);
   const head = el("div", "wpc-lhead");
@@ -705,7 +663,7 @@ function renderSell(wrap) {
   wrap.appendChild(box);
   return () => {
     if (!nItems) { box.appendChild(el("div", "wpc-empty big", "持ち物は空だ。迷宮で拾った品はここで鑑定し、売って金に換える。")); return; }
-    fillPaged(box, head, dolls, dollRow, "sellPage");
+    fillList(box, dolls, dollRow, "sellPage");
   };
 }
 
@@ -734,7 +692,7 @@ function renderBuy(wrap) {
       box.appendChild(el("div", "wpc-empty big", cat === "rec" ? "いまのパーティの装備に勝る品は、棚に並んでいない。" : "この種類の品は売り切れだ。"));
       return;
     }
-    fillPaged(box, head, ids, stockRow, "buyPage");
+    fillList(box, ids, stockRow, "buyPage");
   };
 }
 

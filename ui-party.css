@@ -17,10 +17,10 @@
 .pt-body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .pt-body > * { flex-shrink: 0; }
 /* 館の主イレーヌを置く時: 区分の中身は中身の高さで止め、残りの高さを挿絵が受け取る。
-   中身があふれて頁送りになった時は中身が全高を取り、挿絵は 0 になって畳まれる */
+   中身があふれた時 (is-over) は中身が全高を取って内側でスクロールし、挿絵は畳まれる */
 .pt-root.m-town.has-keeper > .pt-body { flex-grow: 0; }
-.pt-root.m-town.has-keeper > .pt-body.is-paged { flex-grow: 1; }
-.pt-root.m-town > .pt-body.is-paged ~ .pt-keeper { flex: 0 0 28px; } /* 浮いた門の下の余白だけ残す */
+.pt-root.m-town.has-keeper > .pt-body.is-over { flex-grow: 1; }
+.pt-root.m-town > .pt-body.is-over ~ .pt-keeper { flex: 0 0 28px; } /* 浮いた門の下の余白だけ残す */
 .pt-root.m-town.has-keeper .pt-slot { min-height: 46px; padding-top: 3px; padding-bottom: 3px; }
 .pt-root.m-town.has-keeper .pt-bagbar { min-height: 28px; }
 /* 挿絵はタブバーの際 (浮いた門の下) まで降ろす。門に掛かる台詞の枠は .pt-kp-say の bottom で持ち上げる */
@@ -608,9 +608,6 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
 .pt-res-join-l { font-size: 10.5px; letter-spacing: 0.1em; }
 .pt-res-row.dead .pt-res-n { color: #b9a9a2; }
 .pt-res-sw .ui-btn { width: auto; }
-.pt-pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 8px; }
-.pt-pager .ui-btn { width: auto; min-width: 72px; }
-.pt-pager-n { font-size: 12.5px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
 .pt-res-sheet .pt-note { margin-top: 6px; }
 
 /* ---------- 名前の入力 ---------- */

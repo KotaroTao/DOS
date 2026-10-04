@@ -207,7 +207,7 @@ function copyText(text) {
 // コピーできなかった時: 全文を選べる枠で見せる (長押し → すべて選択 → コピー)
 function showExportText(text) {
   sheet.open({
-    kind: "info", banner: "テスト記録", title: "この文字をすべて選んでコピーしてください", className: "stg-sheet stg-log-sheet", paged: false,
+    kind: "info", banner: "テスト記録", title: "この文字をすべて選んでコピーしてください", className: "stg-sheet stg-log-sheet",
     body: (root) => {
       const ta = document.createElement("textarea");
       ta.className = "stg-log-ta";

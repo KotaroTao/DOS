@@ -232,16 +232,10 @@ export const sheet = {
       foot.classList.toggle("hidden", !foot.childElementCount);
     };
     fill(opts);
-    // 縦スクロールを出さない: 収まらない中身はページに分けて ‹ 1/2 › で送る (fitPages)
-    const pager = el("div", "ui-sheet-pager hidden");
-    card.insertBefore(pager, foot);
-    h.pager = pager;
+    // 収まらない中身は本文 (.ui-sheet-body) が縦にスクロールする (ページ送りはしない)
     h.host = card;
-    h.page = 0;
-    // pageEnd: ページに分かれたら最後のページを見せ続ける (記録など。手でページを送るまで、割り直しても最後へ寄せる)
-    h.pageEnd = !!opts.pageEnd;
 
-    h.update = (o) => { h.opts = { ...h.opts, ...o }; h.page = 0; fill(h.opts); if (h.opts.paged !== false) schedulePages(h); };
+    h.update = (o) => { h.opts = { ...h.opts, ...o }; fill(h.opts); };
     h.close = (reason = "close", { silent = false } = {}) => {
       if (h.closed) return;
       h.closed = true;
@@ -286,7 +280,6 @@ export const sheet = {
     h.navEntry = nav.push({ id: "sheet", onBack: () => h.back() });
     uiLayer().appendChild(wrap);
     sheetIn(card, backdrop, kind);
-    if (opts.paged !== false) watchPages(h);
     try {
       const pri = card.querySelector(".ui-btn.k-primary:not([disabled])") || card.querySelector(".ui-sheet-foot button:not([disabled])");
       (pri || card).focus({ preventScroll: true });
@@ -299,133 +292,23 @@ export const sheet = {
   closeAll() { for (const h of stack.slice().reverse()) h.close("reset", { silent: true }); },
 };
 
-// ================= シートのページ送り (縦スクロールの代わり) =================
-// 中身がシートの高さを超えたら、上から順に「入る分」ずつページに割り、他のページの要素は隠す (要素は動かさない)。
-// 1つでページより高い箱は、その子へ降りて割る (箱の見出し = 最初の小さな子は、続きのページにも出す)。
-// 中身が後から変わったら (ResizeObserver) 割り直す。ページは ‹ › ・左右のスワイプ・←→キーで送る
-const PG_ATTR = "data-pg";
-function pgReset(body) {
-  for (const n of body.querySelectorAll("[" + PG_ATTR + "], .ui-pg-off")) { n.removeAttribute(PG_ATTR); n.classList.remove("ui-pg-off"); }
-}
-function pgUnits(box, avail, out, heads, depth, boxes) {
-  for (const c of box.children) {
-    if (c.nodeType !== 1) continue;
-    const cs = getComputedStyle(c);
-    if (cs.display === "none" || cs.position === "absolute" || cs.position === "fixed") continue;
-    const r = c.getBoundingClientRect();
-    if (r.height > avail && depth < 4 && c.childElementCount > 1) {
-      const kids = [...c.children];
-      const head = kids[0].getBoundingClientRect().height < 64 ? kids[0] : null;
-      const sub = [];
-      boxes.push(c);
-      pgUnits(c, avail, sub, heads, depth + 1, boxes);
-      if (head) { const i = sub.indexOf(head); if (i >= 0) sub.splice(i, 1); heads.push({ head, units: sub }); }
-      out.push(...sub);
-    } else out.push(c);
-  }
-}
-function fitPages(h) {
-  if (h.closed || !h.body || !h.body.isConnected || !h.body.clientHeight) return;
-  const body = h.body, pager = h.pager;
-  h._pgBusy = true;
-  pgReset(body);
-  pager.classList.add("hidden");
-  h.host.classList.remove("is-paged");
-  if (body.scrollHeight <= body.clientHeight + 2) { h.pages = 1; h._pgBusy = false; return; }
-  pager.classList.remove("hidden"); // 送りの段のぶん本文は低くなる
-  h.host.classList.add("is-paged");
-  const cs = getComputedStyle(body);
-  // 現れる演出 (祝祭の札の拡大など) の途中でも割り方が狂わないよう、札の縮尺を寸法に掛ける
-  // (getBoundingClientRect は変形込み、clientHeight は変形抜き)
-  const k = (h.host.offsetHeight ? h.host.getBoundingClientRect().height / h.host.offsetHeight : 1) || 1;
-  const avail = (body.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom)) * 0.97 * k;
-  const units = [], heads = [], boxes = [];
-  pgUnits(body, avail, units, heads, 0, boxes);
-  h._pgBoxes = boxes;
-  let page = 0, start = null;
-  for (const u of units) {
-    const r = u.getBoundingClientRect();
-    if (start == null) start = r.top;
-    else if (r.bottom - start > avail && r.top > start + 1) { page++; start = r.top; }
-    u.setAttribute(PG_ATTR, String(page));
-  }
-  for (const { head, units: us } of heads) {
-    const ps = new Set(us.map((u) => u.getAttribute(PG_ATTR)));
-    head.setAttribute(PG_ATTR, [...ps].join(" "));
-  }
-  h.pages = page + 1;
-  if (h.pages <= 1) { pgReset(body); pager.classList.add("hidden"); h.host.classList.remove("is-paged"); h._pgBusy = false; return; }
-  showPage(h, h.pageEnd ? h.pages - 1 : Math.min(h.page || 0, h.pages - 1));
-  h._pgBusy = false;
-}
-function showPage(h, n) {
-  h.page = Math.max(0, Math.min(h.pages - 1, n));
-  for (const u of h.body.querySelectorAll("[" + PG_ATTR + "]")) {
-    const on = u.getAttribute(PG_ATTR).split(" ").includes(String(h.page));
-    u.classList.toggle("ui-pg-off", !on);
-  }
-  // 割られた箱は、中身が全部隠れたページでは箱ごと隠す (内側の箱から)
-  for (const box of (h._pgBoxes || []).slice().reverse()) {
-    const any = box.querySelector("[" + PG_ATTR + "]:not(.ui-pg-off)");
-    box.classList.toggle("ui-pg-off", !any);
-  }
-  const pager = h.pager;
-  pager.textContent = "";
-  const prev = el("button", "ui-pg-b prev"); prev.type = "button"; prev.setAttribute("aria-label", "前のページ"); prev.textContent = "‹";
-  const next = el("button", "ui-pg-b next"); next.type = "button"; next.setAttribute("aria-label", "次のページ"); next.textContent = "›";
-  prev.disabled = h.page <= 0; next.disabled = h.page >= h.pages - 1;
-  prev.addEventListener("click", () => turnPage(h, -1));
-  next.addEventListener("click", () => turnPage(h, 1));
-  const dots = el("div", "ui-pg-n");
-  for (let i = 0; i < h.pages; i++) dots.appendChild(el("i", i === h.page ? "on" : ""));
-  dots.appendChild(setText(el("span"), `${h.page + 1} / ${h.pages}`));
-  pager.appendChild(prev); pager.appendChild(dots); pager.appendChild(next);
-}
-function turnPage(h, d) {
-  if (!h.pages || h.pages <= 1) return;
-  const n = Math.max(0, Math.min(h.pages - 1, h.page + d));
-  if (n === h.page) return;
-  h.pageEnd = false;
-  showPage(h, n);
-  if (!reduced()) animate(h.body, [{ opacity: 0.35, transform: `translateX(${d * 14}px)` }, { opacity: 1, transform: "none" }], { duration: 160, fill: "none" });
-}
-function schedulePages(h) {
-  if (h._pgRaf) return;
-  const raf = typeof requestAnimationFrame === "function" ? requestAnimationFrame : (f) => setTimeout(f, 16);
-  h._pgRaf = raf(() => { h._pgRaf = null; try { fitPages(h); } catch (e) { h._pgBusy = false; } });
-}
-function watchPages(h) {
-  schedulePages(h);
-  if (typeof ResizeObserver === "function") {
-    const ro = new ResizeObserver(() => { if (!h._pgBusy && !h.closed) schedulePages(h); });
-    ro.observe(h.body);
-    const inner = () => { for (const c of h.body.children) ro.observe(c); };
-    inner();
-    if (typeof MutationObserver === "function") new MutationObserver(() => { inner(); if (!h._pgBusy && !h.closed) schedulePages(h); }).observe(h.body, { childList: true });
-  }
-  // 左右のスワイプでページを送る
-  let x0 = null, y0 = 0;
-  h.body.addEventListener("pointerdown", (e) => { x0 = e.clientX; y0 = e.clientY; });
-  h.body.addEventListener("pointerup", (e) => {
-    if (x0 == null) return;
-    const dx = e.clientX - x0, dy = e.clientY - y0; x0 = null;
-    if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.5) turnPage(h, dx < 0 ? 1 : -1);
-  });
-  if (h.wrap) h.wrap.addEventListener("keydown", (e) => {
-    if (e.key === "ArrowRight") turnPage(h, 1);
-    else if (e.key === "ArrowLeft") turnPage(h, -1);
-  });
-}
-// 画面の中の箱 (タブの本文など) にも同じページ送りを付ける。pager は box の直後に置く。
-// box は高さが決まっている (flex で伸び縮みする) こと。中身を描き直したら自動で割り直す
-export function autoPage(box, { pagerClass = "" } = {}) {
+// ================= 縦にスクロールする箱 =================
+// 画面の中の箱 (タブの本文など) を、収まらなければ内側で縦にスクロールさせる。box は高さが決まっている
+// (flex で伸び縮みする) こと。中身があふれている間は is-over を付ける (隊の挿絵を畳むなど、周りの調整用)
+export function scrollBox(box) {
   if (!hasDOM() || !box) return null;
-  const pager = el("div", "ui-sheet-pager ui-box-pager hidden" + (pagerClass ? " " + pagerClass : ""));
-  box.after(pager);
-  const h = { body: box, pager, host: box, page: 0, closed: false };
-  box.classList.add("ui-autopage");
-  watchPages(h);
-  return h;
+  box.classList.add("ui-scrollbox");
+  const judge = () => { if (box.isConnected) box.classList.toggle("is-over", box.scrollHeight > box.clientHeight + 2); };
+  const raf = typeof requestAnimationFrame === "function" ? requestAnimationFrame : (f) => setTimeout(f, 16);
+  raf(judge);
+  if (typeof ResizeObserver === "function") {
+    const ro = new ResizeObserver(judge);
+    ro.observe(box);
+    const inner = () => { for (const c of box.children) ro.observe(c); };
+    inner();
+    if (typeof MutationObserver === "function") new MutationObserver(() => { inner(); judge(); }).observe(box, { childList: true });
+  }
+  return { body: box };
 }
 
 function attachDragClose(card, handles, onClose) {

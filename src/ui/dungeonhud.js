@@ -302,7 +302,7 @@ export function openLog() {
   }
   let body = null;
   const h = sheet.open({
-    kind: "info", banner: "記録", className: "dg-sheet dg-logsheet", paged: false,
+    kind: "info", banner: "記録", className: "dg-sheet dg-logsheet",
     body: (b) => {
       body = b;
       const box = el("div", "dg-logfull");

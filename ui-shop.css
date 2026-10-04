@@ -46,16 +46,8 @@
 .wpc-lhead-t { flex: 0 0 auto; font-size: 13px; font-weight: 800; letter-spacing: 0.16em; color: var(--accent-hi); }
 .wpc-lhead-t::before { content: ""; display: inline-block; width: 6px; height: 6px; margin: 0 8px 2px 2px; transform: rotate(45deg); background: linear-gradient(135deg, #f3d58b, #8a6d2e); }
 .wpc-lhead-s { min-width: 0; flex: 1 1 auto; font-size: 11px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.wpc-pager { margin-left: auto; display: inline-flex; align-items: center; gap: 2px; }
-.wpc-pg {
-  width: var(--hit); height: var(--hit); display: inline-flex; align-items: center; justify-content: center;
-  font-family: var(--font); font-size: 22px; line-height: 1; color: var(--accent-hi); cursor: pointer; touch-action: manipulation;
-  background: var(--grain), var(--plate-hi); border: 1px solid #5a4a36; border-radius: 3px;
-}
-.wpc-pg:disabled { opacity: 0.3; cursor: default; }
-.wpc-pg:active:not(:disabled) { transform: scale(0.95); }
-.wpc-pg-n { min-width: 46px; text-align: center; font-size: 12.5px; font-weight: 700; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
-.wpc-list { flex: 1 1 0 !important; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 6px; touch-action: pan-y; }
+.wpc-list { flex: 1 1 0 !important; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: thin; display: flex; flex-direction: column; gap: 6px; touch-action: pan-y; }
+.wpc-list > * { flex-shrink: 0; }
 .wpc-kindbtn {
   display: inline-flex; align-items: center; gap: 6px; min-height: var(--hit); padding: 0 8px 0 12px;
   font-family: var(--font); color: var(--ink); cursor: pointer; touch-action: manipulation;
