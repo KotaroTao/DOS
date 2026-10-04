@@ -530,8 +530,10 @@ export const MINE_PASS = {
   ],
 };
 
-// 迷宮の初踏破の報告報酬 (難度 n で決まる)。主のいる迷宮は赤い魂が厚い
-export function msqReward(n, boss = false) {
+// 迷宮の初踏破の報告報酬 (推奨Lv で決まる)。主のいる迷宮は赤い魂が厚い
+// lv = その迷宮の推奨Lv (1階)。旧来の難度 n (≒ 1 + (Lv−1)×0.46) の式をそのまま推奨Lv で引く
+export function msqReward(lv, boss = false) {
+  const n = Math.max(1, Math.round(1 + ((lv || 1) - 1) * 0.46));
   const r = { gold: 80 + n * 22, soulPts: 30 + n * 6 };
   r.redSoul = boss ? 6 + Math.ceil(n / 5) * 2 : 2;
   return r;

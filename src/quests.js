@@ -756,7 +756,7 @@ function firstFloorOf(cfg, key) {
 // 迷宮の「深部」(後ろ半分の真ん中あたり) の戦果。魂・宝箱の依頼の物差し
 const deepUnit = (ctx, cfg) => ctx.unit(cfg, Math.max(1, Math.ceil((cfg.floors || 1) * 0.6)));
 // 依頼に選んでよい迷宮のうち、いちばん深い迷宮 (どの迷宮でもよい依頼の報酬の物差し)
-const deepestOf = (ctx) => ctx.dungeons.reduce((a, d) => (((d.nTo || d.n) > (a.nTo || a.n)) ? d : a));
+const deepestOf = (ctx) => ctx.dungeons.reduce((a, d) => (((d.lvTo || d.lv || 0) > (a.lvTo || a.lv || 0)) ? d : a));
 
 // 依頼文と依頼人を選ぶ: 依頼文を1つ引き、その who (無ければ この種類を貼る依頼人) から1人。
 // 同じ掲示板に同じ顔が並ばないよう、もう選ばれた依頼人は (ほかに候補がいる限り) 避ける

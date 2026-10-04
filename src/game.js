@@ -16,7 +16,7 @@ import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_FINALE, STORY_CELLS, storyCellAt,
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
 import { NAMED_FOES, NAMED_IDS, TROPHY_OF, HUNT_ELITE_RATE, bountyId } from "./dungeons/named.js";
-import { DUNGEONS, GEN_DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, naturalLevelRaw, strengthAt, lootBand, levelBand, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, layerOf, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
+import { DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, strengthAt, lootBand, abyssLayer, ABYSS_LAYER_FLOORS, hazardsAt, levelBand, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
 import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
@@ -369,7 +369,7 @@ function lrPool() {
     return lv >= (LR_UNLOCK[it.lr] || 40);
   });
 }
-function lrIntervalMs() { return lrIntervalH(dungeonNumber(activeCfg())) * HOUR_MS; }
+function lrIntervalMs() { return lrIntervalH(levelHere().lv) * HOUR_MS; }
 function lrTimeRoll() {
   const c = lrClock();
   const m = lrIntervalMs();
@@ -843,39 +843,45 @@ const contentSealed = () => { const c = CHAPTERS[CHAPTERS.length - 1]; return !!
 function storyCtx() { const w = worldState(); return { open: (id) => !!w.open[id], found: (k) => !!w.found[k], cleared: (id) => !!w.cleared[id], reported: (id) => !!w.reported[id] }; }
 const storyLines = (l) => (typeof l === "function" ? l(storyCtx()) : l) || [];
 
-// ===== 無限迷宮「奈落」 =====
-// 奈落は実在の100迷宮を「素体」として循環参照し (themed なロスターを再利用)、
-// 深度に応じて enemyScale / lootLv / rank を連続的に底上げした合成 cfg を返す。
+// ===== 無限迷宮「奈落」 (docs/tasks.md A1) =====
+// 奈落は層ごとに ABYSS_LAYER_FLOORS (10) 階。第L層 (深度 10L−9〜10L) は、台帳の第L層の迷宮の顔ぶれ・推奨Lv・強さで組み
+// (world.js abyssLayer)、層の最後の階には第L層の主が門番として立つ。推奨Lv は層の中で台帳の第L層の幅を1階ずつ上がる。
+// 潜れる深さは「主を倒した層の底まで」(abyssMaxDepth)。第十八章の結び (abyssDeep) で上限が外れる。
+// 戦果・落とし物・強さはすべて推奨Lv から (台帳の迷宮と同じ levelcurve.js の曲線)。変異・誓約・門番・記録は従来どおり
 const abyssActive = () => !!(G.abyss && G.abyss.started);
-// 深度 d (1..∞) → 素体にする迷宮番号 (1-100)。深いほど深層の迷宮を引き、100超で巡回する
-function abyssBaseN(d) {
-  const n = Math.min(100, 10 + Math.floor((d - 1) * 1.6)); // d1≒D10 → d56でD100到達
-  return ((n - 1) % 100) + 1;
+const abyssLayerOf = (d) => Math.max(1, Math.ceil(d / ABYSS_LAYER_FLOORS));
+// 深度 d の推奨Lv (層の中で lvFrom → lvTo へ1階ずつ)
+function abyssLevel(d) {
+  const info = abyssLayer(abyssLayerOf(d));
+  const t = ((d - 1) % ABYSS_LAYER_FLOORS) / (ABYSS_LAYER_FLOORS - 1);
+  return info.lvFrom + (info.lvTo - info.lvFrom) * t;
+}
+// 潜れる深さの上限: 主を倒した層のうち一番深い層の底 (第十八章の結びで上限なし)。主をまだ1体も倒していなければ第1層の底まで
+function abyssMaxDepth() {
+  if (featureUnlocked("abyssDeep")) return Infinity;
+  const slain = (G.stats && G.stats.bossIds) || {};
+  let top = 1;
+  for (let L = 1; L <= 20; L++) if (slain[LAYER_BOSS[L - 1]]) top = L;
+  return top * ABYSS_LAYER_FLOORS;
 }
 function abyssCfg() {
   const d = G.abyss.depth;
-  const base = GEN_DUNGEONS[abyssBaseN(d) - 1];
-  const rank = Math.min(10, Math.ceil(d / 4)); // d40 で rank10 に達し、以降は据え置き (火力は enemyScale が伸ばす)
+  const L = abyssLayerOf(d);
+  const info = abyssLayer(L);
+  const lv = abyssLevel(d);
+  const poisonUp = mutNum("poisonUp", false) ? 0.05 : 0;
   return {
-    ...base,
-    id: base.id,                 // 素体のid (n は素体の難度をそのまま引き継ぐ)
-    n: abyssBaseN(d),
-    name: `無限迷宮 奈落 B${d}F`,
-    short: `奈落${d}`,
-    rank,
+    id: "abyss", name: `無限迷宮 奈落 B${d}F`, short: `奈落${d}`,
+    layer: Math.min(20, L), rank: info.rank, element: info.element,
+    lv, lvTo: lv, power: { 1: info.coef }, // 推奨Lv と強さの素 (world.js strengthAt がそのまま読む)
     floors: 1e9,                 // 最深部で自動踏破しない (askDescend が奈落専用に分岐する)
     boss: null,                  // 門番は askDescend 側で生成 (踏破=帰還にしない)
-    // 浅階/深階を区別せず両方のロスターを混ぜる (floors が巨大なので board.js は常に pool を引く)
-    pool: [...new Set([...(base.pool || []), ...(base.deepPool || [])])],
-    deepPool: [...new Set([...(base.deepPool || []), ...(base.pool || [])])],
-    enemyScale: Math.round((0.85 + (d - 1) * 0.075) * 100) / 100, // 連続的・青天井の難易度の壁
-    trapRate: Math.min(0.28, 0.06 + d * 0.0015 + (mutNum("poisonUp", false) ? 0.05 : 0)),
-    poisonRate: Math.min(0.14, 0.03 + d * 0.0008 + (mutNum("poisonUp", false) ? 0.05 : 0)),
+    elites: info.elites,
+    // 浅階/深階を区別せず、その層の顔ぶれをすべて混ぜる (floors が巨大なので board.js は常に pool を引く)
+    pool: [...info.pool], deepPool: [...info.pool],
+    ...(() => { const h = hazardsAt(lv, L); return { trapRate: Math.min(0.28, h.trapRate + 0.02 + poisonUp), poisonRate: Math.min(0.14, Math.max(0.03, h.poisonRate) + poisonUp) }; })(),
     warmChance: 0.45,
-    soulLevelBonus: Math.floor((Math.sqrt(d) - 1) * 1.8),
-    rankBonus: Math.round(1.25 * Math.log2(1 + d / 2) * 100) / 100,
-    // 落とし物の帯は推奨Lv から (台帳の迷宮と同じ world.js lootBand)
-    lootLv: lootBand(dungeonLevelRaw({ n: abyssBaseN(d), floors: 1 }, 1)),
+    lootLv: lootBand(lv),
     _abyss: true,
   };
 }
@@ -911,12 +917,9 @@ function showAbyssMutationPopup(m) {
   });
 }
 
-// 奈落の門番 (10階ごと)。層ボスをローテーションで使い、深度相応に強化する
-function abyssGuardKey(depth) {
-  const i = Math.floor(depth / ABYSS_BOSS_EVERY) - 1; // 10F→0, 20F→1, …
-  return LAYER_BOSS[((i % LAYER_BOSS.length) + LAYER_BOSS.length) % LAYER_BOSS.length];
-}
-function abyssGuardRank(depth) { return Math.min(10, 3 + Math.floor(depth / ABYSS_BOSS_EVERY)); }
+// 奈落の門番 (層の最後の階)。その層の主が、台帳の主と同じ手応え (world.js abyssLayer の bossRank / bossRel) で立つ
+function abyssGuardKey(depth) { return abyssLayer(abyssLayerOf(depth)).boss; }
+function abyssGuardRank(depth) { return abyssLayer(abyssLayerOf(depth)).bossRank; }
 // この階が門番階か (撃破済みでなければ true)
 function abyssBossPending() {
   return abyssActive() && G.floor % ABYSS_BOSS_EVERY === 0 && G.abyss.guardFloor !== G.floor;
@@ -948,7 +951,7 @@ function fightAbyssGuard(cell) {
   const depth = G.abyss.depth;
   const key = abyssGuardKey(depth);
   log("奈落の門番が立ちはだかる！", "dmg");
-  startBattle(spawnBossEnemies(key, enemyScale() * 1.05, abyssGuardRank(depth)), cell);
+  startBattle(spawnBossEnemies(key, baseEnemyScale() * abyssLayer(abyssLayerOf(depth)).bossRel * 1.05, abyssGuardRank(depth)), cell);
 }
 
 // ===== 迷宮テーマ (20層) =====
@@ -976,14 +979,16 @@ const LAYER_VISUALS = [
   { name: "竜の巣",     sym: "♦", accent: "#c8503a", bgm: "layer19", back: drawBackDragonNest, floorBase: "#170d0a", floorTiles: ["#21120c", "#1b0f0a", "#150b07"], glow: "rgba(235,90,60,0.06)" },   // 19
   { name: "終焉の玄室", sym: "✺", accent: "#b08ac0", bgm: "layer20", back: drawBackThrone, floorBase: "#0f0c13", floorTiles: ["#161019", "#120d15", "#0e0b11"], glow: "rgba(180,130,210,0.06)" }, // 20
 ];
-// 迷宮の難度の物差し n (旧来の迷宮番号と同じ尺度 1-100)。台帳の迷宮は cfg.n、素体は id "g001" から
-function dungeonNumber(cfg) {
-  if (cfg && cfg.n) return cfg.n;
-  return cfg && cfg.id && cfg.id[0] === "g" ? parseInt(cfg.id.slice(1), 10) : 1;
+// 迷宮ごとの決まった数 (盤面の絵の種)。旧来の難度 n は A1 で廃止した (強さ・報酬・落とし物は推奨Lv で決まる)
+function dungeonSeed(cfg) {
+  const id = (cfg && cfg.id) || "";
+  let h = 7;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return (h % 997) + (abyssActive() ? G.abyss.depth : 0);
 }
 // 現在の迷宮の層テーマ (全100迷宮 = 20層)
 function dungeonTheme(cfg = activeCfg()) {
-  const L = cfg && cfg.layer ? cfg.layer : layerOf(dungeonNumber(cfg));
+  const L = (cfg && cfg.layer) || 1;
   return LAYER_VISUALS[Math.min(20, Math.max(1, L)) - 1];
 }
 
@@ -1078,11 +1083,12 @@ function hordeRewardPending() {
   sfEachCell(G.board, (c) => { if (c.type === "monster") { any = true; if (!c.cleared) allCleared = false; } });
   return any && allCleared;
 }
-// 殲滅報酬: 迷宮の深さ (n) に応じて Soul n×50・ゴールド n×100 を授ける
+// 殲滅報酬: その階の推奨Lv の普通の戦い HORDE_BATTLES 戦ぶんの Soul とゴールドを授ける
+const HORDE_BATTLES = 3;
 function grantHordeReward() {
   G.board._hordeRewarded = true;
-  const n = dungeonNumber(activeCfg());
-  const soul = n * 50, gold = n * 100;
+  const lv = levelHere().lv;
+  const soul = Math.round(refSoul(lv) * HORDE_BATTLES), gold = Math.round(refGold(lv) * HORDE_BATTLES);
   G.gold += gold; G.soulPts += soul;
   if (G.run && inDungeon()) { G.run.gold += gold; G.run.soulPts += soul; }
   updateTopbar();
@@ -1258,23 +1264,10 @@ function enemyScale() { return baseEnemyScale() * tuneMul(); }
 function baseEnemyScale() {
   return strengthHere() * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
 }
-// その階の敵の強さ (手直し・特別な階・異変を除く)。台帳の迷宮 = 強さの素 power × 推奨Lv の伸び (world.js strengthAt)。
-// 奈落 (台帳の外の素体) は旧来どおり 素体の enemyScale × 1階ごとの上がり幅 × Lv 補正 (A1 で作り直す)
-function strengthHere() {
-  const cfg = activeCfg();
-  if (!abyssActive() && cfg.power) return strengthAt(cfg, G.floor || 1);
-  const ramp = cfg.floorRamp != null ? cfg.floorRamp : 0.06;
-  return (cfg.enemyScale || 1) * (1 + ((G.floor || 1) - 1) * ramp) * lvStrengthHere();
-}
-// いまの階の推奨Lv (= 敵のLv) と n の物差しの Lv (どちらも小数。world.js)。奈落は素体の難度 n の1階相当を本筋の対応で写す
-function levelHere() {
-  const ab = abyssActive();
-  const c = ab ? { n: abyssBaseN(G.abyss.depth), floors: 1 } : activeCfg();
-  const f = ab ? 1 : (G.floor || 1);
-  return { lv: dungeonLevelRaw(c, f), nat: naturalLevelRaw(c, f) };
-}
-// 奈落の敵の強さの Lv 補正: 素体は n の物差しの隊に合わせてあるので、推奨Lv の隊との能力値の伸びの比を掛ける (奈落だけ)
-function lvStrengthHere() { const h = levelHere(); return lvPow(h.lv) / lvPow(h.nat); }
+// その階の敵の強さ (手直し・特別な階・異変を除く) = 強さの素 power × 推奨Lv の伸び (world.js strengthAt)。奈落も同じ (abyssCfg)
+function strengthHere() { return strengthAt(activeCfg(), G.floor || 1); }
+// いまの階の推奨Lv (= 敵のLv。小数。world.js dungeonLevelRaw。奈落は abyssCfg の lv)
+function levelHere() { return { lv: dungeonLevelRaw(activeCfg(), G.floor || 1) }; }
 // 「普通の1戦」の素の ✦Soul / 金貨 (出現表の平均 × その階の強さ × その階の群れの数の見込み。異変・手直しは含めない)。
 // startBattle はこれと推奨Lv の基準 (levelcurve.js refSoul / refGold) の比で、どの敵の戦果も写す → どの階でも普通の1戦の平均が基準の値になる
 function rawBattleUnit() {
@@ -1388,19 +1381,17 @@ function metalRef(key) {
 }
 
 // この迷宮に出る強敵のid。台帳の迷宮は cfg.elites、作り込み済みの層は層ごとの強敵 (LAYER_ELITES) を階ごとに順に出す。
-// それ以外 (奈落の深い素体) は旧来どおり、難度 n のランク帯 (10迷宮) を 1-3 / 4-6 / 7-10 の3グループに区切った強敵
+// それ以外 (強敵の決まっていない層) は旧来の、層のランク帯の強敵を階ごとに順に出す
 function eliteKey() {
   const cfg = activeCfg();
-  const n = dungeonNumber(cfg);
-  const le = (cfg.elites && cfg.elites.length) ? cfg.elites : LAYER_ELITES[cfg.layer || layerOf(n)];
+  const L = cfg.layer || 1;
+  const le = (cfg.elites && cfg.elites.length) ? cfg.elites : LAYER_ELITES[L];
   if (le && le.length) {
     const hunt = le.find((id) => namedHunted(id)); // 懸賞を受けている名のある強敵は、縄張りの強敵階に必ず出る
     return hunt || le[(G.floor || 0) % le.length];
   }
-  const r = Math.min(10, Math.ceil(n / 10));
-  const pos = ((n - 1) % 10) + 1;
-  const g = pos <= 3 ? 0 : pos <= 6 ? 1 : 2;
-  return ELITE_ORDER[(r - 1) * 3 + g];
+  const r = Math.min(10, Math.ceil(L / 2));
+  return ELITE_ORDER[(r - 1) * 3 + ((G.floor || 0) % 3)];
 }
 
 // ===== 迷宮の見出し (#topbar) =====
@@ -1551,15 +1542,15 @@ function fleeScale() {
 function foeLevelHere() {
   return Math.max(1, Math.round(levelHere().lv));
 }
-// テスト記録 (telemetry.js): いまの迷宮の欄 (奈落は深度ごと)。n は進行度 (基準AGI) の算出に使う
+// テスト記録 (telemetry.js): いまの迷宮の欄 (台帳の迷宮は id、奈落は深度ごと)。lv は推奨Lv (基準AGI の算出に使う)
 function tlWhere() {
   const cfg = activeCfg();
+  const lv = levelHere().lv;
   if (abyssActive()) {
     const d = G.abyss.depth;
-    return { key: `A${d}`, name: `奈落 深度${d}`, n: abyssBaseN(d), floor: G.floor, floors: cfg.floors || 1 };
+    return { key: `A${d}`, name: `奈落 深度${d}`, lv, floor: G.floor, floors: 1 };
   }
-  const n = dungeonNumber(cfg);
-  return { key: `D${n}`, name: cfg.name || "", n, floor: G.floor, floors: cfg.floors || 1 };
+  return { key: cfg.id || "?", name: cfg.name || "", lv, floor: G.floor, floors: cfg.floors || 1 };
 }
 
 // ---- ボード描画 ----
@@ -1922,7 +1913,7 @@ function ensureBoardArt() {
   const L = battleLayer();
   const sp = specialDef();
   const crypt = L === 1;
-  const seed = boardSeed(b, dungeonNumber(activeCfg()) * 7919 + G.floor);
+  const seed = boardSeed(b, dungeonSeed(activeCfg()) * 7919 + G.floor);
   const key = `${VW}x${VH}|${CARD_W}x${CARD_H}|${seed}|${L}|${G.eliteFloor ? "e" : ""}|${sp ? sp.id : ""}`;
   if (BV.artKey === key && BV.art) return BV.art;
   let art = BV.artCache.get(key);
@@ -5143,7 +5134,7 @@ function resolveCell(cell) {
       flashScreen("#5a8a2a");
       // 床ダメージ率: 基本5% + 層に応じて微増 (層1=5% → 層20≈10.7%, 上限12%)。
       // 深層ほど毒沼が脅威であり続けるようにする。
-      const layer = activeCfg().layer || layerOf(dungeonNumber(activeCfg()));
+      const layer = activeCfg().layer || 1;
       const pct = Math.min(0.12, 0.05 + (layer - 1) * 0.003);
       let anyDeath = false;
       const fallen = [], hurt = [];
@@ -5459,15 +5450,16 @@ function evNewFloor() {
   if (rv.noBeast) evPurgeBeasts();
   if (G.events.flags.sewerMap && battleLayer() === 2) evRevealStairs();
   const cfg = activeCfg();
-  const dn = dungeonNumber(cfg), layer = battleLayer();
-  if (Math.random() >= (dn <= 1 ? EV_FLOOR_RATE_D1 : EV_FLOOR_RATE)) return;
+  const lv = levelHere().lv, layer = battleLayer();
+  const first = !abyssActive() && cfg.id === WORLD_IDS[0]; // 最初の迷宮 (入門)
+  if (Math.random() >= (first ? EV_FLOOR_RATE_D1 : EV_FLOOR_RATE)) return;
   const sx = G.board.start.x, sy = G.board.start.y;
   const ok = (c, x, y) => c.type === "empty" && !(x === sx && y === sy);
   let cand = [];
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = G.board.cells[y][x]; if (ok(c, x, y) && sfOpenCount(c) === 1) cand.push(c); }
   if (!cand.length) for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = G.board.cells[y][x]; if (ok(c, x, y) && Math.abs(x - sx) + Math.abs(y - sy) >= 3) cand.push(c); }
   if (!cand.length) return;
-  const st = { layer, dn, floor: G.floor, floors: cfg.floors || 3, runEv: rv, onceDone: (e) => !!G.events.once[onceKey(e, layer)] };
+  const st = { layer, lv, first, floor: G.floor, floors: cfg.floors || 3, runEv: rv, onceDone: (e) => !!G.events.once[onceKey(e, layer)] };
   const e = pickEvent(eligibleEvents(st, evApi));
   if (!e) return;
   const cell = cand[rand(cand.length)];
@@ -5629,7 +5621,7 @@ function evOpenChestAt(cell) {
 // events.js へ渡す操作の窓口 (A)。events.js は game.js を import しないので、必要な操作はここに集める
 const evApi = {
   get layer() { return battleLayer(); },
-  get dn() { return dungeonNumber(activeCfg()); },
+  get lv() { return levelHere().lv; },
   runEv: () => evRun(),
   floorEv: () => evFloor(),
   flags: () => G.events.flags,
@@ -6214,6 +6206,21 @@ function askDescend(cell) {
         ],
         ICONS.stairs,
         { banner: "⚠ 奈落の門番 ⚠", accent: "#d4504e", onDismiss: stay }
+      );
+      return;
+    }
+    // 潜れる深さの上限 (主を倒した層の底)。その先は、台帳の迷宮でその層の主を討つまで閉ざされている
+    if (G.floor >= abyssMaxDepth()) {
+      const nextL = abyssLayerOf(G.floor + 1);
+      showChoice(
+        `階段の先は、底の見えない闇に呑まれている。`,
+        [
+          { label: "街へ帰還する ― 戦利品は持ち帰る", primary: true, fn: () => leaveDungeon({ outcome: G.run && G.run.secured ? "clear" : "return" }) },
+          { label: "まだ探索する", fn: () => { renderBoard(); } },
+        ],
+        ICONS.stairs,
+        { banner: "✦ 奈落の底 ✦", accent: "#b08ac0", onDismiss: stay,
+          lines: [`いまの隊が潜れるのは B${G.floor}F まで。`, `第${kanjiNum(nextL)}層の主を迷宮で討てば、その先の闇が開く。`] }
       );
       return;
     }
@@ -7770,7 +7777,7 @@ function drawClassicWindow(ctx, w, h) {
 // 戦闘背景に使う層 (1-20)。奈落は素体迷宮の層を引き継ぐ (盤面のテーマと揃える)
 function battleLayer() {
   const cfg = activeCfg();
-  return cfg && cfg.layer ? cfg.layer : layerOf(dungeonNumber(cfg));
+  return (cfg && cfg.layer) || 1;
 }
 
 // 戦闘の常時アニメーション: 行動入力を待つ間も背景の粒子・敵の呼吸・照準リングを動かす。
@@ -9117,7 +9124,7 @@ function commitDungeonClear(countBoss = true) {
     if (bk) G.stats.bossIds[bk] = true; // 戦績: 討伐した層ボスの種類 (勲章用)
   }
   const cfg = DUNGEONS[idx];
-  G.dragonSlain = G.dragonSlain || dungeonNumber(cfg) >= 100;
+  G.dragonSlain = G.dragonSlain || (cfg.layer >= 20 && !!cfg.boss);
   // 初めての踏破は王への報告待ちにする (報告で褒美・物語・新たな迷宮・機能解放)。2度目からは記録だけ
   const w = worldState();
   const isStoryTarget = !!cfg && !w.cleared[cfg.id];
@@ -9152,7 +9159,7 @@ function celebrateDungeonClear({ idx, isStoryTarget }) {
   flashScreen("#ffd84a");
   uiResults.celebrateClear({
     name: dn.name, layer: dn.layer, isStoryTarget, layerBoss: !!dn.boss,
-    last: dungeonNumber(dn) >= 100,
+    last: dn.layer >= 20 && !!dn.boss,
     onStay: () => {
       log("迷宮は踏破した。下の「帰還」から、いつでも街へ凱旋できる。", "win");
       if (G.state === "board") renderBoard();
@@ -10342,7 +10349,7 @@ function pickRumorSpecial(layer) {
 
 function rollRumor() {
   const cfg = curDungeon();
-  const layer = cfg.layer || layerOf(dungeonNumber(cfg));
+  const layer = cfg.layer || 1;
   const speaker = RUMOR_SPEAKERS[rand(RUMOR_SPEAKERS.length)];
   const dn = cfg.name || "次の迷宮";
 
@@ -10989,7 +10996,7 @@ function reportMainQuest() {
   const id = w.report;
   const cfg = worldById(id);
   if (!cfg) { w.report = null; renderTown(); return; }
-  const r = msqReward(cfg.n, !!cfg.boss);
+  const r = msqReward(cfg.lv, !!cfg.boss);
   const rwText = [{ cur: "gold", n: r.gold }, { cur: "soul", n: r.soulPts }, ...(r.redSoul ? [{ cur: "red", n: r.redSoul }] : [])];
   const rep = REPORTS[id] || { title: cfg.name, lines: ["「果たしたか。…見たものを、すべて話せ。」"] };
   // この報告で地図に現れる迷宮 (解放条件 reported:id) を、王の言葉の結びに添える
@@ -14222,7 +14229,7 @@ function wireUI() {
   bindGame({
     G, log, autosave, buzz, flashScreen, shakeScreen,
     renderTown, renderBoard, renderParty, renderRunbar, updateTopbar, renderStatus,
-    allDolls, recalcAllDolls, inDungeon, curDungeon, activeCfg, dungeonNumber, clearedDungeonCount, reportedDungeonCount,
+    allDolls, recalcAllDolls, inDungeon, curDungeon, activeCfg, clearedDungeonCount, reportedDungeonCount,
     sellPrice, buyPrice, appraiseCost, innCost, sellWarnings, bargainMul, shopStockAdd,
     itemRankName, itemRankColor, itemGradeText, itemNameEl, logClassForItem,
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
@@ -14307,7 +14314,7 @@ bindGame({
 bindGame({
   // 出撃
   departNow, departAbyss, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, partyLevel, storyCellPending, dungeonFacts, namedHere, namedList, namedInfo,
-  abyssRecords, ABYSS_MODS, abyssScoreMul, weekSeedId, emptyDollCost,
+  abyssRecords, abyssMaxDepth, ABYSS_MODS, abyssScoreMul, weekSeedId, emptyDollCost,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow,
   ABYSS_MUT_MAP, dungeonTheme, eventFacts,

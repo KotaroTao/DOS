@@ -85,7 +85,7 @@ export const LORE_PAGES = {
 // ===== 出来事の定義 =====
 // 共通フィールド:
 //   id, name, layer (0=共通 / 1..=その層専用), tier, icon (ICONS のキー or "mon:<id>"), accent,
-//   minFloor (この階以上), deep (迷宮の後半の階のみ), minDn (迷宮番号の下限), maxSkip (この階から先に必要な階数),
+//   minFloor (この階以上), deep (迷宮の後半の階のみ), minLv (その階の推奨Lv の下限), maxSkip (この階から先に必要な階数),
 //   once (一度きり: true=セーブで1回 / "layer"=層ごとに1回。極はすべて true), cond(A) 追加条件,
 //   intro(A, cell) → 本文の行, choices(A, cell) → 選択肢 [{label, fn, primary?, danger?}],
 //   gift(A, cell) → 極の出来事: 選択肢の代わり。踏んだ時に恒久の恵みを授け、結果の行を返す。boon = 図鑑に出す恵みの説明,
@@ -756,7 +756,7 @@ export const EVENTS = [
     },
   },
   {
-    id: "l1_09", name: "修道院の告解室", layer: 1, tier: "rare", icon: "event", minDn: 4, deep: true,
+    id: "l1_09", name: "修道院の告解室", layer: 1, tier: "rare", icon: "event", minLv: 11, deep: true,
     intro: () => ["朽ちた修道院の告解室。格子の向こうに、誰かの気配がある。", "「罪を告げよ。あるいは……院長の秘密を聞くか」"],
     choices: (A, cell) => {
       const cost = A.soulCost(3);
@@ -1044,7 +1044,7 @@ export const EVENTS = [
     },
   },
   {
-    id: "l3_09", name: "鉱山主の金庫", layer: 3, tier: "rare", icon: "chest", minDn: 13, deep: true,
+    id: "l3_09", name: "鉱山主の金庫", layer: 3, tier: "rare", icon: "chest", minLv: 24, deep: true,
     intro: (A, cell) => ["鉱山主が遺した黒鉄の金庫。三重の錠前が掛かっている。", `錠前を破れるのは3度まで (残り ${3 - (cell.evTry || 0)}度)。しくじるたび、番兵が目を覚ます。`],
     choices: (A, cell) => {
       const d = A.checkDisarm();
@@ -1060,7 +1060,7 @@ export const EVENTS = [
     onWin: (A, cell, f, next) => { next && next(); setTimeout(() => A.reopen(cell), 30); },
   },
   {
-    id: "l3_10", name: "地の底の鍛冶場", layer: 3, tier: "mythic", icon: "event", once: true, minDn: 14, deep: true,
+    id: "l3_10", name: "地の底の鍛冶場", layer: 3, tier: "mythic", icon: "event", once: true, minLv: 25, deep: true,
     boon: EV_BOONS.temper.text,
     intro: () => ["地熱で赤く光る火床。ドワーフの霊が、黙々と槌を振るっている。", "霊は無言で隊の得物を取り上げると、火床にくべ、焼き入れを施して返した。"],
     gift: (A) => {
@@ -1197,7 +1197,7 @@ export const EVENTS = [
     onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "処刑台に縛られていた魂だ。", () => A.chestHere(cell, { rankUp: 2 }, next)),
   },
   {
-    id: "l4_10", name: "最後の点呼", layer: 4, tier: "mythic", icon: "event", once: true, minDn: 16, deep: true,
+    id: "l4_10", name: "最後の点呼", layer: 4, tier: "mythic", icon: "event", once: true, minLv: 34, deep: true,
     boon: EV_BOONS.salute.text,
     intro: () => ["崩れた練兵場に、百年前の守備隊が整列していた。", "隊長の亡霊が一歩進み出て、こちらの隊に向かって剣を掲げた。", "「──援軍、着到。持ち場を、引き継ぐ」"],
     gift: (A) => {
@@ -1349,7 +1349,7 @@ export const EVENTS = [
     ],
   },
   {
-    id: "l5_12", name: "楔を打った操霊師", layer: 5, tier: "rare", icon: "event", deep: true, minDn: 22,
+    id: "l5_12", name: "楔を打った操霊師", layer: 5, tier: "rare", icon: "event", deep: true, minLv: 46,
     intro: () => ["幹に半ば呑まれた人影。古い操霊師の法衣を着て、手には鉄の楔と槌を握ったまま、木になりかけている。", "「……わしは、ヴェルナーより前の操霊師。大樹の主に楔を一本、打ち込んでやった」", "「その楔の場所を教えよう。……それとも、わしの杖を持ってゆくか」"],
     choices: (A, cell) => [
       { label: "楔の場所を聞く ― 第5層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
@@ -1387,7 +1387,7 @@ export const EVENT_GROUPS = [
 // 出現条件の説明 (見聞録用)
 export function eventWhereText(e) {
   const parts = [e.layer ? `第${e.layer}層のみ` : "どの層でも"];
-  if (e.minDn) parts.push(`迷宮${e.minDn}以降`);
+  if (e.minLv) parts.push(`推奨Lv${e.minLv}以降`);
   if (e.deep) parts.push("迷宮の後半の階");
   else if (e.minFloor && e.minFloor > 1) parts.push(`B${e.minFloor}F以降`);
   if (e.tier === "rare") parts.push("1回の潜入で1度まで");
@@ -1397,15 +1397,15 @@ export function eventWhereText(e) {
 }
 
 // ===== 置き場所と抽選 =====
-// st: { layer, dn, floor, floors, abyss, runEv, flags, once(id) }。出せるイベントを重み付きで1つ選ぶ (無ければ null)
+// st: { layer, lv, first, floor, floors, abyss, runEv, flags, once(id) }。出せるイベントを重み付きで1つ選ぶ (無ければ null)
 export function eligibleEvents(st, A) {
   const deepNow = st.floor > st.floors / 2;
   return EVENTS.filter((e) => {
     if (e.layer && e.layer !== st.layer) return false;
-    if (st.dn <= 1 && e.tier !== "common") return false;            // 迷宮1は常のみ
+    if (st.first && e.tier !== "common") return false;              // 最初の迷宮は常のみ
     if (e.minFloor && st.floor < e.minFloor) return false;
     if (e.deep && !deepNow) return false;
-    if (e.minDn && st.dn < e.minDn) return false;
+    if (e.minLv && st.lv < e.minLv) return false;
     if (e.maxSkip != null && st.floor + e.maxSkip >= st.floors) return false; // 先に必要な階が無い
     if (e.tier === "rare" && st.runEv.rareUsed && st.runEv.rareUsed[e.id]) return false;
     if (e.once && st.onceDone(e)) return false;
