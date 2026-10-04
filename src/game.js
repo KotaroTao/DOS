@@ -6665,7 +6665,9 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
   codexSeeItem(d.id, d.item);
   runGainItem(who, d.item);
   SFX.chest();
-  log(`宝箱から ${d.name}の落とした ${itemName(d.item)} を手に入れた！`, logClassForItem(d.item, d.rare ? "win" : "sys"));
+  // 「〜の落とした」は落とし主のいる品 (強敵・門番) だけ。ふつうの戦利品 (key "loot") は落とし主を言わない
+  const from = d.key === "loot" ? "" : `${d.name}の落とした `;
+  log(`宝箱から ${from}${itemName(d.item)} を手に入れた！`, logClassForItem(d.item, d.rare ? "win" : "sys"));
   sink.loot(d.item, who, next);
 }
 
