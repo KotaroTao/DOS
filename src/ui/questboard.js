@@ -3,7 +3,8 @@
 // 依頼の中身・状態は game.js (questLists / acceptQuest / abandonQuest / claimQuest / deliverQuest) と src/quests.js。
 //   フリークエスト (掲示板) … 受けられるのは同時に game.FREE_CAP 件まで。達成して報告するか、放棄すると枠が空く
 //   固定クエスト (依頼人)   … 一度きり。受注の上限は無く、5件の枠にも数えない
-// 札をタップ = 詳細シート (依頼人の口上・目的・報酬・操作)。札の右の釦で、受ける / 報告する / 納品する を1タップで。
+// 札をタップ = 詳細シート (依頼人の口上・目的・報酬・操作)。札の右の釦で、報告する / 納品する は1タップで。
+// 受注だけは札の「受ける」も詳細シートを開き、内容を確かめてから「依頼を受ける / 受けない」を選ぶ。
 // game.js は import しない (ctx.js の UI / game を通す)。
 
 import { UI, game } from "./ctx.js";
@@ -96,7 +97,8 @@ async function abandon(q) {
 function actionBtn(q) {
   if (q.state === "offer") {
     const off = !q.fixed && full();
-    return button({ label: "受ける", kind: off ? "secondary" : "primary", size: "sm", disabled: false, onTap: (e) => { if (e) e.stopPropagation(); accept(q); } });
+    return button({ label: "受ける", kind: off ? "secondary" : "primary", size: "sm", disabled: false,
+      onTap: (e) => { if (e) e.stopPropagation(); sfx("select"); openQuestSheet(q.uid); } });
   }
   if (q.state === "done") return button({ label: "報告する", kind: "primary", size: "sm", onTap: (e) => { if (e) e.stopPropagation(); game.claimQuest(q.uid); } });
   if (q.type === "deliver" && q.state === "active") {
@@ -169,11 +171,11 @@ export function openQuestSheet(uid) {
   };
   const footer = () => {
     const q = cur();
-    const close = { label: "閉じる", kind: "ghost", onTap: (s) => s.close() };
+    const close = { label: q && q.state === "offer" ? "受けない" : "閉じる", kind: "ghost", onTap: (s) => s.close() };
     if (!q) return [close];
     const out = [];
     if (q.state === "offer") out.push({ label: "依頼を受ける", kind: "primary", size: "lg", disabled: !q.fixed && full(),
-      sub: !q.fixed && full() ? `受注は${cap()}件まで` : null, onTap: (s) => { if (accept(q)) s.close(); } });
+      sub: !q.fixed && full() ? `受注は${cap()}件まで` : null, onTap: (s) => { if (accept(q)) { s.close(); toast(`依頼「${q.name}」を受けた`); } } });
     else if (q.state === "done") out.push({ label: "報告する", kind: "primary", size: "lg", onTap: (s) => { s.close(); game.claimQuest(q.uid); } });
     else if (q.type === "deliver") {
       const st = deliverSt(q) || {};
