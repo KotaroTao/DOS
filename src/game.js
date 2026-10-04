@@ -1428,19 +1428,22 @@ function ensureTopbarHud() {
     b.setAttribute("aria-label", "手帳 (階の情報・記録・帰還・設定)");
     b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h10.5a3 3 0 0 1 3 3v12H8a3 3 0 0 1-3-3Z"/><path d="M5 16.5a3 3 0 0 1 3-3h10.5"/><path d="M9 8h6M9 10.6h4"/></svg>';
     b.appendChild(el("span", "dg-book-l", "手帳"));
-    b.addEventListener("click", () => {
+    const openBook = () => {
       // 戦闘中も開ける (閉じるまで戦闘は止まる。帰還・隊の編成はできない)
       if (!inDungeon() || uiBlocked()) return;
+      if (holdForAutoMove(openBook)) return; // オート移動中: いまの1歩を終えてから開く
       if (G.state === "board" ? (G.anim || G.walking) : (G.state !== "combat" || !G.battle)) return;
       SFX.select();
       UI.openDungeonMenu();
-    });
+    };
+    b.addEventListener("click", openBook);
     left.insertBefore(b, left.firstChild);
   }
   if (floorInfo && !floorInfo.dataset.tap) {
     floorInfo.dataset.tap = "1";
     floorInfo.setAttribute("role", "button");
-    floorInfo.addEventListener("click", () => {
+    floorInfo.addEventListener("click", function tap() {
+      if (holdForAutoMove(tap)) return;
       if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
       SFX.select();
       uiDungeonHud.openFloorInfo();
@@ -1719,7 +1722,8 @@ function renderRunbar() {
     runbarEl.dataset.tap = "1";
     runbarEl.setAttribute("role", "button");
     runbarEl.setAttribute("aria-label", "今回の収穫を見る");
-    runbarEl.addEventListener("click", () => {
+    runbarEl.addEventListener("click", function tap() {
+      if (holdForAutoMove(tap)) return;
       if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
       SFX.select();
       uiDungeonHud.openRunLoot();
@@ -1787,9 +1791,11 @@ function dockSpec() {
     const sp = SPELLS[k], c = fieldCaster(k, true), on = fieldActive(sp);
     return { key: k, kind: sp.float ? "float" : sp.sense, label: sp.name, sub: on ? fieldStateText(sp) : `MP${c.cost}`, on };
   });
-  return { down, home, heal, fields, idle: G.floor <= 1 && !(G.run && G.run.kills) ? "スワイプで進む ・ 光る墓石をめくる" : "階段を見つけると、ここから降りられる" };
+  const auto = { on: !!G.autoMove, sub: { avoid: "敵を避ける", weak: "強敵を避ける", all: "敵に挑む" }[autoMoveFoes()] };
+  return { down, home, heal, fields, auto, idle: G.floor <= 1 && !(G.run && G.run.kills) ? "スワイプで進む ・ 光る墓石をめくる" : "階段を見つけると、ここから降りられる" };
 }
 function dockDescend() {
+  if (holdForAutoMove(dockDescend)) return;
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
   const cell = findRevealedStairs();
   if (!cell) return;
@@ -1836,6 +1842,7 @@ function senseTargets(kind) {
   return out;
 }
 function dockField(key) {
+  if (holdForAutoMove(() => dockField(key))) return;
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
   castField(key);
 }
@@ -1884,11 +1891,13 @@ function castField(key) {
   autosave(true);
 }
 function dockHealAll() {
+  if (holdForAutoMove(dockHealAll)) return;
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
   healAll();
   renderDock();
 }
 function dockReturn() {
+  if (holdForAutoMove(dockReturn)) return;
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
   SFX.select();
   confirmReturnToTown();
@@ -1897,7 +1906,7 @@ function renderDock() {
   if (!hintEl) return;
   const spec = inDungeon() ? dockSpec() : null;
   hintEl.classList.toggle("hidden", G.state === "combat" || (G.state === "over" && !!G.battle));
-  uiDungeonHud.renderDock(hintEl, spec, { descend: dockDescend, goHome: dockReturn, healAll: dockHealAll, field: dockField });
+  uiDungeonHud.renderDock(hintEl, spec, { descend: dockDescend, goHome: dockReturn, healAll: dockHealAll, field: dockField, auto: toggleAutoMove });
 }
 
 function renderBoard() {
@@ -5039,6 +5048,7 @@ let walkRedirect = null;
 function autoWalk(path) {
   if (!path.length) return;
   G.walking = true;
+  G._walkAbort = false; // 1歩ずつ歩いて落とし穴に落ちた時の印が残っていても、新しい道は捨てない
   walkRedirect = null;
   const next = () => {
     // 落とし穴に落ちた: 経路は前の階のものなので、ここで歩みを止める
@@ -5058,6 +5068,158 @@ function autoWalk(path) {
   };
   next();
 }
+
+// ===== オート移動 =====
+// ドックの「オート」で切り替える (セーブしない・街へ戻れば切れる)。ON の間は1歩ずつ行き先を決め直して歩き続ける:
+//  ・まだめくっていない墓石のうち、歩いて最も近いものへ向かう (同じ近さなら今向いている方向を優先 ―
+//    まっすぐ進み、壁に当たれば向きを変える)
+//  ・見えている罠 (めくれた罠・落とし穴・毒の床 ― 浮遊中・毒床を無効にできる時を除く) は踏まない
+//  ・見えている敵 (めくれた魔物の札・気配読み/敵感知の光) の扱いは設定「オート移動と見えている敵」(autoMoveFoes):
+//      avoid = 避ける (既定) / weak = 強敵だけ避ける (ほかの敵には挑む) / all = 避けない
+//    敵の札をタップすれば、どの設定でもそこへ寄り道して戦い、終われば続きを歩く
+//  ・決断の要る札 (階段・帰還陣・開けなかった宝箱・泉・死体・出来事・物語) は、ほかに道が無い時だけ通る
+//  ・戦闘・選択・シートの間は待ち、閉じれば続ける。新たに深手 (HP3割未満) を負う・倒れる者が出たら止まる
+//  ・スワイプ・方向キーで歩けば手で動かしたものとして止まる
+const AUTO_MOVE_HURT = 0.3;
+let autoMoveTimer = null;
+let autoMoveVia = null;   // 寄り道の行き先 (タップしたマス)
+let autoMoveHold = null;  // 1歩の終わりを待って行うドック・手帳などの操作
+let autoMoveHurt = null;  // ON にした時点で深手・戦闘不能だった者 (uid) ― これ以外が深手になれば止まる
+function autoMoveFoes() {
+  const v = uiDungeonHud.getPref("autoMoveFoes");
+  return v === "weak" || v === "all" ? v : "avoid";
+}
+function autoMoveWounded() {
+  return new Set(G.party.filter((p) => !p.alive || p.hp < p.maxhp * AUTO_MOVE_HURT).map((p) => p.uid));
+}
+function setAutoMove(on, note) {
+  on = !!on && G.state === "board" && inDungeon();
+  if (!!G.autoMove === on) return;
+  G.autoMove = on;
+  autoMoveVia = null;
+  autoMoveHold = null;
+  if (autoMoveTimer !== null) { clearTimeout(autoMoveTimer); autoMoveTimer = null; }
+  if (on) {
+    autoMoveHurt = autoMoveWounded();
+    const foes = { avoid: "見えている敵は避ける", weak: "強敵は避ける", all: "見えている敵にも挑む" }[autoMoveFoes()];
+    showToast(note || `オート移動 ― 近くの墓石からめくっていく (${foes})`, { tone: "info" });
+    autoMoveSchedule(0);
+  } else if (note) {
+    showToast(note, { tone: "info" });
+  }
+  renderDock();
+}
+function toggleAutoMove() {
+  if (G.state !== "board" || !inDungeon() || uiBlocked()) return;
+  SFX.select(); buzz(10);
+  setAutoMove(!G.autoMove, G.autoMove ? "オート移動を止めた" : null);
+}
+function autoMoveSchedule(ms) {
+  if (autoMoveTimer !== null) clearTimeout(autoMoveTimer);
+  autoMoveTimer = setTimeout(autoMoveTick, ms);
+}
+// オート移動中にドックや手帳を押した: いまの1歩が終わってから行う (true = 預かった)
+function holdForAutoMove(fn) {
+  if (!G.autoMove || G.state !== "board" || uiBlocked() || !(G.anim || G.walking)) return false;
+  autoMoveHold = fn;
+  return true;
+}
+// オート移動中に盤面のマスをタップした: そこへ寄り道する (着いたら、また近くの墓石へ)
+function autoMoveDetour(x, y) {
+  if (G.walking) { walkRedirect = { x, y }; return; }
+  autoMoveVia = { x, y };
+}
+function autoMoveTick() {
+  autoMoveTimer = null;
+  if (!G.autoMove) return;
+  if (!inDungeon() || (G.state !== "board" && G.state !== "combat")) { setAutoMove(false); return; } // 街へ帰った・全滅
+  if (G.state !== "board" || G.anim || G.walking || uiBlocked()) { autoMoveSchedule(150); return; }
+  if (autoMoveHold) { const fn = autoMoveHold; autoMoveHold = null; fn(); autoMoveSchedule(150); return; }
+  // 新たに深手を負った・倒れた者がいる: 歩みを止めて手当てを促す
+  const hurt = [...autoMoveWounded()].filter((u) => !autoMoveHurt.has(u));
+  if (hurt.length) {
+    const p = G.party.find((m) => m.uid === hurt[0]);
+    setAutoMove(false, `${p ? p.name : "仲間"}が${p && !p.alive ? "倒れている" : "深手を負っている"} ― オート移動を止めた`);
+    return;
+  }
+  autoMoveHurt = autoMoveWounded(); // 癒えた者は数え直す (また深手になれば止まる)
+  if (autoMoveVia) {
+    const t = autoMoveVia; autoMoveVia = null;
+    const path = findPath(t.x, t.y);
+    if (path.length) { autoWalk(path); autoMoveSchedule(150); return; }
+  }
+  const step = autoMovePlan();
+  if (!step) {
+    const blocked = autoMovePlan({ ignoreDanger: true });
+    setAutoMove(false, blocked
+      ? "見えている敵や罠が道を塞いでいる ― オート移動を止めた"
+      : findRevealedStairs() ? "この階の墓石はめくり尽くした ― オート移動を止めた" : "めくれる墓石が見当たらない ― オート移動を止めた");
+    return;
+  }
+  moveStep(step.x, step.y, () => autoMoveSchedule(walkMs(110)));
+}
+// 次の1歩を決める: 安全なめくり済みのマスを通って届く行き先 (伏せた墓石・挑む敵) のうち最も近いもの。
+// 決断の要る札は、それを避けて届く行き先が無い時だけ通る。ignoreDanger = 塞がれているかの確かめ用
+function autoMovePlan({ ignoreDanger = false } = {}) {
+  const b = G.board;
+  if (!b) return null;
+  const foes = autoMoveFoes();
+  const floating = floatLeft() > 0;
+  const poisonSafe = floating || partyPassiveLv("poisonFloor") >= 2;
+  // 光で見えている、まだめくっていない魔物 (気配読み = すべて / 敵感知 = 選ばれた数だけ)
+  const sensed = new Set();
+  if (fieldSense("enemy")) {
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = b.cells[y][x]; if (c.type === "monster" && !c.revealed && !c.cleared) sensed.add(x + "," + y); }
+  }
+  const psE = partyPassiveLv("senseEnemy");
+  if (psE && inDungeon()) for (const [x, y] of passiveSensePlan().enemy.slice(0, Math.min(3, psE))) sensed.add(x + "," + y);
+  const isFoe = (c) => c.type === "monster" && !c.cleared;
+  // 挑む敵: めくれた札は強敵かどうかが見える。光だけの敵は強敵か分からないので、普通の敵として扱う
+  const fightable = (c) => foes === "all" || (foes === "weak" && (!c.revealed || !c.elite || c.metal));
+  const danger = (c) => c.revealed && (
+    (c.type === "trap" && !c.cleared) || (c.type === "pit" && !floating) || (c.type === "poison" && !poisonSafe));
+  const nuisance = (c) => c.revealed && (c.type === "stairs" || c.type === "portal" ||
+    (!c.cleared && ["chest", "fountain", "corpse", "event", "story"].includes(c.type)));
+  // 向いている方向を優先 (まっすぐ進み、壁に当たったら曲がる)。真後ろは最後
+  const f = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[G._facing] || [0, 1];
+  const order = Object.values(DIRS_G).sort((a, c) => rankDir(a) - rankDir(c));
+  function rankDir(d) { return d[0] === f[0] && d[1] === f[1] ? 0 : d[0] === -f[0] && d[1] === -f[1] ? 2 : 1; }
+  for (const passNuisance of [false, true]) {
+    const key = (x, y) => x + "," + y;
+    const first = new Map([[key(G.px, G.py), null]]);
+    let frontier = [[G.px, G.py]];
+    while (frontier.length) {
+      const next = [];
+      let found = null;
+      for (const [x, y] of frontier) {
+        const cell = b.cells[y][x];
+        for (const d of order) {
+          if (cell.walls[dirName(d)]) continue;
+          const nx = x + d[0], ny = y + d[1];
+          if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) continue;
+          const k = key(nx, ny);
+          if (first.has(k)) continue;
+          const c = b.cells[ny][nx];
+          const step = first.get(key(x, y)) || { x: nx, y: ny };
+          first.set(k, step);
+          const foe = isFoe(c) && (c.revealed || sensed.has(k));
+          // 行き先: 挑む敵 / 伏せた墓石 (避ける敵の光は除く)
+          // (塞がれているかの確かめでは、伏せた墓石だけを行き先にし、敵・罠も通れるものとする)
+          if (!found && (ignoreDanger ? !c.revealed : foe ? fightable(c) : !c.revealed)) found = step;
+          if (found) continue;
+          // 中継: めくり済みで、敵・罠でなく、(この回は) 決断の要る札でもないマス
+          if (!c.revealed || (!ignoreDanger && (isFoe(c) || danger(c)))) continue;
+          if (!passNuisance && nuisance(c)) continue;
+          next.push([nx, ny]);
+        }
+        if (found) return found;
+      }
+      frontier = next;
+    }
+  }
+  return null;
+}
+function dirName(d) { return d[0] === 1 ? "e" : d[0] === -1 ? "w" : d[1] === 1 ? "s" : "n"; }
 
 // ===== 盤面の出来事 (§3.6 割り込みの方針) =====
 // 決断 (宝箱・あたたかい死体・泉・黒い泉・階段・帰還陣) だけをシートで問い、
@@ -9318,6 +9480,7 @@ function renderParty() {
       card.setAttribute("role", "button");
       card.addEventListener("click", () => {
         if (G._swiped) { G._swiped = false; return; } // 札の上からフリックして歩いた直後の click は無視
+        if (holdForAutoMove(() => { if (!uiBlocked()) UI.openParty(idx, { context: "dungeon" }); })) return;
         if (G.anim || G.walking || uiBlocked()) return;
         UI.openParty(idx, { context: "dungeon" });
       });
@@ -9431,7 +9594,8 @@ function updateReturnBtn() {
   const show = G.state === "board" && !!G.portalFound;
   returnBtn.classList.toggle("hidden", !show);
 }
-if (returnBtn) returnBtn.addEventListener("click", () => {
+if (returnBtn) returnBtn.addEventListener("click", function tap() {
+  if (holdForAutoMove(tap)) return;
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
   SFX.select();
   confirmReturnToTown();
@@ -13435,6 +13599,15 @@ view.addEventListener("click", (e) => {
     return;
   }
   if (G.state !== "board" || uiBlocked()) return;
+  // オート移動中: タップしたマスへ寄り道する (見えている敵の札なら挑む)。着いたら、また近くの墓石をめくっていく
+  if (G.autoMove) {
+    const hit = cellAt(sx, sy);
+    if (!hit || (hit.x === G.px && hit.y === G.py)) return;
+    if (!findPath(hit.x, hit.y).length) { SFX.miss(); log("そこへはまだ行けない。", "sys"); return; }
+    SFX.select();
+    autoMoveDetour(hit.x, hit.y);
+    return;
+  }
   // 自動移動中: 別のマスをタップしたら行き先を変更 (いま歩いている1歩を終えてから新しい経路へ)
   if (G.walking) {
     const hit = cellAt(sx, sy);
@@ -13516,6 +13689,7 @@ document.addEventListener("pointermove", (e) => {
   const mdy = mdx === 0 ? (dy > 0 ? 1 : -1) : 0;
   swipe.dir = { dx: mdx, dy: mdy };
   G._swiped = true;
+  if (G.autoMove && G.state === "board") setAutoMove(false, "手で歩いたので、オート移動を止めた");
   // 札の上から始めたフリックは、方向が決まった時点で指を #party (作り直されない器) に捕まえておく。
   // 歩くたびに renderParty() が札を作り直しても、指を離した pointerup を取りこぼさない (タップは札のまま)。
   if (swipe.party) { try { partyEl.setPointerCapture(e.pointerId); } catch (err) { /* 非対応環境は素通し */ } }
@@ -13541,6 +13715,7 @@ document.addEventListener("keydown", (e) => {
   if (typingKey(e)) return;
   if (e.key === "m" || e.key === "M") { if (!e.repeat) updateMuteBtn(toggleMute()); return; }
   if (G.state !== "board" || uiBlocked()) return;
+  if (G.autoMove && /^(Arrow(Up|Down|Left|Right)|[wasd])$/.test(e.key)) { setAutoMove(false, "手で歩いたので、オート移動を止めた"); e.preventDefault(); return; }
   switch (e.key) {
     case "ArrowUp": case "w": tryMove(0, -1); break;
     case "ArrowDown": case "s": tryMove(0, 1); break;
@@ -14357,7 +14532,7 @@ function legacyBack() {
 }
 // 迷宮: 盤面 = 手帳 (Phase 0 は設定) / 戦闘 = オートを止めるだけ / 全滅 = 何もしない (決断を迫る)
 function dungeonBack() {
-  if (G.state === "board") { if (!G.anim && !G.walking) UI.openDungeonMenu(); return true; }
+  if (G.state === "board") { if (holdForAutoMove(() => UI.openDungeonMenu())) return true; if (!G.anim && !G.walking) UI.openDungeonMenu(); return true; }
   if (G.state === "combat") { if (G.autoCombat) stopAutoCombat(); return true; }
   if (G.state === "over") return true;
   return false;
@@ -14457,6 +14632,7 @@ bindGame({
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow,
   ABYSS_MUT_MAP, dungeonTheme, eventFacts,
+  renderDock, // 設定「オート移動と見えている敵」を変えた時、ドックの札の説明を描き直す
   // 戦果・帰還の報告
   celebrateSoul, leaveDungeon,
   // 記録の履歴 (記録欄のタップ / 手帳の「記録を読む」)
@@ -14485,6 +14661,8 @@ function init() {
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
   window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACH_SERIES, achievementCards, medalRank, questProgress, pickLoot, showItemGet, startBattle, spawnCardEnemies, spawnBossEnemies, activeCfg,
     UI, ops, nav, townshell,
+    // オート移動の検証用
+    autoMove: { setAutoMove, toggleAutoMove, autoMovePlan, cellRect, viewSize: () => ({ VW, VH }) },
     // 酒場の依頼の検証用
     quest: { questState, questLists, rollQuestBoard, acceptQuest, claimQuest, deliverQuest, questProgress },
     // 迷宮のイベント (出来事) の検証用

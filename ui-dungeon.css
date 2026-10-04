@@ -84,6 +84,9 @@
 .dk-float.k-enemy.on .dk-s { color: #e0a49a; }
 .dk-float.k-chest.on { color: #c4dcff; border-color: #3a5a8a; box-shadow: inset 0 1px 0 rgba(200,220,255,0.12), inset 0 -2px 0 rgba(0,0,0,0.6), 0 0 0 1px rgba(80,150,255,0.22), 0 3px 0 #070507, 0 0 14px rgba(70,140,255,0.3); }
 .dk-float.k-chest.on .dk-s { color: #9ab8e0; }
+/* オート移動: いつも札の形で右端。ON の間は琥珀色に灯って脈打つ */
+.dk-auto { color: #a89f8c; }
+.dk-auto.on { color: #ffe2a8; border-color: #9a6a24; box-shadow: inset 0 1px 0 rgba(255,230,180,0.14), inset 0 -2px 0 rgba(0,0,0,0.6), 0 0 0 1px rgba(240,170,60,0.24), 0 3px 0 #070507, 0 0 14px rgba(240,160,50,0.3); animation: dk-call 1.8s ease-in-out infinite; }
 /* 混む時: 間を詰め、降りるが残りの幅を取る (文字は切らない) */
 #hint.dg-dock.tight { gap: 4px; }
 #hint.dg-dock.tight .dk-btn:not(.dk-tag) { gap: 4px; padding: 4px 6px; }
@@ -402,6 +405,7 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 }
 @media (prefers-reduced-motion: reduce) {
   .dk-down.k-primary { animation: none !important; }
+  .dk-auto.on { animation: none !important; }
 }
 /* 戦果: 自動で進む時の残り時間 (ボタンの下端の細い金線) */
 .ui-btn.rs-auto { overflow: hidden; }
