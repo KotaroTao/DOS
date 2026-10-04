@@ -8,6 +8,8 @@
 #
 # --apply で src/jobart.js の <job> 項目を書き換え (無ければ末尾に追加)、src/jobphotos.js の <job> 項目と
 # art/jobs/<job>_*.webp・sw.js の該当行を外す (原画そのまま版からの切り替え)。
+# 一部のランクだけ差し替える時は --rank N (最初の画像のランク) と --keep-photos: 原画そのまま版は残り、
+# ドット絵のあるランクだけそちらが使われる (souls.js jobSprite)。
 # 顔アイコン (胸像) は head = [顔の中心x, 頭頂y, あご先y] (ドット座標) で切り出す。省くと肌色から推し量る。
 # 全ランクの頭が原画の同じ位置に描かれていれば、--head-px cx,crown,chin (原画の画素) で一度に与えられる。
 # 測り方は tools/jobimg.py と同じ (頬の左右の輪郭の真ん中・髪の塊の上端・顔の肌のいちばん下)。
@@ -77,11 +79,12 @@ def uniform_cuts(e, p0, lo, hi):
 def dotify(path, period, uniform=False, mode=0.0, outline=0.0):
     a = np.asarray(Image.open(path).convert("RGB")).astype(float)
     x0, x1, y0, y1 = content_box(a)
-    m = int(period * 1.5)
+    m = int((period[0] if isinstance(period, tuple) else period) * 1.5)
     H, W = a.shape[:2]
     cut = uniform_cuts if uniform else cut_positions
-    xs = cut(edge_profile(a, 1), period, max(0, x0 - m), min(W - 1, x1 + m))
-    ys = cut(edge_profile(a, 0), period, max(0, y0 - m), min(H - 1, y1 + m))
+    px, py = period if isinstance(period, tuple) else (period, period)
+    xs = cut(edge_profile(a, 1), px, max(0, x0 - m), min(W - 1, x1 + m))
+    ys = cut(edge_profile(a, 0), py, max(0, y0 - m), min(H - 1, y1 + m))
     gh, gw = len(ys) - 1, len(xs) - 1
     cells = np.zeros((gh, gw, 3)); bg = np.zeros((gh, gw), bool)
     if mode:
@@ -214,9 +217,9 @@ def preview(results, path):
     im.save(path)
 
 
-def js_entry(job, results):
+def js_entry(job, results, first=1):
     out = [f"  {job}: {{"]
-    for n, r in enumerate(results, 1):
+    for n, r in enumerate(results, first):
         pal = "{" + ",".join(f'"{k}":"{v}"' for k, v in r["palette"].items()) + "}"
         hd = ", ".join(str(round(v, 2)) for v in r["head"])
         out.append(f"    {n}: {{")
@@ -231,15 +234,16 @@ def js_entry(job, results):
     return "\n".join(out) + "\n"
 
 
-def apply(job, results):
+def apply(job, results, first=1, keep_photos=False):
     p = os.path.join(ROOT, "src/jobart.js"); s = open(p, encoding="utf-8").read()
-    entry = js_entry(job, results)
+    entry = js_entry(job, results, first)
     m = re.search(rf"^  {job}: \{{\n.*?^  \}},\n", s, re.S | re.M)
     if m: s = s[:m.start()] + entry + s[m.end():]
     else:
         end = s.rindex("};")
         s = s[:end] + entry + s[end:]
     open(p, "w", encoding="utf-8").write(s)
+    if keep_photos: return  # 一部のランクだけドット絵にし、残りは原画そのまま版を使い続ける
     p = os.path.join(ROOT, "src/jobphotos.js"); s = open(p, encoding="utf-8").read()
     s = re.sub(rf"^  {job}: \{{\n.*?^  \}},\n", "", s, flags=re.S | re.M)
     open(p, "w", encoding="utf-8").write(s)
@@ -255,6 +259,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("job"); ap.add_argument("images", nargs="+")
     ap.add_argument("--period", type=float, default=16.5)
+    ap.add_argument("--period-y", type=float, help="縦の升目の周期 (横と違う時)")
     ap.add_argument("--colors", type=int, default=32)
     ap.add_argument("--uniform", action="store_true", help="升目を周期一定にする (背丈がランク間で揃う)")
     ap.add_argument("--outline", type=float, default=0.0, help="外周の升を輪郭色へ寄せる割合 (例 0.8)")
@@ -262,24 +267,28 @@ def main():
     ap.add_argument("--head", nargs="*", default=[])
     ap.add_argument("--head-px", help="顔の中心x,頭頂y,あご先y を原画の画素で (全ランク共通)")
     ap.add_argument("--preview"); ap.add_argument("--apply", action="store_true")
+    ap.add_argument("--rank", type=int, default=1, help="最初の画像のランク (例: 3 なら画像はランク3から)")
+    ap.add_argument("--keep-photos", action="store_true", help="原画そのまま版 (jobphotos.js・webp) を残す (そのランクだけドット絵が優先される)")
     o = ap.parse_args()
     results = []
     for n, f in enumerate(o.images):
-        cells, mask, (ox, oy) = dotify(f, o.period, o.uniform, o.mode, o.outline)
+        per = (o.period, o.period_y) if o.period_y else o.period
+        cells, mask, (ox, oy) = dotify(f, per, o.uniform, o.mode, o.outline)
         palette, art = quantize(cells, mask, o.colors)
         if o.head_px:
             # 原画の画素で測った頭 (全ランク同じ位置に描かれた原画向け) を、この絵の升目に換算
             hx, top, chin = (float(v) for v in o.head_px.split(","))
-            head = [round((hx - ox) / o.period, 2), round((top - oy) / o.period, 2), round((chin - oy) / o.period, 2)]
+            py = o.period_y or o.period
+            head = [round((hx - ox) / o.period, 2), round((top - oy) / py, 2), round((chin - oy) / py, 2)]
         elif n < len(o.head): head = [float(v) for v in o.head[n].split(",")]
         else: head = skin_head(cells, mask)
         face = [int(round(head[0])), int(round((head[1] + head[2]) / 2))]
         w = max(len(r) for r in art)
         art = [r.ljust(w, ".") for r in art]
         results.append({"palette": palette, "art": art, "head": head, "face": face})
-        print(f"rank{n + 1}: {w}x{len(art)} colors={len(palette)} head={head} face={face}")
+        print(f"rank{n + o.rank}: {w}x{len(art)} colors={len(palette)} head={head} face={face}")
     if o.preview: preview(results, o.preview)
-    if o.apply: apply(o.job, results)
+    if o.apply: apply(o.job, results, o.rank, o.keep_photos)
 
 
 if __name__ == "__main__":
