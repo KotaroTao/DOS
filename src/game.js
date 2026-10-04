@@ -9992,7 +9992,26 @@ function rewardRows(r, jobs = []) {
   if (r.red) out.push({ cur: "red", n: r.red });
   if (r.embers) out.push({ cur: "ember", n: r.embers });
   for (const j of jobs) out.push({ job: j });
+  for (const [id, n] of (r.items || [])) if (ITEMS[id]) out.push({ item: ITEMS[id], n });
   return out;
+}
+// 報酬の品 ([[id, 数]]) を隊 → 控えの袋の空きへ入れる。入らない分は数を返す
+function rewardItemsRoom(r) {
+  let need = 0;
+  for (const [id, n] of (r.items || [])) if (ITEMS[id]) need += n;
+  const room = allDolls().reduce((a, d) => a + Math.max(0, MAX_ITEMS - (d.items || []).length), 0);
+  return room - need;
+}
+function grantRewardItems(r) {
+  for (const [id, n] of (r.items || [])) {
+    for (let k = 0; k < n; k++) {
+      const it = cloneItem(id);
+      const who = it && allDolls().find((d) => (d.items || []).length < MAX_ITEMS);
+      if (!who) break;
+      who.items.push(it);
+      codexSeeItem(id, it);
+    }
+  }
 }
 function grantCurrencies(r) {
   G.gold += r.gold || 0;
@@ -10024,6 +10043,12 @@ function claimQuest(uid) {
   }
   const i = s.active.findIndex((q) => q.uid === uid && q.state === "done");
   if (i < 0) return false;
+  // 礼の品 (帰還の鈴) を受け取る袋の空きが無ければ、報告は待ってもらう
+  if (rewardItemsRoom(s.active[i].reward || {}) < 0) {
+    SFX.ng();
+    showToast("持ち物がいっぱいで、礼の品を受け取れない。袋を空けてから報告しよう", { tone: "bad" });
+    return false;
+  }
   const q = s.active.splice(i, 1)[0];
   finishFreeQuest(q, q.reward || {});
   return true;
@@ -10042,6 +10067,7 @@ function finishFreeQuest(q, r, extraJobs = [], title = null) {
   const tip = rand(100) < TIP_RATE ? questTip(r) : null;
   const bond = bondGiftAt(count);
   grantCurrencies(r);
+  grantRewardItems(r);
   const jobs = [...extraJobs, ...grantRewardSouls(r.souls)];
   if (tip) grantCurrencies(tip);
   const bondJobs = bond ? grantRewardSouls(bond.gift.souls) : [];
@@ -12512,6 +12538,22 @@ function useItem(p, index, target) {
     log(`${p.name}は${it.name}を使った。隊の足が地を離れる ― ${u.float}階のあいだ落とし穴にも毒の床にもかからない。`, "win");
     showToast(`${it.name} ― ${u.float}階のあいだ宙に浮く`, { tone: "good" });
     renderStatus(); renderParty(); renderBoard(); autosave(true);
+    return;
+  }
+  if (u.recall) {
+    // 帰還の鈴: 迷宮を歩いている時だけ。確かめてから鈴を鳴らし、戦利品を持って街へ戻る
+    if (G.state !== "board" || !inDungeon() || G.anim || G.walking) { SFX.ng(); showToast(`${it.name}は迷宮を歩いている時にしか使えない`, { tone: "info" }); return; }
+    showChoice(`${it.name}を鳴らし、街へ帰還する？`, [
+      { label: "鳴らして帰還する ― 戦利品は持ち帰る", primary: true, fn: () => {
+        const i = p.items.indexOf(it);
+        if (i < 0) { renderBoard(); return; }
+        p.items.splice(i, 1);
+        SFX.spell();
+        log(`${p.name}は${it.name}を鳴らした。灯の下へ、隊が引き戻されていく…`, "win");
+        leaveDungeon({ outcome: G.run && G.run.secured ? "clear" : "return" });
+      } },
+      { label: "やめておく", fn: () => renderBoard() },
+    ], ICONS.portal, { banner: "✦ 帰還の鈴 ✦", accent: "#e8c070", lines: useLines(it), onDismiss: () => renderBoard() });
     return;
   }
   const tk = useTarget(it);

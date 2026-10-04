@@ -37,6 +37,7 @@ export function rewardText(q) {
   if (r.red) p.push(`🔴${r.red}`);
   if (r.embers) p.push(`🔥${r.embers}`);
   for (const [rar, n] of (r.souls || [])) p.push(`職業の魂 (${RAR_LABEL[rar] || rar})×${n}`);
+  for (const [id, n] of (r.items || [])) p.push(`${(ITEMS[id] || {}).name || id}×${n}`);
   return p.join("  ");
 }
 function progressText(q) {
