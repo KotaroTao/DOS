@@ -18,7 +18,7 @@ import { softFade } from "./motion.js";
 import { statLines, itemCatText, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock } from "./itemview.js";
 import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
 import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LORE_PAGES } from "../events.js";
-import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, itemName } from "../items.js";
+import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_KIND_LABEL, shieldKind, itemName } from "../items.js";
 import { RANK_COLOR, RANK_NAME } from "../content.js";
 import { DUNGEONS, ELEMENTS, RACE_LABEL, monsterTraits, isFloating, resistHpMul, METAL_TIERS } from "../dungeons/index.js";
 import { SPELLS, spellMpLabel } from "../combat.js";
@@ -314,6 +314,9 @@ function renderCodexItem(box) {
   const freshCat = (key) => idsOfCat(key).filter(isFreshItem).length || null;
   const wItems = [{ key: "all", label: "すべて" }, ...WEAPON_CATS.map((w) => ({ key: w.key, label: w.label }))];
   const freshW = (wk) => idsOfCat("weapon").filter((id) => isFreshItem(id) && (wk === "all" || ITEMS[id].cat === wk)).length || null;
+  // 盾はジャンル (大盾・円盾・小盾・宝珠・聖典) ごとにも分ける。区分の記憶は武器の種別と共用 (分類を替えると「すべて」に戻る)
+  const sItems = [{ key: "all", label: "すべて" }, ...SHIELD_KINDS.map((k) => ({ key: k.key, label: k.label }))];
+  const freshS = (sk) => idsOfCat("shield").filter((id) => isFreshItem(id) && (sk === "all" || shieldKind(ITEMS[id]) === sk)).length || null;
   const draw = () => {
     sub.textContent = "";
     wch = null;
@@ -323,6 +326,11 @@ function renderCodexItem(box) {
       wch = chips(wItems.map((w) => ({ ...w, badge: freshW(w.key) })), wcat, (k) => { wcat = k; remember("codex", "weaponCat", k); resetPages(["item:"]); draw(); });
       sub.appendChild(wch);
       if (wcat !== "all") ids = ids.filter((id) => ITEMS[id].cat === wcat);
+    } else if (def.key === "shield") {
+      if (!sItems.some((x) => x.key === wcat)) wcat = "all";
+      wch = chips(sItems.map((x) => ({ ...x, badge: freshS(x.key) })), wcat, (k) => { wcat = k; remember("codex", "weaponCat", k); resetPages(["item:"]); draw(); });
+      sub.appendChild(wch);
+      if (wcat !== "all") ids = ids.filter((id) => shieldKind(ITEMS[id]) === wcat);
     }
     // 売却額の安い順 (同額は隠しレベル → id)
     ids.sort((a, b) => sellOf(ITEMS[a]) - sellOf(ITEMS[b]) || (ITEMS[a].lv || 0) - (ITEMS[b].lv || 0) || a.localeCompare(b));
@@ -630,7 +638,7 @@ export function codexJobSheet(key, rank, heading) {
     const armor = gg.armor === "heavy" ? "重装可" : gg.armor === "light" ? "軽装まで" : "布装のみ";
     body.appendChild(infoBlock("装備適性", [
       pairRow("武器", gg.weapons ? gg.weapons.map((w) => WEAPON_CAT_LABEL[w] || w).join("・") : "—"),
-      pairRow("防具", armor), pairRow("盾", gg.shield ? "装備できる" : "装備できない"), affRow,
+      pairRow("防具", armor), pairRow("盾", gg.shields && gg.shields.length ? gg.shields.map((k) => SHIELD_KIND_LABEL[k] || k).join("・") : "持てない (両手武器で攻める)"), affRow,
     ].filter(Boolean)));
   } else if (affRow) {
     body.appendChild(infoBlock("得意属性", [affRow]));

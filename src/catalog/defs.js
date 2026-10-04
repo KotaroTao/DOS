@@ -806,6 +806,86 @@ export const ARTS = {
       "...........kk...........",
     ],
   ],
+  buckler: [ // 小盾 (2種): 鋼の小盾 (真鍮の鋲) / 木と真鍮の小盾
+    [
+      "........................",
+      "........................",
+      "..........kkkk..........",
+      ".......kkkxxxxkkk.......",
+      "......kxxxxxxxwwwk......",
+      ".....kxxxvvvvvvwwwk.....",
+      "....kxxxvvvwwvggwvvk....",
+      "...kxxxvwvvvvggwgvvvk...",
+      "...kxxvwwvvvgggeeevvk...",
+      "...kxvvvvvkYYkgeeeevk...",
+      "..kxxvvvvkYYYykeeeevvk..",
+      "..kxxvwvvYYxxooeeeeggk..",
+      "..kxxvwvgYYxoooeeeeggk..",
+      "..kxxvvggkyoookeeeeggk..",
+      "...kwvggggkookeeeeegk...",
+      "...kwwgweeeeeeeeeeggk...",
+      "...kwwwgeeeeeeeeegggk...",
+      "....kwvveeeeeeeegggk....",
+      ".....kvvveeeeeegggk.....",
+      "......kvvvvggggggk......",
+      ".......kkkvgggkkk.......",
+      "..........kkkk..........",
+      "........................",
+      "........................",
+    ],
+    [
+      "........................",
+      "........................",
+      "..........kkkk..........",
+      ".......kkkYYYYkkk.......",
+      "......kYYYYYYYyyyk......",
+      ".....kYYYNNNNNNyyyk.....",
+      "....kYYYNNNYYNnnyook....",
+      "...kYYYNYNNNNnnYnoook...",
+      "...kYYNYYNNNnnnoosook...",
+      "...kYNNNNNkYYknsssSok...",
+      "..kYYNNNNkYYYykssSSook..",
+      "..kYYNYNNYYxxoosSoSOOk..",
+      "..kYYNYNnYYxoooSSoSOOk..",
+      "..kYYNNnnkyoookSSSSOOk..",
+      "...kyNnnnnkookSSSSSOk...",
+      "...kyynYosssSSSooSOOk...",
+      "...kyyynossSSSSoSOOOk...",
+      "....kyoossSooSSSOOOk....",
+      ".....koooSSSSSSOOOk.....",
+      "......kooooOOOOOOk......",
+      ".......kkkoOOOkkk.......",
+      "..........kkkk..........",
+      "........................",
+      "........................",
+    ],
+  ],
+  tome: [ // 聖典: 紅の革表紙・金の十字と光輪・しおり紐
+    "........................",
+    "....qqqqqqqqqqqqqOOO....",
+    "...qmmmmRmmmmRRRrYYYk...",
+    "..qqrRRRRrRRRrrrrrYyIk..",
+    "..qqrRRRRRRRrrrrrrryIzk.",
+    "..qqyRRRRRRrrrrrrrrqIIk.",
+    "..qqrrrrRoYorrrRrrrqIzk.",
+    "..qqrrrRryYyrrRrrrrqIIk.",
+    "..qqrrRoryYyrorrrrrqIzk.",
+    "..qqyoyyyyYyyyyorrroyIk.",
+    "..qqrYYYYYxYYYYYrrqyYzk.",
+    "..qqroyyyyYyyyyorRqyoIk.",
+    "..qqrrroryYyrorrRrqoOzk.",
+    "..qqyrrrRyYyrrrRrrqqIIk.",
+    "..qqrrrRryYyrrRrrrqqIzk.",
+    "..qqrrRrroyorRrrrrqqIIk.",
+    "..qqrrrrrrrrrqqqqqqqIzk.",
+    "..qqyrrrrrrrqqqqqqqyIIk.",
+    "..qqrrrrrrrqqqqqqqYyIzk.",
+    "..qqrrrrrrqqqqqqqyyyIk..",
+    "...krqqxqqqqqqqqqqqqk...",
+    "....kkkrkkkkkkkkkkkk....",
+    "......kqk...............",
+    "........................",
+  ],
   // --- 鎧 (各2種) ---
   plate: [ // 胸甲・重鎧 (2種)
     [ // 騎士の胸甲: 丸い肩当て・金の襟・草摺
@@ -1821,6 +1901,9 @@ export const ARTS = {
     "..k.....................",
   ],
 };
+// 長剣は片手の剣 (ls1: 騎士の長剣・幅広の騎士剣) と両手の大剣 (ls2: 黒鉄の大剣) で型を分ける
+ARTS.ls1 = [ARTS.ls[0], ARTS.ls[1]];
+ARTS.ls2 = [ARTS.ls[2]];
 
 // id の安定ハッシュ (FNV-1a 32bit)。同じ id は常に同じ絵の型になる (セーブ/図鑑で見た目が変わらない)
 function hashId(s) {
@@ -1855,13 +1938,21 @@ function rgba(hex, a) {
 
 // 武器サブカテゴリごとの威力倍率 (職業制限は souls.js の JOB_GEAR テーブルで一元管理)
 const W_MUL = { ls: 1.0, dg: 0.78, kt: 1.06, ax: 1.16, mc: 1.1, sp: 1.04, bw: 0.92, st: 0.66 };
+// 片手と両手: 両手武器は盾の欄をふさぐ代わりに、能力 (ATK / 杖は INT・MP も) が TWO_MUL 倍。
+// 片手武器が基準 (×1) で、盾と併せて持てる。短剣は常に片手、弓は常に両手 (BOW_MUL = 両手持ちのぶんの上乗せ)。
+// 手書きの atk (LR など) にも同じ倍率を掛ける (atk は「片手で持った場合の値」として書く)
+export const TWO_MUL = 1.3;
+const BOW_MUL = 1.08;
 
-// 形状 → 装備重量 (canEquip の鎧重量チェックに使う)
+// 形状 → 装備重量 (canEquip の鎧重量チェックに使う。盾は重量でなくジャンル sk で職を絞る)
 const SHAPE_WEIGHT = {
   plate: "heavy", helm: "heavy", greaves: "heavy", gauntlet: "heavy", kite: "heavy",
-  round: "light", boots: "light", gloves: "light", hat: "light",
-  robe: "cloth", circlet: "cloth",
+  round: "light", boots: "light", gloves: "light", hat: "light", buckler: "light",
+  robe: "cloth", circlet: "cloth", orb: "cloth", book: "cloth", tome: "cloth",
 };
+// 盾の形 → 盾のジャンル (items.js の SHIELD_KINDS。職ごとに持てるジャンルは souls.js の JOB_GEAR.shields)
+//   kite 大盾 / round 円盾 / buckler 小盾 / orb 宝珠 / tome 聖典 (護法書 book も聖典に数える)
+const SHIELD_KIND_OF = { kite: "kite", round: "round", buckler: "buckler", orb: "orb", book: "tome", tome: "tome" };
 
 // 性能はすべてフラット値 (ATK+10 など)。自動算出値は lv の二次関数で単調増加し、
 // opt.pow (自動主ステの倍率) と各種ボーナス/ペナルティで装備ごとの個性を出す。
@@ -1942,33 +2033,61 @@ function base(id, name, slot, lv, artKey, opt) {
 // 武器: W(id, 名, サブカテゴリ, lv, opt)
 // opt: { desc(必須), eAtk, two, cls, pow(自動ATKの倍率), vitB, spd, mp, hp, atk(絶対値上書き), tint, tintAmt, cursed, align, price,
 //        scale({agi:0.4} 等 = 能力補正。自動ATKは係数に応じて控えめになる), magic(true = 魔法属性: 通常攻撃が魔法耐性で判定される) }
+// two: true = 両手武器 (盾を持てない代わりに ATK ×TWO_MUL。杖は INT・MP も)。短剣は片手のみ、弓は常に両手
 export function W(id, name, cat, lv, opt = {}) {
   chk(W_MUL[cat], "unknown weapon cat: " + cat + " (" + id + ")");
-  const it = base(id, name, "weapon", lv, cat, { cls: opt.cls !== undefined ? opt.cls : null, ...opt });
-  it.cat = cat;
+  chk(!(cat === "dg" && opt.two), "daggers are one-handed: " + id);
   const two = !!opt.two || cat === "bw"; // 弓は常に両手
+  // 長剣は片手の剣と両手の大剣で絵の型を分ける
+  const artKey = cat === "ls" ? (two ? "ls2" : "ls1") : cat;
+  const it = base(id, name, "weapon", lv, artKey, { cls: opt.cls !== undefined ? opt.cls : null, ...opt });
+  it.cat = cat;
   if (two) it.twoHanded = true;
+  const handMul = cat === "bw" ? BOW_MUL : two ? TWO_MUL : 1;
   // 能力補正 (scale) を持つ武器は、能力値で伸びる分だけ武器そのものの ATK を控えめにする (係数の合計の半分。最大4割減)
   const scaleCut = opt.scale ? Math.max(0.6, 1 - 0.5 * Object.values(opt.scale).reduce((a, v) => a + v, 0)) : 1;
-  it.atk = opt.atk != null ? opt.atk : Math.max(1, round((2 + lv * 0.82 + lv * lv * 0.0026) * W_MUL[cat] * (two && cat !== "bw" ? 1.25 : 1) * (opt.pow || 1) * scaleCut));
+  const atk1 = opt.atk != null ? opt.atk : (2 + lv * 0.82 + lv * lv * 0.0026) * W_MUL[cat] * (opt.pow || 1) * scaleCut;
+  it.atk = Math.max(1, round(atk1 * handMul));
   it.hit = opt.hit != null ? opt.hit : 1 + Math.floor(lv / 25);
   it.dice = opt.dice || ("1d" + (4 + Math.min(20, Math.floor(lv / 9))) + (lv >= 30 ? "+" + Math.min(15, Math.floor(lv / 13)) : ""));
   it.swings = opt.swings || 1;
   if (cat === "st") {                                                // 杖は魔力の触媒
     // INT は呪文威力に ×0.5 で直結する術者の「攻撃力」— 武器ATKと同格のカーブにする
-    if (it.mp == null) it.mp = round(3 + lv * 0.3 + lv * lv * 0.0008);
-    if (it.int == null) it.int = Math.max(1, round(2 + lv * 0.5 + lv * lv * 0.0015));
+    // 両手の大杖は INT・MP も TWO_MUL 倍 (片手の杖 + 宝珠・聖典 と釣り合う)
+    const m = two ? TWO_MUL : 1;
+    it.mp = round((opt.mp != null ? opt.mp : 3 + lv * 0.3 + lv * lv * 0.0008) * m);
+    it.int = Math.max(1, round((opt.int != null ? opt.int : 2 + lv * 0.5 + lv * lv * 0.0015) * m));
   }
   if (cat === "dg" && it.agi == null) it.agi = Math.max(1, round(1 + lv * 0.06)); // 短剣は取り回しが軽い (lvに比例)
   return it;
 }
 
-// 盾: S(id, 名, lv, opt) — opt.shape: "kite"(既定) | "round" | "orb" | "book"。opt.def は VIT の上書き
+// 盾: S(id, 名, lv, opt) — opt.shape でジャンルが決まる (SHIELD_KIND_OF)。opt.def は VIT の上書き
+//   kite 大盾 (既定) / round 円盾: VIT (盾の基準)
+//   buckler 小盾: VIT ×0.5 + AGI ×0.4 (受け流す軽い盾。軽装の職向け)
+//   orb 宝珠: INT ×0.75 + MP、VIT はわずか (攻めの術者向け)
+//   tome / book 聖典: PIE ×0.75 + MP、VIT はわずか (癒し手・祈りの職向け)
+//   宝珠・聖典に手書きの int / pie を渡すと、自動の値に上乗せする。pow は主の能力に掛かる
+const shieldAmt = (lv, pow = 1) => (2 + lv * 0.16 + lv * lv * 0.0014) * (pow || 1);
 export function S(id, name, lv, opt = {}) {
   const shape = opt.shape || "kite";
+  chk(SHIELD_KIND_OF[shape], "unknown shield shape: " + shape + " (" + id + ")");
   const it = base(id, name, "shield", lv, shape, { cls: null, ...opt });
-  it.vit = opt.def != null ? opt.def : Math.max(1, round((2 + lv * 0.16 + lv * lv * 0.0014) * (opt.pow || 1)));
-  it.weight = SHAPE_WEIGHT[shape] || "cloth";  // orb/book 等は cloth 扱い
+  const sk = SHIELD_KIND_OF[shape];
+  it.sk = sk;
+  const f = shieldAmt(lv, opt.pow);
+  if (sk === "buckler") {
+    it.vit = opt.def != null ? opt.def : Math.max(1, round(f * 0.5));
+    it.agi = (it.agi || 0) + Math.max(1, round(f * 0.4));
+  } else if (sk === "orb" || sk === "tome") {
+    const k = sk === "orb" ? "int" : "pie";
+    it.vit = opt.def != null ? opt.def : tokenVit(lv);
+    it[k] = (it[k] || 0) + Math.max(1, round(f * 0.75));
+    if (it.mp == null) it.mp = Math.max(1, round(1 + lv * 0.2 + lv * lv * 0.0006));
+  } else {
+    it.vit = opt.def != null ? opt.def : Math.max(1, round(f));
+  }
+  it.weight = SHAPE_WEIGHT[shape] || "cloth";
   return it;
 }
 

@@ -15,7 +15,7 @@ const lr = (it) => { it.rar = "lr"; it.lr = 3; it.layer = 3; it.exclusive = true
 export const LAYER3_ITEMS = [
   // ===== スーパーレア: 武器 =====
   sr(W("w_sr3_convictpick", "罪人のつるはし", "ax", 23, { pow: 1.3, two: true, hp: 12, crit: 0.05, tint: "#7a6a58",
-    desc: "鎖に繋がれた罪人が死ぬまで振るい続けたつるはし。先端は岩を貫くうちに異様なほど研ぎ澄まされ、いまは鎧の継ぎ目を探り当てるように食い込む。" })),
+    desc: "鎖に繋がれた罪人が死ぬまで両手で振るい続けた重いつるはし。先端は岩を貫くうちに異様なほど研ぎ澄まされ、いまは鎧の継ぎ目を探り当てるように食い込む。" })),
   sr(W("w_sr3_blasterknife", "発破師の短刀", "dg", 26, { pow: 1.35, eAtk: ["wind", 1], agi: 3, tint: "#9ab890",
     desc: "導火線を切り揃えるために発破師が腰に差していた短刀。幾度も爆風を浴びた刃は風をはらみ、岩の魔物の身をはじけるように裂く。" })),
   sr(W("w_sr3_draftblade", "坑風断ち", "ls", 29, { scale: { atk: 0.15, int: 0.3 }, pow: 1.35, eAtk: ["wind", 1], tint: "#b8c8b0",
@@ -34,7 +34,7 @@ export const LAYER3_ITEMS = [
   sr(W("w_sr3_mandrakebow", "絶叫根の弓", "bw", 33, { scale: { agi: 0.4 }, magic: true, pow: 1.3, onHit: ["confuse", 0.15], agi: 3, tint: "#9a6ab0",
     desc: "マンドレイクの根を撚って弦を張った弓。放つたびに弦が小さく絶叫し、射抜かれた者は正気を削られて敵味方の見境を失う。" })),
   sr(W("w_sr3_firedamppick", "坑気の毒鶴嘴", "ax", 40, { pow: 1.25, two: true, onHit: ["poison", 0.3, 0.06], hp: 10, tint: "#7a9a50",
-    desc: "坑気の溜まる袋小路で毒に倒れた坑夫の鶴嘴。先端に染みついた瘴気はいまも抜けず、打ち込んだ傷から毒がじわじわと肉を蝕む。" })),
+    desc: "坑気の溜まる袋小路で毒に倒れた坑夫の、柄の長い鶴嘴。先端に染みついた瘴気はいまも抜けず、両手で打ち込んだ傷から毒がじわじわと肉を蝕む。" })),
 
   // ===== スーパーレア: 防具 =====
   sr(H("h_sr3_foremanhelm", "坑夫頭の灯兜", 24, { aRes: { confuse: 0.3 }, weight: "heavy", pow: 1.35, hp: 12, tint: "#8a7040",
@@ -49,10 +49,16 @@ export const LAYER3_ITEMS = [
     desc: "坑夫たちが毒気の見張りに連れたカナリアの、小さな鳥籠を模した首飾り。悪い風が吹けば籠の鈴が鳴り、持ち主を岩と瘴気の害から遠ざける。" })),
   sr(S("s_sr3_cartboard", "トロッコ板の大盾", 39, { shape: "kite", pow: 1.35, hp: 16, tint: "#6a5a48",
     desc: "鉱石運びのトロッコの側板を外し、鉄の縁で補強した大盾。何十トンの鉱石を受け止めてきた板は、岩の巨人の拳にもびくともしない。" })),
+  sr(S("s_sr3_cartwheel", "鉱車輪の小盾", 37, { shape: "buckler", pow: 1.35, eDef: ["wind", 1], aRes: { stone: 0.2 }, tint: "#7a6a5a",
+    desc: "鉱石車の小さな鉄輪に板を張った小盾。落ちてくる岩は受けずに転がして逸らすのが坑夫の知恵で、身をかわすたび石の呪いまで肩先から滑り落ちる。" })),
+  sr(S("s_sr3_ventcrystal", "通風晶の宝珠", 40, { shape: "orb", pow: 1.35, eAtk: ["wind", 1], tint: "#b0e0d0",
+    desc: "坑道の通風孔で、吹き抜ける風だけを吸って育った晶を磨いた宝珠。呪文を通せば閉じ込められた坑風が渦を巻いて噴き出し、岩の魔物を削り崩す。" })),
+  sr(S("s_sr3_minerledger", "坑夫の弔い帳", 42, { shape: "tome", pow: 1.35, eDef: ["wind", 1], hp: 14, tint: "#9a8060",
+    desc: "落盤で死んだ坑夫の名を、代々の坑夫頭が書き継いだ帳面。祈りとともに読み上げれば仲間を案じた声が傷を塞ぎ、崩れ落ちる岩のつぶてからも読み手を庇う。" })),
   sr(A("a_sr3_alchemistrobe", "錬金師の晶衣", 42, { aRes: { stone: 0.3 }, shape: "robe", pow: 1.35, mp: 14, int: 5, tint: "#9ab8d0",
     desc: "廃坑で鉱脈を調べた宮廷錬金術師の長衣。裾に縫い込まれた晶の粉が魔力を蓄え、纏う者の呪文を澄んだ響きで増幅する。" })),
-  sr(H("h_sr3_crystalcirclet", "晶読みの額環", 45, { aRes: { charm: 0.25, confuse: 0.25 }, magStat: "pie", shape: "circlet", weight: "cloth", pow: 1.35, mp: 10, tint: "#c0e0f0",
-    desc: "晶の濁りで鉱脈の吉凶を占った巫女の額環。晶に映る光が着ける者の祈りを静かに研ぎ澄まし、地の底の闇の中でも心を乱さない。" })),
+  sr(H("h_sr3_crystalcirclet", "晶読みの額環", 45, { aRes: { stone: 0.25, confuse: 0.25 }, magStat: "pie", shape: "circlet", weight: "cloth", pow: 1.35, mp: 10, tint: "#c0e0f0",
+    desc: "晶の濁りで鉱脈の吉凶を占った巫女の額環。晶に映る光が着ける者の祈りを静かに研ぎ澄まし、地の底の闇でも心を乱さず、石に変える眼差しも弾き返す。" })),
 
   // ===== レジェンドレア (全職共通・1点もの・固有効果) =====
   lr(R("lr_l3_soulore", "魂鉱の首飾り", "amulet", 41, { pow: 1.6, hp: 30, luk: 6, eff: { soulUp: 0.3 }, tint: "#7fd0c0",
@@ -60,7 +66,7 @@ export const LAYER3_ITEMS = [
   lr(R("lr_l3_silentcanary", "鳴かぬカナリアの指輪", "ring", 42, { pow: 1.6, hp: 24, pie: 6, eff: { ailmentImmune: true }, tint: "#f0e070",
     desc: "毒気の満ちた坑で最後まで鳴かずに生き延びたカナリアを、そのまま金に封じた指輪。はめた者は毒にも痺れにも石の呪いにも冒されない。" })),
   lr(W("lr_l3_firstpick", "掘り当てし者のつるはし", "ax", 43, { pow: 1.4, two: true, eAtk: ["wind", 2], hp: 20, eff: { multistrike: 1 }, tint: "#a08860",
-    desc: "「掘ってはならぬもの」に最初に届いたと囁かれるつるはし。その一振りは岩盤を二度貫き、刃先から吹き出す風が岩の魔物を粉々に砕く。" })),
+    desc: "「掘ってはならぬもの」に最初に届いたと囁かれる大つるはし。両腕で振り下ろす一撃は岩盤を二度貫き、刃先から吹き出す風が岩の魔物を粉々に砕く。" })),
   lr(W("lr_l3_firedamprod", "坑気爆ぜの杖", "st", 44, { pow: 1.6, eAtk: ["wind", 2], int: 10, mp: 18, eff: { spellCostMul: 0.75 }, tint: "#e0a060",
     desc: "坑道に溜まる燃える気を封じ込めた鉄の杖。唱えた呪文に坑気が混じって爆ぜ、わずかな魔力で岩盤ごと吹き飛ばすほどの旋風を起こす。" })),
   lr(A("lr_l3_overseerplate", "坑監の黒鉄鎧", 45, { pow: 1.6, hp: 28, eff: { guard: 0.12 }, eDef: ["wind", 2], tint: "#3a3a44",

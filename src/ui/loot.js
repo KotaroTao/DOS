@@ -18,7 +18,7 @@ import { el, sheet, toast, button, confirm, setText, glyph, plainText } from "./
 import { deltaFloat } from "./motion.js";
 import {
   statLines, isEquippable, equipPreviewDelta, gearScore as baseGearScore, itemCatText,
-  elemDetailLines, equipClassText, elemStatEq, elemStatShort, ailDetailLines,
+  elemDetailLines, equipClassText, elemStatEq, elemStatShort, ailDetailLines, handLine,
 } from "./itemview.js";
 import { spriteCanvas } from "../sprites.js";
 import { dollSprite, SOUL_CLASSES, canIdentify, identifyChance, identifyLabel, JOB_GEAR } from "../souls.js";
@@ -843,7 +843,7 @@ export function itemSheet(item, o = {}) {
       for (const ln of elemDetailLines("防御", it.eDef)) det.push(ln);
       for (const ln of ailDetailLines(it)) det.push(ln);
       if (isEquippable(it)) det.push(equipClassText(it));
-      if (it.twoHanded) det.push("両手持ち (盾と併用できない)");
+      if (it.slot === "weapon") det.push(handLine(it));
       if (it.align) det.push(`${it.align}属性`);
       if (it.slot === "misc") det.push("王宮の宝物庫に奉納できる。商会では売れる。");
       if (it.use) for (const x of useLines(it)) det.push(x);

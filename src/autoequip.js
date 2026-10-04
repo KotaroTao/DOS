@@ -44,7 +44,7 @@ export function previewStats(doll, equip, recalcFn = recalcDefault) {
     atk: fake.atk, vit: fake.vit, agi: fake.agi, int: fake.int, pie: fake.pie, luk: fake.luk,
     maxhp: fake.maxhp, maxmp: fake.maxmp, critBonus: fake.critBonus || 0,
     elemAtk: fake.elemAtk || null, elemDef: fake.elemDef || null, breathRes: fake.breathRes || 0,
-    power: attackPower(fake), weapon: equip.weapon || null, // 攻撃力 (ATK + 武器の能力補正) と武器
+    power: attackPower(fake), weapon: equip.weapon || null, shield: equip.shield || null, // 攻撃力 (ATK + 武器の能力補正) と武器・盾
   };
 }
 
@@ -60,6 +60,8 @@ export function statsDelta(from, to) {
     breathRes: Math.round(((to.breathRes || 0) - (from.breathRes || 0)) * 100), // ブレス耐性 (%)
     power: (to.power || 0) - (from.power || 0), // 攻撃力の増減
     weapon: (from.weapon || null) !== (to.weapon || null), // 武器が替わるか (武器の良し悪しは攻撃力で決める)
+    // 持ち方の付け替え (片手+盾 ⇄ 両手武器)。攻撃力と盾の能力を同じ物差しで比べる (itemview の gearScore)
+    handSwap: (from.weapon || null) !== (to.weapon || null) && (from.shield || null) !== (to.shield || null),
   };
 }
 
@@ -168,6 +170,27 @@ export function planBestEquip(dolls, opts = {}) {
             if (g > EPS && (!best || g > best.gain + 1e-9)) {
               best = { doll: t, item, from: owner, slotKey: key, displaced: tr.displaced, gain: g, equip: tr.equip, delta };
             }
+            // 両手武器から「片手武器 + 盾」への持ち替えは2手を1組で比べる (片手武器だけでは攻撃力が下がり、選ばれないため)
+            if (item.slot === "weapon" && !item.twoHanded && st.equip.weapon && st.equip.weapon.twoHanded && !st.equip.shield) {
+              for (const owner2 of poolDolls) {
+                for (const sh of sim.get(owner2).items) {
+                  if (sh === item || sh.slot !== "shield" || !isAutoCandidate(sh)) continue;
+                  let ok2 = false;
+                  try { ok2 = canEquip(t, sh); } catch (e) { ok2 = false; }
+                  if (!ok2 || !allow(t, sh)) continue;
+                  const tr2 = trialEquip(tr.equip, sh, "shield");
+                  if (!tr2) continue;
+                  const bag2 = bagAfter - (owner2 === t ? 1 : 0) + tr2.displaced.length;
+                  if (bag2 > maxItems) continue;
+                  const d2 = statsDelta(baseStats, recalcPreview(t, tr2.equip));
+                  const g2 = score(t, d2);
+                  if (g2 > EPS && (!best || g2 > best.gain + 1e-9)) {
+                    best = { doll: t, item, from: owner, slotKey: key, displaced: tr.displaced, gain: g2, equip: tr.equip, delta: d2,
+                      pair: { item: sh, from: owner2, displaced: tr2.displaced, equip: tr2.equip } };
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -180,7 +203,19 @@ export function planBestEquip(dolls, opts = {}) {
     const ts = sim.get(best.doll);
     ts.equip = best.equip;
     for (const x of best.displaced) ts.items.push(x);
-    moves.push({ doll: best.doll, item: best.item, from: best.from, slotKey: best.slotKey, displaced: best.displaced, gain: best.gain, delta: best.delta });
+    if (best.pair) {
+      // 1組の持ち替え: 片手武器 (盾の欄は空いたまま) → 盾、の2手として記録する (applyPlan は順に付け替える)
+      const pr = best.pair;
+      const os2 = sim.get(pr.from);
+      const j = os2.items.indexOf(pr.item);
+      if (j >= 0) os2.items.splice(j, 1);
+      ts.equip = pr.equip;
+      for (const x of pr.displaced) ts.items.push(x);
+      moves.push({ doll: best.doll, item: best.item, from: best.from, slotKey: best.slotKey, displaced: best.displaced, gain: 0, delta: best.delta });
+      moves.push({ doll: best.doll, item: pr.item, from: pr.from, slotKey: "shield", displaced: pr.displaced, gain: best.gain, delta: best.delta });
+    } else {
+      moves.push({ doll: best.doll, item: best.item, from: best.from, slotKey: best.slotKey, displaced: best.displaced, gain: best.gain, delta: best.delta });
+    }
     total += best.gain;
   }
   return { moves, undoSnapshot, gain: Math.round(total * 10) / 10, final: sim };
@@ -210,7 +245,10 @@ function defaultScore(doll, delta) {
   const W = { atk: 1, vit: 1, agi: 0.8, int: 0.6, pie: 0.6, luk: 0.4, hp: 0.2, mp: 0.15 };
   let s = 0;
   for (const k in W) s += (k === "atk" && delta.power != null ? delta.power : (delta[k] || 0)) * W[k];
-  if (delta.weapon) s += (delta.power || 0) * 50; // 武器は攻撃力の高い順
+  if (delta.weapon) {
+    if (delta.handSwap) s = s * 50 / W.atk; // 片手+盾 ⇄ 両手: 盾の能力も攻撃力に換算して比べる
+    else s += (delta.power || 0) * 50; // 武器は攻撃力の高い順
+  }
   return s + (delta.crit || 0) * 0.5;
 }
 
