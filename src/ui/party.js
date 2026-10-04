@@ -479,7 +479,8 @@ let bgcMemo = { key: "", n: 0, hints: [] };
 function betterGearCount() {
   const G = G_();
   if (!G || !G.party) return 0;
-  const key = equipSignature(allDolls()) + "|" + G.party.map((d) => `${d.jobKey}:${d.level}`).join(",");
+  // 魂の付け替え・融合・サブ魂・結社でも能力が変わるので、能力そのものも鍵に入れる (古い見積りで印を点けない)
+  const key = equipSignature(allDolls()) + "|" + G.party.map((d) => d ? `${d.jobKey}:${d.level}:${d.maxhp},${d.maxmp},${d.atk},${d.vit},${d.agi},${d.int},${d.pie},${d.luk}:${G.party.indexOf(d)}` : "-").join(",");
   if (bgcMemo.key === key) return bgcMemo.n;
   memoClear();
   let n = 0;
@@ -498,7 +499,7 @@ function betterGearCount() {
 }
 
 // ================= タブの印 (赤い点) =================
-// 器の砕けた人業 (数) は直るまで出し続ける。
+// 器の砕けた人業 (数) は、いま館で修復できる間だけ出す (連れ帰りを待つ間・金貨が足りない間は、館ですることが無い)。
 // 「✦で鍛えられる魂」「袋により良い品」は放っておいても困らないお勧めなので、館を開いたら既読にし、
 // 新しく増えた時だけ点け直す (✦Soul は戦闘のたびに貯まるので、既読にしないと点きっぱなしになる)。
 function tabHints() {
@@ -513,7 +514,7 @@ function ackTabHints() {
   if (now.length !== seen.length || now.some((k) => !seen.includes(k))) setPref("partyHintsSeen", now);
 }
 function tabBadge(counts) {
-  if (counts && counts.dead) return counts.dead;
+  if (counts && counts.repairNow) return counts.repairNow;
   const seen = getPref("partyHintsSeen", []) || [];
   return tabHints().some((k) => !seen.includes(k)) ? true : null;
 }
