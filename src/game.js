@@ -501,7 +501,7 @@ const G = {
   rumor: null,        // 酒場で表示中の噂 (次回潜入で現実化)
   rumorCooldown: 0,   // 次の噂を聞けるUNIXタイムスタンプ(ms) — 30分クールダウン
   activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
-  codex: { mon: {}, item: {}, job: {}, fresh: { mon: {}, item: {}, job: {} } }, // 図鑑 (モンスター/アイテム/職業)。fresh = 新着 (まだ詳細を見ていない記録)
+  codex: { mon: {}, item: {}, job: {}, met: {}, fresh: { mon: {}, item: {}, job: {} } }, // 図鑑 (モンスター/アイテム/職業)。fresh = 新着 (まだ詳細を見ていない記録)。met = 遭遇した迷宮の主 (討つ前でも図鑑に名だけ出す)
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={収集品id:true}, claimed={"ランク:しきい値":true}
   lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
   lrClock: { since: 0, pend: 0 }, // レジェンドレアの時間抽選 (最後のLRからの/前回抽選からの実プレイms)
@@ -6834,6 +6834,8 @@ function startBattle(enemies, cell) {
   const mutEm = (mutDef() && mutDef().enemyMul) || 1;
   if (mutEm !== 1) for (const e of enemies) { e._agiMul = mutEm; e.agi = Math.max(1, Math.round(e.agi * mutEm)); }
   G.battleCell = cell;
+  // 迷宮の主に遭遇した: 討つ前でも図鑑に名だけ載せる (遭遇するまでは「？？？」のまま)
+  for (const e of enemies) if (e.boss && e.key && MONSTERS[e.key]) { if (!G.codex.met) G.codex.met = {}; G.codex.met[e.key] = 1; }
   G.state = "combat";
   _maskEnemies = enemies;
 
@@ -11109,7 +11111,7 @@ function claimNextTreasury() {
 
 // ---- 図鑑 (王宮書庫) ----
 // モンスター図鑑の記録単位: { kills, normal, rare, dungeons:{idx:true} }
-// 記録されるのは「倒した時」のみ。落としたドロップ(通常/レア)も実際に落として初めて開示。
+// 記録されるのは「倒した時」のみ (迷宮の主だけは、遭遇した時に G.codex.met へ印を付け、図鑑に名だけ出す)。落としたドロップ(通常/レア)も実際に落として初めて開示。
 function codexMonEntry(key) {
   let e = G.codex.mon[key];
   if (e == null) codexFresh().mon[key] = 1; // 初めての記録は新着
@@ -13225,6 +13227,7 @@ function loadGame() {
   if (!G.codex) G.codex = { mon: {}, item: {} };
   if (!G.codex.mon) G.codex.mon = {};
   if (!G.codex.item) G.codex.item = {};
+  if (!G.codex.met || typeof G.codex.met !== "object") G.codex.met = {};
   // 正体を知った品 (後付け): 図鑑の記録から復元し、未鑑定でしか持っていない品は「まだ知らない」とする
   if (!G.codex.known || typeof G.codex.known !== "object") {
     const known = {};

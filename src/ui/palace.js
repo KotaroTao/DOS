@@ -190,7 +190,7 @@ function codexCard(sprite, name, { color = null, onTap = null, sub = null, price
   if (onTap) c.addEventListener("click", () => { sfx("select"); onTap(c); });
   return c;
 }
-// まだ討っていない迷宮の主: 名前だけ明かす (姿・能力は1体討つまで伏せる)
+// 遭遇したが、まだ討っていない迷宮の主: 名前だけ明かす (姿・能力は1体討つまで伏せる)
 function bossNameCard(key, m) {
   const c = el("button", "pl-card unknown boss-unk");
   c.type = "button";
@@ -230,7 +230,8 @@ function renderCodexMon(box) {
     cap.textContent = isOther ? `その他 — 宝箱や出来事に潜む敵・まれに紛れ込む者　記録 ${seen}/${roster.length}` : `${DUNGEONS[idx].name}　記録 ${seen}/${roster.length}`;
     pagedGrid(area, roster, (key) => {
       const m = MONSTERS[key];
-      if (!g.codex.mon[key]) return m.boss ? bossNameCard(key, m) : unknownCard();
+      // 迷宮の主は遭遇した後だけ名を出す (遭遇前はほかの敵と同じ「？？？」)
+      if (!g.codex.mon[key]) return m.boss && g.codex.met && g.codex.met[key] ? bossNameCard(key, m) : unknownCard();
       return codexCard(m, m.name, { color: m.rank ? RANK_COLOR[m.rank] : null, sub: m.boss ? "主" : m.elite ? "強敵" : null, kills: monKills(key), fresh: isFreshMon(key),
         onTap: (c) => { codexMonSheet(key); markSeen("mon", key, c); } });
     }, { cols: 3, cellH: MON_CARD_H, key: "mon:" + idx, empty: el("div", "wa-empty", "記録なし。") });
