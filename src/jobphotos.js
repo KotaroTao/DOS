@@ -5,13 +5,6 @@
 // 追加・更新は開発用の tools/jobimg.py が行う (このファイルの該当職の項目を書き換える)。sw.js の ASSETS にも画像を足すこと。
 export const PHOTO_RES = 4; // 保存した画像の 1ドット (升目) あたりの px
 export const JOB_PHOTOS = {
-  fighter: {
-    1: { src: "art/jobs/fighter_1.webp", w: 52, h: 71, face: [30, 12], head: [30.0, 1.43, 21.82] },
-    2: { src: "art/jobs/fighter_2.webp", w: 54, h: 71, face: [32, 12], head: [32.0, 1.43, 21.82] },
-    3: { src: "art/jobs/fighter_3.webp", w: 68, h: 71, face: [32, 12], head: [32.0, 1.43, 21.82] },
-    4: { src: "art/jobs/fighter_4.webp", w: 75, h: 71, face: [36, 12], head: [36.21, 1.43, 21.82] },
-    5: { src: "art/jobs/fighter_5.webp", w: 73, h: 73, face: [38, 11], head: [37.5, 1.21, 21.39] },
-  },
   exorcist: {
     1: { src: "art/jobs/exorcist_1.webp", w: 55, h: 88, face: [29, 14], head: [28.93, 2.64, 24.79] },
     2: { src: "art/jobs/exorcist_2.webp", w: 61, h: 88, face: [31, 14], head: [30.93, 2.79, 24.93] },
