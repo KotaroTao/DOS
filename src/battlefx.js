@@ -42,7 +42,7 @@ export function statusFxKind(status) {
 export function spawnFx(list, type, x, y, t0, spd, o = {}) {
   const base = BASE_DUR[type] || 300;
   list.push({ type, x, y, t0, dur: o.dur || base * Math.max(0.45, spd), s: o.s || 1, el: o.el || null, crit: !!o.crit, flip: !!o.flip, seed: o.seed || 1, col: o.col || null, trace: !!o.trace,
-    v: o.v || 0, rot: o.rot || 0, spin: o.spin || 1, tx: o.tx || 0, ty: o.ty || 0, w: o.w || 0 });
+    v: o.v || 0, rot: o.rot || 0, spin: o.spin || 1, tx: o.tx || 0, ty: o.ty || 0, w: o.w || 0, pts: o.pts || null });
 }
 const BASE_DUR = {
   cross: 260, iai: 280, thrust: 260, smash: 320, arrow: 300, blunt: 240,
@@ -1127,3 +1127,14 @@ Object.assign(DRAW, {
     ctx.restore();
   },
 });
+
+// ---- 専用演出の登録口 (battlefx-sig.js が各職の看板技の演出を足す) ----
+// SIG_FX[技の鍵] = { type, mode }。mode: hit = 当たった敵ごと / field = 敵の列に一枚 / party = 隊の上に一枚 / ally = 回復した味方の位置
+export const SIG_FX = {};
+export function registerFx(draws, durs, sigs) {
+  Object.assign(DRAW, draws);
+  Object.assign(BASE_DUR, durs);
+  Object.assign(SIG_FX, sigs || {});
+}
+// 描画の小物 (専用演出で共用)
+export const FX = { r01, rgba, clamp01, easeOut, elCol, glow, line, star4 };
