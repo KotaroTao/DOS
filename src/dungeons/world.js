@@ -414,6 +414,19 @@ export function lootBand(lv, lvTo = lv) {
   return b.slice();
 }
 
+// 品の隠しLv → その品の「適正Lv」= その品が落とし物の帯のちょうど真ん中に来る推奨Lv (lootBand の逆引き。
+// 帯の中心は n×1.75 なので n = 隠しLv ÷ 1.75)。鑑定の成功率の物差し (souls.js identifyChance)
+const _fitLv = new Map();
+export function itemFitLv(itemLv) {
+  const key = Math.max(1, Math.round(itemLv || 1));
+  let v = _fitLv.get(key);
+  if (v == null) {
+    v = Math.max(1, estLv(baselineLv(Math.max(0, key / 1.75 - 1))));
+    _fitLv.set(key, v);
+  }
+  return v;
+}
+
 // 罠・毒の床・落とし穴・まだあたたかい死体の頻度 (推奨Lv の1階から)。旧来の素体 (難度 n の生成器) の式を、本筋の迷宮の
 // 「n ≒ 1 + (推奨Lv − 1) × 0.46」で推奨Lv に写したもの (A1 で n を廃止したときに置き換え。値はほぼ据え置き)。
 // 毒の床は推奨Lv 24 から、落とし穴は第2層から (最下階には無い — board.js)
