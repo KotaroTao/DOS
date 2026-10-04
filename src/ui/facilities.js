@@ -290,7 +290,6 @@ function tavernSegments() {
   ];
 }
 function renderTavern(root) {
-  if (legacyJumped()) return;
   const wrap = el("div", "wa-page wa-fit fc-tavern");
   root.appendChild(wrap);
   const kr = keeperRow("tavern");
@@ -367,7 +366,6 @@ function renderTalk(wrap) {
 
 // ---------- 赤い魂の祠 (ページ) ----------
 function renderShrine(root) {
-  if (legacyJumped()) return;
   const g = G();
   const wrap = el("div", "wa-page wa-fit fc-shrine");
   root.appendChild(wrap);
@@ -424,14 +422,6 @@ function renderShrine(root) {
   use("迷宮に残された人業を早く連れ帰る", "全滅の時。🔴1 で連れ帰りまでの時間を 20 分縮める");
   use("全滅の時に戦利品を守る", `🔴${game.GUARDIAN_COST || 20} で拾った品を失わずに帰還する`);
   wrap.appendChild(uses);
-}
-
-// ページを開いたまま旧来の入口 (G.town.facility = …) へ跳ばされた時は、ページを閉じてそちらを描く
-function legacyJumped() {
-  const t = G() && G().town;
-  if (!t || !t.facility) return false;
-  queueMicrotask(() => { if (t.facility && t.page) { t.page = null; game.renderTown(); } });
-  return true;
 }
 
 export function install() {

@@ -266,17 +266,6 @@ canvas.spr { image-rendering: pixelated; display: block; width: var(--spr-size, 
 .btn:disabled { opacity: 0.4; }
 
 /* ===== アイテム入手演出 ===== */
-#item-get {
-  position: fixed;
-  inset: 0;
-  z-index: 76; /* 街(70)/ステータス(75)の上に出す (はじめからの確認等)。confirm-overlay(80)より下 */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: rgba(4, 4, 10, 0.78);
-  animation: ig-fade 0.25s ease;
-}
 @keyframes ig-fade { from { opacity: 0; } to { opacity: 1; } }
 .ig-card {
   width: 100%;

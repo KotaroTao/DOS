@@ -491,7 +491,7 @@ const G = {
   souls: [],          // 所持魂 一覧: [{ uid, clsKey, count(吸収数→ランク), level, exp }]
   shopStock: null,    // 商店の在庫 { itemId: 個数 } (初回 setupNewGame で初期化)
   run: null,          // 今回の潜入で得た戦利品 { gold, soulPts, items:[{owner,item}], souls:[] }
-  town: { facility: null, sub: null, tab: "hub", page: null }, // 街UIの現在地 (tab: 下のタブ / page: タブの1段下 / facility・sub: 旧画面アダプタ用)
+  town: { tab: "hub", page: null }, // 街UIの現在地 (tab: 下のタブ / page: タブの1段下)
   lastRun: null,      // 直前の潜入のまとめ (帰還の報告カード用。名前・レア度・数・砕けた人業など素のデータ)
   quest: null,        // 酒場の依頼 (掲示板・受注中のフリークエスト・固定クエスト。questState() が整える)
   msq: null,          // 第0章の進み { n: 0, state: "active", granted } → 果たした後は { n: 1, state: "world" } (物語の進みは G.world)
@@ -6135,21 +6135,13 @@ function acquireSoul(clsKey, sourceLine, onClose, emberCount = 0) {
 
 // ---- 選択肢プロンプト ----
 // キットの「決断」シート (下から昇る) に、イラスト+タイトル+選択肢を表示する。G.prompt で盤面の入力を止める。
-// 旧 #item-get と同じく「プロンプト」は1枠: 新しい選択肢/出来事は前のものを置き換える (前の onClose は呼ばない)。
+// 「プロンプト」は1枠: 新しい選択肢/出来事は前のものを置き換える (前の onClose は呼ばない)。
 // 戻る操作: onDismiss があればそれ / 無ければ取り消しの選択肢 (やめる・開けない・まだ…) / どちらも無い強制の決断は揺れるだけ。
 let promptSheet = null;
 const CANCEL_RE = /^(やめ|開けない|まだ|立ち去|近寄らない|今はやめ|戻る|閉じる|とじる|いいえ|キャンセル|見送|放って)/;
 function isCancelOption(o) { return !!(o && (o.cancel || CANCEL_RE.test(plainText(o.label)))); }
-// 旧来の #item-get (showItemGet 等) が出ていたら片付ける (旧実装の「1枠を上書き」と同じ)
-function clearItemGetSlot() {
-  if (!itemGetEl || itemGetEl.classList.contains("hidden")) return;
-  itemGetEl.classList.add("hidden");
-  itemGetEl.innerHTML = "";
-  itemGetEl.onclick = null;
-}
 function replacePrompt() {
   if (promptSheet) { const old = promptSheet; promptSheet = null; old.close("replace", { silent: true }); }
-  clearItemGetSlot();
 }
 function showChoice(title, options, icon, { banner = "✦ 発見 ✦", accent = "#c9a227", lines = [], onDismiss = null } = {}) {
   G.prompt = true;
@@ -9408,40 +9400,12 @@ function allDolls() { return [...G.party, ...G.reserve]; }
 // 街を描き直す (名前と約225の呼び出し元はそのまま)。中身の描き替え・スクロール位置の保持・
 // タブバーの点灯・遷移の演出は街シェル (townshell.refresh) が受け持つ
 function renderTown() {
-  const then = G.town && G.town.facility ? takeLegacyEntry() : null; // 旧来の入口は新しいタブ/ページへ付け替えてから描く
   renderRunbar(); // 街では隠す
   refreshOrderBonus(); // 編成・魂の付け替えで結社の席が変わっていれば、全員の能力を付け直す
   autosave(); // 街での操作のたびに保存 (描画はアクション後に呼ばれる)
   updateTopbar();
   playBgm(sceneBgm()); // 施設ごとのBGM (同じ曲なら継続)
   townshell.refresh();
-  if (then) queueMicrotask(() => { if (G.state === "town") then(); });
-}
-
-// 旧来の入口 (G.town.facility / sub): 旧セーブの街の現在地や古い呼び出し口から来たら、新しいタブ/ページへ付け替える。
-//   tab/page = 行き先 / intent = 隊タブに渡す区分・シート / then = 描いた後に開く (王宮の区分・宿のシート・奈落の支度)
-const LEGACY_ENTRY = {
-  mansion: { tab: "party" }, party: { tab: "party" },
-  manage: { tab: "party", intent: { reserve: true } }, altar: { tab: "party", intent: { seg: "soul" } },
-  shop: { tab: "shop" },
-  palace: { tab: "palace", then: () => UI.openPalace && UI.openPalace("decree") },
-  treasury: { tab: "palace", then: () => UI.openPalace && UI.openPalace("treasury") },
-  codexAch: { tab: "palace", then: () => UI.openPalace && UI.openPalace("ach") },
-  codexItem: { tab: "palace", then: () => UI.openPalace && UI.openPalace("codex:item") },
-  codexMon: { tab: "palace", then: () => UI.openPalace && UI.openPalace("codex:mon") }, // 旧モンスター図鑑は廃止 (旧セーブ互換)
-  codexDungeon: { tab: "palace", then: () => UI.openPalace && UI.openPalace("codex:mon") },
-  codexJob: { tab: "palace", then: () => UI.openPalace && UI.openPalace("codex:job") },
-  tavern: { tab: "hub", page: "tavern" }, shrine: { tab: "hub", page: "shrine" },
-  inn: { tab: "hub", then: () => UI.openInn && UI.openInn() },
-  abyss: { tab: "hub", then: () => openAbyssSetup() }, // 奈落の支度は出撃シートの1ページ
-};
-function takeLegacyEntry() {
-  const t = G.town;
-  const e = LEGACY_ENTRY[t.facility === "mansion" && t.sub ? t.sub : t.facility] || { tab: "hub" };
-  t.facility = null; t.sub = null;
-  t.tab = e.tab; t.page = e.page || null;
-  if (e.intent) uiParty.queueIntent(e.intent);
-  return e.then || null;
 }
 
 let townBandOpen = null; // 迷宮選択で開いている層 (null = 選択中の迷宮の層)
@@ -10524,20 +10488,6 @@ function listenRumor() {
   return true;
 }
 
-// 旧来の施設 (G.town.facility) を新しいタブ/ページへ付け替える。描画の最中なので、描き終えてから移る
-function legacyToPage(page, { tab = "hub", seg = null, after = null } = {}) {
-  queueMicrotask(() => {
-    const t = G.town;
-    if (!t || G.state !== "town") return;
-    t.facility = null; t.sub = null;
-    t.tab = tab;
-    t.page = page || null;
-    if (seg && UI.openPalace) { UI.openPalace(seg); }
-    else renderTown();
-    if (after) after();
-  });
-}
-
 // ---- 実績 (勲章) ----
 // 受領した勲章の数は「やり込みの度合い」を表す指標なので、早いうちに枯れないよう、どの系統も段が尽きない:
 //  ・回数の系統 (潜入・撃破・宝箱…) は手書きの段の先も、決まった刻み (more) で段が延々と続く
@@ -10976,7 +10926,7 @@ function showStoryScene(title, lines, rewardText, onClose, btnLabel = "御意") 
 function landOnHub() {
   if (G.state !== "town" || !G.town) return;
   const t = G.town;
-  t.page = null; t.facility = null; t.sub = null; t.tab = "hub";
+  t.page = null; t.tab = "hub";
   altarSel = null;
 }
 function playMsqChain(pages, toasts = [], after = null) {
@@ -11241,8 +11191,6 @@ function goMakeDoll() {
   if (UI.openCreateDoll) return UI.openCreateDoll();
   // 隊 (WP-B) の「宿す魂をえらぶ」シートを街のまま直接ひらく (1タップ)
   if (typeof buyDoll === "function") return buyDoll();
-  G.town.page = null; G.town.facility = "mansion"; G.town.sub = "manage";
-  renderTown();
 }
 // 次に追う物語の目標: 物語の順 (章の迷宮の並び) で、地図にあってまだ踏破していない最初の迷宮。
 // すべて踏破済みなら、まだ現れていない迷宮の手がかり (解放条件) を示す
@@ -12116,7 +12064,6 @@ function enterDungeon(mutatorId, startFloor = 1) {
   SFX.stairs();
   sheet.closeAll();
   townEl.classList.add("hidden");
-  G.town.facility = null; G.town.sub = null;
   // 迷宮は1階から。到達した帰還魔法陣の階 (5・10…) からも潜り始められる
   G.floor = Math.max(1, Math.min(curDungeon().floors || 1, startFloor | 0 || 1));
   G.maxFloorReached = Math.max(G.maxFloorReached || 0, G.floor);
@@ -12164,7 +12111,6 @@ function enterAbyss(mods, weekly) {
   SFX.stairs();
   sheet.closeAll();
   townEl.classList.add("hidden");
-  G.town.facility = null; G.town.sub = null;
   G.floor = 1;
   G.eliteFloor = false;
   G.specialFloor = null;
@@ -12269,7 +12215,7 @@ function returnToTown(opts = {}) {
   }
   updateTopbar();
   log(outcome === "wipe" ? "砕けた人業を残し、街へ戻った。" : "街へ帰還した。", "sys");
-  G.town.facility = null; G.town.sub = null; G.town.page = null; G.town.tab = "hub";
+  G.town.page = null; G.town.tab = "hub";
   renderDock();
   renderTown();
   autosave(true);
@@ -13079,9 +13025,6 @@ function giveItem(id) {
 }
 
 // ---- アイテム入手の演出 ----
-// 旧 #item-get (ランクアップの祝祭・踏破の凱旋などが今も使う1枠)
-const itemGetEl = document.getElementById("item-get");
-
 // 入手の割り込み方針 (§3.6) は src/ui/loot.js の UI.loot が受け持つ:
 //   コモン/アンコモン・道具 = 入手のトースト (収穫バーの数も増える)。onClose はすぐに呼ぶ
 //   レア/スーパーレア/レジェンドレア・宝物庫にまだ無い収集品 = 祝祭カード (ファンファーレ・閃光・LRは光の柱と揺れ)。閉じてから onClose
@@ -13098,17 +13041,6 @@ function showItemGet(item, who, onClose) {
   if (onClose) onClose(); else if (G.state === "board") renderBoard();
   autosave(true);
   return null;
-}
-
-// 旧 #item-get を閉じる (ランクアップの祝祭などが使う)。G.prompt を解き、onClose (無ければ盤面) → 保存
-function closeItemGet(onClose) {
-  itemGetEl.classList.add("hidden");
-  itemGetEl.innerHTML = "";
-  itemGetEl.onclick = null; // 古い背景クリックハンドラが次のポップアップへ漏れないように
-  G.prompt = false;
-  if (onClose) onClose();
-  else renderBoard();
-  autosave(true);
 }
 
 // ---- 汎用イベント表示 (宝箱の中身・罠・泉など) ----
@@ -13200,21 +13132,12 @@ if (descendBtn) descendBtn.addEventListener("click", () => dockDescend());
 // ---- 入力 ----
 // 最初のユーザー操作で音声を起動 (ブラウザの自動再生制限対策)
 let audioReady = false;
-// 街の施設ごとのBGMテーマ (未指定の施設は広場のテーマ)
-const FACILITY_BGM = {
-  mansion: "mansion", altar: "mansion",
-  tavern: "tavern",
-  shop: "shop",
-  inn: "inn",
-  palace: "palace", codexMon: "palace", codexItem: "palace", codexDungeon: "palace", codexJob: "palace", treasury: "palace", // 図鑑・宝物庫は王宮の間
-  shrine: "shrine",
-};
-// 街シェルのタブ・ページごとのBGM (旧来の施設が立っていればそちらが優先)
+// 街シェルのタブ・ページごとのBGM (未指定は広場のテーマ)
 const TAB_BGM = { party: "mansion", shop: "shop", palace: "palace" };
 const PAGE_BGM = { tavern: "tavern", shrine: "shrine", abyss: "town" };
 function townBgm() {
   const t = G.town || {};
-  return FACILITY_BGM[t.facility] || PAGE_BGM[t.page] || TAB_BGM[t.tab] || "town";
+  return PAGE_BGM[t.page] || TAB_BGM[t.tab] || "town";
 }
 let openingActive = false; // オープニング演出中は専用テーマ
 let titleActive = false;   // タイトル画面の表示中は専用テーマ
@@ -13375,7 +13298,7 @@ function swipeStep(dx, dy) {
 
 // スワイプは画面全体で受け付ける。ボタン/モーダル/ステータス画面は除外。
 // 盤面では隊の札 (#party) の上からもフリックで歩ける (タップ = 隊のシート、長押し = 覗く はそのまま)。
-const SWIPE_IGNORE = "button, a, [role=button], #party, #town-screen, #town-shell, #ui-layer, #item-get, .confirm-overlay";
+const SWIPE_IGNORE = "button, a, [role=button], #party, #town-screen, #town-shell, #ui-layer, .confirm-overlay";
 document.addEventListener("pointerdown", (e) => {
   G._swiped = false; // 新しい指の動きごとに、前のスワイプの「click 無視」印を消す
   if (e.pointerType === "mouse") return;
@@ -13575,39 +13498,6 @@ function reflattenItemStats() {
   }
 }
 
-// 旧ステータス体系 (こうげき/ぼうぎょ/すばやさ/AC) のセーブを六大ステへ移行する。
-// 装備品 (slot を持つ) と戦闘アクター (side を持つ) の def→vit / spd→agi を付け替え、
-// AC と旧表示用能力値 (attrs: STR/IQ…) を破棄する。人業の base は後段の recalcDoll が再計算する。
-function migrateLegacyStats(root) {
-  const ren = (o, from, to) => {
-    if (!o || typeof o !== "object") return;
-    if (o[to] == null && o[from] != null) o[to] = o[from];
-    delete o[from];
-  };
-  const seen = new Set();
-  const walk = (v) => {
-    if (!v || typeof v !== "object" || seen.has(v)) return;
-    seen.add(v);
-    if (Array.isArray(v)) { for (const x of v) walk(x); return; }
-    const isItem = typeof v.slot === "string";
-    const isActor = v.side === "party" || v.side === "enemy";
-    if (isItem || isActor) {
-      ren(v, "def", "vit");
-      ren(v, "spd", "agi");
-      delete v.ac;
-    }
-    if (isActor) {
-      ren(v.base, "def", "vit");
-      ren(v.base, "spd", "agi");
-      ren(v.buffs, "def", "vit");
-      ren(v.buffs, "spd", "agi");
-      delete v.attrs;
-    }
-    for (const k in v) walk(v[k]);
-  };
-  walk(root);
-}
-
 // 保存データを読み込み、G を復元する。成功なら true
 function loadGame() {
   let raw;
@@ -13621,8 +13511,7 @@ function loadGame() {
   if (!("animTempo" in snap)) { G.fastAnim = true; G.animTempo = 2; }
   if (!G.lrOwned || typeof G.lrOwned !== "object") G.lrOwned = {}; // LR入手済み記録 (1点もの)
   namedState(); // 名のある強敵の記録 (旧セーブには無い)
-  // 街UIの現在地 (後付け: tab/page)。旧 {facility, sub} はそれが属するタブへ写す
-  G.town = townshell.migrateTown(G.town);
+  G.town = townshell.normalizeTown(G.town); // 街UIの現在地 (tab/page)
   if (G.lastRun === undefined) G.lastRun = null; // 帰還の報告 (後付け)
   if (!G.order || !Array.isArray(G.order.picks)) G.order = { picks: [] }; // 控えの結社の着席指定
   if (!G.irene || typeof G.irene !== "object") G.irene = { greeted: false, visits: 0, seen: {}, last: null }; // 館の主イレーヌ (後付け: 既存の記録では次の来館で挨拶する)
@@ -13637,9 +13526,6 @@ function loadGame() {
     if (o.l2_10) fl.sewerMap = true;
     if (o.l3_10) fl.temper = true;
   }
-  // 旧ステータス体系のセーブを六大ステ (ATK/VIT/AGI/INT/PIE/LUK) へ移行
-  // (battle の敵の mon はこの後 MONSTERS の生定義に差し替えられるため触れても無害)
-  migrateLegacyStats(snap);
   reflattenItemStats();
   // 一時状態はリセット
   G.anim = null; G.flipAnim = null; G.heroAnim = null; G.walking = false; G.prompt = false;
@@ -14205,11 +14091,6 @@ function legacyBack() {
   const ovs = document.querySelectorAll(".confirm-overlay");
   const top = ovs[ovs.length - 1];
   if (top) { closeLegacyOverlay(top); return true; }
-  if (itemGetEl && !itemGetEl.classList.contains("hidden")) {
-    if (typeof itemGetEl.onclick === "function") itemGetEl.click(); // 選択肢の無いカードは背景タップで閉じる
-    else kitShake(itemGetEl.querySelector(".ig-card") || itemGetEl); // 踏破の凱旋など、ボタンで進める
-    return true;
-  }
   if (G.settingsOpen) { closeSettings(); return true; }
   if (G.statusOpen) { closeStatus(); return true; }
   if (G.prompt) return true; // 演出の最中 (階の暗転など) は何もしない
@@ -14231,7 +14112,7 @@ function wireUI() {
     allDolls, recalcAllDolls, inDungeon, curDungeon, activeCfg, clearedDungeonCount, reportedDungeonCount,
     sellPrice, buyPrice, appraiseCost, innCost, sellWarnings, bargainMul, shopStockAdd,
     itemRankName, itemRankColor, itemGradeText, itemNameEl, logClassForItem,
-    showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
+    showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
     tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
     worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait,
@@ -14251,12 +14132,6 @@ function wireUI() {
   nav.handle(dungeonBack, 70);
   registerPhase0Stubs();
   townshell.install();
-  // 旧 #item-get (showItemGet 等) が開いたら、キットのプロンプトは置き換えられたものとして閉じる (旧実装の1枠と同じ)
-  if (typeof MutationObserver === "function" && itemGetEl) {
-    new MutationObserver(() => {
-      if (!itemGetEl.classList.contains("hidden") && promptSheet) { const h = promptSheet; promptSheet = null; h.close("replace", { silent: true }); }
-    }).observe(itemGetEl, { attributes: true, attributeFilter: ["class"] });
-  }
   // 各パッケージの UI を登録 (スタブを差し替える)。A→B→C→D の順
   for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiAppraise, uiDeparture, uiDungeonHud, uiResults, uiTutorial]) {
     try { m.install(); } catch (e) { console.error(e); }
@@ -14270,7 +14145,7 @@ function resetAllData() { _resetting = true; clearSave(); location.reload(); }
 bindGame({
   // いまの目標・勅命・物語
   objectiveInfo, decreeInfo, replayDecree, palaceRecords, sharePalaceRecord, departTo, goMakeDoll, audienceTutorial,
-  landOnHub, legacyToPage, townBgm,
+  landOnHub, townBgm,
   // 勲章・宝物庫・図鑑
   achievementCards, medalRank, claimNextTreasury, TREASURY_MILESTONES, milestoneLabel, totalDonatedKinds,
   codexMonEntry, dungeonRoster, CODEX_OTHER,
@@ -14424,7 +14299,7 @@ function startAfterTitle(loaded) {
     resumeFromState();
   } catch (e) {
     try {
-      G.state = "town"; G.town = { facility: null, sub: null, tab: "hub", page: null };
+      G.state = "town"; G.town = { tab: "hub", page: null };
       G.statusOpen = false; G.settingsOpen = false; G.prompt = false; G.anim = null; G.walking = false;
       renderTown();
     } catch (e2) { /* これ以上は何もしない (セーブは温存) */ }
