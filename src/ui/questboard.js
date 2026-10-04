@@ -30,7 +30,7 @@ const deliverSt = (q) => (q.type === "deliver" && game.deliveryStatus ? game.del
 // 報酬の一行 (💰 ✦ 🔴 🔥 は通貨の印になる)
 export function rewardText(q) {
   const r = q.reward || {};
-  if (r.deliver) return "職業の魂";
+  if (r.deliver) return "職業の魂 (ランダム)";
   const p = [];
   if (r.gold) p.push(`💰${r.gold}`);
   if (r.soulPts) p.push(`✦${r.soulPts}`);
