@@ -1679,9 +1679,10 @@ const NEW_MONSTERS = defMonsters(NEW_DEFS.map((d) => ({ ...monStats(d.rank, d.bo
 
 // ---- 強敵モンスター (Elite Monsters) ----
 // 通常のランクプールには含まれない特殊強敵。強敵階でのみ出現する。
-// 各ランク帯 (10迷宮) を 1-3 / 4-6 / 7-10 の3グループに区切り、グループごとに固有の1体を持つ
-// (例: 迷宮1-3, 4-6, 7-10, 11-13, …)。計30体。
-// ステータスは「帯ランク+2 のボス」(上限10)。適正レベルで倒すのは困難な規格外の存在。
+// 旧来は10迷宮の帯ごとに3体ずつ (計30体) を持っていた。いまは層ごとの強敵 (LAYER_ELITES) が正で、
+// ここの30体はその材料 (docs/tasks.md E2: 第6〜20層へ2体ずつ割り当て、rank は層ボスと同格の 層+2・上限10)。
+// 第6層から先の絵は、使われなくなった旧来の固有原型を借りている。その層を作るときに hd_* の固有原型へ描き直し、
+// 特色を1〜2個に絞り直す (C1)。下の「-- 迷宮 … --」の見出しは旧来の帯 (並びは ELITE_ORDER のため変えない)。
 const ELITE_DEFS = [
   // -- 迷宮 1-10 (墓地帯) / 強敵ランク3 --
   { id: "el_cryptlord", name: "墓所の君主", elite: true, rank: 3, race: "undead", element: "dark", artKey: "hd_cryptlord", soulClass: "mage",
@@ -1690,23 +1691,20 @@ const ELITE_DEFS = [
   { id: "el_palebutcher", name: "蒼白の首切り鬼", elite: true, rank: 3, race: "giant", element: "none", artKey: "hd_palebutcher",
     physResist: 1, ability: "paralyze", // 巨体は刃をいなし、振るう包丁が獲物をすくませる
     desc: "墓守に化けて幾世代も墓地に住み着いた蒼白の喰人鬼。たるんだ巨体は刃を吸い込んでいなし、研ぎ上げた包丁が一閃するたび獲物は恐怖に立ちすくむ。包丁が研がれる夜は、翌朝までに墓穴がひとつ増えている。" }, // D4-6
-  { id: "el_sorrowsaint", name: "嘆きの聖女", elite: true, rank: 3, race: "specter", element: "light", artKey: "ghost", soulClass: "priest",
-    palette: tint(ARTS.ghost.palette, "#ffe8b0", 0.5),
+  { id: "el_sorrowsaint", name: "嘆きの聖女", elite: true, rank: 10, race: "specter", element: "light", artKey: "banshee", soulClass: "priest",
+    palette: tint(ARTS.banshee.palette, "#ffe8b0", 0.4),
     ability: "paralyze", regen: 0.06, // 死を運ぶ祝福ですくませ、祈りで己を癒す
-    desc: "疫病の死者を弔い続け、最後は自らも墓地に倒れた聖女の亡霊。生前のままの祈りは聞いた者を金縛りにし、唱えるたびに己の傷を癒す。その祝福だけが、死を運ぶものへ変わり果てた。" }, // D7-10
+    desc: "疫病の死者を弔い続け、最後は自らも墓地に倒れた聖女の亡霊。生前のままの祈りは聞いた者を金縛りにし、唱えるたびに己の傷を癒す。その祝福だけが、死を運ぶものへ変わり果てた。" }, // 第16層
   // -- 迷宮 11-20 (坑道帯) / 強敵ランク4 --
-  { id: "el_oremaw", name: "鉱脈喰らい", elite: true, rank: 4, race: "construct", element: "earth", artKey: "golem",
-    palette: tint(ARTS.golem.palette, "#5ac8a0", 0.45),
+  { id: "el_oremaw", name: "鉱脈喰らい", elite: true, rank: 10, race: "construct", element: "earth", artKey: "orehulk",
     physResist: 2, // 鉱石を喰らい固めた岩塊の体は刃を通さない
-    desc: "坑道の鉱脈そのものを喰らって肥え太った岩塊の獣。原石を喰い込ませた岩盤の体は並の武器をほとんど通さず、輝きに惹かれた鉱夫ごと呑み込む。" }, // D11-13
-  { id: "el_lanternreaper", name: "灯火狩り", elite: true, rank: 4, race: "specter", element: "dark", artKey: "wraith", soulClass: "thief",
-    palette: tint(ARTS.wraith.palette, "#16162a", 0.6),
+    desc: "坑道の鉱脈そのものを喰らって肥え太った岩塊の獣。原石を喰い込ませた岩盤の体は並の武器をほとんど通さず、輝きに惹かれた鉱夫ごと呑み込む。" }, // 第12層
+  { id: "el_lanternreaper", name: "灯火狩り", elite: true, rank: 10, race: "specter", element: "dark", artKey: "mournshade", soulClass: "thief",
     swift: true, ability: "soulSteal", // 闇を駆け、灯火もろとも魂を狩り取る
-    desc: "坑道で果てた者たちの「消えた灯」が寄り集まった漆黒の影。闇を音もなく駆けて先んじ、生者の掲げる灯りを憎んで、灯火を狩るついでにその魂を吸い取る。" }, // D14-16
-  { id: "el_tunnelking", name: "穴蔵の王", elite: true, rank: 4, race: "humanoid", element: "fire", artKey: "kobold", soulClass: "fighter",
-    palette: tint(ARTS.kobold.palette, "#c8a040", 0.5),
+    desc: "坑道で果てた者たちの「消えた灯」が寄り集まった漆黒の影。闇を音もなく駆けて先んじ、生者の掲げる灯りを憎んで、灯火を狩るついでにその魂を吸い取る。" }, // 第14層
+  { id: "el_tunnelking", name: "穴蔵の王", elite: true, rank: 10, race: "humanoid", element: "fire", artKey: "tunneler", soulClass: "fighter",
     role: "summoner", summonKey: "d01_kobold", ability: "goldSteal", // 数千の眷属を呼び、奪い尽くす
-    desc: "数千の眷属を従え、坑道の闇に王国を築いた古コボルト。吠えれば際限なく眷属が湧き、混戦に乗じて獲物の懐を漁る。小鬼と侮った者の骸が、玉座への道に敷き詰められている。" }, // D17-20
+    desc: "数千の眷属を従え、坑道の闇に王国を築いた古コボルト。吠えれば際限なく眷属が湧き、混戦に乗じて獲物の懐を漁る。小鬼と侮った者の骸が、玉座への道に敷き詰められている。" }, // 第12層
   // -- 迷宮 21-30 (砦帯) / 強敵ランク5 --
   // 第4層「捨て砦」の強敵 (LAYER_ELITES[4]) を兼ねる。rank は層ボスと同格の 6
   { id: "el_warbanner", name: "軍旗の亡将", elite: true, rank: 6, race: "armored", element: "fire", artKey: "hd_warbanner", soulClass: "knight",
@@ -1715,10 +1713,9 @@ const ELITE_DEFS = [
   { id: "el_headsman", name: "処刑人の大鬼", elite: true, rank: 6, race: "giant", element: "earth", artKey: "hd_headsman",
     swift: true, ability: "critical", // 首斬りの斧が一閃で急所を断つ
     desc: "砦の処刑場に飼われていた首斬り役の大鬼。主を失ってなお務めを忘れず、迷い込んだ者を「本日の罪人」として斧の下へ並ばせ、巨体に似合わぬ速さで振り下ろす一閃で首筋を狙う。" },
-  { id: "el_phantomcompany", name: "亡霊中隊", elite: true, rank: 5, race: "specter", element: "wind", artKey: "ghost",
-    palette: tint(ARTS.ghost.palette, "#7a8aa8", 0.5),
+  { id: "el_phantomcompany", name: "亡霊中隊", elite: true, rank: 10, race: "specter", element: "wind", artKey: "bannerwraith",
     role: "summoner", summonKey: "d03_ghost", swift: true, // 散った中隊を呼び集め、号令とともに先んじる
-    desc: "全滅した守備中隊の魂が、ひとつの巨影に溶け合った亡霊。号令ひとつで散った戦友の霊を呼び集め、百人分の殺意が先んじてひとつの太刀筋に乗る。" }, // D27-30
+    desc: "全滅した守備中隊の魂が、ひとつの巨影に溶け合った亡霊。号令ひとつで散った戦友の霊を呼び集め、百人分の殺意が先んじてひとつの太刀筋に乗る。" }, // 第18層
   // -- 迷宮 31-40 (霧の森帯) / 強敵ランク6 --
   // 第5層「霧の森」の強敵 (LAYER_ELITES[5]) を兼ねる。rank は層ボスと同格の 7。絵は hd_* の固有原型
   { id: "el_mistmother", name: "霧の繭母", elite: true, rank: 7, race: "insect", element: "wind", artKey: "hd_mistmother",
@@ -1727,88 +1724,85 @@ const ELITE_DEFS = [
   { id: "el_eldertreant", name: "古樹の巨人", elite: true, rank: 7, race: "plant", element: "earth", artKey: "hd_eldertreant",
     ability: "breath", abRate: 0.45, physResist: 2, magWeak: 1.3, // 大地の息吹 (土砂と木の葉の嵐) を吐き、樹皮は刃をほとんど通さない
     desc: "森が芽吹くより前からそこに立つ古樹の巨人。分厚い樹皮は刃をほとんど寄せつけず、胸に裂けた大口から土砂と石くれと木の葉の嵐を吐き出して、隊をまとめて薙ぎ倒す。ただ、古木の身は炎の魔法には弱い。" }, // D34-36 / 第5層
-  { id: "el_huntsmanwraith", name: "狩人王の亡霊", elite: true, rank: 6, race: "specter", element: "wind", artKey: "wraith", soulClass: "thief",
-    palette: tint(ARTS.wraith.palette, "#3a6a3a", 0.5),
+  { id: "el_huntsmanwraith", name: "狩人王の亡霊", elite: true, rank: 10, race: "specter", element: "wind", artKey: "corruptstag", soulClass: "thief",
     swift: true, ability: "critical", // 風のごとく追い、狩りの一矢で急所を射抜く
-    desc: "獲物を狩り尽くし、最後に己の従者を獲物にした狩人王の亡霊。風のごとく間合いを詰め、狩りの一矢は急所だけを射抜く。角笛の音が聞こえたなら、すでに狩りは始まっている。" }, // D37-40
+    desc: "獲物を狩り尽くし、最後に己の従者を獲物にした狩人王の亡霊。風のごとく間合いを詰め、狩りの一矢は急所だけを射抜く。角笛の音が聞こえたなら、すでに狩りは始まっている。" }, // 第16層
   // -- 迷宮 41-50 (神殿帯) / 強敵ランク7 --
-  { id: "el_fallenidol", name: "堕ちた神像", elite: true, rank: 7, race: "construct", element: "light", artKey: "golem",
-    palette: tint(ARTS.golem.palette, "#e8d8a0", 0.5),
+  { id: "el_fallenidol", name: "堕ちた神像", elite: true, rank: 8, race: "construct", element: "light", artKey: "weepangel",
+    palette: tint(ARTS.weepangel.palette, "#e8d8a0", 0.4),
     physResist: 2, ability: "critical", // 聖石の体が刃を弾き、石腕の抱擁が骨を砕く
-    desc: "信仰を失った神殿で、祈られることに飢えた神像。聖石の体は刃を寄せつけず、参拝者を石の腕で抱き締めて急所ごと砕き、その骸を新たな信徒として祭壇に並べる。" }, // D41-43
-  { id: "el_heresiarch", name: "異端大司教", elite: true, rank: 7, race: "undead", element: "dark", artKey: "ghost", soulClass: "bishop",
-    palette: tint(ARTS.ghost.palette, "#6a2a5a", 0.5),
+    desc: "信仰を失った神殿で、祈られることに飢えた神像。聖石の体は刃を寄せつけず、参拝者を石の腕で抱き締めて急所ごと砕き、その骸を新たな信徒として祭壇に並べる。" }, // 第6層
+  { id: "el_heresiarch", name: "異端大司教", elite: true, rank: 8, race: "undead", element: "dark", artKey: "cultist", soulClass: "bishop",
     ability: "drain", regen: 0.06, // 死を福音と説き、宿した魂を喰らって己を保つ
-    desc: "禁じられた教義を説き、生きながら神殿の地下へ葬られた大司教。死そのものを福音として説きながら、聴いた者の宿した魂を喰らい、その分だけ己の存在を濃くする。" }, // D44-46
-  { id: "el_offeringslime", name: "供物のるつぼ", elite: true, rank: 7, race: "amorph", element: "dark", artKey: "slime",
-    palette: tint(ARTS.slime.palette, "#8a6a1a", 0.55),
+    desc: "禁じられた教義を説き、生きながら神殿の地下へ葬られた大司教。死そのものを福音として説きながら、聴いた者の宿した魂を喰らい、その分だけ己の存在を濃くする。" }, // 第6層
+  { id: "el_offeringslime", name: "供物のるつぼ", elite: true, rank: 10, race: "amorph", element: "dark", artKey: "sludgeooze",
+    palette: tint(ARTS.sludgeooze.palette, "#8a6a1a", 0.55),
     physResist: 2, ability: "poison", // 千年の供物を沈めた粘塊は刃を呑み、腐った供物の毒を流す
-    desc: "千年分の供物を呑み込み続けた祭壇のるつぼが、ついに意思を持った粘塊。突き立てた刃は供物もろとも呑まれ、底によどんだ腐汁の毒を流しながら、最上の供物——生贄を待っている。" }, // D47-50
+    desc: "千年分の供物を呑み込み続けた祭壇のるつぼが、ついに意思を持った粘塊。突き立てた刃は供物もろとも呑まれ、底によどんだ腐汁の毒を流しながら、最上の供物——生贄を待っている。" }, // 第9層
   // -- 迷宮 51-60 (灼洞帯) / 強敵ランク8 --
-  { id: "el_cinderking", name: "残り火の王", elite: true, rank: 8, race: "elemental", element: "fire", artKey: "wraith",
-    palette: tint(ARTS.wraith.palette, "#d86a2a", 0.55),
+  { id: "el_cinderking", name: "残り火の王", elite: true, rank: 9, race: "elemental", element: "fire", artKey: "blastsprite",
     ability: "drain", regen: 0.08, // 触れた熱を奪い尽くし、奪った熱で燃え直す
-    desc: "灼洞の火が幾度も消えかけ、そのたびに燃え残った「燃えさし」の精。炎の王を名乗るその身は冷えゆく憎悪であり、触れた者から熱と命を奪い尽くし、奪った分だけ燃え直す。" }, // D51-53
-  { id: "el_magmawyrm", name: "溶鉄の蛇竜", elite: true, rank: 8, race: "reptile", element: "fire", artKey: "lizard",
-    palette: tint(ARTS.lizard.palette, "#d83a1a", 0.55),
+    desc: "灼洞の火が幾度も消えかけ、そのたびに燃え残った「燃えさし」の精。炎の王を名乗るその身は冷えゆく憎悪であり、触れた者から熱と命を奪い尽くし、奪った分だけ燃え直す。" }, // 第7層
+  { id: "el_magmawyrm", name: "溶鉄の蛇竜", elite: true, rank: 9, race: "reptile", element: "fire", artKey: "eelfiend",
+    palette: tint(ARTS.eelfiend.palette, "#d83a1a", 0.6),
     physResist: 2, ability: "breath", // 溶鉄の鱗が刃を弾き、城門すら蒸発させる熱を吐く
-    desc: "溶岩の底を泳ぎ続け、鱗が溶けた鉄と一体化した蛇竜。溶鉄の鱗は刃を弾き、吐き出す熱は前衛後衛もろとも、城門すら蒸発させる。通った跡の岩は飴のように溶け落ちる。" }, // D54-56
-  { id: "el_ashshogun", name: "灰燼の将", elite: true, rank: 8, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
-    palette: tint(ARTS.knightmare.palette, "#8a8a88", 0.5),
+    desc: "溶岩の底を泳ぎ続け、鱗が溶けた鉄と一体化した蛇竜。溶鉄の鱗は刃を弾き、吐き出す熱は前衛後衛もろとも、城門すら蒸発させる。通った跡の岩は飴のように溶け落ちる。" }, // 第7層
+  { id: "el_ashshogun", name: "灰燼の将", elite: true, rank: 10, race: "armored", element: "dark", artKey: "samurai", soulClass: "knight",
+    palette: tint(ARTS.samurai.palette, "#8a8a88", 0.5),
     regen: 0.1, ability: "critical", // 斬られても灰となって積もり直し、将の太刀が急所を断つ
-    desc: "灼洞に攻め入り、軍ごと灰になった将の亡霊。斬られるたび灰煙となって解け、再び将の形に積もり直して立ち上がる。崩れぬ灰の太刀は、急所だけを正確に断つ。" }, // D57-60
+    desc: "灼洞に攻め入り、軍ごと灰になった将の亡霊。斬られるたび灰煙となって解け、再び将の形に積もり直して立ち上がる。崩れぬ灰の太刀は、急所だけを正確に断つ。" }, // 第11層
   // -- 迷宮 61-70 (氷廊帯) / 強敵ランク9 --
-  { id: "el_frostsovereign", name: "凍王の影", elite: true, rank: 9, race: "armored", element: "water", artKey: "knightmare", soulClass: "knight",
-    palette: tint(ARTS.knightmare.palette, "#a8c8e8", 0.55),
+  { id: "el_frostsovereign", name: "凍王の影", elite: true, rank: 10, race: "armored", element: "water", artKey: "ironknight", soulClass: "knight",
+    palette: tint(ARTS.ironknight.palette, "#a8c8e8", 0.55),
     physResist: 2, ability: "paralyze", // 凍てついた影鎧は刃を弾き、敗者を氷像に変える
-    desc: "氷廊の最深部に座す「凍王」が、退屈しのぎに切り離した己の影。凍てついた鎧は刃を弾き、本体に迫る力で斬りつけた相手を芯から凍らせ、敗者は氷像として回廊に飾られる。" }, // D61-63
-  { id: "el_glacialmaw", name: "氷河の大顎", elite: true, rank: 9, race: "dragon", element: "water", artKey: "dragon",
-    palette: tint(ARTS.dragon.palette, "#c8e0f0", 0.6),
+    desc: "氷廊の最深部に座す「凍王」が、退屈しのぎに切り離した己の影。凍てついた鎧は刃を弾き、本体に迫る力で斬りつけた相手を芯から凍らせ、敗者は氷像として回廊に飾られる。" }, // 第8層
+  { id: "el_glacialmaw", name: "氷河の大顎", elite: true, rank: 10, race: "dragon", element: "water", artKey: "anglerfiend",
+    palette: tint(ARTS.anglerfiend.palette, "#c8e0f0", 0.55),
     physResist: 2, ability: "breath", // 氷塊の巨顎は刃を弾き、千年溶けぬ吹雪を吐く
-    desc: "氷河の裂け目そのものと見紛う、白竜の巨大な顎。氷塊の鱗は刃を弾き、氷ごと獲物を噛み砕いては、前衛後衛もろとも千年溶けない吹雪を吐く。" }, // D64-66
-  { id: "el_blizzardwitch", name: "吹雪の魔女", elite: true, rank: 9, race: "specter", element: "wind", artKey: "ghost", soulClass: "mage",
-    palette: tint(ARTS.ghost.palette, "#b0d8e8", 0.55),
+    desc: "氷河の裂け目そのものと見紛う、白竜の巨大な顎。氷塊の鱗は刃を弾き、氷ごと獲物を噛み砕いては、前衛後衛もろとも千年溶けない吹雪を吐く。" }, // 第8層
+  { id: "el_blizzardwitch", name: "吹雪の魔女", elite: true, rank: 10, race: "specter", element: "wind", artKey: "willowwitch", soulClass: "mage",
+    palette: tint(ARTS.willowwitch.palette, "#b0d8e8", 0.55),
     ability: "sleep", // 子守唄で暖かな眠りに誘い、凍りつかせる
-    desc: "吹雪の夜にだけ氷廊へ現れる魔女の亡霊。彼女が紡ぐ子守唄を聞いた者は、暖かな眠りに誘われるまま手足の感覚を失い、静かに凍りついていく。" }, // D67-70
+    desc: "吹雪の夜にだけ氷廊へ現れる魔女の亡霊。彼女が紡ぐ子守唄を聞いた者は、暖かな眠りに誘われるまま手足の感覚を失い、静かに凍りついていく。" }, // 第10層
   // -- 迷宮 71-80 (尖塔帯) / 強敵ランク10 --
-  { id: "el_stareater", name: "星喰らい", elite: true, rank: 10, race: "demon", element: "dark", artKey: "imp",
-    palette: tint(ARTS.imp.palette, "#2a1a4a", 0.55),
+  { id: "el_stareater", name: "星喰らい", elite: true, rank: 10, race: "demon", element: "dark", artKey: "gargoyle",
+    palette: tint(ARTS.gargoyle.palette, "#2a1a4a", 0.5),
     ability: "drain", physResist: 2, // 星すら喰らう胃袋に命を呑み、闇の体は刃を呑む
-    desc: "尖塔の頂から夜空の星をひとつずつ喰らってきた大悪魔。星すら呑む胃袋で近づく者の命を喰らい、闇に満ちた体は突き立てた刃を呑む。次に喰らうのは地上の光だという。" }, // D71-73
-  { id: "el_voidarchon", name: "虚空の執政官", elite: true, rank: 10, race: "specter", element: "light", artKey: "wraith", soulClass: "mage",
-    palette: tint(ARTS.wraith.palette, "#f0f0e8", 0.6),
+    desc: "尖塔の頂から夜空の星をひとつずつ喰らってきた大悪魔。星すら呑む胃袋で近づく者の命を喰らい、闇に満ちた体は突き立てた刃を呑む。次に喰らうのは地上の光だという。" }, // 第10層
+  { id: "el_voidarchon", name: "虚空の執政官", elite: true, rank: 10, race: "specter", element: "light", artKey: "fogspecter", soulClass: "mage",
+    palette: tint(ARTS.fogspecter.palette, "#f0f0e8", 0.55),
     evasive: true, ability: "soulSteal", // 虚空に紛れて刃をかわし、直視した者の存在を奪う
-    desc: "塔の観測室が「何もない場所」を覗いた時、向こう側から歩いてきた執政官。虚空に紛れて刃をかわし、白く輝くその姿を直視した者は、輪郭から順に魂ごと存在を失う。" }, // D74-76
-  { id: "el_geargod", name: "歯車の神", elite: true, rank: 10, race: "construct", element: "none", artKey: "golem",
-    palette: tint(ARTS.golem.palette, "#b8a060", 0.5),
+    desc: "塔の観測室が「何もない場所」を覗いた時、向こう側から歩いてきた執政官。虚空に紛れて刃をかわし、白く輝くその姿を直視した者は、輪郭から順に魂ごと存在を失う。" }, // 第13層
+  { id: "el_geargod", name: "歯車の神", elite: true, rank: 10, race: "construct", element: "none", artKey: "siegeballista",
+    palette: tint(ARTS.siegeballista.palette, "#b8a060", 0.35),
     physResist: 2, ability: "critical", // 噛み合う鋼鉄は刃を通さず、設計図から生命を除去する一撃
-    desc: "尖塔の機構の奥で、誰にも知られず回り続けた歯車の集合体。噛み合う鋼鉄の体は刃をまるで通さず、自らを神と定義し、噛み合わぬもの——生命を、急所への一撃で設計図から除去する。" }, // D77-80
+    desc: "尖塔の機構の奥で、誰にも知られず回り続けた歯車の集合体。噛み合う鋼鉄の体は刃をまるで通さず、自らを神と定義し、噛み合わぬもの——生命を、急所への一撃で設計図から除去する。" }, // 第15層
   // -- 迷宮 81-90 (冥門帯) / 強敵ランク10 --
-  { id: "el_hellwarden", name: "冥獄の大典獄", elite: true, rank: 10, race: "demon", element: "fire", artKey: "imp",
-    palette: tint(ARTS.imp.palette, "#a02818", 0.5),
+  { id: "el_hellwarden", name: "冥獄の大典獄", elite: true, rank: 10, race: "demon", element: "fire", artKey: "fortlord",
+    palette: tint(ARTS.fortlord.palette, "#a02818", 0.4),
     ability: "breath", physResist: 2, // 獄炎を全体へ撒き、灼熱の巨体は刃を弾く
-    desc: "冥獄の最下層を預かる大典獄。引きずる焼けた鎖から獄炎を前衛後衛もろとも撒き、灼熱の巨体は並の刃を弾く。腰に下がる無数の鍵は「出られなかった者」の数であり、新たな鍵を増やすことだけを喜びとする。" }, // D81-83
-  { id: "el_soulflayer", name: "魂剥ぎの主", elite: true, rank: 10, race: "specter", element: "dark", artKey: "wraith", soulClass: "bishop",
-    palette: tint(ARTS.wraith.palette, "#6a3a8a", 0.55),
+    desc: "冥獄の最下層を預かる大典獄。引きずる焼けた鎖から獄炎を前衛後衛もろとも撒き、灼熱の巨体は並の刃を弾く。腰に下がる無数の鍵は「出られなかった者」の数であり、新たな鍵を増やすことだけを喜びとする。" }, // 第18層
+  { id: "el_soulflayer", name: "魂剥ぎの主", elite: true, rank: 10, race: "specter", element: "dark", artKey: "shroudstrangler", soulClass: "bishop",
+    palette: tint(ARTS.shroudstrangler.palette, "#6a3a8a", 0.5),
     ability: "soulSteal", regen: 0.06, // 魂の殻を剥いで奪い、その力で己を保つ
-    desc: "刈り取った魂の「殻」を剥ぎ、冥府への通行料として徴収する首領。剥ぎ取った魂で己を繕い、剥がれた魂は名を忘れ、名を忘れた魂は、もう誰にも弔えない。" }, // D84-86
-  { id: "el_palerider", name: "青ざめた騎手", elite: true, rank: 10, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
-    palette: tint(ARTS.knightmare.palette, "#d8d8d0", 0.6),
+    desc: "刈り取った魂の「殻」を剥ぎ、冥府への通行料として徴収する首領。剥ぎ取った魂で己を繕い、剥がれた魂は名を忘れ、名を忘れた魂は、もう誰にも弔えない。" }, // 第14層
+  { id: "el_palerider", name: "青ざめた騎手", elite: true, rank: 10, race: "armored", element: "dark", artKey: "dullahan", soulClass: "knight",
+    palette: tint(ARTS.dullahan.palette, "#d8d8d0", 0.5),
     swift: true, ability: "critical", // 蹄鉄の音とともに先んじ、額へ一撃を打ち込む
-    desc: "冥門の前を往復し続ける青ざめた騎手。その馬蹄の音を三度聞いた者の枕元に誰より先んじて現れ、四度目の蹄鉄を額の急所へ打ち込むという。" }, // D87-90
+    desc: "冥門の前を往復し続ける青ざめた騎手。その馬蹄の音を三度聞いた者の枕元に誰より先んじて現れ、四度目の蹄鉄を額の急所へ打ち込むという。" }, // 第17層
   // -- 迷宮 91-100 (玄室帯) / 強敵ランク10 --
-  { id: "el_dragonslayer", name: "竜殺しの亡霊", elite: true, rank: 10, race: "specter", element: "none", artKey: "wraith", soulClass: "fighter",
-    palette: tint(ARTS.wraith.palette, "#c0c8d8", 0.5),
+  { id: "el_dragonslayer", name: "竜殺しの亡霊", elite: true, rank: 10, race: "specter", element: "none", artKey: "gravecaptain", soulClass: "fighter",
+    palette: tint(ARTS.gravecaptain.palette, "#c0c8d8", 0.4),
     physResist: 2, ability: "critical", // 英雄の鎧が刃を弾き、竜殺しの一撃が急所を貫く
-    desc: "百の竜を討ち、最後は竜の財宝の上で息絶えた英雄の亡霊。英雄の鎧は刃を弾き、竜殺しの本能が振るう一撃は急所だけを貫く。玄室を訪れる「竜より強き者」を新たな獲物と定めた。" }, // D91-93
+    desc: "百の竜を討ち、最後は竜の財宝の上で息絶えた英雄の亡霊。英雄の鎧は刃を弾き、竜殺しの本能が振るう一撃は急所だけを貫く。玄室を訪れる「竜より強き者」を新たな獲物と定めた。" }, // 第11層
   { id: "el_goldtyrant", name: "黄金の暴君竜", elite: true, rank: 10, race: "dragon", element: "light", artKey: "dragon",
     palette: tint(ARTS.dragon.palette, "#e8c84a", 0.55),
     physResist: 2, ability: "breath", // 黄金の鱗は刃をほぼ通さず、灼熱の吐息で全体を焼く
-    desc: "喰らった黄金が鱗となり、全身が財宝と化した暴君竜。黄金の鱗は刃をほとんど通さず、前衛後衛もろとも焼く吐息を放つ。己の体こそ世界最大の秘宝と誇り、それを見た者を生かして帰さぬことで価値を守る。" }, // D94-96
-  { id: "el_eclipsedragon", name: "日蝕の竜", elite: true, rank: 10, race: "dragon", element: "dark", artKey: "dragon",
-    palette: tint(ARTS.dragon.palette, "#141420", 0.6),
+    desc: "喰らった黄金が鱗となり、全身が財宝と化した暴君竜。黄金の鱗は刃をほとんど通さず、前衛後衛もろとも焼く吐息を放つ。己の体こそ世界最大の秘宝と誇り、それを見た者を生かして帰さぬことで価値を守る。" }, // 第19層
+  { id: "el_eclipsedragon", name: "日蝕の竜", elite: true, rank: 10, race: "dragon", element: "dark", artKey: "bonebat",
+    palette: tint(ARTS.bonebat.palette, "#141420", 0.6),
     evasive: true, ability: "breath", // 翳りに紛れて刃をかわし、日蝕の闇で全体を呑む
-    desc: "天の竜が太陽を呑む——日蝕の伝承そのものが実体化した竜。翼を広げて灯りをかげらせ、その闇に紛れて刃をかわし、吐く息は前衛後衛もろとも日蝕の闇へ呑む。" }, // D97-100
+    desc: "天の竜が太陽を呑む——日蝕の伝承そのものが実体化した竜。翼を広げて灯りをかげらせ、その闇に紛れて刃をかわし、吐く息は前衛後衛もろとも日蝕の闇へ呑む。" }, // 第19層
 ];
 // 強敵はボス相当のステータスを与える (elite フラグで通常プールから除外される)
 const ELITE_MONSTERS = defMonsters(ELITE_DEFS.map((d) => ({ ...monStats(d.rank, true), ...d })));
@@ -1837,6 +1831,29 @@ const LAYER_ELITE_DEFS = [
   { id: "el_crystalseer", name: "晶に憑かれし錬金術師", elite: true, rank: 5, race: "humanoid", element: "earth", artKey: "hd_crystalseer", soulClass: "hermit",
     magResist: 1, ability: "stone", regen: 0.05, // 晶の体は呪文を吸い、晶眼の凝視で生者を結晶に変える
     desc: "廃坑の最奥で、見てはならぬ鉱脈に魅入られた宮廷錬金術師。皮膚の下から水晶が生え出し、いまや体の半分が晶と化している。呪文は晶に吸われて霧散し、その晶眼に見据えられた者は、足先から結晶へ変わっていく。" },
+  // 第9・13・15・17・20層の強敵 (旧来の30体で足りない6体。docs/tasks.md E2)。
+  // 絵は使われなくなった旧来の固有原型を借りている。その層を作るときに hd_* の固有原型へ描き直す (C1)
+  { id: "el_bogfrogking", name: "沼呑みの蛙王", elite: true, rank: 10, race: "beast", element: "earth", artKey: "sewerlord",
+    ability: "paralyze", abRate: 0.45, regen: 0.05, // 痺れの舌を伸ばし続け、泥に潜って傷を塞ぐ
+    desc: "毒沼の底に棲む、小屋ほどもある大蛙の王。伸ばす舌の粘液は触れた者を痺れさせ、動けなくなった獲物を丸呑みにする。泥に潜れば傷はたちまち塞がる。沼の蛙の鳴き声は、すべてこの王を讃える歌だという。" }, // 第9層
+  { id: "el_librarian", name: "禁書の司書長", elite: true, rank: 10, race: "undead", element: "dark", artKey: "pettyrevenant", soulClass: "mage",
+    ability: "spell", abRate: 0.45, magResist: 1, // 暗記した呪文を浴びせ続け、乾いた体は呪文を吸う
+    desc: "魔導書庫の禁書の棚を、死してなお守り続ける司書長。許しなく頁を開いた者に、暗記した数千の呪文を浴びせる。乾ききった体は呪文を吸い、頁をめくる音が止むことはない。" }, // 第13層
+  { id: "el_moltengiant", name: "熔鉄の巨人", elite: true, rank: 10, race: "giant", element: "fire", artKey: "stormgiant",
+    palette: tint(ARTS.stormgiant.palette, "#d8602a", 0.5),
+    ability: "breath", endure: true, // 溶鉄の飛沫を浴びせ、固まった体は致命の一撃を一度だけ耐える
+    desc: "溶鉄炉の炉心で生まれた、溶けた鉄を血に持つ巨人。吐き出す溶鉄の飛沫は前衛後衛もろとも焼き、冷えて固まった体は致命の一撃を一度だけ耐える。歩くたびに床石が赤く溶ける。" }, // 第15層
+  { id: "el_tombcaptain", name: "殉葬の近衛長", elite: true, rank: 10, race: "undead", element: "water", artKey: "sarcoguard", soulClass: "knight",
+    palette: tint(ARTS.sarcoguard.palette, "#a8c8e8", 0.45),
+    role: "summoner", summonKey: "bs_iceroyalguard", physResist: 1, // 棺の鎧が刃を弾き、凍らされた近衛を呼び起こす
+    desc: "王の柩とともに、生きたまま凍らされた近衛の長。棺そのものを鎧とし、号令ひとつで殉葬された近衛たちを氷の中から呼び起こす。主が目覚めるその日まで、王墓に踏み入る者を一人も通さない。" }, // 第17層
+  { id: "el_soulcrystal", name: "封魂の大晶", elite: true, rank: 10, race: "construct", element: "light", artKey: "gravewisp",
+    palette: tint(ARTS.gravewisp.palette, "#d8c8f8", 0.5),
+    ability: "soulSteal", magResist: 1, // 近づく者の魂を引き込み、呪文は光に呑まれる
+    desc: "最初の操霊師が、最初に魂を封じた結晶。幾千の魂を内に閉じ込めたまま、玄室の闇に淡く脈打つ。近づく者の魂を引き寄せて結晶の中へ加え、放たれた呪文はその光に呑まれて消える。" }, // 第20層
+  { id: "el_namedevourer", name: "名喰らいの貴婦人", elite: true, rank: 10, race: "specter", element: "dark", artKey: "vampire", soulClass: "hexer",
+    haste: true, ability: "confuse", abRate: 0.45, // 誰よりも先に囁きかけ、名を呼ばれた者は己を見失う
+    desc: "名を奪われた魂たちの成れの果てが、ひとりの貴婦人の姿をとったもの。誰よりも先に動いて囁きかけ、名を呼ばれた者は自分が誰かを見失う。彼女自身の名は、もう誰も覚えていない。" }, // 第20層
 ];
 const LAYER_ELITE_MONSTERS = defMonsters(LAYER_ELITE_DEFS.map((d) => ({ ...monStats(d.rank, true), ...d })));
 export const LAYER_ELITES = {
@@ -1845,6 +1862,22 @@ export const LAYER_ELITES = {
   3: ["el_chainoverseer", "el_crystalseer"],    // 第3層「廃坑」
   4: ["el_warbanner", "el_headsman"],           // 第4層「捨て砦」 (旧来の ELITE_ORDER の強敵を層の強敵に)
   5: ["el_mistmother", "el_eldertreant"],       // 第5層「霧の森」 (同上。神速や特技の多用で特色を極端に押し出す)
+  // 第6〜20層 (docs/tasks.md E2 の割り当て。その層を作るときに名のある強敵 (named.js) にし、絵と特色を仕上げる)
+  6: ["el_fallenidol", "el_heresiarch"],        // 沈没神殿
+  7: ["el_cinderking", "el_magmawyrm"],         // 灼熱の洞
+  8: ["el_frostsovereign", "el_glacialmaw"],    // 氷結回廊
+  9: ["el_offeringslime", "el_bogfrogking"],    // 毒沼
+  10: ["el_blizzardwitch", "el_stareater"],     // 嵐の尖塔
+  11: ["el_ashshogun", "el_dragonslayer"],      // 闘技場跡
+  12: ["el_oremaw", "el_tunnelking"],           // 地底大空洞
+  13: ["el_voidarchon", "el_librarian"],        // 魔導書庫
+  14: ["el_lanternreaper", "el_soulflayer"],    // 屍蝋の回廊
+  15: ["el_geargod", "el_moltengiant"],         // 溶鉄炉
+  16: ["el_sorrowsaint", "el_huntsmanwraith"],  // 深淵の聖堂
+  17: ["el_palerider", "el_tombcaptain"],       // 凍てつく王墓
+  18: ["el_hellwarden", "el_phantomcompany"],   // 冥府の門
+  19: ["el_goldtyrant", "el_eclipsedragon"],    // 竜の巣
+  20: ["el_soulcrystal", "el_namedevourer"],    // 終焉の玄室
 };
 
 // ---- 出来事の魔物 (events.js の出来事にだけ現れる) ----
