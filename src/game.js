@@ -6,7 +6,7 @@ import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audi
 import { spriteCanvas, crispCanvas, drawPhoto } from "./sprites.js";
 import {
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, slotKeyFor, lvToRank, RANGE_LABEL,
-  UNIDENT_SLOTS, itemName, applyForge,
+  UNIDENT_SLOTS, itemName, applyForge, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
 } from "./items.js";
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
@@ -284,6 +284,29 @@ function pickOfRarity(rar, centerR, capR = 20) {
   }
   return null;
 }
+// ===== 道具 (消耗品) のドロップ =====
+// 戦利品・宝箱の USE_DROP_RATE は道具になる (強敵・ミミック・黒い宝箱などの上等な枠は装備のまま)。
+// 品はランク窓 (中心R−3 〜 出現上限) から、中心に近いほど出やすく選ぶ。use.drop で品ごとの出やすさを絞る
+const USE_DROP_RATE = 0.25;
+let _useLootIds = null;
+function useLootIds() {
+  if (!_useLootIds) _useLootIds = Object.keys(ITEMS).filter((id) => ITEMS[id].slot === "use" && ITEMS[id].use && !ITEMS[id].noDrop).sort();
+  return _useLootIds;
+}
+function pickUseItem(centerR, capR = lootCapR()) {
+  let total = 0; const acc = [];
+  for (const id of useLootIds()) {
+    const it = ITEMS[id];
+    const r = Math.max(1, Math.min(20, it.r20 || Math.ceil((it.lv || 1) / 10)));
+    if (r > capR || r < centerR - 3) continue;
+    const w = Math.max(1, 3 - Math.abs(r - centerR)) * (it.use.drop != null ? it.use.drop : 1);
+    total += w; acc.push([id, total]);
+  }
+  if (!total) return null;
+  const x = Math.random() * total;
+  for (const [id, t] of acc) if (x <= t) return id;
+  return acc[acc.length - 1][0];
+}
 // 戦利品を1つ選ぶ (opts は dropCenterR と同じ補正)。返り値は item id
 function pickLoot(opts = {}) {
   const centerR = dropCenterR(opts);
@@ -291,6 +314,11 @@ function pickLoot(opts = {}) {
     const miscCap = Math.min(20, centerR + 2);
     const pool = miscLootIds().filter((id) => Math.max(1, Math.min(20, ITEMS[id].r20 || 1)) <= miscCap);
     if (pool.length) return pool[rand(pool.length)];
+  }
+  const plain = !opts.rare && !opts.elite && !opts.master && !opts.mimic && !opts.lvBonus;
+  if (plain && !opts.noUse && Math.random() < USE_DROP_RATE) {
+    const uid = pickUseItem(centerR);
+    if (uid) return uid;
   }
   const lrId = opts.noLR ? null : lrTimeRoll(); // noLR: 迷宮のイベントが直接渡す品 (LR の時間抽選は宝箱・戦利品にだけ使う)
   if (lrId) return lrId;
@@ -5643,6 +5671,16 @@ const evApi = {
     evGive(id, next);
   },
   price: (id) => (ITEMS[id] && ITEMS[id].price) || 20,
+  itemNameOf: (id) => (ITEMS[id] && ITEMS[id].name) || id,
+  // 行商人の品揃え: この深さで出る道具から n 品 (マスに覚えさせ、開き直しても変わらない)
+  wares: (cell, n) => {
+    if (!cell.evWares) {
+      const out = [];
+      for (let k = 0; k < 20 && out.length < n; k++) { const id = pickUseItem(dropCenterR({})); if (id && !out.includes(id)) out.push(id); }
+      cell.evWares = out;
+    }
+    return cell.evWares.filter((id) => ITEMS[id]);
+  },
   soulDrop: (mode, line, next) => acquireSoul(evSoulClass(mode), line, next),
   // ---- 盤面 ----
   countCells: (fn) => evCells(fn).length,
@@ -7893,6 +7931,7 @@ const CMD_SVG = {
   run: '<path d="M14 3.5h5.5v17H14"/><path d="M3.5 12h10M9.5 7.5l4.5 4.5-4.5 4.5"/>',
   auto: '<path d="M13.5 2.5 5 13.5h6l-1 8 8.5-11h-6Z"/>',
   fast: '<path d="M3.5 6v12l7.5-6Zm9 0v12l7.5-6Z"/>',
+  item: '<path d="M9.5 3h5M10.5 3v5.2L5.6 17.6A2.2 2.2 0 0 0 7.5 21h9a2.2 2.2 0 0 0 1.9-3.4L13.5 8.2V3"/><path d="M7.4 14.5h9.2"/>',
   back: '<path d="M15 4.5 7.5 12l7.5 7.5"/>',
   stop: '<path d="M7 7h10v10H7Z"/>',
   keep: '<path d="M4 12a8 8 0 0 1 13.7-5.6M20 12a8 8 0 0 1-13.7 5.6"/><path d="M17.8 2.8v3.8H14M6.2 21.2v-3.8H10"/>',
@@ -8085,6 +8124,12 @@ function renderCombatMenu() {
     combatMenu.appendChild(main);
     const sub = el("div", "cmd-sub");
     sub.appendChild(cmdBtn("defend", "防御", "", () => act("defend")));
+    // 道具: 隊の誰かの袋にある、戦闘で使える品 (無頼の誓では使えない)
+    if (itemsBanned()) sub.appendChild(cmdBtn("item", "道具", "封印", () => { SFX.ng(); showToast("無頼の誓により、道具は使えない", { tone: "bad" }); }, "muted"));
+    else {
+      const nItems = battleItemStacks().reduce((a, x) => a + x.n, 0);
+      sub.appendChild(cmdBtn("item", "道具", nItems ? `${nItems}個` : "なし", () => { if (!nItems) { SFX.ng(); showToast("使える道具を持っていない", { tone: "info" }); return; } SFX.select(); showBattleItems(actor); }, nItems ? "" : "muted"));
+    }
     // 逃走: 手番の者の AGI で決まる成功率を添える (退路を断たれていれば「不可」)
     sub.appendChild(cmdBtn("run", "逃走", b.noFlee ? "不可" : `${Math.round(b.fleeChance(actor) * 100)}%`, () => act("run")));
     sub.appendChild(cmdBtn("auto", "オート", uiDungeonHud.getPref("autoKeep") ? "継続" : "", () => { G.autoCombat = true; SFX.select(); renderCombatMenu(); }));
@@ -8094,7 +8139,9 @@ function renderCombatMenu() {
     combatMenu.dataset.mode = "target";
     const p = b.pending;
     const sp = p && p.spellKey ? SPELLS[p.spellKey] : null;
-    combatMenu.appendChild(turnPlate(sp ? sp.name : "対象を選択", sp ? "の対象" : "", [sp && sp.target === "ally" ? "パーティの札をタップでも可" : "敵を直接タップでも可"]));
+    const pit = p && p.action === "item" ? p.item : null;
+    const allyPick = (sp && sp.target === "ally") || (pit && useTarget(pit) !== "enemy");
+    combatMenu.appendChild(turnPlate(sp ? sp.name : pit ? pit.name : "対象を選択", sp || pit ? "の対象" : "", [allyPick ? "パーティの札をタップでも可" : "敵を直接タップでも可"]));
     const opts = b.targetOptions();
     // 対象が多い時 (敵の群れなど) は2列に並べて縦に伸びすぎないようにする
     const list = el("div", "target-list" + (opts.length > 3 ? " cols2" : ""));
@@ -8153,6 +8200,74 @@ function showSpells(actor) {
   combatMenu.appendChild(list);
   combatMenu.appendChild(cmdBtn("back", "戻る", "", () => renderCombatMenu(), "cmd-wide cmd-backb"));
 }
+// ---- 戦闘中の道具 ----
+// 無頼の誓 (奈落の縛り): 道具を一切使えない
+function itemsBanned() { return !!(G.abyss && G.abyss.mods.includes("noItems")); }
+// 戦闘で使える道具を品ごとにまとめる (隊の全員の袋から。倒れた者の袋も使える)。並びは効果順 (compareUse)
+function battleItemStacks() {
+  const map = new Map();
+  for (const m of G.party) {
+    for (const it of (m.items || [])) {
+      if (it.slot !== "use" || !it.use || useWhere(it) === "field") continue;
+      const key = it.id || it.name;
+      if (!map.has(key)) map.set(key, { key, it, n: 0, holders: [] });
+      const x = map.get(key);
+      x.n++;
+      if (!x.holders.includes(m)) x.holders.push(m);
+    }
+  }
+  return [...map.values()].sort((a, b) => compareUse(a.it, b.it));
+}
+// 手番の者が使う時は、まず自分の袋の品を、無ければ仲間の袋の品を使う
+function itemSource(actor, key) {
+  const own = (actor.items || []).find((it) => (it.id || it.name) === key && it.slot === "use");
+  if (own) return { item: own, owner: actor };
+  for (const m of G.party) {
+    const it = (m.items || []).find((x) => (x.id || x.name) === key && x.slot === "use");
+    if (it) return { item: it, owner: m };
+  }
+  return null;
+}
+function itemLocked(it) {
+  const tk = useTarget(it);
+  if (tk === "ally" || tk === "dead") return G.battle._itemTargets(it).length === 0;
+  if (it.use && it.use.escape) return !!G.battle.noFlee;
+  return false;
+}
+function showBattleItems(actor) {
+  combatMenu.innerHTML = "";
+  combatMenu.dataset.mode = "spells";
+  combatMenu.appendChild(turnPlate(actor.name, "の道具", ["隊の袋から使う", "長押しで詳細"]));
+  const stacks = battleItemStacks();
+  const list = el("div", "target-list" + (stacks.length > 4 ? " cols2" : ""));
+  for (const x of stacks) {
+    const it = x.it;
+    const locked = itemLocked(it);
+    const b = btn("", () => {
+      if (locked) { SFX.ng(); showToast(it.use.escape ? "退路が閉ざされている" : "効果のある対象がいない", { tone: "info" }); return; }
+      const src = itemSource(actor, x.key);
+      if (!src) { SFX.ng(); renderCombatMenu(); return; }
+      act("item", null, src);
+    });
+    const kind = it.use.bomb ? "atk" : it.use.hex ? "debuff" : it.use.buff ? "buff" : it.use.escape ? "escape" : it.use.revive || it.use.heal || it.use.full ? "heal" : it.use.mp || it.use.mpFull ? "mana" : "cure";
+    b.className = "btn spell spell-" + kind + " spell-item";
+    const top = el("span", "sp-top");
+    const ic = el("span", "sp-ic");
+    ic.appendChild(spriteCanvas(it, 1));
+    top.appendChild(ic);
+    top.appendChild(el("span", "sp-n", it.name));
+    top.appendChild(el("span", "sp-mp", `×${x.n}`));
+    b.appendChild(top);
+    const holder = x.holders.includes(actor) ? "" : ` (${x.holders[0].name})`;
+    b.appendChild(el("span", "sp-d", useLines(it, true).join("・") + holder));
+    b.style.setProperty("--sp-col", SPELL_KIND_COLOR[kind] || "#c9a24a");
+    if (locked) b.classList.add("locked");
+    attachLongPress(b, () => { SFX.select(); UI.itemSheet(it, { context: "view" }); });
+    list.appendChild(b);
+  }
+  combatMenu.appendChild(list);
+  combatMenu.appendChild(cmdBtn("back", "戻る", "", () => renderCombatMenu(), "cmd-wide cmd-backb"));
+}
 // ---- 戦闘ループ駆動 (1手ずつ・演出付き) ----
 // 戦闘テンポ (演出時間の倍率): 倍速 ON = 標準 (1) / OFF = その 1/2 の速さ (2)。オート中は倍速の設定によらず短縮する
 function spdMul() { return G.autoCombat ? 0.45 : G.fastAnim ? 1 : 2; }
@@ -8198,10 +8313,10 @@ function combatStep() {
 }
 
 // 味方コマンド選択
-function act(action, spellKey) {
+function act(action, spellKey, extra) {
   const b = G.battle;
   const actor = b.current;
-  const r = b.chooseAction(action, spellKey);
+  const r = b.chooseAction(action, spellKey, extra);
   if (r && r.invalid) { renderCombatMenu(); return; }
   // 最後に使った技を人業ごとに覚える (次の手番の早出しボタン)
   if (action === "spell" && spellKey && actor && actor.uid != null) uiDungeonHud.remember("lastSkill", String(actor.uid), spellKey);
@@ -11186,11 +11301,18 @@ function buyRedPack(n) {
 // ---- 商店: 装備・道具の売買 ----
 // 画面 (売る・鑑定 / 買う) は src/ui/shop.js が商会タブとして描く。ここには売買・鑑定の単体操作と値段だけを置く
 // 商店の初期在庫 (個数つき)。ダンジョン産を売ると在庫に積まれ、買い直せる (ボルタック方式)
+// 道具は薬草・毒消し草だけを置き、ほかの道具は売られて初めて棚に並ぶ。在庫は1品あたり SHOP_STOCK_MAX まで
+const SHOP_STOCK_MAX = 999;
 const SHOP_INIT_STOCK = {
-  herb: 5, antidote: 5, manaDrop: 3,
+  herb: 10, antidote: 10,
   dagger: 2, shortSword: 1, magicStaff: 1, warHammer: 1,
   woodShield: 1, leatherArmor: 1, robe: 1, cap: 2, leatherBoots: 2, leatherGloves: 2,
 };
+// 売られた品を棚に積む (上限 SHOP_STOCK_MAX。上限に達した品は引き取るが棚には増えない)
+function shopStockAdd(id) {
+  if (!id) return;
+  G.shopStock[id] = Math.min(SHOP_STOCK_MAX, (G.shopStock[id] || 0) + 1);
+}
 const sellPrice = (it) => Math.max(1, Math.floor((it.price || 10) / 2));
 // 控えの結社 値切り (bargain): 店の買値・鑑定費を -8/15/25% 割引
 function bargainMul() { const lv = partyPassiveLv("bargain"); return lv >= 3 ? 0.75 : lv >= 2 ? 0.85 : lv >= 1 ? 0.92 : 1; }
@@ -11239,7 +11361,7 @@ function sellItem(owner, it, price) {
   owner.items.splice(idx, 1);
   G.gold += price;
   // 在庫に積む (ボルタック方式)。未鑑定品は並ばない
-  if (it.id && !it.unidentified) G.shopStock[it.id] = (G.shopStock[it.id] || 0) + 1;
+  if (it.id && !it.unidentified) shopStockAdd(it.id);
   codexSeeItem(it.id, it);
   SFX.select(); buzz(10);
   const shown = itemName(it);
@@ -12201,24 +12323,70 @@ function doUnequip(p, key) {
   renderStatus(); renderParty();
   return r;
 }
-function useItem(p, index) {
+// 道具を戦闘の外で使う (隊の画面・戦利品のシート)。p = 袋の持ち主。target = 使う相手 (省略時: 効く相手が1人ならその人、
+// 複数なら選ばせる)。効き目は品で決まる (combat.js _useItem と同じ量)。戦闘でしか使えない品は使えない
+function useItem(p, index, target) {
   const it = p.items[index];
-  if (!it || it.slot !== "use") return;
+  if (!it || it.slot !== "use" || !it.use) return;
+  const u = it.use;
   // 無頼の誓 (奈落の縛り): 道具 (消耗品) を一切使えない
-  if (G.abyss && G.abyss.mods.includes("noItems")) { SFX.ng(); log("無頼の誓により、道具は使えない。", "sys"); showToast("無頼の誓により、道具は使えない", { tone: "bad" }); return; }
-  let used = false;
-  if (it.use.heal) {
-    if (p.hp >= p.maxhp) { log(`${p.name}のHPは満タンだ`, "sys"); showToast(`${p.name}のHPは満タンだ`, { tone: "info" }); }
-    else { const b = p.hp; p.hp = Math.min(p.maxhp, p.hp + it.use.heal); log(`${p.name}は${it.name}を使った。HP回復！`, "heal"); SFX.heal(); used = true; showToast(`${it.name} ― ${p.name} HP+${p.hp - b}`, { tone: "good" }); }
-  } else if (it.use.mp) {
-    if (p.mp >= p.maxmp) { log(`${p.name}のMPは満タンだ`, "sys"); showToast(`${p.name}のMPは満タンだ`, { tone: "info" }); }
-    else { const b = p.mp; p.mp = Math.min(p.maxmp, p.mp + it.use.mp); log(`${p.name}は${it.name}を使った。MP回復！`, "heal"); SFX.heal(); used = true; showToast(`${it.name} ― ${p.name} MP+${p.mp - b}`, { tone: "good" }); }
-  } else if (it.use.cure) {
-    if (p.ailment === it.use.cure) { p.ailment = null; log(`${p.name}の毒が治った`, "heal"); SFX.heal(); used = true; showToast(`${p.name}の毒が治った`, { tone: "good" }); }
-    else { log(`効果がなかった`, "sys"); showToast("効果がなかった", { tone: "info" }); }
+  if (itemsBanned()) { SFX.ng(); log("無頼の誓により、道具は使えない。", "sys"); showToast("無頼の誓により、道具は使えない", { tone: "bad" }); return; }
+  const where = useWhere(it);
+  if (where === "battle") { SFX.ng(); showToast(`${it.name}は戦闘中にしか使えない`, { tone: "info" }); return; }
+  if (u.float) {
+    if (G.state !== "board" || !inDungeon()) { SFX.ng(); showToast(`${it.name}は迷宮を歩いている時にしか使えない`, { tone: "info" }); return; }
+    if (floatLeft() >= u.float) { SFX.ng(); showToast(`もう浮いている ― 残り${floatLeft()}階`, { tone: "info" }); return; }
+    p.items.splice(index, 1);
+    G.run.float = u.float;
+    SFX.spell();
+    log(`${p.name}は${it.name}を使った。隊の足が地を離れる ― ${u.float}階のあいだ落とし穴にも毒の床にもかからない。`, "win");
+    showToast(`${it.name} ― ${u.float}階のあいだ宙に浮く`, { tone: "good" });
+    renderStatus(); renderParty(); renderBoard(); autosave(true);
+    return;
   }
-  if (used) p.items.splice(index, 1);
+  const tk = useTarget(it);
+  const cands = G.party.filter((t) => useHelps(it, t));
+  if (!cands.length) {
+    const what = u.revive ? "倒れた仲間がいない" : "効果のある相手がいない";
+    log(`${it.name}: ${what}`, "sys"); showToast(what, { tone: "info" });
+    return;
+  }
+  if (tk !== "all-ally" && !target) {
+    if (cands.length === 1) target = cands[0];
+    else {
+      // 相手を選ぶ (HP・MP・状態異常を添える)
+      const opts = cands.map((t) => ({
+        label: `${t.name}　${!t.alive ? "倒れている" : (u.mp || u.mpFull) && !(u.heal || u.full) ? `MP ${t.mp}/${t.maxmp}` : `HP ${t.hp}/${t.maxhp}`}${t.alive && t.ailment ? ` (${AIL_NAME[t.ailment] || t.ailment})` : ""}`,
+        fn: () => { const i = p.items.indexOf(it); if (i >= 0) useItem(p, i, t); },
+      }));
+      opts.push({ label: "やめる", cancel: true, fn: () => {} });
+      showChoice(`${it.name}を誰に使う？`, opts, null, { banner: "✦ 道具 ✦", lines: useLines(it, true) });
+      return;
+    }
+  }
+  if (target && !useHelps(it, target)) { SFX.ng(); showToast("効果がない", { tone: "info" }); return; }
+  const targets = tk === "all-ally" ? cands : [target];
+  p.items.splice(index, 1);
+  const kinds = useCureKinds(u);
+  const notes = [];
+  for (const t of targets) {
+    if (u.revive) {
+      t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false;
+      t.hp = Math.max(1, Math.min(t.maxhp, Math.round(t.maxhp * u.revive)));
+      notes.push(`${t.name} 蘇生`);
+      log(`${p.name}は${it.name}を使った。${t.name}が蘇った (HP ${t.hp})`, "heal");
+      continue;
+    }
+    const bits = [];
+    if (u.heal || u.full) { const b = t.hp; t.hp = Math.min(t.maxhp, t.hp + (u.full ? t.maxhp : u.heal)); if (t.hp > b) bits.push(`HP+${t.hp - b}`); }
+    if ((u.mp || u.mpFull) && (t.maxmp || 0) > 0) { const b = t.mp; t.mp = Math.min(t.maxmp, t.mp + (u.mpFull ? t.maxmp : u.mp)); if (t.mp > b) bits.push(`MP+${t.mp - b}`); }
+    if (kinds.length && t.ailment && kinds.includes(t.ailment)) { bits.push(`${AIL_NAME[t.ailment] || "状態異常"}が治った`); t.ailment = null; }
+    if (bits.length) { notes.push(`${t.name} ${bits.join(" ")}`); log(`${p.name}は${it.name}を使った。${t.name}: ${bits.join("・")}`, "heal"); }
+  }
+  SFX.heal(); buzz(10);
+  showToast(`${it.name} ― ${notes.length > 2 ? `${notes.length}人に効いた` : notes.join(" / ")}`, { tone: "good" });
   renderStatus(); renderParty();
+  autosave(true);
 }
 // 捨てる: 取り返しのつかない操作なので確認画面を挟む
 function dropItem(p, index) {
@@ -13170,7 +13338,7 @@ const OPS = {
       if (idx < 0) continue;
       doll.items.splice(idx, 1);
       G.gold += price; gold += price;
-      if (item.id) G.shopStock[item.id] = (G.shopStock[item.id] || 0) + 1;
+      if (item.id) shopStockAdd(item.id);
       codexSeeItem(item.id, item);
       n++;
     }
@@ -13419,7 +13587,7 @@ function wireUI() {
     G, log, autosave, buzz, flashScreen, shakeScreen,
     renderTown, renderBoard, renderParty, renderRunbar, updateTopbar, renderStatus,
     allDolls, recalcAllDolls, inDungeon, curDungeon, activeCfg, dungeonNumber, clearedDungeonCount, reportedDungeonCount,
-    sellPrice, buyPrice, appraiseCost, innCost, sellWarnings, bargainMul,
+    sellPrice, buyPrice, appraiseCost, innCost, sellWarnings, bargainMul, shopStockAdd,
     itemRankName, itemRankColor, itemGradeText, itemNameEl, logClassForItem,
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,

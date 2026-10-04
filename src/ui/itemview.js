@@ -7,7 +7,7 @@ import { el, sheet } from "./kit.js";
 import { ELEMENTS, elemBeats, RACE_LABEL, unknownName } from "../dungeons/index.js";
 import { SPELLS } from "../combat.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
-import { WEAPON_CAT_LABEL, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, scaleText } from "../items.js";
+import { WEAPON_CAT_LABEL, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, scaleText, useLines } from "../items.js";
 import { HERO, spriteCanvas, crispCanvas } from "../sprites.js";
 
 // 魂のステータス寄与を「HP+7 ATK+2.4 …」形式で列挙 (0は省略)
@@ -376,9 +376,7 @@ export function statLines(it) {
   if (ea) parts.push(ea);
   if (ed) parts.push(ed);
   for (const x of ailStatParts(it)) parts.push(x);
-  if (it.use && it.use.heal) parts.push(`HP +${it.use.heal}`);
-  if (it.use && it.use.mp) parts.push(`MP +${it.use.mp}`);
-  if (it.use && it.use.cure) parts.push(`毒を治す`);
+  if (it.use) for (const x of useLines(it, true)) parts.push(x);
   return parts.join("　");
 }
 
@@ -532,9 +530,7 @@ export function detailLines(it) {
   const L = [];
   L.push(itemCatText(it));
   if (it.slot === "use") {
-    if (it.use && it.use.heal) L.push(`HPを ${it.use.heal} 回復`);
-    if (it.use && it.use.mp) L.push(`MPを ${it.use.mp} 回復`);
-    if (it.use && it.use.cure) L.push("毒を治す");
+    if (it.use) for (const x of useLines(it)) L.push(x);
   } else if (it.slot === "misc") {
     L.push("商店で売って金にする戦利品");
   } else if (it.slot === "mat") {
