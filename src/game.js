@@ -9666,7 +9666,7 @@ function raiseSoulCap(uid) {
 // G.quest = {
 //   board:  [q]   掲示板に貼られたフリークエスト (受ける前)。迷宮から帰還するたびに貼り替わる
 //   active: [q]   受けたフリークエスト (最大 FREE_CAP 件)。帰還しても残り、達成して報告するか放棄するまで枠を使う
-//   fixed:  { id: { state:"active"|"done"|"claimed", progress } }  受けた固定クエスト (上限なし・枠に数えない)
+//   fixed:  { id: { state:"active"|"done"|"claimed", progress } }  受けた固定クエスト (報告するまで FREE_CAP の枠を使う)
 //   seen:   { id:1 }  酒場で一度見た固定クエスト (「新」の印を消す)
 //   seq:    依頼の通し番号
 // }
@@ -9774,6 +9774,11 @@ function fixedQuestReward(def) {
   if (r.souls) out.souls = r.souls.map((x) => [...x]);
   return out;
 }
+// 受注の枠を使っている依頼の数 (フリー + 報告前の固定クエスト)。上限 FREE_CAP
+function questSlotCount() {
+  const s = questState();
+  return s.active.length + Object.values(s.fixed).filter((f) => f && f.state !== "claimed").length;
+}
 // 受注中・報告待ちの依頼 (フリー + 固定) と、掲示板・依頼人の依頼
 function questLists() {
   const s = questState();
@@ -9782,7 +9787,7 @@ function questLists() {
   return {
     active: [...fixedActive, ...s.active],
     offers: [...fixedQuestOffers().map(fixedQuestView), ...(s.board || [])],
-    freeCount: s.active.length, cap: FREE_CAP,
+    freeCount: questSlotCount(), cap: FREE_CAP,
   };
 }
 // 依頼を探す (uid = フリーの通し番号 / 固定の id)
@@ -9816,12 +9821,19 @@ function facilityOpenKey(key) {
   return !a || a.includes(key);
 }
 
-// 依頼を受ける。フリーは同時に FREE_CAP 件まで。固定は上限なし (受けると地図に迷宮が現れるものもある)
+// 依頼を受ける。フリーと固定 (依頼人の頼み) を合わせて同時に FREE_CAP 件まで (固定は受けると地図に迷宮が現れるものもある)
+function questCapRefused() {
+  if (questSlotCount() < FREE_CAP) return false;
+  SFX.ng();
+  showToast(`受けられる依頼は ${FREE_CAP}件まで。達成して報告するか、放棄してから`, { tone: "bad" });
+  return true;
+}
 function acceptQuest(uid) {
   const s = questState();
   const def = FIXED_BY_ID[uid];
   if (def) {
     if (s.fixed[uid] || !fixedQuestAppears(def)) return false;
+    if (questCapRefused()) return false;
     s.fixed[uid] = { state: "active", progress: 0 };
     s.seen[uid] = 1;
     SFX.select();
@@ -9834,11 +9846,7 @@ function acceptQuest(uid) {
   }
   const i = (s.board || []).findIndex((q) => q.uid === uid);
   if (i < 0) return false;
-  if (s.active.length >= FREE_CAP) {
-    SFX.ng();
-    showToast(`受けられる依頼は ${FREE_CAP}件まで。達成して報告するか、放棄してから`, { tone: "bad" });
-    return false;
-  }
+  if (questCapRefused()) return false;
   const q = s.board.splice(i, 1)[0];
   q.state = "active"; q.progress = 0;
   s.active.push(q);
@@ -9848,9 +9856,22 @@ function acceptQuest(uid) {
   renderTown();
   return true;
 }
-// 受けたフリークエストを放棄する (枠が1つ空く。進みは失われる)
+// 受けた依頼を放棄する (枠が1つ空く。進みは失われる)。
+// 固定クエスト (依頼人の頼み) は達成前なら放棄でき、依頼人の依頼として酒場に戻る (開いた迷宮はそのまま)
 function abandonQuest(uid) {
   const s = questState();
+  const def = FIXED_BY_ID[uid];
+  if (def) {
+    const st = s.fixed[uid];
+    if (!st || st.state !== "active") return false;
+    delete s.fixed[uid];
+    SFX.select();
+    log(`依頼「${def.name}」を放棄した。(${def.giver.name})`, "sys");
+    showToast(`依頼「${def.name}」を放棄した`, { tone: "info" });
+    autosave(true);
+    renderTown();
+    return true;
+  }
   const i = s.active.findIndex((q) => q.uid === uid);
   if (i < 0) return false;
   const q = s.active.splice(i, 1)[0];
@@ -10152,10 +10173,6 @@ function rollDeliveryReward(it) {
   for (const [rarity, count, p] of rows) { if ((r -= p) < 0) return [rarity, count]; }
   const last = rows[rows.length - 1];
   return [last[0], last[1]];
-}
-// 報酬テーブルの表示文
-function deliveryRewardDesc(it) {
-  return deliveryRewardRowsOf(it).map(([rar, c, p]) => `${RARITY_LABEL[rar]}魂×${c} (${Math.round(p * 100)}%)`).join(" / ");
 }
 // 指定レアリティの職業をランダムに選ぶ
 function rollClassOfRarity(rarity) {
@@ -13727,7 +13744,7 @@ bindGame({
   achievementCards, claimNextTreasury, TREASURY_MILESTONES, milestoneLabel, totalDonatedKinds,
   codexMonEntry, dungeonRoster, CODEX_OTHER,
   // 酒場・祠・宿
-  listenRumor, RUMOR_PRICE, rumorPrice, deliveryRewardDesc, rollTavernCrowd,
+  listenRumor, RUMOR_PRICE, rumorPrice, rollTavernCrowd,
   questState, questLists, questByUid, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount,
   adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)
