@@ -825,9 +825,12 @@ function genDeliver(ctx) {
     desc: `「${nm}」を納める`, note: "手持ちか、商会の棚の品で納められる", reward: { deliver: true } });
 }
 
-// 帰還の鈴 (迷宮のどこからでも街へ帰れる道具。迷宮では落ちない)。掲示板の依頼のうち1件は、礼にこれを添える
+// 帰還の鈴 (迷宮のどこからでも街へ帰れる道具。迷宮では落ちない)。
+// 実プレイ1時間に1つ: 前回の鈴を受け取ってから BELL_EVERY_MS 遊ぶと (ctx.bell)、掲示板の1件の礼に添える
 export const RECALL_ITEM = "u_recall_bell";
-// 掲示板を貼り直す: 1件目は納品、残りは討伐多めに。納品以外の1件の礼に帰還の鈴を添える (たまに2つ)
+export const BELL_EVERY_MS = 3600 * 1000;
+export const hasBell = (q) => !!(q && q.reward && (q.reward.items || []).some(([id]) => id === RECALL_ITEM));
+// 掲示板を貼り直す: 1件目は納品、残りは討伐多めに。鈴の頃合いなら、納品以外の1件の礼に帰還の鈴を1つ添える
 export function rollBoard(ctx, size = BOARD_SIZE) {
   if (!ctx.dungeons.length) return [];
   const out = [];
@@ -841,9 +844,9 @@ export function rollBoard(ctx, size = BOARD_SIZE) {
     push(g(ctx));
   }
   const cands = out.filter((q) => q.type !== "deliver");
-  if (cands.length) {
+  if (ctx.bell && cands.length) {
     const q = cands[ctx.rand(cands.length)];
-    q.reward = { ...q.reward, items: [[RECALL_ITEM, ctx.rand(100) < 25 ? 2 : 1]] };
+    q.reward = { ...q.reward, items: [[RECALL_ITEM, 1]] };
   }
   return out;
 }
