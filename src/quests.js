@@ -797,7 +797,7 @@ function genKill(ctx) {
     if (ctx.rand(100) < 18) reward.souls = [["common", 1]];
     ctx.avoid.add("k:" + key);
     return offerOf("kill", pickText(ctx, "kill"), { mon: m.name, goal }, { keys: [key], goal, dungeon: cfg.id, floor: f1,
-      desc: `${m.name}を ${goal}体 倒す`, note: `「${cfg.short || cfg.name}」の地下${f1}階から出る`, reward });
+      desc: `${m.name}を ${goal}体 倒す`, note: `「${cfg.name}」の地下${f1}階から出る`, reward });
   }
   return null;
 }
@@ -826,7 +826,7 @@ function genReach(ctx) {
   if (ctx.rand(100) < 25) reward.souls = [["common", 1]];
   ctx.avoid.add("f:" + cfg.id);
   return offerOf("floor", pickText(ctx, "floor"), { dun: cfg.name, f }, { goal: f, dungeon: cfg.id,
-    desc: `「${cfg.short || cfg.name}」の地下${f}階へ降りる`, note: "帰還魔法陣から潜り始めても数える", reward });
+    desc: `「${cfg.name}」の地下${f}階へ降りる`, note: "帰還魔法陣から潜り始めても数える", reward });
 }
 function genDeliver(ctx) {
   const ids = ctx.deliverIds.filter((id) => !ctx.avoid.has("i:" + id));

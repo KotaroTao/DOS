@@ -273,7 +273,7 @@ function renderCodexMon(box) {
   if (!Number.isFinite(idx) || (idx !== -1 && !(idx === -2 && named.length) && !opened.includes(idx))) idx = opened[0];
   const items = [];
   if (named.length) items.push({ key: "-2", label: "名のある強敵" });
-  for (const i of opened) items.push({ key: String(i), label: DUNGEONS[i].short || DUNGEONS[i].name });
+  for (const i of opened) items.push({ key: String(i), label: DUNGEONS[i].name });
   items.push({ key: "-1", label: "その他" });
   const rosterOf = (i) => i === -2 ? named.map((n) => n.id) : i === -1 ? (game.CODEX_OTHER || []).filter((k) => MONSTERS[k]) : (game.dungeonRoster ? game.dungeonRoster(DUNGEONS[i]) : []);
   const freshIn = (i) => rosterOf(i).filter(isFreshMon).length || null;
