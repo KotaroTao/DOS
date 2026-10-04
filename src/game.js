@@ -5101,7 +5101,8 @@ function autoMoveFoes() {
 function autoMoveWounded() {
   return new Set(G.party.filter((p) => !p.alive || p.hp < p.maxhp * AUTO_MOVE_HURT).map((p) => p.uid));
 }
-function setAutoMove(on, note) {
+// 切り替え・止まったことの知らせ (トースト) は出さない (ユーザーの指示、2026-10)。ON/OFF はドックの札の灯りで分かる
+function setAutoMove(on) {
   on = !!on && G.state === "board" && inDungeon();
   if (!!G.autoMove === on) return;
   G.autoMove = on;
@@ -5111,18 +5112,14 @@ function setAutoMove(on, note) {
   if (autoMoveTimer !== null) { clearTimeout(autoMoveTimer); autoMoveTimer = null; }
   if (on) {
     autoMoveHurt = autoMoveWounded();
-    const foes = { avoid: "見えている敵は避ける", weak: "強敵は避ける", all: "見えている敵にも挑む" }[autoMoveFoes()];
-    showToast(note || `オート移動 ― 近くの墓石からめくっていく (${foes})`, { tone: "info" });
     autoMoveSchedule(0);
-  } else if (note) {
-    showToast(note, { tone: "info" });
   }
   renderDock();
 }
 function toggleAutoMove() {
   if (G.state !== "board" || !inDungeon() || uiBlocked()) return;
   SFX.select(); buzz(10);
-  setAutoMove(!G.autoMove, G.autoMove ? "オート移動を止めた" : null);
+  setAutoMove(!G.autoMove);
 }
 function autoMoveSchedule(ms) {
   if (autoMoveTimer !== null) clearTimeout(autoMoveTimer);
@@ -5148,17 +5145,13 @@ function autoMoveTick() {
   else if (uiBlocked() && !autoMoveBreak) autoMoveBreak = "choice";
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) { autoMoveSchedule(150); return; }
   if (autoMoveBreak) {
-    setAutoMove(false, autoMoveBreak === "battle" ? "戦闘が終わった ― オート移動を止めた" : "オート移動を止めた");
+    setAutoMove(false);
     return;
   }
   if (autoMoveHold) { const fn = autoMoveHold; autoMoveHold = null; fn(); autoMoveSchedule(150); return; }
   // 新たに深手を負った・倒れた者がいる: 歩みを止めて手当てを促す
   const hurt = [...autoMoveWounded()].filter((u) => !autoMoveHurt.has(u));
-  if (hurt.length) {
-    const p = G.party.find((m) => m.uid === hurt[0]);
-    setAutoMove(false, `${p ? p.name : "仲間"}が${p && !p.alive ? "倒れている" : "深手を負っている"} ― オート移動を止めた`);
-    return;
-  }
+  if (hurt.length) { setAutoMove(false); return; }
   autoMoveHurt = autoMoveWounded(); // 癒えた者は数え直す (また深手になれば止まる)
   if (autoMoveVia) {
     const t = autoMoveVia;
@@ -5167,18 +5160,12 @@ function autoMoveTick() {
     autoMoveVia = null; // 着いた・もう行けない
   }
   const step = autoMovePlan();
-  if (!step) {
-    const blocked = autoMovePlan({ ignoreDanger: true });
-    setAutoMove(false, blocked
-      ? "見えている敵や罠が道を塞いでいる ― オート移動を止めた"
-      : findRevealedStairs() ? "この階の墓石はめくり尽くした ― オート移動を止めた" : "めくれる墓石が見当たらない ― オート移動を止めた");
-    return;
-  }
+  if (!step) { setAutoMove(false); return; } // めくれる墓石が無い・敵や罠が道を塞いでいる
   moveStep(step.x, step.y, () => autoMoveSchedule(walkMs(110)));
 }
 // 次の1歩を決める: 安全なめくり済みのマスを通って届く行き先 (伏せた墓石・挑む敵) のうち最も近いもの。
-// 決断の要る札は、それを避けて届く行き先が無い時だけ通る。ignoreDanger = 塞がれているかの確かめ用
-function autoMovePlan({ ignoreDanger = false } = {}) {
+// 決断の要る札は、それを避けて届く行き先が無い時だけ通る
+function autoMovePlan() {
   const b = G.board;
   if (!b) return null;
   const foes = autoMoveFoes();
@@ -5222,11 +5209,10 @@ function autoMovePlan({ ignoreDanger = false } = {}) {
           first.set(k, step);
           const foe = isFoe(c) && (c.revealed || sensed.has(k));
           // 行き先: 挑む敵 / 伏せた墓石 (避ける敵の光は除く)
-          // (塞がれているかの確かめでは、伏せた墓石だけを行き先にし、敵・罠も通れるものとする)
-          if (!found && (ignoreDanger ? !c.revealed : foe ? fightable(c) : !c.revealed)) found = step;
+          if (!found && (foe ? fightable(c) : !c.revealed)) found = step;
           if (found) continue;
           // 中継: めくり済みで、敵・罠でなく、(この回は) 決断の要る札でもないマス
-          if (!c.revealed || (!ignoreDanger && (isFoe(c) || danger(c)))) continue;
+          if (!c.revealed || isFoe(c) || danger(c)) continue;
           if (!passNuisance && nuisance(c)) continue;
           next.push([nx, ny]);
         }
@@ -13811,7 +13797,7 @@ document.addEventListener("pointermove", (e) => {
   const mdy = mdx === 0 ? (dy > 0 ? 1 : -1) : 0;
   swipe.dir = { dx: mdx, dy: mdy };
   G._swiped = true;
-  if (G.autoMove && G.state === "board") setAutoMove(false, "手で歩いたので、オート移動を止めた");
+  if (G.autoMove && G.state === "board") setAutoMove(false);
   // 札の上から始めたフリックは、方向が決まった時点で指を #party (作り直されない器) に捕まえておく。
   // 歩くたびに renderParty() が札を作り直しても、指を離した pointerup を取りこぼさない (タップは札のまま)。
   if (swipe.party) { try { partyEl.setPointerCapture(e.pointerId); } catch (err) { /* 非対応環境は素通し */ } }
@@ -13837,7 +13823,7 @@ document.addEventListener("keydown", (e) => {
   if (typingKey(e)) return;
   if (e.key === "m" || e.key === "M") { if (!e.repeat) updateMuteBtn(toggleMute()); return; }
   if (G.state !== "board" || uiBlocked()) return;
-  if (G.autoMove && /^(Arrow(Up|Down|Left|Right)|[wasd])$/.test(e.key)) { setAutoMove(false, "手で歩いたので、オート移動を止めた"); e.preventDefault(); return; }
+  if (G.autoMove && /^(Arrow(Up|Down|Left|Right)|[wasd])$/.test(e.key)) { setAutoMove(false); e.preventDefault(); return; }
   switch (e.key) {
     case "ArrowUp": case "w": tryMove(0, -1); break;
     case "ArrowDown": case "s": tryMove(0, 1); break;
