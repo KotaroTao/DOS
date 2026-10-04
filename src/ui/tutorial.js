@@ -4,7 +4,8 @@
 // (game.js blockForTutorial ← 出撃シート・departNow・奈落)。
 //   流れ: 導入 (館の主イレーヌ / 酒場の情報屋の語り) → 手順 (実際に操作する。画面下の札に今の手順、
 //         押す所が光る) → 完了のカード。手順の完了は状態 (done) か、UI から届く合図 (on = tutorialEvent) で判定する。
-//   練習用の素材 (融合の素材・サブ魂に宿す魂) が無ければ、導入で1つ預ける (詰まないように)。
+//   練習用の素材は導入で預ける (詰まないように): 魂融合は戦士の魂を必ず2つ (2つどうしでも融合できる)、
+//   サブ魂は宿す魂が無ければ1つ。
 //   どうしても行えない手順 (素材を使い切った等) は skip で飛ばし、手ほどき自体は必ず終えられる。
 // 状態: G.tut = { done: {key:true}, cur, step, ev: {合図}, base: {始めた時の数} } (セーブされる)。
 //   旧セーブ: 解放済みで未完の手ほどきは、その要素をもう使っていれば済み扱い、まだなら目標の札から始められる。
@@ -59,6 +60,11 @@ function spareSouls() {
   const worn = wornSet();
   return (G_().souls || []).filter((s) => !worn.has(s.uid));
 }
+// 融合できる魂がどこかにある (宿していない魂どうしでもよい)
+function anyFusable() {
+  if (!game.fuseCandidates) return false;
+  return (G_().souls || []).some((s) => game.fuseCandidates(s.uid).length > 0);
+}
 function dollWithSub() {
   return (G_().party || []).find((d) => (d.subs || []).some((s) => s && soulByUid(s.uid))) || null;
 }
@@ -89,14 +95,12 @@ const TUTS = [
     key: "fusion", name: "魂融合", who: "irene",
     open: () => !!(game.featureUnlocked && game.featureUnlocked("fusion")),
     used: () => ((G_().stats || {}).fusions || 0) > 0,
+    // 素材の有無に関わらず、戦士の魂を2つ預ける (宿していなくても、2つどうしで融合できる)
     prepare() {
       tutState().base.fusions = (G_().stats || {}).fusions || 0;
-      if (fusableDoll()) return null;
-      const d = (G_().party || []).find((x) => x.primary != null && soulByUid(x.primary));
-      if (!d) return null;
-      const cls = soulByUid(d.primary).clsKey;
-      grantSoul(cls);
-      return jobLabel(cls);
+      if (!grantSoul("fighter")) return null;
+      grantSoul("fighter");
+      return `${jobLabel("fighter")}の魂をふたつ`;
     },
     intro: (gift) => [
       say(["王さまから、魂融合のお許しが出たそうですね。", "やり方は、わたしがお教えします。"],
@@ -105,18 +109,22 @@ const TUTS = [
         ["同じ職の魂どうしは、寄り添わせるとひとつに溶け合うの。", "素材にした魂は消えるけれど、その力は残る方へ移るわ。"]),
       say(["融合を重ねるほど、魂の格 (ランク) が上がります。", "Lvの上限が伸び、新しい技や加護を覚えますよ。"],
         ["融合を重ねるほど、魂の格 (ランク) が上がるの。", "Lvの上限が伸びて、新しい技や加護を覚えるわ。"]),
-      gift ? say([`練習に、${gift}の魂をひとつお預けします。`, "宿している同じ職の魂に、溶かしてみてください。"],
-        [`練習に、${gift}の魂をひとつ預けておくわね。`, "宿している同じ職の魂に、溶かしてごらんなさい。"])
+      gift ? say([`練習に、${gift}お預けします。`, "宿している戦士の魂に溶かしても、ふたつを溶かし合わせてもかまいません。"],
+        [`練習に、${gift}預けておくわね。`, "宿している戦士の魂に溶かしても、ふたつを溶かし合わせてもいいわ。"])
         : say(["同じ職の魂が、もう余っているようですね。", "宿している魂に、溶かしてみてください。"],
           ["同じ職の魂が、もう余っているみたいね。", "宿している魂に、溶かしてごらんなさい。"]),
       say(["『魂』の区分の『魂融合』からです。", "済ませるまで、王さまは門をお開けになりません。"],
         ["『魂』の区分の『魂融合』からよ。", "済ませるまで、王さまは門を開けてくださらないわ。"]),
     ],
     steps: [{
-      text: "魂融合で、余っている魂を溶かす", hint: "魂の区分 →『魂融合』→ 素材の魂を選ぶ",
-      go: () => goSoulSeg(fusableDoll()), target: [".sp-fuse.hot", ".sp-fuse"],
+      text: "魂融合で、余っている魂を溶かす",
+      // 宿している魂に融合できるなら魂の区分の『魂融合』、無ければ『魂を付け替える』の一覧の『魂融合』
+      get hint() {
+        return fusableDoll() ? "魂の区分 →『魂融合』→ 素材の魂を選ぶ" : "魂の区分 →『魂を付け替える』→ 戦士の魂の『魂融合』";
+      },
+      go: () => goSoulSeg(fusableDoll()), target: [".sp-fuse.hot", ".sp-pick-fuse", ".sp-change"],
       done: () => ((G_().stats || {}).fusions || 0) > (tutState().base.fusions || 0),
-      skip: () => !fusableDoll(),
+      skip: () => !anyFusable(),
     }],
     outro: ["同じ職の魂が手に入ったら、融合して魂の格を上げよう。", "融合した魂は自動でロックされ、融合の素材にならない。"],
   },
@@ -129,7 +137,7 @@ const TUTS = [
       const have = new Set(allDolls().map((d) => safe(() => soulByUid(d.primary).clsKey, null)));
       const cls = ["knight", "bishop", "priest", "mage", "thief", "fighter"].find((k) => !have.has(k)) || "knight";
       grantSoul(cls);
-      return jobLabel(cls);
+      return `${jobLabel(cls)}の魂をひとつ`;
     },
     intro: (gift) => [
       say(["王さまから伺いました。", "人業に、もうひとつ魂を宿せるようになったのですね。"],
@@ -140,8 +148,8 @@ const TUTS = [
         ["サブ魂は、覚えた技やパッシブを貸してくれるわ。", "それに、その魂の能力の一部が器に足されるの。ランクの高い魂ほど多くね。"]),
       say(["貸してくれる数は、魂のランクで決まります。", "R1-2はひとつ、R3-4はふたつ、R5なら三つ。"],
         ["貸してくれる数は、魂のランクで決まるわ。", "R1-2はひとつ、R3-4はふたつ、R5なら三つよ。"]),
-      gift ? say([`練習に、${gift}の魂をひとつお預けします。`, "空いている魂を、サブ魂の枠に宿してみてください。"],
-        [`練習に、${gift}の魂をひとつ預けておくわね。`, "空いている魂を、サブ魂の枠に宿してごらんなさい。"])
+      gift ? say([`練習に、${gift}お預けします。`, "空いている魂を、サブ魂の枠に宿してみてください。"],
+        [`練習に、${gift}預けておくわね。`, "空いている魂を、サブ魂の枠に宿してごらんなさい。"])
         : say(["隊に出していない魂を、", "サブ魂の枠に宿してみてください。"],
           ["隊に出していない魂を、", "サブ魂の枠に宿してごらんなさい。"]),
       say(["宿したら『技』で、借りる技を選びます。", "済ませるまで、王さまは門をお開けになりません。"],
@@ -268,7 +276,7 @@ function start(d) {
   busy = true;
   const after = () => {
     busy = false;
-    if (gift) toast(`${gift}の魂をひとつ預かった (手ほどき用)`, { tone: "good" });
+    if (gift) toast(`${gift}預かった (手ほどき用)`, { tone: "good" });
     setTimeout(() => goStep(true), 200); // 語りを閉じたタップが、開いた先の画面に届かないように
   };
   if (d.who === "irene") playIreneScene(d.intro(gift), after);
