@@ -43,7 +43,7 @@ function orb(clsKey, rank, size = 40) {
 export function trainPlan(e, pts = (G_() || {}).soulPts || 0, max = Infinity) {
   if (!e) return { n: 0, cost: 0, to: 0, next: 0 };
   const cap = soulLevelCapOf(e);
-  const costOf = (lv) => (game.soulTrainCost ? game.soulTrainCost(lv) : Math.max(1, Math.round(20 * Math.pow(1.13, (lv || 1) - 1))));
+  const costOf = (lv) => (game.soulTrainCost ? game.soulTrainCost(lv) : Math.max(1, Math.round(40 * Math.pow(1.13, (lv || 1) - 1))));
   let lv = e.level, cost = 0, n = 0, left = pts;
   const next = e.level < cap ? Math.max(1, costOf(e.level) - (e.exp || 0)) : 0;
   while (lv < cap && n < max) {
@@ -473,7 +473,7 @@ export function openSoulPicker(d, slotId = "primary") {
   return sheet.open({
     kind: "info", className: "sp-pick-sheet", paged: false, // 魂の選択は縦スクロールで1ページに
     banner: isSub ? `サブ魂${si + 1} ― ${d.name}` : `メイン魂 ― ${d.name}`,
-    lines: [isSub ? "サブ魂は、覚えた技かパッシブを貸し、能力の30%を足す。貸す数は魂のランクで増える (R1-2:1 / R3-4:2 / R5:3)。" : "メイン魂が、職業・能力・技を決める。"],
+    lines: [isSub ? "サブ魂は、覚えた技かパッシブを貸し、能力の一部を足す (R1 10% 〜 R5 30%)。貸す数も魂のランクで増える (R1-2:1 / R3-4:2 / R5:3)。" : "メイン魂が、職業・能力・技を決める。"],
     body: (scroll, h) => pickerBody(scroll, d, slotId, h),
   });
 }

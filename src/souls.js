@@ -676,8 +676,12 @@ export function syncDollUids(dolls) {
   return fixed;
 }
 export const MAX_SUBS = 2;
-// サブ魂 (宿し技) のステータス寄与率: 宿した魂の全ステの30%を器に加算する
-export const SUB_STAT_RATE = 0.3;
+// サブ魂 (宿し技) のステータス寄与率: 宿した魂の全ステのこの割合を器に加算する。
+// 魂のランクで上がる (R1 10% / R2 15% / R3 20% / R4 25% / R5 30%)。
+// 2026-10: 一律30%だとサブ魂の解禁 (D10 の報告後) で隊の能力値が一気に2〜4割跳ね、第3層が易しくなりすぎた (テスト記録)
+export const SUB_STAT_RATES = [0, 0.10, 0.15, 0.20, 0.25, 0.30];
+export const SUB_STAT_RATE = SUB_STAT_RATES[5]; // 上限 (旧来の一律値。表示の目安用)
+export function subStatRateOfRank(rank) { return SUB_STAT_RATES[Math.max(1, Math.min(5, rank || 1))]; }
 // サブ魂1つから借りられる技/パッシブの数は、その魂のランクで増える (R1-2=1 / R3-4=2 / R5=3)
 export function subPickCapOfRank(rank) { return rank >= 5 ? 3 : rank >= 3 ? 2 : 1; }
 export function subPickCap(soul) { return subPickCapOfRank(soul ? soulRankFromCount(soul.clsKey, soul.count) : 0); }
@@ -847,7 +851,7 @@ export function jobStatsOf(clsKey, entry) {
 // ===== 宿し技 (サブ魂) =====
 // 各職の「看板スキル」= 職業スキル表のLv40固有技 (職業図鑑などの表示用)。
 // サブ魂の借用そのものは看板に限らない: 宿した魂が覚えた技/パッシブから、ランクに応じた数
-// (subPickCap: R1-2=1 / R3-4=2 / R5=3) を選べ、その魂のステの30% (SUB_STAT_RATE) も加算される。
+// (subPickCap: R1-2=1 / R3-4=2 / R5=3) を選べ、その魂のステの10〜30% (ランク別 subStatRateOfRank) も加算される。
 export const JOB_SIGNATURE = (() => {
   const out = {};
   for (const k of SOUL_KEYS) {
@@ -1030,7 +1034,7 @@ export function recalcDoll(doll) {
 
   // サブ魂: その魂が覚えている技/パッシブから、ランクに応じた数 (subPickCap) まで借りる。
   // 借用は sub.picks。覚えていない/上限を超えた分は効かない (外した後の空きは既定で埋めない)。
-  // ステータスはその魂のステの SUB_STAT_RATE (=30%) を加算する。
+  // ステータスはその魂のステの subStatRateOfRank(ランク) (R1 10% 〜 R5 30%) を加算する。
   doll.subInfo = [];
   for (const sub of doll.subs) {
     const se = sub ? soulByUid(sub.uid) : null;
@@ -1064,10 +1068,11 @@ export function recalcDoll(doll) {
         used.push({ skill: p.skill });
       }
     }
-    // サブ魂のステータスを SUB_STAT_RATE ぶん加算
+    // サブ魂のステータスを、その魂のランクに応じた割合 (subStatRateOfRank) ぶん加算
     const sst = jobStatsOf(se.clsKey, se);
-    for (const k in st) st[k] += (sst[k] || 0) * SUB_STAT_RATE;
-    doll.subInfo.push({ uid: se.uid, clsKey: se.clsKey, rank: sr, level: se.level, cap, picks: used });
+    const rate = subStatRateOfRank(sr);
+    for (const k in st) st[k] += (sst[k] || 0) * rate;
+    doll.subInfo.push({ uid: se.uid, clsKey: se.clsKey, rank: sr, level: se.level, cap, picks: used, rate });
   }
 
   doll.passiveMap = passiveMap;
