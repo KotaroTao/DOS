@@ -10102,6 +10102,27 @@ function dungeonFacts(cfg) {
     fqDone: fq.filter((d) => s.fixed[d.id] && s.fixed[d.id].state === "claimed").length, fqTotal: fq.length,
   };
 }
+// 出撃シートの「固有クエスト」の詳細: その迷宮を家とする固定クエストを、酒場に現れたものは依頼の形 (fixedQuestView) で、
+// まだ現れていないものは名を伏せて、酒場に現れる条件 (appear のうち満たしていないもの) を添えて返す
+function dungeonQuests(cfg) {
+  if (!cfg) return [];
+  const s = questState(), w = worldState();
+  const dname = (id) => { const d = worldById(id); return d ? `「${d.name}」` : "ある迷宮"; };
+  const hint = (def) => {
+    const a = def.appear || {}, out = [];
+    if (a.reported && !w.reported[a.reported]) out.push(`${dname(a.reported)}の踏破を王に報告`);
+    if (a.cleared && !w.cleared[a.cleared]) out.push(`${dname(a.cleared)}を踏破`);
+    if (a.open && !w.open[a.open]) out.push(`${dname(a.open)}が地図に現れる`);
+    if (a.found && !w.found[a.found]) out.push("迷宮で手がかりを見つける");
+    if (a.seen && !namedState().seen[a.seen]) out.push(`${MONSTERS[a.seen] ? `「${MONSTERS[a.seen].name}」` : "名のある強敵"}を目撃`);
+    if (a.claimed) { const f = s.fixed[a.claimed]; if (!f || f.state !== "claimed") out.push(`依頼${FIXED_BY_ID[a.claimed] && fixedQuestAppears(FIXED_BY_ID[a.claimed]) ? `「${FIXED_BY_ID[a.claimed].name}」` : "人の頼み"}を報告`); }
+    return out.length ? out.join(" ・ ") : "やがて現れる";
+  };
+  return FIXED_QUESTS.filter((d) => fixedQuestHome(d) === cfg.id).map((d) => {
+    const shown = !!s.fixed[d.id] || fixedQuestAppears(d);
+    return shown ? { id: d.id, shown: true, q: fixedQuestView(d) } : { id: d.id, shown: false, hint: hint(d) };
+  });
+}
 // 報告できる依頼の数 (達成済み + 手持ちで納められる納品)。街の札・酒場の札の印
 function questReadyCount() {
   if (!facilityOpenKey("tavern")) return 0;
@@ -14380,7 +14401,7 @@ bindGame({
 // モジュールの評価時 (init より前) に結ぶ。init の wireUI が同じ game へ残りを足す
 bindGame({
   // 出撃
-  departNow, departAbyss, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, partyLevel, storyCellPending, dungeonFacts, namedHere, namedList, namedInfo,
+  departNow, departAbyss, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
   abyssRecords, abyssMaxDepth, ABYSS_MODS, abyssScoreMul, weekSeedId, emptyDollCost,
   // 迷宮の HUD
   specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow,

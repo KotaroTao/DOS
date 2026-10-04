@@ -369,6 +369,19 @@
 .qb-have.shop { color: #d9b866; }
 /* 購入（金貨N）して納品: 札の右で2行に折る */
 .qb-card .ui-btn.qb-buy { max-width: 9.5em; padding: 4px 8px; letter-spacing: 0.02em; line-height: 1.25; }
+/* 迷宮の固有クエスト (出撃シートの「固有クエスト」から) */
+.qb-dq { display: flex; flex-direction: column; gap: 6px; text-align: left; }
+.qb-dq-cap { margin: 0 2px 2px; font-size: 11.5px; line-height: 1.5; color: var(--ink-dim); }
+.qb-dq .qb-card { height: auto; min-height: 58px; width: 100%; font: inherit; color: inherit; text-align: left; }
+.qb-dq-unk { cursor: default; opacity: 0.72; border-left-color: #4a3d2c; }
+.qb-dq-unk:active { filter: none; }
+.qb-dq-unk .qb-n { color: var(--ink-faint); }
+.qb-dq-hint { font-size: 11px; line-height: 1.45; color: var(--ink-faint); }
+.qb-dq-done { opacity: 0.8; border-left-color: #5d5246; }
+.qb-dq-done .qb-s { color: #b59b6a; }
+/* 迷宮の魔物の札 (出撃シートの「発見した魔物」から) */
+.pl-dmon { text-align: left; }
+.pl-dmon .pl-codex-cap { white-space: normal; }
 .qb-sheet { display: flex; flex-direction: column; gap: 10px; text-align: left; }
 .qb-who { display: flex; align-items: center; gap: 10px; }
 .qb-who .qb-mark { width: 52px; height: 52px; }

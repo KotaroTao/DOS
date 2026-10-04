@@ -150,8 +150,60 @@ export function questCard(q) {
   return card;
 }
 
+// ---- 迷宮の固有クエスト (出撃シートの「固有クエスト」から) ----
+// その迷宮を家とする依頼人の頼みを、状態つきの札で並べる。酒場に現れたものは札をタップ = 詳細シート、
+// まだ現れていないものは名を伏せ、現れる条件だけを添える。onChange = 詳細シートを閉じた後 (受注・報告で出撃シートを描き直す)
+const FQ_STATE = { offer: "酒場で受けられる", claimed: "報告済み ✓" };
+export function dungeonQuestSheet(dn, { onChange = null } = {}) {
+  if (!dn) return null;
+  let h = null;
+  // 詳細シートを閉じた後に描き直す (報告は閉じてから状態が変わるので、一拍おく)
+  const after = () => setTimeout(() => { if (h && !h.closed) h.update({}); if (onChange) onChange(); }, 0);
+  const body = (root) => {
+    let list = [];
+    try { list = game.dungeonQuests ? game.dungeonQuests(dn) : []; } catch (e) { list = []; }
+    const box = el("div", "qb-dq");
+    const done = list.filter((x) => x.shown && x.q.state === "claimed").length;
+    box.appendChild(setText(el("div", "qb-dq-cap"), list.length ? `報告済み ${done}/${list.length} ・ 依頼は酒場「沈まぬ灯」で受け、報告する` : "この迷宮にまつわる依頼人の頼みはない。"));
+    for (const x of list) {
+      if (!x.shown) {
+        const card = el("div", "qb-card fixed qb-dq-unk");
+        const mk = el("span", "qb-mark");
+        mk.appendChild(el("span", "qb-mark-c", "？"));
+        card.appendChild(mk);
+        const info = el("div", "qb-i");
+        info.appendChild(el("div", "qb-n", "？？？"));
+        info.appendChild(setText(el("div", "qb-dq-hint"), `酒場に現れる条件 ― ${x.hint}`));
+        card.appendChild(info);
+        box.appendChild(card);
+        continue;
+      }
+      const q = x.q;
+      const card = el("button", "qb-card fixed" + (q.state === "done" ? " ready" : "") + (q.state === "claimed" ? " qb-dq-done" : ""));
+      card.type = "button";
+      card.appendChild(markOf(q));
+      const info = el("div", "qb-i");
+      const top = el("div", "qb-top");
+      if (q.fresh) top.appendChild(el("span", "qb-new", "新"));
+      top.appendChild(setText(el("span", "qb-n"), q.name));
+      info.appendChild(top);
+      info.appendChild(setText(el("div", "qb-d"), `${q.giver ? q.giver.name + " ・ " : ""}${q.desc || ""}`));
+      const st = q.state === "done" ? "達成 ― 酒場で報告できる" : q.state === "active" ? `受注中 ・ ${progressText(q) || ""}` : FQ_STATE[q.state] || "";
+      info.appendChild(setText(el("div", "qb-s" + (q.state === "done" ? " ok" : "")), st));
+      card.appendChild(info);
+      card.addEventListener("click", () => { sfx("select"); openQuestSheet(q.uid, { onClose: after }); });
+      box.appendChild(card);
+    }
+    root.appendChild(box);
+  };
+  sfx("select");
+  h = sheet.open({ kind: "info", banner: "固有クエスト", title: dn.name, body, className: "qb-dq-sheet",
+    footer: [{ label: "閉じる", kind: "ghost", onTap: (s) => s.close() }] });
+  return h;
+}
+
 // ---- 詳細シート ----
-export function openQuestSheet(uid) {
+export function openQuestSheet(uid, { onClose = null } = {}) {
   const q0 = game.questByUid ? game.questByUid(uid) : null;
   if (!q0) return null;
   let h = null;
@@ -208,7 +260,7 @@ export function openQuestSheet(uid) {
   // 一度見た固定クエストは「新」を消す
   try { if (q0.fixed && q0.state === "offer") { const s = game.questState(); s.seen[uid] = 1; } } catch (e) { /* noop */ }
   h = sheet.open({ kind: "info", banner: q0.fixed ? "依頼人の頼み" : "掲示板の依頼", title: q0.name, body, footer: footer(), className: "qb-sheet-w",
-    onClose: () => { if (game.renderTown) game.renderTown(); } });
+    onClose: () => { if (game.renderTown) game.renderTown(); if (onClose) onClose(); } });
   return h;
 }
 

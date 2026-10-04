@@ -7,6 +7,7 @@
 //   宝物庫 … 収集品を奉納 (品の詳細のシート → 奉納する。奉納済みの品は売却額の金貨に)・次の褒賞・奉納台帳 (図鑑と同じ札。総数は伏せる)
 // 提供: UI.openPalace(seg) (seg = "decree" | "codex" | "ach" | "treasury" | "codex:mon|item|job")
 //       UI.openCodexSheet({ dungeonIdx }) (迷宮の中の図鑑。手帳から)
+//       UI.dungeonMonSheet(dungeonIdx) (出撃シートの「発見した魔物」から。その迷宮の魔物の札)
 //       UI.codexMonSheet(key) / UI.codexItemSheet(id) / UI.codexJobSheet(key, rank, heading)
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
@@ -225,6 +226,40 @@ function bossNameCard(key, m) {
 const CARD_H = 104;
 const MON_CARD_H = 118; // 敵の札は名の下に討伐数の1行ぶん高い
 
+// 迷宮の魔物の札: 討った敵は姿と名、まだの敵は「？？？」(迷宮の主は遭遇した後だけ名を出す)。名のある強敵は namedCard
+function monCard(key, namedBy = null) {
+  const g = G();
+  const m = MONSTERS[key];
+  if (namedBy && m.named) return namedCard(key, m, namedBy[key]);
+  if (!g.codex.mon[key]) return m.boss && g.codex.met && g.codex.met[key] ? bossNameCard(key, m) : unknownCard();
+  return codexCard(m, m.name, { color: m.rank ? RANK_COLOR[m.rank] : null, sub: m.boss ? "主" : m.elite ? "強敵" : null, kills: monKills(key), fresh: isFreshMon(key),
+    onTap: (c) => { codexMonSheet(key); markSeen("mon", key, c); } });
+}
+
+// 出撃シートの「発見した魔物」から開く: その迷宮に出る魔物 (雑魚・強敵・主) の札。札をタップ = 図鑑の詳細
+export function dungeonMonSheet(dungeonIdx) {
+  const g = G();
+  const dn = DUNGEONS[dungeonIdx];
+  if (!g || !dn) return null;
+  const roster = game.dungeonRoster ? game.dungeonRoster(dn) : [];
+  const namedBy = Object.fromEntries((game.namedHere ? game.namedHere(dn) : []).map((n) => [n.id, n]));
+  const seen = roster.filter((k) => g.codex.mon[k]).length;
+  const box = el("div", "pl-dmon");
+  box.appendChild(el("div", "pl-codex-cap", `発見した魔物 ${seen}/${roster.length} ・ 討った敵は札から詳しく見られる`));
+  const grid = el("div", "wa-pgrid pl-dmon-grid");
+  grid.style.gridTemplateColumns = "repeat(3, minmax(0, 1fr))";
+  grid.style.gridAutoRows = MON_CARD_H + "px";
+  grid.style.gap = "8px";
+  for (const key of roster) grid.appendChild(monCard(key, namedBy));
+  if (!roster.length) box.appendChild(el("div", "wa-empty", "記録なし。"));
+  else box.appendChild(grid);
+  sfx("select");
+  return sheet.open({
+    kind: "info", banner: "発見した魔物", title: dn.name, body: box, className: "pl-dmon-sheet",
+    footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
+  });
+}
+
 // 敵の図鑑はダンジョン単位: 地図に現れた迷宮ごとの札 (台帳の並び) + その他。札の中身は、その迷宮に出る雑魚・強敵・主
 const dunOpen = (i) => { try { return game.worldOpenIdx ? game.worldOpenIdx(i) : i < Math.max(1, G().unlockedDungeons || 1); } catch (e) { return i === 0; } };
 function renderCodexMon(box) {
@@ -251,14 +286,8 @@ function renderCodexMon(box) {
     const seen = roster.filter((k) => g.codex.mon[k]).length;
     cap.textContent = isNamed ? `名のある強敵 — 縄張りの迷宮の強敵階に出る。初めて討てば首級　討伐 ${seen}/${roster.length}`
       : isOther ? `その他 — 宝箱や出来事に潜む敵・まれに紛れ込む者　記録 ${seen}/${roster.length}` : `${DUNGEONS[idx].name}　記録 ${seen}/${roster.length}`;
-    scrollGrid(area, roster, (key) => {
-      const m = MONSTERS[key];
-      if (isNamed) return namedCard(key, m, namedBy[key]);
-      // 迷宮の主は遭遇した後だけ名を出す (遭遇前はほかの敵と同じ「？？？」)
-      if (!g.codex.mon[key]) return m.boss && g.codex.met && g.codex.met[key] ? bossNameCard(key, m) : unknownCard();
-      return codexCard(m, m.name, { color: m.rank ? RANK_COLOR[m.rank] : null, sub: m.boss ? "主" : m.elite ? "強敵" : null, kills: monKills(key), fresh: isFreshMon(key),
-        onTap: (c) => { codexMonSheet(key); markSeen("mon", key, c); } });
-    }, { cols: 3, cellH: MON_CARD_H, key: "mon:" + idx, empty: el("div", "wa-empty", "記録なし。") });
+    scrollGrid(area, roster, (key) => isNamed ? namedCard(key, MONSTERS[key], namedBy[key]) : monCard(key),
+      { cols: 3, cellH: MON_CARD_H, key: "mon:" + idx, empty: el("div", "wa-empty", "記録なし。") });
   };
   const ch = chips(items, String(idx), (k) => { idx = Number(k); remember("codex", "dungeon", idx); resetPages(["mon:"]); draw(); });
   refresh.list = () => items.forEach((it, i) => setBadge(chipBtn(ch, i), freshIn(Number(it.key))));
@@ -880,7 +909,7 @@ export function openPalace(seg) {
 }
 
 export function install() {
-  registerUI({ openPalace, openCodexSheet, codexMonSheet, codexItemSheet, codexJobSheet, codexEventSheet });
+  registerUI({ openPalace, openCodexSheet, dungeonMonSheet, codexMonSheet, codexItemSheet, codexJobSheet, codexEventSheet });
   // タブの印: 王の用 (報告・拝命・謁見) は「!」、無ければ拝受できる勲章の数、奉納・褒賞だけなら点
   const tabBadge = (c) => {
     if (game.palaceCallReady && game.palaceCallReady()) return "!";
