@@ -16740,6 +16740,7 @@ export function defMonster(def) {
   //   multistrike : 1手番で続けざまに攻撃する回数 (2〜4)
   //   barrier     : 被ダメを半減できる残り回数 (数回制)
   //   (ability に "warcry"=鼓舞 / "weaken"=弱体 / "sleep"=眠り / "charm"=魅了 / "confuse"=混乱 も指定可)
+  //   (ability に "charge"=溜め (予兆の後に大技) / "sunder"=守り崩し (VIT −1段) / "dispel"=打ち消し (隊の強化を剥ぐ) も指定可)
   if (def.magResist) m.magResist = def.magResist;
   if (def.enrage) m.enrage = true;
   if (def.endure) m.endure = true;
@@ -16800,6 +16801,10 @@ export const TRAITS = {
   spell:      { label: "全体呪文", desc: "呪文で隊全体を撃つ (精神の強さで少し軽減)" },
   metal:      { label: "金属の体", desc: "呪文・状態異常・弱体が効かず、ダメージは1しか通らない。会心の一撃だけは素通しになる" },
   fleet:      { label: "逃げ足", desc: "隙あらば逃げ出す。倒せば莫大な✦Soulを残す" },
+  charge:     { label: "溜め",   desc: "力を溜めて予兆を見せ、次の手番で大技を放つ。封じ・眠り・麻痺・打ち消しで溜めを潰せる" },
+  sunder:     { label: "守り崩し", desc: "鎧ごと打ち砕き、守り (VIT) を1段下げてくる" },
+  dispel:     { label: "打ち消し", desc: "隊の強化や構えが厚くなると、禍言でまとめて剥ぎ取ってくる" },
+  shake:      { label: "払いのけ", desc: "弱体が深くなると身を震わせて振り払う。弱体は −2段までしか入らない" },
 };
 // 特殊能力を多用する魔物 (abRate がこれ以上) は、図鑑の札に「多用」と添える
 export const AB_RATE_HEAVY = 0.4;
@@ -16845,7 +16850,9 @@ export function monsterTraitKeys(m) {
   if (m.role === "summoner") add("summon");
   if (m.role === "healer") add("heal");
   if (m.role === "guard") add("guard");
-  add(m.ability); // poison/paralyze/stone/drain/soulSteal/goldSteal/critical/breath/spell/warcry/weaken/sleep/charm/confuse
+  add(m.ability); // poison/paralyze/stone/drain/soulSteal/goldSteal/critical/breath/spell/warcry/weaken/sleep/charm/confuse/charge/sunder/dispel
+  // 主・精鋭は誰でも大技を溜め (combat.js の予兆)、深い弱体を払いのける
+  if ((m.boss || m.elite) && !m.metal) { add("charge"); add("shake"); }
   for (const t of m.traits || []) add(t);
   return keys;
 }
