@@ -1474,8 +1474,8 @@ export class Battle {
       let dmg = Math.max(1, Math.round((variance(Math.round(this._eatk(defender) * mul)) - Math.floor(this._evit(attacker) * 0.5)) * this._rowMul(defender, attacker)));
       let crit = false;
       if (cLv >= 3 && Math.random() < 0.06 + (defender.critBonus || 0)) { crit = true; dmg = Math.floor(dmg * 1.85); }
-      // 反撃も物理なので物理耐性を受ける (無効の敵には通らない)
-      const pr = this._resistCut(attacker, dmg, "physResist");
+      // 反撃も物理なので物理耐性を受ける (無効の敵には通らない)。会心なら物理耐性1・2を無視する
+      const pr = (crit && (attacker.physResist | 0) < 3) ? { dmg, immune: false } : this._resistCut(attacker, dmg, "physResist");
       if (pr.immune) { this.log(`${defender.name}の反撃！ ${attacker.name}には効かない！ (物理無効)`, "hit"); return; }
       dmg = pr.dmg;
       attacker.hp -= dmg;
@@ -1663,8 +1663,8 @@ export class Battle {
     let magWeak = false;
     if (magHit && !metalHit && tgt.magWeak && tgt.magWeak > 1) { dmg = Math.round(dmg * tgt.magWeak); magWeak = true; }
     // 物理耐性 (耐性ランク): 耐性1=50% / 耐性2=75% / 耐性3=無効。魔法属性の武器は魔法耐性を受ける
-    // 防御無視の技 (pierce) は物理耐性1・2を無視する。物理耐性3 (無効) は防御無視でも通らない
-    const pierceResist = !magHit && (opt.pierce || 0) > 0 && tgt.side === "enemy" && ((tgt.physResist | 0) < 3);
+    // 防御無視の技 (pierce) と会心の一撃は物理耐性1・2を無視する。物理耐性3 (無効) はどちらでも通らない
+    const pierceResist = !magHit && ((opt.pierce || 0) > 0 || crit) && tgt.side === "enemy" && ((tgt.physResist | 0) < 3);
     const pr = metalHit ? { dmg, tag: crit ? "" : METAL_TAG.phys, immune: false }
       : pierceResist ? { dmg, tag: "", immune: false } : this._resistCut(tgt, dmg, magHit ? "magResist" : "physResist");
     if (pr.immune) {
