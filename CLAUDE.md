@@ -168,7 +168,7 @@ The UI was rebuilt into packages under `src/ui/` (plain ES modules; **they never
 - Dev harnesses (not shipped) live in the session scratchpad (`ux/harness*.mjs`).
 
 ## 整理の計画 (未着手) — `docs/refactor-plan.md`
-巨大ファイル (`game.js` / `schema.js` の `ARTS` / `jobart.js`) の分割と、旧仕様の二重構造 (難しさの尺度6種・旧100迷宮の生成器・旧魔物定義・`x_` 層・旧ポップアップ) の一本化の計画。リリース前なので仕様は変えてよい (ユーザーの方針)。分割・統合・CI・セーブ形式に触れる作業の前に読み、段ごとにユーザーの了解を取って進める。
+巨大ファイル (`game.js` / `schema.js` の `ARTS` / `jobart.js`) の分割と、旧仕様の二重構造 (難しさの尺度6種・旧100迷宮の生成器・旧魔物定義・`x_` 層・旧ポップアップ) の一本化の計画。リリース前なので仕様は変えてよい (ユーザーの方針)。分割・統合・CI・セーブ形式に触れる作業の前に読み、段ごとにユーザーの了解を取って進める。末尾の「追補」に #487・#488 のレビューで出た改善提案 (親しさの段のずれ・`n` の畳み込み・調整の自動検証・`ASSETS` の自動生成ほか、選択肢 A〜D) がある。
 
 ## Conventions
 - **Always reply to the user in Japanese (日本語).** All assistant chat responses, plans, questions, and PR descriptions for this repo must be written in Japanese — this is mandatory, regardless of the language the user writes in. (Code identifiers stay in English; comments and in-game strings stay Japanese as below.)
