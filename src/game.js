@@ -241,8 +241,7 @@ function lootByRarity() {
   for (const id of Object.keys(ITEMS)) {
     const it = ITEMS[id];
     if (!it.rar || it.rar === "lr" || it.noDrop || it.slot === "misc" || it.slot === "use" || it.slot === "mat") continue;
-    // 職業専用装備 (x_) は exclusive だがスーパーレアとして窓に入れる。それ以外の exclusive は除外
-    if (it.exclusive && it.rar !== "sr") continue;
+    if (it.exclusive) continue; // LR (時間抽選) と首級は窓に入れない
     _byRar[it.rar][Math.max(1, Math.min(20, it.r20 || 1))].push(id);
   }
   return _byRar;
@@ -398,10 +397,10 @@ function refundLR(it) {
 // LR (tier5以上 = 職業専用) は lootLv がティアの解禁値を超えてから時間抽選の候補に入る。
 // 層の逸品 (tier1-4) は lrPool の層・出現上限の条件で候補。1点もの (G.lrOwned) は以後候補から外れる
 const LR_UNLOCK = { 5: 40, 10: 90, 15: 140, 20: 190 }; // LR ティア → 解禁 lootLv
-let _exclIds = null;
-function exclIds() {
-  if (!_exclIds) _exclIds = Object.keys(ITEMS).filter((id) => ITEMS[id].exclusive);
-  return _exclIds;
+let _lrIds = null;
+function lrIds() {
+  if (!_lrIds) _lrIds = Object.keys(ITEMS).filter((id) => ITEMS[id].rar === "lr");
+  return _lrIds;
 }
 
 // 現在の迷宮+階のアイテムレベル (中心値)。迷宮の lootLv 帯を階の深さで補間
@@ -11449,7 +11448,7 @@ function grantTreasuryItem(center, onClose) {
 // LRは未鑑定で渡る (商店でのみ鑑定可)。全部入手済みなら通常の装備褒賞にフォールバック。
 function grantLR(filter, center, onClose) {
   if (!G.lrOwned) G.lrOwned = {};
-  const pool = exclIds().filter((id) => {
+  const pool = lrIds().filter((id) => {
     const it = ITEMS[id];
     return it && it.lr && !G.lrOwned[id] && filter(it);
   });
