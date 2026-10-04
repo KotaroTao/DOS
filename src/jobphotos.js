@@ -5,6 +5,13 @@
 // 追加・更新は開発用の tools/jobimg.py が行う (このファイルの該当職の項目を書き換える)。sw.js の ASSETS にも画像を足すこと。
 export const PHOTO_RES = 4; // 保存した画像の 1ドット (升目) あたりの px
 export const JOB_PHOTOS = {
+  fighter: {
+    1: { src: "art/jobs/fighter_1.webp", w: 52, h: 71, face: [30, 12], head: [30.0, 1.43, 21.82] },
+    2: { src: "art/jobs/fighter_2.webp", w: 54, h: 71, face: [32, 12], head: [32.0, 1.43, 21.82] },
+    3: { src: "art/jobs/fighter_3.webp", w: 68, h: 71, face: [32, 12], head: [32.0, 1.43, 21.82] },
+    4: { src: "art/jobs/fighter_4.webp", w: 75, h: 71, face: [36, 12], head: [36.21, 1.43, 21.82] },
+    5: { src: "art/jobs/fighter_5.webp", w: 73, h: 73, face: [38, 11], head: [37.5, 1.21, 21.39] },
+  },
   exorcist: {
     1: { src: "art/jobs/exorcist_1.webp", w: 55, h: 88, face: [29, 14], head: [28.93, 2.64, 24.79] },
     2: { src: "art/jobs/exorcist_2.webp", w: 61, h: 88, face: [31, 14], head: [30.93, 2.79, 24.93] },
@@ -39,6 +46,13 @@ export const JOB_PHOTOS = {
     3: { src: "art/jobs/inquisitor_3.webp", w: 67, h: 82, face: [26, 12], head: [26.29, 2.21, 22.07] },
     4: { src: "art/jobs/inquisitor_4.webp", w: 62, h: 81, face: [27, 10], head: [27.46, 1.0, 18.21] },
     5: { src: "art/jobs/inquisitor_5.webp", w: 75, h: 85, face: [32, 12], head: [31.96, 2.0, 21.29] },
+  },
+  dragonknight: {
+    1: { src: "art/jobs/dragonknight_1.webp", w: 70, h: 84, face: [36, 15], head: [36.43, 4.21, 25.29] },
+    2: { src: "art/jobs/dragonknight_2.webp", w: 86, h: 85, face: [42, 15], head: [41.57, 4.57, 25.86] },
+    3: { src: "art/jobs/dragonknight_3.webp", w: 87, h: 86, face: [42, 15], head: [41.82, 4.79, 25.64] },
+    4: { src: "art/jobs/dragonknight_4.webp", w: 87, h: 87, face: [42, 16], head: [41.86, 5.93, 27.0] },
+    5: { src: "art/jobs/dragonknight_5.webp", w: 87, h: 86, face: [42, 16], head: [41.82, 5.79, 26.29] },
   },
   // <<JOB_PHOTOS>>
 };
