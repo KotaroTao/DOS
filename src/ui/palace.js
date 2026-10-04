@@ -511,7 +511,7 @@ export function codexMonSheet(key) {
   // 金属の魔物: 能力値は出た階で組み直すので、HP と「普通の戦闘の何倍の✦Soul か」だけを示す
   const mt = m.metal ? METAL_TIERS[m.metal] : null;
   if (statsOpen && mt) body.appendChild(setText(el("div", "pl-detail-stats"), `HP ${mt.hpRank ? "多め" : mt.hp}　✦ その階の戦闘1回の約${mt.soulMul}倍　逃走 ${Math.round(mt.flee * 100)}%/手番`));
-  else if (statsOpen) body.appendChild(setText(el("div", "pl-detail-stats"), `HP ${Math.max(1, Math.round(m.maxhp * resistHpMul(m)))}　ATK ${m.atk}　VIT ${m.def}　AGI ${m.spd}　✦${m.soul}　💰${m.gold}`));
+  else if (statsOpen) body.appendChild(setText(el("div", "pl-detail-stats"), `HP ${Math.max(1, Math.round(m.maxhp * resistHpMul(m)))}　ATK ${m.atk}　VIT ${m.vit}　AGI ${m.agi}　✦${m.soul}　💰${m.gold}`));
   else body.appendChild(revealLock(R.stats, "属性・HP"));
   if (loreOpen) {
     const traits = monsterTraits(m);

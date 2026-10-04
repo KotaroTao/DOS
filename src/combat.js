@@ -85,8 +85,8 @@ export function spawnMimic(floorRank, scale = 1, master = false) {
   e.maxhp = Math.max(1, Math.round(st.hp * scale * (master ? 2.6 : 2.4) * resistHpMul({ physResist: master ? 1 : 0 })));
   e.hp = e.maxhp;
   e.atk = Math.max(1, Math.round(st.atk * scale * (master ? 1.1 : 1.0)));
-  e.vit = Math.round(st.def * scale * (master ? 1.6 : 1.3));
-  e.agi = st.spd + (master ? 8 : 4);             // 不意打ちで先手を取りやすい
+  e.vit = Math.round(st.vit * scale * (master ? 1.6 : 1.3));
+  e.agi = st.agi + (master ? 8 : 4);             // 不意打ちで先手を取りやすい
   e.multistrike = master ? 3 : 2;                // 牙で噛みつき連撃 (一手で複数回)
   e.physResist = master ? 1 : 0;                 // マスターは硬い外殻 (物理耐性1 = 50%軽減)
   if (master) { e.ability = "soulSteal"; e.lifesteal = 0.3; }
@@ -106,8 +106,8 @@ export function spawnRanked(key, floorRank, plus = 1, scale = 1, hpMul = 2.2) {
   e.evRank = rank;
   e.maxhp = e.hp = Math.max(1, Math.round(st.hp * scale * hpMul * resistHpMul(e.mon)));
   e.atk = Math.max(1, Math.round(st.atk * scale));
-  e.vit = Math.round(st.def * scale * 1.2);
-  e.agi = (e.mon && e.mon.swift ? st.spd + 4 : st.spd) + 2;
+  e.vit = Math.round(st.vit * scale * 1.2);
+  e.agi = (e.mon && e.mon.swift ? st.agi + 4 : st.agi) + 2;
   e.gold = Math.round(st.gold * scale * 1.5);
   e.soul = Math.round(st.soul * scale * 1.5);
   return [e];
@@ -128,8 +128,8 @@ export function spawnMetal(key, ref = {}) {
     const e = makeEnemy(key, 1);
     e.maxhp = e.hp = T.hp + Math.round(st.hp * sc * (T.hpRank || 0));
     e.atk = Math.max(1, Math.round(st.atk * sc * 0.6));
-    e.vit = Math.round(st.def * sc * 1.5);
-    e.agi = Math.max(1, Math.round(ref.agi || st.spd * 4));
+    e.vit = Math.round(st.vit * sc * 1.5);
+    e.agi = Math.max(1, Math.round(ref.agi || st.agi * 4));
     e.element = "none";
     e.soul = Math.max(1, Math.round(ref.soul || st.soul * T.soulMul));
     e.gold = Math.max(1, Math.round(ref.gold || st.gold * T.goldMul));
@@ -146,18 +146,17 @@ function makeEnemy(key, scale = 1, boss = false, bossRank = 0) {
   // (def の rank が低い暫定ボスでも、層に見合った強さの主として立ちはだかる)。
   const b = (boss && bossRank) ? monStats(bossRank, true) : null;
   const baseHp = b ? b.hp : m.maxhp, baseAtk = b ? b.atk : m.atk;
-  const baseDef = b ? b.def : m.def, baseSpd = b ? b.spd : m.spd;
+  const baseVit = b ? b.vit : m.vit, baseAgi = b ? b.agi : m.agi;
   const baseSoul = b ? b.soul : m.soul, baseGold = b ? b.gold : m.gold;
   const hp = Math.max(1, Math.round(baseHp * scale * resistHpMul(m, boss)));
   return {
     uid: ++_uid, key, mon: m, name: (boss ? m.name : m.name),
     element: m.element || "none",
     hp, maxhp: hp,
-    // モンスター定義の atk/def/spd を六大ステへ写像 (def→VIT, spd→AGI)
     atk: Math.max(1, Math.round(baseAtk * scale)),
-    vit: Math.round(baseDef * scale),
+    vit: Math.round(baseVit * scale),
     // 俊敏: AGI を底上げして先手を取りやすくする / 神速: さらに大きく底上げし、1ラウンドに2度動く (_startRound)
-    agi: baseSpd + (m.swift ? 4 : 0) + (m.haste ? 8 : 0),
+    agi: baseAgi + (m.swift ? 4 : 0) + (m.haste ? 8 : 0),
     haste: !!m.haste,
     abRate: m.abRate || 0, // 特殊能力を使う確率 (0 = 既定の 25%・ブレス 30%)。第5層からの魔物は特色を強く押し出すため高い
     soul: Math.round(baseSoul * scale), gold: Math.round(baseGold * scale),

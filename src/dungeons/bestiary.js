@@ -1,41 +1,109 @@
-// モンスター大全 (bestiary): 全100迷宮で使うモンスターをランク1-10で束ねる。
-// ・既存モンスター (cm_/d01-d04) はランクを再配置し、monStats で再ステータス化する
-//   (id は append-only: セーブ/図鑑が参照するため改名・削除禁止)
-// ・新規モンスターは bs_ 接頭辞。アートは ARTS の原型 × palette/tint で描き分ける
+// モンスター大全 (bestiary): すべての魔物の定義。能力値は rank (1-10) から monStats で決まる (atk/vit/agi・HP・戦果)。
+// ・id は append-only: セーブ/図鑑が参照するため改名・削除禁止。旧来の魔物は cm_ / d01_〜d04_、新しい魔物は bs_
+// ・層の顔ぶれ LAYER_POOLS・層の主 LAYER_BOSS・層の強敵 LAYER_ELITES もここ
+// ・絵は ARTS の固有原型 (第1〜5層は hd_*)
 import { defMonsters, monStats, tint, ARTS } from "./schema.js";
-import { COMMON_MONSTERS } from "./common.js";
-import * as d01 from "./d01.js";
-import * as d02 from "./d02.js";
-import * as d03 from "./d03.js";
-import * as d04 from "./d04.js";
 import { MONSTER_ART, validateMonsterArt } from "./monart.js";
 
-// ---- 既存モンスターのランク再配置 (旧6段階 → 新10段階) ----
-const LEGACY_RANK = {
-  cm_slime: 1, cm_bat: 1, cm_spider: 1, cm_caverat: 1, d01_kobold: 1,
-  d01_skeleton: 2, d01_gaoler: 2,
-  d02_armkobold: 2, d02_soldier: 2,
-  d02_harpy: 3, d02_imp: 3, d02_lizard: 3, d02_lord: 3,
-  d03_orc: 4, d03_sahagin: 4,
-  d03_ghost: 5, // 第4層の雑魚 (rank5-6)。第3層 (rank4-5) より格上に
-  d03_mandrake: 5, d03_sentinel: 5, d03_whelp: 5,
-  d04_golem: 5, d04_ogre: 5, // 第3層の層末 (迷宮15) の深部に出る。層ボス・強敵 (rank5) を超えないよう rank5
-  d04_revenant: 6, // 第4層の層末の深部。層ボス・強敵 (rank6) を超えないよう rank6
-  d04_grudge: 7,
-  d04_vritra: 9,
-};
-
-const LEGACY = { ...COMMON_MONSTERS, ...d01.monsters, ...d02.monsters, ...d03.monsters, ...d04.monsters };
-for (const id in LEGACY) {
-  const m = LEGACY[id];
-  const rank = LEGACY_RANK[id];
-  if (!rank) throw new Error("legacy monster missing rank assignment: " + id);
-  const s = monStats(rank, m.boss);
-  m.rank = rank;
-  m.maxhp = m.hp = s.hp;
-  m.atk = s.atk; m.def = s.def; m.spd = s.spd;
-  m.soul = s.soul; m.gold = s.gold;
-}
+// ---- 旧来の魔物 (cm_ / d01_〜d04_。id は保存されるので変えない) ----
+// もとは common.js / d01〜d04.js に迷宮ごとの能力値つきで書いていたもの (R1 で統合)。能力値は rank の monStats から
+const LEGACY_DEFS = [
+  // ---- 旧 common.js ----
+  { id: "cm_slime", name: "スライム", race: "amorph", element: "water", artKey: "slime", rank: 1,
+    // 粘体ゆえ刃が通らない (物理耐性) が、魔法の熱や衝撃には脆い (魔法弱点)
+    physResist: 1, magWeak: 1.6,
+    desc: "迷宮の湿気と腐肉が溶け合って生まれた、意思なき粘塊。刃を通しても潰れて再び寄り集まり、物理ではなかなか倒せない。だが炎や雷の魔法には脆く、ひとたび熱を通せばたちまち煮崩れる。" },
+  { id: "cm_bat", name: "黒翼蝙蝠", race: "wing", element: "dark", artKey: "bat", rank: 1,
+    swift: true, evasive: true, // 闇を翔ける俊敏な飛行 — 先手を取り、よくかわす
+    desc: "光をいとい、闇そのものを糧とするように増えた吸血蝙蝠。素早く宙を舞い、こちらの一撃をひらりとかわす。闇の中で羽音が二重三重に重なり始めたら、もう手遅れだ。" },
+  { id: "cm_spider", name: "洞窟蜘蛛", race: "insect", element: "earth", artKey: "spider", rank: 1,
+    ability: "paralyze", // 麻痺毒の牙
+    desc: "坑道の天井いっぱいに灰色の巣を張る大蜘蛛。獲物を麻痺毒で生かしたまま糸に巻き、何日もかけて体液をすする。巣にぶら下がる繭の中身が、まだ時おり震えているという。" },
+  { id: "cm_caverat", name: "洞窟ネズミ", race: "beast", element: "none", artKey: "caverat", rank: 1,
+    role: "summoner", summonKey: "cm_caverat", // 血の匂いで仲間を呼び寄せる
+    desc: "屍肉を食らって肥え太った灰色の獣。単体では臆病だが、血の匂いを嗅ぎつけると甲高い声で仲間を呼び、倒れた者を骨まで漁る。迷宮の掃除屋にして、迷宮が決して飢えない理由。" },
+  // ---- 旧 d01.js ----
+  { id: "d01_kobold", name: "コボルド", race: "humanoid", element: "none", artKey: "kobold", rank: 1,
+    soulClass: "fighter",
+    ability: "goldSteal", pack: true, // 遺品漁りの手癖 + 数を頼む群れ
+    desc: "犬の頭を持つ小鬼。打ち捨てられた牢を住処とし、囚人の遺品を漁って身を飾る。一匹では臆病だが、数を頼みに群れて錆びた得物を振り回し、隙あらば懐の金品をくすねる。" },
+  { id: "d01_skeleton", name: "囚人の亡骸", race: "undead", element: "dark", artKey: "hd_skeleton", rank: 2,
+    soulClass: "thief",
+    magWeak: 1.5, // 牢で朽ちた古い骨は脆く、魔法の一撃で砕ける
+    desc: "裁きも赦しも無いまま牢で朽ち果てた者の骨。残った怨みだけが関節をきしませ、出口を求めて鉄格子を掻きむしり続ける。その虚ろな目の穴は、近づく生者を看守と取り違えて襲いかかる。朽ちた骨は脆く、魔法の衝撃でたやすく崩れ落ちる。" },
+  { id: "d01_gaoler", name: "牢番オーク", race: "humanoid", element: "earth", artKey: "orc", rank: 2, boss: true,
+    palette: tint(ARTS.orc.palette, "#3a2a1a", 0.2),
+    ability: "goldSteal", physResist: 1, // 頑丈な巨体で刃を弾き、奪った遺品を握り込む
+    soulClass: "knight",
+    desc: "主が去った後も、ただ「番をする」という命令だけを忠実に守り続ける巨漢のオーク。錆びた大鍵を棍棒のように振るい、逃げ出そうとする者を骨ごと砕く。牢の主は、とうの昔にこいつ自身になっていた。" },
+  // ---- 旧 d02.js ----
+  { id: "d02_armkobold", name: "鎧コボルド", race: "humanoid", element: "none", artKey: "kobold", rank: 2,
+    palette: tint(ARTS.kobold.palette, "#9aa3ab", 0.35),
+    ability: "goldSteal", physResist: 1, // 寄せ集めの甲冑で刃を受け、隙を見て遺品を漁る
+    soulClass: "fighter",
+    desc: "落城の際に死んだ兵から鎧を剥ぎ取り、身に纏ったコボルド。寸法の合わぬ甲冑を引きずりながら隊列を組む姿は、滅びた守備隊の悪夢のような模倣だ。継ぎ接ぎの鉄板が刃をいなし、兜の中から、犬の唸りが響く。" },
+  { id: "d02_soldier", name: "朽ちた兵士", race: "undead", element: "dark", artKey: "hd_soldier", rank: 2,
+    physResist: 1, // 錆びてなお具足が刃を弾く
+    soulClass: "thief",
+    desc: "城を守れずに散った衛兵の成れの果て。誰を守るのかも、誰と戦うのかも忘れ、ただ「持ち場を離れるな」という最後の号令だけが骨の髄に焼き付いている。錆びついた具足は刃をよく弾き、崩れた城壁の前で永遠に剣を構え続ける。" },
+  { id: "d02_harpy", name: "城砦のハーピー", race: "avian", element: "wind", artKey: "harpy", rank: 3,
+    swift: true, ability: "goldSteal", // 突風で舞い降り、指輪や髪飾りをかすめ取る
+    desc: "崩れた尖塔を巣とする、女の貌と猛禽の体を持つ魔物。耳をろうするかん高い声で獲物をすくませ、突風とともに素早く舞い降りてかぎ爪で眼をえぐる。巣には奪い集めた指輪や髪飾りが積まれ、持ち主はもうどこにもいない。" },
+  { id: "d02_imp", name: "小悪魔", race: "demon", element: "fire", artKey: "imp", rank: 3,
+    swift: true, evasive: true, // ちょこまかと宙を飛び回りつかみどころがない
+    desc: "城の崩落に引き寄せられ、地獄の裂け目から這い出た下級の悪魔。掌に灯した火種で書物やはりを焼き、人の絶望を肴にあざ笑う。ちょこまかと宙を飛び回って刃をかわし、署名を迫る口ぶりは巧みだが、応じた者の魂はその場であぶられる。" },
+  { id: "d02_lizard", name: "城砦のトカゲ", race: "reptile", element: "earth", artKey: "lizard", rank: 3,
+    ability: null, physResist: 1, // 硬鱗が刃を弾く
+    desc: "石壁の崩れ目に潜み、冷えた身を岩肌に同化させて獲物を待つ硬鱗の爬虫。微動だにせぬまま何刻も待ち伏せ、間合いに入った瞬間、鉄をも噛み砕く顎で足首を捉えて離さない。厚い鱗は並の刃をはじき返す。" },
+  { id: "d02_lord", name: "城主の亡霊", race: "specter", element: "dark", artKey: "wraith", rank: 3, boss: true,
+    palette: tint(ARTS.wraith.palette, "#9b59b6", 0.3),
+    ability: "paralyze", // 忠誠を試す冷たい手が触れた者を凍りつかせる
+    soulClass: "mage",
+    desc: "民を見捨てて自らだけ生き延びようとし、その報いに城もろとも呪われた領主の末路。今や瘴気の塊となり、誰もいない玉座の間をさまよい続ける。近づく者を旧臣と見なし、忠誠を試すように差し伸べる冷たい手は、触れた者を凍りつかせて動けなくする。" },
+  // ---- 旧 d03.js ----
+  { id: "d03_orc", name: "奈落のオーク", race: "humanoid", element: "earth", artKey: "hd_orc3", rank: 4,
+    ability: "critical", enrage: true, // 鎧ごと胸郭を陥没させる急所狙いの一打。痛覚が焼き切れ、手負いほど荒れ狂う
+    soulClass: "knight",
+    desc: "深淵から立ち昇る瘴気を浴び、肉も殺意も常軌を逸して膨れ上がった大型のオーク。岩塊のような拳が急所を捉えれば、鎧ごと胸郭を陥没させる。痛覚はとうに焼き切れ、四肢を失ってなお這い寄って噛みつく。" },
+  { id: "d03_ghost", name: "さまよう亡霊", race: "specter", element: "dark", artKey: "hd_wanderghost", rank: 5,
+    ability: "soulSteal", // 冷たい指で熱とともにSoulを奪う
+    desc: "回廊で力尽き、骸さえ見つけてもらえなかった者の魂。生者の体温に飢え、音もなく背後へ回り込んでは冷たい指を肋の隙間へ差し入れる。触れられた箇所から熱とともにSoulが吸い出され、心の臓が凍てついていく。" },
+  { id: "d03_sahagin", name: "深淵のサハギン", race: "aquatic", element: "water", artKey: "hd_sahagin", rank: 4,
+    pack: true, // 骨のもりを手に群れで岸辺を囲う
+    desc: "陽の射さぬ地底湖に棲む半魚人。退化した眼の代わりに水の震えで獲物を捉え、骨を削ったもりを手に群れをなして岸辺を囲う。捕えた獲物は湖底の祭壇へ引きずり込み、見たこともない深きものへ捧げる。" },
+  { id: "d03_mandrake", name: "毒マンドレイク", race: "plant", element: "earth", artKey: "hd_mandrake3", rank: 5,
+    ability: "confuse", // 断末魔の絶叫で正気を削る
+    desc: "屍を養分に、人の形を真似て育った歩く毒草。引き抜かれると断末魔の絶叫を放ち、聞いた者の正気を削って敵味方の見分けを奪う。根からまかれる紫の胞子は肺を腐らせ、やがてその体内が次の苗床になる。" },
+  { id: "d03_sentinel", name: "無人の甲冑", race: "armored", element: "light", artKey: "hd_sentinel", rank: 5,
+    ability: "critical", physResist: 1, // 冴えた剣技で急所を突き、空洞の鎧が刃を弾く
+    soulClass: "knight",
+    desc: "守るべき主も、守るべき意味も失われ、ただ「侵入者を通すな」という最後の誓いだけが宿った無人の鎧。中身は空洞ゆえ刃を通しても手応えなく、磨き抜かれた剣技は生前のまま冴え渡り、隙あらば急所を突く。兜の奥で、消えぬ聖光がぼうと灯る。" },
+  { id: "d03_whelp", name: "奈落の幼竜", race: "dragon", element: "fire", artKey: "dragon", rank: 5, boss: true,
+    palette: tint(ARTS.dragon.palette, "#3a8a3a", 0.35),
+    ability: "breath", // 前衛後衛もろとも灼く炎の吐息
+    desc: "深淵の熱泉でふ化したばかりの若き竜。鱗はまだ柔らかく、知恵も浅い。だがその喉から吐き出される炎は前衛も後衛もまとめて飲み込んで回廊の石を飴のように溶かし、未熟ゆえの加減を知らぬ分だけ、かえって容赦がない。" },
+  // ---- 旧 d04.js ----
+  { id: "d04_golem", name: "墓守ゴーレム", race: "construct", element: "earth", artKey: "hd_gravegolem", rank: 5,
+    physResist: 1, role: "guard", // 石材の巨体が刃を通しにくく、墓守として仲間の前に立ちはだかる
+    desc: "古竜の眠りを守るため、墓所の石材そのものから彫り出された番人。命じた術者はとうに塵となったが、その指は今も「荒らす者を砕け」という最初の一文を律儀になぞる。石の巨体は並の刃を通しにくく、荒らす者が仲間に刃を向ければ、その前へ黙って立ちはだかる。一打ごとに床が陥み、塵が舞う。" },
+  { id: "d04_ogre", name: "墓所の巨人", race: "giant", element: "none", artKey: "hd_graveogre", rank: 5,
+    ability: "critical", // 棍棒の一撃が急所を叩き潰す
+    desc: "墓を暴いて骸を喰らううち、屍肉の魔力で異形に肥え太った人喰い鬼。供物のつもりか、棍棒で急所を叩き潰した獲物を古竜の墓前へ並べる悪癖を持つ。足音だけで石棺の蓋が震えるという。" },
+  { id: "d04_revenant", name: "亡霊騎士", race: "armored", element: "light", artKey: "hd_revenant", rank: 6,
+    magResist: 1, ability: "critical", // 誇り高き剣技が鎧の継ぎ目=急所を突き、宿った聖光が呪文を散らす (物理耐性の無人の甲冑と分ける)
+    soulClass: "knight",
+    desc: "砦を守って誇り高く敗れた騎士の鎧。死してなお誓いを捨てず、磨かれた剣技で挑戦者の鎧の継ぎ目を突く。砕けた兜の奥では、あがないを求める弱い聖光が今も明滅し、撃ち込まれた呪文をその光が散らしてしまう。" },
+  { id: "d04_grudge", name: "墓所の怨霊", race: "specter", element: "dark", artKey: "wraith", rank: 7,
+    palette: tint(ARTS.wraith.palette, "#6a4a8a", 0.4),
+    ability: "soulSteal", // 黄金への妄執を呪詛に変え、魂を吸い上げる
+    soulClass: "mage",
+    desc: "古竜の財宝に魅入られ、手を伸ばしたまま息絶えた盗掘者たちの妄執が、幾重にも凝り固まった黒いもや。黄金への渇望だけが残り、近づく生者を「宝を奪う敵」と見て、呪詛とともに魂を吸い上げる。" },
+  { id: "d04_vritra", name: "古竜ヴリトラ", race: "dragon", element: "dark", artKey: "dragon", rank: 9, boss: true,
+    palette: tint(ARTS.dragon.palette, "#ffd24a", 0.25),
+    ability: "breath", regen: 0.05, // 災厄の吐息で全体を呑み、古竜の生命力で傷を繕う
+    desc: "墓所の最奥、累々たる英雄の骸をしとねに眠る黄金の古竜。前衛後衛を呑み込む災厄の吐息を放ち、幾百年を生きた古竜の生命力は浅い傷を瞬く間に繕う。その眼が薄く開いたとき、貴公はようやく悟る——ここは竜の墓ではなく、竜に捧げられた墓場なのだと。" },
+];
+const LEGACY = defMonsters(LEGACY_DEFS.map((d) => ({ ...monStats(d.rank, d.boss), ...d })));
 
 // ---- 新規モンスター (ランクの穴を埋める + 高ランクの伝説級) ----
 // ステータスは defMonsters 通過後に monStats で与える (下の一括処理)

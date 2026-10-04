@@ -1525,7 +1525,7 @@ function newFloor() {
 function fleeScale() {
   const cfg = activeCfg();
   const spds = [...new Set([...(cfg.pool || []), ...(cfg.deepPool || [])])]
-    .map((k) => MONSTERS[k] && MONSTERS[k].spd).filter((v) => v > 0).sort((a, b) => a - b);
+    .map((k) => MONSTERS[k] && MONSTERS[k].agi).filter((v) => v > 0).sort((a, b) => a - b);
   const typical = spds.length ? spds[Math.floor(spds.length / 2)] : 4 + Math.round((cfg.rank || 1) * 0.9);
   // 基準の隊の AGI は推奨Lv で引く (levelcurve.js partyAgi)
   return partyAgi(levelHere().lv) / Math.max(1, typical);
