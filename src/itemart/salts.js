@@ -17,7 +17,6 @@ export const ART_SALT = {
   "h_r19_heavendragonhood": 1,
   "h_r20_endcrown": 1,
   "h_silent_vow_cowl": 1,
-  "h_sr4_sentryhelm": 1,
   "h_sr5_owlhood": 2,
   "ironGauntlets": 1,
   "lr_l2_goldsilt": 1,
