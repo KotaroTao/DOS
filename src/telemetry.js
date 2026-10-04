@@ -3,6 +3,9 @@
 //   隊の様子 … 各迷宮の1階に着いた時・最後に着いた階・踏破した時の、出撃中の人業の職・Lv・能力値
 //   戦闘     … 戦闘数・勝ち/逃げ/全滅・ラウンド数・先制/奇襲・物理の命中/回避 (味方→敵 / 敵→味方)・
 //              手番の先後・逃走の試行/成功・与ダメ/被ダメ・戦闘前後の隊HP割合・隊と敵の AGI
+//   戦利品   … 迷宮で手に入れた品のレア度別の数・図鑑の新種・持ちきれず置いてきた数・得たゴールド/✦Soul
+//   時間     … 迷宮の中にいた実プレイ時間と、その迷宮へ入る前に町で過ごした実プレイ時間
+//              (画面が見えていて直近2分以内に操作がある時間だけ。game.js の5秒ごとの時計から)
 // 「記録を書き出す」でテキストにして、そのまま貼り付けて送れる。保存先は端末内 (localStorage) のみで、外へは送らない。
 // セーブとは別の鍵 (dos-testlog)。「はじめから」でも消えない (消すのは「記録を消す」)。
 // game.js は import しない (game.js から呼ばれる側)。戦闘の挙動には一切影響しない。
@@ -38,12 +41,48 @@ export function tlSetOn(v) {
 }
 export function tlClear() {
   const on = S.on;
+  _tickN = 0;
   S = blank();
   S.on = on;
   if (on) S.since = stamp();
   persist();
 }
 export function tlHasData() { return Object.keys(S.d).length > 0; }
+
+// ---- 戦利品・時間 ----
+// 品1つを手に入れた (迷宮の中で)。isNew = 図鑑に初めて載る品
+export function tlLoot(where, item, isNew) {
+  if (!S.on || !where || !item) return;
+  const L = lootOf(slot(where));
+  const k = item.slot === "misc" ? "misc" : item.slot === "use" ? "use" : (item.rar || "c");
+  L[k] = (L[k] || 0) + 1;
+  if (isNew) L.nw = (L.nw || 0) + 1;
+  persist();
+}
+// 持ちきれず置いてきた品
+export function tlLost(where) {
+  if (!S.on || !where) return;
+  const L = lootOf(slot(where));
+  L.lost = (L.lost || 0) + 1;
+  persist();
+}
+// 迷宮で得たゴールド / ✦Soul (kind: "gold" | "soul")
+export function tlGain(where, kind, n) {
+  if (!S.on || !where || !(n > 0)) return;
+  const d = slot(where);
+  d[kind] = (d[kind] || 0) + Math.round(n);
+  persist();
+}
+// 実プレイ時間を足す (5秒ごと)。where = 迷宮の中ならその欄、町なら null (次に入る迷宮の「町」の時間へ持ち越す)
+let _tickN = 0;
+export function tlPlayTick(where, ms) {
+  if (!S.on) return;
+  if (where) slot(where).ms = (slot(where).ms || 0) + ms;
+  else S.townMs = (S.townMs || 0) + ms;
+  if (++_tickN % 6 === 0) persist(); // 30秒ごとに保存 (取りこぼしは最大30秒)
+}
+function lootOf(d) { return d.loot || (d.loot = {}); }
+
 
 // 迷宮の欄 (key = "D10" / 奈落は "A3")
 function slot(where) {
@@ -70,7 +109,11 @@ export function tlSnapshot(kind, where, party) {
     p: party.map(dollRow),
   };
   if (kind === "clear") d.s.clear = snap;
-  else if ((where.floor || 1) <= 1) d.s.f1 = snap;
+  else if ((where.floor || 1) <= 1) {
+    d.s.f1 = snap;
+    // 迷宮に入った: それまで町で過ごした時間をこの迷宮の「町」の時間に足す (同じ迷宮へ何度入っても足し込む)
+    if (S.townMs) { d.tms = (d.tms || 0) + S.townMs; S.townMs = 0; }
+  }
   else d.s.last = snap;
   persist();
 }
@@ -159,6 +202,18 @@ function fleeExpect(a) {
   return n > 0 ? `(予想${pct((a.fp || 0) / 1000, n)})` : "";
 }
 const KIND_LABEL = { n: "通常", e: "精鋭等", b: "主" };
+const mins = (ms) => `${Math.round((ms || 0) / 60000)}分`;
+// 戦利品と時間の1行 (記録し始める前の器には無いので、何も無ければ出さない)
+function lootLine(d) {
+  const L = d.loot || {};
+  const bits = [];
+  if (d.ms || d.tms) bits.push(`時間 迷宮${mins(d.ms)}/町${mins(d.tms)}`);
+  const lab = [["c", "C"], ["uc", "UC"], ["r", "R"], ["sr", "SR"], ["lr", "LR"], ["misc", "収集"], ["use", "道具"]];
+  const got = lab.filter(([k]) => L[k]).map(([k, n]) => `${n}${L[k]}`);
+  if (got.length || L.nw || L.lost) bits.push(`品 ${got.join(" ") || "0"}${L.nw ? ` 新種${L.nw}` : ""}${L.lost ? ` 置き去り${L.lost}` : ""}`);
+  if (d.gold || d.soul) bits.push(`✦${d.soul || 0} ${d.gold || 0}G`);
+  return bits.join(" / ");
+}
 
 function sortedKeys() {
   return Object.keys(S.d).sort((a, b) => (a[0] === b[0] ? parseInt(a.slice(1), 10) - parseInt(b.slice(1), 10) : a < b ? -1 : 1));
@@ -181,6 +236,8 @@ export function tlSummary() {
         `味方先手${pct(a.of, a.op)}${ambushNote(a)} 逃走${a.ft ? `${a.fo}/${a.ft}${fleeExpect(a)}` : "―"} ` +
         `AGI 隊${avg(a.pAgi, a.c, 10)}/敵${avg(a.eAgi, a.c, 10)}`);
     }
+    const extra = lootLine(d);
+    if (extra) parts.push(extra);
     out.push({ head, lines: parts.length ? parts : ["戦闘の記録なし"] });
   }
   return out;
@@ -195,6 +252,8 @@ export function tlExportText() {
   lines.push("戦闘の鍵: c戦闘 w勝 fl逃 l全滅 rラウンド pre先制 amb奇襲 ambR/ambX=奇襲のうち抽選/出来事・待ち伏せ ambP=抽選の奇襲率×1000の合計 pa/pe/pp=味方の物理 試行/回避された/見切られた " +
     "ea/ee/ep=敵の物理 同 of/op=手番で味方が先だった組/総組 ft/fo/fs=逃走 試行/成功/封じ fp/fpn=逃走を試みた時の成功率×1000の合計/その試行数 dd/dt=与/被ダメ " +
     "hp0/hp1=戦闘前後の隊HP割合×1000の合計 pAgi/eAgi/eAgiAvg=隊平均/敵最大/敵平均AGI×10の合計 en=敵数の合計");
-  lines.push(JSON.stringify({ v: S.v, since: S.since, d: S.d }));
+  lines.push("迷宮の鍵: ms/tms=迷宮の中/入る前の町の実プレイ時間(ミリ秒) gold/soul=迷宮で得たゴールド/✦Soul " +
+    "loot=手に入れた品 (c/uc/r/sr/lr=装備のレア度 misc=収集品 use=道具 nw=図鑑の新種 lost=持ちきれず置いてきた)");
+  lines.push(JSON.stringify({ v: S.v, since: S.since, townMs: S.townMs || 0, d: S.d }));
   return lines.join("\n");
 }

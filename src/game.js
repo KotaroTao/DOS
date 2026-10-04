@@ -64,7 +64,7 @@ const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho",
 // 視差・揺れを抑える設定 (OSの「視差効果を減らす」)。待機アニメなどを止める
 const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } })();
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
-import { tlOn, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd } from "./telemetry.js";
+import { tlOn, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlPlayTick } from "./telemetry.js";
 import { baselineAgi, progressX } from "./baseline.js";
 import { repriceEquipment } from "./pricing.js";
 
@@ -315,6 +315,7 @@ function lrClock() {
 setInterval(() => {
   if (document.visibilityState !== "visible" || Date.now() - _lastInputAt > 120000) return;
   G.stats.playMs = (G.stats.playMs || 0) + 5000; // 戦績: 総プレイ時間
+  if (tlOn()) tlPlayTick(inDungeon() ? tlWhere() : null, 5000); // テスト記録: 迷宮/町の実プレイ時間
   const f = lrLayerFactor(battleLayer());
   const c = lrClock();
   c.since += 5000 * f; c.pend += 5000 * f;
@@ -544,13 +545,15 @@ function takeStolenGold(b) {
   G.gold += g; if (G.run && inDungeon()) G.run.gold += g;
   return g;
 }
-function runGainGold(g) { g = Math.round(g * 0.5 * sfNum("goldMul", 1) * mutNum("goldMul", 1) * (1 + partyEffMax("goldUp"))); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; return g; }
+function runGainGold(g) { g = Math.round(g * 0.5 * sfNum("goldMul", 1) * mutNum("goldMul", 1) * (1 + partyEffMax("goldUp"))); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; if (tlOn() && inDungeon()) tlGain(tlWhere(), "gold", g); return g; }
 // 魂導の護符 (LR装飾品) の soulUp があれば ✦Soul の獲得量を割合で増やす。
 // 極の出来事で授かった恒久の恵み (G.events.flags) の効き目。授かっていなければ dflt
 function evBoon(k, field, dflt) { return G.events && G.events.flags && G.events.flags[k] ? EV_BOONS[k][field] : dflt; }
-function runGainSoulPts(s) { s = Math.round(s * sfNum("soulMul", 1) * mutNum("soulMul", 1) * (1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0))); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; return s; }
+function runGainSoulPts(s) { s = Math.round(s * sfNum("soulMul", 1) * mutNum("soulMul", 1) * (1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0))); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; if (tlOn() && inDungeon()) tlGain(tlWhere(), "soul", s); return s; }
 function runGainItem(owner, item) {
   if (item) item.isNew = true; // NEW 印 (品シートで見れば消える。セーブには追加の印として残る)
+  // テスト記録: 迷宮で手に入れた品 (図鑑の記録は呼び出し側がこの後で行うので、ここで見れば新種かがわかる)
+  if (item && tlOn() && inDungeon()) tlLoot(tlWhere(), item, !(G.codex && G.codex.item && G.codex.item[item.id]));
   owner.items.push(item);
   if (G.run && inDungeon()) G.run.items.push({ owner, item });
   if (item && item.rar === "lr") { if (!G.lrOwned) G.lrOwned = {}; G.lrOwned[item.id] = true; } // LRは1点もの
@@ -564,7 +567,7 @@ function newRun() {
   return { gold: 0, soulPts: 0, items: [], souls: [], kills: 0, levels: [], lost: [], floors: 1, embers: 0, at: Date.now() };
 }
 function runCount(key, n = 1) { if (G.run && inDungeon()) G.run[key] = (G.run[key] || 0) + n; }
-function runLost(name) { if (G.run && inDungeon() && name) (G.run.lost || (G.run.lost = [])).push(name); }
+function runLost(name) { if (G.run && inDungeon() && name) (G.run.lost || (G.run.lost = [])).push(name); if (name && tlOn() && inDungeon()) tlLost(tlWhere()); }
 // 魂の成長 (Lv a→b) を人業ごとに1行へまとめる
 function runLevel(d, from, to) {
   if (!G.run || !d) return;
@@ -9313,8 +9316,10 @@ function fuseSoul(targetUid, consumeUid, onResultClose = null) {
 
 // 魂を1レベル上げるのに要する Soul (レベルが高いほど高い)
 // 次レベルへ必要な ✦Soul。レベルが上がるほど指数的に増え、レベリングのペースを抑える。
-// 基準 20 × 1.13^(level-1) → Lv1≈20 / Lv10≈60 / Lv20≈204 / Lv30≈692 / Lv50≈7980。
-function soulTrainCost(level) { return Math.max(1, Math.round(20 * Math.pow(1.13, (level || 1) - 1))); }
+// 基準 40 × 1.13^(level-1) → Lv1≈40 / Lv10≈120 / Lv20≈408 / Lv30≈1384 / Lv50≈15960。
+// 2026-10: テスト記録 (D15 で Lv32 前後・ほぼオートで勝てた) を受けて、必要量を従来 (20 × …) の2倍にした
+const SOUL_TRAIN_BASE = 40;
+function soulTrainCost(level) { return Math.max(1, Math.round(SOUL_TRAIN_BASE * Math.pow(1.13, (level || 1) - 1))); }
 
 // 魂に蓄積している総 Soul = 現レベルまでに消費した分 + 次レベルへの途中分(exp)。
 // 融合時の合算や、上限突破後の一括レベルアップ計算に使う。
