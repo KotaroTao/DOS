@@ -668,7 +668,7 @@ function soulEnhanced(s) {
 export function openFusePicker(targetUid, onDone) {
   const t = soulByUid(targetUid);
   if (!t) return null;
-  if (!(game.featureUnlocked && game.featureUnlocked("fusion"))) { sfx("ng"); toast("魂融合は 5 迷宮の踏破を王に報告すると開く", { tone: "info" }); return null; }
+  if (!(game.featureUnlocked && game.featureUnlocked("fusion"))) { sfx("ng"); toast(`魂融合は ${(game.FEATURE_AT && game.FEATURE_AT.fusion) || 2} 迷宮の踏破を王に報告すると開く`, { tone: "info" }); return null; }
   const candsNow = () => (game.fuseCandidates ? game.fuseCandidates(targetUid) : []).sort(game.soulSortCmp || (() => 0));
   // 素材にできない同じ職の魂: ロック中 (この場で外せる) / だれかが宿している (理由だけ見せる)
   const sameJob = () => (G_().souls || []).filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey);
