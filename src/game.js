@@ -9836,7 +9836,15 @@ function questHereCount(cfg) {
   if (!cfg) return 0;
   const s = questState();
   return s.active.filter((q) => q.state === "active" && q.dungeon === cfg.id).length +
-    FIXED_QUESTS.filter((d) => s.fixed[d.id] && s.fixed[d.id].state === "active" && d.goal && d.goal.dungeon === cfg.id).length;
+    FIXED_QUESTS.filter((d) => s.fixed[d.id] && s.fixed[d.id].state === "active" && fixedQuestTargets(d, cfg)).length;
+}
+// 依頼人の頼みがこの迷宮を指しているか: 到達/踏破はその迷宮、討伐は狙う魔物が出る迷宮 (出現表の帯・主。金属の魔物は第3層から)
+function fixedQuestTargets(def, cfg) {
+  const g = def.goal || {};
+  if (g.dungeon) return g.dungeon === cfg.id;
+  if (g.type !== "kill" || !g.keys) return false;
+  const roster = new Set([...(cfg.bands ? cfg.bands.flat() : [...(cfg.pool || []), ...(cfg.deepPool || [])]), cfg.boss].filter(Boolean));
+  return g.keys.some((k) => roster.has(k) || (MONSTERS[k] && MONSTERS[k].metal && (cfg.layer || 0) >= 3));
 }
 // 出撃シートの添え書き: 酒場の依頼で開いた迷宮なら「依頼の迷宮」(受けた依頼の対象かどうかは名の横の印 questHereCount)
 function questHereNote(cfg) {
