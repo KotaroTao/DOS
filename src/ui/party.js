@@ -29,8 +29,9 @@ import {
 import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, scaleText, useWhere, compareUse } from "../items.js";
 import {
   SOUL_CLASSES, JOB_GEAR, dollSprite, dollBust, jobBust, jobSprite, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulLabel, soulRankLeft, soulByUid,
-  orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs,
+  orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs, isAutoOff, setAutoOff,
 } from "../souls.js";
+import { TACTICS, tacticOf, setTactic } from "../autotactics.js";
 import { SPELLS, spellCost, spellMpLabel } from "../combat.js";
 import { spriteCanvas, crispCanvas } from "../sprites.js";
 import { rarityKey, RARITIES } from "../rarity.js";
@@ -478,7 +479,8 @@ let bgcMemo = { key: "", n: 0, hints: [] };
 function betterGearCount() {
   const G = G_();
   if (!G || !G.party) return 0;
-  const key = equipSignature(allDolls()) + "|" + G.party.map((d) => `${d.jobKey}:${d.level}`).join(",");
+  // 魂の付け替え・融合・サブ魂・結社でも能力が変わるので、能力そのものも鍵に入れる (古い見積りで印を点けない)
+  const key = equipSignature(allDolls()) + "|" + G.party.map((d) => d ? `${d.jobKey}:${d.level}:${d.maxhp},${d.maxmp},${d.atk},${d.vit},${d.agi},${d.int},${d.pie},${d.luk}:${G.party.indexOf(d)}` : "-").join(",");
   if (bgcMemo.key === key) return bgcMemo.n;
   memoClear();
   let n = 0;
@@ -497,7 +499,7 @@ function betterGearCount() {
 }
 
 // ================= タブの印 (赤い点) =================
-// 器の砕けた人業 (数) は直るまで出し続ける。
+// 器の砕けた人業 (数) は、いま館で修復できる間だけ出す (連れ帰りを待つ間・金貨が足りない間は、館ですることが無い)。
 // 「✦で鍛えられる魂」「袋により良い品」は放っておいても困らないお勧めなので、館を開いたら既読にし、
 // 新しく増えた時だけ点け直す (✦Soul は戦闘のたびに貯まるので、既読にしないと点きっぱなしになる)。
 function tabHints() {
@@ -512,7 +514,7 @@ function ackTabHints() {
   if (now.length !== seen.length || now.some((k) => !seen.includes(k))) setPref("partyHintsSeen", now);
 }
 function tabBadge(counts) {
-  if (counts && counts.dead) return counts.dead;
+  if (counts && counts.repairNow) return counts.repairNow;
   const seen = getPref("partyHintsSeen", []) || [];
   return tabHints().some((k) => !seen.includes(k)) ? true : null;
 }
@@ -1702,6 +1704,20 @@ function statsSeg(root, d) {
   root.appendChild(grid);
   fillInfo();
   root.appendChild(info);
+  // 作戦 (オート戦闘での振る舞い)。タップで選び直す
+  {
+    const tac = tacticOf(d);
+    const line = el("div", "pt-chiprow");
+    line.appendChild(el("span", "pt-chiprow-l", "作戦"));
+    const b = el("button", "pt-tactic");
+    b.type = "button";
+    b.appendChild(el("span", "pt-tactic-n", tac.name));
+    b.appendChild(el("span", "pt-tactic-d", tac.desc));
+    b.setAttribute("aria-label", `${d.name}のオートの作戦 ${tac.name}（変える）`);
+    b.addEventListener("click", () => { sfx("select"); openTacticSheet(d); });
+    line.appendChild(b);
+    root.appendChild(line);
+  }
   // 技・加護 (どちらもタップ = くわしく) の札は横に流れる1列。技は並べた順で、戦闘で出さない技は沈めて見せる
   if (d.spells && d.spells.length) {
     const line = el("div", "pt-chiprow");
@@ -1714,6 +1730,7 @@ function statsSeg(root, d) {
       c.type = "button";
       c.appendChild(el("span", "pt-skill-n", sp ? sp.name : key));
       if (off) c.appendChild(el("span", "pt-skill-off", "非表示"));
+      else if (isAutoOff(d, key) && sp && sp.kind !== "field") c.appendChild(el("span", "pt-skill-off", "手動のみ"));
       const tg = sp && tagRow(spellTagKinds(sp, d), "pt-skill-tags");
       if (tg) c.appendChild(tg);
       if (sp) c.appendChild(el("span", "pt-skill-c", spellMpLabel(sp)));
@@ -1724,7 +1741,7 @@ function statsSeg(root, d) {
     const org = el("button", "pt-chiprow-b");
     org.type = "button";
     org.textContent = "整理";
-    org.setAttribute("aria-label", `${d.name}の技の並べ替え・表示`);
+    org.setAttribute("aria-label", `${d.name}の技の並べ替え・表示・オート`);
     org.addEventListener("click", () => { sfx("select"); openSkillManager(d); });
     line.appendChild(org);
     root.appendChild(line);
@@ -1750,8 +1767,9 @@ function statsSeg(root, d) {
   }
 }
 
-// ---- 技の整理: 戦闘での表示のオン/オフと並べ替え ----
-// オフの技は戦闘のスキル一覧 (と「最後に使った技」) に出ない。並びは戦闘の一覧とこの画面の札に効く
+// ---- 技の整理: 戦闘での表示のオン/オフ・オートで使うか・並べ替え ----
+// オフの技は戦闘のスキル一覧 (と「最後に使った技」) に出ない。並びは戦闘の一覧とこの画面の札に効く。
+// 「オート」を切った技はオート戦闘では使わない (手動では使える)。出さない技・迷宮で唱える技はオートも使わない
 function openSkillManager(d) {
   if (!d || !(d.spells && d.spells.length)) return null;
   const save = () => { if (game.autosave) game.autosave(true); };
@@ -1760,7 +1778,8 @@ function openSkillManager(d) {
     const list = orderedSkills(d);
     const wrap = el("div", "pt-skm");
     const shown = list.filter((k) => !isSkillOff(d, k)).length;
-    wrap.appendChild(el("div", "pt-skm-sum", `戦闘で出す技 ${shown} / ${list.length}`));
+    const autoN = list.filter((k) => !isSkillOff(d, k) && !isAutoOff(d, k) && !(SPELLS[k] && SPELLS[k].kind === "field")).length;
+    wrap.appendChild(el("div", "pt-skm-sum", `戦闘で出す技 ${shown} / ${list.length}　オートで使う技 ${autoN}`));
     list.forEach((key, i) => {
       const sp = SPELLS[key];
       const off = isSkillOff(d, key);
@@ -1771,6 +1790,16 @@ function openSkillManager(d) {
       tg.setAttribute("aria-label", `${sp ? sp.name : key}を戦闘で${off ? "表示する" : "出さない"}`);
       tg.addEventListener("click", () => { setSkillOff(d, key, !off); sfx("select"); save(); redraw(); });
       r.appendChild(tg);
+      // オートで使うか (出さない技・迷宮で唱える技はオートも使わないので押せない)
+      const field = !!(sp && sp.kind === "field");
+      const aOff = isAutoOff(d, key);
+      const at = el("button", "pt-skm-tg pt-skm-auto" + (off || field ? " na" : aOff ? "" : " on"), off || field ? "―" : aOff ? "手動" : "オート");
+      at.type = "button";
+      at.disabled = off || field;
+      at.setAttribute("aria-pressed", !off && !field && !aOff ? "true" : "false");
+      at.setAttribute("aria-label", field ? `${sp.name}は迷宮で唱える技` : `${sp ? sp.name : key}をオートで${aOff ? "使う" : "使わない"}`);
+      at.addEventListener("click", () => { if (off || field) return; setAutoOff(d, key, !aOff); sfx("select"); save(); redraw(); });
+      r.appendChild(at);
       const nm = el("button", "pt-skm-n");
       nm.type = "button";
       nm.appendChild(el("span", "pt-skm-nm", sp ? sp.name : key));
@@ -1797,13 +1826,78 @@ function openSkillManager(d) {
   const redraw = () => { if (!box) return; const nb = build(); box.replaceWith(nb); box = nb; };
   return sheet.open({
     kind: "info", className: "pt-skm-sheet", banner: "技の整理", title: `${d.name}の技`,
-    lines: ["「表示」を切った技は戦闘のスキル一覧に出ない。▲▼ で戦闘での並び順を変える。"],
+    lines: ["「表示」を切った技は戦闘のスキル一覧に出ない。「オート」を「手動」にした技はオート戦闘で使わない。▲▼ で戦闘での並び順を変える。"],
     body: (scroll) => { box = build(); scroll.appendChild(box); },
     footer: [
       { label: "初期に戻す", kind: "ghost", onTap: () => { resetSkillPrefs(d); sfx("select"); save(); redraw(); } },
       { label: "閉じる", kind: "primary", onTap: (h) => h.close() },
     ],
     onClose: () => rerender(),
+  });
+}
+
+// ---- 作戦: オート戦闘での振る舞い (autotactics.js) を人業ごとに選ぶ ----
+function tacticList(d, onPick) {
+  const wrap = el("div", "pt-tac");
+  const cur = tacticOf(d).key;
+  for (const t of TACTICS) {
+    const b = el("button", "pt-tac-b" + (t.key === cur ? " on" : ""));
+    b.type = "button";
+    b.setAttribute("aria-pressed", t.key === cur ? "true" : "false");
+    b.appendChild(el("span", "pt-tac-n", t.name));
+    b.appendChild(el("span", "pt-tac-d", t.desc));
+    b.addEventListener("click", () => onPick(t.key));
+    wrap.appendChild(b);
+  }
+  return wrap;
+}
+export function openTacticSheet(d, { onDone = null } = {}) {
+  if (!d) return null;
+  const save = () => { if (game.autosave) game.autosave(true); };
+  let box = null, picked = false;
+  const redraw = () => { if (!box) return; const nb = tacticList(d, pick); box.replaceWith(nb); box = nb; };
+  function pick(key) {
+    setTactic(d, key); picked = true; sfx("select"); save(); redraw();
+  }
+  return sheet.open({
+    kind: "info", className: "pt-tac-sheet", banner: "作戦", title: `${d.name}への命令`,
+    lines: ["オート戦闘でどう動くか。オートで使う技は「技の整理」で選べる。"],
+    body: (scroll) => { box = tacticList(d, pick); scroll.appendChild(box); },
+    footer: [
+      ...(d.spells && d.spells.length ? [{ label: "技の整理", kind: "ghost", onTap: () => openSkillManager(d) }] : []),
+      { label: "閉じる", kind: "primary", onTap: (h) => h.close() },
+    ],
+    onClose: () => { if (onDone) onDone(picked); else rerender(); },
+  });
+}
+// 隊の全員の作戦を一度に見る (戦闘の「オート」の長押しから)。人業をタップ = その人業の作戦を選ぶ
+export function openPartyTactics(list, { onDone = null } = {}) {
+  const dolls = (list || []).filter(Boolean);
+  if (!dolls.length) return null;
+  let box = null;
+  const build = () => {
+    const wrap = el("div", "pt-tac");
+    for (const d of dolls) {
+      const t = tacticOf(d);
+      const b = el("button", "pt-tac-b pt-tac-who");
+      b.type = "button";
+      const top = el("span", "pt-tac-top");
+      top.appendChild(el("span", "pt-tac-dn", d.name));
+      top.appendChild(el("span", "pt-tac-n", t.name));
+      b.appendChild(top);
+      b.appendChild(el("span", "pt-tac-d", t.desc));
+      b.addEventListener("click", () => { sfx("select"); openTacticSheet(d, { onDone: () => redraw() }); });
+      wrap.appendChild(b);
+    }
+    return wrap;
+  };
+  const redraw = () => { if (!box) return; const nb = build(); box.replaceWith(nb); box = nb; };
+  return sheet.open({
+    kind: "info", className: "pt-tac-sheet", banner: "作戦", title: "隊への命令",
+    lines: ["オート戦闘での振る舞いを人業ごとに決める。人業をタップで選び直す。"],
+    body: (scroll) => { box = build(); scroll.appendChild(box); },
+    footer: [{ label: "閉じる", kind: "primary", onTap: (h) => h.close() }],
+    onClose: () => { if (onDone) onDone(); },
   });
 }
 
@@ -2011,6 +2105,8 @@ export function install() {
     canEquipReason,
     equipChooser: (item, o = {}) => openEquipChooser(item, o),
     equipChooserEl: (item, o = {}) => equipChooserEl(item, o),
+    openTacticSheet,
+    openPartyTactics,
   });
   if (UI.shell && UI.shell.registerTab) {
     UI.shell.registerTab("party", {

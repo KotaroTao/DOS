@@ -14,6 +14,7 @@
 //    同じ形キーでも item id の安定ハッシュで型を選ぶ (pickArt) ので、同系統の装備でも見た目が散らばる
 import { tint } from "../dungeons/schema.js";
 import { lvToRank, USE_KEYS, USE_AIL } from "../items.js";
+import { MISC_ART } from "./miscart.js";
 
 // 共有パレット (items.js と同等)。素材ごとに 3〜5 階調 (光源は左上)。
 // base() が tint() で全キーを染め色へ寄せるので、どの色も「染めても破綻しない」明度差で並べてある
@@ -42,6 +43,7 @@ const P = {
   F: "#17161f", f: "#2c2b3a", C: "#484a5e", A: "#6e7088",
   m: "#a0566a", // 桃 (肉・舌)
 };
+export const ITEM_PALETTE = P;
 
 // 属性 → 染め色 (schema.js の ELEMENTS と同系統)
 const ELEM_TINT = {
@@ -2025,8 +2027,11 @@ function base(id, name, slot, lv, artKey, opt) {
   const tc = opt.tint || (el ? ELEM_TINT[el] : null);
   // 秘宝 (LR・職業専用・神話級 lv165+) は輪郭の外に淡い燐光をまとう。色は属性色、無属性は青白い燐光
   const relic = !!(opt.lr || opt.exclusive || lv >= 165);
-  it.art = relic ? withGlow(pickArt(artKey, id)) : pickArt(artKey, id);
-  it.palette = tc ? tint(P, tc, opt.tintAmt != null ? opt.tintAmt : (el ? 0.3 : 0.22)) : P;
+  // 固有の絵 (opt.art = 行配列 / opt.pal = P への追加・上書き色) は染めずにそのまま使う
+  const art = opt.art || pickArt(artKey, id);
+  it.art = relic ? withGlow(art) : art;
+  it.palette = opt.art ? { ...P, ...(opt.pal || {}) }
+    : tc ? tint(P, tc, opt.tintAmt != null ? opt.tintAmt : (el ? 0.3 : 0.22)) : P;
   if (relic) it.palette = { ...it.palette, "*": rgba(el ? ELEM_TINT[el] : GLOW_DEFAULT, GLOW_ALPHA) };
   it.price = opt.price != null ? opt.price : priceOf(lv);
   return it;
@@ -2175,8 +2180,11 @@ export function R(id, name, shape, lv, opt = {}) {
 }
 
 // 収集品 (戦利品): M(id, 名, 形, lv, opt) — 装備も使用もできず、商店で売るか宝物庫に奉納する
+// 絵は miscart.js の固有の絵 (id ごとに一枚)。shape は品の種類 (牙・骨・貨幣…) の目印として残す
 export function M(id, name, shape, lv, opt = {}) {
-  const it = base(id, name, "misc", lv, shape, opt);
+  const own = MISC_ART[id];
+  chk(own, "収集品に固有の絵が無い (miscart.js): " + id);
+  const it = base(id, name, "misc", lv, shape, { ...opt, art: own.art, pal: own.pal });
   it.price = opt.price != null ? opt.price : round(8 + lv * lv * 0.25 + lv * 4);
   return it;
 }

@@ -2228,6 +2228,104 @@ export class Battle {
     return out;
   }
 
+  // ===== オートの見積もり (autotactics.js が読む) =====
+  // 実際の _physical / _cast と同じ式で「平均でどれだけ通るか」を返す。乱数を引かず、戦闘の状態も一切変えない
+  // (溜めは覗くだけ・揺らぎは平均で無視)。命中率・会心率・耐性・属性・隊列を織り込んだ期待値
+  estPhys(actor, tgt, opt = {}) {
+    if (!actor || !tgt || !tgt.alive) return 0;
+    const magHit = actor.side === "party" && !!actor.wMagic && !opt.skill;
+    let r = tgt.side === "enemy" ? (tgt[magHit ? "magResist" : "physResist"] || 0) : 0;
+    if (r > 0 && r < 1) r = r >= 0.6 ? 2 : r >= 0.4 ? 1 : 0;
+    r = Math.min(3, r | 0);
+    const metal = isMetal(tgt);
+    if (r >= 3 && !metal) return 0; // 無効は会心でも通らない
+    const evade = (metal ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0);
+    let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
+    const blind = this._bm(actor, "hit");
+    if (blind < 1) missP += Math.min(0.4, 1 - blind);
+    const hitP = Math.max(0, 1 - Math.min(1, missP)) * (1 - (pv(tgt, "parry") ? 0.1 : 0));
+    const power = opt.power || 1;
+    const sb = pv(actor, "spellBlade");
+    const sbAdd = sb ? (actor.int || 0) * (sb >= 2 ? 1.0 : 0.5) * power : 0;
+    const ibAdd = opt.intScale ? (actor.int || 0) * opt.intScale * power : 0;
+    const stAdd = ((opt.agiScale || 0) * (actor.agi || 0) + (opt.vitScale || 0) * (actor.vit || 0) + (opt.pieScale || 0) * (actor.pie || 0)) * power;
+    const despMul = opt.desperate && actor.maxhp ? 1 + Math.max(0, 1 - actor.hp / actor.maxhp) : 1;
+    const zt = actor.side === "party" ? this._rk(actor, "samuraiZantetsu", [0.10, 0.20, 0.30, 0.50]) : 0;
+    const pierceAll = 1 - (1 - Math.min(1, opt.pierce || 0)) * (1 - zt);
+    const defCut = Math.floor(this._evit(tgt) * 0.5 * (1 - pierceAll));
+    const mjAdd = opt.skill && actor.side === "party" ? (actor.int || 0) * this._bm(actor, "int") * this._rk(actor, "spellbladeMajin", [0.10, 0.20, 0.30, 0.50]) : 0;
+    const ch = actor.effects && actor.effects.find((e) => e.stat === "charge"); // 溜めは覗くだけ
+    let dmg = (this._eatk(actor) * power * this._lowHpMul(actor) + sbAdd + ibAdd + stAdd + mjAdd) * despMul * (ch ? ch.mult : 1) - defCut;
+    if (tgt._defending) dmg *= 0.5;
+    const aE = opt.element || (actor.elemAtk && actor.elemAtk.el) || actor.element || "none";
+    const aLv = (actor.elemAtk && actor.elemAtk.el === aE) ? Math.max(1, actor.elemAtk.lv) : 1;
+    dmg *= elemDmgMult(aE, aLv, tgt.element || "none", edefOf(tgt)) * this._vulnMul(tgt, aE);
+    if (opt.execute && tgt.maxhp && tgt.hp <= tgt.maxhp * 0.3) dmg *= opt.execute;
+    if (opt.prey && opt.prey.races.includes(enemyRace(tgt))) dmg *= opt.prey.mul;
+    if (pv(actor, "smite") && HOLY_PREY.includes(enemyRace(tgt))) dmg *= 1.3;
+    if (pv(actor, "gokudoku") && tgt.ailment === "poison") dmg *= 1.3;
+    const pOn = opt.basic ? ["phys", "basic"] : opt.skill ? ["phys", "skill"] : ["phys"];
+    const perkFoe = actor.side === "party" && tgt.side === "enemy";
+    if (perkFoe) dmg *= 1 + this._perkSum(actor, "deal", { tgt, el: aE, on: pOn });
+    if (actor.side === "party") dmg *= evDealMul(actor, tgt);
+    const luckCrit = Math.max(0, ((actor.luk || 8) - 8)) * 0.005;
+    let critP = 0.06 + (actor.critBonus || 0) + luckCrit + (opt.critBonus || 0) + (actor._evCrit || 0);
+    if (perkFoe) critP += this._perkSum(actor, "crit", { tgt, el: aE, on: pOn });
+    if (pv(actor, "holyEdge") && HOLY_PREY.includes(enemyRace(tgt))) critP += 0.15;
+    const fs = pv(actor, "fightSpirit");
+    if (fs >= 2 && actor.maxhp && actor.hp <= actor.maxhp * 0.3) critP += [0, 0, 0.15, 0.20, 0.25][Math.min(fs, 4)];
+    if ((opt.basic && (actor._kenma || actor._ambushCritLeft > 0)) || (tgt.asleep && actor.side === "party")
+      || (pv(actor, "sleepKill") && tgt.side === "enemy" && (tgt.ailment === "paralyze" || tgt.mind))) critP = 1;
+    critP = Math.min(1, Math.max(0, critP));
+    dmg *= this._rowMul(actor, tgt);
+    if (magHit && !metal && tgt.magWeak > 1) dmg *= tgt.magWeak;
+    let crit = dmg * 1.85 * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)];
+    let plain = dmg;
+    if (metal) plain = 1;
+    else if (r > 0 && !(!magHit && (opt.pierce || 0) > 0)) plain *= 1 - resistRate(r); // 防御無視の技は耐性1・2を通す
+    if (r > 0 && !metal && magHit) crit *= 1 - resistRate(r); // 魔法属性の一撃は会心でも魔法耐性を受ける
+    let m = 1;
+    if (tgt._barrierLeft > 0) m *= 0.5;
+    if (tgt.guard) m *= 1 - tgt.guard;
+    return hitP * (critP * Math.max(1, crit * m) + (1 - critP) * Math.max(1, plain * m));
+  }
+  // 攻撃呪文 1 発の期待ダメージ (重力は今のHPの割合)。魔法無効・金属は 0
+  estSpell(actor, sp, t) {
+    if (!actor || !sp || !t || !t.alive) return 0;
+    if (isMetal(t)) return 0;
+    let dmg;
+    if (sp.gravity) dmg = Math.max(1, t.hp * sp.gravity * (t.boss ? 0.3 : 1));
+    else {
+      const intv = Math.max((actor.int || 0) * this._bm(actor, "int"), isFaithSpell(sp) ? (actor.pie || 0) * this._bm(actor, "pie") : 0);
+      const aLv = (actor.elemAtk && actor.elemAtk.el === sp.element) ? Math.max(1, actor.elemAtk.lv) : 1;
+      let em = elemDmgMult(sp.element || "none", aLv, t.element || "none", edefOf(t));
+      if (em < 1 && pv(actor, "elemFloor")) em = 1;
+      em *= this._vulnMul(t, sp.element);
+      dmg = Math.max(1, (sp.power + intv * 0.5) * this._lowHpMul(actor) - Math.floor(this._evit(t) * 0.2)) * em;
+      if (t.magWeak > 1) dmg *= t.magWeak;
+      if (sp.prey && sp.prey.races.includes(enemyRace(t))) dmg *= sp.prey.mul;
+    }
+    let r = t.side === "enemy" ? (t.magResist || 0) : 0;
+    if (r > 0 && r < 1) r = r >= 0.6 ? 2 : r >= 0.4 ? 1 : 0;
+    r = Math.min(3, r | 0);
+    if (r >= 3) return 0;
+    if (r > 0) dmg *= 1 - resistRate(r) * (1 - this._rk(actor, "archmageShinen", [0.25, 0.50, 0.75, 1]));
+    if (pv(actor, "gokudoku") && t.ailment === "poison") dmg *= 1.3;
+    dmg *= evDealMul(actor, t) * (1 + this._perkSum(actor, "deal", { tgt: t, el: sp.element || "none", on: ["spell"] }));
+    const critP = sp.gravity ? 0 : Math.min(1, ([0, 0.10, 0.18, 0.26][Math.min(pv(actor, "spellCrit"), 3)] || 0) + (sp.critBonus || 0)
+      + this._rk(actor, "arcanistShinen", [0.05, 0.08, 0.12, 0.20]));
+    dmg *= 1 + critP * 0.5;
+    if (t.guard) dmg *= 1 - t.guard;
+    return Math.max(1, dmg);
+  }
+  // 回復呪文の1人あたりの回復量 (揺らぎの平均は無視)
+  estHeal(actor, sp) {
+    const aMul = pv(actor, "asceticism") && actor.maxhp && actor.hp <= actor.maxhp * 0.3 ? 1.3 : 1;
+    return ((sp.power || 0) + (actor.pie || 0) * this._bm(actor, "pie") * 0.5) * aMul * (1 + this._perkSum(actor, "heal"));
+  }
+  // 状態異常・即死の成功率 (Lv差・主の補正込み)。_inflict と同じ係数
+  estRate(actor, t, base) { return base > 0 ? this._rate(actor, t, base) : 0; }
+
   _cast(actor, cmd, res) {
     const sp = SPELLS[cmd.spellKey];
     const echo = !!cmd._echo; // 重詠の2回目 (MP・代償を払わない)

@@ -563,7 +563,11 @@ function pickerBody(root, d, slotId, h) {
     }
     if (fusion) {
       const n = game.fuseCandidates ? game.fuseCandidates(s.uid).length : 0;
-      if (n) side.appendChild(button({ label: `魂融合 ${n}`, kind: "secondary", size: "sm", onTap: () => openFusePicker(s.uid, () => refreshSheet(h)) }));
+      if (n) {
+        const fb = button({ label: `魂融合 ${n}`, kind: "secondary", size: "sm", onTap: () => openFusePicker(s.uid, () => refreshSheet(h)) });
+        fb.classList.add("sp-pick-fuse"); // 手ほどき (魂融合) が光らせる
+        side.appendChild(fb);
+      }
     }
     if (game.toggleSoulLock) {
       const lk = button({ icon: s.locked ? "lock" : "unlock", label: s.locked ? "ロック中" : "ロック", kind: s.locked ? "secondary" : "ghost", size: "sm",
