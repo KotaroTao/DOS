@@ -3,7 +3,7 @@ import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
 import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, perkVictory } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
-import { spriteCanvas, crispCanvas, drawPhoto } from "./sprites.js";
+import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto } from "./sprites.js";
 import {
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, slotKeyFor, lvToRank, RANGE_LABEL,
   UNIDENT_SLOTS, itemName, applyForge, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
@@ -7578,7 +7578,7 @@ function photoMonsterBitmap(mon) {
   const c = document.createElement("canvas");
   c.width = (w + pad * 2) * R; c.height = (h + pad * 2) * R;
   const b = { c, w, h, pad };
-  if (!(p.img && p.img.complete && p.img.naturalWidth > 0)) return b;
+  if (!photoReady(p)) { whenPhoto(mon, () => {}); return b; } // 写しを始めておく (焼けるまでは空)
   const body = document.createElement("canvas");
   body.width = w * R; body.height = h * R;
   const bg = body.getContext("2d");

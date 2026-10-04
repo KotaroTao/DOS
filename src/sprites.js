@@ -1122,17 +1122,70 @@ function normalize(art) {
 // spr.photo = { img, sx, sy, sw, sh } (原画の切り出し矩形。画像の外にはみ出した分は透明)、
 // spr.w / spr.h = ドット絵と同じ升目単位の大きさ。ドット絵と同じ関数 (drawSprite / crispCanvas /
 // spriteCanvas) で、升目の大きさに合わせて滑らかに拡大縮小して描く。
-function photoReady(p) { return !!(p.img && p.img.complete && p.img.naturalWidth > 0); }
+// 原画は読み込んだら一度だけ canvas に写し取り (_photoSurf)、以後はその写しから描く。
+// 画像要素から直接描くと、iOS Safari ではメモリが苦しい時に解読済みの画像が捨てられて空で描かれることがあり、
+// 一度きりの描画 (肖像・胸像) がそのまま空の枠になった。写しは捨てられないので、いつ描いても絵が出る
+const _photoSurf = new WeakMap(); // 画像 → 写し (canvas)
+const _photoWait = new WeakMap(); // 画像 → 写し終わりを待つ Promise (true = 写せた)
+const PHOTO_TRIES = 4;
+const waitMs = (ms) => new Promise((r) => setTimeout(r, ms));
+function photoLoaded(img) {
+  return new Promise((resolve) => {
+    if (img.complete && img.naturalWidth > 0) { resolve(true); return; }
+    const done = (ok) => { img.removeEventListener("load", onLoad); img.removeEventListener("error", onErr); resolve(ok); };
+    const onLoad = () => done(true), onErr = () => done(false);
+    img.addEventListener("load", onLoad);
+    img.addEventListener("error", onErr);
+  });
+}
+function preparePhoto(img) {
+  if (!img || !img.addEventListener || typeof document === "undefined") return Promise.resolve(false);
+  let w = _photoWait.get(img);
+  if (w) return w;
+  w = (async () => {
+    const base = img.src;
+    for (let t = 0; t < PHOTO_TRIES; t++) {
+      if (t > 0) await waitMs(400 * t);
+      if (!(await photoLoaded(img))) {
+        // 読み込みに失敗 (通信の途切れなど): 少し待って取り直す
+        await waitMs(800 * (t + 1));
+        img.src = base + (base.includes("?") ? "&" : "?") + "r=" + (t + 1);
+        continue;
+      }
+      try { if (img.decode) await img.decode(); } catch (e) { /* 解読の失敗は下の検査で拾う */ }
+      const c = document.createElement("canvas");
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      const g = c.getContext("2d");
+      if (!g) continue;
+      g.drawImage(img, 0, 0);
+      // 空で写った (解読が間に合わなかった) 時は描き直す
+      let seen = false;
+      try {
+        const d = g.getImageData(0, 0, c.width, c.height).data;
+        for (let i = 3; i < d.length; i += 16) if (d[i]) { seen = true; break; }
+      } catch (e) { seen = true; }
+      if (!seen) continue;
+      _photoSurf.set(img, c);
+      return true;
+    }
+    _photoWait.delete(img); // 次に要った時にもう一度試す
+    return false;
+  })();
+  _photoWait.set(img, w);
+  return w;
+}
+export function photoReady(p) { return !!(p && p.img && _photoSurf.get(p.img)); }
 // 絵の升目の大きさ (ドット絵は文字グリッド、原画版は w/h)
 function dims(spr) {
   if (spr.photo) return { w: spr.w, h: spr.h, rows: null };
   return normalize(spr.art);
 }
-// 原画の矩形を (dx,dy,dw,dh) へ描く。まだ読み込み中なら false
+// 原画の矩形を (dx,dy,dw,dh) へ描く。まだ写し終わっていなければ写しを始めて false
 export function drawPhoto(ctx, spr, dx, dy, dw, dh) {
   const p = spr.photo;
-  if (!photoReady(p)) return false;
-  const iw = p.img.naturalWidth, ih = p.img.naturalHeight;
+  const src = p.img && _photoSurf.get(p.img);
+  if (!src) { preparePhoto(p.img); return false; }
+  const iw = src.width, ih = src.height;
   // 切り出し矩形を画像の内側に詰め、はみ出した分だけ描き先も詰める (画像外の指定は描かない)
   const x0 = Math.max(0, p.sx), y0 = Math.max(0, p.sy);
   const x1 = Math.min(iw, p.sx + p.sw), y1 = Math.min(ih, p.sy + p.sh);
@@ -1141,21 +1194,22 @@ export function drawPhoto(ctx, spr, dx, dy, dw, dh) {
   ctx.save();
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(p.img, x0, y0, x1 - x0, y1 - y0, dx + (x0 - p.sx) * kx, dy + (y0 - p.sy) * ky, (x1 - x0) * kx, (y1 - y0) * ky);
+  ctx.drawImage(src, x0, y0, x1 - x0, y1 - y0, dx + (x0 - p.sx) * kx, dy + (y0 - p.sy) * ky, (x1 - x0) * kx, (y1 - y0) * ky);
   ctx.restore();
   return true;
 }
-// 原画の読み込みを待ってから fn を呼ぶ (読み込み済みなら即座に)
+// 原画を写し終えてから fn を呼ぶ (写し済みなら即座に)
 export function whenPhoto(spr, fn) {
   const p = spr.photo;
   if (photoReady(p)) { fn(); return; }
-  if (p.img && p.img.addEventListener) p.img.addEventListener("load", fn, { once: true });
+  preparePhoto(p.img).then((ok) => { if (ok) fn(); });
 }
 // 原画版の絵を canvas に描く (読み込み待ちなら読み込み後に描き直す)。滑らかに縮める絵なので pixelated にしない
 function photoInto(c, spr, dx, dy, dw, dh) {
   c.style.imageRendering = "auto";
   whenPhoto(spr, () => {
     const g = c.getContext("2d");
+    if (!g) return;
     g.clearRect(0, 0, c.width, c.height);
     drawPhoto(g, spr, dx, dy, dw, dh);
   });
