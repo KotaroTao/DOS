@@ -582,6 +582,35 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
   flex: 0 0 44px; min-height: 44px; font-size: 14px; color: #e7c873; background: rgba(10,8,11,0.55); border: 1px solid #4a3d36; border-radius: 2px; cursor: pointer;
 }
 .pt-skm-mv:disabled { opacity: 0.25; cursor: default; }
+/* 技の整理の「オート」札 (オン = 青緑。出さない技・迷宮の技は押せない) */
+.pt-skm-tg.pt-skm-auto { flex-basis: 56px; }
+.pt-skm-tg.pt-skm-auto.on { color: #0c1716; background: linear-gradient(#8fd9cc, #3f9c8e); border: 1px solid #8fd9cc; }
+.pt-skm-tg.pt-skm-auto.na { opacity: 0.3; cursor: default; }
+@media (max-width: 400px) {
+  .pt-skm-tg { flex-basis: 54px; font-size: 11.5px; }
+  .pt-skm-tg.pt-skm-auto { flex-basis: 50px; }
+  .pt-skm-mv { flex-basis: 38px; }
+}
+/* 作戦 (能力の段の1行 / 作戦のシート) */
+.pt-tactic {
+  flex: 1 1 auto; min-width: 0; min-height: 44px; display: flex; flex-direction: column; justify-content: center; gap: 1px; padding: 4px 10px; text-align: left;
+  color: #e6dbc2; background: var(--grain), var(--plate-hi); border: 1px solid #4a3d36; border-left: 3px solid #3f9c8e; border-radius: 2px; cursor: pointer;
+}
+.pt-tactic-n { font-size: 13px; font-weight: 700; color: #8fd9cc; }
+.pt-tactic-d { font-size: 11px; color: #a99a80; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.pt-tac { display: flex; flex-direction: column; gap: 6px; }
+.pt-tac-b {
+  display: flex; flex-direction: column; gap: 3px; min-height: 52px; padding: 8px 12px; text-align: left; cursor: pointer;
+  color: #e6dbc2; background: var(--grain), var(--plate-hi); border: 1px solid #4a3d36; border-radius: 2px;
+}
+.pt-tac-b.on { border-color: #8fd9cc; box-shadow: inset 3px 0 0 #3f9c8e, 0 0 0 1px rgba(143,217,204,0.25); }
+.pt-tac-n { font-size: 14px; font-weight: 700; color: #e7c873; }
+.pt-tac-b.on .pt-tac-n { color: #8fd9cc; }
+.pt-tac-b.on .pt-tac-n::after { content: "　― いまの命令"; font-size: 11px; font-weight: 500; color: #8fd9cc; }
+.pt-tac-d { font-size: 12px; line-height: 1.5; color: #cdbf9f; }
+.pt-tac-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; min-width: 0; }
+.pt-tac-dn { font-size: 14px; font-weight: 700; color: #e6dbc2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt-tac-who .pt-tac-n { font-size: 12.5px; color: #8fd9cc; flex: 0 0 auto; }
 .pt-codex { min-height: 52px; }
 
 /* =====================================================================

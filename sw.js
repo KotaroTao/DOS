@@ -32,6 +32,7 @@ const ASSETS = [
   "./src/events.js",
   "./src/sprites.js",
   "./src/combat.js",
+  "./src/autotactics.js",
   "./src/buffstage.js",
   "./src/skilldefs.js",
   "./src/jobkit/index.js",
