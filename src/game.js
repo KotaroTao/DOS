@@ -10189,13 +10189,13 @@ function namedState() {
 const codexKills = (key) => { const e = G.codex && G.codex.mon ? G.codex.mon[key] : null; return !e ? 0 : e === true ? 1 : Math.max(0, Number(e.kills) || 0); };
 // 懸賞を受けていて、まだ討っていない (受けている間は縄張りの強敵階に必ず出る・強敵階が出やすい)
 function namedHunted(id) { const f = questState().fixed[bountyId(id)]; return !!(f && f.state === "active"); }
-// 強敵階に降りた: 名のある強敵なら目撃を記録する (初めてなら、酒場に懸賞が出る)
+// 強敵階に降りた: 名のある強敵なら目撃を記録する (懸賞は縄張りの迷宮が地図に現れた時点で酒場に出ている)
 function namedSighted(id) {
   if (!id || !MONSTERS[id] || !MONSTERS[id].named) return;
   const st = namedState();
   const first = !st.seen[id];
   st.seen[id] = { dungeon: abyssActive() ? "abyss" : (activeCfg() || {}).id || null, floor: G.floor };
-  if (first) log(`名のある強敵「${MONSTERS[id].name}」を目撃した。酒場に懸賞が出るだろう。`, "dmg");
+  if (first) log(`名のある強敵「${MONSTERS[id].name}」を目撃した。${questState().fixed[bountyId(id)] ? "" : "酒場に懸賞が出ている。"}`, "dmg");
 }
 // 名のある強敵1体の記録 (出撃シート・図鑑)
 function namedInfo(id) {
@@ -10207,7 +10207,8 @@ function namedInfo(id) {
     id, name: MONSTERS[id] ? MONSTERS[id].name : id, layer: (NAMED_FOES[id] || {}).layer || 0,
     seen, seenAt: seen && seen.dungeon ? (seen.dungeon === "abyss" ? "奈落" : (worldById(seen.dungeon) || {}).name || "") : "",
     kills: codexKills(id), trophy: !!st.trophy[id], trophyId: (NAMED_FOES[id] || {}).trophy || null,
-    bounty: f ? f.state : null, homes: homes.map((d) => d.name),
+    bounty: f ? f.state : null, posted: !f && !!FIXED_BY_ID[bountyId(id)] && fixedQuestAppears(FIXED_BY_ID[bountyId(id)]),
+    homes: homes.map((d) => d.name),
   };
 }
 // その迷宮を縄張りにする名のある強敵 (出撃シートの迷宮の顔)
@@ -10290,7 +10291,8 @@ function fixedQuestAppears(def) {
   if (a.cleared && !w.cleared[a.cleared]) return false;
   if (a.open && !w.open[a.open]) return false;
   if (a.found && !w.found[a.found]) return false;
-  if (a.seen && !namedState().seen[a.seen]) return false; // 名のある強敵を目撃した (懸賞)
+  if (a.seen && !namedState().seen[a.seen]) return false; // 名のある強敵を目撃した
+  if (a.openAny && !a.openAny.some((id) => w.open[id])) return false; // どれか1つが地図にある (懸賞 = 縄張りの迷宮)
   if (a.claimed) { const f = questState().fixed[a.claimed]; if (!f || f.state !== "claimed") return false; } // 前の依頼を報告し終えた
   return true;
 }
@@ -10437,6 +10439,7 @@ function dungeonQuests(cfg) {
     if (a.open && !w.open[a.open]) out.push(`${dname(a.open)}が地図に現れる`);
     if (a.found && !w.found[a.found]) out.push("迷宮で手がかりを見つける");
     if (a.seen && !namedState().seen[a.seen]) out.push(`${MONSTERS[a.seen] ? `「${MONSTERS[a.seen].name}」` : "名のある強敵"}を目撃`);
+    if (a.openAny && !a.openAny.some((id) => w.open[id])) out.push(`${a.openAny.map(dname).join("か")}が地図に現れる`);
     if (a.claimed) { const f = s.fixed[a.claimed]; if (!f || f.state !== "claimed") out.push(`依頼${FIXED_BY_ID[a.claimed] && fixedQuestAppears(FIXED_BY_ID[a.claimed]) ? `「${FIXED_BY_ID[a.claimed].name}」` : "人の頼み"}を報告`); }
     return out.length ? out.join(" ・ ") : "やがて現れる";
   };
