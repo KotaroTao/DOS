@@ -838,7 +838,7 @@ function refreshWorldUnlocks() {
 function announceNewDungeons(list) {
   for (const d of list) {
     log(`新たな迷宮「${d.name}」が地図に記された。`, "win");
-    showToast(`🗺 新たな迷宮「${d.short}」が地図に記された`, { tone: "info" });
+    showToast(`🗺 新たな迷宮「${d.name}」が地図に記された`, { tone: "info" });
   }
 }
 // いまの章 (章の迷宮のうち、まだ報告していない迷宮がある最初の章。すべて済んだら最後の章)
@@ -9962,9 +9962,9 @@ function namedInfo(id) {
   const homes = DUNGEONS.filter((d) => (d.elites || []).includes(id));
   return {
     id, name: MONSTERS[id] ? MONSTERS[id].name : id, layer: (NAMED_FOES[id] || {}).layer || 0,
-    seen, seenAt: seen && seen.dungeon ? (seen.dungeon === "abyss" ? "奈落" : (worldById(seen.dungeon) || {}).short || "") : "",
+    seen, seenAt: seen && seen.dungeon ? (seen.dungeon === "abyss" ? "奈落" : (worldById(seen.dungeon) || {}).name || "") : "",
     kills: codexKills(id), trophy: !!st.trophy[id], trophyId: (NAMED_FOES[id] || {}).trophy || null,
-    bounty: f ? f.state : null, homes: homes.map((d) => d.short || d.name),
+    bounty: f ? f.state : null, homes: homes.map((d) => d.name),
   };
 }
 // その迷宮を縄張りにする名のある強敵 (出撃シートの迷宮の顔)
@@ -9981,7 +9981,15 @@ function questState() {
   if (!s.seen || typeof s.seen !== "object") s.seen = {};
   if (!s.npcs || typeof s.npcs !== "object") s.npcs = {}; // 掲示板の依頼人ごとの報告の回数 (なじみ)
   if (!(s.seq > 0)) s.seq = 1;
+  for (const q of [...(s.board || []), ...s.active]) fixQuestDungeonName(q);
   return s;
+}
+// 古いセーブの依頼は説明・手がかりに迷宮の略称 (「囁く回廊」) が残っている → 正式名 (「亡骸の囁く回廊」) に直す
+function fixQuestDungeonName(q) {
+  const cfg = q && q.dungeon ? worldById(q.dungeon) : null;
+  if (!cfg || !cfg.short || cfg.short === cfg.name) return;
+  const from = `「${cfg.short}」`, to = `「${cfg.name}」`;
+  for (const k of ["desc", "note"]) if (typeof q[k] === "string" && q[k].includes(from)) q[k] = q[k].split(from).join(to);
 }
 // 依頼の戦果 (その迷宮・階の普通の戦闘1回分の金貨/✦Soul)。出来事の evUnit と同じ物差しを、街から任意の迷宮で測る
 function questUnit(cfg, floor = 1) {
@@ -11153,7 +11161,7 @@ function reportMainQuest() {
       log(`「${cfg.name}」の踏破を報告した。`, "win");
       updateTopbar();
       toasts.push({ text: `受け取った 💰${r.gold} ✦${r.soulPts}` + (r.redSoul ? ` 🔴${r.redSoul}` : ""), opts: { tone: "gold" } });
-      for (const d of refreshWorldUnlocks()) toasts.push({ text: `🗺 新たな迷宮「${d.short}」が地図に記された`, opts: { tone: "info" } });
+      for (const d of refreshWorldUnlocks()) toasts.push({ text: `🗺 新たな迷宮「${d.name}」が地図に記された`, opts: { tone: "info" } });
       autosave(true);
     },
   }];
@@ -11236,7 +11244,7 @@ function reportTutorialQuest() {
     G.msq = { n: 1, state: "world" };
     const added = refreshWorldUnlocks();
     if (added[0]) G.dungeonIdx = worldIndexOf(added[0].id);
-    for (const d of added) toasts.push({ text: `🗺 新たな迷宮「${d.short}」が地図に記された`, opts: { tone: "info" } });
+    for (const d of added) toasts.push({ text: `🗺 新たな迷宮「${d.name}」が地図に記された`, opts: { tone: "info" } });
     worldState().last = { kind: "ch0" };
     autosave(true);
   };
@@ -11295,7 +11303,7 @@ function featureNote(key) {
   if (!ch) return `${label}で開く (準備中)`;
   if (f.report === "finale") {
     const fin = worldById(ch.finale);
-    return `${label}の結び「${fin ? fin.short : ch.finale}」を王に報告すると開く`;
+    return `${label}の結び「${fin ? fin.name : ch.finale}」を王に報告すると開く`;
   }
   return `${label}の迷宮を${f.report}つ王に報告すると開く (いま ${Math.min(chapterReports(ch), f.report)}/${f.report})`;
 }
