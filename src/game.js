@@ -5078,15 +5078,17 @@ function autoWalk(path) {
 //  ・見えている罠 (めくれた罠・落とし穴・毒の床 ― 浮遊中・毒床を無効にできる時を除く) は踏まない
 //  ・見えている敵 (めくれた魔物の札・気配読み/敵感知の光) の扱いは設定「オート移動と見えている敵」(autoMoveFoes):
 //      avoid = 避ける (既定) / weak = 強敵だけ避ける (ほかの敵には挑む) / all = 避けない
-//    敵の札をタップすれば、どの設定でもそこへ寄り道して戦い、終われば続きを歩く
+//    敵の札をタップすれば、どの設定でもそこへ寄り道して戦える
 //  ・決断の要る札 (階段・帰還陣・開けなかった宝箱・泉・死体・出来事・物語) は、ほかに道が無い時だけ通る
-//  ・戦闘・選択・シートの間は待ち、閉じれば続ける。新たに深手 (HP3割未満) を負う・倒れる者が出たら止まる
+//  ・戦闘が終わった・何かを選んだ (決断の問い・シートが開いた) ら、それが済んだところで切れる (autoMoveBreak)。
+//    新たに深手 (HP3割未満) を負う・倒れる者が出た時も止まる
 //  ・スワイプ・方向キーで歩けば手で動かしたものとして止まる
 const AUTO_MOVE_HURT = 0.3;
 let autoMoveTimer = null;
 let autoMoveVia = null;   // 寄り道の行き先 (タップしたマス)。着くか戦闘が始まるまで覚えておき、選択で止まっても続きを歩く
 let autoMoveHold = null;  // 1歩の終わりを待って行うドック・手帳などの操作
 let autoMoveHurt = null;  // ON にした時点で深手・戦闘不能だった者 (uid) ― これ以外が深手になれば止まる
+let autoMoveBreak = null; // 戦闘 ("battle")・選択 ("choice") が挟まった印 ― それが済めばオート移動を切る
 function autoMoveFoes() {
   const v = uiDungeonHud.getPref("autoMoveFoes");
   return v === "weak" || v === "all" ? v : "avoid";
@@ -5100,6 +5102,7 @@ function setAutoMove(on, note) {
   G.autoMove = on;
   autoMoveVia = null;
   autoMoveHold = null;
+  autoMoveBreak = null;
   if (autoMoveTimer !== null) { clearTimeout(autoMoveTimer); autoMoveTimer = null; }
   if (on) {
     autoMoveHurt = autoMoveWounded();
@@ -5135,8 +5138,14 @@ function autoMoveTick() {
   autoMoveTimer = null;
   if (!G.autoMove) return;
   if (!inDungeon() || (G.state !== "board" && G.state !== "combat")) { setAutoMove(false); return; } // 街へ帰った・全滅
-  if (G.state === "combat") autoMoveVia = null; // 寄り道の先で戦いになった (逃げても、また挑みには行かない)
+  // 戦闘・選択 (シート・決断の問い) が挟まったら、それが済んだところでオート移動を切る (ユーザーの指示)
+  if (G.state === "combat") autoMoveBreak = "battle";
+  else if (uiBlocked() && !autoMoveBreak) autoMoveBreak = "choice";
   if (G.state !== "board" || G.anim || G.walking || uiBlocked()) { autoMoveSchedule(150); return; }
+  if (autoMoveBreak) {
+    setAutoMove(false, autoMoveBreak === "battle" ? "戦闘が終わった ― オート移動を止めた" : "オート移動を止めた");
+    return;
+  }
   if (autoMoveHold) { const fn = autoMoveHold; autoMoveHold = null; fn(); autoMoveSchedule(150); return; }
   // 新たに深手を負った・倒れた者がいる: 歩みを止めて手当てを促す
   const hurt = [...autoMoveWounded()].filter((u) => !autoMoveHurt.has(u));
