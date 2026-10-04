@@ -26,7 +26,7 @@ export const NAMED_ITEMS = [
     desc: "落城の日から燃え続ける軍旗の竿を、穂先ごと槍に仕立てたもの。百年消えなかった火が穂先に宿り、突くたびに炎が走る。軍旗の亡将の首級。" })),
   trophy(4, "el_headsman", W("w_nm_headsman", "処刑人の首斬り斧", "ax", 48, { pow: 1.45, two: true, crit: 0.12, tint: "#9a8a7a",
     desc: "砦の処刑場で幾百の首を落とした大鬼の斧。人なら両腕でようやく持ち上がる重い刃は、振り下ろすたびに自ら急所を探し、一閃で首筋を断つ。処刑人の大鬼の首級。" })),
-  trophy(5, "el_eldertreant", S("s_nm_eldertreant", "古樹の樹皮盾", 62, { shape: "kite", pow: 1.45, hp: 30, bRes: 0.25, eDef: ["earth", 2], eff: { regen: 0.04 }, tint: "#6a5a3a",
+  trophy(5, "el_eldertreant", S("s_nm_eldertreant", "古樹の樹皮盾", 62, { shape: "kite", pow: 1.45, hp: 30, bRes: 0.25, eDef: ["wind", 2], eff: { regen: 0.04 }, tint: "#6a5a3a",
     desc: "森より古い巨人の樹皮を剥いで張った大盾。吐き出される土砂の嵐をいちばんよく知る皮であり、持ち主の傷をゆっくり癒す。古樹の巨人の首級。" })),
   trophy(5, "el_mistmother", A("a_nm_mistmother", "霧繭の薄衣", 64, { shape: "robe", weight: "cloth", pow: 1.45, mp: 16, agi: 6, aRes: { paralyze: 0.45, sleep: 0.3 }, eDef: ["wind", 1], tint: "#e0e8f0",
     desc: "霧の繭母が紡いだ糸で織った薄衣。霧のように軽く、着た者が糸に絡め取られることは二度とない。霧の繭母の首級。" })),

@@ -57,8 +57,8 @@ export const LAYER3_ITEMS = [
     desc: "落盤で死んだ坑夫の名を、代々の坑夫頭が書き継いだ帳面。祈りとともに読み上げれば仲間を案じた声が傷を塞ぎ、崩れ落ちる岩のつぶてからも読み手を庇う。" })),
   sr(A("a_sr3_alchemistrobe", "錬金師の晶衣", 42, { aRes: { stone: 0.3 }, shape: "robe", pow: 1.35, mp: 14, int: 5, tint: "#9ab8d0",
     desc: "廃坑で鉱脈を調べた宮廷錬金術師の長衣。裾に縫い込まれた晶の粉が魔力を蓄え、纏う者の呪文を澄んだ響きで増幅する。" })),
-  sr(H("h_sr3_crystalcirclet", "晶読みの額環", 45, { aRes: { charm: 0.25, confuse: 0.25 }, magStat: "pie", shape: "circlet", weight: "cloth", pow: 1.35, mp: 10, tint: "#c0e0f0",
-    desc: "晶の濁りで鉱脈の吉凶を占った巫女の額環。晶に映る光が着ける者の祈りを静かに研ぎ澄まし、地の底の闇の中でも心を乱さない。" })),
+  sr(H("h_sr3_crystalcirclet", "晶読みの額環", 45, { aRes: { stone: 0.25, confuse: 0.25 }, magStat: "pie", shape: "circlet", weight: "cloth", pow: 1.35, mp: 10, tint: "#c0e0f0",
+    desc: "晶の濁りで鉱脈の吉凶を占った巫女の額環。晶に映る光が着ける者の祈りを静かに研ぎ澄まし、地の底の闇でも心を乱さず、石に変える眼差しも弾き返す。" })),
 
   // ===== レジェンドレア (全職共通・1点もの・固有効果) =====
   lr(R("lr_l3_soulore", "魂鉱の首飾り", "amulet", 41, { pow: 1.6, hp: 30, luk: 6, eff: { soulUp: 0.3 }, tint: "#7fd0c0",
