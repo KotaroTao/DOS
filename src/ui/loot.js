@@ -89,9 +89,19 @@ const scoreOf = (d, delta) => {
   try { return (typeof UI.gearScore === "function" ? UI.gearScore : baseGearScore)(d, delta); } catch (e) { return baseGearScore(d, delta); }
 };
 
+// この人業が今この品を付けられるか。魂の宿らない器 (primary なし) は付けられない
+// (items.js の canEquip は器を戦士とみなして通すので、装備候補の見立てに器が入り、どの品も ▲ になっていた)。
+// 共有の判定 (WP-B の UI.canEquipReason: 魂なし・職業・盾種・重量・呪いで外せない…) があればそれに揃える
+function canWear(d, it) {
+  if (!d || !it || it.unidentified || !isEquippable(it) || d.primary == null) return false;
+  if (typeof UI.canEquipReason === "function") {
+    try { return !UI.canEquipReason(d, it); } catch (e) { /* 手元の判定へ */ }
+  }
+  return canEquip(d, it);
+}
 // この人業がこの品を装備したときの増減 (装備できなければ null)
 export function deltaFor(d, it) {
-  if (!d || !it || it.unidentified || !isEquippable(it) || !canEquip(d, it)) return null;
+  if (!canWear(d, it)) return null;
   try { return equipPreviewDelta(d, it); } catch (e) { return null; }
 }
 function equippedBy(d, it) { for (const k of SLOTS) if (d.equip && d.equip[k] === it) return k; return null; }
@@ -101,7 +111,7 @@ function equippedBy(d, it) { for (const k of SLOTS) if (d.equip && d.equip[k] ==
 export function wearPlan(it, { owner = null, pool = null } = {}) {
   const cands = pool || equipCandidates();
   const scores = cands.map((d) => {
-    const can = !it.unidentified && isEquippable(it) && canEquip(d, it);
+    const can = canWear(d, it);
     const delta = can && !equippedBy(d, it) ? deltaFor(d, it) : null;
     return { d, can, delta, score: delta ? scoreOf(d, delta) : (can ? 0 : -Infinity) };
   });
