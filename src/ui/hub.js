@@ -19,6 +19,7 @@ import { getPref } from "./prefs.js";
 import { ITEMS } from "../items.js";
 import { currencyBar, sectionHead, facilityOpen, lockedToast, restOrDetail, openInn, innStatus, dismissGreet } from "./facilities.js";
 import { questChip, hubQuests, lists as questLists } from "./questboard.js";
+import { animate, reduced as reducedMotion } from "./motion.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
 const G = () => game.G;
@@ -343,17 +344,59 @@ function tiles() {
 }
 
 // ---------- 酒場の依頼 (酒場が開いていれば街に常に並べる。報告・納品はその場で) ----------
-// 「次にすべきこと」と同じ並びの札 (最大3列)。受けている依頼が無ければ、掲示板へ誘う札を1枚
+// 「次にすべきこと」と同じ並びの札 (最大3列)。受けている依頼が無ければ、掲示板へ誘う札を1枚。
+// 4件以上受けている時は3件ずつの頁にして、QUEST_ROTATE_MS ごとに次の頁へ切り替える
+// (最後の頁が3件に満たなければ先頭から補って、札の数と段の高さを変えない)。
+// 触れている間と触れた直後 (QUEST_ROTATE_HOLD_MS) は切り替えない (押し間違いを防ぐ)。
+const QUEST_ROTATE_MS = 6000;
+const QUEST_ROTATE_HOLD_MS = 5000;
+let questPage = 0;      // いま見せている頁 (街を描き直しても続きから)
+let questRotTimer = 0;
+function questPageItems(qs, p) {
+  const out = [];
+  for (let i = 0; i < 3; i++) out.push(qs[(p * 3 + i) % qs.length]);
+  return out;
+}
 function questStrip() {
+  if (questRotTimer) { clearInterval(questRotTimer); questRotTimer = 0; }
   if (!facilityOpen("tavern")) return null;
   const L = questLists();
   const qs = hubQuests();
   const box = el("div", "hb-dlv");
-  box.appendChild(sectionHead("酒場の依頼", { note: `受注 ${L.freeCount}/${L.cap}` }));
+  const pages = qs.length > 3 ? Math.ceil(qs.length / 3) : 1;
+  if (questPage >= pages) questPage = 0;
+  const note = () => `受注 ${L.freeCount}/${L.cap}` + (pages > 1 ? ` ・ ${questPage + 1}/${pages}` : "");
+  const head = sectionHead("酒場の依頼", { note: note() });
+  box.appendChild(head);
   if (qs.length) {
     const list = el("div", "hb-sug-list n" + Math.min(3, qs.length));
-    for (const q of qs.slice(0, 3)) list.appendChild(questChip(q));
+    const fill = () => {
+      list.textContent = "";
+      for (const q of (pages > 1 ? questPageItems(qs, questPage) : qs.slice(0, 3))) list.appendChild(questChip(q));
+      const n = head.querySelector(".wa-h-n");
+      if (n) setText(n, note());
+    };
+    fill();
     box.appendChild(list);
+    if (pages > 1) {
+      let holdUntil = 0;
+      const hold = () => { holdUntil = Date.now() + QUEST_ROTATE_HOLD_MS; };
+      list.addEventListener("pointerdown", hold);
+      list.addEventListener("pointermove", hold);
+      list.addEventListener("focusin", hold);
+      const timer = setInterval(() => {
+        if (!list.isConnected) { clearInterval(timer); if (questRotTimer === timer) questRotTimer = 0; return; }
+        if (document.hidden || Date.now() < holdUntil) return;
+        questPage = (questPage + 1) % pages;
+        if (reducedMotion()) { fill(); return; }
+        animate(list, [{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: "ease-in" }).then(() => {
+          if (!list.isConnected) return;
+          fill();
+          animate(list, [{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: "ease-out" });
+        });
+      }, QUEST_ROTATE_MS);
+      questRotTimer = timer;
+    }
   } else {
     const fresh = L.offers.filter((q) => q.fresh).length;
     const b = el("button", "hb-dlv-c hb-dlv-board" + (fresh ? " ready" : ""));
