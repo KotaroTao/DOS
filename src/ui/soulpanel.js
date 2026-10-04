@@ -376,7 +376,7 @@ function orderBody(root, town, again) {
   const seated = game.orderSeatedUids ? game.orderSeatedUids() : [];
   const seatedSet = new Set(seated);
   const full = seated.length >= seats;
-  const nextSeat = seats >= 3 ? null : seats >= 2 ? "order3" : seats >= 1 ? "order2" : "order";
+  const nextSeat = [null, "order2", "order3", "order4", "order5"][seats] || (seats ? null : "order");
   const info = el("div", "sp-order-info");
   info.appendChild(el("span", "sp-order-seats", `席 ${seated.length} / ${seats}`));
   if (nextSeat && game.featureNote) info.appendChild(el("span", "pt-note", `次の席: ${game.featureNote(nextSeat)}`));

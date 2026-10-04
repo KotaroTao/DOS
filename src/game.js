@@ -16,7 +16,7 @@ import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_FINALE, STORY_CELLS, storyCellAt,
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
 import { NAMED_FOES, NAMED_IDS, TROPHY_OF, HUNT_ELITE_RATE, bountyId } from "./dungeons/named.js";
-import { DUNGEONS, GEN_DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, naturalLevelRaw, lootBand, levelBand, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, layerOf, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
+import { DUNGEONS, GEN_DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, naturalLevelRaw, strengthAt, lootBand, levelBand, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, layerOf, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
 import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
@@ -69,9 +69,8 @@ const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho",
 // 視差・揺れを抑える設定 (OSの「視差効果を減らす」)。待機アニメなどを止める
 const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } })();
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
-import { refSoul, refGold, trainCost, lvPow, emberMul } from "./levelcurve.js";
+import { refSoul, refGold, trainCost, lvPow, emberMul, partyAgi, LOCK_K, TRAP_K, lockPow } from "./levelcurve.js";
 import { tlOn, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlPlayTick, tlSoul } from "./telemetry.js";
-import { baselineAgi, progressX } from "./baseline.js";
 import { repriceEquipment } from "./pricing.js";
 
 // ===== コンテンツの取り込み =====
@@ -1257,10 +1256,15 @@ function revealByCartography() {
 function enemyScale() { return baseEnemyScale() * tuneMul(); }
 // 手直し (DUNGEON_TUNE) を除いた強さ: 迷宮の素の倍率 × 階 × 特別階/異変。主はこれに bossMul を掛ける
 function baseEnemyScale() {
+  return strengthHere() * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
+}
+// その階の敵の強さ (手直し・特別な階・異変を除く)。台帳の迷宮 = 強さの素 power × 推奨Lv の伸び (world.js strengthAt)。
+// 奈落 (台帳の外の素体) は旧来どおり 素体の enemyScale × 1階ごとの上がり幅 × Lv 補正 (A1 で作り直す)
+function strengthHere() {
   const cfg = activeCfg();
-  // 1階ごとの上がり幅は迷宮ごと (cfg.floorRamp。深い迷宮は帯で顔ぶれが強くなるので緩い。既定 +6%)
+  if (!abyssActive() && cfg.power) return strengthAt(cfg, G.floor || 1);
   const ramp = cfg.floorRamp != null ? cfg.floorRamp : 0.06;
-  return (cfg.enemyScale || 1) * (1 + (G.floor - 1) * ramp) * sfNum("enemyMul", 1) * mutNum("enemyMul", 1) * lvStrengthHere();
+  return (cfg.enemyScale || 1) * (1 + ((G.floor || 1) - 1) * ramp) * lvStrengthHere();
 }
 // いまの階の推奨Lv (= 敵のLv) と n の物差しの Lv (どちらも小数。world.js)。奈落は素体の難度 n の1階相当を本筋の対応で写す
 function levelHere() {
@@ -1269,9 +1273,9 @@ function levelHere() {
   const f = ab ? 1 : (G.floor || 1);
   return { lv: dungeonLevelRaw(c, f), nat: naturalLevelRaw(c, f) };
 }
-// 敵の強さの Lv 補正 (world.js lvStrength と同じ): 素体と手直しは n の物差しの隊に合わせてあるので、推奨Lv の隊との能力値の伸びの比を掛ける
+// 奈落の敵の強さの Lv 補正: 素体は n の物差しの隊に合わせてあるので、推奨Lv の隊との能力値の伸びの比を掛ける (奈落だけ)
 function lvStrengthHere() { const h = levelHere(); return lvPow(h.lv) / lvPow(h.nat); }
-// 旧来の式の「普通の1戦」の ✦Soul / 金貨 (出現表の平均 × 迷宮の倍率 × 階 × その階の群れの数の見込み。Lv 補正・異変・手直しは含めない)。
+// 「普通の1戦」の素の ✦Soul / 金貨 (出現表の平均 × その階の強さ × その階の群れの数の見込み。異変・手直しは含めない)。
 // startBattle はこれと推奨Lv の基準 (levelcurve.js refSoul / refGold) の比で、どの敵の戦果も写す → どの階でも普通の1戦の平均が基準の値になる
 function rawBattleUnit() {
   const cfg = activeCfg();
@@ -1282,9 +1286,13 @@ function rawBattleUnit() {
   let g = 0, so = 0;
   for (const k of keys) { const m = MONSTERS[k], c = m.pack ? Math.max(3, cnt) : cnt; g += (m.gold || 0) * c; so += (m.soul || 0) * c; }
   const n = Math.max(1, keys.length);
-  const ramp = cfg.floorRamp != null ? cfg.floorRamp : 0.06;
-  const sc = (cfg.enemyScale || 1) * (1 + ((G.floor || 1) - 1) * ramp);
+  const sc = strengthHere();
   return { soul: Math.max(1, (so / n) * sc), gold: Math.max(1, (g / n) * sc) };
+}
+// 戦果の写しの比 [✦Soul, 金貨]: 普通の1戦がちょうど推奨Lv の基準 (refSoul / refGold) になるよう、どの敵の戦果にも掛ける
+function battleRewardK() {
+  const u = rawBattleUnit(), lv = levelHere().lv;
+  return [refSoul(lv) / u.soul, refGold(lv) / u.gold];
 }
 // 迷宮ごとの手直し (generator.js DUNGEON_TUNE) のうち、いまの階の雑魚に掛かる倍率。奈落では掛けない
 // (手直しは出現表の雑魚の強さ合わせ。ランクの曲線から組む単体の強敵・ミミック・出来事の魔物には掛けず、
@@ -1369,14 +1377,12 @@ function typicalBattleSpoils() {
 // 戦果は1体ごとに「普通の戦闘1回分」× 段の倍率。群れは段の最大数まで (1体目の後は 35% ずつ)
 function metalRef(key) {
   const T = METAL_TIERS[MONSTERS[key].metal];
-  const cfg = activeCfg();
-  const n = abyssActive() ? abyssBaseN(G.abyss.depth) : dungeonNumber(cfg);
   const sp = typicalBattleSpoils();
   let count = 1;
   while (count < T.max && Math.random() < 0.35) count++;
   return {
     rank: mimicRef().rank, scale: baseEnemyScale(), count,
-    agi: baselineAgi(progressX(n, G.floor || 1, cfg.floors || 1)) * T.agiMul * lvStrengthHere(),
+    agi: partyAgi(levelHere().lv) * T.agiMul, // 基準の隊の AGI (推奨Lv で引く。levelcurve.js)
     soul: sp.soul * T.soulMul, gold: sp.gold * T.goldMul,
   };
 }
@@ -1534,13 +1540,11 @@ function newFloor() {
 // 俊敏な敵・主・ミミック・鈍足/激昂は、標準からのずれとしてそのまま逃げにくさ/逃げやすさに効く
 function fleeScale() {
   const cfg = activeCfg();
-  const n = abyssActive() ? abyssBaseN(G.abyss.depth) : dungeonNumber(cfg);
-  const x = progressX(n, G.floor || 1, cfg.floors || 1);
   const spds = [...new Set([...(cfg.pool || []), ...(cfg.deepPool || [])])]
     .map((k) => MONSTERS[k] && MONSTERS[k].spd).filter((v) => v > 0).sort((a, b) => a - b);
   const typical = spds.length ? spds[Math.floor(spds.length / 2)] : 4 + Math.round((cfg.rank || 1) * 0.9);
-  // 基準の隊 (baseline.js) は n の物差しの Lv の隊なので、推奨Lv の隊の AGI の伸び (lvStrengthHere) を掛ける
-  return baselineAgi(x) / Math.max(1, typical) * lvStrengthHere();
+  // 基準の隊の AGI は推奨Lv で引く (levelcurve.js partyAgi)
+  return partyAgi(levelHere().lv) / Math.max(1, typical);
 }
 
 // この迷宮・階の敵のLv (台帳の迷宮は world.js dungeonLevel。奈落は素体の難度 n の1階相当)
@@ -6287,19 +6291,13 @@ function disarmPower(m) {
   return Math.round(v);
 }
 
-// 解除難度: ダンジョンランクと宝箱ランクで決まる。
-// 迷宮の魂レベル帯 (これも迷宮ランクの関数) から「適正パーティの AGI+LUK」を見積もり、
-// 適正レベルでは 得意職が ~75% (上限95%まで伸びる)、それ以外の職は ~50% になるよう調整している。
+// 解除難度: その階の推奨Lv と宝箱ランクで決まる。
+// 推奨Lv の隊の「AGI+LUK」に合わせ、得意職が ~75% (上限95%まで伸びる)、それ以外の職は ~50% になるよう調整している。
 // cRank: 宝箱ランク (1-5)。床罠は1扱い
 function disarmNeed(cRank = 1) {
-  const cfg = activeCfg();
-  const L = 2 + (cfg.soulLevelBonus || 0) * 2.4;        // 適正な魂レベルの目安 (強化込み)
-  const f = 1 + (L - 1) * 0.12;                          // souls.js の lvlFactor と同式
-  const q = 1 + ((cfg.rank || 1) - 1) * 0.14;            // ダンジョンランク: 深部は高ランク魂が前提
   const c = 1 + ((cRank || 1) - 1) * 0.16;               // 宝箱ランク: 上等な箱ほど狡猾な錠前
-  // 基準値: 得意職以外が適正レベルで約50%に収まる難度 (得意職は ×1.5 ボーナスで上回る)。
-  // 魂レベルの目安は n の物差しなので、推奨Lv の隊の伸び (lvStrengthHere) を掛ける
-  return 34 * f * q * c * lvStrengthHere();
+  // 基準値: 得意職以外が推奨Lv の隊で約50%に収まる難度 (得意職は ×1.5 ボーナスで上回る)。推奨Lv の伸びで重くなる (levelcurve.js)
+  return LOCK_K * lockPow(levelHere().lv) * c;
 }
 
 function disarmChance(m, cRank = 1) {
@@ -6460,14 +6458,10 @@ function chestTrapPhase(opener, contents, cRank = 1, abort, excludeKinds, sink =
 }
 
 // ===== 罠の発動 (床罠・宝箱罠共通) =====
-// 罠ダメージの基準値。disarmNeed と同じく迷宮の魂レベル帯×ランクに比例させ、
+// 罠ダメージの基準値。disarmNeed と同じく推奨Lv の伸びに比例させ、
 // 深い迷宮ほど罠そのものが重くなる。実ダメージは罠ごとの mult を掛けた値
 function trapBaseDmg() {
-  const cfg = activeCfg();
-  const L = 2 + (cfg.soulLevelBonus || 0) * 2.4;
-  const f = 1 + (L - 1) * 0.12;
-  const q = 1 + ((cfg.rank || 1) - 1) * 0.12;
-  return (5 + G.floor * 3 + rand(6)) * f * q * lvStrengthHere(); // 推奨Lv の隊の HP の伸びに合わせる
+  return (5 + G.floor * 3 + rand(6)) * TRAP_K * lockPow(levelHere().lv); // 推奨Lv の隊の HP の伸びに合わせる (levelcurve.js)
 }
 
 // 罠の効果を適用し、何が起きたかを返す (知らせ方は presentTrap が決める)。
@@ -6916,10 +6910,9 @@ function startBattle(enemies, cell) {
     }
   }
   // 戦果は推奨Lv から (levelcurve.js): 出現表の雑魚との普通の1戦が refSoul / refGold になる比で、どの敵 (精鋭・主・ミミック・金属も) の戦果も写す。
-  // 強さの Lv 補正 (lvStrengthHere) で増えた分もここで打ち消す。召喚された仲間は _rk を引き継ぐ (combat.js)
+  // 推奨Lv の伸びで増えた分もここで打ち消す。召喚された仲間は _rk を引き継ぐ (combat.js)
   if (inDungeon()) {
-    const u = rawBattleUnit(), h = levelHere(), ls = lvPow(h.lv) / lvPow(h.nat);
-    const rk = [refSoul(h.lv) / (u.soul * ls), refGold(h.lv) / (u.gold * ls)];
+    const rk = battleRewardK();
     for (const e of enemies) {
       e.soul = Math.max(1, Math.round((e.soul || 0) * rk[0]));
       e.gold = Math.max(1, Math.round((e.gold || 0) * rk[1]));
@@ -9953,7 +9946,7 @@ function fixedQuestView(def) {
 const questDeepUnit = (cfg) => questUnit(cfg, Math.max(1, Math.ceil((cfg.floors || 1) * 0.8)));
 function questFrontUnit() {
   const open = DUNGEONS.filter((d) => worldOpenId(d.id));
-  return questDeepUnit(open.length ? open.reduce((a, d) => (d.nTo > a.nTo ? d : a)) : DUNGEONS[0]);
+  return questDeepUnit(open.length ? open.reduce((a, d) => ((d.lvTo || 0) > (a.lvTo || 0) ? d : a)) : DUNGEONS[0]);
 }
 // 固定クエストの報酬 (戦果の倍数を、物差しの迷宮の深部で金貨/✦Soul に直す)
 function fixedQuestReward(def) {
@@ -11124,6 +11117,20 @@ const FEATURES = {
   order3: { chapter: 3, report: 2 },          // 結社の席3
   sub2: { chapter: 4, report: "finale" },     // サブ魂 2枠
   infinite: { chapter: 5, report: "finale" }, // 奈落 (無限迷宮)
+  // ── 第六章から (docs/unlocks.md の年表。ユーザーの了解済み)。章がまだ無いので開かない。仕組みはその章を作る時に足す ──
+  expedition: { chapter: 6, report: "finale" }, // 遠征 (控えの人業が踏破済みの迷宮を回る)
+  resonance: { chapter: 7, report: "finale" },  // 魂の共鳴 (職の組み合わせの効果)
+  order4: { chapter: 8, report: "finale" },     // 結社の席4
+  rematch: { chapter: 9, report: "finale" },    // 宿敵の再戦 (名のある強敵・主の強化版)
+  subPick: { chapter: 10, report: "finale" },   // サブ魂で借りられる技 +1
+  enchant: { chapter: 11, report: "finale" },   // 付呪
+  order5: { chapter: 12, report: "finale" },    // 結社の席5
+  forge: { chapter: 13, report: "finale" },     // 鍛え直しの工房
+  rebirth: { chapter: 14, report: "finale" },   // 魂の転生
+  mutPick: { chapter: 15, report: "finale" },   // 異変を選ぶ
+  vow: { chapter: 16, report: "finale" },       // 誓約
+  sub3: { chapter: 17, report: "finale" },      // サブ魂 3枠
+  abyssDeep: { chapter: 18, report: "finale" }, // 奈落の底を開く
 };
 const FEATURE_KEYS = Object.keys(FEATURES);
 const chapterLabel = (no) => `第${kanjiNum(no)}章`;
@@ -11156,9 +11163,9 @@ function featureNote(key) {
 function unlockedSubSlots() {
   return Math.min(MAX_SUBS, featureUnlocked("sub2") ? 2 : featureUnlocked("sub1") ? 1 : 0);
 }
-// 控えの結社の席数 (0/1/2/3)
+// 控えの結社の席数 (0〜5)
 function orderSeats() {
-  return featureUnlocked("order3") ? 3 : featureUnlocked("order2") ? 2 : featureUnlocked("order") ? 1 : 0;
+  return ["order5", "order4", "order3", "order2", "order"].reduce((n, k, i) => n || (featureUnlocked(k) ? 5 - i : 0), 0);
 }
 // 結社の席に実際に着いている魂uid (編成外・席数上限でクリーン)。
 // G.order.picks の順を尊重しつつ、無効になった指定 (編成入り/消失) は除外する。
