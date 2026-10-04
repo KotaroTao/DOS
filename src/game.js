@@ -10297,10 +10297,16 @@ function questByUid(uid) {
 // 出撃シートの添え書き: 受けている依頼がこの迷宮を指していれば「依頼の地」/ 依頼の迷宮なら「依頼の迷宮」
 // その迷宮を対象にしている受注中の依頼の数 (討伐の出る迷宮・到達/踏破の迷宮)。出撃シートの「依頼」の印
 function questHereCount(cfg) {
-  if (!cfg) return 0;
+  return questsTargeting(cfg).length;
+}
+// その迷宮を対象にしている受注中の依頼 (固定 → フリーの順)。出撃シートの「受注中の依頼」の札と、名の横の「依頼」の印
+function questsTargeting(cfg) {
+  if (!cfg) return [];
   const s = questState();
-  return s.active.filter((q) => q.state === "active" && q.dungeon === cfg.id).length +
-    FIXED_QUESTS.filter((d) => s.fixed[d.id] && s.fixed[d.id].state === "active" && fixedQuestTargets(d, cfg)).length;
+  return [
+    ...FIXED_QUESTS.filter((d) => s.fixed[d.id] && s.fixed[d.id].state === "active" && fixedQuestTargets(d, cfg)).map(fixedQuestView),
+    ...s.active.filter((q) => q.state === "active" && q.dungeon === cfg.id),
+  ];
 }
 // 依頼人の頼みがこの迷宮を指しているか: 到達/踏破はその迷宮、討伐は狙う魔物が出る迷宮 (出現表の帯・主。金属の魔物は第3層から)
 function fixedQuestTargets(def, cfg) {
@@ -14633,7 +14639,7 @@ bindGame({
   codexMonEntry, dungeonRoster, CODEX_OTHER,
   // 酒場・祠・宿
   listenRumor, RUMOR_PRICE, rumorPrice, rollTavernCrowd,
-  questState, questLists, questByUid, questsHere, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount,
+  questState, questLists, questByUid, questsHere, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount, questsTargeting,
   adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)
   PREFS, savePrefs, setVolumes, isMuted, toggleMute, ensureAudio, updateMuteBtn, resetAllData, confirmReset,
