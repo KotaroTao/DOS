@@ -304,6 +304,54 @@
   0%, 100% { box-shadow: var(--dg-edge); }
   40% { box-shadow: 0 0 0 1px #6fdc8c, 0 0 18px rgba(110,220,140,0.6), inset 0 0 18px rgba(80,200,120,0.35); }
 }
+/* 戦闘の演出の膜 (game.js renderParty の .pc-fx)。長さ --fxd は一手の余韻に合わせて game.js が決める (テンポを落とさない) */
+.pc-fx {
+  position: absolute; inset: 0; pointer-events: none; border-radius: 3px; overflow: hidden; z-index: 3;
+  opacity: 0; animation: pcfx-fade var(--fxd, 0.36s) ease-out forwards; mix-blend-mode: screen;
+}
+@keyframes pcfx-fade { 0% { opacity: 0; } 15% { opacity: 1; } 60% { opacity: 1; } 100% { opacity: 0; } }
+/* 爪痕: 三本の傷が左上から走る (会心は金) */
+.pc-fx.v-claw {
+  --c: rgba(255, 70, 50, 0.95);
+  background:
+    linear-gradient(118deg, transparent 0 29%, var(--c) 29.6% 30.8%, transparent 31.4% 42%, var(--c) 42.6% 43.8%, transparent 44.4% 55%, var(--c) 55.6% 56.8%, transparent 57.4%),
+    radial-gradient(70% 90% at 50% 50%, rgba(180, 10, 0, 0.35), transparent 75%);
+  animation: pcfx-fade var(--fxd, 0.36s) ease-out forwards, pcfx-claw var(--fxd, 0.36s) ease-out forwards;
+}
+.pc-fx.v-claw.v-crit { --c: rgba(255, 196, 80, 0.98); }
+@keyframes pcfx-claw { 0% { clip-path: inset(0 100% 100% 0); } 40%, 100% { clip-path: inset(0 0 0 0); } }
+/* 石化・状態異常 */
+.pc-fx.v-stone { mix-blend-mode: normal; background: radial-gradient(80% 100% at 50% 50%, rgba(200, 196, 184, 0.55), rgba(90, 86, 80, 0.4)); }
+.pc-fx.v-status { background: radial-gradient(80% 100% at 50% 50%, rgba(255, 140, 210, 0.45), transparent 75%); }
+/* ブレス・全体呪文: 属性の色の奔流が上から押し寄せる */
+.pc-fx[class*="v-el-"] {
+  background: linear-gradient(180deg, var(--c) 0%, var(--c2) 55%, transparent 100%);
+  animation: pcfx-fade var(--fxd, 0.36s) ease-out forwards, pcfx-wash var(--fxd, 0.36s) ease-out forwards;
+}
+@keyframes pcfx-wash { 0% { transform: translateY(-70%); } 50%, 100% { transform: translateY(0); } }
+.pc-fx.v-el-fire  { --c: rgba(255, 210, 120, 0.85); --c2: rgba(220, 70, 20, 0.5); }
+.pc-fx.v-el-water { --c: rgba(200, 240, 255, 0.8);  --c2: rgba(40, 130, 230, 0.5); }
+.pc-fx.v-el-wind  { --c: rgba(220, 255, 230, 0.8);  --c2: rgba(60, 190, 130, 0.45); }
+.pc-fx.v-el-earth { --c: rgba(240, 210, 160, 0.8);  --c2: rgba(120, 80, 40, 0.55); }
+.pc-fx.v-el-light { --c: rgba(255, 255, 240, 0.9);  --c2: rgba(230, 190, 80, 0.45); }
+.pc-fx.v-el-dark  { --c: rgba(200, 140, 255, 0.75); --c2: rgba(40, 0, 70, 0.6); }
+.pc-fx.v-el-none  { --c: rgba(230, 200, 255, 0.8);  --c2: rgba(140, 80, 230, 0.45); }
+/* 回復・強化・治療・魔力: 下から光が昇る */
+.pc-fx.v-heal, .pc-fx.v-buff, .pc-fx.v-cure, .pc-fx.v-mana, .pc-fx.v-debuff {
+  background:
+    radial-gradient(2px 2px at 18% 70%, #fff, transparent), radial-gradient(2px 2px at 46% 85%, #fff, transparent),
+    radial-gradient(2px 2px at 74% 62%, #fff, transparent), radial-gradient(2px 2px at 88% 90%, #fff, transparent),
+    linear-gradient(0deg, var(--c) 0%, transparent 80%);
+  animation: pcfx-fade var(--fxd, 0.36s) ease-out forwards, pcfx-rise var(--fxd, 0.36s) ease-out forwards;
+}
+@keyframes pcfx-rise { 0% { transform: translateY(35%); } 100% { transform: translateY(-10%); } }
+.pc-fx.v-heal { --c: rgba(110, 230, 140, 0.55); }
+.pc-fx.v-buff { --c: rgba(255, 210, 90, 0.5); }
+.pc-fx.v-cure { --c: rgba(150, 230, 255, 0.5); }
+.pc-fx.v-mana { --c: rgba(120, 170, 255, 0.55); }
+/* 弱体: 紫が上から沈む */
+.pc-fx.v-debuff { --c: rgba(160, 80, 230, 0.55); animation: pcfx-fade var(--fxd, 0.36s) ease-out forwards, pcfx-sink var(--fxd, 0.36s) ease-out forwards; background: linear-gradient(180deg, var(--c) 0%, transparent 80%); }
+@keyframes pcfx-sink { 0% { transform: translateY(-35%); } 100% { transform: translateY(10%); } }
 
 /* ===== 戦闘のコマンド板 ===== */
 /* 探索中は命令板の場所を空けない。戦闘中は演出の間も板の高さを保つ (記録欄が跳ねないように) */
@@ -442,4 +490,5 @@
 }
 @media (prefers-reduced-motion: reduce) {
   #descend-btn, .pc.low, #floor-info .fi-elite, #log > div:last-child { animation: none !important; }
+  .pc-fx { display: none; }
 }
