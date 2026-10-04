@@ -161,6 +161,9 @@ function hash(n, salt) {
   return h >>> 0; // 最後の XOR で符号付きに戻るため、必ず非負へ正規化する
 }
 
+// 層ごとの属性の気配 (台帳の迷宮・奈落が読む)
+export const LAYER_ELEMENT = LAYER_DEF.map((d) => d.element === "none" ? null : d.element);
+
 // ダンジョン番号 n (1-100) → 階層数。層途中は浅く、層末 (ボス階) は深い。
 function dungeonFloors(n) {
   const layer = layerOf(n);

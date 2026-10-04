@@ -402,6 +402,11 @@ function renderAbyssPage(b) {
   t.appendChild(cell((rec.bestScore || 0).toLocaleString(), "最高スコア"));
   t.appendChild(cell(rec.runs || 0, "挑戦"));
   b.appendChild(t);
+  // 潜れる深さ (主を倒した層の底まで。層ごとに10階、層の最後の階に主が門番として立つ)
+  const cap = game.abyssMaxDepth ? game.abyssMaxDepth() : Infinity;
+  b.appendChild(el("div", "dg-note", Number.isFinite(cap)
+    ? `奈落は10階で一つの層。層の最後の階には、その層の主が門番として立つ。いま潜れるのは B${cap}F まで — 迷宮で次の層の主を討つと、その先が開く。`
+    : "奈落は10階で一つの層。層の最後の階には、その層の主が門番として立つ。底は、もう無い。"));
   b.appendChild(sec("挑戦の型"));
   b.appendChild(segmented([{ key: "normal", label: "通常 (毎回変わる)" }, { key: "weekly", label: "今週の挑戦" }], abyssWeekly ? "weekly" : "normal", (k) => { abyssWeekly = k === "weekly"; sfx("select"); refresh(); }));
   const wk = game.weekSeedId ? game.weekSeedId() : 0;

@@ -11,7 +11,7 @@
 // セーブとは別の鍵 (dos-testlog)。「はじめから」でも消えない (消すのは「記録を消す」)。
 // game.js は import しない (game.js から呼ばれる側)。戦闘の挙動には一切影響しない。
 
-import { baselineAgi, progressX } from "./baseline.js";
+import { partyAgi } from "./levelcurve.js";
 
 const KEY = "dos-testlog";
 const VERSION = 1;
@@ -95,7 +95,7 @@ export function tlSoul(where, rarity) {
 }
 
 
-// 迷宮の欄 (key = "D10" / 奈落は "A3")
+// 迷宮の欄 (key = 迷宮の id "w05" / 奈落は "A3"。旧来の "D10" の欄も読めるまま残る)
 function slot(where) {
   if (!S.d[where.key]) S.d[where.key] = { name: where.name || "", s: {}, b: {} };
   const d = S.d[where.key];
@@ -110,13 +110,13 @@ function dollRow(p, i) {
 }
 
 // 隊の様子を残す。kind: "floor" (階に着いた) / "clear" (迷宮を踏破)
-// where = { key, name, n, floor, floors }
+// where = { key, name, lv, floor, floors } (key = 迷宮の id / 奈落は A深度)
 export function tlSnapshot(kind, where, party) {
   if (!S.on || !where || !party) return;
   const d = slot(where);
   const snap = {
     t: stamp(), f: where.floor || 1,
-    base: Math.round(baselineAgi(progressX(where.n, where.floor, where.floors)) * 10) / 10,
+    base: Math.round(partyAgi(where.lv || 1) * 10) / 10, // 推奨Lv の隊の AGI の物差し
     p: party.map(dollRow),
   };
   if (kind === "floor") d.fl = (d.fl || 0) + 1; // 着いた階の数 (同じ階へ何度着いても数える。魂・時間を階あたりにする物差し)

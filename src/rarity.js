@@ -30,14 +30,14 @@ export const RARITY_WEIGHTS = { c: 60, uc: 28, r: 10, sr: 2 };
 export function layerRarityUp(layer) { return Math.max(0, (layer || 1) - 1) * 0.2; }
 
 // ===== レジェンドレアの時間抽選 =====
-// 出やすさは「どこまで深く潜っているか (迷宮番号 n)」で決まる。目安のペース: 約10時間で迷宮15前後、
-// 約30時間で迷宮50前後に到達する想定で、そのあたりの実プレイ時間あたりの頻度を合わせる:
-//   迷宮1-5 (第1層) = ほぼ出ない (lrLayerFactor) / 迷宮6-15 = 5時間に1つ / 迷宮33 = 4時間に1つ /
-//   迷宮50以降 = 3時間に1つ (上限)。間は直線でつなぐ
-export function lrIntervalH(n) {
-  if (n <= 15) return 5;
-  if (n <= 33) return 5 - (n - 15) / 18;
-  if (n <= 50) return 4 - (n - 33) / 17;
+// 出やすさは「どこまで深く潜っているか (その階の推奨Lv)」で決まる (旧来の迷宮番号 n は A1 で廃止。
+// 当時の 迷宮15 / 33 / 50 ≒ 推奨Lv 31 / 70 / 107):
+//   第1層 = ほぼ出ない (lrLayerFactor) / 推奨Lv31 まで = 5時間に1つ / Lv70 = 4時間に1つ /
+//   Lv107 以降 = 3時間に1つ (上限)。間は直線でつなぐ
+export function lrIntervalH(lv) {
+  if (lv <= 31) return 5;
+  if (lv <= 70) return 5 - (lv - 31) / 39;
+  if (lv <= 107) return 4 - (lv - 70) / 37;
   return 3;
 }
 // 抽選は「時間に対するポアソン過程 + 天井」: 平均 M 時間に対し、ハザード平均 M×1.56・天井 M×1.6 とすると
