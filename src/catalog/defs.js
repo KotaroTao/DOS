@@ -2181,7 +2181,8 @@ export function R(id, name, shape, lv, opt = {}) {
 // 絵は miscart.js の固有の絵 (id ごとに一枚)。shape は品の種類 (牙・骨・貨幣…) の目印として残す
 export function M(id, name, shape, lv, opt = {}) {
   const own = MISC_ART[id];
-  const it = base(id, name, "misc", lv, shape, own ? { ...opt, art: own.art, pal: own.pal } : opt);
+  chk(own, "収集品に固有の絵が無い (miscart.js): " + id);
+  const it = base(id, name, "misc", lv, shape, { ...opt, art: own.art, pal: own.pal });
   it.price = opt.price != null ? opt.price : round(8 + lv * lv * 0.25 + lv * 4);
   return it;
 }
