@@ -226,6 +226,12 @@ export function perkVictory(p, party) {
 // fp = 逃走を試みた時の成功率の合計 (×1000。実際の成功数と見比べる)
 // 逃走率の式の定数 (Battle.fleeChance)。主のいる戦いは追跡AGI を ×1.3 して逃げにくくする
 const FLEE_BASE = 0.55, FLEE_SLOPE = 0.35, FLEE_MIN = 0.05, FLEE_MAX = 0.95, FLEE_BOSS_MUL = 1.3;
+// 敵の物理を味方がかわす率 (AGI の相対値): 20% + 20% × log2(味方の実効AGI ÷ (敵の実効AGI × fleeK)) → 0〜40%。
+// 敵の AGI は味方よりずっと小さい規模なので、逃走判定と同じ物差し fleeK (基準AGI ÷ 雑魚のAGI中央値) で味方の規模に直す。
+// 互角で20%、2倍速ければ上限の40%、半分なら0%。2026-10: 旧式 ((AGI−6)×1.2%、上限40%) は AGI 39 で上限に届き、
+// 第3層では隊のほぼ全員が40%かわして敵の命中が4〜6割まで落ちていた (テスト記録)。新式では敵の命中が
+// どの層でも8割前後にそろう (模擬戦)。敵がかわす側 (味方 → 敵) は旧式のまま
+const EVADE_EVEN = 0.20, EVADE_SLOPE = 0.20, EVADE_MAX = 0.40;
 // 心の状態異常 (actor.mind = "charm" 魅了 | "confuse" 混乱)。戦闘の中だけの状態で、戦いが終われば解ける。
 //  魅了: 手番ごとに味方へ襲いかかる (仲間がいなければ立ち尽くす)。傷を受けると MIND_CHARM_BREAK で正気に戻る
 //  混乱: 手番ごとに敵味方を問わず誰かを殴る / ふらついて何もできない / たまに正気で動ける
@@ -894,6 +900,17 @@ export class Battle {
     const fleetOrder = this.orderFleet >= 3 ? 0.60 : this.orderFleet >= 2 ? 0.45 : this.orderFleet >= 1 ? 0.30 : 0;
     const p = FLEE_BASE + FLEE_SLOPE * Math.log2(agiOf(actor) / chase) + Math.max(fleetSelf, fleetOrder);
     return Math.min(FLEE_MAX, Math.max(FLEE_MIN, p));
+  }
+
+  // AGI による回避の素の率。敵 → 味方の物理は相対値 (EVADE_*)、それ以外 (味方 → 敵・同士討ち) は旧来の
+  // 「対象の AGI − 6」× 1.2% (上限40%)。実効AGI はバフ/デバフ込み
+  _evadeBase(tgt, actor) {
+    const agiOf = (a) => Math.max(1, (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1));
+    if (tgt.side === "party" && actor && actor.side === "enemy") {
+      const p = EVADE_EVEN + EVADE_SLOPE * Math.log2(agiOf(tgt) / (agiOf(actor) * (this.fleeK || 1)));
+      return Math.min(EVADE_MAX, Math.max(0, p));
+    }
+    return Math.min(0.4, Math.max(0, ((tgt.agi || 6) - 6) * 0.012));
   }
 
   // テスト記録の集計 (中断セーブから戻った古い戦闘にも器を用意する)
@@ -1613,7 +1630,7 @@ export class Battle {
     }
     // 命中判定: 素の命中漏れ + 対象の敏捷(AGI)による回避 + 回避持ちの追加回避。
     // 技の命中補正 (acc) は外れる確率をその割合だけ消す (1 = 必中)。目つぶし (hit<1) は外れる確率を足す
-    const evade = (isMetal(tgt) ? metalEvade(tgt) : Math.min(0.4, Math.max(0, ((tgt.agi || 6) - 6) * 0.012)) + (tgt.evasive ? 0.15 : 0))
+    const evade = (isMetal(tgt) ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0)
       + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) : 0); // 固有パッシブ (evade)
     let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
     const blind = this._bm(actor, "hit");

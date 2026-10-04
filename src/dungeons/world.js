@@ -41,6 +41,7 @@ const WORLD_DEF = [
       ["bs_mournshade", "bs_ghoul", "bs_pettyrevenant", "bs_sarcoguard", "bs_skullswarm", "bs_spiritbat"],
       ["bs_shroudstrangler", "bs_tombwarden", "bs_weepangel"],
     ],
+    tune: { enemyMul: 0.92 }, // generator.js DUNGEON_TUNE の D3 (2026-10 の改定後の表)
     unlock: { reported: "w01" },
     hint: "「忘れられた地下墓地」の踏破を王に報告すると、道が示される",
   },
@@ -54,7 +55,7 @@ const WORLD_DEF = [
       ["d02_soldier", "bs_bonechanter", "bs_gravecaller"],
     ],
     boss: LAYER_BOSS[0], bossRank: 3,
-    tune: { bossMul: 1.15, bossHpMul: 2 }, // 旧 D5 の主の手直し (町で育てた隊には易しすぎた)
+    tune: { enemyMul: 0.90, bossMul: 1.00, bossHpMul: 2 }, // DUNGEON_TUNE の D4 の雑魚 + D5 の主 (主の HP ×2)
     unlock: { reported: "w02" },
     hint: "「亡骸の囁く回廊」の踏破を王に報告すると、道が示される",
   },
@@ -66,7 +67,7 @@ const WORLD_DEF = [
       ["bs_bloatfly", "bs_fogspecter", "bs_giantleech", "bs_ratking", "bs_razorshrimp", "bs_sewercrab"],
       ["bs_mucusworm", "bs_toxictoad", "bs_drownedcorpse"],
     ],
-    tune: { enemyMul: 1.75, deepMul: 0.87 }, // 旧 D7 の手直し (第2層のテスト記録で較正)
+    tune: { enemyMul: 1.40, deepMul: 0.87, soloMul: 0.85 }, // DUNGEON_TUNE の D7 (改定後の表)
     unlock: { story: "w02_sigil" },
     hint: "「亡骸の囁く回廊」のどこかに、師の残した印があるという",
   },
@@ -80,7 +81,7 @@ const WORLD_DEF = [
       ["bs_crystalcrawler", "bs_troll", "bs_steelspider"],
     ],
     boss: LAYER_BOSS[2], bossRank: 5,
-    tune: { enemyMul: 1.80, deepMul: 0.68, soloMul: 1.15 }, // 旧 D11 の手直し (第3層は厳しめ)
+    tune: { enemyMul: 1.50, deepMul: 0.70, soloMul: 0.92, bossMul: 0.80 }, // DUNGEON_TUNE の D11 の雑魚 + D15 の主 (第3層は厳しめ)
     unlock: { treasury: 3 },
     hint: "王家の宝物庫に収集品を3種奉納すると、王が坑口の通行証を授ける",
   },
@@ -138,7 +139,12 @@ export function gateFloors(cfg) {
 }
 export function isGateFloor(cfg, floor) { return !!(cfg && cfg.gates && floor % 5 === 0 && floor < (cfg.floors || 1)); }
 
-// 迷宮のLv (その階の敵のLv。基準の隊の平均Lv)。推奨Lv の帯は1階〜最下階
+// 迷宮のLv (その階の敵のLv。基準の隊の平均Lv)。推奨Lv の帯は1階〜最下階。
+// 基準の隊 (baseline.js) の Lv は「経験値2倍・サブ魂の能力加算をランク別に」の改定前の実測で、改定後の隊は
+// Lv で約5低い見込み (第3層の入口で Lv24 → 19 前後)。Lv1 を据えたまま ×LV_EST で縮めて見込みに寄せる。
+// 改定後のテスト記録で基準の隊の行が測り直されたら 1 に戻す
+export const LV_EST = 0.78;
+const estLv = (v) => 1 + (v - 1) * LV_EST;
 export function dungeonLevel(cfg, floor = 1) {
   if (!cfg) return 1;
   const n = cfg.n || 1, floors = cfg.floors || 1;
@@ -146,9 +152,9 @@ export function dungeonLevel(cfg, floor = 1) {
   if (cfg.nTo != null) {
     const t = floors > 1 ? (Math.max(1, floor) - 1) / (floors - 1) : 0;
     const x = (n - 1) + t * (cfg.nTo - n + (floors >= 10 ? 0.6 : 0.5));
-    return Math.max(1, Math.round(baselineLv(x)));
+    return Math.max(1, Math.round(estLv(baselineLv(x))));
   }
-  return Math.max(1, Math.round(baselineLv(progressX(n, floor, floors))));
+  return Math.max(1, Math.round(estLv(baselineLv(progressX(n, floor, floors)))));
 }
 export function levelBand(cfg) { return [dungeonLevel(cfg, 1), dungeonLevel(cfg, cfg.floors || 1)]; }
 
