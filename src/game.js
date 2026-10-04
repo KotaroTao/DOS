@@ -6708,6 +6708,7 @@ function descend({ fall = false } = {}) {
   evOnDescend(); // 迷宮のイベント: 誓いの破約など
   if (!fall) { SFX.stairs(); buzz([0, 20, 80, 20]); }
   G.floor++;
+  if (G.run) G.run.descended = true;
   // 浮遊: 階を移るたびに残りの階数を減らす (唱えた階を含めて float 階のあいだ続く)
   if (G.run && G.run.float > 0) {
     G.run.float--;
@@ -11709,11 +11710,14 @@ function enterDungeon(mutatorId, startFloor = 1) {
   G.stats.runs++;
   // 今回の戦利品トラッキングを初期化 (帰還の報告は次の帰還で書き直す)
   G.run = newRun();
+  G.run.startFloor = G.floor; // 潜り始めの階 (そこから降りずに何もせず戻ったら、帰還で酒場を貼り替えない)
   G.lastRun = null;
   G._townMutator = null; G._departPre = false;
   G._lastTargetUid = null;
-  // 表示中の噂を確定し、この迷宮で現実化させる
-  if (G.rumor) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
+  // 表示中の噂を確定し、この迷宮で現実化させる。
+  // ただし「特別な階」を呼び込む噂は1階で潜る時のためのもの: 帰還魔法陣から潜り始める時は持ち越す
+  // (潜り始めの階は特別な階にならない)
+  if (G.rumor && !(G.floor > 1 && G.rumor.type === "special")) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
   G.state = "board";
   playBgm(fieldBgm());
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
@@ -11842,8 +11846,12 @@ function returnToTown(opts = {}) {
   if (!G.party.some((p) => p.alive)) startRescueTimers(G.party);
   summary.dead = G.party.filter((d) => d && d.isDoll && !d.alive).map((d) => ({ uid: d.uid, name: d.name }));
   G.lastRun = summary;
-  rollTavernCrowd(); // 酒場の顔ぶれは帰還のたびに入れ替わる
-  rollQuestBoard();  // 掲示板の依頼も帰還のたびに貼り替わる (受けた依頼は残る)
+  // 酒場の顔ぶれと掲示板の依頼は帰還のたびに入れ替わる (受けた依頼は残る)。
+  // ただし潜り始めの階から降りず、何も得ずに戻っただけ (帰還魔法陣で入ってすぐ出た) なら貼り替えない
+  if (!idleRun(runRef)) {
+    rollTavernCrowd();
+    rollQuestBoard();
+  }
   updateTopbar();
   log(outcome === "wipe" ? "砕けた人業を残し、街へ戻った。" : "街へ帰還した。", "sys");
   G.town.facility = null; G.town.sub = null; G.town.page = null; G.town.tab = "hub";
@@ -11861,6 +11869,11 @@ function returnToTown(opts = {}) {
     try { c = ops.counts(); } catch (e) { c = null; }
     if (c && c.hurt > 0 && G.gold >= c.innCost) setTimeout(() => { if (G.state === "town") ops.restParty(); }, 600);
   }
+}
+// 潜り始めの階から降りず、戦わず、何も得ずに帰ってきた潜入か
+function idleRun(r) {
+  if (!r || r.startFloor == null || r.descended) return false;
+  return !(r.kills || r.gold || r.soulPts || (r.items || []).length || (r.souls || []).length);
 }
 // 闇に溶けて街へ戻る (帰還陣・踏破の凱旋・全滅の決断の後)
 function leaveDungeon(opts = {}) {
