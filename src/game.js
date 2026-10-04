@@ -5104,20 +5104,19 @@ function setAutoMove(on, note) {
   autoMoveHold = null;
   autoMoveBreak = null;
   if (autoMoveTimer !== null) { clearTimeout(autoMoveTimer); autoMoveTimer = null; }
+  // オート移動まわりはポップアップ (トースト) を出さない (ユーザーの指示)。止まった訳は記録 (ログ) にだけ残す
   if (on) {
     autoMoveHurt = autoMoveWounded();
-    const foes = { avoid: "見えている敵は避ける", weak: "強敵は避ける", all: "見えている敵にも挑む" }[autoMoveFoes()];
-    showToast(note || `オート移動 ― 近くの墓石からめくっていく (${foes})`, { tone: "info" });
     autoMoveSchedule(0);
   } else if (note) {
-    showToast(note, { tone: "info" });
+    log(note, "sys");
   }
   renderDock();
 }
 function toggleAutoMove() {
   if (G.state !== "board" || !inDungeon() || uiBlocked()) return;
   SFX.select(); buzz(10);
-  setAutoMove(!G.autoMove, G.autoMove ? "オート移動を止めた" : null);
+  setAutoMove(!G.autoMove);
 }
 function autoMoveSchedule(ms) {
   if (autoMoveTimer !== null) clearTimeout(autoMoveTimer);
