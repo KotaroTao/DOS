@@ -19,7 +19,7 @@ import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
 import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LORE_PAGES } from "../events.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, itemName } from "../items.js";
 import { RANK_COLOR, RANK_NAME } from "../content.js";
-import { DUNGEONS, ELEMENTS, RACE_LABEL, monsterTraits, isFloating, resistHpMul } from "../dungeons/index.js";
+import { DUNGEONS, ELEMENTS, RACE_LABEL, monsterTraits, isFloating, resistHpMul, METAL_TIERS } from "../dungeons/index.js";
 import { SPELLS } from "../combat.js";
 import {
   SOUL_CLASSES, jobSprite, jobRankName, jobLoreFor, jobRankCondText, SOUL_STAT_UP, JOB_GEAR,
@@ -224,7 +224,7 @@ function renderCodexMon(box) {
     const isOther = idx === -1;
     const roster = rosterOf(idx);
     const seen = roster.filter((k) => g.codex.mon[k]).length;
-    cap.textContent = isOther ? `その他 — 宝箱や出来事に潜む敵　記録 ${seen}/${roster.length}` : `${DUNGEONS[idx].name}　記録 ${seen}/${roster.length}`;
+    cap.textContent = isOther ? `その他 — 宝箱や出来事に潜む敵・まれに紛れ込む者　記録 ${seen}/${roster.length}` : `${DUNGEONS[idx].name}　記録 ${seen}/${roster.length}`;
     pagedGrid(area, roster, (key) => {
       const m = MONSTERS[key];
       if (!g.codex.mon[key]) return m.boss ? bossNameCard(key, m) : unknownCard();
@@ -480,7 +480,10 @@ export function codexMonSheet(key) {
     if (aff) body.appendChild(aff);
   }
   if (loreOpen && m.desc) body.appendChild(setText(el("div", "pl-detail-desc"), m.desc));
-  if (statsOpen) body.appendChild(setText(el("div", "pl-detail-stats"), `HP ${Math.max(1, Math.round(m.maxhp * resistHpMul(m)))}　ATK ${m.atk}　VIT ${m.def}　AGI ${m.spd}　✦${m.soul}　💰${m.gold}`));
+  // 金属の魔物: 能力値は出た階で組み直すので、HP と「普通の戦闘の何倍の✦Soul か」だけを示す
+  const mt = m.metal ? METAL_TIERS[m.metal] : null;
+  if (statsOpen && mt) body.appendChild(setText(el("div", "pl-detail-stats"), `HP ${mt.hpRank ? "多め" : mt.hp}　✦ その階の戦闘1回の約${mt.soulMul}倍　逃走 ${Math.round(mt.flee * 100)}%/手番`));
+  else if (statsOpen) body.appendChild(setText(el("div", "pl-detail-stats"), `HP ${Math.max(1, Math.round(m.maxhp * resistHpMul(m)))}　ATK ${m.atk}　VIT ${m.def}　AGI ${m.spd}　✦${m.soul}　💰${m.gold}`));
   else body.appendChild(revealLock(R.stats, "属性・HP"));
   if (loreOpen) {
     const traits = monsterTraits(m);

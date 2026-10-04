@@ -1,7 +1,7 @@
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, perkVictory } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, perkVictory } from "./combat.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas, drawPhoto } from "./sprites.js";
 import {
@@ -13,7 +13,7 @@ import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
 import { ACTS, actOf, msqOrderLines, msqReportLines, msqReward, EPILOGUE, unlockSceneFor, sealLines, unsealLines } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
-import { DUNGEONS, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, layerOf, isFloating } from "./dungeons/index.js";
+import { DUNGEONS, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, layerOf, isFloating, METAL_TIERS } from "./dungeons/index.js";
 import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
@@ -1168,6 +1168,59 @@ function soloFoes(list) {
   return list;
 }
 
+// ===== 金属の魔物 (メタル系) =====
+// 第3層から、階ごとに METAL_FLOOR_RATE の確率で盤面の魔物の札1枚が金属の魔物に入れ替わる (強敵の札は除く)。
+// 段 (METAL_TIERS) の重みは層が深いほど上位種へ寄る (w = [第3〜5層, 第6〜8層, 第9層〜])
+const METAL_FLOOR_RATE = 0.07;
+function metalKeys() { return Object.keys(MONSTERS).filter((k) => MONSTERS[k] && MONSTERS[k].metal); }
+function pickMetalKey(layer) {
+  const band = layer >= 9 ? 2 : layer >= 6 ? 1 : 0;
+  const pool = metalKeys().map((k) => ({ k, T: METAL_TIERS[MONSTERS[k].metal] })).filter((o) => o.T && layer >= o.T.layer);
+  const tot = pool.reduce((s, o) => s + o.T.w[band], 0);
+  let r = Math.random() * tot;
+  for (const o of pool) { r -= o.T.w[band]; if (r < 0) return o.k; }
+  return pool.length ? pool[0].k : null;
+}
+function placeMetal() {
+  if (battleLayer() < 3 || Math.random() >= METAL_FLOOR_RATE) return;
+  const cells = [];
+  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+    const c = G.board.cells[y][x];
+    if (c.type === "monster" && !c.cleared && !c.elite) cells.push(c);
+  }
+  const key = cells.length ? pickMetalKey(battleLayer()) : null;
+  if (!key) return;
+  const c = cells[rand(cells.length)];
+  c.monsterKey = key;
+  c.metal = true;
+}
+// この階で普通の戦闘1回に得る✦Soul・金貨の目安 (出現表の雑魚の平均 × 群れの期待数 × 強さ倍率。手直し前)
+function typicalBattleSpoils() {
+  const p = Math.min(0.62, 0.18 + (G.floor || 1) * 0.08);
+  let n = 0;
+  for (let i = 0; i < 6; i++) n += Math.pow(p, i); // spawnCardEnemies の群れの数の期待値
+  const pool = sfMonsterPool().filter((k) => MONSTERS[k]);
+  let soul = 0, gold = 0;
+  for (const k of pool) { const m = MONSTERS[k], c = m.pack ? Math.max(3, n) : n; soul += (m.soul || 0) * c; gold += (m.gold || 0) * c; }
+  const sc = baseEnemyScale(), len = Math.max(1, pool.length);
+  return { soul: soul / len * sc, gold: gold / len * sc };
+}
+// 金属の魔物の組み立ての基準 (combat.js spawnMetal): 体はその階の雑魚の最上位ランク、AGI は味方の規模 (基準AGI)、
+// 戦果は1体ごとに「普通の戦闘1回分」× 段の倍率。群れは段の最大数まで (1体目の後は 35% ずつ)
+function metalRef(key) {
+  const T = METAL_TIERS[MONSTERS[key].metal];
+  const cfg = activeCfg();
+  const n = abyssActive() ? abyssBaseN(G.abyss.depth) : dungeonNumber(cfg);
+  const sp = typicalBattleSpoils();
+  let count = 1;
+  while (count < T.max && Math.random() < 0.35) count++;
+  return {
+    rank: mimicRef().rank, scale: baseEnemyScale(), count,
+    agi: baselineAgi(progressX(n, G.floor || 1, cfg.floors || 1)) * T.agiMul,
+    soul: sp.soul * T.soulMul, gold: sp.gold * T.goldMul,
+  };
+}
+
 // この迷宮に出る強敵のid。作り込み済みの層は層ごとの強敵 (LAYER_ELITES) を階ごとに順に出す。
 // それ以外は旧来どおり、各ランク帯 (10迷宮) を 1-3 / 4-6 / 7-10 の
 // 3グループに区切り、グループごとに固有の強敵が決まっている (例: 迷宮1-3, 4-6, 7-10, 11-13, …)
@@ -1293,6 +1346,7 @@ function newFloor() {
       target.cleared = false;
     }
   }
+  placeMetal(); // 金属の魔物: 第3層から稀に魔物の札1枚と入れ替わる
   // 特別階: 盤面への効果 (宝箱の追加・罠の消滅など) を適用
   const spf = specialDef();
   if (spf && spf.board) spf.board(G.board);
@@ -2247,13 +2301,28 @@ function drawBoardIcons(lt, now, hx, hy) {
       vctx.globalCompositeOperation = "lighter";
       const pulse = REDUCED_MOTION ? 0.5 : 0.5 + 0.5 * Math.sin(now * 0.0035 + x);
       const g = vctx.createRadialGradient(cx, bottom - r.h * 0.12, 0, cx, bottom - r.h * 0.12, r.w * 0.55);
-      g.addColorStop(0, `rgba(${cell.elite ? "220,30,20" : "150,20,14"},${0.22 + 0.12 * pulse})`);
-      g.addColorStop(1, "rgba(150,20,14,0)");
+      // 金属の魔物は血の気配の代わりに銀の照り返し
+      g.addColorStop(0, cell.metal ? `rgba(170,190,220,${0.22 + 0.14 * pulse})` : `rgba(${cell.elite ? "220,30,20" : "150,20,14"},${0.22 + 0.12 * pulse})`);
+      g.addColorStop(1, cell.metal ? "rgba(170,190,220,0)" : "rgba(150,20,14,0)");
       vctx.fillStyle = g; vctx.fillRect(r.x - 6, r.y, r.w + 12, r.h);
       vctx.restore();
       vctx.fillStyle = "rgba(0,0,0,0.5)";
       vctx.beginPath(); vctx.ellipse(cx, bottom - 1, r.w * 0.34, 3.4, 0, 0, Math.PI * 2); vctx.fill();
       drawBmpFit(b, cx, bottom, r.w * (here ? 0.62 : 0.94), r.h * (here ? 0.58 : 0.78), light);
+      if (cell.metal && !REDUCED_MOTION) {
+        // 金属の魔物: 銀肌にきらりと走る星のまたたき
+        const tw = (now * 0.0011 + x * 0.37 + y * 0.21) % 1;
+        if (tw < 0.35) {
+          const a = Math.sin((tw / 0.35) * Math.PI), sx = cx - r.w * 0.16 + tw * r.w * 0.5, sy = r.y + r.h * 0.42;
+          vctx.save();
+          vctx.globalCompositeOperation = "lighter";
+          vctx.fillStyle = `rgba(235,245,255,${0.9 * a})`;
+          const L = 1 + 3.2 * a;
+          vctx.fillRect(sx - L, sy - 0.5, L * 2, 1);
+          vctx.fillRect(sx - 0.5, sy - L, 1, L * 2);
+          vctx.restore();
+        }
+      }
       if (cell.elite) {
         vctx.save();
         vctx.fillStyle = "rgba(70,4,4,0.92)";
@@ -4796,7 +4865,11 @@ function resolveCell(cell) {
     case "monster":
       if (!cell.cleared) {
         const name = MONSTERS[cell.monsterKey].name;
-        if (cell.elite) {
+        if (MONSTERS[cell.monsterKey].metal) {
+          // 金属の魔物: 倒せば莫大な✦Soul。ただしすぐ逃げる
+          log(`✦ ${name} だ！ 逃がすな！`, "win");
+          startBattle(spawnMetal(cell.monsterKey, metalRef(cell.monsterKey)), cell);
+        } else if (cell.elite) {
           // 強敵は群れない: 規格外の1体が立ちはだかる
           log(`☠ 強敵 ${name} が立ちはだかる！`, "dmg");
           startBattle(soloFoes(spawnEliteEnemies(cell.monsterKey, soloScale())), cell);
@@ -6531,10 +6604,10 @@ function startBattle(enemies, cell) {
   const isElite = enemies.some((e) => e.mon && e.mon.elite);
   if (cfg.element) {
     const ch = (spFloor && spFloor.elemAll) || mutNum("elemAll", false) ? 1 : 0.5;
-    for (const e of enemies) if (!e.boss && !(e.mon && e.mon.elite) && Math.random() < ch) e.element = cfg.element;
+    for (const e of enemies) if (!e.boss && !(e.mon && e.mon.elite) && !e.metal && Math.random() < ch) e.element = cfg.element;
   }
   // 属性の暴走 (異変): 主・強敵も含め、すべての敵の属性を6属性からでたらめに選び直す (召喚された仲間も同じ)
-  if (mutNum("elemRandom", false)) for (const e of enemies) { e._elemRandom = true; e.element = randomElement(); }
+  if (mutNum("elemRandom", false)) for (const e of enemies) if (!e.metal) { e._elemRandom = true; e.element = randomElement(); }
   // 迷宮の異変 (血の満潮など): 敵の強さ倍率は HP/ATK/VIT に加えて AGI にも掛ける
   // (enemyScale は HP/ATK/VIT のみ。召喚で呼ばれた仲間も _agiMul を引き継ぐ)
   // 迷宮ごとの手直し (DUNGEON_TUNE) は強さだけ: 倍率で増減した戦果 (金貨・✦Soul) を元の曲線へ戻す
@@ -6604,7 +6677,7 @@ function startBattle(enemies, cell) {
   G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale() });
   // テスト記録: 戦闘の種類 (主 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子
   if (tlOn() && inDungeon()) {
-    const kind = isBoss ? "b" : (isElite || enemies.some((e) => e.isMimic) || (cell && cell.evFight)) ? "e" : "n";
+    const kind = isBoss ? "b" : (isElite || enemies.some((e) => e.isMimic || e.metal) || (cell && cell.evFight)) ? "e" : "n";
     G.battle.tl = tlBattleBegin({ where: tlWhere(), kind, opening, openSrc, ambRate, party: G.party, enemies });
   }
   _maskEnemies = null;
@@ -6698,12 +6771,22 @@ function renderCombatCanvas() {
       const size = sizeOf(e, row.back, row.list.length);
       const hh = monsterHalfH(e.mon, size);
       G.enemyPos[e.uid] = { cx: baseX, cy: baseY, r: 70 * k, hh, size };
+      // 逃げ出した敵 (金属の魔物): 逃げる演出の間だけ、横へ駆け去る姿を描く
+      const fleeFx = e._fled && fx && fx.fleeAway && fx.fleeAway.uid === e.uid ? fx.fleeAway : null;
+      if (e._fled && !fleeFx) return;
       // 倒した敵: 撃破の演出 (drawEffects の崩れ落ち) が始まるまでは姿を残し、以後は描かない
-      if (!e.alive) {
+      if (!e.alive && !fleeFx) {
         const d = fx && fx.deaths ? fx.deaths.find((x) => x.uid === e.uid) : null;
         if (!fx || _deadShown.has(e) || (d && now >= d.t0)) { if (!fx || d) _deadShown.add(e); return; }
       }
       let ox = 0, oy = 0, alpha = 1;
+      if (fleeFx) {
+        const fp = Math.max(0, Math.min(1, (now - fleeFx.t0) / fleeFx.dur));
+        ox = fp * fp * VW * 0.75 * (baseX < VW / 2 ? -1 : 1);
+        oy = -Math.abs(Math.sin(fp * Math.PI * 3)) * 6 * k; // ちょこちょこ跳ねて去る
+        alpha = 1 - fp * fp;
+        if (alpha <= 0.01) return;
+      }
       // 攻撃側の踏み込み (こちらへ前進)
       const lunging = fx && fx.lunge && fx.lunge.uid === e.uid;
       if (lunging) oy = (fx.lunge.p || 0) * 22 * k;
@@ -6778,6 +6861,7 @@ function renderCombatCanvas() {
       if (tappable && strongTarget) drawTargetBrackets(baseX, baseY, hh, size, now);
       // 名札 + 血の小瓶 (HP)
       // 名前・HP は討伐数で明かす (enemyReveal): 名前は1体倒すまで「？？？」、HP の小瓶は5体倒すまで出さない (迷宮の主は名前が最初から、HP は1体で)
+      if (fleeFx) return; // 逃げる姿には名札を付けない
       drawEnemyPlate(e, baseX, plateY, tappable && strongTarget, k);
       const hpY = plateY + 17;
       if (enemyReveal(e).stats) drawEnemyHpVial(e, baseX, hpY, now, k);
@@ -8040,7 +8124,7 @@ function animateResult(res, done) {
   const partyHealN = (res.hits || []).filter((h) => h && h.target && h.target.side !== "enemy" && h.heal != null).length;
   const staggerSteps = Math.max(maxStack - 1, partyHealN - 1);
   const TOTAL = WIND + (360 + staggerSteps * HIT_STAGGER) * spdMul();
-  G.fx = { lunge: res.side === "enemy" ? { uid: res.actor.uid, p: 0 } : null,
+  G.fx = { lunge: res.side === "enemy" && res.action !== "eflee" ? { uid: res.actor.uid, p: 0 } : null,
            slashes: [], magic: [], floats: [], screen: null, flash: {}, deaths: [] };
   G.partyFx = G.partyFx || new Map();
   let impacted = false;
@@ -8077,6 +8161,14 @@ function applyImpact(res) {
   const now = performance.now();
   if (res.action === "defend") { SFX.select(); return; }
   if (res.action === "sleep" || res.action === "run" || res.action === "stunned") { SFX.miss(); return; }
+  if (res.action === "eflee") {
+    // 敵が逃げ出した (金属の魔物): 横へ駆け去る (描画は renderCombatCanvas の fleeFx)
+    SFX.flee();
+    fx.fleeAway = { uid: res.actor.uid, t0: now, dur: 340 * spdMul() };
+    const pos = G.enemyPos[res.actor.uid];
+    if (pos) fx.floats.push({ x: pos.cx, y: pos.cy - 34, text: "逃げ出した！", color: "#cfd8e6", t0: now, small: true, kind: "label" });
+    return;
+  }
 
   // 効果音 + 振動
   if (res.action === "breath") {
@@ -8349,7 +8441,7 @@ function endBattle() {
     // 戦利品はここでは抽選のみ。実物は勝利後の宝箱から取り出す
     let kills = 0;
     for (const e of b.enemies) {
-      if (e.alive) continue;
+      if (e.alive || e._fled) continue; // 逃げ去った金属の魔物は討伐に数えない
       kills++;
       questProgress("kill", e.key);
       G.stats.kills++;
@@ -8379,7 +8471,7 @@ function endBattle() {
     // 落とした魂はこの場で所持魂に加え (保存に乗せる)、戦果シートの一行で知らせる。レア以上はシートの後に祝う
     const souls = [];
     for (const e of b.enemies) {
-      const sc = e.alive ? null : (e.mon && e.mon.soulClass) || (MONSTERS[e.key] && MONSTERS[e.key].soulClass);
+      const sc = e.alive || e._fled ? null : (e.mon && e.mon.soulClass) || (MONSTERS[e.key] && MONSTERS[e.key].soulClass);
       if (!sc) continue;
       const soulChance = wasElite ? 0.40 : 0.08; // 強敵は魂ドロップ率が大幅上昇
       if (Math.random() < soulChance) {
@@ -8444,6 +8536,16 @@ function endBattle() {
     if (stolen) { log(`盗んだ ${stolen} ゴールドを懐に逃げ延びた`, "win"); updateTopbar(); }
     evBattleEnd(false);
     if (G.prevPos) { G.px = G.prevPos.x; G.py = G.prevPos.y; }
+    finishToBoard();
+  } else if (b.result === "escaped") {
+    // 敵に1体残らず逃げられた (金属の魔物): 戦果はなく、札は消える
+    SFX.flee();
+    log("逃げられてしまった…", "sys");
+    const stolen = takeStolenGold(b);
+    if (stolen) { log(`盗んだ ${stolen} ゴールドだけは手元に残った`, "win"); updateTopbar(); }
+    showToast("逃げられてしまった…", { tone: "info" });
+    if (G.battleCell && G.battleCell.type === "monster") G.battleCell.cleared = true;
+    evBattleEnd(false);
     finishToBoard();
   } else if (b.result === "lose") {
     gameOver();
@@ -9293,6 +9395,7 @@ function questProgress(type, key, n = 1) {
 function tavernHintAllowed(req) {
   if (!req) return true;
   if (req === "sub") return unlockedSubSlots() > 0;     // 宿し技 (D10)
+  if (req === "metal") return reportedDungeonCount() >= 10; // 金属の魔物 (第3層から出る)
   return featureUnlocked(req);                           // fusion(D5) / rumor(D15)
 }
 // 酒場の顔ぶれを選び直す (ダンジョン帰還時・初回入店時に呼ぶ)
@@ -10492,7 +10595,7 @@ function dungeonRoster(dn) {
 }
 
 // 特定のダンジョンに属さない魔物 (宝箱に潜む類・出来事にだけ現れる類) を集める「その他」タブの面々
-const CODEX_OTHER = ["mimic", "master_mimic", "bs_cagewarden"];
+const CODEX_OTHER = ["mimic", "master_mimic", "bs_cagewarden", "mt_silver", "mt_gold", "mt_king"];
 
 // 職業図鑑: 詳細のシート (解説/活用/発現条件/装備適性/パッシブ/スキル表)。rank = 図鑑で選んだ位階。
 // heading を渡すと最上部に「○○は●●になった！」等の見出しを大きく出す (職業の発現・変化の演出から呼ぶ)

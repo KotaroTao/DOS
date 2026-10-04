@@ -1,7 +1,7 @@
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
 import { ITEMS, weaponRange, scaleBonus } from "./items.js";
-import { ELEMENTS, elemDmgMult, monStats, rankStats, resistRate, resistHpMul, RESIST_TAG } from "./dungeons/schema.js";
+import { ELEMENTS, elemDmgMult, monStats, rankStats, resistRate, resistHpMul, RESIST_TAG, METAL_TIERS } from "./dungeons/schema.js";
 
 import { SPELLS } from "./skilldefs.js";
 import { JOBKIT_PERKS } from "./jobkit/index.js";
@@ -113,6 +113,33 @@ export function spawnRanked(key, floorRank, plus = 1, scale = 1, hpMul = 2.2) {
   return [e];
 }
 
+// 金属の魔物 (メタル系): 稀に紛れ込む、倒せば莫大な✦Soul を残す逃げ足の魔物。強さは段 (METAL_TIERS) と
+// 出現した階の雑魚の最上位ランクで決まる。ref = { rank, scale, count, agi, soul, gold } (game.js metalRef)
+//   HP は段ごとの小さな固定値 (1ダメージずつ削れる量)。ATK は弱め、VIT は硬め (会心の一撃の通りに効く)。
+//   AGI は味方と同じ規模 (基準AGI × agiMul) で渡され、ほとんどの人業より先に動く。soul/gold は1体あたり
+export function spawnMetal(key, ref = {}) {
+  const m = MONSTERS[key];
+  const T = m && METAL_TIERS[m.metal];
+  if (!T) return [makeEnemy(key, ref.scale || 1)];
+  const st = rankStats(Math.max(1, ref.rank || m.rank || 1));
+  const sc = ref.scale || 1;
+  const n = Math.max(1, Math.min(T.max, MAX_ENEMIES, ref.count || 1));
+  const list = Array.from({ length: n }, () => {
+    const e = makeEnemy(key, 1);
+    e.maxhp = e.hp = T.hp + Math.round(st.hp * sc * (T.hpRank || 0));
+    e.atk = Math.max(1, Math.round(st.atk * sc * 0.6));
+    e.vit = Math.round(st.def * sc * 1.5);
+    e.agi = Math.max(1, Math.round(ref.agi || st.spd * 4));
+    e.element = "none";
+    e.soul = Math.max(1, Math.round(ref.soul || st.soul * T.soulMul));
+    e.gold = Math.max(1, Math.round(ref.gold || st.gold * T.goldMul));
+    e._tuneK = 1; // 迷宮の手直し (DUNGEON_TUNE) で戦果を割り戻さない
+    return e;
+  });
+  if (list.length > 1) list.forEach((e, i) => { e.name += String.fromCharCode(65 + i); });
+  return list;
+}
+
 function makeEnemy(key, scale = 1, boss = false, bossRank = 0) {
   const m = MONSTERS[key];
   // 層ボスは bossRank が指定されていれば、その層相応のランクでステータスを組み直す
@@ -143,6 +170,8 @@ function makeEnemy(key, scale = 1, boss = false, bossRank = 0) {
     lifesteal: m.lifesteal || 0, multistrike: m.multistrike || 0, _barrierLeft: m.barrier || 0,
     // 役割 (healer=回復役 / guard=護り手 / summoner=呼び手)。_scale は召喚の強さ引き継ぎ用
     role: m.role || null, summonKey: m.summonKey || null, _scale: scale,
+    // 金属の体 (METAL_TIERS の段): 呪文・状態異常・弱体が効かず、会心でない物理は1ダメージ。手番に逃げ出す
+    metal: m.metal || 0,
     _guardLeft: m.role === "guard" ? 3 : 0, // 護り手が肩代わりできる残り回数
     alive: true, asleep: false, side: "enemy",
   };
@@ -228,6 +257,11 @@ const newTally = () => ({ pa: 0, pe: 0, pp: 0, ea: 0, ee: 0, ep: 0, of: 0, op: 0
 const HOLY_PREY = ["undead", "specter", "demon"];
 const VULN_LABEL = { fire: "火", water: "水", wind: "風", earth: "土", light: "光", dark: "闇", all: "全属性" };
 const enemyRace = (e) => (e && e.mon && e.mon.race) || null;
+// 金属の体を持つ敵か (METAL_TIERS)。呪文・状態異常・弱体を受けず、会心でない物理は1ダメージ
+export const isMetal = (t) => !!(t && t.side === "enemy" && t.metal);
+const METAL_TAG = { phys: "かたい！", mag: "呪文をはじいた！" };
+// 金属の体の回避率 (AGI 由来の回避の代わり)
+const metalEvade = (t) => (METAL_TIERS[t.metal] || METAL_TIERS[1]).evade;
 // 迷宮のイベント (events.js) の加護: 与ダメ倍率 (_evDmg) と種族特効 (_evPrey)。game.js が戦闘開始時に人業へ付ける
 function evDealMul(actor, tgt) {
   let m = actor._evDmg || 1;
@@ -436,6 +470,7 @@ export class Battle {
   // すでに2つ乗っていたら最も古いものを置き換える(=掛け直しで持続を更新できる)。
   _applyMod(t, stat, mult, dur, srcName) {
     if (!t || mult === 1) return;
+    if (mult < 1 && isMetal(t)) return; // 金属の体: 弱体は効かない
     t.effects = t.effects || [];
     const up = mult > 1;
     const same = t.effects.filter((e) => e.stat === stat && (e.mult > 1) === up);
@@ -579,7 +614,7 @@ export class Battle {
       const h = this._perkHeal(t, lvv(c.hp, lv)), m = this._perkMp(t, lvv(c.mp, lv));
       if (c.buff || h || m) this.log(`${t.name}の${label}${h ? ` HP+${h}` : ""}${m ? ` MP+${m}` : ""}`, "heal");
       if (c.thorns && attacker && attacker.alive && attacker.side === "enemy") {
-        const back = Math.max(1, Math.round(dmg * (lvv(c.thorns, lv) || 0)));
+        const back = isMetal(attacker) ? 1 : Math.max(1, Math.round(dmg * (lvv(c.thorns, lv) || 0)));
         attacker.hp -= back;
         this.log(`${label}！ ${attacker.name}に ${back} ダメージ`, "hit");
         this._die(attacker);
@@ -588,7 +623,7 @@ export class Battle {
   }
   // 自分の物理が敵に当たった時 (hit): 確率で状態異常・弱体を付ける。付いた札を返す
   _perkHit(actor, tgt, tags, on) {
-    if (actor.side !== "party" || !tgt || tgt.side !== "enemy" || !tgt.alive) return;
+    if (actor.side !== "party" || !tgt || tgt.side !== "enemy" || !tgt.alive || isMetal(tgt)) return;
     for (const { c, lv, label } of perksOf(actor)) {
       if (c.t !== "hit" || (c.on && !on.includes(c.on)) || !this._perkRoll(c, lv)) continue;
       const a = c.ail;
@@ -671,6 +706,7 @@ export class Battle {
   // 主 (ボス) には状態異常・封印の確率が半分。即死は主に効かず、強敵には半分
   _inflict(actor, t, sp, out) {
     if (!t || !t.alive || t.side !== "enemy") return;
+    if (isMetal(t)) return; // 金属の体: 毒・麻痺・眠り・魅了・混乱・封印・即死・耐性ダウン・打ち消しのどれも効かない
     const bossMul = t.boss ? 0.5 : 1;
     const tags = out || [];
     if (sp.strip && this._stripUp(t)) { this.log(`${t.name}の強化が消え去った！`, "hit"); tags.push("strip"); }
@@ -1061,6 +1097,8 @@ export class Battle {
         return res;
       }
     }
+    // 金属の体: 自分の手番に、段ごとの確率で逃げ出す (倒されずに去った個体は戦果を残さない)
+    if (actor.metal && !actor.asleep && Math.random() < (METAL_TIERS[actor.metal] || METAL_TIERS[1]).flee) return this._enemyFlee(actor);
     // 特技封じ: 役割 (回復・呼び出し) と特殊能力 (ブレス・状態異常など) を使えず、通常攻撃だけになる
     const sealed = this._bm(actor, "seal") < 1;
     if (actor.asleep) {
@@ -1087,6 +1125,17 @@ export class Battle {
       }
     }
     const res = this._exec(cmd);
+    this._checkEnd();
+    return res;
+  }
+
+  // 敵が戦場から逃げ去る (金属の魔物)。倒れたのではないので討伐・戦果には数えない (_fled)
+  _enemyFlee(actor) {
+    actor.alive = false;
+    actor._fled = true;
+    actor.asleep = false; actor.mind = null;
+    this.log(`${actor.name}は逃げ出した！`, "sys");
+    const res = { actor, action: "eflee", side: actor.side, hits: [] };
     this._checkEnd();
     return res;
   }
@@ -1261,7 +1310,7 @@ export class Battle {
           const cut = dmg - Math.ceil(dmg * 0.5);
           dmg = Math.ceil(dmg * 0.5);
           this.log(`${t.name}の魔障壁が${what}を弱めた！`, "heal");
-          if (cut > 0 && pv(t, "reflect") && actor.alive) {
+          if (cut > 0 && pv(t, "reflect") && actor.alive && !isMetal(actor)) {
             actor.hp -= cut;
             this.log(`魔力反射！ ${actor.name}に ${cut} ダメージ`, "hit");
             this._die(actor);
@@ -1483,6 +1532,8 @@ export class Battle {
   // 物理耐性・魔法耐性 (耐性ランク 1〜3 → 50% / 75% / 100% 軽減)。key = "physResist" | "magResist"
   // 敵だけが持つ。耐性3 (無効) なら dmg は 0 になり immune が立つ
   _resistCut(tgt, dmg, key) {
+    // 金属の体: 物理 (反撃など) は1ダメージ、魔法 (呪文・神罰・二刀の理など) は無効
+    if (isMetal(tgt)) return key === "magResist" ? { dmg: 0, tag: METAL_TAG.mag, immune: true } : { dmg: Math.min(dmg, 1), tag: METAL_TAG.phys, immune: false };
     let r = tgt && tgt.side === "enemy" ? (tgt[key] || 0) : 0;
     if (r > 0 && r < 1) r = r >= 0.6 ? 2 : r >= 0.4 ? 1 : 0; // 旧形式 (割合) のまま保存された戦闘中の敵
     r = Math.min(3, r | 0);
@@ -1535,7 +1586,7 @@ export class Battle {
     }
     // 命中判定: 素の命中漏れ + 対象の敏捷(AGI)による回避 + 回避持ちの追加回避。
     // 技の命中補正 (acc) は外れる確率をその割合だけ消す (1 = 必中)。目つぶし (hit<1) は外れる確率を足す
-    const evade = Math.min(0.4, Math.max(0, ((tgt.agi || 6) - 6) * 0.012)) + (tgt.evasive ? 0.15 : 0)
+    const evade = (isMetal(tgt) ? metalEvade(tgt) : Math.min(0.4, Math.max(0, ((tgt.agi || 6) - 6) * 0.012)) + (tgt.evasive ? 0.15 : 0))
       + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) : 0); // 固有パッシブ (evade)
     let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
     const blind = this._bm(actor, "hit");
@@ -1605,13 +1656,17 @@ export class Battle {
     // 隊列補正: 後衛は物理の与ダメ・被ダメが半減
     const rm = this._rowMul(actor, tgt);
     if (rm !== 1) dmg = Math.round(dmg * rm);
+    // 金属の体: 会心でなければ何で打っても1ダメージ (防御無視も魔法属性の武器も同じ)。会心の一撃は素通しで普段どおり通る
+    const metalHit = isMetal(tgt);
+    if (metalHit && !crit) dmg = 1;
     // 魔法弱点 (魔法属性の武器の一撃だけ): 攻撃呪文と同じく被ダメが増える
     let magWeak = false;
-    if (magHit && tgt.magWeak && tgt.magWeak > 1) { dmg = Math.round(dmg * tgt.magWeak); magWeak = true; }
+    if (magHit && !metalHit && tgt.magWeak && tgt.magWeak > 1) { dmg = Math.round(dmg * tgt.magWeak); magWeak = true; }
     // 物理耐性 (耐性ランク): 耐性1=50% / 耐性2=75% / 耐性3=無効。魔法属性の武器は魔法耐性を受ける
     // 防御無視の技 (pierce) と会心の一撃は物理耐性1・2を無視する。物理耐性3 (無効) はどちらでも通らない
     const pierceResist = !magHit && ((opt.pierce || 0) > 0 || crit) && tgt.side === "enemy" && ((tgt.physResist | 0) < 3);
-    const pr = pierceResist ? { dmg, tag: "", immune: false } : this._resistCut(tgt, dmg, magHit ? "magResist" : "physResist");
+    const pr = metalHit ? { dmg, tag: crit ? "" : METAL_TAG.phys, immune: false }
+      : pierceResist ? { dmg, tag: "", immune: false } : this._resistCut(tgt, dmg, magHit ? "magResist" : "physResist");
     if (pr.immune) {
       // 無効: 傷ひとつ付かない (障壁も削れず、毒刃・怯ませ等の命中時効果も乗らない)
       this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}には効かない！ (${magHit ? "魔法" : "物理"}無効)`, tgt.side === "party" ? "dmg" : "hit");
@@ -1635,7 +1690,7 @@ export class Battle {
     }
     // 報復の籠手 (counter): 敵の物理攻撃を受けた味方が反撃する (LR装飾品。反撃の反撃は起きない)
     if (tgt.side === "party" && tgt.counter && tgt.alive && actor.side === "enemy" && actor.alive && !opt._counter && dmg > 0) {
-      const cdmg = Math.max(1, Math.round((tgt.power || tgt.atk || 1) * tgt.counter));
+      const cdmg = isMetal(actor) ? 1 : Math.max(1, Math.round((tgt.power || tgt.atk || 1) * tgt.counter));
       actor.hp -= cdmg;
       this.log(`${tgt.name}の報復！ ${actor.name}に ${cdmg} ダメージ`, "hit");
       this._die(actor);
@@ -1650,7 +1705,7 @@ export class Battle {
     if (opt.debuff && tgt.alive) { for (const k in opt.debuff) this._applyMod(tgt, k, opt.debuff[k], opt.debuffDur, opt.name); }
     // 毒刃 (venomBlade): 敵を毒に侵す
     const vb = pv(actor, "venomBlade");
-    if (vb && tgt.alive && tgt.side === "enemy" && !tgt.ailment && Math.random() < (vb >= 2 ? 0.30 : 0.15)) {
+    if (vb && tgt.alive && tgt.side === "enemy" && !metalHit && !tgt.ailment && Math.random() < (vb >= 2 ? 0.30 : 0.15)) {
       tgt.ailment = "poison";
       this.log(`${tgt.name}は毒に侵された！`, "hit");
     }
@@ -1669,7 +1724,7 @@ export class Battle {
       if (st) status = status ? status : st;
     }
     // 怯ませ (flinch): 主(ボス)には効かない・既に怯んでいる敵には重ねない
-    if (pv(actor, "flinch") && opt.basic && tgt.alive && tgt.side === "enemy" && !tgt.boss && !tgt._flinch && Math.random() < 0.10) {
+    if (pv(actor, "flinch") && opt.basic && tgt.alive && tgt.side === "enemy" && !metalHit && !tgt.boss && !tgt._flinch && Math.random() < 0.10) {
       tgt._flinch = true;
       this.log(`${tgt.name}は怯んだ！`, "hit");
     }
@@ -1866,6 +1921,7 @@ export class Battle {
       const targets = sp.target === "all-enemy" ? this.livingEnemies() : [cmd.target].filter(Boolean);
       for (const t of targets) {
         if (!t.alive) continue;
+        if (isMetal(t)) { this.log(`${t.name}には効かない`, "sys"); res.hits.push({ target: t, miss: true, resisted: true }); continue; }
         const mods = { ...(sp.debuff || {}) };
         for (const k in (sp.debuff || {})) this._applyMod(t, k, sp.debuff[k], sp.dur, sp.name);
         if (sp.vuln) for (const el in sp.vuln) mods["r_" + el] = sp.vuln[el];
@@ -1950,6 +2006,7 @@ export class Battle {
       }
     } else if (sp.kind === "sleep") {
       for (const t of this.livingEnemies()) {
+        if (isMetal(t)) { this.log(`${t.name}には効かない`, "sys"); res.hits.push({ target: t, miss: true, resisted: true }); continue; }
         if (Math.random() < (t.boss ? 0.3 : 0.6)) { t.asleep = true; this.log(`${t.name}は眠った`, "sys"); res.hits.push({ target: t, sleep: true, status: "眠り!" }); }
         else this.log(`${t.name}には効かない`, "sys");
       }
@@ -1971,6 +2028,7 @@ export class Battle {
     // 本効果に付随する敵全体への弱体 (攻守の法陣・霞の帳)
     if (sp.debuffAll) {
       for (const t of this.livingEnemies()) {
+        if (isMetal(t)) continue; // 金属の体: 弱体は効かない
         for (const k in sp.debuffAll) this._applyMod(t, k, sp.debuffAll[k], sp.dur, sp.name);
         res.hits.push({ target: t, debuff: true, mods: sp.debuffAll });
       }
@@ -2045,7 +2103,8 @@ export class Battle {
         this._enrageFx = true; // game.js が演出に使う
       }
     }
-    if (this.livingEnemies().length === 0) { this.result = "win"; return; }
+    // 敵がいなくなった: 1体でも倒していれば勝利。全員に逃げられたら "escaped" (戦果なし)
+    if (this.livingEnemies().length === 0) { this.result = this.enemies.some((e) => !e._fled) ? "win" : "escaped"; return; }
     // 全滅 = 生存者ゼロ、または生存者全員が石化
     const living = this.livingParty();
     if (living.length === 0 || living.every((p) => p.ailment === "stone")) this.result = "lose";
@@ -2054,8 +2113,8 @@ export class Battle {
   // 戦闘後の報酬計算。Soul が経験値の役割を兼ねる (魂の成長は館の「魂の強化」で行う)。
   // 旧セーブの戦闘中データは soul を持たないため exp を引き継ぐ
   rewards() {
-    const soul = this.enemies.reduce((s, e) => s + (e.alive ? 0 : ((e.soul != null ? e.soul : e.exp) || 0)), 0);
-    const gold = this.enemies.reduce((s, e) => s + (e.alive ? 0 : e.gold), 0); // 盗んだ金 (bonusGold) は game.js が別に足す
+    const soul = this.enemies.reduce((s, e) => s + (e.alive || e._fled ? 0 : ((e.soul != null ? e.soul : e.exp) || 0)), 0);
+    const gold = this.enemies.reduce((s, e) => s + (e.alive || e._fled ? 0 : e.gold), 0); // 盗んだ金 (bonusGold) は game.js が別に足す
     return { soul, gold };
   }
 }
