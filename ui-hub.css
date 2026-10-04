@@ -158,7 +158,8 @@
 .hb-spot-crypt::after { background: linear-gradient(180deg, rgba(140,108,240,0.85), rgba(140,108,240,0)); }
 .hb-spot-shrine .hb-spot-l { color: #ffc0b0; border-color: rgba(228,68,62,0.6); }
 .hb-spot-shrine::after { background: linear-gradient(180deg, rgba(228,68,62,0.85), rgba(228,68,62,0)); }
-.hb-spot.call .hb-spot-l { color: #1a1006; background: linear-gradient(180deg, #f6d77e, #c99a35); border-color: #fff0c0; animation: hb-call 1.6s ease-in-out infinite; }
+/* 金地に暗い字なので、札共通の黒い文字影 (0 1px 0 #000) を消す — 字の下に黒が重なって滲んで見えていた */
+.hb-spot.call .hb-spot-l { color: #1a1006; text-shadow: none; background: linear-gradient(180deg, #f6d77e, #c99a35); border-color: #fff0c0; animation: hb-call 1.6s ease-in-out infinite; }
 .hb-spot-dia { display: inline-block; width: 6px; height: 6px; transform: rotate(45deg); background: #6a1410; box-shadow: 0 0 0 1px rgba(255,240,200,0.6); }
 @keyframes hb-call { 0%, 100% { box-shadow: 0 0 6px rgba(243,213,139,0.5); } 50% { box-shadow: 0 0 18px rgba(243,213,139,0.95); } }
 
