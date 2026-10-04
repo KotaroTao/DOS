@@ -221,7 +221,7 @@ def js_entry(job, results, first=1):
     out = [f"  {job}: {{"]
     for n, r in enumerate(results, first):
         pal = "{" + ",".join(f'"{k}":"{v}"' for k, v in r["palette"].items()) + "}"
-        hd = ", ".join(str(round(v, 2)) for v in r["head"])
+        hd = ", ".join(str(round(float(v), 2)) for v in r["head"])
         out.append(f"    {n}: {{")
         out.append(f"      face: [{r['face'][0]},{r['face'][1]}],")
         out.append(f"      head: [{hd}],")
@@ -258,28 +258,41 @@ def apply(job, results, first=1, keep_photos=False):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("job"); ap.add_argument("images", nargs="+")
-    ap.add_argument("--period", type=float, default=16.5)
-    ap.add_argument("--period-y", type=float, help="縦の升目の周期 (横と違う時)")
+    ap.add_argument("--period", default="16.5", help="升目の周期 (px)。画像ごとに変える時はカンマ区切り (足りない分は最後の値)")
+    ap.add_argument("--period-y", help="縦の升目の周期 (横と違う時)。カンマ区切り可")
     ap.add_argument("--colors", type=int, default=32)
     ap.add_argument("--uniform", action="store_true", help="升目を周期一定にする (背丈がランク間で揃う)")
-    ap.add_argument("--outline", type=float, default=0.0, help="外周の升を輪郭色へ寄せる割合 (例 0.8)")
-    ap.add_argument("--mode", type=float, default=0.0, help="升の最多色を取る (原画のドットが升目より細かい時)。値 = 暗い輪郭色の重み (例 2.5)")
+    ap.add_argument("--outline", default="0", help="外周の升を輪郭色へ寄せる割合 (例 0.8)")
+    ap.add_argument("--mode", default="0", help="升の最多色を取る (原画のドットが升目より細かい時)。値 = 暗い輪郭色の重み (例 2.5)")
     ap.add_argument("--head", nargs="*", default=[])
-    ap.add_argument("--head-px", help="顔の中心x,頭頂y,あご先y を原画の画素で (全ランク共通)")
+    ap.add_argument("--head-px", nargs="*", default=[], help="顔の中心x,頭頂y,あご先y を原画の画素で (1つなら全ランク共通、画像ごとなら並べる)")
+    ap.add_argument("--clip-half", type=float, default=0, help="顔の中心から左右これを超えるドットを切る (全職共通の枠 IMG_BOX を広げないため。例 46)")
     ap.add_argument("--preview"); ap.add_argument("--apply", action="store_true")
     ap.add_argument("--rank", type=int, default=1, help="最初の画像のランク (例: 3 なら画像はランク3から)")
     ap.add_argument("--keep-photos", action="store_true", help="原画そのまま版 (jobphotos.js・webp) を残す (そのランクだけドット絵が優先される)")
     o = ap.parse_args()
+    def per_image(val, n, cast=float):
+        if val is None: return None
+        vs = [cast(v) for v in str(val).split(",")]
+        return vs[min(n, len(vs) - 1)]
     results = []
     for n, f in enumerate(o.images):
-        per = (o.period, o.period_y) if o.period_y else o.period
-        cells, mask, (ox, oy) = dotify(f, per, o.uniform, o.mode, o.outline)
+        px = per_image(o.period, n); py = per_image(o.period_y, n) or px
+        cells, mask, (ox, oy) = dotify(f, (px, py), o.uniform, per_image(o.mode, n), per_image(o.outline, n))
+        hp = o.head_px[min(n, len(o.head_px) - 1)] if o.head_px else None
+        if hp and o.clip_half:
+            # 顔の中心から左右 clip_half を超える升を背景にする (槍先・マントの端)
+            cx = (float(hp.split(",")[0]) - ox) / px
+            for i in range(mask.shape[1]):
+                if abs(i + 0.5 - cx) > o.clip_half: mask[:, i] = True
+            cols = np.nonzero((~mask).any(axis=0))[0]
+            ox += cols[0] * px
+            cells, mask = cells[:, cols[0]:cols[-1] + 1], mask[:, cols[0]:cols[-1] + 1]
         palette, art = quantize(cells, mask, o.colors)
-        if o.head_px:
-            # 原画の画素で測った頭 (全ランク同じ位置に描かれた原画向け) を、この絵の升目に換算
-            hx, top, chin = (float(v) for v in o.head_px.split(","))
-            py = o.period_y or o.period
-            head = [round((hx - ox) / o.period, 2), round((top - oy) / py, 2), round((chin - oy) / py, 2)]
+        if hp:
+            # 原画の画素で測った頭を、この絵の升目に換算
+            hx, top, chin = (float(v) for v in hp.split(","))
+            head = [round((hx - ox) / px, 2), round((top - oy) / py, 2), round((chin - oy) / py, 2)]
         elif n < len(o.head): head = [float(v) for v in o.head[n].split(",")]
         else: head = skin_head(cells, mask)
         face = [int(round(head[0])), int(round((head[1] + head[2]) / 2))]
