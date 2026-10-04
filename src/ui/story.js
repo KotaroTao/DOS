@@ -6,7 +6,9 @@
 //   place = 背景の情景 (townart の vignetteCanvas の鍵。既定 "palace"。最初のページのものを使う)
 //   art = 物語の一枚絵の鍵 (src/storyart.js)。あれば肖像の代わりに絵を掲げ、背景もその絵を沈めて敷く
 //   who = 語り手 "king" (既定・老王の肖像) | "irene" (館の主の肖像) | "none" (肖像なし・地の文)
+//         | { name, sub?, art?() } (酒場の依頼人など: 枠に art() の絵 (依頼の魔物・品など) を掲げ、名と肩書きを添える)
 //   reward = 受け取るものの一覧 [{ job:"fighter" } | { cur:"gold"|"soul"|"red"|"ember", n }] (文字列でも可)
+//            各札に tag (「心付け」など小さな添え書き) を付けられる
 //   enter = ページを開く直前 / leave = ページを離れる時 (次のページへ進む・閉じる)。状態の変化はここで行い、順番は呼び出し側が決める。
 // done(): すべて閉じた後 (最後のページの leave の後)。描き直し・トーストは呼び出し側。
 // 提供: UI.playStoryChain(pages, done) (.scene = true で旧来の showStoryScene が委ねる)
@@ -57,6 +59,7 @@ function rewardBox(reward) {
     it.appendChild(ic);
     it.appendChild(el("span", "sc-rw-n", name));
     if (r.n != null) it.appendChild(el("span", "sc-rw-q", `×${r.n}`));
+    if (r.tag) { it.classList.add("tagged"); it.appendChild(el("span", "sc-rw-tag", r.tag)); }
     list.appendChild(it);
   }
   box.appendChild(list);
@@ -78,22 +81,29 @@ function splitPages(pages) {
     const head = p.art ? artH() + 10 : (p.who === "none" ? 0 : 150);
     const room = (pRw) => vh * 0.91 - 40 - head - 70 - 110 - (pRw ? 96 : 0);
     const cost = (t) => Math.ceil(t.length * 1.12 / cpl) * 26 + 8; // 文節で折る分 (phrase.js) 行末が少し余る
+    // 受け取るものの札が付く最後の分は、後ろから札の分だけ狭い枠に詰める。残りを前から詰める
+    // (前から詰めて溢れた行を送ると、最初の分が1行だけになることがある)
+    let tail = null, body = lines;
+    if (p.reward && lines.length) {
+      tail = [];
+      let u = 0;
+      for (let i = lines.length - 1; i >= 0; i--) {
+        const c = cost(lines[i]);
+        if (tail.length && u + c > room(true)) break;
+        tail.unshift(lines[i]); u += c;
+      }
+      body = lines.slice(0, lines.length - tail.length);
+    }
     const chunks = [];
     let cur = [], used = 0;
-    for (const t of lines) {
+    for (const t of body) {
       const c = cost(t);
       if (cur.length && used + c > room(false)) { chunks.push(cur); cur = []; used = 0; }
       cur.push(t); used += c;
     }
-    if (cur.length || !chunks.length) chunks.push(cur);
-    // 受け取るものの札が付く最後の分が溢れるなら、最後の行を次の分へ送る
-    if (p.reward) {
-      const last = chunks[chunks.length - 1];
-      while (last.length > 1 && last.reduce((a, t) => a + cost(t), 0) > room(true)) {
-        const moved = last.pop();
-        if (chunks[chunks.length - 1] === last) chunks.push([moved]); else chunks[chunks.length - 1].unshift(moved);
-      }
-    }
+    if (cur.length) chunks.push(cur);
+    if (tail) chunks.push(tail);
+    if (!chunks.length) chunks.push([]);
     chunks.forEach((ls, i) => {
       const first = i === 0, lastOne = i === chunks.length - 1;
       out.push({ ...p, lines: ls, enter: first ? p.enter : null, leave: lastOne ? p.leave : null, reward: lastOne ? p.reward : null, btnLabel: lastOne ? p.btnLabel : null });
@@ -141,7 +151,14 @@ export function playStoryChain(pages, done) {
     if (who === curWho) return;
     curWho = who;
     pf.textContent = "";
-    if (who === "irene") {
+    pf.classList.toggle("mark", typeof who === "object");
+    whoEl.classList.toggle("npc", typeof who === "object");
+    if (who && typeof who === "object") {
+      try { const a = who.art && who.art(); if (a) pf.appendChild(a); } catch (e) { /* 絵が無くても名は出す */ }
+      whoEl.textContent = "";
+      whoEl.appendChild(setText(el("span", "sc-who-n"), who.name || ""));
+      if (who.sub) whoEl.appendChild(setText(el("span", "sc-who-k"), who.sub));
+    } else if (who === "irene") {
       const img = el("img", "sc-pf-img");
       img.src = IRENE_ART; img.alt = ""; img.draggable = false; img.decoding = "async";
       pf.appendChild(img);
