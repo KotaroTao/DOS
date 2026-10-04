@@ -1539,8 +1539,7 @@ function bagCell(d, it) {
   const rk = rarityKey(it);
   if (rk) c.style.setProperty("--edge", RARITIES[rk].color);
   c.appendChild(spriteCanvas(it, 2));
-  if (it.unidentified) c.appendChild(el("span", "pt-seal", "?"));
-  else if (it.cursed) c.appendChild(el("span", "pt-seal curse", "呪"));
+  if (it.cursed && !it.unidentified) c.appendChild(el("span", "pt-seal curse", "呪"));
   if (it.isNew) c.appendChild(el("span", "pt-new", "NEW"));
   // この人業に付ければ伸びる品は ▲
   if (!it.unidentified && isEquippable(it) && d.primary != null && !canEquipReason(d, it)) {

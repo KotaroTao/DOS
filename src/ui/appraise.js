@@ -133,7 +133,6 @@ export function openTryIdentifyAll({ onDone } = {}) {
     const rk = rarityKey(it);
     if (rk && RARITIES[rk]) art.style.setProperty("--edge", RARITIES[rk].color);
     try { art.appendChild(spriteCanvas(it, 4)); } catch (e) { /* 絵は飾り */ }
-    if (it.unidentified) art.appendChild(el("span", "ap-seal", "？"));
   };
 
   const footerRun = () => [{ label: "早送り", sub: "残りを一度に判定", kind: "ghost", onTap: () => fastForward() }];

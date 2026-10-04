@@ -1978,6 +1978,8 @@ function base(id, name, slot, lv, artKey, opt) {
     classes: opt.cls !== undefined ? opt.cls : null,
     desc: opt.desc,
   };
+  // 絵の形の原型 (src/itemart が品ごとの絵を描くときの手がかり。保存はしない)
+  Object.defineProperty(it, "shape", { value: artKey, enumerable: false, writable: true });
   if (opt.eAtk) { chk(ELEM_KEYS.includes(opt.eAtk[0]), "bad eAtk element: " + id); it.eAtk = { el: opt.eAtk[0], lv: opt.eAtk[1] || 1 }; }
   if (opt.eDef) { chk(ELEM_KEYS.includes(opt.eDef[0]), "bad eDef element: " + id); it.eDef = { el: opt.eDef[0], lv: opt.eDef[1] || 1 }; }
   // 状態異常耐性 aRes: { charm: 0.25, ... } (種類ごとの付与率カット) / 追加効果 onHit: ["paralyze", 0.15] or ["poison", 0.2, 0.06]

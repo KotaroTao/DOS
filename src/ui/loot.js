@@ -785,7 +785,6 @@ export function itemSheet(item, o = {}) {
     const top = el("div", "wpc-is-top");
     const art = el("div", "wpc-is-art" + (rk ? " rar-" + rk : ""));
     art.appendChild(spriteCanvas(it, 7));
-    if (it.unidentified) art.appendChild(el("span", "wpc-is-seal", "?"));
     top.appendChild(art);
     const hd = el("div", "wpc-is-hd");
     hd.appendChild(nameSpan(it, "wpc-is-name"));
