@@ -21,6 +21,7 @@ import { tagRow, traitTagKinds, affinityRow, revealSteps, monKills, enemyReveal,
 import { RARITIES } from "../rarity.js";
 import { SOUL_CLASSES, soulIcon } from "../souls.js";
 import { WALKER as WALKER_ART } from "../walkerart.js";
+import { markOf } from "./questboard.js";
 
 export { getPref, setPref, remember, sceneTransition };
 
@@ -190,6 +191,19 @@ export function openFloorInfo() {
       if (f.obj) b.appendChild(iconRow(f.obj.k === "boss" ? "boss" : "down", f.obj.t, "この階で為すべきこと"));
       const canHome = game.canReturnNow ? game.canReturnNow() : false;
       b.appendChild(iconRow("home", canHome ? "帰還できる" : "まだ帰れない", canHome ? (g.bossDown ? "主を討った。どこからでも帰還できる" : "帰還陣を見つけた。下の「帰還」から戻れる") : "帰還陣を見つけるか、迷宮の主を討つまで", { tone: canHome ? "gold" : null }));
+      // 受けている依頼のうち、この迷宮で果たせるもの (討伐・到達・踏破・魂・宝箱。達成済みは報告待ちとして後ろに)
+      let qs = [];
+      try { qs = game.questsHere ? game.questsHere() : []; } catch (e) { setTimeout(() => { throw e; }); }
+      if (qs.length) {
+        const todo = qs.filter((q) => q.state !== "done").length;
+        b.appendChild(section("ここで果たせる依頼", todo ? `${todo}件` : "すべて達成"));
+        for (const q of qs) {
+          const done = q.state === "done";
+          const prog = q.type === "clear" ? null : q.type === "floor" ? (q.progress ? `いま地下${q.progress}階まで` : "未到達") : `${q.progress || 0} / ${q.goal}`;
+          const sub = done ? "達成 ― 街へ戻ったら酒場で報告" : [q.desc, prog].filter(Boolean).join(" ・ ");
+          b.appendChild(row({ icon: markOf(q, 30), title: q.name, sub, tone: done ? "gold" : null }));
+        }
+      }
       if (f.facts.length) b.appendChild(section("この階の性質"));
       else b.appendChild(el("div", "dg-note", "この階に変わった性質はない。"));
       for (const x of f.facts) {

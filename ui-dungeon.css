@@ -488,3 +488,7 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 /* 長い説明 (推奨Lv・師の手がかり…) で行が枠を押し広げないように (grid の既定 min-width: auto を外す) */
 .dp-gates { grid-template-columns: minmax(0, 1fr); }
 .dp-gate { box-sizing: border-box; min-width: 0; }
+/* 階の情報: ここで果たせる依頼 (札の印は酒場と同じ qb-mark を小さく) */
+.dg-sheet .ui-row .qb-mark { width: 32px; height: 32px; }
+.dg-sheet .ui-row .qb-mark .ui-tile { width: 30px; height: 30px; }
+.dg-sheet .ui-row .qb-mark-c { font-size: 16px; }

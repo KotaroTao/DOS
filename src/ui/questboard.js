@@ -51,7 +51,7 @@ function progressText(q) {
   return `${q.progress || 0} / ${q.goal}`;
 }
 // 札の左の印: 納品 = 品の絵 / 討伐 = 魔物の絵 / ほか = 記号
-function markOf(q, size = 40) {
+export function markOf(q, size = 40) {
   const box = el("span", "qb-mark t-" + (q.type || "x"));
   try {
     if (q.type === "deliver" && ITEMS[q.itemId]) { box.appendChild(itemTile(ITEMS[q.itemId], { size })); return box; }

@@ -9809,8 +9809,27 @@ function fixedQuestTargets(def, cfg) {
   const g = def.goal || {};
   if (g.dungeon) return g.dungeon === cfg.id;
   if (g.type !== "kill" || !g.keys) return false;
+  return questKillHere(g.keys, cfg);
+}
+// 狙う魔物がその迷宮に出るか (出現表の帯・主。金属の魔物は第3層から)
+function questKillHere(keys, cfg) {
   const roster = new Set([...(cfg.bands ? cfg.bands.flat() : [...(cfg.pool || []), ...(cfg.deepPool || [])]), cfg.boss].filter(Boolean));
-  return g.keys.some((k) => roster.has(k) || (MONSTERS[k] && MONSTERS[k].metal && (cfg.layer || 0) >= 3));
+  return (keys || []).some((k) => roster.has(k) || (MONSTERS[k] && MONSTERS[k].metal && (cfg.layer || 0) >= 3));
+}
+// 階の情報 (迷宮の手帳) に並べる依頼: 受注中のうち、いま潜っている迷宮で進められるもの (+ 達成して報告待ちのもの)
+//   討伐 = 狙う魔物がここに出る / 到達・踏破 = この迷宮 / 魂・宝箱 = どこでも進む / 納品 = 迷宮では進まないので出さない
+function questsHere() {
+  const cfg = activeCfg();
+  if (!cfg) return [];
+  const here = G.abyss ? null : cfg.id;
+  const fits = (q) => {
+    if (q.type === "soul" || q.type === "chest") return true;
+    if (q.type === "kill") return questKillHere(q.keys, cfg);
+    if (q.type === "floor" || q.type === "clear") return !!here && q.dungeon === here;
+    return false;
+  };
+  return questLists().active.filter((q) => (q.state === "active" || q.state === "done") && fits(q))
+    .sort((a, b) => (a.state === "done") - (b.state === "done"));
 }
 // 出撃シートの添え書き: 酒場の依頼で開いた迷宮なら「依頼の迷宮」(受けた依頼の対象かどうかは名の横の印 questHereCount)
 function questHereNote(cfg) {
@@ -13753,7 +13772,7 @@ bindGame({
   codexMonEntry, dungeonRoster, CODEX_OTHER,
   // 酒場・祠・宿
   listenRumor, RUMOR_PRICE, rumorPrice, rollTavernCrowd,
-  questState, questLists, questByUid, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount,
+  questState, questLists, questByUid, questsHere, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount,
   adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)
   PREFS, savePrefs, setVolumes, isMuted, toggleMute, ensureAudio, updateMuteBtn, resetAllData, confirmReset,
