@@ -72,7 +72,7 @@ import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 import { refSoul, refGold, trainCost, lvPow, emberMul, partyAgi, LOCK_K, TRAP_K, lockPow } from "./levelcurve.js";
 import { tlOn, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlPlayTick, tlSoul } from "./telemetry.js";
 import { repriceEquipment } from "./pricing.js";
-import { spawnFx, drawBattleFx, weaponFxStyle, statusFxKind, ELEM_FX_COL } from "./battlefx.js";
+import { spawnFx, drawBattleFx, weaponFxStyle, statusFxKind, skillProfile, ELEM_FX_COL } from "./battlefx.js";
 
 // ===== コンテンツの取り込み =====
 // アイテム: 一点物の手作りカタログ (src/catalog/)。二つ名つきの量産品は廃止。
@@ -7907,7 +7907,7 @@ function drawEffects(fx, now) {
     vctx.save();
     vctx.translate(s.x, s.y);
     vctx.scale(dir, 1);
-    vctx.rotate(-0.75);
+    vctx.rotate(-0.75 + (s.rot || 0));
     const R = 34 * (s.big ? 1.25 : 1);
     const a0 = -1.4, a1 = a0 + 2.6 * sweep;
     vctx.globalCompositeOperation = "lighter";
@@ -8517,6 +8517,12 @@ function animateResult(res, done) {
   G.partyFxV = new Map();
   // 隊の札の演出の長さも一手の余韻に合わせる (テンポを落とさない)
   partyEl.style.setProperty("--fxd", Math.max(0.16, Math.min(0.5, 0.36 * spdMul())).toFixed(2) + "s");
+  // 上級の技 (MP の重い技): 踏み込みの間に魔法陣が浮かび、着弾で消える (一手の時間は延ばさない)
+  const prof = fxProfile(res);
+  if (prof && prof.tier >= 3 && prof.kind !== "phys") {
+    const at = fxAnchor(res, prof);
+    if (at) spawnFx(G.fx.skill, "circle", at.x, at.y, t0, spdMul(), { el: prof.el, spin: prof.spin, w: at.w, dur: WIND + 150 * spdMul() });
+  }
   let impacted = false;
   const tick = () => {
     const t = performance.now() - t0;
@@ -8538,6 +8544,22 @@ function animateResult(res, done) {
     }
   };
   requestAnimationFrame(tick);
+}
+
+// 技の演出の設計図 (battlefx.skillProfile)。味方の技だけ (敵の特殊行動・道具・通常攻撃は持たない)
+function fxProfile(res) {
+  if (!res || res.side !== "party" || res.action !== "spell" || !res.spellKey) return null;
+  return skillProfile(res.spellKey, SPELLS[res.spellKey]);
+}
+// 技の演出を置く所: 単体の敵 → その敵 / 全体の敵 → 敵の列の中央 / 味方 → 戦場の下端
+function fxAnchor(res, prof) {
+  const foes = (res.hits || []).filter((h) => h && h.target && h.target.side === "enemy").map((h) => G.enemyPos[h.target.uid]).filter(Boolean);
+  if (prof.ally || !foes.length) return { x: VW / 2, y: VH - 30, w: prof.all ? VW * 0.9 : 0 };
+  if (prof.all || foes.length > 1) {
+    const xs = foes.map((p) => p.cx), ys = foes.map((p) => p.cy);
+    return { x: (Math.min(...xs) + Math.max(...xs)) / 2, y: ys.reduce((a, b) => a + b, 0) / ys.length, w: Math.max(VW * 0.6, Math.max(...xs) - Math.min(...xs) + 120) };
+  }
+  return { x: foes[0].cx, y: foes[0].cy, w: 0 };
 }
 
 // 隊の札 (戦場の下) のおおよその横位置: 札は3枚ずつ並ぶ (3人以下は人数で割る)
@@ -8595,6 +8617,9 @@ function applyImpact(res) {
   const spd = spdMul();
   const stag = HIT_STAGGER * spd;
   const stackIdx = {};
+  // 技ごとの組み立て: 描き分け (v)・角度 (rot)・回る向き (spin)・格 (scale)・付く効果の印 (riders)
+  const prof = fxProfile(res);
+  const pv0 = prof ? { v: prof.v, rot: prof.rot, spin: prof.spin, s: prof.scale * (prof.all ? 0.8 : 1) } : {};
   // 全体回復は対象全員が同じ中央下に重なって1人分にしか見えないため、
   // 回復対象ごとに横位置をずらし、わずかな時間差を付けて全員ぶんはっきり見せる
   const partyHeals = res.hits.filter((h) => h.target.side !== "enemy" && h.heal != null);
@@ -8626,7 +8651,7 @@ function applyImpact(res) {
         const st = statusFxKind(h.status);
         const kind = res.spellKind === "atk" ? (ELEM_FX_COL[res.spellElement] ? res.spellElement : "none")
           : st || (res.spellKind === "sleep" ? "sleep" : h.buff && !h.debuff ? "rise" : "hex");
-        spawnFx(fx.skill, kind, pos.cx, pos.cy, ht0, spd, { seed, col: kind === "rise" ? "#ffd84a" : null });
+        spawnFx(fx.skill, kind, pos.cx, pos.cy, ht0, spd, { ...pv0, seed: seed + (prof ? prof.seed : 0), col: kind === "rise" ? "#ffd84a" : null });
         if (res.spellKind === "atk" && st) spawnFx(fx.skill, st, pos.cx, pos.cy, ht0 + 50 * spd, spd, { seed }); // 攻撃呪文の状態異常
       } else if (res.action === "attack" || res.spellKind === "phys") {
         // 物理: 味方は武器ごと (長剣=三日月 / 短剣=×字 / 刀=一閃 / 槍=突き / 斧・槌=衝撃 / 弓=矢 / 杖・素手=打撃)。
@@ -8634,13 +8659,29 @@ function applyImpact(res) {
         const mine = res.side === "party" && res.actor && res.actor.equip;
         const style = mine ? weaponFxStyle(res.actor.equip.weapon) : "slash";
         const el = res.spellKind === "phys" ? res.spellElement : mine && res.actor.elemAtk ? res.actor.elemAtk.el : null;
+        const rot = prof ? prof.rot * (idx % 2 ? -1 : 1) : 0, big = !!h.crit || (prof && prof.tier >= 3);
+        const flip = (idx % 2 === 1) !== (prof ? prof.spin < 0 : false);
         if (style === "slash") {
-          fx.slashes.push({ x: pos.cx + dx * 0.5, y: pos.cy, t0: ht0, crit: !!h.crit, big: !!h.crit, flip: idx % 2 === 1, seed, el });
+          fx.slashes.push({ x: pos.cx + dx * 0.5, y: pos.cy, t0: ht0, crit: !!h.crit, big, flip, seed, el, rot });
           if (el && el !== "none" && ELEM_FX_COL[el]) spawnFx(fx.skill, el, pos.cx, pos.cy, ht0, spd, { seed, s: 0.55, trace: true });
-        } else spawnFx(fx.skill, style, pos.cx + dx * 0.5, pos.cy, ht0, spd, { seed, crit: !!h.crit, flip: idx % 2 === 1, el });
+        } else spawnFx(fx.skill, style, pos.cx + dx * 0.5, pos.cy, ht0, spd, { seed, crit: !!h.crit, flip, el, rot, s: prof ? prof.scale : 1 });
+        // 上級の物理技: 残像の二の太刀 (逆向き・一回り大きく) を少し遅れて重ねる
+        if (prof && prof.tier >= 3 && idx === 0) {
+          if (style === "slash") fx.slashes.push({ x: pos.cx, y: pos.cy, t0: ht0 + 70 * spd, crit: !!h.crit, big: true, flip: !flip, seed: seed + 5, el, rot: -rot });
+          else spawnFx(fx.skill, style, pos.cx, pos.cy, ht0 + 70 * spd, spd, { seed: seed + 5, crit: !!h.crit, flip: !flip, el, rot: -rot, s: prof.scale * 1.15 });
+        }
         if (h.crit) spawnFx(fx.skill, "crit", pos.cx + dx * 0.5, pos.cy, ht0, spd, { seed });
         const st = statusFxKind(h.status);
         if (st) spawnFx(fx.skill, st, pos.cx, pos.cy, ht0 + 50 * spd, spd, { seed }); // 武器の追加効果・技の状態異常
+      }
+      // 付く効果の印 (吸収・防御無視・とどめ・怯み・耐性ダウン・強化打ち消し・封印・重力・盗み・即死)
+      if (prof && !h.immune) {
+        for (const r of prof.riders) {
+          if (r.onDeath && !h.died) continue;
+          if (r.onFatal && !h.fatal) continue;
+          if (r.onSteal && h.stole == null) continue;
+          spawnFx(fx.skill, r.type, pos.cx, pos.cy, ht0 + 40 * spd, spd, { seed, col: r.col, el: prof.el, rot: prof.rot, s: r.s || 1, tx: VW / 2 });
+        }
       }
       if (idx === 0 || !fx.flash[h.target.uid]) fx.flash[h.target.uid] = { t0: ht0 };
       if (h.stole != null) {
@@ -8701,7 +8742,7 @@ function applyImpact(res) {
         const fy0 = VH - 26 - (i % 2) * 16; // 重なり回避に上下も少しずらす
         fx.floats.push({ x: fx0, y: fy0, text: "+" + h.heal, color: "#7CFC7C", t0: now + i * stag, kind: "heal" });
         setPartyFxV(h.target, "heal");
-        spawnFx(fx.skill, "rise", partyFxX(h.target), VH - 8, now + i * stag, spd, { seed: i + 3, s: 0.8, col: "#7CFC7C" });
+        spawnFx(fx.skill, "rise", partyFxX(h.target), VH - 8, now + i * stag, spd, { seed: i + 3, s: 0.8 * (prof ? prof.scale : 1), col: "#7CFC7C" });
       } else if (h.steal) {
         // 窃盗: ゴールド/Soul の控除はここで行う (combat.js は G を知らない)
         partyHit = true;
@@ -8757,6 +8798,16 @@ function applyImpact(res) {
         }
       }
     }
+  }
+  // 全体技: 戦場を覆う一枚を重ねる (攻撃呪文 = 属性の大技 / 物理 = 一文字の薙ぎ / 回復・強化 = 天の光 / 弱体 = 紫の大環)
+  if (prof && prof.all && res.hits.some((h) => h && !h.miss)) {
+    const at = fxAnchor(res, prof);
+    const o = { el: prof.el, spin: prof.spin, rot: prof.rot, seed: prof.seed, w: at.w, s: prof.scale };
+    if (prof.kind === "atk") spawnFx(fx.skill, "field", at.x, at.y, now, spd, o);
+    else if (prof.kind === "phys") spawnFx(fx.skill, "fieldslash", at.x, at.y, now, spd, { ...o, crit: res.hits.some((h) => h.crit) });
+    else if (prof.ally && (prof.kind === "heal" || prof.kind === "buff" || prof.kind === "cure"))
+      spawnFx(fx.skill, "blessing", VW / 2, VH, now, spd, { ...o, col: prof.kind === "heal" ? "#7CFC7C" : prof.kind === "cure" ? "#9be8ff" : "#ffd84a" });
+    else if (prof.kind === "debuff" && !prof.ally) spawnFx(fx.skill, "fieldhex", at.x, at.y, now, spd, o);
   }
   // ブレス: 敵から隊へ属性の奔流が押し寄せる / 全体呪文: 隊の札の上で属性の呪文が弾ける
   if (res.action === "breath") {

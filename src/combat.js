@@ -2039,6 +2039,7 @@ export class Battle {
     }
     if (pv(actor, "kenma")) actor._kenma = true; // 剣魔合一: 次の通常攻撃が確定会心
     res.spellName = sp.name;
+    res.spellKey = cmd.spellKey; // 演出 (battlefx の技ごとの組み立て) が技の性質を読む
     res.spellKind = sp.kind;
     res.spellElement = sp.element || null;
     const isPhys = sp.kind === "phys";
