@@ -7821,6 +7821,14 @@ function playBattleIntro(done) {
   G.animating = true;
   combatMenu.innerHTML = "";
   if (G.autoCombat) renderAutoBanner();
+  else if (ambush) {
+    // 奇襲: 敵が一巡するまで命令板が出ないので、開幕の演出の間からオートを押せるようにする
+    combatMenu.dataset.mode = "acting";
+    const w = turnPlate("奇襲", "敵の先手", []);
+    w.classList.add("who-foe");
+    combatMenu.appendChild(w);
+    appendAutoStart();
+  }
   renderParty();
   const tick = () => {
     if (!G.battleIntro || G.battle !== b) return;
@@ -8295,6 +8303,20 @@ function renderActingPlate(actor) {
   if (foe) w.classList.add("who-foe");
   if (foe && enemyUnknown(actor)) w.classList.add("who-unk");
   combatMenu.appendChild(w);
+  // 敵の手番の間もオートを始められる (奇襲で敵が先に一巡する間も、押した次の手番からオートの速さになる)
+  if (foe) appendAutoStart();
+}
+// 演出の間の「オート」: 手番を待たずにオートへ切り替える。オートの速さ (spdMul) は次の手番から効く
+function appendAutoStart() {
+  if (G.autoCombat || !G.battle || G.battle.result) return;
+  const keep = !!uiDungeonHud.getPref("autoKeep");
+  combatMenu.appendChild(cmdBtn("auto", "オート", keep ? "継続" : "敵の手番から速める", () => {
+    if (G.autoCombat || G.state !== "combat" || !G.battle || G.battle.result) return;
+    G.autoCombat = true;
+    SFX.select();
+    if (G.animating) renderAutoBanner();
+    else renderCombatMenu();
+  }, "cmd-wide"));
 }
 
 // オート戦闘中の常設バナー: 演出中も表示し続け、いつでも解除できる。
@@ -9939,9 +9961,21 @@ function unequippableUnder(d, newCls) {
   return bad;
 }
 
+// 魂の付け替えの前後で HP/MP の割合を保つ (満タンなら満タンのまま・付け替えを往復しても減らない)。
+// 倒れている人業はそのまま
+function hpMpRatio(d) {
+  return { hp: d.maxhp > 0 ? d.hp / d.maxhp : 1, mp: d.maxmp > 0 ? d.mp / d.maxmp : 1 };
+}
+function keepHpMpRatio(d, r) {
+  if (d.alive === false || d.hp <= 0) { d.hp = Math.min(Math.max(0, d.hp), d.maxhp); d.mp = Math.min(d.mp, d.maxmp); return; }
+  d.hp = Math.max(1, Math.min(d.maxhp, Math.round(d.maxhp * r.hp)));
+  d.mp = Math.max(0, Math.min(d.maxmp, Math.round(d.maxmp * r.mp)));
+}
+
 // 実際に魂を差し口へ宿す/外す処理 (装備の事前確認を通過した後に呼ぶ)
 function applyEquipSoul(d, uid, s, slotId = "primary") {
   const before = jobSig(d);
+  const vit = hpMpRatio(d);
   d.subs = d.subs || [];
   const si = slotId === "primary" ? -1 : +slotId.slice(3);
   if (slotId === "primary" && d.primary === uid) {
@@ -9961,7 +9995,7 @@ function applyEquipSoul(d, uid, s, slotId = "primary") {
     }
   }
   recalcDoll(d);
-  d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp);
+  keepHpMpRatio(d, vit);
   SFX.select(); buzz(15);
   autosave(true);
   renderTown();
@@ -9989,9 +10023,10 @@ function takeSubSoul(d, uid, si) {
   if (mine) other.subs[w.index] = mine;
   else other.subs.splice(w.index, 1);
   other.subs = other.subs.filter(Boolean);
+  const vits = [d, other].map(hpMpRatio);
   d.subs[si] = taken;
   d.subs = d.subs.filter(Boolean);
-  for (const dd of [d, other]) { recalcDoll(dd); dd.hp = Math.min(dd.hp, dd.maxhp); dd.mp = Math.min(dd.mp, dd.maxmp); }
+  [d, other].forEach((dd, i) => { recalcDoll(dd); keepHpMpRatio(dd, vits[i]); });
   SFX.select(); buzz(15);
   autosave(true);
   renderTown();
@@ -10189,13 +10224,13 @@ function namedState() {
 const codexKills = (key) => { const e = G.codex && G.codex.mon ? G.codex.mon[key] : null; return !e ? 0 : e === true ? 1 : Math.max(0, Number(e.kills) || 0); };
 // 懸賞を受けていて、まだ討っていない (受けている間は縄張りの強敵階に必ず出る・強敵階が出やすい)
 function namedHunted(id) { const f = questState().fixed[bountyId(id)]; return !!(f && f.state === "active"); }
-// 強敵階に降りた: 名のある強敵なら目撃を記録する (初めてなら、酒場に懸賞が出る)
+// 強敵階に降りた: 名のある強敵なら目撃を記録する (懸賞は縄張りの迷宮が地図に現れた時点で酒場に出ている)
 function namedSighted(id) {
   if (!id || !MONSTERS[id] || !MONSTERS[id].named) return;
   const st = namedState();
   const first = !st.seen[id];
   st.seen[id] = { dungeon: abyssActive() ? "abyss" : (activeCfg() || {}).id || null, floor: G.floor };
-  if (first) log(`名のある強敵「${MONSTERS[id].name}」を目撃した。酒場に懸賞が出るだろう。`, "dmg");
+  if (first) log(`名のある強敵「${MONSTERS[id].name}」を目撃した。${questState().fixed[bountyId(id)] ? "" : "酒場に懸賞が出ている。"}`, "dmg");
 }
 // 名のある強敵1体の記録 (出撃シート・図鑑)
 function namedInfo(id) {
@@ -10207,7 +10242,8 @@ function namedInfo(id) {
     id, name: MONSTERS[id] ? MONSTERS[id].name : id, layer: (NAMED_FOES[id] || {}).layer || 0,
     seen, seenAt: seen && seen.dungeon ? (seen.dungeon === "abyss" ? "奈落" : (worldById(seen.dungeon) || {}).name || "") : "",
     kills: codexKills(id), trophy: !!st.trophy[id], trophyId: (NAMED_FOES[id] || {}).trophy || null,
-    bounty: f ? f.state : null, homes: homes.map((d) => d.name),
+    bounty: f ? f.state : null, posted: !f && !!FIXED_BY_ID[bountyId(id)] && fixedQuestAppears(FIXED_BY_ID[bountyId(id)]),
+    homes: homes.map((d) => d.name),
   };
 }
 // その迷宮を縄張りにする名のある強敵 (出撃シートの迷宮の顔)
@@ -10290,7 +10326,8 @@ function fixedQuestAppears(def) {
   if (a.cleared && !w.cleared[a.cleared]) return false;
   if (a.open && !w.open[a.open]) return false;
   if (a.found && !w.found[a.found]) return false;
-  if (a.seen && !namedState().seen[a.seen]) return false; // 名のある強敵を目撃した (懸賞)
+  if (a.seen && !namedState().seen[a.seen]) return false; // 名のある強敵を目撃した
+  if (a.openAny && !a.openAny.some((id) => w.open[id])) return false; // どれか1つが地図にある (懸賞 = 縄張りの迷宮)
   if (a.claimed) { const f = questState().fixed[a.claimed]; if (!f || f.state !== "claimed") return false; } // 前の依頼を報告し終えた
   return true;
 }
@@ -10437,6 +10474,7 @@ function dungeonQuests(cfg) {
     if (a.open && !w.open[a.open]) out.push(`${dname(a.open)}が地図に現れる`);
     if (a.found && !w.found[a.found]) out.push("迷宮で手がかりを見つける");
     if (a.seen && !namedState().seen[a.seen]) out.push(`${MONSTERS[a.seen] ? `「${MONSTERS[a.seen].name}」` : "名のある強敵"}を目撃`);
+    if (a.openAny && !a.openAny.some((id) => w.open[id])) out.push(`${a.openAny.map(dname).join("か")}が地図に現れる`);
     if (a.claimed) { const f = s.fixed[a.claimed]; if (!f || f.state !== "claimed") out.push(`依頼${FIXED_BY_ID[a.claimed] && fixedQuestAppears(FIXED_BY_ID[a.claimed]) ? `「${FIXED_BY_ID[a.claimed].name}」` : "人の頼み"}を報告`); }
     return out.length ? out.join(" ・ ") : "やがて現れる";
   };

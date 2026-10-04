@@ -267,7 +267,7 @@ export const PASSIVES = {
   archmageShinen: { label: "魔導の深淵", scope: "self", lv: ["攻撃呪文が敵の魔法耐性を25%無視 (魔法無効には効かない)", "攻撃呪文が敵の魔法耐性を50%無視", "攻撃呪文が敵の魔法耐性を75%無視", "攻撃呪文が敵の魔法耐性を100%無視 (魔法無効には効かない)"] },
   // ===== 職ごとの Lv15 の目玉パッシブ (Lv50 で Lv2、Lv100 で Lv3)。効果は game.js / combat.js が読む =====
   // scope party は隊で一番高いLvの1人分だけが効く (重複不可)。self は持ち主だけ
-  appraiseEye:   { label: "目利き",       scope: "party", lv: ["鑑定の成功率が上がる (適正Lvのコモン 70%→74%)", "鑑定の成功率がさらに上がる (適正Lvのコモン 70%→78%)", "鑑定の成功率が大きく上がる (適正Lvのコモン 70%→81%)"] },
+  appraiseEye:   { label: "目利き",       scope: "party", lv: ["鑑定の成功率が上がる (適正Lvのコモン 70%→74%)", "鑑定の成功率がさらに上がる (適正Lvのコモン 70%→78%)", "鑑定の成功率が大きく上がる (適正Lvのコモン 70%→80% (上限)、SR 10%→17%)"] },
   firstGuard:    { label: "加護の祈り",   scope: "self",  lv: ["戦闘中、最初に受ける物理ダメージを1回だけ無効にする", "戦闘中、最初に受ける物理ダメージを2回まで無効にする", "戦闘中、最初に受ける物理ダメージを3回まで無効にする"] },
   toughBody:     { label: "歴戦の体",     scope: "self",  lv: ["最大HP+10%", "最大HP+20%", "最大HP+30%"] },
   nightWatch:    { label: "夜営の番",     scope: "party", lv: ["奇襲される確率-50%", "奇襲される確率-75%", "奇襲を受けなくなる"] },
@@ -426,14 +426,14 @@ export function jobSkillTable(jobKey) { return JOB_SKILLS[jobKey] || []; }
 
 // ===== 鑑定スキル (ウィザードリィ風) =====
 // 鑑定は職業スキル「鑑定 (kantei)」として実装。スキルを覚えた人業は未鑑定の装備を
-// 街で無料で鑑定できる (迷宮では不可。隊にいなくても控えから担える)。ただし成功率は決して 100% にならず (上限95%)、失敗するとその品は
+// 街で無料で鑑定できる (迷宮では不可。隊にいなくても控えから担える)。ただし成功率は決して 100% にならず (上限80%)、失敗するとその品は
 // スキルでは二度と鑑定できなくなる (idHardFail フラグが立ち、確実だが有料の商店鑑定に頼る)。
 // 「育てれば街で無料鑑定できるが、確実さは商店が握る」という住み分け。
 //   司教 (bishop)・賢者 (sage) = 鑑定Lv2 (高精度) / 盗賊 (thief) = 鑑定Lv1 (簡易)
 // 成功率 (ユーザーの指示、2026-10): 鑑定する者の魂Lv が品の「適正Lv」(world.js itemFitLv = その品が落とし物の帯の
 // 真ん中に来る推奨Lv) と同じとき、レア度ごとの基準 IDENTIFY_BASE (コモン70% / アンコモン50% / レア30% / SR10%)。
 // Lv の差はロジット (log(p/(1−p))) に足し、差の効きは tanh で頭打ちにする — Lv をいくら離しても
-// ロジット ±IDENTIFY_SWING までしか動かない (コモン 41〜89% / アンコモン 23〜77% / レア 11〜59% / SR 3〜29%)。
+// ロジット ±IDENTIFY_SWING までしか動かない (コモン 41〜80% (上限) / アンコモン 23〜77% / レア 11〜59% / SR 3〜29%)。
 // 差は比で測る ((魂Lv+5) ÷ (適正Lv+5)): 低Lv の数Lv の差も高Lv の数十Lv の差も、同じ「どれだけ上か」で効く。
 export const IDENTIFY_BASE = { c: 0.70, uc: 0.50, r: 0.30, sr: 0.10, lr: 0.03 };
 export const IDENTIFY_SWING = 1.2;  // Lv の差で動くロジットの上限 (上にも下にも)
@@ -444,7 +444,7 @@ export const IDENTIFY_TIERS = {
   1: { label: "目利き", shift: -0.5 }, // 簡易: 適正Lv でコモン 59% / アンコモン 38% / レア 21% / SR 6%
   2: { label: "鑑定",   shift: 0 },    // 高精度: 基準どおり
 };
-export const IDENTIFY_CAP = 0.95; // どれだけ育てても 5% は失敗する
+export const IDENTIFY_CAP = 0.80; // どれだけ育てても 20% は失敗する (ユーザーの指示、2026-10)
 // メンバーが習得している鑑定スキルのレベル (0=未習得)
 export function identifyTier(member) {
   return (member && member.passiveMap && member.passiveMap.kantei) || 0;
@@ -468,7 +468,7 @@ export function identifyChance(member, it) {
   const z = logit(base) + j.shift + IDENTIFY_SWING * Math.tanh(ratio / IDENTIFY_SPAN) + appraiseBonus();
   return Math.min(IDENTIFY_CAP, 1 / (1 + Math.exp(-z)));
 }
-// 目利き (appraiseEye): 鑑定の成功率をロジットで +0.2/0.4/0.6 (適正Lv のコモン 70→74/78/81%、SR 10→12/14/17%。
+// 目利き (appraiseEye): 鑑定の成功率をロジットで +0.2/0.4/0.6 (適正Lv のコモン 70→74/78/80% (上限)、SR 10→12/14/17%。
 // 隊と控えで一番高いLvだけ)。game.js が setAppraiseSource で人業の一覧を渡す
 let APPRAISE_SRC = () => [];
 export function setAppraiseSource(fn) { APPRAISE_SRC = typeof fn === "function" ? fn : () => []; }

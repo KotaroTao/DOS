@@ -846,6 +846,27 @@ export function showFuseResult(info, onClose) {
   });
 }
 
+// ================= 祝祭: 転職 (game.js の announceJobChange から) =================
+// メイン魂を別の職の魂に付け替えた (職業・職業ランクが変わった) とき
+export function celebrateJob(d) {
+  if (!d || !d.jobKey) return null;
+  const cl = SOUL_CLASSES[d.jobKey] || SOUL_CLASSES.fighter;
+  const art = el("div", "sp-cel-art");
+  art.appendChild(el("div", "sp-cel-rays"));
+  art.appendChild(pixelCanvas(jobSprite(d.jobKey, Math.max(1, d.jobRank || 1)), 108));
+  const pe = d.primary != null ? soulByUid(d.primary) : null;
+  const lines = [pe ? `${soulLabel(pe)} Lv${pe.level}` : `${soulSeriesName(d.jobKey)}の魂 Lv${d.jobLv || 1}`];
+  if (d.spells && d.spells.length) lines.push("技: " + d.spells.map((k) => (SPELLS[k] ? SPELLS[k].name : k)).join("・"));
+  return celebrate({
+    banner: "✦ 転職 ✦", accent: cl.glow, art, sparkle: true, className: "sp-cel",
+    title: `${d.name} は ${d.cls} になった`, titleColor: cl.glow, lines,
+    footer: [
+      { label: "受け取る", kind: "primary", size: "lg", onTap: (h) => h.close("ok") },
+      game.showCodexJobDetail ? { label: "職業を見る", kind: "ghost", onTap: (h) => { h.close("ok"); game.showCodexJobDetail(d.jobKey, d.jobRank); } } : null,
+    ],
+  });
+}
+
 // ================= 祝祭: ランクアップ (game.js の showRankUp から) =================
 // info: showFuseResult と同じ + { accent, title, hint }
 export function celebrateRankUp(info, onClose) {

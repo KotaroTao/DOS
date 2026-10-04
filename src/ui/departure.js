@@ -167,7 +167,7 @@ function renderHero(b) {
       else if (n.kills) st.push("首級を取り戻せる");
       if (n.bounty === "active") st.push("懸賞を受けている (強敵階が出やすい)");
       else if (n.bounty === "done") st.push("懸賞を果たした (酒場で報告)");
-      else if (n.seen && n.bounty !== "claimed") st.push("酒場に懸賞あり");
+      else if (n.posted) st.push("酒場に懸賞あり");
       box.appendChild(setText(el("div", "dp-mut-l"), `${named.length > 1 ? n.name + ": " : ""}${st.join(" ・ ")}`));
     }
     hero.appendChild(box);
