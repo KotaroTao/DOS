@@ -7717,7 +7717,7 @@ function drawBattleIntro(intro, now) {
 function drawAmbushIntro(intro, t) {
   const W = VW, H = VH;
   const cl = (v) => Math.max(0, Math.min(1, v));
-  const a = cl((t - 40) / 160) * cl((intro.dur - t) / 320);
+  const a = cl((t - 40) / 160) * cl((intro.dur - t) / Math.min(320, intro.dur * 0.3)); // 短い演出 (オート) でも帯が読める間を残す
   if (a <= 0) return;
   vctx.save();
   // 紅い縁 (心拍のように脈打つ)
@@ -7815,7 +7815,8 @@ function playBattleIntro(done) {
   const introMul = G.autoCombat ? 0.6 : G.fastAnim ? 1 : 2;
   const ambush = b.opening === "ambush";
   let dur = (boss ? 1900 : 640 + b.enemies.length * 90) * introMul;
-  if (ambush) dur = Math.max(dur, G.autoCombat ? 1150 : 1500); // 奇襲の帯を読めるだけ留める
+  // 奇襲の帯を読めるだけ留める (下限も戦闘スピードの設定に従う: オート 600 / 倍速 ON 1000 / OFF 2000ms)
+  if (ambush) dur = Math.max(dur, 1000 * introMul);
   G.battleIntro = { battle: b, t0: performance.now(), dur, ambush, boss: boss ? (enemyReveal(boss).name ? (boss.mon && boss.mon.name) || boss.name : unknownLabel(boss.mon)) : null };
   G.animating = true;
   combatMenu.innerHTML = "";
