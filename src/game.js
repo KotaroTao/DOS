@@ -352,7 +352,7 @@ setInterval(() => {
   const c = lrClock();
   c.since += 5000 * f; c.pend += 5000 * f;
 }, 5000);
-// 今の深さで出せるLR (1点もの: 入手済みは除く)。層の逸品 (tier1-4 = 第1〜4層) はその層に達していて、
+// 今の深さで出せるLR (1点もの: 入手済みは除く)。層の逸品 (layer つき = 第1〜5層) はその層に達していて、
 // 出現上限 (lootCapR) 以内の隠しLvなら候補。職業専用LR (tier5以上) は従来どおり lootLv の解禁値を超えてから
 function lrPool() {
   const lv = lootLvAt();
@@ -361,7 +361,8 @@ function lrPool() {
   return Object.keys(ITEMS).filter((id) => {
     const it = ITEMS[id];
     if (it.rar !== "lr" || (G.lrOwned && G.lrOwned[id])) return false;
-    if (it.lr < 5) return (it.layer || it.lr) <= L && (it.lv || 1) <= capLv;
+    // 層の逸品 (layer つき・第5層からは tier も 5 以上) は層と出現上限で、職業専用LR は lootLv の解禁値で
+    if (it.layer || it.lr < 5) return (it.layer || it.lr) <= L && (it.lv || 1) <= capLv;
     return lv >= (LR_UNLOCK[it.lr] || 40);
   });
 }
@@ -1124,6 +1125,16 @@ function dungeonTrait(cfg = null) {
   return (cfg && cfg.trait) || null;
 }
 const TRAIT_BOARD = {
+  // 根の縦穴: 通路に落とし穴を2つ (最下階には無い)。壁の根に絡まった遺品の宝箱をひとつ
+  shaft: (b) => {
+    const st = b.start ? b.cells[b.start.y][b.start.x] : null;
+    if (G.floor < (curDungeon().floors || 1)) {
+      const cand = [];
+      sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) >= 2) cand.push(c); });
+      for (let i = 0; i < 2 && cand.length; i++) { const c = cand.splice(rand(cand.length), 1)[0]; c.type = "pit"; c.cleared = false; }
+    }
+    sfPlace(b, 1, (c) => { c.type = "chest"; c.cleared = false; });
+  },
   // 閉ざされた獄: 獄死した囚人の骸を2つ (半分はまだ温かい)
   prison: (b) => sfPlace(b, 2, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = Math.random() < 0.5; }),
   // 迷い霧: 通路の2割強が胞子の床 (毒の床) に。霧の奥 (行き止まり優先) に癒しの泉をひとつ
@@ -1290,18 +1301,25 @@ function pickMetalKey(layer) {
   for (const o of pool) { r -= o.T.w[band]; if (r < 0) return o.k; }
   return pool.length ? pool[0].k : null;
 }
+// 迷宮の掟 (銀の里) は出やすさ trait.metalRate と、1階に入れ替わる札の最大数 trait.metalMax を持つ
 function placeMetal() {
-  if (battleLayer() < 3 || Math.random() >= METAL_FLOOR_RATE) return;
+  const tr = dungeonTrait();
+  const rate = (tr && tr.metalRate) || METAL_FLOOR_RATE;
+  if (battleLayer() < 3 || Math.random() >= rate) return;
   const cells = [];
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
     const c = G.board.cells[y][x];
     if (c.type === "monster" && !c.cleared && !c.elite) cells.push(c);
   }
-  const key = cells.length ? pickMetalKey(battleLayer()) : null;
-  if (!key) return;
-  const c = cells[rand(cells.length)];
-  c.monsterKey = key;
-  c.metal = true;
+  const max = (tr && tr.metalMax) || 1;
+  for (let i = 0; i < max && cells.length; i++) {
+    if (i > 0 && Math.random() >= 0.5) break; // 2枚目からは半々
+    const key = pickMetalKey(battleLayer());
+    if (!key) return;
+    const c = cells.splice(rand(cells.length), 1)[0];
+    c.monsterKey = key;
+    c.metal = true;
+  }
 }
 // この階で普通の戦闘1回に得る✦Soul・金貨の目安 (出現表の雑魚の平均 × 群れの期待数 × 強さ倍率。手直し前)
 function typicalBattleSpoils() {
@@ -1457,9 +1475,9 @@ function newFloor() {
   // 特別階: 盤面への効果 (宝箱の追加・罠の消滅など) を適用
   const spf = specialDef();
   if (spf && spf.board) spf.board(G.board);
-  // 迷宮の掟: 盤面の加工 (獄の骸・霧の胞子と泉)。静寂の階 (罠・毒の床なし) では胞子を撒かない
+  // 迷宮の掟: 盤面の加工 (獄の骸・霧の胞子と泉・縦穴の落とし穴)。静寂の階 (罠・毒の床・落とし穴なし) では胞子も穴も撒かない
   const trf = dungeonTrait();
-  if (trf && trf.board && TRAIT_BOARD[trf.board] && !(spf && spf.noTrap && trf.board === "mist")) TRAIT_BOARD[trf.board](G.board);
+  if (trf && trf.board && TRAIT_BOARD[trf.board] && !(spf && spf.noTrap && (trf.board === "mist" || trf.board === "shaft"))) TRAIT_BOARD[trf.board](G.board);
   if (G.floor > G.stats.deepest) G.stats.deepest = G.floor;
   // 酒場の噂を盤面に反映 (潜入直後の階のみ)
   if (G.activeRumor && G.activeRumor.floor === G.floor) applyRumorToBoard(G.board);
@@ -6735,13 +6753,15 @@ function descend({ fall = false } = {}) {
   // 特別階判定: 強敵階でなければ、各候補の出現条件 (階数) と出現率で抽選。
   // 1F には特別な階は出現しない (2F以降のみ)。
   G.specialFloor = null;
+  // 迷宮の掟 (移ろう霧) は特別な階が出やすい (trait.specialRate 倍)
+  const specialMul = (dungeonTrait() && dungeonTrait().specialRate) || 1;
   if (!G.eliteFloor && G.floor >= 2) {
     const r = Math.random();
     let acc = 0;
     for (const c of SPECIAL_FLOORS) {
       if (G.floor < c.minFloor) continue;
       if (c.cond && !c.cond(activeCfg())) continue;
-      acc += c.rate;
+      acc += c.rate * (specialMul || 1);
       if (r < acc) { G.specialFloor = c.id; break; }
     }
   }
@@ -6829,6 +6849,14 @@ function startBattle(enemies, cell) {
   const mutEm = (mutDef() && mutDef().enemyMul) || 1;
   if (mutEm !== 1) for (const e of enemies) { e._agiMul = mutEm; e.agi = Math.max(1, Math.round(e.agi * mutEm)); }
   G.battleCell = cell;
+  // 迷宮の掟: 敵は樹液を吸って再生する (trait.foeRegen) / 根が開幕に隊の MP を吸う (trait.mpDrain)
+  const trB = dungeonTrait();
+  if (trB && trB.foeRegen) for (const e of enemies) if (!e.metal) e.regen = Math.max(e.regen || 0, trB.foeRegen);
+  if (trB && trB.mpDrain) {
+    let drained = 0;
+    for (const p of G.party) if (p.alive && p.mp > 0) { const d = Math.ceil(p.maxmp * trB.mpDrain); drained += Math.min(p.mp, d); p.mp = Math.max(0, p.mp - d); }
+    if (drained) log(`足元の根が脈打ち、隊の魔力を吸い上げた (MP -${drained})。`, "dmg");
+  }
   // 迷宮の主に遭遇した: 討つ前でも図鑑に名だけ載せる (遭遇するまでは「？？？」のまま)
   for (const e of enemies) if (e.boss && e.key && MONSTERS[e.key]) { if (!G.codex.met) G.codex.met = {}; G.codex.met[e.key] = 1; }
   G.state = "combat";
@@ -8887,8 +8915,8 @@ function applyVictoryPassives() {
     if (mpct > 0 && p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * mpct)); healed = true; }
   }
   if (healed) log("勝利の余韻がパーティを癒した。", "heal");
-  // 特別階 (癒しの霊気): 戦闘勝利のたび隊全体のHP・MPが回復する
-  const fh = sfNum("victoryHeal", 0);
+  // 特別階 (癒しの霊気)・迷宮の掟 (癒しの樹液): 戦闘勝利のたび隊全体のHP・MPが回復する
+  const fh = Math.max(sfNum("victoryHeal", 0), (dungeonTrait() && dungeonTrait().victoryHeal) || 0);
   if (fh > 0) {
     let mist = false;
     for (const p of G.party) {
@@ -8896,7 +8924,7 @@ function applyVictoryPassives() {
       if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * fh)); mist = true; }
       if (p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + Math.ceil(p.maxmp * fh)); mist = true; }
     }
-    if (mist) log("癒しの霊気が傷を塞ぎ、魔力を満たした。", "heal");
+    if (mist) log(sfNum("victoryHeal", 0) > 0 ? "癒しの霊気が傷を塞ぎ、魔力を満たした。" : "樹液の香りが傷を塞ぎ、魔力を満たした。", "heal");
   }
   // 浄化 (隊全体) / 自浄 (自分): 毒・麻痺を治す (石化は対象外)
   const hasPurify = G.party.some((p) => p.alive && pLv(p, "purify"));
@@ -10143,6 +10171,7 @@ function tavernHintAllowed(req) {
   if (req === "sub") return unlockedSubSlots() > 0;     // 宿し技
   if (req === "metal") return DUNGEONS.some((d) => d.layer >= 3 && worldOpenId(d.id)); // 金属の魔物 (第3層の景色の迷宮から出る)
   if (req === "fort") return DUNGEONS.some((d) => d.layer >= 4 && worldOpenId(d.id));  // 捨て砦 (第4層の迷宮が地図に現れた後)
+  if (req === "roots") return worldOpenId("w10");                                   // 管の根 (大穴の下の縦穴が地図に現れた後)
   return featureUnlocked(req);                           // fusion / rumor
 }
 // 酒場の顔ぶれを選び直す (ダンジョン帰還時・初回入店時に呼ぶ)
@@ -10789,9 +10818,9 @@ function reportTutorialQuest() {
 
 // 機能解放: 王に初踏破を報告した迷宮の数に応じて段階的に解放される (節目の報告で王から授かる)。
 //   踏破しただけ (報告前) では開かない ― 解放のページ (story.js UNLOCKS) を見てから使えるようにする。
-//   いまの台帳 (章の迷宮9つ) では 2→魂融合 / 3→サブ魂1枠 / 4→酒場の噂・依頼 / 5→控えの結社(席1) / 7→結社の席2。
+//   いまの台帳 (章の迷宮13) では 2→魂融合 / 3→サブ魂1枠 / 4→酒場の噂・依頼 / 5→控えの結社(席1) / 7→結社の席2 / 11→結社の席3。
 //   その先の節目は迷宮が増えた時に詰め直す (今は届かない数のまま置いておく)
-const FEATURE_AT = { fusion: 2, sub1: 3, rumor: 4, order: 5, order2: 7, sub2: 40, order3: 45, infinite: 50 };
+const FEATURE_AT = { fusion: 2, sub1: 3, rumor: 4, order: 5, order2: 7, sub2: 40, order3: 11, infinite: 50 };
 function featureUnlocked(key) {
   const c = reportedDungeonCount();
   if (key === "infinite") return c >= FEATURE_AT.infinite && CONTENT_LIMIT >= 50; // 奈落は迷宮が50を超えるまで閉じる
@@ -11523,7 +11552,7 @@ const buyPrice = (it) => Math.max(1, Math.round((it && it.price || 30) * bargain
 const APPRAISE_MUL = { c: 0.5, uc: 0.75, r: 1, sr: 1.5, lr: 4 };
 const appraiseCost = (it) => {
   if (!it) return 1;
-  const mul = it.lr >= 5 ? 20 : (APPRAISE_MUL[rarityKey(it)] || 1);
+  const mul = it.lr >= 5 && !it.layer ? 20 : (APPRAISE_MUL[rarityKey(it)] || 1); // 深い職業専用LRだけ ×20 (層の逸品は除く)
   return Math.max(1, Math.round(sellPrice(it) * mul * bargainMul()));
 };
 
