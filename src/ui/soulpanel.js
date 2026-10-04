@@ -81,7 +81,7 @@ export function toastNewSkills(d, keys) {
   const open = () => {
     if (ks.length === 1) { showSkillPopup(ks[0]); return; }
     sheet.open({
-      kind: "info", banner: "新たな技", paged: false, title: d ? `${d.name} が目覚めた技` : "目覚めた技", className: "sp-pick-sheet",
+      kind: "info", banner: "新たな技", title: d ? `${d.name} が目覚めた技` : "目覚めた技", className: "sp-pick-sheet",
       body: (scroll) => {
         const list = el("div", "pt-list");
         for (const k of ks) {
@@ -359,7 +359,7 @@ export function openOrderSheet(town = true) {
   if (UI.tutorialEvent) UI.tutorialEvent("order"); // 手ほどき「控えの結社」: 結社を開いた
   let h = null;
   h = sheet.open({
-    kind: "info", banner: "控えの結社", className: "sp-pick-sheet", paged: false,
+    kind: "info", banner: "控えの結社", className: "sp-pick-sheet",
     body: (scroll) => orderBody(scroll, town, () => h && h.update({})),
   });
   return h;
@@ -426,7 +426,7 @@ export function openSoulPicker(d, slotId = "primary") {
   const si = isSub ? +slotId.slice(3) : -1;
   sfx("select");
   return sheet.open({
-    kind: "info", className: "sp-pick-sheet", paged: false, // 魂の選択は縦スクロールで1ページに
+    kind: "info", className: "sp-pick-sheet", // 魂の選択は縦スクロールで1ページに
     banner: isSub ? `サブ魂${si + 1} ― ${d.name}` : `メイン魂 ― ${d.name}`,
     lines: [isSub ? "サブ魂は、覚えた技かパッシブを貸し、能力の一部を足す (R1 10% 〜 R5 30%)。貸す数も魂のランクで増える (R1-2:1 / R3-4:2 / R5:3)。" : "メイン魂が、職業・能力・技を決める。"],
     body: (scroll, h) => pickerBody(scroll, d, slotId, h),
@@ -626,7 +626,7 @@ export function openSkillStep(d, subRef) {
     refreshSheet(h);
   };
   return sheet.open({
-    kind: "info", className: "sp-pick-sheet", paged: false, banner: "宿し技をえらぶ",
+    kind: "info", className: "sp-pick-sheet", banner: "宿し技をえらぶ",
     title: `${soulLabel(s)} ― ${cap}つまで借りられる`,
     onClose: () => { tutSeen(); if (game.renderTown) game.renderTown(); },
     body: (scroll, h) => {
@@ -754,7 +754,7 @@ export function openFusePicker(targetUid, onDone) {
         confirm({ banner: "注意", title: "強化済みの魂を素材にする？", lines, okLabel: "素材にする" }).then((y) => { if (y) fuse(c); });
       } });
   };
-  h = sheet.open({ kind: "info", className: "sp-pick-sheet", paged: false, banner: "魂融合", accent: cl.glow, ...view() });
+  h = sheet.open({ kind: "info", className: "sp-pick-sheet", banner: "魂融合", accent: cl.glow, ...view() });
   return h;
 }
 

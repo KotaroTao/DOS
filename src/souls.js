@@ -1824,7 +1824,7 @@ const _photoImg = {};
 function photoImage(src) {
   if (_photoImg[src]) return _photoImg[src];
   let img;
-  if (typeof Image !== "undefined") { img = new Image(); img.decoding = "async"; img.src = src; }
+  if (typeof Image !== "undefined") { img = new Image(); img.src = src; }
   else img = { complete: false, naturalWidth: 0 }; // DOM の無い検証環境
   return (_photoImg[src] = img);
 }

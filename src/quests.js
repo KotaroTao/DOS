@@ -825,7 +825,9 @@ function genDeliver(ctx) {
     desc: `「${nm}」を納める`, note: "手持ちか、商会の棚の品で納められる", reward: { deliver: true } });
 }
 
-// 掲示板を貼り直す: 1件目は納品、残りは討伐多めに
+// 帰還の鈴 (迷宮のどこからでも街へ帰れる道具。迷宮では落ちない)。掲示板の依頼のうち1件は、礼にこれを添える
+export const RECALL_ITEM = "u_recall_bell";
+// 掲示板を貼り直す: 1件目は納品、残りは討伐多めに。納品以外の1件の礼に帰還の鈴を添える (たまに2つ)
 export function rollBoard(ctx, size = BOARD_SIZE) {
   if (!ctx.dungeons.length) return [];
   const out = [];
@@ -837,6 +839,11 @@ export function rollBoard(ctx, size = BOARD_SIZE) {
     const g = gens[ctx.rand(gens.length)];
     if ((g === genSoul || g === genChest) && out.some((q) => q.type === (g === genSoul ? "soul" : "chest"))) continue;
     push(g(ctx));
+  }
+  const cands = out.filter((q) => q.type !== "deliver");
+  if (cands.length) {
+    const q = cands[ctx.rand(cands.length)];
+    q.reward = { ...q.reward, items: [[RECALL_ITEM, ctx.rand(100) < 25 ? 2 : 1]] };
   }
   return out;
 }
