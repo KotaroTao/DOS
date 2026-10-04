@@ -3,13 +3,16 @@
 // 提供する契約: UI.openDeparture({ page }) … 中央の門 (どのタブからでも)。page:"abyss" で奈落の支度を開く
 //
 //   ┌ ━━ 出 撃 ━━ ─────────────────────────┐
-//   │ 迷宮の地図 第1章「師の灯」     踏破 0/5  │ 門は 56px の行。物語の目標の迷宮を最初から選ぶ
-//   │ (●) 忘れられた地下墓地 推奨Lv1〜2・全5階 目標 │ 推奨Lvより遥かに格上なら「危険」「無謀」の札
+//   │ ┌ 迷宮の顔 (迷宮ごとの情景) ─────────┐ │ 上半分 = 選んでいる迷宮: 情景・名・説明
+//   │ │ 朽ちた骸の修道院            目標  │ │ 推奨Lv・全階数・発見した魔物 n/m・固有クエスト n/m
+//   │ └───────────────────────┘ │ 迷宮の掟・格上の注意
+//   │ (●) 忘れられた地下墓地 推奨Lv1・全5階 踏破 │ 門は 5 行ぶん見せ、6 つ目からは一覧を縦に巻く
 //   │ ▒▒ まだ地図にない迷宮 ― 解放の手がかり  │ 台帳 (world.js) の unlock を満たすと現れる
 //   │ 潜り始める階 [B1F|B5F]                  │ 到達した帰還魔法陣の階から潜れる
 //   │ ◆ 隊の備え [肖像][肖像][肖像]   入替 ›  │
 //   │ ⚠ フィモンが深手     [宿で休む ●48]      │ 直し方はその場に (別の札は出さない)
-//   │ ◆ 迷宮の異変 [異変ごと|鎮まるのを待つ]  │ §7 M1 (抽選はこのシートで一度だけ)
+//   ├──────────────────────────────────────┤
+//   │ 迷宮の異変「…」 危険/見返り  [異変ごと] │ 異変は門をくぐる欄にまとめる (抽選はこのシートで一度だけ)
 //   │ [ ◆ 門をくぐる ― B1F ◆ ]                │ 56px の決め手
 //   └──────────────────────────────────────┘
 
@@ -17,6 +20,7 @@ import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, sheet, button, setText, portrait, segmented, toast, confirm as kitConfirm } from "./kit.js";
 import { ELEMENTS } from "../dungeons/index.js";
 import { iconCanvas } from "../townart.js";
+import { drawDungeonVista } from "../backdrops.js";
 
 const G = () => game.G;
 const sfx = (k) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](); } catch (e) { /* 音が無くても動く */ } };
@@ -51,37 +55,118 @@ function gateIcon(kind) {
   try { const c = iconCanvas(kind); if (c) w.appendChild(c); } catch (e) { /* 演出のみ */ }
   return w;
 }
+// ---- 迷宮の顔 (上半分): 選んでいる迷宮の情景・説明・記録 ----
+const VISTA_W = 480, VISTA_H = 320; // 戦闘背景と同じ 3:2 で描き、表示枠 (横長) で上下を切る
+let vistaLoop = 0;
+function vistaCanvas(dn) {
+  const cv = document.createElement("canvas");
+  cv.width = VISTA_W; cv.height = VISTA_H;
+  cv.className = "dp-vista-cv";
+  const ctx = cv.getContext("2d");
+  const now = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+  const draw = () => { try { drawDungeonVista(ctx, VISTA_W, VISTA_H, dn, now()); } catch (e) { /* 演出のみ */ } };
+  draw();
+  // 霧・灯火・粒子のゆらぎ (約15fps)。シートを閉じる/迷宮を選び直すと止まる
+  const id = ++vistaLoop;
+  let last = 0;
+  const tick = (t) => {
+    if (id !== vistaLoop || !cv.isConnected && last) return;
+    if (!(typeof document !== "undefined" && document.hidden) && t - last > 66) { last = t; if (cv.isConnected) draw(); }
+    requestAnimationFrame(tick);
+  };
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(tick);
+  return cv;
+}
+function gateStatus(dn, i) {
+  const w = wst();
+  const isDone = !!(w.cleared && w.cleared[dn.id]);
+  const dg = dangerOf(dn);
+  if (dg && dg.cls !== "easy") return { text: dg.text, cls: dg.cls };
+  if (isDone) return { text: "★ 踏破", cls: "done" };
+  if (i === questIdx()) return { text: "目標", cls: "quest" };
+  return { text: "未踏破", cls: "" };
+}
+function fact(label, value, cls) {
+  const f = el("span", "dp-fact" + (cls ? " " + cls : ""));
+  f.appendChild(el("span", "dp-fact-l", label));
+  f.appendChild(el("span", "dp-fact-v", value));
+  return f;
+}
+function renderHero(b) {
+  const g = G();
+  const dn = (game.DUNGEONS || [])[g.dungeonIdx];
+  if (!dn) return;
+  const hero = el("div", "dp-hero");
+  const pic = el("div", "dp-vista");
+  pic.appendChild(vistaCanvas(dn));
+  const cap = el("div", "dp-vista-cap");
+  const band = game.levelBand ? game.levelBand(dn) : [1, 1];
+  const ttl = el("div", "dp-hero-t");
+  ttl.appendChild(el("div", "dp-hero-n", dn.name));
+  const sub = [`推奨Lv${band[0]}${band[1] > band[0] ? `〜${band[1]}` : ""}`, `全${dn.floors}階`];
+  if (dn.boss) sub.push("主が待つ");
+  else if (dn.element && ELEMENTS[dn.element] && dn.element !== "none") sub.push(`${ELEMENTS[dn.element].label}の気配`);
+  ttl.appendChild(el("div", "dp-hero-s", sub.join(" ・ ")));
+  cap.appendChild(ttl);
+  const st = gateStatus(dn, g.dungeonIdx);
+  cap.appendChild(el("span", "dp-gate-st" + (st.cls ? " " + st.cls : ""), st.text));
+  pic.appendChild(cap);
+  hero.appendChild(pic);
+  if (dn.about) hero.appendChild(setText(el("div", "dp-hero-about"), dn.about));
+  // 記録: 発見した魔物 / その迷宮の魔物 (雑魚・強敵・主)、固有クエストの報告済み / 総数
+  const facts = el("div", "dp-facts");
+  let f = null;
+  try { f = game.dungeonFacts ? game.dungeonFacts(dn) : null; } catch (e) { f = null; }
+  if (f) {
+    facts.appendChild(fact("発見した魔物", `${f.monSeen}/${f.monTotal}`, f.monTotal && f.monSeen >= f.monTotal ? "full" : ""));
+    facts.appendChild(fact("固有クエスト", f.fqTotal ? `${f.fqDone}/${f.fqTotal}` : "なし", f.fqTotal && f.fqDone >= f.fqTotal ? "full" : !f.fqTotal ? "none" : ""));
+  }
+  hero.appendChild(facts);
+  // 迷宮の掟 (その迷宮だけの決まりごと。world.js の trait)
+  const tr = game.dungeonTrait ? game.dungeonTrait(dn) : null;
+  if (tr) {
+    const box = el("div", "dp-mut dp-trait");
+    if (tr.accent) box.style.setProperty("--mut", tr.accent);
+    const h = el("div", "dp-mut-h");
+    h.appendChild(el("span", "dp-mut-k", "迷宮の掟"));
+    h.appendChild(el("span", "dp-mut-n", `${tr.sym ? tr.sym + " " : ""}「${tr.name}」`));
+    box.appendChild(h);
+    for (const ln of tr.lines || []) box.appendChild(setText(el("div", "dp-mut-l"), ln));
+    hero.appendChild(box);
+  }
+  const dg = dangerOf(dn);
+  if (dg && dg.note) {
+    const r = el("div", "dp-issue t-" + (dg.cls === "reckless" ? "bad" : "warn"));
+    r.appendChild(el("i", "dp-issue-mark"));
+    r.appendChild(setText(el("span", "dp-issue-t"), `${dg.text} ― ${dg.note}`));
+    hero.appendChild(r);
+  }
+  b.appendChild(hero);
+}
+
+// ---- 門の一覧 (迷宮の地図: 台帳の並び。5 行ぶん見せ、6 つ目からは縦に巻く) ----
 function renderGates(b) {
   const g = G();
   const D = game.DUNGEONS || [];
   const w = wst();
   const qi = questIdx();
   if (!isOpen(g.dungeonIdx)) g.dungeonIdx = Math.max(0, D.findIndex((d, i) => isOpen(i)));
+  renderHero(b);
   const opened = D.map((d, i) => i).filter(isOpen);
-  const det = el("div", "dp-layer dp-map");
-  const sum = el("div", "dp-layer-h");
-  sum.appendChild(el("span", "dp-layer-n", "迷宮の地図"));
   const ch = game.currentChapter ? game.currentChapter() : null;
-  sum.appendChild(el("span", "dp-layer-name", ch ? `第${["", "一", "二", "三", "四", "五"][ch.no] || ch.no}章「${ch.title}」` : ""));
-  sum.appendChild(el("span", "dp-layer-p" + (cleared() >= D.length ? " done" : ""), `踏破 ${cleared()}/${D.length}`));
-  det.appendChild(sum);
   const list = el("div", "dp-gates");
   list.setAttribute("role", "radiogroup");
-  // 背の低い画面 (高さ 760px 未満) では選んでいる門だけを見せ、ほかは「ほかの門」で開く (巻かずに収めるため)
-  const fold = !cur.showAll && typeof innerHeight === "number" && innerHeight < 760 && opened.length > 1;
+  list.setAttribute("aria-label", "迷宮の地図");
   for (const i of opened) {
-    if (fold && i !== g.dungeonIdx) continue;
     const dn = D[i];
     const isDone = !!(w.cleared && w.cleared[dn.id]);
     const sel = i === g.dungeonIdx;
-    const dg = dangerOf(dn);
     const r = el("button", "dp-gate" + (sel ? " sel" : "") + (isDone ? " done" : "") + (i === qi ? " quest" : ""));
     r.type = "button";
     r.setAttribute("role", "radio");
     r.setAttribute("aria-checked", sel ? "true" : "false");
     r.appendChild(el("span", "dp-radio"));
-    const ic = gateIcon(sel ? "gateOpen" : isDone ? "gateDone" : "gate");
-    r.appendChild(ic);
+    r.appendChild(gateIcon(sel ? "gateOpen" : isDone ? "gateDone" : "gate"));
     const info = el("span", "dp-gate-i");
     const nm = el("span", "dp-gate-n", dn.name);
     if (w.fresh && w.fresh[dn.id] && !isDone) nm.appendChild(el("span", "dp-new", "新"));
@@ -96,8 +181,8 @@ function renderGates(b) {
     { const qn = game.questHereNote ? game.questHereNote(dn) : null; if (qn) meta.push(qn); }
     info.appendChild(el("span", "dp-gate-c", meta.join(" ・ ")));
     r.appendChild(info);
-    const st = dg && dg.cls !== "easy" ? dg.text : isDone ? "★ 踏破" : i === qi ? "目標" : "未踏破";
-    r.appendChild(el("span", "dp-gate-st" + (dg && dg.cls !== "easy" ? " " + dg.cls : isDone ? " done" : i === qi ? " quest" : ""), st));
+    const st = gateStatus(dn, i);
+    r.appendChild(el("span", "dp-gate-st" + (st.cls ? " " + st.cls : ""), st.text));
     r.addEventListener("click", () => {
       if (g.dungeonIdx === i) return;
       g.dungeonIdx = i;
@@ -108,52 +193,30 @@ function renderGates(b) {
     });
     list.appendChild(r);
   }
-  if (fold) {
-    const more = el("button", "dp-gate dp-more");
-    more.type = "button";
-    more.appendChild(el("span", "dp-more-t", `ほかの門を選ぶ (${opened.length - 1})`));
-    more.appendChild(el("span", "dp-more-c", "▾"));
-    more.addEventListener("click", () => { sfx("select"); cur.showAll = true; refresh(); });
-    list.appendChild(more);
-  }
-  det.appendChild(list);
-  b.appendChild(det);
   // 選んだ迷宮を見たら「新」の印を消す
   if (w.fresh && D[g.dungeonIdx]) delete w.fresh[D[g.dungeonIdx].id];
-  // まだ地図にない迷宮: 解放の手がかり (章の迷宮のみ。開いている章の分だけ)
-  if (!fold || cur.showAll) {
-    // 手の届く手がかりだけ (条件の迷宮が地図にある / 宝物庫)。多くても3つ
-    const near = (d) => {
-      const u = d.unlock || {};
-      if (u.reported) return isOpen(D.findIndex((x) => x.id === u.reported));
-      if (u.all) return u.all.some((id) => isOpen(D.findIndex((x) => x.id === id)));
-      if (u.story) return (game.STORY_CELLS && game.STORY_CELLS[u.story]) ? isOpen(D.findIndex((x) => x.id === game.STORY_CELLS[u.story].dungeon)) : true;
-      return true;
-    };
-    const locked = D.filter((d, i) => !isOpen(i) && (!ch || ch.dungeons.includes(d.id)) && near(d)).slice(0, 3);
-    for (const dn of locked) {
-      const sealed = el("div", "dp-gate dp-sealed");
-      sealed.appendChild(gateIcon("gateSealed"));
-      const info = el("span", "dp-gate-i");
-      info.appendChild(el("span", "dp-gate-n", "まだ地図にない迷宮"));
-      info.appendChild(el("span", "dp-gate-c dp-hint", dn.hint || "手がかりを探せ"));
-      sealed.appendChild(info);
-      sealed.appendChild(el("span", "dp-gate-st sealed", "未発見"));
-      b.appendChild(sealed);
-    }
-  }
-  // 章の結びまで語り終えた: 次章を「準備中」として見せる (鎖で封じられた大門)
-  if (game.contentSealed && game.contentSealed() && ch) {
+  // まだ地図にない迷宮: 解放の手がかり (章の迷宮のみ。手の届く手がかりだけ — 条件の迷宮が地図にある / 宝物庫。多くても3つ)
+  const near = (d) => {
+    const u = d.unlock || {};
+    if (u.reported) return isOpen(D.findIndex((x) => x.id === u.reported));
+    if (u.all) return u.all.some((id) => isOpen(D.findIndex((x) => x.id === id)));
+    if (u.story) return (game.STORY_CELLS && game.STORY_CELLS[u.story]) ? isOpen(D.findIndex((x) => x.id === game.STORY_CELLS[u.story].dungeon)) : true;
+    return true;
+  };
+  const locked = D.filter((d, i) => !isOpen(i) && (!ch || ch.dungeons.includes(d.id)) && near(d)).slice(0, 3);
+  const sealedRow = (title, note, tag) => {
     const sealed = el("div", "dp-gate dp-sealed");
     sealed.appendChild(gateIcon("gateSealed"));
     const info = el("span", "dp-gate-i");
-    info.appendChild(el("span", "dp-gate-n", ch.next || "次の章"));
-    info.appendChild(el("span", "dp-gate-c", ch.nextNote || "その先へ続く道は、まだ封じられている"));
+    if (title) info.appendChild(el("span", "dp-gate-n", title));
+    info.appendChild(el("span", "dp-gate-c dp-hint", note));
     sealed.appendChild(info);
-    sealed.appendChild(el("span", "dp-gate-st sealed", "準備中"));
-    b.appendChild(sealed);
-  }
-  renderStartFloor(b);
+    sealed.appendChild(el("span", "dp-gate-st sealed", tag));
+    list.appendChild(sealed);
+  };
+  for (const dn of locked) sealedRow(null, dn.hint || "まだ地図にない迷宮。手がかりを探せ", "未発見");
+  // 章の結びまで語り終えた: 次章を「準備中」として見せる (鎖で封じられた大門)
+  if (game.contentSealed && game.contentSealed() && ch) sealedRow(ch.next || "次の章", ch.nextNote || "その先へ続く道は、まだ封じられている", "準備中");
   // 無限迷宮「奈落」(解放後のみ)
   if (game.featureUnlocked && game.featureUnlocked("infinite")) {
     const rec = game.abyssRecords ? game.abyssRecords() : { bestDepth: 0, bestScore: 0 };
@@ -166,11 +229,24 @@ function renderGates(b) {
     r.appendChild(info);
     r.appendChild(el("span", "dp-gate-st", "支度 ›"));
     r.addEventListener("click", () => { sfx("select"); cur.page = "abyss"; refresh(); });
-    b.appendChild(r);
+    list.appendChild(r);
   }
+  // 一覧の巻き位置は選び直しても保つ。初めて開いた時は選んでいる門が見える位置へ
+  list.addEventListener("scroll", () => { if (cur) cur.listScroll = list.scrollTop; }, { passive: true });
+  b.appendChild(list);
+  const restore = () => {
+    if (!cur || !list.isConnected) return;
+    if (cur.listScroll != null) list.scrollTop = cur.listScroll;
+    else {
+      const selEl = list.querySelector(".dp-gate.sel");
+      if (selEl && selEl.offsetTop + selEl.offsetHeight > list.clientHeight) list.scrollTop = selEl.offsetTop - list.clientHeight / 2 + selEl.offsetHeight / 2;
+    }
+  };
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(restore);
+  renderStartFloor(b);
 }
 
-// ---- 潜り始める階 (到達した帰還魔法陣の階から) と、格上の迷宮の注意 ----
+// ---- 潜り始める階 (到達した帰還魔法陣の階から) ----
 function renderStartFloor(b) {
   const g = G();
   const dn = (game.DUNGEONS || [])[g.dungeonIdx];
@@ -182,25 +258,6 @@ function renderStartFloor(b) {
     row.appendChild(el("span", "dp-from-l", "潜り始める階"));
     row.appendChild(segmented(floors.map((f) => ({ key: String(f), label: `B${f}F` })), String(cur.from), (k) => { cur.from = Number(k) || 1; sfx("select"); refresh(); }));
     b.appendChild(row);
-  }
-  // 迷宮の掟 (その迷宮だけの決まりごと。world.js の trait)
-  const tr = game.dungeonTrait ? game.dungeonTrait(dn) : null;
-  if (tr) {
-    const box = el("div", "dp-mut dp-trait");
-    if (tr.accent) box.style.setProperty("--mut", tr.accent);
-    const h = el("div", "dp-mut-h");
-    h.appendChild(el("span", "dp-mut-k", "迷宮の掟"));
-    h.appendChild(el("span", "dp-mut-n", `${tr.sym ? tr.sym + " " : ""}「${tr.name}」`));
-    box.appendChild(h);
-    for (const ln of tr.lines || []) box.appendChild(setText(el("div", "dp-mut-l"), ln));
-    b.appendChild(box);
-  }
-  const dg = dangerOf(dn);
-  if (dg && dg.note) {
-    const r = el("div", "dp-issue t-" + (dg.cls === "reckless" ? "bad" : "warn"));
-    r.appendChild(el("i", "dp-issue-mark"));
-    r.appendChild(setText(el("span", "dp-issue-t"), `${dg.text} ― ${dg.note}`));
-    b.appendChild(r);
   }
 }
 
@@ -269,26 +326,32 @@ function renderReady(b) {
   }
 }
 
-// ---- 迷宮の異変 (§7 M1) ----
-function renderMutator(b) {
+// ---- 迷宮の異変 (§7 M1) — 門をくぐる欄 (足元) にまとめる ----
+function mutatorStrip() {
   const g = G();
   const m = game.townMutatorFor ? game.townMutatorFor(g.dungeonIdx) : null;
   cur.hasMut = !!m;
-  if (!m) return;
-  const box = el("div", "dp-mut");
+  if (!m) return null;
+  const box = el("div", "dp-mut dp-mut-foot" + (cur.accept ? " on" : ""));
   if (m.accent) box.style.setProperty("--mut", m.accent);
+  const tx = el("div", "dp-mut-tx");
   const h = el("div", "dp-mut-h");
   h.appendChild(el("span", "dp-mut-k", "迷宮の異変"));
   h.appendChild(el("span", "dp-mut-n", `「${m.name}」`));
-  box.appendChild(h);
-  box.appendChild(setText(el("div", "dp-mut-l bad"), `危険 ― ${m.risk}`));
-  box.appendChild(setText(el("div", "dp-mut-l good"), `見返り ― ${m.gain}`));
-  // 既定は「異変ごと潜る」(左)。選んだ向きは迷宮を切り替えてもシートを閉じるまで保つ
-  box.appendChild(segmented([
-    { key: "accept", label: "異変ごと潜る" },
-    { key: "wait", label: "鎮まるのを待つ" },
-  ], cur.accept ? "accept" : "wait", (k) => { cur.accept = k === "accept"; sfx("select"); refreshFooter(); }));
-  b.appendChild(box);
+  tx.appendChild(h);
+  tx.appendChild(setText(el("div", "dp-mut-l bad"), `危険 ― ${m.risk}`));
+  tx.appendChild(setText(el("div", "dp-mut-l good"), `見返り ― ${m.gain}`));
+  box.appendChild(tx);
+  // 既定は「異変ごと潜る」。選んだ向きは迷宮を切り替えてもシートを閉じるまで保つ
+  const sw = el("button", "dp-mut-sw");
+  sw.type = "button";
+  sw.setAttribute("role", "switch");
+  sw.setAttribute("aria-checked", cur.accept ? "true" : "false");
+  sw.appendChild(el("span", "dp-mut-sw-l", cur.accept ? "異変ごと潜る" : "鎮まるのを待つ"));
+  const knob = el("span", "dg-switch"); knob.appendChild(el("i")); sw.appendChild(knob);
+  sw.addEventListener("click", () => { cur.accept = !cur.accept; sfx("select"); refreshFooter(); });
+  box.appendChild(sw);
+  return box;
 }
 
 // ---- 初めての注意 (短い注記。初めて潜る前だけ) ----
@@ -369,6 +432,7 @@ function refreshFooter() {
   if (!cur || !cur.h || cur.h.closed) return;
   const foot = cur.h.foot;
   foot.textContent = "";
+  if (cur.page !== "abyss") { const m = mutatorStrip(); if (m) foot.appendChild(m); }
   for (const it of footerSpec()) {
     const b = button(it);
     b.classList.add("dp-cta");
@@ -428,17 +492,18 @@ function body(b) {
   if (cur.page === "abyss") { renderAbyssPage(b); return; }
   renderGates(b);
   renderReady(b);
-  renderMutator(b);
   renderBriefing(b);
 }
 function refresh() {
   if (!cur || !cur.h || cur.h.closed) return;
   const scroll = cur.h.body ? cur.h.body.scrollTop : 0;
   cur.h.update({ banner: cur.page === "abyss" ? "奈落の支度" : "出 撃", body });
+  if (cur.h.el) cur.h.el.classList.toggle("dp-full", cur.page !== "abyss");
   refreshFooter();
   if (cur.h.body) cur.h.body.scrollTop = scroll;
 }
 function close() {
+  vistaLoop++;
   if (cur && cur.h && !cur.h.closed) cur.h.close("close");
   cur = null;
 }
@@ -461,16 +526,17 @@ export function openDeparture(opts = {}) {
   // 潜り始める階: 既定は到達した最深の帰還魔法陣 (無ければ B1F)
   const dn0 = (game.DUNGEONS || [])[g.dungeonIdx];
   const fl0 = dn0 && game.startFloorsOf ? game.startFloorsOf(dn0) : [1];
-  cur = { page, accept: true, hasMut: false, h: null, showAll: false, from: fl0[fl0.length - 1] || 1 };
+  cur = { page, accept: true, hasMut: false, h: null, listScroll: null, from: fl0[fl0.length - 1] || 1 };
   cur.h = sheet.open({
     kind: "info", banner: page === "abyss" ? "奈落の支度" : "出 撃", className: "dp-sheet",
     accent: "#8e6fd0",
     body,
     footer: [],
-    onClose: () => { cur = null; },
+    onClose: () => { cur = null; vistaLoop++; },
     // 戻る: 奈落のページなら門の選択へ、門の選択なら閉じる
     onBack: (h) => { if (cur && cur.page === "abyss" && !opts.page) { cur.page = "gates"; refresh(); } else h.close("back"); },
   });
+  if (cur.h.el) cur.h.el.classList.toggle("dp-full", page !== "abyss");
   refreshFooter();
   return cur.h;
 }
