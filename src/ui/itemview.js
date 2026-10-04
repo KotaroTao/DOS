@@ -528,15 +528,25 @@ export function gearWeights(doll) {
 // (攻撃力1 = WEAPON_POWER_W 点。ほかの能力は攻撃力が同じ時の決め手になる)。
 // ただし盾が付け外しされる持ち替え (片手+盾 ⇄ 両手武器、handSwap) は、攻撃力と盾の能力を同じ物差しで比べる:
 // 全体を「攻撃力1 = WEAPON_POWER_W 点」に引き伸ばす (盾の VIT などはその職の重み ÷ ATK の重み で攻撃力に換算)
+// 攻撃力を最優先にするのは、打撃で戦う職だけ (weaponShare)。術者 (INT・PIE が ATK より伸びる職) は
+// 技の大半が INT・PIE で伸びるので、武器も能力の重みどおりに比べる (短剣の攻撃力 +12 で INT −22 を勧めない)
 const WEAPON_POWER_W = 50;
+// 武器の攻撃力を最優先する度合い 0〜1: ATK の重みが INT・PIE の重み以上なら 1、その 85% 以下なら 0、間は比例
+// (聖騎士・審問官のような打撃と祈りの両刀は半ばほど)
+export function weaponShare(W) {
+  const mag = Math.max(W.int || 0, W.pie || 0);
+  if (!mag) return 1;
+  return Math.max(0, Math.min(1, ((W.atk || 0) / mag - 0.85) / 0.15));
+}
 export function gearScore(doll, delta) {
   if (!delta) return 0;
   const W = gearWeights(doll);
   let s = 0;
   for (const k in W) s += (k === "atk" && delta.power != null ? delta.power : (delta[k] || 0)) * W[k];
   if (delta.weapon) {
-    if (delta.handSwap) s = s * WEAPON_POWER_W / Math.max(0.35, W.atk || 1);
-    else s += (delta.power || 0) * WEAPON_POWER_W;
+    const f = weaponShare(W);
+    if (delta.handSwap) s = s * (1 + f * (WEAPON_POWER_W / Math.max(0.35, W.atk || 1) - 1));
+    else s += (delta.power || 0) * WEAPON_POWER_W * f;
   }
   s += (delta.crit || 0) * 0.5;
   const lv = (e) => (e && e.el ? Math.min(2, e.lv || 1) : 0);
