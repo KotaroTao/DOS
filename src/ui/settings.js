@@ -2,7 +2,7 @@
 // 担当: WP-A。⚙ (タブの見出し・盤面のトップバー) から開く。戻る操作 / 背景タップ / 下へ引く で閉じる。
 //   音      … サウンド ON/OFF・BGM と効果音の目盛り (指で引ける 0〜100)。端末の好み (dos-prefs)
 //   戦闘    … 振動・戦闘の背景 (情景/漆黒)・移動の速さ 1〜3倍 (端末の好み PREFS.walkSpeed)・戦闘演出の倍速 (セーブの G.fastAnim)
-//   自動化  … オート継続・宝箱は最良の解除役で開ける・朽ちた死体を自動で調べる・戦果を自動で閉じる・帰還時に宿で休む・まとめて売るに道具を含める
+//   自動化  … オート継続・オート移動と見えている敵・宝箱は最良の解除役で開ける・朽ちた死体を自動で調べる・戦果を自動で閉じる・帰還時に宿で休む・まとめて売るに道具を含める
 //              UI の好み (prefs.js = dos-ui)。読むのは各パッケージ (WP-D の戦闘/盤面/帰還、街の宿)
 //   テスト記録 … 戦闘バランス調整用の記録 (telemetry.js) の ON/OFF・要約の閲覧・書き出し (コピー)・消去
 //   データ  … はじめから (全削除)。決断は二段で、どちらも「やめておく」に手が掛かる並び
@@ -135,6 +135,16 @@ function fillAuto(box) {
   for (const a of AUTO) {
     box.appendChild(toggleRow({ name: a.name, desc: a.desc, on: !!getPref(a.key), onChange: (v) => { setPref(a.key, v); sfx("select"); } }));
   }
+  // オート移動 (迷宮のドックの「オート」) が見えている敵をどう扱うか
+  const amRow = el("div", "stg-row stg-segrow stg-stack");
+  const amt = el("span", "stg-row-t");
+  amt.appendChild(setText(el("span", "stg-row-n"), "オート移動と見えている敵"));
+  amt.appendChild(setText(el("span", "stg-row-d"), "どの設定でも、敵の札をタップすれば寄り道して戦える"));
+  amRow.appendChild(amt);
+  amRow.appendChild(segmented([{ key: "avoid", label: "避ける" }, { key: "weak", label: "強敵は避ける" }, { key: "all", label: "挑む" }], getPref("autoMoveFoes") || "avoid", (k) => {
+    setPref("autoMoveFoes", k); sfx("select"); if (game.renderDock) game.renderDock();
+  }));
+  box.appendChild(amRow);
   box.appendChild(sec("テスト記録"));
   const logRow = el("button", "stg-row stg-danger stg-log");
   logRow.type = "button";
