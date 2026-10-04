@@ -202,6 +202,40 @@ export function dungeonQuestSheet(dn, { onChange = null } = {}) {
   return h;
 }
 
+// ---- 迷宮を対象にした受注中の依頼 (出撃シートの「受注中の依頼」から) ----
+// 札は酒場の受注中と同じ (タップ = 詳細シート)。onChange = 詳細シートを閉じた後 (放棄で出撃シートを描き直す)
+export function dungeonActiveQuestSheet(dn, { onChange = null } = {}) {
+  if (!dn) return null;
+  let h = null;
+  const after = () => setTimeout(() => { if (h && !h.closed) h.update({}); if (onChange) onChange(); }, 0);
+  const body = (root) => {
+    let list = [];
+    try { list = game.questsTargeting ? game.questsTargeting(dn) : []; } catch (e) { list = []; }
+    const box = el("div", "qb-dq");
+    box.appendChild(setText(el("div", "qb-dq-cap"), list.length ? `この迷宮で果たせる受注中の依頼 ${list.length}件 ・ 報告は酒場「沈まぬ灯」で` : "この迷宮を対象にした受注中の依頼はない。"));
+    for (const q of list) {
+      const card = el("button", "qb-card" + (q.fixed ? " fixed" : ""));
+      card.type = "button";
+      card.appendChild(markOf(q));
+      const info = el("div", "qb-i");
+      const top = el("div", "qb-top");
+      if (q.fixed) top.appendChild(el("span", "qb-tag", "依頼人"));
+      top.appendChild(setText(el("span", "qb-n"), q.name));
+      info.appendChild(top);
+      info.appendChild(setText(el("div", "qb-d"), q.desc || ""));
+      info.appendChild(setText(el("div", "qb-s"), progressText(q) || ""));
+      card.appendChild(info);
+      card.addEventListener("click", () => { sfx("select"); openQuestSheet(q.uid, { onClose: after }); });
+      box.appendChild(card);
+    }
+    root.appendChild(box);
+  };
+  sfx("select");
+  h = sheet.open({ kind: "info", banner: "受注中の依頼", title: dn.name, body, className: "qb-dq-sheet",
+    footer: [{ label: "閉じる", kind: "ghost", onTap: (s) => s.close() }] });
+  return h;
+}
+
 // ---- 詳細シート ----
 export function openQuestSheet(uid, { onClose = null } = {}) {
   const q0 = game.questByUid ? game.questByUid(uid) : null;
