@@ -364,6 +364,11 @@
 .qb-s { font-size: 11px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .qb-s.ok { color: #9ee07a; font-weight: 700; }
 .qb-rw { color: var(--accent-hi); }
+.qb-have { font-size: 11px; line-height: 1.2; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.qb-have.ok { color: #9ee07a; font-weight: 700; }
+.qb-have.shop { color: #d9b866; }
+/* 購入（金貨N）して納品: 札の右で2行に折る */
+.qb-card .ui-btn.qb-buy { max-width: 9.5em; padding: 4px 8px; letter-spacing: 0.02em; line-height: 1.25; }
 .qb-sheet { display: flex; flex-direction: column; gap: 10px; text-align: left; }
 .qb-who { display: flex; align-items: center; gap: 10px; }
 .qb-who .qb-mark { width: 52px; height: 52px; }
