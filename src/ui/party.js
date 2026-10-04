@@ -26,7 +26,7 @@ import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVi
 import {
   planBestEquip, applyPlan, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isMeleeWeapon,
 } from "../autoequip.js";
-import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, scaleText } from "../items.js";
+import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, scaleText, useWhere, compareUse } from "../items.js";
 import {
   SOUL_CLASSES, JOB_GEAR, dollSprite, dollBust, jobBust, jobSprite, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulLabel, soulRankLeft, soulByUid,
   orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs,
@@ -1399,8 +1399,9 @@ function campSpellsOf(d) {
 }
 function consumablesOf(d) {
   const out = [];
-  (d.items || []).forEach((it, index) => { if (it && it.slot === "use") out.push({ it, index }); });
-  return out;
+  // 戦闘中にしか使えない品 (投げ物・強化・煙玉) は野営の札に出さない。効果の順に並べる
+  (d.items || []).forEach((it, index) => { if (it && it.slot === "use" && useWhere(it) !== "battle") out.push({ it, index }); });
+  return out.sort((a, b) => compareUse(a.it, b.it));
 }
 function campStrip(d) {
   if (!d.alive) return null;

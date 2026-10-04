@@ -176,6 +176,13 @@ const UNKNOWN_NAME = {
   el_cinderking: "揺らめく炎",
 };
 
+// 画面に出すときの不確定名: 正式な名と見分けがつくよう末尾に「？」を添える (「羽ばたく小さなもの？」)。
+// 色でも分ける — 記録は UNK_OPEN/UNK_CLOSE で囲んだ所を .unk-name で、戦闘の名札は淡い藤色で描く
+export const UNKNOWN_MARK = "？";
+export const UNK_OPEN = "\u0003", UNK_CLOSE = "\u0004";
+export function unknownLabel(m) { return unknownName(m) + UNKNOWN_MARK; }
+// 記録の文に置くとき (色分けの印で囲む)
+export function unknownTag(s) { return UNK_OPEN + s + UNK_CLOSE; }
 export function unknownName(m) {
   if (!m) return "得体の知れぬもの";
   if (UNKNOWN_NAME[m.id || m.key]) return UNKNOWN_NAME[m.id || m.key];

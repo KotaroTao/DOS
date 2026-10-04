@@ -1212,6 +1212,124 @@ export const AIL_RES_CAP = 0.6;
 // 装備だけで積めるブレス耐性の上限 (combat.js の BREATH_RES_CAP と同じ)
 export const BREATH_RES_MAX = 0.5;
 
+// ===== 道具 (消耗品) の効果 =====
+// item.use の語彙 (catalog/defs.js の U ビルダーが検証する):
+//   heal: N / full: true      HP を N 回復 / 全快
+//   mp: N / mpFull: true      MP を N 回復 / 全快
+//   all: true                 heal・mp・cure・buff を生きている隊全員に
+//   cure: "poison" | [...] | "all"  状態異常を治す (USE_AIL のキー。眠り・魅了・混乱は戦闘の中だけの状態)
+//   revive: 0.25              倒れた仲間を最大HPのこの割合で起こす
+//   buff: { atk: 1.3 }, dur   戦闘中: 能力を高める (ターン数 dur)
+//   bomb: { power, el, all, prey }  戦闘中: 投げつける。威力は固定 (使い手の能力に依らない)。属性・魔法耐性・魔法弱点が効く
+//   hex: { kind, chance, all } 戦闘中: 敵を眠らせる (sleep) / 痺れさせる (paralyze) / 惑わす (confuse)。Lv差が効く
+//   escape: true              戦闘中: 必ず逃げる (退路を断たれていなければ)
+//   float: N                  迷宮で: N 階のあいだ浮遊する (この階を含む。落とし穴に落ちず、毒の床も踏まない)
+//   drop: 0.5                 戦利品に出る重み (既定 1。強すぎる品を出にくくする)
+export const USE_AIL = ["poison", "paralyze", "stone", "sleep", "charm", "confuse"];
+export const USE_KEYS = ["heal", "full", "mp", "mpFull", "all", "cure", "revive", "buff", "dur", "bomb", "hex", "escape", "float", "drop"];
+// 治す状態異常の一覧 (旧来の cure: "poison" も配列にそろえる)
+export function useCureKinds(u) {
+  if (!u || !u.cure) return [];
+  if (u.cure === "all") return USE_AIL.slice();
+  return Array.isArray(u.cure) ? u.cure : [u.cure];
+}
+// 使える場面: "battle" = 戦闘中だけ / "field" = 迷宮を歩いている時だけ / "any" = いつでも
+export function useWhere(it) {
+  const u = (it && it.use) || {};
+  if (u.bomb || u.hex || u.escape || u.buff) return "battle";
+  if (u.float) return "field";
+  return "any";
+}
+// 使う相手: "ally" 味方1人 / "all-ally" 味方全員 / "dead" 倒れた味方1人 / "enemy" 敵1体 / "all-enemy" 敵全体 / "self" (逃走・浮遊)
+export function useTarget(it) {
+  const u = (it && it.use) || {};
+  if (u.bomb) return u.bomb.all ? "all-enemy" : "enemy";
+  if (u.hex) return u.hex.all ? "all-enemy" : "enemy";
+  if (u.escape || u.float) return "self";
+  if (u.revive) return "dead";
+  return u.all ? "all-ally" : "ally";
+}
+// この道具が今の t に効くか (味方向け。満タンへの回復・かかっていない状態異常の治療は効かない)
+export function useHelps(it, t) {
+  const u = (it && it.use) || {};
+  if (!t) return false;
+  if (u.revive) return !t.alive;
+  if (!t.alive) return false;
+  if (u.buff) return true;
+  if ((u.heal || u.full) && t.hp < t.maxhp) return true;
+  if ((u.mp || u.mpFull) && (t.maxmp || 0) > 0 && t.mp < t.maxmp) return true;
+  const kinds = useCureKinds(u);
+  if (kinds.length) {
+    if (t.ailment && kinds.includes(t.ailment)) return true;
+    if (t.asleep && kinds.includes("sleep")) return true;
+    if (t.mind && kinds.includes(t.mind)) return true;
+  }
+  return false;
+}
+// 棚・袋・戦闘の一覧の並び (値段ではなく効果で並べる): 分類の順 → 分類の中は効き目の弱い順 → 名前
+export const USE_GROUPS = [
+  { key: "hp", label: "HP回復" }, { key: "hpAll", label: "HP回復 (全員)" }, { key: "both", label: "HP・MP回復" },
+  { key: "mp", label: "MP回復" }, { key: "mpAll", label: "MP回復 (全員)" },
+  { key: "cure", label: "治療" }, { key: "revive", label: "蘇生" }, { key: "buff", label: "強化" },
+  { key: "bomb", label: "攻撃" }, { key: "hex", label: "妨害" }, { key: "escape", label: "逃走" }, { key: "field", label: "迷宮" },
+];
+export function useGroup(it) {
+  const u = (it && it.use) || {};
+  const hp = u.heal || u.full, mp = u.mp || u.mpFull;
+  const key = hp && mp ? "both" : hp ? (u.all ? "hpAll" : "hp") : mp ? (u.all ? "mpAll" : "mp")
+    : u.revive ? "revive" : u.cure ? "cure" : u.buff ? "buff" : u.bomb ? "bomb" : u.hex ? "hex" : u.escape ? "escape" : "field";
+  return USE_GROUPS.findIndex((g) => g.key === key);
+}
+const FULL_N = 1e6;
+function useStrength(it) {
+  const u = (it && it.use) || {};
+  if (u.heal || u.full) return u.full ? FULL_N : u.heal;
+  if (u.mp || u.mpFull) return u.mpFull ? FULL_N : u.mp;
+  if (u.revive) return u.revive;
+  if (u.cure) return useCureKinds(u).length * 10 + (u.all ? 5 : 0);
+  if (u.buff) return Object.keys(u.buff).length * 100 + Object.values(u.buff).reduce((a, v) => a + v, 0);
+  if (u.bomb) return u.bomb.power * (u.bomb.all ? 1.5 : 1);
+  if (u.hex) return u.hex.chance * (u.hex.all ? 1.5 : 1);
+  return it.lv || 0;
+}
+export function compareUse(a, b) {
+  return useGroup(a) - useGroup(b) || useStrength(a) - useStrength(b) || (a.lv || 0) - (b.lv || 0) || a.name.localeCompare(b.name);
+}
+const EL_LABEL = { fire: "火", water: "水", wind: "風", earth: "土", light: "光", dark: "闇" };
+const BUFF_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
+const HEX_LABEL = { sleep: "眠らせる", paralyze: "痺れさせる", confuse: "混乱させる" };
+const cureText = (u) => {
+  const k = useCureKinds(u);
+  return k.length >= USE_AIL.length ? "状態異常をすべて" : k.map((x) => AIL_LABEL[x] || x).join("・") + "を";
+};
+// 効果の説明 (1行ずつ)。short = 棚・札の一言
+export function useLines(it, short = false) {
+  const u = (it && it.use) || {};
+  const who = u.all ? (short ? "全員 " : "隊の全員の") : "";
+  const L = [];
+  if (u.heal || u.full) L.push(short ? `${who}HP ${u.full ? "全快" : "+" + u.heal}` : `${who}HPを${u.full ? "全快させる" : ` ${u.heal} 回復`}`);
+  if (u.mp || u.mpFull) L.push(short ? `${who}MP ${u.mpFull ? "全快" : "+" + u.mp}` : `${who}MPを${u.mpFull ? "全快させる" : ` ${u.mp} 回復`}`);
+  if (u.cure) L.push(`${who}${cureText(u)}治す`);
+  if (u.revive) L.push(short ? `蘇生 (HP${Math.round(u.revive * 100)}%)` : `倒れた仲間を起こす (最大HPの${Math.round(u.revive * 100)}%)`);
+  if (u.buff) {
+    const s = Object.keys(u.buff).map((k) => `${BUFF_LABEL[k] || k}+${Math.round((u.buff[k] - 1) * 100)}%`).join(" ");
+    L.push(short ? `${who}${s}` : `${who}${s} (${u.dur || 3}ターン)`);
+  }
+  if (u.bomb) {
+    const b = u.bomb, el = EL_LABEL[b.el] ? `${EL_LABEL[b.el]}属性 ` : "";
+    L.push(short ? `${b.all ? "敵全体" : "敵1体"}に${el}${b.power}` : `${b.all ? "敵全体" : "敵1体"}に${el}威力 ${b.power} の痛手`);
+    if (b.prey && !short) L.push("不浄の者 (不死・霊・魔) には1.5倍");
+  }
+  if (u.hex) L.push(`${u.hex.all ? "敵全体" : "敵1体"}を${HEX_LABEL[u.hex.kind] || u.hex.kind}${short ? "" : ` (基本 ${Math.round(u.hex.chance * 100)}%・Lv差で増減)`}`);
+  if (u.escape) L.push(short ? "必ず逃げる" : "戦いから必ず逃げ出せる (退路を断たれていなければ)");
+  if (u.float) L.push(short ? `浮遊 ${u.float}階` : `${u.float}階のあいだ宙に浮く (この階を含む。落とし穴・毒の床にかからない)`);
+  if (!short) {
+    const w = useWhere(it);
+    L.push(w === "battle" ? "戦闘中にだけ使える" : w === "field" ? "迷宮を歩いている時にだけ使える" : "戦闘中も、戦闘の外でも使える");
+  }
+  return L;
+}
+
 // 六大ステ (ATK/VIT/AGI/INT/PIE/LUK) を base + 装備から再計算
 // 装備はフラット型: stat = base + Σflat (atk/vit/…)
 export function recalc(member) {

@@ -15,7 +15,7 @@ import {
   itemSheet, wearPlan, deltaFor, deltaEl, nameSpan, goldEl, caretIcon, equipTo, floatGold, ownerOf, equipCandidates, shopOpen, isUpgrade,
   openDollChooser, equipPick, dollIcon, revealSellBtn, firstBadge, isFirstGet,
 } from "./loot.js";
-import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, MAX_ITEMS, canEquip, itemName } from "../items.js";
+import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, MAX_ITEMS, canEquip, itemName, compareUse } from "../items.js";
 import { RARITIES, rarityKey } from "../rarity.js";
 import { spriteCanvas } from "../sprites.js";
 
@@ -83,7 +83,7 @@ function sellSubset(list) {
     if (idx < 0 || item.cursed || item.unidentified) continue;
     doll.items.splice(idx, 1);
     g.gold += price; gold += price;
-    if (item.id) g.shopStock[item.id] = (g.shopStock[item.id] || 0) + 1;
+    if (item.id) game.shopStockAdd(item.id);
     if (game.codexSeeItem) game.codexSeeItem(item.id);
     n++;
   }
@@ -412,6 +412,8 @@ function listFor(cat, wcat) {
     return true;
   }).sort((a, b) => {
     const ia = ITEMS[a], ib = ITEMS[b];
+    // 道具は値段ではなく効果で並べる (HP回復 → MP回復 → 治療 → 蘇生 → 強化 → 攻撃 …、同じ効果は効き目の順)
+    if (ia.slot === "use" && ib.slot === "use") return compareUse(ia, ib);
     return catOrder(ia) - catOrder(ib) || game.sellPrice(ia) - game.sellPrice(ib) || ia.name.localeCompare(ib.name);
   });
 }

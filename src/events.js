@@ -380,9 +380,12 @@ export const EVENTS = [
     intro: () => ["骨のロバを連れた行商人が、ランタンを掲げた。", "「こんな所で客とはね。値は張るが、品は本物だよ」"],
     choices: (A, cell) => {
       const herb = A.price("herb") * 3, mana = A.price("manaDrop") * 3, box = A.goldCost(3);
+      // 薬草・マナの雫に加えて、この深さで出る道具を2品 (値は町の3倍)
+      const wares = A.wares(cell, 2).filter((id) => id !== "herb" && id !== "manaDrop");
       return [
         A.canPayGold(herb) && { label: `薬草を買う (💰${herb})`, fn: () => { A.payGold(herb); A.giveItemId("herb", () => A.reopen(cell)); } },
         A.canPayGold(mana) && { label: `マナの雫を買う (💰${mana})`, fn: () => { A.payGold(mana); A.giveItemId("manaDrop", () => A.reopen(cell)); } },
+        ...wares.map((id) => { const pr = A.price(id) * 3; return A.canPayGold(pr) && { label: `${A.itemNameOf(id)}を買う (💰${pr})`, fn: () => { A.payGold(pr); A.giveItemId(id, () => A.reopen(cell)); } }; }),
         A.canPayGold(box) && { label: `中身の分からぬ包みを買う (💰${box}) ― 時に掘り出し物`, fn: () => {
           A.payGold(box); A.item({ chestRank: 4 }, "行商人の包み", () => A.done(cell));
         } },

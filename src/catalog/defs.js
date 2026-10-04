@@ -13,7 +13,7 @@
 //    原型は 24x24 の高解像度ドット絵。武器8種は各3型、盾・鎧・頭・足・小手・装飾は各2型を持ち、
 //    同じ形キーでも item id の安定ハッシュで型を選ぶ (pickArt) ので、同系統の装備でも見た目が散らばる
 import { tint } from "../dungeons/schema.js";
-import { lvToRank } from "../items.js";
+import { lvToRank, USE_KEYS, USE_AIL } from "../items.js";
 
 // 共有パレット (items.js と同等)。素材ごとに 3〜5 階調 (光源は左上)。
 // base() が tint() で全キーを染め色へ寄せるので、どの色も「染めても破綻しない」明度差で並べてある
@@ -1768,6 +1768,58 @@ export const ARTS = {
     ".........tttGGdk........",
     "..........kkkkk.........",
   ],
+  bomb: [ // 投げ壺 (火口つきの丸い瓶・道具)
+    "........................",
+    "............Ry..........",
+    "...........RYYr.........",
+    "...........rYRq.........",
+    "............rq..........",
+    "............Ll..........",
+    "...........kLlk.........",
+    "..........kOyyOk........",
+    "..........kfAAfk........",
+    "..........kfAAfk........",
+    "........kkfAAACfkk......",
+    "......kfCAAAAAACCffk....",
+    ".....kfAxxAAAAACCCffk...",
+    "....kfAxwAAAAAACCCCffk..",
+    "....kCAxAAAAAAACCCCffk..",
+    "...kfCAAAAAAAACCCCCfffk.",
+    "...kfCAAAAAAACCCCCCfffk.",
+    "...kfCCAAAAACCCCCCffffk.",
+    "...kfCCCAACCCCCCCfffffk.",
+    "....kfCCCCCCCCCCfffffk..",
+    "....kffCCCCCCCCffffffk..",
+    ".....kfffCCCCCfffffk....",
+    "......kkffffffffffkk....",
+    "........kkkkkkkkkk......",
+  ],
+  feather: [ // 羽根 (道具)
+    "........................",
+    "...................kk...",
+    ".................kkxBk..",
+    "...............kkxxBzk..",
+    "..............kxxxBBzk..",
+    ".............kxxxBBzk...",
+    "............kxxxBBzzk...",
+    "...........kxxxBBzzk....",
+    "..........kxxBBBzzk.....",
+    ".........kxxBBBzIzk.....",
+    "........kxxBBBzzzk......",
+    ".......kxxBBBzIzk.......",
+    "......kxxBBzzzzk........",
+    "......kxBBBzIzk.........",
+    ".....kxBBzzzzk..........",
+    ".....kxBBzIzk...........",
+    "....kxBzzzzk............",
+    "....kBBzIzk.............",
+    "...kBzzzk...............",
+    "...kYzk.................",
+    "..kyOk..................",
+    ".kyOk...................",
+    ".kOk....................",
+    "..k.....................",
+  ],
 };
 
 // id の安定ハッシュ (FNV-1a 32bit)。同じ id は常に同じ絵の型になる (セーブ/図鑑で見た目が変わらない)
@@ -2008,9 +2060,21 @@ export function M(id, name, shape, lv, opt = {}) {
   return it;
 }
 
-// 道具 (消耗品): U(id, 名, lv, use, opt) — use: { heal?, mp?, cure? }
+// 道具 (消耗品): U(id, 名, lv, use, opt) — use の語彙は items.js「道具 (消耗品) の効果」(USE_KEYS)
+const BUFF_STATS = ["atk", "vit", "agi", "int", "pie", "luk"];
+const HEX_KINDS = ["sleep", "paralyze", "confuse"];
+function checkUse(id, u) {
+  for (const k in u) chk(USE_KEYS.includes(k), `unknown use key "${k}": ${id}`);
+  if (u.cure && u.cure !== "all") for (const k of [].concat(u.cure)) chk(USE_AIL.includes(k), "bad cure: " + id);
+  if (u.revive != null) chk(u.revive > 0 && u.revive <= 1, "bad revive: " + id);
+  if (u.buff) for (const k in u.buff) chk(BUFF_STATS.includes(k) && u.buff[k] > 1 && u.buff[k] <= 2, "bad buff: " + id);
+  if (u.bomb) chk(u.bomb.power > 0 && (!u.bomb.el || ELEM_KEYS.includes(u.bomb.el)), "bad bomb: " + id);
+  if (u.hex) chk(HEX_KINDS.includes(u.hex.kind) && u.hex.chance > 0 && u.hex.chance <= 1, "bad hex: " + id);
+  chk(Object.keys(u).some((k) => k !== "all" && k !== "dur" && k !== "drop"), "use has no effect: " + id);
+}
 export function U(id, name, lv, use, opt = {}) {
   const it = base(id, name, "use", lv, opt.shape || "vial", opt);
+  checkUse(id, use);
   it.use = use;
   if (opt.price == null) it.price = round(14 + lv * lv * 0.30 + lv * 6);
   return it;
