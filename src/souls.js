@@ -235,6 +235,35 @@ export const PASSIVES = {
   fieldRegen:    { label: "束の間の休息", scope: "party", lv: ["階を移動すると、全員のHPを10%回復", "階を移動すると、全員のHPを20%回復", "階を移動すると、全員のHPを30%回復"] },
   soulTutor:     { label: "魂の薫陶",     scope: "self",  lv: ["自分の宿す魂が得るEXP+10%", "自分の宿す魂が得るEXP+20%", "自分の宿す魂が得るEXP+30%"] },
   trapEye:       { label: "盗賊の眼",     scope: "party", lv: ["宝箱・床の罠の解除率+10% (最大95%)", "宝箱・床の罠の解除率+20% (最大95%)", "宝箱・床の罠の解除率+30% (最大95%)"] },
+  // ===== 職ごとのランクのパッシブ (ランク2で目覚め、3・4・5で Lv2・3・4 に強まる。jobkit の awaken) =====
+  priestInochi:   { label: "生命の灯", scope: "self", lv: ["蘇生した味方のHPが、さらに最大HPの10%増える", "蘇生した味方のHPが、さらに最大HPの20%増える", "蘇生した味方のHPが、さらに最大HPの30%増える", "蘇生した味方のHPが、さらに最大HPの50%増える"] },
+  thiefNukeme:    { label: "抜け目なさ", scope: "party", lv: ["宝箱のランクが一段上がる確率10%", "宝箱のランクが一段上がる確率15%", "宝箱のランクが一段上がる確率20%", "宝箱のランクが一段上がる確率30%"] },
+  bishopSeibetsu: { label: "魂の聖別", scope: "party", lv: ["戦闘で得る✦Soul+5%", "戦闘で得る✦Soul+10%", "戦闘で得る✦Soul+15%", "戦闘で得る✦Soul+25%"] },
+  samuraiZantetsu: { label: "斬鉄", scope: "self", lv: ["物理攻撃が敵の防御を10%無視", "物理攻撃が敵の防御を20%無視", "物理攻撃が敵の防御を30%無視", "物理攻撃が敵の防御を50%無視"] },
+  berserkerKyouhon: { label: "狂奔", scope: "self", lv: ["敵か仲間が倒れるたびATK+5% (3段まで・その戦闘中)", "敵か仲間が倒れるたびATK+5% (5段まで)", "敵か仲間が倒れるたびATK+5% (7段まで)", "敵か仲間が倒れるたびATK+5% (10段まで)"] },
+  hunterSaihai:   { label: "狩りの采配", scope: "party", lv: ["戦闘開始時、敵全体のAGI×0.9 (3ターン)", "戦闘開始時、敵全体のAGI×0.8 (3ターン)", "戦闘開始時、敵全体のAGI×0.7 (3ターン)", "戦闘開始時、敵全体のAGI×0.6 (3ターン)"] },
+  shadowHissatsu: { label: "必殺", scope: "self", lv: ["物理が当たると2%で即死 (主・金属の魔物には効かない)", "物理が当たると3%で即死", "物理が当たると4%で即死", "物理が当たると6%で即死"] },
+  paladinIyashi:  { label: "癒しの剣", scope: "self", lv: ["物理で与えたダメージの3%だけ味方全員を回復", "物理で与えたダメージの5%だけ味方全員を回復", "物理で与えたダメージの8%だけ味方全員を回復", "物理で与えたダメージの12%だけ味方全員を回復"] },
+  guardianKongou: { label: "金剛の守り", scope: "self", lv: ["敵の物理を5%で完全に受け止める (無傷)", "敵の物理を8%で完全に受け止める", "敵の物理を12%で完全に受け止める", "敵の物理を20%で完全に受け止める"] },
+  spellbladeMajin: { label: "魔刃一体", scope: "self", lv: ["物理技に INT の10%を上乗せ", "物理技に INT の20%を上乗せ", "物理技に INT の30%を上乗せ", "物理技に INT の50%を上乗せ"] },
+  hexerSae:       { label: "呪詛の冴え", scope: "self", lv: ["状態異常の成功率+5%", "状態異常の成功率+10%", "状態異常の成功率+15%", "状態異常の成功率+25%"] },
+  hermitSenyaku:  { label: "仙薬", scope: "party", lv: ["道具のHP・MP回復量+20%", "道具のHP・MP回復量+30%", "道具のHP・MP回復量+40%", "道具のHP・MP回復量+60%"] },
+  brigandGi:      { label: "義の報い", scope: "party", lv: ["味方のHPが50%以下になった時、1戦闘1回、その味方を最大HPの20%回復", "味方のHPが50%以下になった時、1戦闘1回、その味方を最大HPの40%回復", "味方のHPが50%以下になった時、1戦闘1回、その味方を最大HPの60%回復", "味方のHPが50%以下になった時、1戦闘1回、その味方を最大HPの80%回復"] },
+  arcthiefKaeshi: { label: "呪文返し", scope: "self", lv: ["敵の呪文を受けた時、10%で跳ね返す", "敵の呪文を受けた時、15%で跳ね返す", "敵の呪文を受けた時、20%で跳ね返す", "敵の呪文を受けた時、30%で跳ね返す"] },
+  crusaderTsuigeki: { label: "聖光の追撃", scope: "self", lv: ["物理が当たると10%で光の追撃 (ATK×0.5)", "物理が当たると15%で光の追撃 (ATK×0.5)", "物理が当たると20%で光の追撃 (ATK×0.5)", "物理が当たると30%で光の追撃 (ATK×0.5)"] },
+  bmHouken:       { label: "崩拳", scope: "self", lv: ["通常攻撃が10%で敵を怯ませる (主には効かない)", "通常攻撃が15%で敵を怯ませる", "通常攻撃が20%で敵を怯ませる", "通常攻撃が30%で敵を怯ませる"] },
+  dkKeiyaku:      { label: "暗黒の契約", scope: "self", lv: ["HPを払う技の代償-20%", "HPを払う技の代償-35%", "HPを払う技の代償-50%", "HPを払う技の代償がなくなる"] },
+  templarIkou:    { label: "封魔の威光", scope: "party", lv: ["敵が特技を使う確率-10%", "敵が特技を使う確率-15%", "敵が特技を使う確率-20%", "敵が特技を使う確率-30%"] },
+  exorcistJouka:  { label: "浄化の光", scope: "party", lv: ["毎ラウンドの終わりに20%で、味方1人の状態異常と弱体を治す", "毎ラウンドの終わりに40%で、味方1人の状態異常と弱体を治す", "毎ラウンドの終わりに60%で、味方1人の状態異常と弱体を治す", "毎ラウンドの終わりに80%で、味方1人の状態異常と弱体を治す"] },
+  wardenKekkai:   { label: "護法の結界", scope: "party", lv: ["隊全員が受ける呪文・ブレスのダメージ-5%", "隊全員が受ける呪文・ブレスのダメージ-8%", "隊全員が受ける呪文・ブレスのダメージ-12%", "隊全員が受ける呪文・ブレスのダメージ-20%"] },
+  arcanistShinen: { label: "深淵の知", scope: "self", lv: ["攻撃呪文の会心率+5%", "攻撃呪文の会心率+8%", "攻撃呪文の会心率+12%", "攻撃呪文の会心率+20%"] },
+  heroDensetsu:   { label: "伝説の勇者", scope: "party", lv: ["勇者が生きている間、味方全員のATK・VIT・AGI・INT・PIE+3%", "勇者が生きている間、味方全員のATK・VIT・AGI・INT・PIE+5%", "勇者が生きている間、味方全員のATK・VIT・AGI・INT・PIE+8%", "勇者が生きている間、味方全員のATK・VIT・AGI・INT・PIE+15%"] },
+  asuraMugen:     { label: "無限の闘争", scope: "self", lv: ["自分の手番の後、10%でもう一度行動 (1ラウンド1回)", "自分の手番の後、15%でもう一度行動", "自分の手番の後、20%でもう一度行動", "自分の手番の後、30%でもう一度行動"] },
+  dragonknightIbuki: { label: "竜の息吹", scope: "self", lv: ["毎ラウンドの初めに15%で、敵全体へ火のブレス (ATK×0.5)", "毎ラウンドの初めに20%で、敵全体へ火のブレス (ATK×0.6)", "毎ラウンドの初めに25%で、敵全体へ火のブレス (ATK×0.8)", "毎ラウンドの初めに40%で、敵全体へ火のブレス (ATK×1.2)"] },
+  necroSenkoku:   { label: "死の宣告", scope: "party", lv: ["戦闘開始時、主以外の敵それぞれが3%で即死 (金属の魔物には効かない)", "戦闘開始時、主以外の敵それぞれが5%で即死 (金属の魔物には効かない)", "戦闘開始時、主以外の敵それぞれが8%で即死 (金属の魔物には効かない)", "戦闘開始時、主以外の敵それぞれが15%で即死 (金属の魔物には効かない)"] },
+  sageKiwami:     { label: "叡智の極み", scope: "self", lv: ["呪文 (技以外) が10%でMPを使わずに唱えられる", "呪文が15%でMPを使わずに唱えられる", "呪文が20%でMPを使わずに唱えられる", "呪文が30%でMPを使わずに唱えられる"] },
+  cardinalKiseki: { label: "聖座の奇跡", scope: "party", lv: ["戦闘中1回、最後の1人が倒れる時、全員をHP10%で蘇らせる", "戦闘中1回、最後の1人が倒れる時、全員をHP20%で蘇らせる", "戦闘中1回、最後の1人が倒れる時、全員をHP30%で蘇らせる", "戦闘中1回、最後の1人が倒れる時、全員をHP50%で蘇らせる"] },
+  archmageShinen: { label: "魔導の深淵", scope: "self", lv: ["攻撃呪文が敵の魔法耐性を25%無視 (魔法無効には効かない)", "攻撃呪文が敵の魔法耐性を50%無視", "攻撃呪文が敵の魔法耐性を75%無視", "攻撃呪文が敵の魔法耐性を100%無視 (魔法無効には効かない)"] },
   // ===== 職ごとの Lv15 の目玉パッシブ (Lv50 で Lv2、Lv100 で Lv3)。効果は game.js / combat.js が読む =====
   // scope party は隊で一番高いLvの1人分だけが効く (重複不可)。self は持ち主だけ
   appraiseEye:   { label: "目利き",       scope: "party", lv: ["鑑定の成功率+5% (最大95%)", "鑑定の成功率+10% (最大95%)", "鑑定の成功率+15% (最大95%)"] },
@@ -273,7 +302,7 @@ export const PASSIVES = {
   twinArts:      { label: "二刀の理",     scope: "self",  lv: ["通常攻撃の後30%でINT×0.6の追撃呪文"] },
   iai:           { label: "居合",         scope: "self",  lv: ["戦闘開始時、敵1体へ自動で抜き打ち (奇襲時は不発)"] },
   openSpell:     { label: "開幕呪撃",     scope: "self",  lv: ["戦闘開始時、敵1体へ無消費の呪撃INT×1.2 (奇襲時は不発)"] },
-  asceticism:    { label: "荒行の果て",   scope: "self",  lv: ["HP30%以下の間、与ダメージ・回復量+30%"] },
+  asceticism:    { label: "窮地の底力",   scope: "self",  lv: ["HP30%以下の間、与ダメージ・回復量+30%"] },
   taunt:         { label: "矢面の構え",   scope: "self",  lv: ["敵の単体攻撃が自分に向かいやすくなる"] },
   cover:         { label: "かばう",       scope: "party", lv: ["瀕死(HP25%以下)の味方への攻撃を肩代わり (1戦闘1回)", "肩代わりが1戦闘2回になり、その被ダメ-30%", "肩代わりが1戦闘3回になり、その被ダメ-40%"] },
   parry:         { label: "見切り",       scope: "self",  lv: ["敵の物理攻撃を10%で完全回避", "敵の物理攻撃を15%で完全回避"] },
@@ -332,13 +361,13 @@ const P = (key, lv = 1) => ({ name: passiveName(key, lv), desc: passiveDesc(key,
 const U = (name, desc, grants) => ({ name, desc, grants });
 
 // ===== 職業パッシブ表 [ランク2,3,4,5] =====
-// ランク2 = 覚醒のパッシブ (jobkit の awaken。以前は Lv15 で覚えていたパッシブ)。ランク3以上の行は無い
-// (他のパッシブはレベルスキル表 JOB_SKILLS に織り込み済み)
+// ランクのパッシブ (jobkit の awaken): ランク2で目覚め、ランク3・4・5で Lv2・3・4 に強まる。
+// Lv で覚えるパッシブ (レベルスキル表 JOB_SKILLS) とは別物で、重ならないように選んである
 export const JOB_PASSIVES = {};
 for (const k in JOBKIT_AWAKEN) {
-  const [key, lv] = JOBKIT_AWAKEN[k].split("/");
-  if (!PASSIVES[key]) throw new Error(`souls: ${k} の覚醒のパッシブ ${key} が無い`);
-  JOB_PASSIVES[k] = [P(key, +lv)];
+  const key = JOBKIT_AWAKEN[k];
+  if (!PASSIVES[key] || PASSIVES[key].lv.length !== 4) throw new Error(`souls: ${k} のランクのパッシブ ${key} が無いか、4段でない`);
+  JOB_PASSIVES[k] = [P(key, 1), P(key, 2), P(key, 3), P(key, 4)]; // ランク2〜5 = Lv1〜4
 }
 
 export function jobPassiveTable(jobKey) { return JOB_PASSIVES[jobKey] || []; }
@@ -850,9 +879,10 @@ export const JOB_SIGNATURE = (() => {
 })();
 export function signatureSkillOf(clsKey) { return JOB_SIGNATURE[clsKey] || null; }
 
-// その職の魂がランク rank で得ている覚醒のパッシブ {key, lv, name, desc}。ランク1なら null
+// その職の魂がランク rank で得ているランクのパッシブ {key, lv, name, desc}。ランク1なら null
 export function awakenPerkOf(clsKey, rank) {
-  const e = (rank || 1) >= 2 ? (JOB_PASSIVES[clsKey] || [])[0] : null;
+  const r = Math.min(5, rank || 1);
+  const e = r >= 2 ? (JOB_PASSIVES[clsKey] || [])[r - 2] : null;
   if (!e) return null;
   const [key, lv] = Object.entries(e.grants)[0];
   return { key, lv, name: e.name, desc: e.desc };

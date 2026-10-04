@@ -2,20 +2,20 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 侍 = 居合と見切り・一太刀。抜き打ち (AGI・会心)、鎬の受け、介錯 (とどめ)、乱れ斬り (scatter)
 export default {
-  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
-  awaken: "samuraiShingan/1",
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "samuraiZantetsu",
   table: `
     1 KYOUGEKI 2 SUIGETSU 3 GONOSEN 5 iai/1 7 DOUBLE 10 SAMURAI_SAYABASHIRI
     12 SHIPPUUGIRI 15 SAMURAI_ZANGETSUGAESHI 15 samuraiIchibun/1 20 ISSEN 22 UZUSHIO 25 samuraiNukimi/1 30 MEIKYOU
     35 initiative/1 40 TSUBAMEGAESHI 45 samuraiChiburi/1 50 SAMURAI_OBOROZUKI 50 samuraiIchibun/2 55 SAMURAI_SHINOGI 57 HYOUJIN
-    60 zanshin/1 65 SAMURAI_RYUUSUI 70 samuraiShingan/2 75 samuraiNukimi/2 80 SAMURAI_ITTOU 82 FUUGA
+    60 zanshin/1 65 SAMURAI_RYUUSUI 70 samuraiShingan/1 75 samuraiNukimi/2 80 SAMURAI_ITTOU 82 FUUGA
     85 SAMURAI_SAMIDARE 90 samuraiMinegaeshi/1 95 SAMURAI_KAISHAKU 100 SAMURAI_ZANGETSU 100 samuraiIchibun/3 105 samuraiIkkiuchi/1 107 TOUGADAN
     110 SAMURAI_SHIDEN 115 samuraiChiburi/2 120 SAMURAI_MUNEN 125 samuraiMinegaeshi/2 130 SAMURAI_HANAFUBUKI 135 samuraiIkkiuchi/2
-    140 SAMURAI_GUFUU 145 samuraiShingan/3 150 SAMURAI_UNYOU 155 samuraiChiburi/3 160 SAMURAI_HAPPOU 162 DAIKAISHOU
+    140 SAMURAI_GUFUU 145 samuraiShingan/2 150 SAMURAI_UNYOU 155 samuraiChiburi/3 160 SAMURAI_HAPPOU 162 DAIKAISHOU
     165 resistAilment/1 170 SAMURAI_NOWAKI 175 samuraiIkkiuchi/3 180 SAMURAI_RIKKA 185 samuraiNukimi/3 190 SAMURAI_GEKKA
     195 SAMURAI_KOCHOU 200 SAMURAI_MUKYUU`,
   skills: {
-    // Lv15 (覚醒のパッシブが抜けた段): 月を描く返し刃。会心と足止めを兼ねる
+    // Lv15 の固有技: 月を描く返し刃。会心と足止めを兼ねる
     SAMURAI_ZANGETSUGAESHI: { name: "月返し", mp: 5, kind: "phys", power: 1.2, critBonus: 0.25, agiScale: 0.3, debuff: { agi: 0.85 }, target: "enemy", desc: "月を描く返し刃。会心しやすく、敵の足を鈍らせる" },
     SAMURAI_SAYABASHIRI: { name: "鞘走り", mp: 4, kind: "phys", power: 0.95, agiScale: 0.45, critBonus: 0.15, target: "enemy", desc: "鞘走る抜き打ち。素早さで伸び会心しやすい" },
     SAMURAI_OBOROZUKI: { name: "朧月", mp: 10, kind: "phys", power: 0.85, agiScale: 0.25, debuff: { agi: 0.85 }, target: "all-enemy", desc: "朧の弧を描く抜刀で敵陣の足を鈍らせる" },

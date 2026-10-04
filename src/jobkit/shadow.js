@@ -1,20 +1,20 @@
 // 暗殺者 (shadow) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 export default {
-  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
-  awaken: "shadowShinoNioi/1",
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "shadowHissatsu",
   table: `
     1 YAMIUCHI 2 YAMIBA 3 SHADOW_YADOKU 5 shadowIchishi/1 7 SHIPPUUGIRI 10 KAGEWATARI
     12 YOIYAMIUCHI 15 SHADOW_KUBIKARI 15 stealthStep/1 20 KAGENUI 22 KOKUEINAGI 25 shadowDokugou/1 30 SHADOW_SESASHI
     35 shadowYain/1 40 SHINOKOKUIN 45 shadowYamiTokeru/1 50 SHADOW_KURASASORI 50 stealthStep/2 55 SHADOW_KAGEITO 57 MEIJIN
-    60 shadowDokugou/2 65 SHADOW_SAKUYA 70 shadowIchishi/2 75 shadowShinoNioi/2 80 SHADOW_TODOME 85 SHADOW_NODOBUE
+    60 shadowDokugou/2 65 SHADOW_SAKUYA 70 shadowIchishi/2 75 shadowShinoNioi/1 80 SHADOW_TODOME 85 SHADOW_NODOBUE
     90 shadowYain/2 95 SHADOW_KAGEHAMI 100 SHADOW_TSUJIGIRI 100 stealthStep/3 105 shadowYamiTokeru/2 107 SHADOW_TAMANUI 110 SHADOW_KAGEBUNSHIN
-    115 shadowYain/3 120 SHADOW_SHINIGAMI 125 shadowDokugou/3 130 SHADOW_KOKUSENPUU 135 shadowShinoNioi/3 140 SHADOW_OBOROZUKI
+    115 shadowYain/3 120 SHADOW_SHINIGAMI 125 shadowDokugou/3 130 SHADOW_KOKUSENPUU 135 shadowShinoNioi/2 140 SHADOW_OBOROZUKI
     145 shadowYamiTokeru/3 150 SHADOW_GUFUU 155 shadowIchishi/3 160 SHADOW_SOUSOU 162 SHADOW_SHINENTOBARI 165 resistAilment/1
-    170 SHADOW_DOKUGIRI 175 shadowShinoNioi/4 180 SHADOW_KAGEROKUDOU 185 shadowDokugou/4 190 MEIDOU 195 SHADOW_MAGAKAZE
+    170 SHADOW_DOKUGIRI 175 shadowShinoNioi/3 180 SHADOW_KAGEROKUDOU 185 shadowDokugou/4 190 MEIDOU 195 SHADOW_MAGAKAZE
     200 SHADOW_MUEI`,
   skills: {
-    // Lv15 (覚醒のパッシブが抜けた段): 弱った獲物の首を音もなく刈る
+    // Lv15 の固有技: 弱った獲物の首を音もなく刈る
     SHADOW_KUBIKARI: { name: "刈り取りの刃", mp: 5, kind: "phys", power: 1.2, critBonus: 0.1, execute: 2, target: "enemy", desc: "弱った獲物の首を音もなく刈る（とどめ・会心UP）" },
     SHADOW_YADOKU:       { name: "夜毒の針", mp: 3, kind: "phys", power: 0.8, acc: 0.4, poison: { chance: 0.8, pct: 0.05 }, target: "enemy", desc: "狙い澄ました毒針で蝕む（毎ターン5%）" },
     SHADOW_SESASHI:      { name: "背刺し", mp: 5, kind: "phys", power: 1.25, critBonus: 0.45, pierce: 0.3, target: "enemy", desc: "背後から鎧の隙を刺す（会心・貫通）" },

@@ -3,20 +3,20 @@
 // 持ち味: 聖なる攻めの突撃と十字の剣。不浄を討ち、昂るほど鋭くなる (光/火)
 import { UNHOLY } from "./common.js";
 export default {
-  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
-  awaken: "crusaderSeikaKate/1",
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "crusaderTsuigeki",
   table: `
     1 KYOUGEKI 2 KOUJIN 3 HOLYRAY 5 crusaderFujouUchi/1 7 NERAIUCHI 10 BLESS
     12 KAENGIRI 15 CRUSADER_SEIKAZAN 15 crusaderToki/1 20 CRUSADER_SEIINTSUKI 22 CRUSADER_JUUJISENKOU 25 crusaderFujouUchi/2 30 SEISEN
     35 crusaderTotsugekiIkioi/1 40 JUUJIZAN 45 crusaderSeinaruKouyou/1 50 JOUKA 50 crusaderToki/2 55 SHINGANGEKI 57 SEIGEKI
-    60 crusaderSeikaKate/2 65 CRUSADER_SEISHOU 70 crusaderJunkyoushin/1 75 crusaderJunkyoushin/2 80 CRUSADER_SEIENTOTSU 82 GURENZAN
+    60 crusaderSeikaKate/1 65 CRUSADER_SEISHOU 70 crusaderJunkyoushin/1 75 crusaderJunkyoushin/2 80 CRUSADER_SEIENTOTSU 82 GURENZAN
     85 REVIVE 90 resistAilment/1 95 CRUSADER_JUUJIBARAI 100 CRUSADER_KOUCHUU 100 crusaderToki/3 105 crusaderTotsugekiIkioi/2 107 CRUSADER_SHOKUZAI
-    110 CRUSADER_SHAKUNETSU 115 crusaderFujouUchi/3 120 CRUSADER_SEISENTOTSU 125 crusaderJunkyoushin/3 130 CRUSADER_SEIENCHIKAI 135 crusaderSeikaKate/3
+    110 CRUSADER_SHAKUNETSU 115 crusaderFujouUchi/3 120 CRUSADER_SEISENTOTSU 125 crusaderJunkyoushin/3 130 CRUSADER_SEIENCHIKAI 135 crusaderSeikaKate/2
     140 CRUSADER_JUUJISABAKI 145 resistAilment/2 150 CRUSADER_DAITOTSUGEKI 155 crusaderSeinaruKouyou/2 160 CRUSADER_JOUMETSU 162 KOUBOURANBU
     165 crusaderJunkyoushin/4 170 CRUSADER_SEIRAKU 175 crusaderSeinaruKouyou/3 180 CRUSADER_GAIKA 185 crusaderTotsugekiIkioi/3 190 CRUSADER_TOTSUGEKIJIN
     195 CRUSADER_TENSHI 200 CRUSADER_SEIJUUJI`,
   skills: {
-    // Lv15 (覚醒のパッシブが抜けた段): 聖なる火を纏う斬撃。不浄を焼く
+    // Lv15 の固有技: 聖なる火を纏う斬撃。不浄を焼く
     CRUSADER_SEIKAZAN: { name: "聖火斬", mp: 5, kind: "phys", power: 1.4, element: "fire", prey: { races: UNHOLY, mul: 1.3 }, target: "enemy", desc: "聖なる火を纏って斬る。不浄の者に強い（火）" },
     CRUSADER_SEIINTSUKI: { name: "聖印突き", mp: 4, kind: "phys", power: 1.3, element: "light", acc: 0.6, prey: { races: UNHOLY, mul: 1.6 }, flinchChance: 0.2, target: "enemy", desc: "聖印の突きで怯ませる。不浄の者に強い" },
     CRUSADER_JUUJISENKOU: { name: "十字の閃光", mp: 9, kind: "phys", power: 0.8, element: "light", debuff: { hit: 0.9 }, target: "all-enemy", desc: "十字の閃光で敵全体を斬り、目を眩ます" },

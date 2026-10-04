@@ -569,11 +569,16 @@ export function codexJobSheet(key, rank, heading) {
   } else if (affRow) {
     body.appendChild(infoBlock("得意属性", [affRow]));
   }
-  // 覚醒のパッシブ (魂がランク2に上がると目覚める。Lvで覚えるパッシブは下の技の表に並ぶ)
-  const perk = awakenPerkOf(key, rank);
-  body.appendChild(infoBlock("覚醒のパッシブ", [perk
-    ? pairRow(perk.name, `[パッシブ] ${perk.desc}`, { onTap: () => showPassivePopup(perk.key, perk.lv) })
-    : pairRow("？？？ (ランク2で目覚める)", null, { dim: true })]));
+  // ランクのパッシブ (ランク2で目覚め、3・4・5で強まる。Lvで覚えるパッシブは下の技の表に並ぶ)
+  const rkRows = [];
+  for (let r = 2; r <= 5; r++) {
+    const pk = awakenPerkOf(key, r);
+    if (!pk) continue;
+    rkRows.push(r <= rank
+      ? pairRow(`ランク${r} ${pk.name}`, `[パッシブ] ${pk.desc}`, { onTap: () => showPassivePopup(pk.key, pk.lv) })
+      : pairRow(`ランク${r} ？？？`, null, { dim: true }));
+  }
+  body.appendChild(infoBlock("ランクのパッシブ", rkRows.length ? rkRows : [pairRow("—", null, { dim: true })]));
   // スキル表: このランクのLv上限まで。到達したLvのものだけ開示
   const reached = (rec && typeof rec === "object" && rec.lv) || 0;
   const capCount = (rankThresholds(SOUL_CLASSES[key].rarity)[rank - 1]) || 1;

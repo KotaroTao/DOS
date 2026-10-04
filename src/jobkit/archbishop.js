@@ -2,19 +2,19 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 聖典と水の祈り。聖水・泉・潮で癒し、聖句の加護 (不屈・魔障壁・守り) で隊を護る
 export default {
-  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
-  awaken: "archbishopSeiten/1",
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "archbishopShukufuku",
   table: `
     1 DIOS 3 CURE 5 archbishopMinasoko/1 7 HOLYRAY 10 BLESS 12 ICENEEDLE
     15 ARCHBISHOP_MAMORISEIKU 15 riseAgain/1 17 REGEN 20 DIOSALL 25 archbishopChinka/1 30 DIAL 35 archbishopMamori/1
     40 SEIKUNOKAGO 45 archbishopMinasoko/2 50 ARCHBISHOP_SEISENNOSHIZUKU 50 riseAgain/2 55 ARCHBISHOP_SENREI 60 archbishopMamori/2 62 ARCHBISHOP_SEISUINOYARI
-    65 ARCHBISHOP_MIZUKAGAMI 70 archbishopChinka/2 75 archbishopSeiten/2 80 ARCHBISHOP_YOMIGAERI 85 ARCHBISHOP_NORITO 90 archbishopMinasoko/3
+    65 ARCHBISHOP_MIZUKAGAMI 70 archbishopChinka/2 75 archbishopSeiten/1 80 ARCHBISHOP_YOMIGAERI 85 ARCHBISHOP_NORITO 90 archbishopMinasoko/3
     95 ARCHBISHOP_FUKADE 100 ARCHBISHOP_MEGUMI 100 riseAgain/3 105 archbishopMamori/3 110 ARCHBISHOP_SEITENNOMAMORI 115 resistAilment/1 120 ARCHBISHOP_MICHISHIO
     125 popePrayer/1 130 ARCHBISHOP_FUUJI 135 archbishopChinka/3 140 ARCHBISHOP_ROUSHOU 145 archbishopMinasoko/4 150 ARCHBISHOP_SHOUKU
-    155 archbishopSeiten/3 160 ARCHBISHOP_DAISENREI 165 resistAilment/2 170 ARCHBISHOP_KOURIN 175 archbishopChinka/4 180 ARCHBISHOP_TAIKAI
+    155 archbishopSeiten/2 160 ARCHBISHOP_DAISENREI 165 resistAilment/2 170 ARCHBISHOP_KOURIN 175 archbishopChinka/4 180 ARCHBISHOP_TAIKAI
     185 archbishopMamori/4 190 ARCHBISHOP_SABAKI 195 ARCHBISHOP_BAKUFU 200 ARCHBISHOP_SHUUSHOU`,
   skills: {
-    // Lv15 (覚醒のパッシブが抜けた段): 聖句を唱えて癒し、致死を一度耐える加護を授ける
+    // Lv15 の固有技: 聖句を唱えて癒し、致死を一度耐える加護を授ける
     ARCHBISHOP_MAMORISEIKU: { name: "護りの聖句", mp: 5, kind: "heal", power: 12, grantEndure: true, target: "ally", desc: "聖句を唱えて癒し、致死を一度だけ耐える加護を授ける" },
     ARCHBISHOP_SEISENNOSHIZUKU: { name: "聖泉の滴", mp: 7, kind: "heal", power: 0, revive: true, revivePct: 0.35, cure: true, purge: true, target: "ally", desc: "最大HP35%を癒し清める。倒れた者も起こす" },
     ARCHBISHOP_SENREI: { name: "洗礼の儀", mp: 9, kind: "buff", buff: { vit: 1.1 }, cure: true, purge: true, target: "all-ally", desc: "全員の穢れと弱体を流し、守りを固める" },
@@ -37,6 +37,12 @@ export default {
     ARCHBISHOP_SHUUSHOU: { name: "聖典の終章", mp: 44, kind: "heal", power: 999, revive: true, revivePct: 0.7, cure: true, purge: true, grantBarrier: 1, target: "all-ally", desc: "全員を全快させ蘇らせ、魔障壁を授ける" },
   },
   perks: {
+    // ランクのパッシブ: 大司教の祈りは、癒しをいっそう深くする
+    archbishopShukufuku: {
+      label: "大いなる祝福",
+      lv: ["回復呪文の効果+20%", "回復呪文の効果+40%", "回復呪文の効果+60%", "回復呪文の効果+100%"],
+      fx: [{ t: "heal", v: [0.20, 0.40, 0.60, 1.00] }],
+    },
     archbishopMinasoko: { label: "水底の祈り", scope: "party", lv: ["2ラウンド目から毎ラウンド、味方全員のHP1%回復", "2ラウンド目から毎ラウンド、味方全員のHP1.5%回復", "2ラウンド目から毎ラウンド、味方全員のHP2%回復", "2ラウンド目から毎ラウンド、味方全員のHP2.5%回復"],
       fx: [{ t: "round", party: true, hp: [0.01, 0.015, 0.02, 0.025] }] },
     archbishopSeiten: { label: "聖典の護り", scope: "party", lv: ["戦闘開始時35%で、味方全員に魔障壁1回", "戦闘開始時55%で、味方全員に魔障壁1回", "戦闘開始時75%で、味方全員に魔障壁1回"],

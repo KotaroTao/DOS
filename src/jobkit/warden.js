@@ -2,20 +2,20 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 結界と封印の術者。土と水の守りで隊を囲い、敵の特技を封じ、封じた敵の牙を鈍らせる。
 export default {
-  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
-  awaken: "wardenSeihitsu/1",
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "wardenKekkai",
   table: `
     1 PROTECT 2 ISHITSUBUTE 3 SEAL 5 wardenHouheki/1 7 WARDEN_FUUGAN 10 ICENEEDLE
     12 AQUAWAVE 15 WARDEN_SHIZUMEISHI 15 spellGuard/1 20 MAYOKE 22 EARTHQUAKE 25 wardenGohoujin/1 30 WARDEN_SEKIRUI
     35 wardenFuujite/1 40 KOUSHUNOHOUJIN 45 wardenHouheki/2 47 ICELANCE 50 WARDEN_FUUMAKEKKAI 50 spellGuard/2 55 WARDEN_CHINJUU
     60 wardenGohoujin/2 62 LANDSLIDE 65 MADALT 70 wardenJusogaeshi/1 75 resistAilment/1 80 WARDEN_MIZUKAGAMI
-    85 ELEMBREAK 90 wardenSeihitsu/2 95 WARDEN_HAJA 100 WARDEN_SHIHOU 100 spellGuard/3 102 WARDEN_JIBAKU 105 wardenFuujite/2
-    110 WARDEN_SUIROU 115 wardenGohoujin/3 120 WARDEN_FUDOU 125 wardenSeihitsu/3 130 WARDEN_TAIZAN 135 wardenJusogaeshi/2
+    85 ELEMBREAK 90 wardenSeihitsu/1 95 WARDEN_HAJA 100 WARDEN_SHIHOU 100 spellGuard/3 102 WARDEN_JIBAKU 105 wardenFuujite/2
+    110 WARDEN_SUIROU 115 wardenGohoujin/3 120 WARDEN_FUDOU 125 wardenSeihitsu/2 130 WARDEN_TAIZAN 135 wardenJusogaeshi/2
     140 WARDEN_GANKAI 145 wardenHouheki/3 150 WARDEN_KONGOU 155 resistAilment/2 160 WARDEN_BAKUFU 165 wardenFuujite/3
     170 DAIKEKKAI 172 WARDEN_KANAME 175 wardenJusogaeshi/3 180 WARDEN_CHIMYAKU 185 wardenGohoujin/4 190 WARDEN_HYOUFUU
     195 WARDEN_SEISHIN 200 WARDEN_BANSHOU`,
   skills: {
-    // Lv15 (覚醒のパッシブが抜けた段): 鎮め石を巡らせ、敵全体の特技と力を鎮める
+    // Lv15 の固有技: 鎮め石を巡らせ、敵全体の特技と力を鎮める
     WARDEN_SHIZUMEISHI: { name: "鎮め石", mp: 6, kind: "debuff", seal: { chance: 0.35, turns: 2 }, debuff: { atk: 0.9 }, target: "all-enemy", desc: "鎮め石を巡らせ、敵全体の特技を封じて力を鈍らせる" },
     WARDEN_FUUGAN:      { name: "封眼の符", mp: 4, kind: "debuff", debuff: { hit: 0.75 }, seal: { chance: 0.3, turns: 2 }, target: "enemy", desc: "符で目を塞ぎ、狙いを乱し特技を封じる" },
     WARDEN_SEKIRUI:     { name: "石塁の礫", mp: 8, kind: "atk", power: 24, element: "earth", debuffAll: { atk: 0.9 }, target: "enemy", desc: "石塁の礫を撃ち、敵全体の勢いを削ぐ" },

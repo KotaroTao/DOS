@@ -2,8 +2,8 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 毒と呪いで蝕み、魅了と混乱で崩す (闇/水)。弱った・呪われた敵ほど呪文が深く刺さる
 export default {
-  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
-  awaken: "gokudoku/1",
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "hexerSae",
   table: `
     1 BLIND 2 SHADOWBOLT 3 NOROI 5 hexerShokuso/1 7 MARK_WATER 10 HEXER_MUMAKOU
     12 AQUAWAVE 15 HEXER_SHOKUJU 15 hexerGosun/1 20 MIWAKU 22 DARKMIST 25 hexerJusui/1 30 KYOURAN
@@ -15,7 +15,7 @@ export default {
     165 resistAilment/2 170 HEXER_HYOUKAN 175 soulLure/1 180 MEIANRAN 185 hexerJusoMamori/2 190 HEXER_HYAKKI
     195 MAGATSU 200 HEXER_BANJU`,
   skills: {
-    // Lv15 (覚醒のパッシブが抜けた段): 呪詛を吹き込み、毒と守りの綻びで蝕む
+    // Lv15 の固有技: 呪詛を吹き込み、毒と守りの綻びで蝕む
     HEXER_SHOKUJU: { name: "蝕みの呪詛", mp: 4, kind: "debuff", poison: { chance: 0.8, pct: 0.06 }, debuff: { vit: 0.85 }, target: "enemy", desc: "呪詛を吹き込み、毒で蝕んで守りを削ぐ（毎ターン6%）" },
     HEXER_MUMAKOU: { name: "夢魔の香", mp: 4, kind: "debuff", sleepChance: 0.45, poison: { chance: 0.3, pct: 0.04 }, target: "all-enemy", desc: "甘い香で敵全体を眠らせ、毒を回す" },
     HEXER_SHIKUGI: { name: "黙し釘の呪", mp: 11, kind: "debuff", seal: { chance: 0.5, turns: 3 }, vuln: { dark: 0.85 }, target: "all-enemy", desc: "呪い釘で敵全体の特技を封じ、闇に脆くする" },

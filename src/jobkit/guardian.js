@@ -2,20 +2,20 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 動かぬ城壁と反撃 — 根を張って耐え、受けた傷と盾の重み (VIT・背水) で打ち返す。大地と水の守り
 export default {
-  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
-  awaken: "guardianHoufuku/1",
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "guardianKongou",
   table: `
     1 SHIELDBASH 2 NERAIUCHI 3 CHOUHATSU 5 guardianNone/1 7 GUARDIAN_NEHARI 10 SUIGETSU
     12 IWAKUDAKI 15 GUARDIAN_OOTATEOTOSHI 15 guardianKenrou/1 20 HANGEKI 22 CHIRETSU 25 guardianTatenochikai/1 30 NIOUDACHI
     35 guardianToride/1 40 KOUBOUITTAI 45 guardianNone/2 50 GUARDIAN_KORAEGAESHI 50 guardianKenrou/2 55 RYUURINJIN 57 GUARDIAN_GANBANGAESHI
-    60 guardianHoufuku/2 65 GUARDIAN_SUKIUGACHI 70 guardianUtaregatame/1 75 guardianToride/2 80 GUARDIAN_SEKIHEKI 85 GUARDIAN_SOUJUN
-    90 guardianTatenochikai/2 95 GUARDIAN_GAJOU 100 GUARDIAN_OMOTATE 100 guardianKenrou/3 105 guardianHoufuku/3 107 GUARDIAN_JIBANSHIZUME 110 OUJOU
+    60 guardianHoufuku/1 65 GUARDIAN_SUKIUGACHI 70 guardianUtaregatame/1 75 guardianToride/2 80 GUARDIAN_SEKIHEKI 85 GUARDIAN_SOUJUN
+    90 guardianTatenochikai/2 95 GUARDIAN_GAJOU 100 GUARDIAN_OMOTATE 100 guardianKenrou/3 105 guardianHoufuku/2 107 GUARDIAN_JIBANSHIZUME 110 OUJOU
     115 guardianToride/3 120 GUARDIAN_JUUGAITOOSHI 125 guardianUtaregatame/2 130 GUARDIAN_SENNENJOUHEKI 135 resistAilment/1 140 GUARDIAN_MIDARETATE
     145 bigBarrier/1 150 GUARDIAN_UZUSHIO 155 guardianNone/3 160 GUARDIAN_DAIBANJAKU 162 GUARDIAN_JIJIKUYURASHI 165 resistAilment/2
     170 GUARDIAN_TAKANAMI 175 holyCover/1 180 GUARDIAN_KINJOUTEPPEKI 185 bigBarrier/2 190 GUARDIAN_ROUJOU 195 GUARDIAN_TENCHIGAESHI
     200 GUARDIAN_EIGOUJOUSAI`,
   skills: {
-    // Lv15 (覚醒のパッシブが抜けた段): 大盾を振り下ろし、盾の重み (VIT) で押し潰す
+    // Lv15 の固有技: 大盾を振り下ろし、盾の重み (VIT) で押し潰す
     GUARDIAN_OOTATEOTOSHI: { name: "大盾落とし", mp: 5, kind: "phys", power: 1.0, vitScale: 1.0, acc: 0.6, element: "earth", flinchChance: 0.3, target: "enemy", desc: "大盾を振り下ろして押し潰し、怯ませる（VITで伸びる）" },
     GUARDIAN_NEHARI: { name: "根張りの構え", mp: 5, kind: "buff", buff: { vit: 1.7, agi: 0.8 }, dur: 4, tech: true, target: "self", desc: "根を張って動かず、防御を大きく上げる（素早さ↓）" },
     GUARDIAN_KORAEGAESHI: { name: "堪え返し", mp: 10, kind: "phys", power: 1.5, vitScale: 0.8, desperate: true, acc: 0.7, flinchChance: 0.2, target: "enemy", desc: "耐えた傷の分だけ重い盾撃。怯ませる" },

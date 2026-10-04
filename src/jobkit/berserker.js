@@ -2,20 +2,20 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 狂戦士 = 捨て身と血。己の血を代償 (hpCost) に重い一撃、斬って啜る (drain)、傷が深いほど猛る
 export default {
-  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
-  awaken: "berserkerTeoi/1",
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "berserkerKyouhon",
   table: `
     1 KYOUGEKI 2 KAENGIRI 3 NERAIUCHI 5 berserkerMukui/1 7 SUTEMI 10 BERSERKER_CHIZOME
     12 YAMIBA 15 BERSERKER_ABAREUCHI 15 berserkerChinonioi/1 20 BERSERKER_HOUKOU 22 KAENNAGI 25 berserkerTakeri/1 30 CHINOKAWAKI
-    35 berserkerFukade/1 40 KIJINKUDAKI 45 berserkerTeoi/2 50 BERSERKER_HONEKUDAKI 50 berserkerChinonioi/2 55 SHINGANGEKI 57 GURENZAN
+    35 berserkerFukade/1 40 KIJINKUDAKI 45 berserkerTeoi/1 50 BERSERKER_HONEKUDAKI 50 berserkerChinonioi/2 55 SHINGANGEKI 57 GURENZAN
     60 berserkerMukui/2 65 BERSERKER_KUIKOMI 70 berserkerTakeri/2 75 endure/1 80 BERSERKER_KURAISAKI 82 MEIJIN
-    85 MIDARE 90 berserkerTeoi/3 95 BERSERKER_FUKKETSU 100 BERSERKER_TATAKIWARI 100 berserkerChinonioi/3 105 berserkerMukui/3 107 BERSERKER_KEKKEN
+    85 MIDARE 90 berserkerTeoi/2 95 BERSERKER_FUKKETSU 100 BERSERKER_TATAKIWARI 100 berserkerChinonioi/3 105 berserkerMukui/3 107 BERSERKER_KEKKEN
     110 SHURAZAN 115 berserkerTakeri/3 120 BERSERKER_BOUGYAKU 125 berserkerFukade/2 130 BERSERKER_CHIKAZAGURUMA 135 asceticism/1
-    140 MEIFUZAN 145 resistAilment/1 150 BERSERKER_DANTOUDAI 155 berserkerTeoi/4 160 BERSERKER_KETSUEN 162 BERSERKER_ENGOKU
+    140 MEIFUZAN 145 resistAilment/1 150 BERSERKER_DANTOUDAI 155 berserkerTeoi/3 160 BERSERKER_KETSUEN 162 BERSERKER_ENGOKU
     165 endure/2 170 BERSERKER_METTAUCHI 175 berserkerChiniyou/1 180 TOKOYAMI 185 berserkerChiniyou/2 190 BERSERKER_KYOUOU
     195 BERSERKER_YATSUZAKI 200 BERSERKER_SENKETSU`,
   skills: {
-    // Lv15 (覚醒のパッシブが抜けた段): 狂ったように三度打ち据える。傷が深いほど重い
+    // Lv15 の固有技: 狂ったように三度打ち据える。傷が深いほど重い
     BERSERKER_ABAREUCHI: { name: "暴れ打ち", mp: 6, kind: "phys", power: 0.7, hits: 3, acc: 0.2, desperate: true, target: "enemy", desc: "狂ったように三度打ち据える。傷が深いほど重い" },
     BERSERKER_CHIZOME: { name: "血染めの斧", mp: 6, kind: "phys", power: 1.9, hpCost: 0.06, acc: 0.3, target: "enemy", desc: "己の血を代償に重く叩きつける" },
     BERSERKER_HOUKOU: { name: "血の咆哮", mp: 6, kind: "debuff", debuff: { vit: 0.85 }, flinchChance: 0.25, target: "all-enemy", tech: true, desc: "血走った咆哮で敵陣を竦ませ、守りを崩す" },

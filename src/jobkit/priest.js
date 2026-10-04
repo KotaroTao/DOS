@@ -2,8 +2,8 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 素朴な癒しの基本。村の僧が枕元で祈るような、質素で粘り強い手当て (蘇生は身を削ってでも)
 export default {
-  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
-  awaken: "selfPurify/1",
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "priestInochi",
   table: `
     1 DIOS 3 CURE 5 afterHeal/1 7 HOLYRAY 10 BLESS 15 PRIEST_MAKURABE 15 fieldRegen/1
     17 REGEN 20 DIOSALL 25 afterHeal/2 30 DIAL 35 chant/1 40 DIALALL
@@ -14,7 +14,7 @@ export default {
     165 priestYoake/2 170 FUKUIN 175 priestTeate/2 180 SEIKOURETSU 185 DAISEIKITOU 190 DAIFUKUIN
     195 priestMitori/2 200 KAMIWAZA`,
   skills: {
-    // Lv15 (覚醒のパッシブが抜けた段): 枕元で祈るような手当て。癒し・治療・癒しの持続を一度に
+    // Lv15 の固有技: 枕元で祈るような手当て。癒し・治療・癒しの持続を一度に
     PRIEST_MAKURABE: { name: "枕辺の祈り", mp: 4, kind: "heal", power: 10, cure: true, regen: { pct: 0.04, turns: 3 }, target: "ally", desc: "傷を癒して状態異常を治し、しばらく癒しが続く" },
     PRIEST_GOKOU: { name: "後光", mp: 6, kind: "atk", power: 15, element: "light", debuff: { hit: 0.85 }, target: "all-enemy", desc: "後光で敵全体を灼き、目を眩ませる" },
     PRIEST_MEZAME: { name: "目覚めの祈り", mp: 8, kind: "heal", power: 0, revive: true, revivePct: 0.4, regen: { pct: 0.05, turns: 3 }, target: "ally", desc: "倒れた者をHP40%で起こし、癒しを残す" },

@@ -1,6 +1,6 @@
 // 職ごとの技・パッシブの集約窓口 (jobkit)。
 // 各職のファイル (fighter.js …) が { awaken, table, skills, perks } を持つ:
-//   awaken = 覚醒のパッシブ「パッシブキー/Lv」。魂がランク2に上がると目覚める (souls.js の JOB_PASSIVES。宿し技として貸せる)
+//   awaken = ランクのパッシブのキー (4段)。魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES。宿し技として貸せる)
 //   table  = 習得表。「Lv 技キー」または「Lv パッシブキー/パッシブLv」を空白区切りで並べた文字列 (souls.js の T が展開する)
 //   skills = その職だけの固有技。skilldefs.js の SPELLS に合流する (項目の意味は skilldefs.js 冒頭)
 //   perks  = その職だけの固有パッシブ。souls.js の PASSIVES に合流し (名前・説明)、効果 fx は combat.js が読む
@@ -37,7 +37,7 @@
 //    boss / noBoss / selfLow:0.5 / selfHigh:0.8 / selfAil / buffed (自分が強化中) / defending / mpHigh:0.5 /
 //    round1 / roundGE:3 / preempt (先制した戦闘) / front / back (自分の隊列) / crowd:3 (敵の数以上) / lastFoe (敵が残り1体) /
 //    allyDown (倒れた味方がいる) / alone (生き残りが自分だけ) / elem:"fire" (攻撃の属性) /
-//    tgtWeak (攻撃の属性が相手の弱点)
+//    tgtWeak (攻撃の属性が相手の弱点) / tgtWeakened (相手が状態異常・怯み・弱体のどれか)
 import fighter from "./fighter.js";
 import knight from "./knight.js";
 import priest from "./priest.js";
@@ -90,7 +90,7 @@ const SKILL_KEYS = new Set(("name mp kind target desc power hits scatter critBon
 const KINDS = new Set(["phys", "atk", "heal", "cure", "buff", "debuff", "mana", "sleep", "escape", "field"]);
 const TARGETS = new Set(["enemy", "all-enemy", "ally", "all-ally", "self"]);
 const ELS = new Set(["fire", "water", "wind", "earth", "light", "dark"]);
-const STATS = new Set(["atk", "vit", "agi", "int", "hit"]);
+const STATS = new Set(["atk", "vit", "agi", "int", "pie", "hit"]);
 const FX_FIELDS = {
   deal: "v on when aura", take: "v on when aura", crit: "v on when aura", evade: "v when aura", heal: "v", cost: "v on",
   stat: "mul when", start: "chance when party dur buff foe barrier regen mp endure taunt charge",
@@ -98,7 +98,7 @@ const FX_FIELDS = {
   hit: "chance on ail pct turns mul el", cast: "chance on refund hp mp party", fall: "chance buff dur hp", win: "hp mp party",
 };
 const WHEN = new Set(("race tgtElem tgtAil tgtDebuffed tgtLow tgtHigh boss noBoss selfLow selfHigh selfAil buffed defending mpHigh " +
-  "round1 roundGE preempt front back crowd lastFoe allyDown alone elem tgtWeak").split(" "));
+  "round1 roundGE preempt front back crowd lastFoe allyDown alone elem tgtWeak tgtWeakened").split(" "));
 const AILS = new Set(["poison", "para", "sleep", "confuse", "charm", "seal", "flinch", "strip", "atk", "vit", "agi", "vuln"]);
 function fail(job, what, msg) { throw new Error(`jobkit/${job}: ${what}: ${msg}`); }
 function checkSkill(job, key, sp) {
@@ -140,7 +140,7 @@ export const JOBKIT_AWAKEN = {};
 for (const job in JOBKIT) {
   const kit = JOBKIT[job];
   JOBKIT_TABLES[job] = kit.table;
-  if (!/^[a-z][A-Za-z0-9]+\/\d$/.test(kit.awaken || "")) fail(job, "awaken", "「パッシブキー/Lv」が必要");
+  if (!/^[a-z][A-Za-z0-9]+$/.test(kit.awaken || "")) fail(job, "awaken", "ランクのパッシブのキーが必要");
   JOBKIT_AWAKEN[job] = kit.awaken;
   for (const key in kit.skills || {}) {
     if (JOBKIT_SKILLS[key]) fail(job, key, "技キーが他の職と重複");

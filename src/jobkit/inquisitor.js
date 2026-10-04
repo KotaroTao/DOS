@@ -2,20 +2,20 @@
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
 // 持ち味: 断罪の鉄槌と浄火。罪を封じ、弱った罪人の急所を打ち据える (火/光)
 export default {
-  // 覚醒のパッシブ: 魂がランク2に上がると目覚める (以前の Lv15 のパッシブ)
-  awaken: "inquisitorShinmonNirami/1",
+  // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
+  awaken: "inqDanzai",
   table: `
     1 SHIELDBASH 2 KAENGIRI 3 DIOS 5 inquisitorKokkaiTomoshibi/1 7 NERAIUCHI 10 SHINMON
     12 INQUISITOR_SHOKUZAI 15 INQUISITOR_DANZAI 15 inqBrand/1 20 INQUISITOR_KASEUCHI 22 KAENNAGI 25 resistAilment/1 30 KAKEI
-    32 INQUISITOR_HAMON 35 inquisitorShinmonNirami/2 40 DANZAINOTSUCHI 45 inquisitorIhanShirushi/1 50 INQUISITOR_YAKIIN 50 inqBrand/2 55 DIOSALL
+    32 INQUISITOR_HAMON 35 inquisitorShinmonNirami/1 40 DANZAINOTSUCHI 45 inquisitorIhanShirushi/1 50 INQUISITOR_YAKIIN 50 inqBrand/2 55 DIOSALL
     57 GURENZAN 60 inquisitorKokkaiTomoshibi/2 65 SHINGANGEKI 70 inquisitorZaininKyuusho/1 75 inquisitorIhanShirushi/2 80 INQUISITOR_IHANHAGI
-    85 INQUISITOR_MANAZASHI 90 inquisitorShinmonNirami/3 95 INQUISITOR_SABAKIYARI 100 INQUISITOR_GOUMON 100 inqBrand/3 105 resistAilment/2 107 INQUISITOR_JOUKATSUCHI
+    85 INQUISITOR_MANAZASHI 90 inquisitorShinmonNirami/2 95 INQUISITOR_SABAKIYARI 100 INQUISITOR_GOUMON 100 inqBrand/3 105 resistAilment/2 107 INQUISITOR_JOUKATSUCHI
     110 INQUISITOR_FUNKEI 115 inquisitorJoukaKokoroe/1 120 INQUISITOR_SHINPAN 125 inquisitorZaininKyuusho/2 130 INQUISITOR_KOKKAI 135 inquisitorIhanShirushi/3
     140 INQUISITOR_MAJOGARI 145 inquisitorJoukaKokoroe/2 150 INQUISITOR_HAKAI 155 inquisitorZaininKyuusho/3 160 INQUISITOR_ZAININRETSU 162 INQUISITOR_KAKEIBA
-    165 inquisitorShinmonNirami/4 170 INQUISITOR_DANTOU 175 inquisitorJoukaKokoroe/3 180 INQUISITOR_JOUZAI 185 inquisitorKokkaiTomoshibi/3 190 SAIGONOSHINPAN
+    165 inquisitorShinmonNirami/3 170 INQUISITOR_DANTOU 175 inquisitorJoukaKokoroe/3 180 INQUISITOR_JOUZAI 185 inquisitorKokkaiTomoshibi/3 190 SAIGONOSHINPAN
     195 INQUISITOR_YURUSHI 200 INQUISITOR_SHAMEN`,
   skills: {
-    // Lv15 (覚醒のパッシブが抜けた段): 罪人を鉄槌で打つ。弱った者に重く、特技を封じる
+    // Lv15 の固有技: 罪人を鉄槌で打つ。弱った者に重く、特技を封じる
     INQUISITOR_DANZAI: { name: "罪人打ち", mp: 5, kind: "phys", power: 1.3, acc: 0.5, execute: 1.6, seal: { chance: 0.3, turns: 2 }, target: "enemy", desc: "罪人を鉄槌で打ち据える。弱った敵に重く、特技を封じる" },
     // 信仰の火 (faith)。共通の炎の呪文は INT 依存で審問官 (PIE型) に合わないので置き換える
     INQUISITOR_SHOKUZAI: { name: "贖罪の火矢", mp: 2, kind: "atk", power: 10, element: "fire", faith: true, target: "enemy", desc: "罪を贖わせる火の矢（PIEでも伸びる）" },
@@ -40,6 +40,12 @@ export default {
     INQUISITOR_SHAMEN: { name: "終の赦免", mp: 44, kind: "heal", power: 999, revive: true, revivePct: 0.7, cure: true, purge: true, grantBarrier: 1, target: "all-ally", desc: "倒れた者を赦し蘇らせ (HP70%)、全員を守る" },
   },
   perks: {
+    // ランクのパッシブ: 罪に縛られた者へ、裁きは重くなる
+    inqDanzai: {
+      label: "断罪",
+      lv: ["状態異常・弱体中の敵への与ダメージ+10%", "状態異常・弱体中の敵への与ダメージ+15%", "状態異常・弱体中の敵への与ダメージ+20%", "状態異常・弱体中の敵への与ダメージ+30%"],
+      fx: [{ t: "deal", when: { tgtWeakened: true }, v: [0.10, 0.15, 0.20, 0.30] }],
+    },
     inquisitorKokkaiTomoshibi: { label: "告解の灯", lv: ["戦闘勝利後、味方全員のHP3%回復", "戦闘勝利後、味方全員のHP5%回復", "戦闘勝利後、味方全員のHP7%回復"],
       fx: [{ t: "win", hp: [0.03, 0.05, 0.07], party: true }] },
     inquisitorShinmonNirami: { label: "審問官の睨み", lv: ["戦闘開始時、敵を引き付け敵全体のATK−7% (3ターン)", "開幕に引き付け、敵全体のATK−10%", "開幕に引き付け、敵全体のATK−13%", "開幕に引き付け、敵全体のATK−16%"],

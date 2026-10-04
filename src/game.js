@@ -1214,6 +1214,10 @@ function shadeHex(hex, f) {
 // 偉大なる死体の職業: レア30% / エピック50% / レジェンド20% (souls.js の共通定義を使う)
 function rollGreatCorpseClass() { return rollGreatJobClass(); }
 
+// ランクのパッシブの Lv (1-4 = ランク2-5) から、その段の値を引く (combat.js の _rk と同じ)
+function rankVal(m, key, table) { const lv = pLv(m, key); return lv ? (table[Math.min(table.length, lv) - 1] || 0) : 0; }
+// 隊で一番高い段の値 (重複不可)
+function rankParty(key, table) { let v = 0; for (const p of G.party || []) if (p.alive) v = Math.max(v, rankVal(p, key, table)); return v; }
 // 生存パーティが持つ職業ランクパッシブの最高Lv (隊全体効果の判定用。重複しない)
 function partyPassiveLv(key) {
   let lv = 0;
@@ -6268,7 +6272,9 @@ function chestRankOf(cell) {
   const floors = Math.max(1, cfg.floors || 3);
   const depth = floors > 1 ? Math.min(1, (G.floor - 1) / (floors - 1)) : 0;
   // 特別階 (商隊の遺品) / 迷宮の異変 (閉ざされた退路など): 宝箱ランクが上がる。
-  const r = Math.min(5, rollChestRank(depth, cfg.rank || 1) + sfNum("chestRankUp", 0) + mutNum("chestRankUp", 0));
+  // 抜け目なさ (盗賊のランク): 宝箱のランクが一段上がる確率 10/15/20/30%
+  const nk = Math.random() < rankParty("thiefNukeme", [0.10, 0.15, 0.20, 0.30]) ? 1 : 0;
+  const r = Math.min(5, rollChestRank(depth, cfg.rank || 1) + sfNum("chestRankUp", 0) + mutNum("chestRankUp", 0) + nk);
   if (cell) cell.cRank = r;
   return r;
 }
@@ -8792,7 +8798,8 @@ function endBattle() {
     const { soul, gold } = b.rewards();
     const gl = partyPassiveLv("goldLuck"), sl = partyPassiveLv("soulLure");
     const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1))) + takeStolenGold(b);
-    const soulGot = runGainSoulPts(Math.round(soul * (sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1)));
+    const sb = rankParty("bishopSeibetsu", [0.05, 0.10, 0.15, 0.25]); // 魂の聖別 (司教のランク)
+    const soulGot = runGainSoulPts(Math.round(soul * ((sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1) + sb)));
     applyVictoryPassives();
     // 入手Soulの1/3を生存メンバーの魂 (サブ魂はその1/3) に加算 → レベルアップ/スキル習得を集計
     const progress = distributeBattleSoulExp(soulGot);
@@ -12174,7 +12181,8 @@ function healAllRevivers() {
 }
 // 倒れた1体を呪文で起こす (campCast と同じ蘇生量)
 function campRevive(caster, sp, t) {
-  const heal = sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : Math.max(1, campHealPower(caster, sp));
+  const heal = (sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : Math.max(1, campHealPower(caster, sp)))
+    + Math.round(t.maxhp * rankVal(caster, "priestInochi", [0.10, 0.20, 0.30, 0.50])); // 生命の灯 (僧侶のランク)
   t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false;
   t.hp = Math.max(1, Math.min(t.maxhp, heal));
   log(`${sp.name}！ ${t.name}が蘇った (HP ${t.hp})`, "heal");
@@ -12686,6 +12694,7 @@ function useItem(p, index, target) {
   p.items.splice(index, 1);
   const kinds = useCureKinds(u);
   const notes = [];
+  const alc = 1 + rankParty("hermitSenyaku", [0.20, 0.30, 0.40, 0.60]); // 仙薬 (隠修士のランク): 道具の回復量
   for (const t of targets) {
     if (u.revive) {
       t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false;
@@ -12695,8 +12704,8 @@ function useItem(p, index, target) {
       continue;
     }
     const bits = [];
-    if (u.heal || u.full) { const b = t.hp; t.hp = Math.min(t.maxhp, t.hp + (u.full ? t.maxhp : u.heal)); if (t.hp > b) bits.push(`HP+${t.hp - b}`); }
-    if ((u.mp || u.mpFull) && (t.maxmp || 0) > 0) { const b = t.mp; t.mp = Math.min(t.maxmp, t.mp + (u.mpFull ? t.maxmp : u.mp)); if (t.mp > b) bits.push(`MP+${t.mp - b}`); }
+    if (u.heal || u.full) { const b = t.hp; t.hp = Math.min(t.maxhp, t.hp + (u.full ? t.maxhp : Math.round(u.heal * alc))); if (t.hp > b) bits.push(`HP+${t.hp - b}`); }
+    if ((u.mp || u.mpFull) && (t.maxmp || 0) > 0) { const b = t.mp; t.mp = Math.min(t.maxmp, t.mp + (u.mpFull ? t.maxmp : Math.round(u.mp * alc))); if (t.mp > b) bits.push(`MP+${t.mp - b}`); }
     if (kinds.length && t.ailment && kinds.includes(t.ailment)) { bits.push(`${AIL_NAME[t.ailment] || "状態異常"}が治った`); t.ailment = null; }
     if (bits.length) { notes.push(`${t.name} ${bits.join(" ")}`); log(`${p.name}は${it.name}を使った。${t.name}: ${bits.join("・")}`, "heal"); }
   }
@@ -12858,14 +12867,16 @@ function showRankUp(info, onClose) {
   }, onClose);
 }
 
-// 各ランク到達で新たに得たもののヒント (行の配列)。覚醒のパッシブはその名前と効果だけを書き、
+// 各ランク到達で新たに得たもののヒント (行の配列)。ランクのパッシブはその名前と効果だけを書き、
 // まだ開いていない仕組み (宿し魂・控えの結社) には触れない
 function rankUnlockHint(rank, clsKey) {
   const head = { 2: "★ 覚醒", 3: "★ 上位の技 — 伸びたLv上限の先に、新たな技が見えてきた。", 4: "★ 真髄 — Lv上限が大きく伸びた。", 5: "★ 極致 — 魂は最高位に至り、Lvの天井が解き放たれた。" }[rank];
   if (!head) return null;
   const lines = [];
-  const perk = rank === 2 ? awakenPerkOf(clsKey, 2) : null;
-  if (perk) lines.push(`${head} — パッシブ「${perk.name}」に目覚めた`, perk.desc);
+  // ランクのパッシブ: ランク2で目覚め、3・4・5で強まる (名前と効果だけ)
+  const perk = awakenPerkOf(clsKey, rank);
+  if (perk && rank === 2) lines.push(`${head} — パッシブ「${perk.name}」に目覚めた`, perk.desc);
+  else if (perk) lines.push(head, `パッシブ「${perk.name}」に強まった`, perk.desc);
   else lines.push(head);
   if (featureUnlocked("sub1")) {
     const pc = subPickCapOfRank(rank), pp = subPickCapOfRank(rank - 1);
