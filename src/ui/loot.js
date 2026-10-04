@@ -589,7 +589,7 @@ export function identifyChooser(it, { onDone } = {}) {
   const skillOk = !it.lr && !it.idHardFail;
   if (skillOk) {
     for (const m of men) {
-      const ch = identifyChance(m, it.lv || 1);
+      const ch = identifyChance(m, it);
       const pct = Math.round(ch * 100);
       const sub = el("span", "wpc-prow-sub");
       sub.appendChild(document.createTextNode(`${m.cls || ""} ・ ${identifyLabel(m)}`));
@@ -662,7 +662,7 @@ function defaultActions(st) {
     } else if (!it.lr && !it.idHardFail) {
       const men = townAppraisers();
       if (men.length) {
-        const best = men.map((m) => ({ m, ch: identifyChance(m, it.lv || 1) })).sort((a, b) => b.ch - a.ch)[0];
+        const best = men.map((m) => ({ m, ch: identifyChance(m, it) })).sort((a, b) => b.ch - a.ch)[0];
         acts.push({ key: "tryId", primary: true, label: "鑑定を試す", sub: `${best.m.name} ${Math.round(best.ch * 100)}%`,
           onTap: () => { const ok = game.doIdentifySkill ? game.doIdentifySkill(best.m, it) : false; st.rerender({ revealed: !!ok }); },
           menu: men.length > 1 || (town && shopOpen()) ? () => identifyChooser(it, { onDone: (ok) => st.rerender({ revealed: !!ok }) }) : null });

@@ -13232,7 +13232,7 @@ function townAppraisers() {
 function doIdentifySkill(m, it, { quiet = false } = {}) {
   if (!it || !it.unidentified || it.lr || it.idHardFail) return false;
   if (G.state !== "town") return false;
-  const ch = identifyChance(m, it.lv || 1);
+  const ch = identifyChance(m, it);
   const ok = Math.random() < ch;
   if (ok) {
     const first = revealIdentity(it);
