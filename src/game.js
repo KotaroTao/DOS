@@ -15,7 +15,7 @@ import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows } fr
 import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
-import { DUNGEONS, GEN_DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, levelBand, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, layerOf, isFloating, METAL_TIERS, unknownName } from "./dungeons/index.js";
+import { DUNGEONS, GEN_DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, levelBand, DUNGEON_MONSTERS, ELEMENTS, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, layerOf, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
 import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
@@ -45,7 +45,7 @@ import { installPhraseWrap } from "./ui/phrase.js";
 import * as townshell from "./ui/townshell.js";
 import { showSkillPopup,
   SPELL_KIND_COLOR, BUFF_NAME, tagRow, spellTagKinds, isEquippable, equipPreviewDelta, equipCompareEl, detailLines,
-  equipClassText, equipPartyChips, gearScore, enemyReveal, enemyLabel,
+  equipClassText, equipPartyChips, gearScore, enemyReveal, enemyLabel, enemyUnknown, UNKNOWN_COLOR, setLogText,
 } from "./ui/itemview.js";
 import * as uiHub from "./ui/hub.js";
 import * as uiPalace from "./ui/palace.js";
@@ -696,7 +696,8 @@ function shakeScreen(strong = false) {
 const LOG_HISTORY_MAX = 300;
 const _logHistory = [];
 function logHistory() { return _logHistory.map((x) => ({ text: x.n > 1 ? `${x.msg} ×${x.n}` : x.msg, cls: "l-" + x.cls })); }
-// 戦闘中の記録は、まだ名前を知らない敵 (討伐数0) の名を不確定名 (「蠢く粘塊」など、dungeons/unknown.js) に伏せる。
+// 戦闘中の記録は、まだ名前を知らない敵 (討伐数0) の名を不確定名 (「蠢く粘塊？」など、dungeons/unknown.js) に伏せる。
+// 不確定名は unknownTag の印で囲み、記録欄では .unk-name の色で正式な名と見分ける (setLogText)
 // 個体名 (スライムA) を先に、種の名 (スライム) を後に置き換える。明かされた別の敵の名に含まれる種名は触らない
 // (置き換えた不確定名が別の敵の名を含んでも二重に化けないよう、いったん印に置き換えてから戻す)
 // (戦闘の組み立て中 = Battle を作る前の名乗りや開幕の一撃は _maskEnemies を見る)
@@ -708,8 +709,8 @@ function maskUnknownEnemies(msg) {
   const known = [], pairs = [];
   for (const e of list) {
     if (enemyReveal(e).name) { known.push(e.name); continue; }
-    pairs.push([e.name, enemyLabel(e)]);
-    if (e.mon && e.mon.name) pairs.push([e.mon.name, unknownName(e.mon)]);
+    pairs.push([e.name, unknownTag(enemyLabel(e))]);
+    if (e.mon && e.mon.name) pairs.push([e.mon.name, unknownTag(unknownLabel(e.mon))]);
   }
   if (!pairs.length) return msg;
   pairs.sort((x, y) => y[0].length - x[0].length);
@@ -733,14 +734,14 @@ function log(msg, cls = "sys") {
   const last = logEl.lastElementChild;
   if (last && last._msg === msg && last.className === "l-" + cls) {
     last._n = (last._n || 1) + 1;
-    last.textContent = `${msg} ×${last._n}`;
+    setLogText(last, `${msg} ×${last._n}`);
     _logPinned = true;
     scrollLogBottom();
     return;
   }
   const div = document.createElement("div");
   div.className = "l-" + cls;
-  div.textContent = msg;
+  setLogText(div, msg);
   div._msg = msg;
   logEl.appendChild(div);
   while (logEl.children.length > 80) logEl.removeChild(logEl.firstChild);
@@ -4941,7 +4942,7 @@ function resolveCell(cell) {
       if (!cell.cleared) {
         const mon = MONSTERS[cell.monsterKey];
         // 名前は討伐数で明かす (enemyReveal) — 戦闘前の名乗りでも、まだ知らない敵の名は出さない
-        const name = enemyReveal({ key: cell.monsterKey, mon }).name ? mon.name : unknownName(mon);
+        const name = enemyReveal({ key: cell.monsterKey, mon }).name ? mon.name : unknownTag(unknownLabel(mon));
         if (mon.metal) {
           // 金属の魔物: 倒せば莫大な✦Soul。ただしすぐ逃げる
           log(`✦ ${name} だ！ 逃がすな！`, "win");
@@ -5736,7 +5737,7 @@ const evApi = {
   poolKey: () => evPoolKey(),
   eliteKeyHere: () => eliteKey(),
   // 出来事の文に出す魔物の名 (まだ倒していない魔物は不確定名)
-  monName: (k) => (MONSTERS[k] ? (enemyReveal({ key: k, mon: MONSTERS[k] }).name ? MONSTERS[k].name : unknownName(MONSTERS[k])) : "魔物"),
+  monName: (k) => (MONSTERS[k] ? (enemyReveal({ key: k, mon: MONSTERS[k] }).name ? MONSTERS[k].name : unknownLabel(MONSTERS[k])) : "魔物"),
   fight(cell, specs, tag, o = {}) {
     // 敵の種類はここで確定させる (逃げて戻った時の再戦も同じ顔ぶれにする)
     const fixed = (specs || []).map((sp) => sp.shadows || (sp.key && MONSTERS[sp.key]) ? { ...sp }
@@ -6766,8 +6767,8 @@ function startBattle(enemies, cell) {
   combatMenu.classList.remove("hidden");
   // 同種の群れは「ゴブリン ×4」とまとめて告げる (個体名は A/B/C… 付き)
   const sameKind = enemies.length > 1 && enemies.every((e) => e.key === enemies[0].key);
-  // 名前は討伐数1で明かす (それまでは不確定名「小さく蠢くもの」など。迷宮の主は最初から名乗る)
-  log(`${sameKind ? `${enemyReveal(enemies[0]).name ? enemies[0].mon.name : unknownName(enemies[0].mon)} ×${enemies.length}` : enemies.map(enemyLabel).join("・")} が現れた！`, "dmg");
+  // 名前は討伐数1で明かす (それまでは不確定名「小さく蠢くもの？」など。迷宮の主は最初から名乗る — 伏せるのは log の maskUnknownEnemies)
+  log(`${sameKind ? `${enemies[0].mon.name} ×${enemies.length}` : enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
   // 先制・奇襲の判定 (ボス戦・強敵戦では発生しない)。
   // 周囲警戒 (vigilance) が奇襲を抑え、先制の心得 (initiative) が先制を伸ばす
   const isBoss = enemies.some((e) => e.boss);
@@ -7206,7 +7207,8 @@ function drawEnemyPlate(e, x, y, hot, k) {
   // 内側の細い罫
   vctx.strokeStyle = "rgba(255,230,190,0.08)";
   vctx.beginPath(); vctx.moveTo(x0 + 7, y + 2.5); vctx.lineTo(x1 - 7, y + 2.5); vctx.stroke();
-  vctx.fillStyle = e.boss ? "#ffe0a0" : "#efe3cb";
+  // 不確定名 (まだ名を知らない敵) は淡い藤色で、正式な名と見分ける
+  vctx.fillStyle = enemyUnknown(e) ? UNKNOWN_COLOR : e.boss ? "#ffe0a0" : "#efe3cb";
   vctx.shadowColor = "#000"; vctx.shadowBlur = 0; vctx.shadowOffsetY = 1;
   vctx.fillText(label, x, y + ph / 2 + 0.5);
   vctx.shadowOffsetY = 0;
@@ -7447,7 +7449,7 @@ function playBattleIntro(done) {
   const ambush = b.opening === "ambush";
   let dur = (boss ? 1900 : 640 + b.enemies.length * 90) * introMul;
   if (ambush) dur = Math.max(dur, G.autoCombat ? 1150 : 1500); // 奇襲の帯を読めるだけ留める
-  G.battleIntro = { battle: b, t0: performance.now(), dur, ambush, boss: boss ? (enemyReveal(boss).name ? (boss.mon && boss.mon.name) || boss.name : unknownName(boss.mon)) : null };
+  G.battleIntro = { battle: b, t0: performance.now(), dur, ambush, boss: boss ? (enemyReveal(boss).name ? (boss.mon && boss.mon.name) || boss.name : unknownLabel(boss.mon)) : null };
   G.animating = true;
   combatMenu.innerHTML = "";
   if (G.autoCombat) renderAutoBanner();
@@ -7937,6 +7939,7 @@ function renderActingPlate(actor) {
   const ambushTurn = foe && b && b.opening === "ambush" && b._roundNo <= 1; // 奇襲で敵だけが動く1ターン目
   const w = turnPlate(foe ? enemyLabel(actor) : actor.name, foe ? "の攻勢" : "の行動", ambushTurn ? ["奇襲"] : []);
   if (foe) w.classList.add("who-foe");
+  if (foe && enemyUnknown(actor)) w.classList.add("who-unk");
   combatMenu.appendChild(w);
 }
 
@@ -8104,7 +8107,7 @@ function renderCombatMenu() {
       // 敵の名前・HP は討伐数で明かす (名前は1体、HP は5体倒すまで伏せる)
       const isEn = t.side === "enemy";
       const showHp = !isEn || enemyReveal(t).stats;
-      const nm = el("span", "tgt-n", (isEn && b.isBackRow(t) ? "【後】" : "") + (isEn ? enemyLabel(t) : t.name) + (!isEn && !t.alive ? " [気絶]" : ""));
+      const nm = el("span", "tgt-n" + (isEn && enemyUnknown(t) ? " unk" : ""), (isEn && b.isBackRow(t) ? "【後】" : "") + (isEn ? enemyLabel(t) : t.name) + (!isEn && !t.alive ? " [気絶]" : ""));
       tb.appendChild(nm);
       const bar = el("span", "tgt-bar");
       const fill = el("i");
