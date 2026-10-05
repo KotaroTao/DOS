@@ -499,8 +499,6 @@ function pickerBody(root, d, slotId, h) {
   // 他の人業のサブ魂は選べる (確認のうえ付け替え。宿していた魂とは交換)
   const isMainOf = (uid) => allDolls().find((dd) => dd.primary === uid) || null;
   const subOf = (uid) => (isSub ? allDolls().find((dd) => dd !== d && (dd.subs || []).some((x) => x && x.uid === uid)) || null : null);
-  const order = (s) => (s.uid === curUid ? 0 : (wearerOf(s.uid, d) && !subOf(s.uid)) || (isSub && d.primary === s.uid) ? 3 : subOf(s.uid) ? 2 : 1);
-  souls.sort((a, b) => order(a) - order(b));
   const list = el("div", "pt-list sp-plist");
   for (const s of souls) {
     const cl = SOUL_CLASSES[s.clsKey]; if (!cl) continue;

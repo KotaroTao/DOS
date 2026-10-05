@@ -9867,12 +9867,12 @@ function emptyDollCost() {
   return n < 3 ? 0 : n === 3 ? 30 : n === 4 ? 50 : 100;
 }
 
-// 所持魂の並び順: 職業順 → ランク昇順 → Lv降順
+// 所持魂の並び順: 職業順 → プラス値降順 → Lv降順
 function soulSortCmp(a, b) {
   const ja = SOUL_CLASS_ORDER[a.clsKey] ?? 99, jb = SOUL_CLASS_ORDER[b.clsKey] ?? 99;
   if (ja !== jb) return ja - jb;
-  const ra = soulRankOf(a), rb = soulRankOf(b);
-  if (ra !== rb) return ra - rb;
+  const pa = Math.max(0, (a.count || 1) - 1), pb = Math.max(0, (b.count || 1) - 1);
+  if (pa !== pb) return pb - pa;
   if ((b.level || 1) !== (a.level || 1)) return (b.level || 1) - (a.level || 1);
   return a.uid - b.uid;
 }
