@@ -32,7 +32,7 @@ export default {
     ASCETIC_REIHOU: { name: "霊峰崩し", mp: 20, kind: "phys", power: 4.4, element: "earth", acc: 0.7, debuff: { agi: 0.75 }, target: "enemy", desc: "霊峰をも崩す一撃。足を大きく鈍らす" },
     ASCETIC_MIGAWARIGOMA: { name: "身代わりの護摩", mp: 10, kind: "buff", regen: { pct: 0.07, turns: 4 }, buff: { atk: 1.1 }, hpCost: 0.1, target: "all-ally", desc: "身を焚べる護摩が全員を癒し続ける" },
     ASCETIC_SANKO: { name: "三鈷の一撃", mp: 24, kind: "phys", power: 6, acc: 1, seal: { chance: 0.5, turns: 3 }, target: "enemy", desc: "三鈷杵の必中の一撃。特技を封じる" },
-    ASCETIC_GOMANOKEMURI: { name: "護摩の煙", mp: 9, kind: "cure", purge: true, debuffAll: { hit: 0.9 }, target: "all-ally", desc: "煙で全員の穢れを祓い、敵の目を燻す" },
+    ASCETIC_GOMANOKEMURI: { name: "護摩の煙", mp: 9, kind: "cure", purge: true, debuffAll: { hit: 0.9 }, target: "all-ally", desc: "煙で全員の穢れを祓い、敵の目をいぶす" },
     ASCETIC_NYUUBU: { name: "入峰の一撃", mp: 24, kind: "phys", power: 4.8, acc: 1, desperate: true, target: "enemy", desc: "必中の一撃。傷が深いほど重い" },
     ASCETIC_YAMANARI: { name: "山鳴り", mp: 28, kind: "phys", power: 2.1, element: "earth", acc: 0.6, debuff: { vit: 0.85 }, target: "all-enemy", desc: "山を鳴らす踏み込みで全敵の守りを崩す" },
     ASCETIC_KASHOUZANMAI: { name: "火生三昧", mp: 20, kind: "atk", power: 56, element: "fire", poison: { chance: 0.5, pct: 0.05 }, faith: true, target: "enemy", desc: "不動の火炎で焼き、焼け爛れさせる（PIEでも伸びる）" },

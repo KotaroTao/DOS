@@ -41,7 +41,7 @@
 .ttl-space { flex: 1 1 auto; min-height: 8px; }
 
 /* ---- ロゴ: 鉄の前置き + 鋳造した金の「魂の王」+ 血のにじみ ---- */
-.ttl-logo { text-align: center; position: relative; animation: ttl-logo-in 2.6s cubic-bezier(.2,.7,.2,1) both; }
+.ttl-logo { max-width: 100%; text-align: center; position: relative; animation: ttl-logo-in 2.6s cubic-bezier(.2,.7,.2,1) both; }
 @keyframes ttl-logo-in {
   0% { opacity: 0; filter: blur(10px) brightness(2); transform: translateY(6px) scale(1.04); }
   60% { opacity: 1; filter: blur(0) brightness(1.15); }
@@ -93,9 +93,11 @@
 .ttl-awake .ttl-main-t { animation: ttl-ignite 1.8s ease-out; }
 @keyframes ttl-ignite { 0% { filter: drop-shadow(0 1px 0 #2a1504) drop-shadow(0 3px 1px rgba(0,0,0,0.95)); } 12% { filter: drop-shadow(0 1px 0 #2a1504) drop-shadow(0 0 16px rgba(190,255,220,0.9)) brightness(1.5); } 100% { filter: drop-shadow(0 1px 0 #2a1504) drop-shadow(0 3px 1px rgba(0,0,0,0.95)); } }
 .ttl-en {
+  box-sizing: border-box; max-width: min(100%, calc(100vw - 32px)); margin-inline: auto;
   margin-top: clamp(4px, 1.2vh, 12px);
   font-size: clamp(8.5px, 2.4vw, 12px); letter-spacing: 0.36em; padding-left: 0.36em;
-  color: #b7a789; text-shadow: 0 0 8px #000, 0 1px 0 #000; opacity: 0.9; white-space: nowrap;
+  color: #b7a789; text-shadow: 0 0 8px #000, 0 1px 0 #000; opacity: 0.9;
+  white-space: normal; line-height: 1.8; overflow-wrap: anywhere;
 }
 
 /* ---- 目覚めの合図 ---- */

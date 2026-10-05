@@ -21,7 +21,7 @@ export default {
     HERO_YUUKITOMOSHIBI: { name: "勇気の灯", mp: 10, kind: "buff", buff: { atk: 1.1 }, cure: true, purge: true, target: "all-ally", desc: "全員の異常と弱体を祓い、奮い立たせる" },
     HERO_SAIKI: { name: "再起の呼び声", mp: 9, kind: "heal", power: 0, revive: true, revivePct: 0.4, grantEndure: true, target: "ally", desc: "倒れた仲間を呼び起こし (HP40%)、致死を一度耐えさせる" },
     HERO_KIBOUSENKOU: { name: "希望の閃光", mp: 22, kind: "atk", power: 60, element: "light", debuff: { hit: 0.85 }, target: "enemy", desc: "まばゆい希望の光で撃ち、目を眩ます" },
-    HERO_SHIPPUUTAIKEN: { name: "疾風の大剣", mp: 24, kind: "phys", power: 5.4, element: "wind", agiScale: 0.3, acc: 1, target: "enemy", desc: "疾風を纏う必中の大剣。速さで伸びる" },
+    HERO_SHIPPUUTAIKEN: { name: "疾風の大剣", mp: 24, kind: "phys", power: 5.4, element: "wind", agiScale: 0.3, acc: 1, target: "enemy", desc: "疾風をまとう必中の大剣。速さで伸びる" },
     HERO_FUURAI: { name: "風雷四連", mp: 21, kind: "phys", power: 1.3, hits: 4, element: "wind", acc: 0.8, para: 0.15, target: "enemy", desc: "風と雷の四連撃。痺れさせる" },
     HERO_KIBOUSENPUU: { name: "希望の旋風", mp: 22, kind: "phys", power: 2.2, element: "wind", acc: 0.7, debuff: { agi: 0.9 }, target: "all-enemy", desc: "旋風で敵全体を斬り、足を鈍らせる" },
     HERO_KOUMYOU: { name: "光明の剣", mp: 21, kind: "phys", power: 4.4, pieScale: 0.8, element: "light", acc: 1, partyHeal: 10, target: "enemy", desc: "必中の光剣で断ち、その光で味方を癒す" },

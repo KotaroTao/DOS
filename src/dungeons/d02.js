@@ -4,9 +4,9 @@ import { defMonsters, tint, ARTS } from "./schema.js";
 export const monsters = defMonsters([
   { id: "d02_armkobold", name: "鎧コボルド", race: "humanoid", element: "none", artKey: "kobold", rank: 2,
     palette: tint(ARTS.kobold.palette, "#9aa3ab", 0.35),
-    ability: "goldSteal", physResist: 1, // 寄せ集めの甲冑で刃を受け、隙を見て遺品を漁る
+    ability: "goldSteal", physResist: 1, // 寄せ集めの鎧で刃を受け、隙を見て遺品を漁る
     hp: 26, atk: 12, def: 6, spd: 6, soul: 18, gold: 14, soulClass: "fighter",
-    desc: "落城の際に死んだ兵から鎧を剥ぎ取り、身に纏ったコボルド。寸法の合わぬ甲冑を引きずりながら隊列を組む姿は、滅びた守備隊の悪夢のような模倣だ。継ぎ接ぎの鉄板が刃をいなし、兜の中から、犬の唸りが響く。" },
+    desc: "落城の際に死んだ兵から鎧を剥ぎ取り、身にまとったコボルド。寸法の合わぬ鎧を引きずりながら隊列を組む姿は、滅びた守備隊の悪夢のような模倣だ。継ぎ接ぎの鉄板が刃をいなし、兜の中から、犬のうなりが響く。" },
   { id: "d02_soldier", name: "朽ちた兵士", race: "undead", element: "dark", artKey: "hd_soldier", rank: 2,
     physResist: 1, // 錆びてなお具足が刃を弾く
     hp: 30, atk: 13, def: 6, spd: 6, soul: 22, gold: 16, soulClass: "thief",

@@ -95,7 +95,9 @@ export function showOpening(onDone) {
   const tMain = div("ttl-main");
   tMain.dataset.t = "魂の王";
   tMain.appendChild(div("ttl-main-t", "魂の王"));
-  title.append(tPre, tMain, div("ttl-en", "HUNDRED LABYRINTHS · RISE OF THE SOUL KING"));
+  const tEn = div("ttl-en");
+  tEn.append(div("ttl-en-line", "HUNDRED LABYRINTHS"), div("ttl-en-line", "RISE OF THE SOUL KING"));
+  title.append(tPre, tMain, tEn);
   wrap.appendChild(title);
   wrap.appendChild(div("op-begin", "物語を始める"));
 

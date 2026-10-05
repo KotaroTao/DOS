@@ -126,7 +126,7 @@ const UNKNOWN_RULES = [
   [["construct"], /棺|石棺/, "動く棺"],
   [["construct"], /鐘/, "動く大鐘"],
   [["construct"], /鎖/, "蠢く鎖"],
-  [["construct"], /蜘蛛|バリスタ|歯車/, "軋むからくり"],
+  [["construct"], /蜘蛛|バリスタ|歯車/, "きしむからくり"],
   [["construct"], /面$|死面/, "宙に浮く面"],
   [["construct"], /鍛冶|金床|処女|核|渡し舟/, "動く鉄塊"],
   [["construct"], /決闘者|番兵|門番|番人(?!.*像)|守護者|守り手/, "動く衛兵"],
@@ -136,7 +136,7 @@ const UNKNOWN_RULES = [
   [["armored"], /騎手|竜騎兵/, "騎馬の影"],
   [["armored"], /デュラハン/, "首のない鎧"],
   [["armored"], /処刑人/, "斧を持つ鎧"],
-  [["armored"], /甲冑/, "動く鎧"],
+  [["armored"], /無人の鎧/, "動く鎧"],
   // 精霊
   [["elemental"], /火|焔|炎|おき|残り火|溶鉱|火刑/, "揺らめく炎"],
   [["elemental"], /吹雪|嵐|氷/, "渦巻く風"],
@@ -172,7 +172,7 @@ const UNKNOWN_NAME = {
   bs_voidserpent: "長い竜の姿",
   bs_dragonkin: "鱗の人影",
   el_oremaw: "大きく蠢くもの",
-  el_geargod: "軋むからくり",
+  el_geargod: "きしむからくり",
   el_cinderking: "揺らめく炎",
 };
 

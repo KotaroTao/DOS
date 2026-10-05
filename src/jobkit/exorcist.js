@@ -28,7 +28,7 @@ export default {
     EXORCIST_REISUI:      { name: "霊水断ち", mp: 20, kind: "phys", power: 4.3, element: "water", drain: 0.12, target: "enemy", desc: "霊水の刃で斬り、己の傷を清める（水）" },
     EXORCIST_KEKKAIFUDA:  { name: "結界札", mp: 10, kind: "debuff", seal: { chance: 0.5, turns: 3 }, vuln: { light: 0.9 }, target: "all-enemy", tech: true, desc: "結界の札で特技を封じ、光に弱くする" },
     EXORCIST_HAMAYA:      { name: "破魔の光矢", mp: 28, kind: "atk", power: 80, element: "light", prey: { races: UNHOLY, mul: 1.4 }, target: "enemy", desc: "破魔の光矢。不浄の者を射抜く（光）" },
-    EXORCIST_SEISUINAGI:  { name: "聖水薙ぎ", mp: 28, kind: "phys", power: 2.0, agiScale: 0.5, element: "water", vuln: { light: 0.85 }, target: "all-enemy", desc: "聖水で敵陣を薙ぎ、光への守りを崩す（水）" },
+    EXORCIST_SEISUINAGI:  { name: "聖水なぎ", mp: 28, kind: "phys", power: 2.0, agiScale: 0.5, element: "water", vuln: { light: 0.85 }, target: "all-enemy", desc: "聖水で敵陣をなぎ、光への守りを崩す（水）" },
     EXORCIST_KOURIN:      { name: "浄化の光輪", mp: 20, kind: "atk", power: 44, element: "light", partyHeal: 15, target: "all-enemy", desc: "光輪が敵陣を灼き、味方を癒す（光）" },
     EXORCIST_JINRAI:      { name: "迅雷祓い", mp: 22, kind: "phys", power: 4.2, agiScale: 1.3, pieScale: 0.3, critBonus: 0.3, element: "light", target: "enemy", desc: "疾く鋭い一閃。信仰で威力が増す（光）" },
     EXORCIST_CHOUBUKU:    { name: "調伏", mp: 32, kind: "phys", power: 7.0, critBonus: 0.3, execute: 2, prey: { races: UNHOLY, mul: 1.3 }, target: "enemy", desc: "魔を調伏する奥義。弱った敵と不浄に強い" },

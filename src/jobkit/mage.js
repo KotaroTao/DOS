@@ -1,6 +1,6 @@
 // 魔導士 (mage) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
-// 持ち味: 火・水・風・土・闇の五属性の基本呪文を一通り修める術者。属性を巡らせて撃ち続け、群れを薙ぐ。
+// 持ち味: 火・水・風・土・闇の五属性の基本呪文を一通り修める術者。属性を巡らせて撃ち続け、群れをなぐ。
 export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "mageKensan",

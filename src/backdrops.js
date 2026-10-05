@@ -280,7 +280,7 @@ function column(R, x, top, bot, w, c, o = {}) {
   if (o.cap && !o.broken) { R.rect(x - 2, top - 2, w + 4, 2, mul(cb, 1.05)); R.rect(x - 3, top - 4, w + 6, 2, mul(cb, 1.2)); R.rect(x - 3, top - 2, w + 6, 1, mul(cb, 0.5)); }
   if (o.base) { R.rect(x - 2, bot - 3, w + 4, 3, mul(cb, 0.95)); R.rect(x - 2, bot - 3, w + 4, 1, mul(cb, 1.2)); }
 }
-// 鍾乳石 (dir=1 下向き) / 石筍 (dir=-1 上向き)。左面明・右面暗、縦に段の筋
+// つらら石 (dir=1 下向き) / 石筍 (dir=-1 上向き)。左面明・右面暗、縦に段の筋
 function spike(R, x, y, len, w, c, dir = 1, lit = 1) {
   const cb = C(c), tip = y + len * dir;
   const pts = [[x - w / 2, y], [x + w / 2, y], [x + w * 0.12, y + dir * len * 0.62], [x + 0.5, tip], [x - w * 0.14, y + dir * len * 0.55]];
@@ -815,7 +815,7 @@ function sTemple(R, A) {
   A.part({ n: 16, col: "#c8f0ff", x0: 0, x1: 1, y0: 0, y1: 0.9, vy: 0.004, sway: 6, swf: 0.2, a: 0.18, tw: 0.8, seed: 6 });
 }
 
-// 層 7 灼熱の洞: 溶岩の河と溶岩滝、柱状玄武岩、赤く照らされた鍾乳石、昇る火の粉
+// 層 7 灼熱の洞: 溶岩の河と溶岩滝、柱状玄武岩、赤く照らされたつらら石、昇る火の粉
 function sLava(R, A) {
   const { w: W, h: H } = R, gy = Math.round(H * 0.58), cx = W / 2;
   R.amb = [0.42, 0.3, 0.27];
@@ -837,7 +837,7 @@ function sLava(R, A) {
   R.m = SKY; R.rect(0, gy - 8, W, 8, (x, y) => { const crust = fbm(x * 0.08, y * 0.3, 5) > 0.55; const k = 0.4 + 0.6 * clamp01(Math.abs(x - cx) / (W * 0.3)); return crust ? mul(C("#3a1a10"), 1) : lava(x, y, k); });
   R.glow(cx, gy - 4, W * 0.7, 24, "#801c04", 0.35);
   R.light(W * 0.2, gy - 4, 60, "#ff5010", 1, 26); R.light(W * 0.8, gy - 4, 60, "#ff5010", 1, 26); R.light(cx, gy - 4, 70, "#ff4010", 0.5, 18);
-  // 鍾乳石 (上辺)
+  // つらら石 (上辺)
   R.m = SURF; R.rect(0, 0, W, 6, "#1c120e");
   const r = rnd(17);
   for (let i = 0; i < 18; i++) { const x = r() * W, l = 6 + r() * (Math.abs(x - cx) < W * 0.25 ? 10 : 30); spike(R, x, 3, l, 4 + r() * 6, "#3a2620", 1); }
@@ -1049,7 +1049,7 @@ function sArena(R, A) {
   A.fog("#c0a070", 0.82, 3, 0.07, 9, 120, 8);
 }
 
-// 層 12 地底大空洞: 巨大な鍾乳石と石筍、深い裂け目、遠くで光る結晶群、細い地底滝
+// 層 12 地底大空洞: 巨大なつらら石と石筍、深い裂け目、遠くで光る結晶群、細い地底滝
 function sCavern(R, A) {
   const { w: W, h: H } = R, gy = Math.round(H * 0.58), cx = W / 2;
   R.amb = [0.55, 0.55, 0.6];
@@ -1071,7 +1071,7 @@ function sCavern(R, A) {
   R.m = SURF; const lip = []; for (let x = 0; x <= W; x += 4) lip.push([x, gy - 2 + hash(x, 1, 5) * 4]);
   R.poly([...lip, [W, H], [0, H]], (x, y) => mix(C("#2a261e"), C("#141210"), clamp01((y - gy) / (H - gy)) * 0.8 + fbm(x * 0.1, y * 0.2, 4) * 0.2));
   for (const [x, y] of lip) { R.px(x, y, "#5a5040"); R.px(x + 1, y, "#4a4234"); R.px(x + 2, y + 1, "#3a3428"); }
-  // 天井の岩と巨大な鍾乳石
+  // 天井の岩と巨大なつらら石
   R.m = SURF; for (let x = 0; x < W; x++) R.rect(x, 0, 1, 4 + fbm(x * 0.05, 0, 3) * 10, "#1e1a16");
   for (const [x, l, w] of [[W * 0.07, H * 0.62, 24], [W * 0.2, H * 0.32, 12], [W * 0.38, H * 0.12, 6], [W * 0.46, H * 0.08, 4], [W * 0.56, H * 0.14, 6], [W * 0.66, H * 0.09, 5], [W * 0.79, H * 0.3, 12], [W * 0.93, H * 0.56, 26], [W * 0.28, H * 0.18, 7], [W * 0.72, H * 0.2, 8]]) spike(R, x, 2, l, w, "#4a4236", 1);
   for (const [x, l, w, by] of [[W * 0.04, H * 0.5, 20, H], [W * 0.17, H * 0.24, 10, H * 0.94], [W * 0.97, H * 0.55, 22, H], [W * 0.84, H * 0.22, 9, H * 0.9], [W * 0.26, H * 0.08, 5, H * 0.68], [W * 0.75, H * 0.07, 5, H * 0.66]]) spike(R, x, by, l, w, "#4a4236", -1);
@@ -1139,7 +1139,7 @@ function sOssuary(R, A) {
     const k = 0.7 + 0.4 * hash(x, band, 3); skull(R, x, band * 9 + 2 + (band ? 0 : 0), mul(bone, k), dark);
     R.m = SURF; R.rect(x + 5, band * 9 + 1, 1, 7, dark);
   }
-  R.m = SURF; for (let band = 1; band * 9 < gy; band += 2) for (let x = 0; x < W; x += 6) { R.rect(x + (band % 4 === 1 ? 0 : 3), band * 9, 2, 3, mul(bone, 1.05)); } // 骨端の瘤
+  R.m = SURF; for (let band = 1; band * 9 < gy; band += 2) for (let x = 0; x < W; x += 6) { R.rect(x + (band % 4 === 1 ? 0 : 3), band * 9, 2, 3, mul(bone, 1.05)); } // 骨端のこぶ
   // 中央の骨のアーチ (奥へ続く暗い通路)
   const at = H * 0.2, aw = W * 0.14;
   R.m = SURF; R.poly(archPts(cx, at - 7, aw + 7, gy), "#2a2218");
@@ -1598,7 +1598,7 @@ function vChains(R, A) {
   R.ellipse(cx, py, 4, 4, "#7a1810"); R.ellipse(cx - 1, py - 1, 2, 2, "#b03020");
   A.part({ n: 12, col: "#a09080", x0: 0.2, x1: 0.8, y0: 0.05, y1: 0.6, vy: 0.02, sway: 4, swf: 0.4, a: 0.3, seed: 31 });
 }
-// w06 亡兵の守る外郭: 中庭に隊伍を組んで並ぶ亡兵の影 (槍ぶすま)。眼だけが青く光る
+// w06 亡兵の守る外郭: 中庭に隊列を組んで並ぶ亡兵の影 (槍ぶすま)。眼だけが青く光る
 function vRanks(R, A) {
   const { w: W, h: H } = R, cx = W / 2;
   const rows = [[H * 0.7, 9, 14, 0.75], [H * 0.8, 7, 19, 0.9], [H * 0.93, 5, 26, 1]];

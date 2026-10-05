@@ -2375,7 +2375,7 @@ function drawBoardHighlights(now) {
         vctx.strokeStyle = `rgba(185,225,255,${0.7 + 0.3 * pulse})`;
         vctx.lineWidth = 1.4;
         vctx.strokeRect(r.x + 0.7, r.y + 0.7, r.w - 1.4, r.h - 1.4);
-        // 角の楔
+        // 角のくさび
         vctx.fillStyle = `rgba(225,242,255,${0.75 + 0.25 * pulse})`;
         const k = 5;
         for (const [px, py, sx, sy] of [[r.x, r.y, 1, 1], [r.x + r.w, r.y, -1, 1], [r.x, r.y + r.h, 1, -1], [r.x + r.w, r.y + r.h, -1, -1]]) {
@@ -2792,7 +2792,7 @@ function drawHandLantern(x, y, now) {
   vctx.restore();
 }
 
-// 塵: めくった蓋から舞う砂埃と、角灯の光の中を漂う微塵
+// 塵: めくった蓋から舞う砂ほこりと、角灯の光の中を漂う微塵
 function drawBoardParticles(lt, now) {
   if (BV.parts.length) {
     vctx.save();
@@ -3687,7 +3687,7 @@ function drawBackLibrary(r, accent, sym) {
   vctx.fillRect(2, 2, W - 4, 3);
 }
 
-// 層12「地底大空洞」のカード裏面: 天井の鍾乳石と地の石筍、岩肌の琥珀結晶、遥か下の残光と漂う塵
+// 層12「地底大空洞」のカード裏面: 天井のつらら石と地の石筍、岩肌の琥珀結晶、遥か下の残光と漂う塵
 function drawBackCavern(r, accent, sym) {
   const W = r.w, H = r.h, t = performance.now();
   // 岩窟の地
@@ -3705,7 +3705,7 @@ function drawBackCavern(r, accent, sym) {
   vctx.fillStyle = glow;
   vctx.fillRect(0, H - 26, W, 26);
 
-  // 鍾乳石 (天井から下がる大小の岩)
+  // つらら石 (天井から下がる大小の岩)
   for (const [sx, sl, sw] of [[7, 12, 4], [17, 8, 3], [27, 16, 5], [37, 9, 3], [47, 13, 4], [W - 4, 7, 3]]) {
     const g = vctx.createLinearGradient(sx, 0, sx, sl);
     g.addColorStop(0, "#2a2317"); g.addColorStop(1, "#15110b");
@@ -3953,7 +3953,7 @@ function drawBackSpire(r, accent, sym) {
 // 層9「毒沼」のカード裏面: 沸き立つ毒のよどみ、ねじれた枯れ木、漂う瘴気と垂れる毒の雫、毒の鬼火
 function drawBackSwamp(r, accent, sym) {
   const W = r.w, H = r.h, t = performance.now();
-  // 淀んだ地
+  // よどんだ地
   const bg = vctx.createLinearGradient(0, 0, 0, H);
   bg.addColorStop(0, "#1a1d10");
   bg.addColorStop(0.55, "#15170c");
@@ -4148,7 +4148,7 @@ function drawBackIce(r, accent, sym) {
   vctx.fillRect(2, 2, W - 4, 3);
 }
 
-// 層7「灼熱の洞」のカード裏面: 煮え立つ溶岩だまり、赤熱した鍾乳石、爆ぜる泡と立ちのぼる火の粉
+// 層7「灼熱の洞」のカード裏面: 煮え立つ溶岩だまり、赤熱したつらら石、爆ぜる泡と立ちのぼる火の粉
 function drawBackLava(r, accent, sym) {
   const W = r.w, H = r.h, t = performance.now();
   // 火山岩の地
@@ -4165,7 +4165,7 @@ function drawBackLava(r, accent, sym) {
   vctx.beginPath(); vctx.moveTo(5, 12); vctx.lineTo(9, 20); vctx.lineTo(6, 27); vctx.stroke();
   vctx.beginPath(); vctx.moveTo(W - 6, 15); vctx.lineTo(W - 10, 23); vctx.lineTo(W - 7, 30); vctx.stroke();
 
-  // 鍾乳石 (暗い岩。先端は溶岩の照り返しで赤熱)
+  // つらら石 (暗い岩。先端は溶岩の照り返しで赤熱)
   for (const [sx, sl] of [[10, 9], [24, 13], [40, 8], [W - 6, 11]]) {
     vctx.fillStyle = "#1c0f08";
     vctx.beginPath();
@@ -6495,7 +6495,7 @@ function disarmPower(m) {
 // 推奨Lv の隊の「AGI+LUK」に合わせ、得意職が ~75% (上限95%まで伸びる)、それ以外の職は ~50% になるよう調整している。
 // cRank: 宝箱ランク (1-5)。床罠は1扱い
 function disarmNeed(cRank = 1) {
-  const c = 1 + ((cRank || 1) - 1) * 0.16;               // 宝箱ランク: 上等な箱ほど狡猾な錠前
+  const c = 1 + ((cRank || 1) - 1) * 0.16;               // 宝箱ランク: 上等な箱ほどずる賢い錠前
   // 基準値: 得意職以外が推奨Lv の隊で約50%に収まる難度 (得意職は ×1.5 ボーナスで上回る)。推奨Lv の伸びで重くなる (levelcurve.js)
   return LOCK_K * lockPow(levelHere().lv) * c;
 }
@@ -7381,7 +7381,7 @@ function renderCombatCanvas() {
         drawMonsterBmp(vctx, monsterFlashBitmap(e.mon), baseX + ox, baseY + oy, size, 0.85 * (1 - (now - hf.t0) / 170));
         vctx.restore();
       }
-      // 対象選択中: 頭上に降りる楔と四隅のかぎ
+      // 対象選択中: 頭上に降りるくさびと四隅のかぎ
       if (tappable && strongTarget) drawTargetBrackets(baseX, baseY, hh, size, now);
       // 名札 + 血の小瓶 (HP)
       // 名前・HP は討伐数で明かす (enemyReveal): 名前は1体倒すまで不確定名、HP の小瓶は5体倒すまで出さない (迷宮の主は名前が最初から、HP は1体で)
@@ -7547,7 +7547,7 @@ function drawTargetRing(x, y, size, now, strong) {
   }
   vctx.restore();
 }
-// 対象選択中の印: 頭上の楔 (上下に揺れる) と、魔物を囲む四隅のかぎ
+// 対象選択中の印: 頭上のくさび (上下に揺れる) と、魔物を囲む四隅のかぎ
 function drawTargetBrackets(x, cy, hh, size, now) {
   const bob = REDUCED_MOTION ? 0 : Math.sin(now * 0.008) * 2.5;
   const w = size * 3.6, top = cy - hh - 4, bot = cy + hh + 2;
@@ -7558,7 +7558,7 @@ function drawTargetBrackets(x, cy, hh, size, now) {
   for (const [px, py, sx, sy] of [[x - w, top, 1, 1], [x + w, top, -1, 1], [x - w, bot, 1, -1], [x + w, bot, -1, -1]]) {
     vctx.beginPath(); vctx.moveTo(px, py + L * sy); vctx.lineTo(px, py); vctx.lineTo(px + L * sx, py); vctx.stroke();
   }
-  // 楔 (下向きの刃)
+  // くさび (下向きの刃)
   const ty = top - 10 + bob;
   vctx.fillStyle = "#ffd88a";
   vctx.strokeStyle = "#3a1408";
@@ -9094,7 +9094,7 @@ function applyImpact(res) {
       }
     }
   }
-  // 全体技: 戦場を覆う一枚を重ねる (攻撃呪文 = 属性の大技 / 物理 = 一文字の薙ぎ / 回復・強化 = 天の光 / 弱体 = 紫の大環)
+  // 全体技: 戦場を覆う一枚を重ねる (攻撃呪文 = 属性の大技 / 物理 = 一文字のなぎ / 回復・強化 = 天の光 / 弱体 = 紫の大環)
   if (prof && prof.all && !sig && res.hits.some((h) => h && !h.miss)) {
     const at = fxAnchor(res, prof);
     const o = { el: prof.el, spin: prof.spin, rot: prof.rot, seed: prof.seed, w: at.w, s: prof.scale };

@@ -30,10 +30,10 @@ export const fall = (x, y, L) => {
 
 // ---------------------------------------------------------------------------
 // 人の形 (写実の頭身 ≒ 7.5 頭身)。座標は「足元=0 / 頭頂=1」の正規化値 (u: 横, v: 縦)
-// 背を向けた外套の操霊師。右手 (画面右) にランタンを提げ、外套の裾は風で左へ流れる。
+// 背を向けたマントの操霊師。右手 (画面右) にランタンを提げ、マントの裾は風で左へ流れる。
 export function cloakedBack(m, fx, feet, h, { wind = 1, lantern = true, sword = true, seed = 3 } = {}) {
   const P = (pts) => { const o = []; for (let i = 0; i < pts.length; i += 2) o.push(fx + pts[i] * h, feet - pts[i + 1] * h); return o; };
-  // 外套 (肩から裾へ、ぼろぼろの裾)
+  // マント (肩から裾へ、ぼろぼろの裾)
   const hem = [];
   const hl = -0.2 - 0.05 * wind, hr = 0.165;
   const N = 14;
@@ -55,9 +55,9 @@ export function cloakedBack(m, fx, feet, h, { wind = 1, lantern = true, sword = 
   // 脚 (裾の下にわずかに覗く長靴)
   m.poly(P([-0.075, 0.1, -0.03, 0.1, -0.028, 0.0, -0.085, 0.0, -0.088, 0.02]), 4);
   m.poly(P([0.03, 0.1, 0.075, 0.1, 0.08, 0.02, 0.085, 0.0, 0.03, 0.0]), 4);
-  // 腰の長剣 (外套の下から鞘の先が斜めに覗く)
+  // 腰の長剣 (マントの下から鞘の先が斜めに覗く)
   if (sword) m.line(fx - 0.12 * h, feet - 0.3 * h, fx - 0.215 * h, feet - 0.06 * h, Math.max(1.2, 0.022 * h), 5, Math.max(1, 0.016 * h));
-  // 右腕 (外套の合わせ目から出て、ランタンを体から離して提げる)
+  // 右腕 (マントの合わせ目から出て、ランタンを体から離して提げる)
   if (lantern) {
     m.poly(P([0.12, 0.79, 0.16, 0.76, 0.2, 0.62, 0.215, 0.5, 0.19, 0.49, 0.175, 0.6, 0.14, 0.7, 0.115, 0.72]), 6);
     m.ellipse(fx + 0.203 * h, feet - 0.485 * h, 0.022 * h, 0.022 * h, 6); // 手
@@ -79,7 +79,7 @@ export function shadeCloaked(Lr, m, fx, feet, h, { light, lamp, rimRamp = R_SOUL
       const t = (y - (feet - 0.42 * h)) / (0.075 * h);
       return rc(R_EMBER, 0.62 + 0.38 * (1 - Math.abs(t - 0.55) * 1.6) + (h2(x, y, 9) - 0.5) * 0.1);
     }
-    // 衣の地色: ほぼ黒のすみれ。外套のひだは肩へ向けて集まる縦の起伏
+    // 衣の地色: ほぼ黒のすみれ。マントのひだは肩へ向けて集まる縦の起伏
     let base = 0.08 + base0;
     if (v === 2) {
       const w = 0.15 + (0.83 - vv) * 0.08;
@@ -90,7 +90,7 @@ export function shadeCloaked(Lr, m, fx, feet, h, { light, lamp, rimRamp = R_SOUL
     else if (v === 5) base = 0.13 + base0;
     else if (v === 6) {
       base = 0.1 + base0;
-      // 腕と外套の境目を暗い線で切り分ける
+      // 腕とマントの境目を暗い線で切り分ける
       if (m.at(x - 1, y) === 2 || m.at(x, y + 1) === 2 || m.at(x - 1, y + 1) === 2) base = 0.02;
     } else if (v === 7) base = 0.22;
     let c = rc(R_NIGHT, base);

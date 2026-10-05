@@ -48,7 +48,8 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   const main = div("ttl-main");
   main.dataset.t = "魂の王";
   main.appendChild(div("ttl-main-t", "魂の王"));
-  const en = div("ttl-en", "HUNDRED LABYRINTHS · RISE OF THE SOUL KING");
+  const en = div("ttl-en");
+  en.append(div("ttl-en-line", "HUNDRED LABYRINTHS"), div("ttl-en-line", "RISE OF THE SOUL KING"));
   logo.append(pre, main, en);
   ui.appendChild(logo);
   ui.appendChild(div("ttl-space"));
