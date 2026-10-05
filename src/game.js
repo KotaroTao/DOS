@@ -10247,7 +10247,7 @@ function namedInfo(id) {
   const st = namedState();
   const f = questState().fixed[bountyId(id)];
   const seen = st.seen[id] || null;
-  const homes = DUNGEONS.filter((d) => (d.elites || []).includes(id));
+  const homes = DUNGEONS.filter((d, i) => worldOpenIdx(i) && (d.elites || []).includes(id));
   return {
     id, name: MONSTERS[id] ? MONSTERS[id].name : id, layer: (NAMED_FOES[id] || {}).layer || 0,
     seen, seenAt: seen && seen.dungeon ? (seen.dungeon === "abyss" ? "奈落" : (worldById(seen.dungeon) || {}).name || "") : "",
