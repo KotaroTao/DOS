@@ -174,7 +174,7 @@ function tileStrip(list, { max = 24, onBack } = {}) {
 }
 
 // 売る品の一覧 (まとめて売るの確認): 1行に 品の絵・名・持ち主・売値。押せば品シート
-// onBack: 品シートを閉じた後 (そこで売る・装備する・捨てた品を一覧から外すため)
+// onBack: 品シートを閉じた後 (そこで売る・装備した品を一覧から外すため)
 function sellRows(list, onBack) {
   const w = el("div", "wpc-picklist wpc-selllist");
   for (const x of list) {
@@ -233,7 +233,7 @@ export function confirmIdentifyAll() {
     h.close("ok", { silent: true });
     return identifyAllAndReveal();
   };
-  // 一覧の札から開いた品シートで鑑定・売る・捨てた品があれば、閉じたあとに描き直す
+  // 一覧の札から開いた品シートで鑑定・売った品があれば、閉じたあとに描き直す
   const opts = () => {
     list = unidList();
     const total = list.reduce((a, x) => a + x.cost, 0);
