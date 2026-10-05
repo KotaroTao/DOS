@@ -22,6 +22,14 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+      # sw.js のキャッシュ版をデプロイのたびにコミットのハッシュで付け直す
+      # (リポジトリでは "dos-dev" のまま。手で版を上げる運用は廃止)
+      - name: Stamp Service Worker cache version
+        run: |
+          v="dos-${GITHUB_SHA::12}"
+          sed -i "s/^const CACHE = \"dos-dev\";/const CACHE = \"$v\";/" sw.js
+          grep -q "^const CACHE = \"$v\";" sw.js || { echo "sw.js の CACHE を書き換えられませんでした"; exit 1; }
+          grep -n "^const CACHE" sw.js
       - uses: actions/configure-pages@v5
         with:
           enablement: true

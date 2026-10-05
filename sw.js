@@ -4,7 +4,12 @@
 // キャッシュから返す。これにより「新しい game.js + 古い souls.js」のような
 // モジュール混在 (export 不一致で白画面) が構造的に起きない。
 // 新デプロイは CACHE 名の変更で検出され、ページ側が自動リロードする。
-const CACHE = "dos-v517";
+// 版は手で上げない: リポジトリでは "dos-dev" のままにしておき、デプロイ時に
+// .github/workflows/pages.yml がコミットのハッシュ ("dos-<sha 12桁>") へ書き換える
+// (並行するブランチが同じ行を書き換えて衝突しないように)。
+// "dos-dev" のまま動く時 (手元の http.server など) はキャッシュを使わず、常にネットワークから読む。
+const CACHE = "dos-dev";
+const DEV = CACHE === "dos-dev";
 const ASSETS = [
   "./",
   "./index.html",
@@ -239,6 +244,7 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", (e) => {
+  if (DEV) { self.skipWaiting(); return; }
   e.waitUntil(
     caches.open(CACHE)
       // 先読みは必ずネットワークから取得し、HTTPキャッシュの古いファイル混入を防ぐ
@@ -258,6 +264,7 @@ self.addEventListener("activate", (e) => {
 });
 
 self.addEventListener("fetch", (e) => {
+  if (DEV) return; // 手元の開発ではキャッシュに介入しない
   if (e.request.method !== "GET") return;
   const url = new URL(e.request.url);
   if (url.origin !== self.location.origin) return; // 他オリジンは介入しない
