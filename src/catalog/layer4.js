@@ -5,12 +5,12 @@
 // layer:4 を持つ品は第4層より浅い所では出ない。
 // 砦の敵は人の亡霊 (無属性) と、地下牢の闇・大手門の雷 (風) → 光の属性攻撃 (闇を祓う) と火 (風を焼く) の攻防を多めにする。
 // 亡兵は隊伍で来るので、守りの品 (VIT・ブレス/全体攻撃への備え) と、隊伍を崩す追加効果の武器も混ぜる。
-// レジェンドレアは全職共通の1点もので固有の戦闘効果 (eff) を持ち、実プレイ時間で抽選される (未鑑定で手に入る)。
+// レジェンドレアは全職共通で固有の戦闘効果 (eff) を持ち、スーパーレアの1/3の割合で落ちる (未鑑定で手に入る)。
 // id は append-only (セーブ/図鑑が参照する)。
 import { W, S, A, H, F, G, R } from "./defs.js";
 
 const sr = (it) => { it.rar = "sr"; it.layer = 4; return it; };
-// LR: tier 4 = 第4層の帯。exclusive で通常のランク窓抽選から外し、時間抽選でのみ出す
+// LR: tier 4 = 第4層の帯。exclusive でランク窓から外し、レア度の抽選で LR が出た時に game.js lrPool の深さの条件で選ぶ
 const lr = (it) => { it.rar = "lr"; it.lr = 4; it.layer = 4; it.exclusive = true; return it; };
 
 export const LAYER4_ITEMS = [
@@ -56,7 +56,7 @@ export const LAYER4_ITEMS = [
   sr(R("r_sr4_rollcall", "点呼の名札", "amulet", 56, { aRes: { paralyze: 0.3 }, hp: 32, vitB: 4, eDef: ["light", 1], tint: "#c8a860",
     desc: "守備隊の兵が首から下げた真鍮の名札。点呼に答えるたびに擦れて文字は消えたが、持ち主の名を呼ぶ声だけは、いまも札に残っている。" })),
 
-  // ===== レジェンドレア (全職共通・1点もの・固有効果) =====
+  // ===== レジェンドレア (全職共通・固有効果) =====
   lr(S("lr_l4_lastbanner", "最後の軍旗の盾", 52, { shape: "kite", pow: 1.6, hp: 34, eff: { guard: 0.12 }, eDef: ["light", 2], tint: "#b04030",
     desc: "援軍の来なかった夜、守備隊が最後に掲げた軍旗を盾に張ったもの。旗の下に立つ者がいるかぎり、仲間に届く刃を引き受け続ける。" })),
   lr(W("lr_l4_lordsword", "砦の主の剣", "ls", 54, { pow: 1.45, eAtk: ["light", 2], hp: 24, eff: { counter: 0.35 }, tint: "#d0c8b0",

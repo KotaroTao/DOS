@@ -4,12 +4,12 @@
 // 敵は rank3-4 (第1層の主と同格以上) なので、第1層の逸品 (隠しLv 6-30) より一段上の 12-38 に置く。
 // layer:2 を持つ品は第2層より浅い所では出ない (第1層の窓 R1-3 に R2-3 の品が紛れ込まないように)。
 // 水路の敵は水属性が主 → 土の属性攻撃 (土→水) と、土の属性防御 (水の攻撃を軽減する) を持つ品を多めにする。
-// レジェンドレアは全職共通の1点もので固有の戦闘効果 (eff) を持ち、実プレイ時間で抽選される (未鑑定で手に入る)。
+// レジェンドレアは全職共通で固有の戦闘効果 (eff) を持ち、スーパーレアの1/3の割合で落ちる (未鑑定で手に入る)。
 // id は append-only (セーブ/図鑑が参照する)。
 import { W, S, A, H, F, G, R } from "./defs.js";
 
 const sr = (it) => { it.rar = "sr"; it.layer = 2; return it; };
-// LR: tier 2 = 第2層の帯。exclusive で通常のランク窓抽選から外し、時間抽選でのみ出す
+// LR: tier 2 = 第2層の帯。exclusive でランク窓から外し、レア度の抽選で LR が出た時に game.js lrPool の深さの条件で選ぶ
 const lr = (it) => { it.rar = "lr"; it.lr = 2; it.layer = 2; it.exclusive = true; return it; };
 
 export const LAYER2_ITEMS = [
@@ -60,7 +60,7 @@ export const LAYER2_ITEMS = [
   sr(R("r_sr2_clearwater", "澄み水の護符", "amulet", 36, { aRes: { charm: 0.3, sleep: 0.3 }, eDef: ["earth", 1], pie: 4, mp: 8, tint: "#9fd8f0",
     desc: "王都の水が澄んでいた頃の最後の一滴を封じた護符。胸元で冷たく光り、濁った水の呪いと魔物の飛沫から持ち主を守る。" })),
 
-  // ===== レジェンドレア (全職共通・1点もの・固有効果) =====
+  // ===== レジェンドレア (全職共通・固有効果) =====
   lr(R("lr_l2_tidering", "潮騒の指輪", "ring", 31, { pow: 1.6, hp: 30, def: 4, eff: { counter: 0.4 }, tint: "#3a7a9a",
     desc: "地下水路が海へ通じていた頃の潮騒を閉じ込めた指輪。打たれれば打ち返す波のように、受けた刃へ必ず報いの一撃を返す。" })),
   lr(R("lr_l2_drownedcrown", "溺れ王の冠環", "amulet", 32, { pow: 1.6, mp: 16, int: 6, eff: { spellCostMul: 0.75 }, tint: "#4a6a8a",
