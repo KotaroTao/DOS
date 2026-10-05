@@ -123,7 +123,7 @@ function isLocked(key) {
   if (key === "shop") return !!allowed && !allowed.includes("shop");
   return false;
 }
-const LOCK_MSG = { gate: "王の勅命を受けるまで、迷宮の在処は明かされない", default: "王命を果たすまで閉ざされている" };
+const LOCK_MSG = { gate: "王の勅命を受けるまで、迷宮のありかは明かされない", default: "王命を果たすまで閉ざされている" };
 function lockedToast(key) {
   try { SFX.ng(); } catch (e) { /* noop */ }
   toast(LOCK_MSG[key] || LOCK_MSG.default, { tone: "info" });

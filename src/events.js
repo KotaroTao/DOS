@@ -131,9 +131,9 @@ export const EVENTS = [
     id: "c03", name: "囁く壁", layer: 0, tier: "common", icon: "event",
     intro: () => ["石壁の向こうから、誰かの囁きが漏れてくる。", "「……下へ……下へ……」"],
     choices: (A, cell) => [
-      { label: "耳を当てる ― 階段の在処 / 20%で麻痺", primary: true, fn: () => {
+      { label: "耳を当てる ― 階段のありか / 20%で麻痺", primary: true, fn: () => {
         A.revealStairs();
-        A.toast("囁きが道を教えた ― 階段の在処が見えた", "good", "stairs");
+        A.toast("囁きが道を教えた ― 階段のありかが見えた", "good", "stairs");
         if (chance(0.2)) { const m = A.randomAlive(); if (m) { A.ail(m, "paralyze"); A.toast(`${m.name}は囁きに当てられ、体が痺れた`, "bad", "trap"); } }
         A.done(cell);
       } },
@@ -403,7 +403,7 @@ export const EVENTS = [
   },
   {
     id: "c18", name: "断末魔の騎士", layer: 0, tier: "uncommon", icon: "mon:d02_soldier", minFloor: 2,
-    intro: () => ["鎧の割れた騎士が、血の泡を吹きながら呻いている。", "「……楽にしてくれ……でなければ……せめて、手当てを……」"],
+    intro: () => ["鎧の割れた騎士が、血の泡を吹きながらうめいている。", "「……楽にしてくれ……でなければ……せめて、手当てを……」"],
     choices: (A, cell) => {
       const healer = A.best("pie");
       return [
@@ -521,7 +521,7 @@ export const EVENTS = [
   },
   {
     id: "c26", name: "時の止まった部屋", layer: 0, tier: "rare", icon: "event", deep: true,
-    intro: (A) => ["埃が宙に止まったままの部屋。中央に巨大な砂時計。", `この階で倒した魔物 ${A.countCells((c) => c.type === "monster" && c.cleared && !c.elite)}体 が、時を戻せば蘇る。`],
+    intro: (A) => ["ほこりが宙に止まったままの部屋。中央に巨大な砂時計。", `この階で倒した魔物 ${A.countCells((c) => c.type === "monster" && c.cleared && !c.elite)}体 が、時を戻せば蘇る。`],
     choices: (A, cell) => {
       const dead = A.countCells((c) => c.type === "monster" && c.cleared && !c.elite);
       return [
@@ -542,7 +542,7 @@ export const EVENTS = [
       { label: "全部持ち出す ― 金貨 (特大) / この潜入の間 敵の力1.2倍", danger: true, fn: () => {
         A.gold(12, "呪われた金貨");
         A.runEv().mods.push({ src: "c27", name: "金貨の呪い", desc: "敵の力 1.2倍 (この潜入)", enemyMul: 1.2 });
-        A.flash("#a08020"); A.toast("呪いが纏わりついた ― この潜入の間、敵の力1.2倍", "bad"); A.done(cell);
+        A.flash("#a08020"); A.toast("呪いがまとわりついた ― この潜入の間、敵の力1.2倍", "bad"); A.done(cell);
       } },
       { label: "一掴みだけ ― 金貨", fn: () => { A.gold(2, "金貨の山"); A.done(cell); } },
     ],
@@ -589,7 +589,7 @@ export const EVENTS = [
   {
     id: "c31", name: "生命の雫", layer: 0, tier: "common", icon: "fountain",
     cond: (A) => A.deadList().length > 0,
-    intro: () => ["天井の鍾乳石から、淡く光る雫が一滴ずつ落ちている。", "一滴だけ受け止められそうだ。倒れた者の口に含ませれば、魂が器へ戻るという。"],
+    intro: () => ["天井から垂れ下がった石の先から、淡く光る雫が一滴ずつ落ちている。", "一滴だけ受け止められそうだ。倒れた者の口に含ませれば、魂が器へ戻るという。"],
     choices: (A, cell) => A.deadList().map((m) => ({
       label: `${m.name}に雫を含ませる ― HP1で蘇る`, primary: true, fn: () => {
         A.revive(m, false);
@@ -668,7 +668,7 @@ export const EVENTS = [
   },
   {
     id: "l1_03", name: "開かれた棺", layer: 1, tier: "common", icon: "corpse",
-    intro: () => ["蓋のずれた石棺。隙間から、金糸の経帷子が覗いている。"],
+    intro: () => ["蓋のずれた石棺。隙間から、金糸で織った死に装束が覗いている。"],
     choices: (A, cell) => [
       { label: "中を覗く ― 半々で副葬品 / 棺の主が目覚める", danger: true, fn: () => {
         if (chance(0.5)) { A.item({}, "棺の副葬品", () => A.done(cell)); return; }
@@ -1072,7 +1072,7 @@ export const EVENTS = [
   // ================= 第4層「捨て砦」 (10) =================
   {
     id: "l4_01", name: "兵糧庫", layer: 4, tier: "common", icon: "chest",
-    intro: () => ["籠城のために蓄えられた兵糧庫。樽も木箱も、百年の埃をかぶっている。", "奥で、何かが齧る音がする。"],
+    intro: () => ["籠城のために蓄えられた兵糧庫。樽も木箱も、百年分のほこりをかぶっている。", "奥で、何かをかじる音がする。"],
     choices: (A, cell) => [
       { label: "木箱をこじ開ける ― 品 / 30%で巣食った群れに襲われる", danger: true, fn: () => {
         if (chance(0.3)) { A.alarm("群れが飛び出してきた！", ["兵糧庫は、とうに魔物の巣だった。"], "trap", () => A.fight(cell, [{ pool: true, min: 3 }], "larder", { noChest: true })); return; }
@@ -1126,7 +1126,7 @@ export const EVENTS = [
   },
   {
     id: "l4_05", name: "封じられた武器庫", layer: 4, tier: "uncommon", icon: "chest",
-    intro: (A, cell) => ["鉄板で補強された武器庫の扉。錠前には守備隊の紋。", cell.evTry ? "番兵は倒した。錠前はまだそこにある。" : "扉の前に、錆びた甲冑が一体、じっと立っている。"],
+    intro: (A, cell) => ["鉄板で補強された武器庫の扉。錠前には守備隊の紋。", cell.evTry ? "番兵は倒した。錠前はまだそこにある。" : "扉の前に、錆びた鎧が一体、じっと立っている。"],
     choices: (A, cell) => {
       const d = A.checkDisarm();
       return [
@@ -1183,7 +1183,7 @@ export const EVENTS = [
   },
   {
     id: "l4_09", name: "処刑台", layer: 4, tier: "rare", icon: "mon:el_headsman", deep: true,
-    intro: () => ["中庭の処刑台。吊るされた縄の下で、首の無い亡霊が膝をついている。", "「……わしは、砦の主に門を開けよと進言して、首を刎ねられた」", "「主の鎧の継ぎ目を、わしは知っておる。縄を断ってくれれば、教えよう」"],
+    intro: () => ["中庭の処刑台。吊るされた縄の下で、首の無い亡霊が膝をついている。", "「……わしは、砦の主に門を開けよと進言して、首をはねられた」", "「主の鎧の継ぎ目を、わしは知っておる。縄を断ってくれれば、教えよう」"],
     choices: (A, cell) => [
       { label: "縄を断つ ― 第4層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
         A.flags().bossWeak = { ...(A.flags().bossWeak || {}), 4: true };
@@ -1309,11 +1309,11 @@ export const EVENTS = [
     onWin: (A, cell, f, next) => { A.soul(3, "魂の実"); A.done(cell, next); },
   },
   {
-    id: "l5_09", name: "樹液の瘤", layer: 5, tier: "common", icon: "fountain",
+    id: "l5_09", name: "樹液のこぶ", layer: 5, tier: "common", icon: "fountain",
     cond: (A) => A.aliveList().some((m) => m.mp < m.maxmp || m.hp < m.maxhp),
-    intro: () => ["根の瘤から、琥珀色の樹液がとろりと滴っている。甘い香り。", "魂が溶けたものだと知っていても、喉が鳴る。"],
+    intro: () => ["根のこぶから、琥珀色の樹液がとろりと滴っている。甘い香り。", "魂が溶けたものだと知っていても、喉が鳴る。"],
     choices: (A, cell) => [
-      anyDrained(A) && { label: "樹液を舐める ― 全員のMP5割回復 / 25%で一人が痺れる", primary: true, fn: () => {
+      anyDrained(A) && { label: "樹液をなめる ― 全員のMP5割回復 / 25%で一人が痺れる", primary: true, fn: () => {
         A.healAll(0, 0.5, false); A.sfx("heal");
         if (chance(0.25)) { const m = A.randomAlive(); if (m) { A.ail(m, "paralyze"); A.toast(`${m.name}は樹液に痺れた ― MPは満ちたが…`, "bad", "trap"); } }
         else A.toast("樹液が魔力を満たした", "good", "fountain");
@@ -1349,13 +1349,13 @@ export const EVENTS = [
     ],
   },
   {
-    id: "l5_12", name: "楔を打った操霊師", layer: 5, tier: "rare", icon: "event", deep: true, minLv: 46,
-    intro: () => ["幹に半ば呑まれた人影。古い操霊師の法衣を着て、手には鉄の楔と槌を握ったまま、木になりかけている。", "「……わしは、ヴェルナーより前の操霊師。大樹の主に楔を一本、打ち込んでやった」", "「その楔の場所を教えよう。……それとも、わしの杖を持ってゆくか」"],
+    id: "l5_12", name: "くさびを打った操霊師", layer: 5, tier: "rare", icon: "event", deep: true, minLv: 46,
+    intro: () => ["幹に半ば呑まれた人影。古い操霊師の法衣を着て、手には鉄のくさびと槌を握ったまま、木になりかけている。", "「……わしは、ヴェルナーより前の操霊師。大樹の主にくさびを一本、打ち込んでやった」", "「そのくさびの場所を教えよう。……それとも、わしの杖を持ってゆくか」"],
     choices: (A, cell) => [
-      { label: "楔の場所を聞く ― 第5層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
+      { label: "くさびの場所を聞く ― 第5層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
         A.flags().bossWeak = { ...(A.flags().bossWeak || {}), 5: true };
         A.sfx("spell");
-        A.story("木になりかけた操霊師", ["「主の胸の、苔の剥げたところだ。楔はまだ、そこに刺さっておる」", "「……オルドとかいう若いのにも、同じことを教えた。あれは、楔ごと根を断っていった」", "第5層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
+        A.story("木になりかけた操霊師", ["「主の胸の、苔の剥げたところだ。くさびはまだ、そこに刺さっておる」", "「……オルドとかいう若いのにも、同じことを教えた。あれは、くさびごと根を断っていった」", "第5層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
       } },
       { label: "杖を受け取る ― 上等な品 (レア以上)", fn: () => { A.sfx("itemget"); A.itemMinRar("r", "操霊師の遺品", () => A.done(cell)); } },
     ],

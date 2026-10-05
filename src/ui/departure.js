@@ -554,7 +554,7 @@ function close() {
 export function openDeparture(opts = {}) {
   const g = G();
   if (!g || g.state !== "town") return null;
-  if (openCount() < 1) { toast("王の勅命を果たすまで、迷宮の在処は明かされない", { tone: "info" }); return null; }
+  if (openCount() < 1) { toast("王の勅命を果たすまで、迷宮のありかは明かされない", { tone: "info" }); return null; }
   // 踏破の報告が済むまで門は開かない (王宮へ案内するシートを出す)
   if (game.blockForReport && game.blockForReport()) return null;
   if (game.blockForTutorial && game.blockForTutorial()) return null;
