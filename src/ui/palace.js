@@ -540,7 +540,7 @@ export function codexMonSheet(key) {
   const elm = ELEMENTS[m.element] || ELEMENTS.none;
   const isOther = (game.CODEX_OTHER || []).includes(key);
   const body = el("div", "pl-detail");
-  // 倒した数に応じて段階的に明かす (戦闘中の「敵の姿」と同じ。迷宮の主は1体討てば全て)
+  // 倒した数に応じて段階的に明かす (戦闘中の「敵の姿」と同じ。主・強敵は1体討てば全て)
   const kills = monKills(key);
   const R = revealSteps(m);
   const statsOpen = kills >= R.stats, loreOpen = kills >= R.lore;
@@ -580,7 +580,7 @@ export function codexMonSheet(key) {
       pairRow("懸賞", bountyTxt),
     ]));
   }
-  const idxs = Object.keys(e.dungeons || {}).map(Number).filter((i) => DUNGEONS[i]);
+  const idxs = Object.keys(e.dungeons || {}).map(Number).filter((i) => DUNGEONS[i] && dunOpen(i));
   body.appendChild(infoBlock("出現した迷宮", idxs.length ? idxs.map((i) => pairRow(DUNGEONS[i].name)) : [pairRow("記録なし", null, { dim: true })]));
   return sheet.open({
     kind: "info", banner: isOther ? "その他" : `${RACE_LABEL[m.race] || "敵"}${m.rank ? "・" + RANK_NAME[m.rank] + "級" : ""}`,

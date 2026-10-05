@@ -12,8 +12,8 @@
 //   │ ◆ 隊の備え [肖像][肖像][肖像]   入替 ›  │
 //   │ ⚠ フィモンが深手     [宿で休む ●48]      │ 直し方はその場に (別の札は出さない)
 //   ├──────────────────────────────────────┤
-//   │ 迷宮の異変「…」 危険/見返り  [異変ごと] │ 異変は門をくぐる欄にまとめる (抽選はこのシートで一度だけ)
-//   │ [ ◆ 門をくぐる ― B1F ◆ ]                │ 56px の決め手
+//   │ [ ◆ 門をくぐる ― B1F ◆ ]                │ 階選択・隊の備えと共に下部へ固定
+//   │ 迷宮の掟・異変・備えの注意は本文で巻く   │ 説明が増えても操作欄を隠さない
 //   └──────────────────────────────────────┘
 
 import { UI, game, ops, registerUI } from "./ctx.js";
@@ -281,7 +281,6 @@ function renderGates(b) {
     }
   };
   if (typeof requestAnimationFrame === "function") requestAnimationFrame(restore);
-  renderStartFloor(b);
 }
 
 // ---- 潜り始める階 (到達した帰還魔法陣の階から) ----
@@ -348,6 +347,9 @@ function renderReady(b) {
   swap.addEventListener("click", () => { sfx("select"); close(); setTimeout(() => UI.openParty && UI.openParty(0), 0); });
   strip.appendChild(swap);
   b.appendChild(strip);
+}
+// 備えの注意は本文でスクロールさせ、階選択・パーティ欄の高さを保つ。
+function renderReadyIssues(b) {
   let res = null;
   try { res = game.preDiveIssues ? game.preDiveIssues() : null; } catch (e) { res = null; }
   const items = (res && res.items) || [];
@@ -364,7 +366,7 @@ function renderReady(b) {
   }
 }
 
-// ---- 迷宮の異変 (§7 M1) — 門をくぐる欄 (足元) にまとめる ----
+// ---- 迷宮の異変 (§7 M1) — 本文で説明と切り替えを表示 ----
 function mutatorStrip() {
   const g = G();
   const m = game.townMutatorFor ? game.townMutatorFor(g.dungeonIdx) : null;
@@ -387,7 +389,7 @@ function mutatorStrip() {
   sw.setAttribute("aria-checked", cur.accept ? "true" : "false");
   sw.appendChild(el("span", "dp-mut-sw-l", cur.accept ? "異変ごと潜る" : "鎮まるのを待つ"));
   const knob = el("span", "dg-switch"); knob.appendChild(el("i")); sw.appendChild(knob);
-  sw.addEventListener("click", () => { cur.accept = !cur.accept; sfx("select"); refreshFooter(); });
+  sw.addEventListener("click", () => { cur.accept = !cur.accept; sfx("select"); refresh(); });
   box.appendChild(sw);
   return box;
 }
@@ -475,7 +477,12 @@ function refreshFooter() {
   if (!cur || !cur.h || cur.h.closed) return;
   const foot = cur.h.foot;
   foot.textContent = "";
-  if (cur.page !== "abyss") { const m = mutatorStrip(); if (m) foot.appendChild(m); }
+  if (cur.page !== "abyss") {
+    const ready = el("div", "dp-ready");
+    renderStartFloor(ready);
+    renderReady(ready);
+    foot.appendChild(ready);
+  }
   for (const it of footerSpec()) {
     const b = button(it);
     b.classList.add("dp-cta");
@@ -534,7 +541,9 @@ function departGo() {
 function body(b) {
   if (cur.page === "abyss") { renderAbyssPage(b); return; }
   renderGates(b);
-  renderReady(b);
+  const m = mutatorStrip();
+  if (m) b.appendChild(m);
+  renderReadyIssues(b);
   renderBriefing(b);
 }
 function refresh() {

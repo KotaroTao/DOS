@@ -1,0 +1,56 @@
+// 記録の移行・資源収支と、記録ON/OFFで戦闘結果が変わらないことを確認。
+import assert from 'node:assert/strict';
+import { Battle, SPELLS } from '../../src/combat.js';
+import { makeDoll } from '../../src/souls.js';
+import { MONSTERS } from '../../src/sprites.js';
+import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
+Object.assign(MONSTERS,DUNGEON_MONSTERS);
+const store=new Map([['dos-testlog',JSON.stringify({v:1,on:true,since:'旧開始',d:{w01:{name:'旧迷宮',s:{},b:{n:{c:3,w:3}}}}})]]);
+globalThis.localStorage={getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)};
+const T=await import('../../src/telemetry.js');
+const data=()=>JSON.parse(T.tlExportText().split('\n').at(-1));
+assert.equal(data().history[0].d.w01.b.n.c,3);
+assert.equal(data().v,2);
+assert.deepEqual(data().d,{});
+const reload=await import('../../src/telemetry.js?reload');
+assert.equal(JSON.parse(reload.tlExportText().split('\n').at(-1)).history.length,1);
+T.tlClear();T.tlSetOn(true);
+const where={key:'w01',name:'検証',floor:1,floors:5,lv:1};
+const p={name:'検証',hp:70,maxhp:100,mp:20,maxmp:30,alive:true,jobKey:'mage',jobLv:1};
+const hpDescriptor=Object.getOwnPropertyDescriptor(p,'hp');
+T.tlMeasure(where,[p],'skill',()=>{
+ p.mp-=10;p.mp+=5;
+ T.tlMeasure(where,[p],'passive',()=>{p.hp=Math.min(p.maxhp,p.hp+50);});
+ p.hp-=15;
+});
+assert.deepEqual(data().d.w01.resources,{'skill:mp-':10,'skill:mp+':5,'passive:hp+':30,'skill:hp-':15});
+assert.deepEqual(Object.getOwnPropertyDescriptor(p,'hp'),{...hpDescriptor,value:85});
+assert.throws(()=>T.tlMeasure(where,[p],'trap',()=>{p.hp=-10;throw Error('検証');}));
+assert.equal(data().d.w01.resources['trap:hp-'],85);
+assert.equal(Object.getOwnPropertyDescriptor(p,'hp').value,-10);
+p.hp=0;T.tlMeasure(where,[p],'revive',()=>{p.hp=1;});
+assert.equal(data().d.w01.resources['revive:hp+'],1);
+T.tlRunBegin(where,[p],{loadout:[{souls:[{count:5}]}]});
+T.tlRunBegin({...where,floor:5},[p]);
+assert.equal(data().d.w01.firstEntry.floor,1);
+assert.equal(data().d.w01.runs.length,2);
+T.tlSnapshot('floor',where,[p]);T.tlRunEnd({...where,floor:5},[p],'clear');
+assert.equal(data().d.w01.runs.at(-1).exit.outcome,'clear');
+T.tlSetOn(false);const before=JSON.stringify(data().d);
+assert.equal(T.tlMeasure(where,[p],'off',()=>{p.hp=10;return 7;}),7);
+assert.equal(JSON.stringify(data().d),before);
+let rng;const seed=()=>{rng=12345;Math.random=()=>{rng=(Math.imul(rng,1664525)+1013904223)>>>0;return rng/4294967296;};};
+const member=()=>Object.assign(makeDoll('検証'),{jobKey:'mage',atk:100,vit:60,agi:100,int:120,pie:130,luk:50,hp:500,maxhp:1000,mp:100000,maxmp:100000,alive:true});
+const foe=()=>({uid:999,key:'bs_ghoul',mon:MONSTERS.bs_ghoul,name:'検証の敵',side:'enemy',alive:true,hp:100000,maxhp:100000,atk:100,vit:60,agi:30,int:40,pie:40,luk:8,lv:40,element:'none',spells:[]});
+function trial(key,watch){
+ seed();const party=Array.from({length:6},member);party[1].alive=false;party[1].hp=0;
+ const enemies=Array.from({length:3},foe);const b=new Battle(party,enemies,()=>{});
+ T.tlSetOn(watch);if(watch)T.tlWatchBattle(b,where);
+ const sp=SPELLS[key],target=sp.target==='dead-ally'?party[1]:sp.target==='self'?party[0]:sp.target?.includes('ally')?party[2]:enemies[0];
+ seed();b._exec({actor:party[0],action:'spell',spellKey:key,target});
+ assert(!Object.getOwnPropertyDescriptor(party[0],'hp').get);
+ assert(!Object.keys(b).includes('_tlWatched'));
+ return [...party,...enemies].map(x=>({hp:x.hp,mp:x.mp,alive:x.alive,ailment:x.ailment,mind:x.mind,effects:x.effects}));
+}
+for(const key of Object.keys(SPELLS))assert.deepEqual(trial(key,true),trial(key,false),key);
+console.log(`旧記録保持・初記録出撃・帰還・消費/回復の別集計・例外時の復元を確認。全${Object.keys(SPELLS).length}技で記録ON/OFFの結果一致`);
