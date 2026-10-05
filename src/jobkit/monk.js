@@ -21,7 +21,7 @@ export default {
     MONK_MYOUOU: { name: "明王の構え", mp: 12, kind: "buff", buff: { atk: 1.4 }, stance: "counter", target: "self", tech: true, desc: "明王の怒りを宿し、攻めつつ反撃に構える" },
     MONK_CHIMYAKU: { name: "地脈掌", mp: 20, kind: "phys", power: 4.4, element: "earth", acc: 0.6, drain: 0.15, target: "enemy", desc: "大地の気を通す掌打。生気を吸い上げる" },
     MONK_NENJU: { name: "念珠乱打", mp: 16, kind: "phys", power: 0.8, hits: 4, acc: 0.5, debuff: { atk: 0.85 }, target: "enemy", desc: "数珠を巻いた四連打で敵の力を封じる" },
-    MONK_SENPUUKYAKU: { name: "旋風脚", mp: 21, kind: "phys", power: 0.9, hits: 2, agiScale: 0.2, element: "wind", acc: 0.5, target: "all-enemy", desc: "旋風の回し蹴りが敵全体を二度薙ぐ" },
+    MONK_SENPUUKYAKU: { name: "旋風脚", mp: 21, kind: "phys", power: 0.9, hits: 2, agiScale: 0.2, element: "wind", acc: 0.5, target: "all-enemy", desc: "旋風の回し蹴りが敵全体を二度なぐ" },
     MONK_ROKKON: { name: "六根清浄拳", mp: 24, kind: "phys", power: 0.68, hits: 6, acc: 0.7, partyHeal: 8, target: "enemy", desc: "六根を清める六連拳。仲間も癒す" },
     MONK_SHINKYAKU: { name: "金剛震脚", mp: 28, kind: "phys", power: 2.1, element: "earth", acc: 0.6, debuff: { agi: 0.8 }, target: "all-enemy", desc: "震脚で大地を揺らし、敵全体の足を止める" },
     MONK_HOURIN: { name: "法輪掌", mp: 30, kind: "phys", power: 2.7, acc: 0.9, seal: { chance: 0.3, turns: 2 }, target: "all-enemy", desc: "法輪が敵陣を打ち、特技を封じる" },

@@ -595,7 +595,7 @@ export function playIreneScene(pages, done) {
     if (reduced()) { reveal(); return; }
     st.full = false;
     nextMark.classList.add("hidden");
-    // 1文字ずつ (行をまたいで続けて) 綴る
+    // 1文字ずつ (行をまたいで続けて) つづる
     const all = list[k].map((t) => [...(t || "")]);
     let li = 0, ci = 0;
     st.timer = setInterval(() => {

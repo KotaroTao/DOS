@@ -15,8 +15,8 @@ export default {
     160 BATTLEMAGE_INTETSU 165 battlemageYakiin/4 170 GANSAI 175 battlemageJunkan/3 180 BATTLEMAGE_BAKUENRANDA 185 battlemageKuzushi/3
     190 BATTLEMAGE_SHAKUNETSU 195 TOUSHINHAGEKI 200 BATTLEMAGE_TENPOU`,
   skills: {
-    // Lv15 の固有技: 魔力で岩を纏った拳。INT で伸び、守りを砕く
-    BATTLEMAGE_GANKEN: { name: "岩拳", mp: 5, kind: "phys", power: 1.2, intScale: 0.4, acc: 0.5, element: "earth", debuff: { vit: 0.85 }, target: "enemy", desc: "魔力で岩を纏った拳。守りを砕く（INTでも伸びる・土）" },
+    // Lv15 の固有技: 魔力で岩をまとった拳。INT で伸び、守りを砕く
+    BATTLEMAGE_GANKEN: { name: "岩拳", mp: 5, kind: "phys", power: 1.2, intScale: 0.4, acc: 0.5, element: "earth", debuff: { vit: 0.85 }, target: "enemy", desc: "魔力で岩をまとった拳。守りを砕く（INTでも伸びる・土）" },
     BATTLEMAGE_GOUMA: { name: "剛魔の構え", mp: 4, kind: "buff", buff: { int: 1.3, vit: 1.2 }, target: "self", tech: true, desc: "魔力を練り、身を岩のように固める" },
     BATTLEMAGE_KASHA: { name: "火車拳", mp: 11, kind: "phys", power: 1.2, hits: 2, intScale: 0.4, element: "fire", acc: 0.4, target: "enemy", desc: "炎の車輪のごとく二度打ち込む" },
     BATTLEMAGE_GANKENDAN: { name: "岩拳弾", mp: 8, kind: "atk", power: 28, element: "earth", debuff: { vit: 0.85 }, target: "enemy", desc: "岩の拳を撃ち出し、守りを砕く" },

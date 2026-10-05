@@ -60,7 +60,7 @@ export default {
       fx: [{ t: "take", when: { tgtDebuffed: true }, aura: true, v: [0.05, 0.08, 0.12] }],
     },
     wardenJusogaeshi: {
-      label: "呪詛返し",
+      label: "呪い返し",
       lv: ["ブレス・呪文を受けた時、受けたダメージの25%を相手に返す", "ブレス・呪文を受けた時、受けたダメージの40%を相手に返す",
         "ブレス・呪文を受けた時、受けたダメージの55%を相手に返す"],
       fx: [{ t: "hurt", on: "breath", thorns: [0.25, 0.4, 0.55] }],

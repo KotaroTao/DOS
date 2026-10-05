@@ -15,15 +15,15 @@ export default {
     165 resistAilment/2 170 HEXER_HYOUKAN 175 soulLure/1 180 MEIANRAN 185 hexerJusoMamori/2 190 HEXER_HYAKKI
     195 MAGATSU 200 HEXER_BANJU`,
   skills: {
-    // Lv15 の固有技: 呪詛を吹き込み、毒と守りの綻びで蝕む
-    HEXER_SHOKUJU: { name: "蝕みの呪詛", mp: 4, kind: "debuff", poison: { chance: 0.8, pct: 0.06 }, debuff: { vit: 0.85 }, target: "enemy", desc: "呪詛を吹き込み、毒で蝕んで守りを削ぐ（毎ターン6%）" },
+    // Lv15 の固有技: 呪いを吹き込み、毒と守りの綻びで蝕む
+    HEXER_SHOKUJU: { name: "蝕みの呪い", mp: 4, kind: "debuff", poison: { chance: 0.8, pct: 0.06 }, debuff: { vit: 0.85 }, target: "enemy", desc: "呪いを吹き込み、毒で蝕んで守りを削ぐ（毎ターン6%）" },
     HEXER_MUMAKOU: { name: "夢魔の香", mp: 4, kind: "debuff", sleepChance: 0.45, poison: { chance: 0.3, pct: 0.04 }, target: "all-enemy", desc: "甘い香で敵全体を眠らせ、毒を回す" },
     HEXER_SHIKUGI: { name: "黙し釘の呪", mp: 11, kind: "debuff", seal: { chance: 0.5, turns: 3 }, vuln: { dark: 0.85 }, target: "all-enemy", desc: "呪い釘で敵全体の特技を封じ、闇に脆くする" },
     HEXER_OBOREJU: { name: "溺れ呪い", mp: 14, kind: "atk", power: 36, element: "water", confuse: 0.3, target: "enemy", desc: "水底の呪いで溺れさせ、正気を奪う（混乱）" },
     HEXER_KUROSHIO: { name: "黒潮の呪滴", mp: 20, kind: "atk", power: 50, element: "water", debuff: { atk: 0.88 }, target: "all-enemy", desc: "呪いの潮が敵全体を呑み、力を奪う" },
     HEXER_KODOKU: { name: "蠱毒の壺", mp: 30, kind: "atk", power: 88, element: "dark", poison: { chance: 0.7, pct: 0.1 }, target: "enemy", desc: "壺の蠱毒を浴びせ、猛毒で蝕む" },
     HEXER_HYOUKAN: { name: "氷棺の呪", mp: 26, kind: "atk", power: 82, element: "water", sleepChance: 0.35, target: "enemy", desc: "氷の棺に閉じ込め、凍える眠りに落とす" },
-    HEXER_HYAKKI: { name: "百鬼の呪詛", mp: 36, kind: "atk", power: 96, debuff: { atk: 0.85, vit: 0.85 }, target: "all-enemy", desc: "百の呪いが敵全体を蝕み、力と守りを削ぐ" },
+    HEXER_HYAKKI: { name: "百鬼の呪い", mp: 36, kind: "atk", power: 96, debuff: { atk: 0.85, vit: 0.85 }, target: "all-enemy", desc: "百の呪いが敵全体を蝕み、力と守りを削ぐ" },
     HEXER_BANJU: { name: "万呪の帳", mp: 44, kind: "atk", power: 122, poison: { chance: 0.5, pct: 0.08 }, confuse: 0.25, target: "all-enemy", desc: "万の呪いで敵全体を討ち、毒と狂気を撒く" },
   },
   perks: {
@@ -33,9 +33,9 @@ export default {
       fx: [{ t: "cast", on: "debuff", mp: [0.04, 0.06, 0.08] }] },
     hexerMaganoKizashi: { label: "禍の前触れ", lv: ["戦闘開始時、敵全体の素早さ−10% (3ターン)", "戦闘開始時、敵全体の素早さ−15% (3ターン)"],
       fx: [{ t: "start", foe: { agi: [0.9, 0.85] }, dur: 3 }] },
-    hexerTatari: { label: "弱り目の祟り", lv: ["弱体中の敵への攻撃呪文+12%", "弱体中の敵への攻撃呪文+20%", "弱体中の敵への攻撃呪文+28%"],
+    hexerTatari: { label: "弱り目のたたり", lv: ["弱体中の敵への攻撃呪文+12%", "弱体中の敵への攻撃呪文+20%", "弱体中の敵への攻撃呪文+28%"],
       fx: [{ t: "deal", on: "spell", v: [0.12, 0.2, 0.28], when: { tgtDebuffed: true } }] },
-    hexerJusoMamori: { label: "呪詛の守り", lv: ["ブレスの被ダメ−15%、浴びると最大MPの4%を得る", "ブレスの被ダメ−25%、浴びると最大MPの6%を得る"],
+    hexerJusoMamori: { label: "呪いの守り", lv: ["ブレスの被ダメ−15%、浴びると最大MPの4%を得る", "ブレスの被ダメ−25%、浴びると最大MPの6%を得る"],
       fx: [{ t: "take", on: "breath", v: [0.15, 0.25] }, { t: "hurt", on: "breath", mp: [0.04, 0.06] }] },
   },
 };

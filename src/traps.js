@@ -34,7 +34,7 @@ export const TRAPS = [
   { id: "stunner",    name: "スタナー",     rank: 2, kind: "opener", mult: 0.4, ail: "paralyze", ailChance: 0.85, flavor: "閃光が瞬き、体の自由が奪われる！" },
   { id: "acid",       name: "酸の噴出",     rank: 2, kind: "one",    mult: 1.4, ail: "poison",   ailChance: 0.5,  flavor: "腐食性の酸が噴き上がった！" },
   { id: "frost",      name: "凍気の罠",     rank: 2, kind: "party",  mult: 0.5, ail: "paralyze", ailChance: 0.25, flavor: "凍てつく冷気が骨まで凍らせる！" },
-  { id: "mageblast",  name: "メイジブラスター", rank: 2, kind: "mp", mult: 0.25,                                  flavor: "魔力を喰らう呪具が唸りを上げた！" },
+  { id: "mageblast",  name: "メイジブラスター", rank: 2, kind: "mp", mult: 0.25,                                  flavor: "魔力を喰らう呪具がうなりを上げた！" },
   { id: "arrowstorm", name: "矢の嵐",       rank: 2, kind: "multi",  mult: 0.9, hits: 3,                          flavor: "無数の矢が四方から降り注ぐ！" },
   { id: "goldeater",  name: "黄金喰い",     rank: 2, kind: "gold",                                                flavor: "金貨だけを溶かす粘液が溢れ出た…" },
   { id: "soulleech",  name: "魂喰らい",     rank: 2, kind: "soul",                                                flavor: "蒼白い口が開き、集めた魂をすすった…" },
@@ -44,7 +44,7 @@ export const TRAPS = [
   { id: "inferno",    name: "業火の檻",     rank: 3, kind: "party",  mult: 0.95,                                  flavor: "炎の檻がパーティを呑み込んだ！" },
   { id: "stonemist",  name: "石化の霧",     rank: 3, kind: "one",    mult: 0.5, ail: "stone",    ailChance: 0.45, flavor: "灰色の霧が肌を石へ変えていく…" },
   { id: "horde",      name: "大警報",       rank: 3, kind: "alarm",  horde: true,                                 flavor: "迷宮全体に轟く咆哮——群れが来る！" },
-  { id: "curse",      name: "呪詛の刻印",   rank: 3, kind: "party",  mult: 0.6, ail: "paralyze", ailChance: 0.3,  flavor: "黒い刻印が浮かび、生気を蝕む！" },
+  { id: "curse",      name: "呪いの刻印",   rank: 3, kind: "party",  mult: 0.6, ail: "paralyze", ailChance: 0.3,  flavor: "黒い刻印が浮かび、生気を蝕む！" },
   { id: "lifedrain",  name: "生気吸引",     rank: 3, kind: "pct",    pct: 0.22,                                   flavor: "無形の何かがパーティの生命を吸い上げた！" },
   { id: "abyss",      name: "奈落の顎",     rank: 3, kind: "one",    mult: 2.8, dieChance: 0.14,                  flavor: "床が裂け、闇の顎が開いた！" },
 ];

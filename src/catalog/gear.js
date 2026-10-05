@@ -114,7 +114,7 @@ export const HEADS = [
   H("h_headless_duke_helm", "首無し公の白兜", 161, { pow: 1.2, hp: 90, cls: ["fighter", "knight"], tint: "#e8e8f4", tintAmt: 0.25,
     desc: "首をはねられてなお馬を駆り続けたと伝わる公爵の白兜。失われた首の代わりに兜が主の意地を覚えていて、かぶる者の急所を頑なに守る。" }),
   H("h_dawn_herald_diadem", "暁告げの宝冠", 165, { shape: "circlet", eDef: ["light", 2], mp: 34, pie: 18, cls: ["mage", "priest", "bishop"],
-    desc: "夜明けを告げる役目の大司祭だけが戴いた宝冠。常に東雲の色へ淡く輝き、夜を統べる者の呪詛も闇の爪も、光輪の前で薄れて消える。" }),
+    desc: "夜明けを告げる役目の大司祭だけが戴いた宝冠。常に東雲の色へ淡く輝き、夜を統べる者の呪いも闇の爪も、光輪の前で薄れて消える。" }),
   H("h_lost_capital_warcrown", "亡都の戦王兜", 173, { pow: 1.1, hp: 150, cls: ["fighter", "knight"],
     desc: "滅びの晩、都もろとも炎に呑まれた王の戦兜。王冠を兼ねた鉢金には民の名がびっしりと刻まれ、その重みが背骨を支える芯になる。" }),
 
@@ -242,7 +242,7 @@ export const FEET = [
 
   // ---- lv36-40 ----
   F("f_giant_feller_greaves", "巨人殺しの脚甲", 138, { shape: "greaves", pow: 1.25, hp: 90, agi: -10, cls: ["fighter", "knight"], tint: "#d9d4bf", tintAmt: 0.3,
-    desc: "巨人の向こうずねを断って勝った小兵の英雄譚にあやかった脚甲。巨人の骨を芯に仕込み、何よりも頑丈に、何よりも低く構えられる。" }),
+    desc: "巨人の向こうずねを断って勝った小兵の武勇伝にあやかった脚甲。巨人の骨を芯に仕込み、何よりも頑丈に、何よりも低く構えられる。" }),
   F("f_phantom_coach_boots", "亡霊馬車の御者靴", 141, { pow: 0.9, agi: 18, tint: "#e8e8f4", tintAmt: 0.2,
     desc: "真夜中に死者を乗せて走る馬車——その御者が履いていたとされる靴。地を踏んでいるのに車輪のように滑らかで、足音だけが遅れて届く。" }),
   F("f_deadmarch_greaves", "死出の行軍脚甲", 145, { shape: "greaves", cursed: true, align: "悪", def: 50, agi: -18, cls: ["fighter", "knight"], tint: "#3a3a46", tintAmt: 0.3,
@@ -323,7 +323,7 @@ export const HANDS = [
   G("g_titan_gauntlets", "巨人骨の大籠手", 149, { shape: "gauntlet", atkB: 40, agi: -15, pow: 1.2, cls: ["fighter", "knight"], tint: "#d9d4bf", tintAmt: 0.25,
     desc: "墓所の巨人の指骨を削り出した大籠手。はめると自分のものではない腕力が腕に流れ込み、岩も扉も同じ脆さに思えてくる。" }),
   G("g_frostbite_gauntlets", "霜噛みの籠手", 161, { shape: "gauntlet", eDef: ["water", 2], pow: 1.2, agi: -8, cls: ["fighter", "knight"],
-    desc: "氷河に千年埋もれていた籠手。中の手はとうに無く、霜だけが形を保つ。纏う冷気は業火すら噛み消す——◎の水護り。" }),
+    desc: "氷河に千年埋もれていた籠手。中の手はとうに無く、霜だけが形を保つ。まとう冷気は業火すら噛み消す——◎の水護り。" }),
   G("g_archmage_gloves", "大魔導の指貫", 177, { mp: 55, int: 34, cls: ["mage", "priest", "bishop"], tint: "#6a4a8a", tintAmt: 0.28,
     desc: "指先で星座を書き換えたとうたわれる大魔導の指貫。十指それぞれに別の呪文の癖が染みつき、詠唱の途中を勝手に補ってくれる。" }),
   G("g_godhand_gauntlets", "神手の黄金籠手", 192, { shape: "gauntlet", eDef: ["light", 2], hp: 170,

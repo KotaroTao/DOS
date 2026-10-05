@@ -14,11 +14,11 @@ export default {
     165 arcthiefSuritoru/4 170 ARCTHIEF_TAMANUSUMI 175 arcthiefSurinuke/2 180 ARCTHIEF_TOUTENSEKI 185 arcthiefSae/4 190 ARCTHIEF_MAKUHIKI
     195 ARCTHIEF_DATSUENRAN 200 ARCTHIEF_BANSHOU`,
   skills: {
-    // Lv15 の固有技: 闇の呪弾で撃ち、魔力を掠め取る
-    ARCTHIEF_KASUMEJUDAN: { name: "掠め呪弾", mp: 5, kind: "atk", power: 16, element: "dark", mpDrain: 0.2, target: "enemy", desc: "闇の呪弾で撃ち、敵の魔力を掠め取る" },
+    // Lv15 の固有技: 闇の呪弾で撃ち、魔力をかすめ取る
+    ARCTHIEF_KASUMEJUDAN: { name: "かすめ呪弾", mp: 5, kind: "atk", power: 16, element: "dark", mpDrain: 0.2, target: "enemy", desc: "闇の呪弾で撃ち、敵の魔力をかすめ取る" },
     // INT でも伸びる魔刃 (共通の冥刃は ATK だけで伸び、INT型の魔盗賊に合わない)
-    ARCTHIEF_MAREIJIN:   { name: "魔霊刃", mp: 10, kind: "phys", power: 1.7, intScale: 0.5, element: "dark", mpDrain: 0.2, target: "enemy", desc: "魔力を纏った冥い刃で斬り、魔力を奪う（INTでも伸びる）" },
-    ARCTHIEF_KASUMEBA:     { name: "掠め魔刃", mp: 4, kind: "phys", power: 1.1, intScale: 0.5, element: "dark", mpDrain: 0.2, target: "enemy", desc: "闇の刃で斬り、魔力を掠め取る（闇）" },
+    ARCTHIEF_MAREIJIN:   { name: "魔霊刃", mp: 10, kind: "phys", power: 1.7, intScale: 0.5, element: "dark", mpDrain: 0.2, target: "enemy", desc: "魔力をまとった冥い刃で斬り、魔力を奪う（INTでも伸びる）" },
+    ARCTHIEF_KASUMEBA:     { name: "かすめ魔刃", mp: 4, kind: "phys", power: 1.1, intScale: 0.5, element: "dark", mpDrain: 0.2, target: "enemy", desc: "闇の刃で斬り、魔力をかすめ取る（闇）" },
     ARCTHIEF_NUSUMIMI:     { name: "盗み見", mp: 3, kind: "debuff", vuln: { all: 0.85 }, target: "enemy", desc: "術式を盗み見て、全属性の守りを崩す" },
     ARCTHIEF_YUMETORI:     { name: "夢盗り", mp: 3, kind: "debuff", sleepChance: 0.75, strip: true, target: "enemy", desc: "眠りに誘い、その隙に強化を盗む" },
     ARCTHIEF_GENTOU:       { name: "幻灯", mp: 4, kind: "debuff", confuse: 0.55, debuff: { hit: 0.85 }, target: "enemy", desc: "幻灯で惑わせ、混乱させ狙いも乱す" },
@@ -26,10 +26,10 @@ export default {
     ARCTHIEF_KAGEKUI:      { name: "影喰い", mp: 12, kind: "atk", power: 33, element: "dark", mpDrain: 0.1, target: "all-enemy", desc: "影が敵陣を呑み、魔力を啜る（闇）" },
     ARCTHIEF_TOUSEI:       { name: "盗星", mp: 22, kind: "atk", power: 58, strip: true, target: "all-enemy", desc: "盗んだ星を降らせ、強化を剥ぐ" },
     ARCTHIEF_MASHU:        { name: "魔手の一刺し", mp: 5, kind: "phys", power: 1.2, intScale: 0.4, critBonus: 0.4, target: "enemy", desc: "魔力を込めた指先で急所を刺す" },
-    ARCTHIEF_KASUMERAI:    { name: "掠め雷", mp: 9, kind: "atk", power: 25, element: "wind", para: 0.2, debuff: { agi: 0.85 }, target: "enemy", desc: "掠め取った雷で撃ち、痺れさせる（風）" },
+    ARCTHIEF_KASUMERAI:    { name: "かすめ雷", mp: 9, kind: "atk", power: 25, element: "wind", para: 0.2, debuff: { agi: 0.85 }, target: "enemy", desc: "かすめ取った雷で撃ち、痺れさせる（風）" },
     ARCTHIEF_JUTSUAMI:     { name: "術封じの網", mp: 11, kind: "debuff", seal: { chance: 0.5, turns: 3 }, strip: true, target: "all-enemy", desc: "術を絡め取る網で、強化と特技を奪う" },
     ARCTHIEF_MANAWA:       { name: "魔縄締め", mp: 16, kind: "phys", power: 2.6, intScale: 0.4, execute: 2.5, target: "enemy", desc: "魔の縄で弱った敵を締め上げる（とどめ）" },
-    ARCTHIEF_TAMANUKI:     { name: "魂抜き", mp: 21, kind: "atk", power: 60, element: "dark", seal: { chance: 0.5, turns: 3 }, target: "enemy", desc: "魂を掠め取り、特技を封じる（闇）" },
+    ARCTHIEF_TAMANUKI:     { name: "魂抜き", mp: 21, kind: "atk", power: 60, element: "dark", seal: { chance: 0.5, turns: 3 }, target: "enemy", desc: "魂をかすめ取り、特技を封じる（闇）" },
     ARCTHIEF_NUSUMISHIMO:  { name: "盗み霜", mp: 14, kind: "atk", power: 37, element: "water", sleepChance: 0.25, target: "enemy", desc: "盗んだ冷気で貫き、凍え眠らせる（水）" },
     ARCTHIEF_KAGENUKE:     { name: "影抜け", mp: 22, kind: "phys", power: 4.0, agiScale: 1.0, intScale: 0.6, critBonus: 0.3, element: "wind", target: "enemy", desc: "影を抜け、風の魔刃で刺す（風）" },
     ARCTHIEF_NUSUMIARASHI: { name: "盗み嵐", mp: 16, kind: "atk", power: 42, element: "wind", debuff: { hit: 0.85 }, target: "all-enemy", desc: "盗んだ嵐が敵陣を裂き、狙いを乱す（風）" },
@@ -75,7 +75,7 @@ export default {
       lv: ["戦闘開始時、AGI×1.15 (2ターン) とMP4%回復", "戦闘開始時、AGI×1.2 (2ターン) とMP6%回復", "戦闘開始時、AGI×1.25 (2ターン) とMP8%回復"],
       fx: [{ t: "start", buff: { agi: [1.15, 1.2, 1.25] }, mp: [0.04, 0.06, 0.08], dur: 2 }],
     },
-    // 刃をすり抜け、ついでに魔力を掠める
+    // 刃をすり抜け、ついでに魔力をかすめる
     arcthiefSurinuke: {
       label: "すり抜け",
       lv: ["敵の物理を5%でかわす。物理を受けると30%でMP3%回復", "敵の物理を8%でかわす。物理を受けると30%でMP5%回復"],

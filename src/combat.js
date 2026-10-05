@@ -897,7 +897,7 @@ export class Battle {
   }
   // Lv差を織り込んだ成功率 (5〜95%)。actor が無い時 (持続効果など) は隊の平均Lvで見る
   _rate(actor, t, base) {
-    if (actor && actor.side === "party") base += this._rk(actor, "hexerSae", [0.05, 0.10, 0.15, 0.25]); // 呪詛の冴え (呪術師のランク)
+    if (actor && actor.side === "party") base += this._rk(actor, "hexerSae", [0.05, 0.10, 0.15, 0.25]); // 呪いの冴え (呪術師のランク)
     let al = actor ? this.lvOf(actor) : null;
     if (al == null) { const ps = this.party.filter((p) => p.alive); al = ps.length ? ps.reduce((a, p) => a + this.lvOf(p), 0) / ps.length : 1; }
     return lvRate(base, al, this.lvOf(t));

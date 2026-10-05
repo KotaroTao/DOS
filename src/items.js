@@ -415,7 +415,7 @@ export const ITEMS = {
   // ===== 体 =====
   robe: {
     id: "robe", name: "ローブ", slot: "body", lv: 2, vit: 1, int: 1, mp: 3, price: 90, classes: null, weight: "cloth",
-    desc: "魔除けの紋様を縫い込んだ外套。糸は月のない夜に紡がれたといい、まとう者の魔力を少しだけ高める。",
+    desc: "魔除けの紋様を縫い込んだマント。糸は月のない夜に紡がれたといい、まとう者の魔力を少しだけ高める。",
     ...sprite([
       "........JJJJJJJJ........",
       ".......Jiipiiiipk.......",
