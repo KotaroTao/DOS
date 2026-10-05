@@ -449,7 +449,7 @@ function openDeltaSheet(item, infos, best, act) {
     footer: [{ label: "もどる", kind: "secondary", onTap: (hh) => hh.close("back") }],
   });
 }
-// 品の画面 (シート): 品の要約 + 誰に装備させるか (主役) + その他の操作 (使う・渡す・捨てる…)
+// 品の画面 (シート): 品の要約 + 誰に装備させるか (主役) + その他の操作 (使う・渡す・売る・迷宮では捨てる…)
 export function openEquipChooser(item, { owner = null, actions = null } = {}) {
   if (!item) return null;
   owner = owner || ownerOf(item);
@@ -1972,7 +1972,8 @@ function itemActions(it, owner, ctx, { equip = true } = {}) {
     acts.push({ key: "sell", label: "売る", kind: warn ? "danger" : "secondary", cost: game.sellPrice(it),
       onTap: async (h) => { if (await UI.sellOne(owner, it)) close(h); } });
   }
-  acts.push({ label: "捨てる", kind: "danger", onTap: (h) => { close(h); const i = owner.items.indexOf(it); if (i >= 0 && game.dropItem) game.dropItem(owner, i); } });
+  // 捨てるのは迷宮の中だけ (持ちきれない時の手段。街では売る・奉納で足りる)
+  if (!town) acts.push({ label: "捨てる", kind: "danger", onTap: (h) => { close(h); const i = owner.items.indexOf(it); if (i >= 0 && game.dropItem) game.dropItem(owner, i); } });
   return acts;
 }
 

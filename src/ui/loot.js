@@ -260,7 +260,7 @@ function giveTo(owner, it, to) {
   return true;
 }
 
-// 捨てる (確認ののち。従来の dropItem と同じ: 二度と戻らない)
+// 捨てる (迷宮の中だけ。確認ののち。従来の dropItem と同じ: 二度と戻らない)
 async function discard(owner, it) {
   const ok = await confirm({
     banner: "捨てる", title: `${itemName(it)} を捨てる？`,
@@ -702,7 +702,7 @@ function defaultActions(st) {
     st.equipFirst = isUpgrade(it, { owner });
   }
 
-  // ---- 渡す (宝物庫から開いた収集品は奉納) / 売る (商会が開いている街) / 捨てる ----
+  // ---- 渡す (宝物庫から開いた収集品は奉納) / 売る (商会が開いている街) / 捨てる (迷宮の中だけ) ----
   if (context === "donate" && inBag && town && ops.donateOne) {
     acts.push({ key: "donate", label: "奉納", onTap: (close) => {
       const res = ops.donateOne(owner, it);
@@ -718,7 +718,8 @@ function defaultActions(st) {
       label: it.unidentified ? "鑑定せず売る" : "売る", cost: price,
       onTap: async (close) => { if (await sellOne(owner, it)) close(); } });
   }
-  if (inBag) acts.push({ key: "drop", label: "捨てる", kind: "ghost", onTap: async (close) => { if (await discard(owner, it)) close(); } });
+  // 捨てるのは迷宮の中だけ (持ちきれない時の手段。街では売る・奉納で足りる)
+  if (inBag && !town) acts.push({ key: "drop", label: "捨てる", kind: "ghost", onTap: async (close) => { if (await discard(owner, it)) close(); } });
   return acts;
 }
 

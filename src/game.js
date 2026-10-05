@@ -13234,7 +13234,7 @@ function campCast(caster, spellKey) {
 // 表示ヘルパ (soulStatText・属性/スキル/品の表示・equipPreviewDelta・equipCompareEl・detailLines など) は
 // src/ui/itemview.js へ移設 (import 済み)
 
-// 品の詳細 (窓口)。隊の操作 (装備・使う・渡す・捨てる・鑑定) つきの品シートを開く
+// 品の詳細 (窓口)。隊の操作 (装備・使う・渡す・鑑定、迷宮では捨てる) つきの品シートを開く
 // (WP-C の UI.itemSheet があればそれに actions を渡し、無ければ隊の自前のシート)。p = 持ち主 (null 可)
 function showItemDetailPopup(p, sel) {
   if (!sel || !sel.item) return null;
@@ -13437,10 +13437,10 @@ function useItem(p, index, target) {
   renderStatus(); renderParty();
   autosave(true);
 }
-// 捨てる: 取り返しのつかない操作なので確認画面を挟む
+// 捨てる (迷宮の中だけ): 取り返しのつかない操作なので確認画面を挟む
 function dropItem(p, index) {
   const it = p.items[index];
-  if (!it) return;
+  if (!it || G.state === "town") return;
   showConfirm({
     title: `${it.name} を捨てる？`,
     lines: ["捨てたアイテムは二度と戻らない。"],
