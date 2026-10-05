@@ -65,6 +65,8 @@ export function openResults(spec = {}) {
     gainCell("gold", spec.gold || 0, "ゴールド");
     gainCell("soul", spec.soul || 0, "Soul");
     box.appendChild(gain);
+    // 逃げ去った敵 (金属の魔物) は戦果に入らない。倒した分だけだとわかるように添える
+    if (spec.fled) box.appendChild(el("div", "rs-fled", `${spec.fled}体には逃げられた（逃げた分の戦果は無い）`));
   }
   // ---- 成長・技・魂 ----
   const list = el("div", "rs-list");

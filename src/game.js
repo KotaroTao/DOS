@@ -1045,12 +1045,12 @@ const SPECIAL_FLOORS = [
     lines: ["不思議な力が視界を開いていく。", "この階のすべてのカードが最初から見えている。"],
     board: (b) => sfEachCell(b, (c) => { c.revealed = true; }) },
   { id: "horde", name: "餓えた群れ", icon: "poison", accent: "#d4504e", sym: "Ψ", minFloor: 2, rate: 0.02, hordeReward: true,
-    lines: ["無数の足音と唸り声…敵が異常に多い (出現マス +4)。", "この階の敵をすべて葬れば、迷宮の深さに応じた魂と財が手に入る。"],
+    lines: ["無数の足音とうなり声…敵が異常に多い (出現マス +4)。", "この階の敵をすべて葬れば、迷宮の深さに応じた魂と財が手に入る。"],
     board: (b) => sfPlace(b, 4, (c) => { c.type = "monster"; c.monsterKey = pickFrom(sfMonsterPool()); c.cleared = false; }) },
   { id: "thiefInsight", name: "盗賊の洞察", icon: "chest", accent: "#6fae46", sym: "♠", minFloor: 2, rate: 0.02, sureChest: true, sureDisarm: true,
     lines: ["盗賊の勘が冴え渡る。敵は必ず宝を遺し、罠はことごとく見抜ける。", "敵が100%宝箱を落とし、宝箱の罠解除率が100%になる。"] },
   { id: "miasma", name: "瘴気の階", icon: "poison", accent: "#8a2be2", sym: "☣", minFloor: 2, rate: 0.02, enemyMul: 1.25, soulMul: 2,
-    lines: ["淀んだ瘴気が敵を昂らせている。敵が強い。", "だが得られる Soul は 2倍 になる。"] },
+    lines: ["よどんだ瘴気が敵を昂らせている。敵が強い。", "だが得られる Soul は 2倍 になる。"] },
   { id: "caravan", name: "商隊の遺品", icon: "chest", accent: "#e0a060", sym: "❖", minFloor: 2, rate: 0.02, chestRankUp: 1,
     lines: ["全滅した商隊の荷が散らばっている。", "この階には宝箱が必ず2つ以上あり、いずれも1ランク上等だ。"],
     board: (b) => {
@@ -1138,7 +1138,7 @@ const MUTATORS = [
     risk: "奇襲を受けやすくなる",
     gain: "ゴールド 1.5倍・Soul 1.3倍" },
   { id: "elemRage", name: "属性の暴走", sym: "✺", accent: "#ff9a4a", elemRandom: true, soulMul: 1.5,
-    risk: "すべての敵の属性が狂い、でたらめに入れ替わる (火の魔物が水を纏うことも)",
+    risk: "すべての敵の属性が狂い、でたらめに入れ替わる (火の魔物が水をまとうことも)",
     gain: "得られる Soul が 1.5倍 になる" },
   { id: "mimicMarch", name: "ミミックの行進", sym: "◈", accent: "#e07840", mimicRate: 0.30, chestRankUp: 1,
     risk: "宝箱の3割はミミックだ",
@@ -6189,7 +6189,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
     if (!ember || emberDone) return "";
     emberDone = true;
     G.embers = (G.embers || 0) + ember; runCount("embers", ember);
-    log(`風化した死体に、魂の残火が ${ember}つ 燻っていた。`, "win");
+    log(`風化した死体に、魂の残火が ${ember}つ くすぶっていた。`, "win");
     return ` ・ 魂の残火 ×${ember}`;
   };
 
@@ -8402,6 +8402,9 @@ function skillLocked(actor, key) {
 
 function renderCombatMenu() {
   const b = G.battle;
+  // 演出の合間 (一手の演出が終わり、次の手番の札が出るまで) は、いまの手番の札をそのまま残す。
+  // 消すと、奇襲で敵が一巡する間の「オート」が敵の攻撃の演出中にしか押せなくなる
+  if (G.animating && !G.autoCombat && combatMenu.dataset.mode === "acting") return;
   // オート中はバナーを作り直さず札だけ差し替える (renderAutoBanner)。解除ボタンへのタップを取りこぼさない
   if (!(G.autoCombat && (G.animating || b.phase === "input"))) {
     combatMenu.innerHTML = "";
@@ -9240,6 +9243,8 @@ function endBattle() {
     const progress = distributeBattleSoulExp(soulGot);
     updateTopbar();
     log(`勝利！ ${goldGot} ゴールド と ✦${soulGot} Soul を得た。`, "win");
+    const fled = b.enemies.filter((e) => e._fled).length; // 逃げ去った金属の魔物 (戦果は倒した分だけ)
+    if (fled) log(`${fled}体には逃げられた (逃げた分の戦果は無い)。`, "sys");
     SFX.victory();
     // 討伐クエストの進捗 + 戦績 + 図鑑記録 (倒した敵を集計)。
     // 戦利品はここでは抽選のみ。実物は勝利後の宝箱から取り出す
@@ -9335,7 +9340,7 @@ function endBattle() {
     const skills = progress.filter((q) => q.kind === "skill").map((q) => ({ name: q.member.name, key: q.skill, skill: SPELLS[q.skill] ? SPELLS[q.skill].name : q.skill, desc: SPELLS[q.skill] ? SPELLS[q.skill].desc : "" }));
     uiResults.openResults({
       kind: wasBoss ? "boss" : wasElite ? "elite" : wasGuard ? "guard" : corpse ? "corpse" : "win",
-      gold: goldGot, soul: soulGot, kills,
+      gold: goldGot, soul: soulGot, kills, fled,
       levels, skills, souls, levelUps: levelUpEntries(progress),
       chest,
       onDone: () => {
@@ -10811,7 +10816,7 @@ function rollRumor() {
   if (cfg.boss && MONSTERS[cfg.boss]) {
     cands.push([12, () => {
       const b = MONSTERS[cfg.boss];
-      const be = b.element && b.element !== "none" && ELEMENTS[b.element] ? `〈${ELEMENTS[b.element].label}〉を纏う` : "";
+      const be = b.element && b.element !== "none" && ELEMENTS[b.element] ? `〈${ELEMENTS[b.element].label}〉をまとう` : "";
       const tr = monsterTraits(b)[0];
       const trTxt = tr ? `${tr.label}——${tr.desc}。` : "底知れぬ力を持つという。";
       return { type: "boss", floor: 1, speaker, info: true,
@@ -11118,7 +11123,7 @@ function achNext(s) {
 
   // 出来事 (見聞録) — 迷宮の出来事に出会った種類 (出来事が増えるほど伸びる)
   series("ev", [
-    [5, "噂を確かめる者", 60], [10, "見聞の徒", 150], [20, "迷宮の語り部", 300, 1], [30, "奇譚の蒐集家", 500, 2],
+    [5, "噂を確かめる者", 60], [10, "見聞の徒", 150], [20, "迷宮の語り部", 300, 1], [30, "奇談の収集家", 500, 2],
     [50, "見聞録の主", 1000, 4],
   ], (v) => `迷宮の出来事に ${v}種 出会う`, eventsSeen, { more: step(10) });
 
@@ -11190,10 +11195,10 @@ function achNext(s) {
 
   // スーパーレア / レジェンドレアの図鑑 (LR は遊んだ時間で落ちる1点もの。いつまでも少しずつ届く)
   series("sr", [
-    [3, "橙の輝き", 150, 1], [10, "名品の目利き", 400, 2], [25, "名品の蒐集家", 800, 4], [50, "百名品の主", 1500, 6],
+    [3, "橙の輝き", 150, 1], [10, "名品の目利き", 400, 2], [25, "名品の収集家", 800, 4], [50, "百名品の主", 1500, 6],
   ], (v) => `スーパーレアの品を ${v}種 図鑑に記す`, () => itemSeenOf("sr"), { more: step(25) });
   series("lr", [
-    [1, "伝説との邂逅", 300, 3], [3, "伝説を携える者", 800, 5], [5, "伝説の担い手", 1500, 8], [10, "伝説を統べる者", 3000, 12],
+    [1, "伝説との出会い", 300, 3], [3, "伝説を携える者", 800, 5], [5, "伝説の担い手", 1500, 8], [10, "伝説を統べる者", 3000, 12],
   ], (v) => `レジェンドレアの品を ${v}種 図鑑に記す`, () => itemSeenOf("lr"), { more: step(5) });
 
   // 魂の回収

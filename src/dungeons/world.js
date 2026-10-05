@@ -133,7 +133,7 @@ const WORLD_DEF = [
     id: "w06", lv: 27, lvTo: 30, layer: 4, floors: 10,
     power: { 1: 0.2542, 5: 0.2604, 10: 0.2783 },
     name: "亡兵の守る外郭", short: "外郭",
-    about: "国境の捨て砦の城壁と兵舎。百年前に死んだ守備隊が、いまも隊伍を組んで持ち場を守る",
+    about: "国境の捨て砦の城壁と兵舎。百年前に死んだ守備隊が、いまも隊列を組んで持ち場を守る",
     element: null, // 守備隊は人の亡霊。属性の気配は無い (素体の n は第3層の土なので明示する)
     bands: [
       ["bs_pikewall", "bs_bannerwraith", "bs_drumwraith", "d03_sentinel", "bs_darksamurai", "bs_ironknight"],
@@ -141,8 +141,8 @@ const WORLD_DEF = [
     ],
     elites: ["el_warbanner"], // 名のある強敵の縄張り (named.js)
     trait: {
-      id: "ranks", name: "隊伍を組む亡兵", sym: "⚔", accent: "#c9a26a",
-      lines: ["亡兵は持ち場を離れず、つねに三体以上の隊伍で現れる (旗手・鼓手・槍ぶすまが組む)。", "数は多いが、討てば得られる ✦Soul が 1.25倍。"],
+      id: "ranks", name: "隊列を組む亡兵", sym: "⚔", accent: "#c9a26a",
+      lines: ["亡兵は持ち場を離れず、つねに三体以上の隊列で現れる (旗手・鼓手・槍ぶすまが組む)。", "数は多いが、討てば得られる ✦Soul が 1.25倍。"],
       mods: { packMin: 3, soulMul: 1.25 },
     },
     tune: { enemyMul: 0.62, deepMul: 0.88, soloMul: 0.95 }, // 隊伍 (つねに3体以上) の分だけ1体ずつは軽く
@@ -168,7 +168,7 @@ const WORLD_DEF = [
     },
     tune: { enemyMul: 1.25, deepMul: 0.78, soloMul: 0.95 },
     unlock: { story: "w06_roll" },
-    hint: "「亡兵の守る外郭」の当直簿に、地下牢の鍵の在処が記されているという",
+    hint: "「亡兵の守る外郭」の当直簿に、地下牢の鍵のありかが記されているという",
   },
   {
     id: "w08", lv: 34, lvTo: 36, layer: 4, floors: 10,
@@ -315,7 +315,7 @@ const WORLD_DEF = [
     id: "ws2", lv: 24, lvTo: 28, layer: 3, floors: 10, side: true,
     power: { 1: 0.2704, 5: 0.2908, 7: 0.3064, 8: 0.3003, 10: 0.3062 },
     name: "石眠りの石切り場", short: "石切り場",
-    about: "王都の城壁を切り出した古い石切り場。鉱夫たちは鑿を握ったまま石になった",
+    about: "王都の城壁を切り出した古い石切り場。鉱夫たちは、つるはしを握ったまま石になった",
     bands: [
       ["d03_orc", "bs_shieldogre", "bs_stonegorgon", "bs_rockworm", "bs_dustwraith", "bs_tunneler"],
       ["d03_mandrake", "bs_orehulk", "bs_deepgolem"],
