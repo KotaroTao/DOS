@@ -56,7 +56,7 @@ if (cmd === "list") {
   console.log(g.map(desc).join("\n"));
 } else if (cmd === "check") {
   const A = await load(a1);
-  let bad = 0;
+  let bad = 0, warn = 0;
   for (const id in A) {
     const it = CATALOG_ITEMS[id];
     const err = (m) => { console.log(`✗ ${id}: ${m}`); bad++; };
@@ -70,6 +70,8 @@ if (cmd === "list") {
       if (row.includes("*")) err("* (燐光) は自動で付く。描かない");
     });
     for (const k in palette) if (palette[k] !== null && !/^#[0-9a-f]{6}$/i.test(palette[k])) err(`色 ${k}=${palette[k]}`);
+    // 燐光 (秘宝の外周 1 升の光) が切れないよう、秘宝は外周 1 升を空ける
+    if (isRelic(it) && (/[^.]/.test(art[0]) || /[^.]/.test(art[23]) || art.some((row) => row[0] !== "." || row[23] !== "."))) warn++;
     const filled = art.join("").replace(/\./g, "").length;
     if (filled < 60) err("塗りが少なすぎる (" + filled + ")");
   }
@@ -79,6 +81,7 @@ if (cmd === "list") {
     const have = ids.filter((id) => A[id]).length;
     if (have) console.log(`組 ${k}: ${have}/${ids.length}` + (have < ids.length ? " 足りない: " + ids.filter((id) => !A[id]).join(",") : ""));
   }
+  if (warn) console.log(`(注意) 外周 1 升まで塗った燐光の品 ${warn} 点 — 燐光が端で少し欠ける。できれば外周は空ける`);
   console.log(bad ? `問題 ${bad} 件` : `OK (${Object.keys(A).length} 点)`);
   process.exit(bad ? 1 : 0);
 } else if (cmd === "sheet") {
