@@ -700,6 +700,7 @@ function renderTab(root, api) {
   if (!isGreeted()) { if (entered || wantCreate) scheduleGreeting(); }
   else if (wantCreate) { wantCreate = false; setTimeout(() => openCreateDoll(), 0); }
   else if (game.pendingIreneBeat && game.pendingIreneBeat()) scheduleBeat();
+  if (isGreeted() && UI.tutorialMansionVisited) UI.tutorialMansionVisited();
 }
 // 館の語り (src/story.js IRENE_BEATS): 師の手がかりを持ち帰った後に館へ入ると、イレーヌが語る (一度だけ)
 let beatTimer = null;
@@ -1158,7 +1159,9 @@ function reserveRow(d) {
       const t = portraitEl(m, { size: 44, cls: "pt-swap" });
       t.setAttribute("aria-label", `${m.name} と入れ替える`);
       t.title = `${m.name} と入れ替える`;
-      t.addEventListener("click", () => swapWithReserve(d, j));
+      const conflict = !!game.partySoulConflict(G.party.map((x, i) => i === j ? d : x));
+      if (conflict) { t.setAttribute("aria-disabled", "true"); t.title = "同じ職業の魂が重複するため選択不可"; t.style.opacity = "0.4"; }
+      else t.addEventListener("click", () => swapWithReserve(d, j));
       sw.appendChild(t);
     });
     if (G.party.length < 6) {
@@ -1167,6 +1170,8 @@ function reserveRow(d) {
       a.appendChild(el("span", null, "＋"));
       a.appendChild(el("span", "pt-res-join-l", "加える"));
       a.setAttribute("aria-label", `${d.name} をパーティに加える`);
+      a.disabled = !!game.partySoulConflict([...G.party, d]);
+      if (a.disabled) a.title = "同じ職業の魂が重複するため選択不可";
       a.addEventListener("click", () => joinParty(d));
       sw.appendChild(a);
     }
@@ -1185,6 +1190,7 @@ function swapWithReserve(d, j) {
   const k = G.reserve.indexOf(d);
   const m = G.party[j];
   if (k < 0 || !m) return;
+  if (game.blockSoulResonance(G.party.map((x, i) => i === j ? d : x))) return;
   G.party[j] = d; G.reserve[k] = m;
   sfx("select"); buzz(10);
   game.log(`${d.name} をパーティに入れ、${m.name} を控えに下げた。`, "sys");
@@ -1200,6 +1206,7 @@ function joinParty(d) {
   if (G.party.length >= 6) { sfx("ng"); toast("パーティは満員だ (6体まで)", { tone: "bad" }); return; }
   const k = G.reserve.indexOf(d);
   if (k < 0) return;
+  if (game.blockSoulResonance([...G.party, d])) return;
   G.reserve.splice(k, 1); G.party.push(d);
   sfx("select");
   toast(`${d.name} をパーティに加えた`, { tone: "good" });
@@ -1219,7 +1226,7 @@ export function openCreateDoll() {
   if ((G.redSoul || 0) < cost) { sfx("ng"); toast("赤い魂が足りない", { tone: "bad" }); return; }
   if (allDolls().length >= 100) { sfx("ng"); toast("これ以上は仕立てられない (100体まで)", { tone: "bad" }); return; }
   const worn = (uid) => allDolls().some((d) => d.primary === uid || (d.subs || []).some((s) => s && s.uid === uid));
-  const free = G.souls.filter((s) => !worn(s.uid)).sort(game.soulSortCmp || (() => 0));
+  const free = game.soulRepresentatives().filter((s) => !worn(s.uid)).sort(game.soulSortCmp || (() => 0));
   if (!free.length) { sfx("ng"); toast("宿せる魂がない ― 迷宮で魂を集めよう", { tone: "bad" }); return; }
   sfx("select");
   const h = createH = sheet.open({

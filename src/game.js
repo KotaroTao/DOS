@@ -15,7 +15,7 @@ import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, eligibleEvents, p
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
 import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS } from "./quests.js";
-import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
+import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
 import { NAMED_FOES, NAMED_IDS, TROPHY_OF, HUNT_ELITE_RATE, bountyId } from "./dungeons/named.js";
@@ -467,9 +467,9 @@ const G = {
   unlockedDungeons: 1,// 解放済みの迷宮数 (王宮で勅命を受けると増える)
   board: null,
   px: 0, py: 0,
-  gold: 200,          // 初期所持金 (宿屋・商店用)
+  gold: 0,            // 着任時は金貨を持たない
   soulPts: 0,         // Soul(魂): 敵/死体から得る。経験値の役割を兼ね、館で魂のレベルアップに使う
-  redSoul: 100,       // Red Soul(赤い魂): プレミアム通貨 (空の人業購入・加護)
+  redSoul: 0,         // Red Soul(赤い魂): プレミアム通貨 (空の人業購入・加護)
   embers: 0,          // 魂の残火: 死体から確定で得る。メイン魂のLv上限を1上げるのに使う
   dollsPurchased: 0,  // 空の人業を購入した回数 (価格の段階に使う)
   dungeonBriefed: false, // 初回潜入時の警備兵の注意事項を表示済みか
@@ -9877,6 +9877,46 @@ function soulSortCmp(a, b) {
   return a.uid - b.uid;
 }
 
+// 一覧と融合先は職業ごとに1つ。既存セーブは宿している魂を優先し、育成値を失わない。
+function soulRepresentatives() {
+  const sorted = [...G.souls].sort((a, b) => Number(soulWorn(b.uid)) - Number(soulWorn(a.uid))
+    || (b.count || 1) - (a.count || 1) || (b.level || 1) - (a.level || 1)
+    || (b.capBonus || 0) - (a.capBonus || 0) || a.uid - b.uid);
+  const seen = new Set();
+  return sorted.filter((s) => { if (seen.has(s.clsKey)) return false; seen.add(s.clsKey); return true; });
+}
+// メイン・サブを通じ、同じ職業の魂は隊に1つだけ。
+function partySoulConflict(party = G.party) {
+  const seen = new Set();
+  for (const d of party) {
+    for (const uid of [d.primary, ...(d.subs || []).filter(Boolean).map((x) => x.uid)]) {
+      const s = soulByUid(uid); if (!s) continue;
+      if (seen.has(s.clsKey)) return s.clsKey;
+      seen.add(s.clsKey);
+    }
+  }
+  return null;
+}
+// 選択中の差し口以外で同じ職業を宿していれば、その魂は選べない。
+function soulSlotConflict(d, uid, slotId = "primary") {
+  const soul = soulByUid(uid); if (!soul) return false;
+  const dolls = G.party.includes(d) ? G.party : [d];
+  return dolls.some((dd) => {
+    const slots = [["primary", dd.primary], ...(dd.subs || []).map((x, i) => [`sub${i}`, x && x.uid])];
+    return slots.some(([slot, wornUid]) => {
+      if (dd === d && slot === slotId) return false;
+      return soulByUid(wornUid)?.clsKey === soul.clsKey;
+    });
+  });
+}
+function blockSoulResonance(party = G.party) {
+  const clsKey = partySoulConflict(party);
+  if (!clsKey) return false;
+  SFX.ng();
+  showToast(`${SOUL_CLASSES[clsKey].label}の魂はすでに宿している。メイン・サブを通じて同じ職業は1つだけ`, { tone: "bad" });
+  return true;
+}
+
 // 人業を仕立てる: 宿す魂を選ぶ (必須) → 名を与える。隊タブの控えシートから (src/ui/party.js)
 function buyDoll() { uiParty.openCreateDoll(); }
 
@@ -9908,7 +9948,7 @@ function finalizeBuyDoll(uid, name) {
   const cost = emptyDollCost();
   const s = soulByUid(uid);
   if (G.redSoul < cost) { log("Red Soul が足りない。", "sys"); SFX.ng(); showToast("赤い魂が足りない", { tone: "bad" }); return null; }
-  if (!s || soulWorn(s.uid)) { log("その魂は宿せない。", "sys"); SFX.ng(); return null; }
+  if (!s || !soulRepresentatives().some((x) => x.uid === uid) || soulWorn(s.uid)) { log("その魂は宿せない。", "sys"); SFX.ng(); return null; }
   G.redSoul -= cost;
   G.dollsPurchased++;
   const d = makeDoll(name);
@@ -9916,11 +9956,12 @@ function finalizeBuyDoll(uid, name) {
   recalcDoll(d);
   d.hp = d.maxhp; d.mp = d.maxmp;
   // 仕立てたばかりの人業はそのまま編成に加わる (満員なら控えへ)
-  if (G.party.length < 6) G.party.push(d);
+  if (G.party.length < 6 && !partySoulConflict([...G.party, d])) G.party.push(d);
   else { G.reserve.push(d); log(`${d.name} は控えで待機する。`, "sys"); }
   SFX.itemget(); buzz([0, 30, 60, 30]);
   log(`人業「${d.name}」が生まれた！（${SOUL_CLASSES[s.clsKey].label}・🔴${cost}）`, "win");
   showToast(`人業「${d.name}」が目覚めた`, { tone: "good" });
+  if (UI.tutorialEvent) UI.tutorialEvent("dollCreated");
   autosave(true);
   renderTown();
   return d;
@@ -10053,6 +10094,8 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null, opts = {}) {
   const si = slotId === "primary" ? -1 : +slotId.slice(3);
   // 別の差し口へ宿す (=付け替え) 場合のみ装備可否を判定する。外す操作は対象外
   const isNewEquip = !(slotId === "primary" && d.primary === uid) && !(si >= 0 && ((d.subs || [])[si] || {}).uid === uid);
+  if (isNewEquip && !soulRepresentatives().some((x) => x.uid === uid)) { SFX.ng(); showToast("同じ職業の余った魂は、人業の館で魂融合する", { tone: "bad" }); return fin(false); }
+  if (isNewEquip && soulSlotConflict(d, uid, slotId)) { SFX.ng(); showToast("同じ職業の魂は、メイン・サブを通じてパーティに1つだけ", { tone: "bad" }); return fin(false); }
   // メイン魂に宿している魂 (自分のものも含む) はサブ魂にできない
   if (isNewEquip && si >= 0 && allDolls().some((dd) => dd.primary === uid)) { SFX.ng(); showToast("メイン魂に宿している魂は、サブ魂にできない", { tone: "bad" }); return fin(false); }
   if (isNewEquip && si >= 0 && opts.take && subWearerOf(uid, d)) return fin(takeSubSoul(d, uid, si));
@@ -10098,7 +10141,7 @@ function openSubSkillPicker(d, subRef) { return uiSoulPanel.openSkillStep(d, sub
 
 // 魂融合: target に同職の余っている魂を融合させる候補
 function fuseCandidates(targetUid) {
-  const t = soulByUid(targetUid); if (!t) return [];
+  const t = soulByUid(targetUid); if (!t || !soulRepresentatives().some((s) => s.uid === targetUid)) return [];
   return G.souls.filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey && !soulWorn(s.uid) && !s.locked);
 }
 // 魂のロック: ロックした魂は魂融合の素材にできない (宿す・融合先にするのは自由)。魂融合した魂 (融合先) は自動でロックする
@@ -10117,7 +10160,7 @@ function openFusePicker(targetUid) { return uiSoulPanel.openFusePicker(targetUid
 // onResultClose: 結果の札 (またはランクアップの祝祭) を閉じたときに呼ぶ (融合画面で続けて選ぶため)
 function fuseSoul(targetUid, consumeUid, onResultClose = null) {
   const t = soulByUid(targetUid), c = soulByUid(consumeUid);
-  if (!t || !c || c.clsKey !== t.clsKey || soulWorn(c.uid) || c.locked) { SFX.ng(); return null; }
+  if (G.state !== "town" || !featureUnlocked("fusion") || targetUid === consumeUid || !soulRepresentatives().some((s) => s.uid === targetUid) || !t || !c || c.clsKey !== t.clsKey || soulWorn(c.uid) || c.locked) { SFX.ng(); return null; }
   const before = soulRankOf(t);
   const beforeLv = t.level;
   // 融合の前後で見比べる: 宿している人業がいればその能力 (メイン魂を優先)、いなければ魂そのものの能力
@@ -10130,6 +10173,7 @@ function fuseSoul(targetUid, consumeUid, onResultClose = null) {
   // 双方に蓄積していた総 Soul を合算する。新しい上限まではレベルに、超過分は exp に保持する。
   const total = soulTotalExp(t.level, t.exp) + soulTotalExp(c.level, c.exp);
   t.count += c.count;
+  t.capBonus = (t.capBonus || 0) + (c.capBonus || 0);
   const newCap = soulLevelCapOf(t);
   const le = levelExpFromTotal(total, newCap);
   t.level = le.level; t.exp = le.exp;
@@ -11495,50 +11539,72 @@ function sealedLines() {
 }
 
 // ---- 第0章「人業の生成」(チュートリアル勅命) ----
-// 第0章で仕立てる人業の数 (下賜する魂の数と同じ)。魂が足りない古いセーブでは魂の数まで
+// 最初は三体、最初の報告後は魔導士を加えた四体を揃える。
 const TUT_DOLLS = 4;
 function tutDollCount() { return allDolls().filter((d) => !d.isEmpty).length; }
-function tutDollGoal() { return Math.max(1, Math.min(TUT_DOLLS, (G.souls || []).length)); }
+function tutDollGoal() { return G.msq && G.msq.stage === "fourth" ? TUT_DOLLS : 3; }
+function tutorialDollsReady() {
+  const jobs = new Set(allDolls().filter((d) => !d.isEmpty).map((d) => soulByUid(d.primary)?.clsKey));
+  return tutDollCount() >= tutDollGoal() && ["fighter", "priest", "thief", ...(G.msq?.stage === "fourth" ? ["mage"] : [])].every((k) => jobs.has(k));
+}
 
-// 着任の謁見: 戦士/僧侶/盗賊/魔導士の魂×4 + 赤い魂100 を下賜する (人業は館の保管庫で自分の手で仕立てる)
+// 着任の謁見: 三職の魂だけを授け、三体の仕立てを命じる。
 function grantTutorialGift() {
   const ms = G.msq;
   if (!ms || ms.granted) return;
   ms.granted = true;
-  // 初期に持つ魂は戦士・僧侶・盗賊・魔導士の4つ。所持魂 一覧に追加する
+  // 初回に授けるのは三職の魂。魔導士と赤い魂は三体の報告後。
   addSoulInstance("fighter");
   addSoulInstance("priest");
   addSoulInstance("thief");
-  addSoulInstance("mage");
-  G.redSoul += 100;
+  ms.stage = "three";
   codexSweepJobs();
   SFX.itemget(); buzz([0, 30, 60, 30]);
-  log("戦士・僧侶・盗賊・魔導士の魂 ×4 ・ 🔴100 を拝受した。", "win");
-  showToast("👑 戦士・僧侶・盗賊・魔導士の魂と 🔴100 を受け取った");
+  log("戦士・僧侶・盗賊の魂を拝受した。", "win");
+  showToast("👑 戦士・僧侶・盗賊の魂を受け取った");
   autosave(true);
   renderTown();
 }
 
 // 着任の謁見の語り → 閉じたら下賜 (grantTutorialGift) して街へ降り立つ
 function audienceTutorial() {
-  UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: TUT_INTRO, reward: [{ job: "fighter" }, { job: "priest" }, { job: "thief" }, { job: "mage" }, { cur: "red", n: 100 }], kicker: "着任の謁見" }], () => {
+  UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: TUT_INTRO, reward: [{ job: "fighter" }, { job: "priest" }, { job: "thief" }], kicker: "着任の謁見" }], () => {
     landOnHub();
     grantTutorialGift();
+    if (UI.tutorialAfterReport) UI.tutorialAfterReport();
   });
 }
 
 // 第0章の報告: 報酬を下賜し、そのまま第1章の勅命を拝命する (1つの連なった語り)
 function reportTutorialQuest() {
+  const ms = G.msq;
+  if (!ms || ms.n !== 0 || !ms.granted || !tutorialDollsReady()) return;
+  if (ms.stage !== "fourth") {
+    playMsqChain([{
+      title: "三体の人業の報告", lines: TUT_THREE_REPORT,
+      reward: [{ cur: "red", n: 100 }, { job: "mage" }], kicker: "次の勅命",
+      leave: () => {
+        if (G.msq !== ms || ms.stage === "fourth") return;
+        ms.stage = "fourth";
+        G.redSoul += 100;
+        addSoulInstance("mage");
+        codexSweepJobs();
+        SFX.itemget();
+        autosave(true);
+      },
+    }], [], () => { if (UI.tutorialAfterReport) UI.tutorialAfterReport(); });
+    return;
+  }
   const toasts = [];
   const pages = [{
-    title: "勅命「人業の生成」完遂", lines: TUT_FINALE, reward: [{ cur: "gold", n: 100 }, { cur: "soul", n: 30 }], kicker: "勅命の完遂",
+    title: "勅命「人業の生成」完遂", lines: TUT_FINALE, reward: [{ cur: "gold", n: 500 }], kicker: "勅命の完遂",
     leave: () => {
-      G.gold += 100;
-      G.soulPts += 30;
-      tlTown("gold", 100, "r"); tlTown("soul", 30, "r");
+      if (G.msq !== ms || ms.n !== 0) return;
+      G.gold += 500;
+      tlTown("gold", 500, "r");
       SFX.itemget(); buzz([0, 30, 60, 30]);
       log("最初の勅命「人業の生成」を果たした。", "win");
-      toasts.push({ text: "受け取った 💰100 ✦30", opts: { tone: "gold" } });
+      toasts.push({ text: "受け取った 💰500", opts: { tone: "gold" } });
       autosave(true);
     },
   }];
@@ -11554,7 +11620,7 @@ function reportTutorialQuest() {
     worldState().last = { kind: "ch0" };
     autosave(true);
   };
-  playMsqChain(pages, toasts);
+  playMsqChain(pages, toasts, () => { if (UI.tutorialAfterReport) UI.tutorialAfterReport(); });
 }
 
 // 機能解放: 章 (story.js CHAPTERS) と、その章で王に報告した本筋の迷宮の数で決める (節目の報告で王から授かる)。
@@ -11722,8 +11788,8 @@ function objectiveInfo() {
   if (ms.n === 0) {
     if (!ms.granted) return { key: "audience", text: "王宮で王に謁見する", sub: "着任の挨拶", act: "謁見する", kind: "palace", run: audienceTutorial };
     const made = tutDollCount();
-    if (made < tutDollGoal()) return { key: "makeDoll", text: "人業を4体、仕立てる", sub: made ? `いま ${made}/4体 ・ ${emptyDollCost() ? `次の器は赤い魂${emptyDollCost()}` : "残る魂を器に宿す (最初の3体は無料)"}` : "器を仕立て、魂をひとつずつ宿す (最初の3体は無料)", act: "仕立てる", kind: "party", run: goMakeDoll };
-    return { key: "reportTut", text: "勅命「人業の生成」の完遂を報告する", act: "王に報告する", kind: "palace", run: reportTutorialQuest };
+    if (!tutorialDollsReady()) return { key: "makeDoll", text: ms.stage === "fourth" ? "赤い魂で器を買い、魔導士の人業を仕立てる" : "人業を3体、仕立てる", sub: `いま ${made}/${tutDollGoal()}体 ・ ${ms.stage === "fourth" ? "4体目の器は赤い魂30" : "戦士・僧侶・盗賊を宿す (無料)"}`, act: "仕立てる", kind: "party", run: goMakeDoll };
+    return { key: "reportTut", text: ms.stage === "fourth" ? "4体目の人業を王に報告する" : "3体の人業を王に報告する", act: "王に報告する", kind: "palace", run: reportTutorialQuest };
   }
   if (w.report && worldById(w.report)) return { key: "report", text: `「${worldById(w.report).name}」の踏破を王に報告する`, sub: "見たものを王に話す", act: "王に報告する", kind: "palace", run: reportMainQuest };
   const ib = pendingIreneBeat();
@@ -11748,7 +11814,7 @@ function currentObjective() {
 function palaceCallReady() {
   const ms = G.msq;
   if (!ms) return false;
-  if (ms.n === 0) return !ms.granted || tutDollCount() >= tutDollGoal();
+  if (ms.n === 0) return !ms.granted || tutorialDollsReady();
   return !!worldState().report;
 }
 
@@ -11759,7 +11825,7 @@ function decreeInfo() {
   if (ms.n === 0) {
     if (!ms.granted) return { kind: "ch0", head: "着任", text: "玉座の老王が、オルドの弟子の到着を待っている。", replay: false };
     const made = tutDollCount(), goal = tutDollGoal();
-    return { kind: "ch0", head: "勅命 「人業の生成」", text: "オルドの館で器を仕立て (最初の3体は無料)、戦士・僧侶・盗賊・魔導士の魂をひとつずつ宿して人業を四体つくれ。", note: made >= goal ? "四体の人業が揃った。王に報告せよ。" : `四体が揃ったら、王に報告せよ。(いま ${made}/4体)`, replay: true };
+    return { kind: "ch0", head: ms.stage === "fourth" ? "勅命 「四体目の人業」" : "勅命 「三体の人業」", text: ms.stage === "fourth" ? "人業の館で赤い魂30を支払い、四体目の器に魔導士の魂を宿せ。" : "人業の館で無料の器に戦士・僧侶・盗賊の魂を宿し、三体を仕立てよ。", note: tutorialDollsReady() ? "人業が揃った。王に報告せよ。" : `仕立てたら王に報告せよ。(いま ${made}/${goal}体)`, replay: true };
   }
   const w = worldState();
   const ch = currentChapter();
@@ -11773,7 +11839,7 @@ function decreeInfo() {
 // 王の言葉を聞き直す (状態は変えない): 最後に語られた物語のページ
 function replayDecree() {
   const ms = G.msq || {};
-  if (!ms.n) return UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: TUT_INTRO, kicker: "着任の謁見" }]);
+  if (!ms.n) return UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: ms.stage === "fourth" ? TUT_THREE_REPORT : TUT_INTRO, kicker: "着任の謁見" }]);
   const last = worldState().last || {};
   if (last.kind === "chapter" && CHAPTER_END[last.no]) return UI.playStoryChain([{ title: CHAPTER_END[last.no].title, lines: CHAPTER_END[last.no].lines, kicker: "章の結び", who: "none", art: "candle" }]);
   if (last.kind === "report" && REPORTS[last.id]) return UI.playStoryChain([{ title: REPORTS[last.id].title, lines: storyLines(REPORTS[last.id].lines), kicker: "踏破の報告" }]);
@@ -12411,6 +12477,7 @@ function buyItem(id, price, who) {
   G.gold -= price;
   G.shopStock[id]--;
   who.items.push(it);
+  if (isEquippable(it) && UI.tutorialEvent) UI.tutorialEvent("equipmentBought");
   codexSeeItem(id);
   SFX.itemget(); buzz(10);
   log(`${it.name} を購入した (${who.name})。`, "win");
@@ -12447,7 +12514,7 @@ function tutorialPending() { return UI.tutorialPending ? UI.tutorialPending() : 
 // 迷宮へ向かおうとした時、手ほどきが先なら引き止める (手ほどきへ案内するシート)。引き止めたら true
 function blockForTutorial() {
   const t = tutorialPending();
-  if (!t) return false;
+  if (!t || (t.key === "firstDive" && t.started)) return false;
   SFX.ng(); buzz([0, 30, 40, 30]);
   kitConfirm({
     banner: "手ほどき", danger: false,
@@ -12596,6 +12663,7 @@ function enterDungeon(mutatorId, startFloor = 1) {
   const mu = mutDef();
   if (mu) log(`異変「${mu.name}」の中を行く。${mu.gain}。`, "win");
   renderBoard();
+  if (UI.tutorialEvent) UI.tutorialEvent("dungeonEntered");
   autosave(true);
   if (viaGate) {
     const cell = G.board.cells[G.py][G.px];
@@ -14189,6 +14257,7 @@ function loadGame() {
   questState(); // 酒場の依頼 (後付け。旧来の納品依頼・サブクエストは捨てて、掲示板を貼り直す)
   // メインストーリー: 第0章の途中か、師を捜す旅の途中 ({n:1, state:"world"})。迷宮の地図と物語の進みは G.world
   if (!G.msq) G.msq = { n: 0, state: "active", granted: false };
+  if (G.msq.n === 0 && G.msq.granted && !G.msq.stage) G.msq.stage = G.souls.some((s) => s.clsKey === "mage") ? "fourth" : "three";
   if (G.msq.n >= 1) G.msq = { n: 1, state: "world" };
   refreshWorldUnlocks();
   if (!worldOpenIdx(G.dungeonIdx)) G.dungeonIdx = Math.max(0, DUNGEONS.findIndex((d) => worldOpenId(d.id)));
@@ -14298,17 +14367,18 @@ window.addEventListener("beforeunload", () => autosave(true));
 
 // 新規プレイの初期化: 人業ロスター・魂ストック・初期装備を整える
 function setupNewGame() {
-  // 何も持たずに着任する。人業も魂も赤い魂も、まず王宮で拝受する (第0章)
+  // 金貨も赤い魂も持たずに着任する。まず王宮で三職の魂を拝受する。
   G.party = [];
   G.reserve = [];
   G.souls = [];       // 所持魂 一覧 (魂インスタンスの配列)
   setSharedSouls(G.souls);
   G.redSoul = 0;
+  G.gold = 0;
   G.unlockedDungeons = 0; // 第0章を果たすまで、迷宮の場所は明かされない
   G.world = {}; worldState();
   G.shopStock = { ...SHOP_INIT_STOCK };
   G.quest = null; questState();
-  // 第0章「人業の生成」: 王宮で謁見 → 戦士・僧侶・盗賊・魔導士の魂×4+🔴100を受ける (granted) → 館の保管庫で人業を4体仕立て → 報告
+  // 第0章: 三職を受ける → 三体を報告 → 🔴100と魔導士 → 四体目を報告 → 金貨500
   G.msq = { n: 0, state: "active", granted: false };
   codexSweepJobs();
 }
@@ -14776,7 +14846,7 @@ bindGame({
 // 契約 (UI.openParty / autoEquip / betterGearCount / trainableList / equipItemTo / bestWearer) は各モジュールの install() が登録する
 bindGame({
   equipAt, moveItem, campCast, campSpellsOf, healAll, healAllNeed, repairCostOf, repairCostAll, repairDoll, setReviveTimers, hastenCostOf, tryHastenRescue, awaitingRescue, RESCUE_SHORTEN_MS,
-  emptyDollCost, randomDollName, finalizeBuyDoll, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
+  emptyDollCost, randomDollName, finalizeBuyDoll, soulRepresentatives, partySoulConflict, soulSlotConflict, blockSoulResonance, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
   equipSoulToSlot, fuseCandidates, fuseSoul, toggleSoulLock, openFusePicker, openSubSkillPicker, slotSoul,
   unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail, addSoulInstance, codexSweepJobs,
   canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill, itemKnown, isFirstGet,

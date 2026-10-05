@@ -371,7 +371,7 @@ function orderBody(root, town, again) {
   const G = G_();
   const fielded = new Set();
   for (const dd of G.party) { if (dd.primary != null) fielded.add(dd.primary); for (const s of (dd.subs || [])) if (s) fielded.add(s.uid); }
-  const benched = G.souls.filter((s) => !fielded.has(s.uid));
+  const benched = game.soulRepresentatives().filter((s) => !fielded.has(s.uid));
   const seats = game.orderSeats ? game.orderSeats() : 0;
   const seated = game.orderSeatedUids ? game.orderSeatedUids() : [];
   const seatedSet = new Set(seated);
@@ -418,7 +418,7 @@ export function openSoulPicker(d, slotId = "primary") {
     kind: "info", className: "sp-pick-sheet", // 魂の選択は縦スクロールで1ページに
     banner: isSub ? `サブ魂${si + 1} ― ${d.name}` : `メイン魂 ― ${d.name}`,
     lines: [isSub ? "サブ魂は、覚えた技かパッシブを貸し、能力の一部を足す (R1 10% 〜 R5 30%)。貸す数も魂のランクで増える (R1-2:1 / R3-4:2 / R5:3)。" : "メイン魂が、職業・能力・技を決める。"],
-    body: (scroll, h) => pickerBody(scroll, d, slotId, h),
+    body: (scroll, h) => { scroll.appendChild(el("div", "pt-note", "同じ職業の魂は、メイン・サブを通じてパーティに1つだけ。同職の魂は迷宮で共鳴して壊れてしまう。余った魂は人業の館で魂融合できる。")); pickerBody(scroll, d, slotId, h); },
   });
 }
 function wearerOf(uid, self) {
@@ -494,7 +494,7 @@ function pickerBody(root, d, slotId, h) {
   const si = isSub ? +slotId.slice(3) : -1;
   const curUid = isSub ? ((d.subs || [])[si] || {}).uid : d.primary;
   const fusion = game.featureUnlocked ? game.featureUnlocked("fusion") : false;
-  const souls = [...G.souls].sort(game.soulSortCmp || (() => 0));
+  const souls = [...game.soulRepresentatives()].sort(game.soulSortCmp || (() => 0));
   // サブ魂の差し口では、メイン魂に宿している魂 (自分のものも含む) は選べない。
   // 他の人業のサブ魂は選べる (確認のうえ付け替え。宿していた魂とは交換)
   const isMainOf = (uid) => allDolls().find((dd) => dd.primary === uid) || null;
@@ -507,6 +507,7 @@ function pickerBody(root, d, slotId, h) {
     const rank = soulRankOf(s);
     const cap = soulLevelCapOf(s);
     const isCur = s.uid === curUid;
+    const conflict = !isCur && game.soulSlotConflict(d, s.uid, slotId);
     const mainOf = isSub && !isCur ? isMainOf(s.uid) : null; // サブ魂の差し口: メイン魂は選べない
     const subTaker = !isCur && !mainOf ? subOf(s.uid) : null; // 他の人業のサブ魂 (付け替え・交換)
     const other = mainOf || (subTaker ? null : wearerOf(s.uid, d));
@@ -524,6 +525,7 @@ function pickerBody(root, d, slotId, h) {
     tx.appendChild(nm);
     tx.appendChild(el("span", "sp-srow-m", `Lv${s.level}/${cap} ・ ランク${rank} ・ ${RARITY_NAME[cl.rarity] || ""}`));
     if (isCur) tx.appendChild(el("span", "sp-srow-tag cur", isSub ? "このサブ魂に宿している" : "宿している"));
+    else if (conflict) tx.appendChild(el("span", "sp-srow-tag", "同じ職業の魂を宿しているため選択不可"));
     else if (mainOf) tx.appendChild(el("span", "sp-srow-tag", mainOf === d ? "メイン魂に宿している" : `${mainOf.name} がメイン魂に宿している`));
     else if (other) tx.appendChild(el("span", "sp-srow-tag", `${other.name} が宿している`));
     else if (subTaker) {
@@ -536,9 +538,9 @@ function pickerBody(root, d, slotId, h) {
       if (dl) tx.appendChild(statDelta(dl));
     }
     main.appendChild(tx);
-    if (other || isCur) main.disabled = !!other;
+    main.disabled = !!other || conflict;
     main.addEventListener("click", () => {
-      if (isCur || other) return;
+      if (isCur || other || conflict) return;
       const go = (opts) => game.equipSoulToSlot(d, s.uid, slotId, (applied) => {
         if (!applied) return;
         h.close();
@@ -665,8 +667,11 @@ function soulEnhanced(s) {
 // 素材が尽きたら、結果の札を閉じたところでこの画面も閉じる。
 // onDone: 融合するたびに呼ぶ (魂の一覧シートを描き直すなど)
 export function openFusePicker(targetUid, onDone) {
-  const t = soulByUid(targetUid);
+  const requested = soulByUid(targetUid);
+  const t = requested && game.soulRepresentatives().find((s) => s.clsKey === requested.clsKey);
   if (!t) return null;
+  targetUid = t.uid;
+  if (G_().state !== "town") return null;
   if (!(game.featureUnlocked && game.featureUnlocked("fusion"))) { sfx("ng"); toast(`魂融合は、${game.featureNote ? game.featureNote("fusion") : "踏破を王に報告すると開く"}`, { tone: "info" }); return null; }
   const candsNow = () => (game.fuseCandidates ? game.fuseCandidates(targetUid) : []).sort(game.soulSortCmp || (() => 0));
   // 素材にできない同じ職の魂: ロック中 (この場で外せる) / だれかが宿している (理由だけ見せる)
@@ -679,7 +684,7 @@ export function openFusePicker(targetUid, onDone) {
   let h = null;
   const view = () => ({
     title: `${soulLabel(t)} Lv${t.level} に融合させる`,
-    lines: ["素材にした魂は失われ、融合数に応じてLv上限、能力が上昇。一定数の魂を融合するとランクアップ。"],
+    lines: ["人業の館で、同じ職業の余った魂をこの魂に融合する。融合数に応じて能力が上昇し、ランクが上がるとLv上限が伸びる。"],
     body: (scroll) => {
       const list = el("div", "pt-list");
       const cands = candsNow();
