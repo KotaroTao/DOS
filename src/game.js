@@ -73,7 +73,7 @@ const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho",
 const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } })();
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 import { refSoul, refGold, trainCost, lvPow, emberMul, partyAgi, LOCK_K, TRAP_K, lockPow } from "./levelcurve.js";
-import { tlOn, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlPlayTick, tlSoul } from "./telemetry.js";
+import { tlOn, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlTownGain, tlPlayTick, tlSoul } from "./telemetry.js";
 import { repriceEquipment } from "./pricing.js";
 import { spawnFx, drawBattleFx, weaponFxStyle, statusFxKind, skillProfile, ELEM_FX_COL, SIG_FX } from "./battlefx.js";
 import "./battlefx-sig.js"; // 各職の看板技の専用演出を SIG_FX に登録する
@@ -571,13 +571,36 @@ function takeStolenGold(b) {
   if (!g) return 0;
   b.bonusGold = 0;
   G.gold += g; if (G.run && inDungeon()) G.run.gold += g;
+  if (tlOn() && inDungeon()) tlGain(tlWhere(), "gold", g, "b" + ((b.tl && b.tl.kind) || "n"));
   return g;
 }
-function runGainGold(g) { g = Math.round(g * 0.5 * sfNum("goldMul", 1) * mutNum("goldMul", 1) * (1 + partyEffMax("goldUp"))); G.gold += g; if (G.run && inDungeon()) G.run.gold += g; if (tlOn() && inDungeon()) tlGain(tlWhere(), "gold", g); return g; }
+function runGainGold(g, src, pre) {
+  const base = g * 0.5, sf = sfNum("goldMul", 1), mu = mutNum("goldMul", 1), eq = 1 + partyEffMax("goldUp");
+  g = Math.round(g * 0.5 * sf * mu * eq); G.gold += g; if (G.run && inDungeon()) G.run.gold += g;
+  if (tlOn() && inDungeon()) tlGain(tlWhere(), "gold", g, src, tlUplift(pre != null ? pre * 0.5 : base, base, sf, "goldMul", mu, eq));
+  return g;
+}
 // 魂導の護符 (LR装飾品) の soulUp があれば ✦Soul の獲得量を割合で増やす。
 // 極の出来事で授かった恒久の恵み (G.events.flags) の効き目。授かっていなければ dflt
 function evBoon(k, field, dflt) { return G.events && G.events.flags && G.events.flags[k] ? EV_BOONS[k][field] : dflt; }
-function runGainSoulPts(s) { s = Math.round(s * sfNum("soulMul", 1) * mutNum("soulMul", 1) * (1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0))); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s; if (tlOn() && inDungeon()) tlGain(tlWhere(), "soul", s); return s; }
+function runGainSoulPts(s, src, pre) {
+  const base = s, sf = sfNum("soulMul", 1), mu = mutNum("soulMul", 1), eq = 1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0);
+  s = Math.round(s * sf * mu * eq); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s;
+  if (tlOn() && inDungeon()) tlGain(tlWhere(), "soul", s, src, tlUplift(pre != null ? pre : base, base, sf, "soulMul", mu, eq));
+  return s;
+}
+// テスト記録: 得た額のうち、倍率で増えた分の内訳 (順に掛けて、それぞれの倍率で増えた分)。
+// pre = パッシブ (金運・魂寄せ・魂の聖別) を掛ける前の額 / base = 倍率を掛ける前の額 / mu = 異変・掟・出来事の効果・奈落を合わせた倍率
+function tlUplift(pre, base, sf, key, mu, eq) {
+  const md = mutDef(), tr = dungeonTrait();
+  const mm = (md && md[key]) || 1, tm = (tr && tr.mods && tr.mods[key]) || 1, om = mu / (mm * tm);
+  const up = { psv: base - pre };
+  let v = base;
+  for (const [k, m] of [["sf", sf], ["mut", mm], ["trait", tm], ["oth", om], ["eq", eq]]) { up[k] = v * (m - 1); v *= m; }
+  return up;
+}
+// テスト記録: 町で得た ✦ / 金貨 (src: q 依頼 / tip 心付け / bond なじみ / fq 頼み / r 王への報告 / a 勲章 / t 宝物庫 / sell 売却)
+function tlTown(kind, n, src) { if (tlOn() && !inDungeon()) tlTownGain(kind, n, src); }
 function runGainItem(owner, item) {
   if (item) item.isNew = true; // NEW 印 (品シートで見れば消える。セーブには追加の印として残る)
   // テスト記録: 迷宮で手に入れた品 (図鑑の記録は呼び出し側がこの後で行うので、ここで見れば新種かがわかる)
@@ -1085,6 +1108,7 @@ function grantHordeReward() {
   const soul = Math.round(refSoul(lv) * HORDE_BATTLES), gold = Math.round(refGold(lv) * HORDE_BATTLES);
   G.gold += gold; G.soulPts += soul;
   if (G.run && inDungeon()) { G.run.gold += gold; G.run.soulPts += soul; }
+  if (tlOn() && inDungeon()) { tlGain(tlWhere(), "gold", gold, "hd"); tlGain(tlWhere(), "soul", soul, "hd"); }
   updateTopbar();
   log(`この辺りの敵をすべて葬った！ 💰${gold} と ✦${soul} Soul を得た。`, "win");
   SFX.victory(); flashScreen("#d4504e");
@@ -5694,7 +5718,7 @@ function evProgress() {
     fe.oath.done = true;
     const stone = evCells((c) => c.type === "event" && c.evOath)[0];
     const u = evUnit();
-    const s = runGainSoulPts(Math.round(u.soul * 4 * evJit()));
+    const s = runGainSoulPts(Math.round(u.soul * 4 * evJit()), "ev");
     if (stone) { stone.type = "chest"; stone.cleared = false; stone.revealed = true; stone.cRank = Math.min(5, chestRankOf(null) + 2); delete stone.evOath; }
     SFX.victory(); flashScreen("#ffd84a"); updateTopbar();
     log(`誓いを果たした！ ✦${s} Soul を授かり、石碑は祝福の宝箱に変わった。`, "win");
@@ -5705,7 +5729,7 @@ function evProgress() {
     fe.minerDone = true;
     for (const c of evCells((c) => c.type === "event" && c.evQuest)) { c.cleared = true; delete c.evQuest; }
     const u = evUnit();
-    const s = runGainSoulPts(Math.round(u.soul * 4 * evJit()));
+    const s = runGainSoulPts(Math.round(u.soul * 4 * evJit()), "ev");
     G.embers = (G.embers || 0) + 1; runCount("embers", 1);
     SFX.victory(); updateTopbar();
     log(`坑夫の亡霊は仲間と共に眠りについた。✦${s} Soul と魂の残火を遺していった。`, "win");
@@ -5722,6 +5746,7 @@ function evOnReturn(runRef, outcome) {
   if (rv.ruby && rv.rubyGold) { pay += rv.rubyGold; notes.push(`紅玉の売却 💰${rv.rubyGold}`); rv.ruby = null; rv.rubyGold = 0; }
   if (!pay) return;
   G.gold += pay; runRef.gold = (runRef.gold || 0) + pay;
+  if (tlOn()) { if (inDungeon()) tlGain(tlWhere(), "gold", pay, "ev"); else tlTownGain("gold", pay, "ev"); } // 帰還の時に払われる
   log(notes.join(" / "), "win");
   setTimeout(() => showToast(notes.join(" ・ "), { tone: "gold", icon: ICONS.gold }), 900);
 }
@@ -5814,7 +5839,7 @@ const evApi = {
     G.events.seen[e.id] = (G.events.seen[e.id] || 0) + 1;
     if (first) {
       G.events.fresh[e.id] = true;
-      const s = runGainSoulPts(Math.max(1, Math.round(evUnit().soul * 0.5)));
+      const s = runGainSoulPts(Math.max(1, Math.round(evUnit().soul * 0.5)), "ev");
       updateTopbar();
       log(`見聞録に新たな出来事「${e.name}」を記した。(✦${s})`, "win");
       setTimeout(() => showToast(`見聞録に記した「${e.name}」 ✦${s}`, { tone: "gold", icon: ICONS.event }), 250);
@@ -5883,21 +5908,21 @@ const evApi = {
   embers: () => G.embers || 0,
   payEmber(n) { G.embers = Math.max(0, (G.embers || 0) - n); updateTopbar(); },
   gold(u, from) {
-    const g = runGainGold(Math.round(evUnit().gold * u * evJit()));
+    const g = runGainGold(Math.round(evUnit().gold * u * evJit()), "ev");
     SFX.itemget(); updateTopbar();
     log(`${from}から ${g} ゴールドを得た。`, "win");
     showToast(`${from}から 💰${g}`, { tone: "gold", icon: ICONS.gold });
     return g;
   },
   soul(u, from) {
-    const s = runGainSoulPts(Math.round(evUnit().soul * u * evJit()));
+    const s = runGainSoulPts(Math.round(evUnit().soul * u * evJit()), "ev");
     updateTopbar();
     log(`${from}から ✦${s} Soul を得た。`, "win");
     showToast(`${from}から ✦${s} Soul`, { tone: "gold", icon: ICONS.wisp });
     return s;
   },
-  giveGoldRaw(n, from) { G.gold += n; if (G.run && inDungeon()) G.run.gold += n; updateTopbar(); log(`${from}で 💰${n} を得た。`, "win"); showToast(`${from} ― 💰${n}`, { tone: "gold", icon: ICONS.gold }); },
-  giveSoulRaw(n, from) { G.soulPts += n; if (G.run && inDungeon()) G.run.soulPts += n; updateTopbar(); log(`${from}で ✦${n} Soul を得た。`, "win"); showToast(`${from} ― ✦${n}`, { tone: "gold", icon: ICONS.wisp }); },
+  giveGoldRaw(n, from) { G.gold += n; if (G.run && inDungeon()) G.run.gold += n; if (tlOn() && inDungeon()) tlGain(tlWhere(), "gold", n, "ev"); updateTopbar(); log(`${from}で 💰${n} を得た。`, "win"); showToast(`${from} ― 💰${n}`, { tone: "gold", icon: ICONS.gold }); },
+  giveSoulRaw(n, from) { G.soulPts += n; if (G.run && inDungeon()) G.run.soulPts += n; if (tlOn() && inDungeon()) tlGain(tlWhere(), "soul", n, "ev"); updateTopbar(); log(`${from}で ✦${n} Soul を得た。`, "win"); showToast(`${from} ― ✦${n}`, { tone: "gold", icon: ICONS.wisp }); },
   ember(n, from, quiet = false) {
     G.embers = (G.embers || 0) + n; runCount("embers", n); updateTopbar();
     log(`${from} ― 魂の残火を ${n}つ 得た。`, "win");
@@ -6067,7 +6092,7 @@ function useDarkFountain(cell) {
   if (Math.random() < 0.5) {
     SFX.heal(); buzz([0, 30, 40, 30]); flashScreen("#5fb8d6");
     for (const p of G.party) if (p.alive) { p.hp = p.maxhp; p.mp = p.maxmp; p.ailment = null; }
-    const bonus = runGainSoulPts(20 * (activeCfg().rank || 1));
+    const bonus = runGainSoulPts(20 * (activeCfg().rank || 1), "ev");
     updateTopbar();
     log(`黒い泉は恵みをもたらした！ 全回復し、✦${bonus} Soul を得た。`, "win");
     flashPartyCards(G.party.filter((p) => p.alive), "heal");
@@ -6175,7 +6200,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   // 懐に残された金品 (Gold) を渡す処理 (装備を渡せない時のフォールバックにも使う)
   const giveGold = () => {
     // 普通の1戦の金貨の半分ほど (evUnit の金貨は runGainGold で半分になる前の値)
-    const g = runGainGold(Math.round(evUnit().gold * 0.5 * (0.7 + Math.random() * 0.6)));
+    const g = runGainGold(Math.round(evUnit().gold * 0.5 * (0.7 + Math.random() * 0.6)), "cp");
     SFX.itemget(); buzz([0, 30, 60, 30]);
     log(`風化した死体の懐から ${g} ゴールドを見つけた。`, "win");
     const tail = emberTail();
@@ -6195,7 +6220,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   // 30%: 亡骸に残る ✦ Soul (ソウルポイント) を集める
   if (roll < 0.50) {
     // 普通の1戦の ✦Soul の半分ほど
-    const got = runGainSoulPts(Math.round(evUnit().soul * 0.5 * (0.7 + Math.random() * 0.6)));
+    const got = runGainSoulPts(Math.round(evUnit().soul * 0.5 * (0.7 + Math.random() * 0.6)), "cp");
     SFX.itemget(); buzz([0, 30, 60, 30]);
     log(`風化した死体から ✦${got} Soul を集めた。`, "win");
     const tail = emberTail();
@@ -6817,7 +6842,7 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false, sink 
   if (!legendary && !noGold && Math.random() < 0.5) {
     SFX.chest();
     const dRank = activeCfg().rank || 1;
-    const g = runGainGold(Math.round((10 + G.floor * 12 + rand(30)) * (1 + (dRank - 1) * 0.5) * rankMul * 2));
+    const g = runGainGold(Math.round((10 + G.floor * 12 + rand(30)) * (1 + (dRank - 1) * 0.5) * rankMul * 2), "ch");
     updateTopbar();
     log(`宝箱から ${g} ゴールドを手に入れた！`, "win");
     sink.gold(g, "宝箱");
@@ -9213,9 +9238,11 @@ function endBattle() {
     // 金運 (goldLuck) / 魂寄せ (soulLure) は戦闘報酬を底上げする (隊内最高Lvのみ)
     const { soul, gold } = b.rewards();
     const gl = partyPassiveLv("goldLuck"), sl = partyPassiveLv("soulLure");
-    const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1))) + takeStolenGold(b);
+    // テスト記録の出どころ: 金属の魔物 / 主 / 精鋭等 / 通常の戦闘 (戦闘の記録の種類と同じ分け方)
+    const bsrc = b.enemies.some((e) => e.metal) ? "mt" : "b" + ((b.tl && b.tl.kind) || "n");
+    const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)), bsrc, gold * 2) + takeStolenGold(b);
     const sb = rankParty("bishopSeibetsu", [0.05, 0.10, 0.15, 0.25]); // 魂の聖別 (司教のランク)
-    const soulGot = runGainSoulPts(Math.round(soul * ((sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1) + sb)));
+    const soulGot = runGainSoulPts(Math.round(soul * ((sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1) + sb)), bsrc, soul);
     applyVictoryPassives();
     // 入手Soulの1/3を生存メンバーの魂 (サブ魂はその1/3) に加算 → レベルアップ/スキル習得を集計
     const progress = distributeBattleSoulExp(soulGot);
@@ -10400,13 +10427,13 @@ function questKillHere(keys, cfg) {
   return (keys || []).some((k) => roster.has(k) || (MONSTERS[k] && MONSTERS[k].metal && (cfg.layer || 0) >= 3));
 }
 // 階の情報 (迷宮の手帳) に並べる依頼: 受注中のうち、いま潜っている迷宮で進められるもの (+ 達成して報告待ちのもの)
-//   討伐 = 狙う魔物がここに出る / 到達・踏破 = この迷宮 / 魂・宝箱 = どこでも進む / 納品 = 迷宮では進まないので出さない
+//   討伐 = 狙う魔物がここに出る / 到達・踏破 = この迷宮 / 魂・宝箱 = 指す迷宮 (指さない古い依頼はどこでも) / 納品 = 迷宮では進まないので出さない
 function questsHere() {
   const cfg = activeCfg();
   if (!cfg) return [];
   const here = G.abyss ? null : cfg.id;
   const fits = (q) => {
-    if (q.type === "soul" || q.type === "chest") return true;
+    if (q.type === "soul" || q.type === "chest") return !q.dungeon || (!!here && q.dungeon === here);
     if (q.type === "kill") return questKillHere(q.keys, cfg);
     if (q.type === "floor" || q.type === "clear") return !!here && q.dungeon === here;
     return false;
@@ -10547,7 +10574,8 @@ function questDone(q) {
 }
 
 // 依頼の進みを加算する (迷宮・階を問わず、条件さえ満たせば進む)。
-//   kill: key = 倒した魔物 / soul・chest: 数 / floor: key = 着いた階 (その迷宮の依頼だけ) / clear: key = 踏破した迷宮の id
+//   kill: key = 倒した魔物 / soul・chest: 数 (迷宮を指す依頼はその迷宮の中でだけ) / floor: key = 着いた階 (その迷宮の依頼だけ) /
+//   clear: key = 踏破した迷宮の id
 function questProgress(type, key, n = 1) {
   const s = questState();
   const here = G.abyss ? null : (DUNGEONS[G.dungeonIdx] || {}).id;
@@ -10556,6 +10584,8 @@ function questProgress(type, key, n = 1) {
     if (type === "kill" && !(goal.keys || []).includes(key)) return null;
     if (type === "floor") return goal.dungeon && goal.dungeon !== here ? null : Math.max(prog, key || 0);
     if (type === "clear") return goal.dungeon === key ? 1 : null;
+    // 魂・宝箱: 迷宮を指す依頼 (フリークエスト) はその迷宮の中でだけ進む。指さない依頼 (固定・古いセーブの依頼) はどこでも
+    if ((type === "soul" || type === "chest") && goal.dungeon && !(inDungeon() && goal.dungeon === here)) return null;
     return prog + n;
   };
   for (const q of s.active) {
@@ -10613,9 +10643,11 @@ function grantRewardItems(r) {
     }
   }
 }
-function grantCurrencies(r) {
+// src = テスト記録の出どころ (tlTown)
+function grantCurrencies(r, src) {
   G.gold += r.gold || 0;
   G.soulPts += r.soulPts || 0;
+  tlTown("gold", r.gold || 0, src); tlTown("soul", r.soulPts || 0, src);
   G.redSoul += r.red || 0;
   G.embers = (G.embers || 0) + (r.embers || 0);
 }
@@ -10629,7 +10661,7 @@ function claimQuest(uid) {
     const r = fixedQuestReward(def);
     st.state = "claimed";
     G.stats.questsDone = (G.stats.questsDone || 0) + 1;
-    grantCurrencies(r);
+    grantCurrencies(r, "fq");
     const jobs = grantRewardSouls(r.souls);
     autosave(true);
     SFX.itemget(); buzz([0, 30, 60, 30]);
@@ -10658,6 +10690,8 @@ function claimQuest(uid) {
 // 依頼人が酒場で迎える一幕 (UI.playStoryChain) に、依頼の言葉・依頼人の礼・受け取るものを並べる。
 // 同じ依頼人への報告を重ねるほど「なじみ」になり、礼の言葉が変わる。3・6・10回目 (以後5回ごと) は節目の品
 // (quests.js BOND_GIFTS)、ときどき (TIP_RATE %) 心付けが上乗せされる
+// テスト記録の出どころ: フリークエストの種類ごと
+const Q_SRC = { kill: "qk", soul: "qs", chest: "qc", floor: "qf", deliver: "qd" };
 function finishFreeQuest(q, r, extraJobs = [], title = null) {
   const s = questState();
   G.stats.questsDone = (G.stats.questsDone || 0) + 1;
@@ -10667,12 +10701,12 @@ function finishFreeQuest(q, r, extraJobs = [], title = null) {
   s.npcs[ni] = count;
   const tip = rand(100) < TIP_RATE ? questTip(r) : null;
   const bond = bondGiftAt(count);
-  grantCurrencies(r);
+  grantCurrencies(r, Q_SRC[q.type] || "q");
   grantRewardItems(r);
   const jobs = [...extraJobs, ...grantRewardSouls(r.souls)];
-  if (tip) grantCurrencies(tip);
+  if (tip) grantCurrencies(tip, "tip");
   const bondJobs = bond ? grantRewardSouls(bond.gift.souls) : [];
-  if (bond) grantCurrencies(bond.gift);
+  if (bond) grantCurrencies(bond.gift, "bond");
   const rows = [...rewardRows(r, jobs), ...rewardRows(tip || {}).map((x) => ({ ...x, tag: "心付け" })),
     ...(bond ? rewardRows(bond.gift, bondJobs).map((x) => ({ ...x, tag: "なじみの礼" })) : [])];
   updateTopbar();
@@ -11290,9 +11324,9 @@ function claimAchievement(a) {
   if (G.ach[a.id] || !a.cond()) return;
   G.ach[a.id] = true;
   let msg = [];
-  if (a.reward.gold) { G.gold += a.reward.gold; msg.push(`💰${a.reward.gold}`); }
+  if (a.reward.gold) { G.gold += a.reward.gold; tlTown("gold", a.reward.gold, "a"); msg.push(`💰${a.reward.gold}`); }
   if (a.reward.redSoul) { G.redSoul += a.reward.redSoul; msg.push(`🔴${a.reward.redSoul}`); }
-  if (a.reward.soulPts) { G.soulPts += a.reward.soulPts; msg.push(`✦${a.reward.soulPts}`); }
+  if (a.reward.soulPts) { G.soulPts += a.reward.soulPts; tlTown("soul", a.reward.soulPts, "a"); msg.push(`✦${a.reward.soulPts}`); }
   SFX.levelup(); buzz([0, 30, 60, 30]);
   flashScreen("#c9a22744");
   log(`勲章「${a.name}」を授かった！ (${msg.join(" + ")})`, "win");
@@ -11423,6 +11457,7 @@ function reportMainQuest() {
       if (w.reported[id]) return;
       G.gold += r.gold;
       G.soulPts += r.soulPts;
+      tlTown("gold", r.gold, "r"); tlTown("soul", r.soulPts, "r");
       G.redSoul += r.redSoul || 0;
       w.reported[id] = 1;
       w.report = null;
@@ -11500,6 +11535,7 @@ function reportTutorialQuest() {
     leave: () => {
       G.gold += 100;
       G.soulPts += 30;
+      tlTown("gold", 100, "r"); tlTown("soul", 30, "r");
       SFX.itemget(); buzz([0, 30, 60, 30]);
       log("最初の勅命「人業の生成」を果たした。", "win");
       toasts.push({ text: "受け取った 💰100 ✦30", opts: { tone: "gold" } });
@@ -11829,6 +11865,7 @@ function donateCollectible(doll, it) {
   if (it.id && !ts.donated[it.id]) { ts.donated[it.id] = true; ts.fresh[it.id] = true; codexSeeItem(it.id); return { kind: "new", gold: 0 }; }
   const gold = sellPrice(it);
   G.gold += gold;
+  tlTown("gold", gold, "t");
   return { kind: "dup", gold };
 }
 
@@ -11849,6 +11886,7 @@ function grantTreasuryItem(center, onClose) {
   const it = ITEMS[id] ? cloneItem(id) : null;
   const g = it ? Math.max(1, Math.floor((it.price || 50))) : 100;
   G.gold += g; updateTopbar();
+  tlTown("gold", g, "t");
   log(`所持枠が満杯のため、宝物庫の褒賞は ${g} ゴールドに換えられた。`, "win");
   showEvent({
     sprite: ICONS.gold, title: "褒賞を換金した", accent: "#e8c24a", banner: "✦ 宝物庫の褒賞 ✦",
@@ -12347,6 +12385,7 @@ function sellItem(owner, it, price) {
   if (it.unidentified) price = 0;
   owner.items.splice(idx, 1);
   G.gold += price;
+  tlTown("gold", price, "sell");
   // 在庫に積む (ボルタック方式)。未鑑定品は並ばない
   if (it.id && !it.unidentified) shopStockAdd(it.id);
   codexSeeItem(it.id, it);
@@ -14420,6 +14459,7 @@ const OPS = {
       if (idx < 0) continue;
       doll.items.splice(idx, 1);
       G.gold += price; gold += price;
+      tlTown("gold", price, "sell");
       if (item.id) shopStockAdd(item.id);
       codexSeeItem(item.id, item);
       n++;
@@ -14466,9 +14506,9 @@ const OPS = {
       for (const a of ready) {
         if (G.ach[a.id] || !a.cond()) continue;
         G.ach[a.id] = true;
-        if (a.reward.gold) { G.gold += a.reward.gold; gold += a.reward.gold; }
+        if (a.reward.gold) { G.gold += a.reward.gold; gold += a.reward.gold; tlTown("gold", a.reward.gold, "a"); }
         if (a.reward.redSoul) { G.redSoul += a.reward.redSoul; red += a.reward.redSoul; }
-        if (a.reward.soulPts) { G.soulPts += a.reward.soulPts; soul += a.reward.soulPts; }
+        if (a.reward.soulPts) { G.soulPts += a.reward.soulPts; soul += a.reward.soulPts; tlTown("soul", a.reward.soulPts, "a"); }
         log(`勲章「${a.name}」を授かった！`, "win");
         n++;
       }
@@ -14675,7 +14715,7 @@ function wireUI() {
     G, log, autosave, buzz, flashScreen, shakeScreen,
     renderTown, renderBoard, renderParty, renderRunbar, updateTopbar, renderStatus,
     allDolls, recalcAllDolls, inDungeon, curDungeon, activeCfg, clearedDungeonCount, reportedDungeonCount,
-    sellPrice, buyPrice, appraiseCost, innCost, sellWarnings, bargainMul, shopStockAdd,
+    sellPrice, buyPrice, appraiseCost, innCost, sellWarnings, bargainMul, shopStockAdd, tlTown,
     itemRankName, itemRankColor, itemGradeText, itemNameEl, logClassForItem,
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,

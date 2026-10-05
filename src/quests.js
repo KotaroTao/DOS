@@ -759,8 +759,9 @@ function firstFloorOf(cfg, key) {
 }
 // 迷宮の「深部」(後ろ半分の真ん中あたり) の戦果。魂・宝箱の依頼の物差し
 const deepUnit = (ctx, cfg) => ctx.unit(cfg, Math.max(1, Math.ceil((cfg.floors || 1) * 0.6)));
-// 依頼に選んでよい迷宮のうち、いちばん深い迷宮 (どの迷宮でもよい依頼の報酬の物差し)
-const deepestOf = (ctx) => ctx.dungeons.reduce((a, d) => (((d.lvTo || d.lv || 0) > (a.lvTo || a.lv || 0)) ? d : a));
+// フリークエストの ✦ の倍率 (金貨の倍率に対して)。2026-10 のテスト記録で、依頼の ✦ が迷宮で得る ✦ を大きく上回り、
+// 隊が推奨Lv を大きく超えていたので半分にした (金貨はそのまま)。次のテスト記録 (町の ✦ の出どころ tsoul) で見直す
+const SOUL_K = 0.5;
 
 // 依頼文と依頼人を選ぶ: 依頼文を1つ引き、その who (無ければ この種類を貼る依頼人) から1人。
 // 同じ掲示板に同じ顔が並ばないよう、もう選ばれた依頼人は (ほかに候補がいる限り) 避ける
@@ -797,7 +798,8 @@ function genKill(ctx) {
     const f1 = firstFloorOf(cfg, key);
     const u = ctx.unit(cfg, f1 + 1);
     const mult = (m.pack ? goal * 0.35 : goal * 0.7) + 2;
-    const reward = { gold: round(u.gold * mult), soulPts: round(u.soul * mult) };
+    // ✦ は金貨の半分の倍率 (2026-10 テスト記録: 依頼の ✦ が迷宮の戦果を大きく上回っていた)
+    const reward = { gold: round(u.gold * mult), soulPts: round(u.soul * mult * SOUL_K) };
     if (ctx.rand(100) < 18) reward.souls = [["common", 1]];
     ctx.avoid.add("k:" + key);
     return offerOf("kill", pickText(ctx, "kill"), { mon: m.name, goal }, { keys: [key], goal, dungeon: cfg.id, floor: f1,
@@ -805,19 +807,24 @@ function genKill(ctx) {
   }
   return null;
 }
+// 魂・宝箱の依頼は迷宮を1つ指す (討伐と同じく新しい迷宮ほど選ばれやすい)。その迷宮の中で拾った魂・開けた宝箱だけを数え、
+// 報酬もその迷宮の戦果で払う。(2026-10 まではどの迷宮でもよく、報酬はいちばん深い迷宮の戦果だったので、
+//  浅く安全な迷宮で回って深い迷宮の値で受け取れた)
 function genSoul(ctx) {
-  const cfg = deepestOf(ctx);
+  const cfg = pickDungeon(ctx);
   const goal = 1 + ctx.rand(2);
   const u = deepUnit(ctx, cfg);
-  const reward = { soulPts: round(u.soul * (goal * 2 + 1)), souls: [[ctx.rand(100) < 25 ? "rare" : "common", 1]] };
-  return offerOf("soul", pickText(ctx, "soul"), { goal }, { goal, desc: `迷宮の死体から魂を ${goal}つ 拾う`, note: "どの迷宮でもよい", reward });
+  const reward = { soulPts: round(u.soul * (goal * 2 + 2) * SOUL_K), souls: [[ctx.rand(100) < 25 ? "rare" : "common", 1]] };
+  return offerOf("soul", pickText(ctx, "soul"), { goal }, { goal, dungeon: cfg.id,
+    desc: `「${cfg.name}」で死体から魂を ${goal}つ 拾う`, note: "その迷宮の中で拾った魂だけを数える", reward });
 }
 function genChest(ctx) {
-  const cfg = deepestOf(ctx);
+  const cfg = pickDungeon(ctx);
   const goal = 2 + ctx.rand(3);
   const u = deepUnit(ctx, cfg);
-  const reward = { gold: round(u.gold * (goal * 1.3 + 1.5)), soulPts: round(u.soul * 1.5) };
-  return offerOf("chest", pickText(ctx, "chest"), { goal }, { goal, desc: `迷宮の宝箱を ${goal}つ 開ける`, note: "どの迷宮でもよい", reward });
+  const reward = { gold: round(u.gold * (goal * 1.3 + 1.5)), soulPts: round(u.soul * 2 * SOUL_K) };
+  return offerOf("chest", pickText(ctx, "chest"), { goal }, { goal, dungeon: cfg.id,
+    desc: `「${cfg.name}」で宝箱を ${goal}つ 開ける`, note: "その迷宮の中で開けた宝箱だけを数える", reward });
 }
 function genReach(ctx) {
   const deep = ctx.dungeons.filter((d) => (d.floors || 1) >= 5 && !ctx.avoid.has("f:" + d.id));
@@ -826,7 +833,7 @@ function genReach(ctx) {
   const lo = Math.max(3, Math.ceil(cfg.floors * 0.4)), hi = cfg.floors - 1;
   const f = lo + ctx.rand(Math.max(1, hi - lo + 1));
   const u = ctx.unit(cfg, f);
-  const reward = { gold: round(u.gold * (f * 0.3 + 1)), soulPts: round(u.soul * (f * 0.5 + 2)) };
+  const reward = { gold: round(u.gold * (f * 0.3 + 1)), soulPts: round(u.soul * (f * 0.5 + 2) * SOUL_K) };
   if (ctx.rand(100) < 25) reward.souls = [["common", 1]];
   ctx.avoid.add("f:" + cfg.id);
   return offerOf("floor", pickText(ctx, "floor"), { dun: cfg.name, f }, { goal: f, dungeon: cfg.id,
