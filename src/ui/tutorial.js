@@ -549,12 +549,8 @@ function tutorialControls() {
     return { target, allowed: [target, ...allow].filter(Boolean) };
   };
   const first = (root, selector) => [...root.querySelectorAll(selector)];
-  const story = document.querySelector(".sc-scene:not(.out)");
-  if (story) return choose([...first(story, ".sc-okb"), ...first(story, ".sc-page")]);
-  if (sceneActive()) {
-    const scene = document.querySelector(".iv-scene:not(.out)");
-    return scene ? choose(first(scene, ".iv-say")) : null;
-  }
+  // 説明の会話は従来どおり、画面全体のタップとスキップを受け付ける。
+  if (document.querySelector(".sc-scene:not(.out)") || sceneActive()) return null;
   const h = sheet.top();
   const card = h?.el;
   const forward = () => {
@@ -606,10 +602,19 @@ function tutorialControls() {
   const selectors = d.key === "buyEquipment" ? [".wpc-buy-main:not(:disabled)"] : s?.target || [];
   return choose(selectors.flatMap((selector) => first(document, selector)));
 }
+// スキップは画面や手順に関わらず操作制限の対象にしない。
+function skipControls() {
+  return [...document.querySelectorAll('button, [role="button"], [data-action="skip"]')].filter((node) =>
+    !node.disabled && node.getClientRects().length &&
+    (node.matches('[data-action="skip"], .op-skip, .iv-skip') ||
+      unphrase(node.getAttribute("aria-label") || node.textContent || "").includes("スキップ")));
+}
 function restrictTutorialInput(event) {
+  const skips = skipControls();
+  if (skips.some((node) => node === event.target || node.contains(event.target))) return;
   const guide = tutorialControls();
   if (!guide) return;
-  const allowed = guide.allowed;
+  const allowed = [...new Set([...guide.allowed, ...skips])];
   if (event.type === "keydown" && event.key === "Tab") {
     event.preventDefault(); event.stopImmediatePropagation();
     const index = allowed.indexOf(document.activeElement);

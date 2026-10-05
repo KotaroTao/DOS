@@ -81,6 +81,7 @@ export function showOpening(onDone) {
 
   const skip = document.createElement("button");
   skip.type = "button";
+  skip.dataset.action = "skip";
   skip.className = "op-skip";
   skip.innerHTML = "<span>スキップ</span><b>≫</b>";
   wrap.appendChild(skip);

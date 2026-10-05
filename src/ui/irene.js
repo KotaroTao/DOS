@@ -560,6 +560,7 @@ export function playIreneScene(pages, done) {
   wrap.appendChild(el("div", "iv-veil"));
   const skip = el("button", "iv-skip", "スキップ");
   skip.type = "button";
+  skip.dataset.action = "skip";
   wrap.appendChild(skip);
 
   const stage = el("div", "iv-stage");
