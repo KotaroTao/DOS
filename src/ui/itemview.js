@@ -42,7 +42,7 @@ export function elemDetailLines(kind, e) {
     lines.push(`${elemName(adv)}属性に与えるダメージ　+${pct}%`);
     if (weak) lines.push(`${elemName(weak)}属性に与えるダメージ　-${pct}%`);
   } else {
-    lines.push(`${elemName(adv)}属性から受けるダメージ　-${pct}%`);
+    lines.push(`${elemName(adv)}属性から受けるダメージ　-${pct / 2}%`); // schema.js elemDmgMult: 防御は Lv1 25% / Lv2 50%
     // 不利属性からのダメージ増加は適用しない (軽減のみ)
   }
   return lines;
@@ -383,6 +383,83 @@ export function ailDetailLines(it) {
   return L;
 }
 
+// ===== 特殊効果 (eff = 戦闘効果 / mult = % 補正) =====
+// items.js recalc が装備ごとに集め、combat.js (戦闘) と game.js (金貨・✦Soul) が読む。
+// 表記は「何が・どれだけ・いつ」を数字で言い切る (combat.js の式と合わせる。式を変えたらここも)
+const MULT_LABEL = { hp: "最大HP", mp: "最大MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
+const MULT_ORDER = ["hp", "mp", "atk", "vit", "agi", "int", "pie", "luk"];
+// 効果の名 (短い表記) と くわしい説明
+const EFF_INFO = {
+  actFirst: { short: () => "先手", line: () => "先手: どのラウンドも、敵味方の誰よりも先に行動する" },
+  multistrike: { short: (v) => `${Math.min(4, v)}連撃`, line: (v) => `連撃: 通常攻撃が一手で${Math.min(4, v)}回の攻撃になる（標的が倒れたら次の敵へ。技は1回のまま。連撃の装備は回数を足し合い、最大4回）` },
+  lifesteal: { short: (v) => `吸血${pct(v)}`, line: (v) => `吸血: 物理攻撃（通常攻撃・物理技）で与えたダメージの${pct(v)}だけ、自分のHPを回復する` },
+  guard: { short: (v) => `被ダメ−${pct(v)}`, line: (v) => `守り: 受けるダメージを常に${pct(v)}減らす（物理・呪文・ブレスのすべて）` },
+  autoRevive: { short: (v) => `自動蘇生${pct(v)}`, line: (v) => `蘇生: 戦闘不能になった時、1戦闘に1回だけ最大HPの${pct(v)}で立ち上がる` },
+  regen: { short: (v) => `再生${pct(v)}`, line: (v) => `再生: 2ラウンド目から毎ラウンド、最大HPの${pct(v)}だけHPを回復する` },
+  counter: { short: (v) => `報復${pct(v)}`, line: (v) => `報復: 敵の物理攻撃を受けると、攻撃力の${pct(v)}のダメージですぐにやり返す` },
+  spellCostMul: { short: (v) => `消費MP−${pct(1 - v)}`, line: (v) => `節約: 技・呪文の消費MPが${pct(1 - v)}減る` },
+  ailmentImmune: { short: () => "状態異常無効", line: () => "状態異常無効: 毒・麻痺・眠り・魅了・混乱・石化・即死を受けつけない（罠の状態異常も）" },
+  goldUp: { short: (v) => `金貨+${pct(v)}`, line: (v) => `金運: 迷宮で得る金貨が${pct(v)}増える（隊の中で一番高いものだけ効く）` },
+  soulUp: { short: (v) => `✦Soul+${pct(v)}`, line: (v) => `魂導: 迷宮で得る✦Soulが${pct(v)}増える（隊の中で一番高いものだけ効く）` },
+  barrier: { short: (v) => `障壁${v}回`, line: (v) => `障壁: 戦闘のはじめに、受けるダメージを半分にする障壁を${v}回ぶん張る` },
+};
+// % 補正 (mult) を「最大HP・ATK +20%」の形にまとめる (同じ率は一つに束ねる)
+function multGroups(m) {
+  const by = new Map();
+  for (const k of MULT_ORDER) {
+    const v = m && m[k];
+    if (!v) continue;
+    const key = Math.round(v * 100);
+    if (!by.has(key)) by.set(key, []);
+    by.get(key).push(MULT_LABEL[k]);
+  }
+  return [...by].map(([v, ks]) => `${ks.join("・")} ${v > 0 ? "+" : ""}${v}%`);
+}
+// 一覧の一行用 (statLines に添える)
+export function effStatParts(it) {
+  const out = [];
+  if (!it) return out;
+  for (const g of multGroups(it.mult)) out.push(g);
+  if (it.eff) for (const k in it.eff) {
+    const v = it.eff[k];
+    if (!v) continue;
+    const f = EFF_INFO[k];
+    out.push(f ? f.short(typeof v === "number" ? v : 1) : k);
+  }
+  return out;
+}
+// くわしい行 (品の細目・図鑑)
+export function effDetailLines(it) {
+  const L = [];
+  if (!it) return L;
+  const mg = multGroups(it.mult);
+  if (mg.length) L.push(`能力の割合補正: ${mg.join("・")}（素の値と装備の合計に掛かる）`);
+  if (it.eff) for (const k in it.eff) {
+    const v = it.eff[k];
+    if (!v) continue;
+    const f = EFF_INFO[k];
+    if (f) L.push(f.line(typeof v === "number" ? v : 1));
+  }
+  return L;
+}
+// 特殊効果の短い表記 (能力値を除く: 戦闘効果・%補正・補正/魔法・属性・状態異常)。無ければ ""
+export function specialShort(it) {
+  if (!it || it.unidentified) return "";
+  const parts = [...effStatParts(it)];
+  if (it.scale) parts.push(`補正 ${scaleText(it.scale)}`);
+  if (it.magic) parts.push("魔法属性");
+  const ea = elemStatText("攻撃", it.eAtk), ed = elemStatText("防御", it.eDef);
+  if (ea) parts.push(ea);
+  if (ed) parts.push(ed);
+  for (const x of ailStatParts(it)) parts.push(x);
+  return parts.join("　");
+}
+// 特殊効果のくわしい行をまとめて (戦闘効果・武器の補正/魔法属性・属性・状態異常)。説明の文とは別に、数字で効果を言い切る
+export function specialLines(it) {
+  if (!it || it.unidentified) return [];
+  return [...effDetailLines(it), ...weaponTraitLines(it), ...elemDetailLines("攻撃", it.eAtk), ...elemDetailLines("防御", it.eDef), ...ailDetailLines(it)];
+}
+
 // 武器の能力補正 (scale) と魔法属性 (magic) のくわしい表記
 export function weaponTraitLines(it) {
   const L = [];
@@ -408,6 +485,7 @@ export function statLines(it) {
   if (ea) parts.push(ea);
   if (ed) parts.push(ed);
   for (const x of ailStatParts(it)) parts.push(x);
+  for (const x of effStatParts(it)) parts.push(x);
   if (it.use) for (const x of useLines(it, true)) parts.push(x);
   return parts.join("　");
 }
@@ -600,6 +678,7 @@ export function detailLines(it) {
     f("HP", it.hp); f("MP", it.mp);
     if (it.crit) mod.push(`会心+${Math.round(it.crit * 100)}%`);
     if (mod.length) L.push(mod.join(" / "));
+    for (const ln of effDetailLines(it)) L.push(ln);
     for (const ln of weaponTraitLines(it)) L.push(ln);
   }
   // 属性攻撃/属性防御 (1行ずつのくわしい表記)

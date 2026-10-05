@@ -32,7 +32,7 @@ const LV_MAX = 260;
 // % 補正・戦闘効果の点 (装飾品の物差し)。部位ごとの標準品の大きさに合わせて SLOT_SCALE 倍する
 const EFF_PTS = {
   actFirst: () => 15, ailmentImmune: () => 15,
-  multistrike: (v) => 20 * Math.max(0, v - 1), // 連撃は 2 以上で効く (1 は通常どおり1回)
+  multistrike: (v) => 20 * Math.max(0, v - 1), // 連撃 = 通常攻撃の回数 (2 = 二連撃。1 は通常どおり1回なので書かない)
   guard: (v) => 100 * v, autoRevive: (v) => 50 * v, regen: (v) => 150 * v,
   lifesteal: (v) => 60 * v, counter: (v) => 40 * v, spellCostMul: (v) => 60 * (1 - v),
   goldUp: (v) => 30 * v, soulUp: (v) => 30 * v,

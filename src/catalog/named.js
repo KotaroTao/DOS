@@ -18,7 +18,7 @@ export const NAMED_ITEMS = [
     desc: "子産みヒルの女王のぬめる皮をなめして仕立てた手甲。斬りつけた相手の血を吸い上げ、着けた者の傷を塞ぐ。子産みヒルの女王の首級。" })),
   trophy(2, "el_drownedpaladin", S("s_nm_drownedpaladin", "沈みし聖騎士の大盾", 32, { shape: "kite", pow: 1.45, hp: 20, eDef: ["earth", 1], eff: { guard: 0.08 },
     desc: "水路を浄めに降りて戻らなかった聖騎士の大盾。仲間を庇って沈んだ騎士の祈りがいまも宿り、受けた傷を和らげる。沈みし聖騎士の首級。" })),
-  trophy(3, "el_chainoverseer", W("w_nm_chainoverseer", "坑監の鎖鞭", "mc", 38, { pow: 1.4, eff: { multistrike: 1 }, tint: "#8a8070",
+  trophy(3, "el_chainoverseer", W("w_nm_chainoverseer", "坑監の鎖鞭", "mc", 38, { pow: 1.4, eff: { multistrike: 2 }, tint: "#8a8070",
     desc: "罪人たちを坑の奥へ追い立てた鉄の鎖鞭。振るえば鎖が二度、三度とうねって打ちつける。鎖鞭の坑監の首級。" })),
   trophy(3, "el_crystalseer", W("w_nm_crystalseer", "晶眼の杖", "st", 38, { pow: 1.4, int: 6, aRes: { stone: 0.4 }, eAtk: ["wind", 1], eff: { spellCostMul: 0.85 },
     desc: "錬金術師の体から生え出た晶を、そのまま杖頭に据えたもの。晶の眼は石化の呪いを睨み返し、呪文の消耗を和らげる。晶に憑かれし錬金術師の首級。" })),
