@@ -3,13 +3,13 @@
 // 第1層 (迷宮1-5) のドロップ窓 (基準R1 ±2 = 隠しLv 1-30) に収めた、墓域ゆかりの特別な装備。
 // 隠しLvを層の窓より上に置くと、拾った1本で層の敵を大きく追い越してしまう (敵は rank1-3)。
 // スーパーレアは同じ隠しレベルの標準装備より大きく強く (pow 1.3-1.4)、属性や副能力を帯びる。
-// レジェンドレアは全職共通の1点もので、固有の戦闘効果 (eff) を持つ。実プレイ時間で抽選され
-// (平均4〜5時間に1つ)、未鑑定で手に入る — 商店で鑑定するまで正体は伏せられる。
+// レジェンドレアは全職共通で、固有の戦闘効果 (eff) を持つ。スーパーレアの1/3の割合で落ち (同じ品も何度でも)、
+// 未鑑定で手に入る — 商店で鑑定するまで正体は伏せられる。
 // id は append-only (セーブ/図鑑が参照する)。
 import { W, S, A, H, F, G, R } from "./defs.js";
 
 const sr = (it) => { it.rar = "sr"; it.layer = 1; return it; };
-// LR: tier 1 = 第1層の帯。exclusive で通常のランク窓抽選から外し、時間抽選でのみ出す
+// LR: tier 1 = 第1層の帯。exclusive でランク窓から外し、レア度の抽選で LR が出た時に game.js lrPool の深さの条件で選ぶ
 const lr = (it) => { it.rar = "lr"; it.lr = 1; it.layer = 1; it.exclusive = true; return it; };
 
 export const LAYER1_ITEMS = [
@@ -60,7 +60,7 @@ export const LAYER1_ITEMS = [
   sr(R("r_sr1_lanternamulet", "鎮魂灯の護符", "amulet", 30, { aRes: { confuse: 0.3, sleep: 0.2 }, pow: 1.35, eDef: ["light", 1], pie: 4, mp: 6, tint: "#9fd8e8",
     desc: "迷える魂を導く鎮魂の灯を封じた護符。胸元で青白く揺れる光が闇の呪詛を退け、持ち主の魂を眠りにも惑いにも渡さない。" })),
 
-  // ===== レジェンドレア (全職共通・1点もの・固有効果) =====
+  // ===== レジェンドレア (全職共通・固有効果) =====
   lr(R("lr_l1_ravenring", "夜鴉の指輪", "ring", 25, { pow: 1.6, agi: 8, luk: 5, eff: { actFirst: true }, tint: "#3a3050",
     desc: "墓地の夜を統べる大鴉の王がくちばしにくわえていた黒い指輪。はめた者は誰より先に動き、敵が身構える前に影のように襲いかかる。" })),
   lr(R("lr_l1_phylactery", "魂箱の首飾り", "amulet", 30, { pow: 1.6, hp: 40, eff: { autoRevive: 0.3 }, tint: "#7fd8f0",

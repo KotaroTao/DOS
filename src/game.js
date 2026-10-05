@@ -40,7 +40,7 @@ import { prewarmStoryArt } from "./storyart.js";
 import { drawBattleBackdrop } from "./backdrops.js";
 import { paintCryptFloor, paintCryptSlabs, paintCryptWalls, CATACOMB, genericMaterial, boardSeed, hexRgb } from "./crypt.js";
 import { showTitle } from "./title.js";
-import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityUp, lrIntervalH, lrLayerFactor, LR_HAZARD_K, LR_PITY_K } from "./rarity.js";
+import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityUp } from "./rarity.js";
 // ---- UI 基盤 (Phase 0)。新しい UI モジュールは game.js を import せず、ctx.js の UI/game/ops を通す ----
 import { UI, ops, bindGame, registerUI } from "./ui/ctx.js";
 import { el, btn, button as kitButton, longPress as attachLongPress, uiBlocked, sheetDepth, sheet, toast as kitToast, confirm as kitConfirm, plainText, shake as kitShake } from "./ui/kit.js";
@@ -194,8 +194,7 @@ function itemsByR() {
   return _itemsByR;
 }
 function miscLootIds() { itemsByR(); return _miscLootIds; }
-// 収集品は LR 装備と同様「深度の上限なし」で出続けるが、LR と違い一点ものではなく
-// 何度でも同じ品が出る。深い迷宮ほど低ランクの収集品も拾える (D80 でも D20 帯の品が出る) よう、
+// 収集品は「深度の上限なし」で出続け、何度でも同じ品が出る。深い迷宮ほど低ランクの収集品も拾える (D80 でも D20 帯の品が出る) よう、
 // 自ランク以下の収集品をすべて対象にする (上限のみ中心+2 まで許容し、極端な先取りは抑える)。
 const MISC_LOOT_WEIGHT = 0.5; // 装備のランク窓に対する収集品1点あたりの相対重み
 // 中心ランク centerR の ±2 から1つ抽選 (中心ほど出やすい)。窓内が空なら最寄りへ広げる
@@ -239,7 +238,7 @@ function dropCenterR(opts = {}) {
 // ===== レア度つきドロップ (コモン/アンコモン/レア/スーパーレア/レジェンドレア) =====
 // 装備ドロップのたびに、まずレア度を抽選し (rarity.js rollRarity)、その格の品をランク窓 (中心R±2) から選ぶ。
 // 窓にその格の品が無ければ窓を広げ、それでも無ければ一段下の格に落とす。
-// レジェンドレアだけは実プレイ時間で抽選する (lrTimeRoll)。収集品は一定割合で別枠から出る。
+// レジェンドレアも同じ抽選で出る (重みはスーパーレアの1/3)。品は lrPool の深さの条件で選ぶ (pickLR)。収集品は一定割合で別枠から出る。
 const MISC_DROP_RATE = 0.08;
 let _byRar = null;
 function lootByRarity() {
@@ -331,11 +330,12 @@ function pickLoot(opts = {}) {
     const uid = pickUseItem(centerR);
     if (uid) return uid;
   }
-  const lrId = opts.noLR ? null : lrTimeRoll(); // noLR: 迷宮のイベントが直接渡す品 (LR の時間抽選は宝箱・戦利品にだけ使う)
-  if (lrId) return lrId;
+  // noLR: 迷宮のイベントが直接渡す品 (LR は宝箱・戦利品にだけ出す)
+  const rar = rollRarity(rarityUp(opts), Math.random, !!opts.noLR);
+  if (rar === "lr") { const id = pickLR(); if (id) return id; } // 今の深さで出せるLRが無ければスーパーレアへ
   const order = ["c", "uc", "r", "sr"];
   const capR = lootCapR();
-  let k = order.indexOf(rollRarity(rarityUp(opts)));
+  let k = rar === "lr" ? order.length - 1 : order.indexOf(rar);
   for (; k >= 0; k--) {
     const id = pickOfRarity(order[k], centerR, capR);
     if (id) return id;
@@ -343,47 +343,33 @@ function pickLoot(opts = {}) {
   return pickItemByR(centerR, capR);
 }
 
-// ===== レジェンドレアの時間抽選 =====
-// 実際に遊んでいる時間 (画面が見えていて、直近2分以内に操作がある時間) を数え、
-// 装備ドロップのたびに「前回の抽選からの経過時間」ぶんの確率でLRを出す (時間に対するポアソン過程)。
-// 平均間隔は潜っている深さで縮み (rarity.js lrIntervalH: 迷宮15まで5h → 迷宮33で4h → 迷宮50以降3h)、天井で必ず出る。
-// 時計の進み方は層で変わり、第1層ではほぼ止まる (lrLayerFactor) — 第1層ではほぼ出ない。
-const HOUR_MS = 3600 * 1000;
+// ===== 実プレイ時間 =====
+// 画面が見えていて、直近2分以内に操作がある時間だけを数える (戦績・テスト記録・帰還の鈴の依頼)
 let _lastInputAt = Date.now();
 for (const ev of ["pointerdown", "keydown"]) document.addEventListener(ev, () => { _lastInputAt = Date.now(); }, { passive: true, capture: true });
-function lrClock() {
-  if (!G.lrClock || typeof G.lrClock !== "object") G.lrClock = { since: 0, pend: 0 };
-  return G.lrClock;
-}
 setInterval(() => {
   if (document.visibilityState !== "visible" || Date.now() - _lastInputAt > 120000) return;
   G.stats.playMs = (G.stats.playMs || 0) + 5000; // 戦績: 総プレイ時間
   if (tlOn()) tlPlayTick(inDungeon() ? tlWhere() : null, 5000); // テスト記録: 迷宮/町の実プレイ時間
-  const f = lrLayerFactor(battleLayer());
-  const c = lrClock();
-  c.since += 5000 * f; c.pend += 5000 * f;
 }, 5000);
-// 今の深さで出せるLR (1点もの: 入手済みは除く)。層の逸品 (layer つき = 第1〜5層) はその層に達していて、
-// 出現上限 (lootCapR) 以内の隠しLvなら候補。職業専用LR (tier5以上) は従来どおり lootLv の解禁値を超えてから
+
+// ===== レジェンドレアの品選び =====
+// レア度の抽選で LR が出た時に、今の深さで出せるLRから1つ選ぶ。同じ品も何度でも出る (2026-10 ユーザーの指示)。
+// 層の逸品 (layer つき = 第1〜5層) はその層に達していて、出現上限 (lootCapR) 以内の隠しLvなら候補。
+// 職業専用LR・全職共通のLR防具 (tier5以上) は lootLv がティアの解禁値 (LR_UNLOCK) を超えてから
 function lrPool() {
   const lv = lootLvAt();
   const capLv = lootCapR() * 10;
   const L = battleLayer();
   return Object.keys(ITEMS).filter((id) => {
     const it = ITEMS[id];
-    if (it.rar !== "lr" || (G.lrOwned && G.lrOwned[id])) return false;
-    // 層の逸品 (layer つき・第5層からは tier も 5 以上) は層と出現上限で、職業専用LR は lootLv の解禁値で
+    if (it.rar !== "lr") return false;
     if (it.layer || it.lr < 5) return (it.layer || it.lr) <= L && (it.lv || 1) <= capLv;
     return lv >= (LR_UNLOCK[it.lr] || 40);
   });
 }
-function lrIntervalMs() { return lrIntervalH(levelHere().lv) * HOUR_MS; }
-function lrTimeRoll() {
-  const c = lrClock();
-  const m = lrIntervalMs();
-  const p = 1 - Math.exp(-c.pend / (m * LR_HAZARD_K));
-  c.pend = 0;
-  if (c.since < m * LR_PITY_K && Math.random() >= p) return null;
+// 編成にいる職の専用品は ×6・全職共通の品は ×3・ほかの職の専用品は ×1
+function pickLR() {
   const pool = lrPool();
   if (!pool.length) return null;
   let total = 0; const acc = [];
@@ -393,18 +379,12 @@ function lrTimeRoll() {
     total += w; acc.push([id, total]);
   }
   const x = Math.random() * total;
-  const id = (acc.find(([, t]) => x <= t) || acc[acc.length - 1])[0];
-  c.since = 0;
-  return id;
-}
-// 持ちきれずにLRを取り逃した時は、時計を天井に戻して次の装備ドロップで出し直す
-function refundLR(it) {
-  if (it && it.rar === "lr") lrClock().since = lrIntervalMs() * LR_PITY_K;
+  return (acc.find(([, t]) => x <= t) || acc[acc.length - 1])[0];
 }
 
 // ===== 職業専用LR の解禁深度 =====
-// LR (tier5以上 = 職業専用) は lootLv がティアの解禁値を超えてから時間抽選の候補に入る。
-// 層の逸品 (tier1-4) は lrPool の層・出現上限の条件で候補。1点もの (G.lrOwned) は以後候補から外れる
+// LR (tier5以上 = 職業専用・全職共通の防具) は lootLv がティアの解禁値を超えてから LR の候補に入る。
+// 層の逸品 (tier1-4) は lrPool の層・出現上限の条件で候補
 const LR_UNLOCK = { 5: 40, 10: 90, 15: 140, 20: 190 }; // LR ティア → 解禁 lootLv
 let _exclIds = null;
 function exclIds() {
@@ -515,9 +495,8 @@ const G = {
   activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
   codex: { mon: {}, item: {}, job: {}, met: {}, fresh: { mon: {}, item: {}, job: {} } }, // 図鑑 (モンスター/アイテム/職業)。fresh = 新着 (まだ詳細を見ていない記録)。met = 遭遇した迷宮の主 (討つ前でも図鑑に名だけ出す)
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={収集品id:true}, claimed={"ランク:しきい値":true}
-  lrOwned: {},        // LR(専用装備)は1点もの: 一度入手したidは二度とドロップしない
+  lrOwned: {},        // 一度でも手にしたLRのid (同じ品は何度でも出る。いまは「LRを手にしたことがあるか」にだけ使う)
   named: { seen: {}, trophy: {} }, // 名のある強敵: seen={id:{dungeon, floor}} 目撃 / trophy={id:true} 首級を手にした (全滅で失えば消す)
-  lrClock: { since: 0, pend: 0 }, // レジェンドレアの時間抽選 (最後のLRからの/前回抽選からの実プレイms)
   order: { picks: [] }, // 控えの結社: 席に着けた魂のuid配列 (席数=orderSeats()。編成外の魂のみ有効。能力の一部を全員に足す)
   events: { seen: {}, picks: {}, once: {}, flags: {}, fresh: {} }, // 迷宮のイベント (src/events.js): 見聞録・一度きり・恒久の恵み
   irene: { greeted: false, visits: 0, seen: {}, last: null }, // 人業の館の主イレーヌ: 初訪問の挨拶済み・来館数・聞いた話 (src/ui/irene.js)
@@ -605,7 +584,7 @@ function runGainItem(owner, item) {
   if (item && tlOn() && inDungeon()) tlLoot(tlWhere(), item, !item.unidentified && !(G.codex && G.codex.item && G.codex.item[item.id]));
   owner.items.push(item);
   if (G.run && inDungeon()) G.run.items.push({ owner, item });
-  if (item && item.rar === "lr") { if (!G.lrOwned) G.lrOwned = {}; G.lrOwned[item.id] = true; } // LRは1点もの
+  if (item && item.rar === "lr") { if (!G.lrOwned) G.lrOwned = {}; G.lrOwned[item.id] = true; } // 手にしたLRの記録
   if (item && TROPHY_OF[item.id]) namedState().trophy[TROPHY_OF[item.id]] = true; // 名のある強敵の首級を手にした
 }
 // 魂の吸収を記録 (全滅没収で巻き戻すため {doll, clsKey} で覚える)
@@ -5775,7 +5754,7 @@ function evGive(id, next) {
 function evPickMinRar(rar) {
   const order = ["c", "uc", "r", "sr"];
   const lo = Math.max(0, order.indexOf(rar));
-  let k = Math.max(lo, order.indexOf(rollRarity(rarityUp({ rare: true }))));
+  let k = Math.max(lo, order.indexOf(rollRarity(rarityUp({ rare: true }), Math.random, true)));
   const centerR = dropCenterR({}), capR = lootCapR();
   for (; k >= lo; k--) { const id = pickOfRarity(order[k], centerR, capR); if (id) return id; }
   return pickLoot({ rare: true, noLR: true });
@@ -6932,7 +6911,6 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
     || G.party.find((p) => p.items.length < MAX_ITEMS);
   if (!who) {
     log(`${itemName(d.item)}を見つけたが、誰も持てない…`, "sys");
-    refundLR(d.item);
     runLost(itemName(d.item));
     sink.lost(itemName(d.item));
     next();
@@ -11193,7 +11171,7 @@ function achNext(s) {
     [150, "宝物庫の主", 500, 3], [250, "伝説の収集家", 1000, 5], [350, "千の宝を知る者", 2000, 10],
   ], (v) => `アイテム図鑑 ${v}種`, itemSeen, { more: step(100) });
 
-  // スーパーレア / レジェンドレアの図鑑 (LR は遊んだ時間で落ちる1点もの。いつまでも少しずつ届く)
+  // スーパーレア / レジェンドレアの図鑑 (LR はスーパーレアの1/3の割合で落ちる。いつまでも少しずつ届く)
   series("sr", [
     [3, "橙の輝き", 150, 1], [10, "名品の目利き", 400, 2], [25, "名品の収集家", 800, 4], [50, "百名品の主", 1500, 6],
   ], (v) => `スーパーレアの品を ${v}種 図鑑に記す`, () => itemSeenOf("sr"), { more: step(25) });
@@ -11878,15 +11856,14 @@ function grantTreasuryItem(center, onClose) {
   });
 }
 
-// 褒賞のLR(専用装備)を1点下賜する。filter で武器/防具などを絞り、未入手(G.lrOwned外)から抽選する。
-// LRは未鑑定で渡る (商店でのみ鑑定可)。全部入手済みなら通常の装備褒賞にフォールバック。
+// 褒賞のLR(専用装備)を1点下賜する。filter で武器/防具などを絞り、まだ手にしていない品 (G.lrOwned外) を優先して抽選する
+// (全種手にしていれば同じ品も出る)。LRは未鑑定で渡る (商店でのみ鑑定可)。
 function grantLR(filter, center, onClose) {
   if (!G.lrOwned) G.lrOwned = {};
-  const pool = exclIds().filter((id) => {
-    const it = ITEMS[id];
-    return it && it.lr && !G.lrOwned[id] && filter(it);
-  });
-  if (!pool.length) { grantTreasuryItem(center, onClose); return; } // 既に全種入手済み
+  const all = exclIds().filter((id) => { const it = ITEMS[id]; return it && it.lr && filter(it); });
+  const fresh = all.filter((id) => !G.lrOwned[id]);
+  const pool = fresh.length ? fresh : all;
+  if (!pool.length) { grantTreasuryItem(center, onClose); return; }
   const id = pool[rand(pool.length)];
   const it = cloneItem(id);
   it.unidentified = true; // LRは未鑑定で手に入る
@@ -11898,7 +11875,6 @@ function grantLR(filter, center, onClose) {
     || allDolls().find((d) => !d.isEmpty && d.items.length < MAX_ITEMS);
   if (!who) { grantTreasuryItem(center, onClose); return; } // 所持枠が無ければ通常褒賞へ
   runGainItem(who, it); codexSeeItem(id, it);
-  G.lrOwned[id] = true; // 1点もの: 以後ドロップしない
   flashScreen("#ff5fae"); SFX.victory(); buzz([0, 60, 50, 60, 50, 60, 240]);
   const nm = itemName(it); // 未鑑定なら伏せ名
   log(`★ 宝物庫の褒賞として LR${it.lr} 専用装備(未鑑定)「${nm}」を賜った。(${who.name})`, "win");
@@ -12357,7 +12333,7 @@ function sellWarnings(it) {
     out.push("⚠ まだ宝物庫に奉納していない収集品です。売ると奉納できなくなり、図鑑の褒賞を取り逃します。");
   }
   if (rarityKey(it) === "lr") {
-    out.push("⚠ レジェンドレアです。二度と手に入らない1点ものです。本当に売りますか？");
+    out.push("⚠ レジェンドレアです。めったに手に入らない至高の逸品です。本当に売りますか？");
   } else if (rarityKey(it) === "sr") {
     out.push("⚠ スーパーレアです。めったに手に入らない逸品です。本当に売りますか？");
   }
@@ -13507,7 +13483,6 @@ function giveItem(id) {
   if (!who) {
     log(`${itemName(it)}を見つけたが、誰も持てない…`, "sys");
     showToast(`持ちきれず ${itemName(it)} を置いてきた`, { tone: "bad" });
-    refundLR(it);
     return null;
   }
   runGainItem(who, it);
@@ -13928,7 +13903,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "lrClock", "named", "order", "irene", "tut", "events", "story", "world", "dragonSlain", "stats",
+  "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "irene", "tut", "events", "story", "world", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
   "lastRun",
 ];
@@ -14087,7 +14062,8 @@ function loadGame() {
   for (const k of SAVE_FIELDS) if (k in snap) G[k] = snap[k];
   // 戦闘演出の倍速を改めた: 旧来の標準の速さが「倍速 ON」、OFF はその 1/2。旧セーブは ON (= これまでの速さ) から始める
   if (!("animTempo" in snap)) { G.fastAnim = true; G.animTempo = 2; }
-  if (!G.lrOwned || typeof G.lrOwned !== "object") G.lrOwned = {}; // LR入手済み記録 (1点もの)
+  if (!G.lrOwned || typeof G.lrOwned !== "object") G.lrOwned = {}; // LR入手済み記録
+  delete G.lrClock; // 旧来の LR 時間抽選の時計 (廃止)
   namedState(); // 名のある強敵の記録 (旧セーブには無い)
   // 街UIの現在地 (後付け: tab/page)。旧 {facility, sub} はそれが属するタブへ写す
   G.town = townshell.migrateTown(G.town);
@@ -14773,7 +14749,7 @@ bindGame({
 // 値段・判定はすべて上の単体操作のまま (釣り合いは変えない)。モジュールの評価時に結び、init の bindGame で補われる
 bindGame({
   sellItem, buyItem, shopIdentify, openIdentifyChooser, doIdentifySkill, addIdentifyAction,
-  giveItem, markDungeonLoot, refundLR, cloneItem, SHOP_INIT_STOCK,
+  giveItem, markDungeonLoot, cloneItem, SHOP_INIT_STOCK,
 });
 // ==== /WP-C ====
 

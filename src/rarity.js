@@ -8,8 +8,8 @@
 //   職業専用装備 (x_)・伝説装備・層ごとの逸品 … スーパーレア
 //   LR (lr_) … レジェンドレア
 // 出現率: 装備ドロップのたびにレア度を先に抽選し (rollRarity)、その格の品を
-// ランク窓から選ぶ。深い層ほど上位の格が出やすい。レジェンドレアだけは「実プレイ時間」で
-// 抽選する (game.js の LR 時計)。第1層ではほぼ出ず、深く潜るほど出やすくなる (迷宮50以降で3時間に1つ)。
+// ランク窓から選ぶ。深い層ほど上位の格が出やすい。レジェンドレアも同じ抽選で出て、
+// 重みはいつもスーパーレアの1/3 (2026-10 ユーザーの指示: 時間の天井は廃止・同じ品を何度でも拾える)。
 
 export const RARITIES = {
   c: { key: "c", label: "コモン", short: "C", color: "#ece6d8", order: 0 },
@@ -23,29 +23,14 @@ export const RARITY_KEYS = ["c", "uc", "r", "sr", "lr"];
 // レア (来歴つき一点物) は同じ隠しレベルの標準装備より一段強い
 export const RARE_STAT_MUL = 1.15;
 
-// 装備ドロップ1回あたりのレア度の重み (コモン〜スーパーレア)。レジェンドレアは別枠 (時間抽選)。
+// 装備ドロップ1回あたりのレア度の重み (コモン〜スーパーレア)。レジェンドレアはスーパーレアの LR_PER_SR 倍。
 // 1時間の探索で装備はおよそ30点前後拾う想定 → 第1層でレア≒3点/時、スーパーレア≒0.6点/時。
 // 深い層ほど格上げ度 (layerRarityUp) が乗り、レア・スーパーレアの割合が増える
 export const RARITY_WEIGHTS = { c: 60, uc: 28, r: 10, sr: 2 };
 export function layerRarityUp(layer) { return Math.max(0, (layer || 1) - 1) * 0.2; }
 
-// ===== レジェンドレアの時間抽選 =====
-// 出やすさは「どこまで深く潜っているか (その階の推奨Lv)」で決まる (旧来の迷宮番号 n は A1 で廃止。
-// 当時の 迷宮15 / 33 / 50 ≒ 推奨Lv 31 / 70 / 107):
-//   第1層 = ほぼ出ない (lrLayerFactor) / 推奨Lv31 まで = 5時間に1つ / Lv70 = 4時間に1つ /
-//   Lv107 以降 = 3時間に1つ (上限)。間は直線でつなぐ
-export function lrIntervalH(lv) {
-  if (lv <= 31) return 5;
-  if (lv <= 70) return 5 - (lv - 31) / 39;
-  if (lv <= 107) return 4 - (lv - 70) / 37;
-  return 3;
-}
-// 抽選は「時間に対するポアソン過程 + 天井」: 平均 M 時間に対し、ハザード平均 M×1.56・天井 M×1.6 とすると
-// 実効の平均間隔がほぼ M になり、最悪でも M×1.6 時間で必ず出る
-export const LR_HAZARD_K = 1.56;
-export const LR_PITY_K = 1.6;
-// 層ごとのLR時計の進み方。第1層はほぼ止まる (= ほぼ出ない)。第2層以降は等速
-export function lrLayerFactor(layer) { return (layer || 1) <= 1 ? 0.02 : 1; }
+// レジェンドレアの重み = (補正後の) スーパーレアの重み × これ
+export const LR_PER_SR = 1 / 3;
 
 const STAT_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"];
 
@@ -60,21 +45,24 @@ export function rarityLabel(it) { const k = rarityKey(it); return k ? RARITIES[k
 export function rarityOrder(it) { const k = rarityKey(it); return k ? RARITIES[k].order : -1; }
 
 // レア度の重み表に補正をかける。up=格上げ度 (0=補正なし)。
-// 宝箱ランク・強敵・ミミック・黒い宝箱などで上位の重みを伸ばし、コモンを削る
-export function rarityWeights(up = 0) {
+// 宝箱ランク・強敵・ミミック・黒い宝箱などで上位の重みを伸ばし、コモンを削る。
+// noLR = レジェンドレアを抽選に入れない (迷宮のイベントが直接渡す品)
+export function rarityWeights(up = 0, noLR = false) {
   const u = Math.max(0, up);
+  const sr = RARITY_WEIGHTS.sr * (1 + u * 1.2);
   return {
     c: RARITY_WEIGHTS.c / (1 + u * 0.6),
     uc: RARITY_WEIGHTS.uc * (1 + u * 0.15),
     r: RARITY_WEIGHTS.r * (1 + u * 0.7),
-    sr: RARITY_WEIGHTS.sr * (1 + u * 1.2),
+    sr,
+    lr: noLR ? 0 : sr * LR_PER_SR,
   };
 }
-export function rollRarity(up = 0, rnd = Math.random) {
-  const w = rarityWeights(up);
-  const total = w.c + w.uc + w.r + w.sr;
+export function rollRarity(up = 0, rnd = Math.random, noLR = false) {
+  const w = rarityWeights(up, noLR);
+  const total = w.c + w.uc + w.r + w.sr + w.lr;
   let x = rnd() * total;
-  for (const k of ["sr", "r", "uc", "c"]) { if ((x -= w[k]) < 0) return k; }
+  for (const k of ["lr", "sr", "r", "uc", "c"]) { if ((x -= w[k]) < 0) return k; }
   return "c";
 }
 
