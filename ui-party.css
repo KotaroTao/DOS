@@ -434,6 +434,28 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
 .pt-cur-n.dim { color: #6e6457; font-weight: 500; }
 .pt-cur-s { font-size: 11px; color: #9a8e78; }
 .pt-cur .ui-btn { width: auto; flex: 0 0 auto; }
+/* いまの装備 (図鑑と同じく 絵・性能・特殊効果・説明) */
+.pt-cur.rich { flex-direction: column; align-items: stretch; gap: 8px; padding: 10px; }
+.pt-cur-top { display: flex; align-items: center; gap: 12px; }
+.pt-cur-art {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 84px; height: 84px; padding: 0; cursor: pointer;
+  background: radial-gradient(circle, color-mix(in srgb, var(--edge, #c9a24a) 22%, transparent), rgba(0,0,0,0) 68%), #0b090c;
+  border: 1px solid var(--edge, #3a302c); border-radius: 3px;
+}
+.pt-cur-art canvas { width: 72px; height: 72px; image-rendering: pixelated; }
+.pt-cur.rich .pt-cur-n { white-space: normal; font-size: 15px; line-height: 1.35; }
+.pt-cur-c { font-size: 11.5px; color: var(--ink-dim); }
+.pt-cur.rich .pt-cur-s { font-size: 12px; color: #e6dbc2; font-variant-numeric: tabular-nums; }
+.pt-cur-fx, .wpc-is-fx, .pl-detail-fx {
+  display: flex; flex-direction: column; gap: 2px; padding: 7px 10px; text-align: left;
+  background: rgba(40,30,12,0.45); border: 1px solid #6a5226; border-radius: 2px;
+}
+.pt-cur-fxh, .wpc-is-fxh, .pl-detail-fxh { font-size: 10.5px; font-weight: 800; letter-spacing: 0.2em; color: var(--accent, #c9a24a); }
+.pt-cur-fxl, .wpc-is-fxl, .pl-detail-fxl { font-size: 12.5px; line-height: 1.6; color: #f0e2bf; }
+.wpc-is-fx { margin: 0 0 10px; }
+.pt-cur-desc { font-size: 12px; line-height: 1.65; color: #a3967f; font-style: italic; }
+.pt-cur-foot { display: flex; justify-content: flex-end; }
+.pt-cand-fx { font-size: 11px; color: #e8c779; }
 .pt-list { display: flex; flex-direction: column; gap: 6px; }
 .pt-cand {
   display: flex; align-items: stretch; gap: 0; min-height: 60px; color: var(--ink);

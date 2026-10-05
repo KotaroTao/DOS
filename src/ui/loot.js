@@ -18,7 +18,7 @@ import { el, sheet, toast, button, confirm, setText, glyph, plainText } from "./
 import { deltaFloat } from "./motion.js";
 import {
   statLines, isEquippable, equipPreviewDelta, gearScore as baseGearScore, itemCatText,
-  elemDetailLines, equipClassText, elemStatEq, elemStatShort, ailDetailLines, handLine,
+  elemDetailLines, equipClassText, elemStatEq, elemStatShort, ailDetailLines, handLine, specialLines,
 } from "./itemview.js";
 import { spriteCanvas } from "../sprites.js";
 import { dollSprite, SOUL_CLASSES, canIdentify, identifyChance, identifyLabel, JOB_GEAR } from "../souls.js";
@@ -848,10 +848,15 @@ export function itemSheet(item, o = {}) {
     }
     // 細目 (属性・装備の条件など)
     if (!it.unidentified) {
+      // 特殊効果 (吸血・連撃・属性・状態異常…) は数字で言い切った行を、説明の文とは別に目立たせる
+      const fx = specialLines(it);
+      if (fx.length) {
+        const box = el("div", "wpc-is-fx");
+        box.appendChild(el("div", "wpc-is-fxh", "特殊効果"));
+        for (const ln of fx) box.appendChild(setText(el("div", "wpc-is-fxl"), ln));
+        scroll.appendChild(box);
+      }
       const det = [];
-      for (const ln of elemDetailLines("攻撃", it.eAtk)) det.push(ln);
-      for (const ln of elemDetailLines("防御", it.eDef)) det.push(ln);
-      for (const ln of ailDetailLines(it)) det.push(ln);
       if (isEquippable(it)) det.push(equipClassText(it));
       if (it.slot === "weapon") det.push(handLine(it));
       if (it.align) det.push(`${it.align}属性`);

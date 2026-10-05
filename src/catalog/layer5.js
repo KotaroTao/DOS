@@ -57,7 +57,7 @@ export const LAYER5_ITEMS = [
     desc: "魂の実る木から落ちた実を、琥珀に閉じ込めた首飾り。実の中で小さな顔が眠り、持ち主の身に入り込む毒と痺れを代わりに引き受ける。" })),
 
   // ===== レジェンドレア (全職共通・固有効果) =====
-  lr(W("lr_l5_heartcleaver", "心臓断ちの大鉈", "ax", 62, { pow: 1.45, two: true, eAtk: ["fire", 2], hp: 28, eff: { multistrike: 1 }, tint: "#ff7a40",
+  lr(W("lr_l5_heartcleaver", "心臓断ちの大鉈", "ax", 62, { pow: 1.45, two: true, eAtk: ["fire", 2], hp: 28, eff: { multistrike: 2 }, tint: "#ff7a40",
     desc: "師が大樹の太い根を断ったと伝わる大鉈。振り下ろせば刃は二度閃き、焼けた切り口から霧の魔物を燃やし尽くす。" })),
   lr(W("lr_l5_gardenershears", "庭師の黄金鋏", "dg", 63, { pow: 1.45, eAtk: ["wind", 2], agi: 8, eff: { actFirst: true }, tint: "#e8c050",
     desc: "三百年、大樹の根を切り揃えてきた黄金の鋏の片刃。持ち主の手は庭師のように迷いなく動き、どんな戦いでも真っ先に刃を入れる。" })),

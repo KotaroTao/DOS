@@ -65,7 +65,7 @@ export const LAYER3_ITEMS = [
     desc: "坑の最奥でまれに掘り出される、魂を吸って育った鉱石の首飾り。持つ者が浄めた魂の欠片を拾い集め、より多くの Soul を手元へ引き寄せる。" })),
   lr(R("lr_l3_silentcanary", "鳴かぬカナリアの指輪", "ring", 42, { pow: 1.6, hp: 24, pie: 6, eff: { ailmentImmune: true }, tint: "#f0e070",
     desc: "毒気の満ちた坑で最後まで鳴かずに生き延びたカナリアを、そのまま金に封じた指輪。はめた者は毒にも痺れにも石の呪いにも冒されない。" })),
-  lr(W("lr_l3_firstpick", "掘り当てし者のつるはし", "ax", 43, { pow: 1.4, two: true, eAtk: ["wind", 2], hp: 20, eff: { multistrike: 1 }, tint: "#a08860",
+  lr(W("lr_l3_firstpick", "掘り当てし者のつるはし", "ax", 43, { pow: 1.4, two: true, eAtk: ["wind", 2], hp: 20, eff: { multistrike: 2 }, tint: "#a08860",
     desc: "「掘ってはならぬもの」に最初に届いたと囁かれる大つるはし。両腕で振り下ろす一撃は岩盤を二度貫き、刃先から吹き出す風が岩の魔物を粉々に砕く。" })),
   lr(W("lr_l3_firedamprod", "坑気爆ぜの杖", "st", 44, { pow: 1.6, eAtk: ["wind", 2], int: 10, mp: 18, eff: { spellCostMul: 0.75 }, tint: "#e0a060",
     desc: "坑道に溜まる燃える気を封じ込めた鉄の杖。唱えた呪文に坑気が混じって爆ぜ、わずかな魔力で岩盤ごと吹き飛ばすほどの旋風を起こす。" })),
