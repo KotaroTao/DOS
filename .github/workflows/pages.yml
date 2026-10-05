@@ -28,7 +28,9 @@ jobs:
         run: |
           v="dos-${GITHUB_SHA::12}"
           sed -i "s/^const CACHE = \"dos-dev\";/const CACHE = \"$v\";/" sw.js
+          sed -i "s/^export const TEST_BUILD = \"dos-dev\";/export const TEST_BUILD = \"$v\";/" src/telemetry.js
           grep -q "^const CACHE = \"$v\";" sw.js || { echo "sw.js の CACHE を書き換えられませんでした"; exit 1; }
+          grep -q "^export const TEST_BUILD = \"$v\";" src/telemetry.js || { echo "テスト記録の版を書き換えられませんでした"; exit 1; }
           grep -n "^const CACHE" sw.js
       - uses: actions/configure-pages@v5
         with:

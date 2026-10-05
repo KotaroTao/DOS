@@ -73,7 +73,7 @@ const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho",
 const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } })();
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 import { refSoul, refGold, trainCost, lvPow, emberMul, partyAgi, LOCK_K, TRAP_K, lockPow } from "./levelcurve.js";
-import { tlOn, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlTownGain, tlPlayTick, tlSoul } from "./telemetry.js";
+import { tlOn, tlMeasure, tlWatchBattle, tlRunBegin, tlRunEnd, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlTownGain, tlPlayTick, tlSoul } from "./telemetry.js";
 import { repriceEquipment } from "./pricing.js";
 import { spawnFx, drawBattleFx, weaponFxStyle, statusFxKind, skillProfile, ELEM_FX_COL, SIG_FX } from "./battlefx.js";
 import "./battlefx-sig.js"; // 各職の看板技の専用演出を SIG_FX に登録する
@@ -1547,6 +1547,11 @@ function newFloor() {
   if (tlOn()) tlSnapshot("floor", tlWhere(), G.party);
 }
 
+// 同期処理の実HP/MP収支だけを観測する。町での補給は迷宮の回復に混ぜない。
+function tlGameMeasure(source, fn) {
+  return tlMeasure(tlOn() && inDungeon() ? tlWhere() : null, G.party, source, fn);
+}
+
 // 逃走判定の追跡の物差し (Battle.fleeK): 敵の AGI は味方よりずっと小さい規模なので、
 // 「この迷宮・階の基準AGI (baseline.js) ÷ この迷宮の雑魚の標準AGI (出現表の素のAGIの中央値)」を掛けて揃える。
 // 俊敏な敵・主・ミミック・鈍足/激昂は、標準からのずれとしてそのまま逃げにくさ/逃げやすさに効く
@@ -1867,7 +1872,8 @@ function revealAroundStairs() {
     }
   }
 }
-function castField(key) {
+function castField(...args) { return tlGameMeasure("camp", () => castFieldMeasured(...args)); }
+function castFieldMeasured(key) {
   if (G.state !== "board" || !inDungeon()) return;
   const sp = SPELLS[key];
   if (!sp) return;
@@ -2302,7 +2308,8 @@ function drawSenseGlow(r, rgb, now, x, y, k = 1) {
 
 // 気配読み (魔物 = ぼんやりした赤い光) / 宝探し (宝箱 = ぼんやりした青い光)。種類・強さは分からない。歩いている間も灯したまま
 // 清めの歩み (聖騎士): まだめくっていない墓石をめくるたび、全員の HP を 5/15/30・MP を 1/2/3 回復 (隊で一番高いLv)
-function cleanseStepHeal() {
+function cleanseStepHeal(...args) { return tlGameMeasure("explore", () => cleanseStepHealMeasured(...args)); }
+function cleanseStepHealMeasured() {
   const lv = Math.min(3, partyPassiveLv("cleanseStep"));
   if (!lv) return;
   const hp = [0, 5, 15, 30][lv], mp = [0, 1, 2, 3][lv];
@@ -5232,7 +5239,8 @@ function dirName(d) { return d[0] === 1 ? "e" : d[0] === -1 ? "w" : d[1] === 1 ?
 // 決断 (宝箱・あたたかい死体・泉・黒い泉・階段・帰還陣) だけをシートで問い、
 // 褒美・罠の解除・軽い痛手・風化した死体はトースト (札の明滅) で知らせて歩みを止めない。
 // 札 (カード) で止めるのは、倒れた者が出た時・飛ばされた時・呼び寄せた時・戦闘が始まる時だけ。
-function resolveCell(cell) {
+function resolveCell(...args) { return tlGameMeasure("terrain", () => resolveCellMeasured(...args)); }
+function resolveCellMeasured(cell) {
   switch (cell.type) {
     case "monster":
       if (!cell.cleared) {
@@ -6054,6 +6062,11 @@ const evApi = {
 };
 
 // 隊の札を一瞬だけ光らせる (被弾 = 赤 / 回復 = 緑)。盤面でも戦闘と同じ明滅を使う
+for (const key of ["healAll", "hurtAll", "hurtAllCur", "hurtOne", "mpAll", "revive"]) {
+  const original = evApi[key];
+  evApi[key] = (...args) => tlGameMeasure("event", () => original(...args));
+}
+
 function flashPartyCards(list, kind = "hit") {
   if (!list || !list.length) return;
   if (!G.partyFx) G.partyFx = new Map();
@@ -6067,7 +6080,8 @@ function flashPartyCards(list, kind = "hit") {
 }
 
 // 泉を利用: HP/MP回復・毒浄化。利用したら消える。
-function useFountain(cell) {
+function useFountain(...args) { return tlGameMeasure("fountain", () => useFountainMeasured(...args)); }
+function useFountainMeasured(cell) {
   cell.cleared = true;
   SFX.heal();
   let cured = false;
@@ -6087,7 +6101,8 @@ function useFountain(cell) {
 }
 
 // 黒い泉: 50% で全回復+Soulの恵み、50% で呪い (HP半減+毒)。一度きりの賭け
-function useDarkFountain(cell) {
+function useDarkFountain(...args) { return tlGameMeasure("darkFountain", () => useDarkFountainMeasured(...args)); }
+function useDarkFountainMeasured(cell) {
   cell.cleared = true;
   if (Math.random() < 0.5) {
     SFX.heal(); buzz([0, 30, 40, 30]); flashScreen("#5fb8d6");
@@ -6338,7 +6353,7 @@ function showChoice(title, options, icon, { banner = "✦ 発見 ✦", accent = 
   const spec = (o) => ({
     label: o.label,
     kind: o.danger ? "danger" : isCancelOption(o) ? "ghost" : (o.primary || (acts.length === 1 && acts[0] === o)) ? "primary" : "secondary",
-    onTap: () => { closePrompt(); o.fn(); },
+    onTap: () => { closePrompt(); tlGameMeasure("event", () => o.fn()); },
   });
   // 選択肢が多い (魂の一覧など) ときは本文側に並べてスクロールさせる
   const many = options.length > 4;
@@ -6652,7 +6667,8 @@ function trapBaseDmg() {
 // 罠の効果を適用し、何が起きたかを返す (知らせ方は presentTrap が決める)。
 // opener: 開けた者/先頭の解除役 (opener型の罠が狙う)。
 // 返り値 kind: "teleport" (飛ばされる・中身を失う) | "alarm" (戦闘・中身を失う) | "harm" (痛手/吸収。fallen/wiped を伴う)
-function applyTrap(trap, opener) {
+function applyTrap(...args) { return tlGameMeasure("trap", () => applyTrapMeasured(...args)); }
+function applyTrapMeasured(trap, opener) {
   SFX.trap(); buzz([0, 60, 40, 60]);
   G.stats.trapsSprung++; // 戦績: 発動させてしまった罠 (勲章用)
   log(`罠だ！ 「${trap.name}」が発動した！`, "dmg");
@@ -6957,7 +6973,8 @@ function giveDropsFromChest(drops, i, done, sink = boardSink()) {
 // 階段を降りる: 墨の帳 (約1.3秒・400ms 後はタップで飛ばせる) の暗転のうちに次の階へ。
 // 強敵階・特別な階・奈落の変異の知らせは帳の中に2〜3行で添える (後から別の札は出さない)。
 // 見落としても、見出しの迷宮名を押す「階の情報」でいつでも読み返せる
-function descend({ fall = false } = {}) {
+function descend(...args) { return tlGameMeasure("floor", () => descendMeasured(...args)); }
+function descendMeasured({ fall = false } = {}) {
   evOnDescend(); // 迷宮のイベント: 誓いの破約など
   if (!fall) { SFX.stairs(); buzz([0, 20, 80, 20]); }
   G.floor++;
@@ -7071,7 +7088,8 @@ function randomElement() {
   const els = Object.keys(ELEMENTS).filter((k) => k !== "none");
   return els[Math.floor(Math.random() * els.length)];
 }
-function startBattle(enemies, cell) {
+function startBattle(...args) { return tlGameMeasure("battle", () => startBattleMeasured(...args)); }
+function startBattleMeasured(enemies, cell) {
   // 迷宮の属性気配: 属性持ち迷宮では雑魚敵が迷宮属性を帯びやすい (主・強敵は固有属性のまま)
   const cfg = activeCfg();
   const spFloor = specialDef();
@@ -7178,6 +7196,7 @@ function startBattle(enemies, cell) {
   const foeLv = foeLevelHere();
   for (const e of enemies) e.lv = foeLv;
   G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), foeLv });
+  tlWatchBattle(G.battle, tlWhere());
   if (foeLv - partyLevel() >= 4) log(`格上の敵だ (Lv${foeLv})。眠りや毒、即死の術はほとんど効かず、敵の術はよく効く。`, "sys");
   // テスト記録: 戦闘の種類 (主 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子
   if (tlOn() && inDungeon()) {
@@ -9120,7 +9139,8 @@ function applyImpact(res) {
 // キャラLv上昇/スキル習得を検出してポップアップ用のキューを返す。
 // 戦闘でサブ魂に入る経験値の割合 (メイン魂の分に対して)
 const SUB_EXP_RATE = 1 / 3;
-function distributeBattleSoulExp(soulGot) {
+function distributeBattleSoulExp(...args) { return tlGameMeasure("growth", () => distributeBattleSoulExpMeasured(...args)); }
+function distributeBattleSoulExpMeasured(soulGot) {
   const queue = [];
   const share = Math.floor((soulGot || 0) / 3);
   if (share <= 0) return queue;
@@ -9222,7 +9242,8 @@ function levelUpEntries(progress) {
   return [...byMember.values()].filter((e) => e.main || e.subs.length);
 }
 
-function endBattle() {
+function endBattle(...args) { return tlGameMeasure("battle", () => endBattleMeasured(...args)); }
+function endBattleMeasured() {
   const b = G.battle;
   if (b.tl) tlBattleEnd(b.tl, { result: b.result, rounds: b._roundNo, tally: b.tally, party: G.party });
   // オートは戦闘ごとに解除。ただし設定「オートを次の戦闘も続ける」(§7 M2) なら勝利の後も持ち越す
@@ -9378,7 +9399,8 @@ function endBattle() {
 }
 // 戦闘勝利後の常時効果: 戦闘後回復/魔力回路/法力の灯/浄化/慈悲の祈り。
 // Lv付きは最高Lvのみ。教皇の祈り (popePrayer) は持ち主の戦闘後回復を隊全体へ広げる
-function applyVictoryPassives() {
+function applyVictoryPassives(...args) { return tlGameMeasure("victory", () => applyVictoryPassivesMeasured(...args)); }
+function applyVictoryPassivesMeasured() {
   let pope = 0;
   for (const p of G.party) if (p.alive && pLv(p, "popePrayer")) pope = Math.max(pope, pLv(p, "afterHeal"));
   const HEAL_PCT = [0, 0.05, 0.10, 0.20, 0.30];
@@ -9397,6 +9419,7 @@ function applyVictoryPassives() {
   if (healed) log("勝利の余韻がパーティを癒した。", "heal");
   // 特別階 (癒しの霊気)・迷宮の掟 (癒しの樹液): 戦闘勝利のたび隊全体のHP・MPが回復する
   const fh = Math.max(sfNum("victoryHeal", 0), (dungeonTrait() && dungeonTrait().victoryHeal) || 0);
+  tlGameMeasure("victoryTerrain", () => {
   if (fh > 0) {
     let mist = false;
     for (const p of G.party) {
@@ -9406,6 +9429,7 @@ function applyVictoryPassives() {
     }
     if (mist) log(sfNum("victoryHeal", 0) > 0 ? "癒しの霊気が傷を塞ぎ、魔力を満たした。" : "樹液の香りが傷を塞ぎ、魔力を満たした。", "heal");
   }
+  });
   // 浄化 (隊全体) / 自浄 (自分): 毒・麻痺を治す (石化は対象外)
   const hasPurify = G.party.some((p) => p.alive && pLv(p, "purify"));
   let cured = false;
@@ -12579,6 +12603,8 @@ function enterDungeon(mutatorId, startFloor = 1) {
   // 今回の戦利品トラッキングを初期化 (帰還の報告は次の帰還で書き直す)
   G.run = newRun();
   G.run.startFloor = G.floor; // 潜り始めの階 (そこから降りずに何もせず戻ったら、帰還で酒場を貼り替えない)
+  tlRunBegin(tlWhere(), G.party, { mutator:G.mutator, loadout:G.party.map(p=>({ name:p.name, tactic:p.tactic, equip:p.equip, passives:p.passiveMap,
+    souls:[p.primary, ...(p.subs || []).map(x=>x.uid)].filter(x=>x!=null).map(uid=>{ const soul=soulByUid(uid); return soul ? { uid, clsKey:soul.clsKey, level:soul.level, count:soul.count } : { uid }; }) })) });
   G.lastRun = null;
   G._townMutator = null; G._departPre = false;
   G._lastTargetUid = null;
@@ -12677,6 +12703,7 @@ function showAbyssSummary({ depth, score, weekly, mods, newDepth, newScore }) {
 function returnToTown(opts = {}) {
   const runRef = opts.run !== undefined ? opts.run : G.run;
   const outcome = opts.outcome || (runRef && runRef.secured ? "clear" : "return");
+  if (inDungeon()) tlRunEnd(tlWhere(), G.party, outcome);
   evOnReturn(runRef, outcome); // 迷宮のイベント: 報奨金・紅玉の売却 (全滅以外)
   // 帰還の報告 (D2) は奈落の確定や迷宮選択の巻き戻しより前に要約する (迷宮名・深さを正しく残す)
   const summary = runSummary(runRef, outcome, { forfeited: opts.forfeited || null });
@@ -12874,7 +12901,8 @@ function campHealPower(caster, sp) { return (sp.power || 0) + Math.round((caster
 // 生きている1体へ回復呪文の効果 (状態異常の治療・HP回復) を与える。何か起きたら true
 // 戦闘外の回復で、最後に唱えた回復量 (満タンで上限に切られた分も含む素の値)。結果の表示に使う
 const CAMP_HEAL = new WeakMap();
-function campApplyAlive(caster, sp, t) {
+function campApplyAlive(...args) { return tlGameMeasure("camp", () => campApplyAliveMeasured(...args)); }
+function campApplyAliveMeasured(caster, sp, t) {
   let did = false;
   if (spellCures(sp) && t.ailment) { t.ailment = null; log(`${sp.name}！ ${t.name}の状態異常が治った`, "heal"); did = true; }
   if (spellHeals(sp)) {
@@ -12918,7 +12946,8 @@ function healAllRevivers() {
   return out;
 }
 // 倒れた1体を呪文で起こす (campCast と同じ蘇生量)
-function campRevive(caster, sp, t) {
+function campRevive(...args) { return tlGameMeasure("camp", () => campReviveMeasured(...args)); }
+function campReviveMeasured(caster, sp, t) {
   const heal = (sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : Math.max(1, campHealPower(caster, sp)))
     + Math.round(t.maxhp * rankVal(caster, "priestInochi", [0.10, 0.20, 0.30, 0.50])); // 生命の灯 (僧侶のランク)
   t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false;
@@ -13060,7 +13089,8 @@ function planHealAllGreedy(def0, ail0, casters) {
   }
   return done() ? out : null;
 }
-function healAll() {
+function healAll(...args) { return tlGameMeasure("camp", () => healAllMeasured(...args)); }
+function healAllMeasured() {
   const fail = (msg, tone = "info") => { log(msg, "sys"); showToast(msg, { tone }); SFX.miss(); };
   if (!healAllNeed()) {
     if (G.party.some((t) => !t.alive)) return fail("倒れた仲間を蘇らせる呪文を使える者がいない");
@@ -13200,7 +13230,7 @@ function campCast(caster, spellKey) {
     }
     return campApplyAlive(caster, sp, t);
   };
-  const finish = () => { caster.mp -= cost; SFX.heal(); buzz(15); renderStatus(); renderParty(); };
+  const finish = () => { tlGameMeasure("camp", () => { caster.mp -= cost; }); SFX.heal(); buzz(15); renderStatus(); renderParty(); };
   // 1人ぶんの結果 (蘇生 / 満タン / 回復量)
   // 回復量は満タンでも素の値で見せる (戦闘中の「+N」と同じ)
   const healLineFor = (t, before, wasDead) => {
@@ -13372,7 +13402,8 @@ function doUnequip(p, key) {
 }
 // 道具を戦闘の外で使う (隊の画面・戦利品のシート)。p = 袋の持ち主。target = 使う相手 (省略時: 効く相手が1人ならその人、
 // 複数なら選ばせる)。効き目は品で決まる (combat.js _useItem と同じ量)。戦闘でしか使えない品は使えない
-function useItem(p, index, target) {
+function useItem(...args) { return tlGameMeasure("item", () => useItemMeasured(...args)); }
+function useItemMeasured(p, index, target) {
   const it = p.items[index];
   if (!it || it.slot !== "use" || !it.use) return;
   const u = it.use;
@@ -13629,7 +13660,8 @@ function rankUnlockHint(rank, clsKey) {
 }
 
 // 毒のダメージ (盤面を1歩進むごと)
-function tickPoison() {
+function tickPoison(...args) { return tlGameMeasure("poison", () => tickPoisonMeasured(...args)); }
+function tickPoisonMeasured() {
   let any = false;
   for (const p of G.party) {
     if (!p.alive || p.ailment !== "poison") continue;
@@ -14132,6 +14164,7 @@ function loadGame() {
   // クラス/参照の再リンク (Battleのメソッド・敵のmon・派生値)
   if (G.battle) {
     Object.setPrototypeOf(G.battle, Battle.prototype);
+    tlWatchBattle(G.battle, tlWhere());
     G.battle.log = log;
     if (G.battle.fleeK == null) G.battle.fleeK = fleeScale(); // 逃走の物差しを持たない古い戦闘
     for (const e of (G.battle.enemies || [])) if (e.key && MONSTERS[e.key]) e.mon = MONSTERS[e.key];
