@@ -776,7 +776,8 @@ function scheduleGreeting() {
       curLine = nextLine({ entry: true });
       if (game.autosave) game.autosave(true);
       // 仕立てを開くのはここだけ (先に予約を消す: rerender が wantCreate を見て、もう一枚開いてしまうため)
-      const make = wantCreate || !allDolls().length;
+      const tutorial = UI.tutorialPending && UI.tutorialPending();
+      const make = (wantCreate || !allDolls().length) && tutorial?.who !== "irene";
       wantCreate = false;
       rerender();
       if (make && inTown()) setTimeout(() => openCreateDoll(), 120);
@@ -786,6 +787,8 @@ function scheduleGreeting() {
 // いま枠に出すべき話 (状況が変わって当てはまらなくなった助言は、別の話に替える)
 function keeperLine() {
   if (!isGreeted()) return { id: null, lines: greetingPages()[0] };
+  const guide = UI.tutorialIreneLines && UI.tutorialIreneLines();
+  if (guide) return { id: null, lines: guide };
   if (!curLine || (curLine.id && !lineOpen(curLine.id))) curLine = nextLine();
   return curLine;
 }
@@ -809,10 +812,13 @@ function keeperPanel() {
   };
   put(keeperLine());
   say.appendChild(text);
-  say.appendChild(el("span", "pt-kp-next", "▼"));
+  const guide = UI.tutorialIreneLines && UI.tutorialIreneLines();
+  say.appendChild(el("span", "pt-kp-next" + (guide ? " hidden" : ""), "▼"));
   say.addEventListener("click", () => {
     sfx("select");
     if (!isGreeted()) { scheduleGreeting(); return; }
+    const guide = UI.tutorialIreneLines && UI.tutorialIreneLines();
+    if (guide) { put({ lines: guide }); return; }
     curLine = nextLine();
     put(curLine);
     if (typeof text.animate === "function") text.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: "ease-out" });
@@ -1242,6 +1248,7 @@ export function openCreateDoll() {
         const r = row({ icon: ic, title: soulLabel(s), sub: `Lv${s.level} ・ ${rarityName(cl.rarity)}${soulRankLeft(s) ? ` ・ ${soulRankLeft(s).slice(1, -1)}` : ""}`, chevron: true,
           onTap: () => { h.close(); openCreateName(s.uid); } });
         r.classList.add("pt-soulrow");
+        r.dataset.job = s.clsKey;
         list.appendChild(r);
       }
       scroll.appendChild(list);
@@ -2142,6 +2149,9 @@ export function install() {
   registerUI({
     openParty,
     enterMansion,
+    openReserve,
+    openCreateDoll,
+    openCreateName,
     autoEquip,
     betterGearCount,
     equipItemTo,

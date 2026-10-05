@@ -2,7 +2,7 @@
 // 王への踏破報告で新しい要素 (魂融合 / サブ魂 / 酒場の噂話 / 控えの結社 ― 開く時期は game.js FEATURES) が解放されると、
 // 語りを閉じた直後に、その要素の手ほどきが始まる。手ほどきを終えるまで迷宮の門は開かない
 // (game.js blockForTutorial ← 出撃シート・departNow・奈落)。
-//   流れ: 導入 (館の主イレーヌ / 酒場の情報屋の語り) → 手順 (実際に操作する。画面下の札に今の手順、
+//   流れ: 導入 (館の主イレーヌ / 酒場の情報屋の語り) → 手順 (実際に操作する。イレーヌの台詞で今の手順を案内し、
 //         押す所が光る) → 完了のカード。手順の完了は状態 (done) か、UI から届く合図 (on = tutorialEvent) で判定する。
 //   練習用の素材は導入で預ける (詰まないように): 魂融合は戦士の魂を必ず2つ (2つどうしでも融合できる)、
 //   サブ魂は宿す魂が無ければ1つ。
@@ -15,7 +15,7 @@
 import { UI, game, registerUI } from "./ctx.js";
 import { el, setText, sheet, toast, celebrate, sheetDepth } from "./kit.js";
 import { unphrase } from "./phrase.js";
-import { playIreneScene, ireneBond, sceneActive } from "./irene.js";
+import { playIreneScene, ireneBond, sceneActive, isGreeted } from "./irene.js";
 import { vignetteCanvas } from "../townart.js";
 import { SOUL_CLASSES, soulByUid } from "../souls.js";
 
@@ -90,20 +90,29 @@ function initialJobsReady(jobs) {
   const worn = new Set(allDolls().map((d) => soulByUid(d.primary)?.clsKey));
   return jobs.every((k) => worn.has(k));
 }
+const fourthReady = () => initialJobsReady(["fighter", "priest", "thief", "mage"]);
+const fourthSheetOpen = (selector) => hasDOM() && !!document.querySelector(selector);
+
 function newJobSouls() {
   const initial = new Set(["fighter", "priest", "thief", "mage"]);
   return (game.soulRepresentatives ? game.soulRepresentatives() : G_().souls || []).filter((s) => !initial.has(s.clsKey));
 }
 let visitTimer = null;
+function atMansion() {
+  const G = G_();
+  return G && G.state === "town" && G.town?.tab === "party" && !G.town.page && !G.town.facility;
+}
+const MANSION_TARGET = ['.ui-tab[data-key="party"]'];
 function mansionVisited() {
   const st = tutState();
-  if (!st || st.done.changeJob || !newJobSouls().length || G_().msq?.n === 0) return;
-  st.jobVisit = true;
+  if (!st || !atMansion() || !isGreeted()) return;
+  if (!st.done.changeJob && newJobSouls().length && G_().msq?.n >= 1) st.jobVisit = true;
   if (visitTimer) return;
   visitTimer = setTimeout(() => {
     visitTimer = null;
-    if (G_().state !== "town" || G_().town?.tab !== "party" || G_().town?.page || busy || sceneActive() || sheetDepth() > 0) return;
-    if (pending()?.key === "changeJob") resume();
+    if (!atMansion() || busy || sceneActive() || sheetDepth() > 0 || game.isTitleActive?.() || game.isOpeningActive?.()) return;
+    const p = pending();
+    if (p?.who === "irene" && (!p.started || (p.key === "createFourth" && !allowedControls(curStep()).length))) resume();
   }, 300);
 }
 
@@ -125,7 +134,15 @@ const TUTS = [
     open: () => G_().msq?.n === 0 && G_().msq.stage === "fourth",
     used: () => initialJobsReady(["fighter", "priest", "thief", "mage"]),
     intro: () => [["今度は、赤い魂で器をお買い求めください。", "四体目のお代は、赤い魂30です。"], ["新しい器には、王さまから授かった魔導士の魂を宿しましょう。", "名前を与えたら、もう一度王さまにご報告ください。"]],
-    steps: [{ text: "赤い魂30で器を買い、魔導士を仕立てる", hint: "人業の館 → 人業を仕立てる → 魔導士の魂 → 名前を決める", go: () => game.goMakeDoll(), target: [".pt-soulrow", ".pt-res-sw button"], done: () => initialJobsReady(["fighter", "priest", "thief", "mage"]) }],
+    steps: [
+      { text: "顔アイコンの空き枠『＋』を押す", hint: "後衛の一番左にある『＋』を押してください", lock: true, go: () => UI.enterMansion && UI.enterMansion(), target: ['.pt-form [data-drop="e3"]'], done: () => fourthSheetOpen(".pt-res-sheet, .pt-pick-sheet, .pt-name-sheet") || fourthReady() },
+      { text: "『人業を仕立てる』を押す", hint: "赤い魂30で、四体目の器を購入します", lock: true, go: () => UI.openReserve && UI.openReserve(), target: [".pt-res-sheet .pt-res-add"], done: () => fourthSheetOpen(".pt-pick-sheet, .pt-name-sheet") || fourthReady() },
+      { text: "魔導士の魂を選ぶ", hint: "光っている『魔導士の魂』を押してください", lock: true, go: () => UI.openCreateDoll && UI.openCreateDoll(), target: ['.pt-pick-sheet .pt-soulrow[data-job="mage"]'], done: () => fourthSheetOpen(".pt-name-sheet") || fourthReady() },
+      { text: "名前を決めて『生成する』を押す", hint: "名前を入力し、赤い魂30を支払って仕立てます", lock: true,
+        go: () => { const soul = (G_().souls || []).find((s) => s.clsKey === "mage"); if (soul && UI.openCreateName) UI.openCreateName(soul.uid); },
+        target: [".pt-name-sheet .ui-sheet-foot .ui-btn.k-primary"],
+        allow: [".pt-name-sheet .pt-name-in", ".pt-name-sheet .pt-name-rnd", ".pt-name-sheet .ui-sheet-foot .ui-btn.k-primary"], done: fourthReady },
+    ],
     outro: ["四体目の魔導士が目覚めた。王に報告しよう。"],
   },
   {
@@ -314,7 +331,12 @@ function pending() {
   if (!key) return null;
   const d = TUT_MAP[key];
   const step = st.cur === key ? d.steps[st.step] || d.steps[0] : d.steps[0];
-  return { key, name: d.name, text: step.text, hint: step.hint, started: st.cur === key };
+  const arrival = d.who === "irene" && !atMansion();
+  return { key, name: d.name, who: d.who, arrival,
+    text: arrival ? "人業の館を選択してください" : step.text,
+    hint: arrival ? "画面下の『人業の館』を選ぶと、イレーヌがご案内します" : step.hint,
+    started: st.cur === key };
+
 }
 
 // UI.tutorialFree(key): その手ほどきの最中か (酒場の噂の初回を無料にする)
@@ -326,11 +348,13 @@ function inTown() { const G = G_(); return !!G && G.state === "town"; }
 
 // UI.tutorialResume(): 済ませていない手ほどきを始める (始めていれば今の手順へ案内する)
 function resume() {
-  if (!inTown() || busy) return false;
+  if (!inTown() || busy || sceneActive()) return false;
   const p = pending();
   if (!p) return false;
   const st = tutState();
   const d = TUT_MAP[p.key];
+  if (p.arrival) { updateGuidance(); schedule(); return true; }
+  if (d.who === "irene" && !isGreeted()) { if (UI.enterMansion) UI.enterMansion(); return true; }
   if (st.cur !== p.key) return start(d);
   goStep(true);
   return true;
@@ -341,6 +365,7 @@ function start(d) {
   const gift = safe(() => d.prepare(), null);
   if (game.autosave) game.autosave(true);
   busy = true;
+  clearGlow(); updateGuidance();
   const after = () => {
     busy = false;
     if (gift) toast(`${gift}預かった (手ほどき用)`, { tone: "good" });
@@ -364,7 +389,7 @@ function introSheet(d, done) {
   if (!h || !h.el) go();
 }
 
-// 今の手順へ: 必要なら行き先を開き、画面下の札と光る所を出す
+// 今の手順へ: 必要なら行き先を開き、イレーヌの台詞と押す所の光を更新する
 function goStep(navigate) {
   let s = curStep();
   while (s && (stepDone(s) || safe(() => (s.skip ? s.skip() : false), false))) {
@@ -373,7 +398,6 @@ function goStep(navigate) {
   }
   if (!s) return;
   if (navigate && inTown()) safe(() => s.go(), null);
-  toast(`手ほどき ― ${s.text}`, { tone: "info" });
   schedule();
 }
 // 手順を1つ進める。終わりなら完了 (false を返す)
@@ -386,7 +410,6 @@ function advance(quiet = false) {
   if (game.autosave) game.autosave(true);
   if (!quiet) {
     sfx("select");
-    toast(`手ほどき ― ${d.steps[st.step].text}`, { tone: "info" });
   }
   return true;
 }
@@ -396,7 +419,7 @@ function finish(d) {
   st.cur = null; st.step = 0; st.ev = {}; st.base = {};
   if (game.autosave) game.autosave(true);
   clearGlow();
-  updateBar();
+  updateGuidance();
   busy = true;
   const after = () => {
     busy = false;
@@ -434,14 +457,14 @@ function onEvent(name) {
   }
   if (name === "dungeonEntered" && st.cur === "firstDive") {
     st.done.firstDive = true; st.cur = null; st.step = 0; st.ev = {}; st.base = {};
-    clearGlow(); updateBar();
+    clearGlow(); updateGuidance();
     if (game.autosave) game.autosave(true);
     return;
   }
   schedule();
 }
 
-// ---- 見張り: 手順が済んだか・光らせる所・画面下の札 ----
+// ---- 見張り: 手順が済んだか・光らせる所・イレーヌの台詞 ----
 let raf = 0;
 function schedule() {
   if (!hasDOM() || raf) return;
@@ -458,8 +481,9 @@ function tick() {
       if (!(last && sheetDepth() > 0)) { if (advance()) schedule(); return; }
     }
   }
-  glow(s && !busy && inTown() ? s.target : null);
-  updateBar();
+  const p = pending();
+  glow(!busy && inTown() && !sceneActive() && (sheetDepth() === 0 || s?.lock) ? (p?.arrival ? MANSION_TARGET : s?.target) : null);
+  updateGuidance();
 }
 function clearGlow() {
   if (!hasDOM()) return;
@@ -472,35 +496,69 @@ function glow(sels) {
   for (const n of document.querySelectorAll(".tut-glow")) if (n !== hit) n.classList.remove("tut-glow");
   if (hit && !hit.classList.contains("tut-glow")) hit.classList.add("tut-glow");
 }
-let bar = null;
-function updateBar() {
-  if (!hasDOM() || !document.body) return;
-  const s = curStep();
-  const d = curDef();
-  const show = !!(s && d && !busy && inTown() && !sceneActive());
-  if (!show) { if (bar) bar.classList.add("hidden"); return; }
-  if (!bar || !bar.isConnected) {
-    bar = el("button", "tut-bar hidden");
-    bar.type = "button";
-    bar.appendChild(el("span", "tut-bar-k", "手ほどき"));
-    const tx = el("span", "tut-bar-tx");
-    tx.appendChild(el("span", "tut-bar-t"));
-    tx.appendChild(el("span", "tut-bar-s"));
-    bar.appendChild(tx);
-    bar.addEventListener("click", () => { sfx("select"); goStep(true); });
-    document.body.appendChild(bar);
+// 館での操作案内は、既存のイレーヌの台詞欄にまとめる。
+function ireneGuidance() {
+  const p = pending();
+  if (!atMansion() || busy || sceneActive() || p?.who !== "irene") return null;
+  const d = TUT_MAP[p.key];
+  const s = p.started ? curStep() : d.steps[0];
+  if (!s) return null;
+  if (p.key === "createFourth") {
+    const index = tutState().cur === p.key ? tutState().step : 0;
+    return [
+      ["後衛の一番左、顔アイコンの空き枠『＋』を押してください。", "光っているところから、四体目をお仕立てしましょう。"],
+      ["光っている『人業を仕立てる』を押してください。", "四体目の器のお代は、赤い魂30です。"],
+      ["新しい器には、魔導士の魂を宿しましょう。", "光っている『魔導士の魂』をお選びください。"],
+      ["この子に名前を与えてください。", "『生成する』を押すと、赤い魂30で人業が目覚めます。"],
+    ][index] || null;
   }
-  const st = tutState();
-  const t = `${d.name}${d.steps.length > 1 ? ` ${st.step + 1}/${d.steps.length}` : ""} ・ ${s.text}`;
-  const tEl = bar.querySelector(".tut-bar-t"), sEl = bar.querySelector(".tut-bar-s");
-  if (unphrase(tEl.textContent) !== t) setText(tEl, t);
-  if (unphrase(sEl.textContent) !== s.hint) setText(sEl, s.hint);
-  bar.setAttribute("aria-label", `手ほどき: ${s.text} (${s.hint})。タップでその場所へ`);
-  bar.classList.remove("hidden");
+  return [`次は、${s.text}。`, s.hint];
+}
+function updateGuidance() {
+  if (!hasDOM()) return;
+  const lines = ireneGuidance();
+  if (!lines) return;
+  const text = document.querySelector(".pt-keeper .pt-kp-text");
+  if (!text || unphrase(text.textContent) === lines.join("")) return;
+  text.textContent = "";
+  for (const line of lines) text.appendChild(el("span", "pt-kp-l", line));
+  const say = text.closest(".pt-kp-say");
+  say?.setAttribute("aria-label", `${lines.join("")}`);
+  say?.querySelector(".pt-kp-next")?.classList.add("hidden");
+}
+
+// 四体目の手ほどき中は、案内した操作だけを通す。会話と完了カードには制限を掛けない。
+function lockedStep() {
+  const d = curDef();
+  if (d?.key !== "createFourth" || busy || !atMansion() || sceneActive() || game.isTitleActive?.() || game.isOpeningActive?.()) return null;
+  const steps = d.steps;
+  let index = tutState().step;
+  while (index < steps.length && stepDone(steps[index])) index++;
+  return steps[index]?.lock ? steps[index] : null;
+}
+function allowedControls(s) {
+  return (s?.allow || s?.target || []).flatMap((selector) => [...document.querySelectorAll(selector)]);
+}
+function restrictTutorialInput(event) {
+  const s = lockedStep();
+  if (!s) return;
+  const allowed = allowedControls(s);
+  if (event.type === "keydown" && event.key === "Tab") {
+    event.preventDefault(); event.stopImmediatePropagation();
+    const index = allowed.indexOf(document.activeElement);
+    const next = event.shiftKey ? (index - 1 + allowed.length) % allowed.length : (index + 1) % allowed.length;
+    allowed[next]?.focus();
+    return;
+  }
+  const inside = allowed.some((node) => node === event.target || node.contains(event.target));
+  if (inside && !(event.type === "keydown" && event.key === "Escape")) return;
+  if (event.cancelable) event.preventDefault();
+  event.stopImmediatePropagation();
 }
 
 export function install() {
   registerUI({
+    tutorialIreneLines: ireneGuidance,
     tutorialMansionVisited: mansionVisited,
     tutorialPending: pending,
     tutorialResume: resume,
@@ -508,9 +566,14 @@ export function install() {
     tutorialEvent: onEvent,
     tutorialFree: isFree,
   });
+  if (hasDOM()) {
+    for (const type of ["pointerdown", "mousedown", "touchstart", "click", "dblclick", "contextmenu", "keydown"]) {
+      window.addEventListener(type, restrictTutorialInput, { capture: true, passive: false });
+    }
+  }
   // 画面が描き替わるたびに見張る (手順の完了・光らせる所の付け直し)。属性の変化は見ない (光らせる class で回らないように)
   if (hasDOM() && typeof MutationObserver === "function" && document.body) {
-    new MutationObserver(() => { if (tutState() && tutState().cur) schedule(); else if (bar && !bar.classList.contains("hidden")) updateBar(); })
+    new MutationObserver(() => { if (tutState() && (tutState().cur || pending())) schedule();  })
       .observe(document.body, { childList: true, subtree: true });
   }
 }
