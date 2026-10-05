@@ -18,7 +18,7 @@ import { el, sheet, toast, button, confirm, setText, glyph, plainText } from "./
 import { deltaFloat } from "./motion.js";
 import {
   statLines, isEquippable, equipPreviewDelta, gearScore as baseGearScore, itemCatText,
-  elemDetailLines, equipClassText, elemStatEq, elemStatShort, ailDetailLines, handLine,
+  elemDetailLines, equipClassText, elemStatEq, elemStatShort, ailDetailLines, handLine, specialLines,
 } from "./itemview.js";
 import { spriteCanvas } from "../sprites.js";
 import { dollSprite, SOUL_CLASSES, canIdentify, identifyChance, identifyLabel, JOB_GEAR } from "../souls.js";
@@ -260,7 +260,7 @@ function giveTo(owner, it, to) {
   return true;
 }
 
-// 捨てる (確認ののち。従来の dropItem と同じ: 二度と戻らない)
+// 捨てる (迷宮の中だけ。確認ののち。従来の dropItem と同じ: 二度と戻らない)
 async function discard(owner, it) {
   const ok = await confirm({
     banner: "捨てる", title: `${itemName(it)} を捨てる？`,
@@ -702,7 +702,7 @@ function defaultActions(st) {
     st.equipFirst = isUpgrade(it, { owner });
   }
 
-  // ---- 渡す (宝物庫から開いた収集品は奉納) / 売る (商会が開いている街) / 捨てる ----
+  // ---- 渡す (宝物庫から開いた収集品は奉納) / 売る (商会が開いている街) / 捨てる (迷宮の中だけ) ----
   if (context === "donate" && inBag && town && ops.donateOne) {
     acts.push({ key: "donate", label: "奉納", onTap: (close) => {
       const res = ops.donateOne(owner, it);
@@ -718,7 +718,8 @@ function defaultActions(st) {
       label: it.unidentified ? "鑑定せず売る" : "売る", cost: price,
       onTap: async (close) => { if (await sellOne(owner, it)) close(); } });
   }
-  if (inBag) acts.push({ key: "drop", label: "捨てる", kind: "ghost", onTap: async (close) => { if (await discard(owner, it)) close(); } });
+  // 捨てるのは迷宮の中だけ (持ちきれない時の手段。街では売る・奉納で足りる)
+  if (inBag && !town) acts.push({ key: "drop", label: "捨てる", kind: "ghost", onTap: async (close) => { if (await discard(owner, it)) close(); } });
   return acts;
 }
 
@@ -847,10 +848,15 @@ export function itemSheet(item, o = {}) {
     }
     // 細目 (属性・装備の条件など)
     if (!it.unidentified) {
+      // 特殊効果 (吸血・連撃・属性・状態異常…) は数字で言い切った行を、説明の文とは別に目立たせる
+      const fx = specialLines(it);
+      if (fx.length) {
+        const box = el("div", "wpc-is-fx");
+        box.appendChild(el("div", "wpc-is-fxh", "特殊効果"));
+        for (const ln of fx) box.appendChild(setText(el("div", "wpc-is-fxl"), ln));
+        scroll.appendChild(box);
+      }
       const det = [];
-      for (const ln of elemDetailLines("攻撃", it.eAtk)) det.push(ln);
-      for (const ln of elemDetailLines("防御", it.eDef)) det.push(ln);
-      for (const ln of ailDetailLines(it)) det.push(ln);
       if (isEquippable(it)) det.push(equipClassText(it));
       if (it.slot === "weapon") det.push(handLine(it));
       if (it.align) det.push(`${it.align}属性`);

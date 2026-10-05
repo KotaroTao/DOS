@@ -4,12 +4,12 @@
 // 敵は rank4-5 (第2層の主と同格以上) なので、第2層の逸品 (隠しLv 12-40) より一段上の 23-49 に置く。
 // layer:3 を持つ品は第3層より浅い所では出ない (第2層の窓 R1-4 に R3-4 の品が紛れ込まないように)。
 // 廃坑の敵は土属性が主 → 風の属性攻撃 (風→土) と、風の属性防御 (土の攻撃を軽減する) を持つ品を多めにする。
-// レジェンドレアは全職共通の1点もので固有の戦闘効果 (eff) を持ち、実プレイ時間で抽選される (未鑑定で手に入る)。
+// レジェンドレアは全職共通で固有の戦闘効果 (eff) を持ち、スーパーレアの1/3の割合で落ちる (未鑑定で手に入る)。
 // id は append-only (セーブ/図鑑が参照する)。
 import { W, S, A, H, F, G, R } from "./defs.js";
 
 const sr = (it) => { it.rar = "sr"; it.layer = 3; return it; };
-// LR: tier 3 = 第3層の帯。exclusive で通常のランク窓抽選から外し、時間抽選でのみ出す
+// LR: tier 3 = 第3層の帯。exclusive でランク窓から外し、レア度の抽選で LR が出た時に game.js lrPool の深さの条件で選ぶ
 const lr = (it) => { it.rar = "lr"; it.lr = 3; it.layer = 3; it.exclusive = true; return it; };
 
 export const LAYER3_ITEMS = [
@@ -60,12 +60,12 @@ export const LAYER3_ITEMS = [
   sr(H("h_sr3_crystalcirclet", "晶読みの額環", 45, { aRes: { stone: 0.25, confuse: 0.25 }, magStat: "pie", shape: "circlet", weight: "cloth", pow: 1.35, mp: 10, tint: "#c0e0f0",
     desc: "晶の濁りで鉱脈の吉凶を占った巫女の額環。晶に映る光が着ける者の祈りを静かに研ぎ澄まし、地の底の闇でも心を乱さず、石に変える眼差しも弾き返す。" })),
 
-  // ===== レジェンドレア (全職共通・1点もの・固有効果) =====
+  // ===== レジェンドレア (全職共通・固有効果) =====
   lr(R("lr_l3_soulore", "魂鉱の首飾り", "amulet", 41, { pow: 1.6, hp: 30, luk: 6, eff: { soulUp: 0.3 }, tint: "#7fd0c0",
     desc: "坑の最奥でまれに掘り出される、魂を吸って育った鉱石の首飾り。持つ者が浄めた魂の欠片を拾い集め、より多くの Soul を手元へ引き寄せる。" })),
   lr(R("lr_l3_silentcanary", "鳴かぬカナリアの指輪", "ring", 42, { pow: 1.6, hp: 24, pie: 6, eff: { ailmentImmune: true }, tint: "#f0e070",
     desc: "毒気の満ちた坑で最後まで鳴かずに生き延びたカナリアを、そのまま金に封じた指輪。はめた者は毒にも痺れにも石の呪いにも冒されない。" })),
-  lr(W("lr_l3_firstpick", "掘り当てし者のつるはし", "ax", 43, { pow: 1.4, two: true, eAtk: ["wind", 2], hp: 20, eff: { multistrike: 1 }, tint: "#a08860",
+  lr(W("lr_l3_firstpick", "掘り当てし者のつるはし", "ax", 43, { pow: 1.4, two: true, eAtk: ["wind", 2], hp: 20, eff: { multistrike: 2 }, tint: "#a08860",
     desc: "「掘ってはならぬもの」に最初に届いたと囁かれる大つるはし。両腕で振り下ろす一撃は岩盤を二度貫き、刃先から吹き出す風が岩の魔物を粉々に砕く。" })),
   lr(W("lr_l3_firedamprod", "坑気爆ぜの杖", "st", 44, { pow: 1.6, eAtk: ["wind", 2], int: 10, mp: 18, eff: { spellCostMul: 0.75 }, tint: "#e0a060",
     desc: "坑道に溜まる燃える気を封じ込めた鉄の杖。唱えた呪文に坑気が混じって爆ぜ、わずかな魔力で岩盤ごと吹き飛ばすほどの旋風を起こす。" })),

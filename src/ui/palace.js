@@ -2,7 +2,7 @@
 // 担当: WP-A。王宮タブ (UI.shell.registerTab("palace", …))。宰相のささやき → 区分 (記憶する) → 中身。
 // どの区分も1画面に収める (ページは縦にスクロールさせない)。長い一覧は収まる数ずつ「‹ 1/3 ›」でめくり、詳細はシート。
 //   勅命   … 勅命の札 (報告/拝命/出撃/謁見 をその場で) + 王の言葉を聞き直す + 王の記録 (戦績) と「伝える」
-//   図鑑   … 敵 (迷宮の札) / アイテム (分類の札・売却額の安い順) / 職業 → 3列の札をめくる → 詳細のシート
+//   図鑑   … 敵 (迷宮の札) / アイテム (分類の札・売却額の安い順) / 職業 (系統ごとに1枚・詳細でランクを切り替え) → 3列の札をめくる → 詳細のシート
 //   勲章   … まとめて拝受。拝受できる札を先に、2列の札をめくる
 //   宝物庫 … 収集品を奉納 (品の詳細のシート → 奉納する。奉納済みの品は売却額の金貨に)・次の褒賞・奉納台帳 (図鑑と同じ札。総数は伏せる)
 // 提供: UI.openPalace(seg) (seg = "decree" | "codex" | "ach" | "treasury" | "codex:mon|item|job")
@@ -15,7 +15,7 @@ import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, scrollBox, badge } from "./kit.js";
 import { remember } from "./prefs.js";
 import { softFade } from "./motion.js";
-import { statLines, itemCatText, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock } from "./itemview.js";
+import { statLines, itemCatText, specialLines, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock } from "./itemview.js";
 import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
 import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LORE_PAGES } from "../events.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_KIND_LABEL, shieldKind, itemName } from "../items.js";
@@ -126,15 +126,21 @@ function freshOf(kind) {
 const isFreshMon = (k) => !!(freshOf("mon")[k] && G().codex.mon[k] && MONSTERS[k]);
 const isFreshItem = (id) => !!(freshOf("item")[id] && G().codex.item[id] && ITEMS[id]);
 const isFreshJob = (k, r) => !!(freshOf("job")[k + ":" + r] && SOUL_CLASSES[k]);
+// 職業の到達ランク (図鑑の記録。無ければ 1)
+const jobAttained = (k) => { const rec = G().codex.job[k]; return Math.max(1, Math.min(5, (rec && rec.rank) || 1)); };
+// その職業の、到達済みで新着のランク
+const jobFreshRanks = (k) => {
+  if (!G().codex.job[k]) return [];
+  const out = [];
+  for (let r = 1; r <= jobAttained(k); r++) if (isFreshJob(k, r)) out.push(r);
+  return out;
+};
 function freshCounts() {
   const g = G();
   const mon = Object.keys(freshOf("mon")).filter(isFreshMon).length;
   const item = Object.keys(freshOf("item")).filter(isFreshItem).length;
-  const job = Object.keys(freshOf("job")).filter((kr) => {
-    const [k, r] = kr.split(":");
-    const rec = g.codex.job[k];
-    return isFreshJob(k, r) && rec && Number(r) <= Math.max(1, rec.rank || 1);
-  }).length;
+  // 職業は系統ごとに1枚の札なので、新着のランクを持つ職業の数を数える
+  const job = Object.keys(SOUL_CLASSES).filter((k) => jobFreshRanks(k).length).length;
   const ev = Object.keys(evFresh()).filter((id) => EVENT_MAP[id]).length;
   return { mon, item, job, ev, total: mon + item + job + ev };
 }
@@ -155,6 +161,14 @@ function markSeen(kind, key, card) {
   if (!f[key]) return;
   delete f[key];
   if (card) { const m = card.querySelector(".pl-card-new"); if (m) m.remove(); card.classList.remove("fresh"); }
+  refreshBadges();
+}
+// 職業のランクを見た: そのランクの印を消し、職業の札の印は新着のランクが残っていなければ消す
+function markSeenJob(k, r, card) {
+  const f = freshOf("job");
+  if (!f[k + ":" + r]) return;
+  delete f[k + ":" + r];
+  if (card && !jobFreshRanks(k).length) { const m = card.querySelector(".pl-card-new"); if (m) m.remove(); card.classList.remove("fresh"); }
   refreshBadges();
 }
 const newMark = () => el("span", "pl-card-new", "新");
@@ -360,15 +374,15 @@ function renderCodexItem(box) {
 function renderCodexJob(box) {
   const g = G();
   const known = Object.keys(SOUL_CLASSES).filter((k) => g.codex.job[k]);
-  const attained = (k) => Math.max(1, (g.codex.job[k] && g.codex.job[k].rank) || 1);
-  // 位階の高い順に、到達した位階の称号を札にする
-  const list = [];
-  for (let r = 5; r >= 1; r--) for (const k of known) if (attained(k) >= r) list.push({ k, r });
-  box.appendChild(el("div", "pl-codex-cap", "人業に発現した職業を、到達した位階 (ランク) ごとに記す。"));
+  // 同じ系統 (見習い戦士 → 戦士 → 剣士 …) は1枚の札にまとめ、到達した最も高い位階の称号と姿で出す。
+  // 札を開くと詳細のシートでランクを切り替えて見られる。並びは位階の高い順
+  const list = known.map((k) => ({ k, r: jobAttained(k) }));
+  list.sort((a, b) => b.r - a.r);
+  box.appendChild(el("div", "pl-codex-cap", "人業に発現した職業を、系統ごとに記す。"));
   const area = fillArea(box);
   refresh.list = null;
-  scrollGrid(area, list, ({ k, r }) => codexCard(jobSprite(k, r), jobRankName(k, r), { color: SOUL_CLASSES[k].glow, sub: `R${r}`, fresh: isFreshJob(k, r),
-    onTap: (c) => { codexJobSheet(k, r); markSeen("job", k + ":" + r, c); } }),
+  scrollGrid(area, list, ({ k, r }) => codexCard(jobSprite(k, r), jobRankName(k, r), { color: SOUL_CLASSES[k].glow, sub: `R${r}`, fresh: jobFreshRanks(k).length > 0,
+    onTap: (c) => { const fr = jobFreshRanks(k); codexJobSheet(k, fr.length ? fr[fr.length - 1] : r, null, { card: c }); } }),
     { cols: 3, cellH: CARD_H, key: "job", empty: el("div", "wa-empty", "まだ職業を見つけていない。迷宮で魂を吸収すると職業が記される。") });
 }
 
@@ -594,6 +608,14 @@ function codexItemView(it, o) {
     body.appendChild(setText(el("div", "pl-detail-cat"), itemCatText(it)));
     const st = statLines(it);
     if (st) body.appendChild(setText(el("div", "pl-detail-stats"), st));
+    // 特殊効果は説明の文とは別に、数字で効果を言い切った行で出す
+    const fx = specialLines(it);
+    if (fx.length) {
+      const box = el("div", "pl-detail-fx");
+      box.appendChild(el("div", "pl-detail-fxh", "特殊効果"));
+      for (const ln of fx) box.appendChild(setText(el("div", "pl-detail-fxl"), ln));
+      body.appendChild(box);
+    }
     if (it.desc) body.appendChild(setText(el("div", "pl-detail-desc"), it.desc));
   }
   return {
@@ -611,11 +633,30 @@ export function codexItemSheet(id, o = {}) {
   });
 }
 
-export function codexJobSheet(key, rank, heading) {
+// 職業の詳細。同じ系統の職業は1枚のシートにまとめ、到達したランクの間を切り替えて見る
+// (o.card = 図鑑の札。見たランクの新着の印を消す時に札の印も整える)
+export function codexJobSheet(key, rank, heading, o = {}) {
   if (!SOUL_CLASSES[key]) return null;
   const g = G();
   const rec = g.codex.job[key];
   rank = Math.max(1, Math.min(5, rank || (rec && rec.rank) || 1));
+  // 切り替えられるのは到達したランクまで (記録より先のランクを開いた時はそこまで)
+  const top = Math.max(rank, rec ? jobAttained(key) : 1);
+  let h = null;
+  const show = (r) => {
+    if (rec) markSeenJob(key, r, o.card);
+    const view = jobSheetView(key, r, top, heading, (nr) => { if (h) h.update(show(nr)); });
+    return view;
+  };
+  h = sheet.open({
+    kind: "info", ...show(rank), className: "pl-detail-sheet", // 職業詳細は縦スクロールで1ページに
+    footer: [{ label: "閉じる", kind: "ghost", onTap: (hh) => hh.close() }],
+  });
+  return h;
+}
+function jobSheetView(key, rank, top, heading, onRank) {
+  const g = G();
+  const rec = g.codex.job[key];
   const color = SOUL_CLASSES[key].glow;
   const body = el("div", "pl-detail");
   if (heading) {
@@ -624,6 +665,14 @@ export function codexJobSheet(key, rank, heading) {
     body.appendChild(hd);
   }
   body.appendChild(setText(el("div", "pl-detail-cat"), `${SOUL_CLASSES[key].label}系`));
+  // ランクの切り替え (到達したランクが2つ以上ある時)
+  if (top > 1) {
+    const items = [];
+    for (let r = 1; r <= top; r++) items.push({ key: String(r), label: `R${r}`, badge: r !== rank && isFreshJob(key, r) ? true : null });
+    const seg = segmented(items, String(rank), (k) => onRank(Number(k)));
+    seg.classList.add("pl-job-ranks");
+    body.appendChild(seg);
+  }
   const lore = jobLoreFor(key, rank);
   if (lore.desc) body.appendChild(setText(el("div", "pl-detail-desc"), lore.desc));
   if (lore.tips) body.appendChild(setText(el("div", "pl-detail-desc tips"), "活用: " + lore.tips));
@@ -669,11 +718,7 @@ export function codexJobSheet(key, rank, heading) {
     }
   }
   body.appendChild(infoBlock("技", rows.length ? rows : [pairRow("—", null, { dim: true })]));
-  return sheet.open({
-    kind: "info", banner: `ランク${rank}`, accent: color, art: jobSprite(key, rank), artScale: 12,
-    title: jobRankName(key, rank), titleColor: color, body, className: "pl-detail-sheet", // 職業詳細は縦スクロールで1ページに
-    footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
-  });
+  return { banner: `ランク${rank}`, accent: color, art: jobSprite(key, rank), artScale: 12, title: jobRankName(key, rank), titleColor: color, body };
 }
 
 // ================= 勲章 =================

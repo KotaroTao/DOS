@@ -19,7 +19,7 @@ import {
 import { deltaFloat } from "./motion.js";
 import { remember, setPref, getPref } from "./prefs.js";
 import {
-  statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds,
+  statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort,
 } from "./itemview.js";
 import { renderSoulSeg, openSoulPicker } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
@@ -449,7 +449,7 @@ function openDeltaSheet(item, infos, best, act) {
     footer: [{ label: "もどる", kind: "secondary", onTap: (hh) => hh.close("back") }],
   });
 }
-// 品の画面 (シート): 品の要約 + 誰に装備させるか (主役) + その他の操作 (使う・渡す・捨てる…)
+// 品の画面 (シート): 品の要約 + 誰に装備させるか (主役) + その他の操作 (使う・渡す・売る・迷宮では捨てる…)
 export function openEquipChooser(item, { owner = null, actions = null } = {}) {
   if (!item) return null;
   owner = owner || ownerOf(item);
@@ -1580,31 +1580,7 @@ export function openCandidates(d, k) {
 }
 function candBody(root, d, k, h, town) {
   const cur = d.equip[k];
-  const curBox = el("div", "pt-cur" + (cur ? "" : " empty"));
-  const cic = el(cur ? "button" : "span", "pt-cur-ic");
-  if (cur) {
-    cic.type = "button";
-    cic.setAttribute("aria-label", `${itemName(cur)} をくわしく`);
-    cic.addEventListener("click", () => openItem(cur, d, { from: "equip", key: k }));
-    longPress(cic, () => openItemDetail(cur));
-    cic.appendChild(spriteCanvas(cur, 2));
-  }
-  curBox.appendChild(cic);
-  const ctx = el("div", "pt-cur-t");
-  ctx.appendChild(el("span", "pt-cur-k", "装備中"));
-  if (cur) {
-    ctx.appendChild(game.itemNameEl ? game.itemNameEl("span", "pt-cur-n", cur) : el("span", "pt-cur-n", itemName(cur)));
-    const s = statLines(cur);
-    if (s) ctx.appendChild(el("span", "pt-cur-s", s));
-  } else ctx.appendChild(el("span", "pt-cur-n dim", "なし"));
-  curBox.appendChild(ctx);
-  if (cur) {
-    const un = button({ label: cur.cursed ? "呪いで外せない" : "外す", kind: "ghost", size: "sm", disabled: !!cur.cursed || d.items.length >= MAX_ITEMS,
-      onTap: () => { h.close(); if (game.doUnequip) game.doUnequip(d, k); } });
-    curBox.appendChild(un);
-  }
-  root.appendChild(curBox);
-
+  root.appendChild(cur ? curItemCard(d, k, cur, h) : curEmpty());
   const cands = slotCandidates(d, k, { includeUnid: true });
   const ok = cands.filter((c) => !c.unid);
   const unid = cands.filter((c) => c.unid);
@@ -1626,6 +1602,53 @@ function candBody(root, d, k, h, town) {
   }
   if (mism) root.appendChild(el("div", "pt-note", `${d.cls}には扱えない品が ${mism}点ある。`));
 }
+// いまの装備 (図鑑と同じく 絵・分類・性能・特殊効果・説明 を並べる)。絵をタップ = 品の画面 (渡す・売る…)
+function curItemCard(d, k, cur, h) {
+  const rk = rarityKey(cur);
+  const accent = rk ? RARITIES[rk].color : null;
+  const box = el("div", "pt-cur rich");
+  const top = el("div", "pt-cur-top");
+  const art = el("button", "pt-cur-art");
+  art.type = "button";
+  if (accent) art.style.setProperty("--edge", accent);
+  art.setAttribute("aria-label", `${itemName(cur)} をくわしく`);
+  art.appendChild(spriteCanvas(cur, 6));
+  art.addEventListener("click", () => openItem(cur, d, { from: "equip", key: k }));
+  longPress(art, () => openItemDetail(cur));
+  top.appendChild(art);
+  const tx = el("div", "pt-cur-t");
+  tx.appendChild(el("span", "pt-cur-k", "装備中"));
+  tx.appendChild(game.itemNameEl ? game.itemNameEl("span", "pt-cur-n", cur, cur.cursed ? " (呪)" : "") : el("span", "pt-cur-n", itemName(cur)));
+  if (!cur.unidentified) {
+    tx.appendChild(el("span", "pt-cur-c", itemCatText(cur) + (cur.slot === "weapon" ? ` ・ 射程${(RANGE_LABEL[weaponRange(cur)] || "").replace("距離", "")}` : "")));
+    const s = statLines(cur);
+    if (s) tx.appendChild(el("span", "pt-cur-s", s));
+  }
+  top.appendChild(tx);
+  box.appendChild(top);
+  const fx = specialLines(cur);
+  if (fx.length) {
+    const fb = el("div", "pt-cur-fx");
+    fb.appendChild(el("div", "pt-cur-fxh", "特殊効果"));
+    for (const ln of fx) fb.appendChild(el("div", "pt-cur-fxl", ln));
+    box.appendChild(fb);
+  }
+  if (cur.desc && !cur.unidentified) box.appendChild(el("div", "pt-cur-desc", cur.desc));
+  const foot = el("div", "pt-cur-foot");
+  foot.appendChild(button({ label: cur.cursed ? "呪いで外せない" : "外す", kind: "ghost", size: "sm", disabled: !!cur.cursed || d.items.length >= MAX_ITEMS,
+    onTap: () => { h.close(); if (game.doUnequip) game.doUnequip(d, k); } }));
+  box.appendChild(foot);
+  return box;
+}
+function curEmpty() {
+  const box = el("div", "pt-cur empty");
+  box.appendChild(el("span", "pt-cur-ic"));
+  const tx = el("div", "pt-cur-t");
+  tx.appendChild(el("span", "pt-cur-k", "装備中"));
+  tx.appendChild(el("span", "pt-cur-n dim", "なし"));
+  box.appendChild(tx);
+  return box;
+}
 // 候補の行: 札 (絵) をタップ = 品の画面 (誰に装備させるか) / 行をタップ = この人業にすぐ装備
 function candRow(d, k, c, h) {
   const wrap = el("div", "pt-cand" + (c.room ? "" : " full") + (c.gain > 0.05 ? " up" : c.gain < -0.05 ? " down" : ""));
@@ -1646,6 +1669,9 @@ function candRow(d, k, c, h) {
   top.appendChild(el("span", "pt-own" + (c.owner === d ? " me" : isReserve(c.owner) ? " res" : ""), c.owner === d ? "自分" : `${c.owner.name}${isReserve(c.owner) ? "・控え" : ""}`));
   tx.appendChild(top);
   tx.appendChild(statDelta(c.delta));
+  // 能力の伸びには出ない特殊効果 (吸血・連撃・属性・状態異常…) は短い札で添える
+  const fxs = specialShort(c.it);
+  if (fxs) tx.appendChild(el("span", "pt-cand-fx", fxs));
   if (!c.room) tx.appendChild(el("span", "pt-cand-w", "持ち物がいっぱい ― 札から「取り替え」で付けられる"));
   else if (c.it.cursed) tx.appendChild(el("span", "pt-cand-w", "呪われている ― 一度付けると外せない"));
   main.appendChild(tx);
@@ -1972,7 +1998,8 @@ function itemActions(it, owner, ctx, { equip = true } = {}) {
     acts.push({ key: "sell", label: "売る", kind: warn ? "danger" : "secondary", cost: game.sellPrice(it),
       onTap: async (h) => { if (await UI.sellOne(owner, it)) close(h); } });
   }
-  acts.push({ label: "捨てる", kind: "danger", onTap: (h) => { close(h); const i = owner.items.indexOf(it); if (i >= 0 && game.dropItem) game.dropItem(owner, i); } });
+  // 捨てるのは迷宮の中だけ (持ちきれない時の手段。街では売る・奉納で足りる)
+  if (!town) acts.push({ label: "捨てる", kind: "danger", onTap: (h) => { close(h); const i = owner.items.indexOf(it); if (i >= 0 && game.dropItem) game.dropItem(owner, i); } });
   return acts;
 }
 
