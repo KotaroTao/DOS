@@ -13,7 +13,7 @@
 // game.js は import しない (ctx.js の UI / game を通す)。
 
 import { UI, game, registerUI } from "./ctx.js";
-import { el, setText, sheet, toast, celebrate, sheetDepth } from "./kit.js";
+import { el, setText, button, sheet, toast, celebrate, sheetDepth } from "./kit.js";
 import { unphrase } from "./phrase.js";
 import { playIreneScene, ireneBond, sceneActive, isGreeted } from "./irene.js";
 import { vignetteCanvas } from "../townart.js";
@@ -112,7 +112,7 @@ function mansionVisited() {
     visitTimer = null;
     if (!atMansion() || busy || sceneActive() || sheetDepth() > 0 || game.isTitleActive?.() || game.isOpeningActive?.()) return;
     const p = pending();
-    if (p?.who === "irene" && (!p.started || (p.key === "createFourth" && !allowedControls(curStep()).length))) resume();
+    if (p?.who === "irene" && (!p.started || !tutorialControls()?.target)) resume();
   }, 300);
 }
 
@@ -146,18 +146,18 @@ const TUTS = [
     outro: ["四体目の魔導士が目覚めた。王に報告しよう。"],
   },
   {
-    key: "buyEquipment", name: "商店で装備を購入する", who: "shop",
+    key: "buyEquipment", name: "商店で装備を整える", who: "shop", silent: true,
     open: () => G_().msq?.n >= 1 && !(G_().stats?.runs > 0),
     used: () => false,
-    intro: () => ["王から授かった金貨500で、人業の装備を整えよう。", "商店の『買う』で武器や防具を選ぶ。『買って装備』なら、そのまま人業に持たせられる。"],
-    steps: [{ text: "商店で武器か防具を買う", hint: "商店 → 買う → 武器・防具 → 買って装備", go: () => UI.openShop && UI.openShop("buy", { cat: "weapon" }), target: [".wpc-buy-main", ".wpc-buy-more"], on: "equipmentBought" }],
-    outro: ["装備を購入できた。人業に装備させ、迷宮へ向かおう。"],
+    intro: () => ["王から授かった金貨500で、人業の装備を整えよう。", "商店の『買う』で武器や防具を選ぶ。『買って装備』なら、そのまま人業に持たせられる。", "購入は任意。必要な分だけ自由に買い、支度ができたら画面下の『迷宮』を選ぼう。"],
+    steps: [{ text: "必要な装備を自由に購入する", hint: "購入は任意。支度ができたら画面下の『迷宮』を選ぶ", go: () => UI.openShop && UI.openShop("buy", { cat: "weapon" }), done: () => G_().town?.tab === "shop" }],
+    outro: ["支度ができたら、画面下の『迷宮』を選ぼう。"],
   },
   {
-    key: "firstDive", name: "初めて迷宮に入る", who: "gate",
+    key: "firstDive", name: "初めて迷宮に入る", who: "gate", manual: true,
     open: () => G_().msq?.n >= 1 && !!tutState().done.buyEquipment,
     used: () => (G_().stats?.runs || 0) > 0,
-    intro: () => ["四体の人業と装備が揃った。最初の迷宮へ向かおう。", "出撃の画面で『忘れられた地下墓地』と隊の備えを確認し、『門をくぐる』を押す。"],
+    intro: () => ["四体の人業が揃った。支度ができたら、最初の迷宮へ向かおう。", "出撃の画面で『忘れられた地下墓地』と隊の備えを確認し、『門をくぐる』を押す。"],
     steps: [{ text: "忘れられた地下墓地の門をくぐる", hint: "出撃 → 迷宮と隊の備えを確認 → 門をくぐる", go: () => UI.openDeparture && UI.openDeparture(), target: [".dp-cta"], on: "dungeonEntered" }],
     outro: ["迷宮へ踏み出した。師の足跡を探そう。"],
   },
@@ -414,21 +414,23 @@ function advance(quiet = false) {
   return true;
 }
 function finish(d) {
+  if (resumeTimer) { clearTimeout(resumeTimer); resumeTimer = null; }
   const st = tutState();
   st.done[d.key] = true;
   st.cur = null; st.step = 0; st.ev = {}; st.base = {};
   if (game.autosave) game.autosave(true);
   clearGlow();
   updateGuidance();
+  if (d.silent) { schedule(); return; }
   busy = true;
   const after = () => {
     busy = false;
     if (game.renderTown && inTown()) game.renderTown();
     // 続けて済ませる手ほどきがあれば、そのまま始める
-    if (pending()) setTimeout(() => resume(), 240);
+    if (pending() && !TUT_MAP[pending().key]?.manual) setTimeout(() => resume(), 240);
   };
   sfx("victory");
-  const more = dueKeys().length > 0;
+  const more = dueKeys().some((key) => !TUT_MAP[key].manual);
   const h = celebrate({
     banner: "手ほどき完了", title: d.name,
     lines: [...d.outro, ...(more ? ["── 続けて、もうひとつ手ほどきがある。"] : [])],
@@ -440,7 +442,7 @@ function finish(d) {
 
 // UI.tutorialAfterReport(): 王への報告の語りを閉じた後。解放されたばかりの手ほどきを始める
 function afterReport() {
-  if (!pending()) return false;
+  if (!pending() || TUT_MAP[pending().key]?.manual) return false;
   setTimeout(() => resume(), 700); // 報告の知らせ (トースト) を見せてから
   return true;
 }
@@ -450,11 +452,6 @@ function onEvent(name) {
   const st = tutState();
   if (!st || !st.cur) return;
   st.ev[name] = true;
-  if (name === "dollCreated" && st.cur === "createThree") {
-    setTimeout(() => {
-      if (tutState().cur === "createThree" && inTown() && !busy && !sceneActive() && sheetDepth() === 0 && !stepDone(curStep())) goStep(true);
-    }, 250);
-  }
   if (name === "dungeonEntered" && st.cur === "firstDive") {
     st.done.firstDive = true; st.cur = null; st.step = 0; st.ev = {}; st.base = {};
     clearGlow(); updateGuidance();
@@ -465,7 +462,7 @@ function onEvent(name) {
 }
 
 // ---- 見張り: 手順が済んだか・光らせる所・イレーヌの台詞 ----
-let raf = 0;
+let raf = 0, resumeTimer = null;
 function schedule() {
   if (!hasDOM() || raf) return;
   const run = () => { raf = 0; tick(); };
@@ -473,7 +470,7 @@ function schedule() {
 }
 function tick() {
   const s = curStep();
-  if (s && !busy && inTown()) {
+  if (s && !busy && inTown() && !sceneActive() && !document.querySelector(".sc-scene:not(.out)")) {
     if (stepDone(s) || safe(() => (s.skip ? s.skip() : false), false)) {
       // 最後の手順: 開いているシート (融合・技の選択・昇格の祝祭…) を閉じてから完了のカードを出す
       const d = curDef();
@@ -481,20 +478,26 @@ function tick() {
       if (!(last && sheetDepth() > 0)) { if (advance()) schedule(); return; }
     }
   }
-  const p = pending();
-  glow(!busy && inTown() && !sceneActive() && (sheetDepth() === 0 || s?.lock) ? (p?.arrival ? MANSION_TARGET : s?.target) : null);
+  const guide = tutorialControls();
+  glowControl(guide?.target);
+  if (!guide?.target && curDef() && !busy && inTown() && !sceneActive() && !document.querySelector(".sc-scene:not(.out)") && sheetDepth() === 0 && !game.isTitleActive?.() && !game.isOpeningActive?.() && !resumeTimer) {
+    resumeTimer = setTimeout(() => { resumeTimer = null; if (curDef() && !tutorialControls()?.target) resume(); }, 150);
+  }
   updateGuidance();
 }
 function clearGlow() {
   if (!hasDOM()) return;
   for (const n of document.querySelectorAll(".tut-glow")) n.classList.remove("tut-glow");
 }
-function glow(sels) {
+function glowControl(hit) {
   if (!hasDOM()) return;
-  let hit = null;
-  for (const q of (sels || [])) { hit = document.querySelector(q); if (hit) break; }
-  for (const n of document.querySelectorAll(".tut-glow")) if (n !== hit) n.classList.remove("tut-glow");
-  if (hit && !hit.classList.contains("tut-glow")) hit.classList.add("tut-glow");
+  const changed = hit && !hit.classList.contains("tut-glow");
+  for (const node of document.querySelectorAll(".tut-glow")) if (node !== hit) node.classList.remove("tut-glow");
+  if (hit && changed) {
+    hit.classList.add("tut-glow");
+    if (!hit.matches("button, input, [tabindex]")) hit.tabIndex = 0;
+    hit.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
 }
 // 館での操作案内は、既存のイレーヌの台詞欄にまとめる。
 function ireneGuidance() {
@@ -503,6 +506,13 @@ function ireneGuidance() {
   const d = TUT_MAP[p.key];
   const s = p.started ? curStep() : d.steps[0];
   if (!s) return null;
+  if (p.key === "createThree") {
+    const target = tutorialControls()?.target;
+    if (target?.closest(".pt-name-sheet")) return ["この子に名前を与えてください。", "『生成する』を押すと、魂を宿した人業が目覚めます。"];
+    if (target?.dataset.job) return [`光っている『${jobLabel(target.dataset.job)}の魂』をお選びください。`, "最初の三体は、無料でお仕立てします。"];
+    if (target?.classList.contains("pt-res-add")) return ["光っている『人業を仕立てる』を押してください。", "残る魂も、ひとつずつ器に宿しましょう。"];
+    if (target?.dataset.drop) return ["顔アイコンの光っている空き枠『＋』を押してください。", "次の人業をお仕立てしましょう。"];
+  }
   if (p.key === "createFourth") {
     const index = tutState().cur === p.key ? tutState().step : 0;
     return [
@@ -527,22 +537,79 @@ function updateGuidance() {
   say?.querySelector(".pt-kp-next")?.classList.add("hidden");
 }
 
-// 四体目の手ほどき中は、案内した操作だけを通す。会話と完了カードには制限を掛けない。
-function lockedStep() {
-  const d = curDef();
-  if (d?.key !== "createFourth" || busy || !atMansion() || sceneActive() || game.isTitleActive?.() || game.isOpeningActive?.()) return null;
-  const steps = d.steps;
-  let index = tutState().step;
-  while (index < steps.length && stepDone(steps[index])) index++;
-  return steps[index]?.lock ? steps[index] : null;
-}
-function allowedControls(s) {
-  return (s?.allow || s?.target || []).flatMap((selector) => [...document.querySelectorAll(selector)]);
+// すべての手ほどきで、現在の画面の「次の操作」だけを受け付ける。
+function tutorialControls() {
+  if (!hasDOM() || !inTown() || game.isTitleActive?.() || game.isOpeningActive?.()) return null;
+  const p = pending(), d = curDef();
+  if (!p && !d && !busy) return null;
+  // 商店での支度は自由。迷宮を自分で選ぶまで、次の手ほどきで操作を制限しない。
+  if (!d && !busy && TUT_MAP[p?.key]?.manual) return null;
+  const choose = (nodes, allow = []) => {
+    const target = nodes.find((n) => n && !n.disabled && n.isConnected && n.getClientRects().length);
+    return { target, allowed: [target, ...allow].filter(Boolean) };
+  };
+  const first = (root, selector) => [...root.querySelectorAll(selector)];
+  const story = document.querySelector(".sc-scene:not(.out)");
+  if (story) return choose([...first(story, ".sc-okb"), ...first(story, ".sc-page")]);
+  if (sceneActive()) {
+    const scene = document.querySelector(".iv-scene:not(.out)");
+    return scene ? choose(first(scene, ".iv-say")) : null;
+  }
+  const h = sheet.top();
+  const card = h?.el;
+  const forward = () => {
+    let nodes = first(card, ".ui-sheet-foot .ui-btn.k-primary:not(:disabled), .ui-sheet-foot .ui-btn.k-danger:not(:disabled)");
+    if (!nodes.length) {
+      let next = card.querySelector(".tut-next");
+      if (!next) {
+        next = button({ label: "次へ", kind: "primary", onTap: () => h.close("ok") });
+        next.classList.add("tut-next"); h.foot.appendChild(next); h.foot.classList.remove("hidden");
+      }
+      nodes = [next];
+    }
+    return choose(nodes);
+  };
+  if (busy) return card ? forward() : null;
+  if (p?.arrival) return choose(first(document, MANSION_TARGET[0]));
+  if (!d) return choose(first(document, ".hb-goal-go"));
+  const st = tutState(), s = curStep();
+  if (card) {
+    if (h.kind === "celebrate" || card.classList.contains("ui-confirm") || stepDone(s)) return forward();
+    if (card.classList.contains("pt-name-sheet")) {
+      return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary"), first(card, ".pt-name-in, .pt-name-rnd"));
+    }
+    if (card.classList.contains("pt-res-sheet")) return choose(first(card, ".pt-res-add"));
+    if (card.classList.contains("pt-pick-sheet") && ["createThree", "createFourth"].includes(d.key)) {
+      const jobs = d.key === "createFourth" ? ["mage"] : ["fighter", "priest", "thief"];
+      return choose(jobs.flatMap((job) => first(card, `.pt-soulrow[data-job="${job}"]`)));
+    }
+    if (h.opts.banner === "魂融合") return choose(first(card, ".sp-fuse-material"));
+    if (h.opts.banner === "宿し技をえらぶ") {
+      if (st.ev.subPick) return forward();
+      return choose(first(card, ".ui-row"));
+    }
+    if (card.querySelector(".sp-srow")) {
+      if (d.key === "fusion") return choose(first(card, ".sp-pick-fuse"));
+      let rows = first(card, ".sp-srow:not(.cur) .sp-srow-main:not(:disabled)");
+      if (d.key === "changeJob") rows = rows.filter((n) => (st.base.jobs || []).includes(n.closest(".sp-srow").dataset.job));
+      return choose(rows);
+    }
+    // 装備者の選択や取引の確認も、次へ進む1つの選択を示す。
+    const primary = first(card, ".ui-sheet-foot .ui-btn.k-primary:not(:disabled)");
+    const rows = first(card, ".ui-row");
+    return primary.length || rows.length ? choose([...primary, ...rows]) : forward();
+  }
+  if (d.key === "createThree") {
+    const count = allDolls().length;
+    return choose(first(document, count ? `.pt-form [data-drop="e${count}"]` : ".pt-empty button"));
+  }
+  const selectors = d.key === "buyEquipment" ? [".wpc-buy-main:not(:disabled)"] : s?.target || [];
+  return choose(selectors.flatMap((selector) => first(document, selector)));
 }
 function restrictTutorialInput(event) {
-  const s = lockedStep();
-  if (!s) return;
-  const allowed = allowedControls(s);
+  const guide = tutorialControls();
+  if (!guide) return;
+  const allowed = guide.allowed;
   if (event.type === "keydown" && event.key === "Tab") {
     event.preventDefault(); event.stopImmediatePropagation();
     const index = allowed.indexOf(document.activeElement);
@@ -573,7 +640,7 @@ export function install() {
   }
   // 画面が描き替わるたびに見張る (手順の完了・光らせる所の付け直し)。属性の変化は見ない (光らせる class で回らないように)
   if (hasDOM() && typeof MutationObserver === "function" && document.body) {
-    new MutationObserver(() => { if (tutState() && (tutState().cur || pending())) schedule();  })
+    new MutationObserver(() => { if (tutState() && (tutState().cur || pending() || busy)) schedule();  })
       .observe(document.body, { childList: true, subtree: true });
   }
 }

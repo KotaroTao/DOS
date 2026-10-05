@@ -12539,6 +12539,8 @@ function tutorialPending() { return UI.tutorialPending ? UI.tutorialPending() : 
 function blockForTutorial() {
   const t = tutorialPending();
   if (!t || (t.key === "firstDive" && t.started)) return false;
+  // 初回の出撃案内は、プレイヤーが迷宮を選んだ時だけ始める。
+  if (t.key === "firstDive") { UI.tutorialResume?.(); return true; }
   SFX.ng(); buzz([0, 30, 40, 30]);
   kitConfirm({
     banner: "手ほどき", danger: false,

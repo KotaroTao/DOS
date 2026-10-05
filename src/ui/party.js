@@ -1125,7 +1125,7 @@ function reserveBody(root) {
   for (const d of G.reserve) list.appendChild(reserveRow(d));
   root.appendChild(list);
   const cost = game.emptyDollCost ? game.emptyDollCost() : 0;
-  root.appendChild(el("div", "pt-note c", `仕立ての費用: 3体目まで無料 ・ 4体目 赤い魂30 ・ 5体目 50 ・ 以降 100${cost ? "" : "（いまは無料）"}。札の長押しで名を変える。`));
+  root.appendChild(el("div", "pt-note c", `仕立ての費用: 3体目まで無料 ・ 4体目 赤い魂30 ・ 5体目 50 ・ 以降 100${cost ? "" : "（いまは無料）"}。`));
 }
 function reserveRow(d) {
   const G = G_();

@@ -511,6 +511,7 @@ function pickerBody(root, d, slotId, h) {
     const other = mainOf || (subTaker ? null : wearerOf(s.uid, d));
     const inOther = !isCur && !mainOf && (d.primary === s.uid || (d.subs || []).some((x) => x && x.uid === s.uid));
     const r = el("div", "sp-srow" + (isCur ? " cur" : "") + (other ? " taken" : "") + (subTaker ? " swap" : ""));
+    r.dataset.job = s.clsKey;
     r.style.setProperty("--glow", cl.glow);
     const main = el("button", "sp-srow-main");
     main.type = "button";
@@ -607,6 +608,7 @@ export function openSkillStep(d, subRef) {
   // 効いている借用 (覚えている分・上限内) の数
   const usedCount = () => subPicks(subRef).filter((p) => (p.passive ? passives[p.passive] : learned.includes(p.skill))).slice(0, cap).length;
   const pick = (h, kind, key) => {
+    if (UI.tutorialEvent) UI.tutorialEvent("subPick");
     // 1つしか借りられない魂で、いま借りているものを押した → そのまま閉じる (空にはしない)
     if (cap === 1 && subPickIndex(subRef, kind, key) >= 0) { sfx("select"); h.close(); return; }
     // 覚えていない (古い) 借用が枠を塞がないよう、選ぶ前に落としておく
@@ -739,7 +741,7 @@ export function openFusePicker(targetUid, onDone) {
     const tags = [`ランク${soulRankOf(c)}`];
     if ((c.level || 1) > 1 || (c.exp || 0) > 0) tags.push("強化済み");
     if (c.capBonus) tags.push(`残火 +${c.capBonus}`);
-    return row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulLabel(c)} Lv${c.level}`, sub: tags.join(" ・ "), tone: enh ? "gold" : null, chevron: true,
+    const r = row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulLabel(c)} Lv${c.level}`, sub: tags.join(" ・ "), tone: enh ? "gold" : null, chevron: true,
       onTap: () => {
         if (!enh) return fuse(c);
         sfx("ng");
@@ -749,6 +751,8 @@ export function openFusePicker(targetUid, onDone) {
         lines.push("残したい魂は、魂の一覧で「ロック」すれば素材にならない。");
         confirm({ banner: "注意", title: "強化済みの魂を素材にする？", lines, okLabel: "素材にする" }).then((y) => { if (y) fuse(c); });
       } });
+    r.classList.add("sp-fuse-material");
+    return r;
   };
   h = sheet.open({ kind: "info", className: "sp-pick-sheet", banner: "魂融合", accent: cl.glow, ...view() });
   return h;
