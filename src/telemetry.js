@@ -4,6 +4,8 @@
 //   戦闘     … 戦闘数・勝ち/逃げ/全滅・ラウンド数・先制/奇襲・物理の命中/回避 (味方→敵 / 敵→味方)・
 //              手番の先後・逃走の試行/成功・与ダメ/被ダメ・戦闘前後の隊HP割合・隊と敵の AGI
 //   戦利品   … 迷宮で手に入れた品のレア度別の数・図鑑の新種・持ちきれず置いてきた数・得たゴールド/✦Soul
+//   ✦・金貨  … 迷宮で得た分の出どころ (戦闘の種類・出来事・死体…) と倍率の上乗せ (異変・掟・特別な階…) の内訳、
+//              その迷宮へ入る前に町で得た分 (依頼の報告・王への報告・勲章・売却…)
 //   魂       … 手に入れた職業の魂のレア度別の数 (迷宮の中 / その迷宮へ入る前の町 = 依頼・宝物庫の褒賞など) と、着いた階の数
 //   時間     … 迷宮の中にいた実プレイ時間と、その迷宮へ入る前に町で過ごした実プレイ時間
 //              (画面が見えていて直近2分以内に操作がある時間だけ。game.js の5秒ごとの時計から)
@@ -67,12 +69,28 @@ export function tlLost(where) {
   L.lost = (L.lost || 0) + 1;
   persist();
 }
-// 迷宮で得たゴールド / ✦Soul (kind: "gold" | "soul")
-export function tlGain(where, kind, n) {
+// 迷宮で得たゴールド / ✦Soul (kind: "gold" | "soul")。
+// src = 出どころ (GAIN_SRC: 戦闘の種類・出来事・死体・宝箱・殲滅…) → 欄 ss (✦) / gs (金貨) に出どころ別の合計。
+// up = 上乗せの内訳 { psv, sf, mut, trait, oth, eq } (それぞれ「その倍率で増えた分」) → 欄 sx (✦) / gx (金貨)
+export function tlGain(where, kind, n, src, up) {
   if (!S.on || !where || !(n > 0)) return;
   const d = slot(where);
   d[kind] = (d[kind] || 0) + Math.round(n);
+  const pre = kind === "soul" ? "s" : "g";
+  addTo(d, pre + "s", src || "x", n);
+  if (up) for (const k in up) if (up[k] > 0) addTo(d, pre + "x", k, up[k]);
   persist();
+}
+// 町で得たゴールド / ✦Soul (依頼の報告・王への報告・勲章・売却…)。町の時間と同じく、次に入る迷宮の欄 (tsoul / tgold) へ持ち越す
+export function tlTownGain(kind, n, src) {
+  if (!S.on || !(n > 0)) return;
+  const t = S.townG || (S.townG = {});
+  addTo(t, kind === "soul" ? "tsoul" : "tgold", src || "x", n);
+  persist();
+}
+function addTo(o, box, k, n) {
+  const b = o[box] || (o[box] = {});
+  b[k] = (b[k] || 0) + Math.round(n);
 }
 // 実プレイ時間を足す (5秒ごと)。where = 迷宮の中ならその欄、町なら null (次に入る迷宮の「町」の時間へ持ち越す)
 let _tickN = 0;
@@ -129,6 +147,10 @@ export function tlSnapshot(kind, where, party) {
       const t = d.tsl || (d.tsl = {});
       for (const k in S.townSl) t[k] = (t[k] || 0) + S.townSl[k];
       S.townSl = null;
+    }
+    if (S.townG) {
+      for (const box in S.townG) for (const k in S.townG[box]) addTo(d, box, k, S.townG[box][k]);
+      S.townG = null;
     }
   }
   else d.s.last = snap;
@@ -233,6 +255,27 @@ function lootLine(d) {
   if (d.gold || d.soul) bits.push(`✦${d.soul || 0} ${d.gold || 0}G`);
   return bits.join(" / ");
 }
+// 出どころの略称 (迷宮の中 / 町 / 上乗せ)
+const SRC_LABEL = {
+  bn: "通常戦", be: "精鋭等", bb: "主", mt: "金属", ev: "出来事", cp: "死体", ch: "宝箱", hd: "殲滅", x: "他",
+  q: "依頼", qk: "依頼(討伐)", qs: "依頼(魂)", qc: "依頼(宝箱)", qf: "依頼(到達)", qd: "依頼(納品)", tip: "心付け", bond: "なじみ", fq: "頼み", r: "王の報告", a: "勲章", t: "宝物庫", sell: "売却",
+  psv: "パッシブ", sf: "特別階", mut: "異変", trait: "掟", oth: "出来事等", eq: "装備",
+};
+const srcText = (b) => (b ? Object.keys(b).sort((x, y) => b[y] - b[x]).map((k) => `${SRC_LABEL[k] || k}${b[k]}`).join(" ") : "");
+// ✦・金貨の出どころの行 (出どころを数え始める前の器には無いので、何も無ければ出さない)
+function gainLines(d) {
+  const out = [];
+  const one = (label, src, up, town) => {
+    const bits = [];
+    if (src) bits.push(srcText(src));
+    if (up) bits.push(`(うち上乗せ ${srcText(up)})`);
+    if (town) bits.push(`/ 町 ${srcText(town)}`);
+    if (bits.length) out.push(`${label} ${bits.join(" ")}`);
+  };
+  one("✦の出どころ", d.ss, d.sx, d.tsoul);
+  one("金貨の出どころ", d.gs, d.gx, d.tgold);
+  return out;
+}
 
 // 魂のレア度別の数 → 「C5 R1 E1」 (無ければ空)
 function soulText(b) {
@@ -263,6 +306,7 @@ export function tlSummary() {
     }
     const extra = lootLine(d);
     if (extra) parts.push(extra);
+    parts.push(...gainLines(d));
     out.push({ head, lines: parts.length ? parts : ["戦闘の記録なし"] });
   }
   return out;
@@ -279,7 +323,10 @@ export function tlExportText() {
     "hp0/hp1=戦闘前後の隊HP割合×1000の合計 pAgi/eAgi/eAgiAvg=隊平均/敵最大/敵平均AGI×10の合計 en=敵数の合計");
   lines.push("迷宮の鍵: ms/tms=迷宮の中/入る前の町の実プレイ時間(ミリ秒) fl=着いた階の数 gold/soul=迷宮で得たゴールド/✦Soul " +
     "loot=手に入れた品 (c/uc/r/sr/lr=装備のレア度 misc=収集品 use=道具 nw=図鑑の新種 lost=持ちきれず置いてきた) " +
-    "sl/tsl=手に入れた職業の魂 迷宮の中/入る前の町 (c/r/e/l=コモン/レア/エピック/レジェンド)");
-  lines.push(JSON.stringify({ v: S.v, since: S.since, townMs: S.townMs || 0, townSl: S.townSl || null, d: S.d }));
+    "sl/tsl=手に入れた職業の魂 迷宮の中/入る前の町 (c/r/e/l=コモン/レア/エピック/レジェンド) " +
+    "ss/gs=迷宮で得た✦/金貨の出どころ (bn/be/bb=通常/精鋭等/主の戦闘 mt=金属の魔物 ev=出来事 cp=死体 ch=宝箱 hd=殲滅 x=他) " +
+    "sx/gx=そのうち倍率で増えた分 (psv=パッシブ sf=特別な階 mut=異変 trait=迷宮の掟 oth=出来事の効果・奈落 eq=装備・恵み) " +
+    "tsoul/tgold=その迷宮へ入る前に町で得た✦/金貨 (qk/qs/qc/qf/qd=依頼 討伐/魂/宝箱/到達/納品 tip=心付け bond=なじみの贈り物 fq=依頼人の頼み r=王への報告 a=勲章 t=宝物庫 sell=売却)");
+  lines.push(JSON.stringify({ v: S.v, since: S.since, townMs: S.townMs || 0, townSl: S.townSl || null, townG: S.townG || null, d: S.d }));
   return lines.join("\n");
 }
