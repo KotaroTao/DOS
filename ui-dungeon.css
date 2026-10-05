@@ -544,7 +544,14 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 .dp-gates .dp-sealed .dp-gate-c.dp-hint { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; font-size: 11.5px; line-height: 1.35; }
 .dp-gates .dp-sealed .dp-gate-ic { height: 30px; }
 .dp-sheet .ui-sheet-foot { grid-template-columns: minmax(0, 1fr); }
-.dp-sheet .ui-sheet-foot .dp-mut-foot { min-width: 0; display: flex; align-items: center; gap: 8px; margin: 0; padding: 5px 6px 6px 10px; }
+.dp-sheet .dp-mut-foot { min-width: 0; display: flex; align-items: center; gap: 8px; margin: 8px 0 0; padding: 5px 6px 6px 10px; }
+.dp-ready { min-width: 0; }
+.dp-ready .dp-from { margin-top: 0; }
+.dp-ready .dp-party { flex-wrap: wrap; margin-bottom: 0; }
+.dp-ready .dp-party-l { width: 100%; flex-direction: row; align-items: baseline; gap: 8px; }
+.dp-ready .ui-port { flex: 1 1 0; min-width: 0; max-width: 48px; }
+.dp-ready .ui-port canvas { max-width: 100%; height: auto; }
+.dp-ready .dp-swap { min-width: 44px; padding: 0 4px; }
 .dp-mut-tx { flex: 1 1 auto; min-width: 0; }
 .dp-mut-foot .dp-mut-n { font-size: 13px; }
 .dp-mut-foot .dp-mut-l { font-size: 11px; line-height: 1.45; margin: 0; }

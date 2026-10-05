@@ -195,6 +195,19 @@ function makeEnemy(key, scale = 1, boss = false, bossRank = 0) {
 const rand = (n) => Math.floor(Math.random() * n);
 // 揺らぎ。基準値は先に四捨五入する (34.5 → 35)。回復量・ダメージに小数を出さない
 const variance = (base) => { const b = Math.round(base); return Math.max(1, b + rand(Math.ceil(b * 0.4)) - rand(Math.ceil(b * 0.2))); };
+// 揺らぎは上側が広く、平均は基準値より約10%高い。オートも同じ平均を読む。
+const varianceMean = (base) => { const b = Math.max(1, Math.round(base)); return b + (Math.ceil(b * 0.4) - Math.ceil(b * 0.2)) * 0.5; };
+// LUKの成長を会心確定へ直結させない。低い値では従来に近く、加算は最大25%。
+export const luckCritBonus = (luk) => 0.25 * (1 - Math.exp(-Math.max(0, (luk || 0) - 8) / 50));
+// 上位呪文ほどINT/PIEの伸びを受ける。全体呪文は単体より係数を抑える。
+export function attackSpellPower(sp, stat) {
+  const power = Math.max(0, sp.power || 0);
+  return power + Math.max(0, stat || 0) * (0.25 + Math.min(140, power) / (sp.target === "all-enemy" ? 60 : 40));
+}
+// 回復も上位の術に成長の余地を持たせる。初期ヒール(power14)の係数は従来の0.5。
+export function healingPower(power, pie) {
+  return (power || 0) + Math.max(0, pie || 0) * (0.5 + Math.max(0, Math.min(120, power || 0) - 14) / 160);
+}
 
 // 職業ランクパッシブのLvを引く (souls.js の recalcDoll が passiveMap を埋める)
 const pv = (a, key) => (a && a.passiveMap && a.passiveMap[key]) || 0;
@@ -245,7 +258,7 @@ const FLEE_BASE = 0.55, FLEE_SLOPE = 0.35, FLEE_MIN = 0.05, FLEE_MAX = 0.95, FLE
 // 敵の AGI は味方よりずっと小さい規模なので、逃走判定と同じ物差し fleeK (基準AGI ÷ 雑魚のAGI中央値) で味方の規模に直す。
 // 互角で20%、2倍速ければ上限の40%、半分なら0%。2026-10: 旧式 ((AGI−6)×1.2%、上限40%) は AGI 39 で上限に届き、
 // 第3層では隊のほぼ全員が40%かわして敵の命中が4〜6割まで落ちていた (テスト記録)。新式では敵の命中が
-// どの層でも8割前後にそろう (模擬戦)。敵がかわす側 (味方 → 敵) は旧式のまま
+// どの層でも8割前後にそろう (模擬戦)。敵がかわす側 (味方 → 敵) も同じ相対式を使う
 const EVADE_EVEN = 0.20, EVADE_SLOPE = 0.20, EVADE_MAX = 0.40;
 // 心の状態異常 (actor.mind = "charm" 魅了 | "confuse" 混乱)。戦闘の中だけの状態で、戦いが終われば解ける。
 //  魅了: 手番ごとに味方へ襲いかかる (仲間がいなければ立ち尽くす)。傷を受けると MIND_CHARM_BREAK で正気に戻る
@@ -1073,15 +1086,15 @@ export class Battle {
     return Math.min(FLEE_MAX, Math.max(FLEE_MIN, p));
   }
 
-  // AGI による回避の素の率。敵 → 味方の物理は相対値 (EVADE_*)、それ以外 (味方 → 敵・同士討ち) は旧来の
-  // 「対象の AGI − 6」× 1.2% (上限40%)。実効AGI はバフ/デバフ込み
+  // AGI による回避の素の率。双方の速度を同じ尺度にそろえた相対値 (EVADE_*)。
+  // 攻撃側と対象の実効AGIの比で回避を決める (上限40%)。バフ/デバフ込み
   _evadeBase(tgt, actor) {
     const agiOf = (a) => Math.max(1, (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1));
-    if (tgt.side === "party" && actor && actor.side === "enemy") {
-      const p = EVADE_EVEN + EVADE_SLOPE * Math.log2(agiOf(tgt) / (agiOf(actor) * (this.fleeK || 1)));
-      return Math.min(EVADE_MAX, Math.max(0, p));
-    }
-    return Math.min(0.4, Math.max(0, ((tgt.agi || 6) - 6) * 0.012));
+    if (!actor) return 0;
+    // 敵のAGIは味方と規模が違うので、双方向とも逃走の物差しでそろえる。
+    const scaledAgi = (a) => agiOf(a) * (a.side === "enemy" ? (this.fleeK || 1) : 1);
+    const p = EVADE_EVEN + EVADE_SLOPE * Math.log2(scaledAgi(tgt) / scaledAgi(actor));
+    return Math.min(EVADE_MAX, Math.max(0, p));
   }
 
   // テスト記録の集計 (中断セーブから戻った古い戦闘にも器を用意する)
@@ -1913,8 +1926,8 @@ export class Battle {
       let dmg = Math.max(1, Math.round((variance(Math.round(this._eatk(defender) * mul)) - Math.floor(this._evit(attacker) * 0.5)) * this._rowMul(defender, attacker)));
       let crit = false;
       if (cLv >= 3 && Math.random() < 0.06 + (defender.critBonus || 0)) { crit = true; dmg = Math.floor(dmg * 1.85); }
-      // 反撃も物理なので物理耐性を受ける (無効の敵には通らない)。会心なら物理耐性1・2を無視する
-      const pr = (crit && (attacker.physResist | 0) < 3) ? { dmg, immune: false } : this._resistCut(attacker, dmg, "physResist");
+      // 反撃の会心も通常の物理と同じ耐性軽減を使う。
+      const pr = this._resistCut(attacker, dmg, "physResist", crit ? 0.5 : 0);
       if (pr.immune) { this.log(`${defender.name}の反撃！ ${attacker.name}には効かない！ (物理無効)`, "hit"); return; }
       dmg = pr.dmg;
       attacker.hp -= dmg;
@@ -1996,7 +2009,7 @@ export class Battle {
 
   // 物理耐性・魔法耐性 (耐性ランク 1〜3 → 50% / 75% / 100% 軽減)。key = "physResist" | "magResist"
   // 敵だけが持つ。耐性3 (無効) なら dmg は 0 になり immune が立つ
-  _resistCut(tgt, dmg, key) {
+  _resistCut(tgt, dmg, key, ignore = 0) {
     // 金属の体: 物理 (反撃など) は1ダメージ、魔法 (呪文・神罰・二刀の理など) は無効
     if (isMetal(tgt)) return key === "magResist" ? { dmg: 0, tag: METAL_TAG.mag, immune: true } : { dmg: Math.min(dmg, 1), tag: METAL_TAG.phys, immune: false };
     let r = tgt && tgt.side === "enemy" ? (tgt[key] || 0) : 0;
@@ -2005,7 +2018,8 @@ export class Battle {
     if (!r) return { dmg, tag: "", immune: false };
     const rate = resistRate(r);
     if (rate >= 1) return { dmg: 0, tag: RESIST_TAG[key][r], immune: true };
-    return { dmg: Math.max(1, Math.round(dmg * (1 - rate))), tag: RESIST_TAG[key][r], immune: false };
+    const cut = rate * (1 - Math.min(1, Math.max(0, ignore)));
+    return { dmg: Math.max(1, Math.round(dmg * (1 - cut))), tag: cut > 0 ? RESIST_TAG[key][r] : "", immune: false };
   }
 
   _physical(actor, tgt, opt = {}) {
@@ -2124,7 +2138,7 @@ export class Battle {
     }
     if (actor.side === "party") { const evm = evDealMul(actor, tgt); if (evm !== 1) dmg = Math.round(dmg * evm); }
     // 会心: 基礎 + 会心パッシブ + 幸運(LUK) + 技の会心補正。確定会心系が先に立つ
-    const luckCrit = Math.max(0, ((actor.luk || 8) - 8)) * 0.005;
+    const luckCrit = luckCritBonus(actor.luk);
     let critChance = 0.06 + (actor.critBonus || 0) + luckCrit + (opt.critBonus || 0) + (actor._evCrit || 0);
     if (perkFoe) critChance += this._perkSum(actor, "crit", { tgt, el: aE, on: pOn }); // 固有パッシブ (crit)
     if (pv(actor, "holyEdge") && HOLY_PREY.includes(enemyRace(tgt))) critChance += 0.15;
@@ -2135,6 +2149,8 @@ export class Battle {
     if (opt.basic && actor._ambushCritLeft > 0) { actor._ambushCritLeft--; sureCrit = true; } // 不意打ち
     if (tgt.asleep && actor.side === "party") sureCrit = true; // 眠っている敵への物理は必ず会心 (眠った味方を敵が殴っても会心は確定しない)
     if (pv(actor, "sleepKill") && tgt.side === "enemy" && (tgt.ailment === "paralyze" || tgt.mind)) sureCrit = true; // 寝込み襲い: 麻痺・魅了・混乱にも確定会心
+    // 確定会心の技・条件は保ち、通常の会心率は85%を上限にする。
+    critChance = (opt.critBonus || 0) >= 1 ? 1 : Math.min(0.85, Math.max(0, critChance));
     const crit = sureCrit || Math.random() < critChance;
     if (crit) dmg = Math.floor(dmg * 1.85 * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)]); // 急所読み: 会心強化
     // 隊列補正: 後衛は物理の与ダメ・被ダメが半減
@@ -2147,16 +2163,16 @@ export class Battle {
     let magWeak = false;
     if (magHit && !metalHit && tgt.magWeak && tgt.magWeak > 1) { dmg = Math.round(dmg * tgt.magWeak); magWeak = true; }
     // 物理耐性 (耐性ランク): 耐性1=50% / 耐性2=75% / 耐性3=無効。魔法属性の武器は魔法耐性を受ける
-    // 防御無視の技 (pierce) と会心の一撃は物理耐性1・2を無視する。物理耐性3 (無効) はどちらでも通らない
-    const pierceResist = !magHit && ((opt.pierce || 0) > 0 || crit) && tgt.side === "enemy" && ((tgt.physResist | 0) < 3);
+    // pierceは指定割合だけ耐性の軽減を無視する。会心は軽減の半分を無視し、無効は貫けない。
+    const resistIgnore = magHit ? 0 : Math.max(Math.min(1, opt.pierce || 0), crit ? 0.5 : 0);
     const pr = metalHit ? { dmg, tag: crit ? "" : METAL_TAG.phys, immune: false }
-      : pierceResist ? { dmg, tag: "", immune: false } : this._resistCut(tgt, dmg, magHit ? "magResist" : "physResist");
+      : this._resistCut(tgt, dmg, magHit ? "magResist" : "physResist", resistIgnore);
     if (pr.immune) {
       // 無効: 傷ひとつ付かない (障壁も削れず、毒刃・怯ませ等の命中時効果も乗らない)
       this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}には効かない！ (${magHit ? "魔法" : "物理"}無効)`, tgt.side === "party" ? "dmg" : "hit");
       return { target: tgt, dmg: 0, crit: false, died: false, immune: true };
     }
-    if (pr.tag) dmg = pr.dmg;
+    dmg = pr.dmg;
     // 障壁: 数回だけ被ダメを半減する敵 (回数制)
     let barriered = false;
     if (tgt.side === "enemy" && tgt._barrierLeft > 0) { tgt._barrierLeft--; dmg = Math.ceil(dmg * 0.5); barriered = true; }
@@ -2237,7 +2253,7 @@ export class Battle {
 
   // ===== オートの見積もり (autotactics.js が読む) =====
   // 実際の _physical / _cast と同じ式で「平均でどれだけ通るか」を返す。乱数を引かず、戦闘の状態も一切変えない
-  // (溜めは覗くだけ・揺らぎは平均で無視)。命中率・会心率・耐性・属性・隊列を織り込んだ期待値
+  // (溜めは覗くだけ・揺らぎは平均値)。命中率・会心率・耐性・属性・隊列を織り込んだ期待値
   estPhys(actor, tgt, opt = {}) {
     if (!actor || !tgt || !tgt.alive) return 0;
     const magHit = actor.side === "party" && !!actor.wMagic && !opt.skill;
@@ -2246,11 +2262,12 @@ export class Battle {
     r = Math.min(3, r | 0);
     const metal = isMetal(tgt);
     if (r >= 3 && !metal) return 0; // 無効は会心でも通らない
-    const evade = (metal ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0);
+    const evade = (metal ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0)
+      + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) : 0);
     let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
     const blind = this._bm(actor, "hit");
     if (blind < 1) missP += Math.min(0.4, 1 - blind);
-    const hitP = Math.max(0, 1 - Math.min(1, missP)) * (1 - (pv(tgt, "parry") ? 0.1 : 0));
+    const hitP = Math.max(0, 1 - Math.min(1, missP)) * (1 - (pv(tgt, "parry") >= 2 ? 0.15 : pv(tgt, "parry") ? 0.1 : 0));
     const power = opt.power || 1;
     const sb = pv(actor, "spellBlade");
     const sbAdd = sb ? (actor.int || 0) * (sb >= 2 ? 1.0 : 0.5) * power : 0;
@@ -2262,7 +2279,7 @@ export class Battle {
     const defCut = Math.floor(this._evit(tgt) * 0.5 * (1 - pierceAll));
     const mjAdd = opt.skill && actor.side === "party" ? (actor.int || 0) * this._bm(actor, "int") * this._rk(actor, "spellbladeMajin", [0.10, 0.20, 0.30, 0.50]) : 0;
     const ch = actor.effects && actor.effects.find((e) => e.stat === "charge"); // 溜めは覗くだけ
-    let dmg = (this._eatk(actor) * power * this._lowHpMul(actor) + sbAdd + ibAdd + stAdd + mjAdd) * despMul * (ch ? ch.mult : 1) - defCut;
+    let dmg = (varianceMean(this._eatk(actor) * power * this._lowHpMul(actor)) + sbAdd + ibAdd + stAdd + mjAdd) * despMul * (ch ? ch.mult : 1) - defCut;
     if (tgt._defending) dmg *= 0.5;
     const aE = opt.element || (actor.elemAtk && actor.elemAtk.el) || actor.element || "none";
     const aLv = (actor.elemAtk && actor.elemAtk.el === aE) ? Math.max(1, actor.elemAtk.lv) : 1;
@@ -2277,22 +2294,22 @@ export class Battle {
     const tv = elemMask(tgt);
     if (perkFoe) dmg *= 1 + this._perkSum(actor, "deal", { tgt: tv, el: aE, on: pOn });
     if (actor.side === "party") dmg *= evDealMul(actor, tgt);
-    const luckCrit = Math.max(0, ((actor.luk || 8) - 8)) * 0.005;
+    const luckCrit = luckCritBonus(actor.luk);
     let critP = 0.06 + (actor.critBonus || 0) + luckCrit + (opt.critBonus || 0) + (actor._evCrit || 0);
     if (perkFoe) critP += this._perkSum(actor, "crit", { tgt: tv, el: aE, on: pOn });
     if (pv(actor, "holyEdge") && HOLY_PREY.includes(enemyRace(tgt))) critP += 0.15;
     const fs = pv(actor, "fightSpirit");
     if (fs >= 2 && actor.maxhp && actor.hp <= actor.maxhp * 0.3) critP += [0, 0, 0.15, 0.20, 0.25][Math.min(fs, 4)];
-    if ((opt.basic && (actor._kenma || actor._ambushCritLeft > 0)) || (tgt.asleep && actor.side === "party")
-      || (pv(actor, "sleepKill") && tgt.side === "enemy" && (tgt.ailment === "paralyze" || tgt.mind))) critP = 1;
-    critP = Math.min(1, Math.max(0, critP));
+    const sureCrit = (opt.critBonus || 0) >= 1 || (opt.basic && (actor._kenma || actor._ambushCritLeft > 0)) || (tgt.asleep && actor.side === "party")
+      || (pv(actor, "sleepKill") && tgt.side === "enemy" && (tgt.ailment === "paralyze" || tgt.mind));
+    critP = sureCrit ? 1 : Math.min(0.85, Math.max(0, critP));
     dmg *= this._rowMul(actor, tgt);
     if (magHit && !metal && tgt.magWeak > 1) dmg *= tgt.magWeak;
     let crit = dmg * 1.85 * [1, 1.25, 1.45][Math.min(pv(actor, "vitalEye"), 2)];
     let plain = dmg;
     if (metal) plain = 1;
-    else if (r > 0 && !(!magHit && (opt.pierce || 0) > 0)) plain *= 1 - resistRate(r); // 防御無視の技は耐性1・2を通す
-    if (r > 0 && !metal && magHit) crit *= 1 - resistRate(r); // 魔法属性の一撃は会心でも魔法耐性を受ける
+    else if (r > 0) plain *= 1 - resistRate(r) * (1 - (magHit ? 0 : Math.min(1, opt.pierce || 0)));
+    if (r > 0 && !metal) crit *= 1 - resistRate(r) * (1 - (magHit ? 0 : Math.max(0.5, Math.min(1, opt.pierce || 0))));
     let m = 1;
     if (tgt._barrierLeft > 0) m *= 0.5;
     if (tgt.guard) m *= 1 - tgt.guard;
@@ -2310,7 +2327,7 @@ export class Battle {
       let em = elemSeen(t) ? elemDmgMult(sp.element || "none", aLv, t.element || "none", edefOf(t)) : 1;
       if (em < 1 && pv(actor, "elemFloor")) em = 1;
       em *= this._vulnMul(t, sp.element);
-      dmg = Math.max(1, (sp.power + intv * 0.5) * this._lowHpMul(actor) - Math.floor(this._evit(t) * 0.2)) * em;
+      dmg = Math.max(1, varianceMean(attackSpellPower(sp, intv)) * this._lowHpMul(actor) - Math.floor(this._evit(t) * 0.2)) * em;
       if (t.magWeak > 1) dmg *= t.magWeak;
       if (sp.prey && sp.prey.races.includes(enemyRace(t))) dmg *= sp.prey.mul;
     }
@@ -2327,10 +2344,14 @@ export class Battle {
     if (t.guard) dmg *= 1 - t.guard;
     return Math.max(1, dmg);
   }
-  // 回復呪文の1人あたりの回復量 (揺らぎの平均は無視)
+  // 回復呪文の1人あたりの期待回復量 (揺らぎの平均込み)
   estHeal(actor, sp) {
     const aMul = pv(actor, "asceticism") && actor.maxhp && actor.hp <= actor.maxhp * 0.3 ? 1.3 : 1;
-    return ((sp.power || 0) + (actor.pie || 0) * this._bm(actor, "pie") * 0.5) * aMul * (1 + this._perkSum(actor, "heal"));
+    return varianceMean(healingPower(sp.power, (actor.pie || 0) * this._bm(actor, "pie")) * aMul * (1 + this._perkSum(actor, "heal")));
+  }
+  // 攻撃後の全体回復は、回復呪文とは別のPIE係数(0.3)を持つ。
+  estPartyHeal(actor, power) {
+    return varianceMean((power + (actor.pie || 0) * this._bm(actor, "pie") * 0.3) * (1 + this._perkSum(actor, "heal")));
   }
   // 状態異常・即死の成功率 (Lv差・主の補正込み)。_inflict と同じ係数
   estRate(actor, t, base) { return base > 0 ? this._rate(actor, t, base) : 0; }
@@ -2441,7 +2462,7 @@ export class Battle {
           if (em < 1 && pv(actor, "elemFloor")) em = 1; // 森羅の理: 属性不利が出ない
           em *= this._vulnMul(t, sp.element); // 属性耐性ダウン
           // 攻撃呪文の威力は術者の INT で伸びる。低HP補正 (荒行の果て) も乗る
-          const power = sp.power + intv * 0.5;
+          const power = attackSpellPower(sp, intv);
           dmg = Math.max(1, Math.round(variance(power) * this._lowHpMul(actor)) - Math.floor(this._evit(t) * 0.2));
           if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
           // 魔法弱点: 攻撃呪文の被ダメが増える (「魔法に弱い」)
@@ -2559,7 +2580,7 @@ export class Battle {
     } else if (sp.kind === "heal") {
       // 回復量は術者の PIE で伸びる。荒行の果て (低HP時) は回復も+30%
       const aMul = pv(actor, "asceticism") && actor.maxhp && actor.hp <= actor.maxhp * 0.3 ? 1.3 : 1;
-      const healPower = (sp.power + (actor.pie || 0) * this._bm(actor, "pie") * 0.5) * aMul * (1 + this._perkSum(actor, "heal")); // 固有パッシブ (heal)
+      const healPower = healingPower(sp.power, (actor.pie || 0) * this._bm(actor, "pie")) * aMul * (1 + this._perkSum(actor, "heal")); // 固有パッシブ (heal)
       // 全体回復
       if (sp.target === "all-ally") {
         let cured = false, revivedAny = false;

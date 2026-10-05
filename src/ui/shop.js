@@ -440,7 +440,7 @@ function stockRow(id) {
   const tx = el("span", "wpc-srow-t");
   const l1 = el("span", "wpc-srow-l1");
   l1.appendChild(nameSpan(it, "wpc-srow-nm"));
-  l1.appendChild(el("span", "wpc-srow-n", `×${n}`));
+  l1.appendChild(el("span", "wpc-srow-n", `在庫${n}`));
   tx.appendChild(l1);
   const l3 = el("span", "wpc-srow-l3");
   const kind = it.slot === "weapon" ? (WEAPON_CAT_LABEL[it.cat] || "武器") : ((ITEM_CATS.find((c) => c.slots.includes(it.slot)) || {}).label || "");

@@ -16,20 +16,75 @@
 import { partyAgi } from "./levelcurve.js";
 
 const KEY = "dos-testlog";
-const VERSION = 1;
+const VERSION = 2;
+// デプロイ時にコミットのハッシュへ置換する。過去版と新しい調整を混ぜない。
+export const TEST_BUILD = "dos-dev";
 
-function blank() { return { v: VERSION, on: false, since: null, d: {} }; }
+function blank() { return { v: VERSION, build: TEST_BUILD, on: false, since: null, d: {} }; }
 function load() {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return blank();
     const s = JSON.parse(raw);
-    if (!s || s.v !== VERSION || typeof s.d !== "object") return blank();
+    if (!s || ![1, VERSION].includes(s.v) || !s.d || typeof s.d !== "object") return blank();
+    s.v = VERSION;
     return s;
   } catch (e) { return blank(); }
 }
 let S = load();
+if (S.build !== TEST_BUILD) {
+  if (Object.keys(S.d).length) (S.history || (S.history = [])).push({ build: S.build || "旧版(不明)", since: S.since, until: new Date().toISOString(), d: S.d, townMs:S.townMs || 0, townSl:S.townSl || null, townG:S.townG || null });
+  S.d = {}; S.townMs = 0; S.townSl = null; S.townG = null; S.build = TEST_BUILD; S.since = S.on ? new Date().toISOString() : null;
+}
 function persist() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* 容量切れ等は諦める */ } }
+persist();
+
+// 同期処理の間だけ数値の代入を観測。消費→回復を相殺せず、実際に増減した量を数える。
+// 満タンを超える回復・負のHPへの過剰ダメージは除く。例外でも元のデータ属性へ戻す。
+const resourceFrames = [];
+export function tlMeasure(where, party, source, fn) {
+  if (!S.on || !where) return fn();
+  const outer = resourceFrames.length === 0, restore = [];
+  resourceFrames.push({ where, source });
+  if (outer) for (const p of new Set(party)) for (const key of ["hp", "mp"]) {
+    const desc = Object.getOwnPropertyDescriptor(p, key);
+    if (!desc || !desc.configurable || !("value" in desc) || !desc.writable) continue;
+    let value = desc.value;
+    Object.defineProperty(p, key, { configurable: true, enumerable: desc.enumerable,
+      get: () => value, set: (next) => {
+        const cap = Math.max(0, p[key === "hp" ? "maxhp" : "maxmp"] || 0);
+        const bounded = (v) => Math.min(cap, Math.max(0, v || 0));
+        const delta = bounded(next) - bounded(value); value = next;
+        if (!Number.isFinite(delta) || !delta) return;
+        const frame = resourceFrames[resourceFrames.length - 1];
+        addTo(slot(frame.where), "resources", frame.source + ":" + key + (delta > 0 ? "+" : "-"), Math.abs(delta));
+      }
+    });
+    restore.push(() => Object.defineProperty(p, key, { ...desc, value }));
+  }
+  try { return fn(); }
+  finally { for (const undo of restore) undo(); resourceFrames.pop(); if (outer) persist(); }
+}
+
+// クラスの挙動やセーブの列を変えず、同期の戦闘処理へ記録を添える。
+export function tlWatchBattle(b, where) {
+  if (Object.hasOwn(b, "_tlWatched")) return;
+  Object.defineProperty(b, "_tlWatched", { value: true, configurable: true });
+  const methods = { advance:"battle", commit:"battle", enemyAct:"enemy", stunnedAct:"battle",
+    _exec:"action", _cast:"skill", _physical:"physical", _startRound:"round", _partyHeal:"skill",
+    _perkRound:"passive", _perkHit:"passive", _perkHurt:"passive", _afterBasic:"passive",
+    _perkHeal:"passive", _perkMp:"passive", _roundEndRank:"passive", _roundStartRank:"passive", _useItem:"item" };
+  for (const [key, source] of Object.entries(methods)) {
+    const original = b[key]; if (typeof original !== "function") continue;
+    Object.defineProperty(b, key, { configurable:true, writable:true, value:function(...args) {
+      if (key === "_exec" && S.on) {
+        const cmd = args[0], actor = cmd?.actor;
+        if (actor?.side === "party") addTo(slot(where), "actions", `${actor.jobKey || "?"}:${cmd.spellKey || cmd.action}`, 1);
+      }
+      return tlMeasure(where, this.party, source, () => original.apply(this, args));
+    } });
+  }
+}
 
 const stamp = () => {
   const d = new Date(), z = (n) => String(n).padStart(2, "0");
@@ -127,6 +182,28 @@ function dollRow(p, i) {
     p.maxhp || 0, p.maxmp || 0, p.atk || 0, p.vit || 0, p.agi || 0, p.int || 0, p.pie || 0, p.luk || 0, p.alive ? 1 : 0];
 }
 
+function resourceState(party) {
+  return party.map((p) => ({ name:p.name, hp:p.hp, mp:p.mp, maxhp:p.maxhp, maxmp:p.maxmp, alive:p.alive !== false }));
+}
+export function tlRunBegin(where, party, context = {}) {
+  if (!S.on || !where) return;
+  const d = slot(where), runs = d.runs || (d.runs = []);
+  const entry = JSON.parse(JSON.stringify({ t:stamp(), floor:where.floor, p:party.map(dollRow), resources:resourceState(party), ...context }));
+  if (!d.firstEntry) d.firstEntry = entry;
+  runs.push({ entry });
+  // 初記録は別に保持し、詳細な出撃履歴は直近20回まで。
+  if (runs.length > 20) runs.shift();
+  d.entries = (d.entries || 0) + 1;
+  persist();
+}
+export function tlRunEnd(where, party, outcome) {
+  if (!S.on || !where) return;
+  const d = slot(where), run = d.runs?.[d.runs.length - 1];
+  if (run && !run.exit) run.exit = { t:stamp(), floor:where.floor, outcome, resources:resourceState(party) };
+  addTo(d, "outcomes", outcome || "return", 1);
+  persist();
+}
+
 // 隊の様子を残す。kind: "floor" (階に着いた) / "clear" (迷宮を踏破)
 // where = { key, name, lv, floor, floors } (key = 迷宮の id / 奈落は A深度)
 export function tlSnapshot(kind, where, party) {
@@ -136,7 +213,13 @@ export function tlSnapshot(kind, where, party) {
     t: stamp(), f: where.floor || 1,
     base: Math.round(partyAgi(where.lv || 1) * 10) / 10, // 推奨Lv の隊の AGI の物差し
     p: party.map(dollRow),
+    resources: resourceState(party),
   };
+  if (!d.s.firstObserved) d.s.firstObserved = snap;
+  if (kind === "floor") {
+    const f = d.floors || (d.floors = {}), checkpoint = f[where.floor] || (f[where.floor] = { n:0, hp:0, mp:0 });
+    checkpoint.n++; checkpoint.hp += Math.round(hpRate(party) * 1000); checkpoint.mp += Math.round(mpRate(party) * 1000);
+  }
   if (kind === "floor") d.fl = (d.fl || 0) + 1; // 着いた階の数 (同じ階へ何度着いても数える。魂・時間を階あたりにする物差し)
   if (kind === "clear") d.s.clear = snap;
   else if ((where.floor || 1) <= 1) {
@@ -170,6 +253,10 @@ const hpRate = (party) => {
   for (const p of party) { max += p.maxhp || 0; hp += p.alive ? Math.max(0, p.hp || 0) : 0; }
   return max > 0 ? hp / max : 0;
 };
+const mpRate = (party) => {
+  const max = party.reduce((n,p)=>n+(p.maxmp || 0),0);
+  return max ? party.reduce((n,p)=>n+(p.alive === false ? 0 : Math.max(0,p.mp || 0)),0)/max : 0;
+};
 
 // 戦闘の開始: 戦闘ごとのメモを返す (Battle に持たせ、終了時に tlBattleEnd へ渡す)
 export function tlBattleBegin({ where, kind, opening, openSrc, ambRate, party, enemies }) {
@@ -183,6 +270,7 @@ export function tlBattleBegin({ where, kind, opening, openSrc, ambRate, party, e
     eAgiAvg: eAgis.length ? eAgis.reduce((s, v) => s + v, 0) / eAgis.length : 0,
     en: enemies.length,
     hp0: hpRate(party),
+    mp0: mpRate(party),
     dd: 0, dt: 0,
   };
 }
@@ -218,6 +306,8 @@ export function tlBattleEnd(memo, { result, rounds, tally, party }) {
   a.dd += memo.dd; a.dt += memo.dt;
   a.hp0 += Math.round(memo.hp0 * 1000);
   a.hp1 += Math.round(hpRate(party) * 1000);
+  a.resourceBattles = (a.resourceBattles || 0) + (memo.mp0 != null ? 1 : 0);
+  if (memo.mp0 != null) { a.mp0 = (a.mp0 || 0) + Math.round(memo.mp0 * 1000); a.mp1 = (a.mp1 || 0) + Math.round(mpRate(party) * 1000); }
   a.pAgi += Math.round(memo.pAgi * 10);
   a.eAgi += Math.round(memo.eAgi * 10);
   a.eAgiAvg += Math.round(memo.eAgiAvg * 10);
@@ -283,15 +373,15 @@ function soulText(b) {
   return [["c", "C"], ["r", "R"], ["e", "E"], ["l", "L"]].filter(([k]) => b[k]).map(([k, n]) => `${n}${b[k]}`).join(" ");
 }
 
-function sortedKeys() {
-  return Object.keys(S.d).sort((a, b) => (a[0] === b[0] ? parseInt(a.slice(1), 10) - parseInt(b.slice(1), 10) : a < b ? -1 : 1));
+function sortedKeys(data = S.d) {
+  return Object.keys(data).sort((a, b) => (a[0] === b[0] ? parseInt(a.slice(1), 10) - parseInt(b.slice(1), 10) : a < b ? -1 : 1));
 }
 
 // 画面に出す要約 (迷宮ごとに1〜2行)
-export function tlSummary() {
+export function tlSummary(data = S.d) {
   const out = [];
-  for (const k of sortedKeys()) {
-    const d = S.d[k];
+  for (const k of sortedKeys(data)) {
+    const d = data[k];
     const snap = d.s.clear || d.s.last || d.s.f1;
     const lv = snap ? snap.p.filter((r) => r[13]).map((r) => r[3]) : [];
     const head = `${k} ${d.name}` + (lv.length ? `  Lv${Math.min(...lv)}-${Math.max(...lv)}` : "");
@@ -299,14 +389,25 @@ export function tlSummary() {
     for (const kind of ["n", "e", "b"]) {
       const a = d.b[kind];
       if (!a || !a.c) continue;
-      parts.push(`${KIND_LABEL[kind]}${a.c}戦 ` +
+      parts.push(`${KIND_LABEL[kind]}${a.c}戦 勝${a.w || 0}/逃${a.fl || 0}/全滅${a.l || 0} ` +
         `敵の命中${pct(a.ea - a.ee - a.ep, a.ea)} 味方の命中${pct(a.pa - a.pe - a.pp, a.pa)} ` +
         `味方先手${pct(a.of, a.op)}${ambushNote(a)} 逃走${a.ft ? `${a.fo}/${a.ft}${fleeExpect(a)}` : "―"} ` +
         `AGI 隊${avg(a.pAgi, a.c, 10)}/敵${avg(a.eAgi, a.c, 10)}`);
+      if (a.resourceBattles) parts.push(`  戦闘前後MP ${avg(a.mp0,a.resourceBattles,10)}%→${avg(a.mp1,a.resourceBattles,10)}% (記録${a.resourceBattles}戦)`);
     }
     const extra = lootLine(d);
     if (extra) parts.push(extra);
     parts.push(...gainLines(d));
+    if (d.firstEntry) {
+      const levels = d.firstEntry.p.map(p=>p[3]);
+      parts.push(`この版の初記録出撃 B${d.firstEntry.floor}F・Lv${Math.min(...levels)}〜${Math.max(...levels)} / 出撃${d.entries || 1}回 / 帰還 ${srcText(d.outcomes) || "なし"}`);
+    }
+    if (d.floors) parts.push("階到着時 " + Object.entries(d.floors).map(([f,a])=>`B${f}F HP${avg(a.hp,a.n,10)}% MP${avg(a.mp,a.n,10)}% (${a.n}回)`).join(" / "));
+    if (d.resources) {
+      const labels = { battle:"戦闘", enemy:"敵行動", action:"行動", skill:"技・呪文", physical:"物理・吸収", round:"ターン", passive:"戦闘パッシブ", victory:"勝利後", floor:"階移動", explore:"探索パッシブ", fountain:"泉", darkFountain:"黒い泉", victoryTerrain:"掟・特別階の勝利後", item:"道具", camp:"探索中の術", event:"出来事", trap:"罠", terrain:"床・盤面", poison:"毒", growth:"Lv上昇" };
+      const sources = [...new Set(Object.keys(d.resources).map(k=>k.split(":")[0]))];
+      for (const source of sources) parts.push(`収支 ${labels[source] || source}: HP 回復${d.resources[source+":hp+"] || 0}/消耗${d.resources[source+":hp-"] || 0} MP 回復${d.resources[source+":mp+"] || 0}/消耗${d.resources[source+":mp-"] || 0}`);
+    }
     out.push({ head, lines: parts.length ? parts : ["戦闘の記録なし"] });
   }
   return out;
@@ -314,8 +415,12 @@ export function tlSummary() {
 
 // 書き出し用テキスト (要約 + 生データの JSON)
 export function tlExportText() {
-  const lines = [`【DOS テスト記録 v${VERSION}】 記録開始 ${S.since || "―"} / 書き出し ${stamp()}`];
+  const lines = [`【DOS テスト記録 v${VERSION}】 版 ${TEST_BUILD} / 記録開始 ${S.since || "―"} / 書き出し ${stamp()}`];
   for (const s of tlSummary()) { lines.push(s.head); for (const l of s.lines) lines.push("  " + l); }
+  for (const history of S.history || []) {
+    lines.push(`\n【過去版 ${history.build}】 ${history.since || "―"} ～ ${history.until}`);
+    for (const s of tlSummary(history.d)) { lines.push(s.head); for (const l of s.lines) lines.push("  " + l); }
+  }
   lines.push("");
   lines.push("隊の列: 名前,職,ランク,Lv,列,最大HP,最大MP,ATK,VIT,AGI,INT,PIE,LUK,生存 / base=基準AGI");
   lines.push("戦闘の鍵: c戦闘 w勝 fl逃 l全滅 rラウンド pre先制 amb奇襲 ambR/ambX=奇襲のうち抽選/出来事・待ち伏せ ambP=抽選の奇襲率×1000の合計 pa/pe/pp=味方の物理 試行/回避された/見切られた " +
@@ -327,6 +432,7 @@ export function tlExportText() {
     "ss/gs=迷宮で得た✦/金貨の出どころ (bn/be/bb=通常/精鋭等/主の戦闘 mt=金属の魔物 ev=出来事 cp=死体 ch=宝箱 hd=殲滅 x=他) " +
     "sx/gx=そのうち倍率で増えた分 (psv=パッシブ sf=特別な階 mut=異変 trait=迷宮の掟 oth=出来事の効果・奈落 eq=装備・恵み) " +
     "tsoul/tgold=その迷宮へ入る前に町で得た✦/金貨 (qk/qs/qc/qf/qd=依頼 討伐/魂/宝箱/到達/納品 tip=心付け bond=なじみの贈り物 fq=依頼人の頼み r=王への報告 a=勲章 t=宝物庫 sell=売却)");
-  lines.push(JSON.stringify({ v: S.v, since: S.since, townMs: S.townMs || 0, townSl: S.townSl || null, townG: S.townG || null, d: S.d }));
+  lines.push("追加の鍵: resources=出どころ:hp/mp:+回復/-消耗 (実増減・過剰回復を除く); actions=職:技/行動の使用回数; mp0/mp1=戦闘前後MP割合×1000; resourceBattles=MP記録済み戦闘数; floors=階到着時HP/MP割合×1000の合計と回数; firstEntry=この版で最初に記録した出撃 (初攻略とは限らない); runs=直近20出撃の入口と帰還時資源・結果; history=過去版の記録。未対応の回復経路は収支に含まれない。");
+  lines.push(JSON.stringify({ v: S.v, build:S.build, since: S.since, townMs: S.townMs || 0, townSl: S.townSl || null, townG: S.townG || null, d: S.d, history:S.history || [] }));
   return lines.join("\n");
 }

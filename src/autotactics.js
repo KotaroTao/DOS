@@ -217,7 +217,7 @@ function skillCands(b, ctx, actor, key, sp) {
         if (d < t.hp * 0.9) c.stat += foeEffects(b, ctx, actor, sp, t);
         if (sp.drain) c.heal += Math.min(d * sp.drain, actor.maxhp - actor.hp) * healUrg(ctx, actor, W);
       }
-      if (sp.partyHeal) for (const a of ctx.allies) c.heal += Math.min(b.estHeal(actor, { power: sp.partyHeal }) * 0.85, a.maxhp - a.hp) * healUrg(ctx, a, W);
+      if (sp.partyHeal) for (const a of ctx.allies) c.heal += Math.min(b.estPartyHeal(actor, sp.partyHeal), a.maxhp - a.hp) * healUrg(ctx, a, W);
       if (sp.debuffAll) for (const t of b.livingEnemies()) c.stat += statMods(b, ctx, sp.debuffAll, sp.dur, t);
       if (sp.kind === "sleep") for (const t of b.livingEnemies()) {
         if (t.asleep || isMetal(t)) continue;

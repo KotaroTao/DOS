@@ -153,14 +153,15 @@ export function affinityRow(element, cls = "") {
 
 // ===== 敵の情報の段階開示 (討伐数しだい) =====
 // 姿は最初から見える。1体 = 名前 / 5体 = 属性とHP / 10体 = 特徴・スキルと説明文。
-// 迷宮の主だけは名前を最初から明かし、1体討てば全てを明かす (BOSS_REVEAL)。
+// 迷宮の主・強敵は1体討てば全てを明かす。主・名のある強敵は名前を最初から明かす。
 // 戦闘画面 (名札・HPの小瓶)・「敵の姿」・図鑑の一枚で共通
 export const MON_REVEAL = { name: 1, stats: 5, lore: 10 };
 export const BOSS_REVEAL = { name: 0, stats: 1, lore: 1 };
 // その魔物 (図鑑の定義) の開示段階
 // 名のある強敵 (dungeons/named.js) は名だけ最初から明かす (噂で知れ渡っている)。能力・伝承は倒して知る
-export const NAMED_REVEAL = { name: 0, stats: MON_REVEAL.stats, lore: MON_REVEAL.lore };
-export function revealSteps(m) { return m && m.boss ? BOSS_REVEAL : m && m.named ? NAMED_REVEAL : MON_REVEAL; }
+export const NAMED_REVEAL = { name: 0, stats: 1, lore: 1 };
+export const ELITE_REVEAL = { name: 1, stats: 1, lore: 1 };
+export function revealSteps(m) { return m && m.boss ? BOSS_REVEAL : m && m.named ? NAMED_REVEAL : m && m.elite ? ELITE_REVEAL : MON_REVEAL; }
 // その魔物を倒した数 (図鑑の記録を読むだけ。記録を作らない)
 export function monKills(key) {
   const g = game.G;
@@ -240,7 +241,7 @@ export function skillDetailLines(sp) {
     if (sp.vitScale) lines.push("使い手のVITでも威力が伸びる");
     if (sp.pieScale) lines.push("使い手のPIEでも威力が伸びる");
     if (sp.acc) lines.push(sp.acc >= 1 ? "必中（相手の素早さに関係なく当たる）" : `命中UP（外れる確率を${pct(sp.acc)}減らす）`);
-    if (sp.pierce) lines.push((sp.pierce >= 1 ? "相手の防御（VIT）を無視する" : `相手の防御（VIT）を${pct(sp.pierce)}無視する`) + "・物理耐性1〜2も無視する（物理無効は貫けない）");
+    if (sp.pierce) lines.push(sp.pierce >= 1 ? "相手の防御（VIT）と物理耐性1〜2を無視する（物理無効は貫けない）" : `相手の防御（VIT）と物理耐性1〜2による軽減を${pct(sp.pierce)}無視する（物理無効は貫けない）`);
     if (sp.critBonus) lines.push(sp.critBonus >= 1 ? "必ず会心になる" : `会心率 +${pct(sp.critBonus)}`);
     if (sp.desperate) lines.push("自分のHPが減っているほど威力が上がる（最大2倍）");
     if (sp.steal) lines.push(`当てた敵から、所持金の${pct(sp.steal)}を盗む（1体につき1度・逃げても持ち帰る）`);
@@ -740,4 +741,3 @@ export function equipPartyChips(it, party = (game.G && game.G.party) || []) {
   }
   return row;
 }
-
