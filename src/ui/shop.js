@@ -83,6 +83,7 @@ function sellSubset(list) {
     if (idx < 0 || item.cursed || item.unidentified) continue;
     doll.items.splice(idx, 1);
     g.gold += price; gold += price;
+    if (game.tlTown) game.tlTown("gold", price, "sell");
     if (item.id) game.shopStockAdd(item.id);
     if (game.codexSeeItem) game.codexSeeItem(item.id);
     n++;
