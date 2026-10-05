@@ -58,7 +58,7 @@ function fusableDoll() {
 }
 function spareSouls() {
   const worn = wornSet();
-  return (G_().souls || []).filter((s) => !worn.has(s.uid));
+  return (game.soulRepresentatives ? game.soulRepresentatives() : G_().souls || []).filter((s) => !worn.has(s.uid) && !(G_().party || []).some((d) => game.soulSlotConflict && game.soulSlotConflict(d, s.uid, "sub0")));
 }
 // 融合できる魂がどこかにある (宿していない魂どうしでもよい)
 function anyFusable() {
@@ -86,11 +86,78 @@ function goTavern() {
   if (UI.shell && UI.shell.openPage) UI.shell.openPage("tavern", { parentTab: "hub" });
 }
 
+function initialJobsReady(jobs) {
+  const worn = new Set(allDolls().map((d) => soulByUid(d.primary)?.clsKey));
+  return jobs.every((k) => worn.has(k));
+}
+function newJobSouls() {
+  const initial = new Set(["fighter", "priest", "thief", "mage"]);
+  return (game.soulRepresentatives ? game.soulRepresentatives() : G_().souls || []).filter((s) => !initial.has(s.clsKey));
+}
+let visitTimer = null;
+function mansionVisited() {
+  const st = tutState();
+  if (!st || st.done.changeJob || !newJobSouls().length || G_().msq?.n === 0) return;
+  st.jobVisit = true;
+  if (visitTimer) return;
+  visitTimer = setTimeout(() => {
+    visitTimer = null;
+    if (G_().state !== "town" || G_().town?.tab !== "party" || G_().town?.page || busy || sceneActive() || sheetDepth() > 0) return;
+    if (pending()?.key === "changeJob") resume();
+  }, 300);
+}
+
 // ---- 手ほどきの定義 (解放の順) ----
 //   at = 解放の踏破報告数 / open() = 解放済みか / used() = もう使ったことがある (旧セーブは済み扱い)
 //   prepare() = 始める時 (練習用の素材を預ける。導入に添える一言を返す)
 //   intro(note) = 導入 / steps = [{ text, hint, go(), target[], done?(), on?, skip?() }] / outro = 完了のカードの行
 const TUTS = [
+  {
+    key: "createThree", name: "三体の人業を仕立てる", who: "irene",
+    open: () => G_().msq?.n === 0 && G_().msq.granted && G_().msq.stage !== "fourth",
+    used: () => initialJobsReady(["fighter", "priest", "thief"]),
+    intro: () => [["王さまから授かった三つの魂を、器に宿しましょう。", "最初の三体は無料でお仕立てします。"], ["『人業を仕立てる』から魂を選び、名前を与えてください。", "戦士・僧侶・盗賊が揃ったら、王さまにご報告を。"]],
+    steps: [{ text: "戦士・僧侶・盗賊の人業を仕立てる", hint: "人業の館 → 人業を仕立てる → 魂を選ぶ → 名前を決める", go: () => game.goMakeDoll(), target: [".pt-empty button", ".pt-soulrow", ".pt-res-sw button"], done: () => initialJobsReady(["fighter", "priest", "thief"]) }],
+    outro: ["三体の人業が目覚めた。王宮で王に報告しよう。"],
+  },
+  {
+    key: "createFourth", name: "赤い魂で四体目を仕立てる", who: "irene",
+    open: () => G_().msq?.n === 0 && G_().msq.stage === "fourth",
+    used: () => initialJobsReady(["fighter", "priest", "thief", "mage"]),
+    intro: () => [["今度は、赤い魂で器をお買い求めください。", "四体目のお代は、赤い魂30です。"], ["新しい器には、王さまから授かった魔導士の魂を宿しましょう。", "名前を与えたら、もう一度王さまにご報告ください。"]],
+    steps: [{ text: "赤い魂30で器を買い、魔導士を仕立てる", hint: "人業の館 → 人業を仕立てる → 魔導士の魂 → 名前を決める", go: () => game.goMakeDoll(), target: [".pt-soulrow", ".pt-res-sw button"], done: () => initialJobsReady(["fighter", "priest", "thief", "mage"]) }],
+    outro: ["四体目の魔導士が目覚めた。王に報告しよう。"],
+  },
+  {
+    key: "buyEquipment", name: "商店で装備を購入する", who: "shop",
+    open: () => G_().msq?.n >= 1 && !(G_().stats?.runs > 0),
+    used: () => false,
+    intro: () => ["王から授かった金貨500で、人業の装備を整えよう。", "商店の『買う』で武器や防具を選ぶ。『買って装備』なら、そのまま人業に持たせられる。"],
+    steps: [{ text: "商店で武器か防具を買う", hint: "商店 → 買う → 武器・防具 → 買って装備", go: () => UI.openShop && UI.openShop("buy", { cat: "weapon" }), target: [".wpc-buy-main", ".wpc-buy-more"], on: "equipmentBought" }],
+    outro: ["装備を購入できた。人業に装備させ、迷宮へ向かおう。"],
+  },
+  {
+    key: "firstDive", name: "初めて迷宮に入る", who: "gate",
+    open: () => G_().msq?.n >= 1 && !!tutState().done.buyEquipment,
+    used: () => (G_().stats?.runs || 0) > 0,
+    intro: () => ["四体の人業と装備が揃った。最初の迷宮へ向かおう。", "出撃の画面で『忘れられた地下墓地』と隊の備えを確認し、『門をくぐる』を押す。"],
+    steps: [{ text: "忘れられた地下墓地の門をくぐる", hint: "出撃 → 迷宮と隊の備えを確認 → 門をくぐる", go: () => UI.openDeparture && UI.openDeparture(), target: [".dp-cta"], on: "dungeonEntered" }],
+    outro: ["迷宮へ踏み出した。師の足跡を探そう。"],
+  },
+  {
+    key: "changeJob", name: "魂を付け替えて職業を変える", who: "irene",
+    open: () => G_().msq?.n >= 1 && !!tutState().jobVisit && newJobSouls().length > 0,
+    used: () => false,
+    prepare() { tutState().base.jobs = newJobSouls().map((s) => s.clsKey); },
+    intro: () => [
+      ["新しい職業の魂を持ち帰られたのですね。", "魂を宿す器があれば、新たな人業を仕立て、仲間を増やすことができます。"],
+      ["人業が増えれば、迷宮の攻略も楽になります。", "パーティには六体まで連れてゆけます。"],
+      ["新しい器は、この館で赤い魂と引き換えにお仕立てします。", "赤い魂は、街の『赤い魂の祠』で入手できます。"],
+      ["今いる人業の魂を付け替えて、職業を変えることもできます。", "今回は、その方法をお教えしましょう。"], ["『魂』の区分から『魂を付け替える』を開き、新しい魂をお選びください。", "魂の育ちは魂に残ります。外した魂も、失われません。"], ["同じ職業を宿した人業が一緒に迷宮へ入ると、魂同士が干渉し、壊れてしまいます。", "メイン・サブを通じて、同じ職業の魂はパーティに一つだけ。重なる魂は、編成の時点で選べません。"]],
+    steps: [{ text: "新しい職業の魂をメイン魂に宿す", hint: "人業の館 → 人業を選ぶ → 魂 → 魂を付け替える", go: () => goSoulSeg(), target: [".sp-change", ".sp-srow-main:not(:disabled)"], done: () => allDolls().some((d) => (tutState().base.jobs || []).includes(soulByUid(d.primary)?.clsKey)), skip: () => !newJobSouls().length }],
+    outro: ["魂を付け替えれば、同じ器でも別の職業として戦える。迷宮に合わせて編成を考えよう。"],
+  },
+
   {
     key: "fusion", name: "魂融合", who: "irene",
     open: () => !!(game.featureUnlocked && game.featureUnlocked("fusion")),
@@ -120,13 +187,13 @@ const TUTS = [
       text: "魂融合で、余っている魂を溶かす",
       // 宿している魂に融合できるなら魂の区分の『魂融合』、無ければ『魂を付け替える』の一覧の『魂融合』
       get hint() {
-        return fusableDoll() ? "魂の区分 →『魂融合』→ 素材の魂を選ぶ" : "魂の区分 →『魂を付け替える』→ 戦士の魂の『魂融合』";
+        return fusableDoll() ? "人業の館 → 魂の区分 →『魂融合』→ 素材の魂を選ぶ" : "魂の区分 →『魂を付け替える』→ 戦士の魂の『魂融合』";
       },
       go: () => goSoulSeg(fusableDoll()), target: [".sp-fuse.hot", ".sp-pick-fuse", ".sp-change"],
       done: () => ((G_().stats || {}).fusions || 0) > (tutState().base.fusions || 0),
       skip: () => !anyFusable(),
     }],
-    outro: ["同じ職の魂が手に入ったら、融合して魂の格を上げよう。", "融合した魂は自動でロックされ、融合の素材にならない。"],
+    outro: ["同じ職の魂が手に入ったら、融合して魂の格を上げよう。", "職業ごとの魂は1つだけ。余った同職の魂は、その魂へ融合しよう。"],
   },
   {
     key: "sub1", name: "サブ魂", who: "irene",
@@ -286,12 +353,12 @@ function start(d) {
 // 酒場の手ほどきの導入 (情報屋の札)
 function introSheet(d, done) {
   let art = null;
-  try { art = vignetteCanvas("tavern"); } catch (e) { art = null; }
+  try { art = vignetteCanvas(d.who === "shop" ? "shop" : d.who === "gate" ? "palace" : "tavern"); } catch (e) { art = null; }
   let fired = false;
   const go = () => { if (fired) return; fired = true; done(); };
   const h = sheet.open({
     kind: "choice", banner: "手ほどき", title: d.name, art, lines: d.intro(),
-    footer: [{ label: "酒場へ", kind: "primary", size: "lg", onTap: (s) => s.close("ok") }],
+    footer: [{ label: d.who === "shop" ? "商店へ" : d.who === "gate" ? "出撃へ" : "酒場へ", kind: "primary", size: "lg", onTap: (s) => s.close("ok") }],
     onClose: go,
   });
   if (!h || !h.el) go();
@@ -341,7 +408,7 @@ function finish(d) {
   const more = dueKeys().length > 0;
   const h = celebrate({
     banner: "手ほどき完了", title: d.name,
-    lines: [...d.outro, more ? "── 続けて、もうひとつ手ほどきがある。" : "── 迷宮の門が、ふたたび開かれた。"],
+    lines: [...d.outro, ...(more ? ["── 続けて、もうひとつ手ほどきがある。"] : [])],
     okLabel: more ? "次の手ほどきへ" : "心得た", sparkle: false,
     onClose: after,
   });
@@ -360,6 +427,17 @@ function onEvent(name) {
   const st = tutState();
   if (!st || !st.cur) return;
   st.ev[name] = true;
+  if (name === "dollCreated" && st.cur === "createThree") {
+    setTimeout(() => {
+      if (tutState().cur === "createThree" && inTown() && !busy && !sceneActive() && sheetDepth() === 0 && !stepDone(curStep())) goStep(true);
+    }, 250);
+  }
+  if (name === "dungeonEntered" && st.cur === "firstDive") {
+    st.done.firstDive = true; st.cur = null; st.step = 0; st.ev = {}; st.base = {};
+    clearGlow(); updateBar();
+    if (game.autosave) game.autosave(true);
+    return;
+  }
   schedule();
 }
 
@@ -423,6 +501,7 @@ function updateBar() {
 
 export function install() {
   registerUI({
+    tutorialMansionVisited: mansionVisited,
     tutorialPending: pending,
     tutorialResume: resume,
     tutorialAfterReport: afterReport,

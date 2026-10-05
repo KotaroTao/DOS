@@ -109,8 +109,8 @@ function fusable(c) {
   return null;
 }
 const canMake = (c) => c.party.length < 6 && c.freeSouls.length > 0 && (c.G.redSoul || 0) >= safe(() => game.emptyDollCost(), Infinity);
-// 第0章で仕立てる残りの数 (王命は四体。game.js の TUT_DOLLS と同じ)
-const tutLeft = (c) => (c.ms.n === 0 && c.ms.granted && c.dolls.length) ? Math.max(0, 4 - c.dolls.length) : 0;
+// 第0章で仕立てる残りの数 (最初は三体、報告後は四体)。
+const tutLeft = (c) => (c.ms.n === 0 && c.ms.granted && c.dolls.length) ? Math.max(0, (c.ms.stage === "fourth" ? 4 : 3) - c.dolls.length) : 0;
 const jobName = (s) => (s && SOUL_CLASSES[s.clsKey] ? soulSeriesName(s.clsKey) : "宿した");
 
 // ---------- 親しさ (よそよそしい → 親密) ----------
@@ -148,10 +148,10 @@ const LINES = [
   { id: "n_nodoll", kind: "now", must: true, when: (c) => !c.dolls.length, say: {
     0: ["では、宿す魂をひとつお選びください。", "器はこちらで仕立てます。オルド様のお弟子さまですから、最初の三体にお代は要りません。"],
     2: ["さあ、宿す魂をひとつ選んで。", "器はわたしが仕立ててあげる。"] } },
-  // 第0章「人業の生成」: 王命は四体。揃うまで必ず数を告げる
+  // 第0章「人業の生成」: 三体、報告後は四体。揃うまで必ず数を告げる
   { id: "n_tut4", kind: "now", must: true, when: (c) => tutLeft(c) > 0 && canMake(c), say: {
-    0: (c) => [`王命は人業を四体、でございましたね。あと${tutLeft(c)}体です。`, "残る魂を、ひとつずつ器にお宿しください。"],
-    2: (c) => [`王様の命は四体だったわね。あと${tutLeft(c)}体よ。`, "残る魂も、器に宿してあげて。"] } },
+    0: (c) => [`王命は人業を${c.ms.stage === "fourth" ? "四" : "三"}体、でございましたね。あと${tutLeft(c)}体です。`, "残る魂を、ひとつずつ器にお宿しください。"],
+    2: (c) => [`王様の命は${c.ms.stage === "fourth" ? "四" : "三"}体だったわね。あと${tutLeft(c)}体よ。`, "残る魂も、器に宿してあげて。"] } },
   { id: "n_dead", kind: "now", when: (c) => !!deadDoll(c), say: {
     0: (c) => deadDoll(c).reviveAt ? [`${deadDoll(c).name}の器は、まだ迷宮に残されたままです。`, "時が経てば連れ帰られます。赤い魂で迎えを早めることもできます。"]
       : [`${deadDoll(c).name}の器が、砕けたままです。`, "その子を選べば、金貨で砕けた魂を修復いたします。"],
