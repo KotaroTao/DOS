@@ -69,7 +69,7 @@ export const LAYER1_ITEMS = [
     desc: "千年眠り続けた聖女の亡骸を包んでいた布。いかなる毒も呪いも纏う者には届かず、ただ静寂だけがそこに在る。" })),
   lr(W("lr_l1_saintmace", "聖骸の鉄槌", "mc", 35, { pow: 1.6, eAtk: ["light", 2], pie: 8, eff: { regen: 0.06 }, tint: "#fff0b0",
     desc: "殉教者の遺骨を芯に封じた鉄槌。振るう者の傷を聖なる光が絶えず塞ぎ、打ち据えた不死者を一撃で塵へ還す。" })),
-  lr(W("lr_l1_requiemblade", "鎮魂剣レクイエム", "ls", 38, { onHit: ["sleep", 0.15], pow: 1.6, eAtk: ["light", 2], eff: { multistrike: 1 }, tint: "#e0e8ff",
+  lr(W("lr_l1_requiemblade", "鎮魂剣レクイエム", "ls", 38, { onHit: ["sleep", 0.15], pow: 1.6, eAtk: ["light", 2], eff: { multistrike: 2 }, tint: "#e0e8ff",
     desc: "百の迷宮が口を開けた夜、最初の墓守が振るったと伝わる剣。刃は二度歌い、一振りのうちに死者を二度眠らせる。" })),
   lr(W("lr_l1_lichstaff", "千魂の杖", "st", 40, { pow: 1.6, int: 18, mp: 30, eff: { spellCostMul: 0.7 }, tint: "#8a5ad0",
     desc: "千の魂を喰らった屍術師の杖。杖頭に囚われた魂が術者の代わりに呪文の代償を払い、唸り声とともにその魔力を術へ注ぎ込む。" })),

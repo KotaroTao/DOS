@@ -61,7 +61,7 @@ export const LAYER4_ITEMS = [
     desc: "援軍の来なかった夜、守備隊が最後に掲げた軍旗を盾に張ったもの。旗の下に立つ者がいるかぎり、仲間に届く刃を引き受け続ける。" })),
   lr(W("lr_l4_lordsword", "砦の主の剣", "ls", 54, { pow: 1.45, eAtk: ["light", 2], hp: 24, eff: { counter: 0.35 }, tint: "#d0c8b0",
     desc: "王都の書状を握り潰した砦の主が、最後まで振るった剣。退くことを知らぬ刃は、受けた一撃に必ず一撃を返す。" })),
-  lr(W("lr_l4_stormcleaver", "雷呑みの大太刀", "kt", 55, { pow: 1.45, two: true, eAtk: ["fire", 2], agi: 6, eff: { multistrike: 1 }, tint: "#ff8a40",
+  lr(W("lr_l4_stormcleaver", "雷呑みの大太刀", "kt", 55, { pow: 1.45, two: true, eAtk: ["fire", 2], agi: 6, eff: { multistrike: 2 }, tint: "#ff8a40",
     desc: "百年止まぬ雷雨の只中で、雷そのものを鍛え込んだと伝わる大太刀。振れば刃が二度閃き、雷の魔物すら焼き払う。" })),
   lr(H("lr_l4_watchcrown", "不寝番の兜", 56, { weight: "heavy", pow: 1.6, hp: 28, eff: { actFirst: true }, tint: "#7a7a8a",
     desc: "百年眠らずに城壁に立ち続けた見張り頭の兜。被る者は敵の気配を誰よりも早く察し、戦いの初めに必ず先手を取る。" })),

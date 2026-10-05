@@ -69,7 +69,7 @@ export const LAYER2_ITEMS = [
     desc: "掌にヤツメウナギの吸い口を縫い込んだ不気味な籠手。拳が触れた相手から生気をすすり、握る者の傷へと流し込む。" })),
   lr(A("lr_l2_sewerwardmail", "水路衛士の重鎧", 34, { pow: 1.6, hp: 26, eff: { guard: 0.12 }, eDef: ["earth", 2], tint: "#4a5a6a",
     desc: "水路の守りに就いた衛士団の長の重鎧。水を吸って重くなるどころか、浸かるほど締まって刃を拒む。仲間をかばう盾のような鎧。" })),
-  lr(W("lr_l2_floodspear", "大水の槍", "sp", 36, { pow: 1.6, eAtk: ["earth", 2], eff: { multistrike: 1 }, tint: "#3a8ab0",
+  lr(W("lr_l2_floodspear", "大水の槍", "sp", 36, { pow: 1.6, eAtk: ["earth", 2], eff: { multistrike: 2 }, tint: "#3a8ab0",
     desc: "王都を呑んだ大洪水の夜、堤の上で振るわれたと伝わる槍。穂先には濁流を堰き止めた堤の土が焼き付き、突き出すたびに水を二度押し返して、一突きで二度貫く。" })),
   lr(W("lr_l2_earthenmaul", "堤築きの大槌", "mc", 37, { pow: 1.45, two: true, eAtk: ["earth", 2], hp: 20, eff: { regen: 0.05 }, tint: "#8a7048",
     desc: "王都の堤を千年支えた礎石を頭に据えた大槌。大地の力が振るう者の傷を絶えず塞ぎ、水の魔物を泥のように打ち崩す。" })),
