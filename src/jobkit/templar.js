@@ -33,7 +33,7 @@ export default {
     TEMPLAR_SEIKANOHARAI: { name: "聖火の祓い", mp: 36, kind: "heal", power: 72, cure: true, purge: true, debuffAll: { atk: 0.9 }, target: "all-ally", desc: "聖火で味方を癒し祓い、敵の力を灼き削ぐ" },
     TEMPLAR_SANJUUKEKKAI: { name: "三重結界", mp: 24, kind: "buff", grantBarrier: 2, target: "all-ally", desc: "味方全体に魔障壁を2回分重ねて張る" },
     TEMPLAR_FUUMANOOOGANE: { name: "封魔の大鐘", mp: 30, kind: "debuff", seal: { chance: 0.5, turns: 3 }, strip: true, debuff: { atk: 0.85 }, target: "all-enemy", desc: "大鐘の音が敵陣の特技と強化を封じ、力を削ぐ" },
-    TEMPLAR_KOUSANAGI: { name: "光鎖薙ぎ", mp: 28, kind: "phys", power: 2.0, vitScale: 0.3, element: "light", acc: 0.6, flinchChance: 0.2, target: "all-enemy", desc: "光の鎖で敵陣を薙ぎ、怯ませる" },
+    TEMPLAR_KOUSANAGI: { name: "光鎖なぎ", mp: 28, kind: "phys", power: 2.0, vitScale: 0.3, element: "light", acc: 0.6, flinchChance: 0.2, target: "all-enemy", desc: "光の鎖で敵陣をなぎ、怯ませる" },
     TEMPLAR_SHUMONNOJIN: { name: "守門の陣", mp: 26, kind: "buff", shield: true, buff: { vit: 1.3 }, grantBarrier: 2, tech: true, target: "self", desc: "門となって仲間を庇い、魔障壁を重ねる" },
     TEMPLAR_SEIDOUKISHI: { name: "聖堂騎士の誓詞", mp: 30, kind: "buff", buff: { vit: 1.35, atk: 1.2 }, cure: true, target: "all-ally", desc: "誓詞が味方全体の攻守を高め、異常を祓う" },
     TEMPLAR_SHINDENNOSHINPAN: { name: "神殿の審判", mp: 32, kind: "atk", power: 62, element: "light", seal: { chance: 0.35, turns: 2 }, prey: { races: UNHOLY, mul: 1.3 }, target: "all-enemy", desc: "審判の光が敵全体を灼き、特技を封じる" },
@@ -58,7 +58,7 @@ export default {
       fx: [{ t: "win", mp: [0.05, 0.08, 0.11] }, { t: "cast", on: "cure", chance: [0.3, 0.4, 0.5], refund: true }],
     },
     templarFuumakusabi: {
-      label: "封魔の楔",
+      label: "封魔のくさび",
       lv: ["物理が当たると8%で敵の特技を封じる (2ターン)", "物理が当たると12%で敵の特技を封じる (2ターン)", "物理が当たると16%で敵の特技を封じる (2ターン)", "物理が当たると20%で敵の特技を封じる (2ターン)"],
       fx: [{ t: "hit", chance: [0.08, 0.12, 0.16, 0.20], ail: "seal", turns: 2 }],
     },

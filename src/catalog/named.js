@@ -21,7 +21,7 @@ export const NAMED_ITEMS = [
   trophy(3, "el_chainoverseer", W("w_nm_chainoverseer", "坑監の鎖鞭", "mc", 38, { pow: 1.4, eff: { multistrike: 2 }, tint: "#8a8070",
     desc: "罪人たちを坑の奥へ追い立てた鉄の鎖鞭。振るえば鎖が二度、三度とうねって打ちつける。鎖鞭の坑監の首級。" })),
   trophy(3, "el_crystalseer", W("w_nm_crystalseer", "晶眼の杖", "st", 38, { pow: 1.4, int: 6, aRes: { stone: 0.4 }, eAtk: ["wind", 1], eff: { spellCostMul: 0.85 },
-    desc: "錬金術師の体から生え出た晶を、そのまま杖頭に据えたもの。晶の眼は石化の呪いを睨み返し、呪文の消耗を和らげる。晶に憑かれし錬金術師の首級。" })),
+    desc: "錬金術師の体から生え出た晶を、そのまま杖頭に据えたもの。晶の眼は石化の呪いをにらみ返し、呪文の消耗を和らげる。晶に憑かれし錬金術師の首級。" })),
   trophy(4, "el_warbanner", W("w_nm_warbanner", "燃える軍旗の槍", "sp", 46, { pow: 1.4, eAtk: ["fire", 2], hp: 24, tint: "#ff8a40",
     desc: "落城の日から燃え続ける軍旗の竿を、穂先ごと槍に仕立てたもの。百年消えなかった火が穂先に宿り、突くたびに炎が走る。軍旗の亡将の首級。" })),
   trophy(4, "el_headsman", W("w_nm_headsman", "処刑人の首斬り斧", "ax", 48, { pow: 1.45, two: true, crit: 0.12, tint: "#9a8a7a",

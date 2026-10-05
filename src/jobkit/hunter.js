@@ -29,7 +29,7 @@ export default {
     HUNTER_HIYA:         { name: "火矢の驟雨", mp: 28, kind: "phys", power: 2.0, agiScale: 0.5, element: "fire", target: "all-enemy", desc: "火矢の雨を降らせる。油壺と好相性（火）" },
     HUNTER_SHINZOU:      { name: "心臓射ち", mp: 28, kind: "phys", power: 4.8, critBonus: 0.4, acc: 0.5, instakill: { chance: 0.4, races: BEASTS }, target: "enemy", desc: "心臓を射抜く。獣なら即死させることも" },
     HUNTER_SAMIDARE:     { name: "五月雨撃ち", mp: 24, kind: "phys", power: 0.75, hits: 5, agiScale: 0.3, acc: 0.4, element: "water", target: "enemy", desc: "五月雨のごとく一体へ射掛ける（水）" },
-    HUNTER_ARASHIYUZURU: { name: "嵐の弓弦", mp: 27, kind: "phys", power: 2.1, element: "wind", flinchChance: 0.2, target: "all-enemy", desc: "嵐を呼ぶ一射が敵陣を薙ぎ、怯ませる（風）" },
+    HUNTER_ARASHIYUZURU: { name: "嵐の弓弦", mp: 27, kind: "phys", power: 2.1, element: "wind", flinchChance: 0.2, target: "all-enemy", desc: "嵐を呼ぶ一射が敵陣をなぎ、怯ませる（風）" },
     HUNTER_TOMEYA:       { name: "止め矢", mp: 32, kind: "phys", power: 7.2, execute: 2.2, acc: 1, critBonus: 0.3, target: "enemy", desc: "手負いの獲物を逃さぬ必中の止め矢" },
     HUNTER_AMIUCHI:      { name: "網打ち", mp: 22, kind: "phys", power: 1.4, acc: 0.4, debuff: { agi: 0.7 }, target: "all-enemy", desc: "投網と矢で敵陣を絡め取り、足を奪う" },
     HUNTER_KARIGAMI:     { name: "狩神の六矢", mp: 30, kind: "phys", power: 0.7, hits: 6, agiScale: 0.3, critBonus: 0.25, prey: { races: BEASTS, mul: 1.3 }, target: "enemy", desc: "狩りの神に捧ぐ六連射（獣に強い）" },

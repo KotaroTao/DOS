@@ -113,7 +113,7 @@ const E = [
   }), "exorcist"),
   excl(A("x_warden_robe", "護法の法衣", 165, {
     cls: ["warden"], shape: "robe", pow: 1.25, eDef: ["dark", 1], int: 60, pie: 70, mp: 90,
-    desc: "法護師が生涯かけて記した護符を布地に縫い込んだ法衣。着た者の周囲に不可視の結界が張られ、呪詛の侵入を一段ずつ弾く。",
+    desc: "法護師が生涯かけて記した護符を布地に縫い込んだ法衣。着た者の周囲に不可視の結界が張られ、呪いの侵入を一段ずつ弾く。",
   }), "warden"),
   excl(W("x_arcanist_staff", "秘術の大杖", "st", 178, {
     two: true, cls: ["arcanist"], int: 175, mp: 105,
@@ -143,7 +143,7 @@ const L = [
     cls: ["asura"], shape: "gauntlet", pow: 1.2, atkB: 90, agi: 30,
     desc: "阿修羅の六本の腕のうち二本を人の腕に変えたと伝わる手甲。装備すると二本目の腕の感覚が幻のように宿り、斬撃が五回に増える。",
   }), "asura"),
-  excl(A("x_dragonknight_mail", "竜騎士の竜甲冑", 195, {
+  excl(A("x_dragonknight_mail", "竜騎士の竜鎧", 195, {
     cls: ["dragonknight"], pow: 1.3, eDef: ["fire", 1], hp: 280, spd: -20,
     desc: "長命の竜が脱皮した鱗を鍛えた鎧。鱗は主を選び、竜騎士の背に添うと古い竜の記憶が流れ込み、炎の中に恐怖を感じなくなる。",
   }), "dragonknight"),

@@ -16,18 +16,18 @@ export default {
     165 crusaderJunkyoushin/4 170 CRUSADER_SEIRAKU 175 crusaderSeinaruKouyou/3 180 CRUSADER_GAIKA 185 crusaderTotsugekiIkioi/3 190 CRUSADER_TOTSUGEKIJIN
     195 CRUSADER_TENSHI 200 CRUSADER_SEIJUUJI`,
   skills: {
-    // Lv15 の固有技: 聖なる火を纏う斬撃。不浄を焼く
-    CRUSADER_SEIKAZAN: { name: "聖火斬", mp: 5, kind: "phys", power: 1.4, element: "fire", prey: { races: UNHOLY, mul: 1.3 }, target: "enemy", desc: "聖なる火を纏って斬る。不浄の者に強い（火）" },
+    // Lv15 の固有技: 聖なる火をまとう斬撃。不浄を焼く
+    CRUSADER_SEIKAZAN: { name: "聖火斬", mp: 5, kind: "phys", power: 1.4, element: "fire", prey: { races: UNHOLY, mul: 1.3 }, target: "enemy", desc: "聖なる火をまとって斬る。不浄の者に強い（火）" },
     CRUSADER_SEIINTSUKI: { name: "聖印突き", mp: 4, kind: "phys", power: 1.3, element: "light", acc: 0.6, prey: { races: UNHOLY, mul: 1.6 }, flinchChance: 0.2, target: "enemy", desc: "聖印の突きで怯ませる。不浄の者に強い" },
     CRUSADER_JUUJISENKOU: { name: "十字の閃光", mp: 9, kind: "phys", power: 0.8, element: "light", debuff: { hit: 0.9 }, target: "all-enemy", desc: "十字の閃光で敵全体を斬り、目を眩ます" },
     CRUSADER_SEISHOU: { name: "聖鐘の閃光", mp: 9, kind: "atk", power: 22, element: "light", seal: { chance: 0.35, turns: 2 }, target: "all-enemy", desc: "聖鐘の光で敵全体を撃ち、特技を封じる" },
-    CRUSADER_SEIENTOTSU: { name: "聖炎の突撃", mp: 10, kind: "phys", power: 2.6, element: "fire", acc: 0.5, debuff: { vit: 0.85 }, target: "enemy", desc: "聖炎を纏って突撃し、守りを崩す" },
-    CRUSADER_JUUJIBARAI: { name: "十字架の薙ぎ", mp: 18, kind: "phys", power: 1.8, element: "light", acc: 0.6, prey: { races: UNHOLY, mul: 1.3 }, target: "all-enemy", desc: "十字架の剣で敵全体を薙ぐ。不浄の者に強い" },
+    CRUSADER_SEIENTOTSU: { name: "聖炎の突撃", mp: 10, kind: "phys", power: 2.6, element: "fire", acc: 0.5, debuff: { vit: 0.85 }, target: "enemy", desc: "聖炎をまとって突撃し、守りを崩す" },
+    CRUSADER_JUUJIBARAI: { name: "十字架のなぎ", mp: 18, kind: "phys", power: 1.8, element: "light", acc: 0.6, prey: { races: UNHOLY, mul: 1.3 }, target: "all-enemy", desc: "十字架の剣で敵全体をなぐ。不浄の者に強い" },
     CRUSADER_KOUCHUU: { name: "聖裁の光柱", mp: 22, kind: "atk", power: 62, element: "light", strip: true, target: "enemy", desc: "聖裁の光柱で撃ち、強化を打ち砕く" },
     CRUSADER_SHOKUZAI: { name: "贖罪の刃", mp: 21, kind: "phys", power: 4.4, pieScale: 0.8, element: "light", acc: 0.9, drain: 0.2, target: "enemy", desc: "信仰を込めた刃で斬り、命を取り戻す" },
-    CRUSADER_SHAKUNETSU: { name: "灼熱の楔", mp: 16, kind: "phys", power: 3.5, element: "fire", acc: 0.8, pierce: 0.6, target: "enemy", desc: "灼熱の楔を打ち込む（防御を無視・命中UP）" },
+    CRUSADER_SHAKUNETSU: { name: "灼熱のくさび", mp: 16, kind: "phys", power: 3.5, element: "fire", acc: 0.8, pierce: 0.6, target: "enemy", desc: "灼熱のくさびを打ち込む（防御を無視・命中UP）" },
     CRUSADER_SEISENTOTSU: { name: "聖戦の突撃", mp: 24, kind: "phys", power: 5.6, element: "light", acc: 1, debuff: { agi: 0.85 }, target: "enemy", desc: "必中の突撃で敵の足を止める" },
-    CRUSADER_SEIENCHIKAI: { name: "聖炎の誓い", mp: 12, kind: "buff", buff: { atk: 1.45, agi: 1.15 }, regen: { pct: 0.05, turns: 3 }, target: "self", tech: true, desc: "聖炎を纏い攻めと速さを上げ、傷を癒し続ける" },
+    CRUSADER_SEIENCHIKAI: { name: "聖炎の誓い", mp: 12, kind: "buff", buff: { atk: 1.45, agi: 1.15 }, regen: { pct: 0.05, turns: 3 }, target: "self", tech: true, desc: "聖炎をまとい攻めと速さを上げ、傷を癒し続ける" },
     CRUSADER_JUUJISABAKI: { name: "光十字の裁き", mp: 28, kind: "atk", power: 84, element: "light", debuff: { atk: 0.85 }, target: "enemy", desc: "光の十字架で撃ち抜き、力を削ぐ" },
     CRUSADER_DAITOTSUGEKI: { name: "聖騎の大突撃", mp: 28, kind: "phys", power: 6.8, element: "fire", acc: 1, pierce: 0.3, flinchChance: 0.35, target: "enemy", desc: "必中の大突撃で鎧を貫き、怯ませる" },
     CRUSADER_JOUMETSU: { name: "浄滅の聖光", mp: 30, kind: "atk", power: 66, element: "light", prey: { races: UNHOLY, mul: 1.4 }, flinchChance: 0.2, target: "all-enemy", desc: "敵全体を浄める聖光。不浄の者に強い" },

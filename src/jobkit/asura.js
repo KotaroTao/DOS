@@ -17,7 +17,7 @@ export default {
   skills: {
     // Lv15 の固有技: 三面六臂のごとく炎刃を三度振るう
     ASURA_SANKAZAN: { name: "三火斬", mp: 6, kind: "phys", power: 0.7, hits: 3, acc: 0.4, element: "fire", target: "enemy", desc: "三面六臂のごとく炎の刃を三度振るう（火）" },
-    ASURA_KIKI: { name: "鬼気斬り", mp: 6, kind: "phys", power: 1.4, acc: 0.3, debuff: { atk: 0.85 }, target: "enemy", desc: "鬼気を纏う斬撃。敵の力を削ぐ" },
+    ASURA_KIKI: { name: "鬼気斬り", mp: 6, kind: "phys", power: 1.4, acc: 0.3, debuff: { atk: 0.85 }, target: "enemy", desc: "鬼気をまとう斬撃。敵の力を削ぐ" },
     ASURA_SOUGA: { name: "双牙", mp: 5, kind: "phys", power: 0.7, hits: 2, critBonus: 0.35, target: "enemy", desc: "二本の牙のごとく急所を二度突く" },
     ASURA_SAKKI: { name: "殺気", mp: 6, kind: "debuff", debuff: { agi: 0.8 }, target: "all-enemy", tech: true, desc: "殺気で敵全体を竦ませ、素早さを下げる" },
     ASURA_SANMEN: { name: "三面斬り", mp: 10, kind: "phys", power: 0.95, hits: 3, acc: 0.3, critBonus: 0.15, target: "enemy", desc: "三面の修羅が三方から斬りつける" },
@@ -35,7 +35,7 @@ export default {
     ASURA_SETSUNA: { name: "刹那", mp: 22, kind: "phys", power: 1.4, hits: 3, agiScale: 1.5, critBonus: 0.3, target: "enemy", desc: "刹那に三度。素早さで大きく伸びる" },
     ASURA_ABI: { name: "阿鼻叫喚", mp: 30, kind: "phys", power: 1.4, hits: 2, acc: 0.8, target: "all-enemy", desc: "敵陣を二度斬り巡る（命中UP）" },
     ASURA_GOUKA: { name: "劫火輪", mp: 28, kind: "phys", power: 2.4, element: "fire", acc: 0.6, critBonus: 0.15, target: "all-enemy", desc: "劫火の輪で敵陣を焼き斬る" },
-    ASURA_SENPUU: { name: "旋風六臂", mp: 21, kind: "phys", power: 0.92, hits: 6, element: "wind", agiScale: 0.2, critBonus: 0.15, target: "enemy", desc: "旋風を纏う六本の腕で六度斬る" },
+    ASURA_SENPUU: { name: "旋風六臂", mp: 21, kind: "phys", power: 0.92, hits: 6, element: "wind", agiScale: 0.2, critBonus: 0.15, target: "enemy", desc: "旋風をまとう六本の腕で六度斬る" },
     ASURA_RENGOKU: { name: "煉獄連斬", mp: 30, kind: "phys", power: 0.58, hits: 7, agiScale: 0.3, critBonus: 0.4, execute: 1.3, target: "enemy", desc: "七連の乱斬。弱った敵に重い" },
     ASURA_SHURAOU: { name: "修羅王撃", mp: 32, kind: "phys", power: 8.5, acc: 1, critBonus: 0.3, target: "enemy", desc: "修羅王の必中の一撃。会心しやすい" },
     ASURA_KYOUHYOU: { name: "狂飆", mp: 27, kind: "phys", power: 1.15, hits: 2, element: "wind", critBonus: 0.2, target: "all-enemy", desc: "荒れ狂う嵐の刃が敵陣を二度刻む" },

@@ -15,12 +15,12 @@ export default {
     165 darkknightYaminoShouheki/3 170 DARKKNIGHT_RENGOKU 175 darkknightKurokiBanpei/3 180 DARKKNIGHT_ZANSHU 185 darkknightTeoiMashou/4 190 DARKKNIGHT_TOKOYO
     195 DARKKNIGHT_MAJUN 200 DARKKNIGHT_KOKUTEN`,
   skills: {
-    // Lv15 の固有技: 身を削って闇を纏い、斬った血で傷を塞ぐ
-    DARKKNIGHT_CHIYAMI: { name: "血闇の剣", mp: 5, kind: "phys", power: 1.5, element: "dark", hpCost: 0.06, drain: 0.2, target: "enemy", desc: "身を削って闇を纏い斬りつけ、その血で傷を塞ぐ" },
+    // Lv15 の固有技: 身を削って闇をまとい、斬った血で傷を塞ぐ
+    DARKKNIGHT_CHIYAMI: { name: "血闇の剣", mp: 5, kind: "phys", power: 1.5, element: "dark", hpCost: 0.06, drain: 0.2, target: "enemy", desc: "身を削って闇をまとい斬りつけ、その血で傷を塞ぐ" },
     DARKKNIGHT_KOKUSHOU: { name: "黒瘴の威圧", mp: 6, kind: "debuff", debuff: { atk: 0.85, hit: 0.9 }, target: "all-enemy", tech: true, desc: "黒い瘴気をまとい、敵全体の力と狙いを鈍らせる" },
     DARKKNIGHT_KETSURUI: { name: "血涙の闇波", mp: 12, kind: "atk", power: 42, element: "dark", hpCost: 0.06, target: "all-enemy", desc: "HPを代償に、闇の波で敵全体を呑む" },
     DARKKNIGHT_KUROGANE: { name: "黒鉄断ち", mp: 16, kind: "phys", power: 3.4, element: "dark", acc: 0.7, pierce: 0.5, vuln: { dark: 0.85 }, target: "enemy", desc: "闇の刃で鎧ごと断ち、闇に脆くする" },
-    DARKKNIGHT_GOKUENMAKEN: { name: "獄炎の魔剣", mp: 20, kind: "phys", power: 6.2, element: "fire", acc: 0.7, hpCost: 0.08, target: "enemy", desc: "身を焦がし、獄炎を纏う魔剣を振るう" },
+    DARKKNIGHT_GOKUENMAKEN: { name: "獄炎の魔剣", mp: 20, kind: "phys", power: 6.2, element: "fire", acc: 0.7, hpCost: 0.08, target: "enemy", desc: "身を焦がし、獄炎をまとう魔剣を振るう" },
     DARKKNIGHT_YAMIKURAI: { name: "闇喰らいの刃", mp: 20, kind: "phys", power: 4.8, element: "dark", acc: 0.6, mpDrain: 0.2, strip: true, target: "enemy", desc: "敵の加護ごと魔力を喰らう闇の刃" },
     DARKKNIGHT_NARAKUSOU: { name: "奈落の黒槍", mp: 30, kind: "atk", power: 94, element: "dark", debuff: { vit: 0.85 }, target: "enemy", desc: "奈落の闇を槍と成して穿ち、守りを崩す" },
     DARKKNIGHT_SHUKUMEI: { name: "宿命の黒剣", mp: 24, kind: "phys", power: 5.0, element: "dark", acc: 1, desperate: true, target: "enemy", desc: "手負いほど冴える必中の黒剣" },

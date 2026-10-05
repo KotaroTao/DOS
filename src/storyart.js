@@ -394,7 +394,7 @@ function sceneAbbot() {
   ab.poly([30, 104, 34, 64, 40, 48, 50, 42, 58, 46, 63, 58, 68, 104]);
   ab.ellipse(51, 48, 8, 8.5);
   figure(ab, (x, y) => (x > 54 && y > 45 && y < 53 ? [20, 16, 20] : mix([120, 98, 96], [86, 72, 78], fbm(x * 0.2, y * 0.15, 6))), [120, 100, 70]);
-  // ランタンを提げた男 (右・旅装の外套と帽子、左を向く)
+  // ランタンを提げた男 (右・旅装のマントと帽子、左を向く)
   const man = new Mask(W, H);
   man.poly([134, 104, 136, 66, 140, 56, 148, 52, 154, 56, 156, 66, 160, 104]);
   man.ellipse(147, 48, 5.5, 6.2);
@@ -604,7 +604,7 @@ function sceneRoll() {
   }, lights, { amb: [0.22, 0.21, 0.22] });
   const edge = new Mask(W, H); edge.rect(BL, 67, BR - BL + 1, 2);
   paintLit(L, edge, () => [190, 176, 140], lights, { amb: [0.1, 0.1, 0.1] });
-  // 綴じ紐と、結ばれた鍵束 (机から垂れる)
+  // とじ紐と、結ばれた鍵束 (机から垂れる)
   for (let i = 0; i < 10; i++) L.px(BM, 69 + i, [170, 140, 96]);
   const ring = new Mask(W, H);
   for (let a = 0; a < Math.PI * 2; a += 0.05) ring.rect(Math.round(BM + Math.cos(a) * 4), Math.round(83 + Math.sin(a) * 4), 1, 1);
@@ -757,7 +757,7 @@ function sceneBanner() {
   const BX = 112;
   const lights = [
     { x: 150, y: 0, r: 200, c: [0.75, 0.8, 1.0], k: 1.15, p: 1.15 },   // 稲妻
-    { x: 20, y: 96, r: 70, c: C_EMBER, k: 0.35, p: 1.5 },             // 燻る焚き火
+    { x: 20, y: 96, r: 70, c: C_EMBER, k: 0.35, p: 1.5 },             // くすぶる焚き火
   ];
   // 空 (嵐雲)
   L.shade(0, 0, W - 1, 60, (x, y) => {
@@ -813,7 +813,7 @@ function sceneBanner() {
     if (ex >= 0 && ex < 6 && ey >= -6 && ey < 6 && !(ex >= 2 && ex < 4 && ey < -3)) return mix([200, 190, 160], [40, 30, 30], burn);
     return mix(cloth, [30, 22, 20], burn);
   }, lights, { amb: [0.08, 0.07, 0.08] });
-  // 燻る焚き火 (左下) と、崩れた槍
+  // くすぶる焚き火 (左下) と、崩れた槍
   glow(L, 20, 96, 14, C_EMBER, 0.5, 2.2);
   for (let i = 0; i < 4; i++) { const m = new Mask(W, H); m.line(60 + i * 9, 102 - i, 80 + i * 8, 90 - i * 2, 1.2); paintLit(L, m, () => [90, 84, 80], lights, { amb: [0.05, 0.05, 0.07] }); }
   // 雨 (斜めの細い筋)
@@ -944,7 +944,7 @@ function sceneRope() {
   rope.ellipse(KX, KY - 3, 5, 3); rope.ellipse(KX + 2, KY - 1, 4, 2.5);
   for (let y = KY; y < H; y++) { const x = KX + Math.sin((y - KY) * 0.07) * 3 + (y - KY) * 0.08; rope.rect(Math.round(x), y, 2, 1); }
   paintLit(L, rope, (x, y) => ((x + y) % 3 === 0 ? [150, 120, 80] : [196, 166, 116]), lights, { nxMax: 1, amb: [0.12, 0.1, 0.1] });
-  // 鉄の楔 (根の脇の岩に打ち込んだもの)
+  // 鉄のくさび (根の脇の岩に打ち込んだもの)
   for (const [x, y] of [[92, 46], [116, 30]]) { const m = new Mask(W, H); m.poly([x, y, x + 8, y - 1, x + 8, y + 2, x, y + 2]); m.ellipse(x + 8, y + 0.5, 1.6, 2); paintLit(L, m, () => [120, 124, 134], lights, { amb: [0.14, 0.14, 0.16] }); }
   // 油紙の書きつけ (結び目に括られて揺れる)
   const note = new Mask(W, H); note.poly([KX + 6, KY + 2, KX + 18, KY + 4, KX + 16, KY + 14, KX + 5, KY + 12]);

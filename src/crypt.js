@@ -257,7 +257,7 @@ export function paintCryptFloor(W, H, opt) {
         else if (ly === row.h - 1 || lx === sw - 1) k *= 0.8;
         if (ly === top + 2 || lx === 2) k *= 1.03;
         if (st.sunk) k *= 0.82;
-        // 湿り・煤・土埃 (大きな斑で石畳の格子を崩す)
+        // 湿り・煤・土ほこり (大きな斑で石畳の格子を崩す)
         const dmp = fbm(x * 0.02, y * 0.02, s3);
         k *= 1.1 - dmp * 0.46;
         const dirt = fbm(x * 0.11, y * 0.11, s3 + 5);
@@ -609,7 +609,7 @@ function paintSlab(R, x0, y0, w, h, rnd, mat, opt, gx, gy) {
   const add = (x, y) => { if (inside(x - x0, y - y0)) groove.add((x << 16) | (y & 0xffff)); };
   for (let i = m; i < w - m; i++) { add(x0 + i, y0 + m); add(x0 + i, y0 + h - 1 - m); }
   for (let j = m; j < h - m; j++) { add(x0 + m, y0 + j); add(x0 + w - 1 - m, y0 + j); }
-  // 四隅の小さな菱 (楔の刻み)
+  // 四隅の小さな菱 (くさびの刻み)
   for (const [cx, cy] of [[x0 + m, y0 + m], [x0 + w - 1 - m, y0 + m], [x0 + m, y0 + h - 1 - m], [x0 + w - 1 - m, y0 + h - 1 - m]]) {
     add(cx - 1, cy); add(cx + 1, cy); add(cx, cy - 1); add(cx, cy + 1);
   }

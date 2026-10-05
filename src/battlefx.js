@@ -414,7 +414,7 @@ const DRAW = {
   },
 
   // ===== 弱体・状態異常 (敵にかかった時) =====
-  // 弱体: 紫の楔が沈み込み、暗い環が締まる
+  // 弱体: 紫のくさびが沈み込み、暗い環が締まる
   hex(ctx, e, t) {
     const c = elCol("dark")[1];
     ctx.globalCompositeOperation = "lighter";
@@ -1067,7 +1067,7 @@ Object.assign(DRAW, {
       ctx.beginPath(); ctx.ellipse(e.x, e.y + 20, 12 + easeOut(t) * W * 0.38, 4 + easeOut(t) * 30, 0, 0, Math.PI * 2); ctx.stroke();
     }
   },
-  // 全体の物理技: 戦場を一文字に薙ぐ大きな斬撃
+  // 全体の物理技: 戦場を一文字になぐ大きな斬撃
   fieldslash(ctx, e, t, VW) {
     const W = e.w || VW, col = e.el && e.el !== "none" ? elCol(e.el)[1] : e.crit ? "#ffb040" : "#ff6a3a";
     const sw = Math.min(1, t / 0.4), fade = t < 0.4 ? 1 : 1 - (t - 0.4) / 0.6;

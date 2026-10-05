@@ -51,7 +51,7 @@ export const RANK1_ITEMS = [
   A("a_r1_ironbreast", "板金の前当て", 10, { tint: "#9aa0ac", desc: "胸と腹を覆う一枚板の前当て。重いぶん守りは堅く、前線で矢面に立つ者の盾代わりになる。" }),
 
   // ===== 頭 head (布2/軽2/重2) =====
-  H("h_r1_clothhood", "布の頭巾", 2, { magStat: "pie", shape: "hat", weight: "cloth", tint: "#7c8aa0", desc: "頭からすっぽり被る麻の頭巾。日差しと埃を防ぐ程度だが、術者の集中を乱さない。" }),
+  H("h_r1_clothhood", "布の頭巾", 2, { magStat: "pie", shape: "hat", weight: "cloth", tint: "#7c8aa0", desc: "頭からすっぽり被る麻の頭巾。日差しとほこりを防ぐ程度だが、術者の集中を乱さない。" }),
   H("h_r1_pointedhat", "とんがり帽子", 7, { magStat: "int", shape: "hat", weight: "cloth", tint: "#5a6a8a", desc: "つばの広いとんがり帽子。魔を学ぶ者の証のような形で、被るだけで少し気が引き締まる。" }),
   H("h_r1_leathercap", "革帽子", 3, { shape: "hat", tint: "#a9781f", desc: "厚手の革をかぶせただけの帽子。軽く蒸れにくく、頭への不意の一打をやわらげる。" }),
   H("h_r1_travelhat", "旅笠", 8, { shape: "hat", tint: "#8a6438", desc: "雨風をしのぐ旅人の笠。革縁で補強され、転んだ拍子の擦り傷くらいは防いでくれる。" }),
@@ -80,7 +80,7 @@ export const RANK1_ITEMS = [
   S("s_r1_hidebuckler", "革張りの小盾", 3, { shape: "buckler", tint: "#a9781f", desc: "木の芯に獣皮を張っただけの小さな手持ち盾。軽く腕の邪魔にならず、迫る刃を横へ払って受け流すのに向く。" }),
   S("s_r1_oakbuckler", "樫のバックラー", 8, { shape: "buckler", tint: "#8a6438", desc: "硬い樫を丸く削り、中央に鉄の鋲を一つ打った小盾。拳ごと突き出して刃を弾き、身軽なまま次の一手へ移れる。" }),
   S("s_r1_shardorb", "くず水晶の宝珠", 2, { shape: "orb", tint: "#b8c4d0", desc: "割れ残った水晶のかけらを磨いて丸めた粗末な宝珠。濁りは抜けないが、攻めの呪文に込める魔力をわずかに束ねる。" }),
-  S("s_r1_sootorb", "煤けた水晶球", 7, { shape: "orb", tint: "#7a8494", desc: "占い師の天幕で長く灯火に燻された水晶球。煤の奥に澄んだ芯が残り、掲げれば攻めの術の魔力を確かに高める。" }),
+  S("s_r1_sootorb", "煤けた水晶球", 7, { shape: "orb", tint: "#7a8494", desc: "占い師の天幕で長く灯火にいぶされた水晶球。煤の奥に澄んだ芯が残り、掲げれば攻めの術の魔力を確かに高める。" }),
   S("s_r1_copiedtome", "手写しの祈祷書", 3, { shape: "tome", tint: "#c8a06a", desc: "見習いの僧が夜ごと書き写した薄い祈祷書。字は拙いが祈りの言葉に違いはなく、唱える癒しを少しだけ深める。" }),
   S("s_r1_shrinesutra", "村祠の経典", 8, { shape: "tome", tint: "#a9781f", desc: "村はずれの祠に納められていた古い経典。代々の祈りが紙に染み、開いて読めば癒しと加護の祈りが深く通る。" }),
 
