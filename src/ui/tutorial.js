@@ -570,6 +570,8 @@ function tutorialControls() {
   if (!d) return choose(first(document, ".hb-goal-go"));
   const st = tutState(), s = curStep();
   if (card) {
+    // 警備兵の忠告は、本文のタッチスクロールも受け付ける。
+    if (card.classList.contains("dp-brief-sheet")) return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary"), [h.body]);
     if (h.kind === "celebrate" || card.classList.contains("ui-confirm") || stepDone(s)) return forward();
     if (card.classList.contains("pt-name-sheet")) {
       return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary"), first(card, ".pt-name-in, .pt-name-rnd"));

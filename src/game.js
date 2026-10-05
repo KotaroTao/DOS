@@ -12564,7 +12564,7 @@ function departNow({ idx = G.dungeonIdx, accept = false, from = 1 } = {}) {
   G.dungeonIdx = idx;
   const mut = townMutatorFor(idx);
   const mutId = accept && mut ? mut.id : null;
-  G.dungeonBriefed = true; // 初回の注意は出撃シートの中で済ませた
+  G.dungeonBriefed = true; // 初回の注意は出撃前のポップアップで案内した
   G.prompt = true;
   const start = startFloorsOf(DUNGEONS[idx]).includes(from) ? from : 1;
   uiDungeonHud.sceneTransition(() => { G.prompt = false; enterDungeon(mutId, start); });
@@ -12649,7 +12649,7 @@ function departWoes() {
 // 名前の短い並び (3人以上は「Aほか2人」)
 function namesShort(list) { return list.length > 2 ? `${list[0].name}ほか${list.length - 1}人` : list.map((d) => d.name).join("・"); }
 
-// 初回潜入時の警備兵の注意 (出撃シートの中に短い注記として出す。札は使わない)
+// 初回潜入時の警備兵の注意 (出撃前にスクロールできるポップアップで表示)
 const DUNGEON_BRIEFING = [
   "■ 迷宮を踏破するか「帰還魔法陣」を踏むまで、街へは戻れない。陣は5階・10階…と5階ごとに、下り階段の代わりに立つ。",
   "■ 一度たどり着いた陣の階からは、次からそこから潜り始められる。",

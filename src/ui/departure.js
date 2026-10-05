@@ -394,14 +394,15 @@ function mutatorStrip() {
   return box;
 }
 
-// ---- 初めての注意 (短い注記。初めて潜る前だけ) ----
-function renderBriefing(b) {
-  const g = G();
-  if (g.dungeonBriefed) return;
-  const box = el("div", "dp-brief");
-  box.appendChild(el("div", "dp-brief-h", "警備兵の忠告 ― 初めて潜る前に"));
-  for (const ln of (game.DUNGEON_BRIEFING || [])) box.appendChild(setText(el("div", "dp-brief-l"), ln));
-  b.appendChild(box);
+// ---- 初めての注意 (出撃画面と分け、全文を読めるポップアップで表示) ----
+function openBriefing() {
+  if (G().dungeonBriefed) return;
+  sheet.open({
+    kind: "info", banner: "警備兵の忠告", title: "初めて潜る前に",
+    className: "dp-brief-sheet", accent: "#78bdd1",
+    lines: game.DUNGEON_BRIEFING || [],
+    footer: [{ label: "心得た", kind: "primary", onTap: (h) => h.close("ok") }],
+  });
 }
 
 // ---- 奈落の支度 ----
@@ -544,7 +545,6 @@ function body(b) {
   const m = mutatorStrip();
   if (m) b.appendChild(m);
   renderReadyIssues(b);
-  renderBriefing(b);
 }
 function refresh() {
   if (!cur || !cur.h || cur.h.closed) return;
@@ -590,6 +590,7 @@ export function openDeparture(opts = {}) {
   });
   if (cur.h.el) cur.h.el.classList.toggle("dp-full", page !== "abyss");
   refreshFooter();
+  if (page === "gates") openBriefing();
   return cur.h;
 }
 
