@@ -27,6 +27,8 @@ const ASSETS = [
   "./icon.svg",
   "./src/game.js",
   "./src/journal.js",
+  "./src/archive-stories.js",
+  "./src/archive-art.js",
   "./src/ui/journal.js",
   "./src/joblore.js",
   "./src/items.js",

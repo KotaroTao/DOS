@@ -27,7 +27,7 @@ function div(cls, text) {
 }
 const sfx = (k) => { try { SFX[k] && SFX[k](); } catch {} };
 
-export function showTitle({ hasSave = false, summary = null, onStart, onNewGame = null } = {}) {
+export function showTitle({ hasSave = false, summary = null, onStart, onNewGame = null, testDungeons = [], onTestPlay = null } = {}) {
   const wrap = div("ttl-overlay");
   if (REDUCED) wrap.classList.add("ttl-still");
   const cv = document.createElement("canvas");
@@ -105,6 +105,11 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     dis.disabled = true;
     btns.appendChild(dis);
   }
+  let testBtn = null;
+  if (typeof onTestPlay === "function") {
+    testBtn = mkBtn("テストプレイ", "進行度を選んで開始", "");
+    btns.appendChild(testBtn);
+  }
   menu.appendChild(btns);
   menu.appendChild(div("ttl-note", hasSave ? "進行は自動で保存されています" : "ホーム画面に追加すると、オフラインでも遊べます"));
   low.appendChild(menu);
@@ -120,6 +125,53 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   cRow.append(cNo, cYes);
   confirmBox.appendChild(cRow);
   wrap.appendChild(confirmBox);
+
+  // 通常の記録を読み替えず、選んだ迷宮と階から検証する。
+  const testBox = div("ttl-confirm ttl-test hidden");
+  testBox.setAttribute("role", "dialog");
+  testBox.setAttribute("aria-label", "テストプレイの進行度");
+  testBox.append(div("ttl-confirm-t", "テストプレイ"), div("ttl-note", "通常の記録は変更されません。テストの進行は保存されません。"));
+  const field = (label, input) => {
+    const row = document.createElement("label");
+    row.className = "ttl-test-field";
+    row.append(div("", label), input);
+    testBox.appendChild(row);
+  };
+  const dungeon = document.createElement("select");
+  for (const d of testDungeons) {
+    const o = document.createElement("option");
+    o.value = d.id; o.textContent = `${d.name}（Lv${d.lv}〜${d.lvTo}）`;
+    dungeon.appendChild(o);
+  }
+  const floor = document.createElement("input");
+  floor.type = "number"; floor.min = "1"; floor.value = "1";
+  const clampFloor = () => {
+    const d = testDungeons.find((d) => d.id === dungeon.value);
+    floor.max = String(d?.floors || 1);
+    floor.value = String(Math.max(1, Math.min(Number(floor.max), Math.floor(Number(floor.value)) || 1)));
+  };
+  dungeon.addEventListener("change", clampFloor);
+  floor.addEventListener("change", clampFloor);
+  clampFloor();
+  const place = document.createElement("select");
+  for (const [value, label] of [["board", "迷宮内から"], ["town", "街から（編成・施設の確認）"]]) {
+    const o = document.createElement("option"); o.value = value; o.textContent = label; place.appendChild(o);
+  }
+  field("進行度（迷宮）", dungeon); field("開始する階", floor); field("開始場所", place);
+  const testRow = div("ttl-confirm-row");
+  const testCancel = mkBtn("戻る", null, "");
+  const testStart = mkBtn("テスト開始", null, "primary");
+  testRow.append(testCancel, testStart); testBox.appendChild(testRow); wrap.appendChild(testBox);
+  if (testBtn) testBtn.addEventListener("click", (e) => {
+    e.stopPropagation(); testBox.classList.remove("hidden"); wrap.classList.add("ttl-confirming"); dungeon.focus();
+  });
+  const hideTest = () => { testBox.classList.add("hidden"); wrap.classList.remove("ttl-confirming"); testBtn?.focus(); };
+  testCancel.addEventListener("click", (e) => { e.stopPropagation(); hideTest(); });
+  testStart.addEventListener("click", (e) => {
+    e.stopPropagation(); clampFloor();
+    close(() => onTestPlay({ id: dungeon.value, floor: Number(floor.value), place: place.value }));
+  });
+  testBox.addEventListener("click", (e) => e.stopPropagation());
 
   // ---- 一枚絵 ----
   let scene = null, resKey = "", lastTs = 0, building = 0;
@@ -203,6 +255,11 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   wrap.addEventListener("click", () => { if (!awake) wake(); });
   const onKey = (e) => {
     if (closed) return;
+    if (!testBox.classList.contains("hidden")) {
+      e.stopPropagation();
+      if (e.key === "Escape") { e.preventDefault(); hideTest(); }
+      return;
+    }
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault(); e.stopPropagation();
       if (!confirmBox.classList.contains("hidden")) return;
