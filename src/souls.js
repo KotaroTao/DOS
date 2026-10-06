@@ -792,6 +792,7 @@ export function soulLearnedPassives(s) {
 export function makeDoll(name) {
   return {
     uid: ++_dollUid, name, isDoll: true,
+    stability: 100, stabilityAt: Date.now(), // 魂の安定度と回復時計
     primary: null,   // 宿しているメイン魂の uid (祭壇で付け替え)
     subs: [],        // サブ魂スロット: {uid, picks:[{skill}|{passive}], picked} の配列 (最大 MAX_SUBS)。picks=借りる技/パッシブ (数は subPickCap)
     clsKey: "fighter", cls: "空の人業", level: 1,

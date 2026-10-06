@@ -369,6 +369,20 @@ function renderReadyIssues(b) {
   }
 }
 
+// 入場の消費予告。人業ごとの残量を表示し、不足分を街で補える。
+function renderStability(b, explain = true) {
+  const status = game.stabilityStatus();
+  b.appendChild(sec("魂の安定度", "入場時 −10／人"));
+  if (explain) b.appendChild(el("div","dp-brief-l","上限100。入場時に10消費し、3分ごとに1回復。控えやゲームを閉じている間も回復します。探索中の追加消費はありません。"));
+  for (const d of status) {
+    const line=el("div","dp-stability-row");
+    const wait=d.value<10 ? ` ・ 入場まで約${Math.ceil(d.waitMs/60000)}分` : "";
+    line.appendChild(el("span",d.value<10 ? "dp-stability-low" : "",`${d.name} ${d.value} → ${d.value<10 ? "不足" : d.after}${wait}`));
+    if(d.value<100)line.appendChild(button({label:"回復",kind:"secondary",size:"sm",onTap:()=>UI.openStability?.(G().party.find(p=>p.uid===d.uid),()=>refresh())}));
+    b.appendChild(line);
+  }
+}
+
 // ---- 迷宮の異変 (§7 M1) — 本文で説明と切り替えを表示 ----
 function mutatorStrip() {
   const g = G();
@@ -398,13 +412,27 @@ function mutatorStrip() {
 }
 
 // ---- 初めての注意 (出撃画面と分け、全文を読めるポップアップで表示) ----
-function openBriefing() {
-  if (G().dungeonBriefed) return;
+function openBriefing(go) {
   sheet.open({
-    kind: "info", banner: "警備兵の忠告", title: "初めて潜る前に",
-    className: "dp-brief-sheet", accent: "#78bdd1",
-    lines: game.DUNGEON_BRIEFING || [],
-    footer: [{ label: "心得た", kind: "primary", onTap: (h) => h.close("ok") }],
+    kind:"info", banner:"門衛の忠告", title:"魂の安定度",
+    className:"dp-brief-sheet", accent:"#78bdd1",
+    body:(b)=>{
+      const picture=el("div","dp-gatekeeper");
+      const illustration=document.createElement("img");
+      illustration.src=new URL("../../art/tutorial/gatekeeper.png",import.meta.url).href;
+      illustration.alt="槍と灯りを持つ門衛が、石造りの迷宮の入口に立っている";
+      illustration.width=1852;illustration.height=849;
+      picture.appendChild(illustration);b.appendChild(picture);
+      b.appendChild(el("div","dp-brief-h","門衛 ― 迷宮の入口を守る者"));
+      for(const text of ["人業が迷宮に入ると、魂と器の結びつきが揺らぎます。その状態を示すのが『魂の安定度』です。",
+        "安定度の上限は100です。入場時に人業ごとに10消費します。階を降りても、長く探索しても、追加では消費しません。",
+        "安定度は3分ごとに1回復します。控えの人業も、ゲームを閉じている間も同じです。魂が不安定になった人業を休ませ、別の人業を出立させましょう。",
+        "街では赤い魂1を捧げると、安定度が1回復します。安定度が10未満の人業がいる場合は、入場前に回復するか、人業を入れ替えてください。",
+        ...(!G().dungeonBriefed ? game.DUNGEON_BRIEFING || [] : [])])b.appendChild(setText(el("div","dp-brief-l"),text));
+      renderStability(b, false);
+    },
+    footer:[{label:"迷宮に入る",kind:"primary",onTap:h=>{h.close("ok");go();}},
+      {label:"支度に戻る",kind:"ghost",onTap:h=>h.close("cancel")}],
   });
 }
 
@@ -461,7 +489,7 @@ function footerSpec() {
   const g = G();
   if (cur && cur.page === "abyss") {
     const mul = game.abyssScoreMul ? game.abyssScoreMul(abyssMods) : 1;
-    return [{ label: "奈落へ降りる", sub: `スコア ×${mul.toFixed(2)}`, kind: "primary", size: "lg", onTap: () => checkWoes(() => { close(); if (game.departAbyss) game.departAbyss(abyssMods, abyssWeekly); }) }];
+    return [{ label: "奈落へ降りる", sub: `スコア ×${mul.toFixed(2)} ・ 安定度 −10／人`, disabled:!g.party.some(d=>d.alive)||game.stabilityStatus().some(d=>d.value<10), kind: "primary", size: "lg", onTap: () => checkWoes(() => { const go=()=>{close();game.departAbyss?.(abyssMods,abyssWeekly);};if(!G().stabilityBriefed)openBriefing(go);else go(); }) }];
   }
   const D = game.DUNGEONS || [];
   const dn = D[g.dungeonIdx];
@@ -472,8 +500,8 @@ function footerSpec() {
   const fl = `B${(cur && cur.from) || 1}F`;
   return [{
     label: alive ? (m ? `異変ごと門をくぐる ― ${fl}` : again ? `ふたたび門をくぐる ― ${fl}` : `門をくぐる ― ${fl}`) : "動ける人業がいない",
-    sub: dn ? `「${dn.name}」` : "",
-    kind: m ? "danger" : "primary", size: "lg", disabled: !alive,
+    sub: dn ? `「${dn.name}」 ・ 安定度 −10／人` : "",
+    kind: m ? "danger" : "primary", size: "lg", disabled: !alive || game.stabilityStatus().some(d=>d.value<10),
     onTap: () => depart(),
   }];
 }
@@ -550,7 +578,7 @@ function checkWoes(go) {
 
 function depart() {
   if (!cur) return;
-  checkWoes(departGo);
+  checkWoes(()=>{if(!G().stabilityBriefed || !G().dungeonBriefed)openBriefing(departGo);else departGo();});
 }
 function departGo() {
   const g = G();
@@ -564,10 +592,11 @@ function departGo() {
 }
 
 function body(b) {
-  if (cur.page === "abyss") { renderAbyssPage(b); return; }
+  if (cur.page === "abyss") { renderAbyssPage(b); renderStability(b); return; }
   renderGates(b);
   const m = mutatorStrip();
   if (m) b.appendChild(m);
+  renderStability(b);
   renderReadyIssues(b);
 }
 function refresh() {
@@ -608,13 +637,14 @@ export function openDeparture(opts = {}) {
     accent: "#8e6fd0",
     body,
     footer: [],
-    onClose: () => { cur = null; vistaLoop++; },
+    onClose: () => { if(cur?.timer)clearInterval(cur.timer);cur = null; vistaLoop++; },
     // 戻る: 奈落のページなら門の選択へ、門の選択なら閉じる
     onBack: (h) => { if (cur && cur.page === "abyss" && !opts.page) { cur.page = "gates"; refresh(); } else h.close("back"); },
   });
   if (cur.h.el) cur.h.el.classList.toggle("dp-full", page !== "abyss");
   refreshFooter();
-  if (page === "gates") openBriefing();
+  const live=cur;
+  live.timer=setInterval(()=>{if(cur!==live||live.h.closed){clearInterval(live.timer);return;}if(sheet.top()===live.h)refresh();},5000);
   return cur.h;
 }
 

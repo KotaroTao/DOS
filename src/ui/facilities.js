@@ -9,7 +9,7 @@
 
 import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, setText, glyph, svgIcon, sheet, button, whisper, itemTile, portrait, bar, toast, confirm, segmented } from "./kit.js";
-import { questCard, lists as qbLists, isReady as qbReady } from "./questboard.js";
+import { questCard, dungeonGroups, lists as qbLists, isReady as qbReady } from "./questboard.js";
 import { getPref, setPref } from "./prefs.js";
 import { keeperCanvas, vignetteCanvas } from "../townart.js";
 import { ITEMS } from "../items.js";
@@ -61,7 +61,7 @@ export function scrollGrid(area, items, makeCell, { cols = 3, cellH = 104, gap =
   if (!items.length) { if (empty) area.appendChild(empty); return; }
   const grid = el("div", "wa-pgrid");
   grid.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
-  grid.style.gridAutoRows = cellH + "px";
+  grid.style.gridAutoRows = cellH == null ? "auto" : cellH + "px";
   grid.style.gap = gap + "px";
   for (const it of items) grid.appendChild(makeCell(it));
   area.appendChild(grid);
@@ -279,6 +279,16 @@ export function openInn() {
 // ---------- 酒場 (ページ) ----------
 // 区分: 受注中 (受けた依頼・報告) / 掲示板 (依頼人の頼み + 帰還ごとに貼り替わる依頼) / 噂と顔ぶれ (噂話・居合わせる者たち)
 let tavernSeg = null;
+function questGroup(group) {
+  const box = el("section", "fc-qgroup");
+  const heading = el("h3", "fc-qgroup-head");
+  heading.appendChild(el("span", "fc-qgroup-name", group.name));
+  heading.appendChild(el("span", "fc-qgroup-count", `${group.quests.length}件`));
+  box.setAttribute("aria-label", group.name);
+  box.appendChild(heading);
+  for (const q of group.quests) box.appendChild(questCard(q));
+  return box;
+}
 function tavernSegments() {
   const L = qbLists();
   const ready = L.active.filter(qbReady).length;
@@ -313,12 +323,12 @@ function renderTavern(root) {
       body.appendChild(sectionHead("受けている依頼", { note: "依頼人の頼みも枠に数える" }));
       body.appendChild(area);
       const empty = el("div", "wa-empty", "受けている依頼はない。掲示板で依頼を受けよう。");
-      scrollGrid(area, L.active, (q) => questCard(q), { cols: 1, cellH: 84, gap: 6, key: "tav-active", empty });
+      scrollGrid(area, dungeonGroups(L.active), questGroup, { cols: 1, cellH: null, gap: 14, key: "tav-active", empty });
     } else {
       body.appendChild(sectionHead("掲示板", { note: "帰還のたびに貼り替わる" }));
       body.appendChild(area);
       const empty = el("div", "wa-empty", "いまは貼り紙がない。迷宮から戻れば、新たな依頼が貼られる。");
-      scrollGrid(area, L.offers, (q) => questCard(q), { cols: 1, cellH: 84, gap: 6, key: "tav-board", empty });
+      scrollGrid(area, dungeonGroups(L.offers), questGroup, { cols: 1, cellH: null, gap: 14, key: "tav-board", empty });
     }
   };
   drawSeg();

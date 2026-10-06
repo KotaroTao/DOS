@@ -8,11 +8,12 @@
 //              その迷宮へ入る前に町で得た分 (依頼の報告・王への報告・勲章・売却…)
 //   魂       … 手に入れた職業の魂のレア度別の数 (迷宮の中 / その迷宮へ入る前の町 = 依頼・宝物庫の褒賞など) と、着いた階の数
 //   時間     … 迷宮の中にいた実プレイ時間と、その迷宮へ入る前に町で過ごした実プレイ時間
-//              (画面が見えていて直近2分以内に操作がある時間だけ。game.js の5秒ごとの時計から)
+//              (画面が見え、直近2分以内に操作があるか、自動探索・自動戦闘が進行している時間。5秒ごとの時計から)
 // 「記録を書き出す」でテキストにして、そのまま貼り付けて送れる。保存先は端末内 (localStorage) のみで、外へは送らない。
 // セーブとは別の鍵 (dos-testlog)。「はじめから」でも消えない (消すのは「記録を消す」)。
 // game.js は import しない (game.js から呼ばれる側)。戦闘の挙動には一切影響しない。
 
+import { STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_RECOVERY_MS } from "./stability.js";
 import { partyAgi } from "./levelcurve.js";
 
 const KEY = "dos-testlog";
@@ -33,8 +34,8 @@ function load() {
 }
 let S = load();
 if (S.build !== TEST_BUILD) {
-  if (Object.keys(S.d).length) (S.history || (S.history = [])).push({ build: S.build || "旧版(不明)", since: S.since, until: new Date().toISOString(), d: S.d, townMs:S.townMs || 0, townSl:S.townSl || null, townG:S.townG || null });
-  S.d = {}; S.townMs = 0; S.townSl = null; S.townG = null; S.build = TEST_BUILD; S.since = S.on ? new Date().toISOString() : null;
+  if (Object.keys(S.d).length) (S.history || (S.history = [])).push({ build: S.build || "旧版(不明)", since: S.since, until: new Date().toISOString(), d: S.d, townMs:S.townMs || 0, townSl:S.townSl || null, townG:S.townG || null, stability:S.stability || null });
+  S.stability = null; S.d = {}; S.townMs = 0; S.townSl = null; S.townG = null; S.build = TEST_BUILD; S.since = S.on ? new Date().toISOString() : null;
 }
 function persist() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* 容量切れ等は諦める */ } }
 persist();
@@ -105,7 +106,59 @@ export function tlClear() {
   if (on) S.since = stamp();
   persist();
 }
-export function tlHasData() { return Object.keys(S.d).length > 0; }
+export function tlHasData() { return Object.keys(S.d).length > 0 || !!S.stability; }
+
+// 安定度の記録は迷宮別記録と独立。控え・オフラインの回復も含めて残す。
+function stabilityData() {
+  return S.stability || (S.stability = { activeMs:0, entries:0, spent:0, natural:0, red:0, redEarned:0, dolls:{}, events:[] });
+}
+function stabilityDoll(d) {
+  const a = stabilityData();
+  const key = String(d.uid);
+  const row = a.dolls[key] || (a.dolls[key] = { uid:d.uid, name:d.name, activeMs:0, entries:0, spent:0, natural:0, red:0 });
+  row.name = d.name; row.value = d.stability;
+  return row;
+}
+export function tlStability(kind, changes, context = {}) {
+  if (!S.on || !changes.length) return;
+  const a = stabilityData();
+  if (kind === "entry") a.entries++;
+  const field = kind === "entry" ? "spent" : kind === "natural" ? "natural" : "red";
+  for (const {doll, amount} of changes) {
+    const row = stabilityDoll(doll);
+    a[field] += amount; row[field] += amount;
+    if (kind === "entry") row.entries++;
+  }
+  a.events.push({ at:Date.now(), kind, activeMs:a.activeMs, ...context,
+    dolls:changes.map(({doll,amount})=>({uid:doll.uid,name:doll.name,amount,before:doll.stability+(kind==="entry" ? amount : -amount),value:doll.stability})) });
+  if (a.events.length > 500) a.events.shift();
+  persist();
+}
+export function tlStabilityTick(party, ms) {
+  if (!S.on) return;
+  const a = stabilityData(); a.activeMs += ms;
+  for (const d of party) if (d.alive !== false) stabilityDoll(d).activeMs += ms;
+}
+export function tlRedGain(n, source) {
+  if (!S.on || !(n > 0)) return;
+  const a = stabilityData(); a.redEarned += n;
+  addTo(a, "redSources", source, n); persist();
+}
+export function tlStabilitySummary(a = S.stability) {
+  if (!a) return [];
+  const hours = a.activeMs / 3600000;
+  const perHour = hours > 0 ? a.spent / hours : 0;
+  // 控えを回さず、測定した出撃頻度で同じ人業を使い続けた時の推計。初期100を使い切った後。
+  const redNeeded = Object.values(a.dolls).reduce((sum,d)=>sum + (d.activeMs > 0 ? Math.max(0,d.spent - d.activeMs / STABILITY_RECOVERY_MS) : 0),0);
+  return ["【魂の安定度】",
+    `実プレイ ${(a.activeMs/60000).toFixed(1)}分 / 入場 ${a.entries}回 / 消費 合計${a.spent} (${perHour.toFixed(1)}/実プレイ1時間)`,
+    `自然回復 ${a.natural} (控え・オフラインを含む) / 赤い魂で回復 ${a.red} = 実際の支出 🔴${a.red}`,
+    `初期${STABILITY_MAX}を使い切った後、控えを回さず休まず続ける推計: 🔴${hours > 0 ? (redNeeded/hours).toFixed(1) : "―"}/実プレイ1時間 (各人業の編成中の消費から3分に1の自然回復を差し引く)`,
+    `記録中の赤い魂の獲得 ${a.redEarned} / 安定度回復分を引いた残り ${a.redEarned-a.red} (他用途の支出は含まない)`,
+    ...Object.values(a.dolls).map(d=>`${d.name} [uid:${d.uid}] 編成中 ${(d.activeMs/60000).toFixed(1)}分 / 入場${d.entries}回・消費${d.spent} / 自然回復${d.natural} / 赤い魂回復${d.red} / 最終安定度${d.value}`),
+    "推計は短い測定ほど誤差が大きい。初期残量・休止中の回復・控えのローテーションは推計に含めない。",
+  ];
+}
 
 // ---- 戦利品・時間 ----
 // 品1つを手に入れた (迷宮の中で)。isNew = 図鑑に初めて載る品
@@ -183,7 +236,7 @@ function dollRow(p, i) {
 }
 
 function resourceState(party) {
-  return party.map((p) => ({ name:p.name, hp:p.hp, mp:p.mp, maxhp:p.maxhp, maxmp:p.maxmp, alive:p.alive !== false }));
+  return party.map((p) => ({ name:p.name, hp:p.hp, mp:p.mp, maxhp:p.maxhp, maxmp:p.maxmp, stability:p.stability, uid:p.uid, alive:p.alive !== false }));
 }
 export function tlRunBegin(where, party, context = {}) {
   if (!S.on || !where) return;
@@ -416,9 +469,11 @@ export function tlSummary(data = S.d) {
 // 書き出し用テキスト (要約 + 生データの JSON)
 export function tlExportText() {
   const lines = [`【DOS テスト記録 v${VERSION}】 版 ${TEST_BUILD} / 記録開始 ${S.since || "―"} / 書き出し ${stamp()}`];
+  lines.push(...tlStabilitySummary());
   for (const s of tlSummary()) { lines.push(s.head); for (const l of s.lines) lines.push("  " + l); }
   for (const history of S.history || []) {
     lines.push(`\n【過去版 ${history.build}】 ${history.since || "―"} ～ ${history.until}`);
+    lines.push(...tlStabilitySummary(history.stability));
     for (const s of tlSummary(history.d)) { lines.push(s.head); for (const l of s.lines) lines.push("  " + l); }
   }
   lines.push("");
@@ -433,6 +488,7 @@ export function tlExportText() {
     "sx/gx=そのうち倍率で増えた分 (psv=パッシブ sf=特別な階 mut=異変 trait=迷宮の掟 oth=出来事の効果・奈落 eq=装備・恵み) " +
     "tsoul/tgold=その迷宮へ入る前に町で得た✦/金貨 (qk/qs/qc/qf/qd=依頼 討伐/魂/宝箱/到達/納品 tip=心付け bond=なじみの贈り物 fq=依頼人の頼み r=王への報告 a=勲章 t=宝物庫 sell=売却)");
   lines.push("追加の鍵: resources=出どころ:hp/mp:+回復/-消耗 (実増減・過剰回復を除く); actions=職:技/行動の使用回数; mp0/mp1=戦闘前後MP割合×1000; resourceBattles=MP記録済み戦闘数; floors=階到着時HP/MP割合×1000の合計と回数; firstEntry=この版で最初に記録した出撃 (初攻略とは限らない); runs=直近20出撃の入口と帰還時資源・結果; history=過去版の記録。未対応の回復経路は収支に含まれない。");
-  lines.push(JSON.stringify({ v: S.v, build:S.build, since: S.since, townMs: S.townMs || 0, townSl: S.townSl || null, townG: S.townG || null, d: S.d, history:S.history || [] }));
+  lines.push(`安定度の鍵: stability=全体と人業別の実プレイ時間・入場回数・消費・自然回復・赤い魂支出・獲得元。events=直近500件 (at=実時刻ミリ秒、activeMs=累積実プレイ時間、各人業のuid/増減量/処理後残量)。入場費${STABILITY_ENTRY_COST}・上限${STABILITY_MAX}・自然回復${STABILITY_RECOVERY_MS}msに1。runsのresourcesにも人業uidと安定度を記録。`);
+  lines.push(JSON.stringify({ v: S.v, build:S.build, since: S.since, townMs: S.townMs || 0, townSl: S.townSl || null, townG: S.townG || null, d: S.d, history:S.history || [], stability:S.stability || null }));
   return lines.join("\n");
 }

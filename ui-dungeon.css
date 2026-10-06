@@ -573,3 +573,10 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 .dp-woes .ui-sheet-title { color: #e9cf9a; }
 .dp-woes .ui-sheet-line { text-align: left; }
 .dp-woes .ui-btn { min-width: 0; }
+
+/* 門衛の忠告と、人業ごとの魂の安定度 */
+.dp-gatekeeper { position:relative; margin:0 0 12px; border:1px solid #487583; background:#101c24; }
+.dp-gatekeeper img { display:block; width:100%; height:auto; image-rendering:pixelated; }
+.dp-brief-sheet .dp-brief-l { margin-bottom:10px; }
+.dp-stability-row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:5px 0; font-size:12px; color:#b6d8df; }
+.dp-stability-low { color:#f0aa90; }

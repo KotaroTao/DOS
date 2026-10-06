@@ -340,6 +340,16 @@
 .wa-fit > .fc-tav-body { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
 .fc-tav-body > * { flex: 0 0 auto; }
 .fc-tav-body > .fc-qarea, .fc-tav-body > .fc-crowd { flex: 1 1 0; min-height: 0; }
+.fc-qgroup { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.fc-qgroup-head {
+  position: sticky; top: 0; z-index: 1; margin: 0; padding: 8px 10px;
+  display: flex; align-items: center; gap: 10px;
+  color: var(--accent-hi); background: var(--plate); border-bottom: 1px solid #b98a3c;
+  font-size: 14px; line-height: 1.5;
+}
+.fc-qgroup-name { flex: 1; min-width: 0; }
+.fc-qgroup-count { flex: 0 0 auto; color: var(--ink-dim); font-size: 12px; }
+.fc-qgroup > .qb-card { height: auto; min-height: 84px; flex: 0 0 auto; }
 .qb-card {
   position: relative; display: flex; align-items: center; gap: 9px; height: 100%; box-sizing: border-box; padding: 6px 8px; cursor: pointer;
   background: var(--grain), var(--plate); border: 1px solid #33292a; border-left: 2px solid #6e5528; border-radius: 3px; box-shadow: var(--plate-edge);

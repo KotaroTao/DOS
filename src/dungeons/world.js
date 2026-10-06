@@ -109,7 +109,7 @@ const WORLD_DEF = [
     elites: ["el_bloatqueen"], // 名のある強敵の縄張り (named.js)
     tune: { enemyMul: 1.40, deepMul: 0.87, soloMul: 0.85 }, // DUNGEON_TUNE の D7 (改定後の表)
     unlock: { story: "w02_sigil" },
-    hint: "「亡骸の囁く回廊」のどこかに、師の残した印があるという",
+    hint: "「亡骸の囁く回廊」の地下4階に、師の残した印があるという",
   },
   {
     id: "w05", lv: 22, lvTo: 27, layer: 3, floors: 15,

@@ -15,7 +15,7 @@
 import { UI, game, registerUI } from "./ctx.js";
 import { el, setText, button, sheet, toast, celebrate, sheetDepth } from "./kit.js";
 import { unphrase } from "./phrase.js";
-import { playIreneScene, ireneBond, sceneActive, isGreeted } from "./irene.js";
+import { playIreneScene, sceneActive, isGreeted } from "./irene.js";
 import { vignetteCanvas } from "../townart.js";
 import { SOUL_CLASSES, soulByUid } from "../souls.js";
 
@@ -25,9 +25,6 @@ const G_ = () => game.G;
 const allDolls = () => (game.allDolls ? game.allDolls() : [...(G_().party || []), ...(G_().reserve || [])]);
 const safe = (fn, fb) => { try { return fn(); } catch (e) { return fb; } };
 const jobLabel = (k) => (SOUL_CLASSES[k] || {}).label || k;
-// イレーヌの口調: 打ち解ける (親しさ2) までは です・ます
-const warm = () => safe(() => ireneBond(), 0) >= 2;
-const say = (polite, friendly) => (warm() ? friendly : polite);
 
 export function tutState() {
   const G = G_();
@@ -60,7 +57,7 @@ function fusableDoll() {
 }
 function spareSouls() {
   const worn = wornSet();
-  return (game.soulRepresentatives ? game.soulRepresentatives() : G_().souls || []).filter((s) => !worn.has(s.uid) && !(G_().party || []).some((d) => game.soulSlotConflict && game.soulSlotConflict(d, s.uid, "sub0")));
+  return (G_().souls || []).filter((s) => !worn.has(s.uid) && (G_().party || []).some((d) => !game.soulSlotConflict || !game.soulSlotConflict(d, s.uid, "sub0")));
 }
 // 融合できる魂がどこかにある (宿していない魂どうしでもよい)
 function anyFusable() {
@@ -128,16 +125,11 @@ const TUTS = [
     open: () => !!tutState().repairPending,
     used: () => false,
     intro: () => [
-      say(["……お帰りなさい。魂の灯が、途切れてしまったのですね。", "けれど、あの子たちとの別れを決めるには、まだ早いのです。"],
-        ["……お帰りなさい。魂の灯が、途切れてしまったのね。", "でも、あの子たちとの別れを決めるには、まだ早いわ。"]),
-      say(["器が砕けると、宿っていた魂も砕け、深い眠りに落ちます。", "街へ戻るだけでも、宿で休むだけでも、その灯は戻りません。"],
-        ["器が砕けると、宿っていた魂も砕け、深い眠りに落ちるの。", "街へ戻るだけでも、宿で休むだけでも、その灯は戻らないわ。"]),
-      say(["この館なら、わたしが砕けた魂をつなぎ直せます。", "その子を選び、『砕けた魂を修復』を押してください。金貨を頂きますが、魂も器も、力を取り戻して立ち上がります。"],
-        ["この館なら、わたしが砕けた魂をつなぎ直せるわ。", "その子を選んで、『砕けた魂を修復』を押してね。金貨は頂くけれど、魂も器も、力を取り戻して立ち上がるわ。"]),
-      say(["皆が倒れた時は、器が迷宮に残されます。ほかの冒険者が連れ帰るまで、お待ちください。", "深い階ほど時がかかります。赤い魂を捧げれば、連れ帰りを早められますが、修復は器が届いてからです。"],
-        ["みんなが倒れた時は、器が迷宮に残されるの。ほかの冒険者が連れ帰るまで、待っていてね。", "深い階ほど時がかかるわ。赤い魂を捧げれば、連れ帰りを早められるけれど、修復は器が届いてからよ。"]),
-      say(["金貨が足りなければ、今すぐ修復しなくても大丈夫です。", "あの子たちの名を、忘れずにいてください。もう一度呼びかける日まで、わたしがお預かりします。"],
-        ["金貨が足りなければ、今すぐ修復しなくても大丈夫。", "あの子たちの名を、忘れずにいてね。もう一度呼びかける日まで、わたしがお預かりするわ。"]),
+      ["……お帰りなさい。魂の灯が、途切れてしまったのですね。", "けれど、あの子たちとの別れを決めるには、まだ早いのです。"],
+      ["器が砕けると、宿っていた魂も砕け、深い眠りに落ちます。", "街へ戻るだけでも、宿で休むだけでも、その灯は戻りません。"],
+      ["この館なら、わたしが砕けた魂をつなぎ直せます。", "その子を選び、『砕けた魂を修復』を押してください。金貨を頂きますが、魂も器も、力を取り戻して立ち上がります。"],
+      ["皆が倒れた時は、器が迷宮に残されます。ほかの冒険者が連れ帰るまで、お待ちください。", "深い階ほど時がかかります。赤い魂を捧げれば、連れ帰りを早められますが、修復は器が届いてからです。"],
+      ["金貨が足りなければ、今すぐ修復しなくても大丈夫です。", "あの子たちの名を、忘れずにいてください。もう一度呼びかける日まで、わたしがお預かりします。"],
     ],
     afterIntro() {
       const d = allDolls().find((d) => d.isDoll && !d.alive);
@@ -229,12 +221,9 @@ const TUTS = [
       return `${jobLabel("fighter")}の魂をふたつ`;
     },
     intro: (gift) => [
-      say(["同じ職の余った魂を融合すると、魂の格が上がり、Lvの上限や技が増えます。素材の魂は消え、その力は残る魂へ移ります。", "『魂』の区分の『魂融合』から、一度試してみてください。"],
-        ["同じ職の余った魂を融合すると、魂の格が上がって、Lvの上限や技が増えるの。素材の魂は消えて、その力は残る魂へ移るわ。", "『魂』の区分の『魂融合』から、一度試してみて。"]),
-      gift ? say([`練習に、${gift}お預けします。`, "宿している戦士の魂に溶かしても、ふたつを溶かし合わせてもかまいません。詳しい説明は『魂の扱い方』で読めます。"],
-        [`練習に、${gift}預けておくわね。`, "宿している戦士の魂に溶かしても、ふたつを溶かし合わせてもいいわ。詳しい説明は『魂の扱い方』で読めるわよ。"])
-        : say(["余っている同じ職の魂を、融合してみてください。", "詳しい説明は、魂の区分の『魂の扱い方』で、いつでも確かめられます。"],
-          ["余っている同じ職の魂を、融合してみて。", "詳しい説明は、魂の区分の『魂の扱い方』で、いつでも確かめられるわ。"]),
+      ["同じ職の余った魂を融合すると、魂の格が上がり、Lvの上限や技が増えます。素材の魂は消え、その力は残る魂へ移ります。", "『魂』の区分の『魂融合』から、一度試してみてください。"],
+      gift ? [`練習に、${gift}お預けします。`, "宿している戦士の魂に溶かしても、ふたつを溶かし合わせてもかまいません。詳しい説明は『魂の扱い方』で読めます。"]
+        : ["余っている同じ職の魂を、融合してみてください。", "詳しい説明は、魂の区分の『魂の扱い方』で、いつでも確かめられます。"],
     ],
     steps: [{
       text: "魂融合で、余っている魂を溶かす",
@@ -260,20 +249,13 @@ const TUTS = [
       return `${jobLabel(cls)}の魂をひとつ`;
     },
     intro: (gift) => [
-      say(["王さまから伺いました。", "人業に、もうひとつ魂を宿せるようになったのですね。"],
-        ["王さまから聞いたわ。", "人業に、もうひとつ魂を宿せるようになったのね。"]),
-      say(["本来の魂 (メイン魂) のほかに、もうひとつ。", "これを『サブ魂』と呼びます。"],
-        ["本来の魂 (メイン魂) のほかに、もうひとつ。", "これを『サブ魂』と呼ぶの。"]),
-      say(["サブ魂は、覚えた技やパッシブを貸してくれます。", "それに、その魂の能力の一部が器に足されます。魂のランクが高いほど多く。"],
-        ["サブ魂は、覚えた技やパッシブを貸してくれるわ。", "それに、その魂の能力の一部が器に足されるの。ランクの高い魂ほど多くね。"]),
-      say(["貸してくれる数は、魂のランクで決まります。", "R1-2はひとつ、R3-4はふたつ、R5なら三つ。"],
-        ["貸してくれる数は、魂のランクで決まるわ。", "R1-2はひとつ、R3-4はふたつ、R5なら三つよ。"]),
-      gift ? say([`練習に、${gift}お預けします。`, "空いている魂を、サブ魂の枠に宿してみてください。"],
-        [`練習に、${gift}預けておくわね。`, "空いている魂を、サブ魂の枠に宿してごらんなさい。"])
-        : say(["隊に出していない魂を、", "サブ魂の枠に宿してみてください。"],
-          ["隊に出していない魂を、", "サブ魂の枠に宿してごらんなさい。"]),
-      say(["宿したら『技』で、借りる技を選びます。", "済ませるまで、王さまは門をお開けになりません。"],
-        ["宿したら『技』で、借りる技を選ぶの。", "済ませるまで、王さまは門を開けてくださらないわ。"]),
+      ["王さまから伺いました。", "人業に、もうひとつ魂を宿せるようになったのですね。"],
+      ["本来の魂 (メイン魂) のほかに、もうひとつ。", "これを『サブ魂』と呼びます。"],
+      ["サブ魂は、覚えた技やパッシブを貸してくれます。", "それに、その魂の能力の一部が器に足されます。魂のランクが高いほど多くなります。"],
+      ["貸してくれる数は、魂のランクで決まります。", "R1-2はひとつ、R3-4はふたつ、R5なら三つです。"],
+      gift ? [`練習に、${gift}お預けします。`, "空いている魂を、サブ魂の枠に宿してみてください。"]
+        : ["隊に出していない魂を、", "サブ魂の枠に宿してみてください。"],
+      ["宿したら『技』で、借りる技を選びます。", "済ませるまで、王さまは門をお開けになりません。"],
     ],
     steps: [
       {
@@ -330,10 +312,9 @@ const TUTS = [
     used: () => { const o = G_().order; return !!(o && Array.isArray(o.picks) && o.picks.length); },
     prepare: () => null,
     intro: () => [
-      say(["控えの結社が開かれたそうですね。"], ["控えの結社が開かれたそうね。"]),
-      say(["隊に出していない魂も、ただ眠っているわけではありません。", "席に着けた魂は、その力の一部を人業のみなに分けてくれます。"],
-        ["隊に出していない魂も、ただ眠っているわけじゃないの。", "席に着けた魂は、その力の一部を人業のみんなに分けてくれるわ。"]),
-      say(["『魂』の区分の『控えの結社』を開いてみてください。"], ["『魂』の区分の『控えの結社』を開いてごらんなさい。"]),
+      ["控えの結社が開かれたそうですね。"],
+      ["隊に出していない魂も、ただ眠っているわけではありません。", "席に着けた魂は、その力の一部を人業のみなに分けてくれます。"],
+      ["『魂』の区分の『控えの結社』を開いてみてください。"],
     ],
     steps: [{
       text: "控えの結社を開く", hint: "魂の区分 →『控えの結社』",
@@ -593,7 +574,16 @@ function ireneGuidance() {
       ["この子に名前を与えてください。", "『生成する』を押すと、赤い魂30で人業が目覚めます。"],
     ][index] || null;
   }
-  return [`次は、${s.text}。`, s.hint];
+  // 目標札の操作手順ではなく、通常会話と同じ口調で案内する。
+  if (p.key === "fusion") return ["『魂融合』を開き、素材にする魂をお選びください。", "余っている同じ職の魂を、ひとつに溶かしましょう。"];
+  if (p.key === "newJobParty") return ["『人業を仕立てる』から、新しい職業の魂をお選びください。", "この子に名前を与え、新しい仲間を迎えましょう。"];
+  if (p.key === "soulChange") return ["『魂を付け替える』で、魂の一覧を開いてみてください。", "持っている魂を確かめたら、一覧を閉じてください。"];
+  if (p.key === "sub1") return tutState().step === 1 ?
+    ["サブ魂の札の『技』を開いてください。", "借りる技を選んだら、閉じてください。"] :
+    ["サブ魂の枠を開き、魂をお選びください。", "隊に出していない魂を、宿してみてください。"];
+  if (p.key === "order") return ["『魂』の区分の『控えの結社』を開いてみてください。", "席に着けた魂は、みなに力を分けてくれます。"];
+  if (p.key === "repairSoul") return ["砕けた人業を選び、状態を確かめてください。", "器が届いたら、わたしが金貨で魂をつなぎ直します。"];
+  return null;
 }
 function updateGuidance() {
   if (!hasDOM()) return;
@@ -641,8 +631,8 @@ function tutorialControls() {
   if (!d) return choose(first(document, ".hb-goal-go"));
   const st = tutState(), s = curStep();
   if (card) {
-    // 警備兵の忠告は、本文のタッチスクロールも受け付ける。
-    if (card.classList.contains("dp-brief-sheet")) return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary"), [h.body]);
+    // 門衛の忠告は、本文のスクロールと支度に戻る操作も受け付ける。
+    if (card.classList.contains("dp-brief-sheet")) return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary"), [h.body, ...first(card,".ui-sheet-foot .ui-btn.k-ghost")]);
     if (h.kind === "celebrate" || card.classList.contains("ui-confirm") || stepDone(s)) return forward();
     if (card.classList.contains("pt-name-sheet")) {
       return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary"), first(card, ".pt-name-in, .pt-name-rnd"));
@@ -652,7 +642,7 @@ function tutorialControls() {
       const jobs = d.key === "newJobParty" ? st.base.jobs || [] : d.key === "createFourth" ? ["mage"] : ["fighter", "priest", "thief"];
       return choose(jobs.flatMap((job) => first(card, `.pt-soulrow[data-job="${job}"]`)));
     }
-    if (h.opts.banner === "魂融合") return choose(first(card, ".sp-fuse-material"));
+    if (h.opts.banner === "魂融合") return choose(first(card, ".sp-fuse-material"), first(card, ".sp-fuse-all"));
     if (h.opts.banner === "宿し技をえらぶ") {
       if (st.ev.subPick) return forward();
       return choose(first(card, ".ui-row"));

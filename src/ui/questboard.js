@@ -23,6 +23,21 @@ const TYPE_MARK = { kill: "⚔", soul: "✦", chest: "◆", floor: "▼", clear:
 export function lists() {
   try { return game.questLists ? game.questLists() : { active: [], offers: [], freeCount: 0, cap: 5 }; } catch (e) { setTimeout(() => { throw e; }); return { active: [], offers: [], freeCount: 0, cap: 5 }; }
 }
+// ダンジョンの地図順にまとめる。同じ見出しの中では元の依頼順を保つ。
+export function dungeonGroups(quests, dungeons = game.DUNGEONS || []) {
+  const groups = new Map();
+  const known = new Set(dungeons.map((d) => d.id));
+  for (const q of quests) {
+    const id = q.homeDungeon || q.dungeon;
+    const key = known.has(id) ? id : null;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(q);
+  }
+  return [
+    ...dungeons.filter((d) => groups.has(d.id)).map((d) => ({ id: d.id, name: d.name, quests: groups.get(d.id) })),
+    ...(groups.has(null) ? [{ id: null, name: "ダンジョン指定なし・納品", quests: groups.get(null) }] : []),
+  ];
+}
 const cap = () => (game.FREE_CAP || 6);
 const full = () => lists().freeCount >= cap();
 const deliverSt = (q) => (q.type === "deliver" && game.deliveryStatus ? game.deliveryStatus(q) : null);
