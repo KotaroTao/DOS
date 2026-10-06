@@ -12823,13 +12823,14 @@ function returnToTown(opts = {}) {
   renderDock();
   renderTown();
   autosave(true);
-  if (abyssSummary) showAbyssSummary(abyssSummary);
+  const repairTutorial = UI.tutorialAfterReturn?.() || false;
+  if (abyssSummary && !repairTutorial) showAbyssSummary(abyssSummary);
   // 帰還の報告は街の広場 (WP-A) が UI.renderRunReport で札として置く。まだ置かれていなければ、シートで見せる
-  else setTimeout(() => {
+  else if (!repairTutorial) setTimeout(() => {
     if (G.state === "town" && G.lastRun && !G.lastRun.dismissed && !document.querySelector(".rr-card") && !uiBlocked() && UI.openRunReport) UI.openRunReport();
   }, 450);
   // §7 M9 帰還時に宿で休む (設定で選んだ時だけ。宿賃は宿屋と同じ)
-  if (outcome !== "wipe" && uiDungeonHud.getPref("autoRest")) {
+  if (!repairTutorial && outcome !== "wipe" && uiDungeonHud.getPref("autoRest")) {
     let c = null;
     try { c = ops.counts(); } catch (e) { c = null; }
     if (c && c.hurt > 0 && G.gold >= c.innCost) setTimeout(() => { if (G.state === "town") ops.restParty(); }, 600);

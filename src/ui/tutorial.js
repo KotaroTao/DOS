@@ -122,6 +122,30 @@ function mansionVisited() {
 //   intro(note) = 導入 / steps = [{ text, hint, go(), target[], done?(), on?, skip?() }] / outro = 完了のカードの行
 const TUTS = [
   {
+    key: "repairSoul", name: "砕けた魂の修復", who: "irene",
+    open: () => !!tutState().repairPending,
+    used: () => false,
+    intro: () => [
+      say(["……お帰りなさい。魂の灯が、途切れてしまったのですね。", "けれど、あの子たちとの別れを決めるには、まだ早いのです。"],
+        ["……お帰りなさい。魂の灯が、途切れてしまったのね。", "でも、あの子たちとの別れを決めるには、まだ早いわ。"]),
+      say(["器が砕けると、宿っていた魂も砕け、深い眠りに落ちます。", "街へ戻るだけでも、宿で休むだけでも、その灯は戻りません。"],
+        ["器が砕けると、宿っていた魂も砕け、深い眠りに落ちるの。", "街へ戻るだけでも、宿で休むだけでも、その灯は戻らないわ。"]),
+      say(["この館なら、わたしが砕けた魂をつなぎ直せます。", "その子を選び、『砕けた魂を修復』を押してください。金貨を頂きますが、魂も器も、力を取り戻して立ち上がります。"],
+        ["この館なら、わたしが砕けた魂をつなぎ直せるわ。", "その子を選んで、『砕けた魂を修復』を押してね。金貨は頂くけれど、魂も器も、力を取り戻して立ち上がるわ。"]),
+      say(["皆が倒れた時は、器が迷宮に残されます。ほかの冒険者が連れ帰るまで、お待ちください。", "深い階ほど時がかかります。赤い魂を捧げれば、連れ帰りを早められますが、修復は器が届いてからです。"],
+        ["みんなが倒れた時は、器が迷宮に残されるの。ほかの冒険者が連れ帰るまで、待っていてね。", "深い階ほど時がかかるわ。赤い魂を捧げれば、連れ帰りを早められるけれど、修復は器が届いてからよ。"]),
+      say(["金貨が足りなければ、今すぐ修復しなくても大丈夫です。", "あの子たちの名を、忘れずにいてください。もう一度呼びかける日まで、わたしがお預かりします。"],
+        ["金貨が足りなければ、今すぐ修復しなくても大丈夫。", "あの子たちの名を、忘れずにいてね。もう一度呼びかける日まで、わたしがお預かりするわ。"]),
+    ],
+    afterIntro() {
+      const d = allDolls().find((d) => d.isDoll && !d.alive);
+      if (d && UI.openParty) UI.openParty(d, { context: "town" });
+    },
+    // 連れ帰り待ち・金貨不足でも、説明を聞けば手ほどきを終えられる。
+    steps: [{ text: "砕けた人業の状態を確認する", hint: "器が届いたら、金貨で『砕けた魂を修復』", done: () => true }],
+    outro: ["砕けた魂は、人業の館で金貨を払って修復できる。全滅で残された器は、連れ帰りを待とう。"],
+  },
+  {
     key: "createThree", name: "三体の人業を仕立てる", who: "irene",
     open: () => G_().msq?.n === 0 && G_().msq.granted && G_().msq.stage !== "fourth",
     used: () => initialJobsReady(["fighter", "priest", "thief"]),
@@ -369,7 +393,7 @@ function start(d) {
   const after = () => {
     busy = false;
     if (gift) toast(`${gift}預かった (手ほどき用)`, { tone: "good" });
-    setTimeout(() => goStep(true), 200); // 語りを閉じたタップが、開いた先の画面に届かないように
+    setTimeout(() => { safe(() => d.afterIntro?.(), null); goStep(true); }, 200); // 語りを閉じたタップが、開いた先の画面に届かないように
   };
   if (d.who === "irene") playIreneScene(d.intro(gift), after);
   else introSheet(d, after);
@@ -418,6 +442,10 @@ function finish(d) {
   const st = tutState();
   st.done[d.key] = true;
   st.cur = null; st.step = 0; st.ev = {}; st.base = {};
+  if (d.key === "repairSoul" && st.repairResume) {
+    Object.assign(st, st.repairResume);
+    delete st.repairResume;
+  }
   if (game.autosave) game.autosave(true);
   clearGlow();
   updateGuidance();
@@ -444,6 +472,21 @@ function finish(d) {
 function afterReport() {
   if (!pending() || TUT_MAP[pending().key]?.manual) return false;
   setTimeout(() => resume(), 700); // 報告の知らせ (トースト) を見せてから
+  return true;
+}
+
+// 初めて砕けた人業を伴って帰還した時。帰還の報告より館の手ほどきを優先する。
+function afterReturn() {
+  const st = tutState();
+  if (!st || st.done.repairSoul || !allDolls().some((d) => d.isDoll && !d.alive)) return false;
+  st.repairPending = true;
+  if (st.cur && st.cur !== "repairSoul") {
+    st.repairResume = { cur: st.cur, step: st.step, ev: st.ev, base: st.base };
+    st.cur = null; st.step = 0; st.ev = {}; st.base = {};
+  }
+  if (UI.enterMansion) UI.enterMansion();
+  if (game.autosave) game.autosave(true);
+  mansionVisited();
   return true;
 }
 
@@ -637,6 +680,7 @@ export function install() {
     tutorialPending: pending,
     tutorialResume: resume,
     tutorialAfterReport: afterReport,
+    tutorialAfterReturn: afterReturn,
     tutorialEvent: onEvent,
     tutorialFree: isFree,
   });
