@@ -14207,11 +14207,15 @@ function refDeserialize(data) {
   return dec(data.root);
 }
 
+// テストモードはURLで明示し、通常セーブの読み書きを止める。
+const testParams = new URLSearchParams(location.search);
+const testDungeonIdx = DUNGEONS.findIndex((d) => d.id === testParams.get("testDungeon"));
+const testPlayActive = testDungeonIdx >= 0;
 let _lastSave = 0;
 let _saveWarned = false;
 let _resetting = false; // データ削除→リロードの間に autosave が書き戻すのを防ぐ
 function autosave(force = false) {
-  if (_resetting) return;
+  if (_resetting || testPlayActive) return;
   if (!G.party || !G.party.length) return;
   const now = Date.now();
   if (!force && now - _lastSave < 200) return;
@@ -14231,7 +14235,7 @@ function autosave(force = false) {
   }
 }
 
-function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch {} }
+function clearSave() { if (testPlayActive) return; try { localStorage.removeItem(SAVE_KEY); } catch {} }
 
 // 旧セーブの %型アイテム (.pct) をテンプレートのフラット値へ戻す。
 // refSerialize の参照共有を壊さないよう、saved item オブジェクトを in-place で変更する。
@@ -14312,6 +14316,7 @@ function migrateLegacyStats(root) {
 
 // 保存データを読み込み、G を復元する。成功なら true
 function loadGame() {
+  if (testPlayActive) return false;
   let raw;
   try { raw = localStorage.getItem(SAVE_KEY); } catch { return false; }
   if (!raw) return false;
@@ -14540,6 +14545,46 @@ function setupNewGame() {
   // 第0章: 三職を受ける → 三体を報告 → 🔴100と魔導士 → 四体目を報告 → 金貨500
   G.msq = { n: 0, state: "active", granted: false };
   codexSweepJobs();
+}
+
+// 進行度の前までを報告済みにし、推奨Lvの隊を用意する。通常の解放判定は共通。
+function setupTestPlay() {
+  setupNewGame();
+  G.testPlay = true;
+  G.msq = { n: 1, state: "world" };
+  G.dungeonIdx = testDungeonIdx;
+  const cfg = DUNGEONS[testDungeonIdx];
+  const floor = Math.max(1, Math.min(cfg.floors, Math.floor(Number(testParams.get("testFloor"))) || 1));
+  const w = worldState();
+  for (const d of DUNGEONS.slice(0, testDungeonIdx)) {
+    if (d.side) continue;
+    w.open[d.id] = true; w.cleared[d.id] = 1; w.reported[d.id] = true;
+    if (d.boss) { w.beats["mem_" + d.id] = true; G.stats.bossIds[d.boss] = true; }
+  }
+  for (const ch of CHAPTERS) if (w.reported[ch.finale]) w.beats["ch" + ch.no + "_end"] = true;
+  // 地図の解放に要る手がかりを、ここまでの進行に応じて補う。
+  for (const d of DUNGEONS.slice(0, testDungeonIdx + 1)) {
+    if (d.unlock?.story) w.found[d.unlock.story] = true;
+  }
+  refreshWorldUnlocks();
+  w.open[cfg.id] = true;
+  w.gates[cfg.id] = floor;
+  G.unlockedDungeons = worldOpenCount();
+  G.irene.greeted = true;
+  G.dungeonBriefed = true; G.stabilityBriefed = true;
+  const level = dungeonLevel(cfg, floor);
+  for (const [i, cls] of ["fighter", "knight", "thief", "priest", "mage", "hunter"].entries()) {
+    const soul = addSoulInstance(cls, 1, level);
+    soul.capBonus = Math.max(0, level - soulLevelCap(cls, soul.count));
+    const doll = makeDoll(`試遊${i + 1}・${SOUL_CLASSES[cls].label}`);
+    doll.primary = soul.uid; recalcDoll(doll);
+    doll.hp = doll.maxhp; doll.mp = doll.maxmp;
+    G.party.push(doll);
+  }
+  G.dollsPurchased = G.party.length;
+  G.gold = Math.round(refGold(level) * 30); G.redSoul = 300;
+  G.state = "town";
+  return floor;
 }
 
 // ==== OPS: 一括操作 (Phase 0 が所有。以後は凍結し、拡張は UI 経由) ====
@@ -15072,6 +15117,25 @@ function init() {
     world: { worldState, refreshWorldUnlocks, reportMainQuest, reportTutorialQuest, grantTutorialGift, commitDungeonClear, showDungeonClearedPopup, askGate, departNow, storyGoal, objectiveInfo, decreeInfo,
       playIreneBeat, pendingIreneBeat, storyNewFloor, runStoryCell, resumeFromState, startFloorsOf, foeLevelHere, claimTreasury, partyLevel, leaveDungeon, DUNGEONS, finalizeBuyDoll, totalDonatedKinds, treasuryState } };
 
+  if (testPlayActive) {
+    const floor = setupTestPlay();
+    titleActive = false; G.prompt = false;
+    const banner = document.createElement("div");
+    banner.className = "test-play-banner";
+    banner.appendChild(document.createTextNode("テストプレイ中・保存なし "));
+    const exit = document.createElement("button");
+    exit.type = "button"; exit.textContent = "終了してホームへ";
+    exit.addEventListener("click", () => {
+      const url = new URL(location.href);
+      for (const key of ["testDungeon", "testFloor", "testPlace"]) url.searchParams.delete(key);
+      location.replace(url.href);
+    });
+    banner.appendChild(exit); document.body.appendChild(banner);
+    resumeFromState();
+    if (testParams.get("testPlace") !== "town") enterDungeon(null, floor);
+    playBgm(sceneBgm());
+    return;
+  }
   let loaded = false;
   try { loaded = loadGame(); } catch (e) { loaded = false; }
   if (!loaded) {
@@ -15107,7 +15171,13 @@ function init() {
   if (freshStart && !loaded) start();
   else {
     try {
-      showTitle({ hasSave: loaded, summary: loaded ? titleSummary() : null, onStart: start, onNewGame: loaded ? newGameFromTitle : null });
+      showTitle({ hasSave: loaded, summary: loaded ? titleSummary() : null, onStart: start, onNewGame: loaded ? newGameFromTitle : null,
+        testDungeons: DUNGEONS, onTestPlay: ({ id, floor, place }) => {
+          _resetting = true;
+          const url = new URL(location.href);
+          url.searchParams.set("testDungeon", id); url.searchParams.set("testFloor", floor); url.searchParams.set("testPlace", place);
+          location.assign(url.href);
+        } });
     } catch (e) { start(); }
   }
 

@@ -388,3 +388,13 @@
   .op-next-d, .op-final .op-title, .op-final .op-begin { animation: none !important; opacity: 1; }
   .op-black { transition-duration: 0.1s; }
 }
+
+/* テスト開始の選択と、試遊中の常設表示 */
+.ttl-test { max-height: calc(100dvh - 40px); overflow-y: auto; }
+.ttl-test-field { display: flex; flex-direction: column; gap: 6px; text-align: left; margin: 14px 0; font-size: 13px; color: #f1e4c8; }
+.ttl-test-field select, .ttl-test-field input { width: 100%; box-sizing: border-box; min-height: 44px; padding: 8px; color: #f1e4c8; background: #151019; border: 1px solid #746044; font: inherit; }
+.test-play-banner { position: fixed; top: 0; left: 0; right: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 3px; background: #332113; color: #fff0c4; font-size: 11px; }
+.test-play-banner button { min-height: 32px; color: inherit; background: #17101b; border: 1px solid #a98b4c; cursor: pointer; }
+body:has(.test-play-banner) { padding-top: 38px; }
+body:has(.test-play-banner) #town-shell { top: 38px; }
+body:has(.test-play-banner) .ui-sheet { top: 38px; }

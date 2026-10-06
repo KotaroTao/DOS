@@ -1,7 +1,7 @@
 // ヘルプと物語の台帳。閲覧条件は既存の進行記録から判定する。
-import { SCENES as OPENING } from "./openingart.js";
+import { archiveStories } from "./archive-stories.js";
 import { WORLD } from "./dungeons/world.js";
-import { CHAPTERS, CHAPTER_END, STORY_CELLS, BOSS_MEMORIES, REPORTS, IRENE_BEATS, UNLOCKS, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, MINE_PASS } from "./story.js";
+import { CHAPTERS, UNLOCKS } from "./story.js";
 
 const ready = g => (g.msq?.n || 0) > 0;
 const vessel = g => ready(g) || !!g.msq?.granted;
@@ -44,25 +44,11 @@ export function helpEntries(g, featureUnlocked = () => false) {
   return HELP_TOPICS.filter(t=>t.feature ? featureUnlocked(t.feature) : t.available(g));
 }
 export function storyEntries(g) {
-  const w=g.world||{}, out=[];
-  const add=(id,group,page)=>out.push({id,group,...page});
-  add("opening","序章",{title:"百の迷宮と、魂の王",art:"candle",lines:OPENING.flatMap(scene=>[scene.title,...scene.lines.map(line=>typeof line==="string"?line:`${line.em}（${line.ruby}）`)])});
-  if(g.msq?.granted || ready(g)) add("arrival","序章",{title:"着任の謁見",art:"candle",lines:TUT_INTRO});
-  if(g.msq?.stage==="fourth" || ready(g)) add("three","序章",{title:"三体の人業の報告",art:"candle",lines:TUT_THREE_REPORT});
-  if(ready(g)) add("departure","序章",{title:"人業の生成・完遂",art:"candle",lines:TUT_FINALE});
-  for(const ch of CHAPTERS){
-    const group=`第${ch.no}章「${ch.title}」`;
-    for(const id of ch.dungeons){
-      const d=WORLD.find(x=>x.id===id),lore=DUNGEON_LORE[id];
-      if(w.cleared?.[id]&&lore)add(`lore_${id}`,group,{title:d.name, subtitle:"迷宮の由来と秘密",...lore});
-      for(const [key,cell] of Object.entries(STORY_CELLS))if(cell.dungeon===id&&w.found?.[key])add(key,group,cell);
-      if(w.beats?.[`mem_${id}`]&&BOSS_MEMORIES[id])add(`mem_${id}`,group,BOSS_MEMORIES[id]);
-      if(w.reported?.[id]&&REPORTS[id])add(`report_${id}`,group,{art:lore?.art,...REPORTS[id],subtitle:"王への踏破報告"});
-    }
-    if(w.beats?.[`ch${ch.no}_end`]&&CHAPTER_END[ch.no])add(`ch${ch.no}_end`,group,{art:"candle",...CHAPTER_END[ch.no]});
-  }
-  for(const d of WORLD.filter(d=>d.side))if(w.cleared?.[d.id])add(`lore_${d.id}`,"寄り道の物語",{title:d.name,subtitle:"迷宮の由来と秘密",...DUNGEON_LORE[d.id]});
-  for(const b of IRENE_BEATS)if(w.beats?.[b.id])add(b.id,"人業の館",b);
-  if(g.treasury?.claimed?.m3)add("minePass","人業の館",{art:"camp",...MINE_PASS});
-  return out;
+  const w = g.world || {};
+  const lore = WORLD.filter(d => w.cleared?.[d.id]).map(d => {
+    const chapter = CHAPTERS.find(ch => ch.dungeons.includes(d.id));
+    return { id:`lore_${d.id}`, group:chapter ? `第${chapter.no}章「${chapter.title}」` : "寄り道の物語",
+      title:d.name, subtitle:"迷宮の由来と秘密", ...DUNGEON_LORE[d.id] };
+  });
+  return [...archiveStories(g), ...lore];
 }

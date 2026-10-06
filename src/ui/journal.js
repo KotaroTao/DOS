@@ -1,7 +1,8 @@
 // 解放済みの手引きと、体験済みの物語を読む。閲覧では報酬・進行を変更しない。
 import { UI, game, registerUI } from "./ctx.js";
-import { el, button, sheet } from "./kit.js";
+import { el, button, sheet, segmented } from "./kit.js";
 import { helpEntries, storyEntries } from "../journal.js";
+import { archiveArt } from "../archive-art.js";
 import { storyArt } from "../storyart.js";
 import { vignetteCanvas } from "../townart.js";
 
@@ -14,9 +15,12 @@ function illustration(entry) {
   if (entry.image) {
     const img = document.createElement("img");
     img.src = new URL("../../" + entry.image, import.meta.url).href;
-    img.alt = "迷宮の入口に立つ門衛";
-    img.width = 1852; img.height = 849;
+    img.alt = entry.imageAlt || "迷宮の入口に立つ門衛";
+    img.width = entry.imageWidth || 1852; img.height = entry.imageHeight || 849;
     box.appendChild(img);
+  } else if (entry.illustration) {
+    const art = archiveArt(entry.illustration);
+    if (art) { art.setAttribute("aria-label", entry.title + "の場面"); box.appendChild(art); }
   } else {
     const art = entry.art ? storyArt(entry.art) : vignetteCanvas(entry.place || "palace");
     if (art) { art.setAttribute("aria-hidden", "true"); box.appendChild(art); }
@@ -55,18 +59,25 @@ export function openJournal(kind = "help") {
     body:b=>{
       b.appendChild(el("p","jr-intro",isHelp
         ? "いま使える機能の手引きです。機能が解放されると、読める項目が増えます。"
-        : "旅で触れた物語の記録です。迷宮を踏破すると、その場所の由来と秘密を読めます。"));
+        : "旅の歩みに合わせて読める物語です。「踏破した迷宮」では、その場所の由来と秘密を読めます。"));
+      let activeTab = "story";
       const search = document.createElement("input");
       search.type="search"; search.className="jr-search";
       search.placeholder=isHelp?"ヘルプを探す":"物語を探す";
       search.setAttribute("aria-label",search.placeholder);
-      b.appendChild(search);
+      if (isHelp) b.appendChild(search);
+      else b.appendChild(segmented([
+        { key:"story", label:"ストーリー" },
+        { key:"dungeons", label:"踏破した迷宮" },
+      ], activeTab, key => { activeTab = key; draw(); }));
       const results=el("div","jr-results");b.appendChild(results);
       const draw=()=>{
         results.replaceChildren();
-        const query=search.value.trim();
-        const shown=list.filter(e=>!query||`${e.title} ${e.subtitle||""} ${e.group||""}`.includes(query));
-        if(!shown.length){results.appendChild(el("p","jr-empty",list.length?"該当する記録がありません。":"まだ読める記録がありません。旅を進めると、ここに記録が増えていきます。"));return;}
+        const query=isHelp ? search.value.trim() : "";
+        const shown=list.filter(e=>isHelp
+          ? !query||`${e.title} ${e.subtitle||""} ${e.group||""}`.includes(query)
+          : (e.id.startsWith("lore_") ? activeTab === "dungeons" : activeTab === "story"));
+        if(!shown.length){results.appendChild(el("p","jr-empty",(!isHelp && activeTab === "dungeons")?"まだ踏破した迷宮がありません。":list.length?"該当する記録がありません。":"まだ読める記録がありません。旅を進めると、ここに記録が増えていきます。"));return;}
         let group=null;
         for(const entry of shown){
           const next=entry.group || "解放済みの機能";
