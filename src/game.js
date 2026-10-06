@@ -6473,7 +6473,13 @@ function askDescend(cell) {
   const clearNoBoss = atBottom && !dn.boss;  // 層途中の迷宮は最深部到達で踏破
   let label, banner, accent, prompt, lines = [];
   if (boss) { label = "主に挑む"; banner = "⚠ 迷宮の主 ⚠"; accent = "#d4504e"; prompt = `この奥に「${dn.name}」の主が待つ。`; lines = ["勝てば迷宮を踏破し、街へ凱旋できる。"]; }
-  else if (clearNoBoss) { label = "踏破する"; banner = "✦ 最深部 ✦"; accent = "#ffd84a"; prompt = `「${dn.name}」の最深部に至った。`; lines = ["踏破して街へ凱旋する。"]; }
+  else if (clearNoBoss) {
+    label = "踏破する"; banner = "✦ 最深部 ✦"; accent = "#ffd84a";
+    prompt = `「${dn.name}」の最深部に至った。`;
+    lines = ["踏破して街へ凱旋する。"];
+    const clue = reportMissingClue(dn.id);
+    if (clue && clue.floor === G.floor) lines.push(`この階に「${clue.name}」が残っている。王への報告に必要だ。『まだ探索する』を選び、光る手がかりを探そう。`);
+  }
   else { label = `B${G.floor + 1}F へ降りる`; banner = "✦ 下り階段 ✦"; prompt = `下り階段を見つけた。`; lines = [`地下 ${G.floor + 1} 階へ。下の「降りる」からも、いつでも降りられる。`]; }
   showChoice(
     prompt,
@@ -9576,17 +9582,21 @@ function commitDungeonClear(countBoss = true) {
 
 // 踏破の凱旋 (確定処理は commitDungeonClear 済み): 「★ 迷宮踏破 ★」の祝祭 → 凱旋で闇に溶けて街へ
 function showDungeonClearedPopup(info) {
-  // 主の記憶 (初めて討った時だけ): ほどけた魂の記憶を一枚絵で語ってから凱旋の祝祭へ
-  const dn0 = DUNGEONS[info.idx];
-  const mem = dn0 && BOSS_MEMORIES[dn0.id];
-  const w = worldState();
-  if (mem && !w.beats["mem_" + dn0.id]) {
-    w.beats["mem_" + dn0.id] = 1;
-    autosave(true);
-    UI.playStoryChain([{ title: mem.title, lines: storyLines(mem.lines), art: mem.art, who: "none", kicker: "魂の記憶", btnLabel: "胸に刻む" }], () => celebrateDungeonClear(info));
-    return;
-  }
+  const dn = DUNGEONS[info.idx];
+  if (playBossMemory(dn?.id, () => celebrateDungeonClear(info))) return;
   celebrateDungeonClear(info);
+}
+// 読み終えた時だけ記録する。中断した記憶は、再開時にも報告前にも読み直せる。
+function playBossMemory(id, done) {
+  const mem = BOSS_MEMORIES[id];
+  const w = worldState();
+  if (!mem || !w.cleared[id] || w.beats["mem_" + id]) return false;
+  UI.playStoryChain([{ title: mem.title, lines: storyLines(mem.lines), art: mem.art, who: "none", kicker: "魂の記憶", btnLabel: "胸に刻む" }], () => {
+    w.beats["mem_" + id] = 1;
+    autosave(true);
+    if (done) done();
+  });
+  return true;
 }
 function celebrateDungeonClear({ idx, isStoryTarget }) {
   const dn = DUNGEONS[idx];
@@ -11585,6 +11595,7 @@ function reportMainQuest() {
   const id = w.report;
   const cfg = worldById(id);
   if (!cfg) { w.report = null; renderTown(); return; }
+  if (playBossMemory(id, reportMainQuest)) return;
   const clue = reportMissingClue();
   if (clue) { showToast(`「${clue.name}」を見つけてから、王に報告せよ`, { tone: "info" }); return; }
   const r = msqReward(cfg.lv, !!cfg.boss);
@@ -15141,6 +15152,17 @@ function startAfterTitle(loaded) {
 
   if (loaded) {
     playBgm(sceneBgm());
+    // 勝利は確定済みだが、魂の記憶を読む途中で閉じた場合は再表示する。
+    if (G.state === "board" && G.bossDown && !abyssActive()) {
+      const dn = curDungeon();
+      if (BOSS_MEMORIES[dn.id] && !worldState().beats["mem_" + dn.id]) {
+        showDungeonClearedPopup({ idx: G.dungeonIdx, isStoryTarget: !worldState().reported[dn.id] });
+      }
+    } else if (G.state === "town") {
+      const w = worldState();
+      const id = Object.keys(BOSS_MEMORIES).find((id) => w.cleared[id] && !w.beats["mem_" + id]);
+      if (id) playBossMemory(id, renderTown);
+    }
     setTimeout(() => { try { showToast("💾 冒険を再開しました"); } catch {} }, 400);
     return;
   }
