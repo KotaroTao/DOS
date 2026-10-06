@@ -6,6 +6,12 @@ const beat = id => g => !!g.world?.beats?.[id];
 const reported = id => g => !!g.world?.reported?.[id];
 const group = n => ["序章", "第一章「師の灯」", "第二章「捨て砦」", "第三章「管の根」"][n];
 const APPROVED_IMAGES = {
+  opening: "art/story/road-to-roadal.png",
+  irene_lamp: "art/story/irene-soul-lamp.png",
+  first_vessel: "art/story/first-vessel-awakening.png",
+  three: "art/story/three-vessels-audience.png",
+  departure: "art/story/four-vessels-departure.png",
+  first_descent: "art/story/first-descent-gatekeeper.png",
   irene_meeting: "art/story/irene-meeting.png",
   arrival: "art/story/royal-audience.png",
   report_w13: "art/story/morden-at-throne.png",

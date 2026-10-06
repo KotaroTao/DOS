@@ -11,9 +11,12 @@ const sw = readFileSync(new URL("../../sw.js", import.meta.url), "utf8");
 for (const s of ARCHIVE_STORIES.filter(s => s.image)) {
   assert(existsSync(new URL("../../" + s.image, import.meta.url)), `${s.id} の承認済み画像`);
   assert(sw.includes('"./' + s.image + '"'), `${s.id} のオフライン登録`);
+  const png = readFileSync(new URL("../../" + s.image, import.meta.url));
+  assert.equal(png.readUInt32BE(16), s.imageWidth);
+  assert.equal(png.readUInt32BE(20), s.imageHeight);
   assert.equal(s.imageWidth / s.imageHeight, 1.5);
 }
-assert.equal(ARCHIVE_STORIES.filter(s => s.image).length, 3);
+assert.equal(ARCHIVE_STORIES.filter(s => s.image).length, 9);
 const byId = new Map(ARCHIVE_STORIES.map(s => [s.id, s]));
 assert.equal(byId.size, ARCHIVE_STORIES.length, "ストーリーのIDが重複しない");
 for (const s of ARCHIVE_STORIES) {
