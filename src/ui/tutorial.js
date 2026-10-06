@@ -39,6 +39,8 @@ export function tutState() {
   if (!t.base || typeof t.base !== "object") t.base = {};
   if (typeof t.step !== "number") t.step = 0;
   if (t.cur === undefined) t.cur = null;
+  // 旧セーブの新職業案内は、器を買う手ほどきに切り替える。
+  if (t.cur === "changeJob") { t.cur = null; t.step = 0; t.ev = {}; t.base = {}; }
   return t;
 }
 
@@ -106,7 +108,7 @@ const MANSION_TARGET = ['.ui-tab[data-key="party"]'];
 function mansionVisited() {
   const st = tutState();
   if (!st || !atMansion() || !isGreeted()) return;
-  if (!st.done.changeJob && newJobSouls().length && G_().msq?.n >= 1) st.jobVisit = true;
+  if (!st.done.newJobParty && newJobSouls().length && G_().msq?.n >= 1) st.jobVisit = true;
   if (visitTimer) return;
   visitTimer = setTimeout(() => {
     visitTimer = null;
@@ -162,19 +164,36 @@ const TUTS = [
     outro: ["迷宮へ踏み出した。師の足跡を探そう。"],
   },
   {
-    key: "changeJob", name: "魂を付け替えて職業を変える", who: "irene",
+    key: "newJobParty", name: "新しい器で仲間を増やす", who: "irene",
     open: () => G_().msq?.n >= 1 && !!tutState().jobVisit && newJobSouls().length > 0,
-    used: () => false,
+    used: () => newJobSouls().some((s) => allDolls().some((d) => d.primary === s.uid)),
     prepare() { tutState().base.jobs = newJobSouls().map((s) => s.clsKey); },
     intro: () => [
-      ["新しい職業の魂を持ち帰られたのですね。", "魂を宿す器があれば、新たな人業を仕立て、仲間を増やすことができます。"],
-      ["人業が増えれば、迷宮の攻略も楽になります。", "パーティには六体まで連れてゆけます。"],
-      ["新しい器は、この館で赤い魂と引き換えにお仕立てします。", "赤い魂は、街の『赤い魂の祠』で入手できます。"],
-      ["今いる人業の魂を付け替えて、職業を変えることもできます。", "今回は、その方法をお教えしましょう。"], ["『魂』の区分から『魂を付け替える』を開き、新しい魂をお選びください。", "魂の育ちは魂に残ります。外した魂も、失われません。"], ["同じ職業を宿した人業が一緒に迷宮へ入ると、魂同士が干渉し、壊れてしまいます。", "メイン・サブを通じて、同じ職業の魂はパーティに一つだけ。重なる魂は、編成の時点で選べません。"]],
-    steps: [{ text: "新しい職業の魂をメイン魂に宿す", hint: "人業の館 → 人業を選ぶ → 魂 → 魂を付け替える", go: () => goSoulSeg(), target: [".sp-change", ".sp-srow-main:not(:disabled)"], done: () => allDolls().some((d) => (tutState().base.jobs || []).includes(soulByUid(d.primary)?.clsKey)), skip: () => !newJobSouls().length }],
-    outro: ["魂を付け替えれば、同じ器でも別の職業として戦える。迷宮に合わせて編成を考えよう。"],
+      ["新しい職業の魂を持ち帰られたのですね。", "新しい人業の器を購入し、その魂を宿して仲間を増やしましょう。"],
+      ["器は、この館で赤い魂と引き換えにお仕立てします。", `今のお代は、赤い魂${game.emptyDollCost?.() || 0}です。足りない時は、街の『赤い魂の祠』で入手できます。`],
+      ["『人業を仕立てる』から新しい職業の魂を選び、名前を与えてください。", "パーティには六体まで連れてゆけます。満員なら、新しい仲間は控えで待ちます。"],
+      ["同じ職業の魂を宿す仲間は、一つのパーティに一体だけ。", "新しい職業の仲間を加え、迷宮に備えましょう。"],
+    ],
+    steps: [{
+      text: "新しい器を購入し、新しい職業の仲間を仕立てる", hint: "人業の館 → 控え・＋ → 人業を仕立てる → 新しい魂 → 名前・生成する",
+      go: () => UI.openReserve?.(), target: [".pt-res-add", ".pt-form .pt-empty-slot", ".pt-res-sw button"],
+      on: "dollCreated", skip: () => (G_().redSoul || 0) < (game.emptyDollCost?.() || 0),
+    }],
+    outro: ["新しい器に新しい職業の魂を宿せば、仲間を増やせる。", "赤い魂が足りない時は祠で集めてから、『控え・＋』の『人業を仕立てる』へ。満員なら控えの仲間と入れ替えよう。"],
   },
-
+  {
+    key: "soulChange", name: "魂の付け替え", who: "irene",
+    open: () => !!game.worldState?.().reported.w02,
+    used: () => false,
+    prepare: () => null,
+    intro: () => [
+      ["王さまから、魂の付け替えをお教えするよう仰せつかりました。", "今いる人業も、宿す魂を変えれば別の職業として戦えます。"],
+      ["『魂を付け替える』で、持っている魂を選びます。", "魂の育ちは魂に残り、外した魂も失われません。新しい職業で使えない装備は外れます。"],
+      ["同じ職業の魂は、パーティに一つだけ。すでに仲間が宿す魂は選べません。", "まずは一覧を開いて確かめ、閉じてください。実際の付け替えは、手ほどきの後に自由に行えます。"],
+    ],
+    steps: [{ text: "魂の一覧を開いて確認し、閉じる", hint: "人業の館 → 魂 → 魂を付け替える → 閉じる", go: () => goSoulSeg(), target: [".sp-change"], on: "soulChangeViewed" }],
+    outro: ["魂の付け替えが解放された。魂の区分の『魂を付け替える』から、いつでも変更できる。"],
+  },
   {
     key: "fusion", name: "魂融合", who: "irene",
     open: () => !!(game.featureUnlocked && game.featureUnlocked("fusion")),
@@ -254,6 +273,22 @@ const TUTS = [
       },
     ],
     outro: ["メイン魂と別の職の魂を宿せば、職の垣根を越えた一手になる。", "借りる技は、サブ魂の札の『技』からいつでも選び直せる。"],
+  },
+  {
+    key: "tavern", name: "酒場の依頼", who: "tavern",
+    open: () => !!game.featureUnlocked?.("tavern"),
+    used: () => (G_().stats?.questsDone || 0) > 0 || !!G_().quest?.active?.length || Object.keys(G_().quest?.fixed || {}).length > 0,
+    prepare: () => null,
+    intro: () => [
+      "酒場『沈まぬ灯』へようこそ。掲示板には、迷宮での討伐や品の納品などの依頼が集まる。",
+      "依頼の札で条件と報酬を確かめてから受けよう。受けられる依頼は、依頼人の頼みも合わせて六件までだ。",
+      "受けた依頼は『受注』で確認できる。条件を満たしたら酒場で報告し、報酬を受け取ろう。掲示板は迷宮から帰るたびに貼り替わるが、受けた依頼は残る。",
+    ],
+    steps: [{
+      text: "酒場の掲示板を見る", hint: "酒場 →『掲示板』",
+      go: () => UI.openTavern?.("board"), target: [".fc-qarea"], on: "tavernBoard",
+    }],
+    outro: ["掲示板の依頼は、札を選ぶと詳しく読める。次の探索で果たせそうな依頼を探そう。", "噂話の情報屋は、さらに王への報告を重ねると口を利くようになる。"],
   },
   {
     key: "rumor", name: "酒場の噂話", who: "tavern",
@@ -577,8 +612,8 @@ function tutorialControls() {
       return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary"), first(card, ".pt-name-in, .pt-name-rnd"));
     }
     if (card.classList.contains("pt-res-sheet")) return choose(first(card, ".pt-res-add"));
-    if (card.classList.contains("pt-pick-sheet") && ["createThree", "createFourth"].includes(d.key)) {
-      const jobs = d.key === "createFourth" ? ["mage"] : ["fighter", "priest", "thief"];
+    if (card.classList.contains("pt-pick-sheet") && ["createThree", "createFourth", "newJobParty"].includes(d.key)) {
+      const jobs = d.key === "newJobParty" ? st.base.jobs || [] : d.key === "createFourth" ? ["mage"] : ["fighter", "priest", "thief"];
       return choose(jobs.flatMap((job) => first(card, `.pt-soulrow[data-job="${job}"]`)));
     }
     if (h.opts.banner === "魂融合") return choose(first(card, ".sp-fuse-material"));
@@ -586,6 +621,7 @@ function tutorialControls() {
       if (st.ev.subPick) return forward();
       return choose(first(card, ".ui-row"));
     }
+    if (d.key === "soulChange" && card.classList.contains("sp-pick-sheet")) return forward();
     if (card.querySelector(".sp-srow")) {
       if (d.key === "fusion") return choose(first(card, ".sp-pick-fuse"));
       let rows = first(card, ".sp-srow:not(.cur) .sp-srow-main:not(:disabled)");
