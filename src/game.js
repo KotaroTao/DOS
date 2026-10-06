@@ -7015,11 +7015,11 @@ function descendMeasured({ fall = false } = {}) {
   if (!abyssActive() && (activeCfg().elites || []).some((id) => namedHunted(id))) eliteRate = Math.max(eliteRate, HUNT_ELITE_RATE);
   G.eliteFloor = (activeCfg().floors || 3) >= 5 && G.floor >= 3 && Math.random() < eliteRate;
   // 特別階判定: 強敵階でなければ、各候補の出現条件 (階数) と出現率で抽選。
-  // 1F には特別な階は出現しない (2F以降のみ)。
+  // 第1の迷宮と1Fには特別な階は出現しない (ほかの迷宮の2F以降のみ)。
   G.specialFloor = null;
   // 迷宮の掟 (移ろう霧) は特別な階が出やすい (trait.specialRate 倍)
   const specialMul = (dungeonTrait() && dungeonTrait().specialRate) || 1;
-  if (!G.eliteFloor && G.floor >= 2) {
+  if (activeCfg().id !== "w01" && !G.eliteFloor && G.floor >= 2) {
     const r = Math.random();
     let acc = 0;
     for (const c of SPECIAL_FLOORS) {
@@ -10876,8 +10876,8 @@ function rollRumor() {
   // 財宝の予兆: B1F に格の高い宝箱 (中身は装備品確定・層相応のレベル底上げ)
   cands.push([25, () => ({ type: "treasure", floor: 1, speaker,
     text: `「${dn}の奥で金属の輝きを見たという。${layer >= 10 ? "相当な業物が眠っているかもしれん。" : "上物の宝箱がひとつ余分にあるかもな。"}」` })]);
-  // 特別階の予兆: B1F が好特別階になる
-  cands.push([20, () => {
+  // 特別階の予兆: 第1の迷宮を除き、B1F が好特別階になる
+  if (cfg.id !== "w01") cands.push([20, () => {
     const sp = pickRumorSpecial(layer);
     return { type: "special", special: sp.id, floor: 1, speaker,
       text: `「${dn}の最初の階に、${sp.omen}。見過ごすなよ。」` };
@@ -10916,6 +10916,7 @@ function applyRumorToBoard(board) {
   if (!r) return;
   G.activeRumor = null;
   if (r.info) return; // 属性・主の予兆は備えを促すだけ。盤面は変えない
+  if (r.type === "special" && activeCfg().id === "w01") return; // 別の迷宮で聞いた噂でも第1の迷宮には出さない
   const layer = activeCfg().layer || 1;
   // 行き止まり (開いた辺が1つ) のマスを候補にする
   const deadends = [];
@@ -12574,6 +12575,7 @@ function departNow({ idx = G.dungeonIdx, accept = false, from = 1 } = {}) {
 // §7 M1 迷宮の異変: 街に戻るたび、出撃シートを初めて開いた時に迷宮ごとに一度だけ抽選する (D3以降・45%・同じ候補)。
 // シートを開き直しても引き直さない (G._townMutator は街にいる間だけの一時記録。潜入・帰還で消える)
 function townMutatorFor(idx) {
+  if (DUNGEONS[idx]?.id === "w01") return null; // 第1の迷宮には異変を出さない
   if (!G._townMutator) G._townMutator = {};
   if (!(idx in G._townMutator)) {
     let id = null;
@@ -12657,7 +12659,7 @@ const DUNGEON_BRIEFING = [
 ];
 // 潜入の実体。mutatorId を渡すと「迷宮の異変」を受け入れた状態で潜る
 function enterDungeon(mutatorId, startFloor = 1) {
-  G.mutator = mutatorId || null;
+  G.mutator = curDungeon().id === "w01" ? null : mutatorId || null;
   G.bossDown = false; // 帰還制限: 魔法陣を見つけるか主を討つまで帰れない
   SFX.stairs();
   sheet.closeAll();
