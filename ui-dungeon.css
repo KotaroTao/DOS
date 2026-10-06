@@ -568,3 +568,8 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 @media (max-width: 390px) {
   .dp-sheet .ui-sheet-foot .ui-btn.dp-cta { letter-spacing: 0.08em; font-size: 16px; }
 }
+/* 出撃前の確認: 修復・宿泊・出撃を縦に並べ、狭い画面でも操作できる。 */
+.dp-woes .ui-sheet-foot { grid-template-columns: minmax(0, 1fr); max-height: 55vh; max-height: 55dvh; overflow-y: auto; overscroll-behavior: contain; }
+.dp-woes .ui-sheet-title { color: #e9cf9a; }
+.dp-woes .ui-sheet-line { text-align: left; }
+.dp-woes .ui-btn { min-width: 0; }

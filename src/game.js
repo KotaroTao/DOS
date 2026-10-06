@@ -12638,12 +12638,14 @@ function preDiveIssues() {
   return res;
 }
 
-// 門をくぐる前の念押し (出撃シートの「門をくぐる」で出すポップアップ): HP/MPが減っている・状態異常の者
-// → { list: [{ name, hp, maxhp, mp, maxmp, ail }], innOpen, cost }。list が空なら念押しは要らない
+// 門をくぐる前の念押し: 砕けた魂・HP/MPの消耗・状態異常を知らせる。
+// broken はパーティの砕けた人業 (修復費用と連れ帰り待ちの状態付き)。
 function departWoes() {
   const list = G.party.filter((d) => d.alive && (d.hp < d.maxhp || d.mp < d.maxmp || d.ailment))
     .map((d) => ({ name: d.name, hp: d.hp, maxhp: d.maxhp, mp: d.mp, maxmp: d.maxmp, ail: d.ailment ? (AIL_NAME[d.ailment] || d.ailment) : null }));
-  return { list, innOpen: opsFacilityOpen("inn"), cost: innCost() };
+  const broken = G.party.filter((d) => d.isDoll && !d.alive)
+    .map((d) => ({ uid: d.uid, name: d.name, cost: repairCostOf(d), rescuing: awaitingRescue(d) }));
+  return { list, broken, innOpen: opsFacilityOpen("inn"), cost: innCost() };
 }
 
 // 名前の短い並び (3人以上は「Aほか2人」)
