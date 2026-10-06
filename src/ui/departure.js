@@ -121,6 +121,9 @@ function renderHero(b) {
   pic.appendChild(cap);
   hero.appendChild(pic);
   if (dn.about) hero.appendChild(setText(el("div", "dp-hero-about"), dn.about));
+  if (dn.id === "w04" && !game.worldState?.().reported.w03) {
+    hero.appendChild(setText(el("div", "pt-note"), "取水口は推奨Lv18〜21。まずは回廊を抜け、修道院で師の足跡を追おう。支度が整えば、先に取水口へ向かうこともできる。"));
+  }
   // 記録: 発見した魔物 / その迷宮の魔物 (雑魚・強敵・主)、固有クエストの報告済み / 総数
   const facts = el("div", "dp-facts");
   let f = null;
