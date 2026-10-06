@@ -457,6 +457,14 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
 .pt-cur-foot { display: flex; justify-content: flex-end; }
 .pt-cand-fx { font-size: 11px; color: #e8c779; }
 .pt-list { display: flex; flex-direction: column; gap: 6px; }
+/* 魂融合: 素材が多くても行を縮めず、説明と一覧を本文内でスクロールする。 */
+.sp-fuse-sheet .pt-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-top: 12px; }
+.sp-fuse-sheet .ui-row { min-width: 0; min-height: 64px; }
+.sp-fuse-sheet .ui-row-title { white-space: normal; overflow: visible; line-height: 1.6; }
+.sp-fuse-sheet .ui-row-sub { line-height: 1.6; }
+.sp-fuse-sheet .ui-sheet-line, .sp-fuse-sheet .pt-note { color: #cdbf9f; }
+.sp-fuse-sheet .ui-row:has(.sp-lock-btn) { flex-wrap: wrap; }
+.sp-fuse-sheet .ui-row:has(.sp-lock-btn) .ui-row-r { margin-left: auto; }
 .pt-cand {
   display: flex; align-items: stretch; gap: 0; min-height: 60px; color: var(--ink);
   background: var(--grain), var(--plate); border: 1px solid #33292a; border-radius: 3px; box-shadow: var(--plate-edge);

@@ -777,7 +777,8 @@ export function openFusePicker(targetUid, onDone) {
     r.classList.add("sp-fuse-material");
     return r;
   };
-  h = sheet.open({ kind: "info", className: "sp-pick-sheet", banner: "魂融合", accent: cl.glow, ...view() });
+  h = sheet.open({ kind: "info", className: "sp-pick-sheet sp-fuse-sheet", banner: "魂融合", accent: cl.glow,
+    footer: [{ label: "とじる", kind: "secondary", onTap: (h) => h.close() }], ...view() });
   return h;
 }
 
