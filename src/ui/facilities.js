@@ -290,6 +290,7 @@ function tavernSegments() {
   ];
 }
 function renderTavern(root) {
+  if (!facilityOpen("tavern")) { root.appendChild(lockedRow("酒場「沈まぬ灯」", game.featureNote?.("tavern"))); return; }
   if (legacyJumped()) return;
   const wrap = el("div", "wa-page wa-fit fc-tavern");
   root.appendChild(wrap);
@@ -321,6 +322,7 @@ function renderTavern(root) {
     }
   };
   drawSeg();
+  if (tavernSeg === "board") setTimeout(() => UI.tutorialEvent?.("tavernBoard"), 0);
 }
 // 噂話と居合わせる者たち
 function renderTalk(wrap) {

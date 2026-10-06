@@ -104,7 +104,8 @@ export function renderSoulSeg(root, d, ctx = {}) {
   if (!pe) return;
   // 付け替え・魂融合 (1行に並べる)
   const acts = el("div", "sp-row2");
-  if (town) {
+  if (town && !soulChangeVisible()) acts.appendChild(lockedTile("未解放", "？？？"));
+  if (town && soulChangeVisible()) {
     const ch = el("button", "sp-btn");
     ch.type = "button";
     ch.appendChild(svgSoul());
@@ -124,7 +125,11 @@ export function renderSoulSeg(root, d, ctx = {}) {
   subTiles(more, d, town);
   more.appendChild(orderTile(town));
   root.appendChild(more);
-  if (!town) root.appendChild(el("div", "pt-note c", "魂の付け替え・強化は、街へ戻ってから。"));
+  if (!town) root.appendChild(el("div", "pt-note c", game.featureUnlocked?.("soulChange") ? "魂の付け替え・強化は、街へ戻ってから。" : "魂の強化は、街へ戻ってから。"));
+}
+// 手ほどき中は一覧の確認だけ許す。実際の付け替えは完了後に解放する。
+function soulChangeVisible() {
+  return !!game.featureUnlocked?.("soulChange") || (G_()?.tut?.cur === "soulChange" && !!game.worldState?.().reported.w02);
 }
 function svgSoul() {
   const s = el("span", "sp-ic");
@@ -274,7 +279,7 @@ function fuseButton(pe, town) {
 function subTiles(more, d, town) {
   const n = game.unlockedSubSlots ? game.unlockedSubSlots() : 0;
   if (!n) {
-    more.appendChild(lockedTile("サブ魂", game.featureNote ? game.featureNote("sub1") : ""));
+    more.appendChild(lockedTile("未解放", "？？？"));
     return;
   }
   for (let i = 0; i < n; i++) {
@@ -343,7 +348,7 @@ function bonusText(b) {
 function orderTile(town) {
   const open = game.featureUnlocked ? game.featureUnlocked("order") : false;
   if (!open) {
-    return lockedTile("控えの結社", game.featureNote ? game.featureNote("order") : "");
+    return lockedTile("未解放", "？？？");
   }
   const seats = game.orderSeats ? game.orderSeats() : 0;
   const seated = game.orderSeatedUids ? game.orderSeatedUids() : [];
@@ -358,6 +363,7 @@ function orderTile(town) {
   return t;
 }
 export function openOrderSheet(town = true) {
+  if (!game.featureUnlocked?.("order")) return null;
   if (UI.tutorialEvent) UI.tutorialEvent("order"); // 手ほどき「控えの結社」: 結社を開いた
   let h = null;
   h = sheet.open({
@@ -413,12 +419,15 @@ export function openSoulPicker(d, slotId = "primary") {
   if (!G || G.state !== "town" || !d) return null;
   const isSub = slotId !== "primary";
   const si = isSub ? +slotId.slice(3) : -1;
+  if (!isSub && !soulChangeVisible()) return null;
+  if (isSub && (!Number.isInteger(si) || si < 0 || si >= (game.unlockedSubSlots?.() || 0))) return null;
   sfx("select");
   return sheet.open({
     kind: "info", className: "sp-pick-sheet", // 魂の選択は縦スクロールで1ページに
     banner: isSub ? `サブ魂${si + 1} ― ${d.name}` : `メイン魂 ― ${d.name}`,
+    onClose: () => { if (!isSub) UI.tutorialEvent?.("soulChangeViewed"); },
     lines: [isSub ? "サブ魂は、覚えた技かパッシブを貸し、能力の一部を足す (R1 10% 〜 R5 30%)。貸す数も魂のランクで増える (R1-2:1 / R3-4:2 / R5:3)。" : "メイン魂が、職業・能力・技を決める。"],
-    body: (scroll, h) => { scroll.appendChild(el("div", "pt-note", "同じ職業の魂は、メイン・サブを通じてパーティに1つだけ。同職の魂は迷宮で共鳴して壊れてしまう。余った魂は人業の館で魂融合できる。")); pickerBody(scroll, d, slotId, h); },
+    body: (scroll, h) => { scroll.appendChild(el("div", "pt-note", game.featureUnlocked?.("sub1") ? "同じ職業の魂は、メイン・サブを通じてパーティに1つだけ。同職の魂は迷宮で共鳴して壊れてしまう。余った魂は人業の館で魂融合できる。" : "同じ職業の魂は、パーティに1つだけ。すでに仲間が宿す魂は選べない。")); pickerBody(scroll, d, slotId, h); },
   });
 }
 function wearerOf(uid, self) {

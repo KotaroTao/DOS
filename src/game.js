@@ -9859,7 +9859,8 @@ let townBandOpen = null; // 迷宮選択で開いている層 (null = 選択中�
 // 第0章 (人業の生成) の間に開いている施設 (null = 制限なし)
 function tutorialAllowed() {
   const tut = G.msq && G.msq.n === 0;
-  return tut ? (G.msq.granted ? ["palace", "mansion"] : ["palace"]) : null;
+  if (tut) return G.msq.granted ? ["palace", "mansion"] : ["palace"];
+  return featureUnlocked("tavern") ? null : FACILITIES.map((f) => f.key).filter((key) => key !== "tavern");
 }
 
 // セーブを消して最初からやり直す。autosave (visibilitychange/pagehide 含む) が
@@ -10116,6 +10117,8 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null, opts = {}) {
   const s = soulByUid(uid);
   if (!s || G.state !== "town") return fin(false);
   const si = slotId === "primary" ? -1 : +slotId.slice(3);
+  if (si < 0 && !featureUnlocked("soulChange")) return fin(false);
+  if (si >= 0 && (!Number.isInteger(si) || si < 0 || si >= unlockedSubSlots())) return fin(false);
   // 別の差し口へ宿す (=付け替え) 場合のみ装備可否を判定する。外す操作は対象外
   const isNewEquip = !(slotId === "primary" && d.primary === uid) && !(si >= 0 && ((d.subs || [])[si] || {}).uid === uid);
   if (isNewEquip && !soulRepresentatives().some((x) => x.uid === uid)) { SFX.ng(); showToast("同じ職業の余った魂は、人業の館で魂融合する", { tone: "bad" }); return fin(false); }
@@ -10582,6 +10585,7 @@ function questCapRefused() {
   return true;
 }
 function acceptQuest(uid) {
+  if (!facilityOpenKey("tavern")) return false;
   const s = questState();
   const def = FIXED_BY_ID[uid];
   if (def) {
@@ -10721,6 +10725,7 @@ function grantCurrencies(r, src) {
 }
 // 達成した依頼を報告して報酬を受け取る
 function claimQuest(uid) {
+  if (!facilityOpenKey("tavern")) return false;
   const s = questState();
   const def = FIXED_BY_ID[uid];
   if (def) {
@@ -10994,6 +10999,7 @@ function deliveryStatus(q) {
 // 受けた依頼のほか、掲示板の依頼もその場で納められる (受けてすぐ納めるので、受注の枠は使わない)。
 // opts.buy = 手持ちが無い時、商会の棚から買ってそのまま納める (袋は経由しないので所持枠は要らない)
 function deliverQuest(q, opts = {}) {
+  if (!facilityOpenKey("tavern")) return false;
   const s = questState();
   if (!q || q.type !== "deliver") return;
   const from = s.active.includes(q) ? s.active : (s.board || []).includes(q) ? s.board : null;
@@ -11654,6 +11660,8 @@ function reportTutorialQuest() {
 //   踏破しただけ (報告前) では開かない ― 解放のページ (story.js UNLOCKS) を見てから使えるようにする。
 //   まだ無い章の分 (第四章のサブ魂2枠・第五章の奈落) は、その章が台帳に載るまで開かない
 const FEATURES = {
+  tavern: { chapter: 1, dungeon: "w01" },    // 最初の迷宮を王に報告すると酒場が開く
+  soulChange: { chapter: 1, dungeon: "w02" }, // 第二の迷宮の報告後に手ほどき
   fusion: { chapter: 1, report: 2 },          // 魂の融合
   sub1: { chapter: 1, report: 3 },            // サブ魂 1枠
   rumor: { chapter: 1, report: 4 },           // 酒場の噂話
@@ -11688,9 +11696,13 @@ function featureMet(key, w = worldState()) {
   const f = FEATURES[key];
   const ch = f && CHAPTERS.find((c) => c.no === f.chapter);
   if (!ch) return false; // その章がまだ無い
+  if (f.dungeon) return !!w.reported[f.dungeon];
   return f.report === "finale" ? !!w.reported[ch.finale] : chapterReports(ch, w) >= f.report;
 }
-function featureUnlocked(key) { return featureMet(key); }
+function featureUnlocked(key) {
+  if (key === "soulChange") return featureMet(key) && !!G.tut?.done?.soulChange;
+  return featureMet(key);
+}
 // まだ開いていない機能の条件の説明 (錠の札・案内文)
 function featureNote(key) {
   const f = FEATURES[key];
@@ -11698,6 +11710,7 @@ function featureNote(key) {
   const ch = CHAPTERS.find((c) => c.no === f.chapter);
   const label = chapterLabel(f.chapter);
   if (!ch) return `${label}で開く (準備中)`;
+  if (f.dungeon) return `「${worldById(f.dungeon).name}」を踏破し、王に報告すると開く`;
   if (f.report === "finale") {
     const fin = worldById(ch.finale);
     return `${label}の結び「${fin ? fin.name : ch.finale}」を王に報告すると開く`;
@@ -11741,6 +11754,7 @@ function refreshOrderBonus() {
 }
 // 結社の席に魂を着ける/外す。空席が無ければ着席不可
 function toggleOrderSeat(uid) {
+  if (!featureUnlocked("order")) return;
   if (!G.order || !Array.isArray(G.order.picks)) G.order = { picks: [] };
   const picks = G.order.picks;
   const i = picks.indexOf(uid);
