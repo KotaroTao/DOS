@@ -206,11 +206,11 @@ function codexCard(sprite, name, { color = null, onTap = null, sub = null, price
   return c;
 }
 // 遭遇したが、まだ討っていない迷宮の主: 名前だけ明かす (姿・能力は1体討つまで伏せる)
-// 名のある強敵の札: 名は最初から出す。討つまでは絵を伏せ、縄張りと目撃・首級を添える
+// 名のある強敵の札: 名は最初から出す。討つまでは絵を伏せ、目撃・首級を添える
 function namedCard(key, m, n) {
   const g = G();
   const killed = !!g.codex.mon[key];
-  const sub = n ? (n.trophy ? "首級 ✓" : killed ? "首級なし" : n.seen ? `目撃 ${n.seenAt}` : (n.homes || []).join("・") || "名のある強敵") : "名のある強敵";
+  const sub = n ? (n.trophy ? "首級 ✓" : killed ? "首級なし" : n.seen ? `目撃 ${n.seenAt}` : null) : null;
   if (killed) return codexCard(m, m.name, { color: "#ff7a5a", sub, kills: monKills(key), fresh: isFreshMon(key), onTap: (c) => { codexMonSheet(key); markSeen("mon", key, c); } });
   const c = el("button", "pl-card unknown boss-unk");
   c.type = "button";
@@ -219,8 +219,8 @@ function namedCard(key, m, n) {
   c.appendChild(a);
   c.appendChild(el("span", "pl-card-n", m.name));
   c.appendChild(el("span", "pl-card-k none", "討伐 0体"));
-  c.appendChild(el("span", "pl-card-s", sub));
-  c.setAttribute("aria-label", `${m.name} (${sub})`);
+  if (sub) c.appendChild(el("span", "pl-card-s", sub));
+  c.setAttribute("aria-label", m.name + (sub ? ` (${sub})` : ""));
   c.addEventListener("click", () => { sfx("select"); codexMonSheet(key); });
   return c;
 }
