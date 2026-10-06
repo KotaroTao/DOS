@@ -813,6 +813,8 @@ function worldState() {
   const w = G.world;
   for (const k of ["open", "cleared", "reported", "found", "beats", "gates", "fresh"]) if (!w[k] || typeof w[k] !== "object") w[k] = {};
   if (w.report === undefined) w.report = null;
+  // 別の迷宮を踏破しても報告待ちを失わない。旧セーブの未報告も踏破記録から拾う。
+  if (!w.report) w.report = DUNGEONS.find((d) => !d.side && w.cleared[d.id] && !w.reported[d.id])?.id || null;
   return w;
 }
 // 第0章 (人業の生成) を終えたか
@@ -5692,7 +5694,7 @@ function runStoryCell(cell) {
 // 館の語り (イレーヌ): 要る手がかりを見つけていて、まだ語っていないもの
 function pendingIreneBeat() {
   const w = worldState();
-  return IRENE_BEATS.find((b) => !w.beats[b.id] && (!b.need || w.found[b.need]) && (!b.after || w.reported[b.after])) || null;
+  return IRENE_BEATS.find((b) => !w.beats[b.id] && (!b.need || (Array.isArray(b.need) ? b.need : [b.need]).every((key) => w.found[key])) && (!b.after || w.reported[b.after])) || null;
 }
 // 館に入った時に語る (party.js から)。語ったら true
 function playIreneBeat(done) {
@@ -9539,7 +9541,7 @@ function commitDungeonClear(countBoss = true) {
   const isStoryTarget = !!cfg && !w.cleared[cfg.id];
   if (cfg) w.cleared[cfg.id] = (w.cleared[cfg.id] || 0) + 1;
   // 依頼の迷宮 (side) は王への報告が無い (踏破は依頼人に報告する)
-  if (isStoryTarget && !w.reported[cfg.id] && !cfg.side) w.report = cfg.id;
+  if (isStoryTarget && !w.reported[cfg.id] && !cfg.side && !w.report) w.report = cfg.id;
   if (cfg) questProgress("clear", cfg.id);
   // クリア = 戦利品確定。記録 (帰還の報告に使う) は残し、全滅しても何も失わない印を付ける
   if (G.run) G.run.secured = true;
@@ -9568,7 +9570,7 @@ function celebrateDungeonClear({ idx, isStoryTarget }) {
   flashScreen("#ffd84a");
   uiResults.celebrateClear({
     name: dn.name, layer: dn.layer, isStoryTarget, layerBoss: !!dn.boss,
-    missingClue: reportMissingClue(),
+    missingClue: reportMissingClue(dn.id),
     last: dn.layer >= 20 && !!dn.boss,
     onStay: () => {
       log("迷宮は踏破した。下の「帰還」から、いつでも街へ凱旋できる。", "win");
@@ -12539,9 +12541,9 @@ function tryEnterDungeon() {
   UI.openDeparture();
 }
 // 報告に必要な師の手がかり。踏破済みでも未発見なら、探しに戻れるようにする。
-function reportMissingClue() {
+function reportMissingClue(id = worldState().report) {
   const w = worldState();
-  const key = REPORTS[w.report]?.need;
+  const key = REPORTS[id]?.need;
   return key && !w.found[key] ? STORY_CELLS[key] : null;
 }
 // 初踏破を報告できるか (必要な手がかりが揃うまでは再出撃できる)
