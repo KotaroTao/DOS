@@ -5,8 +5,14 @@ const found = id => g => !!g.world?.found?.[id];
 const beat = id => g => !!g.world?.beats?.[id];
 const reported = id => g => !!g.world?.reported?.[id];
 const group = n => ["序章", "第一章「師の灯」", "第二章「捨て砦」", "第三章「管の根」"][n];
+const APPROVED_IMAGES = {
+  irene_meeting: "art/story/irene-meeting.png",
+  arrival: "art/story/royal-audience.png",
+  report_w13: "art/story/morden-at-throne.png",
+};
 const scene = (id, chapter, title, available, setting, focus, lines, extra = {}) => ({
   id, chapter, group:group(chapter), title, available, lines,
+  ...(APPROVED_IMAGES[id] ? { image:APPROVED_IMAGES[id], imageWidth:1536, imageHeight:1024, imageAlt:title + "の場面" } : {}),
   illustration:{ id, setting, focus, ...extra },
 });
 

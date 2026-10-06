@@ -1,11 +1,19 @@
 // 読み物の解放・章順・参照元からの独立・通常の進行状態の保全を確認する。
 import assert from "node:assert/strict";
+import { readFileSync, existsSync } from "node:fs";
 import { ARCHIVE_STORIES } from "../../src/archive-stories.js";
 import { ARCHIVE_FOCUS } from "../../src/archive-art.js";
 import { storyEntries } from "../../src/journal.js";
 import { WORLD } from "../../src/dungeons/world.js";
 import { STORY_CELLS, REPORTS, BOSS_MEMORIES, IRENE_BEATS, CHAPTER_END } from "../../src/story.js";
 
+const sw = readFileSync(new URL("../../sw.js", import.meta.url), "utf8");
+for (const s of ARCHIVE_STORIES.filter(s => s.image)) {
+  assert(existsSync(new URL("../../" + s.image, import.meta.url)), `${s.id} の承認済み画像`);
+  assert(sw.includes('"./' + s.image + '"'), `${s.id} のオフライン登録`);
+  assert.equal(s.imageWidth / s.imageHeight, 1.5);
+}
+assert.equal(ARCHIVE_STORIES.filter(s => s.image).length, 3);
 const byId = new Map(ARCHIVE_STORIES.map(s => [s.id, s]));
 assert.equal(byId.size, ARCHIVE_STORIES.length, "ストーリーのIDが重複しない");
 for (const s of ARCHIVE_STORIES) {

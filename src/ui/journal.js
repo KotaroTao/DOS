@@ -12,15 +12,15 @@ const entries = kind => kind === "help"
 
 function illustration(entry) {
   const box = el("div", "jr-illustration");
-  if (entry.illustration) {
-    const art = archiveArt(entry.illustration);
-    if (art) { art.setAttribute("aria-label", entry.title + "の場面"); box.appendChild(art); }
-  } else if (entry.image) {
+  if (entry.image) {
     const img = document.createElement("img");
     img.src = new URL("../../" + entry.image, import.meta.url).href;
-    img.alt = "迷宮の入口に立つ門衛";
-    img.width = 1852; img.height = 849;
+    img.alt = entry.imageAlt || "迷宮の入口に立つ門衛";
+    img.width = entry.imageWidth || 1852; img.height = entry.imageHeight || 849;
     box.appendChild(img);
+  } else if (entry.illustration) {
+    const art = archiveArt(entry.illustration);
+    if (art) { art.setAttribute("aria-label", entry.title + "の場面"); box.appendChild(art); }
   } else {
     const art = entry.art ? storyArt(entry.art) : vignetteCanvas(entry.place || "palace");
     if (art) { art.setAttribute("aria-hidden", "true"); box.appendChild(art); }
