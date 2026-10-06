@@ -9,8 +9,8 @@
 // 提供: UI.openSettings() / UI.settingsSheet({onClose}) (game.js の openSettings が使う) / UI.confirmReset()
 // game.js は import しない (ctx.js の UI / game を通す)。
 
-import { game, registerUI } from "./ctx.js";
-import { el, setText, sheet, segmented, toast } from "./kit.js";
+import { UI, game, registerUI } from "./ctx.js";
+import { el, setText, sheet, segmented, toast, button } from "./kit.js";
 import { tlOn, tlSetOn, tlClear, tlHasData, tlSummary, tlStabilitySummary, tlExportText } from "../telemetry.js";
 import { getPref, setPref, remember } from "./prefs.js";
 import { SFX } from "../audio.js";
@@ -170,6 +170,10 @@ function fillAuto(box) {
   box.appendChild(reset);
 }
 function fill(root) {
+  const guides = el("div", "jr-shortcuts");
+  guides.append(button({ label:"ヘルプ", kind:"secondary", onTap:()=>UI.openHelp?.() }),
+    button({ label:"ストーリー", kind:"secondary", onTap:()=>UI.openStoryArchive?.() }));
+  root.appendChild(guides);
   const cur = remember("seg", "settings") === "auto" ? "auto" : "sound";
   const box = el("div", "stg");
   const draw = (k) => { box.textContent = ""; if (k === "auto") fillAuto(box); else fillSound(box); };

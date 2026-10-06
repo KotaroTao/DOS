@@ -55,6 +55,7 @@ import * as uiHub from "./ui/hub.js";
 import * as uiPalace from "./ui/palace.js";
 import * as uiFacilities from "./ui/facilities.js";
 import * as uiSettings from "./ui/settings.js";
+import * as uiJournal from "./ui/journal.js";
 import * as uiStory from "./ui/story.js";
 import * as uiParty from "./ui/party.js";
 import * as uiSoulPanel from "./ui/soulpanel.js";
@@ -14961,7 +14962,7 @@ function wireUI() {
     }).observe(itemGetEl, { attributes: true, attributeFilter: ["class"] });
   }
   // 各パッケージの UI を登録 (スタブを差し替える)。A→B→C→D の順
-  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiAppraise, uiDeparture, uiDungeonHud, uiResults, uiTutorial]) {
+  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiJournal, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiAppraise, uiDeparture, uiDungeonHud, uiResults, uiTutorial]) {
     try { m.install(); } catch (e) { console.error(e); }
   }
 }

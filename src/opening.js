@@ -8,7 +8,7 @@
 // showOpening(done) — 閉じたあと done() を一度だけ呼ぶ
 import { SFX } from "./audio.js";
 import { pickRes } from "./pxpaint.js";
-import { SCENES, setReduced } from "./openingart.js";
+import { SCENES, setReduced } from "./openingillustrations.js";
 import { phraseBreaks } from "./ui/phrase.js";
 
 const REDUCED = (() => {

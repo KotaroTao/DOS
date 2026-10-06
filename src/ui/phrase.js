@@ -26,7 +26,8 @@ const JP = /[぀-ヿ㐀-鿿豈-﫿]/;
 const JOIN = /[きぎしじちびみりけげせてれめえ]/;
 
 // cs[i-1] と cs[i] の間で折ってよいか
-function canBreak(cs, i) {
+function canBreak(cs, i, protectedAt) {
+  if (protectedAt && protectedAt.has(i)) return false;
   const a = cs[i - 1], b = cs[i];
   if (a === " " || b === " " || a === "　" || b === "　" || b === ZWSP) return false;
   if (NO_HEAD.test(b)) return false;
@@ -44,15 +45,29 @@ function canBreak(cs, i) {
   return false;
 }
 
+// 短い引用語・画面内の用語はひとまとまりにする。長い台詞は通常どおり折る。
+function protectedBreaks(cs) {
+  const at = new Set();
+  const s = cs.join("");
+  const terms = /「[^「」\n]{1,16}」|『[^『』\n]{1,16}』|魂の安定度/g;
+  for (const match of s.matchAll(terms)) {
+    const start = Array.from(s.slice(0, match.index)).length;
+    const length = Array.from(match[0]).length;
+    for (let i = start + 1; i < start + length; i++) at.add(i);
+  }
+  return at;
+}
+
 // 折り返しの候補を入れた文字列 (何度かけても同じ結果になる)
 export function phrase(text) {
   if (text == null) return text;
   const s = String(text);
   if (!JP.test(s)) return s;
   const cs = Array.from(s.indexOf(ZWSP) >= 0 ? s.split(ZWSP).join("") : s);
+  const protectedAt = protectedBreaks(cs);
   let out = cs[0] || "";
   for (let i = 1; i < cs.length; i++) {
-    if (canBreak(cs, i)) out += ZWSP;
+    if (canBreak(cs, i, protectedAt)) out += ZWSP;
     out += cs[i];
   }
   return out;
@@ -64,7 +79,8 @@ export function unphrase(text) {
 // 文字列のどの位置 (コードポイントの添字) の前で折ってよいか — 一文字ずつ span にする語り (opening.js) 用
 export function phraseBreaks(text) {
   const cs = Array.from(unphrase(text)), at = new Set();
-  for (let i = 1; i < cs.length; i++) if (canBreak(cs, i)) at.add(i);
+  const protectedAt = protectedBreaks(cs);
+  for (let i = 1; i < cs.length; i++) if (canBreak(cs, i, protectedAt)) at.add(i);
   return at;
 }
 
