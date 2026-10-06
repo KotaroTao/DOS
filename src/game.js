@@ -10683,10 +10683,34 @@ function abandonQuest(uid) {
   renderTown();
   return true;
 }
+// 同じ処理で果たした依頼をまとめ、戦果・入手のシートを開いた後に最前面で知らせる。
+const questDoneAlerts = [];
+let questDoneAlertTimer = null;
 function questDone(q) {
   const who = q.giver ? q.giver.name : (q.npc != null ? npcOf(q.npc).name : null);
   log(`依頼「${q.name}」を果たした！ — 酒場で${who ? who + "に" : ""}報告しよう`, "win");
-  showToast(`📜 依頼達成: ${q.name}` + (who ? ` ― ${who}が待っている` : ""), { tone: "good" });
+  if (!inDungeon()) {
+    showToast(`📜 依頼達成: ${q.name}` + (who ? ` ― ${who}が待っている` : ""), { tone: "good" });
+    return;
+  }
+  setAutoMove(false);
+  questDoneAlerts.push({ name: q.name, who });
+  if (questDoneAlertTimer !== null) return;
+  questDoneAlertTimer = setTimeout(() => {
+    questDoneAlertTimer = null;
+    const done = questDoneAlerts.splice(0);
+    SFX.itemget();
+    sheet.open({
+      kind: "celebrate", banner: "✦ 依頼達成 ✦",
+      title: done.length === 1 ? done[0].name : `${done.length}件の依頼を果たした`,
+      lines: [
+        ...(done.length > 1 ? done.map((x) => `「${x.name}」を果たした。`) : []),
+        ...done.map((x) => x.who ? `${x.who}が酒場で待っている。` : null).filter(Boolean),
+        "酒場「沈まぬ灯」に戻って報告しよう。",
+      ],
+      footer: [{ label: "確認", kind: "primary", size: "lg", onTap: (s) => s.close() }],
+    });
+  }, 0);
 }
 
 // 依頼の進みを加算する (迷宮・階を問わず、条件さえ満たせば進む)。
