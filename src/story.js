@@ -267,6 +267,7 @@ export const BOSS_MEMORIES = {
 export const REPORTS = {
   w01: {
     title: "師のランタン",
+    need: "w01_lantern",
     lines: [
       "「オルドのランタンか。…見せてみよ。」",
       "「魂火がまだ揺れておる。あの男は──少なくとも、その魂はまだ還っておらぬ。」",
