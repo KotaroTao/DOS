@@ -187,7 +187,7 @@ const TUTS = [
     outro: ["迷宮へ踏み出した。師の足跡を探そう。"],
   },
   {
-    key: "newJobParty", name: "新しい器で仲間を増やす", who: "irene",
+    key: "newJobParty", name: "新しい器で仲間を増やす", who: "irene", silent: true,
     open: () => G_().msq?.n >= 1 && !!tutState().jobVisit && newJobSouls().length > 0,
     used: () => newJobSouls().some((s) => allDolls().some((d) => d.primary === s.uid)),
     prepare() {
@@ -198,13 +198,13 @@ const TUTS = [
       ["新しい職業の魂を持ち帰られたのですね。", "新しい人業の器を購入し、その魂を宿して仲間を増やしましょう。"],
       ["初めての職業の魂を持ち帰ったお祝いに、赤い魂50個をお渡しします。", "この赤い魂で、新しい仲間を迎えてください。"],
       ["器は、この館で赤い魂と引き換えにお仕立てします。", `今のお代は、赤い魂${game.emptyDollCost?.() || 0}です。足りない時は、街の『赤い魂の祠』で入手できます。`],
-      ["『人業を仕立てる』から新しい職業の魂を選び、名前を与えてください。新しい魂が複数あれば、お好きな魂をお選びください。", "パーティには六体まで連れてゆけます。満員なら、新しい仲間は控えで待ちます。"],
+      ["『人業を仕立てる』を開いたら、宿す魂は自由にお選びください。今は宿さずに閉じてもかまいません。", "パーティには六体まで連れてゆけます。満員なら、新しい仲間は控えで待ちます。"],
       ["同じ職業の魂を宿す仲間は、一つのパーティに一体だけ。", "新しい職業の仲間を加え、迷宮に備えましょう。"],
     ],
     steps: [{
-      text: "新しい器を購入し、新しい職業の仲間を仕立てる", hint: "人業の館 → 控え・＋ → 人業を仕立てる → 新しい魂 → 名前・生成する",
+      text: "『人業を仕立てる』で魂の一覧を開く", hint: "人業の館 → 控え・＋ → 人業を仕立てる。その後は自由に選ぶか、閉じてよい",
       go: () => UI.openReserve?.(), target: [".pt-res-add", ".pt-form .pt-empty-slot", ".pt-res-sw button"],
-      on: "dollCreated", skip: () => (G_().redSoul || 0) < (game.emptyDollCost?.() || 0),
+      on: "newJobSoulPickerOpened", skip: () => (G_().redSoul || 0) < (game.emptyDollCost?.() || 0),
     }],
     outro: ["新しい器に新しい職業の魂を宿せば、仲間を増やせる。", "赤い魂が足りない時は祠で集めてから、『控え・＋』の『人業を仕立てる』へ。満員なら控えの仲間と入れ替えよう。"],
   },
@@ -517,6 +517,11 @@ function onEvent(name) {
   const st = tutState();
   if (!st || !st.cur) return;
   st.ev[name] = true;
+  // 一覧を開いた時点で案内を終え、選択・名前入力・中止を自由にする。
+  if (name === "newJobSoulPickerOpened" && st.cur === "newJobParty") {
+    finish(TUT_MAP.newJobParty);
+    return;
+  }
   if (name === "dungeonEntered" && st.cur === "firstDive") {
     st.done.firstDive = true; st.cur = null; st.step = 0; st.ev = {}; st.base = {};
     clearGlow(); updateGuidance();
@@ -534,6 +539,10 @@ function schedule() {
   raf = typeof requestAnimationFrame === "function" ? requestAnimationFrame(run) : setTimeout(run, 16);
 }
 function tick() {
+  // 更新前のセーブで魂の選択・名前入力まで進んでいる場合も制限を解除する。
+  if (tutState()?.cur === "newJobParty" && document.querySelector(".pt-pick-sheet .pt-soulrow, .pt-name-sheet")) {
+    onEvent("newJobSoulPickerOpened");
+  }
   const s = curStep();
   if (s && !busy && inTown() && !sceneActive() && !document.querySelector(".sc-scene:not(.out)")) {
     if (stepDone(s) || safe(() => (s.skip ? s.skip() : false), false)) {
@@ -589,7 +598,7 @@ function ireneGuidance() {
   }
   // 目標札の操作手順ではなく、通常会話と同じ口調で案内する。
   if (p.key === "fusion") return ["『魂融合』を開き、素材にする魂をお選びください。", "余っている同じ職の魂を、ひとつに溶かしましょう。"];
-  if (p.key === "newJobParty") return ["『人業を仕立てる』から、新しい職業の魂をお選びください。", "この子に名前を与え、新しい仲間を迎えましょう。"];
+  if (p.key === "newJobParty") return ["『人業を仕立てる』で、魂の一覧を開いてみてください。", "その後は自由に選べます。今は宿さずに閉じてもかまいません。"];
   if (p.key === "soulChange") return ["『魂を付け替える』で、魂の一覧を開いてみてください。", "持っている魂を確かめたら、一覧を閉じてください。"];
   if (p.key === "sub1") return tutState().step === 1 ?
     ["サブ魂の札の『技』を開いてください。", "借りる技を選んだら、閉じてください。"] :
@@ -647,14 +656,15 @@ function tutorialControls() {
     // 門衛の忠告は、本文のスクロールと支度に戻る操作も受け付ける。
     if (card.classList.contains("dp-brief-sheet")) return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary"), [h.body, ...first(card,".ui-sheet-foot .ui-btn.k-ghost")]);
     if (h.kind === "celebrate" || card.classList.contains("ui-confirm") || stepDone(s)) return forward();
+    if (d.key === "newJobParty" && (card.classList.contains("pt-pick-sheet") || card.classList.contains("pt-name-sheet"))) return null;
     if (card.classList.contains("pt-name-sheet")) {
       return choose(first(card, ".ui-sheet-foot .ui-btn.k-primary"), first(card, ".pt-name-in, .pt-name-rnd"));
     }
     if (card.classList.contains("pt-res-sheet")) return choose(first(card, ".pt-res-add"));
-    if (card.classList.contains("pt-pick-sheet") && ["createThree", "createFourth", "newJobParty"].includes(d.key)) {
-      const jobs = d.key === "newJobParty" ? st.base.jobs || [] : d.key === "createFourth" ? ["mage"] : ["fighter", "priest", "thief"];
+    if (card.classList.contains("pt-pick-sheet") && ["createThree", "createFourth"].includes(d.key)) {
+      const jobs = d.key === "createFourth" ? ["mage"] : ["fighter", "priest", "thief"];
       const rows = jobs.flatMap((job) => first(card, `.pt-soulrow[data-job="${job}"]`));
-      return choose(rows, d.key === "newJobParty" ? rows : []);
+      return choose(rows);
     }
     if (h.opts.banner === "魂融合") return choose(first(card, ".sp-fuse-material"), first(card, ".sp-fuse-all"));
     if (h.opts.banner === "宿し技をえらぶ") {
