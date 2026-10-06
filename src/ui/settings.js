@@ -11,7 +11,7 @@
 
 import { game, registerUI } from "./ctx.js";
 import { el, setText, sheet, segmented, toast } from "./kit.js";
-import { tlOn, tlSetOn, tlClear, tlHasData, tlSummary, tlExportText } from "../telemetry.js";
+import { tlOn, tlSetOn, tlClear, tlHasData, tlSummary, tlStabilitySummary, tlExportText } from "../telemetry.js";
 import { getPref, setPref, remember } from "./prefs.js";
 import { SFX } from "../audio.js";
 
@@ -153,7 +153,7 @@ function fillAuto(box) {
   logRow.appendChild(lt);
   logRow.appendChild(el("span", "stg-danger-b stg-log-b", "開く"));
   logRow.addEventListener("click", () => { sfx("select"); openTestLog(); });
-  box.appendChild(toggleRow({ name: "テスト記録", desc: "戦闘調整用の集計 (端末内のみ・送信しない)", on: tlOn(), onChange: (v) => {
+  box.appendChild(toggleRow({ name: "テスト記録", desc: "戦闘・安定度・赤い魂の集計 (端末内のみ・送信しない)", on: tlOn(), onChange: (v) => {
     tlSetOn(v); sfx("select"); logRow.classList.toggle("hidden", !v && !tlHasData());
   } }));
   logRow.classList.toggle("hidden", !tlOn() && !tlHasData());
@@ -238,6 +238,8 @@ function showExportText(text) {
 
 function openTestLog() {
   const sum = tlSummary();
+  const stability = tlStabilitySummary();
+  if (stability.length) sum.unshift({ head:stability[0], lines:stability.slice(1) });
   sheet.open({
     kind: "info", banner: "テスト記録", className: "stg-sheet stg-log-sheet",
     title: tlOn() ? "記録中" : "記録は止まっている",

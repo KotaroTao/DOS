@@ -31,6 +31,8 @@ const ASSETS = [
   "./src/board.js",
   "./src/traps.js",
   "./src/telemetry.js",
+  "./src/stability.js",
+  "./art/tutorial/gatekeeper.png",
   "./src/levelcurve.js",
   "./src/baseline.js",
   "./src/pricing.js",

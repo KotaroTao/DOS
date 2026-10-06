@@ -1145,6 +1145,8 @@ function reserveRow(d) {
     else st.appendChild(el("span", "pt-res-tm", "✝ 要修復"));
   }
   else if (d.primary != null) st.appendChild(el("span", "pt-res-s", `  HP ${d.hp}/${d.maxhp}`));
+  game.refreshStability?.();
+  st.appendChild(el("span", "pt-res-s", ` ・ 安定度 ${d.stability}/${game.STABILITY_MAX}`));
   tx.appendChild(st);
   top.appendChild(tx);
   const look = button({ label: "見る", kind: "ghost", size: "sm", onTap: () => viewDoll(d) });
@@ -1325,6 +1327,25 @@ export function openRename(d) {
 }
 
 // ================= 人業の見出し (2行) =================
+// 安定度の回復は街でだけ。必要数と実際の赤い魂の支出を先に表示する。
+export function openStability(d, onChange) {
+  if (!inTown() || !d) return null;
+  let h;
+  const spec = () => {
+    game.refreshStability();
+    const gap = game.STABILITY_MAX-d.stability;
+    const amounts = [...new Set([1, Math.min(10,gap), gap])].filter(n=>n>0);
+    return { title:`${d.name} ― 魂の安定度 ${d.stability}/${game.STABILITY_MAX}`,
+      lines:["3分で1回復します。控えやゲームを閉じている間も回復します。", "赤い魂1で安定度1を回復します。宿泊や魂の付け替えでは回復しません。", `所持している赤い魂: ${G_().redSoul}`],
+      footer:[...amounts.map(n=>({ label:n===gap ? `満タンまで回復 (+${n})` : `+${n}回復`, cost:{kind:"red",n}, kind:"secondary", disabled:G_().redSoul<n,
+        onTap:()=>{const r=game.restoreStability(d,n);if(!r.ok)return;h.update(spec());rerender();if(onChange)onChange();} })),
+        {label:"戻る",kind:"ghost",onTap:()=>h.close()}],
+    };
+  };
+  h=sheet.open({kind:"info",banner:"魂の安定度",...spec()});
+  return h;
+}
+
 function dollHeader(d, mode) {
   const G = G_();
   const town = mode === "town";
@@ -1364,6 +1385,10 @@ function dollHeader(d, mode) {
     }
     tx.appendChild(l2);
   }
+  game.refreshStability?.();
+  const stability = button({ label:`魂の安定度 ${d.stability}/${game.STABILITY_MAX}`, kind:"ghost", size:"sm",
+    onTap:town ? ()=>openStability(d) : ()=>toast("入場時に10消費・3分で1回復。探索中の追加消費はない", {tone:"info"}) });
+  stability.classList.add("pt-stability"); tx.appendChild(stability);
   head.appendChild(tx);
   if (town && pi < 0 && d.primary != null) {
     const join = button({ label: G.party.length < 6 ? "パーティへ" : "入替", kind: "secondary", size: "sm", onTap: () => (G.party.length < 6 ? joinParty(d) : openReserve()) });
@@ -2147,6 +2172,7 @@ function openParty(idx = null, o = {}) {
 export function install() {
   phase0ItemSheet = UI.itemSheet || null;
   registerUI({
+    openStability,
     openParty,
     enterMansion,
     openReserve,
