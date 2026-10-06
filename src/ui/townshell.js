@@ -272,6 +272,7 @@ export function openGate() {
 export function openPage(key, { parentTab } = {}) {
   const G = game.G;
   if (!G) return;
+  if (key === "tavern" && allowedList() && !allowedList().includes(key)) { lockedToast(key); return false; }
   if (pageDefs[key]) {
     G.town.page = key;
     if (parentTab) pageDefs[key].parentTab = parentTab;

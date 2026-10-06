@@ -491,39 +491,60 @@ function refreshFooter() {
   }
   foot.classList.remove("hidden");
 }
-// 門をくぐる前の念押し: HP/MPが減っている・状態異常の者がいれば、ポップアップで知らせてから潜る。
-// 宿が開いていれば「宿で休んでから潜る」(宿賃は宿屋と同じ) も選べる。go() = 実際に潜る
+// 修復・宿泊の後も念押しを更新し、潜る操作は別に選んでもらう。
 function checkWoes(go) {
-  let w = null;
-  try { w = game.departWoes ? game.departWoes() : null; } catch (e) { w = null; }
-  if (!w || !w.list.length) { go(); return; }
-  const lines = w.list.map((d) => {
-    const p = [];
-    if (d.ail) p.push(d.ail);
-    if (d.hp < d.maxhp) p.push(`HP ${d.hp}/${d.maxhp}`);
-    if (d.mp < d.maxmp) p.push(`MP ${d.mp}/${d.maxmp}`);
-    return `${d.name} ― ${p.join(" ・ ")}`;
-  });
-  const ail = w.list.some((d) => d.ail);
-  const hurt = w.list.some((d) => d.hp < d.maxhp || d.mp < d.maxmp);
-  const what = ail && hurt ? "傷も異常も" : ail ? "状態異常が" : "HP・MPが";
-  const footer = [];
-  if (w.innOpen) {
-    const ok = (G().gold || 0) >= w.cost;
-    footer.push({ label: "宿で休んでから潜る", sub: ok ? `💰${w.cost} ・ 全快して門をくぐる` : `💰${w.cost} ・ お金が足りない`, kind: "primary", size: "lg", disabled: !ok,
-      onTap: (h) => { h.close("ok", { silent: true }); const r = ops.restParty ? ops.restParty() : null; if (r && r.ok) go(); } });
-  }
-  footer.push({ label: "このまま潜る", kind: w.innOpen ? "danger" : "primary", size: w.innOpen ? undefined : "lg", onTap: (h) => { h.close("ok", { silent: true }); go(); } });
-  footer.push({ label: "やめる", kind: "ghost", onTap: (h) => h.close("cancel") });
+  const read = () => game.departWoes ? game.departWoes() : null;
+  const initial = read();
+  if (!initial || (!initial.list.length && !(initial.broken || []).length)) { go(); return; }
+  const spec = () => {
+    const w = read();
+    const broken = w.broken || [];
+    const lines = broken.map((d) => `${d.name} ― ${d.rescuing ? "迷宮からの連れ帰りを待っている" : `魂が砕けている ・ 修復 💰${d.cost}`}`);
+    if (w.list.length && broken.length) lines.push("傷や消耗が残っている人業");
+    for (const d of w.list) {
+      const p = [];
+      if (d.ail) p.push(d.ail);
+      if (d.hp < d.maxhp) p.push(`HP ${d.hp}/${d.maxhp}`);
+      if (d.mp < d.maxmp) p.push(`MP ${d.mp}/${d.maxmp}`);
+      lines.push(`${d.name} ― ${p.join(" ・ ")}`);
+    }
+    lines.push(`所持金貨 💰${G().gold || 0}`);
+    lines.push(broken.length || w.list.length
+      ? "修復や宿泊はこの場で行える。支度を整えてから、潜るかどうかを選べる。"
+      : "支度が整った。門をくぐる準備はいいか？");
+    const update = (h) => { refresh(); h.update(spec()); };
+    const footer = [];
+    if (broken.length) {
+      const d = broken.find((d) => !d.rescuing);
+      const ok = d && (G().gold || 0) >= d.cost;
+      footer.push({ label: "人業の館で修復する", sub: d
+        ? `${d.name} ・ 💰${d.cost}${ok ? " ・ 1人を修復" : " ・ 金貨が足りない"}`
+        : "迷宮から連れ帰られると修復できる", kind: "primary", disabled: !ok,
+        onTap: (h) => {
+          const doll = G().party.find((p) => p.uid === d.uid);
+          if (game.repairDoll) game.repairDoll(doll);
+          update(h);
+        } });
+    }
+    if (w.innOpen && w.list.length) {
+      const ok = (G().gold || 0) >= w.cost;
+      footer.push({ label: "宿屋で休む", sub: `💰${w.cost} ・ ${ok ? "生きている人業のHP・MPと状態異常を回復" : "金貨が足りない"}`, kind: "primary", disabled: !ok,
+        onTap: (h) => { if (ops.restParty) ops.restParty(); update(h); } });
+    }
+    const woes = broken.length || w.list.length;
+    const alive = G().party.some((d) => d.alive);
+    footer.push({ label: alive ? (woes ? "このまま潜る" : "迷宮に潜る") : "動ける人業がいない", kind: woes ? "danger" : "primary", disabled: !alive,
+      onTap: (h) => { h.close("ok", { silent: true }); go(); } });
+    footer.push({ label: "出撃画面に戻る", kind: "ghost", onTap: (h) => h.close("cancel") });
+    return {
+      title: broken.length ? "魂が砕けた人業がいる" : w.list.length ? "傷や消耗が残っている人業がいる" : "支度が整った",
+      lines, footer,
+    };
+  };
   sfx("select");
-  sheet.open({
-    kind: "choice", banner: "念押し", accent: "#c98a2a",
-    title: `${what}癒えていない者がいる`,
-    lines: [...lines, "迷宮の中では宿に泊まれない。このまま門をくぐるか？"],
-    className: "ui-confirm dp-woes",
-    footer,
-  });
+  sheet.open({ kind: "choice", banner: "出撃前の確認", accent: "#c98a2a", className: "ui-confirm dp-woes", ...spec() });
 }
+
 function depart() {
   if (!cur) return;
   checkWoes(departGo);
