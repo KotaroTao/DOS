@@ -801,7 +801,7 @@ function curDungeon() { return DUNGEONS[G.dungeonIdx] || DUNGEONS[0]; }
 // 物語は「どの迷宮で何を見つけたか」で進む (src/story.js)。王への報告は、迷宮を初めて踏破した時だけ。
 // G.world = {
 //   open: {id:1}        地図に現れた迷宮          cleared: {id:回数}   踏破した回数
-//   reported: {id:1}    初踏破を王に報告した迷宮  report: id|null     王への報告待ち (済むまで門は開かない)
+//   reported: {id:1}    初踏破を王に報告した迷宮  report: id|null     王への報告待ち (手がかりが揃えば報告まで門は開かない)
 //   found: {鍵:1}       見つけた物語マス          beats: {鍵:1}       語り終えた主の記憶・館の語り・章の結び
 //   gates: {id:階}      到達した最深の帰還魔法陣の階 (次回そこから潜れる)
 //   fresh: {id:1}       地図に現れたばかり (出撃シートの「新」)      last: 最後に語られた物語のページ (聞き直し用)
@@ -813,6 +813,8 @@ function worldState() {
   const w = G.world;
   for (const k of ["open", "cleared", "reported", "found", "beats", "gates", "fresh"]) if (!w[k] || typeof w[k] !== "object") w[k] = {};
   if (w.report === undefined) w.report = null;
+  // 別の迷宮を踏破しても報告待ちを失わない。旧セーブの未報告も踏破記録から拾う。
+  if (!w.report) w.report = DUNGEONS.find((d) => !d.side && w.cleared[d.id] && !w.reported[d.id])?.id || null;
   return w;
 }
 // 第0章 (人業の生成) を終えたか
@@ -5692,7 +5694,7 @@ function runStoryCell(cell) {
 // 館の語り (イレーヌ): 要る手がかりを見つけていて、まだ語っていないもの
 function pendingIreneBeat() {
   const w = worldState();
-  return IRENE_BEATS.find((b) => !w.beats[b.id] && (!b.need || w.found[b.need]) && (!b.after || w.reported[b.after])) || null;
+  return IRENE_BEATS.find((b) => !w.beats[b.id] && (!b.need || (Array.isArray(b.need) ? b.need : [b.need]).every((key) => w.found[key])) && (!b.after || w.reported[b.after])) || null;
 }
 // 館に入った時に語る (party.js から)。語ったら true
 function playIreneBeat(done) {
@@ -9539,7 +9541,7 @@ function commitDungeonClear(countBoss = true) {
   const isStoryTarget = !!cfg && !w.cleared[cfg.id];
   if (cfg) w.cleared[cfg.id] = (w.cleared[cfg.id] || 0) + 1;
   // 依頼の迷宮 (side) は王への報告が無い (踏破は依頼人に報告する)
-  if (isStoryTarget && !w.reported[cfg.id] && !cfg.side) w.report = cfg.id;
+  if (isStoryTarget && !w.reported[cfg.id] && !cfg.side && !w.report) w.report = cfg.id;
   if (cfg) questProgress("clear", cfg.id);
   // クリア = 戦利品確定。記録 (帰還の報告に使う) は残し、全滅しても何も失わない印を付ける
   if (G.run) G.run.secured = true;
@@ -9568,6 +9570,7 @@ function celebrateDungeonClear({ idx, isStoryTarget }) {
   flashScreen("#ffd84a");
   uiResults.celebrateClear({
     name: dn.name, layer: dn.layer, isStoryTarget, layerBoss: !!dn.boss,
+    missingClue: reportMissingClue(dn.id),
     last: dn.layer >= 20 && !!dn.boss,
     onStay: () => {
       log("迷宮は踏破した。下の「帰還」から、いつでも街へ凱旋できる。", "win");
@@ -11540,6 +11543,8 @@ function reportMainQuest() {
   const id = w.report;
   const cfg = worldById(id);
   if (!cfg) { w.report = null; renderTown(); return; }
+  const clue = reportMissingClue();
+  if (clue) { showToast(`「${clue.name}」を見つけてから、王に報告せよ`, { tone: "info" }); return; }
   const r = msqReward(cfg.lv, !!cfg.boss);
   const rwText = [{ cur: "gold", n: r.gold }, { cur: "soul", n: r.soulPts }, ...(r.redSoul ? [{ cur: "red", n: r.redSoul }] : [])];
   const rep = REPORTS[id] || { title: cfg.name, lines: ["「果たしたか。…見たものを、すべて話せ。」"] };
@@ -11854,7 +11859,9 @@ function objectiveInfo() {
     if (!tutorialDollsReady()) return { key: "makeDoll", text: ms.stage === "fourth" ? "赤い魂で器を買い、魔導士の人業を仕立てる" : "人業を3体、仕立てる", sub: `いま ${made}/${tutDollGoal()}体 ・ ${ms.stage === "fourth" ? "4体目の器は赤い魂30" : "戦士・僧侶・盗賊を宿す (無料)"}`, act: "仕立てる", kind: "party", run: goMakeDoll };
     return { key: "reportTut", text: ms.stage === "fourth" ? "4体目の人業を王に報告する" : "3体の人業を王に報告する", act: "王に報告する", kind: "palace", run: reportTutorialQuest };
   }
-  if (w.report && worldById(w.report)) return { key: "report", text: `「${worldById(w.report).name}」の踏破を王に報告する`, sub: "見たものを王に話す", act: "王に報告する", kind: "palace", run: reportMainQuest };
+  const clue = reportMissingClue();
+  if (clue) return { key: "clue", text: `「${clue.name}」を見つける`, sub: `「${worldById(clue.dungeon).name}」の${clue.floor}階 ・ 王への報告に必要`, act: "探しに戻る", kind: "gate", run: () => departTo(worldIndexOf(clue.dungeon)) };
+  if (reportPending()) return { key: "report", text: `「${worldById(w.report).name}」の踏破を王に報告する`, sub: "見たものを王に話す", act: "王に報告する", kind: "palace", run: reportMainQuest };
   const ib = pendingIreneBeat();
   if (ib) return { key: "irene", text: ib.need ? "持ち帰ったものを、館のイレーヌに見せる" : "館のイレーヌのもとへ立ち寄る", sub: ib.title, act: "館へ", kind: "party", run: () => (UI.enterMansion ? UI.enterMansion() : UI.shell && UI.shell.setTab("party")) };
   if (contentSealed()) return { key: "sealed", text: "迷宮で人業を鍛え、装備を集める", sub: `${CHAPTERS[CHAPTERS.length - 1].next}は準備中`, act: "出撃", kind: "gate", run: () => departTo(null) };
@@ -11878,7 +11885,7 @@ function palaceCallReady() {
   const ms = G.msq;
   if (!ms) return false;
   if (ms.n === 0) return !ms.granted || tutorialDollsReady();
-  return !!worldState().report;
+  return reportPending();
 }
 
 // 王宮の勅命の札の中身: { kind, head, text, note, replay:bool }
@@ -11893,7 +11900,9 @@ function decreeInfo() {
   const w = worldState();
   const ch = currentChapter();
   const head = `第${["", "一", "二", "三", "四", "五"][ch.no] || ch.no}章 「${ch.title}」`;
-  if (w.report && worldById(w.report)) return { kind: "report", head, text: `「${worldById(w.report).name}」を踏破した。`, note: "王に報告し、見たものを話せ。", replay: true };
+  const clue = reportMissingClue();
+  if (clue) return { kind: "active", head, text: `「${worldById(w.report).name}」は踏破したが、「${clue.name}」がまだ見つかっていない。`, note: `${clue.floor}階で手がかりを見つけてから、王に報告せよ。`, replay: true };
+  if (reportPending()) return { kind: "report", head, text: `「${worldById(w.report).name}」を踏破した。`, note: "王に報告し、見たものを話せ。", replay: true };
   if (contentSealed()) return { kind: "sealed", head: `${head} ── 完`, text: `${ch.nextNote || "その先は、まだ封じられている"}。封が解けるまで、人業を鍛えておけ。`, note: `${ch.next}は準備中。これまでの迷宮には何度でも挑める。`, replay: true };
   const g = storyGoal();
   const done = ch.dungeons.filter((id) => w.reported[id]).length;
@@ -12555,10 +12564,16 @@ function tryEnterDungeon() {
   if (worldOpenCount() < 1) { log("王の勅命を果たすまで、迷宮には入れない。", "sys"); showToast("王の勅命を果たすまで、迷宮の在処は明かされない", { tone: "info" }); return; }
   UI.openDeparture();
 }
-// 初踏破の報告が済んでいないか (済むまで迷宮には入れない)
+// 報告に必要な師の手がかり。踏破済みでも未発見なら、探しに戻れるようにする。
+function reportMissingClue(id = worldState().report) {
+  const w = worldState();
+  const key = REPORTS[id]?.need;
+  return key && !w.found[key] ? STORY_CELLS[key] : null;
+}
+// 初踏破を報告できるか (必要な手がかりが揃うまでは再出撃できる)
 function reportPending() {
   const w = worldState();
-  return !!w.report && !!worldById(w.report);
+  return !!w.report && !!worldById(w.report) && !reportMissingClue();
 }
 // 迷宮へ向かおうとした時、報告が先なら引き止める (王宮へ案内するシート)。引き止めたら true
 function blockForReport() {

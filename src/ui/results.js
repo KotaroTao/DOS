@@ -346,13 +346,14 @@ export function openWipe(spec = {}) {
 }
 
 // ================= 踏破の祝祭 =================
-// spec: { name, layer, isStoryTarget, layerBoss, last, onGo, onStay }
+// spec: { name, layer, isStoryTarget, missingClue, layerBoss, last, onGo, onStay }
 export function celebrateClear(spec = {}) {
   const g = G();
   if (g) g.prompt = true;
   let gone = false;
   const lines = [`「${spec.name}」を踏破した！`];
-  if (spec.isStoryTarget) lines.push("勅命を果たした。王宮へ戻り、王に報告せよ。");
+  if (spec.missingClue) lines.push(`「${spec.missingClue.name}」がまだ見つかっていない。${spec.missingClue.floor}階で見つけてから、王に報告せよ。`);
+  else if (spec.isStoryTarget) lines.push("勅命を果たした。王宮へ戻り、王に報告せよ。");
   else if (spec.last) lines.push("すべての迷宮を制覇した。あなたは伝説となった。");
   else lines.push("さらなる深淵が、まだそなたを待っている。");
   const footer = [{ label: "街へ凱旋する", kind: "primary", size: "lg", onTap: (h) => { if (gone) return; gone = true; h.close("ok", { silent: true }); const gg = G(); if (gg) gg.prompt = false; if (spec.onGo) spec.onGo(); } }];
