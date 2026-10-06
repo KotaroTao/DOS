@@ -319,7 +319,7 @@ function tiles() {
   const wrap = el("div", "hb-tiles");
   const tav = facilityOpen("tavern");
   const ready = tav && game.questReadyCount ? game.questReadyCount() : 0;
-  wrap.appendChild(tile("tavern", "酒場", tav ? (ready ? `報告できる依頼 ${ready}` : "依頼・噂話") : "閉ざされている",
+  wrap.appendChild(tile("tavern", "酒場", tav ? (ready ? `報告できる依頼 ${ready}` : "依頼・噂話") : game.featureNote("tavern"),
     { locked: !tav, badge: ready ? String(ready) : null, onTap: () => { sfx("select"); if (UI.openTavern) UI.openTavern(); else UI.shell.openPage("tavern"); } }));
   const innOk = facilityOpen("inn");
   let innSub = "閉ざされている";
