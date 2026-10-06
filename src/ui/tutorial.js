@@ -96,6 +96,13 @@ function newJobSouls() {
   const initial = new Set(["fighter", "priest", "thief", "mage"]);
   return (game.soulRepresentatives ? game.soulRepresentatives() : G_().souls || []).filter((s) => !initial.has(s.clsKey));
 }
+function grantNewJobGift() {
+  const st = tutState();
+  if (st.newJobGift) return;
+  game.grantRedSoul(50, "tutorial");
+  st.newJobGift = true;
+  if (game.autosave) game.autosave(true);
+}
 let visitTimer = null;
 function atMansion() {
   const G = G_();
@@ -183,11 +190,15 @@ const TUTS = [
     key: "newJobParty", name: "新しい器で仲間を増やす", who: "irene",
     open: () => G_().msq?.n >= 1 && !!tutState().jobVisit && newJobSouls().length > 0,
     used: () => newJobSouls().some((s) => allDolls().some((d) => d.primary === s.uid)),
-    prepare() { tutState().base.jobs = newJobSouls().map((s) => s.clsKey); },
+    prepare() {
+      tutState().base.jobs = newJobSouls().map((s) => s.clsKey);
+      grantNewJobGift();
+    },
     intro: () => [
       ["新しい職業の魂を持ち帰られたのですね。", "新しい人業の器を購入し、その魂を宿して仲間を増やしましょう。"],
+      ["初めての職業の魂を持ち帰ったお祝いに、赤い魂50個をお渡しします。", "この赤い魂で、新しい仲間を迎えてください。"],
       ["器は、この館で赤い魂と引き換えにお仕立てします。", `今のお代は、赤い魂${game.emptyDollCost?.() || 0}です。足りない時は、街の『赤い魂の祠』で入手できます。`],
-      ["『人業を仕立てる』から新しい職業の魂を選び、名前を与えてください。", "パーティには六体まで連れてゆけます。満員なら、新しい仲間は控えで待ちます。"],
+      ["『人業を仕立てる』から新しい職業の魂を選び、名前を与えてください。新しい魂が複数あれば、お好きな魂をお選びください。", "パーティには六体まで連れてゆけます。満員なら、新しい仲間は控えで待ちます。"],
       ["同じ職業の魂を宿す仲間は、一つのパーティに一体だけ。", "新しい職業の仲間を加え、迷宮に備えましょう。"],
     ],
     steps: [{
@@ -389,6 +400,8 @@ function resume() {
   if (p.arrival) { updateGuidance(); schedule(); return true; }
   if (d.who === "irene" && !isGreeted()) { if (UI.enterMansion) UI.enterMansion(); return true; }
   if (st.cur !== p.key) return start(d);
+  // 更新前から進行中の手ほどきにも、お祝いを一度だけ渡す。
+  if (d.key === "newJobParty") grantNewJobGift();
   goStep(true);
   return true;
 }
@@ -640,7 +653,8 @@ function tutorialControls() {
     if (card.classList.contains("pt-res-sheet")) return choose(first(card, ".pt-res-add"));
     if (card.classList.contains("pt-pick-sheet") && ["createThree", "createFourth", "newJobParty"].includes(d.key)) {
       const jobs = d.key === "newJobParty" ? st.base.jobs || [] : d.key === "createFourth" ? ["mage"] : ["fighter", "priest", "thief"];
-      return choose(jobs.flatMap((job) => first(card, `.pt-soulrow[data-job="${job}"]`)));
+      const rows = jobs.flatMap((job) => first(card, `.pt-soulrow[data-job="${job}"]`));
+      return choose(rows, d.key === "newJobParty" ? rows : []);
     }
     if (h.opts.banner === "魂融合") return choose(first(card, ".sp-fuse-material"), first(card, ".sp-fuse-all"));
     if (h.opts.banner === "宿し技をえらぶ") {

@@ -15006,7 +15006,7 @@ bindGame({
 // 契約 (UI.openParty / autoEquip / betterGearCount / trainableList / equipItemTo / bestWearer) は各モジュールの install() が登録する
 bindGame({
   equipAt, moveItem, campCast, campSpellsOf, healAll, healAllNeed, repairCostOf, repairCostAll, repairDoll, setReviveTimers, hastenCostOf, tryHastenRescue, awaitingRescue, RESCUE_SHORTEN_MS,
-  emptyDollCost, randomDollName, finalizeBuyDoll, soulRepresentatives, partySoulConflict, soulSlotConflict, blockSoulResonance, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
+  emptyDollCost, grantRedSoul, randomDollName, finalizeBuyDoll, soulRepresentatives, partySoulConflict, soulSlotConflict, blockSoulResonance, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
   equipSoulToSlot, fuseCandidates, fuseSoul, fuseSouls, toggleSoulLock, openFusePicker, openSubSkillPicker, slotSoul,
   unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail, addSoulInstance, codexSweepJobs,
   canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill, itemKnown, isFirstGet,
