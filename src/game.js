@@ -1803,7 +1803,7 @@ function dockSpec() {
       else if (atBottom) down = { key: "clear", label: "踏破する", sub: "最深部の階段", kind: "primary", icon: "star" };
       else {
         const next = G.floor + 1, last = dn.floors || 1;
-        down = { key: "down", label: `B${next}Fへ降りる`, sub: next >= last ? (dn.boss ? "次は主の待つ最深部" : "次は最深部") : `残り ${last - G.floor}階`, kind: "primary", icon: "down" };
+        down = { key: "down", label: `B${next}Fへ降りる`, sub: next >= last ? (dn.boss ? "次は主の待つ最深部" : "次は最深部") : "", kind: "primary", icon: "down" };
       }
     }
   }
@@ -8814,6 +8814,13 @@ const HIT_STAGGER = 165;
 // 結果オブジェクトを演出 (踏み込み → 着弾 → 余韻)
 function animateResult(res, done) {
   if (G.battle && G.battle.tl) tlHits(G.battle.tl, res); // テスト記録: 与ダメ/被ダメ
+  // 眠り・行動不能で何もしなかった手番には、踏み込みや空振り音を出さない
+  if ((res.action === "sleep" || res.action === "stunned") && !(res.hits || []).length) {
+    renderParty();
+    renderCombat();
+    setTimeout(done, 200 * spdMul());
+    return;
+  }
   const t0 = performance.now();
   const WIND = (res.side === "enemy" ? 170 : 90) * spdMul();
   // 同一対象への最大ヒット数を数え、多段なら余韻を延ばして全ヒットを見せきる
