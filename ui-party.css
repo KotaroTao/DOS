@@ -275,7 +275,8 @@ body.pt-dragging, body.pt-dragging * { cursor: grabbing !important; user-select:
 .pt-hbar .ui-bar { height: 5px; }
 .pt-head.dead .pt-head-name { color: #b9a9a2; }
 .pt-head-join { width: auto; flex: 0 0 auto; }
-.pt-rescue { display: flex; align-items: center; gap: 6px; }
+.pt-rescue { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.pt-repair-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; margin-left: auto; max-width: 100%; }
 .pt-rescue .ui-btn { width: auto; flex: 0 0 auto; padding: 2px 8px; gap: 5px; font-size: 12.5px; }
 .pt-rescue-t { flex: 1 1 auto; min-width: 0; display: flex; align-items: baseline; gap: 3px; font-size: 12px; color: #e8c3b9; white-space: nowrap; }
 .pt-rescue-mk { color: #e4554f; font-size: 14px; }
