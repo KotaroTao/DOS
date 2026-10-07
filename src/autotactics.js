@@ -40,6 +40,34 @@ const KILL_W = 1.5;          // 倒した敵の脅威 (1手番ぶんの与ダメ
 const CHARMED_TGT_MUL = 0.3; // 魅了した敵は殴ると正気に戻りやすいので後回し
 const NO_AUTO = new Set(["field", "escape"]);
 
+// 図鑑の抵抗値が開放済みか。未登録・未開放なら隠れた抵抗値を判断に使わない。
+let _resistKnown = null;
+export function setResistKnown(fn) { _resistKnown = typeof fn === "function" ? fn : null; }
+const resistKnown = t => !!(_resistKnown && _resistKnown(t));
+export const AUTO_AIL_RESIST_LIMIT = 50; // 成功率を半分以上削る異常技は控える
+const autoRate = (b, actor, t, base, kind) => b.estRate(actor, t, base, resistKnown(t) ? kind : undefined);
+const autoAilRes = (b, t, kind) => resistKnown(t) ? b._ailRes(t, kind) : 0;
+function skillAilments(sp) {
+  const kinds = [];
+  if (sp.poison) kinds.push("poison");
+  if (sp.para) kinds.push("paralyze");
+  if (sp.sleepChance || sp.kind === "sleep") kinds.push("sleep");
+  if (sp.charm) kinds.push("charm");
+  if (sp.confuse) kinds.push("confuse");
+  if (sp.seal) kinds.push("seal");
+  if (sp.flinchChance) kinds.push("flinch");
+  if (sp.instakill) kinds.push("death");
+  return kinds;
+}
+// 複合技は最小の抵抗値を採用。全体技は効きやすい敵が1体でもいれば候補に残す。
+function ailSkillBlocked(b, sp, targets) {
+  const kinds = skillAilments(sp);
+  return kinds.length > 0 && targets.length > 0 && targets.every(t =>
+    resistKnown(t) && Math.min(...kinds.map(k =>
+      (["stone", "death"].includes(k) ? b._hardRes(t, k) : b._ailRes(t, k)) * 100
+    )) >= AUTO_AIL_RESIST_LIMIT);
+}
+
 // (dbg に配列を渡すと、比べた候補をすべて積む — 模擬戦での検証用)
 // 手番の者 actor の一手を決める。{ action: "attack"|"spell"|"defend", spellKey?, target?, idle? }。
 // 何も通らない (届く敵がみな物理無効で、役に立つ技も無い) 時は idle: true の防御を返す (game.js が隊の全員分続いたらオートを止める)
@@ -199,6 +227,7 @@ function skillCands(b, ctx, actor, key, sp) {
     for (const g of groups) {
       const c = mk(g);
       const tgts = g ? [g] : b.livingEnemies();
+      if (ailSkillBlocked(b, sp, tgts)) continue;
       for (const t of tgts) {
         let d = 0;
         if (sp.kind === "phys") {
@@ -210,7 +239,7 @@ function skillCands(b, ctx, actor, key, sp) {
         let v = dmgValue(ctx, t, d) * (t.mind === "charm" ? CHARMED_TGT_MUL : 1);
         // 即死: 主には効かない。当たれば残りのHPぶんの傷と同じ
         if (sp.instakill && !t.boss && !isMetal(t) && d < t.hp && (!sp.instakill.races || sp.instakill.races.includes(t.mon && t.mon.race))) {
-          const p = b.estRate(actor, t, sp.instakill.chance, "death");
+          const p = autoRate(b, actor, t, sp.instakill.chance, "death");
           v += p * ((t.hp - d) * ctx.dmgK + ctx.threat(t) * KILL_W);
         }
         c.dmg += v;
@@ -221,7 +250,7 @@ function skillCands(b, ctx, actor, key, sp) {
       if (sp.debuffAll) for (const t of b.livingEnemies()) c.stat += statMods(b, ctx, sp.debuffAll, sp.dur, t);
       if (sp.kind === "sleep") for (const t of b.livingEnemies()) {
         if (t.asleep || isMetal(t)) continue;
-        c.stat += b.estRate(actor, t, 0.6, "sleep") * ctx.threat(t) * Math.min(2, ctx.rounds) * 0.5;
+        c.stat += autoRate(b, actor, t, 0.6, "sleep") * ctx.threat(t) * Math.min(2, ctx.rounds) * 0.5;
       }
       hpPen(c);
       out.push(c);
@@ -248,7 +277,7 @@ function skillCands(b, ctx, actor, key, sp) {
 function foeEffects(b, ctx, actor, sp, t) {
   if (!t.alive || isMetal(t)) return 0;
   const th = ctx.threat(t);
-  const rate = (x, kind) => b.estRate(actor, t, x, kind);
+  const rate = (x, kind) => autoRate(b, actor, t, x, kind);
   let v = 0;
   if (sp.poison && !t.ailment) v += rate(sp.poison.chance, "poison") * Math.min(t.hp, sp.poison.pct * t.maxhp * (t.boss ? 0.5 : 1) * ctx.left(3)) * ctx.dmgK;
   if (sp.para && !t.ailment) v += rate(sp.para, "paralyze") * th * Math.min(2, ctx.rounds) * 0.6;
@@ -256,7 +285,7 @@ function foeEffects(b, ctx, actor, sp, t) {
   if (sp.charm && !t.mind) v += rate(sp.charm, "charm") * th * Math.min(2, ctx.rounds) * 1.2;
   if (sp.confuse && !t.mind) v += rate(sp.confuse, "confuse") * th * Math.min(2, ctx.rounds) * 0.8;
   if (sp.seal && (t.ability || t.role) && b._bm(t, "seal") >= 1) v += rate(sp.seal.chance, "seal") * th * 0.6 * ctx.left(sp.seal.turns || 3);
-  if (sp.flinchChance && !t.boss && !t._flinch) v += sp.flinchChance * (1 - b._ailRes(t, "flinch")) * th;
+  if (sp.flinchChance && !t.boss && !t._flinch) v += sp.flinchChance * (1 - autoAilRes(b, t, "flinch")) * th;
   if (sp.strip && (t.effects || []).some((e) => e.mult > 1)) v += th * 0.5 * Math.min(2, ctx.rounds);
   // 大技の予兆: 封じ・眠り・麻痺・魅了・混乱・怯み・打ち消しのどれかが通れば溜めた力が霧散する
   if (b._omenOf && b._omenOf(t)) {
@@ -266,7 +295,7 @@ function foeEffects(b, ctx, actor, sp, t) {
     if (sp.sleepChance && !t.asleep) keep *= 1 - rate(sp.sleepChance, "sleep");
     if (sp.charm && !t.mind) keep *= 1 - rate(sp.charm, "charm");
     if (sp.confuse && !t.mind) keep *= 1 - rate(sp.confuse, "confuse");
-    if (sp.flinchChance && !t.boss) keep *= 1 - sp.flinchChance * (1 - b._ailRes(t, "flinch"));
+    if (sp.flinchChance && !t.boss) keep *= 1 - sp.flinchChance * (1 - autoAilRes(b, t, "flinch"));
     if (sp.strip) keep = 0;
     v += (1 - keep) * th * 0.5; // threat は予兆で2倍にしてある。その上乗せ分を防ぐ
   }
