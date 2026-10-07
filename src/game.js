@@ -583,8 +583,8 @@ function takeStolenGold(b) {
   if (tlOn() && inDungeon()) tlGain(tlWhere(), "gold", g, "b" + ((b.tl && b.tl.kind) || "n"));
   return g;
 }
-function runGainGold(g, src, pre) {
-  const base = g * 0.5, sf = sfNum("goldMul", 1), mu = mutNum("goldMul", 1), eq = 1 + partyEffMax("goldUp");
+function runGainGold(g, src, pre, modifier = null) {
+  const base = g * 0.5, sf = sfNum("goldMul", 1), mu = modifier ?? mutNum("goldMul", 1), eq = 1 + partyEffMax("goldUp");
   g = Math.round(g * 0.5 * sf * mu * eq); G.gold += g; if (G.run && inDungeon()) G.run.gold += g;
   if (tlOn() && inDungeon()) tlGain(tlWhere(), "gold", g, src, tlUplift(pre != null ? pre * 0.5 : base, base, sf, "goldMul", mu, eq));
   return g;
@@ -592,8 +592,8 @@ function runGainGold(g, src, pre) {
 // 魂導の護符 (LR装飾品) の soulUp があれば ✦Soul の獲得量を割合で増やす。
 // 極の出来事で授かった恒久の恵み (G.events.flags) の効き目。授かっていなければ dflt
 function evBoon(k, field, dflt) { return G.events && G.events.flags && G.events.flags[k] ? EV_BOONS[k][field] : dflt; }
-function runGainSoulPts(s, src, pre) {
-  const base = s, sf = sfNum("soulMul", 1), mu = mutNum("soulMul", 1), eq = 1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0);
+function runGainSoulPts(s, src, pre, modifier = null) {
+  const base = s, sf = sfNum("soulMul", 1), mu = modifier ?? mutNum("soulMul", 1), eq = 1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0);
   s = Math.round(s * sf * mu * eq); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s;
   if (tlOn() && inDungeon()) tlGain(tlWhere(), "soul", s, src, tlUplift(pre != null ? pre : base, base, sf, "soulMul", mu, eq));
   return s;
@@ -979,7 +979,7 @@ function fightAbyssGuard(cell) {
   const depth = G.abyss.depth;
   const key = abyssGuardKey(depth);
   log("奈落の門番が立ちはだかる！", "dmg");
-  startBattle(spawnBossEnemies(key, baseEnemyScale() * abyssLayer(abyssLayerOf(depth)).bossRel * 1.05, abyssGuardRank(depth)), cell);
+  startBattle(spawnBossEnemies(key, baseEnemyScale(true) * abyssLayer(abyssLayerOf(depth)).bossRel * 1.05, abyssGuardRank(depth)), cell);
 }
 
 // ===== 迷宮テーマ (20層) =====
@@ -1290,8 +1290,8 @@ function revealByCartography() {
 // 迷宮内の階に応じた敵の強さ倍率 (迷宮ベース × 階で微増 × 特別階 × 迷宮の異変)
 function enemyScale() { return baseEnemyScale() * tuneMul(); }
 // 手直し (DUNGEON_TUNE) を除いた強さ: 迷宮の素の倍率 × 階 × 特別階/異変。主はこれに bossMul を掛ける
-function baseEnemyScale() {
-  return strengthHere() * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
+function baseEnemyScale(special = false) {
+  return strengthHere() * sfNum("enemyMul", 1) * (special ? 1 : mutNum("enemyMul", 1));
 }
 // その階の敵の強さ (手直し・特別な階・異変を除く) = 強さの素 power × 推奨Lv の伸び (world.js strengthAt)。奈落も同じ (abyssCfg)
 function strengthHere() { return strengthAt(activeCfg(), G.floor || 1); }
@@ -1342,7 +1342,7 @@ function soloTune() {
   const t = activeCfg().tune;
   return (t && t.soloMul) || 1;
 }
-function soloScale() { return baseEnemyScale() * soloTune(); }
+function soloScale() { return baseEnemyScale(true) * soloTune(); }
 // 単体の強敵の印。これらは層相応のランク/固有の強さで組まれていて、雑魚の顔ぶれに合わせた倍率を
 // 重ねると強くなりすぎるので soloScale で出す。startBattle はこの印 (_tuneK = 掛けた手直し) で戦果から打ち消す
 function soloFoes(list) {
@@ -1388,25 +1388,25 @@ function placeMetal() {
   }
 }
 // この階で普通の戦闘1回に得る✦Soul・金貨の目安 (出現表の雑魚の平均 × 群れの期待数 × 強さ倍率。手直し前)
-function typicalBattleSpoils() {
+function typicalBattleSpoils(special = false) {
   const p = Math.min(0.62, 0.18 + (G.floor || 1) * 0.08);
   let n = 0;
   for (let i = 0; i < 6; i++) n += Math.pow(p, i); // spawnCardEnemies の群れの数の期待値
   const pool = sfMonsterPool().filter((k) => MONSTERS[k]);
   let soul = 0, gold = 0;
   for (const k of pool) { const m = MONSTERS[k], c = m.pack ? Math.max(3, n) : n; soul += (m.soul || 0) * c; gold += (m.gold || 0) * c; }
-  const sc = baseEnemyScale(), len = Math.max(1, pool.length);
+  const sc = baseEnemyScale(special), len = Math.max(1, pool.length);
   return { soul: soul / len * sc, gold: gold / len * sc };
 }
 // 金属の魔物の組み立ての基準 (combat.js spawnMetal): 体はその階の雑魚の最上位ランク、AGI は味方の規模 (基準AGI)、
 // 戦果は1体ごとに「普通の戦闘1回分」× 段の倍率。群れは段の最大数まで (1体目の後は 35% ずつ)
 function metalRef(key) {
   const T = METAL_TIERS[MONSTERS[key].metal];
-  const sp = typicalBattleSpoils();
+  const sp = typicalBattleSpoils(true);
   let count = 1;
   while (count < T.max && Math.random() < 0.35) count++;
   return {
-    rank: mimicRef().rank, scale: baseEnemyScale(), count,
+    rank: mimicRef().rank, scale: baseEnemyScale(true), count,
     agi: partyAgi(levelHere().lv) * T.agiMul, // 基準の隊の AGI (推奨Lv で引く。levelcurve.js)
     soul: sp.soul * T.soulMul, gold: sp.gold * T.goldMul,
   };
@@ -2321,17 +2321,16 @@ function drawSenseGlow(r, rgb, now, x, y, k = 1) {
 }
 
 // 気配読み (魔物 = ぼんやりした赤い光) / 宝探し (宝箱 = ぼんやりした青い光)。種類・強さは分からない。歩いている間も灯したまま
-// 清めの歩み (聖騎士): まだめくっていない墓石をめくるたび、全員の HP を 5/15/30・MP を 1/2/3 回復 (隊で一番高いLv)
+// 清めの歩み (聖騎士): まだめくっていないカードをめくるたび、全員の HP を 2/4/6 回復 (隊で一番高いLv)
 function cleanseStepHeal(...args) { return tlGameMeasure("explore", () => cleanseStepHealMeasured(...args)); }
 function cleanseStepHealMeasured() {
   const lv = Math.min(3, partyPassiveLv("cleanseStep"));
   if (!lv) return;
-  const hp = [0, 5, 15, 30][lv], mp = [0, 1, 2, 3][lv];
+  const hp = [0, 2, 4, 6][lv];
   let any = false;
   for (const p of G.party) {
     if (!p.alive) continue;
     if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + hp); any = true; }
-    if (p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + mp); any = true; }
   }
   if (any) renderParty();
 }
@@ -5543,7 +5542,7 @@ function evBuildFoes(specs) {
     // 出来事の魔物: その階の雑魚の最上位ランク + ranked の体で現れる (ミミックと同じ基準 mimicRef)
     if (sp.ranked && sp.key && MONSTERS[sp.key]) { const e = soloFoes(spawnRanked(sp.key, mimicRef().rank, sp.ranked, soloScale()))[0]; if (sp.name) e.name = sp.name; out.push(e); continue; }
     const key = sp.key && MONSTERS[sp.key] ? sp.key : (sp.undead ? undeadKeyForDungeon() : evPoolKey());
-    if (sp.strong) { const e = evBoost(spawnEliteEnemies(key, scale)[0], sp.strong); if (sp.name) e.name = sp.name; out.push(e); continue; }
+    if (sp.strong) { const e = evBoost(soloFoes(spawnEliteEnemies(key, soloScale()))[0], sp.strong); if (sp.name) e.name = sp.name; out.push(e); continue; }
     if (sp.single) { out.push(spawnEliteEnemies(key, scale)[0]); continue; }
     out.push(...spawnCardEnemies(key, G.floor, scale, { min: Math.max(sp.min || 0, mutNum("packMin", 0)) }));
   }
@@ -6495,7 +6494,7 @@ function askDescend(cell) {
           log("迷宮の主が立ちはだかる！", "dmg");
           // 迷宮ごとの手直し (generator.js DUNGEON_TUNE): 主は雑魚の倍率ではなく bossMul、HP はさらに bossHpMul
           const tn = dn.tune || {};
-          const foes = spawnBossEnemies(dn.boss, dn.bossScale * (tn.bossMul || 1) * baseEnemyScale(), dn.bossRank);
+          const foes = spawnBossEnemies(dn.boss, dn.bossScale * (tn.bossMul || 1) * baseEnemyScale(true), dn.bossRank);
           if ((tn.bossHpMul || 1) !== 1) for (const e of foes) e.maxhp = e.hp = Math.max(1, Math.round(e.maxhp * tn.bossHpMul));
           startBattle(foes, cell);
         }
@@ -7121,6 +7120,21 @@ function showToast(text, opts) {
 }
 
 // ---- 戦闘 ----
+// 異変の強さ・戦果倍率は通常敵だけに適用する。出来事の特殊敵も除く。
+function specialModifierEnemy(e) {
+  return !!(e.boss || e.metal || e.isMimic || e.isMasterMimic || e.mon?.elite || e.mon?.named || e._tuneK != null);
+}
+// 混成の戦闘では、倒した通常敵の戦果にだけ異変の倍率を掛ける。
+function battleModifierReward(b, key) {
+  let total = 0, affected = 0;
+  for (const e of b.enemies) {
+    if (e.alive || e._fled) continue;
+    const value = (key === "soul" ? e.soul ?? e.exp : e[key]) || 0;
+    total += value;
+    if (!specialModifierEnemy(e)) affected += value;
+  }
+  return total ? 1 + (mutNum(key + "Mul", 1) - 1) * affected / total : 1;
+}
 // 6属性 (無属性を除く) から1つを無作為に
 function randomElement() {
   const els = Object.keys(ELEMENTS).filter((k) => k !== "none");
@@ -7160,7 +7174,7 @@ function startBattleMeasured(enemies, cell) {
     }
   }
   const mutEm = (mutDef() && mutDef().enemyMul) || 1;
-  if (mutEm !== 1) for (const e of enemies) { e._agiMul = mutEm; e.agi = Math.max(1, Math.round(e.agi * mutEm)); }
+  if (mutEm !== 1) for (const e of enemies) if (!specialModifierEnemy(e)) { e._agiMul = mutEm; e.agi = Math.max(1, Math.round(e.agi * mutEm)); }
   G.battleCell = cell;
   // 迷宮の掟: 敵は樹液を吸って再生する (trait.foeRegen) / 根が開幕に隊の MP を吸う (trait.mpDrain)
   const trB = dungeonTrait();
@@ -9306,9 +9320,9 @@ function endBattleMeasured() {
     const gl = partyPassiveLv("goldLuck"), sl = partyPassiveLv("soulLure");
     // テスト記録の出どころ: 金属の魔物 / 主 / 精鋭等 / 通常の戦闘 (戦闘の記録の種類と同じ分け方)
     const bsrc = b.enemies.some((e) => e.metal) ? "mt" : "b" + ((b.tl && b.tl.kind) || "n");
-    const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)), bsrc, gold * 2) + takeStolenGold(b);
+    const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)), bsrc, gold * 2, battleModifierReward(b, "gold")) + takeStolenGold(b);
     const sb = rankParty("bishopSeibetsu", [0.05, 0.10, 0.15, 0.25]); // 魂の聖別 (司教のランク)
-    const soulGot = runGainSoulPts(Math.round(soul * ((sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1) + sb)), bsrc, soul);
+    const soulGot = runGainSoulPts(Math.round(soul * ((sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1) + sb)), bsrc, soul, battleModifierReward(b, "soul"));
     applyVictoryPassives();
     // 入手Soulの1/3を生存メンバーの魂 (サブ魂はその1/3) に加算 → レベルアップ/スキル習得を集計
     const progress = distributeBattleSoulExp(soulGot);
