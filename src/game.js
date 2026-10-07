@@ -12,7 +12,7 @@ import {
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, slotKeyFor, lvToRank, RANGE_LABEL,
   UNIDENT_SLOTS, itemName, applyForge, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
 } from "./items.js";
-import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
+import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
 import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS } from "./quests.js";
@@ -26,7 +26,7 @@ import {
 } from "./abyss.js";
 import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, soulIcon,
-  recalcDoll, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
+  recalcDoll, setPermanentStatSource, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
   soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills, soulLearnedPassives, soulLabel, subPickCap, jobStatsOf,
   awakenPerkOf, subPickCapOfRank, subStatRateOfRank, setOrderSource, orderStatRateOfRank, setAppraiseSource,
   PASSIVES,
@@ -591,6 +591,8 @@ function runGainGold(g, src, pre) {
 }
 // 魂導の護符 (LR装飾品) の soulUp があれば ✦Soul の獲得量を割合で増やす。
 // 極の出来事で授かった恒久の恵み (G.events.flags) の効き目。授かっていなければ dflt
+setPermanentStatSource(() => permanentEventStats(G.events?.once));
+
 function evBoon(k, field, dflt) { return G.events && G.events.flags && G.events.flags[k] ? EV_BOONS[k][field] : dflt; }
 function runGainSoulPts(s, src, pre) {
   const base = s, sf = sfNum("soulMul", 1), mu = mutNum("soulMul", 1), eq = 1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0);
@@ -5617,6 +5619,7 @@ function eventFacts() {
   const pits = evCells((c) => c.type === "pit" && c.revealed).length;
   if (pits) out.push({ tone: "bad", icon: ICONS.trap, title: "落とし穴", accent: "#8a8070", lines: [`見えている落とし穴 ${pits}つ。踏むと1階下へ落とされる (自動の歩みは避けて通る)。`] });
   const perm = Object.keys(EV_BOONS).filter((k) => fl[k] && (k !== "sewerMap" || battleLayer() === 2)).map((k) => EV_BOONS[k].text);
+  for (const e of Object.values(EVENT_MAP)) if (e.statBonus && G.events.once[e.id]) perm.push(e.boon);
   if (perm.length) out.push({ tone: "gold", icon: ic, title: "極の恵み (恒久)", accent: "#ffcf4a", lines: perm });
   for (const m of fe.mods || []) out.push({ tone: m.enemyMul ? "bad" : "gold", icon: ic, title: `出来事「${m.name}」`, accent: "#c08aff", lines: [m.desc] });
   if (fe.oath && !fe.oath.done) out.push({ tone: "gold", icon: ic, title: "誓いの最中", accent: "#c08aff", lines: [`この階の魔物をすべて討て (残り ${evCells((c) => c.type === "monster" && !c.cleared).length}体)`, "果たさずに降りると、次の階の敵が手強くなる。"] });
@@ -5660,7 +5663,7 @@ function evNewFloor() {
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = G.board.cells[y][x]; if (ok(c, x, y) && sfOpenCount(c) === 1) cand.push(c); }
   if (!cand.length) for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = G.board.cells[y][x]; if (ok(c, x, y) && Math.abs(x - sx) + Math.abs(y - sy) >= 3) cand.push(c); }
   if (!cand.length) return;
-  const st = { layer, lv, first, floor: G.floor, floors: cfg.floors || 3, runEv: rv, onceDone: (e) => !!G.events.once[onceKey(e, layer)] };
+  const st = { dungeonId: cfg.id, layer, lv, first, floor: G.floor, floors: cfg.floors || 3, runEv: rv, onceDone: (e) => !!G.events.once[onceKey(e, layer)] };
   const e = pickEvent(eligibleEvents(st, evApi));
   if (!e) return;
   const cell = cand[rand(cand.length)];
@@ -5843,6 +5846,7 @@ const evApi = {
   runEv: () => evRun(),
   floorEv: () => evFloor(),
   flags: () => G.events.flags,
+  recalcPermanent: () => recalcAllDolls({ levelUp: true }),
   // ---- 画面 ----
   choice: (title, opts, icon, o) => showChoice(title, opts, icon, o),
   icon: (e) => (e.icon && e.icon.startsWith("mon:") ? MONSTERS[e.icon.slice(4)] : ICONS[e.icon]) || ICONS.event,
@@ -14364,12 +14368,15 @@ function loadGame() {
   if (!G.tut || typeof G.tut !== "object") G.tut = { done: {}, cur: null, step: 0, ev: {}, base: {} }; // 手ほどき (後付け: 解放済みで未使用の要素は目標の札から手ほどきする)
   if (!G.events || typeof G.events !== "object") G.events = {}; // 迷宮のイベント (後付け)
   for (const k of ["seen", "picks", "once", "flags", "fresh"]) if (!G.events[k] || typeof G.events[k] !== "object") G.events[k] = {};
-  { // 極の出来事は「選択肢なし・恒久の恵み・セーブで一度きり」に改めた。旧仕様で出会った者にも同じ恵みを授ける
+  { // 旧セーブで取得済みの恵みだけを引き継ぐ。新しい極には旧効果を追加しない。
     const o = G.events.once, fl = G.events.flags;
-    if (Object.keys(o).some((k) => k.startsWith("c30:"))) { o.c30 = true; fl.will = true; }
-    if (o.l1_10) fl.blackCat = true;
-    if (o.l2_10) fl.sewerMap = true;
-    if (o.l3_10) fl.temper = true;
+    if (!fl.statGiftVersion) {
+      if (Object.keys(o).some((k) => k.startsWith("c30:"))) { o.c30 = true; fl.will = true; }
+      if (o.l1_10) fl.blackCat = true;
+      if (o.l2_10) fl.sewerMap = true;
+      if (o.l3_10) fl.temper = true;
+      fl.statGiftVersion = 1;
+    }
   }
   // 旧ステータス体系のセーブを六大ステ (ATK/VIT/AGI/INT/PIE/LUK) へ移行
   // (battle の敵の mon はこの後 MONSTERS の生定義に差し替えられるため触れても無害)
