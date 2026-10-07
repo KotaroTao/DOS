@@ -396,11 +396,14 @@ function inTown() { const G = G_(); return !!G && G.state === "town"; }
 
 // UI.tutorialResume(): 済ませていない手ほどきを始める (始めていれば今の手順へ案内する)
 function resume() {
-  if (!inTown() || busy || sceneActive()) return false;
+  if (!inTown() || busy || sceneActive() || G_().prompt ||
+      (hasDOM() && document.querySelector(".sc-scene:not(.out)"))) return false;
   const p = pending();
   if (!p) return false;
   const st = tutState();
   const d = TUT_MAP[p.key];
+  // 館の物語を読み終えてから導入へ。進行中の手ほどきには割り込ませない。
+  if (!st.cur && d.who === "irene" && game.pendingIreneBeat?.()) return false;
   if (p.arrival) { updateGuidance(); schedule(); return true; }
   if (d.who === "irene" && !isGreeted()) { if (UI.enterMansion) UI.enterMansion(); return true; }
   if (st.cur !== p.key) return start(d);
@@ -725,6 +728,7 @@ export function install() {
   registerUI({
     tutorialIreneLines: ireneGuidance,
     tutorialMansionVisited: mansionVisited,
+    tutorialActive: () => busy || !!curDef(),
     tutorialPending: pending,
     tutorialResume: resume,
     tutorialAfterReport: afterReport,

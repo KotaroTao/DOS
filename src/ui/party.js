@@ -728,7 +728,7 @@ function scheduleBeat() {
   beatTimer = setTimeout(() => {
     beatTimer = null;
     const G = G_();
-    if (!G || G.state !== "town" || !G.town || G.town.tab !== "party" || G.town.page || G.prompt || sceneActive()) return;
+    if (!G || G.state !== "town" || !G.town || G.town.tab !== "party" || G.town.page || G.prompt || sceneActive() || UI.tutorialActive?.()) return;
     if (game.playIreneBeat) game.playIreneBeat(() => { curLine = nextLine({ entry: true }); rerender(); });
   }, 120);
 }

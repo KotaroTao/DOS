@@ -5727,6 +5727,8 @@ function runStoryCell(cell) {
 }
 // 館の語り (イレーヌ): 要る手がかりを見つけていて、まだ語っていないもの
 function pendingIreneBeat() {
+  // 試遊は選択した場面だけ。準備用の報告済み状態から別の語りを始めない。
+  if (G.testPlay) return null;
   const w = worldState();
   return IRENE_BEATS.find((b) => !w.beats[b.id] && (!b.need || (Array.isArray(b.need) ? b.need : [b.need]).every((key) => w.found[key])) && (!b.after || w.reported[b.after])) || null;
 }
