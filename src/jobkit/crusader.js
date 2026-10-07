@@ -42,11 +42,11 @@ export default {
       fx: [{ t: "deal", v: [0.2, 0.3, 0.4], when: { race: UNHOLY } }, { t: "crit", v: [0.05, 0.1, 0.15], when: { race: UNHOLY } }] },
     crusaderSeikaKate: { label: "聖火の糧", lv: ["敵を倒すとHP4%回復", "敵を倒すとHP6%回復", "敵を倒すとHP8%回復"],
       fx: [{ t: "kill", hp: [0.04, 0.06, 0.08] }] },
-    crusaderTotsugekiIkioi: { label: "突撃の勢い", lv: ["戦闘開始時、ATK×1.15・AGI×1.1 (2ターン)", "戦闘開始時、ATK×1.2・AGI×1.1 (2ターン)", "戦闘開始時、ATK×1.25・AGI×1.15 (2ターン)"],
+    crusaderTotsugekiIkioi: { label: "突撃の勢い", lv: ["戦闘開始時、STR×1.15・AGI×1.1 (2ターン)", "戦闘開始時、STR×1.2・AGI×1.1 (2ターン)", "戦闘開始時、STR×1.25・AGI×1.15 (2ターン)"],
       fx: [{ t: "start", buff: { atk: [1.15, 1.2, 1.25], agi: [1.1, 1.1, 1.15] }, dur: 2 }] },
     crusaderSeinaruKouyou: { label: "聖なる昂揚", lv: ["強化中、物理の会心+6%", "強化中、物理の会心+10%", "強化中、物理の会心+14%"],
       fx: [{ t: "crit", v: [0.06, 0.1, 0.14], when: { buffed: true } }] },
-    crusaderJunkyoushin: { label: "昂る殉教心", lv: ["物理を受けると20%でATK×1.15 (2ターン)", "物理を受けると25%でATK×1.2", "物理を受けると30%でATK×1.25", "物理を受けると35%でATK×1.3"],
+    crusaderJunkyoushin: { label: "昂る殉教心", lv: ["物理を受けると20%でSTR×1.15 (2ターン)", "物理を受けると25%でSTR×1.2", "物理を受けると30%でSTR×1.25", "物理を受けると35%でSTR×1.3"],
       fx: [{ t: "hurt", chance: [0.2, 0.25, 0.3, 0.35], buff: { atk: [1.15, 1.2, 1.25, 1.3] }, dur: 2 }] },
   },
 };

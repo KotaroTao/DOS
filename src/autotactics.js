@@ -350,8 +350,10 @@ function allyEffects(b, ctx, actor, sp, a, c, W) {
   if (sp.buff) for (const k in sp.buff) {
     const up = sp.buff[k] > 1 ? modGain(b, a, k, sp.buff[k]) : 0; // 段で重ねた時に実効の倍率が上がる幅
     if (!(up > 0)) continue;
-    if (k === "atk") c.edge += up * ctx.basic(a) * ctx.dmgK * n * 0.7;
-    else if (k === "vit") c.guard += up * b._evit(a) * 0.5 * ctx.hitsOn(a) * n;
+    // 武器が参照しない能力を上げても通常攻撃の威力は増えない。
+    const coefficient = a.wScale ? (a.wScale[k] || 0) : (k === "atk" ? 1 : 0);
+    if (coefficient) c.edge += up * (a[k] || 0) * coefficient / Math.max(1, b._eatk(a)) * ctx.basic(a) * ctx.dmgK * n * 0.7;
+    if (k === "vit") c.guard += up * b._evit(a) * 0.5 * ctx.hitsOn(a) * n;
     else if (k === "agi") c.edge += up * ctx.basic(a) * ctx.dmgK * 0.2 * n;
     else if (k === "int" && (a.spells || []).some((s) => SPELLS[s] && SPELLS[s].kind === "atk")) c.edge += up * (a.int || 0) * 0.5 * ctx.dmgK * n;
   }

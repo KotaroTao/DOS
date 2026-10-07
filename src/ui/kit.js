@@ -533,9 +533,9 @@ export function portrait(d, o = {}) {
   return p;
 }
 
-// statDelta({atk:+4, agi:-1, …}) → 「ATK+4 AGI-1」(▲緑 / ▼赤)
-// power = 攻撃力 (ATK + 武器の能力補正)。ATK は攻撃力と増減が同じなら省く (同じ数字が2つ並ばないように)
-const DELTA_LABEL = { power: "攻撃力", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP", crit: "会心" };
+// statDelta({atk:+4, agi:-1, …}) → 「STR+4 AGI-1」(▲緑 / ▼赤)
+// power = 攻撃力 (参照能力 × 武器の係数)。STR は攻撃力と増減が同じなら省く (同じ数字が2つ並ばないように)
+const DELTA_LABEL = { power: "攻撃力", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP", crit: "会心" };
 export function statDelta(d = {}, { compact = true } = {}) {
   const w = el("span", "ui-delta");
   let any = false;

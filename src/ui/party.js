@@ -20,14 +20,14 @@ import {
 import { deltaFloat } from "./motion.js";
 import { remember, setPref, getPref } from "./prefs.js";
 import {
-  statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort,
+  statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, weaponPerformanceEl, weaponPowerPreview,
 } from "./itemview.js";
 import { renderSoulSeg, openSoulPicker } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
 import {
   planBestEquip, applyPlan, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isMeleeWeapon,
 } from "../autoequip.js";
-import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, scaleText, useWhere, compareUse } from "../items.js";
+import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, useWhere, compareUse } from "../items.js";
 import {
   SOUL_CLASSES, JOB_GEAR, dollSprite, dollBust, jobBust, jobSprite, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulLabel, soulRankLeft, soulByUid,
   orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs, isAutoOff, setAutoOff,
@@ -69,14 +69,14 @@ const uniq = (arr) => [...new Set(arr.filter(Boolean))];
 
 // 六大能力のくわしい説明 (能力の区分で開く)
 const ATTR_DESC = {
-  atk: "物理攻撃のダメージを決める力。武器による通常攻撃や物理スキルの威力が上がる。",
+  atk: "筋力。長剣・斧・槌・槍などの攻撃力を伸ばす。攻撃力は武器が参照する能力と補正係数で決まり、通常攻撃や物理技の威力を決める。",
   vit: "受ける物理ダメージを軽減する頑強さ。高いほど打たれ強くなる。",
-  agi: "行動の速さ。高いほど戦闘で先に動け、敵の攻撃を回避しやすくなる。",
-  int: "攻撃呪文の威力を決める知力。火球など攻撃魔法のダメージが上がる。",
-  pie: "回復呪文の効果を決める信仰心。HPを回復する魔法の回復量が上がる。",
+  agi: "行動の速さ。行動順・回避に加え、弓・短剣・刀の攻撃力を伸ばす。",
+  int: "知力。攻撃呪文に加え、魔杖・魔法武器の攻撃力を伸ばす。",
+  pie: "信仰心。回復呪文に加え、聖杖・聖武器の攻撃力を伸ばす。",
   luk: "会心（クリティカル）の発生率を左右する幸運。高いほど大ダメージが出やすい。",
 };
-const DLABEL = { power: "攻撃力", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP" };
+const DLABEL = { power: "攻撃力", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP" };
 
 // ================= 肖像 (隊の絵の差し替え点) =================
 // 人業の肖像を、ドット1つを整数倍で描いた canvas で返す (image-rendering: pixelated)。
@@ -234,7 +234,7 @@ function bestWearer(item) {
 }
 
 // ================= 装備する (元に戻すつき) =================
-// 増減を表示する能力のキー (攻撃力と同じだけ動いた ATK は省く)
+// 増減を表示する能力のキー (攻撃力と同じだけ動いた STR は省く)
 function deltaKeys(delta) {
   return Object.keys(DLABEL).filter((k) => delta[k] && typeof delta[k] === "number" && !(k === "atk" && delta.power === delta.atk));
 }
@@ -365,6 +365,10 @@ export function equipChooserEl(item, { owner = null, onPick = null, onDone = nul
     tx.appendChild(el("span", "pt-chc-n", x.d.name));
     if (x.why) tx.appendChild(el("span", "pt-chc-why", x.why));
     else {
+      if (item.slot === "weapon") {
+        const result = weaponPowerPreview(item, x.d);
+        if (result) tx.appendChild(el("span", "pt-chc-power", `攻撃力 ${result.before} → ${result.power}`));
+      }
       const dl = el("span", "pt-chc-d");
       if (!x.keys.length) dl.appendChild(el("span", "eq", "変化なし"));
       const pages = [];
@@ -459,6 +463,8 @@ export function openEquipChooser(item, { owner = null, actions = null } = {}) {
   let h = null;
   const body = el("div", "pt-item ch");
   body.appendChild(itemSummary(item, accent, { compact: true }));
+  const performance = weaponPerformanceEl(item, owner);
+  if (performance) body.appendChild(performance);
   body.appendChild(equipChooserEl(item, { owner, onDone: () => { if (h) h.close("ok"); } }));
   if (item.desc) body.appendChild(el("div", "pt-item-desc", item.desc));
   const acts = actions || (owner ? itemActions(item, owner, "bag", { equip: false }) : []);
@@ -608,7 +614,7 @@ function openAutoEquipResult(plan, before, undo) {
     }
     card.appendChild(list);
     const st = el("div", "pt-ae-st");
-    // 攻撃力 (ATK + 武器の能力補正) を先頭に。ATK は攻撃力と同じだけ動いた時は省く
+    // 攻撃力 (参照能力 × 武器の係数) を先頭に。STR は攻撃力と同じだけ動いた時は省く
     const pairs = [["power", "power"], ["atk", "atk"], ["vit", "vit"], ["agi", "agi"], ["int", "int"], ["pie", "pie"], ["luk", "luk"], ["hp", "maxhp"], ["mp", "maxmp"]];
     for (const [lab, k] of pairs) {
       const v0 = r.b[k] || 0, v1 = r.a[k] || 0;
@@ -1592,6 +1598,7 @@ function slotCell(d, k) {
   tx.appendChild(top);
   if (it) {
     tx.appendChild(game.itemNameEl ? game.itemNameEl("span", "pt-slot-n", it, it.cursed ? " (呪)" : "") : el("span", "pt-slot-n", itemName(it)));
+    if (k === "weapon" && !it.unidentified) tx.appendChild(el("span", "pt-slot-power", `攻撃力 ${attackPower(d)}`));
     const s = statLines(it);
     if (s) tx.appendChild(el("span", "pt-slot-s", s));
   } else {
@@ -1687,6 +1694,8 @@ function curItemCard(d, k, cur, h) {
   }
   top.appendChild(tx);
   box.appendChild(top);
+  const performance = weaponPerformanceEl(cur, d);
+  if (performance) box.appendChild(performance);
   const fx = specialLines(cur);
   if (fx.length) {
     const fb = el("div", "pt-cur-fx");
@@ -1729,7 +1738,11 @@ function candRow(d, k, c, h) {
   top.appendChild(game.itemNameEl ? game.itemNameEl("span", "pt-cand-n", c.it, c.it.cursed ? " (呪)" : "") : el("span", "pt-cand-n", itemName(c.it)));
   top.appendChild(el("span", "pt-own" + (c.owner === d ? " me" : isReserve(c.owner) ? " res" : ""), c.owner === d ? "自分" : `${c.owner.name}${isReserve(c.owner) ? "・控え" : ""}`));
   tx.appendChild(top);
-  tx.appendChild(statDelta(c.delta));
+  if (c.it.slot === "weapon") {
+    const result = weaponPowerPreview(c.it, d);
+    if (result) tx.appendChild(el("span", "pt-cand-power", `攻撃力 ${result.before} → ${result.power}（${result.delta > 0 ? "+" : ""}${result.delta}）`));
+  }
+  tx.appendChild(statDelta(c.it.slot === "weapon" ? { ...c.delta, power: 0 } : c.delta));
   // 能力の伸びには出ない特殊効果 (吸血・連撃・属性・状態異常…) は短い札で添える
   const fxs = specialShort(c.it);
   if (fxs) tx.appendChild(el("span", "pt-cand-fx", fxs));
@@ -1761,10 +1774,10 @@ function statsSeg(root, d) {
       info.appendChild(el("div", "pt-statx-d", ATTR_DESC[k] || ""));
       const base = Math.round((d.base && d.base[k]) || 0), tot = Math.round(d[k] || 0);
       info.appendChild(el("div", "pt-statx-v", `いま ${tot}（魂 ${base}${tot - base ? ` ・ 装備 ${tot - base > 0 ? "+" : ""}${tot - base}` : ""}）`));
-      // 攻撃力 = ATK + 武器の能力補正 (補正のある武器の時だけ内訳を出す)
-      if (k === "atk" && d.wScale) {
+      // 攻撃力の内訳は、武器が参照する能力の詳細と素手のSTRに示す
+      if (d.wScale ? d.wScale[k] : k === "atk") {
         const pw = attackPower(d);
-        info.appendChild(el("div", "pt-statx-v", `攻撃力 ${pw}（ATK ${tot} ＋ 武器の能力補正 ${scaleText(d.wScale)} = ${pw - tot >= 0 ? "+" : ""}${pw - tot}）`));
+        info.appendChild(el("div", "pt-statx-v", `攻撃力 ${pw} = ${d.wScale ? Object.entries(d.wScale).map(([stat, rate]) => `${ATTR_LABEL[stat]} ${d[stat]}×${rate}`).join(" ＋ ") : `STR ${d.atk}（素手）`}`));
       }
       return;
     }
@@ -1774,6 +1787,8 @@ function statsSeg(root, d) {
     const fact = (k, v, cls) => { const f = el("div", "pt-fact" + (cls ? " " + cls : "")); f.appendChild(el("span", "pt-fact-k", k)); f.appendChild(el("span", "pt-fact-v", v)); info.appendChild(f); };
     fact("HP", `${d.alive ? d.hp : 0}/${d.maxhp}`);
     fact("MP", `${d.mp}/${d.maxmp}`);
+    fact("攻撃力", String(attackPower(d)));
+    fact("参照", d.wScale ? Object.keys(d.wScale).map(k => ATTR_LABEL[k]).join("＋") : "STR（素手）");
     fact("状態", ail, ail === "正常" ? "" : "bad");
     fact("会心", `+${Math.round((d.critBonus || 0) * 100)}%`);
     fact("属性攻", elemStatShort(d.elemAtk));
@@ -2086,6 +2101,8 @@ function fallbackItemSheet(it, owner, ctx, actions) {
   const accent = rk ? RARITIES[rk].color : null;
   const body = el("div", "pt-item");
   body.appendChild(itemSummary(it, accent));
+  const performance = weaponPerformanceEl(it, owner);
+  if (performance) body.appendChild(performance);
   const lines = el("div", "pt-item-lines");
   const cat = itemCatText(it);
   for (const ln of detailLines(it)) if (!(ln === cat && !it.unidentified)) lines.appendChild(el("div", "pt-item-l", ln));

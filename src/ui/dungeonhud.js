@@ -20,7 +20,7 @@ import { ELEMENTS, monsterTraits, isFloating, unknownLabel } from "../dungeons/i
 import { tagRow, traitTagKinds, affinityRow, revealSteps, monKills, enemyReveal, enemyLabel, revealLock, BUFF_NAME, setLogText, UNKNOWN_COLOR } from "./itemview.js";
 import { RARITIES } from "../rarity.js";
 import { effectStage, stageLabel, isBattleLong } from "../buffstage.js";
-import { SOUL_CLASSES, soulIcon } from "../souls.js";
+import { SOUL_CLASSES, soulIcon, ATTR_LABEL } from "../souls.js";
 import { WALKER as WALKER_ART } from "../walkerart.js";
 import { markOf } from "./questboard.js";
 
@@ -437,7 +437,7 @@ export function openDungeonMenu() {
 }
 
 // ================= 覗き見 (長押し) =================
-const STAT_KEYS = [["atk", "ATK"], ["vit", "VIT"], ["agi", "AGI"], ["int", "INT"], ["pie", "PIE"], ["luk", "LUK"]];
+const STAT_KEYS = [["atk", "STR"], ["vit", "VIT"], ["agi", "AGI"], ["int", "INT"], ["pie", "PIE"], ["luk", "LUK"]];
 const AIL = { poison: "毒", paralyze: "麻痺", stone: "石化" };
 export function peekDoll(d, { idx = 0, combat = false } = {}) {
   if (!d) return null;
@@ -473,7 +473,7 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
       for (const ef of (d.effects || [])) {
         if (ef.stat === "omen") { chips.appendChild(el("span", "dg-chip bad", "大技の予兆")); continue; }
         const st = effectStage(ef);
-        chips.appendChild(el("span", "dg-chip " + (ef.mult > 1 ? "up" : "bad"), `${BUFF_NAME[ef.stat] || (ef.stat || "").toUpperCase()}${st ? stageLabel(st) : ef.mult > 1 ? "▲" : "▼"} ${isBattleLong(ef.turns) ? "戦闘中" : `残${ef.turns}`}`));
+        chips.appendChild(el("span", "dg-chip " + (ef.mult > 1 ? "up" : "bad"), `${ATTR_LABEL[ef.stat] || BUFF_NAME[ef.stat] || (ef.stat || "").toUpperCase()}${st ? stageLabel(st) : ef.mult > 1 ? "▲" : "▼"} ${isBattleLong(ef.turns) ? "戦闘中" : `残${ef.turns}`}`));
       }
       b.appendChild(chips);
       const grid = el("div", "dg-stats");

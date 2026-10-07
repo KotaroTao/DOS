@@ -5,6 +5,27 @@
    押せる場所は最低 44×44。主ボタンは 48px (シートの決め手は 56px)。
    ===================================================================== */
 
+/* 武器の攻撃性能: 結果を主役にし、能力参照・内訳は補足として読む。 */
+.wp-performance { margin: 10px 0; padding: 12px 14px; border: 1px solid #6b5830; border-radius: 4px; background: linear-gradient(120deg, rgba(201,162,39,.10), rgba(10,9,13,.5)); color: #e6dbc2; }
+.wp-performance-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.wp-performance-label { font-size: 12px; font-weight: 700; letter-spacing: .08em; color: var(--gold-hi, #e8d08a); }
+.wp-performance-value { display: flex; align-items: baseline; flex-wrap: wrap; gap: 10px; font-variant-numeric: tabular-nums; }
+.wp-performance-number { font-size: 30px; line-height: 1.15; color: #fff2cf; }
+.wp-performance-delta { font-size: 12px; color: #b6a88b; }
+.wp-performance-delta.up { color: var(--up); }
+.wp-performance-delta.down { color: var(--down); }
+.wp-performance-note { margin-top: 5px; font-size: 11px; line-height: 1.6; color: #b6a88b; }
+.wp-performance-refs { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 10px; font-size: 12px; font-variant-numeric: tabular-nums; }
+.wp-performance-ref-label { margin-right: 3px; color: #a99a7b; font-size: 11px; }
+.wp-performance-ref { padding: 3px 7px; border: 1px solid #4b422f; border-radius: 3px; background: rgba(0,0,0,.2); }
+.wp-performance-details { margin-top: 9px; border-top: 1px solid #443923; font-size: 11px; color: #b6a88b; }
+.wp-performance-details summary { min-height: 44px; display: list-item; align-content: center; cursor: pointer; }
+.wp-performance-details summary:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 2px; }
+.wp-performance-formula { padding: 2px 0 7px; line-height: 1.7; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.pt-slot-power, .pt-cand-power, .pt-chc-power { display: block; color: #f3dfad; font-size: 13px; line-height: 1.5; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pt-slot-power { font-size: 12px; }
+.pt-chc-power { font-size: 11px; }
+
 :root {
   /* 鉄 */
   --iron-950: #07060b;

@@ -23,7 +23,7 @@ export default {
     PALADIN_KENNOSHUKUTOU: { name: "剣の祝祷", mp: 7, kind: "heal", power: 15, buff: { atk: 1.1 }, target: "all-ally", desc: "剣を掲げて祈り、味方全員を癒し攻撃を少し上げる" },
     PALADIN_HIKARINOJOUHEKI: { name: "光の城壁", mp: 10, kind: "buff", buff: { vit: 1.3 }, cure: ["charm", "confuse"], target: "all-ally", desc: "味方全員を光の壁で守り、魅了・混乱を治す" },
     PALADIN_JOUKOURIN: { name: "浄めの光輪", mp: 10, kind: "atk", power: 21, element: "light", partyHeal: 6, target: "all-enemy", desc: "光輪が敵全体を灼き、返す光が隊を癒す" },
-    PALADIN_SEIYAKUNOGI: { name: "聖約の儀", mp: 16, kind: "buff", buff: { atk: 1.2 }, cure: ["poison", "paralyze", "sleep"], purge: true, target: "all-ally", desc: "味方全員の毒・猛毒・麻痺・眠りと弱体を祓い、攻撃力を上げる" },
+    PALADIN_SEIYAKUNOGI: { name: "聖約の儀", mp: 16, kind: "buff", buff: { atk: 1.2 }, cure: ["poison", "paralyze", "sleep"], purge: true, target: "all-ally", desc: "味方全員の毒・猛毒・麻痺・眠りと弱体を祓い、STRを上げる" },
     PALADIN_SABAKINOSEIKEN: { name: "審きの聖剣", mp: 18, kind: "phys", power: 3.0, pieScale: 1.2, pierce: 0.4, acc: 1, drain: 0.15, target: "enemy", desc: "PIEを乗せた必中の聖剣。鎧を穿ち命を吸う" },
     PALADIN_GOKOUNOJIN: { name: "後光の陣", mp: 16, kind: "heal", power: 15, regen: { pct: 0.04, turns: 3 }, target: "all-ally", desc: "後光で味方全員を癒し、しばらく癒し続ける" },
     PALADIN_SHOKUZAI: { name: "贖罪の光", mp: 22, kind: "atk", power: 60, element: "light", debuff: { atk: 0.8 }, target: "enemy", desc: "罪を灼く聖光。敵の力を挫く" },

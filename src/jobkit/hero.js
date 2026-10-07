@@ -16,7 +16,7 @@ export default {
     195 HERO_YOAKE 200 TENMEINOKEN`,
   skills: {
     // Lv15 の固有技: 誓いを掲げて隊を奮い立たせる
-    HERO_CHIKAINOHATA: { name: "誓いの旗", mp: 7, kind: "buff", buff: { atk: 1.15, vit: 1.1 }, target: "all-ally", desc: "誓いを掲げて隊を奮い立たせ、味方全体の攻撃力と防御を上げる" },
+    HERO_CHIKAINOHATA: { name: "誓いの旗", mp: 7, kind: "buff", buff: { atk: 1.15, vit: 1.1 }, target: "all-ally", desc: "誓いを掲げて隊を奮い立たせ、味方全体のSTRと防御を上げる" },
     HERO_JINRAI: { name: "迅雷", mp: 9, kind: "atk", power: 26, element: "wind", para: 0.25, flinchChance: 0.15, target: "enemy", desc: "迅き雷で撃ち、痺れさせ怯ませる" },
     HERO_YUUKITOMOSHIBI: { name: "勇気の灯", mp: 10, kind: "buff", buff: { atk: 1.1 }, cure: ["sleep", "charm", "confuse"], target: "all-ally", desc: "味方全員の眠り・魅了・混乱を治し、勇気の加護を授ける" },
     HERO_SAIKI: { name: "再起の呼び声", mp: 9, kind: "heal", power: 0, revive: true, revivePct: 0.4, grantEndure: true, target: "ally", desc: "倒れた仲間を呼び起こし (HP40%)、致死を一度耐えさせる" },
@@ -43,7 +43,7 @@ export default {
       fx: [{ t: "round", party: true, hp: [0.02, 0.03, 0.04] }] },
     heroYuushaSenaka: { label: "勇者の背中", lv: ["生きている間、味方全員の与ダメ+3%", "味方全員の与ダメ+5%", "味方全員の与ダメ+7%"],
       fx: [{ t: "deal", v: [0.03, 0.05, 0.07], aura: true }] },
-    heroOrenuKokoro: { label: "折れぬ心", lv: ["味方が倒れるとATK×1.2・AGI×1.1 (3ターン)・HP10%回復", "味方が倒れるとATK×1.25・AGI×1.15・HP15%回復", "味方が倒れるとATK×1.3・AGI×1.2・HP20%回復"],
+    heroOrenuKokoro: { label: "折れぬ心", lv: ["味方が倒れるとSTR×1.2・AGI×1.1 (3ターン)・HP10%回復", "味方が倒れるとSTR×1.25・AGI×1.15・HP15%回復", "味方が倒れるとSTR×1.3・AGI×1.2・HP20%回復"],
       fx: [{ t: "fall", buff: { atk: [1.2, 1.25, 1.3], agi: [1.1, 1.15, 1.2] }, dur: 3, hp: [0.1, 0.15, 0.2] }] },
   },
 };

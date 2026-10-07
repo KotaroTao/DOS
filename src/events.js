@@ -1,3 +1,5 @@
+import { WORLD } from "./dungeons/world.js";
+
 // ===== 迷宮のイベント (出来事マス) =====
 // 盤面に置かれる「出来事」(type:"event") の定義と進行。基本は選択式で、
 // 出現率が低いもの・危険の大きいものほど見返りが大きい。どの出来事も「立ち去る」は無償 (マスは残り、後で戻れる)。
@@ -27,7 +29,7 @@ export const EV_FLOOR_RATE_D1 = 0.25;
 // その層の専用イベントは見かけやすく (1.5 では共通の出来事に埋もれ、1層を通しても専用の10種のうち2-3種しか出会えなかった)
 const LAYER_W = 3;
 
-// 極の出来事が授ける恒久の恵み (G.events.flags のキー → 効き目)。game.js が戦闘・✦Soul の獲得で読む
+// 旧仕様で取得済みの恵み (G.events.flags のキー → 効き目)。新しい極は下の DUNGEON_GIFTS のステータスを授ける
 export const EV_BOONS = {
   will:     { soulMul: 0.10, text: "先代の遺志 ― ✦Soul の獲得量 +10%" },
   blackCat: { crit: 0.03,    text: "黒猫の加護 ― 全員の会心率 +3%" },
@@ -1362,6 +1364,57 @@ export const EVENTS = [
   },
 ];
 
+// 各迷宮に固有の極を1件。既存IDは見聞録・取得済みセーブのため維持する。
+const DUNGEON_GIFTS = [
+  ["w02", "hp", 5, "回廊の消えない灯"],
+  ["w03", "crit", 0.01, "墓地の黒猫", "l1_10"],
+  ["w04", "mp", 5, "王都の下水図", "l2_10"],
+  ["w05", "atk", 2, "地の底の鍛冶場", "l3_10"],
+  ["w06", "vit", 2, "外郭の守り火"],
+  ["w07", "pie", 2, "地下牢の祈り"],
+  ["w08", "agi", 2, "雷雨を渡る影"],
+  ["w09", "luk", 2, "最後の点呼", "l4_10"],
+  ["w10", "hp", 5, "縦穴の命の根"],
+  ["w11", "int", 2, "霧森の知恵の灯"],
+  ["w12", "mp", 5, "苗床の澄んだ樹液"],
+  ["w13", "atk", 2, "大樹の魂の枝"],
+  ["ws1", "pie", 2, "操霊師の遺書", "c30"],
+  ["ws2", "vit", 2, "石切り場の眠る盾"],
+  ["ws3", "agi", 2, "森の古老", "l5_07"],
+  ["ws4", "int", 2, "銀業の記憶の結晶"],
+];
+for (const [dungeonId, stat, amount, name, legacyId] of DUNGEON_GIFTS) {
+  const dungeon = WORLD.find((d) => d.id === dungeonId);
+  const id = legacyId || `mythic_${dungeonId}`;
+  let e = EVENTS.find((e) => e.id === id);
+  if (!e) {
+    e = { id, name, layer: dungeon.layer, tier: "mythic", icon: "event", once: true,
+      intro: () => [`${dungeon.name}の奥に、淡く光るものが残されていた。`,
+        "手を伸ばすと、古い魂の力が隊の一人ひとりへ流れ込んだ。"] };
+    EVENTS.push(e);
+  }
+  const label = stat === "crit" ? "会心率 +1%" : `${stat.toUpperCase()} +${amount}`;
+  e.dungeonId = dungeonId;
+  e.statBonus = { [stat]: amount };
+  e.boon = `${name} ― 全職業の${label} (永続)`;
+  delete e.minLv; delete e.deep;
+  e.gift = (A) => {
+    // 取得済みIDから導出するため、再計算・再読込で重複加算しない。
+    A.flags().statGiftVersion = 1;
+    A.recalcPermanent();
+    A.sfx("heal");
+    return ["授かった力は、街へ戻っても失われない。", `✺ ${e.boon}`];
+  };
+}
+
+export function permanentEventStats(once = {}) {
+  const stats = { hp: 0, mp: 0, atk: 0, vit: 0, agi: 0, int: 0, pie: 0, luk: 0, crit: 0 };
+  for (const e of EVENTS) if (e.statBonus && once[e.id]) {
+    for (const [key, value] of Object.entries(e.statBonus)) stats[key] += value;
+  }
+  return stats;
+}
+
 export const EVENT_MAP = Object.fromEntries(EVENTS.map((e) => [e.id, e]));
 // 定義の検査 (読み込み時): 重複id・格・層の誤りは即座に知らせる
 (() => {
@@ -1386,7 +1439,7 @@ export const EVENT_GROUPS = [
 
 // 出現条件の説明 (見聞録用)
 export function eventWhereText(e) {
-  const parts = [e.layer ? `第${e.layer}層のみ` : "どの層でも"];
+  const parts = [e.dungeonId ? WORLD.find((d) => d.id === e.dungeonId).name + "のみ" : e.layer ? `第${e.layer}層のみ` : "どの層でも"];
   if (e.minLv) parts.push(`推奨Lv${e.minLv}以降`);
   if (e.deep) parts.push("迷宮の後半の階");
   else if (e.minFloor && e.minFloor > 1) parts.push(`B${e.minFloor}F以降`);
@@ -1397,10 +1450,12 @@ export function eventWhereText(e) {
 }
 
 // ===== 置き場所と抽選 =====
-// st: { layer, lv, first, floor, floors, abyss, runEv, flags, once(id) }。出せるイベントを重み付きで1つ選ぶ (無ければ null)
+// st: { dungeonId, layer, lv, first, floor, floors, abyss, runEv, onceDone(e) }。出せるイベントを重み付きで1つ選ぶ (無ければ null)
 export function eligibleEvents(st, A) {
   const deepNow = st.floor > st.floors / 2;
   return EVENTS.filter((e) => {
+    if (st.abyss) return false;
+    if (e.dungeonId && e.dungeonId !== st.dungeonId) return false;
     if (e.layer && e.layer !== st.layer) return false;
     if (st.first && e.tier !== "common") return false;              // 最初の迷宮は常のみ
     if (e.minFloor && st.floor < e.minFloor) return false;

@@ -22,7 +22,7 @@ const sfx = (k) => { try { const S = game.SFX; if (S && S[k]) S[k](); } catch (e
 const G_ = () => game.G;
 const allDolls = () => (game.allDolls ? game.allDolls() : [...(G_().party || []), ...(G_().reserve || [])]);
 const RARITY_NAME = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド" };
-const STAT_L = { hp: "HP", mp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
+const STAT_L = { hp: "HP", mp: "MP", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
 
 // ドット1つを整数倍で描く (image-rendering: pixelated)
 function pixelCanvas(spr, size) {
@@ -356,7 +356,7 @@ function lockedTile(k, text) {
 // ---- 控えの結社: タイル (席の数・全員への上乗せ) → シート ----
 // 席の魂の能力の一部 (魂ランクで R1 3% 〜 R5 8%) が人業の全員に加わる。技・パッシブは関係しない (souls.js orderStatBonus)
 const ORDER_RATE_TEXT = `R1 ${Math.round(ORDER_STAT_RATES[1] * 100)}% 〜 R5 ${Math.round(ORDER_STAT_RATES[5] * 100)}%`;
-// 能力の上乗せを「HP+12 ATK+3 …」に (1未満は省く)
+// 能力の上乗せを「HP+12 STR+3 …」に (1未満は省く)
 function bonusText(b) {
   const parts = [];
   for (const k in STAT_L) { const v = Math.round((b && b[k]) || 0); if (v > 0) parts.push(`${STAT_L[k]}+${v}`); }
@@ -786,7 +786,7 @@ export function openFusePicker(targetUid, onDone) {
 // info は game.js fuseSoul の result:
 // { clsKey, fromRank, toRank, fromLv, toLv, fromCap, toCap, fromCount, toCount, statsFrom, statsTo, statsOf,
 //   newSkills: [key], newPassives: [{key, lv}], fromPicks, toPicks }
-const FUSE_STATS = [["hp", "HP"], ["mp", "MP"], ["atk", "ATK"], ["vit", "VIT"], ["agi", "AGI"], ["int", "INT"], ["pie", "PIE"], ["luk", "LUK"]];
+const FUSE_STATS = [["hp", "HP"], ["mp", "MP"], ["atk", "STR"], ["vit", "VIT"], ["agi", "AGI"], ["int", "INT"], ["pie", "PIE"], ["luk", "LUK"]];
 const fmtStat = (v) => { const r = Math.round((v || 0) * 10) / 10; return Number.isInteger(r) ? String(r) : r.toFixed(1); };
 // 「Lv上限 20 → 21」の段 (変わらない項目は出さない)
 function fusePerks(info, accent) {
@@ -1132,7 +1132,7 @@ export function celebrateLevelUp(entries, onClose) {
       hd.appendChild(sl);
       t.appendChild(hd);
       t.appendChild(luLvRow(lv, cl.glow || accent, { big: false, delay }));
-      // 伸びた能力は短い札で (HP+12 ATK+3 …)
+      // 伸びた能力は短い札で (HP+12 STR+3 …)
       const a = e.statsFrom || {}, b = e.statsTo || {};
       const chips = el("div", "sp-lu-chips");
       for (const [k, label] of FUSE_STATS) {

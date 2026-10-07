@@ -45,7 +45,7 @@ export default {
     // ランクのパッシブ: 死の淵でこそ、荒行で鍛えた身が目覚める
     asceticHatate: {
       label: "荒行の果て",
-      lv: ["HP30%以下の間、ATK・VIT・AGI・INT・PIE+15%", "HP30%以下の間、ATK・VIT・AGI・INT・PIE+30%", "HP30%以下の間、ATK・VIT・AGI・INT・PIE+50%", "HP30%以下の間、ATK・VIT・AGI・INT・PIE+80%"],
+      lv: ["HP30%以下の間、STR・VIT・AGI・INT・PIE+15%", "HP30%以下の間、STR・VIT・AGI・INT・PIE+30%", "HP30%以下の間、STR・VIT・AGI・INT・PIE+50%", "HP30%以下の間、STR・VIT・AGI・INT・PIE+80%"],
       fx: [{ t: "stat", when: { selfLow: 0.3 }, mul: { atk: [0.15, 0.30, 0.50, 0.80], vit: [0.15, 0.30, 0.50, 0.80], agi: [0.15, 0.30, 0.50, 0.80], int: [0.15, 0.30, 0.50, 0.80], pie: [0.15, 0.30, 0.50, 0.80] } }],
     },
     asceticAragyou: { label: "荒行の誓い", lv: ["HP40%以下の時、与ダメージ+10%・会心+4%", "HP40%以下の時、与ダメージ+15%・会心+6%", "HP40%以下の時、与ダメージ+20%・会心+8%", "HP40%以下の時、与ダメージ+25%・会心+10%"],
@@ -54,9 +54,9 @@ export default {
       fx: [{ t: "round", when: { selfLow: 0.5 }, hp: [0.03, 0.04, 0.05, 0.06] }] },
     asceticNyuubu: { label: "入峰の気合", lv: ["戦闘開始時、溜め×1.3 (次の物理が強まる)", "戦闘開始時、溜め×1.45 (次の物理が強まる)", "戦闘開始時、溜め×1.6 (次の物理が強まる)"],
       fx: [{ t: "start", charge: [1.3, 1.45, 1.6] }] },
-    asceticDoukou: { label: "同行の憤り", lv: ["味方が倒れると、HP10%回復・ATK×1.2 (3ターン)", "味方が倒れると、HP15%回復・ATK×1.3 (3ターン)"],
+    asceticDoukou: { label: "同行の憤り", lv: ["味方が倒れると、HP10%回復・STR×1.2 (3ターン)", "味方が倒れると、HP15%回復・STR×1.3 (3ターン)"],
       fx: [{ t: "fall", hp: [0.1, 0.15], buff: { atk: [1.2, 1.3] } }] },
-    asceticMoeagari: { label: "燃え上がる行者", lv: ["物理を受けた時30%で、ATK×1.1 (2ターン)", "物理を受けた時40%で、ATK×1.15 (2ターン)", "物理を受けた時50%で、ATK×1.2 (2ターン)"],
+    asceticMoeagari: { label: "燃え上がる行者", lv: ["物理を受けた時30%で、STR×1.1 (2ターン)", "物理を受けた時40%で、STR×1.15 (2ターン)", "物理を受けた時50%で、STR×1.2 (2ターン)"],
       fx: [{ t: "hurt", chance: [0.3, 0.4, 0.5], buff: { atk: [1.1, 1.15, 1.2] }, dur: 2 }] },
   },
 };

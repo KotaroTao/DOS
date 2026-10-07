@@ -2042,6 +2042,7 @@ function base(id, name, slot, lv, artKey, opt) {
 }
 
 // 武器: W(id, 名, サブカテゴリ, lv, opt)
+// 以下のatk/scaleは品質を作る元データ。catalog/index.jsの統合後はweaponpower.jsが参照係数へ変換する。
 // opt: { desc(必須), eAtk, two, cls, pow(自動ATKの倍率), vitB, spd, mp, hp, atk(絶対値上書き), tint, tintAmt, cursed, align, price,
 //        scale({agi:0.4} 等 = 能力補正。自動ATKは係数に応じて控えめになる), magic(true = 魔法属性: 通常攻撃が魔法耐性で判定される) }
 // two: true = 両手武器 (盾を持てない代わりに ATK ×TWO_MUL。杖は INT・MP も)。短剣は片手のみ、弓は常に両手

@@ -12,7 +12,7 @@ import {
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, slotKeyFor, lvToRank, RANGE_LABEL,
   UNIDENT_SLOTS, itemName, applyForge, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
 } from "./items.js";
-import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
+import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
 import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS } from "./quests.js";
@@ -26,7 +26,7 @@ import {
 } from "./abyss.js";
 import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, soulIcon,
-  recalcDoll, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
+  recalcDoll, setPermanentStatSource, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
   soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills, soulLearnedPassives, soulLabel, subPickCap, jobStatsOf,
   awakenPerkOf, subPickCapOfRank, subStatRateOfRank, setOrderSource, orderStatRateOfRank, setAppraiseSource,
   PASSIVES,
@@ -591,6 +591,8 @@ function runGainGold(g, src, pre, modifier = null) {
 }
 // 魂導の護符 (LR装飾品) の soulUp があれば ✦Soul の獲得量を割合で増やす。
 // 極の出来事で授かった恒久の恵み (G.events.flags) の効き目。授かっていなければ dflt
+setPermanentStatSource(() => permanentEventStats(G.events?.once));
+
 function evBoon(k, field, dflt) { return G.events && G.events.flags && G.events.flags[k] ? EV_BOONS[k][field] : dflt; }
 function runGainSoulPts(s, src, pre, modifier = null) {
   const base = s, sf = sfNum("soulMul", 1), mu = modifier ?? mutNum("soulMul", 1), eq = 1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0);
@@ -1273,7 +1275,7 @@ function partyPassiveLv(key) {
 // カードを自動で表にする。踏破済みにはしないので、踏めば通常どおりイベントは起きる。
 function revealByCartography() {
   const lv = partyPassiveLv("cartography");
-  if (!lv) return false;
+  if (!lv || !G.board) return false;
   const rad = Math.min(3, lv) + 1;
   let any = false;
   for (let dy = -rad; dy <= rad; dy++) {
@@ -1556,7 +1558,7 @@ function newFloor({ viaGate = false } = {}) {
   storyNewFloor(); // 物語マス: 師の手がかり (決まった迷宮の決まった階に、見つけるまで毎回置く)
   evNewFloor(); // 迷宮のイベント: 必須の手がかりの場所を確保してから配置する
   G.portalFound = false; // この階の帰還魔法陣はまだ発見していない
-  if (viaGate) arriveAtGate();
+  if (viaGate) arriveAtGate(); // 潜入地点を確定してから周囲を明らかにする
   revealByCartography();
   if (G.run) G.run.floors = Math.max(G.run.floors || 1, G.floor);
   updateTopbar();
@@ -5618,6 +5620,7 @@ function eventFacts() {
   const pits = evCells((c) => c.type === "pit" && c.revealed).length;
   if (pits) out.push({ tone: "bad", icon: ICONS.trap, title: "落とし穴", accent: "#8a8070", lines: [`見えている落とし穴 ${pits}つ。踏むと1階下へ落とされる (自動の歩みは避けて通る)。`] });
   const perm = Object.keys(EV_BOONS).filter((k) => fl[k] && (k !== "sewerMap" || battleLayer() === 2)).map((k) => EV_BOONS[k].text);
+  for (const e of Object.values(EVENT_MAP)) if (e.statBonus && G.events.once[e.id]) perm.push(e.boon);
   if (perm.length) out.push({ tone: "gold", icon: ic, title: "極の恵み (恒久)", accent: "#ffcf4a", lines: perm });
   for (const m of fe.mods || []) out.push({ tone: m.enemyMul ? "bad" : "gold", icon: ic, title: `出来事「${m.name}」`, accent: "#c08aff", lines: [m.desc] });
   if (fe.oath && !fe.oath.done) out.push({ tone: "gold", icon: ic, title: "誓いの最中", accent: "#c08aff", lines: [`この階の魔物をすべて討て (残り ${evCells((c) => c.type === "monster" && !c.cleared).length}体)`, "果たさずに降りると、次の階の敵が手強くなる。"] });
@@ -5661,7 +5664,7 @@ function evNewFloor() {
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = G.board.cells[y][x]; if (ok(c, x, y) && sfOpenCount(c) === 1) cand.push(c); }
   if (!cand.length) for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = G.board.cells[y][x]; if (ok(c, x, y) && Math.abs(x - sx) + Math.abs(y - sy) >= 3) cand.push(c); }
   if (!cand.length) return;
-  const st = { layer, lv, first, floor: G.floor, floors: cfg.floors || 3, runEv: rv, onceDone: (e) => !!G.events.once[onceKey(e, layer)] };
+  const st = { dungeonId: cfg.id, layer, lv, first, floor: G.floor, floors: cfg.floors || 3, runEv: rv, onceDone: (e) => !!G.events.once[onceKey(e, layer)] };
   const e = pickEvent(eligibleEvents(st, evApi));
   if (!e) return;
   const cell = cand[rand(cand.length)];
@@ -5844,6 +5847,7 @@ const evApi = {
   runEv: () => evRun(),
   floorEv: () => evFloor(),
   flags: () => G.events.flags,
+  recalcPermanent: () => recalcAllDolls({ levelUp: true }),
   // ---- 画面 ----
   choice: (title, opts, icon, o) => showChoice(title, opts, icon, o),
   icon: (e) => (e.icon && e.icon.startsWith("mon:") ? MONSTERS[e.icon.slice(4)] : ICONS[e.icon]) || ICONS.event,
@@ -7154,8 +7158,8 @@ function startBattleMeasured(enemies, cell) {
   }
   // 属性の暴走 (異変) / 属性の奔流 (特別な階): 主・強敵も含め、すべての敵の属性を6属性からでたらめに選び直す (召喚された仲間も同じ)
   if (elemRandomHere()) for (const e of enemies) if (!e.metal) { e._elemRandom = true; e.element = randomElement(); }
-  // 迷宮の異変 (血の満潮など): 敵の強さ倍率は HP/ATK/VIT に加えて AGI にも掛ける
-  // (enemyScale は HP/ATK/VIT のみ。召喚で呼ばれた仲間も _agiMul を引き継ぐ)
+  // 迷宮の異変 (血の満潮など): 敵の強さ倍率は HP/STR/VIT に加えて AGI にも掛ける
+  // (enemyScale は HP/STR/VIT のみ。召喚で呼ばれた仲間も _agiMul を引き継ぐ)
   // 迷宮ごとの手直し (DUNGEON_TUNE) は強さだけ: 倍率で増減した戦果 (金貨・✦Soul) を元の曲線へ戻す
   const tn = inDungeon() && !abyssActive() ? activeCfg().tune : null;
   if (tn) {
@@ -9248,7 +9252,7 @@ function distributeBattleSoulExpMeasured(soulGot) {
   }
   recalcAllDolls({ levelUp: true });
   // メンバーごとに「レベルアップ(上昇ステータス付き)→新規スキル」をポップアップ用キューへ
-  const STAT_LABEL = { maxhp: "HP", maxmp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
+  const STAT_LABEL = { maxhp: "HP", maxmp: "MP", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
   for (const m of G.party) {
     if (!m || !m.alive) continue;
     const ps = m.primary != null ? soulByUid(m.primary) : null;
@@ -9771,10 +9775,10 @@ function partyPortrait(p) {
 
 // 戦闘中の発動効果バッジ: 能力ごとに 強化(▲)/弱体(▼) を段階数ぶん並べ、残りターンを添える。
 const BUFF_STAT_ICON = BUFF_KANJI; // 絵文字は使わず、敵のピルと同じ漢字の印
-const BUFF_STAT_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI", pie: "PIE", ...BUFF_NAME };
+const BUFF_STAT_LABEL = { atk: "STR", vit: "VIT", agi: "AGI", pie: "PIE", ...BUFF_NAME };
 function buffBadges(p) {
   if (G.state !== "combat" || !p.alive || !p.effects || !p.effects.length) return "";
-  // (能力, 方向) ごとに集約: 段数 (ATK〜PIE は −3〜+3 の段) と最短残ターンを出す
+  // (能力, 方向) ごとに集約: 段数 (STR〜PIE は −3〜+3 の段) と最短残ターンを出す
   let html = "";
   for (const g of buffGroups(p.effects)) {
     const arrow = (g.up ? "▲" : "▼").repeat(Math.min(3, g.stages));
@@ -11272,6 +11276,10 @@ function achNext(s) {
   const dunClearedAtLeast = (n) => { const c = worldState().cleared; return DUNGEONS.filter((d) => (c[d.id] || 0) >= n).length; };
   const eventsSeen = () => Object.keys((G.events && G.events.seen) || {}).length;
 
+  // 極の遭遇回数。既存の seen を使い、種類数とは別に累計する (同じマスの再表示は seen が抑止)。
+  const mythicEncounters = () => Object.entries(G.events?.seen || {}).reduce((n, [id, count]) =>
+    n + (EVENT_MAP[id]?.tier === "mythic" ? count : 0), 0);
+
   // ── 探索 ──
   // 潜入回数
   series("run", [
@@ -11410,6 +11418,12 @@ function achNext(s) {
 
   // ── 育成 ──
   // 魂のLv (キャラLv = 宿した魂のLv)。魂の残火で上限を上げれば 100 の先へも続く
+  // 極めて稀なる出来事の遭遇 — 1/5/10/20、その先は10回ごと。
+  series("evMythic", [
+    [1, "初めての極の恵み", 60], [5, "五つの極の恵み", 150, 1],
+    [10, "極の恵みを集める者", 300, 2], [20, "極の恵みの継ぎ手", 600, 3],
+  ], (v) => `極めて稀なる出来事に ${v}回 遭遇する`, mythicEncounters, { more: step(10) });
+
   series("lv", [
     [10, "駆け出しの職人", 50, 0, 0, "jlv10"], [20, "熟練の域", 150, 1, 0, "jlv20"], [30, "達人の域", 300, 2, 0, "jlv30"],
     [40, "名人の域", 600, 3, 0, "jlv40"], [50, "神域", 1000, 5, 0, "jlv50"],
@@ -14310,7 +14324,7 @@ function clearSave() { if (testPlayActive) return; try { localStorage.removeItem
 // 個体ごとの状態 (未鑑定・鑑定失敗の印など) は残す。旧セーブの装備も新しいレア度と絵になる
 const ITEM_STAT_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp", "crit"];
 const ITEM_TMPL_KEYS = ["name", "desc", "slot", "lv", "rank", "r20", "rar", "lr", "forJob", "exclusive", "classes", "cat",
-  "twoHanded", "sk", "weight", "price", "art", "palette", "eAtk", "eDef", "aRes", "bRes", "onHit", "scale", "magic", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
+  "twoHanded", "sk", "weight", "price", "art", "palette", "eAtk", "eDef", "aRes", "bRes", "onHit", "scale", "weaponProfile", "weaponRating", "magic", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
 function reflattenItemStats() {
   const visited = new Set();
   function refresh(it) {
@@ -14405,14 +14419,17 @@ function loadGame() {
   if (!G.tut || typeof G.tut !== "object") G.tut = { done: {}, cur: null, step: 0, ev: {}, base: {} }; // 手ほどき (後付け: 解放済みで未使用の要素は目標の札から手ほどきする)
   if (!G.events || typeof G.events !== "object") G.events = {}; // 迷宮のイベント (後付け)
   for (const k of ["seen", "picks", "once", "flags", "fresh"]) if (!G.events[k] || typeof G.events[k] !== "object") G.events[k] = {};
-  { // 極の出来事は「選択肢なし・恒久の恵み・セーブで一度きり」に改めた。旧仕様で出会った者にも同じ恵みを授ける
+  { // 旧セーブで取得済みの恵みだけを引き継ぐ。新しい極には旧効果を追加しない。
     const o = G.events.once, fl = G.events.flags;
-    if (Object.keys(o).some((k) => k.startsWith("c30:"))) { o.c30 = true; fl.will = true; }
-    if (o.l1_10) fl.blackCat = true;
-    if (o.l2_10) fl.sewerMap = true;
-    if (o.l3_10) fl.temper = true;
+    if (!fl.statGiftVersion) {
+      if (Object.keys(o).some((k) => k.startsWith("c30:"))) { o.c30 = true; fl.will = true; }
+      if (o.l1_10) fl.blackCat = true;
+      if (o.l2_10) fl.sewerMap = true;
+      if (o.l3_10) fl.temper = true;
+      fl.statGiftVersion = 1;
+    }
   }
-  // 旧ステータス体系のセーブを六大ステ (ATK/VIT/AGI/INT/PIE/LUK) へ移行
+  // 旧ステータス体系のセーブを六大ステ (STR/VIT/AGI/INT/PIE/LUK) へ移行
   // (battle の敵の mon はこの後 MONSTERS の生定義に差し替えられるため触れても無害)
   migrateLegacyStats(snap);
   reflattenItemStats();

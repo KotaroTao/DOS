@@ -68,7 +68,7 @@ export function spawnCardEnemies(key, floor, scale = 1, opts = {}) {
 }
 
 // bossRank: 層基準ランク (1-10)。指定すると、ボスの def の rank ではなく
-// この層相応のランクで HP/ATK 等を組み直す (暫定ボスや低ランクボスが弱すぎる問題への対処)。
+// この層相応のランクで HP/STR 等を組み直す (暫定ボスや低ランクボスが弱すぎる問題への対処)。
 export function spawnBossEnemies(key = "dragon", scale = 1, bossRank = 0) {
   return [makeEnemy(key, scale, true, bossRank)];
 }
@@ -134,7 +134,7 @@ export function spawnRanked(key, floorRank, plus = 1, scale = 1, hpMul = 2.2) {
 
 // 金属の魔物 (メタル系): 稀に紛れ込む、倒せば莫大な✦Soul を残す逃げ足の魔物。強さは段 (METAL_TIERS) と
 // 出現した階の雑魚の最上位ランクで決まる。ref = { rank, scale, count, agi, soul, gold } (game.js metalRef)
-//   HP は段ごとの小さな固定値 (1ダメージずつ削れる量)。ATK は弱め、VIT は硬め (会心の一撃の通りに効く)。
+//   HP は段ごとの小さな固定値 (1ダメージずつ削れる量)。STR は弱め、VIT は硬め (会心の一撃の通りに効く)。
 //   AGI は味方と同じ規模 (基準AGI × agiMul) で渡され、ほとんどの人業より先に動く。soul/gold は1体あたり
 export function spawnMetal(key, ref = {}) {
   const m = MONSTERS[key];
@@ -470,11 +470,11 @@ export class Battle {
   // 職の Lv15 の目玉パッシブのうち、戦闘の始まりに隊として一度だけ効くもの (重複不可 = 隊で一番高いLv)
   _lv15Start() {
     const best = (k) => Math.max(0, ...this.party.filter((p) => p.alive).map((p) => pv(p, k)));
-    const ct = best("crusaderToki"); // 聖戦の鬨: 味方全員の ATK ×1.2/1.5/1.8 (3ターン)
+    const ct = best("crusaderToki"); // 聖戦の鬨: 味方全員の STR ×1.2/1.5/1.8 (3ターン)
     if (ct) {
       const m = [1, 1.2, 1.5, 1.8][Math.min(3, ct)];
       for (const p of this.livingParty()) this._applyMod(p, "atk", m, 3, "聖戦の鬨");
-      this.log(`聖戦の鬨！ 隊の士気が燃え上がる (ATK×${m})`, "heal");
+      this.log(`聖戦の鬨！ 隊の士気が燃え上がる (STR×${m})`, "heal");
     }
     const ib = best("inqBrand"); // 罪の刻印: 敵全体に弱点の属性を 1/2/3 つ刻む (その属性の被ダメ ×1.5、3ターン)
     if (ib) {
@@ -517,7 +517,7 @@ export class Battle {
     cureAil(m); this._purgeDown(m);
     this.log(`浄化の光が${m.name}を包み、穢れと弱りを祓った`, "heal");
   }
-  // ラウンドの初め: 竜の息吹 (ランク) = 15/20/25/40% で、竜騎士が敵全体へ火のブレス (ATK×0.5/0.6/0.8/1.2)
+  // ラウンドの初め: 竜の息吹 (ランク) = 15/20/25/40% で、竜騎士が敵全体へ火のブレス (STR×0.5/0.6/0.8/1.2)
   _roundStartRank() {
     for (const p of this.livingParty()) {
       const lv = pv(p, "dragonknightIbuki");
@@ -625,10 +625,10 @@ export class Battle {
       }
     }
     if (t.side === "party" && this.party) {
-      // 伝説の勇者: 勇者が生きている間、味方全員の ATK・VIT・AGI・INT・PIE +3/5/8/15% (一番高いLv)
+      // 伝説の勇者: 勇者が生きている間、味方全員の STR・VIT・AGI・INT・PIE +3/5/8/15% (一番高いLv)
       const hd = this._rkParty("heroDensetsu", [0.03, 0.05, 0.08, 0.15]);
       if (hd) for (const k of ["atk", "vit", "agi", "int", "pie"]) b[k] = (b[k] || 1) * (1 + hd);
-      // 狂奔: 敵か仲間が倒れるたび ATK +5% (3/5/7/10段まで)
+      // 狂奔: 敵か仲間が倒れるたび STR +5% (3/5/7/10段まで)
       const ky = Math.min(t._kyouhon || 0, this._rk(t, "berserkerKyouhon", [3, 5, 7, 10]));
       if (ky) b.atk = (b.atk || 1) * (1 + 0.05 * ky);
     }
@@ -637,7 +637,7 @@ export class Battle {
     t.buffs = b;
   }
   // 1つの能力強化/弱体を付与する。
-  //  ATK・VIT・AGI・INT・PIE は「段」(buffstage.js): 能力ごとに1本の効果を持ち、強化と弱体は段の足し算で打ち消し合う。
+  //  STR・VIT・AGI・INT・PIE は「段」(buffstage.js): 能力ごとに1本の効果を持ち、強化と弱体は段の足し算で打ち消し合う。
   //   ±3段で止まり、主・精鋭には弱体が −2段までしか入らず持続も1ターン短い。戻り値 = 実際に動いた段数 (符号つき)
   //  それ以外 (命中・封印・挑発・属性耐性…) は従来どおり、同じ向きの効果は2つまで (古いものから入れ替え)
   _applyMod(t, stat, mult, dur, srcName) {
@@ -1058,7 +1058,7 @@ export class Battle {
     }
     if (this._roundNo > 1) this._perkRound(); // 固有パッシブ (round)
     if (!(this._roundNo === 1 && this.opening === "ambush")) this._roundStartRank(); // 竜の息吹 (奇襲された初めのラウンドは出せない)
-    // 激昂: HPが3割を切った敵が一度だけ荒れ狂い、ATK/AGI が跳ね上がる
+    // 激昂: HPが3割を切った敵が一度だけ荒れ狂い、STR/AGI が跳ね上がる
     for (const e of this.livingEnemies()) {
       if (!e.enrage || e._enraged || !e.maxhp || e.hp > e.maxhp * 0.3) continue;
       e._enraged = true;
@@ -1836,17 +1836,17 @@ export class Battle {
         res.hits.push(h);
         if (!h.miss && t.alive && Math.random() < 0.35) h.drain = true; // 魂レベルの控除は game.js 側
       } else if (k === "warcry") {
-        // 鼓舞: 自分を含む味方 (敵側) 全体の ATK を数ターン上げる
+        // 鼓舞: 自分を含む味方 (敵側) 全体の STR を数ターン上げる
         this.log(`${actor.name}の雄叫び！`, "dmg");
         for (const e of this.livingEnemies()) this._applyMod(e, "atk", stageMul(1), ENEMY_BUFF_DUR, "雄叫び");
         res.warcry = true;
       } else if (k === "weaken") {
-        // 弱体: 近接 (×0.9) + 命中したプレイヤーの ATK を数ターン下げる
+        // 弱体: 近接 (×0.9) + 命中したプレイヤーの STR を数ターン下げる
         const h = this._physical(actor, t, { power: 0.9, name: "呪いの一撃" });
         res.hits.push(h);
         const tt = h.target; // かばうで対象が替わることがある
         if (!h.miss && !h.immune && tt.alive) {
-          if (this._applyMod(tt, "atk", stageMul(-1), ENEMY_BUFF_DUR, "弱体")) this.log(`${tt.name}の力が削がれた… (ATK −1段)`, "dmg");
+          if (this._applyMod(tt, "atk", stageMul(-1), ENEMY_BUFF_DUR, "弱体")) this.log(`${tt.name}の力が削がれた… (STR −1段)`, "dmg");
           else this.log(`${tt.name}の力はもう削がれきっている`, "sys");
         }
       } else if (k === "sunder") {
@@ -1871,12 +1871,12 @@ export class Battle {
     return res;
   }
 
-  // バフ込みの実効ATK・VIT
-  // 攻撃力 (物理の威力の元): ATK×強化 + 武器の能力補正 (AGI×0.4 など。能力値は強化・弱体込み)
+  // バフ込みの実効STR・VIT
+  // 攻撃力: 武器が参照する能力だけを、強化・弱体込みで係数に掛ける。素手・敵はSTR。
   _eatk(a) {
     const atk = a.atk * this._bm(a, "atk");
-    const bonus = a.wScale ? scaleBonus(a.wScale, (k) => (a[k] || 0) * this._bm(a, k)) : 0;
-    return Math.max(1, Math.round(atk + bonus));
+    const power = a.wScale ? scaleBonus(a.wScale, (k) => (a[k] || 0) * this._bm(a, k)) : atk;
+    return Math.max(1, Math.round(power));
   }
   _evit(t) { return Math.round((t.vit || 0) * ((t.buffs && t.buffs.vit) || 1)); }
 
@@ -1948,7 +1948,7 @@ export class Battle {
     if (defender.side !== "party" || !defender.alive || !attacker || !attacker.alive) return;
     if (this._incap(defender)) return;
     let cLv = pv(defender, "counter");
-    const stance = this._bm(defender, "ctr") > 1; // 反撃の構え: 必ず ATK×1.0 で反撃
+    const stance = this._bm(defender, "ctr") > 1; // 反撃の構え: 必ず STR×1.0 で反撃
     if (stance || (cLv && Math.random() < [0, 0.15, 0.25, 0.35][cLv])) {
       const mul = stance ? 1.0 : [0, 0.5, 0.7, 1.0][cLv];
       // 反撃も物理なので隊列補正を受ける
@@ -2112,7 +2112,7 @@ export class Battle {
     // 魔力撃 (spellBlade): 通常攻撃にINTを上乗せ
     const sb = pv(actor, "spellBlade");
     const sbAdd = sb ? Math.round((actor.int || 0) * (sb >= 2 ? 1.0 : 0.5) * power) : 0;
-    // 魔法剣 (intScale): 技そのものが INT×倍率×係数 を上乗せする (ATKとINTの両方で伸びる)
+    // 魔法剣 (intScale): 技そのものが INT×倍率×係数 を上乗せする (STRとINTの両方で伸びる)
     // 同様に AGI (疾風の技) / VIT (盾の技) / PIE (聖なる技) で伸びる技もある
     const ibAdd = opt.intScale ? Math.round((actor.int || 0) * opt.intScale * power) : 0;
     const stAdd = Math.round(((opt.agiScale || 0) * (actor.agi || 0) + (opt.vitScale || 0) * (actor.vit || 0) + (opt.pieScale || 0) * (actor.pie || 0)) * power);
@@ -2124,7 +2124,7 @@ export class Battle {
     const defCut = Math.floor(this._evit(tgt) * 0.5 * (1 - pierceAll));
     // 魔刃一体 (魔法剣士のランク): 物理技に INT の 10/20/30/50% を上乗せ
     const mjAdd = opt.skill && actor.side === "party" ? Math.round((actor.int || 0) * this._bm(actor, "int") * this._rk(actor, "spellbladeMajin", [0.10, 0.20, 0.30, 0.50])) : 0;
-    // ダメージ = ATK×倍率×低HP補正 − VIT/2 (VITが被ダメージ軽減を担う)
+    // ダメージ = STR×倍率×低HP補正 − VIT/2 (VITが被ダメージ軽減を担う)
     let dmg = Math.round((variance(Math.round(this._eatk(actor) * power * this._lowHpMul(actor))) + sbAdd + ibAdd + stAdd + mjAdd) * despMul * (opt.chargeMul || 1)) - defCut;
     if (tgt._defending) dmg = Math.floor(dmg * 0.5);
     // 城壁の構え: 防御中の持ち主がいれば隊全体の被ダメ-10%
@@ -2226,7 +2226,7 @@ export class Battle {
     }
     // 報復の籠手 (counter): 敵の物理攻撃を受けた味方が反撃する (LR装飾品。反撃の反撃は起きない)
     if (tgt.side === "party" && tgt.counter && tgt.alive && actor.side === "enemy" && actor.alive && !opt._counter && dmg > 0) {
-      const cdmg = isMetal(actor) ? 1 : Math.max(1, Math.round((tgt.power || tgt.atk || 1) * tgt.counter));
+      const cdmg = isMetal(actor) ? 1 : Math.max(1, Math.round(this._eatk(tgt) * tgt.counter));
       actor.hp -= cdmg;
       this.log(`${tgt.name}の報復！ ${actor.name}に ${cdmg} ダメージ`, "hit");
       this._die(actor);
@@ -2823,7 +2823,7 @@ export class Battle {
       for (const p of this.livingParty()) if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + h); any = true; }
       if (any) this.log(`癒しの剣！ 味方全員のHPが ${h} 回復`, "heal");
     }
-    // 聖光の追撃 (聖戦士): 10/15/20/30% で光の追撃 (ATK×0.5)
+    // 聖光の追撃 (聖戦士): 10/15/20/30% で光の追撃 (STR×0.5)
     if (tgt.alive && tgt.hp > 0 && Math.random() < this._rk(actor, "crusaderTsuigeki", [0.10, 0.15, 0.20, 0.30])) {
       const em = elemDmgMult("light", 1, tgt.element || "none", edefOf(tgt)) * this._vulnMul(tgt, "light");
       const raw = Math.max(1, Math.round(variance(this._eatk(actor) * 0.5) * em) - Math.floor(this._evit(tgt) * 0.25));
@@ -2908,7 +2908,7 @@ export class Battle {
         }
       }
       t.hp = 0; t.alive = false; t.asleep = false; t.mind = null; t._ailN = null;
-      // 狂奔 (狂戦士のランク): 敵か仲間が倒れるたび ATK +5% (段数の上限は _recalcBuffs)
+      // 狂奔 (狂戦士のランク): 敵か仲間が倒れるたび STR +5% (段数の上限は _recalcBuffs)
       for (const p of this.party) if (p.alive && pv(p, "berserkerKyouhon")) { p._kyouhon = (p._kyouhon || 0) + 1; this._recalcBuffs(p); }
       // 討伐数はこの瞬間に数える (名前・HP の開示が戦闘中でもすぐ反映されるように。「〜を倒した！」より先)
       if (t.side === "enemy" && _onEnemyKilled) { try { _onEnemyKilled(t); } catch (er) { /* 記録の失敗で戦闘を止めない */ } }

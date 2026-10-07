@@ -48,7 +48,7 @@ export default {
     },
     inquisitorKokkaiTomoshibi: { label: "告解の灯", lv: ["戦闘勝利後、味方全員のHP3%回復", "戦闘勝利後、味方全員のHP5%回復", "戦闘勝利後、味方全員のHP7%回復"],
       fx: [{ t: "win", hp: [0.03, 0.05, 0.07], party: true }] },
-    inquisitorShinmonNirami: { label: "審問官のにらみ", lv: ["戦闘開始時、敵を引き付け敵全体のATK−7% (3ターン)", "開幕に引き付け、敵全体のATK−10%", "開幕に引き付け、敵全体のATK−13%", "開幕に引き付け、敵全体のATK−16%"],
+    inquisitorShinmonNirami: { label: "審問官のにらみ", lv: ["戦闘開始時、敵を引き付け敵全体のSTR−7% (3ターン)", "開幕に引き付け、敵全体のSTR−10%", "開幕に引き付け、敵全体のSTR−13%", "開幕に引き付け、敵全体のSTR−16%"],
       fx: [{ t: "start", taunt: true, foe: { atk: [0.93, 0.9, 0.87, 0.84] }, dur: 3 }] },
     inquisitorIhanShirushi: { label: "異端審問の印", lv: ["物理を当てると12%で特技を封じる (2ターン)", "物理を当てると18%で特技を封じる", "物理を当てると24%で特技を封じる"],
       fx: [{ t: "hit", chance: [0.12, 0.18, 0.24], ail: "seal", turns: 2 }] },

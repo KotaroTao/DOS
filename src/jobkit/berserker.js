@@ -22,7 +22,7 @@ export default {
     BERSERKER_HONEKUDAKI: { name: "骨砕き", mp: 10, kind: "phys", power: 2.5, pierce: 0.2, acc: 0.4, flinchChance: 0.3, target: "enemy", desc: "骨ごと叩き砕き、怯ませる" },
     BERSERKER_KUIKOMI: { name: "狂気の食い縛り", mp: 3, kind: "buff", charge: 2.3, hpCost: 0.08, target: "self", tech: true, desc: "己の肉を噛み、次の物理を2.3倍にする" },
     BERSERKER_KURAISAKI: { name: "喰らい裂き", mp: 16, kind: "phys", power: 3.5, pierce: 0.4, acc: 0.7, drain: 0.25, target: "enemy", desc: "鎧ごと噛み裂き、血を啜る" },
-    BERSERKER_FUKKETSU: { name: "沸血", mp: 12, kind: "buff", buff: { atk: 1.5 }, regen: { pct: 0.05, turns: 3 }, target: "self", tech: true, desc: "血を沸かせて攻撃力を上げ、傷を塞ぐ" },
+    BERSERKER_FUKKETSU: { name: "沸血", mp: 12, kind: "buff", buff: { atk: 1.5 }, regen: { pct: 0.05, turns: 3 }, target: "self", tech: true, desc: "血を沸かせてSTRを上げ、傷を塞ぐ" },
     BERSERKER_TATAKIWARI: { name: "叩き割り", mp: 14, kind: "phys", power: 2.3, acc: 0.6, strip: true, debuff: { vit: 0.8 }, target: "enemy", desc: "強化ごと叩き割り、守りを崩す" },
     BERSERKER_KEKKEN: { name: "血焔斬", mp: 20, kind: "phys", power: 5.2, element: "fire", acc: 0.6, poison: { chance: 0.4, pct: 0.05 }, target: "enemy", desc: "血を燃やす焔の刃。焼けただれさせる" },
     BERSERKER_BOUGYAKU: { name: "暴虐の一撃", mp: 24, kind: "phys", power: 6.8, acc: 0.8, hpCost: 0.1, target: "enemy", desc: "身を削って放つ暴虐の一撃" },
@@ -39,7 +39,7 @@ export default {
     // Lv15 の目玉パッシブ: 血の匂いが常に体を昂らせる
     berserkerChinonioi: {
       label: "血の匂い",
-      lv: ["戦闘中の攻撃力+10%", "戦闘中の攻撃力+20%", "戦闘中の攻撃力+30%"],
+      lv: ["戦闘中のSTR+10%", "戦闘中のSTR+20%", "戦闘中のSTR+30%"],
       fx: [{ t: "stat", mul: { atk: [0.10, 0.20, 0.30] } }],
     },
     // 斬られた痛みをそのまま相手に叩き返す
@@ -52,8 +52,8 @@ export default {
     // 深手を負うほど獣じみて強くなる
     berserkerTeoi: {
       label: "手負いの獣",
-      lv: ["HP40%以下の間、攻撃力+20%・会心+4%", "HP40%以下の間、攻撃力+30%・会心+8%",
-        "HP40%以下の間、攻撃力+42%・会心+12%", "HP40%以下の間、攻撃力+55%・会心+16%"],
+      lv: ["HP40%以下の間、STR+20%・会心+4%", "HP40%以下の間、STR+30%・会心+8%",
+        "HP40%以下の間、STR+42%・会心+12%", "HP40%以下の間、STR+55%・会心+16%"],
       fx: [
         { t: "stat", mul: { atk: [0.2, 0.3, 0.42, 0.55] }, when: { selfLow: 0.4 } },
         { t: "crit", v: [0.04, 0.08, 0.12, 0.16], when: { selfLow: 0.4 } },
@@ -62,8 +62,8 @@ export default {
     // 開戦から守りを捨てて猛り狂う
     berserkerTakeri: {
       label: "猛り狂う",
-      lv: ["戦闘開始時、攻撃力×1.15・防御×0.9 (3ターン)", "戦闘開始時、攻撃力×1.22・防御×0.9 (3ターン)",
-        "戦闘開始時、攻撃力×1.3・防御×0.9 (3ターン)"],
+      lv: ["戦闘開始時、STR×1.15・防御×0.9 (3ターン)", "戦闘開始時、STR×1.22・防御×0.9 (3ターン)",
+        "戦闘開始時、STR×1.3・防御×0.9 (3ターン)"],
       fx: [{ t: "start", buff: { atk: [1.15, 1.22, 1.3], vit: [0.9, 0.9, 0.9] }, dur: 3 }],
     },
     // 弱った獲物の傷口を抉る
