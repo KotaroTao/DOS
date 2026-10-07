@@ -340,7 +340,10 @@ const TUT_MAP = Object.fromEntries(TUTS.map((t) => [t.key, t]));
 // ---- 進み具合 ----
 // 済ませていない手ほどき (解放の順)。始めていない旧セーブの分は、もう使っていれば済み扱い
 function dueKeys() {
-  if (G_()?.testPlay) return [];
+  if (G_()?.testPlay) {
+    const key = G_().testTutorial;
+    return key && !tutState().done[key] ? [key] : [];
+  }
   const st = tutState();
   if (!st) return [];
   const out = [];
@@ -695,10 +698,11 @@ function tutorialControls() {
 function skipControls() {
   return [...document.querySelectorAll('button, [role="button"], [data-action="skip"]')].filter((node) =>
     !node.disabled && node.getClientRects().length &&
-    (node.matches('[data-action="skip"], .op-skip, .iv-skip') ||
+    (node.matches('[data-action="skip"], .op-skip, .iv-skip, .test-play-banner button') ||
       unphrase(node.getAttribute("aria-label") || node.textContent || "").includes("スキップ")));
 }
 function restrictTutorialInput(event) {
+  if (G_()?.testPlay && event.target?.closest?.(".test-play-banner")) return;
   const skips = skipControls();
   if (skips.some((node) => node === event.target || node.contains(event.target))) return;
   const guide = tutorialControls();
@@ -742,3 +746,11 @@ export function install() {
 
 // 確かめ用
 export const _TUTS = TUTS;
+
+// 試遊では選択した手ほどきだけを、実際の操作で確かめる。
+export const testTutorials = TUTS.map(({ key, name }) => ({ id: "tutorial:" + key, kind: "tutorial", name }));
+export function startTestTutorial(key) {
+  if (!G_()?.testPlay || !TUT_MAP[key]) return false;
+  G_().testTutorial = key;
+  return start(TUT_MAP[key]);
+}

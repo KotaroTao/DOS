@@ -15,7 +15,7 @@ import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, eligibleEvents, p
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
 import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS } from "./quests.js";
-import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, unlockSceneFor } from "./story.js";
+import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
 import { NAMED_FOES, NAMED_IDS, TROPHY_OF, HUNT_ELITE_RATE, bountyId } from "./dungeons/named.js";
@@ -14210,7 +14210,19 @@ function refDeserialize(data) {
 // テストモードはURLで明示し、通常セーブの読み書きを止める。
 const testParams = new URLSearchParams(location.search);
 const testDungeonIdx = DUNGEONS.findIndex((d) => d.id === testParams.get("testDungeon"));
-const testPlayActive = testDungeonIdx >= 0;
+const testScenes = [
+  ...uiTutorial.testTutorials,
+  { id: "opening", kind: "story", name: "オープニング" },
+  ...Object.entries({ intro: TUT_INTRO, three: TUT_THREE_REPORT, finale: TUT_FINALE, epilogue: EPILOGUE }).map(([id, lines]) => ({
+    id: "story:" + id, kind: "story", name: ({ intro: "着任の謁見", three: "三体の報告", finale: "四体の報告", epilogue: "結末" })[id], lines,
+  })),
+  ...[["cell", "師の手がかり", STORY_CELLS], ["memory", "主の記憶", BOSS_MEMORIES], ["report", "踏破の報告", REPORTS], ["chapter", "章の結び", CHAPTER_END], ["unlock", "機能の解放", UNLOCKS]].flatMap(([group, label, defs]) =>
+    Object.entries(defs).map(([id, def]) => ({ ...def, id: group + ":" + id, kind: "story", name: label + "・" + def.title, who: ["cell", "memory"].includes(group) ? "none" : "king" }))),
+  ...IRENE_BEATS.map((def) => ({ ...def, id: "irene:" + def.id, kind: "story", name: "館の語り・" + def.title, who: "irene" })),
+  { ...MINE_PASS, id: "minePass", kind: "story", name: MINE_PASS.title },
+];
+const testScene = testScenes.find((s) => s.id === testParams.get("testScene"));
+const testPlayActive = testDungeonIdx >= 0 || !!testScene;
 let _lastSave = 0;
 let _saveWarned = false;
 let _resetting = false; // データ削除→リロードの間に autosave が書き戻すのを防ぐ
@@ -14552,18 +14564,20 @@ function setupTestPlay() {
   setupNewGame();
   G.testPlay = true;
   G.msq = { n: 1, state: "world" };
-  G.dungeonIdx = testDungeonIdx;
-  const cfg = DUNGEONS[testDungeonIdx];
+  const earlyTutorial = testScene?.kind === "tutorial" && ["createThree", "createFourth", "buyEquipment", "firstDive"].includes(testScene.id.slice(9));
+  const idx = testScene ? (earlyTutorial || testScene.id === "opening" ? 0 : DUNGEONS.length - 1) : testDungeonIdx;
+  G.dungeonIdx = idx;
+  const cfg = DUNGEONS[idx];
   const floor = Math.max(1, Math.min(cfg.floors, Math.floor(Number(testParams.get("testFloor"))) || 1));
   const w = worldState();
-  for (const d of DUNGEONS.slice(0, testDungeonIdx)) {
+  for (const d of DUNGEONS.slice(0, idx)) {
     if (d.side) continue;
     w.open[d.id] = true; w.cleared[d.id] = 1; w.reported[d.id] = true;
     if (d.boss) { w.beats["mem_" + d.id] = true; G.stats.bossIds[d.boss] = true; }
   }
   for (const ch of CHAPTERS) if (w.reported[ch.finale]) w.beats["ch" + ch.no + "_end"] = true;
   // 地図の解放に要る手がかりを、ここまでの進行に応じて補う。
-  for (const d of DUNGEONS.slice(0, testDungeonIdx + 1)) {
+  for (const d of DUNGEONS.slice(0, idx + 1)) {
     if (d.unlock?.story) w.found[d.unlock.story] = true;
   }
   refreshWorldUnlocks();
@@ -14572,7 +14586,7 @@ function setupTestPlay() {
   G.unlockedDungeons = worldOpenCount();
   G.irene.greeted = true;
   G.dungeonBriefed = true; G.stabilityBriefed = true;
-  const level = dungeonLevel(cfg, floor);
+  const level = earlyTutorial ? 1 : dungeonLevel(cfg, floor);
   for (const [i, cls] of ["fighter", "knight", "thief", "priest", "mage", "hunter"].entries()) {
     const soul = addSoulInstance(cls, 1, level);
     soul.capBonus = Math.max(0, level - soulLevelCap(cls, soul.count));
@@ -14584,6 +14598,27 @@ function setupTestPlay() {
   G.dollsPurchased = G.party.length;
   G.gold = Math.round(refGold(level) * 30); G.redSoul = 300;
   G.state = "town";
+  if (testScene?.kind === "tutorial") {
+    const key = testScene.id.slice("tutorial:".length);
+    G.testTutorial = key;
+    G.tut.done = Object.fromEntries(uiTutorial.testTutorials.filter((t) => t.id !== testScene.id).map((t) => [t.id.slice(9), true]));
+    addSoulInstance("fighter"); addSoulInstance("priest"); addSoulInstance("thief"); addSoulInstance("mage");
+    if (key === "createThree" || key === "createFourth") {
+      G.party = key === "createThree" ? [] : G.party.filter((d) => ["fighter", "priest", "thief"].includes(soulByUid(d.primary)?.clsKey));
+      G.souls.splice(0, G.souls.length, ...G.souls.filter((s) => G.party.some((d) => d.primary === s.uid)));
+      for (const cls of (key === "createThree" ? ["fighter", "priest", "thief"] : ["mage"])) addSoulInstance(cls);
+      G.dollsPurchased = G.party.length;
+      G.msq = { n: 0, state: "active", granted: true, stage: key === "createThree" ? "three" : "fourth" };
+      G.world = {}; worldState(); G.unlockedDungeons = 0;
+    }
+    if (key === "newJobParty") { addSoulInstance("monk"); G.tut.jobVisit = true; }
+    if (key === "repairSoul") { G.party[0].alive = false; G.party[0].hp = 0; G.tut.repairPending = true; }
+    if (key === "firstDive" || key === "buyEquipment") {
+      G.party = G.party.filter((d) => ["fighter", "priest", "thief", "mage"].includes(soulByUid(d.primary)?.clsKey));
+      G.dollsPurchased = G.party.length; G.gold = 500;
+      G.dungeonIdx = 0; G.dungeonBriefed = false; G.stabilityBriefed = false;
+    }
+  }
   return floor;
 }
 
@@ -15127,12 +15162,15 @@ function init() {
     exit.type = "button"; exit.textContent = "終了してホームへ";
     exit.addEventListener("click", () => {
       const url = new URL(location.href);
-      for (const key of ["testDungeon", "testFloor", "testPlace"]) url.searchParams.delete(key);
+      for (const key of ["testDungeon", "testFloor", "testPlace", "testScene"]) url.searchParams.delete(key);
       location.replace(url.href);
     });
     banner.appendChild(exit); document.body.appendChild(banner);
     resumeFromState();
-    if (testParams.get("testPlace") !== "town") enterDungeon(null, floor);
+    if (testScene?.kind === "tutorial") uiTutorial.startTestTutorial(G.testTutorial);
+    else if (testScene?.id === "opening") startAfterTitle(false);
+    else if (testScene) UI.playStoryChain([{ title: testScene.title || testScene.name, lines: storyLines(testScene.lines), art: testScene.art, who: testScene.who || "king" }], renderTown);
+    else if (testParams.get("testPlace") !== "town") enterDungeon(null, floor);
     playBgm(sceneBgm());
     return;
   }
@@ -15172,9 +15210,10 @@ function init() {
   else {
     try {
       showTitle({ hasSave: loaded, summary: loaded ? titleSummary() : null, onStart: start, onNewGame: loaded ? newGameFromTitle : null,
-        testDungeons: DUNGEONS, onTestPlay: ({ id, floor, place }) => {
+        testDungeons: DUNGEONS, testScenes, onTestPlay: ({ id, floor, place, scene }) => {
           _resetting = true;
           const url = new URL(location.href);
+          if (scene) url.searchParams.set("testScene", scene); else url.searchParams.delete("testScene");
           url.searchParams.set("testDungeon", id); url.searchParams.set("testFloor", floor); url.searchParams.set("testPlace", place);
           location.assign(url.href);
         } });
