@@ -27,7 +27,7 @@ function div(cls, text) {
 }
 const sfx = (k) => { try { SFX[k] && SFX[k](); } catch {} };
 
-export function showTitle({ hasSave = false, summary = null, onStart, onNewGame = null, testDungeons = [], onTestPlay = null } = {}) {
+export function showTitle({ hasSave = false, summary = null, onStart, onNewGame = null, testDungeons = [], testScenes = [], onTestPlay = null } = {}) {
   const wrap = div("ttl-overlay");
   if (REDUCED) wrap.classList.add("ttl-still");
   const cv = document.createElement("canvas");
@@ -107,7 +107,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   }
   let testBtn = null;
   if (typeof onTestPlay === "function") {
-    testBtn = mkBtn("テストプレイ", "進行度を選んで開始", "");
+    testBtn = mkBtn("テストプレイ", "迷宮・手ほどき・物語を選ぶ", "");
     btns.appendChild(testBtn);
   }
   menu.appendChild(btns);
@@ -136,7 +136,15 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     row.className = "ttl-test-field";
     row.append(div("", label), input);
     testBox.appendChild(row);
+    return row;
   };
+  const mode = document.createElement("select");
+  for (const [value, label] of [["dungeon", "迷宮・街"], ["tutorial", "チュートリアル"], ["story", "ストーリー"]]) {
+    const o = document.createElement("option"); o.value = value; o.textContent = label; mode.appendChild(o);
+  }
+  field("テストする内容", mode);
+  const sceneSelect = document.createElement("select");
+  const sceneSelectRow = field("場面", sceneSelect);
   const dungeon = document.createElement("select");
   for (const d of testDungeons) {
     const o = document.createElement("option");
@@ -157,19 +165,31 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   for (const [value, label] of [["board", "迷宮内から"], ["town", "街から（編成・施設の確認）"]]) {
     const o = document.createElement("option"); o.value = value; o.textContent = label; place.appendChild(o);
   }
-  field("進行度（迷宮）", dungeon); field("開始する階", floor); field("開始場所", place);
+  const dungeonRows = [field("進行度（迷宮）", dungeon), field("開始する階", floor), field("開始場所", place)];
+  const updateMode = () => {
+    const isDungeon = mode.value === "dungeon";
+    for (const row of dungeonRows) row.hidden = !isDungeon;
+    sceneSelectRow.hidden = isDungeon;
+    sceneSelect.replaceChildren();
+    for (const d of testScenes.filter((d) => d.kind === mode.value)) {
+      const o = document.createElement("option"); o.value = d.id; o.textContent = d.name; sceneSelect.appendChild(o);
+    }
+    testStart.disabled = !isDungeon && !sceneSelect.options.length;
+  };
+  mode.addEventListener("change", updateMode);
   const testRow = div("ttl-confirm-row");
   const testCancel = mkBtn("戻る", null, "");
   const testStart = mkBtn("テスト開始", null, "primary");
   testRow.append(testCancel, testStart); testBox.appendChild(testRow); wrap.appendChild(testBox);
+  updateMode();
   if (testBtn) testBtn.addEventListener("click", (e) => {
-    e.stopPropagation(); testBox.classList.remove("hidden"); wrap.classList.add("ttl-confirming"); dungeon.focus();
+    e.stopPropagation(); testBox.classList.remove("hidden"); wrap.classList.add("ttl-confirming"); mode.focus();
   });
   const hideTest = () => { testBox.classList.add("hidden"); wrap.classList.remove("ttl-confirming"); testBtn?.focus(); };
   testCancel.addEventListener("click", (e) => { e.stopPropagation(); hideTest(); });
   testStart.addEventListener("click", (e) => {
     e.stopPropagation(); clampFloor();
-    close(() => onTestPlay({ id: dungeon.value, floor: Number(floor.value), place: place.value }));
+    close(() => onTestPlay({ id: dungeon.value, floor: Number(floor.value), place: place.value, scene: mode.value === "dungeon" ? "" : sceneSelect.value }));
   });
   testBox.addEventListener("click", (e) => e.stopPropagation());
 
