@@ -111,6 +111,7 @@ function checkSkill(job, key, sp) {
   if ((sp.kind === "phys" || sp.kind === "atk") && !sp.gravity && !(sp.power > 0)) fail(job, key, "攻撃技には power が必要");
   if (sp.kind === "phys" && !/enemy/.test(sp.target)) fail(job, key, "物理技の対象は敵");
   for (const o of ["buff", "debuff", "debuffAll"]) if (sp[o]) for (const s in sp[o]) if (!STATS.has(s)) fail(job, key, `${o}.${s}`);
+  if (Array.isArray(sp.cure) && (!sp.cure.length || sp.cure.some(k => !["poison", "paralyze", "sleep", "charm", "confuse", "stone"].includes(k)))) fail(job, key, "cure は治療する状態異常の配列");
   if (sp.ward) for (const s in sp.ward) if (!["breath", "spell"].includes(s) || !(sp.ward[s] > 0 && sp.ward[s] < 1)) fail(job, key, `ward.${s}`);
   if (sp.faith && sp.kind !== "atk") fail(job, key, "faith は攻撃呪文だけ");
   if (sp.kind === "field" && !sp.float && !["enemy", "chest", "stairs"].includes(sp.sense)) fail(job, key, "迷宮で唱える技には効果 (float / sense) が必要");

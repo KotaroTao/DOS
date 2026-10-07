@@ -10,7 +10,7 @@
 // 作戦はこの重みと MP の値段を変える。game.js はここを呼んで chooseAction / chooseTarget するだけ。
 // (このファイルは game.js を import しない)
 
-import { SPELLS, spellCost, isMetal } from "./combat.js";
+import { SPELLS, spellCost, isMetal, spellCureKinds } from "./combat.js";
 import { autoSkills } from "./souls.js";
 import { STAGED, STAGE_MAX, STRONG_MIN, stageMul, stageOf } from "./buffstage.js";
 
@@ -180,15 +180,16 @@ function healUrg(ctx, a, W) {
 }
 
 // 状態異常・弱体を抱えた味方を治す値打ち
-function ailValue(ctx, a) {
+function ailValue(ctx, a, sp) {
+  const kinds = spellCureKinds(sp);
   if (!a.alive) return 0;
   const hit = (ctx.basic(a) + 1) * ctx.dmgK; // その者が動けない1手番に失う与ダメ
   let v = 0;
-  if (a.ailment === "stone") v += a.maxhp * 0.6 + hit * 3;
-  else if (a.ailment === "paralyze") v += hit * 2 + a.maxhp * 0.1;
-  else if (a.ailment === "poison") v += a.maxhp * 0.1 * (ctx.left(3) + 1);
-  if (a.asleep) v += hit * 1.2;
-  if (a.mind === "charm") v += hit * 2.5; else if (a.mind === "confuse") v += hit * 1.5;
+  if (a.ailment === "stone" && kinds.includes("stone")) v += a.maxhp * 0.6 + hit * 3;
+  else if (a.ailment === "paralyze" && kinds.includes("paralyze")) v += hit * 2 + a.maxhp * 0.1;
+  else if (a.ailment === "poison" && kinds.includes("poison")) v += a.maxhp * 0.1 * (ctx.left(3) + 1);
+  if (a.asleep && kinds.includes("sleep")) v += hit * 1.2;
+  if (a.mind === "charm" && kinds.includes("charm")) v += hit * 2.5; else if (a.mind === "confuse" && kinds.includes("confuse")) v += hit * 1.5;
   return v;
 }
 const debuffed = (a) => (a.effects || []).some((e) => e.mult < 1);
@@ -279,7 +280,7 @@ function foeEffects(b, ctx, actor, sp, t) {
   const th = ctx.threat(t);
   const rate = (x, kind) => autoRate(b, actor, t, x, kind);
   let v = 0;
-  if (sp.poison && !t.ailment) v += rate(sp.poison.chance, "poison") * Math.min(t.hp, sp.poison.pct * t.maxhp * (t.boss ? 0.5 : 1) * ctx.left(3)) * ctx.dmgK;
+  if (sp.poison && !t.ailment) v += rate(sp.poison.chance, "poison") * Math.min(t.hp, (t.boss ? Math.max(0.05, sp.poison.pct * 0.5) : sp.poison.pct) * t.maxhp * ctx.left(3)) * ctx.dmgK;
   if (sp.para && !t.ailment) v += rate(sp.para, "paralyze") * th * Math.min(2, ctx.rounds) * 0.6;
   if (sp.sleepChance && !t.asleep) v += rate(sp.sleepChance, "sleep") * th * Math.min(2, ctx.rounds) * 0.5;
   if (sp.charm && !t.mind) v += rate(sp.charm, "charm") * th * Math.min(2, ctx.rounds) * 1.2;
@@ -340,7 +341,7 @@ function allyEffects(b, ctx, actor, sp, a, c, W) {
     const gain = Math.min(sp.power + (actor.int || 0) * 0.25, (a.maxmp || 0) - a.mp);
     if (a !== actor && gain > 0) c.edge += gain * ctx.mpPrice(a, (W && W.mpK) || 0.06) * 0.8;
   }
-  if (sp.kind === "cure" || sp.cure) c.guard += ailValue(ctx, a);
+  if (sp.kind === "cure" || sp.cure) c.guard += ailValue(ctx, a, sp);
   if (sp.purge && debuffed(a)) c.guard += ctx.basic(a) * ctx.dmgK + a.maxhp * 0.05;
   if (sp.regen && b._bm(a, "regen") <= 1) {
     const amt = Math.min(a.maxhp - a.hp + ctx.incoming(a) * sp.regen.turns, sp.regen.pct * a.maxhp * Math.min(ctx.rounds, sp.regen.turns));

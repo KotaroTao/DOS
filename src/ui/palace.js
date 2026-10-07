@@ -26,6 +26,7 @@ import { SPELLS, spellMpLabel } from "../combat.js";
 import {
   SOUL_CLASSES, jobSprite, jobRankName, jobLoreFor, jobRankCondText, SOUL_STAT_UP, JOB_GEAR,
   awakenPerkOf, rankThresholds, soulLevelCap, jobSkillTable, passiveName, passiveDesc, JOB_AFFINITY,
+  jobBaseTraitsOf,
 } from "../souls.js";
 import { rarityColor } from "../rarity.js";
 import { SFX } from "../audio.js";
@@ -680,6 +681,12 @@ function jobSheetView(key, rank, top, heading, onRank) {
   const lore = jobLoreFor(key, rank);
   if (lore.desc) body.appendChild(setText(el("div", "pl-detail-desc"), lore.desc));
   if (lore.tips) body.appendChild(setText(el("div", "pl-detail-desc tips"), "活用: " + lore.tips));
+  const traits = jobBaseTraitsOf(key, rank);
+  const traitRows = [];
+  if (traits.crit) traitRows.push(pairRow("会心率", `+${Math.round(traits.crit * 100)}%`));
+  for (const [k, v] of Object.entries(traits.resists)) if (v) traitRows.push(pairRow(`${RESIST_LABEL[k]}抵抗値`, `+${v}`));
+  traitRows.push(pairRow("主魂の基礎値。レベル・集魂倍率では増えない", null, { dim: true }));
+  body.appendChild(infoBlock("職業の基礎特性", traitRows));
   // 発現の条件
   const upPct = Math.round((SOUL_STAT_UP[SOUL_CLASSES[key].rarity] || 0.01) * 100);
   body.appendChild(infoBlock("発現の条件", [pairRow(jobRankCondText(key, rank)), pairRow(`魂を1つ吸収するごと、全能力 基礎値×${upPct}% UP`, null, { dim: true })]));

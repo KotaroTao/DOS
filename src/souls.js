@@ -104,6 +104,58 @@ export const JOB_RANKS = {
   chaplain:    [{ name: "衛教兵" }, { name: "護教官" }, { name: "護教騎士" }, { name: "護教総監" }, { name: "教皇の盾" }],
 };
 
+// ===== 職業・ランクの基礎特性 =====
+// 主魂だけに適用。各特性はR1で5、R5で25。レベル・レア度・集魂倍率は掛けない。
+// 会心は割合、抵抗値は0〜100。サブ魂・結社からは借りない。
+export const JOB_BASE_TRAITS = {
+  fighter: ["crit", "flinch"],
+  knight: ["physResist", "flinch"],
+  priest: ["death", "seal"],
+  mage: ["magResist", "seal"],
+  thief: ["crit", "poison"],
+  bishop: ["magResist", "death"],
+  samurai: ["crit", "confuse"],
+  berserker: ["crit", "flinch"],
+  hunter: ["crit", "poison"],
+  shadow: ["crit", "sleep"],
+  paladin: ["physResist", "death"],
+  guardian: ["physResist", "flinch"],
+  spellblade: ["crit", "magResist"],
+  monk: ["paralyze", "confuse"],
+  hexer: ["poison", "seal"],
+  hermit: ["sleep", "charm"],
+  brigand: ["crit", "confuse"],
+  arcthief: ["crit", "magResist"],
+  crusader: ["crit", "death"],
+  battlemage: ["physResist", "magResist"],
+  darkknight: ["magResist", "death"],
+  templar: ["physResist", "seal"],
+  exorcist: ["crit", "death"],
+  warden: ["magResist", "seal"],
+  arcanist: ["magResist", "seal"],
+  inquisitor: ["charm", "confuse"],
+  archbishop: ["death", "seal"],
+  ascetic: ["paralyze", "stone"],
+  hero: ["crit", "confuse"],
+  asura: ["crit", "flinch"],
+  dragonknight: ["physResist", "paralyze"],
+  necromancer: ["poison", "death"],
+  sage: ["magResist", "confuse"],
+  cardinal: ["charm", "death"],
+  archmage: ["magResist", "seal"],
+  chaplain: ["physResist", "death"],
+};
+export function jobBaseTraitsOf(clsKey, rank = 1) {
+  const resists = zeroResists();
+  let crit = 0;
+  const value = Math.max(1, Math.min(5, rank || 1)) * 5;
+  for (const k of JOB_BASE_TRAITS[clsKey] || []) {
+    if (k === "crit") crit = value / 100;
+    else resists[k] = value;
+  }
+  return { crit, resists };
+}
+
 // ===== 魂ランク (1〜5) の係数・表示 =====
 // cap: そのランクで到達できる魂レベル上限の基準値 (コモン)。実際の上限はレア度でも変わる
 //      (RARITY_LEVEL_CAPS / capForRarityRank を参照) / order: 0始まり (UI判定用) / color: 表示色
@@ -274,7 +326,7 @@ export const PASSIVES = {
   nightWatch:    { label: "夜営の番",     scope: "party", lv: ["奇襲される確率-50%", "奇襲される確率-75%", "奇襲を受けなくなる"] },
   manaFlow:      { label: "魔力の循環",   scope: "party", lv: ["階を移動すると、全員のMPを5%回復", "階を移動すると、全員のMPを10%回復", "階を移動すると、全員のMPを15%回復"] },
   stealthStep:   { label: "忍び足",       scope: "party", lv: ["先制攻撃の発生率+10%", "先制攻撃の発生率+15%", "先制攻撃の発生率+20%"] },
-  cleanseStep:   { label: "清めの歩み",   scope: "party", lv: ["まだめくっていない墓石をめくるたび、全員のHPを5・MPを1回復", "まだめくっていない墓石をめくるたび、全員のHPを15・MPを2回復", "まだめくっていない墓石をめくるたび、全員のHPを30・MPを3回復"] },
+  cleanseStep:   { label: "清めの歩み",   scope: "party", lv: ["まだめくっていないカードをめくるたび、全員のHPを2回復", "まだめくっていないカードをめくるたび、全員のHPを4回復", "まだめくっていないカードをめくるたび、全員のHPを6回復"] },
   hexerGosun:    { label: "五寸釘",       scope: "party", lv: ["戦闘の始め、敵1体を動けなくする (その敵の最初の手番を奪う。金属の魔物には効かない)", "戦闘の始め、敵2体を動けなくする (最初の手番を奪う)", "戦闘の始め、敵3体を動けなくする (最初の手番を奪う)"] },
   hermitZokusei: { label: "俗世拒絶",     scope: "self",  lv: ["敵から状態異常 (毒・麻痺・石化・即死・眠り・魅了・混乱) を受ける確率-10%", "敵から状態異常を受ける確率-20%", "敵から状態異常を受ける確率-30%"] },
   crusaderToki:  { label: "聖戦の鬨",     scope: "party", lv: ["戦闘の開始時、味方全員のATK×1.2 (3ターン)", "戦闘の開始時、味方全員のATK×1.5 (3ターン)", "戦闘の開始時、味方全員のATK×1.8 (3ターン)"] },
@@ -1124,11 +1176,12 @@ export function recalcDoll(doll) {
   doll.endure = (passiveMap.endure || 0) > 0;
   doll.level = doll.jobLv || 1;
 
+  const traits = jobBaseTraitsOf(clsKey, rank);
   doll.base = {
     hp: Math.max(1, Math.round(st.hp)), mp: Math.round(st.mp),
     atk: Math.round(st.atk), vit: Math.round(st.vit), agi: Math.max(1, Math.round(st.agi)),
     int: Math.round(st.int), pie: Math.round(st.pie), luk: Math.round(st.luk),
-    crit: 0,
+    crit: traits.crit, resists: traits.resists,
   };
   doll.spells = spells;
   doll.passives = passives;

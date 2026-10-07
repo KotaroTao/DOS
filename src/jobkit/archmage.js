@@ -24,7 +24,7 @@ export default {
     ARCHMAGE_TENKYUU:    { name: "天球崩落", mp: 22, kind: "atk", power: 58, vuln: { all: 0.9 }, target: "all-enemy", desc: "砕けた天球が降り、全属性の守りを綻ばす" },
     ARCHMAGE_NIJUUIN:    { name: "二重の烙印", mp: 6, kind: "debuff", vuln: { dark: 0.7, earth: 0.7 }, target: "enemy", desc: "闇と土への守りを深く焼き剥がす" },
     ARCHMAGE_SOUCHUU:    { name: "霜柱のくさび", mp: 14, kind: "atk", power: 36, element: "water", flinchChance: 0.35, target: "enemy", desc: "地より突き上がる霜柱。怯ませる" },
-    ARCHMAGE_YOUGAN:     { name: "熔岩流", mp: 14, kind: "atk", power: 36, element: "fire", poison: { chance: 0.35, pct: 0.04 }, target: "all-enemy", desc: "熔岩が敵全体を焼き、爛れが蝕む（毒）" },
+    ARCHMAGE_YOUGAN:     { name: "熔岩流", mp: 14, kind: "atk", power: 36, element: "fire", poison: { chance: 0.35, pct: 0.05 }, target: "all-enemy", desc: "熔岩が敵全体を焼き、爛れが蝕む（毒）" },
     ARCHMAGE_TENMEI:     { name: "天鳴の大槌", mp: 16, kind: "atk", power: 42, element: "wind", debuff: { hit: 0.85 }, target: "all-enemy", desc: "天を鳴らす雷槌。敵の狙いを乱す" },
     ARCHMAGE_MEIOU:      { name: "冥王の顎", mp: 21, kind: "atk", power: 62, element: "dark", mpDrain: 0.1, target: "enemy", desc: "冥王の顎が魂を噛み、魔力を奪う" },
     ARCHMAGE_NARAKU:     { name: "奈落穿ち", mp: 16, kind: "atk", power: 46, element: "earth", critBonus: 0.2, target: "enemy", desc: "大地の底まで穿つ。会心しやすい" },

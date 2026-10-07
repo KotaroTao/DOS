@@ -7,7 +7,7 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "bishopSeibetsu",
   table: `
-    1 kantei/2 3 DIOS 4 HOLYRAY 5 bishopSeisui/1 7 ICENEEDLE 10 CURE
+    1 kantei/2 3 DIOS 4 HOLYRAY 5 bishopSeisui/1 7 ICENEEDLE 10 BISHOP_MEZAMESUI
     15 BISHOP_SEISUIMAKI 15 appraiseEye/1 20 SEAL 22 BISHOP_MICHISHIRUBE 25 bishopJouka/1 30 DIAL 35 bishopTobari/1
     40 MADIOS 45 bishopYoin/1 47 ICELANCE 50 BISHOP_SEISUI 50 appraiseEye/2 55 BISHOP_SENREI 60 bishopSeisui/2
     65 BISHOP_SEIHYOU 70 bishopTobari/2 75 afterBoth/1 80 MANAGIFT 85 SAINTRAY 90 bishopJouka/2
@@ -16,11 +16,12 @@ export default {
     150 BISHOP_KANCHOU 155 elemFloor/1 160 BISHOP_SEIGAI 165 resistAilment/2 170 BISHOP_DANZAI 172 BISHOP_SEIHYOUKAN
     175 bishopYoin/3 180 BISHOP_SEIKA 185 sanctuary/1 190 SEIMETSUREKKOU 195 BISHOP_SEISOU 200 BISHOP_SHINPAN`,
   skills: {
+    BISHOP_MEZAMESUI: { name: "目覚めの聖水", mp: 3, kind: "cure", cure: ["sleep"], target: "ally", desc: "味方一人の眠りを治す" },
     // Lv15 の固有技: 聖水を撒いて群れを清める祈りの呪文
     BISHOP_SEISUIMAKI: { name: "聖水撒き", mp: 6, kind: "atk", power: 14, element: "water", faith: true, prey: { races: UNHOLY, mul: 1.3 }, target: "all-enemy", desc: "聖水を撒き、敵全体を清める。不浄の者に強い（PIEでも伸びる）" },
     // 迷宮で唱える術: 祈りの導きで、この階の下り階段を示す
     BISHOP_MICHISHIRUBE: { name: "道しるべ", mpPct: 0.3, mp: 6, kind: "field", sense: "stairs", target: "all-ally", desc: "この階の下り階段の在りかを示し、その周囲8マスの墓石をめくる（迷宮で唱える。効くのはこの階だけ）" },
-    BISHOP_SEISUI:     { name: "聖水の雫", mp: 7, kind: "heal", power: 15, cure: true, target: "all-ally", desc: "聖水を撒き、味方全員を癒し穢れを祓う" },
+    BISHOP_SEISUI:     { name: "聖水の雫", mp: 7, kind: "heal", power: 15, cure: ["poison", "paralyze"], target: "ally", desc: "一人を聖水で癒し、毒・猛毒・麻痺を治す" },
     BISHOP_SENREI:     { name: "洗礼の聖水", mp: 6, kind: "debuff", strip: true, seal: { chance: 0.25, turns: 2 }, target: "all-enemy", desc: "聖水で強化を洗い流し、特技を封じる" },
     BISHOP_SEIHYOU:    { name: "聖氷の祈り", mp: 10, kind: "atk", power: 30, element: "water", prey: { races: UNHOLY, mul: 1.4 }, target: "all-enemy", desc: "聖別した氷雨。不浄の者に強い" },
     BISHOP_SEIHAI:     { name: "聖杯の祈り", mp: 13, kind: "heal", power: 36, buff: { vit: 1.15 }, target: "all-ally", desc: "味方全員を癒し、守りを授ける" },

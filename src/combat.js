@@ -341,18 +341,31 @@ export function ailing(t) { return !!(t && (t.ailment || t.asleep || t.mind)); }
 // 状態異常を治す (毒・麻痺・石化 + 眠り・魅了・混乱)。何か治れば true
 export function cureAil(t) {
   const had = ailing(t);
-  t.ailment = null; t.asleep = false; t.mind = null; t._ailN = null;
+  t.ailment = null; t.asleep = false; t.mind = null; t._ailN = null; t._poisonPct = null;
   return had;
 }
-// 指定の種類 (USE_AIL のキー) の状態異常だけを治す (道具)。何か治れば true
+// 指定の種類だけを治す。治さない異常の自然回復の数えは保つ。
 export function cureKinds(t, kinds) {
   let had = false;
-  if (t.ailment && kinds.includes(t.ailment)) { t.ailment = null; had = true; }
-  if (t.asleep && kinds.includes("sleep")) { t.asleep = false; had = true; }
-  if (t.mind && kinds.includes(t.mind)) { t.mind = null; had = true; }
-  if (had) t._ailN = null;
+  const reset = (key) => { if (t._ailN) delete t._ailN[key]; };
+  if (t.ailment && kinds.includes(t.ailment)) {
+    reset(t.ailment === "paralyze" ? "para" : t.ailment);
+    if (t.ailment === "poison") t._poisonPct = null;
+    t.ailment = null; had = true;
+  }
+  if (t.asleep && kinds.includes("sleep")) { t.asleep = false; reset("sleep"); had = true; }
+  if (t.mind && kinds.includes(t.mind)) { t.mind = null; reset("mind"); had = true; }
   return had;
 }
+// cure は true (全異常) または治療する異常の配列。旧来の cure 技は指定なしなら全異常。
+export function spellCureKinds(sp) {
+  return Array.isArray(sp.cure) ? sp.cure : (sp.cure || sp.kind === "cure") ? AIL_KINDS : [];
+}
+export function canSpellCure(sp, t) {
+  const kinds = spellCureKinds(sp);
+  return !!(t && ((t.ailment && kinds.includes(t.ailment)) || (t.asleep && kinds.includes("sleep")) || (t.mind && kinds.includes(t.mind))));
+}
+export function cureBySpell(sp, t) { return cureKinds(t, spellCureKinds(sp)); }
 // 武器の追加効果 {k, chance, pct?} を _inflict が読む技の形へ (quiet = 外れても「効かなかった」を記録しない。毎撃のログが埋まるため)
 function onHitSpell(oh) {
   const c = oh.chance || 0;
@@ -1008,9 +1021,8 @@ export class Battle {
         this.log(`${a.name}の毒が抜けた！`, "heal");
         continue;
       }
-      // 毒の強さは付けた技しだい (既定5%)。主には半分 (5%以下はそのまま)
-      let pct = a._poisonPct || 0.05;
-      if (a.boss && pct > 0.05) pct = Math.max(0.05, pct * 0.5);
+      // 通常毒は5%、猛毒は10%。旧セーブの強い毒も10%に統一し、主には5%。
+      const pct = a._poisonPct > 0.05 && !a.boss ? 0.1 : 0.05;
       const d = Math.max(1, Math.round(a.maxhp * pct));
       a.hp -= d;
       this.log(`${a.name}は毒に蝕まれた (${d})`, "dmg");
@@ -1291,12 +1303,12 @@ export class Battle {
     const cures = sp.kind === "cure" || !!sp.cure;
     const otherBenefit = !!(sp.buff || sp.grantEndure || sp.grantBarrier || sp.regen); // 満タンでも有効な効果
     if (sp.kind === "mana") return this.party.filter((t) => t.alive && (t.maxmp || 0) > 0 && t.mp < t.maxmp);
-    if (sp.kind === "cure" && sp.purge) return this.party.filter((t) => t.alive && (ailing(t) || (t.effects || []).some((e) => e.mult < 1)));
+    if (sp.kind === "cure" && sp.purge) return this.party.filter((t) => t.alive && (canSpellCure(sp, t) || (t.effects || []).some((e) => e.mult < 1)));
     return this.party.filter((t) => {
       if (!t.alive) return revives;            // 死者は蘇生呪文のみ
       if (otherBenefit) return true;
       if (heals && t.hp < t.maxhp) return true;
-      if (cures && ailing(t)) return true;
+      if (cures && canSpellCure(sp, t)) return true;
       if (!heals && !cures && !revives) return true; // 回復/治療/蘇生以外の補助は満タンでも可
       return false;
     });
@@ -2548,7 +2560,7 @@ export class Battle {
         // 法障壁 (grantBarrier): 魔障壁の残回数を配る (ブレス・呪文の被ダメ半減)
         if (sp.grantBarrier) t._barrierLeft = (t._barrierLeft || 0) + sp.grantBarrier;
         // 聖域の鐘 (cure / purge): 守りと同時に状態異常・弱体を祓う
-        if (sp.cure && cureAil(t)) cured = true;
+        if (sp.cure && cureBySpell(sp, t)) cured = true;
         if (sp.purge && this._purgeDown(t)) purged = true;
         res.hits.push({ target: t, buff: true, mods });
       }
@@ -2578,12 +2590,12 @@ export class Battle {
       const targets = sp.target === "all-ally" ? this.livingParty() : [(cmd.target && cmd.target.alive) ? cmd.target : actor];
       let any = false;
       for (const t of targets) {
-        const had = cureAil(t);
+        const had = cureBySpell(sp, t);
         const pg = sp.purge ? this._purgeDown(t) : false;
         if (had || pg) any = true;
         res.hits.push({ target: t, cured: had || pg });
       }
-      this.log(any ? `${sp.name}！ 状態異常と弱体が治った` : `${sp.name}…効果がなかった`, "heal");
+      this.log(any ? `${sp.name}！ ${sp.purge ? "状態異常と弱体" : "状態異常"}が治った` : `${sp.name}…効果がなかった`, "heal");
     } else if (sp.kind === "mana") {
       // 魔力の譲渡: 味方の MP を回復する (術者の INT で少し伸びる)
       const t = (cmd.target && cmd.target.alive) ? cmd.target : actor;
@@ -2614,7 +2626,7 @@ export class Battle {
           const heal = variance(healPower);
           t.hp = Math.min(t.maxhp, t.hp + heal);
           // 大聖祈祷 (cure): 癒しと同時に穢れを祓う / 聖壁の祈り (buff): 守りも固める
-          if (sp.cure && cureAil(t)) cured = true;
+          if (sp.cure && cureBySpell(sp, t)) cured = true;
           if (sp.purge && this._purgeDown(t)) cured = true;
           if (sp.buff) for (const k in sp.buff) this._applyMod(t, k, sp.buff[k], sp.dur, sp.name);
           if (sp.regen) this._applyMod(t, "regen", 1 + sp.regen.pct, sp.regen.turns, sp.name);
@@ -2636,7 +2648,7 @@ export class Battle {
         if (wasDead && sp.revive) t.hp = Math.min(t.maxhp, t.hp + Math.round(t.maxhp * this._rk(actor, "priestInochi", [0.10, 0.20, 0.30, 0.50]))); // 生命の灯 (僧侶のランク)
         if (wasDead && sp.revive) this.log(`${t.name}は蘇った！ HP ${t.hp}`, "heal");
         else this.log(`${t.name}のHPが ${heal} 回復`, "heal");
-        if (sp.cure && cureAil(t)) this.log(`${t.name}の穢れも祓われた`, "heal");
+        if (sp.cure && cureBySpell(sp, t)) this.log(`${t.name}の穢れも祓われた`, "heal");
         if (sp.purge) this._purgeDown(t);
         if (sp.regen) this._applyMod(t, "regen", 1 + sp.regen.pct, sp.regen.turns, sp.name);
         // 聖句の加護 (grantEndure): 致死ダメージをHP1で耐える力を授ける (1戦闘1回)

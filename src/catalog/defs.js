@@ -1982,7 +1982,7 @@ function base(id, name, slot, lv, artKey, opt) {
   Object.defineProperty(it, "shape", { value: artKey, enumerable: false, writable: true });
   if (opt.eAtk) { chk(ELEM_KEYS.includes(opt.eAtk[0]), "bad eAtk element: " + id); it.eAtk = { el: opt.eAtk[0], lv: opt.eAtk[1] || 1 }; }
   if (opt.eDef) { chk(ELEM_KEYS.includes(opt.eDef[0]), "bad eDef element: " + id); it.eDef = { el: opt.eDef[0], lv: opt.eDef[1] || 1 }; }
-  // 状態異常耐性 aRes: { charm: 0.25, ... } (種類ごとの付与率カット) / 追加効果 onHit: ["paralyze", 0.15] or ["poison", 0.2, 0.06]
+  // 状態異常耐性 aRes: { charm: 0.25, ... } (種類ごとの付与率カット) / 追加効果 onHit: ["paralyze", 0.15] or ["poison", 0.2, 0.05]
   if (opt.resists) {
     for (const [k, v] of Object.entries(opt.resists)) chk(["physResist", "magResist", ...AIL_KEYS].includes(k) && Number.isInteger(v) && v >= 0 && v <= 100, "bad resists: " + id);
     it.resists = { ...opt.resists };

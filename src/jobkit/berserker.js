@@ -24,7 +24,7 @@ export default {
     BERSERKER_KURAISAKI: { name: "喰らい裂き", mp: 16, kind: "phys", power: 3.5, pierce: 0.4, acc: 0.7, drain: 0.25, target: "enemy", desc: "鎧ごと噛み裂き、血を啜る" },
     BERSERKER_FUKKETSU: { name: "沸血", mp: 12, kind: "buff", buff: { atk: 1.5 }, regen: { pct: 0.05, turns: 3 }, target: "self", tech: true, desc: "血を沸かせて攻撃力を上げ、傷を塞ぐ" },
     BERSERKER_TATAKIWARI: { name: "叩き割り", mp: 14, kind: "phys", power: 2.3, acc: 0.6, strip: true, debuff: { vit: 0.8 }, target: "enemy", desc: "強化ごと叩き割り、守りを崩す" },
-    BERSERKER_KEKKEN: { name: "血焔斬", mp: 20, kind: "phys", power: 5.2, element: "fire", acc: 0.6, poison: { chance: 0.4, pct: 0.04 }, target: "enemy", desc: "血を燃やす焔の刃。焼けただれさせる" },
+    BERSERKER_KEKKEN: { name: "血焔斬", mp: 20, kind: "phys", power: 5.2, element: "fire", acc: 0.6, poison: { chance: 0.4, pct: 0.05 }, target: "enemy", desc: "血を燃やす焔の刃。焼けただれさせる" },
     BERSERKER_BOUGYAKU: { name: "暴虐の一撃", mp: 24, kind: "phys", power: 6.8, acc: 0.8, hpCost: 0.1, target: "enemy", desc: "身を削って放つ暴虐の一撃" },
     BERSERKER_CHIKAZAGURUMA: { name: "血風車", mp: 18, kind: "phys", power: 1.8, acc: 0.5, drain: 0.15, target: "all-enemy", desc: "斧を振り回して敵陣をなぎ、血を啜る" },
     BERSERKER_DANTOUDAI: { name: "断頭台", mp: 28, kind: "phys", power: 6.5, acc: 0.9, pierce: 0.3, execute: 1.6, target: "enemy", desc: "弱った敵の首を落とす断頭の一撃" },

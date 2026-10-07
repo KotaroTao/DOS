@@ -33,7 +33,7 @@ export const LAYER3_ITEMS = [
   // 当てるだけで状態異常を与える武器 (onHit)
   sr(W("w_sr3_mandrakebow", "絶叫根の弓", "bw", 33, { scale: { agi: 0.4 }, magic: true, pow: 1.3, onHit: ["confuse", 0.15], agi: 3, tint: "#9a6ab0",
     desc: "マンドレイクの根を撚って弦を張った弓。放つたびに弦が小さく絶叫し、射抜かれた者は正気を削られて敵味方の見境を失う。" })),
-  sr(W("w_sr3_firedamppick", "坑気の毒鶴嘴", "ax", 40, { pow: 1.25, two: true, onHit: ["poison", 0.3, 0.06], hp: 10, tint: "#7a9a50",
+  sr(W("w_sr3_firedamppick", "坑気の毒鶴嘴", "ax", 40, { pow: 1.25, two: true, onHit: ["poison", 0.3, 0.05], hp: 10, tint: "#7a9a50",
     desc: "坑気の溜まる袋小路で毒に倒れた坑夫の、柄の長い鶴嘴。先端に染みついた瘴気はいまも抜けず、両手で打ち込んだ傷から毒がじわじわと肉を蝕む。" })),
 
   // ===== スーパーレア: 防具 =====
