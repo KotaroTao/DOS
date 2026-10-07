@@ -199,7 +199,7 @@ const TUTS = [
       ["初めての職業の魂を持ち帰ったお祝いに、赤い魂50個をお渡しします。", "この赤い魂で、新しい仲間を迎えてください。"],
       ["器は、この館で赤い魂と引き換えにお仕立てします。", `今のお代は、赤い魂${game.emptyDollCost?.() || 0}です。足りない時は、街の『赤い魂の祠』で入手できます。`],
       ["『人業を仕立てる』を開いたら、宿す魂は自由にお選びください。今は宿さずに閉じてもかまいません。", "パーティには六体まで連れてゆけます。満員なら、新しい仲間は控えで待ちます。"],
-      ["同じ職業の魂を宿す仲間は、一つのパーティに一体だけ。", "新しい職業の仲間を加え、迷宮に備えましょう。"],
+      ["同じ職業のメイン魂を宿す仲間は、一つのパーティに一体だけ。", "新しい職業の仲間を加え、迷宮に備えましょう。"],
     ],
     steps: [{
       text: "『人業を仕立てる』で魂の一覧を開く", hint: "人業の館 → 控え・＋ → 人業を仕立てる。その後は自由に選ぶか、閉じてよい",
@@ -215,7 +215,7 @@ const TUTS = [
     prepare: () => null,
     intro: () => [
       ["宿す魂を変えれば、今いる人業も別の職業として戦えます。魂の育ちは残り、外した魂も失われません。", "まずは『魂を付け替える』の一覧を開いて、閉じてください。実際の付け替えは、その後に自由に行えます。"],
-      ["新しい職業で使えない装備は外れます。同じ職業の魂は、パーティに一つだけです。", "詳しい説明は、魂の区分の『魂の扱い方』で、いつでも確かめられます。"],
+      ["新しい職業で使えない装備は外れます。同じ職業のメイン魂は、パーティに一つだけです。", "詳しい説明は、魂の区分の『魂の扱い方』で、いつでも確かめられます。"],
     ],
     steps: [{ text: "魂の一覧を開いて確認し、閉じる", hint: "人業の館 → 魂 → 魂を付け替える → 閉じる", go: () => goSoulSeg(), target: [".sp-change"], on: "soulChangeViewed" }],
     outro: ["魂の付け替えが解放された。魂の区分の『魂を付け替える』から、いつでも変更できる。"],
@@ -246,7 +246,7 @@ const TUTS = [
       done: () => ((G_().stats || {}).fusions || 0) > (tutState().base.fusions || 0),
       skip: () => !anyFusable(),
     }],
-    outro: ["同じ職の魂が手に入ったら、融合して魂の格を上げよう。", "職業ごとの魂は1つだけ。余った同職の魂は、その魂へ融合しよう。"],
+    outro: ["魂を融合すると、魂の強さとLv上限が上がる。一定数以上の魂を融合すると魂がランクアップ。"],
   },
   {
     key: "sub1", name: "サブ魂", who: "irene",
@@ -340,7 +340,10 @@ const TUT_MAP = Object.fromEntries(TUTS.map((t) => [t.key, t]));
 // ---- 進み具合 ----
 // 済ませていない手ほどき (解放の順)。始めていない旧セーブの分は、もう使っていれば済み扱い
 function dueKeys() {
-  if (G_()?.testPlay) return [];
+  if (G_()?.testPlay) {
+    const key = G_().testTutorial;
+    return key && !tutState().done[key] ? [key] : [];
+  }
   const st = tutState();
   if (!st) return [];
   const out = [];
@@ -695,10 +698,11 @@ function tutorialControls() {
 function skipControls() {
   return [...document.querySelectorAll('button, [role="button"], [data-action="skip"]')].filter((node) =>
     !node.disabled && node.getClientRects().length &&
-    (node.matches('[data-action="skip"], .op-skip, .iv-skip') ||
+    (node.matches('[data-action="skip"], .op-skip, .iv-skip, .test-play-banner button') ||
       unphrase(node.getAttribute("aria-label") || node.textContent || "").includes("スキップ")));
 }
 function restrictTutorialInput(event) {
+  if (G_()?.testPlay && event.target?.closest?.(".test-play-banner")) return;
   const skips = skipControls();
   if (skips.some((node) => node === event.target || node.contains(event.target))) return;
   const guide = tutorialControls();
@@ -742,3 +746,11 @@ export function install() {
 
 // 確かめ用
 export const _TUTS = TUTS;
+
+// 試遊では選択した手ほどきだけを、実際の操作で確かめる。
+export const testTutorials = TUTS.map(({ key, name }) => ({ id: "tutorial:" + key, kind: "tutorial", name }));
+export function startTestTutorial(key) {
+  if (!G_()?.testPlay || !TUT_MAP[key]) return false;
+  G_().testTutorial = key;
+  return start(TUT_MAP[key]);
+}

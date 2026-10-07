@@ -398,3 +398,5 @@
 body:has(.test-play-banner) { padding-top: 38px; }
 body:has(.test-play-banner) #town-shell { top: 38px; }
 body:has(.test-play-banner) .ui-sheet { top: 38px; }
+
+.ttl-test-field[hidden] { display: none; }
