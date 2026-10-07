@@ -6,7 +6,7 @@ import { BESTIARY, ELITE_ORDER as EO, LAYER_ELITES as LE, LAYER_BOSS as LB } fro
 import { DUNGEONS as GENERATED } from "./generator.js";
 import { WORLD } from "./world.js";
 
-export { MON_RACES, RACE_LABEL, ELEMENTS, elemMult, elemBeats, elemDmgMult, resistRate, resistHpMul, RESIST_RATE, RESIST_TAG, METAL_TIERS, TRAITS, monsterTraitKeys, monsterTraits, isFloating } from "./schema.js";
+export { MON_RACES, RACE_LABEL, ELEMENTS, elemMult, elemBeats, elemDmgMult, resistRate, resistHpMul, METAL_TIERS, TRAITS, monsterTraitKeys, monsterTraits, isFloating } from "./schema.js";
 export { layerOf, LAYER_COUNT } from "./generator.js";
 export { unknownName, unknownLabel, unknownTag, UNKNOWN_MARK, UNK_OPEN, UNK_CLOSE } from "./unknown.js";
 

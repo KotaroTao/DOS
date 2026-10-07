@@ -1,3 +1,4 @@
+import { RESIST_LABEL } from "../resistance.js";
 // ===== 隊 (統合された人業の画面) — 隊列ストリップ・控え/仕立て・装備/魂/能力・迷宮内のシート =====
 // 担当: WP-B。
 //   街: 「隊」タブ (街シェルの中身)。迷宮: 盤面の隊の札から開く全高のシート (魂の付け替え・鍛錬はできない)。
@@ -1771,7 +1772,7 @@ function statsSeg(root, d) {
     fact("属性防", elemStatShort(d.elemDef));
     // 装備の状態異常耐性 / 武器の追加効果 (持っている時だけ)
     const AIL_SHORT = { poison: "毒", paralyze: "痺", sleep: "眠", charm: "魅", confuse: "乱", stone: "石" };
-    if (d.ailRes) fact("異常耐性", Object.entries(d.ailRes).map(([k, v]) => `${AIL_SHORT[k] || k}${Math.round(v * 100)}`).join(" "));
+    for (const [k, label] of Object.entries(RESIST_LABEL)) fact(`${label}抵抗値`, String((d.resists && d.resists[k]) || 0));
     if (d.breathRes) fact("ブレス耐性", `${Math.round(d.breathRes * 100)}%`);
     if (d.onHit) fact("追加効果", d.onHit.map((o) => `${AIL_SHORT[o.k] || o.k}${Math.round(o.chance * 100)}%`).join(" "));
   };

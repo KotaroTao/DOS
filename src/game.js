@@ -1,3 +1,4 @@
+import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
@@ -433,6 +434,8 @@ for (const k in MONSTERS) {
   if (m.boss && !ab) ab = m.race === "dragon" ? "breath" : (m.rank || 1) >= 5 ? "critical" : "paralyze";
   m.ability = ab;
 }
+
+for (const m of Object.values(MONSTERS)) if (!m.resists) m.resists = monsterResists(m);
 
 // 状態異常の表示定義
 const AIL_NAME = { poison: "毒", paralyze: "麻痺", stone: "石化", sleep: "眠り", charm: "魅了", confuse: "混乱" };
@@ -5932,7 +5935,7 @@ const evApi = {
   hurtAllCur(pct) { const l = evAlive(); for (const p of l) p.hp = Math.max(1, p.hp - Math.ceil(p.hp * pct)); flashPartyCards(l, "hit"); },
   hurtOne(m, pct) { if (!m || !m.alive) return; m.hp = Math.max(1, m.hp - Math.ceil(m.maxhp * pct)); flashPartyCards([m], "hit"); },
   mpAll(pct) { for (const p of evAlive()) p.mp = Math.max(0, p.mp - Math.ceil(p.maxmp * pct)); renderParty(); },
-  ail(m, kind) { if (!m || !m.alive || m.ailment || (m.eff && m.eff.ailmentImmune)) return; m.ailment = kind; renderParty(); },
+  ail(m, kind) { if (!m || !m.alive || m.ailment || (m.eff && m.eff.ailmentImmune) || Math.random() < ((m.resists && m.resists[kind]) || 0) / 100) return; m.ailment = kind; renderParty(); },
   ailAll(kind, ch) { for (const p of evAlive()) if (Math.random() < ch) evApi.ail(p, kind); flashPartyCards(evAlive(), "hit"); },
   cureAll() { for (const p of evAlive()) p.ailment = null; renderParty(); },
   // ---- 通貨 ----
@@ -6742,7 +6745,7 @@ function applyTrapMeasured(trap, opener) {
   const afflict = (p, ail, chance) => {
     // 装備の状態異常耐性 (ailRes) と解呪の宝珠 (ailmentImmune) も罠に効く
     if (!ail || !p.alive || p.ailment || (p.eff && p.eff.ailmentImmune)) return;
-    const eqRes = (p.ailRes && p.ailRes[ail]) || 0;
+    const eqRes = p.resists ? (p.resists[ail] || 0) / 100 : (p.ailRes && p.ailRes[ail]) || 0;
     if (Math.random() >= chance * (1 - eqRes)) return;
     p.ailment = ail;
     lines.push(`${p.name}は${AIL_NAME[ail]}に侵された！`);
@@ -8412,7 +8415,7 @@ function renderAutoBanner(actor) {
 // 画面の何もない所をタップした時と同じ「射程内の最寄り」
 // 物理無効 (物理耐性3) の敵は、ほかに狙える敵がいる限り既定の狙いから外す。
 // 魔法属性の武器 (actor.wMagic) を持つ者の通常攻撃は魔法耐性で判定するので、魔法無効 (魔法耐性3) の敵を外す
-function physImmune(e, actor) { return !!(e && ((actor && actor.wMagic ? e.magResist : e.physResist) | 0) >= 3); }
+function physImmune(e, actor) { return !!(e && ((actor && actor.wMagic ? e.magResist : e.physResist) | 0) >= 100); }
 function defaultAttackTarget(actor) {
   const b = G.battle;
   if (!b || !actor) return null;
@@ -14382,7 +14385,17 @@ function loadGame() {
     tlWatchBattle(G.battle, tlWhere());
     G.battle.log = log;
     if (G.battle.fleeK == null) G.battle.fleeK = fleeScale(); // 逃走の物差しを持たない古い戦闘
-    for (const e of (G.battle.enemies || [])) if (e.key && MONSTERS[e.key]) e.mon = MONSTERS[e.key];
+    for (const e of (G.battle.enemies || [])) if (e.key && MONSTERS[e.key]) {
+      e.mon = MONSTERS[e.key];
+      // 旧セーブの戦闘中の耐性ランクを抵抗値へ移す。
+      if (!e.resists) {
+        for (const k of ["physResist", "magResist"]) {
+          const v = e[k] || 0;
+          e[k] = v > 0 && v < 1 ? Math.round(v * 100) : [0, 50, 75, 100][v] ?? v;
+        }
+        e.resists = monsterResists({ ...e.mon, physResist: e.physResist, magResist: e.magResist });
+      }
+    }
   }
   // 旧形式: 未生成の pendingDoll は「空の人業」として控えへ移す (生成前でも消えない)
   if (G.pendingDoll) {
