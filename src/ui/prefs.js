@@ -20,7 +20,8 @@ export const UI_PREF_DEFAULTS = {
   autoCloseResults: false, // 戦果を自動で閉じる
   autoRest: false,       // 帰還時に宿で休む
   sellUse: false,        // まとめて売るに道具 (消耗品) も含める
-  autoMoveFoes: "avoid", // オート移動と見えている敵: avoid 避ける / weak 強敵だけ避ける / all 避けない
+  autoMoveFoes: "avoid", // (旧) オート移動と見えている敵: avoid / weak / all ― autoMoveAvoid が無い時の読み替えにだけ使う
+  autoMoveAvoid: null,   // オート移動で避けるもの { foe 一般の敵, elite 強敵, event 出来事, chest 宝箱 } (true = 避ける)。null = 既定 (旧設定から)
   keeperSeen: {},        // 番人の胸像を見せた街滞在 { key: stamp }
   partyHintsSeen: [],    // 人業の館で既読にしたお勧め (鍛錬できる魂・より良い品) — タブの赤い点
 };
@@ -68,4 +69,19 @@ export function resetUiPrefs() {
   for (const k of Object.keys(uiPrefs)) delete uiPrefs[k];
   Object.assign(uiPrefs, structuredCloneSafe(UI_PREF_DEFAULTS));
   persist();
+}
+
+// オート移動で避けるもの (設定「オート移動で避けるもの」)。4つそれぞれ true = 避ける / false = 避けない。
+// 未設定なら旧設定 autoMoveFoes (avoid / weak / all) から読み替え、出来事は避けない・宝箱は避けるを既定にする
+export const AUTO_MOVE_AVOID_KEYS = ["foe", "elite", "event", "chest"];
+export function autoMoveAvoid() {
+  const v = uiPrefs.autoMoveAvoid;
+  const old = uiPrefs.autoMoveFoes;
+  const base = { foe: old !== "weak" && old !== "all", elite: old !== "all", event: false, chest: true };
+  if (v && typeof v === "object") for (const k of AUTO_MOVE_AVOID_KEYS) if (typeof v[k] === "boolean") base[k] = v[k];
+  return base;
+}
+export function setAutoMoveAvoid(key, on) {
+  if (!AUTO_MOVE_AVOID_KEYS.includes(key)) return;
+  setPref("autoMoveAvoid", { ...autoMoveAvoid(), [key]: !!on });
 }

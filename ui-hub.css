@@ -661,6 +661,10 @@
 .stg-segrow.stg-stack .stg-row-t { flex: 0 0 auto; }
 .stg-segrow.stg-stack .ui-seg { width: 100%; }
 .stg-segrow.stg-stack .ui-seg-b { flex: 1 1 0; min-width: 0; }
+/* オート移動で避けるもの: 項目名 + 避ける/避けない を4行 */
+.stg-am .stg-am-l { display: flex; align-items: center; gap: 10px; }
+.stg-am .stg-am-n { flex: 0 0 5.5em; font-size: 13px; font-weight: 700; color: var(--ink); }
+.stg-am .stg-am-l .ui-seg { flex: 1 1 auto; width: auto; }
 .stg-danger { border-color: #4a2220; }
 .stg-danger .stg-row-n { color: #ffb0a4; }
 .stg-danger-b { flex: 0 0 auto; display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; font-size: 13px; font-weight: 700; color: #ffb0a4; background: linear-gradient(180deg, #2c1515, #1c0e0e); border: 1px solid #7a2a24; border-radius: 3px; }

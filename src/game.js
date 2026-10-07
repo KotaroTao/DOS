@@ -1825,7 +1825,8 @@ function dockSpec() {
     const sp = SPELLS[k], c = fieldCaster(k, true), on = fieldActive(sp);
     return { key: k, kind: sp.float ? "float" : sp.sense, label: sp.name, sub: on ? fieldStateText(sp) : `MP${c.cost}`, on };
   });
-  const auto = { on: !!G.autoMove, sub: { avoid: "敵を避ける", weak: "強敵を避ける", all: "敵に挑む" }[autoMoveFoes()] };
+  const av = autoMoveAvoid();
+  const auto = { on: !!G.autoMove, sub: av.foe && av.elite ? "敵を避ける" : av.elite ? "強敵を避ける" : av.foe ? "強敵に挑む" : "敵に挑む" };
   return { down, home, heal, fields, auto, idle: G.floor <= 1 && !(G.run && G.run.kills) ? "スワイプで進む ・ 光る墓石をめくる" : "階段を見つけると、ここから降りられる" };
 }
 function dockDescend() {
@@ -5108,9 +5109,14 @@ function autoWalk(path) {
 //  ・まだめくっていない墓石のうち、歩いて最も近いものへ向かう (同じ近さなら今向いている方向を優先 ―
 //    まっすぐ進み、壁に当たれば向きを変える)
 //  ・見えている罠 (めくれた罠・落とし穴・毒の床 ― 浮遊中・毒床を無効にできる時を除く) は踏まない
-//  ・見えている敵 (めくれた魔物の札・気配読み/敵感知の光) の扱いは設定「オート移動と見えている敵」(autoMoveFoes):
-//      avoid = 避ける (既定) / weak = 強敵だけ避ける (ほかの敵には挑む) / all = 避けない
-//    敵の札をタップすれば、どの設定でもそこへ寄り道して戦える
+//  ・設定「オート移動で避けるもの」(prefs.js autoMoveAvoid) で、4つそれぞれ避ける/避けないを選べる:
+//      一般の敵 foe・強敵 elite = 見えている敵 (めくれた魔物の札・気配読み/敵感知の光)。避けるなら踏まない。
+//        光だけの敵は強敵か分からないので一般の敵として扱う。金属の魔物は一般の敵
+//      出来事 event = まだ訪ねていない表向きの出来事。避けないなら行き先にする
+//      宝箱 chest = 表向きでまだ開けていない宝箱 (一度「開けない」を選んだ箱は除く)。避けないなら行き先にする。
+//        避けるなら宝探し/財宝感知で光る伏せた宝箱にも向かわない
+//      (避けると決めた出来事・宝箱も、ほかに道が無い時だけは通る)
+//    札をタップすれば、どの設定でもそこへ寄り道できる
 //  ・決断の要る札 (階段・帰還陣・開けなかった宝箱・泉・死体・出来事・物語) は、ほかに道が無い時だけ通る
 //  ・戦闘が終わった・何かを選んだ (決断の問い・シートが開いた) ら、それが済んだところで切れる (autoMoveBreak)。
 //    新たに深手 (HP3割未満) を負う・倒れる者が出た時も止まる
@@ -5121,10 +5127,7 @@ let autoMoveVia = null;   // 寄り道の行き先 (タップしたマス)。着
 let autoMoveHold = null;  // 1歩の終わりを待って行うドック・手帳などの操作
 let autoMoveHurt = null;  // ON にした時点で深手・戦闘不能だった者 (uid) ― これ以外が深手になれば止まる
 let autoMoveBreak = null; // 戦闘 ("battle")・選択 ("choice") が挟まった印 ― それが済めばオート移動を切る
-function autoMoveFoes() {
-  const v = uiDungeonHud.getPref("autoMoveFoes");
-  return v === "weak" || v === "all" ? v : "avoid";
-}
+function autoMoveAvoid() { return uiDungeonHud.autoMoveAvoid(); }
 function autoMoveWounded() {
   return new Set(G.party.filter((p) => !p.alive || p.hp < p.maxhp * AUTO_MOVE_HURT).map((p) => p.uid));
 }
@@ -5195,7 +5198,7 @@ function autoMoveTick() {
 function autoMovePlan() {
   const b = G.board;
   if (!b) return null;
-  const foes = autoMoveFoes();
+  const avoid = autoMoveAvoid();
   const floating = floatLeft() > 0;
   const poisonSafe = floating || partyPassiveLv("poisonFloor") >= 2;
   // 光で見えている、まだめくっていない魔物 (気配読み = すべて / 敵感知 = 選ばれた数だけ)
@@ -5205,9 +5208,18 @@ function autoMovePlan() {
   }
   const psE = partyPassiveLv("senseEnemy");
   if (psE && inDungeon()) for (const [x, y] of passiveSensePlan().enemy.slice(0, Math.min(3, psE))) sensed.add(x + "," + y);
+  // 宝探し・財宝感知で光る、まだめくっていない宝箱 (宝箱を避ける時は向かわない)
+  const sensedChest = new Set();
+  if (avoid.chest) {
+    if (fieldSense("chest")) {
+      for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = b.cells[y][x]; if (c.type === "chest" && !c.revealed && !c.cleared) sensedChest.add(x + "," + y); }
+    }
+    const psT = partyPassiveLv("senseTreasure");
+    if (psT && inDungeon()) for (const [x, y] of passiveSensePlan().chest.slice(0, Math.min(3, psT))) sensedChest.add(x + "," + y);
+  }
   const isFoe = (c) => c.type === "monster" && !c.cleared;
-  // 挑む敵: めくれた札は強敵かどうかが見える。光だけの敵は強敵か分からないので、普通の敵として扱う
-  const fightable = (c) => foes === "all" || (foes === "weak" && (!c.revealed || !c.elite || c.metal));
+  // 挑む敵: めくれた札は強敵かどうかが見える。光だけの敵は強敵か分からないので、一般の敵として扱う
+  const fightable = (c) => (c.revealed && c.elite && !c.metal) ? !avoid.elite : !avoid.foe;
   const danger = (c) => c.revealed && (
     (c.type === "trap" && !c.cleared) || (c.type === "pit" && !floating) || (c.type === "poison" && !poisonSafe));
   const nuisance = (c) => c.revealed && (c.type === "stairs" || c.type === "portal" ||
@@ -5235,10 +5247,13 @@ function autoMovePlan() {
           const step = first.get(key(x, y)) || { x: nx, y: ny };
           first.set(k, step);
           const foe = isFoe(c) && (c.revealed || sensed.has(k));
-          // 表向きでも未発見の手がかり・未訪問の出来事は探索する。一度立ち去った出来事は自動で問い直さない。
-          const unread = !c.cleared && (c.type === "story" || (c.type === "event" && !c.evSeen));
-          // 行き先: 挑む敵 / 伏せた墓石 / 未読の物語・出来事 (見えている罠は避ける)
-          if (!found && !danger(c) && (foe ? fightable(c) : !c.revealed || unread)) found = step;
+          // 表向きでも未発見の手がかりは探索する。未訪問の出来事・開けていない宝箱は設定で避けなければ向かう。
+          // 一度立ち去った出来事・「開けない」を選んだ宝箱は自動で問い直さない。
+          const unread = !c.cleared && (c.type === "story" ||
+            (c.type === "event" && !c.evSeen && !avoid.event) ||
+            (c.type === "chest" && !c.chestSeen && !avoid.chest));
+          // 行き先: 挑む敵 / 伏せた墓石 (避ける宝箱の光を除く) / 未読の物語・出来事・宝箱 (見えている罠は避ける)
+          if (!found && !danger(c) && (foe ? fightable(c) : c.revealed ? unread : !sensedChest.has(k))) found = step;
           if (found) continue;
           // 中継: めくり済みで、敵・罠でなく、(この回は) 決断の要る札でもないマス
           if (!c.revealed || isFoe(c) || danger(c)) continue;
@@ -6610,7 +6625,7 @@ function askOpenChest(cell) {
   const others = G.party.filter((p) => p.alive && p !== best);
   const opts = [{ label: `開ける ― ${best.name} (解除 ${pct(best)}%)`, primary: true, fn: () => openChest(cell, best) }];
   if (others.length) opts.push({ label: "他の者が開ける", fn: () => askOtherOpener(cell, cRank, others) });
-  opts.push({ label: "開けない", cancel: true, fn: () => { renderBoard(); } });
+  opts.push({ label: "開けない", cancel: true, fn: () => { if (cell) cell.chestSeen = true; renderBoard(); } }); // オート移動はもう向かわない
   showChoice(`${CHEST_RANKS[cRank]}宝箱`, opts, ICONS.chest, {
     banner: "✦ 宝箱 ✦", lines: ["罠があるかもしれない。解除の上手い者が開けるほど安全だ。"],
   });
