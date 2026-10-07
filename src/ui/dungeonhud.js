@@ -13,7 +13,7 @@
 
 import { UI, game, registerUI } from "./ctx.js";
 import { el, sheet, row, setText, glyph, itemTile, portrait, bar, reduced } from "./kit.js";
-import { getPref, setPref, remember } from "./prefs.js";
+import { getPref, setPref, remember, autoMoveAvoid } from "./prefs.js";
 import { sceneTransition } from "./motion.js";
 import { MONSTERS, ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
 import { ELEMENTS, monsterTraits, isFloating, unknownLabel } from "../dungeons/index.js";
@@ -24,7 +24,7 @@ import { SOUL_CLASSES, soulIcon, ATTR_LABEL } from "../souls.js";
 import { WALKER as WALKER_ART } from "../walkerart.js";
 import { markOf } from "./questboard.js";
 
-export { getPref, setPref, remember, sceneTransition };
+export { getPref, setPref, remember, autoMoveAvoid, sceneTransition };
 
 // ================= 迷宮の自分の駒 (赤い頭巾の人影・4方向) =================
 // src/walkerart.js の WALKER = { down, up, left, right } (各 {palette, art}・20×31 ドット・足元は共通)

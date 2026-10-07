@@ -12,7 +12,7 @@
 import { UI, game, registerUI } from "./ctx.js";
 import { el, setText, sheet, segmented, toast, button } from "./kit.js";
 import { tlOn, tlSetOn, tlClear, tlHasData, tlSummary, tlStabilitySummary, tlExportText } from "../telemetry.js";
-import { getPref, setPref, remember } from "./prefs.js";
+import { getPref, setPref, remember, autoMoveAvoid, setAutoMoveAvoid } from "./prefs.js";
 import { SFX } from "../audio.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
@@ -135,15 +135,21 @@ function fillAuto(box) {
   for (const a of AUTO) {
     box.appendChild(toggleRow({ name: a.name, desc: a.desc, on: !!getPref(a.key), onChange: (v) => { setPref(a.key, v); sfx("select"); } }));
   }
-  // オート移動 (迷宮のドックの「オート」) が見えている敵をどう扱うか
-  const amRow = el("div", "stg-row stg-segrow stg-stack");
+  // オート移動 (迷宮のドックの「オート」) で避けるもの: 一般の敵・強敵・出来事・宝箱をそれぞれ避ける/避けない
+  const amRow = el("div", "stg-row stg-segrow stg-stack stg-am");
   const amt = el("span", "stg-row-t");
-  amt.appendChild(setText(el("span", "stg-row-n"), "オート移動と見えている敵"));
-  amt.appendChild(setText(el("span", "stg-row-d"), "どの設定でも、敵の札をタップすれば寄り道して戦える"));
+  amt.appendChild(setText(el("span", "stg-row-n"), "オート移動で避けるもの"));
+  amt.appendChild(setText(el("span", "stg-row-d"), "どの設定でも、札をタップすれば寄り道できる"));
   amRow.appendChild(amt);
-  amRow.appendChild(segmented([{ key: "avoid", label: "避ける" }, { key: "weak", label: "強敵は避ける" }, { key: "all", label: "挑む" }], getPref("autoMoveFoes") || "avoid", (k) => {
-    setPref("autoMoveFoes", k); sfx("select"); if (game.renderDock) game.renderDock();
-  }));
+  const av = autoMoveAvoid();
+  for (const [key, name] of [["foe", "一般の敵"], ["elite", "強敵"], ["event", "出来事"], ["chest", "宝箱"]]) {
+    const line = el("div", "stg-am-l");
+    line.appendChild(setText(el("span", "stg-am-n"), name));
+    line.appendChild(segmented([{ key: "1", label: "避ける" }, { key: "0", label: "避けない" }], av[key] ? "1" : "0", (k) => {
+      setAutoMoveAvoid(key, k === "1"); sfx("select"); if (game.renderDock) game.renderDock();
+    }));
+    amRow.appendChild(line);
+  }
   box.appendChild(amRow);
   box.appendChild(sec("テスト記録"));
   const logRow = el("button", "stg-row stg-danger stg-log");
