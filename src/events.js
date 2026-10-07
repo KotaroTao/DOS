@@ -218,17 +218,17 @@ export const EVENTS = [
     },
   },
   {
-    id: "c08", name: "毒蛇の壺", layer: 0, tier: "common", icon: "poison",
-    intro: () => ["口の欠けた大壺。中で何かが擦れる音がする。底のほうで金貨が光った。"],
+    id: "c08", name: "蝙蝠の壺", layer: 0, tier: "common", icon: "mon:bs_spiritbat",
+    intro: () => ["口の欠けた大壺。中から冷たい羽音が響き、霊蝙蝠の影が揺れている。底のほうで金貨が光った。"],
     choices: (A, cell) => [
-      { label: "手を突っ込む ― 金貨 / 40%で毒", primary: true, fn: () => {
+      { label: "手を突っ込む ― 金貨 / 40%で眠り", primary: true, fn: () => {
         const m = A.randomAlive();
         A.gold(2, "壺の底");
-        if (m && chance(0.4)) { A.ail(m, "poison"); A.toast(`${m.name}が噛まれた ― 毒`, "bad", "poison"); }
+        if (m && chance(0.4)) { A.ail(m, "sleep"); A.toast(`${m.name}が冷たい羽音に包まれた ― 眠り`, "bad", "sleep"); }
         A.done(cell);
       } },
-      { label: "壺を割る ― 蛇の群れと戦い、金貨を多く", danger: true, fn: () => {
-        A.fight(cell, [{ pool: true, min: 3 }], "jar", { noChest: true });
+      { label: "壺を割る ― 霊蝙蝠の群れと戦い、金貨を多く", danger: true, fn: () => {
+        A.fight(cell, [{ key: "bs_spiritbat", min: 3 }], "jar", { noChest: true });
       } },
     ],
     onWin: (A, cell, f, next) => { A.gold(3, "割れた壺"); A.done(cell, next); },
