@@ -35,11 +35,24 @@ function linesOf(entry) {
     cleared:id=>!!w.cleared?.[id], reported:id=>!!w.reported?.[id],
   }) || [];
 }
-function openEntry(kind, id) {
+function openEntry(kind, id, handle = null) {
   // 一覧を開いたあとも、実際の進行で閲覧できるものだけを開く。
-  const entry = entries(kind).find(e=>e.id===id);
+  const list = entries(kind);
+  const entry = list.find(e=>e.id===id);
   if (!entry) return;
-  sheet.open({
+  // 物語と踏破した迷宮は、それぞれの一覧の順番で読む
+  const stories = list.filter(e=>e.id.startsWith("lore_") === id.startsWith("lore_"));
+  const index = stories.findIndex(e=>e.id===id);
+  const next = stories[index + 1], prev = stories[index - 1];
+  const footer = [];
+  if (kind === "story") {
+    footer.push(
+      {label:"次の物語",kind:"secondary",disabled:!next,onTap:h=>{ if(next)openEntry(kind,next.id,h); }},
+      {label:"前の物語",kind:"secondary",disabled:!prev,onTap:h=>{ if(prev)openEntry(kind,prev.id,h); }},
+    );
+  }
+  footer.push({label:"一覧に戻る",kind:"secondary",onTap:h=>h.close()});
+  const opts = {
     kind:"info", banner:kind==="help"?"ヘルプ":"ストーリー", title:entry.title,
     className:"jr-sheet jr-detail", accent:kind==="help"?"#78bdd1":"#d9b76e",
     body:b=>{
@@ -47,8 +60,12 @@ function openEntry(kind, id) {
       if(entry.subtitle)b.appendChild(el("div","jr-subtitle",entry.subtitle));
       for(const line of linesOf(entry))b.appendChild(el("p","jr-line",line));
     },
-    footer:[{label:"一覧に戻る",kind:"secondary",onTap:h=>h.close()}],
-  });
+    footer,
+  };
+  if (handle) {
+    handle.update(opts);
+    handle.body.scrollTop = 0;
+  } else sheet.open(opts);
 }
 export function openJournal(kind = "help") {
   const isHelp = kind === "help";
