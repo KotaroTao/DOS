@@ -1271,12 +1271,12 @@ function partyPassiveLv(key) {
   return lv;
 }
 
-// 隊のパッシブ 踏破の地図 (cartography): 階の開始時だけ周囲3/4/5マス (マンハッタン距離) の
+// 隊のパッシブ 踏破の地図 (cartography): 階の開始時に周囲 2/3/4 マス (マンハッタン距離) の
 // カードを自動で表にする。踏破済みにはしないので、踏めば通常どおりイベントは起きる。
 function revealByCartography() {
   const lv = partyPassiveLv("cartography");
   if (!lv || !G.board) return false;
-  const rad = Math.min(3, lv) + 2;
+  const rad = Math.min(3, lv) + 1;
   let any = false;
   for (let dy = -rad; dy <= rad; dy++) {
     for (let dx = -rad; dx <= rad; dx++) {
@@ -12510,7 +12510,7 @@ function reviveAllAtHp1() {
 }
 
 // 砕けた魂を修復する (街の中のみ・金貨を払う)。HP/MP満タンで立ち上がる
-function repairDoll(d) {
+function repairDoll(d, { batch = false } = {}) {
   if (!d || !d.isDoll || d.alive) return { ok: false, reason: "dead" };
   if (awaitingRescue(d)) { showToast(`${d.name} はまだ迷宮から連れ帰られていない`, { tone: "bad" }); SFX.ng(); return { ok: false, reason: "rescue" }; }
   if (G.state !== "town") { showToast("修復は街の人業の館でしかできない", { tone: "bad" }); SFX.ng(); return { ok: false, reason: "town" }; }
@@ -12523,14 +12523,33 @@ function repairDoll(d) {
   d.ailment = null;
   d.reviveAt = null; d.diedFloor = null;
   d._dead = false;
-  SFX.levelup(); buzz([0, 30, 40, 30]);
+  if (!batch) { SFX.levelup(); buzz([0, 30, 40, 30]); }
   log(`${d.name} の砕けた魂を修復した。(💰${cost})`, "win");
+  if (batch) return { ok: true, cost };
   showToast(`${d.name} が立ち上がった (💰${cost})`, { tone: "good" });
   updateTopbar();
   if (G.statusOpen) renderStatus();
   if (G.state === "town") renderTown();
   renderParty();
   return { ok: true, cost };
+}
+
+// 館に届いている砕けた人業を、隊・控えまとめて修復する。費用不足なら誰も修復しない。
+function repairAllDolls() {
+  if (G.state !== "town") return { ok: false, reason: "town" };
+  const targets = allDolls().filter((d) => d.isDoll && !d.alive && !awaitingRescue(d));
+  if (!targets.length) return { ok: false, reason: "dead" };
+  const cost = targets.reduce((sum, d) => sum + repairCostOf(d), 0);
+  if (G.gold < cost) { SFX.ng(); showToast(`金貨が足りない (💰${cost})`, { tone: "bad" }); return { ok: false, reason: "gold", cost }; }
+  for (const d of targets) repairDoll(d, { batch: true });
+  SFX.levelup(); buzz([0, 30, 40, 30]);
+  showToast(`${targets.length}体全員が立ち上がった (💰${cost})`, { tone: "good" });
+  updateTopbar();
+  if (G.statusOpen) renderStatus();
+  renderTown();
+  renderParty();
+  autosave(true);
+  return { ok: true, cost, count: targets.length };
 }
 
 // ---- 赤い魂の祠: Red Soul の入手 (広告/課金) ----
@@ -15095,7 +15114,7 @@ function wireUI() {
     worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait,
     trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
-    repairDoll, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,
+    repairDoll, repairAllDolls, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,
     doEquip, doUnequip, equipFromAnywhere, openEquipChooser, useItem, dropItem, transferItem,
     stopAutoCombat, sceneBgm, playBgm, SFX,
     ACH_SERIES, FACILITIES, FAC_SHELL, CONTENT_LIMIT, DUNGEONS, LAYER_VISUALS,
