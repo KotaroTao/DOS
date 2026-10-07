@@ -370,6 +370,7 @@
 .qb-n { min-width: 0; font-size: 13.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .qb-tag { flex: 0 0 auto; padding: 0 5px; font-size: 10px; letter-spacing: 0.1em; color: #1a1209; background: #c9a046; border-radius: 2px; }
 .qb-new { flex: 0 0 auto; padding: 0 4px; font-size: 10px; color: #fff; background: #b8382e; border-radius: 2px; }
+.qb-on { flex: 0 0 auto; padding: 0 5px; font-size: 10px; letter-spacing: 0.1em; color: #e8f0ff; background: #3d5a8a; border-radius: 2px; }
 .qb-d { font-size: 11.5px; color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .qb-s { font-size: 11px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .qb-s.ok { color: #9ee07a; font-weight: 700; }

@@ -277,8 +277,10 @@ export function openInn() {
 }
 
 // ---------- 酒場 (ページ) ----------
-// 区分: 受注中 (受けた依頼・報告) / 掲示板 (依頼人の頼み + 帰還ごとに貼り替わる依頼) / 噂と顔ぶれ (噂話・居合わせる者たち)
+// 区分: 掲示板 (受けた依頼・報告 + 依頼人の頼み + 帰還ごとに貼り替わる依頼) / 噂と顔ぶれ (噂話・居合わせる者たち)
+// 受注中の依頼と掲示板の依頼は1つの一覧にまとめ、迷宮ごとに 報告できる → 受注中 → 未受注 の順に並べる (ユーザーの指示)
 let tavernSeg = null;
+const questOrder = (q) => (q.state === "offer" ? 2 : qbReady(q) ? 0 : 1);
 function questGroup(group) {
   const box = el("section", "fc-qgroup");
   const heading = el("h3", "fc-qgroup-head");
@@ -286,7 +288,7 @@ function questGroup(group) {
   heading.appendChild(el("span", "fc-qgroup-count", `${group.quests.length}件`));
   box.setAttribute("aria-label", group.name);
   box.appendChild(heading);
-  for (const q of group.quests) box.appendChild(questCard(q));
+  for (const q of [...group.quests].sort((a, b) => questOrder(a) - questOrder(b))) box.appendChild(questCard(q, { mark: true }));
   return box;
 }
 function tavernSegments() {
@@ -294,8 +296,7 @@ function tavernSegments() {
   const ready = L.active.filter(qbReady).length;
   const fresh = L.offers.filter((q) => q.fresh).length;
   return [
-    { key: "active", label: `受注 ${L.freeCount}/${L.cap}`, badge: ready || null },
-    { key: "board", label: "掲示板", badge: fresh || null },
+    { key: "board", label: "掲示板", badge: (ready + fresh) || null },
     { key: "talk", label: "噂と顔ぶれ" },
   ];
 }
@@ -306,10 +307,7 @@ function renderTavern(root) {
   root.appendChild(wrap);
   const kr = keeperRow("tavern");
   if (kr) wrap.appendChild(kr);
-  if (!tavernSeg) {
-    const L = qbLists();
-    tavernSeg = L.active.length ? "active" : "board";
-  }
+  if (tavernSeg !== "talk") tavernSeg = "board"; // 旧来の "active" (受注) も掲示板へ
   const segs = tavernSegments();
   const body = el("div", "fc-tav-body");
   wrap.appendChild(segmented(segs, tavernSeg, (k) => { tavernSeg = k; drawSeg(); }));
@@ -319,17 +317,10 @@ function renderTavern(root) {
     if (tavernSeg === "talk") return renderTalk(body);
     const L = qbLists();
     const area = el("div", "fc-qarea");
-    if (tavernSeg === "active") {
-      body.appendChild(sectionHead("受けている依頼", { note: "依頼人の頼みも枠に数える" }));
-      body.appendChild(area);
-      const empty = el("div", "wa-empty", "受けている依頼はない。掲示板で依頼を受けよう。");
-      scrollGrid(area, dungeonGroups(L.active), questGroup, { cols: 1, cellH: null, gap: 14, key: "tav-active", empty });
-    } else {
-      body.appendChild(sectionHead("掲示板", { note: "帰還のたびに貼り替わる" }));
-      body.appendChild(area);
-      const empty = el("div", "wa-empty", "いまは貼り紙がない。迷宮から戻れば、新たな依頼が貼られる。");
-      scrollGrid(area, dungeonGroups(L.offers), questGroup, { cols: 1, cellH: null, gap: 14, key: "tav-board", empty });
-    }
+    body.appendChild(sectionHead("掲示板", { note: `受注 ${L.freeCount}/${L.cap} ・ 貼り紙は帰還のたびに貼り替わる` }));
+    body.appendChild(area);
+    const empty = el("div", "wa-empty", "受けている依頼も貼り紙もない。迷宮から戻れば、新たな依頼が貼られる。");
+    scrollGrid(area, dungeonGroups([...L.active, ...L.offers]), questGroup, { cols: 1, cellH: null, gap: 14, key: "tav-board", empty });
   };
   drawSeg();
   if (tavernSeg === "board") setTimeout(() => UI.tutorialEvent?.("tavernBoard"), 0);

@@ -1007,3 +1007,8 @@ button.sp-lu-next { cursor: pointer; }
 }
 
 .pt-stability { margin-top:2px; color:#aad3dc; }
+
+/* サブ魂の選択から開く「魂を強化」のシート */
+.sp-train-sheet .sp-train-h { display: flex; align-items: center; gap: 12px; margin: 4px 0 10px; }
+.sp-train-sheet .sp-train-t { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sp-train-sheet .sp-prog { margin-bottom: 8px; }

@@ -139,13 +139,15 @@ function actionBtn(q) {
 const isReady = (q) => q.state === "done" || (isOpenDeliver(q) && !!(deliverSt(q) || {}).holder);
 
 // ---- 札 (酒場の一覧) ----
-export function questCard(q) {
+// mark = 受注中の依頼に「受注中」の札を付ける (酒場の掲示板で、受けた依頼と貼り紙が同じ一覧に並ぶ時)
+export function questCard(q, { mark = false } = {}) {
   const card = el("div", "qb-card" + (q.fixed ? " fixed" : "") + (isReady(q) ? " ready" : "") + (q.state === "offer" ? " offer" : ""));
   card.setAttribute("role", "button");
   card.tabIndex = 0;
   card.appendChild(markOf(q));
   const info = el("div", "qb-i");
   const top = el("div", "qb-top");
+  if (mark && q.state !== "offer") top.appendChild(el("span", "qb-on", "受注中"));
   if (q.fixed) top.appendChild(el("span", "qb-tag", "依頼人"));
   if (q.fresh) top.appendChild(el("span", "qb-new", "新"));
   top.appendChild(setText(el("span", "qb-n"), q.name));

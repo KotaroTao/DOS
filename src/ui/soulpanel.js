@@ -561,6 +561,13 @@ function pickerBody(root, d, slotId, h) {
         else go();
       } }));
     }
+    // 魂を強化 (サブ魂の選択から、どの魂でも鍛えられる)。上限の魂には出さない
+    if (isSub && s.level < cap) {
+      const tb = button({ label: "強化", kind: "secondary", size: "sm", title: "✦Soul で魂のレベルを上げる",
+        onTap: (e) => { if (e) e.stopPropagation(); openTrainSheet(s.uid, () => refreshSheet(h)); } });
+      tb.classList.add("sp-pick-train");
+      side.appendChild(tb);
+    }
     if (fusion) {
       const n = game.fuseCandidates ? game.fuseCandidates(s.uid).length : 0;
       if (n) {
@@ -588,6 +595,71 @@ function pickerBody(root, d, slotId, h) {
   }
   if (!souls.length) list.appendChild(el("div", "pt-note c", "魂を持っていない。迷宮で集めよう。"));
   root.appendChild(list);
+}
+
+// ---- 魂を強化 (シート) ----
+// サブ魂の選択の各魂から開く。メイン魂の札と同じく 1段 / まとめて (上限まで) を選び、結果はレベルアップの祝祭カード。
+// onChange = 強化した後・閉じた後 (選択シートの Lv・能力の差分を描き直す)
+export function openTrainSheet(uid, onChange = null) {
+  const G = G_();
+  if (!G || G.state !== "town") return null;
+  sfx("select");
+  const fill = (scroll) => {
+    const e = soulByUid(uid);
+    if (!e) return;
+    const cl = SOUL_CLASSES[e.clsKey] || {};
+    const cap = soulLevelCapOf(e);
+    const head = el("div", "sp-train-h");
+    head.appendChild(orb(e.clsKey, soulRankOf(e), 40));
+    const tx = el("div", "sp-train-t");
+    const nm = el("div", "sp-srow-n", soulLabel(e));
+    if (cl.glow) nm.style.color = cl.glow;
+    tx.appendChild(nm);
+    const lv = el("div", "sp-srow-m");
+    lv.appendChild(document.createTextNode("Lv"));
+    const lvN = el("span", "", String(e.level));
+    lvN.dataset.spLv = String(uid);
+    lv.appendChild(lvN);
+    lv.appendChild(document.createTextNode(` / ${cap} ・ ランク${soulRankOf(e)}`));
+    tx.appendChild(lv);
+    head.appendChild(tx);
+    scroll.appendChild(head);
+    const need = game.soulTrainCost ? game.soulTrainCost(e.level) : 0;
+    const prog = el("div", "sp-prog sp-lv");
+    if (e.level < cap) {
+      prog.appendChild(bar(Math.min(need, e.exp || 0), need, { tone: "soul" }));
+      prog.appendChild(el("span", "sp-prog-v", `✦${e.exp || 0} / ${need}`));
+    } else {
+      prog.appendChild(bar(1, 1, { tone: "gold" }));
+      prog.appendChild(el("span", "sp-prog-v cap", "上限"));
+    }
+    scroll.appendChild(prog);
+    const nxSkill = jobSkillTable(e.clsKey).find((t) => t.skill && t.lvl > e.level && SPELLS[t.skill]);
+    if (nxSkill) scroll.appendChild(el("div", "sp-note", `次の技: Lv${nxSkill.lvl}「${SPELLS[nxSkill.skill].name}」`));
+    const plan = trainPlan(e);
+    if (e.level < cap && (G.soulPts || 0) < plan.next) scroll.appendChild(el("div", "sp-short", `✦があと ${plan.next - (G.soulPts || 0)} 足りない ― 迷宮で敵を倒すと得られる`));
+    else scroll.appendChild(el("div", "sp-note", `所持 ✦${G.soulPts || 0}`));
+  };
+  const footer = () => {
+    const e = soulByUid(uid);
+    const cap = e ? soulLevelCapOf(e) : 0;
+    const items = [];
+    if (e && e.level < cap) {
+      const plan = trainPlan(e);
+      items.push({ label: "魂を強化", sub: `Lv${e.level} → ${e.level + 1}`, kind: "primary", cost: { kind: "soul", n: plan.next },
+        disabled: (G.soulPts || 0) < plan.next, onTap: (h) => doTrain(h, 1) });
+      if (plan.n >= 2) items.push({ label: plan.to >= cap ? "上限まで" : "まとめて", sub: `→ Lv${plan.to}`, kind: "secondary",
+        cost: { kind: "soul", n: plan.cost }, onTap: (h) => doTrain(h, Infinity) });
+    }
+    items.push({ label: "閉じる", kind: "ghost", onTap: (h) => h.close() });
+    return items;
+  };
+  const doTrain = (h, n) => {
+    const r = train(uid, n);
+    if (r && r.ok) { h.update({ footer: footer() }); if (onChange) onChange(); }
+  };
+  return sheet.open({ kind: "info", banner: "魂を強化", className: "sp-train-sheet",
+    body: (scroll) => fill(scroll), footer: footer(), onClose: () => { if (onChange) onChange(); } });
 }
 
 // ---- 宿し技を選ぶ (サブ魂) ----
