@@ -43,7 +43,7 @@ export default {
       fx: [{ t: "hurt", thorns: [0.2, 0.3, 0.4] }] },
     darkknightShikobami: { label: "死拒みの闇", lv: ["戦闘開始時50%で不屈 (致死をHP1で耐える) を得る。敵を倒すとHP5%回復", "戦闘開始時に必ず不屈を得る。敵を倒すとHP8%回復"],
       fx: [{ t: "start", chance: [0.5, 1], endure: true }, { t: "kill", hp: [0.05, 0.08] }] },
-    darkknightTeoiMashou: { label: "手負いの魔性", lv: ["HP50%以下の時、ATK+12%", "HP50%以下の時、ATK+18%", "HP50%以下の時、ATK+24%", "HP50%以下の時、ATK+30%"],
+    darkknightTeoiMashou: { label: "手負いの魔性", lv: ["HP50%以下の時、STR+12%", "HP50%以下の時、STR+18%", "HP50%以下の時、STR+24%", "HP50%以下の時、STR+30%"],
       fx: [{ t: "stat", mul: { atk: [0.12, 0.18, 0.24, 0.3] }, when: { selfLow: 0.5 } }] },
   },
 };

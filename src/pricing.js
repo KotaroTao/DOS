@@ -58,14 +58,13 @@ function statScore(it) {
   return s;
 }
 
-// 武器の能力補正 (scale) の点: その lv の品を使う頃の隊の能力値の目安 (基準の隊 baseline.js の実測からの概算) × 係数。
-// 攻撃力に直接足されるので ATK と同じ重みで数える
+// 新仕様の武器は係数を作る品質値で評価。旧形式の係数は想定能力値から換算する。
 const statAtLv = (lv) => 8 + 1.7 * lv;
 function scaleScore(it) {
   if (!it.scale) return 0;
-  let s = 0;
-  for (const k in it.scale) s += (it.scale[k] || 0) * statAtLv(it.lv || 1);
-  return s;
+  // 全武器の品質を同じ基準で比べる。参照能力の種類で値段を変えない。
+  if (it.weaponProfile) return it.weaponRating || 0;
+  return Object.values(it.scale).reduce((sum, v) => sum + v * statAtLv(it.lv || 1), 0);
 }
 
 // 属性・状態異常耐性・追加効果の上乗せ率 (能力値の点に掛ける)

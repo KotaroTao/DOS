@@ -19,7 +19,7 @@ export default {
     BRIGAND_ZENITSUBUTE: { name: "銭つぶて", mp: 3, kind: "phys", power: 0.55, acc: 0.8, flinchChance: 0.4, target: "enemy", desc: "銭を投げつけて怯ませる" },
     BRIGAND_TEBIKI:      { name: "義の手引き", mp: 3, kind: "buff", buff: { agi: 1.3 }, target: "ally", tech: true, desc: "仲間の手を引き、素早さを上げる" },
     BRIGAND_HAIKAGURA:   { name: "灰神楽", mp: 7, kind: "debuff", debuff: { hit: 0.8 }, target: "all-enemy", tech: true, desc: "灰を巻き上げ、敵全体の狙いを乱す" },
-    BRIGAND_KUJIKI:      { name: "挫き打ち", mp: 5, kind: "phys", power: 1.3, critBonus: 0.25, debuff: { atk: 0.85 }, target: "enemy", desc: "強者の腕を打ち、攻撃力を削ぐ" },
+    BRIGAND_KUJIKI:      { name: "挫き打ち", mp: 5, kind: "phys", power: 1.3, critBonus: 0.25, debuff: { atk: 0.85 }, target: "enemy", desc: "強者の腕を打ち、STRを削ぐ" },
     BRIGAND_AIKUCHI:     { name: "闇匕首", mp: 3, kind: "phys", power: 0.9, element: "dark", poison: { chance: 0.65, pct: 0.05 }, target: "enemy", desc: "闇に紛れ毒の匕首を突き立てる（闇）" },
     BRIGAND_TACHIMAWARI: { name: "大立ち回り", mp: 10, kind: "phys", power: 0.85, flinchChance: 0.2, target: "all-enemy", desc: "敵陣を駆け抜け、怯ませる" },
     BRIGAND_HODOKOSHI:   { name: "施しの刃", mp: 9, kind: "phys", power: 1.15, agiScale: 0.8, partyHeal: 12, target: "enemy", desc: "斬った隙に薬を撒き、味方を癒す" },
@@ -43,8 +43,8 @@ export default {
     // 仲間が倒されると義憤に燃える
     brigandGifun: {
       label: "義憤",
-      lv: ["味方が倒れるとATK×1.2 (3ターン)。倒れた味方がいる間、与ダメ+8%", "味方が倒れるとATK×1.25。倒れた味方がいる間、与ダメ+12%",
-        "味方が倒れるとATK×1.3。倒れた味方がいる間、与ダメ+16%", "味方が倒れるとATK×1.4。倒れた味方がいる間、与ダメ+20%"],
+      lv: ["味方が倒れるとSTR×1.2 (3ターン)。倒れた味方がいる間、与ダメ+8%", "味方が倒れるとSTR×1.25。倒れた味方がいる間、与ダメ+12%",
+        "味方が倒れるとSTR×1.3。倒れた味方がいる間、与ダメ+16%", "味方が倒れるとSTR×1.4。倒れた味方がいる間、与ダメ+20%"],
       fx: [
         { t: "fall", buff: { atk: [1.2, 1.25, 1.3, 1.4] }, dur: 3 },
         { t: "deal", v: [0.08, 0.12, 0.16, 0.2], when: { allyDown: true } },
@@ -69,7 +69,7 @@ export default {
     // 強者ほど容赦なく腕を挫く
     brigandUdekujiki: {
       label: "強きを挫く",
-      lv: ["主への与ダメ+6%。通常攻撃が当たると10%で敵のATK×0.85", "主への与ダメ+10%。通常攻撃で15%の腕挫き",
+      lv: ["主への与ダメ+6%。通常攻撃が当たると10%で敵のSTR×0.85", "主への与ダメ+10%。通常攻撃で15%の腕挫き",
         "主への与ダメ+14%。通常攻撃で20%の腕挫き", "主への与ダメ+18%。通常攻撃で25%の腕挫き"],
       fx: [
         { t: "deal", v: [0.06, 0.1, 0.14, 0.18], when: { boss: true } },

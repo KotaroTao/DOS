@@ -1,3 +1,4 @@
+import { prepareWeapon } from "../weaponpower.js";
 // アイテムカタログの集約窓口。
 // 各カテゴリファイル (weapons/armor/gear/misc) を統合し、ID重複を検査する。
 // アイテムを追加するときは各ファイルに追記するだけでよい (append-only)。
@@ -171,6 +172,7 @@ export const CATALOG_ITEMS = {};
 for (const list of [WEAPONS, SHIELDS, ARMORS, HEADS, FEET, HANDS, ACCS, MISC, USABLES, LEGENDS, EXCLUSIVES, LR_ITEMS, LAYER1_ITEMS, LAYER2_ITEMS, LAYER3_ITEMS, LAYER4_ITEMS, LAYER5_ITEMS, NAMED_ITEMS, RANK1_ITEMS, RANK2_ITEMS, RANK3_ITEMS, RANK4_ITEMS, RANK5_ITEMS, RANK6_ITEMS, RANK7_ITEMS, RANK8_ITEMS, RANK9_ITEMS, RANK10_ITEMS, RANK11_ITEMS, RANK12_ITEMS, RANK13_ITEMS, RANK14_ITEMS, RANK15_ITEMS, RANK16_ITEMS, RANK17_ITEMS, RANK18_ITEMS, RANK19_ITEMS, RANK20_ITEMS]) {
   for (const it of list) {
     if (CATALOG_ITEMS[it.id]) throw new Error("duplicate item id: " + it.id);
+    prepareWeapon(it);
     CATALOG_ITEMS[it.id] = it;
   }
 }

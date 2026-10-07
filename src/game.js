@@ -1269,11 +1269,12 @@ function partyPassiveLv(key) {
   return lv;
 }
 
-// 隊のパッシブ 踏破の地図 (cartography): 着地ごとに周囲 N マス (マンハッタン距離) の
+// 隊のパッシブ 踏破の地図 (cartography): 階の開始時だけ周囲3/4/5マス (マンハッタン距離) の
 // カードを自動で表にする。踏破済みにはしないので、踏めば通常どおりイベントは起きる。
 function revealByCartography() {
-  const rad = partyPassiveLv("cartography");
-  if (!rad) return false;
+  const lv = partyPassiveLv("cartography");
+  if (!lv || !G.board) return false;
+  const rad = Math.min(3, lv) + 2;
   let any = false;
   for (let dy = -rad; dy <= rad; dy++) {
     for (let dx = -rad; dx <= rad; dx++) {
@@ -1512,7 +1513,7 @@ function updateTopbar() {
   updateReturnBtn();
 }
 
-function newFloor() {
+function newFloor({ viaGate = false } = {}) {
   // ダンジョンが自前で持つ出現プール (pool=浅階 / deepPool=深階) を使う
   const cfg = activeCfg();
   G.board = makeBoard(G.floor, cfg);
@@ -1555,6 +1556,8 @@ function newFloor() {
   storyNewFloor(); // 物語マス: 師の手がかり (決まった迷宮の決まった階に、見つけるまで毎回置く)
   evNewFloor(); // 迷宮のイベント: 必須の手がかりの場所を確保してから配置する
   G.portalFound = false; // この階の帰還魔法陣はまだ発見していない
+  if (viaGate) arriveAtGate(); // 潜入地点を確定してから周囲を明らかにする
+  revealByCartography();
   if (G.run) G.run.floors = Math.max(G.run.floors || 1, G.floor);
   updateTopbar();
   log(`地下 ${G.floor} 階。伏せられた石札をめくり、下り階段を探せ。`, "sys");
@@ -4992,7 +4995,6 @@ function moveStep(nx, ny, onDone) {
         G.heroAnim = null;
         G.anim = null;
         G.px = nx; G.py = ny;
-        revealByCartography();
         renderBoard();
         resolveCell(cell);
         // 毒は1歩ごとに蝕む (戦闘/選択へ移っていなければ)
@@ -6072,8 +6074,8 @@ const evApi = {
       const c = G.board.cells[ny][nx];
       if (c.type === "empty" || c.cleared || c.type === "start") { dest = { x: nx, y: ny }; break; }
     }
-    if (dest) { G.px = dest.x; G.py = dest.y; G.board.cells[dest.y][dest.x].revealed = true; revealByCartography(); renderBoard(); autosave(true); return; }
-    G.px = sp.x; G.py = sp.y; revealByCartography(); renderBoard(); autosave(true);
+    if (dest) { G.px = dest.x; G.py = dest.y; G.board.cells[dest.y][dest.x].revealed = true; renderBoard(); autosave(true); return; }
+    G.px = sp.x; G.py = sp.y; renderBoard(); autosave(true);
     askDescend(st);
   },
   skipFloors(n) { G.floor += n; descend(); },
@@ -7152,8 +7154,8 @@ function startBattleMeasured(enemies, cell) {
   }
   // 属性の暴走 (異変) / 属性の奔流 (特別な階): 主・強敵も含め、すべての敵の属性を6属性からでたらめに選び直す (召喚された仲間も同じ)
   if (elemRandomHere()) for (const e of enemies) if (!e.metal) { e._elemRandom = true; e.element = randomElement(); }
-  // 迷宮の異変 (血の満潮など): 敵の強さ倍率は HP/ATK/VIT に加えて AGI にも掛ける
-  // (enemyScale は HP/ATK/VIT のみ。召喚で呼ばれた仲間も _agiMul を引き継ぐ)
+  // 迷宮の異変 (血の満潮など): 敵の強さ倍率は HP/STR/VIT に加えて AGI にも掛ける
+  // (enemyScale は HP/STR/VIT のみ。召喚で呼ばれた仲間も _agiMul を引き継ぐ)
   // 迷宮ごとの手直し (DUNGEON_TUNE) は強さだけ: 倍率で増減した戦果 (金貨・✦Soul) を元の曲線へ戻す
   const tn = inDungeon() && !abyssActive() ? activeCfg().tune : null;
   if (tn) {
@@ -9246,7 +9248,7 @@ function distributeBattleSoulExpMeasured(soulGot) {
   }
   recalcAllDolls({ levelUp: true });
   // メンバーごとに「レベルアップ(上昇ステータス付き)→新規スキル」をポップアップ用キューへ
-  const STAT_LABEL = { maxhp: "HP", maxmp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
+  const STAT_LABEL = { maxhp: "HP", maxmp: "MP", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
   for (const m of G.party) {
     if (!m || !m.alive) continue;
     const ps = m.primary != null ? soulByUid(m.primary) : null;
@@ -9769,10 +9771,10 @@ function partyPortrait(p) {
 
 // 戦闘中の発動効果バッジ: 能力ごとに 強化(▲)/弱体(▼) を段階数ぶん並べ、残りターンを添える。
 const BUFF_STAT_ICON = BUFF_KANJI; // 絵文字は使わず、敵のピルと同じ漢字の印
-const BUFF_STAT_LABEL = { atk: "ATK", vit: "VIT", agi: "AGI", pie: "PIE", ...BUFF_NAME };
+const BUFF_STAT_LABEL = { atk: "STR", vit: "VIT", agi: "AGI", pie: "PIE", ...BUFF_NAME };
 function buffBadges(p) {
   if (G.state !== "combat" || !p.alive || !p.effects || !p.effects.length) return "";
-  // (能力, 方向) ごとに集約: 段数 (ATK〜PIE は −3〜+3 の段) と最短残ターンを出す
+  // (能力, 方向) ごとに集約: 段数 (STR〜PIE は −3〜+3 の段) と最短残ターンを出す
   let html = "";
   for (const g of buffGroups(p.effects)) {
     const arrow = (g.up ? "▲" : "▼").repeat(Math.min(3, g.stages));
@@ -12825,9 +12827,8 @@ function enterDungeon(mutatorId, startFloor = 1) {
   G.state = "board";
   playBgm(fieldBgm());
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
-  newFloor();
   const viaGate = G.floor > 1;
-  if (viaGate) arriveAtGate();
+  newFloor({ viaGate });
   questProgress("floor", G.floor); // 帰還魔法陣から潜り始めても、その階に着いたと数える
   const mu = mutDef();
   if (mu) log(`異変「${mu.name}」の中を行く。${mu.gain}。`, "win");
@@ -14290,7 +14291,7 @@ function clearSave() { if (testPlayActive) return; try { localStorage.removeItem
 // 個体ごとの状態 (未鑑定・鑑定失敗の印など) は残す。旧セーブの装備も新しいレア度と絵になる
 const ITEM_STAT_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp", "crit"];
 const ITEM_TMPL_KEYS = ["name", "desc", "slot", "lv", "rank", "r20", "rar", "lr", "forJob", "exclusive", "classes", "cat",
-  "twoHanded", "sk", "weight", "price", "art", "palette", "eAtk", "eDef", "aRes", "bRes", "onHit", "scale", "magic", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
+  "twoHanded", "sk", "weight", "price", "art", "palette", "eAtk", "eDef", "aRes", "bRes", "onHit", "scale", "weaponProfile", "weaponRating", "magic", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
 function reflattenItemStats() {
   const visited = new Set();
   function refresh(it) {
@@ -14392,7 +14393,7 @@ function loadGame() {
     if (o.l2_10) fl.sewerMap = true;
     if (o.l3_10) fl.temper = true;
   }
-  // 旧ステータス体系のセーブを六大ステ (ATK/VIT/AGI/INT/PIE/LUK) へ移行
+  // 旧ステータス体系のセーブを六大ステ (STR/VIT/AGI/INT/PIE/LUK) へ移行
   // (battle の敵の mon はこの後 MONSTERS の生定義に差し替えられるため触れても無害)
   migrateLegacyStats(snap);
   reflattenItemStats();

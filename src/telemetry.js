@@ -229,7 +229,7 @@ function slot(where) {
   return d;
 }
 
-// 出撃中の人業1人 → [名前, 職, ランク, Lv, 列, 最大HP, 最大MP, ATK, VIT, AGI, INT, PIE, LUK, 生存]
+// 出撃中の人業1人 → [名前, 職, ランク, Lv, 列, 最大HP, 最大MP, STR, VIT, AGI, INT, PIE, LUK, 生存]
 function dollRow(p, i) {
   return [p.name || "", p.jobKey || "", p.jobRank || 0, p.jobLv || 1, i < 3 ? "前" : "後",
     p.maxhp || 0, p.maxmp || 0, p.atk || 0, p.vit || 0, p.agi || 0, p.int || 0, p.pie || 0, p.luk || 0, p.alive ? 1 : 0];
@@ -477,7 +477,7 @@ export function tlExportText() {
     for (const s of tlSummary(history.d)) { lines.push(s.head); for (const l of s.lines) lines.push("  " + l); }
   }
   lines.push("");
-  lines.push("隊の列: 名前,職,ランク,Lv,列,最大HP,最大MP,ATK,VIT,AGI,INT,PIE,LUK,生存 / base=基準AGI");
+  lines.push("隊の列: 名前,職,ランク,Lv,列,最大HP,最大MP,STR,VIT,AGI,INT,PIE,LUK,生存 / base=基準AGI");
   lines.push("戦闘の鍵: c戦闘 w勝 fl逃 l全滅 rラウンド pre先制 amb奇襲 ambR/ambX=奇襲のうち抽選/出来事・待ち伏せ ambP=抽選の奇襲率×1000の合計 pa/pe/pp=味方の物理 試行/回避された/見切られた " +
     "ea/ee/ep=敵の物理 同 of/op=手番で味方が先だった組/総組 ft/fo/fs=逃走 試行/成功/封じ fp/fpn=逃走を試みた時の成功率×1000の合計/その試行数 dd/dt=与/被ダメ " +
     "hp0/hp1=戦闘前後の隊HP割合×1000の合計 pAgi/eAgi/eAgiAvg=隊平均/敵最大/敵平均AGI×10の合計 en=敵数の合計");

@@ -45,7 +45,7 @@ export function previewStats(doll, equip, recalcFn = recalcDefault) {
     maxhp: fake.maxhp, maxmp: fake.maxmp, critBonus: fake.critBonus || 0,
     elemAtk: fake.elemAtk || null, elemDef: fake.elemDef || null, breathRes: fake.breathRes || 0,
     ailRes: fake.ailRes || null, onHit: fake.onHit || null, // 状態異常耐性・追加効果 (itemview の gearScore が数える)
-    power: attackPower(fake), weapon: equip.weapon || null, shield: equip.shield || null, // 攻撃力 (ATK + 武器の能力補正) と武器・盾
+    power: attackPower(fake), weapon: equip.weapon || null, shield: equip.shield || null, // 攻撃力 (参照能力 × 武器の係数) と武器・盾
   };
 }
 

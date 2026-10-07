@@ -27,7 +27,7 @@ import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVi
 import {
   planBestEquip, applyPlan, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isMeleeWeapon,
 } from "../autoequip.js";
-import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, scaleText, useWhere, compareUse } from "../items.js";
+import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, useWhere, compareUse } from "../items.js";
 import {
   SOUL_CLASSES, JOB_GEAR, dollSprite, dollBust, jobBust, jobSprite, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulLabel, soulRankLeft, soulByUid,
   orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs, isAutoOff, setAutoOff,
@@ -69,14 +69,14 @@ const uniq = (arr) => [...new Set(arr.filter(Boolean))];
 
 // 六大能力のくわしい説明 (能力の区分で開く)
 const ATTR_DESC = {
-  atk: "物理攻撃のダメージを決める力。武器による通常攻撃や物理スキルの威力が上がる。",
+  atk: "筋力。長剣・斧・槌・槍などの攻撃力を伸ばす。攻撃力は武器が参照する能力と補正係数で決まり、通常攻撃や物理技の威力を決める。",
   vit: "受ける物理ダメージを軽減する頑強さ。高いほど打たれ強くなる。",
-  agi: "行動の速さ。高いほど戦闘で先に動け、敵の攻撃を回避しやすくなる。",
-  int: "攻撃呪文の威力を決める知力。火球など攻撃魔法のダメージが上がる。",
-  pie: "回復呪文の効果を決める信仰心。HPを回復する魔法の回復量が上がる。",
+  agi: "行動の速さ。行動順・回避に加え、弓・短剣・刀の攻撃力を伸ばす。",
+  int: "知力。攻撃呪文に加え、魔杖・魔法武器の攻撃力を伸ばす。",
+  pie: "信仰心。回復呪文に加え、聖杖・聖武器の攻撃力を伸ばす。",
   luk: "会心（クリティカル）の発生率を左右する幸運。高いほど大ダメージが出やすい。",
 };
-const DLABEL = { power: "攻撃力", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP" };
+const DLABEL = { power: "攻撃力", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP" };
 
 // ================= 肖像 (隊の絵の差し替え点) =================
 // 人業の肖像を、ドット1つを整数倍で描いた canvas で返す (image-rendering: pixelated)。
@@ -234,7 +234,7 @@ function bestWearer(item) {
 }
 
 // ================= 装備する (元に戻すつき) =================
-// 増減を表示する能力のキー (攻撃力と同じだけ動いた ATK は省く)
+// 増減を表示する能力のキー (攻撃力と同じだけ動いた STR は省く)
 function deltaKeys(delta) {
   return Object.keys(DLABEL).filter((k) => delta[k] && typeof delta[k] === "number" && !(k === "atk" && delta.power === delta.atk));
 }
@@ -608,7 +608,7 @@ function openAutoEquipResult(plan, before, undo) {
     }
     card.appendChild(list);
     const st = el("div", "pt-ae-st");
-    // 攻撃力 (ATK + 武器の能力補正) を先頭に。ATK は攻撃力と同じだけ動いた時は省く
+    // 攻撃力 (参照能力 × 武器の係数) を先頭に。STR は攻撃力と同じだけ動いた時は省く
     const pairs = [["power", "power"], ["atk", "atk"], ["vit", "vit"], ["agi", "agi"], ["int", "int"], ["pie", "pie"], ["luk", "luk"], ["hp", "maxhp"], ["mp", "maxmp"]];
     for (const [lab, k] of pairs) {
       const v0 = r.b[k] || 0, v1 = r.a[k] || 0;
@@ -1753,10 +1753,10 @@ function statsSeg(root, d) {
       info.appendChild(el("div", "pt-statx-d", ATTR_DESC[k] || ""));
       const base = Math.round((d.base && d.base[k]) || 0), tot = Math.round(d[k] || 0);
       info.appendChild(el("div", "pt-statx-v", `いま ${tot}（魂 ${base}${tot - base ? ` ・ 装備 ${tot - base > 0 ? "+" : ""}${tot - base}` : ""}）`));
-      // 攻撃力 = ATK + 武器の能力補正 (補正のある武器の時だけ内訳を出す)
-      if (k === "atk" && d.wScale) {
+      // 攻撃力の内訳は、武器が参照する能力の詳細と素手のSTRに示す
+      if (d.wScale ? d.wScale[k] : k === "atk") {
         const pw = attackPower(d);
-        info.appendChild(el("div", "pt-statx-v", `攻撃力 ${pw}（ATK ${tot} ＋ 武器の能力補正 ${scaleText(d.wScale)} = ${pw - tot >= 0 ? "+" : ""}${pw - tot}）`));
+        info.appendChild(el("div", "pt-statx-v", `攻撃力 ${pw} = ${d.wScale ? Object.entries(d.wScale).map(([stat, rate]) => `${ATTR_LABEL[stat]} ${d[stat]}×${rate}`).join(" ＋ ") : `STR ${d.atk}（素手）`}`));
       }
       return;
     }
@@ -1766,6 +1766,8 @@ function statsSeg(root, d) {
     const fact = (k, v, cls) => { const f = el("div", "pt-fact" + (cls ? " " + cls : "")); f.appendChild(el("span", "pt-fact-k", k)); f.appendChild(el("span", "pt-fact-v", v)); info.appendChild(f); };
     fact("HP", `${d.alive ? d.hp : 0}/${d.maxhp}`);
     fact("MP", `${d.mp}/${d.maxmp}`);
+    fact("攻撃力", String(attackPower(d)));
+    fact("参照", d.wScale ? Object.keys(d.wScale).map(k => ATTR_LABEL[k]).join("＋") : "STR（素手）");
     fact("状態", ail, ail === "正常" ? "" : "bad");
     fact("会心", `+${Math.round((d.critBonus || 0) * 100)}%`);
     fact("属性攻", elemStatShort(d.elemAtk));

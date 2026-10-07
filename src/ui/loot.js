@@ -175,8 +175,8 @@ export function nameSpan(it, cls = "wpc-nm") {
 export function deltaEl(delta, { empty = "変化なし" } = {}) {
   const w = el("span", "ui-delta wpc-delta");
   if (!delta) { w.appendChild(el("span", "eq", empty)); return w; }
-  // 攻撃力 (ATK + 武器の能力補正) を先頭に。ATK は攻撃力と同じだけ動いた時は省く
-  const L = [["power", "攻撃力"], ["atk", "ATK"], ["vit", "VIT"], ["agi", "AGI"], ["int", "INT"], ["pie", "PIE"], ["luk", "LUK"], ["hp", "HP"], ["mp", "MP"]];
+  // 攻撃力 (参照能力 × 武器の係数) を先頭に。STR は攻撃力と同じだけ動いた時は省く
+  const L = [["power", "攻撃力"], ["atk", "STR"], ["vit", "VIT"], ["agi", "AGI"], ["int", "INT"], ["pie", "PIE"], ["luk", "LUK"], ["hp", "HP"], ["mp", "MP"]];
   let any = false;
   for (const [k, lb] of L) {
     const v = delta[k];
@@ -390,7 +390,7 @@ export function canEquipReason(d, it, opts) {
 function shortDelta(delta) {
   const w = el("span", "wpc-sd");
   if (!delta) { w.appendChild(el("span", "eq", "変化なし")); return w; }
-  const L = { power: "攻撃力", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP" };
+  const L = { power: "攻撃力", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK", hp: "HP", mp: "MP" };
   const list = Object.keys(L).filter((k) => delta[k] && typeof delta[k] === "number" && !(k === "atk" && delta.power === delta.atk)).map((k) => [k, delta[k]]);
   if (delta.crit) list.push(["crit", delta.crit]);
   const lvOf = (e) => (e && e.el ? Math.min(2, e.lv || 1) : 0);

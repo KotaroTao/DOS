@@ -1,3 +1,4 @@
+import { WEAPON_PROFILES } from "../weaponpower.js";
 import { RESIST_LABEL } from "../resistance.js";
 // ===== 品・スキルの表示まわり (game.js から移設した純粋な表示ヘルパ) =====
 // 状態を変えない。G が要るものは引数で受け取るか、ctx の game.G を読む。
@@ -12,10 +13,10 @@ import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByNam
 import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, scaleText, useLines } from "../items.js";
 import { HERO, spriteCanvas, crispCanvas } from "../sprites.js";
 
-// 魂のステータス寄与を「HP+7 ATK+2.4 …」形式で列挙 (0は省略)
+// 魂のステータス寄与を「HP+7 STR+2.4 …」形式で列挙 (0は省略)
 export function soulStatText(st, sep = " ") {
   const keys = ["hp", "mp", "atk", "vit", "agi", "int", "pie", "luk"];
-  const lbl = { hp: "HP", mp: "MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
+  const lbl = { hp: "HP", mp: "MP", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
   return keys.filter((k) => st[k]).map((k) => `${lbl[k]}+${st[k]}`).join(sep);
 }
 
@@ -64,7 +65,7 @@ export function elemStatShort(e) { return e && e.el ? `${elemName(e.el)}${e.lv >
 
 // ===== スキル詳細 =====
 export const SPELL_KIND_LABEL = { atk: "攻撃呪文", heal: "回復呪文", phys: "物理技", buff: "支援", debuff: "弱体", sleep: "状態異常", cure: "治療", mana: "魔力譲渡", escape: "逃走", field: "迷宮の術" };
-// 能力の倍率キーの呼び名 (ATK/VIT… 以外の効果)
+// 能力の倍率キーの呼び名 (STR/VIT… 以外の効果)
 export const BUFF_NAME = { hit: "命中率", int: "INT", pie: "PIE", omen: "大技の予兆", taunt: "挑発", shield: "仁王立ち", ctr: "反撃の構え", charge: "溜め", regen: "リジェネ", seal: "特技封じ", wardB: "ブレス避け", wardS: "呪文避け",
   r_fire: "火耐性", r_water: "水耐性", r_wind: "風耐性", r_earth: "土耐性", r_light: "光耐性", r_dark: "闇耐性", r_all: "全属性耐性" };
 export const SPELL_TARGET_LABEL = { enemy: "敵単体", "all-enemy": "敵全体", ally: "味方単体", "all-ally": "味方全体", self: "自分" };
@@ -250,7 +251,7 @@ export function skillDetailLines(sp) {
   if (sp.execute) lines.push(`HP30%以下の敵には ×${sp.execute}（とどめ）`);
   if (sp.prey) lines.push(`${raceList(sp.prey.races)}に ×${sp.prey.mul}`);
   if (sp.kind === "atk" && sp.critBonus) lines.push(`呪文会心率 +${pct(sp.critBonus)}（会心は×1.5）`);
-  // ATK・VIT・AGI・INT・PIE は段 (buffstage.js) で示す: 「ATK +2段 (×1.5)」
+  // STR・VIT・AGI・INT・PIE は段 (buffstage.js) で示す: 「STR +2段 (×1.5)」
   const fx = (obj) => Object.entries(obj).map(([k, v]) => {
     const nm = ATTR_LABEL[k] || BUFF_NAME[k] || k.toUpperCase();
     if (!STAGED.has(k)) return `${nm} ×${v}`;
@@ -291,7 +292,7 @@ export function skillDetailLines(sp) {
   if (sp.grantEndure) lines.push("対象に「致死ダメージをHP1で耐える」を付与（1戦闘1回）");
   if (sp.grantBarrier) lines.push(`魔障壁${sp.grantBarrier}回分（ブレス・呪文の被ダメ半減）を付与`);
   if (sp.debuffAll) lines.push(`さらに敵全体を弱体: ${fx(sp.debuffAll)}`);
-  // 効果の持続ターン数。ATK〜PIE の段は強化と弱体で打ち消し合い、±3段で止まる (主・精鋭への弱体は −2段まで・持続 −1)
+  // 効果の持続ターン数。STR〜PIE の段は強化と弱体で打ち消し合い、±3段で止まる (主・精鋭への弱体は −2段まで・持続 −1)
   if (sp.dur && (sp.buff || sp.debuff || sp.debuffAll || sp.vuln || sp.taunt || sp.shield || sp.stance || sp.charge)) lines.push(`効果は ${sp.dur} ターン持続`);
   if ([sp.buff, sp.debuff, sp.debuffAll].some((o) => o && Object.keys(o).some((k) => STAGED.has(k)))) lines.push("能力の段は強化と弱体で打ち消し合い、±3段で止まる（主・精鋭への弱体は −2段まで・持続 −1）");
   if (sp.strip) lines.push("敵の大技の予兆（溜め）も打ち消せる");
@@ -390,7 +391,7 @@ export function ailDetailLines(it) {
 // ===== 特殊効果 (eff = 戦闘効果 / mult = % 補正) =====
 // items.js recalc が装備ごとに集め、combat.js (戦闘) と game.js (金貨・✦Soul) が読む。
 // 表記は「何が・どれだけ・いつ」を数字で言い切る (combat.js の式と合わせる。式を変えたらここも)
-const MULT_LABEL = { hp: "最大HP", mp: "最大MP", atk: "ATK", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
+const MULT_LABEL = { hp: "最大HP", mp: "最大MP", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
 const MULT_ORDER = ["hp", "mp", "atk", "vit", "agi", "int", "pie", "luk"];
 // 効果の名 (短い表記) と くわしい説明
 const EFF_INFO = {
@@ -407,7 +408,7 @@ const EFF_INFO = {
   soulUp: { short: (v) => `✦Soul+${pct(v)}`, line: (v) => `魂導: 迷宮で得る✦Soulが${pct(v)}増える（隊の中で一番高いものだけ効く）` },
   barrier: { short: (v) => `障壁${v}回`, line: (v) => `障壁: 戦闘のはじめに、受けるダメージを半分にする障壁を${v}回ぶん張る` },
 };
-// % 補正 (mult) を「最大HP・ATK +20%」の形にまとめる (同じ率は一つに束ねる)
+// % 補正 (mult) を「最大HP・STR +20%」の形にまとめる (同じ率は一つに束ねる)
 function multGroups(m) {
   const by = new Map();
   for (const k of MULT_ORDER) {
@@ -450,7 +451,7 @@ export function effDetailLines(it) {
 export function specialShort(it) {
   if (!it || it.unidentified) return "";
   const parts = [...effStatParts(it)];
-  if (it.scale) parts.push(`補正 ${scaleText(it.scale)}`);
+  if (it.scale) parts.push(`参照 ${scaleText(it.scale)}`);
   if (it.magic) parts.push("魔法属性");
   const ea = elemStatText("攻撃", it.eAtk), ed = elemStatText("防御", it.eDef);
   if (ea) parts.push(ea);
@@ -468,7 +469,7 @@ export function specialLines(it) {
 export function weaponTraitLines(it) {
   const L = [];
   if (!it || it.slot !== "weapon") return L;
-  if (it.scale) L.push(`能力補正: ${scaleText(it.scale)}（攻撃力 = ATK + ${scaleText(it.scale).replace(/ /g, " + ")}。物理技もこの攻撃力で伸びる）`);
+  if (it.scale) L.push(`${WEAPON_PROFILES[it.weaponProfile]?.label || "能力参照"}: 攻撃力 = ${scaleText(it.scale).replace(/ /g, " + ")}（通常攻撃・物理技に適用）`);
   if (it.magic) L.push("攻撃属性: 魔法（通常攻撃の威力は攻撃力のまま、物理耐性ではなく魔法耐性で判定され、魔法弱点を突く。物理技は物理のまま）");
   return L;
 }
@@ -478,11 +479,11 @@ export function statLines(it) {
   if (it && it.unidentified) return "未鑑定 — 鑑定が必要";
   const parts = [];
   const f = (label, v) => { if (v) parts.push(`${label} ${v > 0 ? "+" : ""}${v}`); };
-  f("ATK", it.atk); f("VIT", it.vit); f("AGI", it.agi);
+  f("STR", it.atk); f("VIT", it.vit); f("AGI", it.agi);
   f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
   f("HP", it.hp); f("MP", it.mp);
   if (it.crit) parts.push(`会心 +${Math.round(it.crit * 100)}%`);
-  if (it.scale) parts.push(`補正 ${scaleText(it.scale)}`);
+  if (it.scale) parts.push(`参照 ${scaleText(it.scale)}`);
   if (it.magic) parts.push("魔法属性");
   const ea = elemStatText("攻撃", it.eAtk);
   const ed = elemStatText("防御", it.eDef);
@@ -512,7 +513,7 @@ export function equipPreviewDelta(p, cand) {
   const fake = { base: p.base, equip: eq, hp: p.hp, mp: p.mp };
   recalc(fake);
   return {
-    power: attackPower(fake) - attackPower(p), // 攻撃力 (ATK + 武器の能力補正)
+    power: attackPower(fake) - attackPower(p), // 攻撃力 (参照能力 × 武器の係数)
     weapon: (eq.weapon || null) !== (p.equip.weapon || null),
     // 持ち方の付け替え (両手武器に持ち替えて盾が外れる)。武器の良し悪しを攻撃力だけでなく盾の能力とも比べる
     handSwap: (eq.weapon || null) !== (p.equip.weapon || null) && (eq.shield || null) !== (p.equip.shield || null),
@@ -542,12 +543,12 @@ export function equipCompareEl(p, cand) {
   row.appendChild(el("span", "eq-cd-lab", "装備すると"));
   let any = false;
   if (d) {
-    // 攻撃力 (基本攻撃力 ATK + 武器の能力補正)。ATK は攻撃力と増減が違う時だけ併記する
+    // 攻撃力 (参照能力 × 武器の係数)。STR は攻撃力と増減が違う時だけ併記する
     if (d.power) {
       any = true;
       row.appendChild(el("span", "eq-cd-seg " + (d.power > 0 ? "up" : "down"), `攻撃力 ${d.power > 0 ? "▲+" + d.power : "▼" + d.power}`));
     }
-    for (const [label, k] of [["ATK", "atk"], ["VIT", "vit"], ["AGI", "agi"], ["INT", "int"], ["PIE", "pie"], ["LUK", "luk"], ["HP", "hp"], ["MP", "mp"]]) {
+    for (const [label, k] of [["STR", "atk"], ["VIT", "vit"], ["AGI", "agi"], ["INT", "int"], ["PIE", "pie"], ["LUK", "luk"], ["HP", "hp"], ["MP", "mp"]]) {
       const v = d[k];
       if (!v || (k === "atk" && v === d.power)) continue;
       any = true;
@@ -612,19 +613,19 @@ export function gearWeights(doll) {
   W.mp = (st.mp || 0) >= 1.5 ? 0.15 : 0.03;
   return (GEAR_W_CACHE[key] = W);
 }
-// ATK の代わりに攻撃力 (ATK + 武器の能力補正) の増減を数える。武器の付け替えは攻撃力の高い順が最優先
+// STR の代わりに攻撃力 (参照能力 × 武器の係数) の増減を数える。武器の付け替えは攻撃力の高い順が最優先
 // (攻撃力1 = WEAPON_POWER_W 点。ほかの能力は攻撃力が同じ時の決め手になる)。
 // ただし盾が付け外しされる持ち替え (片手+盾 ⇄ 両手武器、handSwap) は、攻撃力と盾の能力を同じ物差しで比べる:
-// 全体を「攻撃力1 = WEAPON_POWER_W 点」に引き伸ばす (盾の VIT などはその職の重み ÷ ATK の重み で攻撃力に換算)
-// 攻撃力を最優先にするのは、打撃で戦う職だけ (weaponShare)。術者 (INT・PIE が ATK より伸びる職) は
+// 全体を「攻撃力1 = WEAPON_POWER_W 点」に引き伸ばす (盾の VIT などはその職の重み ÷ STR の重み で攻撃力に換算)
+// 攻撃力を最優先にするのは、打撃で戦う職だけ (weaponShare)。術者 (INT・PIE が STR より伸びる職) は
 // 技の大半が INT・PIE で伸びるので、武器も能力の重みどおりに比べる (短剣の攻撃力 +12 で INT −22 を勧めない)
 const WEAPON_POWER_W = 50;
-// 武器の攻撃力を最優先する度合い 0〜1: ATK の重みが INT・PIE の重み以上なら 1、その 85% 以下なら 0、間は比例
+// 武器の攻撃力を最優先する度合い 0〜1: STR・AGIの重みとINT・PIEを比較（弓・短剣も物理職として扱う）
 // (聖騎士・審問官のような打撃と祈りの両刀は半ばほど)
 export function weaponShare(W) {
   const mag = Math.max(W.int || 0, W.pie || 0);
   if (!mag) return 1;
-  return Math.max(0, Math.min(1, ((W.atk || 0) / mag - 0.85) / 0.15));
+  return Math.max(0, Math.min(1, (Math.max(W.atk || 0, W.agi || 0) / mag - 0.85) / 0.15));
 }
 export function gearScore(doll, delta) {
   if (!delta) return 0;
@@ -681,10 +682,10 @@ export function detailLines(it) {
     // 命中/ダイス/攻撃回数 は戦闘で使われないため表示しない
     if (it.slot === "weapon") L.push(`射程: ${RANGE_LABEL[weaponRange(it)]}`);
     if (it.slot === "weapon") L.push(handLine(it));
-    // 六大ステ (ATK/VIT/AGI/INT/PIE/LUK) への補正
+    // 六大ステ (STR/VIT/AGI/INT/PIE/LUK) への補正
     const mod = [];
     const f = (label, v) => { if (v) mod.push(`${label}${v >= 0 ? "+" : ""}${v}`); };
-    f("ATK", it.atk); f("VIT", it.vit); f("AGI", it.agi);
+    f("STR", it.atk); f("VIT", it.vit); f("AGI", it.agi);
     f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
     f("HP", it.hp); f("MP", it.mp);
     if (it.crit) mod.push(`会心+${Math.round(it.crit * 100)}%`);

@@ -16,7 +16,7 @@ export default {
   skills: {
     // Lv15 の固有技: 闇の呪弾で撃ち、魔力をかすめ取る
     ARCTHIEF_KASUMEJUDAN: { name: "かすめ呪弾", mp: 5, kind: "atk", power: 16, element: "dark", mpDrain: 0.2, target: "enemy", desc: "闇の呪弾で撃ち、敵の魔力をかすめ取る" },
-    // INT でも伸びる魔刃 (共通の冥刃は ATK だけで伸び、INT型の魔盗賊に合わない)
+    // INT でも伸びる魔刃 (共通の冥刃は STR だけで伸び、INT型の魔盗賊に合わない)
     ARCTHIEF_MAREIJIN:   { name: "魔霊刃", mp: 10, kind: "phys", power: 1.7, intScale: 0.5, element: "dark", mpDrain: 0.2, target: "enemy", desc: "魔力をまとった冥い刃で斬り、魔力を奪う（INTでも伸びる）" },
     ARCTHIEF_KASUMEBA:     { name: "かすめ魔刃", mp: 4, kind: "phys", power: 1.1, intScale: 0.5, element: "dark", mpDrain: 0.2, target: "enemy", desc: "闇の刃で斬り、魔力をかすめ取る（闇）" },
     ARCTHIEF_NUSUMIMI:     { name: "盗み見", mp: 3, kind: "debuff", vuln: { all: 0.85 }, target: "enemy", desc: "術式を盗み見て、全属性の守りを崩す" },
