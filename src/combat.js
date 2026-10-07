@@ -209,6 +209,12 @@ export function attackSpellPower(sp, stat) {
   const power = Math.max(0, sp.power || 0);
   return power + Math.max(0, stat || 0) * (0.25 + Math.min(140, power) / (sp.target === "all-enemy" ? 60 : 40));
 }
+// 重力の基本ダメージ。上限を持つ技だけ有効INTで制限し、強化・耐性は後から適用する。
+function gravityDamage(sp, intv, t) {
+  const ratio = t.hp * sp.gravity * (t.boss ? 0.3 : 1);
+  const cap = sp.gravityIntCap != null ? Math.max(0, intv) * sp.gravityIntCap : Infinity;
+  return Math.max(1, Math.round(Math.min(ratio, cap)));
+}
 // 回復も上位の術に成長の余地を持たせる。初期ヒール(power14)の係数は従来の0.5。
 export function healingPower(power, pie) {
   return (power || 0) + Math.max(0, pie || 0) * (0.5 + Math.max(0, Math.min(120, power || 0) - 14) / 160);
@@ -2348,7 +2354,7 @@ export class Battle {
     if (!actor || !sp || !t || !t.alive) return 0;
     if (isMetal(t)) return 0;
     let dmg;
-    if (sp.gravity) dmg = Math.max(1, t.hp * sp.gravity * (t.boss ? 0.3 : 1));
+    if (sp.gravity) dmg = gravityDamage(sp, (actor.int || 0) * this._bm(actor, "int"), t);
     else {
       const intv = Math.max((actor.int || 0) * this._bm(actor, "int"), isFaithSpell(sp) ? (actor.pie || 0) * this._bm(actor, "pie") : 0);
       const aLv = (actor.elemAtk && actor.elemAtk.el === sp.element) ? Math.max(1, actor.elemAtk.lv) : 1;
@@ -2479,8 +2485,8 @@ export class Battle {
         if (!t.alive) continue;
         let dmg, em = 1, magWeak = false;
         if (sp.gravity) {
-          // 重力: 今のHPの割合を削る (属性・INT・会心に依らない)。主には3割しか効かない
-          dmg = Math.max(1, Math.round(t.hp * sp.gravity * (t.boss ? 0.3 : 1)));
+          // 重力: 主には3割。属性・会心に依らず、技ごとの有効INT上限を先に適用する
+          dmg = gravityDamage(sp, intv, t);
         } else {
           // 呪文の属性は Lv1 扱い。同属性の属性攻撃を装備していれば、そのレベルで増幅される
           const aLv = (actor.elemAtk && actor.elemAtk.el === sp.element) ? Math.max(1, actor.elemAtk.lv) : 1;

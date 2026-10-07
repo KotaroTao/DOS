@@ -85,7 +85,7 @@ export const JOBKIT = {
 // ---- 検証 (読み込み時に壊れた定義を弾く) ----
 const SKILL_KEYS = new Set(("name mp kind target desc power hits scatter critBonus element acc pierce intScale agiScale vitScale pieScale " +
   "desperate execute prey debuff vuln seal poison para sleepChance flinchChance strip charm confuse instakill steal plunder drain mpDrain " +
-  "hpCost gravity partyHeal buff taunt shield stance charge regen grantBarrier grantEndure cure purge revive revivePct dur debuffAll tech quiet " +
+  "hpCost gravity gravityIntCap partyHeal buff taunt shield stance charge regen grantBarrier grantEndure cure purge revive revivePct dur debuffAll tech quiet " +
   "ward faith float sense mpPct").split(" "));
 const KINDS = new Set(["phys", "atk", "heal", "cure", "buff", "debuff", "mana", "sleep", "escape", "field"]);
 const TARGETS = new Set(["enemy", "all-enemy", "ally", "all-ally", "self"]);
@@ -114,6 +114,7 @@ function checkSkill(job, key, sp) {
   if (Array.isArray(sp.cure) && (!sp.cure.length || sp.cure.some(k => !["poison", "paralyze", "sleep", "charm", "confuse", "stone"].includes(k)))) fail(job, key, "cure は治療する状態異常の配列");
   if (sp.ward) for (const s in sp.ward) if (!["breath", "spell"].includes(s) || !(sp.ward[s] > 0 && sp.ward[s] < 1)) fail(job, key, `ward.${s}`);
   if (sp.faith && sp.kind !== "atk") fail(job, key, "faith は攻撃呪文だけ");
+  if (sp.gravityIntCap != null && (sp.kind !== "atk" || !(sp.gravity > 0) || !Number.isFinite(sp.gravityIntCap) || sp.gravityIntCap <= 0)) fail(job, key, "gravityIntCap は重力呪文の正の有限数だけ");
   if (sp.kind === "field" && !sp.float && !["enemy", "chest", "stairs"].includes(sp.sense)) fail(job, key, "迷宮で唱える技には効果 (float / sense) が必要");
 }
 function checkPerk(job, key, pk) {

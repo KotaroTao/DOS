@@ -104,7 +104,35 @@ assert(attackSpellPower({power:100,target:'enemy'},200)-attackSpellPower({power:
 assert(attackSpellPower({power:100,target:'enemy'},100)>attackSpellPower({power:100,target:'all-enemy'},100));
 assert.equal(healingPower(14,100),64);
 assert(healingPower(60,200)-healingPower(60,100)>healingPower(14,200)-healingPower(14,100));
-for(const key of ['HALITO','TILTOWAIT','KYOKUDAI','HOLYRAY','GRAVITY']){
+// 虚重: 上限・現在HP・主補正と、上限の後に掛かる強化/耐性を実処理と見積もりで確認。
+for(const c of [
+ {hp:976,expected:225}, {hp:400,expected:120},
+ {hp:2301,boss:true,expected:207}, {hp:3810,boss:true,expected:225},
+ {hp:10000,intStage:2,expected:338}, {hp:10000,intStage:-1,expected:180},
+ {hp:10000,perks:true,expected:270}, {hp:10000,magResist:50,expected:113},
+ {hp:10000,guard:.5,expected:113}, {hp:10000,magResist:100,expected:0},
+ {hp:10000,int:0,expected:1}, {hp:10000,int:151,expected:227},
+]){
+ const a=actor(),t=foe();Object.assign(a,{int:c.int??150,hp:146,maxhp:146,mp:160,maxmp:160,passiveMap:c.perks?{arcanistChikei:1,arcanistJushoku:1}:{}});
+ const b=new Battle([a],[t],()=>{});
+ Object.assign(t,{hp:c.hp,maxhp:c.hp,boss:!!c.boss,magResist:c.magResist||0,guard:c.guard||0});
+ if(c.intStage)b._applyStage(a,'int',c.intStage,3,'検証');
+ if(c.perks){a.hp=73;b._applyStage(t,'atk',-1,3,'検証');}
+ const estimate=b.estSpell(a,SPELLS.ARCANIST_KOJUU,t);
+ const res=b._exec({actor:a,action:'spell',spellKey:'ARCANIST_KOJUU',target:t});
+ assert.equal(res.hits[0].dmg,c.expected,`虚重 ${JSON.stringify(c)}`);
+ close(res.hits[0].dmg,estimate,'虚重の見積もり');
+ assert.equal(a.mp,154);assert.equal(a.hp,c.perks?67:140);
+}
+// 重詠の2発目も残りHPと同じ上限で計算し、追加の代償を払わない。
+{
+ const a=actor(),t=foe();Object.assign(a,{int:150,hp:1,maxhp:146,mp:160,passiveMap:{archmageChoei:3}});
+ const b=new Battle([a],[t],()=>{});t.hp=t.maxhp=800;
+ const oldRandom=Math.random;Math.random=()=>0;
+ const res=b._exec({actor:a,action:'spell',spellKey:'ARCANIST_KOJUU',target:t});Math.random=oldRandom;
+ assert.deepEqual(res.hits.map(h=>h.dmg),[225,173]);assert.equal(a.hp,1);assert.equal(a.mp,154);
+}
+for(const key of ['HALITO','TILTOWAIT','KYOKUDAI','HOLYRAY','GRAVITY','ARCANIST_KOJUU']){
  if(!SPELLS[key])continue;
  for(const r of [0,20,50,75,80,100]){
   const a=actor(),t=foe();t.magResist=r;const b=new Battle([a],[t],()=>{});const sp=SPELLS[key];

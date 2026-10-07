@@ -16,7 +16,7 @@ import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, scrollBox, badge } from "./kit.js";
 import { remember } from "./prefs.js";
 import { softFade } from "./motion.js";
-import { statLines, itemCatText, specialLines, weaponPerformanceEl, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock } from "./itemview.js";
+import { statLines, itemCatText, specialLines, weaponPerformanceEl, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock, elemStatShort } from "./itemview.js";
 import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
 import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LORE_PAGES } from "../events.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_KIND_LABEL, shieldKind, itemName } from "../items.js";
@@ -27,6 +27,7 @@ import {
   SOUL_CLASSES, jobSprite, jobRankName, jobLoreFor, jobRankCondText, SOUL_STAT_UP, JOB_GEAR,
   awakenPerkOf, rankThresholds, soulLevelCap, jobSkillTable, passiveName, passiveDesc, JOB_AFFINITY,
   jobBaseTraitsOf,
+  ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
 } from "../souls.js";
 import { rarityColor } from "../rarity.js";
 import { SFX } from "../audio.js";
@@ -563,16 +564,45 @@ export function codexMonSheet(key) {
   if (loreOpen && m.desc) body.appendChild(setText(el("div", "pl-detail-desc"), m.desc));
   // 金属の魔物: 能力値は出た階で組み直すので、HP と「普通の戦闘の何倍の✦Soul か」だけを示す
   const mt = m.metal ? METAL_TIERS[m.metal] : null;
-  if (statsOpen && mt) body.appendChild(setText(el("div", "pl-detail-stats"), `HP ${mt.hpRank ? "多め" : mt.hp}　✦ その階の戦闘1回の約${mt.soulMul}倍　逃走 ${Math.round(mt.flee * 100)}%/手番`));
-  else if (statsOpen) body.appendChild(setText(el("div", "pl-detail-stats"), `HP ${Math.max(1, Math.round(m.maxhp * resistHpMul(m)))}　STR ${m.atk}　VIT ${m.def}　AGI ${m.spd}　✦${m.soul}　💰${m.gold}`));
-  else body.appendChild(revealLock(R.stats, "属性・HP"));
+  const info = el("div", "pt-info");
+  const fact = (label, value) => {
+    const row = el("div", "pt-fact");
+    row.appendChild(el("span", "pt-fact-k", label));
+    row.appendChild(el("span", "pt-fact-v", String(value)));
+    info.appendChild(row);
+  };
+  if (statsOpen) {
+    const grid = el("div", "pt-stats");
+    const stats = { atk: m.atk, vit: m.def, agi: m.spd, int: m.int, pie: m.pie, luk: m.luk };
+    for (const k of ATTR_KEYS) {
+      const cell = el("div", "pt-stat");
+      cell.style.cursor = "default";
+      cell.appendChild(el("span", "pt-stat-k", ATTR_LABEL[k]));
+      cell.appendChild(el("span", "pt-stat-v", mt || stats[k] == null ? "—" : String(Math.round(stats[k]))));
+      cell.appendChild(el("span", "pt-stat-n", ATTR_NAME[k].replace(/\s*\(.*\)$/, "")));
+      grid.appendChild(cell);
+    }
+    body.appendChild(grid);
+    fact("HP", mt ? (mt.hpRank ? "多め" : mt.hp) : Math.max(1, Math.round(m.maxhp * resistHpMul(m))));
+    fact("MP", m.maxmp ?? "—");
+    fact("攻撃力", mt ? "—" : m.atk);
+    fact("参照", "STR");
+    fact("属性攻", elemStatShort({ el: m.element || "none", lv: 1 }));
+    fact("属性防", elemStatShort(m.elemDef));
+  } else body.appendChild(revealLock(R.stats, "能力・属性・HP"));
+  if (loreOpen) {
+    for (const [k, label] of Object.entries(RESIST_LABEL)) fact(`${label}抵抗値`, (m.resists && m.resists[k]) ?? m[k] ?? 0);
+    if (m.breathRes) fact("ブレス耐性", `${Math.round(m.breathRes * 100)}%`);
+  }
+  if (info.childNodes.length) body.appendChild(info);
+  if (statsOpen) body.appendChild(infoBlock("戦利品", mt
+    ? [pairRow("✦Soul", `その階の戦闘1回の約${mt.soulMul}倍`), pairRow("逃走", `${Math.round(mt.flee * 100)}%/手番`)]
+    : [pairRow("✦Soul", String(m.soul)), pairRow("金貨", String(m.gold))]));
   if (loreOpen) {
     const traits = monsterTraits(m);
     body.appendChild(infoBlock("特徴・スキル", traits.length ? traits.map((t) => pairRow(t.label, t.desc, { tags: traitTagKinds(t.key, m.element) })) : [pairRow("特筆すべき特徴はない", null, { dim: true })]));
   } else body.appendChild(revealLock(R.lore, "特徴・スキル・説明文"));
-  if (kills >= R.lore) {
-    body.appendChild(infoBlock("抵抗値", Object.entries(RESIST_LABEL).map(([k, label]) => pairRow(`${label}抵抗値`, String((m.resists && m.resists[k]) || m[k] || 0)))));
-  } else body.appendChild(revealLock(R.lore, "抵抗値"));
+  if (!loreOpen) body.appendChild(revealLock(R.lore, "抵抗値"));
   // 名のある強敵: 縄張り・目撃・首級・懸賞
   const ni = m.named && game.namedInfo ? game.namedInfo(key) : null;
   if (ni) {

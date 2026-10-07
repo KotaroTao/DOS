@@ -17,7 +17,7 @@ export default {
   skills: {
     // Lv15 の固有技: 己の血で印を描き、重い闇の呪弾を撃つ
     ARCANIST_CHIIN: { name: "血印の呪弾", mp: 5, kind: "atk", power: 22, element: "dark", hpCost: 0.06, target: "enemy", desc: "己の血で印を描き、重い闇の呪弾を撃つ（HPを代償）" },
-    ARCANIST_KOJUU:      { name: "虚重の秘法", mp: 6, kind: "atk", gravity: 0.3, hpCost: 0.04, target: "enemy", desc: "身を削り、敵の今のHPの30%を潰す" },
+    ARCANIST_KOJUU:      { name: "虚重の秘法", mp: 6, kind: "atk", gravity: 0.3, gravityIntCap: 1.5, hpCost: 0.04, target: "enemy", desc: "身を削り、敵の今のHPの30%を潰す（基本ダメージの上限はINT×1.5）" },
     ARCANIST_KOKUMU:     { name: "魔喰いの黒霧", mp: 6, kind: "atk", power: 16, element: "dark", mpDrain: 0.1, target: "all-enemy", desc: "黒い霧が敵全体を撃ち、魔力を啜る" },
     ARCANIST_KETSUIN:    { name: "血の契約", mp: 3, kind: "buff", buff: { int: 1.6 }, hpCost: 0.1, target: "self", desc: "血を捧げ、自分のINTを大きく高める" },
     ARCANIST_YAMITOBARI: { name: "闇蝕の帳", mp: 12, kind: "atk", power: 34, element: "dark", vuln: { dark: 0.85 }, target: "all-enemy", desc: "闇の帳が敵全体を蝕み、闇に弱らせる" },
