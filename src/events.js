@@ -29,7 +29,7 @@ export const EV_FLOOR_RATE_D1 = 0.25;
 // その層の専用イベントは見かけやすく (1.5 では共通の出来事に埋もれ、1層を通しても専用の10種のうち2-3種しか出会えなかった)
 const LAYER_W = 3;
 
-// 極の出来事が授ける恒久の恵み (G.events.flags のキー → 効き目)。game.js が戦闘・✦Soul の獲得で読む
+// 旧仕様で取得済みの恵み (G.events.flags のキー → 効き目)。新しい極は下の DUNGEON_GIFTS のステータスを授ける
 export const EV_BOONS = {
   will:     { soulMul: 0.10, text: "先代の遺志 ― ✦Soul の獲得量 +10%" },
   blackCat: { crit: 0.03,    text: "黒猫の加護 ― 全員の会心率 +3%" },
@@ -1450,7 +1450,7 @@ export function eventWhereText(e) {
 }
 
 // ===== 置き場所と抽選 =====
-// st: { layer, lv, first, floor, floors, abyss, runEv, flags, once(id) }。出せるイベントを重み付きで1つ選ぶ (無ければ null)
+// st: { dungeonId, layer, lv, first, floor, floors, abyss, runEv, onceDone(e) }。出せるイベントを重み付きで1つ選ぶ (無ければ null)
 export function eligibleEvents(st, A) {
   const deepNow = st.floor > st.floors / 2;
   return EVENTS.filter((e) => {
