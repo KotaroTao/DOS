@@ -1,3 +1,4 @@
+import { monsterResists } from "../../src/resistance.js";
 // 全36職の比較用。裸・同じ魂ランク・サブ魂なしで、攻撃指標と6人隊の模擬戦を測る。
 // node tools/balance/run.mjs --out /tmp/balance.json [--sim] [--seeds 2] [--levels 20,40,80,120,200]
 import fs from 'node:fs';
@@ -36,8 +37,9 @@ function enemies(level, scenario, reference) {
     maxhp: Math.round(reference.atk * (scenario === 'boss' ? 100 : 12)),
     atk: Math.round(reference.atk * (scenario === 'boss' ? 4 : 2.5)), vit: Math.round(reference.atk * 0.7),
     agi: Math.max(6, Math.round(reference.agi * 0.3)), int: reference.int, pie: reference.pie, luk: 8,
-    lv: level, element: 'none', physResist: scenario === 'armor' ? 2 : 0,
-    magResist: scenario === 'magic' ? 2 : 0,
+    lv: level, element: 'none', physResist: scenario === 'armor' ? 75 : 0,
+    magResist: scenario === 'magic' ? 75 : 0,
+    resists: monsterResists({ rank: Math.min(10, Math.ceil(level / 20)), race: 'humanoid', boss: scenario === 'boss', elite: scenario === 'armor' }),
     boss: scenario === 'boss', elite: scenario === 'armor',
     ability: scenario === 'magic' ? 'spell' : null,
     mon: { race: 'humanoid', elite: scenario === 'armor', boss: scenario === 'boss' },

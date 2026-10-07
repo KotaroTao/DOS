@@ -1,3 +1,4 @@
+import { zeroResists, clampResist } from "./resistance.js";
 // 武器・防具・アクセサリ・消耗品のカタログ (基本品)
 // 大量の一点物は src/catalog/ で定義され、game.js が ITEMS に統合する。
 // 各アイテムは art(24x24) + 共有パレット P で描く (形は src/catalog/defs.js の ARTS と同じ原型)。説明文・性能・職業制限つき。
@@ -1233,8 +1234,8 @@ function topElemStat(sums) {
 
 // 状態異常の種類と呼び名 (装備の耐性 aRes・追加効果 onHit で使う)
 export const AIL_LABEL = { poison: "毒", paralyze: "麻痺", sleep: "眠り", charm: "魅了", confuse: "混乱", stone: "石化" };
-// 装備だけで積める状態異常耐性の上限 (パッシブ「異常耐性」と合わせた上限は戦闘側で90%)
-export const AIL_RES_CAP = 0.6;
+// 装備だけで積める状態異常耐性の上限 (パッシブ「異常耐性」と合わせても上限100%)
+export const AIL_RES_CAP = 1;
 // 装備だけで積めるブレス耐性の上限 (combat.js の BREATH_RES_CAP と同じ)
 export const BREATH_RES_MAX = 0.5;
 
@@ -1367,6 +1368,7 @@ export function recalc(member) {
   const mul = { atk: 0, vit: 0, agi: 0, int: 0, pie: 0, luk: 0, hp: 0, mp: 0 };
   const eff = {}; // 戦闘効果 (LR装飾品): actFirst/multistrike/lifesteal/autoRevive/guard/spellCostMul
   const ea = {}, ed = {};
+  const resist = zeroResists();
   const ar = {}, oh = {}; // 状態異常耐性 (種類→合計) / 追加効果 (種類→最も強いもの)
   let br = 0; // ブレス耐性 (合計)
   const counted = new Set();
@@ -1393,6 +1395,7 @@ export function recalc(member) {
     if (it.eAtk && it.eAtk.el) ea[it.eAtk.el] = (ea[it.eAtk.el] || 0) + (it.eAtk.lv || 1);
     if (it.eDef && it.eDef.el) ed[it.eDef.el] = (ed[it.eDef.el] || 0) + (it.eDef.lv || 1);
     if (it.aRes) for (const k in it.aRes) ar[k] = (ar[k] || 0) + (it.aRes[k] || 0);
+    if (it.resists) for (const k in resist) resist[k] += it.resists[k] || 0;
     br += it.bRes || 0;
     if (it.onHit && it.onHit.k) {
       const cur = oh[it.onHit.k];
@@ -1425,6 +1428,11 @@ export function recalc(member) {
   // 状態異常耐性 (装備由来・種類ごとに上限 AIL_RES_CAP) と武器の追加効果。combat.js が読む
   const arOut = {};
   for (const k in ar) if (ar[k] > 0) arOut[k] = Math.min(AIL_RES_CAP, Math.round(ar[k] * 100) / 100);
+  for (const k in arOut) if (k in resist) resist[k] += arOut[k] * 100;
+  for (const k in resist) resist[k] = clampResist(resist[k]);
+  member.resists = resist;
+  member.physResist = resist.physResist; member.magResist = resist.magResist;
+  for (const k in resist) if (!["physResist", "magResist"].includes(k) && resist[k]) arOut[k] = resist[k] / 100;
   member.ailRes = Object.keys(arOut).length ? arOut : null;
   member.breathRes = br > 0 ? Math.min(BREATH_RES_MAX, Math.round(br * 100) / 100) : 0;
   const ohOut = Object.values(oh).filter((o) => o.chance > 0);

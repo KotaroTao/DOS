@@ -1,3 +1,4 @@
+import { RESIST_LABEL } from "../resistance.js";
 // ===== 王宮 — 勅命 / 図鑑 / 勲章 / 宝物庫 (区分ごとに印) =====
 // 担当: WP-A。王宮タブ (UI.shell.registerTab("palace", …))。宰相のささやき → 区分 (記憶する) → 中身。
 // どの区分も1画面に収める (ページは縦にスクロールさせない)。長い一覧は収まる数ずつ「‹ 1/3 ›」でめくり、詳細はシート。
@@ -568,6 +569,9 @@ export function codexMonSheet(key) {
     const traits = monsterTraits(m);
     body.appendChild(infoBlock("特徴・スキル", traits.length ? traits.map((t) => pairRow(t.label, t.desc, { tags: traitTagKinds(t.key, m.element) })) : [pairRow("特筆すべき特徴はない", null, { dim: true })]));
   } else body.appendChild(revealLock(R.lore, "特徴・スキル・説明文"));
+  if (kills >= R.lore) {
+    body.appendChild(infoBlock("抵抗値", Object.entries(RESIST_LABEL).map(([k, label]) => pairRow(`${label}抵抗値`, String((m.resists && m.resists[k]) || m[k] || 0)))));
+  } else body.appendChild(revealLock(R.lore, "抵抗値"));
   // 名のある強敵: 縄張り・目撃・首級・懸賞
   const ni = m.named && game.namedInfo ? game.namedInfo(key) : null;
   if (ni) {

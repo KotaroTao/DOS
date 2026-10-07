@@ -1,3 +1,4 @@
+import { monsterResists } from "../resistance.js";
 // モンスター共通スキーマ + 種族定義 + 共有ドット絵ライブラリ
 //
 // ===== 設計ルール (ダンジョン単位コンテンツの生命線) =====
@@ -69,22 +70,16 @@ export function elemMult(atk, def) {
 //   (装備した属性防具が裏目に出てダメージが増えることはない)。
 //   軽減量は Lv1=◯ 25% / Lv2=◎ 50% (Lv2 が上限)。
 // 光↔闇は相互有利の例外: 攻撃側は常に「有利」、防御側は常に「軽減」扱いになる。
-// ===== 物理耐性・魔法耐性のランク (physResist / magResist に 1〜3 で指定) =====
-// 耐性1 = 50%軽減「効きにくい」/ 耐性2 = 75%軽減「ほとんど効かない」/ 耐性3 = 100%軽減「無効」。
-// 浅い層は耐性1が主で耐性2は稀、深い層ほど耐性2・3が増える。耐性3 (無効) は通常の魔物に限り
-// (主・強敵は2まで)、物理と魔法の両方に耐性を持つ者はどちらも2まで (倒す手段を必ず残す)。
-export const RESIST_RATE = [0, 0.5, 0.75, 1];
-export function resistRate(rank) { return RESIST_RATE[Math.max(0, Math.min(3, rank | 0))] || 0; }
-// 物理が通りにくい魔物は HP を減らす (魔法でしか削れない相手が長引きすぎないように)。物理耐性を基準にする。
-// 通常の魔物: 物理耐性2 (ほとんど効かない) = ×0.7 / 3 (無効) = ×0.4
-// 主・強敵:   物理耐性2 = ×0.8 / 3 = ×0.5 (もともと手強い相手なので下げ幅を抑える)。耐性1 は据え置き。
-// 魔法にも強い魔物 (氷塊のゴーレムなど) も物理耐性で下げる。魔法耐性だけの魔物は下げない
+// ===== 物理・魔法抵抗値 (physResist / magResist は0〜100) =====
+// 値と同じ割合を軽減し、100で無効。会心・貫通でも無効は貫けない。
+export function resistRate(value) { return Math.max(0, Math.min(100, value || 0)) / 100; }
+// 物理抵抗値75以上・100の魔物はHPを減らす。魔法だけに強い魔物は減らさない。
 export const PHYS_RESIST_HP_MUL = [1, 1, 0.7, 0.4];
 export const PHYS_RESIST_HP_MUL_STRONG = [1, 1, 0.8, 0.5];
 export function resistHpMul(m, strong = false) {
   if (!m) return 1;
   const t = (strong || m.boss || m.elite) ? PHYS_RESIST_HP_MUL_STRONG : PHYS_RESIST_HP_MUL;
-  return t[Math.max(0, Math.min(3, m.physResist | 0))] || 1;
+  return t[Math.max(0, Math.min(3, m.physResist >= 100 ? 3 : m.physResist >= 75 ? 2 : m.physResist > 0 ? 1 : 0))] || 1;
 }
 // ===== 金属の魔物 (メタル系) =====
 // 呪文・状態異常・弱体が一切効かず、物理は会心でない限り1ダメージしか通らない。素早く、よくかわし、
@@ -102,16 +97,6 @@ export const METAL_TIERS = {
   2: { hp: 12, evade: 0.40, flee: 0.60, agiMul: 1.8, soulMul: 25, goldMul: 2.5, max: 2, layer: 3, w: [17, 27, 35] },
   3: { hp: 30, hpRank: 0.5, evade: 0.25, flee: 0.35, agiMul: 1.6, soulMul: 60, goldMul: 4, max: 1, layer: 3, w: [3, 8, 15] },
 };
-const RESIST_TEXT = {
-  physResist: [null, "物理が効きにくい", "物理がほとんど効かない", "物理無効"],
-  magResist:  [null, "魔法が効きにくい", "魔法がほとんど効かない", "魔法無効"],
-};
-// 戦闘ログに添える表記 (ランクの数字ではなく効き具合を言葉で伝える)
-export const RESIST_TAG = {
-  physResist: [null, "物理が効きにくい！", "物理がほとんど効かない！", "物理が効かない！"],
-  magResist:  [null, "魔法が効きにくい！", "魔法がほとんど効かない！", "魔法が効かない！"],
-};
-
 export function elemDmgMult(aE, aLv, tgtElem, tgtDef) {
   if (!aE || aE === "none") return 1;
   let m = 1;
@@ -16713,19 +16698,17 @@ export function defMonster(def) {
   if (def.summonKey) m.summonKey = def.summonKey;
   if (def.ability !== undefined) m.ability = def.ability;
   // 個体ごとの戦闘特性 (図鑑にも掲載される):
-  //   physResist : 物理耐性ランク 1〜3 (RESIST_RATE: 50% / 75% / 100% 軽減)
+  //   physResist : 物理抵抗値 0〜100 (値と同じ割合を軽減)
   //   magWeak    : 攻撃呪文の被ダメ倍率 (>1)。「魔法に弱い」表現
   //   regen      : 毎ラウンド最大HPの割合だけ自己回復 (0〜1)
   //   swift      : 出現時に AGI を底上げ (先手を取りやすい)
   //   evasive    : 物理攻撃を確率で大きく回避する
   //   pack       : 群れで現れる (出現数の下限を引き上げる)
-  // 耐性はランク 1〜3 の整数に限る (図鑑の表記と実際の軽減率をランクで一致させる)
+  // 抵抗値は0〜100の整数に限る
   for (const k of ["physResist", "magResist"]) {
-    if (def[k] && ![1, 2, 3].includes(def[k])) throw new Error(`${k} must be rank 1-3: ${def[k]} (${def.id})`);
+    if (def[k] != null && (!Number.isInteger(def[k]) || def[k] < 0 || def[k] > 100)) throw new Error(`${k} must be 0-100 (${def.id})`);
   }
-  // 主・強敵は無効 (3) を持たない / 物理と魔法の両方に耐性を持つ者はどちらも2まで
-  if ((def.boss || def.elite) && (def.physResist === 3 || def.magResist === 3)) throw new Error(`boss/elite cannot be resist rank 3 (${def.id})`);
-  if (def.physResist && def.magResist && (def.physResist > 2 || def.magResist > 2)) throw new Error(`dual resist must be rank <=2 (${def.id})`);
+  if (def.physResist >= 100 && def.magResist >= 100) throw new Error(`物理・魔法の両方を無効にできない (${def.id})`);
   if (def.physResist) m.physResist = def.physResist;
   if (def.magWeak) m.magWeak = def.magWeak;
   if (def.regen) m.regen = def.regen;
@@ -16733,7 +16716,7 @@ export function defMonster(def) {
   if (def.evasive) m.evasive = true;
   if (def.pack) m.pack = true;
   // 追加の戦闘特性 (combat.js が解釈):
-  //   magResist   : 魔法耐性ランク 1〜3 (攻撃呪文の被ダメを 50% / 75% / 100% 軽減)
+  //   magResist   : 魔法抵抗値 0〜100 (値と同じ割合を軽減)
   //   enrage      : HPが3割を切ると一度だけ ATK/AGI が跳ね上がる
   //   endure      : 致死の一撃を一度だけ HP1 で耐える
   //   lifesteal   : 与えた物理ダメージの割合だけ自己回復 (0〜1)
@@ -16763,6 +16746,9 @@ export function defMonster(def) {
     m.metal = def.metal;
   }
   if (def.traits) m.traits = def.traits; // 表示専用の追加特徴キー
+  m.resistOverrides = { ...(def.resists || {}) };
+  m.resists = monsterResists({ ...m, resists: m.resistOverrides });
+  m.physResist = m.resists.physResist; m.magResist = m.resists.magResist;
   return m;
 }
 
@@ -16771,7 +16757,7 @@ export function defMonster(def) {
 export const TRAITS = {
   swift:      { label: "俊敏",   desc: "素早く先手を取りやすい" },
   evasive:    { label: "回避",   desc: "物理攻撃をよくかわす" },
-  physResist: { label: "物理耐性", desc: "物理が効きにくい" },   // 実際の表記は耐性ランクで変わる (monsterTraits)
+  physResist: { label: "物理抵抗値", desc: "物理が効きにくい" },   // 実際の表記は抵抗値で変わる (monsterTraits)
   magWeak:    { label: "魔法弱点", desc: "魔法で大ダメージを受ける" },
   regen:      { label: "再生",   desc: "毎ターン少しずつ傷を癒す" },
   pack:       { label: "群棲",   desc: "群れをなして現れる" },
@@ -16786,7 +16772,7 @@ export const TRAITS = {
   soulSteal:  { label: "魂奪",   desc: "Soul を吸い取ってくる" },
   goldSteal:  { label: "強奪",   desc: "金品を奪い取ってくる" },
   critical:   { label: "痛撃",   desc: "急所を狙う一撃を放つ" },
-  magResist:  { label: "魔法耐性", desc: "魔法が効きにくい" },   // 同上
+  magResist:  { label: "魔法抵抗値", desc: "魔法が効きにくい" },   // 同上
   enrage:     { label: "激昂",   desc: "手負いになると荒れ狂う" },
   endure:     { label: "不屈",   desc: "致命の一撃を一度だけ耐える" },
   lifesteal:  { label: "吸血",   desc: "与えた傷の分だけ己を癒す" },
@@ -16858,12 +16844,12 @@ export function monsterTraitKeys(m) {
 }
 
 // 表示用に {key,label,desc} の配列へ展開する
-// 物理耐性・魔法耐性は耐性ランクに応じた表記 (例:「物理耐性2」—「物理がほとんど効かない (75%軽減)」/「物理耐性3」—「物理無効 (100%軽減)」)
+// 物理・魔法は抵抗値と軽減率を表示する
 export function monsterTraits(m) {
   return monsterTraitKeys(m).map((k) => {
-    if (RESIST_TEXT[k] && m[k]) {
-      const r = Math.max(1, Math.min(3, m[k] | 0));
-      return { key: k, rank: r, label: `${TRAITS[k].label}${r}`, desc: `${RESIST_TEXT[k][r]} (${Math.round(RESIST_RATE[r] * 100)}%軽減)` };
+    if (["physResist", "magResist"].includes(k) && m[k]) {
+      const r = m[k];
+      return { key: k, label: `${k === "physResist" ? "物理" : "魔法"}抵抗値 ${r}`, desc: r === 100 ? "無効" : `${r}%軽減` };
     }
     // 特殊能力を多用する個体: 札に「多用」を添える
     if (k === m.ability && m.abRate >= AB_RATE_HEAVY) return { key: k, label: `${TRAITS[k].label}・多用`, desc: `${TRAITS[k].desc} (頻繁に使う)` };

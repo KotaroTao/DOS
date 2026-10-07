@@ -210,7 +210,7 @@ function skillCands(b, ctx, actor, key, sp) {
         let v = dmgValue(ctx, t, d) * (t.mind === "charm" ? CHARMED_TGT_MUL : 1);
         // 即死: 主には効かない。当たれば残りのHPぶんの傷と同じ
         if (sp.instakill && !t.boss && !isMetal(t) && d < t.hp && (!sp.instakill.races || sp.instakill.races.includes(t.mon && t.mon.race))) {
-          const p = b.estRate(actor, t, sp.instakill.chance * (t.mon && t.mon.elite ? 0.5 : 1));
+          const p = b.estRate(actor, t, sp.instakill.chance, "death");
           v += p * ((t.hp - d) * ctx.dmgK + ctx.threat(t) * KILL_W);
         }
         c.dmg += v;
@@ -221,7 +221,7 @@ function skillCands(b, ctx, actor, key, sp) {
       if (sp.debuffAll) for (const t of b.livingEnemies()) c.stat += statMods(b, ctx, sp.debuffAll, sp.dur, t);
       if (sp.kind === "sleep") for (const t of b.livingEnemies()) {
         if (t.asleep || isMetal(t)) continue;
-        c.stat += b.estRate(actor, t, t.boss ? 0.3 : 0.6) * ctx.threat(t) * Math.min(2, ctx.rounds) * 0.5;
+        c.stat += b.estRate(actor, t, 0.6, "sleep") * ctx.threat(t) * Math.min(2, ctx.rounds) * 0.5;
       }
       hpPen(c);
       out.push(c);
@@ -247,26 +247,26 @@ function skillCands(b, ctx, actor, key, sp) {
 // 敵 t に付く状態異常・弱体の値打ち (_inflict と同じ条件・確率)
 function foeEffects(b, ctx, actor, sp, t) {
   if (!t.alive || isMetal(t)) return 0;
-  const th = ctx.threat(t), bossMul = t.boss ? 0.5 : 1;
-  const rate = (x) => b.estRate(actor, t, x);
+  const th = ctx.threat(t);
+  const rate = (x, kind) => b.estRate(actor, t, x, kind);
   let v = 0;
-  if (sp.poison && !t.ailment) v += rate(sp.poison.chance * bossMul) * Math.min(t.hp, sp.poison.pct * t.maxhp * (t.boss ? 0.5 : 1) * ctx.left(3)) * ctx.dmgK;
-  if (sp.para && !t.ailment) v += rate(sp.para * bossMul) * th * Math.min(2, ctx.rounds) * 0.6;
-  if (sp.sleepChance && !t.asleep) v += rate(sp.sleepChance * bossMul) * th * Math.min(2, ctx.rounds) * 0.5;
-  if (sp.charm && !t.mind) v += rate(sp.charm * (t.boss ? 0.35 : 1)) * th * Math.min(2, ctx.rounds) * 1.2;
-  if (sp.confuse && !t.mind) v += rate(sp.confuse * bossMul) * th * Math.min(2, ctx.rounds) * 0.8;
-  if (sp.seal && (t.ability || t.role) && b._bm(t, "seal") >= 1) v += rate(sp.seal.chance * bossMul) * th * 0.6 * ctx.left(sp.seal.turns || 3);
-  if (sp.flinchChance && !t.boss && !t._flinch) v += sp.flinchChance * th;
+  if (sp.poison && !t.ailment) v += rate(sp.poison.chance, "poison") * Math.min(t.hp, sp.poison.pct * t.maxhp * (t.boss ? 0.5 : 1) * ctx.left(3)) * ctx.dmgK;
+  if (sp.para && !t.ailment) v += rate(sp.para, "paralyze") * th * Math.min(2, ctx.rounds) * 0.6;
+  if (sp.sleepChance && !t.asleep) v += rate(sp.sleepChance, "sleep") * th * Math.min(2, ctx.rounds) * 0.5;
+  if (sp.charm && !t.mind) v += rate(sp.charm, "charm") * th * Math.min(2, ctx.rounds) * 1.2;
+  if (sp.confuse && !t.mind) v += rate(sp.confuse, "confuse") * th * Math.min(2, ctx.rounds) * 0.8;
+  if (sp.seal && (t.ability || t.role) && b._bm(t, "seal") >= 1) v += rate(sp.seal.chance, "seal") * th * 0.6 * ctx.left(sp.seal.turns || 3);
+  if (sp.flinchChance && !t.boss && !t._flinch) v += sp.flinchChance * (1 - b._ailRes(t, "flinch")) * th;
   if (sp.strip && (t.effects || []).some((e) => e.mult > 1)) v += th * 0.5 * Math.min(2, ctx.rounds);
   // 大技の予兆: 封じ・眠り・麻痺・魅了・混乱・怯み・打ち消しのどれかが通れば溜めた力が霧散する
   if (b._omenOf && b._omenOf(t)) {
     let keep = 1;
-    if (sp.seal) keep *= 1 - rate(sp.seal.chance * bossMul);
-    if (sp.para && !t.ailment) keep *= 1 - rate(sp.para * bossMul);
-    if (sp.sleepChance && !t.asleep) keep *= 1 - rate(sp.sleepChance * bossMul);
-    if (sp.charm && !t.mind) keep *= 1 - rate(sp.charm * (t.boss ? 0.35 : 1));
-    if (sp.confuse && !t.mind) keep *= 1 - rate(sp.confuse * bossMul);
-    if (sp.flinchChance && !t.boss) keep *= 1 - sp.flinchChance;
+    if (sp.seal) keep *= 1 - rate(sp.seal.chance, "seal");
+    if (sp.para && !t.ailment) keep *= 1 - rate(sp.para, "paralyze");
+    if (sp.sleepChance && !t.asleep) keep *= 1 - rate(sp.sleepChance, "sleep");
+    if (sp.charm && !t.mind) keep *= 1 - rate(sp.charm, "charm");
+    if (sp.confuse && !t.mind) keep *= 1 - rate(sp.confuse, "confuse");
+    if (sp.flinchChance && !t.boss) keep *= 1 - sp.flinchChance * (1 - b._ailRes(t, "flinch"));
     if (sp.strip) keep = 0;
     v += (1 - keep) * th * 0.5; // threat は予兆で2倍にしてある。その上乗せ分を防ぐ
   }

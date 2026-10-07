@@ -21,13 +21,13 @@ assert(luckCritBonus(1000000)<=.25);
  a.agi=200;assert.equal(b._evadeBase(t,a),0);
  a.agi=50;assert.equal(b._evadeBase(t,a),.4);
  assert.equal(b._evadeBase(a,t),0);
- t.physResist=2;
+ t.physResist=75;
  assert.equal(b._resistCut(t,100,'physResist',0).dmg,25);
  assert.equal(b._resistCut(t,100,'physResist',.25).dmg,44);
  assert.equal(b._resistCut(t,100,'physResist',.5).dmg,63);
  assert.equal(b._resistCut(t,100,'physResist',1).dmg,100);
- t.physResist=3;assert(b._resistCut(t,100,'physResist',1).immune);
- t.physResist=.75;assert.equal(b._resistCut(t,100,'physResist',.25).dmg,44);
+ t.physResist=100;assert(b._resistCut(t,100,'physResist',1).immune);
+ t.physResist=75;assert.equal(b._resistCut(t,100,'physResist',.25).dmg,44);
 }
 const samples=12000;
 function samplePhys(changes={},opt={}){
@@ -39,14 +39,14 @@ function samplePhys(changes={},opt={}){
  close(sum/samples,expected,`物理 ${JSON.stringify(changes)} ${JSON.stringify(opt)}`);
  return sum/samples;
 }
-for(const r of [0,1,2,3])for(const pierce of [0,.25,1])samplePhys({physResist:r},{power:1.5,acc:.4,pierce,skill:true});
+for(const r of [0,20,50,75,80,100])for(const pierce of [0,.25,1])samplePhys({physResist:r},{power:1.5,acc:.4,pierce,skill:true});
 samplePhys({luk:8,actor:{luk:100000,critBonus:.5}},{power:1.5,skill:true});
-samplePhys({physResist:2},{power:1.5,critBonus:1,acc:1,skill:true});
-samplePhys({physResist:3},{power:1.5,critBonus:1,acc:1,skill:true});
+samplePhys({physResist:75},{power:1.5,critBonus:1,acc:1,skill:true});
+samplePhys({physResist:100},{power:1.5,critBonus:1,acc:1,skill:true});
 samplePhys({metal:1},{power:1.5,critBonus:1,acc:1,skill:true});
-samplePhys({magResist:2,actor:{wMagic:true}},{basic:true});
-samplePhys({magResist:3,actor:{wMagic:true}},{basic:true});
-samplePhys({physResist:2,asleep:true},{power:1.5,acc:1,skill:true});
+samplePhys({magResist:75,actor:{wMagic:true}},{basic:true});
+samplePhys({magResist:100,actor:{wMagic:true}},{basic:true});
+samplePhys({physResist:75,asleep:true},{power:1.5,acc:1,skill:true});
 {
  const a=actor(),t=foe();t.side='party';t.passiveMap={parry:2,samuraiShingan:2};a.side='enemy';
  const b=new Battle([t],[a],()=>{},{fleeK:10/3});let sum=0;
@@ -60,7 +60,7 @@ assert.equal(healingPower(14,100),64);
 assert(healingPower(60,200)-healingPower(60,100)>healingPower(14,200)-healingPower(14,100));
 for(const key of ['HALITO','TILTOWAIT','KYOKUDAI','HOLYRAY','GRAVITY']){
  if(!SPELLS[key])continue;
- for(const r of [0,1,2,3]){
+ for(const r of [0,20,50,75,80,100]){
   const a=actor(),t=foe();t.magResist=r;const b=new Battle([a],[t],()=>{});const sp=SPELLS[key];
   let sum=0;
   for(let i=0;i<samples;i++){t.hp=t.maxhp;t.alive=true;sum+=b._exec({actor:a,action:'spell',spellKey:key,target:t}).hits.reduce((s,h)=>s+(h.dmg||0),0);a.mp=a.maxmp;}

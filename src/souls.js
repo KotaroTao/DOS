@@ -1,3 +1,4 @@
+import { zeroResists } from "./resistance.js";
 // 魂(Soul)と人業(Doll)のデータモデル — 新仕様 (36職業・ランク1-5・レア度・融合)
 //
 // 魂のランク = 職業の位階 (1〜5)。同じ職業の魂を3部位以上に宿すと職業発現。
@@ -264,7 +265,7 @@ export const PASSIVES = {
   necroSenkoku:   { label: "死の宣告", scope: "party", lv: ["戦闘開始時、主以外の敵それぞれが3%で即死 (金属の魔物には効かない)", "戦闘開始時、主以外の敵それぞれが5%で即死 (金属の魔物には効かない)", "戦闘開始時、主以外の敵それぞれが8%で即死 (金属の魔物には効かない)", "戦闘開始時、主以外の敵それぞれが15%で即死 (金属の魔物には効かない)"] },
   sageKiwami:     { label: "叡智の極み", scope: "self", lv: ["呪文 (技以外) が10%でMPを使わずに唱えられる", "呪文が15%でMPを使わずに唱えられる", "呪文が20%でMPを使わずに唱えられる", "呪文が30%でMPを使わずに唱えられる"] },
   cardinalKiseki: { label: "聖座の奇跡", scope: "party", lv: ["戦闘中1回、最後の1人が倒れる時、全員をHP10%で蘇らせる", "戦闘中1回、最後の1人が倒れる時、全員をHP20%で蘇らせる", "戦闘中1回、最後の1人が倒れる時、全員をHP30%で蘇らせる", "戦闘中1回、最後の1人が倒れる時、全員をHP50%で蘇らせる"] },
-  archmageShinen: { label: "魔導の深淵", scope: "self", lv: ["攻撃呪文が敵の魔法耐性を25%無視 (魔法無効には効かない)", "攻撃呪文が敵の魔法耐性を50%無視", "攻撃呪文が敵の魔法耐性を75%無視", "攻撃呪文が敵の魔法耐性を100%無視 (魔法無効には効かない)"] },
+  archmageShinen: { label: "魔導の深淵", scope: "self", lv: ["攻撃呪文が敵の魔法抵抗による軽減を25%無視 (魔法無効には効かない)", "攻撃呪文が敵の魔法抵抗による軽減を50%無視", "攻撃呪文が敵の魔法抵抗による軽減を75%無視", "攻撃呪文が敵の魔法抵抗による軽減を100%無視 (魔法無効には効かない)"] },
   // ===== 職ごとの Lv15 の目玉パッシブ (Lv50 で Lv2、Lv100 で Lv3)。効果は game.js / combat.js が読む =====
   // scope party は隊で一番高いLvの1人分だけが効く (重複不可)。self は持ち主だけ
   appraiseEye:   { label: "目利き",       scope: "party", lv: ["鑑定の成功率が上がる (適正Lvのコモン 70%→74%)", "鑑定の成功率がさらに上がる (適正Lvのコモン 70%→78%)", "鑑定の成功率が大きく上がる (適正Lvのコモン 70%→80% (上限)、SR 10%→17%)"] },
@@ -798,6 +799,7 @@ export function makeDoll(name) {
     clsKey: "fighter", cls: "空の人業", level: 1,
     hp: 1, maxhp: 1, mp: 0, maxmp: 0,
     atk: 0, vit: 0, agi: 1, int: 0, pie: 0, luk: 0,
+    resists: zeroResists(), physResist: 0, magResist: 0,
     base: { hp: 1, mp: 0, atk: 0, vit: 0, agi: 1, int: 0, pie: 0, luk: 0 },
     equip: { weapon: null, body: null, shield: null, head: null, hands: null, feet: null, acc1: null, acc2: null },
     items: [], ailment: null, spells: [], passives: [], alive: true, side: "party",

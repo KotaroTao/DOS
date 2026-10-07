@@ -1,3 +1,4 @@
+import { RESIST_LABEL } from "../resistance.js";
 // ===== 品・スキルの表示まわり (game.js から移設した純粋な表示ヘルパ) =====
 // 状態を変えない。G が要るものは引数で受け取るか、ctx の game.G を読む。
 // 呼び出し側 (game.js・各パッケージ) は同じ名前のまま import して使う。
@@ -232,7 +233,7 @@ export function skillDetailLines(sp) {
   if (sp.kind === "heal" && sp.power) lines.push(`回復量 ${sp.power}（術者のPIEで伸びる）`);
   if (sp.kind === "mana") lines.push(`味方のMPを ${sp.power} 回復（術者のINTで少し伸びる）`);
   if (sp.kind === "escape") lines.push("必ず戦闘から逃げられる（迷宮の異変で退路が閉ざされている時を除く）");
-  if (sp.kind === "sleep") lines.push("敵全体を60%で眠らせる（主には30%）");
+  if (sp.kind === "sleep") lines.push("敵全体を基本60%で眠らせる（抵抗値で成功率が下がる）");
   if (sp.revive) lines.push(sp.revivePct ? `戦闘不能をHP${pct(sp.revivePct)}で蘇生する` : "戦闘不能も蘇生できる");
   if (sp.kind === "phys") {
     lines.push(sp.scatter ? `威力 攻撃力の${sp.power}倍 × ランダムな敵へ${sp.scatter}回` : `威力 攻撃力の${sp.power}倍${sp.hits ? ` × ${sp.hits}回` : ""}`);
@@ -241,7 +242,7 @@ export function skillDetailLines(sp) {
     if (sp.vitScale) lines.push("使い手のVITでも威力が伸びる");
     if (sp.pieScale) lines.push("使い手のPIEでも威力が伸びる");
     if (sp.acc) lines.push(sp.acc >= 1 ? "必中（相手の素早さに関係なく当たる）" : `命中UP（外れる確率を${pct(sp.acc)}減らす）`);
-    if (sp.pierce) lines.push(sp.pierce >= 1 ? "相手の防御（VIT）と物理耐性1〜2を無視する（物理無効は貫けない）" : `相手の防御（VIT）と物理耐性1〜2による軽減を${pct(sp.pierce)}無視する（物理無効は貫けない）`);
+    if (sp.pierce) lines.push(sp.pierce >= 1 ? "相手の防御（VIT）と物理抵抗値を無視する（物理無効は貫けない）" : `相手の防御（VIT）と物理抵抗値による軽減を${pct(sp.pierce)}無視する（物理無効は貫けない）`);
     if (sp.critBonus) lines.push(sp.critBonus >= 1 ? "必ず会心になる" : `会心率 +${pct(sp.critBonus)}`);
     if (sp.desperate) lines.push("自分のHPが減っているほど威力が上がる（最大2倍）");
     if (sp.steal) lines.push(`当てた敵から、所持金の${pct(sp.steal)}を盗む（1体につき1度・逃げても持ち帰る）`);
@@ -274,15 +275,15 @@ export function skillDetailLines(sp) {
   if (sp.drain) lines.push(`与えたダメージの${pct(sp.drain)}だけ自分のHPを回復`);
   if (sp.mpDrain) lines.push(`与えたダメージの${pct(sp.mpDrain)}だけ自分のMPを回復`);
   if (sp.poison) lines.push(`${pct(sp.poison.chance)}で毒にする（毎ターン最大HPの${pct(sp.poison.pct)}・主には半分）`);
-  if (sp.para) lines.push(`${pct(sp.para)}で麻痺させる（手番を失いやすくなる・主には半分の確率）`);
-  if (sp.seal) lines.push(`${pct(sp.seal.chance)}で特技を${sp.seal.turns}ターン封じる（ブレス・状態異常攻撃・回復・呼び出し・大技の溜めを使えなくなる・主には半分の確率）`);
+  if (sp.para) lines.push(`${pct(sp.para)}で麻痺させる（手番を失いやすくなる・抵抗値で成功率が下がる）`);
+  if (sp.seal) lines.push(`${pct(sp.seal.chance)}で特技を${sp.seal.turns}ターン封じる（ブレス・状態異常攻撃・回復・呼び出し・大技の溜めを使えなくなる・抵抗値で成功率が下がる）`);
   if (sp.strip) lines.push("敵にかかった強化を打ち消す");
-  if (sp.instakill) lines.push(`${pct(sp.instakill.chance)}で即死させる${sp.instakill.races ? `（${raceList(sp.instakill.races)}のみ）` : ""}（主には効かない・強敵には半分）`);
-  if (sp.sleepChance) lines.push(`命中後 ${pct(sp.sleepChance)}で対象を眠らせる（主には半分）`);
+  if (sp.instakill) lines.push(`${pct(sp.instakill.chance)}で即死させる${sp.instakill.races ? `（${raceList(sp.instakill.races)}のみ）` : ""}（主には効かない・抵抗値で成功率が下がる）`);
+  if (sp.sleepChance) lines.push(`命中後 ${pct(sp.sleepChance)}で対象を眠らせる（抵抗値で成功率が下がる）`);
   if (sp.charm) lines.push(`${pct(sp.charm)}で魅了する（その敵が仲間に襲いかかる・傷を受けると解けやすい・主には効きにくい）`);
-  if (sp.confuse) lines.push(`${pct(sp.confuse)}で混乱させる（敵味方を問わず殴る・ふらつく・主には半分の確率）`);
+  if (sp.confuse) lines.push(`${pct(sp.confuse)}で混乱させる（敵味方を問わず殴る・ふらつく・抵抗値で成功率が下がる）`);
   if (sp.flinchChance) lines.push(`${pct(sp.flinchChance)}で怯ませる（主には効かない）`);
-  if (sp.poison || sp.para || sp.seal || sp.instakill || sp.sleepChance || sp.charm || sp.confuse || sp.kind === "sleep") lines.push("※ 表示の確率は同じLvの相手に対して。相手が4Lv上なら半分、4Lv下なら倍になる（5〜95%）");
+  if (sp.poison || sp.para || sp.seal || sp.instakill || sp.sleepChance || sp.charm || sp.confuse || sp.kind === "sleep") lines.push("※ 表示は抵抗値0・同じLvでの基本確率。Lv差で5〜95%に調整した後、成功率×（1−抵抗値/100）で判定。抵抗値100は無効");
   if (sp.plunder) lines.push("この技で倒した敵は、落とすゴールドが2倍になる");
   if (sp.partyHeal) lines.push(`攻撃の後、味方全体のHPを ${sp.partyHeal} 回復（術者のPIEで伸びる）`);
   if (sp.cure || sp.kind === "cure") lines.push("状態異常（毒・麻痺・石化・眠り・魅了・混乱）を治す");
@@ -366,7 +367,8 @@ export function onHitShort(o) { return o && o.length ? o.map((x) => `${AIL_SHORT
 function ailStatParts(it) {
   const out = [];
   if (it.onHit && it.onHit.k) out.push(`${AIL_LABEL[it.onHit.k]}付与 ${Math.round(it.onHit.chance * 100)}%`);
-  if (it.aRes) out.push(`耐性 ${Object.entries(it.aRes).map(([k, v]) => `${AIL_LABEL[k] || k}${Math.round(v * 100)}%`).join("・")}`);
+  if (it.resists) out.push(Object.entries(it.resists).map(([k, v]) => `${RESIST_LABEL[k] || k}抵抗${v}`).join("・"));
+  if (it.aRes) out.push(`抵抗値 ${Object.entries(it.aRes).map(([k, v]) => `${RESIST_LABEL[k] || k}${Math.round(v * 100)}`).join("・")}`);
   if (it.bRes) out.push(`ブレス耐性 ${Math.round(it.bRes * 100)}%`);
   return out;
 }
@@ -379,7 +381,8 @@ export function ailDetailLines(it) {
     const tail = o.k === "poison" ? `（毎ターン最大HPの${Math.round((o.pct || 0.05) * 100)}%）` : o.k === "charm" ? "（敵が仲間を襲う）" : o.k === "confuse" ? "（敵が見境なく殴る）" : "";
     L.push(`追加効果: 攻撃が当たると ${Math.round(o.chance * 100)}% で敵を${AIL_LABEL[o.k]}にする${tail}（物理技も同じ・主には効きにくい）`);
   }
-  if (it.aRes) L.push(`状態異常耐性: ${Object.entries(it.aRes).map(([k, v]) => `${AIL_LABEL[k] || k} −${Math.round(v * 100)}%`).join("・")}（かかる確率を下げる）`);
+  if (it.resists) L.push(Object.entries(it.resists).map(([k, v]) => `${RESIST_LABEL[k] || k}抵抗値 +${v}`).join("・"));
+  if (it.aRes) L.push(`状態異常抵抗値: ${Object.entries(it.aRes).map(([k, v]) => `${RESIST_LABEL[k] || k} +${Math.round(v * 100)}`).join("・")}（かかる確率を下げる）`);
   if (it.bRes) L.push(`ブレス耐性: 敵のブレスから受けるダメージ −${Math.round(it.bRes * 100)}%（装備どうしで足し合い、上限50%）`);
   return L;
 }
@@ -524,6 +527,8 @@ export function equipPreviewDelta(p, cand) {
     crit: Math.round(((fake.critBonus || 0) - (p.critBonus || 0)) * 100),
     elemAtk: { from: p.elemAtk, to: fake.elemAtk },
     elemDef: { from: p.elemDef, to: fake.elemDef },
+    physResist: (fake.physResist || 0) - (p.physResist || 0),
+    magResist: (fake.magResist || 0) - (p.magResist || 0),
     ailRes: { from: p.ailRes || null, to: fake.ailRes || null },
     breathRes: Math.round(((fake.breathRes || 0) - (p.breathRes || 0)) * 100),
     onHit: { from: p.onHit || null, to: fake.onHit || null },
@@ -558,6 +563,10 @@ export function equipCompareEl(p, cand) {
       if (elemStatEq(ch.from, ch.to)) continue;
       any = true;
       row.appendChild(el("span", "eq-cd-seg elem", `${label} ${elemStatShort(ch.from)}→${elemStatShort(ch.to)}`));
+    }
+    for (const k of ["physResist", "magResist"]) if (d[k]) {
+      any = true;
+      row.appendChild(el("span", "eq-cd-seg " + (d[k] > 0 ? "up" : "down"), `${RESIST_LABEL[k]}抵抗値 ${d[k] > 0 ? "+" : ""}${d[k]}`));
     }
     // 状態異常耐性 / 追加効果の変化
     if (d.ailRes && ailResShort(d.ailRes.from) !== ailResShort(d.ailRes.to)) {
@@ -634,6 +643,7 @@ export function gearScore(doll, delta) {
   const resSum = (r) => (r ? Object.values(r).reduce((a, v) => a + v, 0) : 0);
   const ohSum = (o) => (o ? o.reduce((a, x) => a + (x.chance || 0), 0) : 0);
   if (delta.ailRes) s += (resSum(delta.ailRes.to) - resSum(delta.ailRes.from)) * 10;
+  s += ((delta.physResist || 0) + (delta.magResist || 0)) * 0.1;
   if (delta.onHit) s += (ohSum(delta.onHit.to) - ohSum(delta.onHit.from)) * 15;
   // ブレス耐性 (10%ごとに1点 = 状態異常耐性と同じ)。以前は10%ごとに8点で、ブレス耐性つきの小盾が
   // AGI −4 の付け替えでも「伸び」と見なされ、最適装備が弱い品を選んでいた

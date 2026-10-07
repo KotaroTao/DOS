@@ -1,7 +1,8 @@
+import { monsterResists } from "./resistance.js";
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
 import { ITEMS, weaponRange, scaleBonus, useTarget, useHelps, useCureKinds, useWhere } from "./items.js";
-import { ELEMENTS, elemDmgMult, elemBeats, monStats, rankStats, resistRate, resistHpMul, RESIST_TAG, METAL_TIERS } from "./dungeons/schema.js";
+import { ELEMENTS, elemDmgMult, elemBeats, monStats, rankStats, resistRate, resistHpMul, METAL_TIERS } from "./dungeons/schema.js";
 
 import { SPELLS } from "./skilldefs.js";
 import { JOBKIT_PERKS } from "./jobkit/index.js";
@@ -96,14 +97,16 @@ export function spawnMimic(floorRank, scale = 1, master = false) {
   e.isMimic = true; // 撃破時は宝箱が確定出現し、中身が上質になる (game.js の endBattle)
   if (master) e.isMasterMimic = true; // 宝箱の中身がさらに上質 (アイテムLv+30)
   // 単体で隊を相手にする化け物。上位ランクの体を、群れ数体分の HP と連撃で補う
-  // (通常 = 上位ランク2体分強 / マスター = 外殻の物理耐性1と合わせて上位ランク3体分以上の耐久と手数)。
-  e.maxhp = Math.max(1, Math.round(st.hp * scale * (master ? 2.6 : 2.4) * resistHpMul({ physResist: master ? 1 : 0 })));
+  // (通常 = 上位ランク2体分強 / マスター = 外殻の物理抵抗値50と合わせて上位ランク3体分以上の耐久と手数)。
+  e.maxhp = Math.max(1, Math.round(st.hp * scale * (master ? 2.6 : 2.4) * resistHpMul({ physResist: master ? 50 : 0 })));
   e.hp = e.maxhp;
   e.atk = Math.max(1, Math.round(st.atk * scale * (master ? 1.1 : 1.0)));
   e.vit = Math.round(st.def * scale * (master ? 1.6 : 1.3));
   e.agi = st.spd + (master ? 8 : 4);             // 不意打ちで先手を取りやすい
   e.multistrike = master ? 3 : 2;                // 牙で噛みつき連撃 (一手で複数回)
-  e.physResist = master ? 1 : 0;                 // マスターは硬い外殻 (物理耐性1 = 50%軽減)
+  e.resists = monsterResists({ ...e.mon, rank, elite: true, resists: e.mon.resistOverrides || {} });
+  e.physResist = master ? 50 : 0;
+  e.resists.physResist = e.physResist;                 // マスターは硬い外殻 (物理抵抗値50 = 50%軽減)
   if (master) { e.ability = "soulSteal"; e.lifesteal = 0.3; }
   e.gold = Math.round(st.gold * scale * (master ? 3 : 2));
   e.soul = Math.round(st.soul * scale * (master ? 2 : 1.5));
@@ -123,6 +126,7 @@ export function spawnRanked(key, floorRank, plus = 1, scale = 1, hpMul = 2.2) {
   e.atk = Math.max(1, Math.round(st.atk * scale));
   e.vit = Math.round(st.def * scale * 1.2);
   e.agi = (e.mon && e.mon.swift ? st.spd + 4 : st.spd) + 2;
+  e.resists = monsterResists({ ...e.mon, rank, elite: true, resists: e.mon.resistOverrides || {} });
   e.gold = Math.round(st.gold * scale * 1.5);
   e.soul = Math.round(st.soul * scale * 1.5);
   return [e];
@@ -167,6 +171,7 @@ function makeEnemy(key, scale = 1, boss = false, bossRank = 0) {
   return {
     uid: ++_uid, key, mon: m, name: (boss ? m.name : m.name),
     element: m.element || "none",
+    resists: monsterResists({ ...m, boss: boss || m.boss, rank: bossRank || m.rank, resists: m.resistOverrides || {} }),
     hp, maxhp: hp,
     // モンスター定義の atk/def/spd を六大ステへ写像 (def→VIT, spd→AGI)
     atk: Math.max(1, Math.round(baseAtk * scale)),
@@ -291,7 +296,7 @@ export function lvRate(base, atkLv, defLv) {
   return Math.min(LV_RATE_MAX, Math.max(LV_RATE_MIN, r));
 }
 // 主 (ボス) に付く確率の倍率。魅了された主は仲間がいないと立ち尽くすだけになるので、毒・麻痺 (×0.5) より効きにくい
-const BOSS_CHARM_MUL = 0.35;
+
 // 状態異常の付与を示す札 (結果の hit.status に載せ、game.js が浮かび文字で見せる)
 const STATUS_TEXT = { poison: "毒", para: "麻痺", sleep: "眠り", charm: "魅了", confuse: "混乱", seal: "封印", stone: "石化" };
 export function statusText(tags) {
@@ -909,26 +914,25 @@ export class Battle {
     return a.jobLv || a.level || 1;
   }
   // Lv差を織り込んだ成功率 (5〜95%)。actor が無い時 (持続効果など) は隊の平均Lvで見る
-  _rate(actor, t, base) {
+  _rate(actor, t, base, kind) {
     if (actor && actor.side === "party") base += this._rk(actor, "hexerSae", [0.05, 0.10, 0.15, 0.25]); // 呪いの冴え (呪術師のランク)
     let al = actor ? this.lvOf(actor) : null;
     if (al == null) { const ps = this.party.filter((p) => p.alive); al = ps.length ? ps.reduce((a, p) => a + this.lvOf(p), 0) / ps.length : 1; }
-    return lvRate(base, al, this.lvOf(t));
+    return lvRate(base, al, this.lvOf(t)) * (kind ? 1 - (["stone", "death"].includes(kind) ? this._hardRes(t, kind) : this._ailRes(t, kind)) : 1);
   }
   // 命中した敵へ付く効果 (物理技・攻撃呪文・弱体の共通): 毒/麻痺/封印/属性耐性ダウン/打ち消し/眠り/怯み/即死。
   // 毒・麻痺・封印・眠り・魅了・混乱・即死の成功率は Lv差で決まる (lvRate)
-  // 主 (ボス) には状態異常・封印の確率が半分。即死は主に効かず、強敵には半分
+  // 種類ごとの抵抗値を掛ける。抵抗値100は無効
   _inflict(actor, t, sp, out) {
     if (!t || !t.alive || t.side !== "enemy") return;
     if (isMetal(t)) return; // 金属の体: 毒・麻痺・眠り・魅了・混乱・封印・即死・耐性ダウン・打ち消しのどれも効かない
-    const bossMul = t.boss ? 0.5 : 1;
     const tags = out || [];
     if (sp.strip && this._stripUp(t)) { this.log(`${t.name}の強化が消え去った！`, "hit"); tags.push("strip"); }
     if (sp.vuln) {
       for (const el in sp.vuln) this._applyMod(t, "r_" + el, sp.vuln[el], sp.dur, sp.name);
       tags.push("vuln");
     }
-    if (sp.poison && Math.random() < this._rate(actor, t, sp.poison.chance * bossMul)) {
+    if (sp.poison && Math.random() < this._rate(actor, t, sp.poison.chance, "poison")) {
       if (!t.ailment || (t.ailment === "poison" && (t._poisonPct || 0.05) < sp.poison.pct)) {
         const up = t.ailment === "poison";
         t.ailment = "poison"; t._poisonPct = sp.poison.pct;
@@ -936,39 +940,39 @@ export class Battle {
         tags.push("poison");
       }
     }
-    if (sp.para && !t.ailment && Math.random() < this._rate(actor, t, sp.para * bossMul)) {
+    if (sp.para && !t.ailment && Math.random() < this._rate(actor, t, sp.para, "paralyze")) {
       t.ailment = "paralyze"; this._holdAil(t, "para");
       this.log(`${t.name}は痺れて動きが鈍った！`, "hit");
       tags.push("para");
     }
     if (sp.seal) {
-      if (Math.random() < this._rate(actor, t, sp.seal.chance * bossMul)) {
+      if (Math.random() < this._rate(actor, t, sp.seal.chance, "seal")) {
         this._applyMod(t, "seal", 0.5, sp.seal.turns || 3, sp.name);
         this.log(`${t.name}の特技を封じた！`, "hit");
         tags.push("seal");
       } else this.log(`${t.name}は封印を振り払った`, "sys");
     }
-    if (sp.sleepChance && !t.asleep && Math.random() < this._rate(actor, t, sp.sleepChance * bossMul)) {
+    if (sp.sleepChance && !t.asleep && Math.random() < this._rate(actor, t, sp.sleepChance, "sleep")) {
       t.asleep = true; this._holdAil(t, "sleep");
       this.log(`${t.name}は深い眠りに落ちた`, "sys");
       tags.push("sleep");
     }
     // 魅了・混乱 (心の状態異常は1つだけ。先にかかった方が残る)
     if (sp.charm && !t.mind) {
-      if (Math.random() < this._rate(actor, t, sp.charm * (t.boss ? BOSS_CHARM_MUL : 1))) {
+      if (Math.random() < this._rate(actor, t, sp.charm, "charm")) {
         t.mind = "charm"; this._holdAil(t, "mind");
         this.log(`${t.name}は魅了された！ 仲間に襲いかかる…`, "hit");
         tags.push("charm");
       } else if (!sp.confuse && !sp.quiet) this.log(`${t.name}は誘いに乗らなかった`, "sys");
     }
     if (sp.confuse && !t.mind) {
-      if (Math.random() < this._rate(actor, t, sp.confuse * bossMul)) {
+      if (Math.random() < this._rate(actor, t, sp.confuse, "confuse")) {
         t.mind = "confuse"; this._holdAil(t, "mind");
         this.log(`${t.name}は混乱した！`, "hit");
         tags.push("confuse");
       } else if (!sp.quiet) this.log(`${t.name}は惑わされなかった`, "sys");
     }
-    if (sp.flinchChance && !t.boss && !t._flinch && Math.random() < sp.flinchChance) {
+    if (sp.flinchChance && !t.boss && !t._flinch && Math.random() < sp.flinchChance * (1 - this._ailRes(t, "flinch"))) {
       t._flinch = true;
       this.log(`${t.name}は怯んだ！`, "hit");
     }
@@ -978,7 +982,7 @@ export class Battle {
       const race = enemyRace(t);
       if (t.boss) this.log(`${t.name}に死の力は届かない`, "sys");
       else if (ik.races && !ik.races.includes(race)) this.log(`${t.name}には効かない`, "sys");
-      else if (Math.random() < this._rate(actor, t, ik.chance * (t.mon && t.mon.elite ? 0.5 : 1))) {
+      else if (Math.random() < this._rate(actor, t, ik.chance, "death")) {
         t.hp = 0;
         this.log(`${t.name}の命の灯が消えた！`, "hit");
         tags.push("instakill");
@@ -1700,6 +1704,11 @@ export class Battle {
         this.log("大結界がパーティを包んだ！", "heal");
       }
       for (const t of this.livingParty()) {
+        if (spell && (t.magResist || 0) >= 100) {
+          this.log(`${t.name}は呪文を無効化した！`, "sys");
+          res.hits.push({ target: t, dmg: 0, immune: true, died: false });
+          continue;
+        }
         const em = elemDmgMult(actor.element || "none", 1, t.element || "none", edefOf(t));
         const guard = spell ? ((t.int || 0) + (t.pie || 0)) * 0.12 : this._evit(t) * 0.25;
         let dmg = Math.max(1, Math.round(variance(this._eatk(actor) * (spell ? 0.75 : 0.85) * (cmd.mul || 1)) - guard));
@@ -1736,6 +1745,7 @@ export class Battle {
         // 護法の結界 (護法師のランク): 隊全員が受ける呪文・ブレスのダメージ -5/8/12/20% (一番高いLv)
         { const wk = this._rkParty("wardenKekkai", [0.05, 0.08, 0.12, 0.20]); if (wk) dmg = Math.max(1, Math.floor(dmg * (1 - wk))); }
         dmg = Math.max(1, Math.floor(dmg * (1 - this._shintou(t)))); // 心頭滅却: ブレス・呪文
+        if (spell) dmg = this._resistCut(t, dmg, "magResist").dmg;
         t.hp -= dmg;
         this.log(`${t.name}に ${dmg} ダメージ${em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : ""}`, "dmg");
         this._wake(t);
@@ -1873,25 +1883,25 @@ export class Battle {
     return best;
   }
 
-  // 異常耐性 (resistAilment / 聖域) + 装備の耐性 (ailRes[kind]): 毒・麻痺・眠り・魅了・混乱の付与率カット (上限90%)
+  // 異常耐性 (resistAilment / 聖域) + 装備の耐性 (ailRes[kind]): 毒・麻痺・眠り・魅了・混乱の付与率カット (上限100%)
   _ailRes(t, kind) {
-    if (t.side !== "party") return 0;
+    if (t.side !== "party") return ((t.resists || (t.mon && t.mon.resists) || {})[kind] || 0) / 100;
     if (t.ailmentImmune) return 1; // 解呪の宝珠 (LR装飾品): 状態異常を完全無効
     let lv = pv(t, "resistAilment");
     if (lv < 1 && this.party.some((p) => p.alive && pv(p, "sanctuary"))) lv = 1;
     const pas = lv >= 2 ? 0.60 : lv === 1 ? 0.30 : 0;
-    const eq = (kind && t.ailRes && t.ailRes[kind]) || 0;
-    return Math.min(0.9, pas + eq + this._zokusei(t));
+    const eq = kind && t.resists ? (t.resists[kind] || 0) / 100 : (kind && t.ailRes && t.ailRes[kind]) || 0;
+    return Math.min(1, pas + eq + this._zokusei(t));
   }
   // 俗世拒絶 (隠修士): 敵から受ける状態異常 (石化・即死も) を -10/20/30%
   _zokusei(t) { return [0, 0.10, 0.20, 0.30][Math.min(3, pv(t, "hermitZokusei"))] || 0; }
   // 石化・即死への耐性 (異常耐性Lv2 + 装備の石化耐性)
-  _hardRes(t, kind) {
+  _hardRes(t, kind = "death") {
     if (t.ailmentImmune) return 1; // 解呪の宝珠: 石化・即死系の付与も無効
-    if (t.side !== "party") return 0;
+    if (t.side !== "party") return ((t.resists || (t.mon && t.mon.resists) || {})[kind] || 0) / 100;
     const pas = pv(t, "resistAilment") >= 2 ? 0.30 : 0;
-    const eq = (kind && t.ailRes && t.ailRes[kind]) || 0;
-    return Math.min(0.9, pas + eq + this._zokusei(t));
+    const eq = kind && t.resists ? (t.resists[kind] || 0) / 100 : (kind && t.ailRes && t.ailRes[kind]) || 0;
+    return Math.min(1, pas + eq + this._zokusei(t));
   }
 
   // 被ダメージ後の自動処理: 聖典の加護 (HP30%以下で1戦闘1回の自己回復)
@@ -2007,19 +2017,18 @@ export class Battle {
     }
   }
 
-  // 物理耐性・魔法耐性 (耐性ランク 1〜3 → 50% / 75% / 100% 軽減)。key = "physResist" | "magResist"
-  // 敵だけが持つ。耐性3 (無効) なら dmg は 0 になり immune が立つ
+  // 物理・魔法抵抗値 (0〜100、値と同じ割合を軽減)。key = "physResist" | "magResist"
+  // 敵味方が持つ。抵抗値100 (無効) なら dmg は 0 になり immune が立つ
   _resistCut(tgt, dmg, key, ignore = 0) {
     // 金属の体: 物理 (反撃など) は1ダメージ、魔法 (呪文・神罰・二刀の理など) は無効
     if (isMetal(tgt)) return key === "magResist" ? { dmg: 0, tag: METAL_TAG.mag, immune: true } : { dmg: Math.min(dmg, 1), tag: METAL_TAG.phys, immune: false };
-    let r = tgt && tgt.side === "enemy" ? (tgt[key] || 0) : 0;
-    if (r > 0 && r < 1) r = r >= 0.6 ? 2 : r >= 0.4 ? 1 : 0; // 旧形式 (割合) のまま保存された戦闘中の敵
-    r = Math.min(3, r | 0);
+    const r = tgt ? (tgt[key] || 0) : 0;
+    const tag = r >= 100 ? `${key === "physResist" ? "物理" : "魔法"}無効！` : `${key === "physResist" ? "物理" : "魔法"}抵抗 ${r}！`;
     if (!r) return { dmg, tag: "", immune: false };
     const rate = resistRate(r);
-    if (rate >= 1) return { dmg: 0, tag: RESIST_TAG[key][r], immune: true };
+    if (rate >= 1) return { dmg: 0, tag, immune: true };
     const cut = rate * (1 - Math.min(1, Math.max(0, ignore)));
-    return { dmg: Math.max(1, Math.round(dmg * (1 - cut))), tag: cut > 0 ? RESIST_TAG[key][r] : "", immune: false };
+    return { dmg: Math.max(1, Math.round(dmg * (1 - cut))), tag: cut > 0 ? tag : "", immune: false };
   }
 
   _physical(actor, tgt, opt = {}) {
@@ -2162,7 +2171,7 @@ export class Battle {
     // 魔法弱点 (魔法属性の武器の一撃だけ): 攻撃呪文と同じく被ダメが増える
     let magWeak = false;
     if (magHit && !metalHit && tgt.magWeak && tgt.magWeak > 1) { dmg = Math.round(dmg * tgt.magWeak); magWeak = true; }
-    // 物理耐性 (耐性ランク): 耐性1=50% / 耐性2=75% / 耐性3=無効。魔法属性の武器は魔法耐性を受ける
+    // 物理抵抗値: 値と同じ割合を軽減、100は無効。魔法属性の武器は魔法耐性を受ける
     // pierceは指定割合だけ耐性の軽減を無視する。会心は軽減の半分を無視し、無効は貫けない。
     const resistIgnore = magHit ? 0 : Math.max(Math.min(1, opt.pierce || 0), crit ? 0.5 : 0);
     const pr = metalHit ? { dmg, tag: crit ? "" : METAL_TAG.phys, immune: false }
@@ -2212,7 +2221,7 @@ export class Battle {
     if (opt.debuff && tgt.alive) { for (const k in opt.debuff) this._applyMod(tgt, k, opt.debuff[k], opt.debuffDur, opt.name); }
     // 仕込み毒 (venomBlade): 敵を毒に侵す
     const vb = pv(actor, "venomBlade");
-    if (vb && tgt.alive && tgt.side === "enemy" && !metalHit && !tgt.ailment && Math.random() < this._rate(actor, tgt, vb >= 2 ? 0.30 : 0.15)) {
+    if (vb && tgt.alive && tgt.side === "enemy" && !metalHit && !tgt.ailment && Math.random() < this._rate(actor, tgt, vb >= 2 ? 0.30 : 0.15, "poison")) {
       tgt.ailment = "poison";
       this.log(`${tgt.name}は毒に侵された！`, "hit");
     }
@@ -2257,11 +2266,9 @@ export class Battle {
   estPhys(actor, tgt, opt = {}) {
     if (!actor || !tgt || !tgt.alive) return 0;
     const magHit = actor.side === "party" && !!actor.wMagic && !opt.skill;
-    let r = tgt.side === "enemy" ? (tgt[magHit ? "magResist" : "physResist"] || 0) : 0;
-    if (r > 0 && r < 1) r = r >= 0.6 ? 2 : r >= 0.4 ? 1 : 0;
-    r = Math.min(3, r | 0);
+    let r = tgt[magHit ? "magResist" : "physResist"] || 0;
     const metal = isMetal(tgt);
-    if (r >= 3 && !metal) return 0; // 無効は会心でも通らない
+    if (r >= 100 && !metal) return 0; // 無効は会心でも通らない
     const evade = (metal ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0)
       + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) : 0);
     let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
@@ -2331,10 +2338,8 @@ export class Battle {
       if (t.magWeak > 1) dmg *= t.magWeak;
       if (sp.prey && sp.prey.races.includes(enemyRace(t))) dmg *= sp.prey.mul;
     }
-    let r = t.side === "enemy" ? (t.magResist || 0) : 0;
-    if (r > 0 && r < 1) r = r >= 0.6 ? 2 : r >= 0.4 ? 1 : 0;
-    r = Math.min(3, r | 0);
-    if (r >= 3) return 0;
+    let r = t.magResist || 0;
+    if (r >= 100) return 0;
     if (r > 0) dmg *= 1 - resistRate(r) * (1 - this._rk(actor, "archmageShinen", [0.25, 0.50, 0.75, 1]));
     if (pv(actor, "gokudoku") && t.ailment === "poison") dmg *= 1.3;
     dmg *= evDealMul(actor, t) * (1 + this._perkSum(actor, "deal", { tgt: elemMask(t), el: sp.element || "none", on: ["spell"] }));
@@ -2354,7 +2359,7 @@ export class Battle {
     return varianceMean((power + (actor.pie || 0) * this._bm(actor, "pie") * 0.3) * (1 + this._perkSum(actor, "heal")));
   }
   // 状態異常・即死の成功率 (Lv差・主の補正込み)。_inflict と同じ係数
-  estRate(actor, t, base) { return base > 0 ? this._rate(actor, t, base) : 0; }
+  estRate(actor, t, base, kind) { return base > 0 ? this._rate(actor, t, base, kind) : 0; }
 
   _cast(actor, cmd, res) {
     const sp = SPELLS[cmd.spellKey];
@@ -2469,7 +2474,7 @@ export class Battle {
           if (t.magWeak && t.magWeak > 1) { dmg = Math.round(dmg * t.magWeak); magWeak = true; }
           if (sp.prey && sp.prey.races.includes(enemyRace(t))) dmg = Math.round(dmg * sp.prey.mul);
         }
-        // 魔法耐性 (耐性ランク): 耐性1=50% / 耐性2=75% / 耐性3=無効
+        // 魔法抵抗値: 値と同じ割合を軽減、100は無効
         const mr = this._resistCut(t, dmg, "magResist");
         // 魔導の深淵 (大魔導のランク): 魔法耐性 1・2 による軽減を 25/50/75/100% 無視する (魔法無効には効かない)
         if (!mr.immune && mr.dmg < dmg && !isMetal(t)) {
@@ -2634,7 +2639,7 @@ export class Battle {
     } else if (sp.kind === "sleep") {
       for (const t of this.livingEnemies()) {
         if (isMetal(t)) { this.log(`${t.name}には効かない`, "sys"); res.hits.push({ target: t, miss: true, resisted: true }); continue; }
-        if (Math.random() < this._rate(actor, t, t.boss ? 0.3 : 0.6)) { t.asleep = true; this._holdAil(t, "sleep"); this.log(`${t.name}は眠った`, "sys"); this._breakOmen(t); res.hits.push({ target: t, sleep: true, status: "眠り!" }); }
+        if (Math.random() < this._rate(actor, t, 0.6, "sleep")) { t.asleep = true; this._holdAil(t, "sleep"); this.log(`${t.name}は眠った`, "sys"); this._breakOmen(t); res.hits.push({ target: t, sleep: true, status: "眠り!" }); }
         else this.log(`${t.name}には効かない`, "sys");
       }
     }
