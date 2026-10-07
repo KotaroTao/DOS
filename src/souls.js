@@ -1062,6 +1062,9 @@ export function charLevelOf(doll) {
 // ===== recalcDoll (器 = 主魂 + 宿し技) =====
 // 主魂 (primary) の共有育成エントリ {count, level} から全ステ・スキル・パッシブを導出し、
 // サブ魂 (subs) が選んだ技/パッシブを魂のランクに応じた数だけ借りる。進行は所持魂インスタンス (SOULS) が持つ。
+let PERMANENT_STAT_SRC = () => ({});
+export function setPermanentStatSource(fn) { PERMANENT_STAT_SRC = typeof fn === "function" ? fn : () => ({}); }
+
 export function recalcDoll(doll) {
   if (!doll.subs) doll.subs = [];
   const pe = doll.primary != null ? soulByUid(doll.primary) : null; // メイン魂インスタンス
@@ -1176,12 +1179,15 @@ export function recalcDoll(doll) {
   doll.endure = (passiveMap.endure || 0) > 0;
   doll.level = doll.jobLv || 1;
 
+  const permanent = PERMANENT_STAT_SRC();
+  if (pe) for (const k of Object.keys(st)) st[k] += permanent[k] || 0;
+
   const traits = jobBaseTraitsOf(clsKey, rank);
   doll.base = {
     hp: Math.max(1, Math.round(st.hp)), mp: Math.round(st.mp),
     atk: Math.round(st.atk), vit: Math.round(st.vit), agi: Math.max(1, Math.round(st.agi)),
     int: Math.round(st.int), pie: Math.round(st.pie), luk: Math.round(st.luk),
-    crit: traits.crit, resists: traits.resists,
+    crit: traits.crit + (pe ? (permanent.crit || 0) : 0), resists: traits.resists,
   };
   doll.spells = spells;
   doll.passives = passives;
