@@ -268,7 +268,7 @@ const EVADE_EVEN = 0.20, EVADE_SLOPE = 0.20, EVADE_MAX = 0.40;
 //  手番までに殴られて解けた (_wake)・術で治った (cureAil) 時も、その手番から普通に動ける (眠り・麻痺も同じ)
 const MIND_RECOVER = { charm: 0.30, confuse: 0.35 }, MIND_BOSS_RECOVER = 0.2;
 const MIND_CHARM_BREAK = 0.5, CONFUSE_FREE = 0.25, CONFUSE_DAZE = 0.3, CONFUSE_SELF_MUL = 0.5;
-// 手番ごとの自然回復 (魅了・混乱・眠り・麻痺) が何手番も続かないための救済: 治らなかった手番ごとに回復率が
+// 自然回復 (魅了・混乱・眠り・麻痺は手番ごと、毒はラウンドごと) の救済: 治らなかった判定ごとに回復率が
 // AIL_RAMP ずつ上がり、AIL_SURE 回目の判定で必ず治る (= かかったままの手番は最長 AIL_SURE-1 回)。
 // かかった直後の最初の判定は必ず外れる (_holdAil: 殴られて覚める・術や道具で治る以外は、最低1手番は続く)
 const AIL_RAMP = 0.15, AIL_SURE = 4;
@@ -932,6 +932,7 @@ export class Battle {
       if (!t.ailment || (t.ailment === "poison" && (t._poisonPct || 0.05) < sp.poison.pct)) {
         const up = t.ailment === "poison";
         t.ailment = "poison"; t._poisonPct = sp.poison.pct;
+        if (!up) this._holdAil(t, "poison");
         this.log(up ? `${t.name}の毒が強まった！` : `${t.name}は毒に侵された！`, "hit");
         tags.push("poison");
       }
@@ -997,6 +998,12 @@ export class Battle {
     for (const p of this.party) this._recalcBuffs(p); // 固有パッシブの条件付きの能力倍率を判定し直す
     for (const a of [...this.party, ...this.enemies]) {
       if (!a.alive || a.ailment !== "poison") continue;
+      // 毒も長引くほど治りやすくなる。治ったラウンドは毒のダメージを受けない
+      if (this._naturalRecover(a, "poison", 0.20)) {
+        a.ailment = null; a._poisonPct = null;
+        this.log(`${a.name}の毒が抜けた！`, "heal");
+        continue;
+      }
       // 毒の強さは付けた技しだい (既定5%)。主には半分 (5%以下はそのまま)
       let pct = a._poisonPct || 0.05;
       if (a.boss && pct > 0.05) pct = Math.max(0.05, pct * 0.5);
@@ -1139,7 +1146,7 @@ export class Battle {
     return res;
   }
 
-  // 手番の初めの自然回復の判定 (key = mind/sleep/para)。治らなかった手番ごとに AIL_RAMP ずつ治りやすくなり、
+  // 自然回復の判定 (key = mind/sleep/para/poison)。治らなかった判定ごとに AIL_RAMP ずつ治りやすくなり、
   // AIL_SURE 回目で必ず治る。治ったら数えを戻す
   _naturalRecover(actor, key, base) {
     const n = (actor._ailN || (actor._ailN = {}))[key] || 0;
@@ -1148,7 +1155,7 @@ export class Battle {
     actor._ailN[key] = n + 1;
     return false;
   }
-  // 状態異常にかけた瞬間の印: 次の自然回復の判定は必ず外れる (key = mind/sleep/para)
+  // 状態異常にかけた瞬間の印: 次の自然回復の判定は必ず外れる (key = mind/sleep/para/poison)
   _holdAil(t, key) { (t._ailN || (t._ailN = {}))[key] = -1; }
   // 魅了・混乱の手番の初め: 正気に戻れたか / 混乱していても動けるか。
   // "free" = いつも通り動ける (自然に正気に戻った手番も含む) / "auto" = 勝手に動く
@@ -2057,9 +2064,11 @@ export class Battle {
     // 魅了・混乱で同じ側を殴った分は数えない (捨てる器へ)
     const T = actor.side !== tgt.side ? this._tally() : newTally(), tk = actor.side === "party" ? "p" : "e";
     T[tk + "a"]++;
+    // 麻痺・眠り中の敵への物理は、見切り・回避・目つぶしに関わらず必中
+    const sureHit = tgt.side === "enemy" && (tgt.asleep || tgt.ailment === "paralyze");
     // 見切り (parry): 確率で完全回避
     const pLvP = pv(tgt, "parry");
-    if (pLvP && Math.random() < (pLvP >= 2 ? 0.15 : 0.10)) {
+    if (!sureHit && pLvP && Math.random() < (pLvP >= 2 ? 0.15 : 0.10)) {
       T[tk + "p"]++;
       this.log(`${tgt.name}は見切った！`, "sys");
       return { target: tgt, miss: true, evaded: true };
@@ -2071,7 +2080,7 @@ export class Battle {
     let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
     const blind = this._bm(actor, "hit");
     if (blind < 1) missP += Math.min(0.4, 1 - blind);
-    if (Math.random() < missP) {
+    if (!sureHit && Math.random() < missP) {
       T[tk + "e"]++;
       this.log(`${tgt.name}は攻撃をかわした！`, "sys");
       return { target: tgt, miss: true, evaded: true };
@@ -2267,7 +2276,8 @@ export class Battle {
     let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
     const blind = this._bm(actor, "hit");
     if (blind < 1) missP += Math.min(0.4, 1 - blind);
-    const hitP = Math.max(0, 1 - Math.min(1, missP)) * (1 - (pv(tgt, "parry") >= 2 ? 0.15 : pv(tgt, "parry") ? 0.1 : 0));
+    const sureHit = tgt.side === "enemy" && (tgt.asleep || tgt.ailment === "paralyze");
+    const hitP = sureHit ? 1 : Math.max(0, 1 - Math.min(1, missP)) * (1 - (pv(tgt, "parry") >= 2 ? 0.15 : pv(tgt, "parry") ? 0.1 : 0));
     const power = opt.power || 1;
     const sb = pv(actor, "spellBlade");
     const sbAdd = sb ? (actor.int || 0) * (sb >= 2 ? 1.0 : 0.5) * power : 0;
