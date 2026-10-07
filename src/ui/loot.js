@@ -9,7 +9,7 @@
 //       context: "bag" (所持品) | "donate" (宝物庫: 渡す→奉納) | "sell" (商会の売る) | "stock" (商会の棚) | "equipped" | "loot" | "view" (見るだけ)
 //   UI.identifyChooser(item, { onDone })  … 鑑定する者を選ぶシート (成功率つき・街なら商会の確実な鑑定も)
 //   UI.openDollChooser(item, { owner, mode, buyId }) … 人業を選んで装備 (/袋へ) するシート。押せばその場で装備・「元に戻す」
-//       (持ち物の品で WP-B の UI.equipChooser があればそちらを開く。装備できない理由は UI.canEquipReason があればそれ)
+//       (持ち物の装備は通常の品の詳細を開く。装備できない理由は UI.canEquipReason があればそれ)
 //   UI.markSeen(item) / UI.newCount()     … NEW 印 (入手で付き、品シートを開くと消える)
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
@@ -523,11 +523,9 @@ export function dollGrid(it, { owner = null, mode = "equip", buyId = null, onPic
   return grid;
 }
 
-// 人業を選ぶシート (トーストの「装備」・棚の ▾・鑑定の結果から)。持ち物の品は WP-B の UI.equipChooser があればそちら
+// 人業を選ぶシート (トーストの「装備」・棚の ▾・鑑定の結果から)。持ち物の装備は通常の品の詳細へ
 export function openDollChooser(it, { owner = null, mode = "equip", buyId = null, title, footer } = {}) {
-  if (mode === "equip" && !buyId && typeof UI.equipChooser === "function") {
-    try { return UI.equipChooser(it, { owner }); } catch (e) { /* 手元の版へ */ }
-  }
+  if (mode === "equip" && !buyId) return itemSheet(it, { owner });
   let h = null;
   const done = () => { if (h) h.close("done"); };
   const body = (scroll) => {

@@ -559,7 +559,7 @@ function autoEquip(target = "all") {
   return { ok: true, moves: plan.moves.length, plan };
 }
 
-// 最適装備の結果: 人業ごとに [部位: 前の品 → 新しい品 (誰から)] と能力の 前→後
+// 最適装備の結果: 人業ごとに [部位: 前の品 → 新しい品 (誰から)]、特殊効果と能力の 前→後
 function openAutoEquipResult(plan, before, undo) {
   const rows = [];
   for (const s of plan.undoSnapshot) {
@@ -593,6 +593,18 @@ function openAutoEquipResult(plan, before, undo) {
       if (c.giver) tx.appendChild(el("span", "pt-ae-from", `（${c.giver.name}から）`));
       ln.appendChild(tx);
       list.appendChild(ln);
+      const oldFx = specialLines(c.from), newFx = specialLines(c.to);
+      if (oldFx.length || newFx.length) {
+        const fx = el("div", "pt-ae-fx");
+        fx.appendChild(el("div", "pt-ae-fxh", "特殊効果"));
+        for (const [label, lines, cls] of [["付け替え前", oldFx, "before"], ["付け替え後", newFx, "after"]]) {
+          const block = el("div", `pt-ae-fxb ${cls}`);
+          block.appendChild(el("div", "pt-ae-fxk", label));
+          for (const text of lines.length ? lines : ["なし"]) block.appendChild(el("div", "pt-ae-fxl", text));
+          fx.appendChild(block);
+        }
+        list.appendChild(fx);
+      }
     }
     card.appendChild(list);
     const st = el("div", "pt-ae-st");

@@ -1367,7 +1367,10 @@ function pickMetalKey(layer) {
 // 迷宮の掟 (銀の里) は出やすさ trait.metalRate と、1階に入れ替わる札の最大数 trait.metalMax を持つ
 function placeMetal() {
   const tr = dungeonTrait();
-  const rate = (tr && tr.metalRate) || METAL_FLOOR_RATE;
+  const quest = questState().fixed.fq_zakka;
+  // 「銀の小人」を受けてから最初の1体を倒すまでは、金属の魔物が10倍出やすい。
+  const boost = quest && quest.state === "active" && !(quest.progress > 0) ? 10 : 1;
+  const rate = Math.min(1, ((tr && tr.metalRate) || METAL_FLOOR_RATE) * boost);
   if (battleLayer() < 3 || Math.random() >= rate) return;
   const cells = [];
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
@@ -1803,7 +1806,7 @@ function dockSpec() {
       else if (atBottom) down = { key: "clear", label: "踏破する", sub: "最深部の階段", kind: "primary", icon: "star" };
       else {
         const next = G.floor + 1, last = dn.floors || 1;
-        down = { key: "down", label: `B${next}Fへ降りる`, sub: next >= last ? (dn.boss ? "次は主の待つ最深部" : "次は最深部") : `残り ${last - G.floor}階`, kind: "primary", icon: "down" };
+        down = { key: "down", label: `B${next}Fへ降りる`, sub: next >= last ? (dn.boss ? "次は主の待つ最深部" : "次は最深部") : "", kind: "primary", icon: "down" };
       }
     }
   }
@@ -8814,6 +8817,13 @@ const HIT_STAGGER = 165;
 // 結果オブジェクトを演出 (踏み込み → 着弾 → 余韻)
 function animateResult(res, done) {
   if (G.battle && G.battle.tl) tlHits(G.battle.tl, res); // テスト記録: 与ダメ/被ダメ
+  // 眠り・行動不能で何もしなかった手番には、踏み込みや空振り音を出さない
+  if ((res.action === "sleep" || res.action === "stunned") && !(res.hits || []).length) {
+    renderParty();
+    renderCombat();
+    setTimeout(done, 200 * spdMul());
+    return;
+  }
   const t0 = performance.now();
   const WIND = (res.side === "enemy" ? 170 : 90) * spdMul();
   // 同一対象への最大ヒット数を数え、多段なら余韻を延ばして全ヒットを見せきる
