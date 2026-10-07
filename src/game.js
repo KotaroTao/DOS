@@ -11274,6 +11274,10 @@ function achNext(s) {
   const dunClearedAtLeast = (n) => { const c = worldState().cleared; return DUNGEONS.filter((d) => (c[d.id] || 0) >= n).length; };
   const eventsSeen = () => Object.keys((G.events && G.events.seen) || {}).length;
 
+  // 極の遭遇回数。既存の seen を使い、種類数とは別に累計する (同じマスの再表示は seen が抑止)。
+  const mythicEncounters = () => Object.entries(G.events?.seen || {}).reduce((n, [id, count]) =>
+    n + (EVENT_MAP[id]?.tier === "mythic" ? count : 0), 0);
+
   // ── 探索 ──
   // 潜入回数
   series("run", [
@@ -11412,6 +11416,12 @@ function achNext(s) {
 
   // ── 育成 ──
   // 魂のLv (キャラLv = 宿した魂のLv)。魂の残火で上限を上げれば 100 の先へも続く
+  // 極めて稀なる出来事の遭遇 — 1/5/10/20、その先は10回ごと。
+  series("evMythic", [
+    [1, "初めての極の恵み", 60], [5, "五つの極の恵み", 150, 1],
+    [10, "極の恵みを集める者", 300, 2], [20, "極の恵みの継ぎ手", 600, 3],
+  ], (v) => `極めて稀なる出来事に ${v}回 遭遇する`, mythicEncounters, { more: step(10) });
+
   series("lv", [
     [10, "駆け出しの職人", 50, 0, 0, "jlv10"], [20, "熟練の域", 150, 1, 0, "jlv20"], [30, "達人の域", 300, 2, 0, "jlv30"],
     [40, "名人の域", 600, 3, 0, "jlv40"], [50, "神域", 1000, 5, 0, "jlv50"],
