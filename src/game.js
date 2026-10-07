@@ -1364,7 +1364,10 @@ function pickMetalKey(layer) {
 // 迷宮の掟 (銀の里) は出やすさ trait.metalRate と、1階に入れ替わる札の最大数 trait.metalMax を持つ
 function placeMetal() {
   const tr = dungeonTrait();
-  const rate = (tr && tr.metalRate) || METAL_FLOOR_RATE;
+  const quest = questState().fixed.fq_zakka;
+  // 「銀の小人」を受けてから最初の1体を倒すまでは、金属の魔物が10倍出やすい。
+  const boost = quest && quest.state === "active" && !(quest.progress > 0) ? 10 : 1;
+  const rate = Math.min(1, ((tr && tr.metalRate) || METAL_FLOOR_RATE) * boost);
   if (battleLayer() < 3 || Math.random() >= rate) return;
   const cells = [];
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
