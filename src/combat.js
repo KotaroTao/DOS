@@ -444,8 +444,8 @@ export class Battle {
       // LR装飾品の戦闘効果を actor に展開 (member.eff = recalc が集約済み)
       const ef = p.eff || null;
       p.actFirst = !!(ef && ef.actFirst);
-      if (ef && ef.multistrike) p.multistrike = Math.max(p.multistrike || 0, ef.multistrike);
-      if (ef && ef.lifesteal) p.lifesteal = Math.max(p.lifesteal || 0, ef.lifesteal);
+      p.multistrike = (ef && ef.multistrike) || 0;
+      p.lifesteal = (ef && ef.lifesteal) || 0;
       if (ef && ef.barrier) p._barrierLeft = (p._barrierLeft || 0) + ef.barrier;
       p.guard = (ef && ef.guard) || 0;
       p.spellCostMul = (ef && ef.spellCostMul) || 0;
@@ -2216,13 +2216,17 @@ export class Battle {
       return { target: tgt, dmg: 0, crit: false, died: false, immune: true };
     }
     tgt.hp -= dmg;
-    // 吸血 (lifesteal): 与えた傷の一部を己のHPに変える (敵の能力・味方の吸命のLR装飾品の双方)
-    let stolen = 0; // 吸血で癒えた量 (満タンで切られた分も含む素の値。演出で「+N」と見せる)
+    // 属性・障壁・物理耐性は重なっても全部見えるように併記する
+    const eff = [em > 1 ? "弱点!" : em < 1 ? "耐性…" : "", magWeak ? "魔法弱点!" : "", barriered ? "障壁!" : "", pr.tag]
+      .filter(Boolean).map((t) => " " + t).join("");
+    this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}${eff}`,
+      tgt.side === "party" ? "dmg" : "hit");
+    // 吸血: 命中とダメージを伝えた後にHPを吸収する。回避・無効時はここに到達しない。
+    let stolen = 0; // 満タンで切られた分も含む素の吸収量 (演出で「+N」と見せる)
     if (actor.lifesteal && actor.alive && dmg > 0) {
-      const hl = Math.max(1, Math.round(dmg * actor.lifesteal));
-      stolen = hl;
-      actor.hp = Math.min(actor.maxhp, actor.hp + hl);
-      this.log(`${actor.name}は精気を吸い取った (${hl})`, "dmg");
+      stolen = Math.max(1, Math.round(dmg * actor.lifesteal));
+      actor.hp = Math.min(actor.maxhp, actor.hp + stolen);
+      this.log(`${actor.name}はHPを吸い取った (HP+${stolen})`, "heal");
     }
     // 報復の籠手 (counter): 敵の物理攻撃を受けた味方が反撃する (LR装飾品。反撃の反撃は起きない)
     if (tgt.side === "party" && tgt.counter && tgt.alive && actor.side === "enemy" && actor.alive && !opt._counter && dmg > 0) {
@@ -2231,11 +2235,6 @@ export class Battle {
       this.log(`${tgt.name}の報復！ ${actor.name}に ${cdmg} ダメージ`, "hit");
       this._die(actor);
     }
-    // 属性・障壁・物理耐性は重なっても全部見えるように併記する
-    const eff = [em > 1 ? "弱点!" : em < 1 ? "耐性…" : "", magWeak ? "魔法弱点!" : "", barriered ? "障壁!" : "", pr.tag]
-      .filter(Boolean).map((t) => " " + t).join("");
-    this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}${eff}`,
-      tgt.side === "party" ? "dmg" : "hit");
     this._wake(tgt);
     if (perkFoe) this._rankOnHit(actor, tgt, dmg, metalHit);
     // 命中時の弱体 (毒刃など)
@@ -2671,13 +2670,13 @@ export class Battle {
     if (dealt > 0 && sp.drain && actor.alive) {
       const heal = Math.max(1, Math.round(dealt * sp.drain));
       actor.hp = Math.min(actor.maxhp, actor.hp + heal);
-      this.log(`${actor.name}は命を吸い取った (HP+${heal})`, "heal");
+      this.log(`${actor.name}はHPを吸い取った (HP+${heal})`, "heal");
       res.hits.push({ target: actor, heal });
     }
     if (dealt > 0 && sp.mpDrain && actor.maxmp) {
       const gain = Math.max(1, Math.round(dealt * sp.mpDrain));
       actor.mp = Math.min(actor.maxmp, actor.mp + gain);
-      this.log(`${actor.name}は魔力を喰らった (MP+${gain})`, "heal");
+      this.log(`${actor.name}はMPを吸い取った (MP+${gain})`, "heal");
     }
     // 本効果に付随する敵全体への弱体 (攻守の法陣・霞の帳)
     if (sp.debuffAll) {

@@ -12,7 +12,53 @@ setElemKnown(null);
 const actor=()=>Object.assign(makeDoll('検証の人業'),{level:40,atk:100,vit:60,agi:100,int:120,pie:130,luk:50,hp:1000000,maxhp:1000000,mp:100000,maxmp:100000,critBonus:0});
 const foe=()=>({uid:100000,name:'検証の敵',key:'bs_ghoul',mon:MONSTERS.bs_ghoul,side:'enemy',alive:true,hp:1000000,maxhp:1000000,atk:80,vit:60,agi:30,int:40,pie:40,luk:8,lv:40,element:'none',spells:[]});
 const close=(actual,expected,label,tolerance=.035)=>assert(Math.abs(actual-expected)<=Math.max(2,expected*tolerance),`${label}: 実測${actual} / 見積もり${expected}`);
+// 同じ人業を次の戦闘でも使い、装備を渡した後に吸血が残らないことを確認する。
+{
+ const a=actor(),other=actor(),t=foe(),logs=[];
+ a.equip.hands={eff:{lifesteal:.15,multistrike:2}};
+ const {recalc}=await import('../../src/items.js');
+ recalc(a);
+ new Battle([a,other],[t],()=>{});
+ assert.equal(a.lifesteal,.15);
+ assert.equal(a.multistrike,2);
+ other.equip.hands=a.equip.hands;a.equip.hands=null;
+ recalc(a);recalc(other);
+ const b=new Battle([a,other],[t],line=>logs.push(line));
+ assert.equal(a.lifesteal,0);
+ assert.equal(a.multistrike,0);
+ assert.equal(other.lifesteal,.15);
+ other.hp=1;
+ const hit=b._physical(other,t,{acc:1});
+ assert(hit.lifesteal>0);
+ assert.equal(other.hp,Math.min(other.maxhp,1+hit.lifesteal));
+ assert(logs.findIndex(s=>s.includes('ダメージ'))<logs.findIndex(s=>s.includes('HPを吸い取った')));
+ logs.length=0;t.physResist=100;other.hp=1;
+ assert(b._physical(other,t,{acc:1}).immune);
+ assert.equal(other.hp,1);
+ assert(!logs.some(s=>s.includes('吸い取った')));
+ t.physResist=0;
+ const random=Math.random;Math.random=()=>0;
+ assert(b._physical(other,t,{}).miss);
+ Math.random=random;
+ assert.equal(other.hp,1);
+ assert(!logs.some(s=>s.includes('吸い取った')));
+}
 assert.equal(luckCritBonus(8),0);
+// HP/MPを吸う技も、ダメージの後に資源名と吸収量を表示する。
+for(const [key,resource] of [['KYUUKETSU','HP'],['MAGUINOTACHI','MP'],['NECROMANCER_SEIKISUI','HP'],['MARYOKUGOUDATSU','MP']]){
+ for(const immune of [false,true]){
+  const a=actor(),t=foe(),logs=[];
+  t.physResist=t.magResist=immune?100:0;
+  const b=new Battle([a],[t],line=>logs.push(line));
+  a.hp=1;a.mp=100;
+  const random=Math.random;Math.random=()=>.5;
+  const res=b._exec({actor:a,action:'spell',spellKey:key,target:t});
+  Math.random=random;
+  const absorption=logs.findIndex(s=>s.includes(`${resource}を吸い取った (${resource}+`));
+  if(immune){assert.equal(absorption,-1);assert(!res.hits.some(h=>h.heal));}
+  else {assert(res.hits.some(h=>h.dmg>0));assert(absorption>logs.findIndex(s=>s.includes('ダメージ')));}
+ }
+}
 assert(luckCritBonus(30)>0 && luckCritBonus(100)>luckCritBonus(30));
 assert(luckCritBonus(1000000)<=.25);
 {
