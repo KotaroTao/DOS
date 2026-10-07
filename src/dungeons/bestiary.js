@@ -1897,7 +1897,7 @@ const EVENT_MONSTERS = defMonsters(EVENT_MONSTER_DEFS.map((d) => ({ ...monStats(
 // 出現表には入らず (metal)、第3層から game.js の newFloor が稀に盤面の魔物の札と入れ替える。
 // 能力値は出現した階の雑魚の最上位ランクで組み直す (combat.js spawnMetal)。ここの rank/能力値は図鑑の目安
 const METAL_MONSTER_DEFS = [
-  { id: "mt_silver", name: "銀業", metal: 1, rank: 4, hp: 8, race: "construct", element: "none", artKey: "hd_mt_silver", ability: null,
+  { id: "mt_silver", name: "銀業", metal: 1, rank: 4, hp: 4, race: "construct", element: "none", artKey: "hd_mt_silver", ability: null,
     desc: "手のひらほどの銀の人業。人業になりそこねた魂が、墓に納められた銀の聖具へ溶け込んで生まれたという。中には魂がぎっしりと詰まっていて、たたけば澄んだ鈴の音がする。剣も呪文も滑らかな銀肌に弾かれるが、会心の一撃だけは芯まで届く。目が合うと、ちょこちょこ逃げていく。" },
   { id: "mt_gold", name: "金業", metal: 2, rank: 5, hp: 12, race: "construct", element: "none", artKey: "hd_mt_gold", ability: null,
     desc: "金の聖具から生まれた銀業の兄貴分。ひらひらの金の飾り布を尾びれのようになびかせ、銀業よりさらにすばしこい。うっかり街の金魚鉢に紛れ込んでいたという噂がある。倒せば銀業の倍以上の魂がこぼれ出す。" },
