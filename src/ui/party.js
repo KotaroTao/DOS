@@ -1437,12 +1437,20 @@ function rescueLine(d) {
   }
   t.appendChild(document.createTextNode("砕けた"));
   box.appendChild(t);
+  const actions = el("div", "pt-repair-actions");
   const cost = game.repairCostOf ? game.repairCostOf(d) : 0;
-  box.appendChild(button({ label: "砕けた魂を修復", kind: "primary", size: "sm", cost: { kind: "gold", n: cost }, disabled: (G.gold || 0) < cost,
+  actions.appendChild(button({ label: "砕けた魂を修復", kind: "primary", size: "sm", cost: { kind: "gold", n: cost }, disabled: (G.gold || 0) < cost,
     onTap: () => confirm({ banner: "魂の修復", title: `${d.name} の砕けた魂を修復する？`,
       lines: [`金貨 💰${cost} ・ HP/MP 満タンで立ち上がる`, `所持: 💰${G.gold || 0}`],
       okLabel: "修復する", danger: false })
       .then((ok) => { if (!ok) return; if (game.repairDoll) game.repairDoll(d); rerender(); }) }));
+  const dead = (game.allDolls ? game.allDolls() : []).filter((m) => m.isDoll && !m.alive && !waiting(m));
+  if (dead.length > 1) {
+    const total = dead.reduce((sum, m) => sum + game.repairCostOf(m), 0);
+    actions.appendChild(button({ label: "全員を修復", kind: "primary", size: "sm", cost: { kind: "gold", n: total }, disabled: (G.gold || 0) < total,
+      onTap: () => { if (game.repairAllDolls) game.repairAllDolls(); rerender(); } }));
+  }
+  box.appendChild(actions);
   return box;
 }
 
