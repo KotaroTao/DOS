@@ -1369,6 +1369,7 @@ export function recalc(member) {
   const eff = {}; // 戦闘効果 (LR装飾品): actFirst/multistrike/lifesteal/autoRevive/guard/spellCostMul
   const ea = {}, ed = {};
   const resist = zeroResists();
+  for (const k in resist) resist[k] = (base.resists && base.resists[k]) || 0;
   const ar = {}, oh = {}; // 状態異常耐性 (種類→合計) / 追加効果 (種類→最も強いもの)
   let br = 0; // ブレス耐性 (合計)
   const counted = new Set();

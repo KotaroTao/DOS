@@ -18,7 +18,7 @@ export default {
     // Lv15 の固有技: 誓いを掲げて隊を奮い立たせる
     HERO_CHIKAINOHATA: { name: "誓いの旗", mp: 7, kind: "buff", buff: { atk: 1.15, vit: 1.1 }, target: "all-ally", desc: "誓いを掲げて隊を奮い立たせ、味方全体の攻撃力と防御を上げる" },
     HERO_JINRAI: { name: "迅雷", mp: 9, kind: "atk", power: 26, element: "wind", para: 0.25, flinchChance: 0.15, target: "enemy", desc: "迅き雷で撃ち、痺れさせ怯ませる" },
-    HERO_YUUKITOMOSHIBI: { name: "勇気の灯", mp: 10, kind: "buff", buff: { atk: 1.1 }, cure: true, purge: true, target: "all-ally", desc: "全員の異常と弱体を祓い、奮い立たせる" },
+    HERO_YUUKITOMOSHIBI: { name: "勇気の灯", mp: 10, kind: "buff", buff: { atk: 1.1 }, cure: ["sleep", "charm", "confuse"], target: "all-ally", desc: "味方全員の眠り・魅了・混乱を治し、勇気の加護を授ける" },
     HERO_SAIKI: { name: "再起の呼び声", mp: 9, kind: "heal", power: 0, revive: true, revivePct: 0.4, grantEndure: true, target: "ally", desc: "倒れた仲間を呼び起こし (HP40%)、致死を一度耐えさせる" },
     HERO_KIBOUSENKOU: { name: "希望の閃光", mp: 22, kind: "atk", power: 60, element: "light", debuff: { hit: 0.85 }, target: "enemy", desc: "まばゆい希望の光で撃ち、目を眩ます" },
     HERO_SHIPPUUTAIKEN: { name: "疾風の大剣", mp: 24, kind: "phys", power: 5.4, element: "wind", agiScale: 0.3, acc: 1, target: "enemy", desc: "疾風をまとう必中の大剣。速さで伸びる" },

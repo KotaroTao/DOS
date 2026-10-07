@@ -2,7 +2,7 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, setElemKnown, perkVictory } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, setElemKnown, perkVictory, canSpellCure, cureBySpell, spellCureKinds } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageLabel, isBattleLong, turnsLeftLabel } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -13106,7 +13106,7 @@ const CAMP_HEAL = new WeakMap();
 function campApplyAlive(...args) { return tlGameMeasure("camp", () => campApplyAliveMeasured(...args)); }
 function campApplyAliveMeasured(caster, sp, t) {
   let did = false;
-  if (spellCures(sp) && t.ailment) { t.ailment = null; log(`${sp.name}！ ${t.name}の状態異常が治った`, "heal"); did = true; }
+  if (canSpellCure(sp, t) && cureBySpell(sp, t)) { log(`${sp.name}！ ${t.name}の状態異常が治った`, "heal"); did = true; }
   if (spellHeals(sp)) {
     // 満タンの仲間にも回復量は見せる (HP は増えない・それだけでは「効果あり」にしない)
     const p = campHealPower(caster, sp);
@@ -13172,10 +13172,10 @@ function healAllCasters() {
   }
   return out;
 }
-// 呪文の組み合わせ (唱える順の一覧) を決める。def = 各人のHPの不足, ail = 各人の状態異常の有無。
+// 呪文の組み合わせ (唱える順の一覧) を決める。def = 各人のHPの不足, ail = 各人の状態異常の種類。
 // 呪文ごとの見積もりは、唱えうる者の中で最も弱い回復量・最も重い MP (誰が唱えても足りる側)。
 //  全体呪文で合計 h 以上を癒す最少MP (allDP) + 残りを1人ずつ単体呪文で埋める最少MP (oneDP) を、h ごとに比べて最小を取る。
-//  状態異常は「治療つきの全体呪文を1回以上」か「その人へ治療つきの単体呪文を1回以上」で治す
+//  状態異常は、該当する種類を治せる単体技または全員の異常を覆う全体技で治す。種類の異なる全体技の組み合わせは貪欲法で補う。
 const HEAL_CAST_EPS = 1e-3; // 同じ MP なら唱える回数の少ない組み合わせを選ぶための僅かな重み
 function planHealAllDP(def, ail, casters) {
   const kinds = new Map();
@@ -13186,7 +13186,7 @@ function planHealAllDP(def, ail, casters) {
   }
   const allK = [...kinds.values()].filter((k) => k.all), oneK = [...kinds.values()].filter((k) => !k.all);
   const D = Math.max(0, ...def);
-  // 単体: S0[d] = d を埋める最少MP、S1[d] = 治療つきの呪文を1回以上含めて d を埋める最少MP
+  // 単体: S0[d] = d を埋める最少MP、singleCures = 異常の種類ごとに治療を含める最少MP
   const S0 = new Array(D + 1).fill(Infinity), S0k = new Array(D + 1).fill(null);
   S0[0] = 0;
   for (let d = 1; d <= D; d++) for (const k of oneK) {
@@ -13194,11 +13194,15 @@ function planHealAllDP(def, ail, casters) {
     const v = k.cost + HEAL_CAST_EPS + S0[Math.max(0, d - k.pow)];
     if (v < S0[d]) { S0[d] = v; S0k[d] = k; }
   }
-  const S1 = new Array(D + 1).fill(Infinity), S1k = new Array(D + 1).fill(null);
-  for (let d = 0; d <= D; d++) for (const k of oneK) {
-    if (!k.cures) continue;
-    const v = k.cost + HEAL_CAST_EPS + S0[Math.max(0, d - k.pow)];
-    if (v < S1[d]) { S1[d] = v; S1k[d] = k; }
+  const singleCures = new Map();
+  for (const kind of new Set(ail.filter(Boolean))) {
+    const cost = new Array(D + 1).fill(Infinity), keys = new Array(D + 1).fill(null);
+    for (let d = 0; d <= D; d++) for (const k of oneK) {
+      if (!spellCureKinds(k.sp).includes(kind)) continue;
+      const v = k.cost + HEAL_CAST_EPS + S0[Math.max(0, d - k.pow)];
+      if (v < cost[d]) { cost[d] = v; keys[d] = k; }
+    }
+    singleCures.set(kind, { cost, keys });
   }
   // 全体: A0[h] = 合計 h 以上を癒す最少MP、A1[h] = 治療つきの全体呪文を1回以上含めて
   const A0 = new Array(D + 1).fill(Infinity), A0k = new Array(D + 1).fill(null);
@@ -13210,7 +13214,7 @@ function planHealAllDP(def, ail, casters) {
   }
   const A1 = new Array(D + 1).fill(Infinity), A1k = new Array(D + 1).fill(null);
   for (let h = 0; h <= D; h++) for (const k of allK) {
-    if (!k.cures) continue;
+    if (!k.cures || ail.some(kind => kind && !spellCureKinds(k.sp).includes(kind))) continue;
     const v = k.cost + HEAL_CAST_EPS + A0[Math.max(0, h - k.pow)];
     if (v < A1[h]) { A1[h] = v; A1k[h] = k; }
   }
@@ -13222,7 +13226,7 @@ function planHealAllDP(def, ail, casters) {
       let v = base;
       for (let i = 0; i < def.length && v < best; i++) {
         const d = Math.max(0, def[i] - h);
-        v += ail[i] && !cured ? S1[d] : S0[d];
+        v += ail[i] && !cured ? singleCures.get(ail[i]).cost[d] : S0[d];
       }
       if (v < best) { best = v; pick = { h, cured }; }
     }
@@ -13235,7 +13239,7 @@ function planHealAllDP(def, ail, casters) {
   else takeAll(pick.h);
   for (let i = 0; i < def.length; i++) {
     let d = Math.max(0, def[i] - pick.h);
-    if (ail[i] && !pick.cured) { const k = S1k[d]; steps.push({ k, t: i }); d = Math.max(0, d - k.pow); }
+    if (ail[i] && !pick.cured) { const k = singleCures.get(ail[i]).keys[d]; steps.push({ k, t: i }); d = Math.max(0, d - k.pow); }
     while (d > 0) { const k = S0k[d]; steps.push({ k, t: i }); d = Math.max(0, d - k.pow); }
   }
   return { cost: best, steps };
@@ -13267,12 +13271,12 @@ function planHealAllGreedy(def0, ail0, casters) {
     for (const ci of order) {
       for (const a of casters[ci].acts) {
         if (a.cost > mp[ci]) continue;
-        const ts = a.all ? def.map((_, i) => i) : def.map((_, i) => i).filter((i) => (a.heals && def[i] > 0) || (a.cures && ail[i]));
+        const ts = a.all ? def.map((_, i) => i) : def.map((_, i) => i).filter((i) => (a.heals && def[i] > 0) || (a.cures && spellCureKinds(a.sp).includes(ail[i])));
         for (const t of (a.all ? [-1] : ts)) {
           let gain = 0;
           for (const i of (t < 0 ? ts : [t])) {
             if (a.heals) gain += Math.min(def[i], a.pow);
-            if (a.cures && ail[i]) gain += 1000;
+            if (a.cures && spellCureKinds(a.sp).includes(ail[i])) gain += 1000;
           }
           const v = gain / a.cost;
           if (v > val) { val = v; pick = { ci, a, t }; }
@@ -13284,7 +13288,7 @@ function planHealAllGreedy(def0, ail0, casters) {
     for (let i = 0; i < def.length; i++) {
       if (pick.t >= 0 && pick.t !== i) continue;
       if (pick.a.heals) def[i] = Math.max(0, def[i] - pick.a.pow);
-      if (pick.a.cures) ail[i] = false;
+      if (pick.a.cures && spellCureKinds(pick.a.sp).includes(ail[i])) ail[i] = null;
     }
     mp[pick.ci] -= pick.a.cost;
     out.push(pick);
@@ -13342,7 +13346,7 @@ function healAllMeasured() {
   const casters = healAllCasters(); // 蘇った術者も唱える側に入る
   const targets = G.party.filter((t) => t.alive);
   const planFrom = () => {
-    const d = targets.map((t) => Math.max(0, t.maxhp - t.hp)), a = targets.map((t) => !!t.ailment);
+    const d = targets.map((t) => Math.max(0, t.maxhp - t.hp)), a = targets.map((t) => t.ailment || null);
     if (a.some(Boolean) && !casters.some((c) => c.acts.some((x) => x.cures))) return null;
     if (d.some((v) => v > 0) && !casters.some((c) => c.acts.some((x) => x.heals))) return null;
     const plan = planHealAllDP(d, a, casters);
@@ -13352,7 +13356,7 @@ function healAllMeasured() {
   for (let guard = 0; steps && steps.length && guard < 300; guard++) {
     const { ci, a, t } = steps[0];
     const caster = casters[ci].p;
-    const hit = targets.filter((x, i) => (t < 0 || t === i) && ((a.heals && x.hp < x.maxhp) || (a.cures && x.ailment)));
+    const hit = targets.filter((x, i) => (t < 0 || t === i) && ((a.heals && x.hp < x.maxhp) || (a.cures && canSpellCure(a.sp, x))));
     if (!hit.length || caster.mp < a.cost) break;
     cast(caster, a.sp, a.cost, t < 0 ? null : targets[t]);
     if (!targets.some((x) => x.hp < x.maxhp || x.ailment)) break;
@@ -13364,9 +13368,12 @@ function healAllMeasured() {
   for (let guard = 0; guard < 100; guard++) {
     const ill = targets.filter((x) => x.alive && x.ailment);
     if (!ill.length) break;
-    const pick = bestOf(casters, (a) => a.cures && ((a.all ? ill.length : 1) / a.cost + a.pow * HEAL_CAST_EPS * 1e-3));
+    const pick = bestOf(casters, (a) => {
+      const n = ill.filter(t => canSpellCure(a.sp, t)).length;
+      return n ? (a.all ? n : 1) / a.cost + a.pow * HEAL_CAST_EPS * 1e-3 : 0;
+    });
     if (!pick) break;
-    const t = pick.a.all ? null : ill.slice().sort((x, y) => x.hp / x.maxhp - y.hp / y.maxhp)[0];
+    const t = pick.a.all ? null : ill.filter(x => canSpellCure(pick.a.sp, x)).sort((x, y) => x.hp / x.maxhp - y.hp / y.maxhp)[0];
     cast(pick.c.p, pick.a.sp, pick.a.cost, t);
   }
   //  HP: 1MP あたりの見込み回復量 (最低値・満タンを超える分は数えない) が最も大きい手から。単体は最も深手の者へ
@@ -13392,7 +13399,7 @@ function healAllMeasured() {
 
   if (!total) {
     const ill = targets.some((x) => x.ailment), hurt = targets.some((x) => x.hp < x.maxhp);
-    const canCure = casters.some((c) => c.acts.some((a) => a.cures)), canHeal = casters.some((c) => c.acts.some((a) => a.heals));
+    const canCure = casters.some((c) => c.acts.some((a) => targets.some(t => canSpellCure(a.sp, t)))), canHeal = casters.some((c) => c.acts.some((a) => a.heals));
     if (ill && !canCure && !(hurt && canHeal)) return fail("状態異常を治す呪文を使える者がいない");
     if (hurt && !canHeal && !(ill && canCure)) return fail("傷を癒す呪文を使える者がいない");
     return fail("MPが足りない！", "bad");
@@ -13461,7 +13468,7 @@ function campCast(caster, spellKey) {
   // 単体: 効果のある対象だけを候補にする (HP満タンへの回復・状態異常なしへの治療は不可)
   const benefits = (t) => {
     if (!t.alive) return !!sp.revive;
-    if (cures && t.ailment) return true;
+    if (cures && canSpellCure(sp, t)) return true;
     if (heals && t.hp < t.maxhp) return true;
     return false;
   };
@@ -13868,8 +13875,8 @@ function tickPoisonMeasured() {
   for (const p of G.party) {
     if (!p.alive || p.ailment !== "poison") continue;
     any = true;
-    // 毒状態の継続ダメージは最大HPの2% (高レベルでも脅威として機能するよう%化)
-    const dmg = Math.max(1, Math.ceil(p.maxhp * 0.02));
+    // 通常の毒は戦闘外でも最大HPの5%を削る
+    const dmg = Math.max(1, Math.ceil(p.maxhp * 0.05));
     p.hp = Math.max(0, p.hp - dmg);
     if (p.hp === 0) { p.alive = false; SFX.die(); log(`${p.name}は毒に倒れた…`, "dmg"); }
   }

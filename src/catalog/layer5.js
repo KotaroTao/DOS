@@ -23,7 +23,7 @@ export const LAYER5_ITEMS = [
     desc: "霧の中を音もなく飛ぶ梟の羽を矢羽に、梟の骨を弓幹にした弓。霧の向こうの獲物にも狙いを外さず、矢は魔力を帯びて霊さえも射抜く。" })),
   sr(W("w_sr5_sapstaff", "樹液の灯杖", "st", 52, { scale: { int: 0.3, pie: 0.3 }, magic: true, pow: 1.3, eAtk: ["fire", 1], mp: 18, tint: "#d8b050",
     desc: "魂の樹液を琥珀に封じて杖頭に据えた杖。琥珀の中で燃える灯が、唱えた呪文を霧を焼き払う炎に変える。" })),
-  sr(W("w_sr5_thornknife", "茨裂きの短剣", "dg", 45, { scale: { agi: 0.35 }, pow: 1.3, onHit: ["poison", 0.3, 0.06], luk: 3, tint: "#5a7a40",
+  sr(W("w_sr5_thornknife", "茨裂きの短剣", "dg", 45, { scale: { agi: 0.35 }, pow: 1.3, onHit: ["poison", 0.3, 0.05], luk: 3, tint: "#5a7a40",
     desc: "茨の猟犬の牙を研ぎ出した短剣。刃に残る茨の棘が傷口に食い込み、毒がじわじわと獲物の肉を蝕む。" })),
   sr(W("w_sr5_stagaxe", "角の魔獣の斧", "ax", 55, { pow: 1.3, two: true, hp: 22, eAtk: ["wind", 1], tint: "#8a6a4a",
     desc: "森を荒らした角の魔獣の角を斧頭にはめ込んだ大斧。振るえば突風を巻き起こし、苔むした岩の魔物すら叩き割る。" })),

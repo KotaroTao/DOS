@@ -15,7 +15,7 @@
 //   debuff({atk/vit/agi/hit/int: 倍率}) — hit = 命中率 (目つぶし)
 //   vuln({fire/water/wind/earth/light/dark/all: 倍率}) — 属性耐性ダウン (0.7 なら その属性の被ダメ ×1.43)
 //   seal({chance, turns}) — 特技封じ (ブレス・状態異常攻撃・回復役・呼び手などの行動を封じる)
-//   poison({chance, pct}) — 毒 (毎ラウンド最大HPの pct を削る。主には半分)
+//   poison({chance, pct}) — 毒 (通常は毎ラウンド最大HPの5%。猛毒は10%、主には5%)
 //   para(確率) — 麻痺 (手番を失いやすい) / sleepChance / flinchChance (怯み) / strip (強化を打ち消す)
 //   charm(確率) — 魅了 (敵がその仲間に襲いかかる。傷を受けると解けやすい・主には35%の確率)
 //   confuse(確率) — 混乱 (敵が敵味方を問わず殴る・ふらつく・主には半分の確率)
@@ -106,7 +106,7 @@ export const SPELLS = {
   DIALALL:    { name: "リカバーオール", mp: 12, kind: "heal", power: 40, target: "all-ally", desc: "味方全員を大きく回復" },
   IYASHINAMI: { name: "癒しの波", mp: 22, kind: "heal", power: 70, target: "all-ally", desc: "癒しの大波が味方を包む" },
   DAIFUKUIN:  { name: "大福音", mp: 36, kind: "heal", power: 80, cure: true, purge: true, target: "all-ally", desc: "味方全員を癒し、状態異常と弱体を祓う" },
-  CURE:       { name: "キュア", mp: 3, kind: "cure", purge: true, target: "ally", desc: "状態異常と弱体を治す" },
+  CURE:       { name: "キュア", mp: 3, kind: "cure", cure: ["poison"], target: "ally", desc: "味方一人の毒・猛毒を治す" },
   KIYOME:     { name: "清めの祈り", mp: 8, kind: "cure", purge: true, target: "all-ally", desc: "味方全員の状態異常と弱体を治す" },
   REVIVE:     { name: "リバイブ", mp: 8, kind: "heal", power: 0, target: "ally", revive: true, revivePct: 0.5, desc: "戦闘不能をHP50%で蘇生" },
   RESURRECT:  { name: "リザレクション", mp: 14, kind: "heal", power: 0, target: "ally", revive: true, revivePct: 1.0, desc: "戦闘不能をHP100%で蘇生" },
@@ -119,10 +119,10 @@ export const SPELLS = {
   SEIKUNOKAGO:{ name: "聖句の加護", mp: 12, kind: "heal", power: 36, grantEndure: true, target: "ally", desc: "癒しと共に、致死を一度耐える力を授ける" },
   DAISEIKITOU:{ name: "大聖祈祷", mp: 14, kind: "heal", power: 30, cure: true, regen: { pct: 0.05, turns: 3 }, target: "all-ally", desc: "味方全員を癒し、穢れを祓い、癒しを残す" },
   TENKEINOINORI: { name: "天啓の祈り", mp: 26, kind: "heal", power: 50, buff: { vit: 1.3 }, target: "all-ally", desc: "味方全員を癒し、防御を上げる" },
-  SEIIKINOKANE: { name: "聖域の鐘", mp: 12, kind: "buff", buff: { vit: 1.2 }, cure: true, purge: true, target: "all-ally", desc: "味方を守り、状態異常と弱体を祓う鐘の音" },
+  SEIIKINOKANE: { name: "聖域の鐘", mp: 12, kind: "buff", buff: { vit: 1.2 }, cure: ["sleep", "confuse"], target: "ally", desc: "一人の守りを高め、眠り・混乱を治す" },
   KYOUKOUNOSHUKUFUKU: { name: "教皇の祝福", mp: 36, kind: "buff", buff: { atk: 1.3, vit: 1.3, agi: 1.2 }, regen: { pct: 0.08, turns: 4 }, target: "all-ally", desc: "味方全体の攻守と素早さを上げ、癒しを残す" },
   MANAGIFT:   { name: "魔力の譲渡", mp: 8, kind: "mana", power: 8, target: "ally", desc: "自分の魔力を味方に分け与える" },
-  SHINTOU:    { name: "調息", mp: 6, kind: "heal", power: 30, cure: true, purge: true, target: "self", desc: "自分を癒し、状態異常と弱体を払う" },
+  SHINTOU:    { name: "調息", mp: 6, kind: "heal", power: 30, cure: ["poison"], target: "self", desc: "自分の傷を癒し、毒・猛毒を治す" },
 
   // ================= 聖なる攻め =================
   HOLYRAY:        { name: "聖光", mp: 3, kind: "atk", power: 14, element: "light", prey: { races: UNHOLY, mul: 1.5 }, target: "enemy", desc: "聖なる光条。不浄の者に強い" },
@@ -211,8 +211,8 @@ export const SPELLS = {
   KAGENUI:  { name: "影縫い", mp: 8, kind: "debuff", debuff: { agi: 0.65 }, target: "all-enemy", desc: "敵全体の素早さを下げる" },
   NOROI:    { name: "呪縛", mp: 5, kind: "debuff", debuff: { atk: 0.8, vit: 0.8, agi: 0.8 }, target: "enemy", desc: "敵の攻撃・防御・素早さを下げる" },
   SUIJAKU:  { name: "衰弱の呪い", mp: 8, kind: "debuff", debuff: { atk: 0.8 }, target: "all-enemy", desc: "敵全体の攻撃力を下げる" },
-  DOKUGIRI: { name: "毒霧", mp: 10, kind: "atk", power: 14, poison: { chance: 0.7, pct: 0.06 }, target: "all-enemy", desc: "敵全体を毒にする（毎ターン最大HPの6%）" },
-  FUDOKU:   { name: "腐毒の呪い", mp: 8, kind: "debuff", poison: { chance: 0.9, pct: 0.12 }, target: "enemy", desc: "猛毒にする（毎ターン最大HPの12%）" },
+  DOKUGIRI: { name: "毒霧", mp: 10, kind: "atk", power: 14, poison: { chance: 0.7, pct: 0.05 }, target: "all-enemy", desc: "敵全体を毒にする（毎ターン最大HPの5%）" },
+  FUDOKU:   { name: "腐毒の呪い", mp: 8, kind: "debuff", poison: { chance: 0.9, pct: 0.1 }, target: "enemy", desc: "猛毒にする（毎ターン最大HPの10%）" },
   DEATH:    { name: "呪殺", mp: 10, kind: "debuff", instakill: { chance: 0.35 }, target: "enemy", desc: "敵を即死させる（主には効かない）" },
   DEATHALL: { name: "死の舞踏", mp: 24, kind: "debuff", instakill: { chance: 0.25 }, target: "all-enemy", desc: "敵全体を即死させる（主には効かない）" },
   GRAVITY:  { name: "グラビティ", mp: 6, kind: "atk", gravity: 0.25, target: "enemy", desc: "敵の今のHPの25%を削る（主には弱い）" },
@@ -222,7 +222,7 @@ export const SPELLS = {
   ELEMBREAK:  { name: "属性崩し", mp: 8, kind: "debuff", vuln: { all: 0.75 }, target: "enemy", desc: "敵の全属性の耐性を下げる" },
   SEISHIN:    { name: "精神統一", mp: 4, kind: "buff", buff: { int: 1.4 }, target: "self", desc: "自分のINTを上げ、呪文を強める" },
   MARYOKUBOUSOU: { name: "魔力暴走", mp: 20, kind: "atk", power: 76, hpCost: 0.2, target: "all-enemy", desc: "HPを代償に暴走する魔力を放つ（無属性）" },
-  MAGATSU:  { name: "禍津の呪", mp: 30, kind: "debuff", debuff: { atk: 0.75, vit: 0.75, agi: 0.75 }, poison: { chance: 0.6, pct: 0.08 }, seal: { chance: 0.5, turns: 3 }, target: "all-enemy", desc: "敵全体を弱らせ、毒し、特技を封じる" },
+  MAGATSU:  { name: "禍津の呪", mp: 30, kind: "debuff", debuff: { atk: 0.75, vit: 0.75, agi: 0.75 }, poison: { chance: 0.6, pct: 0.05 }, seal: { chance: 0.5, turns: 3 }, target: "all-enemy", desc: "敵全体を弱らせ、毒し、特技を封じる" },
   KYOMU:    { name: "秘奥・虚無", mp: 36, kind: "atk", power: 120, strip: true, vuln: { all: 0.75 }, target: "enemy", desc: "強化を消し、全属性の耐性を崩す（無属性）" },
   MEIFUNOMON: { name: "冥府の門", mp: 40, kind: "atk", power: 90, element: "dark", instakill: { chance: 0.3 }, target: "all-enemy", desc: "闇で呑み、即死させることがある" },
   KOUSHUNOHOUJIN: { name: "攻守の法陣", mp: 14, kind: "buff", buff: { vit: 1.25 }, debuffAll: { atk: 0.85 }, target: "all-ally", desc: "味方を守り、敵全体の攻撃力を下げる" },
@@ -260,7 +260,7 @@ export const SPELLS = {
   TSUJIKAZE:    { name: "辻風", mp: 10, kind: "phys", power: 1.0, critBonus: 0.15, target: "all-enemy", desc: "旋風のごとく全体を斬り抜ける" },
   SHIPPUTSUKI:  { name: "疾風突き", mp: 9, kind: "phys", power: 1.4, agiScale: 1.0, target: "enemy", desc: "AGIで威力が伸びる刺突" },
   ZETSUEI:      { name: "絶影", mp: 14, kind: "phys", power: 1.0, hits: 3, agiScale: 0.4, critBonus: 0.25, target: "enemy", desc: "AGIを乗せた神速の三連撃" },
-  MOUDOKUSASHI: { name: "猛毒刺し", mp: 12, kind: "phys", power: 1.8, poison: { chance: 0.9, pct: 0.09 }, target: "enemy", desc: "猛毒にする（毎ターン最大HPの9%）" },
+  MOUDOKUSASHI: { name: "猛毒刺し", mp: 12, kind: "phys", power: 1.8, poison: { chance: 0.9, pct: 0.1 }, target: "enemy", desc: "猛毒にする（毎ターン最大HPの10%）" },
   ENGETSUJIN:   { name: "円月刃", mp: 14, kind: "phys", power: 1.4, critBonus: 0.15, target: "all-enemy", desc: "円を描く刃が敵全体を裂く" },
   KAGEUCHI:     { name: "影討ち", mp: 14, kind: "phys", power: 1.0, hits: 3, critBonus: 0.3, target: "enemy", desc: "影から繰り出す三連の刺突" },
   KUBIHANE:     { name: "首はね", mp: 16, kind: "phys", power: 3.0, critBonus: 0.3, execute: 2.5, target: "enemy", desc: "弱った敵の首を落とす（とどめ）" },
@@ -278,7 +278,7 @@ export const SPELLS = {
   OIHAGI:       { name: "追い剥ぎ", mp: 10, kind: "phys", power: 2.2, steal: 0.8, plunder: true, target: "enemy", desc: "金品を奪い、倒せば所持金が2倍" },
   TENKAGOMEN:   { name: "天下御免", mp: 30, kind: "phys", power: 2.4, steal: 1.0, plunder: true, target: "all-enemy", desc: "敵全体から金品を奪い尽くす" },
   // 狩人
-  DOKUYA:     { name: "毒矢", mp: 3, kind: "phys", power: 0.9, poison: { chance: 0.8, pct: 0.06 }, target: "enemy", desc: "毒にする（毎ターン最大HPの6%）" },
+  DOKUYA:     { name: "毒矢", mp: 3, kind: "phys", power: 0.9, poison: { chance: 0.8, pct: 0.05 }, target: "enemy", desc: "毒にする（毎ターン最大HPの5%）" },
   ASHIDOME:   { name: "足止め", mp: 4, kind: "phys", power: 0.9, acc: 0.6, debuff: { agi: 0.7 }, target: "enemy", desc: "足を射抜き、素早さを大きく下げる" },
   SOGEKI:     { name: "狙撃", mp: 5, kind: "phys", power: 1.5, acc: 1, critBonus: 0.2, target: "enemy", desc: "必ず当たる狙い澄ました一射" },
   YANOAME:    { name: "矢の雨", mp: 8, kind: "phys", power: 0.75, scatter: 4, target: "all-enemy", desc: "ランダムな敵に4回射掛ける" },
