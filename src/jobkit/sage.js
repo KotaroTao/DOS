@@ -5,7 +5,7 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "sageKiwami",
   table: `
-    1 kantei/2 3 DIOS 5 sageJunkan/1 7 ICENEEDLE 10 CURE 15 SAGE_SEIRYUU 15 sageZoufuku/1
+    1 kantei/2 3 DIOS 5 sageJunkan/1 7 ICENEEDLE 10 SAGE_SEISHIN 15 SAGE_SEIRYUU 15 sageZoufuku/1
     20 MAHALITO 22 AQUAWAVE 25 sageIzumi/1 27 WINDSTORM 30 SAGE_CHIE 35 sageSuifuu/1
     40 SHINRANOSABAKI 45 sageJunkan/2 47 ICELANCE 50 DIOSALL 50 sageZoufuku/2 55 MAYOKE 60 sageJihi/1
     65 SAGE_SHINRI 70 sageChouwa/1 72 SAGE_SEIFUU 75 sageIzumi/2 80 SAGE_KAZEGAERI 85 SAGE_NAGI
@@ -15,6 +15,7 @@ export default {
     170 SAGE_CHOUWA 175 sageJunkan/4 180 SAGE_HOMURA 185 sageJihi/3 190 SAGE_SHINEN 195 SAGE_SHINRA
     200 SAGE_SHUUKYOKU`,
   skills: {
+    SAGE_SEISHIN: { name: "正気の言葉", mp: 3, kind: "cure", cure: ["confuse"], target: "ally", desc: "味方一人の混乱を治す" },
     // Lv15 の固有技: 清流の調べで群れを打ち、余韻で隊を癒す
     SAGE_SEIRYUU: { name: "清流の調べ", mp: 7, kind: "atk", power: 13, element: "water", partyHeal: 5, target: "all-enemy", desc: "清流の調べが敵全体を打ち、その余韻で味方全員を癒す" },
     SAGE_CHIE:      { name: "叡智の授け", mp: 7, kind: "buff", buff: { int: 1.3 }, purge: true, target: "ally", desc: "味方のINTを高め、弱体を解く" },

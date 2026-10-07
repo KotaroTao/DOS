@@ -7,7 +7,7 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "cardinalKiseki",
   table: `
-    1 DIOS 3 CURE 5 cardinalShiboku/1 7 HOLYRAY 10 PROTECT 15 CARDINAL_HAMONNOCHOKU 15 soulTutor/1
+    1 DIOS 3 CARDINAL_MAYOITOKI 5 cardinalShiboku/1 7 HOLYRAY 10 PROTECT 15 CARDINAL_HAMONNOCHOKU 15 soulTutor/1
     17 REGEN 20 DIOSALL 25 cardinalMeisou/1 30 DIAL 35 cardinalKekkai/1 40 CARDINAL_SEIYU
     45 cardinalShiboku/2 50 REVIVE 50 soulTutor/2 55 CARDINAL_TAISHA 60 cardinalMeisou/2 65 CARDINAL_SHIKYOUJOU 70 cardinalMeisou/3
     75 cardinalIgen/1 80 CARDINAL_SHOUROU 85 CARDINAL_RESSEI 90 cardinalShiboku/3 95 CARDINAL_SEIIBUTSU 100 CARDINAL_SHIEI 100 soulTutor/3
@@ -16,14 +16,15 @@ export default {
     165 resistAilment/2 170 CARDINAL_SHUKUSEI 175 cardinalIshi/3 180 CARDINAL_TENJOU 185 cardinalKekkai/3 190 CARDINAL_KOUCHUU
     195 KYOUKOUNOSHUKUFUKU 200 CARDINAL_SEIZA`,
   skills: {
+    CARDINAL_MAYOITOKI: { name: "惑い解きの聖印", mp: 3, kind: "cure", cure: ["charm"], target: "ally", desc: "味方一人の魅了を治す" },
     // Lv15 の固有技: 破門を言い渡し、強化を剥いで特技を封じる
     CARDINAL_HAMONNOCHOKU: { name: "破門の勅書", mp: 5, kind: "debuff", strip: true, seal: { chance: 0.6, turns: 3 }, target: "enemy", desc: "破門を言い渡し、敵の強化を剥いで特技を封じる" },
-    CARDINAL_SEIYU: { name: "聖油の秘跡", mp: 14, kind: "heal", power: 26, cure: true, grantBarrier: 1, target: "all-ally", desc: "聖油で全員を癒し清め、魔障壁を授ける" },
-    CARDINAL_TAISHA: { name: "大赦の勅", mp: 9, kind: "cure", purge: true, debuffAll: { atk: 0.9 }, target: "all-ally", desc: "全員の異常と弱体を赦し、敵の気勢を削ぐ" },
+    CARDINAL_SEIYU: { name: "聖油の秘跡", mp: 14, kind: "heal", power: 26, cure: ["poison", "paralyze"], grantBarrier: 1, target: "ally", desc: "一人を癒し、毒・猛毒・麻痺を治して魔障壁を授ける" },
+    CARDINAL_TAISHA: { name: "大赦の勅", mp: 9, kind: "cure", cure: ["charm", "confuse"], purge: true, debuffAll: { atk: 0.9 }, target: "ally", desc: "一人の魅了・混乱と弱体を祓い、敵全体の力を削ぐ" },
     CARDINAL_SHIKYOUJOU: { name: "司教杖の癒し", mp: 8, kind: "heal", power: 52, revive: true, purge: true, target: "ally", desc: "杖をかざし大きく癒す。倒れた者も起こす" },
     CARDINAL_SHOUROU: { name: "鐘楼の福音", mp: 12, kind: "buff", regen: { pct: 0.06, turns: 4 }, purge: true, target: "all-ally", desc: "鐘の音が弱体を祓い、全員に癒しを残す" },
     CARDINAL_RESSEI: { name: "列聖の儀", mp: 16, kind: "heal", power: 0, revive: true, revivePct: 1, regen: { pct: 0.08, turns: 3 }, target: "ally", desc: "倒れた者を完全に呼び戻し、癒しを残す" },
-    CARDINAL_SEIIBUTSU: { name: "聖遺物の奇跡", mp: 16, kind: "heal", power: 85, cure: true, grantEndure: true, target: "ally", desc: "深手を塞ぎ、致死を一度耐える力を授ける" },
+    CARDINAL_SEIIBUTSU: { name: "聖遺物の奇跡", mp: 16, kind: "heal", power: 85, cure: ["poison", "paralyze", "stone"], grantEndure: true, target: "ally", desc: "一人の深手と毒・猛毒・麻痺・石化を癒し、致死を一度耐える力を授ける" },
     CARDINAL_SHIEI: { name: "紫衣の大祷", mp: 22, kind: "heal", power: 60, buff: { int: 1.15 }, target: "all-ally", desc: "全員を大きく癒し、魔力を高める" },
     CARDINAL_HAMON: { name: "破門の宣告", mp: 16, kind: "debuff", debuff: { atk: 0.8, vit: 0.85 }, seal: { chance: 0.3, turns: 2 }, target: "all-enemy", desc: "敵全体を破門し、攻守と特技を奪う" },
     CARDINAL_TAIKAN: { name: "戴冠の祝福", mp: 26, kind: "heal", power: 44, buff: { atk: 1.2, agi: 1.1 }, target: "all-ally", desc: "全員を癒し、攻撃と素早さを上げる" },

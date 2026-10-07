@@ -6,7 +6,7 @@ import { RESIST_LABEL } from "../resistance.js";
 import { game } from "./ctx.js";
 import { el, sheet } from "./kit.js";
 import { ELEMENTS, elemBeats, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dungeons/index.js";
-import { SPELLS, spellMpLabel } from "../combat.js";
+import { SPELLS, spellMpLabel, spellCureKinds } from "../combat.js";
 import { STAGED, stageOf, stageMul, stageLabel } from "../buffstage.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
 import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, scaleText, useLines } from "../items.js";
@@ -274,7 +274,7 @@ export function skillDetailLines(sp) {
   if (sp.hpCost) lines.push(`代償: 自分の最大HPの${pct(sp.hpCost)}を失う（HP1で踏みとどまる）`);
   if (sp.drain) lines.push(`与えたダメージの${pct(sp.drain)}だけ自分のHPを回復`);
   if (sp.mpDrain) lines.push(`与えたダメージの${pct(sp.mpDrain)}だけ自分のMPを回復`);
-  if (sp.poison) lines.push(`${pct(sp.poison.chance)}で毒にする（毎ターン最大HPの${pct(sp.poison.pct)}・主には半分）`);
+  if (sp.poison) lines.push(`${pct(sp.poison.chance)}で${sp.poison.pct > 0.05 ? "猛毒" : "毒"}にする（毎ターン最大HPの${pct(sp.poison.pct)}${sp.poison.pct > 0.05 ? `・主には${pct(Math.max(0.05, sp.poison.pct * 0.5))}` : ""}）`);
   if (sp.para) lines.push(`${pct(sp.para)}で麻痺させる（手番を失いやすくなる・抵抗値で成功率が下がる）`);
   if (sp.seal) lines.push(`${pct(sp.seal.chance)}で特技を${sp.seal.turns}ターン封じる（ブレス・状態異常攻撃・回復・呼び出し・大技の溜めを使えなくなる・抵抗値で成功率が下がる）`);
   if (sp.strip) lines.push("敵にかかった強化を打ち消す");
@@ -286,7 +286,7 @@ export function skillDetailLines(sp) {
   if (sp.poison || sp.para || sp.seal || sp.instakill || sp.sleepChance || sp.charm || sp.confuse || sp.kind === "sleep") lines.push("※ 表示は抵抗値0・同じLvでの基本確率。Lv差で5〜95%に調整した後、成功率×（1−抵抗値/100）で判定。抵抗値100は無効");
   if (sp.plunder) lines.push("この技で倒した敵は、落とすゴールドが2倍になる");
   if (sp.partyHeal) lines.push(`攻撃の後、味方全体のHPを ${sp.partyHeal} 回復（術者のPIEで伸びる）`);
-  if (sp.cure || sp.kind === "cure") lines.push("状態異常（毒・麻痺・石化・眠り・魅了・混乱）を治す");
+  if (sp.cure || sp.kind === "cure") lines.push(`状態異常（${spellCureKinds(sp).map(k => k === "poison" ? "毒・猛毒" : AIL_LABEL[k]).join("・")}）を治す`);
   if (sp.purge) lines.push("かかっている弱体を解く");
   if (sp.grantEndure) lines.push("対象に「致死ダメージをHP1で耐える」を付与（1戦闘1回）");
   if (sp.grantBarrier) lines.push(`魔障壁${sp.grantBarrier}回分（ブレス・呪文の被ダメ半減）を付与`);
