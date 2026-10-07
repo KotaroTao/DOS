@@ -18,7 +18,7 @@ import { el, sheet, toast, button, confirm, setText, glyph, plainText } from "./
 import { deltaFloat } from "./motion.js";
 import {
   statLines, isEquippable, equipPreviewDelta, gearScore as baseGearScore, itemCatText,
-  elemDetailLines, equipClassText, elemStatEq, elemStatShort, ailDetailLines, handLine, specialLines,
+  elemDetailLines, equipClassText, elemStatEq, elemStatShort, ailDetailLines, handLine, specialLines, weaponPerformanceEl,
 } from "./itemview.js";
 import { spriteCanvas } from "../sprites.js";
 import { dollSprite, SOUL_CLASSES, canIdentify, identifyChance, identifyLabel, JOB_GEAR } from "../souls.js";
@@ -820,6 +820,9 @@ export function itemSheet(item, o = {}) {
     top.appendChild(hd);
     scroll.appendChild(top);
     if (st.flash) { top.classList.add("wpc-revealed"); st.flash = false; }
+    const equippedOwner = ownerOf(it);
+    const performance = weaponPerformanceEl(it, equippedOwner?.where === "equip" ? equippedOwner.doll : st.target || st.owner);
+    if (performance) scroll.appendChild(performance);
 
     if (it.unidentified) {
       scroll.appendChild(el("div", "wpc-is-note", "鑑定するまで正体も性能もわからない。"));

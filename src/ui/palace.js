@@ -16,7 +16,7 @@ import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, scrollBox, badge } from "./kit.js";
 import { remember } from "./prefs.js";
 import { softFade } from "./motion.js";
-import { statLines, itemCatText, specialLines, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock } from "./itemview.js";
+import { statLines, itemCatText, specialLines, weaponPerformanceEl, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock } from "./itemview.js";
 import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
 import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LORE_PAGES } from "../events.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_KIND_LABEL, shieldKind, itemName } from "../items.js";
@@ -613,6 +613,10 @@ function codexItemView(it, o) {
     body.appendChild(setText(el("div", "pl-detail-cat"), itemCatText(it)));
     const st = statLines(it);
     if (st) body.appendChild(setText(el("div", "pl-detail-stats"), st));
+    const dolls = game.allDolls ? game.allDolls() : [...(game.G?.party || []), ...(game.G?.reserve || [])];
+    const wearer = dolls.find(d => d.equip?.weapon === it);
+    const performance = weaponPerformanceEl(it, wearer);
+    if (performance) body.appendChild(performance);
     // 特殊効果は説明の文とは別に、数字で効果を言い切った行で出す
     const fx = specialLines(it);
     if (fx.length) {

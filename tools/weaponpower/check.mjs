@@ -7,7 +7,7 @@ import { CATALOG_ITEMS } from "../../src/catalog/index.js";
 import { WEAPON_PROFILES, prepareWeapon } from "../../src/weaponpower.js";
 import { Battle, spawnRanked, SPELLS } from "../../src/combat.js";
 import { previewStats, statsDelta, planBestEquip } from "../../src/autoequip.js";
-import { statLines, weaponTraitLines, gearScore } from "../../src/ui/itemview.js";
+import { statLines, specialLines, weaponPowerPreview, gearScore } from "../../src/ui/itemview.js";
 import { equipPrice } from "../../src/pricing.js";
 import { SOUL_CLASSES, makeDoll, makeSoulInstance, setSharedSouls, recalcDoll } from "../../src/souls.js";
 import { decideAuto, TACTICS } from "../../src/autotactics.js";
@@ -38,7 +38,8 @@ for (const w of weapons) {
     assert(b._eatk(a) < power, "参照能力の弱体: " + w.id);
   }
   assert(statLines(w).includes("参照"), w.id);
-  assert(weaponTraitLines(w).some(s => s.includes("攻撃力 =")), w.id);
+  assert(!specialLines(w).some(s => s.includes("攻撃力 =")), "特殊効果に計算式を入れない: " + w.id);
+  assert.equal(weaponPowerPreview(w, a).power, power, "攻撃性能欄の最終値: " + w.id);
   if (w.price !== 0) assert(equipPrice(w) > 0, w.id);
   const forged = applyForge({ ...w, forge: 2 });
   assert(attackPower(actor(forged)) > power, "鍛え直し: " + w.id);
@@ -46,6 +47,15 @@ for (const w of weapons) {
   profiles[w.weaponProfile] = (profiles[w.weaponProfile] || 0) + 1;
 }
 assert.equal(attackPower(actor(null)), base.atk, "素手はSTR");
+// 両手への持ち替えは盾の能力を外して算出し、表示のために装備実体を変えない。
+const previewOwner = actor(ITEMS.shortSword);
+previewOwner.equip.shield = { slot: "shield", int: 500, agi: 500 }; recalc(previewOwner);
+const twoHanded = weapons.find(w => w.twoHanded && w.cat === "bw");
+assert.equal(weaponPowerPreview(twoHanded, previewOwner).power, previewStats(previewOwner, { weapon: twoHanded }).power);
+assert(previewOwner.equip.shield && previewOwner.equip.weapon === ITEMS.shortSword);
+assert.equal(weaponPowerPreview({ ...twoHanded, unidentified: true }, previewOwner), null);
+previewOwner.equip.shield.cursed = true;
+assert.equal(weaponPowerPreview(twoHanded, previewOwner), null, "外せない盾がある時は装備後の値を表示しない");
 for (const cat of ["ls", "dg", "kt", "ax", "mc", "sp", "bw", "st"]) assert(weapons.some(w => w.cat === cat));
 for (const key of Object.keys(WEAPON_PROFILES)) assert(profiles[key], "未使用の参照タイプ: " + key);
 // 同じ用途なら品質が高い武器ほど係数が高くなる（レベルによる逆転がない）。

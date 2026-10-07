@@ -20,7 +20,7 @@ import {
 import { deltaFloat } from "./motion.js";
 import { remember, setPref, getPref } from "./prefs.js";
 import {
-  statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort,
+  statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, weaponPerformanceEl, weaponPowerPreview,
 } from "./itemview.js";
 import { renderSoulSeg, openSoulPicker } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
@@ -365,6 +365,10 @@ export function equipChooserEl(item, { owner = null, onPick = null, onDone = nul
     tx.appendChild(el("span", "pt-chc-n", x.d.name));
     if (x.why) tx.appendChild(el("span", "pt-chc-why", x.why));
     else {
+      if (item.slot === "weapon") {
+        const result = weaponPowerPreview(item, x.d);
+        if (result) tx.appendChild(el("span", "pt-chc-power", `攻撃力 ${result.before} → ${result.power}`));
+      }
       const dl = el("span", "pt-chc-d");
       if (!x.keys.length) dl.appendChild(el("span", "eq", "変化なし"));
       const pages = [];
@@ -459,6 +463,8 @@ export function openEquipChooser(item, { owner = null, actions = null } = {}) {
   let h = null;
   const body = el("div", "pt-item ch");
   body.appendChild(itemSummary(item, accent, { compact: true }));
+  const performance = weaponPerformanceEl(item, owner);
+  if (performance) body.appendChild(performance);
   body.appendChild(equipChooserEl(item, { owner, onDone: () => { if (h) h.close("ok"); } }));
   if (item.desc) body.appendChild(el("div", "pt-item-desc", item.desc));
   const acts = actions || (owner ? itemActions(item, owner, "bag", { equip: false }) : []);
@@ -1584,6 +1590,7 @@ function slotCell(d, k) {
   tx.appendChild(top);
   if (it) {
     tx.appendChild(game.itemNameEl ? game.itemNameEl("span", "pt-slot-n", it, it.cursed ? " (呪)" : "") : el("span", "pt-slot-n", itemName(it)));
+    if (k === "weapon" && !it.unidentified) tx.appendChild(el("span", "pt-slot-power", `攻撃力 ${attackPower(d)}`));
     const s = statLines(it);
     if (s) tx.appendChild(el("span", "pt-slot-s", s));
   } else {
@@ -1679,6 +1686,8 @@ function curItemCard(d, k, cur, h) {
   }
   top.appendChild(tx);
   box.appendChild(top);
+  const performance = weaponPerformanceEl(cur, d);
+  if (performance) box.appendChild(performance);
   const fx = specialLines(cur);
   if (fx.length) {
     const fb = el("div", "pt-cur-fx");
@@ -1721,7 +1730,11 @@ function candRow(d, k, c, h) {
   top.appendChild(game.itemNameEl ? game.itemNameEl("span", "pt-cand-n", c.it, c.it.cursed ? " (呪)" : "") : el("span", "pt-cand-n", itemName(c.it)));
   top.appendChild(el("span", "pt-own" + (c.owner === d ? " me" : isReserve(c.owner) ? " res" : ""), c.owner === d ? "自分" : `${c.owner.name}${isReserve(c.owner) ? "・控え" : ""}`));
   tx.appendChild(top);
-  tx.appendChild(statDelta(c.delta));
+  if (c.it.slot === "weapon") {
+    const result = weaponPowerPreview(c.it, d);
+    if (result) tx.appendChild(el("span", "pt-cand-power", `攻撃力 ${result.before} → ${result.power}（${result.delta > 0 ? "+" : ""}${result.delta}）`));
+  }
+  tx.appendChild(statDelta(c.it.slot === "weapon" ? { ...c.delta, power: 0 } : c.delta));
   // 能力の伸びには出ない特殊効果 (吸血・連撃・属性・状態異常…) は短い札で添える
   const fxs = specialShort(c.it);
   if (fxs) tx.appendChild(el("span", "pt-cand-fx", fxs));
@@ -2080,6 +2093,8 @@ function fallbackItemSheet(it, owner, ctx, actions) {
   const accent = rk ? RARITIES[rk].color : null;
   const body = el("div", "pt-item");
   body.appendChild(itemSummary(it, accent));
+  const performance = weaponPerformanceEl(it, owner);
+  if (performance) body.appendChild(performance);
   const lines = el("div", "pt-item-lines");
   const cat = itemCatText(it);
   for (const ln of detailLines(it)) if (!(ln === cat && !it.unidentified)) lines.appendChild(el("div", "pt-item-l", ln));

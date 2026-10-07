@@ -1,4 +1,4 @@
-import { WEAPON_PROFILES } from "../weaponpower.js";
+import { previewStats, trialEquip } from "../autoequip.js";
 import { RESIST_LABEL } from "../resistance.js";
 // ===== 品・スキルの表示まわり (game.js から移設した純粋な表示ヘルパ) =====
 // 状態を変えない。G が要るものは引数で受け取るか、ctx の game.G を読む。
@@ -10,7 +10,7 @@ import { ELEMENTS, elemBeats, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } fr
 import { SPELLS, spellMpLabel, spellCureKinds } from "../combat.js";
 import { STAGED, stageOf, stageMul, stageLabel } from "../buffstage.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
-import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, scaleText, useLines } from "../items.js";
+import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, useLines } from "../items.js";
 import { HERO, spriteCanvas, crispCanvas } from "../sprites.js";
 
 // 魂のステータス寄与を「HP+7 STR+2.4 …」形式で列挙 (0は省略)
@@ -451,7 +451,6 @@ export function effDetailLines(it) {
 export function specialShort(it) {
   if (!it || it.unidentified) return "";
   const parts = [...effStatParts(it)];
-  if (it.scale) parts.push(`参照 ${scaleText(it.scale)}`);
   if (it.magic) parts.push("魔法属性");
   const ea = elemStatText("攻撃", it.eAtk), ed = elemStatText("防御", it.eDef);
   if (ea) parts.push(ea);
@@ -469,9 +468,48 @@ export function specialLines(it) {
 export function weaponTraitLines(it) {
   const L = [];
   if (!it || it.slot !== "weapon") return L;
-  if (it.scale) L.push(`${WEAPON_PROFILES[it.weaponProfile]?.label || "能力参照"}: 攻撃力 = ${scaleText(it.scale).replace(/ /g, " + ")}（通常攻撃・物理技に適用）`);
   if (it.magic) L.push("攻撃属性: 魔法（通常攻撃の威力は攻撃力のまま、物理耐性ではなく魔法耐性で判定され、魔法弱点を突く。物理技は物理のまま）");
   return L;
+}
+
+// 武器の攻撃性能は特殊効果と分ける。装備者の能力・盾の持ち替えまで含めて計算する。
+export function weaponPowerPreview(it, doll) {
+  if (!it || it.slot !== "weapon" || it.unidentified || !doll || !doll.base || !doll.equip) return null;
+  const equipped = doll.equip.weapon === it;
+  if (!equipped && !canEquip(doll, it)) return null;
+  const trial = equipped ? { equip: doll.equip } : trialEquip(doll.equip, it, "weapon");
+  if (!trial) return null;
+  const stats = previewStats(doll, trial.equip);
+  const before = attackPower(doll);
+  return { stats, power: stats.power, before, delta: stats.power - before, equipped };
+}
+
+export function weaponPerformanceEl(it, doll = null) {
+  if (!it || it.slot !== "weapon" || it.unidentified) return null;
+  const result = weaponPowerPreview(it, doll);
+  const box = el("section", "wp-performance");
+  box.setAttribute("aria-label", "武器の攻撃性能");
+  const head = el("div", "wp-performance-head");
+  head.appendChild(el("span", "wp-performance-label", result ? (result.equipped ? "攻撃力" : "装備後の攻撃力") : "攻撃性能"));
+  if (result) {
+    const value = el("div", "wp-performance-value");
+    value.appendChild(el("strong", "wp-performance-number", String(result.power)));
+    if (!result.equipped) value.appendChild(el("span", "wp-performance-delta " + (result.delta > 0 ? "up" : result.delta < 0 ? "down" : ""), `${result.delta > 0 ? "+" : ""}${result.delta}（いま ${result.before}）`));
+    head.appendChild(value);
+  }
+  box.appendChild(head);
+  if (result) box.appendChild(el("div", "wp-performance-note", `${doll.name}の攻撃力 · 通常攻撃・物理技の基準`));
+  const refs = el("div", "wp-performance-refs");
+  refs.appendChild(el("span", "wp-performance-ref-label", "参照能力"));
+  for (const [key, rate] of Object.entries(it.scale || { atk: 1 })) refs.appendChild(el("span", "wp-performance-ref", `${ATTR_LABEL[key]} ×${rate}`));
+  box.appendChild(refs);
+  if (result) {
+    const details = el("details", "wp-performance-details");
+    details.appendChild(el("summary", null, "計算の内訳"));
+    details.appendChild(el("div", "wp-performance-formula", Object.entries(it.scale || { atk: 1 }).map(([key, rate]) => `${ATTR_LABEL[key]} ${result.stats[key]} × ${rate}`).join(" ＋ ") + ` = ${result.power}（四捨五入）`));
+    box.appendChild(details);
+  } else box.appendChild(el("div", "wp-performance-note", "攻撃力は装備する人業の能力で決まる。"));
+  return box;
 }
 
 // ===== 品の表示 =====
@@ -483,7 +521,7 @@ export function statLines(it) {
   f("INT", it.int); f("PIE", it.pie); f("LUK", it.luk);
   f("HP", it.hp); f("MP", it.mp);
   if (it.crit) parts.push(`会心 +${Math.round(it.crit * 100)}%`);
-  if (it.scale) parts.push(`参照 ${scaleText(it.scale)}`);
+  if (it.scale) parts.push(`参照 ${Object.keys(it.scale).map(k => ATTR_LABEL[k]).join("・")}`);
   if (it.magic) parts.push("魔法属性");
   const ea = elemStatText("攻撃", it.eAtk);
   const ed = elemStatText("防御", it.eDef);
