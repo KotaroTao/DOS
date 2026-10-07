@@ -18,7 +18,7 @@ export default {
     SHADOW_KUBIKARI: { name: "刈り取りの刃", mp: 5, kind: "phys", power: 1.2, critBonus: 0.1, execute: 2, target: "enemy", desc: "弱った獲物の首を音もなく刈る（とどめ・会心UP）" },
     SHADOW_YADOKU:       { name: "夜毒の針", mp: 3, kind: "phys", power: 0.8, acc: 0.4, poison: { chance: 0.8, pct: 0.05 }, target: "enemy", desc: "狙い澄ました毒針で蝕む（毎ターン5%）" },
     SHADOW_SESASHI:      { name: "背刺し", mp: 5, kind: "phys", power: 1.25, critBonus: 0.45, pierce: 0.3, target: "enemy", desc: "背後から鎧の隙を刺す（会心・貫通）" },
-    SHADOW_KURASASORI:   { name: "黒蠍の尾", mp: 12, kind: "phys", power: 1.5, poison: { chance: 0.9, pct: 0.09 }, para: 0.2, target: "enemy", desc: "猛毒（毎ターン9%）を打ち、痺れさせることも" },
+    SHADOW_KURASASORI:   { name: "黒蠍の尾", mp: 12, kind: "phys", power: 1.5, poison: { chance: 0.9, pct: 0.1 }, para: 0.2, target: "enemy", desc: "猛毒（毎ターン10%）を打ち、痺れさせることも" },
     SHADOW_KAGEITO:      { name: "影糸縛り", mp: 5, kind: "phys", power: 0.5, acc: 0.6, para: 0.45, debuff: { agi: 0.85 }, target: "enemy", desc: "影の糸で縛り、麻痺させ足も奪う" },
     SHADOW_SAKUYA:       { name: "朔夜三閃", mp: 14, kind: "phys", power: 0.95, hits: 3, agiScale: 0.4, critBonus: 0.2, element: "dark", target: "enemy", desc: "新月の闇から三度斬る（闇）" },
     SHADOW_TODOME:       { name: "止めの影刃", mp: 16, kind: "phys", power: 2.6, critBonus: 0.2, execute: 2.5, instakill: { chance: 0.12 }, target: "enemy", desc: "弱った敵を仕留める。命を絶つことも" },
@@ -33,7 +33,7 @@ export default {
     SHADOW_GUFUU:        { name: "颶風穿ち", mp: 21, kind: "phys", power: 1.3, hits: 4, agiScale: 0.3, critBonus: 0.1, pierce: 0.3, element: "wind", target: "enemy", desc: "颶風のごとく四度穿つ（風・貫通）" },
     SHADOW_SOUSOU:       { name: "葬送の一刺", mp: 32, kind: "phys", power: 7.0, critBonus: 1, execute: 1.8, target: "enemy", desc: "必ず急所を貫き、弱った敵を葬る" },
     SHADOW_SHINENTOBARI: { name: "深淵の帳", mp: 27, kind: "phys", power: 2.1, element: "dark", debuff: { hit: 0.8 }, target: "all-enemy", desc: "闇の帳で敵陣を斬り、狙いを奪う（闇）" },
-    SHADOW_DOKUGIRI:     { name: "毒霧の舞", mp: 22, kind: "phys", power: 1.5, critBonus: 0.1, poison: { chance: 0.6, pct: 0.07 }, target: "all-enemy", desc: "毒霧の中を舞い、敵陣を蝕む（7%）" },
+    SHADOW_DOKUGIRI:     { name: "毒霧の舞", mp: 22, kind: "phys", power: 1.5, critBonus: 0.1, poison: { chance: 0.6, pct: 0.05 }, target: "all-enemy", desc: "毒霧の中を舞い、敵陣を蝕む（5%）" },
     SHADOW_KAGEROKUDOU:  { name: "影六道", mp: 30, kind: "phys", power: 0.65, hits: 6, agiScale: 0.3, critBonus: 0.4, element: "dark", mpDrain: 0.1, target: "enemy", desc: "六つの影が刺し、魔力を啜る（闇）" },
     SHADOW_MAGAKAZE:     { name: "禍風", mp: 27, kind: "phys", power: 2.1, critBonus: 0.2, element: "wind", debuff: { vit: 0.85 }, target: "all-enemy", desc: "禍々しい風が敵陣を裂き、守りを削ぐ（風）" },
     SHADOW_MUEI:         { name: "無影", mp: 40, kind: "phys", power: 9.0, agiScale: 1.8, critBonus: 0.6, instakill: { chance: 0.25 }, target: "enemy", desc: "影すら残さぬ究極の一刺。即死もある" },
@@ -48,10 +48,10 @@ export default {
     // 刃に毒を仕込み、毒に侵された敵をさらに追い詰める
     shadowDokugou: {
       label: "毒の調合",
-      lv: ["物理が当たると10%で毒 (毎ターン5%)。状態異常の敵への与ダメ+5%", "物理で15%の毒 (6%)。状態異常の敵への与ダメ+8%",
-        "物理で20%の毒 (7%)。状態異常の敵への与ダメ+11%", "物理で25%の毒 (8%)。状態異常の敵への与ダメ+14%"],
+      lv: ["物理が当たると10%で毒 (毎ターン5%)。状態異常の敵への与ダメ+5%", "物理で15%の毒 (5%)。状態異常の敵への与ダメ+8%",
+        "物理で20%の毒 (5%)。状態異常の敵への与ダメ+11%", "物理で25%の毒 (5%)。状態異常の敵への与ダメ+14%"],
       fx: [
-        { t: "hit", chance: [0.1, 0.15, 0.2, 0.25], on: "phys", ail: "poison", pct: [0.05, 0.06, 0.07, 0.08] },
+        { t: "hit", chance: [0.1, 0.15, 0.2, 0.25], on: "phys", ail: "poison", pct: 0.05 },
         { t: "deal", v: [0.05, 0.08, 0.11, 0.14], when: { tgtAil: true } },
       ],
     },

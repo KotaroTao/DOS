@@ -5,7 +5,7 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "archbishopShukufuku",
   table: `
-    1 DIOS 3 CURE 5 archbishopMinasoko/1 7 HOLYRAY 10 BLESS 12 ICENEEDLE
+    1 DIOS 3 ARCHBISHOP_MEZAMESEIKU 5 archbishopMinasoko/1 7 HOLYRAY 10 BLESS 12 ICENEEDLE
     15 ARCHBISHOP_MAMORISEIKU 15 riseAgain/1 17 REGEN 20 DIOSALL 25 archbishopChinka/1 30 DIAL 35 archbishopMamori/1
     40 SEIKUNOKAGO 45 archbishopMinasoko/2 50 ARCHBISHOP_SEISENNOSHIZUKU 50 riseAgain/2 55 ARCHBISHOP_SENREI 60 archbishopMamori/2 62 ARCHBISHOP_SEISUINOYARI
     65 ARCHBISHOP_MIZUKAGAMI 70 archbishopChinka/2 75 archbishopSeiten/1 80 ARCHBISHOP_YOMIGAERI 85 ARCHBISHOP_NORITO 90 archbishopMinasoko/3
@@ -14,14 +14,15 @@ export default {
     155 archbishopSeiten/2 160 ARCHBISHOP_DAISENREI 165 resistAilment/2 170 ARCHBISHOP_KOURIN 175 archbishopChinka/4 180 ARCHBISHOP_TAIKAI
     185 archbishopMamori/4 190 ARCHBISHOP_SABAKI 195 ARCHBISHOP_BAKUFU 200 ARCHBISHOP_SHUUSHOU`,
   skills: {
+    ARCHBISHOP_MEZAMESEIKU: { name: "目覚めの聖句", mp: 3, kind: "cure", cure: ["sleep"], target: "ally", desc: "味方一人の眠りを治す" },
     // Lv15 の固有技: 聖句を唱えて癒し、致死を一度耐える加護を授ける
     ARCHBISHOP_MAMORISEIKU: { name: "護りの聖句", mp: 5, kind: "heal", power: 12, grantEndure: true, target: "ally", desc: "聖句を唱えて癒し、致死を一度だけ耐える加護を授ける" },
-    ARCHBISHOP_SEISENNOSHIZUKU: { name: "聖泉の滴", mp: 7, kind: "heal", power: 0, revive: true, revivePct: 0.35, cure: true, purge: true, target: "ally", desc: "最大HP35%を癒し清める。倒れた者も起こす" },
-    ARCHBISHOP_SENREI: { name: "洗礼の儀", mp: 9, kind: "buff", buff: { vit: 1.1 }, cure: true, purge: true, target: "all-ally", desc: "全員の穢れと弱体を流し、守りを固める" },
+    ARCHBISHOP_SEISENNOSHIZUKU: { name: "聖泉の滴", mp: 7, kind: "heal", power: 0, revive: true, revivePct: 0.35, cure: ["poison", "paralyze"], target: "ally", desc: "一人の毒・猛毒・麻痺を治す。倒れた者もHP35%で起こす" },
+    ARCHBISHOP_SENREI: { name: "洗礼の儀", mp: 9, kind: "buff", buff: { vit: 1.1 }, cure: ["sleep", "charm", "confuse"], target: "ally", desc: "一人の眠り・魅了・混乱を治し、守りを固める" },
     ARCHBISHOP_SEISUINOYARI: { name: "聖水の槍", mp: 9, kind: "atk", power: 27, element: "water", debuff: { atk: 0.85 }, target: "enemy", desc: "聖水の槍で貫き、敵の力を削ぐ" },
     ARCHBISHOP_MIZUKAGAMI: { name: "水鏡の癒し", mp: 8, kind: "heal", power: 52, revive: true, regen: { pct: 0.04, turns: 3 }, target: "ally", desc: "大きく癒し、癒しを残す。倒れた者も起こす" },
     ARCHBISHOP_YOMIGAERI: { name: "聖典の甦り", mp: 14, kind: "heal", power: 0, revive: true, revivePct: 0.8, grantEndure: true, target: "ally", desc: "HP80%で蘇らせ、致死を一度耐えさせる" },
-    ARCHBISHOP_NORITO: { name: "泉の祝詞", mp: 12, kind: "heal", power: 36, cure: true, target: "all-ally", desc: "泉の祝詞が全員を癒し、穢れを流す" },
+    ARCHBISHOP_NORITO: { name: "泉の祝詞", mp: 12, kind: "heal", power: 36, cure: ["poison", "paralyze", "sleep"], target: "all-ally", desc: "全員を癒し、毒・猛毒・麻痺・眠りを治す" },
     ARCHBISHOP_FUKADE: { name: "深淵の湧水", mp: 16, kind: "heal", power: 84, purge: true, target: "ally", desc: "深手を塞ぎ、弱体も洗い流す" },
     ARCHBISHOP_MEGUMI: { name: "恵みの雨", mp: 12, kind: "buff", regen: { pct: 0.06, turns: 4 }, buff: { vit: 1.1 }, target: "all-ally", desc: "恵みの雨が全員を癒し続け、守りを固める" },
     ARCHBISHOP_SEITENNOMAMORI: { name: "聖典の守り", mp: 16, kind: "buff", buff: { vit: 1.25 }, grantBarrier: 1, target: "all-ally", desc: "全員の守りを上げ、魔障壁を授ける" },

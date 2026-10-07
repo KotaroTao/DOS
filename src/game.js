@@ -2,7 +2,7 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, setElemKnown, perkVictory } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, setElemKnown, perkVictory, canSpellCure, cureBySpell, spellCureKinds } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageLabel, isBattleLong, turnsLeftLabel } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -583,8 +583,8 @@ function takeStolenGold(b) {
   if (tlOn() && inDungeon()) tlGain(tlWhere(), "gold", g, "b" + ((b.tl && b.tl.kind) || "n"));
   return g;
 }
-function runGainGold(g, src, pre) {
-  const base = g * 0.5, sf = sfNum("goldMul", 1), mu = mutNum("goldMul", 1), eq = 1 + partyEffMax("goldUp");
+function runGainGold(g, src, pre, modifier = null) {
+  const base = g * 0.5, sf = sfNum("goldMul", 1), mu = modifier ?? mutNum("goldMul", 1), eq = 1 + partyEffMax("goldUp");
   g = Math.round(g * 0.5 * sf * mu * eq); G.gold += g; if (G.run && inDungeon()) G.run.gold += g;
   if (tlOn() && inDungeon()) tlGain(tlWhere(), "gold", g, src, tlUplift(pre != null ? pre * 0.5 : base, base, sf, "goldMul", mu, eq));
   return g;
@@ -594,8 +594,8 @@ function runGainGold(g, src, pre) {
 setPermanentStatSource(() => permanentEventStats(G.events?.once));
 
 function evBoon(k, field, dflt) { return G.events && G.events.flags && G.events.flags[k] ? EV_BOONS[k][field] : dflt; }
-function runGainSoulPts(s, src, pre) {
-  const base = s, sf = sfNum("soulMul", 1), mu = mutNum("soulMul", 1), eq = 1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0);
+function runGainSoulPts(s, src, pre, modifier = null) {
+  const base = s, sf = sfNum("soulMul", 1), mu = modifier ?? mutNum("soulMul", 1), eq = 1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0);
   s = Math.round(s * sf * mu * eq); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s;
   if (tlOn() && inDungeon()) tlGain(tlWhere(), "soul", s, src, tlUplift(pre != null ? pre : base, base, sf, "soulMul", mu, eq));
   return s;
@@ -981,7 +981,7 @@ function fightAbyssGuard(cell) {
   const depth = G.abyss.depth;
   const key = abyssGuardKey(depth);
   log("奈落の門番が立ちはだかる！", "dmg");
-  startBattle(spawnBossEnemies(key, baseEnemyScale() * abyssLayer(abyssLayerOf(depth)).bossRel * 1.05, abyssGuardRank(depth)), cell);
+  startBattle(spawnBossEnemies(key, baseEnemyScale(true) * abyssLayer(abyssLayerOf(depth)).bossRel * 1.05, abyssGuardRank(depth)), cell);
 }
 
 // ===== 迷宮テーマ (20層) =====
@@ -1292,8 +1292,8 @@ function revealByCartography() {
 // 迷宮内の階に応じた敵の強さ倍率 (迷宮ベース × 階で微増 × 特別階 × 迷宮の異変)
 function enemyScale() { return baseEnemyScale() * tuneMul(); }
 // 手直し (DUNGEON_TUNE) を除いた強さ: 迷宮の素の倍率 × 階 × 特別階/異変。主はこれに bossMul を掛ける
-function baseEnemyScale() {
-  return strengthHere() * sfNum("enemyMul", 1) * mutNum("enemyMul", 1);
+function baseEnemyScale(special = false) {
+  return strengthHere() * sfNum("enemyMul", 1) * (special ? 1 : mutNum("enemyMul", 1));
 }
 // その階の敵の強さ (手直し・特別な階・異変を除く) = 強さの素 power × 推奨Lv の伸び (world.js strengthAt)。奈落も同じ (abyssCfg)
 function strengthHere() { return strengthAt(activeCfg(), G.floor || 1); }
@@ -1344,7 +1344,7 @@ function soloTune() {
   const t = activeCfg().tune;
   return (t && t.soloMul) || 1;
 }
-function soloScale() { return baseEnemyScale() * soloTune(); }
+function soloScale() { return baseEnemyScale(true) * soloTune(); }
 // 単体の強敵の印。これらは層相応のランク/固有の強さで組まれていて、雑魚の顔ぶれに合わせた倍率を
 // 重ねると強くなりすぎるので soloScale で出す。startBattle はこの印 (_tuneK = 掛けた手直し) で戦果から打ち消す
 function soloFoes(list) {
@@ -1390,25 +1390,25 @@ function placeMetal() {
   }
 }
 // この階で普通の戦闘1回に得る✦Soul・金貨の目安 (出現表の雑魚の平均 × 群れの期待数 × 強さ倍率。手直し前)
-function typicalBattleSpoils() {
+function typicalBattleSpoils(special = false) {
   const p = Math.min(0.62, 0.18 + (G.floor || 1) * 0.08);
   let n = 0;
   for (let i = 0; i < 6; i++) n += Math.pow(p, i); // spawnCardEnemies の群れの数の期待値
   const pool = sfMonsterPool().filter((k) => MONSTERS[k]);
   let soul = 0, gold = 0;
   for (const k of pool) { const m = MONSTERS[k], c = m.pack ? Math.max(3, n) : n; soul += (m.soul || 0) * c; gold += (m.gold || 0) * c; }
-  const sc = baseEnemyScale(), len = Math.max(1, pool.length);
+  const sc = baseEnemyScale(special), len = Math.max(1, pool.length);
   return { soul: soul / len * sc, gold: gold / len * sc };
 }
 // 金属の魔物の組み立ての基準 (combat.js spawnMetal): 体はその階の雑魚の最上位ランク、AGI は味方の規模 (基準AGI)、
 // 戦果は1体ごとに「普通の戦闘1回分」× 段の倍率。群れは段の最大数まで (1体目の後は 35% ずつ)
 function metalRef(key) {
   const T = METAL_TIERS[MONSTERS[key].metal];
-  const sp = typicalBattleSpoils();
+  const sp = typicalBattleSpoils(true);
   let count = 1;
   while (count < T.max && Math.random() < 0.35) count++;
   return {
-    rank: mimicRef().rank, scale: baseEnemyScale(), count,
+    rank: mimicRef().rank, scale: baseEnemyScale(true), count,
     agi: partyAgi(levelHere().lv) * T.agiMul, // 基準の隊の AGI (推奨Lv で引く。levelcurve.js)
     soul: sp.soul * T.soulMul, gold: sp.gold * T.goldMul,
   };
@@ -2323,17 +2323,16 @@ function drawSenseGlow(r, rgb, now, x, y, k = 1) {
 }
 
 // 気配読み (魔物 = ぼんやりした赤い光) / 宝探し (宝箱 = ぼんやりした青い光)。種類・強さは分からない。歩いている間も灯したまま
-// 清めの歩み (聖騎士): まだめくっていない墓石をめくるたび、全員の HP を 5/15/30・MP を 1/2/3 回復 (隊で一番高いLv)
+// 清めの歩み (聖騎士): まだめくっていないカードをめくるたび、全員の HP を 2/4/6 回復 (隊で一番高いLv)
 function cleanseStepHeal(...args) { return tlGameMeasure("explore", () => cleanseStepHealMeasured(...args)); }
 function cleanseStepHealMeasured() {
   const lv = Math.min(3, partyPassiveLv("cleanseStep"));
   if (!lv) return;
-  const hp = [0, 5, 15, 30][lv], mp = [0, 1, 2, 3][lv];
+  const hp = [0, 2, 4, 6][lv];
   let any = false;
   for (const p of G.party) {
     if (!p.alive) continue;
     if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + hp); any = true; }
-    if (p.mp < p.maxmp) { p.mp = Math.min(p.maxmp, p.mp + mp); any = true; }
   }
   if (any) renderParty();
 }
@@ -5545,7 +5544,7 @@ function evBuildFoes(specs) {
     // 出来事の魔物: その階の雑魚の最上位ランク + ranked の体で現れる (ミミックと同じ基準 mimicRef)
     if (sp.ranked && sp.key && MONSTERS[sp.key]) { const e = soloFoes(spawnRanked(sp.key, mimicRef().rank, sp.ranked, soloScale()))[0]; if (sp.name) e.name = sp.name; out.push(e); continue; }
     const key = sp.key && MONSTERS[sp.key] ? sp.key : (sp.undead ? undeadKeyForDungeon() : evPoolKey());
-    if (sp.strong) { const e = evBoost(spawnEliteEnemies(key, scale)[0], sp.strong); if (sp.name) e.name = sp.name; out.push(e); continue; }
+    if (sp.strong) { const e = evBoost(soloFoes(spawnEliteEnemies(key, soloScale()))[0], sp.strong); if (sp.name) e.name = sp.name; out.push(e); continue; }
     if (sp.single) { out.push(spawnEliteEnemies(key, scale)[0]); continue; }
     out.push(...spawnCardEnemies(key, G.floor, scale, { min: Math.max(sp.min || 0, mutNum("packMin", 0)) }));
   }
@@ -6499,7 +6498,7 @@ function askDescend(cell) {
           log("迷宮の主が立ちはだかる！", "dmg");
           // 迷宮ごとの手直し (generator.js DUNGEON_TUNE): 主は雑魚の倍率ではなく bossMul、HP はさらに bossHpMul
           const tn = dn.tune || {};
-          const foes = spawnBossEnemies(dn.boss, dn.bossScale * (tn.bossMul || 1) * baseEnemyScale(), dn.bossRank);
+          const foes = spawnBossEnemies(dn.boss, dn.bossScale * (tn.bossMul || 1) * baseEnemyScale(true), dn.bossRank);
           if ((tn.bossHpMul || 1) !== 1) for (const e of foes) e.maxhp = e.hp = Math.max(1, Math.round(e.maxhp * tn.bossHpMul));
           startBattle(foes, cell);
         }
@@ -7125,6 +7124,21 @@ function showToast(text, opts) {
 }
 
 // ---- 戦闘 ----
+// 異変の強さ・戦果倍率は通常敵だけに適用する。出来事の特殊敵も除く。
+function specialModifierEnemy(e) {
+  return !!(e.boss || e.metal || e.isMimic || e.isMasterMimic || e.mon?.elite || e.mon?.named || e._tuneK != null);
+}
+// 混成の戦闘では、倒した通常敵の戦果にだけ異変の倍率を掛ける。
+function battleModifierReward(b, key) {
+  let total = 0, affected = 0;
+  for (const e of b.enemies) {
+    if (e.alive || e._fled) continue;
+    const value = (key === "soul" ? e.soul ?? e.exp : e[key]) || 0;
+    total += value;
+    if (!specialModifierEnemy(e)) affected += value;
+  }
+  return total ? 1 + (mutNum(key + "Mul", 1) - 1) * affected / total : 1;
+}
 // 6属性 (無属性を除く) から1つを無作為に
 function randomElement() {
   const els = Object.keys(ELEMENTS).filter((k) => k !== "none");
@@ -7164,7 +7178,7 @@ function startBattleMeasured(enemies, cell) {
     }
   }
   const mutEm = (mutDef() && mutDef().enemyMul) || 1;
-  if (mutEm !== 1) for (const e of enemies) { e._agiMul = mutEm; e.agi = Math.max(1, Math.round(e.agi * mutEm)); }
+  if (mutEm !== 1) for (const e of enemies) if (!specialModifierEnemy(e)) { e._agiMul = mutEm; e.agi = Math.max(1, Math.round(e.agi * mutEm)); }
   G.battleCell = cell;
   // 迷宮の掟: 敵は樹液を吸って再生する (trait.foeRegen) / 根が開幕に隊の MP を吸う (trait.mpDrain)
   const trB = dungeonTrait();
@@ -9310,9 +9324,9 @@ function endBattleMeasured() {
     const gl = partyPassiveLv("goldLuck"), sl = partyPassiveLv("soulLure");
     // テスト記録の出どころ: 金属の魔物 / 主 / 精鋭等 / 通常の戦闘 (戦闘の記録の種類と同じ分け方)
     const bsrc = b.enemies.some((e) => e.metal) ? "mt" : "b" + ((b.tl && b.tl.kind) || "n");
-    const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)), bsrc, gold * 2) + takeStolenGold(b);
+    const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)), bsrc, gold * 2, battleModifierReward(b, "gold")) + takeStolenGold(b);
     const sb = rankParty("bishopSeibetsu", [0.05, 0.10, 0.15, 0.25]); // 魂の聖別 (司教のランク)
-    const soulGot = runGainSoulPts(Math.round(soul * ((sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1) + sb)), bsrc, soul);
+    const soulGot = runGainSoulPts(Math.round(soul * ((sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1) + sb)), bsrc, soul, battleModifierReward(b, "soul"));
     applyVictoryPassives();
     // 入手Soulの1/3を生存メンバーの魂 (サブ魂はその1/3) に加算 → レベルアップ/スキル習得を集計
     const progress = distributeBattleSoulExp(soulGot);
@@ -13110,7 +13124,7 @@ const CAMP_HEAL = new WeakMap();
 function campApplyAlive(...args) { return tlGameMeasure("camp", () => campApplyAliveMeasured(...args)); }
 function campApplyAliveMeasured(caster, sp, t) {
   let did = false;
-  if (spellCures(sp) && t.ailment) { t.ailment = null; log(`${sp.name}！ ${t.name}の状態異常が治った`, "heal"); did = true; }
+  if (canSpellCure(sp, t) && cureBySpell(sp, t)) { log(`${sp.name}！ ${t.name}の状態異常が治った`, "heal"); did = true; }
   if (spellHeals(sp)) {
     // 満タンの仲間にも回復量は見せる (HP は増えない・それだけでは「効果あり」にしない)
     const p = campHealPower(caster, sp);
@@ -13176,10 +13190,10 @@ function healAllCasters() {
   }
   return out;
 }
-// 呪文の組み合わせ (唱える順の一覧) を決める。def = 各人のHPの不足, ail = 各人の状態異常の有無。
+// 呪文の組み合わせ (唱える順の一覧) を決める。def = 各人のHPの不足, ail = 各人の状態異常の種類。
 // 呪文ごとの見積もりは、唱えうる者の中で最も弱い回復量・最も重い MP (誰が唱えても足りる側)。
 //  全体呪文で合計 h 以上を癒す最少MP (allDP) + 残りを1人ずつ単体呪文で埋める最少MP (oneDP) を、h ごとに比べて最小を取る。
-//  状態異常は「治療つきの全体呪文を1回以上」か「その人へ治療つきの単体呪文を1回以上」で治す
+//  状態異常は、該当する種類を治せる単体技または全員の異常を覆う全体技で治す。種類の異なる全体技の組み合わせは貪欲法で補う。
 const HEAL_CAST_EPS = 1e-3; // 同じ MP なら唱える回数の少ない組み合わせを選ぶための僅かな重み
 function planHealAllDP(def, ail, casters) {
   const kinds = new Map();
@@ -13190,7 +13204,7 @@ function planHealAllDP(def, ail, casters) {
   }
   const allK = [...kinds.values()].filter((k) => k.all), oneK = [...kinds.values()].filter((k) => !k.all);
   const D = Math.max(0, ...def);
-  // 単体: S0[d] = d を埋める最少MP、S1[d] = 治療つきの呪文を1回以上含めて d を埋める最少MP
+  // 単体: S0[d] = d を埋める最少MP、singleCures = 異常の種類ごとに治療を含める最少MP
   const S0 = new Array(D + 1).fill(Infinity), S0k = new Array(D + 1).fill(null);
   S0[0] = 0;
   for (let d = 1; d <= D; d++) for (const k of oneK) {
@@ -13198,11 +13212,15 @@ function planHealAllDP(def, ail, casters) {
     const v = k.cost + HEAL_CAST_EPS + S0[Math.max(0, d - k.pow)];
     if (v < S0[d]) { S0[d] = v; S0k[d] = k; }
   }
-  const S1 = new Array(D + 1).fill(Infinity), S1k = new Array(D + 1).fill(null);
-  for (let d = 0; d <= D; d++) for (const k of oneK) {
-    if (!k.cures) continue;
-    const v = k.cost + HEAL_CAST_EPS + S0[Math.max(0, d - k.pow)];
-    if (v < S1[d]) { S1[d] = v; S1k[d] = k; }
+  const singleCures = new Map();
+  for (const kind of new Set(ail.filter(Boolean))) {
+    const cost = new Array(D + 1).fill(Infinity), keys = new Array(D + 1).fill(null);
+    for (let d = 0; d <= D; d++) for (const k of oneK) {
+      if (!spellCureKinds(k.sp).includes(kind)) continue;
+      const v = k.cost + HEAL_CAST_EPS + S0[Math.max(0, d - k.pow)];
+      if (v < cost[d]) { cost[d] = v; keys[d] = k; }
+    }
+    singleCures.set(kind, { cost, keys });
   }
   // 全体: A0[h] = 合計 h 以上を癒す最少MP、A1[h] = 治療つきの全体呪文を1回以上含めて
   const A0 = new Array(D + 1).fill(Infinity), A0k = new Array(D + 1).fill(null);
@@ -13214,7 +13232,7 @@ function planHealAllDP(def, ail, casters) {
   }
   const A1 = new Array(D + 1).fill(Infinity), A1k = new Array(D + 1).fill(null);
   for (let h = 0; h <= D; h++) for (const k of allK) {
-    if (!k.cures) continue;
+    if (!k.cures || ail.some(kind => kind && !spellCureKinds(k.sp).includes(kind))) continue;
     const v = k.cost + HEAL_CAST_EPS + A0[Math.max(0, h - k.pow)];
     if (v < A1[h]) { A1[h] = v; A1k[h] = k; }
   }
@@ -13226,7 +13244,7 @@ function planHealAllDP(def, ail, casters) {
       let v = base;
       for (let i = 0; i < def.length && v < best; i++) {
         const d = Math.max(0, def[i] - h);
-        v += ail[i] && !cured ? S1[d] : S0[d];
+        v += ail[i] && !cured ? singleCures.get(ail[i]).cost[d] : S0[d];
       }
       if (v < best) { best = v; pick = { h, cured }; }
     }
@@ -13239,7 +13257,7 @@ function planHealAllDP(def, ail, casters) {
   else takeAll(pick.h);
   for (let i = 0; i < def.length; i++) {
     let d = Math.max(0, def[i] - pick.h);
-    if (ail[i] && !pick.cured) { const k = S1k[d]; steps.push({ k, t: i }); d = Math.max(0, d - k.pow); }
+    if (ail[i] && !pick.cured) { const k = singleCures.get(ail[i]).keys[d]; steps.push({ k, t: i }); d = Math.max(0, d - k.pow); }
     while (d > 0) { const k = S0k[d]; steps.push({ k, t: i }); d = Math.max(0, d - k.pow); }
   }
   return { cost: best, steps };
@@ -13271,12 +13289,12 @@ function planHealAllGreedy(def0, ail0, casters) {
     for (const ci of order) {
       for (const a of casters[ci].acts) {
         if (a.cost > mp[ci]) continue;
-        const ts = a.all ? def.map((_, i) => i) : def.map((_, i) => i).filter((i) => (a.heals && def[i] > 0) || (a.cures && ail[i]));
+        const ts = a.all ? def.map((_, i) => i) : def.map((_, i) => i).filter((i) => (a.heals && def[i] > 0) || (a.cures && spellCureKinds(a.sp).includes(ail[i])));
         for (const t of (a.all ? [-1] : ts)) {
           let gain = 0;
           for (const i of (t < 0 ? ts : [t])) {
             if (a.heals) gain += Math.min(def[i], a.pow);
-            if (a.cures && ail[i]) gain += 1000;
+            if (a.cures && spellCureKinds(a.sp).includes(ail[i])) gain += 1000;
           }
           const v = gain / a.cost;
           if (v > val) { val = v; pick = { ci, a, t }; }
@@ -13288,7 +13306,7 @@ function planHealAllGreedy(def0, ail0, casters) {
     for (let i = 0; i < def.length; i++) {
       if (pick.t >= 0 && pick.t !== i) continue;
       if (pick.a.heals) def[i] = Math.max(0, def[i] - pick.a.pow);
-      if (pick.a.cures) ail[i] = false;
+      if (pick.a.cures && spellCureKinds(pick.a.sp).includes(ail[i])) ail[i] = null;
     }
     mp[pick.ci] -= pick.a.cost;
     out.push(pick);
@@ -13346,7 +13364,7 @@ function healAllMeasured() {
   const casters = healAllCasters(); // 蘇った術者も唱える側に入る
   const targets = G.party.filter((t) => t.alive);
   const planFrom = () => {
-    const d = targets.map((t) => Math.max(0, t.maxhp - t.hp)), a = targets.map((t) => !!t.ailment);
+    const d = targets.map((t) => Math.max(0, t.maxhp - t.hp)), a = targets.map((t) => t.ailment || null);
     if (a.some(Boolean) && !casters.some((c) => c.acts.some((x) => x.cures))) return null;
     if (d.some((v) => v > 0) && !casters.some((c) => c.acts.some((x) => x.heals))) return null;
     const plan = planHealAllDP(d, a, casters);
@@ -13356,7 +13374,7 @@ function healAllMeasured() {
   for (let guard = 0; steps && steps.length && guard < 300; guard++) {
     const { ci, a, t } = steps[0];
     const caster = casters[ci].p;
-    const hit = targets.filter((x, i) => (t < 0 || t === i) && ((a.heals && x.hp < x.maxhp) || (a.cures && x.ailment)));
+    const hit = targets.filter((x, i) => (t < 0 || t === i) && ((a.heals && x.hp < x.maxhp) || (a.cures && canSpellCure(a.sp, x))));
     if (!hit.length || caster.mp < a.cost) break;
     cast(caster, a.sp, a.cost, t < 0 ? null : targets[t]);
     if (!targets.some((x) => x.hp < x.maxhp || x.ailment)) break;
@@ -13368,9 +13386,12 @@ function healAllMeasured() {
   for (let guard = 0; guard < 100; guard++) {
     const ill = targets.filter((x) => x.alive && x.ailment);
     if (!ill.length) break;
-    const pick = bestOf(casters, (a) => a.cures && ((a.all ? ill.length : 1) / a.cost + a.pow * HEAL_CAST_EPS * 1e-3));
+    const pick = bestOf(casters, (a) => {
+      const n = ill.filter(t => canSpellCure(a.sp, t)).length;
+      return n ? (a.all ? n : 1) / a.cost + a.pow * HEAL_CAST_EPS * 1e-3 : 0;
+    });
     if (!pick) break;
-    const t = pick.a.all ? null : ill.slice().sort((x, y) => x.hp / x.maxhp - y.hp / y.maxhp)[0];
+    const t = pick.a.all ? null : ill.filter(x => canSpellCure(pick.a.sp, x)).sort((x, y) => x.hp / x.maxhp - y.hp / y.maxhp)[0];
     cast(pick.c.p, pick.a.sp, pick.a.cost, t);
   }
   //  HP: 1MP あたりの見込み回復量 (最低値・満タンを超える分は数えない) が最も大きい手から。単体は最も深手の者へ
@@ -13396,7 +13417,7 @@ function healAllMeasured() {
 
   if (!total) {
     const ill = targets.some((x) => x.ailment), hurt = targets.some((x) => x.hp < x.maxhp);
-    const canCure = casters.some((c) => c.acts.some((a) => a.cures)), canHeal = casters.some((c) => c.acts.some((a) => a.heals));
+    const canCure = casters.some((c) => c.acts.some((a) => targets.some(t => canSpellCure(a.sp, t)))), canHeal = casters.some((c) => c.acts.some((a) => a.heals));
     if (ill && !canCure && !(hurt && canHeal)) return fail("状態異常を治す呪文を使える者がいない");
     if (hurt && !canHeal && !(ill && canCure)) return fail("傷を癒す呪文を使える者がいない");
     return fail("MPが足りない！", "bad");
@@ -13465,7 +13486,7 @@ function campCast(caster, spellKey) {
   // 単体: 効果のある対象だけを候補にする (HP満タンへの回復・状態異常なしへの治療は不可)
   const benefits = (t) => {
     if (!t.alive) return !!sp.revive;
-    if (cures && t.ailment) return true;
+    if (cures && canSpellCure(sp, t)) return true;
     if (heals && t.hp < t.maxhp) return true;
     return false;
   };
@@ -13872,8 +13893,8 @@ function tickPoisonMeasured() {
   for (const p of G.party) {
     if (!p.alive || p.ailment !== "poison") continue;
     any = true;
-    // 毒状態の継続ダメージは最大HPの2% (高レベルでも脅威として機能するよう%化)
-    const dmg = Math.max(1, Math.ceil(p.maxhp * 0.02));
+    // 通常の毒は戦闘外でも最大HPの5%を削る
+    const dmg = Math.max(1, Math.ceil(p.maxhp * 0.05));
     p.hp = Math.max(0, p.hp - dmg);
     if (p.hp === 0) { p.alive = false; SFX.die(); log(`${p.name}は毒に倒れた…`, "dmg"); }
   }

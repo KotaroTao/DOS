@@ -9,12 +9,13 @@ export default {
     15 HERMIT_YAMANOYUUSUI 15 hermitZokusei/1 17 HOLYLIGHT 20 REGEN 22 HERMIT_KAZEHAFURI 25 hermitMinokonashi/1 30 HERMIT_NEMURIGASUMI
     35 hermitNigemizu/1 37 HERMIT_YAMAOROSHI 40 KASUMINOTOBARI 45 hermitYoujou/2 50 DIOSALL 50 hermitZokusei/2 55 HERMIT_KIRIGOME
     60 hermitIori/1 65 DIAL 70 hermitYoujou/3 72 HERMIT_KOGARASHI 75 hermitMinokonashi/2 80 REVIVE
-    85 KIYOME 90 poisonFloor/1 95 HERMIT_ASATSUYU 100 HERMIT_KASUMIMEZAME 100 hermitZokusei/3 105 hermitIori/2 110 HERMIT_KOMOREBI
+    85 HERMIT_YAKUSOUARAI 90 poisonFloor/1 95 HERMIT_ASATSUYU 100 HERMIT_KASUMIMEZAME 100 hermitZokusei/3 105 hermitIori/2 110 HERMIT_KOMOREBI
     115 hermitYoujou/4 120 HERMIT_KUNPUU 125 resistAilment/1 130 HERMIT_SHINKIROU 135 hermitNigemizu/2 140 HERMIT_YUUSUI
     142 HERMIT_KAMINARI 145 hermitMinokonashi/3 150 HERMIT_MIYAMA 155 hermitIori/3 160 HERMIT_KANKON 165 resistAilment/2
     170 HERMIT_HIYAKU 172 HERMIT_TENGUKAZE 175 mercy/1 180 HERMIT_OOHARAE 185 hermitNigemizu/3 190 HERMIT_GYOUKOU
     195 HERMIT_SEISOU 200 HERMIT_FUKUIN`,
   skills: {
+    HERMIT_YAKUSOUARAI: { name: "薬草の清流", mp: 10, kind: "cure", cure: ["poison", "paralyze", "stone"], target: "all-ally", desc: "味方全員の毒・猛毒・麻痺・石化を治す" },
     // Lv15 の固有技: 山の湧水を分け与え、隊を癒し続ける
     HERMIT_YAMANOYUUSUI: { name: "山の湧水", mp: 6, kind: "heal", power: 9, regen: { pct: 0.02, turns: 3 }, target: "all-ally", desc: "山の湧水を分け与え、味方全員を癒して、癒しを続かせる" },
     // 祈りの風 (INT と PIE の高い方で伸びる faith)。共通の風の呪文は INT 依存で隠修士 (PIE型) に合わないので置き換える
@@ -25,7 +26,7 @@ export default {
     HERMIT_YAMAOROSHI: { name: "山颪", mp: 9, kind: "atk", power: 25, element: "wind", flinchChance: 0.25, faith: true, target: "enemy", desc: "吹き下ろす山風で打ち、怯ませる（PIEでも伸びる）" },
     HERMIT_KIRIGOME: { name: "霧籠め", mp: 8, kind: "debuff", debuff: { agi: 0.75, hit: 0.9 }, target: "all-enemy", desc: "濃霧に籠め、敵全体の足と狙いを鈍らす" },
     HERMIT_KOGARASHI: { name: "木枯らし", mp: 10, kind: "atk", power: 30, element: "wind", debuff: { atk: 0.9 }, faith: true, target: "all-enemy", desc: "凍てつく風が敵全体の力を奪う（PIEでも伸びる）" },
-    HERMIT_ASATSUYU: { name: "朝露の恵み", mp: 12, kind: "buff", regen: { pct: 0.06, turns: 4 }, cure: true, target: "all-ally", desc: "朝露が穢れを洗い、全員を癒し続ける" },
+    HERMIT_ASATSUYU: { name: "朝露の恵み", mp: 12, kind: "buff", regen: { pct: 0.06, turns: 4 }, cure: ["poison", "paralyze", "sleep"], target: "all-ally", desc: "全員の毒・猛毒・麻痺・眠りを洗い流し、癒しを残す" },
     HERMIT_KASUMIMEZAME: { name: "霞の目覚め", mp: 9, kind: "heal", power: 50, revive: true, debuffAll: { hit: 0.9 }, target: "ally", desc: "霞に隠して癒す。倒れた者も起こす" },
     HERMIT_KOMOREBI: { name: "木漏れ日", mp: 9, kind: "atk", power: 21, element: "light", sleepChance: 0.15, target: "all-enemy", desc: "まどろむ光で敵全体を灼き、眠らせる" },
     HERMIT_KUNPUU: { name: "薫風の癒し", mp: 12, kind: "heal", power: 35, buff: { agi: 1.1 }, target: "all-ally", desc: "薫る風が全員を癒し、身を軽くする" },

@@ -1,7 +1,7 @@
 // 抵抗値の境界・全敵の体質・装備集計・実際の付与を検証する。
 import assert from 'node:assert/strict';
 import { Battle } from '../../src/combat.js';
-import { SOUL_KEYS, SOUL_CLASSES, makeSoulInstance, setSharedSouls, recalcDoll, rankThresholds, makeDoll } from '../../src/souls.js';
+import { SOUL_KEYS, SOUL_CLASSES, makeSoulInstance, setSharedSouls, recalcDoll, rankThresholds, makeDoll, jobBaseTraitsOf, JOB_BASE_TRAITS } from '../../src/souls.js';
 import { recalc } from '../../src/items.js';
 import { MONSTERS } from '../../src/sprites.js';
 import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
@@ -53,7 +53,25 @@ for (const job of SOUL_KEYS) for (const rank of [1,2,3,4,5]) {
   const soul = makeSoulInstance(job, rankThresholds(SOUL_CLASSES[job].rarity)[rank-1], 20);
   setSharedSouls([soul]);
   const d = makeDoll('職業抵抗検証'); d.primary = soul.uid; recalcDoll(d);
-  assert.deepEqual(d.resists,zeroResists(), `${job} ランク${rank}`);
+  const traits = jobBaseTraitsOf(job, rank);
+  assert.equal(JOB_BASE_TRAITS[job].length, 2);
+  assert.deepEqual(d.resists, traits.resists, `${job} ランク${rank}`);
+  assert.equal(d.critBonus, traits.crit);
+  for (const v of Object.values(d.resists)) assert(v === 0 || v === rank * 5);
+  assert(traits.crit === 0 || Math.abs(traits.crit - rank * .05) < 1e-12);
+  d.equip.acc1 = { crit: .03, resists: { physResist: 10 } };
+  recalc(d); recalc(d);
+  assert.equal(d.resists.physResist, traits.resists.physResist + 10);
+  assert.equal(d.critBonus, traits.crit + .03);
+  d.equip.acc1 = null; recalc(d);
+  assert.deepEqual(d.resists, traits.resists);
+  soul.level = 1000; soul.count = rankThresholds(SOUL_CLASSES[job].rarity)[rank] ? rankThresholds(SOUL_CLASSES[job].rarity)[rank] - 1 : 10000;
+  recalcDoll(d);
+  assert.deepEqual(d.resists, traits.resists);
+  assert.equal(d.critBonus, traits.crit);
+  d.primary = null; recalcDoll(d);
+  assert.deepEqual(d.resists, zeroResists());
+  assert.equal(d.critBonus, 0);
 }
 {
   const p = Object.assign(makeDoll('呪文抵抗検証'),{hp:1000,maxhp:1000,magResist:100});
@@ -62,4 +80,4 @@ for (const job of SOUL_KEYS) for (const rank of [1,2,3,4,5]) {
   const hit = battle._exec({actor:enemy,action:'breath',kind:'spell'}).hits[0];
   assert.equal(hit.dmg,0); assert(hit.immune); assert.equal(p.hp,1000);
 }
-console.log('全職業・全5ランクの基礎抵抗0、敵の全体呪文への魔法抵抗100を確認');
+console.log('全職業・全5ランクの基礎特性・装備加算・倍率独立・主魂解除、敵の全体呪文への魔法抵抗100を確認');
