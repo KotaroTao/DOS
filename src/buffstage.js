@@ -10,6 +10,8 @@
 // 命中 (hit)・特技封じ・挑発・属性耐性ダウンなど、それ以外の効果は段を持たず従来の倍率のまま。
 
 export const STAGED = new Set(["atk", "vit", "agi", "int", "pie"]);
+// 敵の能力は3種類。内部キーは味方と共通だが、表示名は画面・説明・戦闘で揃える。
+export const ENEMY_STAT_LABEL = { atk: "攻撃", vit: "防御", agi: "素早さ" };
 export const STAGE_MAX = 3;
 export const STRONG_MIN = -2;   // 主・精鋭に入る弱体の底
 // この持続以上の効果は「戦闘の終わりまで」(激昂など)。札には残りターンを出さない

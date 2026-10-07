@@ -4,7 +4,7 @@ import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
 import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, setElemKnown, perkVictory, canSpellCure, cureBySpell, spellCureKinds } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
-import { STAGED, effectStage, stageOf, stageLabel, isBattleLong, turnsLeftLabel } from "./buffstage.js";
+import { STAGED, effectStage, stageOf, stageLabel, isBattleLong, turnsLeftLabel, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
 import { makeItemSpriteResolver } from "./itemart/index.js";
@@ -8085,7 +8085,7 @@ function buffFloatText(h) {
   const ks = Object.keys(m);
   // 向きは値で決める (捨て身の 守▼ のように強化の中に下がる能力もある)
   const arrows = (k) => { const n = STAGED.has(k) ? Math.abs(stageOf(m[k])) : 1; return (m[k] >= 1 ? "▲" : "▼").repeat(Math.max(1, n)); };
-  const body = ks.length ? ks.map((k) => `${BUFF_KANJI[k] || "◆"}${arrows(k)}`).join("") : (up ? "強化▲" : "弱体▼");
+  const body = ks.length ? ks.map((k) => `${(h.target?.side === "enemy" && ENEMY_STAT_LABEL[k]) || BUFF_KANJI[k] || "◆"}${arrows(k)}`).join("・") : (up ? "強化▲" : "弱体▼");
   return { text: body, color: up ? "#7fe0a0" : "#ff9a8a" };
 }
 // 効果を (能力, 向き) ごとに集約する: 段の能力は今の段 (1本)、それ以外は数を段とみなす。予兆 (omen) は別扱い
@@ -8111,7 +8111,7 @@ function drawEnemyBadges(e, baseX, yTop, opt = {}) {
     // 予兆は「溜!」の琥珀色の札 (残りターンは出さない)
     if (g.omen) { segs.push({ text: "溜!", up: true, omen: true }); continue; }
     const arrow = (g.up ? "▲" : "▼").repeat(Math.min(3, g.stages));
-    segs.push({ text: `${BUFF_KANJI[g.stat] || "◆"}${arrow}${turnsLeftLabel(g.turns)}`, up: g.up });
+    segs.push({ text: `${ENEMY_STAT_LABEL[g.stat] || BUFF_KANJI[g.stat] || "◆"}${arrow}${turnsLeftLabel(g.turns)}`, up: g.up });
   }
   if (!segs.length) return;
   vctx.save();

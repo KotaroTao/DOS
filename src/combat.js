@@ -6,7 +6,7 @@ import { ELEMENTS, elemDmgMult, elemBeats, monStats, rankStats, resistRate, resi
 
 import { SPELLS } from "./skilldefs.js";
 import { JOBKIT_PERKS } from "./jobkit/index.js";
-import { STAGED, STAGE_MAX, STRONG_MIN, BATTLE_LONG, stageMul, stageOf, effectStage } from "./buffstage.js";
+import { STAGED, STAGE_MAX, STRONG_MIN, BATTLE_LONG, stageMul, stageOf, effectStage, stageLabel, ENEMY_STAT_LABEL } from "./buffstage.js";
 export { SPELLS };
 
 // 敵が使う自己強化 (enemyAct の WARCRY 相当) の既定持続ターン数
@@ -494,7 +494,7 @@ export class Battle {
     const hs = this._rkParty("hunterSaihai", [0.9, 0.8, 0.7, 0.6]);
     if (hs) {
       for (const e of this.livingEnemies()) this._applyMod(e, "agi", hs, 3, "狩りの采配");
-      this.log(`狩りの采配！ 敵の足並みが乱れた (AGI×${hs})`, "hit");
+      this.log(`狩りの采配！ 敵の足並みが乱れた (素早さ×${hs})`, "hit");
     }
     // 死の宣告 (ランク): 主・金属の魔物以外の敵が、それぞれ 3/5/8/15% で即死
     const ns = this._rkParty("necroSenkoku", [0.03, 0.05, 0.08, 0.15]);
@@ -682,6 +682,9 @@ export class Battle {
       t.effects.push({ stat, stage: s1, mult: stageMul(s1), turns: Math.max(1, nt), src: srcName || "" });
     }
     this._recalcBuffs(t);
+    if (s1 !== s0 && t.side === "enemy" && ENEMY_STAT_LABEL[stat]) {
+      this.log(`${t.name}の${ENEMY_STAT_LABEL[stat]}が${s1 > s0 ? "上がった" : "下がった"} (${stageLabel(s1 - s0)})`, s1 > s0 ? "dmg" : "hit");
+    }
     return s1 - s0;
   }
   // 弱体に強い相手 (主・精鋭)
@@ -1852,7 +1855,7 @@ export class Battle {
         res.hits.push(h);
         const tt = h.target; // かばうで対象が替わることがある
         if (!h.miss && !h.immune && tt.alive) {
-          if (this._applyMod(tt, "atk", stageMul(-1), ENEMY_BUFF_DUR, "弱体")) this.log(`${tt.name}の力が削がれた… (STR −1段)`, "dmg");
+          if (this._applyMod(tt, "atk", stageMul(-1), ENEMY_BUFF_DUR, "弱体") && tt.side !== "enemy") this.log(`${tt.name}の力が削がれた… (STR −1段)`, "dmg");
           else this.log(`${tt.name}の力はもう削がれきっている`, "sys");
         }
       } else if (k === "sunder") {
@@ -1860,7 +1863,7 @@ export class Battle {
         const h = this._physical(actor, t, { power: 0.9, name: "鎧砕き" });
         res.hits.push(h);
         const tt = h.target;
-        if (!h.miss && !h.immune && tt.alive && this._applyMod(tt, "vit", stageMul(-1), ENEMY_BUFF_DUR, "鎧砕き")) this.log(`${tt.name}の守りが砕かれた… (VIT −1段)`, "dmg");
+        if (!h.miss && !h.immune && tt.alive && this._applyMod(tt, "vit", stageMul(-1), ENEMY_BUFF_DUR, "鎧砕き") && tt.side !== "enemy") this.log(`${tt.name}の守りが砕かれた… (VIT −1段)`, "dmg");
       } else if (k === "dispel") {
         // 打ち消し: 隊にかかった強化・構えをすべて剥ぎ取る
         this.log(`${actor.name}は禍言を唱えた！`, "dmg");
@@ -2588,7 +2591,7 @@ export class Battle {
         res.hits.push(died ? { target: t, dmg: 0, died: true, fatal: true } : st ? { target: t, debuff: true, mods, status: st } : { target: t, debuff: true, mods });
       }
       if (sp.debuff && sp.debuff.hit && Object.keys(sp.debuff).length === 1) this.log("敵の狙いが乱れた", "hit");
-      else if (sp.debuff) this.log("敵の力が削がれた", "hit");
+      else if (sp.debuff && !Object.keys(sp.debuff).some(k => ENEMY_STAT_LABEL[k])) this.log("敵の能力が下がった", "hit");
       if (sp.vuln) this.log(`敵の${Object.keys(sp.vuln).map((k) => VULN_LABEL[k] || k).join("・")}への守りに綻びが生じた`, "hit");
     } else if (sp.kind === "cure") {
       // 治療: 状態異常を治す。purge 付きは弱体 (▼) も解く。全体版は味方全員
@@ -2942,7 +2945,7 @@ export class Battle {
       if (e.boss && e.alive && !e._enraged && e.hp <= e.maxhp / 2) {
         e._enraged = true;
         this._applyMod(e, "atk", 1.3, ENEMY_BUFF_DUR, "怒り");
-        this.log(`${e.name}は怒り狂っている！ (攻撃力上昇)`, "dmg");
+        this.log(`${e.name}は怒り狂っている！ (攻撃上昇)`, "dmg");
         this._enrageFx = true; // game.js が演出に使う
       }
     }

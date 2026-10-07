@@ -199,7 +199,7 @@ Six elements + `none`, defined in `schema.js`. Advantage cycle is **火→風→
 - Saving uses **`refSerialize`/ref-hydrate**: a custom serializer that encodes shared/circular object references as `{$r: index}` so object **identity is preserved** on load (a single soul object referenced from multiple places stays the same instance). When adding state that relies on shared references, keep it inside this graph rather than re-cloning.
 
 ### UI 構造 (`src/ui/`) — 縦スクロール無し・少ないタップ
-図鑑の敵詳細は味方の能力画面と同じ6能力のカード (`ATTR_LABEL`/`ATTR_NAME`) と情報欄 (`pt-info`/`pt-fact`) でHP・攻撃力・属性攻防・全抵抗値を表示する。敵の未設定の能力は「—」、金属の可変能力も「—」。討伐数による能力・抵抗値の解放条件は維持し、戦利品は別枠に置く。
+敵の能力名は「攻撃・防御・素早さ」 (`ENEMY_STAT_LABEL` in buffstage.js) に統一。図鑑はこの3能力だけをカード表示し、情報欄 (`pt-info`/`pt-fact`) でHP・属性攻防・全抵抗値を表示する。金属の可変能力は「—」。敵への強化・弱体の説明、戦闘ログ、浮かび文字、効果の札も同じ能力名を使う。味方の6能力名と戦闘式、討伐数による解放条件は維持し、戦利品は別枠に置く。
 最適装備の結果は、付け替えた品ごとに付け替え前・後の特殊効果を `specialLines` の数値付き説明で表示する。両方とも特殊効果がない場合は省略し、片方だけない場合は「なし」と表示する。
 魂の一覧は職業順でまとめ、同職内はプラス値の降順、同値ならLvの降順。装着中・他の人業が使用中でも、この並び順を保つ。
 The UI was rebuilt into packages under `src/ui/` (plain ES modules; **they never import `game.js`** — circular imports/TDZ). Design rule from the user (2026-10, replacing the old "no scrolling, page instead" rule): **nothing is paged — content that doesn't fit scrolls vertically.** Screens keep their fixed frame (header / tab bar); only the inner box scrolls: sheet bodies (`.ui-sheet-body`), tab bodies via `scrollBox(box)` (kit.js; toggles `is-over` while overflowing — the 隊 screen folds Irene's panel on it), card grids via `scrollGrid` (facilities.js — 図鑑・酒場; scroll position remembered per key, `resetPages` forgets it), the 商会 lists via `fillList` (shop.js), the 控え sheet lists every doll. Don't reintroduce ‹ 1/2 › pagers.

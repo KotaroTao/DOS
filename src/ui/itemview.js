@@ -8,7 +8,7 @@ import { game } from "./ctx.js";
 import { el, sheet } from "./kit.js";
 import { ELEMENTS, elemBeats, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dungeons/index.js";
 import { SPELLS, spellMpLabel, spellCureKinds } from "../combat.js";
-import { STAGED, stageOf, stageMul, stageLabel } from "../buffstage.js";
+import { STAGED, stageOf, stageMul, stageLabel, ENEMY_STAT_LABEL } from "../buffstage.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
 import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, useLines } from "../items.js";
 import { HERO, spriteCanvas, crispCanvas } from "../sprites.js";
@@ -244,7 +244,7 @@ export function skillDetailLines(sp) {
     if (sp.vitScale) lines.push("使い手のVITでも威力が伸びる");
     if (sp.pieScale) lines.push("使い手のPIEでも威力が伸びる");
     if (sp.acc) lines.push(sp.acc >= 1 ? "必中（相手の素早さに関係なく当たる）" : `命中UP（外れる確率を${pct(sp.acc)}減らす）`);
-    if (sp.pierce) lines.push(sp.pierce >= 1 ? "相手の防御（VIT）と物理抵抗値を無視する（物理無効は貫けない）" : `相手の防御（VIT）と物理抵抗値による軽減を${pct(sp.pierce)}無視する（物理無効は貫けない）`);
+    if (sp.pierce) lines.push(sp.pierce >= 1 ? "敵の防御と物理抵抗値を無視する（物理無効は貫けない）" : `敵の防御と物理抵抗値による軽減を${pct(sp.pierce)}無視する（物理無効は貫けない）`);
     if (sp.critBonus) lines.push(sp.critBonus >= 1 ? "必ず会心になる" : `会心率 +${pct(sp.critBonus)}`);
     if (sp.desperate) lines.push("自分のHPが減っているほど威力が上がる（最大2倍）");
     if (sp.steal) lines.push(`当てた敵から、所持金の${pct(sp.steal)}を盗む（1体につき1度・逃げても持ち帰る）`);
@@ -253,14 +253,15 @@ export function skillDetailLines(sp) {
   if (sp.prey) lines.push(`${raceList(sp.prey.races)}に ×${sp.prey.mul}`);
   if (sp.kind === "atk" && sp.critBonus) lines.push(`呪文会心率 +${pct(sp.critBonus)}（会心は×1.5）`);
   // STR・VIT・AGI・INT・PIE は段 (buffstage.js) で示す: 「STR +2段 (×1.5)」
-  const fx = (obj) => Object.entries(obj).map(([k, v]) => {
-    const nm = ATTR_LABEL[k] || BUFF_NAME[k] || k.toUpperCase();
+  const fx = (obj, enemy = false) => Object.entries(obj).map(([k, v]) => {
+    const nm = (enemy && ENEMY_STAT_LABEL[k]) || ATTR_LABEL[k] || BUFF_NAME[k] || k.toUpperCase();
     if (!STAGED.has(k)) return `${nm} ×${v}`;
     const n = stageOf(v);
     return `${nm} ${stageLabel(n)}（×${stageMul(n)}）`;
   }).join("・");
-  if (sp.buff) lines.push(`強化: ${fx(sp.buff)}`);
-  if (sp.debuff) lines.push(`弱体: ${fx(sp.debuff)}`);
+  if (sp.buff) lines.push(`強化: ${fx(sp.buff, sp.target?.includes("enemy"))}`);
+  if (sp.debuff) lines.push(`弱体: ${fx(sp.debuff, sp.target?.includes("enemy"))}`);
+  if (sp.debuffAll) lines.push(`敵全体への弱体: ${fx(sp.debuffAll, true)}`);
   if (sp.vuln) { const nm = Object.keys(sp.vuln).map(ELEM_NAME).join("・"); lines.push(`${nm}耐性を下げる（${nm}の攻撃から受けるダメージ ×${(1 / Object.values(sp.vuln)[0]).toFixed(2)}）`); }
   if (sp.taunt) lines.push("挑発: 敵の単体攻撃が自分に向かいやすくなる");
   if (sp.shield) lines.push("仁王立ち: 味方への単体の物理攻撃を代わりに受ける");

@@ -1,4 +1,5 @@
 import { RESIST_LABEL } from "../resistance.js";
+import { ENEMY_STAT_LABEL } from "../buffstage.js";
 // ===== 王宮 — 勅命 / 図鑑 / 勲章 / 宝物庫 (区分ごとに印) =====
 // 担当: WP-A。王宮タブ (UI.shell.registerTab("palace", …))。宰相のささやき → 区分 (記憶する) → 中身。
 // どの区分も1画面に収める (ページは縦にスクロールさせない)。長い一覧は収まる数ずつ「‹ 1/3 ›」でめくり、詳細はシート。
@@ -27,7 +28,6 @@ import {
   SOUL_CLASSES, jobSprite, jobRankName, jobLoreFor, jobRankCondText, SOUL_STAT_UP, JOB_GEAR,
   awakenPerkOf, rankThresholds, soulLevelCap, jobSkillTable, passiveName, passiveDesc, JOB_AFFINITY,
   jobBaseTraitsOf,
-  ATTR_KEYS, ATTR_LABEL, ATTR_NAME,
 } from "../souls.js";
 import { rarityColor } from "../rarity.js";
 import { SFX } from "../audio.js";
@@ -573,20 +573,16 @@ export function codexMonSheet(key) {
   };
   if (statsOpen) {
     const grid = el("div", "pt-stats");
-    const stats = { atk: m.atk, vit: m.def, agi: m.spd, int: m.int, pie: m.pie, luk: m.luk };
-    for (const k of ATTR_KEYS) {
+    const stats = { atk: m.atk, vit: m.def, agi: m.spd };
+    for (const [k, label] of Object.entries(ENEMY_STAT_LABEL)) {
       const cell = el("div", "pt-stat");
       cell.style.cursor = "default";
-      cell.appendChild(el("span", "pt-stat-k", ATTR_LABEL[k]));
+      cell.appendChild(el("span", "pt-stat-k", label));
       cell.appendChild(el("span", "pt-stat-v", mt || stats[k] == null ? "—" : String(Math.round(stats[k]))));
-      cell.appendChild(el("span", "pt-stat-n", ATTR_NAME[k].replace(/\s*\(.*\)$/, "")));
       grid.appendChild(cell);
     }
     body.appendChild(grid);
     fact("HP", mt ? (mt.hpRank ? "多め" : mt.hp) : Math.max(1, Math.round(m.maxhp * resistHpMul(m))));
-    fact("MP", m.maxmp ?? "—");
-    fact("攻撃力", mt ? "—" : m.atk);
-    fact("参照", "STR");
     fact("属性攻", elemStatShort({ el: m.element || "none", lv: 1 }));
     fact("属性防", elemStatShort(m.elemDef));
   } else body.appendChild(revealLock(R.stats, "能力・属性・HP"));
