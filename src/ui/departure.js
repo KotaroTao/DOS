@@ -21,7 +21,7 @@ import { el, sheet, button, setText, portrait, segmented, toast, confirm as kitC
 import { ELEMENTS } from "../dungeons/index.js";
 import { iconCanvas } from "../townart.js";
 import { drawDungeonVista } from "../backdrops.js";
-import { dungeonQuestSheet, dungeonActiveQuestSheet } from "./questboard.js";
+import { dungeonQuestSheet, dungeonActiveQuestSheet, byLevelDesc } from "./questboard.js";
 
 const G = () => game.G;
 const sfx = (k) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](); } catch (e) { /* 音が無くても動く */ } };
@@ -50,7 +50,7 @@ function dangerOf(dn) {
   return null;
 }
 
-// ---- 門の一覧 (迷宮の地図: 台帳の並び。地図にない迷宮は、解放の手がかりだけを見せる) ----
+// ---- 門の一覧 (迷宮の地図: 推奨Lvの高い順。地図にない迷宮は、解放の手がかりだけを見せる) ----
 function gateIcon(kind) {
   const w = el("span", "dp-gate-ic");
   try { const c = iconCanvas(kind); if (c) w.appendChild(c); } catch (e) { /* 演出のみ */ }
@@ -185,7 +185,7 @@ function renderHero(b) {
   b.appendChild(hero);
 }
 
-// ---- 門の一覧 (迷宮の地図: 台帳の並び。5 行ぶん見せ、6 つ目からは縦に巻く) ----
+// ---- 門の一覧 (迷宮の地図: 推奨Lvの高い順。5 行ぶん見せ、6 つ目からは縦に巻く) ----
 function renderGates(b) {
   const g = G();
   const D = game.DUNGEONS || [];
@@ -193,7 +193,8 @@ function renderGates(b) {
   const qi = questIdx();
   if (!isOpen(g.dungeonIdx)) g.dungeonIdx = Math.max(0, D.findIndex((d, i) => isOpen(i)));
   renderHero(b);
-  const opened = D.map((d, i) => i).filter(isOpen);
+  // 推奨Lvの高い迷宮から並べる (ユーザーの指示)
+  const opened = byLevelDesc(D.filter((d, i) => isOpen(i))).map((d) => D.indexOf(d));
   const ch = game.currentChapter ? game.currentChapter() : null;
   const list = el("div", "dp-gates");
   list.setAttribute("role", "radiogroup");

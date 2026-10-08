@@ -23,7 +23,14 @@ const TYPE_MARK = { kill: "⚔", soul: "✦", chest: "◆", floor: "▼", clear:
 export function lists() {
   try { return game.questLists ? game.questLists() : { active: [], offers: [], freeCount: 0, cap: 5 }; } catch (e) { setTimeout(() => { throw e; }); return { active: [], offers: [], freeCount: 0, cap: 5 }; }
 }
-// ダンジョンの地図順にまとめる。同じ見出しの中では元の依頼順を保つ。
+// 推奨Lvの高い迷宮から並べる (同じなら地図の順)。出撃シートの門の一覧と酒場の掲示板で共通 (ユーザーの指示)
+export function byLevelDesc(dungeons) {
+  const band = (d) => { try { return game.levelBand ? game.levelBand(d) : [d.lv || 0, d.lvTo || d.lv || 0]; } catch (e) { return [0, 0]; } };
+  return dungeons.map((d, i) => ({ d, i, b: band(d) }))
+    .sort((x, y) => (y.b[1] - x.b[1]) || (y.b[0] - x.b[0]) || (x.i - y.i))
+    .map((x) => x.d);
+}
+// ダンジョン指定なし・納品を先頭に、続けて推奨Lvの高い迷宮から順にまとめる。同じ見出しの中では元の依頼順を保つ。
 export function dungeonGroups(quests, dungeons = game.DUNGEONS || []) {
   const groups = new Map();
   const known = new Set(dungeons.map((d) => d.id));
@@ -34,8 +41,8 @@ export function dungeonGroups(quests, dungeons = game.DUNGEONS || []) {
     groups.get(key).push(q);
   }
   return [
-    ...dungeons.filter((d) => groups.has(d.id)).map((d) => ({ id: d.id, name: d.name, quests: groups.get(d.id) })),
     ...(groups.has(null) ? [{ id: null, name: "ダンジョン指定なし・納品", quests: groups.get(null) }] : []),
+    ...byLevelDesc(dungeons.filter((d) => groups.has(d.id))).map((d) => ({ id: d.id, name: d.name, quests: groups.get(d.id) })),
   ];
 }
 const cap = () => (game.FREE_CAP || 6);
