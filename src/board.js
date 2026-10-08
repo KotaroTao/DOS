@@ -165,7 +165,7 @@ export function makeBoard(floor, cfg = null) {
   const bottom = floor >= dn.floors;
   const noBossBottom = bottom && !dn.boss;
   // 台帳の迷宮 (dn.gates): 5の倍数の階 (最下階を除く) だけ、下り階段そのものが帰還魔法陣になる (gate)。
-  // 踏むと「街へ帰る / 先へ進む」を選び、到達した陣の階からは次回そこから潜れる (game.js)。ほかの階に陣は無い
+  // 踏むと「街へ帰る / 先へ進む」を選び、到達した陣の次の階から次回は潜れる (game.js)。ほかの階に陣は無い
   if (dn.gates) {
     if (!bottom && floor % 5 === 0) cells[st.y][st.x].gate = true;
   } else if (!noBossBottom && (bottom || floor % 5 === 0 || Math.random() < 0.20)) {

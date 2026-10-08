@@ -854,7 +854,7 @@ function curDungeon() { return DUNGEONS[G.dungeonIdx] || DUNGEONS[0]; }
 //   open: {id:1}        地図に現れた迷宮          cleared: {id:回数}   踏破した回数
 //   reported: {id:1}    初踏破を王に報告した迷宮  report: id|null     王への報告待ち (手がかりが揃えば報告まで門は開かない)
 //   found: {鍵:1}       見つけた物語マス          beats: {鍵:1}       語り終えた主の記憶・館の語り・章の結び
-//   gates: {id:階}      到達した最深の帰還魔法陣の階 (次回そこから潜れる)
+//   gates: {id:階}      到達した最深の帰還魔法陣の階 (次回はその次の階から潜れる)
 //   fresh: {id:1}       地図に現れたばかり (出撃シートの「新」)      last: 最後に語られた物語のページ (聞き直し用)
 // }
 // CONTENT_LIMIT = 地図に載せている迷宮の数 (旧来の名を保つ)。章の最後の迷宮を報告すると、次章は「準備中」
@@ -1575,7 +1575,7 @@ function updateTopbar() {
   updateReturnBtn();
 }
 
-function newFloor({ viaGate = false } = {}) {
+function newFloor() {
   // ダンジョンが自前で持つ出現プール (pool=浅階 / deepPool=深階) を使う
   const cfg = activeCfg();
   G.board = makeBoard(G.floor, cfg);
@@ -1618,7 +1618,6 @@ function newFloor({ viaGate = false } = {}) {
   storyNewFloor(); // 物語マス: 師の手がかり (決まった迷宮の決まった階に、見つけるまで毎回置く)
   evNewFloor(); // 迷宮のイベント: 必須の手がかりの場所を確保してから配置する
   G.portalFound = false; // この階の帰還魔法陣はまだ発見していない
-  if (viaGate) arriveAtGate(); // 潜入地点を確定してから周囲を明らかにする
   revealByCartography();
   if (G.run) G.run.floors = Math.max(G.run.floors || 1, G.floor);
   updateTopbar();
@@ -13074,7 +13073,7 @@ function blockForTutorial() {
 
 // 門をくぐる (出撃シートの決め手)。idx = 迷宮の番号 (0始まり) / accept = 迷宮の異変ごと潜るか。
 // 闇に溶けて (sceneTransition) その底で潜入する。潜れない時は理由を返す
-// from = 潜り始める階 (1 か、到達した帰還魔法陣の階)
+// from = 潜り始める階 (1 か、到達した帰還魔法陣の次の階)
 function departNow({ idx = G.dungeonIdx, accept = false, from = 1 } = {}) {
   if (G.state !== "town" || G.prompt) return { ok: false, reason: "state" };
   if (worldOpenCount() < 1) return { ok: false, reason: "locked" };
@@ -13190,7 +13189,7 @@ function enterDungeon(mutatorId, startFloor = 1) {
   sheet.closeAll();
   townEl.classList.add("hidden");
   G.town.facility = null; G.town.sub = null;
-  // 迷宮は1階から。到達した帰還魔法陣の階 (5・10…) からも潜り始められる
+  // 迷宮は1階から。到達した帰還魔法陣の次の階 (6・11…) からも潜り始められる
   G.floor = Math.max(1, Math.min(curDungeon().floors || 1, startFloor | 0 || 1));
   G.maxFloorReached = Math.max(G.maxFloorReached || 0, G.floor);
   G.eliteFloor = false; // 潜り始めの階は強敵階・特別階にならない
@@ -13211,18 +13210,15 @@ function enterDungeon(mutatorId, startFloor = 1) {
   G.state = "board";
   playBgm(fieldBgm());
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
-  const viaGate = G.floor > 1;
-  newFloor({ viaGate });
+  newFloor();
   questProgress("floor", G.floor); // 帰還魔法陣から潜り始めても、その階に着いたと数える
+  // 帰還魔法陣から潜り始めた: 陣の次の階の入口に降り立つ (陣の階は踏破済みなので飛ばす)
+  if (isGateFloor(curDungeon(), G.floor - 1)) log(`帰還魔法陣 B${G.floor - 1}F を抜けて、B${G.floor}F に降り立った。`, "sys");
   const mu = mutDef();
   if (mu) log(`異変「${mu.name}」の中を行く。${mu.gain}。`, "win");
   renderBoard();
   if (UI.tutorialEvent) UI.tutorialEvent("dungeonEntered");
   autosave(true);
-  if (viaGate) {
-    const cell = G.board.cells[G.py][G.px];
-    setTimeout(() => { if (G.state === "board" && !G.prompt) askGate(cell, { arrival: true }); }, 380);
-  }
 }
 
 // ===== 無限迷宮「奈落」への潜入 =====
@@ -13418,13 +13414,13 @@ function askPortalReturn() {
 
 // ===== 帰還魔法陣の階 (台帳の迷宮: 5階・10階…・最下階を除く) =====
 // 下り階段の代わりに立つ陣。踏むと「先へ進む / 街へ帰る」を選ぶ。到達した陣の階は記録され、
-// 次に潜る時は出撃シートでその階から潜り始められる (G.world.gates[id] = 到達した最深の陣の階)
+// 次に潜る時は出撃シートで陣の次の階から潜り始められる (G.world.gates[id] = 到達した最深の陣の階)
 function noteGateReached(cfg, floor) {
   const w = worldState();
   if (!cfg || !cfg.id || (w.gates[cfg.id] || 0) >= floor) return false;
   w.gates[cfg.id] = floor;
-  log(`帰還魔法陣 B${floor}F に到達した。次からは、ここから潜り始められる。`, "win");
-  showToast(`✦ 帰還魔法陣 B${floor}F ― 次回はここから潜れる`, { tone: "good" });
+  log(`帰還魔法陣 B${floor}F に到達した。次からは B${floor + 1}F から潜り始められる。`, "win");
+  showToast(`✦ 帰還魔法陣 B${floor}F ― 次回は B${floor + 1}F から潜れる`, { tone: "good" });
   autosave(true);
   return true;
 }
@@ -13440,14 +13436,14 @@ function askGate(cell, { arrival = false } = {}) {
     { label: "街へ帰還する ― 戦利品は持ち帰る", fn: () => leaveDungeon({ outcome: G.run && G.run.secured ? "clear" : "return" }) },
     { label: arrival ? "この階を探索する" : "まだ探索する", fn: () => renderBoard() },
   ], ICONS.portal, { banner: `✦ 帰還魔法陣 B${G.floor}F ✦`, accent: "#7fd0ff",
-    lines: ["この階のどこからでも、下の「帰還」で街へ戻れる。", "陣に至った階からは、次回そこから潜り始められる。"],
+    lines: ["この階のどこからでも、下の「帰還」で街へ戻れる。", "陣に至った迷宮は、次回この次の階から潜り始められる。"],
     onDismiss: () => renderBoard() });
 }
-// 潜り始められる階 (1 と、到達した帰還魔法陣の階)
+// 潜り始められる階 (1 と、到達した帰還魔法陣の次の階 — 陣の階は踏破済みなので飛ばす)
 function startFloorsOf(cfg) {
   if (!cfg || !cfg.id) return [1];
   const reach = worldState().gates[cfg.id] || 0;
-  return [1, ...gateFloors(cfg).filter((f) => f <= reach)];
+  return [1, ...gateFloors(cfg).filter((f) => f <= reach).map((f) => Math.min(f + 1, cfg.floors || f + 1))];
 }
 // 隊のLv (編成の魂Lvの平均。出撃シートの推奨Lvとの比べに使う)
 function partyLevel() {
@@ -13460,16 +13456,6 @@ function storyCellPending(cfg) {
   const w = worldState();
   return !!cfg && Object.keys(STORY_CELLS).some((k) => STORY_CELLS[k].dungeon === cfg.id && !w.found[k]);
 }
-// 帰還魔法陣から潜入した: 陣の上に降り立つ (陣は見えている)
-function arriveAtGate() {
-  const b = G.board;
-  if (!b) return;
-  for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
-    const c = b.cells[y][x];
-    if (c.type === "stairs" && c.gate) { G.px = x; G.py = y; c.revealed = true; G.portalFound = true; updateReturnBtn(); return; }
-  }
-}
-
 // ---- 個別ステータス (旧) → 隊 (src/ui/party.js) ----
 // 旧 #status-screen は廃止。街では隊タブを、迷宮では隊のシート (全高) を開く。
 // openStatus / closeStatus / renderStatus は多くの呼び出し元のための窓口 (名前と意味は旧来のまま)。
