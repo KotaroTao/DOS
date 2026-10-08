@@ -241,6 +241,11 @@ const ASSETS = [
   "./art/jobs/crusader_3.webp",
   "./art/jobs/crusader_4.webp",
   "./art/jobs/crusader_5.webp",
+  "./art/jobs/cardinal_1.webp",
+  "./art/jobs/cardinal_2.webp",
+  "./art/jobs/cardinal_3.webp",
+  "./art/jobs/cardinal_4.webp",
+  "./art/jobs/cardinal_5.webp",
   "./art/jobs/shadow_1.webp",
   "./art/jobs/shadow_2.webp",
   "./art/jobs/shadow_3.webp",
@@ -376,6 +381,11 @@ const ASSETS = [
   "./src/catalog/ranks/r18.js",
   "./src/catalog/ranks/r19.js",
   "./src/catalog/ranks/r20.js",
+  "./art/jobs/chaplain_1.webp",
+  "./art/jobs/chaplain_2.webp",
+  "./art/jobs/chaplain_3.webp",
+  "./art/jobs/chaplain_4.webp",
+  "./art/jobs/chaplain_5.webp",
 ];
 
 self.addEventListener("install", (e) => {
