@@ -46,6 +46,7 @@ let selDoll = null;       // 表示中の人業 (隊・控えのどちらでも)
 let picked = null;        // 隊列の入れ替えで持ち上げた人業 (タップで移す先を選ぶ代替操作)
 let intent = null;        // 次の描画で行うこと ({reserve:true} / {seg})
 let sheetH = null;        // 迷宮の隊シート
+let sheetTown = false;   // 街の画面の上に隊のシートを開いている (館へ移らずに装備を見る。街の操作ができる・イレーヌは出さない)
 let dunSeg = null;        // 迷宮の隊シートで表示中の区分 (開くたび「装備」から。街の隊タブの記憶とは別)
 let statOpen = null;      // 能力の説明を開いている能力キー
 let pendingOpen = false;  // UI.openParty で人業・区分を指定して館へ入るときの印 (タブから入るときは既定へ戻す)
@@ -740,7 +741,7 @@ function renderView(root, mode) {
   const d = ensureSel();
   if (!allDolls().length) {
     root.appendChild(emptyState());
-    if (mode === "town") { root.classList.add("has-keeper"); root.appendChild(keeperPanel()); }
+    if (mode === "town" && !sheetTown) { root.classList.add("has-keeper"); root.appendChild(keeperPanel()); }
     return;
   }
   const dead = deadBanner(mode);
@@ -757,7 +758,7 @@ function renderView(root, mode) {
   else if (seg === "soul") renderSoulSeg(body, d, { mode, rerender, G });
   else statsSeg(body, d, mode);
   root.appendChild(body);
-  if (mode === "town") {
+  if (mode === "town" && !sheetTown) {
     scrollBox(body); // 収まらなければ内側で縦にスクロール
     root.classList.add("has-keeper");
     root.appendChild(keeperPanel());
@@ -2192,17 +2193,25 @@ export function pickTarget({ banner = "対象", accent = null, title = "誰に�
 }
 
 // ================= 迷宮の隊シート =================
-export function openSheet(d, seg = null) {
+// town = 街の画面 (人業の館以外) から開く: 館へ移らずに、その場のシートで街の操作 (装備の付け替え・魂など) ができる
+export function openSheet(d, seg = null, { town = false } = {}) {
   const G = G_();
   if (d) select(d);
   if (sheetH && !sheetH.closed) { if (seg) setSeg(seg); refreshSheet(); return sheetH; }
   G.statusOpen = true;
+  sheetTown = !!town;
   dunSeg = SEGS.some((x) => x.key === seg) ? seg : "equip"; // 開くたび「装備」から (指定があればその区分)
+  const mode = sheetTown ? "town" : "dungeon";
   sheetH = sheet.open({
-    kind: "info", className: "pt-sheet", banner: "パーティの様子",
-    body: (scroll) => { const w = el("div", "pt-root m-dungeon"); renderView(w, "dungeon"); scroll.appendChild(w); },
+    kind: "info", className: "pt-sheet", banner: sheetTown ? "人業" : "パーティの様子",
+    body: (scroll) => { const w = el("div", "pt-root m-" + (sheetTown ? "sheet" : "dungeon")); renderView(w, mode); scroll.appendChild(w); },
     footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
-    onClose: () => { G.statusOpen = false; sheetH = null; dunSeg = null; picked = null; if (game.renderParty) { try { game.renderParty(); } catch (e) { /* noop */ } } },
+    onClose: () => {
+      const wasTown = sheetTown;
+      G.statusOpen = false; sheetH = null; dunSeg = null; picked = null; sheetTown = false;
+      if (wasTown && inTown() && game.renderTown) { try { game.renderTown(); } catch (e) { /* noop */ } } // 街の札 (HP・装備の印) を描き直す
+      if (game.renderParty) { try { game.renderParty(); } catch (e) { /* noop */ } }
+    },
   });
   return sheetH;
 }
@@ -2226,9 +2235,12 @@ function openParty(idx = null, o = {}) {
   if (d) select(d);
   if (context === "town") {
     if (G.state !== "town") return false;
-    if (o.seg) setSeg(o.seg);
     const t = G.town || {};
-    if (t.tab === "party" && !t.facility && !t.page) { game.renderTown(); return true; }
+    const onMansion = t.tab === "party" && !t.facility && !t.page;
+    // inPlace: 館へ移らず、いまの画面の上に隊のシートで開く (街の顔アイコンから。館にいる時は館のまま)
+    if (o.inPlace && !onMansion) { openSheet(d, o.seg || "equip", { town: true }); return true; }
+    if (o.seg) setSeg(o.seg);
+    if (onMansion) { game.renderTown(); return true; }
     pendingOpen = true; // 指定した人業・区分で入る (既定へ戻さない)
     const ok = UI.shell ? UI.shell.setTab("party") : false;
     pendingOpen = false;
