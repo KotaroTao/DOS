@@ -998,7 +998,7 @@ function stripPortrait(d, i, mode) {
   wrap.appendChild(p);
   wrap.appendChild(el("span", "pt-slotp-n", d.name));
   if (mode === "town") attachDrag(p, d, i);
-  else p.addEventListener("click", () => { sfx("select"); select(d); setSeg("equip"); rerender(); });
+  else p.addEventListener("click", () => { sfx("select"); select(d); rerender(); }); // 人業を切り替えてもタブはそのまま (ユーザーの指示、2026-10)
   return wrap;
 }
 function emptySlot(i) {
@@ -1100,8 +1100,7 @@ function attachDrag(node, d, i) {
     if (picked && picked !== d) { swapParty(picked, d); return; }
     if (picked === d) { picked = null; rerender(); return; }
     sfx("select");
-    select(d);
-    setSeg("equip"); // 顔のアイコンを押したら、その人業の「装備」を見せる (ユーザーの指示、2026-10)
+    select(d); // 人業を切り替えても、開いているタブ (装備・魂・能力) はそのまま (ユーザーの指示、2026-10)
     rerender();
   });
 }
@@ -1905,11 +1904,6 @@ function statsSeg(root, d) {
     }
     line.appendChild(sc);
     root.appendChild(line);
-  }
-  if (d.jobKey && game.showCodexJobDetail) {
-    const r = row({ title: "職業図鑑を見る", sub: `${d.cls} ― ランクごとの技・加護`, chevron: true, onTap: () => game.showCodexJobDetail(d.jobKey, d.jobRank) });
-    r.classList.add("pt-codex");
-    root.appendChild(r);
   }
 }
 

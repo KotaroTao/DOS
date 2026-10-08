@@ -16,6 +16,7 @@ import {
   jobSkillTable, recalcDoll, subPicks, subPickCap, toggleSubPick, subPickIndex, jobStatsOf, subStatRateOfRank,
 } from "../souls.js";
 import { SPELLS, spellMpLabel } from "../combat.js";
+import { RESIST_LABEL } from "../resistance.js";
 import { crispCanvas } from "../sprites.js";
 
 const sfx = (k) => { try { const S = game.SFX; if (S && S[k]) S[k](); } catch (e) { /* 音は演出のみ */ } };
@@ -180,6 +181,13 @@ function mainCard(d, pe, town) {
   lvN.appendChild(cur);
   lvN.appendChild(el("span", "sp-lv-cap", `/${cap}`));
   head.appendChild(lvN);
+  // 見出しを押すと、その職業の図鑑 (ランクごとの技・加護) を開く (ユーザーの指示、2026-10)
+  if (game.showCodexJobDetail) {
+    head.classList.add("sp-head-link");
+    head.setAttribute("role", "button");
+    head.setAttribute("aria-label", `${cl.label || ""}の職業図鑑を見る`);
+    head.addEventListener("click", () => game.showCodexJobDetail(pe.clsKey, rank));
+  }
   card.appendChild(head);
 
   // 次の段までの ✦
@@ -432,7 +440,15 @@ function previewDoll(dd, apply) {
   const fake = { ...dd, base: { ...dd.base }, subs: (dd.subs || []).map((s) => (s ? { ...s, picks: subPicks(s).map((p) => ({ ...p })) } : s)), spells: [], passives: [] };
   apply(fake);
   try { recalcDoll(fake); } catch (e) { return null; }
-  return { from: statsOfDoll(dd), to: statsOfDoll(fake) };
+  return { from: statsOfDoll(dd), to: statsOfDoll(fake), resFrom: resistsOfDoll(dd), resTo: resistsOfDoll(fake) };
+}
+// 耐性まわり (抵抗値・ブレス耐性・会心) の写し
+function resistsOfDoll(x) {
+  const o = {};
+  for (const k in RESIST_LABEL) o[k] = (x.resists && x.resists[k]) || 0;
+  o.breath = Math.round((x.breathRes || 0) * 100);
+  o.crit = Math.round((x.critBonus || 0) * 100);
+  return o;
 }
 // 魂 uid を d の slotId (primary / subN) に宿したときの差し替え
 function placeSoul(fake, slotId, uid) {
@@ -455,18 +471,67 @@ function previewSoul(d, slotId, uid) {
   for (const k in r.to) o[k] = r.to[k] - r.from[k];
   return o;
 }
-// サブ魂を宿す前に、この人業の能力の変化を見せる。
-function confirmSubEquip(d, slotId, s, cur) {
-  const si = +slotId.slice(3);
+// 魂を宿す前に、この人業の能力・耐性の変化と、その魂が覚えている技を見せる (メイン・サブとも。ユーザーの指示、2026-10)
+function confirmSoulEquip(d, slotId, s, cur) {
+  const isSub = slotId !== "primary";
+  const si = isSub ? +slotId.slice(3) : -1;
+  const where = isSub ? `サブ魂${si + 1}` : "メイン魂";
   const body = el("div", "sp-eqc");
   const mine = previewDoll(d, (f) => placeSoul(f, slotId, s.uid));
-  if (mine) body.appendChild(fuseStats({ statsOf: d.name, statsFrom: mine.from, statsTo: mine.to }, "能力は変わらない"));
+  if (mine) {
+    body.appendChild(fuseStats({ statsOf: d.name, statsFrom: mine.from, statsTo: mine.to }, "能力は変わらない"));
+    body.appendChild(resistDelta(mine.resFrom, mine.resTo));
+  }
+  const sk = el("div", "sp-fz-sec sp-ru-blk");
+  const nS = soulLearnedSkills(s).filter((k) => SPELLS[k]).length, nP = Object.keys(soulLearnedPassives(s) || {}).length;
+  sk.appendChild(el("div", "sp-fz-h", `${soulLabel(s)} が覚えている技 ${nS} ・ パッシブ ${nP}`));
+  sk.appendChild(soulSkillChips(s));
+  body.appendChild(sk);
   return confirm({
-    banner: "サブ魂", title: "このサブ魂を宿す？",
-    lines: [cur ? `サブ魂${si + 1}の「${soulLabel(cur)}」を外し、「${soulLabel(s)}」を宿す。` : `「${soulLabel(s)}」を ${d.name} のサブ魂${si + 1}に宿す。`,
-      "同じ職業でも別の魂なら仲間と重複して宿せる。借りる技・パッシブは、宿したあとに選ぶ。"],
+    banner: where, title: `この${where}を宿す？`,
+    lines: [cur ? `${where}の「${soulLabel(cur)}」を外し、「${soulLabel(s)}」を宿す。` : `「${soulLabel(s)}」を ${d.name} の${where}に宿す。`,
+      isSub ? "同じ職業でも別の魂なら仲間と重複して宿せる。借りる技・パッシブは、宿したあとに選ぶ。技を押すとくわしい説明。" : "メイン魂の技・パッシブをすべて使える。技を押すとくわしい説明。"],
     body, className: "sp-eqc-sheet", okLabel: "宿す", danger: false,
   });
+}
+// 耐性の増減 (変わった項目だけ、2列)
+function resistDelta(a, b) {
+  const wrap = el("div", "sp-fz-sec sp-ru-blk");
+  wrap.appendChild(el("div", "sp-fz-h", "耐性"));
+  const grid = el("div", "sp-fz-stats");
+  const rows = [...Object.entries(RESIST_LABEL).map(([k, l]) => [k, `${l}抵抗`, ""]), ["breath", "ブレス耐性", "%"], ["crit", "会心", "%"]];
+  for (const [k, label, unit] of rows) {
+    const v0 = (a && a[k]) || 0, v1 = (b && b[k]) || 0, dv = v1 - v0;
+    if (!dv) continue;
+    const c = el("div", "sp-fz-st");
+    c.appendChild(el("span", "sp-fz-k", label));
+    c.appendChild(el("span", "sp-fz-v", `${v0}${unit}→${v1}${unit}`));
+    c.appendChild(el("span", dv > 0 ? "sp-fz-d up" : "sp-fz-d dn", `${dv > 0 ? "+" : ""}${dv}${unit}`));
+    grid.appendChild(c);
+  }
+  if (!grid.childNodes.length) grid.appendChild(el("div", "sp-fz-none", "耐性は変わらない"));
+  wrap.appendChild(grid);
+  return wrap;
+}
+// 魂が覚えている技・パッシブの札 (押すと説明のポップアップ)
+function soulSkillChips(s) {
+  const sks = soulLearnedSkills(s).filter((k) => SPELLS[k]);
+  const pss = Object.entries(soulLearnedPassives(s) || {});
+  const chips = el("div", "sp-sd-chips");
+  for (const k of sks) {
+    const b = el("button", "sp-sd-chip", SPELLS[k].name);
+    b.type = "button";
+    b.addEventListener("click", () => showSkillPopup(k));
+    chips.appendChild(b);
+  }
+  for (const [key, lv] of pss) {
+    const c = el("button", "sp-sd-chip ps", passiveName(key, lv));
+    c.type = "button";
+    c.addEventListener("click", () => { if (!showPassivePopup(key, lv)) toast(`${passiveName(key, lv)} ― ${passiveDesc(key, lv) || ""}`, { tone: "info" }); });
+    chips.appendChild(c);
+  }
+  if (!sks.length && !pss.length) chips.appendChild(el("span", "pt-note", "まだ技を覚えていない。"));
+  return chips;
 }
 function pickerBody(root, d, slotId, h) {
   const G = G_();
@@ -517,10 +582,9 @@ function pickerBody(root, d, slotId, h) {
           if (sub) openSkillStep(d, sub);
         }
       });
-      if (!isSub) { go(); return; }
-      // サブ魂: この人業の能力の変化を見せ、承認されたら宿す
+      // 能力・耐性の変化と覚えている技を見せ、承認されたら宿す
       const cur = curUid != null ? soulByUid(curUid) : null;
-      confirmSubEquip(d, slotId, s, cur).then((y) => { if (y) go(); });
+      confirmSoulEquip(d, slotId, s, cur).then((y) => { if (y) go(); });
     });
     r.appendChild(main);
     const side = el("div", "sp-srow-side");
@@ -691,21 +755,7 @@ export function openSoulDetail(uid, onChange = null) {
     const sks = soulLearnedSkills(s).filter((k) => SPELLS[k]);
     const pss = Object.entries(soulLearnedPassives(s) || {});
     scroll.appendChild(el("div", "sp-sd-h", `覚えた技 ${sks.length} ・ パッシブ ${pss.length}`));
-    const chips = el("div", "sp-sd-chips");
-    for (const k of sks) {
-      const b = el("button", "sp-sd-chip", SPELLS[k].name);
-      b.type = "button";
-      b.addEventListener("click", () => showSkillPopup(k));
-      chips.appendChild(b);
-    }
-    for (const [key, lv] of pss) {
-      const c = el("button", "sp-sd-chip ps", passiveName(key, lv));
-      c.type = "button";
-      c.addEventListener("click", () => { if (!showPassivePopup(key, lv)) toast(`${passiveName(key, lv)} ― ${passiveDesc(key, lv) || ""}`, { tone: "info" }); });
-      chips.appendChild(c);
-    }
-    if (!sks.length && !pss.length) chips.appendChild(el("span", "pt-note", "まだ技を覚えていない。"));
-    scroll.appendChild(chips);
+    scroll.appendChild(soulSkillChips(s));
     const nxSkill = jobSkillTable(s.clsKey).find((t) => t.skill && t.lvl > s.level && SPELLS[t.skill]);
     if (nxSkill) scroll.appendChild(el("div", "sp-note", `次の技: Lv${nxSkill.lvl}「${SPELLS[nxSkill.skill].name}」`));
   };
@@ -781,8 +831,7 @@ function openHostSheet(uid, onDone = null) {
               if (sub) openSkillStep(d, sub);
             }
           });
-          if (slotId === "primary") { go(); return; }
-          confirmSubEquip(d, slotId, s, cur).then((y) => { if (y) go(); });
+          confirmSoulEquip(d, slotId, s, cur).then((y) => { if (y) go(); });
         });
         slots.appendChild(b);
       }
