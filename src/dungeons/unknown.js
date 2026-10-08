@@ -174,6 +174,17 @@ const UNKNOWN_NAME = {
   el_oremaw: "大きく蠢くもの",
   el_geargod: "きしむからくり",
   el_cinderking: "揺らめく炎",
+  // 第6層「沈没神殿」: 祈る霊・像が並ぶので、見た目の違いで呼び分ける
+  bs_abyssjelly: "ゆらめく光の傘",
+  bs_naga: "蛇の尾の女",
+  bs_choirwraith: "歌う影たち",
+  bs_tidecaller: "杖を掲げる影",
+  bs_goldgolem: "金色の像",
+  bs_irongolem: "矛を構える像",
+  bs_crystalgolem: "透きとおる巨像",
+  bs_divinegolem: "白い巨像",
+  bs_fallenangel: "濡れた翼の影",
+  bs_shadowdragon: "長い首の竜",
 };
 
 // 画面に出すときの不確定名: 正式な名と見分けがつくよう末尾に「？」を添える (「羽ばたく小さなもの？」)。

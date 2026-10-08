@@ -14,11 +14,10 @@ export const monsters = defMonsters([
     magResist: 50, ability: "critical", // 誇り高き剣技が鎧の継ぎ目=急所を突き、宿った聖光が呪文を散らす (物理耐性の無人の鎧と分ける)
     hp: 110, atk: 24, def: 16, spd: 7, soul: 70, gold: 56, soulClass: "knight",
     desc: "砦を守って誇り高く敗れた騎士の鎧。死してなお誓いを捨てず、磨かれた剣技で挑戦者の鎧の継ぎ目を突く。砕けた兜の奥では、あがないを求める弱い聖光が今も明滅し、撃ち込まれた呪文をその光が散らしてしまう。" },
-  { id: "d04_grudge", name: "墓所の怨霊", race: "specter", element: "dark", artKey: "wraith", rank: 5,
-    palette: tint(ARTS.wraith.palette, "#6a4a8a", 0.4),
-    ability: "soulSteal", // 黄金への妄執を呪いに変え、魂を吸い上げる
+  { id: "d04_grudge", name: "供物盗りの怨霊", race: "specter", element: "dark", artKey: "hd_grudge", rank: 5,
+    ability: "goldSteal", abRate: 0.45, evasive: true, // 供物への妄執のまま懐を探り続け、もやの体は刃をかわす
     hp: 100, atk: 23, def: 12, spd: 11, soul: 66, gold: 52, soulClass: "mage",
-    desc: "古竜の財宝に魅入られ、手を伸ばしたまま息絶えた盗掘者たちの妄執が、幾重にも凝り固まった黒いもや。黄金への渇望だけが残り、近づく生者を「宝を奪う敵」と見て、呪いとともに魂を吸い上げる。" },
+    desc: "神殿の供物や井戸に投げ込まれた願いの品を盗み、そのまま溺れた者たちの妄執が凝った黒紫のもや。黄金の聖杯を抱え込んだまま、生者の懐へ長い爪を伸ばして金品を探り続ける。もやの体に刃はなかなか当たらない。" },
   { id: "d04_vritra", name: "古竜ヴリトラ", race: "dragon", element: "dark", artKey: "dragon", rank: 6, boss: true,
     palette: tint(ARTS.dragon.palette, "#ffd24a", 0.25),
     ability: "breath", regen: 0.05, // 災厄の吐息で全体を呑み、古竜の生命力で傷を繕う
