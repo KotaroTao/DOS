@@ -1,0 +1,117 @@
+[
+  {
+    "rank": 1,
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      78,
+      6,
+      330,
+      366
+    ],
+    "edgeAlphaTopBottomLeftRight": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "opaqueComponents": [
+      42905
+    ],
+    "crownToSole": 82.25
+  },
+  {
+    "rank": 2,
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      77,
+      6,
+      334,
+      366
+    ],
+    "edgeAlphaTopBottomLeftRight": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "opaqueComponents": [
+      43711
+    ],
+    "crownToSole": 82.25
+  },
+  {
+    "rank": 3,
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      73,
+      6,
+      333,
+      366
+    ],
+    "edgeAlphaTopBottomLeftRight": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "opaqueComponents": [
+      44668
+    ],
+    "crownToSole": 82.25000000000001
+  },
+  {
+    "rank": 4,
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      73,
+      6,
+      347,
+      366
+    ],
+    "edgeAlphaTopBottomLeftRight": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "opaqueComponents": [
+      49399
+    ],
+    "crownToSole": 82.25
+  },
+  {
+    "rank": 5,
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      73,
+      6,
+      340,
+      366
+    ],
+    "edgeAlphaTopBottomLeftRight": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "opaqueComponents": [
+      45609
+    ],
+    "crownToSole": 82.25000000000001
+  }
+]

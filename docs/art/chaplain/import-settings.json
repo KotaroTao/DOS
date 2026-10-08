@@ -1,0 +1,70 @@
+{
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "sources": [
+    {
+      "source": "docs/art/chaplain/chaplain-r1-final.png",
+      "perDot": 13.432835820895521,
+      "head": [
+        600,
+        714,
+        260.41791044776124,
+        555,
+        1374
+      ],
+      "measurement": "覆面の顎相当位置と足裏を目視測定。冠に隠れた人体の頭頂は基準頭身から推定。"
+    },
+    {
+      "source": "docs/art/chaplain/chaplain-r2-final.png",
+      "perDot": 13.318025258323765,
+      "head": [
+        535,
+        650,
+        175.93570608495986,
+        468,
+        1280
+      ],
+      "measurement": "覆面の顎相当位置と足裏を目視測定。冠に隠れた人体の頭頂は基準頭身から推定。"
+    },
+    {
+      "source": "docs/art/chaplain/chaplain-r3-final.png",
+      "perDot": 13.941282597999015,
+      "head": [
+        520,
+        630,
+        124.26767262588163,
+        430,
+        1280
+      ],
+      "measurement": "覆面の顎相当位置と足裏を目視測定。冠に隠れた人体の頭頂は基準頭身から推定。"
+    },
+    {
+      "source": "docs/art/chaplain/chaplain-r4-final.png",
+      "perDot": 14.400524848286041,
+      "head": [
+        505,
+        617,
+        74.1964900770871,
+        390,
+        1268
+      ],
+      "measurement": "覆面の顎相当位置と足裏を目視測定。冠に隠れた人体の頭頂は基準頭身から推定。"
+    },
+    {
+      "source": "docs/art/chaplain/chaplain-r5-final.png",
+      "perDot": 14.515335410857798,
+      "head": [
+        529,
+        641,
+        96.67869443988849,
+        415,
+        1300
+      ],
+      "measurement": "覆面の顎相当位置と足裏を目視測定。冠に隠れた人体の頭頂は基準頭身から推定。"
+    }
+  ]
+}
