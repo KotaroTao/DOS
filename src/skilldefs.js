@@ -21,7 +21,12 @@
 //   confuse(確率) — 混乱 (敵が敵味方を問わず殴る・ふらつく・主には半分の確率)
 //   instakill({chance, races?}) — 即死 (主には効かない) / steal(盗む: 敵の所持金の割合) / plunder(倒すと金2倍)
 //   drain / mpDrain (与ダメの割合を吸収) / hpCost (最大HPの割合を代償)
-// 攻撃呪文: power (+ 術者INT×0.5) / gravity (敵の今のHPの割合ダメージ) / partyHeal (撃った後に味方全体を回復)
+// 攻撃呪文: power (+ 術者INT×0.5) / gravity (敵の今のHPの割合ダメージ) / partyHeal (撃った後に味方全体を回復・PIEで伸びる)
+// 回復 (kind "heal", 2026-10 作り直し): healMul (ヒールの何倍か・PIEで伸びる) / healPct (対象の最大HPの割合・全快 = 1) /
+//   bodyHeal (使い手の最大HPの割合 = 物理職の「体の手当て」) / 旧来の power / healCap (1回の回復を対象の最大HPの割合で頭打ち)
+//   revive + revivePct (蘇生の割合)。物理技の隊回復は bladeHeal (与えたダメージの割合・1人あたり healCap まで)
+// 標準の回復: ヒール/ハイヒール/フルヒール/オールヒール/オールハイヒール/オールフルヒール/リバイブ/リザレクション、
+//   治療: キュア (毒)/リカバー (麻痺)/アウェイク (眠り・混乱・魅了)/ストーンキュア (石化)/ピュリファイ (すべて) と各オール版
 // 支援: buff(倍率) / taunt(挑発) / shield(仁王立ち) / stance:"counter"(反撃の構え) / charge(溜め) /
 //   regen({pct, turns} リジェネ) / grantBarrier / grantEndure / cure(状態異常) / purge(弱体を解く)
 //   ward({breath?, spell?: 軽減率}) — 守りの陣: 敵のブレス / 全体呪文から受けるダメージをその割合だけ減らす (dur ターン。重ねると最大 1/3 まで)
@@ -83,46 +88,54 @@ export const SPELLS = {
   OUJOU:          { name: "王城の構え", mp: 18, kind: "buff", buff: { vit: 1.6 }, dur: 4, target: "all-ally", desc: "味方全体を城壁と化す" },
   SHUGOHOUKOU:    { name: "守護咆哮", mp: 10, kind: "buff", taunt: true, buff: { vit: 1.4, atk: 1.2 }, target: "self", desc: "咆哮で敵を引き付け、攻守を高める" },
   JOUSAITSUKI:    { name: "城塞突き", mp: 18, kind: "phys", power: 3.2, vitScale: 1.5, pierce: 0.5, acc: 1, target: "enemy", desc: "必中・防御を半ば無視する盾突き" },
-  TEPPEKIJIN:     { name: "鉄壁陣", mp: 16, kind: "heal", power: 18, buff: { vit: 1.3 }, target: "all-ally", desc: "味方全体を癒し、防御を上げる" },
+  TEPPEKIJIN:     { name: "鉄壁陣", mp: 13, kind: "heal", bodyHeal: 0.1, healCap: 0.2, buff: { vit: 1.3 }, tech: true, target: "all-ally", desc: "味方全体を手当てし、防御を上げる（使い手の最大HPで伸びる）" },
   FURAKUNOTATE:   { name: "不落の盾", mp: 20, kind: "buff", buff: { vit: 1.7 }, target: "all-ally", desc: "味方全体の防御を大きく上げる" },
   BANRAI:         { name: "万雷の盾撃", mp: 24, kind: "phys", power: 1.3, vitScale: 1.0, hits: 3, acc: 0.9, flinchChance: 0.3, target: "enemy", desc: "三連の盾撃で怯ませる" },
   SHUGOKEKKAI:    { name: "守護結界", mp: 22, kind: "buff", buff: { vit: 1.4 }, grantBarrier: 1, target: "all-ally", desc: "味方全体の防御を上げ、魔障壁を張る" },
   JOUSAIKUZUSHI:  { name: "城塞崩し", mp: 28, kind: "phys", power: 5.0, vitScale: 2.0, acc: 1, debuff: { vit: 0.7 }, target: "enemy", desc: "必中の盾撃で防御を砕く" },
   TESSAINAGI:     { name: "鉄盾なぎ", mp: 22, kind: "phys", power: 1.6, vitScale: 0.8, acc: 0.8, flinchChance: 0.2, target: "all-enemy", desc: "大盾で敵全体をなぎ、怯ませる" },
-  KISHIOU:        { name: "騎士王の威光", mp: 30, kind: "heal", power: 30, buff: { atk: 1.2, vit: 1.3 }, target: "all-ally", desc: "味方全体を癒し、攻守を高める" },
+  KISHIOU:        { name: "騎士王の威光", mp: 13, kind: "heal", bodyHeal: 0.12, healCap: 0.25, buff: { atk: 1.2, vit: 1.3 }, tech: true, target: "all-ally", desc: "味方全体を手当てし、攻守を高める（使い手の最大HPで伸びる）" },
   FUDOUJIN:       { name: "不動明王陣", mp: 26, kind: "buff", shield: true, stance: "counter", buff: { vit: 1.5 }, target: "self", desc: "味方を庇い、受けた物理に必ず反撃する" },
   DAIGOUREI:      { name: "守護の大号令", mp: 30, kind: "buff", buff: { vit: 1.5, atk: 1.25 }, target: "all-ally", desc: "味方全体の攻守を高める" },
-  FURAKUJOU:      { name: "不落城", mp: 40, kind: "heal", power: 40, buff: { vit: 1.8 }, grantBarrier: 1, purge: true, target: "all-ally", desc: "味方全体を癒し、守り、弱体を解く" },
+  FURAKUJOU:      { name: "不落城", mp: 18, kind: "heal", bodyHeal: 0.15, healCap: 0.3, buff: { vit: 1.8 }, grantBarrier: 1, purge: true, tech: true, target: "all-ally", desc: "味方全体を手当てし、守り、弱体を解く（使い手の最大HPで伸びる）" },
   KOUBOUITTAI:    { name: "攻防一体", mp: 10, kind: "buff", buff: { atk: 1.35, vit: 1.35 }, stance: "counter", dur: 3, target: "self", desc: "攻守を上げ、物理攻撃に必ず反撃する構え" },
   FUUMANOTATE:    { name: "封魔の盾", mp: 8, kind: "phys", power: 1.0, vitScale: 0.8, acc: 0.7, seal: { chance: 0.7, turns: 3 }, target: "enemy", desc: "盾撃と共に敵の特技を封じる" },
   SEINOTATE:      { name: "庇護の聖盾", mp: 8, kind: "buff", shield: true, buff: { vit: 1.3 }, grantBarrier: 1, dur: 2, target: "self", desc: "味方を庇い、自分に魔障壁を張る" },
 
   // ================= 回復・祈り =================
-  DIOS:       { name: "ヒール", mp: 2, kind: "heal", power: 14, target: "ally", desc: "傷を癒す" },
-  DIAL:       { name: "リカバー", mp: 4, kind: "heal", power: 28, target: "ally", desc: "大きく回復" },
-  MADIOS:     { name: "フルヒール", mp: 8, kind: "heal", power: 60, target: "ally", revive: true, desc: "大回復。倒れた者も起こす" },
-  SHINYU:     { name: "神癒", mp: 16, kind: "heal", power: 100, target: "ally", desc: "神の癒しで深手を塞ぐ" },
-  DIOSALL:    { name: "ヒールオール", mp: 6, kind: "heal", power: 18, target: "all-ally", desc: "味方全員を回復" },
-  DIALALL:    { name: "リカバーオール", mp: 12, kind: "heal", power: 40, target: "all-ally", desc: "味方全員を大きく回復" },
-  IYASHINAMI: { name: "癒しの波", mp: 22, kind: "heal", power: 70, target: "all-ally", desc: "癒しの大波が味方を包む" },
-  DAIFUKUIN:  { name: "大福音", mp: 36, kind: "heal", power: 80, cure: true, purge: true, target: "all-ally", desc: "味方全員を癒し、状態異常と弱体を祓う" },
+  DIOS:       { name: "ヒール", mp: 3, kind: "heal", healMul: 1, healCap: 0.5, target: "ally", desc: "味方一人の傷を癒す（最大HPの50%まで）" },
+  DIAL:       { name: "ハイヒール", mp: 6, kind: "heal", healMul: 2.5, target: "ally", desc: "味方一人をヒールの2.5倍癒す" },
+  MADIOS:     { name: "フルヒール", mp: 20, kind: "heal", healPct: 1, target: "ally", desc: "味方一人のHPを全快させる" },
+  DIOSALL:    { name: "オールヒール", mp: 12, kind: "heal", healMul: 1, healCap: 0.5, target: "all-ally", desc: "味方全員の傷を癒す（最大HPの50%まで）" },
+  DIALALL:    { name: "オールハイヒール", mp: 24, kind: "heal", healMul: 2.5, target: "all-ally", desc: "味方全員をヒールの2.5倍癒す" },
+  MADIOSALL:  { name: "オールフルヒール", mp: 80, kind: "heal", healPct: 1, target: "all-ally", desc: "味方全員のHPを全快させる" },
+  DAIFUKUIN:  { name: "大福音", mp: 32, kind: "heal", healMul: 2.1, cure: true, purge: true, target: "all-ally", desc: "味方全員を癒し、状態異常と弱体を祓う" },
   CURE:       { name: "キュア", mp: 3, kind: "cure", cure: ["poison"], target: "ally", desc: "味方一人の毒・猛毒を治す" },
+  RECOVER:    { name: "リカバー", mp: 3, kind: "cure", cure: ["paralyze"], target: "ally", desc: "味方一人の麻痺を治す" },
+  AWAKE:      { name: "アウェイク", mp: 4, kind: "cure", cure: ["sleep", "confuse", "charm"], target: "ally", desc: "味方一人の眠り・混乱・魅了を治す" },
+  STONECURE:  { name: "ストーンキュア", mp: 6, kind: "cure", cure: ["stone"], target: "ally", desc: "味方一人の石化を治す" },
+  PURIFY:     { name: "ピュリファイ", mp: 10, kind: "cure", cure: true, target: "ally", desc: "味方一人のすべての状態異常を治す" },
+  CUREALL:    { name: "オールキュア", mp: 9, kind: "cure", cure: ["poison"], target: "all-ally", desc: "味方全員の毒・猛毒を治す" },
+  RECOVERALL: { name: "オールリカバー", mp: 9, kind: "cure", cure: ["paralyze"], target: "all-ally", desc: "味方全員の麻痺を治す" },
+  AWAKEALL:   { name: "オールアウェイク", mp: 9, kind: "cure", cure: ["sleep", "confuse", "charm"], target: "all-ally", desc: "味方全員の眠り・混乱・魅了を治す" },
+  STONECUREALL: { name: "オールストーンキュア", mp: 18, kind: "cure", cure: ["stone"], target: "all-ally", desc: "味方全員の石化を治す" },
+  PURIFYALL:  { name: "オールピュリファイ", mp: 30, kind: "cure", cure: true, target: "all-ally", desc: "味方全員のすべての状態異常を治す" },
   KIYOME:     { name: "清めの祈り", mp: 8, kind: "cure", purge: true, target: "all-ally", desc: "味方全員の状態異常と弱体を治す" },
-  REVIVE:     { name: "リバイブ", mp: 8, kind: "heal", power: 0, target: "ally", revive: true, revivePct: 0.5, desc: "戦闘不能をHP50%で蘇生" },
-  RESURRECT:  { name: "リザレクション", mp: 14, kind: "heal", power: 0, target: "ally", revive: true, revivePct: 1.0, desc: "戦闘不能をHP100%で蘇生" },
-  FUKUIN:     { name: "復活の福音", mp: 30, kind: "heal", power: 40, revive: true, revivePct: 0.6, target: "all-ally", desc: "倒れた味方を蘇らせ、全員を癒す" },
-  KAMIWAZA:   { name: "神の御業", mp: 44, kind: "heal", power: 999, cure: true, purge: true, revive: true, revivePct: 1.0, target: "all-ally", desc: "倒れた者すら完全に呼び戻す" },
+  REVIVE:     { name: "リバイブ", mp: 40, kind: "heal", target: "ally", revive: true, revivePct: 0.5, desc: "戦闘不能の味方をHP50%で蘇生する" },
+  RESURRECT:  { name: "リザレクション", mp: 80, kind: "heal", target: "ally", revive: true, revivePct: 1.0, desc: "戦闘不能の味方をHP100%で蘇生する" },
+  FUKUIN:     { name: "復活の福音", mp: 75, kind: "heal", healMul: 1.4, revive: true, revivePct: 0.6, target: "all-ally", desc: "倒れた味方を蘇らせ、全員を癒す" },
+  KAMIWAZA:   { name: "神の御業", mp: 150, kind: "heal", healPct: 1, cure: true, purge: true, revive: true, revivePct: 1.0, target: "all-ally", desc: "倒れた者すら完全に呼び戻す" },
   REGEN:      { name: "リジェネ", mp: 4, kind: "buff", regen: { pct: 0.08, turns: 4 }, target: "ally", desc: "味方単体のHPが毎ターン回復する" },
   REGENALL:   { name: "慈雨", mp: 12, kind: "buff", regen: { pct: 0.07, turns: 4 }, target: "all-ally", desc: "味方全体のHPが毎ターン回復する" },
   BLESS:      { name: "ブレス", mp: 4, kind: "buff", buff: { atk: 1.3 }, target: "ally", desc: "味方単体のSTRを上げる" },
   SEIBETSU:   { name: "聖別", mp: 16, kind: "buff", buff: { vit: 1.3 }, cure: true, purge: true, target: "all-ally", desc: "味方全体を守り、穢れと弱体を祓う" },
-  SEIKUNOKAGO:{ name: "聖句の加護", mp: 12, kind: "heal", power: 36, grantEndure: true, target: "ally", desc: "癒しと共に、致死を一度耐える力を授ける" },
-  DAISEIKITOU:{ name: "大聖祈祷", mp: 14, kind: "heal", power: 30, cure: true, regen: { pct: 0.05, turns: 3 }, target: "all-ally", desc: "味方全員を癒し、穢れを祓い、癒しを残す" },
-  TENKEINOINORI: { name: "天啓の祈り", mp: 26, kind: "heal", power: 50, buff: { vit: 1.3 }, target: "all-ally", desc: "味方全員を癒し、防御を上げる" },
+  SEIKUNOKAGO:{ name: "聖句の加護", mp: 5, kind: "heal", healMul: 1.5, grantEndure: true, target: "ally", desc: "癒しと共に、致死を一度耐える力を授ける" },
+  DAISEIKITOU:{ name: "大聖祈祷", mp: 22, kind: "heal", healMul: 1.3, cure: true, regen: { pct: 0.05, turns: 3 }, target: "all-ally", desc: "味方全員を癒し、穢れを祓い、癒しを残す" },
+  TENKEINOINORI: { name: "天啓の祈り", mp: 21, kind: "heal", healMul: 1.6, buff: { vit: 1.3 }, target: "all-ally", desc: "味方全員を癒し、防御を上げる" },
   SEIIKINOKANE: { name: "聖域の鐘", mp: 12, kind: "buff", buff: { vit: 1.2 }, cure: ["sleep", "confuse"], target: "ally", desc: "一人の守りを高め、眠り・混乱を治す" },
   KYOUKOUNOSHUKUFUKU: { name: "教皇の祝福", mp: 36, kind: "buff", buff: { atk: 1.3, vit: 1.3, agi: 1.2 }, regen: { pct: 0.08, turns: 4 }, target: "all-ally", desc: "味方全体の攻守と素早さを上げ、癒しを残す" },
   MANAGIFT:   { name: "魔力の譲渡", mp: 8, kind: "mana", power: 8, target: "ally", desc: "自分の魔力を味方に分け与える" },
-  SHINTOU:    { name: "調息", mp: 6, kind: "heal", power: 30, cure: ["poison"], target: "self", desc: "自分の傷を癒し、毒・猛毒を治す" },
+  SHINTOU:    { name: "調息", mp: 5, kind: "heal", healMul: 1.5, cure: ["poison"], target: "self", desc: "自分の傷を癒し、毒・猛毒を治す" },
 
   // ================= 聖なる攻め =================
   HOLYRAY:        { name: "聖光", mp: 3, kind: "atk", power: 14, element: "light", prey: { races: UNHOLY, mul: 1.5 }, target: "enemy", desc: "聖なる光条。不浄の者に強い" },
@@ -233,7 +246,7 @@ export const SPELLS = {
   FUYUU:          { name: "浮遊", mp: 8, kind: "field", float: 3, target: "all-ally", desc: "隊を宙に浮かせる。3階のあいだ落とし穴に落ちず、毒の床も踏まない（迷宮で唱える）" },
   HOUSHOUHEKI:    { name: "法障壁", mp: 13, kind: "buff", grantBarrier: 1, target: "all-ally", desc: "味方全体に魔障壁を張る" },
   DAIKEKKAI:      { name: "大結界陣", mp: 30, kind: "buff", buff: { vit: 1.5 }, grantBarrier: 2, purge: true, target: "all-ally", desc: "守りを上げ、魔障壁を重ね、弱体を解く" },
-  KASUMINOTOBARI: { name: "霞の帳", mp: 12, kind: "heal", power: 16, debuffAll: { hit: 0.75 }, target: "all-ally", desc: "味方を癒し、敵全体の命中率を下げる" },
+  KASUMINOTOBARI: { name: "霞の帳", mp: 13, kind: "heal", healMul: 1.1, debuffAll: { hit: 0.75 }, target: "all-ally", desc: "味方を癒し、敵全体の命中率を下げる" },
   SHINRANOSABAKI: { name: "森羅の裁き", mp: 15, kind: "atk", power: 34, vuln: { all: 0.8 }, target: "all-enemy", desc: "撃ち抜いた敵全体の全属性耐性を崩す" },
   SHINENNOHADOU:  { name: "深淵の波動", mp: 13, kind: "atk", power: 44, element: "dark", seal: { chance: 0.5, turns: 3 }, target: "enemy", desc: "闇の波動。特技を封じる" },
   MEIKONGURAI:    { name: "冥魂喰らい", mp: 10, kind: "atk", power: 28, element: "dark", drain: 0.5, target: "enemy", desc: "闇で魂を喰らい、己の命とする" },
@@ -350,7 +363,7 @@ export const SPELLS = {
   KOBU:         { name: "鼓舞", mp: 10, kind: "buff", buff: { atk: 1.2, agi: 1.2 }, target: "all-ally", desc: "味方全体のSTRと素早さを上げる" },
   RAIKOUKEN:    { name: "雷光剣", mp: 10, kind: "phys", power: 2.0, element: "wind", acc: 0.8, para: 0.3, target: "enemy", desc: "雷をまとう剣で痺れさせる" },
   RAIJINKEN:    { name: "雷神剣", mp: 34, kind: "phys", power: 3.2, element: "wind", acc: 1, para: 0.3, target: "all-enemy", desc: "必中の雷剣が敵全体を痺れさせる" },
-  TENMEINOKEN:  { name: "天命の剣", mp: 44, kind: "phys", power: 12.0, element: "light", acc: 1, pierce: 1, partyHeal: 40, target: "enemy", desc: "必中・防御無視の一刀。味方も癒す" },
+  TENMEINOKEN:  { name: "天命の剣", mp: 44, kind: "phys", power: 12.0, element: "light", acc: 1, pierce: 1, bladeHeal: 0.02, healCap: 0.25, target: "enemy", desc: "必中・防御無視の一刀。味方も癒す" },
 
   // ================= 属性の物理技 (属性ごとに持ち味) =================
   // 火=威力 / 水=素早さ低下 / 風=多段・会心 / 土=防御低下・怯み / 光=HP吸収 / 闇=MP吸収・攻撃力低下

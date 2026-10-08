@@ -5,15 +5,17 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "asceticHatate",
   table: `
-    1 KYOUGEKI 2 IWAKUDAKI 3 DIOS 5 asceticAragyou/1 7 NERAIUCHI 8 ASCETIC_TSUBUTE
-    10 ASCETIC_TAKIGYOU 12 ASCETIC_FUDOUBI 15 ASCETIC_GENRIKISHOU 15 asceticShintou/1 20 KUJI 22 CHIRETSU 25 asceticAragyou/2
-    30 ASCETIC_HIWATARI 32 ASCETIC_JISHIN 35 asceticNyuubu/1 40 SHASHINNOGYOU 45 asceticDoukou/1 50 GOMA 50 asceticShintou/2
-    55 SHINGANGEKI 57 GANOTOSHI 60 asceticNyuubu/2 65 ASCETIC_SHAKUJOU 70 asceticYoujou/1 75 asceticMoeagari/1
-    80 ASCETIC_SARASHIMI 82 ASCETIC_KAENSHAKUJOU 85 ASCETIC_YAMABUSHIGUSURI 90 asceticAragyou/3 95 ASCETIC_IWAOTOOSHI 100 ASCETIC_ZAOU 100 asceticShintou/3
-    105 asceticNyuubu/3 107 ASCETIC_REIHOU 110 ASCETIC_MIGAWARIGOMA 115 asceticYoujou/2 120 ASCETIC_SANKO 125 resistAilment/1
-    130 ASCETIC_GOMANOKEMURI 135 asceticMoeagari/2 140 ASCETIC_NYUUBU 145 asceticDoukou/2 150 ASCETIC_YAMANARI 155 asceticMoeagari/3
-    160 ASCETIC_KASHOUZANMAI 165 asceticAragyou/4 170 ASCETIC_SHAKUJOURANBU 175 resistAilment/2 180 ASCETIC_SHASHINKUYOU 185 asceticYoujou/3
-    190 ASCETIC_SHASHINJOUBUTSU 195 ASCETIC_FUDOUKAEN 200 GONGENOROSHI`,
+    1 KYOUGEKI 2 IWAKUDAKI 3 DIOS 5 asceticAragyou/1 7 NERAIUCHI 8 ASCETIC_TSUBUTE 10 ASCETIC_TAKIGYOU
+    10 CURE 12 ASCETIC_FUDOUBI 15 ASCETIC_GENRIKISHOU 15 asceticShintou/1 20 KUJI 22 CHIRETSU
+    25 asceticAragyou/2 30 ASCETIC_HIWATARI 30 DIOSALL 32 ASCETIC_JISHIN 35 asceticNyuubu/1 40 SHASHINNOGYOU
+    40 DIAL 45 asceticDoukou/1 50 GOMA 50 asceticShintou/2 50 STONECURE 55 SHINGANGEKI 57 GANOTOSHI
+    60 asceticNyuubu/2 65 ASCETIC_SHAKUJOU 70 asceticYoujou/1 75 asceticMoeagari/1 80 ASCETIC_SARASHIMI
+    82 ASCETIC_KAENSHAKUJOU 90 asceticAragyou/3 95 ASCETIC_IWAOTOOSHI 100 ASCETIC_ZAOU 100 asceticShintou/3
+    105 asceticNyuubu/3 107 ASCETIC_REIHOU 110 ASCETIC_MIGAWARIGOMA 115 asceticYoujou/2 120 ASCETIC_SANKO
+    125 resistAilment/1 130 ASCETIC_GOMANOKEMURI 135 asceticMoeagari/2 140 ASCETIC_NYUUBU
+    145 asceticDoukou/2 150 ASCETIC_YAMANARI 155 asceticMoeagari/3 160 ASCETIC_KASHOUZANMAI
+    165 asceticAragyou/4 170 ASCETIC_SHAKUJOURANBU 175 resistAilment/2 180 ASCETIC_SHASHINKUYOU
+    185 asceticYoujou/3 190 ASCETIC_SHASHINJOUBUTSU 195 ASCETIC_FUDOUKAEN 200 GONGENOROSHI`,
   skills: {
     // Lv15 の固有技: 験力を込めた掌打 (土)。PIE でも伸びる
     ASCETIC_GENRIKISHOU: { name: "験力の掌", mp: 5, kind: "phys", power: 1.2, pieScale: 0.4, element: "earth", flinchChance: 0.25, target: "enemy", desc: "験力を込めた掌打で打ち、怯ませる（PIEでも伸びる・土）" },
@@ -22,11 +24,10 @@ export default {
     ASCETIC_FUDOUBI:  { name: "不動の火焔", mp: 2, kind: "atk", power: 10, element: "fire", faith: true, target: "enemy", desc: "不動明王の火焔で焼く（PIEでも伸びる）" },
     ASCETIC_JISHIN: { name: "山鳴りの法", mp: 7, kind: "atk", power: 22, element: "earth", faith: true, target: "all-enemy", desc: "霊山を鳴動させ敵全体を打つ（PIEでも伸びる）" },
     ASCETIC_TAKIGYOU: { name: "滝行", mp: 3, kind: "buff", charge: 1.7, cure: ["confuse"], target: "self", tech: true, desc: "自分の混乱を治し、次の一撃に力を溜める" },
-    ASCETIC_HIWATARI: { name: "火渡りの行", mp: 6, kind: "heal", power: 24, cure: ["poison"], regen: { pct: 0.04, turns: 3 }, target: "self", tech: true, desc: "自分の毒・猛毒を治し、傷を癒して癒しを残す" },
+    ASCETIC_HIWATARI: { name: "火渡りの行", mp: 6, kind: "heal", healMul: 1.3, cure: ["poison"], regen: { pct: 0.04, turns: 3 }, target: "self", tech: true, desc: "自分の毒・猛毒を治し、傷を癒して癒しを残す" },
     ASCETIC_SHAKUJOU: { name: "錫杖打ち", mp: 6, kind: "phys", power: 1.3, acc: 0.7, flinchChance: 0.3, target: "enemy", desc: "錫杖を鳴らして打ち、怯ませる" },
     ASCETIC_SARASHIMI: { name: "晒し身の行", mp: 8, kind: "buff", buff: { vit: 1.4 }, taunt: true, target: "self", tech: true, desc: "鍛えた身を晒し、守りを固めて敵を引き付ける" },
     ASCETIC_KAENSHAKUJOU: { name: "火炎錫杖", mp: 11, kind: "phys", power: 2.6, element: "fire", acc: 0.4, debuff: { atk: 0.85 }, target: "enemy", desc: "炎をまとう錫杖で打ち、力を削ぐ" },
-    ASCETIC_YAMABUSHIGUSURI: { name: "山伏の薬", mp: 4, kind: "heal", power: 24, cure: ["poison", "paralyze", "stone"], target: "ally", desc: "一人の傷と毒・猛毒・麻痺・石化を薬草で癒す" },
     ASCETIC_IWAOTOOSHI: { name: "巌通し", mp: 16, kind: "phys", power: 3.3, pierce: 1, acc: 0.85, flinchChance: 0.2, target: "enemy", desc: "巌をも通す拳。守りを無視し怯ませる" },
     ASCETIC_ZAOU: { name: "蔵王の憤怒", mp: 10, kind: "buff", buff: { atk: 1.75 }, hpCost: 0.1, target: "self", tech: true, desc: "身を削って蔵王権現の憤怒を宿す" },
     ASCETIC_REIHOU: { name: "霊峰崩し", mp: 20, kind: "phys", power: 4.4, element: "earth", acc: 0.7, debuff: { agi: 0.75 }, target: "enemy", desc: "霊峰をも崩す一撃。足を大きく鈍らす" },
@@ -37,9 +38,9 @@ export default {
     ASCETIC_YAMANARI: { name: "山鳴り", mp: 28, kind: "phys", power: 2.1, element: "earth", acc: 0.6, debuff: { vit: 0.85 }, target: "all-enemy", desc: "山を鳴らす踏み込みで全敵の守りを崩す" },
     ASCETIC_KASHOUZANMAI: { name: "火生三昧", mp: 20, kind: "atk", power: 56, element: "fire", poison: { chance: 0.5, pct: 0.05 }, faith: true, target: "enemy", desc: "不動の火炎で焼き、焼け爛れさせる（PIEでも伸びる）" },
     ASCETIC_SHAKUJOURANBU: { name: "錫杖乱舞", mp: 26, kind: "phys", power: 2.3, acc: 0.8, strip: true, target: "all-enemy", desc: "錫杖の音が全敵を打ち、加護を祓う" },
-    ASCETIC_SHASHINKUYOU: { name: "捨身供養", mp: 18, kind: "heal", power: 76, hpCost: 0.12, target: "all-ally", desc: "己の身を削り、全員を大きく癒す" },
+    ASCETIC_SHASHINKUYOU: { name: "捨身供養", mp: 20, kind: "heal", healMul: 2, hpCost: 0.12, target: "all-ally", desc: "己の身を削り、全員を大きく癒す" },
     ASCETIC_SHASHINJOUBUTSU: { name: "捨身成仏", mp: 32, kind: "phys", power: 9.4, acc: 1, hpCost: 0.15, target: "enemy", desc: "身を削って放つ必中の大喝" },
-    ASCETIC_FUDOUKAEN: { name: "不動火炎陣", mp: 28, kind: "phys", power: 2.3, element: "fire", acc: 0.7, partyHeal: 8, target: "all-enemy", desc: "不動の炎が全敵を焼き、仲間を癒す" },
+    ASCETIC_FUDOUKAEN: { name: "不動火炎陣", mp: 28, kind: "phys", power: 2.3, element: "fire", acc: 0.7, bladeHeal: 0.02, healCap: 0.2, target: "all-enemy", desc: "不動の炎が全敵を焼き、仲間を癒す" },
   },
   perks: {
     // ランクのパッシブ: 死の淵でこそ、荒行で鍛えた身が目覚める

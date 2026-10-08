@@ -2,7 +2,7 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, setElemKnown, perkVictory, canSpellCure, cureBySpell, spellCureKinds } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, perkVictory, canSpellCure, cureBySpell, spellCureKinds } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageLabel, isBattleLong, turnsLeftLabel, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -16,7 +16,7 @@ import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventSta
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
 import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
 import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS } from "./quests.js";
-import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor } from "./story.js";
+import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
 import { NAMED_FOES, NAMED_IDS, TROPHY_OF, HUNT_ELITE_RATE, bountyId } from "./dungeons/named.js";
@@ -557,14 +557,14 @@ const PREFS = (() => {
   const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false, walkSpeed: 2 };
   let p;
   try { p = { ...d, ...(JSON.parse(localStorage.getItem(PREFS_KEY)) || {}) }; } catch { p = { ...d }; }
-  // 旧来の「移動 倍速」(fastWalk: ON = 2倍 / OFF = 1倍) を移動の速さ (1〜3倍) へ引き継ぐ
+  // 旧来の「移動 倍速」(fastWalk: ON = 2倍 / OFF = 1倍) を移動の速さ (1〜4倍) へ引き継ぐ
   if (typeof p.fastWalk === "boolean") { p.walkSpeed = p.fastWalk ? 2 : 1; delete p.fastWalk; }
-  if (![1, 2, 3].includes(p.walkSpeed)) p.walkSpeed = 2;
+  if (![1, 2, 3, 4].includes(p.walkSpeed)) p.walkSpeed = 2;
   return p;
 })();
 function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(PREFS)); } catch {} }
 // 迷宮内の移動 (めくり・1歩のスライド・自動歩行の間) の時間。ms は2倍速の値。設定「移動の速さ」(PREFS.walkSpeed)
-// 1倍 = ms × 2 / 2倍 = ms / 3倍 = ms × 2/3
+// 1倍 = ms × 2 / 2倍 = ms / 3倍 = ms × 2/3 / 4倍 = ms × 1/2
 const walkMs = (ms) => Math.round(ms * 2 / (PREFS.walkSpeed || 2));
 setVolumes(PREFS.bgm, PREFS.sfx);
 
@@ -824,6 +824,15 @@ function worldState() {
   const w = G.world;
   for (const k of ["open", "cleared", "reported", "found", "beats", "gates", "fresh"]) if (!w[k] || typeof w[k] !== "object") w[k] = {};
   if (w.report === undefined) w.report = null;
+  // told = 報告の後に見つけた手がかり (LATE_CLUES) を王に伝えたか。この記録の無い旧セーブは、報告済みの迷宮の手がかりを
+  // 伝えたことにする (報告の文で語られた分と見分けられない)。直前に拾った手がかり (w.last) だけは伝えられるよう残す
+  if (!w.told || typeof w.told !== "object") {
+    w.told = {};
+    for (const key of Object.keys(LATE_CLUES)) {
+      const just = w.last && w.last.kind === "cell" && w.last.key === key;
+      if (w.found[key] && w.reported[STORY_CELLS[key].dungeon] && !just) w.told[key] = 1;
+    }
+  }
   // 別の迷宮を踏破しても報告待ちを失わない。旧セーブの未報告も踏破記録から拾う。
   if (!w.report) w.report = DUNGEONS.find((d) => !d.side && w.cleared[d.id] && !w.reported[d.id])?.id || null;
   return w;
@@ -9893,7 +9902,9 @@ const FAC_SHELL = {
     "眠りな。夢の底までは、迷宮も追ってこない。",
     "白狼の毛皮は温かいだろう。…あれを狩ったのは、あたしさ。",
     "扉のかんぬきは三重。それでも夜中に爪の音がしたら、起こしな。"] },
-  palace: { keeper: "minister", who: "宰相 モルデン", lines: [
+  // 本丸の主の記憶 (w09) の報告から宰相は玉座の間に姿を見せない (REPORTS.w09/w10「宰相の席は、今日も空いていた」)。
+  // 大樹の報告 (w13) で一度だけ現れるが、王に退けられて闇へ消える — 札も出さない
+  palace: { keeper: "minister", who: "宰相 モルデン", absent: () => !!worldState().reported.w09, lines: [
     "陛下は玉座でお待ちだ。…あまり長くは、お待ちになれぬ。",
     "勅命は果たされねばならぬ。たとえ、器が幾つ砕けようとも。"] },
   shrine: { keeper: "maiden", who: "祠守の巫女", lines: [
@@ -11733,6 +11744,7 @@ function reportMainQuest() {
       w.reported[id] = 1;
       w.report = null;
       w.last = { kind: "report", id };
+      for (const key of Object.keys(LATE_CLUES)) if (STORY_CELLS[key].dungeon === id && w.found[key]) w.told[key] = 1; // 報告の文で語った
       SFX.itemget(); buzz([0, 30, 60, 30]);
       log(`「${cfg.name}」の踏破を報告した。`, "win");
       updateTopbar();
@@ -12029,6 +12041,8 @@ function objectiveInfo() {
   const clue = reportMissingClue();
   if (clue) return { key: "clue", text: `「${clue.name}」を見つける`, sub: `「${worldById(clue.dungeon).name}」の${clue.floor}階 ・ 王への報告に必要`, act: "探しに戻る", kind: "gate", run: () => departTo(worldIndexOf(clue.dungeon)) };
   if (reportPending()) return { key: "report", text: `「${worldById(w.report).name}」の踏破を王に報告する`, sub: "見たものを王に話す", act: "王に報告する", kind: "palace", run: reportMainQuest };
+  const late = lateClue();
+  if (late) return { key: "late", text: `「${STORY_CELLS[late].name}」のことを王に伝える`, sub: `「${worldById(STORY_CELLS[late].dungeon).name}」で見つけた師の手がかり`, act: "王に伝える", kind: "palace", run: tellLateClue };
   const ib = pendingIreneBeat();
   if (ib) return { key: "irene", text: ib.need ? "持ち帰ったものを、館のイレーヌに見せる" : "館のイレーヌのもとへ立ち寄る", sub: ib.title, act: "館へ", kind: "party", run: () => (UI.enterMansion ? UI.enterMansion() : UI.shell && UI.shell.setTab("party")) };
   if (contentSealed()) return { key: "sealed", text: "迷宮で人業を鍛え、装備を集める", sub: `${CHAPTERS[CHAPTERS.length - 1].next}は準備中`, act: "出撃", kind: "gate", run: () => departTo(null) };
@@ -12052,7 +12066,7 @@ function palaceCallReady() {
   const ms = G.msq;
   if (!ms) return false;
   if (ms.n === 0) return !ms.granted || tutorialDollsReady();
-  return reportPending();
+  return reportPending() || !!lateClue();
 }
 
 // 王宮の勅命の札の中身: { kind, head, text, note, replay:bool }
@@ -12070,6 +12084,8 @@ function decreeInfo() {
   const clue = reportMissingClue();
   if (clue) return { kind: "active", head, text: `「${worldById(w.report).name}」は踏破したが、「${clue.name}」がまだ見つかっていない。`, note: `${clue.floor}階で手がかりを見つけてから、王に報告せよ。`, replay: true };
   if (reportPending()) return { kind: "report", head, text: `「${worldById(w.report).name}」を踏破した。`, note: "王に報告し、見たものを話せ。", replay: true };
+  const late = lateClue();
+  if (late) return { kind: "report", head, text: `「${worldById(STORY_CELLS[late].dungeon).name}」で、「${STORY_CELLS[late].name}」を見つけた。`, note: "王に伝え、見たものを話せ。", replay: true };
   if (contentSealed()) return { kind: "sealed", head: `${head} ── 完`, text: `${ch.nextNote || "その先は、まだ封じられている"}。封が解けるまで、人業を鍛えておけ。`, note: `${ch.next}は準備中。これまでの迷宮には何度でも挑める。`, replay: true };
   const g = storyGoal();
   const done = ch.dungeons.filter((id) => w.reported[id]).length;
@@ -12081,6 +12097,7 @@ function replayDecree() {
   if (!ms.n) return UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: ms.stage === "fourth" ? TUT_THREE_REPORT : TUT_INTRO, kicker: "着任の謁見" }]);
   const last = worldState().last || {};
   if (last.kind === "chapter" && CHAPTER_END[last.no]) return UI.playStoryChain([{ title: CHAPTER_END[last.no].title, lines: CHAPTER_END[last.no].lines, kicker: "章の結び", who: "none", art: "candle" }]);
+  if (last.kind === "late" && LATE_CLUES[last.key]) return UI.playStoryChain([{ title: LATE_CLUES[last.key].title, lines: storyLines(LATE_CLUES[last.key].lines), art: STORY_CELLS[last.key].art, kicker: "手がかりの報告" }]);
   if (last.kind === "report" && REPORTS[last.id]) return UI.playStoryChain([{ title: REPORTS[last.id].title, lines: storyLines(REPORTS[last.id].lines), kicker: "踏破の報告" }]);
   return UI.playStoryChain([{ title: "勅命 「人業の生成」 完遂", lines: TUT_FINALE, kicker: "勅命の完遂" }]);
 }
@@ -12317,7 +12334,7 @@ function codexMonEntry(key) {
 function codexKillNow(e) {
   if (!e || e._codexKill || String(e.key || "").startsWith("ev_")) return;
   e._codexKill = true;
-  recordMonsterKill(e.key, abyssActive() ? null : G.dungeonIdx);
+  recordMonsterKill(e.key, abyssActive() ? null : G.dungeonIdx, G.floor);
 }
 setOnEnemyKilled(codexKillNow);
 // 敵の属性が明かされているか: 図鑑で属性の項目が解放済み (enemyReveal の stats = 5体討伐・主は1体) か、
@@ -12325,11 +12342,19 @@ setOnEnemyKilled(codexKillNow);
 function enemyElemKnown(e) { return !!e && (enemyReveal(e).stats || partyPassiveLv("scan") > 0); }
 setElemKnown(enemyElemKnown);
 setResistKnown(e => !!e && enemyReveal(e).lore);
-function recordMonsterKill(key, dungeonIdx) {
+// floors = { 迷宮idx: [討伐した最浅の階, 最深の階] } (後付け)。図鑑の「出現した迷宮」で、台帳の出現表に
+// 載らない魔物 (呼び出された手下など) の出現階を示すのに使う
+function recordMonsterKill(key, dungeonIdx, floor) {
   if (!key) return;
   const e = codexMonEntry(key);
   e.kills++;
-  if (dungeonIdx != null) e.dungeons[dungeonIdx] = true;
+  if (dungeonIdx == null) return;
+  e.dungeons[dungeonIdx] = true;
+  if (floor > 0) {
+    if (!e.floors) e.floors = {};
+    const r = e.floors[dungeonIdx];
+    e.floors[dungeonIdx] = r ? [Math.min(r[0], floor), Math.max(r[1], floor)] : [floor, floor];
+  }
 }
 // 勝利時の汎用戦利品抽選 (固有ドロップ廃止に伴う置換)。通常30% / レア4%。
 // 中身は迷宮の lootLv 帯から引く (レアは一段深い帯)。実物は勝利後の宝箱から取り出す。
@@ -12664,18 +12689,18 @@ function shopStockAdd(id) {
   if (!id) return;
   G.shopStock[id] = Math.min(SHOP_STOCK_MAX, (G.shopStock[id] || 0) + 1);
 }
-const sellPrice = (it) => Math.max(1, Math.floor((it.price || 10) / 2));
+// 鑑定料と売値のレア度の倍率 (コモン・アンコモン・レア1 / スーパーレア1.5 / レジェンドレア4)。
+// レア度を持たない道具・収集品は1。値段 price は性能だけで決まる (pricing.js) ので、レア度の差はここで付ける
+const APPRAISE_MUL = { c: 1, uc: 1, r: 1, sr: 1.5, lr: 4 };
+const rarPriceMul = (it) => APPRAISE_MUL[rarityKey(it)] || 1;
+// 売値 = 鑑定料 = 値段の半分 × レア度の倍率。買値はその倍
+// (鑑定してすぐ売っても差し引き0。未鑑定の品は売れないので、鑑定の技・金貨の使い方が稼ぎを左右する)
+const sellPrice = (it) => Math.max(1, Math.round(Math.floor((it.price || 10) / 2) * rarPriceMul(it)));
 // 店の買値・鑑定費の割引 (値切りのパッシブは廃止。いまは割引なし。呼び出し側のために残す)
 function bargainMul() { return 1; }
-const buyPrice = (it) => Math.max(1, Math.round((it && it.price || 30) * bargainMul()));
-// 鑑定料: 売値 × レア度の倍率 (コモン0.5 / アンコモン0.75 / レア1 / スーパーレア1.5 / レジェンドレア4)。
-// 深層の職業専用LR (tier5以上) は従来どおり約20倍。LRは商店でのみ鑑定できる。値切りで割引
-const APPRAISE_MUL = { c: 0.5, uc: 0.75, r: 1, sr: 1.5, lr: 4 };
-const appraiseCost = (it) => {
-  if (!it) return 1;
-  const mul = it.lr >= 5 && !it.layer ? 20 : (APPRAISE_MUL[rarityKey(it)] || 1); // 深い職業専用LRだけ ×20 (層の逸品は除く)
-  return Math.max(1, Math.round(sellPrice(it) * mul * bargainMul()));
-};
+const buyPrice = (it) => (it ? Math.max(1, Math.round(sellPrice(it) * 2 * bargainMul())) : 30);
+// 鑑定料: 売値と同額 (LRは商店でのみ鑑定できる)。値切りで割引
+const appraiseCost = (it) => (it ? Math.max(1, Math.round(sellPrice(it) * bargainMul())) : 1);
 
 // 商店で鑑定する: 鑑定料を払い、必ず正体を明かす
 function shopIdentify(owner, it) {
@@ -12757,6 +12782,21 @@ function reportMissingClue(id = worldState().report) {
   const w = worldState();
   const key = REPORTS[id]?.need;
   return key && !w.found[key] ? STORY_CELLS[key] : null;
+}
+// 報告の後に見つけた師の手がかりで、まだ王に伝えていないもの (鍵 / null)
+function lateClue() {
+  if (G.testPlay) return null; // 試遊は選択した場面だけ
+  const w = worldState();
+  return Object.keys(LATE_CLUES).find((key) => w.found[key] && w.reported[STORY_CELLS[key].dungeon] && !w.told[key]) || null;
+}
+// 後から見つけた手がかりを王に伝える (報酬は無い。王の言葉だけ)
+function tellLateClue() {
+  const key = lateClue();
+  if (!key) { renderTown(); return; }
+  const w = worldState();
+  const def = LATE_CLUES[key], cell = STORY_CELLS[key];
+  playMsqChain([{ title: def.title, lines: storyLines(def.lines), art: cell.art, kicker: `手がかりの報告 ― ${worldById(cell.dungeon).name}`,
+    leave: () => { w.told[key] = 1; w.last = { kind: "late", key }; autosave(true); } }]);
 }
 // 初踏破を報告できるか (必要な手がかりが揃うまでは再出撃できる)
 function reportPending() {
@@ -13217,9 +13257,16 @@ function campSpellsOf(p) {
 }
 
 const spellCures = (sp) => sp.kind === "cure" || !!sp.cure;
-const spellHeals = (sp) => (sp.power || 0) > 0;
-// 戦闘外の回復量の基準 (実際はこれ + 0〜3割の揺らぎ。見積もりはこの最低値で行う)
-function campHealPower(caster, sp) { return (sp.power || 0) + Math.round((caster.pie || 0) * 0.5); }
+const spellHeals = (sp) => healsHp(sp);
+// 戦闘外の回復量の基準 (戦闘と同じ式 = combat.js spellHealRaw。実際はこれ + 0〜3割の揺らぎ)。
+// 対象 t を渡すと頭打ち (healCap)・割合回復 (healPct) を含めた最低値。省略時は隊でいちばん最大HPの小さい者を基準にした最低値 (見積もり用)
+function campHealPower(caster, sp, t = null) {
+  if (!t) {
+    const mins = G.party.filter((x) => x.maxhp > 0).map((x) => x.maxhp);
+    t = { maxhp: mins.length ? Math.min(...mins) : 1 };
+  }
+  return healOnTarget(sp, t, spellHealRaw(caster, sp, caster.pie || 0));
+}
 // 生きている1体へ回復呪文の効果 (状態異常の治療・HP回復) を与える。何か起きたら true
 // 戦闘外の回復で、最後に唱えた回復量 (満タンで上限に切られた分も含む素の値)。結果の表示に使う
 const CAMP_HEAL = new WeakMap();
@@ -13229,8 +13276,8 @@ function campApplyAliveMeasured(caster, sp, t) {
   if (canSpellCure(sp, t) && cureBySpell(sp, t)) { log(`${sp.name}！ ${t.name}の状態異常が治った`, "heal"); did = true; }
   if (spellHeals(sp)) {
     // 満タンの仲間にも回復量は見せる (HP は増えない・それだけでは「効果あり」にしない)
-    const p = campHealPower(caster, sp);
-    const heal = p + rand(Math.ceil(p * 0.3) + 1);
+    const raw = spellHealRaw(caster, sp, caster.pie || 0);
+    const heal = healOnTarget(sp, t, raw + rand(Math.ceil(raw * 0.3) + 1));
     CAMP_HEAL.set(t, heal);
     if (t.hp < t.maxhp) {
       t.hp = Math.min(t.maxhp, t.hp + heal);
@@ -13270,7 +13317,7 @@ function healAllRevivers() {
 // 倒れた1体を呪文で起こす (campCast と同じ蘇生量)
 function campRevive(...args) { return tlGameMeasure("camp", () => campReviveMeasured(...args)); }
 function campReviveMeasured(caster, sp, t) {
-  const heal = (sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : Math.max(1, campHealPower(caster, sp)))
+  const heal = (sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : Math.max(1, campHealPower(caster, sp, t)))
     + Math.round(t.maxhp * rankVal(caster, "priestInochi", [0.10, 0.20, 0.30, 0.50])); // 生命の灯 (僧侶のランク)
   t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false;
   t.hp = Math.max(1, Math.min(t.maxhp, heal));
@@ -15302,7 +15349,7 @@ function init() {
     // 迷宮のイベント (出来事) の検証用
     ev: { evApi, runEvent, eventFightWon, EVENT_MAP, enterDungeon, newFloor, descend, resolveCell, renderBoard, endBattle, evNewFloor, evProgress, eventFacts, makeDoll, addSoulInstance, recalcDoll, evUnit },
     // 迷宮の台帳・物語の進みの検証用
-    world: { worldState, refreshWorldUnlocks, reportMainQuest, reportTutorialQuest, grantTutorialGift, commitDungeonClear, showDungeonClearedPopup, askGate, departNow, storyGoal, objectiveInfo, decreeInfo,
+    world: { worldState, refreshWorldUnlocks, reportMainQuest, lateClue, tellLateClue, reportTutorialQuest, grantTutorialGift, commitDungeonClear, showDungeonClearedPopup, askGate, departNow, storyGoal, objectiveInfo, decreeInfo,
       playIreneBeat, pendingIreneBeat, storyNewFloor, runStoryCell, resumeFromState, startFloorsOf, foeLevelHere, claimTreasury, partyLevel, leaveDungeon, DUNGEONS, finalizeBuyDoll, totalDonatedKinds, treasuryState } };
 
   if (testPlayActive) {

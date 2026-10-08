@@ -22,6 +22,7 @@ import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
 import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LORE_PAGES } from "../events.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_KIND_LABEL, shieldKind, itemName } from "../items.js";
 import { RANK_COLOR, RANK_NAME } from "../content.js";
+import { poolAt } from "../dungeons/world.js";
 import { DUNGEONS, ELEMENTS, RACE_LABEL, monsterTraits, isFloating, resistHpMul, METAL_TIERS } from "../dungeons/index.js";
 import { SPELLS, spellMpLabel } from "../combat.js";
 import {
@@ -533,6 +534,27 @@ function pairRow(name, desc, { dim = false, onTap = null, tags = null } = {}) {
   return r;
 }
 
+// 図鑑の「出現した迷宮」に添える出現階 (ユーザーの指示、2026-10)。台帳の出現表 (poolAt) から求め、
+// 主は最下階、強敵は強敵の階 (3F以降)。出現表に載らない魔物 (呼び出された手下など) は討伐した階の記録 (rec) で示す
+const floorSpan = (a, b) => (a === b ? `B${a}F` : `B${a}F〜B${b}F`);
+function appearFloorsText(cfg, key, rec) {
+  const n = cfg.floors || 1;
+  const parts = [];
+  const fl = [];
+  for (let f = 1; f <= n; f++) if (poolAt(cfg, f).includes(key)) fl.push(f);
+  // 続いた階ごとにまとめる (例: B1F〜B5F・B8F)
+  for (let i = 0; i < fl.length; i++) {
+    let j = i;
+    while (j + 1 < fl.length && fl[j + 1] === fl[j] + 1) j++;
+    parts.push(floorSpan(fl[i], fl[j]));
+    i = j;
+  }
+  if ((cfg.elites || []).includes(key) && n >= 5) parts.push(`${floorSpan(3, n)} (強敵の階)`);
+  if (cfg.boss === key) parts.push(`B${n}F (主)`);
+  if (!parts.length && rec) parts.push(floorSpan(rec[0], rec[1]));
+  return parts.join("・") || null;
+}
+
 // o.enemy = 戦闘中の敵 (戦闘で敵を押した時の「敵の姿」— 図鑑と同じ一枚に、いまのHPと不確定名を添える。
 // ユーザーの指示、2026-10)
 export function codexMonSheet(key, o = {}) {
@@ -628,7 +650,7 @@ export function codexMonSheet(key, o = {}) {
     ]));
   }
   const idxs = Object.keys(e.dungeons || {}).map(Number).filter((i) => DUNGEONS[i] && dunOpen(i));
-  if (!special) body.appendChild(infoBlock("出現した迷宮", idxs.length ? idxs.map((i) => pairRow(DUNGEONS[i].name)) : [pairRow("記録なし", null, { dim: true })]));
+  if (!special) body.appendChild(infoBlock("出現した迷宮", idxs.length ? idxs.map((i) => pairRow(DUNGEONS[i].name, appearFloorsText(DUNGEONS[i], key, e.floors && e.floors[i]))) : [pairRow("記録なし", null, { dim: true })]));
   return sheet.open({
     kind: "info", banner: isOther ? "その他" : `${RACE_LABEL[m.race] || "敵"}${m.rank ? "・" + RANK_NAME[m.rank] + "級" : ""}`,
     accent: rc, art: (foe ? !!m.art : kills > 0 || !(m.boss || m.named)) ? m : null, artScale: 8, float: isFloating(m, key),

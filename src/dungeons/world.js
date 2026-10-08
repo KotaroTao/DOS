@@ -49,7 +49,12 @@
 //           大樹 63%・68% (第5層の壁) / 銀の里 54%・63%。
 //           掟 (隊列・奇襲・逃走不可) の重さは模擬戦に入らないので、その分は控えめにしてある。
 //           主は「主の強さ ÷ 最下階の雑魚の強さ」(sqrt(HP×ATK)) を坑口の主 2.15 / 水路の主 2.39 の間 (本丸の主 2.30・大樹の主 2.39) に置いた。
-//           テスト記録が届いたら実測で合わせ直す
+//           テスト記録が届いたら実測で合わせ直す。
+//           2026-10 第5層の初めての実測 (縦穴 w10、推奨Lv どおりの Lv40-44 の6人、装備・サブ魂あり): 通常戦が平均1.4ラウンドで終わり
+//           被ダメは1戦 約1% (隊は1ラウンドに約1500与え、敵の大半は動く前に倒れる)。推奨Lv どおりの隊で測った外郭 w06 (2.5R・8.7%) や
+//           坑口 w05 (2.1〜2.6R・7%) と比べて桁違いに軽い。模擬戦は第5層の特色 (多用・神速・ブレス) を重く見たが、実戦では出る前に倒れる。
+//           そこで第5層の顔ぶれの6迷宮 (w10-w13・ws3・ws4) の雑魚 (enemyMul) と大樹の主 (bossMul、雑魚比 2.3 を保つ) を一律 ×5/3。
+//           目安は通常戦 2〜2.5R・1戦 7〜9%。強敵 (soloMul) は実測 14% で妥当なのでそのまま
 import { LAYER_ELEMENT } from "./generator.js";
 import { LAYER_BOSS, LAYER_ELITES, LAYER_POOLS, BESTIARY } from "./bestiary.js";
 import { baselineLv } from "../baseline.js";
@@ -229,7 +234,7 @@ const WORLD_DEF = [
       lines: ["縦穴の足場は脆い。落とし穴が多い (各階に2つ増える)。落ちても傷は負わないが、その階は探れない。", "壁の根に、落ちた者たちの遺品が絡まっている (各階に宝箱が1つ増える)。"],
       board: "shaft",
     },
-    tune: { enemyMul: 0.72, deepMul: 0.76, soloMul: 1.05 }, // 落とし穴で階を飛ばされる分、深階はやや重い
+    tune: { enemyMul: 1.20, deepMul: 0.76, soloMul: 1.05 }, // 落とし穴で階を飛ばされる分、深階はやや重い。2026-10 実測で 0.72 → 1.20 (上の注記)
     unlock: { reported: "w09" },
     hint: "「捨て砦の本丸」の踏破を王に報告すると、大穴へ降りる許しが出る",
   },
@@ -249,7 +254,7 @@ const WORLD_DEF = [
       lines: ["霧が森の姿を変え続ける。特別な階がとても出やすい (ふだんの2倍・およそ3階に2階)。", "豊穣の間も、瘴気の階も、ミミックの巣も。何が出るかは霧しだい。"],
       specialRate: 2,
     },
-    tune: { enemyMul: 0.62, deepMul: 0.82, soloMul: 1.05 }, // 特別な階 (瘴気・群れ) が2倍出る分だけ軽め
+    tune: { enemyMul: 1.03, deepMul: 0.82, soloMul: 1.05 }, // 特別な階 (瘴気・群れ) が2倍出る分だけ軽め
     unlock: { story: "w10_rope" },
     hint: "「根の這う縦穴」のどこかに、師の残した綱が垂れているという",
   },
@@ -269,7 +274,7 @@ const WORLD_DEF = [
       lines: ["樹液の香りが満ちている。戦闘に勝つたび、隊のHP・MPが8%回復する。", "魔物もまた樹液を吸う。敵はすべて、ラウンドごとに最大HPの3%ずつ再生する。"],
       victoryHeal: 0.08, foeRegen: 0.03,
     },
-    tune: { enemyMul: 0.76, deepMul: 0.82, soloMul: 1.05 }, // 敵の再生と勝利ごとの回復でおおむね相殺
+    tune: { enemyMul: 1.27, deepMul: 0.82, soloMul: 1.05 }, // 敵の再生と勝利ごとの回復でおおむね相殺
     unlock: { reported: "w10" },
     hint: "「根の這う縦穴」の踏破を王に報告すると、根の行き着く先が示される",
   },
@@ -291,7 +296,7 @@ const WORLD_DEF = [
       mpDrain: 0.10,
     },
     boss: LAYER_BOSS[4], bossRank: 7,
-    tune: { enemyMul: 0.68, deepMul: 0.80, soloMul: 1.10, bossMul: 0.52 }, // 第5層の壁。開幕にMPを吸われる。主 (ランク7・全体呪文と招来) は雑魚比を本丸の主並み (2.4) に
+    tune: { enemyMul: 1.13, deepMul: 0.80, soloMul: 1.10, bossMul: 0.87 }, // 第5層の壁。開幕にMPを吸われる。主 (ランク7・全体呪文と招来) は雑魚比を本丸の主並み (2.4) に
     unlock: { all: ["w11", "w12"] },
     hint: "「地の底の霧森」と「樹液の苗床」の両方を踏破して王に報告すると、大樹の根元への道が開く",
   },
@@ -342,7 +347,7 @@ const WORLD_DEF = [
       mods: { ambushMul: 1.5, soulMul: 1.3 },
       board: "mist",
     },
-    tune: { enemyMul: 0.80, deepMul: 0.76, soloMul: 1.00 }, // 第5層の顔ぶれ (ランク6-7) を本丸並みに
+    tune: { enemyMul: 1.33, deepMul: 0.76, soloMul: 1.00 }, // 第5層の顔ぶれ (ランク6-7) を本丸並みに
     unlock: { quest: "fq_wren" },
     hint: "酒場の猟師の依頼「霧に呑まれた娘」を受けると、道が示される",
   },
@@ -361,7 +366,7 @@ const WORLD_DEF = [
       lines: ["銀業の隠れ里。金属の魔物がとても出やすい (各階45%・2体の札まで)。会心の一撃で仕留めよ。", "里の番人は空の鎧と石の人形。物理に固い者が多い。"],
       metalRate: 0.45, metalMax: 2,
     },
-    tune: { enemyMul: 0.92, deepMul: 0.76, soloMul: 1.05 },
+    tune: { enemyMul: 1.53, deepMul: 0.76, soloMul: 1.05 },
     unlock: { quest: "fq_zakka2" },
     hint: "酒場の行商人の依頼「銀の欠片の行方」を受けると、道が示される",
   },

@@ -86,7 +86,7 @@ export const JOBKIT = {
 const SKILL_KEYS = new Set(("name mp kind target desc power hits scatter critBonus element acc pierce intScale agiScale vitScale pieScale " +
   "desperate execute prey debuff vuln seal poison para sleepChance flinchChance strip charm confuse instakill steal plunder drain mpDrain " +
   "hpCost gravity gravityIntCap partyHeal buff taunt shield stance charge regen grantBarrier grantEndure cure purge revive revivePct dur debuffAll tech quiet " +
-  "ward faith float sense mpPct").split(" "));
+  "ward faith float sense mpPct healMul healCap healPct bodyHeal bladeHeal").split(" "));
 const KINDS = new Set(["phys", "atk", "heal", "cure", "buff", "debuff", "mana", "sleep", "escape", "field"]);
 const TARGETS = new Set(["enemy", "all-enemy", "ally", "all-ally", "self"]);
 const ELS = new Set(["fire", "water", "wind", "earth", "light", "dark"]);
@@ -115,6 +115,12 @@ function checkSkill(job, key, sp) {
   if (sp.ward) for (const s in sp.ward) if (!["breath", "spell"].includes(s) || !(sp.ward[s] > 0 && sp.ward[s] < 1)) fail(job, key, `ward.${s}`);
   if (sp.faith && sp.kind !== "atk") fail(job, key, "faith は攻撃呪文だけ");
   if (sp.gravityIntCap != null && (sp.kind !== "atk" || !(sp.gravity > 0) || !Number.isFinite(sp.gravityIntCap) || sp.gravityIntCap <= 0)) fail(job, key, "gravityIntCap は重力呪文の正の有限数だけ");
+  // 回復の量の項目 (combat.js spellHealRaw)。物理技の隊回復は与ダメ基準の bladeHeal (PIE 基準の partyHeal は攻撃呪文だけ)
+  for (const f of ["healMul", "healPct", "bodyHeal"]) if (sp[f] != null && (sp.kind !== "heal" || !(sp[f] > 0))) fail(job, key, `${f} は回復の技の正の数`);
+  if (sp.healCap != null && !(sp.healCap > 0 && sp.healCap <= 1)) fail(job, key, "healCap は 0〜1");
+  if (sp.bladeHeal != null && (sp.kind !== "phys" || !(sp.bladeHeal > 0 && sp.bladeHeal < 1))) fail(job, key, "bladeHeal は物理技の 0〜1");
+  if (sp.kind === "phys" && sp.partyHeal) fail(job, key, "物理技の隊回復は bladeHeal (与ダメの割合) で書く");
+  if (sp.kind === "heal" && sp.power > 0 && (sp.healMul || sp.healPct || sp.bodyHeal)) fail(job, key, "回復量は power か healMul/healPct/bodyHeal のどちらか");
   if (sp.kind === "field" && !sp.float && !["enemy", "chest", "stairs"].includes(sp.sense)) fail(job, key, "迷宮で唱える技には効果 (float / sense) が必要");
 }
 function checkPerk(job, key, pk) {

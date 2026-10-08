@@ -78,7 +78,7 @@ const SIG_DRAW = {
       for (let i = 0; i < 8; i++) { ctx.globalAlpha = 1 - q; ctx.fillStyle = "#6a6a72"; ctx.fillRect(e.x + (r01(i, e.seed) - 0.5) * 50, e.y + q * q * 60 + r01(i + 4, e.seed) * 10, 3, 3); }
     }
   },
-  // ===== 僧侶 リカバーオール: 天に光の十字が浮かび、隊へ癒しの雨が降る =====
+  // ===== 僧侶 オールハイヒール: 天に光の十字が浮かび、隊へ癒しの雨が降る =====
   sig_dialall(ctx, e, t, VW, VH) {
     const a = Math.sin(Math.PI * t);
     ctx.globalCompositeOperation = "lighter";
@@ -144,7 +144,7 @@ const SIG_DRAW = {
       ctx.fillStyle = g; ctx.fillRect(x - R, y - R, R * 2, R * 2);
     }
   },
-  // ===== 司教 フルヒール: 味方の上に光の柱が立ち、光の翼が開く =====
+  // ===== フルヒール: 味方の上に光の柱が立ち、光の翼が開く =====
   sig_madios(ctx, e, t, VW, VH) {
     const a = Math.sin(Math.PI * t), y = VH - 18;
     ctx.globalCompositeOperation = "lighter";

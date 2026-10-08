@@ -10,7 +10,7 @@
 // 作戦はこの重みと MP の値段を変える。game.js はここを呼んで chooseAction / chooseTarget するだけ。
 // (このファイルは game.js を import しない)
 
-import { SPELLS, spellCost, isMetal, spellCureKinds } from "./combat.js";
+import { SPELLS, spellCost, soulPowerMul, healsHp, isMetal, spellCureKinds, breathHpK } from "./combat.js";
 import { autoSkills } from "./souls.js";
 import { STAGED, STAGE_MAX, STRONG_MIN, stageMul, stageOf } from "./buffstage.js";
 
@@ -123,7 +123,7 @@ function makeCtx(b, actor) {
     threat: (e) => once("t" + e.uid, () => {
       if (!e.alive) return 0;
       let v = Math.max(1, b._eatk(e) - avgVit * 0.5);
-      if (e.ability === "breath" || e.ability === "spell") v *= 1 + (e.abRate || 0.3) * Math.max(0, allies.length - 1) * 0.5;
+      if (e.ability === "breath" || e.ability === "spell") v *= 1 + (e.abRate || 0.3) * Math.max(0, allies.length - 1) * 0.5 * (e.ability === "breath" ? breathHpK(e) : 1); // ブレスは残りHPで弱まる
       if (e.haste) v *= 2;
       if (e.mind === "charm") v *= 0.2; else if (e.mind === "confuse") v *= 0.5;
       if (e.asleep) v *= 0.3;
@@ -229,14 +229,16 @@ function skillCands(b, ctx, actor, key, sp) {
       const c = mk(g);
       const tgts = g ? [g] : b.livingEnemies();
       if (ailSkillBlocked(b, sp, tgts)) continue;
+      let dSum = 0; // この手で与える傷の合計 (刃の癒しの見積もり)
       for (const t of tgts) {
         let d = 0;
         if (sp.kind === "phys") {
-          const popt = { power: sp.power, critBonus: sp.critBonus, element: sp.element, intScale: sp.intScale, agiScale: sp.agiScale,
+          const popt = { power: sp.power * soulPowerMul(actor, sp), critBonus: sp.critBonus, element: sp.element, intScale: sp.intScale, agiScale: sp.agiScale,
             vitScale: sp.vitScale, pieScale: sp.pieScale, acc: sp.acc, pierce: sp.pierce, desperate: sp.desperate, execute: sp.execute, prey: sp.prey, skill: true };
           const per = b.estPhys(actor, t, popt);
           d = sp.scatter ? per * sp.scatter / tgts.length : per * (sp.hits || 1);
         } else if (sp.kind === "atk") d = b.estSpell(actor, sp, t);
+        dSum += Math.min(d, t.hp);
         let v = dmgValue(ctx, t, d) * (t.mind === "charm" ? CHARMED_TGT_MUL : 1);
         // 即死: 主には効かない。当たれば残りのHPぶんの傷と同じ
         if (sp.instakill && !t.boss && !isMetal(t) && d < t.hp && (!sp.instakill.races || sp.instakill.races.includes(t.mon && t.mon.race))) {
@@ -248,6 +250,7 @@ function skillCands(b, ctx, actor, key, sp) {
         if (sp.drain) c.heal += Math.min(d * sp.drain, actor.maxhp - actor.hp) * healUrg(ctx, actor, W);
       }
       if (sp.partyHeal) for (const a of ctx.allies) c.heal += Math.min(b.estPartyHeal(actor, sp.partyHeal), a.maxhp - a.hp) * healUrg(ctx, a, W);
+      if (sp.bladeHeal) for (const a of ctx.allies) c.heal += Math.min(b.estBladeHeal(actor, sp, dSum, a), a.maxhp - a.hp) * healUrg(ctx, a, W);
       if (sp.debuffAll) for (const t of b.livingEnemies()) c.stat += statMods(b, ctx, sp.debuffAll, sp.dur, t);
       if (sp.kind === "sleep") for (const t of b.livingEnemies()) {
         if (t.asleep || isMetal(t)) continue;
@@ -331,14 +334,14 @@ function allyEffects(b, ctx, actor, sp, a, c, W) {
   // 蘇生
   if (!a.alive) {
     if (!sp.revive) return;
-    const hp = sp.revivePct ? a.maxhp * sp.revivePct : Math.min(a.maxhp, b.estHeal(actor, sp));
+    const hp = sp.revivePct ? a.maxhp * sp.revivePct : Math.min(a.maxhp, b.estHeal(actor, sp, a));
     c.revive += hp * 0.5 + a.maxhp * 0.5 + ctx.basic(a) * ctx.dmgK * 2;
     return;
   }
   const n = ctx.left(sp.dur);
-  if (sp.kind === "heal" && (sp.power || 0) > 0) c.heal += Math.min(b.estHeal(actor, sp), a.maxhp - a.hp) * healUrg(ctx, a, W);
+  if (healsHp(sp)) c.heal += Math.min(b.estHeal(actor, sp, a), a.maxhp - a.hp) * healUrg(ctx, a, W);
   if (sp.kind === "mana") {
-    const gain = Math.min(sp.power + (actor.int || 0) * 0.25, (a.maxmp || 0) - a.mp);
+    const gain = Math.min((sp.power + (actor.int || 0) * 0.25) * soulPowerMul(actor, sp), (a.maxmp || 0) - a.mp);
     if (a !== actor && gain > 0) c.edge += gain * ctx.mpPrice(a, (W && W.mpK) || 0.06) * 0.8;
   }
   if (sp.kind === "cure" || sp.cure) c.guard += ailValue(ctx, a, sp);

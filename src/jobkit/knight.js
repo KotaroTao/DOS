@@ -5,16 +5,19 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "knightTeppeki",
   table: `
-    1 SHIELDBASH 2 NERAIUCHI 3 taunt/1 5 CHOUHATSU 7 PROTECT 10 KOTE
-    12 IWAKUDAKI 15 KNIGHT_JINTOTSU 15 nightWatch/1 20 NIOUDACHI 22 KOUJIN 25 knightTessoku/1 30 RYUURINJIN
+    1 SHIELDBASH 2 NERAIUCHI 3 taunt/1 5 CHOUHATSU 7 PROTECT 10 KOTE 12 IWAKUDAKI 15 KNIGHT_JINTOTSU
+    15 nightWatch/1 20 NIOUDACHI 22 KOUJIN 25 knightTessoku/1 25 KNIGHT_JINCHUUTEATE 30 RYUURINJIN
     35 cover/1 40 JOUMON 45 bastion/1 50 SHINGANGEKI 50 nightWatch/2 55 IRONWALL 57 GANOTOSHI
-    60 knightTessoku/2 65 SHIELDCHARGE 70 parry/1 75 knightFutai/1 80 BOUJIN 82 KNIGHT_HAJINSOU
-    85 KNIGHT_YARIBUSUMA 90 resistAilment/1 95 SHUGOHOUKOU 100 JOUSAITSUKI 100 nightWatch/3 105 knightTessoku/3 107 KNIGHT_JINARI
-    110 TEPPEKIJIN 115 cover/2 120 KNIGHT_ITTETSU 125 bastion/2 130 FURAKUNOTATE 135 parry/2
-    140 BANRAI 145 knightHoujin/1 150 SHUGOKEKKAI 155 knightFutai/2 160 JOUSAIKUZUSHI 162 DAICHIMEIDOU
-    165 resistAilment/2 170 TESSAINAGI 175 knightHoujin/2 180 KISHIOU 185 knightOath/1 190 FUDOUJIN
-    195 DAIGOUREI 200 FURAKUJOU`,
+    60 knightTessoku/2 60 KNIGHT_JINEINOTEATE 65 SHIELDCHARGE 70 parry/1 75 knightFutai/1 80 BOUJIN
+    82 KNIGHT_HAJINSOU 85 KNIGHT_YARIBUSUMA 90 resistAilment/1 95 SHUGOHOUKOU 100 JOUSAITSUKI
+    100 nightWatch/3 105 knightTessoku/3 107 KNIGHT_JINARI 110 TEPPEKIJIN 115 cover/2 120 KNIGHT_ITTETSU
+    125 bastion/2 130 FURAKUNOTATE 135 parry/2 140 BANRAI 145 knightHoujin/1 150 SHUGOKEKKAI
+    155 knightFutai/2 160 JOUSAIKUZUSHI 162 DAICHIMEIDOU 165 resistAilment/2 170 TESSAINAGI
+    175 knightHoujin/2 180 KISHIOU 185 knightOath/1 190 FUDOUJIN 195 DAIGOUREI 200 FURAKUJOU`,
   skills: {
+    // 体の手当て (2026-10): 回復量は使い手の最大HPで決まる。少ないMPで癒せるが、最大HPの小さい魔法職が借りても弱い
+    KNIGHT_JINCHUUTEATE: { name: "陣中の手当て", mp: 4, kind: "heal", bodyHeal: 0.2, healCap: 0.35, tech: true, target: "ally", desc: "戦の合間に手早く傷を縛る（騎士の最大HPで伸びる）" },
+    KNIGHT_JINEINOTEATE: { name: "陣営の手当て", mp: 10, kind: "heal", bodyHeal: 0.1, healCap: 0.2, tech: true, target: "all-ally", desc: "陣を固め、味方全員の傷を手当てする（騎士の最大HPで伸びる）" },
     // Lv15 の固有技: 隊列を崩さず槍を突き入れ、強化を剥いで力を削ぐ
     KNIGHT_JINTOTSU: { name: "陣突き", mp: 5, kind: "phys", power: 1.2, acc: 0.6, strip: true, debuff: { atk: 0.85 }, target: "enemy", desc: "隊列を崩さず槍を突き入れ、敵の強化を剥いで力を削ぐ" },
     KNIGHT_HAJINSOU: { name: "破陣の聖槍", mp: 12, kind: "phys", power: 2.0, pieScale: 0.3, element: "light", acc: 0.7, strip: true, target: "enemy", desc: "光の槍で突き、敵の強化を剥ぐ" },
