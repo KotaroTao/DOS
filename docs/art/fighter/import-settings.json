@@ -1,0 +1,13 @@
+{
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "approvedR1": "docs/art/fighter/fighter-r1-crusader-draft.png",
+  "frame": [90, 92],
+  "frameTop": 9,
+  "sources": [
+    {"source": "docs/art/fighter/fighter-r1-crusader-final.png", "perDot": 14.91, "head": [620, 776, 145, 455], "sole": 1375},
+    {"source": "docs/art/fighter/fighter-r2-crusader-final.png", "perDot": 13.845, "head": [552, 692, 126, 410], "sole": 1255},
+    {"source": "docs/art/fighter/fighter-r3-crusader-final.png", "perDot": 14.342, "head": [550, 695, 117, 410], "sole": 1299},
+    {"source": "docs/art/fighter/fighter-r4-crusader-final.png", "perDot": 13.011, "head": [548, 670, 169, 435], "sole": 1230},
+    {"source": "docs/art/fighter/fighter-r5-crusader-final.png", "perDot": 12.1, "head": [550, 665, 228, 476], "sole": 1220}
+  ]
+}
