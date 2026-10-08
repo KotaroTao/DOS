@@ -38,6 +38,7 @@
 //             eliteRate 強敵階の出やすさ (既定 10%)   board  盤面の加工 (game.js TRAIT_BOARD のキー)
 //             specialRate 特別な階の出やすさの倍率   victoryHeal 勝つたび隊のHP・MPを回復する割合
 //             foeRegen 敵の毎ラウンドの再生 (最大HP比)   mpDrain 戦闘の開幕に吸われる隊のMP (最大MP比)
+//             hpDrain 戦闘の開幕に隊が失うHP (最大HP比。HP1 より下にはならない)
 //             metalRate / metalMax 金属の魔物の出やすさ (既定 7%) / 1階で入れ替わる札の最大数 (既定 1)
 //   tune    強さの手直し (generator.js DUNGEON_TUNE と同じ欄)。第4層からはテスト記録がまだ無いので、模擬戦で既存の迷宮に
 //           つないだ: 装備なしの6人 (戦士2・侍・僧侶・魔導士・盗賊、魂の Lv = その階の n の物差しの Lv — 当時の推奨Lv。
@@ -300,6 +301,174 @@ const WORLD_DEF = [
     unlock: { all: ["w11", "w12"] },
     hint: "「地の底の霧森」と「樹液の苗床」の両方を踏破して王に報告すると、大樹の根元への道が開く",
   },
+  // ---- 第四章「王都の地下」(第6層の顔ぶれ) ── 大樹の幹が昇る王都の足元。三百年前に沈んだ旧都と、その大神殿 ----
+  {
+    id: "w14", lv: 52, lvTo: 54, layer: 6, floors: 10,
+    power: { 1: 0.192, 5: 0.2067, 10: 0.2235 },
+    name: "水底の参道", short: "参道",
+    about: "王都の地下水路のさらに下。三百年前に沈んだ旧都の参道が、灯籠を連ねて水の底へ続いている",
+    element: "water",
+    bands: [
+      ["bs_kelpdrowned", "bs_abyssjelly", "bs_fonthorror", "bs_drownedpriest", "bs_naga", "bs_choirwraith"],
+      ["bs_tidecaller", "bs_sunkenbell", "bs_soulharvester"],
+    ],
+    elites: ["el_heresiarch"], // 名のある強敵の縄張り (named.js)
+    trait: {
+      id: "offering", name: "沈んだ供物", sym: "⚱", accent: "#5aa0c8",
+      lines: ["参道には、沈む前に捧げられた供物が残っている (各階に宝箱が2つ増える)。", "供物のふりをした魔物も多い。宝箱がミミックである見込みが高い (30%)。"],
+      mods: { mimicRate: 0.30 },
+      board: "offering",
+    },
+    tune: { enemyMul: 1.20, deepMul: 0.76, soloMul: 1.05 },
+    unlock: { reported: "w13" },
+    hint: "「魂喰らいの大樹」の踏破を王に報告すると、王都の地下への道が示される",
+  },
+  {
+    id: "w15", lv: 54, lvTo: 56, layer: 6, floors: 10,
+    power: { 1: 0.1874, 5: 0.2021, 10: 0.2188 },
+    name: "溺れた聖歌の回廊", short: "聖歌回廊",
+    about: "旧都の大神殿へ続く回廊。水に沈んだ聖歌隊が、三百年、同じ歌を歌い続けている",
+    element: "light",
+    bands: [
+      ["bs_choirwraith", "bs_drownedpriest", "d04_grudge", "bs_goldgolem", "bs_soulharvester", "bs_idolguardian"],
+      ["bs_shadowseraph", "bs_dreadlich", "bs_crystalgolem"],
+    ],
+    elites: ["el_fallenidol"],
+    trait: {
+      id: "hymn", name: "響く聖歌", sym: "♪", accent: "#e8d890",
+      lines: ["溺れた聖歌隊の歌が響き続け、魔物はみな光の気を帯びる。闇の刃が通り、闇の護りが光を逸らす。", "歌に引かれて集まった魂は多く、得る ✦Soul は 1.3倍。"],
+      mods: { elemAll: true, soulMul: 1.3 },
+    },
+    tune: { enemyMul: 1.05, deepMul: 0.82, soloMul: 1.05 }, // 属性が揃う分 (闇の刃で通る) だけ重め
+    unlock: { story: "w14_lamp" },
+    hint: "「水底の参道」の灯籠のどこかに、師の残したものがあるという",
+  },
+  {
+    id: "w16", lv: 56, lvTo: 58, layer: 6, floors: 10,
+    power: { 1: 0.185, 5: 0.1997, 10: 0.2166 },
+    name: "洗礼の大水槽", short: "大水槽",
+    about: "王が冠を受ける前に身を清めた、旧都の洗礼の水槽。いまは大樹の根が水を吸い、底は昏い",
+    element: "water",
+    bands: [
+      ["bs_abyssjelly", "bs_naga", "bs_fonthorror", "bs_kelpdrowned", "bs_tidecaller", "bs_irongolem"],
+      ["bs_sunkenbell", "bs_voidwalker", "bs_shadowdragon"],
+    ],
+    elites: ["el_heresiarch"],
+    trait: {
+      id: "font", name: "洗礼の水", sym: "✧", accent: "#8ad0e8",
+      lines: ["水槽のあちこちに、まだ澄んだ洗礼の水が湧いている (各階に癒しの泉が2つ)。", "濁った水の底から襲われやすい (奇襲 ×1.5)。"],
+      mods: { ambushMul: 1.5 },
+      board: "font",
+    },
+    tune: { enemyMul: 1.27, deepMul: 0.80, soloMul: 1.05 }, // 泉で立て直せる分だけ重め
+    unlock: { reported: "w14" },
+    hint: "「水底の参道」の踏破を王に報告すると、旧都の洗礼の場が示される",
+  },
+  {
+    id: "w17", lv: 58, lvTo: 61, layer: 6, floors: 15,
+    power: { 1: 0.181, 5: 0.1892, 10: 0.199, 15: 0.208 },
+    name: "沈める大神殿", short: "大神殿",
+    about: "旧都の王が冠を受けた大神殿。三百年前、一夜にして水に沈んだ。大樹の幹が、祭壇を突き破って昇っている",
+    element: null,
+    bands: [
+      ["bs_idolguardian", "bs_goldgolem", "bs_drownedpriest", "bs_choirwraith", "bs_crystalgolem", "d04_grudge"],
+      ["bs_dreadlich", "bs_tidecaller", "bs_voidwalker"],
+      ["bs_divinegolem", "bs_fallenangel", "bs_shadowseraph"],
+    ],
+    trait: {
+      id: "faithful", name: "祈り続ける信徒", sym: "✝", accent: "#c0a0e0",
+      lines: ["沈んだ信徒たちは群れて祈り、群れて襲う。敵はつねに四体以上で現れる。", "三百年の祈りが染みた魂で、得る ✦Soul は 1.35倍。"],
+      mods: { packMin: 4, soulMul: 1.35 },
+    },
+    boss: LAYER_BOSS[5], bossRank: 8,
+    tune: { enemyMul: 0.95, deepMul: 0.80, soloMul: 1.10, bossMul: 0.85 }, // 第6層の壁。四体以上の群れの分だけ1体ずつは軽く
+    unlock: { all: ["w15", "w16"] },
+    hint: "「溺れた聖歌の回廊」と「洗礼の大水槽」の両方を踏破して王に報告すると、大神殿の扉が開く",
+  },
+  // ---- 第五章「灼熱の洞」(第7層の顔ぶれ) ── 大神殿の底のさらに下。大樹の樹液を煮詰める、火の洞 ----
+  {
+    id: "w18", lv: 61, lvTo: 63, layer: 7, floors: 10,
+    power: { 1: 0.173, 5: 0.1862, 10: 0.2014 },
+    name: "火を噴く地割れ", short: "地割れ",
+    about: "大神殿の底の割れ目から、熱い風が吹き上げる。岩は赤く脈打ち、足元から火が噴き出す",
+    element: "fire",
+    bands: [
+      ["bs_magmaslime", "bs_emberswarm", "bs_ashghoul", "bs_cinderwraith", "bs_lavamaw", "bs_sulfurfiend"],
+      ["bs_lavagolem", "bs_magmaray", "bs_hellhound"],
+    ],
+    elites: ["el_cinderking"],
+    trait: {
+      id: "vent", name: "噴き出す火", sym: "♨", accent: "#e07040",
+      lines: ["地割れから火が噴き出し、通路の一割ほどが灼けた床になる (毒の床と同じ。浮遊で避けられる)。", "火に追われた魂が多く、得る ✦Soul は 1.25倍。"],
+      mods: { soulMul: 1.25 },
+      board: "vent",
+    },
+    tune: { enemyMul: 1.20, deepMul: 0.76, soloMul: 1.05 },
+    unlock: { reported: "w17" },
+    hint: "「沈める大神殿」の踏破を王に報告すると、神殿の底へ降りる許しが出る",
+  },
+  {
+    id: "w19", lv: 63, lvTo: 65, layer: 7, floors: 10,
+    power: { 1: 0.1689, 5: 0.182, 10: 0.1971 },
+    name: "灰の降る祭場", short: "祭場",
+    about: "火を拝む者たちが集った地下の祭場。天井から灰が降り続け、焼かれた人業の殻が積み上がっている",
+    element: "fire",
+    bands: [
+      ["bs_ashghoul", "bs_cinderwraith", "bs_sulfurfiend", "bs_demon", "bs_pyrelich", "bs_brimstonegolem"],
+      ["bs_shadowogre", "bs_darkliege", "bs_flamedrake"],
+    ],
+    elites: ["el_cinderking"],
+    trait: {
+      id: "ash", name: "灰の雨", sym: "∴", accent: "#a09088",
+      lines: ["降りしきる灰が視界を覆い、奇襲を受けやすい (×2)。", "灰には焼かれた魂の名残が混じり、得る ✦Soul は 1.3倍。"],
+      mods: { ambushMul: 2, soulMul: 1.3 },
+    },
+    tune: { enemyMul: 1.02, deepMul: 0.85, soloMul: 1.05 }, // 奇襲 ×2 の分だけ控えめ
+    unlock: { story: "w18_blade" },
+    hint: "「火を噴く地割れ」のどこかに、師の刃が残されているという",
+  },
+  {
+    id: "w20", lv: 65, lvTo: 67, layer: 7, floors: 10,
+    power: { 1: 0.1667, 5: 0.1799, 10: 0.1951 },
+    name: "魂を煮る釜場", short: "釜場",
+    about: "大樹の樹液を煮詰めて霊薬に変える釜が、いくつも並ぶ。釜の火は、迷宮に呑まれた魂でできている",
+    element: "fire",
+    bands: [
+      ["bs_lavagolem", "bs_magmaslime", "bs_brimstonegolem", "bs_furnacefiend", "bs_obsidianguard", "bs_magmaray"],
+      ["bs_basaltdrake", "bs_infernaltyrant", "bs_lavamaw"],
+    ],
+    elites: ["el_magmawyrm"],
+    trait: {
+      id: "cauldron", name: "煮えたぎる釜", sym: "♆", accent: "#f0a040",
+      lines: ["釜の熱気が肌を焼く。戦闘が始まるたび、隊のHPが6%減る (HP1 より下にはならない)。", "釜の縁に霊薬の滓が固まっていて、得られる金貨は 1.4倍。"],
+      mods: { goldMul: 1.4 },
+      hpDrain: 0.06,
+    },
+    tune: { enemyMul: 1.20, deepMul: 0.82, soloMul: 1.05 }, // 開幕の熱気の分だけ控えめ
+    unlock: { reported: "w18" },
+    hint: "「火を噴く地割れ」の踏破を王に報告すると、火の洞の奥が示される",
+  },
+  {
+    id: "w21", lv: 67, lvTo: 70, layer: 7, floors: 15,
+    power: { 1: 0.163, 5: 0.1705, 10: 0.1793, 15: 0.1874 },
+    name: "業火の大釜", short: "大釜",
+    about: "火の洞の底の大釜。三百年、魂の樹液を煮詰め続けてきた。釜の底には、底の無い穴が口を開けている",
+    element: "fire",
+    bands: [
+      ["bs_obsidianguard", "bs_furnacefiend", "bs_pyrelich", "bs_demon", "bs_flamedrake", "bs_lavagolem"],
+      ["bs_basaltdrake", "bs_darkliege", "bs_shadowogre"],
+      ["bs_infernaltyrant", "bs_doombringer", "bs_hellhound"],
+    ],
+    trait: {
+      id: "inferno", name: "業火の大釜", sym: "♨", accent: "#ff6030",
+      lines: ["大釜の業火は退路を焼く。この迷宮の戦闘からは逃げられない。魔物はみな火の気を帯びる。", "煮詰められた魂の名残で、得る ✦Soul は 1.4倍。"],
+      mods: { noFlee: true, elemAll: true, soulMul: 1.4 },
+    },
+    boss: LAYER_BOSS[6], bossRank: 9,
+    tune: { enemyMul: 1.10, deepMul: 0.80, soloMul: 1.10, bossMul: 0.85 }, // 第7層の壁。逃げられない分だけ控えめ
+    unlock: { all: ["w19", "w20"] },
+    hint: "「灰の降る祭場」と「魂を煮る釜場」の両方を踏破して王に報告すると、大釜への道が開く",
+  },
   // ---- 依頼の迷宮 (酒場の固定クエストを受けると地図に現れる) ----
   {
     id: "ws1", lv: 20, lvTo: 23, layer: 2, floors: 10, side: true,
@@ -369,6 +538,26 @@ const WORLD_DEF = [
     tune: { enemyMul: 1.53, deepMul: 0.76, soloMul: 1.05 },
     unlock: { quest: "fq_zakka2" },
     hint: "酒場の行商人の依頼「銀の欠片の行方」を受けると、道が示される",
+  },
+  {
+    id: "ws5", lv: 55, lvTo: 58, layer: 6, floors: 10, side: true,
+    power: { 1: 0.185, 5: 0.1997, 10: 0.2166 },
+    name: "王都の古井戸", short: "古井戸",
+    about: "軍議の卓の地図に、王都の真ん中でひとつだけ赤く囲まれていた井戸。投げ込まれた願いの品が、底に積もっている",
+    element: "dark",
+    bands: [
+      ["d04_grudge", "bs_soulharvester", "bs_kelpdrowned", "bs_voidwalker", "bs_irongolem", "bs_shadowdragon"],
+      ["bs_dreadlich", "bs_fallenangel", "bs_divinegolem"],
+    ],
+    elites: ["el_fallenidol"],
+    trait: {
+      id: "wishes", name: "願いの底", sym: "◎", accent: "#9080c0",
+      lines: ["井戸の底には、三百年分の願いの品が沈んでいる。宝箱は1ランク上等で、落ちている装備の質も少し上がる。", "願いを喰らって育った魔物が、その品を守っている。"],
+      mods: { chestRankUp: 1, lootBonusLv: 4 },
+    },
+    tune: { enemyMul: 1.30, deepMul: 0.78, soloMul: 1.05 },
+    unlock: { story: "w09_map" },
+    hint: "「捨て砦の本丸」の軍議の卓の地図に、王都の井戸が記されているという",
   },
 ];
 
@@ -573,7 +762,7 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
     if (d.trait) {
       const t = d.trait;
       if (!t.id || !t.name || !Array.isArray(t.lines)) throw new Error(`world: ${d.id} trait needs id/name/lines`);
-      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "metalRate", "metalMax"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
+      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
     }
     for (const k of d.elites || []) if (!BESTIARY[k]) throw new Error(`world: ${d.id} unknown elite ${k}`);
   }
