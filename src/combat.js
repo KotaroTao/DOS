@@ -271,6 +271,12 @@ const FLEE_BASE = 0.55, FLEE_SLOPE = 0.35, FLEE_MIN = 0.05, FLEE_MAX = 0.95, FLE
 // 第3層では隊のほぼ全員が40%かわして敵の命中が4〜6割まで落ちていた (テスト記録)。新式では敵の命中が
 // どの層でも8割前後にそろう (模擬戦)。敵がかわす側 (味方 → 敵) も同じ相対式を使う
 const EVADE_EVEN = 0.20, EVADE_SLOPE = 0.20, EVADE_MAX = 0.40;
+// 手番の並び (_startRound): 敵の AGI も fleeK で味方の規模に直し、TURN_K を掛けて「基準の隊より遅め」に寄せる。
+// 揺らぎは AGI × (1 ± TURN_JITTER) の割合で、どの Lv でも同じくらい入れ替わる。Lv40 の6人 (AGI 25〜110) の試算で
+// 味方が先の組は約64% (0.85 だと39%): 速い者 (盗賊・暗殺者) はいつも敵より先、重装の騎士はいつも後、中ほどは入れ替わる。2026-10: 旧式は素の AGI + 0〜3 を
+// 比べていたため、Lv10 を越えると敵 (AGI 9 前後) が味方 (20〜70) より先に動くことがなくなっていた (テスト記録の味方先手100%)。
+// 金属の魔物はもともと味方の規模の AGI (基準 × agiMul) なので直さない
+const TURN_K = 0.65, TURN_JITTER = 0.20;
 // 心の状態異常 (actor.mind = "charm" 魅了 | "confuse" 混乱)。戦闘の中だけの状態で、戦いが終われば解ける。
 //  魅了: 手番ごとに味方へ襲いかかる (仲間がいなければ立ち尽くす)。傷を受けると MIND_CHARM_BREAK で正気に戻る
 //  混乱: 手番ごとに敵味方を問わず誰かを殴る / ふらついて何もできない / たまに正気で動ける
@@ -1080,10 +1086,14 @@ export class Battle {
     if (this._roundNo === 1 && this.opening === "preempt") pool = [...this.party];
     else if (this._roundNo === 1 && this.opening === "ambush") pool = [...this.enemies];
     const eagi = (a) => (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1);
+    // 手番の速さ: 敵は味方の規模に直す (TURN_K)。揺らぎは割合で、並べる前に1回だけ振る
+    const turnAgi = (a) => eagi(a) * (a.side === "enemy" && !isMetal(a) ? (this.fleeK || 1) * TURN_K : 1);
+    const speed = new Map();
+    for (const a of pool) if (a.alive) speed.set(a, turnAgi(a) * (1 - TURN_JITTER + Math.random() * 2 * TURN_JITTER));
     this.queue = pool
       .filter((a) => a.alive)
       // 加速装置 (actFirst) は必ず手番の最初に行動する。同士の中では AGI 順
-      .sort((a, b) => ((b.actFirst ? 1 : 0) - (a.actFirst ? 1 : 0)) || ((b.haste ? 1 : 0) - (a.haste ? 1 : 0)) || ((eagi(b) + rand(4)) - (eagi(a) + rand(4))));
+      .sort((a, b) => ((b.actFirst ? 1 : 0) - (a.actFirst ? 1 : 0)) || ((b.haste ? 1 : 0) - (a.haste ? 1 : 0)) || (speed.get(b) - speed.get(a)));
     // 神速 (haste): 目にも止まらぬ速さの敵は、ラウンドの頭 (加速装置の次) に動き、後半にもう一度動く
     for (const e of this.queue.filter((a) => a.haste && a.side === "enemy")) {
       const from = Math.max(this.queue.indexOf(e) + 1, Math.ceil(this.queue.length / 2));
