@@ -1,0 +1,13 @@
+{
+  "reference": "art/jobs/necromancer_1.webp",
+  "sourcePixels": {
+    "width": 180,
+    "height": 332,
+    "headCenterX": 76.28,
+    "crownY": 0,
+    "chinY": 88.5
+  },
+  "basis": "ユーザーが比較画像に示した白線を正しい顎先とし、表示倍率から元画像へ換算した概算。旧設定85.16pxは使用しない。",
+  "brigandLandmarks": "フードと布で頭頂・顎先が隠れているため、R1確認案の位置は暫定。ユーザーの確認後に固定する。",
+  "status": "R1確認待ち。ゲーム画像・顔位置設定は未更新。"
+}
