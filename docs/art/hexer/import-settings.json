@@ -1,0 +1,103 @@
+{
+  "job": "hexer",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "approvedR1": "docs/art/hexer/hexer-r1-final.png",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "crownToSole": 82.7,
+  "measurementNotes": [
+    "頬は肌の輪郭で測定し、耳・髪・頭巾を含めない。",
+    "人体の頭頂は頭巾に隠れているため、承認済みR1の頭部輪郭から原画y130と推定し全ランクで固定。帽子・角の先を使わない。",
+    "顎は顔の下側の輪郭、足裏は透明原画の最下部。R4・R5の顎位置差も実表示で確認する。"
+  ],
+  "sources": [
+    {
+      "source": "docs/art/hexer/hexer-r1-final.png",
+      "perDot": 14.667472793228537,
+      "head": [
+        503,
+        631,
+        130,
+        451
+      ],
+      "sole": 1343,
+      "alphaBBox": [
+        99,
+        64,
+        1055,
+        1343
+      ]
+    },
+    {
+      "source": "docs/art/hexer/hexer-r2-final.png",
+      "perDot": 14.655380894800484,
+      "head": [
+        503,
+        631,
+        130,
+        451
+      ],
+      "sole": 1342,
+      "alphaBBox": [
+        97,
+        63,
+        1054,
+        1342
+      ]
+    },
+    {
+      "source": "docs/art/hexer/hexer-r3-final.png",
+      "perDot": 14.64328899637243,
+      "head": [
+        503,
+        631,
+        130,
+        451
+      ],
+      "sole": 1341,
+      "alphaBBox": [
+        90,
+        64,
+        1060,
+        1341
+      ]
+    },
+    {
+      "source": "docs/art/hexer/hexer-r4-final.png",
+      "perDot": 14.679564691656589,
+      "head": [
+        506,
+        630,
+        130,
+        448
+      ],
+      "sole": 1344,
+      "alphaBBox": [
+        75,
+        36,
+        1058,
+        1344
+      ]
+    },
+    {
+      "source": "docs/art/hexer/hexer-r5-final.png",
+      "perDot": 14.667472793228537,
+      "head": [
+        506,
+        630,
+        130,
+        448
+      ],
+      "sole": 1343,
+      "alphaBBox": [
+        69,
+        34,
+        1061,
+        1343
+      ]
+    }
+  ]
+}

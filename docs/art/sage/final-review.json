@@ -1,0 +1,102 @@
+{
+  "sprites": [
+    {
+      "key": "crusader",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.93
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/crusader_1.webp"
+    },
+    {
+      "key": "sage",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.658
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/sage_1.webp"
+    },
+    {
+      "key": "sage",
+      "rank": 2,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.714
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/sage_2.webp"
+    },
+    {
+      "key": "sage",
+      "rank": 3,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.693
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/sage_3.webp"
+    },
+    {
+      "key": "sage",
+      "rank": 4,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.696
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/sage_4.webp"
+    },
+    {
+      "key": "sage",
+      "rank": 5,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.696
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/sage_5.webp"
+    }
+  ],
+  "canvasCount": 30,
+  "browserErrors": []
+}

@@ -1,0 +1,102 @@
+{
+  "sprites": [
+    {
+      "key": "crusader",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.93
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/crusader_1.webp"
+    },
+    {
+      "key": "hermit",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.741
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/hermit_1.webp"
+    },
+    {
+      "key": "hermit",
+      "rank": 2,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.707
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/hermit_2.webp"
+    },
+    {
+      "key": "hermit",
+      "rank": 3,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.809
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/hermit_3.webp"
+    },
+    {
+      "key": "hermit",
+      "rank": 4,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.827
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/hermit_4.webp"
+    },
+    {
+      "key": "hermit",
+      "rank": 5,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.72
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/hermit_5.webp"
+    }
+  ],
+  "canvasCount": 30,
+  "browserErrors": []
+}

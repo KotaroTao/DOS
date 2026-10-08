@@ -1,0 +1,130 @@
+[
+  {
+    "rank": 1,
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      81,
+      6,
+      278,
+      366
+    ],
+    "opaqueComponents": [
+      39302
+    ],
+    "sourceVisibleBBox": [
+      193,
+      58,
+      921,
+      1388
+    ],
+    "transparentPixels": 91421,
+    "componentNote": "残片なし"
+  },
+  {
+    "rank": 2,
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      80,
+      7,
+      282,
+      366
+    ],
+    "opaqueComponents": [
+      40322
+    ],
+    "sourceVisibleBBox": [
+      188,
+      56,
+      938,
+      1389
+    ],
+    "transparentPixels": 90332,
+    "componentNote": "残片なし"
+  },
+  {
+    "rank": 3,
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      79,
+      6,
+      299,
+      366
+    ],
+    "opaqueComponents": [
+      46275
+    ],
+    "sourceVisibleBBox": [
+      189,
+      54,
+      998,
+      1384
+    ],
+    "transparentPixels": 84742,
+    "componentNote": "残片なし"
+  },
+  {
+    "rank": 4,
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      74,
+      7,
+      300,
+      366
+    ],
+    "opaqueComponents": [
+      46532,
+      40,
+      38,
+      34,
+      24,
+      22,
+      16,
+      14,
+      12
+    ],
+    "sourceVisibleBBox": [
+      164,
+      57,
+      1000,
+      1387
+    ],
+    "transparentPixels": 83764,
+    "componentNote": "R4の光粒とR5の光背は目視確認"
+  },
+  {
+    "rank": 5,
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      76,
+      6,
+      306,
+      366
+    ],
+    "opaqueComponents": [
+      53377
+    ],
+    "sourceVisibleBBox": [
+      174,
+      57,
+      1029,
+      1390
+    ],
+    "transparentPixels": 77025,
+    "componentNote": "R4の光粒とR5の光背は目視確認"
+  }
+]

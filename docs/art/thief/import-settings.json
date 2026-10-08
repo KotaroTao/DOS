@@ -1,0 +1,21 @@
+{
+  "job": "thief",
+  "label": "盗賊",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "approvedR1": "docs/art/thief/thief-r1-final.png",
+  "frame": [90, 92],
+  "frameTop": 9,
+  "crownToSole": 82.25,
+  "measurementNotes": [
+    "各原画の髪・目・頬・足元をhead-measurement.pngと全身で確認。頭巾の先を人体の頭頂には含めない。",
+    "顎は口布に隠れているため、承認済みR1の顔と首・肩の配置から推定。R2以降も同じ人体を維持。",
+    "perDotは各原画の人体頭頂から足裏までの高さを82.25ドットで割った値。足裏の半透明な縁まで共通枠に残し、画像端に余白を確保する。"
+  ],
+  "sources": [
+    {"source": "docs/art/thief/thief-r1-final.png", "perDot": 13.130699088145897, "head": [481, 609, 250, 535, 1330], "alphaBBox": [210, 153, 1038, 1332]},
+    {"source": "docs/art/thief/thief-r2-final.png", "perDot": 13.130699088145897, "head": [482, 610, 250, 535, 1330], "alphaBBox": [206, 152, 1050, 1332]},
+    {"source": "docs/art/thief/thief-r3-final.png", "perDot": 13.11854103343465, "head": [482, 610, 251, 536, 1330], "alphaBBox": [196, 154, 1047, 1332]},
+    {"source": "docs/art/thief/thief-r4-final.png", "perDot": 13.130699088145897, "head": [482, 610, 250, 535, 1330], "alphaBBox": [195, 152, 1092, 1332]},
+    {"source": "docs/art/thief/thief-r5-final.png", "perDot": 13.11854103343465, "head": [482, 610, 251, 536, 1330], "alphaBBox": [196, 154, 1068, 1332]}
+  ]
+}
