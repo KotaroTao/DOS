@@ -594,11 +594,33 @@ function runGainGold(g, src, pre, modifier = null) {
 setPermanentStatSource(() => permanentEventStats(G.events?.once));
 
 function evBoon(k, field, dflt) { return G.events && G.events.flags && G.events.flags[k] ? EV_BOONS[k][field] : dflt; }
-function runGainSoulPts(s, src, pre, modifier = null) {
+// out を渡すと out.raw に「Lv差で減らす前の額」を入れる (戦闘の魂の経験値は魂ごとの Lv差で減らすため)
+function runGainSoulPts(s, src, pre, modifier = null, out = null) {
   const base = s, sf = sfNum("soulMul", 1), mu = modifier ?? mutNum("soulMul", 1), eq = 1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0);
-  s = Math.round(s * sf * mu * eq); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s;
-  if (tlOn() && inDungeon()) tlGain(tlWhere(), "soul", s, src, tlUplift(pre != null ? pre : base, base, sf, "soulMul", mu, eq));
+  const lm = inDungeon() ? partySoulLvMul() : 1;
+  const raw = s * sf * mu * eq;
+  s = Math.round(raw * lm); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s;
+  if (out) out.raw = Math.round(raw);
+  if (tlOn() && inDungeon()) {
+    const up = tlUplift(pre != null ? pre : base, base, sf, "soulMul", mu, eq);
+    if (lm < 1) up.lvd = raw * (lm - 1); // Lv差で減った分 (負の数)
+    tlGain(tlWhere(), "soul", s, src, up);
+  }
   return s;
+}
+// ===== Lv差による ✦Soul の減り (2026-10 テスト記録: 魂融合・残火を集める周回や寄り道の迷宮で ✦ が余り、推奨Lv を大きく超えた) =====
+// 魂の Lv が、いまの階の敵Lv (推奨Lv) + SOUL_LV_GRACE を超えた分、1Lv ごとに SOUL_LV_STEP ずつ減らす (下限 SOUL_LV_MIN)。
+// 迷宮で得る ✦ (戦闘・出来事・死体・金属) は隊のLv (メイン魂の平均) で、戦闘で魂に直接入る経験値は魂それぞれの Lv で決める
+// → Lv の低いサブ魂・控えから来た魂は満額のまま追いつく。町の ✦ (依頼・報告) は減らさない
+const SOUL_LV_GRACE = 2, SOUL_LV_STEP = 0.15, SOUL_LV_MIN = 0.1;
+function soulLvMul(lv, foeLv = foeLevelHere()) {
+  const over = (lv || 1) - foeLv - SOUL_LV_GRACE;
+  return over <= 0 ? 1 : Math.max(SOUL_LV_MIN, 1 - SOUL_LV_STEP * over);
+}
+function partySoulLvMul() {
+  const ds = (G.party || []).filter((d) => d && d.primary != null);
+  if (!ds.length) return 1;
+  return soulLvMul(ds.reduce((a, d) => a + (d.jobLv || 1), 0) / ds.length);
 }
 // テスト記録: 得た額のうち、倍率で増えた分の内訳 (順に掛けて、それぞれの倍率で増えた分)。
 // pre = パッシブ (金運・魂寄せ・魂の聖別) を掛ける前の額 / base = 倍率を掛ける前の額 / mu = 異変・掟・出来事の効果・奈落を合わせた倍率
@@ -9291,7 +9313,7 @@ function distributeBattleSoulExpMeasured(soulGot) {
   for (const w of worn) {
     const e = soulByUid(w.uid);
     if (!e) continue;
-    const gain = Math.floor((w.sub ? share * SUB_EXP_RATE : share) * (w.mul || 1));
+    const gain = Math.floor((w.sub ? share * SUB_EXP_RATE : share) * (w.mul || 1) * soulLvMul(e.level));
     if (gain <= 0) continue;
     const cap = soulLevelCapOf(e);
     e.exp = (e.exp || 0) + gain;
@@ -9375,10 +9397,12 @@ function endBattleMeasured() {
     const bsrc = b.enemies.some((e) => e.metal) ? "mt" : "b" + ((b.tl && b.tl.kind) || "n");
     const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)), bsrc, gold * 2, battleModifierReward(b, "gold")) + takeStolenGold(b);
     const sb = rankParty("bishopSeibetsu", [0.05, 0.10, 0.15, 0.25]); // 魂の聖別 (司教のランク)
-    const soulGot = runGainSoulPts(Math.round(soul * ((sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1) + sb)), bsrc, soul, battleModifierReward(b, "soul"));
+    const soulOut = {};
+    const soulGot = runGainSoulPts(Math.round(soul * ((sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1) + sb)), bsrc, soul, battleModifierReward(b, "soul"), soulOut);
     applyVictoryPassives();
     // 入手Soulの1/3を生存メンバーの魂 (サブ魂はその1/3) に加算 → レベルアップ/スキル習得を集計
-    const progress = distributeBattleSoulExp(soulGot);
+    // (Lv差の減りは魂それぞれの Lv で掛け直すので、隊のLv で減らす前の額を渡す)
+    const progress = distributeBattleSoulExp(soulOut.raw ?? soulGot);
     updateTopbar();
     log(`勝利！ ${goldGot} ゴールド と ✦${soulGot} Soul を得た。`, "win");
     const fled = b.enemies.filter((e) => e._fled).length; // 逃げ去った金属の魔物 (戦果は倒した分だけ)

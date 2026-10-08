@@ -46,7 +46,8 @@ function dangerOf(dn) {
   const gap = band[0] - pl;
   if (gap >= 8) return { cls: "reckless", text: "無謀", note: `推奨Lv${band[0]}〜 ・ パーティLv${pl}。格上の敵には状態異常も即死も、ほとんど効かない。` };
   if (gap >= 4) return { cls: "danger", text: "危険", note: `推奨Lv${band[0]}〜 ・ パーティLv${pl}。敵の状態異常が効きやすく、こちらの術は効きにくい。` };
-  if (pl - band[1] >= 8) return { cls: "easy", text: "易しい", note: null };
+  // 隊のLvが推奨Lv (いちばん深い階) + 2 を超えると、迷宮で得る ✦Soul が減る (game.js soulLvMul)
+  if (pl - band[1] > 2) return { cls: "easy", text: pl - band[1] >= 8 ? "易しい" : "格下", note: `推奨Lv〜${band[1]} ・ パーティLv${pl}。隊のLvが推奨Lvを3以上上回ると、得る✦Soulが減る (1Lvごとに15%、最大90%)。` };
   return null;
 }
 
