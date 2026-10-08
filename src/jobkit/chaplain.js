@@ -7,21 +7,23 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "chaplainSeitate",
   table: `
-    1 SHIELDBASH 2 KOUJIN 3 CHAPLAIN_SHIBIRETEATE 5 chaplainJungo/1 7 CHOUHATSU 10 PROTECT
-    12 SUIGETSU 15 CHAPLAIN_INORINOTATE 15 firstGuard/1 17 HOLYLIGHT 20 NIOUDACHI 25 chaplainNamida/1 30 GUARDALL
-    35 chaplainZankyou/1 40 HOUSHOUHEKI 45 chaplainJungo/2 50 CHAPLAIN_INORINOTATEUCHI 50 firstGuard/2 55 CHAPLAIN_JOUSUI 57 CHAPLAIN_MABAYUKISEITSUI
-    60 resistAilment/1 65 CHAPLAIN_MIGAWARI 70 chaplainSeiku/1 75 chaplainKouei/1 80 CHAPLAIN_MIZUKAGAMI 82 CHAPLAIN_NAGI
-    85 CHAPLAIN_INORINOKOUHA 90 chaplainJungo/3 95 CHAPLAIN_SHUGONOSEIIN 100 CHAPLAIN_JUNREI 100 firstGuard/3 105 chaplainZankyou/2 107 CHAPLAIN_MAMORINOKOUKEN
-    110 CHAPLAIN_MIZUGAKI 115 chaplainSeiku/2 120 CHAPLAIN_INORINOSABAKI 125 chaplainKouei/2 130 CHAPLAIN_RENTOU 135 resistAilment/2
-    140 CHAPLAIN_INOCHIZUNA 145 chaplainJungo/4 150 CHAPLAIN_SEISUIKEKKAI 155 chaplainSeiku/3 160 CHAPLAIN_DAIKITOU 165 chaplainNamida/2
-    170 CHAPLAIN_JUNKYOUSHA 175 chaplainZankyou/3 180 CHAPLAIN_SEIDAN 185 chaplainNamida/3 190 CHAPLAIN_SEIRYUUKOU 195 CHAPLAIN_YOMIGAERI
+    1 SHIELDBASH 2 KOUJIN 3 DIOS 5 chaplainJungo/1 7 CHOUHATSU 10 PROTECT 10 CURE 12 SUIGETSU
+    15 CHAPLAIN_INORINOTATE 15 firstGuard/1 17 HOLYLIGHT 20 NIOUDACHI 20 RECOVER 25 chaplainNamida/1
+    30 GUARDALL 30 DIOSALL 30 AWAKE 35 chaplainZankyou/1 40 HOUSHOUHEKI 40 DIAL 45 chaplainJungo/2
+    50 CHAPLAIN_INORINOTATEUCHI 50 firstGuard/2 50 STONECURE 55 REVIVE 57 CHAPLAIN_MABAYUKISEITSUI
+    60 resistAilment/1 60 DIALALL 65 CHAPLAIN_MIGAWARI 70 chaplainSeiku/1 75 chaplainKouei/1
+    80 CHAPLAIN_MIZUKAGAMI 80 MADIOS 82 CHAPLAIN_NAGI 85 CHAPLAIN_INORINOKOUHA 90 chaplainJungo/3
+    95 CHAPLAIN_SHUGONOSEIIN 100 CHAPLAIN_JUNREI 100 firstGuard/3 100 PURIFY 100 RESURRECT
+    105 chaplainZankyou/2 107 CHAPLAIN_MAMORINOKOUKEN 110 CHAPLAIN_MIZUGAKI 115 chaplainSeiku/2
+    120 CHAPLAIN_INORINOSABAKI 120 MADIOSALL 125 chaplainKouei/2 130 CHAPLAIN_RENTOU 135 resistAilment/2
+    140 CHAPLAIN_INOCHIZUNA 145 chaplainJungo/4 150 CHAPLAIN_SEISUIKEKKAI 155 chaplainSeiku/3
+    160 CHAPLAIN_DAIKITOU 165 chaplainNamida/2 170 CHAPLAIN_JUNKYOUSHA 175 chaplainZankyou/3
+    180 CHAPLAIN_SEIDAN 185 chaplainNamida/3 190 CHAPLAIN_SEIRYUUKOU 195 CHAPLAIN_YOMIGAERI
     200 CHAPLAIN_SEIGOJOU`,
   skills: {
-    CHAPLAIN_SHIBIRETEATE: { name: "しびれの手当て", mp: 3, kind: "cure", cure: ["paralyze"], target: "ally", desc: "味方一人の麻痺を治す" },
     // Lv15 の固有技: 祈りの盾で味方を包む
     CHAPLAIN_INORINOTATE: { name: "祈りの盾", mp: 5, kind: "buff", buff: { vit: 1.25 }, grantBarrier: 1, target: "ally", desc: "祈りの盾で味方を包み、防御を上げて魔障壁を張る" },
     CHAPLAIN_INORINOTATEUCHI: { name: "祈りの盾打ち", mp: 6, kind: "phys", power: 1.3, vitScale: 0.3, acc: 0.9, flinchChance: 0.25, target: "enemy", desc: "祈りを込めた盾で打ち、怯ませる（命中UP）" },
-    CHAPLAIN_JOUSUI: { name: "浄水の撒布", mp: 9, kind: "heal", power: 6, cure: ["poison", "paralyze"], target: "ally", desc: "一人の毒・猛毒・麻痺を治し、少し癒す" },
     CHAPLAIN_MABAYUKISEITSUI: { name: "眩き聖槌", mp: 12, kind: "phys", power: 2.0, pieScale: 0.5, element: "light", acc: 0.6, debuff: { hit: 0.85 }, target: "enemy", desc: "眩い聖槌で打ち、敵の狙いを乱す" },
     CHAPLAIN_MIGAWARI: { name: "身代わりの祈り", mp: 6, kind: "buff", shield: true, buff: { vit: 1.2 }, dur: 2, tech: true, target: "self", desc: "祈りと共に、仲間への単体攻撃を代わりに受ける" },
     CHAPLAIN_MIZUKAGAMI: { name: "水鏡の帳", mp: 11, kind: "buff", buff: { vit: 1.3 }, debuffAll: { hit: 0.9 }, target: "all-ally", desc: "水鏡の帳で味方を守り、敵の狙いを乱す" },
@@ -30,17 +32,17 @@ export default {
     CHAPLAIN_SHUGONOSEIIN: { name: "守護の聖印", mp: 12, kind: "buff", buff: { vit: 1.5 }, regen: { pct: 0.06, turns: 3 }, cure: ["poison", "paralyze", "stone"], purge: true, target: "ally", desc: "一人の毒・猛毒・麻痺・石化と弱体を祓い、守り癒し続ける" },
     CHAPLAIN_JUNREI: { name: "巡礼の鉄槌", mp: 18, kind: "phys", power: 2.8, vitScale: 1.3, pieScale: 0.4, acc: 1, target: "enemy", desc: "鎧と信仰の重みを乗せた必中の鉄槌" },
     CHAPLAIN_MAMORINOKOUKEN: { name: "護りの光剣", mp: 21, kind: "phys", power: 4.0, pieScale: 1.0, element: "light", acc: 1, debuff: { atk: 0.8 }, target: "enemy", desc: "必中の光剣で断ち、仲間を襲う力を挫く" },
-    CHAPLAIN_MIZUGAKI: { name: "慈悲の水垣", mp: 16, kind: "heal", power: 16, buff: { vit: 1.2 }, cure: true, target: "all-ally", desc: "水垣で味方全員を癒し守り、状態異常を治す" },
+    CHAPLAIN_MIZUGAKI: { name: "慈悲の水垣", mp: 18, kind: "heal", healMul: 1, healCap: 0.5, buff: { vit: 1.2 }, cure: true, target: "all-ally", desc: "水垣で味方全員を癒し守り、状態異常を治す" },
     CHAPLAIN_INORINOSABAKI: { name: "祈りの裁き", mp: 22, kind: "atk", power: 58, element: "light", debuff: { hit: 0.8 }, target: "enemy", desc: "裁きの光で撃ち、目を眩ませる" },
     CHAPLAIN_RENTOU: { name: "盾の連祷", mp: 21, kind: "buff", buff: { vit: 1.45 }, regen: { pct: 0.04, turns: 3 }, target: "all-ally", desc: "連祷が味方全体を守り、癒しを宿す" },
-    CHAPLAIN_INOCHIZUNA: { name: "命綱の祈り", mp: 28, kind: "heal", power: 120, grantEndure: true, cure: true, regen: { pct: 0.06, turns: 3 }, target: "ally", desc: "一人を大きく癒し、致死を一度だけ耐えさせる" },
+    CHAPLAIN_INOCHIZUNA: { name: "命綱の祈り", mp: 9, kind: "heal", healMul: 2.5, grantEndure: true, cure: true, regen: { pct: 0.06, turns: 3 }, target: "ally", desc: "一人を大きく癒し、致死を一度だけ耐えさせる" },
     CHAPLAIN_SEISUIKEKKAI: { name: "聖水の結界", mp: 22, kind: "buff", grantBarrier: 1, regen: { pct: 0.03, turns: 3 }, cure: true, target: "all-ally", desc: "聖水の結界で魔障壁を張り、癒しを宿す" },
-    CHAPLAIN_DAIKITOU: { name: "護教の大祈祷", mp: 30, kind: "heal", power: 30, buff: { vit: 1.35 }, regen: { pct: 0.04, turns: 3 }, target: "all-ally", desc: "味方全員を癒し、守りと癒しの加護を授ける" },
+    CHAPLAIN_DAIKITOU: { name: "護教の大祈祷", mp: 21, kind: "heal", healMul: 1.2, buff: { vit: 1.35 }, regen: { pct: 0.04, turns: 3 }, target: "all-ally", desc: "味方全員を癒し、守りと癒しの加護を授ける" },
     CHAPLAIN_JUNKYOUSHA: { name: "殉教者の大盾", mp: 26, kind: "buff", shield: true, taunt: true, buff: { vit: 1.5 }, grantBarrier: 1, tech: true, target: "self", desc: "敵を引き付けて仲間を庇い、魔障壁を張る" },
     CHAPLAIN_SEIDAN: { name: "聖壇の守り", mp: 30, kind: "buff", buff: { vit: 1.5 }, debuffAll: { atk: 0.85 }, target: "all-ally", desc: "聖壇の加護で味方を守り、敵の力を挫く" },
     CHAPLAIN_SEIRYUUKOU: { name: "聖流光", mp: 30, kind: "atk", power: 66, element: "light", prey: { races: UNHOLY, mul: 1.3 }, debuff: { hit: 0.85 }, target: "all-enemy", desc: "光の奔流が敵全体を呑み、狙いを乱す" },
-    CHAPLAIN_YOMIGAERI: { name: "蘇りの連祷", mp: 44, kind: "heal", power: 90, revive: true, revivePct: 0.5, cure: true, purge: true, regen: { pct: 0.05, turns: 3 }, target: "all-ally", desc: "倒れた者を呼び戻し、全員を癒し続ける" },
-    CHAPLAIN_SEIGOJOU: { name: "聖護城", mp: 40, kind: "heal", power: 40, buff: { vit: 1.6 }, grantBarrier: 1, regen: { pct: 0.04, turns: 3 }, target: "all-ally", desc: "味方全体を癒し、守りと障壁と癒しで包む" },
+    CHAPLAIN_YOMIGAERI: { name: "蘇りの連祷", mp: 75, kind: "heal", healMul: 2.1, revive: true, revivePct: 0.5, cure: true, purge: true, regen: { pct: 0.05, turns: 3 }, target: "all-ally", desc: "倒れた者を呼び戻し、全員を癒し続ける" },
+    CHAPLAIN_SEIGOJOU: { name: "聖護城", mp: 23, kind: "heal", healMul: 1.4, buff: { vit: 1.6 }, grantBarrier: 1, regen: { pct: 0.04, turns: 3 }, target: "all-ally", desc: "味方全体を癒し、守りと障壁と癒しで包む" },
   },
   perks: {
     // ランクのパッシブ: 祈りの盾が、隊のすべてを覆う

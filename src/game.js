@@ -2,7 +2,7 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, setOnEnemyKilled, setElemKnown, perkVictory, canSpellCure, cureBySpell, spellCureKinds } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, perkVictory, canSpellCure, cureBySpell, spellCureKinds } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageLabel, isBattleLong, turnsLeftLabel, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -13217,9 +13217,16 @@ function campSpellsOf(p) {
 }
 
 const spellCures = (sp) => sp.kind === "cure" || !!sp.cure;
-const spellHeals = (sp) => (sp.power || 0) > 0;
-// 戦闘外の回復量の基準 (実際はこれ + 0〜3割の揺らぎ。見積もりはこの最低値で行う)
-function campHealPower(caster, sp) { return Math.round(((sp.power || 0) + Math.round((caster.pie || 0) * 0.5)) * soulPowerMul(caster, sp)); } // 魂の格も戦闘と同じく乗る
+const spellHeals = (sp) => healsHp(sp);
+// 戦闘外の回復量の基準 (戦闘と同じ式 = combat.js spellHealRaw。実際はこれ + 0〜3割の揺らぎ)。
+// 対象 t を渡すと頭打ち (healCap)・割合回復 (healPct) を含めた最低値。省略時は隊でいちばん最大HPの小さい者を基準にした最低値 (見積もり用)
+function campHealPower(caster, sp, t = null) {
+  if (!t) {
+    const mins = G.party.filter((x) => x.maxhp > 0).map((x) => x.maxhp);
+    t = { maxhp: mins.length ? Math.min(...mins) : 1 };
+  }
+  return healOnTarget(sp, t, spellHealRaw(caster, sp, caster.pie || 0));
+}
 // 生きている1体へ回復呪文の効果 (状態異常の治療・HP回復) を与える。何か起きたら true
 // 戦闘外の回復で、最後に唱えた回復量 (満タンで上限に切られた分も含む素の値)。結果の表示に使う
 const CAMP_HEAL = new WeakMap();
@@ -13229,8 +13236,8 @@ function campApplyAliveMeasured(caster, sp, t) {
   if (canSpellCure(sp, t) && cureBySpell(sp, t)) { log(`${sp.name}！ ${t.name}の状態異常が治った`, "heal"); did = true; }
   if (spellHeals(sp)) {
     // 満タンの仲間にも回復量は見せる (HP は増えない・それだけでは「効果あり」にしない)
-    const p = campHealPower(caster, sp);
-    const heal = p + rand(Math.ceil(p * 0.3) + 1);
+    const raw = spellHealRaw(caster, sp, caster.pie || 0);
+    const heal = healOnTarget(sp, t, raw + rand(Math.ceil(raw * 0.3) + 1));
     CAMP_HEAL.set(t, heal);
     if (t.hp < t.maxhp) {
       t.hp = Math.min(t.maxhp, t.hp + heal);
@@ -13270,7 +13277,7 @@ function healAllRevivers() {
 // 倒れた1体を呪文で起こす (campCast と同じ蘇生量)
 function campRevive(...args) { return tlGameMeasure("camp", () => campReviveMeasured(...args)); }
 function campReviveMeasured(caster, sp, t) {
-  const heal = (sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : Math.max(1, campHealPower(caster, sp)))
+  const heal = (sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : Math.max(1, campHealPower(caster, sp, t)))
     + Math.round(t.maxhp * rankVal(caster, "priestInochi", [0.10, 0.20, 0.30, 0.50])); // 生命の灯 (僧侶のランク)
   t.alive = true; t.ailment = null; t.reviveAt = null; t._dead = false;
   t.hp = Math.max(1, Math.min(t.maxhp, heal));

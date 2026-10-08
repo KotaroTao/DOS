@@ -1,6 +1,6 @@
 // 共通戦闘計算の回帰確認。乱数を固定して実ダメージとオートの期待値も比較する。
 import assert from 'node:assert/strict';
-import { Battle, SPELLS, luckCritBonus, attackSpellPower, healingPower, setElemKnown, spellCost, soulCostAdd, soulPowerMul, soulTierRate, spellMpLabel, SOUL_POWER_K } from '../../src/combat.js';
+import { Battle, SPELLS, luckCritBonus, attackSpellPower, healingPower, setElemKnown, spellCost, soulCostAdd, soulPowerMul, soulTierRate, spellMpLabel, SOUL_POWER_K, healsHp, BLADE_HEAL_CAP } from '../../src/combat.js';
 import { makeDoll } from '../../src/souls.js';
 import { MONSTERS } from '../../src/sprites.js';
 import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
@@ -142,10 +142,10 @@ for(const key of ['HALITO','TILTOWAIT','KYOKUDAI','HOLYRAY','GRAVITY','ARCANIST_
   close(sum/samples,b.estSpell(a,sp,t),'攻撃呪文 '+key+' 耐性'+r);
  }
 }
-for(const key of ['DIOS','DIAL','MADIOS']){
+for(const key of ['DIOS','DIAL','MADIOS','DIOSALL','KNIGHT_JINCHUUTEATE']){
  const a=actor(),t=actor();const b=new Battle([a,t],[foe()],()=>{});let sum=0;
  for(let i=0;i<samples;i++){t.hp=1;a.mp=a.maxmp;b._exec({actor:a,action:'spell',spellKey:key,target:t});sum+=t.hp-1;}
- close(sum/samples,b.estHeal(a,SPELLS[key]),'回復 '+key);
+ close(sum/samples,b.estHeal(a,SPELLS[key],t),'回復 '+key);
 }
 let count=0;
 for(const [key,sp] of Object.entries(SPELLS)){
@@ -197,6 +197,31 @@ console.log(`全${count}技を実行。会心・耐性・命中・攻撃/回復�
  for(const lv of [1,2,3]){ const a=actor(),t=foe();a.atk=5000;a.maxmp=1000;a.passiveMap={bmManaCycle:lv};const b=new Battle([a],[t],()=>{});
    for(let i=0;i<30;i++){a.mp=0;t.hp=t.maxhp;t.alive=true;b._exec({actor:a,action:'attack',target:t});assert(a.mp<=[0,20,30,40][lv],`魔力循環Lv${lv}: ${a.mp}`);} }
  console.log(`魂の格: 物理${kinds.phys}・攻撃呪文${kinds.atk}・回復${kinds.heal}技の消費/威力/表記、実測と見積もり、MP吸収・魔力循環の上限を確認`);
+}
+// 回復の作り直し (2026-10): ヒールの頭打ち・割合回復・体の手当て (使い手の最大HP)・刃の癒し (与ダメ)
+{
+ const heal=(caster,key,t)=>{const b=new Battle([caster,t],[foe()],()=>{});t.hp=1;caster.mp=caster.maxmp;b._exec({actor:caster,action:'spell',spellKey:key,target:t});return t.hp-1;};
+ // ヒールは対象の最大HPの50%まで、ハイヒールはヒールの2.5倍
+ {const a=actor(),t=actor();t.maxhp=100;assert.equal(heal(a,'DIOS',t),50,'ヒールの頭打ち');
+  const lo=Object.assign(actor(),{pie:10}),t2=actor();const b=new Battle([lo,t2],[foe()],()=>{});
+  close(Math.round(b.estHeal(lo,SPELLS.DIAL,t2)),Math.round(b.estHeal(lo,SPELLS.DIOS,Object.assign(actor(),{maxhp:1e9}))*2.5),'ハイヒール = ヒール×2.5',.06);}
+ // 全快 (フルヒール・オールフルヒール) は揺らぎなく最大HPまで
+ {const a=actor(),t=actor();t.maxhp=5000;assert.equal(heal(a,'MADIOS',t),4999,'フルヒール');}
+ // 体の手当て: 使い手の最大HPで決まる (最大HPの小さい魔法職が借りても弱い)・対象の35%まで
+ {const big=Object.assign(actor(),{maxhp:400,hp:400,pie:999}),small=Object.assign(actor(),{maxhp:100,hp:100,pie:999});
+  const tA=Object.assign(actor(),{maxhp:1000}),tB=Object.assign(actor(),{maxhp:1000});
+  const hb=heal(big,'KNIGHT_JINCHUUTEATE',tA),hs=heal(small,'KNIGHT_JINCHUUTEATE',tB);
+  assert(hb>hs*3,`体の手当ては使い手の最大HPで伸びる (${hb} / ${hs})`);
+  const tC=Object.assign(actor(),{maxhp:100});assert(heal(Object.assign(actor(),{maxhp:5000,hp:5000}),'KNIGHT_JINCHUUTEATE',tC)<=35,'手当ての頭打ち');}
+ // 刃の癒し: 与えたダメージの割合を全員へ、1人あたり healCap まで。PIE は関係しない
+ {const key=Object.keys(SPELLS).find(k=>SPELLS[k].bladeHeal&&SPELLS[k].target==='enemy'),sp=SPELLS[key];
+  for(const pie of [10,9999]){const a=Object.assign(actor(),{pie}),m=Object.assign(actor(),{maxhp:100000}),t=foe();const b=new Battle([a,m],[t],()=>{});
+   m.hp=1;const r=b._exec({actor:a,action:'spell',spellKey:key,target:t});const dealt=r.hits.reduce((x,h)=>x+(h.target===t?(h.dmg||0):0),0);
+   assert.equal(m.hp-1,Math.max(1,Math.round(Math.min(dealt*sp.bladeHeal,100000*(sp.healCap||BLADE_HEAL_CAP)))),`刃の癒し ${sp.name} PIE${pie}`);}
+  for(const [k,s2] of Object.entries(SPELLS)) assert(!(s2.kind==='phys'&&s2.partyHeal),`物理技 ${k} は bladeHeal で書く`);}
+ // 威力999の書き方は残っていない
+ for(const [k,s2] of Object.entries(SPELLS)) assert(!(s2.kind==='heal'&&s2.power>=999),`${k}: 全快は healPct で書く`);
+ console.log('回復: ヒールの頭打ち・ハイヒール2.5倍・全快・体の手当て (使い手の最大HP)・刃の癒し (与ダメ) を確認');
 }
 // 出来事の全選択肢を、成功/失敗の乱数と傷・異常・死者がいる条件で確認する。
 let choices=0;

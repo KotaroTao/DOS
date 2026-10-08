@@ -5,15 +5,18 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "inqDanzai",
   table: `
-    1 SHIELDBASH 2 KAENGIRI 3 DIOS 5 inquisitorKokkaiTomoshibi/1 7 NERAIUCHI 10 SHINMON
-    12 INQUISITOR_SHOKUZAI 15 INQUISITOR_DANZAI 15 inqBrand/1 20 INQUISITOR_KASEUCHI 22 KAENNAGI 25 resistAilment/1 30 KAKEI
-    32 INQUISITOR_HAMON 35 inquisitorShinmonNirami/1 40 DANZAINOTSUCHI 45 inquisitorIhanShirushi/1 50 INQUISITOR_YAKIIN 50 inqBrand/2 55 DIOSALL
-    57 GURENZAN 60 inquisitorKokkaiTomoshibi/2 65 SHINGANGEKI 70 inquisitorZaininKyuusho/1 75 inquisitorIhanShirushi/2 80 INQUISITOR_IHANHAGI
-    85 INQUISITOR_MANAZASHI 90 inquisitorShinmonNirami/2 95 INQUISITOR_SABAKIYARI 100 INQUISITOR_GOUMON 100 inqBrand/3 105 resistAilment/2 107 INQUISITOR_JOUKATSUCHI
-    110 INQUISITOR_FUNKEI 115 inquisitorJoukaKokoroe/1 120 INQUISITOR_SHINPAN 125 inquisitorZaininKyuusho/2 130 INQUISITOR_KOKKAI 135 inquisitorIhanShirushi/3
-    140 INQUISITOR_MAJOGARI 145 inquisitorJoukaKokoroe/2 150 INQUISITOR_HAKAI 155 inquisitorZaininKyuusho/3 160 INQUISITOR_ZAININRETSU 162 INQUISITOR_KAKEIBA
-    165 inquisitorShinmonNirami/3 170 INQUISITOR_DANTOU 175 inquisitorJoukaKokoroe/3 180 INQUISITOR_JOUZAI 185 inquisitorKokkaiTomoshibi/3 190 SAIGONOSHINPAN
-    195 INQUISITOR_YURUSHI 200 INQUISITOR_SHAMEN`,
+    1 SHIELDBASH 2 KAENGIRI 3 DIOS 5 inquisitorKokkaiTomoshibi/1 7 NERAIUCHI 10 SHINMON 10 CURE
+    12 INQUISITOR_SHOKUZAI 15 INQUISITOR_DANZAI 15 inqBrand/1 20 INQUISITOR_KASEUCHI 20 RECOVER 22 KAENNAGI
+    25 resistAilment/1 30 KAKEI 30 DIOSALL 32 INQUISITOR_HAMON 35 inquisitorShinmonNirami/1
+    40 DANZAINOTSUCHI 40 DIAL 45 inquisitorIhanShirushi/1 50 INQUISITOR_YAKIIN 50 inqBrand/2 57 GURENZAN
+    60 inquisitorKokkaiTomoshibi/2 65 SHINGANGEKI 70 inquisitorZaininKyuusho/1 75 inquisitorIhanShirushi/2
+    80 INQUISITOR_IHANHAGI 85 INQUISITOR_MANAZASHI 90 inquisitorShinmonNirami/2 95 INQUISITOR_SABAKIYARI
+    100 INQUISITOR_GOUMON 100 inqBrand/3 105 resistAilment/2 107 INQUISITOR_JOUKATSUCHI
+    110 INQUISITOR_FUNKEI 115 inquisitorJoukaKokoroe/1 120 INQUISITOR_SHINPAN 125 inquisitorZaininKyuusho/2
+    130 INQUISITOR_KOKKAI 135 inquisitorIhanShirushi/3 140 INQUISITOR_MAJOGARI 145 inquisitorJoukaKokoroe/2
+    150 INQUISITOR_HAKAI 155 inquisitorZaininKyuusho/3 160 INQUISITOR_ZAININRETSU 162 INQUISITOR_KAKEIBA
+    165 inquisitorShinmonNirami/3 170 INQUISITOR_DANTOU 175 inquisitorJoukaKokoroe/3 180 INQUISITOR_JOUZAI
+    185 inquisitorKokkaiTomoshibi/3 190 SAIGONOSHINPAN 195 INQUISITOR_YURUSHI 200 INQUISITOR_SHAMEN`,
   skills: {
     // Lv15 の固有技: 罪人を鉄槌で打つ。弱った者に重く、特技を封じる
     INQUISITOR_DANZAI: { name: "罪人打ち", mp: 5, kind: "phys", power: 1.3, acc: 0.5, execute: 1.6, seal: { chance: 0.3, turns: 2 }, target: "enemy", desc: "罪人を鉄槌で打ち据える。弱った敵に重く、特技を封じる" },
@@ -36,8 +39,8 @@ export default {
     INQUISITOR_KAKEIBA: { name: "火刑場のなぎ", mp: 28, kind: "phys", power: 2.4, element: "fire", acc: 0.7, vuln: { fire: 0.9 }, target: "all-enemy", desc: "火刑場の炎で敵全体をなぎ、火に脆くする" },
     INQUISITOR_DANTOU: { name: "断頭の宣告", mp: 32, kind: "phys", power: 8.0, element: "light", acc: 1, execute: 1.8, target: "enemy", desc: "必中の断頭。弱った罪人には更に重い" },
     INQUISITOR_JOUZAI: { name: "浄罪の業火", mp: 30, kind: "atk", power: 82, element: "fire", seal: { chance: 0.3, turns: 2 }, faith: true, target: "all-enemy", desc: "業火で敵全体を焼き清め、特技を封じる（PIEでも伸びる）" },
-    INQUISITOR_YURUSHI: { name: "赦しの秘蹟", mp: 36, kind: "heal", power: 70, cure: true, purge: true, grantBarrier: 1, target: "all-ally", desc: "全員を癒して穢れを祓い、魔障壁を授ける" },
-    INQUISITOR_SHAMEN: { name: "終の赦免", mp: 44, kind: "heal", power: 999, revive: true, revivePct: 0.7, cure: true, purge: true, grantBarrier: 1, target: "all-ally", desc: "倒れた者を赦し蘇らせ (HP70%)、全員を守る" },
+    INQUISITOR_YURUSHI: { name: "赦しの秘蹟", mp: 29, kind: "heal", healMul: 1.9, cure: true, purge: true, grantBarrier: 1, target: "all-ally", desc: "全員を癒して穢れを祓い、魔障壁を授ける" },
+    INQUISITOR_SHAMEN: { name: "終の赦免", mp: 120, kind: "heal", healPct: 1, revive: true, revivePct: 0.7, cure: true, purge: true, grantBarrier: 1, target: "all-ally", desc: "倒れた者を赦し蘇らせ (HP70%)、全員を守る" },
   },
   perks: {
     // ランクのパッシブ: 罪に縛られた者へ、裁きは重くなる

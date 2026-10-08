@@ -6,14 +6,17 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "crusaderTsuigeki",
   table: `
-    1 KYOUGEKI 2 KOUJIN 3 HOLYRAY 5 crusaderFujouUchi/1 7 NERAIUCHI 10 BLESS
-    12 KAENGIRI 15 CRUSADER_SEIKAZAN 15 crusaderToki/1 20 CRUSADER_SEIINTSUKI 22 CRUSADER_JUUJISENKOU 25 crusaderFujouUchi/2 30 SEISEN
-    35 crusaderTotsugekiIkioi/1 40 JUUJIZAN 45 crusaderSeinaruKouyou/1 50 JOUKA 50 crusaderToki/2 55 SHINGANGEKI 57 SEIGEKI
-    60 crusaderSeikaKate/1 65 CRUSADER_SEISHOU 70 crusaderJunkyoushin/1 75 crusaderJunkyoushin/2 80 CRUSADER_SEIENTOTSU 82 GURENZAN
-    85 REVIVE 90 resistAilment/1 95 CRUSADER_JUUJIBARAI 100 CRUSADER_KOUCHUU 100 crusaderToki/3 105 crusaderTotsugekiIkioi/2 107 CRUSADER_SHOKUZAI
-    110 CRUSADER_SHAKUNETSU 115 crusaderFujouUchi/3 120 CRUSADER_SEISENTOTSU 125 crusaderJunkyoushin/3 130 CRUSADER_SEIENCHIKAI 135 crusaderSeikaKate/2
-    140 CRUSADER_JUUJISABAKI 145 resistAilment/2 150 CRUSADER_DAITOTSUGEKI 155 crusaderSeinaruKouyou/2 160 CRUSADER_JOUMETSU 162 KOUBOURANBU
-    165 crusaderJunkyoushin/4 170 CRUSADER_SEIRAKU 175 crusaderSeinaruKouyou/3 180 CRUSADER_GAIKA 185 crusaderTotsugekiIkioi/3 190 CRUSADER_TOTSUGEKIJIN
+    1 KYOUGEKI 2 KOUJIN 3 HOLYRAY 5 crusaderFujouUchi/1 5 DIOS 7 NERAIUCHI 10 BLESS 10 CURE 12 KAENGIRI
+    15 CRUSADER_SEIKAZAN 15 crusaderToki/1 20 CRUSADER_SEIINTSUKI 22 CRUSADER_JUUJISENKOU
+    25 crusaderFujouUchi/2 30 SEISEN 30 DIOSALL 35 crusaderTotsugekiIkioi/1 40 JUUJIZAN 40 DIAL
+    45 crusaderSeinaruKouyou/1 50 JOUKA 50 crusaderToki/2 55 SHINGANGEKI 57 SEIGEKI 60 crusaderSeikaKate/1
+    65 CRUSADER_SEISHOU 70 crusaderJunkyoushin/1 75 crusaderJunkyoushin/2 80 CRUSADER_SEIENTOTSU 82 GURENZAN
+    90 resistAilment/1 95 CRUSADER_JUUJIBARAI 100 CRUSADER_KOUCHUU 100 crusaderToki/3
+    105 crusaderTotsugekiIkioi/2 107 CRUSADER_SHOKUZAI 110 CRUSADER_SHAKUNETSU 115 crusaderFujouUchi/3
+    120 CRUSADER_SEISENTOTSU 125 crusaderJunkyoushin/3 130 CRUSADER_SEIENCHIKAI 135 crusaderSeikaKate/2
+    140 CRUSADER_JUUJISABAKI 145 resistAilment/2 150 CRUSADER_DAITOTSUGEKI 155 crusaderSeinaruKouyou/2
+    160 CRUSADER_JOUMETSU 162 KOUBOURANBU 165 crusaderJunkyoushin/4 170 CRUSADER_SEIRAKU
+    175 crusaderSeinaruKouyou/3 180 CRUSADER_GAIKA 185 crusaderTotsugekiIkioi/3 190 CRUSADER_TOTSUGEKIJIN
     195 CRUSADER_TENSHI 200 CRUSADER_SEIJUUJI`,
   skills: {
     // Lv15 の固有技: 聖なる火をまとう斬撃。不浄を焼く
@@ -32,9 +35,9 @@ export default {
     CRUSADER_DAITOTSUGEKI: { name: "聖騎の大突撃", mp: 28, kind: "phys", power: 6.8, element: "fire", acc: 1, pierce: 0.3, flinchChance: 0.35, target: "enemy", desc: "必中の大突撃で鎧を貫き、怯ませる" },
     CRUSADER_JOUMETSU: { name: "浄滅の聖光", mp: 30, kind: "atk", power: 66, element: "light", prey: { races: UNHOLY, mul: 1.4 }, flinchChance: 0.2, target: "all-enemy", desc: "敵全体を浄める聖光。不浄の者に強い" },
     CRUSADER_SEIRAKU: { name: "聖烙の大剣", mp: 32, kind: "phys", power: 8.4, element: "light", acc: 1, vuln: { light: 0.85 }, target: "enemy", desc: "必中の大剣で聖烙を刻み、光に脆くする" },
-    CRUSADER_GAIKA: { name: "凱歌の祈り", mp: 36, kind: "heal", power: 68, cure: true, buff: { atk: 1.15 }, target: "all-ally", desc: "凱歌で味方全員を癒し、異常を治し攻めを高める" },
+    CRUSADER_GAIKA: { name: "凱歌の祈り", mp: 29, kind: "heal", healMul: 1.9, cure: true, buff: { atk: 1.15 }, target: "all-ally", desc: "凱歌で味方全員を癒し、異常を治し攻めを高める" },
     CRUSADER_TOTSUGEKIJIN: { name: "聖炎の突撃陣", mp: 30, kind: "phys", power: 2.9, element: "fire", acc: 0.9, target: "all-enemy", desc: "聖炎の陣で敵全体に突撃する（命中UP）" },
-    CRUSADER_TENSHI: { name: "天使降臨", mp: 44, kind: "heal", power: 200, revive: true, revivePct: 0.6, cure: true, buff: { vit: 1.15 }, target: "all-ally", desc: "天使が倒れた者を蘇らせ (HP60%)、全員を癒し守る" },
+    CRUSADER_TENSHI: { name: "天使降臨", mp: 90, kind: "heal", healMul: 2.5, revive: true, revivePct: 0.6, cure: true, buff: { vit: 1.15 }, target: "all-ally", desc: "天使が倒れた者を蘇らせ (HP60%)、全員を癒し守る" },
     CRUSADER_SEIJUUJI: { name: "聖十字・終焉", mp: 40, kind: "phys", power: 5.6, hits: 2, element: "light", acc: 1, pierce: 0.8, prey: { races: UNHOLY, mul: 1.3 }, target: "enemy", desc: "鎧を貫く必中の十字二連。不浄の者に強い" },
   },
   perks: {
