@@ -6,11 +6,11 @@
 export const PHOTO_RES = 4; // 保存した画像の 1ドット (升目) あたりの px
 export const JOB_PHOTOS = {
   fighter: {
-    1: { src: "art/jobs/fighter_1.webp", w: 59, h: 84, face: [35, 12], head: [34.78, 1.91, 22.5] },
-    2: { src: "art/jobs/fighter_2.webp", w: 66, h: 84, face: [35, 12], head: [35.07, 1.91, 22.5] },
-    3: { src: "art/jobs/fighter_3.webp", w: 67, h: 84, face: [36, 12], head: [36.03, 1.91, 22.5] },
-    4: { src: "art/jobs/fighter_4.webp", w: 74, h: 84, face: [37, 12], head: [37.13, 1.91, 22.5] },
-    5: { src: "art/jobs/fighter_5.webp", w: 74, h: 84, face: [36, 12], head: [36.18, 1.91, 22.5] },
+    1: { src: "art/jobs/fighter_1.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.791] },
+    2: { src: "art/jobs/fighter_2.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.513] },
+    3: { src: "art/jobs/fighter_3.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.43] },
+    4: { src: "art/jobs/fighter_4.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.444] },
+    5: { src: "art/jobs/fighter_5.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.496] },
   },
   exorcist: {
     1: { src: "art/jobs/exorcist_1.webp", w: 55, h: 88, face: [29, 14], head: [28.93, 2.64, 24.79] },
@@ -110,6 +110,48 @@ export const JOB_PHOTOS = {
     3: { src: "art/jobs/crusader_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.918] },
     4: { src: "art/jobs/crusader_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.912] },
     5: { src: "art/jobs/crusader_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.94] },
+  },
+  sage: {
+    1: { src: "art/jobs/sage_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.658] },
+    2: { src: "art/jobs/sage_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.714] },
+    3: { src: "art/jobs/sage_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.693] },
+    4: { src: "art/jobs/sage_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.696] },
+    5: { src: "art/jobs/sage_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.696] },
+  },
+  bishop: {
+    1: { src: "art/jobs/bishop_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.93] },
+    2: { src: "art/jobs/bishop_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.93] },
+    3: { src: "art/jobs/bishop_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.93] },
+    4: { src: "art/jobs/bishop_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.93] },
+    5: { src: "art/jobs/bishop_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.93] },
+  },
+  priest: {
+    1: { src: "art/jobs/priest_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.977] },
+    2: { src: "art/jobs/priest_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.822] },
+    3: { src: "art/jobs/priest_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.94] },
+    4: { src: "art/jobs/priest_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.851] },
+    5: { src: "art/jobs/priest_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.738] },
+  },
+  shadow: {
+    1: { src: "art/jobs/shadow_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.794] },
+    2: { src: "art/jobs/shadow_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.909] },
+    3: { src: "art/jobs/shadow_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.898] },
+    4: { src: "art/jobs/shadow_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.805] },
+    5: { src: "art/jobs/shadow_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 31.035] },
+  },
+  mage: {
+    1: { src: "art/jobs/mage_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.985] },
+    2: { src: "art/jobs/mage_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.966] },
+    3: { src: "art/jobs/mage_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 31.076] },
+    4: { src: "art/jobs/mage_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.947] },
+    5: { src: "art/jobs/mage_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 31.127] },
+  },
+  knight: {
+    1: { src: "art/jobs/knight_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.91] },
+    2: { src: "art/jobs/knight_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.87] },
+    3: { src: "art/jobs/knight_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.696] },
+    4: { src: "art/jobs/knight_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.773] },
+    5: { src: "art/jobs/knight_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.715] },
   },
   // <<JOB_PHOTOS>>
 };

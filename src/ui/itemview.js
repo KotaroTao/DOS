@@ -469,14 +469,18 @@ export function effDetailLines(it) {
 }
 // 特殊効果の短い表記 (能力値を除く: 戦闘効果・%補正・補正/魔法・属性・状態異常)。無ければ ""
 export function specialShort(it) {
-  if (!it || it.unidentified) return "";
+  return specialParts(it).join("　");
+}
+// specialShort の一つ一つ (「2連撃」「吸血15%」…)。付け替えでの特殊効果の増減を比べるのに使う
+export function specialParts(it) {
+  if (!it || it.unidentified) return [];
   const parts = [...effStatParts(it)];
   if (it.magic) parts.push("魔法属性");
   const ea = elemStatText("攻撃", it.eAtk), ed = elemStatText("防御", it.eDef);
   if (ea) parts.push(ea);
   if (ed) parts.push(ed);
   for (const x of ailStatParts(it)) parts.push(x);
-  return parts.join("　");
+  return parts;
 }
 // 特殊効果のくわしい行をまとめて (戦闘効果・武器の補正/魔法属性・属性・状態異常)。説明の文とは別に、数字で効果を言い切る
 export function specialLines(it) {

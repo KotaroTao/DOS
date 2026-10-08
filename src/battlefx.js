@@ -51,6 +51,7 @@ const BASE_DUR = {
   rise: 340, breath: 340, pclaw: 260,
   // 技の組み立て (付く効果の印・全体技・上級の魔法陣)
   drain: 340, pierce: 240, execute: 300, stun: 280, vuln: 320, strip: 320, seal: 320, gravity: 320, steal: 340, doom: 340,
+  reap: 760, // 死の宣告 (死霊術師のランクのパッシブ): 開幕だけ・一手より長い余韻 (game.js animateResult の hold)
   field: 360, fieldslash: 300, blessing: 360, fieldhex: 340, circle: 300,
 };
 // 技の角度の揺らぎ (rot) で回してよい効果 (地面に立つもの・画面全体のものは回さない)
@@ -973,6 +974,83 @@ Object.assign(DRAW, {
       const a = (i / 10) * Math.PI * 2, r0 = 10 * s, r1 = (20 + easeOut(t) * 26) * s;
       ctx.globalAlpha = 1 - t; ctx.fillStyle = i % 2 ? "#ff2a3a" : "#6a1030";
       ctx.beginPath(); ctx.moveTo(e.x + Math.cos(a - 0.1) * r0, e.y + Math.sin(a - 0.1) * r0); ctx.lineTo(e.x + Math.cos(a) * r1, e.y + Math.sin(a) * r1); ctx.lineTo(e.x + Math.cos(a + 0.1) * r0, e.y + Math.sin(a + 0.1) * r0); ctx.closePath(); ctx.fill();
+    }
+  },
+  // 死の宣告: 頭上に紫の大鎌が現れて振り下ろされ、刈られた魂 (青白い髑髏) が昇って消える
+  reap(ctx, e, t) {
+    const s = e.s;
+    // 闇の渦 (足もと〜胴): 全体を通して濃くなり、終わりに引く
+    const a0 = Math.sin(Math.PI * t);
+    const g = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, 62 * s);
+    g.addColorStop(0, `rgba(30,0,40,${0.75 * a0})`); g.addColorStop(0.65, `rgba(70,10,90,${0.4 * a0})`); g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = g; ctx.fillRect(e.x - 62 * s, e.y - 62 * s, 124 * s, 124 * s);
+    // 大鎌: 0〜0.15 で現れ、0.15〜0.42 で頭上から敵を薙いで振り抜く。支点は敵の右上、刃は振る向きへ反る
+    if (t < 0.6) {
+      const px = e.x + 50 * s, py = e.y - 84 * s, L = 82 * s;
+      const sw = easeOut(clamp01((t - 0.15) / 0.27));
+      const a0 = Math.PI * 0.08, ang = a0 + sw * Math.PI * 0.9;
+      const app = clamp01(t / 0.15), fade = t < 0.45 ? 1 : 1 - (t - 0.45) / 0.15;
+      // 振り抜いた軌跡 (紫の残光)
+      if (sw > 0.02) {
+        ctx.globalCompositeOperation = "lighter";
+        ctx.globalAlpha = (0.75 * (1 - sw) + 0.25) * fade;
+        ctx.strokeStyle = "#a050ff"; ctx.lineWidth = 9 * s; ctx.lineCap = "round";
+        ctx.beginPath(); ctx.arc(px, py, L + 26 * s, Math.max(a0, ang - 1.4), ang); ctx.stroke();
+        ctx.globalCompositeOperation = "source-over";
+      }
+      ctx.globalAlpha = app * fade;
+      ctx.save();
+      ctx.translate(px, py); ctx.rotate(ang);
+      // 柄
+      ctx.strokeStyle = "#1e1224"; ctx.lineWidth = 4.5 * s; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(-26 * s, 0); ctx.lineTo(L + 4 * s, 0); ctx.stroke();
+      ctx.strokeStyle = "#5a4466"; ctx.lineWidth = 1.2 * s;
+      ctx.beginPath(); ctx.moveTo(-26 * s, -1.4 * s); ctx.lineTo(L, -1.4 * s); ctx.stroke();
+      // 刃 (三日月): 柄の先から振る向き (+y) へ反り、柄の側へ切っ先が戻る
+      ctx.beginPath();
+      ctx.moveTo(L + 2 * s, -5 * s);
+      ctx.quadraticCurveTo(L + 34 * s, 30 * s, L - 46 * s, 54 * s);
+      ctx.quadraticCurveTo(L + 6 * s, 24 * s, L - 6 * s, 5 * s);
+      ctx.closePath();
+      ctx.fillStyle = "#34104a"; ctx.fill();
+      ctx.globalCompositeOperation = "lighter";
+      ctx.strokeStyle = "#e6c8ff"; ctx.lineWidth = 1.8 * s;
+      ctx.beginPath(); ctx.moveTo(L + 2 * s, -5 * s); ctx.quadraticCurveTo(L + 34 * s, 30 * s, L - 46 * s, 54 * s); ctx.stroke();
+      ctx.restore();
+      ctx.globalCompositeOperation = "source-over";
+    }
+    // 刈られた瞬間の裂け目 (0.35〜0.6)
+    if (t > 0.35 && t < 0.65) {
+      const q = (t - 0.35) / 0.3;
+      ctx.globalCompositeOperation = "lighter";
+      ctx.globalAlpha = 1 - q;
+      ctx.strokeStyle = "#f0d8ff"; ctx.lineWidth = (5 - 4 * q) * s;
+      ctx.beginPath(); ctx.moveTo(e.x + 30 * s, e.y - 34 * s); ctx.lineTo(e.x - 30 * s, e.y + 30 * s); ctx.stroke();
+      ctx.globalCompositeOperation = "source-over";
+    }
+    // 抜けた魂: 青白い髑髏が昇って消える (0.4〜1)
+    if (t > 0.4) {
+      const q = (t - 0.4) / 0.6;
+      const x = e.x + Math.sin(q * 6 + e.seed) * 4 * s, y = e.y - 10 * s - easeOut(q) * 60 * s;
+      ctx.globalAlpha = (q < 0.2 ? q / 0.2 : 1) * (1 - q) * 0.95;
+      ctx.globalCompositeOperation = "lighter";
+      glow(ctx, x, y, 22 * s, "#9fe8d0", 0.8);
+      ctx.globalCompositeOperation = "source-over";
+      ctx.fillStyle = "#dff8f0";
+      ctx.beginPath(); ctx.arc(x, y - 2 * s, 7.5 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.fillRect(x - 4.5 * s, y + 3 * s, 9 * s, 5 * s);
+      ctx.fillStyle = "#1a0a24";
+      ctx.beginPath(); ctx.arc(x - 3 * s, y - 2 * s, 2 * s, 0, Math.PI * 2); ctx.arc(x + 3 * s, y - 2 * s, 2 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.fillRect(x - 0.6 * s, y + 1.5 * s, 1.2 * s, 2 * s);
+      for (let i = -1; i <= 1; i++) ctx.fillRect(x + i * 2.6 * s - 0.5 * s, y + 4.5 * s, 1 * s, 3.5 * s);
+      // 尾 (霊気の筋)
+      ctx.globalCompositeOperation = "lighter";
+      for (let i = 0; i < 8; i++) {
+        const k = i / 8;
+        ctx.globalAlpha = (1 - q) * (1 - k) * 0.6;
+        ctx.fillStyle = "#7fd8c0";
+        ctx.fillRect(x + Math.sin(q * 6 + e.seed + k * 3) * 5 * s - 1.5, y + 8 * s + k * 26 * s, 3, 3);
+      }
     }
   },
 });
