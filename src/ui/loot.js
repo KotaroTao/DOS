@@ -820,12 +820,38 @@ export function itemSheet(item, o = {}) {
     top.appendChild(hd);
     scroll.appendChild(top);
     if (st.flash) { top.classList.add("wpc-revealed"); st.flash = false; }
+    // 並び (ユーザーの指示、2026-10): 細目 (装備の条件・片手/両手…) と説明文 → 攻撃性能 → 特殊効果 → 誰に装備させる？
+    if (!it.unidentified) {
+      const det = [];
+      if (isEquippable(it)) det.push(equipClassText(it));
+      if (it.slot === "weapon") det.push(handLine(it));
+      if (it.align) det.push(`${it.align}属性`);
+      if (it.slot === "misc") det.push("王宮の宝物庫に奉納できる。商会では売れる。");
+      if (it.use) for (const x of useLines(it)) det.push(x);
+      if (det.length) {
+        const box = el("div", "wpc-is-lines");
+        for (const ln of det) box.appendChild(setText(el("div"), ln));
+        scroll.appendChild(box);
+      }
+      if (it.desc) scroll.appendChild(el("div", "wpc-is-lore", it.desc));
+    }
     const equippedOwner = ownerOf(it);
     const performance = weaponPerformanceEl(it, equippedOwner?.where === "equip" ? equippedOwner.doll : st.target || st.owner);
     if (performance) scroll.appendChild(performance);
+    if (!it.unidentified) {
+      // 特殊効果 (吸血・連撃・属性・状態異常…) は数字で言い切った行を、説明の文とは別に目立たせる
+      const fx = specialLines(it);
+      if (fx.length) {
+        const box = el("div", "wpc-is-fx");
+        box.appendChild(el("div", "wpc-is-fxh", "特殊効果"));
+        for (const ln of fx) box.appendChild(setText(el("div", "wpc-is-fxl"), ln));
+        scroll.appendChild(box);
+      }
+    }
 
     if (it.unidentified) {
       scroll.appendChild(el("div", "wpc-is-note", "鑑定するまで正体も性能もわからない。"));
+      scroll.appendChild(el("div", "wpc-is-lore", "なんだかよくわからない品だ。鑑定すれば正体がわかるだろう。"));
     } else if (isEquippable(it) && st.context !== "view") {
       const o2 = ownerOf(it);
       if (o2 && o2.where === "equip") {
@@ -846,31 +872,6 @@ export function itemSheet(item, o = {}) {
         }));
         scroll.appendChild(sec);
       }
-    }
-    // 細目 (属性・装備の条件など)
-    if (!it.unidentified) {
-      // 特殊効果 (吸血・連撃・属性・状態異常…) は数字で言い切った行を、説明の文とは別に目立たせる
-      const fx = specialLines(it);
-      if (fx.length) {
-        const box = el("div", "wpc-is-fx");
-        box.appendChild(el("div", "wpc-is-fxh", "特殊効果"));
-        for (const ln of fx) box.appendChild(setText(el("div", "wpc-is-fxl"), ln));
-        scroll.appendChild(box);
-      }
-      const det = [];
-      if (isEquippable(it)) det.push(equipClassText(it));
-      if (it.slot === "weapon") det.push(handLine(it));
-      if (it.align) det.push(`${it.align}属性`);
-      if (it.slot === "misc") det.push("王宮の宝物庫に奉納できる。商会では売れる。");
-      if (it.use) for (const x of useLines(it)) det.push(x);
-      if (det.length) {
-        const box = el("div", "wpc-is-lines");
-        for (const ln of det) box.appendChild(setText(el("div"), ln));
-        scroll.appendChild(box);
-      }
-      if (it.desc) scroll.appendChild(el("div", "wpc-is-lore", it.desc));
-    } else {
-      scroll.appendChild(el("div", "wpc-is-lore", "なんだかよくわからない品だ。鑑定すれば正体がわかるだろう。"));
     }
     // 操作
     let specs = defaultActions(st);
