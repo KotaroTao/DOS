@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { Battle, SPELLS, AIL_KINDS, spellCureKinds, canSpellCure, cureBySpell } from '../../src/combat.js';
+import { Battle, SPELLS, AIL_KINDS, spellCureKinds, canSpellCure, cureBySpell, healsHp, spellHealRaw, healOnTarget } from '../../src/combat.js';
 import { makeDoll, SOUL_KEYS, jobSkillTable } from '../../src/souls.js';
 import { decideAuto } from '../../src/autotactics.js';
 import { skillDetailLines } from '../../src/ui/itemview.js';
@@ -49,26 +49,36 @@ for (const [key,sp] of Object.entries(SPELLS)) {
   assert.equal(t.ailment,'paralyze');assert.equal(t.effects.length,1);
   t.ailment='poison';assert(b._allyTargets(SPELLS.CURE).includes(t));
 }
-for(const job of SOUL_KEYS) for(const row of jobSkillTable(job)) {
-  const sp=SPELLS[row.skill]; if(!sp)continue;
-  const kinds=spellCureKinds(sp);
-  if(row.lvl<=30&&kinds.length) {assert.equal(kinds.length,1,job+' '+sp.name);assert.notEqual(sp.target,'all-ally');}
+// 標準の回復・治療 (2026-10 作り直し) の効果と、どの職でも決まった習得Lvの幅に収まること
+const STD_RANGE={DIOS:[3,5],DIAL:[25,40],MADIOS:[60,80],DIOSALL:[20,30],DIALALL:[40,60],MADIOSALL:[80,120],REVIVE:[40,60],RESURRECT:[80,100],
+  CURE:[3,10],RECOVER:[10,20],AWAKE:[20,30],STONECURE:[30,50],PURIFY:[60,100],CUREALL:[3,10],RECOVERALL:[10,20],AWAKEALL:[20,30],STONECUREALL:[30,50],PURIFYALL:[60,100]};
+const STD_KINDS={CURE:['poison'],RECOVER:['paralyze'],AWAKE:['sleep','confuse','charm'],STONECURE:['stone'],PURIFY:AIL_KINDS};
+for(const [k,kinds] of Object.entries(STD_KINDS)){
+  assert.deepEqual([...spellCureKinds(SPELLS[k])].sort(),[...kinds].sort(),k);
+  assert.deepEqual([...spellCureKinds(SPELLS[k+'ALL'])].sort(),[...kinds].sort(),k+'ALL');
+  assert.equal(SPELLS[k].target,'ally');assert.equal(SPELLS[k+'ALL'].target,'all-ally');
 }
+let stdRows=0;
+for(const job of SOUL_KEYS) for(const row of jobSkillTable(job)) {
+  const r=STD_RANGE[row.skill]; if(!r)continue;
+  assert(row.lvl>=r[0]&&row.lvl<=r[1],`${job} ${SPELLS[row.skill].name} Lv${row.lvl} (幅 ${r[0]}〜${r[1]})`);stdRows++;
+}
+assert(stdRows>80,'標準の技の習得が少なすぎる');
 assert(skillDetailLines(SPELLS.CURE).some(x=>x.includes('毒・猛毒')));
 assert(!skillDetailLines(SPELLS.CURE).some(x=>x.includes('石化')));
 // game.js全体のDOM初期化を避け、実際の戦闘外関数をそのまま実行する。
 const source=fs.readFileSync(new URL('../../src/game.js',import.meta.url),'utf8');
 const extract = name => {const start=source.indexOf(`function ${name}(`);assert(start>=0,name);return source.slice(start,source.indexOf('\n}',start)+2);};
-const context=vm.createContext({spellCureKinds,canSpellCure,cureBySpell,spellHeals:sp=>(sp.power||0)>0,campHealPower:()=>10,CAMP_HEAL:new WeakMap(),rand:()=>0,log:()=>{},HEAL_CAST_EPS:.001});
+const context=vm.createContext({spellCureKinds,canSpellCure,cureBySpell,spellHeals:healsHp,spellHealRaw,healOnTarget,campHealPower:()=>10,CAMP_HEAL:new WeakMap(),rand:()=>0,log:()=>{},HEAL_CAST_EPS:.001});
 vm.runInContext(['planHealAllDP','planHealAllGreedy','campApplyAliveMeasured'].map(extract).join('\n'),context);
 const act = key => ({key,sp:SPELLS[key],cost:SPELLS[key].mp,pow:0,heals:false,cures:true,all:SPELLS[key].target==='all-ally'});
-const casters=[{p:{mp:100},acts:['CURE','PRIEST_SHIBIREBARAI','PRIEST_ISHIHODOKI'].map(act)}];
+const casters=[{p:{mp:100},acts:['CURE','RECOVER','STONECURE'].map(act)}];
 const plan=context.planHealAllDP([0,0,0],['poison','paralyze','stone'],casters);
 assert(plan);assert.equal(plan.steps.length,3);
 for (const step of plan.steps) assert(spellCureKinds(step.k.sp).includes(['poison','paralyze','stone'][step.t]));
 assert.equal(context.planHealAllDP([0],['stone'],[{p:{mp:100},acts:[act('CURE')]}]),null);
 assert.equal(context.planHealAllGreedy([0],['stone'],[{p:{mp:100},acts:[act('CURE')]}]),null);
-const group=[{p:{mp:100},acts:['HERMIT_YAKUSOUARAI','EXORCIST_KOKOROBARAI'].map(act)}];
+const group=[{p:{mp:100},acts:['HERMIT_YAKUSOUARAI','AWAKEALL'].map(act)}];
 assert.equal(context.planHealAllGreedy([0,0],['poison','stone'],group).length,1);
 assert.equal(context.planHealAllGreedy([0,0],['poison','confuse'],group).length,2);
 const t=member();t.ailment='stone';

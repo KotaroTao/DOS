@@ -7,7 +7,7 @@ import { RESIST_LABEL } from "../resistance.js";
 import { game } from "./ctx.js";
 import { el, sheet } from "./kit.js";
 import { ELEMENTS, elemBeats, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dungeons/index.js";
-import { SPELLS, spellMpLabel, spellCureKinds, soulTierRate } from "../combat.js";
+import { SPELLS, spellMpLabel, spellCureKinds, soulTierRate, healsHp } from "../combat.js";
 import { STAGED, stageOf, stageMul, stageLabel, ENEMY_STAT_LABEL } from "../buffstage.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
 import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, useLines } from "../items.js";
@@ -236,7 +236,14 @@ export function skillDetailLines(sp) {
   if (sp.kind === "atk" && sp.gravity) lines.push(`敵の今のHPの${pct(sp.gravity)}を削る（主には3割しか効かない・魔法耐性は受ける）`);
   else if (sp.kind === "atk") lines.push(`威力 ${sp.power}（術者の${sp.faith || sp.element === "light" ? "INT と PIE の高い方" : "INT"}で伸びる）`);
   if (sp.kind === "atk" && sp.gravity && sp.gravityIntCap != null) lines.push(`基本ダメージの上限: 強化・弱体込みのINT×${sp.gravityIntCap}（与ダメージ強化・魔法耐性・防御は上限適用後に計算）`);
-  if (sp.kind === "heal" && sp.power) lines.push(`回復量 ${sp.power}（術者のPIEで伸びる）`);
+  if (sp.kind === "heal") {
+    const all = sp.target === "all-ally" ? "味方全員" : sp.target === "self" ? "自分" : "対象";
+    const cap = sp.healCap ? `（${all === "対象" ? "" : "1人あたり"}最大HPの${pct(sp.healCap)}まで）` : "";
+    if (sp.healPct) lines.push(`${all}の最大HPの${pct(sp.healPct)}を回復`);
+    else if (sp.bodyHeal) lines.push(`回復量 使い手の最大HPの${pct(sp.bodyHeal)}${cap}`);
+    else if (sp.healMul) lines.push(`回復量 ${sp.healMul === 1 ? "ヒールと同じ" : `ヒールの${sp.healMul}倍`}（術者のPIEで伸びる）${cap}`);
+    else if (sp.power) lines.push(`回復量 ${sp.power}（術者のPIEで伸びる）${cap}`);
+  }
   if (sp.kind === "mana") lines.push(`味方のMPを ${sp.power} 回復（術者のINTで少し伸びる）`);
   if (sp.kind === "escape") lines.push("必ず戦闘から逃げられる（迷宮の異変で退路が閉ざされている時を除く）");
   if (sp.kind === "sleep") lines.push("敵全体を基本60%で眠らせる（抵抗値で成功率が下がる）");
@@ -293,6 +300,7 @@ export function skillDetailLines(sp) {
   if (sp.poison || sp.para || sp.seal || sp.instakill || sp.sleepChance || sp.charm || sp.confuse || sp.kind === "sleep") lines.push("※ 表示は抵抗値0・同じLvでの基本確率。Lv差で5〜95%に調整した後、成功率×（1−抵抗値/100）で判定。抵抗値100は無効");
   if (sp.plunder) lines.push("この技で倒した敵は、落とすゴールドが2倍になる");
   if (sp.partyHeal) lines.push(`攻撃の後、味方全体のHPを ${sp.partyHeal} 回復（術者のPIEで伸びる）`);
+  if (sp.bladeHeal) lines.push(`与えたダメージの${pct(sp.bladeHeal)}だけ味方全員のHPを回復（1人あたり最大HPの${pct(sp.healCap || 0.25)}まで）`);
   if (sp.cure || sp.kind === "cure") lines.push(`状態異常（${spellCureKinds(sp).map(k => k === "poison" ? "毒・猛毒" : AIL_LABEL[k]).join("・")}）を治す`);
   if (sp.purge) lines.push("かかっている弱体を解く");
   if (sp.grantEndure) lines.push("対象に「致死ダメージをHP1で耐える」を付与（1戦闘1回）");
@@ -303,7 +311,11 @@ export function skillDetailLines(sp) {
   if ([sp.buff, sp.debuff, sp.debuffAll].some((o) => o && Object.keys(o).some((k) => STAGED.has(k)))) lines.push("能力の段は強化と弱体で打ち消し合い、±3段で止まる（主・精鋭への弱体は −2段まで・持続 −1）");
   if (sp.strip) lines.push("敵の大技の予兆（溜め）も打ち消せる");
   const tier = soulTierRate(sp);
-  if (tier) lines.push(`魂の格: メイン魂のMPの${pct(tier)}が消費に加わり、そのぶん威力・効果が上がる（最大で×1.8に近づく。装備などで足したMPは含まない）`);
+  // 割合で回復・蘇生する技 (フルヒール・リバイブ…) は量が変わらない (消費だけ増える)
+  const tierScales = sp.kind !== "heal" || (healsHp(sp) && !sp.healPct);
+  if (tier) lines.push(tierScales
+    ? `魂の格: メイン魂のMPの${pct(tier)}が消費に加わり、そのぶん威力・効果が上がる（最大で×1.8に近づく。装備などで足したMPは含まない）`
+    : `魂の格: メイン魂のMPの${pct(tier)}が消費に加わる（割合で回復・蘇生するので効果は変わらない。装備などで足したMPは含まない）`);
   return lines;
 }
 

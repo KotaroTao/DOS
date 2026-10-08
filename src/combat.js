@@ -219,6 +219,31 @@ function gravityDamage(sp, intv, t) {
 export function healingPower(power, pie) {
   return (power || 0) + Math.max(0, pie || 0) * (0.5 + Math.max(0, Math.min(120, power || 0) - 14) / 160);
 }
+// 回復の技の量 (2026-10 作り直し、ユーザーの指示)。技の項目で決まる:
+//  healPct  = 対象の最大HPの割合 (フルヒール系。揺らぎも魂の格の威力も乗らない)
+//  bodyHeal = 使い手の最大HPの割合 (物理職の「体の手当て」。魔法職が借りても最大HPが小さいので弱い)
+//  healMul  = ヒール (power 14 の式) の何倍か (ハイヒール 2.5)。無ければ旧来の power の式
+//  healCap  = 1回の回復を対象の最大HPの割合で頭打ちにする (ヒール 50%・手当て 35% など)
+// 魂の格の威力の倍率 (soulPowerMul) は healPct 以外に乗る
+export const HEAL_BASE_POWER = 14;
+export function healsHp(sp) { return !!sp && sp.kind === "heal" && (sp.healPct > 0 || sp.bodyHeal > 0 || sp.healMul > 0 || (sp.power || 0) > 0); }
+// 揺らぎ・頭打ちの前の回復量 (pie = 強化込みの PIE)
+export function spellHealRaw(actor, sp, pie) {
+  if (!sp || sp.healPct) return 0;
+  const soul = soulPowerMul(actor, sp);
+  if (sp.bodyHeal) return ((actor && actor.maxhp) || 0) * sp.bodyHeal * soul;
+  return (sp.healMul ? healingPower(HEAL_BASE_POWER, pie) * sp.healMul : healingPower(sp.power, pie)) * soul;
+}
+// 対象 t への実際の回復量 (amount = 揺らぎ後の量)
+export function healOnTarget(sp, t, amount) {
+  const mhp = (t && t.maxhp) || 0;
+  if (sp.healPct) return Math.max(1, Math.round(mhp * sp.healPct));
+  const v = Math.max(1, Math.round(amount));
+  return sp.healCap ? Math.min(v, Math.max(1, Math.round(mhp * sp.healCap))) : v;
+}
+// 刃の癒し (物理技の bladeHeal): 与えたダメージ × 割合を味方全員へ。1人あたり最大HPの healCap (無ければ BLADE_HEAL_CAP) まで。
+// 量が与ダメで決まるので、魔法職が借りても弱い。物理職が借りても低位の技は上限 (10%) で止まる
+export const BLADE_HEAL_CAP = 0.25;
 
 // 職業ランクパッシブのLvを引く (souls.js の recalcDoll が passiveMap を埋める)
 const pv = (a, key) => (a && a.passiveMap && a.passiveMap[key]) || 0;
@@ -1345,7 +1370,7 @@ export class Battle {
   //  - HP回復(power) は HP満タンには無効 / 状態治療は状態異常がなければ無効 /
   //    蘇生は戦闘不能者のみ。バフ/不屈/障壁などの副次効果がある呪文は満タンでも有効。
   _allyTargets(sp) {
-    const heals = sp.kind === "heal" && (sp.power || 0) > 0;
+    const heals = healsHp(sp);
     const revives = !!sp.revive;
     const cures = sp.kind === "cure" || !!sp.cure;
     const otherBenefit = !!(sp.buff || sp.grantEndure || sp.grantBarrier || sp.regen); // 満タンでも有効な効果
@@ -2419,9 +2444,24 @@ export class Battle {
     return Math.max(1, dmg);
   }
   // 回復呪文の1人あたりの期待回復量 (揺らぎの平均込み)
-  estHeal(actor, sp) {
+  // 対象 t を渡すと頭打ち (healCap)・割合回復 (healPct) まで含めた量。省略時は頭打ち前の量
+  estHeal(actor, sp, t = null) {
+    if (t) return this._healAmt(actor, sp, t, true);
+    return sp.healPct ? 0 : varianceMean(this._healRaw(actor, sp));
+  }
+  // 刃の癒しの1人あたりの期待回復量 (与ダメの見積もり dealt から)
+  estBladeHeal(actor, sp, dealt, t) {
+    return Math.min(dealt * (sp.bladeHeal || 0) * (1 + this._perkSum(actor, "heal")), ((t && t.maxhp) || 0) * (sp.healCap || BLADE_HEAL_CAP));
+  }
+  // 回復呪文の揺らぎ前の量。荒行の果て (低HP時) は回復も+30%、固有パッシブ (heal) も乗る
+  _healRaw(actor, sp) {
     const aMul = pv(actor, "asceticism") && actor.maxhp && actor.hp <= actor.maxhp * 0.3 ? 1.3 : 1;
-    return varianceMean(healingPower(sp.power, (actor.pie || 0) * this._bm(actor, "pie")) * soulPowerMul(actor, sp) * aMul * (1 + this._perkSum(actor, "heal")));
+    return spellHealRaw(actor, sp, (actor.pie || 0) * this._bm(actor, "pie")) * aMul * (1 + this._perkSum(actor, "heal"));
+  }
+  _healAmt(actor, sp, t, mean = false) {
+    if (sp.healPct) return healOnTarget(sp, t, 0);
+    const raw = this._healRaw(actor, sp);
+    return healOnTarget(sp, t, mean ? varianceMean(raw) : variance(raw));
   }
   // 攻撃後の全体回復は、回復呪文とは別のPIE係数(0.3)を持つ。
   estPartyHeal(actor, power) {
@@ -2652,9 +2692,8 @@ export class Battle {
       this.log(`${t.name}のMPが ${t.mp - before} 回復`, "heal");
       res.hits.push({ target: t, mpHeal: t.mp - before });
     } else if (sp.kind === "heal") {
-      // 回復量は術者の PIE で伸びる。荒行の果て (低HP時) は回復も+30%
-      const aMul = pv(actor, "asceticism") && actor.maxhp && actor.hp <= actor.maxhp * 0.3 ? 1.3 : 1;
-      const healPower = healingPower(sp.power, (actor.pie || 0) * this._bm(actor, "pie")) * soulPowerMul(actor, sp) * aMul * (1 + this._perkSum(actor, "heal")); // 固有パッシブ (heal)
+      // 回復量は _healAmt (術者の PIE・使い手の最大HP・対象の最大HPの割合。頭打ち healCap 込み)
+      const heals = healsHp(sp);
       // 全体回復
       if (sp.target === "all-ally") {
         let cured = false, revivedAny = false;
@@ -2664,13 +2703,13 @@ export class Battle {
           if (wasDead) {
             if (!sp.revive) continue;
             t.alive = true; t.ailment = null; t.asleep = false; t.mind = null; t.reviveAt = null; t._dead = false;
-            t.hp = sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : Math.min(t.maxhp, variance(healPower));
+            t.hp = sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : Math.min(t.maxhp, this._healAmt(actor, sp, t));
             t.hp = Math.min(t.maxhp, t.hp + Math.round(t.maxhp * this._rk(actor, "priestInochi", [0.10, 0.20, 0.30, 0.50]))); // 生命の灯
             revivedAny = true;
             res.hits.push({ target: t, heal: t.hp, revived: true });
             continue;
           }
-          const heal = variance(healPower);
+          const heal = heals ? this._healAmt(actor, sp, t) : 0;
           t.hp = Math.min(t.maxhp, t.hp + heal);
           // 大聖祈祷 (cure): 癒しと同時に穢れを祓う / 聖壁の祈り (buff): 守りも固める
           if (sp.cure && cureBySpell(sp, t)) cured = true;
@@ -2680,7 +2719,8 @@ export class Battle {
           if (sp.grantBarrier) t._barrierLeft = (t._barrierLeft || 0) + sp.grantBarrier;
           res.hits.push({ target: t, heal });
         }
-        this.log(revivedAny ? `福音が倒れた者を呼び戻した！` : `味方全員のHPが回復した`, "heal");
+        if (revivedAny) this.log("福音が倒れた者を呼び戻した！", "heal");
+        else if (heals) this.log("味方全員のHPが回復した", "heal");
         if (cured) this.log("パーティの穢れが祓われた", "heal");
         if (sp.buff) this.log("パーティの守りも固められた", "heal");
       } else {
@@ -2689,12 +2729,12 @@ export class Battle {
         if (!t.alive && !sp.revive) t = actor;
         const wasDead = !t.alive;
         if (wasDead && sp.revive) { t.alive = true; t.ailment = null; t.asleep = false; t.mind = null; t.reviveAt = null; t._dead = false; }
-        // revivePct があれば最大HPの割合で蘇生、それ以外は power 回復
-        const heal = sp.revivePct ? Math.round(t.maxhp * sp.revivePct) : variance(healPower);
+        // revivePct があれば最大HPの割合で蘇生、それ以外は回復量
+        const heal = (wasDead && sp.revive && sp.revivePct) ? Math.round(t.maxhp * sp.revivePct) : heals ? this._healAmt(actor, sp, t) : 0;
         t.hp = Math.min(t.maxhp, (t.hp > 0 ? t.hp : 0) + heal);
         if (wasDead && sp.revive) t.hp = Math.min(t.maxhp, t.hp + Math.round(t.maxhp * this._rk(actor, "priestInochi", [0.10, 0.20, 0.30, 0.50]))); // 生命の灯 (僧侶のランク)
         if (wasDead && sp.revive) this.log(`${t.name}は蘇った！ HP ${t.hp}`, "heal");
-        else this.log(`${t.name}のHPが ${heal} 回復`, "heal");
+        else if (heals) this.log(`${t.name}のHPが ${heal} 回復`, "heal");
         if (sp.cure && cureBySpell(sp, t)) this.log(`${t.name}の穢れも祓われた`, "heal");
         if (sp.purge) this._purgeDown(t);
         if (sp.regen) this._applyMod(t, "regen", 1 + sp.regen.pct, sp.regen.turns, sp.name);
@@ -2712,8 +2752,8 @@ export class Battle {
         else this.log(`${t.name}には効かない`, "sys");
       }
     }
-    // 物理技の聖なる余光 (天命の剣など)
-    if (isPhys && sp.partyHeal) this._partyHeal(actor, sp.partyHeal, res);
+    // 刃の癒し (物理技の bladeHeal): 与えたダメージの割合を味方全員へ (祈りの剣・天命の剣など)
+    if (isPhys && sp.bladeHeal && dealt > 0) this._bladeHeal(actor, dealt * sp.bladeHeal, sp.healCap || BLADE_HEAL_CAP, res);
     // 与えたダメージに応じた吸収 (聖光斬・冥魂喰らい / 魔喰いの太刀・魔力強奪)
     if (dealt > 0 && sp.drain && actor.alive) {
       const heal = Math.max(1, Math.round(dealt * sp.drain));
@@ -2850,7 +2890,16 @@ export class Battle {
     else if (!any) this.log("…効果がなかった", "sys");
   }
 
-  // 攻撃の後に味方全体を癒す (聖剣奮迅・護摩焚き・天命の剣)。PIEで伸びる
+  // 攻撃呪文の後に味方全体を癒す (聖剣奮迅・護摩焚き)。PIEで伸びる (物理技は与ダメ基準の _bladeHeal)
+  _bladeHeal(actor, amount, cap, res) {
+    const a = amount * (1 + this._perkSum(actor, "heal"));
+    for (const t of this.livingParty()) {
+      const heal = Math.max(1, Math.round(Math.min(a, t.maxhp * cap)));
+      t.hp = Math.min(t.maxhp, t.hp + heal);
+      res.hits.push({ target: t, heal });
+    }
+    this.log("刃の光がパーティを癒した", "heal");
+  }
   _partyHeal(actor, base, res) {
     const hPow = (base + (actor.pie || 0) * this._bm(actor, "pie") * 0.3) * (1 + this._perkSum(actor, "heal"));
     for (const t of this.livingParty()) {

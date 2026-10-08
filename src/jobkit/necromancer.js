@@ -6,15 +6,19 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "necroSenkoku",
   table: `
-    1 NECROMANCER_MOUJANOTE 2 SHADOWBOLT 3 NECROMANCER_SHISOU 5 necromancerShikuirai/1 7 NECROMANCER_KOMORIUTA 10 NECROMANCER_SEIKISUI
-    15 NECROMANCER_SHIREIMANEKI 15 necroLegion/1 20 KUGUTSU 22 NECROMANCER_ONRYOU 25 necromancerShishaSasayaki/1 30 NECROMANCER_HAKAMORI 32 DARKBLAST
-    35 necromancerShinigamiMe/1 40 MEIKONGURAI 45 necromancerShikabaneKate/1 50 NECROMANCER_SHIMEI 50 necroLegion/2 55 NECROMANCER_SHIDOKU 60 necromancerShikuirai/2
-    65 REVIVE 70 necromancerShinigamiMe/2 72 NECROMANCER_KOUSHIN 75 necromancerShishaSasayaki/2 80 NECROMANCER_KONBAKU 85 NECROMANCER_INOCHISOGI
-    90 necromancerMeifuIzumi/1 95 NECROMANCER_SEIJANETAMI 100 NECROMANCER_KUSARESHOUKI 100 necroLegion/3 105 resistAilment/1 110 MADALT 115 necromancerShikabaneKate/2
-    117 NECROMANCER_DOUKOKU 120 NECROMANCER_MANEKI 125 necromancerShinigamiMe/3 130 NECROMANCER_BOSHOHOURAKU 135 necromancerShikuirai/3 140 NECROMANCER_JUUATSU
-    145 necromancerShishaSasayaki/3 150 NECROMANCER_KASOU 155 necromancerShinigamiMe/4 160 RESURRECT 165 resistAilment/2 170 NECROMANCER_YOMIGAERI
-    172 NECROMANCER_TAMAGARI 175 necromancerMeifuIzumi/2 180 MEIFUNOMON 185 necromancerShikabaneKate/3 190 NECROMANCER_SANZU 195 NECROMANCER_MEIGA
-    200 NECROMANCER_SOUSOU`,
+    1 NECROMANCER_MOUJANOTE 2 SHADOWBOLT 3 NECROMANCER_SHISOU 5 necromancerShikuirai/1
+    7 NECROMANCER_KOMORIUTA 10 NECROMANCER_SEIKISUI 15 NECROMANCER_SHIREIMANEKI 15 necroLegion/1 20 KUGUTSU
+    22 NECROMANCER_ONRYOU 25 necromancerShishaSasayaki/1 30 NECROMANCER_HAKAMORI 32 DARKBLAST
+    35 necromancerShinigamiMe/1 40 MEIKONGURAI 45 necromancerShikabaneKate/1 50 NECROMANCER_SHIMEI
+    50 necroLegion/2 55 NECROMANCER_SHIDOKU 60 necromancerShikuirai/2 60 REVIVE 70 necromancerShinigamiMe/2
+    72 NECROMANCER_KOUSHIN 75 necromancerShishaSasayaki/2 80 NECROMANCER_KONBAKU 85 NECROMANCER_INOCHISOGI
+    90 necromancerMeifuIzumi/1 95 NECROMANCER_SEIJANETAMI 100 NECROMANCER_KUSARESHOUKI 100 necroLegion/3
+    100 RESURRECT 105 resistAilment/1 110 MADALT 115 necromancerShikabaneKate/2 117 NECROMANCER_DOUKOKU
+    120 NECROMANCER_MANEKI 125 necromancerShinigamiMe/3 130 NECROMANCER_BOSHOHOURAKU
+    135 necromancerShikuirai/3 140 NECROMANCER_JUUATSU 145 necromancerShishaSasayaki/3 150 NECROMANCER_KASOU
+    155 necromancerShinigamiMe/4 165 resistAilment/2 170 NECROMANCER_YOMIGAERI 172 NECROMANCER_TAMAGARI
+    175 necromancerMeifuIzumi/2 180 MEIFUNOMON 185 necromancerShikabaneKate/3 190 NECROMANCER_SANZU
+    195 NECROMANCER_MEIGA 200 NECROMANCER_SOUSOU`,
   skills: {
     // Lv15 の固有技: 死霊を招いて撃ち、まれに魂を刈る
     NECROMANCER_SHIREIMANEKI: { name: "死霊招き", mp: 5, kind: "atk", power: 16, element: "dark", instakill: { chance: 0.08 }, target: "enemy", desc: "死霊を招いて撃つ。まれに魂を刈り取る（即死・主には効かない）" },

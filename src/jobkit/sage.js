@@ -5,35 +5,33 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "sageKiwami",
   table: `
-    1 kantei/2 3 DIOS 5 sageJunkan/1 7 ICENEEDLE 10 SAGE_SEISHIN 15 SAGE_SEIRYUU 15 sageZoufuku/1
-    20 MAHALITO 22 AQUAWAVE 25 sageIzumi/1 27 WINDSTORM 30 SAGE_CHIE 35 sageSuifuu/1
-    40 SHINRANOSABAKI 45 sageJunkan/2 47 ICELANCE 50 DIOSALL 50 sageZoufuku/2 55 MAYOKE 60 sageJihi/1
-    65 SAGE_SHINRI 70 sageChouwa/1 72 SAGE_SEIFUU 75 sageIzumi/2 80 SAGE_KAZEGAERI 85 SAGE_NAGI
-    90 sageSuifuu/2 92 SAGE_JINRAI 95 SAGE_FUUU 100 SAGE_HAYATE 100 sageZoufuku/3 105 sageJunkan/3 110 SAGE_SUIKYOU
-    115 resistAilment/1 120 SAGE_DAICHI 125 sageJihi/2 130 SAGE_KANRO 135 sageSuifuu/3 140 SAGE_EICHIEN
-    142 SAGE_TENRAI 145 sageChouwa/2 150 SAGE_HANGON 155 sageIzumi/3 160 SAGE_REIHYOU 165 resistAilment/2
-    170 SAGE_CHOUWA 175 sageJunkan/4 180 SAGE_HOMURA 185 sageJihi/3 190 SAGE_SHINEN 195 SAGE_SHINRA
-    200 SAGE_SHUUKYOKU`,
+    1 kantei/2 3 DIOS 5 sageJunkan/1 7 ICENEEDLE 10 CURE 15 SAGE_SEIRYUU 15 sageZoufuku/1 20 MAHALITO
+    20 RECOVER 22 AQUAWAVE 25 sageIzumi/1 27 WINDSTORM 30 SAGE_CHIE 30 DIOSALL 30 AWAKE 35 sageSuifuu/1
+    40 SHINRANOSABAKI 40 DIAL 45 sageJunkan/2 47 ICELANCE 50 STONECURE 50 sageZoufuku/2 55 MAYOKE
+    60 sageJihi/1 60 REVIVE 60 DIALALL 65 SAGE_SHINRI 70 sageChouwa/1 72 SAGE_SEIFUU 75 sageIzumi/2
+    80 MADIOS 85 SAGE_NAGI 90 sageSuifuu/2 90 RESURRECT 92 SAGE_JINRAI 95 SAGE_FUUU 100 SAGE_HAYATE
+    100 sageZoufuku/3 100 PURIFY 105 sageJunkan/3 110 SAGE_SUIKYOU 115 resistAilment/1 120 SAGE_DAICHI
+    120 MADIOSALL 125 sageJihi/2 130 SAGE_KANRO 135 sageSuifuu/3 140 SAGE_EICHIEN 142 SAGE_TENRAI
+    145 sageChouwa/2 150 SAGE_HANGON 155 sageIzumi/3 160 SAGE_REIHYOU 165 resistAilment/2 170 SAGE_CHOUWA
+    175 sageJunkan/4 180 SAGE_HOMURA 185 sageJihi/3 190 SAGE_SHINEN 195 SAGE_SHINRA 200 SAGE_SHUUKYOKU`,
   skills: {
-    SAGE_SEISHIN: { name: "正気の言葉", mp: 3, kind: "cure", cure: ["confuse"], target: "ally", desc: "味方一人の混乱を治す" },
     // Lv15 の固有技: 清流の調べで群れを打ち、余韻で隊を癒す
     SAGE_SEIRYUU: { name: "清流の調べ", mp: 7, kind: "atk", power: 13, element: "water", partyHeal: 5, target: "all-enemy", desc: "清流の調べが敵全体を打ち、その余韻で味方全員を癒す" },
     SAGE_CHIE:      { name: "叡智の授け", mp: 7, kind: "buff", buff: { int: 1.3 }, purge: true, target: "ally", desc: "味方のINTを高め、弱体を解く" },
     SAGE_SHINRI:    { name: "真理の暴き", mp: 9, kind: "debuff", vuln: { all: 0.8 }, strip: true, target: "enemy", desc: "強化を暴き崩し、全属性の守りを下げる" },
     SAGE_SEIFUU:    { name: "清風の渦", mp: 11, kind: "atk", power: 30, element: "wind", partyHeal: 8, target: "all-enemy", desc: "清風の渦が敵を裂き、味方を癒す" },
-    SAGE_KAZEGAERI: { name: "風還りの息吹", mp: 9, kind: "heal", power: 0, revive: true, revivePct: 0.4, regen: { pct: 0.04, turns: 3 }, target: "ally", desc: "HP40%で蘇らせ、癒しの風を宿す" },
     SAGE_NAGI:      { name: "凪の詞", mp: 10, kind: "debuff", sleepChance: 0.4, target: "all-enemy", desc: "凪の詞で敵全体を眠りに誘う" },
     SAGE_JINRAI:    { name: "迅雷の理", mp: 9, kind: "atk", power: 30, element: "wind", debuff: { agi: 0.85 }, target: "enemy", desc: "迅き雷が撃ち抜き、足を鈍らせる" },
-    SAGE_FUUU:      { name: "恵みの風雨", mp: 13, kind: "heal", power: 36, buff: { agi: 1.1 }, target: "all-ally", desc: "味方全員を癒し、素早さを上げる" },
+    SAGE_FUUU:      { name: "恵みの風雨", mp: 18, kind: "heal", healMul: 1.3, buff: { agi: 1.1 }, target: "all-ally", desc: "味方全員を癒し、素早さを上げる" },
     SAGE_HAYATE:    { name: "疾風の審判", mp: 16, kind: "atk", power: 42, element: "wind", debuff: { vit: 0.9 }, target: "all-enemy", desc: "疾風が敵全体を裂き、守りを剥ぐ" },
     SAGE_SUIKYOU:   { name: "水鏡の審判", mp: 21, kind: "atk", power: 50, element: "water", partyHeal: 14, target: "all-enemy", desc: "水鏡が敵を撃ち、映る光が味方を癒す" },
     SAGE_DAICHI:    { name: "大地の叡智", mp: 26, kind: "atk", power: 72, element: "earth", debuff: { atk: 0.9 }, target: "all-enemy", desc: "大地の理で敵全体を撃ち、力を削ぐ" },
-    SAGE_KANRO:     { name: "甘露の大雨", mp: 22, kind: "heal", power: 62, purge: true, target: "all-ally", desc: "甘露の雨が味方全員を癒し、弱体を解く" },
+    SAGE_KANRO:     { name: "甘露の大雨", mp: 22, kind: "heal", healMul: 1.7, purge: true, target: "all-ally", desc: "甘露の雨が味方全員を癒し、弱体を解く" },
     SAGE_EICHIEN:   { name: "叡智の炎", mp: 20, kind: "atk", power: 60, element: "fire", strip: true, target: "enemy", desc: "叡智の炎が強化ごと一体を焼く" },
     SAGE_TENRAI:    { name: "天籟の雷", mp: 24, kind: "atk", power: 70, element: "wind", confuse: 0.2, target: "enemy", desc: "天籟の雷が撃ち、心を乱す" },
-    SAGE_HANGON:    { name: "反魂の叡智", mp: 16, kind: "heal", power: 0, revive: true, revivePct: 1, grantEndure: true, target: "ally", desc: "HP100%で蘇らせ、致死を一度耐えさせる" },
+    SAGE_HANGON:    { name: "反魂の叡智", mp: 100, kind: "heal", revive: true, revivePct: 1, grantEndure: true, target: "ally", desc: "HP100%で蘇らせ、致死を一度耐えさせる" },
     SAGE_REIHYOU:   { name: "霊氷の理", mp: 26, kind: "atk", power: 82, element: "water", debuff: { agi: 0.8, atk: 0.9 }, target: "enemy", desc: "霊氷が身を縛り、力と足を奪う" },
-    SAGE_CHOUWA:    { name: "大いなる調和", mp: 36, kind: "heal", power: 72, cure: true, grantBarrier: 1, target: "all-ally", desc: "味方全員を癒し、穢れを祓い魔障壁を張る" },
+    SAGE_CHOUWA:    { name: "大いなる調和", mp: 28, kind: "heal", healMul: 1.8, cure: true, grantBarrier: 1, target: "all-ally", desc: "味方全員を癒し、穢れを祓い魔障壁を張る" },
     SAGE_HOMURA:    { name: "焔の審判", mp: 30, kind: "atk", power: 84, element: "fire", para: 0.1, target: "all-enemy", desc: "審判の焔が戦場を焼き、痺れさせる" },
     SAGE_SHINEN:    { name: "叡智の深淵", mp: 30, kind: "atk", power: 88, element: "dark", seal: { chance: 0.5, turns: 3 }, target: "enemy", desc: "深淵の知で撃ち抜き、特技を封じる" },
     SAGE_SHINRA:    { name: "森羅の大理", mp: 36, kind: "atk", power: 100, vuln: { water: 0.8, wind: 0.8 }, target: "all-enemy", desc: "森羅の理で撃ち、水と風への守りを崩す" },

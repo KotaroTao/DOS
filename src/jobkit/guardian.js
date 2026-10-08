@@ -5,16 +5,22 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "guardianKongou",
   table: `
-    1 SHIELDBASH 2 NERAIUCHI 3 CHOUHATSU 5 guardianNone/1 7 GUARDIAN_NEHARI 10 SUIGETSU
-    12 IWAKUDAKI 15 GUARDIAN_OOTATEOTOSHI 15 guardianKenrou/1 20 HANGEKI 22 CHIRETSU 25 guardianTatenochikai/1 30 NIOUDACHI
-    35 guardianToride/1 40 KOUBOUITTAI 45 guardianNone/2 50 GUARDIAN_KORAEGAESHI 50 guardianKenrou/2 55 RYUURINJIN 57 GUARDIAN_GANBANGAESHI
-    60 guardianHoufuku/1 65 GUARDIAN_SUKIUGACHI 70 guardianUtaregatame/1 75 guardianToride/2 80 GUARDIAN_SEKIHEKI 85 GUARDIAN_SOUJUN
-    90 guardianTatenochikai/2 95 GUARDIAN_GAJOU 100 GUARDIAN_OMOTATE 100 guardianKenrou/3 105 guardianHoufuku/2 107 GUARDIAN_JIBANSHIZUME 110 OUJOU
-    115 guardianToride/3 120 GUARDIAN_JUUGAITOOSHI 125 guardianUtaregatame/2 130 GUARDIAN_SENNENJOUHEKI 135 resistAilment/1 140 GUARDIAN_MIDARETATE
-    145 bigBarrier/1 150 GUARDIAN_UZUSHIO 155 guardianNone/3 160 GUARDIAN_DAIBANJAKU 162 GUARDIAN_JIJIKUYURASHI 165 resistAilment/2
-    170 GUARDIAN_TAKANAMI 175 holyCover/1 180 GUARDIAN_KINJOUTEPPEKI 185 bigBarrier/2 190 GUARDIAN_ROUJOU 195 GUARDIAN_TENCHIGAESHI
+    1 SHIELDBASH 2 NERAIUCHI 3 CHOUHATSU 5 guardianNone/1 7 GUARDIAN_NEHARI 10 SUIGETSU 12 IWAKUDAKI
+    15 GUARDIAN_OOTATEOTOSHI 15 guardianKenrou/1 20 HANGEKI 22 CHIRETSU 25 guardianTatenochikai/1
+    25 GUARDIAN_TATEKAGENOTEATE 30 NIOUDACHI 35 guardianToride/1 40 KOUBOUITTAI 45 guardianNone/2
+    50 GUARDIAN_KORAEGAESHI 50 guardianKenrou/2 55 RYUURINJIN 57 GUARDIAN_GANBANGAESHI 60 guardianHoufuku/1
+    60 GUARDIAN_JOUHEKINOTEATE 65 GUARDIAN_SUKIUGACHI 70 guardianUtaregatame/1 75 guardianToride/2
+    80 GUARDIAN_SEKIHEKI 85 GUARDIAN_SOUJUN 90 guardianTatenochikai/2 95 GUARDIAN_GAJOU 100 GUARDIAN_OMOTATE
+    100 guardianKenrou/3 105 guardianHoufuku/2 107 GUARDIAN_JIBANSHIZUME 110 OUJOU 115 guardianToride/3
+    120 GUARDIAN_JUUGAITOOSHI 125 guardianUtaregatame/2 130 GUARDIAN_SENNENJOUHEKI 135 resistAilment/1
+    140 GUARDIAN_MIDARETATE 145 bigBarrier/1 150 GUARDIAN_UZUSHIO 155 guardianNone/3 160 GUARDIAN_DAIBANJAKU
+    162 GUARDIAN_JIJIKUYURASHI 165 resistAilment/2 170 GUARDIAN_TAKANAMI 175 holyCover/1
+    180 GUARDIAN_KINJOUTEPPEKI 185 bigBarrier/2 190 GUARDIAN_ROUJOU 195 GUARDIAN_TENCHIGAESHI
     200 GUARDIAN_EIGOUJOUSAI`,
   skills: {
+    // 体の手当て (2026-10): 回復量は使い手の最大HPで決まる。少ないMPで癒せるが、最大HPの小さい魔法職が借りても弱い
+    GUARDIAN_TATEKAGENOTEATE: { name: "盾陰の手当て", mp: 4, kind: "heal", bodyHeal: 0.2, healCap: 0.35, tech: true, target: "ally", desc: "大盾の陰で味方の傷を手当てする（守護騎士の最大HPで伸びる）" },
+    GUARDIAN_JOUHEKINOTEATE: { name: "城壁の手当て", mp: 10, kind: "heal", bodyHeal: 0.1, healCap: 0.2, tech: true, target: "all-ally", desc: "盾を並べた城壁の内で、味方全員を手当てする（守護騎士の最大HPで伸びる）" },
     // Lv15 の固有技: 大盾を振り下ろし、盾の重み (VIT) で押し潰す
     GUARDIAN_OOTATEOTOSHI: { name: "大盾落とし", mp: 5, kind: "phys", power: 1.0, vitScale: 1.0, acc: 0.6, element: "earth", flinchChance: 0.3, target: "enemy", desc: "大盾を振り下ろして押し潰し、怯ませる（VITで伸びる）" },
     GUARDIAN_NEHARI: { name: "根張りの構え", mp: 5, kind: "buff", buff: { vit: 1.7, agi: 0.8 }, dur: 4, tech: true, target: "self", desc: "根を張って動かず、防御を大きく上げる（素早さ↓）" },
@@ -36,7 +42,7 @@ export default {
     GUARDIAN_KINJOUTEPPEKI: { name: "金城鉄壁", mp: 26, kind: "buff", shield: true, stance: "counter", buff: { vit: 1.35 }, regen: { pct: 0.05, turns: 3 }, tech: true, target: "self", desc: "仲間を庇って必ず反撃し、傷を癒し続ける" },
     GUARDIAN_ROUJOU: { name: "籠城の大号令", mp: 30, kind: "buff", buff: { vit: 1.4 }, regen: { pct: 0.05, turns: 4 }, tech: true, target: "all-ally", desc: "味方全体を守り固め、毎ターン癒す" },
     GUARDIAN_TENCHIGAESHI: { name: "天地返し", mp: 28, kind: "phys", power: 5.6, vitScale: 0.3, acc: 1, debuff: { atk: 0.75 }, flinchChance: 0.3, target: "enemy", desc: "天地を返す必中の盾撃。力を挫き怯ませる" },
-    GUARDIAN_EIGOUJOUSAI: { name: "永劫城塞", mp: 40, kind: "heal", power: 30, buff: { vit: 1.7 }, regen: { pct: 0.05, turns: 4 }, grantBarrier: 1, target: "all-ally", desc: "味方全体を癒し、城塞と障壁で守り続ける" },
+    GUARDIAN_EIGOUJOUSAI: { name: "永劫城塞", mp: 18, kind: "heal", bodyHeal: 0.12, healCap: 0.25, buff: { vit: 1.7 }, regen: { pct: 0.05, turns: 4 }, grantBarrier: 1, tech: true, target: "all-ally", desc: "味方全体を手当てし、城塞と障壁で守り続ける（守護騎士の最大HPで伸びる）" },
   },
   perks: {
     // Lv15 の目玉パッシブ: どんな攻撃も城壁のように受け止める
