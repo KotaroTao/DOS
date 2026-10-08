@@ -104,6 +104,10 @@ function firstVisit(key) {
   setPref("keeperSeen", seen);
   return true;
 }
+// 物語の上でその場にいない番人 (FAC_SHELL の absent) は胸像も台詞も出さない
+function keeperAbsent(shell) {
+  try { return !!(shell.absent && shell.absent()); } catch (e) { return false; }
+}
 function keeperLine(shell) {
   const g = G();
   const ls = shell.lines || [];
@@ -113,7 +117,7 @@ function keeperLine(shell) {
 // 胸像のシート (台詞の一覧)
 export function keeperSheet(key) {
   const shell = (game.FAC_SHELL || {})[key];
-  if (!shell || !shell.keeper) return null;
+  if (!shell || !shell.keeper || keeperAbsent(shell)) return null;
   const body = el("div", "kp-sheet");
   const fr = el("div", "kp-sheet-bust");
   try { const c = keeperCanvas(shell.keeper); if (c) fr.appendChild(c); } catch (e) { /* 演出のみ */ }
@@ -138,7 +142,7 @@ function expandNow(key) {
 // 見出しの下の1行 (48px)。key = FAC_SHELL の鍵
 export function keeperRow(key) {
   const shell = (game.FAC_SHELL || {})[key];
-  if (!shell || !shell.keeper) return null;
+  if (!shell || !shell.keeper || keeperAbsent(shell)) return null;
   const line = keeperLine(shell);
   const open = () => { sfx("select"); keeperSheet(key); };
   if (expandNow(key)) {
