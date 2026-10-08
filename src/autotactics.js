@@ -10,7 +10,7 @@
 // 作戦はこの重みと MP の値段を変える。game.js はここを呼んで chooseAction / chooseTarget するだけ。
 // (このファイルは game.js を import しない)
 
-import { SPELLS, spellCost, soulPowerMul, healsHp, isMetal, spellCureKinds } from "./combat.js";
+import { SPELLS, spellCost, soulPowerMul, healsHp, isMetal, spellCureKinds, breathHpK } from "./combat.js";
 import { autoSkills } from "./souls.js";
 import { STAGED, STAGE_MAX, STRONG_MIN, stageMul, stageOf } from "./buffstage.js";
 
@@ -123,7 +123,7 @@ function makeCtx(b, actor) {
     threat: (e) => once("t" + e.uid, () => {
       if (!e.alive) return 0;
       let v = Math.max(1, b._eatk(e) - avgVit * 0.5);
-      if (e.ability === "breath" || e.ability === "spell") v *= 1 + (e.abRate || 0.3) * Math.max(0, allies.length - 1) * 0.5;
+      if (e.ability === "breath" || e.ability === "spell") v *= 1 + (e.abRate || 0.3) * Math.max(0, allies.length - 1) * 0.5 * (e.ability === "breath" ? breathHpK(e) : 1); // ブレスは残りHPで弱まる
       if (e.haste) v *= 2;
       if (e.mind === "charm") v *= 0.2; else if (e.mind === "confuse") v *= 0.5;
       if (e.asleep) v *= 0.3;

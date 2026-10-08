@@ -1,0 +1,39 @@
+{
+  "reference": "art/jobs/necromancer_1.webp",
+  "confirmedDate": "2026-10-08",
+  "basis": "ユーザーが比較画像に示した白線が正しい顎先。座標は表示倍率から換算した概算。",
+  "pixelsPerDot": 4,
+  "sourcePixels": {
+    "width": 180,
+    "height": 332,
+    "headCenterX": 76.28,
+    "crownY": 0,
+    "chinY": 88.5
+  },
+  "game": {
+    "w": 45,
+    "h": 83,
+    "face": [
+      19,
+      11
+    ],
+    "head": [
+      19.07,
+      0,
+      22.125
+    ]
+  },
+  "imageHeightToHeadHeight": 3.751412429378531,
+  "ratioNote": "画像高を頭頂〜顎先の高さで割った約3.75。解剖学的な頭身の厳密な測定値ではない。",
+  "supersededChin": {
+    "pixels": 85.16,
+    "dots": 21.29
+  },
+  "measurementRules": [
+    "ユーザー指定の顎の下側の輪郭まで含める",
+    "フードや帽子の上端と人体の頭頂を混同しない",
+    "首元の布の下端と顎先を混同しない",
+    "全身と顔アイコンを同倍率で基準画像と比較する"
+  ],
+  "visualReference": "docs/art/brigand/brigand-r1-chin-corrected-comparison.png"
+}

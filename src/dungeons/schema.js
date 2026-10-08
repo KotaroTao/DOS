@@ -93,9 +93,9 @@ export function resistHpMul(m, strong = false) {
 //   soulMul/goldMul : その階の普通の戦闘1回分の✦Soul/金貨に対する倍率 (1体あたり)
 //   max    : 群れの最大数 / layer : 出現し始める層 / w : 出現の重み (浅い層 → 深い層で上位種が増える)
 export const METAL_TIERS = {
-  1: { hp: 4, evade: 0.30, flee: 0.50, agiMul: 1.5, soulMul: 10, goldMul: 1.5, max: 3, layer: 3, w: [80, 65, 50] },
-  2: { hp: 12, evade: 0.40, flee: 0.60, agiMul: 1.8, soulMul: 25, goldMul: 2.5, max: 2, layer: 3, w: [17, 27, 35] },
-  3: { hp: 30, hpRank: 0.5, evade: 0.25, flee: 0.35, agiMul: 1.6, soulMul: 60, goldMul: 4, max: 1, layer: 3, w: [3, 8, 15] },
+  1: { hp: 4, evade: 0.30, flee: 0.30, agiMul: 1.5, soulMul: 10, goldMul: 1.5, max: 3, layer: 3, w: [80, 65, 50] },
+  2: { hp: 12, evade: 0.40, flee: 0.30, agiMul: 1.8, soulMul: 25, goldMul: 2.5, max: 2, layer: 3, w: [17, 27, 35] },
+  3: { hp: 30, hpRank: 0.5, evade: 0.25, flee: 0.30, agiMul: 1.6, soulMul: 60, goldMul: 4, max: 1, layer: 3, w: [3, 8, 15] },
 };
 export function elemDmgMult(aE, aLv, tgtElem, tgtDef) {
   if (!aE || aE === "none") return 1;
@@ -16764,7 +16764,7 @@ export const TRAITS = {
   summon:     { label: "招来",   desc: "戦闘中に仲間を呼び寄せる" },
   heal:       { label: "治癒",   desc: "傷ついた仲間を癒す" },
   guard:      { label: "護衛",   desc: "仲間への攻撃をかばう" },
-  breath:     { label: "ブレス", desc: "全体を巻き込む息を吐く" },
+  breath:     { label: "ブレス", desc: "全体を巻き込む息を吐く (残りHPが減るほど弱まる)" },
   poison:     { label: "毒",     desc: "攻撃で毒を与えてくる" },
   paralyze:   { label: "麻痺",   desc: "攻撃で麻痺させてくる" },
   stone:      { label: "石化",   desc: "凝視で石に変えてくる" },
