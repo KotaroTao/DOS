@@ -22,7 +22,7 @@ import { remember, setPref, getPref } from "./prefs.js";
 import {
   statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, weaponPerformanceEl, weaponPowerPreview,
 } from "./itemview.js";
-import { renderSoulSeg, openSoulPicker } from "./soulpanel.js";
+import { renderSoulSeg, openSoulPicker, openSoulList } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
 import {
   planBestEquip, applyPlan, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isMeleeWeapon,
@@ -956,8 +956,19 @@ function formationEl(mode) {
     grp.appendChild(inn);
     wrap.appendChild(grp);
   }
-  if (town) wrap.appendChild(benchButton());
+  if (town) { wrap.appendChild(benchButton()); wrap.appendChild(soulListButton()); }
   return wrap;
+}
+// 魂一覧 (控えの右): 持っている魂を並べ、詳細・強化・融合・ロック・宿す操作 (soulpanel.js openSoulList)
+function soulListButton() {
+  const G = G_();
+  const b = el("button", "pt-bench pt-souls");
+  b.type = "button";
+  b.appendChild(el("span", "pt-bench-l", "魂"));
+  b.appendChild(el("span", "pt-bench-s", "一覧"));
+  b.setAttribute("aria-label", `魂一覧 ${(G.souls || []).length}個`);
+  b.addEventListener("click", () => { if (picked) return; openSoulList(); });
+  return b;
 }
 function stripPortrait(d, i, mode) {
   const wrap = el("div", "pt-slotp");
