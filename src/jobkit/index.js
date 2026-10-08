@@ -74,12 +74,14 @@ import sage from "./sage.js";
 import cardinal from "./cardinal.js";
 import archmage from "./archmage.js";
 import chaplain from "./chaplain.js";
+import sera from "./sera.js";
 
 export const JOBKIT = {
   fighter, knight, priest, mage, thief, bishop,
   samurai, berserker, hunter, shadow, paladin, guardian, spellblade, monk, hexer, hermit, brigand, arcthief,
   crusader, battlemage, darkknight, templar, exorcist, warden, arcanist, inquisitor, archbishop, ascetic,
   hero, asura, dragonknight, necromancer, sage, cardinal, archmage, chaplain,
+  sera, // 人業セラだけの専用職 (souls.js SOUL_CLASSES.sera)
 };
 
 // ---- 検証 (読み込み時に壊れた定義を弾く) ----

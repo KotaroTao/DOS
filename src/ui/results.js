@@ -21,7 +21,7 @@ import { ITEMS, itemName } from "../items.js";
 
 const G = () => game.G;
 const sfx = (k) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](); } catch (e) { /* 音が無くても動く */ } };
-const RAR_SOUL = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド" };
+const RAR_SOUL = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド", unique: "固有" };
 const AUTO_CLOSE_MS = 1600;
 
 // ================= 戦果シート =================

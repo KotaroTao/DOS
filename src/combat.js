@@ -374,6 +374,9 @@ function edefOf(t) {
 // 知らない敵は「属性なし」とみなし、相性を手の選び方に入れない (実際のダメージ計算には関わらない)
 let _elemKnown = null;
 export function setElemKnown(fn) { _elemKnown = typeof fn === "function" ? fn : null; }
+// 隊の全員に足す回避率 (手がかりの恵み「根に抱かれた胴」+1%。game.js syncClueBoons が渡す)。敵の物理をかわす確率に足す
+let _partyEvadeBonus = 0;
+export function setPartyEvadeBonus(v) { _partyEvadeBonus = Math.max(0, +v || 0); }
 const elemSeen = (t) => !(t && t.side === "enemy" && _elemKnown && !_elemKnown(t));
 // 属性を知らない敵の見かけ (固有属性だけ「なし」に見せ、ほかは本体を読む)。固有パッシブの「弱点を突いた時」の判定用
 const elemMask = (t) => (elemSeen(t) ? t : Object.create(t, { element: { value: "none" } }));
@@ -2200,7 +2203,7 @@ export class Battle {
     // 命中判定: 素の命中漏れ + 対象の敏捷(AGI)による回避 + 回避持ちの追加回避。
     // 技の命中補正 (acc) は外れる確率をその割合だけ消す (1 = 必中)。目つぶし (hit<1) は外れる確率を足す
     const evade = (isMetal(tgt) ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0)
-      + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) : 0); // 固有パッシブ (evade)
+      + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) + _partyEvadeBonus : 0); // 固有パッシブ (evade)・手がかりの恵み
     let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
     const blind = this._bm(actor, "hit");
     if (blind < 1) missP += Math.min(0.4, 1 - blind);
@@ -2393,7 +2396,7 @@ export class Battle {
     const metal = isMetal(tgt);
     if (r >= 100 && !metal) return 0; // 無効は会心でも通らない
     const evade = (metal ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0)
-      + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) : 0);
+      + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) + _partyEvadeBonus : 0);
     let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
     const blind = this._bm(actor, "hit");
     if (blind < 1) missP += Math.min(0.4, 1 - blind);

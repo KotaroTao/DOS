@@ -1375,35 +1375,7 @@ export function openCreateDoll() {
   if (h?.el) UI.tutorialEvent?.("newJobSoulPickerOpened");
   return h;
 }
-// セラが目覚めた時: 宿すメイン魂を選ぶ (無料。閉じてもよい — 控えで待ち、館の「魂」で選べる)
-export function openSeraSoul(d) {
-  if (!inTown() || !d || d.primary != null) return null;
-  const worn = (uid) => allDolls().some((x) => x.primary === uid || (x.subs || []).some((s) => s && s.uid === uid));
-  const free = game.soulRepresentatives().filter((s) => !worn(s.uid)).sort(game.soulSortCmp || (() => 0));
-  if (!free.length) { toast("宿せる魂がない ― セラは控えで待っている。館の「魂」で選べる", { tone: "info" }); return null; }
-  sfx("select");
-  const h = sheet.open({
-    kind: "info", banner: "セラに宿す魂", className: "pt-pick-sheet",
-    lines: ["師の作った器に、宿す魂を選ぶ。器は魂の安定度を消費せず、宿した魂の能力に上乗せされる。", "選ばずに閉じても、セラは控えで待っている。"],
-    body: (scroll) => {
-      const list = el("div", "pt-list");
-      for (const s of free) {
-        const cl = SOUL_CLASSES[s.clsKey]; if (!cl) continue;
-        const ic = el("span", "pt-orb");
-        ic.style.setProperty("--glow", cl.glow);
-        ic.appendChild(pixelCanvas(jobBust(s.clsKey, Math.max(1, soulRank(s))), 36));
-        const r = row({ icon: ic, title: soulLabel(s), sub: `Lv${s.level} ・ ${rarityName(cl.rarity)}`, chevron: true,
-          onTap: () => { if (game.hostSeraSoul(d, s.uid)) h.close(); } });
-        r.classList.add("pt-soulrow");
-        r.dataset.job = s.clsKey;
-        list.appendChild(r);
-      }
-      scroll.appendChild(list);
-    },
-  });
-  return h;
-}
-function rarityName(r) { return { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド" }[r] || ""; }
+function rarityName(r) { return { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド", unique: "固有" }[r] || ""; }
 function soulRank(s) { return game.soulRankOf ? game.soulRankOf(s) : 1; }
 
 // 名前の入力シート (仕立て・名を変える・空の人業の生成で共用)
@@ -1500,7 +1472,7 @@ function dollHeader(d, mode) {
   const p = portraitEl(d, { size: 44, tag: "div" });
   if (town) longPress(p, () => openRename(d));
   // 面影の写し (第三章の入口で解放): 肖像を押すと、魂が覚えている姿から顔を選べる
-  if (town && d.primary != null && game.omokageUnlocked && game.omokageUnlocked()) {
+  if (town && d.primary != null && d.vessel !== "sera" && game.omokageUnlocked && game.omokageUnlocked()) {
     p.classList.add("pt-face-on");
     p.setAttribute("role", "button");
     p.tabIndex = 0;
@@ -1545,7 +1517,7 @@ function dollHeader(d, mode) {
   game.refreshStability?.();
   const stable = game.vesselStable && game.vesselStable(d);
   const stability = stable
-    ? button({ label:"師の器 ・ 安定度を消費しない", kind:"ghost", size:"sm", onTap:()=>toast("師オルドの作った器。魂の安定度を消費せず、能力が上乗せされる", {tone:"info"}) })
+    ? button({ label:"師の器 ・ 安定度を消費しない", kind:"ghost", size:"sm", onTap:()=>toast("師オルドが一度で仕上げた器。魂の安定度を消費しない。メイン魂は灯守に固定", {tone:"info"}) })
     : button({ label:`魂の安定度 ${d.stability}/${game.STABILITY_MAX}`, kind:"ghost", size:"sm",
       onTap:town ? ()=>openStability(d) : ()=>toast(`入場時に10消費・${game.stabilityMinutes ? game.stabilityMinutes() : 3}分で1回復。探索中の追加消費はない`, {tone:"info"}) });
   stability.classList.add("pt-stability"); tx.appendChild(stability);
@@ -2437,7 +2409,6 @@ export function install() {
     openReserve,
     openCreateDoll,
     openCreateName,
-    openSeraSoul,
     autoEquip,
     betterGearCount,
     equipItemTo,

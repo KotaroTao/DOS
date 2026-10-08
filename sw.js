@@ -161,6 +161,7 @@ const ASSETS = [
   "./src/jobkit/cardinal.js",
   "./src/jobkit/archmage.js",
   "./src/jobkit/chaplain.js",
+  "./src/jobkit/sera.js",
   "./src/souls.js",
   "./src/content.js",
   "./src/audio.js",
