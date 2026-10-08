@@ -5,6 +5,13 @@
 // 追加・更新は開発用の tools/jobimg.py が行う (このファイルの該当職の項目を書き換える)。sw.js の ASSETS にも画像を足すこと。
 export const PHOTO_RES = 4; // 保存した画像の 1ドット (升目) あたりの px
 export const JOB_PHOTOS = {
+  battlemage: {
+    1: { src: "art/jobs/battlemage_1.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.851] },
+    2: { src: "art/jobs/battlemage_2.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.5] },
+    3: { src: "art/jobs/battlemage_3.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.279] },
+    4: { src: "art/jobs/battlemage_4.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.092] },
+    5: { src: "art/jobs/battlemage_5.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.034] },
+  },
   fighter: {
     1: { src: "art/jobs/fighter_1.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.791] },
     2: { src: "art/jobs/fighter_2.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.513] },
@@ -111,6 +118,13 @@ export const JOB_PHOTOS = {
     4: { src: "art/jobs/crusader_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.912] },
     5: { src: "art/jobs/crusader_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.94] },
   },
+  dragonknight: {
+    1: { src: "art/jobs/dragonknight_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.035] },
+    2: { src: "art/jobs/dragonknight_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.035] },
+    3: { src: "art/jobs/dragonknight_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.035] },
+    4: { src: "art/jobs/dragonknight_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.035] },
+    5: { src: "art/jobs/dragonknight_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.035] },
+  },
   cardinal: {
     1: { src: "art/jobs/cardinal_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.756] },
     2: { src: "art/jobs/cardinal_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.777] },
@@ -180,6 +194,13 @@ export const JOB_PHOTOS = {
     3: { src: "art/jobs/chaplain_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.93] },
     4: { src: "art/jobs/chaplain_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.93] },
     5: { src: "art/jobs/chaplain_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.93] },
+  },
+  thief: {
+    1: { src: "art/jobs/thief_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.705] },
+    2: { src: "art/jobs/thief_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.705] },
+    3: { src: "art/jobs/thief_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.725] },
+    4: { src: "art/jobs/thief_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.705] },
+    5: { src: "art/jobs/thief_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.725] },
   },
   // <<JOB_PHOTOS>>
   hunter: {
