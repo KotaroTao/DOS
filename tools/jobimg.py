@@ -92,6 +92,19 @@ def background_mask(a, white_min=200, white_spread=40, enclosed=600):
 
 def cut_out(path):
     """背景を抜いた RGBA と、絵のある範囲 (bbox) を返す"""
+    original = Image.open(path)
+    if "A" in original.getbands() or "transparency" in original.info:
+        rgba = original.convert("RGBA")
+        alpha = rgba.getchannel("A")
+        if alpha.getextrema()[0] < 255:
+            # 透明な原画は白背景の除去に通さず、元の輪郭と透過を保つ。
+            # 生成時のほぼ不可視な外周だけを除き、枠が広がるのを防ぐ。
+            alpha = alpha.point(lambda v: 0 if v <= 1 else v)
+            rgba.putalpha(alpha)
+            bbox = alpha.getbbox()
+            if bbox is None:
+                raise ValueError(f"人物が見つからない透明画像: {path}")
+            return rgba, bbox
     # 原画の一部修正: JPEG のブロックノイズ・色のにじみを 3×3 の中央値で均す (ドットの角は崩れない)
     a = np.asarray(Image.open(path).convert("RGB").filter(ImageFilter.MedianFilter(3))).astype(int)
     bg = background_mask(a)
@@ -142,7 +155,7 @@ def bust_crop(e):
 CLIP_HALF_W, CLIP_H, CLIP_FADE = 45, 88, 5
 
 
-def build(job, paths, per_dots, heads, preview):
+def build(job, paths, per_dots, heads, preview, frame=None):
     out_dir = os.path.join(ROOT, "art", "jobs")
     os.makedirs(out_dir, exist_ok=True)
     entries = {}
@@ -190,9 +203,22 @@ def build(job, paths, per_dots, heads, preview):
         canvas = Image.new("RGBA", (wd * RES, hd * RES), (0, 0, 0, 0))
         canvas.paste(small, (0, 0))
         name = f"{job}_{r}.webp"
-        canvas.save(os.path.join(out_dir, name), "WEBP", quality=90, method=6)
-        head = [round(v / per_dot, 2) for v in head_px]
+        head = [round(v / per_dot, 3 if frame else 2) for v in head_px]
         face = [round(head[0]), round((head[1] + head[2]) / 2)]
+        if frame:
+            # ランク間で人物の倍率を変えず、顔の列と足元を共通の透明枠へ揃える。
+            fw, fh = frame
+            ox, oy = fw / 2 - head[0], fh - hd
+            bbox = canvas.getbbox()
+            if bbox and (bbox[0] + ox * RES < 0 or bbox[2] + ox * RES > fw * RES
+                         or bbox[1] + oy * RES < 0 or bbox[3] + oy * RES > fh * RES):
+                raise ValueError(f"{job} R{r}: 指定した共通枠では人物が欠けます")
+            canvas = canvas.transform((fw * RES, fh * RES), Image.Transform.AFFINE,
+                                      (1, 0, -ox * RES, 0, 1, -oy * RES), Image.Resampling.BICUBIC)
+            wd, hd = fw, fh
+            head = [fw / 2, round(head[1] + oy, 3), round(head[2] + oy, 3)]
+            face = [round(head[0]), round((head[1] + head[2]) / 2)]
+        canvas.save(os.path.join(out_dir, name), "WEBP", quality=90, method=6)
         entries[r] = {"src": f"art/jobs/{name}", "w": wd, "h": hd, "face": face, "head": head}
         previews.append(canvas)
         kb = os.path.getsize(os.path.join(out_dir, name)) / 1024
@@ -251,6 +277,10 @@ if __name__ == "__main__":
                     "(キャラが小さく描かれたランクは、頭頂〜足裏の長さの比で小さくして全ランクの背丈を揃える。胸像は head で別に揃うので頭の大きさは気にしなくてよい)")
     ap.add_argument("--head", nargs="*", help="ランクごとの 顔の左x,右x,頭頂y,あご先y[,足裏y] (原画の画素座標)。足裏を付けると、その下の飾りを切る")
     ap.add_argument("--preview")
+    ap.add_argument("--frame", help="共通の透明枠の幅,高さ (ドット単位)。人物は縮めず顔の列と足元を揃える")
     o = ap.parse_args()
     heads = [list(map(float, f.split(","))) for f in o.head] if o.head else None
-    build(o.job, o.images, [float(v) for v in o.per_dot.split(",")], heads, o.preview)
+    frame = tuple(map(int, o.frame.split(","))) if o.frame else None
+    if frame and (len(frame) != 2 or min(frame) <= 0):
+        ap.error("--frame は正の幅,高さを指定してください")
+    build(o.job, o.images, [float(v) for v in o.per_dot.split(",")], heads, o.preview, frame)
