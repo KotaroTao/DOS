@@ -2051,15 +2051,33 @@ export function jobBust(jobKey, rank = 2) {
   }
   return (_bustCache[cacheKey] = { palette: spr.palette, art });
 }
+// 面影の写し (第三章の入口で館のイレーヌが教える): d.face = {job, rank} を写した人業は、宿す魂に依らずその姿で描く。
+//   見た目だけ (職業・能力・枠の光は宿した魂のまま)。写せるのは職業図鑑で到達したランク (game.js omokageRanks)
+export function dollFace(d) {
+  const f = d && d.face;
+  if (!f || !SOUL_CLASSES[f.job]) return null;
+  const rank = Math.round(f.rank);
+  return rank >= 1 && rank <= 5 ? { job: f.job, rank } : null;
+}
+function dollLook(d) {
+  const f = dollFace(d);
+  if (f) return f;
+  return { job: d.jobKey || (d.dominant && d.dominant.clsKey) || d.clsKey || "fighter", rank: d.jobRank || 1 };
+}
+// 肖像の描き直しの鍵 (職業・ランク・面影が変わった時だけ描き直す)
+export function dollLookKey(d) {
+  const l = dollLook(d);
+  return `${l.job}:${l.rank}`;
+}
 export function dollBust(d) {
-  const key = d.jobKey || (d.dominant && d.dominant.clsKey) || d.clsKey || "fighter";
-  return jobBust(key, d.jobRank || 1);
+  const l = dollLook(d);
+  return jobBust(l.job, l.rank);
 }
 
-// 人業の顔アイコン: 発現中の職業と職業ランクの姿。未発現は支配職のランク1
+// 人業の顔アイコン: 発現中の職業と職業ランクの姿 (面影を写していればその姿)。未発現は支配職のランク1
 export function dollSprite(d) {
-  const key = d.jobKey || (d.dominant && d.dominant.clsKey) || d.clsKey || "fighter";
-  return jobSprite(key, d.jobRank || 1);
+  const l = dollLook(d);
+  return jobSprite(l.job, l.rank);
 }
 
 // ===== スプライト =====

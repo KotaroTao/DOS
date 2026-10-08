@@ -1070,3 +1070,36 @@ button.sp-lu-next { cursor: pointer; }
 .sp-host-c { font-size: 11px; color: #b2a68f; }
 .sp-sd-sheet .ui-sheet-foot { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .sp-sd-sheet .ui-sheet-foot > :first-child:nth-last-child(odd) { grid-column: 1 / -1; }
+
+/* ===== 面影の写し (肖像を押して顔を選ぶ。第三章の入口で解放) ===== */
+.pt-port.pt-face-on { cursor: pointer; }
+.pt-face-mark {
+  position: absolute; right: -4px; bottom: -4px; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; line-height: 1; color: #1a1209; background: linear-gradient(#f3d58b, #c9a24f);
+  border: 1px solid #2a1f14; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.7); pointer-events: none;
+}
+.pt-om { display: flex; flex-direction: column; gap: 10px; }
+.pt-om-top { display: flex; align-items: center; gap: 12px; padding-bottom: 8px; border-bottom: 1px solid #3a3029; }
+.pt-om-fig {
+  flex: 0 0 auto; width: 104px; height: 104px; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 40%, rgba(243,213,139,0.10), rgba(8,6,9,0.85) 70%); border: 1px solid #4a3d36; border-radius: 2px;
+}
+.pt-om-tx { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.pt-om-now { font-size: 13px; font-weight: 700; color: #e7c873; }
+.pt-om-note { margin: 0; font-size: 11.5px; line-height: 1.6; color: #a99a80; }
+.pt-om-row { display: flex; flex-direction: column; gap: 4px; }
+.pt-om-job { font-size: 12.5px; font-weight: 700; letter-spacing: 1px; }
+.pt-om-tiles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.pt-om-t {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; min-height: 60px; padding: 4px 2px; cursor: pointer;
+  color: #cdbf9f; background: var(--grain), var(--plate-hi); border: 1px solid #4a3d36; border-radius: 2px;
+}
+.pt-om-tx .pt-om-t { width: 64px; }
+.pt-om-t.on { border-color: var(--accent-hi); box-shadow: 0 0 0 1px rgba(243,213,139,0.55), 0 0 12px rgba(243,213,139,0.28); }
+.pt-om-t.on .pt-om-r { color: var(--accent-hi); }
+.pt-om-t:active:not(.lock) { transform: scale(0.96); }
+.pt-om-t.lock { cursor: default; background: rgba(8,6,9,0.6); border-style: dashed; border-color: #3a3029; }
+.pt-om-t.lock canvas { filter: brightness(0); opacity: 0.55; }
+.pt-om-t.lock .pt-om-r { color: #6e6457; }
+.pt-om-fr { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; pointer-events: none; }
+.pt-om-r { font-size: 11px; line-height: 1.2; white-space: nowrap; }
