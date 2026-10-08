@@ -34,7 +34,7 @@ export default {
     GUARDIAN_JIBANSHIZUME: { name: "地盤沈め", mp: 20, kind: "phys", power: 4.4, element: "earth", acc: 0.7, debuff: { agi: 0.7 }, flinchChance: 0.25, target: "enemy", desc: "大地ごと沈め、足を奪い怯ませる" },
     GUARDIAN_JUUGAITOOSHI: { name: "重鎧通し", mp: 16, kind: "phys", power: 2.6, vitScale: 0.5, pierce: 0.8, acc: 0.8, target: "enemy", desc: "鎧の継ぎ目を圧し通す（防御をほぼ無視）" },
     GUARDIAN_SENNENJOUHEKI: { name: "千年城壁", mp: 20, kind: "buff", buff: { vit: 1.5 }, dur: 5, tech: true, target: "all-ally", desc: "崩れぬ城壁で味方全体を長く守る（5ターン）" },
-    GUARDIAN_MIDARETATE: { name: "乱れ盾", mp: 24, kind: "phys", power: 1.0, vitScale: 0.8, scatter: 4, acc: 0.8, flinchChance: 0.25, target: "all-enemy", desc: "盾撃を敵陣へ4度ばらまき、怯ませる" },
+    GUARDIAN_MIDARETATE: { name: "乱れ盾", mp: 25, kind: "phys", power: 1.0, vitScale: 0.8, scatter: 4, acc: 0.8, flinchChance: 0.25, target: "all-enemy", desc: "盾撃を敵陣へ4度ばらまき、怯ませる" },
     GUARDIAN_UZUSHIO: { name: "渦潮の守り", mp: 22, kind: "buff", grantBarrier: 1, debuffAll: { agi: 0.85 }, tech: true, target: "all-ally", desc: "渦潮で味方に魔障壁を張り、敵の足を奪う" },
     GUARDIAN_DAIBANJAKU: { name: "大磐石", mp: 28, kind: "phys", power: 4.0, vitScale: 2.0, desperate: true, acc: 1, target: "enemy", desc: "傷を負うほど重くなる必中の大盾撃" },
     GUARDIAN_JIJIKUYURASHI: { name: "地軸揺らし", mp: 28, kind: "phys", power: 1.7, vitScale: 0.4, element: "earth", acc: 0.6, debuff: { vit: 0.85 }, target: "all-enemy", desc: "大地を揺さぶり、敵全体の守りを崩す" },

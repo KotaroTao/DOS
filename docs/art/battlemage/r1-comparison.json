@@ -1,0 +1,24 @@
+[
+  {
+    "label": "聖戦士 R1 基準",
+    "alpha_bbox": [
+      56,
+      115,
+      986,
+      1333
+    ],
+    "body_height_px": 1218,
+    "comparison_scale": 0.6732348111658456
+  },
+  {
+    "label": "魔闘士 R1 候補",
+    "alpha_bbox": [
+      216,
+      169,
+      1055,
+      1359
+    ],
+    "body_height_px": 1190,
+    "comparison_scale": 0.6890756302521008
+  }
+]
