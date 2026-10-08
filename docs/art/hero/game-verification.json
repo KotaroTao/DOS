@@ -1,0 +1,137 @@
+{
+  "ranks": [
+    {
+      "rank": 1,
+      "sprite": "http://127.0.0.1:8001/art/jobs/hero_1.webp",
+      "bust": "http://127.0.0.1:8001/art/jobs/hero_1.webp",
+      "head": [
+        45,
+        9,
+        29.968
+      ],
+      "counts": [
+        {
+          "size": 56,
+          "pixels": 871
+        },
+        {
+          "size": 36,
+          "pixels": 871
+        },
+        {
+          "size": 26,
+          "pixels": 460
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "sprite": "http://127.0.0.1:8001/art/jobs/hero_2.webp",
+      "bust": "http://127.0.0.1:8001/art/jobs/hero_2.webp",
+      "head": [
+        45,
+        9,
+        29.932
+      ],
+      "counts": [
+        {
+          "size": 56,
+          "pixels": 885
+        },
+        {
+          "size": 36,
+          "pixels": 885
+        },
+        {
+          "size": 26,
+          "pixels": 471
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "sprite": "http://127.0.0.1:8001/art/jobs/hero_3.webp",
+      "bust": "http://127.0.0.1:8001/art/jobs/hero_3.webp",
+      "head": [
+        45,
+        9,
+        30.002
+      ],
+      "counts": [
+        {
+          "size": 56,
+          "pixels": 893
+        },
+        {
+          "size": 36,
+          "pixels": 893
+        },
+        {
+          "size": 26,
+          "pixels": 475
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "sprite": "http://127.0.0.1:8001/art/jobs/hero_4.webp",
+      "bust": "http://127.0.0.1:8001/art/jobs/hero_4.webp",
+      "head": [
+        45,
+        9,
+        30.088
+      ],
+      "counts": [
+        {
+          "size": 56,
+          "pixels": 892
+        },
+        {
+          "size": 36,
+          "pixels": 892
+        },
+        {
+          "size": 26,
+          "pixels": 472
+        }
+      ]
+    },
+    {
+      "rank": 5,
+      "sprite": "http://127.0.0.1:8001/art/jobs/hero_5.webp",
+      "bust": "http://127.0.0.1:8001/art/jobs/hero_5.webp",
+      "head": [
+        45,
+        9,
+        29.916
+      ],
+      "counts": [
+        {
+          "size": 56,
+          "pixels": 955
+        },
+        {
+          "size": 36,
+          "pixels": 955
+        },
+        {
+          "size": 26,
+          "pixels": 508
+        }
+      ]
+    }
+  ],
+  "viewports": [
+    {
+      "name": "desktop",
+      "width": 1280,
+      "height": 900
+    },
+    {
+      "name": "mobile",
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "browserErrors": []
+}

@@ -1,0 +1,102 @@
+{
+  "job": "hero",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "approvedR1": "docs/art/hero/hero-r1-final.png",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "sources": [
+    {
+      "source": "docs/art/hero/hero-r1-final.png",
+      "head": [
+        500,
+        632,
+        147,
+        449
+      ],
+      "sole": 1336,
+      "resamplingMarginPx": 5,
+      "perDot": 14.402895054282267,
+      "alphaBBox": [
+        44,
+        112,
+        1103,
+        1336
+      ]
+    },
+    {
+      "source": "docs/art/hero/hero-r2-final.png",
+      "head": [
+        500,
+        632,
+        147,
+        450
+      ],
+      "sole": 1342,
+      "resamplingMarginPx": 5,
+      "perDot": 14.475271411338962,
+      "alphaBBox": [
+        37,
+        111,
+        1083,
+        1342
+      ]
+    },
+    {
+      "source": "docs/art/hero/hero-r3-final.png",
+      "head": [
+        500,
+        632,
+        144,
+        448
+      ],
+      "sole": 1339,
+      "resamplingMarginPx": 5,
+      "perDot": 14.475271411338962,
+      "alphaBBox": [
+        36,
+        106,
+        1079,
+        1339
+      ]
+    },
+    {
+      "source": "docs/art/hero/hero-r4-final.png",
+      "head": [
+        500,
+        632,
+        146,
+        451
+      ],
+      "sole": 1340,
+      "resamplingMarginPx": 5,
+      "perDot": 14.463208685162845,
+      "alphaBBox": [
+        36,
+        108,
+        1103,
+        1340
+      ]
+    },
+    {
+      "source": "docs/art/hero/hero-r5-final.png",
+      "head": [
+        500,
+        632,
+        168,
+        470
+      ],
+      "sole": 1360,
+      "resamplingMarginPx": 5,
+      "perDot": 14.439083232810614,
+      "alphaBBox": [
+        20,
+        131,
+        1091,
+        1360
+      ]
+    }
+  ]
+}

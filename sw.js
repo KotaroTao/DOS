@@ -186,6 +186,7 @@ const ASSETS = [
   "./src/storyart.js",
   "./art/op_dolls.png",
   "./art/mansion_irene.jpg",
+  // 呪術師R1〜R5: 聖戦士基準の透明原画。
   "./art/jobs/hexer_1.webp",
   "./art/jobs/hexer_2.webp",
   "./art/jobs/hexer_3.webp",

@@ -54,6 +54,8 @@ const APPROVED_IMAGES = {
   ch3_end: "art/story/chapter3/ch3_end.png",
   irene_trust: "art/story/chapter3/irene_trust.png",
 };
+// ゲーム内の同じ場面 (師の手がかり・報告・主の記憶・館の語り・章の結び) でも、この描き下ろしの絵を掲げる
+export const storyImage = id => APPROVED_IMAGES[id] || null;
 const scene = (id, chapter, title, available, setting, focus, lines, extra = {}) => ({
   id, chapter, group:group(chapter), title, available, lines,
   ...(APPROVED_IMAGES[id] ? { image:APPROVED_IMAGES[id], imageWidth:1536, imageHeight:1024, imageAlt:title + "の場面" } : {}),
@@ -318,7 +320,7 @@ export const ARCHIVE_STORIES = [
   ], {people:"irene", pose:"welcome"}),
 ];
 
-// プレイ順が枝分かれしても、序章・章ごとの流れで読める。閲覧済みフラグの追加は不要。
+// プレイ順が枝分かれしても、序章・章ごとの流れで読める。既読・知らせ済みは G.journal (src/journal.js)。
 export function archiveStories(g) {
   return ARCHIVE_STORIES.filter(s => s.available(g)).sort((a, b) => a.chapter - b.chapter || ARCHIVE_STORIES.indexOf(a) - ARCHIVE_STORIES.indexOf(b));
 }
