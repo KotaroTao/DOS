@@ -1,0 +1,22 @@
+{
+  "job": "warden",
+  "name": "護法師",
+  "approvedSource": "docs/art/warden/warden-r1-final.png",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "frame": [90, 92],
+  "frameTop": 9,
+  "alphaFloor": 8,
+  "ranks": [
+    {"rank": 1, "source": "docs/art/warden/warden-r1-final.png", "perDot": 13.49, "head": [493, 620, 235, 506, 1353]},
+    {"rank": 2, "source": "docs/art/warden/warden-r2-final.png", "perDot": 13.51, "head": [493, 620, 235, 506, 1355]},
+    {"rank": 3, "source": "docs/art/warden/warden-r3-final.png", "perDot": 13.63, "head": [492, 620, 228, 504, 1358]},
+    {"rank": 4, "source": "docs/art/warden/warden-r4-final.png", "perDot": 13.53, "head": [493, 620, 235, 506, 1357]},
+    {"rank": 5, "source": "docs/art/warden/warden-r5-final.png", "perDot": 13.98, "head": [494, 627, 215, 493, 1376]}
+  ],
+  "notes": [
+    "頭頂は主な髪の上端。お団子と髪飾りは含めない。",
+    "全身は頭頂〜足裏を約82.9ドットへ統一。頭部は承認済みR1に合わせ約20ドット。",
+    "聖戦士の頭部21.93ドットとの差が約2ドットあるため、review-job-art.pyの--require-photosが要求する座標完全一致は未達。画像選択はverify-import.pyで別途検査する。",
+    "alphaFloor=8は生成画像のほぼ不可視な外周残片を除く。原画のドット化・減色は行わない。"
+  ]
+}

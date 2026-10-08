@@ -1,0 +1,67 @@
+{
+  "sprites": [
+    {
+      "key": "crusader",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.93
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/crusader_1.webp"
+    },
+    {
+      "key": "asura",
+      "rank": 1,
+      "face": null,
+      "head": null,
+      "w": 12,
+      "h": 12,
+      "src": null
+    },
+    {
+      "key": "asura",
+      "rank": 2,
+      "face": null,
+      "head": null,
+      "w": 12,
+      "h": 12,
+      "src": null
+    },
+    {
+      "key": "asura",
+      "rank": 3,
+      "face": null,
+      "head": null,
+      "w": 12,
+      "h": 12,
+      "src": null
+    },
+    {
+      "key": "asura",
+      "rank": 4,
+      "face": null,
+      "head": null,
+      "w": 12,
+      "h": 12,
+      "src": null
+    },
+    {
+      "key": "asura",
+      "rank": 5,
+      "face": null,
+      "head": null,
+      "w": 12,
+      "h": 12,
+      "src": null
+    }
+  ],
+  "canvasCount": 30,
+  "browserErrors": []
+}

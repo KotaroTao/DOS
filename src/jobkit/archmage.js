@@ -38,7 +38,7 @@ export default {
     ARCHMAGE_SHUUEN:     { name: "終焉の焔", mp: 30, kind: "atk", power: 84, element: "fire", flinchChance: 0.2, target: "all-enemy", desc: "終焉の焔が戦場を焼き、怯ませる" },
     ARCHMAGE_SHINENKOU:  { name: "深淵の口", mp: 30, kind: "atk", power: 92, element: "dark", instakill: { chance: 0.12 }, target: "enemy", desc: "深淵が口を開けて呑む。稀に即死" },
     ARCHMAGE_SOUSEI:     { name: "創世の崩落", mp: 36, kind: "atk", power: 100, strip: true, target: "all-enemy", desc: "創世の理を崩し、強化ごと敵を砕く（無属性）" },
-    ARCHMAGE_BANSHOU:    { name: "万象崩壊", mp: 46, kind: "atk", power: 132, critBonus: 0.15, target: "all-enemy", desc: "重ねた詠唱で万象を砕く極大呪文（無属性）" },
+    ARCHMAGE_BANSHOU:    { name: "万象崩壊", mp: 70, kind: "atk", power: 132, critBonus: 0.15, target: "all-enemy", desc: "重ねた詠唱で万象を砕く極大呪文（無属性）" },
   },
   perks: {
     archmageJuushou: {
