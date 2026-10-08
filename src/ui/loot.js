@@ -594,7 +594,7 @@ export function identifyChooser(it, { onDone } = {}) {
       onTap: () => { h.close("pick", { silent: true }); done(shopIdentifyOne(own.doll, it)); },
     }));
   }
-  const skillOk = !it.lr && !it.idHardFail;
+  const skillOk = !it.idHardFail;
   if (skillOk) {
     for (const m of men) {
       const ch = identifyChance(m, it);
@@ -611,8 +611,7 @@ export function identifyChooser(it, { onDone } = {}) {
     }
   }
   const lines = [];
-  if (it.lr) lines.push("レジェンドレアは、商会でしか鑑定できない。");
-  else if (it.idHardFail) lines.push("一度鑑定に失敗した品。もう商会でしか鑑定できない。");
+  if (it.idHardFail) lines.push("一度鑑定に失敗した品。もう商会でしか鑑定できない。");
   else if (!inTown()) lines.push("鑑定は街でしかできない。");
   else if (!men.length) lines.push("鑑定の心得のある者がいない。");
   else lines.push("失敗すると、この品はもう商会でしか鑑定できない。");
@@ -660,14 +659,14 @@ function defaultActions(st) {
     if (town && shopOpen() && inBag) {
       const cost = game.appraiseCost(it);
       // 鑑定の心得のある者がいれば ▾ で「鑑定を試す (無料・失敗あり)」も選べる
-      const skill = !it.lr && !it.idHardFail && townAppraisers().length > 0;
+      const skill = !it.idHardFail && townAppraisers().length > 0;
       acts.push({ key: "appraise", primary: true, label: "鑑定して装備", sub: "商会で鑑定 → 人業を選ぶ", cost, disabled: (g.gold || 0) < cost,
         onTap: () => { if (shopIdentifyOne(owner, it)) st.rerender({ revealed: true }); },
         menu: skill ? () => identifyChooser(it, { onDone: (ok) => st.rerender({ revealed: !!ok }) }) : null });
     } else if (!town) {
       // 鑑定は街でのみ (迷宮では心得のある者でも鑑定できない)
       acts.push({ key: "tryId", primary: true, label: "鑑定は街でのみ", sub: "持ち帰って鑑定する", disabled: true });
-    } else if (!it.lr && !it.idHardFail) {
+    } else if (!it.idHardFail) {
       const men = townAppraisers();
       if (men.length) {
         const best = men.map((m) => ({ m, ch: identifyChance(m, it) })).sort((a, b) => b.ch - a.ch)[0];
@@ -678,7 +677,7 @@ function defaultActions(st) {
         acts.push({ key: "tryId", primary: true, label: "鑑定の心得のある者がいない", sub: "商会で鑑定できる", disabled: true });
       }
     } else {
-      acts.push({ key: "tryId", primary: true, label: it.lr ? "商会でのみ鑑定できる" : "鑑定に失敗した品", sub: "街の商会で鑑定する", disabled: true });
+      acts.push({ key: "tryId", primary: true, label: "鑑定に失敗した品", sub: "街の商会で鑑定する", disabled: true });
     }
   } else if (eqKey) {
     // ---- 装備中 ----

@@ -14,10 +14,10 @@ import { ENEMY_STAT_LABEL } from "../buffstage.js";
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
 import { UI, game, ops, registerUI } from "./ctx.js";
-import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, scrollBox, badge } from "./kit.js";
+import { el, setText, glyph, svgIcon, sheet, button, segmented, chips, itemTile, scrollBox, badge, bar } from "./kit.js";
 import { remember } from "./prefs.js";
 import { softFade } from "./motion.js";
-import { statLines, itemCatText, specialLines, weaponPerformanceEl, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock, elemStatShort } from "./itemview.js";
+import { statLines, itemCatText, specialLines, weaponPerformanceEl, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock, elemStatShort, enemyReveal, enemyLabel, UNKNOWN_COLOR } from "./itemview.js";
 import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
 import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LORE_PAGES } from "../events.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_KIND_LABEL, shieldKind, itemName } from "../items.js";
@@ -533,32 +533,48 @@ function pairRow(name, desc, { dim = false, onTap = null, tags = null } = {}) {
   return r;
 }
 
-export function codexMonSheet(key) {
-  const m = MONSTERS[key];
+// o.enemy = 戦闘中の敵 (戦闘で敵を押した時の「敵の姿」— 図鑑と同じ一枚に、いまのHPと不確定名を添える。
+// ユーザーの指示、2026-10)
+export function codexMonSheet(key, o = {}) {
+  const foe = o.enemy || null;
+  const m = MONSTERS[key] || (foe && foe.mon);
   if (!m) return null;
   // 記録は読むだけ (開いただけで討伐の記録を作らない — まだ討っていない主も開ける)
   const rec = G() && G().codex && G().codex.mon ? G().codex.mon[key] : null;
   const e = rec && typeof rec === "object" ? rec : { kills: 0, dungeons: {} };
   const rc = m.rank ? RANK_COLOR[m.rank] : null;
-  const elm = ELEMENTS[m.element] || ELEMENTS.none;
+  // 戦闘中の敵は、迷宮の掟などで変わった実際の属性で示す
+  const elKey = foe && foe.element ? foe.element : m.element;
+  const elm = ELEMENTS[elKey] || ELEMENTS.none;
   const isOther = (game.CODEX_OTHER || []).includes(key);
   const body = el("div", "pl-detail");
-  // 倒した数に応じて段階的に明かす (戦闘中の「敵の姿」と同じ。主・強敵は1体討てば全て)
+  // 倒した数に応じて段階的に明かす (主・強敵は1体討てば全て)。出来事だけの敵は最初から全て
+  const rv = foe ? enemyReveal(foe) : null;
+  const special = !!(rv && rv.special);
   const kills = monKills(key);
   const R = revealSteps(m);
-  const statsOpen = kills >= R.stats, loreOpen = kills >= R.lore;
+  const statsOpen = rv ? rv.stats : kills >= R.stats, loreOpen = rv ? rv.lore : kills >= R.lore;
   const tag = el("div", "pl-detail-tags");
   if (statsOpen) {
     const et = el("span", "pl-tag", `属性 ${elm.label}`);
     et.style.color = elm.color;
     tag.appendChild(et);
   }
-  tag.appendChild(el("span", "pl-tag", `討伐数 ${kills}体`));
+  if (!special) tag.appendChild(el("span", "pl-tag", `討伐数 ${kills}体`));
   if (m.boss) tag.appendChild(el("span", "pl-tag gold", "迷宮の主"));
   if (m.named) tag.appendChild(el("span", "pl-tag gold", "名のある強敵"));
   body.appendChild(tag);
+  if (rv && !rv.name) body.appendChild(revealLock(R.name, "名前"));
+  // 戦闘中: いまの残りHP
+  if (foe && statsOpen) {
+    const hp = el("div", "dg-peek-bar wide");
+    hp.appendChild(el("span", "dg-peek-bl", "HP"));
+    hp.appendChild(bar(foe.hp, foe.maxhp, { tone: "hp" }));
+    hp.appendChild(el("span", "dg-peek-bv", `${Math.max(0, foe.hp)}/${foe.maxhp}`));
+    body.appendChild(hp);
+  }
   if (statsOpen) {
-    const aff = affinityRow(m.element, "pl-aff");
+    const aff = affinityRow(elKey, "pl-aff");
     if (aff) body.appendChild(aff);
   }
   if (loreOpen && m.desc) body.appendChild(setText(el("div", "pl-detail-desc"), m.desc));
@@ -583,7 +599,7 @@ export function codexMonSheet(key) {
     }
     body.appendChild(grid);
     fact("HP", mt ? (mt.hpRank ? "多め" : mt.hp) : Math.max(1, Math.round(m.maxhp * resistHpMul(m))));
-    fact("属性攻", elemStatShort({ el: m.element || "none", lv: 1 }));
+    fact("属性攻", elemStatShort({ el: elKey || "none", lv: 1 }));
     fact("属性防", elemStatShort(m.elemDef));
   } else body.appendChild(revealLock(R.stats, "能力・属性・HP"));
   if (loreOpen) {
@@ -596,7 +612,7 @@ export function codexMonSheet(key) {
     : [pairRow("✦Soul", String(m.soul)), pairRow("金貨", String(m.gold))]));
   if (loreOpen) {
     const traits = monsterTraits(m);
-    body.appendChild(infoBlock("特徴・スキル", traits.length ? traits.map((t) => pairRow(t.label, t.desc, { tags: traitTagKinds(t.key, m.element) })) : [pairRow("特筆すべき特徴はない", null, { dim: true })]));
+    body.appendChild(infoBlock("特徴・スキル", traits.length ? traits.map((t) => pairRow(t.label, t.desc, { tags: traitTagKinds(t.key, elKey) })) : [pairRow("特筆すべき特徴はない", null, { dim: true })]));
   } else body.appendChild(revealLock(R.lore, "特徴・スキル・説明文"));
   if (!loreOpen) body.appendChild(revealLock(R.lore, "抵抗値"));
   // 名のある強敵: 縄張り・目撃・首級・懸賞
@@ -612,10 +628,11 @@ export function codexMonSheet(key) {
     ]));
   }
   const idxs = Object.keys(e.dungeons || {}).map(Number).filter((i) => DUNGEONS[i] && dunOpen(i));
-  body.appendChild(infoBlock("出現した迷宮", idxs.length ? idxs.map((i) => pairRow(DUNGEONS[i].name)) : [pairRow("記録なし", null, { dim: true })]));
+  if (!special) body.appendChild(infoBlock("出現した迷宮", idxs.length ? idxs.map((i) => pairRow(DUNGEONS[i].name)) : [pairRow("記録なし", null, { dim: true })]));
   return sheet.open({
     kind: "info", banner: isOther ? "その他" : `${RACE_LABEL[m.race] || "敵"}${m.rank ? "・" + RANK_NAME[m.rank] + "級" : ""}`,
-    accent: rc, art: kills > 0 || !(m.boss || m.named) ? m : null, artScale: 8, float: isFloating(m, key), title: m.name, body, className: "pl-detail-sheet",
+    accent: rc, art: (foe ? !!m.art : kills > 0 || !(m.boss || m.named)) ? m : null, artScale: 8, float: isFloating(m, key),
+    title: foe ? enemyLabel(foe) : m.name, titleColor: rv && !rv.name ? UNKNOWN_COLOR : null, body, className: "pl-detail-sheet",
     footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
   });
 }

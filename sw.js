@@ -236,6 +236,7 @@ const ASSETS = [
   "./src/ui/dungeonhud.js",
   "./src/ui/results.js",
   "./src/ui/tutorial.js",
+  "./src/ui/jobgallery.js",
   "./src/dungeons/schema.js",
   "./src/dungeons/common.js",
   "./src/dungeons/index.js",

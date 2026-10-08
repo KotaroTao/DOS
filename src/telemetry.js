@@ -37,6 +37,17 @@ if (S.build !== TEST_BUILD) {
   if (Object.keys(S.d).length) (S.history || (S.history = [])).push({ build: S.build || "旧版(不明)", since: S.since, until: new Date().toISOString(), d: S.d, townMs:S.townMs || 0, townSl:S.townSl || null, townG:S.townG || null, stability:S.stability || null });
   S.stability = null; S.d = {}; S.townMs = 0; S.townSl = null; S.townG = null; S.build = TEST_BUILD; S.since = S.on ? new Date().toISOString() : null;
 }
+// 旧い出撃記録の装備 (品のデータ丸ごと) を品IDだけに縮める。端末の保存容量を超えて記録が書けなくなるのを防ぐ
+function slimRuns(d) {
+  for (const k in d || {}) for (const run of [d[k].firstEntry && { entry: d[k].firstEntry }, ...(d[k].runs || [])]) {
+    for (const m of (run && run.entry && run.entry.loadout) || []) {
+      if (!m.equip) continue;
+      for (const slot in m.equip) { const it = m.equip[slot]; if (it && typeof it === "object") m.equip[slot] = it.id || null; }
+    }
+  }
+}
+slimRuns(S.d);
+for (const h of S.history || []) slimRuns(h.d);
 function persist() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) { /* 容量切れ等は諦める */ } }
 persist();
 
@@ -369,8 +380,8 @@ export function tlBattleEnd(memo, { result, rounds, tally, party }) {
 }
 
 // ---- 読み出し ----
-const pct = (n, d) => (d > 0 ? `${Math.round((n / d) * 100)}%` : "―");
-const avg = (n, c, div = 1) => (c > 0 ? Math.round((n / c / div) * 10) / 10 : "―");
+const pct = (n, d) => (d > 0 && Number.isFinite(n) ? `${Math.round((n / d) * 100)}%` : "―");
+const avg = (n, c, div = 1) => (c > 0 && Number.isFinite(n) ? Math.round((n / c / div) * 10) / 10 : "―"); // 古い記録で欠けた項目は「―」
 // 奇襲: 受けた回数と、開幕の抽選から見込まれる回数 (出来事・待ち伏せの分は別に添える)。
 // 出どころを記録し始める前の器 (ambP の無いもの) は回数だけ出す
 function ambushNote(a) {
@@ -514,15 +525,41 @@ export function tlSummary(data = S.d) {
   return out;
 }
 
-// 書き出し用テキスト。貼り付けて読めるよう、調整に使う要点だけ (生データ・出撃ごとの装備・安定度の出来事の明細は出さない)
-export function tlExportText() {
-  const lines = [`【DOS テスト記録 v${VERSION}】 版 ${TEST_BUILD} / 記録開始 ${S.since || "―"} / 書き出し ${stamp()}`];
+// 書き出し用テキスト。貼り付けて読めるよう、調整に使う要点だけ (生データ・出撃ごとの装備・安定度の出来事の明細は出さない)。
+// past = 過去版 (デプロイで版が変わる前の記録) も同じ形で、新しい版から順に添える
+export function tlExportText({ past = false } = {}) {
+  const lines = [`【DOS テスト記録 v${VERSION}】 版 ${TEST_BUILD} / 記録開始 ${dateText(S.since)} / 書き出し ${stamp()}`];
   lines.push(...tlStabilitySummary());
-  for (const s of tlSummary()) { lines.push(s.head); for (const l of s.lines) lines.push("  " + l); }
-  const past = (S.history || []).length;
-  if (past) lines.push(`(過去版の記録 ${past}件は混ぜないため書き出さない)`);
+  const now = tlSummary();
+  if (!now.length) lines.push("(この版の迷宮の記録はまだない)");
+  for (const s of now) { lines.push(s.head); for (const l of s.lines) lines.push("  " + l); }
+  const history = S.history || [];
+  if (past) {
+    for (const h of [...history].reverse()) {
+      lines.push("", `【過去版 ${h.build || "旧版(不明)"}】 ${dateText(h.since)} ～ ${dateText(h.until)}`);
+      lines.push(...tlStabilitySummary(h.stability));
+      for (const s of tlSummary(h.d || {})) { lines.push(s.head); for (const l of s.lines) lines.push("  " + l); }
+    }
+  } else if (history.length) lines.push(`(過去版の記録 ${history.length}件は「過去版も書き出す」で出せる)`);
   lines.push("注: 被ダメ/戦 = 戦闘前後の隊HP割合の差の平均。命中 = 物理の試行から回避・見切りを除いた割合。奇襲の予想 = 開幕の抽選の奇襲率の合計。✦の「戦闘の倍」= 迷宮で得た✦ ÷ 戦闘の✦。魂 = 職Lv+融合数。");
   return lines.join("\n");
+}
+// 過去版の数と、画面に出す要約 (新しい版から順)
+export function tlPastCount() { return (S.history || []).length; }
+export function tlPastSummary() {
+  return [...(S.history || [])].reverse().map((h) => ({
+    head: `過去版 ${h.build || "旧版(不明)"} ${dateText(h.since)} ～ ${dateText(h.until)}`,
+    stability: tlStabilitySummary(h.stability), dungeons: tlSummary(h.d || {}),
+  }));
+}
+// ISO の日時 (旧版の until) も stamp と同じ「2026-10-08 02:23」に揃える
+function dateText(v) {
+  if (!v) return "―";
+  if (!/T/.test(v)) return v;
+  const d = new Date(v);
+  if (isNaN(d)) return v;
+  const z = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())} ${z(d.getHours())}:${z(d.getMinutes())}`;
 }
 // 記録そのもの (検証用。書き出しには出さない)
 export function tlRawData() {

@@ -11,7 +11,7 @@
 
 import { UI, game, registerUI } from "./ctx.js";
 import { el, setText, sheet, segmented, toast, button } from "./kit.js";
-import { tlOn, tlSetOn, tlClear, tlHasData, tlSummary, tlStabilitySummary, tlExportText } from "../telemetry.js";
+import { tlOn, tlSetOn, tlClear, tlHasData, tlSummary, tlStabilitySummary, tlExportText, tlPastCount, tlPastSummary } from "../telemetry.js";
 import { getPref, setPref, remember, autoMoveAvoid, setAutoMoveAvoid } from "./prefs.js";
 import { SFX } from "../audio.js";
 
@@ -135,14 +135,14 @@ function fillAuto(box) {
   for (const a of AUTO) {
     box.appendChild(toggleRow({ name: a.name, desc: a.desc, on: !!getPref(a.key), onChange: (v) => { setPref(a.key, v); sfx("select"); } }));
   }
-  // オート移動 (迷宮のドックの「オート」) で避けるもの: 一般の敵・強敵・出来事・宝箱をそれぞれ避ける/避けない
+  // オート移動 (迷宮のドックの「オート」) で避けるもの: 一般の敵・強敵・出来事・宝箱 (死体も) をそれぞれ避ける/避けない
   const amRow = el("div", "stg-row stg-segrow stg-stack stg-am");
   const amt = el("span", "stg-row-t");
   amt.appendChild(setText(el("span", "stg-row-n"), "オート移動で避けるもの"));
   amt.appendChild(setText(el("span", "stg-row-d"), "どの設定でも、札をタップすれば寄り道できる"));
   amRow.appendChild(amt);
   const av = autoMoveAvoid();
-  for (const [key, name] of [["foe", "一般の敵"], ["elite", "強敵"], ["event", "出来事"], ["chest", "宝箱"]]) {
+  for (const [key, name] of [["foe", "一般の敵"], ["elite", "強敵"], ["event", "出来事"], ["chest", "宝箱・死体"]]) {
     const line = el("div", "stg-am-l");
     line.appendChild(setText(el("span", "stg-am-n"), name));
     line.appendChild(segmented([{ key: "1", label: "避ける" }, { key: "0", label: "避けない" }], av[key] ? "1" : "0", (k) => {
@@ -254,12 +254,18 @@ function openTestLog() {
     kind: "info", banner: "テスト記録", className: "stg-sheet stg-log-sheet",
     title: tlOn() ? "記録中" : "記録は止まっている",
     body: (root) => {
-      if (!sum.length) { root.appendChild(setText(el("p", "stg-log-empty"), "まだ記録がない。迷宮に潜ると、階ごと・戦闘ごとに集まっていく。")); return; }
-      for (const d of sum) {
+      if (!sum.length && !tlPastCount()) { root.appendChild(setText(el("p", "stg-log-empty"), "まだ記録がない。迷宮に潜ると、階ごと・戦闘ごとに集まっていく。")); return; }
+      const block = (d) => {
         const b = el("div", "stg-log-d");
         b.appendChild(setText(el("div", "stg-log-h"), d.head));
         for (const l of d.lines) b.appendChild(setText(el("div", "stg-log-l"), l));
         root.appendChild(b);
+      };
+      for (const d of sum) block(d);
+      // 過去版 (デプロイで版が変わる前の記録) も同じ形で下に並べる
+      for (const h of tlPastSummary()) {
+        block({ head: `【${h.head}】`, lines: h.stability.length ? h.stability : [] });
+        for (const d of h.dungeons) block(d);
       }
     },
     footer: [
@@ -271,6 +277,14 @@ function openTestLog() {
           else showExportText(text);
         });
       } },
+      ...(tlPastCount() ? [{ label: `過去版も書き出す (${tlPastCount()}件)`, kind: "secondary", onTap: () => {
+        sfx("select");
+        const text = tlExportText({ past: true });
+        copyText(text).then((ok) => {
+          if (ok) toast("過去版を含めてコピーした ― そのまま貼り付けて送れる", { tone: "good" });
+          else showExportText(text);
+        });
+      } }] : []),
       { label: "記録を消す", kind: "secondary", onTap: (s) => {
         sfx("select");
         dangerConfirm({ banner: "テスト記録", title: "テスト記録を消しますか？", lines: ["集計した能力値と戦闘の記録がすべて消える。", "(セーブデータには影響しない)"], okLabel: "消す" })

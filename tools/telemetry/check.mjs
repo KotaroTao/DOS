@@ -11,6 +11,8 @@ const T=await import('../../src/telemetry.js');
 const data=()=>T.tlRawData();
 assert.equal(data().history[0].d.w01.b.n.c,3);
 assert.equal(data().v,2);
+assert(T.tlExportText({past:true}).includes('【過去版')&&T.tlExportText({past:true}).includes('w01 旧迷宮'),'過去版を新しい形で書き出す');
+assert(!T.tlExportText().includes('w01 旧迷宮'));
 assert.deepEqual(data().d,{});
 const reload=await import('../../src/telemetry.js?reload');
 assert.equal(reload.tlRawData().history.length,1);
