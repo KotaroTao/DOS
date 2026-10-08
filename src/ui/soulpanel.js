@@ -9,7 +9,7 @@
 import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, button, row, sheet, toast, confirm, statDelta, bar, svgIcon, celebrate, longPress } from "./kit.js";
 import { countUp } from "./motion.js";
-import { showSkillPopup, SPELL_KIND_LABEL } from "./itemview.js";
+import { showSkillPopup, showPassivePopup, SPELL_KIND_LABEL } from "./itemview.js";
 import {
   SOUL_CLASSES, jobSprite, jobBust, soulByUid, soulRankOf, soulLevelCapOf, emberCostOf, nextRankThreshold, jobRankName, soulSeriesName,
   soulLearnedSkills, soulLearnedPassives, soulLabel, soulRankLeft, passiveName, passiveDesc, orderStatBonus, orderStatRateOfRank, ORDER_STAT_RATES,
@@ -731,7 +731,7 @@ export function openSoulDetail(uid, onChange = null) {
     for (const [key, lv] of pss) {
       const c = el("button", "sp-sd-chip ps", passiveName(key, lv));
       c.type = "button";
-      c.addEventListener("click", () => toast(`${passiveName(key, lv)} ― ${passiveDesc(key, lv) || ""}`, { tone: "info" }));
+      c.addEventListener("click", () => { if (!showPassivePopup(key, lv)) toast(`${passiveName(key, lv)} ― ${passiveDesc(key, lv) || ""}`, { tone: "info" }); });
       chips.appendChild(c);
     }
     if (!sks.length && !pss.length) chips.appendChild(el("span", "pt-note", "まだ技を覚えていない。"));
@@ -1148,7 +1148,7 @@ function fuseLearned(info) {
     const b = el("button", "sp-fz-chip ps", `パッシブ ${passiveName(p.key, p.lv)}`);
     b.type = "button";
     b.title = passiveDesc(p.key, p.lv);
-    b.addEventListener("click", () => toast(`${passiveName(p.key, p.lv)} ― ${passiveDesc(p.key, p.lv)}`, { tone: "info" }));
+    b.addEventListener("click", () => { if (!showPassivePopup(p.key, p.lv)) toast(`${passiveName(p.key, p.lv)} ― ${passiveDesc(p.key, p.lv)}`, { tone: "info" }); });
     list.appendChild(b);
   }
   wrap.appendChild(list);
