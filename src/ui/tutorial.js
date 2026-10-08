@@ -81,7 +81,7 @@ function goSoulSeg(d) {
   if (UI.openParty) UI.openParty(doll, { context: "town", seg: "soul" });
 }
 function goTavern() {
-  if (UI.openTavern) return UI.openTavern("talk"); // 噂話は「噂と顔ぶれ」の区分
+  if (UI.openTavern) return UI.openTavern("board"); // 噂話は掲示板の区分のいちばん上
   if (UI.shell && UI.shell.openPage) UI.shell.openPage("tavern", { parentTab: "hub" });
 }
 
