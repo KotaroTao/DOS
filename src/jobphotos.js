@@ -90,5 +90,12 @@ export const JOB_PHOTOS = {
     4: { src: "art/jobs/brigand_4.webp", w: 90, h: 84, face: [45, 12], head: [45.0, 1.0, 23.125] },
     5: { src: "art/jobs/brigand_5.webp", w: 90, h: 84, face: [45, 12], head: [45.0, 1.0, 23.125] },
   },
+  arcthief: {
+    1: { src: "art/jobs/arcthief_1.webp", w: 49, h: 83, face: [20, 11], head: [20.06, 0.0, 21.3] },
+    2: { src: "art/jobs/arcthief_2.webp", w: 56, h: 83, face: [21, 11], head: [20.94, 0.0, 21.29] },
+    3: { src: "art/jobs/arcthief_3.webp", w: 65, h: 84, face: [22, 11], head: [21.94, 0.07, 21.32] },
+    4: { src: "art/jobs/arcthief_4.webp", w: 67, h: 84, face: [24, 11], head: [23.75, 0.07, 21.35] },
+    5: { src: "art/jobs/arcthief_5.webp", w: 70, h: 86, face: [25, 12], head: [25.2, 2.13, 22.48] },
+  },
   // <<JOB_PHOTOS>>
 };
