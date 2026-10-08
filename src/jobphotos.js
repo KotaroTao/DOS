@@ -70,11 +70,11 @@ export const JOB_PHOTOS = {
     5: { src: "art/jobs/ascetic_5.webp", w: 90, h: 92, face: [45, 18], head: [45.0, 9.0, 26.092] },
   },
   archbishop: {
-    1: { src: "art/jobs/archbishop_1.webp", w: 42, h: 74, face: [25, 20], head: [25.19, 12.72, 27.16] },
-    2: { src: "art/jobs/archbishop_2.webp", w: 43, h: 77, face: [25, 22], head: [25.37, 14.57, 29.38] },
-    3: { src: "art/jobs/archbishop_3.webp", w: 51, h: 78, face: [26, 23], head: [25.99, 16.05, 30.86] },
-    4: { src: "art/jobs/archbishop_4.webp", w: 56, h: 80, face: [26, 25], head: [26.42, 17.41, 32.72] },
-    5: { src: "art/jobs/archbishop_5.webp", w: 59, h: 83, face: [24, 28], head: [24.2, 20.37, 35.68] },
+    1: { src: "art/jobs/archbishop_1.webp", w: 90, h: 94, face: [45, 23], head: [45.0, 15.2, 30.435] },
+    2: { src: "art/jobs/archbishop_2.webp", w: 90, h: 94, face: [45, 23], head: [45.0, 15.2, 30.435] },
+    3: { src: "art/jobs/archbishop_3.webp", w: 90, h: 94, face: [45, 23], head: [45.0, 15.2, 30.435] },
+    4: { src: "art/jobs/archbishop_4.webp", w: 90, h: 94, face: [45, 23], head: [45.0, 15.2, 30.435] },
+    5: { src: "art/jobs/archbishop_5.webp", w: 90, h: 94, face: [45, 23], head: [45.0, 15.2, 30.435] },
   },
   hero: {
     1: { src: "art/jobs/hero_1.webp", w: 90, h: 92, face: [45, 20], head: [45, 9, 29.968] },
