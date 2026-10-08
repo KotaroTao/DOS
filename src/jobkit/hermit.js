@@ -26,7 +26,7 @@ export default {
     HERMIT_NEMURIGASUMI: { name: "眠り霞", mp: 4, kind: "debuff", sleepChance: 0.5, debuff: { agi: 0.9 }, target: "all-enemy", desc: "眠りを誘う霞で敵全体を包む" },
     HERMIT_YAMAOROSHI: { name: "山颪", mp: 9, kind: "atk", power: 25, element: "wind", flinchChance: 0.25, faith: true, target: "enemy", desc: "吹き下ろす山風で打ち、怯ませる（PIEでも伸びる）" },
     HERMIT_KIRIGOME: { name: "霧籠め", mp: 8, kind: "debuff", debuff: { agi: 0.75, hit: 0.9 }, target: "all-enemy", desc: "濃霧に籠め、敵全体の足と狙いを鈍らす" },
-    HERMIT_KOGARASHI: { name: "木枯らし", mp: 10, kind: "atk", power: 30, element: "wind", debuff: { atk: 0.9 }, faith: true, target: "all-enemy", desc: "凍てつく風が敵全体の力を奪う（PIEでも伸びる）" },
+    HERMIT_KOGARASHI: { name: "木枯らし", mp: 12, kind: "atk", power: 30, element: "wind", debuff: { atk: 0.9 }, faith: true, target: "all-enemy", desc: "凍てつく風が敵全体の力を奪う（PIEでも伸びる）" },
     HERMIT_ASATSUYU: { name: "朝露の恵み", mp: 12, kind: "buff", regen: { pct: 0.06, turns: 4 }, cure: ["poison", "paralyze", "sleep"], target: "all-ally", desc: "全員の毒・猛毒・麻痺・眠りを洗い流し、癒しを残す" },
     HERMIT_KOMOREBI: { name: "木漏れ日", mp: 9, kind: "atk", power: 21, element: "light", sleepChance: 0.15, target: "all-enemy", desc: "まどろむ光で敵全体を灼き、眠らせる" },
     HERMIT_KUNPUU: { name: "薫風の癒し", mp: 19, kind: "heal", healMul: 1.4, buff: { agi: 1.1 }, target: "all-ally", desc: "薫る風が全員を癒し、身を軽くする" },

@@ -2,6 +2,7 @@
 export const STABILITY_MAX = 100;
 export const STABILITY_ENTRY_COST = 10;
 export const STABILITY_RECOVERY_MS = 3 * 60 * 1000;
+export function stabilityRecoveryMs() { return STABILITY_RECOVERY_MS; }
 
 export function recoverStability(d, now = Date.now()) {
   if (!Number.isFinite(d.stability)) d.stability = STABILITY_MAX;

@@ -1,0 +1,109 @@
+{
+  "job": "asura",
+  "label": "修羅",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "anatomySource": "docs/art/asura/asura-r1-final.png",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "crownNote": "逆立つ髪は主な頭の髪の先と根元の間で測定。後ろの髪束と角の先は除外。",
+  "sources": [
+    {
+      "source": "docs/art/asura/asura-r1-final.png",
+      "perDot": 13.949275362318842,
+      "head": [
+        592,
+        708,
+        307,
+        612
+      ],
+      "sole": 1459,
+      "alphaBBox": [
+        154,
+        222,
+        1192,
+        1462
+      ],
+      "crownToSole": 82.58493506493505,
+      "headHeight": 21.864935064935064
+    },
+    {
+      "source": "docs/art/asura/asura-r2-final.png",
+      "perDot": 13.707729468599034,
+      "head": [
+        480,
+        602,
+        170,
+        470
+      ],
+      "sole": 1303,
+      "alphaBBox": [
+        52,
+        75,
+        1096,
+        1305
+      ],
+      "crownToSole": 82.65409691629957,
+      "headHeight": 21.88546255506608
+    },
+    {
+      "source": "docs/art/asura/asura-r3-final.png",
+      "perDot": 13.707729468599034,
+      "head": [
+        480,
+        594,
+        166,
+        467
+      ],
+      "sole": 1298,
+      "alphaBBox": [
+        62,
+        101,
+        1080,
+        1301
+      ],
+      "crownToSole": 82.58114537444933,
+      "headHeight": 21.9584140969163
+    },
+    {
+      "source": "docs/art/asura/asura-r4-final.png",
+      "perDot": 13.526570048309178,
+      "head": [
+        482,
+        596,
+        181,
+        478
+      ],
+      "sole": 1298,
+      "alphaBBox": [
+        55,
+        95,
+        1081,
+        1301
+      ],
+      "crownToSole": 82.57821428571428,
+      "headHeight": 21.956785714285715
+    },
+    {
+      "source": "docs/art/asura/asura-r5-final.png",
+      "perDot": 14.987922705314011,
+      "head": [
+        451,
+        576,
+        112,
+        440
+      ],
+      "sole": 1348,
+      "alphaBBox": [
+        12,
+        23,
+        1107,
+        1353
+      ],
+      "crownToSole": 82.46639806607574,
+      "headHeight": 21.8842868654311
+    }
+  ]
+}

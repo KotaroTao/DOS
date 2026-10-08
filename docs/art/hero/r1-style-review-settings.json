@@ -1,0 +1,16 @@
+{
+  "status": "Review only; game assets unchanged",
+  "source": "hero-r1-style-review.png",
+  "headCenterCrownChin": [
+    566.0,
+    147.0,
+    449.0
+  ],
+  "sole": 1333.0,
+  "perDot": 14.306393244873341,
+  "headBodyRatio": 3.9271523178807946,
+  "frame": [
+    90,
+    92
+  ]
+}

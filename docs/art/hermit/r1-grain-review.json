@@ -1,0 +1,20 @@
+{
+  "job": "hermit",
+  "status": "approved",
+  "source": "docs/art/hermit/hermit-r1-grain-review.png",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "comparison": "docs/art/hermit/r1-grain-comparison.png",
+  "comparisonLandmarksApprox": {
+    "crown": 195,
+    "chin": 420,
+    "sole": 1355,
+    "faceX": 529
+  },
+  "notes": [
+    "聖戦士原画と前回の隠修士R1を直接参照し、輪郭・髪・衣服・革の描かれたドット粒度を修正した確認用候補。",
+    "機械的なドット化・減色は行っていない。",
+    "比較は人体の推定頭頂から足裏までの高さを揃えている。フード先端は頭頂に含めない。",
+    "座標は比較用の概算であり、最終取り込み設定ではない。",
+    "この候補のユーザー承認後、hermit-r1-final.pngとして採用。R2〜R5の制作とゲームへの取り込みを完了。"
+  ]
+}

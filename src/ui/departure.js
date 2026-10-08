@@ -46,7 +46,8 @@ function dangerOf(dn) {
   const gap = band[0] - pl;
   if (gap >= 8) return { cls: "reckless", text: "無謀", note: `推奨Lv${band[0]}〜 ・ パーティLv${pl}。格上の敵には状態異常も即死も、ほとんど効かない。` };
   if (gap >= 4) return { cls: "danger", text: "危険", note: `推奨Lv${band[0]}〜 ・ パーティLv${pl}。敵の状態異常が効きやすく、こちらの術は効きにくい。` };
-  if (pl - band[1] >= 8) return { cls: "easy", text: "易しい", note: null };
+  // 隊のLvが推奨Lv (いちばん深い階) + 2 を超えると、迷宮で得る ✦Soul が減る (game.js soulLvMul)
+  if (pl - band[1] > 2) return { cls: "easy", text: pl - band[1] >= 8 ? "易しい" : "格下", note: `推奨Lv〜${band[1]} ・ パーティLv${pl}。隊のLvが推奨Lvを3以上上回ると、得る✦Soulが減る (1Lvごとに10%、最大80%)。` };
   return null;
 }
 
@@ -346,7 +347,7 @@ function renderReadyIssues(b) {
 function renderStability(b, explain = true) {
   const status = game.stabilityStatus();
   b.appendChild(sec("魂の安定度", "入場時 −10／人"));
-  if (explain) b.appendChild(el("div","dp-brief-l","上限100。入場時に10消費し、3分ごとに1回復。控えやゲームを閉じている間も回復します。探索中の追加消費はありません。"));
+  if (explain) b.appendChild(el("div","dp-brief-l",`上限100。入場時に10消費し、${game.stabilityMinutes ? game.stabilityMinutes() : 3}分ごとに1回復。控えやゲームを閉じている間も回復します。探索中の追加消費はありません。`));
   for (const d of status) {
     const line=el("div","dp-stability-row");
     const wait=d.value<10 ? ` ・ 入場まで約${Math.ceil(d.waitMs/60000)}分` : "";
@@ -354,6 +355,8 @@ function renderStability(b, explain = true) {
     if(d.value<100)line.appendChild(button({label:"回復",kind:"secondary",size:"sm",onTap:()=>UI.openStability?.(G().party.find(p=>p.uid===d.uid),()=>refresh())}));
     b.appendChild(line);
   }
+  // 師の器 (セラ) は安定度を消費しない
+  for (const d of G().party.filter((p) => p.alive && game.vesselStable && game.vesselStable(p))) b.appendChild(el("div", "dp-stability-row", `${d.name} 師の器 ・ 消費しない`));
 }
 
 // ---- 迷宮の異変 (§7 M1) — 本文で説明と切り替えを表示 ----

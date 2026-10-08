@@ -1,0 +1,92 @@
+{
+  "approvedGeometry": "hero-r1-final.png",
+  "crusaderHeadToleranceDots": 1.1,
+  "heroRankHeadToleranceDots": 0.3,
+  "ranks": [
+    {
+      "rank": 1,
+      "src": "art/jobs/hero_1.webp",
+      "head": [
+        48,
+        10,
+        30.968
+      ],
+      "transparent": true,
+      "unclippedFrame": true,
+      "sourceBBox": [
+        44,
+        35,
+        1103,
+        1386
+      ]
+    },
+    {
+      "rank": 2,
+      "src": "art/jobs/hero_2.webp",
+      "head": [
+        48,
+        10,
+        30.932
+      ],
+      "transparent": true,
+      "unclippedFrame": true,
+      "sourceBBox": [
+        35,
+        72,
+        1085,
+        1378
+      ]
+    },
+    {
+      "rank": 3,
+      "src": "art/jobs/hero_3.webp",
+      "head": [
+        48,
+        10,
+        31.002
+      ],
+      "transparent": true,
+      "unclippedFrame": true,
+      "sourceBBox": [
+        0,
+        104,
+        1083,
+        1392
+      ]
+    },
+    {
+      "rank": 4,
+      "src": "art/jobs/hero_4.webp",
+      "head": [
+        48,
+        10,
+        31.088
+      ],
+      "transparent": true,
+      "unclippedFrame": true,
+      "sourceBBox": [
+        0,
+        39,
+        1103,
+        1426
+      ]
+    },
+    {
+      "rank": 5,
+      "src": "art/jobs/hero_5.webp",
+      "head": [
+        48,
+        10,
+        30.916
+      ],
+      "transparent": true,
+      "unclippedFrame": true,
+      "sourceBBox": [
+        0,
+        41,
+        1092,
+        1362
+      ]
+    }
+  ]
+}

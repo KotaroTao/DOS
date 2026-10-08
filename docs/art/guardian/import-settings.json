@@ -1,0 +1,71 @@
+{
+  "job": "guardian",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "bodyHeight": 82.9,
+  "notes": [
+    "左右は中ほどの頬の輪郭。頭頂は兜で隠れた頭部をR1から推定し、R5の城壁飾りは含めない。",
+    "足元はalpha>1の輪郭下端。各原画の頭頂から足元を測り倍率を決める。"
+  ],
+  "sources": [
+    {
+      "source": "docs/art/guardian/guardian-r1-final.png",
+      "perDot": 14.378769601930035,
+      "head": [
+        470,
+        590,
+        150,
+        466
+      ],
+      "sole": 1342
+    },
+    {
+      "source": "docs/art/guardian/guardian-r2-final.png",
+      "perDot": 14.620024125452352,
+      "head": [
+        474,
+        590,
+        133,
+        452
+      ],
+      "sole": 1345
+    },
+    {
+      "source": "docs/art/guardian/guardian-r3-final.png",
+      "perDot": 14.36670687575392,
+      "head": [
+        460,
+        584,
+        148,
+        465
+      ],
+      "sole": 1339
+    },
+    {
+      "source": "docs/art/guardian/guardian-r4-final.png",
+      "perDot": 14.463208685162845,
+      "head": [
+        470,
+        588,
+        145,
+        462
+      ],
+      "sole": 1344
+    },
+    {
+      "source": "docs/art/guardian/guardian-r5-final.png",
+      "perDot": 14.342581423401688,
+      "head": [
+        470,
+        590,
+        152,
+        468
+      ],
+      "sole": 1341
+    }
+  ]
+}

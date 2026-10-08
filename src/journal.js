@@ -13,8 +13,10 @@ export const HELP_TOPICS = [
   { id:"exploration", title:"探索と帰還", image:"art/tutorial/gatekeeper.png", available:ready, lines:["迷宮の札を選び、敵・宝箱・手がかりを調べながら下へ進みます。出立前に推奨Lvと隊の状態を確認しましょう。", "街へ戻るには、迷宮を踏破するか帰還魔法陣を踏みます。最下階を除く5階・10階…に魔法陣があります。", "一度たどり着いた魔法陣の階は、次回の探索の開始地点に選べます。", "踏破前に全滅すると、今回の探索で得た金貨・品・魂を失います。✦Soulは残ります。必要な赤い魂を使えば、戦利品を守って帰還できます。"] },
   { id:"combat", title:"戦闘と隊の備え", art:"abbot", available:ready, lines:["各人業の行動を選び、通常攻撃・技・道具で戦います。HPとMP、敵の属性や状態異常を確認しましょう。", "強い敵に挑む前には、館で装備と技を整えます。宿屋で休むと、生きている仲間のHPとMPを回復できます。", "技には魂の格が乗ります。メイン魂そのもののMPが大きいほど、技の消費MPが増え、そのぶん威力や回復量も上がります。装備やサブ魂で足したMPは魂の格に含まれないので、そのまま技を撃てる回数になります。"] },
   { id:"repair", title:"砕けた魂と修復", art:"arm", available:g=>!!g.tut?.done?.repairSoul || (g.party||[]).some(d=>d.alive===false), lines:["魂が砕けた人業は、人業の館で金貨を払って修復します。宿屋に泊まるだけでは戻りません。", "全滅して迷宮に残された器は、連れ帰りが終わるまで待つ必要があります。赤い魂を捧げると、待ち時間を縮められます。"] },
+  { id:"omokage", title:"面影の写し", art:"head", available:g=>!!g.world?.beats?.irene_omokage, lines:["魂は、これまでに宿った姿を『面影』として覚えています。人業の館で人業の肖像を押すと、その面影を顔に写せます。", "写せるのは、職業図鑑でたどり着いた職業とランクの姿です。魂がランクを上げるたびに、選べる面影が増えます。", "変わるのは顔だけです。職業・能力・技は宿した魂のままで、何度でも無料で写し直せます。「魂のまま」を選ぶと元に戻ります。"] },
   { id:"treasury", title:"宝物庫と迷宮の解放", art:"camp", available:ready, lines:["集めた収集品は、王宮の宝物庫に奉納できます。奉納した種類に応じて褒賞を受け取れます。", "新しい迷宮は、王への踏破報告、師の手がかり、宝物庫の褒賞や酒場の依頼で開きます。迷宮を踏破したら、街に残る報告の案内も確かめましょう。"] },
-  ...Object.entries(UNLOCKS).map(([id, scene])=>({ id, title:scene.title, art:["tavern","rumor"].includes(id)?null:"sigil", place:"tavern", feature:id, lines:scene.lines.map(line=>line.replace(/^「|」$/g, "")) })),
+  { id:"clues", title:"師の手がかりと恵み", art:"lantern", available:g=>Object.keys(g.world?.found||{}).length>0, lines:["迷宮の決まった階には、師オルドの手がかりが淡く光っています。踏むと物語が語られ、手がかりごとに恵みを授かります (最初の師のランタンは、物語だけです)。", "恵みは、新しい迷宮が地図に記される・酒場に依頼人が訪ねてくる・館の修復が安くなる・魂を拾いやすくなる・回避率が上がる・商会の品揃えなど。授かった恵みは、ずっと効きます。", "人業セラの体 (頭・腕・胴・脚) をすべて館へ持ち帰ると、セラが目を覚まし、仲間になります。"] },
+  ...Object.entries(UNLOCKS).filter(([id])=>!["sub2","infinite"].includes(id)).map(([id, scene])=>({ id, title:scene.title, art:["tavern","rumor"].includes(id)?null:"sigil", place:"tavern", feature:id, lines:scene.lines.map(line=>line.replace(/^「|」$/g, "")) })),
   { id:"sub2", title:"サブ魂の二枠目", art:"sigil", feature:"sub2", lines:["サブ魂を二つまで宿せるようになりました。館で枠ごとに魂と借りる技を選び、隊の役割に合わせて整えてください。"] },
   { id:"infinite", title:"無限迷宮・奈落", art:"hole", feature:"infinite", lines:["奈落は、街の迷宮とは別に深さを進める無限迷宮です。10階ごとに門番が待ち、途中では奈落の変異や恵みが現れます。", "進める深さは、通常の迷宮で討った主の層に応じて広がります。出立画面で現在の上限と隊の備えを確認してください。"] },
 ];
@@ -38,7 +40,23 @@ export const DUNGEON_LORE = {
   ws2:{art:"camp",lines:["王都の城壁の石は、この石切り場から運ばれた。鉱夫たちは、誰かを守る壁を作るために岩を切った。", "石になった者の手には、今もつるはしが握られている。仲間を置いて逃げることができず、作業場に残った者たちだ。", "足元の石には、運び出されなかった切り込みが残る。王都を守る仕事の裏に、名も知られない鉱夫たちの眠りがあった。"]},
   ws3:{art:"hut",lines:["迷い森の霧は、歩いた道を隠し、覚えていた景色を入れ替える。木につけた印さえ、戻る目印にはならない。", "奥の泉の周りだけには、人が行き来した跡が残っていた。森へ迷い込んだ者たちは、水辺で互いを待っていた。", "帰れなかった者の気配が、新たな旅人を引き止める。霧の恐ろしさには、ひとりで残された者の寂しさも混ざっていた。"]},
   ws4:{art:"sigil",lines:["霧の奥の里には、人業の器になれなかった魂が流れ着く。銀の小人たちは、街に住む場所を持たない。", "空の鎧と石の人形は、彼らを狩る者ではなく守る者だった。器を得られなかった魂どうしが、小さな暮らしを支えていた。", "銀の里は宝の山である前に、帰る場所のない魂の隠れ家だった。金属の輝きの奥に、もう一つの生き方が残っている。"]},
+  w14:{art:"votive",lines:["参道は、旧都の人々が大神殿へ向かうために敷いた道だった。灯籠は祈りの数だけ並べられ、沈んだ後も水の底で列を崩さない。", "供物は神へ捧げられたものではなかった。泉に植えられた苗木が、それを糧に根を伸ばしていた。", "今も灯籠に灯がともるのは、参道を歩いた者の名残が、帰り道を探しているからなのかもしれない。"]},
+  w15:{art:"mural",lines:["回廊の聖歌隊は、都が沈む夜も歌をやめなかった。水が胸まで満ちても、最後の一節を歌い切ろうとした。", "壁画は、戴冠の喜びを描くために作られた。けれど絵の中の誰も、脇に立つ神官の苗木を気にかけていない。", "歌は三百年同じ節を繰り返している。終わりを迎えられなかった祈りが、回廊を出られずにいる。"]},
+  w16:{art:"legs",lines:["大水槽は、王が冠を受ける前に身を清める場所だった。民を守るという誓いは、この水に映して立てられた。", "泉の苗木が根を伸ばしてから、水は少しずつ濁った。澄んだまま残る泉は、誓いの名残だけを湛えている。", "根は水を吸い、流れてきたものを抱え込む。底に絡まっていたのは、どこかへ帰ろうとしていた器だった。"]},
+  w17:{art:"priestking",lines:["大神殿は、旧都の王たちが冠を受けた場所だった。祭壇の前には、魂の湧く泉があったという。", "泉に苗木が植えられた夜、床は割れ、都は水に沈んだ。王は止められなかったものを、水の底から見続けた。", "大樹の幹は祭壇を突き破り、今の王都の玉座へ向かって昇っている。旧い王の座の上に、新しい王の座が建てられていた。"]},
+  ws5:{art:"votive",lines:["古井戸は、王都の人々が願い事と一緒に金貨を投げ入れる場所だった。三百年分の願いが、底に積もっている。", "願いは叶わないまま沈み、それを喰らって育つものがいた。井戸の水もまた、大樹の根へつながっていた。", "軍議の卓の地図がこの井戸を赤く囲んでいたのは、王都でいちばん根に近い場所だったからだ。"]},
+  w18:{art:"blade",lines:["地割れは、大樹の樹液を煮る熱が地の底から漏れ出した跡だった。岩は熱を帯び、脈打つように赤く光る。", "鉄の扉は、火の洞を外から隠すために据えられた。開ける者を拒むのではなく、中のことを知らせないための扉だった。", "扉をこじ開けた刃は、根を断つために研がれたものだった。断たれた根の先に、煮詰める釜があった。"]},
+  w19:{art:"husks",lines:["祭場では、火を拝む者たちが釜の火に祈りを捧げていた。燃えるものは何でも、火への供え物になった。", "積まれた人業の殻は、魂を宿す前に壊れた器だった。似た顔ばかりなのは、作った者が同じ形を求め続けたからだ。", "灰は今も降り続ける。焼かれた器の灰が、祈る者たちの肩に積もっていく。"]},
+  w20:{art:"cup",lines:["釜場には、大樹の樹液を煮詰める釜が並ぶ。煮詰まった滴は、金の杯に受けられて王のもとへ運ばれた。", "釜の火を絶やさないために、迷宮に呑まれた魂がくべられた。帳面は、その数を三百年書き留めてきた。", "魂を使わない薬の作り方は、釜の前で見つけられた。同じ火の前で、別の作り方を考えた人がいたのだ。"]},
+  w21:{art:"cauldron",lines:["大釜は、火の洞のいちばん底に据えられていた。樹液はここで最後に煮詰められ、王の霊薬になる。", "釜の下には、底の見えない穴がある。魂の流れはその奥から湧き、またその奥へ落ちていく。", "火の洞の者たちは、その穴を奈落と呼んだ。大釜は、奈落の口に蓋をするように置かれていた。"]},
 };
+
+const DUNGEON_LORE_IMAGES = Object.fromEntries(
+  Array.from({ length: 13 }, (_, i) => {
+    const id = `w${String(i + 1).padStart(2, "0")}`;
+    return [id, `art/story/dungeons/lore_${id}.png`];
+  })
+);
 
 export function helpEntries(g, featureUnlocked = () => false) {
   return HELP_TOPICS.filter(t=>t.feature ? featureUnlocked(t.feature) : t.available(g));
@@ -47,8 +65,34 @@ export function storyEntries(g) {
   const w = g.world || {};
   const lore = WORLD.filter(d => w.cleared?.[d.id]).map(d => {
     const chapter = CHAPTERS.find(ch => ch.dungeons.includes(d.id));
+    const image = DUNGEON_LORE_IMAGES[d.id];
     return { id:`lore_${d.id}`, group:chapter ? `第${chapter.no}章「${chapter.title}」` : "寄り道の物語",
-      title:d.name, subtitle:"迷宮の由来と秘密", ...DUNGEON_LORE[d.id] };
+      title:d.name, subtitle:"迷宮の由来と秘密", ...DUNGEON_LORE[d.id],
+      ...(image ? { image, imageWidth:1536, imageHeight:1024, imageAlt:`${d.name}の情景` } : {}) };
   });
   return [...archiveStories(g), ...lore];
+}
+
+// ---- 既読と知らせ (G.journal = { read: {id:1}, known: {id:1} }) ----
+// read = 本文を開いた / known = 「物語が記された」の知らせを出した (「あとで」でも付く)。
+export function journalState(g) {
+  if (!g.journal || typeof g.journal !== "object") g.journal = { read: {}, known: {} };
+  for (const k of ["read", "known"]) if (!g.journal[k] || typeof g.journal[k] !== "object") g.journal[k] = {};
+  return g.journal;
+}
+export function unreadStories(g) {
+  const j = journalState(g);
+  return storyEntries(g).filter(e => !j.read[e.id]);
+}
+// まだ知らせていない物語 (本文を読んでいれば知らせない)
+export function newStories(g) {
+  const j = journalState(g);
+  return storyEntries(g).filter(e => !j.known[e.id] && !j.read[e.id]);
+}
+export function markStoryRead(g, id) { const j = journalState(g); j.read[id] = 1; j.known[id] = 1; }
+export function markStoriesKnown(g, ids) { const j = journalState(g); for (const id of ids) j.known[id] = 1; }
+// 旧セーブ: いま読める物語はすべて読んだことにする (読み込んだ直後に知らせが山積みにならないように)
+export function seedJournal(g) {
+  const j = journalState(g);
+  for (const e of storyEntries(g)) { j.read[e.id] = 1; j.known[e.id] = 1; }
 }

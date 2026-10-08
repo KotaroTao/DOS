@@ -1,0 +1,85 @@
+{
+  "assets": [
+    {
+      "rank": 1,
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        74,
+        36,
+        312,
+        367
+      ],
+      "edgeAlpha": 0,
+      "transparentFraction": 0.6358,
+      "registeredInServiceWorker": true
+    },
+    {
+      "rank": 2,
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        72,
+        36,
+        308,
+        367
+      ],
+      "edgeAlpha": 0,
+      "transparentFraction": 0.6318,
+      "registeredInServiceWorker": true
+    },
+    {
+      "rank": 3,
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        64,
+        36,
+        318,
+        366
+      ],
+      "edgeAlpha": 0,
+      "transparentFraction": 0.6098,
+      "registeredInServiceWorker": true
+    },
+    {
+      "rank": 4,
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        54,
+        36,
+        326,
+        367
+      ],
+      "edgeAlpha": 0,
+      "transparentFraction": 0.5622,
+      "registeredInServiceWorker": true
+    },
+    {
+      "rank": 5,
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        55,
+        11,
+        334,
+        367
+      ],
+      "edgeAlpha": 0,
+      "transparentFraction": 0.4976,
+      "registeredInServiceWorker": true
+    }
+  ],
+  "cache": "dos-dev"
+}

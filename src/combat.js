@@ -374,6 +374,9 @@ function edefOf(t) {
 // 知らない敵は「属性なし」とみなし、相性を手の選び方に入れない (実際のダメージ計算には関わらない)
 let _elemKnown = null;
 export function setElemKnown(fn) { _elemKnown = typeof fn === "function" ? fn : null; }
+// 隊の全員に足す回避率 (手がかりの恵み「根に抱かれた胴」+1%。game.js syncClueBoons が渡す)。敵の物理をかわす確率に足す
+let _partyEvadeBonus = 0;
+export function setPartyEvadeBonus(v) { _partyEvadeBonus = Math.max(0, +v || 0); }
 const elemSeen = (t) => !(t && t.side === "enemy" && _elemKnown && !_elemKnown(t));
 // 属性を知らない敵の見かけ (固有属性だけ「なし」に見せ、ほかは本体を読む)。固有パッシブの「弱点を突いた時」の判定用
 const elemMask = (t) => (elemSeen(t) ? t : Object.create(t, { element: { value: "none" } }));
@@ -442,10 +445,14 @@ const SOUL_TIER_KINDS = new Set(["phys", "atk", "heal", "mana"]);
 // 安い低位の技が Lv100〜200 でも MP の得な技として残った (Lv200 で12職)。4% で 2職まで減り、上位の技を選ぶ理由が戻る。
 // 回復・MP譲渡は 2% のまま (ヒールは最大HPの50%で頭打ちなので、消費だけが増えてしまう)
 export const SOUL_TIER_ATK_MIN = 0.04;
+// 敵全体への攻撃の技は最低 6% (2026-10): 安い全体技 (ファイアストームなど) は Lv20 前後の隊の柱なので技の MP は据え置き、
+// 魂が育つほど単体の技より重くして、Lv100〜200 で「全体技を撃つのが一番得」にならないようにする
+export const SOUL_TIER_ALL_MIN = 0.06;
 export function soulTierRate(sp) {
   if (!sp || sp.mpPct || sp.gravity || !(sp.mp > 0) || !SOUL_TIER_KINDS.has(sp.kind)) return 0;
   const r = SOUL_TIER_RATES.find(([m]) => sp.mp <= m)[1];
-  return (sp.kind === "phys" || sp.kind === "atk") ? Math.max(r, SOUL_TIER_ATK_MIN) : r;
+  if (sp.kind !== "phys" && sp.kind !== "atk") return r;
+  return Math.max(r, sp.target === "all-enemy" ? SOUL_TIER_ALL_MIN : SOUL_TIER_ATK_MIN);
 }
 // 魂の格で足される消費MP (軽減の前)
 export function soulCostAdd(actor, sp) {
@@ -566,11 +573,19 @@ export class Battle {
       this.log(`狩りの采配！ 敵の足並みが乱れた (素早さ×${hs})`, "hit");
     }
     // 死の宣告 (ランク): 主・金属の魔物以外の敵が、それぞれ 3/5/8/15% で即死
+    // 倒した敵は開幕の演出 (openingResults の先頭) で見せる — game.js playOpeningStrikes が大鎌の演出で刈り取る
+    this._senkoku = null;
     const ns = this._rkParty("necroSenkoku", [0.03, 0.05, 0.08, 0.15]);
     if (ns) for (const e of this.livingEnemies()) {
       if (e.boss || isMetal(e) || Math.random() >= ns) continue;
       this.log(`死の宣告！ ${e.name}の魂が刈り取られた`, "hit");
-      e.hp = 0; this._die(e);
+      e.hp = 0;
+      const died = this._die(e);
+      if (!this._senkoku) {
+        const actor = this.livingParty().reduce((a, p) => (pv(p, "necroSenkoku") > pv(a, "necroSenkoku") ? p : a));
+        this._senkoku = { side: "party", actor, action: "spell", spellKind: "debuff", opening: "senkoku", hits: [] };
+      }
+      this._senkoku.hits.push({ target: e, dmg: 0, died, fatal: true });
     }
     const gs = best("hexerGosun"); // 五寸釘: 敵 1/2/3 体の最初の手番を奪う (金属の魔物には打てない)
     if (gs) {
@@ -615,8 +630,8 @@ export class Battle {
   // 戦闘開始時の自動攻撃 (居合/開幕呪撃)。奇襲されている時は発動しない。
   // 与ダメはここで適用しつつ、結果を openingResults に記録し、game.js が斬撃エフェクトで見せる。
   _openingStrikes() {
-    this.openingResults = [];
-    if (this.opening === "ambush") return;
+    this.openingResults = this._senkoku ? [this._senkoku] : []; // 死の宣告は奇襲でも見せる
+    if (this.opening === "ambush") { this._markOpenDeaths(); return; }
     for (const p of this.party) {
       if (!p.alive) continue;
       if (pv(p, "iai")) {
@@ -645,7 +660,12 @@ export class Battle {
         }
       }
     }
+    this._markOpenDeaths();
     this._checkEnd();
+  }
+  // 開幕 (死の宣告・居合・開幕呪撃) で倒れた敵: 演出で倒れるまで戦場に姿を残す印 (game.js の敵の描画が読む)
+  _markOpenDeaths() {
+    for (const r of this.openingResults) for (const h of r.hits || []) if (h.died && h.target) h.target._openDeath = true;
   }
 
   livingParty() { return this.party.filter((p) => p.alive); }
@@ -2183,7 +2203,7 @@ export class Battle {
     // 命中判定: 素の命中漏れ + 対象の敏捷(AGI)による回避 + 回避持ちの追加回避。
     // 技の命中補正 (acc) は外れる確率をその割合だけ消す (1 = 必中)。目つぶし (hit<1) は外れる確率を足す
     const evade = (isMetal(tgt) ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0)
-      + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) : 0); // 固有パッシブ (evade)
+      + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) + _partyEvadeBonus : 0); // 固有パッシブ (evade)・手がかりの恵み
     let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
     const blind = this._bm(actor, "hit");
     if (blind < 1) missP += Math.min(0.4, 1 - blind);
@@ -2376,7 +2396,7 @@ export class Battle {
     const metal = isMetal(tgt);
     if (r >= 100 && !metal) return 0; // 無効は会心でも通らない
     const evade = (metal ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0)
-      + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) : 0);
+      + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) + _partyEvadeBonus : 0);
     let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
     const blind = this._bm(actor, "hit");
     if (blind < 1) missP += Math.min(0.4, 1 - blind);
