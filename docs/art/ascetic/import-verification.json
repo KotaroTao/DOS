@@ -1,0 +1,83 @@
+{
+  "reference": {
+    "face": [
+      48,
+      21
+    ],
+    "head": [
+      48,
+      10,
+      31.93
+    ]
+  },
+  "anatomy": "ユーザー承認済みの修験者R1に全ランクの頭を揃える。聖戦士との顎座標の差を隠さない。",
+  "ranks": [
+    {
+      "rank": 1,
+      "src": "art/jobs/ascetic_1.webp",
+      "face": [
+        48,
+        19
+      ],
+      "head": [
+        48,
+        10,
+        27.12
+      ]
+    },
+    {
+      "rank": 2,
+      "src": "art/jobs/ascetic_2.webp",
+      "face": [
+        48,
+        19
+      ],
+      "head": [
+        48,
+        10,
+        27.146
+      ]
+    },
+    {
+      "rank": 3,
+      "src": "art/jobs/ascetic_3.webp",
+      "face": [
+        48,
+        19
+      ],
+      "head": [
+        48,
+        10,
+        27.216
+      ]
+    },
+    {
+      "rank": 4,
+      "src": "art/jobs/ascetic_4.webp",
+      "face": [
+        48,
+        19
+      ],
+      "head": [
+        48,
+        10,
+        27.173
+      ]
+    },
+    {
+      "rank": 5,
+      "src": "art/jobs/ascetic_5.webp",
+      "face": [
+        48,
+        19
+      ],
+      "head": [
+        48,
+        10,
+        27.092
+      ]
+    }
+  ],
+  "otherJobSettingsUnchanged": true,
+  "cache": "dos-dev"
+}
