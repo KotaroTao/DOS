@@ -8,7 +8,7 @@
 //   │ └───────────────────────┘ │ 迷宮の掟・格上の注意
 //   │ (●) 忘れられた地下墓地 推奨Lv1・全5階 踏破 │ 門は 5 行ぶん見せ、6 つ目からは一覧を縦に巻く
 //   │ ▒▒ まだ地図にない迷宮 ― 解放の手がかり  │ 台帳 (world.js) の unlock を満たすと現れる
-//   │ 潜り始める階 [B1F|B5F]                  │ 到達した帰還魔法陣の階から潜れる
+//   │ 潜り始める階 [B1F|B6F]                  │ 到達した帰還魔法陣の次の階から潜れる
 //   │ ◆ 隊の備え [肖像][肖像][肖像]   入替 ›  │
 //   │ ⚠ フィモンが深手     [宿で休む ●48]      │ 直し方はその場に (別の札は出さない)
 //   ├──────────────────────────────────────┤
@@ -260,7 +260,7 @@ function renderGates(b) {
   b.appendChild(list);
 }
 
-// ---- 潜り始める階 (到達した帰還魔法陣の階から) ----
+// ---- 潜り始める階 (到達した帰還魔法陣の次の階から) ----
 function renderStartFloor(b) {
   const g = G();
   const dn = (game.DUNGEONS || [])[g.dungeonIdx];
@@ -602,7 +602,7 @@ export function openDeparture(opts = {}) {
   const qi = questIdx();
   if (!g._departPre && qi >= 0 && isOpen(qi)) g.dungeonIdx = qi;
   g._departPre = true;
-  // 潜り始める階: 既定は到達した最深の帰還魔法陣 (無ければ B1F)
+  // 潜り始める階: 既定は到達した最深の帰還魔法陣の次の階 (無ければ B1F)
   const dn0 = (game.DUNGEONS || [])[g.dungeonIdx];
   const fl0 = dn0 && game.startFloorsOf ? game.startFloorsOf(dn0) : [1];
   cur = { page, accept: true, hasMut: false, h: null, from: fl0[fl0.length - 1] || 1 };
