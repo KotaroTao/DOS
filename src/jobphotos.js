@@ -118,6 +118,13 @@ export const JOB_PHOTOS = {
     4: { src: "art/jobs/thief_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.705] },
     5: { src: "art/jobs/thief_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.725] },
   },
+  cardinal: {
+    1: { src: "art/jobs/cardinal_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.756] },
+    2: { src: "art/jobs/cardinal_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.777] },
+    3: { src: "art/jobs/cardinal_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.795] },
+    4: { src: "art/jobs/cardinal_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.82] },
+    5: { src: "art/jobs/cardinal_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.758] },
+  },
   sage: {
     1: { src: "art/jobs/sage_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.658] },
     2: { src: "art/jobs/sage_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.714] },
@@ -138,6 +145,13 @@ export const JOB_PHOTOS = {
     3: { src: "art/jobs/priest_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.94] },
     4: { src: "art/jobs/priest_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.851] },
     5: { src: "art/jobs/priest_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.738] },
+  },
+  shadow: {
+    1: { src: "art/jobs/shadow_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.794] },
+    2: { src: "art/jobs/shadow_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.909] },
+    3: { src: "art/jobs/shadow_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.898] },
+    4: { src: "art/jobs/shadow_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.805] },
+    5: { src: "art/jobs/shadow_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 31.035] },
   },
   mage: {
     1: { src: "art/jobs/mage_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.985] },
