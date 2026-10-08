@@ -10896,18 +10896,20 @@ function questHereNote(cfg) {
 }
 // 迷宮ごとの記録 (出撃シートの迷宮の顔): 図鑑に記録した魔物 / その迷宮の魔物 (雑魚・強敵・主) と、
 // その迷宮の固定クエスト (依頼人の頼み) の報告済み / 総数。
-// 固定クエストの「家」= 到達・踏破の迷宮 → 地図に開く迷宮 → 狙う魔物が最初に出る迷宮 (地図の並び)。魂・宝箱は家なし
+// 固定クエストの「家」= 到達・踏破の迷宮 → 地図に開く迷宮 → 狙う魔物が最初に出る迷宮 (地図の並び)。魂・宝箱は家なし。
+// 懸賞・討伐の家は、候補のうち地図に現れている迷宮を先に選ぶ (縄張りの一部だけが開いている時に、
+// まだ地図にない迷宮の名で酒場に並ばないように)。どれも開いていなければ最初の候補
 function fixedQuestHome(def) {
   const g = def.goal || {};
-  if (def.bounty) return def.ref || null; // 懸賞の家は縄張りの迷宮
+  const firstOpen = (ids) => ids.find((id) => worldOpenId(id)) || ids[0] || null;
+  if (def.bounty) return firstOpen([...((def.appear && def.appear.openAny) || []), def.ref].filter(Boolean)); // 懸賞の家は縄張りの迷宮
   if (g.dungeon) return g.dungeon;
   if (def.opens && def.opens.length) return def.opens[0];
   if (g.type !== "kill" || !g.keys) return null;
-  const hit = DUNGEONS.find((d) => {
+  return firstOpen(DUNGEONS.filter((d) => {
     const roster = new Set(dungeonRoster(d));
     return g.keys.some((k) => roster.has(k) || (MONSTERS[k] && MONSTERS[k].metal && (d.layer || 0) >= 3));
-  });
-  return hit ? hit.id : null;
+  }).map((d) => d.id));
 }
 function dungeonFacts(cfg) {
   if (!cfg) return null;
