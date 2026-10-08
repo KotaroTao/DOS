@@ -224,4 +224,12 @@ export const JOB_PHOTOS = {
     4: { src: "art/jobs/hunter_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.329] },
     5: { src: "art/jobs/hunter_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.26] },
   },
+  templar: {
+    1: { src: "art/jobs/templar_1.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.436] },
+    2: { src: "art/jobs/templar_2.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 28.79] },
+    3: { src: "art/jobs/templar_3.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.073] },
+    4: { src: "art/jobs/templar_4.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.143] },
+    5: { src: "art/jobs/templar_5.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 28.137] },
+  },
+
 };
