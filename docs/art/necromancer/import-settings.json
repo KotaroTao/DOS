@@ -1,0 +1,14 @@
+{
+  "job": "necromancer",
+  "label": "死霊術師",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "frame": [90, 92],
+  "frameTop": 9,
+  "sources": [
+    { "source": "docs/art/necromancer/necromancer-r1-final.png", "perDot": 14.63768115942029, "head": [455, 585, 128, 452], "sole": 1340 },
+    { "source": "docs/art/necromancer/necromancer-r2-final.png", "perDot": 15.289855072463768, "head": [458, 594, 105, 440], "sole": 1371 },
+    { "source": "docs/art/necromancer/necromancer-r3-final.png", "perDot": 15.21, "head": [460, 601, 86, 419], "sole": 1341 },
+    { "source": "docs/art/necromancer/necromancer-r4-final.png", "perDot": 15.181159420289855, "head": [454, 587, 127, 456], "sole": 1384 },
+    { "source": "docs/art/necromancer/necromancer-r5-final.png", "perDot": 15.181159420289855, "head": [428, 558, 140, 470], "sole": 1397 }
+  ]
+}
