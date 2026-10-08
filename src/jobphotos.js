@@ -118,6 +118,13 @@ export const JOB_PHOTOS = {
     4: { src: "art/jobs/hunter_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.329] },
     5: { src: "art/jobs/hunter_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.26] },
   },
+  sage: {
+    1: { src: "art/jobs/sage_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.658] },
+    2: { src: "art/jobs/sage_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.714] },
+    3: { src: "art/jobs/sage_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.693] },
+    4: { src: "art/jobs/sage_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.696] },
+    5: { src: "art/jobs/sage_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.696] },
+  },
   bishop: {
     1: { src: "art/jobs/bishop_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.93] },
     2: { src: "art/jobs/bishop_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.93] },
@@ -131,6 +138,20 @@ export const JOB_PHOTOS = {
     3: { src: "art/jobs/priest_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.94] },
     4: { src: "art/jobs/priest_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.851] },
     5: { src: "art/jobs/priest_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.738] },
+  },
+  shadow: {
+    1: { src: "art/jobs/shadow_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.794] },
+    2: { src: "art/jobs/shadow_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.909] },
+    3: { src: "art/jobs/shadow_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.898] },
+    4: { src: "art/jobs/shadow_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.805] },
+    5: { src: "art/jobs/shadow_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 31.035] },
+  },
+  mage: {
+    1: { src: "art/jobs/mage_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.985] },
+    2: { src: "art/jobs/mage_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.966] },
+    3: { src: "art/jobs/mage_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 31.076] },
+    4: { src: "art/jobs/mage_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.947] },
+    5: { src: "art/jobs/mage_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 31.127] },
   },
   knight: {
     1: { src: "art/jobs/knight_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.91] },
