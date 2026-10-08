@@ -132,6 +132,13 @@ export const JOB_PHOTOS = {
     4: { src: "art/jobs/priest_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.851] },
     5: { src: "art/jobs/priest_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.738] },
   },
+  mage: {
+    1: { src: "art/jobs/mage_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.985] },
+    2: { src: "art/jobs/mage_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.966] },
+    3: { src: "art/jobs/mage_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 31.076] },
+    4: { src: "art/jobs/mage_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.947] },
+    5: { src: "art/jobs/mage_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 31.127] },
+  },
   knight: {
     1: { src: "art/jobs/knight_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.91] },
     2: { src: "art/jobs/knight_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.87] },
