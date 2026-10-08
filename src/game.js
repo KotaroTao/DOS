@@ -12672,18 +12672,18 @@ function shopStockAdd(id) {
   if (!id) return;
   G.shopStock[id] = Math.min(SHOP_STOCK_MAX, (G.shopStock[id] || 0) + 1);
 }
-const sellPrice = (it) => Math.max(1, Math.floor((it.price || 10) / 2));
+// 鑑定料と売値のレア度の倍率 (コモン0.5 / アンコモン0.75 / レア1 / スーパーレア1.5 / レジェンドレア4)。
+// レア度を持たない道具・収集品は1。値段 price は性能だけで決まる (pricing.js) ので、レア度の差はここで付ける
+const APPRAISE_MUL = { c: 0.5, uc: 0.75, r: 1, sr: 1.5, lr: 4 };
+const rarPriceMul = (it) => APPRAISE_MUL[rarityKey(it)] || 1;
+// 売値 = 鑑定料 = 値段の半分 × レア度の倍率。買値はその倍
+// (鑑定してすぐ売っても差し引き0。未鑑定の品は売れないので、鑑定の技・金貨の使い方が稼ぎを左右する)
+const sellPrice = (it) => Math.max(1, Math.round(Math.floor((it.price || 10) / 2) * rarPriceMul(it)));
 // 店の買値・鑑定費の割引 (値切りのパッシブは廃止。いまは割引なし。呼び出し側のために残す)
 function bargainMul() { return 1; }
-const buyPrice = (it) => Math.max(1, Math.round((it && it.price || 30) * bargainMul()));
-// 鑑定料: 売値 × レア度の倍率 (コモン0.5 / アンコモン0.75 / レア1 / スーパーレア1.5 / レジェンドレア4)。
-// 深層の職業専用LR (tier5以上) は従来どおり約20倍。LRは商店でのみ鑑定できる。値切りで割引
-const APPRAISE_MUL = { c: 0.5, uc: 0.75, r: 1, sr: 1.5, lr: 4 };
-const appraiseCost = (it) => {
-  if (!it) return 1;
-  const mul = it.lr >= 5 && !it.layer ? 20 : (APPRAISE_MUL[rarityKey(it)] || 1); // 深い職業専用LRだけ ×20 (層の逸品は除く)
-  return Math.max(1, Math.round(sellPrice(it) * mul * bargainMul()));
-};
+const buyPrice = (it) => (it ? Math.max(1, Math.round(sellPrice(it) * 2 * bargainMul())) : 30);
+// 鑑定料: 売値と同額 (LRは商店でのみ鑑定できる)。値切りで割引
+const appraiseCost = (it) => (it ? Math.max(1, Math.round(sellPrice(it) * bargainMul())) : 1);
 
 // 商店で鑑定する: 鑑定料を払い、必ず正体を明かす
 function shopIdentify(owner, it) {
