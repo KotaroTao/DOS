@@ -418,6 +418,10 @@ const LINES = [
   { id: "h_sap", kind: "hint", bond: 1, when: (c) => c.open("w12") && !c.done("w12"), say: {
     1: ["苗床の樹液は、勝つたびに傷を癒してくれます。", "ですが魔物も同じ樹液を吸って再生します。長引かせず、一気に倒してください。"],
     2: ["苗床の樹液は、戦いのあとの傷を癒してくれます。", "でも魔物も樹液で再生するのです。戦いを長引かせず、一気に倒してくださいね。"] } },
+  { id: "h_omokage", kind: "hint", bond: 1, fresh: true, when: (c) => c.beat("irene_omokage") && !c.dolls.some((d) => d.face),
+    say: ["面影を写したくなったら、肖像を押してください。", "魂が新しいランクにたどり着くたびに、写せる顔も増えていきます。"] },
+  { id: "c_omokage", kind: "chat", bond: 1, when: (c) => c.dolls.some((d) => d.face),
+    say: ["面影を写した子、よく似合っています。", "魂を付け替えても、顔はそのまま。……セラも、そうでした。"] },
   { id: "m_sera3", kind: "chat", bond: 1, when: (c) => c.beat("irene_torso") && !c.beat("irene_sera_wake"),
     say: ["セラの頭と腕と胴、燭台の傍に並べてあるのです。", "あとは脚だけです。……全部そろったら、あの子はまた歩けるでしょうか。"] },
   { id: "h_roots", kind: "hint", bond: 1, when: (c) => c.open("w13") && !c.done("w13"), say: {

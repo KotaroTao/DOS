@@ -2,6 +2,7 @@
 // 担当: WP-A。⚙ (タブの見出し・盤面のトップバー) から開く。戻る操作 / 背景タップ / 下へ引く で閉じる。
 //   音      … サウンド ON/OFF・BGM と効果音の目盛り (指で引ける 0〜100)。端末の好み (dos-prefs)
 //   戦闘    … 振動・戦闘の背景 (情景/漆黒)・移動の速さ 1〜4倍 (端末の好み PREFS.walkSpeed)・戦闘演出の倍速 (セーブの G.fastAnim)
+//   装い    … 迷宮を歩く操霊師の外套・縁取りの色 (端末の好み PREFS.walkerLook。game.setWalkerLook で盤面の駒も塗り直す)
 //   自動化  … オート継続・オート移動と見えている敵・宝箱は最良の解除役で開ける・朽ちた死体を自動で調べる・戦果を自動で閉じる・帰還時に宿で休む・まとめて売るに道具を含める
 //              UI の好み (prefs.js = dos-ui)。読むのは各パッケージ (WP-D の戦闘/盤面/帰還、街の宿)
 //   テスト記録 … 戦闘バランス調整用の記録 (telemetry.js) の ON/OFF・要約の閲覧・書き出し (コピー)・消去
@@ -14,6 +15,7 @@ import { el, setText, sheet, segmented, toast, button } from "./kit.js";
 import { tlOn, tlSetOn, tlClear, tlHasData, tlSummary, tlStabilitySummary, tlExportText, tlPastCount, tlPastSummary } from "../telemetry.js";
 import { getPref, setPref, remember, autoMoveAvoid, setAutoMoveAvoid } from "./prefs.js";
 import { SFX } from "../audio.js";
+import { walkerLook, normalizeLook, WALKER_CLOAKS, WALKER_TRIMS } from "../walkerart.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
 
@@ -90,7 +92,7 @@ function sec(title) {
   return h;
 }
 
-// 区分: 「音・戦闘」と「自動化・データ」(どちらも1画面に収まる。選んだ区分は覚える)
+// 区分: 「音・戦闘」「装い」「自動化・データ」(どれも1画面に収まる。選んだ区分は覚える)
 function fillSound(box) {
   const G = game.G || {};
   const P = game.PREFS || {};
@@ -129,6 +131,58 @@ function fillSound(box) {
   box.appendChild(toggleRow({ name: "戦闘演出 倍速", desc: "戦闘のアニメーションを速める (切ると速さ 1/2)", on: !!G.fastAnim, onChange: (v) => {
     G.fastAnim = v; sfx("select"); if (game.autosave) game.autosave();
   } }));
+}
+// 区分「装い」: 迷宮を歩く操霊師の色。4方向の見本と、外套・縁取りの色見本 (押すとすぐ変わる)
+function walkerCanvas(fr, k) {
+  const rows = fr.art, h = rows.length, w = rows.reduce((m, r) => Math.max(m, r.length), 0);
+  const c = el("canvas", "stg-wk-c");
+  c.width = w * k; c.height = h * k;
+  const g = c.getContext("2d");
+  rows.forEach((r, y) => { for (let x = 0; x < r.length; x++) { const col = fr.palette[r[x]]; if (!col) continue; g.fillStyle = col; g.fillRect(x * k, y * k, k, k); } });
+  return c;
+}
+function fillLook(box) {
+  const P = game.PREFS || {};
+  box.appendChild(sec("操霊師の装い"));
+  const prev = el("div", "stg-wk-prev");
+  box.appendChild(prev);
+  const rows = [];
+  const draw = () => {
+    const look = normalizeLook(P.walkerLook);
+    const W = walkerLook(look);
+    prev.textContent = "";
+    for (const d of ["down", "left", "up", "right"]) prev.appendChild(walkerCanvas(W[d], 3));
+    for (const r of rows) r.sync(look);
+  };
+  const pickRow = (name, desc, list, key) => {
+    const row = el("div", "stg-row stg-segrow stg-stack");
+    const t = el("span", "stg-row-t");
+    t.appendChild(setText(el("span", "stg-row-n"), name));
+    t.appendChild(setText(el("span", "stg-row-d"), desc));
+    row.appendChild(t);
+    const sw = el("div", "stg-wk-sw");
+    const btns = list.map((o) => {
+      const b = el("button", "stg-wk-b");
+      b.type = "button";
+      const chip = el("span", "stg-wk-chip");
+      chip.style.background = `linear-gradient(135deg, ${o.ramp[0]} 0%, ${o.ramp[1]} 45%, ${o.ramp[4]} 100%)`;
+      b.appendChild(chip);
+      b.appendChild(setText(el("span", "stg-wk-n"), o.name));
+      b.addEventListener("click", () => {
+        const look = { ...normalizeLook(P.walkerLook), [key]: o.key };
+        if (game.setWalkerLook) game.setWalkerLook(look); else P.walkerLook = look;
+        sfx("select"); draw();
+      });
+      sw.appendChild(b);
+      return [o.key, b];
+    });
+    row.appendChild(sw);
+    box.appendChild(row);
+    rows.push({ sync: (look) => { for (const [k, b] of btns) { const on = look[key] === k; b.classList.toggle("on", on); b.setAttribute("aria-pressed", on ? "true" : "false"); } } });
+  };
+  pickRow("外套", "迷宮を歩く姿の外套の色", WALKER_CLOAKS, "cloak");
+  pickRow("縁取り", "外套の刺繍と、頭巾の奥の目の光", WALKER_TRIMS, "trim");
+  draw();
 }
 function fillAuto(box) {
   box.appendChild(sec("自動化"));
@@ -180,10 +234,11 @@ function fill(root) {
   guides.append(button({ label:"ヘルプ", kind:"secondary", onTap:()=>UI.openHelp?.() }),
     UI.storyButton ? UI.storyButton() : button({ label:"ストーリー", kind:"secondary", onTap:()=>UI.openStoryArchive?.() }));
   root.appendChild(guides);
-  const cur = remember("seg", "settings") === "auto" ? "auto" : "sound";
+  const saved = remember("seg", "settings");
+  const cur = saved === "auto" || saved === "look" ? saved : "sound";
   const box = el("div", "stg");
-  const draw = (k) => { box.textContent = ""; if (k === "auto") fillAuto(box); else fillSound(box); };
-  const seg = segmented([{ key: "sound", label: "音・戦闘" }, { key: "auto", label: "自動化・データ" }], cur, (k) => { sfx("select"); draw(k); }, { prefKey: "settings" });
+  const draw = (k) => { box.textContent = ""; if (k === "auto") fillAuto(box); else if (k === "look") fillLook(box); else fillSound(box); };
+  const seg = segmented([{ key: "sound", label: "音・戦闘" }, { key: "look", label: "装い" }, { key: "auto", label: "自動化・データ" }], cur, (k) => { sfx("select"); draw(k); }, { prefKey: "settings" });
   seg.classList.add("stg-seg");
   root.appendChild(seg);
   draw(cur);

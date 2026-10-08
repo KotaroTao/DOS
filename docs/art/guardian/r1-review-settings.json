@@ -1,0 +1,22 @@
+{
+  "job": "guardian",
+  "name": "守護騎士",
+  "candidate": "docs/art/guardian/guardian-r1-draft.png",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "scaleToCrusaderAlphaHeight": 0.9599141016463851,
+  "crusaderAlphaBBox": [
+    31,
+    65,
+    1097,
+    1406
+  ],
+  "guardianAlphaBBox": [
+    0,
+    29,
+    1103,
+    1426
+  ],
+  "notes": [
+    "R1承認用。ゲーム取り込み前の原画比較で、出荷画像はまだ上書きしていない。"
+  ]
+}

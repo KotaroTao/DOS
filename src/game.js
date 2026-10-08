@@ -25,7 +25,7 @@ import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
 import {
-  SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, soulIcon,
+  SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, dollLookKey, soulIcon,
   recalcDoll, setPermanentStatSource, setVesselSource, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
   soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills, soulLearnedPassives, soulLabel, subPickCap, jobStatsOf,
   awakenPerkOf, subPickCapOfRank, subStatRateOfRank, setOrderSource, orderStatRateOfRank, setAppraiseSource,
@@ -67,6 +67,7 @@ import * as uiShop from "./ui/shop.js";
 import * as uiLoot from "./ui/loot.js";
 import * as uiDeparture from "./ui/departure.js";
 import * as uiDungeonHud from "./ui/dungeonhud.js";
+import { walkerLook, normalizeLook, WALKER_LOOK_DEFAULT } from "./walkerart.js";
 import * as uiResults from "./ui/results.js";
 import * as uiAppraise from "./ui/appraise.js";
 import * as uiTutorial from "./ui/tutorial.js";
@@ -557,15 +558,24 @@ function buzz(p) {
 // 端末ごとの好み (音量・振動)。セーブデータとは別に保存し、「はじめから」でも消えない
 const PREFS_KEY = "dos-prefs";
 const PREFS = (() => {
-  const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false, walkSpeed: 2 };
+  const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false, walkSpeed: 2, walkerLook: { ...WALKER_LOOK_DEFAULT } };
   let p;
   try { p = { ...d, ...(JSON.parse(localStorage.getItem(PREFS_KEY)) || {}) }; } catch { p = { ...d }; }
   // 旧来の「移動 倍速」(fastWalk: ON = 2倍 / OFF = 1倍) を移動の速さ (1〜4倍) へ引き継ぐ
   if (typeof p.fastWalk === "boolean") { p.walkSpeed = p.fastWalk ? 2 : 1; delete p.fastWalk; }
   if (![1, 2, 3, 4].includes(p.walkSpeed)) p.walkSpeed = 2;
+  p.walkerLook = normalizeLook(p.walkerLook);
   return p;
 })();
 function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(PREFS)); } catch {} }
+// 迷宮を歩く駒の装い (設定「操霊師の装い」・端末の好み PREFS.walkerLook)
+function setWalkerLook(look) {
+  PREFS.walkerLook = normalizeLook(look);
+  uiDungeonHud.setWalkerArt(walkerLook(PREFS.walkerLook));
+  savePrefs();
+  if (G && G.state === "board" && G.board) drawBoardFrame();
+}
+uiDungeonHud.setWalkerArt(walkerLook(PREFS.walkerLook));
 // 迷宮内の移動 (めくり・1歩のスライド・自動歩行の間) の時間。ms は2倍速の値。設定「移動の速さ」(PREFS.walkSpeed)
 // 1倍 = ms × 2 / 2倍 = ms / 3倍 = ms × 2/3 / 4倍 = ms × 1/2
 const walkMs = (ms) => Math.round(ms * 2 / (PREFS.walkSpeed || 2));
@@ -1736,7 +1746,7 @@ function refitAndRedraw() {
 window.addEventListener("resize", () => requestAnimationFrame(refitAndRedraw));
 if (typeof ResizeObserver !== "undefined" && appEl) new ResizeObserver(() => requestAnimationFrame(refitAndRedraw)).observe(appEl);
 
-// ダンジョンで歩く自分の駒: 赤い頭巾の人影 (src/walkerart.js・前後左右の4方向)。最後に歩いた向きを向く (既定は正面)。
+// ダンジョンで歩く自分の駒: 頭巾つきの外套の人影 (色は設定「操霊師の装い」) (src/walkerart.js・前後左右の4方向)。最後に歩いた向きを向く (既定は正面)。
 // 絵がまだ読めない時は従来どおり、生存している先頭メンバーの職業姿 (全滅時は先頭)
 function walkerSprite() {
   const W = uiDungeonHud.walkerArt();
@@ -2802,12 +2812,13 @@ const _lampSpot = new WeakMap();
 function walkerLampSpot(wk) {
   let s = _lampSpot.get(wk);
   if (s) return s;
-  const rows = wk.art || [];
+  const src = wk.lampRef || wk; // 縁取りを金以外にした装いは、金の絵で灯の位置を求める
+  const rows = src.art || [];
   let sx = 0, sy = 0, n = 0;
   rows.forEach((r, y) => {
     if (y < rows.length * 0.45) return;
     for (let x = 0; x < r.length; x++) {
-      const c = wk.palette[r[x]];
+      const c = src.palette[r[x]];
       if (!c || c[0] !== "#") continue;
       const v = parseInt(c.slice(1), 16), R = v >> 16, Gc = (v >> 8) & 255, B = v & 255;
       if (R > 220 && Gc > 170 && B < 160) { sx += x; sy += y; n++; }
@@ -7621,7 +7632,7 @@ const TURN_ICON_PX = 24;
 function turnIconCanvas(a) {
   if (a.side === "party") {
     if (!a.isDoll || a.primary == null) return null;
-    const key = `${a.jobKey || ""}:${a.jobRank || 1}:${a.clsKey || ""}`;
+    const key = dollLookKey(a);
     let ent = _turnPics.get(a);
     if (!ent || ent.key !== key) { ent = { key, c: crispCanvas(dollBust(a), TURN_ICON_PX) }; _turnPics.set(a, ent); }
     return ent.c;
@@ -9930,7 +9941,7 @@ const PORTRAIT_PX = 40;
 const _partyPics = new WeakMap();
 function partyPortrait(p) {
   if (!p || !p.isDoll || p.primary == null) return null;
-  const key = `${p.jobKey || ""}:${p.jobRank || 1}:${p.clsKey || ""}`;
+  const key = dollLookKey(p);
   let ent = _partyPics.get(p);
   if (!ent || ent.key !== key) {
     const c = crispCanvas(dollBust(p), PORTRAIT_PX); // 顔を中心に切り出した胸像
@@ -12591,6 +12602,33 @@ function codexSweepJobs() {
   for (const s of (G.souls || [])) codexJobSee(s.clsKey, s.count, s.level, s.capBonus);
 }
 
+// ---- 面影の写し (第三章の入口: 館の語り「彫られた顔」で解放) ----
+// 人業の顔を、魂が覚えている姿 (職業図鑑で到達した職業×ランク) に写す。見た目だけで、無料・何度でも
+const OMOKAGE_BEAT = "irene_omokage";
+function omokageUnlocked() { return !!worldState().beats[OMOKAGE_BEAT]; }
+// 写せる面影: {職業: 到達した最高ランク} (職業図鑑の記録。魂を融合・手放しても消えない)
+function omokageRanks() {
+  codexSweepJobs();
+  const out = {};
+  for (const k of SOUL_KEYS) {
+    const e = G.codex && G.codex.job && G.codex.job[k];
+    const r = e && typeof e === "object" ? (e.rank || 0) : 0;
+    if (r > 0) out[k] = Math.min(5, r);
+  }
+  return out;
+}
+// face = {job, rank} / null (魂のままの姿へ戻す)。届いていない面影は写せない
+function setDollFace(d, face) {
+  if (!d || !omokageUnlocked()) return false;
+  if (face) {
+    const r = omokageRanks()[face.job] || 0;
+    if (!SOUL_CLASSES[face.job] || !(face.rank >= 1 && face.rank <= r)) return false;
+    d.face = { job: face.job, rank: Math.round(face.rank) };
+  } else delete d.face;
+  autosave(true);
+  return true;
+}
+
 function showCodexItemDetail(id) { if (UI.codexItemSheet) UI.codexItemSheet(id); }
 function showCodexMonDetail(key) { if (UI.codexMonSheet) UI.codexMonSheet(key); }
 
@@ -14926,6 +14964,7 @@ function setupTestPlay() {
     if (d.boss) { w.beats["mem_" + d.id] = true; G.stats.bossIds[d.boss] = true; }
   }
   for (const ch of CHAPTERS) if (w.reported[ch.finale]) w.beats["ch" + ch.no + "_end"] = true;
+  if (w.reported.w09) w.beats[OMOKAGE_BEAT] = true; // 第三章からの試遊は面影の写しを使える
   // 地図の解放に要る手がかりを、ここまでの進行に応じて補う。
   for (const d of DUNGEONS.slice(0, idx + 1)) {
     if (d.unlock?.story) w.found[d.unlock.story] = true;
@@ -15426,7 +15465,7 @@ bindGame({
   questState, questLists, questByUid, questsHere, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount, questsTargeting,
   adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)
-  PREFS, savePrefs, setVolumes, isMuted, toggleMute, ensureAudio, updateMuteBtn, resetAllData, confirmReset,
+  PREFS, savePrefs, setWalkerLook, setVolumes, isMuted, toggleMute, ensureAudio, updateMuteBtn, resetAllData, confirmReset,
   // 他のパッケージも使える街の部品 (肖像・図鑑の詳細)
   showCodexMonDetail, showCodexItemDetail, showCodexJobDetail,
 });
@@ -15442,6 +15481,7 @@ bindGame({
   unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail, addSoulInstance, codexSweepJobs,
   canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill, itemKnown, isFirstGet,
   showRankUp, announceJobChange, showNameInput,
+  omokageUnlocked, omokageRanks, setDollFace,
 });
 // ==== /WP-B ====
 

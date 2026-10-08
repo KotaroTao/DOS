@@ -118,6 +118,13 @@ export const JOB_PHOTOS = {
     4: { src: "art/jobs/crusader_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.912] },
     5: { src: "art/jobs/crusader_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.94] },
   },
+  guardian: {
+    1: { src: "art/jobs/guardian_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.976] },
+    2: { src: "art/jobs/guardian_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.819] },
+    3: { src: "art/jobs/guardian_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 31.065] },
+    4: { src: "art/jobs/guardian_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.918] },
+    5: { src: "art/jobs/guardian_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 31.032] },
+  },
   monk: {
     1: { src: "art/jobs/monk_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.772] },
     2: { src: "art/jobs/monk_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.801] },
@@ -216,6 +223,13 @@ export const JOB_PHOTOS = {
     4: { src: "art/jobs/thief_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.705] },
     5: { src: "art/jobs/thief_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.725] },
   },
+  samurai: {
+    1: { src: "art/jobs/samurai_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.165] },
+    2: { src: "art/jobs/samurai_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.234] },
+    3: { src: "art/jobs/samurai_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.319] },
+    4: { src: "art/jobs/samurai_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.198] },
+    5: { src: "art/jobs/samurai_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.13] },
+  },
   // <<JOB_PHOTOS>>
   hunter: {
     1: { src: "art/jobs/hunter_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.314] },
@@ -224,4 +238,12 @@ export const JOB_PHOTOS = {
     4: { src: "art/jobs/hunter_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.329] },
     5: { src: "art/jobs/hunter_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.26] },
   },
+  templar: {
+    1: { src: "art/jobs/templar_1.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.436] },
+    2: { src: "art/jobs/templar_2.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 28.79] },
+    3: { src: "art/jobs/templar_3.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.073] },
+    4: { src: "art/jobs/templar_4.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.143] },
+    5: { src: "art/jobs/templar_5.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 28.137] },
+  },
+
 };

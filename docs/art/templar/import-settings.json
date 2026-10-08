@@ -1,0 +1,73 @@
+{
+  "job": "templar",
+  "label": "神殿騎士",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "approvedR1": "docs/art/templar/templar-r1-draft3.png",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "sources": [
+    {
+      "rank": 1,
+      "source": "docs/art/templar/templar-r1-final.png",
+      "perDot": 13.75,
+      "head": [
+        470,
+        631,
+        214,
+        495
+      ],
+      "sole": 1348
+    },
+    {
+      "rank": 2,
+      "source": "docs/art/templar/templar-r2-final.png",
+      "perDot": 14.25,
+      "head": [
+        475,
+        641,
+        185,
+        467
+      ],
+      "sole": 1356
+    },
+    {
+      "rank": 3,
+      "source": "docs/art/templar/templar-r3-final.png",
+      "perDot": 13.85,
+      "head": [
+        470,
+        632,
+        212,
+        490
+      ],
+      "sole": 1352
+    },
+    {
+      "rank": 4,
+      "source": "docs/art/templar/templar-r4-final.png",
+      "perDot": 13.9,
+      "head": [
+        469,
+        633,
+        213,
+        493
+      ],
+      "sole": 1360
+    },
+    {
+      "rank": 5,
+      "source": "docs/art/templar/templar-r5-final.png",
+      "perDot": 13.9,
+      "head": [
+        470,
+        632,
+        239,
+        505
+      ],
+      "sole": 1389
+    }
+  ]
+}
