@@ -9,7 +9,7 @@
 import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, button, row, sheet, toast, confirm, statDelta, bar, svgIcon, celebrate, longPress } from "./kit.js";
 import { countUp } from "./motion.js";
-import { showSkillPopup, SPELL_KIND_LABEL } from "./itemview.js";
+import { showSkillPopup, showPassivePopup, SPELL_KIND_LABEL } from "./itemview.js";
 import {
   SOUL_CLASSES, jobSprite, jobBust, soulByUid, soulRankOf, soulLevelCapOf, emberCostOf, nextRankThreshold, jobRankName, soulSeriesName,
   soulLearnedSkills, soulLearnedPassives, soulLabel, soulRankLeft, passiveName, passiveDesc, orderStatBonus, orderStatRateOfRank, ORDER_STAT_RATES,
@@ -102,47 +102,34 @@ export function renderSoulSeg(root, d, ctx = {}) {
   const pe = d.primary != null ? soulByUid(d.primary) : null;
   root.appendChild(mainCard(d, pe, town));
   if (!pe) return;
-  // 付け替え・魂融合 (1行に並べる)
-  const acts = el("div", "sp-row2");
-  if (town && !soulChangeVisible()) acts.appendChild(lockedTile("未解放", "？？？"));
-  if (town && soulChangeVisible()) {
-    const ch = el("button", "sp-btn");
-    ch.type = "button";
-    ch.appendChild(svgSoul());
-    const t = el("span", "sp-btn-t");
-    t.appendChild(el("span", "sp-btn-l", "魂を付け替える"));
-    t.appendChild(el("span", "sp-btn-s", "持っている魂から選ぶ"));
-    ch.appendChild(t);
-    ch.addEventListener("click", () => openSoulPicker(d, "primary"));
-    ch.classList.add("sp-change");
-    acts.appendChild(ch);
-  }
-  const fz = fuseButton(pe, town);
-  if (fz) acts.appendChild(fz);
-  if (acts.childElementCount) root.appendChild(acts);
-  if (game.featureUnlocked?.("soulChange") || game.featureUnlocked?.("fusion")) {
-    root.appendChild(button({ label: "魂の扱い方", kind: "ghost", size: "sm", onTap: openSoulGuide }));
-  }
-  // サブ魂 + 控えの結社 (タイルを横に並べる)
+  // メイン魂 (付け替え) とサブ魂を1列に並べる。控えの結社は隊列の右 (party.js) から開く (ユーザーの指示、2026-10)
   const more = el("div", "sp-more");
+  more.appendChild(mainTile(d, pe, town));
   subTiles(more, d, town);
-  more.appendChild(orderTile(town));
   root.appendChild(more);
+  const fz = fuseButton(pe, town);
+  if (fz) { const acts = el("div", "sp-row2"); acts.appendChild(fz); root.appendChild(acts); }
   if (!town) root.appendChild(el("div", "pt-note c", game.featureUnlocked?.("soulChange") ? "魂の付け替え・強化は、街へ戻ってから。" : "魂の強化は、街へ戻ってから。"));
 }
-// 手ほどきで学んだ魂の扱いを、解放済みの内容だけ読み返す。
-function openSoulGuide() {
-  const lines = [];
-  if (game.featureUnlocked?.("soulChange")) lines.push(
-    "魂の付け替え：街の人業の館で『魂を付け替える』から選ぶ。別の職業になっても魂の育ちは残り、外した魂も失われない。",
-    "新しい職業で使えない装備は外れる。同じ職業のメイン魂は、パーティに一つだけ。すでに仲間がメイン魂として宿す職業は選べない。"
-  );
-  if (game.featureUnlocked?.("fusion")) lines.push(
-    "魂融合：街の人業の館で『魂融合』から、同じ職業の余った魂を選ぶ。宿している魂への融合も、余った魂どうしの融合もできる。",
-    "素材にした魂は消え、蓄積した✦と融合数は残る魂へ引き継がれる。融合数に応じて能力が上がり、ランクが上がるとLv上限が伸び、新しい技や加護を覚えられる。"
-  );
-  return sheet.open({ kind: "info", title: "魂の扱い方", lines,
-    footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }] });
+// メイン魂のタイル (サブ魂と同じ形)。押すと魂の付け替え (手ほどき「魂の付け替え」が .sp-change を光らせる)
+function mainTile(d, pe, town) {
+  if (!soulChangeVisible()) return lockedTile("未解放", "？？？");
+  const tile = el("div", "sp-tile sp-main");
+  const main = el(town ? "button" : "div", "sp-tile-main");
+  if (town) main.type = "button";
+  main.appendChild(el("span", "sp-tile-k", "メイン魂"));
+  const rank = soulRankOf(pe);
+  tile.style.setProperty("--glow", (SOUL_CLASSES[pe.clsKey] || {}).glow || "#c9a24a");
+  const r = el("span", "sp-tile-r");
+  r.appendChild(orb(pe.clsKey, rank, 28));
+  const tx = el("span", "sp-tile-tx");
+  tx.appendChild(el("span", "sp-tile-n", `${jobRankName(pe.clsKey, rank)} Lv${pe.level}`));
+  tx.appendChild(el("span", "sp-tile-s", town ? "魂を付け替える" : "付け替えは街で"));
+  r.appendChild(tx);
+  main.appendChild(r);
+  if (town) { main.addEventListener("click", () => openSoulPicker(d, "primary")); main.classList.add("sp-change"); }
+  tile.appendChild(main);
+  return tile;
 }
 // 手ほどき中は一覧の確認だけ許す。実際の付け替えは完了後に解放する。
 function soulChangeVisible() {
@@ -361,23 +348,6 @@ function bonusText(b) {
   const parts = [];
   for (const k in STAT_L) { const v = Math.round((b && b[k]) || 0); if (v > 0) parts.push(`${STAT_L[k]}+${v}`); }
   return parts.join(" ");
-}
-function orderTile(town) {
-  const open = game.featureUnlocked ? game.featureUnlocked("order") : false;
-  if (!open) {
-    return lockedTile("未解放", "？？？");
-  }
-  const seats = game.orderSeats ? game.orderSeats() : 0;
-  const seated = game.orderSeatedUids ? game.orderSeatedUids() : [];
-  const bt = seated.length ? bonusText(orderStatBonus(seated)) : "";
-  const t = el("div", "sp-tile sp-order");
-  const m = el("button", "sp-tile-main");
-  m.type = "button";
-  m.appendChild(el("span", "sp-tile-k", `控えの結社 ・ 席 ${seated.length}/${seats}`));
-  m.appendChild(el("span", "sp-tile-s", bt ? `全員に ${bt}` : "パーティに出していない魂を席に着ける"));
-  m.addEventListener("click", () => openOrderSheet(town));
-  t.appendChild(m);
-  return t;
 }
 export function openOrderSheet(town = true) {
   if (!game.featureUnlocked?.("order")) return null;
@@ -731,7 +701,7 @@ export function openSoulDetail(uid, onChange = null) {
     for (const [key, lv] of pss) {
       const c = el("button", "sp-sd-chip ps", passiveName(key, lv));
       c.type = "button";
-      c.addEventListener("click", () => toast(`${passiveName(key, lv)} ― ${passiveDesc(key, lv) || ""}`, { tone: "info" }));
+      c.addEventListener("click", () => { if (!showPassivePopup(key, lv)) toast(`${passiveName(key, lv)} ― ${passiveDesc(key, lv) || ""}`, { tone: "info" }); });
       chips.appendChild(c);
     }
     if (!sks.length && !pss.length) chips.appendChild(el("span", "pt-note", "まだ技を覚えていない。"));
@@ -1148,7 +1118,7 @@ function fuseLearned(info) {
     const b = el("button", "sp-fz-chip ps", `パッシブ ${passiveName(p.key, p.lv)}`);
     b.type = "button";
     b.title = passiveDesc(p.key, p.lv);
-    b.addEventListener("click", () => toast(`${passiveName(p.key, p.lv)} ― ${passiveDesc(p.key, p.lv)}`, { tone: "info" }));
+    b.addEventListener("click", () => { if (!showPassivePopup(p.key, p.lv)) toast(`${passiveName(p.key, p.lv)} ― ${passiveDesc(p.key, p.lv)}`, { tone: "info" }); });
     list.appendChild(b);
   }
   wrap.appendChild(list);
@@ -1484,5 +1454,5 @@ function fusableList() {
 }
 
 export function install() {
-  registerUI({ trainableList, fusableList, openFusePicker, trainSoul: (uid, n = 1) => train(uid, n), openSoulPicker, celebrateLevelUp, openSoulList, openSoulDetail });
+  registerUI({ trainableList, fusableList, openFusePicker, trainSoul: (uid, n = 1) => train(uid, n), openSoulPicker, celebrateLevelUp, openSoulList, openSoulDetail, openOrderSheet });
 }
