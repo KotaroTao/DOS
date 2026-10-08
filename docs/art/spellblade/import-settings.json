@@ -1,0 +1,13 @@
+{
+  "job": "spellblade",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "frame": [90, 92],
+  "frameTop": 9,
+  "sources": [
+    {"source": "docs/art/spellblade/spellblade-r1-final.png", "perDot": 14.254545454545454, "head": [522, 638, 177, 470], "sole": 1353, "alphaBBox": [64, 154, 1029, 1354]},
+    {"source": "docs/art/spellblade/spellblade-r2-final.png", "perDot": 14.424242424242424, "head": [520, 636, 161, 457], "sole": 1351, "alphaBBox": [61, 137, 1070, 1353]},
+    {"source": "docs/art/spellblade/spellblade-r3-final.png", "perDot": 14.266666666666667, "head": [522, 638, 177, 470], "sole": 1354, "alphaBBox": [58, 150, 1077, 1355]},
+    {"source": "docs/art/spellblade/spellblade-r4-final.png", "perDot": 14.266666666666667, "head": [522, 638, 177, 467], "sole": 1354, "alphaBBox": [47, 150, 1088, 1355]},
+    {"source": "docs/art/spellblade/spellblade-r5-final.png", "perDot": 14.206060606060607, "head": [521, 639, 177, 470], "sole": 1349, "alphaBBox": [44, 150, 1088, 1350]}
+  ]
+}

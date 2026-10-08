@@ -111,5 +111,12 @@ export const JOB_PHOTOS = {
     4: { src: "art/jobs/crusader_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.912] },
     5: { src: "art/jobs/crusader_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.94] },
   },
+  spellblade: {
+    1: { src: "art/jobs/spellblade_1.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.554] },
+    2: { src: "art/jobs/spellblade_2.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.521] },
+    3: { src: "art/jobs/spellblade_3.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.537] },
+    4: { src: "art/jobs/spellblade_4.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.327] },
+    5: { src: "art/jobs/spellblade_5.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.625] },
+  },
   // <<JOB_PHOTOS>>
 };
