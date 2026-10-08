@@ -1,0 +1,17 @@
+{
+  "status": "ユーザー承認済み。R1確定版としてR2〜R5の制作とゲーム用取り込みに使用。",
+  "source": "docs/art/paladin/paladin-r1-review.png",
+  "perDot": 15.240963855421686,
+  "head": [
+    470,
+    624,
+    50,
+    387.2
+  ],
+  "sole": 1315,
+  "frame": [
+    90,
+    84
+  ],
+  "reference": "art/jobs/necromancer_1.webp"
+}
