@@ -594,11 +594,33 @@ function runGainGold(g, src, pre, modifier = null) {
 setPermanentStatSource(() => permanentEventStats(G.events?.once));
 
 function evBoon(k, field, dflt) { return G.events && G.events.flags && G.events.flags[k] ? EV_BOONS[k][field] : dflt; }
-function runGainSoulPts(s, src, pre, modifier = null) {
+// out を渡すと out.raw に「Lv差で減らす前の額」を入れる (戦闘の魂の経験値は魂ごとの Lv差で減らすため)
+function runGainSoulPts(s, src, pre, modifier = null, out = null) {
   const base = s, sf = sfNum("soulMul", 1), mu = modifier ?? mutNum("soulMul", 1), eq = 1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0);
-  s = Math.round(s * sf * mu * eq); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s;
-  if (tlOn() && inDungeon()) tlGain(tlWhere(), "soul", s, src, tlUplift(pre != null ? pre : base, base, sf, "soulMul", mu, eq));
+  const lm = inDungeon() ? partySoulLvMul() : 1;
+  const raw = s * sf * mu * eq;
+  s = Math.round(raw * lm); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s;
+  if (out) out.raw = Math.round(raw);
+  if (tlOn() && inDungeon()) {
+    const up = tlUplift(pre != null ? pre : base, base, sf, "soulMul", mu, eq);
+    if (lm < 1) up.lvd = raw * (lm - 1); // Lv差で減った分 (負の数)
+    tlGain(tlWhere(), "soul", s, src, up);
+  }
   return s;
+}
+// ===== Lv差による ✦Soul の減り (2026-10 テスト記録: 魂融合・残火を集める周回や寄り道の迷宮で ✦ が余り、推奨Lv を大きく超えた) =====
+// 魂の Lv が、いまの階の敵Lv (推奨Lv) + SOUL_LV_GRACE を超えた分、1Lv ごとに SOUL_LV_STEP ずつ減らす (下限 SOUL_LV_MIN)。
+// 迷宮で得る ✦ (戦闘・出来事・死体・金属) は隊のLv (メイン魂の平均) で、戦闘で魂に直接入る経験値は魂それぞれの Lv で決める
+// → Lv の低いサブ魂・控えから来た魂は満額のまま追いつく。町の ✦ (依頼・報告) は減らさない
+const SOUL_LV_GRACE = 2, SOUL_LV_STEP = 0.10, SOUL_LV_MIN = 0.2;
+function soulLvMul(lv, foeLv = foeLevelHere()) {
+  const over = (lv || 1) - foeLv - SOUL_LV_GRACE;
+  return over <= 0 ? 1 : Math.max(SOUL_LV_MIN, 1 - SOUL_LV_STEP * over);
+}
+function partySoulLvMul() {
+  const ds = (G.party || []).filter((d) => d && d.primary != null);
+  if (!ds.length) return 1;
+  return soulLvMul(ds.reduce((a, d) => a + (d.jobLv || 1), 0) / ds.length);
 }
 // テスト記録: 得た額のうち、倍率で増えた分の内訳 (順に掛けて、それぞれの倍率で増えた分)。
 // pre = パッシブ (金運・魂寄せ・魂の聖別) を掛ける前の額 / base = 倍率を掛ける前の額 / mu = 異変・掟・出来事の効果・奈落を合わせた倍率
@@ -7304,12 +7326,13 @@ function startBattleMeasured(enemies, cell) {
   });
 }
 
-// 戦闘開始時の自動攻撃 (居合/開幕呪撃) を1つずつ斬撃エフェクトで見せる
+// 戦闘開始時の自動攻撃 (死の宣告/居合/開幕呪撃) を1つずつ演出で見せる
 function playOpeningStrikes(list, i, done) {
   if (i >= list.length) { done(); return; }
   const res = list[i];
   G.animating = true;
-  if (res.opening === "iai") showToast("⚡ 居合！");
+  if (res.opening === "senkoku") showToast(`☠ 死の宣告！ ${res.hits.length}体の魂を刈り取った`);
+  else if (res.opening === "iai") showToast("⚡ 居合！");
   else if (res.opening === "openSpell") showToast("✦ 開幕呪撃！");
   animateResult(res, () => playOpeningStrikes(list, i + 1, done));
 }
@@ -7387,7 +7410,9 @@ function renderCombatCanvas() {
       // 倒した敵: 撃破の演出 (drawEffects の崩れ落ち) が始まるまでは姿を残し、以後は描かない
       if (!e.alive && !fleeFx) {
         const d = fx && fx.deaths ? fx.deaths.find((x) => x.uid === e.uid) : null;
-        if (!fx || _deadShown.has(e) || (d && now >= d.t0)) { if (!fx || d) _deadShown.add(e); return; }
+        // 開幕 (死の宣告・居合・開幕呪撃) に倒れた敵は、開幕の演出で崩れ落ちるまで姿を残す
+        const pending = e._openDeath && !d && !_deadShown.has(e);
+        if (!pending && (!fx || _deadShown.has(e) || (d && now >= d.t0))) { if (!fx || d) _deadShown.add(e); return; }
       }
       let ox = 0, oy = 0, alpha = 1;
       if (fleeFx) {
@@ -8244,12 +8269,13 @@ function drawEffects(fx, now) {
   drawBattleFx(vctx, fx.skill, now, VW, VH, REDUCED_MOTION);
   // 画面の縁が紅く脈打つ (味方被弾)
   if (fx.screen) {
-    const t = (now - fx.screen.t0) / 300;
+    const t = (now - fx.screen.t0) / (fx.screen.dur || 300);
     if (t <= 1) {
       vctx.save();
       const g = vctx.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.25, VW / 2, VH / 2, Math.max(VW, VH) * 0.72);
-      g.addColorStop(0, "rgba(160,0,0,0)");
-      g.addColorStop(1, `rgba(170,8,4,${0.62 * (1 - t)})`);
+      const dark = fx.screen.color === "dark"; // 死の宣告: 紫黒の闇が縁から迫る
+      g.addColorStop(0, dark ? "rgba(20,0,30,0)" : "rgba(160,0,0,0)");
+      g.addColorStop(1, dark ? `rgba(24,0,40,${0.78 * (1 - t)})` : `rgba(170,8,4,${0.62 * (1 - t)})`);
       vctx.fillStyle = g;
       vctx.fillRect(0, 0, VW, VH);
       vctx.restore();
@@ -8886,7 +8912,9 @@ function animateResult(res, done) {
   // 全体回復は対象人数ぶん時間差で弾ませるため、最後の表示まで尺を確保する
   const partyHealN = (res.hits || []).filter((h) => h && h.target && h.target.side !== "enemy" && h.heal != null).length;
   const staggerSteps = Math.max(maxStack - 1, partyHealN - 1);
-  const TOTAL = WIND + (360 + staggerSteps * HIT_STAGGER) * spdMul();
+  // 死の宣告 (開幕): 大鎌が振り下ろされ魂が抜けるまでを見せきる (戦闘に一度だけなので一手より長く取る)
+  const hold = res.opening === "senkoku" ? 560 : 0;
+  const TOTAL = WIND + (360 + hold + staggerSteps * HIT_STAGGER) * spdMul();
   G.fx = { lunge: res.side === "enemy" && res.action !== "eflee" ? { uid: res.actor.uid, p: 0 } : null,
            slashes: [], skill: [], floats: [], screen: null, flash: {}, deaths: [] };
   G.partyFx = G.partyFx || new Map();
@@ -8976,6 +9004,10 @@ function applyImpact(res) {
     // ブレス (炎の効果音) / 敵の全体呪文 (呪文の効果音)
     if (res.espell) SFX.spell(); else SFX.fire();
     buzz([0, 50, 40, 80]); shakeScreen(true);
+  } else if (res.opening === "senkoku") {
+    // 死の宣告: 不穏な音・画面が闇に沈む (描画は下の reap)
+    SFX.ambush(); buzz([0, 40, 60, 90]);
+    fx.screen = { color: "dark", t0: now, dur: 760 * spdMul() };
   } else if (res.action === "spell" && res.spellKind !== "phys") {
     if (res.spellKind === "heal" || res.spellKind === "cure" || res.spellKind === "buff") SFX.heal();
     else if (res.spellElement === "fire") SFX.fire();
@@ -9031,7 +9063,16 @@ function applyImpact(res) {
       const dx = idx === 0 ? 0 : (idx % 2 ? 1 : -1) * (14 + 4 * idx); // 左右に振って重なり回避
       if (idx > 0) setTimeout(() => SFX.hit(), idx * stag); // 2撃目以降にも手応えの効果音
       const seed = (h.target.uid || 1) * 31 + idx;
-      if (res.action === "spell" && res.spellKind !== "heal" && res.spellKind !== "phys") {
+      if (res.opening === "senkoku") {
+        // 死の宣告: 敵ごとに少しずつ遅れて、大鎌が魂を刈り取る (崩れ落ちは鎌が抜けた後)
+        const rt0 = now + res.hits.indexOf(h) * 140 * spd;
+        spawnFx(fx.skill, "reap", pos.cx, pos.cy, rt0, spd, { seed, s: Math.max(0.8, Math.min(1.3, (pos.size || 9) / 9)) });
+        fx.floats.push({ x: pos.cx, y: pos.cy - 58, text: "死の宣告", color: "#c9a0ff", t0: rt0, small: true, kind: "label" });
+        fx.floats.push({ x: pos.cx, y: pos.cy - 10, text: "即死!", color: "#ff2a2a", t0: rt0 + 260 * spd, big: true, kind: "crit" });
+        if (!fx.deaths.some((d) => d.uid === h.target.uid)) fx.deaths.push({ uid: h.target.uid, mon: h.target.mon, x: pos.cx, y: pos.cy, size: pos.size || 9, t0: rt0 + 300 * spd });
+        anyDeath = true;
+        continue;
+      } else if (res.action === "spell" && res.spellKind !== "heal" && res.spellKind !== "phys") {
         // 呪文: 攻撃は属性ごと (火柱・水しぶき・旋風・岩の牙・光の柱・闇の渦)、弱体・状態異常はその種類ごと
         const st = statusFxKind(h.status);
         const kind = res.spellKind === "atk" ? (ELEM_FX_COL[res.spellElement] ? res.spellElement : "none")
@@ -9272,7 +9313,7 @@ function distributeBattleSoulExpMeasured(soulGot) {
   for (const w of worn) {
     const e = soulByUid(w.uid);
     if (!e) continue;
-    const gain = Math.floor((w.sub ? share * SUB_EXP_RATE : share) * (w.mul || 1));
+    const gain = Math.floor((w.sub ? share * SUB_EXP_RATE : share) * (w.mul || 1) * soulLvMul(e.level));
     if (gain <= 0) continue;
     const cap = soulLevelCapOf(e);
     e.exp = (e.exp || 0) + gain;
@@ -9356,10 +9397,12 @@ function endBattleMeasured() {
     const bsrc = b.enemies.some((e) => e.metal) ? "mt" : "b" + ((b.tl && b.tl.kind) || "n");
     const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)), bsrc, gold * 2, battleModifierReward(b, "gold")) + takeStolenGold(b);
     const sb = rankParty("bishopSeibetsu", [0.05, 0.10, 0.15, 0.25]); // 魂の聖別 (司教のランク)
-    const soulGot = runGainSoulPts(Math.round(soul * ((sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1) + sb)), bsrc, soul, battleModifierReward(b, "soul"));
+    const soulOut = {};
+    const soulGot = runGainSoulPts(Math.round(soul * ((sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1) + sb)), bsrc, soul, battleModifierReward(b, "soul"), soulOut);
     applyVictoryPassives();
     // 入手Soulの1/3を生存メンバーの魂 (サブ魂はその1/3) に加算 → レベルアップ/スキル習得を集計
-    const progress = distributeBattleSoulExp(soulGot);
+    // (Lv差の減りは魂それぞれの Lv で掛け直すので、隊のLv で減らす前の額を渡す)
+    const progress = distributeBattleSoulExp(soulOut.raw ?? soulGot);
     updateTopbar();
     log(`勝利！ ${goldGot} ゴールド と ✦${soulGot} Soul を得た。`, "win");
     const fled = b.enemies.filter((e) => e._fled).length; // 逃げ去った金属の魔物 (戦果は倒した分だけ)
@@ -10440,7 +10483,7 @@ function raiseSoulCap(uid) {
   const e = soulByUid(uid);
   if (!e) return;
   const need = emberCostOf(e.clsKey);
-  if ((G.embers || 0) < need) { log(`魂の残火が足りない。(${need}つ要る)`, "sys"); SFX.ng(); showToast(`魂の残火が足りない（${need}つ要る）`, { tone: "bad" }); return; }
+  if ((G.embers || 0) < need) { log(`魂の残火が足りない。(${need}つ要る)`, "sys"); SFX.ng(); showToast(`魂の残火が足りない（${need}つ要る）`, { tone: "bad" }); return false; }
   G.embers -= need;
   e.capBonus = (e.capBonus || 0) + 1;
   recalcAllDolls();
@@ -10451,6 +10494,7 @@ function raiseSoulCap(uid) {
   showToast(`🔥 ${soulLabel(e)} ― Lv上限 ${cap}（残火 ${G.embers}）`, { tone: "gold" });
   autosave(true);
   renderTown();
+  return true;
 }
 
 // ---- 酒場「沈まぬ灯」の依頼 (クエスト。定義と掲示板の生成は src/quests.js) ----
@@ -10528,17 +10572,13 @@ function questUnit(cfg, floor = 1) {
   return { gold: Math.max(6, refGold(lv)), soul: Math.max(3, refSoul(lv)) };
 }
 // 掲示板の生成に渡す窓 (src/quests.js)
-// 掲示板の依頼に選ぶ迷宮: 地図にある迷宮を地図に現れた順 (古い→新しい。G.world.open の鍵の並び) に並べ、
-// 推奨Lvが隊のLvを大きく超える迷宮 (出撃シートの「無謀」= 差 QUEST_LV_GAP 以上) は除く。
-// 新しい迷宮ほど選ばれやすい (quests.js pickDungeon)。すべて除かれたら推奨Lvのいちばん低い迷宮だけ
-const QUEST_LV_GAP = 8;
+// 掲示板の依頼に選ぶ迷宮: 地図にある迷宮を地図に現れた順 (古い→新しい。G.world.open の鍵の並び) に並べる。
+// 新しい迷宮ほど選ばれやすい (quests.js pickDungeon)。隊のLvが推奨Lvに届かない迷宮も除かない
+// (2026-10 ユーザーの指示: 迷宮ごとの依頼は推奨Lv 以下の隊にも出す。旧来は推奨Lv − 隊のLv ≥ 8 の迷宮を除いていた)
 function questDungeons() {
   const order = Object.keys(worldState().open);
   const open = DUNGEONS.filter((d) => worldOpenId(d.id)).sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
-  if (!open.length) return [DUNGEONS[0]];
-  const pl = partyLevel();
-  const fit = open.filter((d) => levelBand(d)[0] - pl < QUEST_LV_GAP);
-  return fit.length ? fit : [open.reduce((a, d) => (levelBand(d)[0] < levelBand(a)[0] ? d : a))];
+  return open.length ? open : [DUNGEONS[0]];
 }
 function questCtx() {
   const s = questState();

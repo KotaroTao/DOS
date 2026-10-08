@@ -1,0 +1,102 @@
+{
+  "sprites": [
+    {
+      "key": "crusader",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.93
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/crusader_1.webp"
+    },
+    {
+      "key": "warden",
+      "rank": 1,
+      "face": [
+        48,
+        20
+      ],
+      "head": [
+        48,
+        10,
+        30.089
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/warden_1.webp"
+    },
+    {
+      "key": "warden",
+      "rank": 2,
+      "face": [
+        48,
+        20
+      ],
+      "head": [
+        48,
+        10,
+        30.059
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/warden_2.webp"
+    },
+    {
+      "key": "warden",
+      "rank": 3,
+      "face": [
+        48,
+        20
+      ],
+      "head": [
+        48,
+        10,
+        30.25
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/warden_3.webp"
+    },
+    {
+      "key": "warden",
+      "rank": 4,
+      "face": [
+        48,
+        20
+      ],
+      "head": [
+        48,
+        10,
+        30.029
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/warden_4.webp"
+    },
+    {
+      "key": "warden",
+      "rank": 5,
+      "face": [
+        48,
+        20
+      ],
+      "head": [
+        48,
+        10,
+        29.885
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/warden_5.webp"
+    }
+  ],
+  "canvasCount": 30,
+  "browserErrors": []
+}

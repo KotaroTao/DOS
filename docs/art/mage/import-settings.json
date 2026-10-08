@@ -1,0 +1,14 @@
+{
+  "job": "mage",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "frame": [90, 92],
+  "frameTop": 9,
+  "crownToSole": 82.8,
+  "sources": [
+    {"source": "docs/art/mage/mage-r1-final.png", "perDot": 14.009661835748794, "head": [503, 619, 187, 495], "sole": 1347, "alphaBBox": [86, 113, 1040, 1347]},
+    {"source": "docs/art/mage/mage-r2-final.png", "perDot": 14.021739130434783, "head": [504, 619, 187, 495], "sole": 1348, "alphaBBox": [68, 104, 1054, 1348]},
+    {"source": "docs/art/mage/mage-r3-final.png", "perDot": 13.997584541062803, "head": [505, 622, 188, 497], "sole": 1347, "alphaBBox": [31, 108, 1065, 1347]},
+    {"source": "docs/art/mage/mage-r4-final.png", "perDot": 14.033816425120774, "head": [504, 619, 187, 495], "sole": 1349, "alphaBBox": [21, 106, 1096, 1349]},
+    {"source": "docs/art/mage/mage-r5-final.png", "perDot": 14.009661835748794, "head": [504, 619, 190, 500], "sole": 1350, "alphaBBox": [31, 112, 1089, 1350]}
+  ]
+}
