@@ -10,7 +10,7 @@
 // 作戦はこの重みと MP の値段を変える。game.js はここを呼んで chooseAction / chooseTarget するだけ。
 // (このファイルは game.js を import しない)
 
-import { SPELLS, spellCost, isMetal, spellCureKinds } from "./combat.js";
+import { SPELLS, spellCost, soulPowerMul, isMetal, spellCureKinds } from "./combat.js";
 import { autoSkills } from "./souls.js";
 import { STAGED, STAGE_MAX, STRONG_MIN, stageMul, stageOf } from "./buffstage.js";
 
@@ -232,7 +232,7 @@ function skillCands(b, ctx, actor, key, sp) {
       for (const t of tgts) {
         let d = 0;
         if (sp.kind === "phys") {
-          const popt = { power: sp.power, critBonus: sp.critBonus, element: sp.element, intScale: sp.intScale, agiScale: sp.agiScale,
+          const popt = { power: sp.power * soulPowerMul(actor, sp), critBonus: sp.critBonus, element: sp.element, intScale: sp.intScale, agiScale: sp.agiScale,
             vitScale: sp.vitScale, pieScale: sp.pieScale, acc: sp.acc, pierce: sp.pierce, desperate: sp.desperate, execute: sp.execute, prey: sp.prey, skill: true };
           const per = b.estPhys(actor, t, popt);
           d = sp.scatter ? per * sp.scatter / tgts.length : per * (sp.hits || 1);
@@ -338,7 +338,7 @@ function allyEffects(b, ctx, actor, sp, a, c, W) {
   const n = ctx.left(sp.dur);
   if (sp.kind === "heal" && (sp.power || 0) > 0) c.heal += Math.min(b.estHeal(actor, sp), a.maxhp - a.hp) * healUrg(ctx, a, W);
   if (sp.kind === "mana") {
-    const gain = Math.min(sp.power + (actor.int || 0) * 0.25, (a.maxmp || 0) - a.mp);
+    const gain = Math.min((sp.power + (actor.int || 0) * 0.25) * soulPowerMul(actor, sp), (a.maxmp || 0) - a.mp);
     if (a !== actor && gain > 0) c.edge += gain * ctx.mpPrice(a, (W && W.mpK) || 0.06) * 0.8;
   }
   if (sp.kind === "cure" || sp.cure) c.guard += ailValue(ctx, a, sp);

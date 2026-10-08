@@ -1946,7 +1946,13 @@ function openSkillManager(d) {
       nm.appendChild(el("span", "pt-skm-nm", sp ? sp.name : key));
       const tgs = sp && tagRow(spellTagKinds(sp, d), "pt-skill-tags");
       if (tgs) nm.appendChild(tgs);
-      if (sp) nm.appendChild(el("span", "pt-skill-c", spellMpLabel(sp)));
+      if (sp) {
+        // 「MP 16」と「＋魂のMP×6%」を2行に分け、技名を削らない
+        const [base, tier] = spellMpLabel(sp).split("＋");
+        const mc = el("span", "pt-skill-c two", base);
+        if (tier) mc.appendChild(el("span", "pt-skill-ct", `＋${tier}`));
+        nm.appendChild(mc);
+      }
       nm.addEventListener("click", () => showSkillPopup(key));
       r.appendChild(nm);
       const mv = (dir, label, glyph, dis) => {

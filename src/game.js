@@ -2,7 +2,7 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, setOnEnemyKilled, setElemKnown, perkVictory, canSpellCure, cureBySpell, spellCureKinds } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, setOnEnemyKilled, setElemKnown, perkVictory, canSpellCure, cureBySpell, spellCureKinds } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageLabel, isBattleLong, turnsLeftLabel, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -13219,7 +13219,7 @@ function campSpellsOf(p) {
 const spellCures = (sp) => sp.kind === "cure" || !!sp.cure;
 const spellHeals = (sp) => (sp.power || 0) > 0;
 // 戦闘外の回復量の基準 (実際はこれ + 0〜3割の揺らぎ。見積もりはこの最低値で行う)
-function campHealPower(caster, sp) { return (sp.power || 0) + Math.round((caster.pie || 0) * 0.5); }
+function campHealPower(caster, sp) { return Math.round(((sp.power || 0) + Math.round((caster.pie || 0) * 0.5)) * soulPowerMul(caster, sp)); } // 魂の格も戦闘と同じく乗る
 // 生きている1体へ回復呪文の効果 (状態異常の治療・HP回復) を与える。何か起きたら true
 // 戦闘外の回復で、最後に唱えた回復量 (満タンで上限に切られた分も含む素の値)。結果の表示に使う
 const CAMP_HEAL = new WeakMap();

@@ -7,7 +7,7 @@ import { RESIST_LABEL } from "../resistance.js";
 import { game } from "./ctx.js";
 import { el, sheet } from "./kit.js";
 import { ELEMENTS, elemBeats, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } from "../dungeons/index.js";
-import { SPELLS, spellMpLabel, spellCureKinds } from "../combat.js";
+import { SPELLS, spellMpLabel, spellCureKinds, soulTierRate } from "../combat.js";
 import { STAGED, stageOf, stageMul, stageLabel, ENEMY_STAT_LABEL } from "../buffstage.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
 import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, useLines } from "../items.js";
@@ -280,7 +280,7 @@ export function skillDetailLines(sp) {
   // ---- 固有の追加効果 ----
   if (sp.hpCost) lines.push(`代償: 自分の最大HPの${pct(sp.hpCost)}を失う（HP1で踏みとどまる）`);
   if (sp.drain) lines.push(`与えたダメージの${pct(sp.drain)}だけ自分のHPを回復`);
-  if (sp.mpDrain) lines.push(`与えたダメージの${pct(sp.mpDrain)}だけ自分のMPを回復`);
+  if (sp.mpDrain) lines.push(`与えたダメージの${pct(sp.mpDrain)}だけ自分のMPを回復（この技の消費MPまで）`);
   if (sp.poison) lines.push(`${pct(sp.poison.chance)}で${sp.poison.pct > 0.05 ? "猛毒" : "毒"}にする（毎ターン最大HPの${pct(sp.poison.pct)}${sp.poison.pct > 0.05 ? `・主には${pct(Math.max(0.05, sp.poison.pct * 0.5))}` : ""}）`);
   if (sp.para) lines.push(`${pct(sp.para)}で麻痺させる（手番を失いやすくなる・抵抗値で成功率が下がる）`);
   if (sp.seal) lines.push(`${pct(sp.seal.chance)}で特技を${sp.seal.turns}ターン封じる（ブレス・状態異常攻撃・回復・呼び出し・大技の溜めを使えなくなる・抵抗値で成功率が下がる）`);
@@ -302,6 +302,8 @@ export function skillDetailLines(sp) {
   if (sp.dur && (sp.buff || sp.debuff || sp.debuffAll || sp.vuln || sp.taunt || sp.shield || sp.stance || sp.charge)) lines.push(`効果は ${sp.dur} ターン持続`);
   if ([sp.buff, sp.debuff, sp.debuffAll].some((o) => o && Object.keys(o).some((k) => STAGED.has(k)))) lines.push("能力の段は強化と弱体で打ち消し合い、±3段で止まる（主・精鋭への弱体は −2段まで・持続 −1）");
   if (sp.strip) lines.push("敵の大技の予兆（溜め）も打ち消せる");
+  const tier = soulTierRate(sp);
+  if (tier) lines.push(`魂の格: メイン魂のMPの${pct(tier)}が消費に加わり、そのぶん威力・効果が上がる（最大で×1.8に近づく。装備などで足したMPは含まない）`);
   return lines;
 }
 
@@ -311,7 +313,7 @@ export function showSkillPopup(key) {
   if (!sp) return null;
   const accent = SPELL_KIND_COLOR[sp.kind] || "#c9a227";
   const body = el("div", "ui-skill");
-  const mpRow = el("div", "sk-mp", sp.mpPct ? `消費 ${spellMpLabel(sp)}` : `消費MP ${sp.mp}`);
+  const mpRow = el("div", "sk-mp", `消費 ${spellMpLabel(sp)}`);
   const tg = tagRow(spellTagKinds(sp));
   if (tg) mpRow.appendChild(tg);
   body.appendChild(mpRow);
