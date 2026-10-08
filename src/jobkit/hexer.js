@@ -23,8 +23,8 @@ export default {
     HEXER_KUROSHIO: { name: "黒潮の呪滴", mp: 20, kind: "atk", power: 50, element: "water", debuff: { atk: 0.88 }, target: "all-enemy", desc: "呪いの潮が敵全体を呑み、力を奪う" },
     HEXER_KODOKU: { name: "蠱毒の壺", mp: 30, kind: "atk", power: 88, element: "dark", poison: { chance: 0.7, pct: 0.1 }, target: "enemy", desc: "壺の蠱毒を浴びせ、猛毒で蝕む" },
     HEXER_HYOUKAN: { name: "氷棺の呪", mp: 26, kind: "atk", power: 82, element: "water", sleepChance: 0.35, target: "enemy", desc: "氷の棺に閉じ込め、凍える眠りに落とす" },
-    HEXER_HYAKKI: { name: "百鬼の呪い", mp: 36, kind: "atk", power: 96, debuff: { atk: 0.85, vit: 0.85 }, target: "all-enemy", desc: "百の呪いが敵全体を蝕み、力と守りを削ぐ" },
-    HEXER_BANJU: { name: "万呪の帳", mp: 44, kind: "atk", power: 122, poison: { chance: 0.5, pct: 0.05 }, confuse: 0.25, target: "all-enemy", desc: "万の呪いで敵全体を討ち、毒と狂気を撒く" },
+    HEXER_HYAKKI: { name: "百鬼の呪い", mp: 39, kind: "atk", power: 96, debuff: { atk: 0.85, vit: 0.85 }, target: "all-enemy", desc: "百の呪いが敵全体を蝕み、力と守りを削ぐ" },
+    HEXER_BANJU: { name: "万呪の帳", mp: 52, kind: "atk", power: 122, poison: { chance: 0.5, pct: 0.05 }, confuse: 0.25, target: "all-enemy", desc: "万の呪いで敵全体を討ち、毒と狂気を撒く" },
   },
   perks: {
     hexerShokuso: { label: "蝕みの爪", lv: ["物理を当てると15%で毒 (毎ターン5%)", "物理を当てると30%で毒 (毎ターン5%)"],

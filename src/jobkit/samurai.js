@@ -17,7 +17,7 @@ export default {
   skills: {
     // Lv15 の固有技: 月を描く返し刃。会心と足止めを兼ねる
     SAMURAI_ZANGETSUGAESHI: { name: "月返し", mp: 5, kind: "phys", power: 1.2, critBonus: 0.25, agiScale: 0.3, debuff: { agi: 0.85 }, target: "enemy", desc: "月を描く返し刃。会心しやすく、敵の足を鈍らせる" },
-    SAMURAI_SAYABASHIRI: { name: "鞘走り", mp: 4, kind: "phys", power: 0.95, agiScale: 0.45, critBonus: 0.15, target: "enemy", desc: "鞘走る抜き打ち。素早さで伸び会心しやすい" },
+    SAMURAI_SAYABASHIRI: { name: "鞘走り", mp: 4, kind: "phys", power: 1.35, agiScale: 0.45, critBonus: 0.15, target: "enemy", desc: "鞘走る抜き打ち。素早さで伸び会心しやすい" },
     SAMURAI_OBOROZUKI: { name: "朧月", mp: 10, kind: "phys", power: 0.85, agiScale: 0.25, debuff: { agi: 0.85 }, target: "all-enemy", desc: "朧の弧を描く抜刀で敵陣の足を鈍らせる" },
     SAMURAI_SHINOGI: { name: "鎬削り", mp: 4, kind: "phys", power: 1.15, acc: 0.4, debuff: { hit: 0.8 }, target: "enemy", desc: "鎬で刃を受け流し、敵の狙いを乱す" },
     SAMURAI_RYUUSUI: { name: "流水三段", mp: 14, kind: "phys", power: 0.95, hits: 3, agiScale: 0.4, acc: 0.3, critBonus: 0.15, target: "enemy", desc: "流れる水のごとく三度斬る（命中UP）" },
@@ -28,7 +28,7 @@ export default {
     SAMURAI_SHIDEN: { name: "紫電一閃", mp: 22, kind: "phys", power: 4.2, agiScale: 1.5, critBonus: 0.5, target: "enemy", desc: "紫電の抜刀。素早さで大きく伸びる" },
     SAMURAI_MUNEN: { name: "無念無想", mp: 24, kind: "phys", power: 5.6, acc: 1, pierce: 0.2, target: "enemy", desc: "無心の一刀は外れず、鎧も徹る" },
     SAMURAI_HANAFUBUKI: { name: "花吹雪", mp: 16, kind: "phys", power: 0.8, hits: 4, acc: 0.5, debuff: { agi: 0.8 }, target: "enemy", desc: "花吹雪の四連斬。素早さを奪う" },
-    SAMURAI_GUFUU: { name: "颶風抜刀", mp: 22, kind: "phys", power: 2.0, agiScale: 0.3, acc: 0.6, target: "all-enemy", desc: "颶風の抜刀で敵全体を斬り抜ける" },
+    SAMURAI_GUFUU: { name: "颶風抜刀", mp: 22, kind: "phys", power: 2.4, agiScale: 0.3, acc: 0.6, target: "all-enemy", desc: "颶風の抜刀で敵全体を斬り抜ける" },
     SAMURAI_UNYOU: { name: "雲耀", mp: 28, kind: "phys", power: 7.0, acc: 1, pierce: 0.4, critBonus: 0.15, target: "enemy", desc: "稲妻より速い必中の振り下ろし" },
     SAMURAI_HAPPOU: { name: "八方斬り", mp: 30, kind: "phys", power: 2.8, acc: 0.9, flinchChance: 0.2, target: "all-enemy", desc: "八方の敵を斬り伏せ、怯ませる" },
     SAMURAI_NOWAKI: { name: "野分斬り", mp: 21, kind: "phys", power: 1.3, hits: 4, agiScale: 0.35, critBonus: 0.1, element: "wind", vuln: { wind: 0.85 }, target: "enemy", desc: "野分の風の四連斬。風の守りを裂く" },
