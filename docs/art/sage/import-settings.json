@@ -1,0 +1,14 @@
+{
+  "job": "sage",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "frame": [90, 92],
+  "frameTop": 9,
+  "measurementNote": "頭頂と顎は帽子と白髭で隠れた人体位置の推定。帽子先端・髭先は含めない。足裏は不透明な輪郭から測定。",
+  "sources": [
+    {"source": "docs/art/sage/sage-r1-final.png", "perDot": 14.036585, "head": [500, 600, 220, 524], "sole": 1371},
+    {"source": "docs/art/sage/sage-r2-final.png", "perDot": 14.829268, "head": [488, 588, 190, 512], "sole": 1406},
+    {"source": "docs/art/sage/sage-r3-final.png", "perDot": 14.658537, "head": [494, 594, 178, 496], "sole": 1380},
+    {"source": "docs/art/sage/sage-r4-final.png", "perDot": 14.426829, "head": [490, 590, 182, 495], "sole": 1365},
+    {"source": "docs/art/sage/sage-r5-final.png", "perDot": 14.841463, "head": [497, 597, 175, 497], "sole": 1392}
+  ]
+}
