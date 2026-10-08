@@ -182,7 +182,7 @@ export const STORY_CELLS = {
       "地図の余白に、師の字で一行。",
       "──『百の迷宮は檻ではない。井戸だ。汲み上げているのは、魂だ』",
       "王都の真ん中の井戸がひとつだけ、赤い墨で囲まれていた。",
-      "── 新たな迷宮「王都の古井戸」が地図に記された (依頼の迷宮・推奨Lv55〜58)。",
+      "── 新たな迷宮「王都の古井戸」が地図に記された (寄り道の迷宮・推奨Lv55〜58)。",
     ],
     toast: "軍議の卓で、魂脈の地図を見た",
     boon: { kind: "dungeon", text: "迷宮「王都の古井戸」が地図に記された" },
@@ -821,7 +821,19 @@ export const CHAPTER_END = {
 
 // ---- 館の語り (イレーヌ): 手がかりを持ち帰った後、館に入ると語られる (一度だけ) ----
 //   need = 要る物語マス (配列ならすべて必要) / after = 初踏破を王に報告した迷宮 (どちらも満たした時に語る) / art = 一枚絵
+//   beat = 先に語っておく館の語り / flag = world の記録が 1 の時だけ語る (語ったら 0) / effect = 語った後の働き (seraJoin = セラが仲間になる)
 export const IRENE_BEATS = [
+  // 手がかりの恵みを足す前に見つけていた手がかりの恵みを、旧セーブに一度だけ知らせる (game.js worldState の boonsIntro)
+  {
+    id: "irene_boons", flag: "boonsIntro", art: "candle", title: "手がかりの恵み",
+    lines: (s) => [
+      "イレーヌ「これまで持ち帰ってくださった手がかりを、もう一度よく調べてみました。」",
+      "イレーヌ「オルド様は、手がかりのひとつひとつに、後から来る人への手助けを残していたのです。」",
+      ...Object.keys(STORY_CELLS).filter((k) => s.found(k) && STORY_CELLS[k].boon && !["dungeon", "quest"].includes(STORY_CELLS[k].boon.kind))
+        .map((k) => `── ${STORY_CELLS[k].name}: ${STORY_CELLS[k].boon.text}`),
+      "イレーヌ「これからも、手がかりを見つけたら持ち帰ってください。きっと、何かが残されています。」",
+    ],
+  },
   {
     id: "irene_reveal", need: "w04_arm", art: "arm", title: "イレーヌの継ぎ目",
     lines: [

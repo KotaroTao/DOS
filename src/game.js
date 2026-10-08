@@ -862,6 +862,8 @@ function worldState() {
   }
   // 別の迷宮を踏破しても報告待ちを失わない。旧セーブの未報告も踏破記録から拾う。
   if (!w.report) w.report = DUNGEONS.find((d) => !d.side && w.cleared[d.id] && !w.reported[d.id])?.id || null;
+  // 手がかりの恵み (2026-10 に足した) の前に、館の働きが変わる手がかりを見つけていた旧セーブは、館で一度だけ知らせる
+  if (w.boonsIntro === undefined) w.boonsIntro = Object.keys(STORY_CELLS).some((k) => w.found[k] && STORY_CELLS[k].boon && !["dungeon", "quest"].includes(STORY_CELLS[k].boon.kind)) ? 1 : 0;
   return w;
 }
 // 第0章 (人業の生成) を終えたか
@@ -5864,7 +5866,7 @@ function pendingIreneBeat() {
   // 試遊は選択した場面だけ。準備用の報告済み状態から別の語りを始めない。
   if (G.testPlay) return null;
   const w = worldState();
-  return IRENE_BEATS.find((b) => !w.beats[b.id] && (!b.need || (Array.isArray(b.need) ? b.need : [b.need]).every((key) => w.found[key])) && (!b.after || w.reported[b.after]) && (!b.beat || w.beats[b.beat])) || null;
+  return IRENE_BEATS.find((b) => !w.beats[b.id] && (!b.need || (Array.isArray(b.need) ? b.need : [b.need]).every((key) => w.found[key])) && (!b.after || w.reported[b.after]) && (!b.beat || w.beats[b.beat]) && (!b.flag || w[b.flag] === 1)) || null;
 }
 // 館に入った時に語る (party.js から)。語ったら true
 function playIreneBeat(done) {
@@ -5874,6 +5876,7 @@ function playIreneBeat(done) {
   UI.playStoryChain([{ title: b.title, lines: storyLines(b.lines), art: b.art, photo: storyImage(b.id), who: "irene", kicker: "人業の館", btnLabel: "うなずく" }], () => {
     w.beats[b.id] = 1;
     w.last = { kind: "irene", id: b.id };
+    if (b.flag) w[b.flag] = 0;
     if (b.effect === "seraJoin") seraJoin();
     autosave(true);
     if (done) done();
@@ -10823,7 +10826,7 @@ function questsHere() {
 }
 // 出撃シートの添え書き: 酒場の依頼で開いた迷宮なら「依頼の迷宮」(受けた依頼の対象かどうかは名の横の印 questHereCount)
 function questHereNote(cfg) {
-  return cfg && cfg.side ? "依頼の迷宮" : null;
+  return cfg && cfg.side ? (cfg.unlock && cfg.unlock.quest ? "依頼の迷宮" : "寄り道の迷宮") : null;
 }
 // 迷宮ごとの記録 (出撃シートの迷宮の顔): 図鑑に記録した魔物 / その迷宮の魔物 (雑魚・強敵・主) と、
 // その迷宮の固定クエスト (依頼人の頼み) の報告済み / 総数。
