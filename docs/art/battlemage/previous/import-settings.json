@@ -1,0 +1,97 @@
+{
+  "job": "battlemage",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "anatomySource": "docs/art/battlemage/battlemage-r1-final.png",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "sources": [
+    {
+      "source": "docs/art/battlemage/battlemage-r1-final.png",
+      "perDot": 14.24390243902439,
+      "head": [
+        488,
+        610,
+        193,
+        490
+      ],
+      "alphaBBox": [
+        213,
+        165,
+        1057,
+        1361
+      ],
+      "headHeight": 20.851027397260275
+    },
+    {
+      "source": "docs/art/battlemage/battlemage-r2-final.png",
+      "perDot": 15.024390243902438,
+      "head": [
+        480,
+        618,
+        130,
+        438
+      ],
+      "alphaBBox": [
+        188,
+        97,
+        1085,
+        1362
+      ],
+      "headHeight": 20.5
+    },
+    {
+      "source": "docs/art/battlemage/battlemage-r3-final.png",
+      "perDot": 14.768292682926829,
+      "head": [
+        486,
+        624,
+        153,
+        451
+      ],
+      "alphaBBox": [
+        87,
+        113,
+        1089,
+        1364
+      ],
+      "headHeight": 20.178364987613545
+    },
+    {
+      "source": "docs/art/battlemage/battlemage-r4-final.png",
+      "perDot": 14.292682926829269,
+      "head": [
+        488,
+        610,
+        190,
+        488
+      ],
+      "alphaBBox": [
+        96,
+        160,
+        1064,
+        1362
+      ],
+      "headHeight": 20.849829351535835
+    },
+    {
+      "source": "docs/art/battlemage/battlemage-r5-final.png",
+      "perDot": 14.304878048780488,
+      "head": [
+        488,
+        610,
+        190,
+        488
+      ],
+      "alphaBBox": [
+        132,
+        162,
+        1024,
+        1363
+      ],
+      "headHeight": 20.832054560954816
+    }
+  ]
+}
