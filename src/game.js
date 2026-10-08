@@ -5658,7 +5658,7 @@ function evBattleStart(enemies, isBoss) {
   const bw = G.events && G.events.flags && G.events.flags.bossWeak;
   if (isBoss && bw && bw[battleLayer()]) {
     for (const e of enemies) if (e.boss) { e.maxhp = Math.max(1, Math.round(e.maxhp * 0.9)); e.hp = Math.min(e.hp, e.maxhp); }
-    log("告解室で聞いた秘密が、主の守りの綻びを教えてくれる。(主の最大HP -10%)", "win");
+    log(battleLayer() === 1 ? "告解室で聞いた秘密が、主の守りの綻びを教えてくれる。(主の最大HP -10%)" : "迷宮で聞いた主の弱みが、守りの綻びを教えてくれる。(主の最大HP -10%)", "win");
   }
 }
 // 戦闘の後: 墓碑の加護の消費を記録し、紅玉に血を吸わせる
@@ -11160,6 +11160,8 @@ function tavernHintAllowed(req) {
   if (req === "metal") return DUNGEONS.some((d) => d.layer >= 3 && worldOpenId(d.id)); // 金属の魔物 (第3層の景色の迷宮から出る)
   if (req === "fort") return DUNGEONS.some((d) => d.layer >= 4 && worldOpenId(d.id));  // 捨て砦 (第4層の迷宮が地図に現れた後)
   if (req === "roots") return worldOpenId("w10");                                   // 魂脈の根 (大穴の下の縦穴が地図に現れた後)
+  if (req === "undercity") return worldOpenId("w14");                               // 王都の地下 (水底の参道が地図に現れた後)
+  if (req === "furnace") return worldOpenId("w18");                                 // 灼熱の洞 (火を噴く地割れが地図に現れた後)
   return featureUnlocked(req);                           // fusion / rumor
 }
 // 酒場の顔ぶれを選び直す (ダンジョン帰還時・初回入店時に呼ぶ)
