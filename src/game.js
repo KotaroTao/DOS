@@ -612,7 +612,7 @@ function runGainSoulPts(s, src, pre, modifier = null, out = null) {
 // 魂の Lv が、いまの階の敵Lv (推奨Lv) + SOUL_LV_GRACE を超えた分、1Lv ごとに SOUL_LV_STEP ずつ減らす (下限 SOUL_LV_MIN)。
 // 迷宮で得る ✦ (戦闘・出来事・死体・金属) は隊のLv (メイン魂の平均) で、戦闘で魂に直接入る経験値は魂それぞれの Lv で決める
 // → Lv の低いサブ魂・控えから来た魂は満額のまま追いつく。町の ✦ (依頼・報告) は減らさない
-const SOUL_LV_GRACE = 2, SOUL_LV_STEP = 0.15, SOUL_LV_MIN = 0.1;
+const SOUL_LV_GRACE = 2, SOUL_LV_STEP = 0.10, SOUL_LV_MIN = 0.2;
 function soulLvMul(lv, foeLv = foeLevelHere()) {
   const over = (lv || 1) - foeLv - SOUL_LV_GRACE;
   return over <= 0 ? 1 : Math.max(SOUL_LV_MIN, 1 - SOUL_LV_STEP * over);
