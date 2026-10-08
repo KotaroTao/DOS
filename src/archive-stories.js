@@ -14,7 +14,7 @@ const APPROVED_IMAGES = {
   first_descent: "art/story/first-descent-gatekeeper.png",
   irene_meeting: "art/story/irene-meeting.png",
   arrival: "art/story/royal-audience.png",
-  report_w13: "art/story/morden-at-throne.png",
+  report_w13: "art/story/chapter3/report_w13.png",
   w01_lantern: "art/story/chapter1/w01_lantern.png",
   report_w01: "art/story/chapter1/report_w01.png",
   w02_sigil: "art/story/chapter1/w02_sigil.png",
@@ -30,7 +30,32 @@ const APPROVED_IMAGES = {
   irene_fort: "art/story/chapter1/irene_fort.png",
   ch1_end: "art/story/chapter1/ch1_end.png",
   irene_familiar: "art/story/chapter1/irene_familiar.png",
+  w06_roll: "art/story/chapter2/w06_roll.png",
+  report_w06: "art/story/chapter2/report_w06.png",
+  w07_names: "art/story/chapter2/w07_names.png",
+  w07_sera: "art/story/chapter2/w07_sera.png",
+  irene_sera: "art/story/chapter2/irene_sera.png",
+  report_w07: "art/story/chapter2/report_w07.png",
+  w08_banner: "art/story/chapter2/w08_banner.png",
+  report_w08: "art/story/chapter2/report_w08.png",
+  w09_map: "art/story/chapter2/w09_map.png",
+  mem_w09: "art/story/chapter2/mem_w09.png",
+  report_w09: "art/story/chapter2/report_w09.png",
+  irene_roots: "art/story/chapter2/irene_roots.png",
+  ch2_end: "art/story/chapter2/ch2_end.png",
+  w10_rope: "art/story/chapter3/w10_rope.png",
+  report_w10: "art/story/chapter3/report_w10.png",
+  w11_hut: "art/story/chapter3/w11_hut.png",
+  report_w11: "art/story/chapter3/report_w11.png",
+  w12_torso: "art/story/chapter3/w12_torso.png",
+  report_w12: "art/story/chapter3/report_w12.png",
+  irene_torso: "art/story/chapter3/irene_torso.png",
+  mem_w13: "art/story/chapter3/mem_w13.png",
+  ch3_end: "art/story/chapter3/ch3_end.png",
+  irene_trust: "art/story/chapter3/irene_trust.png",
 };
+// ゲーム内の同じ場面 (師の手がかり・報告・主の記憶・館の語り・章の結び) でも、この描き下ろしの絵を掲げる
+export const storyImage = id => APPROVED_IMAGES[id] || null;
 const scene = (id, chapter, title, available, setting, focus, lines, extra = {}) => ({
   id, chapter, group:group(chapter), title, available, lines,
   ...(APPROVED_IMAGES[id] ? { image:APPROVED_IMAGES[id], imageWidth:1536, imageHeight:1024, imageAlt:title + "の場面" } : {}),
@@ -295,7 +320,7 @@ export const ARCHIVE_STORIES = [
   ], {people:"irene", pose:"welcome"}),
 ];
 
-// プレイ順が枝分かれしても、序章・章ごとの流れで読める。閲覧済みフラグの追加は不要。
+// プレイ順が枝分かれしても、序章・章ごとの流れで読める。既読・知らせ済みは G.journal (src/journal.js)。
 export function archiveStories(g) {
   return ARCHIVE_STORIES.filter(s => s.available(g)).sort((a, b) => a.chapter - b.chapter || ARCHIVE_STORIES.indexOf(a) - ARCHIVE_STORIES.indexOf(b));
 }

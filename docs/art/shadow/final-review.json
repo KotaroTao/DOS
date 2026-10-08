@@ -1,0 +1,102 @@
+{
+  "sprites": [
+    {
+      "key": "crusader",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.93
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/crusader_1.webp"
+    },
+    {
+      "key": "shadow",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.794
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/shadow_1.webp"
+    },
+    {
+      "key": "shadow",
+      "rank": 2,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.909
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/shadow_2.webp"
+    },
+    {
+      "key": "shadow",
+      "rank": 3,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.898
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/shadow_3.webp"
+    },
+    {
+      "key": "shadow",
+      "rank": 4,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.805
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/shadow_4.webp"
+    },
+    {
+      "key": "shadow",
+      "rank": 5,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        32.035
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/shadow_5.webp"
+    }
+  ],
+  "canvasCount": 30,
+  "browserErrors": []
+}

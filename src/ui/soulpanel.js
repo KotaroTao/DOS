@@ -253,7 +253,8 @@ function mainCard(d, pe, town) {
 }
 
 // 残火でLv上限を上げる前の確認 (残火は貴重なので、押し間違いで捧げないように)
-function confirmRaiseCap(pe) {
+// onDone = 上げた後 (魂を強化のシートを描き直す)
+function confirmRaiseCap(pe, onDone = null) {
   const G = G_();
   const have = G.embers || 0;
   const need = emberCostOf(pe.clsKey);
@@ -266,7 +267,7 @@ function confirmRaiseCap(pe) {
     title: `残火を${need}つ捧げ、${soulLabel(pe)}のLv上限を上げますか？`,
     lines: [`Lv上限 ${cap} → ${cap + 1}`, `残火 ${have} → ${have - need}`, "要る残火は職業のレア度で変わる (コモン1・レア2・エピック3・レジェンド5)。", "捧げた残火は戻らない。"],
     okLabel: "捧げる",
-  }).then((y) => { if (y) game.raiseSoulCap(pe.uid); });
+  }).then((y) => { if (y && game.raiseSoulCap(pe.uid) && onDone) onDone(); });
 }
 
 // 同じ魂が余っている → 魂融合 (付け替えの隣のボタン)
@@ -785,6 +786,7 @@ export function openSoulDetail(uid, onChange = null) {
     const items = [];
     items.push({ label: "宿す", sub: "パーティのメイン・サブに", kind: "primary", onTap: () => openHostSheet(uid, again) });
     if (s.level < soulLevelCapOf(s)) items.push({ label: "魂を強化", sub: `Lv${s.level} → ${s.level + 1}`, kind: "secondary", onTap: () => openTrainSheet(uid, again) });
+    else if ((G.embers || 0) > 0) items.push({ label: "魂を強化", sub: "残火でLv上限を上げる", kind: "secondary", onTap: () => openTrainSheet(uid, again) });
     if (game.featureUnlocked?.("fusion")) {
       const rep = game.soulRepresentatives().find((x) => x.clsKey === s.clsKey);
       const n = rep && game.fuseCandidates ? game.fuseCandidates(rep.uid).length : 0;
@@ -908,6 +910,11 @@ export function openTrainSheet(uid, onChange = null) {
     const plan = trainPlan(e);
     if (e.level < cap && (G.soulPts || 0) < plan.next) scroll.appendChild(el("div", "sp-short", `✦があと ${plan.next - (G.soulPts || 0)} 足りない ― 迷宮で敵を倒すと得られる`));
     else scroll.appendChild(el("div", "sp-note", `所持 ✦${G.soulPts || 0}`));
+    // 魂の残火でLv上限を上げる (上限に届いた魂を伸ばし続ける手段)
+    if ((G.embers || 0) > 0 || e.level >= cap) {
+      const need = emberCostOf(e.clsKey);
+      scroll.appendChild(el("div", "sp-note", `魂の残火 ${G.embers || 0} ・ Lv上限 +1 に ${need}つ${e.capBonus ? `（残火で +${e.capBonus} 済）` : ""}`));
+    }
   };
   const footer = () => {
     const e = soulByUid(uid);
@@ -919,6 +926,12 @@ export function openTrainSheet(uid, onChange = null) {
         disabled: (G.soulPts || 0) < plan.next, onTap: (h) => doTrain(h, 1) });
       if (plan.n >= 2) items.push({ label: plan.to >= cap ? "上限まで" : "まとめて", sub: `→ Lv${plan.to}`, kind: "secondary",
         cost: { kind: "soul", n: plan.cost }, onTap: (h) => doTrain(h, Infinity) });
+    }
+    if (e && ((G.embers || 0) > 0 || e.level >= cap)) {
+      const need = emberCostOf(e.clsKey);
+      items.push({ label: "Lv上限を上げる", sub: `Lv上限 ${cap} → ${cap + 1}`, kind: e.level >= cap ? "primary" : "secondary",
+        cost: { kind: "ember", n: need }, disabled: (G.embers || 0) < need,
+        onTap: (h) => confirmRaiseCap(e, () => { h.update({ footer: footer() }); if (onChange) onChange(); }) });
     }
     items.push({ label: "閉じる", kind: "ghost", onTap: (h) => h.close() });
     return items;

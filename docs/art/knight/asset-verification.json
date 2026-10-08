@@ -1,0 +1,187 @@
+[
+  {
+    "rank": 1,
+    "images": [
+      {
+        "path": "docs/art/knight/knight-r1-final.png",
+        "size": [
+          1103,
+          1426
+        ],
+        "visibleBBox": [
+          77,
+          114,
+          1005,
+          1356
+        ],
+        "components": [],
+        "transparentPixels": 997528
+      },
+      {
+        "path": "art/jobs/knight_1.webp",
+        "size": [
+          360,
+          368
+        ],
+        "visibleBBox": [
+          48,
+          28,
+          299,
+          366
+        ],
+        "components": [
+          39466
+        ],
+        "transparentPixels": 91619
+      }
+    ]
+  },
+  {
+    "rank": 2,
+    "images": [
+      {
+        "path": "docs/art/knight/knight-r2-final.png",
+        "size": [
+          1103,
+          1426
+        ],
+        "visibleBBox": [
+          63,
+          109,
+          1019,
+          1361
+        ],
+        "components": [],
+        "transparentPixels": 962537
+      },
+      {
+        "path": "art/jobs/knight_2.webp",
+        "size": [
+          360,
+          368
+        ],
+        "visibleBBox": [
+          45,
+          28,
+          303,
+          366
+        ],
+        "components": [
+          41405
+        ],
+        "transparentPixels": 88836
+      }
+    ]
+  },
+  {
+    "rank": 3,
+    "images": [
+      {
+        "path": "docs/art/knight/knight-r3-final.png",
+        "size": [
+          1103,
+          1426
+        ],
+        "visibleBBox": [
+          44,
+          114,
+          1050,
+          1369
+        ],
+        "components": [],
+        "transparentPixels": 938219
+      },
+      {
+        "path": "art/jobs/knight_3.webp",
+        "size": [
+          360,
+          368
+        ],
+        "visibleBBox": [
+          40,
+          28,
+          310,
+          366
+        ],
+        "components": [
+          43536
+        ],
+        "transparentPixels": 87011
+      }
+    ]
+  },
+  {
+    "rank": 4,
+    "images": [
+      {
+        "path": "docs/art/knight/knight-r4-final.png",
+        "size": [
+          1103,
+          1426
+        ],
+        "visibleBBox": [
+          34,
+          102,
+          1089,
+          1363
+        ],
+        "components": [],
+        "transparentPixels": 858539
+      },
+      {
+        "path": "art/jobs/knight_4.webp",
+        "size": [
+          360,
+          368
+        ],
+        "visibleBBox": [
+          38,
+          29,
+          320,
+          366
+        ],
+        "components": [
+          47969
+        ],
+        "transparentPixels": 82764
+      }
+    ]
+  },
+  {
+    "rank": 5,
+    "images": [
+      {
+        "path": "docs/art/knight/knight-r5-final.png",
+        "size": [
+          1103,
+          1426
+        ],
+        "visibleBBox": [
+          16,
+          111,
+          1080,
+          1363
+        ],
+        "components": [],
+        "transparentPixels": 829271
+      },
+      {
+        "path": "art/jobs/knight_5.webp",
+        "size": [
+          360,
+          368
+        ],
+        "visibleBBox": [
+          44,
+          29,
+          331,
+          366
+        ],
+        "components": [
+          52000
+        ],
+        "transparentPixels": 79281
+      }
+    ]
+  }
+]

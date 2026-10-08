@@ -504,7 +504,7 @@ export function renderHub(root, api) {
   mid.appendChild(fac);
   const guides = el("div", "jr-shortcuts");
   guides.append(button({ label:"ヘルプ", kind:"secondary", onTap:()=>UI.openHelp?.() }),
-    button({ label:"ストーリー", kind:"secondary", onTap:()=>UI.openStoryArchive?.() }));
+    UI.storyButton ? UI.storyButton() : button({ label:"ストーリー", kind:"secondary", onTap:()=>UI.openStoryArchive?.() }));
   mid.appendChild(guides);
   wrap.appendChild(mid);
   // 隊

@@ -1,0 +1,102 @@
+{
+  "sprites": [
+    {
+      "key": "crusader",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.93
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8002/art/jobs/crusader_1.webp"
+    },
+    {
+      "key": "battlemage",
+      "rank": 1,
+      "face": [
+        48,
+        20
+      ],
+      "head": [
+        48,
+        10,
+        30.851
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8002/art/jobs/battlemage_1.webp"
+    },
+    {
+      "key": "battlemage",
+      "rank": 2,
+      "face": [
+        48,
+        20
+      ],
+      "head": [
+        48,
+        10,
+        30.5
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8002/art/jobs/battlemage_2.webp"
+    },
+    {
+      "key": "battlemage",
+      "rank": 3,
+      "face": [
+        48,
+        20
+      ],
+      "head": [
+        48,
+        10,
+        30.279
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8002/art/jobs/battlemage_3.webp"
+    },
+    {
+      "key": "battlemage",
+      "rank": 4,
+      "face": [
+        48,
+        20
+      ],
+      "head": [
+        48,
+        10,
+        30.092
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8002/art/jobs/battlemage_4.webp"
+    },
+    {
+      "key": "battlemage",
+      "rank": 5,
+      "face": [
+        48,
+        20
+      ],
+      "head": [
+        48,
+        10,
+        30.034
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8002/art/jobs/battlemage_5.webp"
+    }
+  ],
+  "canvasCount": 30,
+  "browserErrors": []
+}
