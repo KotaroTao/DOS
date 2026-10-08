@@ -452,7 +452,7 @@ function partyStrip() {
       c.appendChild(el("span", "hb-pc-rv", "要修復"));
     }
     c.setAttribute("aria-label", `${d.name} ${d.cls || ""} ${d.alive ? `HP ${d.hp}/${d.maxhp}` : "砕けている"}`);
-    c.addEventListener("click", () => { sfx("select"); if (UI.openParty) UI.openParty(i); });
+    c.addEventListener("click", () => { sfx("select"); if (UI.openParty) UI.openParty(i, { seg: "equip" }); }); // 顔のアイコン → その人業の「装備」
     row.appendChild(c);
   });
   box.appendChild(row);

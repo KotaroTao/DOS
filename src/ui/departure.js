@@ -330,7 +330,7 @@ function renderReady(b) {
   lab.appendChild(el("span", "dp-party-n", `${g.party.length}/6`));
   strip.appendChild(lab);
   g.party.forEach((d, i) => {
-    const p = portrait(d, { size: 48, hp: true, row: i < 3 ? "前" : "後", onTap: () => { close(); setTimeout(() => UI.openParty && UI.openParty(i), 0); } });
+    const p = portrait(d, { size: 48, hp: true, row: i < 3 ? "前" : "後", onTap: () => { close(); setTimeout(() => UI.openParty && UI.openParty(i, { seg: "equip" }), 0); } });
     strip.appendChild(p);
   });
   const swap = el("button", "dp-swap");

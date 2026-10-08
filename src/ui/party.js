@@ -775,14 +775,14 @@ function onEnterMansion() {
   noteVisit();
   curLine = isGreeted() ? nextLine({ entry: true }) : null;
 }
-// 館は前回の位置を覚えない: 入るたびに一番左 (隊の先頭) の人業の「装備」から
+// 館は前回の位置を覚えない: 入るたびに一番左 (隊の先頭) の人業の「魂」から (ユーザーの指示、2026-10)
 function resetView() {
   const G = G_();
   selDoll = (G && G.party && G.party[0]) || allDolls()[0] || null;
   picked = null;
   statOpen = null;
   setPref("partyIdx", 0);
-  remember("seg", "party", "equip");
+  remember("seg", "party", "soul");
 }
 function scheduleGreeting() {
   if (greetTimer) return;
@@ -997,7 +997,7 @@ function stripPortrait(d, i, mode) {
   wrap.appendChild(p);
   wrap.appendChild(el("span", "pt-slotp-n", d.name));
   if (mode === "town") attachDrag(p, d, i);
-  else p.addEventListener("click", () => { sfx("select"); select(d); rerender(); });
+  else p.addEventListener("click", () => { sfx("select"); select(d); setSeg("equip"); rerender(); });
   return wrap;
 }
 function emptySlot(i) {
@@ -1100,6 +1100,7 @@ function attachDrag(node, d, i) {
     if (picked === d) { picked = null; rerender(); return; }
     sfx("select");
     select(d);
+    setSeg("equip"); // 顔のアイコンを押したら、その人業の「装備」を見せる (ユーザーの指示、2026-10)
     rerender();
   });
 }
