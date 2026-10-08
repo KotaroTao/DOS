@@ -12317,7 +12317,7 @@ function codexMonEntry(key) {
 function codexKillNow(e) {
   if (!e || e._codexKill || String(e.key || "").startsWith("ev_")) return;
   e._codexKill = true;
-  recordMonsterKill(e.key, abyssActive() ? null : G.dungeonIdx);
+  recordMonsterKill(e.key, abyssActive() ? null : G.dungeonIdx, G.floor);
 }
 setOnEnemyKilled(codexKillNow);
 // 敵の属性が明かされているか: 図鑑で属性の項目が解放済み (enemyReveal の stats = 5体討伐・主は1体) か、
@@ -12325,11 +12325,19 @@ setOnEnemyKilled(codexKillNow);
 function enemyElemKnown(e) { return !!e && (enemyReveal(e).stats || partyPassiveLv("scan") > 0); }
 setElemKnown(enemyElemKnown);
 setResistKnown(e => !!e && enemyReveal(e).lore);
-function recordMonsterKill(key, dungeonIdx) {
+// floors = { 迷宮idx: [討伐した最浅の階, 最深の階] } (後付け)。図鑑の「出現した迷宮」で、台帳の出現表に
+// 載らない魔物 (呼び出された手下など) の出現階を示すのに使う
+function recordMonsterKill(key, dungeonIdx, floor) {
   if (!key) return;
   const e = codexMonEntry(key);
   e.kills++;
-  if (dungeonIdx != null) e.dungeons[dungeonIdx] = true;
+  if (dungeonIdx == null) return;
+  e.dungeons[dungeonIdx] = true;
+  if (floor > 0) {
+    if (!e.floors) e.floors = {};
+    const r = e.floors[dungeonIdx];
+    e.floors[dungeonIdx] = r ? [Math.min(r[0], floor), Math.max(r[1], floor)] : [floor, floor];
+  }
 }
 // 勝利時の汎用戦利品抽選 (固有ドロップ廃止に伴う置換)。通常30% / レア4%。
 // 中身は迷宮の lootLv 帯から引く (レアは一段深い帯)。実物は勝利後の宝箱から取り出す。
