@@ -26,4 +26,4 @@ R5は初案の頭が小さく見えたため頭部の比率を修正し、初案
 確認はローカルサーバー起動後 `python3 tools/review-job-art.py asura --label 修羅 --require-photos --output docs/art/asura/final-review`。
 画像検査は `python3 docs/art/asura/verify-assets.py`。
 
-mainへのマージは未実施。
+mainへの反映はユーザーの指示に基づきPR経由で行う。
