@@ -1,0 +1,96 @@
+{
+  "job": "darkknight",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "sources": [
+    {
+      "source": "docs/art/darkknight/darkknight-r1-final.png",
+      "perDot": 13.272727272727273,
+      "head": [
+        430,
+        624,
+        225,
+        488
+      ],
+      "sole": 1320,
+      "alphaBBox": [
+        60,
+        18,
+        1061,
+        1426
+      ]
+    },
+    {
+      "source": "docs/art/darkknight/darkknight-r2-final.png",
+      "perDot": 13.345454545454546,
+      "head": [
+        419,
+        615,
+        224,
+        487
+      ],
+      "sole": 1325,
+      "alphaBBox": [
+        17,
+        31,
+        1100,
+        1426
+      ]
+    },
+    {
+      "source": "docs/art/darkknight/darkknight-r3-final.png",
+      "perDot": 13.357575757575757,
+      "head": [
+        425,
+        619,
+        224,
+        486
+      ],
+      "sole": 1326,
+      "alphaBBox": [
+        33,
+        21,
+        1095,
+        1426
+      ]
+    },
+    {
+      "source": "docs/art/darkknight/darkknight-r4-final.png",
+      "perDot": 13.393939393939394,
+      "head": [
+        418,
+        614,
+        220,
+        487
+      ],
+      "sole": 1325,
+      "alphaBBox": [
+        44,
+        37,
+        1091,
+        1426
+      ]
+    },
+    {
+      "source": "docs/art/darkknight/darkknight-r5-final.png",
+      "perDot": 13.296969696969697,
+      "head": [
+        429,
+        623,
+        228,
+        491
+      ],
+      "sole": 1325,
+      "alphaBBox": [
+        0,
+        19,
+        1077,
+        1426
+      ]
+    }
+  ]
+}
