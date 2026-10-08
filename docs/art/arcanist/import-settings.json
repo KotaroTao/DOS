@@ -1,0 +1,72 @@
+{
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "approvedR1": "docs/art/arcanist/arcanist-r1-review.png",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "measurementNotes": "頭頂は主な髪の不透明な上端、顎は顔の肌の下端（首を含めない）、頬はy430の左右輪郭、足裏はブーツの不透明な下端。ユーザー確認済みR1の輪郭を全ランクで維持。 縮小時の輪郭の補間余白として6原画pxを含め、透明枠で欠けない倍率を採用。",
+  "sources": [
+    {
+      "source": "docs/art/arcanist/arcanist-r1-final.png",
+      "perDot": 13.920386007237635,
+      "head": [
+        497,
+        606,
+        177,
+        474
+      ],
+      "sole": 1325,
+      "headHeightDots": 21.335615251299828
+    },
+    {
+      "source": "docs/art/arcanist/arcanist-r2-final.png",
+      "perDot": 13.980699638118214,
+      "head": [
+        497,
+        607,
+        176,
+        474
+      ],
+      "sole": 1329,
+      "headHeightDots": 21.315099223468508
+    },
+    {
+      "source": "docs/art/arcanist/arcanist-r3-final.png",
+      "perDot": 14.028950542822678,
+      "head": [
+        497,
+        608,
+        174,
+        474
+      ],
+      "sole": 1331,
+      "headHeightDots": 21.38435081685297
+    },
+    {
+      "source": "docs/art/arcanist/arcanist-r4-final.png",
+      "perDot": 13.920386007237635,
+      "head": [
+        497,
+        610,
+        178,
+        475
+      ],
+      "sole": 1326,
+      "headHeightDots": 21.335615251299828
+    },
+    {
+      "source": "docs/art/arcanist/arcanist-r5-final.png",
+      "perDot": 13.93244873341375,
+      "head": [
+        498,
+        611,
+        178,
+        475
+      ],
+      "sole": 1327,
+      "headHeightDots": 21.31714285714286
+    }
+  ]
+}

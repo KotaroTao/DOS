@@ -34,11 +34,11 @@ export const JOB_PHOTOS = {
     5: { src: "art/jobs/warden_5.webp", w: 90, h: 88, face: [44, 16], head: [44.2, 10.09, 22.77] },
   },
   arcanist: {
-    1: { src: "art/jobs/arcanist_1.webp", w: 52, h: 85, face: [26, 13], head: [25.86, 0.5, 25.29] },
-    2: { src: "art/jobs/arcanist_2.webp", w: 57, h: 85, face: [28, 13], head: [28.04, 0.43, 25.36] },
-    3: { src: "art/jobs/arcanist_3.webp", w: 62, h: 84, face: [31, 12], head: [31.43, 0.29, 24.36] },
-    4: { src: "art/jobs/arcanist_4.webp", w: 71, h: 87, face: [32, 14], head: [31.68, 2.07, 25.86] },
-    5: { src: "art/jobs/arcanist_5.webp", w: 79, h: 86, face: [36, 12], head: [35.96, 1.93, 22.79] },
+    1: { src: "art/jobs/arcanist_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.335] },
+    2: { src: "art/jobs/arcanist_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.315] },
+    3: { src: "art/jobs/arcanist_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.384] },
+    4: { src: "art/jobs/arcanist_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.335] },
+    5: { src: "art/jobs/arcanist_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.317] },
   },
   inquisitor: {
     1: { src: "art/jobs/inquisitor_1.webp", w: 47, h: 80, face: [22, 13], head: [21.93, 1.64, 24.5] },
