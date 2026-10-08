@@ -529,6 +529,14 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
 .pt-chc-n { font-size: 12.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pt-chc-d { display: flex; flex-direction: column; gap: 0; font-size: 10.5px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.3; }
 .pt-chc-d .up { color: var(--up); } .pt-chc-d .dn { color: var(--down); } .pt-chc-d .eq { color: var(--ink-faint); font-weight: 500; }
+/* いまの装備 (外れる品) と特殊効果の増減 (失う効果は送らずに常に見せる) */
+.pt-chc-cur { display: flex; align-items: baseline; gap: 3px; min-width: 0; font-size: 10px; line-height: 1.3; overflow: hidden; white-space: nowrap; }
+.pt-chc-cur-lab { flex: 0 0 auto; color: #8f8372; }
+.pt-chc-cur-none { color: var(--ink-faint); }
+.pt-chc-cur-n { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-shadow: none; }
+.pt-chc-fx { display: flex; flex-wrap: wrap; gap: 0 5px; font-size: 10.5px; font-weight: 800; line-height: 1.3; }
+.pt-chc-fx > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt-chc-fx .up, .pt-chl-fx .up { color: var(--up); } .pt-chc-fx .dn, .pt-chl-fx .dn { color: var(--down); }
 /* 変化が2行を超える札: 頁を重ねて同じ高さのまま送る (右下の点 = いまの頁) */
 .pt-chc-pg { display: flex; flex-direction: column; }
 .pt-chc-d.multi { display: grid; }
@@ -556,6 +564,17 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
 .pt-chl-best { padding: 0 5px; font-size: 9.5px; font-weight: 800; letter-spacing: 0.1em; line-height: 14px; border-radius: 2px; color: #1a0e04; background: linear-gradient(180deg, #f3d58b, #c9a24a); }
 .pt-chl-d { display: flex; flex-wrap: wrap; gap: 1px 10px; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.35; }
 .pt-chl-d .up { color: var(--up); } .pt-chl-d .dn { color: var(--down); } .pt-chl-d .eq { color: var(--ink-faint); font-weight: 500; }
+.pt-chl-new { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; padding: 6px 8px; font-size: 12px; background: #120e11; border: 1px solid #4a3d36; border-radius: 3px; }
+.pt-chl-new-lab, .pt-chl-cur-l-lab, .pt-chl-fx-lab { flex: 0 0 auto; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; color: #8f8372; }
+.pt-chl-new-n { font-weight: 700; }
+.pt-chl-new-fx { flex: 1 1 100%; font-size: 11px; color: #e6c98b; }
+.pt-chl-cur { display: flex; flex-direction: column; gap: 1px; }
+.pt-chl-cur-l { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; font-size: 11px; line-height: 1.4; }
+.pt-chl-cur-l-n { font-weight: 700; }
+.pt-chl-cur-l-none { color: var(--ink-faint); }
+.pt-chl-cur-fx { font-size: 10.5px; color: #e6c98b; }
+.pt-chl-cur-fx.none { color: var(--ink-faint); }
+.pt-chl-fx { display: flex; flex-wrap: wrap; align-items: baseline; gap: 1px 8px; font-size: 11px; font-weight: 800; line-height: 1.35; }
 .pt-chc-why { font-size: 11px; font-weight: 700; color: #e6a96b; }
 .pt-chc.ng { opacity: 0.55; filter: grayscale(0.7); }
 .pt-chc.best { border-color: #c9a24a; box-shadow: 0 0 0 1px rgba(243,213,139,0.45), 0 0 14px rgba(243,213,139,0.25), var(--plate-edge); }

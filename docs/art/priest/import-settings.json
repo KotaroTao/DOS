@@ -1,0 +1,108 @@
+{
+  "job": "priest",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "anatomySource": "docs/art/priest/priest-r1-final.png",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "crownNote": "主な髪の頭頂は頭巾の下の推定位置。帽子や金飾りの上端とは区別する。",
+  "sources": [
+    {
+      "source": "docs/art/priest/priest-r1-final.png",
+      "perDot": 14.28743961352657,
+      "head": [
+        524,
+        654,
+        166,
+        480
+      ],
+      "sole": 1346,
+      "alphaBBox": [
+        133,
+        129,
+        973,
+        1349
+      ],
+      "crownToSole": 82.59002535925612,
+      "headHeight": 21.977345731191885
+    },
+    {
+      "source": "docs/art/priest/priest-r2-final.png",
+      "perDot": 14.480676328502415,
+      "head": [
+        532,
+        656,
+        148,
+        464
+      ],
+      "sole": 1343,
+      "alphaBBox": [
+        128,
+        113,
+        1000,
+        1347
+      ],
+      "crownToSole": 82.52376980817348,
+      "headHeight": 21.822185154295248
+    },
+    {
+      "source": "docs/art/priest/priest-r3-final.png",
+      "perDot": 14.31159420289855,
+      "head": [
+        524,
+        654,
+        166,
+        480
+      ],
+      "sole": 1347,
+      "alphaBBox": [
+        131,
+        116,
+        1080,
+        1351
+      ],
+      "crownToSole": 82.52050632911393,
+      "headHeight": 21.94025316455696
+    },
+    {
+      "source": "docs/art/priest/priest-r4-final.png",
+      "perDot": 14.553140096618359,
+      "head": [
+        488,
+        618,
+        148,
+        466
+      ],
+      "sole": 1349,
+      "alphaBBox": [
+        77,
+        81,
+        1061,
+        1353
+      ],
+      "crownToSole": 82.52514522821576,
+      "headHeight": 21.850954356846472
+    },
+    {
+      "source": "docs/art/priest/priest-r5-final.png",
+      "perDot": 14.444444444444445,
+      "head": [
+        520,
+        650,
+        166,
+        480
+      ],
+      "sole": 1359,
+      "alphaBBox": [
+        111,
+        67,
+        1096,
+        1362
+      ],
+      "crownToSole": 82.59230769230768,
+      "headHeight": 21.73846153846154
+    }
+  ]
+}

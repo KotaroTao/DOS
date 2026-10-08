@@ -1,0 +1,104 @@
+{
+  "job": "knight",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "anatomySource": "docs/art/knight/knight-r1-final.png",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "crownNote": "跳ね髪の最上端を頭頂にせず、上部の房の先と主な髪の塊への付け根の中間を目視測定。頬は耳を含めない。",
+  "sources": [
+    {
+      "source": "docs/art/knight/knight-r1-final.png",
+      "head": [
+        497,
+        631,
+        140,
+        464
+      ],
+      "perDot": 14.787878787878787,
+      "alphaBBox": [
+        75,
+        112,
+        1007,
+        1360
+      ],
+      "headHeight": 21.90983606557377,
+      "crownToSole": 82.5
+    },
+    {
+      "source": "docs/art/knight/knight-r2-final.png",
+      "head": [
+        497,
+        633,
+        137,
+        462
+      ],
+      "perDot": 14.860606060606061,
+      "alphaBBox": [
+        60,
+        107,
+        1022,
+        1363
+      ],
+      "headHeight": 21.869902120717782,
+      "crownToSole": 82.5
+    },
+    {
+      "source": "docs/art/knight/knight-r3-final.png",
+      "head": [
+        498,
+        631,
+        140,
+        464
+      ],
+      "perDot": 14.933333333333334,
+      "alphaBBox": [
+        42,
+        112,
+        1053,
+        1372
+      ],
+      "headHeight": 21.69642857142857,
+      "crownToSole": 82.5
+    },
+    {
+      "source": "docs/art/knight/knight-r4-final.png",
+      "head": [
+        496,
+        637,
+        126,
+        453
+      ],
+      "perDot": 15.018181818181818,
+      "alphaBBox": [
+        30,
+        99,
+        1091,
+        1365
+      ],
+      "headHeight": 21.77360774818402,
+      "crownToSole": 82.5
+    },
+    {
+      "source": "docs/art/knight/knight-r5-final.png",
+      "head": [
+        453,
+        587,
+        134,
+        458
+      ],
+      "perDot": 14.921212121212122,
+      "alphaBBox": [
+        14,
+        109,
+        1084,
+        1365
+      ],
+      "headHeight": 21.714053614947197,
+      "crownToSole": 82.5
+    }
+  ],
+  "marginNote": "足裏の縮小時の半透明な輪郭が最下行に接触しないよう、頭頂から原画の下端まで82.5ドット（基準約82.9）に配置。人物の約0.5%の倍率差を同倍率比較で確認。"
+}

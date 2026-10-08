@@ -1,0 +1,102 @@
+{
+  "sprites": [
+    {
+      "key": "crusader",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.93
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/crusader_1.webp"
+    },
+    {
+      "key": "priest",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.977
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/priest_1.webp"
+    },
+    {
+      "key": "priest",
+      "rank": 2,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.822
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/priest_2.webp"
+    },
+    {
+      "key": "priest",
+      "rank": 3,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.94
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/priest_3.webp"
+    },
+    {
+      "key": "priest",
+      "rank": 4,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.851
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/priest_4.webp"
+    },
+    {
+      "key": "priest",
+      "rank": 5,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.738
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/priest_5.webp"
+    }
+  ],
+  "canvasCount": 30,
+  "browserErrors": []
+}

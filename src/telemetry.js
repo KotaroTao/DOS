@@ -197,7 +197,10 @@ export function tlGain(where, kind, n, src, up) {
   d[kind] = (d[kind] || 0) + Math.round(n);
   const pre = kind === "soul" ? "s" : "g";
   addTo(d, pre + "s", src || "x", n);
-  if (up) for (const k in up) if (up[k] > 0) addTo(d, pre + "x", k, up[k]);
+  if (up) for (const k in up) {
+    if (up[k] > 0) addTo(d, pre + "x", k, up[k]);
+    else if (up[k] < 0) addTo(d, pre + "d", k, -up[k]); // 減った分 (lvd = Lv差) → 欄 sd
+  }
   persist();
 }
 // 町で得たゴールド / ✦Soul (依頼の報告・王への報告・勲章・売却…)。町の時間と同じく、次に入る迷宮の欄 (tsoul / tgold) へ持ち越す
@@ -400,20 +403,21 @@ const mins = (ms) => `${Math.round((ms || 0) / 60000)}分`;
 const SRC_LABEL = {
   bn: "通常戦", be: "精鋭等", bb: "主", mt: "金属", ev: "出来事", cp: "死体", ch: "宝箱", hd: "殲滅", x: "他",
   q: "依頼", qk: "依頼(討伐)", qs: "依頼(魂)", qc: "依頼(宝箱)", qf: "依頼(到達)", qd: "依頼(納品)", tip: "心付け", bond: "なじみ", fq: "頼み", r: "王の報告", a: "勲章", t: "宝物庫", sell: "売却",
-  psv: "パッシブ", sf: "特別階", mut: "異変", trait: "掟", oth: "出来事等", eq: "装備",
+  psv: "パッシブ", sf: "特別階", mut: "異変", trait: "掟", oth: "出来事等", eq: "装備", lvd: "Lv差",
 };
 const srcText = (b) => (b ? Object.keys(b).sort((x, y) => b[y] - b[x]).map((k) => `${SRC_LABEL[k] || k}${b[k]}`).join(" ") : "");
 // ✦・金貨の出どころの行 (出どころを数え始める前の器には無いので、何も無ければ出さない)
 function gainLines(d) {
   const out = [];
-  const one = (label, src, up, town) => {
+  const one = (label, src, up, town, down) => {
     const bits = [];
     if (src) bits.push(srcText(src));
     if (up) bits.push(`(うち上乗せ ${srcText(up)})`);
+    if (down) bits.push(`(減った分 ${srcText(down)})`);
     if (town) bits.push(`/ 町 ${srcText(town)}`);
     if (bits.length) out.push(`${label} ${bits.join(" ")}`);
   };
-  one("✦の出どころ", d.ss, d.sx, d.tsoul);
+  one("✦の出どころ", d.ss, d.sx, d.tsoul, d.sd);
   one("金貨の出どころ", d.gs, d.gx, d.tgold);
   return out;
 }

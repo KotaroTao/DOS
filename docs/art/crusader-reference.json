@@ -1,0 +1,58 @@
+{
+  "job": "crusader",
+  "name": "聖戦士",
+  "primarySource": "docs/art/crusader/crusader-r1-final.png",
+  "rankSources": [
+    "docs/art/crusader/crusader-r1-final.png",
+    "docs/art/crusader/crusader-r2-final.png",
+    "docs/art/crusader/crusader-r3-final.png",
+    "docs/art/crusader/crusader-r4-final.png",
+    "docs/art/crusader/crusader-r5-final.png"
+  ],
+  "gameImages": [
+    "art/jobs/crusader_1.webp",
+    "art/jobs/crusader_2.webp",
+    "art/jobs/crusader_3.webp",
+    "art/jobs/crusader_4.webp",
+    "art/jobs/crusader_5.webp"
+  ],
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "face": [
+    45,
+    20
+  ],
+  "headR1": [
+    45,
+    9,
+    30.93
+  ],
+  "crownToSoleApprox": 82.9,
+  "headHeightR1": 21.93,
+  "headBodyRatioApprox": 3.780209758321934,
+  "storedPixelsPerDot": 4,
+  "sourceR1": {
+    "source": "docs/art/crusader/crusader-r1-final.png",
+    "perDot": 14.318455971049456,
+    "head": [
+      475,
+      603,
+      148,
+      462
+    ],
+    "alphaBBox": [
+      54,
+      113,
+      989,
+      1335
+    ]
+  },
+  "notes": [
+    "原画の座標・perDotは別の職業にコピーせず測定する。",
+    "1ドット4保存画素は描かれたドット粒度とは別。",
+    "共通表示枠の値は動的。更新後にjobSpriteの実値を確認する。"
+  ]
+}
