@@ -11009,7 +11009,7 @@ function tavernHintAllowed(req) {
   if (req === "sub") return unlockedSubSlots() > 0;     // 宿し技
   if (req === "metal") return DUNGEONS.some((d) => d.layer >= 3 && worldOpenId(d.id)); // 金属の魔物 (第3層の景色の迷宮から出る)
   if (req === "fort") return DUNGEONS.some((d) => d.layer >= 4 && worldOpenId(d.id));  // 捨て砦 (第4層の迷宮が地図に現れた後)
-  if (req === "roots") return worldOpenId("w10");                                   // 管の根 (大穴の下の縦穴が地図に現れた後)
+  if (req === "roots") return worldOpenId("w10");                                   // 魂脈の根 (大穴の下の縦穴が地図に現れた後)
   return featureUnlocked(req);                           // fusion / rumor
 }
 // 酒場の顔ぶれを選び直す (ダンジョン帰還時・初回入店時に呼ぶ)
