@@ -1,0 +1,102 @@
+{
+  "sprites": [
+    {
+      "key": "necromancer",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48.07,
+        10,
+        32.125
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/necromancer_1.webp"
+    },
+    {
+      "key": "crusader",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.93
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/crusader_1.webp"
+    },
+    {
+      "key": "crusader",
+      "rank": 2,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.893
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/crusader_2.webp"
+    },
+    {
+      "key": "crusader",
+      "rank": 3,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.918
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/crusader_3.webp"
+    },
+    {
+      "key": "crusader",
+      "rank": 4,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.912
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/crusader_4.webp"
+    },
+    {
+      "key": "crusader",
+      "rank": 5,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.94
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8000/art/jobs/crusader_5.webp"
+    }
+  ],
+  "canvasCount": 30,
+  "browserErrors": []
+}

@@ -155,7 +155,7 @@ def bust_crop(e):
 CLIP_HALF_W, CLIP_H, CLIP_FADE = 45, 88, 5
 
 
-def build(job, paths, per_dots, heads, preview, frame=None):
+def build(job, paths, per_dots, heads, preview, frame=None, frame_top=None):
     out_dir = os.path.join(ROOT, "art", "jobs")
     os.makedirs(out_dir, exist_ok=True)
     entries = {}
@@ -173,7 +173,8 @@ def build(job, paths, per_dots, heads, preview, frame=None):
         cxs = (l + r_) / 2
         cx0, cx1 = max(x0, int(cxs - CLIP_HALF_W * per_dot)), min(x1, int(np.ceil(cxs + CLIP_HALF_W * per_dot)))
         cy1 = min(y1, int(sole + 2 * per_dot)) if sole else y1
-        cy0 = max(y0, int(cy1 - CLIP_H * per_dot))
+        clip_h = frame[1] if frame and frame_top is not None else CLIP_H
+        cy0 = max(y0, int(cy1 - clip_h * per_dot))
         clipped = (cx0 > x0, cx1 < x1, cy0 > y0, cy1 < y1)
         x0, x1, y0, y1 = cx0, cx1, cy0, cy1
         head_px = [cxs - x0, top - y0, chin - y0]  # 原画の座標 → 切り抜いた絵の座標の [中心x, 頭頂y, あご先y]
@@ -209,6 +210,9 @@ def build(job, paths, per_dots, heads, preview, frame=None):
             # ランク間で人物の倍率を変えず、顔の列と足元を共通の透明枠へ揃える。
             fw, fh = frame
             ox, oy = fw / 2 - head[0], fh - hd
+            if frame_top is not None:
+                # ポニーテールなど頭頂より上の飾りがあっても、人体の頭頂を共通位置へ合わせる。
+                oy = frame_top - head[1]
             bbox = canvas.getbbox()
             if bbox and (bbox[0] + ox * RES < 0 or bbox[2] + ox * RES > fw * RES
                          or bbox[1] + oy * RES < 0 or bbox[3] + oy * RES > fh * RES):
@@ -278,9 +282,13 @@ if __name__ == "__main__":
     ap.add_argument("--head", nargs="*", help="ランクごとの 顔の左x,右x,頭頂y,あご先y[,足裏y] (原画の画素座標)。足裏を付けると、その下の飾りを切る")
     ap.add_argument("--preview")
     ap.add_argument("--frame", help="共通の透明枠の幅,高さ (ドット単位)。人物は縮めず顔の列と足元を揃える")
+    ap.add_argument("--frame-top", type=float, help="共通枠で人体の頭頂を置く高さ (ドット単位)。--frame と --head が必要")
     o = ap.parse_args()
     heads = [list(map(float, f.split(","))) for f in o.head] if o.head else None
     frame = tuple(map(int, o.frame.split(","))) if o.frame else None
     if frame and (len(frame) != 2 or min(frame) <= 0):
         ap.error("--frame は正の幅,高さを指定してください")
-    build(o.job, o.images, [float(v) for v in o.per_dot.split(",")], heads, o.preview, frame)
+    if o.frame_top is not None and (not frame or not heads or not np.isfinite(o.frame_top)
+                                    or not 0 <= o.frame_top < frame[1] or len(heads) != len(o.images)):
+        ap.error("--frame-top は --frame と全画像の --head、枠内の有限な高さが必要です")
+    build(o.job, o.images, [float(v) for v in o.per_dot.split(",")], heads, o.preview, frame, o.frame_top)

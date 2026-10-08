@@ -13,10 +13,10 @@ with sync_playwright() as p:
  const {crispCanvas}=await import('/src/sprites.js');
  document.body.innerHTML='';
  document.head.innerHTML='<style>body{margin:0;padding:20px;background:#242228;color:#eee;font-family:sans-serif}h1{font-size:22px;margin:0 0 15px}main{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}section{background:#302d35;padding:8px;overflow:hidden}h2{font-size:16px}.full{height:380px;display:flex;align-items:end;justify-content:center;border-bottom:1px solid #555}.faces{display:flex;align-items:start;gap:14px;height:65px;margin-top:20px}.large{margin-top:15px}canvas{flex-shrink:0}p{font-size:13px}</style>';
- const h=document.createElement('h1');h.textContent='死霊術師基準・聖騎士 R1〜R5／同倍率の全身と顔アイコン';document.body.append(h);
+ const h=document.createElement('h1');h.textContent='死霊術師基準・聖戦士 R1〜R5／同倍率の全身と顔アイコン';document.body.append(h);
  const main=document.createElement('main');document.body.append(main);
  window.reviewSprites=[];
- for(const [key,r,label] of [['necromancer',1,'死霊術師 R1'],...[1,2,3,4,5].map(r=>['paladin',r,'聖騎士 R'+r])]) {
+ for(const [key,r,label] of [['necromancer',1,'死霊術師 R1'],...[1,2,3,4,5].map(r=>['crusader',r,'聖戦士 R'+r])]) {
   const spr=jobSprite(key,r),bust=jobBust(key,r);
   if(!spr.photo||!bust.photo)throw new Error('原画の選択失敗 '+key+r);
   window.reviewSprites.push({key,rank:r,face:spr.face,head:spr.head,w:spr.w,h:spr.h,src:spr.photo.img.src});
