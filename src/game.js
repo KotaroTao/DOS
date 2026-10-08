@@ -12918,7 +12918,7 @@ function enterDungeon(mutatorId, startFloor = 1) {
   // 今回の戦利品トラッキングを初期化 (帰還の報告は次の帰還で書き直す)
   G.run = newRun();
   G.run.startFloor = G.floor; // 潜り始めの階 (そこから降りずに何もせず戻ったら、帰還で酒場を貼り替えない)
-  tlRunBegin(tlWhere(), G.party, { mutator:G.mutator, loadout:G.party.map(p=>({ name:p.name, tactic:p.tactic, equip:p.equip, passives:p.passiveMap,
+  tlRunBegin(tlWhere(), G.party, { mutator:G.mutator, loadout:G.party.map(p=>({ name:p.name, tactic:p.tactic, equip:Object.fromEntries(Object.entries(p.equip || {}).map(([k, it])=>[k, it ? it.id : null])), passives:p.passiveMap,
     souls:[p.primary, ...(p.subs || []).map(x=>x.uid)].filter(x=>x!=null).map(uid=>{ const soul=soulByUid(uid); return soul ? { uid, clsKey:soul.clsKey, level:soul.level, count:soul.count } : { uid }; }) })) });
   G.lastRun = null;
   G._townMutator = null; G._departPre = false;

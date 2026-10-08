@@ -24,7 +24,7 @@ assert.equal(recoverStability(d,base+step*1000),92,'長いオフライン回復�
 const store=new Map();
 globalThis.localStorage={getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v)};
 const T=await import('../../src/telemetry.js');
-const data=()=>JSON.parse(T.tlExportText().split('\n').at(-1));
+const data=()=>T.tlRawData();
 const party=Array.from({length:3},(_,i)=>({uid:i+1,name:`検証${i+1}`,alive:true,stability:90}));
 T.tlSetOn(true);
 T.tlStabilityTick(party,7200000);
