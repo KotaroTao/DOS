@@ -12672,9 +12672,9 @@ function shopStockAdd(id) {
   if (!id) return;
   G.shopStock[id] = Math.min(SHOP_STOCK_MAX, (G.shopStock[id] || 0) + 1);
 }
-// 鑑定料と売値のレア度の倍率 (コモン0.5 / アンコモン0.75 / レア1 / スーパーレア1.5 / レジェンドレア4)。
+// 鑑定料と売値のレア度の倍率 (コモン・アンコモン・レア1 / スーパーレア1.5 / レジェンドレア4)。
 // レア度を持たない道具・収集品は1。値段 price は性能だけで決まる (pricing.js) ので、レア度の差はここで付ける
-const APPRAISE_MUL = { c: 0.5, uc: 0.75, r: 1, sr: 1.5, lr: 4 };
+const APPRAISE_MUL = { c: 1, uc: 1, r: 1, sr: 1.5, lr: 4 };
 const rarPriceMul = (it) => APPRAISE_MUL[rarityKey(it)] || 1;
 // 売値 = 鑑定料 = 値段の半分 × レア度の倍率。買値はその倍
 // (鑑定してすぐ売っても差し引き0。未鑑定の品は売れないので、鑑定の技・金貨の使い方が稼ぎを左右する)
