@@ -7304,12 +7304,13 @@ function startBattleMeasured(enemies, cell) {
   });
 }
 
-// 戦闘開始時の自動攻撃 (居合/開幕呪撃) を1つずつ斬撃エフェクトで見せる
+// 戦闘開始時の自動攻撃 (死の宣告/居合/開幕呪撃) を1つずつ演出で見せる
 function playOpeningStrikes(list, i, done) {
   if (i >= list.length) { done(); return; }
   const res = list[i];
   G.animating = true;
-  if (res.opening === "iai") showToast("⚡ 居合！");
+  if (res.opening === "senkoku") showToast(`☠ 死の宣告！ ${res.hits.length}体の魂を刈り取った`);
+  else if (res.opening === "iai") showToast("⚡ 居合！");
   else if (res.opening === "openSpell") showToast("✦ 開幕呪撃！");
   animateResult(res, () => playOpeningStrikes(list, i + 1, done));
 }
@@ -7387,7 +7388,9 @@ function renderCombatCanvas() {
       // 倒した敵: 撃破の演出 (drawEffects の崩れ落ち) が始まるまでは姿を残し、以後は描かない
       if (!e.alive && !fleeFx) {
         const d = fx && fx.deaths ? fx.deaths.find((x) => x.uid === e.uid) : null;
-        if (!fx || _deadShown.has(e) || (d && now >= d.t0)) { if (!fx || d) _deadShown.add(e); return; }
+        // 開幕 (死の宣告・居合・開幕呪撃) に倒れた敵は、開幕の演出で崩れ落ちるまで姿を残す
+        const pending = e._openDeath && !d && !_deadShown.has(e);
+        if (!pending && (!fx || _deadShown.has(e) || (d && now >= d.t0))) { if (!fx || d) _deadShown.add(e); return; }
       }
       let ox = 0, oy = 0, alpha = 1;
       if (fleeFx) {
@@ -8244,12 +8247,13 @@ function drawEffects(fx, now) {
   drawBattleFx(vctx, fx.skill, now, VW, VH, REDUCED_MOTION);
   // 画面の縁が紅く脈打つ (味方被弾)
   if (fx.screen) {
-    const t = (now - fx.screen.t0) / 300;
+    const t = (now - fx.screen.t0) / (fx.screen.dur || 300);
     if (t <= 1) {
       vctx.save();
       const g = vctx.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.25, VW / 2, VH / 2, Math.max(VW, VH) * 0.72);
-      g.addColorStop(0, "rgba(160,0,0,0)");
-      g.addColorStop(1, `rgba(170,8,4,${0.62 * (1 - t)})`);
+      const dark = fx.screen.color === "dark"; // 死の宣告: 紫黒の闇が縁から迫る
+      g.addColorStop(0, dark ? "rgba(20,0,30,0)" : "rgba(160,0,0,0)");
+      g.addColorStop(1, dark ? `rgba(24,0,40,${0.78 * (1 - t)})` : `rgba(170,8,4,${0.62 * (1 - t)})`);
       vctx.fillStyle = g;
       vctx.fillRect(0, 0, VW, VH);
       vctx.restore();
@@ -8886,7 +8890,9 @@ function animateResult(res, done) {
   // 全体回復は対象人数ぶん時間差で弾ませるため、最後の表示まで尺を確保する
   const partyHealN = (res.hits || []).filter((h) => h && h.target && h.target.side !== "enemy" && h.heal != null).length;
   const staggerSteps = Math.max(maxStack - 1, partyHealN - 1);
-  const TOTAL = WIND + (360 + staggerSteps * HIT_STAGGER) * spdMul();
+  // 死の宣告 (開幕): 大鎌が振り下ろされ魂が抜けるまでを見せきる (戦闘に一度だけなので一手より長く取る)
+  const hold = res.opening === "senkoku" ? 560 : 0;
+  const TOTAL = WIND + (360 + hold + staggerSteps * HIT_STAGGER) * spdMul();
   G.fx = { lunge: res.side === "enemy" && res.action !== "eflee" ? { uid: res.actor.uid, p: 0 } : null,
            slashes: [], skill: [], floats: [], screen: null, flash: {}, deaths: [] };
   G.partyFx = G.partyFx || new Map();
@@ -8976,6 +8982,10 @@ function applyImpact(res) {
     // ブレス (炎の効果音) / 敵の全体呪文 (呪文の効果音)
     if (res.espell) SFX.spell(); else SFX.fire();
     buzz([0, 50, 40, 80]); shakeScreen(true);
+  } else if (res.opening === "senkoku") {
+    // 死の宣告: 不穏な音・画面が闇に沈む (描画は下の reap)
+    SFX.ambush(); buzz([0, 40, 60, 90]);
+    fx.screen = { color: "dark", t0: now, dur: 760 * spdMul() };
   } else if (res.action === "spell" && res.spellKind !== "phys") {
     if (res.spellKind === "heal" || res.spellKind === "cure" || res.spellKind === "buff") SFX.heal();
     else if (res.spellElement === "fire") SFX.fire();
@@ -9031,7 +9041,16 @@ function applyImpact(res) {
       const dx = idx === 0 ? 0 : (idx % 2 ? 1 : -1) * (14 + 4 * idx); // 左右に振って重なり回避
       if (idx > 0) setTimeout(() => SFX.hit(), idx * stag); // 2撃目以降にも手応えの効果音
       const seed = (h.target.uid || 1) * 31 + idx;
-      if (res.action === "spell" && res.spellKind !== "heal" && res.spellKind !== "phys") {
+      if (res.opening === "senkoku") {
+        // 死の宣告: 敵ごとに少しずつ遅れて、大鎌が魂を刈り取る (崩れ落ちは鎌が抜けた後)
+        const rt0 = now + res.hits.indexOf(h) * 140 * spd;
+        spawnFx(fx.skill, "reap", pos.cx, pos.cy, rt0, spd, { seed, s: Math.max(0.8, Math.min(1.3, (pos.size || 9) / 9)) });
+        fx.floats.push({ x: pos.cx, y: pos.cy - 58, text: "死の宣告", color: "#c9a0ff", t0: rt0, small: true, kind: "label" });
+        fx.floats.push({ x: pos.cx, y: pos.cy - 10, text: "即死!", color: "#ff2a2a", t0: rt0 + 260 * spd, big: true, kind: "crit" });
+        if (!fx.deaths.some((d) => d.uid === h.target.uid)) fx.deaths.push({ uid: h.target.uid, mon: h.target.mon, x: pos.cx, y: pos.cy, size: pos.size || 9, t0: rt0 + 300 * spd });
+        anyDeath = true;
+        continue;
+      } else if (res.action === "spell" && res.spellKind !== "heal" && res.spellKind !== "phys") {
         // 呪文: 攻撃は属性ごと (火柱・水しぶき・旋風・岩の牙・光の柱・闇の渦)、弱体・状態異常はその種類ごと
         const st = statusFxKind(h.status);
         const kind = res.spellKind === "atk" ? (ELEM_FX_COL[res.spellElement] ? res.spellElement : "none")
