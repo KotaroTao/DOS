@@ -1,0 +1,69 @@
+{
+  "photoSelection": "passed",
+  "alphaFloor": "passed",
+  "cacheAssets": "passed",
+  "rankMeasurements": [
+    {
+      "rank": 1,
+      "visibleBBox": [
+        50,
+        13,
+        314,
+        368
+      ],
+      "crownToSole": 82.87620459599704,
+      "headHeight": 20.089
+    },
+    {
+      "rank": 2,
+      "visibleBBox": [
+        32,
+        7,
+        323,
+        368
+      ],
+      "crownToSole": 82.90155440414507,
+      "headHeight": 20.059
+    },
+    {
+      "rank": 3,
+      "visibleBBox": [
+        31,
+        4,
+        321,
+        368
+      ],
+      "crownToSole": 82.90535583272194,
+      "headHeight": 20.25
+    },
+    {
+      "rank": 4,
+      "visibleBBox": [
+        29,
+        3,
+        331,
+        368
+      ],
+      "crownToSole": 82.92682926829269,
+      "headHeight": 20.029
+    },
+    {
+      "rank": 5,
+      "visibleBBox": [
+        36,
+        14,
+        328,
+        368
+      ],
+      "crownToSole": 83.04721030042919,
+      "headHeight": 19.885
+    }
+  ],
+  "referenceHeadDifference": [
+    -1.841,
+    -1.871,
+    -1.68,
+    -1.901,
+    -2.045
+  ]
+}

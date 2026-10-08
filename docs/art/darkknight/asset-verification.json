@@ -1,0 +1,77 @@
+[
+  {
+    "rank": 1,
+    "size": [
+      360,
+      368
+    ],
+    "visibleBBox": [
+      50,
+      20,
+      340,
+      366
+    ],
+    "transparent": true,
+    "visibleEdgeClipping": false
+  },
+  {
+    "rank": 2,
+    "size": [
+      360,
+      368
+    ],
+    "visibleBBox": [
+      45,
+      20,
+      350,
+      367
+    ],
+    "transparent": true,
+    "visibleEdgeClipping": false
+  },
+  {
+    "rank": 3,
+    "size": [
+      360,
+      368
+    ],
+    "visibleBBox": [
+      46,
+      20,
+      327,
+      367
+    ],
+    "transparent": true,
+    "visibleEdgeClipping": false
+  },
+  {
+    "rank": 4,
+    "size": [
+      360,
+      368
+    ],
+    "visibleBBox": [
+      41,
+      20,
+      352,
+      366
+    ],
+    "transparent": true,
+    "visibleEdgeClipping": false
+  },
+  {
+    "rank": 5,
+    "size": [
+      360,
+      368
+    ],
+    "visibleBBox": [
+      34,
+      19,
+      345,
+      366
+    ],
+    "transparent": true,
+    "visibleEdgeClipping": false
+  }
+]
