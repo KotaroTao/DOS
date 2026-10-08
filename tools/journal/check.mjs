@@ -16,8 +16,9 @@ for (const s of ARCHIVE_STORIES.filter(s => s.image)) {
   assert.equal(png.readUInt32BE(20), s.imageHeight);
   assert.equal(s.imageWidth / s.imageHeight, 1.5);
 }
-assert.equal(ARCHIVE_STORIES.filter(s => s.image).length, 24);
+assert.equal(ARCHIVE_STORIES.filter(s => s.image).length, 37);
 assert(ARCHIVE_STORIES.filter(s => s.chapter === 1).every(s => s.image), "第一章の全場面に専用画像がある");
+assert(ARCHIVE_STORIES.filter(s => s.chapter === 2).every(s => s.image), "第二章の全場面に専用画像がある");
 const byId = new Map(ARCHIVE_STORIES.map(s => [s.id, s]));
 assert.equal(byId.size, ARCHIVE_STORIES.length, "ストーリーのIDが重複しない");
 for (const s of ARCHIVE_STORIES) {
