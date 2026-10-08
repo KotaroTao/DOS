@@ -242,6 +242,7 @@ const ASSETS = [
   "./art/jobs/arcthief_3.webp",
   "./art/jobs/arcthief_4.webp",
   "./art/jobs/arcthief_5.webp",
+  // 祓魔師：確認済みR1と聖戦士基準で制作した透過原画版 R1〜R5。
   "./art/jobs/exorcist_1.webp",
   "./art/jobs/exorcist_2.webp",
   "./art/jobs/exorcist_3.webp",
