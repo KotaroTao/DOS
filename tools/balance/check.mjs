@@ -164,7 +164,7 @@ console.log(`全${count}技を実行。会心・耐性・命中・攻撃/回復�
  for(const [key,sp] of Object.entries(SPELLS)){
   const r=soulTierRate(sp);
   if(sp.mpPct||sp.gravity||!(sp.mp>0)||!['phys','atk','heal','mana'].includes(sp.kind)){assert.equal(r,0,key);continue;}
-  assert.equal(r,sp.mp<=6?.02:sp.mp<=13?.04:sp.mp<=24?.06:.08,key);
+  assert.equal(r,sp.mp<=6?(['phys','atk'].includes(sp.kind)?.04:.02):sp.mp<=13?.04:sp.mp<=24?.06:.08,key);
   assert.equal(spellMpLabel(sp),`MP ${sp.mp}＋魂のMP×${Math.round(r*100)}%`,key);
   const a=actor();a.soulMp=500;
   const add=soulCostAdd(a,sp),mul=soulPowerMul(a,sp);

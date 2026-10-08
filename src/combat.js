@@ -433,9 +433,14 @@ function markStatus(res, t, tags) {
 export const SOUL_TIER_RATES = [[6, 0.02], [13, 0.04], [24, 0.06], [Infinity, 0.08]];
 export const SOUL_POWER_K = 0.8;
 const SOUL_TIER_KINDS = new Set(["phys", "atk", "heal", "mana"]);
+// 攻撃の技 (物理技・攻撃呪文) は最低の格も 4% (2026-10): 2% のままだと、Lv1 の強撃や Lv20 のファイアストームのような
+// 安い低位の技が Lv100〜200 でも MP の得な技として残った (Lv200 で12職)。4% で 2職まで減り、上位の技を選ぶ理由が戻る。
+// 回復・MP譲渡は 2% のまま (ヒールは最大HPの50%で頭打ちなので、消費だけが増えてしまう)
+export const SOUL_TIER_ATK_MIN = 0.04;
 export function soulTierRate(sp) {
   if (!sp || sp.mpPct || sp.gravity || !(sp.mp > 0) || !SOUL_TIER_KINDS.has(sp.kind)) return 0;
-  return SOUL_TIER_RATES.find(([m]) => sp.mp <= m)[1];
+  const r = SOUL_TIER_RATES.find(([m]) => sp.mp <= m)[1];
+  return (sp.kind === "phys" || sp.kind === "atk") ? Math.max(r, SOUL_TIER_ATK_MIN) : r;
 }
 // 魂の格で足される消費MP (軽減の前)
 export function soulCostAdd(actor, sp) {
