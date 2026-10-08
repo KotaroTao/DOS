@@ -779,7 +779,12 @@ function forfeitRun() {
 // 砕けた人業: 死亡を戦績に記録する (修復は人業の館で金貨を払う)
 function imprintFallen() {
   for (const d of G.party) {
-    if (d.isDoll && !d.alive && !d._dead) { G.stats.deaths++; d._dead = true; d.diedFloor = G.floor; }
+    if (d.isDoll && !d.alive && !d._dead) {
+      G.stats.deaths++; d._dead = true; d.diedFloor = G.floor;
+      // 初めて人業が砕けたら、街へ戻った時に館の手ほどき「砕けた魂の修復」を始める
+      // (赤い魂で生還した・迷宮で蘇った時も。帰還の時に砕けた人業がいなくても説明する)
+      if (G.tut && !(G.tut.done && G.tut.done.repairSoul)) G.tut.repairFell = true;
+    }
   }
   setReviveTimers();
 }
