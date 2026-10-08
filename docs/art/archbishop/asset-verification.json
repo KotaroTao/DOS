@@ -1,0 +1,91 @@
+{
+  "assets": [
+    {
+      "rank": 1,
+      "size": [
+        360,
+        376
+      ],
+      "alphaBBox": [
+        73,
+        11,
+        282,
+        372
+      ],
+      "transparent": true,
+      "edgeClear": true
+    },
+    {
+      "rank": 2,
+      "size": [
+        360,
+        376
+      ],
+      "alphaBBox": [
+        73,
+        10,
+        283,
+        373
+      ],
+      "transparent": true,
+      "edgeClear": true
+    },
+    {
+      "rank": 3,
+      "size": [
+        360,
+        376
+      ],
+      "alphaBBox": [
+        64,
+        4,
+        312,
+        372
+      ],
+      "transparent": true,
+      "edgeClear": true
+    },
+    {
+      "rank": 4,
+      "size": [
+        360,
+        376
+      ],
+      "alphaBBox": [
+        66,
+        17,
+        304,
+        372
+      ],
+      "transparent": true,
+      "edgeClear": true
+    },
+    {
+      "rank": 5,
+      "size": [
+        360,
+        376
+      ],
+      "alphaBBox": [
+        65,
+        3,
+        318,
+        373
+      ],
+      "transparent": true,
+      "edgeClear": true
+    }
+  ],
+  "rankHeadsAligned": true,
+  "allExactRankPhotosSelected": true,
+  "commonMaximumUnchanged": true,
+  "standardFrameBefore": [
+    96,
+    94
+  ],
+  "commonFrameAfter": [
+    96,
+    96
+  ],
+  "note": "ユーザーが添付して採用した初期R1の人体を維持。聖戦士との頭身一致検査は適用せず、大司教R1に対して全ランクを検査。"
+}

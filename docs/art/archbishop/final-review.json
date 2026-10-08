@@ -1,0 +1,102 @@
+{
+  "sprites": [
+    {
+      "key": "crusader",
+      "rank": 1,
+      "face": [
+        48,
+        23
+      ],
+      "head": [
+        48,
+        12,
+        33.93
+      ],
+      "w": 96,
+      "h": 96,
+      "src": "http://127.0.0.1:8001/art/jobs/crusader_1.webp"
+    },
+    {
+      "key": "archbishop",
+      "rank": 1,
+      "face": [
+        48,
+        24
+      ],
+      "head": [
+        48,
+        16.2,
+        31.435
+      ],
+      "w": 96,
+      "h": 96,
+      "src": "http://127.0.0.1:8001/art/jobs/archbishop_1.webp"
+    },
+    {
+      "key": "archbishop",
+      "rank": 2,
+      "face": [
+        48,
+        24
+      ],
+      "head": [
+        48,
+        16.2,
+        31.435
+      ],
+      "w": 96,
+      "h": 96,
+      "src": "http://127.0.0.1:8001/art/jobs/archbishop_2.webp"
+    },
+    {
+      "key": "archbishop",
+      "rank": 3,
+      "face": [
+        48,
+        24
+      ],
+      "head": [
+        48,
+        16.2,
+        31.435
+      ],
+      "w": 96,
+      "h": 96,
+      "src": "http://127.0.0.1:8001/art/jobs/archbishop_3.webp"
+    },
+    {
+      "key": "archbishop",
+      "rank": 4,
+      "face": [
+        48,
+        24
+      ],
+      "head": [
+        48,
+        16.2,
+        31.435
+      ],
+      "w": 96,
+      "h": 96,
+      "src": "http://127.0.0.1:8001/art/jobs/archbishop_4.webp"
+    },
+    {
+      "key": "archbishop",
+      "rank": 5,
+      "face": [
+        48,
+        24
+      ],
+      "head": [
+        48,
+        16.2,
+        31.435
+      ],
+      "w": 96,
+      "h": 96,
+      "src": "http://127.0.0.1:8001/art/jobs/archbishop_5.webp"
+    }
+  ],
+  "canvasCount": 30,
+  "browserErrors": []
+}
