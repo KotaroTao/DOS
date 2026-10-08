@@ -167,7 +167,7 @@ const ASSETS = [
   "./art/jobs/hexer_3.webp",
   "./art/jobs/hexer_4.webp",
   "./art/jobs/hexer_5.webp",
-  "./art/jobs/fighter_1.webp",
+  "./art/jobs/fighter_1.webp", // 戦士R1〜R5は聖戦士基準の原画へ差し替え済み。
   "./art/jobs/ascetic_1.webp",
   "./art/jobs/ascetic_2.webp",
   "./art/jobs/ascetic_3.webp",
