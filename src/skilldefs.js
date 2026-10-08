@@ -100,7 +100,7 @@ export const SPELLS = {
   // ================= 回復・祈り =================
   DIOS:       { name: "ヒール", mp: 2, kind: "heal", power: 14, target: "ally", desc: "傷を癒す" },
   DIAL:       { name: "リカバー", mp: 4, kind: "heal", power: 28, target: "ally", desc: "大きく回復" },
-  MADIOS:     { name: "フルヒール", mp: 8, kind: "heal", power: 60, target: "ally", revive: true, desc: "大回復。倒れた者も起こす" },
+  MADIOS:     { name: "フルヒール", mp: 20, kind: "heal", power: 999, target: "ally", desc: "味方一人のHPを全快させる" },
   SHINYU:     { name: "神癒", mp: 16, kind: "heal", power: 100, target: "ally", desc: "神の癒しで深手を塞ぐ" },
   DIOSALL:    { name: "ヒールオール", mp: 6, kind: "heal", power: 18, target: "all-ally", desc: "味方全員を回復" },
   DIALALL:    { name: "リカバーオール", mp: 12, kind: "heal", power: 40, target: "all-ally", desc: "味方全員を大きく回復" },
