@@ -222,6 +222,7 @@ const ASSETS = [
   "./art/jobs/necromancer_3.webp",
   "./art/jobs/necromancer_4.webp",
   "./art/jobs/necromancer_5.webp",
+  // 護法師: 承認済みR1を基にしたR1〜R5の透過原画。
   "./art/jobs/warden_1.webp",
   "./art/jobs/warden_2.webp",
   "./art/jobs/warden_3.webp",
