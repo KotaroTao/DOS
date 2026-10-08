@@ -246,6 +246,11 @@ const ASSETS = [
   "./art/jobs/crusader_3.webp",
   "./art/jobs/crusader_4.webp",
   "./art/jobs/crusader_5.webp",
+  "./art/jobs/darkknight_1.webp",
+  "./art/jobs/darkknight_2.webp",
+  "./art/jobs/darkknight_3.webp",
+  "./art/jobs/darkknight_4.webp",
+  "./art/jobs/darkknight_5.webp",
   "./art/jobs/cardinal_1.webp",
   "./art/jobs/cardinal_2.webp",
   "./art/jobs/cardinal_3.webp",
@@ -286,6 +291,7 @@ const ASSETS = [
   "./art/jobs/necromancer_3.webp",
   "./art/jobs/necromancer_4.webp",
   "./art/jobs/necromancer_5.webp",
+  // 護法師: 承認済みR1を基にしたR1〜R5の透過原画。
   "./art/jobs/warden_1.webp",
   "./art/jobs/warden_2.webp",
   "./art/jobs/warden_3.webp",
@@ -305,6 +311,11 @@ const ASSETS = [
   "./src/walkerart.js",
   "./src/jobart.js",
   "./src/jobphotos.js",
+  "./art/jobs/hunter_1.webp",
+  "./art/jobs/hunter_2.webp",
+  "./art/jobs/hunter_3.webp",
+  "./art/jobs/hunter_4.webp",
+  "./art/jobs/hunter_5.webp",
   "./src/backdrops.js",
   "./src/battlefx.js",
   "./src/battlefx-sig.js",
@@ -385,6 +396,11 @@ const ASSETS = [
   "./src/catalog/ranks/r18.js",
   "./src/catalog/ranks/r19.js",
   "./src/catalog/ranks/r20.js",
+  "./art/jobs/chaplain_1.webp",
+  "./art/jobs/chaplain_2.webp",
+  "./art/jobs/chaplain_3.webp",
+  "./art/jobs/chaplain_4.webp",
+  "./art/jobs/chaplain_5.webp",
 ];
 
 self.addEventListener("install", (e) => {

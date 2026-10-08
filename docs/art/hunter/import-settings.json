@@ -1,0 +1,14 @@
+{
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "approvedBase": "docs/art/hunter/hunter-r1-draft.png",
+  "frame": [90, 92],
+  "frameTop": 9,
+  "sources": [
+    {"source": "docs/art/hunter/hunter-r1-final.png", "perDot": 14.873035066505441, "head": [470, 602, 118, 435, 1346]},
+    {"source": "docs/art/hunter/hunter-r2-final.png", "perDot": 14.993954050785974, "head": [468, 600, 108, 425, 1346]},
+    {"source": "docs/art/hunter/hunter-r3-final.png", "perDot": 14.957678355501814, "head": [470, 602, 115, 433, 1349]},
+    {"source": "docs/art/hunter/hunter-r4-final.png", "perDot": 14.9093107617896, "head": [470, 602, 117, 435, 1348]},
+    {"source": "docs/art/hunter/hunter-r5-final.png", "perDot": 14.957678355501814, "head": [470, 602, 117, 435, 1349]}
+  ],
+  "measurementNotes": "頬の肌と顎の下側の輪郭、靴底を原画で確認。R2以降はフードの上端を頭頂とせず、R1の髪と顎の位置関係から隠れた主な髪の頭頂を推定。靴底の薄い透過縁まで含め約82.7ドットとし、承認済みR1の人体を保持。頭の高さは約21.1〜21.3ドットで、聖戦士の約21.93ドットとの差は実表示で確認する。"
+}

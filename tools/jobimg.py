@@ -90,7 +90,7 @@ def background_mask(a, white_min=200, white_spread=40, enclosed=600):
     return bg
 
 
-def cut_out(path):
+def cut_out(path, alpha_floor=1):
     """背景を抜いた RGBA と、絵のある範囲 (bbox) を返す"""
     original = Image.open(path)
     if "A" in original.getbands() or "transparency" in original.info:
@@ -99,7 +99,7 @@ def cut_out(path):
         if alpha.getextrema()[0] < 255:
             # 透明な原画は白背景の除去に通さず、元の輪郭と透過を保つ。
             # 生成時のほぼ不可視な外周だけを除き、枠が広がるのを防ぐ。
-            alpha = alpha.point(lambda v: 0 if v <= 1 else v)
+            alpha = alpha.point(lambda v: 0 if v <= alpha_floor else v)
             rgba.putalpha(alpha)
             bbox = alpha.getbbox()
             if bbox is None:
@@ -155,14 +155,14 @@ def bust_crop(e):
 CLIP_HALF_W, CLIP_H, CLIP_FADE = 45, 88, 5
 
 
-def build(job, paths, per_dots, heads, preview, frame=None, frame_top=None):
+def build(job, paths, per_dots, heads, preview, frame=None, frame_top=None, alpha_floor=1):
     out_dir = os.path.join(ROOT, "art", "jobs")
     os.makedirs(out_dir, exist_ok=True)
     entries = {}
     previews = []
     for r, path in enumerate(paths, 1):
         per_dot = per_dots[min(r - 1, len(per_dots) - 1)]
-        im, (x0, y0, x1, y1) = cut_out(path)
+        im, (x0, y0, x1, y1) = cut_out(path, alpha_floor)
         head_px = heads[r - 1] if heads and r - 1 < len(heads) else None
         guessed = head_px is None
         if guessed: head_px = guess_head(im)
@@ -281,6 +281,8 @@ if __name__ == "__main__":
                     "(キャラが小さく描かれたランクは、頭頂〜足裏の長さの比で小さくして全ランクの背丈を揃える。胸像は head で別に揃うので頭の大きさは気にしなくてよい)")
     ap.add_argument("--head", nargs="*", help="ランクごとの 顔の左x,右x,頭頂y,あご先y[,足裏y] (原画の画素座標)。足裏を付けると、その下の飾りを切る")
     ap.add_argument("--preview")
+    ap.add_argument("--alpha-floor", type=int, choices=range(0, 256), default=1,
+                    help="透明原画の外周に残る、この値以下のアルファを除去する (既定1)")
     ap.add_argument("--frame", help="共通の透明枠の幅,高さ (ドット単位)。人物は縮めず顔の列と足元を揃える")
     ap.add_argument("--frame-top", type=float, help="共通枠で人体の頭頂を置く高さ (ドット単位)。--frame と --head が必要")
     o = ap.parse_args()
@@ -291,4 +293,4 @@ if __name__ == "__main__":
     if o.frame_top is not None and (not frame or not heads or not np.isfinite(o.frame_top)
                                     or not 0 <= o.frame_top < frame[1] or len(heads) != len(o.images)):
         ap.error("--frame-top は --frame と全画像の --head、枠内の有限な高さが必要です")
-    build(o.job, o.images, [float(v) for v in o.per_dot.split(",")], heads, o.preview, frame, o.frame_top)
+    build(o.job, o.images, [float(v) for v in o.per_dot.split(",")], heads, o.preview, frame, o.frame_top, o.alpha_floor)
