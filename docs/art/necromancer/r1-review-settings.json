@@ -1,0 +1,13 @@
+{
+  "status": "ユーザー確認済み。承認時の比較を保存。最終取り込み設定はimport-settings.json。",
+  "job": "necromancer",
+  "label": "死霊術師",
+  "confirmedJobIdFrom": "src/souls.js",
+  "source": "docs/art/necromancer/necromancer-r1-review.png",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "comparison": "docs/art/necromancer/r1-crusader-comparison.png",
+  "notes": [
+    "聖戦士R1を人体・顔・粒度の基準にしたR1確認案。",
+    "下端に透明余白を追加。ゲームへの取り込みは承認後。"
+  ]
+}

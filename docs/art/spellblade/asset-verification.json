@@ -1,0 +1,101 @@
+{
+  "assets": [
+    {
+      "src": "art/jobs/spellblade_1.webp",
+      "size": [
+        360,
+        368
+      ],
+      "visibleBBox": [
+        35,
+        30,
+        306,
+        367
+      ],
+      "transparent": true
+    },
+    {
+      "src": "art/jobs/spellblade_2.webp",
+      "size": [
+        360,
+        368
+      ],
+      "visibleBBox": [
+        37,
+        30,
+        316,
+        366
+      ],
+      "transparent": true
+    },
+    {
+      "src": "art/jobs/spellblade_3.webp",
+      "size": [
+        360,
+        368
+      ],
+      "visibleBBox": [
+        34,
+        29,
+        319,
+        367
+      ],
+      "transparent": true
+    },
+    {
+      "src": "art/jobs/spellblade_4.webp",
+      "size": [
+        360,
+        368
+      ],
+      "visibleBBox": [
+        31,
+        29,
+        323,
+        366
+      ],
+      "transparent": true
+    },
+    {
+      "src": "art/jobs/spellblade_5.webp",
+      "size": [
+        360,
+        368
+      ],
+      "visibleBBox": [
+        29,
+        28,
+        323,
+        366
+      ],
+      "transparent": true
+    }
+  ],
+  "selected": [
+    {
+      "rank": 1,
+      "src": "http://127.0.0.1:8000/art/jobs/spellblade_1.webp"
+    },
+    {
+      "rank": 2,
+      "src": "http://127.0.0.1:8000/art/jobs/spellblade_2.webp"
+    },
+    {
+      "rank": 3,
+      "src": "http://127.0.0.1:8000/art/jobs/spellblade_3.webp"
+    },
+    {
+      "rank": 4,
+      "src": "http://127.0.0.1:8000/art/jobs/spellblade_4.webp"
+    },
+    {
+      "rank": 5,
+      "src": "http://127.0.0.1:8000/art/jobs/spellblade_5.webp"
+    }
+  ],
+  "browserErrors": [],
+  "viewports": [
+    "desktop",
+    "mobile"
+  ]
+}
