@@ -2,7 +2,7 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, perkVictory, canSpellCure, cureBySpell, spellCureKinds } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, setPartyEvadeBonus, perkVictory, canSpellCure, cureBySpell, spellCureKinds } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageLabel, isBattleLong, turnsLeftLabel, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -26,7 +26,7 @@ import {
 } from "./abyss.js";
 import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, dollLookKey, soulIcon,
-  recalcDoll, setPermanentStatSource, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
+  recalcDoll, setPermanentStatSource, isUniqueJob, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
   soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills, soulLearnedPassives, soulLabel, subPickCap, jobStatsOf,
   awakenPerkOf, subPickCapOfRank, subStatRateOfRank, setOrderSource, orderStatRateOfRank, setAppraiseSource,
   PASSIVES,
@@ -78,7 +78,7 @@ const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho",
 const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } })();
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 import { refSoul, refGold, trainCost, lvPow, emberMul, partyAgi, LOCK_K, TRAP_K, lockPow } from "./levelcurve.js";
-import { STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_RECOVERY_MS, recoverStability, stabilityWaitMs } from "./stability.js";
+import { STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_RECOVERY_MS, recoverStability, stabilityWaitMs, stabilityRecoveryMs } from "./stability.js";
 import { tlStability, tlStabilityTick, tlRedGain, tlOn, tlMeasure, tlWatchBattle, tlRunBegin, tlRunEnd, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlTownGain, tlPlayTick, tlSoul } from "./telemetry.js";
 import { repriceEquipment } from "./pricing.js";
 import { spawnFx, drawBattleFx, weaponFxStyle, statusFxKind, skillProfile, ELEM_FX_COL, SIG_FX } from "./battlefx.js";
@@ -779,7 +779,12 @@ function forfeitRun() {
 // 砕けた人業: 死亡を戦績に記録する (修復は人業の館で金貨を払う)
 function imprintFallen() {
   for (const d of G.party) {
-    if (d.isDoll && !d.alive && !d._dead) { G.stats.deaths++; d._dead = true; d.diedFloor = G.floor; }
+    if (d.isDoll && !d.alive && !d._dead) {
+      G.stats.deaths++; d._dead = true; d.diedFloor = G.floor;
+      // 初めて人業が砕けたら、街へ戻った時に館の手ほどき「砕けた魂の修復」を始める
+      // (赤い魂で生還した・迷宮で蘇った時も。帰還の時に砕けた人業がいなくても説明する)
+      if (G.tut && !(G.tut.done && G.tut.done.repairSoul)) G.tut.repairFell = true;
+    }
   }
   setReviveTimers();
 }
@@ -870,6 +875,8 @@ function worldState() {
   }
   // 別の迷宮を踏破しても報告待ちを失わない。旧セーブの未報告も踏破記録から拾う。
   if (!w.report) w.report = DUNGEONS.find((d) => !d.side && w.cleared[d.id] && !w.reported[d.id])?.id || null;
+  // 手がかりの恵み (2026-10 に足した) の前に、館の働きが変わる手がかりを見つけていた旧セーブは、館で一度だけ知らせる
+  if (w.boonsIntro === undefined) w.boonsIntro = Object.keys(STORY_CELLS).some((k) => w.found[k] && STORY_CELLS[k].boon && !["dungeon", "quest"].includes(STORY_CELLS[k].boon.kind)) ? 1 : 0;
   return w;
 }
 // 第0章 (人業の生成) を終えたか
@@ -914,7 +921,7 @@ function currentChapter() {
 // 公開している章の結びまで語り終えた (次章は準備中)
 const contentSealed = () => { const c = CHAPTERS[CHAPTERS.length - 1]; return !!worldState().beats["ch" + c.no + "_end"]; };
 // 物語の文の差し替えに渡す小さな窓 (story.js の lines(s))
-function storyCtx() { const w = worldState(); return { open: (id) => !!w.open[id], found: (k) => !!w.found[k], cleared: (id) => !!w.cleared[id], reported: (id) => !!w.reported[id] }; }
+function storyCtx() { const w = worldState(); return { open: (id) => !!w.open[id], found: (k) => !!w.found[k], cleared: (id) => !!w.cleared[id], reported: (id) => !!w.reported[id], beat: (k) => !!w.beats[k] }; }
 const storyLines = (l) => (typeof l === "function" ? l(storyCtx()) : l) || [];
 
 // ===== 無限迷宮「奈落」 (docs/tasks.md A1) =====
@@ -1227,6 +1234,15 @@ const TRAIT_BOARD = {
   },
   // 閉ざされた獄: 獄死した囚人の骸を2つ (半分はまだ温かい)
   prison: (b) => sfPlace(b, 2, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = Math.random() < 0.5; }),
+  // 沈んだ供物: 参道に捧げられた供物の宝箱を2つ (掟の mimicRate で3割はミミック)
+  offering: (b) => sfPlace(b, 2, (c) => { c.type = "chest"; c.cleared = false; }),
+  // 洗礼の水: まだ澄んだ洗礼の水 (癒しの泉) を2つ
+  font: (b) => sfPlace(b, 2, (c) => { c.type = "fountain"; c.cleared = false; c.fountainKind = "pure"; }),
+  // 噴き出す火: 通路の1割強が灼けた床 (毒の床と同じ。浮遊で避けられる)
+  vent: (b) => {
+    const st = b.start ? b.cells[b.start.y][b.start.x] : null;
+    sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.12) { c.type = "poison"; c.cleared = false; } });
+  },
   // 迷い霧: 通路の2割強が胞子の床 (毒の床) に。霧の奥 (行き止まり優先) に癒しの泉をひとつ
   mist: (b) => {
     const st = b.start ? b.cells[b.start.y][b.start.x] : null;
@@ -1595,7 +1611,7 @@ function newFloor({ viaGate = false } = {}) {
   if (spf && spf.board) spf.board(G.board);
   // 迷宮の掟: 盤面の加工 (獄の骸・霧の胞子と泉・縦穴の落とし穴)。静寂の階 (罠・毒の床・落とし穴なし) では胞子も穴も撒かない
   const trf = dungeonTrait();
-  if (trf && trf.board && TRAIT_BOARD[trf.board] && !(spf && spf.noTrap && (trf.board === "mist" || trf.board === "shaft"))) TRAIT_BOARD[trf.board](G.board);
+  if (trf && trf.board && TRAIT_BOARD[trf.board] && !(spf && spf.noTrap && (trf.board === "mist" || trf.board === "shaft" || trf.board === "vent"))) TRAIT_BOARD[trf.board](G.board);
   if (G.floor > G.stats.deepest) G.stats.deepest = G.floor;
   // 酒場の噂を盤面に反映 (潜入直後の階のみ)
   if (G.activeRumor && G.activeRumor.floor === G.floor) applyRumorToBoard(G.board);
@@ -5654,7 +5670,7 @@ function evBattleStart(enemies, isBoss) {
   const bw = G.events && G.events.flags && G.events.flags.bossWeak;
   if (isBoss && bw && bw[battleLayer()]) {
     for (const e of enemies) if (e.boss) { e.maxhp = Math.max(1, Math.round(e.maxhp * 0.9)); e.hp = Math.min(e.hp, e.maxhp); }
-    log("告解室で聞いた秘密が、主の守りの綻びを教えてくれる。(主の最大HP -10%)", "win");
+    log(battleLayer() === 1 ? "告解室で聞いた秘密が、主の守りの綻びを教えてくれる。(主の最大HP -10%)" : "迷宮で聞いた主の弱みが、守りの綻びを教えてくれる。(主の最大HP -10%)", "win");
   }
 }
 // 戦闘の後: 墓碑の加護の消費を記録し、紅玉に血を吸わせる
@@ -5776,23 +5792,132 @@ function runStoryCell(cell) {
   if (!def) { cell.cleared = true; cell.type = "empty"; renderBoard(); return; }
   const w = worldState();
   SFX.itemget(); buzz([0, 30, 60, 30]);
-  UI.playStoryChain([{ title: def.title, lines: storyLines(def.lines), art: def.art, photo: storyImage(key), who: "none", kicker: "師の手がかり", btnLabel: "胸に刻む" }], () => {
+  // 手がかりの恵み: 迷宮が開く手がかりは本文に「新たな迷宮」の行があるので、それ以外だけ最後に一行足す
+  const boon = def.boon && def.boon.kind !== "dungeon" ? [`── 手がかりの恵み: ${def.boon.text}`] : [];
+  UI.playStoryChain([{ title: def.title, lines: [...storyLines(def.lines), ...boon], art: def.art, photo: storyImage(key), who: "none", kicker: "師の手がかり", btnLabel: "胸に刻む" }], () => {
     w.found[key] = 1;
     w.last = { kind: "cell", key };
     cell.cleared = true; cell.type = "empty";
+    syncClueBoons();
     log(`${def.toast || def.name}。`, "win");
+    if (def.boon && def.boon.kind !== "dungeon") log(`手がかりの恵み: ${def.boon.text}`, "win");
     showToast(`✦ ${def.toast || def.name}`, { tone: "good" });
     announceNewDungeons(refreshWorldUnlocks());
     autosave(true);
     renderBoard();
   });
 }
+// ===== 手がかりの恵み (story.js STORY_CELLS の boon) =====
+// 効き目は「その手がかりを見つけたか (world.found)」からそのつど引く。見つけた後に足した恵みも旧セーブに効く
+function clueBoon(kind) {
+  const found = (G.world && G.world.found) || {};
+  for (const k in STORY_CELLS) if (found[k] && STORY_CELLS[k].boon && STORY_CELLS[k].boon.kind === kind) return true;
+  return false;
+}
+// 胸の扉の覚え書き (evade): 隊の全員の回避率 +1% (combat.js setPartyEvadeBonus)
+const CLUE_EVADE = 0.01;
+// セラの囁き (soulEcho): 迷宮で職業の魂を拾った時、この確率でもう一つ拾える (grantSoulQuiet)
+const SOUL_ECHO_RATE = 0.05;
+function syncClueBoons() {
+  setPartyEvadeBonus(clueBoon("evade") ? CLUE_EVADE : 0);
+  restockElixirs();
+}
+function stabilityMinutes() { return Math.round(stabilityRecoveryMs() / 60000); }
+// 霊薬の帳面 (elixir): 魂を使わない霊薬が、商会の棚にいつも並ぶ (街に戻るたびに棚を満たす)
+const ELIXIR_STOCK = ["u_life_spring", "u_moonwell_water", "u_elixir"];
+function restockElixirs() {
+  if (!clueBoon("elixir") || !G.shopStock) return;
+  for (const id of ELIXIR_STOCK) if (ITEMS[id]) G.shopStock[id] = Math.max(G.shopStock[id] || 0, 5);
+}
+
+// ===== セラ (師の作った人業) =====
+// 腕・頭・胴・脚がそろい、館の語り「セラの目覚め」(IRENE_BEATS effect: seraJoin) を聞くと仲間になる。
+// メイン魂はセラだけの専用職「灯守」(souls.js SOUL_CLASSES.sera) に固定 (外せない・付け替えられない)。サブ魂は自由。
+// 肖像は灯守の絵に固定 (面影の写しも効かない)。器 (doll.vessel = "sera") は魂の安定度を消費しない。
+// 灯守のランク = 魂の count。物語の節目で上がる (seraRankTarget)。Lv は ✦Soul で上げる (ほかの魂と同じ)
+function vesselStable(d) { return !!d && d.vessel === "sera"; }
+function seraDoll() { return allDolls().find((d) => d && d.vessel === "sera") || null; }
+function seraSoul() { return G.souls.find((s) => s && s.clsKey === "sera") || null; }
+// セラまわりの差し口の制限 (soulSlotConflict から)
+function seraSlotBlocked(d, soul, slotId) {
+  if (isUniqueJob(soul.clsKey)) return !(d && d.vessel === "sera" && slotId === "primary");
+  return !!(d && d.vessel === "sera" && slotId === "primary");
+}
+// 灯守のランクの目標: 目覚め 1 / 継ぎ目の締め直し (焼かれた人業の殻) 2 / 奈落を前にした館の語り 3 (第六章から先で 4・5)
+const SERA_RANK_BEATS = ["irene_husks", "irene_abyss"];
+function seraRankTarget() {
+  const b = worldState().beats;
+  return Math.min(5, 1 + SERA_RANK_BEATS.filter((id) => b[id]).length);
+}
+// 灯守の魂を物語の進みに合わせる (読み込み時・館の語りの後)。上がったら true
+function syncSeraSoul() {
+  const d = seraDoll();
+  if (!d) return false;
+  let s = soulByUid(d.primary);
+  // 旧版 (どの魂でも宿せた頃) のセラ: 灯守の魂へ宿し直し、前の魂は手元に戻す
+  let moved = false;
+  if (!s || s.clsKey !== "sera") {
+    s = seraSoul() || addSoulInstance("sera", 1, seraStartLevel());
+    d.primary = s.uid;
+    moved = true;
+  }
+  const want = seraRankTarget();
+  const up = (s.count || 1) < want;
+  if (up) s.count = want;
+  s.locked = true;
+  if (up || moved) { recalcDoll(d); if (moved) { d.hp = d.maxhp; d.mp = d.maxmp; } }
+  return up;
+}
+// 目覚めた時の灯守の Lv: 隊のメイン魂の平均 (ランク1の上限まで)
+function seraStartLevel() {
+  const lv = G.party.map((p) => soulByUid(p.primary)).filter(Boolean).map((x) => x.level || 1);
+  const avg = lv.length ? Math.round(lv.reduce((a, b) => a + b, 0) / lv.length) : 1;
+  return Math.max(1, Math.min(soulLevelCap("sera", 1), avg));
+}
+function seraJoin() {
+  let d = seraDoll();
+  if (!d) {
+    d = makeDoll("セラ");
+    d.vessel = "sera";
+    const s = seraSoul() || addSoulInstance("sera", seraRankTarget(), seraStartLevel());
+    s.locked = true;
+    d.primary = s.uid;
+    recalcDoll(d);
+    d.hp = d.maxhp; d.mp = d.maxmp;
+    if (G.party.length < 6) G.party.push(d);
+    else { G.reserve.push(d); log("セラは控えで待機する。館で隊と入れ替えられる。", "sys"); }
+    if (!G.codex.job) G.codex.job = {};
+    codexSweepJobs();
+    log(`人業「セラ」が目を覚ました。灯守 Lv${s.level}。師の作った器は、魂の安定度を消費しない。`, "win");
+    showToast("セラが仲間に加わった", { tone: "good" });
+    SFX.itemget(); buzz([0, 30, 60, 30]);
+  }
+  syncSeraSoul();
+  autosave(true);
+  return d;
+}
+// 館の語りで灯守のランクが上がる (IRENE_BEATS effect: seraRank)
+function seraRankUp() {
+  const d = seraDoll();
+  if (!d) return;
+  const before = d.jobRank || 1;
+  const s0 = soulByUid(d.primary);
+  const fromCap = s0 ? soulLevelCapOf(s0) : 0;
+  if (!syncSeraSoul()) return;
+  recalcAllDolls({ levelUp: true });
+  const s1 = soulByUid(d.primary);
+  log(`セラの魂がランク${d.jobRank}になった (${d.cls})。`, "win");
+  if ((d.jobRank || 1) > before) showRankUp({ clsKey: "sera", fromRank: before, toRank: d.jobRank, toCount: s1.count, fromCap, toCap: soulLevelCapOf(s1) });
+}
+// 赤い魂1つで回復する安定度
+function stabilityPerRed() { return 1; }
 // 館の語り (イレーヌ): 要る手がかりを見つけていて、まだ語っていないもの
+//   beat = 先に語っておく語り (セラが目覚めてから、など)
 function pendingIreneBeat() {
   // 試遊は選択した場面だけ。準備用の報告済み状態から別の語りを始めない。
   if (G.testPlay) return null;
   const w = worldState();
-  return IRENE_BEATS.find((b) => !w.beats[b.id] && (!b.need || (Array.isArray(b.need) ? b.need : [b.need]).every((key) => w.found[key])) && (!b.after || w.reported[b.after])) || null;
+  return IRENE_BEATS.find((b) => !w.beats[b.id] && (!b.need || (Array.isArray(b.need) ? b.need : [b.need]).every((key) => w.found[key])) && (!b.after || w.reported[b.after]) && (!b.beat || w.beats[b.beat]) && (!b.flag || w[b.flag] === 1)) || null;
 }
 // 館に入った時に語る (party.js から)。語ったら true
 function playIreneBeat(done) {
@@ -5802,6 +5927,9 @@ function playIreneBeat(done) {
   UI.playStoryChain([{ title: b.title, lines: storyLines(b.lines), art: b.art, photo: storyImage(b.id), who: "irene", kicker: "人業の館", btnLabel: "うなずく" }], () => {
     w.beats[b.id] = 1;
     w.last = { kind: "irene", id: b.id };
+    if (b.flag) w[b.flag] = 0;
+    if (b.effect === "seraJoin") seraJoin();
+    if (b.effect === "seraRank") seraRankUp();
     autosave(true);
     if (done) done();
     if (UI.queueStoryNotice) UI.queueStoryNotice(); // 語りで記された物語を知らせる
@@ -6381,7 +6509,7 @@ function collectSoul(cell, clsKey, clsLabel) {
 }
 
 // レア度の表示名
-const RARITY_LABEL = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド" };
+const RARITY_LABEL = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド", unique: "固有" };
 
 // 魂を受け取る (演出なし): 所持魂の一覧へ加え、戦績・図鑑・今回の記録に残す。死体の残火も同時に受け取る。
 // 戦果シートのように一覧へまとめて見せる場面と、トースト/祝祭で知らせる acquireSoul の共通の芯
@@ -6394,9 +6522,19 @@ function grantSoulQuiet(clsKey, sourceLine = "", emberCount = 0) {
   tlSoulGot(clsKey);
   codexJobSee(clsKey, 1, 1);
   if (emberCount > 0) { G.embers = (G.embers || 0) + emberCount; runCount("embers", emberCount); }
+  // セラの囁き (手がかりの恵み soulEcho): 迷宮で拾った時、まれにもう一つ
+  const echo = inDungeon() && clueBoon("soulEcho") && Math.random() < SOUL_ECHO_RATE;
+  if (echo) {
+    G.stats.soulsFound++;
+    questProgress("soul", null, 1);
+    addSoulInstance(clsKey);
+    runTrackSoul(clsKey, "bag");
+    tlSoulGot(clsKey);
+  }
   updateTopbar();
-  log(`${cls.label}の魂 を持ち帰った。(所持魂 一覧に追加)${emberCount > 0 ? ` 魂の残火 ×${emberCount}` : ""}`, "win");
-  return { clsKey, label: cls.label, rarity: cls.rarity, rare: cls.rarity !== "common", glow: cls.glow || "#c9a227", line: sourceLine, embers: emberCount };
+  log(`${cls.label}の魂 を${echo ? "2つ" : ""}持ち帰った。(所持魂 一覧に追加)${echo ? " セラの囁きが、もう一つの魂を呼び寄せた。" : ""}${emberCount > 0 ? ` 魂の残火 ×${emberCount}` : ""}`, "win");
+  const line = echo ? [sourceLine, "セラの囁きが、もう一つの魂を呼び寄せた (×2)"].filter(Boolean).join(" ・ ") : sourceLine;
+  return { clsKey, label: cls.label, rarity: cls.rarity, rare: cls.rarity !== "common", glow: cls.glow || "#c9a227", line, embers: emberCount, echo };
 }
 
 // 魂の祝祭の札 (迷宮で拾った魂はコモンも・街ではレア以上)。残火があれば同じ札にまとめる
@@ -7254,6 +7392,12 @@ function startBattleMeasured(enemies, cell) {
     let drained = 0;
     for (const p of G.party) if (p.alive && p.mp > 0) { const d = Math.ceil(p.maxmp * trB.mpDrain); drained += Math.min(p.mp, d); p.mp = Math.max(0, p.mp - d); }
     if (drained) log(`足元の根が脈打ち、隊の魔力を吸い上げた (MP -${drained})。`, "dmg");
+  }
+  // 釜の熱気が開幕に隊の HP を焼く (trait.hpDrain)。HP1 より下にはならない
+  if (trB && trB.hpDrain) {
+    let burnt = 0;
+    for (const p of G.party) if (p.alive && p.hp > 1) { const d = Math.min(p.hp - 1, Math.ceil(p.maxhp * trB.hpDrain)); burnt += d; p.hp -= d; }
+    if (burnt) log(`釜の熱気が肌を焼いた (HP -${burnt})。`, "dmg");
   }
   // 迷宮の主に遭遇した: 討つ前でも図鑑に名だけ載せる (遭遇するまでは「？？？」のまま)
   for (const e of enemies) if (e.boss && e.key && MONSTERS[e.key]) { if (!G.codex.met) G.codex.met = {}; G.codex.met[e.key] = 1; }
@@ -10059,7 +10203,7 @@ function refreshStability(now = Date.now()) {
 function stabilityStatus() {
   const now = Date.now();
   refreshStability(now);
-  return G.party.filter(d=>d.alive).map(d=>({ uid:d.uid, name:d.name, value:d.stability,
+  return G.party.filter(d=>d.alive && !vesselStable(d)).map(d=>({ uid:d.uid, name:d.name, value:d.stability,
     after:Math.max(0,d.stability-STABILITY_ENTRY_COST), waitMs:stabilityWaitMs(d, now) }));
 }
 function stabilityReady() {
@@ -10072,24 +10216,28 @@ function consumeEntryStability(where) {
   if (!G.party.some(d=>d.alive)) return false;
   if (!stabilityReady()) return false;
   const changes = [];
-  for (const doll of G.party.filter(d=>d.alive)) {
+  for (const doll of G.party.filter(d=>d.alive && !vesselStable(d))) {
     doll.stability -= STABILITY_ENTRY_COST;
     changes.push({ doll, amount:STABILITY_ENTRY_COST });
   }
   tlStability("entry", changes, { dungeon:where });
   return true;
 }
+// requested = 回復させたい安定度。赤い魂1つで stabilityPerRed() 回復する (端数は切り上げて払う)
 function restoreStability(d, requested = 1) {
-  if (G.state !== "town" || !allDolls().includes(d)) return {ok:false};
+  if (G.state !== "town" || !allDolls().includes(d) || vesselStable(d)) return {ok:false};
   refreshStability();
-  const n = Math.min(STABILITY_MAX-d.stability, Math.max(0,Math.floor(requested)), Math.max(0,Math.floor(G.redSoul)));
+  const per = stabilityPerRed();
+  const n = Math.min(STABILITY_MAX-d.stability, Math.max(0,Math.floor(requested)), Math.max(0,Math.floor(G.redSoul)) * per);
   if (!Number.isFinite(n) || n <= 0) return {ok:false};
-  d.stability += n; G.redSoul -= n;
+  const cost = Math.ceil(n / per);
+  d.stability += n; G.redSoul -= cost;
   if (d.stability === STABILITY_MAX) d.stabilityAt = Date.now();
-  tlStability("red", [{doll:d,amount:n}], {redSpent:n});
+  tlStability("red", [{doll:d,amount:n}], {redSpent:cost});
   SFX.heal(); autosave(true); renderTown();
-  return {ok:true,n};
+  return {ok:true,n,cost};
 }
+function stabilityCost(n) { return Math.ceil(Math.max(0, n) / stabilityPerRed()); }
 function grantRedSoul(n, source) {
   G.redSoul += n || 0; tlRedGain(n || 0, source);
 }
@@ -10116,7 +10264,8 @@ function soulRepresentatives() {
     || (b.count || 1) - (a.count || 1) || (b.level || 1) - (a.level || 1)
     || (b.capBonus || 0) - (a.capBonus || 0) || a.uid - b.uid);
   const seen = new Set();
-  return sorted.filter((s) => { if (seen.has(s.clsKey)) return false; seen.add(s.clsKey); return true; });
+  // セラの灯守 (固有の職) は代表にしない: 人業の仕立て・メイン魂の付け替え・融合・控えの結社の対象から外れる
+  return sorted.filter((s) => { if (isUniqueJob(s.clsKey) || seen.has(s.clsKey)) return false; seen.add(s.clsKey); return true; });
 }
 // メイン魂の職業だけは隊に1つ。別個のサブ魂は同職でも宿せる。
 function partySoulConflict(party = G.party) {
@@ -10131,6 +10280,8 @@ function partySoulConflict(party = G.party) {
 // サブ魂の職業は仲間と重複できる。同じ人業のメイン・サブには同職を重ねない。
 function soulSlotConflict(d, uid, slotId = "primary") {
   const soul = soulByUid(uid); if (!soul) return false;
+  // セラ: メイン魂は灯守に固定。灯守の魂はセラのメイン魂にしか宿らない (サブ魂として貸さない)
+  if (seraSlotBlocked(d, soul, slotId)) return true;
   if (soulByUid(d.primary)?.clsKey === soul.clsKey && slotId !== "primary") return true;
   if ((d.subs || []).some((x, i) => `sub${i}` !== slotId && soulByUid(x?.uid)?.clsKey === soul.clsKey)) return true;
   if (slotId !== "primary") return false;
@@ -10293,6 +10444,8 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
   if (si >= 0 && (!Number.isInteger(si) || si < 0 || si >= unlockedSubSlots())) return fin(false);
   // 別の差し口へ宿す (=付け替え) 場合のみ装備可否を判定する。外す操作は対象外
   const isNewEquip = !(slotId === "primary" && d.primary === uid) && !(si >= 0 && ((d.subs || [])[si] || {}).uid === uid);
+  if (d && d.vessel === "sera" && si < 0) { SFX.ng(); showToast("セラのメイン魂は灯守のまま。サブ魂は自由に付け替えられる", { tone: "info" }); return fin(false); }
+  if (isUniqueJob(s.clsKey)) { SFX.ng(); showToast("灯守の魂は、セラにしか宿らない", { tone: "bad" }); return fin(false); }
   if (isNewEquip && si < 0 && !soulRepresentatives().some((x) => x.uid === uid)) { SFX.ng(); showToast("同じ職業の余った魂は、人業の館で魂融合する", { tone: "bad" }); return fin(false); }
   if (isNewEquip && soulSlotConflict(d, uid, slotId)) { SFX.ng(); showToast("メイン魂の職業はパーティで重複不可。同じ人業のメイン・サブにも同じ職業は宿せない", { tone: "bad" }); return fin(false); }
   // 同じuidの魂は、メイン・サブを問わず他の人業と共有しない。他の人業が宿している魂を選んだら、その人業から移す
@@ -10740,7 +10893,7 @@ function questsHere() {
 }
 // 出撃シートの添え書き: 酒場の依頼で開いた迷宮なら「依頼の迷宮」(受けた依頼の対象かどうかは名の横の印 questHereCount)
 function questHereNote(cfg) {
-  return cfg && cfg.side ? "依頼の迷宮" : null;
+  return cfg && cfg.side ? (cfg.unlock && cfg.unlock.quest ? "依頼の迷宮" : "寄り道の迷宮") : null;
 }
 // 迷宮ごとの記録 (出撃シートの迷宮の顔): 図鑑に記録した魔物 / その迷宮の魔物 (雑魚・強敵・主) と、
 // その迷宮の固定クエスト (依頼人の頼み) の報告済み / 総数。
@@ -11077,6 +11230,8 @@ function tavernHintAllowed(req) {
   if (req === "metal") return DUNGEONS.some((d) => d.layer >= 3 && worldOpenId(d.id)); // 金属の魔物 (第3層の景色の迷宮から出る)
   if (req === "fort") return DUNGEONS.some((d) => d.layer >= 4 && worldOpenId(d.id));  // 捨て砦 (第4層の迷宮が地図に現れた後)
   if (req === "roots") return worldOpenId("w10");                                   // 魂脈の根 (大穴の下の縦穴が地図に現れた後)
+  if (req === "undercity") return worldOpenId("w14");                               // 王都の地下 (水底の参道が地図に現れた後)
+  if (req === "furnace") return worldOpenId("w18");                                 // 灼熱の洞 (火を噴く地割れが地図に現れた後)
   return featureUnlocked(req);                           // fusion / rumor
 }
 // 酒場の顔ぶれを選び直す (ダンジョン帰還時・初回入店時に呼ぶ)
@@ -12558,14 +12713,15 @@ function innCost() { return G.party.length * 12 + G.maxFloorReached * 6; }
 // (全滅で迷宮に残された器は、まず連れ帰りを待つ ― 下の「連れ帰り」)
 // 費用 = ランク (1:10 / 2:20 / 3:40 / 4:80 / 5:160) × 魂レベル × レア度 (コモン1 / レア2 / エピック3 / レジェンド4)
 const REPAIR_RANK_GOLD = [10, 10, 20, 40, 80, 160]; // [0] は魂の宿らぬ器の保険 (ランク1扱い)
-const REPAIR_RARITY_MUL = { common: 1, rare: 2, epic: 3, legend: 4 };
+const REPAIR_RARITY_MUL = { common: 1, rare: 2, epic: 3, legend: 4, unique: 3 };
 function repairCostOf(d) {
   if (!d || d.alive || awaitingRescue(d)) return 0;
   const rank = Math.max(1, Math.min(5, d.jobRank || 1));
   const lv = Math.max(1, d.jobLv || 1);
   const cls = d.clsKey ? SOUL_CLASSES[d.clsKey] : null;
   const mul = REPAIR_RARITY_MUL[cls ? cls.rarity : "common"] || 1;
-  return REPAIR_RANK_GOLD[rank] * lv * mul;
+  const cost = REPAIR_RANK_GOLD[rank] * lv * mul;
+  return clueBoon("repair") ? Math.ceil(cost * 0.9) : cost; // 継ぎ目の技 (流れ着いた腕): 10%オフ
 }
 function repairCostAll() {
   return allDolls().reduce((a, d) => a + (d.isDoll && !d.alive ? repairCostOf(d) : 0), 0);
@@ -13145,6 +13301,7 @@ function showAbyssSummary({ depth, score, weekly, mods, newDepth, newScore }) {
 // 街へ帰還 (戦利品は保持)。opts.outcome: return (帰還陣) | clear (踏破) | wipe (全滅・没収) | saved (赤い魂で生還)
 // opts.run: 要約に使う潜入の記録 (全滅で没収した後でも、何を得て何を失ったかを残すため)
 function returnToTown(opts = {}) {
+  restockElixirs(); // 霊薬の帳面 (手がかりの恵み)
   const runRef = opts.run !== undefined ? opts.run : G.run;
   const outcome = opts.outcome || (runRef && runRef.secured ? "clear" : "return");
   if (inDungeon()) tlRunEnd(tlWhere(), G.party, outcome);
@@ -14104,6 +14261,7 @@ function rankUnlockHint(rank, clsKey) {
   if (perk && rank === 2) lines.push(`${head} — パッシブ「${perk.name}」に目覚めた`, perk.desc);
   else if (perk) lines.push(head, `パッシブ「${perk.name}」に強まった`, perk.desc);
   else lines.push(head);
+  if (isUniqueJob(clsKey)) return lines; // 灯守 (セラだけの魂) はサブ魂・結社に出さない
   if (featureUnlocked("sub1")) {
     const pc = subPickCapOfRank(rank), pp = subPickCapOfRank(rank - 1);
     if (pc > pp) lines.push(`宿し魂として、技・パッシブを${pc}つまで貸せるようになった。`);
@@ -14761,6 +14919,8 @@ function loadGame() {
   codexFresh(); // 新着の記録 (後付け。旧セーブは新着なしで始まる)
   delete G.codex.soul; // 魂図鑑は廃止 (スキルが職業帰属になったため)
   codexSweepJobs();
+  syncClueBoons(); // 手がかりの恵み (回避率・霊薬の棚)
+  syncSeraSoul(); // セラの灯守の魂 (旧版のセラの宿し直し・物語で上がるランク)
   return true;
 }
 
@@ -15352,6 +15512,7 @@ function resetAllData() { _resetting = true; clearSave(); location.reload(); }
 bindGame({
   // いまの目標・勅命・物語
   STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_RECOVERY_MS, refreshStability, stabilityStatus, restoreStability,
+  stabilityMinutes, stabilityPerRed, stabilityCost, vesselStable, clueBoon, seraDoll,
   objectiveInfo, decreeInfo, replayDecree, palaceRecords, sharePalaceRecord, departTo, goMakeDoll, audienceTutorial,
   landOnHub, legacyToPage, townBgm,
   // 勲章・宝物庫・図鑑
@@ -15438,7 +15599,8 @@ function init() {
     ev: { evApi, runEvent, eventFightWon, EVENT_MAP, enterDungeon, newFloor, descend, resolveCell, renderBoard, endBattle, evNewFloor, evProgress, eventFacts, makeDoll, addSoulInstance, recalcDoll, evUnit },
     // 迷宮の台帳・物語の進みの検証用
     world: { worldState, refreshWorldUnlocks, reportMainQuest, lateClue, tellLateClue, reportTutorialQuest, grantTutorialGift, commitDungeonClear, showDungeonClearedPopup, askGate, departNow, storyGoal, objectiveInfo, decreeInfo,
-      playIreneBeat, pendingIreneBeat, storyNewFloor, runStoryCell, resumeFromState, startFloorsOf, foeLevelHere, claimTreasury, partyLevel, leaveDungeon, DUNGEONS, finalizeBuyDoll, totalDonatedKinds, treasuryState } };
+      playIreneBeat, pendingIreneBeat, storyNewFloor, runStoryCell, resumeFromState, startFloorsOf, foeLevelHere, claimTreasury, partyLevel, leaveDungeon, DUNGEONS, finalizeBuyDoll, totalDonatedKinds, treasuryState,
+      clueBoon, syncClueBoons, seraJoin, seraDoll, seraRankUp, syncSeraSoul, repairCostOf, restoreStability, stabilityStatus, revealByCartography } };
 
   if (testPlayActive) {
     const floor = setupTestPlay();

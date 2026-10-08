@@ -101,6 +101,7 @@ function portraitEl(d, { size = 44, sel = false, tag = "button", cls = "" } = {}
   const cl = d.jobKey && SOUL_CLASSES[d.jobKey];
   if (cl) p.style.setProperty("--glow", cl.glow);
   if (d.primary == null) p.classList.add("hollow"); // 魂の宿らない器
+  if (d.vessel === "sera") { p.classList.add("vessel-sera"); p.appendChild(el("span", "pt-port-vessel", "灯")); } // 師の作った器
   const fr = el("span", "pt-port-fr");
   try { fr.appendChild(partyPortraitCanvas(d, size - 6)); } catch (e) { /* 絵が無くても動く */ }
   p.appendChild(fr);
@@ -1261,7 +1262,7 @@ function reserveRow(d) {
   }
   else if (d.primary != null) st.appendChild(el("span", "pt-res-s", `  HP ${d.hp}/${d.maxhp}`));
   game.refreshStability?.();
-  st.appendChild(el("span", "pt-res-s", ` ・ 安定度 ${d.stability}/${game.STABILITY_MAX}`));
+  st.appendChild(el("span", "pt-res-s", game.vesselStable && game.vesselStable(d) ? " ・ 師の器" : ` ・ 安定度 ${d.stability}/${game.STABILITY_MAX}`));
   tx.appendChild(st);
   top.appendChild(tx);
   const look = button({ label: "見る", kind: "ghost", size: "sm", onTap: () => viewDoll(d) });
@@ -1374,7 +1375,7 @@ export function openCreateDoll() {
   if (h?.el) UI.tutorialEvent?.("newJobSoulPickerOpened");
   return h;
 }
-function rarityName(r) { return { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド" }[r] || ""; }
+function rarityName(r) { return { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド", unique: "固有" }[r] || ""; }
 function soulRank(s) { return game.soulRankOf ? game.soulRankOf(s) : 1; }
 
 // 名前の入力シート (仕立て・名を変える・空の人業の生成で共用)
@@ -1450,10 +1451,12 @@ export function openStability(d, onChange) {
   const spec = () => {
     game.refreshStability();
     const gap = game.STABILITY_MAX-d.stability;
-    const amounts = [...new Set([1, Math.min(10,gap), gap])].filter(n=>n>0);
+    const per = game.stabilityPerRed ? game.stabilityPerRed() : 1;
+    const amounts = [...new Set([per, Math.min(10,gap), gap])].filter(n=>n>0 && n<=gap);
+    const costOf = (n) => Math.ceil(n / per);
     return { title:`${d.name} ― 魂の安定度 ${d.stability}/${game.STABILITY_MAX}`,
-      lines:["3分で1回復します。控えやゲームを閉じている間も回復します。", "赤い魂1で安定度1を回復します。宿泊や魂の付け替えでは回復しません。", `所持している赤い魂: ${G_().redSoul}`],
-      footer:[...amounts.map(n=>({ label:n===gap ? `満タンまで回復 (+${n})` : `+${n}回復`, cost:{kind:"red",n}, kind:"secondary", disabled:G_().redSoul<n,
+      lines:[`${game.stabilityMinutes ? game.stabilityMinutes() : 3}分で1回復します。控えやゲームを閉じている間も回復します。`, `赤い魂1で安定度${per}を回復します。宿泊や魂の付け替えでは回復しません。`, `所持している赤い魂: ${G_().redSoul}`],
+      footer:[...amounts.map(n=>({ label:n===gap ? `満タンまで回復 (+${n})` : `+${n}回復`, cost:{kind:"red",n:costOf(n)}, kind:"secondary", disabled:G_().redSoul<costOf(n),
         onTap:()=>{const r=game.restoreStability(d,n);if(!r.ok)return;h.update(spec());rerender();if(onChange)onChange();} })),
         {label:"戻る",kind:"ghost",onTap:()=>h.close()}],
     };
@@ -1469,7 +1472,7 @@ function dollHeader(d, mode) {
   const p = portraitEl(d, { size: 44, tag: "div" });
   if (town) longPress(p, () => openRename(d));
   // 面影の写し (第三章の入口で解放): 肖像を押すと、魂が覚えている姿から顔を選べる
-  if (town && d.primary != null && game.omokageUnlocked && game.omokageUnlocked()) {
+  if (town && d.primary != null && d.vessel !== "sera" && game.omokageUnlocked && game.omokageUnlocked()) {
     p.classList.add("pt-face-on");
     p.setAttribute("role", "button");
     p.tabIndex = 0;
@@ -1512,8 +1515,11 @@ function dollHeader(d, mode) {
     tx.appendChild(l2);
   }
   game.refreshStability?.();
-  const stability = button({ label:`魂の安定度 ${d.stability}/${game.STABILITY_MAX}`, kind:"ghost", size:"sm",
-    onTap:town ? ()=>openStability(d) : ()=>toast("入場時に10消費・3分で1回復。探索中の追加消費はない", {tone:"info"}) });
+  const stable = game.vesselStable && game.vesselStable(d);
+  const stability = stable
+    ? button({ label:"師の器 ・ 安定度を消費しない", kind:"ghost", size:"sm", onTap:()=>toast("師オルドが一度で仕上げた器。魂の安定度を消費しない。メイン魂は灯守に固定", {tone:"info"}) })
+    : button({ label:`魂の安定度 ${d.stability}/${game.STABILITY_MAX}`, kind:"ghost", size:"sm",
+      onTap:town ? ()=>openStability(d) : ()=>toast(`入場時に10消費・${game.stabilityMinutes ? game.stabilityMinutes() : 3}分で1回復。探索中の追加消費はない`, {tone:"info"}) });
   stability.classList.add("pt-stability"); tx.appendChild(stability);
   head.appendChild(tx);
   if (town && pi < 0 && d.primary != null) {

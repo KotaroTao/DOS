@@ -28,11 +28,12 @@ import { SFX } from "../audio.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
 
-// 行の種類で書式を変える: 「…」= 語り手 (王) の台詞 / イレーヌ「…」/ 宰相… = 宰相の台詞 /
+// 行の種類で書式を変える: 「…」= 語り手 (王) の台詞 / イレーヌ「…」/ セラ「…」/ 宰相… = 宰相の台詞 /
 // ──『…』= 手紙・手記 / ── = 要旨 / それ以外 = 地の文
 function lineKind(t) {
   if (/^宰相/.test(t)) return "minister";
   if (/^イレーヌ「/.test(t)) return "irene";
+  if (/^セラ「/.test(t)) return "sera";
   if (/^──『/.test(t)) return "letter";
   if (/^──/.test(t)) return "decree";
   if (/^「/.test(t)) return "king";

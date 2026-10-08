@@ -1,0 +1,27 @@
+{
+  "status": "R1確認待ち。ゲームへの取り込み前。",
+  "source": "docs/art/archbishop/archbishop-r1-review.png",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "perDot": 13.72,
+  "head": [
+    464,
+    628,
+    230,
+    525
+  ],
+  "sole": 1359,
+  "scaleNote": "足裏の輪郭と縮小時の補間を含めて共通枠内へ収める微調整。頭頂から足裏は約82.29ドット。",
+  "crownNote": "主な銀白髪の塊の頭頂。司教冠と左の跳ね毛を除く。冠で隠れる部分は輪郭から推定した暫定測定。",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "alphaBBox": [
+    79,
+    147,
+    974,
+    1362
+  ],
+  "headBodyRatio": 3.8271186440677964
+}

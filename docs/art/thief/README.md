@@ -32,6 +32,10 @@ subprocess.run(['python3', 'tools/jobimg.py', 'thief',
     '--preview', 'docs/art/thief/import-preview.png'], check=True)
 ```
 
+## 顔アイコンの補正 (2026-10)
+
+取り込み時の頭の測定 (頭頂9・あご先30.7) は実際の顔より約4ドット下を指しており、顔アイコンで頭巾が切れて顔が上にずれていた。ゲーム画像のドット座標で目視で測り直し、`src/jobphotos.js` の `head` を全ランク `[46.0, 4.5, 26.3]` (頬の中心46・頭巾の下の髪の上端4.5・口布に隠れたあご先26.3、目の高さ約20) に直した。全身像の配置 (`face`) は変えていない。再取り込みした場合はこの値に戻すこと。
+
 ## 確認
 
 `final-review.png` は実際の `jobSprite` / `jobBust` / `crispCanvas` による聖戦士R1と盗賊R1〜R5の同倍率全身、56/36/26pxの顔アイコンと拡大。全身6枚・顔24枚の画像選択と描画、共通座標、ゲーム起動の結果は `final-review.json`。

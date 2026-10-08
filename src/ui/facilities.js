@@ -283,11 +283,11 @@ export function openInn() {
 // ---------- 酒場 (ページ) ----------
 // 区分: 掲示板 (いちばん上に酒場の噂話、続けて受けた依頼・報告 + 依頼人の頼み + 帰還ごとに貼り替わる依頼) / 顔ぶれ (居合わせる者たち)
 // 受注中の依頼と掲示板の依頼は1つの一覧にまとめ、ダンジョン指定なし → 推奨Lvの高い迷宮 → 低い迷宮 の見出しごとに
-// 報告できる → 受注中 → 未受注 の順に並べる (ユーザーの指示)
+// 受注中 → 未受注 の順に並べる。達成して報告できる依頼は最上部の「達成した依頼」にまとめる (ユーザーの指示)
 let tavernSeg = null;
 const questOrder = (q) => (q.state === "offer" ? 2 : qbReady(q) ? 0 : 1);
 function questGroup(group) {
-  const box = el("section", "fc-qgroup");
+  const box = el("section", "fc-qgroup" + (group.ready ? " ready" : ""));
   const heading = el("h3", "fc-qgroup-head");
   heading.appendChild(el("span", "fc-qgroup-name", group.name));
   heading.appendChild(el("span", "fc-qgroup-count", `${group.quests.length}件`));
@@ -324,10 +324,17 @@ function renderTavern(root) {
     const area = el("div", "fc-qarea");
     body.appendChild(sectionHead("掲示板", { note: `受注 ${L.freeCount}/${L.cap} ・ 貼り紙は帰還のたびに貼り替わる` }));
     body.appendChild(area);
-    // 酒場の噂話は掲示板のいちばん上 (依頼と一緒に縦に巻く。ユーザーの指示)
-    const groups = dungeonGroups([...L.active, ...L.offers]);
+    // 達成して報告できる依頼は迷宮の見出しから抜き出し、掲示板の最上部 (噂話より上) にまとめる (ユーザーの指示)。
+    // 続けて酒場の噂話 (依頼と一緒に縦に巻く)、迷宮ごとの見出し
+    const done = L.active.filter(qbReady);
+    const doneSet = new Set(done);
+    const groups = dungeonGroups([...L.active.filter((q) => !doneSet.has(q)), ...L.offers]);
     const rumorOpen = !!(game.featureUnlocked && game.featureUnlocked("rumor")); // 噂話が開くまでは見出しごと出さない
-    const items = [...(rumorOpen ? [{ rumor: true }] : []), ...(groups.length ? groups : [{ empty: true }])];
+    const items = [
+      ...(done.length ? [{ name: "達成した依頼 ― 報告できる", quests: done, ready: true }] : []),
+      ...(rumorOpen ? [{ rumor: true }] : []),
+      ...(groups.length || done.length ? groups : [{ empty: true }]),
+    ];
     scrollGrid(area, items, (it) => {
       if (it.rumor) { const box = el("section", "fc-rumor-sec"); renderRumor(box); return box; }
       if (it.empty) return el("div", "wa-empty", "受けている依頼も貼り紙もない。迷宮から戻れば、新たな依頼が貼られる。");
