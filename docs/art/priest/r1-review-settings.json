@@ -1,0 +1,26 @@
+{
+  "status": "R1確認待ち。ゲームへの取り込み前。",
+  "source": "docs/art/priest/priest-r1-draft.png",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "perDot": 14.234016887816646,
+  "head": [
+    524,
+    654,
+    166,
+    480
+  ],
+  "sole": 1346,
+  "crownNote": "頭巾の上端ではなく、隠れた主な髪の頭頂を推定。承認用の暫定測定。",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "headBodyRatio": 3.7579617834394905,
+  "alphaBBox": [
+    133,
+    129,
+    973,
+    1349
+  ]
+}

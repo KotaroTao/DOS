@@ -1,0 +1,22 @@
+{
+  "job": "dragonknight",
+  "name": "竜騎士",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "approvedR1": "docs/art/dragonknight/dragonknight-r1-final.png",
+  "frame": [90, 92],
+  "frameTop": 9,
+  "ranks": [
+    {"rank": 1, "source": "dragonknight-r1-final.png", "perDot": 14.5, "head": [505, 638, 160, 465], "sole": 1356, "alphaBBox": [35, 113, 1086, 1357]},
+    {"rank": 2, "source": "dragonknight-r2-final.png", "perDot": 14.5, "head": [505, 638, 160, 465], "sole": 1357, "alphaBBox": [34, 112, 1103, 1358]},
+    {"rank": 3, "source": "dragonknight-r3-final.png", "perDot": 14.5, "head": [505, 638, 160, 465], "sole": 1358, "alphaBBox": [31, 114, 1087, 1359]},
+    {"rank": 4, "source": "dragonknight-r4-final.png", "perDot": 14.5, "head": [505, 638, 160, 465], "sole": 1356, "alphaBBox": [35, 113, 1104, 1357]},
+    {"rank": 5, "source": "dragonknight-r5-final.png", "perDot": 14.5, "head": [505, 638, 160, 465], "sole": 1354, "alphaBBox": [32, 78, 1102, 1355]}
+  ],
+  "notes": [
+    "各画像を目視測定。頭頂は主な髪の上端で、竜角・冠・ポニーテールを含めない。",
+    "各ランクの顔と人体が同じ位置にあるため測定値は共通。",
+    "足裏は頭頂から約82.34〜82.62ドット。縮小時の輪郭を共通枠に収めるためperDotを14.5とした。",
+    "ユーザー指定R1を維持。聖戦士と頭頂・顔中心は一致するが顎は0.895ドット上にある。require-photosの頭座標差0.3未満という検査には適合しない。画像選択・顔中心・対象5ランクの頭座標一致は別途検査した。",
+    "alphaBBoxは取り込みツールと同じくalpha<=1を除いた範囲。機械的なドット化・減色は行っていない。"
+  ]
+}
