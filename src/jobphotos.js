@@ -118,5 +118,19 @@ export const JOB_PHOTOS = {
     4: { src: "art/jobs/bishop_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.93] },
     5: { src: "art/jobs/bishop_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.93] },
   },
+  priest: {
+    1: { src: "art/jobs/priest_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.977] },
+    2: { src: "art/jobs/priest_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.822] },
+    3: { src: "art/jobs/priest_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.94] },
+    4: { src: "art/jobs/priest_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.851] },
+    5: { src: "art/jobs/priest_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.738] },
+  },
+  knight: {
+    1: { src: "art/jobs/knight_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.91] },
+    2: { src: "art/jobs/knight_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.87] },
+    3: { src: "art/jobs/knight_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.696] },
+    4: { src: "art/jobs/knight_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.773] },
+    5: { src: "art/jobs/knight_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.715] },
+  },
   // <<JOB_PHOTOS>>
 };
