@@ -436,6 +436,9 @@ body.pt-dragging, body.pt-dragging * { cursor: grabbing !important; user-select:
 .pt-cand-sheet .ui-sheet-body, .pt-pick-sheet .ui-sheet-body, .pt-res-sheet .ui-sheet-body, .pt-item-sheet .ui-sheet-body,
 .pt-sheet .ui-sheet-body, .sp-pick-sheet .ui-sheet-body { text-align: left; }
 .pt-cand-sheet .ui-sheet-body, .sp-pick-sheet .ui-sheet-body, .pt-pick-sheet .ui-sheet-body { padding-bottom: 22px; }
+/* 宿し技をえらぶ: 技の名の横に戦闘のスキル一覧と同じ札 (種別・属性・全体) */
+.sp-pick-tags { margin-left: 8px; }
+.sp-pick-tags .ui-tag { font-size: 11px; }
 .ui-sheet[class*="pt-"] .ui-btn:focus:not(:focus-visible), .ui-sheet[class*="sp-"] .ui-btn:focus:not(:focus-visible) { outline: none; }
 .ui-sheet[class*="pt-"] :focus-visible, .ui-sheet[class*="sp-"] :focus-visible, .pt-root :focus-visible { outline: 2px solid rgba(243,213,139,0.7); outline-offset: 2px; }
 .pt-cur {

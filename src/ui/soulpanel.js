@@ -9,7 +9,7 @@
 import { UI, game, ops, registerUI } from "./ctx.js";
 import { el, button, row, sheet, toast, confirm, statDelta, bar, svgIcon, celebrate, longPress } from "./kit.js";
 import { countUp } from "./motion.js";
-import { showSkillPopup, showPassivePopup, SPELL_KIND_LABEL } from "./itemview.js";
+import { showSkillPopup, showPassivePopup, SPELL_KIND_LABEL, tagRow, spellTagKinds } from "./itemview.js";
 import {
   SOUL_CLASSES, jobSprite, jobBust, soulByUid, soulRankOf, soulLevelCapOf, emberCostOf, nextRankThreshold, jobRankName, soulSeriesName,
   soulLearnedSkills, soulLearnedPassives, soulLabel, soulRankLeft, passiveName, passiveDesc, orderStatBonus, orderStatRateOfRank, ORDER_STAT_RATES,
@@ -992,6 +992,10 @@ export function openSkillStep(d, subRef) {
         const on = subPickIndex(subRef, "skill", sk) >= 0;
         const r = row({ title: `${sp ? sp.name : sk}${on ? "（借りている）" : ""}`, sub: sp ? `${SPELL_KIND_LABEL[sp.kind] || ""} ・ ${spellMpLabel(sp)} ・ ${sp.desc || ""}` : "",
           tone: on ? "gold" : null, right: "技", onTap: () => pick(h, "skill", sk) });
+        // 戦闘のスキル一覧と同じ札 (種別・属性・全体)。物理技は借り手の武器の属性も乗る
+        const tg = sp && tagRow(spellTagKinds(sp, d), "sp-pick-tags");
+        const tt = tg && r.querySelector(".ui-row-title");
+        if (tt) tt.appendChild(tg);
         longPress(r, () => showSkillPopup(sk));
         list.appendChild(r);
       }
