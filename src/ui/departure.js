@@ -21,7 +21,7 @@ import { el, sheet, button, setText, portrait, segmented, toast, confirm as kitC
 import { ELEMENTS } from "../dungeons/index.js";
 import { iconCanvas } from "../townart.js";
 import { drawDungeonVista } from "../backdrops.js";
-import { dungeonQuestSheet, dungeonActiveQuestSheet } from "./questboard.js";
+import { dungeonQuestSheet, dungeonActiveQuestSheet, byLevelDesc } from "./questboard.js";
 
 const G = () => game.G;
 const sfx = (k) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](); } catch (e) { /* 音が無くても動く */ } };
@@ -50,7 +50,7 @@ function dangerOf(dn) {
   return null;
 }
 
-// ---- 門の一覧 (迷宮の地図: 台帳の並び。地図にない迷宮は、解放の手がかりだけを見せる) ----
+// ---- 門の一覧 (迷宮の地図: 推奨Lvの高い順。地図にない迷宮は、解放の手がかりだけを見せる) ----
 function gateIcon(kind) {
   const w = el("span", "dp-gate-ic");
   try { const c = iconCanvas(kind); if (c) w.appendChild(c); } catch (e) { /* 演出のみ */ }
@@ -154,27 +154,9 @@ function renderHero(b) {
     for (const ln of tr.lines || []) box.appendChild(setText(el("div", "dp-mut-l"), ln));
     hero.appendChild(box);
   }
-  // 名のある強敵 (縄張り = この迷宮の強敵階に出る)。名・目撃・討伐・首級・懸賞
-  const named = game.namedHere ? game.namedHere(dn) : [];
-  if (named.length) {
-    const box = el("div", "dp-mut dp-trait dp-named");
-    box.style.setProperty("--mut", "#e0604a");
-    const h = el("div", "dp-mut-h");
-    h.appendChild(el("span", "dp-mut-k", "名のある強敵"));
-    h.appendChild(el("span", "dp-mut-n", named.map((n) => `⚔ ${n.name}`).join("　")));
-    box.appendChild(h);
-    for (const n of named) {
-      const st = [];
-      st.push(n.kills ? `討伐 ${n.kills}` : n.seen ? `目撃 ${n.seenAt ? n.seenAt + " " : ""}B${n.seen.floor}F` : "まだ姿を見せていない (3F以降の強敵階に出る)");
-      if (n.trophy) st.push("首級 ✓");
-      else if (n.kills) st.push("首級を取り戻せる");
-      if (n.bounty === "active") st.push("懸賞を受けている (強敵階が出やすい)");
-      else if (n.bounty === "done") st.push("懸賞を果たした (酒場で報告)");
-      else if (n.posted) st.push("酒場に懸賞あり");
-      box.appendChild(setText(el("div", "dp-mut-l"), `${named.length > 1 ? n.name + ": " : ""}${st.join(" ・ ")}`));
-    }
-    hero.appendChild(box);
-  }
+  // 迷宮の異変 (掟の下。名のある強敵の札はここに置かない — ユーザーの指示、2026-10)
+  const mut = mutatorStrip();
+  if (mut) hero.appendChild(mut);
   const dg = dangerOf(dn);
   if (dg && dg.note) {
     const r = el("div", "dp-issue t-" + (dg.cls === "reckless" ? "bad" : "warn"));
@@ -185,7 +167,7 @@ function renderHero(b) {
   b.appendChild(hero);
 }
 
-// ---- 門の一覧 (迷宮の地図: 台帳の並び。5 行ぶん見せ、6 つ目からは縦に巻く) ----
+// ---- 門の一覧 (迷宮の地図: 推奨Lvの高い順。5 行ぶん見せ、6 つ目からは縦に巻く) ----
 function renderGates(b) {
   const g = G();
   const D = game.DUNGEONS || [];
@@ -193,7 +175,8 @@ function renderGates(b) {
   const qi = questIdx();
   if (!isOpen(g.dungeonIdx)) g.dungeonIdx = Math.max(0, D.findIndex((d, i) => isOpen(i)));
   renderHero(b);
-  const opened = D.map((d, i) => i).filter(isOpen);
+  // 推奨Lvの高い迷宮から並べる (ユーザーの指示)
+  const opened = byLevelDesc(D.filter((d, i) => isOpen(i))).map((d) => D.indexOf(d));
   const ch = game.currentChapter ? game.currentChapter() : null;
   const list = el("div", "dp-gates");
   list.setAttribute("role", "radiogroup");
@@ -583,9 +566,7 @@ function departGo() {
 
 function body(b) {
   if (cur.page === "abyss") { renderAbyssPage(b); renderStability(b); return; }
-  renderGates(b);
-  const m = mutatorStrip();
-  if (m) b.appendChild(m);
+  renderGates(b); // 迷宮の異変は門の一覧の上 (迷宮の顔の中) に出す
   renderStability(b);
   renderReadyIssues(b);
 }

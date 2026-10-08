@@ -104,6 +104,10 @@ function firstVisit(key) {
   setPref("keeperSeen", seen);
   return true;
 }
+// 物語の上でその場にいない番人 (FAC_SHELL の absent) は胸像も台詞も出さない
+function keeperAbsent(shell) {
+  try { return !!(shell.absent && shell.absent()); } catch (e) { return false; }
+}
 function keeperLine(shell) {
   const g = G();
   const ls = shell.lines || [];
@@ -113,7 +117,7 @@ function keeperLine(shell) {
 // 胸像のシート (台詞の一覧)
 export function keeperSheet(key) {
   const shell = (game.FAC_SHELL || {})[key];
-  if (!shell || !shell.keeper) return null;
+  if (!shell || !shell.keeper || keeperAbsent(shell)) return null;
   const body = el("div", "kp-sheet");
   const fr = el("div", "kp-sheet-bust");
   try { const c = keeperCanvas(shell.keeper); if (c) fr.appendChild(c); } catch (e) { /* 演出のみ */ }
@@ -138,7 +142,7 @@ function expandNow(key) {
 // 見出しの下の1行 (48px)。key = FAC_SHELL の鍵
 export function keeperRow(key) {
   const shell = (game.FAC_SHELL || {})[key];
-  if (!shell || !shell.keeper) return null;
+  if (!shell || !shell.keeper || keeperAbsent(shell)) return null;
   const line = keeperLine(shell);
   const open = () => { sfx("select"); keeperSheet(key); };
   if (expandNow(key)) {
@@ -277,8 +281,9 @@ export function openInn() {
 }
 
 // ---------- 酒場 (ページ) ----------
-// 区分: 掲示板 (受けた依頼・報告 + 依頼人の頼み + 帰還ごとに貼り替わる依頼) / 噂と顔ぶれ (噂話・居合わせる者たち)
-// 受注中の依頼と掲示板の依頼は1つの一覧にまとめ、迷宮ごとに 報告できる → 受注中 → 未受注 の順に並べる (ユーザーの指示)
+// 区分: 掲示板 (いちばん上に酒場の噂話、続けて受けた依頼・報告 + 依頼人の頼み + 帰還ごとに貼り替わる依頼) / 顔ぶれ (居合わせる者たち)
+// 受注中の依頼と掲示板の依頼は1つの一覧にまとめ、ダンジョン指定なし → 推奨Lvの高い迷宮 → 低い迷宮 の見出しごとに
+// 報告できる → 受注中 → 未受注 の順に並べる (ユーザーの指示)
 let tavernSeg = null;
 const questOrder = (q) => (q.state === "offer" ? 2 : qbReady(q) ? 0 : 1);
 function questGroup(group) {
@@ -297,7 +302,7 @@ function tavernSegments() {
   const fresh = L.offers.filter((q) => q.fresh).length;
   return [
     { key: "board", label: "掲示板", badge: (ready + fresh) || null },
-    { key: "talk", label: "噂と顔ぶれ" },
+    { key: "talk", label: "顔ぶれ" },
   ];
 }
 function renderTavern(root) {
@@ -319,21 +324,25 @@ function renderTavern(root) {
     const area = el("div", "fc-qarea");
     body.appendChild(sectionHead("掲示板", { note: `受注 ${L.freeCount}/${L.cap} ・ 貼り紙は帰還のたびに貼り替わる` }));
     body.appendChild(area);
-    const empty = el("div", "wa-empty", "受けている依頼も貼り紙もない。迷宮から戻れば、新たな依頼が貼られる。");
-    scrollGrid(area, dungeonGroups([...L.active, ...L.offers]), questGroup, { cols: 1, cellH: null, gap: 14, key: "tav-board", empty });
+    // 酒場の噂話は掲示板のいちばん上 (依頼と一緒に縦に巻く。ユーザーの指示)
+    const groups = dungeonGroups([...L.active, ...L.offers]);
+    const rumorOpen = !!(game.featureUnlocked && game.featureUnlocked("rumor")); // 噂話が開くまでは見出しごと出さない
+    const items = [...(rumorOpen ? [{ rumor: true }] : []), ...(groups.length ? groups : [{ empty: true }])];
+    scrollGrid(area, items, (it) => {
+      if (it.rumor) { const box = el("section", "fc-rumor-sec"); renderRumor(box); return box; }
+      if (it.empty) return el("div", "wa-empty", "受けている依頼も貼り紙もない。迷宮から戻れば、新たな依頼が貼られる。");
+      return questGroup(it);
+    }, { cols: 1, cellH: null, gap: 14, key: "tav-board" });
   };
   drawSeg();
   if (tavernSeg === "board") setTimeout(() => UI.tutorialEvent?.("tavernBoard"), 0);
 }
-// 噂話と居合わせる者たち
-function renderTalk(wrap) {
+// 酒場の噂話 (掲示板のいちばん上)
+function renderRumor(wrap) {
   const g = G();
   // 酒場の噂話 (game.js FEATURES.rumor の報告で情報屋が動く)
   wrap.appendChild(sectionHead("酒場の噂話"));
-  const rumorOpen = game.featureUnlocked && game.featureUnlocked("rumor");
-  if (!rumorOpen) {
-    wrap.appendChild(lockedRow("まだ噂は回ってこない", `情報屋が腰を上げるのは、名の知れた操霊師が現れてから (${game.featureNote ? game.featureNote("rumor") : "踏破を王に報告すると開く"})。`));
-  } else if (g.rumor) {
+  if (g.rumor) {
     const rb = el("div", "fc-rumor");
     rb.appendChild(setText(el("div", "fc-rumor-s"), `— ${g.rumor.speaker} —`));
     rb.appendChild(setText(el("div", "fc-rumor-t"), g.rumor.text));
@@ -351,6 +360,10 @@ function renderTalk(wrap) {
       wrap.appendChild(rb);
     }
   }
+}
+// 居合わせる者たち
+function renderTalk(wrap) {
+  const g = G();
 
   // 3) 居合わせる者たち (帰還ごとに入れ替わる)。収まる人数ずつめくる
   if ((!g.tavernCrowd || !g.tavernCrowd.length) && game.rollTavernCrowd) game.rollTavernCrowd();
@@ -447,7 +460,7 @@ export function install() {
   });
   if (UI.shell) {
     UI.shell.registerPage("tavern", { title: "酒場「沈まぬ灯」", parentTab: "hub", render: (root) => renderTavern(root) });
-    // 酒場を区分つきで開く (手ほどき「酒場の噂話」は "talk")
+    // 酒場を区分つきで開く (噂話は掲示板の区分のいちばん上)
     registerUI({ openTavern: (seg = null) => { tavernSeg = seg; UI.shell.openPage("tavern", { parentTab: "hub" }); } });
     UI.shell.registerPage("shrine", { title: "赤い魂の祠", parentTab: "hub", render: (root) => renderShrine(root) });
   }
