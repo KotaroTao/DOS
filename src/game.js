@@ -5248,10 +5248,12 @@ function autoMovePlan() {
           first.set(k, step);
           const foe = isFoe(c) && (c.revealed || sensed.has(k));
           // 表向きでも未発見の手がかりは探索する。未訪問の出来事・開けていない宝箱は設定で避けなければ向かう。
-          // 一度立ち去った出来事・「開けない」を選んだ宝箱は自動で問い直さない。
+          // 一度立ち去った出来事・「開けない」を選んだ宝箱・立ち去った死体は自動で問い直さない。
+          // 死体 (あたたかい・偉大なる・風化) は宝箱と同じ設定に従う (ユーザーの指示、2026-10。起き上がって逃げた死体は除く)
           const unread = !c.cleared && (c.type === "story" ||
             (c.type === "event" && !c.evSeen && !avoid.event) ||
-            (c.type === "chest" && !c.chestSeen && !avoid.chest));
+            (c.type === "chest" && !c.chestSeen && !avoid.chest) ||
+            (c.type === "corpse" && !c.corpseSeen && !c._corpseRise && !avoid.chest));
           // 行き先: 挑む敵 / 伏せた墓石 (避ける宝箱の光を除く) / 未読の物語・出来事・宝箱 (見えている罠は避ける)
           if (!found && !danger(c) && (foe ? fightable(c) : c.revealed ? unread : !sensedChest.has(k))) found = step;
           if (found) continue;
@@ -6190,7 +6192,7 @@ function resolveCorpse(cell) {
   if (cell.corpseGreat) {
     showChoice(`偉大なる死体。尋常ならざる魂の気配がする。`, [
       { label: "魂を回収する", primary: true, fn: () => collectWarmCorpse(cell, clsKey, clsLabel) },
-      { label: "立ち去る", fn: () => { log("偉大なる死体に手を触れず、立ち去った。", "sys"); renderBoard(); } },
+      { label: "立ち去る", fn: () => { cell.corpseSeen = true; log("偉大なる死体に手を触れず、立ち去った。", "sys"); renderBoard(); } }, // オート移動はもう向かわない
     ], ICONS.corpseWarm, { banner: "★ 偉大なる死体 ★", accent: "#ffcf4a", lines: ["まれに死体が目覚めて襲ってくる。勝てば魂は必ず手に入る。"] });
     return;
   }
@@ -6199,7 +6201,7 @@ function resolveCorpse(cell) {
     if (uiDungeonHud.getPref("autoCorpse") !== false) { investigateCorpse(cell, clsKey, clsLabel); return; }
     showChoice(`風化した死体が横たわっている。調べてみるか？`, [
       { label: "調べる", primary: true, fn: () => investigateCorpse(cell, clsKey, clsLabel) },
-      { label: "立ち去る", fn: () => { log("死体には触れず、立ち去った。", "sys"); renderBoard(); } },
+      { label: "立ち去る", fn: () => { cell.corpseSeen = true; log("死体には触れず、立ち去った。", "sys"); renderBoard(); } },
     ], ICONS.corpse, { banner: "— 風化した死体 —", accent: "#8c866f" });
     return;
   }
@@ -6207,7 +6209,7 @@ function resolveCorpse(cell) {
   // 宿る魂の職業は、回収するまで明かさない (札の色も職業色ではなく魂の青)
   showChoice(`まだあたたかい死体。魂が宿っている。`, [
     { label: "魂を回収する", primary: true, fn: () => collectWarmCorpse(cell, clsKey, clsLabel) },
-    { label: "立ち去る", fn: () => { log("死体に手を触れず、立ち去った。", "sys"); renderBoard(); } },
+    { label: "立ち去る", fn: () => { cell.corpseSeen = true; log("死体に手を触れず、立ち去った。", "sys"); renderBoard(); } },
   ], ICONS.corpseWarm, { banner: "✦ あたたかい死体 ✦", accent: "#7fd0ff", lines: ["まれに死体が起き上がる。勝てば魂は必ず手に入る。"] });
 }
 
@@ -13614,11 +13616,10 @@ function showItemDetailPopup(p, sel) {
 }
 
 // 未鑑定品の詳細ポップアップ (旧来の .ig-choices) に「鑑定する」アクションを足す。
-// 街でのみ、鑑定の心得がある者 (隊と控え) がいればその場で試せる。失敗済み (idHardFail) とレジェンドレアは商会送り。
+// 街でのみ、鑑定の心得がある者 (隊と控え) がいればその場で試せる。失敗済み (idHardFail) は商会送り。
 // 新しい品シート (UI.itemSheet) は自前の「鑑定を試す / 鑑定する」を持つ。これは旧画面の互換用
 function addIdentifyAction(acts, it, close) {
   const off = (label) => { const b = btn(label, () => {}); b.disabled = true; acts.appendChild(b); };
-  if (it.lr) return off("レジェンドレアは商会でのみ鑑定できる");
   if (it.idHardFail) return off("鑑定に失敗した品 (商会でのみ鑑定できる)");
   if (G.state !== "town") return off("鑑定は街でのみできる");
   const idmen = townAppraisers();
@@ -13645,7 +13646,7 @@ function townAppraisers() {
 // 鑑定は街でのみ (迷宮では何もしない)
 // quiet: 音・トースト・描き直し・保存を呼び出し側 (鑑定を試みるの演出 src/ui/appraise.js) に任せる
 function doIdentifySkill(m, it, { quiet = false } = {}) {
-  if (!it || !it.unidentified || it.lr || it.idHardFail) return false;
+  if (!it || !it.unidentified || it.idHardFail) return false;
   if (G.state !== "town") return false;
   const ch = identifyChance(m, it);
   const ok = Math.random() < ch;

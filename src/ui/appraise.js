@@ -33,11 +33,11 @@ const T = () => (reduced && reduced()
 // ---------------------------------------------------------------- 数え上げ
 // 鑑定の心得がある者 (街でのみ。隊と控えの生きている全員。迷宮では鑑定できない)
 export function appraisers() { return townAppraisers(); }
-// 技で試せる未鑑定の品 (隊と控えの所持品。レジェンドレアと失敗済みは商会でのみ)
+// 技で試せる未鑑定の品 (隊と控えの所持品。失敗済みは商会でのみ)
 export function skillTargets() {
   const out = [];
   for (const d of allDolls()) for (const it of (d.items || [])) {
-    if (it && it.unidentified && !it.lr && !it.idHardFail) out.push({ item: it, doll: d });
+    if (it && it.unidentified && !it.idHardFail) out.push({ item: it, doll: d });
   }
   return out;
 }

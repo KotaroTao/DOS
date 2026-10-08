@@ -73,11 +73,13 @@ export const SPELL_KIND_COLOR = { atk: "#e0743f", heal: "#46c08f", phys: "#d8b04
 
 // ===== 種別・属性アイコン (敵の特徴・味方のスキルに添える小さな札) =====
 // 物 = 物理 / 魔 = 魔法 (ブレス含む) / 回復 / その他 (強化・弱体・招来など)。属性は「火」「水」…の札を並べる
+// 全体 = 敵全体・味方全体を対象にする技
 const TAG_KIND = {
   phys:  { t: "物", c: "#d8b04a" },
   mag:   { t: "魔", c: "#b48ae8" },
   heal:  { t: "回復", c: "#46c08f" },
   other: { t: "その他", c: "#8f96a3" },
+  all:   { t: "全体", c: "#e0b45a" },
 };
 const SPELL_TAG_KIND = { phys: "phys", atk: "mag", heal: "heal", cure: "heal", mana: "heal" };
 // 敵の特徴 → 種別。elem = 攻撃に魔物の固有属性が乗る (物理攻撃・ブレスは固有属性で打つ)
@@ -116,6 +118,8 @@ export function spellTagKinds(sp, actor) {
   let elk = sp.element;
   if (!hasElem(elk) && sp.kind === "phys" && actor && actor.elemAtk) elk = actor.elemAtk.el;
   if (hasElem(elk)) out.push("el:" + elk);
+  // 全体を対象にする技 (敵全体・味方全体) には「全体」の札 (ユーザーの指示、2026-10)
+  if (sp.target === "all-enemy" || sp.target === "all-ally") out.push("all");
   return out;
 }
 // 敵の特徴の札。element = その魔物の固有属性
