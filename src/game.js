@@ -15501,7 +15501,8 @@ function init() {
     ev: { evApi, runEvent, eventFightWon, EVENT_MAP, enterDungeon, newFloor, descend, resolveCell, renderBoard, endBattle, evNewFloor, evProgress, eventFacts, makeDoll, addSoulInstance, recalcDoll, evUnit },
     // 迷宮の台帳・物語の進みの検証用
     world: { worldState, refreshWorldUnlocks, reportMainQuest, lateClue, tellLateClue, reportTutorialQuest, grantTutorialGift, commitDungeonClear, showDungeonClearedPopup, askGate, departNow, storyGoal, objectiveInfo, decreeInfo,
-      playIreneBeat, pendingIreneBeat, storyNewFloor, runStoryCell, resumeFromState, startFloorsOf, foeLevelHere, claimTreasury, partyLevel, leaveDungeon, DUNGEONS, finalizeBuyDoll, totalDonatedKinds, treasuryState } };
+      playIreneBeat, pendingIreneBeat, storyNewFloor, runStoryCell, resumeFromState, startFloorsOf, foeLevelHere, claimTreasury, partyLevel, leaveDungeon, DUNGEONS, finalizeBuyDoll, totalDonatedKinds, treasuryState,
+      clueBoon, syncClueBoons, seraJoin, seraDoll, hostSeraSoul, repairCostOf, restoreStability, stabilityStatus, revealByCartography } };
 
   if (testPlayActive) {
     const floor = setupTestPlay();
