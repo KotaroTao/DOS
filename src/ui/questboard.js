@@ -31,17 +31,22 @@ export function byLevelDesc(dungeons) {
     .map((x) => x.d);
 }
 // ダンジョン指定なし・納品を先頭に、続けて推奨Lvの高い迷宮から順にまとめる。同じ見出しの中では元の依頼順を保つ。
+// まだ地図にない迷宮 (受けると地図に開く依頼の迷宮) は名を見出しに出さず、「受けると地図に記される迷宮」にまとめる
 export function dungeonGroups(quests, dungeons = game.DUNGEONS || []) {
   const groups = new Map();
+  const all = game.DUNGEONS || dungeons;
+  const isOpen = (d) => { try { return game.worldOpenIdx ? game.worldOpenIdx(all.indexOf(d)) : true; } catch (e) { return true; } };
   const known = new Set(dungeons.map((d) => d.id));
+  const open = new Set(dungeons.filter(isOpen).map((d) => d.id));
   for (const q of quests) {
     const id = q.homeDungeon || q.dungeon;
-    const key = known.has(id) ? id : null;
+    const key = !known.has(id) ? null : open.has(id) ? id : "unopened";
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(q);
   }
   return [
     ...(groups.has(null) ? [{ id: null, name: "ダンジョン指定なし・納品", quests: groups.get(null) }] : []),
+    ...(groups.has("unopened") ? [{ id: null, name: "受けると地図に記される迷宮", quests: groups.get("unopened") }] : []),
     ...byLevelDesc(dungeons.filter((d) => groups.has(d.id))).map((d) => ({ id: d.id, name: d.name, quests: groups.get(d.id) })),
   ];
 }
