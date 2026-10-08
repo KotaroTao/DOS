@@ -57,6 +57,8 @@ import * as uiPalace from "./ui/palace.js";
 import * as uiFacilities from "./ui/facilities.js";
 import * as uiSettings from "./ui/settings.js";
 import * as uiJournal from "./ui/journal.js";
+import { seedJournal } from "./journal.js";
+import { storyImage } from "./archive-stories.js";
 import * as uiStory from "./ui/story.js";
 import * as uiParty from "./ui/party.js";
 import * as uiSoulPanel from "./ui/soulpanel.js";
@@ -509,6 +511,7 @@ const G = {
   order: { picks: [] }, // 控えの結社: 席に着けた魂のuid配列 (席数=orderSeats()。編成外の魂のみ有効。能力の一部を全員に足す)
   events: { seen: {}, picks: {}, once: {}, flags: {}, fresh: {} }, // 迷宮のイベント (src/events.js): 見聞録・一度きり・恒久の恵み
   irene: { greeted: false, visits: 0, seen: {}, last: null }, // 人業の館の主イレーヌ: 初訪問の挨拶済み・来館数・聞いた話 (src/ui/irene.js)
+  journal: { read: {}, known: {} }, // ストーリー一覧: 読んだ物語・「物語が記された」を知らせた物語 (src/journal.js)
   tut: { done: {}, cur: null, step: 0, ev: {}, base: {} }, // 解放された要素の手ほどき: 済んだもの・最中のもの (src/ui/tutorial.js)
   story: 0,           // 王宮ストーリーの進行段階
   dragonSlain: false, // 竜を討ったか
@@ -5762,7 +5765,7 @@ function runStoryCell(cell) {
   if (!def) { cell.cleared = true; cell.type = "empty"; renderBoard(); return; }
   const w = worldState();
   SFX.itemget(); buzz([0, 30, 60, 30]);
-  UI.playStoryChain([{ title: def.title, lines: storyLines(def.lines), art: def.art, who: "none", kicker: "師の手がかり", btnLabel: "胸に刻む" }], () => {
+  UI.playStoryChain([{ title: def.title, lines: storyLines(def.lines), art: def.art, photo: storyImage(key), who: "none", kicker: "師の手がかり", btnLabel: "胸に刻む" }], () => {
     w.found[key] = 1;
     w.last = { kind: "cell", key };
     cell.cleared = true; cell.type = "empty";
@@ -5785,11 +5788,12 @@ function playIreneBeat(done) {
   const b = pendingIreneBeat();
   if (!b) return false;
   const w = worldState();
-  UI.playStoryChain([{ title: b.title, lines: storyLines(b.lines), art: b.art, who: "irene", kicker: "人業の館", btnLabel: "うなずく" }], () => {
+  UI.playStoryChain([{ title: b.title, lines: storyLines(b.lines), art: b.art, photo: storyImage(b.id), who: "irene", kicker: "人業の館", btnLabel: "うなずく" }], () => {
     w.beats[b.id] = 1;
     w.last = { kind: "irene", id: b.id };
     autosave(true);
     if (done) done();
+    if (UI.queueStoryNotice) UI.queueStoryNotice(); // 語りで記された物語を知らせる
   });
   return true;
 }
@@ -9695,7 +9699,7 @@ function playBossMemory(id, done) {
   const mem = BOSS_MEMORIES[id];
   const w = worldState();
   if (!mem || !w.cleared[id] || w.beats["mem_" + id]) return false;
-  UI.playStoryChain([{ title: mem.title, lines: storyLines(mem.lines), art: mem.art, who: "none", kicker: "魂の記憶", btnLabel: "胸に刻む" }], () => {
+  UI.playStoryChain([{ title: mem.title, lines: storyLines(mem.lines), art: mem.art, photo: storyImage("mem_" + id), who: "none", kicker: "魂の記憶", btnLabel: "胸に刻む" }], () => {
     w.beats["mem_" + id] = 1;
     autosave(true);
     if (done) done();
@@ -9968,6 +9972,7 @@ function renderTown() {
   updateTopbar();
   playBgm(sceneBgm()); // 施設ごとのBGM (同じ曲なら継続)
   townshell.refresh();
+  if (UI.queueStoryNotice) UI.queueStoryNotice(); // 新しく記された物語を、手の空いた時に知らせる
   if (then) queueMicrotask(() => { if (G.state === "town") then(); });
 }
 
@@ -11774,7 +11779,7 @@ function reportMainQuest() {
   const after = { ...w, reported: { ...w.reported, [id]: 1 } };
   const newly = FEATURE_KEYS.filter((k) => !featureMet(k, w) && featureMet(k, after));
   const pages = [{
-    title: rep.title, lines, reward: rwText, kicker: `踏破の報告 ― ${cfg.name}`,
+    title: rep.title, lines, reward: rwText, kicker: `踏破の報告 ― ${cfg.name}`, photo: storyImage("report_" + id),
     leave: () => {
       if (w.reported[id]) return;
       G.gold += r.gold;
@@ -11803,7 +11808,7 @@ function reportMainQuest() {
   const ch = CHAPTERS.find((c) => c.finale === id);
   const end = ch && CHAPTER_END[ch.no];
   if (end && !w.beats["ch" + ch.no + "_end"]) {
-    pages.push({ title: end.title, lines: end.lines, kicker: "章の結び", who: "none", art: "candle", btnLabel: "物語を閉じる",
+    pages.push({ title: end.title, lines: end.lines, kicker: "章の結び", who: "none", art: "candle", photo: storyImage("ch" + ch.no + "_end"), btnLabel: "物語を閉じる",
       leave: () => { w.beats["ch" + ch.no + "_end"] = 1; w.last = { kind: "chapter", no: ch.no }; flashScreen("#ffd84a"); autosave(true); } });
   }
   playMsqChain(pages, toasts, scenes.length ? () => { if (UI.tutorialAfterReport) UI.tutorialAfterReport(); } : null);
@@ -11847,7 +11852,7 @@ function grantTutorialGift() {
 
 // 着任の謁見の語り → 閉じたら下賜 (grantTutorialGift) して街へ降り立つ
 function audienceTutorial() {
-  UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: TUT_INTRO, reward: [{ job: "fighter" }, { job: "priest" }, { job: "thief" }], kicker: "着任の謁見" }], () => {
+  UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: TUT_INTRO, reward: [{ job: "fighter" }, { job: "priest" }, { job: "thief" }], photo: storyImage("arrival"), kicker: "着任の謁見" }], () => {
     landOnHub();
     grantTutorialGift();
     if (UI.tutorialAfterReport) UI.tutorialAfterReport();
@@ -11861,7 +11866,7 @@ function reportTutorialQuest() {
   if (ms.stage !== "fourth") {
     playMsqChain([{
       title: "三体の人業の報告", lines: TUT_THREE_REPORT,
-      reward: [{ cur: "red", n: 100 }, { job: "mage" }], kicker: "次の勅命",
+      reward: [{ cur: "red", n: 100 }, { job: "mage" }], kicker: "次の勅命", photo: storyImage("three"),
       leave: () => {
         if (G.msq !== ms || ms.stage === "fourth") return;
         ms.stage = "fourth";
@@ -11876,7 +11881,7 @@ function reportTutorialQuest() {
   }
   const toasts = [];
   const pages = [{
-    title: "勅命「人業の生成」完遂", lines: TUT_FINALE, reward: [{ cur: "gold", n: 500 }], kicker: "勅命の完遂",
+    title: "勅命「人業の生成」完遂", lines: TUT_FINALE, reward: [{ cur: "gold", n: 500 }], kicker: "勅命の完遂", photo: storyImage("departure"),
     leave: () => {
       if (G.msq !== ms || ms.n !== 0) return;
       G.gold += 500;
@@ -12134,12 +12139,12 @@ function decreeInfo() {
 // 王の言葉を聞き直す (状態は変えない): 最後に語られた物語のページ
 function replayDecree() {
   const ms = G.msq || {};
-  if (!ms.n) return UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: ms.stage === "fourth" ? TUT_THREE_REPORT : TUT_INTRO, kicker: "着任の謁見" }]);
+  if (!ms.n) return UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: ms.stage === "fourth" ? TUT_THREE_REPORT : TUT_INTRO, photo: storyImage(ms.stage === "fourth" ? "three" : "arrival"), kicker: "着任の謁見" }]);
   const last = worldState().last || {};
-  if (last.kind === "chapter" && CHAPTER_END[last.no]) return UI.playStoryChain([{ title: CHAPTER_END[last.no].title, lines: CHAPTER_END[last.no].lines, kicker: "章の結び", who: "none", art: "candle" }]);
-  if (last.kind === "late" && LATE_CLUES[last.key]) return UI.playStoryChain([{ title: LATE_CLUES[last.key].title, lines: storyLines(LATE_CLUES[last.key].lines), art: STORY_CELLS[last.key].art, kicker: "手がかりの報告" }]);
-  if (last.kind === "report" && REPORTS[last.id]) return UI.playStoryChain([{ title: REPORTS[last.id].title, lines: storyLines(REPORTS[last.id].lines), kicker: "踏破の報告" }]);
-  return UI.playStoryChain([{ title: "勅命 「人業の生成」 完遂", lines: TUT_FINALE, kicker: "勅命の完遂" }]);
+  if (last.kind === "chapter" && CHAPTER_END[last.no]) return UI.playStoryChain([{ title: CHAPTER_END[last.no].title, lines: CHAPTER_END[last.no].lines, kicker: "章の結び", who: "none", art: "candle", photo: storyImage("ch" + last.no + "_end") }]);
+  if (last.kind === "late" && LATE_CLUES[last.key]) return UI.playStoryChain([{ title: LATE_CLUES[last.key].title, lines: storyLines(LATE_CLUES[last.key].lines), art: STORY_CELLS[last.key].art, photo: storyImage(last.key), kicker: "手がかりの報告" }]);
+  if (last.kind === "report" && REPORTS[last.id]) return UI.playStoryChain([{ title: REPORTS[last.id].title, lines: storyLines(REPORTS[last.id].lines), photo: storyImage("report_" + last.id), kicker: "踏破の報告" }]);
+  return UI.playStoryChain([{ title: "勅命 「人業の生成」 完遂", lines: TUT_FINALE, photo: storyImage("departure"), kicker: "勅命の完遂" }]);
 }
 
 // 王の記録 (戦績) と、その共有
@@ -12295,7 +12300,7 @@ function claimTreasury(n) {
   const reason = `収集品を ${n} 種 宝物庫に納めた褒賞だ。`;
   // 坑口の通行証: 品の代わりに、封じられた迷宮を地図に記す
   if (m.reward === "minePass") {
-    UI.playStoryChain([{ title: MINE_PASS.title, kicker: `宝物庫の褒賞 ― 奉納 ${n} 種`, lines: MINE_PASS.lines, reward: "坑口の通行証 (新たな迷宮)", btnLabel: "ありがたく賜る" }], () => {
+    UI.playStoryChain([{ title: MINE_PASS.title, kicker: `宝物庫の褒賞 ― 奉納 ${n} 種`, lines: MINE_PASS.lines, photo: storyImage("minePass"), reward: "坑口の通行証 (新たな迷宮)", btnLabel: "ありがたく賜る" }], () => {
       SFX.itemget(); buzz([0, 30, 60, 30]);
       announceNewDungeons(refreshWorldUnlocks());
       back();
@@ -12835,7 +12840,7 @@ function tellLateClue() {
   if (!key) { renderTown(); return; }
   const w = worldState();
   const def = LATE_CLUES[key], cell = STORY_CELLS[key];
-  playMsqChain([{ title: def.title, lines: storyLines(def.lines), art: cell.art, kicker: `手がかりの報告 ― ${worldById(cell.dungeon).name}`,
+  playMsqChain([{ title: def.title, lines: storyLines(def.lines), art: cell.art, photo: storyImage(key), kicker: `手がかりの報告 ― ${worldById(cell.dungeon).name}`,
     leave: () => { w.told[key] = 1; w.last = { kind: "late", key }; autosave(true); } }]);
 }
 // 初踏破を報告できるか (必要な手がかりが揃うまでは再出撃できる)
@@ -14389,7 +14394,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "stabilityBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "irene", "tut", "events", "story", "world", "dragonSlain", "stats",
+  "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "irene", "journal", "tut", "events", "story", "world", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
   "lastRun",
 ];
@@ -14442,11 +14447,13 @@ const testScenes = [
   { id: "opening", kind: "story", name: "オープニング" },
   ...Object.entries({ intro: TUT_INTRO, three: TUT_THREE_REPORT, finale: TUT_FINALE, epilogue: EPILOGUE }).map(([id, lines]) => ({
     id: "story:" + id, kind: "story", name: ({ intro: "着任の謁見", three: "三体の報告", finale: "四体の報告", epilogue: "結末" })[id], lines,
+    photo: storyImage(({ intro: "arrival", three: "three", finale: "departure" })[id]),
   })),
   ...[["cell", "師の手がかり", STORY_CELLS], ["memory", "主の記憶", BOSS_MEMORIES], ["report", "踏破の報告", REPORTS], ["chapter", "章の結び", CHAPTER_END], ["unlock", "機能の解放", UNLOCKS]].flatMap(([group, label, defs]) =>
-    Object.entries(defs).map(([id, def]) => ({ ...def, id: group + ":" + id, kind: "story", name: label + "・" + def.title, who: ["cell", "memory"].includes(group) ? "none" : "king" }))),
-  ...IRENE_BEATS.map((def) => ({ ...def, id: "irene:" + def.id, kind: "story", name: "館の語り・" + def.title, who: "irene" })),
-  { ...MINE_PASS, id: "minePass", kind: "story", name: MINE_PASS.title },
+    Object.entries(defs).map(([id, def]) => ({ ...def, id: group + ":" + id, kind: "story", name: label + "・" + def.title, who: ["cell", "memory"].includes(group) ? "none" : "king",
+      photo: storyImage(({ cell: id, memory: "mem_" + id, report: "report_" + id, chapter: "ch" + id + "_end" })[group]) }))),
+  ...IRENE_BEATS.map((def) => ({ ...def, id: "irene:" + def.id, kind: "story", name: "館の語り・" + def.title, who: "irene", photo: storyImage(def.id) })),
+  { ...MINE_PASS, id: "minePass", kind: "story", name: MINE_PASS.title, photo: storyImage("minePass") },
 ];
 const testScene = testScenes.find((s) => s.id === testParams.get("testScene"));
 const testPlayActive = testDungeonIdx >= 0 || !!testScene;
@@ -14575,6 +14582,7 @@ function loadGame() {
   if (!G.irene || typeof G.irene !== "object") G.irene = { greeted: false, visits: 0, seen: {}, last: null }; // 館の主イレーヌ (後付け: 既存の記録では次の来館で挨拶する)
   if (!G.irene.seen || typeof G.irene.seen !== "object") G.irene.seen = {};
   if (!G.tut || typeof G.tut !== "object") G.tut = { done: {}, cur: null, step: 0, ev: {}, base: {} }; // 手ほどき (後付け: 解放済みで未使用の要素は目標の札から手ほどきする)
+  if (!("journal" in snap) || !G.journal || typeof G.journal !== "object") { G.journal = null; seedJournal(G); } // ストーリーの既読 (後付け: いま読める物語は既読にして、知らせを山積みにしない)
   if (!G.events || typeof G.events !== "object") G.events = {}; // 迷宮のイベント (後付け)
   for (const k of ["seen", "picks", "once", "flags", "fresh"]) if (!G.events[k] || typeof G.events[k] !== "object") G.events[k] = {};
   { // 旧セーブで取得済みの恵みだけを引き継ぐ。新しい極には旧効果を追加しない。
@@ -15409,7 +15417,7 @@ function init() {
     resumeFromState();
     if (testScene?.kind === "tutorial") uiTutorial.startTestTutorial(G.testTutorial);
     else if (testScene?.id === "opening") startAfterTitle(false);
-    else if (testScene) UI.playStoryChain([{ title: testScene.title || testScene.name, lines: storyLines(testScene.lines), art: testScene.art, who: testScene.who || "king" }], renderTown);
+    else if (testScene) UI.playStoryChain([{ title: testScene.title || testScene.name, lines: storyLines(testScene.lines), art: testScene.art, photo: testScene.photo, who: testScene.who || "king" }], renderTown);
     else if (testParams.get("testPlace") !== "town") enterDungeon(null, floor);
     playBgm(sceneBgm());
     return;

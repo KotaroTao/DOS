@@ -52,3 +52,27 @@ export function storyEntries(g) {
   });
   return [...archiveStories(g), ...lore];
 }
+
+// ---- 既読と知らせ (G.journal = { read: {id:1}, known: {id:1} }) ----
+// read = 本文を開いた / known = 「物語が記された」の知らせを出した (「あとで」でも付く)。
+export function journalState(g) {
+  if (!g.journal || typeof g.journal !== "object") g.journal = { read: {}, known: {} };
+  for (const k of ["read", "known"]) if (!g.journal[k] || typeof g.journal[k] !== "object") g.journal[k] = {};
+  return g.journal;
+}
+export function unreadStories(g) {
+  const j = journalState(g);
+  return storyEntries(g).filter(e => !j.read[e.id]);
+}
+// まだ知らせていない物語 (本文を読んでいれば知らせない)
+export function newStories(g) {
+  const j = journalState(g);
+  return storyEntries(g).filter(e => !j.known[e.id] && !j.read[e.id]);
+}
+export function markStoryRead(g, id) { const j = journalState(g); j.read[id] = 1; j.known[id] = 1; }
+export function markStoriesKnown(g, ids) { const j = journalState(g); for (const id of ids) j.known[id] = 1; }
+// 旧セーブ: いま読める物語はすべて読んだことにする (読み込んだ直後に知らせが山積みにならないように)
+export function seedJournal(g) {
+  const j = journalState(g);
+  for (const e of storyEntries(g)) { j.read[e.id] = 1; j.known[e.id] = 1; }
+}

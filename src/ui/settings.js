@@ -178,7 +178,7 @@ function fillAuto(box) {
 function fill(root) {
   const guides = el("div", "jr-shortcuts");
   guides.append(button({ label:"ヘルプ", kind:"secondary", onTap:()=>UI.openHelp?.() }),
-    button({ label:"ストーリー", kind:"secondary", onTap:()=>UI.openStoryArchive?.() }));
+    UI.storyButton ? UI.storyButton() : button({ label:"ストーリー", kind:"secondary", onTap:()=>UI.openStoryArchive?.() }));
   root.appendChild(guides);
   const cur = remember("seg", "settings") === "auto" ? "auto" : "sound";
   const box = el("div", "stg");
