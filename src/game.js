@@ -557,14 +557,14 @@ const PREFS = (() => {
   const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false, walkSpeed: 2 };
   let p;
   try { p = { ...d, ...(JSON.parse(localStorage.getItem(PREFS_KEY)) || {}) }; } catch { p = { ...d }; }
-  // 旧来の「移動 倍速」(fastWalk: ON = 2倍 / OFF = 1倍) を移動の速さ (1〜3倍) へ引き継ぐ
+  // 旧来の「移動 倍速」(fastWalk: ON = 2倍 / OFF = 1倍) を移動の速さ (1〜4倍) へ引き継ぐ
   if (typeof p.fastWalk === "boolean") { p.walkSpeed = p.fastWalk ? 2 : 1; delete p.fastWalk; }
-  if (![1, 2, 3].includes(p.walkSpeed)) p.walkSpeed = 2;
+  if (![1, 2, 3, 4].includes(p.walkSpeed)) p.walkSpeed = 2;
   return p;
 })();
 function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(PREFS)); } catch {} }
 // 迷宮内の移動 (めくり・1歩のスライド・自動歩行の間) の時間。ms は2倍速の値。設定「移動の速さ」(PREFS.walkSpeed)
-// 1倍 = ms × 2 / 2倍 = ms / 3倍 = ms × 2/3
+// 1倍 = ms × 2 / 2倍 = ms / 3倍 = ms × 2/3 / 4倍 = ms × 1/2
 const walkMs = (ms) => Math.round(ms * 2 / (PREFS.walkSpeed || 2));
 setVolumes(PREFS.bgm, PREFS.sfx);
 
