@@ -11,7 +11,7 @@
 
 import { UI, game, registerUI } from "./ctx.js";
 import { el, setText, sheet, segmented, toast, button } from "./kit.js";
-import { tlOn, tlSetOn, tlClear, tlHasData, tlSummary, tlStabilitySummary, tlExportText } from "../telemetry.js";
+import { tlOn, tlSetOn, tlClear, tlHasData, tlSummary, tlStabilitySummary, tlExportText, tlPastCount, tlPastSummary } from "../telemetry.js";
 import { getPref, setPref, remember, autoMoveAvoid, setAutoMoveAvoid } from "./prefs.js";
 import { SFX } from "../audio.js";
 
@@ -254,12 +254,18 @@ function openTestLog() {
     kind: "info", banner: "テスト記録", className: "stg-sheet stg-log-sheet",
     title: tlOn() ? "記録中" : "記録は止まっている",
     body: (root) => {
-      if (!sum.length) { root.appendChild(setText(el("p", "stg-log-empty"), "まだ記録がない。迷宮に潜ると、階ごと・戦闘ごとに集まっていく。")); return; }
-      for (const d of sum) {
+      if (!sum.length && !tlPastCount()) { root.appendChild(setText(el("p", "stg-log-empty"), "まだ記録がない。迷宮に潜ると、階ごと・戦闘ごとに集まっていく。")); return; }
+      const block = (d) => {
         const b = el("div", "stg-log-d");
         b.appendChild(setText(el("div", "stg-log-h"), d.head));
         for (const l of d.lines) b.appendChild(setText(el("div", "stg-log-l"), l));
         root.appendChild(b);
+      };
+      for (const d of sum) block(d);
+      // 過去版 (デプロイで版が変わる前の記録) も同じ形で下に並べる
+      for (const h of tlPastSummary()) {
+        block({ head: `【${h.head}】`, lines: h.stability.length ? h.stability : [] });
+        for (const d of h.dungeons) block(d);
       }
     },
     footer: [
@@ -271,6 +277,14 @@ function openTestLog() {
           else showExportText(text);
         });
       } },
+      ...(tlPastCount() ? [{ label: `過去版も書き出す (${tlPastCount()}件)`, kind: "secondary", onTap: () => {
+        sfx("select");
+        const text = tlExportText({ past: true });
+        copyText(text).then((ok) => {
+          if (ok) toast("過去版を含めてコピーした ― そのまま貼り付けて送れる", { tone: "good" });
+          else showExportText(text);
+        });
+      } }] : []),
       { label: "記録を消す", kind: "secondary", onTap: (s) => {
         sfx("select");
         dangerConfirm({ banner: "テスト記録", title: "テスト記録を消しますか？", lines: ["集計した能力値と戦闘の記録がすべて消える。", "(セーブデータには影響しない)"], okLabel: "消す" })
