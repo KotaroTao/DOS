@@ -16764,7 +16764,7 @@ export const TRAITS = {
   summon:     { label: "招来",   desc: "戦闘中に仲間を呼び寄せる" },
   heal:       { label: "治癒",   desc: "傷ついた仲間を癒す" },
   guard:      { label: "護衛",   desc: "仲間への攻撃をかばう" },
-  breath:     { label: "ブレス", desc: "全体を巻き込む息を吐く" },
+  breath:     { label: "ブレス", desc: "全体を巻き込む息を吐く (残りHPが減るほど弱まる)" },
   poison:     { label: "毒",     desc: "攻撃で毒を与えてくる" },
   paralyze:   { label: "麻痺",   desc: "攻撃で麻痺させてくる" },
   stone:      { label: "石化",   desc: "凝視で石に変えてくる" },
