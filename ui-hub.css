@@ -349,6 +349,7 @@
 }
 .fc-qgroup-name { flex: 1; min-width: 0; }
 .fc-qgroup-count { flex: 0 0 auto; color: var(--ink-dim); font-size: 12px; }
+.fc-qgroup.ready > .fc-qgroup-head { color: #9fd89a; border-bottom-color: #4f8a4a; }
 .fc-qgroup > .qb-card { height: auto; min-height: 84px; flex: 0 0 auto; }
 .qb-card {
   position: relative; display: flex; align-items: center; gap: 9px; height: 100%; box-sizing: border-box; padding: 6px 8px; cursor: pointer;
