@@ -6,7 +6,7 @@ import { JOB_IMAGES } from '../../../src/jobart.js';
 import { JOB_PHOTOS } from '../../../src/jobphotos.js';
 import { SOUL_CLASSES, jobSprite, jobBust } from '../../../src/souls.js';
 
-const baselineCommit = process.argv[2] || 'b27138e';
+const baselineCommit = process.argv[2] || '4328126';
 const { stdout: baseline } = await promisify(execFile)('git', ['show', `${baselineCommit}:src/jobphotos.js`]);
 const oldPhotos = (await import(`data:text/javascript;base64,${Buffer.from(baseline).toString('base64')}`)).JOB_PHOTOS;
 const { ascetic: oldAscetic, ...oldOthers } = oldPhotos;
@@ -32,6 +32,7 @@ for (let rank = 1; rank <= 5; rank++) {
   rows.push({ rank, src: ascetic[rank].src, face: sprite.face, head: sprite.head });
 }
 writeFileSync(new URL('import-verification.json', import.meta.url), JSON.stringify({
+  baselineCommit,
   reference: { face: reference.face, head: reference.head },
   anatomy: 'ユーザー承認済みの修験者R1に全ランクの頭を揃える。聖戦士との顎座標の差を隠さない。',
   ranks: rows, otherJobSettingsUnchanged: true, cache: 'dos-dev',
