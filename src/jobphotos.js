@@ -104,5 +104,12 @@ export const JOB_PHOTOS = {
     4: { src: "art/jobs/paladin_4.webp", w: 90, h: 84, face: [45, 12], head: [45.0, 1.256, 23.27] },
     5: { src: "art/jobs/paladin_5.webp", w: 90, h: 84, face: [45, 12], head: [45.0, 1.128, 22.95] },
   },
+  crusader: {
+    1: { src: "art/jobs/crusader_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.93] },
+    2: { src: "art/jobs/crusader_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.893] },
+    3: { src: "art/jobs/crusader_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.918] },
+    4: { src: "art/jobs/crusader_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.912] },
+    5: { src: "art/jobs/crusader_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.94] },
+  },
   // <<JOB_PHOTOS>>
 };

@@ -1,13 +1,35 @@
-# 聖戦士 R1 確認案
+# 聖戦士 R1〜R5
 
-ゲーム内の聖戦士は `crusader`（赤髪の女性）、前回制作した金髪の男性は `paladin`（聖騎士）。ゲームの職業名とIDは元からこの対応であり、改名しない。前回の聖騎士の保存資料と比較画像の職業名を訂正した。
+聖戦士は `crusader`（赤髪の女性）。金髪の男性の聖騎士は `paladin`。職業名とIDは変更していない。
 
-既存の `src/jobart.js` の聖戦士5ランクを `existing-r1.png`〜`existing-r5.png` に読み出し、色・髪・剣・衣装と成長を確認した。赤いポニーテール、白地に赤い十字の衣装、銀と金の鎧、赤いマント、剣を維持する。
+死霊術師を基準に制作し、ユーザーが確認したR1を参照してR2〜R5を各ランク1枚ずつ独立生成した。集合絵の分割はしていない。採用原画は `crusader-r1-final.png`〜`crusader-r5-final.png`。既存の絵は `existing-r1.png`〜`existing-r5.png`、修正前の案も保存している。
 
-R1は最初から独立した透明背景画像として生成。初稿 `crusader-r1-draft.png` の頭身とマントの配置を修正し、確認用原画を `crusader-r1-review.png` に保存した。ユーザー確認前のためR2〜R5の制作、ゲーム用画像への取り込み、設定更新は未実施。
+赤いポニーテール、赤い目、白地に赤い十字の衣装、銀と金の鎧、赤いマント、剣を維持。R2は金縁、R3は鎧とマントの十字模様、R4は宝石・彫金・白い裏地、R5は金の翼形の肩飾り・赤い宝石・髪飾り・白金のリボンを強化した。R5の肩を最も豪華にした。マントの位置とリボン先端を修正し、装飾のために人物を縮小していない。
 
-`r1-comparison.png` は左が死霊術師R1、右が聖戦士R1。頭頂と足元を同倍率で合わせた全身と、ゲームの `jobBust` と同じ頭頂〜顎の切り出しによる56/36/26pxの顔アイコンと拡大表示。水色は頭頂、桃色は基準の顎先、灰色は足元。ポニーテールが頭頂より上に出るため、人物を縮めず比較枠の上に透明余白を確保した。保存解像度だけで粒度の一致を判断せず、同倍率で目視確認した。
+## ゲームへの取り込み
 
-測定記録は `r1-calibration.json`、比較の設定は `r1-review-settings.json`。再生成は `python3 docs/art/crusader/make-r1-review.py`。原画をドット化し直さず、比較用の縮尺調整と配置だけ行う。
+透明WebPは `art/jobs/crusader_1.webp`〜`crusader_5.webp`。既存の `tools/jobimg.py` で取り込み、`src/jobphotos.js` の顔・頭の設定、`sw.js` の画像一覧を更新。優先される旧 `src/jobart.js` の聖戦士だけを外した。
 
-作業ブランチは `codex/crusader-art`。mainへのマージと公開は行っていない。
+原画の測定値は `import-settings.json`。共通枠は90×92ドット（360×368px）、人体の頭頂は9ドット。頭頂より上のポニーテールとR5の髪飾りを残すため、取り込みに任意の `--frame-top` を追加した。指定しない場合の取り込み動作は従来どおり。原画を機械的にドット化し直していない。
+
+再取り込み（リポジトリのルートで実行）:
+
+```python
+import json, subprocess
+s=json.load(open('docs/art/crusader/import-settings.json'))
+subprocess.run(['python3','tools/jobimg.py','crusader',*[x['source'] for x in s['sources']],
+ '--per-dot',','.join(str(x['perDot']) for x in s['sources']),
+ '--head',*[','.join(map(str,x['head'])) for x in s['sources']],
+ '--frame',','.join(map(str,s['frame'])), '--frame-top',str(s['frameTop']),
+ '--preview','docs/art/crusader/import-preview.png'],check=True)
+```
+
+## 確認
+
+`game-display-review.png` はゲームと同じ描画関数による死霊術師とR1〜R5の同倍率全身、56/36/26pxの顔アイコンと顔拡大。再確認はローカルサーバー起動後 `python3 docs/art/crusader/review-game.py`。
+
+ゲーム内の顔位置は全6枚で `[48,21]`、人体の頭頂は10ドット。聖戦士の顎位置は31.893〜31.94ドット、死霊術師は32.125ドットで、差は保存画像換算1px未満。頭頂から足元は約83ドットに統一し、頭身と粒度は同倍率画像で目視確認した。共通表示枠は96×94ドットで、従来同様に最大辺96を維持するため他職業の表示倍率は変わらない。
+
+`game-verification.json` に全身6枚・顔24枚の描画と共通座標・ブラウザーエラーなしを記録。`asset-verification.json` に全5枚の透過、画像端での欠けなし、不透明な残片なしを記録。剣・マント・髪飾りも目視確認済み。
+
+R1承認時の比較は `r1-comparison.png` と `r1-review-settings.json` に保存。作業ブランチは `codex/crusader-art`。mainへのマージは未実施。
