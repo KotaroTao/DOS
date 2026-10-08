@@ -1,0 +1,112 @@
+[
+  {
+    "rank": 1,
+    "size": [
+      360,
+      368
+    ],
+    "visibleBBox": [
+      39,
+      12,
+      335,
+      367
+    ],
+    "opaqueComponents": [
+      44439
+    ],
+    "sourceVisibleBBox": [
+      161,
+      224,
+      1189,
+      1459
+    ]
+  },
+  {
+    "rank": 2,
+    "size": [
+      360,
+      368
+    ],
+    "visibleBBox": [
+      38,
+      9,
+      342,
+      367
+    ],
+    "opaqueComponents": [
+      48513
+    ],
+    "sourceVisibleBBox": [
+      55,
+      77,
+      1094,
+      1303
+    ]
+  },
+  {
+    "rank": 3,
+    "size": [
+      360,
+      368
+    ],
+    "visibleBBox": [
+      41,
+      18,
+      338,
+      367
+    ],
+    "opaqueComponents": [
+      45394
+    ],
+    "sourceVisibleBBox": [
+      64,
+      104,
+      1077,
+      1298
+    ]
+  },
+  {
+    "rank": 4,
+    "size": [
+      360,
+      368
+    ],
+    "visibleBBox": [
+      37,
+      11,
+      340,
+      367
+    ],
+    "opaqueComponents": [
+      48178
+    ],
+    "sourceVisibleBBox": [
+      58,
+      97,
+      1079,
+      1297
+    ]
+  },
+  {
+    "rank": 5,
+    "size": [
+      360,
+      368
+    ],
+    "visibleBBox": [
+      47,
+      12,
+      338,
+      367
+    ],
+    "opaqueComponents": [
+      49282
+    ],
+    "sourceVisibleBBox": [
+      15,
+      25,
+      1105,
+      1351
+    ]
+  }
+]

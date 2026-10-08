@@ -1,0 +1,15 @@
+{
+  "size": [360, 368],
+  "format": "WEBP",
+  "transparent": true,
+  "opaqueContentAtEdges": false,
+  "maxEdgeAlphaByRank": [0, 1, 0, 0, 0],
+  "selectedSpriteAndBustRanks": [1, 2, 3, 4, 5],
+  "gameViewportChecks": [[1440, 900], [390, 844]],
+  "browserErrors": [],
+  "failedAssetRequests": [],
+  "syntaxChecked": ["src/jobart.js", "src/jobphotos.js", "sw.js"],
+  "diffCheck": "passed",
+  "referenceHeadHeightDifferenceDots": [0.616, 0.788, 0.67, 0.601, 0.67],
+  "strictReferenceHeadTolerancePassed": false
+}

@@ -1,0 +1,106 @@
+{
+  "assets": [
+    {
+      "rank": 1,
+      "src": "art/jobs/arcanist_1.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        53,
+        35,
+        295,
+        367
+      ],
+      "opaqueComponents": 1,
+      "sourceOpaqueComponents": 1,
+      "transparentEdges": true,
+      "serviceWorkerAsset": true
+    },
+    {
+      "rank": 2,
+      "src": "art/jobs/arcanist_2.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        50,
+        35,
+        312,
+        367
+      ],
+      "opaqueComponents": 1,
+      "sourceOpaqueComponents": 1,
+      "transparentEdges": true,
+      "serviceWorkerAsset": true
+    },
+    {
+      "rank": 3,
+      "src": "art/jobs/arcanist_3.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        34,
+        35,
+        312,
+        367
+      ],
+      "opaqueComponents": 1,
+      "sourceOpaqueComponents": 1,
+      "transparentEdges": true,
+      "serviceWorkerAsset": true
+    },
+    {
+      "rank": 4,
+      "src": "art/jobs/arcanist_4.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        38,
+        27,
+        326,
+        367
+      ],
+      "opaqueComponents": 1,
+      "sourceOpaqueComponents": 1,
+      "transparentEdges": true,
+      "serviceWorkerAsset": true
+    },
+    {
+      "rank": 5,
+      "src": "art/jobs/arcanist_5.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        48,
+        32,
+        322,
+        367
+      ],
+      "opaqueComponents": 1,
+      "sourceOpaqueComponents": 1,
+      "transparentEdges": true,
+      "serviceWorkerAsset": true
+    }
+  ],
+  "canvasCount": 30,
+  "browserErrors": [],
+  "cache": "dos-dev",
+  "rankHeadDifferenceFromApprovedR1": 0.04899999999999949,
+  "crusaderChinDifferences": [
+    -0.595,
+    -0.615,
+    -0.546,
+    -0.595,
+    -0.613
+  ],
+  "comparisonNote": "確認済みR1の輪郭を維持。聖戦士より顎は約0.6ドット上で、顔位置・頭頂・共通枠は同じ。"
+}

@@ -1,0 +1,19 @@
+{
+  "job": "monk",
+  "label": "武僧",
+  "status": "R1承認済み。R2〜R5制作とゲーム取り込み完了。",
+  "standard": "docs/art/crusader/crusader-r1-final.png",
+  "source": "docs/art/monk/monk-r1-review.png",
+  "comparison": "docs/art/monk/r1-comparison.png",
+  "existingReview": "docs/art/monk/existing-review.png",
+  "existingTraits": [
+    "若い男性、茶色の乱れ髪、荒法師風の顔立ち",
+    "柿色から茶色の袖なし修行衣、焦茶の袴、布帯",
+    "腕の包帯・手甲、軽装の足元、開いた足構え",
+    "左手に錫杖。R2以降は数珠、手甲、赤布、金剛杵風の装飾が増える"
+  ],
+  "estimatedHeadForReviewOnly": {
+    "crusader": [475, 603, 148, 462],
+    "monk": [494, 622, 145, 462]
+  }
+}

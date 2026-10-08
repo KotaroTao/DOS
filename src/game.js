@@ -25,7 +25,7 @@ import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
 import {
-  SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, soulIcon,
+  SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, dollLookKey, soulIcon,
   recalcDoll, setPermanentStatSource, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
   soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills, soulLearnedPassives, soulLabel, subPickCap, jobStatsOf,
   awakenPerkOf, subPickCapOfRank, subStatRateOfRank, setOrderSource, orderStatRateOfRank, setAppraiseSource,
@@ -57,6 +57,8 @@ import * as uiPalace from "./ui/palace.js";
 import * as uiFacilities from "./ui/facilities.js";
 import * as uiSettings from "./ui/settings.js";
 import * as uiJournal from "./ui/journal.js";
+import { seedJournal } from "./journal.js";
+import { storyImage } from "./archive-stories.js";
 import * as uiStory from "./ui/story.js";
 import * as uiParty from "./ui/party.js";
 import * as uiSoulPanel from "./ui/soulpanel.js";
@@ -65,6 +67,7 @@ import * as uiShop from "./ui/shop.js";
 import * as uiLoot from "./ui/loot.js";
 import * as uiDeparture from "./ui/departure.js";
 import * as uiDungeonHud from "./ui/dungeonhud.js";
+import { walkerLook, normalizeLook, WALKER_LOOK_DEFAULT } from "./walkerart.js";
 import * as uiResults from "./ui/results.js";
 import * as uiAppraise from "./ui/appraise.js";
 import * as uiTutorial from "./ui/tutorial.js";
@@ -509,6 +512,7 @@ const G = {
   order: { picks: [] }, // 控えの結社: 席に着けた魂のuid配列 (席数=orderSeats()。編成外の魂のみ有効。能力の一部を全員に足す)
   events: { seen: {}, picks: {}, once: {}, flags: {}, fresh: {} }, // 迷宮のイベント (src/events.js): 見聞録・一度きり・恒久の恵み
   irene: { greeted: false, visits: 0, seen: {}, last: null }, // 人業の館の主イレーヌ: 初訪問の挨拶済み・来館数・聞いた話 (src/ui/irene.js)
+  journal: { read: {}, known: {} }, // ストーリー一覧: 読んだ物語・「物語が記された」を知らせた物語 (src/journal.js)
   tut: { done: {}, cur: null, step: 0, ev: {}, base: {} }, // 解放された要素の手ほどき: 済んだもの・最中のもの (src/ui/tutorial.js)
   story: 0,           // 王宮ストーリーの進行段階
   dragonSlain: false, // 竜を討ったか
@@ -554,15 +558,24 @@ function buzz(p) {
 // 端末ごとの好み (音量・振動)。セーブデータとは別に保存し、「はじめから」でも消えない
 const PREFS_KEY = "dos-prefs";
 const PREFS = (() => {
-  const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false, walkSpeed: 2 };
+  const d = { bgm: 0.8, sfx: 1, vibrate: true, classicBattle: false, walkSpeed: 2, walkerLook: { ...WALKER_LOOK_DEFAULT } };
   let p;
   try { p = { ...d, ...(JSON.parse(localStorage.getItem(PREFS_KEY)) || {}) }; } catch { p = { ...d }; }
   // 旧来の「移動 倍速」(fastWalk: ON = 2倍 / OFF = 1倍) を移動の速さ (1〜4倍) へ引き継ぐ
   if (typeof p.fastWalk === "boolean") { p.walkSpeed = p.fastWalk ? 2 : 1; delete p.fastWalk; }
   if (![1, 2, 3, 4].includes(p.walkSpeed)) p.walkSpeed = 2;
+  p.walkerLook = normalizeLook(p.walkerLook);
   return p;
 })();
 function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(PREFS)); } catch {} }
+// 迷宮を歩く駒の装い (設定「操霊師の装い」・端末の好み PREFS.walkerLook)
+function setWalkerLook(look) {
+  PREFS.walkerLook = normalizeLook(look);
+  uiDungeonHud.setWalkerArt(walkerLook(PREFS.walkerLook));
+  savePrefs();
+  if (G && G.state === "board" && G.board) drawBoardFrame();
+}
+uiDungeonHud.setWalkerArt(walkerLook(PREFS.walkerLook));
 // 迷宮内の移動 (めくり・1歩のスライド・自動歩行の間) の時間。ms は2倍速の値。設定「移動の速さ」(PREFS.walkSpeed)
 // 1倍 = ms × 2 / 2倍 = ms / 3倍 = ms × 2/3 / 4倍 = ms × 1/2
 const walkMs = (ms) => Math.round(ms * 2 / (PREFS.walkSpeed || 2));
@@ -594,11 +607,33 @@ function runGainGold(g, src, pre, modifier = null) {
 setPermanentStatSource(() => permanentEventStats(G.events?.once));
 
 function evBoon(k, field, dflt) { return G.events && G.events.flags && G.events.flags[k] ? EV_BOONS[k][field] : dflt; }
-function runGainSoulPts(s, src, pre, modifier = null) {
+// out を渡すと out.raw に「Lv差で減らす前の額」を入れる (戦闘の魂の経験値は魂ごとの Lv差で減らすため)
+function runGainSoulPts(s, src, pre, modifier = null, out = null) {
   const base = s, sf = sfNum("soulMul", 1), mu = modifier ?? mutNum("soulMul", 1), eq = 1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0);
-  s = Math.round(s * sf * mu * eq); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s;
-  if (tlOn() && inDungeon()) tlGain(tlWhere(), "soul", s, src, tlUplift(pre != null ? pre : base, base, sf, "soulMul", mu, eq));
+  const lm = inDungeon() ? partySoulLvMul() : 1;
+  const raw = s * sf * mu * eq;
+  s = Math.round(raw * lm); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s;
+  if (out) out.raw = Math.round(raw);
+  if (tlOn() && inDungeon()) {
+    const up = tlUplift(pre != null ? pre : base, base, sf, "soulMul", mu, eq);
+    if (lm < 1) up.lvd = raw * (lm - 1); // Lv差で減った分 (負の数)
+    tlGain(tlWhere(), "soul", s, src, up);
+  }
   return s;
+}
+// ===== Lv差による ✦Soul の減り (2026-10 テスト記録: 魂融合・残火を集める周回や寄り道の迷宮で ✦ が余り、推奨Lv を大きく超えた) =====
+// 魂の Lv が、いまの階の敵Lv (推奨Lv) + SOUL_LV_GRACE を超えた分、1Lv ごとに SOUL_LV_STEP ずつ減らす (下限 SOUL_LV_MIN)。
+// 迷宮で得る ✦ (戦闘・出来事・死体・金属) は隊のLv (メイン魂の平均) で、戦闘で魂に直接入る経験値は魂それぞれの Lv で決める
+// → Lv の低いサブ魂・控えから来た魂は満額のまま追いつく。町の ✦ (依頼・報告) は減らさない
+const SOUL_LV_GRACE = 2, SOUL_LV_STEP = 0.10, SOUL_LV_MIN = 0.2;
+function soulLvMul(lv, foeLv = foeLevelHere()) {
+  const over = (lv || 1) - foeLv - SOUL_LV_GRACE;
+  return over <= 0 ? 1 : Math.max(SOUL_LV_MIN, 1 - SOUL_LV_STEP * over);
+}
+function partySoulLvMul() {
+  const ds = (G.party || []).filter((d) => d && d.primary != null);
+  if (!ds.length) return 1;
+  return soulLvMul(ds.reduce((a, d) => a + (d.jobLv || 1), 0) / ds.length);
 }
 // テスト記録: 得た額のうち、倍率で増えた分の内訳 (順に掛けて、それぞれの倍率で増えた分)。
 // pre = パッシブ (金運・魂寄せ・魂の聖別) を掛ける前の額 / base = 倍率を掛ける前の額 / mu = 異変・掟・出来事の効果・奈落を合わせた倍率
@@ -1694,7 +1729,7 @@ function refitAndRedraw() {
 window.addEventListener("resize", () => requestAnimationFrame(refitAndRedraw));
 if (typeof ResizeObserver !== "undefined" && appEl) new ResizeObserver(() => requestAnimationFrame(refitAndRedraw)).observe(appEl);
 
-// ダンジョンで歩く自分の駒: 赤い頭巾の人影 (src/walkerart.js・前後左右の4方向)。最後に歩いた向きを向く (既定は正面)。
+// ダンジョンで歩く自分の駒: 頭巾つきの外套の人影 (色は設定「操霊師の装い」) (src/walkerart.js・前後左右の4方向)。最後に歩いた向きを向く (既定は正面)。
 // 絵がまだ読めない時は従来どおり、生存している先頭メンバーの職業姿 (全滅時は先頭)
 function walkerSprite() {
   const W = uiDungeonHud.walkerArt();
@@ -2760,12 +2795,13 @@ const _lampSpot = new WeakMap();
 function walkerLampSpot(wk) {
   let s = _lampSpot.get(wk);
   if (s) return s;
-  const rows = wk.art || [];
+  const src = wk.lampRef || wk; // 縁取りを金以外にした装いは、金の絵で灯の位置を求める
+  const rows = src.art || [];
   let sx = 0, sy = 0, n = 0;
   rows.forEach((r, y) => {
     if (y < rows.length * 0.45) return;
     for (let x = 0; x < r.length; x++) {
-      const c = wk.palette[r[x]];
+      const c = src.palette[r[x]];
       if (!c || c[0] !== "#") continue;
       const v = parseInt(c.slice(1), 16), R = v >> 16, Gc = (v >> 8) & 255, B = v & 255;
       if (R > 220 && Gc > 170 && B < 160) { sx += x; sy += y; n++; }
@@ -5740,7 +5776,7 @@ function runStoryCell(cell) {
   if (!def) { cell.cleared = true; cell.type = "empty"; renderBoard(); return; }
   const w = worldState();
   SFX.itemget(); buzz([0, 30, 60, 30]);
-  UI.playStoryChain([{ title: def.title, lines: storyLines(def.lines), art: def.art, who: "none", kicker: "師の手がかり", btnLabel: "胸に刻む" }], () => {
+  UI.playStoryChain([{ title: def.title, lines: storyLines(def.lines), art: def.art, photo: storyImage(key), who: "none", kicker: "師の手がかり", btnLabel: "胸に刻む" }], () => {
     w.found[key] = 1;
     w.last = { kind: "cell", key };
     cell.cleared = true; cell.type = "empty";
@@ -5763,11 +5799,12 @@ function playIreneBeat(done) {
   const b = pendingIreneBeat();
   if (!b) return false;
   const w = worldState();
-  UI.playStoryChain([{ title: b.title, lines: storyLines(b.lines), art: b.art, who: "irene", kicker: "人業の館", btnLabel: "うなずく" }], () => {
+  UI.playStoryChain([{ title: b.title, lines: storyLines(b.lines), art: b.art, photo: storyImage(b.id), who: "irene", kicker: "人業の館", btnLabel: "うなずく" }], () => {
     w.beats[b.id] = 1;
     w.last = { kind: "irene", id: b.id };
     autosave(true);
     if (done) done();
+    if (UI.queueStoryNotice) UI.queueStoryNotice(); // 語りで記された物語を知らせる
   });
   return true;
 }
@@ -7304,12 +7341,13 @@ function startBattleMeasured(enemies, cell) {
   });
 }
 
-// 戦闘開始時の自動攻撃 (居合/開幕呪撃) を1つずつ斬撃エフェクトで見せる
+// 戦闘開始時の自動攻撃 (死の宣告/居合/開幕呪撃) を1つずつ演出で見せる
 function playOpeningStrikes(list, i, done) {
   if (i >= list.length) { done(); return; }
   const res = list[i];
   G.animating = true;
-  if (res.opening === "iai") showToast("⚡ 居合！");
+  if (res.opening === "senkoku") showToast(`☠ 死の宣告！ ${res.hits.length}体の魂を刈り取った`);
+  else if (res.opening === "iai") showToast("⚡ 居合！");
   else if (res.opening === "openSpell") showToast("✦ 開幕呪撃！");
   animateResult(res, () => playOpeningStrikes(list, i + 1, done));
 }
@@ -7387,7 +7425,9 @@ function renderCombatCanvas() {
       // 倒した敵: 撃破の演出 (drawEffects の崩れ落ち) が始まるまでは姿を残し、以後は描かない
       if (!e.alive && !fleeFx) {
         const d = fx && fx.deaths ? fx.deaths.find((x) => x.uid === e.uid) : null;
-        if (!fx || _deadShown.has(e) || (d && now >= d.t0)) { if (!fx || d) _deadShown.add(e); return; }
+        // 開幕 (死の宣告・居合・開幕呪撃) に倒れた敵は、開幕の演出で崩れ落ちるまで姿を残す
+        const pending = e._openDeath && !d && !_deadShown.has(e);
+        if (!pending && (!fx || _deadShown.has(e) || (d && now >= d.t0))) { if (!fx || d) _deadShown.add(e); return; }
       }
       let ox = 0, oy = 0, alpha = 1;
       if (fleeFx) {
@@ -7499,7 +7539,7 @@ const TURN_ICON_PX = 24;
 function turnIconCanvas(a) {
   if (a.side === "party") {
     if (!a.isDoll || a.primary == null) return null;
-    const key = `${a.jobKey || ""}:${a.jobRank || 1}:${a.clsKey || ""}`;
+    const key = dollLookKey(a);
     let ent = _turnPics.get(a);
     if (!ent || ent.key !== key) { ent = { key, c: crispCanvas(dollBust(a), TURN_ICON_PX) }; _turnPics.set(a, ent); }
     return ent.c;
@@ -8244,12 +8284,13 @@ function drawEffects(fx, now) {
   drawBattleFx(vctx, fx.skill, now, VW, VH, REDUCED_MOTION);
   // 画面の縁が紅く脈打つ (味方被弾)
   if (fx.screen) {
-    const t = (now - fx.screen.t0) / 300;
+    const t = (now - fx.screen.t0) / (fx.screen.dur || 300);
     if (t <= 1) {
       vctx.save();
       const g = vctx.createRadialGradient(VW / 2, VH / 2, Math.min(VW, VH) * 0.25, VW / 2, VH / 2, Math.max(VW, VH) * 0.72);
-      g.addColorStop(0, "rgba(160,0,0,0)");
-      g.addColorStop(1, `rgba(170,8,4,${0.62 * (1 - t)})`);
+      const dark = fx.screen.color === "dark"; // 死の宣告: 紫黒の闇が縁から迫る
+      g.addColorStop(0, dark ? "rgba(20,0,30,0)" : "rgba(160,0,0,0)");
+      g.addColorStop(1, dark ? `rgba(24,0,40,${0.78 * (1 - t)})` : `rgba(170,8,4,${0.62 * (1 - t)})`);
       vctx.fillStyle = g;
       vctx.fillRect(0, 0, VW, VH);
       vctx.restore();
@@ -8886,7 +8927,9 @@ function animateResult(res, done) {
   // 全体回復は対象人数ぶん時間差で弾ませるため、最後の表示まで尺を確保する
   const partyHealN = (res.hits || []).filter((h) => h && h.target && h.target.side !== "enemy" && h.heal != null).length;
   const staggerSteps = Math.max(maxStack - 1, partyHealN - 1);
-  const TOTAL = WIND + (360 + staggerSteps * HIT_STAGGER) * spdMul();
+  // 死の宣告 (開幕): 大鎌が振り下ろされ魂が抜けるまでを見せきる (戦闘に一度だけなので一手より長く取る)
+  const hold = res.opening === "senkoku" ? 560 : 0;
+  const TOTAL = WIND + (360 + hold + staggerSteps * HIT_STAGGER) * spdMul();
   G.fx = { lunge: res.side === "enemy" && res.action !== "eflee" ? { uid: res.actor.uid, p: 0 } : null,
            slashes: [], skill: [], floats: [], screen: null, flash: {}, deaths: [] };
   G.partyFx = G.partyFx || new Map();
@@ -8976,6 +9019,10 @@ function applyImpact(res) {
     // ブレス (炎の効果音) / 敵の全体呪文 (呪文の効果音)
     if (res.espell) SFX.spell(); else SFX.fire();
     buzz([0, 50, 40, 80]); shakeScreen(true);
+  } else if (res.opening === "senkoku") {
+    // 死の宣告: 不穏な音・画面が闇に沈む (描画は下の reap)
+    SFX.ambush(); buzz([0, 40, 60, 90]);
+    fx.screen = { color: "dark", t0: now, dur: 760 * spdMul() };
   } else if (res.action === "spell" && res.spellKind !== "phys") {
     if (res.spellKind === "heal" || res.spellKind === "cure" || res.spellKind === "buff") SFX.heal();
     else if (res.spellElement === "fire") SFX.fire();
@@ -9031,7 +9078,16 @@ function applyImpact(res) {
       const dx = idx === 0 ? 0 : (idx % 2 ? 1 : -1) * (14 + 4 * idx); // 左右に振って重なり回避
       if (idx > 0) setTimeout(() => SFX.hit(), idx * stag); // 2撃目以降にも手応えの効果音
       const seed = (h.target.uid || 1) * 31 + idx;
-      if (res.action === "spell" && res.spellKind !== "heal" && res.spellKind !== "phys") {
+      if (res.opening === "senkoku") {
+        // 死の宣告: 敵ごとに少しずつ遅れて、大鎌が魂を刈り取る (崩れ落ちは鎌が抜けた後)
+        const rt0 = now + res.hits.indexOf(h) * 140 * spd;
+        spawnFx(fx.skill, "reap", pos.cx, pos.cy, rt0, spd, { seed, s: Math.max(0.8, Math.min(1.3, (pos.size || 9) / 9)) });
+        fx.floats.push({ x: pos.cx, y: pos.cy - 58, text: "死の宣告", color: "#c9a0ff", t0: rt0, small: true, kind: "label" });
+        fx.floats.push({ x: pos.cx, y: pos.cy - 10, text: "即死!", color: "#ff2a2a", t0: rt0 + 260 * spd, big: true, kind: "crit" });
+        if (!fx.deaths.some((d) => d.uid === h.target.uid)) fx.deaths.push({ uid: h.target.uid, mon: h.target.mon, x: pos.cx, y: pos.cy, size: pos.size || 9, t0: rt0 + 300 * spd });
+        anyDeath = true;
+        continue;
+      } else if (res.action === "spell" && res.spellKind !== "heal" && res.spellKind !== "phys") {
         // 呪文: 攻撃は属性ごと (火柱・水しぶき・旋風・岩の牙・光の柱・闇の渦)、弱体・状態異常はその種類ごと
         const st = statusFxKind(h.status);
         const kind = res.spellKind === "atk" ? (ELEM_FX_COL[res.spellElement] ? res.spellElement : "none")
@@ -9272,7 +9328,7 @@ function distributeBattleSoulExpMeasured(soulGot) {
   for (const w of worn) {
     const e = soulByUid(w.uid);
     if (!e) continue;
-    const gain = Math.floor((w.sub ? share * SUB_EXP_RATE : share) * (w.mul || 1));
+    const gain = Math.floor((w.sub ? share * SUB_EXP_RATE : share) * (w.mul || 1) * soulLvMul(e.level));
     if (gain <= 0) continue;
     const cap = soulLevelCapOf(e);
     e.exp = (e.exp || 0) + gain;
@@ -9356,10 +9412,12 @@ function endBattleMeasured() {
     const bsrc = b.enemies.some((e) => e.metal) ? "mt" : "b" + ((b.tl && b.tl.kind) || "n");
     const goldGot = runGainGold(Math.round(gold * 2 * (gl >= 3 ? 1.50 : gl >= 2 ? 1.30 : gl === 1 ? 1.15 : 1)), bsrc, gold * 2, battleModifierReward(b, "gold")) + takeStolenGold(b);
     const sb = rankParty("bishopSeibetsu", [0.05, 0.10, 0.15, 0.25]); // 魂の聖別 (司教のランク)
-    const soulGot = runGainSoulPts(Math.round(soul * ((sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1) + sb)), bsrc, soul, battleModifierReward(b, "soul"));
+    const soulOut = {};
+    const soulGot = runGainSoulPts(Math.round(soul * ((sl >= 3 ? 1.35 : sl >= 2 ? 1.20 : sl === 1 ? 1.10 : 1) + sb)), bsrc, soul, battleModifierReward(b, "soul"), soulOut);
     applyVictoryPassives();
     // 入手Soulの1/3を生存メンバーの魂 (サブ魂はその1/3) に加算 → レベルアップ/スキル習得を集計
-    const progress = distributeBattleSoulExp(soulGot);
+    // (Lv差の減りは魂それぞれの Lv で掛け直すので、隊のLv で減らす前の額を渡す)
+    const progress = distributeBattleSoulExp(soulOut.raw ?? soulGot);
     updateTopbar();
     log(`勝利！ ${goldGot} ゴールド と ✦${soulGot} Soul を得た。`, "win");
     const fled = b.enemies.filter((e) => e._fled).length; // 逃げ去った金属の魔物 (戦果は倒した分だけ)
@@ -9652,7 +9710,7 @@ function playBossMemory(id, done) {
   const mem = BOSS_MEMORIES[id];
   const w = worldState();
   if (!mem || !w.cleared[id] || w.beats["mem_" + id]) return false;
-  UI.playStoryChain([{ title: mem.title, lines: storyLines(mem.lines), art: mem.art, who: "none", kicker: "魂の記憶", btnLabel: "胸に刻む" }], () => {
+  UI.playStoryChain([{ title: mem.title, lines: storyLines(mem.lines), art: mem.art, photo: storyImage("mem_" + id), who: "none", kicker: "魂の記憶", btnLabel: "胸に刻む" }], () => {
     w.beats["mem_" + id] = 1;
     autosave(true);
     if (done) done();
@@ -9790,7 +9848,7 @@ const PORTRAIT_PX = 40;
 const _partyPics = new WeakMap();
 function partyPortrait(p) {
   if (!p || !p.isDoll || p.primary == null) return null;
-  const key = `${p.jobKey || ""}:${p.jobRank || 1}:${p.clsKey || ""}`;
+  const key = dollLookKey(p);
   let ent = _partyPics.get(p);
   if (!ent || ent.key !== key) {
     const c = crispCanvas(dollBust(p), PORTRAIT_PX); // 顔を中心に切り出した胸像
@@ -9925,6 +9983,7 @@ function renderTown() {
   updateTopbar();
   playBgm(sceneBgm()); // 施設ごとのBGM (同じ曲なら継続)
   townshell.refresh();
+  if (UI.queueStoryNotice) UI.queueStoryNotice(); // 新しく記された物語を、手の空いた時に知らせる
   if (then) queueMicrotask(() => { if (G.state === "town") then(); });
 }
 
@@ -10440,7 +10499,7 @@ function raiseSoulCap(uid) {
   const e = soulByUid(uid);
   if (!e) return;
   const need = emberCostOf(e.clsKey);
-  if ((G.embers || 0) < need) { log(`魂の残火が足りない。(${need}つ要る)`, "sys"); SFX.ng(); showToast(`魂の残火が足りない（${need}つ要る）`, { tone: "bad" }); return; }
+  if ((G.embers || 0) < need) { log(`魂の残火が足りない。(${need}つ要る)`, "sys"); SFX.ng(); showToast(`魂の残火が足りない（${need}つ要る）`, { tone: "bad" }); return false; }
   G.embers -= need;
   e.capBonus = (e.capBonus || 0) + 1;
   recalcAllDolls();
@@ -10451,6 +10510,7 @@ function raiseSoulCap(uid) {
   showToast(`🔥 ${soulLabel(e)} ― Lv上限 ${cap}（残火 ${G.embers}）`, { tone: "gold" });
   autosave(true);
   renderTown();
+  return true;
 }
 
 // ---- 酒場「沈まぬ灯」の依頼 (クエスト。定義と掲示板の生成は src/quests.js) ----
@@ -10528,17 +10588,13 @@ function questUnit(cfg, floor = 1) {
   return { gold: Math.max(6, refGold(lv)), soul: Math.max(3, refSoul(lv)) };
 }
 // 掲示板の生成に渡す窓 (src/quests.js)
-// 掲示板の依頼に選ぶ迷宮: 地図にある迷宮を地図に現れた順 (古い→新しい。G.world.open の鍵の並び) に並べ、
-// 推奨Lvが隊のLvを大きく超える迷宮 (出撃シートの「無謀」= 差 QUEST_LV_GAP 以上) は除く。
-// 新しい迷宮ほど選ばれやすい (quests.js pickDungeon)。すべて除かれたら推奨Lvのいちばん低い迷宮だけ
-const QUEST_LV_GAP = 8;
+// 掲示板の依頼に選ぶ迷宮: 地図にある迷宮を地図に現れた順 (古い→新しい。G.world.open の鍵の並び) に並べる。
+// 新しい迷宮ほど選ばれやすい (quests.js pickDungeon)。隊のLvが推奨Lvに届かない迷宮も除かない
+// (2026-10 ユーザーの指示: 迷宮ごとの依頼は推奨Lv 以下の隊にも出す。旧来は推奨Lv − 隊のLv ≥ 8 の迷宮を除いていた)
 function questDungeons() {
   const order = Object.keys(worldState().open);
   const open = DUNGEONS.filter((d) => worldOpenId(d.id)).sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
-  if (!open.length) return [DUNGEONS[0]];
-  const pl = partyLevel();
-  const fit = open.filter((d) => levelBand(d)[0] - pl < QUEST_LV_GAP);
-  return fit.length ? fit : [open.reduce((a, d) => (levelBand(d)[0] < levelBand(a)[0] ? d : a))];
+  return open.length ? open : [DUNGEONS[0]];
 }
 function questCtx() {
   const s = questState();
@@ -11734,7 +11790,7 @@ function reportMainQuest() {
   const after = { ...w, reported: { ...w.reported, [id]: 1 } };
   const newly = FEATURE_KEYS.filter((k) => !featureMet(k, w) && featureMet(k, after));
   const pages = [{
-    title: rep.title, lines, reward: rwText, kicker: `踏破の報告 ― ${cfg.name}`,
+    title: rep.title, lines, reward: rwText, kicker: `踏破の報告 ― ${cfg.name}`, photo: storyImage("report_" + id),
     leave: () => {
       if (w.reported[id]) return;
       G.gold += r.gold;
@@ -11763,7 +11819,7 @@ function reportMainQuest() {
   const ch = CHAPTERS.find((c) => c.finale === id);
   const end = ch && CHAPTER_END[ch.no];
   if (end && !w.beats["ch" + ch.no + "_end"]) {
-    pages.push({ title: end.title, lines: end.lines, kicker: "章の結び", who: "none", art: "candle", btnLabel: "物語を閉じる",
+    pages.push({ title: end.title, lines: end.lines, kicker: "章の結び", who: "none", art: "candle", photo: storyImage("ch" + ch.no + "_end"), btnLabel: "物語を閉じる",
       leave: () => { w.beats["ch" + ch.no + "_end"] = 1; w.last = { kind: "chapter", no: ch.no }; flashScreen("#ffd84a"); autosave(true); } });
   }
   playMsqChain(pages, toasts, scenes.length ? () => { if (UI.tutorialAfterReport) UI.tutorialAfterReport(); } : null);
@@ -11807,7 +11863,7 @@ function grantTutorialGift() {
 
 // 着任の謁見の語り → 閉じたら下賜 (grantTutorialGift) して街へ降り立つ
 function audienceTutorial() {
-  UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: TUT_INTRO, reward: [{ job: "fighter" }, { job: "priest" }, { job: "thief" }], kicker: "着任の謁見" }], () => {
+  UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: TUT_INTRO, reward: [{ job: "fighter" }, { job: "priest" }, { job: "thief" }], photo: storyImage("arrival"), kicker: "着任の謁見" }], () => {
     landOnHub();
     grantTutorialGift();
     if (UI.tutorialAfterReport) UI.tutorialAfterReport();
@@ -11821,7 +11877,7 @@ function reportTutorialQuest() {
   if (ms.stage !== "fourth") {
     playMsqChain([{
       title: "三体の人業の報告", lines: TUT_THREE_REPORT,
-      reward: [{ cur: "red", n: 100 }, { job: "mage" }], kicker: "次の勅命",
+      reward: [{ cur: "red", n: 100 }, { job: "mage" }], kicker: "次の勅命", photo: storyImage("three"),
       leave: () => {
         if (G.msq !== ms || ms.stage === "fourth") return;
         ms.stage = "fourth";
@@ -11836,7 +11892,7 @@ function reportTutorialQuest() {
   }
   const toasts = [];
   const pages = [{
-    title: "勅命「人業の生成」完遂", lines: TUT_FINALE, reward: [{ cur: "gold", n: 500 }], kicker: "勅命の完遂",
+    title: "勅命「人業の生成」完遂", lines: TUT_FINALE, reward: [{ cur: "gold", n: 500 }], kicker: "勅命の完遂", photo: storyImage("departure"),
     leave: () => {
       if (G.msq !== ms || ms.n !== 0) return;
       G.gold += 500;
@@ -12094,12 +12150,12 @@ function decreeInfo() {
 // 王の言葉を聞き直す (状態は変えない): 最後に語られた物語のページ
 function replayDecree() {
   const ms = G.msq || {};
-  if (!ms.n) return UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: ms.stage === "fourth" ? TUT_THREE_REPORT : TUT_INTRO, kicker: "着任の謁見" }]);
+  if (!ms.n) return UI.playStoryChain([{ title: "勅命 「人業の生成」", lines: ms.stage === "fourth" ? TUT_THREE_REPORT : TUT_INTRO, photo: storyImage(ms.stage === "fourth" ? "three" : "arrival"), kicker: "着任の謁見" }]);
   const last = worldState().last || {};
-  if (last.kind === "chapter" && CHAPTER_END[last.no]) return UI.playStoryChain([{ title: CHAPTER_END[last.no].title, lines: CHAPTER_END[last.no].lines, kicker: "章の結び", who: "none", art: "candle" }]);
-  if (last.kind === "late" && LATE_CLUES[last.key]) return UI.playStoryChain([{ title: LATE_CLUES[last.key].title, lines: storyLines(LATE_CLUES[last.key].lines), art: STORY_CELLS[last.key].art, kicker: "手がかりの報告" }]);
-  if (last.kind === "report" && REPORTS[last.id]) return UI.playStoryChain([{ title: REPORTS[last.id].title, lines: storyLines(REPORTS[last.id].lines), kicker: "踏破の報告" }]);
-  return UI.playStoryChain([{ title: "勅命 「人業の生成」 完遂", lines: TUT_FINALE, kicker: "勅命の完遂" }]);
+  if (last.kind === "chapter" && CHAPTER_END[last.no]) return UI.playStoryChain([{ title: CHAPTER_END[last.no].title, lines: CHAPTER_END[last.no].lines, kicker: "章の結び", who: "none", art: "candle", photo: storyImage("ch" + last.no + "_end") }]);
+  if (last.kind === "late" && LATE_CLUES[last.key]) return UI.playStoryChain([{ title: LATE_CLUES[last.key].title, lines: storyLines(LATE_CLUES[last.key].lines), art: STORY_CELLS[last.key].art, photo: storyImage(last.key), kicker: "手がかりの報告" }]);
+  if (last.kind === "report" && REPORTS[last.id]) return UI.playStoryChain([{ title: REPORTS[last.id].title, lines: storyLines(REPORTS[last.id].lines), photo: storyImage("report_" + last.id), kicker: "踏破の報告" }]);
+  return UI.playStoryChain([{ title: "勅命 「人業の生成」 完遂", lines: TUT_FINALE, photo: storyImage("departure"), kicker: "勅命の完遂" }]);
 }
 
 // 王の記録 (戦績) と、その共有
@@ -12255,7 +12311,7 @@ function claimTreasury(n) {
   const reason = `収集品を ${n} 種 宝物庫に納めた褒賞だ。`;
   // 坑口の通行証: 品の代わりに、封じられた迷宮を地図に記す
   if (m.reward === "minePass") {
-    UI.playStoryChain([{ title: MINE_PASS.title, kicker: `宝物庫の褒賞 ― 奉納 ${n} 種`, lines: MINE_PASS.lines, reward: "坑口の通行証 (新たな迷宮)", btnLabel: "ありがたく賜る" }], () => {
+    UI.playStoryChain([{ title: MINE_PASS.title, kicker: `宝物庫の褒賞 ― 奉納 ${n} 種`, lines: MINE_PASS.lines, photo: storyImage("minePass"), reward: "坑口の通行証 (新たな迷宮)", btnLabel: "ありがたく賜る" }], () => {
       SFX.itemget(); buzz([0, 30, 60, 30]);
       announceNewDungeons(refreshWorldUnlocks());
       back();
@@ -12445,6 +12501,33 @@ function codexJobSee(clsKey, count, level, capBonus = 0) {
 function codexSweepJobs() {
   if (!G.codex || !G.codex.job) return;
   for (const s of (G.souls || [])) codexJobSee(s.clsKey, s.count, s.level, s.capBonus);
+}
+
+// ---- 面影の写し (第三章の入口: 館の語り「彫られた顔」で解放) ----
+// 人業の顔を、魂が覚えている姿 (職業図鑑で到達した職業×ランク) に写す。見た目だけで、無料・何度でも
+const OMOKAGE_BEAT = "irene_omokage";
+function omokageUnlocked() { return !!worldState().beats[OMOKAGE_BEAT]; }
+// 写せる面影: {職業: 到達した最高ランク} (職業図鑑の記録。魂を融合・手放しても消えない)
+function omokageRanks() {
+  codexSweepJobs();
+  const out = {};
+  for (const k of SOUL_KEYS) {
+    const e = G.codex && G.codex.job && G.codex.job[k];
+    const r = e && typeof e === "object" ? (e.rank || 0) : 0;
+    if (r > 0) out[k] = Math.min(5, r);
+  }
+  return out;
+}
+// face = {job, rank} / null (魂のままの姿へ戻す)。届いていない面影は写せない
+function setDollFace(d, face) {
+  if (!d || !omokageUnlocked()) return false;
+  if (face) {
+    const r = omokageRanks()[face.job] || 0;
+    if (!SOUL_CLASSES[face.job] || !(face.rank >= 1 && face.rank <= r)) return false;
+    d.face = { job: face.job, rank: Math.round(face.rank) };
+  } else delete d.face;
+  autosave(true);
+  return true;
 }
 
 function showCodexItemDetail(id) { if (UI.codexItemSheet) UI.codexItemSheet(id); }
@@ -12795,7 +12878,7 @@ function tellLateClue() {
   if (!key) { renderTown(); return; }
   const w = worldState();
   const def = LATE_CLUES[key], cell = STORY_CELLS[key];
-  playMsqChain([{ title: def.title, lines: storyLines(def.lines), art: cell.art, kicker: `手がかりの報告 ― ${worldById(cell.dungeon).name}`,
+  playMsqChain([{ title: def.title, lines: storyLines(def.lines), art: cell.art, photo: storyImage(key), kicker: `手がかりの報告 ― ${worldById(cell.dungeon).name}`,
     leave: () => { w.told[key] = 1; w.last = { kind: "late", key }; autosave(true); } }]);
 }
 // 初踏破を報告できるか (必要な手がかりが揃うまでは再出撃できる)
@@ -14349,7 +14432,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "stabilityBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "irene", "tut", "events", "story", "world", "dragonSlain", "stats",
+  "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "irene", "journal", "tut", "events", "story", "world", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
   "lastRun",
 ];
@@ -14402,11 +14485,13 @@ const testScenes = [
   { id: "opening", kind: "story", name: "オープニング" },
   ...Object.entries({ intro: TUT_INTRO, three: TUT_THREE_REPORT, finale: TUT_FINALE, epilogue: EPILOGUE }).map(([id, lines]) => ({
     id: "story:" + id, kind: "story", name: ({ intro: "着任の謁見", three: "三体の報告", finale: "四体の報告", epilogue: "結末" })[id], lines,
+    photo: storyImage(({ intro: "arrival", three: "three", finale: "departure" })[id]),
   })),
   ...[["cell", "師の手がかり", STORY_CELLS], ["memory", "主の記憶", BOSS_MEMORIES], ["report", "踏破の報告", REPORTS], ["chapter", "章の結び", CHAPTER_END], ["unlock", "機能の解放", UNLOCKS]].flatMap(([group, label, defs]) =>
-    Object.entries(defs).map(([id, def]) => ({ ...def, id: group + ":" + id, kind: "story", name: label + "・" + def.title, who: ["cell", "memory"].includes(group) ? "none" : "king" }))),
-  ...IRENE_BEATS.map((def) => ({ ...def, id: "irene:" + def.id, kind: "story", name: "館の語り・" + def.title, who: "irene" })),
-  { ...MINE_PASS, id: "minePass", kind: "story", name: MINE_PASS.title },
+    Object.entries(defs).map(([id, def]) => ({ ...def, id: group + ":" + id, kind: "story", name: label + "・" + def.title, who: ["cell", "memory"].includes(group) ? "none" : "king",
+      photo: storyImage(({ cell: id, memory: "mem_" + id, report: "report_" + id, chapter: "ch" + id + "_end" })[group]) }))),
+  ...IRENE_BEATS.map((def) => ({ ...def, id: "irene:" + def.id, kind: "story", name: "館の語り・" + def.title, who: "irene", photo: storyImage(def.id) })),
+  { ...MINE_PASS, id: "minePass", kind: "story", name: MINE_PASS.title, photo: storyImage("minePass") },
 ];
 const testScene = testScenes.find((s) => s.id === testParams.get("testScene"));
 const testPlayActive = testDungeonIdx >= 0 || !!testScene;
@@ -14535,6 +14620,7 @@ function loadGame() {
   if (!G.irene || typeof G.irene !== "object") G.irene = { greeted: false, visits: 0, seen: {}, last: null }; // 館の主イレーヌ (後付け: 既存の記録では次の来館で挨拶する)
   if (!G.irene.seen || typeof G.irene.seen !== "object") G.irene.seen = {};
   if (!G.tut || typeof G.tut !== "object") G.tut = { done: {}, cur: null, step: 0, ev: {}, base: {} }; // 手ほどき (後付け: 解放済みで未使用の要素は目標の札から手ほどきする)
+  if (!("journal" in snap) || !G.journal || typeof G.journal !== "object") { G.journal = null; seedJournal(G); } // ストーリーの既読 (後付け: いま読める物語は既読にして、知らせを山積みにしない)
   if (!G.events || typeof G.events !== "object") G.events = {}; // 迷宮のイベント (後付け)
   for (const k of ["seen", "picks", "once", "flags", "fresh"]) if (!G.events[k] || typeof G.events[k] !== "object") G.events[k] = {};
   { // 旧セーブで取得済みの恵みだけを引き継ぐ。新しい極には旧効果を追加しない。
@@ -14776,6 +14862,7 @@ function setupTestPlay() {
     if (d.boss) { w.beats["mem_" + d.id] = true; G.stats.bossIds[d.boss] = true; }
   }
   for (const ch of CHAPTERS) if (w.reported[ch.finale]) w.beats["ch" + ch.no + "_end"] = true;
+  if (w.reported.w09) w.beats[OMOKAGE_BEAT] = true; // 第三章からの試遊は面影の写しを使える
   // 地図の解放に要る手がかりを、ここまでの進行に応じて補う。
   for (const d of DUNGEONS.slice(0, idx + 1)) {
     if (d.unlock?.story) w.found[d.unlock.story] = true;
@@ -15275,7 +15362,7 @@ bindGame({
   questState, questLists, questByUid, questsHere, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount, questsTargeting,
   adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)
-  PREFS, savePrefs, setVolumes, isMuted, toggleMute, ensureAudio, updateMuteBtn, resetAllData, confirmReset,
+  PREFS, savePrefs, setWalkerLook, setVolumes, isMuted, toggleMute, ensureAudio, updateMuteBtn, resetAllData, confirmReset,
   // 他のパッケージも使える街の部品 (肖像・図鑑の詳細)
   showCodexMonDetail, showCodexItemDetail, showCodexJobDetail,
 });
@@ -15291,6 +15378,7 @@ bindGame({
   unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail, addSoulInstance, codexSweepJobs,
   canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill, itemKnown, isFirstGet,
   showRankUp, announceJobChange, showNameInput,
+  omokageUnlocked, omokageRanks, setDollFace,
 });
 // ==== /WP-B ====
 
@@ -15369,7 +15457,7 @@ function init() {
     resumeFromState();
     if (testScene?.kind === "tutorial") uiTutorial.startTestTutorial(G.testTutorial);
     else if (testScene?.id === "opening") startAfterTitle(false);
-    else if (testScene) UI.playStoryChain([{ title: testScene.title || testScene.name, lines: storyLines(testScene.lines), art: testScene.art, who: testScene.who || "king" }], renderTown);
+    else if (testScene) UI.playStoryChain([{ title: testScene.title || testScene.name, lines: storyLines(testScene.lines), art: testScene.art, photo: testScene.photo, who: testScene.who || "king" }], renderTown);
     else if (testParams.get("testPlace") !== "town") enterDungeon(null, floor);
     playBgm(sceneBgm());
     return;

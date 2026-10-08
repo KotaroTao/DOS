@@ -1,9 +1,9 @@
 // 読み物の解放・章順・参照元からの独立・通常の進行状態の保全を確認する。
 import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
-import { ARCHIVE_STORIES } from "../../src/archive-stories.js";
+import { ARCHIVE_STORIES, storyImage } from "../../src/archive-stories.js";
 import { ARCHIVE_FOCUS } from "../../src/archive-art.js";
-import { storyEntries } from "../../src/journal.js";
+import { storyEntries, journalState, newStories, unreadStories, markStoryRead, markStoriesKnown, seedJournal } from "../../src/journal.js";
 import { WORLD } from "../../src/dungeons/world.js";
 import { STORY_CELLS, REPORTS, BOSS_MEMORIES, IRENE_BEATS, CHAPTER_END } from "../../src/story.js";
 
@@ -16,8 +16,10 @@ for (const s of ARCHIVE_STORIES.filter(s => s.image)) {
   assert.equal(png.readUInt32BE(20), s.imageHeight);
   assert.equal(s.imageWidth / s.imageHeight, 1.5);
 }
-assert.equal(ARCHIVE_STORIES.filter(s => s.image).length, 24);
+assert.equal(ARCHIVE_STORIES.filter(s => s.image).length, 47);
 assert(ARCHIVE_STORIES.filter(s => s.chapter === 1).every(s => s.image), "第一章の全場面に専用画像がある");
+assert(ARCHIVE_STORIES.filter(s => s.chapter === 2).every(s => s.image), "第二章の全場面に専用画像がある");
+assert(ARCHIVE_STORIES.filter(s => s.chapter === 3).every(s => s.image), "第三章の全場面に専用画像がある");
 const byId = new Map(ARCHIVE_STORIES.map(s => [s.id, s]));
 assert.equal(byId.size, ARCHIVE_STORIES.length, "ストーリーのIDが重複しない");
 for (const s of ARCHIVE_STORIES) {
@@ -60,4 +62,29 @@ assert.equal(JSON.stringify(g), before, "読むための一覧生成で進行や
 const oldLines = [...Object.values(STORY_CELLS), ...Object.values(REPORTS), ...Object.values(BOSS_MEMORIES),
   ...IRENE_BEATS, ...Object.values(CHAPTER_END)].flatMap(s => Array.isArray(s.lines) ? s.lines : []);
 assert(!ARCHIVE_STORIES.flatMap(s => s.lines).some(line => oldLines.includes(line)), "既存の会話本文を流用しない");
-console.log(`読み物${stories.length}場面: 解放条件・専用図版・章順・本文・状態保全 OK`);
+
+// 既読と知らせ: 旧セーブはいま読める物語を既読に、新しく記された物語だけを知らせる
+{
+  const h = JSON.parse(before); delete h.journal;
+  seedJournal(h);
+  assert.equal(newStories(h).length, 0, "旧セーブは知らせを山積みにしない");
+  assert.equal(unreadStories(h).length, 0);
+  const fresh = { msq:{n:1}, stats:{runs:1}, world:{found:{w01_lantern:1},reported:{},beats:{},cleared:{}} };
+  assert(newStories(fresh).some(e => e.id === "w01_lantern"), "見つけた手がかりの物語を知らせる");
+  markStoriesKnown(fresh, newStories(fresh).map(e => e.id));
+  assert.equal(newStories(fresh).length, 0, "知らせは一度だけ");
+  assert(unreadStories(fresh).some(e => e.id === "w01_lantern"), "「あとで」でも未読は残る");
+  markStoryRead(fresh, "w01_lantern");
+  assert(!unreadStories(fresh).some(e => e.id === "w01_lantern"), "読めば未読が消える");
+  fresh.world.reported.w01 = 1;
+  assert.deepEqual(newStories(fresh).map(e => e.id), ["report_w01"], "後から記された物語だけを知らせる");
+  assert.deepEqual(Object.keys(journalState({})), ["read", "known"]);
+}
+// ゲーム内の場面に掲げる描き下ろしの絵: 場面の鍵 (手がかり・報告・主の記憶・館の語り・章の結び) と一覧のIDが一致する
+for (const id of [...Object.keys(STORY_CELLS), ...Object.keys(REPORTS).map(k => "report_" + k), ...Object.keys(BOSS_MEMORIES).map(k => "mem_" + k),
+  ...IRENE_BEATS.map(b => b.id), ...Object.keys(CHAPTER_END).map(k => `ch${k}_end`), "minePass", "arrival", "three", "departure"]) {
+  const img = storyImage(id);
+  if (img) assert.equal(img, byId.get(id)?.image, `${id} の絵が一覧と同じ`);
+}
+assert.equal(storyImage("report_w01"), byId.get("report_w01").image);
+console.log(`読み物${stories.length}場面: 解放条件・専用図版・章順・本文・状態保全・既読と知らせ OK`);
