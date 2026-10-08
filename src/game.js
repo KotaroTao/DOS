@@ -10459,7 +10459,7 @@ function raiseSoulCap(uid) {
   const e = soulByUid(uid);
   if (!e) return;
   const need = emberCostOf(e.clsKey);
-  if ((G.embers || 0) < need) { log(`魂の残火が足りない。(${need}つ要る)`, "sys"); SFX.ng(); showToast(`魂の残火が足りない（${need}つ要る）`, { tone: "bad" }); return; }
+  if ((G.embers || 0) < need) { log(`魂の残火が足りない。(${need}つ要る)`, "sys"); SFX.ng(); showToast(`魂の残火が足りない（${need}つ要る）`, { tone: "bad" }); return false; }
   G.embers -= need;
   e.capBonus = (e.capBonus || 0) + 1;
   recalcAllDolls();
@@ -10470,6 +10470,7 @@ function raiseSoulCap(uid) {
   showToast(`🔥 ${soulLabel(e)} ― Lv上限 ${cap}（残火 ${G.embers}）`, { tone: "gold" });
   autosave(true);
   renderTown();
+  return true;
 }
 
 // ---- 酒場「沈まぬ灯」の依頼 (クエスト。定義と掲示板の生成は src/quests.js) ----
