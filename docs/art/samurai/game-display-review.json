@@ -1,0 +1,102 @@
+{
+  "sprites": [
+    {
+      "key": "crusader",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.93
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/crusader_1.webp"
+    },
+    {
+      "key": "samurai",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.165
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/samurai_1.webp"
+    },
+    {
+      "key": "samurai",
+      "rank": 2,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.234
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/samurai_2.webp"
+    },
+    {
+      "key": "samurai",
+      "rank": 3,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.319
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/samurai_3.webp"
+    },
+    {
+      "key": "samurai",
+      "rank": 4,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.198
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/samurai_4.webp"
+    },
+    {
+      "key": "samurai",
+      "rank": 5,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.13
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/samurai_5.webp"
+    }
+  ],
+  "canvasCount": 30,
+  "browserErrors": []
+}
