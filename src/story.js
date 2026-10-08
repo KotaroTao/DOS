@@ -70,11 +70,11 @@ export const TUT_FINALE = [
 
 // ---- 物語マス: 迷宮の決まった階に必ず置かれる師の手がかり ----
 //   dungeon / floor = 置く迷宮と階 / name = 盤面・記録での名 / art = 一枚絵 / opens = 見つけた時に地図に現れる迷宮
-//   boon = 見つけた時の見返り (手がかりの恵み)。{ kind, text }。効き目は game.js が「見つけたか (world.found)」から
+//   boon = 見つけた時の見返り (手がかりの恵み)。{ kind, text }。最初の手がかり (師のランタン) だけは恵みを持たない (ユーザーの指示)。効き目は game.js が「見つけたか (world.found)」から
 //          そのつど引くので、見つけた後に足した恵みも旧セーブに効く。kind:
 //            dungeon … 迷宮が地図に記される (world.js の unlock: { story })   quest … 酒場に固定の依頼が出る (quests.js appear: { found })
-//            lantern … 迷宮の各階に着くたび、足元のまわり8マスが照らされる   repair … 人業の修復の費用が半分
-//            calm    … 魂の安定度の自然回復が 3分 → 2分に1                 restore … 赤い魂1で安定度が2回復
+//            repair  … 人業の修復の費用が 10%オフ                           soulEcho … 迷宮で職業の魂を拾った時、5%でもう一つ拾える
+//            evade   … 隊の全員の回避率 +1%
 //            sera    … セラの体がそろう (館でセラが目を覚まし、仲間になる)   seraRank … セラの魂 (灯守) のランクが上がる (館の語りで)
 //            elixir  … 商会に霊薬がいつも並ぶ
 export const STORY_CELLS = {
@@ -88,7 +88,6 @@ export const STORY_CELLS = {
       "──『水は下へ流れる。答えは、さらに下に』",
     ],
     toast: "師のランタンを見つけた",
-    boon: { kind: "lantern", text: "師のランタン ― 迷宮の各階に着くたび、足元のまわり8マスが照らされる" },
   },
   w02_sigil: {
     dungeon: "w02", floor: 4, name: "壁に刻まれた印", art: "sigil", title: "壁に刻まれた印", opens: ["w04"],
@@ -114,7 +113,7 @@ export const STORY_CELLS = {
       "館の主に見せなければならない。そんな気がした。",
     ],
     toast: "流れ着いた人業の腕を持ち帰る",
-    boon: { kind: "repair", text: "継ぎ目の技 ― 師の継ぎ目を手本に、館での人業の修復の費用が半分になる" },
+    boon: { kind: "repair", text: "継ぎ目の技 ― 師の継ぎ目を手本に、館での人業の修復の費用が 10%安くなる" },
   },
   // ---- 第二章「捨て砦」 ----
   w06_roll: {
@@ -157,7 +156,7 @@ export const STORY_CELLS = {
       "声はそこで途切れた。魂の灯は、まだ消えていない。館へ連れて帰らなければ。",
     ],
     toast: "人業の頭を、館へ連れ帰る",
-    boon: { kind: "calm", text: "セラの囁き ― 館に置かれたセラが魂たちに語りかけ、魂の安定度の自然回復が速くなる (3分 → 2分に1)" },
+    boon: { kind: "soulEcho", text: "セラの囁き ― セラの声が迷宮の魂を呼び寄せる。職業の魂を拾った時、5%でもう一つ拾える" },
   },
   w08_banner: {
     dungeon: "w08", floor: 8, name: "焼けた軍旗", art: "banner", title: "焼けた軍旗",
@@ -229,7 +228,7 @@ export const STORY_CELLS = {
       "胴は、驚くほど軽かった。",
     ],
     toast: "セラの胴を、館へ連れ帰る",
-    boon: { kind: "restore", text: "胸の扉の覚え書き ― 師の書き残した器の整え方で、赤い魂1で魂の安定度が2回復する" },
+    boon: { kind: "evade", text: "胸の扉の覚え書き ― 師の書き残した器の整え方で、人業の全員の回避率が 1%上がる" },
   },
   // ---- 第四章「王都の地下」 ----
   w14_lamp: {

@@ -2,7 +2,7 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, perkVictory, canSpellCure, cureBySpell, spellCureKinds } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, setPartyEvadeBonus, perkVictory, canSpellCure, cureBySpell, spellCureKinds } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageLabel, isBattleLong, turnsLeftLabel, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -78,7 +78,7 @@ const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho",
 const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; } })();
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 import { refSoul, refGold, trainCost, lvPow, emberMul, partyAgi, LOCK_K, TRAP_K, lockPow } from "./levelcurve.js";
-import { STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_RECOVERY_MS, recoverStability, stabilityWaitMs, stabilityRecoveryMs, setStabilityRecoveryMs } from "./stability.js";
+import { STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_RECOVERY_MS, recoverStability, stabilityWaitMs, stabilityRecoveryMs } from "./stability.js";
 import { tlStability, tlStabilityTick, tlRedGain, tlOn, tlMeasure, tlWatchBattle, tlRunBegin, tlRunEnd, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlTownGain, tlPlayTick, tlSoul } from "./telemetry.js";
 import { repriceEquipment } from "./pricing.js";
 import { spawnFx, drawBattleFx, weaponFxStyle, statusFxKind, skillProfile, ELEM_FX_COL, SIG_FX } from "./battlefx.js";
@@ -1328,18 +1328,14 @@ function partyPassiveLv(key) {
 
 // 隊のパッシブ 踏破の地図 (cartography): 階の開始時に周囲 2/3/4 マス (マンハッタン距離) の
 // カードを自動で表にする。踏破済みにはしないので、踏めば通常どおりイベントは起きる。
-// 師のランタン (手がかりの恵み lantern): 足元のまわり8マス (縦横斜め1マス) も照らす
 function revealByCartography() {
   const lv = partyPassiveLv("cartography");
-  const lamp = clueBoon("lantern");
-  if ((!lv && !lamp) || !G.board) return false;
-  const rad = lv ? Math.min(3, lv) + 1 : 1;
+  if (!lv || !G.board) return false;
+  const rad = Math.min(3, lv) + 1;
   let any = false;
   for (let dy = -rad; dy <= rad; dy++) {
     for (let dx = -rad; dx <= rad; dx++) {
-      const inMap = lv && Math.abs(dx) + Math.abs(dy) <= rad;
-      const inLamp = lamp && Math.abs(dx) <= 1 && Math.abs(dy) <= 1;
-      if (!inMap && !inLamp) continue;
+      if (Math.abs(dx) + Math.abs(dy) > rad) continue;
       const x = G.px + dx, y = G.py + dy;
       if (x < 0 || y < 0 || x >= COLS || y >= ROWS) continue;
       const c = G.board.cells[y][x];
@@ -5813,12 +5809,12 @@ function clueBoon(kind) {
   for (const k in STORY_CELLS) if (found[k] && STORY_CELLS[k].boon && STORY_CELLS[k].boon.kind === kind) return true;
   return false;
 }
-// セラの囁き (calm): 魂の安定度の自然回復を 3分 → 2分に1。変わる前に、それまでの時間を古い速さで精算する
-const STABILITY_CALM_MS = 2 * 60 * 1000;
-function syncClueBoons({ load = false } = {}) {
-  const ms = clueBoon("calm") ? STABILITY_CALM_MS : STABILITY_RECOVERY_MS;
-  // 読み込みでは保存してからの時間も新しい速さで数える (見つけた時は、それまでを古い速さで精算してから切り替える)
-  if (stabilityRecoveryMs() !== ms) { if (G.party && !load) refreshStability(); setStabilityRecoveryMs(ms); }
+// 胸の扉の覚え書き (evade): 隊の全員の回避率 +1% (combat.js setPartyEvadeBonus)
+const CLUE_EVADE = 0.01;
+// セラの囁き (soulEcho): 迷宮で職業の魂を拾った時、この確率でもう一つ拾える (grantSoulQuiet)
+const SOUL_ECHO_RATE = 0.05;
+function syncClueBoons() {
+  setPartyEvadeBonus(clueBoon("evade") ? CLUE_EVADE : 0);
   restockElixirs();
 }
 function stabilityMinutes() { return Math.round(stabilityRecoveryMs() / 60000); }
@@ -5908,8 +5904,8 @@ function seraRankUp() {
   log(`セラの魂がランク${d.jobRank}になった (${d.cls})。`, "win");
   if ((d.jobRank || 1) > before) showRankUp({ clsKey: "sera", fromRank: before, toRank: d.jobRank, toCount: s1.count, fromCap, toCap: soulLevelCapOf(s1) });
 }
-// 胸の扉の覚え書き (restore): 赤い魂1で安定度が2回復
-function stabilityPerRed() { return clueBoon("restore") ? 2 : 1; }
+// 赤い魂1つで回復する安定度
+function stabilityPerRed() { return 1; }
 // 館の語り (イレーヌ): 要る手がかりを見つけていて、まだ語っていないもの
 //   beat = 先に語っておく語り (セラが目覚めてから、など)
 function pendingIreneBeat() {
@@ -6521,9 +6517,19 @@ function grantSoulQuiet(clsKey, sourceLine = "", emberCount = 0) {
   tlSoulGot(clsKey);
   codexJobSee(clsKey, 1, 1);
   if (emberCount > 0) { G.embers = (G.embers || 0) + emberCount; runCount("embers", emberCount); }
+  // セラの囁き (手がかりの恵み soulEcho): 迷宮で拾った時、まれにもう一つ
+  const echo = inDungeon() && clueBoon("soulEcho") && Math.random() < SOUL_ECHO_RATE;
+  if (echo) {
+    G.stats.soulsFound++;
+    questProgress("soul", null, 1);
+    addSoulInstance(clsKey);
+    runTrackSoul(clsKey, "bag");
+    tlSoulGot(clsKey);
+  }
   updateTopbar();
-  log(`${cls.label}の魂 を持ち帰った。(所持魂 一覧に追加)${emberCount > 0 ? ` 魂の残火 ×${emberCount}` : ""}`, "win");
-  return { clsKey, label: cls.label, rarity: cls.rarity, rare: cls.rarity !== "common", glow: cls.glow || "#c9a227", line: sourceLine, embers: emberCount };
+  log(`${cls.label}の魂 を${echo ? "2つ" : ""}持ち帰った。(所持魂 一覧に追加)${echo ? " セラの囁きが、もう一つの魂を呼び寄せた。" : ""}${emberCount > 0 ? ` 魂の残火 ×${emberCount}` : ""}`, "win");
+  const line = echo ? [sourceLine, "セラの囁きが、もう一つの魂を呼び寄せた (×2)"].filter(Boolean).join(" ・ ") : sourceLine;
+  return { clsKey, label: cls.label, rarity: cls.rarity, rare: cls.rarity !== "common", glow: cls.glow || "#c9a227", line, embers: emberCount, echo };
 }
 
 // 魂の祝祭の札 (迷宮で拾った魂はコモンも・街ではレア以上)。残火があれば同じ札にまとめる
@@ -12710,7 +12716,7 @@ function repairCostOf(d) {
   const cls = d.clsKey ? SOUL_CLASSES[d.clsKey] : null;
   const mul = REPAIR_RARITY_MUL[cls ? cls.rarity : "common"] || 1;
   const cost = REPAIR_RANK_GOLD[rank] * lv * mul;
-  return clueBoon("repair") ? Math.ceil(cost / 2) : cost; // 継ぎ目の技 (流れ着いた腕): 半額
+  return clueBoon("repair") ? Math.ceil(cost * 0.9) : cost; // 継ぎ目の技 (流れ着いた腕): 10%オフ
 }
 function repairCostAll() {
   return allDolls().reduce((a, d) => a + (d.isDoll && !d.alive ? repairCostOf(d) : 0), 0);
@@ -14908,7 +14914,7 @@ function loadGame() {
   codexFresh(); // 新着の記録 (後付け。旧セーブは新着なしで始まる)
   delete G.codex.soul; // 魂図鑑は廃止 (スキルが職業帰属になったため)
   codexSweepJobs();
-  syncClueBoons({ load: true }); // 手がかりの恵み (安定度の回復の速さ・霊薬の棚)
+  syncClueBoons(); // 手がかりの恵み (回避率・霊薬の棚)
   syncSeraSoul(); // セラの灯守の魂 (旧版のセラの宿し直し・物語で上がるランク)
   return true;
 }
