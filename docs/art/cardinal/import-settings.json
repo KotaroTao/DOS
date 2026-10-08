@@ -1,0 +1,66 @@
+{
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "measurementNote": "帽子の下に隠れた主な髪の頭頂は、見えている髪・顔・帽子の位置から推定。足元はアルファ>1の下端。原画の余白と帽子の先は身長に含めない。",
+  "sources": [
+    {
+      "source": "docs/art/cardinal/cardinal-r1-final.png",
+      "perDot": 14.249394673123488,
+      "head": [
+        550,
+        680,
+        185,
+        495
+      ],
+      "sole": 1362
+    },
+    {
+      "source": "docs/art/cardinal/cardinal-r2-final.png",
+      "perDot": 14.188861985472156,
+      "head": [
+        510,
+        640,
+        115,
+        424
+      ],
+      "sole": 1287
+    },
+    {
+      "source": "docs/art/cardinal/cardinal-r3-final.png",
+      "perDot": 14.40677966101695,
+      "head": [
+        510,
+        640,
+        110,
+        424
+      ],
+      "sole": 1300
+    },
+    {
+      "source": "docs/art/cardinal/cardinal-r4-final.png",
+      "perDot": 14.527845036319613,
+      "head": [
+        510,
+        640,
+        104,
+        421
+      ],
+      "sole": 1304
+    },
+    {
+      "source": "docs/art/cardinal/cardinal-r5-final.png",
+      "perDot": 14.430992736077483,
+      "head": [
+        510,
+        640,
+        118,
+        432
+      ],
+      "sole": 1310
+    }
+  ]
+}
