@@ -1,0 +1,26 @@
+{
+  "job": "hero",
+  "label": "勇者",
+  "status": "R1 review only; game assets not overwritten",
+  "source": "docs/art/hero/hero-r1-review.png",
+  "comparison": "docs/art/hero/r1-comparison.png",
+  "manualHeadSourcePx": [
+    548,
+    245,
+    555
+  ],
+  "perDotForReview": 14.135886912904697,
+  "entryPreview": {
+    "w": 90,
+    "h": 92,
+    "face": [
+      45,
+      20
+    ],
+    "head": [
+      45.0,
+      9.0,
+      30.93
+    ]
+  }
+}

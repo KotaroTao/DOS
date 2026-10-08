@@ -85,6 +85,8 @@ There is no test suite. To sanity-check JS edits, use Node:
 
   護教官（`chaplain`）R1〜R5も聖戦士と確認済みR1を参照した独立原画へ更新。司教冠・覆面・薄紫の法衣・鎚矛・聖典を維持し、銀金の装備を段階的に強化。原画と取り込み設定は `docs/art/chaplain/README.md`、全身・顔の実描画比較は `docs/art/chaplain/final-review.png`。共通枠90×92、人体の頭頂9ドット。冠と覆面に隠れた人体の位置は顎相当位置と足裏から推定する。
 
+  呪術師 (`hexer`) R1〜R5も聖戦士基準の透明原画へ更新済み。帽子を除いた顔の大きさを修正した確認済みR1から各ランクを独立制作。原画・測定値は `docs/art/hexer/README.md`、全身と56/36/26pxの顔の実表示は `docs/art/hexer/game-display-review.png`。共通枠90×92、人体の頭頂9、頭頂〜足裏82.7ドットで、下端の縮小補間用にわずかな余白を確保する。
+
 - **`walkerart.js`** — the player's board token: `WALKER = {down, up, left, right}` (20×31 red-hooded 操霊師, converted from the user's image; drawn at integer scale facing the move direction).
 - **`crypt.js`** — the exploration board art: per-floor baked tomb-slab card backs (8 carved motifs + cracks/moss), flagstone floors with bones/candles/blood, cut-stone walls. game.js composites the baked layers and adds only the lantern light / fog of war / particles per frame. Board/HUD/battle-UI styles live in `dungeon.css`; party cards draw portraits via `partyPortrait(p)` (single switch point).
 
