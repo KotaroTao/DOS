@@ -1797,7 +1797,6 @@ const _jobSprCache = {};
 export function jobSprite(jobKey, rank = 2) {
   const r = Math.max(1, Math.min(5, Math.round(rank) || 2));
   // ランクごとに選ぶ: そのランクのドット絵があればそれ、無ければ原画そのまま版、どちらも無ければ近いランクのドット絵
-  // (竜騎士はランク1だけドット絵、2〜5は原画そのまま版)
   if (JOB_IMAGES[jobKey] && JOB_IMAGES[jobKey][r]) return imageJobSprite(jobKey, r);
   if (JOB_PHOTOS[jobKey]) return photoJobSprite(jobKey, r);
   if (JOB_IMAGES[jobKey]) return imageJobSprite(jobKey, r);

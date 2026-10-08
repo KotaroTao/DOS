@@ -1,0 +1,108 @@
+{
+  "job": "shadow",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "anatomySource": "docs/art/shadow/shadow-r1.png",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "measurementNote": "顔の頬の中心、主な髪の頭頂、覆面の下の顎、足裏を測定。フードの上端を人体の頭頂に含めない。",
+  "sources": [
+    {
+      "source": "docs/art/shadow/shadow-r1.png",
+      "perDot": 13.260869565217392,
+      "head": [
+        489,
+        611,
+        210,
+        499
+      ],
+      "sole": 1304,
+      "alphaBBox": [
+        221,
+        182,
+        1021,
+        1308
+      ],
+      "crownToSole": 82.4983606557377,
+      "headHeight": 21.793442622950817
+    },
+    {
+      "source": "docs/art/shadow/shadow-r2.png",
+      "perDot": 13.23671497584541,
+      "head": [
+        489,
+        611,
+        210,
+        500
+      ],
+      "sole": 1302,
+      "alphaBBox": [
+        219,
+        162,
+        1034,
+        1306
+      ],
+      "crownToSole": 82.4978102189781,
+      "headHeight": 21.90875912408759
+    },
+    {
+      "source": "docs/art/shadow/shadow-r3.png",
+      "perDot": 13.562801932367151,
+      "head": [
+        470,
+        598,
+        210,
+        507
+      ],
+      "sole": 1331,
+      "alphaBBox": [
+        149,
+        163,
+        1053,
+        1333
+      ],
+      "crownToSole": 82.65253784505788,
+      "headHeight": 21.89813000890472
+    },
+    {
+      "source": "docs/art/shadow/shadow-r4.png",
+      "perDot": 13.57487922705314,
+      "head": [
+        484,
+        608,
+        210,
+        506
+      ],
+      "sole": 1332,
+      "alphaBBox": [
+        207,
+        175,
+        1091,
+        1334
+      ],
+      "crownToSole": 82.6526690391459,
+      "headHeight": 21.804982206405693
+    },
+    {
+      "source": "docs/art/shadow/shadow-r5.png",
+      "perDot": 13.297101449275363,
+      "head": [
+        489,
+        611,
+        213,
+        506
+      ],
+      "sole": 1308,
+      "alphaBBox": [
+        131,
+        170,
+        1072,
+        1314
+      ],
+      "crownToSole": 82.34877384196184,
+      "headHeight": 22.034877384196182
+    }
+  ]
+}

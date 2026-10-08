@@ -31,7 +31,7 @@ export default {
     NECROMANCER_HAKAMORI: { name: "墓守の鎖", mp: 8, kind: "debuff", debuff: { agi: 0.75, atk: 0.9 }, target: "all-enemy", desc: "墓守の鎖で敵全体を縛り、速さと力を奪う" },
     NECROMANCER_SHIMEI: { name: "死神の指名", mp: 10, kind: "debuff", instakill: { chance: 0.3 }, debuff: { vit: 0.8 }, target: "enemy", desc: "死神が名を呼び即死させる。逃れても守りが落ちる" },
     NECROMANCER_SHIDOKU: { name: "屍毒の接吻", mp: 8, kind: "debuff", poison: { chance: 0.85, pct: 0.1 }, debuff: { atk: 0.9 }, target: "enemy", desc: "屍の毒で猛毒にし、力を萎えさせる" },
-    NECROMANCER_KOUSHIN: { name: "死霊の行進", mp: 12, kind: "atk", power: 32, element: "dark", flinchChance: 0.25, target: "all-enemy", desc: "死霊の群れが敵全体を踏みしだき、怯ませる" },
+    NECROMANCER_KOUSHIN: { name: "死霊の行進", mp: 14, kind: "atk", power: 32, element: "dark", flinchChance: 0.25, target: "all-enemy", desc: "死霊の群れが敵全体を踏みしだき、怯ませる" },
     NECROMANCER_KONBAKU: { name: "魂縛りの陣", mp: 10, kind: "debuff", seal: { chance: 0.5, turns: 3 }, strip: true, target: "all-enemy", desc: "魂を縛り、敵全体の特技と強化を奪う" },
     NECROMANCER_INOCHISOGI: { name: "命削ぎ", mp: 7, kind: "atk", gravity: 0.22, drain: 0.3, target: "enemy", desc: "今の命の22%を削ぎ取り、己に移す（主には弱い）" },
     NECROMANCER_SEIJANETAMI: { name: "生者への妬み", mp: 30, kind: "atk", power: 86, element: "dark", prey: { races: LIVING, mul: 1.3 }, target: "enemy", desc: "生ある者を妬む闇。亜人・巨人・獣・鳥人に強い" },
@@ -45,7 +45,7 @@ export default {
     NECROMANCER_TAMAGARI: { name: "魂狩りの鎌", mp: 28, kind: "atk", power: 72, element: "dark", mpDrain: 0.08, target: "all-enemy", desc: "見えざる鎌で敵全体の魂を刈り、魔力を奪う" },
     NECROMANCER_SANZU: { name: "三途の濁流", mp: 26, kind: "atk", power: 80, element: "water", drain: 0.3, target: "enemy", desc: "三途の濁流に沈め、命を引き上げる" },
     NECROMANCER_MEIGA: { name: "冥河の氾濫", mp: 20, kind: "atk", power: 50, element: "water", debuff: { hit: 0.85 }, target: "all-enemy", desc: "冥河の水が敵全体を呑み、目を曇らせる" },
-    NECROMANCER_SOUSOU: { name: "終焉の葬送", mp: 44, kind: "atk", power: 124, element: "dark", instakill: { chance: 0.15 }, target: "all-enemy", desc: "万物を葬る闇。即死させることがある" },
+    NECROMANCER_SOUSOU: { name: "終焉の葬送", mp: 50, kind: "atk", power: 124, element: "dark", instakill: { chance: 0.15 }, target: "all-enemy", desc: "万物を葬る闇。即死させることがある" },
   },
   perks: {
     necromancerShikuirai: { label: "屍喰らい", lv: ["敵を倒すとHP4%・MP4%回復", "敵を倒すとHP6%・MP6%回復", "敵を倒すとHP8%・MP8%回復"],
