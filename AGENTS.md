@@ -27,6 +27,7 @@ for f in $(git ls-files 'src/*.js'); do node --check "$f"; done   # 構文チェ
 - 依存の向き: `src/ui/*` と `src/events.js` は **game.js を import しない** (ui は `ctx.js` の `UI`/`game`/`ops`、出来事は `evApi` 経由)。`combat.js` は純粋なロジックで、演出・効果音は game.js 側。
 - 画面: ページ送り (‹ 1/2 ›) は作らない。入りきらない中身は内側の箱を縦にスクロールさせる。説明文の改行は `src/ui/phrase.js` が自動で行うので、手で `\n` を入れて折らない。
 - **新しい迷宮を追加する時は、その迷宮専用の「極めて稀なる出来事」を必ずちょうど1件実装する** (最初の迷宮 `w01` と奈落は除外。依頼の迷宮も対象)。`src/events.js` の `DUNGEON_GIFTS` に追加し、全職業の永続強化を9種の中から偏りなく割り当てる。詳細は `CLAUDE.md` の迷宮の台帳の節。完了前に `node tools/balance/event-boons.mjs` を必ず実行する。
+- **師の手がかり (`src/story.js` の `STORY_CELLS`) を足す時は、必ず見返り `boon` を付ける** (迷宮が開く・依頼が出る・館の働きが良くなる など。ユーザーの指示)。詳細は `CLAUDE.md` の迷宮の台帳の節の「手がかりの恵み」。
 - 魔物を足す時は固有の絵 (`ARTS` の色違いで済ませない) と 1〜2個の特徴を付ける。1匹ごとの固有ドロップは作らない (名のある強敵の首級だけは例外)。
 - 生成物は手で直さない: `schema.js` の `hd_*` ブロック (`node tools/hdart/run.mjs <layer> --apply`)、`src/itemart/salts.js` (`node tools/itemart/check.mjs --apply`)、`monart.js` の `<<MONSTER_ART>>` ブロック (`tools/monart.mjs`)。
 

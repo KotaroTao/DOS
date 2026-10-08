@@ -101,6 +101,7 @@ function portraitEl(d, { size = 44, sel = false, tag = "button", cls = "" } = {}
   const cl = d.jobKey && SOUL_CLASSES[d.jobKey];
   if (cl) p.style.setProperty("--glow", cl.glow);
   if (d.primary == null) p.classList.add("hollow"); // 魂の宿らない器
+  if (d.vessel === "sera") { p.classList.add("vessel-sera"); p.appendChild(el("span", "pt-port-vessel", "灯")); } // 師の作った器
   const fr = el("span", "pt-port-fr");
   try { fr.appendChild(partyPortraitCanvas(d, size - 6)); } catch (e) { /* 絵が無くても動く */ }
   p.appendChild(fr);
@@ -1261,7 +1262,7 @@ function reserveRow(d) {
   }
   else if (d.primary != null) st.appendChild(el("span", "pt-res-s", `  HP ${d.hp}/${d.maxhp}`));
   game.refreshStability?.();
-  st.appendChild(el("span", "pt-res-s", ` ・ 安定度 ${d.stability}/${game.STABILITY_MAX}`));
+  st.appendChild(el("span", "pt-res-s", game.vesselStable && game.vesselStable(d) ? " ・ 師の器" : ` ・ 安定度 ${d.stability}/${game.STABILITY_MAX}`));
   tx.appendChild(st);
   top.appendChild(tx);
   const look = button({ label: "見る", kind: "ghost", size: "sm", onTap: () => viewDoll(d) });
@@ -1374,6 +1375,34 @@ export function openCreateDoll() {
   if (h?.el) UI.tutorialEvent?.("newJobSoulPickerOpened");
   return h;
 }
+// セラが目覚めた時: 宿すメイン魂を選ぶ (無料。閉じてもよい — 控えで待ち、館の「魂」で選べる)
+export function openSeraSoul(d) {
+  if (!inTown() || !d || d.primary != null) return null;
+  const worn = (uid) => allDolls().some((x) => x.primary === uid || (x.subs || []).some((s) => s && s.uid === uid));
+  const free = game.soulRepresentatives().filter((s) => !worn(s.uid)).sort(game.soulSortCmp || (() => 0));
+  if (!free.length) { toast("宿せる魂がない ― セラは控えで待っている。館の「魂」で選べる", { tone: "info" }); return null; }
+  sfx("select");
+  const h = sheet.open({
+    kind: "info", banner: "セラに宿す魂", className: "pt-pick-sheet",
+    lines: ["師の作った器に、宿す魂を選ぶ。器は魂の安定度を消費せず、宿した魂の能力に上乗せされる。", "選ばずに閉じても、セラは控えで待っている。"],
+    body: (scroll) => {
+      const list = el("div", "pt-list");
+      for (const s of free) {
+        const cl = SOUL_CLASSES[s.clsKey]; if (!cl) continue;
+        const ic = el("span", "pt-orb");
+        ic.style.setProperty("--glow", cl.glow);
+        ic.appendChild(pixelCanvas(jobBust(s.clsKey, Math.max(1, soulRank(s))), 36));
+        const r = row({ icon: ic, title: soulLabel(s), sub: `Lv${s.level} ・ ${rarityName(cl.rarity)}`, chevron: true,
+          onTap: () => { if (game.hostSeraSoul(d, s.uid)) h.close(); } });
+        r.classList.add("pt-soulrow");
+        r.dataset.job = s.clsKey;
+        list.appendChild(r);
+      }
+      scroll.appendChild(list);
+    },
+  });
+  return h;
+}
 function rarityName(r) { return { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド" }[r] || ""; }
 function soulRank(s) { return game.soulRankOf ? game.soulRankOf(s) : 1; }
 
@@ -1450,10 +1479,12 @@ export function openStability(d, onChange) {
   const spec = () => {
     game.refreshStability();
     const gap = game.STABILITY_MAX-d.stability;
-    const amounts = [...new Set([1, Math.min(10,gap), gap])].filter(n=>n>0);
+    const per = game.stabilityPerRed ? game.stabilityPerRed() : 1;
+    const amounts = [...new Set([per, Math.min(10,gap), gap])].filter(n=>n>0 && n<=gap);
+    const costOf = (n) => Math.ceil(n / per);
     return { title:`${d.name} ― 魂の安定度 ${d.stability}/${game.STABILITY_MAX}`,
-      lines:["3分で1回復します。控えやゲームを閉じている間も回復します。", "赤い魂1で安定度1を回復します。宿泊や魂の付け替えでは回復しません。", `所持している赤い魂: ${G_().redSoul}`],
-      footer:[...amounts.map(n=>({ label:n===gap ? `満タンまで回復 (+${n})` : `+${n}回復`, cost:{kind:"red",n}, kind:"secondary", disabled:G_().redSoul<n,
+      lines:[`${game.stabilityMinutes ? game.stabilityMinutes() : 3}分で1回復します。控えやゲームを閉じている間も回復します。`, `赤い魂1で安定度${per}を回復します。宿泊や魂の付け替えでは回復しません。`, `所持している赤い魂: ${G_().redSoul}`],
+      footer:[...amounts.map(n=>({ label:n===gap ? `満タンまで回復 (+${n})` : `+${n}回復`, cost:{kind:"red",n:costOf(n)}, kind:"secondary", disabled:G_().redSoul<costOf(n),
         onTap:()=>{const r=game.restoreStability(d,n);if(!r.ok)return;h.update(spec());rerender();if(onChange)onChange();} })),
         {label:"戻る",kind:"ghost",onTap:()=>h.close()}],
     };
@@ -1512,8 +1543,11 @@ function dollHeader(d, mode) {
     tx.appendChild(l2);
   }
   game.refreshStability?.();
-  const stability = button({ label:`魂の安定度 ${d.stability}/${game.STABILITY_MAX}`, kind:"ghost", size:"sm",
-    onTap:town ? ()=>openStability(d) : ()=>toast("入場時に10消費・3分で1回復。探索中の追加消費はない", {tone:"info"}) });
+  const stable = game.vesselStable && game.vesselStable(d);
+  const stability = stable
+    ? button({ label:"師の器 ・ 安定度を消費しない", kind:"ghost", size:"sm", onTap:()=>toast("師オルドの作った器。魂の安定度を消費せず、能力が上乗せされる", {tone:"info"}) })
+    : button({ label:`魂の安定度 ${d.stability}/${game.STABILITY_MAX}`, kind:"ghost", size:"sm",
+      onTap:town ? ()=>openStability(d) : ()=>toast(`入場時に10消費・${game.stabilityMinutes ? game.stabilityMinutes() : 3}分で1回復。探索中の追加消費はない`, {tone:"info"}) });
   stability.classList.add("pt-stability"); tx.appendChild(stability);
   head.appendChild(tx);
   if (town && pi < 0 && d.primary != null) {
@@ -2403,6 +2437,7 @@ export function install() {
     openReserve,
     openCreateDoll,
     openCreateName,
+    openSeraSoul,
     autoEquip,
     betterGearCount,
     equipItemTo,

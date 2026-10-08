@@ -1065,6 +1065,9 @@ export function charLevelOf(doll) {
 // サブ魂 (subs) が選んだ技/パッシブを魂のランクに応じた数だけ借りる。進行は所持魂インスタンス (SOULS) が持つ。
 let PERMANENT_STAT_SRC = () => ({});
 export function setPermanentStatSource(fn) { PERMANENT_STAT_SRC = typeof fn === "function" ? fn : () => ({}); }
+// 特別な器 (doll.vessel) の能力の上乗せの割合。いまは「セラ」(師の作った器) だけ。game.js が手がかりの恵みから返す
+let VESSEL_RATE_SRC = () => 0;
+export function setVesselSource(fn) { VESSEL_RATE_SRC = typeof fn === "function" ? fn : () => 0; }
 
 export function recalcDoll(doll) {
   if (!doll.subs) doll.subs = [];
@@ -1184,6 +1187,10 @@ export function recalcDoll(doll) {
 
   const permanent = PERMANENT_STAT_SRC();
   if (pe) for (const k of Object.keys(st)) st[k] += permanent[k] || 0;
+  // 特別な器: 魂の能力 (サブ魂・結社・永続強化を含む) に割合で上乗せする。魂の格 (soulMp) には含めない
+  const vr = pe && doll.vessel ? VESSEL_RATE_SRC(doll) : 0;
+  if (vr > 0) for (const k of Object.keys(st)) st[k] *= 1 + vr;
+  doll.vesselRate = vr;
 
   const traits = jobBaseTraitsOf(clsKey, rank);
   doll.base = {

@@ -265,79 +265,79 @@ const NEW_DEFS = [
     ability: "stone", abRate: 0.45, physResist: 50, // 輝く眼でにらみ続け、生者を石に変える
     desc: "鶏冠と棘を頭に戴いた、苔色の鱗の大蜥蜴。黄緑に輝く眼ににらまれた者は足先から石に変わり、その棲み処の苔の下には、逃げ遅れた旅人の石像がいくつも転がっている。硬い鱗は刃を半ば弾く。" },
   // -- 第6層「沈没神殿」 (rank 7-8・水/神殿。第5層より格上の壁。深部に rank9 の神像・堕天) --
-  { id: "bs_drownedpriest", name: "水底の祈り手", rank: 7, race: "specter", element: "water", artKey: "drownedpriest", soulClass: "priest",
-    role: "healer", ability: "weaken", // 呪いで力を奪い、傷ついた眷属を癒す
-    desc: "神殿が湖底に沈んでなお、祭壇の前で祈りを止めない溺死した神官。生者には力を奪う呪いを、傷ついた同胞には癒しの祈りを捧げる。その口から漏れるのは、もう意味をなさぬ経文だ。" },
-  { id: "bs_fonthorror", name: "聖水盤の異形", rank: 7, race: "aquatic", element: "water", artKey: "fonthorror",
-    ability: "poison", regen: 0.08, physResist: 50, // 聖水を毒水に変え、刃を呑む粘塊
-    desc: "聖水盤に巣食い、清めの水を毒の沼に変えてしまった触手の塊。盤の縁から腕を伸ばして獲物を絡め取り、腐った聖水を浴びせる。ぬめる肉は刃をすべらせ、削いだ先から盛り上がる。" },
-  { id: "bs_choirwraith", name: "水没聖歌隊", rank: 7, race: "specter", element: "water", artKey: "choirwraith",
-    pack: true, ability: "paralyze", // 群れで痺れる賛美歌を歌い上げる
-    desc: "水没の夜から、止むことのない賛美歌を歌い続ける聖歌隊の霊。幾重にも重なる歌声を浴びた者は、荘厳さに打たれて身が痺れ、動けなくなる。一体を黙らせても、隣の口がすぐ後を継ぐ。" },
-  { id: "bs_idolguardian", name: "神像の番人", rank: 8, race: "construct", element: "water", artKey: "idolguardian",
-    role: "guard", physResist: 75, barrier: 2, // 旧き神の石像。主をかばい、刃を阻む
-    desc: "旧き神を象った巨大な石像が、聖域を侵す者の前に立ちはだかる。背後の祭司を己の石身でかばい、刻まれた神文が刃をはね返す。沈黙の神に代わって、まだ忠実に務めを果たしている。" },
-  { id: "bs_abyssjelly", name: "深海の鐘鬼", rank: 7, race: "aquatic", element: "water", artKey: "abyssjelly",
-    ability: "paralyze", lifesteal: 0.3, magWeak: 1.4, // 触手で痺れさせ精気を吸う。実体は脆い
-    desc: "鐘の形をした、深海から這い上がった半透明の魔。長い触手で獲物を痺れさせ、まとわりついて精気を吸い上げる。淡く発光する体は美しいが、魔の力を浴びれば容易く弾ける。" },
-  { id: "bs_tidecaller", name: "潮を呼ぶ司祭", rank: 8, race: "specter", element: "water", artKey: "tidecaller", soulClass: "priest",
-    role: "summoner", summonKey: "bs_choirwraith", ability: "drain", regen: 0.06, // 眷属を呼び、命を吸い、潮で傷を繕う
-    desc: "神殿をみずから湖底へ沈めた、背教の大司祭の霊。潮を操って眷属を次々と呼び寄せ、生者の命を吸って自らの存在を保つ。沈めたのは罰からの逃避か、それとも何かを封じるためか。" },
-  { id: "bs_kelpdrowned", name: "藻に巻かれし者", rank: 7, race: "undead", element: "water", artKey: "kelpdrowned",
-    ability: "paralyze", lifesteal: 0.3, pack: true, // 海藻ごと群れで絡みつき、痺れさせ精気を吸う
-    desc: "神殿に押し寄せた水に呑まれ、海藻に絡め取られたまま朽ちた参拝者の群れ。藻ごと幾体も折り重なって獲物に巻きつき、冷たい指で締め上げて精気をすする。藻を断っても、また別の手が伸びる。" },
-  { id: "bs_sunkenbell", name: "たたりの大鐘", rank: 8, race: "construct", element: "water", artKey: "sunkenbell",
-    ability: "paralyze", magResist: 75, barrier: 2, // 鳴れば魂が痺れるたたりの鐘。魔を弾く
-    desc: "水没した鐘楼から響き続ける、たたりを宿した神殿の大鐘。ひとたび鳴れば、その音は骨の髄まで染み入って魂を痺れさせる。青銅の身は刃を阻み、魔力をも鈍く弾き返す。" },
-  { id: "bs_templelord", name: "沈める神官王", rank: 8, boss: true, race: "specter", element: "water", artKey: "templelord", soulClass: "priest",
-    role: "summoner", summonKey: "bs_kelpdrowned", ability: "drain", physResist: 75, regen: 0.06, magWeak: 1.3, // 眷属を呼び、命を貪り、潮で繕う。光に脆い
-    desc: "神殿を湖底へ沈め、自らも王冠を被ったまま溺れ果てた背教の神官王。沈んだ参拝者を眷属として呼び起こし、生者の命を貪って永遠の祈祷を続ける。湖底の闇に慣れた身は、聖なる光に焼かれて崩れる。" },
+  { id: "bs_drownedpriest", name: "水底の祈り手", rank: 7, race: "specter", element: "water", artKey: "hd_drownedpriest", soulClass: "priest",
+    role: "healer", ability: "dispel", // 傷ついた眷属を癒し、隊の加護が厚くなると禍言でまとめてほどく
+    desc: "神殿が水に沈んでなお、祭壇の前で祈りを止めない溺れた神官の霊。傷ついた同胞には癒しの祈りを捧げ、生者が加護を重ねれば、意味をなさぬ経文の禍言でそれをまとめてほどいてしまう。" },
+  { id: "bs_fonthorror", name: "聖水盤の異形", rank: 7, race: "aquatic", element: "water", artKey: "hd_fonthorror",
+    ability: "breath", abRate: 0.4, regen: 0.1, // 腐った聖水を隊ごと浴びせ続け、削いだ肉はすぐ盛り上がる
+    desc: "聖水盤に巣食い、清めの水を腐った毒水に変えてしまった肉と触手の塊。盤の縁にいくつもの濁った眼を開き、腐った聖水を隊ごと何度も浴びせかける。削いだ肉は、盤の水を吸ってすぐに盛り上がる。" },
+  { id: "bs_choirwraith", name: "水没聖歌隊", rank: 7, race: "specter", element: "water", artKey: "hd_choirwraith",
+    pack: true, ability: "sleep", abRate: 0.4, // 群れで眠りの聖歌を歌い続ける
+    desc: "水没の夜から、止むことのない聖歌を歌い続ける聖歌隊の霊。幾重にも重なる歌声は子守歌のように穏やかで、聴き入った者はまぶたの重さに抗えなくなる。一体を黙らせても、隣の口がすぐ後を継ぐ。" },
+  { id: "bs_idolguardian", name: "神像の番人", rank: 7, race: "construct", element: "water", artKey: "hd_idolguardian",
+    role: "guard", barrier: 3, ability: null, // 大盾を立てて後ろの者をかばい、守りの文字が数度だけ刃を受け止める
+    desc: "旧き神を象った、顔のない四本腕の石像。神殿の紋を刻んだ大盾を立てて背後の者をかばい、盾に浮かぶ守りの文字が幾度も刃を受け止める。沈黙の神に代わって、いまも忠実に務めを果たしている。" },
+  { id: "bs_abyssjelly", name: "深みの灯りくらげ", rank: 7, race: "aquatic", element: "water", artKey: "hd_abyssjelly",
+    ability: "confuse", abRate: 0.5, magWeak: 1.5, // 明滅する光の輪で絶えず惑わせる。薄い体は魔の力に脆い
+    desc: "沈んだ神殿の暗がりを漂う、鐘の形の大きなくらげ。半ば透けた傘の内で灯りの臓が明滅し、その光の輪を見つめた者は敵と味方の見分けを失う。淡く美しい体は、魔の力を浴びれば容易く弾ける。" },
+  { id: "bs_tidecaller", name: "潮を呼ぶ司祭", rank: 8, race: "specter", element: "water", artKey: "hd_tidecaller", soulClass: "priest",
+    ability: "spell", abRate: 0.5, // 三叉の杖で渦潮を呼び、潮の呪文で隊全体を撃ち続ける
+    desc: "神殿が沈んだ夜、潮を呼んだと伝わる背教の大司祭の霊。三叉の杖を掲げるたびに渦潮が立ちのぼり、押し寄せる潮の呪文が隊をまとめて呑む。骨の顔は海藻の髭に埋もれ、もう祈りの言葉も覚えていない。" },
+  { id: "bs_kelpdrowned", name: "藻に巻かれし者", rank: 7, race: "undead", element: "water", artKey: "hd_kelpdrowned",
+    pack: true, lifesteal: 0.4, ability: null, // 群れですがりつき、水の底へ引き込むように息を奪う
+    desc: "神殿に押し寄せた水に呑まれ、藻に巻かれたまま朽ちた参拝者の群れ。幾体も折り重なって生者にすがりつき、冷たい指で締め上げては、水の底へ引き込むようにその息を奪って己の体を繕う。" },
+  { id: "bs_sunkenbell", name: "たたりの大鐘", rank: 8, race: "construct", element: "water", artKey: "hd_sunkenbell",
+    ability: "paralyze", abRate: 0.45, magResist: 75, // 鳴り続けて魂を痺れさせる。古い文字が呪文をはね返す
+    desc: "水没した鐘楼から落ち、苦悶の顔を胴に浮かべた神殿の大鐘。ひとりでに鳴り続け、その響きは骨の髄まで染み入って魂を痺れさせる。表に刻まれた古い文字は、呪文の力を鈍くはね返す。" },
+  { id: "bs_templelord", name: "沈める神官王", rank: 8, boss: true, race: "specter", element: "water", artKey: "hd_templelord", soulClass: "priest",
+    role: "summoner", summonKey: "bs_choirwraith", ability: "spell", abRate: 0.4, regen: 0.05, physResist: 50, magWeak: 1.3, // 聖歌隊を呼び、潮の大呪で隊全体を撃つ。光に脆い
+    desc: "三百年前、大神殿の「魂の泉」の上で冠を受けた旧都の王。神殿ごと水に沈められてなお玉座を離れず、王冠と司教冠の溶け合った冠を戴いて腰まで水に浸かる。聖歌隊の霊を呼び集め、渦潮の大呪で生者をまとめて呑む。湖底の闇に慣れた身は、聖なる光に焼かれて崩れる。" },
   // -- 第7層「灼熱の洞」 (rank 8-9・火/溶岩。第6層より格上の壁。深部に rank10) --
-  { id: "bs_lavagolem", name: "溶岩のゴーレム", rank: 8, race: "construct", element: "fire", artKey: "lavagolem",
-    physResist: 75, barrier: 2, enrage: true, // 岩殻が刃を阻み、割れると噴き出す溶岩で猛る
-    desc: "黒い岩の殻の下に溶岩をたぎらせて歩く巨人。分厚い殻は刃をことごとく弾き返すが、砕かれた割れ目から噴き出す熱とともに、手がつけられぬほど荒れ狂う。" },
-  { id: "bs_magmaslime", name: "溶岩の粘塊", rank: 8, race: "amorph", element: "fire", artKey: "magmaslime",
-    physResist: 75, regen: 0.1, ability: "poison", // 煮えたぎる溶岩の塊。刃が沈み、ただれさせ、寄り集まる
-    desc: "黒い皮膜の下で煮えたぎる、意思を持った溶岩の塊。触れたものを灼けただれさせ、刃を突き立てても泥のように沈んで効かない。崩しても、熱い核さえ残れば再び寄り集まる。" },
-  { id: "bs_sulfurfiend", name: "硫黄の鬼", rank: 8, race: "demon", element: "fire", artKey: "sulfurfiend",
-    ability: "critical", swift: true, multistrike: 2, // 毒火の爪で素早く急所を続けざまにえぐる
-    desc: "火口の硫煙が凝って生じた、角を生やした炎の鬼。毒火をまとったかぎ爪で素早く二度三度と斬りつけ、その一撃は鎧ごと急所をえぐる。硫黄の悪臭が、こいつの近づく合図だ。" },
-  { id: "bs_cinderwraith", name: "燃え殻の亡霊", rank: 8, race: "specter", element: "fire", artKey: "cinderwraith",
-    ability: "drain", lifesteal: 0.3, evasive: true, // くすぶる霊。触れた命を吸い、おき火のように掴みどころがない
-    desc: "焼け死んだ者の未練が、くすぶるおき火の霊となってさまよう姿。触れた者の命を吸って一瞬輝きを増し、刃を向ければ火の粉となって散ってかわす。消えたかと思えば、背後で再び赤く灯る。" },
-  { id: "bs_flamedrake", name: "炎の幼竜", rank: 9, race: "dragon", element: "fire", artKey: "flamedrake",
-    ability: "breath", enrage: true, swift: true, // 業炎のブレスを吐き、手負いで荒れ狂う
-    desc: "火口に巣くう、まだ若い火竜。気性は荒く、両翼を広げて全体を業炎のブレスで焼き払う。手負いになれば見境を失い、洞窟が崩れるのも構わず暴れ回る。" },
-  { id: "bs_obsidianguard", name: "黒曜の番兵", rank: 9, race: "construct", element: "fire", artKey: "obsidianguard",
-    role: "guard", physResist: 75, magResist: 75, barrier: 2, // 黒曜石の殻が刃も魔も弾き、主をかばう
-    desc: "火口を守るために黒曜石を削り出して作られた番兵。鋭く硬い殻は刃を弾き、魔力もまた磨かれた面に滑り落ちる。背後の主を己の身でかばい、決してその場を動かない。" },
-  { id: "bs_lavamaw", name: "溶岩の顎", rank: 8, race: "aquatic", element: "fire", artKey: "lavamaw",
-    ability: "critical", lifesteal: 0.3, physResist: 50, // 溶岩に潜み丸呑みにする顎。喰らって己を満たす
-    desc: "溶岩溜まりに口だけを開けて獲物を待つ、罠のような魔。近づいた者を一息に丸呑みにし、灼けた腹で溶かして己の熱に変える。一見ただの溶岩の泡だが、近づけば牙が並ぶ。" },
-  { id: "bs_ashghoul", name: "灰塗れの喰屍鬼", rank: 8, race: "undead", element: "fire", artKey: "ashghoul",
-    ability: "poison", regen: 0.08, pack: true, // 火砕流に焼かれた亡者。灰の毒を撒き群れで這う
-    desc: "火砕流に呑まれて焼け焦げ、それでも這い続ける亡者の群れ。動くたびに有毒の灰を撒き散らし、焦げた手で生者を引きずり込む。崩れても、灰の中からまた起き上がる。" },
-  { id: "bs_emberswarm", name: "火の粉の蟲群", rank: 8, race: "insect", element: "fire", artKey: "emberswarm",
-    pack: true, multistrike: 2, swift: true, // 灼熱の羽虫の群れ。素早く群れて何度も焼き刺す
-    desc: "火口の熱気に湧いた、灼熱に輝く無数の羽虫の群れ。風に乗って素早く飛び回り、群れごと獲物にまとわりついて何度も焼き刺す。払っても払っても、熱のある限り湧き続ける。" },
-  { id: "bs_pyrelich", name: "業火の死霊術師", rank: 9, race: "undead", element: "fire", artKey: "pyrelich", soulClass: "mage",
-    role: "summoner", summonKey: "bs_ashghoul", ability: "drain", magWeak: 1.3, // 亡者を呼び、命を吸う。骨は熱に脆い
-    desc: "炎を求めて火口に降り、業火をまとったまま朽ちた魔術師の骸。灰の亡者を次々と呼び起こし、生者の命を吸って術を保つ。だが乾いた骨は、自ら操る炎にこそ脆い。" },
-  { id: "bs_brimstonegolem", name: "硫黄の鋳像", rank: 8, race: "construct", element: "fire", artKey: "brimstonegolem",
-    physResist: 75, barrier: 2, ability: "poison", // 硫黄を固めた像。毒煙を噴き、刃を阻む
-    desc: "火口の硫黄を煮固めて鋳た、黄ばんだ巨像。継ぎ目から絶えず有毒の煙を噴き上げ、近づく者を咳き込ませる。脆く見えて、固まった硫黄の殻は存外に刃を通さない。" },
-  { id: "bs_furnacefiend", name: "溶鉱の鬼神", rank: 9, race: "demon", element: "fire", artKey: "furnacefiend",
-    ability: "critical", enrage: true, multistrike: 2, // 溶鉱炉の巨鬼。手負いで荒れ狂い連打する
-    desc: "溶鉱炉の底から生まれ出た、燃え盛る巨体の鬼神。鎚のような両腕で続けざまに打ち据え、傷を負うほど炉のように赤熱して猛る。その一撃は岩盤すら鍛冶のごとく叩き潰す。" },
-  { id: "bs_magmaray", name: "溶岩のエイ", rank: 8, race: "aquatic", element: "fire", artKey: "magmaray",
-    ability: "paralyze", swift: true, evasive: true, // 溶岩を泳ぐ魔魚。帯電した尾で痺れさせ翻る
-    desc: "溶岩の海を翼のように泳ぐ、灼熱の魔魚。帯電した長い尾で獲物を痺れさせ、ひらりと身を翻して刃をかわす。溶岩の表面をなめらかに滑る姿は、影のように捉えどころがない。" },
-  { id: "bs_basaltdrake", name: "玄武岩の竜", rank: 9, race: "dragon", element: "fire", artKey: "basaltdrake",
-    ability: "breath", physResist: 75, enrage: true, // 岩鱗が刃を阻み、業炎を吐く。手負いで猛る
-    desc: "黒い玄武岩の鱗に全身を覆われた火竜。岩のごとき鱗は並の刃を寄せつけず、腹の底でたぎる溶岩を業炎として吐き出す。冷えて固まったように見えても、内には常に火が燃えている。" },
-  { id: "bs_infernolord", name: "業火の主", rank: 9, boss: true, race: "demon", element: "fire", artKey: "infernolord", soulClass: "hexer",
-    role: "summoner", summonKey: "bs_sulfurfiend", ability: "breath", physResist: 75, enrage: true, // 眷属を呼び、業炎を吐き、手負いで荒れ狂う
-    desc: "灼熱の洞の最奥、煮えたぎる溶岩湖の中心に座す業火の魔王。配下の鬼を次々と呼び寄せ、洞窟ごと焼き尽くす業炎のブレスを吐く。追い詰めれば、その身は太陽のごとく膨れ上がり、すべてを灰に帰そうとする。" },
+  { id: "bs_lavagolem", name: "溶岩のゴーレム", rank: 9, race: "construct", element: "fire", artKey: "hd_lavagolem",
+    barrier: 3, enrage: true, ability: null, // 重なった岩殻が何度も打撃を受け流し、割れると噴き出す溶岩で荒れ狂う
+    desc: "背を丸め、巨大な両拳を床につく黒い岩殻の巨人。何重にも重なった殻の板が打撃を幾度も受け流すが、殻が割れて溶岩が噴き出すと、手がつけられぬほど荒れ狂う。" },
+  { id: "bs_magmaslime", name: "溶岩の粘塊", rank: 8, race: "amorph", element: "fire", artKey: "hd_magmaslime",
+    physResist: 75, ability: "goldSteal", abRate: 0.4, // 刃が沈んで効かず、触れた財布の金貨ごと溶かして呑み込む
+    desc: "黒く冷えた皮膜の下で煮えたぎる、意思を持った溶岩の塊。刃を突き立てても泥のように沈んで効かず、触れた者の財布を金貨ごと溶かして呑み込む。中には、呑まれた兜や盾が赤く溶けかけたまま沈んでいる。" },
+  { id: "bs_sulfurfiend", name: "硫黄の鬼", rank: 8, race: "demon", element: "fire", artKey: "hd_sulfurfiend",
+    haste: true, ability: null, // 目にも止まらぬ速さで、1ターンに二度かぎ爪を振るう
+    desc: "火口の硫煙が凝って生じた、手足の長い黄土色の鬼。目にも止まらぬ速さで飛びかかり、瞬きの間に二度かぎ爪を振るう。硫黄の悪臭が、こいつの近づく合図だ。" },
+  { id: "bs_cinderwraith", name: "燃え殻の亡霊", rank: 8, race: "specter", element: "fire", artKey: "hd_cinderwraith",
+    ability: "drain", abRate: 0.45, evasive: true, // 骨の手で宿した魂を何度も吸い、火の粉となって刃をかわす
+    desc: "焼け死んだ者の未練が、くすぶる燃えさしの霊となってさまよう姿。伸ばした骨の手で、宿した魂の力を何度も吸い取っていく。刃を向ければ火の粉となって散ってかわし、背後でまた赤く灯る。" },
+  { id: "bs_flamedrake", name: "炎の幼竜", rank: 9, race: "dragon", element: "fire", artKey: "hd_flamedrake",
+    ability: "breath", abRate: 0.45, enrage: true, // 業炎のブレスを吐き続け、手負いで荒れ狂う
+    desc: "火口に巣くう、まだ若い火竜。気性は荒く、後ろ脚で立ち上がっては業炎のブレスで隊をまとめて焼き払う。手負いになれば見境を失い、洞窟が崩れるのも構わず暴れ回る。" },
+  { id: "bs_obsidianguard", name: "黒曜の番兵", rank: 9, race: "construct", element: "fire", artKey: "hd_obsidianguard",
+    role: "guard", magResist: 100, ability: null, // 鏡のような黒曜の面は呪文を寄せつけず、大盾で仲間をかばう
+    desc: "火口を守るために黒曜石を削り出して作られた番兵。鏡のように磨かれた面は呪文をすべて砕いて弾き、身の丈ほどの大盾を突き立てて仲間をかばう。倒すには、刃で殻を割るしかない。" },
+  { id: "bs_lavamaw", name: "溶岩の顎", rank: 8, race: "aquatic", element: "fire", artKey: "hd_lavamaw",
+    ability: "critical", abRate: 0.45, lifesteal: 0.4, // 溶岩溜まりから丸呑みにかかり、喰らった分だけ己を満たす
+    desc: "溶岩溜まりに顎だけを突き出して獲物を待つ、罠のような魔。黒曜石の牙で何度も急所を噛み裂き、喰らった肉を灼けた喉で溶かして己の熱に変える。一見ただの溶岩の泡だが、近づけば牙が並ぶ。" },
+  { id: "bs_ashghoul", name: "灰かぶりの信徒", rank: 8, race: "undead", element: "fire", artKey: "hd_ashghoul",
+    ability: "poison", abRate: 0.45, pack: true, // 群れで這い寄り、すくった毒の灰を浴びせ続ける
+    desc: "火を拝み、みずから炎に身を投げて焼け焦げた信徒たちの亡骸。頭から灰をかぶったまま群れで這い寄り、両手ですくった毒の灰を絶えず浴びせかける。祭場の灰の雨は、彼らが降らせているのだともいう。" },
+  { id: "bs_emberswarm", name: "火の粉の蟲群", rank: 8, race: "insect", element: "fire", artKey: "hd_emberswarm",
+    pack: true, multistrike: 3, magWeak: 1.4, ability: null, // 灼けた羽虫が群れで三度刺す。小さな体は呪文の一撃で散る
+    desc: "火口の熱気に湧いた、腹を灯のように光らせる羽虫の群れ。群れごと獲物にまとわりつき、赤熱した尾の針で一度に三度刺す。払っても払っても湧き続けるが、小さな体は呪文の一撃でまとめて散る。" },
+  { id: "bs_pyrelich", name: "業火の祭司", rank: 8, race: "undead", element: "fire", artKey: "hd_pyrelich", soulClass: "mage",
+    ability: "spell", abRate: 0.5, magWeak: 1.3, // 火の大呪を唱え続けて隊をまとめて焼く。乾いた骨は呪文に脆い
+    desc: "火を拝む教団の祭司の骸。高い冠帽をいただき、杖の火皿を掲げて火の大呪を絶え間なく唱え、隊をまとめて焼き払う。ただ、乾ききった骨は呪文を浴びると脆く崩れる。" },
+  { id: "bs_brimstonegolem", name: "硫黄の鋳像", rank: 8, race: "construct", element: "fire", artKey: "hd_brimstonegolem",
+    ability: "confuse", abRate: 0.5, barrier: 2, // 毒煙で正気を奪い続け、結晶の殻が打撃を受け流す
+    desc: "火口の硫黄を煮固めて鋳た、角張った巨像。肩の煙突から絶えず黄緑の煙を噴き上げ、それを吸った者は敵味方の見分けがつかなくなる。硫黄の結晶の殻は、最初の幾度かの打撃を受け流す。" },
+  { id: "bs_furnacefiend", name: "溶鉱の鬼神", rank: 9, race: "demon", element: "fire", artKey: "hd_furnacefiend",
+    ability: "sunder", abRate: 0.4, multistrike: 2, // 大槌の両腕で続けざまに打ち、鎧ごと守りを砕く
+    desc: "腹がそのまま溶鉱炉になった鬼神。両腕の先は鍛冶の大槌の頭で、続けざまに打ち据えては鎧ごと守りを打ち砕く。腹の格子の奥では、炉の火が白く燃えている。" },
+  { id: "bs_magmaray", name: "溶岩のエイ", rank: 9, race: "aquatic", element: "fire", artKey: "hd_magmaray",
+    ability: "paralyze", abRate: 0.45, evasive: true, // 稲妻をまとう尾で痺れさせ続け、ひらりと刃をかわす
+    desc: "溶岩の海を翼のように泳ぐ、灼熱の魔魚。稲妻をまとった長い尾で何度も打ちつけて獲物を痺れさせ、ひらりと身を翻して刃をかわす。溶岩の上をなめらかに滑る姿は、影のように捉えどころがない。" },
+  { id: "bs_basaltdrake", name: "玄武岩の竜", rank: 9, race: "dragon", element: "fire", artKey: "hd_basaltdrake",
+    ability: "stone", abRate: 0.4, physResist: 75, // 灰白の眼でにらんで石に変え、柱の鱗は刃をほとんど通さない
+    desc: "背に玄武岩の柱を何本も突き立てた、翼のない重い竜。柱の鱗は刃をほとんど寄せつけず、灰白に光る眼でにらまれた者は、冷えた溶岩のように灰色に固まっていく。" },
+  { id: "bs_infernolord", name: "業火の主", rank: 9, boss: true, race: "demon", element: "fire", artKey: "hd_infernolord", soulClass: "hexer",
+    ability: "breath", abRate: 0.35, role: "summoner", summonKey: "bs_ashghoul", physResist: 75, enrage: true, // 業炎を吐き、信徒を呼び寄せ、手負いで荒れ狂う
+    desc: "魂を煮る大釜を守る、巨大な角の悪魔。釜の上に両腕を広げて業炎を吐き、ひれ伏す灰かぶりの信徒たちを次々と呼び寄せる。追い詰められれば、釜の火とともに太陽のごとく燃え上がり、すべてを灰に帰そうとする。" },
   // -- 第8層「氷結回廊」 (rank 8-9・氷/水。第7層より格上の壁。火に弱い者が多い) --
   { id: "bs_frostwyrm", name: "氷牙の蛇竜", rank: 9, race: "dragon", element: "water", artKey: "frostwyrm",
     ability: "breath", physResist: 50, swift: true, // 凍てつくブレスを吐き、氷鱗が刃を阻み、素早い
@@ -960,10 +960,9 @@ const NEW_DEFS = [
   { id: "bs_griffon", name: "グリフォン", rank: 7, race: "avian", element: "wind", artKey: "hd_griffon",
     swift: true, multistrike: 2, ability: null, // 上空から急襲し、両の前脚のかぎ爪で続けざまにえぐる (第5層)
     desc: "鷲の眼と獅子の体を併せ持つ空の王。黄金を巣に敷く習性ゆえ財宝の眠る迷宮を縄張りに選び、上空から音もなく舞い降りてかぎ爪で急所をえぐる。" },
-  { id: "bs_naga", name: "ナーガ", rank: 7, race: "aquatic", element: "water", artKey: "sahagin",
-    palette: tint(ARTS.sahagin.palette, "#7a4aa0", 0.35),
-    ability: "poison", // 蛇神の眷属の猛毒の牙
-    desc: "下半身が大蛇と化した蛇神の眷属。千年の祈りを捧げた古い祭壇を今も鱗のねぐらで抱え込み、近づく者には蛇神譲りの猛毒の牙を剥く。" },
+  { id: "bs_naga", name: "蛇身の巫女", rank: 7, race: "aquatic", element: "water", artKey: "hd_naga",
+    haste: true, ability: "poison", // 目にも止まらぬ速さで二度斬りかかり、祭儀の短剣の毒を流す
+    desc: "旧都の神殿で蛇神に仕えた巫女のなれの果て。腰から下は大蛇と化し、とぐろを巻いて身をもたげる。目にも止まらぬ速さで二度斬りかかり、祭儀の短剣に塗った蛇神の毒を傷口に流し込む。" },
   { id: "bs_vampire", name: "ヴァンパイア", rank: 6, race: "undead", element: "dark", artKey: "hd_vampire", soulClass: "mage",
     ability: "drain", regen: 0.08, // 血とともに宿した魂を吸い、その分だけ若返る
     desc: "夜の貴族。血をすするのは渇きのためではなく、奪った命の記憶を味わうため。すすった血と宿した魂の分だけ己の傷は癒え、月夜には誰も敵わない。" },
@@ -972,14 +971,12 @@ const NEW_DEFS = [
     ability: "poison", regen: 0.1, // 九首の猛毒と、落としても生え変わる首
     desc: "ひとつ落とせばふたつ生える九つ首の毒蛇竜。九つの口から滴る猛毒を浴びせ、首を落とされてもみるみる生え変わる。退治の武勇伝は数あれど、骸を見た者はひとりもいない。" },
   // -- rank 8 --
-  { id: "bs_demon", name: "獄炎のデーモン", rank: 8, race: "demon", element: "fire", artKey: "imp",
-    palette: tint(ARTS.imp.palette, "#6a1a1a", 0.3),
-    ability: "breath", // 燃える憎悪を獄炎として吐き散らす
-    desc: "地獄の位階に名を連ねる上級魔。その体は燃え続ける憎悪そのもので、前衛後衛を問わず獄炎を吐き散らし、足跡には硫黄の火が残る。" },
-  { id: "bs_irongolem", name: "アイアンゴーレム", rank: 8, race: "construct", element: "none", artKey: "golem",
-    palette: tint(ARTS.golem.palette, "#7a7a8a", 0.35),
-    physResist: 75, // 千の武具を鋳潰した鋼鉄の巨体は刃をほぼ通さない
-    desc: "千の武具を鋳潰して造られた鋼鉄の巨人。鍛え抜かれた鋼の巨体は並の刃をまるで通さず、胸の奥では素材にされた剣たちの未練が今もきしみ続けている。" },
+  { id: "bs_demon", name: "獄炎のデーモン", rank: 8, race: "demon", element: "fire", artKey: "hd_demon", // 第7層 (絵は hd_* の固有原型)
+    ability: "dispel", magResist: 50, // 隊の加護が厚くなると禍言で剥ぎ取り、悪魔の肌は呪文を半ば弾く
+    desc: "山羊の角と皮膜の翼をもつ、火の洞の上級魔。隊が加護や構えを重ねるほど目を光らせ、禍言の輪をひと振りしてまとめて剥ぎ取る。赤銅の肌は呪文を半ば弾き、足跡には硫黄の火が残る。" },
+  { id: "bs_irongolem", name: "青銅の神兵", rank: 7, race: "construct", element: "none", artKey: "hd_irongolem",
+    ability: "charge", abRate: 0.4, physResist: 50, // 長い矛を引き絞って力を溜め、渾身の突きを放つ。緑青の鎧が刃を半ば弾く
+    desc: "神殿の門を守っていた、緑青に覆われた青銅の兵の像。身を沈めて長い矛を大きく引き絞り、穂先に光を溜めては渾身の突きを放つ。溜めの間に眠らせるか封じるかしなければ、隊の誰かが貫かれる。" },
   { id: "bs_necromancer", name: "死霊術師", rank: 8, race: "undead", element: "dark", artKey: "necromancer", soulClass: "bishop",
     role: "summoner", summonKey: "bs_plaguewraith", magWeak: 1.4, // 死者を呼び続けるが、痩せた身は魔法に脆い
     desc: "死を窮め、自ら死者となった術師。倒した者を次々と従者として呼び起こすが、痩せ衰えた身は魔法を撃ち込まれれば術もろとも崩れる。従える骸の軍勢はみな、かつてこの男を討ちに来た者たちだ。" },
@@ -992,9 +989,9 @@ const NEW_DEFS = [
     palette: tint(ARTS.skeleton.palette, "#7a4aa0", 0.4),
     ability: "drain", regen: 0.06, // 宿した魂を喰らい、七つに裂いた魂を依代に蘇る
     desc: "幾つもの王朝の興亡を骨の玉座から眺めてきた大死霊。触れた者の宿した魂を喰らって己を保ち、魂を七つに裂いて隠したゆえ、砕いても蘇って死がこの者を裁けない。" },
-  { id: "bs_fallenangel", name: "堕天使", rank: 9, race: "demon", element: "light", artKey: "angel", soulClass: "priest",
-    ability: "critical", // 祈るような手つきで生者の急所を裁き断つ
-    desc: "天を逐われてなお光をまとう、哀しき翼。祝福の言葉を逆さに唱え、祈るような手つきで差し向ける裁きの一撃は、生者の急所を正確に断つ。" },
+  { id: "bs_fallenangel", name: "堕天使", rank: 8, race: "demon", element: "light", artKey: "hd_fallenangel", soulClass: "priest",
+    ability: "critical", abRate: 0.45, swift: true, // 素早く舞い降り、祈るような手つきの裁きの一撃で急所を断ち続ける
+    desc: "神殿とともに水に沈み、水を吸って重くなった翼の御使い。濡れた髪で顔を伏せたまま素早く舞い降り、逆さに構えた細身の剣を祈るような手つきで振り下ろして、生者の急所を正確に断つ。" },
   { id: "bs_doomknight", name: "冥府の騎士", rank: 9, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#6a1a2a", 0.35),
     physResist: 75, ability: "soulSteal", // 冥鉄の鎧が刃を弾き、その剣は生きる理由(魂)を奪う
@@ -1123,52 +1120,45 @@ const NEW_DEFS = [
     physResist: 50, ability: "paralyze", // 鋼の外殻が刃を弾き、鋼糸で獲物を絡め取る
     desc: "古代の錬金術師が造った鉄製の機械蜘蛛。鋼の外殻は刃を弾き、溶岩に落ちても溶けずに動き続け、絹より細く鋼より強い糸で獲物を絡めて縛り上げる。" },
   // -- rank 7 追加 (+5) --
-  { id: "bs_shadowdragon", name: "影竜", rank: 7, race: "dragon", element: "dark", artKey: "dragon",
-    palette: tint(ARTS.dragon.palette, "#1a2a3a", 0.6),
-    evasive: true, ability: "soulSteal", // 実体がなく刃をすり抜け、魂に直接爪を立てる
-    desc: "氷河の奥深くに封じられていた古い竜の影。実体を持たずあらゆる刃を通し抜け、その代わりに獲物の魂へ直接爪を立てて吸い上げる。" },
+  { id: "bs_shadowdragon", name: "深みの海竜", rank: 8, race: "dragon", element: "water", artKey: "hd_seadrake",
+    ability: "breath", abRate: 0.45, enrage: true, // 渦巻く潮のブレスを吐き続け、手負いで荒れ狂う
+    desc: "旧都の洗礼の大水槽に棲みついた、角とひれの長い首の海竜。暗い水面から鎌首をもたげ、渦巻く潮のブレスを幾度も吐きつけて隊をまとめて押し流す。傷を負うほど水を荒らして暴れ狂う。" },
   { id: "bs_stormwyvern", name: "嵐のワイバーン", rank: 7, race: "dragon", element: "wind", artKey: "wyvern",
     palette: tint(ARTS.wyvern.palette, "#3a5a8a", 0.4),
     swift: true, ability: "breath", // 暴風を巻き起こして舞い、前衛後衛を吹き散らす
     desc: "嵐の中を悠々と飛ぶ嵐竜の亜種。翼を一振りするだけで前衛後衛を巻き込む暴風が起こり、その羽根は雷避けの護符になるという。" },
-  { id: "bs_goldgolem", name: "黄金のゴーレム", rank: 7, race: "construct", element: "none", artKey: "golem",
-    palette: tint(ARTS.golem.palette, "#c8a040", 0.4),
-    physResist: 75, // 黄金の重い装甲が刃を弾く
-    desc: "竜の財宝の守護として作られた黄金の巨人。重く分厚い黄金の体は刃を弾き、近づく者を宝への脅威と見なして、財宝の山の上に直立したまま戦う。" },
-  { id: "bs_soulharvester", name: "魂刈り", rank: 7, race: "specter", element: "dark", artKey: "reaper",
-    swift: true, ability: "soulSteal", // 音もなく間合いを詰め、鎌で魂を刈り取る
-    desc: "迷宮で死んだ者の魂を回収する役割を帯びた存在。音もなく間合いを詰め、鎌の一振りで肉体と魂の繋がりを断ち、刈り取った魂は籠に集める。" },
+  { id: "bs_goldgolem", name: "黄金の守り像", rank: 7, race: "construct", element: "none", artKey: "hd_goldgolem",
+    physResist: 75, ability: "sunder", // 黄金の重い体が刃を弾き、組んだ拳で鎧ごと打ち砕く
+    desc: "宝物庫を守るため、金を流し込んで造られたずんぐりと重い像。分厚い黄金の体は刃をほとんど弾き、頭上で組んだ両の拳を振り下ろして、鎧ごと守りを打ち砕く。宝を狙う者を、ひとり残らず脅威と見なす。" },
+  { id: "bs_soulharvester", name: "魂刈り", rank: 7, race: "specter", element: "dark", artKey: "hd_soulharvester",
+    haste: true, ability: "soulSteal", // 目にも止まらぬ速さで二度斬りかかり、鎌で魂を刈り取る
+    desc: "水底で溺れた者の魂を集めて回る、ぼろ布の頭巾の刈り手。目にも止まらぬ速さで間合いを詰めて二度斬りかかり、鎌の一振りで肉体と魂の繋がりを断つ。刈り取った魂は、腰の籠の灯にくべられる。" },
   { id: "bs_thunderknight", name: "雷電の騎士", rank: 6, race: "armored", element: "wind", artKey: "hd_thunderknight", soulClass: "knight",
     swift: true, ability: "paralyze", // 落雷をまとい、金属鎧の者ほど深く痺れさせる
     desc: "嵐の神殿に仕えた騎士の怨霊。雷鳴とともに現れて素早く斬り込み、まとった落雷は金属鎧の者ほど深く通って体を痺れさせ、次の雷鳴で消える。" },
   // -- rank 8 追加 (+7) --
-  { id: "bs_hellhound", name: "地獄の番犬", rank: 8, race: "demon", element: "fire", artKey: "beast",
-    palette: tint(ARTS.beast.palette, "#8a1a1a", 0.5),
-    swift: true, ability: "breath", // 駆け寄って炎を吐きかける冥府の番犬
-    desc: "冥府の番人として鍛えられた炎を吐く巨大な犬。素早く駆け寄って前衛後衛もろとも炎を吐きかけ、鎖は切られても鎖の跡が首に残り、その鎖の先には今も冥府がある。" },
-  { id: "bs_darkliege", name: "冥府の将", rank: 8, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
-    palette: tint(ARTS.knightmare.palette, "#4a1a4a", 0.5),
-    physResist: 75, ability: "critical", // 部下の魂で硬化した鎧が刃を弾き、将の一撃が急所を貫く
-    desc: "生前は英雄であったが、死後に冥府の軍を率いる将軍となった者。部下の魂を縫い込んだ鎧はその嘆きで硬化して刃を弾き、振るう刃は急所だけを正確に貫く。" },
-  { id: "bs_voidwalker", name: "虚無の歩者", rank: 8, race: "specter", element: "dark", artKey: "wraith",
-    palette: tint(ARTS.wraith.palette, "#0a0a1a", 0.6),
-    evasive: true, ability: "soulSteal", // 物理攻撃の半分が虚空に消え、触れた者の記憶を剥ぎ取る
-    desc: "存在と無の狭間を歩く者。叩きつけた物理攻撃の半分は虚空に消え、その手が触れた者の記憶と魂を一枚ずつ剥がしていく。" },
+  { id: "bs_hellhound", name: "業火の番犬", rank: 9, race: "demon", element: "fire", artKey: "hd_hellhound", // 第7層 (絵は hd_* の固有原型)
+    haste: true, ability: "breath", // 目にも止まらぬ速さで駆け寄り、炎を吐きかける
+    desc: "釜場を守るために鎖でつながれていた、黒い肌の大きな猟犬。千切れた鎖の首輪をつけたまま目にも止まらぬ速さで駆け回り、燃えるたてがみを逆立てて隊をまとめて炎で包む。" },
+  { id: "bs_darkliege", name: "祭場の黒騎士", rank: 9, race: "armored", element: "dark", artKey: "hd_darkliege", soulClass: "knight", // 第7層 (絵は hd_* の固有原型)
+    ability: "warcry", abRate: 0.45, physResist: 50, // 雄叫びで火の眷属を奮い立たせ続け、黒鉄の鎧が刃を半ば弾く
+    desc: "火を拝む教団の祭場を守る、煤けた黒鉄の騎士。大剣を頭上に突き上げては雄叫びをあげ、火の眷属たちを何度も奮い立たせる。分厚い鎧は刃を半ば弾き、兜の奥では残り火が燃えている。" },
+  { id: "bs_voidwalker", name: "虚無の歩者", rank: 8, race: "specter", element: "dark", artKey: "hd_voidwalker",
+    evasive: true, magResist: 75, ability: null, // 刃は揺らぐ体をすり抜け、呪文は胸の穴に呑まれる
+    desc: "水底の闇から抜け出した、顔のないひょろ長い人の形の虚ろ。揺らいでぶれる体を刃はすり抜け、放った呪文は胸にぽっかり空いた穴の奥の星々に呑まれてしまう。何を求めて歩くのか、誰も知らない。" },
   { id: "bs_plaguewraith", name: "疫病の亡霊", rank: 8, race: "undead", element: "dark", artKey: "ghost",
     palette: tint(ARTS.ghost.palette, "#3a5a2a", 0.5),
     ability: "poison", // 触れた者を高熱に侵す疫病のもや
     desc: "大疫病で死んだ者たちが一つに溶け合った亡霊の群れ。そのもやに触れた者はたちまち高熱と疫病に侵され、三日三晩うなされる。" },
-  { id: "bs_crystalgolem", name: "水晶のゴーレム", rank: 8, race: "construct", element: "none", artKey: "crystalgolem",
-    physResist: 75, ability: "critical", // 打撃を吸収し、ためた力を一撃で解放する
-    desc: "尖塔の心核を守るために結晶が自己組織化した透明のゴーレム。打撃を吸収して砕けず、ためた力を逆しまに解放する一撃は急所を撃ち抜く。力づくでは崩せない。" },
-  { id: "bs_dreadlich", name: "嘆きのリッチ", rank: 8, race: "undead", element: "dark", artKey: "skeleton", soulClass: "mage",
-    palette: tint(ARTS.skeleton.palette, "#5a2a7a", 0.45),
-    ability: "drain", regen: 0.06, // 宿した魂を喰らい、宝珠を依代に蘇り続ける
-    desc: "魂を複数の宝珠に分けて隠した古代の死霊術師の上位種。触れた者の宿した魂を喰らって己を保ち、砕いても隠した宝珠を依代に蘇る。その嘆きを聴いた者は、宝珠を探さずにいられない。" },
-  { id: "bs_shadowogre", name: "影の大鬼", rank: 8, race: "giant", element: "dark", artKey: "ogre",
-    palette: tint(ARTS.ogre.palette, "#2a2a4a", 0.55),
-    ability: "critical", // 影の拳が急所を叩き潰す
-    desc: "嵐の尖塔の影が凝縮して生まれた鬼の巨体。振り下ろす影の拳は急所を叩き潰し、落ちた場所に開いた影の穴からは、更なる影の腕が伸びてくる。" },
+  { id: "bs_crystalgolem", name: "水晶の巨像", rank: 8, race: "construct", element: "none", artKey: "hd_crystalgolem",
+    physResist: 75, magWeak: 1.6, ability: null, // 刃は結晶の面にすべって通らないが、魔の力を受けるとひびが走る
+    desc: "祭壇の水晶が寄り集まって立ち上がった、青白く透ける巨像。角張った結晶の面に刃はすべってほとんど通らないが、魔の力を受けると芯から細かなひびが走り、たちまち崩れ落ちる。" },
+  { id: "bs_dreadlich", name: "嘆きのリッチ", rank: 8, race: "undead", element: "dark", artKey: "hd_dreadlich", soulClass: "mage",
+    ability: "drain", endure: true, // 宿した魂を喰らい、隠した宝珠を依代に一度だけ踏みとどまる
+    desc: "魂を三つの宝珠に分けて隠した、大神官くずれの死霊術師。枯れ枝の指を広げて生者の宿した魂を吸い上げ、砕かれても宝珠を依代に一度だけ踏みとどまる。その嘆きを聴いた者は、宝珠を探さずにいられない。" },
+  { id: "bs_shadowogre", name: "煤の大鬼", rank: 9, race: "giant", element: "dark", artKey: "hd_shadowogre", // 第7層 (絵は hd_* の固有原型)
+    ability: "soulSteal", abRate: 0.4, enrage: true, // 釜にくべる魂 (✦Soul) をかき集め、手負いで荒れ狂う
+    desc: "全身が煤で真っ黒な、腹の突き出た大鬼。釜にくべる魂を集めるのが役目で、大きな鉄のシャベルを担ぎ、出会った者の魂をすくい取っては腰の網袋へ押し込む。追い詰められると、煤を撒き散らして暴れ回る。" },
   // -- rank 9 追加 (+7) --
   { id: "bs_voidknight", name: "虚無の騎士", rank: 9, race: "armored", element: "dark", artKey: "knightmare", soulClass: "knight",
     palette: tint(ARTS.knightmare.palette, "#1a1a2a", 0.6),
@@ -1185,18 +1175,15 @@ const NEW_DEFS = [
     palette: tint(ARTS.skeleton.palette, "#2a5a2a", 0.5),
     ability: "poison", regen: 0.06, // 千の病を浴びせ、宝珠を依代に蘇る
     desc: "疫病を武器として研究し続けた術師の死霊。指から滴る千の病の混合液を浴びせ、砕けても隠した宝珠を依代に蘇る。触れた者は己の体が何に侵されているかも分からない。" },
-  { id: "bs_divinegolem", name: "神のくぐつ", rank: 9, race: "construct", element: "light", artKey: "golem",
-    palette: tint(ARTS.golem.palette, "#e0d0a0", 0.4),
-    physResist: 75, ability: "critical", // 神鉄の体は刃を通さず、審判の一撃が急所を断罪する
-    desc: "神が最後の審判のために造った審判のくぐつ。神鉄の体は刃をまるで通さず、迷宮に踏み込んだ全員を罪ある者と判定し、断罪の一撃を急所へ下す。" },
-  { id: "bs_shadowseraph", name: "堕ちた光翼", rank: 9, race: "specter", element: "dark", artKey: "harpy",
-    palette: tint(ARTS.harpy.palette, "#4a4a6a", 0.5),
-    ability: "drain", evasive: true, // 腐った光翼で宙を舞い、魂の善性を溶かし喰らう
-    desc: "天から追われた後も光の翼を持つ存在。腐りかけた翼でひらりと宙を舞い、触れた者の魂の善性を少しずつ溶かして己に取り込んでいく。" },
-  { id: "bs_infernaltyrant", name: "獄炎の暴君", rank: 9, race: "demon", element: "fire", artKey: "ogre",
-    palette: tint(ARTS.ogre.palette, "#8a2a0a", 0.5),
-    ability: "breath", physResist: 75, // 溶岩を吐いて全体を灼き、灼熱の巨体は刃を寄せつけない
-    desc: "地獄の最深層を統べる炎の悪魔の将。踏みつけた大地は溶岩に変わり、吐き出す業火は前衛後衛もろとも灼く。灼熱の巨体は並の刃を寄せつけない。" },
+  { id: "bs_divinegolem", name: "神のくぐつ", rank: 8, race: "construct", element: "light", artKey: "hd_divinegolem",
+    ability: "stone", abRate: 0.4, physResist: 50, // ただ一つの眼から放つ裁きの光で、罪ある者を石に変える
+    desc: "神が最後の審判のために造らせた、白い石と金の背の高いくぐつ。顔のない頭にただ一つ開いた眼から裁きの光を放ち、浴びた者を罪人の石像に変えて天秤にかける。神殿の床には、裁かれた者たちの石像が並ぶ。" },
+  { id: "bs_shadowseraph", name: "堕ちた光翼", rank: 8, race: "specter", element: "dark", artKey: "hd_shadowseraph",
+    ability: "weaken", abRate: 0.5, magResist: 50, // 腐った翼から灰色の光の粉を振りまき、力を萎えさせ続ける
+    desc: "体を失い、六枚の朽ちかけた翼だけが寄り集まった堕ちた御使い。眼を閉じた白い仮面の周りで翼が羽ばたくたびに灰色の光の粉が降り、浴びた者の力を萎えさせる。黒ずんだ光輪は、もう誰も照らさない。" },
+  { id: "bs_infernaltyrant", name: "獄炎の暴君", rank: 9, race: "demon", element: "fire", artKey: "hd_infernaltyrant", // 第7層 (絵は hd_* の固有原型)
+    ability: "spell", abRate: 0.45, endure: true, // 業火の大玉を練り上げて隊のすべてへ浴びせ、致命の一撃を一度だけ耐える
+    desc: "角の冠をいただく、巨躯の悪魔の王。両腕を頭上に掲げて業火の大玉を練り上げ、隊のすべてへ繰り返し浴びせかける。黒い肌には溶岩の血管が光り、致命の一撃を受けても一度は踏みとどまる。" },
   // -- rank 10 追加 (+7) --
   { id: "bs_eternallord", name: "永劫の魔将", rank: 10, race: "demon", element: "dark", artKey: "imp",
     palette: tint(ARTS.imp.palette, "#3a0a3a", 0.5),
@@ -1222,10 +1209,9 @@ const NEW_DEFS = [
     palette: tint(ARTS.fireserpent.palette, "#2a2a4a", 0.6),
     physResist: 75, ability: "poison", // 太古の鱗は刃を弾き、原初の毒を流し込む
     desc: "世界が生まれる前から存在していたという太古の大蛇。世界の歴史を刻んだ古き鱗は刃を弾き、噛みついて流し込む原初の毒に解毒の術は無い。その鱗一枚は倒しても消えない。" },
-  { id: "bs_doombringer", name: "終焉の使者", rank: 10, race: "dragon", element: "fire", artKey: "dragon",
-    palette: tint(ARTS.dragon.palette, "#5a1a0a", 0.55),
-    ability: "breath", physResist: 75, // 星すら焼く終焉の炎を吐き、灼熱の鱗は刃を弾く
-    desc: "世界の終わりを告げるために遣わされた炎の竜。その到来は終わりそのものであり、前衛後衛もろとも呑んで星すら焼く炎を吐き、灼熱の鱗は並の刃を弾く。" },
+  { id: "bs_doombringer", name: "釜底の古竜", rank: 9, race: "dragon", element: "fire", artKey: "hd_doombringer", // 第7層 (絵は hd_* の固有原型)
+    ability: "charge", physResist: 50, // 胸に業火を溜めて予兆を見せ、渾身の一撃を叩きつける。古い鱗は刃を半ば弾く
+    desc: "大釜の底の熱に何百年も浸かってきた、翼を失った巨大な古竜。身を低く沈めて胸の裂け目に業火を溜め、溜めきると巨体ごと叩きつけてくる。予兆を見たら、眠らせるか封じるかして溜めを崩すほかない。" },
 
   // ==== 迷宮固有ボス (全100迷宮にひとりずつ。割り当ては BOSS_ORDER) ====
   // -- rank 1 (迷宮1-10: 地下墓地帯) --
@@ -1728,25 +1714,23 @@ const ELITE_DEFS = [
     swift: true, ability: "critical", // 風のごとく追い、狩りの一矢で急所を射抜く
     desc: "獲物を狩り尽くし、最後に己の従者を獲物にした狩人王の亡霊。風のごとく間合いを詰め、狩りの一矢は急所だけを射抜く。角笛の音が聞こえたなら、すでに狩りは始まっている。" }, // 第16層
   // -- 迷宮 41-50 (神殿帯) / 強敵ランク7 --
-  { id: "el_fallenidol", name: "堕ちた神像", elite: true, rank: 8, race: "construct", element: "light", artKey: "weepangel",
-    palette: tint(ARTS.weepangel.palette, "#e8d8a0", 0.4),
-    physResist: 75, ability: "critical", // 聖石の体が刃を弾き、石腕の抱擁が骨を砕く
-    desc: "信仰を失った神殿で、祈られることに飢えた神像。聖石の体は刃を寄せつけず、参拝者を石の腕で抱き締めて急所ごと砕き、その骸を新たな信徒として祭壇に並べる。" }, // 第6層
-  { id: "el_heresiarch", name: "異端大司教", elite: true, rank: 8, race: "undead", element: "dark", artKey: "cultist", soulClass: "bishop",
-    ability: "drain", regen: 0.06, // 死を福音と説き、宿した魂を喰らって己を保つ
-    desc: "禁じられた教義を説き、生きながら神殿の地下へ葬られた大司教。死そのものを福音として説きながら、聴いた者の宿した魂を喰らい、その分だけ己の存在を濃くする。" }, // 第6層
+  { id: "el_fallenidol", name: "堕ちた神像", elite: true, rank: 8, race: "construct", element: "light", artKey: "hd_fallenidol",
+    physResist: 75, ability: "charm", abRate: 0.5, role: "summoner", summonKey: "bs_kelpdrowned", // 微笑みで心を奪い続け、ひざまずく参拝者の骸を呼ぶ。聖石の体が刃を弾く
+    desc: "信仰を失った神殿で、祈られることに飢えた女神の石像。欠けた顔で微笑んで両腕を広げ、その光の輪を浴びた者は心を奪われて仲間に刃を向ける。台座の下には藻に巻かれた参拝者たちがひざまずき、呼べば這い寄ってくる。聖石の体は刃をほとんど寄せつけない。" }, // 第6層
+  { id: "el_heresiarch", name: "異端大司教", elite: true, rank: 8, race: "undead", element: "dark", artKey: "hd_heresiarch", soulClass: "bishop",
+    ability: "spell", abRate: 0.5, regen: 0.06, // 禁書を開いて闇の呪文で隊全体を撃ち続け、喰らった魂で己を繕う
+    desc: "禁じられた教義を説き、生きながら神殿の地下へ葬られた大司教。宙に開いた禁書から闇の文字を立ちのぼらせ、逆さの印の輪の上で闇の呪文を唱え続けて隊をまとめて撃つ。死を福音と説くその身は、喰らった魂の分だけ傷を繕う。" }, // 第6層
   { id: "el_offeringslime", name: "供物のるつぼ", elite: true, rank: 10, race: "amorph", element: "dark", artKey: "sludgeooze",
     palette: tint(ARTS.sludgeooze.palette, "#8a6a1a", 0.55),
     physResist: 75, ability: "poison", // 千年の供物を沈めた粘塊は刃を呑み、腐った供物の毒を流す
     desc: "千年分の供物を呑み込み続けた祭壇のるつぼが、ついに意思を持った粘塊。突き立てた刃は供物もろとも呑まれ、底によどんだ腐汁の毒を流しながら、最上の供物——生贄を待っている。" }, // 第9層
   // -- 迷宮 51-60 (灼洞帯) / 強敵ランク8 --
-  { id: "el_cinderking", name: "残り火の王", elite: true, rank: 9, race: "elemental", element: "fire", artKey: "blastsprite",
-    ability: "drain", regen: 0.08, // 触れた熱を奪い尽くし、奪った熱で燃え直す
-    desc: "灼洞の火が幾度も消えかけ、そのたびに燃え残った「燃えさし」の精。炎の王を名乗るその身は冷えゆく憎悪であり、触れた者から熱と命を奪い尽くし、奪った分だけ燃え直す。" }, // 第7層
-  { id: "el_magmawyrm", name: "溶鉄の蛇竜", elite: true, rank: 9, race: "reptile", element: "fire", artKey: "eelfiend",
-    palette: tint(ARTS.eelfiend.palette, "#d83a1a", 0.6),
-    physResist: 75, ability: "breath", // 溶鉄の鱗が刃を弾き、城門すら蒸発させる熱を吐く
-    desc: "溶岩の底を泳ぎ続け、鱗が溶けた鉄と一体化した蛇竜。溶鉄の鱗は刃を弾き、吐き出す熱は前衛後衛もろとも、城門すら蒸発させる。通った跡の岩は飴のように溶け落ちる。" }, // 第7層
+  { id: "el_cinderking", name: "残り火の王", elite: true, rank: 9, race: "elemental", element: "fire", artKey: "hd_cinderking", // 第7層の強敵。絵は hd_* の固有原型
+    ability: "charm", abRate: 0.5, role: "summoner", summonKey: "bs_emberswarm", regen: 0.06, // 渦巻く眼で心を奪い続け、火の粉の羽虫を呼び、燃え直す
+    desc: "火の洞の火が幾度も消えかけ、そのたびに燃え残った「燃えさし」の王。炭の冠をいただく炎の体の奥で、二つの眼が渦を巻き、見つめた者の心を奪って仲間へ刃を向けさせる。両手を広げれば火の粉の羽虫が群れ集い、傷ついてもまた燃え直す。" }, // 第7層
+  { id: "el_magmawyrm", name: "溶鉄の蛇竜", elite: true, rank: 9, race: "reptile", element: "fire", artKey: "hd_magmawyrm", // 第7層の強敵。絵は hd_* の固有原型
+    ability: "breath", abRate: 0.5, physResist: 75, // 熱の息を吐き続け、溶鉄の鱗が刃をほとんど通さない
+    desc: "溶岩の底を泳ぎ続け、鱗が溶けた鉄と一体化した長大な蛇竜。溶鉄の鱗は刃をほとんど通さず、鎌首をもたげては城門すら溶かす熱の息を何度も吐きかける。通った跡の岩は飴のように溶け落ちる。" }, // 第7層
   { id: "el_ashshogun", name: "灰燼の将", elite: true, rank: 10, race: "armored", element: "dark", artKey: "samurai", soulClass: "knight",
     palette: tint(ARTS.samurai.palette, "#8a8a88", 0.5),
     regen: 0.1, ability: "critical", // 斬られても灰となって積もり直し、将の太刀が急所を断つ
@@ -2104,7 +2088,7 @@ export const LAYER_POOLS = {
     "bs_giantowl", "bs_direboar", "bs_willowwitch", "bs_sporezombie", "bs_thornhound",
     "bs_wisplure", "bs_satyrpiper", "bs_flytrap", "bs_mossgolem", "bs_fogpanther",
   ],
-  // 第6層「沈没神殿」: 水/神殿(神官霊・神像・水棲)中心、rank7-8主体 (第5層より格上)。深部に rank9
+  // 第6層「沈没神殿」: 水/神殿(神官霊・神像・水棲)中心。浅い帯 rank7・深い帯 rank8 (層の主・強敵と同格まで)
   6: [
     // 新規 (固有アート)
     "bs_drownedpriest", "bs_fonthorror", "bs_choirwraith", "bs_idolguardian",
@@ -2112,18 +2096,17 @@ export const LAYER_POOLS = {
     // 既存の水棲/神像/深淵を第6層へ再配置 (rank7-8)
     "bs_naga", "bs_goldgolem", "bs_soulharvester", "d04_grudge", "bs_shadowdragon",
     "bs_crystalgolem", "bs_irongolem", "bs_voidwalker", "bs_dreadlich",
-    // 深部の強敵 (rank9): 神像・堕ちた光
+    // 深部 (rank8): 神像・堕ちた光
     "bs_divinegolem", "bs_shadowseraph", "bs_fallenangel",
   ],
-  // 第7層「灼熱の洞」: 火/溶岩中心、rank8-9主体 (第6層より格上)。深部に rank10
+  // 第7層「灼熱の洞」: 火/溶岩・火を拝む教団。浅い帯 rank8・深い帯 rank9 (第6層より格上)
   7: [
     // 新規 (固有アート)
     "bs_lavagolem", "bs_magmaslime", "bs_sulfurfiend", "bs_cinderwraith", "bs_flamedrake",
     "bs_obsidianguard", "bs_lavamaw", "bs_ashghoul", "bs_emberswarm", "bs_pyrelich",
     "bs_brimstonegolem", "bs_furnacefiend", "bs_magmaray", "bs_basaltdrake",
-    // 既存の火/悪魔/獄系を第7層へ再配置 (rank8-9)
+    // 既存の火/悪魔/獄系を第7層へ再配置 (名前と絵を火の洞の味に描き直した)
     "bs_demon", "bs_hellhound", "bs_shadowogre", "bs_darkliege", "bs_infernaltyrant",
-    // 深部の強敵 (rank10)
     "bs_doombringer",
   ],
   // 第8層「氷結回廊」: 氷/水中心、rank8-9主体 (第7層より格上)。火に弱い者が多い ※20種へ作成中

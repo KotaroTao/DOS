@@ -823,4 +823,5 @@
 .sc-rw-tag { position: absolute; top: -7px; left: 50%; transform: translateX(-50%); padding: 0 5px; font-size: 9.5px; font-weight: 700; letter-spacing: 0.08em; color: #1a1208; background: #c9a24a; border-radius: 2px; white-space: nowrap; }
 .sc-pf-img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 18%; }
 .sc-line.k-irene { color: #f0dce6; border-left: 2px solid #8a5a78; padding-left: 8px; }
+.sc-line.k-sera { color: #dcecf4; border-left: 2px solid #5a8aa8; padding-left: 8px; }
 .sc-line.k-letter { font-size: 13.5px; font-style: italic; color: #d8cfb4; text-align: center; letter-spacing: 0.04em; }
