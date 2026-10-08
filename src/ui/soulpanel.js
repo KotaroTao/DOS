@@ -22,7 +22,7 @@ import { crispCanvas } from "../sprites.js";
 const sfx = (k) => { try { const S = game.SFX; if (S && S[k]) S[k](); } catch (e) { /* 音は演出のみ */ } };
 const G_ = () => game.G;
 const allDolls = () => (game.allDolls ? game.allDolls() : [...(G_().party || []), ...(G_().reserve || [])]);
-const RARITY_NAME = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド" };
+const RARITY_NAME = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド", unique: "固有" };
 const STAT_L = { hp: "HP", mp: "MP", atk: "STR", vit: "VIT", agi: "AGI", int: "INT", pie: "PIE", luk: "LUK" };
 
 // ドット1つを整数倍で描く (image-rendering: pixelated)
@@ -125,10 +125,12 @@ function mainTile(d, pe, town) {
   r.appendChild(orb(pe.clsKey, rank, 28));
   const tx = el("span", "sp-tile-tx");
   tx.appendChild(el("span", "sp-tile-n", `${jobRankName(pe.clsKey, rank)} Lv${pe.level}`));
-  tx.appendChild(el("span", "sp-tile-s", town ? "魂を付け替える" : "付け替えは街で"));
+  const fixed = d.vessel === "sera"; // セラのメイン魂は灯守に固定
+  tx.appendChild(el("span", "sp-tile-s", fixed ? "セラだけの魂 (付け替え不可)" : town ? "魂を付け替える" : "付け替えは街で"));
   r.appendChild(tx);
   main.appendChild(r);
-  if (town) { main.addEventListener("click", () => openSoulPicker(d, "primary")); main.classList.add("sp-change"); }
+  if (town && !fixed) { main.addEventListener("click", () => openSoulPicker(d, "primary")); main.classList.add("sp-change"); }
+  else if (town && fixed) main.addEventListener("click", () => game.showCodexJobDetail && game.showCodexJobDetail(pe.clsKey, rank));
   tile.appendChild(main);
   return tile;
 }
@@ -238,7 +240,8 @@ function mainCard(d, pe, town) {
   if (nr) {
     const r = el("span", "sp-next-rank");
     r.appendChild(el("span", "sp-next-k", `ランク${rank + 1}まで`));
-    r.appendChild(el("span", "sp-next-v", `魂 ${pe.count - nr.prev}/${nr.next - nr.prev}`));
+    // 灯守 (セラだけの魂) は魂を重ねず、物語の節目でランクが上がる
+    r.appendChild(el("span", "sp-next-v", (SOUL_CLASSES[pe.clsKey] || {}).unique ? "物語の節目で" : `魂 ${pe.count - nr.prev}/${nr.next - nr.prev}`));
     foot.appendChild(r);
   }
   if (town && ((G.embers || 0) > 0 || pe.level >= cap)) {
@@ -559,7 +562,7 @@ function pickerBody(root, d, slotId, h) {
   const si = isSub ? +slotId.slice(3) : -1;
   const curUid = isSub ? ((d.subs || [])[si] || {}).uid : d.primary;
   const fusion = game.featureUnlocked ? game.featureUnlocked("fusion") : false;
-  const souls = [...(isSub ? G.souls : game.soulRepresentatives())].sort(game.soulSortCmp || (() => 0));
+  const souls = [...(isSub ? G.souls.filter((s) => !(SOUL_CLASSES[s.clsKey] || {}).unique) : game.soulRepresentatives())].sort(game.soulSortCmp || (() => 0)); // 灯守 (セラだけの魂) は貸さない
   const list = el("div", "pt-list sp-plist");
   for (const s of souls) {
     const cl = SOUL_CLASSES[s.clsKey]; if (!cl) continue;
@@ -829,6 +832,8 @@ function openHostSheet(uid, onDone = null) {
         const here = curUid === uid;
         let why = "";
         if (here) why = "宿している";
+        else if ((SOUL_CLASSES[soulByUid(uid)?.clsKey] || {}).unique) why = "セラだけの魂";
+        else if (slotId === "primary" && d.vessel === "sera") why = "灯守に固定";
         else if (slotId === "primary" && !isRep) why = "余った魂は融合へ";
         else if (game.soulSlotConflict(d, uid, slotId)) why = "職業が重なる";
         else if (slotId !== "primary" && d.primary == null) why = "メイン魂が無い";
@@ -1159,7 +1164,7 @@ function fusePerks(info, accent) {
   };
   if (info.toCap !== info.fromCap) perk("Lv上限", String(info.fromCap), String(info.toCap));
   if (info.toLv > info.fromLv) perk("魂レベル", `Lv${info.fromLv}`, `Lv${info.toLv}`);
-  if (info.toCount !== info.fromCount) perk("融合数", `+${info.fromCount - 1}`, `+${info.toCount - 1}`);
+  if (info.fromCount != null && info.toCount !== info.fromCount && !(SOUL_CLASSES[info.clsKey] || {}).unique) perk("融合数", `+${info.fromCount - 1}`, `+${info.toCount - 1}`);
   if (info.toPicks > info.fromPicks) perk("宿し技の枠", String(info.fromPicks), String(info.toPicks));
   return box;
 }

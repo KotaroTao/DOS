@@ -17,7 +17,7 @@ import { openItem } from "./facilities.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
 const G = () => game.G;
-const RAR_LABEL = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド" };
+const RAR_LABEL = { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド", unique: "固有" };
 const TYPE_MARK = { kill: "⚔", soul: "✦", chest: "◆", floor: "▼", clear: "★", deliver: "◇" };
 
 export function lists() {

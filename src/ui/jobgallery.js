@@ -11,7 +11,7 @@ import { JOB_IMAGES } from "../jobart.js";
 import { JOB_PHOTOS } from "../jobphotos.js";
 
 const RANKS = [1, 2, 3, 4, 5];
-const RARITY = [["all", "すべて"], ["common", "コモン"], ["rare", "レア"], ["epic", "エピック"], ["legend", "レジェンド"]];
+const RARITY = [["all", "すべて"], ["common", "コモン"], ["rare", "レア"], ["epic", "エピック"], ["legend", "レジェンド"], ["unique", "固有"]];
 const RARITY_NAME = Object.fromEntries(RARITY);
 const FACE_SIZES = [56, 36, 26]; // 隊の肖像・魂の珠・小さな札くらいの大きさ
 
