@@ -10,7 +10,7 @@
 import { W, S, A, H, F, G, R } from "./defs.js";
 
 const sr = (it) => { it.rar = "sr"; it.layer = 5; return it; };
-// LR: tier 5 = 第5層の帯。layer を持つので、職業専用LR (tier5〜) とは別に lrPool が層と出現上限で絞り、鑑定料も ×20 にしない
+// LR: tier 5 = 第5層の帯。layer を持つので、職業専用LR (tier5〜) とは別に lrPool が層と出現上限で絞る
 const lr = (it) => { it.rar = "lr"; it.lr = 5; it.layer = 5; it.exclusive = true; return it; };
 
 export const LAYER5_ITEMS = [
