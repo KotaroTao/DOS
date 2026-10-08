@@ -1362,6 +1362,282 @@ export const EVENTS = [
       { label: "杖を受け取る ― 上等な品 (レア以上)", fn: () => { A.sfx("itemget"); A.itemMinRar("r", "操霊師の遺品", () => A.done(cell)); } },
     ],
   },
+  // ================= 第6層「沈んだ大神殿」 (10) ── 第四章「王都の地下」。三百年前に沈んだ旧都と、その大神殿 =================
+  {
+    id: "l6_01", name: "沈んだ供物台", layer: 6, tier: "common", icon: "chest",
+    intro: () => ["水の底の参道に、石の供物台が並んでいる。", "皿の上には、三百年前の供物が、苔に包まれたまま残っている。"],
+    choices: (A, cell) => {
+      const cost = A.goldCost(1);
+      return [
+        { label: "供物を拾い上げる ― 品 / 30%で供物に化けた魔物の群れ", danger: true, fn: () => {
+          if (chance(0.3)) { A.alarm("供物が動いた！", ["皿の上のものは、供物のふりをした魔物だった。"], "trap", () => A.fight(cell, [{ pool: true, min: 2 }], "offering", { noChest: true })); return; }
+          A.item({}, "沈んだ供物台", () => A.done(cell));
+        } },
+        A.canPayGold(cost) && { label: `金貨を供え直す (💰${cost}) ― ✦Soul と、階段の在処`, primary: true, fn: () => {
+          A.payGold(cost); A.revealStairs(); A.sfx("heal");
+          A.soul(1.5, "供え直した供物"); A.toast("水が静かに揺れ、階段への道を照らした", "good", "stairs"); A.done(cell);
+        } },
+      ];
+    },
+    onWin: (A, cell, f, next) => A.item({}, "沈んだ供物台", () => A.done(cell, next)),
+  },
+  {
+    id: "l6_02", name: "水底の聖歌", layer: 6, tier: "common", icon: "mon:bs_choirwraith",
+    intro: () => ["どこからか、水にくぐもった歌声が聞こえる。", "沈んだ聖歌隊が、三百年前と同じ節を、いまも歌い続けている。"],
+    choices: (A, cell) => [
+      anyDrained(A) && { label: "歌に耳を澄ます ― 全員のMP3割回復", fn: () => {
+        A.healAll(0, 0.3, false); A.sfx("heal"); A.toast("歌声が、すり減った魔力を満たしていく", "good", "fountain"); A.done(cell);
+      } },
+      { label: "声を合わせて歌う ― この階の亡霊・不死への与ダメ+30%", primary: true, fn: () => {
+        A.floorEv().mods.push({ src: "l6_02", name: "重ねた聖歌", desc: "亡霊・不死の魔物への与ダメージ +30% (この階)", prey: { races: ["specter", "undead"], mul: 1.3 } });
+        A.sfx("spell"); A.toast("歌が重なった ― この階の亡霊・不死への与ダメ+30%", "good"); A.done(cell);
+      } },
+    ],
+  },
+  {
+    id: "l6_03", name: "洗礼の水盤", layer: 6, tier: "common", icon: "fountain",
+    intro: () => ["澄んだ水をたたえた、白い石の水盤。王が冠を受ける前に身を清めた水だという。", "底には、巡礼者が投げ入れた品が沈んでいる。"],
+    choices: (A, cell) => [
+      (anyHurt(A) || anyAiling(A)) && { label: "水を浴びる ― 全員のHP3割回復・状態異常が治る", primary: true, fn: () => {
+        A.healAll(0.3, 0, true); A.sfx("heal"); A.toast("洗礼の水が、傷と汚れを洗い流した", "good", "fountain"); A.done(cell);
+      } },
+      { label: "水盤の底をさらう ― 収集品", fn: () => A.collectible("洗礼の水盤", () => A.done(cell)) },
+    ],
+  },
+  {
+    id: "l6_04", name: "膝をつく信徒", layer: 6, tier: "common", icon: "mon:bs_drownedpriest",
+    intro: () => ["水底で膝をつき、祈り続ける信徒の亡霊がいる。", "「……神官王さま、冠を……どうか、泉をお守りください……」"],
+    choices: (A, cell) => [
+      { label: "共に祈る ― ✦Soul", primary: true, fn: () => { A.sfx("heal"); A.soul(1.5, "信徒の祈り"); A.done(cell); } },
+      { label: "肩を叩いて起こす ― 半々で抜け道を教わる (階段の傍へ) / 祈りを乱されて襲いかかる", danger: true, fn: () => {
+        if (chance(0.5)) { cell.cleared = true; A.sfx("step"); A.toast("信徒は黙って、水の抜け道を指さした ― 階段の傍に出た", "good", "stairs"); A.warpToStairs(); return; }
+        A.alarm("信徒が振り向いた！", ["祈りを乱された信徒の目が、昏く濁った。"], "trap", () => A.fight(cell, [{ key: "bs_drownedpriest", strong: 1.4, name: "怒れる信徒" }], "devotee", { noChest: true }));
+      } },
+    ],
+    onWin: (A, cell, f, next) => { A.soul(2, "信徒の魂"); A.done(cell, next); },
+  },
+  {
+    id: "l6_05", name: "神像の涙", layer: 6, tier: "uncommon", icon: "event",
+    intro: () => ["半ば崩れた神像が、水の中に立っている。", "片目にはめこまれた青い宝玉から、ひとすじの雫が流れ続けている。"],
+    choices: (A, cell) => {
+      const c = A.check("agi");
+      return [
+        { label: `宝玉をこじる ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― 上等な品 / 失敗で神像の番人が目を覚ます`, primary: true, fn: () => {
+          if (c.ok) { A.sfx("itemget"); A.item({ rare: true }, "神像の宝玉", () => A.done(cell)); return; }
+          A.alarm("神像の足元が動いた！", ["神像を守る番人が、水の中から立ち上がった。"], "trap", () => A.fight(cell, [{ key: "bs_idolguardian", strong: 1.6, name: "神像の番人" }], "idol", { noChest: true }));
+        } },
+        needsCare(A) && { label: "涙を受けて飲む ― 全員のHP・MP5割回復・状態異常が治る", fn: () => {
+          A.healAll(0.5, 0.5, true); A.sfx("heal"); A.toast("神像の涙は、ほのかに甘かった", "good", "fountain"); A.done(cell);
+        } },
+      ];
+    },
+    onWin: (A, cell, f, next) => A.item({ rare: true }, "神像の宝玉", () => A.done(cell, next)),
+  },
+  {
+    id: "l6_06", name: "沈んだ大鐘", layer: 6, tier: "uncommon", icon: "mon:bs_sunkenbell", minFloor: 2,
+    intro: () => ["崩れた鐘楼から落ちた大鐘が、水底に傾いて沈んでいる。", "舌はまだ揺れている。鳴らせば、水の底まで響くだろう。"],
+    choices: (A, cell) => [
+      A.countCells((c) => c.type === "monster" && !c.cleared && !c.elite) > 0 && { label: "鐘を打ち鳴らす ― この階の魔物3体が響きに追われて去る / 35%で大鐘そのものが目を覚ます", danger: true, fn: () => {
+        if (chance(0.35)) { A.alarm("鐘が、うなり声を上げた！", ["大鐘そのものが、たたりの魔物だった。"], "trap", () => A.fight(cell, [{ key: "bs_sunkenbell", strong: 1.6, name: "目覚めた大鐘" }], "bell", { noChest: true })); return; }
+        const n = A.removeMonsters(3);
+        A.sfx("spell"); A.toast(`鐘の響きに追われて、魔物が${n}体去っていった`, "good"); A.done(cell);
+      } },
+      { label: "鐘の金具を外す ― 金貨", primary: true, fn: () => { A.gold(3, "大鐘の金具"); A.done(cell); } },
+    ],
+    onWin: (A, cell, f, next) => { A.gold(4, "大鐘の中の奉納金"); A.done(cell, next); },
+  },
+  {
+    id: "l6_07", name: "水に溶けた写字室", layer: 6, tier: "uncommon", icon: "event", deep: true,
+    intro: () => ["神官たちの写字室。棚の巻物は水を吸い、文字がにじんで流れ出している。", "一巻だけ、ろうで封じられた巻物が、乾いたまま残っていた。"],
+    choices: (A, cell) => {
+      const c = A.check("int");
+      return [
+        { label: `封を解いて読む ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― ✦Soul と、この階の宝箱の在処 / 失敗で呪いの文字に魔力を吸われる`, primary: true, fn: () => {
+          if (!c.ok) { A.mpAll(0.3); A.sfx("trap"); A.toast("にじんだ文字が目に焼きつき、魔力を吸われた ― 全員のMPが減った", "bad", "trap"); A.done(cell); return; }
+          A.soul(3, "封じられた巻物");
+          const n = A.revealWhere((x) => x.type === "chest" && !x.cleared);
+          A.story("封じられた巻物", ["「……泉のほとりに、若い神官が見慣れぬ苗木を植えた。」", "「神官王さまはお怒りになったが、あの方は、ただ微笑むばかりだった……」", "巻物はそこで、水に溶けて読めなくなった。", n ? `余白の地図に、この階の宝箱${n}つの在処が記されていた。` : "余白の地図は、もう読み取れなかった。"], () => A.done(cell));
+        } },
+        { label: "巻物を持ち帰る ― 収集品", fn: () => A.collectible("封じられた巻物", () => A.done(cell)) },
+      ];
+    },
+  },
+  {
+    id: "l6_08", name: "引き潮の回廊", layer: 6, tier: "uncommon", icon: "chest", minFloor: 2,
+    intro: () => ["回廊の水が、ゆっくりと引いていく。旧都の潮は、いまも満ち引きを繰り返しているらしい。", "水の引いた床に、何かの角が見えはじめた。"],
+    choices: (A, cell) => [
+      { label: "潮が引くのを待つ ― 床の下から宝箱 (ランク+1) / 40%で待つ間に魔物が寄ってくる", primary: true, fn: () => {
+        if (chance(0.4)) { A.alarm("水音が近づいてくる！", ["引き潮に取り残された魔物が、こちらに気づいた。"], "trap", () => A.fight(cell, [{ pool: true, min: 2 }], "ebb", { noChest: true })); return; }
+        A.chestHere(cell, { rankUp: 1 });
+      } },
+      { label: "引き潮に乗る ― 水の流れに運ばれて階段の傍へ", fn: () => {
+        cell.cleared = true; A.sfx("step"); A.toast("引いていく水に運ばれた ― 階段の傍に出た", "good", "stairs"); A.warpToStairs();
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.chestHere(cell, { rankUp: 1 }, next),
+  },
+  {
+    id: "l6_09", name: "冠を捧げる侍従", layer: 6, tier: "rare", icon: "event", deep: true, minLv: 56,
+    intro: () => ["水底の廊下で、冠を捧げ持つ侍従の亡霊が待っていた。", "「……あなた方は、王に会いに来たのですね。あの方はもう、王ではありません。冠が、王を離さないのです」", "「冠のほころびを、わたしは知っています。それとも、わたしが守ってきた宝物をお持ちになりますか」"],
+    choices: (A, cell) => [
+      { label: "ほころびを聞く ― 第6層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
+        A.flags().bossWeak = { ...(A.flags().bossWeak || {}), 6: true };
+        A.sfx("spell");
+        A.story("冠を捧げる侍従", ["「冠の内側、三つ目の宝玉が割れています。泉に苗が植えられた夜、王が自ら握りつぶしたのです」", "「……一年前にも、ひとり、幹を登ってきた操霊師がおりました。王と長く話して、もっと下へ降りてゆかれました」", "第6層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
+      } },
+      { label: "宝物を受け取る ― 上等な品 (レア以上)", fn: () => { A.sfx("itemget"); A.itemMinRar("r", "侍従の宝物", () => A.done(cell)); } },
+    ],
+  },
+  {
+    id: "l6_10", name: "魂の泉のしずく", layer: 6, tier: "rare", icon: "fountain", deep: true,
+    intro: () => ["石の割れ目から、青白く光る水が湧き出している。旧都の「魂の泉」から漏れ出た水だ。", "水の中で、無数の小さな灯が揺れている。水底では、泉の番をする何かが身じろぎした。"],
+    choices: (A, cell) => [
+      { label: "泉の底をさらう ― 泉の番人と戦い、勝てば希少な魂と上等な宝箱", danger: true, fn: () => {
+        A.fight(cell, [{ key: "bs_tidecaller", strong: 1.8, name: "泉の番人" }], "soulspring", { noChest: true });
+      } },
+      { label: "器を泉で清める ― 全員が全快し、✦Soul", primary: true, fn: () => {
+        A.healAll(1, 1, true); A.sfx("heal"); A.soul(6, "魂の泉"); A.done(cell);
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "泉の底に沈んでいた魂だ。", () => A.chestHere(cell, { rankUp: 2 }, next)),
+  },
+
+  // ================= 第7層「灼熱の洞」 (10) ── 第五章。大神殿の底のさらに下、大樹の樹液を煮詰める火の洞 =================
+  {
+    id: "l7_01", name: "灰の吹きだまり", layer: 7, tier: "common", icon: "gold",
+    intro: () => ["天井から降る灰が、通路の隅に吹きだまっている。", "灰の中に、溶けかけた金具がいくつも埋もれている。"],
+    choices: (A, cell) => [
+      { label: "灰を掘り返す ― 金貨 / 25%で灰の中に潜む魔物", danger: true, fn: () => {
+        if (chance(0.25)) { A.alarm("灰が盛り上がった！", ["灰の中に、魔物が身を潜めていた。"], "trap", () => A.fight(cell, [{ pool: true, min: 2 }], "ash", { noChest: true })); return; }
+        A.gold(1.5, "灰の中の金具"); A.done(cell);
+      } },
+      { label: "灰の上の品を拾う ― 品", primary: true, fn: () => A.item({}, "灰の吹きだまり", () => A.done(cell)) },
+    ],
+    onWin: (A, cell, f, next) => { A.gold(2, "灰の中の金具"); A.done(cell, next); },
+  },
+  {
+    id: "l7_02", name: "すすけた人業の手", layer: 7, tier: "common", icon: "corpse",
+    intro: () => ["焼け焦げた人業の手が、灰の上に落ちている。", "木の指は、何かを握りしめたまま固まっている。"],
+    choices: (A, cell) => [
+      { label: "指を開く ― 品", fn: () => A.item({}, "すすけた人業の手", () => A.done(cell)) },
+      { label: "灰に埋めて弔う ― ✦Soul と、近くの骸に魂が宿る", primary: true, fn: () => {
+        A.sfx("heal"); A.soul(1, "人業の弔い");
+        if (A.warmCorpse()) A.toast("弔いに応えるように、近くの骸が温もりを取り戻した", "good", "corpseWarm");
+        A.done(cell);
+      } },
+    ],
+  },
+  {
+    id: "l7_03", name: "溶岩の川", layer: 7, tier: "common", icon: "trap",
+    intro: () => ["赤く煮えたぎる溶岩の川。向こう岸の岩棚で、何かが光っている。", "飛び石は、どれも熱でゆらいで見える。"],
+    choices: (A, cell) => {
+      const c = A.check("agi");
+      return [
+        { label: `飛び石を渡る ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― 向こう岸の品 / 失敗で足を焼かれる`, primary: true, fn: () => {
+          if (c.ok) { A.sfx("step"); A.item({}, "溶岩の向こう岸", () => A.done(cell)); return; }
+          if (c.who) { A.hurtOne(c.who, 0.25); A.sfx("trap"); A.toast(`${c.who.name}は足を踏み外し、溶岩に焼かれた`, "bad", "trap"); }
+          A.done(cell);
+        } },
+        { label: "溶岩の熱で刃を焼く ― この階の与ダメ+15% (全員に小さな火傷)", fn: () => {
+          A.hurtAll(0.06); A.flash("#e07040");
+          A.floorEv().mods.push({ src: "l7_03", name: "焼き直した刃", desc: "与えるダメージ +15% (この階)", dmgMul: 1.15 });
+          A.sfx("hit"); A.toast("刃が赤く焼けた ― この階の与ダメ+15%", "gold"); A.done(cell);
+        } },
+      ];
+    },
+  },
+  {
+    id: "l7_04", name: "火を拝む信徒", layer: 7, tier: "common", icon: "event",
+    intro: () => ["燃える岩の前に、火を拝む信徒の亡霊がひれ伏している。", "「火は魂を清める。宰相さまは、そうお教えくださった。……おまえたちも、何かくべてゆけ」"],
+    choices: (A, cell) => {
+      const s = A.soulCost(1);
+      return [
+        A.canPaySoul(s) && (anyHurt(A) || anyDrained(A)) && { label: `✦Soul を火にくべる (✦${s}) ― 全員のHP・MP4割回復`, primary: true, fn: () => {
+          A.paySoul(s); A.healAll(0.4, 0.4, false); A.sfx("heal"); A.toast("炎が高く上がり、隊の体に熱が満ちた", "good", "fountain"); A.done(cell);
+        } },
+        { label: "信徒の火を踏み消す ― 信徒たちが襲いかかる。勝てば金貨", danger: true, fn: () => {
+          A.alarm("信徒たちが立ち上がった！", ["「火を汚す者に、清めの火を！」"], "trap", () => A.fight(cell, [{ pool: true, min: 2 }], "worship", { noChest: true }));
+        } },
+      ];
+    },
+    onWin: (A, cell, f, next) => { A.gold(2.5, "信徒の捧げ物"); A.done(cell, next); },
+  },
+  {
+    id: "l7_05", name: "霊薬の釜", layer: 7, tier: "uncommon", icon: "fountain",
+    intro: () => ["小さな釜で、こはく色の液が煮えている。大樹の樹液を煮詰めた霊薬だ。", "釜の縁には、王家の封印の跡がこびりついている。"],
+    choices: (A, cell) => [
+      needsCare(A) && { label: "霊薬をすする ― 全員が全快 / 30%で強すぎて全員が毒", fn: () => {
+        A.healAll(1, 1, true); A.sfx("heal");
+        if (chance(0.3)) { A.ailAll("poison", 1); A.toast("霊薬は強すぎた ― 傷は癒えたが、毒が回った", "bad", "poison"); }
+        else A.toast("霊薬が、体の芯まで満たした", "good", "fountain");
+        A.done(cell);
+      } },
+      { label: "霊薬を煮詰める ― ✦Soul (霊薬は魂から煮出されたもの)", primary: true, fn: () => { A.sfx("spell"); A.soul(4, "煮詰めた霊薬"); A.done(cell); } },
+    ],
+  },
+  {
+    id: "l7_06", name: "焼き印の炉", layer: 7, tier: "uncommon", icon: "trap", minFloor: 2,
+    intro: () => ["火を拝む者たちが使った炉。焼き印の鉄が、まだ赤く焼けている。", "炉の脇には、焼き印を押された人業の殻が、いくつも打ち捨てられている。"],
+    choices: (A, cell) => [
+      { label: "焼き印を武具に押す ― この潜入の間、与ダメ+10% (全員に火傷)", primary: true, fn: () => {
+        A.hurtAll(0.12); A.flash("#e07040");
+        A.runEv().mods = [...(A.runEv().mods || []), { src: "l7_06", name: "焼き印の武具", desc: "与えるダメージ +10% (この潜入)", dmgMul: 1.1 }];
+        A.sfx("hit"); A.toast("武具に焼き印を押した ― この潜入の間、与ダメ+10%", "gold"); A.done(cell);
+      } },
+      { label: "炉の灰から地金を掘る ― 金貨", fn: () => { A.gold(3.5, "炉の地金"); A.done(cell); } },
+    ],
+  },
+  {
+    id: "l7_07", name: "灰の降らぬ岩棚", layer: 7, tier: "uncommon", icon: "event", deep: true,
+    intro: () => ["張り出した岩棚の下だけ、灰が降っていない。誰かが野営した跡がある。", "燃え尽きた焚き火のそばに、背負い袋がひとつ置き去りにされている。"],
+    choices: (A, cell) => [
+      needsCare(A) && { label: "岩棚で休む ― 全員のHP・MP5割回復・状態異常が治る", fn: () => {
+        A.healAll(0.5, 0.5, true); A.sfx("heal"); A.toast("灰の降らない岩棚で、しばし息をついた", "good", "fountain"); A.done(cell);
+      } },
+      { label: "背負い袋を探る ― 置き去りの荷 (宝箱・ランク+1)", primary: true, fn: () => A.chestHere(cell, { rankUp: 1 }) },
+    ],
+  },
+  {
+    id: "l7_08", name: "火の虫の巣", layer: 7, tier: "uncommon", icon: "mon:bs_emberswarm", minFloor: 2,
+    intro: () => ["岩の割れ目に、火の粉の虫がびっしりと巣を作っている。", "巣の奥には、虫が集めた光り物が山と積まれている。"],
+    choices: (A, cell) => [
+      { label: "巣を焼き払う ― 虫の群れと戦い、勝てば巣の中の上等な品", danger: true, fn: () => {
+        A.fight(cell, [{ key: "bs_emberswarm", min: 3 }], "nest", { noChest: true });
+      } },
+      { label: "巣の外の光り物だけ拾う ― 金貨 / 30%で虫に群がられ全員に火傷", primary: true, fn: () => {
+        A.gold(2.5, "虫の光り物");
+        if (chance(0.3)) { A.hurtAll(0.1); A.sfx("trap"); A.toast("虫が群がってきた ― 全員が火傷を負った", "bad", "trap"); }
+        A.done(cell);
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.item({ rare: true }, "火の虫の巣", () => A.done(cell, next)),
+  },
+  {
+    id: "l7_09", name: "釜番の亡霊", layer: 7, tier: "rare", icon: "mon:bs_cinderwraith", deep: true, minLv: 66,
+    intro: () => ["大きな釜の前で、すすだらけの亡霊が、見えない薪をくべ続けている。", "「……三百年、わしはこの火の番をしてきた。釜の主の弱みなら、誰よりも知っておる」", "「教えてやろう。それとも、わしが貯めこんだ蓄えを持ってゆくか」"],
+    choices: (A, cell) => [
+      { label: "弱みを聞く ― 第7層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
+        A.flags().bossWeak = { ...(A.flags().bossWeak || {}), 7: true };
+        A.sfx("spell");
+        A.story("釜番の亡霊", ["「主は、釜の火から生まれた。釜の底の左の口から、火が細る。あそこを突けば、主の息が弱る」", "「……宰相さまは、三百年、少しもお変わりにならなかった。釜の火に手をかざしても、汗ひとつかかれなかったよ」", "第7層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
+      } },
+      { label: "蓄えを受け取る ― 上等な品 (レア以上)", fn: () => { A.sfx("itemget"); A.itemMinRar("r", "釜番の蓄え", () => A.done(cell)); } },
+    ],
+  },
+  {
+    id: "l7_10", name: "溶岩に沈む器", layer: 7, tier: "rare", icon: "event", deep: true,
+    intro: () => ["溶岩の湖に、巨大な人業の器が胸まで沈んでいる。焼かれずに残った胸の奥で、魂がひとつ、かすかに灯っている。", "器の肩には、黒曜石の番兵がうずくまっている。"],
+    choices: (A, cell) => [
+      { label: "胸の魂を解き放つ ― 番兵と戦い、勝てば希少な魂と魂の残火", danger: true, fn: () => {
+        A.fight(cell, [{ key: "bs_obsidianguard", strong: 1.8, name: "器の番兵" }], "vessel", { noChest: true });
+      } },
+      { label: "器の胸から宝を剥ぐ ― 上等な宝箱 (ランク+2) / 溶岩の熱で全員のHP2割を失う", primary: true, fn: () => {
+        A.hurtAll(0.2); A.flash("#e07040"); A.sfx("trap");
+        A.chestHere(cell, { rankUp: 2 });
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "溶岩に沈む器に囚われていた魂だ。", () => { A.ember(2, "器の胸の残火"); A.done(cell, next); }),
+  },
 ];
 
 // 各迷宮に固有の極を1件。既存IDは見聞録・取得済みセーブのため維持する。
@@ -1382,6 +1658,16 @@ const DUNGEON_GIFTS = [
   ["ws2", "vit", 2, "石切り場の眠る盾"],
   ["ws3", "agi", 2, "森の古老", "l5_07"],
   ["ws4", "int", 2, "銀業の記憶の結晶"],
+  // 第四章・第五章 (第6層・第7層)。件数の少ない会心・LUK から、ほかは1件ずつ
+  ["w14", "mp", 5, "参道の沈まぬ灯籠"],
+  ["w15", "pie", 2, "聖歌隊長の祈り"],
+  ["w16", "hp", 5, "洗礼の泉の一滴"],
+  ["w17", "int", 2, "大神殿の古い祈りの書"],
+  ["ws5", "luk", 2, "願いの底の古銭"],
+  ["w18", "atk", 2, "噴き火に鍛えた鉄"],
+  ["w19", "agi", 2, "灰の雨を渡る羽"],
+  ["w20", "vit", 2, "焼きしめた器の欠片"],
+  ["w21", "crit", 0.01, "大釜の底の火種"],
 ];
 for (const [dungeonId, stat, amount, name, legacyId] of DUNGEON_GIFTS) {
   const dungeon = WORLD.find((d) => d.id === dungeonId);
@@ -1435,6 +1721,8 @@ export const EVENT_GROUPS = [
   { key: "3", label: "廃坑", name: "第3層 廃坑", layer: 3 },
   { key: "4", label: "捨て砦", name: "第4層 捨て砦", layer: 4 },
   { key: "5", label: "霧の森", name: "第5層 霧の森", layer: 5 },
+  { key: "6", label: "大神殿", name: "第6層 沈んだ大神殿", layer: 6 },
+  { key: "7", label: "火の洞", name: "第7層 灼熱の洞", layer: 7 },
 ];
 
 // 出現条件の説明 (見聞録用)
