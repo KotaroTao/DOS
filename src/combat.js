@@ -442,10 +442,14 @@ const SOUL_TIER_KINDS = new Set(["phys", "atk", "heal", "mana"]);
 // 安い低位の技が Lv100〜200 でも MP の得な技として残った (Lv200 で12職)。4% で 2職まで減り、上位の技を選ぶ理由が戻る。
 // 回復・MP譲渡は 2% のまま (ヒールは最大HPの50%で頭打ちなので、消費だけが増えてしまう)
 export const SOUL_TIER_ATK_MIN = 0.04;
+// 敵全体への攻撃の技は最低 6% (2026-10): 安い全体技 (ファイアストームなど) は Lv20 前後の隊の柱なので技の MP は据え置き、
+// 魂が育つほど単体の技より重くして、Lv100〜200 で「全体技を撃つのが一番得」にならないようにする
+export const SOUL_TIER_ALL_MIN = 0.06;
 export function soulTierRate(sp) {
   if (!sp || sp.mpPct || sp.gravity || !(sp.mp > 0) || !SOUL_TIER_KINDS.has(sp.kind)) return 0;
   const r = SOUL_TIER_RATES.find(([m]) => sp.mp <= m)[1];
-  return (sp.kind === "phys" || sp.kind === "atk") ? Math.max(r, SOUL_TIER_ATK_MIN) : r;
+  if (sp.kind !== "phys" && sp.kind !== "atk") return r;
+  return Math.max(r, sp.target === "all-enemy" ? SOUL_TIER_ALL_MIN : SOUL_TIER_ATK_MIN);
 }
 // 魂の格で足される消費MP (軽減の前)
 export function soulCostAdd(actor, sp) {

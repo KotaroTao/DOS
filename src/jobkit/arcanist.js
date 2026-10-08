@@ -35,7 +35,7 @@ export default {
     ARCANIST_MEIJU:      { name: "冥呪の嵐", mp: 28, kind: "atk", power: 72, element: "dark", poison: { chance: 0.4, pct: 0.05 }, target: "all-enemy", desc: "冥い呪いの嵐が敵全体を蝕む（毒）" },
     ARCANIST_GOUKASHO:   { name: "業火の禁書", mp: 30, kind: "atk", power: 82, element: "fire", strip: true, target: "all-enemy", desc: "禁書の業火が強化ごと敵全体を焼く" },
     ARCANIST_KAIKAI:     { name: "禁呪・界壊", mp: 36, kind: "atk", gravity: 0.35, hpCost: 0.1, target: "all-enemy", desc: "身を裂き、敵全体の今のHPの35%を潰す" },
-    ARCANIST_SHUUENSHO:  { name: "禁呪・終焉の書", mp: 44, kind: "atk", power: 160, hpCost: 0.15, target: "all-enemy", desc: "命を燃やしてつづる終焉の禁呪（無属性）" },
+    ARCANIST_SHUUENSHO:  { name: "禁呪・終焉の書", mp: 56, kind: "atk", power: 160, hpCost: 0.15, target: "all-enemy", desc: "命を燃やしてつづる終焉の禁呪（無属性）" },
   },
   perks: {
     arcanistChikei: {
