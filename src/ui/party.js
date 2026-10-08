@@ -1905,11 +1905,6 @@ function statsSeg(root, d) {
     line.appendChild(sc);
     root.appendChild(line);
   }
-  if (d.jobKey && game.showCodexJobDetail) {
-    const r = row({ title: "職業図鑑を見る", sub: `${d.cls} ― ランクごとの技・加護`, chevron: true, onTap: () => game.showCodexJobDetail(d.jobKey, d.jobRank) });
-    r.classList.add("pt-codex");
-    root.appendChild(r);
-  }
 }
 
 // ---- 技の整理: 戦闘での表示のオン/オフ・オートで使うか・並べ替え ----
