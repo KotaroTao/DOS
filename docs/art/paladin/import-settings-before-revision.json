@@ -55,23 +55,7 @@
     },
     {
       "source": "docs/art/paladin/paladin-r4-final.png",
-      "perDot": 15.590361445783133,
-      "head": [
-        469,
-        623,
-        38,
-        382
-      ],
-      "alphaBBox": [
-        27,
-        35,
-        1138,
-        1329
-      ]
-    },
-    {
-      "source": "docs/art/paladin/paladin-r5-final.png",
-      "perDot": 15.626506024096386,
+      "perDot": 15.614457831325302,
       "head": [
         460,
         614,
@@ -79,10 +63,26 @@
         377
       ],
       "alphaBBox": [
-        20,
-        34,
+        22,
+        33,
         1128,
-        1331
+        1329
+      ]
+    },
+    {
+      "source": "docs/art/paladin/paladin-r5-final.png",
+      "perDot": 15.53012048192771,
+      "head": [
+        469,
+        623,
+        41,
+        382
+      ],
+      "alphaBBox": [
+        29,
+        38,
+        1135,
+        1327
       ]
     }
   ]
