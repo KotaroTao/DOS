@@ -10571,17 +10571,13 @@ function questUnit(cfg, floor = 1) {
   return { gold: Math.max(6, refGold(lv)), soul: Math.max(3, refSoul(lv)) };
 }
 // 掲示板の生成に渡す窓 (src/quests.js)
-// 掲示板の依頼に選ぶ迷宮: 地図にある迷宮を地図に現れた順 (古い→新しい。G.world.open の鍵の並び) に並べ、
-// 推奨Lvが隊のLvを大きく超える迷宮 (出撃シートの「無謀」= 差 QUEST_LV_GAP 以上) は除く。
-// 新しい迷宮ほど選ばれやすい (quests.js pickDungeon)。すべて除かれたら推奨Lvのいちばん低い迷宮だけ
-const QUEST_LV_GAP = 8;
+// 掲示板の依頼に選ぶ迷宮: 地図にある迷宮を地図に現れた順 (古い→新しい。G.world.open の鍵の並び) に並べる。
+// 新しい迷宮ほど選ばれやすい (quests.js pickDungeon)。隊のLvが推奨Lvに届かない迷宮も除かない
+// (2026-10 ユーザーの指示: 迷宮ごとの依頼は推奨Lv 以下の隊にも出す。旧来は推奨Lv − 隊のLv ≥ 8 の迷宮を除いていた)
 function questDungeons() {
   const order = Object.keys(worldState().open);
   const open = DUNGEONS.filter((d) => worldOpenId(d.id)).sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
-  if (!open.length) return [DUNGEONS[0]];
-  const pl = partyLevel();
-  const fit = open.filter((d) => levelBand(d)[0] - pl < QUEST_LV_GAP);
-  return fit.length ? fit : [open.reduce((a, d) => (levelBand(d)[0] < levelBand(a)[0] ? d : a))];
+  return open.length ? open : [DUNGEONS[0]];
 }
 function questCtx() {
   const s = questState();
