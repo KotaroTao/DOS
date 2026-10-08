@@ -56,6 +56,10 @@
 //           坑口 w05 (2.1〜2.6R・7%) と比べて桁違いに軽い。模擬戦は第5層の特色 (多用・神速・ブレス) を重く見たが、実戦では出る前に倒れる。
 //           そこで第5層の顔ぶれの6迷宮 (w10-w13・ws3・ws4) の雑魚 (enemyMul) と大樹の主 (bossMul、雑魚比 2.3 を保つ) を一律 ×5/3。
 //           目安は通常戦 2〜2.5R・1戦 7〜9%。強敵 (soloMul) は実測 14% で妥当なのでそのまま
+//           第6層・第7層 (第四章・第五章) はテスト記録がまだ無いので、第5層の実測後の値 (×5/3 の後) を物差しに、
+//           出現表の雑魚の sqrt(HP×ATK) × 強さ × 手直し が推奨Lv に沿ってなだらかに伸びるよう (第5層の伸び Lv^1.19、
+//           層の入口で 1割の段差) 合わせた。掟の重さ (群れ・奇襲・開幕の熱気・逃走不可) の分は控えめ。主は雑魚比 2.35〜2.4。
+//           テスト記録が届いたら実測で合わせ直す
 import { LAYER_ELEMENT } from "./generator.js";
 import { LAYER_BOSS, LAYER_ELITES, LAYER_POOLS, BESTIARY } from "./bestiary.js";
 import { baselineLv } from "../baseline.js";
@@ -339,7 +343,7 @@ const WORLD_DEF = [
       lines: ["溺れた聖歌隊の歌が響き続け、魔物はみな光の気を帯びる。闇の刃が通り、闇の護りが光を逸らす。", "歌に引かれて集まった魂は多く、得る ✦Soul は 1.3倍。"],
       mods: { elemAll: true, soulMul: 1.3 },
     },
-    tune: { enemyMul: 1.05, deepMul: 0.82, soloMul: 1.05 }, // 属性が揃う分 (闇の刃で通る) だけ重め
+    tune: { enemyMul: 1.12, deepMul: 0.82, soloMul: 1.05 }, // 属性が揃う分 (闇の刃で通る) だけ重め
     unlock: { story: "w14_lamp" },
     hint: "「水底の参道」の灯籠のどこかに、師の残したものがあるという",
   },
@@ -360,7 +364,7 @@ const WORLD_DEF = [
       mods: { ambushMul: 1.5 },
       board: "font",
     },
-    tune: { enemyMul: 1.27, deepMul: 0.80, soloMul: 1.05 }, // 泉で立て直せる分だけ重め
+    tune: { enemyMul: 1.10, deepMul: 0.80, soloMul: 1.05 }, // 泉で立て直せる分だけ重め
     unlock: { reported: "w14" },
     hint: "「水底の参道」の踏破を王に報告すると、旧都の洗礼の場が示される",
   },
@@ -381,7 +385,7 @@ const WORLD_DEF = [
       mods: { packMin: 4, soulMul: 1.35 },
     },
     boss: LAYER_BOSS[5], bossRank: 8,
-    tune: { enemyMul: 0.95, deepMul: 0.80, soloMul: 1.10, bossMul: 0.85 }, // 第6層の壁。四体以上の群れの分だけ1体ずつは軽く
+    tune: { enemyMul: 0.95, deepMul: 0.80, soloMul: 1.10, bossMul: 0.76 }, // 第6層の壁。四体以上の群れの分だけ1体ずつは軽く。主は雑魚比 2.35 に
     unlock: { all: ["w15", "w16"] },
     hint: "「溺れた聖歌の回廊」と「洗礼の大水槽」の両方を踏破して王に報告すると、大神殿の扉が開く",
   },
@@ -403,7 +407,7 @@ const WORLD_DEF = [
       mods: { soulMul: 1.25 },
       board: "vent",
     },
-    tune: { enemyMul: 1.20, deepMul: 0.76, soloMul: 1.05 },
+    tune: { enemyMul: 1.08, deepMul: 0.76, soloMul: 1.05 },
     unlock: { reported: "w17" },
     hint: "「沈める大神殿」の踏破を王に報告すると、神殿の底へ降りる許しが出る",
   },
@@ -444,7 +448,7 @@ const WORLD_DEF = [
       mods: { goldMul: 1.4 },
       hpDrain: 0.06,
     },
-    tune: { enemyMul: 1.20, deepMul: 0.82, soloMul: 1.05 }, // 開幕の熱気の分だけ控えめ
+    tune: { enemyMul: 0.90, deepMul: 0.82, soloMul: 1.05 }, // 開幕の熱気の分だけ控えめ
     unlock: { reported: "w18" },
     hint: "「火を噴く地割れ」の踏破を王に報告すると、火の洞の奥が示される",
   },
@@ -465,7 +469,7 @@ const WORLD_DEF = [
       mods: { noFlee: true, elemAll: true, soulMul: 1.4 },
     },
     boss: LAYER_BOSS[6], bossRank: 9,
-    tune: { enemyMul: 1.10, deepMul: 0.80, soloMul: 1.10, bossMul: 0.85 }, // 第7層の壁。逃げられない分だけ控えめ
+    tune: { enemyMul: 0.95, deepMul: 0.88, soloMul: 1.10, bossMul: 0.85 }, // 第7層の壁。逃げられない分だけ控えめ
     unlock: { all: ["w19", "w20"] },
     hint: "「灰の降る祭場」と「魂を煮る釜場」の両方を踏破して王に報告すると、大釜への道が開く",
   },
@@ -555,7 +559,7 @@ const WORLD_DEF = [
       lines: ["井戸の底には、三百年分の願いの品が沈んでいる。宝箱は1ランク上等で、落ちている装備の質も少し上がる。", "願いを喰らって育った魔物が、その品を守っている。"],
       mods: { chestRankUp: 1, lootBonusLv: 4 },
     },
-    tune: { enemyMul: 1.30, deepMul: 0.78, soloMul: 1.05 },
+    tune: { enemyMul: 1.07, deepMul: 0.78, soloMul: 1.05 },
     unlock: { story: "w09_map" },
     hint: "「捨て砦の本丸」の軍議の卓の地図に、王都の井戸が記されているという",
   },
