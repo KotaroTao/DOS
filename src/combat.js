@@ -314,6 +314,11 @@ const MIND_CHARM_BREAK = 0.5, CONFUSE_FREE = 0.25, CONFUSE_DAZE = 0.3, CONFUSE_S
 // AIL_RAMP ずつ上がり、AIL_SURE 回目の判定で必ず治る (= かかったままの手番は最長 AIL_SURE-1 回)。
 // かかった直後の最初の判定は必ず外れる (_holdAil: 殴られて覚める・術や道具で治る以外は、最低1手番は続く)
 const AIL_RAMP = 0.15, AIL_SURE = 4;
+// ブレスの威力の残りHP補正: 吐き手の HP ÷ 最大HP (0〜1)。autotactics の脅威の見積もりも同じ値を使う
+export function breathHpK(e) {
+  const mx = e && e.maxhp > 0 ? e.maxhp : 0;
+  return mx ? Math.max(0, Math.min(1, (e.hp || 0) / mx)) : 1;
+}
 // 敵の全体呪文 (ability "spell") の名乗り (属性ごと) と、装備のブレス耐性 (breathRes) の上限
 const ELEM_SPELL = { fire: "業火", water: "濁流", wind: "嵐", earth: "岩雨", light: "裁きの光", dark: "闇の波動" };
 export const BREATH_RES_CAP = 0.5;
@@ -1791,6 +1796,9 @@ export class Battle {
         : `${actor.name}は${actor.boss ? "業炎の" : ""}ブレスを吐いた！`, "dmg");
       res.breath = true;
       res.espell = spell;
+      // ブレスは吐き手の残りHPの割合で弱まる (HP100% = そのまま / 30% = 30%。ユーザーの指示、2026-10: 弱っても全力のままだと強すぎた)。
+      // 全体呪文は対象外
+      const hpK = spell ? 1 : breathHpK(actor);
       // 大結界: 自動で隊全体の被ダメージを半減する (Lv1=1戦闘1回 / Lv2=2回)
       let bigB = false;
       const bigBMax = Math.max(0, ...this.party.filter((p) => p.alive).map((p) => pv(p, "bigBarrier")));
@@ -1807,7 +1815,7 @@ export class Battle {
         }
         const em = elemDmgMult(actor.element || "none", 1, t.element || "none", edefOf(t));
         const guard = spell ? ((t.int || 0) + (t.pie || 0)) * 0.12 : this._evit(t) * 0.25;
-        let dmg = Math.max(1, Math.round(variance(this._eatk(actor) * (spell ? 0.75 : 0.85) * (cmd.mul || 1)) - guard));
+        let dmg = Math.max(1, Math.round((variance(this._eatk(actor) * (spell ? 0.75 : 0.85) * (cmd.mul || 1)) - guard) * hpK));
         if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
         if (t._defending) dmg = Math.ceil(dmg * 0.5);
         { const pt = this._perkSum(t, "take", { tgt: actor, el: actor.element || "none", on: [spell ? "spell" : "breath"] }); if (pt) dmg = Math.max(1, Math.floor(dmg * Math.max(0.2, 1 - pt))); } // 固有パッシブ (take)
