@@ -31,7 +31,7 @@ export default {
     DRAGONKNIGHT_TATSUMAKI: { name: "竜巻き上げ", mp: 18, kind: "phys", power: 1.7, agiScale: 0.3, element: "wind", acc: 0.6, debuff: { agi: 0.85 }, target: "all-enemy", desc: "竜巻で敵陣を巻き上げ、足を奪う" },
     DRAGONKNIGHT_ARASHIRYUU: { name: "嵐竜の咆哮", mp: 27, kind: "phys", power: 2.0, element: "wind", acc: 0.6, flinchChance: 0.3, debuff: { atk: 0.9 }, target: "all-enemy", desc: "嵐を呼ぶ咆哮が敵陣を刻み、竦ませる" },
     DRAGONKNIGHT_RYUUOUDAN: { name: "竜王断", mp: 32, kind: "phys", power: 8.0, acc: 1, execute: 1.6, prey: { races: DRAGONS, mul: 1.3 }, target: "enemy", desc: "必中の大斬撃。弱った敵と竜に重い" },
-    DRAGONKNIGHT_RYUUSEIRAKU: { name: "竜星落とし", mp: 30, kind: "phys", power: 1.8, scatter: 5, acc: 0.8, critBonus: 0.1, target: "all-enemy", desc: "跳躍から敵陣へ5度降り注ぐ" },
+    DRAGONKNIGHT_RYUUSEIRAKU: { name: "竜星落とし", mp: 63, kind: "phys", power: 1.8, scatter: 5, acc: 0.8, critBonus: 0.1, target: "all-enemy", desc: "跳躍から敵陣へ5度降り注ぐ" },
     DRAGONKNIGHT_GOUKA: { name: "劫火の竜息", mp: 28, kind: "phys", power: 2.4, element: "fire", acc: 0.7, vuln: { fire: 0.85 }, target: "all-enemy", desc: "劫火の息で敵陣を焼き、炎への守りを崩す" },
     DRAGONKNIGHT_RYUURINJIN: { name: "竜鱗の陣", mp: 20, kind: "buff", buff: { vit: 1.4 }, grantBarrier: 1, tech: true, target: "all-ally", desc: "竜鱗の加護を味方全体に分け与える" },
   },
