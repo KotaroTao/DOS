@@ -153,6 +153,13 @@ export const JOB_PHOTOS = {
     4: { src: "art/jobs/priest_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.851] },
     5: { src: "art/jobs/priest_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.738] },
   },
+  asura: {
+    1: { src: "art/jobs/asura_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.864] },
+    2: { src: "art/jobs/asura_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.886] },
+    3: { src: "art/jobs/asura_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.958] },
+    4: { src: "art/jobs/asura_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.957] },
+    5: { src: "art/jobs/asura_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.884] },
+  },
   darkknight: {
     1: { src: "art/jobs/darkknight_1.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 28.816] },
     2: { src: "art/jobs/darkknight_2.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 28.707] },
