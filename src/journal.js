@@ -51,6 +51,13 @@ export const DUNGEON_LORE = {
   w21:{art:"cauldron",lines:["大釜は、火の洞のいちばん底に据えられていた。樹液はここで最後に煮詰められ、王の霊薬になる。", "釜の下には、底の見えない穴がある。魂の流れはその奥から湧き、またその奥へ落ちていく。", "火の洞の者たちは、その穴を奈落と呼んだ。大釜は、奈落の口に蓋をするように置かれていた。"]},
 };
 
+const DUNGEON_LORE_IMAGES = Object.fromEntries(
+  Array.from({ length: 13 }, (_, i) => {
+    const id = `w${String(i + 1).padStart(2, "0")}`;
+    return [id, `art/story/dungeons/lore_${id}.png`];
+  })
+);
+
 export function helpEntries(g, featureUnlocked = () => false) {
   return HELP_TOPICS.filter(t=>t.feature ? featureUnlocked(t.feature) : t.available(g));
 }
@@ -58,8 +65,10 @@ export function storyEntries(g) {
   const w = g.world || {};
   const lore = WORLD.filter(d => w.cleared?.[d.id]).map(d => {
     const chapter = CHAPTERS.find(ch => ch.dungeons.includes(d.id));
+    const image = DUNGEON_LORE_IMAGES[d.id];
     return { id:`lore_${d.id}`, group:chapter ? `第${chapter.no}章「${chapter.title}」` : "寄り道の物語",
-      title:d.name, subtitle:"迷宮の由来と秘密", ...DUNGEON_LORE[d.id] };
+      title:d.name, subtitle:"迷宮の由来と秘密", ...DUNGEON_LORE[d.id],
+      ...(image ? { image, imageWidth:1536, imageHeight:1024, imageAlt:`${d.name}の情景` } : {}) };
   });
   return [...archiveStories(g), ...lore];
 }
