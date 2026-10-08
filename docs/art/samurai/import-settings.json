@@ -1,0 +1,101 @@
+{
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "approvedR1": "docs/art/samurai/samurai-r1-katana-upturn-revision.png",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "bodyHeightDots": 82.6,
+  "sources": [
+    {
+      "source": "docs/art/samurai/samurai-r1-final.png",
+      "head": [
+        482,
+        612,
+        142,
+        450,
+        1344
+      ],
+      "perDot": 14.552058111380147,
+      "alphaBBox": [
+        29,
+        98,
+        953,
+        1344
+      ]
+    },
+    {
+      "source": "docs/art/samurai/samurai-r2-final.png",
+      "head": [
+        482,
+        612,
+        141,
+        450,
+        1343
+      ],
+      "perDot": 14.552058111380147,
+      "alphaBBox": [
+        30,
+        97,
+        954,
+        1343
+      ]
+    },
+    {
+      "source": "docs/art/samurai/samurai-r3-final.png",
+      "head": [
+        482,
+        612,
+        140,
+        451,
+        1345
+      ],
+      "perDot": 14.588377723970945,
+      "alphaBBox": [
+        28,
+        94,
+        953,
+        1345
+      ]
+    },
+    {
+      "source": "docs/art/samurai/samurai-r4-final.png",
+      "head": [
+        482,
+        612,
+        140,
+        449,
+        1344
+      ],
+      "perDot": 14.576271186440678,
+      "alphaBBox": [
+        28,
+        86,
+        963,
+        1344
+      ]
+    },
+    {
+      "source": "docs/art/samurai/samurai-r5-final.png",
+      "head": [
+        482,
+        612,
+        140,
+        448,
+        1344
+      ],
+      "perDot": 14.576271186440678,
+      "alphaBBox": [
+        29,
+        96,
+        1089,
+        1344
+      ]
+    }
+  ],
+  "measurementNotes": [
+    "頭頂は主な髪の塊の上端。跳ね毛・ポニーテール・飾りは除外。R4は確定R1の人体頭頂を推定して使用。",
+    "perDotは各原画の頭頂から薄い輪郭を含む足裏までを82.6ドットに揃えて計算する。基準82.9から0.3ドットの縮小時の輪郭余白を確保。承認済みR1の輪郭を変更せず、測定値を使用する。"
+  ]
+}
