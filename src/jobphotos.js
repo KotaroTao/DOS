@@ -56,11 +56,11 @@ export const JOB_PHOTOS = {
   },
   // 呪術師の胸像は、頭巾の先・角を除いた頭の範囲で他職と大きさを揃える。
   hexer: {
-    1: { src: "art/jobs/hexer_1.webp", w: 47, h: 72, face: [23, 12], head: [22.86, 5.5, 24.98] },
-    2: { src: "art/jobs/hexer_2.webp", w: 50, h: 72, face: [26, 12], head: [26.3, 5.5, 24.9] },
-    3: { src: "art/jobs/hexer_3.webp", w: 58, h: 72, face: [28, 12], head: [28.05, 5.5, 24.9] },
-    4: { src: "art/jobs/hexer_4.webp", w: 61, h: 78, face: [29, 21], head: [29.47, 12.5, 33.48] },
-    5: { src: "art/jobs/hexer_5.webp", w: 64, h: 80, face: [35, 24], head: [35.11, 12.5, 34.27] },
+    1: { src: "art/jobs/hexer_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.885] },
+    2: { src: "art/jobs/hexer_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.903] },
+    3: { src: "art/jobs/hexer_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.921] },
+    4: { src: "art/jobs/hexer_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.663] },
+    5: { src: "art/jobs/hexer_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.681] },
   },
   ascetic: {
     1: { src: "art/jobs/ascetic_1.webp", w: 40, h: 73, face: [24, 12], head: [24.15, 1.87, 22.27] },
