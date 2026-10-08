@@ -41,6 +41,13 @@ export const DUNGEON_LORE = {
   ws4:{art:"sigil",lines:["霧の奥の里には、人業の器になれなかった魂が流れ着く。銀の小人たちは、街に住む場所を持たない。", "空の鎧と石の人形は、彼らを狩る者ではなく守る者だった。器を得られなかった魂どうしが、小さな暮らしを支えていた。", "銀の里は宝の山である前に、帰る場所のない魂の隠れ家だった。金属の輝きの奥に、もう一つの生き方が残っている。"]},
 };
 
+const DUNGEON_LORE_IMAGES = Object.fromEntries(
+  Array.from({ length: 13 }, (_, i) => {
+    const id = `w${String(i + 1).padStart(2, "0")}`;
+    return [id, `art/story/dungeons/lore_${id}.png`];
+  })
+);
+
 export function helpEntries(g, featureUnlocked = () => false) {
   return HELP_TOPICS.filter(t=>t.feature ? featureUnlocked(t.feature) : t.available(g));
 }
@@ -48,8 +55,10 @@ export function storyEntries(g) {
   const w = g.world || {};
   const lore = WORLD.filter(d => w.cleared?.[d.id]).map(d => {
     const chapter = CHAPTERS.find(ch => ch.dungeons.includes(d.id));
+    const image = DUNGEON_LORE_IMAGES[d.id];
     return { id:`lore_${d.id}`, group:chapter ? `第${chapter.no}章「${chapter.title}」` : "寄り道の物語",
-      title:d.name, subtitle:"迷宮の由来と秘密", ...DUNGEON_LORE[d.id] };
+      title:d.name, subtitle:"迷宮の由来と秘密", ...DUNGEON_LORE[d.id],
+      ...(image ? { image, imageWidth:1536, imageHeight:1024, imageAlt:`${d.name}の情景` } : {}) };
   });
   return [...archiveStories(g), ...lore];
 }
