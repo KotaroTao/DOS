@@ -14,6 +14,7 @@ import { SFX } from "./audio.js";
 import { pickRes } from "./pxpaint.js";
 import { TitleScene } from "./titleart.js";
 import { glyphText } from "./ui/kit.js";
+import { showJobGallery } from "./ui/jobgallery.js";
 
 const REDUCED = (() => {
   try { return matchMedia("(prefers-reduced-motion: reduce)").matches; } catch { return false; }
@@ -107,7 +108,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   }
   let testBtn = null;
   if (typeof onTestPlay === "function") {
-    testBtn = mkBtn("テストプレイ", "迷宮・手ほどき・物語を選ぶ", "");
+    testBtn = mkBtn("テストプレイ", "迷宮・手ほどき・物語・キャラ画像を選ぶ", "");
     btns.appendChild(testBtn);
   }
   menu.appendChild(btns);
@@ -139,7 +140,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
     return row;
   };
   const mode = document.createElement("select");
-  for (const [value, label] of [["dungeon", "迷宮・街"], ["tutorial", "チュートリアル"], ["story", "ストーリー"]]) {
+  for (const [value, label] of [["dungeon", "迷宮・街"], ["tutorial", "チュートリアル"], ["story", "ストーリー"], ["art", "キャラ画像（全職業・全ランク）"]]) {
     const o = document.createElement("option"); o.value = value; o.textContent = label; mode.appendChild(o);
   }
   field("テストする内容", mode);
@@ -167,15 +168,20 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   }
   const dungeonRows = [field("進行度（迷宮）", dungeon), field("開始する階", floor), field("開始場所", place)];
   const updateMode = () => {
-    const isDungeon = mode.value === "dungeon";
+    const isDungeon = mode.value === "dungeon", isArt = mode.value === "art";
     for (const row of dungeonRows) row.hidden = !isDungeon;
-    sceneSelectRow.hidden = isDungeon;
+    sceneSelectRow.hidden = isDungeon || isArt;
+    artNote.hidden = !isArt;
+    testStart.querySelector(".ttl-btn-t").textContent = isArt ? "一覧を開く" : "テスト開始";
     sceneSelect.replaceChildren();
     for (const d of testScenes.filter((d) => d.kind === mode.value)) {
       const o = document.createElement("option"); o.value = d.id; o.textContent = d.name; sceneSelect.appendChild(o);
     }
-    testStart.disabled = !isDungeon && !sceneSelect.options.length;
+    testStart.disabled = !isDungeon && !isArt && !sceneSelect.options.length;
   };
+  // キャラ画像はゲームを始めずに、タイトルの上へ一覧を重ねる
+  const artNote = div("ttl-note ttl-test-art", "全職業のキャラの絵 (R1〜R5) と顔アイコンを並べて表示します。");
+  testBox.appendChild(artNote);
   mode.addEventListener("change", updateMode);
   const testRow = div("ttl-confirm-row");
   const testCancel = mkBtn("戻る", null, "");
@@ -187,8 +193,15 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   });
   const hideTest = () => { testBox.classList.add("hidden"); wrap.classList.remove("ttl-confirming"); testBtn?.focus(); };
   testCancel.addEventListener("click", (e) => { e.stopPropagation(); hideTest(); });
+  let gallery = null;
   testStart.addEventListener("click", (e) => {
-    e.stopPropagation(); clampFloor();
+    e.stopPropagation();
+    if (mode.value === "art") {
+      sfx("select");
+      gallery = showJobGallery({ onClose: () => { gallery = null; try { testStart.focus({ preventScroll: true }); } catch {} } });
+      return;
+    }
+    clampFloor();
     close(() => onTestPlay({ id: dungeon.value, floor: Number(floor.value), place: place.value, scene: mode.value === "dungeon" ? "" : sceneSelect.value }));
   });
   testBox.addEventListener("click", (e) => e.stopPropagation());
@@ -275,6 +288,11 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   wrap.addEventListener("click", () => { if (!awake) wake(); });
   const onKey = (e) => {
     if (closed) return;
+    if (gallery) {
+      e.stopPropagation();
+      if (e.key === "Escape") { e.preventDefault(); gallery.close(); }
+      return;
+    }
     if (!testBox.classList.contains("hidden")) {
       e.stopPropagation();
       if (e.key === "Escape") { e.preventDefault(); hideTest(); }
