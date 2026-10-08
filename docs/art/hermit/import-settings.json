@@ -1,0 +1,102 @@
+{
+  "job": "hermit",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "approvedR1": "docs/art/hermit/hermit-r1-grain-review.png",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "notes": [
+    "頭頂はフード内の人体位置の推定。前髪の見えている上端・フード先端・後光の頂点は頭頂に含めない。",
+    "各原画を目視比較し、顔・顎・足裏と描画の粒度を確認。人体の頭頂から足元を82.5ドットとし、縮小時の輪郭のにじみも共通枠に収める。",
+    "透明原画のalpha>1の境界を使用し、機械的なドット化・減色はしない。"
+  ],
+  "sources": [
+    {
+      "source": "docs/art/hermit/hermit-r1-final.png",
+      "perDot": 15.454545454545455,
+      "head": [
+        465,
+        593,
+        84,
+        420,
+        1359
+      ],
+      "alphaBBox": [
+        139,
+        57,
+        1016,
+        1359
+      ]
+    },
+    {
+      "source": "docs/art/hermit/hermit-r2-final.png",
+      "perDot": 15.478787878787879,
+      "head": [
+        465,
+        593,
+        84,
+        420,
+        1361
+      ],
+      "alphaBBox": [
+        138,
+        61,
+        1020,
+        1361
+      ]
+    },
+    {
+      "source": "docs/art/hermit/hermit-r3-final.png",
+      "perDot": 15.406060606060606,
+      "head": [
+        465,
+        593,
+        84,
+        420,
+        1355
+      ],
+      "alphaBBox": [
+        139,
+        58,
+        1044,
+        1355
+      ]
+    },
+    {
+      "source": "docs/art/hermit/hermit-r4-final.png",
+      "perDot": 15.393939393939394,
+      "head": [
+        465,
+        593,
+        84,
+        420,
+        1354
+      ],
+      "alphaBBox": [
+        145,
+        56,
+        1010,
+        1354
+      ]
+    },
+    {
+      "source": "docs/art/hermit/hermit-r5-final.png",
+      "perDot": 15.515151515151516,
+      "head": [
+        474,
+        602,
+        84,
+        421,
+        1364
+      ],
+      "alphaBBox": [
+        105,
+        1,
+        1037,
+        1364
+      ]
+    }
+  ]
+}

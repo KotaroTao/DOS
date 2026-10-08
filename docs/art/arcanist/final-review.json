@@ -1,0 +1,102 @@
+{
+  "sprites": [
+    {
+      "key": "crusader",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.93
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/crusader_1.webp"
+    },
+    {
+      "key": "arcanist",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.335
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/arcanist_1.webp"
+    },
+    {
+      "key": "arcanist",
+      "rank": 2,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.315
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/arcanist_2.webp"
+    },
+    {
+      "key": "arcanist",
+      "rank": 3,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.384
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/arcanist_3.webp"
+    },
+    {
+      "key": "arcanist",
+      "rank": 4,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.335
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/arcanist_4.webp"
+    },
+    {
+      "key": "arcanist",
+      "rank": 5,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.317
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8001/art/jobs/arcanist_5.webp"
+    }
+  ],
+  "canvasCount": 30,
+  "browserErrors": []
+}

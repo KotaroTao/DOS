@@ -1,0 +1,170 @@
+{
+  "images": [
+    {
+      "rank": 1,
+      "path": "art/jobs/hexer_1.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "alphaBBox": [
+        52,
+        18,
+        314,
+        367
+      ],
+      "edgeAlphaMax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "sourceAlphaBBox": [
+        99,
+        64,
+        1055,
+        1343
+      ],
+      "serviceWorkerListed": true
+    },
+    {
+      "rank": 2,
+      "path": "art/jobs/hexer_2.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "alphaBBox": [
+        52,
+        18,
+        313,
+        368
+      ],
+      "edgeAlphaMax": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "sourceAlphaBBox": [
+        97,
+        63,
+        1054,
+        1342
+      ],
+      "serviceWorkerListed": true
+    },
+    {
+      "rank": 3,
+      "path": "art/jobs/hexer_3.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "alphaBBox": [
+        50,
+        18,
+        315,
+        367
+      ],
+      "edgeAlphaMax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "sourceAlphaBBox": [
+        90,
+        64,
+        1060,
+        1341
+      ],
+      "serviceWorkerListed": true
+    },
+    {
+      "rank": 4,
+      "path": "art/jobs/hexer_4.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "alphaBBox": [
+        46,
+        10,
+        314,
+        367
+      ],
+      "edgeAlphaMax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "sourceAlphaBBox": [
+        75,
+        36,
+        1058,
+        1344
+      ],
+      "serviceWorkerListed": true
+    },
+    {
+      "rank": 5,
+      "path": "art/jobs/hexer_5.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "alphaBBox": [
+        44,
+        10,
+        315,
+        367
+      ],
+      "edgeAlphaMax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "sourceAlphaBBox": [
+        69,
+        34,
+        1061,
+        1343
+      ],
+      "serviceWorkerListed": true
+    }
+  ],
+  "checks": {
+    "sameFrame": true,
+    "transparentBackground": true,
+    "noVisibleEdgeClipping": true,
+    "serviceWorkerAssets": true,
+    "cache": "dos-dev"
+  },
+  "notes": [
+    "R2下端のalpha=1は縮小補間の不可視画素。",
+    "武器・衣装・角・顔の輪郭と成長差はgame-display-review.pngで目視確認。"
+  ]
+}

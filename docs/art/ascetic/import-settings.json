@@ -1,0 +1,103 @@
+{
+  "job": "ascetic",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "anatomySource": "docs/art/ascetic/ascetic-r1-review-v2.png",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "crownNote": "主な髪の塊の上端を測定。六角帽と跳ね毛の先端は含めない。",
+  "sources": [
+    {
+      "source": "docs/art/ascetic/ascetic-r1-final.png",
+      "perDot": 14.836363636363636,
+      "head": [
+        500,
+        620,
+        166,
+        420
+      ],
+      "alphaBBox": [
+        191,
+        56,
+        924,
+        1390
+      ],
+      "crownToSoleApprox": 82.5,
+      "headHeight": 17.120098039215687
+    },
+    {
+      "source": "docs/art/ascetic/ascetic-r2-final.png",
+      "perDot": 14.872727272727273,
+      "head": [
+        500,
+        618,
+        164,
+        419
+      ],
+      "alphaBBox": [
+        186,
+        53,
+        941,
+        1391
+      ],
+      "crownToSoleApprox": 82.5,
+      "headHeight": 17.145476772616135
+    },
+    {
+      "source": "docs/art/ascetic/ascetic-r3-final.png",
+      "perDot": 14.812121212121212,
+      "head": [
+        500,
+        620,
+        164,
+        419
+      ],
+      "alphaBBox": [
+        187,
+        52,
+        1000,
+        1386
+      ],
+      "crownToSoleApprox": 82.5,
+      "headHeight": 17.215630114566284
+    },
+    {
+      "source": "docs/art/ascetic/ascetic-r4-final.png",
+      "perDot": 14.848484848484848,
+      "head": [
+        496,
+        616,
+        164,
+        419
+      ],
+      "alphaBBox": [
+        162,
+        55,
+        1002,
+        1389
+      ],
+      "crownToSoleApprox": 82.5,
+      "headHeight": 17.1734693877551
+    },
+    {
+      "source": "docs/art/ascetic/ascetic-r5-final.png",
+      "perDot": 14.860606060606061,
+      "head": [
+        500,
+        620,
+        166,
+        420
+      ],
+      "alphaBBox": [
+        172,
+        54,
+        1032,
+        1392
+      ],
+      "crownToSoleApprox": 82.5,
+      "headHeight": 17.092169657422513
+    }
+  ]
+}
