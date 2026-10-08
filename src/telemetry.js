@@ -9,7 +9,7 @@
 //   魂       … 手に入れた職業の魂のレア度別の数 (迷宮の中 / その迷宮へ入る前の町 = 依頼・宝物庫の褒賞など) と、着いた階の数
 //   時間     … 迷宮の中にいた実プレイ時間と、その迷宮へ入る前に町で過ごした実プレイ時間
 //              (画面が見え、直近2分以内に操作があるか、自動探索・自動戦闘が進行している時間。5秒ごとの時計から)
-// 「記録を書き出す」でテキストにして、そのまま貼り付けて送れる。保存先は端末内 (localStorage) のみで、外へは送らない。
+// 「記録を書き出す」で調整に使う要点だけをテキストにして、そのまま貼り付けて送れる (生データは出さない)。保存先は端末内 (localStorage) のみで、外へは送らない。
 // セーブとは別の鍵 (dos-testlog)。「はじめから」でも消えない (消すのは「記録を消す」)。
 // game.js は import しない (game.js から呼ばれる側)。戦闘の挙動には一切影響しない。
 
@@ -155,7 +155,7 @@ export function tlStabilitySummary(a = S.stability) {
     `自然回復 ${a.natural} (控え・オフラインを含む) / 赤い魂で回復 ${a.red} = 実際の支出 🔴${a.red}`,
     `初期${STABILITY_MAX}を使い切った後、控えを回さず休まず続ける推計: 🔴${hours > 0 ? (redNeeded/hours).toFixed(1) : "―"}/実プレイ1時間 (各人業の編成中の消費から3分に1の自然回復を差し引く)`,
     `記録中の赤い魂の獲得 ${a.redEarned} / 安定度回復分を引いた残り ${a.redEarned-a.red} (他用途の支出は含まない)`,
-    ...Object.values(a.dolls).map(d=>`${d.name} [uid:${d.uid}] 編成中 ${(d.activeMs/60000).toFixed(1)}分 / 入場${d.entries}回・消費${d.spent} / 自然回復${d.natural} / 赤い魂回復${d.red} / 最終安定度${d.value}`),
+    ...(Object.keys(a.dolls).length ? ["人業別 (編成中の分/消費/自然回復/赤い魂回復/残り) " + Object.values(a.dolls).map(d=>`${d.name} ${Math.round(d.activeMs/60000)}/${d.spent}/${d.natural}/${d.red}/${d.value}`).join(" ")] : []),
     "推計は短い測定ほど誤差が大きい。初期残量・休止中の回復・控えのローテーションは推計に含めない。",
   ];
 }
@@ -385,19 +385,6 @@ function fleeExpect(a) {
 }
 const KIND_LABEL = { n: "通常", e: "精鋭等", b: "主" };
 const mins = (ms) => `${Math.round((ms || 0) / 60000)}分`;
-// 戦利品と時間の1行 (記録し始める前の器には無いので、何も無ければ出さない)
-function lootLine(d) {
-  const L = d.loot || {};
-  const bits = [];
-  if (d.ms || d.tms) bits.push(`時間 迷宮${mins(d.ms)}/町${mins(d.tms)}${d.fl ? ` (${d.fl}階)` : ""}`);
-  const sl = soulText(d.sl), tsl = soulText(d.tsl);
-  if (sl || tsl) bits.push(`魂 ${sl || "0"}${tsl ? ` (町 ${tsl})` : ""}`);
-  const lab = [["c", "C"], ["uc", "UC"], ["r", "R"], ["sr", "SR"], ["lr", "LR"], ["misc", "収集"], ["use", "道具"]];
-  const got = lab.filter(([k]) => L[k]).map(([k, n]) => `${n}${L[k]}`);
-  if (got.length || L.nw || L.lost) bits.push(`品 ${got.join(" ") || "0"}${L.nw ? ` 新種${L.nw}` : ""}${L.lost ? ` 置き去り${L.lost}` : ""}`);
-  if (d.gold || d.soul) bits.push(`✦${d.soul || 0} ${d.gold || 0}G`);
-  return bits.join(" / ");
-}
 // 出どころの略称 (迷宮の中 / 町 / 上乗せ)
 const SRC_LABEL = {
   bn: "通常戦", be: "精鋭等", bb: "主", mt: "金属", ev: "出来事", cp: "死体", ch: "宝箱", hd: "殲滅", x: "他",
@@ -430,65 +417,114 @@ function sortedKeys(data = S.d) {
   return Object.keys(data).sort((a, b) => (a[0] === b[0] ? parseInt(a.slice(1), 10) - parseInt(b.slice(1), 10) : a < b ? -1 : 1));
 }
 
-// 画面に出す要約 (迷宮ごとに1〜2行)
+// 画面に出す要約・書き出しの本文 (迷宮ごとに数行。調整に使う数字だけ)
+const r1 = (v) => Math.round(v * 10) / 10;
+const RES_LABEL = { battle:"戦闘", enemy:"敵行動", action:"行動", skill:"技・呪文", physical:"物理・吸収", round:"ターン", passive:"戦闘パッシブ", victory:"勝利後", floor:"階移動", explore:"探索パッシブ", fountain:"泉", darkFountain:"黒い泉", victoryTerrain:"掟・特別階の勝利後", item:"道具", camp:"探索中の術", event:"出来事", trap:"罠", terrain:"床・盤面", poison:"毒", growth:"Lv上昇", revive:"蘇生" };
+// 隊の様子 → 「Lv12-15 HP320 MP80 STR40 VIT35 AGI30 INT20 PIE22 LUK15 (6人)」(生きている者の平均)
+function partyText(snap) {
+  if (!snap || !snap.p) return "";
+  const rows = snap.p.filter((r) => r[13]);
+  if (!rows.length) return "全員倒れている";
+  const lv = rows.map((r) => r[3]);
+  const mean = (i) => Math.round(rows.reduce((s, r) => s + (r[i] || 0), 0) / rows.length);
+  const names = ["HP", "MP", "STR", "VIT", "AGI", "INT", "PIE", "LUK"];
+  return `Lv${Math.min(...lv)}-${Math.max(...lv)} ` + names.map((n, j) => `${n}${mean(5 + j)}`).join(" ") + ` (${rows.length}人)` +
+    (snap.base ? ` 基準AGI${snap.base}` : "");
+}
+// 戦闘の種類ごとの1行
+function battleLine(kind, a) {
+  const hit = (n, e, p) => pct(n - e - p, n);
+  const bits = [`${KIND_LABEL[kind]}${a.c}戦 勝${a.w || 0}/逃${a.fl || 0}/全滅${a.l || 0}`, `平均${avg(a.r, a.c)}R`,
+    `被ダメ/戦${avg(a.hp0 - a.hp1, a.c, 10)}% (HP${avg(a.hp0, a.c, 10)}→${avg(a.hp1, a.c, 10)}%)`];
+  if (a.resourceBattles) bits.push(`MP${avg(a.mp0, a.resourceBattles, 10)}→${avg(a.mp1, a.resourceBattles, 10)}%`);
+  bits.push(`与/被ダメ${avg(a.dd, a.c)}/${avg(a.dt, a.c)}`, `敵の命中${hit(a.ea, a.ee, a.ep)}`, `味方の命中${hit(a.pa, a.pe, a.pp)}`,
+    `味方先手${pct(a.of, a.op)}`);
+  const amb = ambushNote(a).trim();
+  if (amb) bits.push(amb);
+  if (a.pre) bits.push(`先制${a.pre}`);
+  if (a.ft) bits.push(`逃走${a.fo}/${a.ft}${fleeExpect(a)}`);
+  bits.push(`AGI 隊${avg(a.pAgi, a.c, 10)}/敵最大${avg(a.eAgi, a.c, 10)}`, `敵数${avg(a.en, a.c)}`);
+  return bits.join(" ");
+}
+// 進み方 (levelcurve の BATTLES_PER_HOUR / EXTRA / MIN_PER_FLOOR を合わせる材料)
+function paceLine(d) {
+  const bits = [];
+  const battles = ["n", "e", "b"].reduce((s, k) => s + ((d.b && d.b[k] && d.b[k].c) || 0), 0);
+  if (d.ms || d.tms) bits.push(`時間 迷宮${mins(d.ms)}/町${mins(d.tms)}`);
+  if (d.fl) bits.push(`着いた階${d.fl}${d.ms ? ` (${r1(d.ms / 60000 / d.fl)}分/階)` : ""}`);
+  if (d.ms && battles) bits.push(`${Math.round(battles / (d.ms / 3600000))}戦/時`);
+  if (d.soul || d.gold) {
+    const bs = d.ss ? (d.ss.bn || 0) + (d.ss.be || 0) + (d.ss.bb || 0) : 0;
+    bits.push(`✦${d.soul || 0}${bs ? ` (戦闘の${r1((d.soul || 0) / bs)}倍)` : ""} ${d.gold || 0}G`);
+  }
+  return bits.join(" / ");
+}
+function lootLine(d) {
+  const L = d.loot || {}, bits = [];
+  const sl = soulText(d.sl), tsl = soulText(d.tsl);
+  if (sl || tsl) bits.push(`魂 ${sl || "0"}${tsl ? ` (町 ${tsl})` : ""}`);
+  const lab = [["c", "C"], ["uc", "UC"], ["r", "R"], ["sr", "SR"], ["lr", "LR"], ["misc", "収集"], ["use", "道具"]];
+  const got = lab.filter(([k]) => L[k]).map(([k, n]) => `${n}${L[k]}`);
+  if (got.length || L.nw || L.lost) bits.push(`品 ${got.join(" ") || "0"}${L.nw ? ` 新種${L.nw}` : ""}${L.lost ? ` 置き去り${L.lost}` : ""}`);
+  return bits.join(" / ");
+}
+// 多い順に上位 n 件 → 「名前数 名前数」
+function topText(b, n, label = (k) => k) {
+  return Object.keys(b).sort((x, y) => b[y] - b[x]).slice(0, n).map((k) => `${label(k)}${b[k]}`).join(" ");
+}
+// HP/MP の収支 (出どころの多い順に上位3件ずつ)
+function resourceLine(res) {
+  if (!res) return "";
+  const box = { "hp-": {}, "hp+": {}, "mp-": {}, "mp+": {} };
+  for (const k in res) { const [src, kind] = k.split(":"); if (box[kind]) box[kind][src] = res[k]; }
+  const one = (k) => topText(box[k], 3, (s) => RES_LABEL[s] || s) || "0";
+  return `HP 消耗 ${one("hp-")} | 回復 ${one("hp+")} / MP 消耗 ${one("mp-")} | 回復 ${one("mp+")}`;
+}
+// 直近の出撃の作戦と魂
+function runLine(d) {
+  const run = d.runs && d.runs[d.runs.length - 1];
+  const bits = [`出撃${d.entries || (d.runs ? d.runs.length : 0)}回`];
+  if (d.outcomes) bits.push(`結果 ${topText(d.outcomes, 6)}`);
+  const lo = run && run.entry && run.entry.loadout;
+  if (lo && lo.length) {
+    const tac = {};
+    for (const m of lo) tac[m.tactic || "bal"] = (tac[m.tactic || "bal"] || 0) + 1;
+    bits.push(`直近の作戦 ${topText(tac, 5)}`);
+    const souls = lo.map((m) => (m.souls || []).filter((x) => x.clsKey).map((x) => `${x.clsKey}${x.level}+${(x.count || 1) - 1}`).join("・")).filter(Boolean);
+    if (souls.length) bits.push(`魂 ${souls.join(" ")}`);
+  }
+  return bits.join(" / ");
+}
 export function tlSummary(data = S.d) {
   const out = [];
   for (const k of sortedKeys(data)) {
     const d = data[k];
-    const snap = d.s.clear || d.s.last || d.s.f1;
-    const lv = snap ? snap.p.filter((r) => r[13]).map((r) => r[3]) : [];
-    const head = `${k} ${d.name}` + (lv.length ? `  Lv${Math.min(...lv)}-${Math.max(...lv)}` : "");
     const parts = [];
-    for (const kind of ["n", "e", "b"]) {
-      const a = d.b[kind];
-      if (!a || !a.c) continue;
-      parts.push(`${KIND_LABEL[kind]}${a.c}戦 勝${a.w || 0}/逃${a.fl || 0}/全滅${a.l || 0} ` +
-        `敵の命中${pct(a.ea - a.ee - a.ep, a.ea)} 味方の命中${pct(a.pa - a.pe - a.pp, a.pa)} ` +
-        `味方先手${pct(a.of, a.op)}${ambushNote(a)} 逃走${a.ft ? `${a.fo}/${a.ft}${fleeExpect(a)}` : "―"} ` +
-        `AGI 隊${avg(a.pAgi, a.c, 10)}/敵${avg(a.eAgi, a.c, 10)}`);
-      if (a.resourceBattles) parts.push(`  戦闘前後MP ${avg(a.mp0,a.resourceBattles,10)}%→${avg(a.mp1,a.resourceBattles,10)}% (記録${a.resourceBattles}戦)`);
-    }
-    const extra = lootLine(d);
-    if (extra) parts.push(extra);
-    parts.push(...gainLines(d));
-    if (d.firstEntry) {
-      const levels = d.firstEntry.p.map(p=>p[3]);
-      parts.push(`この版の初記録出撃 B${d.firstEntry.floor}F・Lv${Math.min(...levels)}〜${Math.max(...levels)} / 出撃${d.entries || 1}回 / 帰還 ${srcText(d.outcomes) || "なし"}`);
-    }
-    if (d.floors) parts.push("階到着時 " + Object.entries(d.floors).map(([f,a])=>`B${f}F HP${avg(a.hp,a.n,10)}% MP${avg(a.mp,a.n,10)}% (${a.n}回)`).join(" / "));
-    if (d.resources) {
-      const labels = { battle:"戦闘", enemy:"敵行動", action:"行動", skill:"技・呪文", physical:"物理・吸収", round:"ターン", passive:"戦闘パッシブ", victory:"勝利後", floor:"階移動", explore:"探索パッシブ", fountain:"泉", darkFountain:"黒い泉", victoryTerrain:"掟・特別階の勝利後", item:"道具", camp:"探索中の術", event:"出来事", trap:"罠", terrain:"床・盤面", poison:"毒", growth:"Lv上昇" };
-      const sources = [...new Set(Object.keys(d.resources).map(k=>k.split(":")[0]))];
-      for (const source of sources) parts.push(`収支 ${labels[source] || source}: HP 回復${d.resources[source+":hp+"] || 0}/消耗${d.resources[source+":hp-"] || 0} MP 回復${d.resources[source+":mp+"] || 0}/消耗${d.resources[source+":mp-"] || 0}`);
-    }
-    out.push({ head, lines: parts.length ? parts : ["戦闘の記録なし"] });
+    const f1 = partyText(d.s && d.s.f1), cl = partyText(d.s && d.s.clear), last = partyText(d.s && d.s.last);
+    if (f1) parts.push(`隊 1階 ${f1}`);
+    if (cl) parts.push(`隊 踏破 ${cl}`);
+    else if (last) parts.push(`隊 最後の階 ${last}`);
+    for (const kind of ["n", "e", "b"]) { const a = d.b && d.b[kind]; if (a && a.c) parts.push(battleLine(kind, a)); }
+    for (const line of [paceLine(d), lootLine(d), ...gainLines(d), resourceLine(d.resources)]) if (line) parts.push(line);
+    if (d.actions) parts.push(`技 ${topText(d.actions, 10)}`);
+    if (d.floors) parts.push("階到着 HP/MP% " + Object.entries(d.floors).map(([f, a]) => `B${f}:${avg(a.hp, a.n, 10)}/${avg(a.mp, a.n, 10)}`).join(" "));
+    if (d.runs || d.entries) parts.push(runLine(d));
+    out.push({ head: `${k} ${d.name}`, lines: parts.length ? parts : ["戦闘の記録なし"] });
   }
   return out;
 }
 
-// 書き出し用テキスト (要約 + 生データの JSON)
+// 書き出し用テキスト。貼り付けて読めるよう、調整に使う要点だけ (生データ・出撃ごとの装備・安定度の出来事の明細は出さない)
 export function tlExportText() {
   const lines = [`【DOS テスト記録 v${VERSION}】 版 ${TEST_BUILD} / 記録開始 ${S.since || "―"} / 書き出し ${stamp()}`];
   lines.push(...tlStabilitySummary());
   for (const s of tlSummary()) { lines.push(s.head); for (const l of s.lines) lines.push("  " + l); }
-  for (const history of S.history || []) {
-    lines.push(`\n【過去版 ${history.build}】 ${history.since || "―"} ～ ${history.until}`);
-    lines.push(...tlStabilitySummary(history.stability));
-    for (const s of tlSummary(history.d)) { lines.push(s.head); for (const l of s.lines) lines.push("  " + l); }
-  }
-  lines.push("");
-  lines.push("隊の列: 名前,職,ランク,Lv,列,最大HP,最大MP,STR,VIT,AGI,INT,PIE,LUK,生存 / base=基準AGI");
-  lines.push("戦闘の鍵: c戦闘 w勝 fl逃 l全滅 rラウンド pre先制 amb奇襲 ambR/ambX=奇襲のうち抽選/出来事・待ち伏せ ambP=抽選の奇襲率×1000の合計 pa/pe/pp=味方の物理 試行/回避された/見切られた " +
-    "ea/ee/ep=敵の物理 同 of/op=手番で味方が先だった組/総組 ft/fo/fs=逃走 試行/成功/封じ fp/fpn=逃走を試みた時の成功率×1000の合計/その試行数 dd/dt=与/被ダメ " +
-    "hp0/hp1=戦闘前後の隊HP割合×1000の合計 pAgi/eAgi/eAgiAvg=隊平均/敵最大/敵平均AGI×10の合計 en=敵数の合計");
-  lines.push("迷宮の鍵: ms/tms=迷宮の中/入る前の町の実プレイ時間(ミリ秒) fl=着いた階の数 gold/soul=迷宮で得たゴールド/✦Soul " +
-    "loot=手に入れた品 (c/uc/r/sr/lr=装備のレア度 misc=収集品 use=道具 nw=図鑑の新種 lost=持ちきれず置いてきた) " +
-    "sl/tsl=手に入れた職業の魂 迷宮の中/入る前の町 (c/r/e/l=コモン/レア/エピック/レジェンド) " +
-    "ss/gs=迷宮で得た✦/金貨の出どころ (bn/be/bb=通常/精鋭等/主の戦闘 mt=金属の魔物 ev=出来事 cp=死体 ch=宝箱 hd=殲滅 x=他) " +
-    "sx/gx=そのうち倍率で増えた分 (psv=パッシブ sf=特別な階 mut=異変 trait=迷宮の掟 oth=出来事の効果・奈落 eq=装備・恵み) " +
-    "tsoul/tgold=その迷宮へ入る前に町で得た✦/金貨 (qk/qs/qc/qf/qd=依頼 討伐/魂/宝箱/到達/納品 tip=心付け bond=なじみの贈り物 fq=依頼人の頼み r=王への報告 a=勲章 t=宝物庫 sell=売却)");
-  lines.push("追加の鍵: resources=出どころ:hp/mp:+回復/-消耗 (実増減・過剰回復を除く); actions=職:技/行動の使用回数; mp0/mp1=戦闘前後MP割合×1000; resourceBattles=MP記録済み戦闘数; floors=階到着時HP/MP割合×1000の合計と回数; firstEntry=この版で最初に記録した出撃 (初攻略とは限らない); runs=直近20出撃の入口と帰還時資源・結果; history=過去版の記録。未対応の回復経路は収支に含まれない。");
-  lines.push(`安定度の鍵: stability=全体と人業別の実プレイ時間・入場回数・消費・自然回復・赤い魂支出・獲得元。events=直近500件 (at=実時刻ミリ秒、activeMs=累積実プレイ時間、各人業のuid/増減量/処理後残量)。入場費${STABILITY_ENTRY_COST}・上限${STABILITY_MAX}・自然回復${STABILITY_RECOVERY_MS}msに1。runsのresourcesにも人業uidと安定度を記録。`);
-  lines.push(JSON.stringify({ v: S.v, build:S.build, since: S.since, townMs: S.townMs || 0, townSl: S.townSl || null, townG: S.townG || null, d: S.d, history:S.history || [], stability:S.stability || null }));
+  const past = (S.history || []).length;
+  if (past) lines.push(`(過去版の記録 ${past}件は混ぜないため書き出さない)`);
+  lines.push("注: 被ダメ/戦 = 戦闘前後の隊HP割合の差の平均。命中 = 物理の試行から回避・見切りを除いた割合。奇襲の予想 = 開幕の抽選の奇襲率の合計。✦の「戦闘の倍」= 迷宮で得た✦ ÷ 戦闘の✦。魂 = 職Lv+融合数。");
   return lines.join("\n");
+}
+// 記録そのもの (検証用。書き出しには出さない)
+export function tlRawData() {
+  return JSON.parse(JSON.stringify({ v: S.v, build:S.build, since: S.since, townMs: S.townMs || 0, townSl: S.townSl || null, townG: S.townG || null, d: S.d, history:S.history || [], stability:S.stability || null }));
 }
