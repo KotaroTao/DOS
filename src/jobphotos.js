@@ -6,11 +6,11 @@
 export const PHOTO_RES = 4; // 保存した画像の 1ドット (升目) あたりの px
 export const JOB_PHOTOS = {
   fighter: {
-    1: { src: "art/jobs/fighter_1.webp", w: 59, h: 84, face: [35, 12], head: [34.78, 1.91, 22.5] },
-    2: { src: "art/jobs/fighter_2.webp", w: 66, h: 84, face: [35, 12], head: [35.07, 1.91, 22.5] },
-    3: { src: "art/jobs/fighter_3.webp", w: 67, h: 84, face: [36, 12], head: [36.03, 1.91, 22.5] },
-    4: { src: "art/jobs/fighter_4.webp", w: 74, h: 84, face: [37, 12], head: [37.13, 1.91, 22.5] },
-    5: { src: "art/jobs/fighter_5.webp", w: 74, h: 84, face: [36, 12], head: [36.18, 1.91, 22.5] },
+    1: { src: "art/jobs/fighter_1.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.791] },
+    2: { src: "art/jobs/fighter_2.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.513] },
+    3: { src: "art/jobs/fighter_3.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.43] },
+    4: { src: "art/jobs/fighter_4.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.444] },
+    5: { src: "art/jobs/fighter_5.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.496] },
   },
   exorcist: {
     1: { src: "art/jobs/exorcist_1.webp", w: 55, h: 88, face: [29, 14], head: [28.93, 2.64, 24.79] },
