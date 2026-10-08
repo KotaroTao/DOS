@@ -103,6 +103,7 @@ function grantNewJobGift() {
   st.newJobGift = true;
   if (game.autosave) game.autosave(true);
 }
+const anyBroken = () => allDolls().some((d) => d.isDoll && !d.alive);
 let visitTimer = null;
 function atMansion() {
   const G = G_();
@@ -132,11 +133,17 @@ const TUTS = [
     open: () => !!tutState().repairPending,
     used: () => false,
     intro: () => [
-      ["……お帰りなさい。魂の灯が、途切れてしまったのですね。", "けれど、あの子たちとの別れを決めるには、まだ早いのです。"],
+      ...(anyBroken()
+        ? [["……お帰りなさい。魂の灯が、途切れてしまったのですね。", "けれど、あの子たちとの別れを決めるには、まだ早いのです。"]]
+        : [["……お帰りなさい。迷宮で、魂の灯が途切れかけたのですね。", "皆さまがこうして立っていてくださって、ほっとしました。次のために、お話ししておきます。"]]),
       ["器が砕けると、宿っていた魂も砕け、深い眠りに落ちます。", "街へ戻るだけでも、宿で休むだけでも、その灯は戻りません。"],
-      ["この館なら、わたしが砕けた魂をつなぎ直せます。", "その子を選び、『砕けた魂を修復』を押してください。金貨を頂きますが、魂も器も、力を取り戻して立ち上がります。"],
+      ["この館なら、わたしが砕けた魂をつなぎ直せます。", anyBroken()
+        ? "その子を選び、『砕けた魂を修復』を押してください。金貨を頂きますが、魂も器も、力を取り戻して立ち上がります。"
+        : "砕けた子がいたら、館でその子を選び、『砕けた魂を修復』を押してください。金貨を頂きますが、魂も器も、力を取り戻して立ち上がります。"],
       ["皆が倒れた時は、器が迷宮に残されます。ほかの冒険者が連れ帰るまで、お待ちください。", "深い階ほど時がかかります。赤い魂を捧げれば、連れ帰りを早められますが、修復は器が届いてからです。"],
-      ["金貨が足りなければ、今すぐ修復しなくても大丈夫です。", "あの子たちの名を、忘れずにいてください。もう一度呼びかける日まで、わたしがお預かりします。"],
+      anyBroken()
+        ? ["金貨が足りなければ、今すぐ修復しなくても大丈夫です。", "あの子たちの名を、忘れずにいてください。もう一度呼びかける日まで、わたしがお預かりします。"]
+        : ["金貨が足りなければ、すぐに修復しなくても大丈夫です。", "砕けた子は、もう一度呼びかける日まで、わたしがお預かりします。"],
     ],
     afterIntro() {
       const d = allDolls().find((d) => d.isDoll && !d.alive);
@@ -505,10 +512,12 @@ function afterReport() {
 }
 
 // 初めて砕けた人業を伴って帰還した時。帰還の報告より館の手ほどきを優先する。
+// 赤い魂で全員が生還した時・迷宮で蘇った時も、初めて砕けたなら説明する (st.repairFell ← game.js imprintFallen)。
 function afterReturn() {
   const st = tutState();
-  if (!st || st.done.repairSoul || !allDolls().some((d) => d.isDoll && !d.alive)) return false;
+  if (!st || st.done.repairSoul || !(anyBroken() || st.repairFell)) return false;
   st.repairPending = true;
+  delete st.repairFell;
   if (st.cur && st.cur !== "repairSoul") {
     st.repairResume = { cur: st.cur, step: st.step, ev: st.ev, base: st.base };
     st.cur = null; st.step = 0; st.ev = {}; st.base = {};

@@ -60,7 +60,12 @@ export const SOUL_CLASSES = {
   cardinal:    { label: "枢機卿",   rarity: "legend",  color: "#c04080", glow: "#f060a0", stat: { hp: 6.0, mp: 3.0, atk: 1.0, vit: 1.2, agi: 1.0, int: 1.5, pie: 3.5, luk: 1.0 } },
   archmage:    { label: "大魔導",   rarity: "legend",  color: "#6040e0", glow: "#9070ff", stat: { hp: 4.5, mp: 4.0, atk: 0.8, vit: 0.6, agi: 1.4, int: 4.0, pie: 0.8, luk: 1.0 } },
   chaplain:    { label: "護教官",   rarity: "legend",  color: "#d0c0f0", glow: "#f0e8ff", stat: { hp: 8.5, mp: 2.5, atk: 1.8, vit: 2.8, agi: 0.8, int: 0.8, pie: 2.0, luk: 0.8 } },
+  // ===== 固有 (人業セラだけの専用職。迷宮では拾えず、ほかの人業には宿せず、サブ魂にも貸さない) =====
+  // ランクは物語の節目で上がる (game.js seraRankTarget: count = ランク)。レア度 unique の数値は下の表
+  sera:        { label: "灯守",     rarity: "unique",  unique: true, color: "#6fb8c8", glow: "#bfeaf4", stat: { hp: 8.0, mp: 1.8, atk: 2.0, vit: 2.6, agi: 1.4, int: 0.6, pie: 1.8, luk: 1.2 } },
 };
+// 固有の職 (セラの灯守) か。魂の抽選・融合・サブ魂・結社・人業の仕立ての対象から外す
+export function isUniqueJob(clsKey) { return !!(SOUL_CLASSES[clsKey] && SOUL_CLASSES[clsKey].unique); }
 
 export const SOUL_KEYS = Object.keys(SOUL_CLASSES);
 
@@ -102,6 +107,7 @@ export const JOB_RANKS = {
   cardinal:    [{ name: "司祭" }, { name: "枢機卿" }, { name: "大枢機卿" }, { name: "教皇代理" }, { name: "教皇" }],
   archmage:    [{ name: "深淵の徒" }, { name: "大魔導" }, { name: "魔導皇" }, { name: "深淵公" }, { name: "深淵王" }],
   chaplain:    [{ name: "衛教兵" }, { name: "護教官" }, { name: "護教騎士" }, { name: "護教総監" }, { name: "教皇の盾" }],
+  sera:        [{ name: "灯の人業" }, { name: "灯守" }, { name: "灯の盾" }, { name: "守り灯" }, { name: "永灯の守り手" }],
 };
 
 // ===== 職業・ランクの基礎特性 =====
@@ -144,6 +150,7 @@ export const JOB_BASE_TRAITS = {
   cardinal: ["charm", "death"],
   archmage: ["magResist", "seal"],
   chaplain: ["physResist", "death"],
+  sera: ["physResist", "charm"],
 };
 export function jobBaseTraitsOf(clsKey, rank = 1) {
   const resists = zeroResists();
@@ -173,6 +180,7 @@ export const RARITY_LEVEL_CAPS = {
   rare:   [30, 50, 70, 90, 110],
   epic:   [50, 70, 90, 110, 130],
   legend: [70, 90, 110, 130, 150],
+  unique: [60, 80, 100, 120, 140], // 固有 (セラ): 第四章の半ばで目覚めるので、ランク1から隊に追いつける上限
 };
 // レア度とランクから魂レベル上限を引く (ランクは1〜5にクランプ)
 export function capForRarityRank(rarity, rank) {
@@ -190,9 +198,10 @@ export const RANKUP_NEED = {
   rare:   [5, 15, 25, 50],
   epic:   [2, 5, 10, 20],
   legend: [1, 2, 3, 5],
+  unique: [1, 1, 1, 1], // 固有 (セラ): 物語の節目ごとに1つ (count = ランク)
 };
 // 同じ魂1個ごとの全ステータス上昇 (基礎値に対する%)。1個目は基礎値そのもの
-export const SOUL_STAT_UP = { common: 0.01, rare: 0.04, epic: 0.10, legend: 1.00 };
+export const SOUL_STAT_UP = { common: 0.01, rare: 0.04, epic: 0.10, legend: 1.00, unique: 0.20 };
 
 // 累計しきい値: [rank1, rank2, …, rank5] に到達する累計所持数 (1個目で rank1)
 export function rankThresholds(rarity) {
@@ -223,7 +232,7 @@ export function nextRankThreshold(clsKey, count) {
 const SOUL_RANK_MUL = { 1: 1.0, 2: 1.3, 3: 1.9, 4: 3.0, 5: 5.0 };
 
 // レア度係数
-const RARITY_MUL = { common: 1.0, rare: 1.15, epic: 1.3, legend: 1.5 };
+const RARITY_MUL = { common: 1.0, rare: 1.15, epic: 1.3, legend: 1.5, unique: 1.8 };
 
 // 融合強化 (ランク5魂を2体融合するたびに加算): レア度ごとのLv100ステ比率
 export const FUSION_STAT_BONUS = { common: 0.02, rare: 0.05, epic: 0.10, legend: 0.20 };
@@ -474,6 +483,7 @@ export const JOB_AFFINITY = {
   archbishop: ["light", "water"], ascetic: ["earth", "fire"],
   hero: ["wind", "light"], asura: ["fire", "wind"], dragonknight: ["wind", "fire"], necromancer: ["dark"],
   sage: ["water", "wind"], cardinal: ["light"], archmage: ["dark", "earth"], chaplain: ["light", "water"],
+  sera: ["light", "water"],
 };
 export function jobSkillTable(jobKey) { return JOB_SKILLS[jobKey] || []; }
 
@@ -570,6 +580,7 @@ export const JOB_LORE = {
   cardinal:    { desc: "教団の頂から全ての命を見守る枢機卿の魂。その祈りは仲間全員に注がれる。", tips: "教皇の祈りで自分の戦闘後回復を全員に広げる。大聖祈祷で回復と浄化を同時に行う。" },
   archmage:    { desc: "深淵の知識に到達した大魔導の魂。その波動は破壊の理そのもの。", tips: "深淵の理で燃費と弱点看破を両立した呪文砲台。深淵の波動で単体を粉砕する。" },
   chaplain:    { desc: "教えを守るために武装した護教官の魂。法障壁が全ての攻撃を防ぐ。", tips: "聖盾でブレスや呪文まで肩代わりできる。法障壁でパーティ全体に魔障壁を配る究極の守護聖職者。" },
+  sera:        { desc: "師オルドが一度で仕上げた人業、セラの魂。師を庇って裂かれ、ばらばらになっても、胸の灯は消えなかった。", tips: "庇い立てと灯の加護で隊の傷を浅くする守り手。胸の魂火が戦いの初めに隊を障壁で包む。セラだけの職で、ランクは物語の節目で上がる。" },
 };
 
 // 職業×ランクの説明文・活用法を返す (ランク別が無ければ系列共通の JOB_LORE にフォールバック)
@@ -585,6 +596,7 @@ export function jobRankCondText(jobKey, rank) {
   const cls = SOUL_CLASSES[jobKey];
   if (!cls) return "";
   const t = rankThresholds(cls.rarity);
+  if (cls.unique) return rank <= 1 ? "人業セラが目を覚ます" : "物語の節目で、セラの魂が強まる";
   if (rank <= 1) return `${cls.label}の魂を1つ吸収する`;
   return `${cls.label}の魂を累計 ${t[rank - 1]}個 吸収する`;
 }
@@ -636,6 +648,7 @@ export const JOB_GEAR = {
   cardinal:    { weapons: ["st","mc"],                           armor: "cloth", shields: ["tome"] },
   archmage:    { weapons: ["st","dg"],                           armor: "cloth", shields: ["orb"] },
   chaplain:    { weapons: ["mc","ls","sp"],                      armor: "heavy", shields: ["kite","round","buckler","tome"] },
+  sera:        { weapons: ["ls","sp","mc"],                      armor: "heavy", shields: ["kite","round","buckler"] },
 };
 
 // 職業ギアマトリクスを items.js に注入 (循環 import 回避のため遅延バインディング)
@@ -695,12 +708,12 @@ export function jobRankName(jobKey, rank) {
 // (+4 と +2 を融合すると、魂数 5+3=8 → +7)
 export function soulLabel(s) {
   if (!s) return "";
-  const n = Math.max(0, (s.count || 1) - 1);
+  const n = isUniqueJob(s.clsKey) ? 0 : Math.max(0, (s.count || 1) - 1); // 固有 (灯守) は物語でランクが上がるだけで、魂を重ねない
   return `${soulSeriesName(s.clsKey)}の魂${n > 0 ? `+${n}` : ""}`;
 }
 // 次のランクまでの残り「（ランク2まであと4）」。最高ランクなら空
 export function soulRankLeft(s) {
-  if (!s) return "";
+  if (!s || isUniqueJob(s.clsKey)) return ""; // 固有 (灯守) のランクは物語で上がる
   const nx = nextRankThreshold(s.clsKey, s.count);
   return nx ? `（ランク${soulRankFromCount(s.clsKey, s.count) + 1}まであと${nx.next - s.count}）` : "";
 }
@@ -907,7 +920,7 @@ export function autoSkills(d) { return battleSkills(d).filter((k) => !isAutoOff(
 
 // 同じ職業の魂を吸収するたびに伸びる魂レベル上限の増分 (レア度別)。
 // コモン+1 / レア+2 / エピック+5 / レジェンド+10 (吸収数が少なくて済む高レア度ほど1個の伸びが大きい)
-export const LEVELCAP_PER_SOUL = { common: 1, rare: 2, epic: 5, legend: 10 };
+export const LEVELCAP_PER_SOUL = { common: 1, rare: 2, epic: 5, legend: 10, unique: 20 };
 
 // 所持数に応じた魂レベル上限。1個目はレア度ごとの基準上限、以降は吸収のたび LEVELCAP_PER_SOUL ぶん伸びる。
 // (旧: ランクに応じた段階上限。ランクによる技/パッシブ解放はそのまま、上限だけ吸収数で連続的に伸びる仕様へ)
@@ -919,7 +932,7 @@ export function soulLevelCap(clsKey, count) {
   return base + per * Math.max(0, (count || 0) - 1);
 }
 // 魂の残火: Lv上限を1上げるのに要る残火の数 (職業のレア度ごと)
-export const EMBER_PER_CAP = { common: 1, rare: 2, epic: 3, legend: 5 };
+export const EMBER_PER_CAP = { common: 1, rare: 2, epic: 3, legend: 5, unique: 3 };
 export function emberCostOf(clsKey) {
   const cls = SOUL_CLASSES[clsKey];
   return EMBER_PER_CAP[cls ? cls.rarity : "common"] || 1;
@@ -1775,6 +1788,21 @@ const JOB_ARTS = {
     ".01111110...",
     ".00000000...",
   ],
+  // 灯守 (セラ): 長い黒髪を模した木彫りの頭、胸に師の灯、円い盾。原画が届くまでの仮の絵
+  sera: [
+    "....0000....",
+    "...000000...",
+    "..00333300..",
+    "..03633630..",
+    "..00333300..",
+    "..0022220044",
+    "..0111111454",
+    "..0115511454",
+    "..0111111044",
+    "...011110...",
+    "...01..10...",
+    "...00..00...",
+  ],
 };
 
 // #rrggbb 同士を t (0-1) で混ぜる
@@ -1797,7 +1825,6 @@ const _jobSprCache = {};
 export function jobSprite(jobKey, rank = 2) {
   const r = Math.max(1, Math.min(5, Math.round(rank) || 2));
   // ランクごとに選ぶ: そのランクのドット絵があればそれ、無ければ原画そのまま版、どちらも無ければ近いランクのドット絵
-  // (竜騎士はランク1だけドット絵、2〜5は原画そのまま版)
   if (JOB_IMAGES[jobKey] && JOB_IMAGES[jobKey][r]) return imageJobSprite(jobKey, r);
   if (JOB_PHOTOS[jobKey]) return photoJobSprite(jobKey, r);
   if (JOB_IMAGES[jobKey]) return imageJobSprite(jobKey, r);
@@ -2052,15 +2079,33 @@ export function jobBust(jobKey, rank = 2) {
   }
   return (_bustCache[cacheKey] = { palette: spr.palette, art });
 }
+// 面影の写し (第三章の入口で館のイレーヌが教える): d.face = {job, rank} を写した人業は、宿す魂に依らずその姿で描く。
+//   見た目だけ (職業・能力・枠の光は宿した魂のまま)。写せるのは職業図鑑で到達したランク (game.js omokageRanks)
+export function dollFace(d) {
+  const f = d && d.face;
+  if (!f || !SOUL_CLASSES[f.job]) return null;
+  const rank = Math.round(f.rank);
+  return rank >= 1 && rank <= 5 ? { job: f.job, rank } : null;
+}
+function dollLook(d) {
+  const f = d && d.vessel === "sera" ? null : dollFace(d); // セラの肖像は灯守に固定 (面影の写しは効かない)
+  if (f) return f;
+  return { job: d.jobKey || (d.dominant && d.dominant.clsKey) || d.clsKey || "fighter", rank: d.jobRank || 1 };
+}
+// 肖像の描き直しの鍵 (職業・ランク・面影が変わった時だけ描き直す)
+export function dollLookKey(d) {
+  const l = dollLook(d);
+  return `${l.job}:${l.rank}`;
+}
 export function dollBust(d) {
-  const key = d.jobKey || (d.dominant && d.dominant.clsKey) || d.clsKey || "fighter";
-  return jobBust(key, d.jobRank || 1);
+  const l = dollLook(d);
+  return jobBust(l.job, l.rank);
 }
 
-// 人業の顔アイコン: 発現中の職業と職業ランクの姿。未発現は支配職のランク1
+// 人業の顔アイコン: 発現中の職業と職業ランクの姿 (面影を写していればその姿)。未発現は支配職のランク1
 export function dollSprite(d) {
-  const key = d.jobKey || (d.dominant && d.dominant.clsKey) || d.clsKey || "fighter";
-  return jobSprite(key, d.jobRank || 1);
+  const l = dollLook(d);
+  return jobSprite(l.job, l.rank);
 }
 
 // ===== スプライト =====

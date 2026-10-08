@@ -7,7 +7,8 @@ export const ARCHIVE_FOCUS = ["city", "threeSouls", "door", "lamp", "vessel", "p
   "lantern", "sigil", "abbeyMap", "ordo", "sealedKey", "arm", "joint", "waterMap", "pass", "campLetter", "fortMap",
   "fortWindow", "fort", "roll", "emptySeat", "names", "seraHead", "namesScroll", "banner", "stormWindow", "soulMap",
   "sealedOrder", "crown", "fadingLamp", "pit", "rope", "gardenWindow", "hutDiary", "diary", "torso", "cup",
-  "seraTogether", "climbingOrdo", "chancellor", "highLamp", "brokenVessel", "twoChairs", "openDoor"];
+  "seraTogether", "climbingOrdo", "chancellor", "highLamp", "brokenVessel", "twoChairs", "openDoor",
+  "votive", "mural", "legs", "seraWake", "priestKing", "blade", "husks", "cauldron", "abyss"];
 const cache = new Map();
 const C = { stone:[71,67,85], dark:[25,22,37], edge:[114,104,118], wood:[104,64,47], gold:[199,150,70], paper:[201,183,139],
   iron:[81,94,115], bone:[185,165,137], soul:[73,214,190], blue:[91,131,190], purple:[107,65,143], skin:[188,151,147], black:[31,25,38] };
@@ -109,6 +110,20 @@ function paintScene(scene) {
     if(scene.setting!=="road"){rect(47,23,99,52,C.stone);rect(44,20,105,8,C.dark);for(let x=45;x<150;x+=13)rect(x,13,8,13,C.stone);rect(79,42,34,33,C.black);ellipse(96,43,17,13,C.black);}
     if(scene.setting==="storm")poly([[146,0],[125,22],[139,20],[115,52],[150,17],[134,19]],C.blue);
   }
+  // 第四章: 水に沈んだ旧都の神殿 (半ば沈んだ柱と水面)
+  if(scene.setting==="temple"){
+    for(let i=0;i<5;i++){const x=6+i*44;rect(x,0,13,80,C.stone);rect(x-2,0,17,5,C.edge);line(x+3,6,x+3,78,C.edge);}
+    rect(0,74,W,34,[18,44,66]);for(let i=0;i<45;i++){const xx=h2(i,1,seed)*W,yy=76+h2(i,3,seed)*30;line(xx,yy,xx+7,yy,C.blue);}
+    for(let i=0;i<20;i++){const xx=h2(i,6,seed)*W,yy=h2(i,8,seed)*70;ellipse(xx,yy,1,1,[150,200,220],false);}
+  }
+  // 第五章: 樹液を煮る火の洞 (赤く脈打つ岩と溶岩の照り返し)
+  if(scene.setting==="furnace"){
+    rect(0,0,W,84,[44,24,26]);
+    for(let i=0;i<8;i++){const xx=i*28-8;poly([[xx,0],[xx+30,0],[xx+24,30+h2(i,2,seed)*18],[xx+4,24]],[52,30,34]);}
+    rect(0,84,W,24,[90,30,18]);for(let i=0;i<30;i++){const xx=h2(i,5,seed)*W;line(xx,86+h2(i,7,seed)*20,xx+12,90+h2(i,9,seed)*16,[240,120,40]);}
+    for(let i=0;i<28;i++){const xx=h2(i,11,seed)*W,yy=h2(i,13,seed)*80;rect(xx,yy,1,1,[255,170,80],false);}
+    glow(W/2,104,80,[255,90,30],0.45);
+  }
   if(scene.setting==="water"){rect(0,73,W,35,[20,49,61]);for(let i=0;i<40;i++){const x=h2(i,1,seed)*W,y=76+h2(i,3,seed)*30;line(x,y,x+9,y,C.blue);}for(let x=143;x<183;x+=9)rect(x,18,3,71,C.iron);}
 
   // 一枚ごとの主題。小道具だけの色違いではなく、物語で向き合う相手と場所を変える。
@@ -157,6 +172,16 @@ function paintScene(scene) {
     case "chancellor": poly([[105,47],[119,47],[138,98],[87,98]],C.black);ellipse(111,36,7,10,C.skin);rect(107,24,13,5,C.black);line(112,42,117,42,C.bone);line(88,96,136,96,C.gold);break;
     case "brokenVessel": doll(123,63,"torso",0.75);doll(150,83,"arm",0.7);doll(110,80,"head",0.7);for(let i=0;i<5;i++)rect(131+i*4,91-i%2*4,3,2,C.soul,false);break;
     case "twoChairs": for(const q of [93,145]){rect(q,66,18,24,C.wood);rect(q+3,70,12,16,C.purple);}candle(129,70);break;
+    // ---- 第四章「王都の地下」・第五章「灼熱の洞」 ----
+    case "votive": for(let i=0;i<4;i++){const q=40+i*34,sz=1-i*0.12;rect(q-5*sz,60-12*sz,10*sz,22*sz,C.stone);poly([[q-9*sz,60-12*sz],[q,52-14*sz],[q+9*sz,60-12*sz]],C.edge);}ellipse(142,52,3,5,C.soul,false);glow(142,52,22,[60,200,200],0.7);sigil(142,36);break;
+    case "mural": rect(58,10,108,62,[96,82,70]);for(let i=0;i<8;i++)line(60+h2(i,3,seed)*100,12+h2(i,5,seed)*56,66+h2(i,7,seed)*100,18+h2(i,9,seed)*50,[70,60,52]);poly([[82,64],[94,30],[106,64]],C.bone);ellipse(94,26,5,6,C.skin);rect(88,17,13,4,C.gold);poly([[128,64],[136,32],[144,64]],[60,60,70]);ellipse(136,28,4,6,[220,215,210]);line(133,28,139,28,C.black);line(146,52,152,46,[80,140,70],2);break;
+    case "legs": ellipse(100,92,52,10,C.dark);for(let i=0;i<6;i++)line(52+i*18,108,70+i*12,74,C.wood,2);line(92,62,86,96,C.wood,5);line(110,62,116,96,C.wood,5);ring(92,62,4,C.iron);ring(110,62,4,C.iron);ring(88,80,3,C.iron);ring(114,80,3,C.iron);sigil(101,46);break;
+    case "seraWake": table(98,84,64);doll(130,52,"full",0.8);ellipse(130,62,3,4,C.soul,false);glow(130,62,30,[60,210,200],0.8);lantern(166,72);break;
+    case "priestKing": poly([[120,0],[150,0],[156,108],[112,108]],C.wood);for(let i=0;i<20;i++){const yy=h2(i,3,seed)*100;ellipse(134+h2(i,5,seed)*10-5,yy,1,3,C.soul,false);}rect(64,44,30,44,[70,80,110]);poly([[62,40],[70,30],[79,38],[87,30],[96,40]],C.gold);ellipse(79,52,7,9,[170,190,210]);poly([[68,60],[90,60],[96,92],[62,92]],[150,170,200]);glow(79,60,30,[120,160,220],0.35);break;
+    case "blade": rect(108,20,40,72,C.iron);rect(112,24,32,64,C.black);line(126,40,104,76,[210,210,220],3);line(104,76,99,84,C.wood,3);rect(96,82,7,4,[120,60,40]);for(let i=0;i<5;i++)line(127-i,40+i*7,123-i,46+i*7,C.iron);glow(128,56,24,[255,110,40],0.4);break;
+    case "husks": for(let i=0;i<9;i++){const q=72+(i%4)*22+(i>3?11:0),yy=86-Math.floor(i/4)*15;doll(q,yy,"torso",0.55);ellipse(q,yy-8,4,5,[40,32,30]);}for(let i=0;i<40;i++)rect(h2(i,2,seed)*W,h2(i,4,seed)*90,1,2,[150,140,130],false);paper(150,40,24,16);break;
+    case "cauldron": ellipse(98,102,48,8,C.black);poly([[56,52],[140,52],[132,92],[64,92]],[60,40,38]);ellipse(98,52,42,8,[200,90,40]);glow(98,52,46,[255,120,40],0.6);line(64,92,58,104,C.iron,3);line(132,92,138,104,C.iron,3);poly([[156,40],[166,40],[172,98],[150,98]],C.black);ellipse(161,33,5,7,C.skin);break;
+    case "abyss": ellipse(98,80,60,24,C.black);ellipse(98,80,50,19,[8,6,14]);for(let i=0;i<20;i++){const a=h2(i,2,seed)*6.28,r=10+h2(i,4,seed)*40;rect(98+Math.cos(a)*r,80+Math.sin(a)*r*0.38,1,1,C.soul,false);}candle(160,58,1);break;
     default: throw new Error(`読み物の図版に未定義の主題: ${scene.focus}`);
   }
   if(scene.people==="irene")irene(scene.pose==="shelter"?80:62,scene.pose==="seated"?66:63,scene.pose);

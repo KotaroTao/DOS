@@ -5,6 +5,7 @@
 // pages: [{ title, lines[], reward?, kicker?, btnLabel?, art?, who?, place?, enter?(), leave?() }]
 //   place = 背景の情景 (townart の vignetteCanvas の鍵。既定 "palace"。最初のページのものを使う)
 //   art = 物語の一枚絵の鍵 (src/storyart.js)。あれば肖像の代わりに絵を掲げ、背景もその絵を沈めて敷く
+//   photo = 描き下ろしの絵のパス (archive-stories.js storyImage。3:2)。あれば art より優先して掲げる (ストーリー一覧と同じ絵)
 //   who = 語り手 "king" (既定・老王の肖像) | "irene" (館の主の肖像) | "none" (肖像なし・地の文)
 //         | { name, sub?, art?() } (酒場の依頼人など: 枠に art() の絵 (依頼の魔物・品など) を掲げ、名と肩書きを添える)
 //   reward = 受け取るものの一覧 [{ job:"fighter" } | { cur:"gold"|"soul"|"red"|"ember", n } | { item: 品, n }] (文字列でも可)
@@ -27,11 +28,12 @@ import { SFX } from "../audio.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
 
-// 行の種類で書式を変える: 「…」= 語り手 (王) の台詞 / イレーヌ「…」/ 宰相… = 宰相の台詞 /
+// 行の種類で書式を変える: 「…」= 語り手 (王) の台詞 / イレーヌ「…」/ セラ「…」/ 宰相… = 宰相の台詞 /
 // ──『…』= 手紙・手記 / ── = 要旨 / それ以外 = 地の文
 function lineKind(t) {
   if (/^宰相/.test(t)) return "minister";
   if (/^イレーヌ「/.test(t)) return "irene";
+  if (/^セラ「/.test(t)) return "sera";
   if (/^──『/.test(t)) return "letter";
   if (/^──/.test(t)) return "decree";
   if (/^「/.test(t)) return "king";
@@ -69,7 +71,21 @@ function rewardBox(reward) {
   return box;
 }
 
-let active = null; // 同時に1つだけ (重ねて呼ばれたら、前の語りの後ろに続ける)
+let active = null;
+
+// 描き下ろしの絵 (3:2) の表示の大きさ: 一枚絵と同じ幅を上限に、縦は画面の4割まで
+const PHOTO_ASPECT = 1.5;
+function photoSize() {
+  const vw = typeof innerWidth === "number" ? innerWidth : 390, vh = typeof innerHeight === "number" ? innerHeight : 844;
+  const w = Math.max(160, Math.min(440, vw - 40, Math.round(vh * 0.4 * PHOTO_ASPECT)));
+  return { w, h: Math.round(w / PHOTO_ASPECT) };
+}
+function photoImg(src, cls) {
+  const img = el("img", cls);
+  img.src = new URL("../../" + src, import.meta.url).href;
+  img.alt = ""; img.draggable = false; img.decoding = "async";
+  return img;
+} // 同時に1つだけ (重ねて呼ばれたら、前の語りの後ろに続ける)
 
 // 長いページは、画面に収まる分ずつに分ける (縦に巻かせない)。一枚絵のあるページは文字の場所が狭い。
 // 分けたページは題・絵・語り手を引き継ぎ、enter は最初の分・leave と受け取るもの・決め手の文言は最後の分に付ける
@@ -81,7 +97,7 @@ function splitPages(pages) {
   const out = [];
   for (const p of pages) {
     const lines = p.lines || [];
-    const head = p.art ? artH() + 10 : (p.who === "none" ? 0 : 150);
+    const head = p.photo ? photoSize().h + 10 : p.art ? artH() + 10 : (p.who === "none" ? 0 : 150);
     const room = (pRw) => vh * 0.91 - 40 - head - 70 - 110 - (pRw ? 96 : 0);
     const cost = (t) => Math.ceil(t.length * 1.12 / cpl) * 26 + 8; // 文節で折る分 (phrase.js) 行末が少し余る
     // 受け取るものの札が付く最後の分は、後ろから札の分だけ狭い枠に詰める。残りを前から詰める
@@ -172,11 +188,22 @@ export function playStoryChain(pages, done) {
     }
   };
   // 一枚絵: 整数倍で拡大してくっきり見せる (幅は舞台の内側に収まる最大の倍率)
-  const setArt = (key) => {
-    if (key === curArt) return;
-    curArt = key;
+  const setArt = (key, photo) => {
+    if ((photo || key) === curArt) return;
+    curArt = photo || key;
     artBox.textContent = "";
     bg.textContent = "";
+    if (photo) {
+      artBox.classList.remove("hidden");
+      wrap.classList.add("has-art");
+      const { w, h } = photoSize();
+      const img = photoImg(photo, "sc-photo");
+      img.width = w; img.height = h;
+      img.style.width = w + "px"; img.style.height = h + "px";
+      artBox.appendChild(img);
+      bg.appendChild(photoImg(photo, "sc-photo-bg"));
+      return;
+    }
     const c = key ? storyArt(key) : null;
     artBox.classList.toggle("hidden", !c);
     wrap.classList.toggle("has-art", !!c);
@@ -228,9 +255,10 @@ export function playStoryChain(pages, done) {
     st.revealed = false;
     wrap.classList.remove("revealed");
     const who = p.who || "king";
-    setArt(p.art || null);
-    head.classList.toggle("hidden", !!p.art || who === "none");
-    if (!p.art && who !== "none") setWho(who);
+    const pic = !!(p.photo || p.art);
+    setArt(p.art || null, p.photo || null);
+    head.classList.toggle("hidden", pic || who === "none");
+    if (!pic && who !== "none") setWho(who);
     kicker.textContent = p.kicker ? `✦ ${p.kicker} ✦` : "✦ 玉座の間 ✦";
     setText(title, p.title || "");
     page.textContent = "";

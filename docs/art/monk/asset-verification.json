@@ -1,0 +1,77 @@
+[
+  {
+    "rank": 1,
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      63,
+      26,
+      315,
+      367
+    ],
+    "transparent": true,
+    "clearEdges": true
+  },
+  {
+    "rank": 2,
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      62,
+      27,
+      317,
+      367
+    ],
+    "transparent": true,
+    "clearEdges": true
+  },
+  {
+    "rank": 3,
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      53,
+      27,
+      323,
+      366
+    ],
+    "transparent": true,
+    "clearEdges": true
+  },
+  {
+    "rank": 4,
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      39,
+      27,
+      325,
+      367
+    ],
+    "transparent": true,
+    "clearEdges": true
+  },
+  {
+    "rank": 5,
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      34,
+      28,
+      323,
+      367
+    ],
+    "transparent": true,
+    "clearEdges": true
+  }
+]

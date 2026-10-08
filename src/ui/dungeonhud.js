@@ -26,11 +26,11 @@ import { markOf } from "./questboard.js";
 
 export { getPref, setPref, remember, autoMoveAvoid, sceneTransition };
 
-// ================= 迷宮の自分の駒 (赤い頭巾の人影・4方向) =================
+// ================= 迷宮の自分の駒 (頭巾つきの外套の人影・4方向。装いは設定で変わる) =================
 // src/walkerart.js の WALKER = { down, up, left, right } (各 {palette, art}・20×31 ドット・足元は共通)
 let WALKER = WALKER_ART || null;
 export function walkerArt() { return WALKER; }
-export function setWalkerArt(w) { WALKER = w || null; } // 検証用 (null で従来の人業の姿)
+export function setWalkerArt(w) { WALKER = w || null; } // 装いの変更 (game.js setWalkerLook) と検証用 (null で従来の人業の姿)
 
 const G = () => game.G;
 const sfx = (k) => { try { if (game.SFX && game.SFX[k]) game.SFX[k](); } catch (e) { /* 音が無くても動く */ } };

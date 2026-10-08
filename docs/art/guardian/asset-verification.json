@@ -1,0 +1,141 @@
+{
+  "opaqueThreshold": 128,
+  "fragmentThresholdPixels": 16,
+  "assets": [
+    {
+      "file": "art/jobs/guardian_1.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "opaqueBBox": [
+        39,
+        36,
+        338,
+        366
+      ],
+      "edgeAlphaMaxTopBottomLeftRight": [
+        0,
+        3,
+        0,
+        0
+      ],
+      "opaqueComponentSizes": [
+        50856
+      ],
+      "substantialDetachedFragments": false
+    },
+    {
+      "file": "art/jobs/guardian_2.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "opaqueBBox": [
+        43,
+        36,
+        332,
+        367
+      ],
+      "edgeAlphaMaxTopBottomLeftRight": [
+        0,
+        25,
+        0,
+        0
+      ],
+      "opaqueComponentSizes": [
+        51204
+      ],
+      "substantialDetachedFragments": false
+    },
+    {
+      "file": "art/jobs/guardian_3.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "opaqueBBox": [
+        43,
+        36,
+        338,
+        366
+      ],
+      "edgeAlphaMaxTopBottomLeftRight": [
+        0,
+        10,
+        0,
+        0
+      ],
+      "opaqueComponentSizes": [
+        56475
+      ],
+      "substantialDetachedFragments": false
+    },
+    {
+      "file": "art/jobs/guardian_4.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "opaqueBBox": [
+        36,
+        36,
+        338,
+        367
+      ],
+      "edgeAlphaMaxTopBottomLeftRight": [
+        0,
+        14,
+        0,
+        0
+      ],
+      "opaqueComponentSizes": [
+        60463
+      ],
+      "substantialDetachedFragments": false
+    },
+    {
+      "file": "art/jobs/guardian_5.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaRange": [
+        0,
+        255
+      ],
+      "opaqueBBox": [
+        37,
+        32,
+        336,
+        367
+      ],
+      "edgeAlphaMaxTopBottomLeftRight": [
+        0,
+        13,
+        0,
+        0
+      ],
+      "opaqueComponentSizes": [
+        56333
+      ],
+      "substantialDetachedFragments": false
+    }
+  ]
+}

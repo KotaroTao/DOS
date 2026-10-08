@@ -758,7 +758,7 @@ function jobSheetView(key, rank, top, heading, onRank) {
   body.appendChild(infoBlock("職業の基礎特性", traitRows));
   // 発現の条件
   const upPct = Math.round((SOUL_STAT_UP[SOUL_CLASSES[key].rarity] || 0.01) * 100);
-  body.appendChild(infoBlock("発現の条件", [pairRow(jobRankCondText(key, rank)), pairRow(`魂を1つ吸収するごと、全能力 基礎値×${upPct}% UP`, null, { dim: true })]));
+  body.appendChild(infoBlock("発現の条件", [pairRow(jobRankCondText(key, rank)), pairRow(SOUL_CLASSES[key] && SOUL_CLASSES[key].unique ? `ランクが上がるごと、全能力 基礎値×${upPct}% UP` : `魂を1つ吸収するごと、全能力 基礎値×${upPct}% UP`, null, { dim: true })]));
   // 装備適性 + 得意属性 (その属性の物理技・呪文を多く覚える)
   const gg = JOB_GEAR[key];
   const aff = JOB_AFFINITY[key] || [];

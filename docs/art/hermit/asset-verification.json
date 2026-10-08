@@ -1,0 +1,14 @@
+{
+  "size": [360, 368],
+  "alphaThreshold": 8,
+  "transparent": true,
+  "edgeAlphaAllZero": true,
+  "assets": [
+    {"source": "art/jobs/hermit_1.webp", "alphaBBoxAbove8": [80, 29, 306, 365]},
+    {"source": "art/jobs/hermit_2.webp", "alphaBBoxAbove8": [79, 30, 306, 365]},
+    {"source": "art/jobs/hermit_3.webp", "alphaBBoxAbove8": [79, 29, 314, 367]},
+    {"source": "art/jobs/hermit_4.webp", "alphaBBoxAbove8": [80, 29, 305, 366]},
+    {"source": "art/jobs/hermit_5.webp", "alphaBBoxAbove8": [68, 16, 308, 366]}
+  ],
+  "visualReview": "杖・衣服・後光が枠内に収まり、不要な背景や残片がないことをゲームの同倍率比較で確認。"
+}

@@ -1,15 +1,66 @@
-// 迷宮の盤面を歩く「操霊師」(プレイヤーの分身) — 赤い頭巾の4方向のドット絵
+// 迷宮の盤面を歩く「操霊師」(プレイヤーの分身) — 頭巾つきの外套をまとった4方向のドット絵
 //
 // ユーザー提供の原画 (ChatGPT 製) を格子推定 → 本来の解像度へ戻し → 減色してドット化したもの。
 // 向き: down=正面 / up=背面 / left=左向き / right=右向き。どの向きも同じ大きさ・同じ足元の高さ。
 // 盤面では直前に動いた向きを向く (既定は正面)。描くときは整数倍・補間なしで。
-const PALETTE = {"0": "#23140f", "1": "#f9cd79", "2": "#d63235", "3": "#ac8f77", "4": "#634d43", "5": "#8d1e24", "6": "#e5a958", "7": "#e26442", "8": "#9f6332", "9": "#711720", "A": "#f2be64", "B": "#d49649", "C": "#a22027", "D": "#937866", "E": "#db9f4e", "F": "#bc8342", "G": "#773e27", "H": "#60141c", "I": "#8a5328", "J": "#482d21"};
+//
+// 装い (色) は設定「操霊師の装い」で変えられる (端末の好み PREFS.walkerLook = {cloak, trim})。
+// 既定は街の一枚絵 (ロアダルの夜道に立つ操霊師) に合わせた、金の縁取りの黒い外套。
+// 絵の文字ごとの役割: 外套 = 7/2/C/5/9/H (明→暗の6段) / 縁取り・目 = 1/A/6/E/B/F (明→暗) /
+//                     革 (鞄・帯・長靴) = 8/I/G/J / 手袋・靴底 = 3/D/4 / 0 = 輪郭
+const BASE = {
+  "0": "#16131a", "3": "#8f7f70", "4": "#4a3c36", "8": "#8a5a34", "D": "#76685d",
+  "G": "#5e3a26", "I": "#704626", "J": "#3a261d",
+};
+const CLOAK_KEYS = ["7", "2", "C", "5", "9", "H"];
+const TRIM_KEYS = ["1", "A", "6", "E", "B", "F"];
 
-const frame = (art) => ({ name: "操霊師", palette: PALETTE, art });
+// 外套の色 (明→暗の6段)。key はセーブ (端末の好み) に残るので変えない・足すだけ
+export const WALKER_CLOAKS = [
+  { key: "night", name: "夜の黒", ramp: ["#716c72", "#524e56", "#423f47", "#38353d", "#2f2c34", "#27242b"] },
+  { key: "crimson", name: "緋", ramp: ["#e26442", "#d63235", "#a22027", "#8d1e24", "#711720", "#60141c"] },
+  { key: "navy", name: "紺", ramp: ["#5f7bb4", "#3e5791", "#2f4474", "#283a63", "#213052", "#1b2743"] },
+  { key: "forest", name: "深緑", ramp: ["#6f9a5c", "#4a7341", "#385a33", "#2f4c2b", "#273f24", "#1f331d"] },
+  { key: "violet", name: "紫", ramp: ["#9a6fb3", "#74498f", "#5a3772", "#4c2e61", "#3f2650", "#331f42"] },
+  { key: "ash", name: "灰白", ramp: ["#e4e1d8", "#c4c0b5", "#a29e94", "#8d897f", "#77736b", "#625f58"] },
+  { key: "earth", name: "土", ramp: ["#a8835c", "#86643f", "#6b4f31", "#5c432a", "#4d3823", "#3f2e1d"] },
+];
+// 縁取り (刺繍) と目の光の色 (明→暗の6段)
+export const WALKER_TRIMS = [
+  { key: "gold", name: "金", ramp: ["#f9cd79", "#f2be64", "#e5a958", "#db9f4e", "#d49649", "#bc8342"] },
+  { key: "silver", name: "銀", ramp: ["#f1f3f7", "#dde2ea", "#c6ccd6", "#b4bbc7", "#a4acb9", "#8a92a1"] },
+  { key: "copper", name: "銅", ramp: ["#f3b38a", "#e39a6c", "#cf8258", "#bf744c", "#b06a45", "#95563a"] },
+  { key: "jade", name: "翠", ramp: ["#bff0c9", "#9ee3b0", "#7fcf98", "#6bbf87", "#5db07a", "#4a9566"] },
+];
+export const WALKER_LOOK_DEFAULT = { cloak: "night", trim: "gold" };
 
-export const WALKER = {
+const pick = (list, key) => list.find((o) => o.key === key) || list[0];
+// 好みの値を正しい形に直す (知らない key は既定へ)
+export function normalizeLook(look) {
+  const l = look && typeof look === "object" ? look : {};
+  return { cloak: pick(WALKER_CLOAKS, l.cloak).key, trim: pick(WALKER_TRIMS, l.trim).key };
+}
+const _looks = new Map();
+// 装いに合わせて塗り直した4方向の絵 { down, up, left, right } (各 {name, palette, art})。装いごとに一度だけ作る
+export function walkerLook(look) {
+  const l = normalizeLook(look);
+  const id = `${l.cloak}/${l.trim}`;
+  let w = _looks.get(id);
+  if (w) return w;
+  const palette = { ...BASE };
+  pick(WALKER_CLOAKS, l.cloak).ramp.forEach((c, i) => { palette[CLOAK_KEYS[i]] = c; });
+  pick(WALKER_TRIMS, l.trim).ramp.forEach((c, i) => { palette[TRIM_KEYS[i]] = c; });
+  // 手提げの角灯の位置は金の縁取りの明るい黄から求める (game.js walkerLampSpot) ので、ほかの縁取りは金の絵を手本にする
+  const ref = l.trim === WALKER_TRIMS[0].key ? null : walkerLook({ cloak: l.cloak, trim: WALKER_TRIMS[0].key });
+  w = {};
+  for (const [dir, art] of Object.entries(FRAMES)) w[dir] = { name: "操霊師", palette, art, look: id, ...(ref ? { lampRef: ref[dir] } : {}) };
+  _looks.set(id, w);
+  return w;
+}
+
+const FRAMES = {
   // 正面
-  down: frame([
+  down: [
     "........0000........",
     ".......022CC0.......",
     "......02222CC0......",
@@ -41,9 +92,9 @@ export const WALKER = {
     "...00E00J00JJ0EF0...",
     ".....044J0044J00....",
     ".....0000.00000.....",
-  ]),
+  ],
   // 背面
-  up: frame([
+  up: [
     "........000.........",
     ".......022C0........",
     "......02222C0.......",
@@ -75,9 +126,9 @@ export const WALKER = {
     "..00000E1EEJ000000..",
     "....0JJ00000JJ00....",
     "....00000..0000.....",
-  ]),
+  ],
   // 左向き
-  left: frame([
+  left: [
     "........00000.......",
     "......002222C00.....",
     ".....022222CCCC0....",
@@ -109,9 +160,9 @@ export const WALKER = {
     "....000AECCC00250B0.",
     "...0D4JJ0000..000000",
     "...000000000........",
-  ]),
+  ],
   // 右向き
-  right: frame([
+  right: [
     ".......00000........",
     ".....00C222200......",
     "....0CCCC222220.....",
@@ -143,5 +194,7 @@ export const WALKER = {
     ".0B09200CCCEA000....",
     "000000..0000JJ4D0...",
     "....J0..000000000...",
-  ]),
+  ],
 };
+
+export const WALKER = walkerLook(WALKER_LOOK_DEFAULT);

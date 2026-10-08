@@ -29,7 +29,7 @@ import {
 } from "../autoequip.js";
 import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, useWhere, compareUse } from "../items.js";
 import {
-  SOUL_CLASSES, JOB_GEAR, dollSprite, dollBust, jobBust, jobSprite, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulLabel, soulRankLeft, soulByUid,
+  SOUL_CLASSES, SOUL_KEYS, JOB_GEAR, dollSprite, dollBust, dollFace, jobBust, jobSprite, jobRankName, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulLabel, soulRankLeft, soulByUid,
   orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs, isAutoOff, setAutoOff,
 } from "../souls.js";
 import { TACTICS, tacticOf, setTactic } from "../autotactics.js";
@@ -101,6 +101,7 @@ function portraitEl(d, { size = 44, sel = false, tag = "button", cls = "" } = {}
   const cl = d.jobKey && SOUL_CLASSES[d.jobKey];
   if (cl) p.style.setProperty("--glow", cl.glow);
   if (d.primary == null) p.classList.add("hollow"); // 魂の宿らない器
+  if (d.vessel === "sera") { p.classList.add("vessel-sera"); p.appendChild(el("span", "pt-port-vessel", "灯")); } // 師の作った器
   const fr = el("span", "pt-port-fr");
   try { fr.appendChild(partyPortraitCanvas(d, size - 6)); } catch (e) { /* 絵が無くても動く */ }
   p.appendChild(fr);
@@ -1261,7 +1262,7 @@ function reserveRow(d) {
   }
   else if (d.primary != null) st.appendChild(el("span", "pt-res-s", `  HP ${d.hp}/${d.maxhp}`));
   game.refreshStability?.();
-  st.appendChild(el("span", "pt-res-s", ` ・ 安定度 ${d.stability}/${game.STABILITY_MAX}`));
+  st.appendChild(el("span", "pt-res-s", game.vesselStable && game.vesselStable(d) ? " ・ 師の器" : ` ・ 安定度 ${d.stability}/${game.STABILITY_MAX}`));
   tx.appendChild(st);
   top.appendChild(tx);
   const look = button({ label: "見る", kind: "ghost", size: "sm", onTap: () => viewDoll(d) });
@@ -1374,7 +1375,7 @@ export function openCreateDoll() {
   if (h?.el) UI.tutorialEvent?.("newJobSoulPickerOpened");
   return h;
 }
-function rarityName(r) { return { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド" }[r] || ""; }
+function rarityName(r) { return { common: "コモン", rare: "レア", epic: "エピック", legend: "レジェンド", unique: "固有" }[r] || ""; }
 function soulRank(s) { return game.soulRankOf ? game.soulRankOf(s) : 1; }
 
 // 名前の入力シート (仕立て・名を変える・空の人業の生成で共用)
@@ -1450,10 +1451,12 @@ export function openStability(d, onChange) {
   const spec = () => {
     game.refreshStability();
     const gap = game.STABILITY_MAX-d.stability;
-    const amounts = [...new Set([1, Math.min(10,gap), gap])].filter(n=>n>0);
+    const per = game.stabilityPerRed ? game.stabilityPerRed() : 1;
+    const amounts = [...new Set([per, Math.min(10,gap), gap])].filter(n=>n>0 && n<=gap);
+    const costOf = (n) => Math.ceil(n / per);
     return { title:`${d.name} ― 魂の安定度 ${d.stability}/${game.STABILITY_MAX}`,
-      lines:["3分で1回復します。控えやゲームを閉じている間も回復します。", "赤い魂1で安定度1を回復します。宿泊や魂の付け替えでは回復しません。", `所持している赤い魂: ${G_().redSoul}`],
-      footer:[...amounts.map(n=>({ label:n===gap ? `満タンまで回復 (+${n})` : `+${n}回復`, cost:{kind:"red",n}, kind:"secondary", disabled:G_().redSoul<n,
+      lines:[`${game.stabilityMinutes ? game.stabilityMinutes() : 3}分で1回復します。控えやゲームを閉じている間も回復します。`, `赤い魂1で安定度${per}を回復します。宿泊や魂の付け替えでは回復しません。`, `所持している赤い魂: ${G_().redSoul}`],
+      footer:[...amounts.map(n=>({ label:n===gap ? `満タンまで回復 (+${n})` : `+${n}回復`, cost:{kind:"red",n:costOf(n)}, kind:"secondary", disabled:G_().redSoul<costOf(n),
         onTap:()=>{const r=game.restoreStability(d,n);if(!r.ok)return;h.update(spec());rerender();if(onChange)onChange();} })),
         {label:"戻る",kind:"ghost",onTap:()=>h.close()}],
     };
@@ -1468,6 +1471,16 @@ function dollHeader(d, mode) {
   const head = el("section", "pt-head" + (d.alive ? "" : " dead"));
   const p = portraitEl(d, { size: 44, tag: "div" });
   if (town) longPress(p, () => openRename(d));
+  // 面影の写し (第三章の入口で解放): 肖像を押すと、魂が覚えている姿から顔を選べる
+  if (town && d.primary != null && d.vessel !== "sera" && game.omokageUnlocked && game.omokageUnlocked()) {
+    p.classList.add("pt-face-on");
+    p.setAttribute("role", "button");
+    p.tabIndex = 0;
+    p.setAttribute("aria-label", `${d.name}の面影を写す`);
+    p.appendChild(el("span", "pt-face-mark", "面"));
+    p.addEventListener("click", () => openOmokage(d));
+    p.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openOmokage(d); } });
+  }
   head.appendChild(p);
   const tx = el("div", "pt-head-tx");
   const l1 = el("div", "pt-head-l1");
@@ -1502,8 +1515,11 @@ function dollHeader(d, mode) {
     tx.appendChild(l2);
   }
   game.refreshStability?.();
-  const stability = button({ label:`魂の安定度 ${d.stability}/${game.STABILITY_MAX}`, kind:"ghost", size:"sm",
-    onTap:town ? ()=>openStability(d) : ()=>toast("入場時に10消費・3分で1回復。探索中の追加消費はない", {tone:"info"}) });
+  const stable = game.vesselStable && game.vesselStable(d);
+  const stability = stable
+    ? button({ label:"師の器 ・ 安定度を消費しない", kind:"ghost", size:"sm", onTap:()=>toast("師オルドが一度で仕上げた器。魂の安定度を消費しない。メイン魂は灯守に固定", {tone:"info"}) })
+    : button({ label:`魂の安定度 ${d.stability}/${game.STABILITY_MAX}`, kind:"ghost", size:"sm",
+      onTap:town ? ()=>openStability(d) : ()=>toast(`入場時に10消費・${game.stabilityMinutes ? game.stabilityMinutes() : 3}分で1回復。探索中の追加消費はない`, {tone:"info"}) });
   stability.classList.add("pt-stability"); tx.appendChild(stability);
   head.appendChild(tx);
   if (town && pi < 0 && d.primary != null) {
@@ -1512,6 +1528,74 @@ function dollHeader(d, mode) {
     head.appendChild(join);
   }
   return head;
+}
+
+// ================= 面影の写し (見た目だけ・無料・何度でも) =================
+// 写せるのは職業図鑑で到達した職業×ランク (game.omokageRanks)。届いていないランクは影だけ見せ、出会っていない職業は伏せる
+function omokageTile(job, rank, { on = false, lock = false, label = null, onTap = null } = {}) {
+  const b = el(lock ? "span" : "button", "pt-om-t" + (on ? " on" : "") + (lock ? " lock" : ""));
+  const name = jobRankName(job, rank);
+  if (lock) b.setAttribute("aria-label", `${SOUL_CLASSES[job].label} ランク${rank} (まだ写せない)`);
+  else {
+    b.type = "button";
+    b.setAttribute("aria-pressed", on ? "true" : "false");
+    b.setAttribute("aria-label", `${name} (${SOUL_CLASSES[job].label} ランク${rank})`);
+    b.addEventListener("click", onTap);
+  }
+  const fr = el("span", "pt-om-fr");
+  try { fr.appendChild(pixelCanvas(jobBust(job, rank), 40)); } catch (e) { /* 絵が無くても動く */ }
+  b.appendChild(fr);
+  b.appendChild(el("span", "pt-om-r", label || `R${rank}`));
+  return b;
+}
+function omokageBody(d, pick) {
+  const wrap = el("div", "pt-om");
+  const face = dollFace(d);
+  const top = el("div", "pt-om-top");
+  const fig = el("div", "pt-om-fig");
+  try { fig.appendChild(pixelCanvas(dollSprite(d), 96)); } catch (e) { /* 絵が無くても動く */ }
+  top.appendChild(fig);
+  const tx = el("div", "pt-om-tx");
+  tx.appendChild(el("div", "pt-om-now", face ? `いまの顔: ${jobRankName(face.job, face.rank)}の面影` : "いまの顔: 魂のままの姿"));
+  tx.appendChild(el("p", "pt-om-note", "顔が変わるだけで、職業や能力は宿した魂のまま。枠の光と職業名も魂のままです。"));
+  tx.appendChild(omokageTile(d.jobKey || "fighter", d.jobRank || 1, { on: !face, label: "魂のまま", onTap: () => pick(null) }));
+  top.appendChild(tx);
+  wrap.appendChild(top);
+  const ranks = game.omokageRanks ? game.omokageRanks() : {};
+  for (const k of SOUL_KEYS) {
+    const r = ranks[k] || 0;
+    if (!r) continue;
+    const line = el("div", "pt-om-row");
+    const nm = el("div", "pt-om-job", SOUL_CLASSES[k].label);
+    nm.style.color = SOUL_CLASSES[k].glow;
+    line.appendChild(nm);
+    const tiles = el("div", "pt-om-tiles");
+    for (let i = 1; i <= 5; i++) {
+      tiles.appendChild(i <= r
+        ? omokageTile(k, i, { on: !!face && face.job === k && face.rank === i, onTap: () => pick({ job: k, rank: i }) })
+        : omokageTile(k, i, { lock: true }));
+    }
+    line.appendChild(tiles);
+    wrap.appendChild(line);
+  }
+  return wrap;
+}
+export function openOmokage(d) {
+  if (!d || !inTown() || !game.omokageUnlocked || !game.omokageUnlocked()) return null;
+  let box = null;
+  const redraw = () => { if (!box) return; const nb = omokageBody(d, pick); box.replaceWith(nb); box = nb; };
+  function pick(face) {
+    if (!game.setDollFace || !game.setDollFace(d, face)) return;
+    sfx("select");
+    redraw();
+    rerender();
+  }
+  return sheet.open({
+    kind: "info", className: "pt-om-sheet", banner: "面影の写し", title: `${d.name}の顔`,
+    lines: ["魂が覚えている姿を、人業の顔に写します。魂がランクを上げるたびに、写せる面影が増えます。"],
+    body: (scroll) => { box = omokageBody(d, pick); scroll.appendChild(box); },
+    footer: [{ label: "閉じる", kind: "primary", onTap: (h) => h.close() }],
+  });
 }
 
 // 砕けた人業 (見出しの2行目): 連れ帰り待ちなら残り時間 + 赤い魂で早める。街にあれば「砕けた魂を修復」(金貨・HP/MP満タン)
@@ -2334,6 +2418,7 @@ export function install() {
     equipChooser: (item, o = {}) => openEquipChooser(item, o),
     equipChooserEl: (item, o = {}) => equipChooserEl(item, o),
     openTacticSheet,
+    openOmokage,
     openPartyTactics,
   });
   if (UI.shell && UI.shell.registerTab) {

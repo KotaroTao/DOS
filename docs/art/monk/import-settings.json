@@ -1,0 +1,14 @@
+{
+  "job": "monk",
+  "standard": "docs/art/crusader/crusader-r1-final.png",
+  "frame": [90, 92],
+  "frameTop": 9,
+  "measurement": "頭頂は跳ね毛を除く主な髪の塊、左右は肌の頬。perDotは頭頂から足裏を82.9ドットにする値。",
+  "sources": [
+    {"source": "docs/art/monk/monk-r1-final.png", "head": [479, 626, 145, 462], "sole": 1352, "perDot": 14.559710494571773},
+    {"source": "docs/art/monk/monk-r2-final.png", "head": [479, 626, 142, 461], "sole": 1355, "perDot": 14.632086851628468},
+    {"source": "docs/art/monk/monk-r3-final.png", "head": [479, 626, 136, 458], "sole": 1357, "perDot": 14.8},
+    {"source": "docs/art/monk/monk-r4-final.png", "head": [479, 626, 139, 459], "sole": 1358, "perDot": 14.704463208685163},
+    {"source": "docs/art/monk/monk-r5-final.png", "head": [489, 640, 134, 451], "sole": 1346, "perDot": 14.63}
+  ]
+}
