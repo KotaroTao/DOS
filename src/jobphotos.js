@@ -63,11 +63,11 @@ export const JOB_PHOTOS = {
     5: { src: "art/jobs/hexer_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.681] },
   },
   ascetic: {
-    1: { src: "art/jobs/ascetic_1.webp", w: 40, h: 73, face: [24, 12], head: [24.15, 1.87, 22.27] },
-    2: { src: "art/jobs/ascetic_2.webp", w: 42, h: 73, face: [25, 12], head: [25.14, 1.87, 22.27] },
-    3: { src: "art/jobs/ascetic_3.webp", w: 44, h: 73, face: [26, 12], head: [25.8, 1.87, 22.27] },
-    4: { src: "art/jobs/ascetic_4.webp", w: 48, h: 73, face: [27, 12], head: [26.8, 1.87, 22.27] },
-    5: { src: "art/jobs/ascetic_5.webp", w: 45, h: 77, face: [24, 19], head: [23.93, 10.59, 28.12] },
+    1: { src: "art/jobs/ascetic_1.webp", w: 90, h: 92, face: [45, 18], head: [45.0, 9.0, 26.12] },
+    2: { src: "art/jobs/ascetic_2.webp", w: 90, h: 92, face: [45, 18], head: [45.0, 9.0, 26.146] },
+    3: { src: "art/jobs/ascetic_3.webp", w: 90, h: 92, face: [45, 18], head: [45.0, 9.0, 26.216] },
+    4: { src: "art/jobs/ascetic_4.webp", w: 90, h: 92, face: [45, 18], head: [45.0, 9.0, 26.173] },
+    5: { src: "art/jobs/ascetic_5.webp", w: 90, h: 92, face: [45, 18], head: [45.0, 9.0, 26.092] },
   },
   archbishop: {
     1: { src: "art/jobs/archbishop_1.webp", w: 42, h: 74, face: [25, 20], head: [25.19, 12.72, 27.16] },
