@@ -1,0 +1,52 @@
+[
+  {
+    "viewport": "desktop",
+    "width": 1280,
+    "height": 900,
+    "title": "百の迷宮と 魂の王 - Hundred Labyrinths: Rise of the Soul King",
+    "canvases": [
+      {
+        "width": 22,
+        "height": 26,
+        "visiblePixels": 422
+      },
+      {
+        "width": 498,
+        "height": 658,
+        "visiblePixels": 0
+      },
+      {
+        "width": 427,
+        "height": 300,
+        "visiblePixels": 128100
+      }
+    ],
+    "browserErrors": [],
+    "failedLocalResponses": []
+  },
+  {
+    "viewport": "mobile",
+    "width": 390,
+    "height": 844,
+    "title": "百の迷宮と 魂の王 - Hundred Labyrinths: Rise of the Soul King",
+    "canvases": [
+      {
+        "width": 22,
+        "height": 26,
+        "visiblePixels": 422
+      },
+      {
+        "width": 480,
+        "height": 634,
+        "visiblePixels": 0
+      },
+      {
+        "width": 195,
+        "height": 422,
+        "visiblePixels": 82290
+      }
+    ],
+    "browserErrors": [],
+    "failedLocalResponses": []
+  }
+]

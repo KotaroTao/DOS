@@ -20,11 +20,11 @@ export const JOB_PHOTOS = {
     5: { src: "art/jobs/exorcist_5.webp", w: 86, h: 88, face: [41, 12], head: [40.89, 2.64, 22.14] },
   },
   necromancer: {
-    1: { src: "art/jobs/necromancer_1.webp", w: 45, h: 83, face: [19, 11], head: [19.07, 0.0, 22.125] },
-    2: { src: "art/jobs/necromancer_2.webp", w: 48, h: 85, face: [22, 11], head: [21.75, 0.0, 21.21] },
-    3: { src: "art/jobs/necromancer_3.webp", w: 52, h: 83, face: [22, 10], head: [21.61, 0.0, 20.36] },
-    4: { src: "art/jobs/necromancer_4.webp", w: 65, h: 83, face: [24, 10], head: [23.89, 0.0, 20.21] },
-    5: { src: "art/jobs/necromancer_5.webp", w: 80, h: 86, face: [35, 14], head: [34.71, 3.86, 24.57] },
+    1: { src: "art/jobs/necromancer_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 31.135] },
+    2: { src: "art/jobs/necromancer_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.91] },
+    3: { src: "art/jobs/necromancer_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.893] },
+    4: { src: "art/jobs/necromancer_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.671] },
+    5: { src: "art/jobs/necromancer_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.737] },
   },
   warden: {
     1: { src: "art/jobs/warden_1.webp", w: 61, h: 85, face: [26, 17], head: [26.11, 6.86, 27.0] },
