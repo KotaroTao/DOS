@@ -1,0 +1,82 @@
+[
+  {
+    "rank": 1,
+    "path": "art/jobs/sage_1.webp",
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      61,
+      10,
+      294,
+      365
+    ],
+    "transparentOuterMargin": true,
+    "bytes": 34868
+  },
+  {
+    "rank": 2,
+    "path": "art/jobs/sage_2.webp",
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      58,
+      9,
+      300,
+      364
+    ],
+    "transparentOuterMargin": true,
+    "bytes": 37742
+  },
+  {
+    "rank": 3,
+    "path": "art/jobs/sage_3.webp",
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      56,
+      8,
+      303,
+      364
+    ],
+    "transparentOuterMargin": true,
+    "bytes": 39826
+  },
+  {
+    "rank": 4,
+    "path": "art/jobs/sage_4.webp",
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      62,
+      12,
+      307,
+      364
+    ],
+    "transparentOuterMargin": true,
+    "bytes": 42216
+  },
+  {
+    "rank": 5,
+    "path": "art/jobs/sage_5.webp",
+    "size": [
+      360,
+      368
+    ],
+    "alphaBBox": [
+      42,
+      11,
+      315,
+      364
+    ],
+    "transparentOuterMargin": true,
+    "bytes": 47248
+  }
+]
