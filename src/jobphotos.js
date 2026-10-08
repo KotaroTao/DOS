@@ -188,6 +188,13 @@ export const JOB_PHOTOS = {
     4: { src: "art/jobs/chaplain_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.93] },
     5: { src: "art/jobs/chaplain_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.93] },
   },
+  thief: {
+    1: { src: "art/jobs/thief_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.705] },
+    2: { src: "art/jobs/thief_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.705] },
+    3: { src: "art/jobs/thief_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.725] },
+    4: { src: "art/jobs/thief_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.705] },
+    5: { src: "art/jobs/thief_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.725] },
+  },
   // <<JOB_PHOTOS>>
   hunter: {
     1: { src: "art/jobs/hunter_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.314] },
