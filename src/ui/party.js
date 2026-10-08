@@ -22,7 +22,7 @@ import { remember, setPref, getPref } from "./prefs.js";
 import {
   statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, weaponPerformanceEl, weaponPowerPreview,
 } from "./itemview.js";
-import { renderSoulSeg, openSoulPicker, openSoulList } from "./soulpanel.js";
+import { renderSoulSeg, openSoulPicker, openSoulList, openOrderSheet } from "./soulpanel.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
 import {
   planBestEquip, applyPlan, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isMeleeWeapon,
@@ -956,16 +956,36 @@ function formationEl(mode) {
     grp.appendChild(inn);
     wrap.appendChild(grp);
   }
-  if (town) { wrap.appendChild(benchButton()); wrap.appendChild(soulListButton()); }
+  if (town) {
+    // 右端: 人業 (控え) / 魂一覧 / 控えの結社 を縦に積む (顔の列の幅を削らない)
+    const side = el("div", "pt-side");
+    side.appendChild(benchButton());
+    side.appendChild(soulListButton());
+    const ob = orderButton();
+    if (ob) side.appendChild(ob);
+    wrap.appendChild(side);
+  }
   return wrap;
+}
+// 控えの結社 (魂一覧の右): 席の数。解放前は出さない (soulpanel.js openOrderSheet)
+function orderButton() {
+  if (!(game.featureUnlocked && game.featureUnlocked("order"))) return null;
+  const seats = game.orderSeats ? game.orderSeats() : 0;
+  const seated = game.orderSeatedUids ? game.orderSeatedUids().length : 0;
+  const b = el("button", "pt-bench pt-souls pt-order");
+  b.type = "button";
+  b.appendChild(el("span", "pt-bench-l", "結社"));
+  b.appendChild(el("span", "pt-bench-s", `${seated}/${seats}`));
+  b.setAttribute("aria-label", `控えの結社 席 ${seated}/${seats}`);
+  b.addEventListener("click", () => { if (picked) return; sfx("select"); openOrderSheet(true); });
+  return b;
 }
 // 魂一覧 (控えの右): 持っている魂を並べ、詳細・強化・融合・ロック・宿す操作 (soulpanel.js openSoulList)
 function soulListButton() {
   const G = G_();
   const b = el("button", "pt-bench pt-souls");
   b.type = "button";
-  b.appendChild(el("span", "pt-bench-l", "魂"));
-  b.appendChild(el("span", "pt-bench-s", "一覧"));
+  b.appendChild(el("span", "pt-bench-l", "魂一覧"));
   b.setAttribute("aria-label", `魂一覧 ${(G.souls || []).length}個`);
   b.addEventListener("click", () => { if (picked) return; openSoulList(); });
   return b;
@@ -998,7 +1018,7 @@ function benchButton() {
   const b = el("button", "pt-bench" + (picked ? " target" : ""));
   b.type = "button";
   b.dataset.drop = "bench";
-  b.appendChild(el("span", "pt-bench-l", "控え"));
+  b.appendChild(el("span", "pt-bench-l", "人業"));
   b.appendChild(el("span", "pt-bench-n", String((G.reserve || []).length)));
   b.setAttribute("aria-label", `控えの人業 ${(G.reserve || []).length}体`);
   b.addEventListener("click", () => {
