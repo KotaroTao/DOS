@@ -484,9 +484,10 @@ export function jobSkillTable(jobKey) { return JOB_SKILLS[jobKey] || []; }
 // 「育てれば街で無料鑑定できるが、確実さは商店が握る」という住み分け。
 //   司教 (bishop)・賢者 (sage) = 鑑定Lv2 (高精度) / 盗賊 (thief) = 鑑定Lv1 (簡易)
 // 成功率 (ユーザーの指示、2026-10): 鑑定する者の魂Lv が品の「適正Lv」(world.js itemFitLv = その品が落とし物の帯の
-// 真ん中に来る推奨Lv) と同じとき、レア度ごとの基準 IDENTIFY_BASE (コモン70% / アンコモン50% / レア30% / SR10%)。
+// 真ん中に来る推奨Lv) と同じとき、レア度ごとの基準 IDENTIFY_BASE (コモン70% / アンコモン50% / レア30% / SR10% / LR3%)。
+// レジェンドレアも技で鑑定できる (2026-10 ユーザーの指示: ただし SR よりさらに低い)。
 // Lv の差はロジット (log(p/(1−p))) に足し、差の効きは tanh で頭打ちにする — Lv をいくら離しても
-// ロジット ±IDENTIFY_SWING までしか動かない (コモン 41〜80% (上限) / アンコモン 23〜77% / レア 11〜59% / SR 3〜29%)。
+// ロジット ±IDENTIFY_SWING までしか動かない (コモン 41〜80% (上限) / アンコモン 23〜77% / レア 11〜59% / SR 3〜29% / LR 1〜9%)。
 // 差は比で測る ((魂Lv+5) ÷ (適正Lv+5)): 低Lv の数Lv の差も高Lv の数十Lv の差も、同じ「どれだけ上か」で効く。
 export const IDENTIFY_BASE = { c: 0.70, uc: 0.50, r: 0.30, sr: 0.10, lr: 0.03 };
 export const IDENTIFY_SWING = 1.2;  // Lv の差で動くロジットの上限 (上にも下にも)
@@ -517,7 +518,7 @@ export function identifyChance(member, it) {
   const jobLv = (member && (member.jobLv || member.level)) || 1;
   const fit = itemFitLv((it && it.lv) || 1);
   const ratio = Math.log((jobLv + IDENTIFY_LV_PAD) / (fit + IDENTIFY_LV_PAD));
-  const base = IDENTIFY_BASE[it && it.rar] || IDENTIFY_BASE.c;
+  const base = IDENTIFY_BASE[it && it.rar] || (it && it.lr ? IDENTIFY_BASE.lr : IDENTIFY_BASE.c);
   const z = logit(base) + j.shift + IDENTIFY_SWING * Math.tanh(ratio / IDENTIFY_SPAN) + appraiseBonus();
   return Math.min(IDENTIFY_CAP, 1 / (1 + Math.exp(-z)));
 }

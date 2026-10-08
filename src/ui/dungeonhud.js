@@ -16,8 +16,8 @@ import { el, sheet, row, setText, glyph, itemTile, portrait, bar, reduced } from
 import { getPref, setPref, remember, autoMoveAvoid } from "./prefs.js";
 import { sceneTransition } from "./motion.js";
 import { MONSTERS, ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
-import { ELEMENTS, monsterTraits, isFloating, unknownLabel } from "../dungeons/index.js";
-import { tagRow, traitTagKinds, affinityRow, revealSteps, monKills, enemyReveal, enemyLabel, revealLock, BUFF_NAME, setLogText, UNKNOWN_COLOR } from "./itemview.js";
+import { ELEMENTS, unknownLabel } from "../dungeons/index.js";
+import { revealSteps, monKills, BUFF_NAME, setLogText } from "./itemview.js";
 import { RARITIES } from "../rarity.js";
 import { effectStage, stageLabel, isBattleLong } from "../buffstage.js";
 import { SOUL_CLASSES, soulIcon, ATTR_LABEL } from "../souls.js";
@@ -492,57 +492,12 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
   });
 }
 
-// 敵の一枚: 討伐数・属性・残り体力・特徴とスキル (図鑑の記述)
-// 姿は最初から見せ、ほかは倒した数に応じて段階的に明かす (MON_REVEAL / enemyReveal):
-// 1体 = 名前 / 5体 = 属性とHP / 10体 = 特徴・スキルと説明文 (迷宮の主は名前が最初から、1体で全て)
+// 敵の一枚: 図鑑の魔物の一枚と同じ中身 (palace.js codexMonSheet) に、いまの残りHPと不確定名を添える
+// (ユーザーの指示、2026-10)。倒した数に応じて段階的に明かす (MON_REVEAL / enemyReveal):
+// 1体 = 名前 / 5体 = 属性・能力・HP / 10体 = 特徴・スキル・抵抗値・説明文 (迷宮の主・強敵は1体で全て)
 export function peekEnemy(e) {
-  if (!e) return null;
-  const m = e.mon || MONSTERS[e.key] || {};
-  const rv = enemyReveal(e);
-  const { special, kills } = rv;
-  const elem = rv.stats && e.element && ELEMENTS[e.element] && e.element !== "none" ? ELEMENTS[e.element] : null;
-  let traits = [];
-  if (rv.lore) { try { traits = monsterTraits(m) || []; } catch (er) { traits = []; } }
-  return sheet.open({
-    kind: "info", banner: e.boss ? "迷宮の主" : (m.elite ? "強敵" : "敵の姿"), className: "dg-sheet dg-enemy",
-    accent: e.boss || m.elite ? "#d4504e" : (elem ? elem.color : null),
-    art: m.art ? m : null, artScale: 4, float: isFloating(m, e.key),
-    title: enemyLabel(e), titleColor: rv.name ? null : UNKNOWN_COLOR,
-    body: (b) => {
-      if (!special) b.appendChild(el("div", "dg-en-kills", `討伐数 ${kills}体`));
-      if (!rv.name) b.appendChild(revealLock(rv.steps.name, "名前"));
-      if (rv.stats) {
-        // 名前の下は属性の印だけ (無属性なら出さない)
-        const et = elem && tagRow(["el:" + e.element], "dg-en-elem");
-        if (et) b.appendChild(et);
-        const hp = el("div", "dg-peek-bar wide");
-        hp.appendChild(el("span", "dg-peek-bl", "HP"));
-        hp.appendChild(bar(e.hp, e.maxhp, { tone: "hp" }));
-        hp.appendChild(el("span", "dg-peek-bv", `${Math.max(0, e.hp)}/${e.maxhp}`));
-        b.appendChild(hp);
-        const aff = affinityRow(e.element);
-        if (aff) b.appendChild(aff);
-      } else b.appendChild(revealLock(rv.steps.stats, "属性・HP"));
-      if (!rv.lore) { b.appendChild(revealLock(rv.steps.lore, "特徴・スキル・説明文")); return; }
-      if (traits.length) {
-        b.appendChild(section("特徴・スキル"));
-        const tl = el("div", "dg-traits");
-        for (const t of traits) {
-          const c = el("div", "dg-trait");
-          const hd = el("div", "dg-trait-h");
-          hd.appendChild(el("b", null, t.label));
-          const tg = tagRow(traitTagKinds(t.key, e.element));
-          if (tg) hd.appendChild(tg);
-          c.appendChild(hd);
-          c.appendChild(el("span", null, t.desc));
-          tl.appendChild(c);
-        }
-        b.appendChild(tl);
-      }
-      if (m.desc) b.appendChild(el("div", "dg-en-desc", m.desc));
-    },
-    footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }],
-  });
+  if (!e || !UI.codexMonSheet) return null;
+  return UI.codexMonSheet(e.key, { enemy: e });
 }
 
 // ================= 墨の帳 (階の移り変わり) =================
