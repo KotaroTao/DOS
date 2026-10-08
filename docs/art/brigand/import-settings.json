@@ -1,0 +1,94 @@
+{
+  "frame": [
+    90,
+    84
+  ],
+  "headHeightDots": 22.125,
+  "sources": [
+    {
+      "rank": 1,
+      "source": "docs/art/brigand/brigand-r1-final.png",
+      "perDot": 18.10844578313253,
+      "head": [
+        303,
+        363,
+        108,
+        508.64936295180723
+      ],
+      "visibleBounds": [
+        0,
+        108,
+        897,
+        1611
+      ]
+    },
+    {
+      "rank": 2,
+      "source": "docs/art/brigand/brigand-r2-final.png",
+      "perDot": 18.819289156626507,
+      "head": [
+        392,
+        452,
+        83,
+        499.37677259036144
+      ],
+      "visibleBounds": [
+        13,
+        83,
+        923,
+        1645
+      ]
+    },
+    {
+      "rank": 3,
+      "source": "docs/art/brigand/brigand-r3-final.png",
+      "perDot": 18.77109638554217,
+      "head": [
+        325,
+        385,
+        83,
+        498.3105075301205
+      ],
+      "visibleBounds": [
+        0,
+        83,
+        906,
+        1641
+      ]
+    },
+    {
+      "rank": 4,
+      "source": "docs/art/brigand/brigand-r4-final.png",
+      "perDot": 18.024108433734938,
+      "head": [
+        339,
+        399,
+        108,
+        506.7833990963855
+      ],
+      "visibleBounds": [
+        0,
+        108,
+        907,
+        1604
+      ]
+    },
+    {
+      "rank": 5,
+      "source": "docs/art/brigand/brigand-r5-final.png",
+      "perDot": 18.457843373493976,
+      "head": [
+        339,
+        399,
+        98,
+        506.3797846385542
+      ],
+      "visibleBounds": [
+        0,
+        98,
+        909,
+        1630
+      ]
+    }
+  ]
+}

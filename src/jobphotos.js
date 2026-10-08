@@ -20,7 +20,7 @@ export const JOB_PHOTOS = {
     5: { src: "art/jobs/exorcist_5.webp", w: 86, h: 88, face: [41, 12], head: [40.89, 2.64, 22.14] },
   },
   necromancer: {
-    1: { src: "art/jobs/necromancer_1.webp", w: 45, h: 83, face: [19, 11], head: [19.07, 0.0, 21.29] },
+    1: { src: "art/jobs/necromancer_1.webp", w: 45, h: 83, face: [19, 11], head: [19.07, 0.0, 22.125] },
     2: { src: "art/jobs/necromancer_2.webp", w: 48, h: 85, face: [22, 11], head: [21.75, 0.0, 21.21] },
     3: { src: "art/jobs/necromancer_3.webp", w: 52, h: 83, face: [22, 10], head: [21.61, 0.0, 20.36] },
     4: { src: "art/jobs/necromancer_4.webp", w: 65, h: 83, face: [24, 10], head: [23.89, 0.0, 20.21] },
@@ -82,6 +82,13 @@ export const JOB_PHOTOS = {
     3: { src: "art/jobs/hermit_3.webp", w: 50, h: 72, face: [22, 12], head: [21.55, 1.49, 21.89] },
     4: { src: "art/jobs/hermit_4.webp", w: 53, h: 72, face: [22, 11], head: [22.5, 1.22, 21.62] },
     5: { src: "art/jobs/hermit_5.webp", w: 57, h: 81, face: [22, 19], head: [22.16, 8.92, 29.32] },
+  },
+  brigand: {
+    1: { src: "art/jobs/brigand_1.webp", w: 90, h: 84, face: [45, 12], head: [45.0, 1.0, 23.125] },
+    2: { src: "art/jobs/brigand_2.webp", w: 90, h: 84, face: [45, 12], head: [45.0, 1.0, 23.125] },
+    3: { src: "art/jobs/brigand_3.webp", w: 90, h: 84, face: [45, 12], head: [45.0, 1.0, 23.125] },
+    4: { src: "art/jobs/brigand_4.webp", w: 90, h: 84, face: [45, 12], head: [45.0, 1.0, 23.125] },
+    5: { src: "art/jobs/brigand_5.webp", w: 90, h: 84, face: [45, 12], head: [45.0, 1.0, 23.125] },
   },
   arcthief: {
     1: { src: "art/jobs/arcthief_1.webp", w: 49, h: 83, face: [20, 11], head: [20.06, 0.0, 21.3] },
