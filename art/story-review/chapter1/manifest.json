@@ -1,0 +1,158 @@
+{
+  "chapter": 1,
+  "group": "第一章「師の灯」",
+  "created": "2026-10-08",
+  "status": "承認済・適用済",
+  "images": [
+    {
+      "id": "w01_lantern",
+      "title": "墓石の上の青い火",
+      "file": "w01_lantern.png",
+      "source": "/workspace/generated_images/exec-6bd321f1-a6f3-4cba-95d5-da070e4bfa65.png",
+      "width": 1536,
+      "height": 1024,
+      "status": "承認済・適用済",
+      "productionImage": "art/story/chapter1/w01_lantern.png"
+    },
+    {
+      "id": "report_w01",
+      "title": "閉ざされた回廊への許し",
+      "file": "report_w01.png",
+      "source": "/workspace/generated_images/exec-3445cca1-418d-4b66-acc0-00df87fc3c83.png",
+      "width": 1536,
+      "height": 1024,
+      "status": "承認済・適用済",
+      "productionImage": "art/story/chapter1/report_w01.png"
+    },
+    {
+      "id": "w02_sigil",
+      "title": "水音の向こうへ",
+      "file": "w02_sigil.png",
+      "source": "/workspace/generated_images/exec-8efd0401-cbce-4df2-b080-ca08521467d8.png",
+      "width": 1536,
+      "height": 1024,
+      "status": "承認済・適用済",
+      "productionImage": "art/story/chapter1/w02_sigil.png"
+    },
+    {
+      "id": "report_w02",
+      "title": "祈りの終わらない場所",
+      "file": "report_w02.png",
+      "source": "/workspace/generated_images/exec-5408fcc5-d955-4a3b-a33b-a340a2e987d7.png",
+      "width": 1536,
+      "height": 1024,
+      "status": "承認済・適用済",
+      "productionImage": "art/story/chapter1/report_w02.png"
+    },
+    {
+      "id": "mem_w03",
+      "title": "止められても進んだ人",
+      "file": "mem_w03.png",
+      "source": "/workspace/generated_images/exec-0c801cdf-f763-48fd-81ec-9f822cc0034d.png",
+      "width": 1536,
+      "height": 1024,
+      "status": "承認済・適用済",
+      "productionImage": "art/story/chapter1/mem_w03.png"
+    },
+    {
+      "id": "report_w03",
+      "title": "封じた者の沈黙",
+      "file": "report_w03.png",
+      "source": "/workspace/generated_images/exec-f88f76bc-2dfc-433f-9f0d-1c4e6dab96f6.png",
+      "width": 1536,
+      "height": 1024,
+      "status": "承認済・適用済",
+      "productionImage": "art/story/chapter1/report_w03.png"
+    },
+    {
+      "id": "w04_arm",
+      "title": "黒い流れが返したもの",
+      "file": "w04_arm.png",
+      "source": "/workspace/generated_images/exec-e4949685-65b1-45ff-bce7-06e9ca3d7a61.png",
+      "width": 1536,
+      "height": 1024,
+      "status": "承認済・適用済",
+      "productionImage": "art/story/chapter1/w04_arm.png"
+    },
+    {
+      "id": "irene_reveal",
+      "title": "手袋の下の継ぎ目",
+      "file": "irene_reveal.png",
+      "source": "/workspace/generated_images/exec-6d572081-85fb-4ef8-9a7e-7b52f7def6e6.png",
+      "width": 1536,
+      "height": 1024,
+      "status": "承認済・適用済",
+      "productionImage": "art/story/chapter1/irene_reveal.png"
+    },
+    {
+      "id": "report_w04",
+      "title": "答えを飲み込んだ王",
+      "file": "report_w04.png",
+      "source": "/workspace/generated_images/exec-58d42388-0f1a-4554-811b-01753344bfe2.png",
+      "width": 1536,
+      "height": 1024,
+      "status": "承認済・適用済",
+      "productionImage": "art/story/chapter1/report_w04.png"
+    },
+    {
+      "id": "minePass",
+      "title": "三つの宝と古い封",
+      "file": "minePass.png",
+      "source": "/workspace/generated_images/exec-0cb4be49-eaad-4519-8aec-2451c8167128.png",
+      "width": 1536,
+      "height": 1024,
+      "status": "承認済・適用済",
+      "productionImage": "art/story/chapter1/minePass.png"
+    },
+    {
+      "id": "mem_w05",
+      "title": "師が残した帰り道",
+      "file": "mem_w05.png",
+      "source": "/workspace/generated_images/exec-a168639f-0af3-4597-a89a-6fa60f390968.png",
+      "width": 1536,
+      "height": 1024,
+      "status": "承認済・適用済",
+      "productionImage": "art/story/chapter1/mem_w05.png"
+    },
+    {
+      "id": "report_w05",
+      "title": "捨て砦の門が開く",
+      "file": "report_w05.png",
+      "source": "/workspace/generated_images/exec-08b533cc-c563-4ca4-a278-7d124a6b66a9.png",
+      "width": 1536,
+      "height": 1024,
+      "status": "承認済・適用済",
+      "productionImage": "art/story/chapter1/report_w05.png"
+    },
+    {
+      "id": "irene_fort",
+      "title": "待つ者の願い",
+      "file": "irene_fort.png",
+      "source": "/workspace/generated_images/exec-b577be0b-6658-46c0-9d35-49fc96e277ca.png",
+      "width": 1536,
+      "height": 1024,
+      "status": "承認済・適用済",
+      "productionImage": "art/story/chapter1/irene_fort.png"
+    },
+    {
+      "id": "ch1_end",
+      "title": "灯を置いて、先へ",
+      "file": "ch1_end.png",
+      "source": "/workspace/generated_images/exec-a16b53a4-1c5a-4c3c-b0e5-affef66352c2.png",
+      "width": 1536,
+      "height": 1024,
+      "status": "承認済・適用済",
+      "productionImage": "art/story/chapter1/ch1_end.png"
+    },
+    {
+      "id": "irene_familiar",
+      "title": "名で呼べる距離",
+      "file": "irene_familiar.png",
+      "source": "/workspace/generated_images/exec-250cf809-1257-4f6d-8d52-6b0cb32ff137.png",
+      "width": 1536,
+      "height": 1024,
+      "status": "承認済・適用済",
+      "productionImage": "art/story/chapter1/irene_familiar.png"
+    }
+  ]
+}

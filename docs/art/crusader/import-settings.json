@@ -1,0 +1,90 @@
+{
+  "reference": "art/jobs/necromancer_1.webp",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "sources": [
+    {
+      "source": "docs/art/crusader/crusader-r1-final.png",
+      "perDot": 14.318455971049456,
+      "head": [
+        475,
+        603,
+        148,
+        462
+      ],
+      "alphaBBox": [
+        54,
+        113,
+        989,
+        1335
+      ]
+    },
+    {
+      "source": "docs/art/crusader/crusader-r2-final.png",
+      "perDot": 14.342581423401688,
+      "head": [
+        475,
+        603,
+        148,
+        462
+      ],
+      "alphaBBox": [
+        37,
+        111,
+        1052,
+        1337
+      ]
+    },
+    {
+      "source": "docs/art/crusader/crusader-r3-final.png",
+      "perDot": 14.463208685162845,
+      "head": [
+        475,
+        603,
+        147,
+        464
+      ],
+      "alphaBBox": [
+        30,
+        109,
+        1070,
+        1346
+      ]
+    },
+    {
+      "source": "docs/art/crusader/crusader-r4-final.png",
+      "perDot": 14.330518697225571,
+      "head": [
+        475,
+        603,
+        148,
+        462
+      ],
+      "alphaBBox": [
+        35,
+        108,
+        1076,
+        1336
+      ]
+    },
+    {
+      "source": "docs/art/crusader/crusader-r5-final.png",
+      "perDot": 14.402895054282267,
+      "head": [
+        475,
+        603,
+        148,
+        464
+      ],
+      "alphaBBox": [
+        17,
+        44,
+        1096,
+        1342
+      ]
+    }
+  ]
+}

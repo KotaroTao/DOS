@@ -97,5 +97,19 @@ export const JOB_PHOTOS = {
     4: { src: "art/jobs/arcthief_4.webp", w: 67, h: 84, face: [24, 11], head: [23.75, 0.07, 21.35] },
     5: { src: "art/jobs/arcthief_5.webp", w: 70, h: 86, face: [25, 12], head: [25.2, 2.13, 22.48] },
   },
+  paladin: {
+    1: { src: "art/jobs/paladin_1.webp", w: 90, h: 84, face: [45, 12], head: [45.0, 1.195, 23.164] },
+    2: { src: "art/jobs/paladin_2.webp", w: 90, h: 84, face: [45, 12], head: [45.0, 1.195, 23.306] },
+    3: { src: "art/jobs/paladin_3.webp", w: 90, h: 84, face: [45, 12], head: [45.0, 1.192, 22.92] },
+    4: { src: "art/jobs/paladin_4.webp", w: 90, h: 84, face: [45, 12], head: [45.0, 1.256, 23.27] },
+    5: { src: "art/jobs/paladin_5.webp", w: 90, h: 84, face: [45, 12], head: [45.0, 1.128, 22.95] },
+  },
+  crusader: {
+    1: { src: "art/jobs/crusader_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.93] },
+    2: { src: "art/jobs/crusader_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.893] },
+    3: { src: "art/jobs/crusader_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.918] },
+    4: { src: "art/jobs/crusader_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.912] },
+    5: { src: "art/jobs/crusader_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.94] },
+  },
   // <<JOB_PHOTOS>>
 };

@@ -1,0 +1,89 @@
+{
+  "frame": [
+    90,
+    84
+  ],
+  "reference": "art/jobs/necromancer_1.webp",
+  "sources": [
+    {
+      "source": "docs/art/paladin/paladin-r1-final.png",
+      "perDot": 15.349397590361447,
+      "head": [
+        470,
+        624,
+        50,
+        387.2
+      ],
+      "alphaBBox": [
+        62,
+        47,
+        967,
+        1321
+      ]
+    },
+    {
+      "source": "docs/art/paladin/paladin-r2-final.png",
+      "perDot": 15.421686746987952,
+      "head": [
+        470,
+        624,
+        46,
+        387
+      ],
+      "alphaBBox": [
+        49,
+        43,
+        1001,
+        1323
+      ]
+    },
+    {
+      "source": "docs/art/paladin/paladin-r3-final.png",
+      "perDot": 15.602409638554217,
+      "head": [
+        468,
+        622,
+        35,
+        374
+      ],
+      "alphaBBox": [
+        26,
+        32,
+        1033,
+        1327
+      ]
+    },
+    {
+      "source": "docs/art/paladin/paladin-r4-final.png",
+      "perDot": 15.614457831325302,
+      "head": [
+        460,
+        614,
+        36,
+        377
+      ],
+      "alphaBBox": [
+        22,
+        33,
+        1128,
+        1329
+      ]
+    },
+    {
+      "source": "docs/art/paladin/paladin-r5-final.png",
+      "perDot": 15.53012048192771,
+      "head": [
+        469,
+        623,
+        41,
+        382
+      ],
+      "alphaBBox": [
+        29,
+        38,
+        1135,
+        1327
+      ]
+    }
+  ]
+}

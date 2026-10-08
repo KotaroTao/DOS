@@ -1,0 +1,17 @@
+{
+  "status": "ユーザー確認済み。採用原画は crusader-r1-final.png。最終取り込み設定は import-settings.json。",
+  "source": "docs/art/crusader/crusader-r1-review.png",
+  "perDot": 14.27710843373494,
+  "head": [
+    475,
+    603,
+    148,
+    462
+  ],
+  "sole": 1333,
+  "frame": [
+    90,
+    88
+  ],
+  "reference": "art/jobs/necromancer_1.webp"
+}

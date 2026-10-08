@@ -1,0 +1,102 @@
+{
+  "sprites": [
+    {
+      "key": "necromancer",
+      "rank": 1,
+      "face": [
+        48,
+        17
+      ],
+      "head": [
+        48.07,
+        6,
+        28.125
+      ],
+      "w": 96,
+      "h": 90,
+      "src": "http://127.0.0.1:8000/art/jobs/necromancer_1.webp"
+    },
+    {
+      "key": "paladin",
+      "rank": 1,
+      "face": [
+        48,
+        17
+      ],
+      "head": [
+        48,
+        6.195,
+        28.164
+      ],
+      "w": 96,
+      "h": 90,
+      "src": "http://127.0.0.1:8000/art/jobs/paladin_1.webp"
+    },
+    {
+      "key": "paladin",
+      "rank": 2,
+      "face": [
+        48,
+        17
+      ],
+      "head": [
+        48,
+        6.195,
+        28.306
+      ],
+      "w": 96,
+      "h": 90,
+      "src": "http://127.0.0.1:8000/art/jobs/paladin_2.webp"
+    },
+    {
+      "key": "paladin",
+      "rank": 3,
+      "face": [
+        48,
+        17
+      ],
+      "head": [
+        48,
+        6.192,
+        27.92
+      ],
+      "w": 96,
+      "h": 90,
+      "src": "http://127.0.0.1:8000/art/jobs/paladin_3.webp"
+    },
+    {
+      "key": "paladin",
+      "rank": 4,
+      "face": [
+        48,
+        17
+      ],
+      "head": [
+        48,
+        6.256,
+        28.27
+      ],
+      "w": 96,
+      "h": 90,
+      "src": "http://127.0.0.1:8000/art/jobs/paladin_4.webp"
+    },
+    {
+      "key": "paladin",
+      "rank": 5,
+      "face": [
+        48,
+        17
+      ],
+      "head": [
+        48,
+        6.128,
+        27.95
+      ],
+      "w": 96,
+      "h": 90,
+      "src": "http://127.0.0.1:8000/art/jobs/paladin_5.webp"
+    }
+  ],
+  "canvasCount": 30,
+  "browserErrors": []
+}
