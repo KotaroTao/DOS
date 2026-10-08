@@ -14,7 +14,7 @@
       ],
       "w": 96,
       "h": 96,
-      "src": "http://127.0.0.1:8001/art/jobs/crusader_1.webp"
+      "src": "http://127.0.0.1:8002/art/jobs/crusader_1.webp"
     },
     {
       "key": "archbishop",
@@ -30,7 +30,7 @@
       ],
       "w": 96,
       "h": 96,
-      "src": "http://127.0.0.1:8001/art/jobs/archbishop_1.webp"
+      "src": "http://127.0.0.1:8002/art/jobs/archbishop_1.webp"
     },
     {
       "key": "archbishop",
@@ -46,7 +46,7 @@
       ],
       "w": 96,
       "h": 96,
-      "src": "http://127.0.0.1:8001/art/jobs/archbishop_2.webp"
+      "src": "http://127.0.0.1:8002/art/jobs/archbishop_2.webp"
     },
     {
       "key": "archbishop",
@@ -62,7 +62,7 @@
       ],
       "w": 96,
       "h": 96,
-      "src": "http://127.0.0.1:8001/art/jobs/archbishop_3.webp"
+      "src": "http://127.0.0.1:8002/art/jobs/archbishop_3.webp"
     },
     {
       "key": "archbishop",
@@ -78,7 +78,7 @@
       ],
       "w": 96,
       "h": 96,
-      "src": "http://127.0.0.1:8001/art/jobs/archbishop_4.webp"
+      "src": "http://127.0.0.1:8002/art/jobs/archbishop_4.webp"
     },
     {
       "key": "archbishop",
@@ -94,7 +94,7 @@
       ],
       "w": 96,
       "h": 96,
-      "src": "http://127.0.0.1:8001/art/jobs/archbishop_5.webp"
+      "src": "http://127.0.0.1:8002/art/jobs/archbishop_5.webp"
     }
   ],
   "canvasCount": 30,
