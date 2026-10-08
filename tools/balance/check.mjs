@@ -1,6 +1,6 @@
 // 共通戦闘計算の回帰確認。乱数を固定して実ダメージとオートの期待値も比較する。
 import assert from 'node:assert/strict';
-import { Battle, SPELLS, luckCritBonus, attackSpellPower, healingPower, setElemKnown } from '../../src/combat.js';
+import { Battle, SPELLS, luckCritBonus, attackSpellPower, healingPower, setElemKnown, spellCost, soulCostAdd, soulPowerMul, soulTierRate, spellMpLabel, SOUL_POWER_K } from '../../src/combat.js';
 import { makeDoll } from '../../src/souls.js';
 import { MONSTERS } from '../../src/sprites.js';
 import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
@@ -158,6 +158,46 @@ for(const [key,sp] of Object.entries(SPELLS)){
  count++;
 }
 console.log(`全${count}技を実行。会心・耐性・命中・攻撃/回復の見積もりを実測確認`);
+// 魂の格: 消費MP = 技のMP + メイン魂のMP × 格の割合 (〜6:2% / 〜13:4% / 〜24:6% / 25〜:8%)。威力 × (1 + 0.8 × (1 − 基本 ÷ 消費))
+{
+ const kinds={phys:0,atk:0,heal:0};
+ for(const [key,sp] of Object.entries(SPELLS)){
+  const r=soulTierRate(sp);
+  if(sp.mpPct||sp.gravity||!(sp.mp>0)||!['phys','atk','heal','mana'].includes(sp.kind)){assert.equal(r,0,key);continue;}
+  assert.equal(r,sp.mp<=6?.02:sp.mp<=13?.04:sp.mp<=24?.06:.08,key);
+  assert.equal(spellMpLabel(sp),`MP ${sp.mp}＋魂のMP×${Math.round(r*100)}%`,key);
+  const a=actor();a.soulMp=500;
+  const add=soulCostAdd(a,sp),mul=soulPowerMul(a,sp);
+  assert.equal(add,Math.round(500*r),key);assert.equal(spellCost(a,sp),sp.mp+add,key);
+  assert(mul>1&&mul<1+SOUL_POWER_K,key);assert(Math.abs(mul-(1+SOUL_POWER_K*(1-sp.mp/(sp.mp+add))))<1e-12,key);
+  // 装備などで足した最大MPは消費に響かない
+  a.maxmp+=999;assert.equal(spellCost(a,sp),sp.mp+add,key);
+  if(sp.kind in kinds)kinds[sp.kind]++;
+ }
+ // 実際の威力にも乗る (攻撃呪文・回復・物理技)。見積もりも同じ倍率
+ const pick=(kind)=>Object.keys(SPELLS).find(k=>{const sp=SPELLS[k];return sp.kind===kind&&sp.target==='enemy'&&!sp.gravity&&!sp.hits&&!sp.scatter&&!sp.execute&&!sp.prey&&!sp.instakill&&!sp.drain&&!sp.mpDrain&&!sp.critBonus&&!sp.element&&soulTierRate(sp);});
+ for(const kind of ['atk','phys']){
+  const key=pick(kind),sp=SPELLS[key];
+  const run=(soulMp)=>{const a=actor(),t=foe();a.soulMp=soulMp;const b=new Battle([a],[t],()=>{});let sum=0;const n=3000;
+   for(let i=0;i<n;i++){t.hp=t.maxhp;t.alive=true;a.mp=a.maxmp;sum+=b._exec({actor:a,action:'spell',spellKey:key,target:t}).hits.reduce((x,h)=>x+(h.target===t?(h.dmg||0):0),0);}
+   return {avg:sum/n,est:kind==='atk'?b.estSpell(a,sp,t):b.estPhys(a,t,{...sp,power:sp.power*soulPowerMul(a,sp),skill:true}),a};};
+  const lo=run(0),hi=run(800);
+  close(Math.round(hi.avg),Math.round(hi.est),`魂の格 ${sp.name}`);
+  assert(hi.avg>lo.avg*1.1,`魂の格で ${sp.name} の威力が上がる`);
+ }
+ { const key=Object.keys(SPELLS).find(k=>SPELLS[k].kind==='heal'&&SPELLS[k].target==='ally'&&!SPELLS[k].revivePct&&soulTierRate(SPELLS[k])),sp=SPELLS[key];
+   const a=actor();a.soulMp=800;const b=new Battle([a],[foe()],()=>{});let sum=0;const n=3000;
+   for(let i=0;i<n;i++){a.hp=1;a.mp=a.maxmp;sum+=b._exec({actor:a,action:'spell',spellKey:key,target:a}).hits.reduce((x,h)=>x+(h.heal||0),0);}
+   close(Math.round(sum/n),Math.round(b.estHeal(a,sp)),`魂の格 ${sp.name}`); }
+ // MP吸収はその技の消費MPまで
+ { const key=Object.keys(SPELLS).find(k=>SPELLS[k].mpDrain&&SPELLS[k].kind==='phys'&&SPELLS[k].target==='enemy'),sp=SPELLS[key];
+   const a=actor(),t=foe();a.atk=5000;a.soulMp=300;const b=new Battle([a],[t],()=>{});
+   for(let i=0;i<50;i++){a.mp=1000;t.hp=t.maxhp;t.alive=true;b._exec({actor:a,action:'spell',spellKey:key,target:t});assert(a.mp<=1000,`${sp.name}: 吸収が消費を超えた (${a.mp})`);} }
+ // 魔力循環は1回で最大MPの 2/3/4% まで
+ for(const lv of [1,2,3]){ const a=actor(),t=foe();a.atk=5000;a.maxmp=1000;a.passiveMap={bmManaCycle:lv};const b=new Battle([a],[t],()=>{});
+   for(let i=0;i<30;i++){a.mp=0;t.hp=t.maxhp;t.alive=true;b._exec({actor:a,action:'attack',target:t});assert(a.mp<=[0,20,30,40][lv],`魔力循環Lv${lv}: ${a.mp}`);} }
+ console.log(`魂の格: 物理${kinds.phys}・攻撃呪文${kinds.atk}・回復${kinds.heal}技の消費/威力/表記、実測と見積もり、MP吸収・魔力循環の上限を確認`);
+}
 // 出来事の全選択肢を、成功/失敗の乱数と傷・異常・死者がいる条件で確認する。
 let choices=0;
 for(const random of [.01,.99]){

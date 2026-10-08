@@ -619,6 +619,8 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
 }
 .pt-skm-nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pt-skm-n .pt-skill-c { margin-left: auto; flex: 0 0 auto; }
+.pt-skm-n .pt-skill-c.two { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; white-space: nowrap; }
+.pt-skill-ct { font-size: 9.5px; color: #7f9fd6; }
 .pt-skm-n .pt-skill-tags { flex: 0 0 auto; }
 .pt-skm-row.off .pt-skm-n { opacity: 0.45; border-style: dashed; }
 .pt-skm-mv {

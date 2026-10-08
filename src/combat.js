@@ -400,11 +400,39 @@ function markStatus(res, t, tags) {
 
 // 省詠唱 (chant) 込みの実効MPコスト
 // 技の消費MPの表示 (「MP6」/ 最大MPの割合で払う探りの術は「MP 最大の30%」)
-export function spellMpLabel(sp) { return sp && sp.mpPct ? `MP 最大の${Math.round(sp.mpPct * 100)}%` : `MP${sp ? sp.mp : 0}`; }
+// 魂の格 (2026-10): 威力を持つ技 (物理技・攻撃呪文・回復・MP譲渡) は、消費MPに
+// 「メイン魂そのもののMP (souls.js recalcDoll の doll.soulMp。装備・サブ魂・結社で足した分は含まない) × 格の割合」が乗り、
+// 足した分だけ威力も上がる: 威力 × (1 + 0.8 × (1 − 基本の消費 ÷ 魂の格込みの消費))。×1.8 へなだらかに近づき、届かない。
+// 割合は技に書いた消費MPで決まる (〜6 = 2% / 〜13 = 4% / 〜24 = 6% / 25〜 = 8%)。
+// 割合ダメージの重力・最大MPの割合で払う探りの術・消費MP0の技は対象外。省詠唱などの軽減は魂の格込みの消費に掛かる
+export const SOUL_TIER_RATES = [[6, 0.02], [13, 0.04], [24, 0.06], [Infinity, 0.08]];
+export const SOUL_POWER_K = 0.8;
+const SOUL_TIER_KINDS = new Set(["phys", "atk", "heal", "mana"]);
+export function soulTierRate(sp) {
+  if (!sp || sp.mpPct || sp.gravity || !(sp.mp > 0) || !SOUL_TIER_KINDS.has(sp.kind)) return 0;
+  return SOUL_TIER_RATES.find(([m]) => sp.mp <= m)[1];
+}
+// 魂の格で足される消費MP (軽減の前)
+export function soulCostAdd(actor, sp) {
+  const r = soulTierRate(sp);
+  return r ? Math.round(((actor && actor.soulMp) || 0) * r) : 0;
+}
+// 魂の格による威力の倍率 (1 以上)
+export function soulPowerMul(actor, sp) {
+  const add = soulCostAdd(actor, sp);
+  return add > 0 ? 1 + SOUL_POWER_K * (1 - sp.mp / (sp.mp + add)) : 1;
+}
+// 技の消費MPの表記 (図鑑・技の詳細): 「MP 13＋魂のMP×4%」。戦闘の一覧は spellCost の実際の値を出す
+export function spellMpLabel(sp) {
+  if (!sp) return "MP 0";
+  if (sp.mpPct) return `MP 最大の${Math.round(sp.mpPct * 100)}%`;
+  const r = soulTierRate(sp);
+  return r ? `MP ${sp.mp}＋魂のMP×${Math.round(r * 100)}%` : `MP ${sp.mp || 0}`;
+}
 export function spellCost(actor, sp) {
   // 探りの術 (mpPct): 唱える者の最大MPの割合を払う (軽減は効かない)
   if (sp.mpPct) return Math.max(1, Math.ceil(((actor && actor.maxmp) || 0) * sp.mpPct));
-  let mp = sp.mp;
+  let mp = sp.mp + soulCostAdd(actor, sp); // 魂の格
   const c = pv(actor, "chant");
   if (c) mp = Math.ceil(mp * (c >= 2 ? 0.7 : 0.85));
   if (actor && actor.spellCostMul) mp = Math.ceil(mp * actor.spellCostMul); // 賢者の冠: MP消費を割合カット
@@ -2014,11 +2042,12 @@ export class Battle {
       res.hits.push({ target: tgt, dmg: extra, died });
       if (died) h = { ...h, died: true };
     }
-    // 魔力循環 (魔闘士): 通常攻撃で与えたダメージの 5/10/15% だけ MP を回復
+    // 魔力循環 (魔闘士): 通常攻撃で与えたダメージの 5/10/15% だけ MP を回復 (1回で最大MPの 2/3/4% まで)
     const mc = pv(actor, "bmManaCycle");
     const dealt = ((h && !h.miss && h.dmg) || 0) + extra;
     if (mc && dealt > 0 && actor.maxmp && actor.mp < actor.maxmp) {
-      const gain = Math.max(1, Math.round(dealt * ([0, 0.05, 0.10, 0.15][Math.min(3, mc)] || 0)));
+      const lv = Math.min(3, mc);
+      const gain = Math.max(1, Math.min(Math.ceil(actor.maxmp * [0, 0.02, 0.03, 0.04][lv]), Math.round(dealt * ([0, 0.05, 0.10, 0.15][lv] || 0))));
       actor.mp = Math.min(actor.maxmp, actor.mp + gain);
       this.log(`${actor.name}の魔力循環 (MP+${gain})`, "heal");
     }
@@ -2374,7 +2403,7 @@ export class Battle {
       let em = elemSeen(t) ? elemDmgMult(sp.element || "none", aLv, t.element || "none", edefOf(t)) : 1;
       if (em < 1 && pv(actor, "elemFloor")) em = 1;
       em *= this._vulnMul(t, sp.element);
-      dmg = Math.max(1, varianceMean(attackSpellPower(sp, intv)) * this._lowHpMul(actor) - Math.floor(this._evit(t) * 0.2)) * em;
+      dmg = Math.max(1, varianceMean(attackSpellPower(sp, intv) * soulPowerMul(actor, sp)) * this._lowHpMul(actor) - Math.floor(this._evit(t) * 0.2)) * em;
       if (t.magWeak > 1) dmg *= t.magWeak;
       if (sp.prey && sp.prey.races.includes(enemyRace(t))) dmg *= sp.prey.mul;
     }
@@ -2392,7 +2421,7 @@ export class Battle {
   // 回復呪文の1人あたりの期待回復量 (揺らぎの平均込み)
   estHeal(actor, sp) {
     const aMul = pv(actor, "asceticism") && actor.maxhp && actor.hp <= actor.maxhp * 0.3 ? 1.3 : 1;
-    return varianceMean(healingPower(sp.power, (actor.pie || 0) * this._bm(actor, "pie")) * aMul * (1 + this._perkSum(actor, "heal")));
+    return varianceMean(healingPower(sp.power, (actor.pie || 0) * this._bm(actor, "pie")) * soulPowerMul(actor, sp) * aMul * (1 + this._perkSum(actor, "heal")));
   }
   // 攻撃後の全体回復は、回復呪文とは別のPIE係数(0.3)を持つ。
   estPartyHeal(actor, power) {
@@ -2446,7 +2475,7 @@ export class Battle {
       // 物理技は通常攻撃と同じ計算系 (倍率/多段/会心/弱体)。element 持ちは属性が乗る
       const chargeMul = this._takeCharge(actor); // 溜め: この技の全段に乗る
       const popt = {
-        power: sp.power, critBonus: sp.critBonus, debuff: sp.debuff, debuffDur: sp.dur, element: sp.element,
+        power: sp.power * soulPowerMul(actor, sp), critBonus: sp.critBonus, debuff: sp.debuff, debuffDur: sp.dur, element: sp.element, // 魂の格
         intScale: sp.intScale, agiScale: sp.agiScale, vitScale: sp.vitScale, pieScale: sp.pieScale,
         acc: sp.acc, pierce: sp.pierce, desperate: sp.desperate, execute: sp.execute, prey: sp.prey,
         chargeMul, name: sp.name, skill: true,
@@ -2507,7 +2536,7 @@ export class Battle {
           if (em < 1 && pv(actor, "elemFloor")) em = 1; // 森羅の理: 属性不利が出ない
           em *= this._vulnMul(t, sp.element); // 属性耐性ダウン
           // 攻撃呪文の威力は術者の INT で伸びる。低HP補正 (荒行の果て) も乗る
-          const power = attackSpellPower(sp, intv);
+          const power = attackSpellPower(sp, intv) * soulPowerMul(actor, sp); // 魂の格
           dmg = Math.max(1, Math.round(variance(power) * this._lowHpMul(actor)) - Math.floor(this._evit(t) * 0.2));
           if (em !== 1) dmg = Math.max(1, Math.round(dmg * em));
           // 魔法弱点: 攻撃呪文の被ダメが増える (「魔法に弱い」)
@@ -2617,7 +2646,7 @@ export class Battle {
     } else if (sp.kind === "mana") {
       // 魔力の譲渡: 味方の MP を回復する (術者の INT で少し伸びる)
       const t = (cmd.target && cmd.target.alive) ? cmd.target : actor;
-      const gain = Math.max(1, Math.round(variance(sp.power + (actor.int || 0) * 0.25)));
+      const gain = Math.max(1, Math.round(variance((sp.power + (actor.int || 0) * 0.25) * soulPowerMul(actor, sp)))); // 魂の格
       const before = t.mp;
       t.mp = Math.min(t.maxmp || 0, t.mp + gain);
       this.log(`${t.name}のMPが ${t.mp - before} 回復`, "heal");
@@ -2625,7 +2654,7 @@ export class Battle {
     } else if (sp.kind === "heal") {
       // 回復量は術者の PIE で伸びる。荒行の果て (低HP時) は回復も+30%
       const aMul = pv(actor, "asceticism") && actor.maxhp && actor.hp <= actor.maxhp * 0.3 ? 1.3 : 1;
-      const healPower = healingPower(sp.power, (actor.pie || 0) * this._bm(actor, "pie")) * aMul * (1 + this._perkSum(actor, "heal")); // 固有パッシブ (heal)
+      const healPower = healingPower(sp.power, (actor.pie || 0) * this._bm(actor, "pie")) * soulPowerMul(actor, sp) * aMul * (1 + this._perkSum(actor, "heal")); // 固有パッシブ (heal)
       // 全体回復
       if (sp.target === "all-ally") {
         let cured = false, revivedAny = false;
@@ -2693,7 +2722,8 @@ export class Battle {
       res.hits.push({ target: actor, heal });
     }
     if (dealt > 0 && sp.mpDrain && actor.maxmp) {
-      const gain = Math.max(1, Math.round(dealt * sp.mpDrain));
+      // 吸収は「その技の消費MP」まで (2026-10: 与ダメ比例のままだと撃つほど MP が増えた)。叡智の極み・重詠で払わなかった時も同じ上限
+      const gain = Math.max(1, Math.min(spellCost(actor, sp), Math.round(dealt * sp.mpDrain)));
       actor.mp = Math.min(actor.maxmp, actor.mp + gain);
       this.log(`${actor.name}はMPを吸い取った (MP+${gain})`, "heal");
     }
