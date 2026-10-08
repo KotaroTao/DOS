@@ -13,7 +13,7 @@ import { showSkillPopup, SPELL_KIND_LABEL } from "./itemview.js";
 import {
   SOUL_CLASSES, jobSprite, jobBust, soulByUid, soulRankOf, soulLevelCapOf, emberCostOf, nextRankThreshold, jobRankName, soulSeriesName,
   soulLearnedSkills, soulLearnedPassives, soulLabel, soulRankLeft, passiveName, passiveDesc, orderStatBonus, orderStatRateOfRank, ORDER_STAT_RATES,
-  jobSkillTable, recalcDoll, subPicks, subPickCap, toggleSubPick, subPickIndex,
+  jobSkillTable, recalcDoll, subPicks, subPickCap, toggleSubPick, subPickIndex, jobStatsOf, subStatRateOfRank,
 } from "../souls.js";
 import { SPELLS, spellMpLabel } from "../combat.js";
 import { crispCanvas } from "../sprites.js";
@@ -595,6 +595,236 @@ function pickerBody(root, d, slotId, h) {
   }
   if (!souls.length) list.appendChild(el("div", "pt-note c", "魂を持っていない。迷宮で集めよう。"));
   root.appendChild(list);
+}
+
+// ================= 魂一覧 (隊列の「控え」の右から) =================
+// 持っている魂をすべて並べ、魂ごとに 詳細 (能力・覚えた技) / 魂を強化 / 魂融合 / ロック / パーティの人業のメイン・サブに宿す を行う
+const SLOT_NAME = (slotId) => (slotId === "primary" ? "メイン魂" : `サブ魂${+slotId.slice(3) + 1}`);
+// 魂を宿している人業と差し口 (無ければ null)
+function soulHome(uid) {
+  for (const dd of allDolls()) {
+    if (dd.primary === uid) return { doll: dd, slotId: "primary" };
+    const i = (dd.subs || []).findIndex((x) => x && x.uid === uid);
+    if (i >= 0) return { doll: dd, slotId: "sub" + i };
+  }
+  return null;
+}
+function soulTags(s) {
+  const tags = [];
+  const home = soulHome(s.uid);
+  const G = G_();
+  if (home) tags.push(`${home.doll.name}${(G.reserve || []).includes(home.doll) ? "（控え）" : ""}の${SLOT_NAME(home.slotId)}`);
+  else if ((game.orderSeatedUids ? game.orderSeatedUids() : []).includes(s.uid)) tags.push("控えの結社に着席中");
+  else tags.push("宿していない");
+  return tags.join(" ・ ");
+}
+export function openSoulList() {
+  const G = G_();
+  if (!G || G.state !== "town") return null;
+  sfx("select");
+  let h = null;
+  const again = () => refreshSheet(h);
+  h = sheet.open({
+    kind: "info", banner: "魂一覧", className: "sp-pick-sheet sp-list-sheet",
+    body: (scroll) => {
+      const souls = [...(G.souls || [])].sort(game.soulSortCmp || (() => 0));
+      scroll.appendChild(el("div", "pt-note", `所持 ${souls.length} 個 ・ 所持 ✦${G.soulPts || 0} ・ 魂を選ぶと、詳細・強化・融合・ロック・宿す操作ができる。`));
+      const list = el("div", "pt-list sp-plist");
+      for (const s of souls) {
+        const cl = SOUL_CLASSES[s.clsKey]; if (!cl) continue;
+        const rank = soulRankOf(s);
+        const r = el("div", "sp-srow");
+        r.style.setProperty("--glow", cl.glow);
+        const main = el("button", "sp-srow-main");
+        main.type = "button";
+        main.appendChild(orb(s.clsKey, rank, 36));
+        const tx = el("span", "sp-srow-t");
+        const nm = el("span", "sp-srow-n", soulLabel(s));
+        nm.style.color = cl.glow;
+        if (s.locked) nm.appendChild(svgIcon("lock", "sp-srow-lk"));
+        tx.appendChild(nm);
+        tx.appendChild(el("span", "sp-srow-m", `Lv${s.level}/${soulLevelCapOf(s)} ・ ランク${rank} ・ ${RARITY_NAME[cl.rarity] || ""}`));
+        tx.appendChild(el("span", "sp-srow-tag", soulTags(s)));
+        main.appendChild(tx);
+        main.addEventListener("click", () => openSoulDetail(s.uid, again));
+        r.appendChild(main);
+        list.appendChild(r);
+      }
+      if (!souls.length) list.appendChild(el("div", "pt-note c", "魂を持っていない。迷宮で集めよう。"));
+      scroll.appendChild(list);
+    },
+    footer: [{ label: "閉じる", kind: "ghost", onTap: (x) => x.close() }],
+  });
+  return h;
+}
+// 魂の詳細: 能力 (メイン魂として / サブ魂・結社で足す分)・覚えた技とパッシブ、操作のボタン
+export function openSoulDetail(uid, onChange = null) {
+  const G = G_();
+  if (!G || G.state !== "town" || !soulByUid(uid)) return null;
+  sfx("select");
+  let h = null;
+  // 操作の後は本文もフッターも作り直す (強化で上限に届いた・ロックの切り替え・融合で素材になった)
+  const again = () => {
+    if (h && !h.closed) { const top = h.body ? h.body.scrollTop : 0; h.update({ footer: footer() }); if (h.body) h.body.scrollTop = top; }
+    if (onChange) onChange();
+  };
+  const body = (scroll) => {
+    const s = soulByUid(uid);
+    if (!s) { scroll.appendChild(el("div", "pt-note c", "この魂はもう無い (魂融合の素材になった)。")); return; }
+    const cl = SOUL_CLASSES[s.clsKey] || {};
+    const rank = soulRankOf(s);
+    const cap = soulLevelCapOf(s);
+    const head = el("div", "sp-train-h");
+    head.appendChild(orb(s.clsKey, rank, 44));
+    const tx = el("div", "sp-train-t");
+    const nm = el("div", "sp-srow-n", soulLabel(s));
+    if (cl.glow) nm.style.color = cl.glow;
+    if (s.locked) nm.appendChild(svgIcon("lock", "sp-srow-lk"));
+    tx.appendChild(nm);
+    tx.appendChild(el("div", "sp-srow-m", `「${jobRankName(s.clsKey, rank) || cl.label}」 ・ Lv${s.level}/${cap} ・ ランク${rank} ・ ${RARITY_NAME[cl.rarity] || ""}`));
+    if (soulRankLeft(s)) tx.appendChild(el("div", "sp-srow-m", soulRankLeft(s)));
+    tx.appendChild(el("div", "sp-srow-tag", soulTags(s)));
+    head.appendChild(tx);
+    scroll.appendChild(head);
+    // 次の段までの ✦
+    const need = game.soulTrainCost ? game.soulTrainCost(s.level) : 0;
+    const prog = el("div", "sp-prog sp-lv");
+    if (s.level < cap) {
+      prog.appendChild(bar(Math.min(need, s.exp || 0), need, { tone: "soul" }));
+      prog.appendChild(el("span", "sp-prog-v", `✦${s.exp || 0} / ${need}`));
+    } else {
+      prog.appendChild(bar(1, 1, { tone: "gold" }));
+      prog.appendChild(el("span", "sp-prog-v cap", "上限"));
+    }
+    scroll.appendChild(prog);
+    // 能力: メイン魂として宿した時の素の値 / サブ魂・結社で足す分
+    const st = jobStatsOf(s.clsKey, s);
+    const tbl = el("div", "sp-sd-tbl");
+    const subR = subStatRateOfRank(rank), ordR = orderStatRateOfRank(rank);
+    const hrow = el("div", "sp-sd-r h");
+    for (const t of ["", "メイン", `サブ ${Math.round(subR * 100)}%`, `結社 ${Math.round(ordR * 100)}%`]) hrow.appendChild(el("span", "", t));
+    tbl.appendChild(hrow);
+    const fmt = (v) => { const r = Math.round(v * 10) / 10; return String(Number.isInteger(r) ? r : r.toFixed(1)); };
+    for (const k in STAT_L) {
+      const v = st[k] || 0;
+      const rr = el("div", "sp-sd-r");
+      rr.appendChild(el("span", "k", STAT_L[k]));
+      rr.appendChild(el("span", "", fmt(v)));
+      rr.appendChild(el("span", "", "+" + fmt(v * subR)));
+      rr.appendChild(el("span", "", "+" + fmt(v * ordR)));
+      tbl.appendChild(rr);
+    }
+    scroll.appendChild(el("div", "sp-sd-h", "能力"));
+    scroll.appendChild(tbl);
+    scroll.appendChild(el("div", "pt-note", "メイン = メイン魂として宿した時の魂の能力 (装備・パッシブは含まない)。サブ・結社 = 足される分のめやす。"));
+    // 覚えた技・パッシブ (タップで技の説明)
+    const sks = soulLearnedSkills(s).filter((k) => SPELLS[k]);
+    const pss = Object.entries(soulLearnedPassives(s) || {});
+    scroll.appendChild(el("div", "sp-sd-h", `覚えた技 ${sks.length} ・ パッシブ ${pss.length}`));
+    const chips = el("div", "sp-sd-chips");
+    for (const k of sks) {
+      const b = el("button", "sp-sd-chip", SPELLS[k].name);
+      b.type = "button";
+      b.addEventListener("click", () => showSkillPopup(k));
+      chips.appendChild(b);
+    }
+    for (const [key, lv] of pss) {
+      const c = el("button", "sp-sd-chip ps", passiveName(key, lv));
+      c.type = "button";
+      c.addEventListener("click", () => toast(`${passiveName(key, lv)} ― ${passiveDesc(key, lv) || ""}`, { tone: "info" }));
+      chips.appendChild(c);
+    }
+    if (!sks.length && !pss.length) chips.appendChild(el("span", "pt-note", "まだ技を覚えていない。"));
+    scroll.appendChild(chips);
+    const nxSkill = jobSkillTable(s.clsKey).find((t) => t.skill && t.lvl > s.level && SPELLS[t.skill]);
+    if (nxSkill) scroll.appendChild(el("div", "sp-note", `次の技: Lv${nxSkill.lvl}「${SPELLS[nxSkill.skill].name}」`));
+  };
+  const footer = () => {
+    const s = soulByUid(uid);
+    if (!s) return [{ label: "閉じる", kind: "ghost", onTap: (x) => x.close() }];
+    const items = [];
+    items.push({ label: "宿す", sub: "パーティのメイン・サブに", kind: "primary", onTap: () => openHostSheet(uid, again) });
+    if (s.level < soulLevelCapOf(s)) items.push({ label: "魂を強化", sub: `Lv${s.level} → ${s.level + 1}`, kind: "secondary", onTap: () => openTrainSheet(uid, again) });
+    if (game.featureUnlocked?.("fusion")) {
+      const rep = game.soulRepresentatives().find((x) => x.clsKey === s.clsKey);
+      const n = rep && game.fuseCandidates ? game.fuseCandidates(rep.uid).length : 0;
+      if (n) items.push({ label: `魂融合 ${n}`, sub: rep.uid === uid ? "同じ職業の魂をこの魂へ" : `代表の「${soulLabel(rep)}」へ`, kind: "secondary", onTap: () => openFusePicker(uid, again) });
+    }
+    if (game.toggleSoulLock) items.push({ label: s.locked ? "ロックを外す" : "ロック", icon: s.locked ? "unlock" : "lock", kind: "ghost", size: "sm",
+      onTap: () => { const on = game.toggleSoulLock(uid); sfx("select"); toast(on ? `${soulLabel(s)}をロックした ― 魂融合の素材にならない` : `${soulLabel(s)}のロックを外した`, { tone: "info" }); again(); } });
+    items.push({ label: "閉じる", kind: "ghost", size: "sm", onTap: (x) => x.close() });
+    return items;
+  };
+  h = sheet.open({ kind: "info", banner: "魂の詳細", className: "sp-pick-sheet sp-sd-sheet", body, footer: footer(),
+    onClose: () => { if (onChange) onChange(); } });
+  return h;
+}
+// 魂を宿す先を選ぶ: パーティの人業 × メイン魂 / サブ魂N。選べない差し口は理由を添えて灰色に
+function openHostSheet(uid, onDone = null) {
+  const G = G_();
+  const s = soulByUid(uid);
+  if (!G || G.state !== "town" || !s) return null;
+  sfx("select");
+  let h = null;
+  const subN = game.unlockedSubSlots ? game.unlockedSubSlots() : 0;
+  const mainOk = !!game.featureUnlocked?.("soulChange");
+  const isRep = game.soulRepresentatives().some((x) => x.uid === uid);
+  const body = (scroll) => {
+    scroll.appendChild(el("div", "pt-note", `「${soulLabel(s)}」を宿す人業と差し口を選ぶ。${subN ? "" : "サブ魂はまだ開いていない。"}`));
+    const list = el("div", "pt-list");
+    for (const d of G.party) {
+      const blk = el("div", "sp-host");
+      const hd = el("div", "sp-host-h");
+      hd.appendChild(el("span", "sp-host-n", d.name));
+      const pe = d.primary != null ? soulByUid(d.primary) : null;
+      hd.appendChild(el("span", "sp-host-j", pe ? soulLabel(pe) : "魂なし"));
+      blk.appendChild(hd);
+      const slots = el("div", "sp-host-s");
+      const ids = [...(mainOk ? ["primary"] : []), ...Array.from({ length: subN }, (_, i) => "sub" + i)];
+      for (const slotId of ids) {
+        const curUid = slotId === "primary" ? d.primary : ((d.subs || [])[+slotId.slice(3)] || {}).uid;
+        const cur = curUid != null ? soulByUid(curUid) : null;
+        const here = curUid === uid;
+        let why = "";
+        if (here) why = "宿している";
+        else if (slotId === "primary" && !isRep) why = "余った魂は融合へ";
+        else if (game.soulSlotConflict(d, uid, slotId)) why = "職業が重なる";
+        else if (game.soulWornByOther && game.soulWornByOther(uid, d)) why = "他の人業が宿している";
+        else if (slotId !== "primary" && d.primary == null) why = "メイン魂が無い";
+        const dl = why ? null : previewSoul(d, slotId, uid);
+        const b = el("button", "sp-host-b" + (here ? " cur" : ""));
+        b.type = "button";
+        b.disabled = !!why;
+        b.appendChild(el("span", "sp-host-k", SLOT_NAME(slotId)));
+        b.appendChild(el("span", "sp-host-c", why || (cur ? `${soulLabel(cur)} と入れ替え` : "空き")));
+        if (dl) b.appendChild(statDelta(dl));
+        b.addEventListener("click", () => {
+          if (why) return;
+          const go = () => game.equipSoulToSlot(d, uid, slotId, (applied) => {
+            if (!applied) return;
+            sfx("select");
+            toast(`${d.name} の${SLOT_NAME(slotId)}に「${soulLabel(s)}」を宿した`, { tone: "gold" });
+            h.close();
+            if (onDone) onDone();
+            if (slotId !== "primary") {
+              const sub = (d.subs || []).find((x) => x && x.uid === uid);
+              if (sub) openSkillStep(d, sub);
+            }
+          });
+          if (slotId === "primary") { go(); return; }
+          confirmSubEquip(d, slotId, s, cur).then((y) => { if (y) go(); });
+        });
+        slots.appendChild(b);
+      }
+      if (!ids.length) slots.appendChild(el("span", "pt-note", "魂の付け替えはまだ開いていない。"));
+      blk.appendChild(slots);
+      list.appendChild(blk);
+    }
+    scroll.appendChild(list);
+  };
+  h = sheet.open({ kind: "info", banner: "魂を宿す", title: soulLabel(s), className: "sp-pick-sheet sp-host-sheet", body,
+    footer: [{ label: "戻る", kind: "ghost", onTap: (x) => x.close() }] });
+  return h;
 }
 
 // ---- 魂を強化 (シート) ----
@@ -1254,5 +1484,5 @@ function fusableList() {
 }
 
 export function install() {
-  registerUI({ trainableList, fusableList, openFusePicker, trainSoul: (uid, n = 1) => train(uid, n), openSoulPicker, celebrateLevelUp });
+  registerUI({ trainableList, fusableList, openFusePicker, trainSoul: (uid, n = 1) => train(uid, n), openSoulPicker, celebrateLevelUp, openSoulList, openSoulDetail });
 }

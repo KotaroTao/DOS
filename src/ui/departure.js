@@ -272,18 +272,8 @@ function renderGates(b) {
     r.addEventListener("click", () => { sfx("select"); cur.page = "abyss"; refresh(); });
     list.appendChild(r);
   }
-  // 一覧の巻き位置は選び直しても保つ。初めて開いた時は選んでいる門が見える位置へ
-  list.addEventListener("scroll", () => { if (cur) cur.listScroll = list.scrollTop; }, { passive: true });
+  // 一覧は本文 (シートの縦スクロール) と一緒に巻く。選び直しの巻き位置は refresh が本文ごと保つ
   b.appendChild(list);
-  const restore = () => {
-    if (!cur || !list.isConnected) return;
-    if (cur.listScroll != null) list.scrollTop = cur.listScroll;
-    else {
-      const selEl = list.querySelector(".dp-gate.sel");
-      if (selEl && selEl.offsetTop + selEl.offsetHeight > list.clientHeight) list.scrollTop = selEl.offsetTop - list.clientHeight / 2 + selEl.offsetHeight / 2;
-    }
-  };
-  if (typeof requestAnimationFrame === "function") requestAnimationFrame(restore);
 }
 
 // ---- 潜り始める階 (到達した帰還魔法陣の階から) ----
@@ -631,7 +621,7 @@ export function openDeparture(opts = {}) {
   // 潜り始める階: 既定は到達した最深の帰還魔法陣 (無ければ B1F)
   const dn0 = (game.DUNGEONS || [])[g.dungeonIdx];
   const fl0 = dn0 && game.startFloorsOf ? game.startFloorsOf(dn0) : [1];
-  cur = { page, accept: true, hasMut: false, h: null, listScroll: null, from: fl0[fl0.length - 1] || 1 };
+  cur = { page, accept: true, hasMut: false, h: null, from: fl0[fl0.length - 1] || 1 };
   cur.h = sheet.open({
     kind: "info", banner: page === "abyss" ? "奈落の支度" : "出 撃", className: "dp-sheet",
     accent: "#8e6fd0",

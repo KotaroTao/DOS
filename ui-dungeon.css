@@ -514,7 +514,7 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 .dg-sheet .ui-row .qb-mark .ui-tile { width: 30px; height: 30px; }
 .dg-sheet .ui-row .qb-mark-c { font-size: 16px; }
 
-/* ===== 出撃シート (2026-10 改): 上半分 = 迷宮の顔 / 門の一覧は5行ぶん見せて巻く / 異変は門をくぐる欄へ ===== */
+/* ===== 出撃シート (2026-10 改): 上半分 = 迷宮の顔 / 門の一覧は本文と一緒に巻く / 異変は門をくぐる欄へ ===== */
 .ui-sheet.dp-sheet.dp-full { height: calc(100vh - 28px); height: calc(100dvh - 28px); }
 .dp-hero { margin: 0 0 8px; }
 .dp-vista { position: relative; height: clamp(120px, 26vh, 250px); height: clamp(120px, 26dvh, 250px); margin: 0 calc(-1 * var(--sp-4)); overflow: hidden; background: #050407; border-top: 1px solid #241d22; border-bottom: 1px solid #2c2427; }
@@ -538,7 +538,8 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 .dp-fact-c { align-self: center; margin-left: 1px; font-size: 13px; line-height: 1; color: var(--accent-hi); }
 .dp-hero .dp-trait { margin-top: 7px; }
 .dp-hero .dp-issue { margin-top: 6px; }
-.dp-gates { position: relative; --dp-row: 50px; max-height: calc(var(--dp-row) * 5 + 4px); overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; touch-action: pan-y; border: 1px solid #2c2427; border-radius: 3px; background: rgba(8,6,9,0.45); }
+/* 門の一覧は本文と一緒に巻く (一覧だけを巻く入れ子のスクロールは iPad で本文が動かなくなるのでやめた ― ユーザーの指示、2026-10) */
+.dp-gates { position: relative; --dp-row: 50px; border: 1px solid #2c2427; border-radius: 3px; background: rgba(8,6,9,0.45); }
 .dp-gates .dp-gate { height: var(--dp-row); min-height: 0; flex: 0 0 auto; }
 .dp-gates .dp-sealed, .dp-gates .dp-abyss { margin: 0; border: 0; border-top: 1px solid #1e181c; border-radius: 0; }
 .dp-gates .dp-sealed .dp-gate-c.dp-hint { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; font-size: 11.5px; line-height: 1.35; }
