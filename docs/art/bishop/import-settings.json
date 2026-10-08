@@ -1,0 +1,19 @@
+{
+  "job": "bishop",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "approvedSource": "docs/art/bishop/bishop-r1-draft.png",
+  "frame": [90, 92],
+  "frameTop": 9,
+  "notes": [
+    "顔・立ち姿は承認済みR1を参照。冠の高さのみ表示枠に合わせて調整。",
+    "頭頂は冠に隠れているため推定値。原画上の顎と足裏を測り、基準頭身と目の位置の比較で推定。帽子の先は含めない。",
+    "頭頂の推定には (顎 - 21.93 × perDot)、perDotには (透過輪郭下端 + 4px余白 - 顎) / (82.9 - 21.93) を使用。"
+  ],
+  "sources": [
+    {"source": "docs/art/bishop/bishop-r1-final.png", "perDot": 14.728555027062487, "head": [500, 610, 171.00278825651964, 494], "alphaBBox": [107, 142, 963, 1388]},
+    {"source": "docs/art/bishop/bishop-r2-final.png", "perDot": 14.712153518123666, "head": [500, 610, 172.36247334754802, 495], "alphaBBox": [98, 78, 1034, 1388]},
+    {"source": "docs/art/bishop/bishop-r3-final.png", "perDot": 14.564539937674265, "head": [486, 600, 180.59963916680334, 500], "alphaBBox": [99, 83, 1048, 1384]},
+    {"source": "docs/art/bishop/bishop-r4-final.png", "perDot": 14.384123339347218, "head": [480, 600, 200.55617516811554, 516], "alphaBBox": [54, 146, 1056, 1389]},
+    {"source": "docs/art/bishop/bishop-r5-final.png", "perDot": 15.056585205838935, "head": [503, 617, 164.80908643595217, 495], "alphaBBox": [68, 110, 1081, 1409]}
+  ]
+}

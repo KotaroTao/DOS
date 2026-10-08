@@ -1,0 +1,102 @@
+{
+  "sprites": [
+    {
+      "key": "crusader",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.93
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://dos-review.test/art/jobs/crusader_1.webp"
+    },
+    {
+      "key": "dragonknight",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.035
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://dos-review.test/art/jobs/dragonknight_1.webp"
+    },
+    {
+      "key": "dragonknight",
+      "rank": 2,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.035
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://dos-review.test/art/jobs/dragonknight_2.webp"
+    },
+    {
+      "key": "dragonknight",
+      "rank": 3,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.035
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://dos-review.test/art/jobs/dragonknight_3.webp"
+    },
+    {
+      "key": "dragonknight",
+      "rank": 4,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.035
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://dos-review.test/art/jobs/dragonknight_4.webp"
+    },
+    {
+      "key": "dragonknight",
+      "rank": 5,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.035
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://dos-review.test/art/jobs/dragonknight_5.webp"
+    }
+  ],
+  "canvasCount": 30,
+  "browserErrors": []
+}

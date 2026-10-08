@@ -1,0 +1,136 @@
+{
+  "assets": [
+    {
+      "file": "docs/art/battlemage/battlemage-r1-final.png",
+      "size": [
+        1103,
+        1426
+      ],
+      "visibleAlphaBBox": [
+        213,
+        165,
+        1057,
+        1361
+      ]
+    },
+    {
+      "file": "art/jobs/battlemage_1.webp",
+      "size": [
+        360,
+        368
+      ],
+      "visibleAlphaBBox": [
+        86,
+        28,
+        323,
+        364
+      ]
+    },
+    {
+      "file": "docs/art/battlemage/battlemage-r2-final.png",
+      "size": [
+        1103,
+        1426
+      ],
+      "visibleAlphaBBox": [
+        188,
+        97,
+        1085,
+        1362
+      ]
+    },
+    {
+      "file": "art/jobs/battlemage_2.webp",
+      "size": [
+        360,
+        368
+      ],
+      "visibleAlphaBBox": [
+        84,
+        27,
+        323,
+        365
+      ]
+    },
+    {
+      "file": "docs/art/battlemage/battlemage-r3-final.png",
+      "size": [
+        1103,
+        1426
+      ],
+      "visibleAlphaBBox": [
+        215,
+        127,
+        1014,
+        1362
+      ]
+    },
+    {
+      "file": "art/jobs/battlemage_3.webp",
+      "size": [
+        360,
+        368
+      ],
+      "visibleAlphaBBox": [
+        87,
+        28,
+        305,
+        364
+      ]
+    },
+    {
+      "file": "docs/art/battlemage/battlemage-r4-final.png",
+      "size": [
+        1103,
+        1426
+      ],
+      "visibleAlphaBBox": [
+        65,
+        159,
+        1069,
+        1396
+      ]
+    },
+    {
+      "file": "art/jobs/battlemage_4.webp",
+      "size": [
+        360,
+        368
+      ],
+      "visibleAlphaBBox": [
+        49,
+        28,
+        322,
+        364
+      ]
+    },
+    {
+      "file": "docs/art/battlemage/battlemage-r5-final.png",
+      "size": [
+        1103,
+        1426
+      ],
+      "visibleAlphaBBox": [
+        15,
+        165,
+        1089,
+        1381
+      ]
+    },
+    {
+      "file": "art/jobs/battlemage_5.webp",
+      "size": [
+        360,
+        368
+      ],
+      "visibleAlphaBBox": [
+        32,
+        28,
+        329,
+        364
+      ]
+    }
+  ],
+  "cache": "dos-dev",
+  "alphaThreshold": 1
+}
