@@ -442,10 +442,14 @@ const SOUL_TIER_KINDS = new Set(["phys", "atk", "heal", "mana"]);
 // 安い低位の技が Lv100〜200 でも MP の得な技として残った (Lv200 で12職)。4% で 2職まで減り、上位の技を選ぶ理由が戻る。
 // 回復・MP譲渡は 2% のまま (ヒールは最大HPの50%で頭打ちなので、消費だけが増えてしまう)
 export const SOUL_TIER_ATK_MIN = 0.04;
+// 敵全体への攻撃の技は最低 6% (2026-10): 安い全体技 (ファイアストームなど) は Lv20 前後の隊の柱なので技の MP は据え置き、
+// 魂が育つほど単体の技より重くして、Lv100〜200 で「全体技を撃つのが一番得」にならないようにする
+export const SOUL_TIER_ALL_MIN = 0.06;
 export function soulTierRate(sp) {
   if (!sp || sp.mpPct || sp.gravity || !(sp.mp > 0) || !SOUL_TIER_KINDS.has(sp.kind)) return 0;
   const r = SOUL_TIER_RATES.find(([m]) => sp.mp <= m)[1];
-  return (sp.kind === "phys" || sp.kind === "atk") ? Math.max(r, SOUL_TIER_ATK_MIN) : r;
+  if (sp.kind !== "phys" && sp.kind !== "atk") return r;
+  return Math.max(r, sp.target === "all-enemy" ? SOUL_TIER_ALL_MIN : SOUL_TIER_ATK_MIN);
 }
 // 魂の格で足される消費MP (軽減の前)
 export function soulCostAdd(actor, sp) {
@@ -566,11 +570,19 @@ export class Battle {
       this.log(`狩りの采配！ 敵の足並みが乱れた (素早さ×${hs})`, "hit");
     }
     // 死の宣告 (ランク): 主・金属の魔物以外の敵が、それぞれ 3/5/8/15% で即死
+    // 倒した敵は開幕の演出 (openingResults の先頭) で見せる — game.js playOpeningStrikes が大鎌の演出で刈り取る
+    this._senkoku = null;
     const ns = this._rkParty("necroSenkoku", [0.03, 0.05, 0.08, 0.15]);
     if (ns) for (const e of this.livingEnemies()) {
       if (e.boss || isMetal(e) || Math.random() >= ns) continue;
       this.log(`死の宣告！ ${e.name}の魂が刈り取られた`, "hit");
-      e.hp = 0; this._die(e);
+      e.hp = 0;
+      const died = this._die(e);
+      if (!this._senkoku) {
+        const actor = this.livingParty().reduce((a, p) => (pv(p, "necroSenkoku") > pv(a, "necroSenkoku") ? p : a));
+        this._senkoku = { side: "party", actor, action: "spell", spellKind: "debuff", opening: "senkoku", hits: [] };
+      }
+      this._senkoku.hits.push({ target: e, dmg: 0, died, fatal: true });
     }
     const gs = best("hexerGosun"); // 五寸釘: 敵 1/2/3 体の最初の手番を奪う (金属の魔物には打てない)
     if (gs) {
@@ -615,8 +627,8 @@ export class Battle {
   // 戦闘開始時の自動攻撃 (居合/開幕呪撃)。奇襲されている時は発動しない。
   // 与ダメはここで適用しつつ、結果を openingResults に記録し、game.js が斬撃エフェクトで見せる。
   _openingStrikes() {
-    this.openingResults = [];
-    if (this.opening === "ambush") return;
+    this.openingResults = this._senkoku ? [this._senkoku] : []; // 死の宣告は奇襲でも見せる
+    if (this.opening === "ambush") { this._markOpenDeaths(); return; }
     for (const p of this.party) {
       if (!p.alive) continue;
       if (pv(p, "iai")) {
@@ -645,7 +657,12 @@ export class Battle {
         }
       }
     }
+    this._markOpenDeaths();
     this._checkEnd();
+  }
+  // 開幕 (死の宣告・居合・開幕呪撃) で倒れた敵: 演出で倒れるまで戦場に姿を残す印 (game.js の敵の描画が読む)
+  _markOpenDeaths() {
+    for (const r of this.openingResults) for (const h of r.hits || []) if (h.died && h.target) h.target._openDeath = true;
   }
 
   livingParty() { return this.party.filter((p) => p.alive); }
