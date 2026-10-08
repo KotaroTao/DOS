@@ -1,0 +1,102 @@
+{
+  "sprites": [
+    {
+      "key": "crusader",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.93
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8765/art/jobs/crusader_1.webp"
+    },
+    {
+      "key": "exorcist",
+      "rank": 1,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.178
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8765/art/jobs/exorcist_1.webp"
+    },
+    {
+      "key": "exorcist",
+      "rank": 2,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.13
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8765/art/jobs/exorcist_2.webp"
+    },
+    {
+      "key": "exorcist",
+      "rank": 3,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.13
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8765/art/jobs/exorcist_3.webp"
+    },
+    {
+      "key": "exorcist",
+      "rank": 4,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        31.081
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8765/art/jobs/exorcist_4.webp"
+    },
+    {
+      "key": "exorcist",
+      "rank": 5,
+      "face": [
+        48,
+        21
+      ],
+      "head": [
+        48,
+        10,
+        30.903
+      ],
+      "w": 96,
+      "h": 94,
+      "src": "http://127.0.0.1:8765/art/jobs/exorcist_5.webp"
+    }
+  ],
+  "canvasCount": 30,
+  "browserErrors": []
+}
