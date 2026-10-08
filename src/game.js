@@ -10368,7 +10368,7 @@ function fuseSouls(targetUid, consumeUids, onResultClose = null) {
   }
   G.stats.fusions += materials.length; // 戦績: 魂の融合回数 (勲章用)
   recalcAllDolls({ levelUp: t.level > beforeLv });
-  codexJobSee(t.clsKey, t.count, t.level);
+  codexJobSee(t.clsKey, t.count, t.level, t.capBonus);
   const after = soulRankOf(t);
   const now = snap();
   // 融合の結果 (UI に渡す): 能力・Lv上限・魂数・新たに覚えた技/パッシブ・宿し技の枠
@@ -12401,11 +12401,12 @@ function codexFresh() {
 // ---- 職業図鑑の記録 ----
 // 魂を吸収した時点で「発見」とし、到達ランクと魂レベルの最高値を記録する。
 // 図鑑はランク別に称号を列挙し、スキル表は到達Lvまでの技だけ内容を開示する。
-function codexJobSee(clsKey, count, level) {
+function codexJobSee(clsKey, count, level, capBonus = 0) {
   if (!G.codex || !G.codex.job) return;
   const rank = soulRankFromCount(clsKey, count || 0);
   if (rank < 1) return;
-  const cap = soulLevelCap(clsKey, count || 0);
+  // 残火で伸ばした上限ぶんも含める (含めないと上限を越えて覚えた技が図鑑に出ない)
+  const cap = soulLevelCap(clsKey, count || 0) + (capBonus || 0);
   const lv = Math.min(cap, level || 1);
   const e = G.codex.job[clsKey];
   const prevLv = e && typeof e === "object" ? (e.lv || 0) : 0;
@@ -12416,7 +12417,7 @@ function codexJobSee(clsKey, count, level) {
 // 所持魂一覧を走査して職業図鑑を更新する (オートセーブのたびに全走査)
 function codexSweepJobs() {
   if (!G.codex || !G.codex.job) return;
-  for (const s of (G.souls || [])) codexJobSee(s.clsKey, s.count, s.level);
+  for (const s of (G.souls || [])) codexJobSee(s.clsKey, s.count, s.level, s.capBonus);
 }
 
 function showCodexItemDetail(id) { if (UI.codexItemSheet) UI.codexItemSheet(id); }
@@ -15054,7 +15055,7 @@ const OPS = {
       return { ok: false, levels: 0, spent: 0, from, to: from };
     }
     recalcAllDolls({ levelUp: true });
-    codexJobSee(e.clsKey, e.count, e.level);
+    codexJobSee(e.clsKey, e.count, e.level, e.capBonus);
     log(`${soulLabel(e)}が Lv${from}→${e.level} に成長した！ (✦${spent})`, "win");
     // 能力の伸び: before/after は hp/mp/atk… の表示キーで (魂の区分の「強化の結果」に並べる)
     const sk = (k) => (k === "maxhp" ? "hp" : k === "maxmp" ? "mp" : k);
