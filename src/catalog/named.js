@@ -5,7 +5,7 @@
 // 隠しLvは縄張りの迷宮の落とし物の帯の上端あたり。同じ層の逸品 (layerN.js の SR) より一回り強く (pow 1.4〜1.45)、
 // 強敵の特色を裏返した効果を持たせる (痺れさせる包丁 → 痺れを与える / 吸血のヒル → 吸血 など)。
 // id は append-only (セーブ/図鑑が参照する)。
-import { W, S, A, G, R } from "./defs.js";
+import { W, S, A, H, G, R } from "./defs.js";
 
 const trophy = (layer, elite, it) => { it.rar = "sr"; it.layer = layer; it.noDrop = true; it.trophy = elite; return it; };
 
@@ -30,4 +30,12 @@ export const NAMED_ITEMS = [
     desc: "森より古い巨人の樹皮を剥いで張った大盾。吐き出される土砂の嵐をいちばんよく知る皮であり、持ち主の傷をゆっくり癒す。古樹の巨人の首級。" })),
   trophy(5, "el_mistmother", A("a_nm_mistmother", "霧繭の薄衣", 64, { shape: "robe", weight: "cloth", pow: 1.45, mp: 16, agi: 6, aRes: { paralyze: 0.45, sleep: 0.3 }, eDef: ["wind", 1], tint: "#e0e8f0",
     desc: "霧の繭母が紡いだ糸で織った薄衣。霧のように軽く、着た者が糸に絡め取られることは二度とない。霧の繭母の首級。" })),
+  trophy(6, "el_heresiarch", W("w_nm_heresiarch", "異端大司教の黒槌", "mc", 76, { pow: 1.45, pie: 6, eAtk: ["light", 1], eff: { lifesteal: 0.15 }, tint: "#6a5a7a",
+    desc: "死を福音と説いた大司教が、説教の壇で振るった黒い槌。聴いた者の魂を食らってきた槌は、いまは打った相手の命を持ち主の傷へ流し込み、闇の者を逆に裁く。異端大司教の首級。" })),
+  trophy(6, "el_fallenidol", H("h_nm_fallenidol", "堕ちた神像の石冠", 78, { weight: "heavy", pow: 1.45, hp: 26, crit: 0.08, eDef: ["dark", 1], tint: "#d8c890",
+    desc: "祈られることに飢えた神像の頭から外した、聖石の冠。かぶる者には急所の在りかが神像の目で見え、光の刃は冠の石に吸われて鈍る。堕ちた神像の首級。" })),
+  trophy(7, "el_cinderking", R("r_nm_cinderking", "残り火の王の燃えさし", "amulet", 88, { hp: 34, mp: 18, eDef: ["water", 1], bRes: 0.2, eff: { regen: 0.04 },
+    desc: "幾度消えかけても燃え直した残り火の王の、最後の燃えさしを鉄の籠に収めた首飾り。奪うことしか知らなかった火は、いまは持ち主の身をあたため、傷をゆっくり塞ぐ。残り火の王の首級。" })),
+  trophy(7, "el_magmawyrm", A("a_nm_magmawyrm", "溶鉄の蛇竜の鱗鎧", 90, { weight: "heavy", pow: 1.45, hp: 36, bRes: 0.3, eDef: ["water", 2], tint: "#8a3a2a",
+    desc: "溶けた鉄と一体になった蛇竜の鱗を、冷やし固めてつづった鎧。城門すら溶かす熱の息を浴び続けた鱗は、炎も吐息もほとんど通さない。溶鉄の蛇竜の首級。" })),
 ];
