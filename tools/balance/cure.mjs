@@ -50,7 +50,7 @@ for (const [key,sp] of Object.entries(SPELLS)) {
   t.ailment='poison';assert(b._allyTargets(SPELLS.CURE).includes(t));
 }
 // 標準の回復・治療 (2026-10 作り直し) の効果と、どの職でも決まった習得Lvの幅に収まること
-const STD_RANGE={DIOS:[3,5],DIAL:[25,40],MADIOS:[60,80],DIOSALL:[20,30],DIALALL:[40,60],MADIOSALL:[80,120],REVIVE:[40,60],RESURRECT:[80,100],
+const STD_RANGE={DIOS:[1,5],DIAL:[25,40],MADIOS:[60,80],DIOSALL:[20,30],DIALALL:[40,60],MADIOSALL:[80,120],REVIVE:[40,60],RESURRECT:[80,100],
   CURE:[3,10],RECOVER:[10,20],AWAKE:[20,30],STONECURE:[30,50],PURIFY:[60,100],CUREALL:[3,10],RECOVERALL:[10,20],AWAKEALL:[20,30],STONECUREALL:[30,50],PURIFYALL:[60,100]};
 const STD_KINDS={CURE:['poison'],RECOVER:['paralyze'],AWAKE:['sleep','confuse','charm'],STONECURE:['stone'],PURIFY:AIL_KINDS};
 for(const [k,kinds] of Object.entries(STD_KINDS)){
