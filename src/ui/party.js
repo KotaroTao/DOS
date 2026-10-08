@@ -958,7 +958,7 @@ function formationEl(mode) {
     wrap.appendChild(grp);
   }
   if (town) {
-    // 右端: 人業 (控え) / 魂一覧 / 控えの結社 を縦に積む (顔の列の幅を削らない)
+    // 右: 人業 (控え) / 魂一覧 / 控えの結社 の大きな札3つ (余りが狭ければ次の段に全幅で並ぶ。機能はこの3つで固定)
     const side = el("div", "pt-side");
     side.appendChild(benchButton());
     side.appendChild(soulListButton());
@@ -976,7 +976,7 @@ function orderButton() {
   const b = el("button", "pt-bench pt-souls pt-order");
   b.type = "button";
   b.appendChild(el("span", "pt-bench-l", "結社"));
-  b.appendChild(el("span", "pt-bench-s", `${seated}/${seats}`));
+  b.appendChild(el("span", "pt-bench-n", `${seated}/${seats}`));
   b.setAttribute("aria-label", `控えの結社 席 ${seated}/${seats}`);
   b.addEventListener("click", () => { if (picked) return; sfx("select"); openOrderSheet(true); });
   return b;
@@ -987,6 +987,7 @@ function soulListButton() {
   const b = el("button", "pt-bench pt-souls");
   b.type = "button";
   b.appendChild(el("span", "pt-bench-l", "魂一覧"));
+  b.appendChild(el("span", "pt-bench-n", String((G.souls || []).length)));
   b.setAttribute("aria-label", `魂一覧 ${(G.souls || []).length}個`);
   b.addEventListener("click", () => { if (picked) return; openSoulList(); });
   return b;

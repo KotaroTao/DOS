@@ -10063,7 +10063,8 @@ function soulSlotConflict(d, uid, slotId = "primary") {
   if ((d.subs || []).some((x, i) => `sub${i}` !== slotId && soulByUid(x?.uid)?.clsKey === soul.clsKey)) return true;
   if (slotId !== "primary") return false;
   const dolls = G.party.includes(d) ? G.party : [d];
-  return dolls.some((dd) => dd !== d && soulByUid(dd.primary)?.clsKey === soul.clsKey);
+  // 他の人業から移してくる魂 (dd.primary === uid) は、移したあと dd に残らないので数えない
+  return dolls.some((dd) => dd !== d && dd.primary !== uid && soulByUid(dd.primary)?.clsKey === soul.clsKey);
 }
 function blockSoulResonance(party = G.party) {
   const clsKey = partySoulConflict(party);
@@ -10222,8 +10223,9 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
   const isNewEquip = !(slotId === "primary" && d.primary === uid) && !(si >= 0 && ((d.subs || [])[si] || {}).uid === uid);
   if (isNewEquip && si < 0 && !soulRepresentatives().some((x) => x.uid === uid)) { SFX.ng(); showToast("同じ職業の余った魂は、人業の館で魂融合する", { tone: "bad" }); return fin(false); }
   if (isNewEquip && soulSlotConflict(d, uid, slotId)) { SFX.ng(); showToast("メイン魂の職業はパーティで重複不可。同じ人業のメイン・サブにも同じ職業は宿せない", { tone: "bad" }); return fin(false); }
-  // 同じuidの魂は、メイン・サブを問わず他の人業と共有しない。
-  if (isNewEquip && soulWornByOther(uid, d)) { SFX.ng(); showToast("他の人業が宿している魂だ。同じ職業の別の魂を選んでください", { tone: "bad" }); return fin(false); }
+  // 同じuidの魂は、メイン・サブを問わず他の人業と共有しない。他の人業が宿している魂を選んだら、その人業から移す
+  //   (ユーザーの指示、2026-10。画面側で「〜が宿している」と確認してから呼ぶ)。入れ替えられれば、こちらが外した魂をその人業へ渡す
+  const take = isNewEquip ? soulTakePlan(d, uid, slotId) : null;
 
   // メイン魂の付け替えで、新しい職では装備できなくなる装備があれば事前に確認する
   if (isNewEquip && slotId === "primary" && d.primary !== uid) {
@@ -10250,14 +10252,64 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
       }).then((ok) => {
         if (!ok) return fin(false);
         for (const b of bad) { d.equip[b.key] = null; d.items.push(b.item); }
-        applyEquipSoul(d, uid, s, slotId);
+        equipWithTake(d, uid, s, slotId, take);
         fin(true);
       });
       return false;
     }
   }
-  applyEquipSoul(d, uid, s, slotId);
+  equipWithTake(d, uid, s, slotId, take);
   return fin(true);
+}
+// 他の人業 (holder) が宿している魂を d の slotId へ移す計画。
+//   返り値: null (誰も宿していない) / { holder, from: 差し口, give: 入れ替えで holder へ渡す魂 (渡せなければ null) }
+function soulTakePlan(d, uid, slotId = "primary") {
+  let holder = null, from = null;
+  for (const dd of allDolls()) {
+    if (dd === d) continue;
+    if (dd.primary === uid) { holder = dd; from = "primary"; break; }
+    const i = (dd.subs || []).findIndex((x) => x && x.uid === uid);
+    if (i >= 0) { holder = dd; from = "sub" + i; break; }
+  }
+  if (!holder) return null;
+  const curUid = slotId === "primary" ? d.primary : ((d.subs || [])[+slotId.slice(3)] || {}).uid;
+  let give = null;
+  if (curUid != null && curUid !== uid) {
+    // 移したあとの姿で、外れる魂を holder の空いた差し口に宿せるか確かめる (確かめたら元に戻す)
+    const keep = [d.primary, d.subs, holder.primary, holder.subs];
+    try {
+      takeOff(holder, uid);
+      if (slotId === "primary") d.primary = uid;
+      else { const subs = [...(d.subs || [])]; subs[+slotId.slice(3)] = { uid, picks: [] }; d.subs = subs; }
+      const c = soulByUid(curUid);
+      const ok = c && !soulSlotConflict(holder, curUid, from) && !soulWornByOther(curUid, holder)
+        && (from !== "primary" || (soulRepresentatives().some((x) => x.uid === curUid) && !unequippableUnder(holder, c.clsKey).length));
+      if (ok) give = c;
+    } finally {
+      [d.primary, d.subs, holder.primary, holder.subs] = keep;
+    }
+  }
+  return { holder, from, give };
+}
+// 人業から魂 uid を外す (メイン・サブとも)
+function takeOff(dd, uid) {
+  if (dd.primary === uid) dd.primary = null;
+  dd.subs = (dd.subs || []).filter((x) => x && x.uid !== uid);
+}
+function equipWithTake(d, uid, s, slotId, take) {
+  if (!take) { applyEquipSoul(d, uid, s, slotId); return; }
+  const { holder, from, give } = take;
+  const vit = hpMpRatio(holder);
+  takeOff(holder, uid);
+  applyEquipSoul(d, uid, s, slotId);
+  if (give) {
+    if (from === "primary") holder.primary = give.uid;
+    else { holder.subs = holder.subs || []; holder.subs.splice(Math.min(+from.slice(3), holder.subs.length), 0, { uid: give.uid, picks: [] }); }
+  }
+  recalcDoll(holder);
+  keepHpMpRatio(holder, vit);
+  autosave(true);
+  renderTown();
 }
 
 // サブ魂が借りる技/パッシブを選ぶ (src/ui/soulpanel.js のシート)
@@ -15185,7 +15237,7 @@ bindGame({
 // 契約 (UI.openParty / autoEquip / betterGearCount / trainableList / equipItemTo / bestWearer) は各モジュールの install() が登録する
 bindGame({
   equipAt, moveItem, campCast, campSpellsOf, healAll, healAllNeed, repairCostOf, repairCostAll, repairDoll, setReviveTimers, hastenCostOf, tryHastenRescue, awaitingRescue, RESCUE_SHORTEN_MS,
-  emptyDollCost, grantRedSoul, randomDollName, finalizeBuyDoll, soulRepresentatives, partySoulConflict, soulSlotConflict, blockSoulResonance, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
+  emptyDollCost, grantRedSoul, randomDollName, finalizeBuyDoll, soulRepresentatives, partySoulConflict, soulSlotConflict, soulTakePlan, blockSoulResonance, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
   equipSoulToSlot, fuseCandidates, fuseSoul, fuseSouls, toggleSoulLock, openFusePicker, openSubSkillPicker, slotSoul,
   unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail, addSoulInstance, codexSweepJobs,
   canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill, itemKnown, isFirstGet,
