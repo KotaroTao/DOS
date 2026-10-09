@@ -1,7 +1,7 @@
 // 読み物専用の一枚絵。場面ごとに背景・主題・人物の位置と手の動きを描き分ける。
 // 既存の storyArt や館の肖像は使わない。192×108の素材色を点光源で照らし、共通パレットへ量子化する。
 import { Layer, Mask, h2 } from "./pxpaint.js";
-import { ICE_PAL } from "./storyart.js"; // 第六章の氷の青と極光の紫を足したパレット
+import { ICE_PAL, SWAMP_PAL } from "./storyart.js"; // 第六章の氷の青と極光の紫 / 第七章の沼の緑と枯れ葦を足したパレット
 
 export const ARCHIVE_ART_W = 192, ARCHIVE_ART_H = 108;
 export const ARCHIVE_FOCUS = ["city", "threeSouls", "door", "lamp", "vessel", "partyThree", "partyFour", "guard",
@@ -10,13 +10,17 @@ export const ARCHIVE_FOCUS = ["city", "threeSouls", "door", "lamp", "vessel", "p
   "sealedOrder", "crown", "fadingLamp", "pit", "rope", "gardenWindow", "hutDiary", "diary", "torso", "cup",
   "seraTogether", "climbingOrdo", "chancellor", "highLamp", "brokenVessel", "twoChairs", "openDoor",
   "votive", "mural", "legs", "seraWake", "priestKing", "blade", "husks", "cauldron", "abyss",
-  "coat", "frozenMasters", "auroraMap", "frostKing", "thaw"];
+  "coat", "frozenMasters", "auroraMap", "frostKing", "thaw",
+  "splint", "dollPile", "miasmaNote", "workshopIsle", "tower"];
 // 氷の場面は氷の青を足したパレットで量子化する (共通のパレットだと青が灰色に沈む)
 const ICE_FOCUS = ["coat", "frozenMasters", "auroraMap", "frostKing", "thaw"];
+// 沼の場面は沼の緑と枯れ葦の黄土を足したパレットで量子化する
+const SWAMP_FOCUS = ["splint", "dollPile", "miasmaNote", "workshopIsle", "tower"];
 const cache = new Map();
 const C = { stone:[71,67,85], dark:[25,22,37], edge:[114,104,118], wood:[104,64,47], gold:[199,150,70], paper:[201,183,139],
   iron:[81,94,115], bone:[185,165,137], soul:[73,214,190], blue:[91,131,190], purple:[107,65,143], skin:[188,151,147], black:[31,25,38],
-  ice:[150,198,228], iceD:[62,102,146], snow:[226,238,248], coat:[48,42,58] };
+  ice:[150,198,228], iceD:[62,102,146], snow:[226,238,248], coat:[48,42,58],
+  mud:[54,48,32], bog:[30,44,24], reed:[150,128,80], sick:[150,196,70] };
 
 function paintScene(scene) {
   const W = ARCHIVE_ART_W, H = ARCHIVE_ART_H, L = new Layer(W, H);
@@ -24,7 +28,7 @@ function paintScene(scene) {
   const indoor = ["mansion", "workshop", "throne", "treasury", "warroom", "prison", "crypt", "passage", "abbey", "mine"].includes(scene.setting);
   const roomLight = ["mansion", "workshop", "throne", "treasury"].includes(scene.setting);
   const focalX = scene.people === "king" ? 139 : scene.people === "irene" ? 121 : 105;
-  const light = { x:focalX, y:56, color:roomLight ? [1,0.69,0.38] : scene.setting==="ice" ? [0.55,0.8,1] : [0.33,0.86,0.82] };
+  const light = { x:focalX, y:56, color:roomLight ? [1,0.69,0.38] : scene.setting==="ice" ? [0.55,0.8,1] : scene.setting==="swamp" ? [0.72,0.9,0.46] : [0.33,0.86,0.82] };
   function rgb(base, x, y, edge = false) {
     const d = Math.hypot((x - light.x) * 0.8, y - light.y) / 100;
     const k = Math.max(0, 1 - d) ** 2;
@@ -138,6 +142,16 @@ function paintScene(scene) {
     for(let i=0;i<30;i++){const xx=h2(i,7,seed)*W,yy=83+h2(i,8,seed)*24;line(xx,yy,xx+6+h2(i,9,seed)*10,yy,[96,140,176]);}
     for(let i=0;i<45;i++){rect(h2(i,11,seed)*W,h2(i,13,seed)*H,1,1,C.snow,false);}
   }
+  // 第七章: 奈落の底の毒の沼 (緑がかった黒い水・枯れた葦・沈んだ木・毒の霧)
+  if(scene.setting==="swamp"){
+    rect(0,0,W,H,[14,22,12]);
+    for(let i=0;i<7;i++){const xx=8+i*30+h2(i,1,seed)*12,top=18+h2(i,2,seed)*24;line(xx,76,xx+2,top,[22,30,18],2);line(xx+1,top+12,xx+8,top+4,[22,30,18]);line(xx+1,top+20,xx-6,top+13,[22,30,18]);}
+    rect(0,74,W,34,C.bog);for(let i=0;i<40;i++){const xx=h2(i,3,seed)*W,yy=77+h2(i,4,seed)*30;line(xx,yy,xx+5+h2(i,5,seed)*9,yy,[52,72,38]);}
+    for(const [xx,yy,rx] of [[30,92,16],[166,86,12]]){ellipse(xx,yy,rx,2.4,C.sick,false);glow(xx,yy,rx*1.6,[100,150,40],0.5);}
+    for(let i=0;i<34;i++){const xx=h2(i,6,seed)*W;if(xx>48&&xx<150)continue;const hh=14+h2(i,7,seed)*30,lean=(h2(i,8,seed)-0.5)*8;line(xx,108,xx+lean,108-hh,C.reed);if(h2(i,9,seed)>0.6)rect(xx+lean*0.9,108-hh*0.92,2,4,[90,54,32]);}
+    for(let i=0;i<3;i++){const yy=40+i*22;for(let xx=0;xx<W;xx++)for(let d=-3;d<=3;d++){const k=(1-Math.abs(d)/4)*(h2(xx>>3,i,seed)*0.5+0.3)*0.22;L.add(xx,yy+d+Math.round(Math.sin(xx*0.05+i)*3),[60,80,30],k);}glow(W*(0.25+i*0.25),yy,40,[70,100,30],0.25);}
+    for(let i=0;i<24;i++)rect(h2(i,11,seed)*W,h2(i,13,seed)*100,1,1,[190,230,110],false);
+  }
   if(scene.setting==="water"){rect(0,73,W,35,[20,49,61]);for(let i=0;i<40;i++){const x=h2(i,1,seed)*W,y=76+h2(i,3,seed)*30;line(x,y,x+9,y,C.blue);}for(let x=143;x<183;x+=9)rect(x,18,3,71,C.iron);}
 
   // 一枚ごとの主題。小道具だけの色違いではなく、物語で向き合う相手と場所を変える。
@@ -211,6 +225,28 @@ function paintScene(scene) {
       poly([[115,46],[131,46],[134,80],[112,80]],[62,72,104]);ellipse(123,40,5,6,C.bone);poly([[119,43],[127,43],[123,52]],C.snow);for(let i=0;i<4;i++)poly([[118+i*3,34],[119.5+i*3,27-(i%2)*2],[121+i*3,34]],C.snow);glow(123,32,18,[160,220,255],0.6);break;
     case "thaw": table(84,84,84);rect(104,58,30,26,[120,170,206]);poly([[104,58],[134,58],[130,52],[108,52]],C.snow);for(let i=0;i<4;i++)line(108+i*7,84,108+i*7,88+h2(i,2,seed)*4,C.ice);ellipse(119,93,20,2,C.iceD);line(106,60,106,82,C.snow,1,false);
       ellipse(119,71,2,3,C.soul,false);glow(119,71,9,[60,200,170],0.4);candle(156,64);glow(140,64,34,[255,170,80],0.35);break;
+    // ---- 第七章「毒沼」 ----
+    case "splint": rect(66,0,9,74,[150,190,186]);line(68,0,68,74,C.snow,1,false);line(72,4,73,74,[200,226,222],1,false);ellipse(71,74,15,3,C.snow,false);glow(71,72,24,[140,200,190],0.4);
+      poly([[0,86],[60,82],[120,84],[192,80],[192,108],[0,108]],C.mud);ellipse(82,96,22,4,[40,56,52]);poly([[66,95],[74,91],[88,92],[82,96]],C.ice);poly([[82,99],[92,96],[100,98],[94,101]],C.ice);
+      for(const d of [0,4]){line(100-d,98+d,118-d,95+d,C.wood,3);line(118-d,95+d,132-d,93+d,C.wood,3);ellipse(134-d,92.6+d,2.4,2,C.wood);ring(118-d,95+d,2,C.iron);}for(const q of [108,124])line(q,92,q-1,102,C.paper,1);paper(120,82,9,9);
+      for(let i=0;i<4;i++){ellipse(140+i*13,99-i*4,2,1,C.black);line(133+i*13,101-i*4,141+i*13,100-i*4,C.black);}break;
+    case "dollPile": { const crest=(q,yy,sz)=>{ellipse(q,yy,2.6*sz,1.4*sz,C.gold,false);for(let k=0;k<4;k++)line(q+0.6*sz+k*0.9*sz,yy-0.6*sz,q+1.2*sz+k*1.1*sz,yy-2.6*sz,C.gold,1,false);line(q-2.2*sz,yy,q-3*sz,yy-1.8*sz,C.gold,1,false);ellipse(q-0.6*sz,yy-2.6*sz,0.9*sz,1.6*sz,[255,190,90],false);};
+      poly([[30,108],[76,52],[100,46],[128,54],[170,108]],[46,40,30]);for(let i=0;i<60;i++){const xx=40+h2(i,2,seed)*120,yy=58+h2(i,3,seed)*48;line(xx,yy,xx+4+h2(i,4,seed)*6,yy+(h2(i,5,seed)-0.5)*5,C.wood,2);}
+      for(let i=0;i<6;i++){const q=66+i*13,yy=58+Math.abs(q-100)*0.25;if(i===3)continue;doll(q,yy,"torso",0.45);crest(q,yy+5,0.6);}doll(100,44,"full",0.42);paper(97,58,6,4);
+      doll(150,70,"torso",1.1);crest(150,80,1.6);glow(150,78,14,[255,170,70],0.4);break; }
+    case "miasmaNote": poly([[60,84],[72,76],[130,74],[146,82],[138,96],[66,96]],C.stone);paper(76,72,30,13);for(const [q,yy] of [[78,73],[104,73],[104,84]])ellipse(q,yy,2,1.4,C.edge);
+      for(let i=0;i<6;i++)line(110,76,118+i,70+i*1.4,[150,170,80]);for(const [q,hh,col] of [[126,13,[150,220,170]],[134,9,null]])poly([[q-3,77],[q+3,77],[q+3,77-hh*0.5],[q+1,77-hh*0.62],[q,77-hh*0.44],[q-1,77-hh*0.66],[q-3,77-hh*0.48]],col||[90,110,96]);glow(126,72,12,[120,220,160],0.45);
+      ring(42,98,8,C.stone);ellipse(42,98,6,2,[110,104,92]);rect(40,97,4,1,[230,120,40],false);break;
+    case "workshopIsle": ellipse(100,84,52,9,[40,44,30]);poly([[64,84],[64,48],[80,38],[96,46],[112,36],[134,48],[134,84]],C.stone);for(let x2=66;x2<134;x2+=9)line(x2,50,x2,84,[60,56,62]);
+      poly([[88,84],[88,62],[100,54],[112,62],[112,84]],[60,46,30]);glow(100,70,34,[255,170,70],0.6);
+      poly([[90,84],[91,74],[94,71],[96,74],[96,80],[100,84]],C.black);ellipse(94.5,70,2,2.4,C.black);line(96,75,101,73,C.black,1);
+      ellipse(105,69,2,2.4,C.black);poly([[103,84],[103,78],[102,73],[107,72],[108,78],[110,84]],C.black);line(103,74,100,73,C.black,1);ellipse(105.5,76,1.4,1.6,C.soul,false);glow(105,76,8,[60,200,170],0.6);
+      ellipse(100,49,2.6,1.4,C.gold,false);ellipse(99.4,47,0.9,1.6,[255,190,90],false);
+      for(let i=0;i<20;i++)line(36+h2(i,2,seed)*130,94+h2(i,3,seed)*12,44+h2(i,2,seed)*130,94+h2(i,3,seed)*12,[60,80,40]);break;
+    case "tower": ellipse(98,92,40,7,[34,38,26]);poly([[82,94],[86,0],[112,0],[116,94]],[30,30,40]);for(let yy=6;yy<94;yy+=12)line(84,yy,114,yy+5,[46,46,60]);
+      for(const [q,yy] of [[94,20],[104,44],[92,66],[100,8]]){rect(q,yy,2,3,[230,190,110],false);glow(q+1,yy+1,6,[200,150,60],0.4);}
+      rect(94,80,9,14,C.black);glow(98,86,10,[200,150,70],0.3);traveller(98,78,0.32);
+      poly([[150,0],[140,18],[148,17],[134,44],[156,13],[147,14]],[200,210,240]);glow(146,20,30,[150,160,230],0.35);for(let i=0;i<40;i++)line(h2(i,2,seed)*W,h2(i,3,seed)*90,h2(i,2,seed)*W-2,h2(i,3,seed)*90+5,[110,120,150]);break;
     default: throw new Error(`読み物の図版に未定義の主題: ${scene.focus}`);
   }
   if(scene.people==="irene")irene(scene.pose==="shelter"?80:62,scene.pose==="seated"?66:63,scene.pose);
@@ -220,7 +256,8 @@ function paintScene(scene) {
     const d=Math.min(0.68,((xx-W/2)/(W/2))**4*0.42+((y-H/2)/(H/2))**4*0.30),i=(y*W+xx)*3;
     for(let j=0;j<3;j++)L.c[i+j]*=1-d;
   }
-  return L.canvas(8, scene.setting === "ice" || ICE_FOCUS.includes(scene.focus) ? ICE_PAL : undefined);
+  const swamp = scene.setting === "swamp" || SWAMP_FOCUS.includes(scene.focus);
+  return L.canvas(8, swamp ? SWAMP_PAL : scene.setting === "ice" || ICE_FOCUS.includes(scene.focus) ? ICE_PAL : undefined);
 }
 
 export function archiveArt(scene) {

@@ -188,6 +188,12 @@ const UNKNOWN_NAME = {
   bs_divinegolem: "白い巨像",
   bs_fallenangel: "濡れた翼の影",
   bs_shadowdragon: "長い首の竜",
+  // 第9層「毒沼」: 泥の塊・屍・ローブの骸が重なるので、見た目の違いで呼び分ける
+  bs_swamplord: "山のような泥の塊",
+  bs_plaguewraith: "顔の浮かぶもや",
+  bs_leechswarm: "ぬめる群れ",
+  bs_necromancer: "鉤杖を掲げる骸",
+  bs_plaguelich: "冠をいただく骸",
 };
 
 // 画面に出すときの不確定名: 正式な名と見分けがつくよう末尾に「？」を添える (「羽ばたく小さなもの？」)。

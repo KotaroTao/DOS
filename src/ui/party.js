@@ -15,7 +15,7 @@ import { RESIST_LABEL } from "../resistance.js";
 
 import { UI, game, ops, registerUI } from "./ctx.js";
 import {
-  el, button, row, segmented, sheet, toast, confirm, statDelta, bar, badge, setText, longPress, shake, scrollBox,
+  el, button, row, segmented, sheet, toast, confirm, statDelta, bar, badge, setText, longPress, shake, scrollBox, uiBlocked,
 } from "./kit.js";
 import { deltaFloat } from "./motion.js";
 import { remember, setPref, getPref } from "./prefs.js";
@@ -37,6 +37,7 @@ import { TACTICS, tacticOf, setTactic } from "../autotactics.js";
 import { SPELLS, spellCost, spellMpLabel } from "../combat.js";
 import { spriteCanvas, crispCanvas } from "../sprites.js";
 import { rarityKey, RARITIES } from "../rarity.js";
+import { RESONANCE_MAP, resonanceText, resonanceTotals } from "../resonance.js";
 
 const hasDOM = () => typeof document !== "undefined" && typeof document.createElement === "function";
 const sfx = (k) => { try { const S = game.SFX; if (S && S[k]) S[k](); } catch (e) { /* 音は演出のみ */ } };
@@ -1018,7 +1019,13 @@ function formationEl(mode) {
   const wrap = el("section", "pt-form" + (picked ? " picking" : "") + (town ? "" : " ro"));
   for (let r = 0; r < 2; r++) {
     const grp = el("div", "pt-fgrp " + (r ? "back" : "front"));
-    grp.appendChild(el("span", "pt-fgrp-l", r ? "後衛" : "前衛"));
+    const rb = r ? null : resonanceChip(); // 魂の共鳴 (前衛の見出しの右。開いてからだけ)
+    if (rb) {
+      const hd = el("div", "pt-fgrp-h");
+      hd.appendChild(el("span", "pt-fgrp-l", "前衛"));
+      hd.appendChild(rb);
+      grp.appendChild(hd);
+    } else grp.appendChild(el("span", "pt-fgrp-l", r ? "後衛" : "前衛"));
     const inn = el("div", "pt-fgrp-in");
     let any = false;
     for (let c = 0; c < 3; c++) {
@@ -1041,6 +1048,125 @@ function formationEl(mode) {
     wrap.appendChild(side);
   }
   return wrap;
+}
+
+// ================= 魂の共鳴 (第七章の結びで開く。組の表・判定は src/resonance.js、記録は game.js) =================
+// 隊列の前衛の見出しの右に「共鳴 n」の小さな札 → いま効いている組・合計・あと1職でそろう組のシート。
+// 初めてそろった組は、街で手の空いた時に「魂の共鳴」の祝祭カードで知らせる (queueResonanceNotice)。
+// 図鑑 (palace.js) の「共鳴」区分も resonanceRow で札を描く
+const resoOpen = () => !!(game.featureUnlocked && game.featureUnlocked("resonance"));
+function resonanceChip() {
+  if (!resoOpen() || !game.partyResonances) return null;
+  const n = game.partyResonances().length;
+  const near = game.partyNearResonances ? game.partyNearResonances().length : 0;
+  const b = el("button", "pt-reso" + (n ? " on" : ""));
+  b.type = "button";
+  b.appendChild(el("span", "pt-reso-l", "共鳴"));
+  b.appendChild(el("span", "pt-reso-n", String(n)));
+  b.setAttribute("aria-label", `魂の共鳴 ${n}組${near ? `・あと1職でそろう組 ${near}` : ""}`);
+  b.addEventListener("click", (e) => { e.stopPropagation(); if (picked) return; sfx("select"); openResonance(); });
+  return b;
+}
+// 職の札 (小さな顔 + 職の名)。k = null なら伏せた札「？」
+function resoJobChip(k, { dim = false } = {}) {
+  const c = el("span", "rs-job" + (k ? "" : " unk") + (dim ? " dim" : ""));
+  const cl = k && SOUL_CLASSES[k];
+  if (cl) {
+    c.style.setProperty("--glow", cl.glow);
+    const f = el("span", "rs-job-f");
+    try { f.appendChild(crispCanvas(jobBust(k, 1), 18)); } catch (e) { /* 絵が無くても動く */ }
+    c.appendChild(f);
+    c.appendChild(el("span", "rs-job-n", cl.label));
+  } else c.appendChild(el("span", "rs-job-n", "？"));
+  return c;
+}
+// 共鳴の札。found = 見つけた組 (名前・職・効果を出す)、そうでなければ「？？？」と職の数だけ。
+// have = 隊にそろっている職 (あと1職の札で、その職だけ明かす) / active = いま効いている / missing = 足りない職 (見つけた組だけ名を出す)
+export function resonanceRow(res, { found = false, active = false, have = null, missing = null } = {}) {
+  const r = el("div", "rs-row" + (found ? "" : " unk") + (active ? " on" : ""));
+  const top = el("div", "rs-top");
+  top.appendChild(el("span", "rs-name", found ? res.name : "？？？"));
+  top.appendChild(el("span", "rs-tag", `${res.jobs.length}職`));
+  if (active) top.appendChild(el("span", "rs-tag on", "共鳴中"));
+  r.appendChild(top);
+  const jobs = el("div", "rs-jobs");
+  for (const k of res.jobs) {
+    const show = found || (have && have.includes(k));
+    jobs.appendChild(resoJobChip(show ? k : null, { dim: !!(missing && k === missing) }));
+  }
+  r.appendChild(jobs);
+  if (found) r.appendChild(el("div", "rs-fx", resonanceText(res)));
+  if (missing) r.appendChild(el("div", "rs-miss", found && SOUL_CLASSES[missing] ? `あと「${SOUL_CLASSES[missing].label}」がそろえば響き合う` : "あと1職がそろえば響き合う"));
+  if (found && !missing) r.appendChild(el("div", "rs-tx", res.text));
+  return r;
+}
+export function openResonance() {
+  const G = G_();
+  if (!G || !resoOpen()) return null;
+  const found = (G.resonance && G.resonance.found) || {};
+  const list = game.partyResonances ? game.partyResonances() : [];
+  const near = game.partyNearResonances ? game.partyNearResonances() : [];
+  const town = G.state === "town";
+  const body = (b) => {
+    b.appendChild(el("p", "rs-note", "隊に出ている人業のメイン魂の職がそろうと、隊全体に効く。サブ魂と控えは数えない。倒れていても隊にいれば効く。"));
+    if (list.length) {
+      const tot = el("div", "rs-tot");
+      tot.appendChild(el("div", "rs-h", "いまの効果 (合計)"));
+      for (const t of resonanceTotals(list)) tot.appendChild(el("div", "rs-tot-l", t.text));
+      b.appendChild(tot);
+    }
+    b.appendChild(el("div", "rs-h", `いま響き合っている組 ${list.length}`));
+    if (!list.length) b.appendChild(el("div", "rs-none", "まだ響き合う組はない。隊の顔ぶれを変えてみよう。"));
+    for (const x of list) b.appendChild(resonanceRow(x, { found: true, active: true }));
+    if (near.length) {
+      b.appendChild(el("div", "rs-h", `あと1職でそろう組 ${near.length}`));
+      for (const n of near) b.appendChild(resonanceRow(n.res, { found: !!found[n.res.id], have: n.have, missing: n.missing }));
+    }
+    const cnt = Object.keys(found).filter((id) => RESONANCE_MAP[id]).length;
+    b.appendChild(el("p", "rs-note", `見つけた組 ${cnt}/${(game.RESONANCES || []).length}。見つけた組は図鑑の「共鳴」に記される。`));
+  };
+  const footer = [];
+  if (town && UI.openPalace) footer.push({ label: "図鑑で見る", kind: "secondary", onTap: (h) => { h.close(); UI.openPalace("codex:reso"); } });
+  footer.push({ label: "閉じる", kind: "ghost", onTap: (h) => h.close() });
+  return sheet.open({ kind: "info", banner: "魂の共鳴", className: "rs-sheet", accent: "#b99cf0", body, footer });
+}
+// 初めてそろった組の知らせ: 街で手が空いた時に、まとめて1枚 (物語の知らせ・遠征の報告と同じ待ち方)
+let resoTimer = null, resoTries = 0, resoShowing = false;
+function resoBusy() {
+  if (uiBlocked() || sceneActive() || UI.tutorialActive?.() || UI.tutorialPending?.()) return true;
+  if (hasDOM() && document.querySelector(".sc-scene")) return true;
+  const G = G_();
+  if (G && G.town?.tab === "party" && game.pendingIreneBeat?.()) return true;
+  return false;
+}
+function queueResonanceNotice() {
+  if (resoTimer || resoShowing) return;
+  resoTries = 0;
+  const tick = () => {
+    resoTimer = null;
+    const G = G_();
+    if (!G || G.state !== "town" || !(G.resonance && G.resonance.fresh && G.resonance.fresh.length)) return;
+    if (resoBusy()) { if (++resoTries < 60) resoTimer = setTimeout(tick, 1500); return; }
+    showResonanceNotice();
+  };
+  resoTimer = setTimeout(tick, 600);
+}
+function showResonanceNotice() {
+  const list = game.takeFreshResonances ? game.takeFreshResonances() : [];
+  if (!list.length) return;
+  resoShowing = true;
+  sfx("rankup");
+  sheet.open({
+    kind: "celebrate", sparkle: true, banner: "魂の共鳴", className: "rs-sheet rs-cel", accent: "#b99cf0",
+    title: list.length > 1 ? `${list.length}つの共鳴が目覚めた` : `「${list[0].name}」が目覚めた`,
+    body: (b) => {
+      b.appendChild(el("p", "rs-note", "隊の魂どうしが響き合い、隊全体に力が宿った。"));
+      for (const x of list) b.appendChild(resonanceRow(x, { found: true, active: true }));
+      b.appendChild(el("p", "rs-note", "見つけた組は図鑑の「共鳴」に記される。隊の「共鳴」の札から、いまの組を見られる。"));
+    },
+    footer: [{ label: "心得た", kind: "primary", size: "lg", onTap: (h) => h.close() }],
+    onClose: () => { resoShowing = false; const G = G_(); if (G && G.state === "town" && game.renderTown) game.renderTown(); },
+  });
 }
 // 控えの結社 (魂一覧の右): 席の数。解放前は出さない (soulpanel.js openOrderSheet)
 function orderButton() {
@@ -2457,6 +2583,7 @@ export function install() {
     openTacticSheet,
     openOmokage,
     openPartyTactics,
+    openResonance, resonanceRow, queueResonanceNotice, // 魂の共鳴
     // 街の上に開いた人業のシートを描き直す (renderTown から。魂・装備を付け替えても札が古いままにならないよう)
     refreshPartySheet: () => { if (sheetH && !sheetH.closed && sheetTown) { memoClear(); bgcMemo.key = ""; refreshSheet(); } },
   });

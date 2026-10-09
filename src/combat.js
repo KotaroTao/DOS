@@ -271,10 +271,30 @@ function perksOf(a) {
 }
 // Lv ごとの値 (配列なら Lv 番目。足りなければ最後) / 単なる数ならそのまま
 const lvv = (v, lv) => (Array.isArray(v) ? v[Math.min(Math.max(1, lv), v.length) - 1] : v);
+// 魂の共鳴 (src/resonance.js、第七章の結びで開く): 隊の編成 (メイン魂の職の組み合わせ) で決まる隊全体の効果。
+// game.js syncResonance が編成の変わるたびに setResonance で渡す。fx = perksOf と同じ形の成分の列、members = 隊の人業
+// (その人業にだけ効く — 控えの人業の技の消費MPなどは変えない)、cap = 種類ごとの合計の上限 (RESONANCE_CAP)
+let _reso = NO_PERKS, _resoMembers = null, _resoCap = {};
+export function setResonance(fx, members, cap) {
+  _reso = Array.isArray(fx) && fx.length ? fx : NO_PERKS;
+  _resoMembers = members && members.length ? new Set(members) : null;
+  _resoCap = cap || {};
+}
+const resoOf = (a) => (_reso.length && a && _resoMembers && _resoMembers.has(a) ? _reso : NO_PERKS);
+// 条件 (on / when) の無い種類の合計 (逃走・状態異常耐性)。上限つき
+function resoSum(a, type) {
+  let v = 0;
+  for (const { c } of resoOf(a)) if (c.t === type) v += c.v || 0;
+  return Math.min(v, _resoCap[type] ?? v);
+}
 // 技・呪文の消費MPを削る固有パッシブ (cost) の合計 (上限50%)
 function perkCostCut(actor, sp) {
   let cut = 0;
   for (const { c, lv } of perksOf(actor)) if (c.t === "cost" && (!c.on || c.on === sp.kind)) cut += lvv(c.v, lv) || 0;
+  // 魂の共鳴 (cost): 共鳴どうしの合計は RESONANCE_CAP.cost まで
+  let rc = 0;
+  for (const { c } of resoOf(actor)) if (c.t === "cost" && (!c.on || c.on === sp.kind)) rc += c.v || 0;
+  if (rc) cut += Math.min(rc, _resoCap.cost ?? rc);
   return Math.min(0.5, cut);
 }
 // 戦闘に勝った後の固有パッシブ (win): その人が受ける HP/MP 回復の割合 (自分の分 + 味方の party 付きの分)。
@@ -907,6 +927,18 @@ export class Battle {
         sum += lvv(c.v, lv) || 0;
       }
     }
+    // 魂の共鳴 (src/resonance.js): 隊の人業すべてに効く。共鳴どうしの合計は種類ごとに上限 (_resoCap)
+    const rs = resoOf(a);
+    if (rs.length) {
+      let r = 0;
+      for (const { c } of rs) {
+        if (c.t !== type) continue;
+        if (c.on && !(ctx.on || []).includes(c.on)) continue;
+        if (c.when && !this._perkWhen(a, c.when, ctx)) continue;
+        r += c.v || 0;
+      }
+      if (r) sum += Math.min(r, _resoCap[type] ?? r);
+    }
     return sum;
   }
   // 発動の判定 (chance が無ければ必ず)
@@ -1274,7 +1306,7 @@ export class Battle {
     // 逃げ足 (fleetFoot): 個人の習得は+30%、隊の誰かの Lv に応じ +30/45/60%。高い方を採用
     const fleetSelf = this.party.some((p) => p.alive && pv(p, "fleetFoot")) ? 0.30 : 0;
     const fleetOrder = this.orderFleet >= 3 ? 0.60 : this.orderFleet >= 2 ? 0.45 : this.orderFleet >= 1 ? 0.30 : 0;
-    const p = FLEE_BASE + FLEE_SLOPE * Math.log2(agiOf(actor) / chase) + Math.max(fleetSelf, fleetOrder);
+    const p = FLEE_BASE + FLEE_SLOPE * Math.log2(agiOf(actor) / chase) + Math.max(fleetSelf, fleetOrder) + resoSum(actor, "flee"); // 魂の共鳴 (flee)
     return Math.min(FLEE_MAX, Math.max(FLEE_MIN, p));
   }
 
@@ -2091,7 +2123,7 @@ export class Battle {
     if (lv < 1 && this.party.some((p) => p.alive && pv(p, "sanctuary"))) lv = 1;
     const pas = lv >= 2 ? 0.60 : lv === 1 ? 0.30 : 0;
     const eq = kind && t.resists ? (t.resists[kind] || 0) / 100 : (kind && t.ailRes && t.ailRes[kind]) || 0;
-    return Math.min(1, pas + eq + this._zokusei(t));
+    return Math.min(1, pas + eq + this._zokusei(t) + resoSum(t, "ailRes")); // 魂の共鳴 (ailRes)
   }
   // 俗世拒絶 (隠修士): 敵から受ける状態異常 (石化・即死も) を -10/20/30%
   _zokusei(t) { return [0, 0.10, 0.20, 0.30][Math.min(3, pv(t, "hermitZokusei"))] || 0; }
