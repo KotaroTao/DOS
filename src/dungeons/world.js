@@ -43,6 +43,7 @@
 //             chill    戦闘の開幕に隊の全員の AGI を何段下げるか (3ターン。凍てつく大回廊)
 //             physOnly 魔封じ: 隊は物理技と道具のほかの技 (呪文・回復・強化・弱体・迷宮の術) を使えない (沈んだ書庫)
 //             alwaysAmbush どの戦闘も必ず奇襲で始まる (主の戦いは除く。白狼の吹き溜まり)
+//             poisonStart 戦闘の開幕に、隊の一人ひとりがこの確率で毒に冒される (毒の耐性で防げる。よどみの底)
 //   challenge 格上の迷宮: 開く章の適正Lv よりはるかに高い推奨Lv を持つ寄り道。奈落の層 (abyssLayer) の推奨Lv・強さの平均には数えない
 //   tune    強さの手直し (generator.js DUNGEON_TUNE と同じ欄)。第4層からはテスト記録がまだ無いので、模擬戦で既存の迷宮に
 //           つないだ: 装備なしの6人 (戦士2・侍・僧侶・魔導士・盗賊、魂の Lv = その階の n の物差しの Lv — 当時の推奨Lv。
@@ -66,6 +67,7 @@
 //           テスト記録が届いたら実測で合わせ直す
 //           第8層 (第六章) は、強さの素を第五章の同じ並びの迷宮の 0.9倍 (第四章 → 第五章と同じ層の段差) にし、手直しも第五章に倣った。
 //           顔ぶれのランクが 9〜10 に上がった分は monStats が持つので、これもテスト記録で測り直す
+//           第9層 (第七章) も同じく第六章の 0.9倍。顔ぶれはランク10 (上限) にそろえた。テスト記録で測り直す
 import { LAYER_ELEMENT } from "./generator.js";
 import { LAYER_BOSS, LAYER_ELITES, LAYER_POOLS, BESTIARY } from "./bestiary.js";
 import { baselineLv } from "../baseline.js";
@@ -565,6 +567,88 @@ const WORLD_DEF = [
     unlock: { all: ["w23", "w24"] },
     hint: "「凍れる操霊師の間」と「極光の氷窟」の両方を踏破して王に報告すると、大回廊への道が開く",
   },
+  // ---- 第七章「毒沼」(第9層の顔ぶれ) ── 解けた氷の水が流れ落ちる、奈落の底の沼。毒の正体は、底まで落ちて腐った魂 ----
+  //   強さの素は第六章の各迷宮の 0.9倍 (層の入口の1割の段差)。手直しは第六章に倣う。顔ぶれはランク10 (上限) にそろえた
+  {
+    id: "w26", lv: 79, lvTo: 81, layer: 9, floors: 10,
+    power: { 1: 0.1401, 5: 0.1508, 10: 0.1632 },
+    name: "腐れ水の岸", short: "岸",
+    about: "解けた氷の水が滝になって落ちる、奈落の底の沼の岸。黒い泥は、底まで落ちた魂が腐ったものだという",
+    bands: [
+      ["bs_plaguerat", "bs_rotooze", "bs_bogdrowned", "bs_leechswarm", "bs_marshlurker", "bs_blightmoth"],
+      ["bs_sludgehydra", "bs_gasfiend", "bs_plaguebeast"],
+    ],
+    elites: ["el_bogfrogking"],
+    trait: {
+      id: "bog", name: "ぬかるむ岸", sym: "≈", accent: "#7a9a50",
+      lines: ["岸の泥はところどころ毒の沼で、通路の一割半ほどが沼の床になる (毒の床と同じ。浮遊で避けられる)。", "流れ落ちてきた魂が岸に溜まり、得る ✦Soul は 1.25倍。"],
+      mods: { soulMul: 1.25 },
+      board: "bog",
+    },
+    tune: { enemyMul: 1.06, deepMul: 0.76, soloMul: 1.05 },
+    unlock: { reported: "w25" },
+    hint: "「凍てつく大回廊」の踏破を王に報告すると、解けた氷の水が落ちていく先へ降りる許しが出る",
+  },
+  {
+    id: "w27", lv: 81, lvTo: 83, layer: 9, floors: 10,
+    power: { 1: 0.1368, 5: 0.1474, 10: 0.1597 },
+    name: "器の捨て場", short: "捨て場",
+    about: "沼のほとりの谷に、作りかけの人業が山と積まれている。動かないはずの器が、ときどき起き上がる",
+    bands: [
+      ["bs_discardeddoll", "bs_fungalcorpse", "bs_bogdrowned", "bs_miasmawraith", "bs_plaguerat", "bs_venomspider"],
+      ["bs_necromancer", "bs_toxicgolem", "bs_plaguewraith"],
+    ],
+    elites: ["el_offeringslime"],
+    trait: {
+      id: "husks", name: "器の山", sym: "⚱", accent: "#a08870",
+      lines: ["積み上げられた器のあいだに、骸が横たわる (各階に死体が2つ増える)。", "器に宿りかけた魂が多く、得る ✦Soul は 1.3倍。"],
+      mods: { soulMul: 1.3 },
+      board: "prison",
+    },
+    tune: { enemyMul: 1.02, deepMul: 0.84, soloMul: 1.05 },
+    unlock: { story: "w26_splint" },
+    hint: "「腐れ水の岸」のどこかに、師が沼を渡った跡が残されているという",
+  },
+  {
+    id: "w28", lv: 83, lvTo: 85, layer: 9, floors: 10,
+    power: { 1: 0.135, 5: 0.1457, 10: 0.158 },
+    name: "毒霧の葦原", short: "葦原",
+    about: "背丈を越える葦の原。毒の霧が立ちこめ、葦のあいだを何かが這い回る",
+    bands: [
+      ["bs_venomspider", "bs_corpseflower", "bs_blightmoth", "bs_gasfiend", "bs_leechswarm", "bs_miasmawraith"],
+      ["bs_swamphag", "bs_marshlurker", "bs_pestilenceknight"],
+    ],
+    elites: ["el_bogfrogking"],
+    trait: {
+      id: "miasma", name: "毒霧", sym: "☁", accent: "#90b070",
+      lines: ["葦の陰の毒霧にまぎれて、奇襲を受けやすい (×1.6)。", "葦の根元に、沼へ落ちた古い金貨が絡みついている。得られる金貨は 1.35倍。"],
+      mods: { ambushMul: 1.6, goldMul: 1.35 },
+    },
+    tune: { enemyMul: 0.97, deepMul: 0.84, soloMul: 1.05 }, // 奇襲の分だけ控えめ
+    unlock: { reported: "w26" },
+    hint: "「腐れ水の岸」の踏破を王に報告すると、沼の奥の葦原が示される",
+  },
+  {
+    id: "w29", lv: 85, lvTo: 88, layer: 9, floors: 15,
+    power: { 1: 0.132, 5: 0.1382, 10: 0.1453, 15: 0.1518 },
+    name: "よどみの底", short: "よどみ",
+    about: "沼のいちばん深いところ。腐った魂がよどみ、底には古い島が沈みかけている",
+    bands: [
+      ["bs_plaguebeast", "bs_fungalcorpse", "bs_discardeddoll", "bs_corpseflower", "bs_rotooze", "bs_gasfiend"],
+      ["bs_toxicgolem", "bs_swamphag", "bs_plaguewraith"],
+      ["bs_plaguelich", "bs_pestilenceknight", "bs_sludgehydra"],
+    ],
+    trait: {
+      id: "rot", name: "腐れの瘴気", sym: "☣", accent: "#a0c060",
+      lines: ["よどんだ瘴気が肺を焼く。戦闘が始まるたび、隊の一人ひとりが 35% で毒に冒される (毒の耐性で防げる)。", "腐りかけの魂が濃くよどみ、得る ✦Soul は 1.4倍。"],
+      mods: { soulMul: 1.4 },
+      poisonStart: 0.35,
+    },
+    boss: LAYER_BOSS[8], bossRank: 10,
+    tune: { enemyMul: 0.95, deepMul: 0.88, soloMul: 1.10, bossMul: 0.85 }, // 第9層の壁。開幕の毒の分だけ控えめ
+    unlock: { all: ["w27", "w28"] },
+    hint: "「器の捨て場」と「毒霧の葦原」の両方を踏破して王に報告すると、よどみの底への道が開く",
+  },
   // ---- 依頼の迷宮 (酒場の固定クエストを受けると地図に現れる) ----
   {
     id: "ws1", lv: 20, lvTo: 23, layer: 2, floors: 10, side: true,
@@ -803,6 +887,47 @@ const WORLD_DEF = [
     unlock: { quest: "fq_thaw2" },
     hint: "酒場の織り子の依頼「抜け落ちた人たち」を受けると、道が示される",
   },
+  {
+    // 格上の迷宮: 第七章 (隊は Lv80 前後) で開くが、推奨Lv は 100〜104 (状態異常・即死の Lv差も格上)。
+    // 第9層の魔物 (ランク10) を、獄吏の詰所 ws7 と同じく層の約1.5倍の強さ (強さの素 × lvPow で 2.3〜2.7) に引き上げた。宝箱と ✦ で報いる
+    id: "ws13", lv: 100, lvTo: 104, layer: 9, floors: 10, side: true, challenge: true,
+    power: { 1: 0.184, 5: 0.195, 10: 0.21 },
+    name: "疫病塚の底", short: "疫病塚",
+    about: "王都が大疫病の死者を投げこんだ塚の底。塚の穴は、奈落の沼までつながっている",
+    bands: [
+      ["bs_plaguerat", "bs_plaguebeast", "bs_plaguewraith", "bs_fungalcorpse", "bs_bogdrowned", "bs_miasmawraith"],
+      ["bs_plaguelich", "bs_pestilenceknight", "bs_necromancer"],
+    ],
+    elites: ["el_offeringslime"],
+    trait: {
+      id: "plague", name: "疫病の塚", sym: "✝", accent: "#b0a070",
+      lines: ["投げこまれた死者が、通路に折り重なっている (各階に死体が2つ増える)。宝箱は1ランク上等。", "塚に眠る魂は数知れず、得る ✦Soul は 1.2倍。"],
+      mods: { chestRankUp: 1, soulMul: 1.2 },
+      board: "prison",
+    },
+    tune: { enemyMul: 1.00, deepMul: 0.82, soloMul: 1.05 },
+    unlock: { quest: "fq_rochus" },
+    hint: "酒場の医者の依頼「塚の底の鐘」を受けると、道が示される",
+  },
+  {
+    id: "ws14", lv: 84, lvTo: 88, layer: 9, floors: 10, side: true,
+    power: { 1: 0.133, 5: 0.143, 10: 0.154 },
+    name: "沈んだ渡し場", short: "渡し場",
+    about: "沼の島へ器を運んだ、古い渡し場。舟はとうに沈み、渡し守の灯だけが霧の中で揺れている",
+    bands: [
+      ["bs_marshlurker", "bs_leechswarm", "bs_rotooze", "bs_corpseflower", "bs_venomspider", "bs_discardeddoll"],
+      ["bs_sludgehydra", "bs_toxicgolem", "bs_swamphag"],
+    ],
+    elites: ["el_offeringslime"],
+    trait: {
+      id: "ferry", name: "渡し賃", sym: "⚓", accent: "#80a0a0",
+      lines: ["魔物は群れをなして沼を渡る。どの戦闘も3体以上の群れになる。", "沈んだ舟には渡し賃の金貨が残り、得られる金貨は 1.3倍。"],
+      mods: { packMin: 3, goldMul: 1.3 },
+    },
+    tune: { enemyMul: 0.95, deepMul: 0.82, soloMul: 1.05 }, // 群れの分だけ軽め
+    unlock: { quest: "fq_ferry" },
+    hint: "酒場の渡し守の孫娘の依頼「渡し守の灯」を受けると、道が示される",
+  },
 ];
 
 // 敵の種類: 3種 + 5階ごとに3種 (全5階 = 6種 / 全10階 = 9種 / 全15階 = 12種)。ミミック・銀業などの共通の敵と
@@ -1006,7 +1131,7 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
     if (d.trait) {
       const t = d.trait;
       if (!t.id || !t.name || !Array.isArray(t.lines)) throw new Error(`world: ${d.id} trait needs id/name/lines`);
-      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
+      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
     }
     for (const k of d.elites || []) if (!BESTIARY[k]) throw new Error(`world: ${d.id} unknown elite ${k}`);
   }

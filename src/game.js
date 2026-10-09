@@ -1260,6 +1260,11 @@ const TRAIT_BOARD = {
     sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) >= 2) cand.push(c); });
     for (let i = 0; i < 3 && cand.length; i++) { const c = cand.splice(rand(cand.length), 1)[0]; c.type = "pit"; c.cleared = false; }
   },
+  // ぬかるむ岸 (腐れ水の岸): 通路の1割半が沼の床 (毒の床と同じ。浮遊で避けられる)
+  bog: (b) => {
+    const st = b.start ? b.cells[b.start.y][b.start.x] : null;
+    sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.15) { c.type = "poison"; c.cleared = false; } });
+  },
   // 氷漬けの先人 (凍れる操霊師の間): 氷の柱の根元の骸を2つ (3割はまだあたたかい)
   icetomb: (b) => sfPlace(b, 2, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = Math.random() < 0.3; }),
   // 迷い霧: 通路の2割強が胞子の床 (毒の床) に。霧の奥 (行き止まり優先) に癒しの泉をひとつ
@@ -1638,7 +1643,7 @@ function newFloor() {
   if (spf && spf.board) spf.board(G.board);
   // 迷宮の掟: 盤面の加工 (獄の骸・霧の胞子と泉・縦穴の落とし穴)。静寂の階 (罠・毒の床・落とし穴なし) では胞子も穴も撒かない
   const trf = dungeonTrait();
-  if (trf && trf.board && TRAIT_BOARD[trf.board] && !(spf && spf.noTrap && (trf.board === "mist" || trf.board === "shaft" || trf.board === "vent" || trf.board === "ledge"))) TRAIT_BOARD[trf.board](G.board);
+  if (trf && trf.board && TRAIT_BOARD[trf.board] && !(spf && spf.noTrap && (trf.board === "mist" || trf.board === "shaft" || trf.board === "vent" || trf.board === "ledge" || trf.board === "bog"))) TRAIT_BOARD[trf.board](G.board);
   if (G.floor > G.stats.deepest) G.stats.deepest = G.floor;
   // 酒場の噂を盤面に反映 (潜入直後の階のみ)
   if (G.activeRumor && G.activeRumor.floor === G.floor) applyRumorToBoard(G.board);
@@ -5463,17 +5468,20 @@ function resolveCellMeasured(cell) {
       // 深層ほど毒沼が脅威であり続けるようにする。
       const layer = activeCfg().layer || 1;
       const pct = Math.min(0.12, 0.05 + (layer - 1) * 0.003);
+      // 毒消しの書きつけ (手がかりの恵み miasma): 毒の床で受けるダメージが半分 (毒床耐性 Lv1 とは重ねて掛かる)
+      const ward = clueBoon("miasma");
       let anyDeath = false;
       const fallen = [], hurt = [];
       for (const p of G.party) {
         if (!p.alive) continue;
         let dmg = Math.max(1, Math.ceil(p.maxhp * pct));
         if (resist === 1) dmg = Math.max(1, Math.ceil(dmg * 0.5));
+        if (ward) dmg = Math.max(1, Math.ceil(dmg * 0.5));
         p.hp = Math.max(0, p.hp - dmg);
         hurt.push(p);
         if (p.hp === 0) { p.alive = false; anyDeath = true; fallen.push(p.name); log(`${p.name}は毒に沈んだ…`, "dmg"); }
       }
-      log(`毒の床だ！ パーティ全体が蝕まれた${resist === 1 ? " (耐性で半減)" : ""}`, "dmg");
+      log(`毒の床だ！ パーティ全体が蝕まれた${resist === 1 ? " (耐性で半減)" : ""}${ward ? " (毒消しの心得で半減)" : ""}`, "dmg");
       flashPartyCards(hurt, "hit");
       if (!anyDeath) {
         // 軽い痛手はトーストと札の明滅だけ (歩みを止めない)
@@ -5891,7 +5899,7 @@ function seraSlotBlocked(d, soul, slotId) {
   return !!(d && d.vessel === "sera" && slotId === "primary");
 }
 // 灯守のランクの目標: 目覚め 1 / 継ぎ目の締め直し (焼かれた人業の殻) 2 / 奈落を前にした館の語り 3 (第六章から先で 4・5)
-const SERA_RANK_BEATS = ["irene_husks", "irene_abyss"];
+const SERA_RANK_BEATS = ["irene_husks", "irene_abyss", "irene_crest"];
 function seraRankTarget() {
   const b = worldState().beats;
   return Math.min(5, 1 + SERA_RANK_BEATS.filter((id) => b[id]).length);
@@ -7539,6 +7547,17 @@ function startBattleMeasured(enemies, cell) {
   if (trC && trC.chill) {
     for (const p of G.battle.party) if (p.alive) G.battle._applyMod(p, "agi", Math.pow(0.8, trC.chill), 3, "絶対零度");
     log(`凍てつく冷気に身がすくむ (隊の AGI ▼${trC.chill})。`, "dmg");
+  }
+  // 迷宮の掟: よどんだ瘴気 (trait.poisonStart) — 戦闘の開幕に、隊の一人ひとりがこの確率で毒に冒される (毒の耐性で防げる)
+  if (trC && trC.poisonStart > 0) {
+    const sick = [];
+    for (const p of G.battle.party) {
+      if (!p.alive || p.ailment) continue;
+      if (Math.random() < trC.poisonStart * (1 - G.battle._ailRes(p, "poison"))) {
+        p.ailment = "poison"; p._poisonPct = 0.05; G.battle._holdAil(p, "poison"); sick.push(p.name);
+      }
+    }
+    if (sick.length) log(`よどんだ瘴気が肺を焼く ― ${sick.join("・")}は毒に冒された。`, "dmg");
   }
   if (physOnlyHere()) log("呪文を封じる霧が立ちこめている ― 物理技と道具のほかは使えない。", "sys");
   if (foeLv - partyLevel() >= 4) log(`格上の敵だ (Lv${foeLv})。眠りや毒、即死の術はほとんど効かず、敵の術はよく効く。`, "sys");
@@ -11788,6 +11807,7 @@ function tavernHintAllowed(req) {
   if (req === "undercity") return worldOpenId("w14");                               // 王都の地下 (水底の参道が地図に現れた後)
   if (req === "furnace") return worldOpenId("w18");                                 // 灼熱の洞 (火を噴く地割れが地図に現れた後)
   if (req === "frost") return worldOpenId("w22");                                   // 氷結回廊 (奈落の氷棚が地図に現れた後)
+  if (req === "swamp") return worldOpenId("w26");                                   // 毒沼 (腐れ水の岸が地図に現れた後)
   return featureUnlocked(req);                           // fusion / rumor / order / expedition
 }
 // 酒場の顔ぶれを選び直す (ダンジョン帰還時・初回入店時に呼ぶ)
