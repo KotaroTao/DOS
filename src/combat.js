@@ -561,6 +561,7 @@ export class Battle {
     for (const p of party) {
       p._coverLeft = pv(p, "cover");
       p._barrierLeft = pv(p, "barrier");
+      p._wallLeft = 0; // 魔法壁 (魔泉の目覚め) は _perkStart で張り直す
       p._scriptureUsed = false;
       p._martyrUsed = false;
       p._kenma = false;
@@ -926,6 +927,14 @@ export class Battle {
     t.mp = Math.min(t.maxmp, t.mp + g);
     return g;
   }
+  // 魔法壁 (魔泉の目覚め): 受けるダメージを残り回数だけ半減する (物理・ブレス・呪文を問わない)
+  _wallCut(t, dmg) {
+    if (!(t._wallLeft > 0) || !(dmg > 0)) return dmg;
+    t._wallLeft--;
+    this.log(`${t.name}の魔法壁がダメージを和らげた！ (残り${t._wallLeft}回)`, "heal");
+    this._proc(t, "魔法壁");
+    return Math.max(1, Math.ceil(dmg * 0.5));
+  }
   // 戦闘開始時 (start)
   _perkStart() {
     for (const p of this.party) {
@@ -936,6 +945,7 @@ export class Battle {
         for (const t of tg) {
           if (c.buff) this._perkBuff(t, c.buff, lv, c.dur, label);
           if (c.barrier) t._barrierLeft = (t._barrierLeft || 0) + (lvv(c.barrier, lv) || 0);
+          if (c.wall) t._wallLeft = (t._wallLeft || 0) + (lvv(c.wall, lv) || 0);
           if (c.regen) this._applyMod(t, "regen", 1 + (lvv(c.regen, lv) || 0), c.dur || 3, label);
           if (c.mp) this._perkMp(t, lvv(c.mp, lv));
           if (c.endure) t._grantEndure = true;
@@ -1935,6 +1945,7 @@ export class Battle {
         { const wk = this._rkParty("wardenKekkai", [0.05, 0.08, 0.12, 0.20]); if (wk) dmg = Math.max(1, Math.floor(dmg * (1 - wk))); }
         dmg = Math.max(1, Math.floor(dmg * (1 - this._shintou(t)))); // 心頭滅却: ブレス・呪文
         if (spell) dmg = this._resistCut(t, dmg, "magResist").dmg;
+        dmg = this._wallCut(t, dmg);
         t.hp -= dmg;
         this.log(`${t.name}に ${dmg} ダメージ${em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : ""}`, "dmg");
         this._wake(t);
@@ -2131,7 +2142,7 @@ export class Battle {
       // 反撃の会心も通常の物理と同じ耐性軽減を使う。
       const pr = this._resistCut(attacker, dmg, "physResist", crit ? 0.5 : 0);
       if (pr.immune) { this.log(`${defender.name}の反撃！ ${attacker.name}には効かない！ (物理無効)`, "hit"); return; }
-      dmg = pr.dmg;
+      dmg = this._wallCut(attacker, pr.dmg);
       attacker.hp -= dmg;
       this.log(`${defender.name}の反撃！ ${attacker.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}`, "hit");
       this._die(attacker);
@@ -2412,6 +2423,7 @@ export class Battle {
       this._proc(tgt, "金剛の守り");
       return { target: tgt, dmg: 0, crit: false, died: false, immune: true };
     }
+    dmg = this._wallCut(tgt, dmg);
     tgt.hp -= dmg;
     // 属性・障壁・物理耐性は重なっても全部見えるように併記する
     const eff = [em > 1 ? "弱点!" : em < 1 ? "耐性…" : "", magWeak ? "魔法弱点!" : "", barriered ? "障壁!" : "", pr.tag]
