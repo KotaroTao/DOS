@@ -8,7 +8,7 @@ export function build() {
   const mats = {
     body: { ramp: ramp(["#010201", "#050704", "#0a0e07", "#11170b", "#18200f", "#202b14", "#2a3719", "#36451f", "#455626"], 9), spec: 1.3, pow: 34, specCol: "#8aa050", dither: 0.55, amb: 0.2,
       shade: p => 0.12 * fbm(p.x * 0.18, p.y * 0.18, p.z * 0.18) },
-    face: { ramp: ramp(["#060704", "#11140c", "#1e2416", "#2c3420", "#3c462c", "#4e5a3a"], 6), dither: 0.5, amb: 0.28 },
+    face: { ramp: ramp(["#080906", "#161a10", "#262c1c", "#384028", "#4c5636", "#626e46"], 6), dither: 0.45, amb: 0.32 },
     crown: ROTWOOD, reed: REED,
     stone: { ramp: ramp(["#030403", "#070908", "#0c0f0d", "#121614", "#191e1b"], 5), dither: 0.8, amb: 0.4, noRim: true },
     maw: { ramp: ["#000000", "#040802", "#0e1a06", "#24400c"], amb: 0.05, dif: 0.2, noRim: true },
@@ -29,7 +29,7 @@ export function build() {
   const handL = fingers([14, 108, 20], 100, "body", { n: 4, len: 8, spread: 40, r: 1.6, curl: 0.4, z: 1 });
   const handR = fingers([98, 106, 16], 80, "body", { n: 4, len: 8, spread: 40, r: 1.6, curl: -0.4, z: 1 });
   // 溶けきらない顔 [x, y, z, s, 傾き]
-  const faces = [[34, 86, 18, 1.2, -20], [74, 92, 18, 1, 15], [60, 70, 16, 0.9, 5], [40, 64, 15, 0.8, -10], [80, 74, 14, 0.8, 25], [52, 100, 20, 1, 0]];
+  const faces = [[36, 88, 18, 1.5, -20], [76, 92, 18, 1.3, 15], [62, 72, 16, 1.1, 5], [80, 74, 14, 1, 25], [54, 102, 20, 1.3, 0], [26, 104, 18, 1, -10]];
   const fs = [], fh = [];
   for (const [x, y, z, s, a] of faces) {
     fs.push(ellipsoid([x, y, z], [4 * s, 5 * s, 3 * s], "face", a));
@@ -62,7 +62,7 @@ export function build() {
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const p = C.pix[y * W + x]; if (p && p.m === "core" && fbm(x * 0.4, y * 0.4, 1) > 0.05 && (x + y) % 2) C.set(x, y, "#202b14"); }
   // 毒の息 (口から前下へ)
   const bc = ["#16200a", "#24380e", "#3a5414", "#587a1c", "#86a82a", "#bcd658"];
-  puffs(C, [[46, 48, 7], [40, 56, 10], [34, 64, 12], [30, 72, 12], [44, 64, 9]], bc, { dens: 0.95, seed: 8, own: ["body", "face"] });
+  puffs(C, [[42, 46, 6], [34, 48, 8], [24, 52, 10], [14, 56, 11], [5, 60, 10], [10, 46, 6]], bc, { dens: 0.9, seed: 8, own: ["body", "face", "stone"] });
   // 島の石積みの輪郭を霧で沈める
   miasma(C, 11007, 4, [0, 34, W, 50], 0.4);
   toxBubbles(C, 11009, 30, [4, 100, W - 8, 20]);

@@ -407,61 +407,67 @@ const NEW_DEFS = [
   { id: "bs_glaciallord", name: "氷結回廊の主", rank: 10, boss: true, race: "specter", element: "water", artKey: "hd_glaciallord", soulClass: "mage",
     role: "summoner", summonKey: "bs_frozenexplorer", ability: "breath", abRate: 0.35, physResist: 75, endure: true, // 先人を呼び覚まし、凍てつく息を吐き、三百年の執念で一度は倒れずに耐える
     desc: "三百年前、王家に最初に仕えた操霊師、凍王イザーク。魂が奈落の底へ落ちていくのを止めるため、自分ごと回廊を凍らせて堤にした。三百年のうちに正気を失い、いまは氷の玉座から凍てつく先人たちを見張っている。ひざまずく先人を呼び覚まし、凍てつく息で隊をまとめて凍らせ、致命の一撃を受けても一度は玉座から崩れない。" },
-  // -- 第9層「毒沼」 (rank 9-10・毒/腐敗。第8層より格上の壁) --
-  { id: "bs_plaguebeast", name: "疫病の獣", rank: 9, race: "beast", element: "earth", artKey: "plaguebeast",
-    ability: "poison", enrage: true, multistrike: 2, // 病毒を撒き、手負いで荒れ、連打でなぐ
-    desc: "疫病に冒されて狂った、毒のうみを滴らせる獣。噛みつくたびに病毒を流し込み、傷つけばただれた体で見境なく暴れ回る。その通り道には、必ず疫病が広がる。" },
-  { id: "bs_rotooze", name: "腐敗の泥", rank: 9, race: "amorph", element: "earth", artKey: "rotooze",
-    physResist: 75, regen: 0.1, ability: "poison", // 腐汁の泥。刃が沈み、毒を浴びせ、寄り集まる
-    desc: "沼の底に積もった腐敗が、意思を持って這い上がった泥。触れたものを腐汁の毒でただれさせ、刃を突き立てても泥に沈んで効かない。崩しても、腐臭の核さえ残れば蘇る。" },
-  { id: "bs_swamphag", name: "沼の魔女", rank: 10, race: "specter", element: "earth", artKey: "swamphag", soulClass: "hexer",
-    ability: "weaken", role: "summoner", summonKey: "bs_leechswarm", regen: 0.06, // 呪いで力を奪い、ヒルを呼び、泥で繕う
-    desc: "毒沼に棲みついた、藻と腐肉をまとう老いた魔女。呪いの言葉で生者の力を奪い、沼のヒルを次々と這わせる。沼の毒気が、こいつの若さと術を保っている。" },
-  { id: "bs_bogdrowned", name: "沼の溺者", rank: 9, race: "undead", element: "water", artKey: "bogdrowned",
-    ability: "poison", lifesteal: 0.3, pack: true, // 沼に沈んだ溺者の群れ。毒泥で侵し、群れで引き込む
-    desc: "毒沼に足を取られて沈んだ者たちの、膨れ腐った群れ。泥に塗れた手で生者を掴み、毒の沼へ引きずり込もうとする。一体を払っても、泥の中から幾つもの手が伸びる。" },
-  { id: "bs_venomspider", name: "猛毒の大蜘蛛", rank: 9, race: "insect", element: "earth", artKey: "venomspider",
-    ability: "poison", multistrike: 2, swift: true, // 猛毒の牙で素早く幾度も噛みつく
-    desc: "沼地に巣を張る、人を捕らえるほどの大蜘蛛。猛毒の牙で素早く何度も噛みつき、痺れた獲物を糸で吊るす。八本の脚で水面を滑り、退路を糸で塞いでくる。" },
-  { id: "bs_miasmawraith", name: "瘴気の霊", rank: 9, race: "specter", element: "earth", artKey: "miasmawraith",
-    ability: "poison", evasive: true, magWeak: 1.4, // 毒気の霊。蝕み、すり抜け、魔に脆い
-    desc: "沼から立ちのぼる瘴気が、ぼんやりと形をなした毒の霊。まとわりつく毒気で生者を蝕み、刃を向ければ霧となって散ってかわす。実体が薄く、魔の力には抗えない。" },
-  { id: "bs_corpseflower", name: "屍肉花", rank: 9, race: "plant", element: "earth", artKey: "corpseflower",
-    ability: "poison", multistrike: 2, regen: 0.08, // 死臭で誘い、毒つるで何度も打ち、刈っても咲く
-    desc: "死臭を放って獲物を誘い寄せる、毒々しい大輪の食人花。つるを鞭のように振るって何度も打ち据え、毒液で溶かして養分にする。刈り取っても、屍肉のある限り咲き続ける。" },
-  { id: "bs_plaguerat", name: "疫病鼠の大群", rank: 9, race: "beast", element: "earth", artKey: "plaguerat",
-    pack: true, ability: "poison", lifesteal: 0.3, // 病を運ぶ鼠の大群。噛んで毒し、血をすする
-    desc: "疫病を撒き散らす、膨れ上がった鼠の大群。波のように押し寄せて噛みつき、病毒を移しては血をすする。一匹叩いても、足元の闇からまた百匹が湧き出る。" },
-  { id: "bs_toxicgolem", name: "汚泥の巨塊", rank: 10, race: "construct", element: "earth", artKey: "toxicgolem",
-    physResist: 100, barrier: 2, ability: "poison", // 汚泥が固まった巨塊。刃を阻み、毒煙を噴く
-    desc: "沼の汚泥が幾年も積もって固まり、動き出した巨塊。叩いても泥に沈んで手応えがなく、継ぎ目からは絶えず毒の煙が噴き出す。沼そのものが立ち上がったような、底知れぬ重さだ。" },
-  { id: "bs_leechswarm", name: "ヒルの群体", rank: 9, race: "amorph", element: "water", artKey: "leechswarm",
-    lifesteal: 0.4, pack: true, ability: "paralyze", // 無数のヒル。吸い付いて痺れさせ、血を貪る
-    desc: "毒沼に湧いた、無数の黒いヒルが寄り集まった群体。一斉に吸い付いて獲物を痺れさせ、奪った血で赤黒く膨れ上がる。引き剥がそうにも、千切れたヒルがまた吸い付く。" },
-  { id: "bs_gasfiend", name: "毒気の鬼", rank: 9, race: "demon", element: "earth", artKey: "gasfiend",
-    ability: "breath", enrage: true, magWeak: 1.3, // 全体に毒の息を吐き、手負いで荒れる
-    desc: "沼の毒気が凝って生まれた、緑にくすむ鬼。口を開けば全体を包む毒の息を吐き、近づく者を残らず病に沈める。傷を負えば毒気を噴き上げて荒れ狂う。" },
-  { id: "bs_marshlurker", name: "沼に潜む顎", rank: 9, race: "aquatic", element: "water", artKey: "marshlurker",
-    ability: "critical", lifesteal: 0.3, physResist: 50, // 沼に潜み、急所を一噛みで仕留め、喰らって満ちる
-    desc: "泥水に身を沈め、目だけを出して獲物を待つ大顎の魔。近づいた者を一息にくわえ込み、鎧ごと急所を噛み砕く。泥に覆われた体は刃を通さず、喰らうほどに肥える。" },
-  { id: "bs_pestilenceknight", name: "疫病の騎士", rank: 10, race: "armored", element: "earth", artKey: "pestilenceknight",
-    ability: "critical", physResist: 50, enrage: true, // 疫病の鎧。急所を貫き、刃を阻み、手負いで猛る
-    desc: "疫病で全滅した軍の、ただ一騎生き残って腐り果てた騎士。うみの滴る鎧は刃を阻み、錆びた剣は鎧ごと急所を貫く。倒れた仲間の恨みを背負い、傷つくほど鬼気迫る。" },
-  { id: "bs_fungalcorpse", name: "キノコまみれの死人", rank: 9, race: "undead", element: "earth", artKey: "fungalcorpse",
-    ability: "poison", regen: 0.08, pack: true, // キノコに侵された死人。胞子を撒き、群れ、蘇る
-    desc: "沼に倒れ、毒キノコに全身を乗っ取られた死人の群れ。背の傘から毒胞子を撒き、近づく者を侵す。打ち崩しても、残った菌糸からまた起き上がってくる。" },
-  { id: "bs_blightmoth", name: "枯死の大蛾", rank: 9, race: "insect", element: "earth", artKey: "blightmoth",
-    ability: "paralyze", evasive: true, swift: true, // 枯死の鱗粉で痺れさせ、ふらりと舞ってかわす
-    desc: "毒沼の夜に舞う、触れたものを枯らす鱗粉をまとった大蛾。鱗粉を浴びた者は痺れて立ち尽くし、刃を向ければ不規則に舞ってかわす。灯りに群がり、油断した者を狙う。" },
-  { id: "bs_sludgehydra", name: "汚泥の多頭", rank: 10, race: "reptile", element: "water", artKey: "sludgehydra",
-    multistrike: 3, ability: "poison", regen: 0.08, // 幾つもの頭で毒を吐き連打し、斬っても生える
-    desc: "汚泥から幾つもの首をもたげる、毒沼の多頭の魔。それぞれの口から毒を吐き、続けざまに噛みつく。一つ首を落としても、泥の中から新たな首が生えてくる。" },
-  { id: "bs_discardeddoll", name: "捨てられた人業", rank: 9, race: "construct", element: "dark", artKey: "discardeddoll",
-    ability: "drain", enrage: true, lifesteal: 0.3, // 使い潰された器の成れの果て。命を求めて掴みかかる
-    desc: "使い潰され、毒沼へ捨てられた人業の成れの果て。砕けた体で起き上がり、失った魂を求めて生者の温もりに掴みかかる。その縫い目の顔は、かつての自分に似ているかもしれない。" },
-  { id: "bs_swamplord", name: "よどみの主", rank: 10, boss: true, race: "amorph", element: "earth", artKey: "swamplord", soulClass: "hexer",
-    role: "summoner", summonKey: "bs_rotooze", ability: "breath", physResist: 75, regen: 0.08, // 腐泥を呼び、毒気を吐き、沼で繕う
-    desc: "毒沼のすべてのよどみが寄り集まって意思を得た、沼そのものの主。腐敗の泥を眷属として吐き出し、全体を包む毒気の息で生者を沈める。ここに捨てられた数えきれぬ魂が、その身に溶け込んでいる。" },
+  // -- 第9層「毒沼」 (rank 10・毒/腐敗。奈落の底に広がる毒の沼。第8層より格上の壁) --
+  // 雑魚・主・強敵ともに rank10 (上限)。毒の正体は、底まで落ちて腐った魂。
+  // 沼の生き物 (鼠・ヒル・大顎・蛾・蜘蛛・食人花・蛙)、腐った魂そのもの (腐敗の泥・瘴気の霊・疫病の亡霊・毒気の鬼)、
+  // 沼のほとりに捨てられた作りかけの器 (捨てられた人業) と、それを起こす術師たち。
+  // 第5層からの流儀で特色を極端に押し出す (神速・特技の多用・ブレス・全体呪文・溜め・守り崩し・打ち消し・魔法抵抗100)。
+  // 毒の特技は4体 (多用は疫病の獣・猛毒の大蜘蛛の2体) に抑え、麻痺・眠り・混乱・魅了・弱体・魂奪・吸命などへ散らした。
+  // 絵は hd_* の固有原型 (tools/hdart/layer9/)。どの個体も ability を明示する (種族の既定の特技は付けない)
+  { id: "bs_plaguebeast", name: "疫病の獣", rank: 10, race: "beast", element: "earth", artKey: "hd_plaguebeast",
+    ability: "poison", abRate: 0.45, enrage: true, // 噛みつくたびに病毒を流し込み、手負いで荒れ狂う
+    desc: "腐った魂の毒を飲んで狂った、猪に似た大きな獣。毛は抜け落ちてただれた肌が覗き、背の剛毛はいつも逆立っている。黄ばんだ牙で噛みつくたびに病毒を流し込み、傷を負えば泥をはね上げて見境なく暴れ回る。" },
+  { id: "bs_rotooze", name: "腐敗の泥", rank: 10, race: "amorph", element: "earth", artKey: "hd_rotooze",
+    physResist: 75, magWeak: 1.5, ability: null, // 刃は泥に沈んで止まり、呪文の熱にはもろい
+    desc: "奈落の底まで落ちた魂が、腐りきって泥になり、盛り上がって這い出したもの。ぬめった黒緑の体の奥で、溶けきらない魂の光がいくつも濁っている。突き立てた刃は柄まで沈んで止まるが、呪文の熱を浴びると泡を吹いて崩れる。" },
+  { id: "bs_swamphag", name: "沼の魔女", rank: 10, race: "specter", element: "earth", artKey: "hd_swamphag", soulClass: "hexer",
+    role: "healer", ability: "sleep", abRate: 0.45, // 眠りの子守歌を歌い続け、泥の灯の雫で仲間の傷を繕う
+    desc: "よどんだ水面の上に浮かぶ、藻をまとった痩せた老婆の霊。水草のような長い髪を垂らし、低い声で子守歌を歌う。その歌を聞いた者は、毒の沼のほとりだというのにまぶたが落ちる。手に提げた泥の灯からこぼれる雫で、沼の仲間たちの傷を繕ってまわる。" },
+  { id: "bs_bogdrowned", name: "沼の溺者", rank: 10, race: "undead", element: "water", artKey: "hd_bogdrowned",
+    ability: "weaken", abRate: 0.45, pack: true, // 冷たい手でつかんで力を奪い続け、水面から次々と浮かび上がる
+    desc: "奈落を落ちてきて、毒の沼に沈んだ者たちの、水を吸って膨れた体。頭から藻を垂らし、白く濁った眼で生者を見つけると、腰まで沼に浸かったまま腕を伸ばしてくる。つかまれた手足からは力が抜けていく。一体を払っても、水面からまた別の頭が浮かぶ。" },
+  { id: "bs_venomspider", name: "猛毒の大蜘蛛", rank: 10, race: "insect", element: "earth", artKey: "hd_venomspider",
+    ability: "poison", abRate: 0.5, multistrike: 2, // 毒の滴る牙で続けざまに噛み、何度も毒を流し込む
+    desc: "枯れた葦のあいだに巣を張る、人を捕らえるほどの大蜘蛛。腹には毒を蓄えた黄緑の縞が走る。前脚を高く振り上げて飛びかかり、毒の滴る大きな牙で続けざまに噛みつく。巣には、糸で巻かれた獲物がいくつも吊るされている。" },
+  { id: "bs_miasmawraith", name: "瘴気の霊", rank: 10, race: "specter", element: "earth", artKey: "hd_miasmawraith",
+    ability: "spell", abRate: 0.5, evasive: true, // 毒の呪いを隊全体へ降らせ続け、霧の体は刃をすり抜ける
+    desc: "沼から立ちのぼる瘴気が、腐った魂を核にして人の上半身の形をとったもの。両腕を広げて頭上に崩れかけた呪の輪を回し、毒の呪いを雨のように降らせる。ゆらぐ霧の体を、刃はたいていすり抜けてしまう。" },
+  { id: "bs_corpseflower", name: "屍肉花", rank: 10, race: "plant", element: "earth", artKey: "hd_corpseflower",
+    ability: "charm", abRate: 0.45, regen: 0.08, // 甘い光と花粉で心を奪い続け、刈られたつるはすぐ伸び直す
+    desc: "骨の山に根を下ろした、赤黒い肉厚の花びらの巨大な食人花。花の中心は牙の並ぶ穴で、その上に甘い光を放つ雌しべが揺れる。死臭とともに漂う桃色の花粉を吸った者は、うっとりと花へ歩み寄り、仲間を押しのけてでも近づこうとする。太いつるは、刈っても刈っても伸び直す。" },
+  { id: "bs_plaguerat", name: "疫病鼠の大群", rank: 10, race: "beast", element: "earth", artKey: "hd_plaguerat",
+    ability: "poison", pack: true, lifesteal: 0.3, // 波のように押し寄せて病毒を移し、血をすする
+    desc: "腐った魂の毒をかじって育った、腫れ物だらけの膨れた大鼠の群れ。泥の上を波のように押し寄せて噛みつき、病毒を移しては血をすする。一匹叩いても、朽ち木の陰からまた赤い眼が光る。" },
+  { id: "bs_toxicgolem", name: "汚泥の巨塊", rank: 10, race: "construct", element: "earth", artKey: "hd_toxicgolem",
+    ability: "charge", abRate: 0.4, physResist: 75, // 沼底の泥の大塊を担ぎ上げて力を溜め、次の手番で叩きつける
+    desc: "沼の汚泥が幾年も積もって固まり、動き出したずんぐりした巨人。泥の体には折れた槍や骨、捨てられた器の腕が塗り込められている。沼底の泥の大塊を頭上に担ぎ上げ、全身に力を溜めてから叩きつける。担ぎ上げた隙に眠らせるか封じるかしなければ、隊ごと押しつぶされる。厚い泥は刃をほとんど通さない。" },
+  { id: "bs_leechswarm", name: "ヒルの群体", rank: 10, race: "amorph", element: "water", artKey: "hd_leechswarm",
+    ability: "paralyze", abRate: 0.45, lifesteal: 0.5, // 吸いついては痺れの粘液を流し続け、奪った血で膨れる
+    desc: "毒の沼に湧いた無数の黒いヒルが、絡まり合って盛り上がった塊。いくつもの頭が歯の輪の並ぶ丸い口を開け、吸いついては痺れの粘液を流し込む。動けなくなった獲物から血を吸い、赤黒く膨れ上がっていく。" },
+  { id: "bs_gasfiend", name: "毒気の鬼", rank: 10, race: "demon", element: "earth", artKey: "hd_gasfiend",
+    ability: "breath", abRate: 0.5, magWeak: 1.3, // 毒の息を吹きつけ続けて隊をまとめて包み、毒気の体は呪文の熱にもろい
+    desc: "腐った魂から立つ毒気が凝って生まれた、腹の膨れた緑くすみの鬼。両頬を膨らませて大口を開け、黄緑の毒の息を何度も吹きつけて隊をまとめて包む。肩や背中の穴からも絶えず毒気が漏れている。毒気でできた体は、呪文の熱にもろい。" },
+  { id: "bs_marshlurker", name: "沼に潜む顎", rank: 10, race: "aquatic", element: "water", artKey: "hd_marshlurker",
+    ability: "critical", abRate: 0.5, swift: true, // 泥水から飛び出して、鎧ごと急所を何度も噛み砕く
+    desc: "泥水に体を沈め、眼だけを水面に出して獲物を待つ、鰐に似た大顎の魔。近づいた者がいれば泥をはね上げて飛び出し、何列も並んだ牙で鎧ごと急所を噛み砕く。沼の水面に波紋が立ったら、もう遅い。" },
+  { id: "bs_pestilenceknight", name: "疫病の騎士", rank: 10, race: "armored", element: "earth", artKey: "hd_pestilenceknight",
+    ability: "sunder", abRate: 0.45, physResist: 50, // 刃こぼれした大剣で鎧ごと守りを叩き割り続け、腐った鎧が刃を半ば阻む
+    desc: "疫病で全滅した軍の、ただ一騎。死んでなお奈落の底まで落ち、毒の沼で腐り果てても剣を手放さなかった。くちばしのように突き出た兜の奥で黄緑の光が揺れ、刃こぼれした大剣を振りかぶっては、鎧ごと守りを叩き割る。錆と膿にまみれた鎧は、刃を半ば阻む。" },
+  { id: "bs_fungalcorpse", name: "キノコまみれの死人", rank: 10, race: "undead", element: "earth", artKey: "hd_fungalcorpse",
+    ability: "confuse", abRate: 0.45, pack: true, // 傘から惑わしの胞子を撒き続け、霧の中から群れで現れる
+    desc: "沼に倒れ、全身を毒キノコに乗っ取られた死人。頭も肩も紫がかった傘で埋まり、よろめくたびに惑わしの胞子が雲のように舞う。吸い込んだ者は敵と味方の見分けがつかなくなる。霧の奥には、いつも同じ姿がもう何体かいる。" },
+  { id: "bs_blightmoth", name: "枯死の大蛾", rank: 10, race: "insect", element: "earth", artKey: "hd_blightmoth",
+    haste: true, ability: "paralyze", // 目にも止まらぬ速さで二度舞い寄り、枯死の鱗粉で痺れさせる
+    desc: "人より大きな、ぼろぼろの翅の大蛾。くすんだ翅には黄緑に濁った目玉模様が浮かぶ。羽ばたくたびに枯死の鱗粉が降りそそぎ、浴びた葦は枯れて折れ、人は痺れて立ち尽くす。翅の残像を引きながら、目にも止まらぬ速さで二度舞い寄ってくる。" },
+  { id: "bs_sludgehydra", name: "汚泥の多頭", rank: 10, race: "reptile", element: "water", artKey: "hd_sludgehydra",
+    multistrike: 3, regen: 0.06, ability: null, // 泥から伸びる幾つもの首で一度に三度噛みつき、落とした首もまた生える
+    desc: "沼の泥の塚から、泥に塗れた蛇の首を幾本ももたげる多頭の魔。それぞれの首が別々に噛みつき、一度に三度の牙が襲う。首を一本落としても、切り口から泥が盛り上がって、新しい頭が生えてくる。" },
+  { id: "bs_discardeddoll", name: "捨てられた人業", rank: 10, race: "construct", element: "dark", artKey: "hd_discardeddoll",
+    ability: "soulSteal", abRate: 0.45, endure: true, // 空っぽの胸へ生者の魂の光を吸い寄せ続け、壊れた体で一度は踏みとどまる
+    desc: "沼のほとりの谷に山と積まれた、作りかけや壊れた器の一体。どれも同じ、のっぺりした丸い木の頭と黒い鉄の関節で、胸には「灯を掌に載せた手」の印が彫られている。魂を宿されることのなかった空っぽの胸へ、生者の宿した魂の光を吸い寄せようとして、腕の欠けた体で起き上がる。致命の一撃を受けても、一度は崩れずに踏みとどまる。" },
+  { id: "bs_swamplord", name: "よどみの主", rank: 10, boss: true, race: "amorph", element: "earth", artKey: "hd_swamplord", soulClass: "hexer",
+    role: "summoner", summonKey: "bs_rotooze", ability: "breath", abRate: 0.35, regen: 0.06, // 腐敗の泥を産み落とし、毒の息を吐き、崩れた所を沼の泥で塞ぐ
+    desc: "沼のいちばん深いところで、底まで落ちて腐った魂のよどみが寄り集まり、山のように盛り上がったもの。黒緑の泥の巨体には、溶けきらない顔と腕がいくつも浮かぶ。朽ち木の冠をいただく頭から毒の息を吐き、泥の腕の先から腐敗の泥を産み落とし、崩れた所はすぐに沼の泥が塞ぐ。背後の霧の奥には、沈みかけた古い島の石積みがある。主はその島の前から、決して動かない。" },
   // -- 第10層「嵐の尖塔」 (rank 9-10・風/雷。第9層より格上の壁) --
   { id: "bs_stormelemental", name: "嵐の精", rank: 9, race: "elemental", element: "wind", artKey: "stormelemental",
     ability: "paralyze", evasive: true, multistrike: 2, // 渦巻く雷雲。痺れさせ、すり抜け、連撃する
@@ -981,9 +987,9 @@ const NEW_DEFS = [
   { id: "bs_irongolem", name: "青銅の神兵", rank: 7, race: "construct", element: "none", artKey: "hd_irongolem",
     ability: "charge", abRate: 0.4, physResist: 50, // 長い矛を引き絞って力を溜め、渾身の突きを放つ。緑青の鎧が刃を半ば弾く
     desc: "神殿の門を守っていた、緑青に覆われた青銅の兵の像。身を沈めて長い矛を大きく引き絞り、穂先に光を溜めては渾身の突きを放つ。溜めの間に眠らせるか封じるかしなければ、隊の誰かが貫かれる。" },
-  { id: "bs_necromancer", name: "死霊術師", rank: 8, race: "undead", element: "dark", artKey: "necromancer", soulClass: "bishop",
-    role: "summoner", summonKey: "bs_plaguewraith", magWeak: 1.4, // 死者を呼び続けるが、痩せた身は魔法に脆い
-    desc: "死を窮め、自ら死者となった術師。倒した者を次々と従者として呼び起こすが、痩せ衰えた身は魔法を撃ち込まれれば術もろとも崩れる。従える骸の軍勢はみな、かつてこの男を討ちに来た者たちだ。" },
+  { id: "bs_necromancer", name: "死霊術師", rank: 10, race: "undead", element: "dark", artKey: "hd_necromancer", soulClass: "bishop", // 第9層 (絵は hd_* の固有原型)
+    role: "summoner", summonKey: "bs_discardeddoll", ability: "drain", magWeak: 1.4, // 捨てられた器を起こして呼び寄せ、生者の命を喰らう。痩せた身は呪文に脆い
+    desc: "沼のほとりで、捨てられた器を拾い集めては沼の腐った魂を詰めて起こす、痩せた骸の術師。腐った魂の灯る鉤杖をかかげると、足元の泥から壊れた器が一体、また一体と引き起こされる。骨の指を伸ばして生者の命を喰らうが、痩せ衰えた身は呪文を浴びれば術もろとも崩れる。" },
   { id: "bs_archdemon", name: "アークデーモン", rank: 8, boss: true, race: "demon", element: "dark", artKey: "imp",
     palette: tint(ARTS.imp.palette, "#2a1a3a", 0.35),
     role: "summoner", summonKey: "bs_demon", ability: "critical", // 魔界の軍団を呼び、急所をえぐる一撃を放つ
@@ -1150,10 +1156,9 @@ const NEW_DEFS = [
   { id: "bs_voidwalker", name: "虚無の歩者", rank: 8, race: "specter", element: "dark", artKey: "hd_voidwalker",
     evasive: true, magResist: 75, ability: null, // 刃は揺らぐ体をすり抜け、呪文は胸の穴に呑まれる
     desc: "水底の闇から抜け出した、顔のないひょろ長い人の形の虚ろ。揺らいでぶれる体を刃はすり抜け、放った呪文は胸にぽっかり空いた穴の奥の星々に呑まれてしまう。何を求めて歩くのか、誰も知らない。" },
-  { id: "bs_plaguewraith", name: "疫病の亡霊", rank: 8, race: "undead", element: "dark", artKey: "ghost",
-    palette: tint(ARTS.ghost.palette, "#3a5a2a", 0.5),
-    ability: "poison", // 触れた者を高熱に侵す疫病のもや
-    desc: "大疫病で死んだ者たちが一つに溶け合った亡霊の群れ。そのもやに触れた者はたちまち高熱と疫病に侵され、三日三晩うなされる。" },
+  { id: "bs_plaguewraith", name: "疫病の亡霊", rank: 10, race: "undead", element: "dark", artKey: "hd_plaguewraith", // 第9層 (絵は hd_* の固有原型)
+    magResist: 100, ability: "poison", // 触れた者を熱と病に沈め、撃ち込まれた呪文はもやの奥の顔たちに呑まれる
+    desc: "大疫病で死に、奈落の底まで落ちて腐った者たちの魂が、ひとつに溶け合ったもや。布に巻かれた亡骸の山から立ちのぼり、黄ばんだもやの中に苦しむ顔がいくつも浮かぶ。触れた者は熱と病に沈む。撃ち込まれた呪文はもやの奥の顔たちに呑まれて消えるので、刃で散らすしかない。" },
   { id: "bs_crystalgolem", name: "水晶の巨像", rank: 8, race: "construct", element: "none", artKey: "hd_crystalgolem",
     physResist: 75, magWeak: 1.6, ability: null, // 刃は結晶の面にすべって通らないが、魔の力を受けるとひびが走る
     desc: "祭壇の水晶が寄り集まって立ち上がった、青白く透ける巨像。角張った結晶の面に刃はすべってほとんど通らないが、魔の力を受けると芯から細かなひびが走り、たちまち崩れ落ちる。" },
@@ -1175,10 +1180,9 @@ const NEW_DEFS = [
   { id: "bs_soulreaper", name: "魂の刈人", rank: 9, race: "specter", element: "dark", artKey: "reaper",
     swift: true, ability: "soulSteal", // 音もなく現れ、鎌で魂を刈り取って逃さない
     desc: "冥府の正規の従者として魂を刈る役目を持つ上位の霊。迷宮で死を迎えた者には必ず音もなく現れ、鎌の一振りで魂を刈り取って、逃げぬよう懐に包む。" },
-  { id: "bs_plaguelich", name: "疫病のリッチ", rank: 9, race: "undead", element: "dark", artKey: "skeleton", soulClass: "mage",
-    palette: tint(ARTS.skeleton.palette, "#2a5a2a", 0.5),
-    ability: "poison", regen: 0.06, // 千の病を浴びせ、宝珠を依代に蘇る
-    desc: "疫病を武器として研究し続けた術師の死霊。指から滴る千の病の混合液を浴びせ、砕けても隠した宝珠を依代に蘇る。触れた者は己の体が何に侵されているかも分からない。" },
+  { id: "bs_plaguelich", name: "疫病のリッチ", rank: 10, race: "undead", element: "dark", artKey: "hd_plaguelich", soulClass: "mage", // 第9層 (絵は hd_* の固有原型)
+    ability: "dispel", endure: true, // 隊の加護が厚くなるとひび割れた禍言の輪でまとめて断ち切り、宝珠を依代に一度だけ踏みとどまる
+    desc: "病を術として究めた術師の死霊。腐った法衣の帯には病の混ぜ薬の小瓶がいくつも下がり、片手には黄緑の膿の詰まった宝珠をかかげる。隊が加護を重ねるほど目を光らせ、ひび割れた禍言の輪でまとめて断ち切る。砕けても宝珠を依代に、一度だけ踏みとどまる。" },
   { id: "bs_divinegolem", name: "神のくぐつ", rank: 8, race: "construct", element: "light", artKey: "hd_divinegolem",
     ability: "stone", abRate: 0.4, physResist: 50, // ただ一つの眼から放つ裁きの光で、罪ある者を石に変える
     desc: "神が最後の審判のために造らせた、白い石と金の背の高いくぐつ。顔のない頭にただ一つ開いた眼から裁きの光を放ち、浴びた者を罪人の石像に変えて天秤にかける。神殿の床には、裁かれた者たちの石像が並ぶ。" },
@@ -1724,10 +1728,9 @@ const ELITE_DEFS = [
   { id: "el_heresiarch", name: "異端大司教", elite: true, rank: 8, race: "undead", element: "dark", artKey: "hd_heresiarch", soulClass: "bishop",
     ability: "spell", abRate: 0.5, regen: 0.06, // 禁書を開いて闇の呪文で隊全体を撃ち続け、喰らった魂で己を繕う
     desc: "禁じられた教義を説き、生きながら神殿の地下へ葬られた大司教。宙に開いた禁書から闇の文字を立ちのぼらせ、逆さの印の輪の上で闇の呪文を唱え続けて隊をまとめて撃つ。死を福音と説くその身は、喰らった魂の分だけ傷を繕う。" }, // 第6層
-  { id: "el_offeringslime", name: "供物のるつぼ", elite: true, rank: 10, race: "amorph", element: "dark", artKey: "sludgeooze",
-    palette: tint(ARTS.sludgeooze.palette, "#8a6a1a", 0.55),
-    physResist: 75, ability: "poison", // 千年の供物を沈めた粘塊は刃を呑み、腐った供物の毒を流す
-    desc: "千年分の供物を呑み込み続けた祭壇のるつぼが、ついに意思を持った粘塊。突き立てた刃は供物もろとも呑まれ、底によどんだ腐汁の毒を流しながら、最上の供物——生贄を待っている。" }, // 第9層
+  { id: "el_offeringslime", name: "供物のるつぼ", elite: true, rank: 10, race: "amorph", element: "dark", artKey: "hd_offeringslime", // 第9層の強敵。絵は hd_* の固有原型
+    physResist: 75, ability: "goldSteal", abRate: 0.45, // 金貨を何度も呑み込んで奪い、突き立った刃も供物もろとも呑む
+    desc: "地上の人々が奈落の穴へ投げ入れてきた供物が、沼の底に溜まって意思を持った、紫黒の巨大な粘塊。半ば溶けた体の中に、金貨や杯や骨、小さな器の頭が透けて沈む。頂きの大口をるつぼのように開いて、生者の懐の金貨まで光の尾を引かせて吸い込む。突き立てた刃も、供物もろとも呑まれてしまう。" }, // 第9層
   // -- 迷宮 51-60 (灼洞帯) / 強敵ランク8 --
   { id: "el_cinderking", name: "残り火の王", elite: true, rank: 9, race: "elemental", element: "fire", artKey: "hd_cinderking", // 第7層の強敵。絵は hd_* の固有原型
     ability: "charm", abRate: 0.5, role: "summoner", summonKey: "bs_emberswarm", regen: 0.06, // 渦巻く眼で心を奪い続け、火の粉の羽虫を呼び、燃え直す
@@ -1819,9 +1822,9 @@ const LAYER_ELITE_DEFS = [
     desc: "廃坑の最奥で、見てはならぬ鉱脈に魅入られた宮廷錬金術師。皮膚の下から水晶が生え出し、いまや体の半分が晶と化している。呪文は晶に吸われて霧散し、その晶眼に見据えられた者は、足先から結晶へ変わっていく。" },
   // 第9・13・15・17・20層の強敵 (旧来の30体で足りない6体。docs/tasks.md E2)。
   // 絵は使われなくなった旧来の固有原型を借りている。その層を作るときに hd_* の固有原型へ描き直す (C1)
-  { id: "el_bogfrogking", name: "沼呑みの蛙王", elite: true, rank: 10, race: "beast", element: "earth", artKey: "sewerlord",
+  { id: "el_bogfrogking", name: "沼呑みの蛙王", elite: true, rank: 10, race: "beast", element: "earth", artKey: "hd_bogfrogking", // 第9層の強敵。絵は hd_* の固有原型
     ability: "paralyze", abRate: 0.45, regen: 0.05, // 痺れの舌を伸ばし続け、泥に潜って傷を塞ぐ
-    desc: "毒沼の底に棲む、小屋ほどもある大蛙の王。伸ばす舌の粘液は触れた者を痺れさせ、動けなくなった獲物を丸呑みにする。泥に潜れば傷はたちまち塞がる。沼の蛙の鳴き声は、すべてこの王を讃える歌だという。" }, // 第9層
+    desc: "毒の沼に棲む、小屋ほどもある大蛙の王。頭には、沼に沈んだ兵の錆びた兜を潰して重ねた冠をいただく。長い舌を伸ばして獲物を打ち、舌先の粘液に触れた者は痺れて動けなくなる。半ば泥に浸かった体は、傷を負っても泥に潜ればたちまち塞がる。沼の蛙の鳴き声は、すべてこの王を讃える歌だという。" }, // 第9層
   { id: "el_librarian", name: "禁書の司書長", elite: true, rank: 10, race: "undead", element: "dark", artKey: "pettyrevenant", soulClass: "mage",
     ability: "spell", abRate: 0.45, magResist: 50, // 暗記した呪文を浴びせ続け、乾いた体は呪文を吸う
     desc: "魔導書庫の禁書の棚を、死してなお守り続ける司書長。許しなく頁を開いた者に、暗記した数千の呪文を浴びせる。乾ききった体は呪文を吸い、頁をめくる音が止むことはない。" }, // 第13層
