@@ -42,4 +42,8 @@ export const NAMED_ITEMS = [
     desc: "凍王が切り離した影が、回廊を見回るあいだ下げていた氷の剣。斬られた者を芯から凍らせてきた刃は、いまは持ち主の敵の手足を凍えさせ、凍った水の身を岩のように割る。凍王の影の首級。" })),
   trophy(8, "el_glacialmaw", S("s_nm_glacialmaw", "氷河の大顎の牙盾", 98, { shape: "kite", pow: 1.45, hp: 32, bRes: 0.3, eDef: ["earth", 1], eff: { guard: 0.06 }, tint: "#d0e4f0",
     desc: "氷河の大顎から抜いた白い牙を、鉄の枠に並べて組んだ大盾。鎧ごと獲物を噛み砕いてきた顎の牙は、氷の牙も凍える息も受け止めて離さない。氷河の大顎の首級。" })),
+  trophy(9, "el_offeringslime", R("r_nm_offeringslime", "るつぼの底の金環", "ring", 106, { pow: 1.4, hp: 30, mp: 14, aRes: { poison: 0.3 }, eDef: ["light", 1], eff: { goldUp: 0.2 }, tint: "#c8a848",
+    desc: "千年分の供物を呑みこんだるつぼの底に、ただ一つ溶け残っていた金の環。呑むばかりだったるつぼの名残は、いまは持ち主の手へ金貨を吐き出し、腐った汁の毒も闇の気も寄せつけない。供物のるつぼの首級。" })),
+  trophy(9, "el_bogfrogking", W("w_nm_bogfrogking", "蛙王の舌槍", "sp", 108, { pow: 1.45, onHit: ["paralyze", 0.2], eAtk: ["wind", 1], hp: 24, agi: 4, tint: "#8a9a58",
+    desc: "沼呑みの蛙王の、骨のように固い舌の芯を柄にした槍。獲物を痺れさせて丸呑みにしてきた舌の粘りが穂先に残り、突かれた敵は手足をしばらく動かせない。沼呑みの蛙王の首級。" })),
 ];
