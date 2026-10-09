@@ -9939,7 +9939,7 @@ function gameOver() {
   playBgm(null);
   SFX.gameover();
   buzz([0, 90, 70, 90, 70, 250]);
-  log("人業はことごとく砕けた…", "dmg");
+  log(G.run && G.run.abandoned ? "迷宮を諦めた。人業はことごとく砕けた…" : "人業はことごとく砕けた…", "dmg");
   imprintFallen(); // 記憶を刻む (器は迷宮に残り、街へ戻ってから連れ帰りの時を数える)
   G.autoCombat = false;
   if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
@@ -9957,6 +9957,7 @@ function gameOver() {
     leaveDungeon(opts);
   };
   uiResults.openWipe({
+    abandoned: !!r.abandoned, // 自ら迷宮を諦めた (全滅と同じ扱い)
     gold: secured ? 0 : (r.gold || 0),
     items: secured ? 0 : (r.items || []).length,
     souls: secured ? 0 : (r.souls || []).length,
@@ -9984,6 +9985,35 @@ function gameOver() {
       goTown({ outcome: "wipe", run, forfeited });
     },
   });
+}
+
+// 迷宮を諦める (手帳から、2026-10 ユーザーの指示): 全滅と同じ扱い。
+// 隊の全員が砕け、全滅の決断 (赤い魂で全てを守る / あきらめて救出を待つ) へ進む
+function confirmAbandonDungeon() {
+  if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
+  const secured = !!(G.run && G.run.secured);
+  showConfirm({
+    title: "迷宮を諦める？",
+    lines: [
+      "全滅と同じ扱いになる。隊の人業はことごとく砕け、連れ帰りを待つ。",
+      secured ? "主を討った後なので、戦利品は失わない。" : `赤い魂 ${GUARDIAN_COST} を使わなければ、今回得たゴールド・品・魂を失う。`,
+      "✦Soul は失わない。",
+    ],
+    okLabel: "諦める",
+    onOk: abandonDungeon,
+  });
+}
+function abandonDungeon() {
+  if (G.state !== "board") return;
+  setAutoMove(false);
+  if (!G.run) G.run = newRun();
+  G.run.abandoned = true;
+  for (const p of G.party) {
+    p.alive = false; p.hp = 0;
+    p.asleep = false; p.mind = null;
+  }
+  gameOver();
+  autosave(true);
 }
 
 // 迷宮の主を撃破した瞬間の確定処理。演出 (showDungeonClearedPopup) とは分離し、
@@ -16157,7 +16187,7 @@ bindGame({
   departNow, departAbyss, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
   abyssRecords, abyssMaxDepth, ABYSS_MODS, abyssScoreMul, weekSeedId, emptyDollCost,
   // 迷宮の HUD
-  specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow,
+  specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow, confirmAbandonDungeon,
   ABYSS_MUT_MAP, dungeonTheme, eventFacts,
   renderDock, // 設定「オート移動と見えている敵」を変えた時、ドックの札の説明を描き直す
   // 戦果・帰還の報告
