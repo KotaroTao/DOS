@@ -5,11 +5,11 @@ export default {
   awaken: "fighterGouken",
   table: `
     1 KYOUGEKI 2 NERAIUCHI 3 TATEWARI 5 extraHit/1 7 KAENGIRI 10 WARCRY
-    12 IWAKUDAKI 15 FIGHTER_FUMIKOMI 15 toughBody/1 20 SHINGANGEKI 22 NAGIHARAI 25 vitalEye/1 30 HAISUI
+    12 IWAKUDAKI 15 FIGHTER_FUMIKOMI 15 toughBody/1 20 SHINGANGEKI 20 dynamicVision/1 22 NAGIHARAI 25 vitalEye/1 30 HAISUI
     35 extraHit/2 40 KIKOKU 45 counter/1 50 GOUZAN 50 toughBody/2 55 IATSU 57 GURENZAN
-    60 fightSpirit/1 65 TAME 70 counter/2 75 fighterKachidoki/1 80 ZANTETSU 82 GANOTOSHI
+    60 fightSpirit/1 60 dynamicVision/2 65 TAME 70 counter/2 75 fighterKachidoki/1 80 ZANTETSU 82 GANOTOSHI
     85 SANREN 90 vitalEye/2 95 DAISENPUU 100 YOROIDACHI 100 toughBody/3 105 counter/3 107 GOUKADAN
-    110 KISHINKA 115 extraHit/3 120 HADAN 125 fighterRekisen/1 130 RANBU 135 fightSpirit/2
+    110 KISHINKA 115 extraHit/3 120 HADAN 125 fighterRekisen/1 130 RANBU 130 dynamicVision/3 135 fightSpirit/2
     140 AMATSUKAZE 145 fighterFutou/1 150 TENCHIZAN 155 fighterRekisen/2 160 KIKOKURANBU 162 SHOUNETSURANBU
     165 fighterFutou/2 170 ROKUREN 175 resistAilment/1 180 YAMAKUZUSHI 185 extraHit/4 190 HAOUZAN
     195 fightSpirit/3 200 METSUKYAKU`,
