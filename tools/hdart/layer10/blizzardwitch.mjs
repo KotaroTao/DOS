@@ -2,7 +2,7 @@ import { sphere, ellipsoid, cone, tube, cyl, torus, slab, U, Sub, Disp, render, 
 import { humanoid, fingers } from "../human.mjs";
 import { RIM, BOLT, CLOUD, SOULS, bolt2d, crackle, sparks, rain, clouds, windStreaks, dissolve } from "../storm.mjs";
 export const meta = { id: "el_blizzardwitch", key: "hd_blizzardwitch", w: 112, h: 128,
-  note: "雷雲の魔女 (強敵): 腰から下が雷雲に溶けた、背の高い魔女の霊。雲のように広がる長い灰色の髪、つばの垂れた古い魔女帽、ぼろぼろの黒い衣。先が鉤に曲がった鉄の杖を掲げると、鉤に稲妻が落ちて青白い雷の玉がいくつも生まれ、まわりを回りはじめる (招来)。指さした先へ雷を走らせ、撃たれた者を痺れさせ続ける (麻痺・多用)" };
+  note: "嵐乗りの魔女 (強敵): 腰から下を雷雲に沈め、嵐にまたがって飛び回る背の高い魔女の霊。雲のように広がる長い灰色の髪、つばの垂れた古い魔女帽、ぼろぼろの黒い衣。片手を差しのべて低く澄んだ声で歌い、聞き入った者を眠らせる (眠り・多用)。先が鉤に曲がった鉄の杖を掲げると、鉤に稲妻が落ちて青白い雷の玉がいくつも生まれ、まわりを回りはじめる (招来)" };
 export function build() {
   const W = 112, H = 128;
   const mats = {
@@ -47,7 +47,11 @@ export function build() {
   // 鉤に落ちる稲妻と、指先から走る雷
   bolt2d(C, 82, 0, 84, 6, { seed: 1, jag: 1, branch: 0, all: true });
   bolt2d(C, 104, 0, 87, 7, { seed: 2, jag: 2, branch: 1 });
-  bolt2d(C, 16, 60, 0, 78, { seed: 3, jag: 2.4, branch: 2 });
+  // 口と差しのべた手から流れ出る歌 (淡い波の弧)
+  for (const [r0, c] of [[6, SOULS[3]], [11, SOULS[2]], [16, SOULS[1]], [21, SOULS[0]]]) for (let a = 2.5; a < 3.9; a += 0.04) {
+    const x = 26 + Math.cos(a) * r0, y = 54 + Math.sin(a) * r0 * 1.3;
+    if (!C.get(Math.round(x), Math.round(y)) && Math.sin(a * 14 + r0) > -0.4) C.set(x, y, c);
+  }
   // 雷の玉どうしを結ぶ弧
   for (const [a, b, s] of [[0, 4, 5], [1, 3, 6]]) bolt2d(C, orbs[a][0], orbs[a][1], orbs[b][0], orbs[b][1], { seed: s, jag: 3, branch: 0, glow: false, cols: [BOLT[0], BOLT[0], BOLT[1], BOLT[2], BOLT[2]] });
   for (const [x, y, rr] of orbs) for (let a = 0; a < Math.PI * 2; a += 0.2) { const X = Math.round(x + Math.cos(a) * (rr + 2)), Y = Math.round(y + Math.sin(a) * (rr + 2)); if (!C.get(X, Y) && (X + Y) % 2 === 0) C.set(X, Y, BOLT[0]); }

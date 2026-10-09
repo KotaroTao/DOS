@@ -2,7 +2,7 @@ import { sphere, ellipsoid, cone, tube, cyl, torus, U, Sub, Disp, render, ramp, 
 import { humanoid, fingers } from "../human.mjs";
 import { STAIR, PUDDLE, TOWER, IRON, RIM, BOLT, CLOUD, SOULS, towerFloor, chain, bolt2d, sparks, rain, clouds, dissolve, puffs } from "../storm.mjs";
 export const meta = { id: "bs_stormcaller", key: "hd_stormcaller", w: 96, h: 96,
-  note: "雷を呼ぶ司祭: 塔の鐘楼で祈りを続けてきた司祭の霊。高い僧帽と長い法衣、骨ばった手。片手で鎖の香炉を振ると、甘く重い煙が流れ、吸った者はまぶたが落ちて眠りこむ (眠り・多用)。もう片手を雷雲へ差し上げて唱えると、頭上の雲が渦を巻いて嵐の精が降りてくる (招来)" };
+  note: "雷を呼ぶ司祭: 塔の鐘楼で祈りを続けてきた司祭の霊。高い僧帽と長い法衣、骨ばった手。片手で鎖の香炉を振り、紫の煙をくゆらせながら、もう片手を雷雲へ差し上げて唱える。頭上の雲が渦を巻き、隊全体へ雷が落ちる (全体呪文)。雲から嵐の精が降りてくることもある (招来)" };
 export function build() {
   const mats = {
     robe: { ramp: ramp(["#040306", "#0b080f", "#140f1a", "#1f1827", "#2c2236", "#3a2e46", "#4a3c58"], 7), dither: 0.6, amb: 0.24,
@@ -31,14 +31,17 @@ export function build() {
   const scene = U(0, towerFloor(50, 95, 40, 12, { n: 1, seed: 11801, wet: 0.2 }), Sub(U(1.6, body, robe), sockets, 0.2), Sub(face, sockets, 0.2), mitre, ...stole, ...handUp, ...links, censer, ...glowHoles, ...eyes);
   const r = render(scene, mats, { w: 96, h: 96, rim: RIM, lights: [{ p: [22, 76, 18], r: 14, k: 0.35 }, { p: [70, 6, 16], r: 22, k: 0.4 }] });
   const C = new Canvas(r);
-  dissolve(C, 84, 93, { seed: 6, x0: 32, x1: 70, darken: mats.robe.ramp });
-  // 香炉から流れる眠りの煙 (紫の淡い渦)
+  // 法衣の裾だけを霧へほどく (床は残す)
+  for (let y = 80; y < 96; y++) for (let x = 30; x < 72; x++) { const p = C.pix[y * 96 + x]; if (p && p.m === "robe" && (y - 80) / 12 + 0.4 * fbm(x * 0.3, y * 0.2, 6) > 0.55 + ((x * 7 + y * 3) % 5) * 0.08) C.px[y * 96 + x] = y > 88 ? null : "#140f1a"; }
+  // 香炉から流れる祈りの煙 (紫の淡い渦)
   puffs(C, [[16, 70, 6], [10, 62, 7], [8, 52, 6], [14, 44, 5], [6, 40, 4]], ["#110c1c", "#1c1430", "#2a1e48", "#3c2c66", "#56428a"], { dens: 0.85, seed: 7 });
   // 差し上げた手の上で渦を巻く雷雲と、降りてくる嵐の精
   clouds(C, [[74, 8, 20, 6], [86, 14, 10, 6]], { dens: 0.9, seed: 9 });
   for (let a = 0; a < Math.PI * 2; a += 0.04) { const x = 76 + Math.cos(a) * 12, y = 8 + Math.sin(a) * 4; if (Math.sin(a * 3) > 0) C.set(x, y, CLOUD[5]); }
   bolt2d(C, 76, 10, 70, 16, { seed: 3, jag: 1.2, branch: 0, all: true });
-  bolt2d(C, 90, 8, 94, 30, { seed: 5, jag: 2, branch: 1 });
+  // 雲から隊へ落ちる雷
+  bolt2d(C, 90, 8, 94, 40, { seed: 5, jag: 2, branch: 1 });
+  bolt2d(C, 64, 6, 80, 50, { seed: 6, jag: 2.4, branch: 2 });
   rain(C, 11803, 40);
   sparks(C, 11805, 8, [56, 0, 40, 30]);
   return C.toArt();

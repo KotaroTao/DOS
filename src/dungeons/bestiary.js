@@ -468,70 +468,74 @@ const NEW_DEFS = [
   { id: "bs_swamplord", name: "よどみの主", rank: 10, boss: true, race: "amorph", element: "earth", artKey: "hd_swamplord", soulClass: "hexer",
     role: "summoner", summonKey: "bs_rotooze", ability: "breath", abRate: 0.35, regen: 0.06, // 腐敗の泥を産み落とし、毒の息を吐き、崩れた所を沼の泥で塞ぐ
     desc: "沼のいちばん深いところで、底まで落ちて腐った魂のよどみが寄り集まり、山のように盛り上がったもの。黒緑の泥の巨体には、溶けきらない顔と腕がいくつも浮かぶ。朽ち木の冠をいただく頭から毒の息を吐き、泥の腕の先から腐敗の泥を産み落とし、崩れた所はすぐに沼の泥が塞ぐ。背後の霧の奥には、沈みかけた古い島の石積みがある。主はその島の前から、決して動かない。" },
-  // -- 第10層「嵐の尖塔」 (rank 9-10・風/雷。第9層より格上の壁) --
-  { id: "bs_stormelemental", name: "嵐の精", rank: 9, race: "elemental", element: "wind", artKey: "stormelemental",
-    ability: "paralyze", evasive: true, multistrike: 2, // 渦巻く雷雲。痺れさせ、すり抜け、連撃する
-    desc: "尖塔に渦巻く雷雲が意思を得た精。帯電した渦で獲物を痺れさせ、刃を向ければ風となって散ってかわす。一度に幾度も雷を落とす、掴みどころのない嵐だ。" },
-  { id: "bs_thunderroc", name: "雷鳴の大鵬", rank: 9, race: "avian", element: "wind", artKey: "thunderroc",
-    ability: "breath", swift: true, // 雷を呼ぶ羽ばたきで全体を撃ち、空を疾る
-    desc: "尖塔の頂に巣くう、雷雲を背負った巨鳥。一打ちの羽ばたきが雷鳴を呼び、全体を稲妻で撃つ。風を切って疾る姿に、矢も追いつかない。" },
-  { id: "bs_windwraith", name: "疾風の霊", rank: 9, race: "specter", element: "wind", artKey: "windwraith",
-    ability: "paralyze", evasive: true, swift: true, magWeak: 1.3, // 疾風の霊。先んじて痺れさせ、すり抜ける
-    desc: "尖塔を吹き抜ける風に溶けた霊。誰より速く間合いを詰めて獲物を痺れさせ、刃を向ければ風そのものとなってすり抜ける。実体が薄く、魔の力には抗えない。" },
-  { id: "bs_galeknight", name: "烈風の騎士", rank: 10, race: "armored", element: "wind", artKey: "galeknight",
-    ability: "critical", swift: true, physResist: 50, // 烈風をまとう騎士。先制で急所を貫き、刃を阻む
-    desc: "風をまとって宙を駆ける、尖塔を守る騎士。烈風に乗って先んじて間合いを詰め、風の剣で鎧ごと急所を貫く。風が鎧の継ぎ目を覆い、並の刃を逸らす。" },
-  { id: "bs_cloudgiant", name: "雲の巨人", rank: 9, race: "giant", element: "wind", artKey: "cloudgiant",
-    physResist: 75, enrage: true, multistrike: 2, // 雲を踏む巨人。雷拳で連打し、手負いで嵐となる
-    desc: "尖塔の高みで雲を踏む、雷をはらんだ巨人。雷をまとった拳で続けざまに叩きつけ、傷を負えば嵐そのものとなって荒れ狂う。その足音は、遠雷のように響く。" },
-  { id: "bs_tempestserpent", name: "嵐の蛇竜", rank: 10, race: "dragon", element: "wind", artKey: "tempestserpent",
-    ability: "breath", swift: true, multistrike: 2, // 嵐のブレスを吐き、素早く幾度も噛む
-    desc: "雷雲をのたうつ、稲妻の鱗をもつ蛇竜。嵐のブレスで全体をなぎ、雷の牙で素早く何度も噛みつく。雲間を縫う動きは、稲妻そのものだ。" },
-  { id: "bs_harpyqueen", name: "嵐の鳥女王", rank: 10, race: "avian", element: "wind", artKey: "harpyqueen",
-    ability: "paralyze", role: "summoner", summonKey: "bs_ravenswarm", swift: true, // 鳴き声で痺れさせ、眷属の鴉を呼ぶ
-    desc: "尖塔を支配する、人面の鳥の女王。耳をつんざく鳴き声で獲物を痺れさせ、配下の鴉の群れを次々と呼び寄せる。その爪は、獲物を空へさらって落とすためにある。" },
-  { id: "bs_lightninggolem", name: "雷光のゴーレム", rank: 9, race: "construct", element: "wind", artKey: "lightninggolem",
-    physResist: 75, barrier: 2, ability: "paralyze", // 帯電した体。刃を阻み、触れた者を痺れさせる
-    desc: "尖塔の避雷の仕組みが意思を得た、雷を溜め込んだ巨像。全身に電流を走らせ、触れた者を痺れさせる。帯電した装甲は刃を弾き、近づくだけで産毛が逆立つ。" },
-  { id: "bs_zephyrfiend", name: "旋風の鬼", rank: 9, race: "demon", element: "wind", artKey: "zephyrfiend",
-    multistrike: 2, swift: true, ability: "critical", // 旋風をまとう鬼。素早く回り込み、急所を連突する
-    desc: "旋風をまとって宙を舞う、風の鬼。獲物の周りを目にも留まらぬ速さで回り込み、風の刃で急所を続けざまに突く。捉えようとすれば、もう背後に回っている。" },
-  { id: "bs_stormhag", name: "嵐呼びの魔女", rank: 10, race: "specter", element: "wind", artKey: "stormhag", soulClass: "hexer",
-    ability: "weaken", role: "summoner", summonKey: "bs_galewisp", magWeak: 1.3, // 呪いで力を奪い、稲妻の群火を呼ぶ
-    desc: "尖塔の上で嵐を操る、雷雲をまとった老魔女。呪いの言葉で生者の力を奪い、稲妻の群火を次々と呼び寄せる。嵐がこの国の空を重くしている、その元凶の一人だ。" },
-  { id: "bs_thunderbeast", name: "雷牙の獣", rank: 9, race: "beast", element: "wind", artKey: "thunderbeast",
-    swift: true, ability: "critical", enrage: true, // 雷光のごとく駆け、急所をひと噛み、手負いで荒れる
-    desc: "稲妻のように疾る、帯電した牙をもつ獣。雷光の速さで間合いを詰め、急所をひと噛みで仕留める。傷を負えば全身から火花を散らして猛り、見境なく突進してくる。" },
-  { id: "bs_galewisp", name: "稲妻の群火", rank: 9, race: "specter", element: "wind", artKey: "galewisp",
-    pack: true, ability: "paralyze", evasive: true, magWeak: 1.4, // 稲妻の群体。痺れさせ、すり抜ける。魔に脆い
-    desc: "尖塔に渦巻く、青白い稲妻の鬼火の群れ。獲物にまとわりついて痺れさせ、刃を向ければ火花となって散ってかわす。実体は薄く、魔の力にはひとたまりもない。" },
-  { id: "bs_ravenswarm", name: "黒雲の鴉群", rank: 9, race: "avian", element: "wind", artKey: "ravenswarm",
-    pack: true, multistrike: 2, swift: true, // 黒雲のごとき鴉の大群。素早く群れてついばむ
-    desc: "嵐の空を黒雲のように覆う、無数の鴉の群れ。一斉に舞い降りて素早くついばみ、目をめがけて殺到する。一羽を払っても、空が黒く染まるほどの群れが続く。" },
-  { id: "bs_skydrake", name: "蒼天の竜", rank: 10, race: "dragon", element: "wind", artKey: "skydrake",
-    ability: "breath", physResist: 50, swift: true, // 蒼天を翔ける竜。風のブレスを吐き、鱗が刃を阻む
-    desc: "尖塔のさらに上、蒼天を悠然と翔ける気高い竜。風を圧縮したブレスで全体を切り裂き、硬い鱗は刃を弾く。地を這う者を、空から見下している。" },
-  { id: "bs_boltarcher", name: "雷弓の亡霊", rank: 9, race: "specter", element: "wind", artKey: "boltarcher",
-    ability: "critical", swift: true, evasive: true, // 稲妻の矢で後衛の急所すら射抜く
-    desc: "尖塔を守って射ち続けた弓兵の霊。稲妻を矢につがえ、隊列の奥に隠れた者の急所すら正確に射抜く。風に乗って位置を変え、捉えどころがない。" },
-  { id: "bs_cyclonecore", name: "嵐核", rank: 9, race: "elemental", element: "wind", artKey: "cyclonecore",
-    multistrike: 2, evasive: true, ability: "paralyze", // 渦の核。巻き込んで連打し、痺れさせ、掴めない
-    desc: "巨大な竜巻の中心に光る、嵐の核。周囲のすべてを渦に巻き込んで何度も打ちつけ、帯電した風で痺れさせる。核に触れぬ限り、渦は決して止まらない。" },
-  { id: "bs_soulanchor", name: "魂縛りの像", rank: 9, race: "construct", element: "dark", artKey: "soulanchor",
-    ability: "drain", barrier: 2, physResist: 50, // 昇る魂を地に縛る像。命を引きずり下ろす
-    desc: "天へ昇ろうとする魂を地に縛りつける、尖塔の核となる像。鎖のような腕で魂を引きずり下ろし、その命を吸って動き続ける。この国の空が重いのは、こいつらのせいだ。" },
-  { id: "bs_galehound", name: "疾風の猟犬", rank: 9, race: "beast", element: "wind", artKey: "galehound",
-    swift: true, pack: true, ability: "critical", // 風のごとく群れで駆け、急所をひと噛み
-    desc: "風をまとって尖塔の回廊を駆ける、痩せた猟犬の群れ。風の速さで取り囲み、急所めがけて一斉に噛みつく。足音は風に紛れ、姿を見た時にはもう囲まれている。" },
-  { id: "bs_windscythe", name: "風のかまいたち", rank: 9, race: "insect", element: "wind", artKey: "windscythe",
-    swift: true, multistrike: 2, evasive: true, // 真空の刃で素早く幾度も斬り裂く
-    desc: "風に乗って現れる、鎌のような前肢をもつイタチめいた魔。真空の刃で目にも留まらぬ速さで斬りつけ、傷口は遅れて開く。風そのものを斬っているようで、刃が届かない。" },
-  { id: "bs_stormcaller", name: "雷を呼ぶ司祭", rank: 10, race: "specter", element: "wind", artKey: "stormcaller", soulClass: "mage",
-    role: "summoner", summonKey: "bs_stormelemental", ability: "paralyze", magWeak: 1.3, // 嵐の精を呼び、雷で痺れさせる
-    desc: "尖塔の頂で嵐を呼ぶ儀式を続けた司祭の霊。雷雲の精を次々と呼び覚まし、稲妻で獲物を痺れさせる。この尖塔が嵐をはらみ続けるのは、こいつの祈祷が止まないからだ。" },
-  { id: "bs_stormlord", name: "嵐の尖塔の主", rank: 10, boss: true, race: "elemental", element: "wind", artKey: "stormlord", soulClass: "mage",
-    role: "summoner", summonKey: "bs_stormelemental", ability: "breath", evasive: true, enrage: true, // 嵐の精を呼び、雷のブレスを吐き、すり抜ける
-    desc: "嵐の尖塔そのものを支配する、雷雲が凝った嵐の主。配下の精を次々と呼び、全体を撃つ雷のブレスを落とす。昇ろうとする魂を絡め取って地に引き戻す、この国の業の歯車の一つだ。" },
+  // -- 第10層「嵐の尖塔」 (rank 10・風/雷。沼の島の工房の奥から、奈落の縦穴をまっすぐ上へ伸びる塔。第9層より格上の壁) --
+  // 雑魚・主・強敵ともに rank10 (上限)。塔を吹き上がる風と雷、塔を昇る魂、塔に棲みついた空の生き物、塔の古い仕掛けと守り手たち。
+  // 第5層からの流儀で特色を極端に押し出す (神速・特技の多用・ブレス・全体呪文・溜め・守り崩し・打ち消し・魔法抵抗100・3連撃)。
+  // 雷の層だが麻痺は2体 (多用は嵐の蛇竜) に抑え、混乱・魅了・眠り・弱体・魂奪い・吸命・金貨奪い・鼓舞・打ち消しなどへ散らした。
+  // 絵は hd_* の固有原型 (tools/hdart/layer10/)。どの個体も ability を明示する (種族の既定の特技は付けない)
+  { id: "bs_stormelemental", name: "嵐の精", rank: 10, race: "elemental", element: "wind", artKey: "hd_stormelemental",
+    ability: "spell", abRate: 0.5, evasive: true, // 頭上に回す稲妻の輪から雷を隊全体へ降らせ続け、雲の体は刃をすり抜ける
+    desc: "塔に渦巻く雷雲がひとかたまりになり、人の上半身の形をとったもの。紫灰の雲の体は下へ行くほど渦にほどけ、胸の奥で稲光が明滅する。両腕を掲げて頭上に稲妻の輪を回し、雷を雨のように隊へ降らせる。ゆらぐ雲の体を、刃はたいていすり抜けてしまう。" },
+  { id: "bs_thunderroc", name: "雷鳴の大鵬", rank: 10, race: "avian", element: "wind", artKey: "hd_thunderroc",
+    ability: "breath", abRate: 0.5, swift: true, // 鉤くちばしから雷の息を何度も吐いて隊をまとめて撃ち、風を切って先に動く
+    desc: "塔の外壁の張り出しに巣をかける、両の翼を広げれば踊り場をふさぐほどの巨鳥。黒紫の羽の先は雷雲のようにほつれ、翼の骨に沿って稲光が走る。大きく開いた鉤くちばしから雷の息を何度も吐き、隊をまとめて撃つ。風を切るのが速く、たいていこちらより先に動く。" },
+  { id: "bs_windwraith", name: "疾風の霊", rank: 10, race: "specter", element: "wind", artKey: "hd_windwraith",
+    ability: "confuse", abRate: 0.45, magWeak: 1.4, // 裂けるほど口を開けて叫び続け、聞いた者を惑わす。薄い体は呪文にもろい
+    desc: "塔を吹き上がる風に巻かれて、昇りきれずにいる魂。青白くすけた細い体は風に引き延ばされ、裾と髪は長い帯になってたなびく。両腕を後ろへはね上げ、裂けるほど口を開けて叫ぶ。その叫びを聞いた者は、敵と味方の見分けがつかなくなる。実体が薄く、呪文の熱を浴びるとたやすくちぎれる。" },
+  { id: "bs_galeknight", name: "烈風の騎士", rank: 10, race: "armored", element: "wind", artKey: "hd_galeknight",
+    ability: "sunder", abRate: 0.45, physResist: 50, // 振りかぶった戦槌で鎧ごと守りを叩き割り続け、継ぎ目を覆う風の渦が刃を半ば逸らす
+    desc: "塔の螺旋階段の途中で倒れた騎士の鎧に、吹き上げる風が入りこんで動かしているもの。へこんだ鎧の継ぎ目から風が鳴り、兜の覗き穴の奥に青白い光だけが灯る。両手で振りかぶった重い戦槌を何度も打ち下ろし、鎧ごと守りを叩き割る。継ぎ目を覆う風の渦が、刃を半ば逸らしてしまう。" },
+  { id: "bs_cloudgiant", name: "雲の巨人", rank: 10, race: "giant", element: "wind", artKey: "hd_cloudgiant",
+    ability: "charge", abRate: 0.4, enrage: true, // 組んだ拳を振り上げて雷を集め、次の手番で叩きつける。手負いで荒れ狂う
+    desc: "塔の吹き抜けを埋めるほどの、雲をまとった石肌の巨人。肩から上はいつも雷雲にかすみ、その奥で眼だけが二つ光る。組んだ両の拳を頭上へ振り上げ、雷を集めてから叩きつける。拳のまわりで稲妻がうなり出したら、眠らせるか封じるかしなければ隊ごと叩きつぶされる。傷を負うと、まとう雲が荒れて手がつけられなくなる。" },
+  { id: "bs_tempestserpent", name: "嵐の蛇竜", rank: 10, race: "dragon", element: "wind", artKey: "hd_tempestserpent",
+    ability: "paralyze", abRate: 0.45, multistrike: 2, // 雷の牙で続けざまに二度噛み、噛まれた者を痺れさせ続ける
+    desc: "塔の折れた柱に幾重にも巻きつく、雷を帯びた長い蛇竜。黒い鱗の継ぎ目と背びれに沿って稲光が走る。鎌首をもたげて大きく口を開け、雷の牙で続けざまに二度噛みつく。牙から流れこむ雷に、噛まれた者は痺れて動けなくなる。" },
+  { id: "bs_harpyqueen", name: "嵐の鳥女王", rank: 10, race: "avian", element: "wind", artKey: "hd_harpyqueen",
+    ability: "charm", abRate: 0.45, role: "summoner", summonKey: "bs_ravenswarm", // 高い歌声で心を奪い続け、歌で鴉の群れを呼び集める
+    desc: "塔の手すりの鎖に鉤爪をかけてとまる、人の上半身と黒い翼をもつ鳥の女王。羽を逆立てた冠をいただき、蒼白い顔に青く光る眼。胸をそらして高く歌い、その歌声を聞いた者はうっとりと女王のもとへ歩み寄って、仲間に刃を向けることさえある。歌は嵐の空から鴉の群れを呼び集める。" },
+  { id: "bs_lightninggolem", name: "雷光のゴーレム", rank: 10, race: "construct", element: "wind", artKey: "hd_lightninggolem",
+    magResist: 100, barrier: 3, ability: null, // 呪文は頭の針に吸われて消え、胸の雷の窯が光るたびに稲光の膜で打撃を半分に受け流す
+    desc: "塔の古い雷よけの仕掛けが、落ち続ける雷を吸って動き出したもの。黒い鉄の胴には緑青の浮いた銅線が幾重にも巻かれ、頭のかわりに錆びた雷よけの針が突き立つ。撃ちこまれた呪文は針に吸われ、銅線を伝って足元へ流れて消える。胸の雷の窯が光るたび、身のまわりに稲光の膜を張って打撃を半分に受け流す。刃で膜を割りきるしかない。" },
+  { id: "bs_zephyrfiend", name: "旋風の鬼", rank: 10, race: "demon", element: "wind", artKey: "hd_zephyrfiend",
+    haste: true, ability: "critical", // 目にも止まらぬ速さで二度動き、鎌のような爪で鎧の継ぎ目の急所を断つ
+    desc: "つむじ風に乗って宙を舞う、やせた黒い鬼。後ろへ反った二本の角、裂けた口、両腕の先には鎌のように長い爪。足は渦巻く旋風の中に溶けている。目にも止まらぬ速さで一度に二度動き、残像を引いて回りこんでは、爪で鎧の継ぎ目の急所を断つ。" },
+  { id: "bs_stormhag", name: "嵐呼びの魔女", rank: 10, race: "specter", element: "wind", artKey: "hd_stormhag", soulClass: "hexer",
+    role: "healer", ability: "weaken", abRate: 0.45, // 骨の風鈴を鳴らして呪い続け、椀の雨水で塔の魔物たちの傷を洗い繕う
+    desc: "ぼろぼろの頭巾をかぶった、腰の曲がった老婆の霊。骨の風鈴を吊るした杖をつき、もう片手には雨水を受ける欠けた椀を掲げる。風鈴を鳴らしてしわがれ声で呪うと、聞いた者の手足から力が抜けていく。椀にためた雨水を振りまいて、塔の魔物たちの傷を洗い繕ってまわる。裾は雨の霧にほどけている。" },
+  { id: "bs_thunderbeast", name: "雷牙の獣", rank: 10, race: "beast", element: "wind", artKey: "hd_thunderbeast",
+    ability: "critical", abRate: 0.5, enrage: true, // 飛びかかって急所を何度も食い破り、手負いでたてがみの雷がふくれ上がる
+    desc: "塔の踊り場に身を低くして構える、黒い豹に似た大きな獣。逆立ったたてがみは稲妻そのもので、ばちばちと青白く鳴る。牙のあいだにも雷が走り、飛びかかっては鎧の継ぎ目の急所をひと噛みで食い破る。傷を負うとたてがみの雷がふくれ上がり、見境なく暴れ回る。" },
+  { id: "bs_galewisp", name: "稲妻の群火", rank: 10, race: "specter", element: "wind", artKey: "hd_galewisp",
+    pack: true, ability: "paralyze", magWeak: 1.5, // 群れで漂って玉どうしに稲妻を張り、触れた者を痺れさせる。光だけの体は呪文で散る
+    desc: "塔の吹き抜けを群れで漂う、青白い稲妻の玉。どの玉の奥にも、小さく丸まった人の顔のような影が透けて見える。尾を引いて飛び回り、玉どうしのあいだに稲妻を張って、触れた者を痺れさせる。光るだけの薄い体は、呪文を浴びるとたやすく散る。" },
+  { id: "bs_ravenswarm", name: "黒雲の鴉群", rank: 10, race: "avian", element: "wind", artKey: "hd_ravenswarm",
+    pack: true, ability: "goldSteal", abRate: 0.45, // 一斉に舞い降りては懐の光り物をくわえ去り、払っても雲の奥から次々と湧く
+    desc: "嵐の空を黒雲のように覆って渦を巻く、無数の鴉の群れ。光る物に目がなく、一斉に舞い降りては懐の金貨をくわえて飛び去っていく。塔のどこかには、鴉たちが集めた金貨や指輪の山があるという。一羽を払っても、雲の奥から次々と黒い影が湧く。" },
+  { id: "bs_skydrake", name: "蒼天の竜", rank: 10, race: "dragon", element: "wind", artKey: "hd_skydrake",
+    ability: "breath", physResist: 75, // 圧し固めた風の息で隊をまとめて切り裂き、空の色の厚い鱗は刃をほとんど通さない
+    desc: "雷雲の上にあるという、晴れた空の色をした鱗の竜。大きな翼を広げて塔の吹き抜けを舞い、細い首を伸ばして圧し固めた風の息を吐き、隊をまとめて切り裂く。空の色の鱗は板のように厚く、刃をほとんど通さない。この竜の青を見て、はじめて空の色を知ったという者もいる。" },
+  { id: "bs_boltarcher", name: "雷弓の亡霊", rank: 10, race: "specter", element: "wind", artKey: "hd_boltarcher",
+    ability: "dispel", evasive: true, // 稲妻の矢で隊の加護をまとめて射抜いて消し、風に乗って刃をかわす
+    desc: "塔の物見窓を守り続けた弓兵の霊。ぼろぼろの頭巾と外套をまとい、腰から下は雨の霧にほどけている。古い長弓を引きしぼって稲妻をつがえた矢を放ち、隊が重ねた守りの加護をまとめて射抜いて消し去る。風に乗って位置を変え、刃を向けてもなかなか捉えられない。" },
+  { id: "bs_cyclonecore", name: "嵐核", rank: 10, race: "elemental", element: "wind", artKey: "hd_cyclonecore",
+    ability: "warcry", abRate: 0.45, regen: 0.06, // 脈打つうなりで塔の魔物たちの力をあおり続け、巻き上げた風雨で崩れた所を塞ぐ
+    desc: "塔の吹き抜けに立つ竜巻の芯で光る、雷のかたまり。まわりの渦には石くれや錆びた鎖、割れた瓦が巻き上げられて回っている。核が脈打つたびに低いうなりが響き、塔の魔物たちの力をあおり立てる。崩した所も、巻き上げた雨と風がすぐに塞いでしまう。" },
+  { id: "bs_soulanchor", name: "魂縛りの像", rank: 10, race: "construct", element: "dark", artKey: "hd_soulanchor",
+    ability: "soulSteal", abRate: 0.45, physResist: 75, // 鎖を伸ばして生者の宿す魂の光まで引き抜こうとし続け、濡れた石の体は刃をほとんど通さない
+    desc: "塔のあちこちの台座に立つ、頭巾をかぶった顔のない石の像。両腕の先は太い鉄の鎖になって上へ伸び、鎖の先には、空へ昇ろうとする魂の光が絡め取られてもがいている。この像は、昇る魂を塔に縛りつけているのだ。誰が何のために据えたのかは、わからない。鎖を伸ばして、生者の宿す魂の光まで引き抜こうとする。濡れた石の体は、刃をほとんど通さない。" },
+  { id: "bs_galehound", name: "疾風の猟犬", rank: 10, race: "beast", element: "wind", artKey: "hd_galehound",
+    haste: true, pack: true, ability: null, // 目にも止まらぬ速さで二度駆け寄り、群れで取り囲む
+    desc: "塔の回廊を群れで駆ける、灰色の痩せた猟犬。あばらの浮いた細い体を地すれすれに伸ばし、耳を伏せ、牙をむいて走る。目にも止まらぬ速さで一度に二度動き、長い残像を引いて取り囲む。一頭を見つけた時には、後ろからもう二頭、三頭が追ってきている。" },
+  { id: "bs_windscythe", name: "風のかまいたち", rank: 10, race: "insect", element: "wind", artKey: "hd_windscythe",
+    multistrike: 3, evasive: true, ability: null, // 三日月に反って跳びかかり一度に三度斬りつけ、風の速さで刃をかわす
+    desc: "つむじ風に乗って宙を跳ぶ、イタチに似た細長い魔。両の前足は鎌のような長い刃になっている。体を三日月に反らせて跳びかかり、一度に三度、真空の刃で斬りつける。斬られた傷口は、少し遅れて開く。風そのものの速さで身をかわし、刃がなかなか届かない。" },
+  { id: "bs_stormcaller", name: "雷を呼ぶ司祭", rank: 10, race: "specter", element: "wind", artKey: "hd_stormcaller", soulClass: "mage",
+    role: "summoner", summonKey: "bs_stormelemental", ability: "spell", // 香炉を振って唱え、雷雲から隊全体へ雷を落とし、嵐の精を呼び降ろす
+    desc: "塔の鐘楼で祈りを続けてきた司祭の霊。高い僧帽に長い法衣、骨ばった手。片手で鎖の香炉を振りながら、もう片手を雷雲へ差し上げて唱える。祈りが届くと頭上の雲が渦を巻き、隊全体へ雷が落ちる。嵐の精が雲から降りてくることもある。何に祈っているのかは、司祭自身ももう覚えていないらしい。" },
+  { id: "bs_stormlord", name: "嵐の尖塔の主", rank: 10, boss: true, race: "elemental", element: "wind", artKey: "hd_stormlord", soulClass: "mage",
+    role: "summoner", summonKey: "bs_windwraith", ability: "breath", abRate: 0.35, physResist: 50, endure: true, // 渦からちぎれた魂を疾風の霊にして放ち、叫ぶ口から雷の息を吐き、渦の体は刃を半ば逸らして一度は崩れない
+    desc: "塔の頂で渦を巻く、数えきれない魂の光が寄り集まってできた嵐。紫灰の雷雲の巨体のあちこちに、渦に引き延ばされた青白い顔が浮かぶ。渦の芯から突き出た顔が縦に裂けた口で叫ぶと、雷の息が隊をまとめて撃つ。渦からちぎれた魂は疾風の霊になって降りかかる。渦の体は刃を半ば逸らし、致命の一撃を受けても一度は崩れない。巨体の下からは床へ何本もの鎖が張りつめ、背後には火のともらない大きな灯台が、割れた大レンズを闇に向けて立っている。" },
   // -- 第11層「闘技場跡」 (rank 10・剣闘/無。enemyScaleで上昇) --
   { id: "bs_championwraith", name: "不滅の闘士", rank: 10, race: "armored", element: "none", artKey: "championwraith",
     ability: "critical", multistrike: 2, enrage: true,
@@ -1749,15 +1753,13 @@ const ELITE_DEFS = [
   { id: "el_glacialmaw", name: "氷河の大顎", elite: true, rank: 10, race: "dragon", element: "water", artKey: "hd_glacialmaw", // 第8層の強敵。絵は hd_* の固有原型
     ability: "critical", abRate: 0.5, physResist: 75, // 氷柱の牙で鎧ごと急所を何度も噛み砕き、氷塊の鱗は刃をほとんど通さない
     desc: "氷棚の裂け目から鼻先だけを突き出して獲物を待つ、白い竜の巨大な頭。上下の顎には氷柱そのものの牙が何列も並び、鎧ごと急所を何度も噛み砕く。顎を覆う鱗は分厚い氷塊で、刃をほとんど通さない。裂け目の下にどれほどの体が続いているのか、見た者はいない。" }, // 第8層
-  { id: "el_blizzardwitch", name: "吹雪の魔女", elite: true, rank: 10, race: "specter", element: "wind", artKey: "willowwitch", soulClass: "mage",
-    palette: tint(ARTS.willowwitch.palette, "#b0d8e8", 0.55),
-    ability: "sleep", // 子守唄で暖かな眠りに誘い、凍りつかせる
-    desc: "吹雪の夜にだけ氷廊へ現れる魔女の亡霊。彼女が紡ぐ子守唄を聞いた者は、暖かな眠りに誘われるまま手足の感覚を失い、静かに凍りついていく。" }, // 第10層
+  { id: "el_blizzardwitch", name: "嵐乗りの魔女", elite: true, rank: 10, race: "specter", element: "wind", artKey: "hd_blizzardwitch", soulClass: "mage", // 第10層の強敵。絵は hd_* の固有原型 (id は旧名「吹雪の魔女」のまま)
+    role: "summoner", summonKey: "bs_galewisp", ability: "sleep", abRate: 0.45, // 嵐にまたがって歌い続け、聞き入った者を眠らせる。鉤の杖に雷を落として稲妻の群火を生む
+    desc: "腰から下を雷雲に沈め、嵐にまたがって塔の吹き抜けを上へ下へ飛び回る魔女の霊。つばの垂れた古い魔女帽をかぶり、雲のように広がる長い灰色の髪をなびかせる。低く澄んだ声で歌い続け、聞き入った者からまぶたが落ちて動けなくなる。先が鉤に曲がった鉄の杖を掲げると、鉤に稲妻が落ちて青白い雷の玉がいくつも生まれ、魔女のまわりを回りはじめる。" }, // 第10層
   // -- 迷宮 71-80 (尖塔帯) / 強敵ランク10 --
-  { id: "el_stareater", name: "星喰らい", elite: true, rank: 10, race: "demon", element: "dark", artKey: "gargoyle",
-    palette: tint(ARTS.gargoyle.palette, "#2a1a4a", 0.5),
-    ability: "drain", physResist: 75, // 星すら喰らう胃袋に命を呑み、闇の体は刃を呑む
-    desc: "尖塔の頂から夜空の星をひとつずつ喰らってきた大悪魔。星すら呑む胃袋で近づく者の命を喰らい、闇に満ちた体は突き立てた刃を呑む。次に喰らうのは地上の光だという。" }, // 第10層
+  { id: "el_stareater", name: "星喰らい", elite: true, rank: 10, race: "demon", element: "dark", artKey: "hd_stareater", // 第10層の強敵。絵は hd_* の固有原型
+    ability: "drain", abRate: 0.45, physResist: 75, // 腹まで裂けた大口で近づく者の命を何度も吸い上げ、分厚い闇の皮は刃を呑む
+    desc: "塔の外壁にしがみつき、雷雲の切れ間から夜空の星をひとつずつ喰らってきた大悪魔。夜空を切り取ったような黒紫の肌に、呑みこんだ星の光が点々と透ける。腹まで裂けた大口へ光の筋が吸いこまれていくように、近づく者の命も何度も吸い上げる。分厚い闇の皮は、突き立てた刃を呑みこんでしまう。この塔の上に星が見えないのは、こいつのせいだと言う者もいる。" }, // 第10層
   { id: "el_voidarchon", name: "虚空の執政官", elite: true, rank: 10, race: "specter", element: "light", artKey: "fogspecter", soulClass: "mage",
     palette: tint(ARTS.fogspecter.palette, "#f0f0e8", 0.55),
     evasive: true, ability: "soulSteal", // 虚空に紛れて刃をかわし、直視した者の存在を奪う
