@@ -17,7 +17,7 @@ python3 -m http.server 8000   # then open http://localhost:8000/
 # or: npx serve .
 ```
 
-Deploy is automatic: pushing to `main` triggers `.github/workflows/pages.yml`, which uploads the repo root as-is to GitHub Pages (https://kotarotao.github.io/DOS/). No build/test job runs in CI.
+Deploy is automatic: pushing to `main` triggers `.github/workflows/pages.yml`, which uploads the repo root to GitHub Pages (https://kotarotao.github.io/DOS/) after stripping what the game never loads (`docs/`, `tools/`, `art/story-review/`, the root `*.md` and review PNGs). **GitHub Pages serves at most 1 GB** — the repo is ~950 MB, and from #658 (chapter-4 story art) the site sat right under that limit, and updates were reported as not reaching players although every deploy said success. The step fails the deploy if an `ASSETS` file is missing from the site or the site reaches 800 MB: put production masters / review sheets under `docs/` or `art/story-review/`, never in shipped folders (`art/story/`, `art/jobs/` …), and keep shipped images compressed. No build/test job runs in CI.
 
 ### Verifying changes without a browser
 There is no test suite. To sanity-check JS edits, use Node:
