@@ -262,7 +262,8 @@
 .dp-issue-mark { flex: 0 0 auto; width: 7px; height: 7px; transform: rotate(45deg); background: currentColor; color: #c9a24a; }
 .dp-issue.t-bad .dp-issue-mark { color: #e4554f; box-shadow: 0 0 6px rgba(228,85,79,0.7); }
 .dp-issue.t-dim .dp-issue-mark { color: #6e6457; }
-.dp-issue-t { flex: 1 1 auto; min-width: 0; font-size: 12.5px; line-height: 1.4; color: #e6dbc2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 注意の文は省略せず折り返して全文を見せる (本文ごと縦にスクロールする) */
+.dp-issue-t { flex: 1 1 auto; min-width: 0; padding: 6px 0; font-size: 12.5px; line-height: 1.5; color: #e6dbc2; white-space: normal; }
 .dp-issue.t-dim .dp-issue-t { color: #9a8e78; }
 .dp-issue .ui-btn.s-sm { flex: 0 0 auto; width: auto; min-width: 88px; padding: 2px 10px; font-size: 12.5px; gap: 6px; }
 .dp-issue .ui-cost { padding: 1px 5px; font-size: 11px; }
