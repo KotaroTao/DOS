@@ -13,45 +13,55 @@ export function build() {
     maw: { ramp: ["#000000", "#06061a", "#141a4a"], amb: 0.05, dif: 0.2, noRim: true },
     core: { ramp: [SOULS[1], BOLT[1], BOLT[2], SOULS[3], BOLT[3], BOLT[4]], noRim: true, emit: p => 0.3 + 0.65 * Math.max(0, p.nz) },
     eye: { ramp: [BOLT[3], BOLT[4], "#ffffff"], emit: () => 0.95 },
-    beacon: { ramp: ramp(["#020204", "#07070e", "#10101b", "#1a1a28"], 4), dither: 0.8, amb: 0.4, noRim: true },
+    beacon: { ramp: ramp(["#030306", "#0b0b14", "#161622", "#222232"], 4), dither: 0.8, amb: 0.4, noRim: true },
     lens: { ramp: ramp(["#03040a", "#0c1224", "#1e2a4a"], 3), spec: 1.6, pow: 60, specCol: "#6a78b0", dither: 0.6, noRim: true },
     stair: STAIR, puddle: PUDDLE, tower: TOWER, iron: IRON,
   };
-  // 背後の火のない灯台 (霧の奥、暗く沈む)
-  const beacon = U(0.6, cone([84, 128, -46], [88, 36, -46], 16, 11, "beacon"), box([88, 34, -46], [14, 3, 12], "beacon", 1), cyl([88, 32, -46], [88, 14, -46], 10, "beacon", 1), cone([88, 14, -46], [88, 2, -46], 11, 1, "beacon"));
-  const lens = Sub(sphere([88, 23, -36], 7, "lens"), box([92, 18, -30], [3, 8, 4], "lens", 0, 30), 0.4);
-  // 渦の巨体: 下は細く床に縛られ、上へ広がる
-  const swirl = (x, y, z) => 2.4 * fbm(x * 0.1, y * 0.07, z * 0.1) + 1.6 * Math.sin(Math.atan2(z + 2, x - 56) * 3 + y * 0.3);
-  const mass = Disp(U(7, cone([56, 118, 0], [56, 60, 0], 8, 26, "body"), ellipsoid([56, 52, 0], [30, 20, 18], "body"), ellipsoid([56, 34, 4], [16, 14, 13], "body")), swirl);
-  // 風の腕 (左右へ広げる)
-  const armL = Disp(tube([[34, 50, 6, 9], [18, 46, 10, 6], [8, 36, 14, 4], [6, 26, 14, 2.4]], "body", { seg: 4 }), (x, y, z) => 1.2 * fbm(x * 0.2, y * 0.2));
-  const armR = Disp(tube([[78, 50, 6, 9], [94, 46, 10, 6], [104, 36, 14, 4], [106, 26, 14, 2.4]], "body", { seg: 4 }), (x, y, z) => 1.2 * fbm(x * 0.2, y * 0.2));
-  const handL = fingers([6, 25, 14], -100, "body", { n: 4, len: 8, spread: 40, r: 1, curl: 0.4 });
-  const handR = fingers([106, 25, 14], -80, "body", { n: 4, len: 8, spread: 40, r: 1, curl: -0.4 });
+  // 背後の火のない灯台 (霧の奥、暗く沈む): 細い塔身・回廊・灯室の割れた大レンズ・丸屋根
+  const beacon = U(0.5, cone([90, 128, -44], [90, 40, -44], 9, 6, "beacon"), torus([90, 39, -44], 8, 1.2, "beacon", 0, 10), cyl([90, 38, -44], [90, 22, -44], 6.4, "beacon", 0.6),
+    cone([90, 22, -44], [90, 8, -44], 8, 0.6, "beacon"), cyl([90, 8, -44], [90, 3, -44], 0.6, "beacon"));
+  const lens = Sub(sphere([90, 30, -38], 5.4, "lens"), box([93, 26, -33], [2, 6, 3], "lens", 0, 30), 0.3);
+  // 渦の巨体: 上は嵐の円盤のように広がり、下は細くなって床に縛られる
+  const swirl = (x, y, z) => 2 * fbm(x * 0.1, y * 0.07, z * 0.1) + 1.4 * Math.sin(Math.atan2(z + 2, x - 56) * 3 + y * 0.3);
+  const mass = Disp(U(7, cone([56, 114, 0], [56, 44, 0], 5, 24, "body"), ellipsoid([56, 36, -2], [36, 11, 18], "body"), ellipsoid([56, 50, 2], [20, 16, 14], "body")), swirl);
+  // 風の腕 (渦から左右へほどけて伸びる)
+  const armL = Disp(tube([[36, 50, 6, 7], [20, 52, 10, 5], [8, 44, 14, 3.4], [4, 34, 14, 2]], "body", { seg: 4 }), (x, y, z) => 1.2 * fbm(x * 0.2, y * 0.2));
+  const armR = Disp(tube([[76, 50, 6, 7], [92, 52, 10, 5], [104, 44, 14, 3.4], [108, 34, 14, 2]], "body", { seg: 4 }), (x, y, z) => 1.2 * fbm(x * 0.2, y * 0.2));
+  const handL = fingers([4, 33, 14], -100, "body", { n: 4, len: 7, spread: 40, r: 0.9, curl: 0.4 });
+  const handR = fingers([108, 33, 14], -80, "body", { n: 4, len: 7, spread: 40, r: 0.9, curl: -0.4 });
   // 渦に浮かぶ魂の顔 [x, y, z, s, 傾き]
-  const faces = [[34, 62, 20, 1.2, -25], [76, 64, 20, 1.1, 25], [46, 80, 16, 1, -10], [68, 84, 14, 0.9, 15], [56, 98, 10, 0.8, 0], [24, 52, 18, 0.9, -40], [88, 52, 18, 0.9, 40]];
+  const faces = [[30, 64, 16, 1, -25], [80, 66, 16, 1, 25], [44, 82, 12, 0.9, -10], [68, 86, 10, 0.8, 15], [22, 40, 14, 0.8, -40], [92, 42, 14, 0.8, 40]];
   const fs = [], fh = [];
   for (const [x, y, z, s, a] of faces) {
     fs.push(ellipsoid([x, y, z], [3.6 * s, 4.6 * s, 2.6 * s], "face", a));
-    fh.push(ellipsoid([x - 1.3 * s, y - 1, z + 2 * s], [0.9 * s, 1.1 * s, 1 * s], "hole"), ellipsoid([x + 1.3 * s, y - 1, z + 2 * s], [0.9 * s, 1.1 * s, 1 * s], "hole"), ellipsoid([x, y + 2 * s, z + 2 * s], [1 * s, 1.6 * s, 1 * s], "hole"));
+    fh.push(ellipsoid([x - 1.3 * s, y - 1, z + 2 * s], [0.9 * s, 1.1 * s, 1 * s], "hole"), ellipsoid([x + 1.3 * s, y - 1, z + 2 * s], [0.9 * s, 1.1 * s, 1 * s], "hole"), ellipsoid([x, y + 2.2 * s, z + 2 * s], [0.9 * s, 1.2 * s, 1 * s], "hole"));
   }
-  // 頭: 大口と眼
-  const maw = ellipsoid([56, 40, 16], [8, 5, 5], "maw");
-  const brow = Disp(ellipsoid([56, 28, 13], [11, 4, 5], "body"), (x, y, z) => 0.8 * fbm(x * 0.3, y * 0.3));
-  const eyes = [sphere([50, 30, 16.6], 1.6, "eye"), sphere([62, 30, 16.6], 1.6, "eye")];
-  const core = sphere([56, 58, 16], 5, "core");
+  // 頭: 渦の芯から突き出る、深い眼窩と縦に裂けて叫ぶ口の顔
+  const head = Disp(ellipsoid([56, 46, 18], [9.4, 12, 8], "body"), (x, y, z) => 0.6 * fbm(x * 0.3, y * 0.3, z * 0.3));
+  const sockets = U(0, ellipsoid([52, 42, 25.4], [2.6, 2.2, 3], "hole", -15), ellipsoid([60, 42, 25.4], [2.6, 2.2, 3], "hole", 15));
+  const maw = ellipsoid([56, 52.5, 25], [3.8, 5.6, 4], "maw");
+  const eyes = [sphere([52, 42.4, 23.6], 1.2, "eye"), sphere([60, 42.4, 23.6], 1.2, "eye")];
+  const core = sphere([56, 72, 12], 3.6, "core");
   // 床へ張りつめた鎖 (渦を縛る)
-  const links = [...chain([46, 104, 6], [20, 124, 12], 1.6, "iron", 0.6), ...chain([66, 104, 6], [94, 124, 12], 1.6, "iron", 0.6), ...chain([56, 110, 8], [58, 126, 14], 1.6, "iron", 0.6)];
-  const lord = Sub(U(3, mass, armL, armR, ...handL, ...handR, ...fs, brow), U(0, maw, ...fh, sphere([56, 58, 18], 4, "hole")), 0.5);
+  const links = [...chain([50, 104, 4], [18, 124, 12], 1.6, "iron", 0.6), ...chain([62, 104, 4], [96, 124, 12], 1.6, "iron", 0.6), ...chain([56, 110, 6], [58, 126, 14], 1.6, "iron", 0.6)];
+  const lord = Sub(U(3, mass, armL, armR, ...handL, ...handR, ...fs, head), U(0, maw, sockets, ...fh, sphere([56, 72, 14], 3, "hole")), 0.4);
   const scene = U(0, towerFloor(56, 126, 54, 16, { n: 3, seed: 12001, wet: 0.3, big: 4 }), beacon, lens, lord, core, ...eyes, ...links);
-  const r = render(scene, mats, { w: W, h: H, rim: RIM, lights: [{ p: [56, 58, 34], r: 34, k: 0.45 }, { p: [56, 10, 28], r: 30, k: 0.35 }] });
+  const r = render(scene, mats, { w: W, h: H, rim: RIM, lights: [{ p: [56, 72, 30], r: 30, k: 0.4 }, { p: [56, 30, 40], r: 30, k: 0.35 }] });
   const C = new Canvas(r);
   for (const [x, y, z, s] of faces) { C.only(x - 1.3 * s, y - 1, SOULS[3]); C.only(x + 1.3 * s, y - 1, SOULS[2]); }
-  C.set(50, 29, "#ffffff"); C.set(62, 29, "#ffffff");
-  // 雷の冠 (頭の上に立つ稲妻の尖り)
-  for (const [x1, y1, s] of [[44, 4, 1], [52, 0, 2], [60, 0, 3], [68, 4, 4], [38, 12, 5], [74, 12, 6]]) bolt2d(C, 56 + (x1 - 56) * 0.25, 22, x1, y1, { seed: s, jag: 1.4, branch: 0 });
-  // 雷の息 (口から下へ広がる稲妻の束)
-  for (const [x1, y1, s] of [[30, 84, 11], [40, 92, 12], [70, 92, 13], [82, 84, 14], [56, 96, 15]]) bolt2d(C, 56, 44, x1, y1, { seed: s, jag: 2.6, branch: 1, own: ["body", "face"] });
+  C.set(52, 42, "#ffffff"); C.set(60, 42, "#ffffff");
+  // 渦の帯 (体の上を巡る明るい螺旋の筋)
+  for (let t = 0; t < 1; t += 0.0015) {
+    const y = 110 - t * 76, rr = 4 + t * 30, a = t * 30;
+    const x = 56 + Math.cos(a) * rr; if (Math.sin(a) < 0.1) continue;
+    const p = C.pix[Math.round(y) * W + Math.round(x)]; if (!p || p.m !== "body") continue;
+    C.set(x, y, t > 0.5 ? "#524f80" : "#403e68");
+  }
+  // 雷の冠 (頭の上から放射する稲妻)
+  for (let i = 0; i < 7; i++) { const a = -Math.PI / 2 + (i - 3) * 0.32, l = 14 + (i % 2) * 6; bolt2d(C, 56 + Math.cos(a) * 8, 36 + Math.sin(a) * 2, 56 + Math.cos(a) * (9 + l), 34 + Math.sin(a) * (4 + l), { seed: 30 + i, jag: 1.2, branch: 1 }); }
+  // 雷の息 (叫ぶ口から左下の隊へ)
+  bolt2d(C, 56, 56, 6, 112, { seed: 11, jag: 3, branch: 2, own: ["body", "face"], thick: 2 });
+  bolt2d(C, 54, 58, 26, 120, { seed: 12, jag: 2.6, branch: 1, own: ["body", "face"] });
   // 渦からちぎれて飛ぶ魂 (疾風の霊になりかけたもの)
   const R = rand(12003);
   for (let i = 0; i < 14; i++) {
@@ -60,7 +70,7 @@ export function build() {
     C.set(x, y, SOULS[4]); for (let k = 1; k < 4; k++) if (!C.get(Math.round(x + Math.sin(a) * k), Math.round(y - Math.cos(a) * k))) C.set(x + Math.sin(a) * k, y - Math.cos(a) * k, SOULS[3 - k]);
   }
   crackle(C, 12005, ["body"], 0.015);
-  clouds(C, [[16, 92, 18, 8], [96, 96, 18, 8], [56, 8, 40, 6]], { dens: 0.7, seed: 21 });
+  clouds(C, [[16, 96, 16, 7], [100, 100, 14, 7], [40, 6, 30, 5]], { dens: 0.65, seed: 21 });
   windStreaks(C, 12007, 20, [0, 60, W, 50]);
   rain(C, 12009, 70, [0, 0, W, H]);
   sparks(C, 12011, 24);

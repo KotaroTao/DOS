@@ -3208,11 +3208,11 @@ function soulStatue(L, lights, x, by, s, seed, { broken = false, amb = [0.14, 0.
   if (broken) {
     body.poly(P([-3.6, 3.6, 3.6, 3.6, 3.2, 7, 2, 9.6, 0.6, 7.2, -1, 10.6, -2.2, 7.6, -3.4, 8.8]));   // 砕けた脚の根
   } else {
-    body.poly(P([-4, 3.6, 4, 3.6, 3.2, 12, 3.4, 18, 2.6, 21.4, -2.6, 21.4, -3.4, 18, -3.2, 12]));    // 衣の胴 (裾が広がる)
-    body.poly(P([-3, 21, 3, 21, 3.2, 25, 1.8, 28.6, 0, 29.4, -1.8, 28.6, -3.2, 25]));                 // 頭巾
-    body.poly(P([-2.4, 20, -4.6, 22.6, -7.2, 30, -8.4, 32, -6.6, 32.4, -5, 29, -2.4, 23.4]));     // 掲げた左腕
-    body.poly(P([2.4, 20, 4.6, 22.6, 7.2, 30, 8.4, 32, 6.6, 32.4, 5, 29, 2.4, 23.4]));            // 掲げた右腕
-    face.poly(P([-1.6, 22.4, 1.6, 22.4, 1.4, 26, 0, 26.8, -1.4, 26]));                              // 頭巾の中の闇
+    body.poly(P([-5.2, 3.6, 5.2, 3.6, 4.4, 10, 3.6, 16, 4.4, 19, 3, 20.8, -3, 20.8, -4.4, 19, -3.6, 16, -4.4, 10]));   // 衣の胴 (裾が広がる)
+    body.ellipse(x, by - 24 * s, 3 * s, 3.4 * s); body.poly(P([-2.6, 24.6, 2.6, 24.6, 0.4, 29.4]));                       // 頭巾
+    body.line(x - 3.6 * s, by - 19.4 * s, x - 7.8 * s, by - 31 * s, 2.4 * s, 1, 1.8 * s);                                   // 掲げた両腕
+    body.line(x + 3.6 * s, by - 19.4 * s, x + 7.8 * s, by - 31 * s, 2.4 * s, 1, 1.8 * s);
+    face.ellipse(x, by - 23.4 * s, 1.5 * s, 1.9 * s);                                                                       // 頭巾の中の闇
   }
   const stone = (xx, yy) => mix([150, 148, 162], [92, 90, 106], vnoise(xx * 0.5, yy * 0.4, seed) * 0.7);
   paintLit(L, base, stone, lights, { ny: (xx, yy) => vNormal(base, xx, yy, 2), amb });
@@ -3226,7 +3226,7 @@ function soulStatue(L, lights, x, by, s, seed, { broken = false, amb = [0.14, 0.
     chainSag(L, lights, x + 2 * s, by - 6 * s, x + 16 * s, by + 3 * s, 1.5, seed + 3, { col: [150, 152, 170], amb });
     return null;
   }
-  return [[x - 7.6 * s, by - 32.2 * s], [x + 7.6 * s, by - 32.2 * s]];
+  return [[x - 7.8 * s, by - 31.4 * s], [x + 7.8 * s, by - 31.4 * s]];
 }
 
 // 36. 嵐の主の記憶 (塔の頂。火のともらない大きな灯台が立ち、割れた大レンズは暗い。そのまわりを魂縛りの像が輪になって囲み、
@@ -3254,7 +3254,7 @@ function sceneStormLord() {
   glow(L, CX, VY, 20, [0.6, 1.0, 0.9], 0.45, 2);
   // 雲の切れ間 (右。薄明かりの空に、石橋の先の、すり鉢状の観客席の影)
   const gap = new Mask(W, H); gap.poly([136, 46, 148, 37, 166, 32, 184, 31, 193, 33, 193, 52, 176, 56, 150, 54]);
-  L.paint(gap, (x, y) => mix([150, 120, 116], [74, 70, 98], clamp((y - 31) / 25 + fbm(x * 0.1, y * 0.2, 903) * 0.25)));
+  L.paint(gap, (x, y) => mix([190, 150, 136], [96, 88, 118], clamp((y - 31) / 25 + fbm(x * 0.1, y * 0.2, 903) * 0.25)));
   for (let y = gap.y0; y <= gap.y1; y++) for (let x = gap.x0; x <= gap.x1; x++) if (gap.at(x, y) && (!gap.at(x, y - 2) || !gap.at(x, y + 2))) L.px(x, y, [66, 62, 90], 0.7);
   const SIL = [38, 34, 50];
   const arena = new Mask(W, H);
@@ -3263,11 +3263,6 @@ function sceneStormLord() {
   L.paint(arena, (x, y) => (y < 41 && (x - 179) ** 2 / 110 + (y - 41) ** 2 / 3 < 1 ? [24, 22, 34] : SIL));   // すり鉢の内側は暗い
   for (let x = 167; x < 192; x += 3) { L.px(x, 44, [96, 88, 110]); L.px(x, 45, [96, 88, 110]); L.px(x + 1, 47.6, [80, 74, 96]); }   // 外壁の拱の列
   for (const [y0, x0, x1] of [[39.6, 170, 189], [40.8, 167, 191]]) for (let x = x0; x < x1; x++) if (x % 2) L.px(x, y0, [70, 64, 88]);   // 段の筋
-  // 石橋 (頂の縁から、雲を越えて観客席へ。奥ほど細い)
-  const bridge = new Mask(W, H);
-  bridge.poly([136, 74, 166, 51, 168, 51.4, 140, 77.6]);
-  for (let k = 0; k < 5; k++) { const t = k / 5, bx = 140 + t * 26, by = 76 - t * 24, h = 6 - t * 4; bridge.rect(bx, by, Math.max(1, 2 - t), h); }   // 橋脚
-  L.paint(bridge, (x, y) => (bridge.at(x, y - 1) ? SIL : [80, 76, 100]));
   // 塔の頂の床 (楕円の石床と胸壁)
   const plat = new Mask(W, H); plat.ellipse(CX + 6, 94, 124, 24);
   paintLit(L, plat, (x, y) => {
@@ -3276,6 +3271,11 @@ function sceneStormLord() {
     return mix([70, 68, 84], [100, 98, 114], w[2] * 0.6);
   }, lights, { ny: () => -0.9, nxMax: 1, amb: [0.1, 0.1, 0.13] });
   for (let x = 0; x < W; x++) { const y = 94 - 24 * Math.sqrt(clamp(1 - ((x - CX - 6) / 124) ** 2)); for (let k = 0; k < 3; k++) L.px(x, y - k, lit(k === 2 ? [130, 128, 144] : [74, 72, 88], lightAt(x, y, lights), [0.12, 0.12, 0.15])); }
+  // 石橋 (頂の縁から、雲を越えて観客席へ。奥ほど細い)
+  const bridge = new Mask(W, H);
+  bridge.poly([150, 72, 166, 51, 168, 51.4, 155, 74]);
+  for (let k = 0; k < 5; k++) { const t = k / 5 + 0.15, bx = 150 + (t - 0.15) * 18, by = 72 - (t - 0.15) * 24, h = 6 - t * 4; bridge.rect(bx, by, Math.max(1, 2 - t), h); }   // 橋脚
+  L.paint(bridge, (x, y) => (bridge.at(x, y - 1) ? SIL : [80, 76, 100]));
   // 像の輪 (奥の像から先に描く)
   const ring = [];
   for (let i = 0; i < 7; i++) {
@@ -3292,16 +3292,18 @@ function sceneStormLord() {
   };
   // 縛られた魂: 鎖の腕の先から、渦の中心へ巻きこまれて昇る光の筋 (根もとは張った鎖)
   const strand = (x0, y0, s, back) => {
+    const cx0 = x0, cy0 = y0 - 10 * s;                                                // 張った鎖は真上へ
+    for (let k = 0; k < 10 * s; k++) { const y = y0 - k; L.px(x0, y, (k | 0) % 2 ? [50, 52, 64] : lit([160, 162, 180], lightAt(x0, y, lights), [0.24, 0.24, 0.28])); if ((k | 0) % 2 === 0) L.px(x0 + 1, y, [70, 72, 86]); }
+    x0 = cx0; y0 = cy0;
     const a0 = Math.atan2((y0 - VY) * 2.2, x0 - CX), r0 = Math.hypot(x0 - CX, (y0 - VY) * 2.2);
     let px = x0, py = y0;
     for (let i = 1; i <= 40; i++) {
-      const t = i / 40, a = a0 - t * 2.2, r = r0 * (1 - t * 0.92);
+      const t = i / 40, a = a0 - t * 1.3, r = r0 * (1 - t * 0.95);
       const nx = CX + Math.cos(a) * r, ny = VY + Math.sin(a) * r / 2.2;
       const n = Math.max(1, Math.ceil(Math.hypot(nx - px, ny - py)));
       for (let k = 0; k < n; k++) {
         const x = px + (nx - px) * k / n, y = py + (ny - py) * k / n, d = Math.hypot(x - x0, y - y0);
-        if (d < 12 * s) { if (((d * 1.2) | 0) % 2 === 0) L.px(x, y, lit([150, 152, 170], lightAt(x, y, lights), [0.2, 0.2, 0.24])); else L.px(x, y, [50, 52, 64]); }
-        else L.px(x, y, [150, 255, 225], clamp(0.95 - t * 0.6) * (back ? 0.6 : 1));
+        if (h2(x | 0, y | 0, 919) < 0.35 + t * 0.4) L.px(x, y, [150, 255, 225], clamp(0.9 - t * 0.5) * (back ? 0.55 : 0.9) * (d < 3 ? 0.5 : 1));   // 途切れがちな光の筋
       }
       px = nx; py = ny;
     }
