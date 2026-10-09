@@ -13112,7 +13112,7 @@ function sharePalaceRecord() {
 // 褒賞の種類:
 //   reward:"minePass" = 坑口の通行証 (台帳の迷宮「鎖の垂れる坑口」が地図に現れる。world.js unlock treasury:3)
 //   cls   = 決まった職の魂
-//   soul  = 魂 (1 = 通常の抽選 / 2 = 偉大な魂の抽選)
+//   soul  = 魂 (1 = 通常の抽選 / "legend" = レジェンドの職から1つ)
 //   gear  = スーパーレア装備 1点 (いま踏破した最深の迷宮の出現上限から。隊の誰かが装備できる品)
 //   embers = 魂の残火
 //   lr + tier = 職業専用LR武器 (隊の職の品) / 全職共通のLR防具 を1点 (層の逸品は含めない)。
@@ -13123,11 +13123,11 @@ const TREASURY_MILESTONES = [
   { n: 5, cls: "bishop" },          // 司教の魂 (鑑定の技)
   { n: 10, cls: "samurai" },        // 侍の魂
   { n: 15, gear: 1 },
-  { n: 20, soul: 2 },
+  { n: 20, soul: "legend" },
   { n: 25, gear: 1, embers: 3 },
   { n: 30, lr: "weapon", tier: 5 },
   { n: 40, lr: "armor", tier: 5 },
-  { n: 50, soul: 2, embers: 5 },
+  { n: 50, soul: "legend", embers: 5 },
   { n: 60, lr: "weapon", tier: 10 },
   { n: 70, lr: "armor", tier: 10 },
   { n: 80, lr: "weapon", tier: 15 },
@@ -13142,7 +13142,7 @@ function milestoneLabel(m) {
   if (m.cls) return ((SOUL_CLASSES[m.cls] || {}).label || m.cls) + "の魂";
   if (m.lr) return m.lr === "weapon" ? `LR${m.tier} 専用武器` : `LR${m.tier} 防具`;
   const parts = [];
-  if (m.soul) parts.push(m.soul >= 2 ? "偉大な魂" : "魂");
+  if (m.soul) parts.push(m.soul === "legend" ? "レジェンドの魂" : "魂");
   if (m.gear) parts.push("SR装備");
   if (m.embers) parts.push(`魂の残火×${m.embers}`);
   return parts.join("＋") || "装備";
@@ -13353,7 +13353,7 @@ function treasuryRewardRows(m) {
   if (m.cls) return [{ job: m.cls }];
   if (m.lr) return m.lr === "weapon" ? `LR${m.tier} の専用武器 1点 (隊の職の品・未鑑定)` : `LR${m.tier} の防具 1点 (未鑑定)`;
   const parts = [];
-  if (m.soul) parts.push(`${m.soul >= 2 ? "偉大な魂" : "魂"} 1つ`);
+  if (m.soul) parts.push(`${m.soul === "legend" ? "レジェンドの魂" : "魂"} 1つ`);
   if (m.gear) parts.push("スーパーレアの装備 1点");
   if (m.embers) parts.push(`魂の残火 ×${m.embers}`);
   return parts.join(" ・ ") || "装備 1点";
@@ -13366,7 +13366,7 @@ function grantTreasuryReward(m, reason, back) {
   }
   const gear = (next) => (m.lr ? grantTreasuryLR(m, next) : m.gear ? grantTreasuryItem(next) : next());
   if (m.cls) acquireSoul(m.cls, reason, back); // 特定職の魂のみ
-  else if (m.soul) acquireSoul(m.soul >= 2 ? rollGreatJobClass() : rollJobClass(), reason, () => gear(back));
+  else if (m.soul) acquireSoul(m.soul === "legend" ? rollClassOfRarity("legend") : rollJobClass(), reason, () => gear(back));
   else gear(back);
 }
 
