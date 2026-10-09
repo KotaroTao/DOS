@@ -13106,20 +13106,33 @@ function sharePalaceRecord() {
 
 // ==== 王宮の宝物庫 (収集品の奉納) ====
 // 収集品 (slot:"misc") を奉納すると、ランク帯ごとではなく「奉納した総種類数」の節目で褒賞が下賜される。
-// 各しきい値に到達するごとに一度だけ褒賞を受領できる (装備、節目によっては魂も)。
-// soul: 0=装備のみ / 1=魂(通常抽選)+装備 / 2=魂(偉大な抽選)+装備
-// 報酬の種別: cls=特定職の魂のみ / reward:"lrArmor"=未入手LR防具1点 / reward:"lrWeapon5"=未入手LR5武器1点
-//             soul=従来の「魂(+装備)」(soul:1=通常魂 / soul:2=偉大な魂 + 節目相応の装備)
-// ※25種以降は未定のため、従来の魂+装備をプレースホルダとして残してある。
+// 各節目の褒賞は一度だけ。褒賞の重さは、その種類数が集まる深さに合わせる (2026-10 見直し):
+//   収集品は隠しLv 1〜200 に約5種ずつ (計100種)、拾えるのは迷宮の出現上限 +2 ランクまでなので、
+//   N 種がそろうのはおよそ「隠しLv N×2 の品が落ちる深さ」(15種 ≈ 第一章 / 30種 ≈ 第二章 / 60種 ≈ 第五章 / 80種 ≈ 第八章)。
+// 褒賞の種類:
+//   reward:"minePass" = 坑口の通行証 (台帳の迷宮「鎖の垂れる坑口」が地図に現れる。world.js unlock treasury:3)
+//   cls   = 決まった職の魂
+//   soul  = 魂 (1 = 通常の抽選 / 2 = 偉大な魂の抽選)
+//   gear  = スーパーレア装備 1点 (いま踏破した最深の迷宮の出現上限から。隊の誰かが装備できる品)
+//   embers = 魂の残火
+//   lr + tier = 職業専用LR武器 (隊の職の品) / 全職共通のLR防具 を1点 (層の逸品は含めない)。
+//               深さの解禁値 (LR_UNLOCK) に届く迷宮を踏破するまでは受け取れない (先に集めても待つだけで、失わない)
+// 節目の ID ("m" + n) はセーブに残る。n を変えない・消さない (足すのは可)
 const TREASURY_MILESTONES = [
-  { n: 3, reward: "minePass" }, // 坑口の通行証: 台帳の迷宮「鎖の垂れる坑口」が地図に現れる (world.js unlock treasury:3)
-  { n: 5, cls: "bishop" },   // 司教の魂
-  { n: 10, cls: "samurai" },   // 侍の魂
-  { n: 15, reward: "lrArmor" }, // LR防具1つ (未入手のもの)
-  { n: 20, reward: "lrWeapon5" }, // LR5武器1つ (未入手のもの)
-  { n: 30, soul: 1 },
-  { n: 40, soul: 2 }, { n: 50, soul: 1 }, { n: 60, soul: 2 }, { n: 70, soul: 1 },
-  { n: 80, soul: 2 }, { n: 90, soul: 2 }, { n: 100, soul: 2 },
+  { n: 3, reward: "minePass" },
+  { n: 5, cls: "bishop" },          // 司教の魂 (鑑定の技)
+  { n: 10, cls: "samurai" },        // 侍の魂
+  { n: 15, gear: 1 },
+  { n: 20, soul: 2 },
+  { n: 25, gear: 1, embers: 3 },
+  { n: 30, lr: "weapon", tier: 5 },
+  { n: 40, lr: "armor", tier: 5 },
+  { n: 50, soul: 2, embers: 5 },
+  { n: 60, lr: "weapon", tier: 10 },
+  { n: 70, lr: "armor", tier: 10 },
+  { n: 80, lr: "weapon", tier: 15 },
+  { n: 90, lr: "armor", tier: 15 },
+  { n: 100, lr: "weapon", tier: 20 },
 ];
 // 防具とみなすスロット (LR防具褒賞の抽選対象。acc=装飾品は含めない)
 const LR_ARMOR_SLOTS = ["body", "head", "feet", "hands", "shield"];
@@ -13127,11 +13140,37 @@ const LR_ARMOR_SLOTS = ["body", "head", "feet", "hands", "shield"];
 function milestoneLabel(m) {
   if (m.reward === "minePass") return "坑口の通行証";
   if (m.cls) return ((SOUL_CLASSES[m.cls] || {}).label || m.cls) + "の魂";
-  if (m.reward === "lrArmor") return "LR防具";
-  if (m.reward === "lrWeapon5") return "LR5武器";
-  return m.soul ? (m.soul >= 2 ? "魂(偉大)+装備" : "魂+装備") : "装備";
+  if (m.lr) return m.lr === "weapon" ? `LR${m.tier} 専用武器` : `LR${m.tier} 防具`;
+  const parts = [];
+  if (m.soul) parts.push(m.soul >= 2 ? "偉大な魂" : "魂");
+  if (m.gear) parts.push("SR装備");
+  if (m.embers) parts.push(`魂の残火×${m.embers}`);
+  return parts.join("＋") || "装備";
 }
-
+// 宝物庫の褒賞の物差し = 踏破した最深の迷宮 (落とし物の帯の上端 = 隠しLv と、層)
+function treasuryDepth() {
+  const w = worldState();
+  let lv = 0, layer = 1;
+  for (const d of DUNGEONS) {
+    if (!w.cleared[d.id]) continue;
+    lv = Math.max(lv, (d.lootLv || [0, 0])[1] || 0);
+    layer = Math.max(layer, d.layer || 1);
+  }
+  return { lv: lv || 5, layer };
+}
+// 節目に届いていても、まだ受け取れない理由 (LR の深さの解禁)。受け取れるなら null
+function milestoneWait(m) {
+  if (!m || !m.lr) return null;
+  const need = LR_UNLOCK[m.tier] || 40;
+  if (treasuryDepth().lv >= need) return null;
+  // その深さの品が落ちる迷宮の推奨Lv (地図に無い迷宮の名は出さない)
+  const d = DUNGEONS.filter((x) => !x.challenge && ((x.lootLv || [0, 0])[1] || 0) >= need).sort((a, b) => (a.lvTo || 0) - (b.lvTo || 0))[0];
+  return d ? `推奨Lv${d.lvTo}ほどの迷宮を踏破すると受け取れる` : "さらに深い迷宮を踏破すると受け取れる";
+}
+// 節目 m の褒賞をいま受け取れるか
+function milestoneReady(m, c = totalDonatedKinds()) {
+  return c >= m.n && !treasuryState().claimed["m" + m.n] && !milestoneWait(m);
+}
 // 宝物庫の状態 (旧セーブには無いので遅延初期化)
 function treasuryState() {
   if (!G.treasury || typeof G.treasury !== "object") G.treasury = { donated: {}, claimed: {} };
@@ -13155,10 +13194,8 @@ function heldCollectibles() {
 
 // どこかに受領可能な褒賞があるか (王宮ハブのバッジ判定にも使う)
 function treasuryRewardReady() {
-  const ts = treasuryState();
   const c = totalDonatedKinds();
-  for (const m of TREASURY_MILESTONES) if (c >= m.n && !ts.claimed["m" + m.n]) return true;
-  return false;
+  return TREASURY_MILESTONES.some((m) => milestoneReady(m, c));
 }
 
 // 収集品を1点奉納する (その品は消費される)。初めての種類は台帳に記し、
@@ -13175,22 +13212,58 @@ function donateCollectible(doll, it) {
   return { kind: "dup", gold };
 }
 
-// 褒賞の装備を1点下賜する (所持枠が無ければゴールドに換える)。完了後 onClose を呼ぶ
-function grantTreasuryItem(center, onClose) {
-  const id = pickItemByLv(Math.min(200, Math.max(1, Math.round(center))));
-  const who = G.party.find((p) => p.alive && p.items.length < MAX_ITEMS)
-    || G.party.find((p) => p.items.length < MAX_ITEMS)
-    || allDolls().find((d) => !d.isEmpty && d.items.length < MAX_ITEMS);
-  if (who && ITEMS[id]) {
-    const it = cloneItem(id);
+// 褒賞の品を渡す人業 (品の持ち主の職 → 隊の生きている者 → 隊 → 控え。袋に空きのある者)
+function treasuryReceiver(forJob) {
+  const room = (d) => (d.items || []).length < MAX_ITEMS;
+  return (forJob && G.party.find((m) => m.clsKey === forJob && room(m)))
+    || G.party.find((p) => p.alive && room(p))
+    || G.party.find((p) => !p.isEmpty && room(p))
+    || allDolls().find((d) => !d.isEmpty && room(d));
+}
+// 重みつきの抽選 ([[id, 重み]])
+function pickWeighted(list) {
+  const total = list.reduce((a, [, w]) => a + w, 0);
+  if (!total) return null;
+  let x = Math.random() * total;
+  for (const [id, w] of list) { x -= w; if (x <= 0) return id; }
+  return list[list.length - 1][0];
+}
+const usableByParty = (it) => G.party.some((m) => !m.isEmpty && canEquip(m, it));
+// 褒賞のスーパーレア装備を選ぶ: 踏破した最深の迷宮の出現上限 (基準R + LOOT_R_HEADROOM) から下へ、6点以上の候補がそろうまで広げる。
+// 隊の誰かが装備できる品だけ (ほかの職の専用品は出さない)。上限に近いランクほど・隊の職の専用品ほど出やすい
+function pickTreasurySR() {
+  const dep = treasuryDepth();
+  const capR = Math.min(20, Math.ceil(dep.lv / 10) + LOOT_R_HEADROOM);
+  const idx = lootByRarity().sr;
+  for (let span = 1; span <= 8; span++) {
+    const list = [];
+    for (let r = Math.max(1, capR - span); r <= capR; r++) {
+      for (const id of idx[r]) {
+        const it = ITEMS[id];
+        if ((it.layer || 0) > dep.layer) continue; // 層の逸品はその層を踏破してから
+        const fj = it.forJob;
+        if (fj && !G.party.some((m) => m.clsKey === fj)) continue;
+        if (!usableByParty(it)) continue;
+        list.push([id, (fj ? 2 : 1) * Math.max(1, 3 - (capR - r))]);
+      }
+    }
+    if (list.length >= 6 || span === 8) { const id = pickWeighted(list); if (id) return id; } // 顔ぶれが少なければ下へ広げる
+  }
+  return pickItemByLv(Math.min(200, dep.lv));
+}
+// 褒賞の装備を1点下賜する (所持枠が無ければ売値の金貨に換える)。完了後 onClose を呼ぶ
+function grantTreasuryItem(onClose) {
+  const id = pickTreasurySR();
+  const it = ITEMS[id] ? cloneItem(id) : null;
+  const who = it && treasuryReceiver(it.forJob);
+  if (who) {
     runGainItem(who, it); codexSeeItem(id, it);
     log(`宝物庫の褒賞として ${itemName(it)} を賜った。(${who.name})`, "win");
     showItemGet(it, who, onClose);
     return;
   }
-  // 渡せない: 売値相当のゴールドにフォールバック
-  const it = ITEMS[id] ? cloneItem(id) : null;
-  const g = it ? Math.max(1, Math.floor((it.price || 50))) : 100;
+  // 渡せない: 売値の金貨にする
+  const g = it ? Math.max(1, sellPrice(it)) : 100;
   G.gold += g; updateTopbar();
   tlTown("gold", g, "t");
   log(`所持枠が満杯のため、宝物庫の褒賞は ${g} ゴールドに換えられた。`, "win");
@@ -13200,42 +13273,49 @@ function grantTreasuryItem(center, onClose) {
   });
 }
 
-// 褒賞のLR(専用装備)を1点下賜する。filter で武器/防具などを絞り、まだ手にしていない品 (G.lrOwned外) を優先して抽選する
-// (全種手にしていれば同じ品も出る)。LRは未鑑定で渡る (商店でのみ鑑定可)。
-function grantLR(filter, center, onClose) {
+// 褒賞のLRを選ぶ: tier の職業専用武器 (隊の職の品) か全職共通の防具 (隊の誰かが装備できる品)。
+// 層の逸品 (layer つき) は含めない。まだ手にしていない品 (G.lrOwned 外) を先に
+function pickTreasuryLR(m) {
   if (!G.lrOwned) G.lrOwned = {};
-  const all = exclIds().filter((id) => { const it = ITEMS[id]; return it && it.lr && filter(it); });
-  const fresh = all.filter((id) => !G.lrOwned[id]);
-  const pool = fresh.length ? fresh : all;
-  if (!pool.length) { grantTreasuryItem(center, onClose); return; }
-  const id = pool[rand(pool.length)];
-  const it = cloneItem(id);
-  it.unidentified = true; // LRは未鑑定で手に入る
-  const fj = it.forJob;
-  const who = (fj && G.party.find((m) => m.alive && m.clsKey === fj && m.items.length < MAX_ITEMS))
-    || (fj && G.party.find((m) => m.clsKey === fj && m.items.length < MAX_ITEMS))
-    || G.party.find((m) => m.alive && m.items.length < MAX_ITEMS)
-    || G.party.find((m) => m.items.length < MAX_ITEMS)
-    || allDolls().find((d) => !d.isEmpty && d.items.length < MAX_ITEMS);
-  if (!who) { grantTreasuryItem(center, onClose); return; } // 所持枠が無ければ通常褒賞へ
+  const all = exclIds().filter((id) => {
+    const it = ITEMS[id];
+    if (!it || it.rar !== "lr" || it.layer || it.lr !== m.tier) return false;
+    return m.lr === "weapon" ? it.slot === "weapon" : LR_ARMOR_SLOTS.includes(it.slot);
+  });
+  const jobs = new Set(G.party.filter((p) => !p.isEmpty).map((p) => p.clsKey));
+  const fits = all.filter((id) => (m.lr === "weapon" ? jobs.has(ITEMS[id].forJob) : usableByParty(ITEMS[id])));
+  const base = fits.length ? fits : all;
+  const fresh = base.filter((id) => !G.lrOwned[id]);
+  const pool = fresh.length ? fresh : base;
+  return pool.length ? pool[rand(pool.length)] : null;
+}
+// 褒賞のLRを1点下賜する。LRは未鑑定で渡る (商会・鑑定の技で鑑定する)
+function grantTreasuryLR(m, onClose) {
+  const id = pickTreasuryLR(m);
+  const it = id ? cloneItem(id) : null;
+  const who = it && treasuryReceiver(it.forJob);
+  if (!who) { grantTreasuryItem(onClose); return; } // 品が無い・所持枠が無ければ通常の褒賞へ
+  it.unidentified = true;
   runGainItem(who, it); codexSeeItem(id, it);
   flashScreen("#ff5fae"); SFX.victory(); buzz([0, 60, 50, 60, 50, 60, 240]);
   const nm = itemName(it); // 未鑑定なら伏せ名
-  log(`★ 宝物庫の褒賞として LR${it.lr} 専用装備(未鑑定)「${nm}」を賜った。(${who.name})`, "win");
-  setTimeout(() => showToast(`★ ${nm}`), 200);
+  log(`★ 宝物庫の褒賞として LR${it.lr} の品(未鑑定)「${nm}」を賜った。(${who.name})`, "win");
+  setTimeout(() => showToast(`★ ${nm}`, { noLog: true }), 200);
   showItemGet(it, who, onClose);
 }
 
-// 褒賞を受領する。総種類数が節目 n に達していれば一度だけ。
+// 褒賞を受領する。総種類数が節目 n に達していて、深さの条件も満たしていれば一度だけ。
 function claimTreasury(n) {
   const ts = treasuryState();
   const m = TREASURY_MILESTONES.find((x) => x.n === n);
-  if (!m) { SFX.ng(); return; }
-  const key = "m" + n;
-  if (ts.claimed[key] || totalDonatedKinds() < n) { SFX.ng(); return; }
-  ts.claimed[key] = true;
+  if (!m || !milestoneReady(m)) {
+    SFX.ng();
+    const wait = milestoneWait(m);
+    if (wait && totalDonatedKinds() >= n) showToast(wait, { noLog: true, tone: "bad" });
+    return;
+  }
+  ts.claimed["m" + n] = true;
   const back = () => { autosave(); if (G.state === "town") renderTown(); };
-  const center = Math.min(200, Math.max(1, n * 2)); // 節目が深いほど高位の装備
   const reason = `収集品を ${n} 種 宝物庫に納めた褒賞だ。`;
   // 坑口の通行証: 品の代わりに、封じられた迷宮を地図に記す
   if (m.reward === "minePass") {
@@ -13249,52 +13329,51 @@ function claimTreasury(n) {
   // 玉座の間で老王から褒賞を賜る場面を見せてから、品を渡す (品の演出・効果音は渡す側で鳴る)
   UI.playStoryChain([{
     title: `宝物庫の褒賞 ― 奉納 ${n} 種`, kicker: "褒賞の下賜", lines: treasuryRewardLines(m, n),
-    reward: m.cls ? [{ job: m.cls }] : treasuryRewardText(m), btnLabel: "ありがたく賜る",
-  }], () => grantTreasuryReward(m, center, reason, back));
+    reward: treasuryRewardRows(m), btnLabel: "ありがたく賜る",
+  }], () => grantTreasuryReward(m, reason, back));
 }
 
 // 褒賞の場面の台詞 (褒賞の種類で王の言葉を変える)
 function treasuryRewardLines(m, n) {
   const lines = ["宝物庫の番人が奉納の台帳を広げ、老王はその頁をゆっくりと繰った。",
     `「収集品を ${n} 種も納めてくれたか。迷宮の底から持ち帰られた品々は、どれも闇に呑まれたこの国の記憶だ。」`];
-  if (m.reward === "lrArmor" || m.reward === "lrWeapon5") {
+  if (m.lr) {
     lines.push("「これは王家の宝物庫の奥に、長く封じられてきた品だ。いまのそなたにこそ相応しかろう。」");
   } else if (m.cls || m.soul) {
     lines.push("「奉納の品に宿っていた魂が、ひとつ形を成した。そなたの隊に加えるがよい。」");
   } else {
     lines.push("「その働きに、王家はこれで報いよう。」");
   }
+  if (m.embers) lines.push("「品の奥でくすぶっていた魂の火も、ともに持ってゆけ。」");
   lines.push("「受け取るがよい。そして、これからも失われたものを持ち帰ってくれ。」");
   return lines;
 }
-// 褒賞の「受け取るもの」の文 (職の決まった魂は札で出すので、それ以外)
-function treasuryRewardText(m) {
-  if (m.reward === "lrArmor") return "LR防具 1点 (未入手のもの・未鑑定)";
-  if (m.reward === "lrWeapon5") return "LR5武器 1点 (未入手のもの・未鑑定)";
-  if (m.soul) return `${m.soul >= 2 ? "偉大な魂" : "魂"} 1つ と 装備 1点`;
-  return "装備 1点";
+// 褒賞の「受け取るもの」(物語のページの欄)
+function treasuryRewardRows(m) {
+  if (m.cls) return [{ job: m.cls }];
+  if (m.lr) return m.lr === "weapon" ? `LR${m.tier} の専用武器 1点 (隊の職の品・未鑑定)` : `LR${m.tier} の防具 1点 (未鑑定)`;
+  const parts = [];
+  if (m.soul) parts.push(`${m.soul >= 2 ? "偉大な魂" : "魂"} 1つ`);
+  if (m.gear) parts.push("スーパーレアの装備 1点");
+  if (m.embers) parts.push(`魂の残火 ×${m.embers}`);
+  return parts.join(" ・ ") || "装備 1点";
 }
-// 褒賞の品を渡す (場面を閉じた後)
-function grantTreasuryReward(m, center, reason, back) {
-  if (m.cls) {
-    acquireSoul(m.cls, reason, back); // 特定職の魂のみ
-  } else if (m.reward === "lrArmor") {
-    grantLR((it) => LR_ARMOR_SLOTS.includes(it.slot), center, back);
-  } else if (m.reward === "lrWeapon5") {
-    grantLR((it) => it.slot === "weapon" && it.lr === 5, center, back);
-  } else if (m.soul) {
-    const clsKey = m.soul >= 2 ? rollGreatJobClass() : rollJobClass();
-    acquireSoul(clsKey, reason, () => grantTreasuryItem(center, back));
-  } else {
-    grantTreasuryItem(center, back);
+// 褒賞の品を渡す (場面を閉じた後): 残火 → 魂 → 装備 の順
+function grantTreasuryReward(m, reason, back) {
+  if (m.embers) {
+    G.embers = (G.embers || 0) + m.embers; updateTopbar();
+    log(`宝物庫の褒賞として 魂の残火 を ${m.embers}つ 賜った。`, "win");
   }
+  const gear = (next) => (m.lr ? grantTreasuryLR(m, next) : m.gear ? grantTreasuryItem(next) : next());
+  if (m.cls) acquireSoul(m.cls, reason, back); // 特定職の魂のみ
+  else if (m.soul) acquireSoul(m.soul >= 2 ? rollGreatJobClass() : rollJobClass(), reason, () => gear(back));
+  else gear(back);
 }
 
 // 受領できる最初の褒賞を受け取る (街の「次にすべきこと」・宝物庫の褒賞の段)。無ければ false
 function claimNextTreasury() {
-  const ts = treasuryState();
   const c = totalDonatedKinds();
-  const m = TREASURY_MILESTONES.find((x) => c >= x.n && !ts.claimed["m" + x.n]);
+  const m = TREASURY_MILESTONES.find((x) => milestoneReady(x, c));
   if (!m) return false;
   claimTreasury(m.n);
   return true;
@@ -16328,7 +16407,7 @@ bindGame({
   objectiveInfo, decreeInfo, replayDecree, palaceRecords, sharePalaceRecord, departTo, goMakeDoll, audienceTutorial,
   landOnHub, legacyToPage, townBgm,
   // 勲章・宝物庫・図鑑
-  achievementCards, medalRank, claimNextTreasury, TREASURY_MILESTONES, milestoneLabel, totalDonatedKinds,
+  achievementCards, medalRank, claimNextTreasury, TREASURY_MILESTONES, milestoneLabel, milestoneWait, totalDonatedKinds,
   codexMonEntry, dungeonRoster, CODEX_OTHER,
   // 酒場・祠・宿
   listenRumor, RUMOR_PRICE, rumorPrice, rumorFor, rollTavernCrowd, markTavernHeard, tavernNotes,
@@ -16420,6 +16499,8 @@ function init() {
     evApi, runEvent, logHistory,
     // オート移動の検証用
     autoMove: { setAutoMove, toggleAutoMove, autoMovePlan, cellRect, viewSize: () => ({ VW, VH }) },
+    // 宝物庫の褒賞の検証用
+    treasury: { TREASURY_MILESTONES, treasuryState, totalDonatedKinds, treasuryDepth, milestoneWait, milestoneReady, pickTreasurySR, pickTreasuryLR, claimTreasury, claimNextTreasury, treasuryRewardReady },
     // 酒場の依頼の検証用
     quest: { questState, questLists, rollQuestBoard, acceptQuest, claimQuest, deliverQuest, questProgress },
     // 迷宮のイベント (出来事) の検証用

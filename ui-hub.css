@@ -638,6 +638,9 @@
 .pl-rung-s { flex: 0 0 auto; padding-right: 6px; font-size: 11.5px; color: var(--ink-dim); }
 .pl-rung .ui-btn { width: auto; }
 .pl-rung.ready { border-color: #8a6d2e; box-shadow: 0 0 12px rgba(201,162,74,0.2); }
+.pl-rung-t { display: block; }
+.pl-rung-w { display: block; margin-top: 1px; font-size: 11px; color: var(--ink-dim); }
+.pl-rung.wait { border-color: #4a3d2a; }
 .pl-dn.dup { opacity: 0.8; }
 
 /* =====================================================================
