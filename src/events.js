@@ -9,7 +9,7 @@ import { WORLD } from "./dungeons/world.js";
 //   uncommon (稀) … やや稀。中くらいの賭け         (≒ 戦果3〜5)
 //   rare     (秘) … 1回の潜入で1度まで             (≒ 戦果8〜12)
 //   mythic   (極) … セーブで一度きり。選択肢は無く、踏めばその場で恒久の恵みを授かる (gift)
-//                   出やすさは 2% + 踏破した迷宮1つごとに +1% (tierShares)
+//                   出やすさは 2% + その迷宮を踏破した回数×0.5% (tierShares。ほかの迷宮の踏破は数えない)
 // 「戦果1」= その迷宮の通常戦闘1回ぶんの gold / ✦Soul (game.js の evApi が迷宮の魔物から見積もる)。
 // 報酬は既存の経路 (pickLoot / acquireSoul / 宝箱) を通るので、層ごとの出現上限 (lootCapR) は越えない。
 // LR と赤い魂はイベントからは出さない。
@@ -1757,10 +1757,12 @@ export function eligibleEvents(st, A) {
     return true;
   });
 }
-// 極の出やすさ: 踏破した迷宮1つごとに +1% (EV_MYTHIC_PER_CLEAR、ユーザーの指示)。上限 EV_MYTHIC_MAX
-export const EV_MYTHIC_PER_CLEAR = 1;
+// 極の出やすさ: その迷宮を踏破するたび (再踏破も) +EV_MYTHIC_PER_CLEAR %。ほかの迷宮の踏破は数えない (ユーザーの指示)。
+// 狙いは「同じ迷宮を10回踏破する間に8割ほどが極に会う」: 極は迷宮ごとに1件なので、毎回全階を歩けば 10階の迷宮で約92%・
+// 門から最後の5階だけ潜れば約69% (出来事の出る階 55%・置かれた出来事はすべて踏む見込み)。上限 EV_MYTHIC_MAX
+export const EV_MYTHIC_PER_CLEAR = 0.5;
 export const EV_MYTHIC_MAX = 50;
-// 格ごとの割合 (合計100)。極を 2% + 踏破数×1% にし、ほかの格はその残りを元の比で分ける
+// 格ごとの割合 (合計100)。極を 2% + その迷宮の踏破回数×0.5% にし、ほかの格はその残りを元の比で分ける
 export function tierShares(cleared = 0) {
   const base = EV_TIERS.mythic.share;
   const m = Math.min(EV_MYTHIC_MAX, base + Math.max(0, cleared | 0) * EV_MYTHIC_PER_CLEAR);
@@ -1771,7 +1773,7 @@ export function tierShares(cleared = 0) {
 }
 // 2段階の抽選: まず格 (常/稀/秘/極) を tierShares の割合で選び (その場に出せる格だけで按分)、
 // 次にその格の中から1つ選ぶ (その層の専用イベントは ×LAYER_W)。出来事の数が増えても格の出やすさは変わらない
-// cleared = 踏破した迷宮の数 (極の出やすさに足す)
+// cleared = いまの迷宮を踏破した回数 (極の出やすさに足す)
 export function pickEvent(list, cleared = 0) {
   if (!list.length) return null;
   const byTier = {};
