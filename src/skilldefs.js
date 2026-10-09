@@ -25,7 +25,7 @@
 // 回復 (kind "heal", 2026-10 作り直し): healMul (ヒールの何倍か・PIEで伸びる) / healPct (対象の最大HPの割合・全快 = 1) /
 //   bodyHeal (使い手の最大HPの割合 = 物理職の「体の手当て」) / 旧来の power / healCap (1回の回復を対象の最大HPの割合で頭打ち)
 //   revive + revivePct (蘇生の割合)。物理技の隊回復は bladeHeal (与えたダメージの割合・1人あたり healCap まで)
-// 標準の回復: ヒール/ハイヒール/フルヒール/オールヒール/オールハイヒール/オールフルヒール/リバイブ/リザレクション、
+// 標準の回復: ヒール/ハイヒール/フルヒール/ヒールオール/ハイヒールオール/フルヒールオール/リバイブ/リザレクション、
 //   治療: キュア (毒)/リカバー (麻痺)/アウェイク (眠り・混乱・魅了)/ストーンキュア (石化)/ピュリファイ (すべて) と各オール版
 // 支援: buff(倍率) / taunt(挑発) / shield(仁王立ち) / stance:"counter"(反撃の構え) / charge(溜め) /
 //   regen({pct, turns} リジェネ) / grantBarrier / grantEndure / cure(状態異常) / purge(弱体を解く)
@@ -106,20 +106,20 @@ export const SPELLS = {
   DIOS:       { name: "ヒール", mp: 3, kind: "heal", healMul: 1, healCap: 0.5, target: "ally", desc: "味方一人の傷を癒す（最大HPの50%まで）" },
   DIAL:       { name: "ハイヒール", mp: 6, kind: "heal", healMul: 2.5, target: "ally", desc: "味方一人をヒールの2.5倍癒す" },
   MADIOS:     { name: "フルヒール", mp: 20, kind: "heal", healPct: 1, target: "ally", desc: "味方一人のHPを全快させる" },
-  DIOSALL:    { name: "オールヒール", mp: 12, kind: "heal", healMul: 1, healCap: 0.5, target: "all-ally", desc: "味方全員の傷を癒す（最大HPの50%まで）" },
-  DIALALL:    { name: "オールハイヒール", mp: 24, kind: "heal", healMul: 2.5, target: "all-ally", desc: "味方全員をヒールの2.5倍癒す" },
-  MADIOSALL:  { name: "オールフルヒール", mp: 80, kind: "heal", healPct: 1, target: "all-ally", desc: "味方全員のHPを全快させる" },
+  DIOSALL:    { name: "ヒールオール", mp: 12, kind: "heal", healMul: 1, healCap: 0.5, target: "all-ally", desc: "味方全員の傷を癒す（最大HPの50%まで）" },
+  DIALALL:    { name: "ハイヒールオール", mp: 24, kind: "heal", healMul: 2.5, target: "all-ally", desc: "味方全員をヒールの2.5倍癒す" },
+  MADIOSALL:  { name: "フルヒールオール", mp: 80, kind: "heal", healPct: 1, target: "all-ally", desc: "味方全員のHPを全快させる" },
   DAIFUKUIN:  { name: "大福音", mp: 32, kind: "heal", healMul: 2.1, cure: true, purge: true, target: "all-ally", desc: "味方全員を癒し、状態異常と弱体を祓う" },
   CURE:       { name: "キュア", mp: 3, kind: "cure", cure: ["poison"], target: "ally", desc: "味方一人の毒・猛毒を治す" },
   RECOVER:    { name: "リカバー", mp: 3, kind: "cure", cure: ["paralyze"], target: "ally", desc: "味方一人の麻痺を治す" },
   AWAKE:      { name: "アウェイク", mp: 4, kind: "cure", cure: ["sleep", "confuse", "charm"], target: "ally", desc: "味方一人の眠り・混乱・魅了を治す" },
   STONECURE:  { name: "ストーンキュア", mp: 6, kind: "cure", cure: ["stone"], target: "ally", desc: "味方一人の石化を治す" },
   PURIFY:     { name: "ピュリファイ", mp: 10, kind: "cure", cure: true, target: "ally", desc: "味方一人のすべての状態異常を治す" },
-  CUREALL:    { name: "オールキュア", mp: 9, kind: "cure", cure: ["poison"], target: "all-ally", desc: "味方全員の毒・猛毒を治す" },
-  RECOVERALL: { name: "オールリカバー", mp: 9, kind: "cure", cure: ["paralyze"], target: "all-ally", desc: "味方全員の麻痺を治す" },
-  AWAKEALL:   { name: "オールアウェイク", mp: 9, kind: "cure", cure: ["sleep", "confuse", "charm"], target: "all-ally", desc: "味方全員の眠り・混乱・魅了を治す" },
-  STONECUREALL: { name: "オールストーンキュア", mp: 18, kind: "cure", cure: ["stone"], target: "all-ally", desc: "味方全員の石化を治す" },
-  PURIFYALL:  { name: "オールピュリファイ", mp: 30, kind: "cure", cure: true, target: "all-ally", desc: "味方全員のすべての状態異常を治す" },
+  CUREALL:    { name: "キュアオール", mp: 9, kind: "cure", cure: ["poison"], target: "all-ally", desc: "味方全員の毒・猛毒を治す" },
+  RECOVERALL: { name: "リカバーオール", mp: 9, kind: "cure", cure: ["paralyze"], target: "all-ally", desc: "味方全員の麻痺を治す" },
+  AWAKEALL:   { name: "アウェイクオール", mp: 9, kind: "cure", cure: ["sleep", "confuse", "charm"], target: "all-ally", desc: "味方全員の眠り・混乱・魅了を治す" },
+  STONECUREALL: { name: "ストーンキュアオール", mp: 18, kind: "cure", cure: ["stone"], target: "all-ally", desc: "味方全員の石化を治す" },
+  PURIFYALL:  { name: "ピュリファイオール", mp: 30, kind: "cure", cure: true, target: "all-ally", desc: "味方全員のすべての状態異常を治す" },
   KIYOME:     { name: "清めの祈り", mp: 8, kind: "cure", purge: true, target: "all-ally", desc: "味方全員の状態異常と弱体を治す" },
   REVIVE:     { name: "リバイブ", mp: 40, kind: "heal", target: "ally", revive: true, revivePct: 0.5, desc: "戦闘不能の味方をHP50%で蘇生する" },
   RESURRECT:  { name: "リザレクション", mp: 80, kind: "heal", target: "ally", revive: true, revivePct: 1.0, desc: "戦闘不能の味方をHP100%で蘇生する" },

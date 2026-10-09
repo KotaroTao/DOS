@@ -78,7 +78,7 @@ const SIG_DRAW = {
       for (let i = 0; i < 8; i++) { ctx.globalAlpha = 1 - q; ctx.fillStyle = "#6a6a72"; ctx.fillRect(e.x + (r01(i, e.seed) - 0.5) * 50, e.y + q * q * 60 + r01(i + 4, e.seed) * 10, 3, 3); }
     }
   },
-  // ===== 僧侶 オールハイヒール: 天に光の十字が浮かび、隊へ癒しの雨が降る =====
+  // ===== 僧侶 ハイヒールオール: 天に光の十字が浮かび、隊へ癒しの雨が降る =====
   sig_dialall(ctx, e, t, VW, VH) {
     const a = Math.sin(Math.PI * t);
     ctx.globalCompositeOperation = "lighter";
