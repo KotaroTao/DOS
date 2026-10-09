@@ -271,10 +271,30 @@ function perksOf(a) {
 }
 // Lv ごとの値 (配列なら Lv 番目。足りなければ最後) / 単なる数ならそのまま
 const lvv = (v, lv) => (Array.isArray(v) ? v[Math.min(Math.max(1, lv), v.length) - 1] : v);
+// 魂の共鳴 (src/resonance.js、第七章の結びで開く): 隊の編成 (メイン魂の職の組み合わせ) で決まる隊全体の効果。
+// game.js syncResonance が編成の変わるたびに setResonance で渡す。fx = perksOf と同じ形の成分の列、members = 隊の人業
+// (その人業にだけ効く — 控えの人業の技の消費MPなどは変えない)、cap = 種類ごとの合計の上限 (RESONANCE_CAP)
+let _reso = NO_PERKS, _resoMembers = null, _resoCap = {};
+export function setResonance(fx, members, cap) {
+  _reso = Array.isArray(fx) && fx.length ? fx : NO_PERKS;
+  _resoMembers = members && members.length ? new Set(members) : null;
+  _resoCap = cap || {};
+}
+const resoOf = (a) => (_reso.length && a && _resoMembers && _resoMembers.has(a) ? _reso : NO_PERKS);
+// 条件 (on / when) の無い種類の合計 (逃走・状態異常耐性)。上限つき
+function resoSum(a, type) {
+  let v = 0;
+  for (const { c } of resoOf(a)) if (c.t === type) v += c.v || 0;
+  return Math.min(v, _resoCap[type] ?? v);
+}
 // 技・呪文の消費MPを削る固有パッシブ (cost) の合計 (上限50%)
 function perkCostCut(actor, sp) {
   let cut = 0;
   for (const { c, lv } of perksOf(actor)) if (c.t === "cost" && (!c.on || c.on === sp.kind)) cut += lvv(c.v, lv) || 0;
+  // 魂の共鳴 (cost): 共鳴どうしの合計は RESONANCE_CAP.cost まで
+  let rc = 0;
+  for (const { c } of resoOf(actor)) if (c.t === "cost" && (!c.on || c.on === sp.kind)) rc += c.v || 0;
+  if (rc) cut += Math.min(rc, _resoCap.cost ?? rc);
   return Math.min(0.5, cut);
 }
 // 戦闘に勝った後の固有パッシブ (win): その人が受ける HP/MP 回復の割合 (自分の分 + 味方の party 付きの分)。
@@ -418,6 +438,10 @@ export function setElemKnown(fn) { _elemKnown = typeof fn === "function" ? fn : 
 // 隊の全員に足す回避率 (手がかりの恵み「根に抱かれた胴」+1%。game.js syncClueBoons が渡す)。敵の物理をかわす確率に足す
 let _partyEvadeBonus = 0;
 export function setPartyEvadeBonus(v) { _partyEvadeBonus = Math.max(0, +v || 0); }
+// 手がかりの恵み (雷よけの書きつけ): 隊の全員のブレス耐性に足す割合。装備のブレス耐性と合わせて BREATH_RES_CAP まで
+let _partyBreathBonus = 0;
+export function setPartyBreathBonus(v) { _partyBreathBonus = Math.max(0, +v || 0); }
+export function partyBreathRes(t) { return Math.min(BREATH_RES_CAP, (t.breathRes || 0) + (t.side === "party" ? _partyBreathBonus : 0)); }
 const elemSeen = (t) => !(t && t.side === "enemy" && _elemKnown && !_elemKnown(t));
 // 属性を知らない敵の見かけ (固有属性だけ「なし」に見せ、ほかは本体を読む)。固有パッシブの「弱点を突いた時」の判定用
 const elemMask = (t) => (elemSeen(t) ? t : Object.create(t, { element: { value: "none" } }));
@@ -561,6 +585,7 @@ export class Battle {
     for (const p of party) {
       p._coverLeft = pv(p, "cover");
       p._barrierLeft = pv(p, "barrier");
+      p._wallLeft = 0; // 魔法壁 (魔泉の目覚め) は _perkStart で張り直す
       p._scriptureUsed = false;
       p._martyrUsed = false;
       p._kenma = false;
@@ -906,13 +931,25 @@ export class Battle {
         sum += lvv(c.v, lv) || 0;
       }
     }
+    // 魂の共鳴 (src/resonance.js): 隊の人業すべてに効く。共鳴どうしの合計は種類ごとに上限 (_resoCap)
+    const rs = resoOf(a);
+    if (rs.length) {
+      let r = 0;
+      for (const { c } of rs) {
+        if (c.t !== type) continue;
+        if (c.on && !(ctx.on || []).includes(c.on)) continue;
+        if (c.when && !this._perkWhen(a, c.when, ctx)) continue;
+        r += c.v || 0;
+      }
+      if (r) sum += Math.min(r, _resoCap[type] ?? r);
+    }
     return sum;
   }
   // 発動の判定 (chance が無ければ必ず)
   _perkRoll(c, lv) { return c.chance == null || Math.random() < (lvv(c.chance, lv) || 0); }
   // 強化をまとめて掛ける ({atk: 1.2} の倍率。Lv ごとの配列可)
   _perkBuff(t, buff, lv, dur, label) {
-    for (const k in buff) this._applyMod(t, k, lvv(buff[k], lv), dur || 3, label);
+    for (const k in buff) this._applyMod(t, k, lvv(buff[k], lv), lvv(dur, lv) || 3, label);
   }
   _perkHeal(t, pct, label) {
     if (!pct || !t.alive || t.hp >= t.maxhp) return 0;
@@ -926,6 +963,14 @@ export class Battle {
     t.mp = Math.min(t.maxmp, t.mp + g);
     return g;
   }
+  // 魔法壁 (魔泉の目覚め): 受けるダメージを残り回数だけ半減する (物理・ブレス・呪文を問わない)
+  _wallCut(t, dmg) {
+    if (!(t._wallLeft > 0) || !(dmg > 0)) return dmg;
+    t._wallLeft--;
+    this.log(`${t.name}の魔法壁がダメージを和らげた！ (残り${t._wallLeft}回)`, "heal");
+    this._proc(t, "魔法壁");
+    return Math.max(1, Math.ceil(dmg * 0.5));
+  }
   // 戦闘開始時 (start)
   _perkStart() {
     for (const p of this.party) {
@@ -936,6 +981,7 @@ export class Battle {
         for (const t of tg) {
           if (c.buff) this._perkBuff(t, c.buff, lv, c.dur, label);
           if (c.barrier) t._barrierLeft = (t._barrierLeft || 0) + (lvv(c.barrier, lv) || 0);
+          if (c.wall) t._wallLeft = (t._wallLeft || 0) + (lvv(c.wall, lv) || 0);
           if (c.regen) this._applyMod(t, "regen", 1 + (lvv(c.regen, lv) || 0), c.dur || 3, label);
           if (c.mp) this._perkMp(t, lvv(c.mp, lv));
           if (c.endure) t._grantEndure = true;
@@ -1264,7 +1310,7 @@ export class Battle {
     // 逃げ足 (fleetFoot): 個人の習得は+30%、隊の誰かの Lv に応じ +30/45/60%。高い方を採用
     const fleetSelf = this.party.some((p) => p.alive && pv(p, "fleetFoot")) ? 0.30 : 0;
     const fleetOrder = this.orderFleet >= 3 ? 0.60 : this.orderFleet >= 2 ? 0.45 : this.orderFleet >= 1 ? 0.30 : 0;
-    const p = FLEE_BASE + FLEE_SLOPE * Math.log2(agiOf(actor) / chase) + Math.max(fleetSelf, fleetOrder);
+    const p = FLEE_BASE + FLEE_SLOPE * Math.log2(agiOf(actor) / chase) + Math.max(fleetSelf, fleetOrder) + resoSum(actor, "flee"); // 魂の共鳴 (flee)
     return Math.min(FLEE_MAX, Math.max(FLEE_MIN, p));
   }
 
@@ -1905,7 +1951,7 @@ export class Battle {
         const ward = this._bm(t, spell ? "wardS" : "wardB");
         if (ward > 1) dmg = Math.max(1, Math.round(dmg / ward));
         // 装備のブレス耐性 (竜鱗の盾など。合計の上限 50%)
-        if (!spell && t.breathRes) dmg = Math.max(1, Math.round(dmg * (1 - Math.min(BREATH_RES_CAP, t.breathRes))));
+        { const br = spell ? 0 : partyBreathRes(t); if (br) dmg = Math.max(1, Math.round(dmg * (1 - br))); }
         if (bigB) dmg = Math.max(1, Math.ceil(dmg * 0.5));
         else if (t._barrierLeft > 0) {
           // 魔障壁: 個人のブレス・呪文被ダメ半減 (残回数制)。魔力反射は防いだ分を返す
@@ -1935,6 +1981,7 @@ export class Battle {
         { const wk = this._rkParty("wardenKekkai", [0.05, 0.08, 0.12, 0.20]); if (wk) dmg = Math.max(1, Math.floor(dmg * (1 - wk))); }
         dmg = Math.max(1, Math.floor(dmg * (1 - this._shintou(t)))); // 心頭滅却: ブレス・呪文
         if (spell) dmg = this._resistCut(t, dmg, "magResist").dmg;
+        dmg = this._wallCut(t, dmg);
         t.hp -= dmg;
         this.log(`${t.name}に ${dmg} ダメージ${em > 1 ? " 弱点!" : em < 1 ? " 耐性…" : ""}`, "dmg");
         this._wake(t);
@@ -2080,7 +2127,7 @@ export class Battle {
     if (lv < 1 && this.party.some((p) => p.alive && pv(p, "sanctuary"))) lv = 1;
     const pas = lv >= 2 ? 0.60 : lv === 1 ? 0.30 : 0;
     const eq = kind && t.resists ? (t.resists[kind] || 0) / 100 : (kind && t.ailRes && t.ailRes[kind]) || 0;
-    return Math.min(1, pas + eq + this._zokusei(t));
+    return Math.min(1, pas + eq + this._zokusei(t) + resoSum(t, "ailRes")); // 魂の共鳴 (ailRes)
   }
   // 俗世拒絶 (隠修士): 敵から受ける状態異常 (石化・即死も) を -10/20/30%
   _zokusei(t) { return [0, 0.10, 0.20, 0.30][Math.min(3, pv(t, "hermitZokusei"))] || 0; }
@@ -2131,7 +2178,7 @@ export class Battle {
       // 反撃の会心も通常の物理と同じ耐性軽減を使う。
       const pr = this._resistCut(attacker, dmg, "physResist", crit ? 0.5 : 0);
       if (pr.immune) { this.log(`${defender.name}の反撃！ ${attacker.name}には効かない！ (物理無効)`, "hit"); return; }
-      dmg = pr.dmg;
+      dmg = this._wallCut(attacker, pr.dmg);
       attacker.hp -= dmg;
       this.log(`${defender.name}の反撃！ ${attacker.name}に ${dmg} ダメージ${crit ? "(会心!)" : ""}`, "hit");
       this._die(attacker);
@@ -2412,6 +2459,7 @@ export class Battle {
       this._proc(tgt, "金剛の守り");
       return { target: tgt, dmg: 0, crit: false, died: false, immune: true };
     }
+    dmg = this._wallCut(tgt, dmg);
     tgt.hp -= dmg;
     // 属性・障壁・物理耐性は重なっても全部見えるように併記する
     const eff = [em > 1 ? "弱点!" : em < 1 ? "耐性…" : "", magWeak ? "魔法弱点!" : "", barriered ? "障壁!" : "", pr.tag]
@@ -3131,7 +3179,7 @@ export class Battle {
         this._proc(t, "不死鳥の加護");
         return false;
       }
-      // 復活の祈り (大司教): 倒れた味方が 1戦闘 1/2/3 回まで HP1 で起き上がる (隊で一番高いLv)
+      // 復活の祈り (巡礼者): 倒れた味方が 1戦闘 1/2/3 回まで HP1 で起き上がる (隊で一番高いLv)
       if (t.side === "party") {
         const ra = Math.max(0, ...this.party.filter((p) => p.alive).map((p) => pv(p, "riseAgain")));
         if (ra && (this._riseUsed || 0) < ra) {

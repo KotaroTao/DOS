@@ -1,11 +1,11 @@
 // 魔物の伝承 (src/dungeons/monlore.js) の検査: node tools/lore/check.mjs
-// ・第1〜7層の魔物 (層の出現表・強敵・主、本筋と寄り道の迷宮の出現表) に漏れなく伝承がある
+// ・第1〜10層の魔物 (層の出現表・強敵・主、本筋と寄り道の迷宮の出現表) に漏れなく伝承がある
 // ・出典と本文の長さ、難しい漢字、層ごとの出典の偏り (似た内容にしない)、章ごとのネタばれの語
 import { MONSTER_LORE } from "../../src/dungeons/monlore.js";
 import { BESTIARY, LAYER_POOLS, LAYER_ELITES, LAYER_BOSS } from "../../src/dungeons/bestiary.js";
 import { WORLD } from "../../src/dungeons/world.js";
 
-const LAYERS = 7;
+const LAYERS = 10;
 const errs = [];
 const layerOf = {}, where = {};
 for (let L = 1; L <= LAYERS; L++)
@@ -31,9 +31,14 @@ const SPOIL = {
   5: /霊薬|神官王|奈落|最初の操霊師/,
   6: /霊薬|奈落|最初の操霊師/,
   7: /奈落|最初の操霊師/,
+  8: /最初の操霊師|一門の祖|イザーク/, // 凍王の正体と一門の祖は主の記憶で明かす
+  9: /腐らせるな|灯の工房|尖塔|塔/, // 主の命令・島の工房・その先の塔は主の記憶で明かす
+  10: /雨になって|雨となり|闘技場|観客席|石の橋|灯台/, // 還した魂が雨になって腐ること・頂の灯台・その先の橋は主の記憶で明かす
 };
-const BOSS_FREE = new Set(["bs_infernolord"]); // 主の伝承は1体討てば読める — 業火の主だけは第五章の真相に触れてよい
-const SERA_OK = new Set(["w16", "w17", "w18", "w19", "w20", "w21"]);
+const BOSS_FREE = new Set(["bs_infernolord", "bs_glaciallord", "bs_swamplord", "bs_stormlord"]); // 主の伝承は1体討てば読める — 業火の主・凍王・よどみの主・嵐の主は、その章の主の記憶の真相に触れてよい
+const SERA_OK = new Set(["w16", "w17", "w18", "w19", "w20", "w21", "ws8", "ws9", "ws10",
+  "w22", "w23", "w24", "w25", "ws11", "ws12", "w26", "w27", "w28", "w29", "ws13", "ws14",
+  "w30", "w31", "w32", "w33", "ws15", "ws16", "ws17"]); // ws8 は脚 (w16_legs) を見つけた後、ws9〜ws17 は第五章以降の依頼で開く
 const WS5_SPOIL = /モルデン|神官王|苗木|セラ/; // 古井戸 (第二章から開く) に出る魔物
 
 const byLayer = {};

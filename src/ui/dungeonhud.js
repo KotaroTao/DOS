@@ -44,6 +44,7 @@ const DOCK_SVG = {
   down: '<path d="M4 5.5h5v4h5v4h5"/><path d="M12 15v5.5M8.6 17.6 12 21l3.4-3.4"/>',
   boss: '<path d="M5.5 12.2c0-4 2.9-7.2 6.5-7.2s6.5 3.2 6.5 7.2c0 2.3-1 3.6-2.3 4.4v2.6h-8.4v-2.6c-1.3-.8-2.3-2.1-2.3-4.4Z"/><path d="M9.3 11.6h.01M14.7 11.6h.01M10.4 19.2v-2M13.6 19.2v-2"/>',
   star: '<path d="M12 3.2 14.2 9.2l6.3.2-5 3.9 1.8 6.1L12 15.8l-5.3 3.6 1.8-6.1-5-3.9 6.3-.2Z"/>',
+  flag: '<path d="M6 21V4"/><path d="M6 4.5c3-1.6 5.2 1.2 8.2 0 1.6-.6 2.8-.8 3.8-.5v8.5c-1-.3-2.2-.1-3.8.5-3 1.2-5.2-1.6-8.2 0"/>',
   home: '<path d="M3.5 11.2 12 4l8.5 7.2"/><path d="M6 9.4v10.1h12V9.4"/><path d="M10 19.5v-5h4v5"/>',
   book: '<path d="M5 4.5h10.5a3 3 0 0 1 3 3v12H8a3 3 0 0 1-3-3Z"/><path d="M5 16.5a3 3 0 0 1 3-3h10.5"/><path d="M9 8h6M9 10.6h4"/>',
   loot: '<path d="M4 9.5h16v10H4Z"/><path d="M4 9.5 6.5 5h11L20 9.5"/><path d="M10 13h4"/>',
@@ -430,6 +431,9 @@ export function openDungeonMenu() {
       const canHome = !combat && (game.canReturnNow ? game.canReturnNow() : false);
       grid.appendChild(menuTile("home", canHome ? "街へ帰還する" : "帰還できない", canHome ? "戦利品を持ち帰る" : combat ? "戦闘中は帰れない" : "帰還陣か主の討伐で",
         canHome ? go(() => game.confirmReturnToTown && game.confirmReturnToTown()) : null, canHome ? "gold" : null));
+      // 迷宮を諦める: 全滅と同じ扱い (確認してから。戦闘中は選べない)
+      grid.appendChild(menuTile("flag", "迷宮を諦める", combat ? "戦闘中は選べない" : "全滅と同じ扱い",
+        combat ? null : go(() => game.confirmAbandonDungeon && game.confirmAbandonDungeon()), combat ? null : "red"));
       b.appendChild(grid);
       if (combat) b.appendChild(section("戦闘の速さ"));
       else b.appendChild(section("探索の手間を省く"));

@@ -28,7 +28,7 @@ export function slotKeysFor(item) {
 
 // 最適装備の候補になる品か (呪い・未鑑定・消耗品/収集品は除く)
 export function isAutoCandidate(item) {
-  return !!item && EQUIP_SLOTS.has(item.slot) && !item.unidentified && !item.cursed;
+  return !!item && EQUIP_SLOTS.has(item.slot) && !item.unidentified && !item.cursed && !item.locked;
 }
 
 // 近接物理の武器 (射程が近距離。杖は呪文の補助なので除く)。後衛では与ダメが半減し、敵の前列にしか届かない
@@ -46,12 +46,16 @@ export function previewStats(doll, equip, recalcFn = recalcDefault) {
     elemAtk: fake.elemAtk || null, elemDef: fake.elemDef || null, breathRes: fake.breathRes || 0,
     ailRes: fake.ailRes || null, onHit: fake.onHit || null, // 状態異常耐性・追加効果 (itemview の gearScore が数える)
     power: attackPower(fake), weapon: equip.weapon || null, shield: equip.shield || null, // 攻撃力 (参照能力 × 武器の係数) と武器・盾
+    eff: fake.eff || null, // 戦闘効果 (連撃・吸血・守り…。itemview の gearScore が effScore で数える)
   };
 }
 
 // 2つの能力の差 (itemview の equipPreviewDelta と同じ形)
 export function statsDelta(from, to) {
   return {
+    // 戦闘効果の付け替え前後と、付け替え後の攻撃力・最大HP/MP (効果の値打ちはこの人業の強さで測る)
+    eff: { from: from.eff || null, to: to.eff || null },
+    abs: { power: to.power || 0, maxhp: to.maxhp || 0, maxmp: to.maxmp || 0 },
     atk: to.atk - from.atk, vit: to.vit - from.vit, agi: to.agi - from.agi,
     int: to.int - from.int, pie: to.pie - from.pie, luk: to.luk - from.luk,
     hp: to.maxhp - from.maxhp, mp: to.maxmp - from.maxmp,
@@ -68,19 +72,22 @@ export function statsDelta(from, to) {
   };
 }
 
+// 外れない品 = 呪いの品・ロックした品 (it.locked。売らない・最適装備や付け替えで押し出さない — プレイヤーが決める)
+export function isPinned(it) { return !!it && (!!it.cursed || !!it.locked); }
+
 // 部位 key に item を収めた仮の装備と、押し出される品。付けられなければ null
-//   (呪いの品は押し出さない / 両手武器⇄盾の規則)
+//   (呪いの品・ロックした品は押し出さない / 両手武器⇄盾の規則)
 export function trialEquip(equip, item, key) {
   const cur = equip[key];
-  if (cur && cur.cursed) return null;
+  if (isPinned(cur)) return null;
   const eq = { ...equip };
   const displaced = [];
   if (item.slot === "weapon" && item.twoHanded && eq.shield) {
-    if (eq.shield.cursed) return null;
+    if (isPinned(eq.shield)) return null;
     displaced.push(eq.shield); eq.shield = null;
   }
   if (item.slot === "shield" && eq.weapon && eq.weapon.twoHanded) {
-    if (eq.weapon.cursed) return null;
+    if (isPinned(eq.weapon)) return null;
     displaced.push(eq.weapon); eq.weapon = null;
   }
   if (cur) displaced.push(cur);

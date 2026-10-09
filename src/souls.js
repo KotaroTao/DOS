@@ -49,7 +49,7 @@ export const SOUL_CLASSES = {
   warden:      { label: "護法師",   rarity: "epic",    color: "#60a080", glow: "#90d0b0", stat: { hp: 5.5, mp: 2.8, atk: 1.2, vit: 1.4, agi: 1.2, int: 2.6, pie: 1.0, luk: 1.0 } },
   arcanist:    { label: "秘術師",   rarity: "epic",    color: "#c080f0", glow: "#e0b0ff", stat: { hp: 4.0, mp: 3.0, atk: 1.0, vit: 0.6, agi: 1.4, int: 3.2, pie: 0.8, luk: 1.2 } },
   inquisitor:  { label: "審問官",   rarity: "epic",    color: "#e08060", glow: "#ffa080", stat: { hp: 6.0, mp: 2.0, atk: 2.0, vit: 1.6, agi: 1.0, int: 0.6, pie: 2.2, luk: 1.2 } },
-  archbishop:  { label: "大司教",   rarity: "epic",    color: "#f0d0a0", glow: "#fff0c0", stat: { hp: 5.5, mp: 3.0, atk: 1.0, vit: 1.0, agi: 1.0, int: 1.6, pie: 3.0, luk: 1.0 } },
+  archbishop:  { label: "巡礼者",   rarity: "epic",    color: "#f0d0a0", glow: "#fff0c0", stat: { hp: 5.5, mp: 3.0, atk: 1.0, vit: 1.0, agi: 1.0, int: 1.6, pie: 3.0, luk: 1.0 } },
   ascetic:     { label: "修験者",   rarity: "epic",    color: "#a09070", glow: "#c8b890", stat: { hp: 7.0, mp: 2.2, atk: 2.2, vit: 1.4, agi: 1.0, int: 1.0, pie: 2.0, luk: 0.8 } },
   // ===== レジェンド (8) =====
   hero:        { label: "勇者",     rarity: "legend",  color: "#f0e060", glow: "#fff080", stat: { hp: 8.0, mp: 2.0, atk: 2.5, vit: 2.0, agi: 1.5, int: 1.5, pie: 1.5, luk: 1.5 } },
@@ -97,7 +97,7 @@ export const JOB_RANKS = {
   warden:      [{ name: "護法見習い" }, { name: "護法師" }, { name: "結界師" }, { name: "大結界師" }, { name: "法城の賢者" }],
   arcanist:    [{ name: "写本師" }, { name: "秘術師" }, { name: "秘文士" }, { name: "秘奥導師" }, { name: "深淵の秘術師" }],
   inquisitor:  [{ name: "修道士" }, { name: "審問官" }, { name: "断罪官" }, { name: "大審問官" }, { name: "神罰の執行者" }],
-  archbishop:  [{ name: "修道院長" }, { name: "大司教" }, { name: "首座大司教" }, { name: "総大司教" }, { name: "聖座の代行者" }],
+  archbishop:  [{ name: "旅の修道士" }, { name: "巡礼者" }, { name: "聖地の巡礼者" }, { name: "大巡礼者" }, { name: "聖泉の聖者" }],
   ascetic:     [{ name: "行人" }, { name: "修験者" }, { name: "山伏" }, { name: "大先達" }, { name: "権現" }],
   hero:        [{ name: "選定の徒" }, { name: "勇者" }, { name: "大勇者" }, { name: "英雄" }, { name: "救世主" }],
   asura:       [{ name: "武芸者" }, { name: "修羅" }, { name: "羅刹" }, { name: "阿修羅" }, { name: "阿修羅王" }],
@@ -571,7 +571,7 @@ export const JOB_LORE = {
   warden:      { desc: "守りの法陣を理論の極みまで磨き上げた護法師の魂。大結界がパーティを包む。", tips: "大結界が全体攻撃を半減する。深層ボスの全体技を毎回削れるのは大きい。" },
   arcanist:    { desc: "禁断の秘術を収集し続けた秘術師の魂。消費を抑えた呪撃が会心の閃きを宿す。", tips: "呪文会心と省詠唱を両立した攻撃特化型。燃費よく、連戦でも火力が落ちない。" },
   inquisitor:  { desc: "断罪の祈りで暴力に神罰をもって応える審問官の魂。前衛に置ける回復役。", tips: "神罰の鉄槌が物理被弾時の反撃になる。かばうと組み合わせれば強固な前衛兼回復役。" },
-  archbishop:  { desc: "瀕死でも味方を引き起こす聖典の加護を宿す大司教の魂。", tips: "聖句の加護で倒れた仲間を不屈付きで蘇生する。回復の専門家として深層での生存率を高める。" },
+  archbishop:  { desc: "聖典を携えて泉から泉へと巡り、瀕死の味方を引き起こす加護を宿す巡礼者の魂。", tips: "聖句の加護で倒れた仲間を不屈付きで蘇生する。回復の専門家として深層での生存率を高める。" },
   ascetic:     { desc: "身を削ることで力を引き出す修験者の魂。捨身の行が窮地を打開する。", tips: "荒行の果てでHP30%以下の時に火力と回復量が上がる。捨身の行で自ら窮地に踏み込む型。" },
   hero:        { desc: "世界の試練に選ばれた者の魂。一人で全てを背負う覚悟が、仲間を生かし続ける。", tips: "パーティ全体の不屈と異常耐性で壁役を超えた守護者。聖剣奮迅で全体攻撃しながら仲間を癒す万能の柱。" },
   asura:       { desc: "戦いを止めることができなかった修羅の魂。攻撃こそが存在証明。", tips: "連撃と闘魂の二重強化で圧倒的な手数と火力を誇る。阿修羅斬で敵陣を蹂躙する。" },
@@ -890,7 +890,11 @@ export function orderedSkills(d) {
 export function isSkillOff(d, key) { return !!(d && Array.isArray(d.skillOff) && d.skillOff.includes(key)); }
 // 戦闘のスキル一覧に出す技 (並べた順・オフの技を除く)
 // 迷宮で唱える技 (kind "field": 浮遊など) は戦闘の一覧に出さない
-export function battleSkills(d) { return orderedSkills(d).filter((k) => !isSkillOff(d, k) && !(SPELLS[k] && SPELLS[k].kind === "field")); }
+// 迷宮の掟で封じられた技を除く入口 (game.js が setSkillGate で渡す。魔封じの迷宮 = 物理技のほかは使えない)
+let SKILL_GATE = () => true;
+export function setSkillGate(fn) { SKILL_GATE = typeof fn === "function" ? fn : () => true; }
+export function skillUsable(k) { return SKILL_GATE(k); }
+export function battleSkills(d) { return orderedSkills(d).filter((k) => !isSkillOff(d, k) && !(SPELLS[k] && SPELLS[k].kind === "field") && SKILL_GATE(k)); }
 export function setSkillOff(d, key, off) {
   if (!d) return;
   const cur = Array.isArray(d.skillOff) ? d.skillOff.filter((k) => k !== key) : [];
@@ -1638,7 +1642,7 @@ const JOB_ARTS = {
     "...01.10....",
     "...00.00....",
   ],
-  // 大司教: 高く聳える宝冠と曲頭杖
+  // 巡礼者: 高く聳える宝冠と曲頭杖
   archbishop: [
     "..90709.44..",
     "...0710.4...",

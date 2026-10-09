@@ -462,7 +462,7 @@ const SIG_DRAW = {
       for (let k = 0; k < 2; k++) { ctx.globalAlpha = 1 - q; ctx.strokeStyle = k ? "#fff6d0" : "#ffd27a"; ctx.lineWidth = 3 - k; ctx.beginPath(); ctx.ellipse(e.x, e.y + 20, 10 + easeOut(q) * (56 - k * 16), 3 + easeOut(q) * (14 - k * 4), 0, 0, TAU); ctx.stroke(); }
     }
   },
-  // ===== 大司教 聖句の加護: 聖句の輪が味方を巡り、頭上に金の光輪 =====
+  // ===== 巡礼者 聖句の加護: 聖句の輪が味方を巡り、頭上に金の光輪 =====
   sig_seiku(ctx, e, t, VW, VH) {
     const a = Math.sin(Math.PI * t), y = VH - 22;
     ctx.globalCompositeOperation = "lighter";

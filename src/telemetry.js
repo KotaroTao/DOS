@@ -362,7 +362,7 @@ export function tlBattleEnd(memo, { result, rounds, tally, party }) {
   if (result === "win") a.w++; else if (result === "flee") a.fl++; else if (result === "lose") a.l++;
   a.r += rounds || 0;
   if (memo.opening === "preempt") a.pre++; else if (memo.opening === "ambush") a.amb++;
-  // 奇襲の出どころ: ambR = 開幕の抽選 / ambX = 出来事・密輸人の待ち伏せ。ambP = 抽選の奇襲率の合計 (×1000。予想回数の元)
+  // 奇襲の出どころ: ambR = 開幕の抽選 / ambX = 出来事・密輸人の待ち伏せ・迷宮の掟 (必ず奇襲)。ambP = 抽選の奇襲率の合計 (×1000。予想回数の元)
   if (memo.opening === "ambush") { if (memo.openSrc === "rand") a.ambR = (a.ambR || 0) + 1; else if (memo.openSrc) a.ambX = (a.ambX || 0) + 1; }
   if (memo.ambRate) a.ambP = (a.ambP || 0) + Math.round(memo.ambRate * 1000);
   const t = tally || {};

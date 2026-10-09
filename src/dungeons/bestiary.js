@@ -407,125 +407,135 @@ const NEW_DEFS = [
   { id: "bs_glaciallord", name: "氷結回廊の主", rank: 10, boss: true, race: "specter", element: "water", artKey: "hd_glaciallord", soulClass: "mage",
     role: "summoner", summonKey: "bs_frozenexplorer", ability: "breath", abRate: 0.35, physResist: 75, endure: true, // 先人を呼び覚まし、凍てつく息を吐き、三百年の執念で一度は倒れずに耐える
     desc: "三百年前、王家に最初に仕えた操霊師、凍王イザーク。魂が奈落の底へ落ちていくのを止めるため、自分ごと回廊を凍らせて堤にした。三百年のうちに正気を失い、いまは氷の玉座から凍てつく先人たちを見張っている。ひざまずく先人を呼び覚まし、凍てつく息で隊をまとめて凍らせ、致命の一撃を受けても一度は玉座から崩れない。" },
-  // -- 第9層「毒沼」 (rank 9-10・毒/腐敗。第8層より格上の壁) --
-  { id: "bs_plaguebeast", name: "疫病の獣", rank: 9, race: "beast", element: "earth", artKey: "plaguebeast",
-    ability: "poison", enrage: true, multistrike: 2, // 病毒を撒き、手負いで荒れ、連打でなぐ
-    desc: "疫病に冒されて狂った、毒のうみを滴らせる獣。噛みつくたびに病毒を流し込み、傷つけばただれた体で見境なく暴れ回る。その通り道には、必ず疫病が広がる。" },
-  { id: "bs_rotooze", name: "腐敗の泥", rank: 9, race: "amorph", element: "earth", artKey: "rotooze",
-    physResist: 75, regen: 0.1, ability: "poison", // 腐汁の泥。刃が沈み、毒を浴びせ、寄り集まる
-    desc: "沼の底に積もった腐敗が、意思を持って這い上がった泥。触れたものを腐汁の毒でただれさせ、刃を突き立てても泥に沈んで効かない。崩しても、腐臭の核さえ残れば蘇る。" },
-  { id: "bs_swamphag", name: "沼の魔女", rank: 10, race: "specter", element: "earth", artKey: "swamphag", soulClass: "hexer",
-    ability: "weaken", role: "summoner", summonKey: "bs_leechswarm", regen: 0.06, // 呪いで力を奪い、ヒルを呼び、泥で繕う
-    desc: "毒沼に棲みついた、藻と腐肉をまとう老いた魔女。呪いの言葉で生者の力を奪い、沼のヒルを次々と這わせる。沼の毒気が、こいつの若さと術を保っている。" },
-  { id: "bs_bogdrowned", name: "沼の溺者", rank: 9, race: "undead", element: "water", artKey: "bogdrowned",
-    ability: "poison", lifesteal: 0.3, pack: true, // 沼に沈んだ溺者の群れ。毒泥で侵し、群れで引き込む
-    desc: "毒沼に足を取られて沈んだ者たちの、膨れ腐った群れ。泥に塗れた手で生者を掴み、毒の沼へ引きずり込もうとする。一体を払っても、泥の中から幾つもの手が伸びる。" },
-  { id: "bs_venomspider", name: "猛毒の大蜘蛛", rank: 9, race: "insect", element: "earth", artKey: "venomspider",
-    ability: "poison", multistrike: 2, swift: true, // 猛毒の牙で素早く幾度も噛みつく
-    desc: "沼地に巣を張る、人を捕らえるほどの大蜘蛛。猛毒の牙で素早く何度も噛みつき、痺れた獲物を糸で吊るす。八本の脚で水面を滑り、退路を糸で塞いでくる。" },
-  { id: "bs_miasmawraith", name: "瘴気の霊", rank: 9, race: "specter", element: "earth", artKey: "miasmawraith",
-    ability: "poison", evasive: true, magWeak: 1.4, // 毒気の霊。蝕み、すり抜け、魔に脆い
-    desc: "沼から立ちのぼる瘴気が、ぼんやりと形をなした毒の霊。まとわりつく毒気で生者を蝕み、刃を向ければ霧となって散ってかわす。実体が薄く、魔の力には抗えない。" },
-  { id: "bs_corpseflower", name: "屍肉花", rank: 9, race: "plant", element: "earth", artKey: "corpseflower",
-    ability: "poison", multistrike: 2, regen: 0.08, // 死臭で誘い、毒つるで何度も打ち、刈っても咲く
-    desc: "死臭を放って獲物を誘い寄せる、毒々しい大輪の食人花。つるを鞭のように振るって何度も打ち据え、毒液で溶かして養分にする。刈り取っても、屍肉のある限り咲き続ける。" },
-  { id: "bs_plaguerat", name: "疫病鼠の大群", rank: 9, race: "beast", element: "earth", artKey: "plaguerat",
-    pack: true, ability: "poison", lifesteal: 0.3, // 病を運ぶ鼠の大群。噛んで毒し、血をすする
-    desc: "疫病を撒き散らす、膨れ上がった鼠の大群。波のように押し寄せて噛みつき、病毒を移しては血をすする。一匹叩いても、足元の闇からまた百匹が湧き出る。" },
-  { id: "bs_toxicgolem", name: "汚泥の巨塊", rank: 10, race: "construct", element: "earth", artKey: "toxicgolem",
-    physResist: 100, barrier: 2, ability: "poison", // 汚泥が固まった巨塊。刃を阻み、毒煙を噴く
-    desc: "沼の汚泥が幾年も積もって固まり、動き出した巨塊。叩いても泥に沈んで手応えがなく、継ぎ目からは絶えず毒の煙が噴き出す。沼そのものが立ち上がったような、底知れぬ重さだ。" },
-  { id: "bs_leechswarm", name: "ヒルの群体", rank: 9, race: "amorph", element: "water", artKey: "leechswarm",
-    lifesteal: 0.4, pack: true, ability: "paralyze", // 無数のヒル。吸い付いて痺れさせ、血を貪る
-    desc: "毒沼に湧いた、無数の黒いヒルが寄り集まった群体。一斉に吸い付いて獲物を痺れさせ、奪った血で赤黒く膨れ上がる。引き剥がそうにも、千切れたヒルがまた吸い付く。" },
-  { id: "bs_gasfiend", name: "毒気の鬼", rank: 9, race: "demon", element: "earth", artKey: "gasfiend",
-    ability: "breath", enrage: true, magWeak: 1.3, // 全体に毒の息を吐き、手負いで荒れる
-    desc: "沼の毒気が凝って生まれた、緑にくすむ鬼。口を開けば全体を包む毒の息を吐き、近づく者を残らず病に沈める。傷を負えば毒気を噴き上げて荒れ狂う。" },
-  { id: "bs_marshlurker", name: "沼に潜む顎", rank: 9, race: "aquatic", element: "water", artKey: "marshlurker",
-    ability: "critical", lifesteal: 0.3, physResist: 50, // 沼に潜み、急所を一噛みで仕留め、喰らって満ちる
-    desc: "泥水に身を沈め、目だけを出して獲物を待つ大顎の魔。近づいた者を一息にくわえ込み、鎧ごと急所を噛み砕く。泥に覆われた体は刃を通さず、喰らうほどに肥える。" },
-  { id: "bs_pestilenceknight", name: "疫病の騎士", rank: 10, race: "armored", element: "earth", artKey: "pestilenceknight",
-    ability: "critical", physResist: 50, enrage: true, // 疫病の鎧。急所を貫き、刃を阻み、手負いで猛る
-    desc: "疫病で全滅した軍の、ただ一騎生き残って腐り果てた騎士。うみの滴る鎧は刃を阻み、錆びた剣は鎧ごと急所を貫く。倒れた仲間の恨みを背負い、傷つくほど鬼気迫る。" },
-  { id: "bs_fungalcorpse", name: "キノコまみれの死人", rank: 9, race: "undead", element: "earth", artKey: "fungalcorpse",
-    ability: "poison", regen: 0.08, pack: true, // キノコに侵された死人。胞子を撒き、群れ、蘇る
-    desc: "沼に倒れ、毒キノコに全身を乗っ取られた死人の群れ。背の傘から毒胞子を撒き、近づく者を侵す。打ち崩しても、残った菌糸からまた起き上がってくる。" },
-  { id: "bs_blightmoth", name: "枯死の大蛾", rank: 9, race: "insect", element: "earth", artKey: "blightmoth",
-    ability: "paralyze", evasive: true, swift: true, // 枯死の鱗粉で痺れさせ、ふらりと舞ってかわす
-    desc: "毒沼の夜に舞う、触れたものを枯らす鱗粉をまとった大蛾。鱗粉を浴びた者は痺れて立ち尽くし、刃を向ければ不規則に舞ってかわす。灯りに群がり、油断した者を狙う。" },
-  { id: "bs_sludgehydra", name: "汚泥の多頭", rank: 10, race: "reptile", element: "water", artKey: "sludgehydra",
-    multistrike: 3, ability: "poison", regen: 0.08, // 幾つもの頭で毒を吐き連打し、斬っても生える
-    desc: "汚泥から幾つもの首をもたげる、毒沼の多頭の魔。それぞれの口から毒を吐き、続けざまに噛みつく。一つ首を落としても、泥の中から新たな首が生えてくる。" },
-  { id: "bs_discardeddoll", name: "捨てられた人業", rank: 9, race: "construct", element: "dark", artKey: "discardeddoll",
-    ability: "drain", enrage: true, lifesteal: 0.3, // 使い潰された器の成れの果て。命を求めて掴みかかる
-    desc: "使い潰され、毒沼へ捨てられた人業の成れの果て。砕けた体で起き上がり、失った魂を求めて生者の温もりに掴みかかる。その縫い目の顔は、かつての自分に似ているかもしれない。" },
-  { id: "bs_swamplord", name: "よどみの主", rank: 10, boss: true, race: "amorph", element: "earth", artKey: "swamplord", soulClass: "hexer",
-    role: "summoner", summonKey: "bs_rotooze", ability: "breath", physResist: 75, regen: 0.08, // 腐泥を呼び、毒気を吐き、沼で繕う
-    desc: "毒沼のすべてのよどみが寄り集まって意思を得た、沼そのものの主。腐敗の泥を眷属として吐き出し、全体を包む毒気の息で生者を沈める。ここに捨てられた数えきれぬ魂が、その身に溶け込んでいる。" },
-  // -- 第10層「嵐の尖塔」 (rank 9-10・風/雷。第9層より格上の壁) --
-  { id: "bs_stormelemental", name: "嵐の精", rank: 9, race: "elemental", element: "wind", artKey: "stormelemental",
-    ability: "paralyze", evasive: true, multistrike: 2, // 渦巻く雷雲。痺れさせ、すり抜け、連撃する
-    desc: "尖塔に渦巻く雷雲が意思を得た精。帯電した渦で獲物を痺れさせ、刃を向ければ風となって散ってかわす。一度に幾度も雷を落とす、掴みどころのない嵐だ。" },
-  { id: "bs_thunderroc", name: "雷鳴の大鵬", rank: 9, race: "avian", element: "wind", artKey: "thunderroc",
-    ability: "breath", swift: true, // 雷を呼ぶ羽ばたきで全体を撃ち、空を疾る
-    desc: "尖塔の頂に巣くう、雷雲を背負った巨鳥。一打ちの羽ばたきが雷鳴を呼び、全体を稲妻で撃つ。風を切って疾る姿に、矢も追いつかない。" },
-  { id: "bs_windwraith", name: "疾風の霊", rank: 9, race: "specter", element: "wind", artKey: "windwraith",
-    ability: "paralyze", evasive: true, swift: true, magWeak: 1.3, // 疾風の霊。先んじて痺れさせ、すり抜ける
-    desc: "尖塔を吹き抜ける風に溶けた霊。誰より速く間合いを詰めて獲物を痺れさせ、刃を向ければ風そのものとなってすり抜ける。実体が薄く、魔の力には抗えない。" },
-  { id: "bs_galeknight", name: "烈風の騎士", rank: 10, race: "armored", element: "wind", artKey: "galeknight",
-    ability: "critical", swift: true, physResist: 50, // 烈風をまとう騎士。先制で急所を貫き、刃を阻む
-    desc: "風をまとって宙を駆ける、尖塔を守る騎士。烈風に乗って先んじて間合いを詰め、風の剣で鎧ごと急所を貫く。風が鎧の継ぎ目を覆い、並の刃を逸らす。" },
-  { id: "bs_cloudgiant", name: "雲の巨人", rank: 9, race: "giant", element: "wind", artKey: "cloudgiant",
-    physResist: 75, enrage: true, multistrike: 2, // 雲を踏む巨人。雷拳で連打し、手負いで嵐となる
-    desc: "尖塔の高みで雲を踏む、雷をはらんだ巨人。雷をまとった拳で続けざまに叩きつけ、傷を負えば嵐そのものとなって荒れ狂う。その足音は、遠雷のように響く。" },
-  { id: "bs_tempestserpent", name: "嵐の蛇竜", rank: 10, race: "dragon", element: "wind", artKey: "tempestserpent",
-    ability: "breath", swift: true, multistrike: 2, // 嵐のブレスを吐き、素早く幾度も噛む
-    desc: "雷雲をのたうつ、稲妻の鱗をもつ蛇竜。嵐のブレスで全体をなぎ、雷の牙で素早く何度も噛みつく。雲間を縫う動きは、稲妻そのものだ。" },
-  { id: "bs_harpyqueen", name: "嵐の鳥女王", rank: 10, race: "avian", element: "wind", artKey: "harpyqueen",
-    ability: "paralyze", role: "summoner", summonKey: "bs_ravenswarm", swift: true, // 鳴き声で痺れさせ、眷属の鴉を呼ぶ
-    desc: "尖塔を支配する、人面の鳥の女王。耳をつんざく鳴き声で獲物を痺れさせ、配下の鴉の群れを次々と呼び寄せる。その爪は、獲物を空へさらって落とすためにある。" },
-  { id: "bs_lightninggolem", name: "雷光のゴーレム", rank: 9, race: "construct", element: "wind", artKey: "lightninggolem",
-    physResist: 75, barrier: 2, ability: "paralyze", // 帯電した体。刃を阻み、触れた者を痺れさせる
-    desc: "尖塔の避雷の仕組みが意思を得た、雷を溜め込んだ巨像。全身に電流を走らせ、触れた者を痺れさせる。帯電した装甲は刃を弾き、近づくだけで産毛が逆立つ。" },
-  { id: "bs_zephyrfiend", name: "旋風の鬼", rank: 9, race: "demon", element: "wind", artKey: "zephyrfiend",
-    multistrike: 2, swift: true, ability: "critical", // 旋風をまとう鬼。素早く回り込み、急所を連突する
-    desc: "旋風をまとって宙を舞う、風の鬼。獲物の周りを目にも留まらぬ速さで回り込み、風の刃で急所を続けざまに突く。捉えようとすれば、もう背後に回っている。" },
-  { id: "bs_stormhag", name: "嵐呼びの魔女", rank: 10, race: "specter", element: "wind", artKey: "stormhag", soulClass: "hexer",
-    ability: "weaken", role: "summoner", summonKey: "bs_galewisp", magWeak: 1.3, // 呪いで力を奪い、稲妻の群火を呼ぶ
-    desc: "尖塔の上で嵐を操る、雷雲をまとった老魔女。呪いの言葉で生者の力を奪い、稲妻の群火を次々と呼び寄せる。嵐がこの国の空を重くしている、その元凶の一人だ。" },
-  { id: "bs_thunderbeast", name: "雷牙の獣", rank: 9, race: "beast", element: "wind", artKey: "thunderbeast",
-    swift: true, ability: "critical", enrage: true, // 雷光のごとく駆け、急所をひと噛み、手負いで荒れる
-    desc: "稲妻のように疾る、帯電した牙をもつ獣。雷光の速さで間合いを詰め、急所をひと噛みで仕留める。傷を負えば全身から火花を散らして猛り、見境なく突進してくる。" },
-  { id: "bs_galewisp", name: "稲妻の群火", rank: 9, race: "specter", element: "wind", artKey: "galewisp",
-    pack: true, ability: "paralyze", evasive: true, magWeak: 1.4, // 稲妻の群体。痺れさせ、すり抜ける。魔に脆い
-    desc: "尖塔に渦巻く、青白い稲妻の鬼火の群れ。獲物にまとわりついて痺れさせ、刃を向ければ火花となって散ってかわす。実体は薄く、魔の力にはひとたまりもない。" },
-  { id: "bs_ravenswarm", name: "黒雲の鴉群", rank: 9, race: "avian", element: "wind", artKey: "ravenswarm",
-    pack: true, multistrike: 2, swift: true, // 黒雲のごとき鴉の大群。素早く群れてついばむ
-    desc: "嵐の空を黒雲のように覆う、無数の鴉の群れ。一斉に舞い降りて素早くついばみ、目をめがけて殺到する。一羽を払っても、空が黒く染まるほどの群れが続く。" },
-  { id: "bs_skydrake", name: "蒼天の竜", rank: 10, race: "dragon", element: "wind", artKey: "skydrake",
-    ability: "breath", physResist: 50, swift: true, // 蒼天を翔ける竜。風のブレスを吐き、鱗が刃を阻む
-    desc: "尖塔のさらに上、蒼天を悠然と翔ける気高い竜。風を圧縮したブレスで全体を切り裂き、硬い鱗は刃を弾く。地を這う者を、空から見下している。" },
-  { id: "bs_boltarcher", name: "雷弓の亡霊", rank: 9, race: "specter", element: "wind", artKey: "boltarcher",
-    ability: "critical", swift: true, evasive: true, // 稲妻の矢で後衛の急所すら射抜く
-    desc: "尖塔を守って射ち続けた弓兵の霊。稲妻を矢につがえ、隊列の奥に隠れた者の急所すら正確に射抜く。風に乗って位置を変え、捉えどころがない。" },
-  { id: "bs_cyclonecore", name: "嵐核", rank: 9, race: "elemental", element: "wind", artKey: "cyclonecore",
-    multistrike: 2, evasive: true, ability: "paralyze", // 渦の核。巻き込んで連打し、痺れさせ、掴めない
-    desc: "巨大な竜巻の中心に光る、嵐の核。周囲のすべてを渦に巻き込んで何度も打ちつけ、帯電した風で痺れさせる。核に触れぬ限り、渦は決して止まらない。" },
-  { id: "bs_soulanchor", name: "魂縛りの像", rank: 9, race: "construct", element: "dark", artKey: "soulanchor",
-    ability: "drain", barrier: 2, physResist: 50, // 昇る魂を地に縛る像。命を引きずり下ろす
-    desc: "天へ昇ろうとする魂を地に縛りつける、尖塔の核となる像。鎖のような腕で魂を引きずり下ろし、その命を吸って動き続ける。この国の空が重いのは、こいつらのせいだ。" },
-  { id: "bs_galehound", name: "疾風の猟犬", rank: 9, race: "beast", element: "wind", artKey: "galehound",
-    swift: true, pack: true, ability: "critical", // 風のごとく群れで駆け、急所をひと噛み
-    desc: "風をまとって尖塔の回廊を駆ける、痩せた猟犬の群れ。風の速さで取り囲み、急所めがけて一斉に噛みつく。足音は風に紛れ、姿を見た時にはもう囲まれている。" },
-  { id: "bs_windscythe", name: "風のかまいたち", rank: 9, race: "insect", element: "wind", artKey: "windscythe",
-    swift: true, multistrike: 2, evasive: true, // 真空の刃で素早く幾度も斬り裂く
-    desc: "風に乗って現れる、鎌のような前肢をもつイタチめいた魔。真空の刃で目にも留まらぬ速さで斬りつけ、傷口は遅れて開く。風そのものを斬っているようで、刃が届かない。" },
-  { id: "bs_stormcaller", name: "雷を呼ぶ司祭", rank: 10, race: "specter", element: "wind", artKey: "stormcaller", soulClass: "mage",
-    role: "summoner", summonKey: "bs_stormelemental", ability: "paralyze", magWeak: 1.3, // 嵐の精を呼び、雷で痺れさせる
-    desc: "尖塔の頂で嵐を呼ぶ儀式を続けた司祭の霊。雷雲の精を次々と呼び覚まし、稲妻で獲物を痺れさせる。この尖塔が嵐をはらみ続けるのは、こいつの祈祷が止まないからだ。" },
-  { id: "bs_stormlord", name: "嵐の尖塔の主", rank: 10, boss: true, race: "elemental", element: "wind", artKey: "stormlord", soulClass: "mage",
-    role: "summoner", summonKey: "bs_stormelemental", ability: "breath", evasive: true, enrage: true, // 嵐の精を呼び、雷のブレスを吐き、すり抜ける
-    desc: "嵐の尖塔そのものを支配する、雷雲が凝った嵐の主。配下の精を次々と呼び、全体を撃つ雷のブレスを落とす。昇ろうとする魂を絡め取って地に引き戻す、この国の業の歯車の一つだ。" },
+  // -- 第9層「毒沼」 (rank 10・毒/腐敗。奈落の底に広がる毒の沼。第8層より格上の壁) --
+  // 雑魚・主・強敵ともに rank10 (上限)。毒の正体は、底まで落ちて腐った魂。
+  // 沼の生き物 (鼠・ヒル・大顎・蛾・蜘蛛・食人花・蛙)、腐った魂そのもの (腐敗の泥・瘴気の霊・疫病の亡霊・毒気の鬼)、
+  // 沼のほとりに捨てられた作りかけの器 (捨てられた人業) と、それを起こす術師たち。
+  // 第5層からの流儀で特色を極端に押し出す (神速・特技の多用・ブレス・全体呪文・溜め・守り崩し・打ち消し・魔法抵抗100)。
+  // 毒の特技は4体 (多用は疫病の獣・猛毒の大蜘蛛の2体) に抑え、麻痺・眠り・混乱・魅了・弱体・魂奪・吸命などへ散らした。
+  // 絵は hd_* の固有原型 (tools/hdart/layer9/)。どの個体も ability を明示する (種族の既定の特技は付けない)
+  { id: "bs_plaguebeast", name: "疫病の獣", rank: 10, race: "beast", element: "earth", artKey: "hd_plaguebeast",
+    ability: "poison", abRate: 0.45, enrage: true, // 噛みつくたびに病毒を流し込み、手負いで荒れ狂う
+    desc: "腐った魂の毒を飲んで狂った、猪に似た大きな獣。毛は抜け落ちてただれた肌が覗き、背の剛毛はいつも逆立っている。黄ばんだ牙で噛みつくたびに病毒を流し込み、傷を負えば泥をはね上げて見境なく暴れ回る。" },
+  { id: "bs_rotooze", name: "腐敗の泥", rank: 10, race: "amorph", element: "earth", artKey: "hd_rotooze",
+    physResist: 75, magWeak: 1.5, ability: null, // 刃は泥に沈んで止まり、呪文の熱にはもろい
+    desc: "奈落の底まで落ちた魂が、腐りきって泥になり、盛り上がって這い出したもの。ぬめった黒緑の体の奥で、溶けきらない魂の光がいくつも濁っている。突き立てた刃は柄まで沈んで止まるが、呪文の熱を浴びると泡を吹いて崩れる。" },
+  { id: "bs_swamphag", name: "沼の魔女", rank: 10, race: "specter", element: "earth", artKey: "hd_swamphag", soulClass: "hexer",
+    role: "healer", ability: "sleep", abRate: 0.45, // 眠りの子守歌を歌い続け、泥の灯の雫で仲間の傷を繕う
+    desc: "よどんだ水面の上に浮かぶ、藻をまとった痩せた老婆の霊。水草のような長い髪を垂らし、低い声で子守歌を歌う。その歌を聞いた者は、毒の沼のほとりだというのにまぶたが落ちる。手に提げた泥の灯からこぼれる雫で、沼の仲間たちの傷を繕ってまわる。" },
+  { id: "bs_bogdrowned", name: "沼の溺者", rank: 10, race: "undead", element: "water", artKey: "hd_bogdrowned",
+    ability: "weaken", abRate: 0.45, pack: true, // 冷たい手でつかんで力を奪い続け、水面から次々と浮かび上がる
+    desc: "奈落を落ちてきて、毒の沼に沈んだ者たちの、水を吸って膨れた体。頭から藻を垂らし、白く濁った眼で生者を見つけると、腰まで沼に浸かったまま腕を伸ばしてくる。つかまれた手足からは力が抜けていく。一体を払っても、水面からまた別の頭が浮かぶ。" },
+  { id: "bs_venomspider", name: "猛毒の大蜘蛛", rank: 10, race: "insect", element: "earth", artKey: "hd_venomspider",
+    ability: "poison", abRate: 0.5, multistrike: 2, // 毒の滴る牙で続けざまに噛み、何度も毒を流し込む
+    desc: "枯れた葦のあいだに巣を張る、人を捕らえるほどの大蜘蛛。腹には毒を蓄えた黄緑の縞が走る。前脚を高く振り上げて飛びかかり、毒の滴る大きな牙で続けざまに噛みつく。巣には、糸で巻かれた獲物がいくつも吊るされている。" },
+  { id: "bs_miasmawraith", name: "瘴気の霊", rank: 10, race: "specter", element: "earth", artKey: "hd_miasmawraith",
+    ability: "spell", abRate: 0.5, evasive: true, // 毒の呪いを隊全体へ降らせ続け、霧の体は刃をすり抜ける
+    desc: "沼から立ちのぼる瘴気が、腐った魂を核にして人の上半身の形をとったもの。両腕を広げて頭上に崩れかけた呪の輪を回し、毒の呪いを雨のように降らせる。ゆらぐ霧の体を、刃はたいていすり抜けてしまう。" },
+  { id: "bs_corpseflower", name: "屍肉花", rank: 10, race: "plant", element: "earth", artKey: "hd_corpseflower",
+    ability: "charm", abRate: 0.45, regen: 0.08, // 甘い光と花粉で心を奪い続け、刈られたつるはすぐ伸び直す
+    desc: "骨の山に根を下ろした、赤黒い肉厚の花びらの巨大な食人花。花の中心は牙の並ぶ穴で、その上に甘い光を放つ雌しべが揺れる。死臭とともに漂う桃色の花粉を吸った者は、うっとりと花へ歩み寄り、仲間を押しのけてでも近づこうとする。太いつるは、刈っても刈っても伸び直す。" },
+  { id: "bs_plaguerat", name: "疫病鼠の大群", rank: 10, race: "beast", element: "earth", artKey: "hd_plaguerat",
+    ability: "poison", pack: true, lifesteal: 0.3, // 波のように押し寄せて病毒を移し、血をすする
+    desc: "腐った魂の毒をかじって育った、腫れ物だらけの膨れた大鼠の群れ。泥の上を波のように押し寄せて噛みつき、病毒を移しては血をすする。一匹叩いても、朽ち木の陰からまた赤い眼が光る。" },
+  { id: "bs_toxicgolem", name: "汚泥の巨塊", rank: 10, race: "construct", element: "earth", artKey: "hd_toxicgolem",
+    ability: "charge", abRate: 0.4, physResist: 75, // 沼底の泥の大塊を担ぎ上げて力を溜め、次の手番で叩きつける
+    desc: "沼の汚泥が幾年も積もって固まり、動き出したずんぐりした巨人。泥の体には折れた槍や骨、捨てられた器の腕が塗り込められている。沼底の泥の大塊を頭上に担ぎ上げ、全身に力を溜めてから叩きつける。担ぎ上げた隙に眠らせるか封じるかしなければ、隊ごと押しつぶされる。厚い泥は刃をほとんど通さない。" },
+  { id: "bs_leechswarm", name: "ヒルの群体", rank: 10, race: "amorph", element: "water", artKey: "hd_leechswarm",
+    ability: "paralyze", abRate: 0.45, lifesteal: 0.5, // 吸いついては痺れの粘液を流し続け、奪った血で膨れる
+    desc: "毒の沼に湧いた無数の黒いヒルが、絡まり合って盛り上がった塊。いくつもの頭が歯の輪の並ぶ丸い口を開け、吸いついては痺れの粘液を流し込む。動けなくなった獲物から血を吸い、赤黒く膨れ上がっていく。" },
+  { id: "bs_gasfiend", name: "毒気の鬼", rank: 10, race: "demon", element: "earth", artKey: "hd_gasfiend",
+    ability: "breath", abRate: 0.5, magWeak: 1.3, // 毒の息を吹きつけ続けて隊をまとめて包み、毒気の体は呪文の熱にもろい
+    desc: "腐った魂から立つ毒気が凝って生まれた、腹の膨れた緑くすみの鬼。両頬を膨らませて大口を開け、黄緑の毒の息を何度も吹きつけて隊をまとめて包む。肩や背中の穴からも絶えず毒気が漏れている。毒気でできた体は、呪文の熱にもろい。" },
+  { id: "bs_marshlurker", name: "沼に潜む顎", rank: 10, race: "aquatic", element: "water", artKey: "hd_marshlurker",
+    ability: "critical", abRate: 0.5, swift: true, // 泥水から飛び出して、鎧ごと急所を何度も噛み砕く
+    desc: "泥水に体を沈め、眼だけを水面に出して獲物を待つ、鰐に似た大顎の魔。近づいた者がいれば泥をはね上げて飛び出し、何列も並んだ牙で鎧ごと急所を噛み砕く。沼の水面に波紋が立ったら、もう遅い。" },
+  { id: "bs_pestilenceknight", name: "疫病の騎士", rank: 10, race: "armored", element: "earth", artKey: "hd_pestilenceknight",
+    ability: "sunder", abRate: 0.45, physResist: 50, // 刃こぼれした大剣で鎧ごと守りを叩き割り続け、腐った鎧が刃を半ば阻む
+    desc: "疫病で全滅した軍の、ただ一騎。死んでなお奈落の底まで落ち、毒の沼で腐り果てても剣を手放さなかった。くちばしのように突き出た兜の奥で黄緑の光が揺れ、刃こぼれした大剣を振りかぶっては、鎧ごと守りを叩き割る。錆と膿にまみれた鎧は、刃を半ば阻む。" },
+  { id: "bs_fungalcorpse", name: "キノコまみれの死人", rank: 10, race: "undead", element: "earth", artKey: "hd_fungalcorpse",
+    ability: "confuse", abRate: 0.45, pack: true, // 傘から惑わしの胞子を撒き続け、霧の中から群れで現れる
+    desc: "沼に倒れ、全身を毒キノコに乗っ取られた死人。頭も肩も紫がかった傘で埋まり、よろめくたびに惑わしの胞子が雲のように舞う。吸い込んだ者は敵と味方の見分けがつかなくなる。霧の奥には、いつも同じ姿がもう何体かいる。" },
+  { id: "bs_blightmoth", name: "枯死の大蛾", rank: 10, race: "insect", element: "earth", artKey: "hd_blightmoth",
+    haste: true, ability: "paralyze", // 目にも止まらぬ速さで二度舞い寄り、枯死の鱗粉で痺れさせる
+    desc: "人より大きな、ぼろぼろの翅の大蛾。くすんだ翅には黄緑に濁った目玉模様が浮かぶ。羽ばたくたびに枯死の鱗粉が降りそそぎ、浴びた葦は枯れて折れ、人は痺れて立ち尽くす。翅の残像を引きながら、目にも止まらぬ速さで二度舞い寄ってくる。" },
+  { id: "bs_sludgehydra", name: "汚泥の多頭", rank: 10, race: "reptile", element: "water", artKey: "hd_sludgehydra",
+    multistrike: 3, regen: 0.06, ability: null, // 泥から伸びる幾つもの首で一度に三度噛みつき、落とした首もまた生える
+    desc: "沼の泥の塚から、泥に塗れた蛇の首を幾本ももたげる多頭の魔。それぞれの首が別々に噛みつき、一度に三度の牙が襲う。首を一本落としても、切り口から泥が盛り上がって、新しい頭が生えてくる。" },
+  { id: "bs_discardeddoll", name: "捨てられた人業", rank: 10, race: "construct", element: "dark", artKey: "hd_discardeddoll",
+    ability: "soulSteal", abRate: 0.45, endure: true, // 空っぽの胸へ生者の魂の光を吸い寄せ続け、壊れた体で一度は踏みとどまる
+    desc: "沼のほとりの谷に山と積まれた、作りかけや壊れた器の一体。どれも同じ、のっぺりした丸い木の頭と黒い鉄の関節で、胸には「灯を掌に載せた手」の印が彫られている。魂を宿されることのなかった空っぽの胸へ、生者の宿した魂の光を吸い寄せようとして、腕の欠けた体で起き上がる。致命の一撃を受けても、一度は崩れずに踏みとどまる。" },
+  { id: "bs_swamplord", name: "よどみの主", rank: 10, boss: true, race: "amorph", element: "earth", artKey: "hd_swamplord", soulClass: "hexer",
+    role: "summoner", summonKey: "bs_rotooze", ability: "breath", abRate: 0.35, regen: 0.06, // 腐敗の泥を産み落とし、毒の息を吐き、崩れた所を沼の泥で塞ぐ
+    desc: "沼のいちばん深いところで、底まで落ちて腐った魂のよどみが寄り集まり、山のように盛り上がったもの。黒緑の泥の巨体には、溶けきらない顔と腕がいくつも浮かぶ。朽ち木の冠をいただく頭から毒の息を吐き、泥の腕の先から腐敗の泥を産み落とし、崩れた所はすぐに沼の泥が塞ぐ。背後の霧の奥には、沈みかけた古い島の石積みがある。主はその島の前から、決して動かない。" },
+  // -- 第10層「嵐の尖塔」 (rank 10・風/雷。沼の島の工房の奥から、奈落の縦穴をまっすぐ上へ伸びる塔。第9層より格上の壁) --
+  // 雑魚・主・強敵ともに rank10 (上限)。塔を吹き上がる風と雷、塔を昇る魂、塔に棲みついた空の生き物、塔の古い仕掛けと守り手たち。
+  // 第5層からの流儀で特色を極端に押し出す (神速・特技の多用・ブレス・全体呪文・溜め・守り崩し・打ち消し・魔法抵抗100・3連撃)。
+  // 雷の層だが麻痺は2体 (多用は嵐の蛇竜) に抑え、混乱・魅了・眠り・弱体・魂奪い・吸命・金貨奪い・鼓舞・打ち消しなどへ散らした。
+  // 絵は hd_* の固有原型 (tools/hdart/layer10/)。どの個体も ability を明示する (種族の既定の特技は付けない)
+  { id: "bs_stormelemental", name: "嵐の精", rank: 10, race: "elemental", element: "wind", artKey: "hd_stormelemental",
+    ability: "spell", abRate: 0.5, evasive: true, // 頭上に回す稲妻の輪から雷を隊全体へ降らせ続け、雲の体は刃をすり抜ける
+    desc: "塔に渦巻く雷雲がひとかたまりになり、人の上半身の形をとったもの。紫灰の雲の体は下へ行くほど渦にほどけ、胸の奥で稲光が明滅する。両腕を掲げて頭上に稲妻の輪を回し、雷を雨のように隊へ降らせる。ゆらぐ雲の体を、刃はたいていすり抜けてしまう。" },
+  { id: "bs_thunderroc", name: "雷鳴の大鵬", rank: 10, race: "avian", element: "wind", artKey: "hd_thunderroc",
+    ability: "breath", abRate: 0.5, swift: true, // 鉤くちばしから雷の息を何度も吐いて隊をまとめて撃ち、風を切って先に動く
+    desc: "塔の外壁の張り出しに巣をかける、両の翼を広げれば踊り場をふさぐほどの巨鳥。黒紫の羽の先は雷雲のようにほつれ、翼の骨に沿って稲光が走る。大きく開いた鉤くちばしから雷の息を何度も吐き、隊をまとめて撃つ。風を切るのが速く、たいていこちらより先に動く。" },
+  { id: "bs_windwraith", name: "疾風の霊", rank: 10, race: "specter", element: "wind", artKey: "hd_windwraith",
+    ability: "confuse", abRate: 0.45, magWeak: 1.4, // 裂けるほど口を開けて叫び続け、聞いた者を惑わす。薄い体は呪文にもろい
+    desc: "塔を吹き上がる風に巻かれて、昇りきれずにいる魂。青白くすけた細い体は風に引き延ばされ、裾と髪は長い帯になってたなびく。両腕を後ろへはね上げ、裂けるほど口を開けて叫ぶ。その叫びを聞いた者は、敵と味方の見分けがつかなくなる。実体が薄く、呪文の熱を浴びるとたやすくちぎれる。" },
+  { id: "bs_galeknight", name: "烈風の騎士", rank: 10, race: "armored", element: "wind", artKey: "hd_galeknight",
+    ability: "sunder", abRate: 0.45, physResist: 50, // 振りかぶった戦槌で鎧ごと守りを叩き割り続け、継ぎ目を覆う風の渦が刃を半ば逸らす
+    desc: "塔の螺旋階段の途中で倒れた騎士の鎧に、吹き上げる風が入りこんで動かしているもの。へこんだ鎧の継ぎ目から風が鳴り、兜の覗き穴の奥に青白い光だけが灯る。両手で振りかぶった重い戦槌を何度も打ち下ろし、鎧ごと守りを叩き割る。継ぎ目を覆う風の渦が、刃を半ば逸らしてしまう。" },
+  { id: "bs_cloudgiant", name: "雲の巨人", rank: 10, race: "giant", element: "wind", artKey: "hd_cloudgiant",
+    ability: "charge", abRate: 0.4, enrage: true, // 組んだ拳を振り上げて雷を集め、次の手番で叩きつける。手負いで荒れ狂う
+    desc: "塔の吹き抜けを埋めるほどの、雲をまとった石肌の巨人。肩から上はいつも雷雲にかすみ、その奥で眼だけが二つ光る。組んだ両の拳を頭上へ振り上げ、雷を集めてから叩きつける。拳のまわりで稲妻がうなり出したら、眠らせるか封じるかしなければ隊ごと叩きつぶされる。傷を負うと、まとう雲が荒れて手がつけられなくなる。" },
+  { id: "bs_tempestserpent", name: "嵐の蛇竜", rank: 10, race: "dragon", element: "wind", artKey: "hd_tempestserpent",
+    ability: "paralyze", abRate: 0.45, multistrike: 2, // 雷の牙で続けざまに二度噛み、噛まれた者を痺れさせ続ける
+    desc: "塔の折れた柱に幾重にも巻きつく、雷を帯びた長い蛇竜。黒い鱗の継ぎ目と背びれに沿って稲光が走る。鎌首をもたげて大きく口を開け、雷の牙で続けざまに二度噛みつく。牙から流れこむ雷に、噛まれた者は痺れて動けなくなる。" },
+  { id: "bs_harpyqueen", name: "嵐の鳥女王", rank: 10, race: "avian", element: "wind", artKey: "hd_harpyqueen",
+    ability: "charm", abRate: 0.45, role: "summoner", summonKey: "bs_ravenswarm", // 高い歌声で心を奪い続け、歌で鴉の群れを呼び集める
+    desc: "塔の手すりの鎖に鉤爪をかけてとまる、人の上半身と黒い翼をもつ鳥の女王。羽を逆立てた冠をいただき、蒼白い顔に青く光る眼。胸をそらして高く歌い、その歌声を聞いた者はうっとりと女王のもとへ歩み寄って、仲間に刃を向けることさえある。歌は嵐の空から鴉の群れを呼び集める。" },
+  { id: "bs_lightninggolem", name: "雷光のゴーレム", rank: 10, race: "construct", element: "wind", artKey: "hd_lightninggolem",
+    magResist: 100, barrier: 3, ability: null, // 呪文は頭の針に吸われて消え、胸の雷の窯が光るたびに稲光の膜で打撃を半分に受け流す
+    desc: "塔の古い雷よけの仕掛けが、落ち続ける雷を吸って動き出したもの。黒い鉄の胴には緑青の浮いた銅線が幾重にも巻かれ、頭のかわりに錆びた雷よけの針が突き立つ。撃ちこまれた呪文は針に吸われ、銅線を伝って足元へ流れて消える。胸の雷の窯が光るたび、身のまわりに稲光の膜を張って打撃を半分に受け流す。刃で膜を割りきるしかない。" },
+  { id: "bs_zephyrfiend", name: "旋風の鬼", rank: 10, race: "demon", element: "wind", artKey: "hd_zephyrfiend",
+    haste: true, ability: "critical", // 目にも止まらぬ速さで二度動き、鎌のような爪で鎧の継ぎ目の急所を断つ
+    desc: "つむじ風に乗って宙を舞う、やせた黒い鬼。後ろへ反った二本の角、裂けた口、両腕の先には鎌のように長い爪。足は渦巻く旋風の中に溶けている。目にも止まらぬ速さで一度に二度動き、残像を引いて回りこんでは、爪で鎧の継ぎ目の急所を断つ。" },
+  { id: "bs_stormhag", name: "嵐呼びの魔女", rank: 10, race: "specter", element: "wind", artKey: "hd_stormhag", soulClass: "hexer",
+    role: "healer", ability: "weaken", abRate: 0.45, // 骨の風鈴を鳴らして呪い続け、椀の雨水で塔の魔物たちの傷を洗い繕う
+    desc: "ぼろぼろの頭巾をかぶった、腰の曲がった老婆の霊。骨の風鈴を吊るした杖をつき、もう片手には雨水を受ける欠けた椀を掲げる。風鈴を鳴らしてしわがれ声で呪うと、聞いた者の手足から力が抜けていく。椀にためた雨水を振りまいて、塔の魔物たちの傷を洗い繕ってまわる。裾は雨の霧にほどけている。" },
+  { id: "bs_thunderbeast", name: "雷牙の獣", rank: 10, race: "beast", element: "wind", artKey: "hd_thunderbeast",
+    ability: "critical", abRate: 0.5, enrage: true, // 飛びかかって急所を何度も食い破り、手負いでたてがみの雷がふくれ上がる
+    desc: "塔の踊り場に身を低くして構える、黒い豹に似た大きな獣。逆立ったたてがみは稲妻そのもので、ばちばちと青白く鳴る。牙のあいだにも雷が走り、飛びかかっては鎧の継ぎ目の急所をひと噛みで食い破る。傷を負うとたてがみの雷がふくれ上がり、見境なく暴れ回る。" },
+  { id: "bs_galewisp", name: "稲妻の群火", rank: 10, race: "specter", element: "wind", artKey: "hd_galewisp",
+    pack: true, ability: "paralyze", magWeak: 1.5, // 群れで漂って玉どうしに稲妻を張り、触れた者を痺れさせる。光だけの体は呪文で散る
+    desc: "塔の吹き抜けを群れで漂う、青白い稲妻の玉。どの玉の奥にも、小さく丸まった人の顔のような影が透けて見える。尾を引いて飛び回り、玉どうしのあいだに稲妻を張って、触れた者を痺れさせる。光るだけの薄い体は、呪文を浴びるとたやすく散る。" },
+  { id: "bs_ravenswarm", name: "黒雲の鴉群", rank: 10, race: "avian", element: "wind", artKey: "hd_ravenswarm",
+    pack: true, ability: "goldSteal", abRate: 0.45, // 一斉に舞い降りては懐の光り物をくわえ去り、払っても雲の奥から次々と湧く
+    desc: "嵐の空を黒雲のように覆って渦を巻く、無数の鴉の群れ。光る物に目がなく、一斉に舞い降りては懐の金貨をくわえて飛び去っていく。塔のどこかには、鴉たちが集めた金貨や指輪の山があるという。一羽を払っても、雲の奥から次々と黒い影が湧く。" },
+  { id: "bs_skydrake", name: "蒼天の竜", rank: 10, race: "dragon", element: "wind", artKey: "hd_skydrake",
+    ability: "breath", physResist: 75, // 圧し固めた風の息で隊をまとめて切り裂き、空の色の厚い鱗は刃をほとんど通さない
+    desc: "雷雲の上にあるという、晴れた空の色をした鱗の竜。大きな翼を広げて塔の吹き抜けを舞い、細い首を伸ばして圧し固めた風の息を吐き、隊をまとめて切り裂く。空の色の鱗は板のように厚く、刃をほとんど通さない。この竜の青を見て、はじめて空の色を知ったという者もいる。" },
+  { id: "bs_boltarcher", name: "雷弓の亡霊", rank: 10, race: "specter", element: "wind", artKey: "hd_boltarcher",
+    ability: "dispel", evasive: true, // 稲妻の矢で隊の加護をまとめて射抜いて消し、風に乗って刃をかわす
+    desc: "塔の物見窓を守り続けた弓兵の霊。ぼろぼろの頭巾と外套をまとい、腰から下は雨の霧にほどけている。古い長弓を引きしぼって稲妻をつがえた矢を放ち、隊が重ねた守りの加護をまとめて射抜いて消し去る。風に乗って位置を変え、刃を向けてもなかなか捉えられない。" },
+  { id: "bs_cyclonecore", name: "嵐核", rank: 10, race: "elemental", element: "wind", artKey: "hd_cyclonecore",
+    ability: "warcry", abRate: 0.45, regen: 0.06, // 脈打つうなりで塔の魔物たちの力をあおり続け、巻き上げた風雨で崩れた所を塞ぐ
+    desc: "塔の吹き抜けに立つ竜巻の芯で光る、雷のかたまり。まわりの渦には石くれや錆びた鎖、割れた瓦が巻き上げられて回っている。核が脈打つたびに低いうなりが響き、塔の魔物たちの力をあおり立てる。崩した所も、巻き上げた雨と風がすぐに塞いでしまう。" },
+  { id: "bs_soulanchor", name: "魂縛りの像", rank: 10, race: "construct", element: "dark", artKey: "hd_soulanchor",
+    ability: "soulSteal", abRate: 0.45, physResist: 75, // 鎖を伸ばして生者の宿す魂の光まで引き抜こうとし続け、濡れた石の体は刃をほとんど通さない
+    desc: "塔のあちこちの台座に立つ、頭巾をかぶった顔のない石の像。両腕の先は太い鉄の鎖になって上へ伸び、鎖の先には、空へ昇ろうとする魂の光が絡め取られてもがいている。この像は、昇る魂を塔に縛りつけているのだ。誰が何のために据えたのかは、わからない。鎖を伸ばして、生者の宿す魂の光まで引き抜こうとする。濡れた石の体は、刃をほとんど通さない。" },
+  { id: "bs_galehound", name: "疾風の猟犬", rank: 10, race: "beast", element: "wind", artKey: "hd_galehound",
+    haste: true, pack: true, ability: null, // 目にも止まらぬ速さで二度駆け寄り、群れで取り囲む
+    desc: "塔の回廊を群れで駆ける、灰色の痩せた猟犬。あばらの浮いた細い体を地すれすれに伸ばし、耳を伏せ、牙をむいて走る。目にも止まらぬ速さで一度に二度動き、長い残像を引いて取り囲む。一頭を見つけた時には、後ろからもう二頭、三頭が追ってきている。" },
+  { id: "bs_windscythe", name: "風のかまいたち", rank: 10, race: "insect", element: "wind", artKey: "hd_windscythe",
+    multistrike: 3, evasive: true, ability: null, // 三日月に反って跳びかかり一度に三度斬りつけ、風の速さで刃をかわす
+    desc: "つむじ風に乗って宙を跳ぶ、イタチに似た細長い魔。両の前足は鎌のような長い刃になっている。体を三日月に反らせて跳びかかり、一度に三度、真空の刃で斬りつける。斬られた傷口は、少し遅れて開く。風そのものの速さで身をかわし、刃がなかなか届かない。" },
+  { id: "bs_stormcaller", name: "雷を呼ぶ司祭", rank: 10, race: "specter", element: "wind", artKey: "hd_stormcaller", soulClass: "mage",
+    role: "summoner", summonKey: "bs_stormelemental", ability: "spell", // 香炉を振って唱え、雷雲から隊全体へ雷を落とし、嵐の精を呼び降ろす
+    desc: "塔の鐘楼で祈りを続けてきた司祭の霊。高い僧帽に長い法衣、骨ばった手。片手で鎖の香炉を振りながら、もう片手を雷雲へ差し上げて唱える。祈りが届くと頭上の雲が渦を巻き、隊全体へ雷が落ちる。嵐の精が雲から降りてくることもある。何に祈っているのかは、司祭自身ももう覚えていないらしい。" },
+  { id: "bs_stormlord", name: "嵐の尖塔の主", rank: 10, boss: true, race: "elemental", element: "wind", artKey: "hd_stormlord", soulClass: "mage",
+    role: "summoner", summonKey: "bs_windwraith", ability: "breath", abRate: 0.35, physResist: 50, endure: true, // 渦からちぎれた魂を疾風の霊にして放ち、叫ぶ口から雷の息を吐き、渦の体は刃を半ば逸らして一度は崩れない
+    desc: "塔の頂で渦を巻く、数えきれない魂の光が寄り集まってできた嵐。紫灰の雷雲の巨体のあちこちに、渦に引き延ばされた青白い顔が浮かぶ。渦の芯から突き出た顔が縦に裂けた口で叫ぶと、雷の息が隊をまとめて撃つ。渦からちぎれた魂は疾風の霊になって降りかかる。渦の体は刃を半ば逸らし、致命の一撃を受けても一度は崩れない。巨体の下からは床へ何本もの鎖が張りつめ、背後には火のともらない大きな灯台が、割れた大レンズを闇に向けて立っている。" },
   // -- 第11層「闘技場跡」 (rank 10・剣闘/無。enemyScaleで上昇) --
   { id: "bs_championwraith", name: "不滅の闘士", rank: 10, race: "armored", element: "none", artKey: "championwraith",
     ability: "critical", multistrike: 2, enrage: true,
@@ -679,8 +689,8 @@ const NEW_DEFS = [
     ability: "critical", barrier: 2, physResist: 75, desc: "王の死後も廟を守り続ける、屍蝋と化した近衛兵。錆びぬ槍で急所を貫き、王家の紋章を刻んだ鎧が刃を阻む。守るべき王は、とうに空の棺の中だ。" },
   { id: "bs_waxhorror", name: "蝋の塊", rank: 10, race: "amorph", element: "dark", artKey: "waxhorror",
     ability: "paralyze", physResist: 75, multistrike: 2, desc: "防腐の蝋がこぼれ溜まり、無数の顔を浮かべてうごめく塊。触れた者を蝋で固めて痺れさせ、幾つもの腕で打ち据える。塗り込められた顔は、皆この廟に眠る者たちだ。" },
-  { id: "bs_mournfulchancellor", name: "先代の宰相", rank: 10, race: "specter", element: "dark", artKey: "mournfulchancellor",
-    ability: "weaken", role: "summoner", summonKey: "bs_corpsewax", magResist: 75, desc: "歴代の王に仕え、その秘密を抱えて廟に葬られた宰相の霊。呪いで挑む者の力を奪い、眠れる屍蝋人を呼び起こす。『陛下、それ以上は』と、今も誰かをいさめ続けている。" },
+  { id: "bs_mournfulchancellor", name: "廟の記録官", rank: 10, race: "specter", element: "dark", artKey: "mournfulchancellor",
+    ability: "weaken", role: "summoner", summonKey: "bs_corpsewax", magResist: 75, desc: "歴代の王の葬儀を書き留め続け、自らも廟に葬られた記録官の霊。呪いで挑む者の力を奪い、眠れる屍蝋人を呼び起こす。新しい三度の葬儀だけ、亡骸の欄が空いたままで、今も筆を置けずにいる。" },
   { id: "bs_candlewraith", name: "蝋燭の霊", rank: 10, race: "specter", element: "dark", artKey: "candlewraith",
     ability: "drain", magWeak: 1.3, evasive: true, desc: "廟を照らし続ける弔いの蝋燭に宿った霊。近づく者の命を芯にして燃え、その炎は揺らめいて刃をかわす。蝋燭が尽きぬ限り、王の眠りは照らされ続ける。" },
   { id: "bs_preservedbeast", name: "剥製の獣", rank: 10, race: "beast", element: "dark", artKey: "preservedbeast",
@@ -689,20 +699,20 @@ const NEW_DEFS = [
     ability: "drain", regen: 0.08, magResist: 75, desc: "歴代の王を弔い続け、自らも廟に取り込まれた司祭の骸。葬送の祈りで生者の命を奪い、その祈祷が自らの崩れを繕う。誰の葬儀も、まだ終わっていないと信じている。" },
   { id: "bs_sarcophagusguard", name: "石棺の守り手", rank: 10, race: "construct", element: "dark", artKey: "sarcophagusguard",
     ability: "critical", physResist: 75, barrier: 2, desc: "王の石棺そのものが守護者となって動き出した像。重い蓋の縁で急所を断ち、黄金の装飾が刃を弾く。中の王を守るためか、出さぬためか――蓋は固く閉ざされている。" },
-  { id: "bs_wailingnoble", name: "嘆く先王", rank: 10, race: "specter", element: "dark", artKey: "wailingnoble",
-    ability: "weaken", magWeak: 1.3, evasive: true, desc: "若さを保ったまま氷ではなくこの廟へ移された、先代の王の霊。嘆きの声で生者の気力を萎えさせ、未練のままにさまよう。『余は、まだ終われぬ』と、空の棺を見つめている。" },
+  { id: "bs_wailingnoble", name: "嘆く身代わり", rank: 10, race: "specter", element: "dark", artKey: "wailingnoble",
+    ability: "weaken", magWeak: 1.3, evasive: true, desc: "王の衣を着せられ、王の代わりに棺へ納められた身代わりの霊。嘆きの声で生者の気力を萎えさせ、未練のままにさまよう。『わたしは、王ではない』と、自分の名の無い墓碑を見つめている。" },
   { id: "bs_coffincrawler", name: "棺這いの蟲", rank: 10, race: "insect", element: "dark", artKey: "coffincrawler",
     ability: "critical", multistrike: 2, lifesteal: 0.3, swift: true, desc: "棺の中の亡骸を喰らって肥えた、無数の脚をもつ蟲。素早く棺から這い出て急所に喰らいつき、喰らうほどに肥大する。王の眠りを、内側から食い荒らしている。" },
   { id: "bs_mummylord", name: "ミイラの将", rank: 10, race: "armored", element: "dark", artKey: "mummylord",
     ability: "critical", enrage: true, physResist: 75, desc: "王に殉じて自ら包帯を巻き、屍蝋となった将軍。黄金の戦装束で急所を貫き、傷を負うほど主への忠義で猛る。死してなお、ただ一人の王を守り続けている。" },
   { id: "bs_deathmask", name: "死面", rank: 10, race: "construct", element: "dark", artKey: "deathmask",
-    ability: "paralyze", evasive: true, barrier: 2, desc: "歴代の王の死に顔を象った、宙を漂う黄金の仮面の群れ。覗き込んだ者を石のように固まらせ、ひらりと翻って刃をかわす。仮面の数だけ、ここに眠る王がいる。" },
+    ability: "paralyze", evasive: true, barrier: 2, desc: "歴代の王の死に顔を象った、宙を漂う黄金の仮面の群れ。覗き込んだ者を石のように固まらせ、ひらりと翻って刃をかわす。新しい三枚の仮面だけは、なぜか同じ顔をしている。" },
   { id: "bs_corpsewax", name: "屍蝋人", rank: 10, race: "undead", element: "dark", artKey: "corpsewax",
     ability: "paralyze", pack: true, regen: 0.06, desc: "腐ることを許されず、蝋のように固まった廟の住人たちの群れ。冷たい手で掴んで痺れさせ、崩しても溶けた蝋から固まり直す。皆かつて、王に仕えた者たちだ。" },
   { id: "bs_funeralwraith", name: "葬列の霊", rank: 10, race: "specter", element: "dark", artKey: "funeralwraith",
     ability: "weaken", pack: true, magResist: 75, desc: "終わらぬ王の葬列を、列をなして練り歩く弔問客の霊。すれ違う者の気力を奪い、群れで静かに取り囲む。誰の葬列なのかは、参列者自身も忘れている。" },
   { id: "bs_boneprince", name: "白骨の王子", rank: 10, race: "undead", element: "dark", artKey: "boneprince",
-    ability: "critical", multistrike: 2, role: "summoner", summonKey: "bs_corpsewax", desc: "王位を継ぐ前に廟へ入れられた、王子の白骨。細身の剣で急所を続けざまに突き、廟の従者を呼び従える。継げなかった王冠を、今も骨の頭に載せている。" },
+    ability: "critical", multistrike: 2, role: "summoner", summonKey: "bs_corpsewax", desc: "王位が空くのを待ちきれずに死に、廟へ入れられた王子の白骨。細身の剣で急所を続けざまに突き、廟の従者を呼び従える。継げなかった王冠を、今も骨の頭に載せている。" },
   { id: "bs_crypthound", name: "墓守の番犬", rank: 10, race: "beast", element: "dark", artKey: "crypthound",
     ability: "critical", swift: true, pack: true, desc: "王の廟を守るために殉葬された、黄金の首輪の番犬の群れ。素早く取り囲んで急所に喰らいつき、侵入者を一人も通さない。主の亡骸の匂いだけを、永遠に守り続ける。" },
   { id: "bs_shroudkeeper", name: "死に装束の守人", rank: 10, race: "specter", element: "dark", artKey: "shroudkeeper",
@@ -798,35 +808,35 @@ const NEW_DEFS = [
     desc: "偽りの光の名のもとに、数えきれぬ魂を聖堂で焼き続けた大司教の霊。堕ちた熾天使を従え、捧げられた魂ごと生者の命を吸い上げる。光も闇も魂を喰らうことに変わりはない――ただ、光のほうが言い訳が美しいだけだ。" },
   // -- 第17層「凍てつく王墓」 (rank 10・水/氷の王墓。若さの代償) --
   { id: "bs_frozenking", name: "氷漬けの王", rank: 10, race: "undead", element: "water", artKey: "frozenking",
-    ability: "drain", physResist: 100, enrage: true, desc: "若さを保てなくなり、氷の下へ移された歴代の王。氷漬けのまま玉座を求めて起き上がり、生者の命と若さを吸い上げる。買えなくなった若さの、最後の請求書だ。" },
+    ability: "drain", physResist: 100, enrage: true, desc: "老いて天寿を迎え、氷の下へ納められた古い代の王。氷漬けのまま玉座を求めて起き上がり、生者の命と若さを吸い上げる。冠を譲った相手を、いまも氷の中から捜している。" },
   { id: "bs_iceroyalguard", name: "氷結の近衛", rank: 10, race: "armored", element: "water", artKey: "iceroyalguard",
     ability: "critical", barrier: 2, physResist: 100, desc: "王とともに氷の下へ葬られた、凍れる近衛兵。霜の槍で急所を貫き、氷の鎧が刃を阻む。守るべき王はもう氷の中だが、任を解かれていない。" },
-  { id: "bs_frostmonarchwraith", name: "凍れる先王の霊", rank: 10, race: "specter", element: "water", artKey: "frostmonarchwraith",
-    ability: "weaken", magResist: 100, desc: "氷の王墓に眠る、歴代の先王たちの霊。凍てつく嘆きで生者の力を奪い、若く美しい顔のままさまよう。皆、天寿を全うできなかった者たちだ。" },
+  { id: "bs_frostmonarchwraith", name: "凍れる古王の霊", rank: 10, race: "specter", element: "water", artKey: "frostmonarchwraith",
+    ability: "weaken", magResist: 100, desc: "氷の王墓に眠る、古い代の王たちの霊。凍てつく嘆きで生者の力を奪い、息を引き取った時の老いた顔のままさまよう。皆、天寿を全うした者たちだ。王とは、本来そういうものだった。" },
   { id: "bs_youththief", name: "若さを奪う者", rank: 10, race: "specter", element: "water", artKey: "youththief",
-    ability: "drain", lifesteal: 0.3, enrage: true, desc: "王に若さを供給し続けた、忌まわしき仕組みの化身。生者の若さと命を吸い取り、奪うほどに自らも若返る。王の不老の代償が、この姿だ。" },
+    ability: "drain", lifesteal: 0.3, enrage: true, desc: "王墓の冷気が、眠る者たちから少しずつ吸い上げてきた若さの化身。生者の若さと命を吸い取り、奪うほどに自らも若返る。死者から奪う若さでは、もう足りなくなったらしい。" },
   { id: "bs_glacialtomb", name: "氷棺の番", rank: 10, race: "construct", element: "water", artKey: "glacialtomb",
     ability: "paralyze", physResist: 100, barrier: 2, desc: "王を納めた氷の棺そのものが守護者となったもの。冷気で近づく者を凍りつかせ、分厚い氷が刃を阻む。蓋を開ければ、中の王が氷の下で目を開けている。" },
   { id: "bs_frostnoble", name: "氷の貴人", rank: 10, race: "undead", element: "water", artKey: "frostnoble",
     ability: "paralyze", magResist: 75, lifesteal: 0.3, desc: "王に従って氷の下へ供奉された、凍れる貴族たち。優雅な所作のまま冷気で獲物を痺れさせ、その温もりを吸う。死してなお、序列を守って整列している。" },
   { id: "bs_icebreaker", name: "氷砕きの巨人", rank: 10, race: "giant", element: "water", artKey: "icebreaker",
     multistrike: 2, enrage: true, physResist: 100, desc: "王墓を封じる氷を割り、また閉ざすために据えられた巨人。氷塊の拳で続けざまに打ち砕き、傷つけば雪崩のように荒れる。封印を保つ者か、破る者か。" },
-  { id: "bs_frozenchancellor", name: "凍れる宰相", rank: 10, race: "specter", element: "water", artKey: "frozenchancellor",
-    ability: "weaken", role: "summoner", summonKey: "bs_frostservant", magResist: 100, desc: "王の若さの秘密を抱え、氷の下へ口を封じられた宰相の霊。呪いで挑む者を弱らせ、凍れる従者を呼び寄せる。『陛下、それ以上は』と、氷の中でいさめ続けている。" },
+  { id: "bs_frozenchancellor", name: "凍れる侍従長", rank: 10, race: "specter", element: "water", artKey: "frozenchancellor",
+    ability: "weaken", role: "summoner", summonKey: "bs_frostservant", magResist: 100, desc: "古い代の王に仕え、王とともに氷の下へ供奉された侍従長の霊。呪いで挑む者を弱らせ、凍れる従者を呼び寄せる。『陛下、それ以上は』と、氷の中でいさめ続けている。" },
   { id: "bs_frostlynx", name: "霜の山猫", rank: 10, race: "beast", element: "water", artKey: "frostlynx",
     ability: "critical", swift: true, evasive: true, desc: "王墓の番として放たれた、霜をまとう白い山猫。音もなく雪を踏んで急所を一撃でえぐり、白い体は雪に紛れて見えない。気配を感じた時には、もう喉元にいる。" },
   { id: "bs_crystalcoffin", name: "水晶棺の魔", rank: 10, race: "construct", element: "water", artKey: "crystalcoffin",
     ability: "critical", barrier: 2, physResist: 100, desc: "王の亡骸を透かして見せる、水晶でできた棺の魔。鋭い水晶の縁で急所を断ち、その身は刃を弾く。中に横たわる王は、いつ目覚めてもおかしくない。" },
   { id: "bs_soulfrostwraith", name: "魂凍りの霊", rank: 10, race: "specter", element: "water", artKey: "soulfrostwraith",
-    ability: "drain", magWeak: 1.3, evasive: true, desc: "若さの代償として凍りつかせられた、魂そのものの霊。生者の命を吸って一瞬熱を取り戻し、吹雪となって刃をすり抜ける。凍えた魂は、炎の魔法に脆い。" },
+    ability: "drain", magWeak: 1.3, evasive: true, desc: "王墓の冷気に若さを吸われ、凍りついた魂そのものの霊。生者の命を吸って一瞬熱を取り戻し、吹雪となって刃をすり抜ける。凍えた魂は、炎の魔法に脆い。" },
   { id: "bs_permafrostgolem", name: "凍土の番兵", rank: 10, race: "construct", element: "water", artKey: "permafrostgolem",
-    physResist: 75, magResist: 75, barrier: 2, desc: "永久凍土を固めて作られた、王墓の最奥を守る番兵。刃も魔も凍った体に阻まれ、若さの仕組みへ続く道を塞ぐ。溶けることなく、永遠に立ち続ける。" },
+    physResist: 75, magResist: 75, barrier: 2, desc: "永久凍土を固めて作られた、王墓の最奥を守る番兵。刃も魔も凍った体に阻まれ、王たちの眠る最奥へ続く道を塞ぐ。溶けることなく、永遠に立ち続ける。" },
   { id: "bs_frozenpriest", name: "氷結の司祭", rank: 10, race: "undead", element: "water", artKey: "frozenpriest",
-    ability: "drain", regen: 0.08, magResist: 100, desc: "王の埋葬と若返りの儀を司り、自らも凍りついた司祭の骸。凍えた祈りで生者の命を奪い、その力で崩れを繕う。儀式はまだ、終わっていないと信じている。" },
+    ability: "drain", regen: 0.08, magResist: 100, desc: "王の埋葬と氷封じの儀を司り、自らも凍りついた司祭の骸。凍えた祈りで生者の命を奪い、その力で崩れを繕う。儀式はまだ、終わっていないと信じている。" },
   { id: "bs_iciclewyrm", name: "氷柱の竜", rank: 10, race: "dragon", element: "water", artKey: "iciclewyrm",
     ability: "breath", physResist: 100, multistrike: 2, desc: "王墓の天井から垂れる氷柱が、竜の形を得たもの。凍てつくブレスで全体を凍らせ、氷の鱗が刃を弾く。落ちかかる氷柱は、幾本もの牙となって襲う。" },
   { id: "bs_mournfulqueen", name: "嘆きの氷の女王", rank: 10, race: "specter", element: "water", artKey: "mournfulqueen",
-    ability: "weaken", role: "summoner", summonKey: "bs_frostservant", magResist: 75, desc: "若き王に嫁ぎ、夫より先に氷の下へ移された女王の霊。哀切な嘆きで生者の気力を奪い、凍れる侍女を呼び寄せる。失われた愛も若さも、氷の中で凍りついたままだ。" },
+    ability: "weaken", role: "summoner", summonKey: "bs_frostservant", magResist: 75, desc: "若き王に嫁ぎ、ひとり老いて先に氷の下へ納められた女王の霊。哀切な嘆きで生者の気力を奪い、凍れる侍女を呼び寄せる。夫がなぜ自分ほど老いないのか、最期まで聞かされなかった。" },
   { id: "bs_coldrevenant", name: "凍える怨霊", rank: 10, race: "specter", element: "water", artKey: "coldrevenant",
     ability: "critical", enrage: true, lifesteal: 0.3, desc: "若さを奪われた恨みを抱いて凍りついた怨霊。氷の爪で急所をえぐり、傷つくほど凍てつく怒りで猛る。温もりを奪うことでしか、己の凍えを忘れられない。" },
   { id: "bs_snowhydra", name: "雪の多頭", rank: 10, race: "reptile", element: "water", artKey: "snowhydra",
@@ -839,7 +849,7 @@ const NEW_DEFS = [
     ability: "paralyze", pack: true, physResist: 100, desc: "王に仕えたまま氷の下へ供奉された、凍れる従者たちの群れ。冷たい手で掴んで痺れさせ、群れで主君の眠りを守る。命じられた務めを、死してなお果たし続けている。" },
   { id: "bs_frostmonarch", name: "凍てつく王墓の主", rank: 10, boss: true, race: "undead", element: "water", artKey: "frostmonarch", soulClass: "hexer",
     role: "summoner", summonKey: "bs_iceroyalguard", ability: "drain", physResist: 75, enrage: true,
-    desc: "氷の玉座に座す、最も古く最も若い顔をした王の亡骸。近衛を呼び従え、生者の若さと命を貪る。若さは魂で買うもの――買えなくなった王はこうして氷へ移され、次の王が立つ。今の王も、いずれここへ来る。" },
+    desc: "氷の玉座に座す、王墓で最も古い王の亡骸。近衛を呼び従え、生者の若さと命を貪る。王たちは皆、老いてここへ来た――この百年、新しい王が一人も来ないことを、氷の王は知っている。" },
   // -- 第18層「冥府の門」 (rank 10・闇/冥府への門) --
   { id: "bs_gatekeeper", name: "門の番人", rank: 10, race: "construct", element: "dark", artKey: "gatekeeper",
     ability: "critical", physResist: 100, barrier: 2, desc: "半開きの冥府の門を守り続ける、巨大な門番の像。冥火の刃で急所を断ち、その身は刃も魔も阻む。門の向こうへ通すことも、こちらへ来させることも、決して許さない。" },
@@ -856,7 +866,7 @@ const NEW_DEFS = [
   { id: "bs_underjudge", name: "冥府の判官", rank: 10, race: "armored", element: "dark", artKey: "underjudge",
     ability: "critical", enrage: true, physResist: 100, desc: "門の向こうで死者の罪を裁く、冥府の判官の影。冥火の刃で罪人の急所を断ち、裁きの興奮で猛る。生者すらも、裁くべき罪人として門へ引きずり込もうとする。" },
   { id: "bs_lostbrother", name: "送られた弟", rank: 10, race: "undead", element: "dark", artKey: "lostbrother",
-    ability: "drain", enrage: true, lifesteal: 0.3, desc: "百年前、王の祖父に生きたまま門の向こうへ送られた、実の弟の亡霊。裏切りの恨みで生者の命を吸い、王家の血を求めて荒れ狂う。『還せ』の声の、最初の主だ。" },
+    ability: "drain", enrage: true, lifesteal: 0.3, desc: "遠い昔、時の王に生きたまま門の向こうへ送られた、その実の弟の亡霊。裏切りの恨みで生者の命を吸い、王家の血を求めて荒れ狂う。『還せ』の声の、最初の主だ。" },
   { id: "bs_shadereaper", name: "魂を刈る影", rank: 10, race: "specter", element: "dark", artKey: "shadereaper",
     ability: "critical", swift: true, lifesteal: 0.3, desc: "門の前で迷う魂を刈り取る、大鎌を持つ影。素早く間合いを詰めて急所を一閃し、刈った命をおのれの糧とする。門へ向かう列から、はぐれた魂を狩る。" },
   { id: "bs_grievingspirit", name: "嘆きの群霊", rank: 10, race: "specter", element: "dark", artKey: "grievingspirit",
@@ -981,9 +991,9 @@ const NEW_DEFS = [
   { id: "bs_irongolem", name: "青銅の神兵", rank: 7, race: "construct", element: "none", artKey: "hd_irongolem",
     ability: "charge", abRate: 0.4, physResist: 50, // 長い矛を引き絞って力を溜め、渾身の突きを放つ。緑青の鎧が刃を半ば弾く
     desc: "神殿の門を守っていた、緑青に覆われた青銅の兵の像。身を沈めて長い矛を大きく引き絞り、穂先に光を溜めては渾身の突きを放つ。溜めの間に眠らせるか封じるかしなければ、隊の誰かが貫かれる。" },
-  { id: "bs_necromancer", name: "死霊術師", rank: 8, race: "undead", element: "dark", artKey: "necromancer", soulClass: "bishop",
-    role: "summoner", summonKey: "bs_plaguewraith", magWeak: 1.4, // 死者を呼び続けるが、痩せた身は魔法に脆い
-    desc: "死を窮め、自ら死者となった術師。倒した者を次々と従者として呼び起こすが、痩せ衰えた身は魔法を撃ち込まれれば術もろとも崩れる。従える骸の軍勢はみな、かつてこの男を討ちに来た者たちだ。" },
+  { id: "bs_necromancer", name: "死霊術師", rank: 10, race: "undead", element: "dark", artKey: "hd_necromancer", soulClass: "bishop", // 第9層 (絵は hd_* の固有原型)
+    role: "summoner", summonKey: "bs_discardeddoll", ability: "drain", magWeak: 1.4, // 捨てられた器を起こして呼び寄せ、生者の命を喰らう。痩せた身は呪文に脆い
+    desc: "沼のほとりで、捨てられた器を拾い集めては沼の腐った魂を詰めて起こす、痩せた骸の術師。腐った魂の灯る鉤杖をかかげると、足元の泥から壊れた器が一体、また一体と引き起こされる。骨の指を伸ばして生者の命を喰らうが、痩せ衰えた身は呪文を浴びれば術もろとも崩れる。" },
   { id: "bs_archdemon", name: "アークデーモン", rank: 8, boss: true, race: "demon", element: "dark", artKey: "imp",
     palette: tint(ARTS.imp.palette, "#2a1a3a", 0.35),
     role: "summoner", summonKey: "bs_demon", ability: "critical", // 魔界の軍団を呼び、急所をえぐる一撃を放つ
@@ -1150,10 +1160,9 @@ const NEW_DEFS = [
   { id: "bs_voidwalker", name: "虚無の歩者", rank: 8, race: "specter", element: "dark", artKey: "hd_voidwalker",
     evasive: true, magResist: 75, ability: null, // 刃は揺らぐ体をすり抜け、呪文は胸の穴に呑まれる
     desc: "水底の闇から抜け出した、顔のないひょろ長い人の形の虚ろ。揺らいでぶれる体を刃はすり抜け、放った呪文は胸にぽっかり空いた穴の奥の星々に呑まれてしまう。何を求めて歩くのか、誰も知らない。" },
-  { id: "bs_plaguewraith", name: "疫病の亡霊", rank: 8, race: "undead", element: "dark", artKey: "ghost",
-    palette: tint(ARTS.ghost.palette, "#3a5a2a", 0.5),
-    ability: "poison", // 触れた者を高熱に侵す疫病のもや
-    desc: "大疫病で死んだ者たちが一つに溶け合った亡霊の群れ。そのもやに触れた者はたちまち高熱と疫病に侵され、三日三晩うなされる。" },
+  { id: "bs_plaguewraith", name: "疫病の亡霊", rank: 10, race: "undead", element: "dark", artKey: "hd_plaguewraith", // 第9層 (絵は hd_* の固有原型)
+    magResist: 100, ability: "poison", // 触れた者を熱と病に沈め、撃ち込まれた呪文はもやの奥の顔たちに呑まれる
+    desc: "大疫病で死に、奈落の底まで落ちて腐った者たちの魂が、ひとつに溶け合ったもや。布に巻かれた亡骸の山から立ちのぼり、黄ばんだもやの中に苦しむ顔がいくつも浮かぶ。触れた者は熱と病に沈む。撃ち込まれた呪文はもやの奥の顔たちに呑まれて消えるので、刃で散らすしかない。" },
   { id: "bs_crystalgolem", name: "水晶の巨像", rank: 8, race: "construct", element: "none", artKey: "hd_crystalgolem",
     physResist: 75, magWeak: 1.6, ability: null, // 刃は結晶の面にすべって通らないが、魔の力を受けるとひびが走る
     desc: "祭壇の水晶が寄り集まって立ち上がった、青白く透ける巨像。角張った結晶の面に刃はすべってほとんど通らないが、魔の力を受けると芯から細かなひびが走り、たちまち崩れ落ちる。" },
@@ -1175,10 +1184,9 @@ const NEW_DEFS = [
   { id: "bs_soulreaper", name: "魂の刈人", rank: 9, race: "specter", element: "dark", artKey: "reaper",
     swift: true, ability: "soulSteal", // 音もなく現れ、鎌で魂を刈り取って逃さない
     desc: "冥府の正規の従者として魂を刈る役目を持つ上位の霊。迷宮で死を迎えた者には必ず音もなく現れ、鎌の一振りで魂を刈り取って、逃げぬよう懐に包む。" },
-  { id: "bs_plaguelich", name: "疫病のリッチ", rank: 9, race: "undead", element: "dark", artKey: "skeleton", soulClass: "mage",
-    palette: tint(ARTS.skeleton.palette, "#2a5a2a", 0.5),
-    ability: "poison", regen: 0.06, // 千の病を浴びせ、宝珠を依代に蘇る
-    desc: "疫病を武器として研究し続けた術師の死霊。指から滴る千の病の混合液を浴びせ、砕けても隠した宝珠を依代に蘇る。触れた者は己の体が何に侵されているかも分からない。" },
+  { id: "bs_plaguelich", name: "疫病のリッチ", rank: 10, race: "undead", element: "dark", artKey: "hd_plaguelich", soulClass: "mage", // 第9層 (絵は hd_* の固有原型)
+    ability: "dispel", endure: true, // 隊の加護が厚くなるとひび割れた禍言の輪でまとめて断ち切り、宝珠を依代に一度だけ踏みとどまる
+    desc: "病を術として究めた術師の死霊。腐った法衣の帯には病の混ぜ薬の小瓶がいくつも下がり、片手には黄緑の膿の詰まった宝珠をかかげる。隊が加護を重ねるほど目を光らせ、ひび割れた禍言の輪でまとめて断ち切る。砕けても宝珠を依代に、一度だけ踏みとどまる。" },
   { id: "bs_divinegolem", name: "神のくぐつ", rank: 8, race: "construct", element: "light", artKey: "hd_divinegolem",
     ability: "stone", abRate: 0.4, physResist: 50, // ただ一つの眼から放つ裁きの光で、罪ある者を石に変える
     desc: "神が最後の審判のために造らせた、白い石と金の背の高いくぐつ。顔のない頭にただ一つ開いた眼から裁きの光を放ち、浴びた者を罪人の石像に変えて天秤にかける。神殿の床には、裁かれた者たちの石像が並ぶ。" },
@@ -1724,10 +1732,9 @@ const ELITE_DEFS = [
   { id: "el_heresiarch", name: "異端大司教", elite: true, rank: 8, race: "undead", element: "dark", artKey: "hd_heresiarch", soulClass: "bishop",
     ability: "spell", abRate: 0.5, regen: 0.06, // 禁書を開いて闇の呪文で隊全体を撃ち続け、喰らった魂で己を繕う
     desc: "禁じられた教義を説き、生きながら神殿の地下へ葬られた大司教。宙に開いた禁書から闇の文字を立ちのぼらせ、逆さの印の輪の上で闇の呪文を唱え続けて隊をまとめて撃つ。死を福音と説くその身は、喰らった魂の分だけ傷を繕う。" }, // 第6層
-  { id: "el_offeringslime", name: "供物のるつぼ", elite: true, rank: 10, race: "amorph", element: "dark", artKey: "sludgeooze",
-    palette: tint(ARTS.sludgeooze.palette, "#8a6a1a", 0.55),
-    physResist: 75, ability: "poison", // 千年の供物を沈めた粘塊は刃を呑み、腐った供物の毒を流す
-    desc: "千年分の供物を呑み込み続けた祭壇のるつぼが、ついに意思を持った粘塊。突き立てた刃は供物もろとも呑まれ、底によどんだ腐汁の毒を流しながら、最上の供物——生贄を待っている。" }, // 第9層
+  { id: "el_offeringslime", name: "供物のるつぼ", elite: true, rank: 10, race: "amorph", element: "dark", artKey: "hd_offeringslime", // 第9層の強敵。絵は hd_* の固有原型
+    physResist: 75, ability: "goldSteal", abRate: 0.45, // 金貨を何度も呑み込んで奪い、突き立った刃も供物もろとも呑む
+    desc: "地上の人々が奈落の穴へ投げ入れてきた供物が、沼の底に溜まって意思を持った、紫黒の巨大な粘塊。半ば溶けた体の中に、金貨や杯や骨、小さな器の頭が透けて沈む。頂きの大口をるつぼのように開いて、生者の懐の金貨まで光の尾を引かせて吸い込む。突き立てた刃も、供物もろとも呑まれてしまう。" }, // 第9層
   // -- 迷宮 51-60 (灼洞帯) / 強敵ランク8 --
   { id: "el_cinderking", name: "残り火の王", elite: true, rank: 9, race: "elemental", element: "fire", artKey: "hd_cinderking", // 第7層の強敵。絵は hd_* の固有原型
     ability: "charm", abRate: 0.5, role: "summoner", summonKey: "bs_emberswarm", regen: 0.06, // 渦巻く眼で心を奪い続け、火の粉の羽虫を呼び、燃え直す
@@ -1746,15 +1753,13 @@ const ELITE_DEFS = [
   { id: "el_glacialmaw", name: "氷河の大顎", elite: true, rank: 10, race: "dragon", element: "water", artKey: "hd_glacialmaw", // 第8層の強敵。絵は hd_* の固有原型
     ability: "critical", abRate: 0.5, physResist: 75, // 氷柱の牙で鎧ごと急所を何度も噛み砕き、氷塊の鱗は刃をほとんど通さない
     desc: "氷棚の裂け目から鼻先だけを突き出して獲物を待つ、白い竜の巨大な頭。上下の顎には氷柱そのものの牙が何列も並び、鎧ごと急所を何度も噛み砕く。顎を覆う鱗は分厚い氷塊で、刃をほとんど通さない。裂け目の下にどれほどの体が続いているのか、見た者はいない。" }, // 第8層
-  { id: "el_blizzardwitch", name: "吹雪の魔女", elite: true, rank: 10, race: "specter", element: "wind", artKey: "willowwitch", soulClass: "mage",
-    palette: tint(ARTS.willowwitch.palette, "#b0d8e8", 0.55),
-    ability: "sleep", // 子守唄で暖かな眠りに誘い、凍りつかせる
-    desc: "吹雪の夜にだけ氷廊へ現れる魔女の亡霊。彼女が紡ぐ子守唄を聞いた者は、暖かな眠りに誘われるまま手足の感覚を失い、静かに凍りついていく。" }, // 第10層
+  { id: "el_blizzardwitch", name: "嵐乗りの魔女", elite: true, rank: 10, race: "specter", element: "wind", artKey: "hd_blizzardwitch", soulClass: "mage", // 第10層の強敵。絵は hd_* の固有原型 (id は旧名「吹雪の魔女」のまま)
+    role: "summoner", summonKey: "bs_galewisp", ability: "sleep", abRate: 0.45, // 嵐にまたがって歌い続け、聞き入った者を眠らせる。鉤の杖に雷を落として稲妻の群火を生む
+    desc: "腰から下を雷雲に沈め、嵐にまたがって塔の吹き抜けを上へ下へ飛び回る魔女の霊。つばの垂れた古い魔女帽をかぶり、雲のように広がる長い灰色の髪をなびかせる。低く澄んだ声で歌い続け、聞き入った者からまぶたが落ちて動けなくなる。先が鉤に曲がった鉄の杖を掲げると、鉤に稲妻が落ちて青白い雷の玉がいくつも生まれ、魔女のまわりを回りはじめる。" }, // 第10層
   // -- 迷宮 71-80 (尖塔帯) / 強敵ランク10 --
-  { id: "el_stareater", name: "星喰らい", elite: true, rank: 10, race: "demon", element: "dark", artKey: "gargoyle",
-    palette: tint(ARTS.gargoyle.palette, "#2a1a4a", 0.5),
-    ability: "drain", physResist: 75, // 星すら喰らう胃袋に命を呑み、闇の体は刃を呑む
-    desc: "尖塔の頂から夜空の星をひとつずつ喰らってきた大悪魔。星すら呑む胃袋で近づく者の命を喰らい、闇に満ちた体は突き立てた刃を呑む。次に喰らうのは地上の光だという。" }, // 第10層
+  { id: "el_stareater", name: "星喰らい", elite: true, rank: 10, race: "demon", element: "dark", artKey: "hd_stareater", // 第10層の強敵。絵は hd_* の固有原型
+    ability: "drain", abRate: 0.45, physResist: 75, // 腹まで裂けた大口で近づく者の命を何度も吸い上げ、分厚い闇の皮は刃を呑む
+    desc: "塔の外壁にしがみつき、雷雲の切れ間から夜空の星をひとつずつ喰らってきた大悪魔。夜空を切り取ったような黒紫の肌に、呑みこんだ星の光が点々と透ける。腹まで裂けた大口へ光の筋が吸いこまれていくように、近づく者の命も何度も吸い上げる。分厚い闇の皮は、突き立てた刃を呑みこんでしまう。この塔の上に星が見えないのは、こいつのせいだと言う者もいる。" }, // 第10層
   { id: "el_voidarchon", name: "虚空の執政官", elite: true, rank: 10, race: "specter", element: "light", artKey: "fogspecter", soulClass: "mage",
     palette: tint(ARTS.fogspecter.palette, "#f0f0e8", 0.55),
     evasive: true, ability: "soulSteal", // 虚空に紛れて刃をかわし、直視した者の存在を奪う
@@ -1819,9 +1824,9 @@ const LAYER_ELITE_DEFS = [
     desc: "廃坑の最奥で、見てはならぬ鉱脈に魅入られた宮廷錬金術師。皮膚の下から水晶が生え出し、いまや体の半分が晶と化している。呪文は晶に吸われて霧散し、その晶眼に見据えられた者は、足先から結晶へ変わっていく。" },
   // 第9・13・15・17・20層の強敵 (旧来の30体で足りない6体。docs/tasks.md E2)。
   // 絵は使われなくなった旧来の固有原型を借りている。その層を作るときに hd_* の固有原型へ描き直す (C1)
-  { id: "el_bogfrogking", name: "沼呑みの蛙王", elite: true, rank: 10, race: "beast", element: "earth", artKey: "sewerlord",
+  { id: "el_bogfrogking", name: "沼呑みの蛙王", elite: true, rank: 10, race: "beast", element: "earth", artKey: "hd_bogfrogking", // 第9層の強敵。絵は hd_* の固有原型
     ability: "paralyze", abRate: 0.45, regen: 0.05, // 痺れの舌を伸ばし続け、泥に潜って傷を塞ぐ
-    desc: "毒沼の底に棲む、小屋ほどもある大蛙の王。伸ばす舌の粘液は触れた者を痺れさせ、動けなくなった獲物を丸呑みにする。泥に潜れば傷はたちまち塞がる。沼の蛙の鳴き声は、すべてこの王を讃える歌だという。" }, // 第9層
+    desc: "毒の沼に棲む、小屋ほどもある大蛙の王。頭には、沼に沈んだ兵の錆びた兜を潰して重ねた冠をいただく。長い舌を伸ばして獲物を打ち、舌先の粘液に触れた者は痺れて動けなくなる。半ば泥に浸かった体は、傷を負っても泥に潜ればたちまち塞がる。沼の蛙の鳴き声は、すべてこの王を讃える歌だという。" }, // 第9層
   { id: "el_librarian", name: "禁書の司書長", elite: true, rank: 10, race: "undead", element: "dark", artKey: "pettyrevenant", soulClass: "mage",
     ability: "spell", abRate: 0.45, magResist: 50, // 暗記した呪文を浴びせ続け、乾いた体は呪文を吸う
     desc: "魔導書庫の禁書の棚を、死してなお守り続ける司書長。許しなく頁を開いた者に、暗記した数千の呪文を浴びせる。乾ききった体は呪文を吸い、頁をめくる音が止むことはない。" }, // 第13層
@@ -2120,7 +2125,7 @@ export const LAYER_POOLS = {
     "bs_iciclehorror", "bs_frostknight", "bs_frostlich", "bs_frostmaiden", "bs_icegolem",
     "bs_frozenangel", "bs_frostwyrm", "bs_rimegiant", "bs_frostfiend",
   ],
-  // 第9層「毒沼」: 毒/腐敗中心、rank9-10。疫病系の闇undeadを再配置
+  // 第9層「毒沼」: 毒/腐敗中心、rank10 (上限)。疫病系の闇undeadを再配置
   9: [
     "bs_plaguebeast", "bs_rotooze", "bs_swamphag", "bs_bogdrowned", "bs_venomspider",
     "bs_miasmawraith", "bs_corpseflower", "bs_plaguerat", "bs_toxicgolem", "bs_leechswarm",

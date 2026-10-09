@@ -376,13 +376,13 @@
 }
 @keyframes pccall {
   0% { opacity: 0; transform: translateX(-6px); }
-  8% { opacity: 1; transform: translateX(0); }
-  80% { opacity: 1; }
+  6% { opacity: 1; transform: translateX(0); }
+  85% { opacity: 1; }
   100% { opacity: 0; }
 }
 .pc-cl {
   max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-size: 10px; font-weight: 800; line-height: 13px; letter-spacing: 0.3px;
+  font-size: 11px; font-weight: 800; line-height: 14px; letter-spacing: 0.3px;
   padding: 0 5px 0 4px; border-left: 2px solid currentColor; border-radius: 0 2px 2px 0;
   background: linear-gradient(90deg, rgba(8,6,8,0.94), rgba(8,6,8,0.8) 75%, rgba(8,6,8,0.55));
   text-shadow: 0 1px 0 #000, 0 0 4px rgba(0,0,0,0.9);
@@ -392,7 +392,7 @@
 .pc-cl.k-heal  { color: #9ff0b8; }   /* 回復・治療・魔力 */
 .pc-cl.k-item  { color: #d8e6a0; }   /* 道具 */
 .pc-cl.k-guard { color: #a8c4e6; }   /* 防御 */
-.pc-cl.k-proc  { color: #c8b4ff; font-size: 9.5px; } /* 発動した効果 (パッシブ・反撃・かばう…) */
+.pc-cl.k-proc  { color: #c8b4ff; font-size: 10px; } /* 発動した効果 (パッシブ・反撃・かばう…) */
 .pc-cl.k-proc::before { content: "◆"; margin-right: 2px; font-size: 7.5px; vertical-align: 1px; opacity: 0.9; }
 
 /* ===== 戦闘のコマンド板 ===== */
@@ -416,6 +416,16 @@
 }
 #combat-menu .who-n { color: var(--dg-gold-hi); font-weight: 800; font-size: 14px; letter-spacing: 1px; text-shadow: 0 0 10px rgba(201,162,74,0.4), 0 1px 0 #000; }
 #combat-menu .who-t { color: #b4a286; font-weight: 700; }
+/* 使った技の札 (game.js callPlate):「〇〇の エクスプロージョン」。技の名を大きく金で */
+#combat-menu .who-sk {
+  font-size: 16px; font-weight: 800; color: #ffe9b0; letter-spacing: 1px;
+  padding: 1px 8px; border: 1px solid #8a6a2c; border-radius: 3px;
+  background: linear-gradient(180deg, rgba(90,62,18,0.75), rgba(30,20,8,0.75));
+  text-shadow: 0 0 10px rgba(243,213,139,0.6), 0 1px 0 #000;
+  animation: who-sk-in 0.18s ease-out;
+}
+@keyframes who-sk-in { from { transform: scale(1.15); } to { transform: none; } }
+@media (prefers-reduced-motion: reduce) { #combat-menu .who-sk { animation: none; } }
 #combat-menu .who-c {
   font-size: 10px; font-weight: 700; color: #cbb991; line-height: 1;
   padding: 2px 5px; border: 1px solid #4d3f37; border-radius: 2px; background: rgba(0,0,0,0.35);
