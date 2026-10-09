@@ -703,8 +703,10 @@ export function confirm(o = {}) {
       accent: o.danger === false ? null : "#c43a2f",
       title: o.title, lines: o.lines || [], body: o.body || null,
       className: "ui-confirm" + (o.className ? " " + o.className : ""),
+      // o.extra = 実行とやめるの間に置くボタン (押しても確認は閉じない。例: 職業図鑑を見る)
       footer: [
         { label: o.okLabel || "実行する", kind: o.danger === false ? "primary" : "danger", size: "lg", onTap: (s) => finish(true, s) },
+        ...(o.extra || []).filter(Boolean),
         { label: o.cancelLabel || "やめる", kind: "ghost", onTap: (s) => finish(false, s) },
       ],
       onBack: (s) => finish(false, s),
