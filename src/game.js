@@ -646,9 +646,17 @@ function partySoulLvMul() {
 }
 // テスト記録: 得た額のうち、倍率で増えた分の内訳 (順に掛けて、それぞれの倍率で増えた分)。
 // pre = パッシブ (金運・魂寄せ・魂の聖別) を掛ける前の額 / base = 倍率を掛ける前の額 / mu = 異変・掟・出来事の効果・奈落を合わせた倍率
+// 戦闘の戦果は倍率が通常敵の分だけに掛かる (battleModifierReward) ので、mu は全体の倍率 full より小さい。
+// そのときは異変・掟の倍率も同じ割合 (対数の比) だけ効いたものとして分ける (主だけの戦い = 0 → 掟の上乗せも 0)
 function tlUplift(pre, base, sf, key, mu, eq) {
   const md = mutDef(), tr = dungeonTrait();
-  const mm = (md && md[key]) || 1, tm = (tr && tr.mods && tr.mods[key]) || 1, om = mu / (mm * tm);
+  let mm = (md && md[key]) || 1, tm = (tr && tr.mods && tr.mods[key]) || 1;
+  const full = mutNum(key, 1);
+  if (mu !== full && full > 0 && mu > 0 && Math.abs(Math.log(full)) > 1e-9) {
+    const share = Math.log(mu) / Math.log(full);
+    mm = mm ** share; tm = tm ** share;
+  }
+  const om = mu / (mm * tm);
   const up = { psv: base - pre };
   let v = base;
   for (const [k, m] of [["sf", sf], ["mut", mm], ["trait", tm], ["oth", om], ["eq", eq]]) { up[k] = v * (m - 1); v *= m; }
