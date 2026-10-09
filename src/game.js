@@ -6996,6 +6996,11 @@ function trapBaseDmg() {
   return (5 + G.floor * 3 + rand(6)) * TRAP_K * lockPow(levelHere().lv); // 推奨Lv の隊の HP の伸びに合わせる (levelcurve.js)
 }
 
+// 黄金喰い・魂喰らいで失う量: その階の推奨Lv の普通の1戦 (levelcurve.js refGold / refSoul) × 戦果の数 n、±15%
+function trapLoss(ref, n) {
+  return Math.max(1, Math.round(ref(levelHere().lv) * n * (0.85 + Math.random() * 0.3)));
+}
+
 // 罠の効果を適用し、何が起きたかを返す (知らせ方は presentTrap が決める)。
 // opener: 開けた者/先頭の解除役 (opener型の罠が狙う)。
 // 返り値 kind: "teleport" (飛ばされる・中身を失う) | "alarm" (戦闘・中身を失う) | "harm" (痛手/吸収。fallen/wiped を伴う)
@@ -7094,7 +7099,9 @@ function applyTrapMeasured(trap, opener) {
       break;
     }
     case "gold": {
-      const loss = Math.min(G.gold, Math.round(G.gold * 0.15) + 10);
+      // 進行度に応じた量 (2026-10 ユーザーの指示: 所持金の割合だと貯めるほど痛かった)。
+      // その階の推奨Lv の普通の1戦の金貨 (refGold) × trap.loss、±15% の揺らぎ。所持金より多くは失わない
+      const loss = Math.min(G.gold, trapLoss(refGold, trap.loss || 3));
       G.gold = Math.max(0, G.gold - loss);
       updateTopbar();
       lines.push(`${loss} ゴールドが溶かされた…`);
@@ -7103,7 +7110,8 @@ function applyTrapMeasured(trap, opener) {
       break;
     }
     case "soul": {
-      const loss = Math.min(G.soulPts, Math.round(G.soulPts * 0.10) + 5);
+      // 金貨と同じく進行度に応じた量: 普通の1戦の ✦Soul (refSoul) × trap.loss
+      const loss = Math.min(G.soulPts, trapLoss(refSoul, trap.loss || 2));
       G.soulPts = Math.max(0, G.soulPts - loss);
       updateTopbar();
       lines.push(`✦${loss} Soul を吸い取られた…`);
