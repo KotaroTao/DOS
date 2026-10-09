@@ -2,7 +2,7 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, setPartyEvadeBonus, setResonance, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, partyBreathRes, setResonance, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageLabel, isBattleLong, turnsLeftLabel, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -5874,10 +5874,13 @@ function clueBoon(kind) {
 }
 // 胸の扉の覚え書き (evade): 隊の全員の回避率 +1% (combat.js setPartyEvadeBonus)
 const CLUE_EVADE = 0.01;
+// 雷よけの書きつけ (breathWard): 隊の全員のブレス耐性 +5% (combat.js setPartyBreathBonus。装備のブレス耐性と合わせて上限 50%)
+const CLUE_BREATH = 0.05;
 // セラの囁き (soulEcho): 迷宮で職業の魂を拾った時、この確率でもう一つ拾える (grantSoulQuiet)
 const SOUL_ECHO_RATE = 0.05;
 function syncClueBoons() {
   setPartyEvadeBonus(clueBoon("evade") ? CLUE_EVADE : 0);
+  setPartyBreathBonus(clueBoon("breathWard") ? CLUE_BREATH : 0);
   restockElixirs();
 }
 function stabilityMinutes() { return Math.round(stabilityRecoveryMs() / 60000); }
@@ -7482,6 +7485,8 @@ function startBattleMeasured(enemies, cell) {
     for (const p of G.party) if (p.alive && p.hp > 1) { const d = Math.min(p.hp - 1, Math.ceil(p.maxhp * trB.hpDrain)); burnt += d; p.hp -= d; }
     if (burnt) log(`釜の熱気が肌を焼いた (HP -${burnt})。`, "dmg");
   }
+  // 迷宮の掟: 疾風の巣 (trait.allHaste) — 敵はみな神速 (ラウンドの頭に動き、後半にもう一度動く)。主と金属の魔物は除く
+  if (trB && trB.allHaste) for (const e of enemies) if (!e.boss && !e.metal && !e.haste) { e.haste = true; e.agi += 8; }
   // 迷宮の主に遭遇した: 討つ前でも図鑑に名だけ載せる (遭遇するまでは「？？？」のまま)
   for (const e of enemies) if (e.boss && e.key && MONSTERS[e.key]) { if (!G.codex.met) G.codex.met = {}; G.codex.met[e.key] = 1; }
   G.state = "combat";
@@ -7568,6 +7573,17 @@ function startBattleMeasured(enemies, cell) {
       }
     }
     if (sick.length) log(`よどんだ瘴気が肺を焼く ― ${sick.join("・")}は毒に冒された。`, "dmg");
+  }
+  // 迷宮の掟: 落雷 (trait.boltStart) — 戦闘の開幕に、隊の一人へ雷が落ちて最大HPのこの割合を焼く (ブレス耐性で和らぐ。HP1 は残る)
+  if (trC && trC.boltStart > 0) {
+    const live = G.battle.party.filter((p) => p.alive && p.hp > 1);
+    if (live.length) {
+      const p = live[rand(live.length)];
+      const d = Math.min(p.hp - 1, Math.max(1, Math.ceil(p.maxhp * trC.boltStart * (1 - partyBreathRes(p)))));
+      p.hp -= d;
+      log(`渦巻く雷雲から雷が落ちた ― ${p.name}が焼かれた (HP -${d})。`, "dmg");
+      flashScreen("#d8e0ff");
+    }
   }
   if (physOnlyHere()) log("呪文を封じる霧が立ちこめている ― 物理技と道具のほかは使えない。", "sys");
   if (foeLv - partyLevel() >= 4) log(`格上の敵だ (Lv${foeLv})。眠りや毒、即死の術はほとんど効かず、敵の術はよく効く。`, "sys");
@@ -11897,6 +11913,7 @@ function tavernHintAllowed(req) {
   if (req === "furnace") return worldOpenId("w18");                                 // 灼熱の洞 (火を噴く地割れが地図に現れた後)
   if (req === "frost") return worldOpenId("w22");                                   // 氷結回廊 (奈落の氷棚が地図に現れた後)
   if (req === "swamp") return worldOpenId("w26");                                   // 毒沼 (腐れ水の岸が地図に現れた後)
+  if (req === "storm") return worldOpenId("w30");                                   // 嵐の尖塔 (風鳴りの螺旋が地図に現れた後)
   return featureUnlocked(req);                           // fusion / rumor / order / expedition
 }
 // 酒場の顔ぶれを選び直す (ダンジョン帰還時・初回入店時に呼ぶ)

@@ -194,6 +194,14 @@ const UNKNOWN_NAME = {
   bs_leechswarm: "ぬめる群れ",
   bs_necromancer: "鉤杖を掲げる骸",
   bs_plaguelich: "冠をいただく骸",
+  // 第10層「嵐の尖塔」: 渦・女の影が重なるので、見た目の違いで呼び分ける
+  bs_stormlord: "顔の浮かぶ大渦",
+  bs_stormelemental: "人の形の雷雲",
+  bs_cyclonecore: "光る渦の芯",
+  bs_stormhag: "杖をつく老婆の影",
+  el_blizzardwitch: "雲に乗る女の影",
+  bs_galewisp: "青白い光の群れ",
+  el_stareater: "星の透ける大きな影",
 };
 
 // 画面に出すときの不確定名: 正式な名と見分けがつくよう末尾に「？」を添える (「羽ばたく小さなもの？」)。

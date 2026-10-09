@@ -438,6 +438,10 @@ export function setElemKnown(fn) { _elemKnown = typeof fn === "function" ? fn : 
 // 隊の全員に足す回避率 (手がかりの恵み「根に抱かれた胴」+1%。game.js syncClueBoons が渡す)。敵の物理をかわす確率に足す
 let _partyEvadeBonus = 0;
 export function setPartyEvadeBonus(v) { _partyEvadeBonus = Math.max(0, +v || 0); }
+// 手がかりの恵み (雷よけの書きつけ): 隊の全員のブレス耐性に足す割合。装備のブレス耐性と合わせて BREATH_RES_CAP まで
+let _partyBreathBonus = 0;
+export function setPartyBreathBonus(v) { _partyBreathBonus = Math.max(0, +v || 0); }
+export function partyBreathRes(t) { return Math.min(BREATH_RES_CAP, (t.breathRes || 0) + (t.side === "party" ? _partyBreathBonus : 0)); }
 const elemSeen = (t) => !(t && t.side === "enemy" && _elemKnown && !_elemKnown(t));
 // 属性を知らない敵の見かけ (固有属性だけ「なし」に見せ、ほかは本体を読む)。固有パッシブの「弱点を突いた時」の判定用
 const elemMask = (t) => (elemSeen(t) ? t : Object.create(t, { element: { value: "none" } }));
@@ -1947,7 +1951,7 @@ export class Battle {
         const ward = this._bm(t, spell ? "wardS" : "wardB");
         if (ward > 1) dmg = Math.max(1, Math.round(dmg / ward));
         // 装備のブレス耐性 (竜鱗の盾など。合計の上限 50%)
-        if (!spell && t.breathRes) dmg = Math.max(1, Math.round(dmg * (1 - Math.min(BREATH_RES_CAP, t.breathRes))));
+        { const br = spell ? 0 : partyBreathRes(t); if (br) dmg = Math.max(1, Math.round(dmg * (1 - br))); }
         if (bigB) dmg = Math.max(1, Math.ceil(dmg * 0.5));
         else if (t._barrierLeft > 0) {
           // 魔障壁: 個人のブレス・呪文被ダメ半減 (残回数制)。魔力反射は防いだ分を返す

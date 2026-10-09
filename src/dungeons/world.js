@@ -44,6 +44,8 @@
 //             physOnly 魔封じ: 隊は物理技と道具のほかの技 (呪文・回復・強化・弱体・迷宮の術) を使えない (沈んだ書庫)
 //             alwaysAmbush どの戦闘も必ず奇襲で始まる (主の戦いは除く。白狼の吹き溜まり)
 //             poisonStart 戦闘の開幕に、隊の一人ひとりがこの確率で毒に冒される (毒の耐性で防げる。よどみの底)
+//             boltStart 戦闘の開幕に隊の一人へ雷が落ち、最大HPのこの割合を焼く (ブレス耐性で和らぐ。HP1 は残る。嵐の尖塔の頂)
+//             allHaste 敵はみな神速 (ラウンドの頭に動き、後半にもう一度動く。主は除く。雷鳥の巣)
 //   challenge 格上の迷宮: 開く章の適正Lv よりはるかに高い推奨Lv を持つ寄り道。奈落の層 (abyssLayer) の推奨Lv・強さの平均には数えない
 //   tune    強さの手直し (generator.js DUNGEON_TUNE と同じ欄)。第4層からはテスト記録がまだ無いので、模擬戦で既存の迷宮に
 //           つないだ: 装備なしの6人 (戦士2・侍・僧侶・魔導士・盗賊、魂の Lv = その階の n の物差しの Lv — 当時の推奨Lv。
@@ -68,6 +70,7 @@
 //           第8層 (第六章) は、強さの素を第五章の同じ並びの迷宮の 0.9倍 (第四章 → 第五章と同じ層の段差) にし、手直しも第五章に倣った。
 //           顔ぶれのランクが 9〜10 に上がった分は monStats が持つので、これもテスト記録で測り直す
 //           第9層 (第七章) も同じく第六章の 0.9倍。顔ぶれはランク10 (上限) にそろえた。テスト記録で測り直す
+//           第10層 (第八章) も第七章の 0.9倍。寄り道の雷鳥の巣 (敵はみな神速) は二度動く分だけ強さの素を約2割下げた。テスト記録で測り直す
 import { LAYER_ELEMENT } from "./generator.js";
 import { LAYER_BOSS, LAYER_ELITES, LAYER_POOLS, BESTIARY } from "./bestiary.js";
 import { baselineLv } from "../baseline.js";
@@ -649,6 +652,89 @@ const WORLD_DEF = [
     unlock: { all: ["w27", "w28"] },
     hint: "「器の捨て場」と「毒霧の葦原」の両方を踏破して王に報告すると、よどみの底への道が開く",
   },
+  // ---- 第八章「嵐の尖塔」(第10層の顔ぶれ) ── 沼の島の工房の奥から、奈落の縦穴を上へ伸びる塔。嵐と雷が絶えず渦を巻く ----
+  //   強さの素は第七章の各迷宮の 0.9倍 (層の入口の1割の段差)。手直しは第七章に倣う。顔ぶれはランク10 (上限)
+  {
+    id: "w30", lv: 88, lvTo: 90, layer: 10, floors: 10,
+    power: { 1: 0.1261, 5: 0.1357, 10: 0.1469 },
+    name: "風鳴りの螺旋", short: "螺旋",
+    about: "沼の島の工房の奥から、塔の螺旋階段が闇の上へ伸びている。吹き抜けを、下から風が鳴りながら昇っていく",
+    bands: [
+      ["bs_galewisp", "bs_ravenswarm", "bs_windscythe", "bs_galehound", "bs_windwraith", "bs_thunderbeast"],
+      ["bs_cyclonecore", "bs_zephyrfiend", "bs_lightninggolem"],
+    ],
+    elites: ["el_blizzardwitch"],
+    trait: {
+      id: "spiral", name: "螺旋の吹き抜け", sym: "↟", accent: "#9aa8d8",
+      lines: ["階段の真ん中は底まで吹き抜けで、各階に落とし穴が2つ増える (浮遊で避けられる)。踊り場には宝箱が1つ増える。", "吹き上げる風が魂を運び上げ、得る ✦Soul は 1.25倍。"],
+      mods: { soulMul: 1.25 },
+      board: "shaft",
+    },
+    tune: { enemyMul: 1.06, deepMul: 0.76, soloMul: 1.05 },
+    unlock: { reported: "w29" },
+    hint: "「よどみの底」の踏破を王に報告すると、沼の島の工房の奥の塔へ登る許しが出る",
+  },
+  {
+    id: "w31", lv: 90, lvTo: 92, layer: 10, floors: 10,
+    power: { 1: 0.1231, 5: 0.1327, 10: 0.1437 },
+    name: "嵐を鳴らす鐘楼", short: "鐘楼",
+    about: "塔の中ほどに吊られた、いくつもの大鐘。嵐が吹き抜けるたび、誰も撞かない鐘が鳴りわたる",
+    bands: [
+      ["bs_boltarcher", "bs_galewisp", "bs_soulanchor", "bs_stormelemental", "bs_ravenswarm", "bs_windwraith"],
+      ["bs_stormcaller", "bs_harpyqueen", "bs_cloudgiant"],
+    ],
+    elites: ["el_stareater"],
+    trait: {
+      id: "bells", name: "鳴りやまぬ鐘", sym: "♫", accent: "#d8c088",
+      lines: ["鐘の音が忍び寄る魔物を知らせ、奇襲を受けにくい (×0.5)。だが鐘に呼ばれて、強敵の階が出やすい (30%)。", "鐘の響きが魂を呼び集め、得る ✦Soul は 1.3倍。"],
+      mods: { ambushMul: 0.5, soulMul: 1.3 },
+      eliteRate: 0.30,
+    },
+    tune: { enemyMul: 1.02, deepMul: 0.84, soloMul: 1.00 }, // 強敵の階が多い分だけ強敵を控えめに
+    unlock: { story: "w30_stick" },
+    hint: "「風鳴りの螺旋」のどこかに、師が塔を登った跡が残されているという",
+  },
+  {
+    id: "w32", lv: 92, lvTo: 94, layer: 10, floors: 10,
+    power: { 1: 0.1215, 5: 0.1311, 10: 0.1422 },
+    name: "雷の落ちる回廊", short: "雷廊",
+    about: "塔の外壁をめぐる、吹きさらしの回廊。鉄の手すりに、絶え間なく雷が落ちる",
+    element: "wind",
+    bands: [
+      ["bs_thunderbeast", "bs_lightninggolem", "bs_cyclonecore", "bs_zephyrfiend", "bs_galehound", "bs_thunderroc"],
+      ["bs_tempestserpent", "bs_galeknight", "bs_stormhag"],
+    ],
+    elites: ["el_blizzardwitch"],
+    trait: {
+      id: "railbolt", name: "帯電した手すり", sym: "ϟ", accent: "#b8c8f8",
+      lines: ["回廊の魔物は、どれも雷 (風) を帯びている。火の刃と火の守りが通る。", "落雷に焼かれた旅人の金貨が、手すりの根元に散らばっている。得られる金貨は 1.35倍。"],
+      mods: { elemAll: true, goldMul: 1.35 },
+    },
+    tune: { enemyMul: 0.99, deepMul: 0.84, soloMul: 1.05 },
+    unlock: { reported: "w30" },
+    hint: "「風鳴りの螺旋」の踏破を王に報告すると、塔の外壁をめぐる回廊が示される",
+  },
+  {
+    id: "w33", lv: 94, lvTo: 97, layer: 10, floors: 15,
+    power: { 1: 0.1188, 5: 0.1244, 10: 0.1308, 15: 0.1366 },
+    name: "嵐の尖塔の頂", short: "頂",
+    about: "塔のいちばん上。渦を巻く雷雲の中心に、火のともらない大きな灯台が立っている",
+    bands: [
+      ["bs_thunderroc", "bs_cloudgiant", "bs_soulanchor", "bs_stormelemental", "bs_boltarcher", "bs_windscythe"],
+      ["bs_skydrake", "bs_harpyqueen", "bs_galeknight"],
+      ["bs_stormcaller", "bs_tempestserpent", "bs_stormhag"],
+    ],
+    trait: {
+      id: "bolt", name: "落雷", sym: "⚡", accent: "#f0e080",
+      lines: ["渦巻く雷雲から雷が落ちる。戦闘が始まるたび、隊の一人に雷が落ちて最大HPの25%を焼く (ブレス耐性で和らぐ。HP1 は残る)。", "嵐に巻かれた魂が濃く渦を巻き、得る ✦Soul は 1.4倍。"],
+      mods: { soulMul: 1.4 },
+      boltStart: 0.25,
+    },
+    boss: LAYER_BOSS[9], bossRank: 10,
+    tune: { enemyMul: 0.97, deepMul: 0.88, soloMul: 1.10, bossMul: 0.85 }, // 第10層の壁。開幕の落雷の分だけ控えめ
+    unlock: { all: ["w31", "w32"] },
+    hint: "「嵐を鳴らす鐘楼」と「雷の落ちる回廊」の両方を踏破して王に報告すると、塔の頂への道が開く",
+  },
   // ---- 依頼の迷宮 (酒場の固定クエストを受けると地図に現れる) ----
   {
     id: "ws1", lv: 20, lvTo: 23, layer: 2, floors: 10, side: true,
@@ -928,6 +1014,68 @@ const WORLD_DEF = [
     unlock: { quest: "fq_ferry" },
     hint: "酒場の渡し守の孫娘の依頼「渡し守の灯」を受けると、道が示される",
   },
+  {
+    // 極端な掟の迷宮: 敵はみな神速 (ラウンドの頭に動き、後半にもう一度動く)。1体ずつは軽くしてある
+    id: "ws15", lv: 89, lvTo: 93, layer: 10, floors: 10, side: true,
+    power: { 1: 0.1, 5: 0.108, 10: 0.116 },
+    name: "雷鳥の巣", short: "巣",
+    about: "塔の外壁に張りついた、雷鳥たちの巨大な巣。巣に住むものは、目にも止まらぬ速さで飛び回る",
+    element: "wind",
+    bands: [
+      ["bs_ravenswarm", "bs_galehound", "bs_thunderbeast", "bs_windscythe", "bs_thunderroc", "bs_galewisp"],
+      ["bs_harpyqueen", "bs_skydrake", "bs_zephyrfiend"],
+    ],
+    elites: ["el_stareater"],
+    trait: {
+      id: "nest", name: "疾風の巣", sym: "»", accent: "#a8d8f0",
+      lines: ["巣のものはみな神速。どの敵もラウンドの頭に動き、後半にもう一度動く (1体ずつの力は軽い)。", "巣にため込まれた光りものの分だけ、得る ✦Soul は 1.2倍。"],
+      mods: { soulMul: 1.2 },
+      allHaste: true,
+    },
+    tune: { enemyMul: 0.90, deepMul: 0.82, soloMul: 0.95 }, // 二度動く分だけ軽め
+    unlock: { quest: "fq_plume" },
+    hint: "酒場の羽細工師の依頼「雷鳥の羽」を受けると、道が示される",
+  },
+  {
+    id: "ws16", lv: 91, lvTo: 95, layer: 10, floors: 10, side: true,
+    power: { 1: 0.122, 5: 0.131, 10: 0.141 },
+    name: "錆びた避雷針の林", short: "針の林",
+    about: "塔の張り出しに、錆びた鉄の針が林のように立ち並ぶ。針から針へ、青白い火花が渡っていく",
+    bands: [
+      ["bs_lightninggolem", "bs_windwraith", "bs_boltarcher", "bs_cyclonecore", "bs_stormelemental", "bs_galewisp"],
+      ["bs_galeknight", "bs_cloudgiant", "bs_stormcaller"],
+    ],
+    elites: ["el_blizzardwitch"],
+    trait: {
+      id: "rods", name: "帯電した林", sym: "†", accent: "#a0b0c8",
+      lines: ["林の空気は帯電していて、戦闘が始まるたび隊の HP が最大の 5%ずつ焼ける (HP1 は残る)。", "針の根元に埋められた古い箱は、どれも1ランク上等。"],
+      mods: { chestRankUp: 1 },
+      hpDrain: 0.05,
+    },
+    tune: { enemyMul: 0.97, deepMul: 0.82, soloMul: 1.05 },
+    unlock: { quest: "fq_rodsmith" },
+    hint: "酒場の避雷針職人の依頼「錆びた針」を受けると、道が示される",
+  },
+  {
+    id: "ws17", lv: 93, lvTo: 97, layer: 10, floors: 10, side: true,
+    power: { 1: 0.12, 5: 0.129, 10: 0.139 },
+    name: "雲上の庭", short: "雲庭",
+    about: "雷雲の上に張り出した、崩れた庭園。誰も世話をしないはずの花が、枯れずに咲いている",
+    bands: [
+      ["bs_stormelemental", "bs_galewisp", "bs_windwraith", "bs_soulanchor", "bs_thunderroc", "bs_windscythe"],
+      ["bs_stormhag", "bs_skydrake", "bs_tempestserpent"],
+    ],
+    elites: ["el_stareater"],
+    trait: {
+      id: "cloudspring", name: "雲間の泉", sym: "❀", accent: "#c8e8d0",
+      lines: ["庭のあちこちに、雲から落ちる澄んだ泉が湧く (各階に泉が2つ増える)。", "花のあいだに魂が憩い、得る ✦Soul は 1.25倍。"],
+      mods: { soulMul: 1.25 },
+      board: "font",
+    },
+    tune: { enemyMul: 1.00, deepMul: 0.84, soloMul: 1.05 }, // 泉で立て直せる分だけ並みの強さ
+    unlock: { quest: "fq_garden" },
+    hint: "酒場の老いた庭師の依頼「雲の上の花」を受けると、道が示される",
+  },
 ];
 
 // 敵の種類: 3種 + 5階ごとに3種 (全5階 = 6種 / 全10階 = 9種 / 全15階 = 12種)。ミミック・銀業などの共通の敵と
@@ -1056,7 +1204,8 @@ const _abyssLayers = new Map();
 export function abyssLayer(L) {
   L = Math.max(1, Math.floor(L));
   if (_abyssLayers.has(L)) return _abyssLayers.get(L);
-  const ds = WORLD.filter((d) => d.layer === L && !d.challenge); // 格上の迷宮 (challenge) は層の物差しに数えない
+  // 格上の迷宮 (challenge) と、掟で1体ずつを軽くした迷宮 (敵がみな神速の allHaste — 奈落の敵は神速にならない) は層の物差しに数えない
+  const ds = WORLD.filter((d) => d.layer === L && !d.challenge && !(d.trait && d.trait.allHaste));
   let info;
   if (ds.length) {
     // 雑魚の実効の強さの素 = 強さの素 × 手直し (浅階 enemyMul / 深階 ×deepMul) を、その層の迷宮の全階で平均
@@ -1131,7 +1280,7 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
     if (d.trait) {
       const t = d.trait;
       if (!t.id || !t.name || !Array.isArray(t.lines)) throw new Error(`world: ${d.id} trait needs id/name/lines`);
-      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
+      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart", "boltStart", "allHaste"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
     }
     for (const k of d.elites || []) if (!BESTIARY[k]) throw new Error(`world: ${d.id} unknown elite ${k}`);
   }
