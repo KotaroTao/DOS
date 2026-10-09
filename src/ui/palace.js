@@ -23,6 +23,7 @@ import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LOR
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_KIND_LABEL, shieldKind, itemName } from "../items.js";
 import { RANK_COLOR, RANK_NAME } from "../content.js";
 import { poolAt } from "../dungeons/world.js";
+import { MONSTER_LORE } from "../dungeons/monlore.js";
 import { DUNGEONS, ELEMENTS, RACE_LABEL, monsterTraits, isFloating, resistHpMul, METAL_TIERS } from "../dungeons/index.js";
 import { SPELLS, spellMpLabel } from "../combat.js";
 import {
@@ -600,6 +601,15 @@ export function codexMonSheet(key, o = {}) {
     if (aff) body.appendChild(aff);
   }
   if (loreOpen && m.desc) body.appendChild(setText(el("div", "pl-detail-desc"), m.desc));
+  // 伝承: 説明文と同じ段 (10体・主と強敵は1体) で開く、世界の側から見たその魔物。出典を添える
+  const lore = loreOpen ? MONSTER_LORE[key] : null;
+  if (lore) {
+    const box = el("div", "pl-lore");
+    box.appendChild(el("div", "pl-lore-h", "伝承"));
+    box.appendChild(setText(el("div", "pl-lore-t"), lore.text));
+    box.appendChild(el("div", "pl-lore-by", `── ${lore.by}`));
+    body.appendChild(box);
+  }
   // 金属の魔物: 能力値は出た階で組み直すので、HP と「普通の戦闘の何倍の✦Soul か」だけを示す
   const mt = m.metal ? METAL_TIERS[m.metal] : null;
   const info = el("div", "pt-info");
@@ -635,7 +645,7 @@ export function codexMonSheet(key, o = {}) {
   if (loreOpen) {
     const traits = monsterTraits(m);
     body.appendChild(infoBlock("特徴・スキル", traits.length ? traits.map((t) => pairRow(t.label, t.desc, { tags: traitTagKinds(t.key, elKey) })) : [pairRow("特筆すべき特徴はない", null, { dim: true })]));
-  } else body.appendChild(revealLock(R.lore, "特徴・スキル・説明文"));
+  } else body.appendChild(revealLock(R.lore, MONSTER_LORE[key] ? "特徴・スキル・説明文・伝承" : "特徴・スキル・説明文"));
   if (!loreOpen) body.appendChild(revealLock(R.lore, "抵抗値"));
   // 名のある強敵: 縄張り・目撃・首級・懸賞
   const ni = m.named && game.namedInfo ? game.namedInfo(key) : null;

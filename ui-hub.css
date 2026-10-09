@@ -560,6 +560,11 @@
 .pl-job-ranks { margin: 6px 0 2px; }
 .pl-detail-desc { font-size: 13px; line-height: 1.75; color: #d8ccb2; }
 .pl-detail-desc.tips { color: #b9c4d8; }
+/* 魔物の伝承 (図鑑): 説明文の下、古い書き付けのような一枚 */
+.pl-lore { position: relative; padding: 9px 12px 8px; background: linear-gradient(180deg, rgba(40,30,20,0.42), rgba(14,10,8,0.55)); border: 1px solid #3d3124; border-left: 2px solid #8a6d2e; border-radius: 2px; }
+.pl-lore-h { margin-bottom: 4px; font-size: 11px; font-weight: 800; letter-spacing: 0.3em; color: var(--accent); }
+.pl-lore-t { font-size: 13px; line-height: 1.85; color: #e2d6bb; white-space: pre-line; }
+.pl-lore-by { margin-top: 5px; text-align: right; font-size: 11.5px; color: #a8987a; }
 .pl-detail-stats { text-align: center; font-size: 12.5px; font-weight: 700; color: var(--accent-hi); font-variant-numeric: tabular-nums; line-height: 1.6; }
 .pl-info { padding: 8px 10px; background: rgba(8,6,9,0.6); border: 1px solid #2a2226; border-radius: 3px; }
 .pl-info-h { margin-bottom: 4px; font-size: 11.5px; font-weight: 800; letter-spacing: 0.2em; color: var(--accent); }
