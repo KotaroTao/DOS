@@ -2,7 +2,7 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, setPartyEvadeBonus, perkVictory, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, setPartyEvadeBonus, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageLabel, isBattleLong, turnsLeftLabel, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -9741,7 +9741,7 @@ function endBattleMeasured() {
     gameOver();
   }
 }
-// 戦闘勝利後の常時効果: 戦闘後回復/魔力回路/法力の灯/浄化/慈悲の祈り。MP回復は魂1つあたり5%まで。
+// 戦闘勝利後の常時効果: 戦闘後回復/魔力回路/法力の灯 (隊全体の状態異常をすべて治す)/浄化/慈悲の祈り。MP回復は魂1つあたり5%まで。
 // Lv付きは最高Lvのみ。教皇の祈り (popePrayer) は持ち主の戦闘後回復を隊全体へ広げる
 function applyVictoryPassives(...args) { return tlGameMeasure("victory", () => applyVictoryPassivesMeasured(...args)); }
 function applyVictoryPassivesMeasured() {
@@ -9751,11 +9751,10 @@ function applyVictoryPassivesMeasured() {
   let healed = false;
   for (const p of G.party) {
     if (!p.alive) continue;
-    const bl = pLv(p, "afterBoth");
-    const hpct = HEAL_PCT[Math.max(pLv(p, "afterHeal"), pope)] + (bl >= 2 ? 0.08 : bl === 1 ? 0.03 : 0);
+    const hpct = HEAL_PCT[Math.max(pLv(p, "afterHeal"), pope)];
     const ml = pLv(p, "afterMp");
-    // 職ごとの固有パッシブ (win) と、MP の共通パッシブ (魔力回路 3/5%・法力の灯 3/5%)。MP は魂1つあたり5%まで (perkVictory)
-    const pw = perkVictory(p, G.party, { afterMp: ml >= 2 ? 0.05 : ml === 1 ? 0.03 : 0, afterBoth: bl >= 2 ? 0.05 : bl === 1 ? 0.03 : 0 });
+    // 職ごとの固有パッシブ (win) と、MP の共通パッシブ (魔力回路 3/5%)。MP は魂1つあたり5%まで (perkVictory)
+    const pw = perkVictory(p, G.party, { afterMp: ml >= 2 ? 0.05 : ml === 1 ? 0.03 : 0 });
     const hpct2 = hpct + pw.hp;
     const mpct = pw.mp;
     if (hpct2 > 0 && p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * hpct2)); healed = true; }
@@ -9775,6 +9774,12 @@ function applyVictoryPassivesMeasured() {
     if (mist) log(sfNum("victoryHeal", 0) > 0 ? "癒しの霊気が傷を塞ぎ、魔力を満たした。" : "樹液の香りが傷を塞ぎ、魔力を満たした。", "heal");
   }
   });
+  // 法力の灯 (隊全体): 生きている味方の状態異常をすべて治す (毒・麻痺・石化も。2026-10 ユーザーの指示)
+  if (G.party.some((p) => p.alive && pLv(p, "afterBoth"))) {
+    let lit = false;
+    for (const p of G.party) if (p.alive && cureAil(p)) lit = true;
+    if (lit) log("法力の灯が隊を照らし、穢れをすべて払った。", "heal");
+  }
   // 浄化 (隊全体) / 自浄 (自分): 毒・麻痺を治す (石化は対象外)
   const hasPurify = G.party.some((p) => p.alive && pLv(p, "purify"));
   let cured = false;

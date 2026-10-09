@@ -102,7 +102,7 @@ const FX_FIELDS = {
 const WHEN = new Set(("race tgtElem tgtAil tgtDebuffed tgtLow tgtHigh boss noBoss selfLow selfHigh selfAil buffed defending mpHigh " +
   "round1 roundGE preempt front back crowd lastFoe allyDown alone elem tgtWeak tgtWeakened").split(" "));
 const AILS = new Set(["poison", "para", "sleep", "confuse", "charm", "seal", "flinch", "strip", "atk", "vit", "agi", "vuln"]);
-// 戦闘に勝った後のMP回復 (win の mp と、共通パッシブの魔力回路・法力の灯): 魂1つあたり最大MPの5%まで。
+// 戦闘に勝った後のMP回復 (win の mp と、共通パッシブの魔力回路): 魂1つあたり最大MPの5%まで。
 // 別の魂どうしは重なる (メイン魂とサブ魂2つで5%ずつ = 15%。サブ魂の枠が増えてもそのまま足す。2026-10 ユーザーの指示)
 export const VICTORY_MP_PER = 0.05;
 function fail(job, what, msg) { throw new Error(`jobkit/${job}: ${what}: ${msg}`); }

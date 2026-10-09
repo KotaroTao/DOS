@@ -276,7 +276,7 @@ function perkCostCut(actor, sp) {
 }
 // 戦闘に勝った後の固有パッシブ (win): その人が受ける HP/MP 回復の割合 (自分の分 + 味方の party 付きの分)。
 // MP は魂1つ (持ち主の人業 × パッシブを覚える職 PASSIVE_JOB) ごとに VICTORY_MP_PER まで、別の魂どうしは足す。
-// ownMp = 共通パッシブ (魔力回路・法力の灯) のその人自身の分 {パッシブのキー: 割合} — 同じ魂の固有パッシブと合わせて頭打ちにする
+// ownMp = 共通パッシブ (魔力回路) のその人自身の分 {パッシブのキー: 割合} — 同じ魂の固有パッシブと合わせて頭打ちにする
 export function perkVictory(p, party, ownMp = {}) {
   let hp = 0;
   const bySoul = new Map(); // 人業 → {職: 割合}
