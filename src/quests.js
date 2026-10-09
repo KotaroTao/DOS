@@ -854,86 +854,13 @@ export const FIXED_QUESTS = [
       "「礼だ。この欠片は、鍛冶場の神棚に置いておく。」",
     ],
   },
-  // ---- 各層の寄り道の迷宮を開く依頼 (world.js ws6〜ws16。受けると地図に現れる) ----
-  {
-    id: "fq_hans2", name: "名もなき骨", giver: { name: "墓守のハンス", title: "老墓守" },
-    appear: { reported: "w02", claimed: "fq_hans" },
-    goal: { type: "clear", dungeon: "ws6" }, desc: "「名もなき納骨堂」を踏破する",
-    ref: "ws6", reward: { gold: 24, soul: 24, red: 6, embers: 1, souls: [["rare", 2]] },
-    opens: ["ws6"],
-    lines: [
-      "ハンスが、名札の朽ちた小さな木の板を、何枚も卓に並べていた。",
-      "「墓地の脇に、納骨堂がある。身寄りのない者の骨を納める穴蔵だ。」",
-      "「わしは四十年、名札を書き続けた。だが近ごろ、棚の骨が崩れて、名札と骨がばらばらになってしまった。」",
-      "「骨が起き上がって歩いているのさ。どれが誰の骨か、もう分からん。」",
-      "「底まで降りて、骨たちを静かにさせてくれ。名前は、わしがまた書く。」",
-    ],
-    done: [
-      "「…静かになったか。ありがとう。」",
-      "「名前が分からんでも、手を合わせることはできる。わしは、それでいいと思うことにした。」",
-      "「オルドさんも、名もない骨によく手を合わせておった。…受け取ってくれ。墓守の蓄えだ。」",
-    ],
-  },
-  {
-    id: "fq_fen2", name: "歌の終わり", giver: { name: "詩人フェン", title: "落ちぶれた吟遊詩人" },
-    appear: { reported: "w03", claimed: "fq_fen" },
-    goal: { type: "clear", dungeon: "ws7" }, desc: "「唄い手の霊廟」を踏破する",
-    ref: "ws7", reward: { gold: 26, soul: 26, red: 8, embers: 2, souls: [["epic", 1]] },
-    opens: ["ws7"],
-    lines: [
-      "フェンが、書きかけの譜面を何枚も破り捨てていた。",
-      "「葬送歌の結末を書き直すと言ったな。……書けんのだ。どう書いても、霊廟の歌に負ける。」",
-      "「霊廟には、葬送歌を作った唄い手たちが眠っている。私の師もそこにいる。死んでも、まだ歌い続けているのさ。」",
-      "「霊廟の底まで行って、歌を終わらせてくれ。終わりのない歌は、聞く者を眠らせない。」",
-    ],
-    done: [
-      "「……歌が、止んだか。」",
-      "「最後に、ひと節だけ聞こえた? 終わりの節か。……そうか、師は終わり方を知っていたのだな。」",
-      "「これで、ようやく私の歌が書ける。礼だ、受け取ってくれ。」",
-    ],
-  },
-  {
-    id: "fq_pip", name: "鼠の王さま", giver: { name: "ねずみ捕りのピップ", title: "下水の鼠捕り" },
-    appear: { open: "w04" },
-    goal: { type: "clear", dungeon: "ws8" }, desc: "「溝鼠の大巣」を踏破する",
-    ref: "ws8", reward: { gold: 30, soul: 28, red: 10, embers: 2, souls: [["epic", 1]] },
-    opens: ["ws8"],
-    lines: [
-      "鼠の尻尾を束ねて腰に下げた小柄な若者が、目を輝かせて身を乗り出した。",
-      "「おれはピップ。下水で鼠を捕って暮らしてる。」",
-      "「取水口の奥に、鼠の大巣がある。溝鼠の王さまが、街から流れてきた金貨やがらくたを溜めこんでるんだ。」",
-      "「おれじゃ、巣の入口で囲まれておしまいさ。底まで行って、王さまを追い払ってくれよ。」",
-    ],
-    done: [
-      "「巣の底まで行ったのか！ すげえや。」",
-      "「金貨は持って帰ってきた? ……いいって、いいって。あんたが拾ったんなら、あんたのもんだ。」",
-      "「巣がなくなりゃ、下水の鼠もちっとは減る。これ、お礼。おれの一年分の稼ぎだぜ。」",
-    ],
-  },
-  {
-    id: "fq_thomas", name: "埋もれた試掘坑", giver: { name: "老坑夫トマス", title: "坑口の最後の坑夫" },
-    appear: { open: "w05" },
-    goal: { type: "clear", dungeon: "ws9" }, desc: "「崩れた試掘坑」を踏破する",
-    ref: "ws9", reward: { gold: 32, soul: 32, red: 12, embers: 2, souls: [["epic", 1], ["rare", 1]] },
-    opens: ["ws9"],
-    lines: [
-      "煤で黒くなった手の老人が、古い坑道の図面を広げた。",
-      "「坑口が開いたと聞いた。わしは、あの坑口で働いた最後の坑夫だ。」",
-      "「坑口の脇に、鉱脈を探して掘った試掘坑がある。発破をしくじって崩れ、仲間が三人、閉じこめられた。」",
-      "「もう骨だろう。それでいい。試掘坑の底まで降りて、あいつらの所に灯を届けてくれんか。」",
-    ],
-    done: [
-      "「……底まで、行ったか。」",
-      "「坑気がまだ噴いていたか。あいつらは、あの臭いの中で最後まで掘っていたのだろうな。」",
-      "「坑夫は、明かりのない所で死ぬのをいちばん嫌う。灯が届いたなら、それでいい。これは、わしの蓄えだ。」",
-    ],
-  },
+  // ---- 各層の寄り道の迷宮を開く依頼 (world.js ws6〜ws12。受けると地図に現れる) ----
   {
     id: "fq_bram2", name: "来なかった援軍", giver: { name: "老兵ブラム", title: "片足の退役兵" },
     appear: { reported: "w06", claimed: "fq_bram" },
-    goal: { type: "clear", dungeon: "ws10" }, desc: "「見捨てられた狼煙台」を踏破する",
-    ref: "ws10", reward: { gold: 40, soul: 40, red: 15, embers: 3, souls: [["epic", 1], ["rare", 2]] },
-    opens: ["ws10"],
+    goal: { type: "clear", dungeon: "ws6" }, desc: "「見捨てられた狼煙台」を踏破する",
+    ref: "ws6", reward: { gold: 40, soul: 40, red: 15, embers: 3, souls: [["epic", 1], ["rare", 2]] },
+    opens: ["ws6"],
     lines: [
       "ブラムが、焦げた薪の切れ端を握りしめていた。",
       "「軍旗を下ろしてくれた礼を、まだ言い足りん。……もうひとつ、頼みがある。」",
@@ -949,17 +876,20 @@ export const FIXED_QUESTS = [
   {
     id: "fq_liese2", name: "鍵束の持ち主", giver: { name: "牢番の娘リーゼ", title: "鍵束を継いだ娘" },
     appear: { reported: "w07", claimed: "fq_liese" },
-    goal: { type: "clear", dungeon: "ws11" }, desc: "「獄吏の詰所」を踏破する",
-    ref: "ws11", reward: { gold: 40, soul: 40, red: 15, embers: 3, souls: [["epic", 1], ["rare", 2]] },
-    opens: ["ws11"],
+    goal: { type: "clear", dungeon: "ws7" }, desc: "「獄吏の詰所」を踏破する",
+    ref: "ws7", reward: { gold: 40, soul: 40, red: 20, embers: 4, souls: [["legend", 1], ["epic", 1]] }, // 格上の迷宮 (推奨Lv62〜66) の分だけ厚く
+    opens: ["ws7"],
     lines: [
       "リーゼが、捨てたはずの古い鍵束を、また腰に下げていた。",
       "「捨てようとしたの。でも、鍵の一本に、知らない名前が彫ってあって。」",
       "「地下牢のそばに、獄吏の詰所があったそうです。番人たちが寝起きした所。押収した品も、そこに鍵をかけてしまってあるって。」",
       "「この鍵がどの錠のものか、確かめたいの。詰所の底まで行って、番人たちを眠らせてあげて。」",
+      "「……でも、気をつけて。祖母が言っていたの。詰所の番人は、牢の恨みを百年浴びて、砦のどの亡兵よりも強くなったって。」",
+      "「すぐでなくていいの。あなたたちが、もっともっと強くなってからでいい。鍵束は、それまで待てるから。」",
     ],
     done: [
-      "「……詰所の番人たちも、まだ鍵束を下げていたのね。」",
+      "「……本当に、底まで行ったのね。あの番人たちを相手に。」",
+      "「詰所の番人たちも、まだ鍵束を下げていたのね。」",
       "「彫ってあった名前は、ひいおばあさんの兄さんでした。家族のだれも、名前を知らなかった人。」",
       "「今度こそ、この鍵束は捨てられそう。受け取って。家に残っていた最後の銀貨よ。」",
     ],
@@ -967,9 +897,9 @@ export const FIXED_QUESTS = [
   {
     id: "fq_archive2", name: "沈んだ書庫", giver: { name: "記録係ノーラ", title: "王立書庫を追われた司書" },
     appear: { claimed: "fq_archive", found: "w16_legs" },
-    goal: { type: "clear", dungeon: "ws12" }, desc: "「沈んだ書庫」を踏破する",
-    ref: "ws12", reward: { gold: 44, soul: 40, red: 15, embers: 3, souls: [["epic", 1], ["rare", 2]] },
-    opens: ["ws12"],
+    goal: { type: "clear", dungeon: "ws8" }, desc: "「沈んだ書庫」を踏破する",
+    ref: "ws8", reward: { gold: 44, soul: 40, red: 15, embers: 3, souls: [["epic", 1], ["rare", 2]] },
+    opens: ["ws8"],
     lines: [
       "ノーラが、水に濡れて波打った羊皮紙を、一枚ずつ乾かしていた。",
       "「聖歌の最後の一節を書き留めてから、ずっと考えていました。記録が抜き取られたなら、元の書はどこへ行ったのか。」",
@@ -985,9 +915,9 @@ export const FIXED_QUESTS = [
   {
     id: "fq_dorn3", name: "黒い刃の材", giver: { name: "片腕のドルン", title: "鍛冶師" },
     appear: { open: "w18", claimed: "fq_dorn" },
-    goal: { type: "clear", dungeon: "ws13" }, desc: "「黒曜の切り場」を踏破する",
-    ref: "ws13", reward: { gold: 44, soul: 40, red: 15, embers: 3, souls: [["epic", 1], ["rare", 2]] },
-    opens: ["ws13"],
+    goal: { type: "clear", dungeon: "ws9" }, desc: "「黒曜の切り場」を踏破する",
+    ref: "ws9", reward: { gold: 44, soul: 40, red: 15, embers: 3, souls: [["epic", 1], ["rare", 2]] },
+    opens: ["ws9"],
     lines: [
       "ドルンが、黒く光るガラスのかけらを、片手でそっと転がしていた。",
       "「火の洞の地割れの近くで拾ったそうだ。黒曜という。溶けた岩が冷えてできた、天然のガラスだ。」",
@@ -1003,9 +933,9 @@ export const FIXED_QUESTS = [
   {
     id: "fq_irma", name: "祈りの火を消して", giver: { name: "灰の尼イルマ", title: "火守りの僧院から逃げた尼" },
     appear: { reported: "w19" },
-    goal: { type: "clear", dungeon: "ws14" }, desc: "「火守りの僧院」を踏破する",
-    ref: "ws14", reward: { gold: 44, soul: 40, red: 15, embers: 3, souls: [["epic", 1], ["rare", 2]] },
-    opens: ["ws14"],
+    goal: { type: "clear", dungeon: "ws10" }, desc: "「火守りの僧院」を踏破する",
+    ref: "ws10", reward: { gold: 44, soul: 40, red: 15, embers: 3, souls: [["epic", 1], ["rare", 2]] },
+    opens: ["ws10"],
     lines: [
       "灰色の頭巾をかぶった女が、指先のやけどの跡を隠すように手を組んでいた。",
       "「わたしはイルマ。火守りの僧院にいました。釜の火を絶やさぬよう、昼も夜も祈る役目です。」",
@@ -1021,9 +951,9 @@ export const FIXED_QUESTS = [
   {
     id: "fq_august", name: "白い毛皮", giver: { name: "毛皮売りのアウグスト", title: "北の毛皮商" },
     appear: { reported: "w22" },
-    goal: { type: "clear", dungeon: "ws15" }, desc: "「白狼の吹き溜まり」を踏破する",
-    ref: "ws15", reward: { gold: 48, soul: 40, red: 15, embers: 3, souls: [["epic", 1], ["rare", 2]] },
-    opens: ["ws15"],
+    goal: { type: "clear", dungeon: "ws11" }, desc: "「白狼の吹き溜まり」を踏破する",
+    ref: "ws11", reward: { gold: 48, soul: 40, red: 15, embers: 3, souls: [["epic", 1], ["rare", 2]] },
+    opens: ["ws11"],
     lines: [
       "白い毛皮の襟巻きを何本も首にかけた男が、値札を書いていた。",
       "「奈落の氷棚から戻った者がいると聞いてね。わたしはアウグスト、北の毛皮を扱っている。」",
@@ -1039,9 +969,9 @@ export const FIXED_QUESTS = [
   {
     id: "fq_thaw2", name: "抜け落ちた人たち", giver: { name: "織り子ハンナ", title: "凍れる操霊師のひ孫" },
     appear: { claimed: "fq_thaw", reported: "w24" },
-    goal: { type: "clear", dungeon: "ws16" }, desc: "「氷河の裂け目」を踏破する",
-    ref: "ws16", reward: { gold: 44, soul: 44, red: 15, embers: 3, souls: [["epic", 1], ["rare", 2]] },
-    opens: ["ws16"],
+    goal: { type: "clear", dungeon: "ws12" }, desc: "「氷河の裂け目」を踏破する",
+    ref: "ws12", reward: { gold: 44, soul: 44, red: 15, embers: 3, souls: [["epic", 1], ["rare", 2]] },
+    opens: ["ws12"],
     lines: [
       "ハンナが、織りかけの布の端を指でなぞっていた。ひいおじいさんの名が、そこに織りこまれている。",
       "「氷の柱から抜け落ちた人たちが、氷の裂け目に集まっていると聞きました。」",

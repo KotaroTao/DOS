@@ -28,7 +28,7 @@ import {
   SOUL_CLASSES, SOUL_KEYS, makeDoll, jobSprite, dollSprite, jobBust, dollBust, dollLookKey, soulIcon,
   recalcDoll, setPermanentStatSource, isUniqueJob, soulLevelCap, soulLevelCapOf, emberCostOf, setSharedSouls, syncDollUids, MAX_SUBS, subPicks,
   soulByUid, makeSoulInstance, soulRankOf, soulLearnedSkills, soulLearnedPassives, soulLabel, subPickCap, jobStatsOf,
-  awakenPerkOf, subPickCapOfRank, subStatRateOfRank, setOrderSource, orderStatRateOfRank, setAppraiseSource,
+  awakenPerkOf, subPickCapOfRank, subStatRateOfRank, setOrderSource, orderStatRateOfRank, setAppraiseSource, setSkillGate, skillUsable,
   PASSIVES,
   SOUL_RANKS, rollJobClass, rollGreatJobClass, SOUL_STAT_UP,
   soulRankFromCount, capForRarityRank, jobRankName, soulSeriesName, pLv,
@@ -1226,6 +1226,9 @@ function dungeonTrait(cfg = null) {
   if (!cfg) { if (!inDungeon() || abyssActive()) return null; cfg = curDungeon(); }
   return (cfg && cfg.trait) || null;
 }
+// 魔封じ (掟の physOnly): この迷宮では物理技のほかの技 (呪文・回復・強化・弱体・迷宮の術) を使えない。道具は使える
+function physOnlyHere() { const tr = dungeonTrait(); return !!(tr && tr.physOnly); }
+setSkillGate((k) => !physOnlyHere() || !!(SPELLS[k] && SPELLS[k].kind === "phys"));
 const TRAIT_BOARD = {
   // 根の縦穴: 通路に落とし穴を2つ (最下階には無い)。壁の根に絡まった遺品の宝箱をひとつ
   shaft: (b) => {
@@ -1936,7 +1939,7 @@ function fieldCasters() { return G.party.filter((p) => p.alive && p.ailment !== 
 // 隊の誰かが覚えている迷宮の技 (技の定義順)
 function knownFieldSkills() {
   const have = new Set();
-  for (const p of fieldCasters()) for (const k of p.spells || []) if (SPELLS[k] && SPELLS[k].kind === "field") have.add(k);
+  for (const p of fieldCasters()) for (const k of p.spells || []) if (SPELLS[k] && SPELLS[k].kind === "field" && skillUsable(k)) have.add(k);
   return Object.keys(SPELLS).filter((k) => have.has(k));
 }
 // 技 key を唱えられる者: 生きていて MP が足りる者のうち、MP の最も多い者 (any = MP を問わず覚えている者)
@@ -7512,6 +7515,9 @@ function startBattleMeasured(enemies, cell) {
     else if (rv && rv.preempt > 0) { rv.preempt--; opening = "preempt"; openSrc = "candle"; log("祈りの蝋燭の灯が、闇を味方につけた。", "win"); }
   } else if (G._evOpening && isElite) opening = null;
   G._evOpening = null;
+  // 迷宮の掟: どの戦闘も必ず奇襲で始まる (trait.alwaysAmbush。周囲警戒・夜営の番・先制の恵みも効かない。主の戦いは除く)
+  const trA = dungeonTrait();
+  if (trA && trA.alwaysAmbush && !isBoss) { opening = "ambush"; openSrc = "trait"; }
   evBattleStart(enemies, isBoss);
   if (opening === "preempt") { log("先手を取った！", "win"); showToast("⚡ 先制攻撃！"); }
   else if (opening === "ambush") {
@@ -7533,6 +7539,7 @@ function startBattleMeasured(enemies, cell) {
     for (const p of G.battle.party) if (p.alive) G.battle._applyMod(p, "agi", Math.pow(0.8, trC.chill), 3, "絶対零度");
     log(`凍てつく冷気に身がすくむ (隊の AGI ▼${trC.chill})。`, "dmg");
   }
+  if (physOnlyHere()) log("呪文を封じる霧が立ちこめている ― 物理技と道具のほかは使えない。", "sys");
   if (foeLv - partyLevel() >= 4) log(`格上の敵だ (Lv${foeLv})。眠りや毒、即死の術はほとんど効かず、敵の術はよく効く。`, "sys");
   // テスト記録: 戦闘の種類 (主 / 金属の魔物 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子。
   // 金属の魔物は素早さに依らない回避を持つので、精鋭等の命中に混ぜない
@@ -13968,7 +13975,7 @@ function renderStatus() {
 
 // 戦闘外で回復系呪文を唱える呪文 (HP回復・蘇生・状態異常の治療)。バフは戦闘外では持続しないため除く
 function campSpellsOf(p) {
-  return (p.spells || []).filter((k) => { const sp = SPELLS[k]; return sp && sp.target !== "self" && (sp.kind === "heal" || sp.kind === "cure" || sp.cure); });
+  return (p.spells || []).filter((k) => { const sp = SPELLS[k]; return sp && sp.target !== "self" && (sp.kind === "heal" || sp.kind === "cure" || sp.cure) && skillUsable(k); });
 }
 
 const spellCures = (sp) => sp.kind === "cure" || !!sp.cure;

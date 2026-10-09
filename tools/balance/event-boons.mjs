@@ -21,7 +21,7 @@ for (const e of mythics) {
   counts[stat] = (counts[stat] || 0) + 1;
 }
 assert.equal(Object.keys(counts).length, 9);
-assert.equal(Math.max(...Object.values(counts)) - Math.min(...Object.values(counts)), 1);
+assert(Math.max(...Object.values(counts)) - Math.min(...Object.values(counts)) <= 1, "効果ごとの件数の差は1件まで"); // 均等 (差0) も可
 let once = {};
 const flags = {};
 setPermanentStatSource(() => permanentEventStats(once));

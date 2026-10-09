@@ -41,6 +41,9 @@
 //             hpDrain 戦闘の開幕に隊が失うHP (最大HP比。HP1 より下にはならない)
 //             metalRate / metalMax 金属の魔物の出やすさ (既定 7%) / 1階で入れ替わる札の最大数 (既定 1)
 //             chill    戦闘の開幕に隊の全員の AGI を何段下げるか (3ターン。凍てつく大回廊)
+//             physOnly 魔封じ: 隊は物理技と道具のほかの技 (呪文・回復・強化・弱体・迷宮の術) を使えない (沈んだ書庫)
+//             alwaysAmbush どの戦闘も必ず奇襲で始まる (主の戦いは除く。白狼の吹き溜まり)
+//   challenge 格上の迷宮: 開く章の適正Lv よりはるかに高い推奨Lv を持つ寄り道。奈落の層 (abyssLayer) の推奨Lv・強さの平均には数えない
 //   tune    強さの手直し (generator.js DUNGEON_TUNE と同じ欄)。第4層からはテスト記録がまだ無いので、模擬戦で既存の迷宮に
 //           つないだ: 装備なしの6人 (戦士2・侍・僧侶・魔導士・盗賊、魂の Lv = その階の n の物差しの Lv — 当時の推奨Lv。
 //           その後 power に写したので、tune の値はそのまま使える) が出現表の雑魚と通常攻撃だけで
@@ -652,89 +655,11 @@ const WORLD_DEF = [
     unlock: { story: "w09_map" },
     hint: "「捨て砦の本丸」の軍議の卓の地図に、王都の井戸が記されているという",
   },
-  // ---- 各層の寄り道 (2026-10 ユーザーの指示: 20層で百の迷宮に届くよう、どの層にも依頼の迷宮を2つずつ) ----
-  // 強さの素は同じ層の、推奨Lv の近い迷宮から続け、手直しは掟の重さの分だけ控えめにした。テスト記録で測り直す
+  // ---- 各層の寄り道 (2026-10 ユーザーの指示: 20層で百の迷宮に届くよう、第4層からは本筋4 + 寄り道2) ----
+  // 強さの素は同じ層の、推奨Lv の近い迷宮から続け、手直しは掟の重さの分だけ控えめにした。テスト記録で測り直す。
+  // ときどき「その時の適正Lv では歯が立たない迷宮」(challenge) と「極端な掟の迷宮」(魔封じ・必ず奇襲…) を混ぜる (ユーザーの指示)
   {
-    id: "ws6", lv: 7, lvTo: 11, layer: 1, floors: 10, side: true,
-    power: { 1: 0.55, 5: 0.51, 10: 0.47 },
-    name: "名もなき納骨堂", short: "納骨堂",
-    about: "墓地の脇にうがたれた、身寄りのない死者の骨を納める穴蔵。棚の骨は、名札の一枚も持たない",
-    bands: [
-      ["bs_bonepile", "bs_corpsemaggot", "bs_carrioncrow", "bs_grasphand", "bs_skullswarm", "bs_ghoul"],
-      ["bs_zombie", "d01_skeleton", "bs_weepangel"],
-    ],
-    elites: ["el_palebutcher"],
-    trait: {
-      id: "ossuary", name: "名もなき骨", sym: "☠", accent: "#c8c0a8",
-      lines: ["棚から崩れ落ちた骸が転がっている (各階に死体が2つ増える。半分はまだあたたかい)。", "名を持たない魂は、拾われるのを待っている。"],
-      board: "prison",
-    },
-    tune: { enemyMul: 0.92 },
-    unlock: { quest: "fq_hans2" },
-    hint: "酒場の墓守の依頼「名もなき骨」を受けると、道が示される",
-  },
-  {
-    id: "ws7", lv: 12, lvTo: 16, layer: 1, floors: 10, side: true,
-    power: { 1: 0.39, 5: 0.37, 10: 0.36 },
-    name: "唄い手の霊廟", short: "霊廟",
-    about: "ロアダルの葬送歌を作った唄い手たちが眠る霊廟。夜ごと、誰もいない奥から歌が聞こえる",
-    bands: [
-      ["bs_bonechanter", "bs_gravecaller", "bs_weepangel", "bs_pettyrevenant", "bs_mournshade", "bs_spiritbat"],
-      ["d02_soldier", "bs_tombwarden", "bs_sarcoguard"],
-    ],
-    elites: ["el_cryptlord"],
-    trait: {
-      id: "dirge", name: "終わらない葬送歌", sym: "♫", accent: "#b8a8d8",
-      lines: ["歌が魂をなぐさめ、勝つたびに隊のHP・MPが少し戻る (5%)。", "歌声に足音がかき消され、奇襲を受けやすい (×1.5)。"],
-      mods: { ambushMul: 1.5 },
-      victoryHeal: 0.05,
-    },
-    tune: { enemyMul: 0.92 },
-    unlock: { quest: "fq_fen2" },
-    hint: "酒場の詩人の依頼「歌の終わり」を受けると、道が示される",
-  },
-  {
-    id: "ws8", lv: 19, lvTo: 23, layer: 2, floors: 10, side: true,
-    power: { 1: 0.296, 5: 0.325, 10: 0.352 },
-    name: "溝鼠の大巣", short: "大巣",
-    about: "街の下水が行き止まる大きな溜まり。溝鼠の王が、拾い集めたがらくたと金貨の上に巣を作っている",
-    bands: [
-      ["bs_ratking", "bs_sludgeooze", "bs_toxictoad", "bs_razorshrimp", "bs_fogspecter", "bs_mucusworm"],
-      ["bs_ironcarp", "bs_deepsahagin", "bs_drownedcorpse"],
-    ],
-    elites: ["el_bloatqueen"],
-    trait: {
-      id: "nest", name: "溜めこまれた金貨", sym: "⁂", accent: "#a89878",
-      lines: ["鼠が溜めこんだ金貨が、がらくたの山に埋もれている (金貨 1.4倍)。", "暗い横穴から飛びかかられやすい (奇襲 ×1.5)。"],
-      mods: { goldMul: 1.4, ambushMul: 1.5 },
-    },
-    tune: { enemyMul: 1.30, deepMul: 0.80, soloMul: 0.85 }, // 取水口・礼拝堂の間。奇襲の分だけ深階は控えめ
-    unlock: { quest: "fq_pip" },
-    hint: "酒場のねずみ捕りの依頼「鼠の王さま」を受けると、道が示される",
-  },
-  {
-    id: "ws9", lv: 23, lvTo: 27, layer: 3, floors: 10, side: true,
-    power: { 1: 0.275, 5: 0.29, 10: 0.306 },
-    name: "崩れた試掘坑", short: "試掘坑",
-    about: "坑口の脇に掘られた、鉱脈を探すための細い坑。発破の火が残り、岩の割れ目から悪い気が噴き出す",
-    element: "earth",
-    bands: [
-      ["bs_gargoyle", "bs_shieldogre", "bs_chainedconvict", "bs_blastsprite", "bs_timbermite", "bs_minebat"],
-      ["d04_golem", "d04_ogre", "bs_steelspider"],
-    ],
-    elites: ["el_chainoverseer"],
-    trait: {
-      id: "testpit", name: "坑気の噴き出し", sym: "♒", accent: "#a0a868",
-      lines: ["岩の割れ目から坑気が噴き出し、通路の1割ほどが毒の床になる (浮遊で避けられる)。", "掘りかけの鉱脈には良い品が埋もれている (落ちている装備の質が少し上がる)。"],
-      mods: { lootBonusLv: 3 },
-      board: "vent",
-    },
-    tune: { enemyMul: 1.30, deepMul: 0.73, soloMul: 1.0 },
-    unlock: { quest: "fq_thomas" },
-    hint: "酒場の老坑夫の依頼「埋もれた試掘坑」を受けると、道が示される",
-  },
-  {
-    id: "ws10", lv: 30, lvTo: 34, layer: 4, floors: 10, side: true,
+    id: "ws6", lv: 30, lvTo: 34, layer: 4, floors: 10, side: true,
     power: { 1: 0.243, 5: 0.257, 10: 0.275 },
     name: "見捨てられた狼煙台", short: "狼煙台",
     about: "捨て砦の外れに立つ狼煙台。援軍を呼ぶ火は百年燃え続け、いまも誰かが薪をくべている",
@@ -754,10 +679,12 @@ const WORLD_DEF = [
     hint: "酒場の老兵の依頼「来なかった援軍」を受けると、道が示される",
   },
   {
-    id: "ws11", lv: 36, lvTo: 40, layer: 4, floors: 10, side: true,
-    power: { 1: 0.229, 5: 0.244, 10: 0.262 },
+    // 格上の迷宮: 第二章 (隊は Lv35 前後) で開くが、推奨Lv は第五章の火の洞と同じ。第4層の魔物 (ランク5〜6) を
+    // 火を噴く地割れ w18 と同じ強さ (sqrt(HP×ATK) 約800) まで引き上げるため、強さの素は第4層の約1.65倍
+    id: "ws7", lv: 62, lvTo: 66, layer: 4, floors: 10, side: true, challenge: true,
+    power: { 1: 0.378, 5: 0.403, 10: 0.432 },
     name: "獄吏の詰所", short: "詰所",
-    about: "地下牢の番人たちが寝起きした詰所。鍵のかかった箱と、鍵束を下げたままの骸が並んでいる",
+    about: "地下牢の番人たちが寝起きした詰所。百年、牢の恨みを浴び続けた獄吏たちは、もう人の強さではない",
     bands: [
       ["bs_cultist", "bs_banshee", "bs_dullahan", "d03_sentinel", "bs_ironknight", "bs_darksamurai"],
       ["d04_revenant", "bs_vampire", "bs_thunderknight"],
@@ -774,7 +701,7 @@ const WORLD_DEF = [
     hint: "酒場の牢番の娘の依頼「鍵束の持ち主」を受けると、道が示される",
   },
   {
-    id: "ws12", lv: 57, lvTo: 61, layer: 6, floors: 10, side: true,
+    id: "ws8", lv: 57, lvTo: 61, layer: 6, floors: 10, side: true,
     power: { 1: 0.183, 5: 0.196, 10: 0.21 },
     name: "沈んだ書庫", short: "書庫",
     about: "旧都の書庫の塔。水に沈んでも、棚の書物は一冊も流れ出していない。誰かが、まだ読み手を待っている",
@@ -784,17 +711,17 @@ const WORLD_DEF = [
     ],
     elites: ["el_heresiarch"],
     trait: {
-      id: "library", name: "読み手を待つ書", sym: "✎", accent: "#80a0c0",
-      lines: ["にじんだ墨の霧が魔力を吸う。戦闘の開幕に、隊のMPが最大の8%減る。", "書物に残った知恵が魂を育て、得る ✦Soul は 1.2倍。落ちている装備の質も少し上がる。"],
+      id: "library", name: "魔封じの墨", sym: "✎", accent: "#80a0c0",
+      lines: ["にじんだ墨の霧が、唱えた言葉を吸いこむ。物理技と道具のほかは、技を一切使えない (呪文・回復・強化・弱体・迷宮の術)。", "書物に残った知恵が魂を育て、得る ✦Soul は 1.2倍。落ちている装備の質も少し上がる。"],
       mods: { soulMul: 1.2, lootBonusLv: 3 },
-      mpDrain: 0.08,
+      physOnly: true,
     },
-    tune: { enemyMul: 1.10, deepMul: 0.80, soloMul: 1.05 },
+    tune: { enemyMul: 0.90, deepMul: 0.80, soloMul: 1.00 }, // 呪文で癒せない・守れない分だけ軽め
     unlock: { quest: "fq_archive2" },
     hint: "酒場の司書の依頼「沈んだ書庫」を受けると、道が示される",
   },
   {
-    id: "ws13", lv: 62, lvTo: 66, layer: 7, floors: 10, side: true,
+    id: "ws9", lv: 62, lvTo: 66, layer: 7, floors: 10, side: true,
     power: { 1: 0.171, 5: 0.184, 10: 0.199 },
     name: "黒曜の切り場", short: "黒曜の切り場",
     about: "溶けた岩が冷えて固まった、黒いガラスの崖。割れ口は刃物より鋭く、近づく者を切り刻む",
@@ -814,7 +741,7 @@ const WORLD_DEF = [
     hint: "酒場の鍛冶師の依頼「黒い刃の材」を受けると、道が示される",
   },
   {
-    id: "ws14", lv: 66, lvTo: 70, layer: 7, floors: 10, side: true,
+    id: "ws10", lv: 66, lvTo: 70, layer: 7, floors: 10, side: true,
     power: { 1: 0.165, 5: 0.177, 10: 0.19 },
     name: "火守りの僧院", short: "僧院",
     about: "釜の火を絶やさぬよう祈り続けた火守りたちの僧院。祈りが煮つまり、炎の幻が回廊を歩く",
@@ -834,7 +761,7 @@ const WORLD_DEF = [
     hint: "酒場の尼僧の依頼「祈りの火を消して」を受けると、道が示される",
   },
   {
-    id: "ws15", lv: 71, lvTo: 75, layer: 8, floors: 10, side: true,
+    id: "ws11", lv: 71, lvTo: 75, layer: 8, floors: 10, side: true,
     power: { 1: 0.154, 5: 0.166, 10: 0.179 },
     name: "白狼の吹き溜まり", short: "吹き溜まり",
     about: "吹き上げる風が雪を寄せ集めた、奈落の壁のくぼみ。白霜の狼の群れが、雪煙にまぎれて住みついている",
@@ -845,16 +772,17 @@ const WORLD_DEF = [
     ],
     elites: ["el_glacialmaw"],
     trait: {
-      id: "drift", name: "雪煙の群れ", sym: "≋", accent: "#c8e0f0",
-      lines: ["群れは雪煙にまぎれて襲ってくる (いつも3体以上・奇襲 ×1.5)。", "雪の下に落ちてきた品が埋もれ、得られる金貨は 1.3倍。"],
-      mods: { packMin: 3, ambushMul: 1.5, goldMul: 1.3 },
+      id: "drift", name: "雪煙の狩り", sym: "≋", accent: "#c8e0f0",
+      lines: ["群れは雪煙にまぎれて忍び寄る。どの戦闘も必ず奇襲で始まり、敵が先に動く (周囲警戒・夜営の番・先制の心得も効かない)。", "雪の下に落ちてきた品が埋もれ、得られる金貨は 1.3倍。"],
+      mods: { goldMul: 1.3 },
+      alwaysAmbush: true,
     },
-    tune: { enemyMul: 0.80, deepMul: 0.82, soloMul: 1.05 }, // 群れと奇襲の分だけ1体ずつは軽く
+    tune: { enemyMul: 0.90, deepMul: 0.82, soloMul: 1.00 }, // 毎回先手を取られる分だけ軽め
     unlock: { quest: "fq_august" },
     hint: "酒場の毛皮売りの依頼「白い毛皮」を受けると、道が示される",
   },
   {
-    id: "ws16", lv: 75, lvTo: 79, layer: 8, floors: 10, side: true,
+    id: "ws12", lv: 75, lvTo: 79, layer: 8, floors: 10, side: true,
     power: { 1: 0.148, 5: 0.159, 10: 0.171 },
     name: "氷河の裂け目", short: "裂け目",
     about: "氷の壁に走る深い裂け目。解けかけた氷の水が細く流れ、氷の中から抜け落ちた者たちがさまよう",
@@ -1003,7 +931,7 @@ const _abyssLayers = new Map();
 export function abyssLayer(L) {
   L = Math.max(1, Math.floor(L));
   if (_abyssLayers.has(L)) return _abyssLayers.get(L);
-  const ds = WORLD.filter((d) => d.layer === L);
+  const ds = WORLD.filter((d) => d.layer === L && !d.challenge); // 格上の迷宮 (challenge) は層の物差しに数えない
   let info;
   if (ds.length) {
     // 雑魚の実効の強さの素 = 強さの素 × 手直し (浅階 enemyMul / 深階 ×deepMul) を、その層の迷宮の全階で平均
@@ -1078,7 +1006,7 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
     if (d.trait) {
       const t = d.trait;
       if (!t.id || !t.name || !Array.isArray(t.lines)) throw new Error(`world: ${d.id} trait needs id/name/lines`);
-      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
+      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
     }
     for (const k of d.elites || []) if (!BESTIARY[k]) throw new Error(`world: ${d.id} unknown elite ${k}`);
   }
