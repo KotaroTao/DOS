@@ -3131,7 +3131,7 @@ export class Battle {
         this._proc(t, "不死鳥の加護");
         return false;
       }
-      // 復活の祈り (大司教): 倒れた味方が 1戦闘 1/2/3 回まで HP1 で起き上がる (隊で一番高いLv)
+      // 復活の祈り (巡礼者): 倒れた味方が 1戦闘 1/2/3 回まで HP1 で起き上がる (隊で一番高いLv)
       if (t.side === "party") {
         const ra = Math.max(0, ...this.party.filter((p) => p.alive).map((p) => pv(p, "riseAgain")));
         if (ra && (this._riseUsed || 0) < ra) {

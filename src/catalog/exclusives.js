@@ -123,9 +123,9 @@ const E = [
     cls: ["inquisitor"], pow: 1.2, pie: 60,
     desc: "異端審問の場で何百もの罪を断罪した審問官の鉄槌。罪ある者の前では頭が垂れ、打ち下ろした瞬間に罪の重さが上乗せされると伝わる。",
   }), "inquisitor"),
-  excl(H("x_archbishop_crown", "大司教の宝冠", 170, {
+  excl(H("x_archbishop_crown", "巡礼聖者の宝冠", 170, {
     cls: ["archbishop"], shape: "circlet", pow: 1.15, eDef: ["dark", 1], pie: 80, mp: 80,
-    desc: "三十年にわたり祈祷を続けた大司教が臨終前夜に遺した黄金冠。戴けば夢の中で過去の大司教たちの祈りが聞こえ始める。",
+    desc: "三十年にわたり聖地を巡って祈り続けた巡礼の聖者が、臨終前夜に遺した黄金冠。戴けば夢の中で、同じ道を歩いた先人たちの祈りが聞こえ始める。",
   }), "archbishop"),
   excl(A("x_ascetic_robe", "修験の袈裟", 167, {
     cls: ["ascetic"], shape: "robe", pow: 1.2, hp: 200, atkB: 40,
