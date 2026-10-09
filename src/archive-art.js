@@ -228,18 +228,20 @@ function paintScene(scene) {
     // ---- 第七章「毒沼」 ----
     case "splint": rect(66,0,9,74,[150,190,186]);line(68,0,68,74,C.snow,1,false);line(72,4,73,74,[200,226,222],1,false);ellipse(71,74,15,3,C.snow,false);glow(71,72,24,[140,200,190],0.4);
       poly([[0,86],[60,82],[120,84],[192,80],[192,108],[0,108]],C.mud);ellipse(82,96,22,4,[40,56,52]);poly([[66,95],[74,91],[88,92],[82,96]],C.ice);poly([[82,99],[92,96],[100,98],[94,101]],C.ice);
-      line(108,96,118,94,C.wood,4);ellipse(120,94,4,3,C.wood);for(let i=0;i<4;i++)line(123,92+i*2,128,89+i*2.6,C.wood);line(119,92,121,88,C.wood);ring(115,95,2,C.iron);
-      paper(22,88,22,12);ellipse(42,89,5,3,C.stone);for(let i=0;i<4;i++){ellipse(140+i*13,99-i*4,2,1,C.black);line(133+i*13,101-i*4,141+i*13,100-i*4,C.black);}break;
+      for(const d of [0,4]){line(100-d,98+d,118-d,95+d,C.wood,3);line(118-d,95+d,132-d,93+d,C.wood,3);ellipse(134-d,92.6+d,2.4,2,C.wood);ring(118-d,95+d,2,C.iron);}for(const q of [108,124])line(q,92,q-1,102,C.paper,1);paper(120,82,9,9);
+      for(let i=0;i<4;i++){ellipse(140+i*13,99-i*4,2,1,C.black);line(133+i*13,101-i*4,141+i*13,100-i*4,C.black);}break;
     case "dollPile": { const crest=(q,yy,sz)=>{ellipse(q,yy,2.6*sz,1.4*sz,C.gold,false);for(let k=0;k<4;k++)line(q+0.6*sz+k*0.9*sz,yy-0.6*sz,q+1.2*sz+k*1.1*sz,yy-2.6*sz,C.gold,1,false);line(q-2.2*sz,yy,q-3*sz,yy-1.8*sz,C.gold,1,false);ellipse(q-0.6*sz,yy-2.6*sz,0.9*sz,1.6*sz,[255,190,90],false);};
       poly([[30,108],[76,52],[100,46],[128,54],[170,108]],[46,40,30]);for(let i=0;i<60;i++){const xx=40+h2(i,2,seed)*120,yy=58+h2(i,3,seed)*48;line(xx,yy,xx+4+h2(i,4,seed)*6,yy+(h2(i,5,seed)-0.5)*5,C.wood,2);}
-      for(let i=0;i<6;i++){const q=66+i*13,yy=56+Math.abs(q-100)*0.25;doll(q,yy,"torso",0.45);crest(q,yy+5,0.6);}
+      for(let i=0;i<6;i++){const q=66+i*13,yy=58+Math.abs(q-100)*0.25;if(i===3)continue;doll(q,yy,"torso",0.45);crest(q,yy+5,0.6);}doll(100,44,"full",0.42);paper(97,58,6,4);
       doll(150,70,"torso",1.1);crest(150,80,1.6);glow(150,78,14,[255,170,70],0.4);break; }
     case "miasmaNote": poly([[60,84],[72,76],[130,74],[146,82],[138,96],[66,96]],C.stone);paper(76,72,30,13);for(const [q,yy] of [[78,73],[104,73],[104,84]])ellipse(q,yy,2,1.4,C.edge);
-      for(let i=0;i<6;i++)line(110,76,118+i,70+i*1.4,[150,170,80]);for(const [q,hh,col] of [[126,13,[150,220,170]],[134,9,null]]){poly([[q-3,77],[q+3,77],[q+3,77-hh*0.6],[q+1,77-hh],[q-1,77-hh],[q-3,77-hh*0.6]],col||[90,110,96]);rect(q-1,76-hh,3,2,C.wood);}glow(126,70,14,[120,220,160],0.5);
+      for(let i=0;i<6;i++)line(110,76,118+i,70+i*1.4,[150,170,80]);for(const [q,hh,col] of [[126,13,[150,220,170]],[134,9,null]])poly([[q-3,77],[q+3,77],[q+3,77-hh*0.5],[q+1,77-hh*0.62],[q,77-hh*0.44],[q-1,77-hh*0.66],[q-3,77-hh*0.48]],col||[90,110,96]);glow(126,72,12,[120,220,160],0.45);
       ring(42,98,8,C.stone);ellipse(42,98,6,2,[110,104,92]);rect(40,97,4,1,[230,120,40],false);break;
     case "workshopIsle": ellipse(100,84,52,9,[40,44,30]);poly([[64,84],[64,48],[80,38],[96,46],[112,36],[134,48],[134,84]],C.stone);for(let x2=66;x2<134;x2+=9)line(x2,50,x2,84,[60,56,62]);
-      poly([[88,84],[88,62],[100,54],[112,62],[112,84]],[60,46,30]);glow(100,70,34,[255,170,70],0.6);poly([[92,84],[93,66],[97,62],[99,66],[98,74],[100,84]],C.black);line(98,66,104,65,C.black,1);
-      ellipse(107,64,2.4,2.8,C.black);poly([[104,84],[105,68],[110,68],[111,84]],C.black);ellipse(107.5,74,1.6,1.8,C.soul,false);glow(107,74,8,[60,200,170],0.6);
+      poly([[88,84],[88,62],[100,54],[112,62],[112,84]],[60,46,30]);glow(100,70,34,[255,170,70],0.6);
+      poly([[90,84],[91,74],[94,71],[96,74],[96,80],[100,84]],C.black);ellipse(94.5,70,2,2.4,C.black);line(96,75,101,73,C.black,1);
+      ellipse(105,69,2,2.4,C.black);poly([[103,84],[103,78],[102,73],[107,72],[108,78],[110,84]],C.black);line(103,74,100,73,C.black,1);ellipse(105.5,76,1.4,1.6,C.soul,false);glow(105,76,8,[60,200,170],0.6);
+      ellipse(100,49,2.6,1.4,C.gold,false);ellipse(99.4,47,0.9,1.6,[255,190,90],false);
       for(let i=0;i<20;i++)line(36+h2(i,2,seed)*130,94+h2(i,3,seed)*12,44+h2(i,2,seed)*130,94+h2(i,3,seed)*12,[60,80,40]);break;
     case "tower": ellipse(98,92,40,7,[34,38,26]);poly([[82,94],[86,0],[112,0],[116,94]],[30,30,40]);for(let yy=6;yy<94;yy+=12)line(84,yy,114,yy+5,[46,46,60]);
       for(const [q,yy] of [[94,20],[104,44],[92,66],[100,8]]){rect(q,yy,2,3,[230,190,110],false);glow(q+1,yy+1,6,[200,150,60],0.4);}
