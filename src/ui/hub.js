@@ -503,7 +503,7 @@ export function renderHub(root, api) {
   fac.appendChild(tiles());
   mid.appendChild(fac);
   const guides = el("div", "jr-shortcuts");
-  guides.append(button({ label:"ヘルプ", kind:"secondary", onTap:()=>UI.openHelp?.() }),
+  guides.append(button({ label:"ヘルプ・酒場の噂話", kind:"secondary", onTap:()=>UI.openHelp?.() }),
     UI.storyButton ? UI.storyButton() : button({ label:"ストーリー", kind:"secondary", onTap:()=>UI.openStoryArchive?.() }));
   mid.appendChild(guides);
   wrap.appendChild(mid);

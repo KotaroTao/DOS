@@ -3,7 +3,7 @@
 // 提供する契約: UI.openDungeonMenu() (手帳 = 迷宮の一時停止シート)
 //
 //   行動ドック   … #hint を置き換える画面下の 52px。いま取れる行動だけを大きく (▼ 降りる / ⌂ 帰還)
-//   手帳         … 階の情報・迷宮の異変・隊を見る・記録を読む・図鑑・今回の収穫・帰還・探索の手間・設定
+//   手帳         … 階の情報・迷宮の異変・隊を見る・記録を読む・図鑑・ヘルプ・酒場の噂話・ストーリー・今回の収穫・帰還・探索の手間・設定
 //   階の情報     … 見出しの迷宮名を押すと開く。特別な階・強敵・異変・奈落の変異の説明を読み返せる
 //   今回の収穫   … 収穫の帯を押すと開く。得た品 (押せば品の詳細)・魂・成長・倒した数
 //   覗き見       … 隊の札を長押し (戦闘中。迷宮では長押しで持ち上げて隊列を並べ替え、動かさず離せば覗く) / 敵を長押し (特徴・スキル)
@@ -55,6 +55,8 @@ const DOCK_SVG = {
   eye: '<path d="M2.8 12c2.4-4 5.5-6 9.2-6s6.8 2 9.2 6c-2.4 4-5.5 6-9.2 6s-6.8-2-9.2-6Z"/><circle cx="12" cy="12" r="2.6"/>',
   stairs: '<path d="M12 3v18"/><path d="M5.5 5.5h10l3 2.5-3 2.5h-10Z"/><path d="M18.5 12.5h-10l-3 2.5 3 2.5h10Z"/>',
   auto: '<path d="M18.6 9.2A7 7 0 1 0 19 13.4"/><path d="M19.4 4.6v4.8h-4.8"/><path d="M10.2 9.4 14.6 12l-4.4 2.6Z"/>',
+  help: '<circle cx="12" cy="12" r="8.5"/><path d="M9.5 9.6a2.6 2.6 0 1 1 3.7 2.3c-.8.4-1.2 1-1.2 1.9v.6"/><path d="M12 16.9v.01"/>',
+  story: '<path d="M12 6.6C10 5.2 7.4 4.6 4.5 4.6v13c2.9 0 5.5.6 7.5 2 2-1.4 4.6-2 7.5-2v-13c-2.9 0-5.5.6-7.5 2Z"/><path d="M12 6.6v13"/>',
   heal: '<path d="M12 20.2s-7.5-4.6-7.5-10.1A4.1 4.1 0 0 1 12 7.6a4.1 4.1 0 0 1 7.5 2.5c0 5.5-7.5 10.1-7.5 10.1Z"/><path d="M12 10.4v5.2M9.4 13h5.2"/>',
 };
 function dockIcon(kind, cls = "dk-ic") {
@@ -420,6 +422,10 @@ export function openDungeonMenu() {
       grid.appendChild(menuTile("loot", "今回の収穫", `💰${r.gold || 0} ✦${r.soulPts || 0} 品${(r.items || []).length}`, go(openRunLoot)));
       grid.appendChild(menuTile("scroll", "記録を読む", "出来事の全文", go(openLog)));
       grid.appendChild(menuTile("book", "図鑑", "敵・品・見聞", go(() => UI.openCodexSheet && UI.openCodexSheet({ dungeonIdx: g.dungeonIdx }))));
+      // ヘルプ (酒場で書き留めた話もタブで) とストーリー。街の同じボタンと同じ画面を開く
+      grid.appendChild(menuTile("help", "ヘルプ・酒場の噂話", "機能の手引き・聞いた話", go(() => UI.openHelp && UI.openHelp())));
+      const unread = UI.storyUnread ? UI.storyUnread() : 0;
+      grid.appendChild(menuTile("story", "ストーリー", unread ? `未読 ${unread}` : "物語・踏破した迷宮", go(() => UI.openStoryArchive && UI.openStoryArchive())));
       grid.appendChild(menuTile("gear", "設定", "音量・倍速・背景", go(() => UI.openSettings && UI.openSettings())));
       const canHome = !combat && (game.canReturnNow ? game.canReturnNow() : false);
       grid.appendChild(menuTile("home", canHome ? "街へ帰還する" : "帰還できない", canHome ? "戦利品を持ち帰る" : combat ? "戦闘中は帰れない" : "帰還陣か主の討伐で",

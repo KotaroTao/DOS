@@ -11,7 +11,7 @@
 // game.js は import しない (ctx.js の UI / game を通す)。
 
 import { UI, game, registerUI } from "./ctx.js";
-import { el, setText, sheet, segmented, toast, button } from "./kit.js";
+import { el, setText, sheet, segmented, toast } from "./kit.js";
 import { tlOn, tlSetOn, tlClear, tlHasData, tlSummary, tlStabilitySummary, tlExportText, tlPastCount, tlPastSummary } from "../telemetry.js";
 import { getPref, setPref, remember, autoMoveAvoid, setAutoMoveAvoid } from "./prefs.js";
 import { SFX } from "../audio.js";
@@ -230,10 +230,6 @@ function fillAuto(box) {
   box.appendChild(reset);
 }
 function fill(root) {
-  const guides = el("div", "jr-shortcuts");
-  guides.append(button({ label:"ヘルプ", kind:"secondary", onTap:()=>UI.openHelp?.() }),
-    UI.storyButton ? UI.storyButton() : button({ label:"ストーリー", kind:"secondary", onTap:()=>UI.openStoryArchive?.() }));
-  root.appendChild(guides);
   const saved = remember("seg", "settings");
   const cur = saved === "auto" || saved === "look" ? saved : "sound";
   const box = el("div", "stg");

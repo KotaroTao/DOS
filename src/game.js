@@ -11583,7 +11583,7 @@ function tavernNotes() {
   return Object.keys(h).map((id) => TALK_MAP[id]).filter(Boolean);
 }
 
-// ---- 酒場の噂話: 地図にある迷宮の一つを読んだ予兆を生成する ----
+// ---- 情報屋の噂: 地図にある迷宮の一つを読んだ予兆を生成する ----
 // 読む迷宮は隊のLvに見合う (推奨Lvの帯に近い) 迷宮ほど選ばれやすい (rumorDungeon)。
 // 盤面型 (harvest/treasure/special) はその迷宮に次に潜った時の開始階 (B1F) で現実になり (applyRumorToBoard)、
 // その威力は実際に潜る迷宮の層 (layer) に合わせてスケールする。
@@ -11791,7 +11791,7 @@ function deliverQuest(q, opts = {}) {
 // 手元に噂があっても、待ち時間が明ければ聞き直せる (前の噂は捨てる)
 const RUMOR_PRICE = 100;
 const RUMOR_COOLDOWN_MS = 15 * 60 * 1000;
-// 噂の値段。手ほどき「酒場の噂話」の最中の一度は情報屋のおごり (無料)
+// 噂の値段。手ほどき「情報屋の噂」の最中の一度は情報屋のおごり (無料)
 function rumorPrice() { return UI.tutorialFree && UI.tutorialFree("rumor") ? 0 : RUMOR_PRICE; }
 function listenRumor() {
   if (!featureUnlocked("rumor")) return false;
@@ -12440,7 +12440,7 @@ const FEATURES = {
   soulChange: { chapter: 1, dungeon: "w02" }, // 第二の迷宮の報告後に手ほどき
   fusion: { chapter: 1, report: 2 },          // 魂の融合
   sub1: { chapter: 1, report: 3 },            // サブ魂 1枠
-  rumor: { chapter: 1, report: 4 },           // 酒場の噂話
+  rumor: { chapter: 1, report: 4 },           // 情報屋の噂 (酒場の掲示板)
   order: { chapter: 1, report: "finale" },    // 控えの結社 (席1)
   order2: { chapter: 2, report: 2 },          // 結社の席2
   order3: { chapter: 3, report: 2 },          // 結社の席3
