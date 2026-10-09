@@ -8655,12 +8655,32 @@ function cmdBtn(kind, label, sub, onClick, extra = "") {
   return b;
 }
 // 手番の札: 「名 の手番」+ 隊列と射程の印
-function turnPlate(name, tail, chips = []) {
+function turnPlate(name, tail, chips = [], skill = "") {
   const w = el("div", "who");
   w.appendChild(el("i", "who-mark"));
   w.appendChild(el("b", "who-n", name));
   if (tail) w.appendChild(el("span", "who-t", tail));
+  if (skill) { w.appendChild(el("b", "who-sk", skill)); w.classList.add("who-call"); }
   for (const c of chips) w.appendChild(el("span", "who-c", c));
+  return w;
+}
+// 命令板の「使った技」の札 (ユーザーの指示、2026-10: オート戦闘でどの技を使ったか分からない)。
+// 味方が技・呪文・道具を使った時は「〇〇の エクスプロージョン」を板に掲げ、オートの速さでも読めるよう
+// PLATE_CALL_MS の間は次の手番の札・敵の攻勢で上書きしない (新しい技を使えば差し替える)
+const PLATE_CALL_MS = 1600;
+function setPlateCall(res) {
+  const a = res && res.actor;
+  if (!a || a.side !== "party" || res.opening || res.action !== "spell" || !res.spellName) return false;
+  G._plateCall = { actor: a, name: a.name, skill: res.spellName, item: !!res.item, at: performance.now() };
+  return true;
+}
+function freshPlateCall() {
+  const c = G._plateCall;
+  return c && performance.now() - c.at < PLATE_CALL_MS ? c : null;
+}
+function callPlate(c, chips) {
+  const w = turnPlate(c.name, "の", c.item ? ["道具", ...chips] : chips, c.skill);
+  w.dataset.call = String(c.at); // 同じ札を作り直さない印 (作り直すと出だしの演出が繰り返し始まり、薄いまま止まって見える)
   return w;
 }
 
@@ -8670,6 +8690,8 @@ function renderActingPlate(actor) {
   combatMenu.dataset.mode = "acting";
   if (!actor) return;
   const foe = actor.side === "enemy";
+  const call = !foe && freshPlateCall();
+  if (call && call.actor === actor) { combatMenu.appendChild(callPlate(call, [])); return; }
   const b = G.battle;
   const ambushTurn = foe && b && b.opening === "ambush" && b._roundNo <= 1; // 奇襲で敵だけが動く1ターン目
   const w = turnPlate(foe ? enemyLabel(actor) : actor.name, foe ? "の攻勢" : "の行動", ambushTurn ? ["奇襲"] : []);
@@ -8695,12 +8717,14 @@ function appendAutoStart() {
 // オート戦闘中の常設バナー: 演出中も表示し続け、いつでも解除できる。
 // 「次の戦闘も続ける」(§7 M2) もここで切り替えられる (主・強敵・深手の時は自動で止まる)
 function renderAutoBanner(actor) {
-  const plate = actor ? turnPlate(actor.name, "の手番", ["オート", tacticOf(actor).short]) : turnPlate("オート戦闘中", "", []);
+  const call = freshPlateCall();
+  const plate = call ? callPlate(call, ["オート"])
+    : actor ? turnPlate(actor.name, "の手番", ["オート", tacticOf(actor).short]) : turnPlate("オート戦闘中", "", []);
   const keep = !!uiDungeonHud.getPref("autoKeep");
   // 既にバナーが出ていれば手番の札だけ差し替える (ボタンを作り直すと押している最中のタップが消える)
   const cur = combatMenu.dataset.mode === "auto" ? combatMenu.querySelector(":scope > .cmd-autorow") : null;
   if (cur && combatMenu.firstElementChild && combatMenu.firstElementChild !== cur) {
-    combatMenu.firstElementChild.replaceWith(plate);
+    if (!(call && combatMenu.firstElementChild.dataset.call === plate.dataset.call)) combatMenu.firstElementChild.replaceWith(plate);
     const kb = cur.querySelector(".cmd-keep");
     if (kb) {
       kb.classList.toggle("on", keep);
@@ -9131,6 +9155,7 @@ const HIT_STAGGER = 165;
 function animateResult(res, done) {
   if (G.battle && G.battle.tl) tlHits(G.battle.tl, res); // テスト記録: 与ダメ/被ダメ
   callPartyAction(res); // 札の肖像に使った技の名 (手番の初めから)
+  if (setPlateCall(res)) { if (G.autoCombat) renderAutoBanner(); else renderActingPlate(res.actor); } // 命令板にも「誰の何の技か」
   // 眠り・行動不能で何もしなかった手番には、踏み込みや空振り音を出さない
   if ((res.action === "sleep" || res.action === "stunned") && !(res.hits || []).length) {
     renderParty();
@@ -9223,7 +9248,7 @@ function setPartyFxV(p, v) {
 // 隊の札の肖像に「使った技・発動した効果」の名を出す (ユーザーの指示、2026-10)。
 // 一手の時間 (TOTAL) は延ばさず、札の上でだけ読める長さ残す。同じ人の次の手番か時間切れで消える。
 // 技・道具・防御 = 手番の初め / 発動した効果 (combat.js _proc の記録) = 着弾の瞬間に、同じ札へ最大3行まで重ねる
-const PARTY_CALL_MS = 1400;
+const PARTY_CALL_MS = 2400;
 const PARTY_CALL_MAX = 3;
 function setPartyCall(p, text, kind, fresh) {
   if (!p || !text) return;
@@ -9244,6 +9269,7 @@ function setPartyCall(p, text, kind, fresh) {
   G.partyCall.set(p, c);
 }
 function clearPartyCalls() {
+  G._plateCall = null;
   if (G.partyCall) for (const c of G.partyCall.values()) clearTimeout(c.timer);
   G.partyCall = null;
 }
