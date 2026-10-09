@@ -1,0 +1,20 @@
+{
+  "job": "archmage",
+  "label": "大魔導",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "draft": "docs/art/archmage/archmage-r1-draft.png",
+  "note": "R1承認用の仮比較。ゲーム画像とjobphotos.jsは未変更。",
+  "draftMeasurement": {
+    "source": "docs/art/archmage/archmage-r1-draft.png",
+    "headCenterX": 480,
+    "mainHairTopY": 190,
+    "chinY": 505,
+    "soleY": 1349,
+    "perDot": 13.980699638118214,
+    "frame": [
+      90,
+      92
+    ],
+    "frameTop": 9
+  }
+}

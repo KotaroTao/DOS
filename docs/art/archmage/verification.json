@@ -1,0 +1,157 @@
+{
+  "photosSelected": [
+    {
+      "rank": 1,
+      "src": "art/jobs/archmage_1.webp",
+      "head": [
+        45,
+        9,
+        30.495
+      ],
+      "face": [
+        45,
+        20
+      ]
+    },
+    {
+      "rank": 2,
+      "src": "art/jobs/archmage_2.webp",
+      "head": [
+        45,
+        9,
+        30.573
+      ],
+      "face": [
+        45,
+        20
+      ]
+    },
+    {
+      "rank": 3,
+      "src": "art/jobs/archmage_3.webp",
+      "head": [
+        45,
+        9,
+        30.09
+      ],
+      "face": [
+        45,
+        20
+      ]
+    },
+    {
+      "rank": 4,
+      "src": "art/jobs/archmage_4.webp",
+      "head": [
+        45,
+        9,
+        30.405
+      ],
+      "face": [
+        45,
+        20
+      ]
+    },
+    {
+      "rank": 5,
+      "src": "art/jobs/archmage_5.webp",
+      "head": [
+        45,
+        9,
+        30.085
+      ],
+      "face": [
+        45,
+        20
+      ]
+    }
+  ],
+  "images": [
+    {
+      "rank": 1,
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        75,
+        24,
+        300,
+        367
+      ]
+    },
+    {
+      "rank": 2,
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        74,
+        23,
+        305,
+        367
+      ]
+    },
+    {
+      "rank": 3,
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        60,
+        23,
+        304,
+        367
+      ]
+    },
+    {
+      "rank": 4,
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        64,
+        23,
+        321,
+        367
+      ]
+    },
+    {
+      "rank": 5,
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        51,
+        23,
+        321,
+        367
+      ]
+    }
+  ],
+  "browserErrors": [],
+  "httpErrors": [],
+  "commonFrame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "strictReferenceTolerance": 0.3,
+  "strictReferencePassed": false,
+  "maxChinDeviationFromCrusaderDots": 0.845,
+  "maxChinDeviationFromApprovedR1Dots": 0.41,
+  "viewports": [
+    [
+      1440,
+      1000
+    ],
+    [
+      390,
+      844
+    ]
+  ]
+}
