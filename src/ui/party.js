@@ -273,7 +273,7 @@ function equipWithUndo(doll, item, key = null, { stashTo = null, quiet = false }
   const before = previewStats(doll, doll.equip, recalc);
   const r = game.equipAt(doll, item, key, owner, stashTo);
   if (!r || !r.ok) {
-    if (r && r.msg && !r.full) { game.log(r.msg, "sys"); sfx("ng"); toast(r.msg, { tone: "bad" }); }
+    if (r && r.msg && !r.full) { game.log(r.msg, "sys"); sfx("ng"); toast(r.msg, { tone: "bad", noLog: true }); }
     return { ...(r || { ok: false }), key };
   }
   game.log(r.msg, "win");
@@ -1668,9 +1668,9 @@ function dollHeader(d, mode) {
   game.refreshStability?.();
   const stable = game.vesselStable && game.vesselStable(d);
   const stability = stable
-    ? button({ label:"師の器 ・ 安定度を消費しない", kind:"ghost", size:"sm", onTap:()=>toast("師オルドが一度で仕上げた器。魂の安定度を消費しない。メイン魂は灯守に固定", {tone:"info"}) })
+    ? button({ label:"師の器 ・ 安定度を消費しない", kind:"ghost", size:"sm", onTap:()=>toast("師オルドが一度で仕上げた器。魂の安定度を消費しない。メイン魂は灯守に固定", {tone:"info", noLog:true}) })
     : button({ label:`魂の安定度 ${d.stability}/${game.STABILITY_MAX}`, kind:"ghost", size:"sm",
-      onTap:town ? ()=>openStability(d) : ()=>toast(`入場時に10消費・${game.stabilityMinutes ? game.stabilityMinutes() : 4}分で1回復。探索中の追加消費はない`, {tone:"info"}) });
+      onTap:town ? ()=>openStability(d) : ()=>toast(`入場時に10消費・${game.stabilityMinutes ? game.stabilityMinutes() : 4}分で1回復。探索中の追加消費はない`, {tone:"info", noLog:true}) });
   stability.classList.add("pt-stability"); tx.appendChild(stability);
   head.appendChild(tx);
   if (town && pi < 0 && d.primary != null && !away) {
@@ -2223,7 +2223,7 @@ function statsSeg(root, d) {
       const c = el("button", "pt-skill pas");
       c.type = "button";
       c.appendChild(el("span", null, p));
-      c.addEventListener("click", () => { if (!showPassivePopup(p)) toast(`加護「${p}」― 常に働く力`, { tone: "info" }); });
+      c.addEventListener("click", () => { if (!showPassivePopup(p)) toast(`加護「${p}」― 常に働く力`, { tone: "info", noLog: true }); });
       sc.appendChild(c);
     }
     line.appendChild(sc);

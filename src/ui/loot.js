@@ -232,7 +232,7 @@ export function equipTo(d, it, { quiet = false } = {}) {
   const ok = !!(r && r.ok !== false) && !!equippedBy(d, it);
   if (ok) {
     if (!quiet) {
-      const t = toast(`${d.name} が ${it.name} を装備した`, { tone: "good", icon: it });
+      const t = toast(`${d.name} が ${it.name} を装備した`, { tone: "good", icon: it, logKey: it.name });
       if (t && delta) t.el.querySelector(".ui-toast-t").appendChild(deltaEl(delta));
     }
   } else if (!quiet) {
@@ -254,7 +254,7 @@ function giveTo(owner, it, to) {
   to.items.push(it);
   if (game.log) game.log(`${itemName(it)} を ${owner.name} → ${to.name} に渡した`, "win");
   sfx("select");
-  toast(`${itemName(it)} → ${to.name}`, { tone: "info", icon: it });
+  toast(`${itemName(it)} → ${to.name}`, { tone: "info", icon: it, noLog: true });
   if (game.autosave) game.autosave(true);
   refreshViews();
   return true;
@@ -495,9 +495,9 @@ export function equipPick(d, it, { buyId = null, onDone } = {}) {
     sfx("select");
     if (game.autosave) game.autosave(true);
     refreshViews();
-    toast("元に戻した", { tone: "info" });
+    toast("元に戻した", { tone: "info", noLog: true });
   };
-  const t = toast(`${buyId ? "買って " : ""}${d.name} が ${item.name} を装備した`, { tone: "good", icon: item, action: { label: "元に戻す", fn: undo } });
+  const t = toast(`${buyId ? "買って " : ""}${d.name} が ${item.name} を装備した`, { tone: "good", icon: item, logKey: item.name, action: { label: "元に戻す", fn: undo } });
   if (t && delta) t.el.querySelector(".ui-toast-t").appendChild(deltaEl(delta));
   if (game.autosave) game.autosave(true);
   if (onDone) onDone(d, item);
@@ -993,7 +993,7 @@ function lootToast(item, who, opts) {
   if (opts.silent) return null;
   const act = toastAction(item, who);
   const label = `${itemName(item)}${item.unidentified ? " (未鑑定)" : ""}${who ? ` → ${who.name}` : ""}`;
-  const t = toast(label, { tone: "gold", icon: item, rarity: rk, action: act ? { label: act.label, fn: act.fn } : null });
+  const t = toast(label, { tone: "gold", icon: item, rarity: rk, logKey: itemName(item), action: act ? { label: act.label, fn: act.fn } : null });
   if (!t) return null;
   t.el.classList.add("wpc-loot-toast");
   const tx = t.el.querySelector(".ui-toast-t");

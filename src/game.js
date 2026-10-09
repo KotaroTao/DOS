@@ -44,7 +44,7 @@ import { showTitle } from "./title.js";
 import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityUp } from "./rarity.js";
 // ---- UI 基盤 (Phase 0)。新しい UI モジュールは game.js を import せず、ctx.js の UI/game/ops を通す ----
 import { UI, ops, bindGame, registerUI } from "./ui/ctx.js";
-import { el, svgIcon, btn, button as kitButton, longPress as attachLongPress, uiBlocked, sheetDepth, sheet, toast as kitToast, confirm as kitConfirm, plainText, shake as kitShake } from "./ui/kit.js";
+import { el, svgIcon, btn, button as kitButton, longPress as attachLongPress, uiBlocked, sheetDepth, sheet, toast as kitToast, setToastEcho, confirm as kitConfirm, plainText, shake as kitShake } from "./ui/kit.js";
 import { nav } from "./ui/nav.js";
 import { installPhraseWrap } from "./ui/phrase.js";
 import * as townshell from "./ui/townshell.js";
@@ -852,6 +852,34 @@ function log(msg, cls = "sys") {
   scrollLogBottom();
   requestAnimationFrame(scrollLogBottom);
 }
+// 札 (題 + 行) を記録へ。題は【】で囲んで区切りにする
+function logSheet(title, lines = [], cls = "sys") {
+  if (!inDungeon()) return;
+  if (title) logEcho(`【${plainText(title)}】`, cls);
+  for (const ln of lines || []) if (typeof ln === "string" && ln) logEcho(ln, cls);
+}
+// 記録欄に書いていない知らせ (トースト・出来事や罠の札・発見の問い) を記録にも残す。記録欄は迷宮の中 (盤面・戦闘) にしか
+// 無いので、写すのは迷宮の中だけ。log と showToast を並べて書く慣わしの箇所は noLog で止め、止め忘れても
+// 直近の記録に同じ文があれば重ねない (文字と数字だけで比べる。記号・絵文字・句読点・区切りの違いは見ない)
+const LOG_TONE = { bad: "dmg", good: "heal", gold: "win", info: "sys" };
+const logKey = (s) => plainText(String(s == null ? "" : s)).replace(/[^\p{L}\p{N}]/gu, "");
+function loggedRecently(text, n = 12) {
+  const k = logKey(text);
+  if (!k) return true;
+  for (let i = _logHistory.length - 1, c = 0; i >= 0 && c < n; i--, c++) {
+    const h = logKey(_logHistory[i].msg);
+    if (h.includes(k) || (h.length >= 6 && k.includes(h))) return true;
+  }
+  return false;
+}
+// key: この語が直近の記録にあれば書かない (品の名など、言い回しの違う同じ知らせ)
+function logEcho(text, cls = "sys", key = null) {
+  if (!inDungeon() || !text) return;
+  if (key && loggedRecently(key)) return;
+  if (loggedRecently(text)) return;
+  log(text, cls);
+}
+setToastEcho((text, o) => logEcho(text, LOG_TONE[o.tone || "gold"] || "sys", o.logKey || null));
 
 // 現在の迷宮設定
 function curDungeon() { return DUNGEONS[G.dungeonIdx] || DUNGEONS[0]; }
@@ -919,7 +947,7 @@ function refreshWorldUnlocks() {
 function announceNewDungeons(list) {
   for (const d of list) {
     log(`新たな迷宮「${d.name}」が地図に記された。`, "win");
-    showToast(`🗺 新たな迷宮「${d.name}」が地図に記された`, { tone: "info" });
+    showToast(`🗺 新たな迷宮「${d.name}」が地図に記された`, { noLog: true, tone: "info" });
   }
 }
 // いまの章 (章の迷宮のうち、まだ報告していない迷宮がある最初の章。すべて済んだら最後の章)
@@ -1195,7 +1223,7 @@ function grantHordeReward() {
     banner: "✦ 殲滅 ✦", title: "この辺りの敵をすべて葬った",
     accent: "#d4504e", sprite: ICONS.poison, sparkle: true,
     lines: ["群れを狩り尽くした褒美だ。", `獲得 ゴールド 💰${gold}`, `回収した Soul ✦${soul}`],
-    onClose: () => renderBoard(),
+    onClose: () => renderBoard(), noLog: true,
   });
 }
 
@@ -2026,7 +2054,7 @@ function castFieldMeasured(key, confirmed = false) {
   if (sp.float) {
     G.run.float = sp.float;
     log(`${c.p.name}は${sp.name}を唱えた。隊の足が地を離れる ― ${sp.float}階のあいだ落とし穴にも毒の床にもかからない。`, "win");
-    showToast(`${sp.name} ― ${sp.float}階のあいだ宙に浮く`, { tone: "good" });
+    showToast(`${sp.name} ― ${sp.float}階のあいだ宙に浮く`, { noLog: true, tone: "good" });
   } else if (sp.sense) {
     G.board.fsense = Object.assign({}, G.board.fsense, { [sp.sense]: true });
     if (sp.sense === "stairs") revealAroundStairs();
@@ -2036,7 +2064,7 @@ function castFieldMeasured(key, confirmed = false) {
       : !n ? `この階には、まだ見ぬ${what}はないようだ。`
       : sp.sense === "enemy" ? `伏せたカードに、${n}つの赤い気配がぼんやりと浮かび上がった。` : `伏せたカードに、${n}つの青い光がぼんやりと灯った。`;
     log(`${c.p.name}は${sp.name}を唱えた。${msg}`, "win");
-    showToast(`${sp.name} ― ${sp.sense === "stairs" ? "階段の在りかとそのまわりが開けた" : n ? `${what} ${n}` : `${what}なし`}`, { tone: "good" });
+    showToast(`${sp.name} ― ${sp.sense === "stairs" ? "階段の在りかとそのまわりが開けた" : n ? `${what} ${n}` : `${what}なし`}`, { noLog: true, tone: "good" });
   }
   renderParty();
   renderBoard();
@@ -5433,7 +5461,7 @@ function resolveCellMeasured(cell) {
         SFX.chest();
         G.stats.trapsDisarmed++; // 戦績: 解除した罠 (勲章用)
         log(`床の罠「${trap.name}」を ${best.name}が見抜き、解除した！`, "sys");
-        showToast(`床の罠「${trap.name}」― ${best.name}が見抜いて解除`, { tone: "good", icon: ICONS.trap });
+        showToast(`床の罠「${trap.name}」― ${best.name}が見抜いて解除`, { noLog: true, tone: "good", icon: ICONS.trap });
         break;
       }
       presentTrap(applyTrap(trap, best), { proceed: () => renderBoard() }, boardSink());
@@ -5443,7 +5471,7 @@ function resolveCellMeasured(cell) {
       // 落とし穴: ダメージは無いが、1階下へ強制的に落とされる (最下階には無い)。浮遊していれば落ちない
       if (floatLeft() > 0) {
         log("落とし穴だ。だが隊は宙に浮いたまま、穴の上を渡った。", "sys");
-        showToast("落とし穴 ― 浮遊で越えた", { tone: "good", icon: ICONS.trap });
+        showToast("落とし穴 ― 浮遊で越えた", { noLog: true, tone: "good", icon: ICONS.trap });
         break;
       }
       if (abyssActive() || G.floor >= (curDungeon().floors || 1)) break; // 念のため (最下階・奈落には置かない)
@@ -5524,21 +5552,21 @@ function resolveCellMeasured(cell) {
         showChoice("黒い泉が湧いている。底が見えない…", [
           { label: "飲む ― 大いなる恵み / 呪いの危険", danger: true, fn: () => useDarkFountain(cell) },
           { label: "近寄らない", fn: () => { log("黒い泉には触れなかった。", "sys"); renderBoard(); } },
-        ], ICONS.fountain, { banner: "⚠ 黒い泉 ⚠", accent: "#8a2be2", lines: ["五分の賭けだ。恵みなら全快して Soul を得る。呪いなら生気を吸われる。"] });
+        ], ICONS.fountain, { banner: "⚠ 黒い泉 ⚠", accent: "#8a2be2", logAs: true, lines: ["五分の賭けだ。恵みなら全快して Soul を得る。呪いなら生気を吸われる。"] });
         break;
       }
       // §7 M4: 皆が満ちている (HP/MP満タン・状態異常なし) なら問わない。泉はそのまま残り、後で使える
       const needs = G.party.some((p) => p.alive && (p.hp < p.maxhp || p.mp < p.maxmp || p.ailment));
       if (!needs) {
         log("癒しの泉だ。いまは皆満ちている。泉はそのまま残した。", "sys");
-        showToast("癒しの泉 ― 皆満ちている (後で使える)", { tone: "info", icon: ICONS.fountain });
+        showToast("癒しの泉 ― 皆満ちている (後で使える)", { noLog: true, tone: "info", icon: ICONS.fountain });
         break;
       }
       // 利用するか選べる。今使わなくても泉は残り、後から再訪して使える。
       showChoice("癒しの泉が湧いている。", [
         { label: "泉を利用する", primary: true, fn: () => useFountain(cell) },
         { label: "今はやめておく", fn: () => { log("泉はそのままにした。後で使える。", "sys"); renderBoard(); } },
-      ], ICONS.fountain, { banner: "✦ 癒しの泉 ✦", accent: "#5fb8d6", lines: ["HPとMPが回復し、毒も癒える。一度きり。"] });
+      ], ICONS.fountain, { banner: "✦ 癒しの泉 ✦", accent: "#5fb8d6", logAs: true, lines: ["HPとMPが回復し、毒も癒える。一度きり。"] });
       break;
     }
     case "corpse": {
@@ -5729,7 +5757,7 @@ function evBattleStart(enemies, isBoss) {
     rv.bomb--;
     for (const e of enemies) e.hp = Math.max(1, e.hp - Math.ceil(e.maxhp * (e.boss ? 0.12 : 0.30)));
     log("発破が炸裂した！ 敵全体が爆風に呑まれた。", "win");
-    setTimeout(() => showToast("💥 発破が炸裂 ― 敵全体に痛打", { tone: "gold" }), 300);
+    setTimeout(() => showToast("💥 発破が炸裂 ― 敵全体に痛打", { noLog: true, tone: "gold" }), 300);
   }
   const bw = G.events && G.events.flags && G.events.flags.bossWeak;
   if (isBoss && bw && bw[battleLayer()]) {
@@ -5865,7 +5893,7 @@ function runStoryCell(cell) {
     syncClueBoons();
     log(`${def.toast || def.name}。`, "win");
     if (def.boon && def.boon.kind !== "dungeon") log(`手がかりの恵み: ${def.boon.text}`, "win");
-    showToast(`✦ ${def.toast || def.name}`, { tone: "good" });
+    showToast(`✦ ${def.toast || def.name}`, { noLog: true, tone: "good" });
     announceNewDungeons(refreshWorldUnlocks());
     autosave(true);
     renderBoard();
@@ -5956,7 +5984,7 @@ function seraJoin() {
     if (!G.codex.job) G.codex.job = {};
     codexSweepJobs();
     log(`人業「セラ」が目を覚ました。灯守 Lv${s.level}。師の作った器は、魂の安定度を消費しない。`, "win");
-    showToast("セラが仲間に加わった", { tone: "good" });
+    showToast("セラが仲間に加わった", { noLog: true, tone: "good" });
     SFX.itemget(); buzz([0, 30, 60, 30]);
   }
   syncSeraSoul();
@@ -6012,7 +6040,7 @@ function evOnDescend() {
   rv.nextFloorMods = [...(rv.nextFloorMods || []), { src: "oath", name: "破られた誓い", desc: "敵の力 1.2倍 (この階)", enemyMul: 1.2 }];
   fe.oath.done = true;
   log("誓いを果たさずに降りた……石碑の呪いが後を追ってくる。(次の階の敵の力 1.2倍)", "dmg");
-  showToast("誓いを破った ― 次の階の敵が手強い", { tone: "bad" });
+  showToast("誓いを破った ― 次の階の敵が手強い", { noLog: true, tone: "bad" });
 }
 // 誓い (石碑)・頼み (坑夫) の達成を確かめる (1歩ごと・戦闘の後)
 function evProgress() {
@@ -6026,7 +6054,7 @@ function evProgress() {
     if (stone) { stone.type = "chest"; stone.cleared = false; stone.revealed = true; stone.cRank = Math.min(5, chestRankOf(null) + 2); delete stone.evOath; }
     SFX.victory(); flashScreen("#ffd84a"); updateTopbar();
     log(`誓いを果たした！ ✦${s} Soul を授かり、石碑は祝福の宝箱に変わった。`, "win");
-    showToast(`誓いを果たした ― ✦${s} ・ 石碑が宝箱に`, { tone: "gold", icon: ICONS.chest });
+    showToast(`誓いを果たした ― ✦${s} ・ 石碑が宝箱に`, { noLog: true, tone: "gold", icon: ICONS.chest });
     renderBoard();
   }
   if (fe.miner && !fe.minerDone && !evCells((c) => c.type === "corpse" && !c.cleared).length) {
@@ -6037,7 +6065,7 @@ function evProgress() {
     G.embers = (G.embers || 0) + 1; runCount("embers", 1);
     SFX.victory(); updateTopbar();
     log(`坑夫の亡霊は仲間と共に眠りについた。✦${s} Soul と魂の残火を遺していった。`, "win");
-    showToast(`坑夫の頼みを果たした ― ✦${s} ・ 魂の残火 ×1`, { tone: "gold", icon: ICONS.ember });
+    showToast(`坑夫の頼みを果たした ― ✦${s} ・ 魂の残火 ×1`, { noLog: true, tone: "gold", icon: ICONS.ember });
     renderBoard();
   }
 }
@@ -6052,7 +6080,7 @@ function evOnReturn(runRef, outcome) {
   G.gold += pay; runRef.gold = (runRef.gold || 0) + pay;
   if (tlOn()) { if (inDungeon()) tlGain(tlWhere(), "gold", pay, "ev"); else tlTownGain("gold", pay, "ev"); } // 帰還の時に払われる
   log(notes.join(" / "), "win");
-  setTimeout(() => showToast(notes.join(" ・ "), { tone: "gold", icon: ICONS.gold }), 900);
+  setTimeout(() => showToast(notes.join(" ・ "), { noLog: true, tone: "gold", icon: ICONS.gold }), 900);
 }
 // 魂の職を選ぶ (rarePlus: レア以上確定 / front: 前衛の職 / common: コモン / 既定: 死体と同じ抽選)
 function evSoulClass(mode) {
@@ -6109,7 +6137,8 @@ const evApi = {
   flags: () => G.events.flags,
   recalcPermanent: () => recalcAllDolls({ levelUp: true }),
   // ---- 画面 ----
-  choice: (title, opts, icon, o) => showChoice(title, opts, icon, o),
+  // 選んだ手は記録に残す (「〜 ― 説明」の説明は省く。cancel の立ち去るは呼び出し側が「〜を後にした」と書く)
+  choice: (title, opts, icon, o) => showChoice(title, opts.map((x) => (!x || x.cancel ? x : { ...x, fn: (...a) => { log(`▸ ${plainText(String(x.label)).split(" ― ")[0]}`, "sys"); return x.fn(...a); } })), icon, o),
   icon: (e) => (e.icon && e.icon.startsWith("mon:") ? MONSTERS[e.icon.slice(4)] : ICONS[e.icon]) || ICONS.event,
   toast: (text, tone = "info", icon = null) => showToast(text, { tone, icon: icon ? (ICONS[icon] || undefined) : undefined }),
   log: (t, c = "sys") => log(t, c),
@@ -6147,7 +6176,7 @@ const evApi = {
       const s = runGainSoulPts(Math.max(1, Math.round(evUnit().soul * 0.5)), "ev");
       updateTopbar();
       log(`見聞録に新たな出来事「${e.name}」を記した。(✦${s})`, "win");
-      setTimeout(() => showToast(`見聞録に記した「${e.name}」 ✦${s}`, { tone: "gold", icon: ICONS.event }), 250);
+      setTimeout(() => showToast(`見聞録に記した「${e.name}」 ✦${s}`, { noLog: true, tone: "gold", icon: ICONS.event }), 250);
     }
   },
   picked(e, label) {
@@ -6216,22 +6245,22 @@ const evApi = {
     const g = runGainGold(Math.round(evUnit().gold * u * evJit()), "ev");
     SFX.itemget(); updateTopbar();
     log(`${from}から ${g} ゴールドを得た。`, "win");
-    showToast(`${from}から 💰${g}`, { tone: "gold", icon: ICONS.gold });
+    showToast(`${from}から 💰${g}`, { noLog: true, tone: "gold", icon: ICONS.gold });
     return g;
   },
   soul(u, from) {
     const s = runGainSoulPts(Math.round(evUnit().soul * u * evJit()), "ev");
     updateTopbar();
     log(`${from}から ✦${s} Soul を得た。`, "win");
-    showToast(`${from}から ✦${s} Soul`, { tone: "gold", icon: ICONS.wisp });
+    showToast(`${from}から ✦${s} Soul`, { noLog: true, tone: "gold", icon: ICONS.wisp });
     return s;
   },
-  giveGoldRaw(n, from) { G.gold += n; if (G.run && inDungeon()) G.run.gold += n; if (tlOn() && inDungeon()) tlGain(tlWhere(), "gold", n, "ev"); updateTopbar(); log(`${from}で 💰${n} を得た。`, "win"); showToast(`${from} ― 💰${n}`, { tone: "gold", icon: ICONS.gold }); },
-  giveSoulRaw(n, from) { G.soulPts += n; if (G.run && inDungeon()) G.run.soulPts += n; if (tlOn() && inDungeon()) tlGain(tlWhere(), "soul", n, "ev"); updateTopbar(); log(`${from}で ✦${n} Soul を得た。`, "win"); showToast(`${from} ― ✦${n}`, { tone: "gold", icon: ICONS.wisp }); },
+  giveGoldRaw(n, from) { G.gold += n; if (G.run && inDungeon()) G.run.gold += n; if (tlOn() && inDungeon()) tlGain(tlWhere(), "gold", n, "ev"); updateTopbar(); log(`${from}で 💰${n} を得た。`, "win"); showToast(`${from} ― 💰${n}`, { noLog: true, tone: "gold", icon: ICONS.gold }); },
+  giveSoulRaw(n, from) { G.soulPts += n; if (G.run && inDungeon()) G.run.soulPts += n; if (tlOn() && inDungeon()) tlGain(tlWhere(), "soul", n, "ev"); updateTopbar(); log(`${from}で ✦${n} Soul を得た。`, "win"); showToast(`${from} ― ✦${n}`, { noLog: true, tone: "gold", icon: ICONS.wisp }); },
   ember(n, from, quiet = false) {
     G.embers = (G.embers || 0) + n; runCount("embers", n); updateTopbar();
     log(`${from} ― 魂の残火を ${n}つ 得た。`, "win");
-    if (!quiet) showToast(`${from} ― 魂の残火 ×${n}`, { tone: "gold", icon: ICONS.ember });
+    if (!quiet) showToast(`${from} ― 魂の残火 ×${n}`, { noLog: true, tone: "gold", icon: ICONS.ember });
   },
   // ---- 品・魂 ----
   item: (opts, from, next) => { log(`${from}で品を見つけた。`, "win"); evGive(pickLoot({ ...(opts || {}), noLR: true }), next); },
@@ -6393,7 +6422,7 @@ function useFountainMeasured(cell) {
   }
   log("癒しの泉だ！ HPとMPが回復し、毒も癒えた。", "heal");
   flashPartyCards(healed, "heal");
-  showToast(`癒しの泉 ― HP・MPが回復した${cured ? "・毒も浄化" : ""}`, { tone: "good", icon: ICONS.fountain });
+  showToast(`癒しの泉 ― HP・MPが回復した${cured ? "・毒も浄化" : ""}`, { noLog: true, tone: "good", icon: ICONS.fountain });
   renderBoard();
 }
 
@@ -6408,7 +6437,7 @@ function useDarkFountainMeasured(cell) {
     updateTopbar();
     log(`黒い泉は恵みをもたらした！ 全回復し、✦${bonus} Soul を得た。`, "win");
     flashPartyCards(G.party.filter((p) => p.alive), "heal");
-    showToast(`深淵の恵み ― 全回復 ・ ✦${bonus}`, { tone: "good", icon: ICONS.fountain });
+    showToast(`深淵の恵み ― 全回復 ・ ✦${bonus}`, { noLog: true, tone: "good", icon: ICONS.fountain });
     renderBoard();
     return;
   }
@@ -6421,7 +6450,7 @@ function useDarkFountainMeasured(cell) {
   }
   log("黒い泉は呪いだった…！ 全員の生気が吸われた。", "dmg");
   flashPartyCards(G.party.filter((p) => p.alive), "hit");
-  showToast(`深淵の呪い ― 全員のHPが半減${cursed ? "・毒に侵された者も" : ""}`, { tone: "bad", icon: ICONS.fountain });
+  showToast(`深淵の呪い ― 全員のHPが半減${cursed ? "・毒に侵された者も" : ""}`, { noLog: true, tone: "bad", icon: ICONS.fountain });
   renderBoard();
 }
 
@@ -6434,7 +6463,7 @@ function resolveCorpse(cell) {
     showChoice(`偉大なる死体。尋常ならざる魂の気配がする。`, [
       { label: "魂を回収する", primary: true, fn: () => collectWarmCorpse(cell, clsKey, clsLabel) },
       { label: "立ち去る", fn: () => { cell.corpseSeen = true; log("偉大なる死体に手を触れず、立ち去った。", "sys"); renderBoard(); } }, // オート移動はもう向かわない
-    ], ICONS.corpseWarm, { banner: "★ 偉大なる死体 ★", accent: "#ffcf4a", lines: ["まれに死体が目覚めて襲ってくる。勝てば魂は必ず手に入る。"] });
+    ], ICONS.corpseWarm, { banner: "★ 偉大なる死体 ★", accent: "#ffcf4a", logAs: true, lines: ["まれに死体が目覚めて襲ってくる。勝てば魂は必ず手に入る。"] });
     return;
   }
   if (!cell.corpseWarm) {
@@ -6443,7 +6472,7 @@ function resolveCorpse(cell) {
     showChoice(`風化した死体が横たわっている。調べてみるか？`, [
       { label: "調べる", primary: true, fn: () => investigateCorpse(cell, clsKey, clsLabel) },
       { label: "立ち去る", fn: () => { cell.corpseSeen = true; log("死体には触れず、立ち去った。", "sys"); renderBoard(); } },
-    ], ICONS.corpse, { banner: "— 風化した死体 —", accent: "#8c866f" });
+    ], ICONS.corpse, { banner: "— 風化した死体 —", accent: "#8c866f", logAs: true });
     return;
   }
   // あたたかい死体: 回収するか立ち去るか選べる。立ち去れば死体は残る。
@@ -6451,7 +6480,7 @@ function resolveCorpse(cell) {
   showChoice(`まだあたたかい死体。魂が宿っている。`, [
     { label: "魂を回収する", primary: true, fn: () => collectWarmCorpse(cell, clsKey, clsLabel) },
     { label: "立ち去る", fn: () => { cell.corpseSeen = true; log("死体に手を触れず、立ち去った。", "sys"); renderBoard(); } },
-  ], ICONS.corpseWarm, { banner: "✦ あたたかい死体 ✦", accent: "#7fd0ff", lines: ["まれに死体が起き上がる。勝てば魂は必ず手に入る。"] });
+  ], ICONS.corpseWarm, { banner: "✦ あたたかい死体 ✦", accent: "#7fd0ff", logAs: true, lines: ["まれに死体が起き上がる。勝てば魂は必ず手に入る。"] });
 }
 
 // あたたかい死体/偉大なる死体の回収: 80%で魂を直接入手、20%で死体が起き上がりアンデッド戦。
@@ -6530,7 +6559,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
     log(`風化した死体の懐から ${g} ゴールドを見つけた。`, "win");
     const tail = emberTail();
     updateTopbar();
-    showToast(`風化した死体の懐から 💰${g}${tail}`, { tone: "gold", icon: ICONS.gold });
+    showToast(`風化した死体の懐から 💰${g}${tail}`, { noLog: true, tone: "gold", icon: ICONS.gold });
     back();
   };
 
@@ -6550,7 +6579,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
     log(`風化した死体から ✦${got} Soul を集めた。`, "win");
     const tail = emberTail();
     updateTopbar();
-    showToast(`風化した死体から ✦${got} Soul${tail}`, { tone: "gold", icon: ICONS.wisp });
+    showToast(`風化した死体から ✦${got} Soul${tail}`, { noLog: true, tone: "gold", icon: ICONS.wisp });
     back();
     return;
   }
@@ -6636,7 +6665,7 @@ function celebrateSoul(s, onClose) {
     accent: cls.glow || "#c9a227",
     sparkle: true,
     btnLabel: "受け取る",
-    onClose,
+    onClose, noLog: true, // 魂と残火は grantSoulQuiet が記録に書いた
   });
 }
 
@@ -6670,7 +6699,9 @@ function replacePrompt() {
   if (promptSheet) { const old = promptSheet; promptSheet = null; old.close("replace", { silent: true }); }
   clearItemGetSlot();
 }
-function showChoice(title, options, icon, { banner = "✦ 発見 ✦", accent = "#c9a227", lines = [], onDismiss = null } = {}) {
+// logAs: 問いを記録にも残す (true = 題、文字列 = その文。宝箱・泉・死体・出来事などの発見)
+function showChoice(title, options, icon, { banner = "✦ 発見 ✦", accent = "#c9a227", lines = [], onDismiss = null, logAs = null } = {}) {
+  if (logAs) logEcho(logAs === true ? plainText(title) : logAs, /[⚠✗☠]/.test(banner || "") ? "dmg" : "sys");
   G.prompt = true;
   replacePrompt();
   const cancel = onDismiss ? null : options.find(isCancelOption);
@@ -6887,10 +6918,11 @@ function bestChestOpener(cRank) {
 function boardSink() {
   return {
     mode: "board",
-    note(text, tone = "gold", icon = null) { showToast(text, { tone, icon: icon || undefined }); },
-    gold(g, from = "宝箱") { showToast(`${from}から 💰${g}`, { tone: "gold", icon: ICONS.gold }); },
+    // logged = 同じ知らせを呼び出し側が記録に書いた (gold・lost も呼び出し側が書く)
+    note(text, tone = "gold", icon = null, logged = false) { showToast(text, { tone, icon: icon || undefined, noLog: logged }); },
+    gold(g, from = "宝箱") { showToast(`${from}から 💰${g}`, { tone: "gold", icon: ICONS.gold, noLog: true }); },
     loot(item, who, next) { UI.loot(item, who, { source: "chest" }, next); },
-    lost(name) { showToast(`持ちきれず置いてきた: ${name}`, { tone: "bad" }); },
+    lost(name) { showToast(`持ちきれず置いてきた: ${name}`, { tone: "bad", noLog: true }); },
     interrupt() {},
   };
 }
@@ -6909,7 +6941,7 @@ function askOpenChest(cell) {
   if (others.length) opts.push({ label: "他の者が開ける", fn: () => askOtherOpener(cell, cRank, others) });
   opts.push({ label: "開けない", cancel: true, fn: () => { if (cell) cell.chestSeen = true; renderBoard(); } }); // オート移動はもう向かわない
   showChoice(`${CHEST_RANKS[cRank]}宝箱`, opts, ICONS.chest, {
-    banner: "✦ 宝箱 ✦", lines: ["罠があるかもしれない。解除の上手い者が開けるほど安全だ。"],
+    banner: "✦ 宝箱 ✦", logAs: `${CHEST_RANKS[cRank]}宝箱を見つけた。`, lines: ["罠があるかもしれない。解除の上手い者が開けるほど安全だ。"],
   });
 }
 function askOtherOpener(cell, cRank, others) {
@@ -6985,7 +7017,7 @@ function chestTrapPhase(opener, contents, cRank = 1, abort, excludeKinds, sink =
       SFX.chest();
       G.stats.trapsDisarmed++; // 戦績: 解除した罠 (勲章用)
       log(`宝箱の罠「${trap.name}」を ${who.name}が解除した！`, "sys");
-      sink.note(`罠「${trap.name}」― ${who.name}が解除した`, "good", ICONS.trap);
+      sink.note(`罠「${trap.name}」― ${who.name}が解除した`, "good", ICONS.trap, true);
       contents();
       return;
     }
@@ -7156,6 +7188,8 @@ function teleportParty() {
 function presentTrap(res, fin, sink = boardSink()) {
   const chest = !!fin.chest;
   const trap = res.trap;
+  // 罠の痛手・状態異常・奪われた物 (札・戦果シート・トーストのどこに出ても、記録には1行ずつ残す)
+  for (const ln of res.lines || []) logEcho(ln, "dmg");
   if (res.kind === "teleport") {
     sink.interrupt();
     showEvent({
@@ -7192,7 +7226,7 @@ function presentTrap(res, fin, sink = boardSink()) {
     return;
   }
   imprintFallen();
-  sink.note(`${chest ? "解除失敗 ― " : ""}罠「${trap.name}」${res.brief ? " ― " + res.brief : ""}`, "bad", ICONS.trap);
+  sink.note(`${chest ? "解除失敗 ― " : ""}罠「${trap.name}」${res.brief ? " ― " + res.brief : ""}`, "bad", ICONS.trap, true);
   fin.proceed();
 }
 
@@ -7230,6 +7264,7 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false, sink 
   if (ITEMS[id] && !G.party.some((m) => m.items.length < MAX_ITEMS)) {
     const nm = itemName(markDungeonLoot({ ...ITEMS[id] }));
     runLost(nm);
+    log(`${nm}を見つけたが、誰も持てない…`, "sys");
     sink.lost(nm);
   }
   SFX.chest();
@@ -7263,14 +7298,14 @@ function askCursedChest(done) {
       }
       log("黒い宝箱から呪いがふきだした！", "dmg");
       flashPartyCards(G.party.filter((p) => p.alive), "hit");
-      showToast(`呪いがふきだした ― 全員が生気を吸われた${cursed ? "・毒や麻痺も" : ""}`, { tone: "bad", icon: ICONS.trap });
+      showToast(`呪いがふきだした ― 全員が生気を吸われた${cursed ? "・毒や麻痺も" : ""}`, { noLog: true, tone: "bad", icon: ICONS.trap });
     }
     giveLoot();
   };
   showChoice("黒い宝箱だ。禍々しい気配を放っている…", [
     { label: "開ける ― 上質な品 / 呪いの危険", danger: true, fn: openIt },
     { label: "立ち去る", fn: done },
-  ], ICONS.chest, { banner: "⚠ 黒い宝箱 ⚠", accent: "#8a2be2", lines: ["一段上の品が眠る。半分の確率で呪いがふきだすが、中身は本物だ。"] });
+  ], ICONS.chest, { banner: "⚠ 黒い宝箱 ⚠", accent: "#8a2be2", logAs: true, lines: ["一段上の品が眠る。半分の確率で呪いがふきだすが、中身は本物だ。"] });
 }
 
 // 戦闘勝利後の宝箱 (出現判定は endBattle 側)。ミミックはいないが罠は70%で仕掛けられており、
@@ -7562,11 +7597,11 @@ function startBattleMeasured(enemies, cell) {
   const trA = dungeonTrait();
   if (trA && trA.alwaysAmbush && !isBoss) { opening = "ambush"; openSrc = "trait"; }
   evBattleStart(enemies, isBoss);
-  if (opening === "preempt") { log("先手を取った！", "win"); showToast("⚡ 先制攻撃！"); }
+  if (opening === "preempt") { log("先手を取った！", "win"); showToast("⚡ 先制攻撃！", { noLog: true }); }
   else if (opening === "ambush") {
     // 奇襲: 紅い閃光・揺れ・専用の効果音で知らせ、開幕の帯 (drawAmbushIntro) と1ターン目の札で敵の先手を示す
     log("奇襲された！ 敵が先に動く！", "dmg");
-    showToast("⚠ 奇襲された！ 敵の先手", { tone: "bad" });
+    showToast("⚠ 奇襲された！ 敵の先手", { noLog: true, tone: "bad" });
     SFX.ambush(); flashScreen("#9a0a06"); shakeScreen(true); buzz([0, 90, 50, 90, 50, 160]);
   }
   // ランク帯ごとの戦闘テーマ (ボス・強敵は専用曲)。図鑑への記録は「倒した時」に行う (endBattle)
@@ -8932,7 +8967,7 @@ function renderCombatMenu() {
     }
     const mpTxt = actor.maxmp > 0 ? `MP ${actor.mp}/${actor.maxmp}` : "技なし";
     if (battleSkills(actor).length) main.appendChild(cmdBtn("skill", "スキル", mpTxt, () => showSpells(actor)));
-    else if (actor.spells.length) main.appendChild(cmdBtn("skill", "スキル", "すべてオフ", () => showToast("技はすべて非表示 ― 隊の「能力」で表示を戻せる", { tone: "info" }), "muted"));
+    else if (actor.spells.length) main.appendChild(cmdBtn("skill", "スキル", "すべてオフ", () => showToast("技はすべて非表示 ― 隊の「能力」で表示を戻せる", { noLog: true, tone: "info" }), "muted"));
     else main.appendChild(cmdBtn("skill", "スキル", "使えない", () => log("スキルを使えない", "sys"), "muted"));
     combatMenu.appendChild(main);
     const sub = el("div", "cmd-sub");
@@ -9601,7 +9636,7 @@ function applyImpact(res) {
             recalcAllDolls();
             const lbl = SOUL_CLASSES[s.clsKey].label;
             log(`${h.target.name}の${lbl}の魂が喰われ、Lv${s.level} に堕ちた…！`, "dmg");
-            setTimeout(() => showToast(`☠ レベルドレイン: ${lbl}の魂 Lv-1`), 300);
+            setTimeout(() => showToast(`☠ レベルドレイン: ${lbl}の魂 Lv-1`, { noLog: true }), 300);
           }
         }
       }
@@ -9887,6 +9922,9 @@ function endBattleMeasured() {
     // 戦果シート (§3.3): 勝利・獲得・成長・魂・宝箱を1枚にまとめる (旧: 勝利・Lv・技・宝箱・罠・中身の札が1枚ずつ)
     const levels = progress.filter((q) => q.kind === "level").map((q) => ({ name: q.member.name, uid: q.member.uid, from: q.fromLv, to: q.toLv, deltas: q.deltas || [], sub: !!q.sub, soulLabel: q.soulLabel || "" }));
     const skills = progress.filter((q) => q.kind === "skill").map((q) => ({ name: q.member.name, key: q.skill, skill: SPELLS[q.skill] ? SPELLS[q.skill].name : q.skill, desc: SPELLS[q.skill] ? SPELLS[q.skill].desc : "" }));
+    // 成長と覚えた技は戦果シートに出るだけだったので、記録にも残す
+    for (const l of levels) log(`${l.name}${l.sub && l.soulLabel ? `のサブ魂「${l.soulLabel}の魂」` : ""}が Lv${l.from} → Lv${l.to} に上がった！`, "win");
+    for (const k of skills) log(`${k.name}は「${k.skill}」を覚えた！`, "win");
     uiResults.openResults({
       kind: wasBoss ? "boss" : wasElite ? "elite" : wasGuard ? "guard" : corpse ? "corpse" : "win",
       gold: goldGot, soul: soulGot, kills, fled,
@@ -9912,7 +9950,7 @@ function endBattleMeasured() {
     log("逃げられてしまった…", "sys");
     const stolen = takeStolenGold(b);
     if (stolen) { log(`盗んだ ${stolen} ゴールドだけは手元に残った`, "win"); updateTopbar(); }
-    showToast("逃げられてしまった…", { tone: "info" });
+    showToast("逃げられてしまった…", { noLog: true, tone: "info" });
     if (G.battleCell && G.battleCell.type === "monster") G.battleCell.cleared = true;
     evBattleEnd(false);
     finishToBoard();
@@ -9978,7 +10016,7 @@ function applyVictoryPassivesMeasured() {
       dead.reviveAt = null;
       dead._dead = false;
       log(`慈悲の祈り！ ${dead.name}が立ち上がった`, "win");
-      setTimeout(() => showToast(`慈悲の祈り ― ${dead.name}が立ち上がった`, { tone: "good" }), 400);
+      setTimeout(() => showToast(`慈悲の祈り ― ${dead.name}が立ち上がった`, { noLog: true, tone: "good" }), 400);
     }
   }
 }
@@ -10829,7 +10867,7 @@ function syncResonance() {
   if (!fresh.length) return list;
   for (const x of fresh) { r.found[x.id] = 1; r.fresh.push(x.id); log(`魂の共鳴「${x.name}」が目覚めた。`, "win"); }
   if (G.state === "town") { if (UI.queueResonanceNotice) UI.queueResonanceNotice(); }
-  else { showToast(`✧ 魂の共鳴「${fresh.map((x) => x.name).join("」「")}」が目覚めた`, { tone: "good" }); r.fresh = r.fresh.filter((id) => !fresh.some((x) => x.id === id)); }
+  else { showToast(`✧ 魂の共鳴「${fresh.map((x) => x.name).join("」「")}」が目覚めた`, { noLog: true, tone: "good" }); r.fresh = r.fresh.filter((id) => !fresh.some((x) => x.id === id)); }
   return list;
 }
 // 知らせる組を fresh から取り出す (知らせのシートが呼ぶ)
@@ -11108,7 +11146,7 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
           banner: "付け替えできない", title: "持ち物がいっぱい",
           lines: [`${soulLabel(newMain)} に付け替えると、次の装備が外れる。`, ...names,
             `しかし ${d.name} の持ち物に空きが ${free} 枠しかない。持ち物を減らしてから、もう一度。`],
-          accent: "#d4504e", btnLabel: "とじる",
+          accent: "#d4504e", btnLabel: "とじる", noLog: true,
         });
         return fin(false);
       }
@@ -11325,14 +11363,14 @@ function raiseSoulCap(uid) {
   const e = soulByUid(uid);
   if (!e) return;
   const need = emberCostOf(e.clsKey);
-  if ((G.embers || 0) < need) { log(`魂の残火が足りない。(${need}つ要る)`, "sys"); SFX.ng(); showToast(`魂の残火が足りない（${need}つ要る）`, { tone: "bad" }); return false; }
+  if ((G.embers || 0) < need) { log(`魂の残火が足りない。(${need}つ要る)`, "sys"); SFX.ng(); showToast(`魂の残火が足りない（${need}つ要る）`, { noLog: true, tone: "bad" }); return false; }
   G.embers -= need;
   e.capBonus = (e.capBonus || 0) + 1;
   recalcAllDolls();
   updateTopbar();
   const cap = soulLevelCapOf(e);
   log(`魂の残火を${need}つ捧げ、${soulLabel(e)}のLv上限が ${cap} になった。`, "win");
-  showToast(`🔥 ${soulLabel(e)} ― Lv上限 ${cap}（残火 ${G.embers}）`, { tone: "gold" });
+  showToast(`🔥 ${soulLabel(e)} ― Lv上限 ${cap}（残火 ${G.embers}）`, { noLog: true, tone: "gold" });
   // 上限に届いてから蓄積していた経験値を、伸びた上限まで Lv に注ぐ (街では強化と同じ祝祭を出す)
   const lv0 = e.level;
   const ready = e.level < cap && (e.exp || 0) >= soulTrainCost(e.level);
@@ -11698,7 +11736,7 @@ function abandonQuest(uid) {
     delete s.fixed[uid];
     SFX.select();
     log(`依頼「${def.name}」を放棄した。(${def.giver.name})`, "sys");
-    showToast(`依頼「${def.name}」を放棄した`, { tone: "info" });
+    showToast(`依頼「${def.name}」を放棄した`, { noLog: true, tone: "info" });
     autosave(true);
     renderTown();
     return true;
@@ -11708,7 +11746,7 @@ function abandonQuest(uid) {
   const q = s.active.splice(i, 1)[0];
   SFX.select();
   log(`依頼「${q.name}」を放棄した。`, "sys");
-  showToast(`依頼「${q.name}」を放棄した`, { tone: "info" });
+  showToast(`依頼「${q.name}」を放棄した`, { noLog: true, tone: "info" });
   autosave(true);
   renderTown();
   return true;
@@ -11720,7 +11758,7 @@ function questDone(q) {
   const who = q.giver ? q.giver.name : (q.npc != null ? npcOf(q.npc).name : null);
   log(`依頼「${q.name}」を果たした！ — 酒場で${who ? who + "に" : ""}報告しよう`, "win");
   if (!inDungeon()) {
-    showToast(`📜 依頼達成: ${q.name}` + (who ? ` ― ${who}が待っている` : ""), { tone: "good" });
+    showToast(`📜 依頼達成: ${q.name}` + (who ? ` ― ${who}が待っている` : ""), { noLog: true, tone: "good" });
     return;
   }
   setAutoMove(false);
@@ -12553,7 +12591,7 @@ function claimAchievement(a) {
   SFX.levelup(); buzz([0, 30, 60, 30]);
   flashScreen("#c9a22744");
   log(`勲章「${a.name}」を授かった！ (${msg.join(" + ")})`, "win");
-  showToast(`🏅 勲章「${a.name}」獲得！`);
+  showToast(`🏅 勲章「${a.name}」獲得！`, { noLog: true });
   updateTopbar();
   renderTown();
 }
@@ -13528,7 +13566,7 @@ function rescueArrive(d, byRedSoul = false) {
   d.reviveAt = null; d.diedFloor = null;
   SFX.select(); buzz([0, 30, 40, 30]);
   log(`${d.name} が街へ連れ帰られた。${byRedSoul ? "(赤い魂の力)" : ""} 人業の館で修復できる。`, "sys");
-  showToast(`${d.name} が連れ帰られた ― 館で修復を`, { tone: "info" });
+  showToast(`${d.name} が連れ帰られた ― 館で修復を`, { noLog: true, tone: "info" });
 }
 
 // Red Soul で連れ帰り時間を 20分短縮 (1消費)。残り20分以下なら即帰還
@@ -14122,7 +14160,7 @@ function confirmReturnToTown() {
   if (!canReturnNow()) {
     SFX.ng(); buzz(20);
     showEvent({
-      sprite: ICONS.portal, banner: "⚠ 帰還できない ⚠", title: "帰り道は閉ざされている",
+      sprite: ICONS.portal, noLog: true, banner: "⚠ 帰還できない ⚠", title: "帰り道は閉ざされている",
       accent: "#7fd0ff",
       lines: ["迷宮は一度入ると容易には出られない。", "「帰還魔法陣」を見つけて踏むか、迷宮を踏破すれば帰還できる。", abyssActive() ? "魔法陣は5の倍数の階には必ずある。" : "魔法陣は5階・10階…と5階ごとに、必ず出現する。"],
       btnLabel: "心得た",
@@ -14143,7 +14181,7 @@ function askPortalReturn() {
   showChoice("帰還魔法陣が淡く輝いている。", [
     { label: "街へ帰還する ― 戦利品は持ち帰る", primary: true, fn: () => leaveDungeon({ outcome: G.run && G.run.secured ? "clear" : "return" }) },
     { label: "まだ潜る", fn: () => renderBoard() },
-  ], ICONS.portal, { banner: "✦ 帰還魔法陣 ✦", accent: "#7fd0ff",
+  ], ICONS.portal, { banner: "✦ 帰還魔法陣 ✦", accent: "#7fd0ff", logAs: true,
     lines: ["この陣を見つけたので、この階のどこからでも下の「帰還」で街へ戻れる。"],
     onDismiss: () => renderBoard() });
 }
@@ -14156,7 +14194,7 @@ function noteGateReached(cfg, floor) {
   if (!cfg || !cfg.id || (w.gates[cfg.id] || 0) >= floor) return false;
   w.gates[cfg.id] = floor;
   log(`帰還魔法陣 B${floor}F に到達した。次からは B${floor + 1}F から潜り始められる。`, "win");
-  showToast(`✦ 帰還魔法陣 B${floor}F ― 次回は B${floor + 1}F から潜れる`, { tone: "good" });
+  showToast(`✦ 帰還魔法陣 B${floor}F ― 次回は B${floor + 1}F から潜れる`, { noLog: true, tone: "good" });
   autosave(true);
   return true;
 }
@@ -14171,7 +14209,7 @@ function askGate(cell, { arrival = false } = {}) {
     { label: `先へ進む ― B${next}F${bottom ? (cfg.boss ? " (主の間)" : " (最下階)") : ""}`, primary: true, fn: () => descend() },
     { label: "街へ帰還する ― 戦利品は持ち帰る", fn: () => leaveDungeon({ outcome: G.run && G.run.secured ? "clear" : "return" }) },
     { label: arrival ? "この階を探索する" : "まだ探索する", fn: () => { if (cell) cell.stairsSeen = true; renderBoard(); } },
-  ], ICONS.portal, { banner: `✦ 帰還魔法陣 B${G.floor}F ✦`, accent: "#7fd0ff",
+  ], ICONS.portal, { banner: `✦ 帰還魔法陣 B${G.floor}F ✦`, accent: "#7fd0ff", logAs: true,
     lines: ["この階のどこからでも、下の「帰還」で街へ戻れる。", "陣に至った迷宮は、次回この次の階から潜り始められる。"],
     onDismiss: () => { if (cell) cell.stairsSeen = true; renderBoard(); } });
 }
@@ -14426,7 +14464,7 @@ function planHealAllGreedy(def0, ail0, casters) {
 }
 function healAll(...args) { return tlGameMeasure("camp", () => healAllMeasured(...args)); }
 function healAllMeasured() {
-  const fail = (msg, tone = "info") => { log(msg, "sys"); showToast(msg, { tone }); SFX.miss(); };
+  const fail = (msg, tone = "info") => { log(msg, "sys"); showToast(msg, { noLog: true, tone }); SFX.miss(); };
   if (!healAllNeed()) {
     if (G.party.some((t) => !t.alive)) return fail("倒れた仲間を蘇らせる呪文を使える者がいない");
     return fail("パーティは皆、傷も穢れもない");
@@ -14550,7 +14588,7 @@ function healAllMeasured() {
 function campCast(caster, spellKey) {
   const sp = SPELLS[spellKey];
   const cost = spellCost(caster, sp);
-  if (caster.mp < cost) { log("MPが足りない。", "sys"); showToast(`MPが足りない (MP ${caster.mp}/${cost})`, { tone: "bad" }); SFX.miss(); return; }
+  if (caster.mp < cost) { log("MPが足りない。", "sys"); showToast(`MPが足りない (MP ${caster.mp}/${cost})`, { noLog: true, tone: "bad" }); SFX.miss(); return; }
   const cures = spellCures(sp);     // 毒・麻痺・石化を治す
   const heals = spellHeals(sp);     // HP回復量を持つ
   const noTargetMsg = () => {
@@ -14590,7 +14628,7 @@ function campCast(caster, spellKey) {
       if (heals) { const ln = healLineFor(t, before, wasDead); if (ln) lines.push(ln); }
     }
     if (any) { finish(); showToast(`${sp.name} ― ${lines.length ? lines.join(" ・ ") : "パーティを癒した"}`, { tone: "good" }); }
-    else { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg(), { tone: "info" }); SFX.miss(); }
+    else { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg(), { noLog: true, tone: "info" }); SFX.miss(); }
     return;
   }
 
@@ -14602,13 +14640,13 @@ function campCast(caster, spellKey) {
     return false;
   };
   const targets = G.party.filter(benefits);
-  if (!targets.length) { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg(), { tone: "info" }); SFX.miss(); return; }
+  if (!targets.length) { log("効果のある対象がいない。", "sys"); showToast(noTargetMsg(), { noLog: true, tone: "info" }); SFX.miss(); return; }
   const castOn = (t) => {
     const before = t.hp, wasDead = !t.alive;
     if (applyTo(t)) {
       finish();
       showToast(`${sp.name} ― ${heals ? (healLineFor(t, before, wasDead) || `${t.name}は満タン`) : `${t.name}を癒した`}`, { tone: "good" });
-    } else { log("効果のある対象ではなかった。", "sys"); showToast("効果がなかった", { tone: "info" }); }
+    } else { log("効果のある対象ではなかった。", "sys"); showToast("効果がなかった", { noLog: true, tone: "info" }); }
   };
   uiParty.pickTarget({ banner: sp.name, accent: "#46c08f", title: "誰に唱える？",
     lines: [`消費 MP${cost}（${caster.name} MP ${caster.mp}/${caster.maxmp}）`], targets, onPick: castOn });
@@ -14662,11 +14700,11 @@ function doIdentifySkill(m, it, { quiet = false } = {}) {
   if (ok) {
     const first = revealIdentity(it);
     log(`${m.name}は ${it.name} を鑑定した！${first ? " (初ゲット！)" : ""}`, "win");
-    if (!quiet) { SFX.itemget(); buzz(15); showToast(`${first ? "初ゲット！ " : ""}${it.name} と判明した (${m.name})`, { tone: "good" }); }
+    if (!quiet) { SFX.itemget(); buzz(15); showToast(`${first ? "初ゲット！ " : ""}${it.name} と判明した (${m.name})`, { noLog: true, tone: "good" }); }
   } else {
     it.idHardFail = true;
     log(`${m.name}の鑑定は失敗した… この品は商店でしか鑑定できなくなった。`, "sys");
-    if (!quiet) { SFX.ng(); buzz([0, 30, 40, 30]); showToast("鑑定に失敗した… もう商会でしか鑑定できない", { tone: "bad" }); }
+    if (!quiet) { SFX.ng(); buzz([0, 30, 40, 30]); showToast("鑑定に失敗した… もう商会でしか鑑定できない", { noLog: true, tone: "bad" }); }
   }
   if (quiet) return ok;
   if (G.statusOpen) renderStatus(); // ステータス画面はオーバーレイ (G.state は board/town のまま) なので statusOpen で判定
@@ -14682,7 +14720,7 @@ function doEquip(p, it) {
   const r = equipItem(p, it);
   if (r.msg) log(r.msg, r.ok ? "win" : "sys");
   if (r.ok) SFX.select();
-  else { SFX.ng(); if (r.msg) showToast(r.msg, { tone: "bad" }); }
+  else { SFX.ng(); if (r.msg) showToast(r.msg, { noLog: true, tone: "bad" }); }
   renderStatus(); renderParty();
   return r;
 }
@@ -14731,7 +14769,7 @@ function equipFromAnywhere(p, slotKey, c) {
   const r = equipAt(p, it, slotKey, owner || p);
   if (r.msg) log(r.msg, r.ok ? "win" : "sys");
   if (r.ok && owner && owner !== p) log(`${owner.name} から ${it.name} を受け取り装備した。`, "win");
-  if (r.ok) { SFX.select(); buzz(10); } else { SFX.ng(); if (r.msg) showToast(r.msg, { tone: "bad" }); }
+  if (r.ok) { SFX.select(); buzz(10); } else { SFX.ng(); if (r.msg) showToast(r.msg, { noLog: true, tone: "bad" }); }
   renderStatus(); renderParty();
   return r;
 }
@@ -14750,7 +14788,7 @@ function doUnequip(p, key) {
   const r = unequipItem(p, key);
   if (r.msg) log(r.msg, r.ok ? "sys" : "dmg");
   if (r.ok) SFX.select();
-  else { SFX.ng(); if (r.msg) showToast(r.msg, { tone: "bad" }); }
+  else { SFX.ng(); if (r.msg) showToast(r.msg, { noLog: true, tone: "bad" }); }
   renderStatus(); renderParty();
   return r;
 }
@@ -14762,7 +14800,7 @@ function useItemMeasured(p, index, target) {
   if (!it || it.slot !== "use" || !it.use) return;
   const u = it.use;
   // 無頼の誓 (奈落の縛り): 道具 (消耗品) を一切使えない
-  if (itemsBanned()) { SFX.ng(); log("無頼の誓により、道具は使えない。", "sys"); showToast("無頼の誓により、道具は使えない", { tone: "bad" }); return; }
+  if (itemsBanned()) { SFX.ng(); log("無頼の誓により、道具は使えない。", "sys"); showToast("無頼の誓により、道具は使えない", { noLog: true, tone: "bad" }); return; }
   const where = useWhere(it);
   if (where === "battle") { SFX.ng(); showToast(`${it.name}は戦闘中にしか使えない`, { tone: "info" }); return; }
   if (u.float) {
@@ -14772,7 +14810,7 @@ function useItemMeasured(p, index, target) {
     G.run.float = u.float;
     SFX.spell();
     log(`${p.name}は${it.name}を使った。隊の足が地を離れる ― ${u.float}階のあいだ落とし穴にも毒の床にもかからない。`, "win");
-    showToast(`${it.name} ― ${u.float}階のあいだ宙に浮く`, { tone: "good" });
+    showToast(`${it.name} ― ${u.float}階のあいだ宙に浮く`, { noLog: true, tone: "good" });
     renderStatus(); renderParty(); renderBoard(); autosave(true);
     return;
   }
@@ -14796,7 +14834,7 @@ function useItemMeasured(p, index, target) {
   const cands = G.party.filter((t) => useHelps(it, t));
   if (!cands.length) {
     const what = u.revive ? "倒れた仲間がいない" : "効果のある相手がいない";
-    log(`${it.name}: ${what}`, "sys"); showToast(what, { tone: "info" });
+    log(`${it.name}: ${what}`, "sys"); showToast(what, { noLog: true, tone: "info" });
     return;
   }
   if (tk !== "all-ally" && !target) {
@@ -14833,7 +14871,7 @@ function useItemMeasured(p, index, target) {
     if (bits.length) { notes.push(`${t.name} ${bits.join(" ")}`); log(`${p.name}は${it.name}を使った。${t.name}: ${bits.join("・")}`, "heal"); }
   }
   SFX.heal(); buzz(10);
-  showToast(`${it.name} ― ${notes.length > 2 ? `${notes.length}人に効いた` : notes.join(" / ")}`, { tone: "good" });
+  showToast(`${it.name} ― ${notes.length > 2 ? `${notes.length}人に効いた` : notes.join(" / ")}`, { noLog: true, tone: "good" });
   renderStatus(); renderParty();
   autosave(true);
 }
@@ -14850,7 +14888,7 @@ function dropItem(p, index) {
       const i = p.items.indexOf(it);
       if (i >= 0) p.items.splice(i, 1);
       log(`${it.name}を捨てた`, "sys");
-      showToast(`${it.name}を捨てた`, { tone: "info" });
+      showToast(`${it.name}を捨てた`, { noLog: true, tone: "info" });
       renderStatus();
     },
   });
@@ -14866,7 +14904,7 @@ function moveItem(from, it, to) {
   to.items.push(it);
   log(`${it.name} を ${from.name} → ${to.name} に渡した`, "win");
   SFX.select();
-  showToast(`${it.name} → ${to.name}`, { tone: "info" });
+  showToast(`${it.name} → ${to.name}`, { noLog: true, tone: "info" });
   renderStatus(); renderParty();
   return true;
 }
@@ -14907,7 +14945,7 @@ function giveItem(id) {
   const who = G.party.find((m) => m.items.length < MAX_ITEMS);
   if (!who) {
     log(`${itemName(it)}を見つけたが、誰も持てない…`, "sys");
-    showToast(`持ちきれず ${itemName(it)} を置いてきた`, { tone: "bad" });
+    showToast(`持ちきれず ${itemName(it)} を置いてきた`, { noLog: true, tone: "bad" });
     return null;
   }
   runGainItem(who, it);
@@ -14952,7 +14990,9 @@ function closeItemGet(onClose) {
 // ---- 汎用イベント表示 (宝箱の中身・罠・泉など) ----
 // キットのシートで表示する (sparkle = 褒美は中央の祝祭カード、それ以外は下から昇る知らせ)。
 // 閉じ方 (ボタン・背景・戻る) はどれも同じ: G.prompt を解き、onClose (無ければ盤面の再描画) → 保存
-function showEvent({ sprite, title, lines = [], accent = "#c9a227", btnLabel = "つぎへ", banner = "✦ イベント ✦", sparkle = false, onClose }) {
+function showEvent({ sprite, title, lines = [], accent = "#c9a227", btnLabel = "つぎへ", banner = "✦ イベント ✦", sparkle = false, onClose, noLog = false }) {
+  // 札の中身は記録にも残す (直近に同じ文があれば重ねない)。noLog = 操作の案内など、出来事でない札
+  if (!noLog) logSheet(title, lines, sparkle ? "win" : /[⚠✗☠]/.test(banner || "") ? "dmg" : "sys");
   G.prompt = true;
   replacePrompt();
   let h = null, done = false;
@@ -15412,7 +15452,7 @@ function autosave(force = false) {
     if (!_saveWarned) {
       _saveWarned = true;
       log("⚠ セーブできません。プライベートブラウズを解除してください。", "dmg");
-      try { showToast("⚠ セーブ不可: プライベートブラウズ?"); } catch {}
+      try { showToast("⚠ セーブ不可: プライベートブラウズ?", { noLog: true }); } catch {}
     }
   }
 }
@@ -16375,6 +16415,8 @@ function init() {
     UI, ops, nav, townshell,
     // 罠の解除の検証用
     trap: { disarmChance, disarmNeed, bestDisarmer, sfNum },
+    // 出来事・記録の検証用
+    evApi, runEvent, logHistory,
     // オート移動の検証用
     autoMove: { setAutoMove, toggleAutoMove, autoMovePlan, cellRect, viewSize: () => ({ VW, VH }) },
     // 酒場の依頼の検証用

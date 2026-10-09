@@ -196,6 +196,8 @@ export function refresh() {
   const keepScroll = same ? content.scrollTop : 0;
   // 他のタブ・迷宮・起動直後からこのタブへ入ってきた描画か (同じタブの描き直しでは false)。タブの render が api.entered で読む
   api.entered = !lastKey || tab !== lastTab || shell.classList.contains("hidden") || content.classList.contains("hidden");
+  // この画面 (タブ・ページ) へ入ってきた描画か。ページ (酒場など) は親のタブが同じなので api.entered では見分けられない
+  api.screenEntered = api.entered || !same;
   shell.classList.remove("hidden");
   content.classList.remove("hidden");
   parkKept();

@@ -306,7 +306,9 @@ function tavernSegments() {
     { key: "talk", label: "酒場の噂話" },
   ];
 }
-function renderTavern(root) {
+function renderTavern(root, api = null) {
+  // 酒場に入った時は掲示板・顔ぶれとも先頭から見せる (中での描き直し — 受注・報告の後 — は位置を保つ)
+  if (api && api.screenEntered) resetPages(["tav-board", "crowd"]);
   if (!facilityOpen("tavern")) { root.appendChild(lockedRow("酒場「沈まぬ灯」", game.featureNote?.("tavern"))); return; }
   if (legacyJumped()) return;
   const wrap = el("div", "wa-page wa-fit fc-tavern");
@@ -484,7 +486,7 @@ export function install() {
     restOrDetail,
   });
   if (UI.shell) {
-    UI.shell.registerPage("tavern", { title: "酒場「沈まぬ灯」", parentTab: "hub", render: (root) => renderTavern(root) });
+    UI.shell.registerPage("tavern", { title: "酒場「沈まぬ灯」", parentTab: "hub", render: (root, api) => renderTavern(root, api) });
     // 酒場を区分つきで開く (噂話は掲示板の区分のいちばん上)
     registerUI({ openTavern: (seg = null) => { tavernSeg = seg; UI.shell.openPage("tavern", { parentTab: "hub" }); } });
     UI.shell.registerPage("shrine", { title: "赤い魂の祠", parentTab: "hub", render: (root) => renderShrine(root) });

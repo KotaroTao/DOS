@@ -351,8 +351,12 @@ function toasts(top = false) {
   uiLayer().appendChild(box);
   return (toastBoxes[k] = box);
 }
-// toast(text, { tone:"gold"|"good"|"bad"|"info", icon:Node|item, rarity, action:{label, fn}, ms, top })
+// トーストの写し先 (game.js が登録: 迷宮の中なら記録欄にも残す)。opts.noLog = 同じ知らせを既に記録へ書いた
+let toastEcho = null;
+export function setToastEcho(fn) { toastEcho = fn; }
+// toast(text, { tone:"gold"|"good"|"bad"|"info", icon:Node|item, rarity, action:{label, fn}, ms, top, noLog, logKey })
 export function toast(text, opts = {}) {
+  if (toastEcho && !opts.noLog && typeof text === "string") { try { toastEcho(text, opts); } catch (e) { /* 記録は任意 */ } }
   if (!hasDOM()) return null;
   const box = toasts(!!opts.top);
   const rk = opts.rarity || (opts.icon && !opts.icon.nodeType ? rarityKey(opts.icon) : null);
@@ -389,7 +393,7 @@ export function toast(text, opts = {}) {
   timer = setTimeout(dismiss, opts.ms || (opts.action ? 4000 : 2200));
   return { el: t, dismiss };
 }
-nav.setRootToast((text) => toast(text, { tone: "info", ms: 2000, top: true }));
+nav.setRootToast((text) => toast(text, { tone: "info", ms: 2000, top: true, noLog: true }));
 
 // ================= ボタン・行・区分・チップ =================
 // button({ label, sub, icon, kind:"primary"|"secondary"|"danger"|"ghost", size:"md"|"lg"|"sm", onTap, onHold, badge, cost, disabled })

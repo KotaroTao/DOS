@@ -2276,6 +2276,8 @@ export function runEvent(A, cell) {
     const p = e.pending(A, cell);
     if (p) { A.toast(p, "info", e.icon === "event" ? "event" : null); A.back(); return; }
   }
+  // 出会った出来事は記録に残す (本文は選択の札を出す時に。極は恵みの札が本文ごと記録へ書く)
+  if (!(e.gift && cell.evGiven)) A.log(`◆ 出来事「${e.name}」`, "sys");
   A.seen(e, cell);
   // 極: 選択肢は無く、踏んだその場で恒久の恵みを授かる (一度きり)。授け済みのマスを踏み直したら片付けるだけ
   if (e.gift) {
@@ -2290,7 +2292,10 @@ export function runEvent(A, cell) {
   const opts = (e.choices(A, cell) || []).filter(Boolean).map((o) => ({ ...o, fn: () => { A.picked(e, o.label); o.fn(); } }));
   if (!e.noLeave) opts.push({ label: e.leaveLabel || "立ち去る", cancel: true, fn: () => { A.log(`${e.name}を後にした。`, "sys"); A.back(); } });
   const tier = EV_TIERS[e.tier];
-  A.choice(e.name, opts, A.icon(e), { banner: tier.banner, accent: e.accent || tier.accent, lines: e.intro(A, cell) });
+  const intro = e.intro(A, cell);
+  const text = (intro || []).filter((x) => typeof x === "string" && x).join(" ");
+  if (text) A.log(text, "sys");
+  A.choice(e.name, opts, A.icon(e), { banner: tier.banner, accent: e.accent || tier.accent, lines: intro });
 }
 // 出来事の戦闘に勝った (戦果シートの後に呼ばれる)
 export function eventFightWon(A, cell, next) {
