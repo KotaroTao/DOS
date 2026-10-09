@@ -12,7 +12,7 @@
       "width": 1536,
       "height": 1024,
       "status": "承認済・適用済",
-      "productionImage": "art/story/chapter1/w01_lantern.png"
+      "productionImage": "art/story/chapter1/w01_lantern.webp"
     },
     {
       "id": "report_w01",
@@ -22,7 +22,7 @@
       "width": 1536,
       "height": 1024,
       "status": "承認済・適用済",
-      "productionImage": "art/story/chapter1/report_w01.png"
+      "productionImage": "art/story/chapter1/report_w01.webp"
     },
     {
       "id": "w02_sigil",
@@ -32,7 +32,7 @@
       "width": 1536,
       "height": 1024,
       "status": "承認済・適用済",
-      "productionImage": "art/story/chapter1/w02_sigil.png"
+      "productionImage": "art/story/chapter1/w02_sigil.webp"
     },
     {
       "id": "report_w02",
@@ -42,7 +42,7 @@
       "width": 1536,
       "height": 1024,
       "status": "承認済・適用済",
-      "productionImage": "art/story/chapter1/report_w02.png"
+      "productionImage": "art/story/chapter1/report_w02.webp"
     },
     {
       "id": "mem_w03",
@@ -52,7 +52,7 @@
       "width": 1536,
       "height": 1024,
       "status": "承認済・適用済",
-      "productionImage": "art/story/chapter1/mem_w03.png"
+      "productionImage": "art/story/chapter1/mem_w03.webp"
     },
     {
       "id": "report_w03",
@@ -62,7 +62,7 @@
       "width": 1536,
       "height": 1024,
       "status": "承認済・適用済",
-      "productionImage": "art/story/chapter1/report_w03.png"
+      "productionImage": "art/story/chapter1/report_w03.webp"
     },
     {
       "id": "w04_arm",
@@ -72,7 +72,7 @@
       "width": 1536,
       "height": 1024,
       "status": "承認済・適用済",
-      "productionImage": "art/story/chapter1/w04_arm.png"
+      "productionImage": "art/story/chapter1/w04_arm.webp"
     },
     {
       "id": "irene_reveal",
@@ -82,7 +82,7 @@
       "width": 1536,
       "height": 1024,
       "status": "承認済・適用済",
-      "productionImage": "art/story/chapter1/irene_reveal.png"
+      "productionImage": "art/story/chapter1/irene_reveal.webp"
     },
     {
       "id": "report_w04",
@@ -92,7 +92,7 @@
       "width": 1536,
       "height": 1024,
       "status": "承認済・適用済",
-      "productionImage": "art/story/chapter1/report_w04.png"
+      "productionImage": "art/story/chapter1/report_w04.webp"
     },
     {
       "id": "minePass",
@@ -102,7 +102,7 @@
       "width": 1536,
       "height": 1024,
       "status": "承認済・適用済",
-      "productionImage": "art/story/chapter1/minePass.png"
+      "productionImage": "art/story/chapter1/minePass.webp"
     },
     {
       "id": "mem_w05",
@@ -112,7 +112,7 @@
       "width": 1536,
       "height": 1024,
       "status": "承認済・適用済",
-      "productionImage": "art/story/chapter1/mem_w05.png"
+      "productionImage": "art/story/chapter1/mem_w05.webp"
     },
     {
       "id": "report_w05",
@@ -122,7 +122,7 @@
       "width": 1536,
       "height": 1024,
       "status": "承認済・適用済",
-      "productionImage": "art/story/chapter1/report_w05.png"
+      "productionImage": "art/story/chapter1/report_w05.webp"
     },
     {
       "id": "irene_fort",
@@ -132,7 +132,7 @@
       "width": 1536,
       "height": 1024,
       "status": "承認済・適用済",
-      "productionImage": "art/story/chapter1/irene_fort.png"
+      "productionImage": "art/story/chapter1/irene_fort.webp"
     },
     {
       "id": "ch1_end",
@@ -142,7 +142,7 @@
       "width": 1536,
       "height": 1024,
       "status": "承認済・適用済",
-      "productionImage": "art/story/chapter1/ch1_end.png"
+      "productionImage": "art/story/chapter1/ch1_end.webp"
     },
     {
       "id": "irene_familiar",
@@ -152,7 +152,7 @@
       "width": 1536,
       "height": 1024,
       "status": "承認済・適用済",
-      "productionImage": "art/story/chapter1/irene_familiar.png"
+      "productionImage": "art/story/chapter1/irene_familiar.webp"
     }
   ]
 }

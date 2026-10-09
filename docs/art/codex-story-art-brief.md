@@ -30,7 +30,7 @@
 ・人物は正典の基準画像 (指示書の 2 の表) を毎回参照画像として渡してください。
 ・1枚直すごとに、修正前後を並べた比較画像を art/story-review/fixes/<id>-before-after.png に保存してください。
 ・まず必須の修正のうち A-1〜A-3 (序章・第1章) だけを終えたら止まり、比較画像を提示して私の確認を待ってください。承認後に残りへ進んでください。
-・出荷先のファイル名とパスは変えないでください (art/story/... の同じ名前で差し替える)。sw.js の CACHE は dos-dev のまま。
+・直すのは art/story-review/ にある原画 PNG です。同じ名前のまま上書きし、python3 tools/storyart/to-webp.py <原画.png> <art/story/…/同じ名前.webp> で出荷用の WebP を作り直してください (指示書の 1-3)。sw.js の CACHE は dos-dev のまま。
 ・mainへのマージは別途指示します。
 ```
 
@@ -77,10 +77,11 @@ Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge
 
 ### 1-3. ファイルと容量
 
-- GitHub Pages の公開サイトは 1GB まで。デプロイは 800MB で止まる (いまの公開物は約415MB)。PNG の原画は1枚3〜4MB あるので、新規の絵は次のように分ける。
-  - 出荷する絵 = **WebP (品質85〜90、1536×1024)**: `art/story/chapter5/<場面ID>.webp` (第6〜8章も同じ形)、由来の絵は `art/story/dungeons/lore_<迷宮ID>.webp`。1枚 0.5MB 前後を目安にする。
+- GitHub Pages の公開サイトは 1GB まで。デプロイは 800MB で止まる (既存の絵を WebP にした 2026-10 の時点で公開物は約66MB)。PNG の原画は1枚3〜4MB あるので、新規の絵も次のように分ける。
+  - 出荷する絵 = **WebP (品質88、1536×1024。`tools/storyart/to-webp.py` で原画から作る)**: `art/story/chapter5/<場面ID>.webp` (第6〜8章も同じ形)、由来の絵は `art/story/dungeons/lore_<迷宮ID>.webp`。1枚 0.5MB 前後を目安にする。
   - 原画 = PNG: `art/story-review/chapter5/<場面ID>.png` (デプロイで外れる)。
-- 便1の修正は、出荷先の既存ファイル (PNG) を同じパス・同じ名前で差し替える。修正前の原画は `art/story-review/fixes/<id>-before.png` に残す。
+- 既存の物語・由来の絵は 2026-10 に WebP へ移した。原画 PNG は `art/story-review/` (序章 `prologue/`・各章 `chapterN/`・由来 `dungeons/`)、ゲームが読むのは `art/story/` の同じ名前の `.webp` だけ。`python3 tools/storyart/to-webp.py --all` で原画から出荷用を作り直せる (品質88)。
+- 便1の修正は、`art/story-review/` の原画 PNG を同じ名前のまま上書きし、`python3 tools/storyart/to-webp.py <原画.png> <art/story/…/同じ名前.webp>` で出荷用を作り直す (コードの参照は変わらない)。修正前の原画は `art/story-review/fixes/<id>-before.png` に残す。
 
 ### 1-4. ゲームへの組み込み
 
@@ -107,25 +108,25 @@ Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge
 
 | 人物 | 姿 (英語の指示に入れる) | 基準画像 (参照として渡す) |
 |---|---|---|
-| 弟子 (プレイヤー) | young adult, tousled brown hair, charcoal-black traveling cloak with restrained geometric gold embroidery all over, brown leather crossbody satchel; usually seen from behind or in profile | `art/story/chapter3/report_w13.png`、`art/story/chapter4/w14_lamp.png` |
-| イレーヌ (館の主・人業) | long black hair with a purple sheen, purple eyes, gold-and-purple jeweled hair ornament, purple-and-black lace gothic gown with off-shoulder sleeves; calm, gentle. **第一章 irene_reveal より前の絵では手首の継ぎ目を見せない** | `art/story/chapter2/irene_roots.png`、`art/story/chapter1/irene_familiar.png` |
-| 王 | very old man, long white hair and long white beard, pointed gold crown, red robes, white ermine cape with black spots | `art/story/chapter3/report_w12.png` |
-| 宰相モルデン | **一人の同じ顔**: long gaunt pale face, sunken dark eyes, thin enigmatic smile, tall black-purple ceremonial hat with a gold band, red inner robe, heavy gold chain of office with a red jewel. **老いない** (しわ・白髪を足さない。三百年前の記憶でも同じ顔)。正体は人業 = 胸に小さな扉があり、中で古い魂の灯が揺れている (第五章 mem_w21 で初めて見せる。それより前の絵では見せない) | `art/story/morden-at-throne.png`、`art/story/chapter3/report_w13.png` |
+| 弟子 (プレイヤー) | young adult, tousled brown hair, charcoal-black traveling cloak with restrained geometric gold embroidery all over, brown leather crossbody satchel; usually seen from behind or in profile | `art/story-review/chapter3/report_w13.png`、`art/story-review/chapter4/w14_lamp.png` |
+| イレーヌ (館の主・人業) | long black hair with a purple sheen, purple eyes, gold-and-purple jeweled hair ornament, purple-and-black lace gothic gown with off-shoulder sleeves; calm, gentle. **第一章 irene_reveal より前の絵では手首の継ぎ目を見せない** | `art/story-review/chapter2/irene_roots.png`、`art/story-review/chapter1/irene_familiar.png` |
+| 王 | very old man, long white hair and long white beard, pointed gold crown, red robes, white ermine cape with black spots | `art/story-review/chapter3/report_w12.png` |
+| 宰相モルデン | **一人の同じ顔**: long gaunt pale face, sunken dark eyes, thin enigmatic smile, tall black-purple ceremonial hat with a gold band, red inner robe, heavy gold chain of office with a red jewel. **老いない** (しわ・白髪を足さない。三百年前の記憶でも同じ顔)。正体は人業 = 胸に小さな扉があり、中で古い魂の灯が揺れている (第五章 mem_w21 で初めて見せる。それより前の絵では見せない) | `art/story-review/prologue/morden-at-throne.png`、`art/story-review/chapter3/report_w13.png` |
 | セラ (師の作った人業) | **ユーザーの指示: 髪は本物の髪。** 職業「灯守」の原画が基準: long wavy very dark brown (near-black) real hair, wooden face with visible wood grain and carved features, brown eyes, small gold lamp-on-palm crest in the center of the forehead, black-iron joint bands with gold rims at shoulders/elbows/wrists/knees/ankles, black choker with a gold setting. 目覚めた後 (第四章の終わり以降) は white draped cloth with a brown sash、胸に青白い魂火の灯。目覚める前 (第二〜四章) は部品だけで、胸に灯は無い。花の髪飾り・星形の印にしない | `docs/art/sera/sera-r1-final.png` (必ず渡す)、`docs/art/sera/source-comparison.png` |
 | 師オルド | **まだ決まった絵が無いので、ここで決める。弟子と見分けがつくこと**: human man about 55, tall and lean, weathered face, short grey hair swept back, close-cropped grey beard, deep-set grey eyes; plain worn black long travel coat **without** the apprentice's all-over gold embroidery — only one small gold-thread lamp-on-palm crest on the hem; dark grey shirt, leather belt with doll-maker's tools (chisel, awl, small mallet), leather work gloves; **no satchel, no lantern**. 章ごとの持ち物は下の 2-3 | なし (最初に作る絵がこの人物の基準になる) |
-| ヴェルナー (師の師) | elderly human scholar, grey hair, worn ochre-brown robes。第三章の小屋の時点で、もう骸 | `art/story/chapter3/w11_hut.png` (顔立ちだけ) |
+| ヴェルナー (師の師) | elderly human scholar, grey hair, worn ochre-brown robes。第三章の小屋の時点で、もう骸 | `art/story-review/chapter3/w11_hut.png` (顔立ちだけ) |
 | 凍王イザーク | 三百年前、王家に最初に仕えた操霊師。gaunt man frozen into a throne of ice, frost-white robes, a crown of ice shards, half embedded in the throne; stern but kind eyes | なし |
 | 最初の操霊師 (一門の祖) | 名は伏せる。very old frail man, long white hair, dark robe with the lamp-on-palm crest; 顔ははっきり描きすぎない (陰・後ろ姿・伏せた顔) | なし |
-| 人業 (隊の仲間) | adult-sized wooden articulated dolls, **blank smooth round wooden heads with no carved face**, black iron joint bands. 隊の基本4体: warrior (red cloak, round shield), priest (white robe, staff), thief (dark leather, dagger), mage (purple robe, staff)。第五章以降はセラが加わることもある (任意) | `art/story/four-vessels-departure.png`、`art/story/chapter3/w10_rope.png` |
+| 人業 (隊の仲間) | adult-sized wooden articulated dolls, **blank smooth round wooden heads with no carved face**, black iron joint bands. 隊の基本4体: warrior (red cloak, round shield), priest (white robe, staff), thief (dark leather, dagger), mage (purple robe, staff)。第五章以降はセラが加わることもある (任意) | `art/story-review/prologue/four-vessels-departure.png`、`art/story-review/chapter3/w10_rope.png` |
 
 ### 2-2. 小道具と印
 
 | もの | 決まり |
 |---|---|
-| 一門の印「灯を掌に載せた手」 | an open hand, palm up, holding a single small teardrop flame。基準: `art/story/chapter1/w02_sigil.png`。四芒星・十字・花・ランタンの線画にしない |
+| 一門の印「灯を掌に載せた手」 | an open hand, palm up, holding a single small teardrop flame。基準: `art/story-review/chapter1/w02_sigil.png`。四芒星・十字・花・ランタンの線画にしない |
 | 印の場所 | セラ = 額の中央 (金)・手首の内側 (小)・肘の継ぎ目の内側 (小)・胴の**背**・くるぶしの内側。師の外套 = 裾の刺しゅう。器の捨て場の器 = 胸の扉の内側。塔の鐘 = 内側の縁にぐるりと浮き彫り |
-| 館の灯 (師の魂の灯) | **燭台に立てた一本の白い蝋燭** (brass candlestick, single white candle, warm flame)。ガラスの灯器・青い炎の器にしない。基準: `art/story/irene-soul-lamp.png`、`art/story/chapter2/irene_roots.png` |
-| 師のランタン | small brass hand lantern with a pale blue soul-fire inside。基準: `art/story/chapter1/w01_lantern.png`。**師は第一章の地下墓地の墓石の上にこれを残して先へ進んだ**。以後、記憶の中の師も、師に従う者も持っていない。弟子が拾い、館に置かれ、第四章でイレーヌがその火をセラの胸へ移す |
+| 館の灯 (師の魂の灯) | **燭台に立てた一本の白い蝋燭** (brass candlestick, single white candle, warm flame)。ガラスの灯器・青い炎の器にしない。基準: `art/story-review/prologue/irene-soul-lamp.png`、`art/story-review/chapter2/irene_roots.png` |
+| 師のランタン | small brass hand lantern with a pale blue soul-fire inside。基準: `art/story-review/chapter1/w01_lantern.png`。**師は第一章の地下墓地の墓石の上にこれを残して先へ進んだ**。以後、記憶の中の師も、師に従う者も持っていない。弟子が拾い、館に置かれ、第四章でイレーヌがその火をセラの胸へ移す |
 | 弟子の手提げ灯 | 迷宮で弟子が持つ灯は、師のランタンと見分けられる温かい橙の灯にする (新しい絵から) |
 | 宰相の席 | 玉座の脇の椅子。第四章以降はいつも**空**。宰相は第三章の報告 (report_w13) を最後に玉座の間に現れない |
 | 王の杯 | 金の杯。第三章 report_w12 で王は手を伸ばさなくなり、第五章 report_w20 で玉座の脇の床に置く |
@@ -149,28 +150,28 @@ Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge
 
 ### A. 必須 (物語の筋や正典と食い違う)
 
-**A-1. 序章 irene_repair「砕けても、名は消えない」** `art/story/irene-repair.png`
+**A-1. 序章 irene_repair「砕けても、名は消えない」** `art/story-review/prologue/irene-repair.png`
 - 直す: 作業台の外れた人業の頭と、棚の人業に目鼻が彫られている → 人業の頭は何も彫られていない丸い木 (`src/story.js` の館の語り「人業の頭は、もとは何も彫られていない、丸い木なのです」)。
 - 保つもの: 砕けた魂の結晶、イレーヌ、弟子。
 ```text
 ...except: the detached doll head on the workbench and every doll on the shelves must have a blank, smooth, round wooden head with NO carved eyes, nose, mouth or face markings at all.
 ```
 
-**A-2. 第一章 report_w03「封じた者の沈黙」** `art/story/chapter1/report_w03.png`
-- 直す: 宰相が別人 (茶髪の壮年の顔・司教冠) → 正典のモルデン。基準画像 `art/story/morden-at-throne.png` と `chapter1/report_w01.png` を渡す。
+**A-2. 第一章 report_w03「封じた者の沈黙」** `art/story-review/chapter1/report_w03.png`
+- 直す: 宰相が別人 (茶髪の壮年の顔・司教冠) → 正典のモルデン。基準画像 `art/story-review/prologue/morden-at-throne.png` と `chapter1/report_w01.png` を渡す。
 - 保つもの: 王が目をそらし、宰相が横目で王を盗み見る構図。
 ```text
 ...except: replace the chancellor with the exact chancellor Morden from the reference: long gaunt pale ageless face, sunken dark eyes, thin enigmatic smile, tall black-purple ceremonial hat with a gold band, red inner robe, heavy gold chain with a red jewel. He still glances sideways at the king.
 ```
 
-**A-3. 第一章 w02_sigil「水音の向こうへ」** `art/story/chapter1/w02_sigil.png`
+**A-3. 第一章 w02_sigil「水音の向こうへ」** `art/story-review/chapter1/w02_sigil.png`
 - 直す: 本文は「格子の錠には鍵が挿したままになっていた。札に一言」。いまの絵は錠も札も無く、鍵が縁石に置いてある → 鉄格子に錆びた錠前を付け、鍵を挿したままにし、鍵に小さな紙の札を結ぶ。
 - 保つもの: 壁の一門の印、その下の鉄格子と水路。
 ```text
 ...except: add a rusted iron padlock on the grate with an old key still inserted in it, and a small paper tag tied to the key with a string (illegible scribble). Remove the loose key lying on the ledge.
 ```
 
-**A-4. 第一章 w04_arm「黒い流れが返したもの」** `art/story/chapter1/w04_arm.png`
+**A-4. 第一章 w04_arm「黒い流れが返したもの」** `art/story-review/chapter1/w04_arm.png`
 - 直す (1): 弟子を支える人業が、箱形の兜のような頭に弟子と同じ外套を着ている → 隊の4体の一人 (赤い外套の戦士) に。頭は何も彫られていない丸い木。
 - 直す (2): 腕の印が前腕の外側に大きく渦巻きの手 → **手首の内側に小さく**、掌に炎を載せた手 (`w02_sigil.png` の印)。
 - 保つもの: 黒い流れ・格子・腕を引き上げる弟子。
@@ -178,7 +179,7 @@ Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge
 ...except: the wooden doll steadying the apprentice becomes the party's warrior doll: blank smooth round wooden head with no face, black iron joints, red cloak, round shield on its back. On the recovered wooden arm, remove the large carving on the outer forearm; instead carve a small crest on the INNER WRIST: an open palm-up hand holding a small flame, exactly like the wall sigil reference.
 ```
 
-**A-5. 第一章 mem_w03「止められても進んだ人」** `art/story/chapter1/mem_w03.png`
+**A-5. 第一章 mem_w03「止められても進んだ人」** `art/story-review/chapter1/mem_w03.png`
 - 直す (1): 師に従う人業が、師のランタンと同じ形のランタンを提げている → 師はランタンを地下墓地に残した後なので、別の灯にする。本文は「灯を抱いて従っていた」 → 両腕で小さな真鍮の皿灯 (炎は温かい橙) を胸に抱える。
 - 直す (2): その人業はセラ (第二章で師と一緒だったと分かる)。正典のセラの姿にする (本物の長い黒髪・木の顔・額の印・黒鉄の継ぎ目。この時はまだ壊れていない。白い布の衣)。基準 `docs/art/sera/sera-r1-final.png`。
 - 直す (3): 師を正典のオルドに (弟子と同じ外套・鞄にしない。ランタンを持たない。腰に刃)。
@@ -188,7 +189,7 @@ Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge
 ...except: (1) the doll following the man is Sera exactly as in the attached Sera reference (long wavy near-black real hair, carved wooden face, small gold palm-and-flame crest on the forehead, black iron joints, simple white draped cloth); she cradles a small brass dish lamp with a warm amber flame in BOTH arms against her chest — not a hanging lantern, no blue fire. (2) the man is master Ordo: about 55, lean, short grey hair, close-cropped grey beard, plain worn black long coat with only one small gold crest on the hem, leather tool belt, a long serrated saw-like blade at his hip; no satchel, no lantern. (3) remove the chained mine door and the cart rails beside the altar; replace with plain abbey wall.
 ```
 
-**A-6. 第二章 irene_sera「眠りを守る二つの手」** `art/story/chapter2/irene_sera.png`
+**A-6. 第二章 irene_sera「眠りを守る二つの手」** `art/story-review/chapter2/irene_sera.png`
 - 直す (1): 本文は頭だけ (腕は寄り道で見つかるとは限らない) → 台の上の木の腕を消す。布の盛り上がりが全身に見えないよう、頭だけを柔らかい布で包んで枕に載せる形に。
 - 直す (2): セラの額の印が四芒星 → 掌に炎を載せた手 (小さく金)。髪は本物の髪のまま、色を正典 (ほぼ黒の焦げ茶) に寄せる。
 - 直す (3): 棚の人業の頭に顔が彫られている → 何も彫られていない丸い木。
@@ -197,66 +198,66 @@ Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge
 ...except: (1) remove the wooden arm from the table; Sera is ONLY a detached head resting on a small pillow, wrapped loosely in soft cloth around the neck, with nothing under the sheet that suggests a body. (2) her forehead crest becomes a small gold open palm-up hand holding a flame; her real wavy hair is near-black dark brown like the attached Sera reference. (3) all heads on the background shelves are blank smooth round wooden heads with no faces.
 ```
 
-**A-7. 第二章 w07_sera「声の残る独房」** `art/story/chapter2/w07_sera.png`
+**A-7. 第二章 w07_sera「声の残る独房」** `art/story-review/chapter2/w07_sera.png`
 - 直す: 頭を包む布が体ほどの大きさで画面下まで垂れている → 頭だけの大きさに。金の花の髪飾りを外し、額の印を正典の形に。髪の色を正典に寄せる。
 - 保つもの: 独房・壁の名・弟子が頭を抱き上げる構図。
 ```text
 ...except: the cloth bundle is only the size of a single head (no body shape under it); remove the gold flower hair ornament; the forehead crest is a small gold open palm-up hand holding a flame; her real wavy hair is near-black dark brown like the attached Sera reference.
 ```
 
-**A-8. 第二章 宰相の姿をそろえる** `art/story/chapter2/report_w06.png`・`report_w07.png`・`report_w08.png`
+**A-8. 第二章 宰相の姿をそろえる** `art/story-review/chapter2/report_w06.png`・`report_w07.png`・`report_w08.png`
 - 直す: report_w06・w07 の宰相は屍のように老けて見え、本文の「歳月の跡が見えない」「白髪の一本も無い頭」と逆。report_w08 は帽子も顔も別人 → 3枚とも正典のモルデン (老いない、やせて青白いが、しわ・たるみ・筋張った首を描かない)。
 - 保つもの: 各場面の構図と宰相の仕草。
 ```text
 ...except: the chancellor must be exactly Morden from the attached reference (morden-at-throne.png): gaunt pale but AGELESS face with smooth unlined skin, no wrinkles, no sagging, no grey hair, sunken dark eyes, thin smile, tall black-purple hat with a gold band, red inner robe, gold chain with red jewel. Keep his pose.
 ```
 
-**A-9. 第二章 w09_map「百の井戸」** `art/story/chapter2/w09_map.png`
+**A-9. 第二章 w09_map「百の井戸」** `art/story-review/chapter2/w09_map.png`
 - 直す: 本文は「迷宮のある場所に、ひとつずつ黒い印」「王都の真ん中の井戸がひとつだけ、赤い墨で囲まれていた」(寄り道の迷宮「王都の古井戸」につながる要)。いまの絵は光る城の立体模型で、赤い囲みが無い → 卓上の古い地図に黒い墨の点を打ち、王都の中央の井戸を赤い墨の丸で囲む。地図の線が中央へ集まる構図は保つ。
 ```text
 ...except: the dungeons on the war-table map are small black ink dots on parchment, not glowing 3D castle models; at the very center of the capital a single well is circled boldly in red ink. Keep the lines converging toward the center.
 ```
 
-**A-10. 第三章 irene_torso「お帰りを重ねる仕事」** `art/story/chapter3/irene_torso.png`
+**A-10. 第三章 irene_torso「お帰りを重ねる仕事」** `art/story-review/chapter3/irene_torso.png`
 - 直す: セラの頭が髪の無い丸い頭 → 正典のセラの頭 (本物の長い黒髪・木の顔・額の印)。胴の印を胸から外す (印は背中)。
 - 保つもの: 台の上の頭・腕1本・胴 (脚は無い)、手紙を読むイレーヌ、弟子。
 ```text
 ...except: the wooden head on the velvet is Sera's head exactly as in the attached Sera reference: long wavy near-black real hair spread on the velvet, carved wooden face with closed eyes, small gold palm-and-flame crest on the forehead. Remove any emblem from the front of the torso.
 ```
 
-**A-11. 第三章 w12_torso「軽すぎる帰りの荷」** `art/story/chapter3/w12_torso.png`
+**A-11. 第三章 w12_torso「軽すぎる帰りの荷」** `art/story-review/chapter3/w12_torso.png`
 - 直す: 胴の胸に星形の紋 → 外す。本文は「背に彫られた、灯を掌に載せた手」なので、胴を少し回して背の印 (掌に炎) が見えるようにするか、胸は無地に。胸の扉と中の紙は保つ。
 ```text
 ...except: remove the star-shaped emblem from the torso's front; if the back is visible, carve the small palm-up hand holding a flame there. Keep the open chest hatch with the folded paper inside.
 ```
 
-**A-12. 第三章 mem_w13「魂の流れを登る師」** `art/story/chapter3/mem_w13.png`
+**A-12. 第三章 mem_w13「魂の流れを登る師」** `art/story-review/chapter3/mem_w13.png`
 - 直す: 師がランタンを提げ、外套・鞄が弟子と同じ → 正典のオルド (ランタンなし。右手に根を断ったのこぎりのような刃)。
 - 判断: 上端の玉座の間は、本文では直後の報告で王が明かす。小さく遠くに見える程度なら残してよい。
 ```text
 ...except: the climbing man is master Ordo: about 55, lean, short grey hair, close-cropped grey beard, plain worn black long coat with only one small gold crest on the hem, leather tool belt; no satchel and NO lantern; he grips a long serrated saw-like blade in one hand while climbing. Light comes from the rising cyan soul streams around him.
 ```
 
-**A-13. 第三章 w11_hut「三代の師弟が残す頁」** `art/story/chapter3/w11_hut.png`
+**A-13. 第三章 w11_hut「三代の師弟が残す頁」** `art/story-review/chapter3/w11_hut.png`
 - 直す: ゲーム内の本文は「苔むした石の小屋」「机に突っ伏した骸」。ヴェルナーはオルドが訪ねる前に亡くなっていた (1年以上前)。いまの絵は整った木の部屋で、生きて眠る老人に見え、蝋燭が灯っている → 苔むした石の小屋に。ヴェルナーは机に突っ伏した**骸** (乾いて骨ばった手、くぼんだ顔、ほこりと苔。むごくしない)。部屋の蝋燭は消え、光は弟子の灯と窓の外の魂の光だけ。窓の外に灯の集落を描かない。
 - 保つもの: 手記を読む弟子、三代の書き込みのある手記、大樹の根の素描。
 ```text
 ...except: the hut is a small moss-covered STONE hut, long abandoned, dust and moss everywhere, no lit candles. Werner is a long-dead body slumped face-down over the desk: dried skeletal hands, sunken features under grey hair and worn ochre robes, peaceful and not gory. Light comes only from the apprentice's warm hand lantern and faint cyan soul-light outside. Remove the lantern-lit walkways and dwellings outside the window; only dark giant roots and mist.
 ```
 
-**A-14. 第三章 ch3_end「帰る場所から、玉座の下へ」** `art/story/chapter3/ch3_end.png`
+**A-14. 第三章 ch3_end「帰る場所から、玉座の下へ」** `art/story-review/chapter3/ch3_end.png`
 - 直す: 館の灯が大きなガラスの灯器に青い炎 → 燭台に立てた一本の白い蝋燭。本文は「ひときわ高く燃え上がった」ので、炎を高く明るく。
 ```text
 ...except: replace the large glass vessel with blue fire by a single white candle on a tall brass candlestick; its warm flame burns unusually high and bright. Irene stands beside it.
 ```
 
-**A-15. 第四章 mem_w17「水の底の戴冠」** `art/story/chapter4/mem_w17.png`
+**A-15. 第四章 mem_w17「水の底の戴冠」** `art/story-review/chapter4/mem_w17.png`
 - 直す: 本文は「幹を昇ってきた男が、王の前に膝をついた。手には、根を断った刃だけを握っていた」。いまの絵は立ったまま、師のランタンを提げ、刃が無く、弟子と同じ外套 → 正典のオルドが神官王の前に片膝をつき、右手にのこぎりのような刃だけを握る。ランタンを消す。
 ```text
 ...except: the man is master Ordo (about 55, lean, short grey hair, close-cropped grey beard, plain worn black long coat with one small gold crest on the hem, no satchel), kneeling on one knee before the priest-king, holding ONLY a long serrated saw-like blade in his right hand. Remove the lantern entirely.
 ```
 
-**A-16. 第四章 w15_mural「老いない横顔」** `art/story/chapter4/w15_mural.png`
+**A-16. 第四章 w15_mural「老いない横顔」** `art/story-review/chapter4/w15_mural.png`
 - 直す (1): 壁画の若い神官が、いまのモルデンと「一つも変わらない」顔に見えない → 正典のモルデンと同じ顔 (やせて青白く、薄い笑み)。白い法衣の若い神官として描き、苗木を抱く。
 - 直す (2): 冠を授ける王が、いまの王そっくり → 三百年前の神官王 (白と金の法衣、`chapter4/mem_w17.png` の神官王と同じ)。泉の前で冠を掲げる。
 - 直す (3): 地下なのに満月の夜空 → 窓を消すか、水没した暗い神殿の壁に。
@@ -265,38 +266,38 @@ Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge
 ...except: (1) the young priest in the mural has exactly Morden's face from the attached reference (gaunt, pale, thin smile) but younger clothing: plain white priestly robes, holding a sapling. (2) the crowning king in the mural is the ancient priest-king in white and gold vestments like the attached mem_w17 reference, raising a crown before a sacred spring — NOT the present white-bearded king in red and ermine. (3) remove the window with the moon and night sky; this temple is drowned underground. (4) add a small handwritten scribble in a corner of the mural.
 ```
 
-**A-17. 第四章 irene_sera_wake「灯が移った夜明け」** `art/story/chapter4/irene_sera_wake.png`
+**A-17. 第四章 irene_sera_wake「灯が移った夜明け」** `art/story-review/chapter4/irene_sera_wake.png`
 - 直す: 本文は「彼女が手に取ったのは、地下墓地で見つけた、師のランタンだった」。いまの絵は大きな据え置きのガラス灯器 → イレーヌが師のランタン (`chapter1/w01_lantern.png` の小さな真鍮の手提げランタン、青白い魂火) を手に持ち、その火が筋になってセラの胸へ流れ込む。セラは正典 (本物の黒髪・額の印)。
 ```text
 ...except: remove the large standing glass lamp. Irene holds in her hand the small brass hand lantern from the attached w01_lantern reference; a pale blue soul-fire stream flows from it into Sera's chest. Sera matches the attached Sera reference (near-black real hair, carved wooden face, forehead crest) and opens her eyes.
 ```
 
-**A-18. 第四章 ch4_end「二つ並んだ影」** `art/story/chapter4/ch4_end.png`
+**A-18. 第四章 ch4_end「二つ並んだ影」** `art/story-review/chapter4/ch4_end.png`
 - 直す (1): 中央の灯が真鍮の杯の青い炎 → 燭台の白い蝋燭 (本文「館の燭台の灯が、セラの木の頬を照らしている」)。
 - 直す (2): セラの頬杖の腕の節が一つ多い → 正しい腕 (肩・肘・手首)。
 ```text
 ...except: the central light is a single white candle on a brass candlestick with a warm flame lighting Sera's wooden cheek (no blue flame vessel). Fix Sera's arm so it has exactly one elbow joint between shoulder and wrist.
 ```
 
-**A-19. 第四章 w16_legs「根の中を歩いた脚」** `art/story/chapter4/w16_legs.png`
+**A-19. 第四章 w16_legs「根の中を歩いた脚」** `art/story-review/chapter4/w16_legs.png`
 - 直す: すねの正面のランタンの線画 → 消す。**くるぶしの内側**に小さく、掌に炎を載せた手の印。
 ```text
 ...except: remove the lantern drawing from the shin; carve a small palm-up hand holding a flame on the INNER ANKLE of one leg.
 ```
 
-**A-20. 踏破後 lore_w07 (捨て砦の地下牢)** `art/story/dungeons/lore_w07.png`
+**A-20. 踏破後 lore_w07 (捨て砦の地下牢)** `art/story-review/dungeons/lore_w07.png`
 - 直す: セラの頭のそばに木の手・前腕・手足の筒が並び、一体分あるように見える (腕は取水口・胴は苗床・脚は大水槽で見つかる) → 頭だけにする。髪は正典の色、額の印を正典の形に。
 ```text
 ...except: remove the wooden hand, forearm and limb pieces; only Sera's detached head remains on the stone ledge in its cloth. Her real wavy hair is near-black dark brown like the attached Sera reference, with a small gold palm-and-flame crest on the forehead.
 ```
 
-**A-21. 踏破後 lore_w14 (水底の参道)** `art/story/dungeons/lore_w14.png` (いまは使われていない)
+**A-21. 踏破後 lore_w14 (水底の参道)** `art/story-review/dungeons/lore_w14.png` (いまは使われていない)
 - 直す: 鳥居・しめ縄・日本式の石灯籠で和風の神社になっている → 旧都はゴシックの都。`chapter4/w14_lamp.png` と同じ、祠の形のゴシックの石灯籠の列が水底の参道に並ぶ。根・沈んだ供物の宝箱は保つ。直したら `src/journal.js` の `DUNGEON_LORE_IMAGES` に `w14` を足す。
 ```text
 ...except: remove the torii gates, shimenawa ropes and Japanese stone lanterns. The drowned processional way is lined with gothic shrine-shaped stone lanterns like the attached w14_lamp reference, leading to a sunken gothic temple; keep the roots and the sunken offering chests.
 ```
 
-**A-22. 踏破後 lore_w16 (洗礼の大水槽)** `art/story/dungeons/lore_w16.png` (いまは使われていない)
+**A-22. 踏破後 lore_w16 (洗礼の大水槽)** `art/story-review/dungeons/lore_w16.png` (いまは使われていない)
 - 直す: 本文は「水は少しずつ濁った。澄んだまま残る泉は、誓いの名残だけ」「底に絡まっていたのは、どこかへ帰ろうとしていた器」。いまの絵は全体が澄んだ明るい水 → 大水槽の水は暗く濁らせ、澄んだ泉が二つだけ光る。底の根に木の脚 (セラの脚) がかすかに絡む。直したら `DUNGEON_LORE_IMAGES` に `w16` を足す。
 ```text
 ...except: the great baptismal cistern water becomes dark and murky; only two small pure springs still glow clear. Faintly visible at the bottom, roots entangle a pair of wooden doll legs with black iron joints.
@@ -306,13 +307,13 @@ Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge
 
 | 場面 | 直すこと |
 |---|---|
-| 序章 arrival `art/story/royal-audience.png` | 授かる三つの魂の色を職業の色に: 戦士 = 赤、僧侶 = 金、盗賊 = 緑 (紫は後で授かる魔導士の色なので外す) |
-| 序章 irene_lamp `art/story/irene-soul-lamp.png` | 弟子を燭台の近くに。本文「弟子は火に手を近づけた」 |
-| 序章 first_descent `art/story/first-descent-gatekeeper.png` | 四体が弟子の方を向く。本文「暗い入口を前にしてもこちらを向いている」。門の奥の石段は下りに |
-| 第一章 ch1_end `art/story/chapter1/ch1_end.png` | 人業を大人の背丈、頭は何も彫られていない丸い木 |
-| 第一章 mem_w05 `art/story/chapter1/mem_w05.png` | 冷えた焚き火の輪を足す。手記の脇のランタンを消す (師の物に見える) |
-| 第一章 report_w01 `art/story/chapter1/report_w01.png` | 王に差し出すランタンを `w01_lantern.png` と同じ形に |
-| 第一章 w01_lantern `art/story/chapter1/w01_lantern.png` | 墓石を崩れたものに、ランタンを真ちゅうらしく |
+| 序章 arrival `art/story-review/prologue/royal-audience.png` | 授かる三つの魂の色を職業の色に: 戦士 = 赤、僧侶 = 金、盗賊 = 緑 (紫は後で授かる魔導士の色なので外す) |
+| 序章 irene_lamp `art/story-review/prologue/irene-soul-lamp.png` | 弟子を燭台の近くに。本文「弟子は火に手を近づけた」 |
+| 序章 first_descent `art/story-review/prologue/first-descent-gatekeeper.png` | 四体が弟子の方を向く。本文「暗い入口を前にしてもこちらを向いている」。門の奥の石段は下りに |
+| 第一章 ch1_end `art/story-review/chapter1/ch1_end.png` | 人業を大人の背丈、頭は何も彫られていない丸い木 |
+| 第一章 mem_w05 `art/story-review/chapter1/mem_w05.png` | 冷えた焚き火の輪を足す。手記の脇のランタンを消す (師の物に見える) |
+| 第一章 report_w01 `art/story-review/chapter1/report_w01.png` | 王に差し出すランタンを `w01_lantern.png` と同じ形に |
+| 第一章 w01_lantern `art/story-review/chapter1/w01_lantern.png` | 墓石を崩れたものに、ランタンを真ちゅうらしく |
 | 第一章 report_w02 | 窓の外の地上の修道院の廃墟を消す (修道院は地下) |
 | 第二章 w06_roll | 鍵束を当直簿をとじた紐に結ぶ。窓の外の灯る城を消す |
 | 第二章 mem_w09 | 書状を握りつぶした形に |

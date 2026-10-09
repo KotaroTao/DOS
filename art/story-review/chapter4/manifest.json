@@ -14,10 +14,10 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter4/w14_lamp.png",
+      "productionImage": "art/story/chapter4/w14_lamp.webp",
       "references": [
-        "art/story/chapter3/w10_rope.png",
-        "art/story/chapter2/w07_sera.png"
+        "art/story/chapter3/w10_rope.webp",
+        "art/story/chapter2/w07_sera.webp"
       ],
       "sceneBrief": "沈んだ参道の石灯籠から鍵と師の書きつけを取り出す弟子。"
     },
@@ -29,9 +29,9 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter4/report_w14.png",
+      "productionImage": "art/story/chapter4/report_w14.webp",
       "references": [
-        "art/story/chapter3/report_w13.png"
+        "art/story/chapter3/report_w13.webp"
       ],
       "sceneBrief": "古い都の図を示す王と弟子、傍らの空いた宰相の席。"
     },
@@ -43,10 +43,10 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter4/w15_mural.png",
+      "productionImage": "art/story/chapter4/w15_mural.webp",
       "references": [
-        "art/story/chapter3/report_w13.png",
-        "art/story/chapter3/w10_rope.png"
+        "art/story/chapter3/report_w13.webp",
+        "art/story/chapter3/w10_rope.webp"
       ],
       "sceneBrief": "三百年前の戴冠壁画で苗木を抱く神官の顔に気づく弟子。"
     },
@@ -58,9 +58,9 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter4/report_w15.png",
+      "productionImage": "art/story/chapter4/report_w15.webp",
       "references": [
-        "art/story/chapter3/report_w13.png"
+        "art/story/chapter3/report_w13.webp"
       ],
       "sceneBrief": "抜かれた記録と、肘掛けを握る王、影を落とす宰相の空席。"
     },
@@ -72,10 +72,10 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter4/w16_legs.png",
+      "productionImage": "art/story/chapter4/w16_legs.webp",
       "references": [
-        "art/story/chapter3/w10_rope.png",
-        "art/story/chapter3/irene_torso.png"
+        "art/story/chapter3/w10_rope.webp",
+        "art/story/chapter3/irene_torso.webp"
       ],
       "sceneBrief": "水の引いた大水槽で、根に抱えられたセラの両脚を救い出す弟子。"
     },
@@ -87,9 +87,9 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter4/report_w16.png",
+      "productionImage": "art/story/chapter4/report_w16.webp",
       "references": [
-        "art/story/chapter3/report_w13.png"
+        "art/story/chapter3/report_w13.webp"
       ],
       "sceneBrief": "誓いを破った過去を語る王と、冠を映す水の器。"
     },
@@ -101,10 +101,10 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter4/irene_sera_wake.png",
+      "productionImage": "art/story/chapter4/irene_sera_wake.webp",
       "references": [
-        "art/story/chapter3/irene_torso.png",
-        "art/story/chapter2/w07_sera.png"
+        "art/story/chapter3/irene_torso.webp",
+        "art/story/chapter2/w07_sera.webp"
       ],
       "sceneBrief": "夜明けの作業台でイレーヌが修復を終え、師のランタンの火がセラの胸へ移る。"
     },
@@ -116,10 +116,10 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter4/mem_w17.png",
+      "productionImage": "art/story/chapter4/mem_w17.webp",
       "references": [
-        "art/story/chapter3/mem_w13.png",
-        "art/story/chapter3/report_w13.png"
+        "art/story/chapter3/mem_w13.webp",
+        "art/story/chapter3/report_w13.webp"
       ],
       "sceneBrief": "魂の記憶に現れる水底の神官王と、頭を下げる師オルド。"
     },
@@ -131,10 +131,10 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter4/report_w17.png",
+      "productionImage": "art/story/chapter4/report_w17.webp",
       "references": [
-        "art/story/chapter3/report_w13.png",
-        "art/story/chapter3/report_w12.png"
+        "art/story/chapter3/report_w13.webp",
+        "art/story/chapter3/report_w12.webp"
       ],
       "sceneBrief": "杯から手を引き、弟子を火の洞へ送り出す王。"
     },
@@ -146,10 +146,10 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter4/ch4_end.png",
+      "productionImage": "art/story/chapter4/ch4_end.webp",
       "references": [
-        "art/story/chapter3/irene_torso.png",
-        "art/story/chapter2/w07_sera.png"
+        "art/story/chapter3/irene_torso.webp",
+        "art/story/chapter2/w07_sera.webp"
       ],
       "sceneBrief": "館で同じ青い灯を見守るイレーヌとセラ、扉で支度する弟子。"
     }

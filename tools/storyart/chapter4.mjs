@@ -2,14 +2,13 @@ import assert from "node:assert/strict";
 import { mkdir, readFile, copyFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { ARCHIVE_STORIES } from "../../src/archive-stories.js";
+import { imageSize } from "./imagesize.mjs";
 
 const root = new URL("../../", import.meta.url);
 const review = new URL("art/story-review/chapter4/", root);
-const production = new URL("art/story/chapter4/", root);
 const manifest = JSON.parse(await readFile(new URL("manifest.json", review), "utf8"));
 const stories = ARCHIVE_STORIES.filter(s => s.chapter === 4);
 assert.deepEqual(manifest.images.map(s => s.id), stories.map(s => s.id));
-await mkdir(production, { recursive: true });
 for (const entry of manifest.images) {
   const saved = new URL(entry.file, review);
   // 生成元がない別の環境でも、保存済み原画から一覧を再作成できる。
@@ -22,7 +21,9 @@ for (const entry of manifest.images) {
   const png = await readFile(saved);
   assert.equal(png.readUInt32BE(16), entry.width);
   assert.equal(png.readUInt32BE(20), entry.height);
-  await copyFile(saved, new URL(entry.file, production));
+  // 出荷するのは WebP だけ (原画から python3 tools/storyart/to-webp.py --all で作る)
+  const { w, h } = imageSize(await readFile(new URL(entry.productionImage, root)));
+  assert.equal(w, entry.width); assert.equal(h, entry.height);
 }
 const escape = value => String(value).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const scenes = stories.map(s => ({ id:s.id, title:s.title, group:s.group, image:s.image, lines:s.lines }));

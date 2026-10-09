@@ -1,16 +1,20 @@
+import assert from "node:assert/strict";
 import { mkdir, readFile, copyFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { ARCHIVE_STORIES } from "../../src/archive-stories.js";
+import { imageSize } from "./imagesize.mjs";
 
 const root = new URL("../../", import.meta.url);
 const review = new URL("art/story-review/chapter3/", root);
-const production = new URL("art/story/chapter3/", root);
 await mkdir(review, { recursive: true });
-await mkdir(production, { recursive: true });
 const manifest = JSON.parse(await readFile(new URL("manifest.json", review), "utf8"));
 for (const entry of manifest.images) {
-  await copyFile(entry.source, new URL(entry.file, review));
-  await copyFile(entry.source, new URL(entry.file, production));
+  // 生成元がない別の環境でも、保存済み原画から一覧を再作成できる。
+  try { await copyFile(entry.source, new URL(entry.file, review)); }
+  catch (error) { if (error.code !== "ENOENT") throw error; }
+  // 出荷するのは WebP だけ (原画から python3 tools/storyart/to-webp.py --all で作る)
+  const { w, h } = imageSize(await readFile(new URL(entry.productionImage, root)));
+  assert.equal(w, entry.width); assert.equal(h, entry.height);
 }
 
 // 正本の本文と画像を並べ、未制作の場面にはゲームと同じ図版を表示する。

@@ -14,9 +14,9 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter3/w10_rope.png",
+      "productionImage": "art/story/chapter3/w10_rope.webp",
       "references": [
-        "art/story/chapter1/mem_w05.png"
+        "art/story/chapter1/mem_w05.webp"
       ],
       "prompt": "Deep underground root-covered vertical shaft. Foreground left, the same young brown-haired apprentice in black cloak with gold embroidery and leather satchel examines an old rope securely tied in a distinctive sailor's knot around a massive root; nearby a small parchment with two different handwritten marks (no readable text), cyan soul lantern. Rope descends into luminous mist. Exactly four wooden humanoid companions with rounded wooden heads and black iron joints: red-cloaked warrior begins descent, white-robed priest, dark leather thief with dagger, purple-robed mage await on ledge. Strong vertical depth and intricate rope fibers, damp roots, moss. NOT two human climbers; 'two' refers to prior visitors Ordo and Sera."
     },
@@ -28,9 +28,9 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter3/report_w10.png",
+      "productionImage": "art/story/chapter3/report_w10.webp",
       "references": [
-        "art/story/chapter1/report_w04.png"
+        "art/story/chapter1/report_w04.webp"
       ],
       "prompt": "Same gothic royal throne room and old king (long white hair and beard, pointed gold crown, red robes, white ermine with black spots). King alone on throne gazes wistfully toward tall barred gothic garden window, an immense dark tree seen in enclosed distant royal garden, the garden inaccessible. Same apprentice in three-quarter rear view foreground listens. Chancellor's adjacent seat conspicuously empty; no chancellor in scene. King one hand rests weakly on throne arm; quiet imprisonment, richly carved throne, candles, cool moonlit stone."
     },
@@ -42,9 +42,9 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter3/w11_hut.png",
+      "productionImage": "art/story/chapter3/w11_hut.webp",
       "references": [
-        "art/story/chapter1/mem_w05.png"
+        "art/story/chapter1/mem_w05.webp"
       ],
       "prompt": "A tiny abandoned wooden and stone scholar's hut deep in luminous subterranean forest of enormous roots, cyan fungi and faint soul-light. Through wide open doorway, old master Werner, an elderly grey-haired human scholar in worn ochre-brown robes, has died peacefully seated slumped over his desk, no gore. In foreground same apprentice with gold-patterned black cloak studies open aged diary beside desk; diary contains three distinctly different generations of ink notes, sketches of soul-eating tree roots (no readable text). Cyan lantern and single candle illuminate pages. Quiet inheritance and grief, ancient books, moss, dust, bark meticulously rendered. No Irene."
     },
@@ -56,9 +56,9 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter3/report_w11.png",
+      "productionImage": "art/story/chapter3/report_w11.webp",
       "references": [
-        "art/story/chapter1/report_w04.png"
+        "art/story/chapter1/report_w04.webp"
       ],
       "prompt": "Same gothic throne room, king long white beard, gold crown, red robes, spotted white ermine. Same apprentice in rear three-quarter view foreground holds up a worn open research diary, tree-root sketches and old handwritten marks (no readable text). King leans forward with stricken disbelief, one hand gripping armrest, the other relaxed on knee; he has learned his old execution report was a lie and chancellor has lived 300 years. Empty chancellor seat deep background; no chancellor. Medium intimate diagonal composition, diary readable, candle-lit gold against moonlit blue stone."
     },
@@ -70,10 +70,10 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter3/w12_torso.png",
+      "productionImage": "art/story/chapter3/w12_torso.webp",
       "references": [
-        "art/story/chapter1/w04_arm.png",
-        "art/story/chapter1/mem_w05.png"
+        "art/story/chapter1/w04_arm.webp",
+        "art/story/chapter1/mem_w05.webp"
       ],
       "prompt": "Soul-tree sap bed deep underground, dense wet roots submerged in shallow translucent amber sap with cyan reflected soul-light. Same apprentice in ornate black travel cloak kneels carefully lifting a SMALL pale wooden female automaton TORSO only (no human flesh, no blood, no head, arms or legs attached) from roots. Black iron shoulder/hip joint sockets, subtle maker's seal; small chest hatch open reveals folded paper inside, no readable words. Clear wooden grain and hollow lightweight construction, precious recovered companion Sera, emotional care. A cyan soul lantern lights foreground and golden sap lights hands. No complete doll here."
     },
@@ -85,9 +85,9 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter3/report_w12.png",
+      "productionImage": "art/story/chapter3/report_w12.webp",
       "references": [
-        "art/story/chapter1/report_w04.png"
+        "art/story/chapter1/report_w04.webp"
       ],
       "prompt": "Same gothic throne room. Foreground right richly engraved golden goblet of amber tree sap sits completely untouched on a small stand beside throne, unmistakable narrative focus. Old king with white hair, long beard, pointed gold crown, red robes and spotted white ermine pulls his own hand back onto his lap, refuses to drink, eyes lowered toward cup. Same apprentice stands left with pale wooden torso wrapped carefully in travel cloth, its black iron socket partly visible. No chancellor. Quiet decisive refusal, warm candles glint on liquid, cool blue moonlight, precise anatomy."
     },
@@ -99,9 +99,9 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter3/irene_torso.png",
+      "productionImage": "art/story/chapter3/irene_torso.webp",
       "references": [
-        "art/story/chapter1/irene_reveal.png"
+        "art/story/chapter1/irene_reveal.webp"
       ],
       "prompt": "Same beautiful Irene with long black hair, purple eyes, gold purple-gem hair ornament, intricate purple and black lace gothic gown; same workshop and same brown-haired apprentice in black gold cloak. Irene is thoughtfully inspecting recovered wooden Sera parts laid individually on wine-purple velvet workbench: exactly ONE round wooden head, ONE detached wooden arm, ONE hollow wooden torso with iron joints and chest hatch; NO legs, no spare duplicate limbs, no full assembled doll. Folded letter beside torso, no readable text. Irene one hand gently steadies torso and other holds letter. Apprentice listens opposite. Warm welcome amid unfinished restoration, shelves with diagrams, tools, moonlit gothic window."
     },
@@ -113,9 +113,9 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter3/mem_w13.png",
+      "productionImage": "art/story/chapter3/mem_w13.webp",
       "references": [
-        "art/story/chapter1/mem_w05.png"
+        "art/story/chapter1/mem_w05.webp"
       ],
       "prompt": "A memory of master Ordo climbing upward inside gigantic hollow soul-eating tree trunk beneath royal capital. Ordo is an older human male soul mage in weathered dark hooded coat, shown from behind with subtle grey hair, carrying small cyan soul lantern. He climbs naturally on interior root footholds with correct limbs, immense hollow trunk surrounds him, streams of cyan trapped soul lights flow upward through wood channels; severed large root visible low foreground with sap, no gore. Far above a tiny opening toward carved foundation stones of royal throne room. Epic upward perspective, intricate bark wood grain, cyan illumination and amber lantern highlights. Apprentice not present in memory."
     },
@@ -127,10 +127,10 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter3/report_w13.png",
+      "productionImage": "art/story/chapter3/report_w13.webp",
       "references": [
-        "art/story/chapter1/report_w04.png",
-        "art/story/morden-at-throne.png"
+        "art/story/chapter1/report_w04.webp",
+        "art/story-review/prologue/morden-at-throne.png"
       ],
       "prompt": "Same throne room and EXACT same chancellor Morden as reference: long gaunt face, sunken eyes, tall black-purple ceremonial hat with gold band, red inner robe, heavy gold office chain and red jewel, understated sinister smile. He emerges from shadow beside throne, foreground right, one hand gently raised as if asking apprentice not to touch trunk. Left middle aged king visibly MORE frail and sunken but same long white hair/beard pointed crown, red robe and spotted white ermine, firmly gestures chancellor aside. Apprentice back view left foreground. Suggested roots beneath throne floor, no exposed monster. Premium tense three-person composition, anatomically correct five-finger hands."
     },
@@ -142,10 +142,10 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter3/ch3_end.png",
+      "productionImage": "art/story/chapter3/ch3_end.webp",
       "references": [
-        "art/story/chapter1/irene_fort.png",
-        "art/story/chapter1/mem_w05.png"
+        "art/story/chapter1/irene_fort.webp",
+        "art/story/chapter1/mem_w05.webp"
       ],
       "prompt": "Same gothic mansion workshop at night, its ornate brass soul lamp flame now burning unusually high and bright cyan on center table. Same Irene long black hair, purple eyes, gold jeweled ornament, purple black lace dress stands quietly beside the lamp. Same brown-haired apprentice in black gold patterned cloak and leather satchel at OPEN doorway looking back toward Irene and the welcoming room before leaving toward underground capital. Four small wooden humanoid companions prepared near doorway (warrior red, priest white, thief dark, mage purple), exactly four, round wooden heads black iron joints. Warm candles, cool city beyond doorway, tools awaiting tomorrow, emotional return-home promise. Sera not fully restored."
     },
@@ -157,10 +157,10 @@
       "width": 1536,
       "height": 1024,
       "status": "制作済・適用済",
-      "productionImage": "art/story/chapter3/irene_trust.png",
+      "productionImage": "art/story/chapter3/irene_trust.webp",
       "references": [
-        "art/story/chapter1/irene_familiar.png",
-        "art/story/chapter1/irene_fort.png"
+        "art/story/chapter1/irene_familiar.webp",
+        "art/story/chapter1/irene_fort.webp"
       ],
       "prompt": "Same gothic mansion entrance, intimate calm late-night homecoming. Irene same long black hair, purple eyes, gold jeweled hair ornament, purple and black lace gown stands at opened carved wooden door welcoming same apprentice who has just returned, brown hair, black cloak gold stitching, travel satchel. Apprentice has set worn travel bag on a low bench thoughtfully reserved by door. Irene expression softly vulnerable and relieved, subtle trusting eye contact, relaxed hands naturally at waist, no grand gesture. Warm interior candlelight and cool rainy moonlit street beyond, rich lace and stone detail. No other people, no dolls in foreground, no romantic embrace."
     }
