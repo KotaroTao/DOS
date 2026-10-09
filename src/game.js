@@ -1243,6 +1243,16 @@ const TRAIT_BOARD = {
     const st = b.start ? b.cells[b.start.y][b.start.x] : null;
     sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.12) { c.type = "poison"; c.cleared = false; } });
   },
+  // 吹き上げる風 (奈落の氷棚): 通路に落とし穴を3つ (最下階には無い)
+  ledge: (b) => {
+    if (G.floor >= (curDungeon().floors || 1)) return;
+    const st = b.start ? b.cells[b.start.y][b.start.x] : null;
+    const cand = [];
+    sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) >= 2) cand.push(c); });
+    for (let i = 0; i < 3 && cand.length; i++) { const c = cand.splice(rand(cand.length), 1)[0]; c.type = "pit"; c.cleared = false; }
+  },
+  // 氷漬けの先人 (凍れる操霊師の間): 氷の柱の根元の骸を2つ (3割はまだあたたかい)
+  icetomb: (b) => sfPlace(b, 2, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = Math.random() < 0.3; }),
   // 迷い霧: 通路の2割強が胞子の床 (毒の床) に。霧の奥 (行き止まり優先) に癒しの泉をひとつ
   mist: (b) => {
     const st = b.start ? b.cells[b.start.y][b.start.x] : null;
@@ -1611,7 +1621,7 @@ function newFloor() {
   if (spf && spf.board) spf.board(G.board);
   // 迷宮の掟: 盤面の加工 (獄の骸・霧の胞子と泉・縦穴の落とし穴)。静寂の階 (罠・毒の床・落とし穴なし) では胞子も穴も撒かない
   const trf = dungeonTrait();
-  if (trf && trf.board && TRAIT_BOARD[trf.board] && !(spf && spf.noTrap && (trf.board === "mist" || trf.board === "shaft" || trf.board === "vent"))) TRAIT_BOARD[trf.board](G.board);
+  if (trf && trf.board && TRAIT_BOARD[trf.board] && !(spf && spf.noTrap && (trf.board === "mist" || trf.board === "shaft" || trf.board === "vent" || trf.board === "ledge"))) TRAIT_BOARD[trf.board](G.board);
   if (G.floor > G.stats.deepest) G.stats.deepest = G.floor;
   // 酒場の噂を盤面に反映 (潜入直後の階のみ)
   if (G.activeRumor && G.activeRumor.floor === G.floor) applyRumorToBoard(G.board);
@@ -6431,7 +6441,7 @@ function investigateCorpse(cell, clsKey, clsLabel) {
   cell.cleared = true;
   const back = () => { if (G.state === "board") renderBoard(); };
   // 半分の確率で魂の残火も残っている (下の4つのどれとも別に)。魂なら同じ知らせにまとめ、ほかは知らせの末尾に添える
-  const ember = Math.random() < EMBER_COLD_RATE ? EMBER_COLD * emberMul(levelHere().lv) : 0;
+  const ember = Math.random() < EMBER_COLD_RATE ? emberEcho(EMBER_COLD * emberMul(levelHere().lv)) : 0;
   let emberDone = false;
   const emberTail = () => {
     if (!ember || emberDone) return "";
@@ -6498,7 +6508,12 @@ function investigateCorpse(cell, clsKey, clsLabel) {
 // どれも敵Lv で数が増える (levelcurve.js emberMul: Lv1〜50 ×1・51〜100 ×2 … Lv400 ×8)
 const EMBER_WARM = 1, EMBER_GREAT = 5, EMBER_COLD = 1, EMBER_COLD_RATE = 0.5;
 function emberReward(great) {
-  return (great ? EMBER_GREAT : EMBER_WARM) * emberMul(levelHere().lv);
+  return emberEcho((great ? EMBER_GREAT : EMBER_WARM) * emberMul(levelHere().lv));
+}
+// 極光の書きつけ (手がかりの恵み emberEcho): 死体から魂の残火を拾った時、この確率で数が倍になる
+const EMBER_ECHO_RATE = 0.10;
+function emberEcho(n) {
+  return n > 0 && inDungeon() && clueBoon("emberEcho") && Math.random() < EMBER_ECHO_RATE ? n * 2 : n;
 }
 function collectSoul(cell, clsKey, clsLabel) {
   cell.cleared = true;
@@ -7463,6 +7478,12 @@ function startBattleMeasured(enemies, cell) {
   for (const e of enemies) e.lv = foeLv;
   G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), foeLv });
   tlWatchBattle(G.battle, tlWhere());
+  // 迷宮の掟: 凍てつく冷気に身がすくむ (trait.chill) — 隊の全員の AGI を段数ぶん下げる (3ターン)
+  const trC = dungeonTrait();
+  if (trC && trC.chill) {
+    for (const p of G.battle.party) if (p.alive) G.battle._applyMod(p, "agi", Math.pow(0.8, trC.chill), 3, "絶対零度");
+    log(`凍てつく冷気に身がすくむ (隊の AGI ▼${trC.chill})。`, "dmg");
+  }
   if (foeLv - partyLevel() >= 4) log(`格上の敵だ (Lv${foeLv})。眠りや毒、即死の術はほとんど効かず、敵の術はよく効く。`, "sys");
   // テスト記録: 戦闘の種類 (主 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子
   if (tlOn() && inDungeon()) {
@@ -11233,6 +11254,7 @@ function tavernHintAllowed(req) {
   if (req === "roots") return worldOpenId("w10");                                   // 魂脈の根 (大穴の下の縦穴が地図に現れた後)
   if (req === "undercity") return worldOpenId("w14");                               // 王都の地下 (水底の参道が地図に現れた後)
   if (req === "furnace") return worldOpenId("w18");                                 // 灼熱の洞 (火を噴く地割れが地図に現れた後)
+  if (req === "frost") return worldOpenId("w22");                                   // 氷結回廊 (奈落の氷棚が地図に現れた後)
   return featureUnlocked(req);                           // fusion / rumor
 }
 // 酒場の顔ぶれを選び直す (ダンジョン帰還時・初回入店時に呼ぶ)

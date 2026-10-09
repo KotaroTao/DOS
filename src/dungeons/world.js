@@ -40,6 +40,7 @@
 //             foeRegen 敵の毎ラウンドの再生 (最大HP比)   mpDrain 戦闘の開幕に吸われる隊のMP (最大MP比)
 //             hpDrain 戦闘の開幕に隊が失うHP (最大HP比。HP1 より下にはならない)
 //             metalRate / metalMax 金属の魔物の出やすさ (既定 7%) / 1階で入れ替わる札の最大数 (既定 1)
+//             chill    戦闘の開幕に隊の全員の AGI を何段下げるか (3ターン。凍てつく大回廊)
 //   tune    強さの手直し (generator.js DUNGEON_TUNE と同じ欄)。第4層からはテスト記録がまだ無いので、模擬戦で既存の迷宮に
 //           つないだ: 装備なしの6人 (戦士2・侍・僧侶・魔導士・盗賊、魂の Lv = その階の n の物差しの Lv — 当時の推奨Lv。
 //           その後 power に写したので、tune の値はそのまま使える) が出現表の雑魚と通常攻撃だけで
@@ -473,6 +474,92 @@ const WORLD_DEF = [
     unlock: { all: ["w19", "w20"] },
     hint: "「灰の降る祭場」と「魂を煮る釜場」の両方を踏破して王に報告すると、大釜への道が開く",
   },
+  // ---- 第六章「氷結回廊」(第8層の顔ぶれ) ── 大釜の底の奈落。吹き上げる風が、落ちてくる魂を氷に閉じこめる ----
+  //   強さの素は第五章の各迷宮の 0.9倍 (層の入口の1割の段差。第四章 → 第五章と同じ比)。手直しは第五章に倣う
+  {
+    id: "w22", lv: 70, lvTo: 72, layer: 8, floors: 10,
+    power: { 1: 0.1557, 5: 0.1676, 10: 0.1813 },
+    name: "奈落の氷棚", short: "氷棚",
+    about: "大釜の底の穴を降りると、壁から氷の棚が張り出している。吹き上げる風が、落ちてくる魂を凍らせて受け止める",
+    element: "water",
+    bands: [
+      ["bs_frostwolf", "bs_winterbat", "bs_icewraith", "bs_blizzardspirit", "bs_iceserpent", "bs_glacialcrab"],
+      ["bs_snowstalker", "bs_rimecrawler", "bs_iciclehorror"],
+    ],
+    elites: ["el_glacialmaw"],
+    trait: {
+      id: "ledge", name: "吹き上げる風", sym: "⇡", accent: "#9ad0f0",
+      lines: ["奈落から吹き上げる風が氷棚を削り、各階に落とし穴が3つ増える (最下階を除く。浮遊で避けられる)。", "落ちてきた魂が棚に吹き寄せられ、得る ✦Soul は 1.25倍。"],
+      mods: { soulMul: 1.25 },
+      board: "ledge",
+    },
+    tune: { enemyMul: 1.08, deepMul: 0.76, soloMul: 1.05 },
+    unlock: { reported: "w21" },
+    hint: "「業火の大釜」の踏破を王に報告すると、奈落の壁の氷の棚へ降りる許しが出る",
+  },
+  {
+    id: "w23", lv: 72, lvTo: 74, layer: 8, floors: 10,
+    power: { 1: 0.152, 5: 0.1638, 10: 0.1774 },
+    name: "凍れる操霊師の間", short: "凍れる間",
+    about: "氷の柱がどこまでも並ぶ広間。柱の一本一本に、人の影が閉じこめられている",
+    element: "water",
+    bands: [
+      ["bs_frozenexplorer", "bs_icewraith", "bs_snowmantis", "bs_frostknight", "bs_glacialcrab", "bs_blizzardspirit"],
+      ["bs_frostlich", "bs_frostmaiden", "bs_icegolem"],
+    ],
+    elites: ["el_frostsovereign"],
+    trait: {
+      id: "icetomb", name: "氷漬けの先人", sym: "❄", accent: "#b8d8f0",
+      lines: ["氷の柱の根元に、凍った骸が眠っている (各階に死体が2つ増える。3割はまだあたたかい)。", "凍りついた魂は傷みが少なく、得る ✦Soul は 1.3倍。"],
+      mods: { soulMul: 1.3 },
+      board: "icetomb",
+    },
+    tune: { enemyMul: 1.02, deepMul: 0.84, soloMul: 1.05 },
+    unlock: { story: "w22_coat" },
+    hint: "「奈落の氷棚」のどこかに、師の残したものが凍りついているという",
+  },
+  {
+    id: "w24", lv: 74, lvTo: 76, layer: 8, floors: 10,
+    power: { 1: 0.15, 5: 0.1619, 10: 0.1756 },
+    name: "極光の氷窟", short: "氷窟",
+    about: "天井に極光がゆらめく氷の洞窟。光の正体は、氷に閉じこめられた無数の魂だという",
+    element: "water",
+    bands: [
+      ["bs_aurorawisp", "bs_blizzardspirit", "bs_iceserpent", "bs_snowstalker", "bs_rimecrawler", "bs_frostwolf"],
+      ["bs_frozenangel", "bs_frostmaiden", "bs_frostwyrm"],
+    ],
+    elites: ["el_glacialmaw"],
+    trait: {
+      id: "aurora", name: "揺らめく極光", sym: "≈", accent: "#a0f0c8",
+      lines: ["天井の極光が魔物の気を揺らし、魔物の属性がでたらめに定まる。", "極光に照らされた氷の中に古い金貨が光り、得られる金貨は 1.35倍。"],
+      mods: { elemRandom: true, goldMul: 1.35 },
+    },
+    tune: { enemyMul: 0.96, deepMul: 0.84, soloMul: 1.05 }, // 属性が読めない分だけ控えめ
+    unlock: { reported: "w22" },
+    hint: "「奈落の氷棚」の踏破を王に報告すると、氷棚の奥の洞窟が示される",
+  },
+  {
+    id: "w25", lv: 76, lvTo: 79, layer: 8, floors: 15,
+    power: { 1: 0.1467, 5: 0.1535, 10: 0.1614, 15: 0.1687 },
+    name: "凍てつく大回廊", short: "大回廊",
+    about: "奈落の壁をめぐる、氷の大回廊。いちばん奥に、氷の玉座があるという",
+    element: "water",
+    bands: [
+      ["bs_frostknight", "bs_icegolem", "bs_frozenexplorer", "bs_snowmantis", "bs_aurorawisp", "bs_iciclehorror"],
+      ["bs_rimegiant", "bs_frostlich", "bs_frozenangel"],
+      ["bs_frostwyrm", "bs_frostfiend", "bs_frostmaiden"],
+    ],
+    trait: {
+      id: "frost", name: "絶対零度", sym: "✱", accent: "#d0e8ff",
+      lines: ["凍てつく冷気に身がすくむ。戦闘が始まるたび、隊の全員の AGI が1段下がる (3ターン)。", "凍りついた古い魂の名残で、得る ✦Soul は 1.4倍。"],
+      mods: { soulMul: 1.4 },
+      chill: 1,
+    },
+    boss: LAYER_BOSS[7], bossRank: 10,
+    tune: { enemyMul: 0.95, deepMul: 0.88, soloMul: 1.10, bossMul: 0.85 }, // 第8層の壁。開幕に足が鈍る分だけ控えめ
+    unlock: { all: ["w23", "w24"] },
+    hint: "「凍れる操霊師の間」と「極光の氷窟」の両方を踏破して王に報告すると、大回廊への道が開く",
+  },
   // ---- 依頼の迷宮 (酒場の固定クエストを受けると地図に現れる) ----
   {
     id: "ws1", lv: 20, lvTo: 23, layer: 2, floors: 10, side: true,
@@ -766,7 +853,7 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
     if (d.trait) {
       const t = d.trait;
       if (!t.id || !t.name || !Array.isArray(t.lines)) throw new Error(`world: ${d.id} trait needs id/name/lines`);
-      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
+      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
     }
     for (const k of d.elites || []) if (!BESTIARY[k]) throw new Error(`world: ${d.id} unknown elite ${k}`);
   }
