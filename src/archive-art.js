@@ -1,6 +1,7 @@
 // 読み物専用の一枚絵。場面ごとに背景・主題・人物の位置と手の動きを描き分ける。
 // 既存の storyArt や館の肖像は使わない。192×108の素材色を点光源で照らし、共通パレットへ量子化する。
 import { Layer, Mask, h2 } from "./pxpaint.js";
+import { ICE_PAL } from "./storyart.js"; // 第六章の氷の青と極光の紫を足したパレット
 
 export const ARCHIVE_ART_W = 192, ARCHIVE_ART_H = 108;
 export const ARCHIVE_FOCUS = ["city", "threeSouls", "door", "lamp", "vessel", "partyThree", "partyFour", "guard",
@@ -8,10 +9,14 @@ export const ARCHIVE_FOCUS = ["city", "threeSouls", "door", "lamp", "vessel", "p
   "fortWindow", "fort", "roll", "emptySeat", "names", "seraHead", "namesScroll", "banner", "stormWindow", "soulMap",
   "sealedOrder", "crown", "fadingLamp", "pit", "rope", "gardenWindow", "hutDiary", "diary", "torso", "cup",
   "seraTogether", "climbingOrdo", "chancellor", "highLamp", "brokenVessel", "twoChairs", "openDoor",
-  "votive", "mural", "legs", "seraWake", "priestKing", "blade", "husks", "cauldron", "abyss"];
+  "votive", "mural", "legs", "seraWake", "priestKing", "blade", "husks", "cauldron", "abyss",
+  "coat", "frozenMasters", "auroraMap", "frostKing", "thaw"];
+// 氷の場面は氷の青を足したパレットで量子化する (共通のパレットだと青が灰色に沈む)
+const ICE_FOCUS = ["coat", "frozenMasters", "auroraMap", "frostKing", "thaw"];
 const cache = new Map();
 const C = { stone:[71,67,85], dark:[25,22,37], edge:[114,104,118], wood:[104,64,47], gold:[199,150,70], paper:[201,183,139],
-  iron:[81,94,115], bone:[185,165,137], soul:[73,214,190], blue:[91,131,190], purple:[107,65,143], skin:[188,151,147], black:[31,25,38] };
+  iron:[81,94,115], bone:[185,165,137], soul:[73,214,190], blue:[91,131,190], purple:[107,65,143], skin:[188,151,147], black:[31,25,38],
+  ice:[150,198,228], iceD:[62,102,146], snow:[226,238,248], coat:[48,42,58] };
 
 function paintScene(scene) {
   const W = ARCHIVE_ART_W, H = ARCHIVE_ART_H, L = new Layer(W, H);
@@ -19,7 +24,7 @@ function paintScene(scene) {
   const indoor = ["mansion", "workshop", "throne", "treasury", "warroom", "prison", "crypt", "passage", "abbey", "mine"].includes(scene.setting);
   const roomLight = ["mansion", "workshop", "throne", "treasury"].includes(scene.setting);
   const focalX = scene.people === "king" ? 139 : scene.people === "irene" ? 121 : 105;
-  const light = { x:focalX, y:56, color:roomLight ? [1,0.69,0.38] : [0.33,0.86,0.82] };
+  const light = { x:focalX, y:56, color:roomLight ? [1,0.69,0.38] : scene.setting==="ice" ? [0.55,0.8,1] : [0.33,0.86,0.82] };
   function rgb(base, x, y, edge = false) {
     const d = Math.hypot((x - light.x) * 0.8, y - light.y) / 100;
     const k = Math.max(0, 1 - d) ** 2;
@@ -124,6 +129,15 @@ function paintScene(scene) {
     for(let i=0;i<28;i++){const xx=h2(i,11,seed)*W,yy=h2(i,13,seed)*80;rect(xx,yy,1,1,[255,170,80],false);}
     glow(W/2,104,80,[255,90,30],0.45);
   }
+  // 第六章: 奈落の氷の回廊・氷棚 (青白い氷の壁、天井のつらら、鏡のような氷の床と吹き上げる雪)
+  if(scene.setting==="ice"){
+    rect(0,0,W,H,[18,32,56]);
+    for(let i=0;i<9;i++){const xx=i*24-8,t=h2(i,2,seed);poly([[xx,0],[xx+24,0],[xx+20+t*6,52+t*20],[xx+4,40+h2(i,3,seed)*26]],i%2?[44,74,110]:[58,94,132]);line(xx+3,2,xx+8+t*8,40+t*20,C.ice);}
+    for(let i=0;i<26;i++){const xx=h2(i,5,seed)*W,l=5+h2(i,6,seed)*14;poly([[xx-2,0],[xx+2,0],[xx,l]],C.ice);}
+    rect(0,80,W,28,[30,54,84]);line(0,80,W,80,C.snow);
+    for(let i=0;i<30;i++){const xx=h2(i,7,seed)*W,yy=83+h2(i,8,seed)*24;line(xx,yy,xx+6+h2(i,9,seed)*10,yy,[96,140,176]);}
+    for(let i=0;i<45;i++){rect(h2(i,11,seed)*W,h2(i,13,seed)*H,1,1,C.snow,false);}
+  }
   if(scene.setting==="water"){rect(0,73,W,35,[20,49,61]);for(let i=0;i<40;i++){const x=h2(i,1,seed)*W,y=76+h2(i,3,seed)*30;line(x,y,x+9,y,C.blue);}for(let x=143;x<183;x+=9)rect(x,18,3,71,C.iron);}
 
   // 一枚ごとの主題。小道具だけの色違いではなく、物語で向き合う相手と場所を変える。
@@ -182,6 +196,21 @@ function paintScene(scene) {
     case "husks": for(let i=0;i<9;i++){const q=72+(i%4)*22+(i>3?11:0),yy=86-Math.floor(i/4)*15;doll(q,yy,"torso",0.55);ellipse(q,yy-8,4,5,[40,32,30]);}for(let i=0;i<40;i++)rect(h2(i,2,seed)*W,h2(i,4,seed)*90,1,2,[150,140,130],false);paper(150,40,24,16);break;
     case "cauldron": ellipse(98,102,48,8,C.black);poly([[56,52],[140,52],[132,92],[64,92]],[60,40,38]);ellipse(98,52,42,8,[200,90,40]);glow(98,52,46,[255,120,40],0.6);line(64,92,58,104,C.iron,3);line(132,92,138,104,C.iron,3);poly([[156,40],[166,40],[172,98],[150,98]],C.black);ellipse(161,33,5,7,C.skin);break;
     case "abyss": ellipse(98,80,60,24,C.black);ellipse(98,80,50,19,[8,6,14]);for(let i=0;i<20;i++){const a=h2(i,2,seed)*6.28,r=10+h2(i,4,seed)*40;rect(98+Math.cos(a)*r,80+Math.sin(a)*r*0.38,1,1,C.soul,false);}candle(160,58,1);break;
+    // ---- 第六章「氷結回廊」 ----
+    case "coat": poly([[40,76],[150,72],[160,78],[44,86]],C.snow);poly([[44,86],[160,78],[150,90],[52,94]],C.iceD);for(let i=0;i<9;i++)poly([[58+i*11,92],[62+i*11,92],[60+i*11,100+h2(i,4,seed)*6]],C.ice);
+      poly([[116,78],[122,78],[120,22],[118,22]],C.ice);poly([[110,30],[128,30],[134,58],[140,74],[100,76],[104,56]],C.coat);ellipse(119,30,8,3,C.coat);line(104,34,98,58,C.coat,4);line(130,34,140,46,C.coat,4);
+      line(100,75,140,73,C.gold);line(119,34,119,74,C.gold);paper(124,52,9,6);for(let i=0;i<12;i++)rect(100+h2(i,3,seed)*40,30+h2(i,5,seed)*44,1,1,C.snow,false);ellipse(108,6,30,6,[90,30,20]);ellipse(108,5,26,4,C.black);break;
+    case "frozenMasters": for(let i=0;i<5;i++){const q=56+i*24,sz=1-Math.abs(i-2)*0.08,top=28+Math.abs(i-2)*6;rect(q-9*sz,0,18*sz,90,C.ice);
+      const body=[[q-2,top+17],[q+2,top+17],[q+5.5,top+22],[q+4.6,top+44],[q+6,90],[q-6,90],[q-4.6,top+44],[q-5.5,top+22]];
+      if(i===3){poly(body,C.iceD);ellipse(q,top+12,3.4,4,C.iceD);for(let k=0;k<body.length;k++){const a=body[k],b=body[(k+1)%body.length];line(a[0],a[1],b[0],b[1],C.snow,1,false);}line(q+5,top+30,q+9,top+24,C.snow,1,false);}
+      else{poly(body,[24,34,56]);line(q-5,top+22,q-6.6,top+46,[24,34,56],2);line(q+5,top+22,q+6.6,top+46,[24,34,56],2);ellipse(q,top+12,3.4,4,[150,170,190]);}
+      line(q-6*sz,0,q-6*sz,90,C.snow,1,false);rect(q-11*sz,88,22*sz,4,C.snow);}glow(124,60,26,[150,210,240],0.25);break;
+    case "auroraMap": for(const [y0,col] of [[18,[80,230,150]],[28,[80,140,240]],[10,[150,90,220]]]){const pts=[];for(let xx=0;xx<=W;xx+=12)pts.push([xx,y0+Math.sin(xx*0.05+y0)*6]);for(let xx=W;xx>=0;xx-=12)pts.push([xx,y0+9+Math.sin(xx*0.05+y0)*6]);poly(pts,col);}
+      for(let i=0;i<24;i++){const xx=h2(i,3,seed)*W,yy=8+h2(i,4,seed)*30;ellipse(xx,yy,1,1,[230,255,244],false);glow(xx,yy,5,[60,200,150],0.4);}glow(96,24,70,[60,200,150],0.35);paper(92,84,44,16);rect(136,92,5,4,C.ice);break;
+    case "frostKing": for(let k=0;k<3;k++)rect(96-k*8,82+k*6,64+k*16,6,C.ice);poly([[108,82],[106,30],[112,20],[116,28],[122,14],[128,26],[134,18],[140,30],[138,82]],C.ice);rect(104,62,38,20,C.iceD);
+      poly([[115,46],[131,46],[134,80],[112,80]],[62,72,104]);ellipse(123,40,5,6,C.bone);poly([[119,43],[127,43],[123,52]],C.snow);for(let i=0;i<4;i++)poly([[118+i*3,34],[119.5+i*3,27-(i%2)*2],[121+i*3,34]],C.snow);glow(123,32,18,[160,220,255],0.6);break;
+    case "thaw": table(84,84,84);rect(104,58,30,26,[120,170,206]);poly([[104,58],[134,58],[130,52],[108,52]],C.snow);for(let i=0;i<4;i++)line(108+i*7,84,108+i*7,88+h2(i,2,seed)*4,C.ice);ellipse(119,93,20,2,C.iceD);line(106,60,106,82,C.snow,1,false);
+      ellipse(119,71,2,3,C.soul,false);glow(119,71,9,[60,200,170],0.4);candle(156,64);glow(140,64,34,[255,170,80],0.35);break;
     default: throw new Error(`読み物の図版に未定義の主題: ${scene.focus}`);
   }
   if(scene.people==="irene")irene(scene.pose==="shelter"?80:62,scene.pose==="seated"?66:63,scene.pose);
@@ -191,7 +220,7 @@ function paintScene(scene) {
     const d=Math.min(0.68,((xx-W/2)/(W/2))**4*0.42+((y-H/2)/(H/2))**4*0.30),i=(y*W+xx)*3;
     for(let j=0;j<3;j++)L.c[i+j]*=1-d;
   }
-  return L.canvas(8);
+  return L.canvas(8, scene.setting === "ice" || ICE_FOCUS.includes(scene.focus) ? ICE_PAL : undefined);
 }
 
 export function archiveArt(scene) {
