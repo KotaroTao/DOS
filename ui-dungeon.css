@@ -198,6 +198,18 @@
 .dg-stat { display: flex; justify-content: space-between; align-items: center; min-height: 40px; padding: 4px 10px; border: 1px solid #2c2427; border-radius: 3px; background: rgba(8,6,9,0.6); }
 .dg-stat-l { font-size: 11px; font-weight: 800; color: #b2a68f; letter-spacing: 0.1em; }
 .dg-stat-v { font-size: 16px; font-weight: 800; color: var(--accent-hi); font-variant-numeric: tabular-nums; }
+/* 人業の様子 (戦闘中の長押し): いまの戦力・能力の上下・技 */
+.dg-stat.up .dg-stat-v { color: var(--up); } .dg-stat.down .dg-stat-v { color: #ff9a8a; }
+.dg-stat-b { margin-left: 5px; font-size: 10px; font-weight: 700; color: #8f8370; }
+.dg-num { flex-direction: column; align-items: stretch; justify-content: center; gap: 1px; padding: 4px 9px; }
+.dg-num-h { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+.dg-num-s { font-size: 10px; color: #8f8370; line-height: 1.3; }
+.dg-num.warn .dg-stat-v { color: #ff9a8a; }
+.dg-peek-skills { margin-bottom: 4px; }
+.dg-skill { gap: 6px; cursor: pointer; }
+.dg-skill-mp { font-size: 10.5px; color: #8fb1e6; }
+.dg-skill.off { opacity: 0.42; }
+.dg-skill.manual { border-style: dashed; }
 .dg-enemy .ui-sheet-body { text-align: center; }
 .dg-en-meta { font-size: 12.5px; color: #b2a68f; letter-spacing: 0.1em; }
 .dg-en-elem { display: flex; justify-content: center; }
