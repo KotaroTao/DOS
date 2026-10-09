@@ -6802,12 +6802,17 @@ function clearDungeonNoBoss() {
 }
 
 // ===== 罠解除 (宝箱・罠マス共通) =====
-// 解除値 = AGI + LUK。解除を得意とする職 (盗賊・義賊・暗殺者・魔盗賊・狩人) は1.5倍のボーナス
+// 解除値 = AGI + LUK。解除を得意とする職 (盗賊・義賊・暗殺者・魔盗賊・狩人) をメイン魂かサブ魂に宿していれば1.5倍のボーナス
 const DISARM_JOBS = ["thief", "brigand", "shadow", "arcthief", "hunter"];
-// この人業が「解除の得意職」を宿しているか (メイン魂・宿し魂のいずれか)
+// この人業が「解除の得意職」を宿しているか (メイン魂・サブ魂のいずれか)。
+// サブ魂でも得意職扱い (2026-10 ユーザーの指示: 盗賊系はエピック・レジェンドに無く、後半は解除役のためだけに1枠を潰していた)
 function disarmExpert(m) {
-  if (!m.jobKey) return false;
-  return m.jobKey.split("+").some((k) => DISARM_JOBS.includes(k));
+  if (!m) return false;
+  if (m.jobKey && DISARM_JOBS.includes(m.jobKey)) return true;
+  return (m.subs || []).some((sub) => {
+    const s = sub && soulByUid(sub.uid);
+    return !!(s && DISARM_JOBS.includes(s.clsKey));
+  });
 }
 function disarmPower(m) {
   let v = (m.agi || 0) + (m.luk || 0);
