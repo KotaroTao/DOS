@@ -513,6 +513,8 @@ export const SOUL_TIER_ATK_MIN = 0.04;
 // 敵全体への攻撃の技は最低 6% (2026-10): 安い全体技 (ファイアストームなど) は Lv20 前後の隊の柱なので技の MP は据え置き、
 // 魂が育つほど単体の技より重くして、Lv100〜200 で「全体技を撃つのが一番得」にならないようにする
 export const SOUL_TIER_ALL_MIN = 0.06;
+// MP吸収 (技の mpDrain) の上限 = その技の消費MPの何倍か (技ごとの mpDrainCap で上書きできる)
+export const MP_DRAIN_CAP = 1.1;
 export function soulTierRate(sp) {
   if (!sp || sp.mpPct || sp.gravity || !(sp.mp > 0) || !SOUL_TIER_KINDS.has(sp.kind)) return 0;
   const r = SOUL_TIER_RATES.find(([m]) => sp.mp <= m)[1];
@@ -2218,12 +2220,12 @@ export class Battle {
       res.hits.push({ target: tgt, dmg: extra, died });
       if (died) h = { ...h, died: true };
     }
-    // 魔力循環 (魔闘士): 通常攻撃で与えたダメージの 5/10/15% だけ MP を回復 (1回で最大MPの 2/3/4% まで)
+    // 魔力循環 (魔闘士): 通常攻撃で与えたダメージの 10/15/20% だけ MP を回復 (1回で最大MPの 2/3/4% まで)
     const mc = pv(actor, "bmManaCycle");
     const dealt = ((h && !h.miss && h.dmg) || 0) + extra;
     if (mc && dealt > 0 && actor.maxmp && actor.mp < actor.maxmp) {
       const lv = Math.min(3, mc);
-      const gain = Math.max(1, Math.min(Math.ceil(actor.maxmp * [0, 0.02, 0.03, 0.04][lv]), Math.round(dealt * ([0, 0.05, 0.10, 0.15][lv] || 0))));
+      const gain = Math.max(1, Math.min(Math.ceil(actor.maxmp * [0, 0.02, 0.03, 0.04][lv]), Math.round(dealt * ([0, 0.10, 0.15, 0.20][lv] || 0))));
       actor.mp = Math.min(actor.maxmp, actor.mp + gain);
       this.log(`${actor.name}の魔力循環 (MP+${gain})`, "heal");
       this._proc(actor, "魔力循環");
@@ -2511,9 +2513,9 @@ export class Battle {
       this.log(`${tgt.name}は怯んだ！`, "hit");
     }
     const died = this._die(tgt);
-    // 魂喰い: 敵を倒した時にMPを回復
+    // 魂喰い: 敵を倒した時にMPを最大の1.5%回復
     if (died && actor.side === "party" && pv(actor, "soulEater") && actor.maxmp) {
-      const mr = Math.max(1, Math.ceil(actor.maxmp * 0.05));
+      const mr = Math.max(1, Math.ceil(actor.maxmp * 0.015));
       actor.mp = Math.min(actor.maxmp, actor.mp + mr);
       this.log(`魂喰い！ ${actor.name}のMPが ${mr} 回復`, "heal");
       this._proc(actor, "魂喰い");
@@ -2937,9 +2939,9 @@ export class Battle {
       res.hits.push({ target: actor, heal });
     }
     if (dealt > 0 && sp.mpDrain && actor.maxmp) {
-      // 吸収は「その技の消費MP × mpDrainCap (既定1)」まで (2026-10: 与ダメ比例のままだと撃つほど MP が増えた)。
-      // 魔力強奪だけは 1.1倍まで (ユーザーの指示、2026-10) — 撃つたびに少しずつ MP が増える。叡智の極み・重詠で払わなかった時も同じ上限
-      const gain = Math.max(1, Math.min(Math.floor(spellCost(actor, sp) * (sp.mpDrainCap || 1)), Math.round(dealt * sp.mpDrain)));
+      // 吸収は「その技の消費MP × mpDrainCap (既定 MP_DRAIN_CAP 1.1)」まで (2026-10: 与ダメ比例のままだと撃つほど MP が増えた)。
+      // どの吸収技も 1.1倍まで (ユーザーの指示、2026-10。魔力強奪だけだった) — 撃つたびに少しずつ MP が増える。叡智の極み・重詠で払わなかった時も同じ上限
+      const gain = Math.max(1, Math.min(Math.floor(spellCost(actor, sp) * (sp.mpDrainCap || MP_DRAIN_CAP)), Math.round(dealt * sp.mpDrain)));
       actor.mp = Math.min(actor.maxmp, actor.mp + gain);
       this.log(`${actor.name}はMPを吸い取った (MP+${gain})`, "heal");
     }
