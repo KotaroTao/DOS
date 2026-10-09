@@ -5862,7 +5862,7 @@ function syncSeraSoul() {
   }
   const want = seraRankTarget();
   const up = (s.count || 1) < want;
-  if (up) s.count = want;
+  if (up) { s.count = want; settleSoulExp(s); } // ランクで伸びた上限まで、蓄積していた exp を注ぐ
   s.locked = true;
   if (up || moved) { recalcDoll(d); if (moved) { d.hp = d.maxhp; d.mp = d.maxmp; } }
   return up;
@@ -9473,9 +9473,8 @@ function distributeBattleSoulExpMeasured(soulGot) {
     if (!e) continue;
     const gain = Math.floor((w.sub ? share * SUB_EXP_RATE : share) * (w.mul || 1) * soulLvMul(e.level));
     if (gain <= 0) continue;
-    const cap = soulLevelCapOf(e);
     e.exp = (e.exp || 0) + gain;
-    while (e.level < cap && e.exp >= soulTrainCost(e.level)) { e.exp -= soulTrainCost(e.level); e.level++; }
+    settleSoulExp(e); // Lv上限の魂は exp に蓄積し、上限が伸びた時に Lv へ注ぐ
   }
   recalcAllDolls({ levelUp: true });
   // メンバーごとに「レベルアップ(上昇ステータス付き)→新規スキル」をポップアップ用キューへ
@@ -10740,11 +10739,21 @@ function soulTotalExp(level, exp) {
   return total;
 }
 // 総 Soul と Lv上限から、到達レベルと端数 exp を求める。
-// 上限に達しても余剰 Soul は exp として保持し、ランクUPで上限が伸びたら一気に反映される。
+// 上限に達しても余剰 Soul は exp として保持し、融合・残火で上限が伸びたら一気に反映される。
 function levelExpFromTotal(total, cap) {
   let level = 1, rem = Math.max(0, total);
   while (level < cap && rem >= soulTrainCost(level)) { rem -= soulTrainCost(level); level++; }
   return { level, exp: rem };
+}
+// 蓄積した exp を、いまの Lv上限まで Lv に注ぐ (戦闘の経験値・残火・セラのランク・読み込み時で共通)。
+// 上限に届いた魂が戦闘で得た経験値は捨てずに exp に残り、上限が伸びたらここで反映される。上がった段数を返す
+function settleSoulExp(e) {
+  if (!e) return 0;
+  const cap = soulLevelCapOf(e);
+  let n = 0;
+  e.exp = Math.max(0, e.exp || 0);
+  while (e.level < cap && e.exp >= soulTrainCost(e.level)) { e.exp -= soulTrainCost(e.level); e.level++; n++; }
+  return n;
 }
 
 // 魂インスタンスを ✦Soul で1段鍛える (その魂を宿す人業が伸びる)。
@@ -10763,9 +10772,14 @@ function raiseSoulCap(uid) {
   recalcAllDolls();
   updateTopbar();
   const cap = soulLevelCapOf(e);
-  SFX.levelup(); buzz([0, 30, 50, 30]);
   log(`魂の残火を${need}つ捧げ、${soulLabel(e)}のLv上限が ${cap} になった。`, "win");
   showToast(`🔥 ${soulLabel(e)} ― Lv上限 ${cap}（残火 ${G.embers}）`, { tone: "gold" });
+  // 上限に届いてから蓄積していた経験値を、伸びた上限まで Lv に注ぐ (街では強化と同じ祝祭を出す)
+  const lv0 = e.level;
+  const ready = e.level < cap && (e.exp || 0) >= soulTrainCost(e.level);
+  if (ready && G.state === "town") uiSoulPanel.train(uid, 0);
+  else if (ready && settleSoulExp(e)) { recalcAllDolls({ levelUp: true }); log(`蓄積していた Soul で ${soulLabel(e)}が Lv${lv0}→${e.level} に成長した！`, "win"); }
+  if (e.level === lv0) { SFX.levelup(); buzz([0, 30, 50, 30]); }
   autosave(true);
   renderTown();
   return true;
@@ -14928,6 +14942,8 @@ function loadGame() {
   // 魂融合した魂は自動でロックする (後付け: 旧セーブの融合済み = 魂数2以上の魂にも一度だけ。外したロックは掛け直さない)
   for (const s of G.souls) if (s.count > 1 && !s.fuseLk) { s.locked = true; s.fuseLk = true; }
   setSharedSouls(G.souls); // recalcDoll が所持魂を uid で引けるようにする
+  // 旧版で残火を捧げても Lv に注がれず残っていた exp を、いまの上限まで反映する
+  for (const s of G.souls) settleSoulExp(s);
   orderSig = null;
   setOrderSource(() => { try { return orderSeatedUids(); } catch (e) { return []; } }); // 結社の席の魂の能力を全員に分ける
   setAppraiseSource(() => allDolls()); // 目利き (鑑定の成功率) は隊と控えで一番高いLvを見る
@@ -15429,7 +15445,8 @@ const OPS = {
     const soulBefore = wearer ? null : jobStatsOf(e.clsKey, e); // 誰も宿していない魂は魂そのものの能力を見比べる
     const beforeSkills = wearer ? null : soulLearnedSkills(e);
     const from = e.level;
-    let spent = 0, levels = 0;
+    // 蓄積していた exp で上がる段は無料で先に上げる (旧来は1段上げると exp=0 で残りが消えていた)
+    let spent = 0, levels = settleSoulExp(e);
     for (let i = 0; i < n; i++) {
       if (e.level >= soulLevelCapOf(e)) break;
       const cost = Math.max(1, soulTrainCost(e.level) - (e.exp || 0));
@@ -15445,7 +15462,7 @@ const OPS = {
     }
     recalcAllDolls({ levelUp: true });
     codexJobSee(e.clsKey, e.count, e.level, e.capBonus);
-    log(`${soulLabel(e)}が Lv${from}→${e.level} に成長した！ (✦${spent})`, "win");
+    log(`${soulLabel(e)}が Lv${from}→${e.level} に成長した！ ${spent ? `(✦${spent})` : "(蓄積していた Soul)"}`, "win");
     // 能力の伸び: before/after は hp/mp/atk… の表示キーで (魂の区分の「強化の結果」に並べる)
     const sk = (k) => (k === "maxhp" ? "hp" : k === "maxmp" ? "mp" : k);
     const deltas = {}, statsBefore = {}, statsAfter = {};

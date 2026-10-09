@@ -218,10 +218,11 @@ function mainCard(d, pe, town) {
       }
       card.appendChild(acts);
     } else {
-      const nx = nextRankThreshold(pe.clsKey, pe.count);
-      card.appendChild(el("div", "sp-note", nx
-        ? `Lv上限。同じ${cl.label}の魂をあと ${nx.next - pe.count} 体ぶん魂融合してランク${rank + 1}になると上限が伸びる。${pe.exp > 0 ? `（蓄積 ✦${pe.exp}）` : ""}`
-        : "最高ランク。これ以上、ランクでは上限が伸びない。"));
+      // 上限は魂融合 (1体ごと) か魂の残火で伸びる。上限の間に戦いで得た経験値は捨てずに蓄積し、伸びた時に Lv へ注ぐ
+      const how = cl.unique
+        ? (nextRankThreshold(pe.clsKey, pe.count) ? "物語の節目でランクが上がるか、魂の残火を捧げると上限が伸びる。" : "魂の残火を捧げると上限が伸びる。")
+        : `同じ${cl.label}の魂を魂融合するか、魂の残火を捧げると上限が伸びる。`;
+      card.appendChild(el("div", "sp-note", `Lv上限。${how}上限の間に戦いで得た経験値は蓄積され${pe.exp > 0 ? `（いま ✦${pe.exp}）` : ""}、上限が伸びるとすぐ Lv に注がれる。`));
     }
   }
 
@@ -755,6 +756,7 @@ export function openSoulDetail(uid, onChange = null) {
       prog.appendChild(el("span", "sp-prog-v cap", "上限"));
     }
     scroll.appendChild(prog);
+    if (s.level >= cap && (s.exp || 0) > 0) scroll.appendChild(el("div", "sp-note", `蓄積 ✦${s.exp} ― Lv上限を上げるとすぐ Lv に注がれる`));
     // 能力: メイン魂として宿した時の素の値 / サブ魂・結社で足す分
     const st = jobStatsOf(s.clsKey, s);
     const tbl = el("div", "sp-sd-tbl");
@@ -910,6 +912,7 @@ export function openTrainSheet(uid, onChange = null) {
       prog.appendChild(el("span", "sp-prog-v cap", "上限"));
     }
     scroll.appendChild(prog);
+    if (e.level >= cap && (e.exp || 0) > 0) scroll.appendChild(el("div", "sp-note", `蓄積 ✦${e.exp} ― Lv上限を上げるとすぐ Lv に注がれる`));
     const nxSkill = jobSkillTable(e.clsKey).find((t) => t.skill && t.lvl > e.level && SPELLS[t.skill]);
     if (nxSkill) scroll.appendChild(el("div", "sp-note", `次の技: Lv${nxSkill.lvl}「${SPELLS[nxSkill.skill].name}」`));
     const plan = trainPlan(e);
