@@ -307,9 +307,9 @@ const WORLD_DEF = [
     ],
     trait: {
       id: "roots", name: "魂を吸う根", sym: "ψ", accent: "#c070a0",
-      lines: ["根が足元で脈打つ。戦闘が始まるたび、隊のMPが1割吸われる。", "吸われた魂の名残が漂い、得られる ✦Soul は 1.4倍。"],
+      lines: ["根が足元で脈打つ。戦闘が始まるたび、隊のMPが5%吸われる。", "吸われた魂の名残が漂い、得られる ✦Soul は 1.4倍。"],
       mods: { soulMul: 1.4 },
-      mpDrain: 0.10,
+      mpDrain: 0.05, // 1割は吸われすぎ (2026-10 ユーザーの指示)
     },
     boss: LAYER_BOSS[4], bossRank: 7,
     tune: { enemyMul: 1.13, deepMul: 0.80, soloMul: 1.10, bossMul: 0.87 }, // 第5層の壁。開幕にMPを吸われる。主 (ランク7・全体呪文と招来) は雑魚比を本丸の主並み (2.4) に
