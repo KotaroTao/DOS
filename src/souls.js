@@ -278,8 +278,8 @@ export function rollGreatJobClass() {
 // ===== パッシブ カタログ =====
 export const PASSIVES = {
   afterHeal:     { label: "戦闘後回復",   scope: "self",  lv: ["戦闘勝利後、HP5%回復", "戦闘勝利後、HP10%回復", "戦闘勝利後、HP20%回復", "戦闘勝利後、HP30%回復"] },
-  afterMp:       { label: "魔力回路",     scope: "self",  lv: ["戦闘勝利後、MP5%回復", "戦闘勝利後、MP10%回復"] },
-  afterBoth:     { label: "法力の灯",     scope: "self",  lv: ["戦闘勝利後、HP3%とMP3%回復", "戦闘勝利後、HP8%とMP8%回復"] },
+  afterMp:       { label: "魔力回路",     scope: "self",  lv: ["戦闘勝利後、MP3%回復", "戦闘勝利後、MP5%回復"] },
+  afterBoth:     { label: "法力の灯",     scope: "party", lv: ["戦闘勝利後、パーティ全体の状態異常をすべて治す"] },
   purify:        { label: "浄化",         scope: "party", lv: ["戦闘勝利後、パーティ全体の毒・麻痺を治す"] },
   selfPurify:    { label: "自浄",         scope: "self",  lv: ["戦闘勝利後、自分の毒・麻痺を治す"] },
   mercy:         { label: "慈悲の祈り",   scope: "party", lv: ["戦闘勝利後、倒れた味方1人をHP10%で蘇生 (1探索1回)"] },
