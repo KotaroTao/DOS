@@ -2435,6 +2435,263 @@ function vFerry(R, A) {
   A.fog("#b0c890", 0.6, 4, 0.12, 3, 110, 12);
   A.part({ n: 10, col: "#c8e860", x0: 0.1, x1: 0.9, y0: 0.7, y1: 0.95, vy: -0.03, sway: 2, swf: 1, a: 0.5, ring: true, seed: 235 });
 }
+// ---- 第八章「嵐の尖塔」の迷宮 (沼の島の工房の奥から、奈落の縦穴をまっすぐ上へ伸びる塔) ----
+// 雷雲の空 (y0〜y1)。紫灰の雲を二重に重ねる
+function stormSky(R, y0, y1, seed) {
+  R.m = SKY; R.vgrad(0, y0, R.w, y1 - y0, [[0, "#08070e"], [0.5, "#1a1628"], [1, "#2c2640"]]);
+  clouds(R, seed, y0, y1, "#2a2440", 0.42, "#5a5078", 0.03, 0.09);
+  clouds(R, seed + 1, y0, y1 * 0.7, "#1a1628", 0.5, "#3a3454", 0.05, 0.12);
+}
+// 稲妻の閃き (空の部分を白く光らせ、ジグザグの筋を一本)。x = 落ちる位置、y1 = 届く高さ
+function boltPulse(A, W, H, x, y1, seed, sky = null) {
+  A.pulse((P) => {
+    P.m = ADD; if (sky) for (const pts of sky) P.poly(pts, "#6a64a8", 0.35); else P.rect(0, 0, W, y1, "#5a5898", 0.22);
+    const r = rnd(seed); let px = x, py = 0;
+    while (py < y1) { const nx = px + (r() - 0.5) * 12, ny = py + 3 + r() * 5; P.line(px, py, nx, ny, "#eef2ff", 1, 1); P.line(px + 1, py, nx + 1, ny, "#8aa0f0", 0.5, 1); if (r() < 0.22) P.line(nx, ny, nx + (r() - 0.5) * 16, ny + 7, "#a8b8f8", 0.6, 1); px = nx; py = ny; }
+    P.glow(x, y1 * 0.4, 60, 40, "#5a64b0", 0.5, 5);
+  }, (t) => lightning(t + seed * 977));
+}
+// 魂縛りの像 (頭巾の石像。両腕を掲げ、腕の先から鎖が上へ)
+function bindStatue(R, x, by, s, col, chainTo = null) {
+  const c = C(col), P = (pts) => pts.map(([u, v]) => [x + u * s, by - v * s]);
+  R.m = SURF;
+  R.poly(P([[-6, 0], [6, 0], [5, 3], [-5, 3]]), mul(c, 0.8));
+  R.poly(P([[-5, 3], [5, 3], [3.6, 16], [4.2, 19], [-4.2, 19], [-3.6, 16]]), (px) => mul(c, px < x ? 1.1 : 0.75));
+  R.ellipse(x, by - 23 * s, 3 * s, 3.4 * s, (px) => mul(c, px < x ? 1.1 : 0.75)); R.poly(P([[-2.4, 24], [2.4, 24], [0.3, 28.6]]), mul(c, 0.9));
+  R.ellipse(x, by - 22.6 * s, 1.4 * s, 1.8 * s, "#0a0a10");
+  for (const sd of [-1, 1]) {
+    R.taper(x + sd * 3.4 * s, by - 18.6 * s, x + sd * 7.6 * s, by - 30 * s, 2.4 * s, 1.8 * s, mul(c, sd < 0 ? 1.05 : 0.7));
+    if (chainTo) {                                                                // 腕の先の鎖 → 縛られた魂の光の筋になって渦へ
+      const [tx, ty] = chainTo, x0 = x + sd * 7.6 * s, y0 = by - 30 * s, n = 40;
+      for (let i = 0; i < n; i++) {
+        const t = i / n, px = x0 + (tx - x0) * t * 0.7 + Math.sin(t * 5 + x0) * 4 * t, py = y0 + (ty - y0) * t * 0.7;
+        if (t < 0.25) { R.m = SURF; R.rect(Math.round(px), Math.round(py), 1, 1, i & 1 ? "#4a4c5c" : "#a8aac0"); }
+        else if (i % 2 === 0) { R.m = ADD; R.px(px, py, "#5ad8b0", 0.9 - t); }
+      }
+    }
+  }
+}
+// w30 風鳴りの螺旋: 塔の中の吹き抜けを真下から仰ぐ。壁を巡る螺旋階段が渦のように上へすぼまり、はるか上の口に雷雲。下から風が吹き上げる
+function vSpiral(R, A) {
+  const { w: W, h: H } = R, cx = W / 2, oy = H * 0.14;
+  R.amb = [0.42, 0.42, 0.52];
+  // 吹き抜けの壁 (口へ向かうほど明るい。石積みの目地が渦に沿う)
+  R.m = SURF; R.rect(0, 0, W, H, (x, y) => {
+    const dx = x - cx, dy = (y - oy) * 1.5, r = Math.hypot(dx, dy), a = Math.atan2(dy, dx);
+    const ring = Math.log(r + 4) * 9, joint = ((ring % 1) + 1) % 1 < 0.14 || (((a * 12 + ring * 0.5) % 1) + 1) % 1 < 0.06;
+    return mul(joint ? C("#100e16") : mix(C("#2c2a38"), C("#46445a"), hash(Math.floor(a * 12 + ring * 0.5), Math.floor(ring), 3)), clamp01(1.15 - r / (W * 0.62)));
+  });
+  // はるか上の口 (雷雲の空)
+  const top = [];
+  for (let i = 0; i <= 24; i++) { const a = (i / 24) * TAU; top.push([cx + Math.cos(a) * 14, oy + Math.sin(a) * 5]); }
+  R.m = SKY; R.poly(top, (x, y) => mix(C("#2a2444"), C("#8a80b8"), clamp01(fbm(x * 0.1, y * 0.3, 7) * 1.4 - 0.3)));
+  R.glow(cx, oy, 40, 18, "#6a64b0", 0.4, 5); R.light(cx, oy, 150, "#8a88d0", 1.0, 120);
+  // 螺旋階段 (壁を巡る石の段。奥の半周を先に、手前の半周を後に。内側の縁に鎖の手すり)
+  const turns = 5, n = 3200;
+  for (const front of [false, true]) for (let i = 0; i < n; i++) {
+    const t = i / n, th = t * turns * TAU, sn = Math.sin(th);
+    if ((sn > 0) !== front) continue;
+    const k = Math.pow(1 - t, 1.5), r = 16 + W * 0.66 * k, y = oy + 4 + (H * 0.95) * k + sn * r * 0.3, x = cx + Math.cos(th) * r;
+    const thick = 1 + 9 * k, lit = clamp01(0.35 + (1 - k) * 0.5 + (front ? 0.15 : -0.1));
+    const step = ((th * 6) % 1) < 0.18;
+    R.m = SURF; R.rect(Math.round(x), Math.round(y), 2, Math.round(thick), (px, py) => mix(C("#141218"), C(step ? "#4a485c" : py - y < 1.5 ? "#b8b4cc" : "#6a6880"), lit));
+    R.rect(Math.round(x), Math.round(y + thick), 1, 1, "#08080c", 0.8);
+    if (i % 7 === 0 && k > 0.12) { const ix = cx + Math.cos(th) * (r - 4 * k - 2), iy = y - 3 * k - 1; R.rect(Math.round(ix), Math.round(iy), 1, 1, i % 14 ? "#3a3c4c" : "#8a8ca0"); }   // 鎖の手すり
+  }
+  R.light(W * 0.18, H * 0.92, 70, "#ffc080", 0.6, 34);
+  boltPulse(A, W, H, cx + 4, oy + 4, 3, [top]);
+  A.part({ n: 44, col: "#c8c8d8", x0: 0.1, x1: 0.9, y0: 0.15, y1: 1, vy: -0.14, sway: 10, swf: 0.6, a: 0.4, len: 2, seed: 301 });
+  A.part({ n: 8, col: "#e0d8b8", x0: 0.2, x1: 0.8, y0: 0.2, y1: 1, vy: -0.07, sway: 16, swf: 0.4, a: 0.6, tw: 2, seed: 302 });
+}
+// w31 嵐を鳴らす鐘楼: 梁から大小の鐘がいくつも吊られ、開いた拱の外は雷雲。鐘は風に揺れて鳴りやまない
+function vBelfry(R, A) {
+  const { w: W, h: H } = R, cx = W / 2, gy = Math.round(H * 0.8);
+  R.amb = [0.42, 0.42, 0.52];
+  stormSky(R, 0, gy, 51);
+  // 尖った拱 (柱と拱の上の石壁。拱の内は雷雲) と梁
+  const ops = [[W * 0.165, W * 0.13], [W * 0.5, W * 0.14], [W * 0.835, W * 0.13]];
+  const inArch = (x, y) => ops.some(([ax, hw]) => { const Rr = hw * 1.7, yb = 26 + Math.sqrt(Rr * Rr - (Rr - hw) ** 2), d = Math.abs(x - ax); return d < hw && (y >= yb || Math.hypot(d + (Rr - hw), y - yb) < Rr); });
+  const stone = tex("#3a3848", "#26242e", 0.2, 53);
+  R.m = SURF; R.rect(0, 10, W, gy - 10, (x, y) => (inArch(x, y) ? null : mul(stone(x, y), inArch(x - 2, y) || inArch(x + 2, y) || inArch(x, y + 2) ? 1.5 : 1)));
+  R.rect(0, 0, W, 10, tex("#3a2a1e", "#22180e", 0.3, 55)); R.rect(0, 10, W, 1, "#100a06");
+  R.rect(0, gy, W, H - gy, (x, y) => mul(mix(C("#4a3a28"), C("#2a2016"), vnoise(x * 0.05, y * 0.6, 57)), (Math.round((x - W / 2) / (1 + (y - gy) * 0.08)) % 9 === 0) ? 0.5 : 1));
+  R.rect(0, gy, W, 1, "#7a6a58");
+  R.m = SKY; for (const [ax, hw] of ops) R.rect(ax - hw * 0.7, gy + 2, hw * 1.4, 3, "#4a4870", 0.35);   // 濡れた床に映る拱
+  // 吊られた鐘 (大小。梁から綱で。いくつかは風に揺れて傾く。口の奥は闇)
+  const bells = [[W * 0.165, 30, 15, 0.14], [W * 0.5, 50, 26, 0], [W * 0.835, 36, 17, -0.16], [W * 0.33, 18, 9, -0.1], [W * 0.67, 22, 10, 0.12]];
+  for (const [bx, len, s, tilt] of bells) {
+    const cs = Math.cos(tilt), sn = Math.sin(tilt), py = 10;
+    const tf = ([u, v]) => { const w = len + s * 1.1 + v; return [bx + u * cs + w * sn, py - u * sn + w * cs]; };
+    R.m = SURF; R.line(bx, py, ...tf([0, -s * 1.1]), "#5a4a38");
+    const prof = [[-s * 0.3, -s * 1.1], [s * 0.3, -s * 1.1], [s * 0.45, -s * 0.8], [s * 0.5, -s * 0.35], [s * 0.62, -s * 0.1], [s * 0.8, 0], [-s * 0.8, 0], [-s * 0.62, -s * 0.1], [-s * 0.5, -s * 0.35], [-s * 0.45, -s * 0.8]];
+    R.poly(prof.map(tf), (x, y) => { const u = ((x - bx) * cs - (y - py) * sn) / s - sn * (len / s + 1); return mul(mix(C("#8a6234"), C("#4a7a68"), vnoise(x * 0.4, y * 0.4, bx) > 0.7 ? 0.6 : 0), u < -0.35 ? 1.3 : u < 0.2 ? 1 : 0.62); });
+    const mouth = []; for (let i = 0; i <= 16; i++) { const a = (i / 16) * TAU; mouth.push(tf([Math.cos(a) * s * 0.78, Math.sin(a) * s * 0.12])); }
+    R.poly(mouth, "#140c06");
+    R.line(...tf([-s * 0.8, 0]), ...tf([s * 0.8, 0]), "#c8a060", 0.7);
+    R.line(...tf([-s * 0.5, -s * 0.5]), ...tf([s * 0.5, -s * 0.5]), "#3a2a16", 0.6);
+  }
+  // 大鐘の縁に一門の印 (灯を掌に載せた手。金の小さな浮き彫り)
+  { const y = 10 + 50 + 26 * 1.1 - 8; R.m = SKY; R.rect(cx - 2, y, 5, 2, "#c89a50"); R.rect(cx + 2, y - 2, 1, 2, "#c89a50"); R.rect(cx - 1, y - 4, 2, 3, "#ffd080"); R.glow(cx, y - 2, 7, 6, "#c08030", 0.45, 3); }
+  R.light(W * 0.85, H * 0.2, 120, "#8a88d0", 0.8, 90); R.light(W * 0.2, H * 0.85, 60, "#ffc080", 0.5, 30);
+  boltPulse(A, W, H, W * 0.84, gy * 0.7, 5);
+  A.part({ n: 60, col: "#a8a8d8", x0: -0.1, x1: 1, y0: 0, y1: 0.8, vy: 1.2, vx: -0.25, a: 0.25, streak: 4, slant: -0.4, seed: 311 });
+}
+// w32 雷の落ちる回廊: 塔の外壁を巡る吹きさらしの回廊。鉄の手すりの外は雷雲で、稲妻が手すりを打つ
+function vGallery(R, A) {
+  const { w: W, h: H } = R, fy = Math.round(H * 0.56);
+  R.amb = [0.45, 0.45, 0.56];
+  stormSky(R, 0, H, 61);
+  // 遠くで落ちる稲妻 (いつも見えている細い筋)
+  { const r = rnd(62); let x = W * 0.86, y = 0; R.m = SKY; while (y < H * 0.5) { const nx = x + (r() - 0.5) * 8, ny = y + 3 + r() * 4; R.line(x, y, nx, ny, "#9aa8e8", 0.8); x = nx; y = ny; } R.glow(W * 0.86, H * 0.2, 30, 40, "#4a5098", 0.35, 4); }
+  // 塔の外壁 (左。円筒の側面。右の縁ほど暗い。灯のもれる戸口)
+  bricks(R, 0, 0, W * 0.3, H, "#4a4858", "#18161e", 10, 5, 63);
+  R.m = SURF; for (let x = Math.floor(W * 0.18); x < W * 0.3; x++) R.rect(x, 0, 1, H, "#08080c", (x - W * 0.18) / (W * 0.12) * 0.8);
+  R.m = SURF; R.poly(archPts(W * 0.12, fy - 30, 7, fy), "#0c0806"); R.m = SKY; R.poly(archPts(W * 0.12, fy - 26, 4, fy), (x, y) => mix(C("#e0a050"), C("#5a3010"), clamp01((fy - y) / 26)), 0.8);
+  R.light(W * 0.12, fy - 10, 40, "#ffb060", 0.8, 30); A.flick(W * 0.12, fy - 12, 10, "#ffb060", 0.35, 0.7);
+  // 回廊の床 (手前から左奥へ回りこむ。濡れて空を映す)
+  const edge = (y) => { const t = clamp01((y - fy) / (H - fy)); return W * 0.3 + W * 0.5 * (t * 0.4 + t * t * 0.6); };
+  R.m = SURF; for (let y = fy; y < H; y++) R.span(y, 0, edge(y), (x) => mul(mix(C("#3e3e50"), C("#5c5c72"), vnoise(x * 0.15, y * 0.5, 65)), 0.55 + 0.45 * (y / H)));
+  const rr = rnd(67); R.m = SKY; for (let i = 0; i < 40; i++) { const y = fy + 4 + rr() * (H - fy - 4), x = rr() * edge(y), l = 3 + rr() * 8; R.rect(x, y, l, 1, "#7a7ab8", 0.35); }   // 水溜まりの照り
+  // 鉄の手すり (外の縁に沿って。手前ほど太い。打たれた所は黒く焦げる)
+  let prev = null;
+  for (const t of [0.0, 0.07, 0.15, 0.27, 0.43, 0.64, 0.95]) {
+    const y = fy + t * (H - fy), x = edge(y), h = 5 + t * 40, w = 1 + Math.round(t * 3), burnt = t > 0.5 && t < 0.8;
+    R.m = SURF; R.rect(x, y - h, w, h, burnt ? "#1a161a" : "#7a7c94"); R.rect(x, y - h, 1, h, burnt ? "#2a2428" : "#a8aac4");
+    if (prev) { R.line(prev[0], prev[1] - prev[2], x, y - h, burnt ? "#1a161a" : "#8a8ca8", 1, Math.max(1, w - 1)); R.line(prev[0], prev[1] - prev[2] * 0.5, x, y - h * 0.5, "#5a5c70", 1, 1); }
+    prev = [x, y, h];
+  }
+  R.m = SKY; for (let i = 0; i < 7; i++) R.px(edge(fy + 0.6 * (H - fy)) - 8 + i * 3, fy + 0.6 * (H - fy) - 30 + i * 0.4, "#ffc890", 0.8);   // 溶けた鉄の粒
+  R.light(W * 0.7, H * 0.25, 150, "#8a88d0", 1.0, 120);
+  // 回廊の手すりを打つ稲妻 (閃くたびに、落ちた所が白く燃える)
+  const hx = edge(fy + 0.62 * (H - fy)), hy = fy + 0.62 * (H - fy) - 30;
+  A.pulse((P) => {
+    P.m = ADD; P.rect(W * 0.3, 0, W * 0.7, H, "#4a4890", 0.25);
+    const r = rnd(9); let x = hx + 20, y = 0;
+    while (y < hy) { const nx = x + (r() - 0.5) * 12 + (hx - x) * 0.12, ny = Math.min(hy, y + 3 + r() * 5); P.line(x, y, nx, ny, "#f4f6ff", 1, 2); P.line(x + 2, y, nx + 2, ny, "#8aa0f0", 0.5, 1); if (r() < 0.25) P.line(nx, ny, nx + (r() - 0.5) * 18, ny + 8, "#a8b8f8", 0.6, 1); x = nx; y = ny; }
+    P.glow(hx, hy, 26, 18, "#c8d0ff", 0.8, 5); P.glow(W * 0.7, H * 0.3, 80, 60, "#5a64b0", 0.4, 5);
+  }, lightning);
+  A.part({ n: 80, col: "#a8a8d8", x0: -0.1, x1: 1, y0: 0, y1: 1, vy: 1.4, vx: -0.35, a: 0.3, streak: 4, slant: -0.5, seed: 321 });
+  A.part({ n: 10, col: "#ffe0a0", x0: hx / W - 0.04, x1: hx / W + 0.04, y0: hy / H, y1: hy / H + 0.12, vy: 0.05, sway: 4, swf: 2, a: 0.7, blink: 3, seed: 322 });
+}
+// w33 嵐の尖塔の頂: 火のともらない大きな灯台。まわりを魂縛りの像が輪に囲み、縛られた魂の光が渦を巻いて雷雲になる
+function vSummit(R, A) {
+  const { w: W, h: H } = R, cx = W / 2, vy = H * 0.12;
+  R.amb = [0.36, 0.38, 0.46];
+  // 渦を巻く雷雲 (螺旋の腕に魂の光)
+  R.m = SKY; R.rect(0, 0, W, H, (x, y) => {
+    const dx = x - cx, dy = (y - vy) * 2.2, r = Math.hypot(dx, dy) + 0.01, a = Math.atan2(dy, dx), arm = Math.sin(a * 3 - Math.log(r) * 4.2);
+    const t = clamp01(fbm(x * 0.03, y * 0.06, 71) * 0.9 + arm * 0.25);
+    const c = mix(C("#0c0b14"), C("#5a5478"), t * t), s = clamp01(1 - r / 140) * clamp01(arm * 0.7 + 0.3);
+    return [c[0] + 20 * s, c[1] + 90 * s, c[2] + 76 * s];
+  });
+  R.glow(cx, vy, 40, 18, "#4ac8a8", 0.5, 5);
+  // 頂の床
+  const gy = Math.round(H * 0.72);
+  R.m = SURF; R.ellipse(cx, H * 0.9, W * 0.62, H * 0.2, tex("#3a3a4a", "#22222c", 0.12, 73));
+  R.rect(0, H * 0.9, W, H * 0.1, tex("#2a2a36", "#16161e", 0.12, 74));
+  // 灯台 (石の胴・暗い大レンズ・笠)
+  R.m = SURF; R.poly([[cx - 16, gy + 14], [cx - 12, gy - 40], [cx + 12, gy - 40], [cx + 16, gy + 14]], (x, y) => mul(C("#4a4858"), x < cx - 4 ? 1.2 : x < cx + 6 ? 0.95 : 0.65));
+  for (let y = gy - 36; y < gy + 14; y += 6) R.rect(cx - 15, y, 30, 1, "#18161e", 0.6);
+  R.rect(cx - 18, gy - 43, 36, 3, "#3a3a48");
+  R.ellipse(cx, gy - 54, 11, 11, (x, y) => { const d = Math.hypot(x - cx, y - gy + 54) / 11; return mix(C("#1a3a40"), C("#0a1418"), d) ; });
+  for (const r2 of [4, 7, 10]) for (let i = 0; i < 28; i++) { const a = (i / 28) * TAU; R.px(cx + Math.cos(a) * r2, gy - 54 + Math.sin(a) * r2, "#2a5a5a", 0.6); }
+  R.line(cx - 6, gy - 62, cx + 4, gy - 46, "#04060a", 1, 1);  // レンズのひび
+  R.poly([[cx - 14, gy - 64], [cx, gy - 76], [cx + 14, gy - 64]], "#3a3a4a"); R.rect(cx - 1, gy - 82, 2, 7, "#3a3a4a");
+  // 像の輪 (奥は小さく霞む。手前右のひとつは砕けている)
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * TAU + 0.3, x = cx + Math.cos(a) * W * 0.4, y = H * 0.86 + Math.sin(a) * H * 0.1, s = 0.9 + Math.sin(a) * 0.4;
+    if (i === 1) { R.m = SURF; R.rect(x - 5 * s, y - 6 * s, 10 * s, 6 * s, "#3a3a48"); rubble(R, 81, 6, x - 14, x + 14, y - 2, y + 4, "#4a4a58"); continue; }   // 師が壊した像
+    bindStatue(R, x, y, s, Math.sin(a) < 0 ? "#3a3c4a" : "#5a5c6c", [cx, vy]);
+  }
+  R.light(cx, vy, 140, "#5ad8b8", 0.9, 100); R.light(cx, H * 0.85, W * 0.5, "#5ab8a8", 0.6, H * 0.3);
+  A.part({ n: 50, col: "#9af0d8", x0: 0.1, x1: 0.9, y0: 0, y1: 0.6, vy: -0.04, vx: 0.03, sway: 16, swf: 0.4, a: 0.55, tw: 1.6, seed: 331 });
+  boltPulse(A, W, H, W * 0.78, H * 0.4, 7);
+}
+// ws15 雷鳥の巣: 塔の外壁に張りついた巨大な巣。折れた梁と鎖と枯れ枝を編み、帯電した卵が青白く光る
+function vNest(R, A) {
+  const { w: W, h: H } = R, cx = W * 0.52, ny = H * 0.5, rx = W * 0.32;
+  R.amb = [0.42, 0.42, 0.52];
+  stormSky(R, 0, H, 81);
+  bricks(R, 0, 0, W * 0.24, H, "#3a3848", "#141218", 10, 5, 83);
+  R.m = SURF; for (let x = Math.floor(W * 0.16); x < W * 0.24; x++) R.rect(x, 0, 1, H, "#08080c", (x - W * 0.16) / (W * 0.08) * 0.7);
+  // 壁から突き出た折れた梁 (巣の土台)
+  R.m = SURF; R.taper(W * 0.18, ny + 18, cx + rx * 0.6, ny + 26, 6, 3, "#3a2a1e"); R.taper(W * 0.2, ny + 4, cx - rx * 0.1, ny + 14, 5, 3, "#4a3624");
+  const twig = (x, y) => { const v = vnoise((x + y) * 0.45, (x - y) * 0.12, 85), w = vnoise((x - y) * 0.4, (x + y) * 0.1, 86); return mix(C("#1a140e"), C("#7a6448"), clamp01(Math.max(v, w) * 1.5 - 0.45)); };
+  // 巣の下の膨らみ (枝を編んだ鉢)
+  const under = []; for (let i = 0; i <= 24; i++) { const a = (i / 24) * Math.PI; under.push([cx + Math.cos(a) * rx, ny + Math.sin(a) * 38]); }
+  R.m = SURF; R.poly(under, (x, y) => mul(twig(x, y), 1.1 - (y - ny) / 48));
+  // 奥の縁と窪み
+  R.ellipse(cx, ny, rx, 10, twig); R.ellipse(cx, ny + 1, rx * 0.84, 7, "#0c0908");
+  // 帯電した卵 (半ば手前の縁に隠れる)
+  for (const [dx, s] of [[-24, 8], [0, 11], [22, 8]]) { R.m = SURF; R.ellipse(cx + dx, ny - s * 0.4, s * 0.72, s, (x, y) => mix(C("#d8e0ff"), C("#5a64a8"), clamp01((x - cx - dx) / (s * 1.3) + 0.35))); R.glow(cx + dx, ny - s * 0.4, s * 2.4, s * 2, "#6a7ae0", 0.45, 4); }
+  // 手前の縁 (下の弧) と、はみ出した枝
+  R.m = SURF; for (let i = 0; i <= 80; i++) { const a = (i / 80) * Math.PI, x = cx + Math.cos(a) * rx, y = ny + Math.sin(a) * 10; R.rect(x - 1, y - 2, 3, 5, twig(x * 3, y * 3)); }
+  const r = rnd(85);
+  for (let i = 0; i < 70; i++) { const a = r() * Math.PI * (r() < 0.5 ? 1 : -0.15) , x = cx + Math.cos(a) * rx * (0.95 + r() * 0.1), y = ny + Math.sin(a) * (a > 0 ? 10 + r() * 28 : 10), ang = Math.atan2(y - ny, x - cx) + (r() - 0.5) * 1.4, l = 4 + r() * 12; R.line(x, y, x + Math.cos(ang) * l, y + Math.sin(ang) * l * 0.6, mix(C("#2a2018"), C("#8a7458"), r()), 1, 1); }
+  chainSag(R, W * 0.22, ny + 2, cx + rx * 0.3, ny + 22, 8, "#6a6c80");
+  R.light(cx, ny - 10, 110, "#8a98f0", 1.0, 60);
+  // 抜け落ちた大きな羽根 (風に舞う)
+  for (const [x, y, a] of [[W * 0.84, H * 0.22, 0.6], [W * 0.36, H * 0.14, -0.4]]) { R.m = SKY; R.taper(x, y, x + Math.cos(a) * 20, y + Math.sin(a) * 20, 5, 1, "#b8b0c8"); R.line(x, y, x + Math.cos(a) * 20, y + Math.sin(a) * 20, "#5a5268"); }
+  A.part({ n: 14, col: "#b8c8ff", x0: 0.4, x1: 0.65, y0: 0.4, y1: 0.52, vy: -0.03, sway: 4, swf: 3, a: 0.8, blink: 4, seed: 341 });
+  A.part({ n: 50, col: "#a8a8d8", x0: -0.1, x1: 1, y0: 0, y1: 1, vy: 1.2, vx: 0.3, a: 0.22, streak: 4, slant: 0.5, seed: 342 });
+  boltPulse(A, W, H, W * 0.88, H * 0.5, 11);
+}
+// ws16 錆びた避雷針の林: 塔の段に、錆びた避雷針が林のように立ち並ぶ。雷はどれかを打ち、針の先で火花が散る
+function vRodForest(R, A) {
+  const { w: W, h: H } = R, gy = Math.round(H * 0.66);
+  R.amb = [0.42, 0.4, 0.5];
+  stormSky(R, 0, gy, 91);
+  ground(R, gy, "#3a3440", "#1a1820", 93, 0.1, 0.3);
+  R.m = SURF; R.rect(0, gy, W, 1, "#6a6278");
+  // 避雷針 (奥ほど細く短い。錆の赤茶。根もとに銅の線が這う)
+  const r = rnd(95), tips = [];
+  for (let k = 0; k < 34; k++) {
+    const z = r(), x = r() * W, by = gy + 2 + z * (H - gy - 4), h = 26 + z * 70, w = z > 0.6 ? 2 : 1;
+    const col = mix(C("#3a2a24"), C("#8a4a2a"), 0.3 + z * 0.7);
+    R.m = SURF; R.rect(x, by - h, w, h, col); R.rect(x, by - h, 1, h, mul(col, 1.3));
+    if (z > 0.4) { R.rect(x - 1, by - h * 0.6, w + 2, 1, mul(col, 0.8)); R.rect(x - 1, by - h * 0.3, w + 2, 1, mul(col, 0.8)); }
+    R.line(x, by, x + (r() - 0.5) * 30, by + 2, "#a0603a", 0.6);
+    tips.push([x, by - h]);
+  }
+  R.light(W * 0.5, H * 0.1, 160, "#8a88d0", 0.8, 100);
+  const hit = tips.sort((p, q) => p[1] - q[1])[3];
+  A.pulse((P) => {
+    P.m = ADD; P.rect(0, 0, W, gy, "#4a4890", 0.25);
+    const rr = rnd(7); let x = hit[0] + 10, y = 0;
+    while (y < hit[1] - 3) { const nx = x + (rr() - 0.5) * 10 + (hit[0] - x) * 0.15, ny = Math.min(hit[1], y + 3 + rr() * 5); P.line(x, y, nx, ny, "#f4f6ff", 1, 1); x = nx; y = ny; }
+    P.line(x, y, hit[0], hit[1], "#f4f6ff", 1, 1);
+    P.glow(hit[0], hit[1], 18, 14, "#c8d0ff", 0.9, 5); P.glow(hit[0], hit[1] + 20, 40, 30, "#5a64b0", 0.4, 5);
+  }, lightning);
+  A.part({ n: 16, col: "#ffd090", x0: hit[0] / W - 0.03, x1: hit[0] / W + 0.03, y0: hit[1] / H, y1: hit[1] / H + 0.15, vy: 0.08, sway: 6, swf: 2, a: 0.8, blink: 2, seed: 351 });
+  A.part({ n: 60, col: "#a8a8d8", x0: -0.1, x1: 1, y0: 0, y1: 1, vy: 1.2, vx: -0.2, a: 0.25, streak: 4, slant: -0.3, seed: 352 });
+}
+// ws17 雲上の庭: 雷雲を抜けた塔の段に、崩れた庭園。雲の海の上で、澄んだ泉だけが静かに湧く
+function vCloudGarden(R, A) {
+  const { w: W, h: H } = R, cx = W / 2, gy = Math.round(H * 0.6);
+  R.amb = [0.62, 0.6, 0.66];
+  R.m = SKY; R.vgrad(0, 0, W, gy, [[0, "#1a2240"], [0.6, "#5a6088"], [1, "#b8a8b0"]]);
+  stars(R, 101, 30, gy * 0.4, "#e8eaff");
+  // 雲の海 (足もとに広がる。下に時おり雷が光る)
+  R.m = SKY; R.rect(0, gy - 6, W, 12, (x, y) => mix(C("#8a8aa8"), C("#c8c4d4"), clamp01(fbm(x * 0.04, y * 0.3, 103) * 1.4 - 0.2)));
+  clouds(R, 105, gy - 10, gy + 8, "#a8a6c0", 0.45, "#e0dce8", 0.02, 0.2);
+  // 庭の段 (崩れた縁石と、苔むした敷石)
+  ground(R, gy + 4, "#4a5048", "#22261e", 107, 0.09, 0.35);
+  R.m = SURF; R.rect(0, gy + 4, W, 2, "#7a8070");
+  // 崩れた拱と柱 (つる草が這う)
+  column(R, W * 0.14, gy - 50, gy + 8, 7, "#7a7884", { broken: 3 });
+  column(R, W * 0.82, gy - 60, gy + 8, 7, "#7a7884", { cap: true, base: true });
+  R.m = SURF; R.poly([[W * 0.82 - 30, gy - 64], [W * 0.82 + 9, gy - 64], [W * 0.82 + 9, gy - 58], [W * 0.82 - 22, gy - 58], [W * 0.82 - 26, gy - 54]], "#6a6874");   // 崩れた拱の残り
+  for (const x of [W * 0.14 + 3, W * 0.82 + 3]) for (let y = gy - 50; y < gy + 6; y += 2) R.px(x + Math.sin(y * 0.3) * 3, y, "#4a6a3a");
+  tree(R, W * 0.3, gy + 10, 30, 109, "#3a3428", { depth: 4 });
+  // 澄んだ泉 (中央。円い石の縁と、湧き上がる水)
+  R.m = SURF; R.ellipse(cx, gy + 22, 34, 9, "#6a6878"); R.ellipse(cx, gy + 21, 30, 7, (x, y) => mix(C("#9ad0e8"), C("#3a6a8a"), clamp01((y - gy - 14) / 14)));
+  R.m = SKY; R.rect(cx - 1, gy + 4, 3, 16, "#d8f0fa", 0.7); R.ellipse(cx, gy + 18, 6, 2, "#e8f8ff", 0.7);
+  R.glow(cx, gy + 18, 40, 16, "#7ac0e0", 0.35, 5); R.light(cx, gy + 18, 80, "#a8e0f8", 0.8, 40);
+  rubble(R, 111, 10, 0, W, gy + 20, H, "#5a5864");
+  A.part({ n: 16, col: "#e8f8ff", x0: 0.47, x1: 0.53, y0: 0.62, y1: 0.75, vy: -0.06, sway: 3, swf: 1, a: 0.7, seed: 361 });
+  A.fog("#c8c4d8", 0.62, 4, 0.18, 3, 120, 10);
+  A.pulse((P) => { P.m = ADD; P.rect(0, gy - 8, W, 18, "#6a6ac0", 0.3); P.glow(W * 0.3, gy, 50, 10, "#8a90e0", 0.5, 4); }, lightning);
+}
 const VISTAS = {
   w01: [1, vCrypt], w02: [14, vWhispers], w03: [16, vAbbey], w04: [2, vIntake], w05: [3, vChains],
   w06: [4, vRanks], w07: [0, vPrison], w08: [4, vStorm], w09: [17, vCouncil],
@@ -2445,6 +2702,7 @@ const VISTAS = {
   ws6: [4, vBeacon], ws7: [0, vGuardroom],
   ws8: [13, vDrownedLib], ws9: [7, vObsidian], ws10: [16, vPyreAbbey], ws11: [8, vWolfDrift], ws12: [0, vCrevasse],
   w26: [9, vBogShore], w27: [0, vDollDump], w28: [0, vMiasmaReeds], w29: [0, vStagnant], ws13: [0, vPlagueMound], ws14: [9, vFerry],
+  w30: [0, vSpiral], w31: [0, vBelfry], w32: [0, vGallery], w33: [0, vSummit], ws15: [0, vNest], ws16: [0, vRodForest], ws17: [0, vCloudGarden],
 };
 function finishVista(out, w, h) { // 周辺減光だけ (名札帯・中央減光はしない)
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {

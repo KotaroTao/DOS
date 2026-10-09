@@ -3257,12 +3257,17 @@ function sceneStormLord() {
   L.paint(gap, (x, y) => mix([190, 150, 136], [96, 88, 118], clamp((y - 31) / 25 + fbm(x * 0.1, y * 0.2, 903) * 0.25)));
   for (let y = gap.y0; y <= gap.y1; y++) for (let x = gap.x0; x <= gap.x1; x++) if (gap.at(x, y) && (!gap.at(x, y - 2) || !gap.at(x, y + 2))) L.px(x, y, [66, 62, 90], 0.7);
   const SIL = [38, 34, 50];
+  const AX = 179, AY = 41;                                                         // 観客席 (遠い岩の上のすり鉢)
   const arena = new Mask(W, H);
-  arena.poly([164, 50, 166, 41, 192, 41, 194, 50]);                                   // 観客席の外壁 (低い円筒)
-  arena.ellipse(179, 41, 14, 2.6);
-  L.paint(arena, (x, y) => (y < 41 && (x - 179) ** 2 / 110 + (y - 41) ** 2 / 3 < 1 ? [24, 22, 34] : SIL));   // すり鉢の内側は暗い
-  for (let x = 167; x < 192; x += 3) { L.px(x, 44, [96, 88, 110]); L.px(x, 45, [96, 88, 110]); L.px(x + 1, 47.6, [80, 74, 96]); }   // 外壁の拱の列
-  for (const [y0, x0, x1] of [[39.6, 170, 189], [40.8, 167, 191]]) for (let x = x0; x < x1; x++) if (x % 2) L.px(x, y0, [70, 64, 88]);   // 段の筋
+  arena.ellipse(AX, AY, 15, 4.6); arena.poly([AX - 15, AY, AX + 15, AY, AX + 13, AY + 8, AX - 13, AY + 8]);
+  arena.poly([AX - 22, AY + 14, AX - 14, AY + 6, AX + 14, AY + 6, AX + 24, AY + 14]);   // 岩の台
+  L.paint(arena, () => SIL);
+  for (const [rx, ry, c] of [[13.6, 3.6, [92, 84, 106]], [10.6, 2.6, [76, 70, 92]], [7.6, 1.7, [62, 58, 78]]]) for (let x = -rx; x <= rx; x += 1) {   // すり鉢の段 (奥の弧)
+    const y = AY - ry * Math.sqrt(clamp(1 - (x / rx) ** 2)); if ((x + rx) % 2 < 1) L.px(AX + x, y, c);
+  }
+  { const m = new Mask(W, H); m.ellipse(AX, AY + 0.4, 5, 1.2); L.paint(m, () => [26, 24, 36]); }                       // 底の砂場
+  for (let x = -15; x <= 15; x++) L.px(AX + x, AY + 4.6 * Math.sqrt(clamp(1 - (x / 15) ** 2)), [110, 100, 120]);        // 手前の縁
+  for (let x = AX - 12; x < AX + 13; x += 3) { L.px(x, AY + 6, [30, 28, 40]); L.px(x, AY + 7, [30, 28, 40]); }          // 外壁の拱
   // 塔の頂の床 (楕円の石床と胸壁)
   const plat = new Mask(W, H); plat.ellipse(CX + 6, 94, 124, 24);
   paintLit(L, plat, (x, y) => {
