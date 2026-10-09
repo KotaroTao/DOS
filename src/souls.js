@@ -610,7 +610,7 @@ export function findHybrid() { return null; }
 // armor: 装備可能な防具重量の上限 ("heavy"|"light"|"cloth")
 // shields: 持てる盾のジャンル (items.js の SHIELD_KINDS: kite 大盾 / round 円盾 / buckler 小盾 / orb 宝珠 / tome 聖典)。
 //   重装の盾職は大盾・円盾・小盾、軽装の職は小盾、攻めの術者は宝珠、癒し手・祈りの職は聖典。
-//   侍・暗殺者・狂戦士・修羅は盾を持たない (両手武器で攻める職。左手の副え刃は今後)
+//   侍・暗殺者・狂戦士・修羅は盾を持たない (両手武器で攻める職。左手の副え刃は今後)。修羅は刀も持てる
 export const JOB_GEAR = {
   fighter:     { weapons: ["ls","ax","mc","sp","dg"],            armor: "heavy", shields: ["kite","round","buckler"] },
   knight:      { weapons: ["ls","mc","sp"],                      armor: "heavy", shields: ["kite","round","buckler"] },
@@ -641,7 +641,7 @@ export const JOB_GEAR = {
   archbishop:  { weapons: ["st","mc"],                           armor: "cloth", shields: ["tome"] },
   ascetic:     { weapons: ["mc","st","ax"],                      armor: "light", shields: ["buckler","tome"] },
   hero:        { weapons: ["ls","kt","mc","sp","ax","dg","st","bw"], armor: "heavy", shields: ["kite","round","buckler","orb","tome"] },
-  asura:       { weapons: ["ls","ax","mc","sp","dg"],            armor: "heavy", shields: [] },
+  asura:       { weapons: ["ls","kt","ax","mc","sp","dg"],       armor: "heavy", shields: [] },
   dragonknight:{ weapons: ["ls","sp","ax"],                      armor: "heavy", shields: ["kite","round","buckler"] },
   necromancer: { weapons: ["st","dg"],                           armor: "cloth", shields: ["orb"] },
   sage:        { weapons: ["st","dg","mc"],                      armor: "cloth", shields: ["orb","tome"] },
