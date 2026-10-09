@@ -5,7 +5,8 @@ import { ITEMS, weaponRange, scaleBonus, useTarget, useHelps, useCureKinds, useW
 import { ELEMENTS, elemDmgMult, elemBeats, monStats, rankStats, resistRate, resistHpMul, METAL_TIERS } from "./dungeons/schema.js";
 
 import { SPELLS } from "./skilldefs.js";
-import { JOBKIT_PERKS } from "./jobkit/index.js";
+import { JOBKIT_PERKS, VICTORY_MP_PER, PASSIVE_JOB } from "./jobkit/index.js";
+export { VICTORY_MP_PER };
 import { STAGED, STAGE_MAX, STRONG_MIN, BATTLE_LONG, stageMul, stageOf, effectStage, stageLabel, ENEMY_STAT_LABEL } from "./buffstage.js";
 export { SPELLS };
 
@@ -247,6 +248,9 @@ export const BLADE_HEAL_CAP = 0.25;
 
 // 職業ランクパッシブのLvを引く (souls.js の recalcDoll が passiveMap を埋める)
 const pv = (a, key) => (a && a.passiveMap && a.passiveMap[key]) || 0;
+// 動体視力で消える敵の回避の割合 (DYNAMIC_VISION。味方 → 敵の物理だけ、金属の魔物は除く)
+const visionCut = (actor, tgt) => actor && actor.side === "party" && tgt && tgt.side === "enemy" && !isMetal(tgt)
+  ? DYNAMIC_VISION[Math.min(3, pv(actor, "dynamicVision"))] || 0 : 0;
 // 職ごとの固有パッシブ (jobkit の perks)。passiveMap のうち fx を持つものを {c: 成分, lv, label} の列で返す。
 // passiveMap は recalcDoll が作り直すたびに別の器になるので、器ごとに覚えておく
 const _perkCache = new WeakMap();
@@ -260,7 +264,7 @@ function perksOf(a) {
   for (const k in pm) {
     const pk = JOBKIT_PERKS[k];
     if (!pk || !pm[k]) continue;
-    for (const c of pk.fx) list.push({ c, lv: pm[k], label: pk.label });
+    for (const c of pk.fx) list.push({ c, lv: pm[k], label: pk.label, key: k });
   }
   _perkCache.set(pm, list);
   return list;
@@ -273,16 +277,30 @@ function perkCostCut(actor, sp) {
   for (const { c, lv } of perksOf(actor)) if (c.t === "cost" && (!c.on || c.on === sp.kind)) cut += lvv(c.v, lv) || 0;
   return Math.min(0.5, cut);
 }
-// 戦闘に勝った後の固有パッシブ (win): その人が受ける HP/MP 回復の割合 (自分の分 + 味方の party 付きの分)
-export function perkVictory(p, party) {
-  let hp = 0, mp = 0;
+// 戦闘に勝った後の固有パッシブ (win): その人が受ける HP/MP 回復の割合 (自分の分 + 味方の party 付きの分)。
+// MP は魂1つ (持ち主の人業 × パッシブを覚える職 PASSIVE_JOB) ごとに VICTORY_MP_PER まで、別の魂どうしは足す。
+// ownMp = 共通パッシブ (魔力回路) のその人自身の分 {パッシブのキー: 割合} — 同じ魂の固有パッシブと合わせて頭打ちにする
+export function perkVictory(p, party, ownMp = {}) {
+  let hp = 0;
+  const bySoul = new Map(); // 人業 → {職: 割合}
+  const addMp = (q, key, v) => {
+    if (!(v > 0)) return;
+    const job = PASSIVE_JOB[key] || key;
+    let m = bySoul.get(q);
+    if (!m) bySoul.set(q, (m = {}));
+    m[job] = (m[job] || 0) + v;
+  };
+  for (const k in ownMp) addMp(p, k, ownMp[k]);
   for (const q of party || [p]) {
     if (!q || !q.alive) continue;
-    for (const { c, lv } of perksOf(q)) {
+    for (const { c, lv, key } of perksOf(q)) {
       if (c.t !== "win" || (q !== p && !c.party)) continue;
-      hp += lvv(c.hp, lv) || 0; mp += lvv(c.mp, lv) || 0;
+      hp += lvv(c.hp, lv) || 0;
+      addMp(q, key, lvv(c.mp, lv) || 0);
     }
   }
+  let mp = 0;
+  for (const m of bySoul.values()) for (const j in m) mp += Math.min(VICTORY_MP_PER, m[j]);
   return { hp, mp };
 }
 // テスト記録用の集計の器 (telemetry.js が読む)。pa/pe/pp = 味方の物理 試行/かわされた/見切られた、
@@ -296,6 +314,10 @@ const FLEE_BASE = 0.55, FLEE_SLOPE = 0.35, FLEE_MIN = 0.05, FLEE_MAX = 0.95, FLE
 // 第3層では隊のほぼ全員が40%かわして敵の命中が4〜6割まで落ちていた (テスト記録)。新式では敵の命中が
 // どの層でも8割前後にそろう (模擬戦)。敵がかわす側 (味方 → 敵) も同じ相対式を使う
 const EVADE_EVEN = 0.20, EVADE_SLOPE = 0.20, EVADE_MAX = 0.40;
+// 動体視力 (dynamicVision、戦士・狩人・暗殺者・武僧・聖戦士・修羅・勇者・竜騎士): 味方の物理が敵に向かう時、
+// 敵の回避 (AGI差・回避持ち) をその割合だけ消す。素の外れ6%は消さないので、これだけでは命中94%を超えない。
+// 重ねがけはしない (メイン魂・サブ魂のうち一番高い Lv だけ — passiveMap が最大を取る)。金属の魔物の回避は消さない
+const DYNAMIC_VISION = [0, 0.30, 0.50, 0.70];
 // 手番の並び (_startRound): 敵の AGI も fleeK で味方の規模に直し、TURN_K を掛けて「基準の隊より遅め」に寄せる。
 // 揺らぎは AGI × (1 ± TURN_JITTER) の割合で、どの Lv でも同じくらい入れ替わる。Lv40 の6人 (AGI 25〜110) の試算で
 // 味方が先の組は約64% (0.85 だと39%): 速い者 (盗賊・暗殺者) はいつも敵より先、重装の騎士はいつも後、中ほどは入れ替わる。2026-10: 旧式は素の AGI + 0〜3 を
@@ -309,6 +331,20 @@ const TURN_K = 0.65, TURN_JITTER = 0.20;
 //  どちらも手番の初めに MIND_RECOVER で自然に正気に戻る (主はさらに +MIND_BOSS_RECOVER)。自然に戻った手番も、
 //  手番までに殴られて解けた (_wake)・術で治った (cureAil) 時も、その手番から普通に動ける (眠り・麻痺も同じ)
 const MIND_RECOVER = { charm: 0.30, confuse: 0.35 }, MIND_BOSS_RECOVER = 0.2;
+// たぎる血潮 (修羅の目玉パッシブ): 1段あたりの物理ダメージの上乗せ (Lv1-3) と上限 +200%。
+// 段は上限に届いたところで止める (表示が際限なく伸びないように)
+const CHISHIO_STEP = [0, 0.10, 0.15, 0.20];
+const CHISHIO_CAP = 2;
+const chishioBonus = (n, step) => Math.min(CHISHIO_CAP, n * step);
+const chishioMax = (step) => (step > 0 ? Math.ceil(CHISHIO_CAP / step - 1e-9) : 0);
+// 戦闘の札「血▲3」用: いまの段と上乗せ。標的が倒れていれば次は数え直しなので出さない
+export function chishioState(a) {
+  const ch = a ? pv(a, "asuraChishio") : 0;
+  const n = (a && a._bloodStack) || 0;
+  if (!ch || n <= 0 || !a._bloodTgt || !a._bloodTgt.alive) return null;
+  const step = CHISHIO_STEP[Math.min(3, ch)] || 0;
+  return { stacks: n, bonus: chishioBonus(n, step), max: n >= chishioMax(step), target: a._bloodTgt };
+}
 const MIND_CHARM_BREAK = 0.5, CONFUSE_FREE = 0.25, CONFUSE_DAZE = 0.3, CONFUSE_SELF_MUL = 0.5;
 // 自然回復 (魅了・混乱・眠り・麻痺は手番ごと、毒はラウンドごと) の救済: 治らなかった判定ごとに回復率が
 // AIL_RAMP ずつ上がり、AIL_SURE 回目の判定で必ず治る (= かかったままの手番は最長 AIL_SURE-1 回)。
@@ -2202,7 +2238,7 @@ export class Battle {
     }
     // 命中判定: 素の命中漏れ + 対象の敏捷(AGI)による回避 + 回避持ちの追加回避。
     // 技の命中補正 (acc) は外れる確率をその割合だけ消す (1 = 必中)。目つぶし (hit<1) は外れる確率を足す
-    const evade = (isMetal(tgt) ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0)
+    const evade = ((isMetal(tgt) ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0)) * (1 - visionCut(actor, tgt))
       + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) + _partyEvadeBonus : 0); // 固有パッシブ (evade)・手がかりの恵み
     let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
     const blind = this._bm(actor, "hit");
@@ -2260,15 +2296,23 @@ export class Battle {
     const pOn = opt.basic ? ["phys", "basic"] : opt.skill ? ["phys", "skill"] : ["phys"];
     const perkFoe = actor.side === "party" && tgt.side === "enemy";
     if (perkFoe) { const pd = this._perkSum(actor, "deal", { tgt, el: aE, on: pOn }); if (pd) dmg = Math.round(dmg * (1 + pd)); }
-    // たぎる血潮 (修羅): 同じ敵へ続けて手を下すたび +10/15/20% (最大 +200%)。別の敵を討てば数え直し
+    // たぎる血潮 (修羅): 同じ敵へ続けて手を下すたび1段 +10/15/20% (最大 +200%)。数えるのは1手に1度 (多段の技も1段)。
+    // 別の敵に当たった時点で (同じ手の中でも) 0段に戻る。かわされた撃は数えない (この手前で返っている)
     if (perkFoe) {
       const ch = pv(actor, "asuraChishio");
       if (ch) {
-        if (actor._bloodAct !== this._actSeq) {
-          actor._bloodStack = actor._bloodTgt === tgt ? (actor._bloodStack || 0) + 1 : 0;
+        const step = CHISHIO_STEP[Math.min(3, ch)] || 0;
+        const prev = actor._bloodStack || 0;
+        if (actor._bloodTgt !== tgt) {
+          actor._bloodStack = 0;
           actor._bloodTgt = tgt; actor._bloodAct = this._actSeq;
+          if (prev > 0) this.log(`${actor.name}のたぎる血潮が冷めた… (標的が変わり0段へ)`, "sys");
+        } else if (actor._bloodAct !== this._actSeq) {
+          actor._bloodStack = Math.min(chishioMax(step), prev + 1);
+          actor._bloodAct = this._actSeq;
+          if (actor._bloodStack > prev) this.log(`${actor.name}の血潮がたぎる！ (血潮${actor._bloodStack}段・物理+${Math.round(chishioBonus(actor._bloodStack, step) * 100)}%${actor._bloodStack >= chishioMax(step) ? "・最大" : ""})`, "sys");
         }
-        const bonus = Math.min(2, (actor._bloodStack || 0) * ([0, 0.10, 0.15, 0.20][Math.min(3, ch)] || 0));
+        const bonus = chishioBonus(actor._bloodStack || 0, step);
         if (bonus > 0) dmg = Math.round(dmg * (1 + bonus));
       }
     }
@@ -2395,7 +2439,7 @@ export class Battle {
     let r = tgt[magHit ? "magResist" : "physResist"] || 0;
     const metal = isMetal(tgt);
     if (r >= 100 && !metal) return 0; // 無効は会心でも通らない
-    const evade = (metal ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0)
+    const evade = ((metal ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0)) * (1 - visionCut(actor, tgt))
       + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) + _partyEvadeBonus : 0);
     let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
     const blind = this._bm(actor, "hit");
@@ -2795,8 +2839,9 @@ export class Battle {
       res.hits.push({ target: actor, heal });
     }
     if (dealt > 0 && sp.mpDrain && actor.maxmp) {
-      // 吸収は「その技の消費MP」まで (2026-10: 与ダメ比例のままだと撃つほど MP が増えた)。叡智の極み・重詠で払わなかった時も同じ上限
-      const gain = Math.max(1, Math.min(spellCost(actor, sp), Math.round(dealt * sp.mpDrain)));
+      // 吸収は「その技の消費MP × mpDrainCap (既定1)」まで (2026-10: 与ダメ比例のままだと撃つほど MP が増えた)。
+      // 魔力強奪だけは 1.1倍まで (ユーザーの指示、2026-10) — 撃つたびに少しずつ MP が増える。叡智の極み・重詠で払わなかった時も同じ上限
+      const gain = Math.max(1, Math.min(Math.floor(spellCost(actor, sp) * (sp.mpDrainCap || 1)), Math.round(dealt * sp.mpDrain)));
       actor.mp = Math.min(actor.maxmp, actor.mp + gain);
       this.log(`${actor.name}はMPを吸い取った (MP+${gain})`, "heal");
     }
