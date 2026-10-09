@@ -54,6 +54,16 @@ const APPROVED_IMAGES = {
   mem_w13: "art/story/chapter3/mem_w13.png",
   ch3_end: "art/story/chapter3/ch3_end.png",
   irene_trust: "art/story/chapter3/irene_trust.png",
+  w14_lamp: "art/story/chapter4/w14_lamp.png",
+  report_w14: "art/story/chapter4/report_w14.png",
+  w15_mural: "art/story/chapter4/w15_mural.png",
+  report_w15: "art/story/chapter4/report_w15.png",
+  w16_legs: "art/story/chapter4/w16_legs.png",
+  report_w16: "art/story/chapter4/report_w16.png",
+  irene_sera_wake: "art/story/chapter4/irene_sera_wake.png",
+  mem_w17: "art/story/chapter4/mem_w17.png",
+  report_w17: "art/story/chapter4/report_w17.png",
+  ch4_end: "art/story/chapter4/ch4_end.png",
 };
 // ゲーム内の同じ場面 (師の手がかり・報告・主の記憶・館の語り・章の結び) でも、この描き下ろしの絵を掲げる
 export const storyImage = id => APPROVED_IMAGES[id] || null;
