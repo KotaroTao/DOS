@@ -14,6 +14,7 @@ const APPROVED_IMAGES = {
   first_descent: "art/story/first-descent-gatekeeper.png",
   irene_meeting: "art/story/irene-meeting.png",
   arrival: "art/story/royal-audience.png",
+  irene_repair: "art/story/irene-repair.png",
   report_w13: "art/story/chapter3/report_w13.png",
   w01_lantern: "art/story/chapter1/w01_lantern.png",
   report_w01: "art/story/chapter1/report_w01.png",

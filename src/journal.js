@@ -62,6 +62,8 @@ const DUNGEON_LORE_IMAGES = Object.fromEntries(
     return [id, `art/story/dungeons/lore_${id}.png`];
   })
 );
+DUNGEON_LORE_IMAGES.ws1 = "art/story/dungeons/lore_ws1.png";
+DUNGEON_LORE_IMAGES.ws2 = "art/story/dungeons/lore_ws2.png";
 
 export function helpEntries(g, featureUnlocked = () => false) {
   return HELP_TOPICS.filter(t=>t.feature ? featureUnlocked(t.feature) : t.available(g));
