@@ -366,6 +366,35 @@
 .pc-fx.v-debuff { --c: rgba(160, 80, 230, 0.55); animation: pcfx-fade var(--fxd, 0.36s) ease-out forwards, pcfx-sink var(--fxd, 0.36s) ease-out forwards; background: linear-gradient(180deg, var(--c) 0%, transparent 80%); }
 @keyframes pcfx-sink { 0% { transform: translateY(-35%); } 100% { transform: translateY(10%); } }
 
+/* 使った技・発動した効果の名 (game.js renderParty の .pc-call)。肖像の上端から右へはみ出して読ませる。
+   入れ物は肖像の段 (grid の 2〜4段目) を囲む枠。長さ --calld は game.js の PARTY_CALL_MS と同じ */
+.pc-call {
+  position: absolute; grid-row: 2 / 5; grid-column: 1 / 3; inset: 0 0 auto 0; z-index: 4;
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px; padding-top: 1px;
+  pointer-events: none; min-width: 0;
+  animation: pccall var(--calld, 1.4s) ease-out both;
+}
+@keyframes pccall {
+  0% { opacity: 0; transform: translateX(-6px); }
+  8% { opacity: 1; transform: translateX(0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.pc-cl {
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 10px; font-weight: 800; line-height: 13px; letter-spacing: 0.3px;
+  padding: 0 5px 0 4px; border-left: 2px solid currentColor; border-radius: 0 2px 2px 0;
+  background: linear-gradient(90deg, rgba(8,6,8,0.94), rgba(8,6,8,0.8) 75%, rgba(8,6,8,0.55));
+  text-shadow: 0 1px 0 #000, 0 0 4px rgba(0,0,0,0.9);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.7);
+}
+.pc-cl.k-skill { color: #f3d58b; }   /* 技・呪文 */
+.pc-cl.k-heal  { color: #9ff0b8; }   /* 回復・治療・魔力 */
+.pc-cl.k-item  { color: #d8e6a0; }   /* 道具 */
+.pc-cl.k-guard { color: #a8c4e6; }   /* 防御 */
+.pc-cl.k-proc  { color: #c8b4ff; font-size: 9.5px; } /* 発動した効果 (パッシブ・反撃・かばう…) */
+.pc-cl.k-proc::before { content: "◆"; margin-right: 2px; font-size: 7.5px; vertical-align: 1px; opacity: 0.9; }
+
 /* ===== 戦闘のコマンド板 ===== */
 /* 探索中は命令板の場所を空けない。戦闘中は演出の間も板の高さを保つ (記録欄が跳ねないように) */
 #app:not(.in-combat) #controls { display: none; }
@@ -505,4 +534,5 @@
 @media (prefers-reduced-motion: reduce) {
   #descend-btn, .pc.low, #floor-info .fi-elite, #log > div:last-child { animation: none !important; }
   .pc-fx { display: none; }
+  .pc-call { animation: none; }
 }
