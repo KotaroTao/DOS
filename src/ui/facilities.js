@@ -13,6 +13,7 @@ import { questCard, dungeonGroups, lists as qbLists, isReady as qbReady } from "
 import { getPref, setPref } from "./prefs.js";
 import { keeperCanvas, vignetteCanvas } from "../townart.js";
 import { ITEMS } from "../items.js";
+import { TALK_KINDS, TIP_CATS } from "../tavern.js";
 import { SFX } from "../audio.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
@@ -370,23 +371,76 @@ function renderRumor(wrap) {
   }
 }
 // 居合わせる者たち
+// 一人ひとつ話をする: 他愛もない話 / 心得 (攻略の要点) / 言い伝え (世界のこと)。心得と言い伝えは「書き留めた話」に残る
 function renderTalk(wrap) {
   const g = G();
 
-  // 3) 居合わせる者たち (帰還ごとに入れ替わる)。収まる人数ずつめくる
+  // 3) 居合わせる者たち (帰還ごとに入れ替わる)
   if ((!g.tavernCrowd || !g.tavernCrowd.length) && game.rollTavernCrowd) game.rollTavernCrowd();
-  wrap.appendChild(sectionHead("居合わせる者たち", { note: "帰還のたびに入れ替わる" }));
+  if (game.markTavernHeard) game.markTavernHeard(g.tavernCrowd);
+  const notes = game.tavernNotes ? game.tavernNotes() : [];
+  let right = null;
+  if (notes.length) {
+    right = el("button", "fc-notes-btn");
+    right.type = "button";
+    right.appendChild(document.createTextNode(`書き留めた話 ${notes.length}`));
+    right.appendChild(svgIcon("chevron", "fc-notes-ic"));
+    right.addEventListener("click", () => openTavernNotes());
+  }
+  wrap.appendChild(sectionHead("居合わせる者たち", { note: "帰還ごとに替わる", right }));
   const area = el("div", "fc-crowd");
   wrap.appendChild(area);
   scrollGrid(area, g.tavernCrowd || [], (m) => {
-    const r = el("div", "fc-voice");
+    const r = el("div", "fc-voice" + (m.kind && m.kind !== "chat" ? " k-" + m.kind : ""));
     const h = el("div", "fc-voice-h");
     h.appendChild(setText(el("span", "fc-voice-n"), m.name));
     h.appendChild(setText(el("span", "fc-voice-k"), m.type));
+    const kind = TALK_KINDS[m.kind];
+    if (kind) {
+      h.appendChild(setText(el("span", "fc-voice-tag k-" + m.kind), kind.label));
+      if (m.fresh) h.appendChild(setText(el("span", "fc-voice-new"), "初耳"));
+    }
     r.appendChild(h);
     r.appendChild(setText(el("div", "fc-voice-t"), m.line));
     return r;
-  }, { cols: 1, cellH: 104, gap: 6, key: "crowd" });
+  }, { cols: 1, cellH: null, gap: 6, key: "crowd" });
+}
+
+// 書き留めた話: 酒場で聞いた心得 (区分ごと) と言い伝え
+let notesSeg = "tip";
+function openTavernNotes() {
+  sfx("select");
+  const notes = game.tavernNotes ? game.tavernNotes() : [];
+  const tips = notes.filter((t) => t.k === "tip");
+  const lore = notes.filter((t) => t.k === "lore");
+  if (!tips.length && lore.length) notesSeg = "lore";
+  const body = el("div", "fc-notes");
+  const list = el("div", "fc-notes-list");
+  const line = (t) => setText(el("div", "fc-note k-" + t.k), t.t);
+  const draw = () => {
+    list.textContent = "";
+    if (notesSeg === "tip") {
+      if (!tips.length) list.appendChild(setText(el("div", "fc-notes-empty"), "まだ心得を聞いていない。"));
+      for (const cat of TIP_CATS) {
+        const ts = tips.filter((t) => t.cat === cat);
+        if (!ts.length) continue;
+        list.appendChild(sectionHead(cat, { note: `${ts.length}` }));
+        for (const t of ts) list.appendChild(line(t));
+      }
+    } else {
+      if (!lore.length) list.appendChild(setText(el("div", "fc-notes-empty"), "まだ言い伝えを聞いていない。"));
+      for (const t of lore) list.appendChild(line(t));
+    }
+  };
+  body.appendChild(segmented([
+    { key: "tip", label: `心得 ${tips.length}` },
+    { key: "lore", label: `言い伝え ${lore.length}` },
+  ], notesSeg, (k) => { notesSeg = k; draw(); }));
+  body.appendChild(setText(el("div", "fc-notes-s"), "酒場で耳にした話。顔ぶれは帰還のたびに入れ替わり、まだ聞いていない話も多い。"));
+  body.appendChild(list);
+  draw();
+  return sheet.open({ kind: "info", banner: "書き留めた話", body, className: "fc-notes-sheet",
+    footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }] });
 }
 
 // ---------- 赤い魂の祠 (ページ) ----------

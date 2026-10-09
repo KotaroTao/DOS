@@ -14,7 +14,7 @@ import {
 } from "./items.js";
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
-import { TAVERN_SPEAKERS, TAVERN_HINTS } from "./tavern.js";
+import { pickTavernCrowd, TALK_MAP } from "./tavern.js";
 import { FIXED_QUESTS, FIXED_BY_ID, FREE_CAP, rollBoard, deliveryRewardRows, NPCS, npcOf, composeReport, bondGiftAt, npcBondLabel, TIP_RATE, hasBell, BELL_EVERY_MS } from "./quests.js";
 import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, STORY_CELLS, storyCellAt, BOSS_MEMORIES, REPORTS, LATE_CLUES, IRENE_BEATS, MINE_PASS, msqReward, EPILOGUE, UNLOCKS, unlockSceneFor } from "./story.js";
 import { CATALOG_ITEMS } from "./catalog/index.js";
@@ -505,7 +505,8 @@ const G = {
   fastAnim: true,     // 戦闘演出の倍速設定 (永続)。ON = 標準の速さ、OFF = その 1/2 の速さ
   animTempo: 2,       // 倍速の意味を改めた版 (2 = ON が旧来の標準)。この印の無い旧セーブは読み込み時に倍速 ON へ
   autoCombat: false,  // オート戦闘中 (セッション内のみ)
-  tavernCrowd: null,  // 酒場に居合わせる者たち (帰還ごとに3〜5名を選び直す) [{type,icon,name,line}]
+  tavernCrowd: null,  // 酒場に居合わせる者たち (帰還ごとに3〜5名を選び直す) [{type,icon,name,line,kind,id}]
+  tavernHeard: null,  // 酒場で聞いた心得・言い伝え {話のid: 1} (「書き留めた話」。tavern.js TAVERN_TALKS の id)
   rumor: null,        // 酒場で表示中の噂 (次回潜入で現実化)
   rumorCooldown: 0,   // 次の噂を聞けるUNIXタイムスタンプ(ms) — 15分クールダウン
   activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
@@ -11543,11 +11544,15 @@ function questMarkCanvas(q, jobs = []) {
   return crispCanvas(spr, 96);
 }
 
-// ---- 酒場に居合わせる者たち: 帰還ごとに3〜5名を選び、各人が世界の噂・冒険のヒントを語る ----
-// req を持つヒントは、その機能が解放されるまで出さない (未解放システムを匂わせない)。
+// ---- 酒場に居合わせる者たち: 帰還ごとに3〜5名を選び、各人が他愛もない話・心得・言い伝えを一つ語る (tavern.js) ----
+// req を持つ話は、その機能・場所・物語が開くまで出さない (未解放の仕組みや先の章を匂わせない)。
 function tavernHintAllowed(req) {
   if (!req) return true;
-  if (req === "sub") return unlockedSubSlots() > 0;     // 宿し技
+  const w = worldState();
+  if (req.startsWith("rep:")) return !!w.reported[req.slice(4)];       // その迷宮を王に報告した後
+  if (req.startsWith("found:")) return !!w.found[req.slice(6)];         // その手がかりを見つけた後
+  if (req.startsWith("ch:")) return chaptersDone(w) >= Number(req.slice(3)); // 第n章を結んだ後
+  if (req === "sub") return unlockedSubSlots() > 0;     // サブ魂
   if (req === "metal") return DUNGEONS.some((d) => d.layer >= 3 && worldOpenId(d.id)); // 金属の魔物 (第3層の景色の迷宮から出る)
   if (req === "metal2") return DUNGEONS.some((d) => d.layer >= 4 && worldOpenId(d.id)); // 金属の上位種 (金業・銀業の王は第4層から)
   if (req === "fort") return DUNGEONS.some((d) => d.layer >= 4 && worldOpenId(d.id));  // 捨て砦 (第4層の迷宮が地図に現れた後)
@@ -11555,20 +11560,27 @@ function tavernHintAllowed(req) {
   if (req === "undercity") return worldOpenId("w14");                               // 王都の地下 (水底の参道が地図に現れた後)
   if (req === "furnace") return worldOpenId("w18");                                 // 灼熱の洞 (火を噴く地割れが地図に現れた後)
   if (req === "frost") return worldOpenId("w22");                                   // 氷結回廊 (奈落の氷棚が地図に現れた後)
-  return featureUnlocked(req);                           // fusion / rumor
+  return featureUnlocked(req);                           // fusion / rumor / order / expedition
 }
 // 酒場の顔ぶれを選び直す (ダンジョン帰還時・初回入店時に呼ぶ)
 function rollTavernCrowd() {
-  const count = 3 + rand(3); // 3〜5名
-  const speakers = [...TAVERN_SPEAKERS].sort(() => Math.random() - 0.5);
-  const hints = TAVERN_HINTS.filter((h) => tavernHintAllowed(h.req)).sort(() => Math.random() - 0.5);
-  const crowd = [];
-  for (let i = 0; i < count && i < speakers.length; i++) {
-    const sp = speakers[i];
-    const line = hints[i % hints.length];
-    crowd.push({ type: sp.type, icon: sp.icon, name: sp.names[rand(sp.names.length)], line: line ? line.t : "「……」" });
+  G.tavernCrowd = pickTavernCrowd({ allowed: tavernHintAllowed, heard: G.tavernHeard || {} });
+}
+// 顔ぶれの話を聞いた (顔ぶれを開いた時)。心得・言い伝えは「書き留めた話」に残す
+function markTavernHeard(crowd = G.tavernCrowd) {
+  const h = G.tavernHeard || (G.tavernHeard = {});
+  let added = 0;
+  for (const m of crowd || []) {
+    const t = m && m.id && TALK_MAP[m.id];
+    if (t && t.k !== "chat" && !h[t.id]) { h[t.id] = 1; m.fresh = 1; added++; } // fresh = 初めて聞いた話 (次に顔ぶれが替わるまで「初耳」)
   }
-  G.tavernCrowd = crowd;
+  if (added) autosave();
+  return added;
+}
+// 書き留めた話 (聞いた心得・言い伝え。台帳の並び順)
+function tavernNotes() {
+  const h = G.tavernHeard || {};
+  return Object.keys(h).map((id) => TALK_MAP[id]).filter(Boolean);
 }
 
 // ---- 酒場の噂話: 地図にある迷宮の一つを読んだ予兆を生成する ----
@@ -14924,7 +14936,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "stabilityBriefed", "pendingDoll",
   "party", "reserve", "expedition", "souls", "shopStock", "run", "town",
-  "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "irene", "journal", "tut", "events", "story", "world", "dragonSlain", "stats",
+  "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "tavernHeard", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "irene", "journal", "tut", "events", "story", "world", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
   "lastRun",
 ];
@@ -15872,7 +15884,7 @@ bindGame({
   achievementCards, medalRank, claimNextTreasury, TREASURY_MILESTONES, milestoneLabel, totalDonatedKinds,
   codexMonEntry, dungeonRoster, CODEX_OTHER,
   // 酒場・祠・宿
-  listenRumor, RUMOR_PRICE, rumorPrice, rumorFor, rollTavernCrowd,
+  listenRumor, RUMOR_PRICE, rumorPrice, rumorFor, rollTavernCrowd, markTavernHeard, tavernNotes,
   questState, questLists, questByUid, questsHere, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount, questsTargeting,
   adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)
