@@ -47,4 +47,4 @@
 
 再取り込みは `python3 docs/art/sera/import-images.py`。確認画像の再作成はローカルサーバー（8000番）起動後 `python3 docs/art/sera/review-game.py`。原画比較は `python3 docs/art/sera/compare-sources.py`。
 
-作業ブランチは `codex/sera-job-art`。mainへのマージは未実施。
+作業ブランチは `codex/sera-job-art`。main統合の指示後、最新mainの大魔導師・狂戦士の画像追加を保持して競合を解消し、構文・全ランク描画・モバイル起動を再確認した。
