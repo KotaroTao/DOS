@@ -32,6 +32,23 @@ jobs:
           grep -q "^const CACHE = \"$v\";" sw.js || { echo "sw.js の CACHE を書き換えられませんでした"; exit 1; }
           grep -q "^export const TEST_BUILD = \"$v\";" src/telemetry.js || { echo "テスト記録の版を書き換えられませんでした"; exit 1; }
           grep -n "^const CACHE" sw.js
+      # ゲームが読まないもの (制作記録・原画・道具・確認用の画像) を公開物から外す。
+      # GitHub Pages の公開サイトは 1GB まで。リポジトリ全体は 949MB あり、
+      # 第四章の原画 (#658) で上限すれすれになって更新が届かなくなっていた。
+      - name: Strip files the game does not ship
+        run: |
+          rm -rf docs tools art/story-review
+          rm -f AGENTS.md CLAUDE.md README.md log-many.png seg360.png seg420.png segord.png tab.png
+          # sw.js の ASSETS に載せた品が消えていれば SW の導入に失敗するので止める
+          missing=0
+          for f in $(grep -oE '"\./[^"]+"' sw.js | tr -d '"'); do
+            [ -e "$f" ] || { echo "ASSETS にあるのに公開物に無い: $f"; missing=1; }
+          done
+          [ "$missing" = 0 ] || exit 1
+          mb=$(du -sm --exclude=.git . | cut -f1)
+          echo "公開するサイトの大きさ: ${mb}MB"
+          # 上限 1GB に届く前に気づけるよう 800MB で止める
+          [ "$mb" -lt 800 ] || { echo "公開物が ${mb}MB あり、GitHub Pages の上限 (1GB) に近すぎます"; exit 1; }
       - uses: actions/configure-pages@v5
         with:
           enablement: true
