@@ -16,9 +16,10 @@ export const HELP_TOPICS = [
   { id:"omokage", title:"面影の写し", art:"head", available:g=>!!g.world?.beats?.irene_omokage, lines:["魂は、これまでに宿った姿を『面影』として覚えています。人業の館で人業の肖像を押すと、その面影を顔に写せます。", "写せるのは、職業図鑑でたどり着いた職業とランクの姿です。魂がランクを上げるたびに、選べる面影が増えます。", "変わるのは顔だけです。職業・能力・技は宿した魂のままで、何度でも無料で写し直せます。「魂のまま」を選ぶと元に戻ります。"] },
   { id:"treasury", title:"宝物庫と迷宮の解放", art:"camp", available:ready, lines:["集めた収集品は、王宮の宝物庫に奉納できます。奉納した種類に応じて褒賞を受け取れます。", "新しい迷宮は、王への踏破報告、師の手がかり、宝物庫の褒賞や酒場の依頼で開きます。迷宮を踏破したら、街に残る報告の案内も確かめましょう。"] },
   { id:"clues", title:"師の手がかりと恵み", art:"lantern", available:g=>Object.keys(g.world?.found||{}).length>0, lines:["迷宮の決まった階には、師オルドの手がかりが淡く光っています。踏むと物語が語られ、手がかりごとに恵みを授かります (最初の師のランタンは、物語だけです)。", "恵みは、新しい迷宮が地図に記される・酒場に依頼人が訪ねてくる・館の修復が安くなる・魂を拾いやすくなる・回避率が上がる・商会の品揃えなど。授かった恵みは、ずっと効きます。", "人業セラの体 (頭・腕・胴・脚) をすべて館へ持ち帰ると、セラが目を覚まし、仲間になります。"] },
-  ...Object.entries(UNLOCKS).filter(([id])=>!["sub2","infinite"].includes(id)).map(([id, scene])=>({ id, title:scene.title, art:["tavern","rumor"].includes(id)?null:"sigil", place:"tavern", feature:id, lines:scene.lines.map(line=>line.replace(/^「|」$/g, "")) })),
+  ...Object.entries(UNLOCKS).filter(([id])=>!["sub2","infinite","expedition"].includes(id)).map(([id, scene])=>({ id, title:scene.title, art:["tavern","rumor"].includes(id)?null:"sigil", place:"tavern", feature:id, lines:scene.lines.map(line=>line.replace(/^「|」$/g, "")) })),
   { id:"sub2", title:"サブ魂の二枠目", art:"sigil", feature:"sub2", lines:["サブ魂を二つまで宿せるようになりました。館で枠ごとに魂と借りる技を選び、隊の役割に合わせて整えてください。"] },
   { id:"infinite", title:"無限迷宮・奈落", art:"hole", feature:"infinite", lines:["奈落は、街の迷宮とは別に深さを進める無限迷宮です。10階ごとに門番が待ち、途中では奈落の変異や恵みが現れます。", "進める深さは、通常の迷宮で討った主の層に応じて広がります。出立画面で現在の上限と隊の備えを確認してください。"] },
+  { id:"expedition", title:"遠征", art:"camp", feature:"expedition", lines:["隊に出していない控えの人業を、踏破した迷宮へひとりで送り出せます。人業の館の「人業」(控えの一覧) で、控えの人業ごとに「遠征に出す」を押してください。同時に出せるのは三人までです。", "長さは1時間・2時間・4時間から選びます。時間は遊んでいる間 (実プレイ時間) だけ進みます。出発の時に、迷宮に入る時と同じだけ魂の安定度を使います。", "戻ると✦Soulと金貨を持ち帰り、メイン魂も少し育ちます。まれに収集品や職業の魂も見つけてきます。深い迷宮ほど多く持ち帰りますが、推奨Lvを大きく超えた人業では✦が減ります。", "推奨Lvより6以上低い人業は、途中で引き返してきます (時間の半分で戻り、戦果は3割ほど)。", "遠征中の人業は、隊に入れることも、魂や装備を付け替えることもできません。いつでも呼び戻せます (経った時間の分だけの戦果)。帰ってきた遠征は、街で手が空いた時にまとめて知らせます。"] },
 ];
 
 // 踏破で明かす、その場所に残った記憶。後の章の真相はここへ先取りしない。

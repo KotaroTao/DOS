@@ -23,6 +23,7 @@ import {
   statLines, detailLines, isEquippable, gearScore, elemStatShort, showSkillPopup, showPassivePopup, itemCatText, tagRow, spellTagKinds, specialLines, specialShort, specialParts, weaponPerformanceEl, weaponPowerPreview,
 } from "./itemview.js";
 import { renderSoulSeg, openSoulPicker, openSoulList, openOrderSheet } from "./soulpanel.js";
+import { expeditionStatus, expeditionButton, expeditionCount } from "./expedition.js";
 import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVisit, greetingPages, playIreneScene, sceneActive } from "./irene.js";
 import {
   planBestEquip, applyPlan, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isMeleeWeapon,
@@ -102,6 +103,7 @@ function portraitEl(d, { size = 44, sel = false, tag = "button", cls = "" } = {}
   if (cl) p.style.setProperty("--glow", cl.glow);
   if (d.primary == null) p.classList.add("hollow"); // 魂の宿らない器
   if (d.vessel === "sera") { p.classList.add("vessel-sera"); p.appendChild(el("span", "pt-port-vessel", "灯")); } // 師の作った器
+  if (game.expeditionOf && game.expeditionOf(d)) { p.classList.add("away"); p.appendChild(el("span", "pt-port-away", "遠")); } // 遠征に出ている
   const fr = el("span", "pt-port-fr");
   try { fr.appendChild(partyPortraitCanvas(d, size - 6)); } catch (e) { /* 絵が無くても動く */ }
   p.appendChild(fr);
@@ -118,8 +120,8 @@ function portraitEl(d, { size = 44, sel = false, tag = "button", cls = "" } = {}
 
 // ================= 品の点数・候補 =================
 function itemsPool() {
-  // 品を出せる人業 = 隊と控えの全員 (旧来の装備候補と同じ。迷宮の中でも控えの袋から取り出せる)
-  return allDolls();
+  // 品を出せる人業 = 隊と控えの全員 (旧来の装備候補と同じ。迷宮の中でも控えの袋から取り出せる)。遠征に出ている人業の袋は除く
+  return allDolls().filter((d) => !(game.expeditionOf && game.expeditionOf(d)));
 }
 // d の部位 key に it を収めた時の増減 (無理なら null)。base = いまの能力 (省略時は計算する)
 function slotDelta(d, it, key, base = null) {
@@ -195,11 +197,13 @@ export const REASON_TEXT = {
   "属性": "属性が合わない",
   "呪い": "呪われた装備が外れない",
   "両手": "呪われた装備があり、両手武器と盾を持ち替えられない",
+  "遠征中": "遠征に出ていて、帰るまで装備を替えられない",
 };
 export function canEquipReason(d, it) {
   if (!d || !it) return "装備品でない";
   if (!isEquippable(it)) return "装備品でない";
   if (d.primary == null) return "魂なし";
+  if (game.expeditionOf && game.expeditionOf(d)) return "遠征中";
   if (it.unidentified) return "未鑑定";
   if (!canEquip(d, it)) {
     if (it.align && d.align && it.align !== "中立" && d.align !== "中立" && it.align !== d.align) return "属性";
@@ -596,6 +600,7 @@ function autoEquip(target = "all") {
   if (!G) return { ok: false, moves: 0 };
   const targets = target === "all" ? G.party.filter(Boolean) : [target].filter(Boolean);
   if (!targets.length) return { ok: false, moves: 0 };
+  if (targets.some((d) => game.expeditionOf && game.expeditionOf(d))) { sfx("ng"); toast("遠征に出ている人業の装備は、帰ってきてから整える", { tone: "bad" }); return { ok: false, moves: 0 }; }
   const pool = itemsPool();
   const plan = planBestEquip(targets, { pool, canEquip, score: gearScore, recalc, allow: autoAllow });
   if (!plan.moves.length) {
@@ -1237,6 +1242,8 @@ function createButton() {
 function reserveBody(root) {
   const G = G_();
   const list = el("div", "pt-res");
+  const exc = expeditionCount();
+  if (exc) list.appendChild(exc);
   if (!G.reserve.length) list.appendChild(el("div", "pt-res-none", "控えはいない。パーティの札を「控え」へ引けば下げられる。"));
   for (const d of G.reserve) list.appendChild(reserveRow(d));
   root.appendChild(list);
@@ -1271,7 +1278,12 @@ function reserveRow(d) {
   r.appendChild(top);
   // 入れ替え先 (隊の札) を直に並べる: 1タップで入れ替え
   const sw = el("div", "pt-res-sw");
-  if (d.primary == null) {
+  const away = expeditionStatus(d, () => { if (reserveH) reserveH.close(); });
+  if (away) { // 遠征中: 行き先・残りと「呼び戻す」(帰ってきていれば「報告を聞く」)。入れ替えはできない
+    r.classList.add("away");
+    r.appendChild(away.line);
+    for (const b of away.actions) sw.appendChild(b);
+  } else if (d.primary == null) {
     sw.appendChild(button({ label: "魂を宿す", kind: "secondary", size: "sm", onTap: () => {
       if (reserveH) reserveH.close();
       select(d); setSeg("soul"); rerender();
@@ -1299,6 +1311,8 @@ function reserveRow(d) {
       a.addEventListener("click", () => joinParty(d));
       sw.appendChild(a);
     }
+    const ex = expeditionButton(d, () => { if (reserveH) reserveH.close(); });
+    if (ex) sw.appendChild(ex);
   }
   r.appendChild(sw);
   return r;
@@ -1314,6 +1328,7 @@ function swapWithReserve(d, j) {
   const k = G.reserve.indexOf(d);
   const m = G.party[j];
   if (k < 0 || !m) return;
+  if (game.expeditionOf && game.expeditionOf(d)) { sfx("ng"); toast(`${d.name}は遠征に出ている。呼び戻すか、帰りを待とう`, { tone: "bad" }); return; }
   if (game.blockSoulResonance(G.party.map((x, i) => i === j ? d : x))) return;
   G.party[j] = d; G.reserve[k] = m;
   sfx("select"); buzz(10);
@@ -1330,6 +1345,7 @@ function joinParty(d) {
   if (G.party.length >= 6) { sfx("ng"); toast("パーティは満員だ (6体まで)", { tone: "bad" }); return; }
   const k = G.reserve.indexOf(d);
   if (k < 0) return;
+  if (game.expeditionOf && game.expeditionOf(d)) { sfx("ng"); toast(`${d.name}は遠征に出ている。呼び戻すか、帰りを待とう`, { tone: "bad" }); return; }
   if (game.blockSoulResonance([...G.party, d])) return;
   G.reserve.splice(k, 1); G.party.push(d);
   sfx("select");
@@ -1496,7 +1512,8 @@ function dollHeader(d, mode) {
   const pi = G.party.indexOf(d);
   const cls = el("span", "pt-head-c");
   cls.appendChild(el("span", "pt-head-cls", d.primary == null ? "空の人業" : `${d.cls} Lv${d.jobLv || 1}`));
-  const tags = [pi >= 0 ? (pi < 3 ? "前衛" : "後衛") : "控え"];
+  const away = pi < 0 && game.expeditionOf && game.expeditionOf(d);
+  const tags = [pi >= 0 ? (pi < 3 ? "前衛" : "後衛") : away ? "遠征中" : "控え"];
   if (d.primary != null) tags.push(`射程${(RANGE_LABEL[weaponRange(d.equip && d.equip.weapon)] || "").replace("距離", "")}`);
   cls.appendChild(el("span", "pt-head-tag", tags.join("・")));
   l1.appendChild(cls);
@@ -1522,7 +1539,7 @@ function dollHeader(d, mode) {
       onTap:town ? ()=>openStability(d) : ()=>toast(`入場時に10消費・${game.stabilityMinutes ? game.stabilityMinutes() : 3}分で1回復。探索中の追加消費はない`, {tone:"info"}) });
   stability.classList.add("pt-stability"); tx.appendChild(stability);
   head.appendChild(tx);
-  if (town && pi < 0 && d.primary != null) {
+  if (town && pi < 0 && d.primary != null && !away) {
     const join = button({ label: G.party.length < 6 ? "パーティへ" : "入替", kind: "secondary", size: "sm", onTap: () => (G.party.length < 6 ? joinParty(d) : openReserve()) });
     join.classList.add("pt-head-join");
     head.appendChild(join);
