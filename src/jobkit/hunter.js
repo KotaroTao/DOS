@@ -6,11 +6,11 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "hunterSaihai",
   table: `
-    1 DOKUYA 2 SUIGETSU 3 ASHIDOME 5 hunterKemono/1 7 SOGEKI 10 YANOAME
+    1 DOKUYA 2 SUIGETSU 3 ASHIDOME 5 hunterKemono/1 7 SOGEKI 10 YANOAME 10 dynamicVision/1
     12 ABURA 15 HUNTER_NINOYA 15 senseEnemy/1 20 SHIBIREYA 22 HUNTER_KEHAIYOMI 25 hunterAshinerai/1 30 KEMONOGARI
-    35 hunterKemono/2 40 KUBIKARI 45 hunterAshinerai/2 50 TSURANUKI 50 senseEnemy/2 55 HUNTER_HAYATEYA 57 FUUGA
+    35 hunterKemono/2 40 KUBIKARI 40 dynamicVision/2 45 hunterAshinerai/2 50 TSURANUKI 50 senseEnemy/2 55 HUNTER_HAYATEYA 57 FUUGA
     60 hunterKoei/1 65 HUNTER_KABURAYA 70 hunterKazeyomi/1 75 fleetFoot/1 80 HYOUJIN 82 RENSHA
-    85 HUNTER_TORABASAMI 90 hunterAshinerai/3 95 SENNYA 100 HUNTER_ITEYA 100 senseEnemy/3 105 hunterKemono/3 110 HUNTER_TAKAOTOSHI
+    85 HUNTER_TORABASAMI 90 hunterAshinerai/3 95 SENNYA 100 HUNTER_ITEYA 100 senseEnemy/3 100 dynamicVision/3 105 hunterKemono/3 110 HUNTER_TAKAOTOSHI
     115 hunterKoei/2 120 HUNTER_KAZEKIRI 125 vigilance/1 130 HUNTER_HIYA 135 hunterAshinerai/4 140 HUNTER_SHINZOU
     145 fleetFoot/2 150 HUNTER_SAMIDARE 155 vigilance/2 160 RYUUSEISHA 162 HUNTER_ARASHIYUZURU 165 resistAilment/1
     170 HUNTER_TOMEYA 175 hunterKemono/4 180 HUNTER_AMIUCHI 185 hunterKazeyomi/2 190 HUNTER_KARIGAMI 195 HUNTER_BAKUFU
