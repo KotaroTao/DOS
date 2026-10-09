@@ -30,7 +30,7 @@ subprocess.run(['python3', 'tools/jobimg.py', s['job'],
 
 `art/jobs/hermit_1.webp`〜`hermit_5.webp` と `src/jobphotos.js` を更新。`sw.js` の5画像は登録済みで、CACHEは `dos-dev`。旧 `src/jobart.js` に対象ランクの優先画像はない。`tools/review-job-art.py hermit --label 巡礼者 --require-photos --output docs/art/hermit/pilgrim-game-display-review` で全身6枚・顔24枚、各ランクの画像選択とゲーム起動、ブラウザーエラーなしを確認した。透過検査は `pilgrim-asset-verification.json`。構文と `git diff --check` も確認済み。
 
-作業ブランチは `codex/hermit-female-pilgrim-art`。今回の変更はmainへ未マージ。
+作業ブランチは `codex/hermit-female-pilgrim-art`。2026-10-10にユーザーがmainへのマージを指示。
 
 ## 旧採用画像の記録
 
