@@ -36,6 +36,7 @@ const EFF_PTS = {
   guard: (v) => 100 * v, autoRevive: (v) => 50 * v, regen: (v) => 150 * v,
   lifesteal: (v) => 60 * v, counter: (v) => 40 * v, spellCostMul: (v) => 60 * (1 - v),
   goldUp: (v) => 30 * v, soulUp: (v) => 30 * v,
+  disarmUp: (v) => 40 * v, // 罠外し: 解除率 +30% = 12点
 };
 const MULT_PTS = 60; // %補正 +100% あたり (+20% = 12点)
 const SLOT_SCALE = {};
