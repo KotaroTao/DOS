@@ -305,6 +305,42 @@ export function revealSellBtn(doll, it, onSold) {
   b.dataset.act = "sell";
   return b;
 }
+// 鑑定の結果の一覧に残った品のうち、まとめて売れるもの (袋の中・呪いなし)。
+// SR/LR・未奉納の収集品 (sellWarnings) は一点ずつ「売る」で確かめるので残す (keep に数える)
+export function revealSellables(items) {
+  const list = [];
+  let keep = 0;
+  for (const it of items || []) {
+    const o = ownerOf(it);
+    if (!o || o.where !== "bag" || it.unidentified) continue;
+    if (it.cursed || (game.sellWarnings && game.sellWarnings(it).length)) { keep++; continue; }
+    list.push({ doll: o.doll, item: it, price: game.sellPrice(it) });
+  }
+  return { list, keep };
+}
+// 鑑定の結果の下のボタン「残りをまとめて売る」(商会が開いていて、売れる品がある時だけ)。onSold = 売った後に一覧を描き直す
+export function revealSellAction(items, onSold) {
+  if (!shopOpen() || !UI.sellItems) return null;
+  const sell = revealSellables(items);
+  if (!sell.list.length) return null;
+  const run = async () => {
+    const { list, keep } = revealSellables(items);
+    if (!list.length) return;
+    const gold = list.reduce((a, j) => a + j.price, 0);
+    const ok = await confirm({
+      banner: "まとめて売る", title: `${list.length}点を売る (+💰${gold})`,
+      lines: [list.map((j) => itemName(j.item)).join("・"),
+        keep ? `スーパーレア・レジェンドレア・未奉納の収集品 ${keep}点は残す (一点ずつ「売る」で売れる)。` : "売った品は商会の棚に並ぶ (買い戻せる)。"],
+      okLabel: "まとめて売る",
+    });
+    if (!ok) return;
+    const res = UI.sellItems(list);
+    if (res && res.gold) floatGold(res.gold);
+    if (onSold) onSold();
+  };
+  return { label: "残りをまとめて売る", sub: `${sell.list.length}点${sell.keep ? ` ・ 逸品${sell.keep}点は残す` : ""}`,
+    cost: { kind: "gold", n: sell.list.reduce((a, j) => a + j.price, 0) }, kind: "secondary", onTap: () => { run(); } };
+}
 // 金貨が増えた/減った印を見出しの金貨の上に浮かべる
 export function floatGold(n, tone = "up") {
   if (!n) return;
