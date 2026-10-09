@@ -5211,6 +5211,7 @@ let autoMoveVia = null;   // 寄り道の行き先 (タップしたマス)。着
 let autoMoveHold = null;  // 1歩の終わりを待って行うドック・手帳などの操作
 let autoMoveHurt = null;  // ON にした時点で深手・戦闘不能だった者 (uid) ― これ以外が深手になれば止まる
 let autoMoveBreak = null; // 戦闘 ("battle")・選択 ("choice") が挟まった印 ― それが済めばオート移動を切る
+let autoPlanStep = false; // いまの1歩がオート移動の決めた1歩か (寄り道・タップの歩みは含まない)
 function autoMoveAvoid() { return uiDungeonHud.autoMoveAvoid(); }
 function autoMoveWounded() {
   return new Set(G.party.filter((p) => !p.alive || p.hp < p.maxhp * AUTO_MOVE_HURT).map((p) => p.uid));
@@ -5275,7 +5276,8 @@ function autoMoveTick() {
   }
   const step = autoMovePlan();
   if (!step) { setAutoMove(false); return; } // めくれる墓石が無い・敵や罠が道を塞いでいる
-  moveStep(step.x, step.y, () => autoMoveSchedule(walkMs(110)));
+  autoPlanStep = true; // この1歩はオート移動が決めた (階段の素通りに使う)
+  moveStep(step.x, step.y, () => { autoPlanStep = false; autoMoveSchedule(walkMs(110)); });
 }
 // 次の1歩を決める: 安全なめくり済みのマスを通って届く行き先 (伏せた墓石・挑む敵) のうち最も近いもの。
 // 決断の要る札は、それを避けて届く行き先が無い時だけ通る
@@ -5306,7 +5308,8 @@ function autoMovePlan() {
   const fightable = (c) => (c.revealed && c.elite && !c.metal) ? !avoid.elite : !avoid.foe;
   const danger = (c) => c.revealed && (
     (c.type === "trap" && !c.cleared) || (c.type === "pit" && !floating) || (c.type === "poison" && !poisonSafe));
-  const nuisance = (c) => c.revealed && (c.type === "stairs" || c.type === "portal" ||
+  // 一度「まだ探索する」を選んだ階段は、踏んでも問わないので普通の通り道として扱う
+  const nuisance = (c) => c.revealed && ((c.type === "stairs" && !c.stairsSeen) || c.type === "portal" ||
     (!c.cleared && ["chest", "fountain", "corpse", "event", "story"].includes(c.type)));
   // 向いている方向を優先 (まっすぐ進み、壁に当たったら曲がる)。真後ろは最後
   const f = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[G._facing] || [0, 1];
@@ -5508,6 +5511,8 @@ function resolveCellMeasured(cell) {
       break;
     }
     case "stairs":
+      // 一度「まだ探索する」を選んだ階段は、オート移動が行き先へ向かう途中で踏んでも問い直さない
+      if (cell.stairsSeen && autoPlanStep) break;
       if (cell.gate && !abyssActive()) askGate(cell);
       else askDescend(cell);
       break;
@@ -6655,7 +6660,9 @@ function closePrompt() {
 
 // 階段: 降りるか選ぶ。最深階の階段は、層末迷宮では層ボスへの扉、それ以外では踏破口。
 function askDescend(cell) {
-  const stay = () => renderBoard(); // 枠外をタップ・戻る = 「まだ探索する」 (帰還魔法陣と同じ)
+  // 枠外をタップ・戻る = 「まだ探索する」 (帰還魔法陣と同じ)。一度そう選んだ階段は、オート移動では素通りする
+  // (cell.stairsSeen。階段をタップして歩いて来た時・ドックの「降りる」は従来どおり問う — ユーザーの指示、2026-10)
+  const stay = () => { if (cell) cell.stairsSeen = true; renderBoard(); };
   // 奈落: 最深部の概念がなく、ひたすら深く潜る。10階ごとに門番が立ちはだかる。
   if (abyssActive()) {
     if (abyssBossPending()) {
@@ -6663,7 +6670,7 @@ function askDescend(cell) {
         `深部から圧倒的な気配が漏れている。奈落の門番 (B${G.floor}F) に挑む？`,
         [
           { label: "門番に挑む", danger: true, fn: () => fightAbyssGuard(cell) },
-          { label: "まだ準備する", cancel: true, fn: () => { renderBoard(); } },
+          { label: "まだ準備する", cancel: true, fn: stay },
         ],
         ICONS.stairs,
         { banner: "⚠ 奈落の門番 ⚠", accent: "#d4504e", onDismiss: stay }
@@ -6677,7 +6684,7 @@ function askDescend(cell) {
         `階段の先は、底の見えない闇に呑まれている。`,
         [
           { label: "街へ帰還する ― 戦利品は持ち帰る", primary: true, fn: () => leaveDungeon({ outcome: G.run && G.run.secured ? "clear" : "return" }) },
-          { label: "まだ探索する", fn: () => { renderBoard(); } },
+          { label: "まだ探索する", fn: stay },
         ],
         ICONS.stairs,
         { banner: "✦ 奈落の底 ✦", accent: "#b08ac0", onDismiss: stay,
@@ -6689,7 +6696,7 @@ function askDescend(cell) {
       `さらに深い闇へ続く階段だ。`,
       [
         { label: `B${G.floor + 1}F へ潜る`, primary: true, fn: () => descend() },
-        { label: "まだ探索する", fn: () => { renderBoard(); } },
+        { label: "まだ探索する", fn: stay },
       ],
       ICONS.stairs,
       { banner: "✦ 奈落 ✦", accent: "#b08ac0", onDismiss: stay }
@@ -6704,7 +6711,7 @@ function askDescend(cell) {
       `「${dn.name}」は踏破済みだ。`,
       [
         { label: "街へ凱旋する", primary: true, fn: () => leaveDungeon({ outcome: "clear" }) },
-        { label: "まだ探索する", fn: () => { renderBoard(); } },
+        { label: "まだ探索する", fn: stay },
       ],
       ICONS.stairs,
       { banner: "★ 踏破済み ★", accent: "#ffd84a", lines: ["下の「帰還」からも、いつでも凱旋できる。"], onDismiss: stay }
@@ -6738,7 +6745,7 @@ function askDescend(cell) {
         else if (clearNoBoss) clearDungeonNoBoss();
         else descend();
       } },
-      { label: "まだ探索する", fn: () => { renderBoard(); } },
+      { label: "まだ探索する", fn: stay },
     ],
     boss ? ICONS.bossDoor : ICONS.stairs,
     { banner, accent, lines, onDismiss: stay }
@@ -10896,10 +10903,29 @@ function equipWithTake(d, uid, s, slotId, take) {
 // サブ魂が借りる技/パッシブを選ぶ (src/ui/soulpanel.js のシート)
 function openSubSkillPicker(d, subRef) { return uiSoulPanel.openSkillStep(d, subRef); }
 
-// 魂融合: target に同職の余っている魂を融合させる候補
+// 魂融合: target に同職の余っている魂を融合させる候補。
+// 融合先はどの魂でもよい (職業の代表に限らない — 2026-10 ユーザーの指示: 宿していない +10 へ、宿している +5 を融合したい)
+function fuseTarget(targetUid) {
+  const t = soulByUid(targetUid);
+  return t && !isUniqueJob(t.clsKey) ? t : null;
+}
 function fuseCandidates(targetUid) {
-  const t = soulByUid(targetUid); if (!t || !soulRepresentatives().some((s) => s.uid === targetUid)) return [];
+  const t = fuseTarget(targetUid); if (!t) return [];
   return G.souls.filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey && !soulWorn(s.uid) && !s.locked);
+}
+// サブ魂として宿している魂は、その人業から外して素材にできる (個別の融合だけ。まとめて融合には入れない)。
+// メイン魂として宿している魂・遠征中の人業の魂は外せない
+function fuseSubTakeable(uid) {
+  let sub = false;
+  for (const d of allDolls()) {
+    if (d.primary === uid) return false;
+    if ((d.subs || []).some((x) => x && x.uid === uid)) { if (expeditionOf(d)) return false; sub = true; }
+  }
+  return sub;
+}
+function fuseSubWorn(targetUid) {
+  const t = fuseTarget(targetUid); if (!t) return [];
+  return G.souls.filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey && !s.locked && fuseSubTakeable(s.uid));
 }
 // 魂のロック: ロックした魂は魂融合の素材にできない (宿す・融合先にするのは自由)。魂融合した魂 (融合先) は自動でロックする
 function toggleSoulLock(uid) {
@@ -10915,15 +10941,17 @@ function openFusePicker(targetUid) { return uiSoulPanel.openFusePicker(targetUid
 // 実際の融合: consume を消し、その魂数を target に加える。
 // ランクが上がれば祝祭カード (showRankUp)、据え置きならトーストで知らせる
 // onResultClose: 結果の札 (またはランクアップの祝祭) を閉じたときに呼ぶ (融合画面で続けて選ぶため)
-function fuseSoul(targetUid, consumeUid, onResultClose = null) {
-  return fuseSouls(targetUid, [consumeUid], onResultClose);
+function fuseSoul(targetUid, consumeUid, onResultClose = null, opts = {}) {
+  return fuseSouls(targetUid, [consumeUid], onResultClose, opts);
 }
 // 一括融合: 全素材を検証してから合算し、結果は一度だけ表示する。
-function fuseSouls(targetUid, consumeUids, onResultClose = null) {
-  const t = soulByUid(targetUid);
+// opts.takeSub: サブ魂として宿している素材を、その人業から外して融合してよい (個別の融合で確かめた後)
+function fuseSouls(targetUid, consumeUids, onResultClose = null, opts = {}) {
+  const t = fuseTarget(targetUid);
   if (!Array.isArray(consumeUids) || !consumeUids.length || new Set(consumeUids).size !== consumeUids.length) { SFX.ng(); return null; }
   const materials = consumeUids.map((uid) => soulByUid(uid));
-  if (G.state !== "town" || !featureUnlocked("fusion") || !t || !soulRepresentatives().some((s) => s.uid === targetUid) || materials.some((c) => !c || c.uid === targetUid || c.clsKey !== t.clsKey || soulWorn(c.uid) || c.locked)) { SFX.ng(); return null; }
+  const wornBlock = (c) => soulWorn(c.uid) && !(opts.takeSub && fuseSubTakeable(c.uid));
+  if (G.state !== "town" || !featureUnlocked("fusion") || !t || materials.some((c) => !c || c.uid === targetUid || c.clsKey !== t.clsKey || wornBlock(c) || c.locked)) { SFX.ng(); return null; }
   const before = soulRankOf(t);
   const beforeLv = t.level;
   // 融合の前後で見比べる: 宿している人業がいればその能力 (メイン魂を優先)、いなければ魂そのものの能力
@@ -13859,10 +13887,10 @@ function askGate(cell, { arrival = false } = {}) {
   showChoice(arrival ? `帰還魔法陣を抜けて、B${G.floor}F に降り立った。` : "帰還魔法陣が淡く輝いている。", [
     { label: `先へ進む ― B${next}F${bottom ? (cfg.boss ? " (主の間)" : " (最下階)") : ""}`, primary: true, fn: () => descend() },
     { label: "街へ帰還する ― 戦利品は持ち帰る", fn: () => leaveDungeon({ outcome: G.run && G.run.secured ? "clear" : "return" }) },
-    { label: arrival ? "この階を探索する" : "まだ探索する", fn: () => renderBoard() },
+    { label: arrival ? "この階を探索する" : "まだ探索する", fn: () => { if (cell) cell.stairsSeen = true; renderBoard(); } },
   ], ICONS.portal, { banner: `✦ 帰還魔法陣 B${G.floor}F ✦`, accent: "#7fd0ff",
     lines: ["この階のどこからでも、下の「帰還」で街へ戻れる。", "陣に至った迷宮は、次回この次の階から潜り始められる。"],
-    onDismiss: () => renderBoard() });
+    onDismiss: () => { if (cell) cell.stairsSeen = true; renderBoard(); } });
 }
 // 潜り始められる階 (1 と、到達した帰還魔法陣の次の階 — 陣の階は踏破済みなので飛ばす)
 function startFloorsOf(cfg) {
@@ -15967,7 +15995,7 @@ bindGame({
 bindGame({
   equipAt, moveItem, campCast, campSpellsOf, healAll, healAllNeed, repairCostOf, repairCostAll, repairDoll, setReviveTimers, hastenCostOf, tryHastenRescue, awaitingRescue, RESCUE_SHORTEN_MS,
   emptyDollCost, grantRedSoul, randomDollName, finalizeBuyDoll, soulRepresentatives, partySoulConflict, soulSlotConflict, soulTakePlan, placeSoulInDoll, ownSoulSlot, blockSoulResonance, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
-  equipSoulToSlot, fuseCandidates, fuseSoul, fuseSouls, toggleSoulLock, openFusePicker, openSubSkillPicker, slotSoul,
+  equipSoulToSlot, fuseCandidates, fuseSubWorn, fuseSoul, fuseSouls, toggleSoulLock, openFusePicker, openSubSkillPicker, slotSoul,
   unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail, addSoulInstance, codexSweepJobs,
   canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill, itemKnown, isFirstGet,
   showRankUp, announceJobChange, showNameInput,

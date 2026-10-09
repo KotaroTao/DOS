@@ -2817,8 +2817,9 @@ export class Battle {
       res.hits.push({ target: actor, heal });
     }
     if (dealt > 0 && sp.mpDrain && actor.maxmp) {
-      // 吸収は「その技の消費MP」まで (2026-10: 与ダメ比例のままだと撃つほど MP が増えた)。叡智の極み・重詠で払わなかった時も同じ上限
-      const gain = Math.max(1, Math.min(spellCost(actor, sp), Math.round(dealt * sp.mpDrain)));
+      // 吸収は「その技の消費MP × mpDrainCap (既定1)」まで (2026-10: 与ダメ比例のままだと撃つほど MP が増えた)。
+      // 魔力強奪だけは 1.1倍まで (ユーザーの指示、2026-10) — 撃つたびに少しずつ MP が増える。叡智の極み・重詠で払わなかった時も同じ上限
+      const gain = Math.max(1, Math.min(Math.floor(spellCost(actor, sp) * (sp.mpDrainCap || 1)), Math.round(dealt * sp.mpDrain)));
       actor.mp = Math.min(actor.maxmp, actor.mp + gain);
       this.log(`${actor.name}はMPを吸い取った (MP+${gain})`, "heal");
     }
