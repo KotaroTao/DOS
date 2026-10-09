@@ -913,7 +913,7 @@ export class Battle {
   _perkRoll(c, lv) { return c.chance == null || Math.random() < (lvv(c.chance, lv) || 0); }
   // 強化をまとめて掛ける ({atk: 1.2} の倍率。Lv ごとの配列可)
   _perkBuff(t, buff, lv, dur, label) {
-    for (const k in buff) this._applyMod(t, k, lvv(buff[k], lv), dur || 3, label);
+    for (const k in buff) this._applyMod(t, k, lvv(buff[k], lv), lvv(dur, lv) || 3, label);
   }
   _perkHeal(t, pct, label) {
     if (!pct || !t.alive || t.hp >= t.maxhp) return 0;

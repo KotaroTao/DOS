@@ -32,7 +32,7 @@
 //  { t:"win",   hp?:[…], mp?:[…], party? }  戦闘に勝った後、HP/MP を最大の割合だけ回復 (party なら味方全体)
 //  on (与/被ダメ・会心・命中時): "phys" = 物理全般 / "basic" = 通常攻撃 / "skill" = 物理技 / "spell" = 攻撃呪文 (受ける側では敵の全体呪文) / "breath" = ブレス
 //  aura: true = 持ち主が生きている間、味方全員に効く (deal/take/crit/evade)
-//  chance は 0〜1 (配列ならLvごと)。dur は既定3ターン。
+//  chance は 0〜1 (配列ならLvごと)。dur は既定3ターン (buff の持続は配列ならLvごと)。
 //  when (条件。すべて満たす時だけ効く。tgt = 与える時は攻撃先、受ける時は攻撃してきた敵):
 //    race:[種族…] / tgtElem:"fire" / tgtAil (状態異常・怯み中) / tgtDebuffed (弱体中) / tgtLow:0.5 (HP割合以下) / tgtHigh:0.8 (以上) /
 //    boss / noBoss / selfLow:0.5 / selfHigh:0.8 / selfAil / buffed (自分が強化中) / defending / mpHigh:0.5 /
