@@ -1124,6 +1124,12 @@ const SPECIAL_FLOORS = [
     board: (b) => sfPlace(b, 4, (c) => { c.type = "monster"; c.monsterKey = pickFrom(sfMonsterPool()); c.cleared = false; }) },
   { id: "thiefInsight", name: "盗賊の洞察", icon: "chest", accent: "#6fae46", sym: "♠", minFloor: 2, rate: 0.02, sureChest: true, sureDisarm: true,
     lines: ["盗賊の勘が冴え渡る。敵は必ず宝を遺し、罠はことごとく見抜ける。", "敵が100%宝箱を落とし、宝箱の罠解除率が100%になる。"] },
+  // からくり錠の宝物庫 (2026-10 ユーザーの指示): 罠の解除がはるかに難しく、解除を上げる備え (盗賊系の魂・盗賊の眼・AGI/LUK) が無いとまず外せない。
+  //  そのかわり宝箱は必ず罠つき・2ランク上等・中身は必ず装備品で、装備の質も上がる (戦闘後の宝箱も同じ)
+  { id: "lockworks", name: "からくり錠の宝物庫", icon: "chest", accent: "#c8a24a", sym: "♜", minFloor: 3, rate: 0.015,
+    lockMul: 3, chestTrapRate: 1, chestRankUp: 2, chestLootLv: 15, chestNoGold: true,
+    lines: ["からくり職人が錠を凝らした宝物庫の跡だ。宝箱はすべて罠つきで、解除は並の3倍難しい。", "そのかわり宝箱は上等で、中身は必ず質の良い装備品だ。"],
+    board: (b) => sfPlace(b, 2, (c) => { c.type = "chest"; c.cleared = false; }) },
   { id: "miasma", name: "瘴気の階", icon: "poison", accent: "#8a2be2", sym: "☣", minFloor: 2, rate: 0.02, enemyMul: 1.25, soulMul: 2,
     lines: ["よどんだ瘴気が敵を昂らせている。敵が強い。", "だが得られる Soul は 2倍 になる。"] },
   { id: "caravan", name: "商隊の遺品", icon: "chest", accent: "#e0a060", sym: "❖", minFloor: 2, rate: 0.02, chestRankUp: 1,
@@ -6829,7 +6835,8 @@ function disarmPower(m) {
 function disarmNeed(cRank = 1) {
   const c = 1 + ((cRank || 1) - 1) * 0.16;               // 宝箱ランク: 上等な箱ほどずる賢い錠前
   // 基準値: 得意職以外が推奨Lv の隊で約50%に収まる難度 (得意職は ×1.5 ボーナスで上回る)。推奨Lv の伸びで重くなる (levelcurve.js)
-  return LOCK_K * lockPow(levelHere().lv) * c;
+  // 特別階 (からくり錠の宝物庫): 解除がはるかに難しい (sfNum lockMul)
+  return LOCK_K * lockPow(levelHere().lv) * c * sfNum("lockMul", 1);
 }
 
 function disarmChance(m, cRank = 1) {
@@ -6965,7 +6972,8 @@ function chestTrapPhase(opener, contents, cRank = 1, abort, excludeKinds, sink =
   const cfg = activeCfg();
   // cfg.trapRate === 0 は「罠なし」修飾 (静寂の刻など)。特別階「静寂の階」(noTrap) も同様に、
   // 床の罠だけでなく宝箱の罠も出さない。
-  const trapProb = (cfg.trapRate === 0 || sfNum("noTrap", false)) ? 0 : 0.70;
+  // 特別階 (からくり錠の宝物庫) は宝箱に必ず罠がある (chestTrapRate)
+  const trapProb = (cfg.trapRate === 0 || sfNum("noTrap", false)) ? 0 : sfNum("chestTrapRate", 0.70);
   if (Math.random() < trapProb) {
     const trap = pickTrap(cfg.rank || 1, Math.random, excludeKinds);
     const who = opener || bestDisarmer();
@@ -7189,8 +7197,10 @@ function presentTrap(res, fin, sink = boardSink()) {
 // lvBonus: ミミック撃破後の宝箱などのアイテムレベル底上げ。
 // cell.lootBonus: 特別階 (伝説の眠る階) の「伝説の宝箱」— 中身は必ず装備品で +40レベル
 function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false, sink = boardSink()) {
-  const lootUp = (lvBonus || 0) + ((cell && cell.lootBonus) || 0);
+  // 特別階 (からくり錠の宝物庫): 中身の装備の質が上がる (chestLootLv)・金貨にならない (chestNoGold)
+  const lootUp = (lvBonus || 0) + ((cell && cell.lootBonus) || 0) + sfNum("chestLootLv", 0);
   const legendary = !!(cell && cell.lootBonus);
+  if (sfNum("chestNoGold", false)) noGold = true;
   const rankMul = 1 + ((cRank || 1) - 1) * 0.3;
   const fin = done || (() => renderBoard());
   // 中身の抽選 (ダンジョンレベルに応じる): ゴールド50% / ゴールド以外のアイテム50%
