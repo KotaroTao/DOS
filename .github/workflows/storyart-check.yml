@@ -1,0 +1,49 @@
+name: 物語の絵の検査
+
+# 物語の絵・本文・指示書に触れた PR で、登録の漏れ・作り直し忘れ・指示書との食い違いを調べる。
+# 直し方はどれも python3 tools/storyart/build.py (落ちた行に書いてある)。ゲームの動きは調べない。
+on:
+  pull_request:
+    paths:
+      - "art/**"
+      - "sw.js"
+      - "src/archive-stories.js"
+      - "src/storyimages.js"
+      - "src/story.js"
+      - "src/journal.js"
+      - "tools/storyart/**"
+      - "tools/journal/**"
+      - "docs/art/codex-story-art-brief.md"
+      - ".github/workflows/storyart-check.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      # リポジトリは約1GB。検査に要る所だけを取る (docs/art の職業の原画などは取らない)
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/docs/*
+            /docs/art/
+            !/docs/art/*
+            /docs/art/codex-story-art-brief.md
+            /docs/art/sera/
+            /docs/art/story-refs/
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 構文
+        run: for f in $(git ls-files 'src/*.js' 'tools/storyart/*.mjs'); do node --check "$f"; done
+      - name: 絵の登録と原画の作り直し (register.mjs --check)
+        run: node tools/storyart/register.mjs --check
+      - name: 指示書と本文 (prompt.mjs --check)
+        run: node tools/storyart/prompt.mjs --check
+      - name: ストーリーの一覧 (tools/journal/check.mjs)
+        run: node tools/journal/check.mjs

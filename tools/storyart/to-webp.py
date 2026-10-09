@@ -1,38 +1,52 @@
 #!/usr/bin/env python3
 """物語の原画 (PNG) を、出荷する WebP (品質88) に変換する。
 
-原画は art/story-review/ に置き (デプロイで外れる)、ゲームが読むのは art/story/ の WebP だけ。
-GitHub Pages の容量 (1GB・800MBで止まる) と、遊ぶ人の端末へ裏で集める量を抑えるため。
+ふだんは tools/storyart/build.py を使う (変わった原画だけを変換し、登録・確認まで済ませる)。
+このファイルは変換の部品と、1枚だけ・全部を手で変換し直す入口。
 
-  python3 tools/storyart/to-webp.py --all            # 下の対応表どおり全部を変換し直す
+  python3 tools/storyart/to-webp.py --all            # 原画を全部変換し直す (hold / skip を除く)
   python3 tools/storyart/to-webp.py SRC.png DST.webp  # 1枚だけ
 
-変換したら node tools/storyart/register.mjs で登録 (src/storyimages.js と sw.js の ASSETS) を書き直す。
-直しを待つ原画は tools/storyart/hold.json に書いておけば --all でも変換しない。
-
-品質88は、細かな粒が拡大すればわずかに柔らかくなる程度で、ゲームの表示幅 (最大576px) では見分けられない
-(2026-10 ユーザーの確認済み)。1枚 3MB 前後 → 0.4〜0.6MB。
+置き場所 (原画 art/story-review/ → 出荷 art/story/):
+  prologue/<名前>.png → <名前>.webp / chapterN/<場面ID>.png → chapterN/<場面ID>.webp / dungeons/lore_<迷宮ID>.png → dungeons/lore_<迷宮ID>.webp
+原画は art/story-review/ に置き (デプロイで外れる)、ゲームが読むのは art/story/ の WebP だけ。
+品質88は、ゲームの表示幅 (最大576px) では原画と見分けられない (2026-10 ユーザーの確認済み)。1枚 3MB 前後 → 0.4〜0.7MB。
 """
 import json
+import re
 import sys
 from pathlib import Path
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parents[2]
+REVIEW = ROOT / "art/story-review"
+SHIP = ROOT / "art/story"
 QUALITY = 88
-# 原画のフォルダ → 出荷先のフォルダ
-PAIRS = [
-    ("art/story-review/prologue", "art/story"),
-    ("art/story-review/chapter1", "art/story/chapter1"),
-    ("art/story-review/chapter2", "art/story/chapter2"),
-    ("art/story-review/chapter3", "art/story/chapter3"),
-    ("art/story-review/chapter4", "art/story/chapter4"),
-    ("art/story-review/dungeons", "art/story/dungeons"),
-]
-# 物語の絵ではないもの (一覧の見本・制作の参照に使うだけの原画) は出荷しない
-SKIP = {"gallery.png", "morden-at-throne.png"}
-# 直しを待つ原画 (art/story-review/ からの相対・拡張子なし)
-HOLD = set(json.loads((ROOT / "tools/storyart/hold.json").read_text(encoding="utf-8"))["hold"])
+_LISTS = json.loads((ROOT / "tools/storyart/hold.json").read_text(encoding="utf-8"))
+HOLD = set(_LISTS["hold"])  # 直しを待つ原画
+SKIP = set(_LISTS["skip"])  # 物語の絵ではない原画
+
+
+def shipped_for(master: Path) -> Path:
+    """原画のパス → 出荷する WebP のパス"""
+    rel = master.relative_to(REVIEW)
+    folder = rel.parts[0]
+    if folder == "prologue":
+        return SHIP / (master.stem + ".webp")
+    return SHIP / folder / (master.stem + ".webp")
+
+
+def masters():
+    """変換の対象になる原画 (hold / skip を除く) を、置き場所の順に"""
+    dirs = [REVIEW / "prologue"]
+    dirs += sorted((d for d in REVIEW.glob("chapter*") if re.fullmatch(r"chapter\d+", d.name)), key=lambda d: int(d.name[7:]))
+    dirs += [REVIEW / "dungeons"]
+    for d in dirs:
+        for src in sorted(d.glob("*.png")):
+            key = str(src.relative_to(REVIEW).with_suffix(""))
+            if key in SKIP or key in HOLD:
+                continue
+            yield src
 
 
 def convert(src: Path, dst: Path) -> None:
@@ -47,16 +61,10 @@ def convert(src: Path, dst: Path) -> None:
 def main(argv):
     if argv[1:] == ["--all"]:
         n = 0
-        for s, d in PAIRS:
-            for src in sorted((ROOT / s).glob("*.png")):
-                if src.name in SKIP:
-                    continue
-                if str(src.relative_to(ROOT / "art/story-review").with_suffix("")) in HOLD:
-                    print(f"{src.relative_to(ROOT)} は直しを待つ絵 (hold.json) なので変換しない")
-                    continue
-                convert(src, ROOT / d / (src.stem + ".webp"))
-                n += 1
-        print(f"{n}枚を変換。続けて node tools/storyart/register.mjs で登録を書き直す")
+        for src in masters():
+            convert(src, shipped_for(src))
+            n += 1
+        print(f"{n}枚を変換。続けて python3 tools/storyart/build.py で登録と確認を済ませる")
     elif len(argv) == 3:
         convert(Path(argv[1]).resolve(), Path(argv[2]).resolve())
     else:
