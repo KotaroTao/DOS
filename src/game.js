@@ -538,6 +538,7 @@ const G = {
   enemyPos: {},       // 敵の画面座標 (エフェクト配置用)
   partyFx: null,      // 味方カードの被弾/回復フラッシュ (Map)
   partyFxV: null,     // 味方カードに重ねる戦闘の演出 (爪痕・属性・回復の光…。renderParty の .pc-fx)
+  partyCall: null,    // 味方カードの肖像に出す使った技・発動した効果の名 (Map。renderParty の .pc-call)
   wallFlash: null,    // ブロックされた壁の赤フラッシュ { x, y, dir, t0 }
   statusOpen: false,  // ステータス画面表示中
   statusIdx: 0,       // ステータス画面で選択中のメンバー
@@ -7546,6 +7547,7 @@ function startBattleMeasured(enemies, cell) {
   G.enemyPos = {};
   if (G.partyFx) G.partyFx.clear();
   G.partyFxV = null;
+  clearPartyCalls();
   autosave(true); // 戦闘開始を保存
   // 居合・開幕呪撃の演出を先に流してから手番処理へ (発動を視覚的に伝える)
   const opens = G.battle.openingResults || [];
@@ -7568,6 +7570,7 @@ function playOpeningStrikes(list, i, done) {
 
 // 全体描画 (キャンバス + パーティ + メニュー)
 function renderCombat() {
+  if (!G.animating) drainPartyProcs(); // 戦闘の始まり・ラウンドの初めに発動した効果 (手番の外)
   renderDock(); // 戦闘中は行動ドックを隠し、命令板に場所を譲る
   renderRunbar();
   renderCombatCanvas();
@@ -9120,6 +9123,7 @@ const HIT_STAGGER = 165;
 // 結果オブジェクトを演出 (踏み込み → 着弾 → 余韻)
 function animateResult(res, done) {
   if (G.battle && G.battle.tl) tlHits(G.battle.tl, res); // テスト記録: 与ダメ/被ダメ
+  callPartyAction(res); // 札の肖像に使った技の名 (手番の初めから)
   // 眠り・行動不能で何もしなかった手番には、踏み込みや空振り音を出さない
   if ((res.action === "sleep" || res.action === "stunned") && !(res.hits || []).length) {
     renderParty();
@@ -9163,6 +9167,7 @@ function animateResult(res, done) {
     if (!impacted && t >= WIND) {
       impacted = true;
       applyImpact(res);
+      drainPartyProcs(); // 発動した効果の名は着弾と同時に
       renderParty(); // HP反映 + 被弾フラッシュ
     }
     renderCombatCanvas();
@@ -9206,6 +9211,52 @@ function partyFxX(p) {
 function setPartyFxV(p, v) {
   if (!G.partyFxV) G.partyFxV = new Map();
   G.partyFxV.set(p, v);
+}
+
+// 隊の札の肖像に「使った技・発動した効果」の名を出す (ユーザーの指示、2026-10)。
+// 一手の時間 (TOTAL) は延ばさず、札の上でだけ読める長さ残す。同じ人の次の手番か時間切れで消える。
+// 技・道具・防御 = 手番の初め / 発動した効果 (combat.js _proc の記録) = 着弾の瞬間に、同じ札へ最大3行まで重ねる
+const PARTY_CALL_MS = 1400;
+const PARTY_CALL_MAX = 3;
+function setPartyCall(p, text, kind, fresh) {
+  if (!p || !text) return;
+  if (!G.partyCall) G.partyCall = new Map();
+  const now = performance.now();
+  let c = G.partyCall.get(p);
+  if (fresh || !c) c = { lines: [] };
+  else if (c.lines.some((l) => l.text === text)) return;
+  c.lines.push({ text, kind });
+  if (c.lines.length > PARTY_CALL_MAX) c.lines.splice(0, c.lines.length - PARTY_CALL_MAX);
+  c.at = now;
+  clearTimeout(c.timer);
+  c.timer = setTimeout(() => {
+    if (!G.partyCall || G.partyCall.get(p) !== c) return;
+    G.partyCall.delete(p);
+    if (G.state === "combat") renderParty();
+  }, PARTY_CALL_MS);
+  G.partyCall.set(p, c);
+}
+function clearPartyCalls() {
+  if (G.partyCall) for (const c of G.partyCall.values()) clearTimeout(c.timer);
+  G.partyCall = null;
+}
+// 手番の者が使った技・道具・防御 (通常攻撃と開幕の自動攻撃は出さない — 開幕は効果の名で出る)
+function callPartyAction(res) {
+  const a = res && res.actor;
+  if (!a || a.side !== "party" || res.opening) return;
+  if (res.action === "spell" && res.spellName) {
+    const sp = res.spellKey ? SPELLS[res.spellKey] : null;
+    const kind = res.item ? "item" : sp && (sp.kind === "heal" || sp.kind === "cure" || sp.kind === "mana" || sp.revive) ? "heal" : "skill";
+    setPartyCall(a, res.spellName, kind, true);
+  } else if (res.action === "defend") setPartyCall(a, "防御", "guard", true);
+  else if (G.partyCall && G.partyCall.has(a)) { clearTimeout(G.partyCall.get(a).timer); G.partyCall.delete(a); } // 前の手番の名は下げる
+}
+// combat.js が記録した発動した効果 (固有パッシブ・ランクのパッシブ・かばう・反撃…) を札へ移す
+function drainPartyProcs() {
+  const q = G.battle && G.battle.procs;
+  if (!q || !q.length) return false;
+  for (const { who, label } of q.splice(0)) if (G.party.includes(who)) setPartyCall(who, label, "proc", false);
+  return true;
 }
 
 // 着弾の瞬間: 効果音・エフェクト生成・ダメージ表示
@@ -9994,12 +10045,17 @@ function highlightActor(actor) {
 const AIL_SEAL = { poison: ["毒", "poison"], paralyze: ["痺", "paralyze"], stone: ["石", "stone"] };
 const PARTY_MIND_SEAL = { charm: ["魅", "charm"], confuse: ["乱", "confuse"] };
 let _partyKey = "";
+function partyCallKey(p, st) {
+  const c = st === "combat" && G.partyCall && G.partyCall.get(p);
+  return c ? Math.round(c.at) + ":" + c.lines.map((l) => l.text).join("/") : "";
+}
 function renderParty() {
   const fx = G.partyFx;
   const st = G.state;
   const key = st + "|" + G.party.map((p) => [
     p.uid, p.name, p.cls, p.isDoll ? (p.jobLv || 1) : p.level, p.hp, p.maxhp, p.mp, p.maxmp, p.alive ? 1 : 0,
     p.ailment || "", p.asleep && st === "combat" ? 1 : 0, st === "combat" ? (p.mind || "") : "", fx && fx.has(p) ? fx.get(p) : "", (G.partyFxV && G.partyFxV.get(p)) || "", buffBadges(p),
+    partyCallKey(p, st),
     `${p.jobKey || ""}:${p.jobRank || 1}:${p.clsKey || ""}`,
   ].join(",")).join(";");
   if (key === _partyKey && partyEl.childElementCount === G.party.length) return;
@@ -10071,6 +10127,15 @@ function renderParty() {
     // 戦闘の演出 (爪痕・属性の奔流・回復の光…): 札の上に一度だけ走る薄い膜
     const fv = G.partyFxV && G.partyFxV.get(p);
     if (fv) card.appendChild(el("span", "pc-fx " + fv.split(" ").map((c) => "v-" + c).join(" ")));
+    // 使った技・発動した効果の名 (肖像の上から右へ)。札が作り直されても、出た時からの経過で続きから見せる
+    const call = st === "combat" && G.partyCall && G.partyCall.get(p);
+    if (call) {
+      const box = el("div", "pc-call no-phrase");
+      box.style.setProperty("--calld", PARTY_CALL_MS + "ms");
+      box.style.animationDelay = -Math.round(performance.now() - call.at) + "ms";
+      for (const l of call.lines) box.appendChild(el("span", "pc-cl k-" + l.kind, l.text));
+      card.appendChild(box);
+    }
     partyEl.appendChild(card);
   });
 }
@@ -15273,7 +15338,7 @@ function loadGame() {
   fixHandsAndShields();
   // 一時状態はリセット
   G.anim = null; G.flipAnim = null; G.heroAnim = null; G.walking = false; G.prompt = false;
-  G.fx = null; G.animating = false; G.enemyPos = {}; G.partyFx = new Map(); G.partyFxV = null; G.wallFlash = null;
+  G.fx = null; G.animating = false; G.enemyPos = {}; G.partyFx = new Map(); G.partyFxV = null; G.wallFlash = null; G.partyCall = null;
   G.statusOpen = false; G.settingsOpen = false;
   // クラス/参照の再リンク (Battleのメソッド・敵のmon・派生値)
   if (G.battle) {
@@ -15440,6 +15505,8 @@ function resumeCombat() {
   const b = G.battle;
   if (!b) { finishToBoard(); return; }
   G.animating = false; G.fx = null; G.partyFx = new Map(); G.partyFxV = null; G.enemyPos = {};
+  clearPartyCalls();
+  if (b.procs) b.procs.length = 0; // 中断前の発動の印は出し直さない
   renderRunbar();
   renderParty();
   fitView();
