@@ -1,0 +1,22 @@
+{
+  "job": "hermit",
+  "design": "女性巡礼者",
+  "gameLabel": "隠修士",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "frame": [90, 92],
+  "frameTop": 9,
+  "alphaFloor": 8,
+  "notes": [
+    "R1はユーザー承認済み。各ランクはR1と聖戦士の原画を直接参照して独立生成。",
+    "帽子の下に隠れる人体の頭頂は推定値。帽子上端・リボン先端を頭頂にしない。",
+    "旧男性隠修士の原画と設定は保存し、女性巡礼者の原画は別名で管理する。",
+    "初回R1比較の仮測定を、足裏と帽子内の頭頂の再確認により更新。"
+  ],
+  "sources": [
+    {"source": "docs/art/hermit/hermit-pilgrim-female-r1-final.png", "perDot": 15.28, "head": [485, 615, 95, 428, 1356]},
+    {"source": "docs/art/hermit/hermit-pilgrim-female-r2-final.png", "perDot": 15.28, "head": [485, 615, 95, 428, 1356]},
+    {"source": "docs/art/hermit/hermit-pilgrim-female-r3-final.png", "perDot": 15.28, "head": [485, 615, 95, 428, 1355]},
+    {"source": "docs/art/hermit/hermit-pilgrim-female-r4-final.png", "perDot": 15.30, "head": [485, 615, 95, 428, 1358]},
+    {"source": "docs/art/hermit/hermit-pilgrim-female-r5-final.png", "perDot": 15.75, "head": [485, 615, 80, 422, 1374]}
+  ]
+}

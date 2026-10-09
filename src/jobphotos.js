@@ -84,11 +84,11 @@ export const JOB_PHOTOS = {
     5: { src: "art/jobs/hero_5.webp", w: 90, h: 92, face: [45, 20], head: [45, 9, 29.916] },
   },
   hermit: {
-    1: { src: "art/jobs/hermit_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.741] },
-    2: { src: "art/jobs/hermit_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.707] },
-    3: { src: "art/jobs/hermit_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.809] },
-    4: { src: "art/jobs/hermit_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.827] },
-    5: { src: "art/jobs/hermit_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.72] },
+    1: { src: "art/jobs/hermit_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.794] },
+    2: { src: "art/jobs/hermit_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.793] },
+    3: { src: "art/jobs/hermit_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.793] },
+    4: { src: "art/jobs/hermit_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.764] },
+    5: { src: "art/jobs/hermit_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.715] },
   },
   brigand: {
     1: { src: "art/jobs/brigand_1.webp", w: 90, h: 84, face: [45, 12], head: [45.0, 1.0, 23.125] },
