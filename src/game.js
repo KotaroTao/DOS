@@ -71,6 +71,7 @@ import { walkerLook, normalizeLook, WALKER_LOOK_DEFAULT } from "./walkerart.js";
 import * as uiResults from "./ui/results.js";
 import * as uiAppraise from "./ui/appraise.js";
 import * as uiTutorial from "./ui/tutorial.js";
+import * as uiExpedition from "./ui/expedition.js";
 
 // キャンバスに描く文字の書体 (画面の明朝と揃える)
 const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", "Noto Serif CJK JP", serif';
@@ -79,6 +80,7 @@ const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 import { refSoul, refGold, trainCost, lvPow, emberMul, partyAgi, LOCK_K, TRAP_K, lockPow } from "./levelcurve.js";
 import { STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_RECOVERY_MS, recoverStability, stabilityWaitMs, stabilityRecoveryMs } from "./stability.js";
+import { EXP_MAX, EXP_HOURS, EXP_HOUR_MS, EXP_MISC_PER_HOUR, EXP_SOUL_PER_HOUR, EXP_SOUL_EXP_RATE, expPlan, expActualMs, expYield, expRolls, expLeftMin, battlesPerHour as expBattlesPerHour } from "./expedition.js";
 import { tlStability, tlStabilityTick, tlRedGain, tlOn, tlMeasure, tlWatchBattle, tlRunBegin, tlRunEnd, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlTownGain, tlPlayTick, tlSoul } from "./telemetry.js";
 import { repriceEquipment } from "./pricing.js";
 import { spawnFx, drawBattleFx, weaponFxStyle, statusFxKind, skillProfile, ELEM_FX_COL, SIG_FX } from "./battlefx.js";
@@ -359,6 +361,7 @@ setInterval(() => {
   if (titleActive || openingActive || document.visibilityState !== "visible" || (Date.now() - _lastInputAt > 120000 && !activeAuto)) return;
   tlStabilityTick(G.party, 5000);
   G.stats.playMs = (G.stats.playMs || 0) + 5000; // 戦績: 総プレイ時間
+  expeditionTick(); // 遠征は実プレイ時間で進む
   if (tlOn()) tlPlayTick(inDungeon() ? tlWhere() : null, 5000); // テスト記録: 迷宮/町の実プレイ時間
 }, 5000);
 
@@ -488,6 +491,7 @@ const G = {
   pendingDoll: null,  // (旧形式) 未生成の人業。現在は「空の人業」(isEmpty) として reserve に残る (ロード時に移行)
   party: [],          // 迷宮に連れて行く人業 (最大6体)
   reserve: [],        // 酒場で待機中の人業
+  expedition: [],     // 遠征に出ている控えの人業 (src/expedition.js)
   // 魂は1体ごとに固有のインスタンス (本体は魂、人業は器)。同職でも個別に Lv/ランクを持つ。
   souls: [],          // 所持魂 一覧: [{ uid, clsKey, count(吸収数→ランク), level, exp }]
   shopStock: null,    // 商店の在庫 { itemId: 個数 } (初回 setupNewGame で初期化)
@@ -10148,6 +10152,7 @@ function renderTown() {
   playBgm(sceneBgm()); // 施設ごとのBGM (同じ曲なら継続)
   townshell.refresh();
   if (UI.queueStoryNotice) UI.queueStoryNotice(); // 新しく記された物語を、手の空いた時に知らせる
+  if (UI.queueExpeditionReport && expeditionDone().length) UI.queueExpeditionReport(); // 遠征から帰ってきた人業を、手の空いた時に知らせる
   if (then) queueMicrotask(() => { if (G.state === "town") then(); });
 }
 
@@ -10261,6 +10266,155 @@ function stabilityCost(n) { return Math.ceil(Math.max(0, n) / stabilityPerRed())
 function grantRedSoul(n, source) {
   G.redSoul += n || 0; tlRedGain(n || 0, source);
 }
+
+// ===== 遠征 (第六章「氷結回廊」の結びで開く。数の決まりは src/expedition.js、画面は src/ui/expedition.js) =====
+// 控えの人業を踏破済みの迷宮へひとりで送り出す。G.expedition = [{ doll (人業の参照), uid, dungeon, since, dur, ends, lv, rec, back, done, recalled }]
+//   since / ends = 出た時・戻る時の実プレイ時間 (G.stats.playMs)。dur = 選んだ長さ (ms)。back = 推奨Lv に遠く届かず途中で引き返す
+//   done = 戻ってきて報告を待つ (町で手が空いた時に「遠征から帰ってきた」のシートで受け取る → 一覧から消える)
+// 遠征中の人業は控えに残るが、隊に入れられない・魂の付け替え・装備の付け替えができない
+function expeditions() { if (!Array.isArray(G.expedition)) G.expedition = []; return G.expedition; }
+function expeditionOf(d) { return d ? expeditions().find((e) => e.doll === d) || null : null; }
+function expeditionDone() { return expeditions().filter((e) => e.done); }
+// 遠征に送れない理由 (送れるなら null)
+function expeditionBlock(d) {
+  if (!featureUnlocked("expedition")) return "遠征はまだ開いていない";
+  if (G.state !== "town") return "遠征は街から送り出す";
+  if (!d || !G.reserve.includes(d)) return "遠征に出せるのは控えの人業だけ";
+  if (expeditionOf(d)) return "すでに遠征に出ている";
+  if (!d.alive) return "魂の砕けた人業は送れない";
+  if (d.primary == null) return "魂の宿らない器は送れない";
+  if (expeditions().length >= EXP_MAX) return `遠征に出せるのは同時に${EXP_MAX}人まで`;
+  if (!vesselStable(d)) {
+    refreshStability();
+    if (d.stability < STABILITY_ENTRY_COST) return `魂の安定度が足りない (${d.stability}/${STABILITY_ENTRY_COST})`;
+  }
+  return null;
+}
+// 行き先の候補: 踏破済みの台帳の迷宮 (依頼の迷宮も可・奈落は不可)。推奨Lv の高い順
+function expeditionTargets(d) {
+  const w = worldState(), lv = (d && d.jobLv) || 1;
+  return DUNGEONS.filter((c) => w.cleared[c.id])
+    .map((c) => ({ id: c.id, name: c.name, side: !!c.side, lv: c.lv, lvTo: c.lvTo || c.lv, ...expPlan(c, lv, soulLvMul) }))
+    .sort((a, b) => b.rec - a.rec || (a.side ? 1 : 0) - (b.side ? 1 : 0));
+}
+// 送る前の見込み (乱数なし): 引き返すか・戻るまでの長さ・持ち帰る ✦/金貨・メイン魂に入る経験値
+function expeditionPreview(d, id, hours) {
+  const cfg = worldById(id);
+  if (!cfg || !d) return null;
+  const plan = expPlan(cfg, d.jobLv || 1, soulLvMul);
+  const full = hours * EXP_HOUR_MS, ms = expActualMs(full, plan.back);
+  const y = expYield(cfg, plan, ms, full);
+  return { ...plan, ms, full, soul: y.soul, gold: y.gold, exp: Math.floor(y.soul * EXP_SOUL_EXP_RATE),
+    miscP: EXP_MISC_PER_HOUR, soulP: plan.back ? 0 : EXP_SOUL_PER_HOUR };
+}
+function sendExpedition(d, id, hours) {
+  const why = expeditionBlock(d);
+  if (why) { SFX.ng(); showToast(why, { tone: "bad" }); return false; }
+  const cfg = worldById(id);
+  if (!cfg || !worldState().cleared[id] || !EXP_HOURS.includes(hours)) return false;
+  const plan = expPlan(cfg, d.jobLv || 1, soulLvMul);
+  const now = G.stats.playMs || 0, full = hours * EXP_HOUR_MS;
+  if (!vesselStable(d)) { // 迷宮の入場と同じだけ魂の安定度を消費する (セラは消費しない)
+    d.stability -= STABILITY_ENTRY_COST;
+    tlStability("entry", [{ doll: d, amount: STABILITY_ENTRY_COST }], { dungeon: "exp:" + id });
+  }
+  expeditions().push({ doll: d, uid: d.uid, dungeon: id, since: now, dur: full, ends: now + expActualMs(full, plan.back),
+    lv: d.jobLv || 1, rec: plan.rec, back: plan.back, done: false });
+  log(`${d.name} は遠征に出た。行き先は「${cfg.name}」、${hours}時間。`, "sys");
+  SFX.select(); buzz(15);
+  autosave(true);
+  renderTown();
+  return true;
+}
+// 呼び戻す: 経った時間の分だけの戦果で、すぐに戻る (引き返した扱いにはしない)
+function recallExpedition(d) {
+  const e = expeditionOf(d);
+  if (!e || e.done || G.state !== "town") return false;
+  const now = G.stats.playMs || 0;
+  e.ends = Math.max(e.since, Math.min(e.ends, now));
+  e.recalled = true; e.done = true;
+  log(`${d.name} を遠征から呼び戻した。`, "sys");
+  autosave(true);
+  return true;
+}
+// 5秒ごとの時計から: 戻る時の来た遠征に印を付け、街にいれば報告を待たせる
+function expeditionTick() {
+  if (!Array.isArray(G.expedition) || !G.expedition.length) return;
+  const now = G.stats.playMs || 0;
+  let fresh = false;
+  for (const e of G.expedition) if (!e.done && now >= e.ends) { e.done = true; fresh = true; }
+  if (!fresh) return;
+  autosave();
+  if (G.state === "town" && UI.queueExpeditionReport) UI.queueExpeditionReport();
+}
+// 戻った遠征の戦果を決めて渡す (1件)。返り値は報告の1行ぶん
+function claimExpedition(e) {
+  const cfg = worldById(e.dungeon), d = e.doll;
+  const plan = { ...expPlan(cfg, e.lv || 1, soulLvMul), back: !!e.back };
+  const planned = expActualMs(e.dur, plan.back), actual = Math.max(0, e.ends - e.since);
+  const f = planned > 0 ? Math.min(1, actual / planned) : 0;
+  const y = expYield(cfg, plan, planned, e.dur);
+  const hours = actual / EXP_HOUR_MS;
+  const out = { name: d.name, doll: d, dungeon: cfg.name, dur: e.dur, actual, back: plan.back && !e.recalled, recalled: !!e.recalled,
+    soul: Math.round(y.soul * f), gold: Math.round(y.gold * f), items: [], sold: 0, souls: [], lvFrom: 0, lvTo: 0 };
+  G.soulPts += out.soul; G.gold += out.gold;
+  tlTown("soul", out.soul, "exp"); tlTown("gold", out.gold, "exp");
+  // メイン魂の経験値 (持ち帰った ✦ の 1/3。迷宮の戦闘で魂に入る割合と同じ)
+  const s = d.primary != null ? soulByUid(d.primary) : null;
+  if (s) {
+    out.lvFrom = out.lvTo = s.level;
+    const gain = Math.floor(out.soul * EXP_SOUL_EXP_RATE);
+    if (gain > 0) {
+      const cap = soulLevelCapOf(s);
+      s.exp = (s.exp || 0) + gain;
+      while (s.level < cap && s.exp >= soulTrainCost(s.level)) { s.exp -= soulTrainCost(s.level); s.level++; }
+      out.lvTo = s.level;
+      if (out.lvTo > out.lvFrom) { const vit = hpMpRatio(d); recalcAllDolls(); keepHpMpRatio(d, vit); }
+    }
+  }
+  // 収集品 (1時間ごとに見込み。引き返した時は半分)。袋に空きが無ければ売値の金貨にする
+  const nMisc = expRolls(hours, EXP_MISC_PER_HOUR * (out.back ? 0.5 : 1));
+  if (nMisc) {
+    const cap = Math.min(20, Math.ceil(((cfg.lootLv || [1, 10])[1]) / 10) + 2);
+    const pool = miscLootIds().filter((id) => Math.max(1, Math.min(20, ITEMS[id].r20 || 1)) <= cap);
+    for (let i = 0; i < nMisc && pool.length; i++) {
+      const it = cloneItem(pool[Math.floor(Math.random() * pool.length)]);
+      if (!it) continue;
+      const who = [d, ...allDolls()].find((x) => x && (x.items || []).length < MAX_ITEMS);
+      if (who) { it.isNew = true; who.items.push(it); codexSeeItem(it.id, it); out.items.push({ item: it, who }); }
+      else { const g = sellPrice(it); G.gold += g; out.sold += g; tlTown("gold", g, "exp"); }
+    }
+  }
+  // 職業の魂 (まれに。引き返した時は無し)
+  const nSoul = out.back ? 0 : expRolls(hours, EXP_SOUL_PER_HOUR);
+  for (let i = 0; i < nSoul; i++) out.souls.push(grantSoulQuiet(rollJobClass(), `遠征で「${cfg.name}」から持ち帰った`));
+  const i = expeditions().indexOf(e);
+  if (i >= 0) expeditions().splice(i, 1);
+  return out;
+}
+// 戻った遠征をすべて受け取る (報告のシートが呼ぶ)
+function claimExpeditions() {
+  const rows = expeditionDone().map(claimExpedition);
+  if (rows.length) { updateTopbar(); autosave(true); }
+  return rows;
+}
+// 読み込み: 人業の参照を控えにつなぎ直す (参照が切れていれば uid で探す。隊にいる・見つからない遠征は取り消す)
+function normalizeExpeditions() {
+  if (!Array.isArray(G.expedition)) { G.expedition = []; return; }
+  const seen = new Set();
+  G.expedition = G.expedition.filter((e) => {
+    if (!e || typeof e !== "object" || !worldById(e.dungeon)) return false;
+    const d = (e.doll && G.reserve.includes(e.doll)) ? e.doll : G.reserve.find((x) => x && x.uid === e.uid) || null;
+    if (!d || seen.has(d)) return false;
+    seen.add(d);
+    e.doll = d; e.uid = d.uid;
+    for (const k of ["since", "dur", "ends", "lv", "rec"]) if (!Number.isFinite(e[k])) e[k] = 0;
+    e.back = !!e.back; e.done = !!e.done;
+    return true;
+  });
+}
+// 遠征の残り (分)。画面の札が読む
+function expeditionLeftMin(e) { return expLeftMin(e, G.stats.playMs || 0); }
 
 // 人業を仕立てる費用 (最初の3体は無料、4体目以降に段階上昇)
 function emptyDollCost() {
@@ -10459,6 +10613,7 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
   const fin = (v) => { if (typeof done === "function") done(v); return v; };
   const s = soulByUid(uid);
   if (!s || G.state !== "town") return fin(false);
+  if (expeditionOf(d)) { SFX.ng(); showToast(`${d.name}は遠征に出ている。魂の付け替えは、帰ってきてから`, { tone: "bad" }); return fin(false); }
   const si = slotId === "primary" ? -1 : +slotId.slice(3);
   if (si < 0 && !featureUnlocked("soulChange")) return fin(false);
   if (si >= 0 && (!Number.isInteger(si) || si < 0 || si >= unlockedSubSlots())) return fin(false);
@@ -10471,6 +10626,7 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
   // 同じuidの魂は、メイン・サブを問わず他の人業と共有しない。他の人業が宿している魂を選んだら、その人業から移す
   //   (ユーザーの指示、2026-10。画面側で「〜が宿している」と確認してから呼ぶ)。入れ替えられれば、こちらが外した魂をその人業へ渡す
   const take = isNewEquip ? soulTakePlan(d, uid, slotId) : null;
+  if (take && expeditionOf(take.holder)) { SFX.ng(); showToast(`その魂は遠征中の${take.holder.name}が宿している。呼び戻してから移せる`, { tone: "bad" }); return fin(false); }
 
   // メイン魂の付け替えで、新しい職では装備できなくなる装備があれば事前に確認する
   if (isNewEquip && slotId === "primary" && d.primary !== uid) {
@@ -12142,6 +12298,7 @@ function featureMet(key, w = worldState()) {
   return f.report === "finale" ? !!w.reported[ch.finale] : chapterReports(ch, w) >= f.report;
 }
 function featureUnlocked(key) {
+  if (G.testPlay && Array.isArray(G.testUnlock) && G.testUnlock.includes(key)) return true; // 試遊の開発用 (URL の testUnlock=expedition など)
   if (key === "soulChange") return featureMet(key) && !!G.tut?.done?.soulChange;
   return featureMet(key);
 }
@@ -13987,6 +14144,7 @@ function itemFitsSlot(it, slotKey) {
 // 装飾品は「指定した枠」に付ける。stashTo を渡すと、外れた装備は p ではなくその人業の袋へ入る
 // (p の袋が満杯の時の「持ち主と取り替える」)。成否 { ok, msg, displaced, full }
 function equipAt(p, it, slotKey, owner = p, stashTo = null) {
+  if (expeditionOf(p) || expeditionOf(owner) || expeditionOf(stashTo)) return { ok: false, msg: "遠征に出ている人業の装備・持ち物は動かせない" };
   if (!it || !itemFitsSlot(it, slotKey)) return { ok: false, msg: "その部位には装備できない" };
   if (!canEquip(p, it)) return { ok: false, msg: it.unidentified ? "未鑑定の品は装備できない" : `${p.cls}は${it.name}を装備できない` };
   const tr = autoEquip.trialEquip(p.equip, it, slotKey);
@@ -14599,7 +14757,7 @@ const SAVE_KEY = "dos-save-v7"; // v7 = 迷宮の台帳 (選んで潜る迷宮�
 const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "stabilityBriefed", "pendingDoll",
-  "party", "reserve", "souls", "shopStock", "run", "town",
+  "party", "reserve", "expedition", "souls", "shopStock", "run", "town",
   "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "irene", "journal", "tut", "events", "story", "world", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
   "lastRun",
@@ -14869,6 +15027,7 @@ function loadGame() {
     if (typeof d.hp === "number") d.hp = Math.round(d.hp);
     if (typeof d.mp === "number") d.mp = Math.round(d.mp);
   }
+  normalizeExpeditions(); // 遠征 (後付け: 旧セーブは無し。人業の参照を控えにつなぎ直す)
   if (!G.stats) G.stats = {};
   // 後付けの戦績フィールドを既存セーブにも補完する (勲章 cond が参照する)
   const _statDefaults = { runs: 0, deepest: 0, kills: 0, deaths: 0, soulsFound: 0, bossKills: 0,
@@ -15001,6 +15160,7 @@ function setupNewGame() {
   // 金貨も赤い魂も持たずに着任する。まず王宮で三職の魂を拝受する。
   G.party = [];
   G.reserve = [];
+  G.expedition = [];
   G.souls = [];       // 所持魂 一覧 (魂インスタンスの配列)
   setSharedSouls(G.souls);
   G.stabilityBriefed = false;
@@ -15053,6 +15213,20 @@ function setupTestPlay() {
     G.party.push(doll);
   }
   G.dollsPurchased = G.party.length;
+  // 開発用: まだ章の無い機能を試す (URL の testUnlock=expedition,… / 機能の解放の場面「unlock:キー」)
+  G.testUnlock = (testParams.get("testUnlock") || "").split(",").filter((k) => FEATURES[k]);
+  if (testScene && testScene.id.startsWith("unlock:") && FEATURES[testScene.id.slice(7)]) G.testUnlock.push(testScene.id.slice(7));
+  if (featureUnlocked("expedition")) { // 遠征を試せるよう、控えに3体 (隊と同じ Lv)
+    for (const [i, cls] of ["samurai", "monk", "bishop"].entries()) {
+      const soul = addSoulInstance(cls, 1, level);
+      soul.capBonus = Math.max(0, level - soulLevelCap(cls, soul.count));
+      const doll = makeDoll(`控え${i + 1}・${SOUL_CLASSES[cls].label}`);
+      doll.primary = soul.uid; recalcDoll(doll);
+      doll.hp = doll.maxhp; doll.mp = doll.maxmp;
+      G.reserve.push(doll);
+    }
+    G.dollsPurchased += 3;
+  }
   G.gold = Math.round(refGold(level) * 30); G.redSoul = 300;
   G.state = "town";
   if (testScene?.kind === "tutorial") {
@@ -15510,7 +15684,7 @@ function wireUI() {
     }).observe(itemGetEl, { attributes: true, attributeFilter: ["class"] });
   }
   // 各パッケージの UI を登録 (スタブを差し替える)。A→B→C→D の順
-  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiJournal, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiAppraise, uiDeparture, uiDungeonHud, uiResults, uiTutorial]) {
+  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiJournal, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiAppraise, uiDeparture, uiDungeonHud, uiResults, uiTutorial, uiExpedition]) {
     try { m.install(); } catch (e) { console.error(e); }
   }
 }
@@ -15579,6 +15753,12 @@ bindGame({
   logHistory,
 });
 // ==== /WP-D ====
+// ==== 遠征 (src/ui/expedition.js・隊の控えの一覧が使う) ====
+bindGame({
+  expeditions, expeditionOf, expeditionDone, expeditionBlock, expeditionTargets, expeditionPreview, sendExpedition,
+  recallExpedition, claimExpeditions, expeditionLeftMin, EXP_MAX, EXP_HOURS, expBattlesPerHour, worldById,
+});
+// ==== /遠征 ====
 
 // ---- 起動 ----
 // タイトル画面のセーブ概要 (つづきから): 進行中の章・踏破数・編成の顔ぶれ
@@ -15622,7 +15802,7 @@ function init() {
     exit.type = "button"; exit.textContent = "終了してホームへ";
     exit.addEventListener("click", () => {
       const url = new URL(location.href);
-      for (const key of ["testDungeon", "testFloor", "testPlace", "testScene"]) url.searchParams.delete(key);
+      for (const key of ["testDungeon", "testFloor", "testPlace", "testScene", "testUnlock"]) url.searchParams.delete(key);
       location.replace(url.href);
     });
     banner.appendChild(exit); document.body.appendChild(banner);
