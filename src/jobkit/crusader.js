@@ -7,13 +7,13 @@ export default {
   awaken: "crusaderTsuigeki",
   table: `
     1 KYOUGEKI 2 KOUJIN 3 HOLYRAY 5 crusaderFujouUchi/1 5 DIOS 7 NERAIUCHI 10 BLESS 10 CURE 12 KAENGIRI
-    15 CRUSADER_SEIKAZAN 15 crusaderToki/1 20 CRUSADER_SEIINTSUKI 22 CRUSADER_JUUJISENKOU
+    15 CRUSADER_SEIKAZAN 15 crusaderToki/1 20 CRUSADER_SEIINTSUKI 20 dynamicVision/1 22 CRUSADER_JUUJISENKOU
     25 crusaderFujouUchi/2 30 SEISEN 30 DIOSALL 35 crusaderTotsugekiIkioi/1 40 JUUJIZAN 40 DIAL
-    45 crusaderSeinaruKouyou/1 50 JOUKA 50 crusaderToki/2 55 SHINGANGEKI 57 SEIGEKI 60 crusaderSeikaKate/1
+    45 crusaderSeinaruKouyou/1 50 JOUKA 50 crusaderToki/2 55 SHINGANGEKI 57 SEIGEKI 60 crusaderSeikaKate/1 60 dynamicVision/2
     65 CRUSADER_SEISHOU 70 crusaderJunkyoushin/1 75 crusaderJunkyoushin/2 80 CRUSADER_SEIENTOTSU 82 GURENZAN
     90 resistAilment/1 95 CRUSADER_JUUJIBARAI 100 CRUSADER_KOUCHUU 100 crusaderToki/3
     105 crusaderTotsugekiIkioi/2 107 CRUSADER_SHOKUZAI 110 CRUSADER_SHAKUNETSU 115 crusaderFujouUchi/3
-    120 CRUSADER_SEISENTOTSU 125 crusaderJunkyoushin/3 130 CRUSADER_SEIENCHIKAI 135 crusaderSeikaKate/2
+    120 CRUSADER_SEISENTOTSU 125 crusaderJunkyoushin/3 130 CRUSADER_SEIENCHIKAI 130 dynamicVision/3 135 crusaderSeikaKate/2
     140 CRUSADER_JUUJISABAKI 145 resistAilment/2 150 CRUSADER_DAITOTSUGEKI 155 crusaderSeinaruKouyou/2
     160 CRUSADER_JOUMETSU 162 KOUBOURANBU 165 crusaderJunkyoushin/4 170 CRUSADER_SEIRAKU
     175 crusaderSeinaruKouyou/3 180 CRUSADER_GAIKA 185 crusaderTotsugekiIkioi/3 190 CRUSADER_TOTSUGEKIJIN

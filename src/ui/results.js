@@ -337,7 +337,7 @@ export function openWipe(spec = {}) {
   foot.push({ label: spec.secured ? "街へ戻る ― 救出を待つ" : "あきらめる ― 救出を待つ", kind: spec.canSave ? "danger" : "primary", size: spec.canSave ? "md" : "lg", onTap: pick(spec.onGiveUp || (() => {})) });
   h = sheet.open({
     kind: "choice", banner: "全滅", accent: "#d4504e", className: "rs-sheet rs-wipe-sheet",
-    art: ICONS.corpse, artScale: 7, title: "人業はことごとく砕けた…",
+    art: ICONS.corpse, artScale: 7, title: spec.abandoned ? "迷宮を諦めた…" : "人業はことごとく砕けた…",
     body, footer: foot, dismissible: false,
     onBack: (s) => { try { s.el.animate([{ transform: "translateX(-6px)" }, { transform: "translateX(5px)" }, { transform: "none" }], { duration: 260 }); } catch (e) { /* noop */ } },
     onBackdrop: () => {},

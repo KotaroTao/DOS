@@ -436,6 +436,8 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 .dg-mtile:active:not(:disabled) { transform: scale(0.98); filter: brightness(0.92); }
 .dg-mtile.wide { width: 100%; margin-top: 6px; }
 .dg-mtile.t-gold { border-color: #8a6d2e; box-shadow: var(--plate-edge), 0 0 12px rgba(201,162,74,0.18); }
+.dg-mtile.t-red { border-color: #6e2c2a; }
+.dg-mtile.t-red .dg-mtile-ic { stroke: #d4706a; }
 .dg-mtile.off { opacity: 0.6; cursor: default; }
 .dg-mtile-ic { flex: 0 0 auto; width: 22px; height: 22px; fill: none; stroke: #c9ae7c; stroke-width: 1.7; stroke-linejoin: round; stroke-linecap: round; }
 .dg-mtile-t { min-width: 0; display: flex; flex-direction: column; gap: 1px; }

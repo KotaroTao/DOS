@@ -15,7 +15,7 @@ import { RESIST_LABEL } from "../resistance.js";
 
 import { UI, game, ops, registerUI } from "./ctx.js";
 import {
-  el, button, row, segmented, sheet, toast, confirm, statDelta, bar, badge, setText, longPress, shake, scrollBox,
+  el, button, row, segmented, sheet, toast, confirm, statDelta, bar, badge, setText, longPress, shake, scrollBox, uiBlocked,
 } from "./kit.js";
 import { deltaFloat } from "./motion.js";
 import { remember, setPref, getPref } from "./prefs.js";
@@ -28,7 +28,7 @@ import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVi
 import {
   planBestEquip, applyPlan, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isMeleeWeapon,
 } from "../autoequip.js";
-import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, useWhere, compareUse } from "../items.js";
+import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, useWhere, compareUse, AIL_LABEL } from "../items.js";
 import {
   SOUL_CLASSES, SOUL_KEYS, JOB_GEAR, dollSprite, dollBust, dollFace, jobBust, jobSprite, jobRankName, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulLabel, soulRankLeft, soulByUid,
   orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs, isAutoOff, setAutoOff,
@@ -37,6 +37,7 @@ import { TACTICS, tacticOf, setTactic } from "../autotactics.js";
 import { SPELLS, spellCost, spellMpLabel } from "../combat.js";
 import { spriteCanvas, crispCanvas } from "../sprites.js";
 import { rarityKey, RARITIES } from "../rarity.js";
+import { RESONANCE_MAP, resonanceText, resonanceTotals } from "../resonance.js";
 
 const hasDOM = () => typeof document !== "undefined" && typeof document.createElement === "function";
 const sfx = (k) => { try { const S = game.SFX; if (S && S[k]) S[k](); } catch (e) { /* 音は演出のみ */ } };
@@ -197,6 +198,8 @@ export const REASON_TEXT = {
   "属性": "属性が合わない",
   "呪い": "呪われた装備が外れない",
   "両手": "呪われた装備があり、両手武器と盾を持ち替えられない",
+  "ロック": "ロック中の装備は付け替えない (ロックを外すと付けられる)",
+  "両手ロック": "ロック中の装備があり、両手武器と盾を持ち替えられない",
   "遠征中": "遠征に出ていて、帰るまで装備を替えられない",
 };
 export function canEquipReason(d, it) {
@@ -220,8 +223,11 @@ export function canEquipReason(d, it) {
   for (const k of slotKeysFor(it)) {
     const cur = d.equip && d.equip[k];
     if (cur && cur.cursed) { why = why || "呪い"; continue; }
-    if (it.slot === "weapon" && it.twoHanded && d.equip.shield && d.equip.shield.cursed) { why = "両手"; continue; }
-    if (it.slot === "shield" && d.equip.weapon && d.equip.weapon.twoHanded && d.equip.weapon.cursed) { why = "両手"; continue; }
+    if (cur && cur.locked) { why = why || "ロック"; continue; }
+    const sh = it.slot === "weapon" && it.twoHanded ? d.equip.shield : null;
+    const wp = it.slot === "shield" && d.equip.weapon && d.equip.weapon.twoHanded ? d.equip.weapon : null;
+    if ((sh && sh.cursed) || (wp && wp.cursed)) { why = "両手"; continue; }
+    if ((sh && sh.locked) || (wp && wp.locked)) { why = "両手ロック"; continue; }
     return null;
   }
   return why || "呪い";
@@ -696,10 +702,12 @@ function openAutoEquipResult(plan, before, undo) {
       chip.appendChild(el("span", "pt-ae-sd", `${v1 > v0 ? "▲" : "▼"}${Math.abs(v1 - v0)}`));
       st.appendChild(chip);
     }
-    // 能力値以外で点数に効くもの (ブレス耐性・状態異常耐性の合計) も、付け替えの理由がわかるように出す
-    const resSum = (o) => Math.round(Object.values(o || {}).reduce((a, v) => a + (v || 0), 0) * 100);
-    for (const [lab, v0, v1] of [["ブレス耐性", Math.round((r.b.breathRes || 0) * 100), Math.round((r.a.breathRes || 0) * 100)],
-      ["異常耐性", resSum(r.b.ailRes), resSum(r.a.ailRes)]]) {
+    // 能力値以外で点数に効くもの (ブレス耐性・状態異常耐性) も、付け替えの理由がわかるように出す。
+    // 状態異常耐性は種類ごとに (合計だと何の耐性が動いたのかわからない — ユーザーの指示)
+    const pct = (v) => Math.round((v || 0) * 100);
+    const resRows = [["ブレス耐性", pct(r.b.breathRes), pct(r.a.breathRes)]];
+    for (const k of Object.keys(AIL_LABEL)) resRows.push([`${AIL_LABEL[k]}耐性`, pct((r.b.ailRes || {})[k]), pct((r.a.ailRes || {})[k])]);
+    for (const [lab, v0, v1] of resRows) {
       if (v0 === v1) continue;
       const chip = el("span", "pt-ae-s " + (v1 > v0 ? "up" : "dn"));
       chip.appendChild(el("span", "pt-ae-sk", lab));
@@ -1013,7 +1021,13 @@ function formationEl(mode) {
   const wrap = el("section", "pt-form" + (picked ? " picking" : "") + (town ? "" : " ro"));
   for (let r = 0; r < 2; r++) {
     const grp = el("div", "pt-fgrp " + (r ? "back" : "front"));
-    grp.appendChild(el("span", "pt-fgrp-l", r ? "後衛" : "前衛"));
+    const rb = r ? null : resonanceChip(); // 魂の共鳴 (前衛の見出しの右。開いてからだけ)
+    if (rb) {
+      const hd = el("div", "pt-fgrp-h");
+      hd.appendChild(el("span", "pt-fgrp-l", "前衛"));
+      hd.appendChild(rb);
+      grp.appendChild(hd);
+    } else grp.appendChild(el("span", "pt-fgrp-l", r ? "後衛" : "前衛"));
     const inn = el("div", "pt-fgrp-in");
     let any = false;
     for (let c = 0; c < 3; c++) {
@@ -1036,6 +1050,125 @@ function formationEl(mode) {
     wrap.appendChild(side);
   }
   return wrap;
+}
+
+// ================= 魂の共鳴 (第七章の結びで開く。組の表・判定は src/resonance.js、記録は game.js) =================
+// 隊列の前衛の見出しの右に「共鳴 n」の小さな札 → いま効いている組・合計・あと1職でそろう組のシート。
+// 初めてそろった組は、街で手の空いた時に「魂の共鳴」の祝祭カードで知らせる (queueResonanceNotice)。
+// 図鑑 (palace.js) の「共鳴」区分も resonanceRow で札を描く
+const resoOpen = () => !!(game.featureUnlocked && game.featureUnlocked("resonance"));
+function resonanceChip() {
+  if (!resoOpen() || !game.partyResonances) return null;
+  const n = game.partyResonances().length;
+  const near = game.partyNearResonances ? game.partyNearResonances().length : 0;
+  const b = el("button", "pt-reso" + (n ? " on" : ""));
+  b.type = "button";
+  b.appendChild(el("span", "pt-reso-l", "共鳴"));
+  b.appendChild(el("span", "pt-reso-n", String(n)));
+  b.setAttribute("aria-label", `魂の共鳴 ${n}組${near ? `・あと1職でそろう組 ${near}` : ""}`);
+  b.addEventListener("click", (e) => { e.stopPropagation(); if (picked) return; sfx("select"); openResonance(); });
+  return b;
+}
+// 職の札 (小さな顔 + 職の名)。k = null なら伏せた札「？」
+function resoJobChip(k, { dim = false } = {}) {
+  const c = el("span", "rs-job" + (k ? "" : " unk") + (dim ? " dim" : ""));
+  const cl = k && SOUL_CLASSES[k];
+  if (cl) {
+    c.style.setProperty("--glow", cl.glow);
+    const f = el("span", "rs-job-f");
+    try { f.appendChild(crispCanvas(jobBust(k, 1), 18)); } catch (e) { /* 絵が無くても動く */ }
+    c.appendChild(f);
+    c.appendChild(el("span", "rs-job-n", cl.label));
+  } else c.appendChild(el("span", "rs-job-n", "？"));
+  return c;
+}
+// 共鳴の札。found = 見つけた組 (名前・職・効果を出す)、そうでなければ「？？？」と職の数だけ。
+// have = 隊にそろっている職 (あと1職の札で、その職だけ明かす) / active = いま効いている / missing = 足りない職 (見つけた組だけ名を出す)
+export function resonanceRow(res, { found = false, active = false, have = null, missing = null } = {}) {
+  const r = el("div", "rs-row" + (found ? "" : " unk") + (active ? " on" : ""));
+  const top = el("div", "rs-top");
+  top.appendChild(el("span", "rs-name", found ? res.name : "？？？"));
+  top.appendChild(el("span", "rs-tag", `${res.jobs.length}職`));
+  if (active) top.appendChild(el("span", "rs-tag on", "共鳴中"));
+  r.appendChild(top);
+  const jobs = el("div", "rs-jobs");
+  for (const k of res.jobs) {
+    const show = found || (have && have.includes(k));
+    jobs.appendChild(resoJobChip(show ? k : null, { dim: !!(missing && k === missing) }));
+  }
+  r.appendChild(jobs);
+  if (found) r.appendChild(el("div", "rs-fx", resonanceText(res)));
+  if (missing) r.appendChild(el("div", "rs-miss", found && SOUL_CLASSES[missing] ? `あと「${SOUL_CLASSES[missing].label}」がそろえば響き合う` : "あと1職がそろえば響き合う"));
+  if (found && !missing) r.appendChild(el("div", "rs-tx", res.text));
+  return r;
+}
+export function openResonance() {
+  const G = G_();
+  if (!G || !resoOpen()) return null;
+  const found = (G.resonance && G.resonance.found) || {};
+  const list = game.partyResonances ? game.partyResonances() : [];
+  const near = game.partyNearResonances ? game.partyNearResonances() : [];
+  const town = G.state === "town";
+  const body = (b) => {
+    b.appendChild(el("p", "rs-note", "隊に出ている人業のメイン魂の職がそろうと、隊全体に効く。サブ魂と控えは数えない。倒れていても隊にいれば効く。"));
+    if (list.length) {
+      const tot = el("div", "rs-tot");
+      tot.appendChild(el("div", "rs-h", "いまの効果 (合計)"));
+      for (const t of resonanceTotals(list)) tot.appendChild(el("div", "rs-tot-l", t.text));
+      b.appendChild(tot);
+    }
+    b.appendChild(el("div", "rs-h", `いま響き合っている組 ${list.length}`));
+    if (!list.length) b.appendChild(el("div", "rs-none", "まだ響き合う組はない。隊の顔ぶれを変えてみよう。"));
+    for (const x of list) b.appendChild(resonanceRow(x, { found: true, active: true }));
+    if (near.length) {
+      b.appendChild(el("div", "rs-h", `あと1職でそろう組 ${near.length}`));
+      for (const n of near) b.appendChild(resonanceRow(n.res, { found: !!found[n.res.id], have: n.have, missing: n.missing }));
+    }
+    const cnt = Object.keys(found).filter((id) => RESONANCE_MAP[id]).length;
+    b.appendChild(el("p", "rs-note", `見つけた組 ${cnt}/${(game.RESONANCES || []).length}。見つけた組は図鑑の「共鳴」に記される。`));
+  };
+  const footer = [];
+  if (town && UI.openPalace) footer.push({ label: "図鑑で見る", kind: "secondary", onTap: (h) => { h.close(); UI.openPalace("codex:reso"); } });
+  footer.push({ label: "閉じる", kind: "ghost", onTap: (h) => h.close() });
+  return sheet.open({ kind: "info", banner: "魂の共鳴", className: "rs-sheet", accent: "#b99cf0", body, footer });
+}
+// 初めてそろった組の知らせ: 街で手が空いた時に、まとめて1枚 (物語の知らせ・遠征の報告と同じ待ち方)
+let resoTimer = null, resoTries = 0, resoShowing = false;
+function resoBusy() {
+  if (uiBlocked() || sceneActive() || UI.tutorialActive?.() || UI.tutorialPending?.()) return true;
+  if (hasDOM() && document.querySelector(".sc-scene")) return true;
+  const G = G_();
+  if (G && G.town?.tab === "party" && game.pendingIreneBeat?.()) return true;
+  return false;
+}
+function queueResonanceNotice() {
+  if (resoTimer || resoShowing) return;
+  resoTries = 0;
+  const tick = () => {
+    resoTimer = null;
+    const G = G_();
+    if (!G || G.state !== "town" || !(G.resonance && G.resonance.fresh && G.resonance.fresh.length)) return;
+    if (resoBusy()) { if (++resoTries < 60) resoTimer = setTimeout(tick, 1500); return; }
+    showResonanceNotice();
+  };
+  resoTimer = setTimeout(tick, 600);
+}
+function showResonanceNotice() {
+  const list = game.takeFreshResonances ? game.takeFreshResonances() : [];
+  if (!list.length) return;
+  resoShowing = true;
+  sfx("rankup");
+  sheet.open({
+    kind: "celebrate", sparkle: true, banner: "魂の共鳴", className: "rs-sheet rs-cel", accent: "#b99cf0",
+    title: list.length > 1 ? `${list.length}つの共鳴が目覚めた` : `「${list[0].name}」が目覚めた`,
+    body: (b) => {
+      b.appendChild(el("p", "rs-note", "隊の魂どうしが響き合い、隊全体に力が宿った。"));
+      for (const x of list) b.appendChild(resonanceRow(x, { found: true, active: true }));
+      b.appendChild(el("p", "rs-note", "見つけた組は図鑑の「共鳴」に記される。隊の「共鳴」の札から、いまの組を見られる。"));
+    },
+    footer: [{ label: "心得た", kind: "primary", size: "lg", onTap: (h) => h.close() }],
+    onClose: () => { resoShowing = false; const G = G_(); if (G && G.state === "town" && game.renderTown) game.renderTown(); },
+  });
 }
 // 控えの結社 (魂一覧の右): 席の数。解放前は出さない (soulpanel.js openOrderSheet)
 function orderButton() {
@@ -1774,7 +1907,7 @@ function equipSeg(root, d) {
 function slotCell(d, k) {
   const it = d.equip[k];
   const info = d.primary != null ? slotInfo(d, k) : { count: 0, better: false };
-  const r = el("button", "pt-slot" + (it ? "" : " empty") + (it && it.cursed ? " cursed" : "") + (info.better ? " better" : ""));
+  const r = el("button", "pt-slot" + (it ? "" : " empty") + (it && it.cursed ? " cursed" : "") + (it && it.locked ? " locked" : "") + (info.better ? " better" : ""));
   r.type = "button";
   r.dataset.slot = k;
   const ic = el("span", "pt-slot-ic");
@@ -1846,6 +1979,11 @@ export function openCandidates(d, k) {
 function candBody(root, d, k, h, town) {
   const cur = d.equip[k];
   root.appendChild(cur ? curItemCard(d, k, cur, h) : curEmpty());
+  if (cur && cur.locked) {
+    // ロック中の部位は付け替えない (候補も並べない)。ロックを外せば候補が出る
+    root.appendChild(el("div", "pt-note c", "ロック中 ― この部位は付け替え・最適装備の対象にならない。付け替えるにはロックを外す。"));
+    return;
+  }
   const cands = slotCandidates(d, k, { includeUnid: true });
   const ok = cands.filter((c) => !c.unid);
   const unid = cands.filter((c) => c.unid);
@@ -1902,7 +2040,15 @@ function curItemCard(d, k, cur, h) {
   }
   if (cur.desc && !cur.unidentified) box.appendChild(el("div", "pt-cur-desc", cur.desc));
   const foot = el("div", "pt-cur-foot");
-  foot.appendChild(button({ label: cur.cursed ? "呪いで外せない" : "外す", kind: "ghost", size: "sm", disabled: !!cur.cursed || d.items.length >= MAX_ITEMS,
+  if (!cur.cursed && !cur.unidentified && game.toggleItemLock) {
+    const lk = button({ icon: cur.locked ? "lock" : "unlock", label: cur.locked ? "ロック中" : "ロック", kind: cur.locked ? "secondary" : "ghost", size: "sm",
+      title: cur.locked ? "ロックを外す" : "売却・付け替え・最適装備の対象にしない",
+      onTap: () => { game.toggleItemLock(cur); memoClear(); if (h && !h.closed && h.update) h.update({}); } });
+    lk.classList.add("pt-lock", "sp-lock-btn");
+    if (cur.locked) lk.classList.add("on");
+    foot.appendChild(lk);
+  }
+  foot.appendChild(button({ label: cur.cursed ? "呪いで外せない" : cur.locked ? "ロック中は外せない" : "外す", kind: "ghost", size: "sm", disabled: !!cur.cursed || !!cur.locked || d.items.length >= MAX_ITEMS,
     onTap: () => { h.close(); if (game.doUnequip) game.doUnequip(d, k); } }));
   box.appendChild(foot);
   return box;
@@ -2245,7 +2391,8 @@ function itemActions(it, owner, ctx, { equip = true } = {}) {
   const close = (h) => { if (h && h.close) h.close(); };
   if (ctx === "equip") {
     const key = SLOTS.find((k) => owner.equip[k] === it);
-    acts.push({ label: it.cursed ? "呪いで外せない" : "外す", kind: "secondary", disabled: !!it.cursed || owner.items.length >= MAX_ITEMS,
+    if (!it.cursed && !it.unidentified && game.toggleItemLock) acts.push({ label: it.locked ? "ロックを外す" : "ロック", kind: "ghost", onTap: (h) => { close(h); game.toggleItemLock(it); } });
+    acts.push({ label: it.cursed ? "呪いで外せない" : it.locked ? "ロック中は外せない" : "外す", kind: "secondary", disabled: !!it.cursed || !!it.locked || owner.items.length >= MAX_ITEMS,
       onTap: (h) => { close(h); if (key && game.doUnequip) game.doUnequip(owner, key); } });
     return acts;
   }
@@ -2266,14 +2413,15 @@ function itemActions(it, owner, ctx, { equip = true } = {}) {
     acts.push({ label: town ? "商会で売るか、王宮の宝物庫へ奉納する" : "街へ持ち帰ろう (商会・宝物庫)", kind: "ghost", disabled: true });
   }
   if (transferTargets(owner).length) acts.push({ label: "渡す", kind: "secondary", onTap: (h) => { close(h); openTransfer(owner, it); } });
+  if (isEquippable(it) && !it.unidentified && !it.cursed && game.toggleItemLock) acts.push({ label: it.locked ? "ロックを外す" : "ロック", kind: "ghost", onTap: (h) => { close(h); game.toggleItemLock(it); } });
   // 売る (商会が開いている街。鑑定済みの品。値段・警告・確認は商会と同じ UI.sellOne)
-  if (town && !it.unidentified && UI.sellOne && UI.shopOpen && UI.shopOpen() && owner.items.includes(it) && game.sellPrice) {
+  if (town && !it.unidentified && !it.locked && UI.sellOne && UI.shopOpen && UI.shopOpen() && owner.items.includes(it) && game.sellPrice) {
     const warn = game.sellWarnings && game.sellWarnings(it).length;
     acts.push({ key: "sell", label: "売る", kind: warn ? "danger" : "secondary", cost: game.sellPrice(it),
       onTap: async (h) => { if (await UI.sellOne(owner, it)) close(h); } });
   }
   // 捨てるのは迷宮の中だけ (持ちきれない時の手段。街では売る・奉納で足りる)
-  if (!town) acts.push({ label: "捨てる", kind: "danger", onTap: (h) => { close(h); const i = owner.items.indexOf(it); if (i >= 0 && game.dropItem) game.dropItem(owner, i); } });
+  if (!town && !it.locked) acts.push({ label: "捨てる", kind: "danger", onTap: (h) => { close(h); const i = owner.items.indexOf(it); if (i >= 0 && game.dropItem) game.dropItem(owner, i); } });
   return acts;
 }
 
@@ -2437,6 +2585,7 @@ export function install() {
     openTacticSheet,
     openOmokage,
     openPartyTactics,
+    openResonance, resonanceRow, queueResonanceNotice, // 魂の共鳴
     // 街の上に開いた人業のシートを描き直す (renderTown から。魂・装備を付け替えても札が古いままにならないよう)
     refreshPartySheet: () => { if (sheetH && !sheetH.closed && sheetTown) { memoClear(); bgcMemo.key = ""; refreshSheet(); } },
   });

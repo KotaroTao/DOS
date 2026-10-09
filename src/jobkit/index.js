@@ -15,9 +15,10 @@
 //  { t:"heal",  v:[…] }                      回復呪文・技の回復量 +v
 //  { t:"cost",  v:[…], on? }                 技・呪文の消費MP −v (on = 技の種別 phys/atk/heal/buff/debuff/cure…。合計の上限 50%)
 //  { t:"stat",  mul:{atk|vit|agi|int:[…]}, when? }  戦闘中の能力 ×(1+v)。when は自分の状態 (ラウンドの初めに判定し直す)
-//  { t:"start", chance?, when?, party?, dur?, buff?:{stat:[…]}, foe?:{stat:[…]}, barrier?:[…], regen?:[…], mp?:[…], endure?, taunt?, charge?:[…] }
+//  { t:"start", chance?, when?, party?, dur?, buff?:{stat:[…]}, foe?:{stat:[…]}, barrier?:[…], wall?:[…], regen?:[…], mp?:[…], endure?, taunt?, charge?:[…] }
 //               戦闘開始時: 自分 (party なら味方全体) を強化 (buff の値は倍率 1.2 など) / 敵全体を弱体 (foe) /
-//               魔障壁の回数 / リジェネ (最大HPの割合) / MP を最大の割合だけ回復 / 不屈を1回 / 挑発 / 溜め
+//               魔障壁の回数 (ブレス・呪文の被ダメ半減) / 魔法壁の回数 (物理・ブレス・呪文を問わず被ダメ半減) /
+//               リジェネ (最大HPの割合) / MP を最大の割合だけ回復 / 不屈を1回 / 挑発 / 溜め
 //  { t:"round", chance?, when?, party?, hp?:[…], mp?:[…], buff?:{stat:[…]}, dur? }  2ラウンド目以降の毎ラウンド初め
 //  { t:"kill",  chance?, hp?:[…], mp?:[…], buff?:{stat:[…]}, dur? }   自分の手番で敵を倒した時
 //  { t:"hurt",  chance?, on?, buff?:{stat:[…]}, dur?, thorns?:[…], mp?:[…], hp?:[…] }  敵の物理 (on:"breath" ならブレス) を受けた時。
@@ -31,7 +32,7 @@
 //  { t:"win",   hp?:[…], mp?:[…], party? }  戦闘に勝った後、HP/MP を最大の割合だけ回復 (party なら味方全体)
 //  on (与/被ダメ・会心・命中時): "phys" = 物理全般 / "basic" = 通常攻撃 / "skill" = 物理技 / "spell" = 攻撃呪文 (受ける側では敵の全体呪文) / "breath" = ブレス
 //  aura: true = 持ち主が生きている間、味方全員に効く (deal/take/crit/evade)
-//  chance は 0〜1 (配列ならLvごと)。dur は既定3ターン。
+//  chance は 0〜1 (配列ならLvごと)。dur は既定3ターン (buff の持続は配列ならLvごと)。
 //  when (条件。すべて満たす時だけ効く。tgt = 与える時は攻撃先、受ける時は攻撃してきた敵):
 //    race:[種族…] / tgtElem:"fire" / tgtAil (状態異常・怯み中) / tgtDebuffed (弱体中) / tgtLow:0.5 (HP割合以下) / tgtHigh:0.8 (以上) /
 //    boss / noBoss / selfLow:0.5 / selfHigh:0.8 / selfAil / buffed (自分が強化中) / defending / mpHigh:0.5 /
@@ -95,7 +96,7 @@ const ELS = new Set(["fire", "water", "wind", "earth", "light", "dark"]);
 const STATS = new Set(["atk", "vit", "agi", "int", "pie", "hit"]);
 const FX_FIELDS = {
   deal: "v on when aura", take: "v on when aura", crit: "v on when aura", evade: "v when aura", heal: "v", cost: "v on",
-  stat: "mul when", start: "chance when party dur buff foe barrier regen mp endure taunt charge",
+  stat: "mul when", start: "chance when party dur buff foe barrier wall regen mp endure taunt charge",
   round: "chance when party hp mp buff dur", kill: "chance hp mp buff dur", hurt: "chance on buff dur thorns mp hp",
   hit: "chance on ail pct turns mul el", cast: "chance on refund hp mp party", fall: "chance buff dur hp", win: "hp mp party",
 };

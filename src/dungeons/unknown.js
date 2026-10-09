@@ -156,6 +156,9 @@ const UNKNOWN_NAME = {
   el_stareater: "名状しがたいもの",
   bs_voidwalker: "おぼろな人影",
   bs_youththief: "おぼろな人影",
+  bs_mournfulchancellor: "筆を持つ影",
+  bs_wailingnoble: "冠の影",
+  bs_frozenchancellor: "かしずく影",
   bs_shadowofthefirst: "おぼろな人影",
   bs_crowdroar: "渦巻く気配",
   bs_spectreaudience: "おぼろな人影の群れ",
@@ -185,6 +188,20 @@ const UNKNOWN_NAME = {
   bs_divinegolem: "白い巨像",
   bs_fallenangel: "濡れた翼の影",
   bs_shadowdragon: "長い首の竜",
+  // 第9層「毒沼」: 泥の塊・屍・ローブの骸が重なるので、見た目の違いで呼び分ける
+  bs_swamplord: "山のような泥の塊",
+  bs_plaguewraith: "顔の浮かぶもや",
+  bs_leechswarm: "ぬめる群れ",
+  bs_necromancer: "鉤杖を掲げる骸",
+  bs_plaguelich: "冠をいただく骸",
+  // 第10層「嵐の尖塔」: 渦・女の影が重なるので、見た目の違いで呼び分ける
+  bs_stormlord: "顔の浮かぶ大渦",
+  bs_stormelemental: "人の形の雷雲",
+  bs_cyclonecore: "光る渦の芯",
+  bs_stormhag: "杖をつく老婆の影",
+  el_blizzardwitch: "雲に乗る女の影",
+  bs_galewisp: "青白い光の群れ",
+  el_stareater: "星の透ける大きな影",
 };
 
 // 画面に出すときの不確定名: 正式な名と見分けがつくよう末尾に「？」を添える (「羽ばたく小さなもの？」)。

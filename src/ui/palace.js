@@ -1,4 +1,4 @@
-import { RESIST_LABEL } from "../resistance.js";
+import { RESIST_LABEL, resistLean } from "../resistance.js";
 import { ENEMY_STAT_LABEL } from "../buffstage.js";
 // ===== 王宮 — 勅命 / 図鑑 / 勲章 / 宝物庫 (区分ごとに印) =====
 // 担当: WP-A。王宮タブ (UI.shell.registerTab("palace", …))。宰相のささやき → 区分 (記憶する) → 中身。
@@ -11,6 +11,7 @@ import { ENEMY_STAT_LABEL } from "../buffstage.js";
 //       UI.openCodexSheet({ dungeonIdx }) (迷宮の中の図鑑。手帳から)
 //       UI.dungeonMonSheet(dungeonIdx) (出撃シートの「発見した魔物」から。その迷宮の魔物の札)
 //       UI.codexMonSheet(key) / UI.codexItemSheet(id) / UI.codexJobSheet(key, rank, heading)
+//       図鑑の「共鳴」区分 (codex:reso) は魂の共鳴が開いてから。札は UI.resonanceRow (party.js)
 // game.js は import しない (ctx.js の UI / game / ops を通す)。
 
 import { UI, game, ops, registerUI } from "./ctx.js";
@@ -43,7 +44,10 @@ function curSeg() { const s = remember("seg", "palace"); return SEGS.includes(s)
 // 図鑑は前回の位置を覚えない: 入るたび・区分を替えるたびに既定 (敵=最初の迷宮 / アイテム=武器・すべて / 見聞=共通、どれも1ページ目) へ戻す
 // 迷宮の手帳から開いた図鑑だけは、敵の既定がいま潜っている迷宮になる (codexHome)
 const codexHome = { dungeon: 0 };
-const CODEX_PAGES = ["mon:", "item:", "job", "ev:"];
+const CODEX_PAGES = ["mon:", "item:", "job", "ev:", "reso"];
+// 図鑑の区分。「共鳴」は魂の共鳴が開いてから (または見つけた組がある時) だけ出す
+const resoShown = () => !!((game.featureUnlocked && game.featureUnlocked("resonance")) || Object.keys((G() && G().resonance && G().resonance.found) || {}).length);
+const codexSubs = () => (resoShown() ? ["mon", "item", "job", "ev", "reso"] : ["mon", "item", "job", "ev"]);
 function resetCodexView(sub = "mon") {
   remember("seg", "codex", sub);
   remember("codex", "dungeon", codexHome.dungeon);
@@ -475,8 +479,22 @@ function codexTotals() {
     ev: Object.keys((g.events && g.events.seen) || {}).filter((k) => EVENT_MAP[k]).length,
   };
 }
+// 魂の共鳴: 組の表の順に並べる。見つけた組は名前・職・効果、まだの組は「？？？」と職の数だけ
+function renderCodexReso(box) {
+  const g = G();
+  const all = game.RESONANCES || [];
+  const found = (g.resonance && g.resonance.found) || {};
+  const active = new Set((game.partyResonances ? game.partyResonances() : []).map((x) => x.id));
+  const n = all.filter((r) => found[r.id]).length;
+  box.appendChild(el("div", "pl-codex-cap", `隊のメイン魂の職がそろうと響き合う組。見つけた組 ${n}/${all.length}`));
+  const area = fillArea(box);
+  refresh.list = null;
+  scrollGrid(area, all, (r) => (UI.resonanceRow ? UI.resonanceRow(r, { found: !!found[r.id], active: active.has(r.id) }) : el("div", "rs-row", found[r.id] ? r.name : "？？？")),
+    { cols: 1, cellH: null, gap: 6, key: "reso" });
+}
 function renderCodex(body) {
-  const sub = ["mon", "item", "job", "ev"].includes(remember("seg", "codex")) ? remember("seg", "codex") : "mon";
+  const subs = codexSubs();
+  const sub = subs.includes(remember("seg", "codex")) ? remember("seg", "codex") : "mon";
   const { mon: mons, item: items, job: jobs, ev: evs } = codexTotals();
   const fc = freshCounts();
   const box = el("div", "pl-codex");
@@ -485,13 +503,16 @@ function renderCodex(body) {
     if (k === "mon") renderCodexMon(box);
     else if (k === "item") renderCodexItem(box);
     else if (k === "ev") renderCodexEvents(box);
+    else if (k === "reso") renderCodexReso(box);
     else renderCodexJob(box);
   };
   const segEl = segmented([
     { key: "mon", label: `敵 ${mons}`, badge: fc.mon || null }, { key: "item", label: `アイテム ${items}`, badge: fc.item || null }, { key: "job", label: `職業 ${jobs}`, badge: fc.job || null },
     { key: "ev", label: `見聞 ${evs}`, badge: fc.ev || null },
+    ...(subs.includes("reso") ? [{ key: "reso", label: `共鳴 ${Object.keys((G().resonance && G().resonance.found) || {}).length}` }] : []),
   ], sub, (k) => { sfx("select"); resetCodexView(k); draw(k); softFade(box); }, { prefKey: "codex" });
   segEl.classList.add("pl-codex-seg"); // 4区分 (見聞録つき) を1行に収める
+  if (subs.length > 4) segEl.classList.add("five"); // 共鳴つきの5区分
   refresh.sub = () => { const c = freshCounts(); ["mon", "item", "job", "ev"].forEach((k, i) => setBadge(segBtn(segEl, i), c[k] || null)); };
   body.appendChild(segEl);
   body.appendChild(box);
@@ -613,8 +634,8 @@ export function codexMonSheet(key, o = {}) {
   // 金属の魔物: 能力値は出た階で組み直すので、HP と「普通の戦闘の何倍の✦Soul か」だけを示す
   const mt = m.metal ? METAL_TIERS[m.metal] : null;
   const info = el("div", "pt-info");
-  const fact = (label, value) => {
-    const row = el("div", "pt-fact");
+  const fact = (label, value, cls = "") => {
+    const row = el("div", "pt-fact" + (cls ? ` ${cls}` : ""));
     row.appendChild(el("span", "pt-fact-k", label));
     row.appendChild(el("span", "pt-fact-v", String(value)));
     info.appendChild(row);
@@ -634,11 +655,22 @@ export function codexMonSheet(key, o = {}) {
     fact("属性攻", elemStatShort({ el: elKey || "none", lv: 1 }));
     fact("属性防", elemStatShort(m.elemDef));
   } else body.appendChild(revealLock(R.stats, "能力・属性・HP"));
+  // 抵抗値: 体質で効きやすい異常は緑、効きにくい異常は橙、効かない異常は暗く (戦闘中はその敵の実際の値)
+  const resV = (foe && foe.resists) || m.resists || {};
+  const lean = loreOpen && !mt ? resistLean({ ...m, rank: (foe && foe.evRank) || m.rank, boss: foe ? !!foe.boss || !!m.boss : m.boss, elite: m.elite || !!(foe && (foe.evRank || foe.isMimic)) }, resV) : null;
+  const leanCls = (k) => !lean ? "" : lean.weak.includes(k) ? "res-weak" : lean.soft.includes(k) ? "res-soft" : lean.immune.includes(k) ? "res-imm" : lean.strong.includes(k) ? "res-strong" : "";
   if (loreOpen) {
-    for (const [k, label] of Object.entries(RESIST_LABEL)) fact(`${label}抵抗値`, (m.resists && m.resists[k]) ?? m[k] ?? 0);
+    // 石化は隊が敵に掛ける手段が無いので、敵の石化抵抗値は出さない (「状態異常の効き」も同じ — resistLean)
+    for (const [k, label] of Object.entries(RESIST_LABEL)) if (k !== "stone") fact(`${label}抵抗値`, resV[k] ?? m[k] ?? 0, leanCls(k));
     if (m.breathRes) fact("ブレス耐性", `${Math.round(m.breathRes * 100)}%`);
   }
   if (info.childNodes.length) body.appendChild(info);
+  if (lean) {
+    const names = (ks) => ks.map((k) => RESIST_LABEL[k]).join("・");
+    const rows = [["効きやすい", lean.weak], ["やや効きやすい", lean.soft], ["効きにくい", lean.strong], ["効かない", lean.immune]]
+      .filter(([, ks]) => ks.length).map(([n, ks]) => pairRow(n, names(ks)));
+    if (rows.length) body.appendChild(infoBlock("状態異常の効き", rows));
+  }
   if (statsOpen) body.appendChild(infoBlock("戦利品", mt
     ? [pairRow("✦Soul", `その階の戦闘1回の約${mt.soulMul}倍`), pairRow("逃走", `${Math.round(mt.flee * 100)}%/手番`)]
     : [pairRow("✦Soul", String(m.soul)), pairRow("金貨", String(m.gold))]));
@@ -1031,7 +1063,7 @@ export function openPalace(seg) {
     const [s, sub] = String(seg).split(":");
     if (SEGS.includes(s)) remember("seg", "palace", s);
     resetPages();
-    if (s === "codex") resetCodexView(["mon", "item", "job", "ev"].includes(sub) ? sub : "mon");
+    if (s === "codex") resetCodexView(codexSubs().includes(sub) ? sub : "mon");
   }
   const g = G();
   if (!g || g.state !== "town" || !UI.shell) return false;

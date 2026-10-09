@@ -1,6 +1,6 @@
-// 大司教 (archbishop) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
+// 巡礼者 (archbishop) の技・パッシブ。table = 習得表 (「Lv 技キー」/「Lv パッシブキー/Lv」)。
 // skills = この職の固有技 (skilldefs.js の SPELLS に合流) / perks = この職の固有パッシブ (souls.js の PASSIVES に合流、効果は fx)
-// 持ち味: 聖典と水の祈り。聖水・泉・潮で癒し、聖句の加護 (不屈・魔障壁・守り) で隊を護る
+// 持ち味: 聖典を携えて泉を巡る祈り。聖水・泉・潮で癒し、聖句の加護 (不屈・魔障壁・守り) で隊を護る
 export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "archbishopShukufuku",
@@ -38,7 +38,7 @@ export default {
     ARCHBISHOP_SHUUSHOU: { name: "聖典の終章", mp: 120, kind: "heal", healPct: 1, revive: true, revivePct: 0.7, cure: true, purge: true, grantBarrier: 1, target: "all-ally", desc: "全員を全快させ蘇らせ、魔障壁を授ける" },
   },
   perks: {
-    // ランクのパッシブ: 大司教の祈りは、癒しをいっそう深くする
+    // ランクのパッシブ: 巡礼者の祈りは、癒しをいっそう深くする
     archbishopShukufuku: {
       label: "大いなる祝福",
       lv: ["回復呪文の効果+20%", "回復呪文の効果+40%", "回復呪文の効果+60%", "回復呪文の効果+100%"],

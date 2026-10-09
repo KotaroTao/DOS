@@ -7,13 +7,13 @@ export default {
   table: `
     1 KYOUGEKI 2 SHIPPUUGIRI 3 DIOS 5 heroKyoutekiFunki/1 7 YUUSHANOICHIGEKI 10 BLESS 10 CURE 12 KOUJIN
     15 HERO_CHIKAINOHATA 15 heroIji/1 20 KOBU 22 REPPUU 25 heroKibouHidamari/1 25 AWAKE 30 RAIKOUKEN
-    30 DIOSALL 35 heroYuushaSenaka/1 37 HERO_JINRAI 40 SEIKEN 40 DIAL 45 heroKyoutekiFunki/2 50 heroIji/2
+    30 DIOSALL 30 dynamicVision/1 35 heroYuushaSenaka/1 37 HERO_JINRAI 40 SEIKEN 40 DIAL 45 heroKyoutekiFunki/2 50 heroIji/2
     55 NIOUDACHI 57 FUUGA 60 heroOrenuKokoro/1 60 REVIVE 65 SEIGEKI 70 heroKyoutekiFunki/3
-    75 heroKaisenGourei/1 80 HERO_YUUKITOMOSHIBI 85 HERO_SAIKI 90 resistAilment/1 95 HERO_KIBOUSENKOU
+    75 heroKaisenGourei/1 80 HERO_YUUKITOMOSHIBI 80 dynamicVision/2 85 HERO_SAIKI 90 resistAilment/1 95 HERO_KIBOUSENKOU
     100 HERO_SHIPPUUTAIKEN 100 heroIji/3 105 heroYuushaSenaka/2 107 HERO_FUURAI 110 HERO_KIBOUSENPUU
     115 heroOrenuKokoro/2 120 HERO_KOUMYOU 125 heroKibouHidamari/2 130 HERO_GEKIREI 135 heroOrenuKokoro/3
     140 HERO_TENRAIDAN 142 HERO_HEKIREKI 145 heroKibouHidamari/3 150 HERO_HATAJIRUSHI 155 resistAilment/2
-    160 HERO_AKATSUKI 165 heroKaisenGourei/2 170 HERO_KIBOUICHITOU 175 heroKyoutekiFunki/4 180 HERO_DAIKAGO
+    160 HERO_AKATSUKI 160 dynamicVision/3 165 heroKaisenGourei/2 170 HERO_KIBOUICHITOU 175 heroKyoutekiFunki/4 180 HERO_DAIKAGO
     185 heroYuushaSenaka/3 190 RAIJINKEN 195 HERO_YOAKE 200 TENMEINOKEN`,
   skills: {
     // Lv15 の固有技: 誓いを掲げて隊を奮い立たせる

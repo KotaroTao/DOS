@@ -38,6 +38,7 @@ const ASSETS = [
   "./art/story/irene-meeting.png",
   "./art/story/royal-audience.png",
   "./art/story/morden-at-throne.png",
+  "./art/story/irene-repair.png",
   "./art/story/chapter1/w01_lantern.png",
   "./art/story/chapter1/report_w01.png",
   "./art/story/chapter1/w02_sigil.png",
@@ -77,6 +78,16 @@ const ASSETS = [
   "./art/story/chapter3/report_w13.png",
   "./art/story/chapter3/ch3_end.png",
   "./art/story/chapter3/irene_trust.png",
+  "./art/story/chapter4/w14_lamp.png",
+  "./art/story/chapter4/report_w14.png",
+  "./art/story/chapter4/w15_mural.png",
+  "./art/story/chapter4/report_w15.png",
+  "./art/story/chapter4/w16_legs.png",
+  "./art/story/chapter4/report_w16.png",
+  "./art/story/chapter4/irene_sera_wake.png",
+  "./art/story/chapter4/mem_w17.png",
+  "./art/story/chapter4/report_w17.png",
+  "./art/story/chapter4/ch4_end.png",
   "./art/story/dungeons/lore_w01.png",
   "./art/story/dungeons/lore_w02.png",
   "./art/story/dungeons/lore_w03.png",
@@ -90,6 +101,12 @@ const ASSETS = [
   "./art/story/dungeons/lore_w11.png",
   "./art/story/dungeons/lore_w12.png",
   "./art/story/dungeons/lore_w13.png",
+  "./art/story/dungeons/lore_w14.png",
+  "./art/story/dungeons/lore_w15.png",
+  "./art/story/dungeons/lore_w16.png",
+  "./art/story/dungeons/lore_w17.png",
+  "./art/story/dungeons/lore_ws1.png",
+  "./art/story/dungeons/lore_ws2.png",
   "./src/ui/journal.js",
   "./src/joblore.js",
   "./src/items.js",
@@ -99,6 +116,7 @@ const ASSETS = [
   "./src/telemetry.js",
   "./src/stability.js",
   "./src/expedition.js",
+  "./src/resonance.js",
   "./art/tutorial/gatekeeper.png",
   "./src/levelcurve.js",
   "./src/baseline.js",
@@ -125,6 +143,8 @@ const ASSETS = [
   "./src/itemart/hand/l5.js",
   "./src/itemart/hand/l67.js",
   "./src/itemart/hand/l8.js",
+  "./src/itemart/hand/l9.js",
+  "./src/itemart/hand/l10.js",
   "./src/itemart/hand/arm1.js",
   "./src/itemart/hand/job4.js",
   "./src/itemart/hand/arm3.js",
@@ -260,6 +280,11 @@ const ASSETS = [
   "./art/jobs/mage_3.webp",
   "./art/jobs/mage_4.webp",
   "./art/jobs/mage_5.webp",
+  "./art/jobs/berserker_1.webp",
+  "./art/jobs/berserker_2.webp",
+  "./art/jobs/berserker_3.webp",
+  "./art/jobs/berserker_4.webp",
+  "./art/jobs/berserker_5.webp",
   "./art/jobs/crusader_1.webp",
   "./art/jobs/crusader_2.webp",
   "./art/jobs/crusader_3.webp",
@@ -270,6 +295,11 @@ const ASSETS = [
   "./art/jobs/sera_3.webp",
   "./art/jobs/sera_4.webp",
   "./art/jobs/sera_5.webp",
+  "./art/jobs/archmage_1.webp",
+  "./art/jobs/archmage_2.webp",
+  "./art/jobs/archmage_3.webp",
+  "./art/jobs/archmage_4.webp",
+  "./art/jobs/archmage_5.webp",
   "./art/jobs/guardian_1.webp",
   "./art/jobs/guardian_2.webp",
   "./art/jobs/guardian_3.webp",
@@ -439,6 +469,8 @@ const ASSETS = [
   "./src/catalog/layer6.js",
   "./src/catalog/layer7.js",
   "./src/catalog/layer8.js",
+  "./src/catalog/layer9.js",
+  "./src/catalog/layer10.js",
   "./src/catalog/named.js",
   "./src/catalog/ranks/r01.js",
   "./src/catalog/ranks/r02.js",
@@ -472,23 +504,80 @@ const ASSETS = [
   "./art/jobs/chaplain_5.webp",
 ];
 
+// 絵 (png/webp/jpg) は版ごとに取り直さない。ASSETS の大半 (約250MB) は絵で、
+// 版のたびに全部を先読みしていた頃は、1つでも取りこぼすと新しい版へ切り替わらず、
+// 端末に古い版が残り続けた。絵は版をまたいで残す MEDIA に置き、
+//   - install では JS/CSS/HTML (約10MB) だけを先読みして版を切り替える
+//   - 絵は使う時にキャッシュから返し、裏で取り直して差し替わりに追いつく
+//   - 切り替えの後、まだ持っていない絵だけを裏でゆっくり集める (オフライン用)
+const MEDIA = "dos-media";
+const isMedia = (u) => /\.(png|webp|jpe?g|gif)$/i.test(new URL(u, self.location.href).pathname);
+const CORE = ASSETS.filter((u) => !isMedia(u));
+const MEDIA_ASSETS = ASSETS.filter(isMedia);
+const abs = (u) => new URL(u, self.location.href).href;
+
+// 前の版のキャッシュにある絵を MEDIA へ移す (ネットワークを使わない・失敗しても止めない)
+async function carryMedia() {
+  const media = await caches.open(MEDIA);
+  const old = (await caches.keys()).filter((k) => k !== CACHE && k !== MEDIA);
+  for (const k of old) {
+    const c = await caches.open(k);
+    for (const u of MEDIA_ASSETS) {
+      try {
+        if (await media.match(u)) continue;
+        const hit = await c.match(u);
+        if (hit) await media.put(u, hit);
+      } catch (err) { /* 容量不足などは裏の取得に任せる */ }
+    }
+  }
+}
+
+// まだ持っていない絵を少しずつ取りに行く (版の切り替えとは無関係・失敗は次の機会に)
+let warming = null;
+function warmMedia() {
+  if (DEV || warming) return warming;
+  warming = (async () => {
+    const media = await caches.open(MEDIA);
+    const keep = new Set(MEDIA_ASSETS.map(abs));
+    // ASSETS から消えた絵は捨てる (迷宮の由来の絵など名前を組み立てる絵は残す)
+    for (const req of await media.keys()) {
+      if (!keep.has(req.url) && !/\/art\/story\/dungeons\//.test(req.url)) await media.delete(req);
+    }
+    const todo = [];
+    for (const u of MEDIA_ASSETS) if (!(await media.match(u))) todo.push(u);
+    let i = 0;
+    const worker = async () => {
+      while (i < todo.length) {
+        const u = todo[i++];
+        try { const res = await fetch(u, { cache: "no-cache" }); if (res.ok) await media.put(u, res); }
+        catch (err) { /* 通信が切れても次の機会に取り直す */ }
+      }
+    };
+    await Promise.all([worker(), worker(), worker(), worker()]);
+  })().finally(() => { warming = null; });
+  return warming;
+}
+
 self.addEventListener("install", (e) => {
   if (DEV) { self.skipWaiting(); return; }
   e.waitUntil(
     caches.open(CACHE)
-      // 先読みは必ずネットワークから取得し、HTTPキャッシュの古いファイル混入を防ぐ
-      .then((c) => Promise.all(ASSETS.map((u) => fetch(u, { cache: "no-cache" }).then((res) => {
+      // 先読みは必ずネットワークから取得し、HTTPキャッシュの古いファイル混入を防ぐ。
+      // コードはどれか1つでも欠けると白画面になるので、全部そろった時だけ版を切り替える
+      .then((c) => Promise.all(CORE.map((u) => fetch(u, { cache: "no-cache" }).then((res) => {
         if (!res.ok) throw new Error("precache failed: " + u);
         return c.put(u, res);
       }))))
+      .then(() => carryMedia().catch(() => {}))
       .then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(
-    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+    caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE && k !== MEDIA).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
+      .then(() => { warmMedia(); })
   );
 });
 
@@ -498,7 +587,21 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (url.origin !== self.location.origin) return; // 他オリジンは介入しない
 
-  // 同一バージョンのキャッシュを最優先 (整合性保証)。
+  // 絵: 持っていればすぐ返し、裏で取り直して差し替わった絵に追いつく
+  if (isMedia(url.href)) {
+    const media = caches.open(MEDIA);
+    const hit = media.then((m) => m.match(e.request, { ignoreSearch: true }));
+    const net = media.then((m) => fetch(e.request).then((res) => {
+      if (res.ok) m.put(e.request, res.clone()).catch(() => {});
+      return res;
+    }));
+    e.respondWith(hit.then((h) => h || net));
+    // 裏の取り直しと、止まっていた残りの絵の取り寄せの再開
+    e.waitUntil(net.catch(() => {}).then(() => warmMedia()).catch(() => {}));
+    return;
+  }
+
+  // コード: 同一バージョンのキャッシュを最優先 (整合性保証)。
   // キャッシュ外のリクエストのみネットワークへ。オフライン時は index にフォールバック
   e.respondWith(
     caches.open(CACHE).then((c) =>

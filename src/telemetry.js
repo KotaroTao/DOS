@@ -307,7 +307,7 @@ export function tlSnapshot(kind, where, party) {
   persist();
 }
 
-// 戦闘ごとの集計の器 (kind: n=通常 / e=精鋭・ミミック・出来事 / b=主)
+// 戦闘ごとの集計の器 (kind: n=通常 / e=精鋭・ミミック・出来事 / m=金属の魔物 / b=主)
 const AGG_KEYS = ["c", "w", "fl", "l", "r", "pre", "amb", "pa", "pe", "pp", "ea", "ee", "ep", "of", "op",
   "ft", "fo", "fs", "fp", "ambR", "ambX", "ambP", "dd", "dt", "hp0", "hp1", "pAgi", "eAgi", "eAgiAvg", "en"];
 function agg(d, kind) {
@@ -362,7 +362,7 @@ export function tlBattleEnd(memo, { result, rounds, tally, party }) {
   if (result === "win") a.w++; else if (result === "flee") a.fl++; else if (result === "lose") a.l++;
   a.r += rounds || 0;
   if (memo.opening === "preempt") a.pre++; else if (memo.opening === "ambush") a.amb++;
-  // 奇襲の出どころ: ambR = 開幕の抽選 / ambX = 出来事・密輸人の待ち伏せ。ambP = 抽選の奇襲率の合計 (×1000。予想回数の元)
+  // 奇襲の出どころ: ambR = 開幕の抽選 / ambX = 出来事・密輸人の待ち伏せ・迷宮の掟 (必ず奇襲)。ambP = 抽選の奇襲率の合計 (×1000。予想回数の元)
   if (memo.opening === "ambush") { if (memo.openSrc === "rand") a.ambR = (a.ambR || 0) + 1; else if (memo.openSrc) a.ambX = (a.ambX || 0) + 1; }
   if (memo.ambRate) a.ambP = (a.ambP || 0) + Math.round(memo.ambRate * 1000);
   const t = tally || {};
@@ -370,6 +370,14 @@ export function tlBattleEnd(memo, { result, rounds, tally, party }) {
   if (a.fpn == null) a.fpn = a.fp ? a.ft : 0;
   if (t.fp != null) a.fpn += t.ft || 0;
   for (const k of ["pa", "pe", "pp", "ea", "ee", "ep", "of", "op", "ft", "fo", "fs", "fp"]) a[k] = (a[k] || 0) + (t[k] || 0);
+  // 職ごとの味方の物理 [試行, かわされた, 見切られた]
+  if (t.pj) {
+    const pj = a.pj || (a.pj = {});
+    for (const job in t.pj) {
+      const row = pj[job] || (pj[job] = [0, 0, 0]);
+      for (let i = 0; i < 3; i++) row[i] += t.pj[job][i] || 0;
+    }
+  }
   a.dd += memo.dd; a.dt += memo.dt;
   a.hp0 += Math.round(memo.hp0 * 1000);
   a.hp1 += Math.round(hpRate(party) * 1000);
@@ -397,7 +405,8 @@ function fleeExpect(a) {
   const n = a.fpn != null ? a.fpn : (a.fp ? a.ft : 0);
   return n > 0 ? `(予想${pct((a.fp || 0) / 1000, n)})` : "";
 }
-const KIND_LABEL = { n: "通常", e: "精鋭等", b: "主" };
+const KIND_LABEL = { n: "通常", e: "精鋭等", m: "金属", b: "主" };
+const KINDS = ["n", "e", "m", "b"];
 const mins = (ms) => `${Math.round((ms || 0) / 60000)}分`;
 // 出どころの略称 (迷宮の中 / 町 / 上乗せ)
 const SRC_LABEL = {
@@ -461,10 +470,16 @@ function battleLine(kind, a) {
   bits.push(`AGI 隊${avg(a.pAgi, a.c, 10)}/敵最大${avg(a.eAgi, a.c, 10)}`, `敵数${avg(a.en, a.c)}`);
   return bits.join(" ");
 }
+// 職ごとの味方の命中 (試行の多い順に8職まで)。命中 = 試行からかわされた・見切られた分を除いた割合
+function jobHitLine(a) {
+  const rows = Object.entries(a.pj || {}).filter(([, r]) => r[0] > 0).sort((x, y) => y[1][0] - x[1][0]).slice(0, 8);
+  if (!rows.length) return "";
+  return "  職ごとの命中 " + rows.map(([job, r]) => `${job}${pct(r[0] - r[1] - r[2], r[0])}(${r[0]})`).join(" ");
+}
 // 進み方 (levelcurve の BATTLES_PER_HOUR / EXTRA / MIN_PER_FLOOR を合わせる材料)
 function paceLine(d) {
   const bits = [];
-  const battles = ["n", "e", "b"].reduce((s, k) => s + ((d.b && d.b[k] && d.b[k].c) || 0), 0);
+  const battles = KINDS.reduce((s, k) => s + ((d.b && d.b[k] && d.b[k].c) || 0), 0);
   if (d.ms || d.tms) bits.push(`時間 迷宮${mins(d.ms)}/町${mins(d.tms)}`);
   if (d.fl) bits.push(`着いた階${d.fl}${d.ms ? ` (${r1(d.ms / 60000 / d.fl)}分/階)` : ""}`);
   if (d.ms && battles) bits.push(`${Math.round(battles / (d.ms / 3600000))}戦/時`);
@@ -519,7 +534,7 @@ export function tlSummary(data = S.d) {
     if (f1) parts.push(`隊 1階 ${f1}`);
     if (cl) parts.push(`隊 踏破 ${cl}`);
     else if (last) parts.push(`隊 最後の階 ${last}`);
-    for (const kind of ["n", "e", "b"]) { const a = d.b && d.b[kind]; if (a && a.c) parts.push(battleLine(kind, a)); }
+    for (const kind of KINDS) { const a = d.b && d.b[kind]; if (a && a.c) { parts.push(battleLine(kind, a)); const j = jobHitLine(a); if (j) parts.push(j); } }
     for (const line of [paceLine(d), lootLine(d), ...gainLines(d), resourceLine(d.resources)]) if (line) parts.push(line);
     if (d.actions) parts.push(`技 ${topText(d.actions, 10)}`);
     if (d.floors) parts.push("階到着 HP/MP% " + Object.entries(d.floors).map(([f, a]) => `B${f}:${avg(a.hp, a.n, 10)}/${avg(a.mp, a.n, 10)}`).join(" "));
@@ -545,7 +560,7 @@ export function tlExportText({ past = false } = {}) {
       for (const s of tlSummary(h.d || {})) { lines.push(s.head); for (const l of s.lines) lines.push("  " + l); }
     }
   } else if (history.length) lines.push(`(過去版の記録 ${history.length}件は「過去版も書き出す」で出せる)`);
-  lines.push("注: 被ダメ/戦 = 戦闘前後の隊HP割合の差の平均。命中 = 物理の試行から回避・見切りを除いた割合。奇襲の予想 = 開幕の抽選の奇襲率の合計。✦の「戦闘の倍」= 迷宮で得た✦ ÷ 戦闘の✦。魂 = 職Lv+融合数。");
+  lines.push("注: 被ダメ/戦 = 戦闘前後の隊HP割合の差の平均。命中 = 物理の試行から回避・見切りを除いた割合 (職ごとの命中の括弧は試行数)。金属 = 金属の魔物の戦い (回避は素早さに依らず決まっている)。奇襲の予想 = 開幕の抽選の奇襲率の合計。✦の「戦闘の倍」= 迷宮で得た✦ ÷ 戦闘の✦。魂 = 職Lv+融合数。");
   return lines.join("\n");
 }
 // 過去版の数と、画面に出す要約 (新しい版から順)
