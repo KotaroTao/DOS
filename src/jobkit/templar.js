@@ -57,8 +57,8 @@ export default {
     },
     templarKairitsu: {
       label: "戒律の灯",
-      lv: ["戦闘に勝つとMPを最大の5%回復。治療の技の後30%で消費MPが戻る", "戦闘に勝つとMPを最大の8%回復。治療の技の後40%で消費MPが戻る", "戦闘に勝つとMPを最大の11%回復。治療の技の後50%で消費MPが戻る"],
-      fx: [{ t: "win", mp: [0.05, 0.08, 0.11] }, { t: "cast", on: "cure", chance: [0.3, 0.4, 0.5], refund: true }],
+      lv: ["戦闘に勝つとMPを最大の4%回復。治療の技の後30%で消費MPが戻る", "戦闘に勝つとMPを最大の5%回復。治療の技の後40%で消費MPが戻る", "戦闘に勝つとMPを最大の5%回復。治療の技の後50%で消費MPが戻る"],
+      fx: [{ t: "win", mp: [0.04, 0.05, 0.05] }, { t: "cast", on: "cure", chance: [0.3, 0.4, 0.5], refund: true }],
     },
     templarFuumakusabi: {
       label: "封魔のくさび",

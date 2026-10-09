@@ -102,6 +102,9 @@ const FX_FIELDS = {
 const WHEN = new Set(("race tgtElem tgtAil tgtDebuffed tgtLow tgtHigh boss noBoss selfLow selfHigh selfAil buffed defending mpHigh " +
   "round1 roundGE preempt front back crowd lastFoe allyDown alone elem tgtWeak tgtWeakened").split(" "));
 const AILS = new Set(["poison", "para", "sleep", "confuse", "charm", "seal", "flinch", "strip", "atk", "vit", "agi", "vuln"]);
+// 戦闘に勝った後のMP回復 (win の mp と、共通パッシブの魔力回路・法力の灯): 1つのパッシブは最大MPの5%まで。
+// 別のパッシブどうしは重なる (メイン魂とサブ魂2つで5%ずつ = 15%) が、1人が受ける合計は15%まで (2026-10 ユーザーの指示)
+export const VICTORY_MP_PER = 0.05, VICTORY_MP_CAP = 0.15;
 function fail(job, what, msg) { throw new Error(`jobkit/${job}: ${what}: ${msg}`); }
 function checkSkill(job, key, sp) {
   if (!/^[A-Z][A-Z0-9_]+$/.test(key)) fail(job, key, "技キーは英大文字");
@@ -135,6 +138,7 @@ function checkPerk(job, key, pk) {
     for (const k in c) if (!ok.has(k)) fail(job, key, `fx ${c.t} に未知の項目 ${k}`);
     if (c.when) for (const w in c.when) if (!WHEN.has(w)) fail(job, key, `when.${w}`);
     if (c.t === "hit" && !AILS.has(c.ail)) fail(job, key, `hit.ail ${c.ail}`);
+    if (c.t === "win" && c.mp != null && [].concat(c.mp).some(v => !(v >= 0 && v <= VICTORY_MP_PER + 1e-9))) fail(job, key, `勝利後のMP回復は1つ${VICTORY_MP_PER * 100}%まで`);
     if (["deal", "take", "crit", "evade", "heal", "cost"].includes(c.t) && c.v == null) fail(job, key, `fx ${c.t} に v が必要`);
     for (const o of ["buff", "foe"]) if (c[o]) for (const s in c[o]) if (!STATS.has(s)) fail(job, key, `${o}.${s}`);
     // mul は stat では能力ごとの表、hit では弱体の倍率 (数か Lv ごとの配列)

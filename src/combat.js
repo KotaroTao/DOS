@@ -5,7 +5,8 @@ import { ITEMS, weaponRange, scaleBonus, useTarget, useHelps, useCureKinds, useW
 import { ELEMENTS, elemDmgMult, elemBeats, monStats, rankStats, resistRate, resistHpMul, METAL_TIERS } from "./dungeons/schema.js";
 
 import { SPELLS } from "./skilldefs.js";
-import { JOBKIT_PERKS } from "./jobkit/index.js";
+import { JOBKIT_PERKS, VICTORY_MP_PER, VICTORY_MP_CAP } from "./jobkit/index.js";
+export { VICTORY_MP_PER, VICTORY_MP_CAP };
 import { STAGED, STAGE_MAX, STRONG_MIN, BATTLE_LONG, stageMul, stageOf, effectStage, stageLabel, ENEMY_STAT_LABEL } from "./buffstage.js";
 export { SPELLS };
 
@@ -273,14 +274,15 @@ function perkCostCut(actor, sp) {
   for (const { c, lv } of perksOf(actor)) if (c.t === "cost" && (!c.on || c.on === sp.kind)) cut += lvv(c.v, lv) || 0;
   return Math.min(0.5, cut);
 }
-// 戦闘に勝った後の固有パッシブ (win): その人が受ける HP/MP 回復の割合 (自分の分 + 味方の party 付きの分)
+// 戦闘に勝った後の固有パッシブ (win): その人が受ける HP/MP 回復の割合 (自分の分 + 味方の party 付きの分)。
+// MP は1つのパッシブ VICTORY_MP_PER まで (合計の頭打ち VICTORY_MP_CAP は game.js applyVictoryPassives で共通パッシブと合わせて掛ける)
 export function perkVictory(p, party) {
   let hp = 0, mp = 0;
   for (const q of party || [p]) {
     if (!q || !q.alive) continue;
     for (const { c, lv } of perksOf(q)) {
       if (c.t !== "win" || (q !== p && !c.party)) continue;
-      hp += lvv(c.hp, lv) || 0; mp += lvv(c.mp, lv) || 0;
+      hp += lvv(c.hp, lv) || 0; mp += Math.min(VICTORY_MP_PER, lvv(c.mp, lv) || 0);
     }
   }
   return { hp, mp };
