@@ -16,7 +16,8 @@ import { nav } from "./nav.js";
 import { animate, reduced } from "./motion.js";
 import { SFX } from "../audio.js";
 import { soulByUid, soulLevelCapOf, soulRankOf, SOUL_CLASSES, soulSeriesName } from "../souls.js";
-import { MAX_ITEMS, weaponRange } from "../items.js";
+import { MAX_ITEMS } from "../items.js";
+import { isMeleeWeapon } from "../autoequip.js";
 
 export const IRENE_WHO = "人業の館の主　イレーヌ";
 export const IRENE_ART = "./art/mansion_irene.jpg"; // ユーザーの原画 (ドット絵にせずそのまま)
@@ -89,7 +90,8 @@ function ctxNow() {
 const deadDoll = (c) => c.dolls.find((d) => d.alive === false) || null;
 const hurtDoll = (c) => c.party.find((d) => d.alive !== false && d.maxhp > 0 && d.hp < d.maxhp * 0.5) || null;
 const fullBag = (c) => c.party.find((d) => (d.items || []).length >= MAX_ITEMS) || null;
-const backMelee = (c) => c.party.find((d, i) => i >= 3 && d.primary != null && d.equip && d.equip.weapon && !d.equip.weapon.unidentified && weaponRange(d.equip.weapon) === "near") || null;
+// 後衛で近接物理の武器を持つ人業 (杖は呪文の補助なので数えない — autoequip の isMeleeWeapon と同じ判定)
+const backMelee = (c) => c.party.find((d, i) => i >= 3 && d.primary != null && d.equip && d.equip.weapon && !d.equip.weapon.unidentified && isMeleeWeapon(d.equip.weapon)) || null;
 function trainable(c) {
   const pts = c.G.soulPts || 0;
   for (const d of c.party) {
@@ -180,8 +182,8 @@ const LINES = [
     0: (c) => [`${jobName(fusable(c))}の魂が、ひとつ余っています。`, "『魂』の区分で魂融合すれば、魂の格が上がります。"],
     2: (c) => [`${jobName(fusable(c))}の魂が、もうひとつ余っていますね。`, "『魂』の区分で魂融合すれば、魂の格が上がります。"] } },
   { id: "n_backmelee", kind: "now", when: (c) => !!backMelee(c), say: {
-    0: (c) => [`後衛の${backMelee(c).name}に、刃の短い得物は不向きです。`, "届くのは敵の前衛のみ。力も半分になります。"],
-    2: (c) => [`後衛の${backMelee(c).name}に、刃の短い得物は不向きです。`, "届くのは敵の前衛だけです。それも力は半分になります。"] } },
+    0: (c) => [`後衛の${backMelee(c).name}に、間合いの短い得物は不向きです。`, "届くのは敵の前衛のみ。力も半分になります。"],
+    2: (c) => [`後衛の${backMelee(c).name}に、間合いの短い得物は不向きです。`, "届くのは敵の前衛だけです。それも力は半分になります。"] } },
   { id: "n_bag", kind: "now", when: (c) => !!fullBag(c), say: {
     0: (c) => [`${fullBag(c).name}の袋が一杯です。`, "不要な品は、商会でお手放しください。"],
     2: (c) => [`${fullBag(c).name}の袋が、もう一杯ですね。`, "要らない品は、商会で手放しておいてください。"] } },
