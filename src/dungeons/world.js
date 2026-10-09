@@ -131,7 +131,7 @@ const WORLD_DEF = [
     id: "w05", lv: 22, lvTo: 27, layer: 3, floors: 15,
     power: { 1: 0.2799, 5: 0.2868, 10: 0.3072, 15: 0.3208 },
     name: "鎖の垂れる坑口", short: "坑口",
-    about: "先代の王が封じた古の坑道。罪人たちの鎖が、今も闇に垂れている",
+    about: "王家が封じた古の坑道。罪人たちの鎖が、今も闇に垂れている",
     element: "earth", // 素体の n10 は第2層 (水) なので、坑道の土を明示する
     bands: [
       ["bs_blastsprite", "bs_chainedconvict", "bs_dustwraith", "bs_koboldsapper", "bs_minebat", "bs_timbermite"],
