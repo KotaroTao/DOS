@@ -1116,7 +1116,7 @@ export const EVENTS = [
   },
   {
     id: "l4_04", name: "戦死者の名札", layer: 4, tier: "common", icon: "corpse",
-    intro: () => ["鎧ごと朽ちた兵の骸。首から下げた真鍮の名札だけが、鈍く光っている。"],
+    intro: () => ["鎧ごと朽ちた兵の骸。首から下げた真ちゅうの名札だけが、鈍く光っている。"],
     choices: (A, cell) => [
       { label: "名札を持ち帰る ― 収集品", fn: () => A.collectible("戦死者の名札", () => A.done(cell)) },
       { label: "名を呼んで弔う ― ✦Soul と、近くの骸に魂が宿る", primary: true, fn: () => {

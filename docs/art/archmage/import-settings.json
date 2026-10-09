@@ -1,0 +1,102 @@
+{
+  "job": "archmage",
+  "label": "大魔導",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "approvedR1": "docs/art/archmage/archmage-r1-final.png",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "bodyHeight": 82.8,
+  "measurementNote": "各原画の主な髪の頭頂と顎を目視測定。ポニーテールの先は頭頂に含めない。R1承認時の仮測定は取り込みに流用せず再測定した。",
+  "sources": [
+    {
+      "source": "docs/art/archmage/archmage-r1-final.png",
+      "head": [
+        475,
+        603,
+        151,
+        462
+      ],
+      "sole": 1349,
+      "alphaBBox": [
+        159,
+        107,
+        972,
+        1349
+      ],
+      "perDot": 14.468599033816426
+    },
+    {
+      "source": "docs/art/archmage/archmage-r2-final.png",
+      "head": [
+        470,
+        604,
+        130,
+        451
+      ],
+      "sole": 1362,
+      "alphaBBox": [
+        143,
+        83,
+        1001,
+        1362
+      ],
+      "perDot": 14.879227053140097
+    },
+    {
+      "source": "docs/art/archmage/archmage-r3-final.png",
+      "head": [
+        470,
+        600,
+        130,
+        441
+      ],
+      "sole": 1351,
+      "alphaBBox": [
+        91,
+        83,
+        991,
+        1351
+      ],
+      "perDot": 14.746376811594203
+    },
+    {
+      "source": "docs/art/archmage/archmage-r4-final.png",
+      "head": [
+        470,
+        604,
+        148,
+        460
+      ],
+      "sole": 1352,
+      "alphaBBox": [
+        114,
+        101,
+        1052,
+        1352
+      ],
+      "perDot": 14.576271186440678,
+      "bodyHeight": 82.6,
+      "note": "足裏の補間画素まで下端に透明余白を残すため、他ランクとの差0.2ドットで調整。"
+    },
+    {
+      "source": "docs/art/archmage/archmage-r5-final.png",
+      "head": [
+        465,
+        595,
+        83,
+        412
+      ],
+      "sole": 1375,
+      "alphaBBox": [
+        28,
+        34,
+        1076,
+        1375
+      ],
+      "perDot": 15.603864734299518
+    }
+  ]
+}

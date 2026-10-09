@@ -406,7 +406,7 @@ const NEW_DEFS = [
     desc: "奈落へ落ちていった魂が、氷棚で凍りついて鬼になったもの。体のあちこちが透き通った氷に置き換わり、ひびの奥で凍った魂が青く光る。両の手のひらから凍える霧を吐き出して手足の力を奪い、砕かれた所もすぐに凍り直す。" },
   { id: "bs_glaciallord", name: "氷結回廊の主", rank: 10, boss: true, race: "specter", element: "water", artKey: "hd_glaciallord", soulClass: "mage",
     role: "summoner", summonKey: "bs_frozenexplorer", ability: "breath", abRate: 0.35, physResist: 75, endure: true, // 先人を呼び覚まし、凍てつく息を吐き、三百年の執念で一度は倒れずに耐える
-    desc: "三百年前、王家に最初に仕えた操霊師、凍王イザーク。魂が奈落の底へ落ちていくのを止めるため、自分ごと回廊を凍らせて堰にした。三百年のうちに正気を失い、いまは氷の玉座から凍てつく先人たちを見張っている。ひざまずく先人を呼び覚まし、凍てつく息で隊をまとめて凍らせ、致命の一撃を受けても一度は玉座から崩れない。" },
+    desc: "三百年前、王家に最初に仕えた操霊師、凍王イザーク。魂が奈落の底へ落ちていくのを止めるため、自分ごと回廊を凍らせて堤にした。三百年のうちに正気を失い、いまは氷の玉座から凍てつく先人たちを見張っている。ひざまずく先人を呼び覚まし、凍てつく息で隊をまとめて凍らせ、致命の一撃を受けても一度は玉座から崩れない。" },
   // -- 第9層「毒沼」 (rank 9-10・毒/腐敗。第8層より格上の壁) --
   { id: "bs_plaguebeast", name: "疫病の獣", rank: 9, race: "beast", element: "earth", artKey: "plaguebeast",
     ability: "poison", enrage: true, multistrike: 2, // 病毒を撒き、手負いで荒れ、連打でなぐ

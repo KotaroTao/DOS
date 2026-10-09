@@ -6,11 +6,11 @@ export default {
   awaken: "monkKikou",
   table: `
     1 KYOUGEKI 2 IWAKUDAKI 3 DIOS 5 monkKudoku/1 7 NOUTEN 10 HAKKEI 10 CURE 12 FUYUU 15 MONK_KUDOKUSHOU
-    15 monkMeisou/1 20 TENKETSU 22 CHIRETSU 25 monkRenkan/1 30 SHINTOU 30 DIOSALL 35 monkFue/1
+    15 monkMeisou/1 20 TENKETSU 20 dynamicVision/1 22 CHIRETSU 25 monkRenkan/1 30 SHINTOU 30 DIOSALL 35 monkFue/1
     40 KONGOURENDA 40 DIAL 45 monkKudoku/2 50 KONGOUTAI 50 monkMeisou/2 55 SHINGANGEKI 57 GANOTOSHI
-    60 monkFue/2 70 monkRenkan/2 75 monkJuzu/1 80 HOUKEN 82 FUUGA 85 MONK_SEKEN 90 monkRenkan/3
+    60 monkFue/2 60 dynamicVision/2 70 monkRenkan/2 75 monkJuzu/1 80 HOUKEN 82 FUUGA 85 MONK_SEKEN 90 monkRenkan/3
     95 MONK_MYOUOU 100 HYAKURETSU 100 monkMeisou/3 105 monkOuhou/1 107 MONK_CHIMYAKU 110 KIYOME
-    115 monkFue/3 120 MUSOUKEN 125 monkJuzu/2 130 MONK_NENJU 135 monkRenkan/4 140 TENMAKEN 145 monkKudoku/3
+    115 monkFue/3 120 MUSOUKEN 125 monkJuzu/2 130 MONK_NENJU 130 dynamicVision/3 135 monkRenkan/4 140 TENMAKEN 145 monkKudoku/3
     150 MONK_SENPUUKYAKU 155 resistAilment/1 160 MONK_ROKKON 162 MONK_SHINKYAKU 165 scripture/1
     170 MONK_HOURIN 175 monkOuhou/2 180 MONK_GASSHOU 185 monkKudoku/4 190 MONK_KUDOKUNOHIKARI 195 MONK_NEHAN
     200 KONGOUMUSOU`,
@@ -39,8 +39,8 @@ export default {
     // Lv15 の目玉パッシブ: 戦いの後の静かな瞑想
     monkMeisou: {
       label: "瞑想",
-      lv: ["戦闘に勝つと、MPを最大の5%回復", "戦闘に勝つと、MPを最大の10%回復", "戦闘に勝つと、MPを最大の15%回復"],
-      fx: [{ t: "win", mp: [0.05, 0.10, 0.15] }],
+      lv: ["戦闘に勝つと、MPを最大の3%回復", "戦闘に勝つと、MPを最大の4%回復", "戦闘に勝つと、MPを最大の5%回復"],
+      fx: [{ t: "win", mp: [0.03, 0.04, 0.05] }],
     },
     monkKudoku: { label: "功徳の拳", scope: "party", lv: ["物理技を使うと、味方全員のHP1%回復", "物理技を使うと、味方全員のHP1.5%回復", "物理技を使うと、味方全員のHP2%回復", "物理技を使うと、味方全員のHP2.5%回復"],
       fx: [{ t: "cast", on: "phys", party: true, hp: [0.01, 0.015, 0.02, 0.025] }] },

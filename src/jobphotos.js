@@ -230,6 +230,20 @@ export const JOB_PHOTOS = {
     4: { src: "art/jobs/samurai_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.198] },
     5: { src: "art/jobs/samurai_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.13] },
   },
+  archmage: {
+    1: { src: "art/jobs/archmage_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.495] },
+    2: { src: "art/jobs/archmage_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.573] },
+    3: { src: "art/jobs/archmage_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.09] },
+    4: { src: "art/jobs/archmage_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.405] },
+    5: { src: "art/jobs/archmage_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.085] },
+  },
+  berserker: {
+    1: { src: "art/jobs/berserker_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.841] },
+    2: { src: "art/jobs/berserker_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.906] },
+    3: { src: "art/jobs/berserker_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.775] },
+    4: { src: "art/jobs/berserker_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.928] },
+    5: { src: "art/jobs/berserker_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.715] },
+  },
   // <<JOB_PHOTOS>>
   hunter: {
     1: { src: "art/jobs/hunter_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.314] },

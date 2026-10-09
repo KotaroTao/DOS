@@ -816,9 +816,9 @@ export function openSoulDetail(uid, onChange = null) {
     if (s.level < soulLevelCapOf(s)) items.push({ label: "魂を強化", sub: `Lv${s.level} → ${s.level + 1}`, kind: "secondary", onTap: () => openTrainSheet(uid, again) });
     else if ((G.embers || 0) > 0) items.push({ label: "魂を強化", sub: "残火でLv上限を上げる", kind: "secondary", onTap: () => openTrainSheet(uid, again) });
     if (game.featureUnlocked?.("fusion")) {
-      const rep = game.soulRepresentatives().find((x) => x.clsKey === s.clsKey);
-      const n = rep && game.fuseCandidates ? game.fuseCandidates(rep.uid).length : 0;
-      if (n) items.push({ label: `魂融合 ${n}`, sub: rep.uid === uid ? "同じ職業の魂をこの魂へ" : `代表の「${soulLabel(rep)}」へ`, kind: "secondary", onTap: () => openFusePicker(uid, again) });
+      // 融合先はこの魂。素材 = 余っている同職の魂 + サブ魂として宿している魂 (外して融合)
+      const n = (game.fuseCandidates ? game.fuseCandidates(uid).length : 0) + (game.fuseSubWorn ? game.fuseSubWorn(uid).length : 0);
+      if (n) items.push({ label: `魂融合 ${n}`, sub: "同じ職業の魂をこの魂へ", kind: "secondary", onTap: () => openFusePicker(uid, again) });
     }
     if (game.toggleSoulLock) items.push({ label: s.locked ? "ロックを外す" : "ロック", icon: s.locked ? "unlock" : "lock", kind: "ghost", size: "sm",
       onTap: () => { const on = game.toggleSoulLock(uid); sfx("select"); toast(on ? `${soulLabel(s)}をロックした ― 魂融合の素材にならない` : `${soulLabel(s)}のロックを外した`, { tone: "info" }); again(); } });
@@ -1055,10 +1055,9 @@ function soulEnhanced(s) {
 // 素材が尽きたら、結果の札を閉じたところでこの画面も閉じる。
 // onDone: 融合するたびに呼ぶ (魂の一覧シートを描き直すなど)
 export function openFusePicker(targetUid, onDone) {
-  const requested = soulByUid(targetUid);
-  const t = requested && game.soulRepresentatives().find((s) => s.clsKey === requested.clsKey);
-  if (!t) return null;
-  targetUid = t.uid;
+  // 融合先は選んだ魂そのもの (職業の代表に限らない)
+  const t = soulByUid(targetUid);
+  if (!t || (SOUL_CLASSES[t.clsKey] || {}).unique) return null;
   if (G_().state !== "town") return null;
   if (!(game.featureUnlocked && game.featureUnlocked("fusion"))) { sfx("ng"); toast(`魂融合は、${game.featureNote ? game.featureNote("fusion") : "踏破を王に報告すると開く"}`, { tone: "info" }); return null; }
   const candsNow = () => (game.fuseCandidates ? game.fuseCandidates(targetUid) : []).sort(game.soulSortCmp || (() => 0));
@@ -1066,7 +1065,9 @@ export function openFusePicker(targetUid, onDone) {
   const sameJob = () => (G_().souls || []).filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey);
   const lockedNow = () => sameJob().filter((s) => s.locked && !wearerOf(s.uid, null)).sort(game.soulSortCmp || (() => 0));
   const wornNow = () => sameJob().filter((s) => wearerOf(s.uid, null));
-  if (!candsNow().length && !lockedNow().length) { sfx("ng"); toast(wornNow().length ? "同じ職の魂は、どれも人業が宿している" : "魂融合できる同じ職の魂がない", { tone: "info" }); return null; }
+  // サブ魂として宿している魂 (ロックなし・遠征中でない) は、外して素材にできる
+  const takeNow = () => (game.fuseSubWorn ? game.fuseSubWorn(targetUid) : []);
+  if (!candsNow().length && !lockedNow().length && !takeNow().length) { sfx("ng"); toast(wornNow().length ? "同じ職の魂は、どれも人業が宿している" : "魂融合できる同じ職の魂がない", { tone: "info" }); return null; }
   const cl = SOUL_CLASSES[t.clsKey] || SOUL_CLASSES.fighter;
   sfx("select");
   let h = null;
@@ -1083,7 +1084,7 @@ export function openFusePicker(targetUid, onDone) {
         list.appendChild(el("div", "pt-note", `素材にできる魂 ${cands.length}個をまとめて融合する。個別に選んで融合することもできる。`));
       }
       for (const c of cands) list.appendChild(candRow(c));
-      if (!cands.length) list.appendChild(el("div", "pt-note c", "いま素材にできる魂はない。ロックを外すと選べる。"));
+      if (!cands.length) list.appendChild(el("div", "pt-note c", takeNow().length ? "余っている魂はない。下のサブ魂は外して素材にできる。" : "いま素材にできる魂はない。ロックを外すと選べる。"));
       const locked = lockedNow();
       if (locked.length) {
         list.appendChild(el("div", "sp-fz-h sp-fz-gap", "ロック中 ― 外すとすぐ素材にできる"));
@@ -1091,10 +1092,13 @@ export function openFusePicker(targetUid, onDone) {
       }
       const worn = wornNow();
       if (worn.length) {
-        list.appendChild(el("div", "sp-fz-h sp-fz-gap", "宿している魂 ― 外すと素材にできる"));
+        const takeable = new Set(takeNow().map((c) => c.uid));
+        list.appendChild(el("div", "sp-fz-h sp-fz-gap", takeable.size ? "宿している魂 ― サブ魂は外して素材にできる" : "宿している魂 ― 外すと素材にできる"));
         for (const c of worn) {
           const who = wearerOf(c.uid, null);
-          const r = row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulLabel(c)} Lv${c.level}`, sub: `${who ? who.name : "人業"} が宿している ・ ランク${soulRankOf(c)}` });
+          if (takeable.has(c.uid)) { list.appendChild(takeRow(c, who)); continue; }
+          const why = who && who.primary === c.uid ? "メイン魂" : c.locked ? "ロック中" : "遠征中";
+          const r = row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulLabel(c)} Lv${c.level}`, sub: `${who ? who.name : "人業"} の${why === "メイン魂" ? "メイン魂" : `サブ魂 (${why})`} ・ ランク${soulRankOf(c)}` });
           r.classList.add("sp-fz-off");
           list.appendChild(r);
         }
@@ -1118,14 +1122,31 @@ export function openFusePicker(targetUid, onDone) {
     if ((c.level || 1) > 1 || (c.exp || 0) > 0) tags.push("強化済み");
     return row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulLabel(c)} Lv${c.level}`, sub: tags.join(" ・ "), right: unlock });
   };
+  // サブ魂として宿している素材: 「外して融合」で、その人業のサブ魂から外して融合する (確かめてから)
+  const takeRow = (c, who) => {
+    const tags = [`${who ? who.name : "人業"} のサブ魂`, `ランク${soulRankOf(c)}`];
+    if ((c.level || 1) > 1 || (c.exp || 0) > 0) tags.push("強化済み");
+    const go = button({ label: "外して融合", kind: "secondary", size: "sm", onTap: (e) => {
+      if (e) e.stopPropagation();
+      sfx("select");
+      confirm({ banner: "注意", title: `${who ? who.name : "人業"}のサブ魂から外して融合する？`, lines: [
+        `${soulLabel(c)} Lv${c.level} を ${soulLabel(t)} に融合する。`,
+        `${who ? who.name : "人業"}のサブ魂の枠は空になり、この魂から借りていた技・パッシブも使えなくなる。`,
+        "素材にした魂は消える。蓄積した ✦ と融合数 (自身の1体を含む) は融合先に引き継がれる。",
+      ], okLabel: "外して融合" }).then((y) => { if (y) fuse(c, { takeSub: true }); });
+    } });
+    go.classList.add("sp-fuse-take");
+    const r = row({ icon: orb(c.clsKey, soulRankOf(c), 32), title: `${soulLabel(c)} Lv${c.level}`, sub: tags.join(" ・ "), right: go });
+    return r;
+  };
   // 結果の札が閉じたら: 素材が残っていれば続ける、尽きたら閉じる
   const afterResult = () => {
     if (!h || h.closed) return;
-    if (!candsNow().length && !lockedNow().length) h.close();
+    if (!candsNow().length && !lockedNow().length && !takeNow().length) h.close();
   };
-  const fuse = (c) => {
+  const fuse = (c, opts = {}) => {
     if (!game.fuseSoul) return;
-    const r = game.fuseSoul(targetUid, c.uid, afterResult);
+    const r = game.fuseSoul(targetUid, c.uid, afterResult, opts);
     if (!r) return;
     if (h && !h.closed) h.update(view()); // 使った素材を一覧から外す (結果の札の下で描き直す)
     if (typeof onDone === "function") onDone();

@@ -1,0 +1,25 @@
+{
+  "status": "ユーザー確認済み。確定原画はberserker-r1-final.png。最終取り込み値はimport-settings.json。",
+  "job": "berserker",
+  "source": "docs/art/berserker/berserker-r1-review-candidate.png",
+  "reference": "art/jobs/crusader_1.webp",
+  "perDot": 14.209891435464414,
+  "head": [
+    512,
+    648,
+    125,
+    438
+  ],
+  "sole": 1303,
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "headBodyRatio": 3.763578274760383,
+  "headHeightDots": 22.02691001697793,
+  "notes": [
+    "逆立った髪の先端は頭頂に含めない。先端と付け根の中間を目視測定。",
+    "比較用の縮尺調整のみ。機械的なドット化・減色なし。"
+  ]
+}

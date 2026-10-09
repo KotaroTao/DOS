@@ -1,0 +1,102 @@
+{
+  "sprites": [
+    {
+      "key": "crusader",
+      "rank": 1,
+      "face": [
+        48,
+        23
+      ],
+      "head": [
+        48,
+        12,
+        33.93
+      ],
+      "w": 96,
+      "h": 96,
+      "src": "http://127.0.0.1:8001/art/jobs/crusader_1.webp"
+    },
+    {
+      "key": "archmage",
+      "rank": 1,
+      "face": [
+        48,
+        23
+      ],
+      "head": [
+        48,
+        12,
+        33.495000000000005
+      ],
+      "w": 96,
+      "h": 96,
+      "src": "http://127.0.0.1:8001/art/jobs/archmage_1.webp"
+    },
+    {
+      "key": "archmage",
+      "rank": 2,
+      "face": [
+        48,
+        23
+      ],
+      "head": [
+        48,
+        12,
+        33.573
+      ],
+      "w": 96,
+      "h": 96,
+      "src": "http://127.0.0.1:8001/art/jobs/archmage_2.webp"
+    },
+    {
+      "key": "archmage",
+      "rank": 3,
+      "face": [
+        48,
+        23
+      ],
+      "head": [
+        48,
+        12,
+        33.09
+      ],
+      "w": 96,
+      "h": 96,
+      "src": "http://127.0.0.1:8001/art/jobs/archmage_3.webp"
+    },
+    {
+      "key": "archmage",
+      "rank": 4,
+      "face": [
+        48,
+        23
+      ],
+      "head": [
+        48,
+        12,
+        33.405
+      ],
+      "w": 96,
+      "h": 96,
+      "src": "http://127.0.0.1:8001/art/jobs/archmage_4.webp"
+    },
+    {
+      "key": "archmage",
+      "rank": 5,
+      "face": [
+        48,
+        23
+      ],
+      "head": [
+        48,
+        12,
+        33.085
+      ],
+      "w": 96,
+      "h": 96,
+      "src": "http://127.0.0.1:8001/art/jobs/archmage_5.webp"
+    }
+  ],
+  "canvasCount": 30,
+  "browserErrors": []
+}
