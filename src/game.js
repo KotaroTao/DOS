@@ -15698,7 +15698,7 @@ const OPS = {
     const before = wearer ? Object.fromEntries(KEYS.map((k) => [k, wearer[k] || 0])) : null;
     const beforeSpells = new Set(wearer ? (wearer.spells || []) : []);
     const soulBefore = wearer ? null : jobStatsOf(e.clsKey, e); // 誰も宿していない魂は魂そのものの能力を見比べる
-    const beforeSkills = wearer ? null : soulLearnedSkills(e);
+    const beforeSkills = soulLearnedSkills(e); // サブ魂は宿主の技に入らないので、魂そのものが覚えた技も見比べる
     const from = e.level;
     // 蓄積していた exp で上がる段は無料で先に上げる (旧来は1段上げると exp=0 で残りが消えていた)
     let spent = 0, levels = settleSoulExp(e);
@@ -15733,7 +15733,8 @@ const OPS = {
       }
     }
     // 結果は UI (soulpanel.js の train → レベルアップの祝祭カード) が見せる
-    const gainedSkills = wearer ? (wearer.spells || []).filter((k) => !beforeSpells.has(k)) : soulLearnedSkills(e).filter((k) => !beforeSkills.includes(k));
+    // 新たに覚えた技: 宿主の技の増え + 魂そのものが覚えた技 (サブ魂の強化でも、戦闘後・メイン魂の強化と同じく技を見せる)
+    const gainedSkills = [...new Set([...(wearer ? (wearer.spells || []).filter((k) => !beforeSpells.has(k)) : []), ...soulLearnedSkills(e).filter((k) => !beforeSkills.includes(k))])];
     renderTown();
     return { ok: true, uid, levels, spent, from, to: e.level, deltas, before: statsBefore, after: statsAfter, gainedSkills, wearer };
   },
