@@ -2321,8 +2321,8 @@ function crestMask(hand, flame, cx, cy, s) {
   flame.poly(P([-2, -0.6, 0.2, -0.6, 0, -2.6, -0.9, -5.8, -1.8, -2.8]));                     // 掌に載せた灯
 }
 
-// 29. 師の添え木 (奈落の底の沼の岸。上の闇から雪解けの滝が落ちる。手前の泥に、溶けた氷の添え木と切り落とした人業の手、
-//     木屑と、石で押さえた書きつけ。片脚を引きずる足跡が葦の奥へ続く)
+// 29. 師の添え木 (奈落の底の沼の岸。上の闇から雪解けの滝が落ちる。手前の泥に、溶けかけた氷の添え木のかけらと、
+//     縄で束ねた人業の腕の木が二本。結び目に師の書きつけ。片脚を引きずる足跡が葦の奥 (谷のほう) へ続く)
 function sceneSplint() {
   const W = ART_W, H = ART_H, L = new Layer(W, H);
   const FX = 58, SY = 60;                                              // 滝の位置・沼の奥の水際
@@ -2396,53 +2396,49 @@ function sceneSplint() {
   }
   L.paint(prints, (x, y) => lit(prints.at(x, y - 1) ? [14, 14, 10] : [30, 32, 22], lightAt(x, y, lights), [0.1, 0.1, 0.08]));
   for (let y = 0; y < H; y++) for (let x = 120; x < W; x++) if (prints.at(x, y) && !prints.at(x, y + 1)) L.add(x, y + 1, [90, 104, 50], 1);   // 足跡の縁の照り (毒溜まりの光を受ける)
-  // 溶けた氷の添え木 (二つに割れた半円の筒。半ば溶けて水溜まりになっている)
-  const pud = new Mask(W, H); pud.ellipse(66, 95, 22, 4.6);
+  // 溶けかけた氷の添え木 (凍王が固めた、脚の形に削られた氷。割れて散らばり、半ば溶けて水溜まりになっている)
+  const pud = new Mask(W, H); pud.ellipse(52, 96, 26, 5);
   L.paint(pud, (x, y) => lit(mix([22, 34, 32], [44, 60, 56], vnoise(x * 0.2, y, 7)), lightAt(x, y, lights, 0, -0.9), [0.16, 0.2, 0.2]));
-  for (let x = 46; x < 88; x++) if (Math.sin(x * 0.9) > 0.3) L.add(x, 94, [80, 70, 40], 0.4);   // 水溜まりの照り
-  const ice1 = new Mask(W, H), ice2 = new Mask(W, H);
-  ice1.poly([50, 92, 60, 88, 74, 87, 78, 89, 72, 92, 60, 94]);
-  ice2.poly([66, 97, 78, 94, 88, 95, 84, 98, 74, 100]);
-  for (const [m, sd] of [[ice1, 323], [ice2, 325]]) L.paint(m, (x, y) => {
-    const hi = !m.at(x, y - 1) || (!m.at(x - 1, y) && h2(x, y, sd) > 0.3);
-    const c = lit(hi ? [228, 240, 236] : mix([120, 156, 150], [180, 206, 202], vnoise(x * 0.5, y * 0.5, sd)), lightAt(x, y, lights), [0.36, 0.4, 0.4]);
-    return [c[0], c[1], c[2], hi ? 0.95 : 0.7];
-  });
-  // 切った布の帯 (外套の裏地を裂いて、添え木を縛った紐)。片方に金の刺しゅうの切れ端
-  const band = new Mask(W, H);
-  band.line(84, 101, 98, 99, 2, 1, 1.6); band.line(98, 99, 104, 102, 1.6, 1, 1.4);
-  band.line(44, 98, 52, 101, 1.8, 1, 1.4);
-  paintLit(L, band, (x, y) => (x > 92 && x < 96 ? ALB_EMBROID : mix(ALB_COAT, ALB_COAT_D, h2(x, y, 3) * 0.5)), lights, { amb: [0.18, 0.18, 0.2] });
-  // 切り落とした人業の手 (腕の木を添え木に使い、手首から先だけが残った。指を軽く曲げて上を向く)
-  const HX = 112, HY = 92;
-  const hand = new Mask(W, H), joint = new Mask(W, H);
-  hand.line(HX - 15, HY + 2, HX - 5, HY + 0.5, 4.6, 1, 4);                                   // 手首の上で切った短い腕
-  hand.ellipse(HX, HY, 5, 3.8);                                                              // 掌
-  for (let f = 0; f < 4; f++) { const y0 = HY - 3.2 + f * 2.2; hand.line(HX + 3.6, y0, HX + 9.6 - Math.abs(f - 1.2) * 1.2, y0 - 2.4 + f * 1.4, 1); }   // 四本の指 (軽く開く。一本ずつ間をあける)
-  hand.line(HX - 1.6, HY - 3, HX + 1.8, HY - 6.4, 1.6);                                    // 親指
-  joint.ellipse(HX - 5, HY + 0.5, 2.2, 3.2);                                                 // 手首の球関節
-  paintLit(L, hand, (x, y) => {
-    if (x <= HX - 15) return [240, 222, 178];                                                // 鋸の切り口 (白い木口)
-    return mix(ALB_DOLL, ALB_DOLL_D, vnoise(x * 0.6, y * 0.6, 9) * 0.6);
-  }, lights, { ny: (x, y) => vNormal(hand, x, y, 2) * 0.6, nxMax: 3, amb: [0.26, 0.24, 0.22] });
-  paintLit(L, joint, (x, y) => (joint.at(x, y - 1) ? [80, 84, 96] : [170, 176, 190]), lights, { amb: [0.24, 0.24, 0.28] });
-  rimLight(L, hand, lights, [120, 100, 70], 0.5);
-  // 鉋屑 (木を削った白い巻き屑)
-  const R = rng(327);
-  for (let i = 0; i < 14; i++) {
-    const x = 92 + R() * 26, y = 94 + R() * 10, a = R() * 6.28;
-    for (let j = 0; j < 4; j++) L.px(x + Math.cos(a + j) * 1.3, y + Math.sin(a + j) * 0.8, lit([210, 180, 130], lightAt(x, y, lights), [0.22, 0.2, 0.18]));
+  for (let x = 28; x < 78; x++) if (Math.sin(x * 0.9) > 0.3) L.add(x, 93, [80, 70, 40], 0.4);   // 水溜まりの照り
+  const ices = [];
+  for (const [x, y, len, a, w] of [[38, 93, 20, -0.12, 4.4], [58, 98, 14, 0.18, 3.6], [70, 93, 9, -0.4, 3], [28, 99, 7, 0.3, 2.6]]) {
+    const m = new Mask(W, H), c = Math.cos(a), sn = Math.sin(a);
+    const P = (u, v) => [x + u * c - v * sn, y + u * sn + v * c];
+    m.poly([...P(-len / 2, -w * 0.3), ...P(-len * 0.2, -w * 0.5), ...P(len / 2, -w * 0.4), ...P(len / 2 + 1, w * 0.2), ...P(len * 0.1, w * 0.5), ...P(-len / 2, w * 0.4)]);   // 脛を包んだ半円の筒の割れ
+    ices.push(m);
   }
-  // 書きつけ (紙を石で押さえて、泥の上に)
-  const note = new Mask(W, H); note.poly([20, 92, 42, 89, 44, 101, 21, 104]);
-  L.paint(note, (x, y) => {
-    const u = (x - 20) / 24, v = (y - 90) / 14;
-    const ink = v > 0.2 && v < 0.9 && u > 0.12 && u < 0.82 && Math.round(y - u * 2.4) % 3 === 0 && h2(x >> 1, y, 329) > 0.25;
-    const stain = vnoise(x * 0.3, y * 0.3, 331) > 0.72;
-    return lit(ink ? [56, 44, 40] : stain ? [150, 140, 96] : ALB_PAPER, lightAt(x, y, lights, 0, -0.9), [0.3, 0.28, 0.26]);
+  for (const [i, m] of ices.entries()) L.paint(m, (x, y) => {
+    const hi = !m.at(x, y - 1) || (!m.at(x - 1, y) && h2(x, y, 323 + i) > 0.3);
+    const groove = m.at(x, y - 2) && m.at(x, y + 2) && h2(x, 0, 325 + i) > 0.55;           // 内側のくぼみ (脛の形)
+    const c = lit(hi ? [228, 240, 236] : groove ? [96, 130, 126] : mix([120, 156, 150], [180, 206, 202], vnoise(x * 0.5, y * 0.5, 327 + i)), lightAt(x, y, lights), [0.36, 0.4, 0.4]);
+    return [c[0], c[1], c[2], hi ? 0.95 : 0.72];
   });
-  const stone = new Mask(W, H); stone.ellipse(38, 92, 6, 4);
-  paintLit(L, stone, (x, y) => mix([70, 74, 62], [110, 112, 96], vnoise(x * 0.5, y * 0.5, 333)), lights, { ny: (x, y) => vNormal(stone, x, y, 3), amb: [0.12, 0.12, 0.1] });
+  // 縄で束ねた人業の腕の木 (二本。肘の球関節と、指を開いた手)
+  const arms = new Mask(W, H), jn = new Mask(W, H);
+  for (const [dx, dy] of [[0, 0], [-3, 4.4]]) {
+    const sx = 88 + dx, sy = 97 + dy, ex = 107 + dx, ey = 93.6 + dy, hx = 126 + dx, hy = 90.4 + dy;
+    arms.line(sx, sy, ex, ey, 4.2, 1, 3.8); arms.line(ex, ey, hx - 2, hy + 0.3, 3.6, 1, 3);
+    arms.ellipse(hx, hy, 2.6, 2.2);
+    for (let f = 0; f < 4; f++) arms.line(hx + 1.6, hy - 1.6 + f * 1.1, hx + 5 - Math.abs(f - 1.4) * 0.6, hy - 2.2 + f * 1.5, 1);   // 四本の指
+    arms.line(hx - 0.6, hy - 1.6, hx + 0.8, hy - 3.8, 1);                                                                           // 親指
+    jn.ellipse(sx - 1, sy + 0.2, 2.2, 2.4); jn.ellipse(ex, ey, 2.2, 2.2);
+  }
+  paintLit(L, arms, (x, y) => mix(ALB_DOLL, ALB_DOLL_D, vnoise(x * 0.6, y * 0.6, 9) * 0.5 + (Math.sin(x * 0.7) * 0.5 + 0.5) * 0.2), lights, { ny: (x, y) => vNormal(arms, x, y, 3) * 0.6, nxMax: 3, amb: [0.26, 0.24, 0.22] });
+  paintLit(L, jn, (x, y) => (jn.at(x, y - 1) ? [80, 84, 96] : [170, 176, 190]), lights, { amb: [0.24, 0.24, 0.28] });
+  rimLight(L, arms, lights, [120, 100, 70], 0.4);
+  const rope = new Mask(W, H);
+  for (const rx of [96, 114]) { rope.line(rx, 91.6 - (rx - 96) * 0.17, rx - 1.4, 101.6 - (rx - 96) * 0.17, 1.6); rope.line(rx + 1.6, 91.4 - (rx - 96) * 0.17, rx + 0.2, 101.4 - (rx - 96) * 0.17, 1); }
+  rope.ellipse(115, 91.4, 1.8, 1.4);                                                          // 結び目
+  rope.line(115, 92, 119, 96, 1); rope.line(115, 92, 120, 88.6, 1);                           // 縄の端
+  paintLit(L, rope, (x, y) => (h2(x, y, 331) > 0.5 ? [200, 180, 130] : [150, 130, 90]), lights, { amb: [0.3, 0.28, 0.24] });
+  // 結び目にはさんだ書きつけ (折りたたんだ紙が一枚、斜めに立つ)
+  const note = new Mask(W, H); note.poly([111, 91, 109, 81, 116, 79.6, 118, 90]);
+  L.paint(note, (x, y) => {
+    const v = (y - 80) / 11;
+    const ink = (Math.round(y - x * 0.2) % 2 === 0) && v > 0.15 && v < 0.85 && x > 110 && x < 116 && h2(x, y, 333) > 0.3;
+    const fold = Math.abs(y - 85.4 + (x - 113) * 0.15) < 0.5;                                  // 折り目
+    return lit(ink ? [70, 56, 50] : fold ? [170, 156, 120] : ALB_PAPER, lightAt(x, y, lights), [0.4, 0.38, 0.34]);
+  });
   // 手前の葦 (右の端。足跡はこの奥へ消える)
   for (let i = 0; i < 16; i++) reedStalk(L, lights, 170 + h2(i, 3, 335) * 24, 104 + h2(i, 4, 335) * 6, 40 + h2(i, 5, 335) * 34, -6 + h2(i, 6, 335) * 8, 337 + i, { amb: [0.16, 0.18, 0.12] });
   for (let i = 0; i < 6; i++) reedStalk(L, lights, h2(i, 7, 335) * 10, 108, 30 + h2(i, 8, 335) * 24, 2 + h2(i, 9, 335) * 5, 351 + i, { amb: [0.06, 0.06, 0.05] });
