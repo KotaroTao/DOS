@@ -408,7 +408,8 @@ export function statusText(tags) {
 }
 // 状態異常の種類 (装備の耐性 ailRes のキー): 毒・麻痺・眠り・魅了・混乱・石化
 export const AIL_KINDS = ["poison", "paralyze", "sleep", "charm", "confuse", "stone"];
-const newTally = () => ({ pa: 0, pe: 0, pp: 0, ea: 0, ee: 0, ep: 0, of: 0, op: 0, ft: 0, fo: 0, fs: 0, fp: 0 });
+// pi/ei = 当たったが無効にされた物理 (抵抗値100・加護の祈り・金剛の守り)。命中には数え、別に数える
+const newTally = () => ({ pa: 0, pe: 0, pp: 0, pi: 0, ea: 0, ee: 0, ep: 0, ei: 0, of: 0, op: 0, ft: 0, fo: 0, fs: 0, fp: 0 });
 // 破邪・聖刃の対象種族
 const HOLY_PREY = ["undead", "specter", "demon"];
 const VULN_LABEL = { fire: "火", water: "水", wind: "風", earth: "土", light: "光", dark: "闇", all: "全属性" };
@@ -2498,6 +2499,7 @@ export class Battle {
     if (pr.immune) {
       // 無効: 傷ひとつ付かない (障壁も削れず、毒刃・怯ませ等の命中時効果も乗らない)
       this.log(`${actor.name}の${opt.name || "攻撃"}！ ${tgt.name}には効かない！ (${magHit ? "魔法" : "物理"}無効)`, tgt.side === "party" ? "dmg" : "hit");
+      T[tk + "i"]++;
       return { target: tgt, dmg: 0, crit: false, died: false, immune: true };
     }
     dmg = pr.dmg;
@@ -2507,11 +2509,12 @@ export class Battle {
     // 金剛の護符 (guard): 被ダメを常に割合カット (LR装飾品)
     if (tgt.guard) dmg = Math.ceil(dmg * (1 - tgt.guard));
     dmg = Math.max(1, dmg);
-    if (actor.side === "enemy" && this._onceGuard(tgt, "firstGuard", "_fgUsed", "加護の祈り")) return { target: tgt, dmg: 0, crit: false, died: false, immune: true };
+    if (actor.side === "enemy" && this._onceGuard(tgt, "firstGuard", "_fgUsed", "加護の祈り")) { T[tk + "i"]++; return { target: tgt, dmg: 0, crit: false, died: false, immune: true }; }
     // 金剛の守り (守護騎士のランク): 敵の物理を 5/8/12/20% で完全に受け止める
     if (actor.side === "enemy" && tgt.side === "party" && Math.random() < this._rk(tgt, "guardianKongou", [0.05, 0.08, 0.12, 0.20])) {
       this.log(`${tgt.name}は金剛の守りで受け止めた！ (無傷)`, "heal");
       this._proc(tgt, "金剛の守り");
+      T[tk + "i"]++;
       return { target: tgt, dmg: 0, crit: false, died: false, immune: true };
     }
     dmg = this._wallCut(tgt, dmg);
