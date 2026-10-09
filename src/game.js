@@ -1905,7 +1905,8 @@ function dockSpec() {
   // 迷宮で唱える技 (浮遊・気配読み・宝探し・道しるべ)。覚えた者が隊にいる時だけ、技ごとにボタンを出す
   const fields = knownFieldSkills().map((k) => {
     const sp = SPELLS[k], c = fieldCaster(k, true), on = fieldActive(sp);
-    return { key: k, kind: sp.float ? "float" : sp.sense, label: sp.name, sub: on ? fieldStateText(sp) : `MP${c.cost}`, on };
+    // tag = 札に詰めた時の短い名。浮遊は残りの階数を添える (「浮遊 残1」、ユーザーの指示)
+    return { key: k, kind: sp.float ? "float" : sp.sense, label: sp.name, sub: on ? fieldStateText(sp) : `MP${c.cost}`, on, tag: on && sp.float ? `${sp.name} 残${floatLeft()}` : null };
   });
   const av = autoMoveAvoid();
   const auto = { on: !!G.autoMove, sub: av.foe && av.elite ? "敵を避ける" : av.elite ? "強敵を避ける" : av.foe ? "強敵に挑む" : "敵に挑む" };
