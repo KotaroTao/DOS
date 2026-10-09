@@ -8957,7 +8957,7 @@ function renderCombatMenu() {
     const sp = p && p.spellKey ? SPELLS[p.spellKey] : null;
     const pit = p && p.action === "item" ? p.item : null;
     const allyPick = (sp && sp.target === "ally") || (pit && useTarget(pit) !== "enemy");
-    combatMenu.appendChild(turnPlate(sp ? sp.name : pit ? pit.name : "対象を選択", sp || pit ? "の対象" : "", [allyPick ? "パーティの札をタップでも可" : "敵を直接タップでも可"]));
+    combatMenu.appendChild(turnPlate(sp ? sp.name : pit ? pit.name : "対象を選択", sp || pit ? "の対象" : "", [allyPick ? "味方を直接タップでも可" : "敵を直接タップでも可"]));
     const opts = b.targetOptions();
     // 対象が多い時 (敵の群れなど) は2列に並べて縦に伸びすぎないようにする
     const list = el("div", "target-list" + (opts.length > 3 ? " cols2" : ""));

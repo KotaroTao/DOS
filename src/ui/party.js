@@ -1377,7 +1377,7 @@ function reserveBody(root) {
   const list = el("div", "pt-res");
   const exc = expeditionCount();
   if (exc) list.appendChild(exc);
-  if (!G.reserve.length) list.appendChild(el("div", "pt-res-none", "控えはいない。パーティの札を「控え」へ引けば下げられる。"));
+  if (!G.reserve.length) list.appendChild(el("div", "pt-res-none", "控えはいない。隊列の人業を「控え」へ引けば下げられる。"));
   for (const d of G.reserve) list.appendChild(reserveRow(d));
   root.appendChild(list);
   const cost = game.emptyDollCost ? game.emptyDollCost() : 0;

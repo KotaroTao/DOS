@@ -17,10 +17,13 @@ import { getPref, setPref, remember, autoMoveAvoid } from "./prefs.js";
 import { sceneTransition } from "./motion.js";
 import { MONSTERS, ICONS, spriteCanvas, crispCanvas } from "../sprites.js";
 import { ELEMENTS, unknownLabel } from "../dungeons/index.js";
-import { revealSteps, monKills, BUFF_NAME, setLogText } from "./itemview.js";
+import { revealSteps, monKills, BUFF_NAME, setLogText, showSkillPopup, elemStatShort } from "./itemview.js";
+import { SPELLS, spellCost, partyBreathRes } from "../combat.js";
+import { tacticOf } from "../autotactics.js";
+import { RESIST_LABEL } from "../resistance.js";
 import { RARITIES } from "../rarity.js";
 import { effectStage, stageLabel, isBattleLong } from "../buffstage.js";
-import { SOUL_CLASSES, soulIcon, ATTR_LABEL } from "../souls.js";
+import { SOUL_CLASSES, soulIcon, ATTR_LABEL, battleSkills, isAutoOff } from "../souls.js";
 import { WALKER as WALKER_ART } from "../walkerart.js";
 import { markOf } from "./questboard.js";
 
@@ -447,18 +450,43 @@ export function openDungeonMenu() {
 }
 
 // ================= 覗き見 (長押し) =================
+// 人業の様子: 戦闘中は「いまの数字」(強化・弱体込みの能力・攻撃力・命中・会心・回避・逃走・手番) と、
+// 撃てる技 (いまの MP で足りるか)・掛かっている効果・守り (属性防・ブレス・状態異常) を一枚に (2026-10 ユーザーの指示)。
+// 数字は combat.js Battle.peekStats が実際の式から読む
 const STAT_KEYS = [["atk", "STR"], ["vit", "VIT"], ["agi", "AGI"], ["int", "INT"], ["pie", "PIE"], ["luk", "LUK"]];
 const AIL = { poison: "毒", paralyze: "麻痺", stone: "石化" };
+const RANGE_NAME = { near: "近", mid: "中", long: "長" };
+const pctTx = (v) => (v == null ? "—" : `${Math.round(v * 100)}%`);
+function peekTile(label, value, sub, cls) {
+  const c = el("div", "dg-stat dg-num" + (cls ? " " + cls : ""));
+  const l = el("div", "dg-num-h");
+  l.appendChild(el("span", "dg-stat-l", label));
+  l.appendChild(el("span", "dg-stat-v", value));
+  c.appendChild(l);
+  if (sub) c.appendChild(el("span", "dg-num-s", sub));
+  return c;
+}
+function effectChip(ef) {
+  if (ef.stat === "omen") return el("span", "dg-chip bad", "大技の予兆");
+  const st = effectStage(ef);
+  const name = ATTR_LABEL[ef.stat] || BUFF_NAME[ef.stat] || (ef.stat || "").toUpperCase();
+  const mul = st && ef.mult ? ` ×${Math.round(ef.mult * 100) / 100}` : "";
+  const turns = isBattleLong(ef.turns) ? "戦闘中" : `残${ef.turns}`;
+  return el("span", "dg-chip " + (ef.mult > 1 ? "up" : "bad"), `${name}${st ? stageLabel(st) : ef.mult > 1 ? "▲" : "▼"}${mul} ${turns}`);
+}
 export function peekDoll(d, { idx = 0, combat = false } = {}) {
   if (!d) return null;
+  const g = G();
+  const b = combat && g && g.battle && g.battle.peekStats ? g.battle : null;
+  const ps = b ? b.peekStats(d) : null;
   return sheet.open({
-    kind: "info", banner: combat ? "パーティの札" : "パーティの札 ― 覗き見", className: "dg-sheet dg-peek",
-    body: (b) => {
+    kind: "info", banner: "人業の様子", className: "dg-sheet dg-peek",
+    body: (box) => {
       const top = el("div", "dg-peek-top");
       top.appendChild(portrait(d, { size: 64, hp: false }));
       const tx = el("div", "dg-peek-tx");
       tx.appendChild(el("div", "dg-peek-n", d.name + (d.alive ? "" : "  †")));
-      tx.appendChild(el("div", "dg-peek-c", `${d.cls || ""}  Lv${d.jobLv || d.level || 1}`));
+      tx.appendChild(el("div", "dg-peek-c", `${d.cls || ""}  Lv${d.jobLv || d.level || 1}　作戦「${tacticOf(d).name}」`));
       const hp = el("div", "dg-peek-bar");
       hp.appendChild(el("span", "dg-peek-bl", "HP"));
       hp.appendChild(bar(d.hp, d.maxhp, { tone: "hp" }));
@@ -472,28 +500,87 @@ export function peekDoll(d, { idx = 0, combat = false } = {}) {
         tx.appendChild(mp);
       }
       top.appendChild(tx);
-      b.appendChild(top);
+      box.appendChild(top);
+
+      // 隊列・武器・状態・掛かっている効果
       const chips = el("div", "dg-peek-chips");
-      chips.appendChild(el("span", "dg-chip", idx < 3 ? "前衛" : "後衛"));
+      const back = ps ? ps.back : idx >= 3;
+      chips.appendChild(el("span", "dg-chip", back ? "後衛 (物理の被ダメ半減)" : "前衛"));
       const w = d.equip && d.equip.weapon;
-      chips.appendChild(el("span", "dg-chip", w ? `${w.name}` : "素手"));
+      chips.appendChild(el("span", "dg-chip", w ? `${w.name} (射程 ${RANGE_NAME[ps ? ps.range : "near"] || "近"})` : "素手"));
       if (d.ailment) chips.appendChild(el("span", "dg-chip bad", AIL[d.ailment] || d.ailment));
       if (d.asleep) chips.appendChild(el("span", "dg-chip bad", "眠り"));
       if (d.mind) chips.appendChild(el("span", "dg-chip bad", d.mind === "charm" ? "魅了" : "混乱"));
-      for (const ef of (d.effects || [])) {
-        if (ef.stat === "omen") { chips.appendChild(el("span", "dg-chip bad", "大技の予兆")); continue; }
-        const st = effectStage(ef);
-        chips.appendChild(el("span", "dg-chip " + (ef.mult > 1 ? "up" : "bad"), `${ATTR_LABEL[ef.stat] || BUFF_NAME[ef.stat] || (ef.stat || "").toUpperCase()}${st ? stageLabel(st) : ef.mult > 1 ? "▲" : "▼"} ${isBattleLong(ef.turns) ? "戦闘中" : `残${ef.turns}`}`));
+      if (d._defending) chips.appendChild(el("span", "dg-chip up", "防御中 (被ダメ半減)"));
+      for (const ef of (d.effects || [])) chips.appendChild(effectChip(ef));
+      box.appendChild(chips);
+
+      // 戦いの数字 (戦闘中だけ)
+      if (ps) {
+        box.appendChild(section("いまの戦力", "強化・弱体込み"));
+        const nums = el("div", "dg-stats");
+        nums.appendChild(peekTile("攻撃力", String(ps.power), d.wScale ? Object.keys(d.wScale).map((k) => ATTR_LABEL[k]).join("＋") + " 参照" : "STR 参照"));
+        nums.appendChild(peekTile("命中", pctTx(ps.hit), ps.reach ? `届く敵 ${ps.reach}/${ps.foes}体` : "届く敵がいない", ps.reach ? "" : "warn"));
+        nums.appendChild(peekTile("会心", pctTx(ps.crit), "通常攻撃"));
+        nums.appendChild(peekTile("回避", pctTx(ps.evade), "敵の打撃を"));
+        nums.appendChild(peekTile("逃走", pctTx(ps.flee), "この者が逃げると"));
+        const ord = ps.order === "now" ? "いま" : ps.order == null ? "次の巡り" : ps.order === 0 ? "次" : `${ps.order}手後`;
+        nums.appendChild(peekTile("手番", ord, ps.order === "now" ? "行動中" : ps.order == null ? "この巡りは済んだ" : "この巡りのうち"));
+        box.appendChild(nums);
       }
-      b.appendChild(chips);
+
+      // 能力値 (戦闘中は強化・弱体込みの値。素の値と違えば矢印と素の値)
+      box.appendChild(section("能力"));
       const grid = el("div", "dg-stats");
       for (const [k, lb] of STAT_KEYS) {
-        const c = el("div", "dg-stat");
+        const base = d[k] != null ? Math.round(d[k]) : null;
+        const now = ps ? ps.stats[k] : base;
+        const tone = base != null && now !== base ? (now > base ? " up" : " down") : "";
+        const c = el("div", "dg-stat" + tone);
         c.appendChild(el("span", "dg-stat-l", lb));
-        c.appendChild(el("span", "dg-stat-v", String(d[k] != null ? d[k] : "—")));
+        const v = el("span", "dg-stat-v", now != null ? String(now) : "—");
+        if (tone) v.appendChild(el("small", "dg-stat-b", `素${base}`));
+        c.appendChild(v);
         grid.appendChild(c);
       }
-      b.appendChild(grid);
+      box.appendChild(grid);
+
+      // 技 (戦闘の一覧に出している技。いまの MP で撃てない技は暗く。押すと説明)
+      if (d.alive) {
+        const keys = battleSkills(d).filter((k) => SPELLS[k]);
+        if (keys.length) {
+          const castable = keys.filter((k) => (d.mp || 0) >= spellCost(d, SPELLS[k])).length;
+          box.appendChild(section("技", `いま撃てる ${castable}/${keys.length}`));
+          const sk = el("div", "dg-peek-chips dg-peek-skills");
+          for (const k of keys) {
+            const sp = SPELLS[k];
+            const cost = spellCost(d, sp);
+            const c = el("button", "dg-chip dg-skill tap" + ((d.mp || 0) < cost ? " off" : "") + (isAutoOff(d, k) ? " manual" : ""));
+            c.type = "button";
+            c.appendChild(el("span", "dg-skill-n", sp.name));
+            if (cost) c.appendChild(el("span", "dg-skill-mp", `MP${cost}`));
+            c.addEventListener("click", () => showSkillPopup(k));
+            sk.appendChild(c);
+          }
+          box.appendChild(sk);
+        }
+      }
+
+      // 守り: 属性防御・ブレス耐性・状態異常への抵抗 (値のあるものだけ)
+      const guard = [];
+      if (d.elemDef && d.elemDef.el) guard.push(`属性防 ${elemStatShort(d.elemDef)}`);
+      const br = partyBreathRes(d);
+      if (br) guard.push(`ブレス耐性 ${Math.round(br * 100)}%`);
+      for (const [k, label] of Object.entries(RESIST_LABEL)) {
+        const v = (d.resists && d.resists[k]) || 0;
+        if (v) guard.push(`${label}抵抗 ${v}`);
+      }
+      if (guard.length) {
+        box.appendChild(section("守り"));
+        const gr = el("div", "dg-peek-chips");
+        for (const t of guard) gr.appendChild(el("span", "dg-chip", t));
+        box.appendChild(gr);
+      }
     },
     footer: combat ? [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }] : [
       { label: "パーティを見る", kind: "primary", onTap: (h) => { h.close("go"); setTimeout(() => UI.openParty(idx, { context: "dungeon" }), 0); } },

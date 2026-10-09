@@ -1330,6 +1330,39 @@ export class Battle {
     return Math.min(EVADE_MAX, Math.max(0, p));
   }
 
+  // 物理が外れる確率 (見切り・必中は別): 素の命中漏れ + 対象の敏捷(AGI)による回避 + 回避持ちの追加回避。
+  // 技の命中補正 (acc) は外れる確率をその割合だけ消す (1 = 必中)。目つぶし (hit<1) は外れる確率を足す
+  _missP(tgt, actor, opt = {}) {
+    const evade = ((isMetal(tgt) ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0)) * (1 - visionCut(actor, tgt))
+      + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) + _partyEvadeBonus : 0); // 固有パッシブ (evade)・手がかりの恵み
+    let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
+    const blind = this._bm(actor, "hit");
+    if (blind < 1) missP += Math.min(0.4, 1 - blind);
+    return missP;
+  }
+  // 見切り (parry) で物理を丸ごとかわす確率
+  _parryP(t) { const lv = pv(t, "parry"); return lv >= 2 ? 0.15 : lv ? 0.10 : 0; }
+
+  // 戦闘中の人業の様子 (隊の札の長押し — ui/dungeonhud.js peekDoll)。実際の式から、いまの数字を読むだけ (乱数・状態は触らない)
+  //   stats = 強化・弱体込みの能力値 / power = 攻撃力 / hit = 通常攻撃が届く敵への命中率の平均 /
+  //   crit = 通常の会心率 (固有パッシブの条件つきの分は除く) / evade = 生きている敵の打撃をかわす率の平均 /
+  //   flee = 逃走率 / order = 手番 ("now" | この巡りであと何人の後か | null = 次の巡り) / back = 後衛 / reach = 届く敵の数
+  peekStats(a) {
+    if (!a || a.side !== "party") return null;
+    const stats = {};
+    for (const k of ["atk", "vit", "agi", "int", "pie"]) stats[k] = Math.round((a[k] || 0) * this._bm(a, k));
+    stats.luk = Math.round(a.luk || 0);
+    const foes = this.livingEnemies();
+    const reach = a.alive ? this.attackableEnemies(a) : [];
+    const avg = (arr, f) => (arr.length ? arr.reduce((s, x) => s + f(x), 0) / arr.length : null);
+    const hit = avg(reach, (e) => (e.asleep || e.ailment === "paralyze") ? 1 : Math.max(0, 1 - Math.min(1, this._missP(e, a, { basic: true }))));
+    const evade = avg(foes, (e) => 1 - (1 - Math.min(1, this._missP(a, e, {}))) * (1 - this._parryP(a)));
+    const crit = Math.min(0.85, Math.max(0, 0.06 + (a.critBonus || 0) + luckCritBonus(a.luk) + (a._evCrit || 0)));
+    const qi = this.queue.indexOf(a);
+    const order = this.current === a ? "now" : qi >= 0 ? this.queue.slice(0, qi).filter((x) => x.alive).length : null;
+    return { stats, power: this._eatk(a), hit, crit, evade, flee: this.fleeChance(a), order, back: this.isBackRow(a), reach: reach.length, foes: foes.length, range: this.attackRange(a) };
+  }
+
   // テスト記録の集計 (中断セーブから戻った古い戦闘にも器を用意する)
   _tally() { return this.tally || (this.tally = newTally()); }
 
@@ -2332,11 +2365,7 @@ export class Battle {
     }
     // 命中判定: 素の命中漏れ + 対象の敏捷(AGI)による回避 + 回避持ちの追加回避。
     // 技の命中補正 (acc) は外れる確率をその割合だけ消す (1 = 必中)。目つぶし (hit<1) は外れる確率を足す
-    const evade = ((isMetal(tgt) ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0)) * (1 - visionCut(actor, tgt))
-      + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) + _partyEvadeBonus : 0); // 固有パッシブ (evade)・手がかりの恵み
-    let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
-    const blind = this._bm(actor, "hit");
-    if (blind < 1) missP += Math.min(0.4, 1 - blind);
+    const missP = this._missP(tgt, actor, opt);
     if (!sureHit && Math.random() < missP) {
       T[tk + "e"]++; if (J) J[1]++;
       this.log(`${tgt.name}は攻撃をかわした！`, "sys");
@@ -2538,11 +2567,7 @@ export class Battle {
     let r = tgt[magHit ? "magResist" : "physResist"] || 0;
     const metal = isMetal(tgt);
     if (r >= 100 && !metal) return 0; // 無効は会心でも通らない
-    const evade = ((metal ? metalEvade(tgt) : this._evadeBase(tgt, actor)) + (tgt.evasive ? 0.15 : 0)) * (1 - visionCut(actor, tgt))
-      + (tgt.side === "party" && actor.side === "enemy" ? this._perkSum(tgt, "evade", { tgt: actor }) + _partyEvadeBonus : 0);
-    let missP = (0.06 + evade) * (1 - Math.min(1, Math.max(0, opt.acc || 0)));
-    const blind = this._bm(actor, "hit");
-    if (blind < 1) missP += Math.min(0.4, 1 - blind);
+    const missP = this._missP(tgt, actor, opt);
     const sureHit = tgt.side === "enemy" && (tgt.asleep || tgt.ailment === "paralyze");
     const hitP = sureHit ? 1 : Math.max(0, 1 - Math.min(1, missP)) * (1 - (pv(tgt, "parry") >= 2 ? 0.15 : pv(tgt, "parry") ? 0.1 : 0));
     const power = opt.power || 1;
