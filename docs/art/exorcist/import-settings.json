@@ -1,0 +1,15 @@
+{
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "approvedAnatomy": "docs/art/exorcist/exorcist-r1-final.png",
+  "frame": [90, 92],
+  "frameTop": 9,
+  "bodyHeightDots": 82.9,
+  "faceAnchor": [45, 20],
+  "sources": [
+    {"source": "docs/art/exorcist/exorcist-r1-final.png", "head": [480, 625, 104, 431], "sole": 1384, "perDot": 15.440289505428226},
+    {"source": "docs/art/exorcist/exorcist-r2-final.png", "head": [480, 625, 104, 430], "sole": 1383, "perDot": 15.42822677925211},
+    {"source": "docs/art/exorcist/exorcist-r3-final.png", "head": [480, 625, 104, 430], "sole": 1383, "perDot": 15.42822677925211},
+    {"source": "docs/art/exorcist/exorcist-r4-final.png", "head": [480, 625, 104, 430], "sole": 1386, "perDot": 15.464414957780459},
+    {"source": "docs/art/exorcist/exorcist-r5-final.png", "head": [480, 625, 104, 427], "sole": 1385, "perDot": 15.452352231604341}
+  ]
+}

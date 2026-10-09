@@ -8,7 +8,7 @@
 //   │ └───────────────────────┘ │ 迷宮の掟・格上の注意
 //   │ (●) 忘れられた地下墓地 推奨Lv1・全5階 踏破 │ 門は 5 行ぶん見せ、6 つ目からは一覧を縦に巻く
 //   │ ▒▒ まだ地図にない迷宮 ― 解放の手がかり  │ 台帳 (world.js) の unlock を満たすと現れる
-//   │ 潜り始める階 [B1F|B5F]                  │ 到達した帰還魔法陣の階から潜れる
+//   │ 潜り始める階 [B1F|B6F]                  │ 到達した帰還魔法陣の次の階から潜れる
 //   │ ◆ 隊の備え [肖像][肖像][肖像]   入替 ›  │
 //   │ ⚠ フィモンが深手     [宿で休む ●48]      │ 直し方はその場に (別の札は出さない)
 //   ├──────────────────────────────────────┤
@@ -197,6 +197,8 @@ function renderGates(b) {
     if (w.fresh && w.fresh[dn.id] && !isDone) nm.appendChild(el("span", "dp-new", "新"));
     // 受けている依頼の対象の迷宮: 依頼の印 (2件以上なら件数も)
     { const qc = game.questHereCount ? game.questHereCount(dn) : 0; if (qc) nm.appendChild(el("span", "dp-qmark", qc > 1 ? `依頼×${qc}` : "依頼")); }
+    // 酒場で聞いた噂の迷宮: 噂の印 (次に潜ると現実になる)
+    if (g.rumor && g.rumor.dungeon === dn.id) nm.appendChild(el("span", "dp-rmark", "噂"));
     info.appendChild(nm);
     const band = game.levelBand ? game.levelBand(dn) : [1, 1];
     const meta = [`推奨Lv${band[0]}${band[1] > band[0] ? `〜${band[1]}` : ""}`, `全${dn.floors}階`];
@@ -260,7 +262,7 @@ function renderGates(b) {
   b.appendChild(list);
 }
 
-// ---- 潜り始める階 (到達した帰還魔法陣の階から) ----
+// ---- 潜り始める階 (到達した帰還魔法陣の次の階から) ----
 function renderStartFloor(b) {
   const g = G();
   const dn = (game.DUNGEONS || [])[g.dungeonIdx];
@@ -347,7 +349,7 @@ function renderReadyIssues(b) {
 function renderStability(b, explain = true) {
   const status = game.stabilityStatus();
   b.appendChild(sec("魂の安定度", "入場時 −10／人"));
-  if (explain) b.appendChild(el("div","dp-brief-l",`上限100。入場時に10消費し、${game.stabilityMinutes ? game.stabilityMinutes() : 3}分ごとに1回復。控えやゲームを閉じている間も回復します。探索中の追加消費はありません。`));
+  if (explain) b.appendChild(el("div","dp-brief-l",`上限100。入場時に10消費し、${game.stabilityMinutes ? game.stabilityMinutes() : 4}分ごとに1回復。控えやゲームを閉じている間も回復します。探索中の追加消費はありません。`));
   for (const d of status) {
     const line=el("div","dp-stability-row");
     const wait=d.value<10 ? ` ・ 入場まで約${Math.ceil(d.waitMs/60000)}分` : "";
@@ -402,7 +404,7 @@ function openBriefing(go) {
       b.appendChild(el("div","dp-brief-h","門衛 ― 迷宮の入口を守る者"));
       for(const text of ["人業が迷宮に入ると、魂と器の結びつきが揺らぎます。その状態を示すのが『魂の安定度』です。",
         "安定度の上限は100です。入場時に人業ごとに10消費します。階を降りても、長く探索しても、追加では消費しません。",
-        "安定度は3分ごとに1回復します。控えの人業も、ゲームを閉じている間も同じです。魂が不安定になった人業を休ませ、別の人業を出立させましょう。",
+        "安定度は4分ごとに1回復します。控えの人業も、ゲームを閉じている間も同じです。魂が不安定になった人業を休ませ、別の人業を出立させましょう。",
         "街では赤い魂1を捧げると、安定度が1回復します。安定度が10未満の人業がいる場合は、入場前に回復するか、人業を入れ替えてください。",
         ...(!G().dungeonBriefed ? game.DUNGEON_BRIEFING || [] : [])])b.appendChild(setText(el("div","dp-brief-l"),text));
       renderStability(b, false);
@@ -602,7 +604,7 @@ export function openDeparture(opts = {}) {
   const qi = questIdx();
   if (!g._departPre && qi >= 0 && isOpen(qi)) g.dungeonIdx = qi;
   g._departPre = true;
-  // 潜り始める階: 既定は到達した最深の帰還魔法陣 (無ければ B1F)
+  // 潜り始める階: 既定は到達した最深の帰還魔法陣の次の階 (無ければ B1F)
   const dn0 = (game.DUNGEONS || [])[g.dungeonIdx];
   const fl0 = dn0 && game.startFloorsOf ? game.startFloorsOf(dn0) : [1];
   cur = { page, accept: true, hasMut: false, h: null, from: fl0[fl0.length - 1] || 1 };

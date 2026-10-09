@@ -585,4 +585,10 @@ button.ui-whisper { cursor: pointer; touch-action: manipulation; }
 .jr-card.is-new .ui-btn-l { padding-right:3.4em; }
 .jr-notice .jr-illustration { margin-top:4px; }
 .jr-notice .jr-lead { color:var(--ink); }
+/* ヘルプ・酒場の噂話: 書き留めた心得 (金の縁) と言い伝え (紫の縁) */
+.jr-segbox { margin:0 0 10px; }
+.jr-note { margin:0 0 6px; padding:8px 11px; font-size:13px; line-height:1.75; color:#cfc4ad; background:rgba(16,12,13,0.75); border:1px solid #2a2226; border-left:2px solid #8a6a2c; border-radius:3px; text-wrap:pretty; }
+.jr-note.k-lore { border-left-color:#5f4a7e; }
+.jr-group-lore { color:#b9a2dc; }
+.jr-group-top { margin-top:14px; padding-bottom:4px; border-bottom:1px solid #3a3128; }
 .jr-more, .jr-hint { max-width:36em; margin:0 auto 10px; font-size:12px; line-height:1.7; color:var(--ink-dim); }

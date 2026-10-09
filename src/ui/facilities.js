@@ -13,6 +13,7 @@ import { questCard, dungeonGroups, lists as qbLists, isReady as qbReady } from "
 import { getPref, setPref } from "./prefs.js";
 import { keeperCanvas, vignetteCanvas } from "../townart.js";
 import { ITEMS } from "../items.js";
+import { TALK_KINDS } from "../tavern.js";
 import { SFX } from "../audio.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
@@ -281,7 +282,7 @@ export function openInn() {
 }
 
 // ---------- 酒場 (ページ) ----------
-// 区分: 掲示板 (いちばん上に酒場の噂話、続けて受けた依頼・報告 + 依頼人の頼み + 帰還ごとに貼り替わる依頼) / 顔ぶれ (居合わせる者たち)
+// 区分: 掲示板 (いちばん上に情報屋の噂、続けて受けた依頼・報告 + 依頼人の頼み + 帰還ごとに貼り替わる依頼) / 酒場の噂話 (居合わせる者たち)
 // 受注中の依頼と掲示板の依頼は1つの一覧にまとめ、ダンジョン指定なし → 推奨Lvの高い迷宮 → 低い迷宮 の見出しごとに
 // 受注中 → 未受注 の順に並べる。達成して報告できる依頼は最上部の「達成した依頼」にまとめる (ユーザーの指示)
 let tavernSeg = null;
@@ -302,7 +303,7 @@ function tavernSegments() {
   const fresh = L.offers.filter((q) => q.fresh).length;
   return [
     { key: "board", label: "掲示板", badge: (ready + fresh) || null },
-    { key: "talk", label: "顔ぶれ" },
+    { key: "talk", label: "酒場の噂話" },
   ];
 }
 function renderTavern(root) {
@@ -325,7 +326,7 @@ function renderTavern(root) {
     body.appendChild(sectionHead("掲示板", { note: `受注 ${L.freeCount}/${L.cap} ・ 貼り紙は帰還のたびに貼り替わる` }));
     body.appendChild(area);
     // 達成して報告できる依頼は迷宮の見出しから抜き出し、掲示板の最上部 (噂話より上) にまとめる (ユーザーの指示)。
-    // 続けて酒場の噂話 (依頼と一緒に縦に巻く)、迷宮ごとの見出し
+    // 続けて情報屋の噂 (依頼と一緒に縦に巻く)、迷宮ごとの見出し
     const done = L.active.filter(qbReady);
     const doneSet = new Set(done);
     const groups = dungeonGroups([...L.active.filter((q) => !doneSet.has(q)), ...L.offers]);
@@ -344,48 +345,65 @@ function renderTavern(root) {
   drawSeg();
   if (tavernSeg === "board") setTimeout(() => UI.tutorialEvent?.("tavernBoard"), 0);
 }
-// 酒場の噂話 (掲示板のいちばん上)
+// 情報屋の噂 (掲示板のいちばん上。顔ぶれの話のタブ「酒場の噂話」とは別物)
 function renderRumor(wrap) {
   const g = G();
-  // 酒場の噂話 (game.js FEATURES.rumor の報告で情報屋が動く)
-  wrap.appendChild(sectionHead("酒場の噂話"));
+  // 情報屋の噂 (game.js FEATURES.rumor の報告で情報屋が動く)
+  wrap.appendChild(sectionHead("情報屋の噂"));
+  const left = (g.rumorCooldown || 0) - Date.now();
+  const price = game.rumorPrice ? game.rumorPrice() : (game.RUMOR_PRICE || 100);
   if (g.rumor) {
     const rb = el("div", "fc-rumor");
     rb.appendChild(setText(el("div", "fc-rumor-s"), `— ${g.rumor.speaker} —`));
     rb.appendChild(setText(el("div", "fc-rumor-t"), g.rumor.text));
-    rb.appendChild(setText(el("div", "wa-note"), g.rumor.info ? "盤面に現れる話ではない。だが、備えあれば憂いなし。" : "この噂は、次に潜る迷宮で現実になる。"));
+    const where = g.rumor.dungeonName ? `「${g.rumor.dungeonName}」` : "次に潜る迷宮";
+    rb.appendChild(setText(el("div", "wa-note"), g.rumor.info ? `${where}の話。盤面に現れる話ではない。だが、備えあれば憂いなし。` : `この噂は、${where}${g.rumor.dungeonName ? "に潜った時" : ""}に現実になる。`));
     wrap.appendChild(rb);
+  }
+  if (left > 0) {
+    wrap.appendChild(lockedRow("しばらく待て", `情報屋はまだ動いていない。あと約 ${Math.ceil(left / 60000)} 分。`));
   } else {
-    const left = (g.rumorCooldown || 0) - Date.now();
-    if (left > 0) {
-      wrap.appendChild(lockedRow("しばらく待て", `情報屋はまだ動いていない。あと約 ${Math.ceil(left / 60000)} 分。`));
-    } else {
-      const price = game.rumorPrice ? game.rumorPrice() : (game.RUMOR_PRICE || 100);
-      const dn = game.curDungeon ? game.curDungeon() : null;
-      const rb = button({ label: "噂を聞く", sub: price ? `情報屋は「${dn ? dn.name : "—"}」を読む` : `今回は情報屋のおごり ・「${dn ? dn.name : "—"}」を読む`, kind: "primary", cost: price ? { kind: "gold", n: price } : null, disabled: g.gold < price, onTap: () => game.listenRumor() });
-      rb.classList.add("fc-rumor-btn");
-      wrap.appendChild(rb);
-    }
+    // 手元に噂があっても、待ち時間が明ければ別の噂を聞き直せる (前の噂は忘れる)
+    const sub = g.rumor ? "いまの噂は忘れ、別の噂を聞く" : "隊の力に見合う迷宮を中心に、どこかの迷宮の話を聞く";
+    const rb = button({ label: g.rumor ? "別の噂を聞く" : "噂を聞く", sub: price ? sub : `今回は情報屋のおごり ・ ${sub}`, kind: g.rumor ? "secondary" : "primary", cost: price ? { kind: "gold", n: price } : null, disabled: g.gold < price, onTap: () => game.listenRumor() });
+    rb.classList.add("fc-rumor-btn");
+    wrap.appendChild(rb);
   }
 }
 // 居合わせる者たち
+// 一人ひとつ話をする: 他愛もない話 / 心得 (攻略の要点) / 言い伝え (世界のこと)。心得と言い伝えは「書き留めた話」に残る
 function renderTalk(wrap) {
   const g = G();
 
-  // 3) 居合わせる者たち (帰還ごとに入れ替わる)。収まる人数ずつめくる
+  // 3) 居合わせる者たち (帰還ごとに入れ替わる)
   if ((!g.tavernCrowd || !g.tavernCrowd.length) && game.rollTavernCrowd) game.rollTavernCrowd();
-  wrap.appendChild(sectionHead("居合わせる者たち", { note: "帰還のたびに入れ替わる" }));
+  if (game.markTavernHeard) game.markTavernHeard(g.tavernCrowd);
+  const notes = game.tavernNotes ? game.tavernNotes() : [];
+  let right = null;
+  if (notes.length) {
+    right = el("button", "fc-notes-btn");
+    right.type = "button";
+    right.appendChild(document.createTextNode(`書き留めた話 ${notes.length}`));
+    right.appendChild(svgIcon("chevron", "fc-notes-ic"));
+    right.addEventListener("click", () => { sfx("select"); if (UI.openHelp) UI.openHelp("talk"); });
+  }
+  wrap.appendChild(sectionHead("居合わせる者たち", { note: "帰還ごとに替わる", right }));
   const area = el("div", "fc-crowd");
   wrap.appendChild(area);
   scrollGrid(area, g.tavernCrowd || [], (m) => {
-    const r = el("div", "fc-voice");
+    const r = el("div", "fc-voice" + (m.kind && m.kind !== "chat" ? " k-" + m.kind : ""));
     const h = el("div", "fc-voice-h");
     h.appendChild(setText(el("span", "fc-voice-n"), m.name));
     h.appendChild(setText(el("span", "fc-voice-k"), m.type));
+    const kind = TALK_KINDS[m.kind];
+    if (kind) {
+      h.appendChild(setText(el("span", "fc-voice-tag k-" + m.kind), kind.label));
+      if (m.fresh) h.appendChild(setText(el("span", "fc-voice-new"), "初耳"));
+    }
     r.appendChild(h);
     r.appendChild(setText(el("div", "fc-voice-t"), m.line));
     return r;
-  }, { cols: 1, cellH: 104, gap: 6, key: "crowd" });
+  }, { cols: 1, cellH: null, gap: 6, key: "crowd" });
 }
 
 // ---------- 赤い魂の祠 (ページ) ----------

@@ -6,11 +6,11 @@ export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
   awaken: "hunterSaihai",
   table: `
-    1 DOKUYA 2 SUIGETSU 3 ASHIDOME 5 hunterKemono/1 7 SOGEKI 10 YANOAME
+    1 DOKUYA 2 SUIGETSU 3 ASHIDOME 5 hunterKemono/1 7 SOGEKI 10 YANOAME 10 dynamicVision/1
     12 ABURA 15 HUNTER_NINOYA 15 senseEnemy/1 20 SHIBIREYA 22 HUNTER_KEHAIYOMI 25 hunterAshinerai/1 30 KEMONOGARI
-    35 hunterKemono/2 40 KUBIKARI 45 hunterAshinerai/2 50 TSURANUKI 50 senseEnemy/2 55 HUNTER_HAYATEYA 57 FUUGA
+    35 hunterKemono/2 40 KUBIKARI 40 dynamicVision/2 45 hunterAshinerai/2 50 TSURANUKI 50 senseEnemy/2 55 HUNTER_HAYATEYA 57 FUUGA
     60 hunterKoei/1 65 HUNTER_KABURAYA 70 hunterKazeyomi/1 75 fleetFoot/1 80 HYOUJIN 82 RENSHA
-    85 HUNTER_TORABASAMI 90 hunterAshinerai/3 95 SENNYA 100 HUNTER_ITEYA 100 senseEnemy/3 105 hunterKemono/3 110 HUNTER_TAKAOTOSHI
+    85 HUNTER_TORABASAMI 90 hunterAshinerai/3 95 SENNYA 100 HUNTER_ITEYA 100 senseEnemy/3 100 dynamicVision/3 105 hunterKemono/3 110 HUNTER_TAKAOTOSHI
     115 hunterKoei/2 120 HUNTER_KAZEKIRI 125 vigilance/1 130 HUNTER_HIYA 135 hunterAshinerai/4 140 HUNTER_SHINZOU
     145 fleetFoot/2 150 HUNTER_SAMIDARE 155 vigilance/2 160 RYUUSEISHA 162 HUNTER_ARASHIYUZURU 165 resistAilment/1
     170 HUNTER_TOMEYA 175 hunterKemono/4 180 HUNTER_AMIUCHI 185 hunterKazeyomi/2 190 HUNTER_KARIGAMI 195 HUNTER_BAKUFU
@@ -19,7 +19,7 @@ export default {
     // Lv15 の固有技: 間を置かず二の矢を継ぐ確実な連射
     HUNTER_NINOYA: { name: "二の矢", mp: 5, kind: "phys", power: 0.85, hits: 2, acc: 0.6, agiScale: 0.3, target: "enemy", desc: "間を置かずに二の矢を継ぎ、確実に射抜く（AGIで伸びる）" },
     // 迷宮で唱える術: 獣を追う勘で、この階の魔物の居場所を赤い気配として浮かび上がらせる
-    HUNTER_KEHAIYOMI:    { name: "気配読み", mpPct: 0.3, mp: 4, kind: "field", sense: "enemy", target: "all-ally", desc: "この階の魔物の居場所が、墓石の下の赤い気配として浮かび上がる。何が潜むかまでは分からない（迷宮で唱える。効くのはこの階だけ）" },
+    HUNTER_KEHAIYOMI:    { name: "気配読み", mpPct: 0.3, mp: 4, kind: "field", sense: "enemy", target: "all-ally", desc: "この階の魔物の居場所が、伏せたカードの赤い気配として浮かび上がる。何が潜むかまでは分からない（迷宮で唱える。効くのはこの階だけ）" },
     HUNTER_HAYATEYA:     { name: "疾風の一矢", mp: 9, kind: "phys", power: 1.3, agiScale: 0.9, acc: 0.4, element: "wind", target: "enemy", desc: "風に乗せた速射（風・命中UP）" },
     HUNTER_KABURAYA:     { name: "鏑矢三連", mp: 14, kind: "phys", power: 0.95, hits: 3, agiScale: 0.35, flinchChance: 0.35, target: "enemy", desc: "鳴り響く三矢で射抜き、怯ませる" },
     HUNTER_TORABASAMI:   { name: "虎挟み", mp: 16, kind: "phys", power: 2.6, acc: 0.5, para: 0.35, debuff: { agi: 0.75 }, target: "enemy", desc: "鋼の罠で脚を噛み、痺れさせる" },

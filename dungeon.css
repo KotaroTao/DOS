@@ -227,6 +227,9 @@
   position: relative;
 }
 #party .pc { touch-action: none; } /* 札の上のフリックもブラウザのパンに奪わせず、盤面の移動に使う */
+/* 迷宮の中の隊列の並べ替え: 長押しで持ち上げた札は沈め、落とす先の札を金の縁で示す (ghost は ui-party.css の .pt-ghost) */
+#party .pc.lifting { opacity: 0.45; border-style: dashed; border-color: #f3d58b; }
+#party .pc.drop-over { border-color: #f3d58b; box-shadow: 0 0 0 1px #f3d58b, 0 0 14px rgba(243,213,139,0.5); }
 #party.n4 .pc { flex-grow: 0; flex-basis: calc((100% - 10px) / 3); max-width: none; }
 .pc-por {
   grid-area: por; position: relative; width: 42px; height: 42px; align-self: start;
@@ -285,6 +288,7 @@
 .pc .buffs .bf b { font-size: 7.5px; margin-left: 1px; opacity: 0.85; }
 .pc .buffs .bf.up { color: #8ff0b0; border-color: #2e6b48; background: rgba(30,80,50,0.4); }
 .pc .buffs .bf.dn { color: #ffa8a0; border-color: #7a2a2a; background: rgba(90,24,24,0.45); }
+.pc .buffs .bf.blood { color: #ffb0a0; border-color: #a8342a; background: rgba(110,20,16,0.5); } /* たぎる血潮の段 */
 .pc.active {
   border-color: var(--dg-gold);
   background: var(--grain), radial-gradient(90% 70% at 30% 0%, rgba(243,213,139,0.16), rgba(0,0,0,0) 70%), var(--dg-iron);

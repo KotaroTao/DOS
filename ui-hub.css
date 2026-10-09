@@ -417,11 +417,24 @@
 .fc-rumor-s { font-size: 11px; letter-spacing: 0.15em; color: var(--accent); }
 .fc-rumor-t { margin-top: 3px; font-size: 13px; line-height: 1.7; color: #e6dbc2; }
 .fc-crowd { flex: 1 1 0 !important; min-height: 0; }
-.fc-voice { height: 100%; box-sizing: border-box; padding: 9px 12px 10px; background: rgba(16,12,13,0.75); border: 1px solid #2a2226; border-radius: 3px; overflow: hidden; }
+.fc-voice { box-sizing: border-box; padding: 9px 12px 10px; background: rgba(16,12,13,0.75); border: 1px solid #2a2226; border-radius: 3px; overflow: hidden; }
 .fc-voice-h { display: flex; align-items: baseline; gap: 8px; }
 .fc-voice-n { font-size: 12.5px; font-weight: 800; color: #e2cf9f; }
 .fc-voice-k { font-size: 10.5px; letter-spacing: 0.12em; color: var(--ink-faint); }
 .fc-voice-t { margin-top: 3px; font-size: 12.5px; line-height: 1.65; color: #cfc4ad; }
+/* 顔ぶれの話の種類: 心得 (攻略の要点) は金、言い伝え (世界のこと) は紫の縁。初めて聞いた話に「初耳」 */
+.fc-voice.k-tip { border-left: 2px solid #8a6a2c; }
+.fc-voice.k-lore { border-left: 2px solid #5f4a7e; }
+.fc-voice-tag { margin-left: auto; flex: 0 0 auto; padding: 1px 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; border-radius: 2px; }
+.fc-voice-tag.k-tip { color: #f0d595; background: rgba(138,106,44,0.28); border: 1px solid #6e5528; }
+.fc-voice-tag.k-lore { color: #d6c4f0; background: rgba(95,74,126,0.28); border: 1px solid #4d3d66; }
+.fc-voice-new { flex: 0 0 auto; padding: 1px 5px; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; color: #1a1210; background: #e2b85c; border-radius: 2px; }
+.fc-notes-btn {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 2px; min-height: 44px; margin: -9px 0; padding: 0 4px 0 10px;
+  font-family: var(--font); font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: var(--accent-hi);
+  background: none; border: 0; cursor: pointer;
+}
+.fc-notes-ic { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
 /* =====================================================================
    赤い魂の祠 (頁)
@@ -560,6 +573,11 @@
 .pl-job-ranks { margin: 6px 0 2px; }
 .pl-detail-desc { font-size: 13px; line-height: 1.75; color: #d8ccb2; }
 .pl-detail-desc.tips { color: #b9c4d8; }
+/* 魔物の伝承 (図鑑): 説明文の下、古い書き付けのような一枚 */
+.pl-lore { position: relative; padding: 9px 12px 8px; background: linear-gradient(180deg, rgba(40,30,20,0.42), rgba(14,10,8,0.55)); border: 1px solid #3d3124; border-left: 2px solid #8a6d2e; border-radius: 2px; }
+.pl-lore-h { margin-bottom: 4px; font-size: 11px; font-weight: 800; letter-spacing: 0.3em; color: var(--accent); }
+.pl-lore-t { font-size: 13px; line-height: 1.85; color: #e2d6bb; white-space: pre-line; }
+.pl-lore-by { margin-top: 5px; text-align: right; font-size: 11.5px; color: #a8987a; }
 .pl-detail-stats { text-align: center; font-size: 12.5px; font-weight: 700; color: var(--accent-hi); font-variant-numeric: tabular-nums; line-height: 1.6; }
 .pl-info { padding: 8px 10px; background: rgba(8,6,9,0.6); border: 1px solid #2a2226; border-radius: 3px; }
 .pl-info-h { margin-bottom: 4px; font-size: 11.5px; font-weight: 800; letter-spacing: 0.2em; color: var(--accent); }
@@ -826,3 +844,5 @@
 .sc-line.k-irene { color: #f0dce6; border-left: 2px solid #8a5a78; padding-left: 8px; }
 .sc-line.k-sera { color: #dcecf4; border-left: 2px solid #5a8aa8; padding-left: 8px; }
 .sc-line.k-letter { font-size: 13.5px; font-style: italic; color: #d8cfb4; text-align: center; letter-spacing: 0.04em; }
+.qb-dq-myth .qb-mark-c { color: #d9a8ff; }
+.qb-dq-myth .qb-tag { background: #9b6fd0; }

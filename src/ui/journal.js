@@ -1,4 +1,5 @@
-// 解放済みの手引きと、体験済みの物語を読む。閲覧では報酬・進行を変更しない (既読の印だけを付ける)。
+// 解放済みの手引きと、体験済みの物語を読む。ヘルプは酒場で書き留めた話 (心得・言い伝え) と一つの画面で、
+// 「ヘルプ / 酒場の噂話」のタブで切り替え、検索は両方を横断する (街と迷宮の手帳から開く)。閲覧では報酬・進行を変更しない (既読の印だけを付ける)。
 // 新しく物語が記されたら、街で手の空いた時に知らせる (queueStoryNotice)。迷宮の中・語りや手ほどきの最中は待つ。
 import { UI, game, registerUI } from "./ctx.js";
 import { el, button, sheet, segmented, badge, uiBlocked } from "./kit.js";
@@ -7,6 +8,7 @@ import { helpEntries, storyEntries, journalState, unreadStories, newStories, mar
 import { archiveArt } from "../archive-art.js";
 import { storyArt } from "../storyart.js";
 import { vignetteCanvas } from "../townart.js";
+import { TIP_CATS } from "../tavern.js";
 
 const entries = kind => kind === "help"
   ? helpEntries(game.G || {}, key => !!game.featureUnlocked?.(key))
@@ -77,26 +79,99 @@ function openEntry(kind, id, handle = null) {
     handle.body.scrollTop = 0;
   } else sheet.open(opts);
 }
-export function openJournal(kind = "help") {
-  const isHelp = kind === "help";
-  const list = entries(kind);
+// ---- ヘルプ・酒場の噂話 ----
+// 酒場で聞いた心得・言い伝え (game.tavernNotes = G.tavernHeard の台帳順)
+const tavernNotes = () => (game.tavernNotes ? game.tavernNotes() : []);
+const noteLine = t => el("div", "jr-note k-" + t.k, t.t);
+function openHelpIndex(tab = "help") {
+  let activeTab = tab === "talk" ? "talk" : "help";
+  const list = entries("help");
   sheet.open({
-    kind:"info", banner:isHelp?"ヘルプ":"ストーリー", className:"jr-sheet jr-index",
-    accent:isHelp?"#78bdd1":"#d9b76e",
+    kind:"info", banner:"ヘルプ・酒場の噂話", className:"jr-sheet jr-index", accent:"#78bdd1",
     body:b=>{
-      b.appendChild(el("p","jr-intro",isHelp
-        ? "いま使える機能の手引きです。機能が解放されると、読める項目が増えます。"
-        : "旅の歩みに合わせて読める物語です。「踏破した迷宮」では、その場所の由来と秘密を読めます。"));
-      let activeTab = "story";
-      const unread = isHelp ? {} : journalState(game.G || {}).read;
-      const isNew = e => !isHelp && !unread[e.id];
       const segBox = el("div", "jr-segbox");
+      const intro = el("p", "jr-intro");
       const search = document.createElement("input");
       search.type="search"; search.className="jr-search";
-      search.placeholder=isHelp?"ヘルプを探す":"物語を探す";
+      search.placeholder="ヘルプと噂話を探す";
       search.setAttribute("aria-label",search.placeholder);
-      if (isHelp) b.appendChild(search);
-      else b.appendChild(segBox);
+      const results=el("div","jr-results");
+      b.append(segBox, intro, search, results);
+      const helpCard = entry => {
+        const card=button({label:entry.title,kind:"secondary",onTap:()=>openEntry("help",entry.id)});
+        card.classList.add("jr-card");
+        if(entry.subtitle)card.appendChild(el("span","jr-card-sub",entry.subtitle));
+        return card;
+      };
+      const drawHelp = shown => {
+        let group=null;
+        for(const entry of shown){
+          const next=entry.group || "解放済みの機能";
+          if(next!==group){group=next;results.appendChild(el("h3","jr-group",group));}
+          results.appendChild(helpCard(entry));
+        }
+      };
+      // 心得は区分ごと、言い伝えはその後に
+      const drawTalk = notes => {
+        const tips = notes.filter(t => t.k === "tip"), lore = notes.filter(t => t.k === "lore");
+        for (const cat of TIP_CATS) {
+          const ts = tips.filter(t => t.cat === cat);
+          if (!ts.length) continue;
+          results.appendChild(el("h3","jr-group",`心得 ― ${cat}`));
+          for (const t of ts) results.appendChild(noteLine(t));
+        }
+        if (lore.length) {
+          results.appendChild(el("h3","jr-group jr-group-lore","言い伝え"));
+          for (const t of lore) results.appendChild(noteLine(t));
+        }
+      };
+      const draw=()=>{
+        const notes = tavernNotes();
+        segBox.replaceChildren(segmented([
+          { key:"help", label:"ヘルプ" },
+          { key:"talk", label:`酒場の噂話${notes.length ? " " + notes.length : ""}` },
+        ], activeTab, key => { activeTab = key; draw(); }));
+        intro.textContent = activeTab === "help"
+          ? "いま使える機能の手引きです。機能が解放されると、読める項目が増えます。"
+          : "酒場「沈まぬ灯」で耳にした心得と言い伝えです。居合わせる者は帰還のたびに入れ替わり、まだ聞いていない話も多くあります。";
+        results.replaceChildren();
+        const query=search.value.trim();
+        if (query) {
+          // 検索はタブを問わず、ヘルプと噂話の両方から探す
+          const helpHits = list.filter(e=>`${e.title} ${e.subtitle||""} ${e.group||""}`.includes(query));
+          const talkHits = notes.filter(t=>t.t.includes(query) || (t.cat||"").includes(query));
+          if (!helpHits.length && !talkHits.length) { results.appendChild(el("p","jr-empty","該当する記録がありません。")); return; }
+          if (helpHits.length) { results.appendChild(el("h3","jr-group jr-group-top",`ヘルプ ${helpHits.length}件`)); for (const e of helpHits) results.appendChild(helpCard(e)); }
+          if (talkHits.length) { results.appendChild(el("h3","jr-group jr-group-top",`酒場の噂話 ${talkHits.length}件`)); for (const t of talkHits) results.appendChild(noteLine(t)); }
+          return;
+        }
+        if (activeTab === "help") {
+          if (!list.length) { results.appendChild(el("p","jr-empty","まだ読める記録がありません。旅を進めると、ここに記録が増えていきます。")); return; }
+          drawHelp(list);
+        } else {
+          if (!notes.length) { results.appendChild(el("p","jr-empty","まだ酒場で話を聞いていません。酒場の「酒場の噂話」で居合わせる者たちの話を聞くと、心得と言い伝えがここに書き留められます。")); return; }
+          drawTalk(notes);
+        }
+      };
+      search.addEventListener("input",draw);draw();
+    },
+    footer:[{label:"閉じる",kind:"secondary",onTap:h=>h.close()}],
+  });
+}
+
+export function openJournal(kind = "help", tab = "help") {
+  if (kind === "help") return openHelpIndex(tab);
+  const list = entries("story");
+  sheet.open({
+    kind:"info", banner:"ストーリー", className:"jr-sheet jr-index",
+    accent:"#d9b76e",
+    body:b=>{
+      b.appendChild(el("p","jr-intro","旅の歩みに合わせて読める物語です。「踏破した迷宮」では、その場所の由来と秘密を読めます。"));
+      let activeTab = "story";
+      const unread = journalState(game.G || {}).read;
+      const isNew = e => !unread[e.id];
+      const segBox = el("div", "jr-segbox");
+      b.appendChild(segBox);
       // 区分の札に、まだ読んでいない数を添える (読むたびに描き直す)
       const drawSeg = () => {
         const cnt = lore => list.filter(e => isNew(e) && e.id.startsWith("lore_") === lore).length;
@@ -108,29 +183,25 @@ export function openJournal(kind = "help") {
       const results=el("div","jr-results");b.appendChild(results);
       const draw=()=>{
         results.replaceChildren();
-        if (!isHelp) drawSeg();
-        const query=isHelp ? search.value.trim() : "";
-        const shown=list.filter(e=>isHelp
-          ? !query||`${e.title} ${e.subtitle||""} ${e.group||""}`.includes(query)
-          : (e.id.startsWith("lore_") ? activeTab === "dungeons" : activeTab === "story"));
-        if(!shown.length){results.appendChild(el("p","jr-empty",(!isHelp && activeTab === "dungeons")?"まだ踏破した迷宮がありません。":list.length?"該当する記録がありません。":"まだ読める記録がありません。旅を進めると、ここに記録が増えていきます。"));return;}
+        drawSeg();
+        const shown=list.filter(e=>e.id.startsWith("lore_") ? activeTab === "dungeons" : activeTab === "story");
+        if(!shown.length){results.appendChild(el("p","jr-empty",activeTab === "dungeons"?"まだ踏破した迷宮がありません。":"まだ読める記録がありません。旅を進めると、ここに記録が増えていきます。"));return;}
         let group=null;
         for(const entry of shown){
           const next=entry.group || "解放済みの機能";
           if(next!==group){group=next;results.appendChild(el("h3","jr-group",group));}
-          const card=button({label:entry.title,kind:"secondary",onTap:()=>openEntry(kind,entry.id)});
+          const card=button({label:entry.title,kind:"secondary",onTap:()=>openEntry("story",entry.id)});
           card.classList.add("jr-card");
           if(entry.subtitle)card.appendChild(el("span","jr-card-sub",entry.subtitle));
           if(isNew(entry)){card.classList.add("is-new");card.appendChild(el("span","jr-new","未読"));}
           results.appendChild(card);
         }
       };
-      search.addEventListener("input",draw);draw();
-      if (!isHelp) redrawIndex = draw;
+      draw();
+      redrawIndex = draw;
     },
     footer:[{label:"閉じる",kind:"secondary",onTap:h=>h.close()}],
     onClose:()=>{
-      if (isHelp) return;
       redrawIndex = null;
       // 街の「ストーリー」の未読の数を付け直す
       if (game.G?.state === "town" && game.renderTown) game.renderTown();
@@ -138,7 +209,7 @@ export function openJournal(kind = "help") {
   });
 }
 
-// ---- 未読の数 (街・設定の「ストーリー」に添える) ----
+// ---- 未読の数 (街の「ストーリー」・迷宮の手帳に添える) ----
 export function storyUnread() { return game.G ? unreadStories(game.G).length : 0; }
 export function storyButton() {
   const b = button({ label:"ストーリー", kind:"secondary", onTap:()=>openJournal("story") });
@@ -201,5 +272,5 @@ function showStoryNotice(G) {
   });
 }
 export function install() {
-  registerUI({openHelp:()=>openJournal("help"),openStoryArchive:()=>openJournal("story"),storyButton,storyUnread,queueStoryNotice});
+  registerUI({openHelp:(tab)=>openJournal("help", tab),openStoryArchive:()=>openJournal("story"),storyButton,storyUnread,queueStoryNotice});
 }

@@ -20,12 +20,12 @@
 //   charm(確率) — 魅了 (敵がその仲間に襲いかかる。傷を受けると解けやすい・主には35%の確率)
 //   confuse(確率) — 混乱 (敵が敵味方を問わず殴る・ふらつく・主には半分の確率)
 //   instakill({chance, races?}) — 即死 (主には効かない) / steal(盗む: 敵の所持金の割合) / plunder(倒すと金2倍)
-//   drain / mpDrain (与ダメの割合を吸収) / hpCost (最大HPの割合を代償)
+//   drain / mpDrain (与ダメの割合を吸収。MPは消費MP × mpDrainCap (既定1) まで) / hpCost (最大HPの割合を代償)
 // 攻撃呪文: power (+ 術者INT×0.5) / gravity (敵の今のHPの割合ダメージ) / partyHeal (撃った後に味方全体を回復・PIEで伸びる)
 // 回復 (kind "heal", 2026-10 作り直し): healMul (ヒールの何倍か・PIEで伸びる) / healPct (対象の最大HPの割合・全快 = 1) /
 //   bodyHeal (使い手の最大HPの割合 = 物理職の「体の手当て」) / 旧来の power / healCap (1回の回復を対象の最大HPの割合で頭打ち)
 //   revive + revivePct (蘇生の割合)。物理技の隊回復は bladeHeal (与えたダメージの割合・1人あたり healCap まで)
-// 標準の回復: ヒール/ハイヒール/フルヒール/オールヒール/オールハイヒール/オールフルヒール/リバイブ/リザレクション、
+// 標準の回復: ヒール/ハイヒール/フルヒール/ヒールオール/ハイヒールオール/フルヒールオール/リバイブ/リザレクション、
 //   治療: キュア (毒)/リカバー (麻痺)/アウェイク (眠り・混乱・魅了)/ストーンキュア (石化)/ピュリファイ (すべて) と各オール版
 // 支援: buff(倍率) / taunt(挑発) / shield(仁王立ち) / stance:"counter"(反撃の構え) / charge(溜め) /
 //   regen({pct, turns} リジェネ) / grantBarrier / grantEndure / cure(状態異常) / purge(弱体を解く)
@@ -33,7 +33,7 @@
 // 呪文の伸び: 攻撃呪文は INT で伸びる。光の呪文と faith: true の呪文は「祈りの呪文」で、INT と PIE の高い方で伸びる
 // 迷宮で唱える技: kind "field" (戦闘の技の一覧には出ない。迷宮の手元のボタン (覚えた術が2つ以上なら「術」) から唱える)
 //   float(階数) — 浮遊: 隊を宙に浮かせ、その階数のあいだ落とし穴に落ちず毒の床も踏まない
-//   sense("enemy"|"chest"|"stairs") — 探りの術: その階のあいだ、まだめくっていない墓石の魔物 (種類・強さは分からない) / 宝箱 / 階段の位置を示す (stairs はさらに階段の周囲8マスの墓石をめくる)
+//   sense("enemy"|"chest"|"stairs") — 探りの術: その階のあいだ、まだめくっていないカードの魔物 (種類・強さは分からない) / 宝箱 / 階段の位置を示す (stairs はさらに階段の周囲8マスのカードをめくる)
 //     (狩人の気配読み・盗賊の宝探し・司教の道しるべ。気配読みと宝探しはドックに専用のボタンを持つ)
 // 持続 dur (既定3ターン。ラウンド開始ごとに1減る)
 // buff / debuff の ATK・VIT・AGI・INT・PIE は倍率で書くが、戦闘では「段」(buffstage.js: 表で一番近い段、最低1段) に直る:
@@ -106,20 +106,20 @@ export const SPELLS = {
   DIOS:       { name: "ヒール", mp: 3, kind: "heal", healMul: 1, healCap: 0.5, target: "ally", desc: "味方一人の傷を癒す（最大HPの50%まで）" },
   DIAL:       { name: "ハイヒール", mp: 6, kind: "heal", healMul: 2.5, target: "ally", desc: "味方一人をヒールの2.5倍癒す" },
   MADIOS:     { name: "フルヒール", mp: 20, kind: "heal", healPct: 1, target: "ally", desc: "味方一人のHPを全快させる" },
-  DIOSALL:    { name: "オールヒール", mp: 12, kind: "heal", healMul: 1, healCap: 0.5, target: "all-ally", desc: "味方全員の傷を癒す（最大HPの50%まで）" },
-  DIALALL:    { name: "オールハイヒール", mp: 24, kind: "heal", healMul: 2.5, target: "all-ally", desc: "味方全員をヒールの2.5倍癒す" },
-  MADIOSALL:  { name: "オールフルヒール", mp: 80, kind: "heal", healPct: 1, target: "all-ally", desc: "味方全員のHPを全快させる" },
+  DIOSALL:    { name: "ヒールオール", mp: 12, kind: "heal", healMul: 1, healCap: 0.5, target: "all-ally", desc: "味方全員の傷を癒す（最大HPの50%まで）" },
+  DIALALL:    { name: "ハイヒールオール", mp: 24, kind: "heal", healMul: 2.5, target: "all-ally", desc: "味方全員をヒールの2.5倍癒す" },
+  MADIOSALL:  { name: "フルヒールオール", mp: 80, kind: "heal", healPct: 1, target: "all-ally", desc: "味方全員のHPを全快させる" },
   DAIFUKUIN:  { name: "大福音", mp: 32, kind: "heal", healMul: 2.1, cure: true, purge: true, target: "all-ally", desc: "味方全員を癒し、状態異常と弱体を祓う" },
   CURE:       { name: "キュア", mp: 3, kind: "cure", cure: ["poison"], target: "ally", desc: "味方一人の毒・猛毒を治す" },
   RECOVER:    { name: "リカバー", mp: 3, kind: "cure", cure: ["paralyze"], target: "ally", desc: "味方一人の麻痺を治す" },
   AWAKE:      { name: "アウェイク", mp: 4, kind: "cure", cure: ["sleep", "confuse", "charm"], target: "ally", desc: "味方一人の眠り・混乱・魅了を治す" },
   STONECURE:  { name: "ストーンキュア", mp: 6, kind: "cure", cure: ["stone"], target: "ally", desc: "味方一人の石化を治す" },
   PURIFY:     { name: "ピュリファイ", mp: 10, kind: "cure", cure: true, target: "ally", desc: "味方一人のすべての状態異常を治す" },
-  CUREALL:    { name: "オールキュア", mp: 9, kind: "cure", cure: ["poison"], target: "all-ally", desc: "味方全員の毒・猛毒を治す" },
-  RECOVERALL: { name: "オールリカバー", mp: 9, kind: "cure", cure: ["paralyze"], target: "all-ally", desc: "味方全員の麻痺を治す" },
-  AWAKEALL:   { name: "オールアウェイク", mp: 9, kind: "cure", cure: ["sleep", "confuse", "charm"], target: "all-ally", desc: "味方全員の眠り・混乱・魅了を治す" },
-  STONECUREALL: { name: "オールストーンキュア", mp: 18, kind: "cure", cure: ["stone"], target: "all-ally", desc: "味方全員の石化を治す" },
-  PURIFYALL:  { name: "オールピュリファイ", mp: 30, kind: "cure", cure: true, target: "all-ally", desc: "味方全員のすべての状態異常を治す" },
+  CUREALL:    { name: "キュアオール", mp: 9, kind: "cure", cure: ["poison"], target: "all-ally", desc: "味方全員の毒・猛毒を治す" },
+  RECOVERALL: { name: "リカバーオール", mp: 9, kind: "cure", cure: ["paralyze"], target: "all-ally", desc: "味方全員の麻痺を治す" },
+  AWAKEALL:   { name: "アウェイクオール", mp: 9, kind: "cure", cure: ["sleep", "confuse", "charm"], target: "all-ally", desc: "味方全員の眠り・混乱・魅了を治す" },
+  STONECUREALL: { name: "ストーンキュアオール", mp: 18, kind: "cure", cure: ["stone"], target: "all-ally", desc: "味方全員の石化を治す" },
+  PURIFYALL:  { name: "ピュリファイオール", mp: 30, kind: "cure", cure: true, target: "all-ally", desc: "味方全員のすべての状態異常を治す" },
   KIYOME:     { name: "清めの祈り", mp: 8, kind: "cure", purge: true, target: "all-ally", desc: "味方全員の状態異常と弱体を治す" },
   REVIVE:     { name: "リバイブ", mp: 40, kind: "heal", target: "ally", revive: true, revivePct: 0.5, desc: "戦闘不能の味方をHP50%で蘇生する" },
   RESURRECT:  { name: "リザレクション", mp: 80, kind: "heal", target: "ally", revive: true, revivePct: 1.0, desc: "戦闘不能の味方をHP100%で蘇生する" },
@@ -251,7 +251,7 @@ export const SPELLS = {
   SHINENNOHADOU:  { name: "深淵の波動", mp: 13, kind: "atk", power: 44, element: "dark", seal: { chance: 0.5, turns: 3 }, target: "enemy", desc: "闇の波動。特技を封じる" },
   MEIKONGURAI:    { name: "冥魂喰らい", mp: 10, kind: "atk", power: 28, element: "dark", drain: 0.5, target: "enemy", desc: "闇で魂を喰らい、己の命とする" },
   KINJUKAICHOU:   { name: "禁呪開帳", mp: 12, kind: "atk", power: 38, element: "dark", critBonus: 0.25, strip: true, target: "enemy", desc: "禁断の呪撃。強化を打ち消す" },
-  MARYOKUGOUDATSU:{ name: "魔力強奪", mp: 7, kind: "atk", power: 30, element: "dark", mpDrain: 0.3, strip: true, target: "enemy", desc: "強化を剥ぎ、魔力を奪う" },
+  MARYOKUGOUDATSU:{ name: "魔力強奪", mp: 7, kind: "atk", power: 30, element: "dark", mpDrain: 0.3, mpDrainCap: 1.1, strip: true, target: "enemy", desc: "強化を剥ぎ、魔力を奪う" },
   GOMA:           { name: "護摩焚き", mp: 10, kind: "atk", power: 18, element: "fire", partyHeal: 10, faith: true, target: "all-enemy", desc: "炎で敵全体を焼き、味方を癒す" },
   KUJI:           { name: "九字護身法", mp: 10, kind: "debuff", seal: { chance: 0.5, turns: 3 }, target: "all-enemy", desc: "敵全体の特技を封じる" },
 

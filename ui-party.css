@@ -436,6 +436,9 @@ body.pt-dragging, body.pt-dragging * { cursor: grabbing !important; user-select:
 .pt-cand-sheet .ui-sheet-body, .pt-pick-sheet .ui-sheet-body, .pt-res-sheet .ui-sheet-body, .pt-item-sheet .ui-sheet-body,
 .pt-sheet .ui-sheet-body, .sp-pick-sheet .ui-sheet-body { text-align: left; }
 .pt-cand-sheet .ui-sheet-body, .sp-pick-sheet .ui-sheet-body, .pt-pick-sheet .ui-sheet-body { padding-bottom: 22px; }
+/* 宿し技をえらぶ: 技の名の横に戦闘のスキル一覧と同じ札 (種別・属性・全体) */
+.sp-pick-tags { margin-left: 8px; }
+.sp-pick-tags .ui-tag { font-size: 11px; }
 .ui-sheet[class*="pt-"] .ui-btn:focus:not(:focus-visible), .ui-sheet[class*="sp-"] .ui-btn:focus:not(:focus-visible) { outline: none; }
 .ui-sheet[class*="pt-"] :focus-visible, .ui-sheet[class*="sp-"] :focus-visible, .pt-root :focus-visible { outline: 2px solid rgba(243,213,139,0.7); outline-offset: 2px; }
 .pt-cur {
@@ -1106,3 +1109,59 @@ button.sp-lu-next { cursor: pointer; }
 .pt-om-t.lock .pt-om-r { color: #6e6457; }
 .pt-om-fr { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; pointer-events: none; }
 .pt-om-r { font-size: 11px; line-height: 1.2; white-space: nowrap; }
+
+/* ===== 遠征 (第六章の結びで開く。src/ui/expedition.js) ===== */
+.pt-port.away { border-color: #6f9fb8; }
+.pt-port.away .pt-port-fr { filter: saturate(0.55) brightness(0.72); }
+.pt-port-away { position: absolute; top: 1px; right: 1px; font-size: 9px; line-height: 1; padding: 1px 2px; border-radius: 3px; background: rgba(16, 32, 46, 0.9); color: #cfe8f6; border: 1px solid #4f7f98; pointer-events: none; }
+.pt-res-row.away { border-color: #2f4a58; }
+.ex-count { font-size: 12px; color: #a9c8d8; padding: 2px 2px 4px; line-height: 1.6; }
+.ex-stat { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; font-size: 12.5px; color: #cfe2ec; }
+.ex-stat-tag { flex: 0 0 auto; font-size: 11px; padding: 1px 6px; border-radius: 3px; background: rgba(36, 66, 84, 0.85); border: 1px solid #4f7f98; color: #e3f3fb; letter-spacing: 0.08em; }
+.ex-stat-t { min-width: 0; }
+.ex-send-b.ng { opacity: 0.55; }
+.ex-who { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.ex-port { flex: 0 0 auto; display: inline-flex; width: 44px; height: 44px; align-items: center; justify-content: center; border: 1px solid #3a3029; border-radius: 3px; background: rgba(8,6,9,0.6); }
+.ex-who-tx { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ex-who-n { font-size: 15px; font-weight: 800; letter-spacing: 0.06em; }
+.ex-who-s { font-size: 12px; color: var(--ink-dim); }
+.ex-h { margin: 10px 0 4px; font-size: 12px; color: var(--accent-hi); letter-spacing: 0.12em; }
+.ex-list { display: flex; flex-direction: column; gap: 4px; }
+.ex-dest { display: flex; flex-direction: column; gap: 2px; text-align: left; padding: 7px 10px; min-height: 44px; color: var(--ink); font-family: var(--font); cursor: pointer;
+  background: var(--grain), var(--plate); border: 1px solid #33292a; border-radius: 3px; box-shadow: var(--plate-edge); }
+.ex-dest.on { border-color: #8a6d2e; box-shadow: 0 0 0 1px rgba(243,213,139,0.4), 0 0 12px rgba(243,213,139,0.18); }
+.ex-dest-l1 { display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700; }
+.ex-dest-side { font-size: 10.5px; font-weight: 400; padding: 0 5px; border: 1px solid #5a4a3a; border-radius: 3px; color: #cdbf9f; }
+.ex-dest-l2 { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 12px; color: var(--ink-dim); }
+.ex-dest-tag.ok { color: #9ed39a; }
+.ex-dest-tag.mid { color: #e8c766; }
+.ex-dest-tag.low { color: #a9c8d8; }
+.ex-dest-tag.warn { color: #ff9a8a; }
+.ex-pv { margin-top: 10px; padding: 8px 10px; border: 1px solid #3c5a68; border-radius: 3px; background: rgba(14, 26, 34, 0.7); display: flex; flex-direction: column; gap: 4px; }
+.ex-pv.back { border-color: #7a3a32; background: rgba(40, 14, 12, 0.6); }
+.ex-pv-h { font-size: 12px; color: #a9c8d8; letter-spacing: 0.12em; }
+.ex-pv-l { font-size: 13px; line-height: 1.6; }
+.ex-pv-l.dim { color: var(--ink-dim); font-size: 12px; }
+.ex-pv-g { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ex-gain { display: inline-flex; align-items: center; gap: 2px; }
+.ex-note { margin-top: 10px; font-size: 12px; color: var(--ink-dim); line-height: 1.7; }
+.ex-rep { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; margin-bottom: 6px; background: var(--grain), var(--plate); border: 1px solid #2f4a58; border-radius: 3px; box-shadow: var(--plate-edge); }
+.ex-rep.back { border-color: #6a3a32; }
+.ex-rep-top { display: flex; align-items: center; gap: 10px; }
+.ex-rep-tx { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ex-rep-n { font-size: 15px; font-weight: 800; letter-spacing: 0.06em; }
+.ex-rep-w { font-size: 12px; color: #a9c8d8; }
+.ex-rep-lv { font-size: 12.5px; color: #e8c766; }
+.ex-rep-it { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; font-size: 13px; }
+.ex-rep-it.dim { color: var(--ink-dim); font-size: 12px; }
+.ex-rep-k { font-size: 11px; color: var(--ink-dim); }
+.ex-rep-soul { font-weight: 700; }
+.ex-tot { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; padding: 6px 2px; font-size: 15px; font-weight: 700; border-top: 1px solid #33292a; }
+.ex-tot-l { font-size: 12px; font-weight: 400; color: var(--ink-dim); letter-spacing: 0.1em; }
+.ex-who-tx, .ex-rep-tx, .ex-pv, .ex-rep { text-align: left; }
+.ex-pv { margin: 8px 0 2px; }
+/* 魂の詳細: 魂の名の行の右端に「職業図鑑を見る」 */
+.sp-sd-sheet .sp-sd-t { flex: 1 1 auto; align-self: stretch; }
+.sp-sd-nmrow { display: flex; align-items: center; gap: 8px; }
+.sp-sd-nmrow .sp-srow-n { flex: 1 1 auto; min-width: 0; }
+.sp-sd-nmrow .sp-sd-codex { flex: 0 0 auto; margin-left: auto; }

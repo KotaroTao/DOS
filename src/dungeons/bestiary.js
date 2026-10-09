@@ -338,71 +338,75 @@ const NEW_DEFS = [
   { id: "bs_infernolord", name: "業火の主", rank: 9, boss: true, race: "demon", element: "fire", artKey: "hd_infernolord", soulClass: "hexer",
     ability: "breath", abRate: 0.35, role: "summoner", summonKey: "bs_ashghoul", physResist: 75, enrage: true, // 業炎を吐き、信徒を呼び寄せ、手負いで荒れ狂う
     desc: "魂を煮る大釜を守る、巨大な角の悪魔。釜の上に両腕を広げて業炎を吐き、ひれ伏す灰かぶりの信徒たちを次々と呼び寄せる。追い詰められれば、釜の火とともに太陽のごとく燃え上がり、すべてを灰に帰そうとする。" },
-  // -- 第8層「氷結回廊」 (rank 8-9・氷/水。第7層より格上の壁。火に弱い者が多い) --
-  { id: "bs_frostwyrm", name: "氷牙の蛇竜", rank: 9, race: "dragon", element: "water", artKey: "frostwyrm",
-    ability: "breath", physResist: 50, swift: true, // 凍てつくブレスを吐き、氷鱗が刃を阻み、素早い
-    desc: "氷の回廊をのたうつ、青白い鱗の蛇竜。凍てつく吐息で全体を凍りつかせ、硬い氷鱗は刃を弾く。地を這う動きは見た目より速く、気づけば背後に回り込んでいる。" },
-  { id: "bs_icegolem", name: "氷塊のゴーレム", rank: 8, race: "construct", element: "water", artKey: "icegolem",
-    physResist: 75, magResist: 75, barrier: 2, // 透き通る氷の殻が刃も魔も阻む
-    desc: "回廊の氷が人の形に凝り固まった巨人。透き通る分厚い氷の殻は刃を弾き、魔力すら凍った表面に滑り落ちる。砕くには、まずその冷気の鎧を割らねばならない。" },
-  { id: "bs_frozenexplorer", name: "凍てつく先人", rank: 8, race: "undead", element: "water", artKey: "frozenexplorer",
-    ability: "drain", physResist: 50, lifesteal: 0.2, // 真実に届いた歴代の操霊師。命を喰らい温もりを奪う
-    desc: "真実に届いてしまい、氷漬けにされた歴代の操霊師たち。半ば凍ったままさまよい、生者の温もりと宿した魂を奪っては、束の間おのれの凍えを忘れる。その顔は、いつかの己かもしれない。" },
-  { id: "bs_blizzardspirit", name: "吹雪の精", rank: 8, race: "elemental", element: "water", artKey: "blizzardspirit",
-    ability: "paralyze", evasive: true, magWeak: 1.4, // 渦巻く吹雪。痺れさせ、刃をすり抜ける。熱には脆い
-    desc: "回廊を吹き荒れる吹雪が、渦を巻いて意思を持ったもの。凍える風で獲物の身を痺れさせ、刃を向ければ雪となって舞い散ってかわす。が、ひとたび炎を浴びれば、たちまち溶け消える。" },
-  { id: "bs_rimegiant", name: "氷河の巨人", rank: 9, race: "giant", element: "water", artKey: "rimegiant",
-    physResist: 75, enrage: true, multistrike: 2, // 氷河を背負う巨人。氷塊で連打し、手負いで雪崩のごとく荒れる
-    desc: "背に小さな氷河を背負った、霜まみれの巨人。両の拳で氷塊ごと続けざまに叩きつけ、傷を負えば雪崩のように荒れ狂う。その咆哮だけで、回廊の天井から氷柱が降り注ぐ。" },
-  { id: "bs_icewraith", name: "氷霊", rank: 8, race: "specter", element: "water", artKey: "icewraith",
-    ability: "paralyze", lifesteal: 0.3, magWeak: 1.4, // 凍える恨みの霊。痺れさせ命を吸う。実体は脆い
-    desc: "凍え死んだ者の恨みが、青白い霊となって回廊をさまよう。触れられた者は芯から凍えて動けなくなり、奪われた熱がこの霊を一瞬色濃くする。実体は薄く、魔の熱には抗えない。" },
-  { id: "bs_frostwolf", name: "白霜の狼", rank: 8, race: "beast", element: "water", artKey: "frostwolf",
-    swift: true, pack: true, ability: "critical", // 霜をまとう白狼。群れで素早く囲み、急所をひと噛み
-    desc: "氷の回廊を音もなく駆ける、霜をまとった白い狼の群れ。吐く息は白く凍り、群れで素早く取り囲んでは、急所めがけてひと噛みで仕留める。雪に紛れた姿は、襲われるまで見えない。" },
-  { id: "bs_rimecrawler", name: "霜甲の蟲", rank: 8, race: "insect", element: "water", artKey: "rimecrawler",
-    physResist: 75, magResist: 75, multistrike: 2, // 氷の甲殻が刃も魔も弾き、氷牙で連打する
-    desc: "氷の甲殻に覆われた、人を超える大蟲。鏡のような甲殻は刃を弾き、魔力も冷えた殻に吸われて霧散する。凍りついた顎で、岩をも噛み砕いて連打する。" },
-  { id: "bs_iciclehorror", name: "氷柱の魔", rank: 9, race: "amorph", element: "water", artKey: "iciclehorror",
-    multistrike: 3, physResist: 50, // 天井から無数に垂れる氷柱の群体。突き刺し連打する
-    desc: "回廊の天井から無数に垂れ下がった氷柱が、ひとつの意思でうごめく群体。獲物の上に落ちかかり、鋭い先端で何度も突き刺す。砕いた先から、また新たな氷柱が伸びてくる。" },
-  { id: "bs_glaciallord", name: "氷結回廊の主", rank: 9, boss: true, race: "specter", element: "water", artKey: "glaciallord", soulClass: "mage",
-    role: "summoner", summonKey: "bs_frozenexplorer", ability: "breath", physResist: 75, enrage: true, magWeak: 1.3, // 先人を呼び、凍てつく息を吐く。火に弱い
-    desc: "氷結回廊そのものを凍てつかせ、歴代の先人を氷漬けにして見張る氷の支配者。凍れる操霊師を次々と呼び覚まし、回廊ごと凍らせる絶対零度の息を吐く。誰よりも真実に近づき、誰よりも深く凍りついた者の成れの果てだ。" },
-  // -- 第8層「氷結回廊」 batch2 (rank 8-9) --
-  { id: "bs_frostknight", name: "凍れる騎士", rank: 9, race: "armored", element: "water", artKey: "frostknight",
-    ability: "critical", physResist: 50, barrier: 2, // 氷漬けの鎧。氷剣で急所を貫き、刃を阻む
-    desc: "回廊で凍え死に、氷漬けのまま動き出した騎士の鎧。手にした氷の剣は鎧ごと急所を貫き、霜に覆われた鎧は刃を弾く。中身はとうに溶けて、ただ未練だけが鎧を動かしている。" },
-  { id: "bs_snowstalker", name: "雪渡りの獣", rank: 8, race: "beast", element: "water", artKey: "snowstalker",
-    swift: true, enrage: true, multistrike: 2, // 雪原を渡る白毛の大獣。手負いで猛り、連打でなぐ
-    desc: "白い吹雪に紛れて雪原を渡る、毛むくじゃらの大獣。雪に溶け込む白毛で気配を消し、太い腕で続けざまになぎ払う。傷を負えば吠えながら猛進し、雪煙を巻き上げて暴れ回る。" },
-  { id: "bs_iceserpent", name: "氷の大蛇", rank: 8, race: "reptile", element: "water", artKey: "iceserpent",
-    ability: "paralyze", swift: true, multistrike: 2, // 氷鱗の大蛇。素早く巻きつき、冷気で痺れさせ連咬する
-    desc: "凍てつく鱗をもつ、回廊をのたうつ大蛇。素早く巻きついて締め上げ、冷気の牙で何度も噛みついて獲物を痺れさせる。氷の床を滑るように進む姿は、捉えるのが難しい。" },
-  { id: "bs_winterbat", name: "霜羽の蝙蝠", rank: 8, race: "avian", element: "water", artKey: "winterbat",
-    swift: true, evasive: true, pack: true, ability: "paralyze", // 凍える翼の蝙蝠の群れ。乱舞して痺れさせる
-    desc: "凍える翼をもつ蝙蝠の群れ。回廊の闇を素早く乱舞し、冷気をまとった羽ばたきで獲物を痺れさせる。一匹を叩き落としても、霜を散らして次の群れが舞い降りる。" },
-  { id: "bs_glacialcrab", name: "氷殻の大蟹", rank: 8, race: "aquatic", element: "water", artKey: "glacialcrab",
-    physResist: 75, barrier: 2, ability: "critical", // 氷の甲殻が刃を阻み、はさみで急所を断つ
-    desc: "氷の甲殻に覆われた、凍った泉に潜む大蟹。鏡のような殻は刃をことごとく弾き、鋼のはさみは鎧ごと急所を断ち切る。横歩きで氷上を滑り、退路を塞いでくる。" },
-  { id: "bs_frostlich", name: "氷結の死霊術師", rank: 9, race: "undead", element: "water", artKey: "frostlich", soulClass: "mage",
-    role: "summoner", summonKey: "bs_frozenexplorer", ability: "drain", magWeak: 1.3, // 先人を呼び、命を吸う。骨は熱に脆い
-    desc: "永遠の知を求めて回廊に降り、自ら氷漬けとなった魔術師の骸。凍れる先人を次々と呼び覚まし、生者の命を吸って術を保つ。凍てついた骨は、皮肉にも炎の魔法に最も脆い。" },
-  { id: "bs_snowmantis", name: "霜の大カマキリ", rank: 8, race: "insect", element: "water", artKey: "snowmantis",
-    swift: true, ability: "critical", multistrike: 2, // 氷の鎌で素早く急所を続けざまに刈る
-    desc: "氷の鎌をもつ、人の背丈ほどの大カマキリ。鏡のように研ぎ澄まされた鎌は一閃で鎧を断ち、目にも留まらぬ速さで急所を続けざまに刈り取る。祈るような構えのまま、獲物を待っている。" },
-  { id: "bs_frostmaiden", name: "氷の乙女", rank: 9, race: "specter", element: "water", artKey: "frostmaiden",
-    ability: "charm", role: "healer", magWeak: 1.3, // 哀歌で心を奪い、凍れる眷属を癒す。火に弱い
-    desc: "氷柱に閉ざされたまま凍え死んだ乙女の霊。澄んだ哀歌を響かせて生者の心を奪い、傷ついた凍れる眷属には癒しの旋律を捧げる。その美しさは、近づく者を惑わせる罠だ。" },
-  { id: "bs_frozenangel", name: "氷漬けの堕天", rank: 9, race: "construct", element: "water", artKey: "frozenangel",
-    physResist: 75, magResist: 75, barrier: 2, // 氷柱にはりつけにされた翼の像。刃も魔も凍て阻む
-    desc: "翼を広げたまま氷柱にはりつけにされた、堕ちた天使の像。分厚い氷の鎧は刃を弾き、魔力も凍りついた表面を滑り落ちる。祈るように閉じた目は、もう二度と開かない。" },
-  { id: "bs_frostfiend", name: "氷結の鬼", rank: 8, race: "demon", element: "water", artKey: "frostfiend",
-    ability: "critical", enrage: true, multistrike: 2, // 冷気をまとう青鬼。爪で急所をえぐり、手負いで荒れる
-    desc: "絶対零度の冷気をまとった、青く凍てつく鬼。氷の爪で鎧ごと急所をえぐり、二度三度と斬りつける。傷を負うほど身を覆う氷がきしみ、見境なく荒れ狂う。" },
-  { id: "bs_aurorawisp", name: "極光の群火", rank: 8, race: "specter", element: "water", artKey: "aurorawisp",
-    pack: true, ability: "confuse", evasive: true, magWeak: 1.5, // 揺れる極光の群体。誘い込み惑わせる。実体は薄い
-    desc: "回廊の天井に揺らめく、極光の色をした鬼火の群れ。美しい光に見惚れた者を誘い込んでは正気を奪い、凍える回廊で仲間と斬り合わせる。実体に乏しく刃をすり抜けるが、魔の力にはひとたまりもない。" },
+  // -- 第8層「氷結回廊」 (rank 9-10・氷/水。奈落の壁に螺旋に張り出した氷の棚。第7層より格上の壁) --
+  // 浅い帯の雑魚は rank9、深い帯から出る者は rank10。主・強敵は rank10 (層+2 の上限)。
+  // 落ちてくる魂が風に吹き寄せられて凍る回廊: 凍った魂 (氷霊・極光の群火・氷の悪鬼)、王家の地下牢から運ばれて
+  // 氷漬けにされた操霊師 (凍てつく先人・凍れる騎士・氷結の死霊術師)、氷の獣たち。
+  // 第5層からの流儀で特色を極端に押し出す (神速・特技の多用・ブレス・全体呪文・溜め・守り崩し・打ち消し・魔法抵抗100)。
+  // 絵は hd_* の固有原型 (tools/hdart/layer8/)。どの個体も ability を明示する (種族の既定の特技は付けない)
+  { id: "bs_frostwolf", name: "白霜の狼", rank: 9, race: "beast", element: "water", artKey: "hd_frostwolf",
+    pack: true, swift: true, ability: "critical", // 群れで素早く囲み、急所をひと噛みにする
+    desc: "毛先まで霜で白く凍った、痩せた狼の群れ。氷棚から氷棚へ音もなく跳び移って獲物を取り囲み、白い息を吐きながら喉笛めがけてひと噛みで仕留める。一頭を見つけたら、もう背後に次の一頭がいる。" },
+  { id: "bs_winterbat", name: "霜羽の蝙蝠", rank: 9, race: "avian", element: "water", artKey: "hd_winterbat",
+    ability: "sleep", abRate: 0.45, evasive: true, pack: true, // 羽ばたきで眠りの粉雪を撒き続け、ひらりと刃をかわす
+    desc: "皮膜に霜の結晶が張りついた、青白い大蝙蝠の群れ。羽ばたくたびに冷たい粉雪の靄を撒き、それを吸った者は凍える前のあのまどろみに落ちていく。ひらひらと舞って刃をかわし、眠った獲物から順に血を吸う。" },
+  { id: "bs_icewraith", name: "氷霊", rank: 9, race: "specter", element: "water", artKey: "hd_icewraith",
+    ability: "soulSteal", abRate: 0.45, magWeak: 1.4, // 氷から抜け出そうともがき、生者の魂の光を吸い寄せ続ける。薄い霊体は呪文に脆い
+    desc: "奈落へ落ちていく途中で風に吹き寄せられ、氷に閉じ込められた魂。腰から下を氷の柱に埋めたまま身をよじり、通りかかる者の宿した魂の光を何度も吸い寄せる。抜け出すには、まだ足りないのだという。薄い霊体は、呪文を浴びるとたやすく散る。" },
+  { id: "bs_blizzardspirit", name: "吹雪の精", rank: 9, race: "elemental", element: "water", artKey: "hd_blizzardspirit",
+    ability: "spell", abRate: 0.5, regen: 0.05, // 吹雪の大呪を呼び続けて隊をまとめて凍らせ、散らされても風が集まり直す
+    desc: "奈落の底から吹き上げる風が、渦を巻いて意思を持ったもの。風に削られた仮面のような顔を渦の中心に浮かべ、頭上に氷の結晶の輪を回して吹雪の大呪を絶え間なく呼ぶ。風は止まないので、散らしても少しずつ集まり直す。" },
+  { id: "bs_iceserpent", name: "氷の大蛇", rank: 9, race: "reptile", element: "water", artKey: "hd_iceserpent",
+    ability: "paralyze", abRate: 0.45, multistrike: 2, // 巻きついて凍えさせ続け、冷気の牙で続けざまに噛む
+    desc: "氷の床にとぐろを巻いて獲物を待つ、霜の付いた鱗の大蛇。冷気の牙で続けざまに噛みつき、巻きついた体からしみ込む冷たさで、獲物の手足を何度も凍えさせて動けなくする。" },
+  { id: "bs_glacialcrab", name: "氷殻の大蟹", rank: 9, race: "aquatic", element: "water", artKey: "hd_glacialcrab",
+    role: "guard", physResist: 75, ability: null, // 氷河の欠片を背負った甲羅が刃をほとんど通さず、盾のはさみで仲間をかばう
+    desc: "氷河の欠片のような透き通った氷を背に負う大蟹。片方の巨大なはさみを盾のように立てて仲間の前に出て、どんな刃もその甲羅で受け止める。割るには呪文の熱か、よほどの力が要る。" },
+  { id: "bs_snowstalker", name: "雪渡りの獣", rank: 9, race: "beast", element: "water", artKey: "hd_snowstalker",
+    ability: "sunder", abRate: 0.45, enrage: true, // 組んだ両拳を振り下ろして鎧ごと守りを砕き続け、手負いで荒れ狂う
+    desc: "長い白毛に覆われた、背の丸い大獣。氷棚から氷棚へ吹雪に紛れて渡り歩き、頭の上で組んだ太い両腕を振り下ろしては、鎧ごと守りを叩き割る。傷を負えば吠えながら雪煙を巻き上げ、手がつけられなくなる。" },
+  { id: "bs_rimecrawler", name: "霜甲の蟲", rank: 9, race: "insect", element: "water", artKey: "hd_rimecrawler",
+    magResist: 100, lifesteal: 0.3, ability: null, // 鏡の甲殻の紋が呪文をすべて吸って砕き、凍った顎で体温をすする
+    desc: "人より大きな、節の重なった丸い大蟲。鏡のように磨かれた氷の甲殻には節ごとに青白い紋が浮かび、撃ち込まれた呪文はその紋に吸われて砕け散る。凍った大顎で噛みついては、獲物の体温をすすって己を温める。倒すには刃で殻を割るしかない。" },
+  { id: "bs_frozenexplorer", name: "凍てつく先人", rank: 9, race: "undead", element: "water", artKey: "hd_frozenexplorer",
+    ability: "drain", abRate: 0.45, endure: true, // 宿した魂の力を何度も喰らい、凍りきった体は一度だけ砕けずに耐える
+    desc: "王に地下牢へ入れられた王家の操霊師が、牢から運ばれて氷漬けにされ、凍りきれずに半ば動き出したもの。手首にはまだ牢の枷が残る。動く方の腕を伸ばして宿した魂の力を喰らい、束の間おのれの凍えを忘れる。凍りついた体は、一度の致命の一撃では砕けない。" },
+  { id: "bs_snowmantis", name: "霜の大カマキリ", rank: 9, race: "insect", element: "water", artKey: "hd_snowmantis",
+    haste: true, ability: null, // 目にも止まらぬ速さで、1ターンに二度氷の鎌を振るう
+    desc: "人の背丈ほどもある、白く霜をまとった大カマキリ。研ぎ澄まされた二本の氷の鎌をふりかぶったまま獲物を見すえ、目にも止まらぬ速さで瞬きの間に二度刈り取る。動いた後には、白い残像だけが残る。" },
+  { id: "bs_aurorawisp", name: "極光の群火", rank: 9, race: "specter", element: "water", artKey: "hd_aurorawisp",
+    ability: "confuse", abRate: 0.5, pack: true, magWeak: 1.4, // 揺らめく光で正気を奪い続け、仲間と斬り合わせる。実体は薄い
+    desc: "回廊の天井に揺れる極光は、氷に閉じ込められた魂の光だという。その光がこぼれて鬼火になり、緑と紫に揺らめきながら群れ飛ぶ。見とれた者は正気を失い、凍える回廊で仲間と斬り合う。実体に乏しく、呪文の一撃でまとめて消える。" },
+  { id: "bs_iciclehorror", name: "氷柱の魔", rank: 10, race: "amorph", element: "water", artKey: "hd_iciclehorror",
+    multistrike: 3, physResist: 50, ability: null, // 天井から無数に垂れる氷柱の群体。一度に三度突き刺す
+    desc: "回廊の天井の氷塊から、無数の氷柱が垂れ下がってうごめく群体。塊の奥に青白い眼がいくつも開き、触手のように曲がった氷柱で一度に三度突き刺す。折っても折っても、次の氷柱が伸びてくる。" },
+  { id: "bs_frostknight", name: "凍れる騎士", rank: 10, race: "armored", element: "water", artKey: "hd_frostknight",
+    ability: "critical", abRate: 0.45, physResist: 50, // 長い氷の剣の突きで、鎧ごと急所を何度も貫く
+    desc: "地下牢へ送られる操霊師たちに付き従い、主ともども氷漬けにされた王家の近衛の鎧。中身はとうに無く、兜の奥の青白い光だけが務めを覚えている。両手で引いた長い氷の剣の突きは、鎧ごと急所を何度も貫く。" },
+  { id: "bs_frostlich", name: "氷結の死霊術師", rank: 10, race: "undead", element: "water", artKey: "hd_frostlich", soulClass: "mage",
+    role: "summoner", summonKey: "bs_icewraith", ability: "dispel", magWeak: 1.3, // 氷に閉じ込められた魂を氷霊として呼び出し、隊の加護が厚くなると禍言でまとめて剥ぎ取る
+    desc: "氷に閉じ込められた魂を掘り出しては、鳥籠のような灯籠に捕らえて使う術師の骸。灯籠を揺らすたびに氷霊が呼び出され、隊の加護が厚くなれば、ひび割れた禍言の輪でまとめて断ち切る。凍てついた骨は、呪文の熱に脆い。" },
+  { id: "bs_frostmaiden", name: "氷の乙女", rank: 10, race: "specter", element: "water", artKey: "hd_frostmaiden",
+    ability: "charm", abRate: 0.45, role: "healer", // 哀歌で心を奪い続け、凍れる眷属を癒しの光の雪で繕う
+    desc: "氷柱の中で凍え死んだ乙女の霊。目を閉じたまま澄んだ哀歌を歌い、その歌声の輪に触れた者は心を奪われて仲間に刃を向ける。胸の前で組んだ手からは癒しの光の雪がこぼれ、傷ついた凍れる者たちを繕っていく。" },
+  { id: "bs_icegolem", name: "氷塊のゴーレム", rank: 10, race: "construct", element: "water", artKey: "hd_icegolem",
+    barrier: 3, physResist: 50, ability: null, // 何枚も重なった厚い氷の板が、割れても割れても打撃を受け流す
+    desc: "回廊の氷が人の形に凝り固まった、ずんぐりと重い巨人。体は何枚もの厚い氷の板が鎧のように重なってでき、表の板が割れても次の板が打撃を受け流す。胸の奥には、核にされた魂が青く透けている。" },
+  { id: "bs_frozenangel", name: "氷漬けの堕天", rank: 10, race: "construct", element: "water", artKey: "hd_frozenangel",
+    ability: "stone", abRate: 0.45, magResist: 75, // 舞い落ちる氷の羽根を浴びせ続けて氷像に変え、厚い氷が呪文を滑らせる
+    desc: "翼を広げたまま太い氷柱にはりつけにされた、堕ちた天使の像。翼から一枚、また一枚と氷の羽根がはがれて舞い、それを浴びた者は像と同じく氷に固まっていく。体を包む厚い氷は、呪文の力をほとんど滑らせてしまう。" },
+  { id: "bs_frostwyrm", name: "氷牙の蛇竜", rank: 10, race: "dragon", element: "water", artKey: "hd_frostwyrm",
+    ability: "breath", abRate: 0.45, swift: true, // 凍てつく息を吐き続けて隊をまとめて凍らせ、うねる体は見た目より素早い
+    desc: "背に氷の棘を並べた、青白い鱗の長い蛇竜。氷の床からうねって鎌首をもたげ、凍てつく息を何度も吹きつけて隊をまとめて凍らせる。のたうつ動きは見た目よりずっと速く、気づけば頭の上にいる。" },
+  { id: "bs_rimegiant", name: "氷河の巨人", rank: 10, race: "giant", element: "water", artKey: "hd_rimegiant",
+    ability: "charge", abRate: 0.4, enrage: true, // 氷河の塊を担ぎ上げて力を溜め、次の手番で叩きつける。手負いで荒れ狂う
+    desc: "灰青の肌が霜でひび割れた、背の丸い巨人。氷棚からもぎ取った氷河の塊を頭上に担ぎ上げ、全身に力を溜めてから叩きつける。担ぎ上げたその隙に眠らせるか封じるかしなければ、隊ごと押しつぶされる。傷を負えば雪崩のように荒れ狂う。" },
+  { id: "bs_frostfiend", name: "氷の悪鬼", rank: 10, race: "demon", element: "water", artKey: "hd_frostfiend",
+    ability: "weaken", abRate: 0.45, regen: 0.06, // 手のひらから凍える霧を吐いて力を奪い続け、砕けた所はすぐに凍り直す
+    desc: "奈落へ落ちていった魂が、氷棚で凍りついて鬼になったもの。体のあちこちが透き通った氷に置き換わり、ひびの奥で凍った魂が青く光る。両の手のひらから凍える霧を吐き出して手足の力を奪い、砕かれた所もすぐに凍り直す。" },
+  { id: "bs_glaciallord", name: "氷結回廊の主", rank: 10, boss: true, race: "specter", element: "water", artKey: "hd_glaciallord", soulClass: "mage",
+    role: "summoner", summonKey: "bs_frozenexplorer", ability: "breath", abRate: 0.35, physResist: 75, endure: true, // 先人を呼び覚まし、凍てつく息を吐き、三百年の執念で一度は倒れずに耐える
+    desc: "三百年前、王家に最初に仕えた操霊師、凍王イザーク。魂が奈落の底へ落ちていくのを止めるため、自分ごと回廊を凍らせて堤にした。三百年のうちに正気を失い、いまは氷の玉座から凍てつく先人たちを見張っている。ひざまずく先人を呼び覚まし、凍てつく息で隊をまとめて凍らせ、致命の一撃を受けても一度は玉座から崩れない。" },
   // -- 第9層「毒沼」 (rank 9-10・毒/腐敗。第8層より格上の壁) --
   { id: "bs_plaguebeast", name: "疫病の獣", rank: 9, race: "beast", element: "earth", artKey: "plaguebeast",
     ability: "poison", enrage: true, multistrike: 2, // 病毒を撒き、手負いで荒れ、連打でなぐ
@@ -1736,14 +1740,12 @@ const ELITE_DEFS = [
     regen: 0.1, ability: "critical", // 斬られても灰となって積もり直し、将の太刀が急所を断つ
     desc: "灼洞に攻め入り、軍ごと灰になった将の亡霊。斬られるたび灰煙となって解け、再び将の形に積もり直して立ち上がる。崩れぬ灰の太刀は、急所だけを正確に断つ。" }, // 第11層
   // -- 迷宮 61-70 (氷廊帯) / 強敵ランク9 --
-  { id: "el_frostsovereign", name: "凍王の影", elite: true, rank: 10, race: "armored", element: "water", artKey: "ironknight", soulClass: "knight",
-    palette: tint(ARTS.ironknight.palette, "#a8c8e8", 0.55),
-    physResist: 75, ability: "paralyze", // 凍てついた影鎧は刃を弾き、敗者を氷像に変える
-    desc: "氷廊の最深部に座す「凍王」が、退屈しのぎに切り離した己の影。凍てついた鎧は刃を弾き、本体に迫る力で斬りつけた相手を芯から凍らせ、敗者は氷像として回廊に飾られる。" }, // 第8層
-  { id: "el_glacialmaw", name: "氷河の大顎", elite: true, rank: 10, race: "dragon", element: "water", artKey: "anglerfiend",
-    palette: tint(ARTS.anglerfiend.palette, "#c8e0f0", 0.55),
-    physResist: 75, ability: "breath", // 氷塊の巨顎は刃を弾き、千年溶けぬ吹雪を吐く
-    desc: "氷河の裂け目そのものと見紛う、白竜の巨大な顎。氷塊の鱗は刃を弾き、氷ごと獲物を噛み砕いては、前衛後衛もろとも千年溶けない吹雪を吐く。" }, // 第8層
+  { id: "el_frostsovereign", name: "凍王の影", elite: true, rank: 10, race: "armored", element: "water", artKey: "hd_frostsovereign", soulClass: "knight", // 第8層の強敵。絵は hd_* の固有原型
+    haste: true, ability: "paralyze", abRate: 0.45, // 目にも止まらぬ速さで二度斬りつけ、斬られた者は芯から凍えて動けなくなる
+    desc: "凍王が三百年の間に切り離した、己の影。藍色の闇が鎧と外套の形をとり、頭には本体と同じ氷の冠だけが白く浮かぶ。長い氷の剣で目にも止まらぬ速さで二度斬りつけ、斬られた者は芯から凍えて動けなくなる。足元はいつも床の影につながっていて、回廊の奥の玉座へ誰も近づけない。" }, // 第8層
+  { id: "el_glacialmaw", name: "氷河の大顎", elite: true, rank: 10, race: "dragon", element: "water", artKey: "hd_glacialmaw", // 第8層の強敵。絵は hd_* の固有原型
+    ability: "critical", abRate: 0.5, physResist: 75, // 氷柱の牙で鎧ごと急所を何度も噛み砕き、氷塊の鱗は刃をほとんど通さない
+    desc: "氷棚の裂け目から鼻先だけを突き出して獲物を待つ、白い竜の巨大な頭。上下の顎には氷柱そのものの牙が何列も並び、鎧ごと急所を何度も噛み砕く。顎を覆う鱗は分厚い氷塊で、刃をほとんど通さない。裂け目の下にどれほどの体が続いているのか、見た者はいない。" }, // 第8層
   { id: "el_blizzardwitch", name: "吹雪の魔女", elite: true, rank: 10, race: "specter", element: "wind", artKey: "willowwitch", soulClass: "mage",
     palette: tint(ARTS.willowwitch.palette, "#b0d8e8", 0.55),
     ability: "sleep", // 子守唄で暖かな眠りに誘い、凍りつかせる
@@ -2003,7 +2005,7 @@ const LAYER_BOSS_OVERRIDE = {
   11: "bs_arenalord", // 第11層「闘技場跡」: 闘技場の支配者 (rank10・剣闘ボス)
   10: "bs_stormlord", // 第10層「嵐の尖塔」: 嵐の尖塔の主 (rank10・風ボス)
   9: "bs_swamplord", // 第9層「毒沼」: よどみの主 (rank10・毒ボス)
-  8: "bs_glaciallord", // 第8層「氷結回廊」: 氷結回廊の主 (rank9・氷ボス)
+  8: "bs_glaciallord", // 第8層「氷結回廊」: 氷結回廊の主・凍王イザーク (rank10・氷ボス)
   7: "bs_infernolord", // 第7層「灼熱の洞」: 業火の主 (rank9・火/悪魔ボス)
   6: "bs_templelord", // 第6層「沈没神殿」: 沈める神官王 (rank8・水/神殿ボス)
   5: "bs_forestlord", // 第5層「霧の森」: 霧の森の主 (rank7・植物ボス)
@@ -2109,13 +2111,14 @@ export const LAYER_POOLS = {
     "bs_demon", "bs_hellhound", "bs_shadowogre", "bs_darkliege", "bs_infernaltyrant",
     "bs_doombringer",
   ],
-  // 第8層「氷結回廊」: 氷/水中心、rank8-9主体 (第7層より格上)。火に弱い者が多い ※20種へ作成中
+  // 第8層「氷結回廊」: 氷/水・凍った魂と氷漬けの操霊師。浅い帯 rank9・深い帯 rank10 (第7層より格上)
   8: [
-    "bs_frostwyrm", "bs_icegolem", "bs_frozenexplorer", "bs_blizzardspirit", "bs_rimegiant",
-    "bs_icewraith", "bs_frostwolf", "bs_rimecrawler", "bs_iciclehorror",
-    // batch2 新規 (固有アート)
-    "bs_frostknight", "bs_snowstalker", "bs_iceserpent", "bs_winterbat", "bs_glacialcrab",
-    "bs_frostlich", "bs_snowmantis", "bs_frostmaiden", "bs_frozenangel", "bs_frostfiend", "bs_aurorawisp",
+    // 浅い帯 (rank9)
+    "bs_frostwolf", "bs_winterbat", "bs_icewraith", "bs_blizzardspirit", "bs_iceserpent", "bs_glacialcrab",
+    "bs_snowstalker", "bs_rimecrawler", "bs_frozenexplorer", "bs_snowmantis", "bs_aurorawisp",
+    // 深い帯 (rank10)
+    "bs_iciclehorror", "bs_frostknight", "bs_frostlich", "bs_frostmaiden", "bs_icegolem",
+    "bs_frozenangel", "bs_frostwyrm", "bs_rimegiant", "bs_frostfiend",
   ],
   // 第9層「毒沼」: 毒/腐敗中心、rank9-10。疫病系の闇undeadを再配置
   9: [

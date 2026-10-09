@@ -13,7 +13,7 @@ import { getPref, setPref, remember } from "./prefs.js";
 import { statLines, isEquippable } from "./itemview.js";
 import {
   itemSheet, wearPlan, deltaFor, deltaEl, nameSpan, goldEl, caretIcon, equipTo, floatGold, ownerOf, equipCandidates, shopOpen, isUpgrade,
-  openDollChooser, equipPick, dollIcon, revealSellBtn, firstBadge, isFirstGet,
+  openDollChooser, equipPick, dollIcon, revealSellBtn, revealSellAction, firstBadge, isFirstGet,
 } from "./loot.js";
 import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, MAX_ITEMS, canEquip, itemName, compareUse } from "../items.js";
 import { RARITIES, rarityKey } from "../rarity.js";
@@ -495,7 +495,8 @@ function openBuyChooser(id) {
   });
 }
 
-// 鑑定の結果 (まとめて鑑定のあと): 正体が知れた品。押せば品シート / 「装備」で人業を選ぶ / 「売る」でその場で売る
+// 鑑定の結果 (まとめて鑑定のあと): 正体が知れた品。押せば品シート / 「装備」で人業を選ぶ / 「売る」でその場で売る /
+// 下の「残りをまとめて売る」で残った品を一度に売る (技の鑑定の結果と同じ。SR/LR・未奉納の収集品は残す)。
 // 品シート・装備の選択を閉じたら一覧を描き直す (装備した品は一覧から消す)
 function openRevealSheet(items) {
   let h = null;
@@ -554,13 +555,19 @@ function openRevealSheet(items) {
     const lines = [];
     if (firsts) lines.push(`初めて正体を知った品 (初ゲット！) が ${firsts}点`);
     if (ups) lines.push(`装備すると強くなる品が ${ups}点 ある (▲)`);
-    return { lines, body: (b) => build(b) };
+    return { lines, body: (b) => build(b), footer: footer() };
+  };
+  const footer = () => {
+    const out = [];
+    const sell = revealSellAction(items, () => { if (h && !h.closed) h.update(view()); });
+    if (sell) out.push(sell);
+    out.push({ label: "閉じる", kind: "primary", onTap: (x) => x.close() });
+    return out;
   };
   h = sheet.open({
     kind: "info", banner: "鑑定の結果", accent: "#7fd0ff",
     title: `${items.length}点の鑑定に成功`, ...view(),
     className: "wpc-pick wpc-revealsheet",
-    footer: [{ label: "閉じる", kind: "primary", onTap: (x) => x.close() }],
   });
   return h;
 }
