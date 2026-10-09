@@ -1,5 +1,6 @@
 // ヘルプと物語の台帳。閲覧条件は既存の進行記録から判定する。
-import { archiveStories } from "./archive-stories.js";
+import { archiveStories, ARCHIVE_STORIES } from "./archive-stories.js";
+import { LORE_IMAGES } from "./storyimages.js";
 import { WORLD } from "./dungeons/world.js";
 import { CHAPTERS, UNLOCKS } from "./story.js";
 
@@ -77,16 +78,8 @@ export const DUNGEON_LORE = {
   ws14:{art:"reeds",lines:["沼の島へ渡る舟が、かつてこの渡し場から出ていた。客は人ではなく、工房で仕上げを待つ木の器だった。", "島の主が死んでからも、渡し守は灯をともして客を待ち続けた。舟が沈み、自分が沈んでも。", "沈んだ舟には、渡し賃の金貨がまだ残っている。払う者のいなくなった、最後の客の分まで。"]},
 };
 
-const DUNGEON_LORE_IMAGES = Object.fromEntries(
-  Array.from({ length: 13 }, (_, i) => {
-    const id = `w${String(i + 1).padStart(2, "0")}`;
-    return [id, `art/story/dungeons/lore_${id}.webp`];
-  })
-);
-DUNGEON_LORE_IMAGES.w15 = "art/story/dungeons/lore_w15.webp";
-DUNGEON_LORE_IMAGES.w17 = "art/story/dungeons/lore_w17.webp";
-DUNGEON_LORE_IMAGES.ws1 = "art/story/dungeons/lore_ws1.webp";
-DUNGEON_LORE_IMAGES.ws2 = "art/story/dungeons/lore_ws2.webp";
+// 由来の絵の台帳も art/story/dungeons/ の WebP から自動で書く (src/storyimages.js ← node tools/storyart/register.mjs)
+const DUNGEON_LORE_IMAGES = LORE_IMAGES;
 
 export function helpEntries(g, featureUnlocked = () => false) {
   return HELP_TOPICS.filter(t=>t.feature ? featureUnlocked(t.feature) : t.available(g));
@@ -104,6 +97,17 @@ export function storyEntries(g) {
       ...(vista ? { vista } : {}) };
   });
   return [...archiveStories(g), ...lore];
+}
+
+// 端末へ裏で先に集めておく物語・由来の絵 (sw.js の warmMedia へ渡す)。
+// 全部を集めると、まだ着いていない章の絵まで落とすことになる (第20章まで増えると約150MB)。
+// 終えた章の次の章 (いま進めている章) までの場面と、地図に現れた迷宮の由来だけにする。
+// ここに無い絵も、開いた時にその場で取りに行く (オフラインで初めて開いた時だけ絵が欠ける)。
+export function storyMediaUrls(g, chaptersDone = 0) {
+  const upto = chaptersDone + 1, w = g.world || {}, urls = new Set();
+  for (const s of ARCHIVE_STORIES) if (s.image && (s.chapter <= upto || s.available(g))) urls.add("./" + s.image);
+  for (const [id, p] of Object.entries(LORE_IMAGES)) if (w.open?.[id] || w.cleared?.[id]) urls.add("./" + p);
+  return [...urls].sort();
 }
 
 // ---- 既読と知らせ (G.journal = { read: {id:1}, known: {id:1} }) ----

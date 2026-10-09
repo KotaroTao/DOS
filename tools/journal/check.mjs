@@ -3,12 +3,27 @@ import assert from "node:assert/strict";
 import { readFileSync, existsSync } from "node:fs";
 import { ARCHIVE_STORIES, storyImage } from "../../src/archive-stories.js";
 import { ARCHIVE_FOCUS } from "../../src/archive-art.js";
-import { storyEntries, journalState, newStories, unreadStories, markStoryRead, markStoriesKnown, seedJournal } from "../../src/journal.js";
+import { storyEntries, storyMediaUrls, journalState, newStories, unreadStories, markStoryRead, markStoriesKnown, seedJournal } from "../../src/journal.js";
 import { WORLD } from "../../src/dungeons/world.js";
 import { STORY_CELLS, REPORTS, BOSS_MEMORIES, IRENE_BEATS, CHAPTER_END } from "../../src/story.js";
 import { imageSize } from "../storyart/imagesize.mjs";
+import { registerDrift } from "../storyart/register.mjs";
 
 const sw = readFileSync(new URL("../../sw.js", import.meta.url), "utf8");
+// 絵の登録 (src/storyimages.js・sw.js の ASSETS) が art/story/ の WebP と一致する (tools/storyart/register.mjs)
+assert.deepEqual(registerDrift(), [], "物語・由来の絵の登録");
+// 端末へ裏で集める物語の絵は、進めている章まで (sw.js warmMedia)
+{
+  const ch = (urls) => [...new Set(urls.filter(u => !u.includes("/dungeons/"))
+    .map(u => ARCHIVE_STORIES.find(s => "./" + s.image === u).chapter))].sort();
+  assert.deepEqual(ch(storyMediaUrls({}, 0)), [0, 1], "始めたばかりは序章と第一章だけ");
+  assert.deepEqual(ch(storyMediaUrls({}, 2)), [0, 1, 2, 3], "第二章を終えたら第三章まで");
+  assert(!storyMediaUrls({}, 0).some(u => u.includes("/dungeons/")), "地図に無い迷宮の由来は集めない");
+  assert.deepEqual(storyMediaUrls({ world: { open: { w01: 1 } } }, 0).filter(u => u.includes("/dungeons/")),
+    ["./art/story/dungeons/lore_w01.webp"], "地図に現れた迷宮の由来は集める");
+  for (const u of storyMediaUrls({ world: { open: Object.fromEntries(WORLD.map(d => [d.id, 1])) } }, 9))
+    assert(sw.includes(`"${u}"`), `${u} は ASSETS にある`);
+}
 for (const s of ARCHIVE_STORIES.filter(s => s.image)) {
   assert(existsSync(new URL("../../" + s.image, import.meta.url)), `${s.id} の承認済み画像`);
   assert(sw.includes('"./' + s.image + '"'), `${s.id} のオフライン登録`);

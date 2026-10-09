@@ -1,0 +1,7 @@
+{
+  "note": "直しを待つ原画 (art/story-review/ からの相対パス・拡張子なし)。to-webp.py --all は変換せず、register.mjs は出荷先にあれば止める。直したらここから外し、to-webp → register の順に回す。",
+  "hold": [
+    "dungeons/lore_w14",
+    "dungeons/lore_w16"
+  ]
+}

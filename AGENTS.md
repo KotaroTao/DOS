@@ -20,7 +20,7 @@ for f in $(git ls-files 'src/*.js'); do node --check "$f"; done   # 構文チェ
 - 技・出来事・戦闘の式を変えたら、`CLAUDE.md` に書かれた一括の確認 (全技を1回ずつ・全出来事×全選択肢・模擬戦) を回す。
 
 ## 必ず守る規則
-- **`sw.js` の `const CACHE = "dos-dev"` は書き換えない。** デプロイ時に `.github/workflows/pages.yml` がコミットのハッシュへ書き換える (手で版を上げる旧運用は廃止)。新しく出荷するファイル (JS/CSS/画像) は **`sw.js` の `ASSETS` に足す**。 SW の導入で先読みするのはコード (JS/CSS/HTML) だけで、絵は版をまたいで残る `dos-media` に置き、使う時と切り替えの後に裏で集める。
+- **`sw.js` の `const CACHE = "dos-dev"` は書き換えない。** デプロイ時に `.github/workflows/pages.yml` がコミットのハッシュへ書き換える (手で版を上げる旧運用は廃止)。新しく出荷するファイル (JS/CSS/画像) は **`sw.js` の `ASSETS` に足す** (物語・由来の絵 `art/story/` だけは手で足さず、置いてから `node tools/storyart/register.mjs` で登録する — `docs/art/codex-story-art-brief.md` の 1-4)。 SW の導入で先読みするのはコード (JS/CSS/HTML) だけで、絵は版をまたいで残る `dos-media` に置き、使う時と切り替えの後に裏で集める。
 - `main` へ push すると GitHub Pages に自動でデプロイされる。`main` へ直接 push しない (PR 経由)。
 - GitHub Pages の公開サイトは **1GB まで**。デプロイは `docs/`・`tools/`・`art/story-review/`・ルートの `*.md` と確認用 PNG を外して公開し、800MB を超えるか `ASSETS` の品が欠けると止まる。原画・制作記録は `docs/` か `art/story-review/` に置き、ゲームが読むフォルダ (`art/story/`・`art/jobs/` など) には置かない。
 - **ID は足すだけ** (セーブ・図鑑が参照する): 魔物 (`bs_*` など)・品 (`w_`/`lr_`…)・技の鍵・出来事 (`c01`…)・依頼・勲章の段・イレーヌの台詞・迷宮 (`w01`…) の id を改名・再利用・削除しない。

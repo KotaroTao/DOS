@@ -57,7 +57,7 @@ import * as uiPalace from "./ui/palace.js";
 import * as uiFacilities from "./ui/facilities.js";
 import * as uiSettings from "./ui/settings.js";
 import * as uiJournal from "./ui/journal.js";
-import { seedJournal } from "./journal.js";
+import { seedJournal, storyMediaUrls } from "./journal.js";
 import { storyImage } from "./archive-stories.js";
 import * as uiStory from "./ui/story.js";
 import * as uiParty from "./ui/party.js";
@@ -10557,6 +10557,7 @@ function renderTown() {
   townshell.refresh();
   if (UI.refreshPartySheet) UI.refreshPartySheet(); // 街の上に開いた人業のシート (顔アイコンから) も描き直す
   if (UI.queueStoryNotice) UI.queueStoryNotice(); // 新しく記された物語を、手の空いた時に知らせる
+  syncStoryMedia(); // 進んだ章の物語の絵を、端末へ裏で集めてもらう
   if (UI.queueExpeditionReport && expeditionDone().length) UI.queueExpeditionReport(); // 遠征から帰ってきた人業を、手の空いた時に知らせる
   if (then) queueMicrotask(() => { if (G.state === "town") then(); });
 }
@@ -16517,6 +16518,19 @@ function init() {
       });
     }).catch(() => {});
   }
+}
+
+// 物語・由来の絵のうち、端末へ裏で集めておく分 (進めている章まで) を Service Worker へ伝える。
+// 変わった時だけ送る。テストプレイの進み具合は伝えない (保存しない進行で絵を集めない)
+let _storyMediaKey = null;
+function syncStoryMedia() {
+  if (testPlayActive || !("serviceWorker" in navigator)) return;
+  const urls = storyMediaUrls(G, chaptersDone()), key = urls.join("|");
+  if (key === _storyMediaKey) return;
+  _storyMediaKey = key;
+  navigator.serviceWorker.ready.then((reg) => {
+    if (reg.active) reg.active.postMessage({ type: "story-media", urls });
+  }).catch(() => {});
 }
 
 // タイトルを抜けた後の本編起動: 保存状態の復元描画 → (新規なら) オープニング
