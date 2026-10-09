@@ -102,3 +102,7 @@
 ## 本文との照合と、修正・第五章以降の制作 (2026-10-09)
 
 序章〜第八章の挿絵と踏破後の由来の絵を、本文 (`src/archive-stories.js`・`src/story.js`・`src/journal.js`) と1枚ずつ照合した。絵の修正 (便1) と、第五〜八章の新規42場面 (便2・便3)、由来の新規 (便4) は Codex が行う。指示と各場面のプロンプトは `docs/art/codex-story-art-brief.md`。第五〜八章はそれまで、コードで描いた仮の絵 (`src/archive-art.js`・`src/storyart.js`) を表示する。
+
+## WebP への移行 (2026-10-09)
+
+出荷する物語・由来の絵77枚を WebP (品質88) に変えた (ユーザーの確認済み)。`art/story/` は 233MB → 40MB、公開物は 259MB → 66MB。原画 PNG は `art/story-review/` に置く: 序章 `prologue/`、各章 `chapterN/` (前から同じ PNG があった)、由来 `dungeons/`。作り直しは `python3 tools/storyart/to-webp.py --all`、1枚だけなら `python3 tools/storyart/to-webp.py <原画.png> <art/story/…/名前.webp>`。どこからも参照されていなかった `morden-at-throne.png` は配信をやめ、原画だけ残した (制作の参照に使う)。

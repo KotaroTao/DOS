@@ -80,13 +80,13 @@ export const DUNGEON_LORE = {
 const DUNGEON_LORE_IMAGES = Object.fromEntries(
   Array.from({ length: 13 }, (_, i) => {
     const id = `w${String(i + 1).padStart(2, "0")}`;
-    return [id, `art/story/dungeons/lore_${id}.png`];
+    return [id, `art/story/dungeons/lore_${id}.webp`];
   })
 );
-DUNGEON_LORE_IMAGES.w15 = "art/story/dungeons/lore_w15.png";
-DUNGEON_LORE_IMAGES.w17 = "art/story/dungeons/lore_w17.png";
-DUNGEON_LORE_IMAGES.ws1 = "art/story/dungeons/lore_ws1.png";
-DUNGEON_LORE_IMAGES.ws2 = "art/story/dungeons/lore_ws2.png";
+DUNGEON_LORE_IMAGES.w15 = "art/story/dungeons/lore_w15.webp";
+DUNGEON_LORE_IMAGES.w17 = "art/story/dungeons/lore_w17.webp";
+DUNGEON_LORE_IMAGES.ws1 = "art/story/dungeons/lore_ws1.webp";
+DUNGEON_LORE_IMAGES.ws2 = "art/story/dungeons/lore_ws2.webp";
 
 export function helpEntries(g, featureUnlocked = () => false) {
   return HELP_TOPICS.filter(t=>t.feature ? featureUnlocked(t.feature) : t.available(g));

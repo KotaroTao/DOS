@@ -6,15 +6,32 @@ import { ARCHIVE_FOCUS } from "../../src/archive-art.js";
 import { storyEntries, journalState, newStories, unreadStories, markStoryRead, markStoriesKnown, seedJournal } from "../../src/journal.js";
 import { WORLD } from "../../src/dungeons/world.js";
 import { STORY_CELLS, REPORTS, BOSS_MEMORIES, IRENE_BEATS, CHAPTER_END } from "../../src/story.js";
+import { imageSize } from "../storyart/imagesize.mjs";
 
 const sw = readFileSync(new URL("../../sw.js", import.meta.url), "utf8");
 for (const s of ARCHIVE_STORIES.filter(s => s.image)) {
   assert(existsSync(new URL("../../" + s.image, import.meta.url)), `${s.id} の承認済み画像`);
   assert(sw.includes('"./' + s.image + '"'), `${s.id} のオフライン登録`);
-  const png = readFileSync(new URL("../../" + s.image, import.meta.url));
-  assert.equal(png.readUInt32BE(16), s.imageWidth);
-  assert.equal(png.readUInt32BE(20), s.imageHeight);
+  // 出荷する物語の絵は WebP (原画 PNG は art/story-review/。tools/storyart/to-webp.py)
+  assert(s.image.endsWith(".webp"), `${s.id} の絵は WebP`);
+  const { w, h } = imageSize(readFileSync(new URL("../../" + s.image, import.meta.url)));
+  assert.equal(w, s.imageWidth);
+  assert.equal(h, s.imageHeight);
   assert.equal(s.imageWidth / s.imageHeight, 1.5);
+}
+// 踏破した迷宮の由来の絵も同じ決まり
+{
+  const all = Object.fromEntries(WORLD.map(d => [d.id, 1]));
+  const lore = storyEntries({ world: { cleared: all, found: {}, reported: {}, beats: {} }, irene: { seen: {} }, tut: { done: {} }, stats: {} })
+    .filter(e => e.id.startsWith("lore_") && e.image);
+  assert(lore.length >= 17, "由来の原画の数");
+  for (const e of lore) {
+    assert(e.image.endsWith(".webp"), `${e.id} の絵は WebP`);
+    assert(existsSync(new URL("../../" + e.image, import.meta.url)), `${e.id} の絵がある`);
+    assert(sw.includes('"./' + e.image + '"'), `${e.id} のオフライン登録`);
+    const { w, h } = imageSize(readFileSync(new URL("../../" + e.image, import.meta.url)));
+    assert.equal(w, 1536); assert.equal(h, 1024);
+  }
 }
 assert.equal(ARCHIVE_STORIES.filter(s => s.image).length, 58);
 assert(ARCHIVE_STORIES.filter(s => s.chapter === 1).every(s => s.image), "第一章の全場面に専用画像がある");

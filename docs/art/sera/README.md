@@ -12,8 +12,8 @@
 
 - `src/story.js` の `w04_arm`：手首の刻印を「灯を掌に載せた手。師の印」と説明。
 - `src/story.js` の `w07_sera`：黒い木彫りの髪と、額にある師の印を説明。
-- `art/story/chapter2/w07_sera.png`：額の中央に金色の手と灯の印が描かれている。
-- `art/story/chapter2/irene_sera.png`：館で守られているセラの頭にも額の金色の印がある。
+- `art/story-review/chapter2/w07_sera.png`：額の中央に金色の手と灯の印が描かれている。
+- `art/story-review/chapter2/irene_sera.png`：館で守られているセラの頭にも額の金色の印がある。
 
 ユーザー承認済みの原画は `sera-r1-final.png`（`sera-r1-proportions.png` と同じ画像）。初期原画・修正版・聖戦士R1との全身・顔の比較は `r1-proportions-comparison.png`。
 
