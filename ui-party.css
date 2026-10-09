@@ -352,6 +352,7 @@ body.pt-dragging, body.pt-dragging * { cursor: grabbing !important; user-select:
 .pt-up { font-size: 10.5px; font-weight: 700; color: var(--up); text-shadow: 0 0 6px rgba(127,214,138,0.5); white-space: nowrap; }
 .pt-slot-cnt { font-size: 10.5px; color: #8f8372; font-variant-numeric: tabular-nums; }
 .pt-slot.better { border-color: #3f5a3a; box-shadow: inset 2px 0 0 #7fd68a, 0 1px 4px rgba(0,0,0,0.5); }
+.pt-slot.locked { border-color: #6b5426; box-shadow: inset 2px 0 0 #c9a24a, 0 1px 4px rgba(0,0,0,0.5); }
 .pt-slot.cursed { border-color: #6a2622; box-shadow: inset 2px 0 0 #e4554f, 0 1px 4px rgba(0,0,0,0.5); }
 .pt-slot.empty { background: rgba(10,8,11,0.55); }
 
@@ -473,7 +474,7 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
 .pt-cur-fxl, .wpc-is-fxl, .pl-detail-fxl { font-size: 12.5px; line-height: 1.6; color: #f0e2bf; }
 .wpc-is-fx { margin: 0 0 10px; }
 .pt-cur-desc { font-size: 12px; line-height: 1.65; color: #a3967f; font-style: italic; }
-.pt-cur-foot { display: flex; justify-content: flex-end; }
+.pt-cur-foot { display: flex; justify-content: flex-end; gap: 8px; }
 .pt-cand-fx { font-size: 11px; color: #e8c779; }
 .pt-list { display: flex; flex-direction: column; gap: 6px; }
 /* 魂融合: 素材が多くても行を縮めず、説明と一覧を本文内でスクロールする。 */
