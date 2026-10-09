@@ -308,7 +308,7 @@ export function tlSnapshot(kind, where, party) {
 }
 
 // 戦闘ごとの集計の器 (kind: n=通常 / e=精鋭・ミミック・出来事 / m=金属の魔物 / b=主)
-const AGG_KEYS = ["c", "w", "fl", "l", "r", "pre", "amb", "pa", "pe", "pp", "ea", "ee", "ep", "of", "op",
+const AGG_KEYS = ["c", "w", "fl", "l", "r", "pre", "amb", "pa", "pe", "pp", "pi", "ea", "ee", "ep", "ei", "of", "op",
   "ft", "fo", "fs", "fp", "ambR", "ambX", "ambP", "dd", "dt", "hp0", "hp1", "pAgi", "eAgi", "eAgiAvg", "en"];
 function agg(d, kind) {
   if (!d.b[kind]) { d.b[kind] = {}; for (const k of AGG_KEYS) d.b[kind][k] = 0; }
@@ -369,7 +369,7 @@ export function tlBattleEnd(memo, { result, rounds, tally, party }) {
   // 予想成功率 fp を数える前の記録 (fp の無い器) には、予想付きの試行数 fpn を別に持たせる
   if (a.fpn == null) a.fpn = a.fp ? a.ft : 0;
   if (t.fp != null) a.fpn += t.ft || 0;
-  for (const k of ["pa", "pe", "pp", "ea", "ee", "ep", "of", "op", "ft", "fo", "fs", "fp"]) a[k] = (a[k] || 0) + (t[k] || 0);
+  for (const k of ["pa", "pe", "pp", "pi", "ea", "ee", "ep", "ei", "of", "op", "ft", "fo", "fs", "fp"]) a[k] = (a[k] || 0) + (t[k] || 0);
   // 職ごとの味方の物理 [試行, かわされた, 見切られた]
   if (t.pj) {
     const pj = a.pj || (a.pj = {});
@@ -457,11 +457,12 @@ function partyText(snap) {
 }
 // 戦闘の種類ごとの1行
 function battleLine(kind, a) {
-  const hit = (n, e, p) => pct(n - e - p, n);
+  // 命中の後ろに試行数と、当たったが無効にされた数 (抵抗値100・加護の祈り・金剛の守り) を添える
+  const hit = (n, e, p, i) => pct(n - e - p, n) + (n ? `(${n}${i ? `・無効${i}` : ""})` : "");
   const bits = [`${KIND_LABEL[kind]}${a.c}戦 勝${a.w || 0}/逃${a.fl || 0}/全滅${a.l || 0}`, `平均${avg(a.r, a.c)}R`,
     `被ダメ/戦${avg(a.hp0 - a.hp1, a.c, 10)}% (HP${avg(a.hp0, a.c, 10)}→${avg(a.hp1, a.c, 10)}%)`];
   if (a.resourceBattles) bits.push(`MP${avg(a.mp0, a.resourceBattles, 10)}→${avg(a.mp1, a.resourceBattles, 10)}%`);
-  bits.push(`与/被ダメ${avg(a.dd, a.c)}/${avg(a.dt, a.c)}`, `敵の命中${hit(a.ea, a.ee, a.ep)}`, `味方の命中${hit(a.pa, a.pe, a.pp)}`,
+  bits.push(`与/被ダメ${avg(a.dd, a.c)}/${avg(a.dt, a.c)}`, `敵の命中${hit(a.ea, a.ee, a.ep, a.ei)}`, `味方の命中${hit(a.pa, a.pe, a.pp, a.pi)}`,
     `味方先手${pct(a.of, a.op)}`);
   const amb = ambushNote(a).trim();
   if (amb) bits.push(amb);
@@ -560,7 +561,7 @@ export function tlExportText({ past = false } = {}) {
       for (const s of tlSummary(h.d || {})) { lines.push(s.head); for (const l of s.lines) lines.push("  " + l); }
     }
   } else if (history.length) lines.push(`(過去版の記録 ${history.length}件は「過去版も書き出す」で出せる)`);
-  lines.push("注: 被ダメ/戦 = 戦闘前後の隊HP割合の差の平均。命中 = 物理の試行から回避・見切りを除いた割合 (職ごとの命中の括弧は試行数)。金属 = 金属の魔物の戦い (回避は素早さに依らず決まっている)。奇襲の予想 = 開幕の抽選の奇襲率の合計。✦の「戦闘の倍」= 迷宮で得た✦ ÷ 戦闘の✦。魂 = 職Lv+融合数。");
+  lines.push("注: 被ダメ/戦 = 戦闘前後の隊HP割合の差の平均。命中 = 物理の試行から回避・見切りを除いた割合 (括弧は試行数・そのうち当たったが無効にされた数 = 抵抗値100・加護の祈り・金剛の守り)。金属 = 金属の魔物の戦い (回避は素早さに依らず決まっている)。奇襲の予想 = 開幕の抽選の奇襲率の合計。✦の「戦闘の倍」= 迷宮で得た✦ ÷ 戦闘の✦。魂 = 職Lv+融合数。");
   return lines.join("\n");
 }
 // 過去版の数と、画面に出す要約 (新しい版から順)
