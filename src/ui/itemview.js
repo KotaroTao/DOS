@@ -426,6 +426,7 @@ const EFF_INFO = {
   ailmentImmune: { short: () => "状態異常無効", line: () => "状態異常無効: 毒・麻痺・眠り・魅了・混乱・石化・即死を受けつけない（罠の状態異常も）" },
   goldUp: { short: (v) => `金貨+${pct(v)}`, line: (v) => `金運: 迷宮で得る金貨が${pct(v)}増える（隊の中で一番高いものだけ効く）` },
   soulUp: { short: (v) => `✦Soul+${pct(v)}`, line: (v) => `魂導: 迷宮で得る✦Soulが${pct(v)}増える（隊の中で一番高いものだけ効く）` },
+  disarmUp: { short: (v) => `解除+${pct(v)}`, line: (v) => `罠外し: この人業が宝箱・床の罠を外す時の解除率が${pct(v)}上がる（得意職でない者の頭打ちも越えて、最大95%。装飾どうしは強い方だけ）` },
   barrier: { short: (v) => `障壁${v}回`, line: (v) => `障壁: 戦闘のはじめに、受けるダメージを半分にする障壁を${v}回ぶん張る` },
 };
 // % 補正 (mult) を「最大HP・STR +20%」の形にまとめる (同じ率は一つに束ねる)
@@ -708,6 +709,7 @@ const EFF_K = {
   immune: 50,    // 状態異常無効: 50点 (状態異常耐性 全6種100% = 60点に即死も加わる物差し)
   thrift: 120,   // 節約: (1/倍率 − 1) × 120 点 × 術を使う度合い
   fortune: 40,   // 金運・魂導: 率 × 40 点 (隊で一番高いものだけ効くので控えめ)
+  disarm: 40,    // 罠外し: 率 × 40 点 (罠を外す役の1人にしか要らないので控えめ)
 };
 const effStrikes = (e) => (e && e.multistrike > 1 ? Math.min(4, e.multistrike) : 1);
 export function effScore(doll, delta, W = gearWeights(doll)) {
@@ -732,7 +734,8 @@ export function effScore(doll, delta, W = gearWeights(doll)) {
     const m = e.spellCostMul > 0 && e.spellCostMul < 1 ? e.spellCostMul : 1;
     return (e.ailmentImmune ? EFF_K.immune : 0)
       + (1 / m - 1) * EFF_K.thrift * Math.max(0.3, 1 - weaponShare(W))
-      + ((e.goldUp || 0) + (e.soulUp || 0)) * EFF_K.fortune;
+      + ((e.goldUp || 0) + (e.soulUp || 0)) * EFF_K.fortune
+      + (e.disarmUp || 0) * EFF_K.disarm;
   };
   const hpW = W.hp || 0.25;
   return {

@@ -472,6 +472,7 @@ const ASSETS = [
   "./src/catalog/layer9.js",
   "./src/catalog/layer10.js",
   "./src/catalog/named.js",
+  "./src/catalog/lockpick.js",
   "./src/catalog/ranks/r01.js",
   "./src/catalog/ranks/r02.js",
   "./src/catalog/ranks/r03.js",

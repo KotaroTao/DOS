@@ -6845,7 +6845,9 @@ function disarmChance(m, cRank = 1) {
   const cap = disarmExpert(m) ? 0.95 : 0.55;
   // 隊のパッシブ 盗賊の眼 (trapEye): 解除率 +10/20/30% (上限を越えて足せるが、最大95%)
   const eye = [0, 0.10, 0.20, 0.30][Math.min(3, partyPassiveLv("trapEye"))] || 0;
-  return Math.min(0.95, Math.max(0.05, Math.min(cap, disarmPower(m) / disarmNeed(cRank))) + eye);
+  // 罠外しの装飾 (eff.disarmUp、catalog/lockpick.js): 本人の装備だけが効き、盗賊の眼と同じく頭打ちを越えて足す (最大95%)
+  const gear = (m && m.eff && m.eff.disarmUp) || 0;
+  return Math.min(0.95, Math.max(0.05, Math.min(cap, disarmPower(m) / disarmNeed(cRank))) + eye + gear);
 }
 
 // 宝箱ランク (1-5) を取得。セルに未設定ならその場で抽選して保存する
@@ -6863,11 +6865,12 @@ function chestRankOf(cell) {
   return r;
 }
 
-// パーティで最も罠解除が高い生存メンバー (罠マスの判定に使う)
+// パーティで最も罠解除が高い生存メンバー (罠マスの判定に使う)。
+// 解除率で比べる (得意職の上限・罠外しの装飾も含む。解除値だけで比べると装飾を着けた者が選ばれなかった)
 function bestDisarmer() {
   const alive = G.party.filter((p) => p.alive);
   let best = alive[0];
-  for (const p of alive) if (disarmPower(p) > disarmPower(best)) best = p;
+  for (const p of alive) if (disarmChance(p) > disarmChance(best) || (disarmChance(p) === disarmChance(best) && disarmPower(p) > disarmPower(best))) best = p;
   return best;
 }
 // この宝箱を開けるのに最も向いた者 (解除率が最も高い生存者。得意職の上限差も含めて比べる)
@@ -16363,6 +16366,8 @@ function init() {
   // 早期にフックを公開 (起動失敗の誤検出/デバッグ用)
   window.__game = { G, edgeOpen, COLS, ROWS, autosave, loadGame, clearSave, renderTown, ACH_SERIES, achievementCards, medalRank, questProgress, pickLoot, showItemGet, startBattle, spawnCardEnemies, spawnBossEnemies, activeCfg,
     UI, ops, nav, townshell,
+    // 罠の解除の検証用
+    trap: { disarmChance, disarmNeed, bestDisarmer, sfNum },
     // オート移動の検証用
     autoMove: { setAutoMove, toggleAutoMove, autoMovePlan, cellRect, viewSize: () => ({ VW, VH }) },
     // 酒場の依頼の検証用
