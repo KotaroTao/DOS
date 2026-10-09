@@ -516,6 +516,8 @@ function confirmSoulEquip(d, slotId, s, cur) {
     lines: [cur ? `${where}の「${soulLabel(cur)}」を外し、「${soulLabel(s)}」を宿す。` : `「${soulLabel(s)}」を ${d.name} の${where}に宿す。`,
       isSub ? "同じ職業でも別の魂なら仲間と重複して宿せる。借りる技・パッシブは、宿したあとに選ぶ。技を押すとくわしい説明。" : "メイン魂の技・パッシブをすべて使える。技を押すとくわしい説明。"],
     body, className: "sp-eqc-sheet", okLabel: "宿す", danger: false,
+    // 「宿す」の下に、その魂の職業図鑑 (この確認の上に開く。ユーザーの指示、2026-10)
+    extra: [game.showCodexJobDetail ? { label: "職業図鑑を見る", kind: "secondary", onTap: () => game.showCodexJobDetail(s.clsKey, soulRankOf(s)) } : null],
   });
 }
 // 耐性の増減 (変わった項目だけ、2列)
