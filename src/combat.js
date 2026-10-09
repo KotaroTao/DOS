@@ -1,7 +1,7 @@
 import { monsterResists } from "./resistance.js";
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
-import { ITEMS, weaponRange, scaleBonus, useTarget, useHelps, useCureKinds, useWhere } from "./items.js";
+import { ITEMS, weaponRange, scaleBonus, useTarget, useHelps, useCureKinds, useWhere, offhandOf, DUAL_SKILL_SHARE } from "./items.js";
 import { ELEMENTS, elemDmgMult, elemBeats, monStats, rankStats, resistRate, resistHpMul, METAL_TIERS } from "./dungeons/schema.js";
 
 import { SPELLS } from "./skilldefs.js";
@@ -776,9 +776,10 @@ export class Battle {
   }
 
   // actor の武器が届く敵: 長距離=全体 / 中距離=前衛からなら全体、後衛からは敵前衛のみ / 近距離=敵前衛のみ
-  attackableEnemies(actor) {
+  // offhand = 左手の武器 (二刀流) の射程で数える
+  attackableEnemies(actor, offhand = false) {
     const all = this.livingEnemies();
-    const rng = this.attackRange(actor);
+    const rng = offhand ? weaponRange(offhandOf(actor)) : this.attackRange(actor);
     if (rng === "long" || (rng === "mid" && !this.isBackRow(actor))) return all;
     const front = all.filter((e) => !this.isBackRow(e));
     return front.length ? front : all;
@@ -1576,14 +1577,14 @@ export class Battle {
     this.pending = null;
     this._checkEnd();
     if (!this.result && res && res.actor && res.actor.side === "party") this._necroLegion(res.actor, res);
-    // 無限の闘争 (修羅のランク): 手番の後 10/15/20/30% でもう一度行動 (1ラウンド1回)
+    // 時間跳躍 (賢者のランク): 手番の後 10/15/20/30% でもう一度行動 (1ラウンド1回)
     const a = res && res.actor;
     if (!this.result && a && a.side === "party" && a.alive && a._againRound !== this._roundNo
-      && Math.random() < this._rk(a, "asuraMugen", [0.10, 0.15, 0.20, 0.30])) {
+      && Math.random() < this._rk(a, "sageJikan", [0.10, 0.15, 0.20, 0.30])) {
       a._againRound = this._roundNo;
       this.queue.unshift(a);
-      this.log(`無限の闘争！ ${a.name}はもう一度動く`, "hit");
-      this._proc(a, "無限の闘争");
+      this.log(`時間跳躍！ ${a.name}はもう一度動く`, "hit");
+      this._proc(a, "時間跳躍");
     }
     return res;
   }
@@ -1844,6 +1845,16 @@ export class Battle {
           const h = this._physical(actor, t2, { basic: true, chargeMul });
           res.hits.push(h);
           if (actor.side === "party") this._afterBasic(actor, t2, h, res);
+        }
+        // 二刀流: 右手の後に左手の武器で一撃 (左手の射程で届く敵へ。連撃とは別に1回)
+        if (actor.side === "party" && actor.dualRate > 0 && actor.alive && !this.result) {
+          const reach = this.attackableEnemies(actor, true);
+          const t3 = tgt.alive && reach.includes(tgt) ? tgt : this._randAlive(reach);
+          if (t3) {
+            const h = this._physical(actor, t3, { basic: true, offhand: true });
+            res.hits.push(h);
+            this._afterBasic(actor, t3, h, res);
+          }
         }
       }
       return res;
@@ -2130,6 +2141,19 @@ export class Battle {
     const power = a.wScale ? scaleBonus(a.wScale, (k) => (a[k] || 0) * this._bm(a, k)) : atk;
     return Math.max(1, Math.round(power));
   }
+  // 二刀流の左手の攻撃力 (左手の武器の参照能力 × 係数 × 二刀流の割合。強化・弱体込み)。二刀流でなければ 0
+  _offAtk(a) {
+    if (!(a.dualRate > 0)) return 0;
+    const raw = a.oScale ? scaleBonus(a.oScale, (k) => (a[k] || 0) * this._bm(a, k)) : a.atk * this._bm(a, "atk");
+    return Math.max(1, Math.round(raw * a.dualRate));
+  }
+  // 物理の攻撃力: 左手の一撃は左手の攻撃力、物理技は右手 + 左手の DUAL_SKILL_SHARE (半分)、それ以外は右手
+  _physAtk(a, opt = {}) {
+    if (a.side !== "party" || !(a.dualRate > 0)) return this._eatk(a);
+    if (opt.offhand) return this._offAtk(a);
+    if (opt.skill) return this._eatk(a) + Math.round(this._offAtk(a) * DUAL_SKILL_SHARE);
+    return this._eatk(a);
+  }
   _evit(t) { return Math.round((t.vit || 0) * ((t.buffs && t.buffs.vit) || 1)); }
 
   // 低HP系パッシブ (闘魂/荒行の果て) の与ダメージ倍率
@@ -2373,7 +2397,7 @@ export class Battle {
     }
     const power = opt.power || 1;       // 技の倍率 (通常攻撃は1)
     // 魔法属性の武器: 通常攻撃 (と残心・連撃などの追撃) は威力の計算はそのまま、物理耐性の代わりに魔法耐性を受け、魔法弱点が効く。物理技は物理のまま
-    const magHit = actor.side === "party" && !!actor.wMagic && !opt.skill;
+    const magHit = actor.side === "party" && !opt.skill && (opt.offhand ? !!actor.oMagic : !!actor.wMagic);
     // 魔力撃 (spellBlade): 通常攻撃にINTを上乗せ
     const sb = pv(actor, "spellBlade");
     const sbAdd = sb ? Math.round((actor.int || 0) * (sb >= 2 ? 1.0 : 0.5) * power) : 0;
@@ -2390,7 +2414,7 @@ export class Battle {
     // 魔刃一体 (魔法剣士のランク): 物理技に INT の 10/20/30/50% を上乗せ
     const mjAdd = opt.skill && actor.side === "party" ? Math.round((actor.int || 0) * this._bm(actor, "int") * this._rk(actor, "spellbladeMajin", [0.10, 0.20, 0.30, 0.50])) : 0;
     // ダメージ = STR×倍率×低HP補正 − VIT/2 (VITが被ダメージ軽減を担う)
-    let dmg = Math.round((variance(Math.round(this._eatk(actor) * power * this._lowHpMul(actor))) + sbAdd + ibAdd + stAdd + mjAdd) * despMul * (opt.chargeMul || 1)) - defCut;
+    let dmg = Math.round((variance(Math.round(this._physAtk(actor, opt) * power * this._lowHpMul(actor))) + sbAdd + ibAdd + stAdd + mjAdd) * despMul * (opt.chargeMul || 1)) - defCut;
     if (tgt._defending) dmg = Math.floor(dmg * 0.5);
     // 城壁の構え: 防御中の持ち主がいれば隊全体の被ダメ-10%
     if (tgt.side === "party") {
@@ -2563,7 +2587,7 @@ export class Battle {
   // (溜めは覗くだけ・揺らぎは平均値)。命中率・会心率・耐性・属性・隊列を織り込んだ期待値
   estPhys(actor, tgt, opt = {}) {
     if (!actor || !tgt || !tgt.alive) return 0;
-    const magHit = actor.side === "party" && !!actor.wMagic && !opt.skill;
+    const magHit = actor.side === "party" && !opt.skill && (opt.offhand ? !!actor.oMagic : !!actor.wMagic);
     let r = tgt[magHit ? "magResist" : "physResist"] || 0;
     const metal = isMetal(tgt);
     if (r >= 100 && !metal) return 0; // 無効は会心でも通らない
@@ -2581,7 +2605,7 @@ export class Battle {
     const defCut = Math.floor(this._evit(tgt) * 0.5 * (1 - pierceAll));
     const mjAdd = opt.skill && actor.side === "party" ? (actor.int || 0) * this._bm(actor, "int") * this._rk(actor, "spellbladeMajin", [0.10, 0.20, 0.30, 0.50]) : 0;
     const ch = actor.effects && actor.effects.find((e) => e.stat === "charge"); // 溜めは覗くだけ
-    let dmg = (varianceMean(this._eatk(actor) * power * this._lowHpMul(actor)) + sbAdd + ibAdd + stAdd + mjAdd) * despMul * (ch ? ch.mult : 1) - defCut;
+    let dmg = (varianceMean(this._physAtk(actor, opt) * power * this._lowHpMul(actor)) + sbAdd + ibAdd + stAdd + mjAdd) * despMul * (opt.offhand ? 1 : ch ? ch.mult : 1) - defCut;
     if (tgt._defending) dmg *= 0.5;
     const aE = opt.element || (actor.elemAtk && actor.elemAtk.el) || actor.element || "none";
     const aLv = (actor.elemAtk && actor.elemAtk.el === aE) ? Math.max(1, actor.elemAtk.lv) : 1;
@@ -2616,6 +2640,14 @@ export class Battle {
     if (tgt._barrierLeft > 0) m *= 0.5;
     if (tgt.guard) m *= 1 - tgt.guard;
     return hitP * (critP * Math.max(1, crit * m) + (1 - critP) * Math.max(1, plain * m));
+  }
+  // 通常攻撃 1 手の期待ダメージ (連撃の回数 + 二刀流の左手の一撃。左手の射程で届かなければ左手は数えない)
+  estBasic(actor, tgt) {
+    if (!actor || !tgt || !tgt.alive) return 0;
+    const strikes = actor.multistrike > 1 ? Math.min(4, actor.multistrike) : 1;
+    let v = this.estPhys(actor, tgt, { basic: true }) * strikes;
+    if (actor.side === "party" && actor.dualRate > 0 && this.attackableEnemies(actor, true).includes(tgt)) v += this.estPhys(actor, tgt, { basic: true, offhand: true });
+    return v;
   }
   // 攻撃呪文 1 発の期待ダメージ (重力は今のHPの割合)。魔法無効・金属は 0
   estSpell(actor, sp, t) {
@@ -2674,11 +2706,8 @@ export class Battle {
   _cast(actor, cmd, res) {
     const sp = SPELLS[cmd.spellKey];
     const echo = !!cmd._echo; // 重詠の2回目 (MP・代償を払わない)
-    // 叡智の極み (賢者のランク): 呪文 (技以外) が 10/15/20/30% で MP を使わずに唱えられる
-    const free = !echo && sp.kind !== "phys" && !sp.tech && Math.random() < this._rk(actor, "sageKiwami", [0.10, 0.15, 0.20, 0.30]);
-    const cost = echo || free ? 0 : spellCost(actor, sp);
+    const cost = echo ? 0 : spellCost(actor, sp);
     actor.mp -= cost; // 省詠唱 (chant) 持ちは消費が軽い
-    if (free) { this.log(`叡智の極み！ ${actor.name}は MP を使わずに唱えた`, "heal"); this._proc(actor, "叡智の極み"); }
     // 捨身 (hpCost): 最大HPの一定割合を代償に払う (HP1で踏みとどまる)。
     // ダメージ計算より先に払うため、自ら瀕死に踏み込んで荒行の果て・背水を起動できる
     // 暗黒の契約 (魔騎士のランク): HP の代償 −20/35/50/100%
@@ -2965,7 +2994,7 @@ export class Battle {
     }
     if (dealt > 0 && sp.mpDrain && actor.maxmp) {
       // 吸収は「その技の消費MP × mpDrainCap (既定 MP_DRAIN_CAP 1.1)」まで (2026-10: 与ダメ比例のままだと撃つほど MP が増えた)。
-      // どの吸収技も 1.1倍まで (ユーザーの指示、2026-10。魔力強奪だけだった) — 撃つたびに少しずつ MP が増える。叡智の極み・重詠で払わなかった時も同じ上限
+      // どの吸収技も 1.1倍まで (ユーザーの指示、2026-10。魔力強奪だけだった) — 撃つたびに少しずつ MP が増える。重詠で払わなかった時も同じ上限
       const gain = Math.max(1, Math.min(Math.floor(spellCost(actor, sp) * (sp.mpDrainCap || MP_DRAIN_CAP)), Math.round(dealt * sp.mpDrain)));
       actor.mp = Math.min(actor.maxmp, actor.mp + gain);
       this.log(`${actor.name}はMPを吸い取った (MP+${gain})`, "heal");

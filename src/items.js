@@ -116,6 +116,33 @@ export function attackPower(m) {
   if (!m) return 0;
   return Math.max(1, Math.round(m.wScale ? scaleBonus(m.wScale, (k) => m[k]) : (m.atk || 0)));
 }
+// ===== 二刀流 (修羅のランクのパッシブ「二刀流」asuraNitou。サブ魂で借りても効く) =====
+// 盾の欄 (左手) に片手武器を持てる。左手の攻撃力 = 左手の武器の攻撃力 × ランクの割合 (R2 40% / R3 60% / R4 80% / R5 100%)。
+// 通常攻撃は右手の後に左手で一撃 (combat.js)、物理技は左手の攻撃力の DUAL_SKILL_SHARE (半分) を上乗せする。
+// member.dualWield (割合) は souls.js の recalcDoll が passiveMap から入れる
+export const DUAL_WIELD_RATES = [0, 0.4, 0.6, 0.8, 1.0];
+export const DUAL_SKILL_SHARE = 0.5;
+// 装備の比べ方 (最適装備・候補の伸び) で左手の攻撃力を何割に数えるか (通常攻撃 = 全部 と 技 = 半分 の間)
+export const DUAL_VALUE_SHARE = 0.75;
+// 盾の欄にある武器 (左手の武器)
+export function offhandOf(m) {
+  const it = m && m.equip && m.equip.shield;
+  return it && it.slot === "weapon" ? it : null;
+}
+// 左手に持てる武器か (二刀流を持ち、片手武器で、その職が持てる種類)
+export function canOffhand(member, item) {
+  return !!(member && member.dualWield > 0 && item && item.slot === "weapon" && !item.twoHanded && canEquip(member, item));
+}
+// 左手の攻撃力 (左手の武器の参照能力 × 係数 × 二刀流の割合)。二刀流が無ければ 0
+export function offhandPower(m) {
+  if (!m || !(m.dualRate > 0)) return 0;
+  const raw = m.oScale ? scaleBonus(m.oScale, (k) => m[k]) : (m.atk || 0);
+  return Math.max(1, Math.round(raw * m.dualRate));
+}
+// 装備を比べる物差しの攻撃力 (右手 + 左手を DUAL_VALUE_SHARE で)
+export function fightPower(m) {
+  return attackPower(m) + Math.round(offhandPower(m) * DUAL_VALUE_SHARE);
+}
 // 能力補正の短い表記: 「AGI×0.4」「STR×0.15 INT×0.3」(無ければ "")
 export function scaleText(scale) {
   if (!scale) return "";
@@ -1445,6 +1472,12 @@ export function recalc(member) {
   member.wScale = wpn && wpn.scale ? { ...wpn.scale } : null;
   member.wMagic = !!(wpn && wpn.magic);
   member.power = attackPower(member);
+  // 二刀流: 盾の欄の片手武器 (左手)。二刀流を持たなければ左手の攻撃はしない (game.js が袋へ戻す)
+  const off = offhandOf(member);
+  member.dualRate = off && member.dualWield > 0 && !off.twoHanded ? member.dualWield : 0;
+  member.oScale = off && off.scale ? { ...off.scale } : null;
+  member.oMagic = !!(off && off.magic);
+  member.offPower = offhandPower(member);
   // 旧体系の派生値 (こうげき/ぼうぎょ/すばやさ/AC) は廃止
   delete member.def; delete member.spd; delete member.ac;
 }
@@ -1468,16 +1501,19 @@ export function canEquip(member, item) {
 }
 
 // 装備する (置換した装備品は所持品に戻す)。成否メッセージを返す
-export function equip(member, item) {
+// slotKey = "shield" と片手武器を渡すと左手に持つ (二刀流)
+export function equip(member, item, slotKey = null) {
   if (item.slot === "use") return { ok: false, msg: "それは装備できない" };
   if (!canEquip(member, item)) return { ok: false, msg: `${member.cls}は${item.name}を装備できない` };
-  const key = slotKeyFor(item, member);
+  const offhand = slotKey === "shield" && item.slot === "weapon";
+  if (offhand && !canOffhand(member, item)) return { ok: false, msg: "二刀流でなければ左手に武器は持てない" };
+  const key = offhand ? "shield" : slotKeyFor(item, member);
   if (!key) return { ok: false, msg: "装備できない" };
 
   // 押し出される装備を先に数え、所持品が8枠を超えるなら装備自体を中止する
   const removed = [];
   if (item.slot === "weapon" && item.twoHanded && member.equip.shield) removed.push(member.equip.shield);
-  if (item.slot === "shield" && member.equip.weapon && member.equip.weapon.twoHanded) removed.push(member.equip.weapon);
+  if (key === "shield" && member.equip.weapon && member.equip.weapon.twoHanded) removed.push(member.equip.weapon);
   if (member.equip[key]) removed.push(member.equip[key]);
   const idx = member.items.indexOf(item);
   const bagAfter = member.items.length - (idx >= 0 ? 1 : 0) + removed.filter((r) => r && r !== item).length;
@@ -1486,7 +1522,7 @@ export function equip(member, item) {
   // 所持品から取り出し、外した装備を所持品へ戻す
   if (idx >= 0) member.items.splice(idx, 1);
   if (item.slot === "weapon" && item.twoHanded) member.equip.shield = null;
-  if (item.slot === "shield" && member.equip.weapon && member.equip.weapon.twoHanded) member.equip.weapon = null;
+  if (key === "shield" && member.equip.weapon && member.equip.weapon.twoHanded) member.equip.weapon = null;
   member.equip[key] = item;
   for (const r of removed) if (r && r !== item) member.items.push(r);
   recalc(member);

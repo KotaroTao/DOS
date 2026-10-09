@@ -3,7 +3,7 @@
 // 修羅 = 止まらない連撃と殺気。六臂の多段斬り、殺気で敵を竦ませ (弱体)、戦いが長引くほど昂ぶる
 export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
-  awaken: "asuraMugen",
+  awaken: "asuraNitou",
   table: `
     1 KYOUGEKI 2 KAENGIRI 3 DOUBLE 5 asuraTakaburi/1 7 SHIPPUUGIRI 10 ASURA_KIKI
     12 ASURA_SOUGA 15 ASURA_SANKAZAN 15 asuraChishio/1 20 ASURA_SAKKI 22 KAENNAGI 25 asuraMe/1 30 SHURADOU 30 dynamicVision/1

@@ -14,15 +14,16 @@
 // 実際の付け替えは applyPlan(plan) で、元に戻すのは restoreEquip(plan.undoSnapshot)。
 // どちらも実体 (人業の equip / items) を書き換え、recalc で能力を再計算する。
 
-import { SLOTS, MAX_ITEMS, canEquip as canEquipDefault, recalc as recalcDefault, attackPower, weaponRange } from "./items.js";
+import { SLOTS, MAX_ITEMS, canEquip as canEquipDefault, recalc as recalcDefault, attackPower, weaponRange, canOffhand, fightPower, offhandPower } from "./items.js";
 
 const EPS = 0.05;          // これ未満の伸びは「同じ」とみなす (同格の品を入れ替え続けない)
 const EQUIP_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
 
-// 品が収まる装備部位のキー (装飾品は2枠)
-export function slotKeysFor(item) {
+// 品が収まる装備部位のキー (装飾品は2枠)。doll を渡すと、二刀流の人業は片手武器を盾の欄 (左手) にも収められる
+export function slotKeysFor(item, doll = null) {
   if (!item || !EQUIP_SLOTS.has(item.slot)) return [];
   if (item.slot === "acc") return ["acc1", "acc2"];
+  if (doll && item.slot === "weapon" && !item.twoHanded && doll.dualWield > 0 && !item.unidentified && canOffhand(doll, item)) return ["weapon", "shield"];
   return [item.slot];
 }
 
@@ -38,7 +39,7 @@ export function isMeleeWeapon(item) {
 
 // 仮の装備で能力を計算する (実体は書き換えない)
 export function previewStats(doll, equip, recalcFn = recalcDefault) {
-  const fake = { base: doll.base, equip, hp: doll.hp, mp: doll.mp };
+  const fake = { base: doll.base, equip, hp: doll.hp, mp: doll.mp, dualWield: doll.dualWield || 0 };
   recalcFn(fake);
   return {
     atk: fake.atk, vit: fake.vit, agi: fake.agi, int: fake.int, pie: fake.pie, luk: fake.luk,
@@ -46,6 +47,7 @@ export function previewStats(doll, equip, recalcFn = recalcDefault) {
     elemAtk: fake.elemAtk || null, elemDef: fake.elemDef || null, breathRes: fake.breathRes || 0,
     ailRes: fake.ailRes || null, onHit: fake.onHit || null, // 状態異常耐性・追加効果 (itemview の gearScore が数える)
     power: attackPower(fake), weapon: equip.weapon || null, shield: equip.shield || null, // 攻撃力 (参照能力 × 武器の係数) と武器・盾
+    offPower: offhandPower(fake), fight: fightPower(fake), // 二刀流: 左手の攻撃力 / 比べる物差しの攻撃力 (右手 + 左手の DUAL_VALUE_SHARE)
     eff: fake.eff || null, // 戦闘効果 (連撃・吸血・守り…。itemview の gearScore が effScore で数える)
   };
 }
@@ -55,7 +57,7 @@ export function statsDelta(from, to) {
   return {
     // 戦闘効果の付け替え前後と、付け替え後の攻撃力・最大HP/MP (効果の値打ちはこの人業の強さで測る)
     eff: { from: from.eff || null, to: to.eff || null },
-    abs: { power: to.power || 0, maxhp: to.maxhp || 0, maxmp: to.maxmp || 0 },
+    abs: { power: fp(to), maxhp: to.maxhp || 0, maxmp: to.maxmp || 0 },
     atk: to.atk - from.atk, vit: to.vit - from.vit, agi: to.agi - from.agi,
     int: to.int - from.int, pie: to.pie - from.pie, luk: to.luk - from.luk,
     hp: to.maxhp - from.maxhp, mp: to.maxmp - from.maxmp,
@@ -65,11 +67,16 @@ export function statsDelta(from, to) {
     breathRes: Math.round(((to.breathRes || 0) - (from.breathRes || 0)) * 100), // ブレス耐性 (%)
     ailRes: { from: from.ailRes || null, to: to.ailRes || null },
     onHit: { from: from.onHit || null, to: to.onHit || null },
-    power: (to.power || 0) - (from.power || 0), // 攻撃力の増減
-    weapon: (from.weapon || null) !== (to.weapon || null), // 武器が替わるか (武器の良し悪しは攻撃力で決める)
-    // 持ち方の付け替え (片手+盾 ⇄ 両手武器)。攻撃力と盾の能力を同じ物差しで比べる (itemview の gearScore)
-    handSwap: (from.weapon || null) !== (to.weapon || null) && (from.shield || null) !== (to.shield || null),
+    power: fp(to) - fp(from), // 攻撃力の増減 (二刀流なら左手も DUAL_VALUE_SHARE で数える)
+    weapon: wpnChanged(from, to), // 武器 (右手・左手) が替わるか (武器の良し悪しは攻撃力で決める)
+    // 持ち方の付け替え (片手+盾 ⇄ 両手武器 / 盾 ⇄ 左手の武器)。攻撃力と盾の能力を同じ物差しで比べる (itemview の gearScore)
+    handSwap: wpnChanged(from, to) && (from.shield || null) !== (to.shield || null),
   };
+}
+const fp = (s) => (s.fight != null ? s.fight : (s.power || 0));
+const offW = (s) => (s.shield && s.shield.slot === "weapon" ? s.shield : null);
+function wpnChanged(from, to) {
+  return (from.weapon || null) !== (to.weapon || null) || offW(from) !== offW(to);
 }
 
 // 外れない品 = 呪いの品・ロックした品 (it.locked。売らない・最適装備や付け替えで押し出さない — プレイヤーが決める)
@@ -86,7 +93,7 @@ export function trialEquip(equip, item, key) {
     if (isPinned(eq.shield)) return null;
     displaced.push(eq.shield); eq.shield = null;
   }
-  if (item.slot === "shield" && eq.weapon && eq.weapon.twoHanded) {
+  if (key === "shield" && eq.weapon && eq.weapon.twoHanded) {
     if (isPinned(eq.weapon)) return null;
     displaced.push(eq.weapon); eq.weapon = null;
   }
@@ -170,7 +177,7 @@ export function planBestEquip(dolls, opts = {}) {
           let ok = false;
           try { ok = canEquip(t, item); } catch (e) { ok = false; }
           if (!ok || !allow(t, item)) continue;
-          for (const key of slotKeysFor(item)) {
+          for (const key of slotKeysFor(item, t)) {
             const tr = trialEquip(st.equip, item, key);
             if (!tr) continue;
             const bagAfter = st.items.length - (owner === t ? 1 : 0) + tr.displaced.length;
@@ -180,11 +187,12 @@ export function planBestEquip(dolls, opts = {}) {
             if (g > EPS && (!best || g > best.gain + 1e-9)) {
               best = { doll: t, item, from: owner, slotKey: key, displaced: tr.displaced, gain: g, equip: tr.equip, delta };
             }
-            // 両手武器から「片手武器 + 盾」への持ち替えは2手を1組で比べる (片手武器だけでは攻撃力が下がり、選ばれないため)
-            if (item.slot === "weapon" && !item.twoHanded && st.equip.weapon && st.equip.weapon.twoHanded && !st.equip.shield) {
+            // 両手武器から「片手武器 + 盾 (二刀流なら左手の武器)」への持ち替えは2手を1組で比べる (片手武器だけでは攻撃力が下がり、選ばれないため)
+            if (key === "weapon" && item.slot === "weapon" && !item.twoHanded && st.equip.weapon && st.equip.weapon.twoHanded && !st.equip.shield) {
               for (const owner2 of poolDolls) {
                 for (const sh of sim.get(owner2).items) {
-                  if (sh === item || sh.slot !== "shield" || !isAutoCandidate(sh)) continue;
+                  // 盾の代わりに左手の片手武器も組める (二刀流)
+                  if (sh === item || !isAutoCandidate(sh) || !(sh.slot === "shield" || slotKeysFor(sh, t).includes("shield"))) continue;
                   let ok2 = false;
                   try { ok2 = canEquip(t, sh); } catch (e) { ok2 = false; }
                   if (!ok2 || !allow(t, sh)) continue;

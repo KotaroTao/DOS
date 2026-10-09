@@ -151,7 +151,7 @@ function slotCandidatesRaw(d, key, includeUnid) {
   const base = previewStats(d, d.equip, recalc);
   for (const owner of itemsPool()) {
     for (const it of (owner.items || [])) {
-      if (!it || !slotKeysFor(it).includes(key)) continue;
+      if (!it || !slotKeysFor(it, d).includes(key)) continue;
       if (it.unidentified) { if (includeUnid) out.push({ it, owner, unid: true, gain: -Infinity }); continue; }
       if (!canEquip(d, it)) continue;
       const sd = slotDelta(d, it, key, base);
@@ -172,7 +172,7 @@ function slotInfo(d, key) {
 // 品 it をこの人業に付けるなら、どの部位が最良か ({key, gain, delta, displaced})
 function bestSlotFor(d, it) {
   let best = null;
-  for (const key of slotKeysFor(it)) {
+  for (const key of slotKeysFor(it, d)) {
     const sd = slotDelta(d, it, key);
     if (!sd) continue;
     const g = gearScore(d, sd.delta);
@@ -220,12 +220,12 @@ export function canEquipReason(d, it) {
     return "職業";
   }
   let why = null;
-  for (const k of slotKeysFor(it)) {
+  for (const k of slotKeysFor(it, d)) {
     const cur = d.equip && d.equip[k];
     if (cur && cur.cursed) { why = why || "呪い"; continue; }
     if (cur && cur.locked) { why = why || "ロック"; continue; }
     const sh = it.slot === "weapon" && it.twoHanded ? d.equip.shield : null;
-    const wp = it.slot === "shield" && d.equip.weapon && d.equip.weapon.twoHanded ? d.equip.weapon : null;
+    const wp = k === "shield" && d.equip.weapon && d.equip.weapon.twoHanded ? d.equip.weapon : null;
     if ((sh && sh.cursed) || (wp && wp.cursed)) { why = "両手"; continue; }
     if ((sh && sh.locked) || (wp && wp.locked)) { why = "両手ロック"; continue; }
     return null;
@@ -266,7 +266,7 @@ function equipWithUndo(doll, item, key = null, { stashTo = null, quiet = false }
   if (!doll || !item) return { ok: false };
   const owner = ownerOf(item);
   if (!owner) return { ok: false, msg: "持ち主が見つからない" };
-  key = key || (bestSlotFor(doll, item) || {}).key || slotKeysFor(item)[0];
+  key = key || (bestSlotFor(doll, item) || {}).key || slotKeysFor(item, doll)[0];
   if (!key) return { ok: false, msg: "装備できない" };
   const involved = uniq([doll, owner, stashTo]);
   const snap = snapshotEquip(involved);
@@ -306,10 +306,11 @@ function equipItemTo(doll, item, opts = {}) {
   return equipWithUndo(doll, item, o.key || null, { quiet: !!o.quiet, stashTo: o.stashTo || null });
 }
 // 札から装備する: 付けられない理由があれば知らせ、袋が満杯なら「持ち主と取り替える」を差し出す
-function pickWearer(doll, item, { onDone = null, chip = null } = {}) {
+// key = 部位を決めて付ける (装備候補のシートから。二刀流の左手など)。省略時は一番伸びる部位
+function pickWearer(doll, item, { onDone = null, chip = null, key = null } = {}) {
   const why = canEquipReason(doll, item);
   if (why) { sfx("ng"); if (chip) shake(chip); toast(`${doll.name}: ${REASON_TEXT[why] || why}`, { tone: "bad" }); return { ok: false, reason: why }; }
-  const b = bestSlotFor(doll, item);
+  const b = key ? (() => { const sd = slotDelta(doll, item, key); return sd ? { key, displaced: sd.tr.displaced } : null; })() : bestSlotFor(doll, item);
   if (!b) { sfx("ng"); return { ok: false }; }
   const r = equipWithUndo(doll, item, b.key);
   if (r.ok) { if (onDone) onDone(r); return r; }
@@ -667,7 +668,7 @@ function openAutoEquipResult(plan, before, undo) {
     const list = el("div", "pt-ae-list");
     for (const c of r.changes) {
       const ln = el("div", "pt-ae-ln");
-      ln.appendChild(el("span", "pt-ae-k", SLOT_LABEL[c.k]));
+      ln.appendChild(el("span", "pt-ae-k", slotLabelOf(r.d, c.k)));
       const tx = el("span", "pt-ae-tx");
       if (c.from) { tx.appendChild(nameEl("pt-ae-old", c.from)); tx.appendChild(el("span", "pt-ae-ar", "→")); }
       if (c.to) tx.appendChild(nameEl("pt-ae-new", c.to));
@@ -1904,6 +1905,11 @@ function equipSeg(root, d) {
   root.appendChild(wrap);
 }
 
+// 部位の名。二刀流の人業の盾の欄は「左手」(片手武器も盾も持てる)
+function slotLabelOf(d, k) {
+  if (k === "shield" && d && (d.dualWield > 0 || (d.equip && d.equip.shield && d.equip.shield.slot === "weapon"))) return "左手";
+  return SLOT_LABEL[k];
+}
 function slotCell(d, k) {
   const it = d.equip[k];
   const info = d.primary != null ? slotInfo(d, k) : { count: 0, better: false };
@@ -1922,20 +1928,21 @@ function slotCell(d, k) {
   r.appendChild(ic);
   const tx = el("span", "pt-slot-t");
   const top = el("span", "pt-slot-top");
-  top.appendChild(el("span", "pt-slot-k", SLOT_LABEL[k]));
+  top.appendChild(el("span", "pt-slot-k", slotLabelOf(d, k)));
   if (info.better) top.appendChild(el("span", "pt-up", it ? "▲候補" : `▲${info.count}`));
   else if (!it && info.count) top.appendChild(el("span", "pt-slot-cnt", `＋${info.count}`));
   tx.appendChild(top);
   if (it) {
     tx.appendChild(game.itemNameEl ? game.itemNameEl("span", "pt-slot-n", it, it.cursed ? " (呪)" : "") : el("span", "pt-slot-n", itemName(it)));
     if (k === "weapon" && !it.unidentified) tx.appendChild(el("span", "pt-slot-power", `攻撃力 ${attackPower(d)}`));
+    if (k === "shield" && it.slot === "weapon" && !it.unidentified) tx.appendChild(el("span", "pt-slot-power", d.offPower ? `左手の攻撃力 ${d.offPower}` : "二刀流が無く、左手では振るえない"));
     const s = statLines(it);
     if (s) tx.appendChild(el("span", "pt-slot-s", s));
   } else {
     tx.appendChild(el("span", "pt-slot-n dim", "― 空き ―"));
   }
   r.appendChild(tx);
-  r.setAttribute("aria-label", `${SLOT_LABEL[k]}: ${it ? itemName(it) : "空き"}${info.better ? " (もっと良い品がある)" : ""}`);
+  r.setAttribute("aria-label", `${slotLabelOf(d, k)}: ${it ? itemName(it) : "空き"}${info.better ? " (もっと良い品がある)" : ""}`);
   r.addEventListener("click", () => { sfx("select"); openCandidates(d, k); });
   if (it) longPress(r, () => openItemDetail(it));
   return r;
@@ -1970,7 +1977,7 @@ export function openCandidates(d, k) {
   if (candH && !candH.closed) candH.close("replace", { silent: true });
   const town = inTown();
   candH = sheet.open({
-    kind: "info", banner: `${SLOT_LABEL[k]} ― ${d.name}`, className: "pt-cand-sheet",
+    kind: "info", banner: `${slotLabelOf(d, k)} ― ${d.name}`, className: "pt-cand-sheet",
     body: (scroll, h) => candBody(scroll, d, k, h, town),
     onClose: () => { candH = null; },
   });
@@ -2081,7 +2088,12 @@ function candRow(d, k, c, h) {
   top.appendChild(game.itemNameEl ? game.itemNameEl("span", "pt-cand-n", c.it, c.it.cursed ? " (呪)" : "") : el("span", "pt-cand-n", itemName(c.it)));
   top.appendChild(el("span", "pt-own" + (c.owner === d ? " me" : isReserve(c.owner) ? " res" : ""), c.owner === d ? "自分" : `${c.owner.name}${isReserve(c.owner) ? "・控え" : ""}`));
   tx.appendChild(top);
-  if (c.it.slot === "weapon") {
+  if (c.it.slot === "weapon" && k === "shield") {
+    // 左手 (二刀流): 左手の攻撃力の変化
+    const sd = slotDelta(d, c.it, "shield");
+    const after = sd ? previewStats(d, sd.tr.equip, recalc).offPower : 0, before = d.offPower || 0;
+    if (sd) tx.appendChild(el("span", "pt-cand-power", `左手の攻撃力 ${before} → ${after}（${after - before > 0 ? "+" : ""}${after - before}）`));
+  } else if (c.it.slot === "weapon") {
     const result = weaponPowerPreview(c.it, d);
     if (result) tx.appendChild(el("span", "pt-cand-power", `攻撃力 ${result.before} → ${result.power}（${result.delta > 0 ? "+" : ""}${result.delta}）`));
   }
@@ -2095,7 +2107,7 @@ function candRow(d, k, c, h) {
   main.appendChild(el("span", "pt-cand-g " + (c.gain > 0.05 ? "up" : c.gain < -0.05 ? "dn" : "eq"), c.gain > 0.05 ? "▲" : c.gain < -0.05 ? "▼" : "＝"));
   main.setAttribute("aria-label", `${d.name}に ${itemName(c.it)} を装備`);
   main.addEventListener("click", () => {
-    const go = () => { const r = pickWearer(d, c.it, { onDone: () => h.close() }); if (r && r.full) h.close("replace", { silent: true }); };
+    const go = () => { const r = pickWearer(d, c.it, { onDone: () => h.close(), key: k }); if (r && r.full) h.close("replace", { silent: true }); };
     if (c.it.cursed) confirm({ title: `${c.it.name} は呪われている`, lines: ["一度装備すると外せない。それでも付ける？"], okLabel: "付ける" }).then((y) => { if (y) go(); });
     else go();
   });
@@ -2131,6 +2143,7 @@ function statsSeg(root, d) {
     fact("HP", `${d.alive ? d.hp : 0}/${d.maxhp}`);
     fact("MP", `${d.mp}/${d.maxmp}`);
     fact("攻撃力", String(attackPower(d)));
+    if (d.dualWield > 0) fact("左手", d.offPower ? `攻撃力 ${d.offPower}（${Math.round(d.dualWield * 100)}%）` : `空き（二刀流 ${Math.round(d.dualWield * 100)}%）`);
     fact("参照", d.wScale ? Object.keys(d.wScale).map(k => ATTR_LABEL[k]).join("＋") : "STR（素手）");
     fact("状態", ail, ail === "正常" ? "" : "bad");
     fact("会心", `+${Math.round((d.critBonus || 0) * 100)}%`);
