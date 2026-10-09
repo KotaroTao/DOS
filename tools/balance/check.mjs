@@ -206,7 +206,7 @@ console.log(`全${count}技を実行。会心・耐性・命中・攻撃/回復�
  {const a=actor(),t=actor();t.maxhp=100;assert.equal(heal(a,'DIOS',t),50,'ヒールの頭打ち');
   const lo=Object.assign(actor(),{pie:10}),t2=actor();const b=new Battle([lo,t2],[foe()],()=>{});
   close(Math.round(b.estHeal(lo,SPELLS.DIAL,t2)),Math.round(b.estHeal(lo,SPELLS.DIOS,Object.assign(actor(),{maxhp:1e9}))*2.5),'ハイヒール = ヒール×2.5',.06);}
- // 全快 (フルヒール・オールフルヒール) は揺らぎなく最大HPまで
+ // 全快 (フルヒール・フルヒールオール) は揺らぎなく最大HPまで
  {const a=actor(),t=actor();t.maxhp=5000;assert.equal(heal(a,'MADIOS',t),4999,'フルヒール');}
  // 体の手当て: 使い手の最大HPで決まる (最大HPの小さい魔法職が借りても弱い)・対象の35%まで
  {const big=Object.assign(actor(),{maxhp:400,hp:400,pie:999}),small=Object.assign(actor(),{maxhp:100,hp:100,pie:999});
