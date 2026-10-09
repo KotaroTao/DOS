@@ -10896,10 +10896,29 @@ function equipWithTake(d, uid, s, slotId, take) {
 // サブ魂が借りる技/パッシブを選ぶ (src/ui/soulpanel.js のシート)
 function openSubSkillPicker(d, subRef) { return uiSoulPanel.openSkillStep(d, subRef); }
 
-// 魂融合: target に同職の余っている魂を融合させる候補
+// 魂融合: target に同職の余っている魂を融合させる候補。
+// 融合先はどの魂でもよい (職業の代表に限らない — 2026-10 ユーザーの指示: 宿していない +10 へ、宿している +5 を融合したい)
+function fuseTarget(targetUid) {
+  const t = soulByUid(targetUid);
+  return t && !isUniqueJob(t.clsKey) ? t : null;
+}
 function fuseCandidates(targetUid) {
-  const t = soulByUid(targetUid); if (!t || !soulRepresentatives().some((s) => s.uid === targetUid)) return [];
+  const t = fuseTarget(targetUid); if (!t) return [];
   return G.souls.filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey && !soulWorn(s.uid) && !s.locked);
+}
+// サブ魂として宿している魂は、その人業から外して素材にできる (個別の融合だけ。まとめて融合には入れない)。
+// メイン魂として宿している魂・遠征中の人業の魂は外せない
+function fuseSubTakeable(uid) {
+  let sub = false;
+  for (const d of allDolls()) {
+    if (d.primary === uid) return false;
+    if ((d.subs || []).some((x) => x && x.uid === uid)) { if (expeditionOf(d)) return false; sub = true; }
+  }
+  return sub;
+}
+function fuseSubWorn(targetUid) {
+  const t = fuseTarget(targetUid); if (!t) return [];
+  return G.souls.filter((s) => s.uid !== t.uid && s.clsKey === t.clsKey && !s.locked && fuseSubTakeable(s.uid));
 }
 // 魂のロック: ロックした魂は魂融合の素材にできない (宿す・融合先にするのは自由)。魂融合した魂 (融合先) は自動でロックする
 function toggleSoulLock(uid) {
@@ -10915,15 +10934,17 @@ function openFusePicker(targetUid) { return uiSoulPanel.openFusePicker(targetUid
 // 実際の融合: consume を消し、その魂数を target に加える。
 // ランクが上がれば祝祭カード (showRankUp)、据え置きならトーストで知らせる
 // onResultClose: 結果の札 (またはランクアップの祝祭) を閉じたときに呼ぶ (融合画面で続けて選ぶため)
-function fuseSoul(targetUid, consumeUid, onResultClose = null) {
-  return fuseSouls(targetUid, [consumeUid], onResultClose);
+function fuseSoul(targetUid, consumeUid, onResultClose = null, opts = {}) {
+  return fuseSouls(targetUid, [consumeUid], onResultClose, opts);
 }
 // 一括融合: 全素材を検証してから合算し、結果は一度だけ表示する。
-function fuseSouls(targetUid, consumeUids, onResultClose = null) {
-  const t = soulByUid(targetUid);
+// opts.takeSub: サブ魂として宿している素材を、その人業から外して融合してよい (個別の融合で確かめた後)
+function fuseSouls(targetUid, consumeUids, onResultClose = null, opts = {}) {
+  const t = fuseTarget(targetUid);
   if (!Array.isArray(consumeUids) || !consumeUids.length || new Set(consumeUids).size !== consumeUids.length) { SFX.ng(); return null; }
   const materials = consumeUids.map((uid) => soulByUid(uid));
-  if (G.state !== "town" || !featureUnlocked("fusion") || !t || !soulRepresentatives().some((s) => s.uid === targetUid) || materials.some((c) => !c || c.uid === targetUid || c.clsKey !== t.clsKey || soulWorn(c.uid) || c.locked)) { SFX.ng(); return null; }
+  const wornBlock = (c) => soulWorn(c.uid) && !(opts.takeSub && fuseSubTakeable(c.uid));
+  if (G.state !== "town" || !featureUnlocked("fusion") || !t || materials.some((c) => !c || c.uid === targetUid || c.clsKey !== t.clsKey || wornBlock(c) || c.locked)) { SFX.ng(); return null; }
   const before = soulRankOf(t);
   const beforeLv = t.level;
   // 融合の前後で見比べる: 宿している人業がいればその能力 (メイン魂を優先)、いなければ魂そのものの能力
@@ -15967,7 +15988,7 @@ bindGame({
 bindGame({
   equipAt, moveItem, campCast, campSpellsOf, healAll, healAllNeed, repairCostOf, repairCostAll, repairDoll, setReviveTimers, hastenCostOf, tryHastenRescue, awaitingRescue, RESCUE_SHORTEN_MS,
   emptyDollCost, grantRedSoul, randomDollName, finalizeBuyDoll, soulRepresentatives, partySoulConflict, soulSlotConflict, soulTakePlan, placeSoulInDoll, ownSoulSlot, blockSoulResonance, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
-  equipSoulToSlot, fuseCandidates, fuseSoul, fuseSouls, toggleSoulLock, openFusePicker, openSubSkillPicker, slotSoul,
+  equipSoulToSlot, fuseCandidates, fuseSubWorn, fuseSoul, fuseSouls, toggleSoulLock, openFusePicker, openSubSkillPicker, slotSoul,
   unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail, addSoulInstance, codexSweepJobs,
   canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill, itemKnown, isFirstGet,
   showRankUp, announceJobChange, showNameInput,
