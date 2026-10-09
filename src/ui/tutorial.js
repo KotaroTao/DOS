@@ -1,5 +1,5 @@
 // ===== 手ほどき — 層の踏破で解放された要素を、その場で1度ずつ実際に触って覚える =====
-// 王への踏破報告で新しい要素 (魂融合 / サブ魂 / 酒場の噂話 / 控えの結社 ― 開く時期は game.js FEATURES) が解放されると、
+// 王への踏破報告で新しい要素 (魂融合 / サブ魂 / 情報屋の噂 / 控えの結社 ― 開く時期は game.js FEATURES) が解放されると、
 // 語りを閉じた直後に、その要素の手ほどきが始まる。手ほどきを終えるまで迷宮の門は開かない
 // (game.js blockForTutorial ← 出撃シート・departNow・奈落)。
 //   流れ: 導入 (館の主イレーヌ / 酒場の情報屋の語り) → 手順 (実際に操作する。イレーヌの台詞で今の手順を案内し、
@@ -305,10 +305,10 @@ const TUTS = [
       text: "酒場の掲示板を見る", hint: "酒場 →『掲示板』",
       go: () => UI.openTavern?.("board"), target: [".fc-qarea"], on: "tavernBoard",
     }],
-    outro: ["掲示板の依頼は、札を選ぶと詳しく読める。次の探索で果たせそうな依頼を探そう。", "噂話の情報屋は、さらに王への報告を重ねると口を利くようになる。"],
+    outro: ["掲示板の依頼は、札を選ぶと詳しく読める。次の探索で果たせそうな依頼を探そう。", "情報屋の噂は、さらに王への報告を重ねると聞けるようになる。"],
   },
   {
-    key: "rumor", name: "酒場の噂話", who: "tavern",
+    key: "rumor", name: "情報屋の噂", who: "tavern",
     open: () => !!(game.featureUnlocked && game.featureUnlocked("rumor")),
     used: () => { const G = G_(); return !!(G.rumor || G.activeRumor || (G.rumorCooldown || 0) > 0); },
     prepare: () => null,

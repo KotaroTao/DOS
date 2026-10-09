@@ -13,7 +13,7 @@ import { questCard, dungeonGroups, lists as qbLists, isReady as qbReady } from "
 import { getPref, setPref } from "./prefs.js";
 import { keeperCanvas, vignetteCanvas } from "../townart.js";
 import { ITEMS } from "../items.js";
-import { TALK_KINDS, TIP_CATS } from "../tavern.js";
+import { TALK_KINDS } from "../tavern.js";
 import { SFX } from "../audio.js";
 
 const sfx = (k) => { try { if (SFX[k]) SFX[k](); } catch (e) { /* noop */ } };
@@ -282,7 +282,7 @@ export function openInn() {
 }
 
 // ---------- 酒場 (ページ) ----------
-// 区分: 掲示板 (いちばん上に酒場の噂話、続けて受けた依頼・報告 + 依頼人の頼み + 帰還ごとに貼り替わる依頼) / 顔ぶれ (居合わせる者たち)
+// 区分: 掲示板 (いちばん上に情報屋の噂、続けて受けた依頼・報告 + 依頼人の頼み + 帰還ごとに貼り替わる依頼) / 酒場の噂話 (居合わせる者たち)
 // 受注中の依頼と掲示板の依頼は1つの一覧にまとめ、ダンジョン指定なし → 推奨Lvの高い迷宮 → 低い迷宮 の見出しごとに
 // 受注中 → 未受注 の順に並べる。達成して報告できる依頼は最上部の「達成した依頼」にまとめる (ユーザーの指示)
 let tavernSeg = null;
@@ -303,7 +303,7 @@ function tavernSegments() {
   const fresh = L.offers.filter((q) => q.fresh).length;
   return [
     { key: "board", label: "掲示板", badge: (ready + fresh) || null },
-    { key: "talk", label: "顔ぶれ" },
+    { key: "talk", label: "酒場の噂話" },
   ];
 }
 function renderTavern(root) {
@@ -326,7 +326,7 @@ function renderTavern(root) {
     body.appendChild(sectionHead("掲示板", { note: `受注 ${L.freeCount}/${L.cap} ・ 貼り紙は帰還のたびに貼り替わる` }));
     body.appendChild(area);
     // 達成して報告できる依頼は迷宮の見出しから抜き出し、掲示板の最上部 (噂話より上) にまとめる (ユーザーの指示)。
-    // 続けて酒場の噂話 (依頼と一緒に縦に巻く)、迷宮ごとの見出し
+    // 続けて情報屋の噂 (依頼と一緒に縦に巻く)、迷宮ごとの見出し
     const done = L.active.filter(qbReady);
     const doneSet = new Set(done);
     const groups = dungeonGroups([...L.active.filter((q) => !doneSet.has(q)), ...L.offers]);
@@ -345,11 +345,11 @@ function renderTavern(root) {
   drawSeg();
   if (tavernSeg === "board") setTimeout(() => UI.tutorialEvent?.("tavernBoard"), 0);
 }
-// 酒場の噂話 (掲示板のいちばん上)
+// 情報屋の噂 (掲示板のいちばん上。顔ぶれの話のタブ「酒場の噂話」とは別物)
 function renderRumor(wrap) {
   const g = G();
-  // 酒場の噂話 (game.js FEATURES.rumor の報告で情報屋が動く)
-  wrap.appendChild(sectionHead("酒場の噂話"));
+  // 情報屋の噂 (game.js FEATURES.rumor の報告で情報屋が動く)
+  wrap.appendChild(sectionHead("情報屋の噂"));
   const left = (g.rumorCooldown || 0) - Date.now();
   const price = game.rumorPrice ? game.rumorPrice() : (game.RUMOR_PRICE || 100);
   if (g.rumor) {
@@ -385,7 +385,7 @@ function renderTalk(wrap) {
     right.type = "button";
     right.appendChild(document.createTextNode(`書き留めた話 ${notes.length}`));
     right.appendChild(svgIcon("chevron", "fc-notes-ic"));
-    right.addEventListener("click", () => openTavernNotes());
+    right.addEventListener("click", () => { sfx("select"); if (UI.openHelp) UI.openHelp("talk"); });
   }
   wrap.appendChild(sectionHead("居合わせる者たち", { note: "帰還ごとに替わる", right }));
   const area = el("div", "fc-crowd");
@@ -404,43 +404,6 @@ function renderTalk(wrap) {
     r.appendChild(setText(el("div", "fc-voice-t"), m.line));
     return r;
   }, { cols: 1, cellH: null, gap: 6, key: "crowd" });
-}
-
-// 書き留めた話: 酒場で聞いた心得 (区分ごと) と言い伝え
-let notesSeg = "tip";
-function openTavernNotes() {
-  sfx("select");
-  const notes = game.tavernNotes ? game.tavernNotes() : [];
-  const tips = notes.filter((t) => t.k === "tip");
-  const lore = notes.filter((t) => t.k === "lore");
-  if (!tips.length && lore.length) notesSeg = "lore";
-  const body = el("div", "fc-notes");
-  const list = el("div", "fc-notes-list");
-  const line = (t) => setText(el("div", "fc-note k-" + t.k), t.t);
-  const draw = () => {
-    list.textContent = "";
-    if (notesSeg === "tip") {
-      if (!tips.length) list.appendChild(setText(el("div", "fc-notes-empty"), "まだ心得を聞いていない。"));
-      for (const cat of TIP_CATS) {
-        const ts = tips.filter((t) => t.cat === cat);
-        if (!ts.length) continue;
-        list.appendChild(sectionHead(cat, { note: `${ts.length}` }));
-        for (const t of ts) list.appendChild(line(t));
-      }
-    } else {
-      if (!lore.length) list.appendChild(setText(el("div", "fc-notes-empty"), "まだ言い伝えを聞いていない。"));
-      for (const t of lore) list.appendChild(line(t));
-    }
-  };
-  body.appendChild(segmented([
-    { key: "tip", label: `心得 ${tips.length}` },
-    { key: "lore", label: `言い伝え ${lore.length}` },
-  ], notesSeg, (k) => { notesSeg = k; draw(); }));
-  body.appendChild(setText(el("div", "fc-notes-s"), "酒場で耳にした話。顔ぶれは帰還のたびに入れ替わり、まだ聞いていない話も多い。"));
-  body.appendChild(list);
-  draw();
-  return sheet.open({ kind: "info", banner: "書き留めた話", body, className: "fc-notes-sheet",
-    footer: [{ label: "閉じる", kind: "ghost", onTap: (h) => h.close() }] });
 }
 
 // ---------- 赤い魂の祠 (ページ) ----------
