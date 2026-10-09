@@ -29,15 +29,16 @@ const ASSETS = [
   "./src/journal.js",
   "./src/archive-stories.js",
   "./src/archive-art.js",
+  "./src/storyimages.js",
+  // <<STORY_ART>> 物語・由来の絵 (tools/storyart/register.mjs が書く。手で直さない)
   "./art/story/road-to-roadal.webp",
+  "./art/story/royal-audience.webp",
+  "./art/story/irene-meeting.webp",
   "./art/story/irene-soul-lamp.webp",
   "./art/story/first-vessel-awakening.webp",
   "./art/story/three-vessels-audience.webp",
   "./art/story/four-vessels-departure.webp",
   "./art/story/first-descent-gatekeeper.webp",
-  "./art/story/irene-meeting.webp",
-  "./art/story/royal-audience.webp",
-  "./art/story/irene-repair.webp",
   "./art/story/chapter1/w01_lantern.webp",
   "./art/story/chapter1/report_w01.webp",
   "./art/story/chapter1/w02_sigil.webp",
@@ -52,7 +53,6 @@ const ASSETS = [
   "./art/story/chapter1/report_w05.webp",
   "./art/story/chapter1/irene_fort.webp",
   "./art/story/chapter1/ch1_end.webp",
-  "./art/story/chapter1/irene_familiar.webp",
   "./art/story/chapter2/w06_roll.webp",
   "./art/story/chapter2/report_w06.webp",
   "./art/story/chapter2/w07_names.webp",
@@ -76,7 +76,6 @@ const ASSETS = [
   "./art/story/chapter3/mem_w13.webp",
   "./art/story/chapter3/report_w13.webp",
   "./art/story/chapter3/ch3_end.webp",
-  "./art/story/chapter3/irene_trust.webp",
   "./art/story/chapter4/w14_lamp.webp",
   "./art/story/chapter4/report_w14.webp",
   "./art/story/chapter4/w15_mural.webp",
@@ -87,6 +86,9 @@ const ASSETS = [
   "./art/story/chapter4/mem_w17.webp",
   "./art/story/chapter4/report_w17.webp",
   "./art/story/chapter4/ch4_end.webp",
+  "./art/story/irene-repair.webp",
+  "./art/story/chapter1/irene_familiar.webp",
+  "./art/story/chapter3/irene_trust.webp",
   "./art/story/dungeons/lore_w01.webp",
   "./art/story/dungeons/lore_w02.webp",
   "./art/story/dungeons/lore_w03.webp",
@@ -100,12 +102,11 @@ const ASSETS = [
   "./art/story/dungeons/lore_w11.webp",
   "./art/story/dungeons/lore_w12.webp",
   "./art/story/dungeons/lore_w13.webp",
-  "./art/story/dungeons/lore_w14.webp",
   "./art/story/dungeons/lore_w15.webp",
-  "./art/story/dungeons/lore_w16.webp",
   "./art/story/dungeons/lore_w17.webp",
   "./art/story/dungeons/lore_ws1.webp",
   "./art/story/dungeons/lore_ws2.webp",
+  // <</STORY_ART>>
   "./src/ui/journal.js",
   "./src/joblore.js",
   "./src/items.js",
@@ -510,11 +511,22 @@ const ASSETS = [
 //   - install では JS/CSS/HTML (約10MB) だけを先読みして版を切り替える
 //   - 絵は使う時にキャッシュから返し、裏で取り直して差し替わりに追いつく
 //   - 切り替えの後、まだ持っていない絵だけを裏でゆっくり集める (オフライン用)
+//   - ただし物語・由来の絵 (art/story/) は、ページが伝えてきた分 (進めている章まで —
+//     journal.js storyMediaUrls) だけを集める。まだ着いていない章の絵は、開いた時に取りに行く
 const MEDIA = "dos-media";
 const isMedia = (u) => /\.(png|webp|jpe?g|gif)$/i.test(new URL(u, self.location.href).pathname);
 const CORE = ASSETS.filter((u) => !isMedia(u));
 const MEDIA_ASSETS = ASSETS.filter(isMedia);
 const abs = (u) => new URL(u, self.location.href).href;
+const isStory = (u) => new URL(u, self.location.href).pathname.includes("/art/story/");
+// ページから届いた「集めてよい物語の絵」の一覧。SW は止まっても消えないよう MEDIA に置く
+const STORY_ALLOW = "./__story-media__";
+async function storyAllowed(media) {
+  try {
+    const hit = await media.match(STORY_ALLOW);
+    return new Set(hit ? (await hit.json()).map(abs) : []);
+  } catch (err) { return new Set(); }
+}
 
 // 前の版のキャッシュにある絵を MEDIA へ移す (ネットワークを使わない・失敗しても止めない)
 async function carryMedia() {
@@ -533,18 +545,24 @@ async function carryMedia() {
 }
 
 // まだ持っていない絵を少しずつ取りに行く (版の切り替えとは無関係・失敗は次の機会に)
-let warming = null;
-function warmMedia() {
-  if (DEV || warming) return warming;
+let warming = null, rewarm = false;
+function warmMedia(again = false) {
+  if (DEV) return null;
+  if (warming) { if (again) rewarm = true; return warming; } // 集めている最中に一覧が変われば、終わってからもう一巡
   warming = (async () => {
     const media = await caches.open(MEDIA);
     const keep = new Set(MEDIA_ASSETS.map(abs));
-    // ASSETS から消えた絵は捨てる (迷宮の由来の絵など名前を組み立てる絵は残す)
+    keep.add(abs(STORY_ALLOW));
+    // ASSETS から消えた絵は捨てる (集めていない章の絵でも、一度開いて持っている絵は ASSETS にあれば残す)
     for (const req of await media.keys()) {
-      if (!keep.has(req.url) && !/\/art\/story\/dungeons\//.test(req.url)) await media.delete(req);
+      if (!keep.has(req.url)) await media.delete(req);
     }
+    const allow = await storyAllowed(media);
     const todo = [];
-    for (const u of MEDIA_ASSETS) if (!(await media.match(u))) todo.push(u);
+    for (const u of MEDIA_ASSETS) {
+      if (isStory(u) && !allow.has(abs(u))) continue; // まだ着いていない章の物語の絵は先に集めない
+      if (!(await media.match(u))) todo.push(u);
+    }
     let i = 0;
     const worker = async () => {
       while (i < todo.length) {
@@ -554,9 +572,23 @@ function warmMedia() {
       }
     };
     await Promise.all([worker(), worker(), worker(), worker()]);
-  })().finally(() => { warming = null; });
+  })().finally(() => {
+    warming = null;
+    if (rewarm) { rewarm = false; warmMedia(); }
+  });
   return warming;
 }
+
+// ページ (game.js syncStoryMedia) から、集めてよい物語の絵の一覧が届く
+self.addEventListener("message", (e) => {
+  const d = e.data;
+  if (DEV || !d || d.type !== "story-media" || !Array.isArray(d.urls)) return;
+  const urls = d.urls.filter((u) => typeof u === "string" && isStory(u));
+  e.waitUntil(caches.open(MEDIA)
+    .then((m) => m.put(STORY_ALLOW, new Response(JSON.stringify(urls), { headers: { "Content-Type": "application/json" } })))
+    .then(() => warmMedia(true))
+    .catch(() => {}));
+});
 
 self.addEventListener("install", (e) => {
   if (DEV) { self.skipWaiting(); return; }

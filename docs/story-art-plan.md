@@ -106,3 +106,10 @@
 ## WebP への移行 (2026-10-09)
 
 出荷する物語・由来の絵77枚を WebP (品質88) に変えた (ユーザーの確認済み)。`art/story/` は 233MB → 40MB、公開物は 259MB → 66MB。原画 PNG は `art/story-review/` に置く: 序章 `prologue/`、各章 `chapterN/` (前から同じ PNG があった)、由来 `dungeons/`。作り直しは `python3 tools/storyart/to-webp.py --all`、1枚だけなら `python3 tools/storyart/to-webp.py <原画.png> <art/story/…/名前.webp>`。どこからも参照されていなかった `morden-at-throne.png` は配信をやめ、原画だけ残した (制作の参照に使う)。
+
+## 登録の自動化と、端末へ集める絵の絞り込み (2026-10-09)
+
+- **登録は置き場所で決まる**: 第N章の場面は `art/story/chapterN/<場面ID>.webp`、由来は `art/story/dungeons/lore_<迷宮ID>.webp`。置いたら `node tools/storyart/register.mjs` が `src/storyimages.js` と `sw.js` の `ASSETS` の `<<STORY_ART>>` 欄を書く (場面ID が無い・章が違う・1536×1024 でない時は止まる)。`node tools/journal/check.mjs` が食い違いを見つける。
+- **直しを待つ絵**は `tools/storyart/hold.json` (いまは由来の w14・w16)。出荷先に置いていた2枚の WebP は使われていなかったので消した (出荷する絵は 75枚)。直したら hold から外し、`to-webp.py` → `register.mjs`。
+- **端末が裏で集める物語の絵は、進めている章まで**: 終えた章 +1 までの場面と、地図に現れた迷宮の由来だけ (`src/journal.js` の `storyMediaUrls`)。第20章まで絵が増えても、まだ着いていない章の絵は落とさない (開いた時にその場で取りに行く)。
+- **人物・小道具の基準シート (便0)**: `docs/art/story-refs/`。以後の便は毎回これを参照画像として渡す (指示書の 2-4)。

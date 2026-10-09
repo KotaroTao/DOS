@@ -7,9 +7,13 @@ GitHub Pages の容量 (1GB・800MBで止まる) と、遊ぶ人の端末へ裏�
   python3 tools/storyart/to-webp.py --all            # 下の対応表どおり全部を変換し直す
   python3 tools/storyart/to-webp.py SRC.png DST.webp  # 1枚だけ
 
+変換したら node tools/storyart/register.mjs で登録 (src/storyimages.js と sw.js の ASSETS) を書き直す。
+直しを待つ原画は tools/storyart/hold.json に書いておけば --all でも変換しない。
+
 品質88は、細かな粒が拡大すればわずかに柔らかくなる程度で、ゲームの表示幅 (最大576px) では見分けられない
 (2026-10 ユーザーの確認済み)。1枚 3MB 前後 → 0.4〜0.6MB。
 """
+import json
 import sys
 from pathlib import Path
 from PIL import Image
@@ -27,6 +31,8 @@ PAIRS = [
 ]
 # 物語の絵ではないもの (一覧の見本・制作の参照に使うだけの原画) は出荷しない
 SKIP = {"gallery.png", "morden-at-throne.png"}
+# 直しを待つ原画 (art/story-review/ からの相対・拡張子なし)
+HOLD = set(json.loads((ROOT / "tools/storyart/hold.json").read_text(encoding="utf-8"))["hold"])
 
 
 def convert(src: Path, dst: Path) -> None:
@@ -45,9 +51,12 @@ def main(argv):
             for src in sorted((ROOT / s).glob("*.png")):
                 if src.name in SKIP:
                     continue
+                if str(src.relative_to(ROOT / "art/story-review").with_suffix("")) in HOLD:
+                    print(f"{src.relative_to(ROOT)} は直しを待つ絵 (hold.json) なので変換しない")
+                    continue
                 convert(src, ROOT / d / (src.stem + ".webp"))
                 n += 1
-        print(f"{n}枚を変換")
+        print(f"{n}枚を変換。続けて node tools/storyart/register.mjs で登録を書き直す")
     elif len(argv) == 3:
         convert(Path(argv[1]).resolve(), Path(argv[2]).resolve())
     else:

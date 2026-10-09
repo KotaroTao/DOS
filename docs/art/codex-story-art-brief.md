@@ -5,10 +5,11 @@
 - **絵の修正と制作は Codex が行う** (この指示書)。
 - **本文・絵の割り当て・記録の修正は Claude が済ませた** (このファイルと同じ PR)。Codex は本文を変えない。本文と絵が食い違ったら、絵を本文に合わせる。
 
-作業は4つの便に分ける。1便ごとに PR を出し、ユーザーの確認を待ってから次へ進む。
+作業は5つの便に分ける。1便ごとに PR を出し、ユーザーの確認を待ってから次へ進む。**便0 を最初に済ませる** (人物の顔・衣装を1枚の基準に固定してから描くと、場面ごとに人物がぶれず、直しの往復が減る)。
 
 | 便 | 内容 | 枚数 |
 |---|---|---|
+| 便0 | 人物・小道具の基準シート (場面の絵ではない。出荷しない) | 11枚 |
 | 便1 | 既存の絵の修正 (序章〜第4章・踏破後の由来) | 必須 22枚 + 任意 約15枚 |
 | 便2 | 第5章・第6章の新規 | 20枚 |
 | 便3 | 第7章・第8章の新規 | 22枚 |
@@ -17,6 +18,20 @@
 ---
 
 ## 0. Codex に貼る依頼文
+
+### 便0 (基準シート) の最初に貼る文
+
+```text
+「魂の迷宮（DOS）」のストーリーの挿絵で使う、人物と小道具の基準シートを作ってください (便0)。
+
+まず AGENTS.md と docs/art/codex-story-art-brief.md を最初から最後まで読んでください。指示書の「1-1. 画風」「2. 正典」「2-4. 便0」に従い、表のシートを上から順に作ってください。main を取り込んだ codex/story-refs ブランチで作業してください。
+
+・基準シートは場面の絵ではありません。出荷もしません (docs/art/story-refs/ に置き、sw.js や src/ は触りません)。
+・既存の人物は、表の「元にする絵」を参照画像として渡し、顔・髪・衣装・持ち物をそのまま写してください。新しく決める人物 (師オルドなど) は正典の文だけから作ります。
+・まず ordo.png (師オルド) だけを作って止まり、私の確認を待ってください。承認後に残りへ進んでください。
+・できたシートは docs/art/story-refs/README.md の表に、元にした絵と承認の状態を書いてください。
+・mainへのマージは別途指示します。
+```
 
 ### 便1 (修正) の最初に貼る文
 
@@ -27,10 +42,10 @@
 
 ・本文 (src/story.js・src/archive-stories.js・src/journal.js) は変えないでください。絵を本文に合わせます。
 ・修正は既存の画像を参照画像として渡し、指示した箇所だけを直してください。構図・人物・画風・光は保ってください。全体を作り直して別の絵にしないでください。
-・人物は正典の基準画像 (指示書の 2 の表) を毎回参照画像として渡してください。
+・人物・小道具は docs/art/story-refs/ の基準シート (便0) を毎回参照画像として渡してください。
 ・1枚直すごとに、修正前後を並べた比較画像を art/story-review/fixes/<id>-before-after.png に保存してください。
 ・まず必須の修正のうち A-1〜A-3 (序章・第1章) だけを終えたら止まり、比較画像を提示して私の確認を待ってください。承認後に残りへ進んでください。
-・直すのは art/story-review/ にある原画 PNG です。同じ名前のまま上書きし、python3 tools/storyart/to-webp.py <原画.png> <art/story/…/同じ名前.webp> で出荷用の WebP を作り直してください (指示書の 1-3)。sw.js の CACHE は dos-dev のまま。
+・直すのは art/story-review/ にある原画 PNG です。同じ名前のまま上書きし、python3 tools/storyart/to-webp.py <原画.png> <art/story/…/同じ名前.webp> で出荷用の WebP を作り直してください (指示書の 1-3)。A-21・A-22 は直したら tools/storyart/hold.json から外してから WebP を作り、node tools/storyart/register.mjs で登録してください (指示書の 1-4)。sw.js の CACHE は dos-dev のまま。
 ・mainへのマージは別途指示します。
 ```
 
@@ -42,9 +57,9 @@
 まず AGENTS.md と docs/art/codex-story-art-brief.md を最初から最後まで読んでください。「1. 共通の決まり」「2. 正典」「4. 便2・便3」に従い、第五章の10場面と第六章の10場面を作ってください。main を取り込んだ codex/story-art-ch5-6 ブランチで作業してください。
 
 ・各場面の本文は src/archive-stories.js (ストーリー一覧) と src/story.js (ゲーム内の同じ場面) の両方を読み、両方に合う一枚にしてください。
-・既存の第三章・第四章の原画 (art/story/chapter3/・chapter4/) と正典の基準画像を参照画像として渡し、人物・衣装・建築・画風をそろえてください。
+・既存の第三章・第四章の原画 (art/story-review/chapter3/・chapter4/) と docs/art/story-refs/ の基準シートを参照画像として渡し、人物・衣装・建築・画風をそろえてください。
 ・まず w18_blade・report_w18・irene_husks の3枚だけを作って止まり、私の確認を待ってください。承認後に残りを作ってください。
-・出荷は WebP、原画は PNG で art/story-review/ に保存し、src/archive-stories.js の APPROVED_IMAGES と sw.js の ASSETS に登録してください (指示書の 1-4)。
+・原画は PNG で art/story-review/chapterN/ に保存し、to-webp.py で art/story/chapterN/<場面ID>.webp を作ってから、node tools/storyart/register.mjs で登録してください (指示書の 1-4。台帳や sw.js を手で書かない)。
 ・mainへのマージは別途指示します。
 ```
 
@@ -83,26 +98,33 @@ Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge
 - 既存の物語・由来の絵は 2026-10 に WebP へ移した。原画 PNG は `art/story-review/` (序章 `prologue/`・各章 `chapterN/`・由来 `dungeons/`)、ゲームが読むのは `art/story/` の同じ名前の `.webp` だけ。`python3 tools/storyart/to-webp.py --all` で原画から出荷用を作り直せる (品質88)。
 - 便1の修正は、`art/story-review/` の原画 PNG を同じ名前のまま上書きし、`python3 tools/storyart/to-webp.py <原画.png> <art/story/…/同じ名前.webp>` で出荷用を作り直す (コードの参照は変わらない)。修正前の原画は `art/story-review/fixes/<id>-before.png` に残す。
 
-### 1-4. ゲームへの組み込み
+### 1-4. ゲームへの組み込み (置き場所 = 登録)
 
-- ストーリーの絵: `src/archive-stories.js` の `APPROVED_IMAGES` に `場面ID: "art/story/chapter5/<場面ID>.webp"` を足す。これだけでストーリー一覧と、ゲーム内の同じ場面 (師の手がかり・報告・主の記憶・館の語り・章の結び) の両方に出る。表示は 3:2 のどの形式でもよい (コードは拡張子を見ない)。
-- 由来の絵: `src/journal.js` の `DUNGEON_LORE_IMAGES` に `<迷宮ID>: "art/story/dungeons/lore_<迷宮ID>.webp"` を足す。
-- 出荷するファイルはすべて `sw.js` の `ASSETS` に足す。`const CACHE = "dos-dev"` は書き換えない。
+- **置き場所の決まりを守れば、登録は道具が書く。台帳 (`src/storyimages.js`) と `sw.js` の `ASSETS` を手で書かない。**
+  - ストーリーの絵: `art/story/chapterN/<場面ID>.webp`。場面ID は `src/archive-stories.js` の `scene("<場面ID>", N, …)` の ID で、章 N もフォルダと一致させる。これだけでストーリー一覧と、ゲーム内の同じ場面 (師の手がかり・報告・主の記憶・館の語り・章の結び) の両方に出る。
+  - 由来の絵: `art/story/dungeons/lore_<迷宮ID>.webp` (迷宮ID = `src/dungeons/world.js` の `WORLD`)。
+- 置いたら `node tools/storyart/register.mjs` を回す。`src/storyimages.js` (場面ID・迷宮ID → 絵) と、`sw.js` の `ASSETS` の `<<STORY_ART>>` の欄を書き直す。場面ID が無い・章が違う・1536×1024 でない時は、理由を出して止まる。`const CACHE = "dos-dev"` は書き換えない。
+- ストーリー一覧に無い、ゲーム内だけの場面 (館の語り `irene_abyss` など) には絵を付けられない。付けたい時は Claude に一覧の場面を足してもらう。
+- 直しを待つ絵 (いまは由来の w14・w16) は `tools/storyart/hold.json` に書いてある。`to-webp.py --all` は変換せず、出荷先にあれば `register.mjs` が止まる。直したらそこから外す。
+- `node tools/journal/check.mjs` (と `node tools/storyart/register.mjs --check`) が、置いた絵と登録の食い違いを見つける。
+- 遊ぶ人の端末は、進めている章までの物語の絵と、地図に現れた迷宮の由来の絵だけを裏で先に集める (`sw.js` の warmMedia ← `src/journal.js` の `storyMediaUrls`)。先の章の絵を足しても、まだそこへ着いていない人の通信は増えない (開いた時にその場で取りに行く)。
 - 制作記録は `art/story-review/chapterN/manifest.json` (場面ごとの参照画像・指示・状態) と `index.html` (本文と絵の一覧)。`tools/storyart/chapter4.mjs` を参考に `chapter5.mjs` などを作り、一覧を再作成できるようにする (WebP の寸法の確認に直す)。`docs/story-art-plan.md` の表の状態も更新する。
 
 ### 1-5. 確かめること (1枚ごと)
 
 1. 本文 (一覧用とゲーム内用の両方) を読み直し、各場面の「描くもの」がすべて入り、「描かないもの」が無いこと。
-2. 人物が正典 (2章) の基準画像と同じに見えること。顔・髪・衣装・持ち物。
+2. 人物が正典 (2章) と基準シート (2-4) と同じに見えること。顔・髪・衣装・持ち物。
 3. 手の指 (親指＋4本)、腕と脚の本数。
 4. 384×256 に縮めて主題が読めること。
-5. 全体の確認: `for f in $(git ls-files 'src/*.js'); do node --check "$f"; done`、`node tools/journal/check.mjs`、ローカルで `python3 -m http.server 8000` を立ててストーリー一覧で表示を確認。
+5. 全体の確認: `for f in $(git ls-files 'src/*.js'); do node --check "$f"; done`、`node tools/storyart/register.mjs --check`、`node tools/journal/check.mjs`、ローカルで `python3 -m http.server 8000` を立ててストーリー一覧で表示を確認。
 
 ---
 
 ## 2. 正典 ― 人物・小道具・時の流れ
 
 本文と承認済みの原画から決めた。**ここに書いたことが、これまでの絵とずれていたら、ここが正しい。**
+
+**便0 が済んだら、人物・小道具の参照には `docs/art/story-refs/` の基準シート (2-4) を最優先で渡す。** 下の表の右の列は、そのシートの元にした絵 (シートができるまではこちらを渡す)。
 
 ### 2-1. 人物
 
@@ -113,7 +135,7 @@ Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge
 | 王 | very old man, long white hair and long white beard, pointed gold crown, red robes, white ermine cape with black spots | `art/story-review/chapter3/report_w12.png` |
 | 宰相モルデン | **一人の同じ顔**: long gaunt pale face, sunken dark eyes, thin enigmatic smile, tall black-purple ceremonial hat with a gold band, red inner robe, heavy gold chain of office with a red jewel. **老いない** (しわ・白髪を足さない。三百年前の記憶でも同じ顔)。正体は人業 = 胸に小さな扉があり、中で古い魂の灯が揺れている (第五章 mem_w21 で初めて見せる。それより前の絵では見せない) | `art/story-review/prologue/morden-at-throne.png`、`art/story-review/chapter3/report_w13.png` |
 | セラ (師の作った人業) | **ユーザーの指示: 髪は本物の髪。** 職業「灯守」の原画が基準: long wavy very dark brown (near-black) real hair, wooden face with visible wood grain and carved features, brown eyes, small gold lamp-on-palm crest in the center of the forehead, black-iron joint bands with gold rims at shoulders/elbows/wrists/knees/ankles, black choker with a gold setting. 目覚めた後 (第四章の終わり以降) は white draped cloth with a brown sash、胸に青白い魂火の灯。目覚める前 (第二〜四章) は部品だけで、胸に灯は無い。花の髪飾り・星形の印にしない | `docs/art/sera/sera-r1-final.png` (必ず渡す)、`docs/art/sera/source-comparison.png` |
-| 師オルド | **まだ決まった絵が無いので、ここで決める。弟子と見分けがつくこと**: human man about 55, tall and lean, weathered face, short grey hair swept back, close-cropped grey beard, deep-set grey eyes; plain worn black long travel coat **without** the apprentice's all-over gold embroidery — only one small gold-thread lamp-on-palm crest on the hem; dark grey shirt, leather belt with doll-maker's tools (chisel, awl, small mallet), leather work gloves; **no satchel, no lantern**. 章ごとの持ち物は下の 2-3 | なし (最初に作る絵がこの人物の基準になる) |
+| 師オルド | **まだ決まった絵が無いので、ここで決める。弟子と見分けがつくこと**: human man about 55, tall and lean, weathered face, short grey hair swept back, close-cropped grey beard, deep-set grey eyes; plain worn black long travel coat **without** the apprentice's all-over gold embroidery — only one small gold-thread lamp-on-palm crest on the hem; dark grey shirt, leather belt with doll-maker's tools (chisel, awl, small mallet), leather work gloves; **no satchel, no lantern**. 章ごとの持ち物は下の 2-3 | `docs/art/story-refs/ordo.png` (便0 で最初に作る) |
 | ヴェルナー (師の師) | elderly human scholar, grey hair, worn ochre-brown robes。第三章の小屋の時点で、もう骸 | `art/story-review/chapter3/w11_hut.png` (顔立ちだけ) |
 | 凍王イザーク | 三百年前、王家に最初に仕えた操霊師。gaunt man frozen into a throne of ice, frost-white robes, a crown of ice shards, half embedded in the throne; stern but kind eyes | なし |
 | 最初の操霊師 (一門の祖) | 名は伏せる。very old frail man, long white hair, dark robe with the lamp-on-palm crest; 顔ははっきり描きすぎない (陰・後ろ姿・伏せた顔) | なし |
@@ -141,6 +163,37 @@ Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge
 | 第七章 | 膝掛け。考えこむ | 重い雲 | 氷の添え木が溶け、捨てられた人業の腕の木2本を縄で束ねて脚を固め直す。片脚を引きずる |
 | 第八章 | 膝掛け。窓の外の雲を見る | 重い雷雲・稲妻 (この百年、王都の空はいつも重かった) | 添え木を削った杖をつく → 杖は雷に焼かれて踊り場に残す → 杖なしで手すりの鎖をつかんで頂へ這い上がる |
 | 第八章 report_w33 以降 | 窓辺で空を見上げる | **百年で初めての青空** (朝) | ― |
+
+---
+
+### 2-4. 便0 ― 人物・小道具の基準シート
+
+場面ごとに既存の絵を参照に渡すと、構図や光まで引きずられ、顔と衣装は少しずつぶれていく。そこで、人物・小道具ごとに1枚の基準シートを作り、以後のすべての便でこれを参照画像として渡す。
+
+- 置き場所: `docs/art/story-refs/<名前>.png` (デプロイで外れる。`sw.js`・`src/` には登録しない)。一覧と承認の状態は `docs/art/story-refs/README.md`。
+- 形: 1536×1024 (3:2)、1-1 の画風。背景は無地の暗い灰青、光は左上からの柔らかい均一な光 (場面の光にしない)。文字・ラベル・寸法線は入れない。
+- 人物のシート: 左から **正面・斜め前・横・後ろ** の全身を同じ大きさで並べ、右上に**顔のアップ** (正面と斜め)、右下に**持ち物・印のアップ**。
+- 小道具のシート: 一つずつ、正面と斜めの2方向。
+- 1枚目 (ordo.png) で止まって確認を待つ。以後も、ユーザーが承認したシートだけを参照に使う。
+
+各シートに付ける英語の指示 (1-1 の前置きの後に):
+```text
+Character reference sheet on a plain dark slate-blue background with soft even light from the upper left. Full body shown four times at the same scale, left to right: front, three-quarter front, side profile, back. Upper right: two face close-ups (front and three-quarter). Lower right: close-ups of the items and crests listed below. No text, no labels, no measurement lines, no scenery.
+```
+
+| シート | 中身 (2-1・2-2 の正典の文を英語の指示に入れる) | 元にする絵 (参照として渡す) |
+|---|---|---|
+| ordo.png | 師オルド (いつもの姿)。アップ = 外套の裾の金糸の印・腰の道具 (のみ・きり・小槌)・革の手袋 | なし (正典の文から作る) |
+| ordo-states.png | 師オルドの章ごとの姿を横に4つ: 第五章 (煤と傷・刃なし) / 第六章 (外套なし・シャツ・氷で固めた脚) / 第七章 (人業の腕の木2本を縄で束ねた添え木・片脚を引きずる) / 第八章 (添え木を削った杖) | ordo.png (承認後) |
+| apprentice.png | 弟子。顔は前髪の陰で目元を出しすぎない。アップ = 外套の金の刺しゅう・斜めがけの革鞄・温かい橙の手提げ灯 | `art/story-review/chapter3/report_w13.png`、`art/story-review/chapter4/w14_lamp.png` |
+| irene.png | イレーヌ。**手首はレースの袖口で隠し、継ぎ目を見せない** (継ぎ目は irene_reveal 以後の場面の指示で描く)。アップ = 金と紫の髪飾り | `art/story-review/chapter2/irene_roots.png`、`art/story-review/chapter1/irene_familiar.png` |
+| sera.png | 目覚めた後のセラ (白い布・茶の帯・胸の青白い魂火)。アップ = 額の金の印・本物の髪・継ぎ目の黒鉄と金の縁 | `docs/art/sera/sera-r1-final.png` (必ず) |
+| king.png | 王。右下のアップの代わりに、時の流れ (2-3) の3段: 第三章までの姿 / 第四章の、さらに白くやつれた姿 / 第六章以降の膝掛けの姿 | `art/story-review/chapter3/report_w12.png` |
+| morden.png | 宰相モルデン (老いない一人の顔)。**胸の扉は閉じたまま** | `art/story-review/prologue/morden-at-throne.png`、`art/story-review/chapter3/report_w13.png` |
+| morden-chest.png | モルデンの胸の小さな扉を開けた上半身と、中で揺れる古い魂の灯のアップ。**第五章 mem_w21 以後の場面にだけ渡す** | morden.png (承認後) |
+| dolls.png | 隊の人業4体 (戦士・僧侶・盗賊・魔導士) を正面と後ろで並べる。顔の無い丸い木の頭・黒鉄の継ぎ目 | `art/story-review/prologue/four-vessels-departure.png`、`art/story-review/chapter3/w10_rope.png` |
+| ancients.png | 凍王イザーク (氷の玉座に半ば埋もれた姿) と、最初の操霊師 (顔は陰で伏せる)。第六章・第七章から使う | なし (正典の文から作る) |
+| props.png | 小道具: 館の燭台の一本の白い蝋燭 / 師の真鍮のランタン (青白い魂火) / 弟子の手提げ灯 (温かい橙) / 一門の印を3つの質感で (石の浮き彫り・金糸の刺しゅう・額の金の象嵌) / 王の金の杯 | `art/story-review/prologue/irene-soul-lamp.png`、`art/story-review/chapter1/w01_lantern.png`、`art/story-review/chapter1/w02_sigil.png` |
 
 ---
 
@@ -292,13 +345,13 @@ Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge
 ```
 
 **A-21. 踏破後 lore_w14 (水底の参道)** `art/story-review/dungeons/lore_w14.png` (いまは使われていない)
-- 直す: 鳥居・しめ縄・日本式の石灯籠で和風の神社になっている → 旧都はゴシックの都。`chapter4/w14_lamp.png` と同じ、祠の形のゴシックの石灯籠の列が水底の参道に並ぶ。根・沈んだ供物の宝箱は保つ。直したら `src/journal.js` の `DUNGEON_LORE_IMAGES` に `w14` を足す。
+- 直す: 鳥居・しめ縄・日本式の石灯籠で和風の神社になっている → 旧都はゴシックの都。`chapter4/w14_lamp.png` と同じ、祠の形のゴシックの石灯籠の列が水底の参道に並ぶ。根・沈んだ供物の宝箱は保つ。直したら `tools/storyart/hold.json` から外し、WebP を作って `node tools/storyart/register.mjs` で登録する (1-4)。
 ```text
 ...except: remove the torii gates, shimenawa ropes and Japanese stone lanterns. The drowned processional way is lined with gothic shrine-shaped stone lanterns like the attached w14_lamp reference, leading to a sunken gothic temple; keep the roots and the sunken offering chests.
 ```
 
 **A-22. 踏破後 lore_w16 (洗礼の大水槽)** `art/story-review/dungeons/lore_w16.png` (いまは使われていない)
-- 直す: 本文は「水は少しずつ濁った。澄んだまま残る泉は、誓いの名残だけ」「底に絡まっていたのは、どこかへ帰ろうとしていた器」。いまの絵は全体が澄んだ明るい水 → 大水槽の水は暗く濁らせ、澄んだ泉が二つだけ光る。底の根に木の脚 (セラの脚) がかすかに絡む。直したら `DUNGEON_LORE_IMAGES` に `w16` を足す。
+- 直す: 本文は「水は少しずつ濁った。澄んだまま残る泉は、誓いの名残だけ」「底に絡まっていたのは、どこかへ帰ろうとしていた器」。いまの絵は全体が澄んだ明るい水 → 大水槽の水は暗く濁らせ、澄んだ泉が二つだけ光る。底の根に木の脚 (セラの脚) がかすかに絡む。直したら同じく `hold.json` から外して登録する。
 ```text
 ...except: the great baptismal cistern water becomes dark and murky; only two small pure springs still glow clear. Faintly visible at the bottom, roots entangle a pair of wooden doll legs with black iron joints.
 ```
@@ -330,7 +383,7 @@ Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge
 いまは第5〜8章の挿絵がコードで描いた小さな仮の絵なので、承認済みの章と同じ画風の原画に置き換える。
 
 - 本文は場面IDで引く: ストーリー一覧 = `src/archive-stories.js` の `scene("<場面ID>", ...)`、ゲーム内 = `src/story.js` (手がかり `STORY_CELLS.<場面ID>`、報告 `REPORTS.w18` = report_w18、主の記憶 `BOSS_MEMORIES.w21` = mem_w21、館の語り `IRENE_BEATS` の id、章の結び `CHAPTER_END[5]` = ch5_end)。**両方を読んで、両方に合う一枚にする。**
-- 参照画像: 正典の基準 (2-1 の表) に加え、玉座の間は `chapter3/report_w12.png`、館は `chapter2/irene_roots.png`・`chapter1/irene_familiar.png` を渡す。
+- 参照画像: `docs/art/story-refs/` の基準シート (2-4) に加え、玉座の間は `chapter3/report_w12.png`、館は `chapter2/irene_roots.png`・`chapter1/irene_familiar.png` を渡す。
 - 人物の背景・迷宮の場面には、弟子と隊の人業 (2〜4体) を入れてよい。セラは第五章から隊にいることがある (入れるなら正典の姿)。
 - 報告の場面 (report_*) は、玉座の間・王・空いた宰相の席・弟子 (後ろ姿) が基本。窓の外は 2-3 の時の流れに従う。
 
@@ -620,7 +673,7 @@ The summit of the storm tower after the storm: the statues' chains hang loose an
 
 ### 第五章の任意の1枚
 
-- **irene_abyss「落ち続ける灯」** (館の語り。ゲーム内だけで、ストーリー一覧に無い。絵を付けるなら `APPROVED_IMAGES` に `irene_abyss` を足すとゲーム内に出る): 燭台の前で両手を固く組むイレーヌ、胸の扉に手を当てて灯を強く燃やすセラ。
+- **irene_abyss「落ち続ける灯」** (館の語り。ゲーム内だけで、ストーリー一覧に無い。絵を付けるなら、先に Claude に一覧の場面を足してもらう — 1-4): 燭台の前で両手を固く組むイレーヌ、胸の扉に手を当てて灯を強く燃やすセラ。
 
 ---
 
@@ -641,7 +694,7 @@ The summit of the storm tower after the storm: the statues' chains hang loose an
 - その迷宮の章より先の秘密を描かない。特に古井戸 `ws5` は第二章で開くので、旧都・神殿を描かない。
 - 弟子や隊は入れなくてよい (情景の絵)。
 
-組み込みは 1-4 (WebP、`DUNGEON_LORE_IMAGES`、`sw.js`)。
+組み込みは 1-4 (`art/story/dungeons/lore_<迷宮ID>.webp` に置いて `node tools/storyart/register.mjs`)。
 
 | 優先 | 迷宮 | 描く中身 (本文の要点) |
 |---|---|---|
