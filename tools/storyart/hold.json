@@ -1,7 +1,13 @@
 {
-  "note": "直しを待つ原画 (art/story-review/ からの相対パス・拡張子なし)。to-webp.py --all は変換せず、register.mjs は出荷先にあれば止める。直したらここから外し、to-webp → register の順に回す。",
+  "note": "hold = 直しを待つ原画 (art/story-review/ からの相対パス・拡張子なし。build.py は変換せず、出荷先にあれば register.mjs が止める。直したらここから外す)。skip = 物語の絵ではない原画 (一覧の見本・制作の参照。変換も検査もしない)。",
   "hold": [
     "dungeons/lore_w14",
     "dungeons/lore_w16"
+  ],
+  "skip": [
+    "chapter1/gallery",
+    "chapter3/gallery",
+    "chapter4/gallery",
+    "prologue/morden-at-throne"
   ]
 }

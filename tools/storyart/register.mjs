@@ -10,6 +10,7 @@
 // どれも 1536×1024 の WebP。原画 PNG は art/story-review/ に置き、tools/storyart/to-webp.py で変換する。
 // 直しを待つ絵は tools/storyart/hold.json に書く (出荷先に置かない)。
 import { readFileSync, writeFileSync, readdirSync, existsSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { WORLD } from "../../src/dungeons/world.js";
 import { imageSize } from "./imagesize.mjs";
@@ -44,11 +45,67 @@ function sceneChapters() {
   return out;
 }
 
+const lists = () => JSON.parse(readFileSync(ROOT + "tools/storyart/hold.json", "utf8"));
+
+// ---- 原画 (art/story-review/) と出荷 (art/story/) の対応 ----
+// 出荷した WebP がどの原画から作られたかを masters.json (原画のパス → git のブロブのハッシュ) に残す。
+// 原画を直したのに WebP を作り直していない・原画だけ置いて変換していない、を見つける (CI でも)。
+export const MASTERS_FILE = "tools/storyart/masters.json";
+export const shippedFor = (master) => { // "art/story-review/chapter5/x.png" → "art/story/chapter5/x.webp"
+  const m = master.match(/^art\/story-review\/(prologue|chapter\d+|dungeons)\/([^/]+)\.png$/);
+  if (!m) return null;
+  return m[1] === "prologue" ? `art/story/${m[2]}.webp` : `art/story/${m[1]}/${m[2]}.webp`;
+};
+const git = (args, input) => execFileSync("git", args, { cwd: ROOT, input, encoding: "utf8", maxBuffer: 1 << 26 }).trim();
+// 対象の原画と、そのハッシュ (手元にあればファイルから、無ければ git の索引から — CI の部分チェックアウト用)
+export function masterHashes() {
+  const { hold, skip } = lists();
+  const ok = (p) => {
+    if (!shippedFor(p)) return false;
+    const key = p.slice("art/story-review/".length, -4);
+    return !hold.includes(key) && !skip.includes(key);
+  };
+  const out = {};
+  let indexed = [];
+  try { indexed = git(["ls-files", "-s", "--", "art/story-review"]).split("\n").filter(Boolean); } catch { /* git が無い */ }
+  for (const line of indexed) {
+    const [meta, path] = line.split("\t");
+    if (ok(path)) out[path] = meta.split(" ")[1];
+  }
+  const local = [];
+  const scan = (dir) => { if (existsSync(ROOT + dir)) for (const f of readdirSync(ROOT + dir)) if (f.endsWith(".png")) local.push(`${dir}/${f}`); };
+  scan("art/story-review/prologue");
+  scan("art/story-review/dungeons");
+  if (existsSync(ROOT + "art/story-review")) for (const d of readdirSync(ROOT + "art/story-review")) if (/^chapter\d+$/.test(d)) scan(`art/story-review/${d}`);
+  const mine = local.filter(ok);
+  if (mine.length) {
+    const hs = git(["hash-object", "--stdin-paths"], mine.join("\n") + "\n").split("\n");
+    mine.forEach((p, i) => { out[p] = hs[i]; });
+  }
+  return out;
+}
+export function masterDrift(hashes = masterHashes()) {
+  const rec = existsSync(ROOT + MASTERS_FILE) ? JSON.parse(readFileSync(ROOT + MASTERS_FILE, "utf8")) : {};
+  const out = [];
+  for (const [m, h] of Object.entries(hashes)) {
+    const w = shippedFor(m);
+    if (!existsSync(ROOT + w) && !indexHas(w)) out.push(`原画 ${m} の WebP (${w}) が無い — python3 tools/storyart/build.py`);
+    else if (rec[m] !== h) out.push(`原画 ${m} が変わったのに WebP を作り直していない — python3 tools/storyart/build.py`);
+  }
+  for (const m of Object.keys(rec)) if (!hashes[m]) out.push(`${MASTERS_FILE} の ${m} は原画が無い (消したなら build.py で記録も直る)`);
+  return out;
+}
+let _index = null;
+const indexHas = (p) => {
+  if (!_index) { try { _index = new Set(git(["ls-files", "--", "art/story"]).split("\n")); } catch { _index = new Set(); } }
+  return _index.has(p);
+};
+
 // 登録の中身を組み立てる (ファイルは書かない)。errors があれば書き出さない
 export function registerPlan() {
   const errors = [];
   const scenes = sceneChapters();
-  const hold = JSON.parse(readFileSync(ROOT + "tools/storyart/hold.json", "utf8")).hold;
+  const { hold } = lists();
   const story = {}, lore = {};
   const check = (path) => {
     const { w, h } = imageSize(readFileSync(ROOT + path));
@@ -101,7 +158,7 @@ export function swWith(block, sw = readFileSync(ROOT + SW, "utf8")) {
 
 // 書き出した結果と、いまのファイルとの食い違い (空なら一致)
 export function registerDrift(plan = registerPlan()) {
-  const out = [...plan.errors];
+  const out = [...plan.errors, ...masterDrift()];
   const cur = existsSync(ROOT + OUT) ? readFileSync(ROOT + OUT, "utf8") : "";
   if (cur !== plan.module) out.push(`${OUT} が art/story/ の絵と食い違う (node tools/storyart/register.mjs で書き直す)`);
   const sw = readFileSync(ROOT + SW, "utf8"), next = swWith(plan.swBlock, sw);
