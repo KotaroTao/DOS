@@ -38,4 +38,8 @@ export const NAMED_ITEMS = [
     desc: "幾度消えかけても燃え直した残り火の王の、最後の燃えさしを鉄の籠に収めた首飾り。奪うことしか知らなかった火は、いまは持ち主の身をあたため、傷をゆっくり塞ぐ。残り火の王の首級。" })),
   trophy(7, "el_magmawyrm", A("a_nm_magmawyrm", "溶鉄の蛇竜の鱗鎧", 90, { weight: "heavy", pow: 1.45, hp: 36, bRes: 0.3, eDef: ["water", 2], tint: "#8a3a2a",
     desc: "溶けた鉄と一体になった蛇竜の鱗を、冷やし固めてつづった鎧。城門すら溶かす熱の息を浴び続けた鱗は、炎も吐息もほとんど通さない。溶鉄の蛇竜の首級。" })),
+  trophy(8, "el_frostsovereign", W("w_nm_frostsovereign", "凍王の影の氷剣", "ls", 96, { pow: 1.45, onHit: ["paralyze", 0.2], eAtk: ["earth", 1], hp: 24, tint: "#a8c8e8",
+    desc: "凍王が切り離した影が、回廊を見回るあいだ下げていた氷の剣。斬られた者を芯から凍らせてきた刃は、いまは持ち主の敵の手足を凍えさせ、凍った水の身を岩のように割る。凍王の影の首級。" })),
+  trophy(8, "el_glacialmaw", S("s_nm_glacialmaw", "氷河の大顎の牙盾", 98, { shape: "kite", pow: 1.45, hp: 32, bRes: 0.3, eDef: ["earth", 1], eff: { guard: 0.06 }, tint: "#d0e4f0",
+    desc: "氷河の大顎から抜いた白い牙を、鉄の枠に並べて組んだ大盾。千年溶けない吹雪を吐き続けた顎の牙は、凍える息も氷の牙も受け止めて離さない。氷河の大顎の首級。" })),
 ];
