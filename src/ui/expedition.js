@@ -244,7 +244,13 @@ export function showReport() {
       b.appendChild(el("p", "ex-note", "持ち帰った ✦Soul と金貨は、もう手元にある。控えの一覧から、また送り出せる。"));
     },
     footer: [{ label: "受け取った", kind: "primary", onTap: (h) => h.close() }],
-    onClose: () => { reportOpen = false; const G = G_(); if (G && G.state === "town" && game.renderTown) game.renderTown(); },
+    onClose: () => {
+      reportOpen = false;
+      const G = G_(); if (G && G.state === "town" && game.renderTown) game.renderTown();
+      // 魂の Lv が上がった人業は、戦闘後・魂の強化と同じレベルアップの画面で見せる
+      const ups = rows.map((r) => r.levelUp).filter(Boolean);
+      if (ups.length && UI.celebrateLevelUp) UI.celebrateLevelUp(ups);
+    },
   });
 }
 

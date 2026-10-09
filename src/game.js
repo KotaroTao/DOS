@@ -1910,7 +1910,7 @@ function dockSpec() {
   });
   const av = autoMoveAvoid();
   const auto = { on: !!G.autoMove, sub: av.foe && av.elite ? "敵を避ける" : av.elite ? "強敵を避ける" : av.foe ? "強敵に挑む" : "敵に挑む" };
-  return { down, home, heal, fields, auto, idle: G.floor <= 1 && !(G.run && G.run.kills) ? "スワイプで進む ・ 光る墓石をめくる" : "階段を見つけると、ここから降りられる" };
+  return { down, home, heal, fields, auto, idle: G.floor <= 1 && !(G.run && G.run.kills) ? "スワイプで進む ・ 光るカードをめくる" : "階段を見つけると、ここから降りられる" };
 }
 function dockDescend() {
   if (holdForAutoMove(dockDescend)) return;
@@ -1999,9 +1999,9 @@ function castFieldMeasured(key) {
     if (sp.sense === "stairs") revealAroundStairs();
     const n = senseTargets(sp.sense).length;
     const what = { enemy: "魔物の気配", chest: "宝箱", stairs: "階段" }[sp.sense];
-    const msg = sp.sense === "stairs" ? "下へ続く階段の在りかが淡く光り、そのまわりの墓石がひとりでにめくれた。"
+    const msg = sp.sense === "stairs" ? "下へ続く階段の在りかが淡く光り、そのまわりのカードがひとりでにめくれた。"
       : !n ? `この階には、まだ見ぬ${what}はないようだ。`
-      : sp.sense === "enemy" ? `墓石の下に、${n}つの赤い気配がぼんやりと浮かび上がった。` : `墓石の下に、${n}つの青い光がぼんやりと灯った。`;
+      : sp.sense === "enemy" ? `伏せたカードに、${n}つの赤い気配がぼんやりと浮かび上がった。` : `伏せたカードに、${n}つの青い光がぼんやりと灯った。`;
     log(`${c.p.name}は${sp.name}を唱えた。${msg}`, "win");
     showToast(`${sp.name} ― ${sp.sense === "stairs" ? "階段の在りかとそのまわりが開けた" : n ? `${what} ${n}` : `${what}なし`}`, { tone: "good" });
   }
@@ -9500,7 +9500,8 @@ function distributeBattleSoulExpMeasured(soulGot) {
     const ps = m.primary != null ? soulByUid(m.primary) : null;
     preLv.set(m, ps ? ps.level : 0);
   }
-  for (const w of worn) if (w.sub) { const e = soulByUid(w.uid); if (e) preSubLv.set(w.uid, e.level); }
+  const preSubSkills = new Map(); // サブ魂 uid → 加算前に覚えていた技 (サブ魂が覚えた技もレベルアップの画面に出す)
+  for (const w of worn) if (w.sub) { const e = soulByUid(w.uid); if (e) { preSubLv.set(w.uid, e.level); preSubSkills.set(w.uid, soulLearnedSkills(e)); } }
   // 宿している魂すべてに Soul を加算してレベルアップ (上限超過分は exp に蓄積)。
   // サブ魂はメイン魂の 1/3 (share × SUB_EXP_RATE) を得る。
   for (const w of worn) {
@@ -9544,7 +9545,15 @@ function distributeBattleSoulExpMeasured(soulGot) {
       shown = true;
     }
     const oldSp = preSpells.get(m) || new Set();
-    for (const sk of (m.spells || [])) if (!oldSp.has(sk)) queue.push({ kind: "skill", member: m, skill: sk });
+    const gained = (m.spells || []).filter((sk) => !oldSp.has(sk));
+    // サブ魂そのものが覚えた技 (宿主の技には入らないが、街での強化と同じく新たな技として見せる)
+    for (const sub of (m.subs || [])) {
+      const e = sub && sub.uid != null && preSubSkills.has(sub.uid) ? soulByUid(sub.uid) : null;
+      if (!e) continue;
+      const old = preSubSkills.get(sub.uid);
+      for (const sk of soulLearnedSkills(e)) if (!old.includes(sk) && !gained.includes(sk)) gained.push(sk);
+    }
+    for (const sk of gained) queue.push({ kind: "skill", member: m, skill: sk });
   }
   return queue;
 }
@@ -10266,6 +10275,7 @@ function renderTown() {
   updateTopbar();
   playBgm(sceneBgm()); // 施設ごとのBGM (同じ曲なら継続)
   townshell.refresh();
+  if (UI.refreshPartySheet) UI.refreshPartySheet(); // 街の上に開いた人業のシート (顔アイコンから) も描き直す
   if (UI.queueStoryNotice) UI.queueStoryNotice(); // 新しく記された物語を、手の空いた時に知らせる
   if (UI.queueExpeditionReport && expeditionDone().length) UI.queueExpeditionReport(); // 遠征から帰ってきた人業を、手の空いた時に知らせる
   if (then) queueMicrotask(() => { if (G.state === "town") then(); });
@@ -10481,10 +10491,20 @@ function claimExpedition(e) {
     const gain = Math.floor(out.soul * EXP_SOUL_EXP_RATE);
     if (gain > 0) {
       const cap = soulLevelCapOf(s);
+      // レベルアップの画面 (戦闘後・強化と同じ UI.celebrateLevelUp) 用に、上がる前の能力と技を控える
+      const KEYS = ["maxhp", "maxmp", "atk", "vit", "agi", "int", "pie", "luk"];
+      const sk = (k) => (k === "maxhp" ? "hp" : k === "maxmp" ? "mp" : k);
+      const statsFrom = Object.fromEntries(KEYS.map((k) => [sk(k), d[k] || 0]));
+      const spells0 = new Set(d.spells || []);
       s.exp = (s.exp || 0) + gain;
       while (s.level < cap && s.exp >= soulTrainCost(s.level)) { s.exp -= soulTrainCost(s.level); s.level++; }
       out.lvTo = s.level;
-      if (out.lvTo > out.lvFrom) { const vit = hpMpRatio(d); recalcAllDolls(); keepHpMpRatio(d, vit); }
+      if (out.lvTo > out.lvFrom) {
+        const vit = hpMpRatio(d); recalcAllDolls(); keepHpMpRatio(d, vit);
+        codexJobSee(s.clsKey, s.count, s.level, s.capBonus);
+        out.levelUp = { name: d.name, doll: d, uid: s.uid, main: { from: out.lvFrom, to: out.lvTo }, subs: [],
+          statsFrom, statsTo: Object.fromEntries(KEYS.map((k) => [sk(k), d[k] || 0])), skills: (d.spells || []).filter((k) => !spells0.has(k)) };
+      }
     }
   }
   // 収集品 (1時間ごとに見込み。引き返した時は半分)。袋に空きが無ければ売値の金貨にする
@@ -10571,12 +10591,59 @@ function soulSlotConflict(d, uid, slotId = "primary") {
   const soul = soulByUid(uid); if (!soul) return false;
   // セラ: メイン魂は灯守に固定。灯守の魂はセラのメイン魂にしか宿らない (サブ魂として貸さない)
   if (seraSlotBlocked(d, soul, slotId)) return true;
+  // 同じ人業の別の差し口にある魂 = 入れ替え (メイン⇄サブ・サブ⇄サブ、ユーザーの指示 2026-10)。
+  // 人業の中の職業の組は変わらないので、隊のメイン魂の重複だけを見る
+  const from = ownSoulSlot(d, uid);
+  if (from && from !== slotId) {
+    const cur = slotSoul(d, slotId);
+    if (from === "primary") {
+      if (!cur) return true; // メイン魂を空のサブ魂の枠へは移せない (メイン魂が空になる)
+      if (seraSlotBlocked(d, cur, "primary") || !soulRepresentatives().some((x) => x.uid === cur.uid)) return true;
+      return partyMainClash(d, cur);
+    }
+    return slotId === "primary" ? partyMainClash(d, soul) : false;
+  }
   if (soulByUid(d.primary)?.clsKey === soul.clsKey && slotId !== "primary") return true;
   if ((d.subs || []).some((x, i) => `sub${i}` !== slotId && soulByUid(x?.uid)?.clsKey === soul.clsKey)) return true;
   if (slotId !== "primary") return false;
+  return partyMainClash(d, soul);
+}
+// d のメイン魂を soul にしたとき、隊の仲間のメイン魂と職業が重なるか
+function partyMainClash(d, soul) {
   const dolls = G.party.includes(d) ? G.party : [d];
   // 他の人業から移してくる魂 (dd.primary === uid) は、移したあと dd に残らないので数えない
-  return dolls.some((dd) => dd !== d && dd.primary !== uid && soulByUid(dd.primary)?.clsKey === soul.clsKey);
+  return dolls.some((dd) => dd !== d && dd.primary !== soul.uid && soulByUid(dd.primary)?.clsKey === soul.clsKey);
+}
+// 魂 uid が d のどの差し口にあるか ("primary" / "subN" / null)
+function ownSoulSlot(d, uid) {
+  if (!d || uid == null) return null;
+  if (d.primary === uid) return "primary";
+  const i = (d.subs || []).findIndex((x) => x && x.uid === uid);
+  return i >= 0 ? "sub" + i : null;
+}
+// 魂 uid を d (または写し) の slotId へ置く。同じ人業の別の差し口にあって、行き先に魂があれば入れ替える
+// (実際の付け替え applyEquipSoul と、画面の見比べ soulpanel.js placeSoul で共通)
+function placeSoulInDoll(f, slotId, uid) {
+  const subs = [...(f.subs || [])];
+  const from = ownSoulSlot(f, uid);
+  const ti = slotId === "primary" ? -1 : +slotId.slice(3);
+  const curUid = ti < 0 ? f.primary : (subs[ti] || {}).uid;
+  if (from && from !== slotId && curUid != null) {
+    if (from === "primary") { f.primary = curUid; subs[ti] = { uid, picks: [] }; }
+    else {
+      const fi = +from.slice(3);
+      if (ti < 0) { f.primary = uid; subs[fi] = { uid: curUid, picks: [] }; }
+      else { const x = subs[fi]; subs[fi] = subs[ti]; subs[ti] = x; } // サブ⇄サブは借りた技ごと入れ替える
+    }
+    f.subs = subs.filter(Boolean);
+    return;
+  }
+  // 同じ人業の他の差し口からは外す (二重に宿さない)
+  if (f.primary === uid) f.primary = null;
+  const keep = subs.filter((x) => x && x.uid !== uid);
+  if (ti < 0) f.primary = uid;
+  else keep[ti] = { uid, picks: [] }; // 借用は recalcDoll が既定 (覚えている最後の技) で埋める
+  f.subs = keep.filter(Boolean);
 }
 function blockSoulResonance(party = G.party) {
   const clsKey = partySoulConflict(party);
@@ -10704,15 +10771,7 @@ function applyEquipSoul(d, uid, s, slotId = "primary") {
     d.subs.splice(si, 1);
     d.subs = d.subs.filter(Boolean);
   } else {
-    // 同じ人業の他の差し口からは外す (二重に宿さない)
-    if (d.primary === uid) d.primary = null;
-    d.subs = d.subs.filter((x) => x && x.uid !== uid);
-    if (slotId === "primary") {
-      d.primary = uid;
-    } else {
-      d.subs[si] = { uid, picks: [] }; // 借用は recalcDoll が既定 (覚えている最後の技) で埋める
-      d.subs = d.subs.filter(Boolean);
-    }
+    placeSoulInDoll(d, slotId, uid); // 同じ人業の別の差し口にあれば入れ替え
   }
   recalcDoll(d);
   keepHpMpRatio(d, vit);
@@ -10744,8 +10803,10 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
   if (take && expeditionOf(take.holder)) { SFX.ng(); showToast(`その魂は遠征中の${take.holder.name}が宿している。呼び戻してから移せる`, { tone: "bad" }); return fin(false); }
 
   // メイン魂の付け替えで、新しい職では装備できなくなる装備があれば事前に確認する
-  if (isNewEquip && slotId === "primary" && d.primary !== uid) {
-    const bad = unequippableUnder(d, s.clsKey);
+  // (メイン魂をサブ魂の枠と入れ替える時は、その枠の魂が新しいメイン魂)
+  const newMain = slotId === "primary" ? s : ownSoulSlot(d, uid) === "primary" ? slotSoul(d, slotId) : null;
+  if (isNewEquip && newMain && d.primary !== newMain.uid) {
+    const bad = unequippableUnder(d, newMain.clsKey);
     if (bad.length) {
       const free = MAX_ITEMS - d.items.length;
       const names = bad.map((b) => `・${b.item.name}（${SLOT_LABEL[b.key] || b.key}）`);
@@ -10753,16 +10814,16 @@ function equipSoulToSlot(d, uid, slotId = "primary", done = null) {
         // 外した装備を持ち物に入れる空きが足りない → 付け替えを中止
         SFX.ng();
         showEvent({
-          sprite: jobSprite(s.clsKey, Math.max(1, soulRankOf(s))),
+          sprite: jobSprite(newMain.clsKey, Math.max(1, soulRankOf(newMain))),
           banner: "付け替えできない", title: "持ち物がいっぱい",
-          lines: [`${soulLabel(s)} に付け替えると、次の装備が外れる。`, ...names,
+          lines: [`${soulLabel(newMain)} に付け替えると、次の装備が外れる。`, ...names,
             `しかし ${d.name} の持ち物に空きが ${free} 枠しかない。持ち物を減らしてから、もう一度。`],
           accent: "#d4504e", btnLabel: "とじる",
         });
         return fin(false);
       }
       kitConfirm({
-        banner: "付け替え", title: `${soulLabel(s)} に付け替える？`,
+        banner: "付け替え", title: `${soulLabel(newMain)} に付け替える？`,
         lines: ["新しい職では次の装備を扱えないため、外して持ち物に戻す。", ...names],
         okLabel: "付け替える", danger: false,
       }).then((ok) => {
@@ -15698,7 +15759,7 @@ const OPS = {
     const before = wearer ? Object.fromEntries(KEYS.map((k) => [k, wearer[k] || 0])) : null;
     const beforeSpells = new Set(wearer ? (wearer.spells || []) : []);
     const soulBefore = wearer ? null : jobStatsOf(e.clsKey, e); // 誰も宿していない魂は魂そのものの能力を見比べる
-    const beforeSkills = wearer ? null : soulLearnedSkills(e);
+    const beforeSkills = soulLearnedSkills(e); // サブ魂は宿主の技に入らないので、魂そのものが覚えた技も見比べる
     const from = e.level;
     // 蓄積していた exp で上がる段は無料で先に上げる (旧来は1段上げると exp=0 で残りが消えていた)
     let spent = 0, levels = settleSoulExp(e);
@@ -15733,7 +15794,8 @@ const OPS = {
       }
     }
     // 結果は UI (soulpanel.js の train → レベルアップの祝祭カード) が見せる
-    const gainedSkills = wearer ? (wearer.spells || []).filter((k) => !beforeSpells.has(k)) : soulLearnedSkills(e).filter((k) => !beforeSkills.includes(k));
+    // 新たに覚えた技: 宿主の技の増え + 魂そのものが覚えた技 (サブ魂の強化でも、戦闘後・メイン魂の強化と同じく技を見せる)
+    const gainedSkills = [...new Set([...(wearer ? (wearer.spells || []).filter((k) => !beforeSpells.has(k)) : []), ...soulLearnedSkills(e).filter((k) => !beforeSkills.includes(k))])];
     renderTown();
     return { ok: true, uid, levels, spent, from, to: e.level, deltas, before: statsBefore, after: statsAfter, gainedSkills, wearer };
   },
@@ -15900,7 +15962,7 @@ bindGame({
 // 契約 (UI.openParty / autoEquip / betterGearCount / trainableList / equipItemTo / bestWearer) は各モジュールの install() が登録する
 bindGame({
   equipAt, moveItem, campCast, campSpellsOf, healAll, healAllNeed, repairCostOf, repairCostAll, repairDoll, setReviveTimers, hastenCostOf, tryHastenRescue, awaitingRescue, RESCUE_SHORTEN_MS,
-  emptyDollCost, grantRedSoul, randomDollName, finalizeBuyDoll, soulRepresentatives, partySoulConflict, soulSlotConflict, soulTakePlan, blockSoulResonance, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
+  emptyDollCost, grantRedSoul, randomDollName, finalizeBuyDoll, soulRepresentatives, partySoulConflict, soulSlotConflict, soulTakePlan, placeSoulInDoll, ownSoulSlot, blockSoulResonance, soulSortCmp, soulRankOf, soulWorn, soulWornByOther,
   equipSoulToSlot, fuseCandidates, fuseSoul, fuseSouls, toggleSoulLock, openFusePicker, openSubSkillPicker, slotSoul,
   unlockedSubSlots, orderSeats, orderSeatedUids, toggleOrderSeat, showCodexJobDetail, addSoulInstance, codexSweepJobs,
   canIdentify, identifyChance, openIdentifyChooser, doIdentifySkill, itemKnown, isFirstGet,

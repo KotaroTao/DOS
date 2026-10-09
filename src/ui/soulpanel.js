@@ -427,7 +427,7 @@ export function openSoulPicker(d, slotId = "primary") {
     banner: isSub ? `サブ魂${si + 1} ― ${d.name}` : `メイン魂 ― ${d.name}`,
     onClose: () => { if (!isSub) UI.tutorialEvent?.("soulChangeViewed"); },
     lines: [isSub ? "サブ魂は、覚えた技かパッシブを貸し、能力の一部を足す (R1 10% 〜 R5 30%)。貸す数も魂のランクで増える (R1-2:1 / R3-4:2 / R5:3)。" : "メイン魂が、職業・能力・技を決める。"],
-    body: (scroll, h) => { scroll.appendChild(el("div", "pt-note", game.featureUnlocked?.("sub1") ? "メイン魂の同じ職業はパーティに1つだけ。サブ魂は同じ職業の別の魂なら仲間と重複できる。他の人業が宿している魂を選ぶと、その人業から移す。同じ人業のメイン・サブには同じ職業を重ねられない。余った魂は人業の館で魂融合できる。" : "同じ職業の魂は、パーティに1つだけ。仲間が宿している魂を選ぶと、その仲間から移す。")); pickerBody(scroll, d, slotId, h); },
+    body: (scroll, h) => { scroll.appendChild(el("div", "pt-note", game.featureUnlocked?.("sub1") ? "メイン魂の同じ職業はパーティに1つだけ。サブ魂は同じ職業の別の魂なら仲間と重複できる。他の人業が宿している魂を選ぶと、その人業から移す。同じ人業のメイン・サブには同じ職業を重ねられない (この人業のメイン魂・サブ魂どうしは入れ替えられる)。余った魂は人業の館で魂融合できる。" : "同じ職業の魂は、パーティに1つだけ。仲間が宿している魂を選ぶと、その仲間から移す。")); pickerBody(scroll, d, slotId, h); },
   });
 }
 function wearerOf(uid, self) {
@@ -457,6 +457,7 @@ function resistsOfDoll(x) {
 }
 // 魂 uid を d の slotId (primary / subN) に宿したときの差し替え
 function placeSoul(fake, slotId, uid) {
+  if (game.placeSoulInDoll) { game.placeSoulInDoll(fake, slotId, uid); return; } // 同じ人業の中なら入れ替え (実際の付け替えと同じ処理)
   if (slotId === "primary") {
     fake.primary = uid;
     fake.subs = fake.subs.filter((x) => x && x.uid !== uid);
@@ -511,9 +512,13 @@ function confirmSoulEquip(d, slotId, s, cur) {
   sk.appendChild(el("div", "sp-fz-h", `${soulLabel(s)} が覚えている技 ${nS} ・ パッシブ ${nP}`));
   sk.appendChild(soulSkillChips(s));
   body.appendChild(sk);
+  // 同じ人業の別の差し口にある魂 = 入れ替え
+  const own = d.primary === s.uid ? "メイン魂" : (d.subs || []).some((x) => x && x.uid === s.uid) ? `サブ魂${(d.subs || []).findIndex((x) => x && x.uid === s.uid) + 1}` : null;
+  const swap = own && cur && cur.uid !== s.uid;
   return confirm({
-    banner: take ? `${take.holder.name} から移す` : where, title: `この${where}を宿す？`,
-    lines: [cur ? `${where}の「${soulLabel(cur)}」を外し、「${soulLabel(s)}」を宿す。` : `「${soulLabel(s)}」を ${d.name} の${where}に宿す。`,
+    banner: take ? `${take.holder.name} から移す` : swap ? "入れ替え" : where, title: swap ? `${own}と${where}を入れ替える？` : `この${where}を宿す？`,
+    lines: [swap ? `${own}の「${soulLabel(s)}」を${where}に、${where}の「${soulLabel(cur)}」を${own}に宿す。`
+      : cur ? `${where}の「${soulLabel(cur)}」を外し、「${soulLabel(s)}」を宿す。` : `「${soulLabel(s)}」を ${d.name} の${where}に宿す。`,
       isSub ? "同じ職業でも別の魂なら仲間と重複して宿せる。借りる技・パッシブは、宿したあとに選ぶ。技を押すとくわしい説明。" : "メイン魂の技・パッシブをすべて使える。技を押すとくわしい説明。"],
     body, className: "sp-eqc-sheet", okLabel: "宿す", danger: false,
     // 「宿す」の下に、その魂の職業図鑑 (この確認の上に開く。ユーザーの指示、2026-10)
@@ -565,7 +570,11 @@ function pickerBody(root, d, slotId, h) {
   const si = isSub ? +slotId.slice(3) : -1;
   const curUid = isSub ? ((d.subs || [])[si] || {}).uid : d.primary;
   const fusion = game.featureUnlocked ? game.featureUnlocked("fusion") : false;
-  const souls = [...(isSub ? G.souls.filter((s) => !(SOUL_CLASSES[s.clsKey] || {}).unique) : game.soulRepresentatives())].sort(game.soulSortCmp || (() => 0)); // 灯守 (セラだけの魂) は貸さない
+  // この人業が宿している魂を上へ: いまの差し口 → 同じ人業の別の差し口 → ほかは並び順のまま (ユーザーの指示、2026-10)
+  const ownUids = [d.primary, ...(d.subs || []).map((x) => x && x.uid)].filter((u) => u != null);
+  const ownRank = (s) => (s.uid === curUid ? 0 : ownUids.includes(s.uid) ? 1 : 2);
+  const cmp = game.soulSortCmp || (() => 0);
+  const souls = [...(isSub ? G.souls.filter((s) => !(SOUL_CLASSES[s.clsKey] || {}).unique) : game.soulRepresentatives())].sort((a, b) => ownRank(a) - ownRank(b) || cmp(a, b)); // 灯守 (セラだけの魂) は貸さない
   const list = el("div", "pt-list sp-plist");
   for (const s of souls) {
     const cl = SOUL_CLASSES[s.clsKey]; if (!cl) continue;
@@ -589,11 +598,15 @@ function pickerBody(root, d, slotId, h) {
     tx.appendChild(nm);
     tx.appendChild(el("span", "sp-srow-m", `Lv${s.level}/${cap} ・ ランク${rank} ・ ${RARITY_NAME[cl.rarity] || ""}`));
     if (isCur) tx.appendChild(el("span", "sp-srow-tag cur", isSub ? "このサブ魂に宿している" : "宿している"));
-    else if (conflict) tx.appendChild(el("span", "sp-srow-tag", "この人業は同じ職業の魂をすでに宿しているため選択不可"));
+    else if (conflict) tx.appendChild(el("span", "sp-srow-tag", inOther && d.primary === s.uid && curUid == null ? "メイン魂は空にできない ― 魂の宿ったサブ魂の枠となら入れ替えられる"
+      : inOther ? "入れ替えると、メイン魂の職業がパーティで重なるため選択不可" : "この人業は同じ職業の魂をすでに宿しているため選択不可"));
     else {
       // 他の人業が宿している魂も選べる (選ぶとその人業から移す。確認の画面で知らせる)
       if (other) tx.appendChild(el("span", "sp-srow-tag warn", `${other.name} が宿している ・ 選ぶと移す`));
-      else if (inOther) tx.appendChild(el("span", "sp-srow-tag", isSub ? "メイン魂/別のサブ魂から移す" : "サブ魂から移す"));
+      else if (inOther) {
+        const from = d.primary === s.uid ? "メイン魂" : `サブ魂${(d.subs || []).findIndex((x) => x && x.uid === s.uid) + 1}`;
+        tx.appendChild(el("span", "sp-srow-tag", curUid != null ? `${from}と入れ替える` : `${from}から移す`));
+      }
       const dl = previewSoul(d, slotId, s.uid);
       if (dl) tx.appendChild(statDelta(dl));
     }
