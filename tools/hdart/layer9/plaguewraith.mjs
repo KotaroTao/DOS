@@ -4,7 +4,7 @@ export const meta = { id: "bs_plaguewraith", key: "hd_plaguewraith", w: 96, h: 9
   note: "疫病の亡霊: 疫病で死に、奈落の底まで落ちて腐った者たちの魂が、ひとつに溶け合ったもや。布に巻かれた亡骸の山から立ちのぼり、黄ばんだもやの中に苦しむ顔がいくつも浮かぶ。触れた者を熱と病に沈める (毒)。撃ち込まれた呪文は、もやの奥の顔たちに呑まれて消える (魔法抵抗100)" };
 export function build() {
   const mats = {
-    haze: { ramp: ramp(["#040402", "#0c0c06", "#16160a", "#22210e", "#2f2d14", "#3e3b1a", "#504c22", "#64602c"], 8), dither: 0.75, amb: 0.32,
+    haze: { ramp: ramp(["#030302", "#080806", "#10100a", "#19180e", "#232113", "#2e2b18", "#3a361e", "#484324"], 8), dither: 0.85, amb: 0.3,
       shade: p => 0.14 * Math.sin(p.y * 0.5 + 2 * fbm(p.x * 0.15, p.y * 0.1, p.z * 0.1)) },
     face: { ramp: ramp(["#0c0c06", "#22210e", "#3e3b1a", "#5e5a2a", "#807a3c", "#a49e58"], 6), dither: 0.45, amb: 0.3 },
     shroud: { ramp: ramp(["#060504", "#12100c", "#201c16", "#302a20", "#40392c", "#544a3a"], 6), dither: 0.55, amb: 0.25 },
@@ -30,6 +30,8 @@ export function build() {
   const scene = U(0, bogFloor(48, 95, 46, 14, { n: 1, seed: 10601, wet: 0.05, logs: 0 }), ghost, ...shrouds);
   const r = render(scene, mats, { w: 96, h: 96, rim: RIM });
   const C = new Canvas(r);
+  // もやの縁をほどく (外側ほど抜ける)
+  for (let y = 0; y < 82; y++) for (let x = 0; x < 96; x++) { const p = C.pix[y * 96 + x]; if (!p || p.m !== "haze") continue; const v = (1 - p.nz) * 0.9 + 0.6 * fbm(x * 0.2, y * 0.12, 2) + (y < 30 ? (30 - y) * 0.02 : 0); if (v > 0.26 + ([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]][y & 3][x & 3] / 16) * 0.5) C.px[y * 96 + x] = null; }
   for (const [x, y, z, s] of faces) { C.only(x - 1.5 * s, y - 1 * s, ROT[4]); C.only(x + 1.5 * s, y - 1 * s, ROT[3]); }
   // 呪文がもやの顔に呑まれる (右上から来た光が渦を巻いて消える)
   for (let t = 0; t < 1; t += 0.02) { const a = t * Math.PI * 3, rr = 14 * (1 - t) + 2, x = 74 + Math.cos(a) * rr - t * 8, y = 18 + Math.sin(a) * rr * 0.6 + t * 6; if (!C.get(Math.round(x), Math.round(y))) C.set(x, y, ["#3a4a5a", "#6a88a0", "#b0d0e8"][Math.min(2, Math.floor((1 - t) * 3))]); }

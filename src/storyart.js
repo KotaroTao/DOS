@@ -2451,7 +2451,7 @@ function sceneSplint() {
 
 // 作りかけの人業 (坐りこんだ胴と、目鼻の無い球の頭)。(cx, by) = 腰の下、s = 大きさ、tilt = 体の傾き (右へ +)。
 // opt: head (false = 頭が無い)、arm (0 両腕 / 1 左腕だけ / 2 腕なし)、crest (胸の印の大きさ。0 = 無し)、rot (苔と腐れ)
-function castDoll(L, lights, cx, by, s, tilt, seed, { head = true, arm = 0, crest = 0.62, rot = 0.5, amb = [0.12, 0.12, 0.1], glint = false } = {}) {
+function castDoll(L, lights, cx, by, s, tilt, seed, { head = true, arm = 0, crest = 0.62, rot = 0.5, amb = [0.12, 0.12, 0.1], glint = false, door = true, lap = false } = {}) {
   const P = (u, v) => [cx + (u + v * tilt) * s, by - v * s];
   const pts = (list) => list.flatMap(([u, v]) => P(u, v));
   const body = new Mask(L.w, L.h), jn = new Mask(L.w, L.h), hd = new Mask(L.w, L.h);
@@ -2471,21 +2471,29 @@ function castDoll(L, lights, cx, by, s, tilt, seed, { head = true, arm = 0, cres
   };
   for (const m of [body, hd]) paintLit(L, m, woodAlb, lights, { ny: (x, y) => vNormal(m, x, y, Math.max(2, 3 * s)) * 0.5, nxMax: Math.max(3, 5 * s), amb });
   paintLit(L, jn, (x, y) => (jn.at(x, y - 1) ? [58, 60, 70] : [140, 146, 160]), lights, { amb });
-  // 胸の印 (灯を掌に載せた手。彫りくぼめた黒い円に金を埋める)
+  // 胸の扉 (開いたまま。胸の中は空ろで、扉の内側に一門の印「灯を掌に載せた手」が彫られている)
+  if (door) {
+    const cav = new Mask(L.w, L.h), dr = new Mask(L.w, L.h);
+    cav.poly(pts([[-3.4, 8.4], [3.4, 8.4], [3.6, 15], [-3.6, 15]]));
+    dr.poly(pts([[3.6, 15.2], [10.6, 14], [10.4, 7], [3.4, 8.2]]));
+    L.paint(cav, (x, y) => lit(cav.at(x, y - 1) ? [24, 18, 16] : [70, 56, 44], lightAt(x, y, lights), amb));
+    paintLit(L, dr, (x, y) => (dr.edge(x, y) ? ALB_DOLL : mix(ALB_DOLL_D, [120, 84, 54], vnoise(x * 0.5, y * 0.5, seed + 7) * 0.6)), lights, { amb });
+    const [hx2, hy2] = P(3.8, 13.6); L.px(hx2, hy2, [150, 156, 170]); const [hx3, hy3] = P(3.6, 9.4); L.px(hx3, hy3, [150, 156, 170]);   // 蝶番
+  }
   if (crest > 0) {
-    const [ccx, ccy] = P(0.4, 11.4);
+    const [ccx, ccy] = door ? P(7.2, 10.6) : P(0.4, 11.4);
     if (glint) {                                                           // 遠くの器: 金の小さな照りだけ
-      L.px(ccx, ccy, [210, 170, 90]); L.px(ccx - 1, ccy, [150, 116, 60]); L.px(ccx, ccy - 1, [255, 220, 130]);
+      L.px(ccx, ccy, [210, 170, 90]); L.px(ccx, ccy - 1, [255, 220, 130]);
     } else {
-      const hand = new Mask(L.w, L.h), flame = new Mask(L.w, L.h), plate = new Mask(L.w, L.h);
-      plate.ellipse(ccx + 0.2 * crest, ccy - 0.8 * crest, 6 * crest, 5.6 * crest);
-      paintLit(L, plate, (x, y) => (!plate.at(x, y + 1) ? [150, 120, 86] : [36, 30, 26]), lights, { amb: [0.24, 0.22, 0.2] });
-      crestMask(hand, flame, ccx, ccy + 0.6 * crest, crest);
+      const hand = new Mask(L.w, L.h), flame = new Mask(L.w, L.h);
+      crestMask(hand, flame, ccx - 0.4 * crest, ccy + 0.6 * crest, crest);
       L.paint(hand, (x, y) => lit(hand.at(x, y - 1) ? ALB_BRASS : [236, 200, 120], lightAt(x, y, lights), [0.42, 0.36, 0.28]));
       L.paint(flame, (x, y) => rc(R_EMBER, flame.at(x, y - 1) ? 0.82 : 0.95));
-      glow(L, ccx - 0.8 * crest, ccy - 3 * crest, 6 * crest, C_CANDLE, 0.16, 2);
+      glow(L, ccx - 1.2 * crest, ccy - 3 * crest, 6 * crest, C_CANDLE, 0.16, 2);
     }
   }
+  // 膝に載せた師の札
+  if (lap) { const nm = new Mask(L.w, L.h); nm.poly(pts([[-2.6, -1.6], [3, -1.2], [3.2, 1.4], [-2.4, 1.2]])); L.paint(nm, (x, y) => lit(h2(x, y, seed) > 0.75 ? [70, 56, 50] : ALB_PAPER, lightAt(x, y, lights), [0.5, 0.48, 0.44])); }
 }
 
 // 30. 一門の印の器 (沼のほとりの谷。作りかけの人業が山と積まれ、どの胸にも「灯を掌に載せた手」の印)

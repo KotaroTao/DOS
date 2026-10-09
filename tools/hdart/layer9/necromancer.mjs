@@ -29,16 +29,17 @@ export function build() {
   const handR = [ellipsoid([60, 16, 9], [2, 2.2, 1.8], "bone"), ...fingers([61, 16, 9], 170, "bone", { n: 4, len: 3.4, spread: 18, r: 0.55, curl: 1.4, z: 0.4 })];
   const handL = [ellipsoid([20, 51, 15], [1.8, 2, 1.6], "bone"), ...fingers([20, 52, 15], 70, "bone", { n: 4, len: 5, spread: 30, r: 0.55, curl: 0.4, z: 0.4 })];
   // 引き起こされる器 (左下、泥から上半身)
-  const doll = U(1, ellipsoid([14, 76, 10], [6, 7, 5], "wood", 10), sphere([12, 64, 11], 5, "wood"), cyl([16, 72, 12], [22, 62, 14], 1.6, "wood", 0.5), torus([13, 69.4, 10.6], 2, 0.8, "iron", 0, 80));
+  const doll = U(0.8, box([14, 78, 10], [6, 8, 4.4], "wood", 3, 8), sphere([12, 62, 11], 4.6, "wood"), cyl([13, 70, 10.5], [12.6, 66, 10.8], 1.6, "iron"),
+    cyl([20, 73, 12], [24, 64, 14], 1.6, "wood", 0.5), cyl([24, 64, 14], [23, 57, 16], 1.4, "wood", 0.5), torus([24, 64, 14], 1.6, 0.6, "iron", 30, 60), cyl([8, 72, 11], [4, 80, 13], 1.6, "wood", 0.5));
   const scene = U(0, bogFloor(44, 94, 46, 14, { n: 2, seed: 10401, wet: 0.2, logs: 1 }), robe, U(1, body, hood), skull, ...eyes, staff, hook, lamp, ...handR, ...handL, doll);
   const r = render(scene, mats, { w: 96, h: 96, rim: RIM, lights: [{ p: [70, 17, 16], r: 26, k: 0.45 }, { p: [16, 60, 22], r: 14, k: 0.2 }] });
   const C = new Canvas(r);
   // 器の胸の印 (泥に汚れた)
-  lampHand(C, 14, 76, ["#2a1c0c", "#140c05", "#a8c040"]);
+  lampHand(C, 14, 75, ["#2a1c0c", "#140c05", "#a8c040"]);
   // 器へ流れ込む腐った魂の糸 (術師の左手から)
   for (let t = 0; t <= 1; t += 0.03) { const x = 19 - t * 4, y = 56 + t * 16 + Math.sin(t * 10) * 1.4; if (!C.get(Math.round(x), Math.round(y))) C.set(x, y, ROT[2 + Math.floor(t * 2.9)]); }
   // 器の空っぽの眼の穴に灯る黄緑
-  C.set(10, 63, ROT[4]); C.set(13, 63, ROT[3]);
+  C.set(10, 62, ROT[4]); C.set(13, 62, ROT[3]);
   // 灯の光の輪
   for (let a = 0; a < Math.PI * 2; a += 0.1) { const x = 70 + Math.cos(a) * 6, y = 17 + Math.sin(a) * 6; if (!C.get(Math.round(x), Math.round(y)) && Math.sin(a * 5) > 0.3) C.set(x, y, ROT[1]); }
   scum(C, 10403);
