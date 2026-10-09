@@ -309,6 +309,20 @@ const TURN_K = 0.65, TURN_JITTER = 0.20;
 //  どちらも手番の初めに MIND_RECOVER で自然に正気に戻る (主はさらに +MIND_BOSS_RECOVER)。自然に戻った手番も、
 //  手番までに殴られて解けた (_wake)・術で治った (cureAil) 時も、その手番から普通に動ける (眠り・麻痺も同じ)
 const MIND_RECOVER = { charm: 0.30, confuse: 0.35 }, MIND_BOSS_RECOVER = 0.2;
+// たぎる血潮 (修羅の目玉パッシブ): 1段あたりの物理ダメージの上乗せ (Lv1-3) と上限 +200%。
+// 段は上限に届いたところで止める (表示が際限なく伸びないように)
+const CHISHIO_STEP = [0, 0.10, 0.15, 0.20];
+const CHISHIO_CAP = 2;
+const chishioBonus = (n, step) => Math.min(CHISHIO_CAP, n * step);
+const chishioMax = (step) => (step > 0 ? Math.ceil(CHISHIO_CAP / step - 1e-9) : 0);
+// 戦闘の札「血▲3」用: いまの段と上乗せ。標的が倒れていれば次は数え直しなので出さない
+export function chishioState(a) {
+  const ch = a ? pv(a, "asuraChishio") : 0;
+  const n = (a && a._bloodStack) || 0;
+  if (!ch || n <= 0 || !a._bloodTgt || !a._bloodTgt.alive) return null;
+  const step = CHISHIO_STEP[Math.min(3, ch)] || 0;
+  return { stacks: n, bonus: chishioBonus(n, step), max: n >= chishioMax(step), target: a._bloodTgt };
+}
 const MIND_CHARM_BREAK = 0.5, CONFUSE_FREE = 0.25, CONFUSE_DAZE = 0.3, CONFUSE_SELF_MUL = 0.5;
 // 自然回復 (魅了・混乱・眠り・麻痺は手番ごと、毒はラウンドごと) の救済: 治らなかった判定ごとに回復率が
 // AIL_RAMP ずつ上がり、AIL_SURE 回目の判定で必ず治る (= かかったままの手番は最長 AIL_SURE-1 回)。
@@ -2260,15 +2274,23 @@ export class Battle {
     const pOn = opt.basic ? ["phys", "basic"] : opt.skill ? ["phys", "skill"] : ["phys"];
     const perkFoe = actor.side === "party" && tgt.side === "enemy";
     if (perkFoe) { const pd = this._perkSum(actor, "deal", { tgt, el: aE, on: pOn }); if (pd) dmg = Math.round(dmg * (1 + pd)); }
-    // たぎる血潮 (修羅): 同じ敵へ続けて手を下すたび +10/15/20% (最大 +200%)。別の敵を討てば数え直し
+    // たぎる血潮 (修羅): 同じ敵へ続けて手を下すたび1段 +10/15/20% (最大 +200%)。数えるのは1手に1度 (多段の技も1段)。
+    // 別の敵に当たった時点で (同じ手の中でも) 0段に戻る。かわされた撃は数えない (この手前で返っている)
     if (perkFoe) {
       const ch = pv(actor, "asuraChishio");
       if (ch) {
-        if (actor._bloodAct !== this._actSeq) {
-          actor._bloodStack = actor._bloodTgt === tgt ? (actor._bloodStack || 0) + 1 : 0;
+        const step = CHISHIO_STEP[Math.min(3, ch)] || 0;
+        const prev = actor._bloodStack || 0;
+        if (actor._bloodTgt !== tgt) {
+          actor._bloodStack = 0;
           actor._bloodTgt = tgt; actor._bloodAct = this._actSeq;
+          if (prev > 0) this.log(`${actor.name}のたぎる血潮が冷めた… (標的が変わり0段へ)`, "sys");
+        } else if (actor._bloodAct !== this._actSeq) {
+          actor._bloodStack = Math.min(chishioMax(step), prev + 1);
+          actor._bloodAct = this._actSeq;
+          if (actor._bloodStack > prev) this.log(`${actor.name}の血潮がたぎる！ (血潮${actor._bloodStack}段・物理+${Math.round(chishioBonus(actor._bloodStack, step) * 100)}%${actor._bloodStack >= chishioMax(step) ? "・最大" : ""})`, "sys");
         }
-        const bonus = Math.min(2, (actor._bloodStack || 0) * ([0, 0.10, 0.15, 0.20][Math.min(3, ch)] || 0));
+        const bonus = chishioBonus(actor._bloodStack || 0, step);
         if (bonus > 0) dmg = Math.round(dmg * (1 + bonus));
       }
     }
