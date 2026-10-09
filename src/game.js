@@ -44,7 +44,7 @@ import { showTitle } from "./title.js";
 import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityUp } from "./rarity.js";
 // ---- UI 基盤 (Phase 0)。新しい UI モジュールは game.js を import せず、ctx.js の UI/game/ops を通す ----
 import { UI, ops, bindGame, registerUI } from "./ui/ctx.js";
-import { el, btn, button as kitButton, longPress as attachLongPress, uiBlocked, sheetDepth, sheet, toast as kitToast, confirm as kitConfirm, plainText, shake as kitShake } from "./ui/kit.js";
+import { el, svgIcon, btn, button as kitButton, longPress as attachLongPress, uiBlocked, sheetDepth, sheet, toast as kitToast, confirm as kitConfirm, plainText, shake as kitShake } from "./ui/kit.js";
 import { nav } from "./ui/nav.js";
 import { installPhraseWrap } from "./ui/phrase.js";
 import * as townshell from "./ui/townshell.js";
@@ -141,6 +141,7 @@ function itemNameEl(tag, cls, it, suffix = "") {
   const e = el(tag, cls, itemName(it) + suffix);
   const k = rarityKey(it);
   if (k) { e.style.color = RARITIES[k].color; e.classList.add("rar-" + k); }
+  if (it && it.locked) e.appendChild(svgIcon("lock", "item-lk"));
   return e;
 }
 
@@ -9962,7 +9963,7 @@ function gameOver() {
   playBgm(null);
   SFX.gameover();
   buzz([0, 90, 70, 90, 70, 250]);
-  log("人業はことごとく砕けた…", "dmg");
+  log(G.run && G.run.abandoned ? "迷宮を諦めた。人業はことごとく砕けた…" : "人業はことごとく砕けた…", "dmg");
   imprintFallen(); // 記憶を刻む (器は迷宮に残り、街へ戻ってから連れ帰りの時を数える)
   G.autoCombat = false;
   if (G._autoTimer) { clearTimeout(G._autoTimer); G._autoTimer = null; }
@@ -9980,6 +9981,7 @@ function gameOver() {
     leaveDungeon(opts);
   };
   uiResults.openWipe({
+    abandoned: !!r.abandoned, // 自ら迷宮を諦めた (全滅と同じ扱い)
     gold: secured ? 0 : (r.gold || 0),
     items: secured ? 0 : (r.items || []).length,
     souls: secured ? 0 : (r.souls || []).length,
@@ -10007,6 +10009,35 @@ function gameOver() {
       goTown({ outcome: "wipe", run, forfeited });
     },
   });
+}
+
+// 迷宮を諦める (手帳から、2026-10 ユーザーの指示): 全滅と同じ扱い。
+// 隊の全員が砕け、全滅の決断 (赤い魂で全てを守る / あきらめて救出を待つ) へ進む
+function confirmAbandonDungeon() {
+  if (G.state !== "board" || G.anim || G.walking || uiBlocked()) return;
+  const secured = !!(G.run && G.run.secured);
+  showConfirm({
+    title: "迷宮を諦める？",
+    lines: [
+      "全滅と同じ扱いになる。隊の人業はことごとく砕け、連れ帰りを待つ。",
+      secured ? "主を討った後なので、戦利品は失わない。" : `赤い魂 ${GUARDIAN_COST} を使わなければ、今回得たゴールド・品・魂を失う。`,
+      "✦Soul は失わない。",
+    ],
+    okLabel: "諦める",
+    onOk: abandonDungeon,
+  });
+}
+function abandonDungeon() {
+  if (G.state !== "board") return;
+  setAutoMove(false);
+  if (!G.run) G.run = newRun();
+  G.run.abandoned = true;
+  for (const p of G.party) {
+    p.alive = false; p.hp = 0;
+    p.asleep = false; p.mind = null;
+  }
+  gameOver();
+  autosave(true);
 }
 
 // 迷宮の主を撃破した瞬間の確定処理。演出 (showDungeonClearedPopup) とは分離し、
@@ -13630,6 +13661,7 @@ function sellWarnings(it) {
 function sellItem(owner, it, price) {
   const idx = owner.items.indexOf(it);
   if (idx < 0) return false;
+  if (it.locked) { SFX.ng(); showToast(`${it.name}はロック中 ― 売るにはロックを外す`, { tone: "info" }); return false; }
   // 未鑑定品は正体不明のため二束三文 (0G) で引き取られ、商店にも並ばない
   if (it.unidentified) price = 0;
   owner.items.splice(idx, 1);
@@ -14627,7 +14659,11 @@ function equipAt(p, it, slotKey, owner = p, stashTo = null) {
   if (!it || !itemFitsSlot(it, slotKey)) return { ok: false, msg: "その部位には装備できない" };
   if (!canEquip(p, it)) return { ok: false, msg: it.unidentified ? "未鑑定の品は装備できない" : `${p.cls}は${it.name}を装備できない` };
   const tr = autoEquip.trialEquip(p.equip, it, slotKey);
-  if (!tr) return { ok: false, msg: "呪われた装備が外れない" };
+  if (!tr) {
+    const pin = [p.equip[slotKey], it.slot === "weapon" && it.twoHanded ? p.equip.shield : null, it.slot === "shield" && p.equip.weapon && p.equip.weapon.twoHanded ? p.equip.weapon : null]
+      .find((x) => autoEquip.isPinned(x));
+    return { ok: false, msg: pin && !pin.cursed ? `${pin.name}はロック中 ― ロックを外すと付け替えられる` : "呪われた装備が外れない" };
+  }
   const bag = stashTo || p;
   const bagAfter = bag.items.length - (owner === bag ? 1 : 0) + tr.displaced.length;
   if (bagAfter > MAX_ITEMS) return { ok: false, full: true, msg: `${bag.name}の持ち物がいっぱいで、外した装備を入れられない` };
@@ -14653,6 +14689,17 @@ function equipFromAnywhere(p, slotKey, c) {
   if (r.ok) { SFX.select(); buzz(10); } else { SFX.ng(); if (r.msg) showToast(r.msg, { tone: "bad" }); }
   renderStatus(); renderParty();
   return r;
+}
+// 装備のロック (品ごと。it.locked はセーブに残り、目録の付け直し reflattenItemStats でも消えない)。
+// ロックした品は売れない・捨てられない・外せない・最適装備や付け替えで押し出されない (autoequip.js isPinned)
+function toggleItemLock(it) {
+  if (!it || it.unidentified || !isEquippable(it)) return false;
+  if (it.locked) delete it.locked; else it.locked = true;
+  SFX.select(); buzz(8);
+  showToast(it.locked ? `${it.name}をロックした ― 売却・付け替えの対象にならない` : `${it.name}のロックを外した`, { tone: "info" });
+  autosave(true);
+  renderStatus(); renderParty();
+  return !!it.locked;
 }
 function doUnequip(p, key) {
   const r = unequipItem(p, key);
@@ -14749,6 +14796,7 @@ function useItemMeasured(p, index, target) {
 function dropItem(p, index) {
   const it = p.items[index];
   if (!it || G.state === "town") return;
+  if (it.locked) { SFX.ng(); showToast(`${it.name}はロック中 ― 捨てるにはロックを外す`, { tone: "info" }); return; }
   showConfirm({
     title: `${it.name} を捨てる？`,
     lines: ["捨てたアイテムは二度と戻らない。"],
@@ -15753,7 +15801,7 @@ function opsJunkList({ includeUse = !!uiDungeonHud.getPref("sellUse") } = {}) {
   const out = [];
   for (const d of allDolls()) {
     for (const it of (d.items || [])) {
-      if (!it || it.cursed || it.unidentified || opsEquippedBy(d, it) || sellWarnings(it).length) continue;
+      if (!it || it.cursed || it.locked || it.unidentified || opsEquippedBy(d, it) || sellWarnings(it).length) continue;
       if (!includeUse && it.slot === "use") continue;
       out.push({ doll: d, item: it, price: sellPrice(it) });
     }
@@ -16153,7 +16201,7 @@ function wireUI() {
     trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairAllDolls, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,
-    doEquip, doUnequip, equipFromAnywhere, openEquipChooser, useItem, dropItem, transferItem,
+    doEquip, doUnequip, toggleItemLock, equipFromAnywhere, openEquipChooser, useItem, dropItem, transferItem,
     stopAutoCombat, sceneBgm, playBgm, SFX,
     ACH_SERIES, FACILITIES, FAC_SHELL, CONTENT_LIMIT, DUNGEONS, LAYER_VISUALS,
     isTitleActive: () => titleActive,
@@ -16233,7 +16281,7 @@ bindGame({
   departNow, departAbyss, townMutatorFor, preDiveIssues, departWoes, DUNGEON_BRIEFING, STORY_CELLS, startFloorsOf, worldOpenIdx, worldOpenId, worldUnlockMet, levelBand, partyLevel, storyCellPending, dungeonFacts, dungeonQuests, namedHere, namedList, namedInfo,
   abyssRecords, abyssMaxDepth, ABYSS_MODS, abyssScoreMul, weekSeedId, emptyDollCost,
   // 迷宮の HUD
-  specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow,
+  specialDef, mutDef, eliteKey, dungeonObjective, abyssActive, abyssBossPending, findRevealedStairs, canReturnNow, confirmAbandonDungeon,
   ABYSS_MUT_MAP, dungeonTheme, eventFacts,
   renderDock, // 設定「オート移動と見えている敵」を変えた時、ドックの札の説明を描き直す
   // 戦果・帰還の報告

@@ -1497,6 +1497,7 @@ export function unequip(member, key) {
   const it = member.equip[key];
   if (!it) return { ok: false, msg: "" };
   if (it.cursed) return { ok: false, msg: `${it.name}は呪われていて外せない！` };
+  if (it.locked) return { ok: false, msg: `${it.name}はロック中 ― ロックを外すと外せる` };
   if (member.items.length >= MAX_ITEMS) return { ok: false, msg: "持ち物がいっぱいだ" };
   member.equip[key] = null;
   member.items.push(it);

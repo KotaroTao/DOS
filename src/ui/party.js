@@ -198,6 +198,8 @@ export const REASON_TEXT = {
   "属性": "属性が合わない",
   "呪い": "呪われた装備が外れない",
   "両手": "呪われた装備があり、両手武器と盾を持ち替えられない",
+  "ロック": "ロック中の装備は付け替えない (ロックを外すと付けられる)",
+  "両手ロック": "ロック中の装備があり、両手武器と盾を持ち替えられない",
   "遠征中": "遠征に出ていて、帰るまで装備を替えられない",
 };
 export function canEquipReason(d, it) {
@@ -221,8 +223,11 @@ export function canEquipReason(d, it) {
   for (const k of slotKeysFor(it)) {
     const cur = d.equip && d.equip[k];
     if (cur && cur.cursed) { why = why || "呪い"; continue; }
-    if (it.slot === "weapon" && it.twoHanded && d.equip.shield && d.equip.shield.cursed) { why = "両手"; continue; }
-    if (it.slot === "shield" && d.equip.weapon && d.equip.weapon.twoHanded && d.equip.weapon.cursed) { why = "両手"; continue; }
+    if (cur && cur.locked) { why = why || "ロック"; continue; }
+    const sh = it.slot === "weapon" && it.twoHanded ? d.equip.shield : null;
+    const wp = it.slot === "shield" && d.equip.weapon && d.equip.weapon.twoHanded ? d.equip.weapon : null;
+    if ((sh && sh.cursed) || (wp && wp.cursed)) { why = "両手"; continue; }
+    if ((sh && sh.locked) || (wp && wp.locked)) { why = "両手ロック"; continue; }
     return null;
   }
   return why || "呪い";
@@ -1900,7 +1905,7 @@ function equipSeg(root, d) {
 function slotCell(d, k) {
   const it = d.equip[k];
   const info = d.primary != null ? slotInfo(d, k) : { count: 0, better: false };
-  const r = el("button", "pt-slot" + (it ? "" : " empty") + (it && it.cursed ? " cursed" : "") + (info.better ? " better" : ""));
+  const r = el("button", "pt-slot" + (it ? "" : " empty") + (it && it.cursed ? " cursed" : "") + (it && it.locked ? " locked" : "") + (info.better ? " better" : ""));
   r.type = "button";
   r.dataset.slot = k;
   const ic = el("span", "pt-slot-ic");
@@ -1972,6 +1977,11 @@ export function openCandidates(d, k) {
 function candBody(root, d, k, h, town) {
   const cur = d.equip[k];
   root.appendChild(cur ? curItemCard(d, k, cur, h) : curEmpty());
+  if (cur && cur.locked) {
+    // ロック中の部位は付け替えない (候補も並べない)。ロックを外せば候補が出る
+    root.appendChild(el("div", "pt-note c", "ロック中 ― この部位は付け替え・最適装備の対象にならない。付け替えるにはロックを外す。"));
+    return;
+  }
   const cands = slotCandidates(d, k, { includeUnid: true });
   const ok = cands.filter((c) => !c.unid);
   const unid = cands.filter((c) => c.unid);
@@ -2028,7 +2038,15 @@ function curItemCard(d, k, cur, h) {
   }
   if (cur.desc && !cur.unidentified) box.appendChild(el("div", "pt-cur-desc", cur.desc));
   const foot = el("div", "pt-cur-foot");
-  foot.appendChild(button({ label: cur.cursed ? "呪いで外せない" : "外す", kind: "ghost", size: "sm", disabled: !!cur.cursed || d.items.length >= MAX_ITEMS,
+  if (!cur.cursed && !cur.unidentified && game.toggleItemLock) {
+    const lk = button({ icon: cur.locked ? "lock" : "unlock", label: cur.locked ? "ロック中" : "ロック", kind: cur.locked ? "secondary" : "ghost", size: "sm",
+      title: cur.locked ? "ロックを外す" : "売却・付け替え・最適装備の対象にしない",
+      onTap: () => { game.toggleItemLock(cur); memoClear(); if (h && !h.closed && h.update) h.update({}); } });
+    lk.classList.add("pt-lock", "sp-lock-btn");
+    if (cur.locked) lk.classList.add("on");
+    foot.appendChild(lk);
+  }
+  foot.appendChild(button({ label: cur.cursed ? "呪いで外せない" : cur.locked ? "ロック中は外せない" : "外す", kind: "ghost", size: "sm", disabled: !!cur.cursed || !!cur.locked || d.items.length >= MAX_ITEMS,
     onTap: () => { h.close(); if (game.doUnequip) game.doUnequip(d, k); } }));
   box.appendChild(foot);
   return box;
@@ -2371,7 +2389,8 @@ function itemActions(it, owner, ctx, { equip = true } = {}) {
   const close = (h) => { if (h && h.close) h.close(); };
   if (ctx === "equip") {
     const key = SLOTS.find((k) => owner.equip[k] === it);
-    acts.push({ label: it.cursed ? "呪いで外せない" : "外す", kind: "secondary", disabled: !!it.cursed || owner.items.length >= MAX_ITEMS,
+    if (!it.cursed && !it.unidentified && game.toggleItemLock) acts.push({ label: it.locked ? "ロックを外す" : "ロック", kind: "ghost", onTap: (h) => { close(h); game.toggleItemLock(it); } });
+    acts.push({ label: it.cursed ? "呪いで外せない" : it.locked ? "ロック中は外せない" : "外す", kind: "secondary", disabled: !!it.cursed || !!it.locked || owner.items.length >= MAX_ITEMS,
       onTap: (h) => { close(h); if (key && game.doUnequip) game.doUnequip(owner, key); } });
     return acts;
   }
@@ -2392,14 +2411,15 @@ function itemActions(it, owner, ctx, { equip = true } = {}) {
     acts.push({ label: town ? "商会で売るか、王宮の宝物庫へ奉納する" : "街へ持ち帰ろう (商会・宝物庫)", kind: "ghost", disabled: true });
   }
   if (transferTargets(owner).length) acts.push({ label: "渡す", kind: "secondary", onTap: (h) => { close(h); openTransfer(owner, it); } });
+  if (isEquippable(it) && !it.unidentified && !it.cursed && game.toggleItemLock) acts.push({ label: it.locked ? "ロックを外す" : "ロック", kind: "ghost", onTap: (h) => { close(h); game.toggleItemLock(it); } });
   // 売る (商会が開いている街。鑑定済みの品。値段・警告・確認は商会と同じ UI.sellOne)
-  if (town && !it.unidentified && UI.sellOne && UI.shopOpen && UI.shopOpen() && owner.items.includes(it) && game.sellPrice) {
+  if (town && !it.unidentified && !it.locked && UI.sellOne && UI.shopOpen && UI.shopOpen() && owner.items.includes(it) && game.sellPrice) {
     const warn = game.sellWarnings && game.sellWarnings(it).length;
     acts.push({ key: "sell", label: "売る", kind: warn ? "danger" : "secondary", cost: game.sellPrice(it),
       onTap: async (h) => { if (await UI.sellOne(owner, it)) close(h); } });
   }
   // 捨てるのは迷宮の中だけ (持ちきれない時の手段。街では売る・奉納で足りる)
-  if (!town) acts.push({ label: "捨てる", kind: "danger", onTap: (h) => { close(h); const i = owner.items.indexOf(it); if (i >= 0 && game.dropItem) game.dropItem(owner, i); } });
+  if (!town && !it.locked) acts.push({ label: "捨てる", kind: "danger", onTap: (h) => { close(h); const i = owner.items.indexOf(it); if (i >= 0 && game.dropItem) game.dropItem(owner, i); } });
   return acts;
 }
 
