@@ -41,5 +41,5 @@ export const NAMED_ITEMS = [
   trophy(8, "el_frostsovereign", W("w_nm_frostsovereign", "凍王の影の氷剣", "ls", 96, { pow: 1.45, onHit: ["paralyze", 0.2], eAtk: ["earth", 1], hp: 24, tint: "#a8c8e8",
     desc: "凍王が切り離した影が、回廊を見回るあいだ下げていた氷の剣。斬られた者を芯から凍らせてきた刃は、いまは持ち主の敵の手足を凍えさせ、凍った水の身を岩のように割る。凍王の影の首級。" })),
   trophy(8, "el_glacialmaw", S("s_nm_glacialmaw", "氷河の大顎の牙盾", 98, { shape: "kite", pow: 1.45, hp: 32, bRes: 0.3, eDef: ["earth", 1], eff: { guard: 0.06 }, tint: "#d0e4f0",
-    desc: "氷河の大顎から抜いた白い牙を、鉄の枠に並べて組んだ大盾。千年溶けない吹雪を吐き続けた顎の牙は、凍える息も氷の牙も受け止めて離さない。氷河の大顎の首級。" })),
+    desc: "氷河の大顎から抜いた白い牙を、鉄の枠に並べて組んだ大盾。鎧ごと獲物を噛み砕いてきた顎の牙は、氷の牙も凍える息も受け止めて離さない。氷河の大顎の首級。" })),
 ];

@@ -61,6 +61,8 @@
 //           出現表の雑魚の sqrt(HP×ATK) × 強さ × 手直し が推奨Lv に沿ってなだらかに伸びるよう (第5層の伸び Lv^1.19、
 //           層の入口で 1割の段差) 合わせた。掟の重さ (群れ・奇襲・開幕の熱気・逃走不可) の分は控えめ。主は雑魚比 2.35〜2.4。
 //           テスト記録が届いたら実測で合わせ直す
+//           第8層 (第六章) は、強さの素を第五章の同じ並びの迷宮の 0.9倍 (第四章 → 第五章と同じ層の段差) にし、手直しも第五章に倣った。
+//           顔ぶれのランクが 9〜10 に上がった分は monStats が持つので、これもテスト記録で測り直す
 import { LAYER_ELEMENT } from "./generator.js";
 import { LAYER_BOSS, LAYER_ELITES, LAYER_POOLS, BESTIARY } from "./bestiary.js";
 import { baselineLv } from "../baseline.js";
