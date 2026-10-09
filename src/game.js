@@ -20,7 +20,7 @@ import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, STORY_C
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
 import { NAMED_FOES, NAMED_IDS, TROPHY_OF, HUNT_ELITE_RATE, bountyId } from "./dungeons/named.js";
-import { DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, strengthAt, lootBand, abyssLayer, ABYSS_LAYER_FLOORS, hazardsAt, levelBand, DUNGEON_MONSTERS, ELEMENTS, elemDmgMult, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, monsterTraits, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
+import { DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, strengthAt, lootBand, abyssLayer, ABYSS_LAYER_FLOORS, hazardsAt, levelBand, DUNGEON_MONSTERS, ELEMENTS, elemDmgMult, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, LAYER_POOLS, monsterTraits, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
 import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
 } from "./abyss.js";
@@ -6457,15 +6457,28 @@ function collectWarmCorpse(cell, clsKey, clsLabel) {
   collectSoul(cell, clsKey, clsLabel);
 }
 
-// 現在のダンジョンに出るアンデッド種のキー (なければ全体から、最終的に地下牢の骸)。
+// 現在のダンジョンに出るアンデッド種のキー。
 // ボス/強敵は除外する (死体から湧いた個体が boss フラグを持つと迷宮踏破扱いになってしまうため)
+// 顔ぶれにアンデッドがいない迷宮 (霧の迷い森など) では、この層までの顔ぶれのアンデッドのうち
+// この階の雑魚の最高ランクに一番近い (超えない) ものを使い、それも無ければこの階の雑魚にする。
+// (以前は全魔物から引いていたので、霧の迷い森に第9層・ランク9の「沼の溺者」が群れで湧いていた)
 function undeadKeyForDungeon() {
   const cfg = activeCfg();
-  const local = [...(cfg.pool || []), ...(cfg.deepPool || [])]
-    .filter((k) => MONSTERS[k] && MONSTERS[k].race === "undead" && !MONSTERS[k].boss && !MONSTERS[k].elite);
+  const isUndead = (k) => MONSTERS[k] && MONSTERS[k].race === "undead" && !MONSTERS[k].boss && !MONSTERS[k].elite && !MONSTERS[k].evOnly && !MONSTERS[k].metal;
+  const local = [...(cfg.pool || []), ...(cfg.deepPool || [])].filter(isUndead);
   if (local.length) return local[rand(local.length)];
-  const all = Object.keys(MONSTERS).filter((k) => MONSTERS[k].race === "undead" && !MONSTERS[k].boss && !MONSTERS[k].elite);
-  return all.length ? all[rand(all.length)] : "d01_skeleton";
+  const here = poolAt(cfg, G.floor || 1).filter((k) => MONSTERS[k]);
+  const cap = Math.max(1, ...here.map((k) => MONSTERS[k].rank || 1));
+  const near = [];
+  for (let L = Math.min(20, battleLayer()); L >= 1; L--) {
+    for (const k of LAYER_POOLS[L] || []) if (isUndead(k) && (MONSTERS[k].rank || 1) <= cap && !near.includes(k)) near.push(k);
+  }
+  if (near.length) {
+    const top = Math.max(...near.map((k) => MONSTERS[k].rank || 1));
+    const best = near.filter((k) => (MONSTERS[k].rank || 1) === top);
+    return best[rand(best.length)];
+  }
+  return here.length ? here[rand(here.length)] : "d01_skeleton";
 }
 
 // 風化した死体を調べる: 魂20% / Soul30% / Gold30% / 装備20% (戦闘は起きない)。
