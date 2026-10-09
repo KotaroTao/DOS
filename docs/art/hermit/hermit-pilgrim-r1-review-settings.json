@@ -1,0 +1,28 @@
+{
+  "job": "hermit",
+  "label": "巡礼者（現行ID: hermit / 表示名: 隠修士）",
+  "draft": "docs/art/hermit/hermit-pilgrim-female-r1-draft.png",
+  "comparison": "docs/art/hermit/hermit-pilgrim-r1-display-comparison.png",
+  "sourceScaleComparison": "docs/art/hermit/hermit-pilgrim-r1-crusader-comparison.png",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "temporaryImportPreview": {
+    "frame": [
+      90,
+      92
+    ],
+    "frameTop": 9,
+    "draftPerDot": 15.78,
+    "draftHead": [
+      485,
+      615,
+      124,
+      438,
+      1405
+    ]
+  },
+  "notes": [
+    "承認前の仮測定。ゲーム画像は未更新。",
+    "隠修士既存案と被る白フード・茶ぼろ外套・曲がった木杖を避け、巡礼帽・青灰マント・聖鈴/貝殻飾り・直杖へ変更。",
+    "R2-R5制作前にR1を再測定する。"
+  ]
+}

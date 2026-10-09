@@ -1,0 +1,105 @@
+{
+  "assets": [
+    {
+      "path": "art/jobs/hermit_1.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        75,
+        29,
+        296,
+        367
+      ],
+      "edgeAlphaMax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "inServiceWorker": true
+    },
+    {
+      "path": "art/jobs/hermit_2.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        73,
+        28,
+        297,
+        367
+      ],
+      "edgeAlphaMax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "inServiceWorker": true
+    },
+    {
+      "path": "art/jobs/hermit_3.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        76,
+        28,
+        297,
+        366
+      ],
+      "edgeAlphaMax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "inServiceWorker": true
+    },
+    {
+      "path": "art/jobs/hermit_4.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        67,
+        28,
+        314,
+        367
+      ],
+      "edgeAlphaMax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "inServiceWorker": true
+    },
+    {
+      "path": "art/jobs/hermit_5.webp",
+      "size": [
+        360,
+        368
+      ],
+      "alphaBBox": [
+        57,
+        18,
+        319,
+        365
+      ],
+      "edgeAlphaMax": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "inServiceWorker": true
+    }
+  ],
+  "cache": "dos-dev"
+}
