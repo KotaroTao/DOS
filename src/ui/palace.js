@@ -660,7 +660,8 @@ export function codexMonSheet(key, o = {}) {
   const lean = loreOpen && !mt ? resistLean({ ...m, rank: (foe && foe.evRank) || m.rank, boss: foe ? !!foe.boss || !!m.boss : m.boss, elite: m.elite || !!(foe && (foe.evRank || foe.isMimic)) }, resV) : null;
   const leanCls = (k) => !lean ? "" : lean.weak.includes(k) ? "res-weak" : lean.soft.includes(k) ? "res-soft" : lean.immune.includes(k) ? "res-imm" : lean.strong.includes(k) ? "res-strong" : "";
   if (loreOpen) {
-    for (const [k, label] of Object.entries(RESIST_LABEL)) fact(`${label}抵抗値`, resV[k] ?? m[k] ?? 0, leanCls(k));
+    // 石化は隊が敵に掛ける手段が無いので、敵の石化抵抗値は出さない (「状態異常の効き」も同じ — resistLean)
+    for (const [k, label] of Object.entries(RESIST_LABEL)) if (k !== "stone") fact(`${label}抵抗値`, resV[k] ?? m[k] ?? 0, leanCls(k));
     if (m.breathRes) fact("ブレス耐性", `${Math.round(m.breathRes * 100)}%`);
   }
   if (info.childNodes.length) body.appendChild(info);
