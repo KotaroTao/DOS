@@ -28,7 +28,7 @@ import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVi
 import {
   planBestEquip, applyPlan, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isMeleeWeapon,
 } from "../autoequip.js";
-import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, useWhere, compareUse } from "../items.js";
+import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, useWhere, compareUse, AIL_LABEL } from "../items.js";
 import {
   SOUL_CLASSES, SOUL_KEYS, JOB_GEAR, dollSprite, dollBust, dollFace, jobBust, jobSprite, jobRankName, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulLabel, soulRankLeft, soulByUid,
   orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs, isAutoOff, setAutoOff,
@@ -702,10 +702,12 @@ function openAutoEquipResult(plan, before, undo) {
       chip.appendChild(el("span", "pt-ae-sd", `${v1 > v0 ? "▲" : "▼"}${Math.abs(v1 - v0)}`));
       st.appendChild(chip);
     }
-    // 能力値以外で点数に効くもの (ブレス耐性・状態異常耐性の合計) も、付け替えの理由がわかるように出す
-    const resSum = (o) => Math.round(Object.values(o || {}).reduce((a, v) => a + (v || 0), 0) * 100);
-    for (const [lab, v0, v1] of [["ブレス耐性", Math.round((r.b.breathRes || 0) * 100), Math.round((r.a.breathRes || 0) * 100)],
-      ["異常耐性", resSum(r.b.ailRes), resSum(r.a.ailRes)]]) {
+    // 能力値以外で点数に効くもの (ブレス耐性・状態異常耐性) も、付け替えの理由がわかるように出す。
+    // 状態異常耐性は種類ごとに (合計だと何の耐性が動いたのかわからない — ユーザーの指示)
+    const pct = (v) => Math.round((v || 0) * 100);
+    const resRows = [["ブレス耐性", pct(r.b.breathRes), pct(r.a.breathRes)]];
+    for (const k of Object.keys(AIL_LABEL)) resRows.push([`${AIL_LABEL[k]}耐性`, pct((r.b.ailRes || {})[k]), pct((r.a.ailRes || {})[k])]);
+    for (const [lab, v0, v1] of resRows) {
       if (v0 === v1) continue;
       const chip = el("span", "pt-ae-s " + (v1 > v0 ? "up" : "dn"));
       chip.appendChild(el("span", "pt-ae-sk", lab));
