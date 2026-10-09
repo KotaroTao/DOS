@@ -9926,19 +9926,25 @@ function renderParty() {
     let cls = "pc" + (p.alive ? "" : " dead");
     if (p.alive && p.hp / p.maxhp <= 0.25) cls += " low"; // 瀕死警告
     if (fx && fx.has(p)) cls += " fx-" + fx.get(p); // fx-hit / fx-heal
+    if (_pdrag && _pdrag.p === p) cls += " lifting";
+    if (_pdrag && _pdrag.over === idx) cls += " drop-over";
     card.className = cls;
-    // 盤面: タップ = 隊のシート (迷宮の型) / 長押し = その場で覗く (戦闘中も)
+    card.dataset.idx = idx;
+    // 盤面: タップ = 隊のシート (迷宮の型) / 長押し = 持ち上げて隊列を並べ替える (動かさず離せば覗く)
+    // 戦闘: 長押し = その場で覗く
     if (G.state === "board") {
       card.style.cursor = "pointer";
       card.setAttribute("role", "button");
+      attachPartyDrag(card, p);
       card.addEventListener("click", () => {
         if (G._swiped) { G._swiped = false; return; } // 札の上からフリックして歩いた直後の click は無視
+        if (Date.now() < _pdragSwallowUntil) return; // 長押しで持ち上げた後の click は無視
         if (holdForAutoMove(() => { if (!uiBlocked()) UI.openParty(idx, { context: "dungeon" }); })) return;
         if (G.anim || G.walking || uiBlocked()) return;
         UI.openParty(idx, { context: "dungeon" });
       });
     }
-    if (G.state === "board" || G.state === "combat") attachLongPress(card, () => { SFX.select(); buzz(10); uiDungeonHud.peekDoll(p, { idx, combat: G.state === "combat" }); });
+    if (G.state === "combat") attachLongPress(card, () => { SFX.select(); buzz(10); uiDungeonHud.peekDoll(p, { idx, combat: true }); });
     // 戦闘: 味方を対象に選ぶ場面では、隊の札をタップしても選べる (回復・支援の対象)
     if (G.state === "combat") card.addEventListener("click", () => {
       const b = G.battle;
@@ -9982,6 +9988,106 @@ function renderParty() {
     if (fv) card.appendChild(el("span", "pc-fx " + fv.split(" ").map((c) => "v-" + c).join(" ")));
     partyEl.appendChild(card);
   });
+}
+
+// 迷宮の中の隊列の並べ替え (ユーザーの指示、2026-10): 隊の札を長押しで持ち上げ、指を動かして別の札の上で離すと入れ替える。
+// 動かさずに離せば、従来の長押しと同じく その場で覗く。歩くたびに renderParty() が札を作り直しても
+// 指を取りこぼさないよう、持ち上げた後は作り直されない器 (#party) に指を捕まえ、window で受ける。
+// 持ち上げ中は札の上のフリック移動 (swipe) を止める。並びは館と同じく 前から3人 = 前衛。
+const PDRAG_MS = 400;
+let _pdrag = null;            // { p, from, over, moved, sx, sy, pid, ghost }
+let _pdragSwallowUntil = 0;   // 持ち上げた指を離した直後の click を捨てる
+function attachPartyDrag(card, p) {
+  card.addEventListener("contextmenu", (e) => e.preventDefault());
+  card.addEventListener("pointerdown", (e) => {
+    if (e.button || _pdrag) return;
+    const sx = e.clientX, sy = e.clientY, pid = e.pointerId;
+    let timer = setTimeout(() => { timer = null; liftPartyCard(p, sx, sy, pid); }, PDRAG_MS);
+    const cancel = () => {
+      if (timer) { clearTimeout(timer); timer = null; }
+      window.removeEventListener("pointermove", move, true);
+      window.removeEventListener("pointerup", cancel, true);
+      window.removeEventListener("pointercancel", cancel, true);
+    };
+    const move = (ev) => {
+      if (ev.pointerId !== pid) return;
+      if (!timer) { cancel(); return; }
+      if (Math.abs(ev.clientX - sx) > 10 || Math.abs(ev.clientY - sy) > 10) cancel(); // 先に動いた指はフリック移動に任せる
+    };
+    window.addEventListener("pointermove", move, true);
+    window.addEventListener("pointerup", cancel, true);
+    window.addEventListener("pointercancel", cancel, true);
+  });
+}
+function partyCardAt(x, y) {
+  const t = document.elementFromPoint(x, y);
+  const c = t && t.closest ? t.closest("#party .pc") : null;
+  return c && c.dataset.idx != null ? +c.dataset.idx : -1;
+}
+function markPartyDrag() {
+  if (!_pdrag) return;
+  for (const c of partyEl.children) {
+    const i = +c.dataset.idx;
+    c.classList.toggle("lifting", G.party[i] === _pdrag.p);
+    c.classList.toggle("drop-over", i === _pdrag.over);
+  }
+}
+function liftPartyCard(p, sx, sy, pid) {
+  if (G.state !== "board" || uiBlocked() || !G.party.includes(p)) return;
+  stopSwipe(); // 札の上のフリック移動を止める (持ち上げ中は歩かない)
+  const ghost = el("div", "pt-ghost");
+  if (p.isDoll && p.primary != null) ghost.appendChild(crispCanvas(dollBust(p), 42));
+  document.body.appendChild(ghost);
+  document.body.classList.add("pt-dragging");
+  _pdrag = { p, over: -1, moved: false, sx, sy, pid, ghost };
+  const place = (x, y) => { ghost.style.transform = `translate(${x - 24}px, ${y - 28}px)`; };
+  place(sx, sy);
+  try { partyEl.setPointerCapture(pid); } catch (err) { /* 非対応環境は素通し */ }
+  SFX.select(); buzz(12);
+  markPartyDrag();
+  const move = (e) => {
+    if (!_pdrag || e.pointerId !== pid) return;
+    e.preventDefault();
+    if (Math.abs(e.clientX - sx) > 6 || Math.abs(e.clientY - sy) > 6) _pdrag.moved = true;
+    place(e.clientX, e.clientY);
+    const j = partyCardAt(e.clientX, e.clientY);
+    const over = j >= 0 && G.party[j] !== p ? j : -1;
+    if (over !== _pdrag.over) { _pdrag.over = over; markPartyDrag(); if (over >= 0) buzz(6); }
+  };
+  const end = (e) => {
+    if (!_pdrag || e.pointerId !== pid) return;
+    window.removeEventListener("pointermove", move, true);
+    window.removeEventListener("pointerup", end, true);
+    window.removeEventListener("pointercancel", end, true);
+    const { moved } = _pdrag;
+    const j = e.type === "pointerup" ? partyCardAt(e.clientX, e.clientY) : -1;
+    ghost.remove();
+    document.body.classList.remove("pt-dragging");
+    _pdrag = null;
+    _pdragSwallowUntil = Date.now() + 400;
+    markPartyClear();
+    if (G.state !== "board" || uiBlocked()) return;
+    const i = G.party.indexOf(p);
+    if (i < 0) return;
+    if (moved && j >= 0 && j !== i && G.party[j]) { swapPartyOrder(i, j); return; }
+    if (!moved) uiDungeonHud.peekDoll(p, { idx: i, combat: false });
+  };
+  window.addEventListener("pointermove", move, true);
+  window.addEventListener("pointerup", end, true);
+  window.addEventListener("pointercancel", end, true);
+}
+function markPartyClear() {
+  for (const c of partyEl.children) c.classList.remove("lifting", "drop-over");
+}
+function swapPartyOrder(i, j) {
+  const a = G.party[i], b = G.party[j];
+  G.party[i] = b; G.party[j] = a;
+  SFX.select(); buzz(10);
+  const rowName = (k) => (k < 3 ? "前衛" : "後衛");
+  log(`隊列: ${a.name}(${rowName(j)}) ⇄ ${b.name}(${rowName(i)})`, "sys");
+  _partyKey = "";
+  renderParty();
+  autosave(true);
 }
 
 // パーティカードの肖像。札の額は 24×24 ドットの胸像を ~42px で見せる寸法 (PORTRAIT_PX)。
