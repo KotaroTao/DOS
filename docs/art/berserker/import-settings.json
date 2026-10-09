@@ -1,0 +1,68 @@
+{
+  "job": "berserker",
+  "reference": "crusader",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "alphaFloor": 10,
+  "sources": [
+    {
+      "source": "docs/art/berserker/berserker-r1-final.png",
+      "head": [
+        512,
+        648,
+        125,
+        438
+      ],
+      "sole": 1303,
+      "perDot": 14.330900243309001
+    },
+    {
+      "source": "docs/art/berserker/berserker-r2-final.png",
+      "head": [
+        520,
+        660,
+        125,
+        436
+      ],
+      "sole": 1292,
+      "perDot": 14.197080291970803
+    },
+    {
+      "source": "docs/art/berserker/berserker-r3-final.png",
+      "head": [
+        512,
+        648,
+        118,
+        438
+      ],
+      "sole": 1326,
+      "perDot": 14.695863746958636
+    },
+    {
+      "source": "docs/art/berserker/berserker-r4-final.png",
+      "head": [
+        510,
+        648,
+        110,
+        440
+      ],
+      "sole": 1347,
+      "perDot": 15.048661800486617
+    },
+    {
+      "source": "docs/art/berserker/berserker-r5-final.png",
+      "head": [
+        512,
+        648,
+        112,
+        438
+      ],
+      "sole": 1346,
+      "perDot": 15.012165450121653
+    }
+  ],
+  "bodyHeightDots": 82.2
+}

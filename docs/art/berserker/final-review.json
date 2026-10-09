@@ -1,0 +1,102 @@
+{
+  "sprites": [
+    {
+      "key": "crusader",
+      "rank": 1,
+      "face": [
+        47,
+        23
+      ],
+      "head": [
+        47,
+        12,
+        33.93
+      ],
+      "w": 94,
+      "h": 96,
+      "src": "http://127.0.0.1:8123/art/jobs/crusader_1.webp"
+    },
+    {
+      "key": "berserker",
+      "rank": 1,
+      "face": [
+        47,
+        23
+      ],
+      "head": [
+        47,
+        12,
+        33.841
+      ],
+      "w": 94,
+      "h": 96,
+      "src": "http://127.0.0.1:8123/art/jobs/berserker_1.webp"
+    },
+    {
+      "key": "berserker",
+      "rank": 2,
+      "face": [
+        47,
+        23
+      ],
+      "head": [
+        47,
+        12,
+        33.906
+      ],
+      "w": 94,
+      "h": 96,
+      "src": "http://127.0.0.1:8123/art/jobs/berserker_2.webp"
+    },
+    {
+      "key": "berserker",
+      "rank": 3,
+      "face": [
+        47,
+        23
+      ],
+      "head": [
+        47,
+        12,
+        33.775
+      ],
+      "w": 94,
+      "h": 96,
+      "src": "http://127.0.0.1:8123/art/jobs/berserker_3.webp"
+    },
+    {
+      "key": "berserker",
+      "rank": 4,
+      "face": [
+        47,
+        23
+      ],
+      "head": [
+        47,
+        12,
+        33.928
+      ],
+      "w": 94,
+      "h": 96,
+      "src": "http://127.0.0.1:8123/art/jobs/berserker_4.webp"
+    },
+    {
+      "key": "berserker",
+      "rank": 5,
+      "face": [
+        47,
+        23
+      ],
+      "head": [
+        47,
+        12,
+        33.715
+      ],
+      "w": 94,
+      "h": 96,
+      "src": "http://127.0.0.1:8123/art/jobs/berserker_5.webp"
+    }
+  ],
+  "canvasCount": 30,
+  "browserErrors": []
+}
