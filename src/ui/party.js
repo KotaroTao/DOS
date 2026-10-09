@@ -2437,6 +2437,8 @@ export function install() {
     openTacticSheet,
     openOmokage,
     openPartyTactics,
+    // 街の上に開いた人業のシートを描き直す (renderTown から。魂・装備を付け替えても札が古いままにならないよう)
+    refreshPartySheet: () => { if (sheetH && !sheetH.closed && sheetTown) { memoClear(); bgcMemo.key = ""; refreshSheet(); } },
   });
   if (UI.shell && UI.shell.registerTab) {
     UI.shell.registerTab("party", {
