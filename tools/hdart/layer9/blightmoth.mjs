@@ -22,8 +22,8 @@ export function build() {
   const eyes = [sphere([45.6, 30, 8], 1.6, "eye"), sphere([50.4, 30, 8], 1.6, "eye")];
   const ant = [tube([[46, 28, 7, 0.7], [40, 18, 8, 0.6], [34, 14, 8, 0.3]], "fuzz"), tube([[50, 28, 7, 0.7], [56, 18, 8, 0.6], [62, 14, 8, 0.3]], "fuzz")];
   const legs = [tube([[46, 44, 7, 0.8], [40, 52, 9, 0.6], [38, 58, 9, 0.4]], "fuzz"), tube([[50, 44, 7, 0.8], [56, 52, 9, 0.6], [58, 58, 9, 0.4]], "fuzz")];
-  const reedList = [[20, 90, -6, 22, 4], [26, 90, -8, 14, 9], [74, 90, -6, 20, -5], [80, 90, -8, 12, -8]];
-  const scene = U(0, bogFloor(48, 96, 40, 12, { n: 1, seed: 9603, wet: 0.2, logs: 0 }), wings, body, head, ...eyes, ...ant, ...legs, ...reeds(reedList));
+  const reedList = [[6, 92, -6, 22, 3], [11, 92, -8, 14, 6], [88, 92, -6, 20, -4], [92, 92, -8, 12, -6]];
+  const scene = U(0, bogFloor(48, 96, 40, 12, { n: 1, seed: 9603, wet: 0.2, logs: 0 }), wings, body, head, ...eyes, ...ant, ...legs);
   const r = render(scene, mats, { w: 96, h: 96, rim: RIM });
   const C = new Canvas(r);
   // 翅の目玉模様 (腐った魂の色)
@@ -37,7 +37,6 @@ export function build() {
   // 枯死の鱗粉 (下へ降りそそぐ)
   const R = rand(9605);
   for (let i = 0; i < 90; i++) { const x = 10 + R() * 76, y = 40 + R() * 50; if (!C.get(Math.round(x), Math.round(y)) && fbm(x * 0.1, y * 0.05) > -0.2) C.set(x, y, [ROT[1], ROT[2], "#6a634e", ROT[3]][Math.floor(R() * R() * 4)]); }
-  reedTips(C, reedList, ["#1f1a10", "#2a2214", "#30291a"]);
   afterimage(C, [[-7, -3, 0.45, "#201d17"], [-14, -6, 0.2, "#14120e"]], [0, 0, 96, 76]);
   scum(C, 9607);
   motes(C, 9609, 10, [2, 2, 92, 30], true);

@@ -1165,3 +1165,50 @@ button.sp-lu-next { cursor: pointer; }
 .sp-sd-nmrow { display: flex; align-items: center; gap: 8px; }
 .sp-sd-nmrow .sp-srow-n { flex: 1 1 auto; min-width: 0; }
 .sp-sd-nmrow .sp-sd-codex { flex: 0 0 auto; margin-left: auto; }
+
+/* =====================================================================
+   魂の共鳴 (第七章の結びで開く): 隊列の「共鳴 n」の札・一覧のシート・知らせ・図鑑の札 (palace.js も使う)
+   ===================================================================== */
+.pt-fgrp-h { display: flex; align-items: center; justify-content: space-between; gap: 4px; height: 13px; }
+.pt-reso {
+  display: inline-flex; align-items: center; gap: 3px; height: 17px; margin: -2px 0 -2px auto; padding: 0 6px 0 7px;
+  font: inherit; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; line-height: 1; color: #a593c4;
+  background: linear-gradient(180deg, #1d1726, #110d16); border: 1px solid #4b3d63; border-radius: 9px; cursor: pointer;
+}
+.pt-reso-n { font-size: 11px; letter-spacing: 0; color: #cdbbf0; font-variant-numeric: tabular-nums; }
+.pt-reso.on { color: #e3d4ff; border-color: #8f74c4; box-shadow: 0 0 8px rgba(185,156,240,0.35); }
+.pt-reso.on .pt-reso-n { color: #f3e9ff; }
+.pt-reso:active { transform: scale(0.95); }
+.rs-note { margin: 2px 0 8px; font-size: 12px; line-height: 1.7; color: var(--ink-dim); }
+.rs-h { margin: 10px 0 5px; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; color: #c9b4f0; }
+.rs-none { font-size: 12.5px; color: var(--ink-dim); padding: 4px 2px; }
+.rs-tot { padding: 6px 9px 7px; background: rgba(42,32,58,0.45); border: 1px solid rgba(185,156,240,0.28); border-radius: 3px; }
+.rs-tot .rs-h { margin-top: 0; }
+.rs-tot-l { font-size: 13px; line-height: 1.7; color: #eadfff; }
+.rs-row {
+  display: flex; flex-direction: column; gap: 4px; padding: 7px 9px 8px; margin-bottom: 6px;
+  background: var(--grain), linear-gradient(180deg, #1a1520, #110e14); border: 1px solid #3a3046; border-radius: 3px;
+}
+.wa-pgrid .rs-row { margin-bottom: 0; }
+.rs-row.on { border-color: #8f74c4; box-shadow: inset 0 0 0 1px rgba(185,156,240,0.18), 0 0 10px rgba(185,156,240,0.18); }
+.rs-row.unk { opacity: 0.82; }
+.rs-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.rs-name { font-size: 15px; font-weight: 800; letter-spacing: 0.08em; color: #e9dcff; }
+.rs-row.unk .rs-name { color: #8b8095; letter-spacing: 0.2em; }
+.rs-tag { font-size: 10.5px; padding: 1px 6px; color: #b3a5c8; border: 1px solid #4b3d63; border-radius: 8px; line-height: 1.4; }
+.rs-tag.on { color: #241a33; background: #c9b4f0; border-color: #c9b4f0; font-weight: 700; }
+.rs-jobs { display: flex; flex-wrap: wrap; gap: 4px; }
+.rs-job {
+  display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 7px 0 2px;
+  font-size: 12px; color: var(--glow, #cdbf9f); background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px;
+}
+.rs-job-f { display: inline-flex; width: 20px; height: 20px; overflow: hidden; border-radius: 50%; background: #0c0a0e; }
+.rs-job-f canvas { width: 20px; height: 20px; image-rendering: pixelated; }
+.rs-job.unk { padding: 0 10px; color: #a497b3; border-style: dashed; border-color: rgba(185,156,240,0.35); }
+.rs-job.dim { opacity: 0.45; border-style: dashed; }
+.rs-fx { font-size: 13px; line-height: 1.6; color: #f3e6c2; }
+.rs-miss { font-size: 12px; line-height: 1.6; color: #c9b4f0; }
+.rs-tx { font-size: 12px; line-height: 1.7; color: var(--ink-dim); }
+.rs-row { text-align: left; }
+.pl-codex-seg.five .ui-seg-b { font-size: 12.5px; letter-spacing: 0; }
+@media (max-width: 380px) { .pl-codex-seg.five .ui-seg-b { font-size: 11.5px; } }

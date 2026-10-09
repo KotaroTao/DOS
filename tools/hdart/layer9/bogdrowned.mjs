@@ -1,4 +1,4 @@
-import { sphere, ellipsoid, cone, tube, U, Sub, Disp, render, ramp, Canvas, fbm, rand } from "../sdf.mjs";
+import { sphere, ellipsoid, cone, tube, box, slab, U, Sub, Disp, render, ramp, Canvas, fbm, rand } from "../sdf.mjs";
 import { humanoid, fingers } from "../human.mjs";
 import { MUD, POOL, REED, ROTWOOD, RIM, ROT, MIASMA, bogFloor, reeds, reedTips, scum, slime, miasma, motes } from "../swamp.mjs";
 export const meta = { id: "bs_bogdrowned", key: "hd_bogdrowned", w: 96, h: 96,
@@ -15,7 +15,7 @@ export function build() {
   };
   const J = { head: [46, 30, 4], neck: [46, 37, 3], chest: [46, 50, 2], waist: [47, 64, 2], hip: [47, 74, 2],
     shL: [36, 44, 6], elL: [26, 52, 14], haL: [14, 52, 20], shR: [57, 44, 2], elR: [66, 52, 10], haR: [72, 48, 18] };
-  const body = Disp(humanoid(J, { skin: "flesh", torso: "rag" }, { w: { headX: 6.6, headY: 7.6, headZ: 6.4, chestX: 12, chestY: 10, chestZ: 8, waistX: 11, hipX: 12, arm: 3.8, arm2: 3.4, wrist: 2.6 } }),
+  const body = Disp(humanoid(J, { skin: "flesh" }, { k: 3, w: { headX: 6.6, headY: 7.6, headZ: 6.4, chestX: 12, chestY: 11, chestZ: 8, waistX: 11, waistY: 9, hipX: 12, hipY: 7, arm: 3.8, arm2: 3.4, wrist: 2.6 } }),
     (x, y, z) => 0.5 * fbm(x * 0.3, y * 0.3, z * 0.3));
   const handL = [ellipsoid([12, 52, 21], [3, 2.6, 2], "flesh"), ...fingers([11, 52, 21], 190, "flesh", { n: 4, len: 7, spread: 40, r: 1, curl: 0.5, z: 0.5 })];
   const handR = [ellipsoid([74, 47, 19], [3, 2.6, 2], "flesh"), ...fingers([75, 46, 19], -20, "flesh", { n: 4, len: 7, spread: 40, r: 1, curl: -0.5, z: 0.5 })];
@@ -27,22 +27,24 @@ export function build() {
   for (let i = 0; i < 9; i++) { const x = 38 + i * 2, l = 10 + R() * 14; weed.push(tube([[x, 24 + Math.abs(i - 4) * 0.6, 4 + (4 - Math.abs(i - 4)) * 1.2, 1.4], [x + (R() - 0.5) * 3, 24 + l * 0.6, 8, 1], [x + (R() - 0.5) * 4, 24 + l, 9, 0.4]], "weed", { seg: 2 })); }
   // 水面から浮かぶ別の手と頭 (群れ)
   const others = [
-    U(1, ellipsoid([16, 78, 6], [4.6, 5, 4.4], "flesh"), tube([[22, 84, 4, 2], [24, 74, 6, 1.6], [26, 68, 8, 1.2]], "flesh")),
+    U(1, ellipsoid([14, 80, 6], [4.6, 5, 4.4], "flesh"), tube([[22, 86, 4, 2], [24, 74, 6, 1.6], [26, 68, 8, 1.2]], "flesh")),
     U(1, tube([[78, 86, 8, 2.2], [82, 74, 10, 1.8], [80, 66, 12, 1.4]], "flesh"), ...fingers([80, 65, 12], -95, "flesh", { n: 4, len: 6, spread: 30, r: 0.9, curl: 0.4 })),
     ellipsoid([64, 82, -10], [4, 4.4, 4], "flesh"),
   ];
-  const reedList = [[8, 86, -12, 30, 3], [12, 86, -14, 36, -2], [86, 86, -12, 34, -4], [90, 86, -14, 28, 2], [70, 84, -16, 30, 1]];
+  const reedList = [[6, 84, -16, 30, 3], [10, 84, -18, 36, -2], [88, 84, -16, 34, -4], [92, 84, -18, 26, 2]];
+  const rag = Disp(slab([[36, 42], [56, 42], [60, 60], [56, 82], [48, 74], [42, 84], [34, 64]], 9, 1, "rag", 0.5), (x, y, z) => 0.6 * Math.sin(x * 0.9 + fbm(x * 0.2, y * 0.2)));
   const man = Sub(U(1.4, body, ...handL, ...handR), mouth, 0.3);
-  const scene = U(0, bogFloor(48, 94, 48, 16, { n: 1, seed: 9303, wet: 0.6, logs: 0 }), man, ...eyes, ...weed, ...others, ...reeds(reedList));
+  const water = Disp(ellipsoid([48, 98, -2], [56, 18, 22], "pool"), (x, y, z) => 0.3 * Math.sin(Math.hypot(x - 46, (z - 2) * 2) * 0.9));
+  const scene = U(0, water, Sub(U(0.6, man, rag), box([48, 100, 0], [60, 19, 40], "pool"), 0),  ...eyes, ...weed, ...others, ...reeds(reedList));
   const r = render(scene, mats, { w: 96, h: 96, rim: RIM });
   const C = new Canvas(r);
   reedTips(C, reedList);
-  // 水面より下は沈めて暗くする (沼の水位 y=80)
-  for (let y = 80; y < 96; y++) for (let x = 0; x < 96; x++) { const p = C.pix[y * 96 + x]; if (p && (p.m === "flesh" || p.m === "rag")) C.set(x, y, (x + y) % 2 ? "#070d06" : "#0d160b"); }
-  for (let x = 4; x < 92; x++) { const p = C.pix[80 * 96 + x]; if (p && (p.m === "flesh" || p.m === "rag")) C.set(x, 80, "#3a4c24"); }
+  // 水面に映る溺者の影と、体のまわりの波紋
+  for (let y = 82; y < 96; y++) for (let x = 30; x < 64; x++) { const p = C.pix[y * 96 + x]; if (p && p.m === "pool" && (x + y) % 2 === 0 && Math.abs(x - 47) < 12 - (y - 82) * 0.6) C.set(x, y, "#16200e"); }
+  for (let a = 0; a < Math.PI * 2; a += 0.04) for (const rr of [16, 24]) { const x = 47 + Math.cos(a) * rr, y = 82 + Math.sin(a) * 2.6; const p = C.pix[Math.round(y) * 96 + Math.round(x)]; if (p && p.m === "pool" && Math.sin(a * 11) > 0.1) C.set(x, y, "#3a4c24"); }
   C.set(43, 29, "#dce6d4"); C.set(49, 29, "#dce6d4");
   slime(C, 9305, ["weed", "flesh"], 0.12, ["#071006", "#162a10", "#2c4418"]);
-  scum(C, 9307);
+  for (let y = 82; y < 96; y++) for (let x = 0; x < 96; x++) { const p = C.pix[y * 96 + x]; if (p && p.m === "pool" && Math.sin(x * 0.45 + Math.sin(y * 1.3) * 2 + y * 1.1) > 0.9) C.set(x, y, "#26341a"); }
   miasma(C, 9309, 3, [0, 50, 96, 30], 0.28);
   motes(C, 9311, 14, [2, 2, 92, 60], true);
   return C.toArt();
