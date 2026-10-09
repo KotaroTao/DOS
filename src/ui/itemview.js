@@ -595,6 +595,8 @@ export function equipPreviewDelta(p, cand) {
     ailRes: { from: p.ailRes || null, to: fake.ailRes || null },
     breathRes: Math.round(((fake.breathRes || 0) - (p.breathRes || 0)) * 100),
     onHit: { from: p.onHit || null, to: fake.onHit || null },
+    eff: { from: p.eff || null, to: fake.eff || null },
+    abs: { power: attackPower(fake), maxhp: fake.maxhp || 0, maxmp: fake.maxmp || 0 },
   };
 }
 
@@ -689,15 +691,69 @@ export function weaponShare(W) {
   if (!mag) return 1;
   return Math.max(0, Math.min(1, (Math.max(W.atk || 0, W.agi || 0) / mag - 0.85) / 0.15));
 }
+// 戦闘効果 (eff) の値打ち。数字の能力には出ない効果を、この人業の攻撃力・最大HP/MP で測る (2026-10 ユーザーの指示:
+// 最適装備が連撃・吸血などの特殊効果を見ずに、能力値だけで付け替えていた)。
+//   offense = 攻撃力に換算した増減 (連撃・報復・先手。打撃で戦う度合い share を掛ける) → 攻撃力と同じ物差しで数える
+//   points  = それ以外 (守り・再生・蘇生・障壁・吸血 = 最大HPの換算 × HPの重み / 状態異常無効・節約・金運・魂導)
+// 効果の式は combat.js (連撃 = 通常攻撃の回数 最大4・2未満は効かない) と itemview の EFF_INFO に合わせる
+const EFF_K = {
+  strike: 0.6,   // 連撃: 1回増えるごとに攻撃力 ×0.6 ぶん (技を使う手番もあるので1回分よりは低く)
+  counter: 0.25, // 報復: 攻撃力 × 率 × 0.25 (殴られた時だけ)
+  first: 0.08,   // 先手: 攻撃力 ×0.08
+  steal: 1.5,    // 吸血: 攻撃力 × 率 × 1.5 HP (1戦で吸える量の目安)
+  guard: 2,      // 守り: 最大HP × g/(1−g) × 2 HP (物理・呪文・ブレスのすべて)
+  regen: 3,      // 再生: 最大HP × 率 × 3 HP (2ラウンド目から毎ラウンド)
+  revive: 0.2,   // 蘇生: 最大HP × (0.2 + 率) HP (倒れても1度立つ)
+  barrier: 0.2,  // 障壁: 1回ごとに最大HP × 0.2 HP
+  immune: 50,    // 状態異常無効: 50点 (状態異常耐性 全6種100% = 60点に即死も加わる物差し)
+  thrift: 120,   // 節約: (1/倍率 − 1) × 120 点 × 術を使う度合い
+  fortune: 40,   // 金運・魂導: 率 × 40 点 (隊で一番高いものだけ効くので控えめ)
+};
+const effStrikes = (e) => (e && e.multistrike > 1 ? Math.min(4, e.multistrike) : 1);
+export function effScore(doll, delta, W = gearWeights(doll)) {
+  const ch = delta && delta.eff;
+  if (!ch || (!ch.from && !ch.to)) return { offense: 0, points: 0 };
+  const share = Math.max(0.15, weaponShare(W));
+  const abs = delta.abs || {};
+  const powTo = abs.power || 0, powFrom = powTo - (delta.power || 0);
+  const hp = abs.maxhp || 0;
+  const off = (e, pw) => (e ? pw * ((effStrikes(e) - 1) * EFF_K.strike + (e.counter || 0) * EFF_K.counter + (e.actFirst ? EFF_K.first : 0)) * share : 0);
+  const hpEq = (e, pw) => {
+    if (!e) return 0;
+    const g = Math.min(0.9, e.guard || 0);
+    return (e.lifesteal || 0) * pw * EFF_K.steal * share
+      + hp * (g / (1 - g)) * EFF_K.guard
+      + hp * (e.regen || 0) * EFF_K.regen
+      + (e.autoRevive ? hp * (EFF_K.revive + e.autoRevive) : 0)
+      + hp * EFF_K.barrier * (e.barrier || 0);
+  };
+  const flat = (e) => {
+    if (!e) return 0;
+    const m = e.spellCostMul > 0 && e.spellCostMul < 1 ? e.spellCostMul : 1;
+    return (e.ailmentImmune ? EFF_K.immune : 0)
+      + (1 / m - 1) * EFF_K.thrift * Math.max(0.3, 1 - weaponShare(W))
+      + ((e.goldUp || 0) + (e.soulUp || 0)) * EFF_K.fortune;
+  };
+  const hpW = W.hp || 0.25;
+  return {
+    offense: off(ch.to, powTo) - off(ch.from, powFrom),
+    points: (hpEq(ch.to, powTo) - hpEq(ch.from, powFrom)) * hpW + flat(ch.to) - flat(ch.from),
+  };
+}
 export function gearScore(doll, delta) {
   if (!delta) return 0;
   const W = gearWeights(doll);
+  const fx = effScore(doll, delta, W);
+  // 攻撃に効く戦闘効果は攻撃力の増減に足して、武器の付け替えでも同じ物差しで比べる
+  const power = delta.power != null ? delta.power + fx.offense : null;
   let s = 0;
-  for (const k in W) s += (k === "atk" && delta.power != null ? delta.power : (delta[k] || 0)) * W[k];
+  for (const k in W) s += (k === "atk" && power != null ? power : (delta[k] || 0)) * W[k];
+  if (power == null) s += fx.offense * (W.atk || 1);
+  s += fx.points;
   if (delta.weapon) {
     const f = weaponShare(W);
     if (delta.handSwap) s = s * (1 + f * (WEAPON_POWER_W / Math.max(0.35, W.atk || 1) - 1));
-    else s += (delta.power || 0) * WEAPON_POWER_W * f;
+    else s += (power || 0) * WEAPON_POWER_W * f;
   }
   s += (delta.crit || 0) * 0.5;
   const lv = (e) => (e && e.el ? Math.min(2, e.lv || 1) : 0);
