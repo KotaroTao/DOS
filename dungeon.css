@@ -227,6 +227,9 @@
   position: relative;
 }
 #party .pc { touch-action: none; } /* 札の上のフリックもブラウザのパンに奪わせず、盤面の移動に使う */
+/* 迷宮の中の隊列の並べ替え: 長押しで持ち上げた札は沈め、落とす先の札を金の縁で示す (ghost は ui-party.css の .pt-ghost) */
+#party .pc.lifting { opacity: 0.45; border-style: dashed; border-color: #f3d58b; }
+#party .pc.drop-over { border-color: #f3d58b; box-shadow: 0 0 0 1px #f3d58b, 0 0 14px rgba(243,213,139,0.5); }
 #party.n4 .pc { flex-grow: 0; flex-basis: calc((100% - 10px) / 3); max-width: none; }
 .pc-por {
   grid-area: por; position: relative; width: 42px; height: 42px; align-self: start;
