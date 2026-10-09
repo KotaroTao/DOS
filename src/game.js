@@ -5742,7 +5742,7 @@ function evNewFloor() {
   if (!cand.length) for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) { const c = G.board.cells[y][x]; if (ok(c, x, y) && Math.abs(x - sx) + Math.abs(y - sy) >= 3) cand.push(c); }
   if (!cand.length) return;
   const st = { dungeonId: cfg.id, layer, lv, first, floor: G.floor, floors: cfg.floors || 3, runEv: rv, onceDone: (e) => !!G.events.once[onceKey(e, layer)] };
-  const e = pickEvent(eligibleEvents(st, evApi));
+  const e = pickEvent(eligibleEvents(st, evApi), clearedDungeonCount());
   if (!e) return;
   const cell = cand[rand(cand.length)];
   cell.type = "event"; cell.evId = e.id; cell.cleared = false;
