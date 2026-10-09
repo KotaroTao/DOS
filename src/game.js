@@ -1405,6 +1405,8 @@ function tuneMul() {
   return (t.enemyMul || 1) * (deep ? (t.deepMul || 1) : 1);
 }
 
+// マスターミミック (ミミックの上位種) が出始める層。第1〜3層の宝箱は通常のミミックにしか化けない
+const MASTER_MIMIC_LAYER = 4;
 // ミミックの強さの基準: この階に出る雑魚の最上位ランクと、雑魚と同じ強さ補正。
 // (ランクの上乗せ — 通常 +1 / マスター +2 — は combat.js の spawnMimic が行う)
 // 出来事の魔物 (檻番の獄卒など、spawnRanked) も同じ基準で「この階より何ランク上」を組む。
@@ -1430,9 +1432,15 @@ function soloFoes(list) {
 
 // ===== 金属の魔物 (メタル系) =====
 // 第3層から、階ごとに METAL_FLOOR_RATE の確率で盤面の魔物の札1枚が金属の魔物に入れ替わる (強敵の札は除く)。
-// 段 (METAL_TIERS) の重みは層が深いほど上位種へ寄る (w = [第3〜5層, 第6〜8層, 第9層〜])
+// 段 (METAL_TIERS) の重みは層が深いほど上位種へ寄る (w = [第3〜5層, 第6〜8層, 第9層〜])。
+// 上位種 (金業・銀業の王) は段の layer = 第4層から — 第3層は銀業だけ
 const METAL_FLOOR_RATE = 0.07;
 function metalKeys() { return Object.keys(MONSTERS).filter((k) => MONSTERS[k] && MONSTERS[k].metal); }
+// 金属の魔物がその層に出るか (段ごとの最初の層 METAL_TIERS[段].layer から)
+function metalInLayer(k, layer) {
+  const T = MONSTERS[k] && MONSTERS[k].metal ? METAL_TIERS[MONSTERS[k].metal] : null;
+  return !!T && (layer || 0) >= T.layer;
+}
 function pickMetalKey(layer) {
   const band = layer >= 9 ? 2 : layer >= 6 ? 1 : 0;
   const pool = metalKeys().map((k) => ({ k, T: METAL_TIERS[MONSTERS[k].metal] })).filter((o) => o.T && layer >= o.T.layer);
@@ -6857,9 +6865,9 @@ function rollChest(cell, allowDanger, done, opener, cRankIn, lvBonus, noGold = f
     const legendary = !!(cell && cell.lootBonus);
     // ミミック率: 一律3% (特別階「ミミックの巣」/異変「ミミックの行進」では高い方を採用)
     if (!legendary && Math.random() < Math.max(sfNum("mimicRate", 0.03), mutNum("mimicRate", 0))) {
-      // ミミック出現時、10%でマスターミミック。強さはこの階の敵が基準
-      //  (通常=+1ランク / マスター=+2ランク)。固有ドロップは無く、上質な宝箱を残す。
-      const master = Math.random() < 0.10;
+      // ミミック出現時、10%でマスターミミック (上位種なので第4層から。第1〜3層は通常のミミックだけ)。
+      //  強さはこの階の敵が基準 (通常=+1ランク / マスター=+2ランク)。固有ドロップは無く、上質な宝箱を残す。
+      const master = battleLayer() >= MASTER_MIMIC_LAYER && Math.random() < 0.10;
       const ref = mimicRef();
       SFX.trap(); buzz([0, 60, 40, 60]);
       log(master ? "宝箱はマスターミミックだった！" : "宝箱はミミックだった！", "dmg");
@@ -11167,10 +11175,10 @@ function fixedQuestTargets(def, cfg) {
   if (g.type !== "kill" || !g.keys) return false;
   return questKillHere(g.keys, cfg);
 }
-// 狙う魔物がその迷宮に出るか (出現表の帯・主。金属の魔物は第3層から)
+// 狙う魔物がその迷宮に出るか (出現表の帯・主。金属の魔物は段ごとの層から — 銀業は第3層・上位種は第4層)
 function questKillHere(keys, cfg) {
   const roster = new Set([...(cfg.bands ? cfg.bands.flat() : [...(cfg.pool || []), ...(cfg.deepPool || [])]), ...(cfg.elites || []), cfg.boss].filter(Boolean));
-  return (keys || []).some((k) => roster.has(k) || (MONSTERS[k] && MONSTERS[k].metal && (cfg.layer || 0) >= 3));
+  return (keys || []).some((k) => roster.has(k) || metalInLayer(k, cfg.layer));
 }
 // 階の情報 (迷宮の手帳) に並べる依頼: 受注中のうち、いま潜っている迷宮で進められるもの (+ 達成して報告待ちのもの)
 //   討伐 = 狙う魔物がここに出る / 到達・踏破 = この迷宮 / 魂・宝箱 = 指す迷宮 (指さない古い依頼はどこでも) / 納品 = 迷宮では進まないので出さない
@@ -11205,7 +11213,7 @@ function fixedQuestHome(def) {
   if (g.type !== "kill" || !g.keys) return null;
   return firstOpen(DUNGEONS.filter((d) => {
     const roster = new Set(dungeonRoster(d));
-    return g.keys.some((k) => roster.has(k) || (MONSTERS[k] && MONSTERS[k].metal && (d.layer || 0) >= 3));
+    return g.keys.some((k) => roster.has(k) || metalInLayer(k, d.layer));
   }).map((d) => d.id));
 }
 function dungeonFacts(cfg) {
@@ -11526,6 +11534,7 @@ function tavernHintAllowed(req) {
   if (!req) return true;
   if (req === "sub") return unlockedSubSlots() > 0;     // 宿し技
   if (req === "metal") return DUNGEONS.some((d) => d.layer >= 3 && worldOpenId(d.id)); // 金属の魔物 (第3層の景色の迷宮から出る)
+  if (req === "metal2") return DUNGEONS.some((d) => d.layer >= 4 && worldOpenId(d.id)); // 金属の上位種 (金業・銀業の王は第4層から)
   if (req === "fort") return DUNGEONS.some((d) => d.layer >= 4 && worldOpenId(d.id));  // 捨て砦 (第4層の迷宮が地図に現れた後)
   if (req === "roots") return worldOpenId("w10");                                   // 魂脈の根 (大穴の下の縦穴が地図に現れた後)
   if (req === "undercity") return worldOpenId("w14");                               // 王都の地下 (水底の参道が地図に現れた後)
