@@ -28,7 +28,7 @@ export function slotKeysFor(item) {
 
 // 最適装備の候補になる品か (呪い・未鑑定・消耗品/収集品は除く)
 export function isAutoCandidate(item) {
-  return !!item && EQUIP_SLOTS.has(item.slot) && !item.unidentified && !item.cursed;
+  return !!item && EQUIP_SLOTS.has(item.slot) && !item.unidentified && !item.cursed && !item.locked;
 }
 
 // 近接物理の武器 (射程が近距離。杖は呪文の補助なので除く)。後衛では与ダメが半減し、敵の前列にしか届かない
@@ -68,19 +68,22 @@ export function statsDelta(from, to) {
   };
 }
 
+// 外れない品 = 呪いの品・ロックした品 (it.locked。売らない・最適装備や付け替えで押し出さない — プレイヤーが決める)
+export function isPinned(it) { return !!it && (!!it.cursed || !!it.locked); }
+
 // 部位 key に item を収めた仮の装備と、押し出される品。付けられなければ null
-//   (呪いの品は押し出さない / 両手武器⇄盾の規則)
+//   (呪いの品・ロックした品は押し出さない / 両手武器⇄盾の規則)
 export function trialEquip(equip, item, key) {
   const cur = equip[key];
-  if (cur && cur.cursed) return null;
+  if (isPinned(cur)) return null;
   const eq = { ...equip };
   const displaced = [];
   if (item.slot === "weapon" && item.twoHanded && eq.shield) {
-    if (eq.shield.cursed) return null;
+    if (isPinned(eq.shield)) return null;
     displaced.push(eq.shield); eq.shield = null;
   }
   if (item.slot === "shield" && eq.weapon && eq.weapon.twoHanded) {
-    if (eq.weapon.cursed) return null;
+    if (isPinned(eq.weapon)) return null;
     displaced.push(eq.weapon); eq.weapon = null;
   }
   if (cur) displaced.push(cur);

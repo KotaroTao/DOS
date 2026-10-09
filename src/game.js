@@ -44,7 +44,7 @@ import { showTitle } from "./title.js";
 import { RARITIES, rarityKey, rarityColor, rarityLabel, rollRarity, layerRarityUp } from "./rarity.js";
 // ---- UI 基盤 (Phase 0)。新しい UI モジュールは game.js を import せず、ctx.js の UI/game/ops を通す ----
 import { UI, ops, bindGame, registerUI } from "./ui/ctx.js";
-import { el, btn, button as kitButton, longPress as attachLongPress, uiBlocked, sheetDepth, sheet, toast as kitToast, confirm as kitConfirm, plainText, shake as kitShake } from "./ui/kit.js";
+import { el, svgIcon, btn, button as kitButton, longPress as attachLongPress, uiBlocked, sheetDepth, sheet, toast as kitToast, confirm as kitConfirm, plainText, shake as kitShake } from "./ui/kit.js";
 import { nav } from "./ui/nav.js";
 import { installPhraseWrap } from "./ui/phrase.js";
 import * as townshell from "./ui/townshell.js";
@@ -140,6 +140,7 @@ function itemNameEl(tag, cls, it, suffix = "") {
   const e = el(tag, cls, itemName(it) + suffix);
   const k = rarityKey(it);
   if (k) { e.style.color = RARITIES[k].color; e.classList.add("rar-" + k); }
+  if (it && it.locked) e.appendChild(svgIcon("lock", "item-lk"));
   return e;
 }
 
@@ -13587,6 +13588,7 @@ function sellWarnings(it) {
 function sellItem(owner, it, price) {
   const idx = owner.items.indexOf(it);
   if (idx < 0) return false;
+  if (it.locked) { SFX.ng(); showToast(`${it.name}はロック中 ― 売るにはロックを外す`, { tone: "info" }); return false; }
   // 未鑑定品は正体不明のため二束三文 (0G) で引き取られ、商店にも並ばない
   if (it.unidentified) price = 0;
   owner.items.splice(idx, 1);
@@ -14584,7 +14586,11 @@ function equipAt(p, it, slotKey, owner = p, stashTo = null) {
   if (!it || !itemFitsSlot(it, slotKey)) return { ok: false, msg: "その部位には装備できない" };
   if (!canEquip(p, it)) return { ok: false, msg: it.unidentified ? "未鑑定の品は装備できない" : `${p.cls}は${it.name}を装備できない` };
   const tr = autoEquip.trialEquip(p.equip, it, slotKey);
-  if (!tr) return { ok: false, msg: "呪われた装備が外れない" };
+  if (!tr) {
+    const pin = [p.equip[slotKey], it.slot === "weapon" && it.twoHanded ? p.equip.shield : null, it.slot === "shield" && p.equip.weapon && p.equip.weapon.twoHanded ? p.equip.weapon : null]
+      .find((x) => autoEquip.isPinned(x));
+    return { ok: false, msg: pin && !pin.cursed ? `${pin.name}はロック中 ― ロックを外すと付け替えられる` : "呪われた装備が外れない" };
+  }
   const bag = stashTo || p;
   const bagAfter = bag.items.length - (owner === bag ? 1 : 0) + tr.displaced.length;
   if (bagAfter > MAX_ITEMS) return { ok: false, full: true, msg: `${bag.name}の持ち物がいっぱいで、外した装備を入れられない` };
@@ -14610,6 +14616,17 @@ function equipFromAnywhere(p, slotKey, c) {
   if (r.ok) { SFX.select(); buzz(10); } else { SFX.ng(); if (r.msg) showToast(r.msg, { tone: "bad" }); }
   renderStatus(); renderParty();
   return r;
+}
+// 装備のロック (品ごと。it.locked はセーブに残り、目録の付け直し reflattenItemStats でも消えない)。
+// ロックした品は売れない・捨てられない・外せない・最適装備や付け替えで押し出されない (autoequip.js isPinned)
+function toggleItemLock(it) {
+  if (!it || it.unidentified || !isEquippable(it)) return false;
+  if (it.locked) delete it.locked; else it.locked = true;
+  SFX.select(); buzz(8);
+  showToast(it.locked ? `${it.name}をロックした ― 売却・付け替えの対象にならない` : `${it.name}のロックを外した`, { tone: "info" });
+  autosave(true);
+  renderStatus(); renderParty();
+  return !!it.locked;
 }
 function doUnequip(p, key) {
   const r = unequipItem(p, key);
@@ -14706,6 +14723,7 @@ function useItemMeasured(p, index, target) {
 function dropItem(p, index) {
   const it = p.items[index];
   if (!it || G.state === "town") return;
+  if (it.locked) { SFX.ng(); showToast(`${it.name}はロック中 ― 捨てるにはロックを外す`, { tone: "info" }); return; }
   showConfirm({
     title: `${it.name} を捨てる？`,
     lines: ["捨てたアイテムは二度と戻らない。"],
@@ -15707,7 +15725,7 @@ function opsJunkList({ includeUse = !!uiDungeonHud.getPref("sellUse") } = {}) {
   const out = [];
   for (const d of allDolls()) {
     for (const it of (d.items || [])) {
-      if (!it || it.cursed || it.unidentified || opsEquippedBy(d, it) || sellWarnings(it).length) continue;
+      if (!it || it.cursed || it.locked || it.unidentified || opsEquippedBy(d, it) || sellWarnings(it).length) continue;
       if (!includeUse && it.slot === "use") continue;
       out.push({ doll: d, item: it, price: sellPrice(it) });
     }
@@ -16107,7 +16125,7 @@ function wireUI() {
     trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairAllDolls, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,
-    doEquip, doUnequip, equipFromAnywhere, openEquipChooser, useItem, dropItem, transferItem,
+    doEquip, doUnequip, toggleItemLock, equipFromAnywhere, openEquipChooser, useItem, dropItem, transferItem,
     stopAutoCombat, sceneBgm, playBgm, SFX,
     ACH_SERIES, FACILITIES, FAC_SHELL, CONTENT_LIMIT, DUNGEONS, LAYER_VISUALS,
     isTitleActive: () => titleActive,

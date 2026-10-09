@@ -262,6 +262,7 @@ function giveTo(owner, it, to) {
 
 // 捨てる (迷宮の中だけ。確認ののち。従来の dropItem と同じ: 二度と戻らない)
 async function discard(owner, it) {
+  if (it && it.locked) { sfx("ng"); toast(`${itemName(it)}はロック中 ― 捨てるにはロックを外す`, { tone: "info" }); return false; }
   const ok = await confirm({
     banner: "捨てる", title: `${itemName(it)} を捨てる？`,
     lines: ["捨てた品は二度と戻らない。"], okLabel: "捨てる", danger: true,
@@ -280,6 +281,7 @@ async function discard(owner, it) {
 // 売る (商会。警告のある品・未鑑定品は確かめてから)
 export async function sellOne(owner, it) {
   if (!shopOpen() || !owner) return false;
+  if (it && it.locked) { sfx("ng"); toast(`${itemName(it)}はロック中 ― 売るにはロックを外す`, { tone: "info" }); return false; }
   const warns = (game.sellWarnings ? game.sellWarnings(it) : []).map((w) => plainText(w).replace(/^⚠\s*/, ""));
   const price = it.unidentified ? 0 : game.sellPrice(it);
   if (it.unidentified) {
@@ -313,7 +315,7 @@ export function revealSellables(items) {
   for (const it of items || []) {
     const o = ownerOf(it);
     if (!o || o.where !== "bag" || it.unidentified) continue;
-    if (it.cursed || (game.sellWarnings && game.sellWarnings(it).length)) { keep++; continue; }
+    if (it.cursed || it.locked || (game.sellWarnings && game.sellWarnings(it).length)) { keep++; continue; }
     list.push({ doll: o.doll, item: it, price: game.sellPrice(it) });
   }
   return { list, keep };
@@ -717,8 +719,8 @@ function defaultActions(st) {
     }
   } else if (eqKey) {
     // ---- 装備中 ----
-    acts.push({ key: "unequip", primary: true, label: it.cursed ? "呪われていて外せない" : "外す", disabled: !!it.cursed || owner.items.length >= MAX_ITEMS,
-      sub: !it.cursed && owner.items.length >= MAX_ITEMS ? "持ち物がいっぱい" : `${SLOT_LABEL[eqKey] || ""}`,
+    acts.push({ key: "unequip", primary: true, label: it.cursed ? "呪われていて外せない" : it.locked ? "ロック中は外せない" : "外す", disabled: !!it.cursed || !!it.locked || owner.items.length >= MAX_ITEMS,
+      sub: it.locked ? "ロックを外すと外せる" : !it.cursed && owner.items.length >= MAX_ITEMS ? "持ち物がいっぱい" : `${SLOT_LABEL[eqKey] || ""}`,
       onTap: (close) => { if (game.doUnequip) game.doUnequip(owner, eqKey); close(); refreshViews(); } });
   } else if (it.slot === "use") {
     // ---- 道具 ----
@@ -744,7 +746,12 @@ function defaultActions(st) {
       if (res.rewardReady && game.claimNextTreasury) game.claimNextTreasury();
     } });
   } else if (inBag && giveCandidates(owner).length) acts.push({ key: "give", label: "渡す", caret: true, onTap: () => openGivePicker(owner, it, { onDone: () => st.close() }) });
-  if (town && shopOpen() && inBag) {
+  // ロック (装備品だけ。装備中でも袋の中でも。売れない・捨てられない・付け替えで押し出されない)
+  if ((inBag || eqKey) && isEquippable(it) && !it.unidentified && !it.cursed && game.toggleItemLock) {
+    acts.push({ key: "lock", label: it.locked ? "ロックを外す" : "ロック", kind: it.locked ? "secondary" : "ghost",
+      onTap: () => { game.toggleItemLock(it); st.rerender ? st.rerender({}) : refreshViews(); } });
+  }
+  if (town && shopOpen() && inBag && !it.locked) {
     const price = it.unidentified ? 0 : game.sellPrice(it);
     const warn = !it.unidentified && game.sellWarnings && game.sellWarnings(it).length;
     acts.push({ key: "sell", primary: context === "sell" && !it.unidentified && !st.equipFirst, kind: it.unidentified || warn ? "danger" : null,
@@ -752,7 +759,7 @@ function defaultActions(st) {
       onTap: async (close) => { if (await sellOne(owner, it)) close(); } });
   }
   // 捨てるのは迷宮の中だけ (持ちきれない時の手段。街では売る・奉納で足りる)
-  if (inBag && !town) acts.push({ key: "drop", label: "捨てる", kind: "ghost", onTap: async (close) => { if (await discard(owner, it)) close(); } });
+  if (inBag && !town && !it.locked) acts.push({ key: "drop", label: "捨てる", kind: "ghost", onTap: async (close) => { if (await discard(owner, it)) close(); } });
   return acts;
 }
 
