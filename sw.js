@@ -410,6 +410,7 @@ const ASSETS = [
   "./src/dungeons/monart.js",
   "./src/dungeons/generator.js",
   "./src/dungeons/world.js",
+  "./src/dungeons/monlore.js",
   "./src/dungeons/named.js",
   "./src/dungeons/unknown.js",
   "./src/catalog/defs.js",
