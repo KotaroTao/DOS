@@ -1160,3 +1160,8 @@ button.sp-lu-next { cursor: pointer; }
 .ex-tot-l { font-size: 12px; font-weight: 400; color: var(--ink-dim); letter-spacing: 0.1em; }
 .ex-who-tx, .ex-rep-tx, .ex-pv, .ex-rep { text-align: left; }
 .ex-pv { margin: 8px 0 2px; }
+/* 魂の詳細: 魂の名の行の右端に「職業図鑑を見る」 */
+.sp-sd-sheet .sp-sd-t { flex: 1 1 auto; align-self: stretch; }
+.sp-sd-nmrow { display: flex; align-items: center; gap: 8px; }
+.sp-sd-nmrow .sp-srow-n { flex: 1 1 auto; min-width: 0; }
+.sp-sd-nmrow .sp-sd-codex { flex: 0 0 auto; margin-left: auto; }
