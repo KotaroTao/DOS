@@ -5211,6 +5211,7 @@ let autoMoveVia = null;   // 寄り道の行き先 (タップしたマス)。着
 let autoMoveHold = null;  // 1歩の終わりを待って行うドック・手帳などの操作
 let autoMoveHurt = null;  // ON にした時点で深手・戦闘不能だった者 (uid) ― これ以外が深手になれば止まる
 let autoMoveBreak = null; // 戦闘 ("battle")・選択 ("choice") が挟まった印 ― それが済めばオート移動を切る
+let autoPlanStep = false; // いまの1歩がオート移動の決めた1歩か (寄り道・タップの歩みは含まない)
 function autoMoveAvoid() { return uiDungeonHud.autoMoveAvoid(); }
 function autoMoveWounded() {
   return new Set(G.party.filter((p) => !p.alive || p.hp < p.maxhp * AUTO_MOVE_HURT).map((p) => p.uid));
@@ -5275,7 +5276,8 @@ function autoMoveTick() {
   }
   const step = autoMovePlan();
   if (!step) { setAutoMove(false); return; } // めくれる墓石が無い・敵や罠が道を塞いでいる
-  moveStep(step.x, step.y, () => autoMoveSchedule(walkMs(110)));
+  autoPlanStep = true; // この1歩はオート移動が決めた (階段の素通りに使う)
+  moveStep(step.x, step.y, () => { autoPlanStep = false; autoMoveSchedule(walkMs(110)); });
 }
 // 次の1歩を決める: 安全なめくり済みのマスを通って届く行き先 (伏せた墓石・挑む敵) のうち最も近いもの。
 // 決断の要る札は、それを避けて届く行き先が無い時だけ通る
@@ -5306,7 +5308,8 @@ function autoMovePlan() {
   const fightable = (c) => (c.revealed && c.elite && !c.metal) ? !avoid.elite : !avoid.foe;
   const danger = (c) => c.revealed && (
     (c.type === "trap" && !c.cleared) || (c.type === "pit" && !floating) || (c.type === "poison" && !poisonSafe));
-  const nuisance = (c) => c.revealed && (c.type === "stairs" || c.type === "portal" ||
+  // 一度「まだ探索する」を選んだ階段は、踏んでも問わないので普通の通り道として扱う
+  const nuisance = (c) => c.revealed && ((c.type === "stairs" && !c.stairsSeen) || c.type === "portal" ||
     (!c.cleared && ["chest", "fountain", "corpse", "event", "story"].includes(c.type)));
   // 向いている方向を優先 (まっすぐ進み、壁に当たったら曲がる)。真後ろは最後
   const f = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[G._facing] || [0, 1];
@@ -5508,6 +5511,8 @@ function resolveCellMeasured(cell) {
       break;
     }
     case "stairs":
+      // 一度「まだ探索する」を選んだ階段は、オート移動が行き先へ向かう途中で踏んでも問い直さない
+      if (cell.stairsSeen && autoPlanStep) break;
       if (cell.gate && !abyssActive()) askGate(cell);
       else askDescend(cell);
       break;
@@ -6655,7 +6660,9 @@ function closePrompt() {
 
 // 階段: 降りるか選ぶ。最深階の階段は、層末迷宮では層ボスへの扉、それ以外では踏破口。
 function askDescend(cell) {
-  const stay = () => renderBoard(); // 枠外をタップ・戻る = 「まだ探索する」 (帰還魔法陣と同じ)
+  // 枠外をタップ・戻る = 「まだ探索する」 (帰還魔法陣と同じ)。一度そう選んだ階段は、オート移動では素通りする
+  // (cell.stairsSeen。階段をタップして歩いて来た時・ドックの「降りる」は従来どおり問う — ユーザーの指示、2026-10)
+  const stay = () => { if (cell) cell.stairsSeen = true; renderBoard(); };
   // 奈落: 最深部の概念がなく、ひたすら深く潜る。10階ごとに門番が立ちはだかる。
   if (abyssActive()) {
     if (abyssBossPending()) {
@@ -6663,7 +6670,7 @@ function askDescend(cell) {
         `深部から圧倒的な気配が漏れている。奈落の門番 (B${G.floor}F) に挑む？`,
         [
           { label: "門番に挑む", danger: true, fn: () => fightAbyssGuard(cell) },
-          { label: "まだ準備する", cancel: true, fn: () => { renderBoard(); } },
+          { label: "まだ準備する", cancel: true, fn: stay },
         ],
         ICONS.stairs,
         { banner: "⚠ 奈落の門番 ⚠", accent: "#d4504e", onDismiss: stay }
@@ -6677,7 +6684,7 @@ function askDescend(cell) {
         `階段の先は、底の見えない闇に呑まれている。`,
         [
           { label: "街へ帰還する ― 戦利品は持ち帰る", primary: true, fn: () => leaveDungeon({ outcome: G.run && G.run.secured ? "clear" : "return" }) },
-          { label: "まだ探索する", fn: () => { renderBoard(); } },
+          { label: "まだ探索する", fn: stay },
         ],
         ICONS.stairs,
         { banner: "✦ 奈落の底 ✦", accent: "#b08ac0", onDismiss: stay,
@@ -6689,7 +6696,7 @@ function askDescend(cell) {
       `さらに深い闇へ続く階段だ。`,
       [
         { label: `B${G.floor + 1}F へ潜る`, primary: true, fn: () => descend() },
-        { label: "まだ探索する", fn: () => { renderBoard(); } },
+        { label: "まだ探索する", fn: stay },
       ],
       ICONS.stairs,
       { banner: "✦ 奈落 ✦", accent: "#b08ac0", onDismiss: stay }
@@ -6704,7 +6711,7 @@ function askDescend(cell) {
       `「${dn.name}」は踏破済みだ。`,
       [
         { label: "街へ凱旋する", primary: true, fn: () => leaveDungeon({ outcome: "clear" }) },
-        { label: "まだ探索する", fn: () => { renderBoard(); } },
+        { label: "まだ探索する", fn: stay },
       ],
       ICONS.stairs,
       { banner: "★ 踏破済み ★", accent: "#ffd84a", lines: ["下の「帰還」からも、いつでも凱旋できる。"], onDismiss: stay }
@@ -6738,7 +6745,7 @@ function askDescend(cell) {
         else if (clearNoBoss) clearDungeonNoBoss();
         else descend();
       } },
-      { label: "まだ探索する", fn: () => { renderBoard(); } },
+      { label: "まだ探索する", fn: stay },
     ],
     boss ? ICONS.bossDoor : ICONS.stairs,
     { banner, accent, lines, onDismiss: stay }
@@ -13880,10 +13887,10 @@ function askGate(cell, { arrival = false } = {}) {
   showChoice(arrival ? `帰還魔法陣を抜けて、B${G.floor}F に降り立った。` : "帰還魔法陣が淡く輝いている。", [
     { label: `先へ進む ― B${next}F${bottom ? (cfg.boss ? " (主の間)" : " (最下階)") : ""}`, primary: true, fn: () => descend() },
     { label: "街へ帰還する ― 戦利品は持ち帰る", fn: () => leaveDungeon({ outcome: G.run && G.run.secured ? "clear" : "return" }) },
-    { label: arrival ? "この階を探索する" : "まだ探索する", fn: () => renderBoard() },
+    { label: arrival ? "この階を探索する" : "まだ探索する", fn: () => { if (cell) cell.stairsSeen = true; renderBoard(); } },
   ], ICONS.portal, { banner: `✦ 帰還魔法陣 B${G.floor}F ✦`, accent: "#7fd0ff",
     lines: ["この階のどこからでも、下の「帰還」で街へ戻れる。", "陣に至った迷宮は、次回この次の階から潜り始められる。"],
-    onDismiss: () => renderBoard() });
+    onDismiss: () => { if (cell) cell.stairsSeen = true; renderBoard(); } });
 }
 // 潜り始められる階 (1 と、到達した帰還魔法陣の次の階 — 陣の階は踏破済みなので飛ばす)
 function startFloorsOf(cfg) {
