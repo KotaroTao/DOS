@@ -558,7 +558,7 @@ function soulSkillChips(s) {
   for (const [key, lv] of pss) {
     const c = el("button", "sp-sd-chip ps", passiveName(key, lv));
     c.type = "button";
-    c.addEventListener("click", () => { if (!showPassivePopup(key, lv)) toast(`${passiveName(key, lv)} ― ${passiveDesc(key, lv) || ""}`, { tone: "info" }); });
+    c.addEventListener("click", () => { if (!showPassivePopup(key, lv)) toast(`${passiveName(key, lv)} ― ${passiveDesc(key, lv) || ""}`, { tone: "info", noLog: true }); });
     chips.appendChild(c);
   }
   if (!sks.length && !pss.length) chips.appendChild(el("span", "pt-note", "まだ技を覚えていない。"));
@@ -1256,7 +1256,7 @@ function fuseLearned(info) {
     const b = el("button", "sp-fz-chip ps", `パッシブ ${passiveName(p.key, p.lv)}`);
     b.type = "button";
     b.title = passiveDesc(p.key, p.lv);
-    b.addEventListener("click", () => { if (!showPassivePopup(p.key, p.lv)) toast(`${passiveName(p.key, p.lv)} ― ${passiveDesc(p.key, p.lv)}`, { tone: "info" }); });
+    b.addEventListener("click", () => { if (!showPassivePopup(p.key, p.lv)) toast(`${passiveName(p.key, p.lv)} ― ${passiveDesc(p.key, p.lv)}`, { tone: "info", noLog: true }); });
     list.appendChild(b);
   }
   wrap.appendChild(list);
