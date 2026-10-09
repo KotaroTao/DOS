@@ -7193,7 +7193,7 @@ function chestContents(cell, done, cRank = 1, lvBonus = 0, noGold = false, sink 
   const id = pickLoot({ chestRank: cRank, lvBonus: lootUp });
   const got = giveItem(id);
   if (got) {
-    if (legendary) { flashScreen("#ffcf4a"); SFX.victory(); log(`✦ 伝説の宝箱から ${got.item.name} を見つけた！`, "win"); }
+    if (legendary) { flashScreen("#ffcf4a"); SFX.victory(); log(`✦ 伝説の宝箱から ${itemName(got.item)} を見つけた！`, "win"); }
     sink.loot(got.item, got.who, fin); // 演出 (トースト/祝祭) の後に fin
     return;
   }
