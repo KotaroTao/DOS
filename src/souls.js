@@ -4,7 +4,7 @@ import { zeroResists } from "./resistance.js";
 // 魂のランク = 職業の位階 (1〜5)。同じ職業の魂を3部位以上に宿すと職業発現。
 // 上位ランクの魂は下位ランクの代替になり、発現ランクは「rank>=r が3部位以上」を満たす最大の r。
 // 5部位すべて同系列職業 (同clsKey) でランクボーナス発生。上位ランクはダンジョンでは出ず、融合で入手。
-import { recalc, registerJobGear } from "./items.js";
+import { recalc, registerJobGear, DUAL_WIELD_RATES } from "./items.js";
 import { JOB_LORE_RANKS } from "./joblore.js";
 import { JOB_IMAGES } from "./jobart.js";
 import { JOB_PHOTOS, PHOTO_RES } from "./jobphotos.js";
@@ -321,10 +321,10 @@ export const PASSIVES = {
   wardenKekkai:   { label: "護法の結界", scope: "party", lv: ["隊全員が受ける呪文・ブレスのダメージ-5%", "隊全員が受ける呪文・ブレスのダメージ-8%", "隊全員が受ける呪文・ブレスのダメージ-12%", "隊全員が受ける呪文・ブレスのダメージ-20%"] },
   arcanistShinen: { label: "深淵の知", scope: "self", lv: ["攻撃呪文の会心率+5%", "攻撃呪文の会心率+8%", "攻撃呪文の会心率+12%", "攻撃呪文の会心率+20%"] },
   heroDensetsu:   { label: "伝説の勇者", scope: "party", lv: ["勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+3%", "勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+5%", "勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+8%", "勇者が生きている間、味方全員のSTR・VIT・AGI・INT・PIE+15%"] },
-  asuraMugen:     { label: "無限の闘争", scope: "self", lv: ["自分の手番の後、10%でもう一度行動 (1ラウンド1回)", "自分の手番の後、15%でもう一度行動", "自分の手番の後、20%でもう一度行動", "自分の手番の後、30%でもう一度行動"] },
+  asuraNitou:     { label: "二刀流", scope: "self", lv: ["盾の欄に片手武器を持てる (左手)。通常攻撃の後に左手で一撃 (左手の攻撃力40%)。物理技にはその半分 (20%) を上乗せ", "左手の攻撃力60%。物理技には30%を上乗せ", "左手の攻撃力80%。物理技には40%を上乗せ", "左手の攻撃力100%。物理技には50%を上乗せ"] },
   dragonknightIbuki: { label: "竜の息吹", scope: "self", lv: ["毎ラウンドの初めに15%で、敵全体へ火のブレス (STR×0.5)", "毎ラウンドの初めに20%で、敵全体へ火のブレス (STR×0.6)", "毎ラウンドの初めに25%で、敵全体へ火のブレス (STR×0.8)", "毎ラウンドの初めに40%で、敵全体へ火のブレス (STR×1.2)"] },
   necroSenkoku:   { label: "死の宣告", scope: "party", lv: ["戦闘開始時、主以外の敵それぞれが3%で即死 (金属の魔物には効かない)", "戦闘開始時、主以外の敵それぞれが5%で即死 (金属の魔物には効かない)", "戦闘開始時、主以外の敵それぞれが8%で即死 (金属の魔物には効かない)", "戦闘開始時、主以外の敵それぞれが15%で即死 (金属の魔物には効かない)"] },
-  sageKiwami:     { label: "叡智の極み", scope: "self", lv: ["呪文 (技以外) が10%でMPを使わずに唱えられる", "呪文が15%でMPを使わずに唱えられる", "呪文が20%でMPを使わずに唱えられる", "呪文が30%でMPを使わずに唱えられる"] },
+  sageJikan:      { label: "時間跳躍", scope: "self", lv: ["自分の手番の後、10%でもう一度行動 (1ラウンド1回)", "自分の手番の後、15%でもう一度行動", "自分の手番の後、20%でもう一度行動", "自分の手番の後、30%でもう一度行動"] },
   cardinalKiseki: { label: "聖座の奇跡", scope: "party", lv: ["戦闘中1回、最後の1人が倒れる時、全員をHP10%で蘇らせる", "戦闘中1回、最後の1人が倒れる時、全員をHP20%で蘇らせる", "戦闘中1回、最後の1人が倒れる時、全員をHP30%で蘇らせる", "戦闘中1回、最後の1人が倒れる時、全員をHP50%で蘇らせる"] },
   archmageShinen: { label: "魔導の深淵", scope: "self", lv: ["攻撃呪文が敵の魔法抵抗による軽減を25%無視 (魔法無効には効かない)", "攻撃呪文が敵の魔法抵抗による軽減を50%無視", "攻撃呪文が敵の魔法抵抗による軽減を75%無視", "攻撃呪文が敵の魔法抵抗による軽減を100%無視 (魔法無効には効かない)"] },
   // ===== 職ごとの Lv15 の目玉パッシブ (Lv50 で Lv2、Lv100 で Lv3)。効果は game.js / combat.js が読む =====
@@ -1198,6 +1198,8 @@ export function recalcDoll(doll) {
   doll.tier = rank ? "rank" + rank : "none";
   doll.dominant = clsKey ? { clsKey, count: pe.count, maxLevel: pe.level } : null;
   doll.endure = (passiveMap.endure || 0) > 0;
+  // 二刀流 (修羅のランク・サブ魂で借りても効く): 左手の攻撃力の割合。items.js の recalc が読む
+  doll.dualWield = DUAL_WIELD_RATES[Math.min(4, passiveMap.asuraNitou || 0)] || 0;
   doll.level = doll.jobLv || 1;
 
   const permanent = PERMANENT_STAT_SRC();

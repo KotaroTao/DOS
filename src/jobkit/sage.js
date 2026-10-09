@@ -3,7 +3,7 @@
 // 持ち味: 水と風の叡智。攻めの呪文の余光で隊を癒し、癒しと守りを同じ手で編む。品の真贋を見抜く鑑定の目も持つ (鑑定Lv2)。
 export default {
   // ランクのパッシブ: 魂がランク2で目覚め、3・4・5で強まる (souls.js の JOB_PASSIVES)
-  awaken: "sageKiwami",
+  awaken: "sageJikan",
   table: `
     1 kantei/2 3 DIOS 5 sageJunkan/1 7 ICENEEDLE 10 CURE 15 SAGE_SEIRYUU 15 sageZoufuku/1 20 MAHALITO
     20 RECOVER 22 AQUAWAVE 25 sageIzumi/1 27 WINDSTORM 30 SAGE_CHIE 30 DIOSALL 30 AWAKE 35 sageSuifuu/1

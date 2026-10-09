@@ -9,7 +9,7 @@ import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audi
 import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteResolver } from "./sprites.js";
 import { makeItemSpriteResolver } from "./itemart/index.js";
 import {
-  ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, slotKeyFor, lvToRank, RANGE_LABEL,
+  ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL,
   UNIDENT_SLOTS, itemName, applyForge, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
 } from "./items.js";
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
@@ -10511,6 +10511,7 @@ function renderTown() {
   const then = G.town && G.town.facility ? takeLegacyEntry() : null; // 旧来の入口は新しいタブ/ページへ付け替えてから描く
   renderRunbar(); // 街では隠す
   refreshOrderBonus(); // 編成・魂の付け替えで結社の席が変わっていれば、全員の能力を付け直す
+  for (const d of fixHandsAndShields()) recalcDoll(d); // 二刀流を失った (サブ魂を外した・融合した) 人業の左手の武器は袋へ
   syncResonance(); // 編成・魂の付け替えで魂の共鳴が変わっていれば渡し直す (初めてそろった組は知らせる)
   autosave(); // 街での操作のたびに保存 (描画はアクション後に呼ばれる)
   updateTopbar();
@@ -14686,10 +14687,11 @@ function doEquip(p, it) {
   return r;
 }
 
-// アイテムが指定スロットに装備可能か (種別の一致)
-function itemFitsSlot(it, slotKey) {
+// アイテムが指定スロットに装備可能か (種別の一致)。p を渡すと、二刀流の人業は片手武器を盾の欄 (左手) にも収められる
+function itemFitsSlot(it, slotKey, p = null) {
   if (!it || it.slot === "use") return false;
   if (slotKey === "acc1" || slotKey === "acc2") return it.slot === "acc";
+  if (slotKey === "shield" && it.slot === "weapon") return !!p && canOffhand(p, it);
   return it.slot === slotKey;
 }
 
@@ -14699,11 +14701,11 @@ function itemFitsSlot(it, slotKey) {
 // (p の袋が満杯の時の「持ち主と取り替える」)。成否 { ok, msg, displaced, full }
 function equipAt(p, it, slotKey, owner = p, stashTo = null) {
   if (expeditionOf(p) || expeditionOf(owner) || expeditionOf(stashTo)) return { ok: false, msg: "遠征に出ている人業の装備・持ち物は動かせない" };
-  if (!it || !itemFitsSlot(it, slotKey)) return { ok: false, msg: "その部位には装備できない" };
+  if (!it || !itemFitsSlot(it, slotKey, p)) return { ok: false, msg: "その部位には装備できない" };
   if (!canEquip(p, it)) return { ok: false, msg: it.unidentified ? "未鑑定の品は装備できない" : `${p.cls}は${it.name}を装備できない` };
   const tr = autoEquip.trialEquip(p.equip, it, slotKey);
   if (!tr) {
-    const pin = [p.equip[slotKey], it.slot === "weapon" && it.twoHanded ? p.equip.shield : null, it.slot === "shield" && p.equip.weapon && p.equip.weapon.twoHanded ? p.equip.weapon : null]
+    const pin = [p.equip[slotKey], it.slot === "weapon" && it.twoHanded ? p.equip.shield : null, slotKey === "shield" && p.equip.weapon && p.equip.weapon.twoHanded ? p.equip.weapon : null]
       .find((x) => autoEquip.isPinned(x));
     return { ok: false, msg: pin && !pin.cursed ? `${pin.name}はロック中 ― ロックを外すと付け替えられる` : "呪われた装備が外れない" };
   }
@@ -15445,20 +15447,24 @@ function reflattenItemStats() {
 // 片手/両手と盾のジャンルを入れた後の旧セーブの整え直し:
 //   両手武器になった武器と盾を同時に持っている / 職のジャンルに合わなくなった盾を持っている → 盾を外して袋へ
 //   (自分の袋が満杯なら、隊・控えの空きのある人業の袋へ。誰も空いていなければ自分の袋に入れる)。呪いの盾はそのまま
-function fixHandsAndShields() {
+//   二刀流 (修羅のランク・サブ魂) を失った人業の左手の武器も同じように袋へ戻す (魂の付け替え・融合の後も renderTown が呼ぶ)
+function fixHandsAndShields(offhand = true) {
   const all = [...(G.party || []), ...(G.reserve || [])].filter((d) => d && d.equip);
+  const moved = [];
   for (const d of all) {
     const sh = d.equip.shield;
-    if (!sh || sh.cursed) continue;
+    if (!sh || sh.cursed || (sh.slot === "weapon" && !offhand)) continue;
     const w = d.equip.weapon;
     const clash = w && w.twoHanded;
-    const bad = d.clsKey && !canEquip(d, sh);
+    const bad = sh.slot === "weapon" ? !canOffhand(d, sh) : (d.clsKey && !canEquip(d, sh));
     if (!clash && !bad) continue;
     d.equip.shield = null;
     if (!Array.isArray(d.items)) d.items = [];
     const room = d.items.length < MAX_ITEMS ? d : all.find((x) => Array.isArray(x.items) && x.items.length < MAX_ITEMS);
     (room || d).items.push(sh);
+    moved.push(d);
   }
+  return moved; // 左手・盾を外した人業 (能力の再計算は呼び出し側)
 }
 
 // 旧ステータス体系 (こうげき/ぼうぎょ/すばやさ/AC) のセーブを六大ステへ移行する。
@@ -15533,7 +15539,7 @@ function loadGame() {
   // (battle の敵の mon はこの後 MONSTERS の生定義に差し替えられるため触れても無害)
   migrateLegacyStats(snap);
   reflattenItemStats();
-  fixHandsAndShields();
+  fixHandsAndShields(false); // 左手の武器 (二刀流) は魂の能力が出そろってから下で見る
   // 一時状態はリセット
   G.anim = null; G.flipAnim = null; G.heroAnim = null; G.walking = false; G.prompt = false;
   G.fx = null; G.animating = false; G.enemyPos = {}; G.partyFx = new Map(); G.partyFxV = null; G.wallFlash = null; G.partyCall = null;
@@ -15600,6 +15606,7 @@ function loadGame() {
     if (typeof d.hp === "number") d.hp = Math.round(d.hp);
     if (typeof d.mp === "number") d.mp = Math.round(d.mp);
   }
+  for (const d of fixHandsAndShields()) { try { recalcDoll(d); } catch {} } // 二刀流を失った人業の左手の武器 (魂の能力が出そろってから)
   normalizeExpeditions(); // 遠征 (後付け: 旧セーブは無し。人業の参照を控えにつなぎ直す)
   applyResonance(); // 魂の共鳴 (後付け: 旧セーブは無し。見つけた組の記録を整え、いまの隊の効果を戦闘へ渡す)
   if (!G.stats) G.stats = {};

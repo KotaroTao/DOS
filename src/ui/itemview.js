@@ -10,7 +10,7 @@ import { ELEMENTS, elemBeats, RACE_LABEL, unknownLabel, UNK_OPEN, UNK_CLOSE } fr
 import { SPELLS, spellMpLabel, spellCureKinds, soulTierRate, healsHp, MP_DRAIN_CAP } from "../combat.js";
 import { STAGED, stageOf, stageMul, stageLabel, ENEMY_STAT_LABEL } from "../buffstage.js";
 import { ATTR_LABEL, SOUL_CLASSES, dollBust, PASSIVES, passiveName, passiveByName } from "../souls.js";
-import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, useLines } from "../items.js";
+import { WEAPON_CAT_LABEL, SHIELD_KIND_LABEL, HAND_LABEL, handOf, shieldKind, RANGE_LABEL, weaponRange, slotKeyFor, recalc, canEquip, AIL_LABEL, attackPower, fightPower, useLines } from "../items.js";
 import { HERO, spriteCanvas, crispCanvas } from "../sprites.js";
 
 // 魂のステータス寄与を「HP+7 STR+2.4 …」形式で列挙 (0は省略)
@@ -565,21 +565,24 @@ export function isEquippable(it) { return EQUIPPABLE_SLOTS.has(it.slot); }
 // 候補 cand を p に装備した場合の最終ステータス増減を返す。
 // items.js の recalc を仮の装備マップに流用するので、両手武器⇄盾の付け替え分も反映される。
 // 数値ステ (atk…mp) のほか、会心率 (crit, %) と属性攻撃/防御 (elemAtk/elemDef) の変化も返す。
-export function equipPreviewDelta(p, cand) {
-  const key = slotKeyFor(cand, p);
+// slotKey = "shield" と片手武器を渡すと左手 (二刀流) に持たせた場合
+export function equipPreviewDelta(p, cand, slotKey = null) {
+  const key = slotKey === "shield" && cand.slot === "weapon" ? "shield" : slotKeyFor(cand, p);
   if (!key) return null;
   const eq = { ...p.equip };
-  // equip() と同じ付け替え規則: 両手武器は盾を、盾は両手武器を外す
+  // equip() と同じ付け替え規則: 両手武器は盾 (左手) を、盾・左手の武器は両手武器を外す
   if (cand.slot === "weapon" && cand.twoHanded) eq.shield = null;
-  if (cand.slot === "shield" && eq.weapon && eq.weapon.twoHanded) eq.weapon = null;
+  if (key === "shield" && eq.weapon && eq.weapon.twoHanded) eq.weapon = null;
   eq[key] = cand;
-  const fake = { base: p.base, equip: eq, hp: p.hp, mp: p.mp };
+  const fake = { base: p.base, equip: eq, hp: p.hp, mp: p.mp, dualWield: p.dualWield || 0 };
   recalc(fake);
+  const offW = (e) => (e.shield && e.shield.slot === "weapon" ? e.shield : null);
+  const wChanged = (eq.weapon || null) !== (p.equip.weapon || null) || offW(eq) !== offW(p.equip);
   return {
-    power: attackPower(fake) - attackPower(p), // 攻撃力 (参照能力 × 武器の係数)
-    weapon: (eq.weapon || null) !== (p.equip.weapon || null),
-    // 持ち方の付け替え (両手武器に持ち替えて盾が外れる)。武器の良し悪しを攻撃力だけでなく盾の能力とも比べる
-    handSwap: (eq.weapon || null) !== (p.equip.weapon || null) && (eq.shield || null) !== (p.equip.shield || null),
+    power: fightPower(fake) - fightPower(p), // 攻撃力 (参照能力 × 武器の係数。二刀流なら左手も DUAL_VALUE_SHARE で)
+    weapon: wChanged,
+    // 持ち方の付け替え (両手武器に持ち替えて盾が外れる / 盾 ⇄ 左手の武器)。武器の良し悪しを攻撃力だけでなく盾の能力とも比べる
+    handSwap: wChanged && (eq.shield || null) !== (p.equip.shield || null),
     atk: fake.atk - p.atk,
     vit: fake.vit - p.vit,
     agi: fake.agi - p.agi,
@@ -597,7 +600,7 @@ export function equipPreviewDelta(p, cand) {
     breathRes: Math.round(((fake.breathRes || 0) - (p.breathRes || 0)) * 100),
     onHit: { from: p.onHit || null, to: fake.onHit || null },
     eff: { from: p.eff || null, to: fake.eff || null },
-    abs: { power: attackPower(fake), maxhp: fake.maxhp || 0, maxmp: fake.maxmp || 0 },
+    abs: { power: fightPower(fake), maxhp: fake.maxhp || 0, maxmp: fake.maxmp || 0 },
   };
 }
 

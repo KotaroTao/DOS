@@ -79,7 +79,7 @@ export function decideAuto(b, actor, dbg = null) {
   // 通常攻撃 (射程内の敵ごと)
   for (const t of b.attackableEnemies(actor)) {
     if (!t.alive) continue;
-    const per = b.estPhys(actor, t, { basic: true }) * ctx.strikes(actor);
+    const per = b.estBasic(actor, t); // 連撃・二刀流の左手の一撃まで
     if (per <= 0) continue;
     const v = dmgValue(ctx, t, per) * (t.mind === "charm" ? CHARMED_TGT_MUL : 1);
     cands.push({ action: "attack", target: t, dmg: v, raw: per, score: 0 });
@@ -118,7 +118,6 @@ function makeCtx(b, actor) {
   const avgVit = allies.length ? allies.reduce((a, p) => a + b._evit(p), 0) / allies.length : 0;
   const ctx = {
     b, actor, foes, allies,
-    strikes: (a) => (a.multistrike > 1 ? Math.min(4, a.multistrike) : 1),
     // 敵1体が1手番で隊に与える傷の見積もり (眠り・麻痺・魅了・怯みは割り引く)
     threat: (e) => once("t" + e.uid, () => {
       if (!e.alive) return 0;
@@ -136,7 +135,7 @@ function makeCtx(b, actor) {
     basic: (a) => once("b" + (a.uid != null ? a.uid : a.name), () => {
       const reach = b.attackableEnemies(a).filter((e) => e.alive);
       if (!reach.length) return 0;
-      return reach.reduce((s, e) => s + b.estPhys(a, e, { basic: true }), 0) / reach.length * ctx.strikes(a);
+      return reach.reduce((s, e) => s + b.estBasic(a, e), 0) / reach.length;
     }),
   };
   ctx.ourDps = once("dps", () => allies.reduce((s, p) => s + ctx.basic(p), 0));
