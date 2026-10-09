@@ -191,9 +191,13 @@ export function dungeonQuestSheet(dn, { onChange = null } = {}) {
     let list = [];
     try { list = game.dungeonQuests ? game.dungeonQuests(dn) : []; } catch (e) { list = []; }
     const box = el("div", "qb-dq");
-    const done = list.filter((x) => x.shown && x.q.state === "claimed").length;
-    box.appendChild(setText(el("div", "qb-dq-cap"), list.length ? `報告済み ${done}/${list.length} ・ 依頼は酒場「沈まぬ灯」で受け、報告する` : "この迷宮にまつわる依頼人の頼みはない。"));
+    const done = list.filter((x) => x.mythic ? x.got : x.shown && x.q.state === "claimed").length;
+    const reqs = list.some((x) => !x.mythic);
+    box.appendChild(setText(el("div", "qb-dq-cap"), list.length
+      ? `果たした数 ${done}/${list.length}${reqs ? " ・ 依頼は酒場「沈まぬ灯」で受け、報告する" : ""}`
+      : "この迷宮にまつわる依頼人の頼みはない。"));
     for (const x of list) {
+      if (x.mythic) { box.appendChild(mythicCard(x)); continue; }
       if (!x.shown) {
         const card = el("div", "qb-card fixed qb-dq-unk");
         const mk = el("span", "qb-mark");
@@ -228,6 +232,30 @@ export function dungeonQuestSheet(dn, { onChange = null } = {}) {
   h = sheet.open({ kind: "info", banner: "固有クエスト", title: dn.name, body, className: "qb-dq-sheet",
     footer: [{ label: "閉じる", kind: "ghost", onTap: (s) => s.close() }] });
   return h;
+}
+
+// 固有クエストの札のうち、その迷宮専用の「極めて稀なる出来事」。授かる前は名も効き目も伏せ、
+// 授かった後は名と恒久の恵みを出して、タップで見聞録の一枚を開く
+function mythicCard(x) {
+  const card = el(x.got ? "button" : "div", "qb-card fixed qb-dq-myth" + (x.got ? " qb-dq-done" : " qb-dq-unk"));
+  const mk = el("span", "qb-mark");
+  mk.appendChild(el("span", "qb-mark-c", "極"));
+  card.appendChild(mk);
+  const info = el("div", "qb-i");
+  const top = el("div", "qb-top");
+  top.appendChild(el("span", "qb-tag", "極めて稀なる出来事"));
+  top.appendChild(setText(el("span", "qb-n"), x.got ? x.name : "？？？"));
+  info.appendChild(top);
+  if (x.got) {
+    info.appendChild(setText(el("div", "qb-d"), x.boon || ""));
+    info.appendChild(setText(el("div", "qb-s"), "授かった ✓"));
+    card.type = "button";
+    card.addEventListener("click", () => { sfx("select"); if (UI.codexEventSheet) UI.codexEventSheet(x.id); });
+  } else {
+    info.appendChild(setText(el("div", "qb-dq-hint"), "この迷宮のどの階でも、ごくまれに出会う。出会えば恒久の恵みを授かる"));
+  }
+  card.appendChild(info);
+  return card;
 }
 
 // ---- 迷宮を対象にした受注中の依頼 (出撃シートの「受注中の依頼」から) ----

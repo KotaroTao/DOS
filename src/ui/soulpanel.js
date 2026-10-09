@@ -735,11 +735,19 @@ export function openSoulDetail(uid, onChange = null) {
     const cap = soulLevelCapOf(s);
     const head = el("div", "sp-train-h");
     head.appendChild(orb(s.clsKey, rank, 44));
-    const tx = el("div", "sp-train-t");
+    const tx = el("div", "sp-train-t sp-sd-t");
     const nm = el("div", "sp-srow-n", soulLabel(s));
     if (cl.glow) nm.style.color = cl.glow;
     if (s.locked) nm.appendChild(svgIcon("lock", "sp-srow-lk"));
-    tx.appendChild(nm);
+    // 魂の名と同じ列の右端に「職業図鑑を見る」(その職業の図鑑をこのシートの上に開く。ユーザーの指示、2026-10)
+    const nmRow = el("div", "sp-sd-nmrow");
+    nmRow.appendChild(nm);
+    if (game.showCodexJobDetail) {
+      const cb = button({ label: "職業図鑑を見る", kind: "secondary", size: "sm", onTap: () => game.showCodexJobDetail(s.clsKey, rank) });
+      cb.classList.add("sp-sd-codex");
+      nmRow.appendChild(cb);
+    }
+    tx.appendChild(nmRow);
     tx.appendChild(el("div", "sp-srow-m", `「${jobRankName(s.clsKey, rank) || cl.label}」 ・ Lv${s.level}/${cap} ・ ランク${rank} ・ ${RARITY_NAME[cl.rarity] || ""}`));
     if (soulRankLeft(s)) tx.appendChild(el("div", "sp-srow-m", soulRankLeft(s)));
     tx.appendChild(el("div", "sp-srow-tag", soulTags(s)));

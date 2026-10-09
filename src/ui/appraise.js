@@ -12,7 +12,7 @@
 import { UI, game, registerUI } from "./ctx.js";
 import { el, sheet, button, setText, toast, reduced, confirm } from "./kit.js";
 import { statLines, isEquippable, itemCatText } from "./itemview.js";
-import { wearPlan, deltaEl, nameSpan, openDollChooser, itemSheet, ownerOf, shopOpen, townAppraisers, revealSellBtn, floatGold,
+import { wearPlan, deltaEl, nameSpan, openDollChooser, itemSheet, ownerOf, shopOpen, townAppraisers, revealSellBtn, revealSellAction, floatGold,
   FIRST_LABEL, firstBadge, isFirstGet } from "./loot.js"; // 初ゲット！ = 鑑定で正体を初めて知った品 (game.js の revealIdentity が印をつける)
 import { spriteCanvas } from "../sprites.js";
 import { identifyChance, identifyLabel } from "../souls.js";
@@ -332,43 +332,10 @@ export function openTryIdentifyAll({ onDone } = {}) {
     b.appendChild(wrap);
   };
 
-  // 一覧に残った品のうち、まとめて売れるもの (袋の中・呪いなし)。SR/LR・未奉納の収集品 (sellWarnings) は一点ずつ「売る」で確かめる
-  const sellables = () => {
-    const out = [];
-    let keep = 0;
-    for (const r of results) {
-      if (!r.ok) continue;
-      const it = r.item;
-      const o = ownerOf(it);
-      if (!o || o.where !== "bag" || it.unidentified) continue;
-      if (it.cursed || (game.sellWarnings && game.sellWarnings(it).length)) { keep++; continue; }
-      out.push({ doll: o.doll, item: it, price: game.sellPrice(it) });
-    }
-    return { list: out, keep };
-  };
-  const sellRest = async () => {
-    const { list, keep } = sellables();
-    if (!list.length || !UI.sellItems) return;
-    const gold = list.reduce((a, j) => a + j.price, 0);
-    const ok = await confirm({
-      banner: "まとめて売る", title: `${list.length}点を売る (+💰${gold})`,
-      lines: [list.map((j) => itemName(j.item)).join("・"),
-        keep ? `スーパーレア・レジェンドレア・未奉納の収集品 ${keep}点は残す (一点ずつ「売る」で売れる)。` : "売った品は商会の棚に並ぶ (買い戻せる)。"],
-      okLabel: "まとめて売る",
-    });
-    if (!ok) return;
-    const res = UI.sellItems(list);
-    if (res && res.gold) floatGold(res.gold);
-    refreshSummary();
-  };
-
   const summaryFooter = () => {
     const out = [];
-    const sell = shopOpen() && UI.sellItems ? sellables() : { list: [] };
-    if (sell.list.length) {
-      out.push({ label: "残りをまとめて売る", sub: `${sell.list.length}点${sell.keep ? ` ・ 逸品${sell.keep}点は残す` : ""}`,
-        cost: { kind: "gold", n: sell.list.reduce((a, j) => a + j.price, 0) }, kind: "secondary", onTap: () => { sellRest(); } });
-    }
+    const sell = revealSellAction(results.filter((r) => r.ok).map((r) => r.item), refreshSummary);
+    if (sell) out.push(sell);
     let left = [];
     for (const d of allDolls()) for (const it of (d.items || [])) if (it && it.unidentified) left.push(it);
     if (left.length && shopOpen() && UI.confirmIdentifyAll) {
