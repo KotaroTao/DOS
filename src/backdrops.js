@@ -2141,6 +2141,135 @@ function vGlacialThrone(R, A) {
   A.part({ n: 40, col: "#e8f6ff", x0: 0, x1: 1, y0: 0, y1: 1, vy: 0.03, vx: -0.01, sway: 10, swf: 0.4, a: 0.5, big: 0.12, seed: 99 });
   A.flick(cx, ty - 23, 6, "#c8f0ff", 0.4, 0.5);
 }
+// ---- 各層の寄り道 (ws6〜ws8) ----
+// ws6 見捨てられた狼煙台: 砦の外れの石の塔。頂の火皿で、援軍を呼ぶ火が百年燃えている
+function vBeacon(R, A) {
+  const { w: W, h: H } = R, cx = W / 2, by = Math.round(H * 0.76);
+  const st = tex("#5a5450", "#2e2a28", 0.25, 101);
+  R.m = SURF; R.poly([[cx - 14, by], [cx - 10, by - 70], [cx + 10, by - 70], [cx + 14, by]], st);
+  for (let y = by - 64; y < by; y += 7) R.rect(cx - 12, y, 24, 1, "#1e1a18", 0.6);
+  R.rect(cx + 8, by - 70, 1, 70, "#8a7a6a", 0.5);
+  R.rect(cx - 18, by - 76, 36, 6, "#3a3230"); R.rect(cx - 18, by - 76, 36, 1, "#7a6a5a");
+  for (let i = 0; i < 9; i++) { R.m = SURF; R.ellipse(cx + 8 + i * 11, by - 108 - i * 4, 8 + i * 1.6, 5 + i, "#3a3434", 0.5 - i * 0.04); } // 風下へたなびく煙
+  const fy = by - 77;
+  R.m = SKY; R.poly([[cx - 16, fy], [cx - 12, fy - 14], [cx - 6, fy - 10], [cx - 2, fy - 28], [cx + 4, fy - 16], [cx + 9, fy - 22], [cx + 12, fy - 8], [cx + 16, fy]],
+    (px, py) => mix(C("#c03010"), C("#fff0b0"), clamp01((py - (fy - 28)) / 28 * 0.6 + (1 - Math.abs(px - cx) / 16) * 0.5)));
+  R.glow(cx, fy - 10, 60, 40, "#ff6020", 0.45, 5); R.light(cx, fy - 10, 140, "#ff8030", 1.4, 100);
+  A.flick(cx, fy - 10, 20, "#ff9040", 0.5, 0.9);
+  ghost(R, cx - 32, by + 8, 24, "#e0a070", 0.4); ghost(R, cx + 34, by + 10, 22, "#e0a070", 0.36); // 薪を抱えた火の番
+  A.part({ n: 36, col: "#ffb050", x0: 0.4, x1: 0.62, y0: 0.05, y1: 0.35, vy: -0.08, sway: 6, swf: 0.6, a: 0.8, tw: 2.4, seed: 103 });
+}
+// ws7 獄吏の詰所: 鍵束を掛けた板と、押収品を納めた鉄帯の箱。見回りを続ける獄吏の骸
+function vGuardroom(R, A) {
+  const { w: W, h: H } = R, cx = W / 2, gy = Math.round(H * 0.62);
+  R.amb = [0.35, 0.33, 0.38];
+  bricks(R, 0, 0, W, gy, "#3a3638", "#141214", 14, 6, 111);
+  R.m = SURF; R.rect(0, gy, W, H - gy, tex("#2a2624", "#161412", 0.15, 112)); R.rect(0, gy, W, 1, "#4a4440");
+  R.rect(cx - 40, gy - 50, 80, 14, tex("#5a4026", "#3a2a18", 0.3, 113)); R.rect(cx - 40, gy - 50, 80, 1, "#7a5a36");
+  for (let i = 0; i < 7; i++) {
+    const x = cx - 34 + i * 11;
+    R.m = SURF; R.rect(x, gy - 47, 1, 3, "#2a2a2a"); R.ellipse(x + 0.5, gy - 40, 4, 4, "#8a7a50"); R.ellipse(x + 0.5, gy - 40, 2.6, 2.6, "#3a2a18");
+    for (let k = 0; k < 3; k++) R.rect(x - 1 + k * 1.5, gy - 37 + k, 1, 4, "#a89060");
+  }
+  for (const [x, y, w, h] of [[cx - 72, gy + 16, 28, 16], [cx - 38, gy + 22, 24, 14], [cx + 10, gy + 20, 26, 15], [cx + 44, gy + 14, 30, 17], [cx - 12, gy + 36, 30, 17]]) {
+    R.m = SURF; R.rect(x, y - h, w, h, tex("#5a3e24", "#3a2614", 0.3, x | 0)); R.rect(x, y - h, w, 2, "#7a5a36");
+    R.rect(x, y - h + Math.round(h * 0.5), w, 1, "#2a2a2a"); for (const dx of [2, w - 4]) R.rect(x + dx, y - h, 2, h, "#4a4a4a");
+    R.rect(x + w / 2 - 1, y - h + 3, 3, 3, "#c0a050");
+  }
+  const lx = cx, ly = gy - 66;
+  R.m = SURF; R.line(lx, 0, lx, ly, "#2a2420"); R.rect(lx - 3, ly, 7, 7, "#2a2620");
+  R.m = SKY; R.rect(lx - 2, ly + 1, 5, 5, "#ffd890");
+  R.glow(lx, ly + 3, 30, 26, "#c07a20", 0.45, 5); R.light(lx, ly + 4, 150, "#ffb050", 1.2, 110); A.flick(lx, ly + 4, 10, "#ffb050", 0.4, 0.8);
+  hooded(R, cx + 88, gy + 34, 44, "#2a2a30", "#6a6a80"); hooded(R, cx - 92, gy + 38, 48, "#2a2a30", "#6a6a80");
+}
+// ws8 沈んだ書庫: 水に沈んだ書架。封をした書の箱が並び、開いた一冊が青く光って漂う
+function vDrownedLib(R, A) {
+  const { w: W, h: H } = R, cx = W / 2, by = Math.round(H * 0.86);
+  R.post.push((out) => { // 水の底: 青緑へ寄せる
+    for (let i = 0; i < out.length; i += 3) { const l = out[i] * 0.3 + out[i + 1] * 0.5 + out[i + 2] * 0.2; out[i] = l * 0.45 + out[i] * 0.2; out[i + 1] = l * 0.85 + out[i + 1] * 0.15 + 4; out[i + 2] = l * 0.95 + out[i + 2] * 0.2 + 10; }
+  });
+  for (const [x, y, w, h] of [[cx - 62, by, 22, 12], [cx - 36, by + 6, 20, 11], [cx + 14, by + 4, 24, 12], [cx + 44, by - 2, 20, 11], [cx - 12, by - 8, 22, 10]]) {
+    R.m = SURF; R.rect(x, y - h, w, h, tex("#5a4430", "#2e2218", 0.3, x | 0)); R.rect(x, y - h, w, 1, "#8a7050");
+    R.rect(x + w / 2 - 2, y - h + 2, 4, 4, "#7a1810"); R.rect(x + w / 2 - 1, y - h + 3, 2, 2, "#b03020");
+  }
+  const bx = cx, bky = Math.round(H * 0.42);
+  R.m = SURF; R.poly([[bx - 16, bky + 2], [bx - 14, bky - 6], [bx, bky - 4], [bx + 14, bky - 6], [bx + 16, bky + 2], [bx, bky + 4]], "#d8d0b0"); R.line(bx, bky - 4, bx, bky + 4, "#8a8070");
+  for (let i = 0; i < 3; i++) { R.rect(bx - 12, bky - 3 + i * 2, 9, 1, "#5a5a6a", 0.6); R.rect(bx + 3, bky - 3 + i * 2, 9, 1, "#5a5a6a", 0.6); }
+  R.glow(bx, bky, 34, 22, "#80c0e0", 0.4, 5); R.light(bx, bky, 90, "#a0d8f0", 1, 70);
+  R.m = ADD; for (const x0 of [W * 0.28, W * 0.55, W * 0.72]) R.poly([[x0, 0], [x0 + 8, 0], [x0 + 28, H], [x0 + 16, H]], "#4a8a9a", 0.12);
+  A.part({ n: 24, col: "#a8e8f0", x0: 0.15, x1: 0.85, y0: 0.2, y1: 0.95, vy: -0.08, sway: 4, swf: 0.6, a: 0.5, ring: true, big: 0.3, seed: 121 });
+}
+// ws9 黒曜の切り場: 冷えて固まった黒いガラスの崖。割れ口が溶岩の照り返しで紫に光る
+function vObsidian(R, A) {
+  const { w: W, h: H } = R, cx = W / 2, gy = Math.round(H * 0.72), r = rnd(131);
+  const shard = (x, by, h, w, lean) => {
+    R.m = SURF;
+    R.poly([[x - w, by], [x - w * 0.6 + lean * 0.4, by - h * 0.6], [x + lean, by - h], [x + w * 0.5 + lean * 0.6, by - h * 0.55], [x + w, by]],
+      (px, py) => mix(C("#0a0810"), C("#2a2038"), clamp01(vnoise(px * 0.2, py * 0.1, 3) * 0.8)));
+    R.m = SKY; R.line(x - w * 0.6 + lean * 0.4, by - h * 0.6, x + lean, by - h, "#c070a0", 0.7); R.line(x + lean, by - h, x + w * 0.5 + lean * 0.6, by - h * 0.55, "#ff8060", 0.5);
+    R.line(x + lean * 0.5 - 1, by - h * 0.5, x + lean * 0.2, by - h * 0.1, "#6a5080", 0.4);
+  };
+  for (const [x, h, w, l] of [[cx - 72, 40, 10, -4], [cx - 46, 62, 13, 3], [cx - 14, 82, 14, -2], [cx + 18, 70, 12, 5], [cx + 50, 54, 12, -3], [cx + 78, 36, 9, 2]]) shard(x, gy, h, w, l);
+  for (let i = 0; i < 10; i++) shard(cx + (r() - 0.5) * 190, gy + 8 + r() * 22, 8 + r() * 14, 3 + r() * 3, (r() - 0.5) * 4);
+  R.m = SKY; R.rect(0, gy + 2, W, 2, "#ff6020", 0.4);
+  R.glow(cx, gy + 10, W * 0.5, 20, "#ff4010", 0.4, 5); R.light(cx, gy + 10, W * 0.6, "#ff6030", 1.1, 60);
+  A.part({ n: 20, col: "#e0a0ff", x0: 0.2, x1: 0.8, y0: 0.2, y1: 0.7, a: 0.6, tw: 3, seed: 133 });
+  A.part({ n: 24, col: "#ffb050", x0: 0.1, x1: 0.9, y0: 0.5, y1: 0.95, vy: -0.06, sway: 5, swf: 0.5, a: 0.7, tw: 2, seed: 134 });
+}
+// ws10 火守りの僧院: 石の火皿に燃える祈りの火。炎の中に淡い顔が浮かび、頭巾の火守りが祈り続ける
+function vPyreAbbey(R, A) {
+  const { w: W, h: H } = R, cx = W / 2, by = Math.round(H * 0.8);
+  R.m = SURF; R.poly([[cx - 18, by - 14], [cx + 18, by - 14], [cx + 12, by - 6], [cx - 12, by - 6]], "#4a3a34"); R.rect(cx - 4, by - 6, 8, 8, "#3a2e2a"); R.rect(cx - 10, by + 1, 20, 3, "#4a3a34"); R.rect(cx - 18, by - 14, 36, 1, "#8a6a50");
+  const fy = by - 15;
+  R.m = SKY; R.poly([[cx - 16, fy], [cx - 11, fy - 18], [cx - 5, fy - 12], [cx - 1, fy - 34], [cx + 5, fy - 20], [cx + 10, fy - 26], [cx + 13, fy - 10], [cx + 16, fy]],
+    (px, py) => mix(C("#c03010"), C("#fff0b0"), clamp01((py - (fy - 34)) / 34 * 0.6 + (1 - Math.abs(px - cx) / 16) * 0.5)));
+  R.m = ADD; for (const [dx, dy] of [[-5, -16], [5, -22], [0, -9]]) { R.ellipse(cx + dx, fy + dy, 2.6, 3.2, "#ffe0c0", 0.35); R.px(cx + dx - 1, fy + dy - 1, "#401008", 0.5); R.px(cx + dx + 1, fy + dy - 1, "#401008", 0.5); }
+  R.glow(cx, fy - 14, 70, 50, "#ff6020", 0.45, 5); R.light(cx, fy - 14, 150, "#ff8030", 1.4, 110); A.flick(cx, fy - 14, 18, "#ff9040", 0.5, 0.9);
+  for (const [dx, dy, h] of [[-62, 8, 30], [-36, 0, 24], [36, 0, 24], [62, 8, 30]]) hooded(R, cx + dx, by + dy, h, "#4a2a24", "#c07050");
+  A.part({ n: 30, col: "#ffb050", x0: 0.4, x1: 0.6, y0: 0.1, y1: 0.6, vy: -0.1, sway: 6, swf: 0.6, a: 0.8, tw: 2.4, seed: 141 });
+}
+function wolf(R, x, by, s, dir) { // 白霜の狼 (横向き。dir = 1 右向き / -1 左向き)
+  const c = "#8aa0b4", d = "#3a4e62";
+  R.m = SURF;
+  R.taper(x - dir * 8 * s, by - 7 * s, x - dir * 15 * s, by - 4 * s, 3 * s, 1.5 * s, c);
+  for (const lx of [-6, -3, 4, 7]) R.rect(x + dir * lx * s - 0.5 * s, by - 4 * s, 1.5 * s, 4 * s, lx % 2 ? c : d);
+  R.ellipse(x, by - 6 * s, 9 * s, 4 * s, c);
+  R.ellipse(x + dir * 9 * s, by - 9 * s, 4 * s, 3 * s, c);
+  R.poly([[x + dir * 10 * s, by - 9 * s], [x + dir * 15 * s, by - 7.5 * s], [x + dir * 10 * s, by - 6 * s]], c);
+  R.poly([[x + dir * 7.5 * s, by - 11 * s], [x + dir * 8.5 * s, by - 14.5 * s], [x + dir * 10.5 * s, by - 11.5 * s]], c);
+  R.rect(x - 8 * s, by - 3 * s, 16 * s, 1, d, 0.6); R.ellipse(x + dir * 2 * s, by - 9 * s, 7 * s, 1.2 * s, "#d8e8f4", 0.8); // 背の霜
+  R.m = SKY; R.px(x + dir * 11 * s, by - 10 * s, "#a0e8ff"); R.glow(x + dir * 11 * s, by - 10 * s, 4, 3, "#80d0ff", 0.6, 3);
+}
+// ws11 白狼の吹き溜まり: 奈落の壁のくぼみの雪だまり。落とし物の突き出た雪の上を、白霜の狼が渡る
+function vWolfDrift(R, A) {
+  const { w: W, h: H } = R, cx = W / 2, by = Math.round(H * 0.84);
+  R.m = SURF; R.poly([[0, H], [0, by - 6], [cx - 60, by - 18], [cx - 20, by - 30], [cx + 30, by - 26], [cx + 80, by - 12], [W, by - 4], [W, H]],
+    (x, y) => mix(C("#7a98b0"), C("#e0eef8"), clamp01(1 - (y - (by - 30)) / 50 + (vnoise(x * 0.1, y * 0.2, 5) - 0.5) * 0.4)));
+  R.m = SURF; R.rect(cx - 30, by - 36, 5, 7, "#4a3424"); R.rect(cx - 31, by - 31, 8, 2, "#3a2a1c");
+  R.poly([[cx + 12, by - 27], [cx + 20, by - 36], [cx + 26, by - 29]], "#5a2a2a"); R.line(cx + 40, by - 24, cx + 46, by - 46, "#6a5a40", 1, 1);
+  wolf(R, cx - 58, by - 15, 1.3, 1); wolf(R, cx + 66, by - 14, 1.4, -1); wolf(R, cx + 2, by - 26, 1.0, 1);
+  R.light(cx, by - 30, 120, "#c0e0ff", 0.6, 60);
+  A.fog("#e0f0ff", 0.82, 5, 0.2, 6, 120, 12);
+  A.part({ n: 70, col: "#f0f8ff", x0: 0, x1: 1, y0: 0, y1: 1, vy: 0.05, vx: 0.04, sway: 10, swf: 0.5, a: 0.6, big: 0.15, seed: 151 });
+}
+// ws12 氷河の裂け目: 氷の壁に走る深い裂け目。雪解けの細い滝が落ち、氷の中の魂が光る。抜け落ちた者たちが裂け目へ歩く
+function vCrevasse(R, A) {
+  const { w: W, h: H } = R, cx = W / 2;
+  R.amb = [0.4, 0.5, 0.62];
+  R.m = SKY; R.poly([[cx - 30, 0], [cx + 28, 0], [cx + 10, H * 0.8], [cx - 8, H * 0.8]], (x, y) => mix(C("#0a1e2e"), C("#02060a"), clamp01(y / (H * 0.8))));
+  R.m = SURF; R.poly([[0, 0], [cx - 30, 0], [cx - 24, H * 0.3], [cx - 14, H * 0.55], [cx - 8, H * 0.8], [cx - 30, H], [0, H]], (x, y) => mix(C("#2a5a7a"), C("#9ad0e8"), clamp01(vnoise(x * 0.12, y * 0.05, 7) * 0.9 + x / cx * 0.3 - 0.2)));
+  R.poly([[W, 0], [cx + 28, 0], [cx + 22, H * 0.32], [cx + 14, H * 0.58], [cx + 10, H * 0.8], [cx + 34, H], [W, H]], (x, y) => mul(mix(C("#1e4a64"), C("#7ab4d0"), clamp01(vnoise(x * 0.12, y * 0.05, 8) * 0.9)), 0.8));
+  R.m = SKY; R.line(cx - 30, 0, cx - 8, H * 0.8, "#d0f0ff", 0.6); R.line(cx + 28, 0, cx + 10, H * 0.8, "#5a9ab8", 0.5);
+  R.m = SKY; R.rect(cx - 1, 0, 3, H * 0.8, (x, y) => mix(C("#6ab0d0"), C("#e0f8ff"), vnoise(x, y * 0.2, 4)), 0.7);
+  R.glow(cx, H * 0.8, 26, 8, "#a0e0ff", 0.4, 4);
+  const r = rnd(161);
+  for (let i = 0; i < 16; i++) { const left = r() < 0.5, x = left ? r() * (cx - 40) : cx + 40 + r() * (cx - 40), y = r() * H * 0.9; R.glow(x, y, 4, 4, "#a0f0d0", 0.5, 3); R.m = SKY; R.px(x, y, "#e0fff0"); }
+  R.m = SURF; R.poly([[cx - 40, H], [cx - 8, H * 0.8], [cx + 10, H * 0.8], [cx + 44, H]], tex("#a8c8dc", "#6a8aa0", 0.2, 9));
+  ghost(R, cx - 24, H * 0.98, 34, "#a8d8f0", 0.45); ghost(R, cx + 22, H * 0.94, 28, "#a8d8f0", 0.4); ghost(R, cx + 2, H * 0.86, 18, "#a8d8f0", 0.35);
+  R.light(cx, H * 0.5, 100, "#80c8f0", 0.9, 90);
+  A.part({ n: 20, col: "#c8f0ff", x0: 0.47, x1: 0.53, y0: 0, y1: 0.8, vy: 0.3, a: 0.4, sz: 2, len: 2, seed: 162 });
+  A.part({ n: 30, col: "#e8f6ff", x0: 0, x1: 1, y0: 0, y1: 1, vy: 0.03, sway: 8, swf: 0.4, a: 0.4, big: 0.1, seed: 163 });
+}
 const VISTAS = {
   w01: [1, vCrypt], w02: [14, vWhispers], w03: [16, vAbbey], w04: [2, vIntake], w05: [3, vChains],
   w06: [4, vRanks], w07: [0, vPrison], w08: [4, vStorm], w09: [17, vCouncil],
@@ -2148,6 +2277,8 @@ const VISTAS = {
   w14: [6, vApproach], w15: [6, vChoir], w16: [0, vFont], w17: [6, vSunkenTemple], ws5: [0, vWell],
   w18: [7, vVent], w19: [7, vAsh], w20: [7, vKettles], w21: [7, vInferno],
   w22: [0, vLedge], w23: [8, vFrozenHall], w24: [0, vAurora], w25: [8, vGlacialThrone],
+  ws6: [4, vBeacon], ws7: [0, vGuardroom],
+  ws8: [13, vDrownedLib], ws9: [7, vObsidian], ws10: [16, vPyreAbbey], ws11: [8, vWolfDrift], ws12: [0, vCrevasse],
 };
 function finishVista(out, w, h) { // 周辺減光だけ (名札帯・中央減光はしない)
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {

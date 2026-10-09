@@ -33,7 +33,7 @@ const SPOIL = {
   7: /奈落|最初の操霊師/,
 };
 const BOSS_FREE = new Set(["bs_infernolord"]); // 主の伝承は1体討てば読める — 業火の主だけは第五章の真相に触れてよい
-const SERA_OK = new Set(["w16", "w17", "w18", "w19", "w20", "w21"]);
+const SERA_OK = new Set(["w16", "w17", "w18", "w19", "w20", "w21", "ws8", "ws9", "ws10"]); // ws8 は脚 (w16_legs) を見つけた後、ws9・ws10 は第五章の依頼で開く
 const WS5_SPOIL = /モルデン|神官王|苗木|セラ/; // 古井戸 (第二章から開く) に出る魔物
 
 const byLayer = {};

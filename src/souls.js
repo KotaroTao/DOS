@@ -890,7 +890,11 @@ export function orderedSkills(d) {
 export function isSkillOff(d, key) { return !!(d && Array.isArray(d.skillOff) && d.skillOff.includes(key)); }
 // 戦闘のスキル一覧に出す技 (並べた順・オフの技を除く)
 // 迷宮で唱える技 (kind "field": 浮遊など) は戦闘の一覧に出さない
-export function battleSkills(d) { return orderedSkills(d).filter((k) => !isSkillOff(d, k) && !(SPELLS[k] && SPELLS[k].kind === "field")); }
+// 迷宮の掟で封じられた技を除く入口 (game.js が setSkillGate で渡す。魔封じの迷宮 = 物理技のほかは使えない)
+let SKILL_GATE = () => true;
+export function setSkillGate(fn) { SKILL_GATE = typeof fn === "function" ? fn : () => true; }
+export function skillUsable(k) { return SKILL_GATE(k); }
+export function battleSkills(d) { return orderedSkills(d).filter((k) => !isSkillOff(d, k) && !(SPELLS[k] && SPELLS[k].kind === "field") && SKILL_GATE(k)); }
 export function setSkillOff(d, key, off) {
   if (!d) return;
   const cur = Array.isArray(d.skillOff) ? d.skillOff.filter((k) => k !== key) : [];
