@@ -27,6 +27,8 @@ There is no test suite. To sanity-check JS edits, use Node:
 ### Service Worker cache — the version is stamped at deploy (don't bump it by hand)
 `sw.js` caches assets under a versioned key. In the repo it stays **`const CACHE = "dos-dev"`** — **never edit it**: `.github/workflows/pages.yml` rewrites it to `dos-<commit sha 12>` on every deploy, so returning players always get the new files and parallel branches (Claude / Codex) no longer conflict on this line (the old rule "bump `dos-vNN` on every change" is retired). While it reads `dos-dev` (local `http.server`), the Service Worker neither precaches nor intercepts fetches, so local edits show on a plain reload. What you still must do: **list every new shipped file in `sw.js` `ASSETS`**.
 
+第四章「王都の地下」のストーリー全10場面は `art/story/chapter4/` の専用原画（1536×1024）を表示する。第二章・第三章の既存原画を直接参照して人物と画風をそろえ、`storyImage` とSWにも登録済み。制作記録と本文・画像一覧は `art/story-review/chapter4/`、再作成は `node tools/storyart/chapter4.mjs`。
+
 ## Architecture
 
 ### Module layout (`src/`)
