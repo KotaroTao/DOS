@@ -164,7 +164,7 @@ export function tlStabilitySummary(a = S.stability) {
   return ["【魂の安定度】",
     `実プレイ ${(a.activeMs/60000).toFixed(1)}分 / 入場 ${a.entries}回 / 消費 合計${a.spent} (${perHour.toFixed(1)}/実プレイ1時間)`,
     `自然回復 ${a.natural} (控え・オフラインを含む) / 赤い魂で回復 ${a.red} = 実際の支出 🔴${a.red}`,
-    `初期${STABILITY_MAX}を使い切った後、控えを回さず休まず続ける推計: 🔴${hours > 0 ? (redNeeded/hours).toFixed(1) : "―"}/実プレイ1時間 (各人業の編成中の消費から3分に1の自然回復を差し引く)`,
+    `初期${STABILITY_MAX}を使い切った後、控えを回さず休まず続ける推計: 🔴${hours > 0 ? (redNeeded/hours).toFixed(1) : "―"}/実プレイ1時間 (各人業の編成中の消費から4分に1の自然回復を差し引く)`,
     `記録中の赤い魂の獲得 ${a.redEarned} / 安定度回復分を引いた残り ${a.redEarned-a.red} (他用途の支出は含まない)`,
     ...(Object.keys(a.dolls).length ? ["人業別 (編成中の分/消費/自然回復/赤い魂回復/残り) " + Object.values(a.dolls).map(d=>`${d.name} ${Math.round(d.activeMs/60000)}/${d.spent}/${d.natural}/${d.red}/${d.value}`).join(" ")] : []),
     "推計は短い測定ほど誤差が大きい。初期残量・休止中の回復・控えのローテーションは推計に含めない。",

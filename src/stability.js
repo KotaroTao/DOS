@@ -1,7 +1,7 @@
 // 人業ごとの魂の安定度。実時間で回復し、満タンの間の時間は貯めない。
 export const STABILITY_MAX = 100;
 export const STABILITY_ENTRY_COST = 10;
-export const STABILITY_RECOVERY_MS = 3 * 60 * 1000;
+export const STABILITY_RECOVERY_MS = 4 * 60 * 1000;
 export function stabilityRecoveryMs() { return STABILITY_RECOVERY_MS; }
 
 export function recoverStability(d, now = Date.now()) {

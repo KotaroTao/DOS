@@ -500,6 +500,7 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 .dp-new { display: inline-block; margin-left: 6px; padding: 0 4px; font-size: 10px; font-weight: 800; line-height: 15px; color: #1a0d05; background: #f3d58b; border-radius: 2px; vertical-align: 2px; }
 .dp-qmark { display: inline-block; margin-left: 6px; padding: 0 5px 0 4px; font-size: 10px; font-weight: 800; line-height: 13px; color: #ffe2b0; border: 1px solid #d0832e; background: rgba(150,72,14,0.55); border-radius: 2px; vertical-align: 2px; white-space: nowrap; }
 .dp-qmark::before { content: "!"; display: inline-block; margin-right: 3px; padding: 0 3px; color: #1a0d05; background: #f0a640; border-radius: 1px; }
+.dp-rmark { display: inline-block; margin-left: 6px; padding: 0 5px; font-size: 10px; font-weight: 800; line-height: 13px; color: #e6dcff; border: 1px solid #8a6fd0; background: rgba(70,44,140,0.55); border-radius: 2px; vertical-align: 2px; white-space: nowrap; }
 .dp-gate-st.danger { color: #ffd2a0; border-color: #b0661c; background: rgba(140,70,10,0.32); }
 .dp-gate-st.reckless { color: #ffc6bc; border-color: #c0281e; background: rgba(140,16,10,0.45); box-shadow: 0 0 8px rgba(220,40,20,0.35); }
 .dp-sealed .dp-gate-c.dp-hint { white-space: normal; line-height: 1.35; color: #b5a888; }

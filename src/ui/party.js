@@ -1471,7 +1471,7 @@ export function openStability(d, onChange) {
     const amounts = [...new Set([per, Math.min(10,gap), gap])].filter(n=>n>0 && n<=gap);
     const costOf = (n) => Math.ceil(n / per);
     return { title:`${d.name} ― 魂の安定度 ${d.stability}/${game.STABILITY_MAX}`,
-      lines:[`${game.stabilityMinutes ? game.stabilityMinutes() : 3}分で1回復します。控えやゲームを閉じている間も回復します。`, `赤い魂1で安定度${per}を回復します。宿泊や魂の付け替えでは回復しません。`, `所持している赤い魂: ${G_().redSoul}`],
+      lines:[`${game.stabilityMinutes ? game.stabilityMinutes() : 4}分で1回復します。控えやゲームを閉じている間も回復します。`, `赤い魂1で安定度${per}を回復します。宿泊や魂の付け替えでは回復しません。`, `所持している赤い魂: ${G_().redSoul}`],
       footer:[...amounts.map(n=>({ label:n===gap ? `満タンまで回復 (+${n})` : `+${n}回復`, cost:{kind:"red",n:costOf(n)}, kind:"secondary", disabled:G_().redSoul<costOf(n),
         onTap:()=>{const r=game.restoreStability(d,n);if(!r.ok)return;h.update(spec());rerender();if(onChange)onChange();} })),
         {label:"戻る",kind:"ghost",onTap:()=>h.close()}],
@@ -1536,7 +1536,7 @@ function dollHeader(d, mode) {
   const stability = stable
     ? button({ label:"師の器 ・ 安定度を消費しない", kind:"ghost", size:"sm", onTap:()=>toast("師オルドが一度で仕上げた器。魂の安定度を消費しない。メイン魂は灯守に固定", {tone:"info"}) })
     : button({ label:`魂の安定度 ${d.stability}/${game.STABILITY_MAX}`, kind:"ghost", size:"sm",
-      onTap:town ? ()=>openStability(d) : ()=>toast(`入場時に10消費・${game.stabilityMinutes ? game.stabilityMinutes() : 3}分で1回復。探索中の追加消費はない`, {tone:"info"}) });
+      onTap:town ? ()=>openStability(d) : ()=>toast(`入場時に10消費・${game.stabilityMinutes ? game.stabilityMinutes() : 4}分で1回復。探索中の追加消費はない`, {tone:"info"}) });
   stability.classList.add("pt-stability"); tx.appendChild(stability);
   head.appendChild(tx);
   if (town && pi < 0 && d.primary != null && !away) {
