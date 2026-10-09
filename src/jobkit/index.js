@@ -86,7 +86,7 @@ export const JOBKIT = {
 
 // ---- 検証 (読み込み時に壊れた定義を弾く) ----
 const SKILL_KEYS = new Set(("name mp kind target desc power hits scatter critBonus element acc pierce intScale agiScale vitScale pieScale " +
-  "desperate execute prey debuff vuln seal poison para sleepChance flinchChance strip charm confuse instakill steal plunder drain mpDrain " +
+  "desperate execute prey debuff vuln seal poison para sleepChance flinchChance strip charm confuse instakill steal plunder drain mpDrain mpDrainCap " +
   "hpCost gravity gravityIntCap partyHeal buff taunt shield stance charge regen grantBarrier grantEndure cure purge revive revivePct dur debuffAll tech quiet " +
   "ward faith float sense mpPct healMul healCap healPct bodyHeal bladeHeal").split(" "));
 const KINDS = new Set(["phys", "atk", "heal", "cure", "buff", "debuff", "mana", "sleep", "escape", "field"]);

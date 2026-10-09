@@ -194,6 +194,11 @@ console.log(`全${count}技を実行。会心・耐性・命中・攻撃/回復�
  { const key=Object.keys(SPELLS).find(k=>SPELLS[k].mpDrain&&SPELLS[k].kind==='phys'&&SPELLS[k].target==='enemy'),sp=SPELLS[key];
    const a=actor(),t=foe();a.atk=5000;a.soulMp=300;const b=new Battle([a],[t],()=>{});
    for(let i=0;i<50;i++){a.mp=1000;t.hp=t.maxhp;t.alive=true;b._exec({actor:a,action:'spell',spellKey:key,target:t});assert(a.mp<=1000,`${sp.name}: 吸収が消費を超えた (${a.mp})`);} }
+ // 魔力強奪は与ダメの30%を、消費MPの1.1倍まで吸う (mpDrainCap)
+ { const sp=SPELLS.MARYOKUGOUDATSU;assert(sp.mpDrain===0.3&&sp.mpDrainCap===1.1,'魔力強奪: 吸収30%・上限1.1倍でない');
+   const a=actor(),t=foe();a.int=5000;a.soulMp=300;const b=new Battle([a],[t],()=>{});const cost=spellCost(a,sp),cap=Math.floor(cost*1.1);let top=0;
+   for(let i=0;i<50;i++){a.mp=1000;t.hp=t.maxhp;t.alive=true;b._exec({actor:a,action:'spell',spellKey:'MARYOKUGOUDATSU',target:t});const net=a.mp-1000;assert(net<=cap-cost,`魔力強奪: 吸収が1.1倍を超えた (${net + cost} > ${cap})`);top=Math.max(top,net);}
+   assert(top===cap-cost,`魔力強奪: 上限まで吸えていない (${top + cost} / ${cap})`); }
  // 魔力循環は1回で最大MPの 2/3/4% まで
  for(const lv of [1,2,3]){ const a=actor(),t=foe();a.atk=5000;a.maxmp=1000;a.passiveMap={bmManaCycle:lv};const b=new Battle([a],[t],()=>{});
    for(let i=0;i<30;i++){a.mp=0;t.hp=t.maxhp;t.alive=true;b._exec({actor:a,action:'attack',target:t});assert(a.mp<=[0,20,30,40][lv],`魔力循環Lv${lv}: ${a.mp}`);} }
