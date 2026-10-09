@@ -2123,7 +2123,7 @@ export const LAYER_POOLS = {
     "bs_iciclehorror", "bs_frostknight", "bs_frostlich", "bs_frostmaiden", "bs_icegolem",
     "bs_frozenangel", "bs_frostwyrm", "bs_rimegiant", "bs_frostfiend",
   ],
-  // 第9層「毒沼」: 毒/腐敗中心、rank9-10。疫病系の闇undeadを再配置
+  // 第9層「毒沼」: 毒/腐敗中心、rank10 (上限)。疫病系の闇undeadを再配置
   9: [
     "bs_plaguebeast", "bs_rotooze", "bs_swamphag", "bs_bogdrowned", "bs_venomspider",
     "bs_miasmawraith", "bs_corpseflower", "bs_plaguerat", "bs_toxicgolem", "bs_leechswarm",
