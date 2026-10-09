@@ -1,7 +1,7 @@
 // 読み物専用の一枚絵。場面ごとに背景・主題・人物の位置と手の動きを描き分ける。
 // 既存の storyArt や館の肖像は使わない。192×108の素材色を点光源で照らし、共通パレットへ量子化する。
 import { Layer, Mask, h2 } from "./pxpaint.js";
-import { ICE_PAL, SWAMP_PAL } from "./storyart.js"; // 第六章の氷の青と極光の紫 / 第七章の沼の緑と枯れ葦を足したパレット
+import { ICE_PAL, SWAMP_PAL, STORM_PAL } from "./storyart.js"; // 第六章の氷の青と極光の紫 / 第七章の沼の緑と枯れ葦 / 第八章の雷雲と稲妻を足したパレット
 
 export const ARCHIVE_ART_W = 192, ARCHIVE_ART_H = 108;
 export const ARCHIVE_FOCUS = ["city", "threeSouls", "door", "lamp", "vessel", "partyThree", "partyFour", "guard",
@@ -11,24 +11,30 @@ export const ARCHIVE_FOCUS = ["city", "threeSouls", "door", "lamp", "vessel", "p
   "seraTogether", "climbingOrdo", "chancellor", "highLamp", "brokenVessel", "twoChairs", "openDoor",
   "votive", "mural", "legs", "seraWake", "priestKing", "blade", "husks", "cauldron", "abyss",
   "coat", "frozenMasters", "auroraMap", "frostKing", "thaw",
-  "splint", "dollPile", "miasmaNote", "workshopIsle", "tower"];
+  "splint", "dollPile", "miasmaNote", "workshopIsle", "tower",
+  "stick", "bell", "rodNote", "beacon", "bridge"];
 // 氷の場面は氷の青を足したパレットで量子化する (共通のパレットだと青が灰色に沈む)
 const ICE_FOCUS = ["coat", "frozenMasters", "auroraMap", "frostKing", "thaw"];
 // 沼の場面は沼の緑と枯れ葦の黄土を足したパレットで量子化する
 const SWAMP_FOCUS = ["splint", "dollPile", "miasmaNote", "workshopIsle", "tower"];
+// 嵐の尖塔の場面は雷雲の紫灰と稲妻の青白を足したパレットで量子化する。背景 "storm" はこれらの主題と組むと尖塔の嵐になる
+// (第二章の大手門の "storm" はこれまでどおり砦の雷雨)。"spire" はどの主題とでも尖塔の嵐
+const STORM_FOCUS = ["stick", "bell", "rodNote", "beacon", "bridge"];
 const cache = new Map();
 const C = { stone:[71,67,85], dark:[25,22,37], edge:[114,104,118], wood:[104,64,47], gold:[199,150,70], paper:[201,183,139],
   iron:[81,94,115], bone:[185,165,137], soul:[73,214,190], blue:[91,131,190], purple:[107,65,143], skin:[188,151,147], black:[31,25,38],
   ice:[150,198,228], iceD:[62,102,146], snow:[226,238,248], coat:[48,42,58],
-  mud:[54,48,32], bog:[30,44,24], reed:[150,128,80], sick:[150,196,70] };
+  mud:[54,48,32], bog:[30,44,24], reed:[150,128,80], sick:[150,196,70],
+  cloud:[70,62,98], bolt:[214,222,255], copper:[204,116,64], char:[34,28,30], wet:[86,86,106] };
 
 function paintScene(scene) {
   const W = ARCHIVE_ART_W, H = ARCHIVE_ART_H, L = new Layer(W, H);
   const seed = [...scene.id].reduce((n, c) => (n * 31 + c.charCodeAt(0)) >>> 0, 17);
+  const spire = scene.setting === "spire" || (scene.setting === "storm" && STORM_FOCUS.includes(scene.focus));
   const indoor = ["mansion", "workshop", "throne", "treasury", "warroom", "prison", "crypt", "passage", "abbey", "mine"].includes(scene.setting);
   const roomLight = ["mansion", "workshop", "throne", "treasury"].includes(scene.setting);
   const focalX = scene.people === "king" ? 139 : scene.people === "irene" ? 121 : 105;
-  const light = { x:focalX, y:56, color:roomLight ? [1,0.69,0.38] : scene.setting==="ice" ? [0.55,0.8,1] : scene.setting==="swamp" ? [0.72,0.9,0.46] : [0.33,0.86,0.82] };
+  const light = { x:focalX, y:56, color:roomLight ? [1,0.69,0.38] : scene.setting==="ice" ? [0.55,0.8,1] : scene.setting==="swamp" ? [0.72,0.9,0.46] : spire ? [0.66,0.72,1] : [0.33,0.86,0.82] };
   function rgb(base, x, y, edge = false) {
     const d = Math.hypot((x - light.x) * 0.8, y - light.y) / 100;
     const k = Math.max(0, 1 - d) ** 2;
@@ -112,7 +118,7 @@ function paintScene(scene) {
     for(let i=0;i<7;i++){const x=i*34-10;poly([[x,0],[x+12,0],[x+10,35],[x+21,78],[x+35,99],[x+24,107],[x+8,73],[x-4,35]],C.wood);line(x+5,7,x+8,61,C.gold);}
     for(let i=0;i<35;i++){const x=h2(i,2,seed)*W,y=60+h2(i,4,seed)*45;ellipse(x,y,1,2,C.soul,false);}
   }
-  if(["road","gate","fort","storm"].includes(scene.setting)){
+  if(["road","gate","fort","storm"].includes(scene.setting)&&!spire){
     // 遠景の屋根と城壁、手前へ伸びる道。
     for(let i=0;i<9;i++){const x=i*24-9,h=17+h2(i,9,seed)*22;rect(x,74-h,22,h,C.stone);poly([[x-3,74-h],[x+10,63-h],[x+25,74-h]],C.black);if(i%2)rect(x+7,69-h,3,6,C.gold);}
     poly([[79,76],[105,76],[149,108],[38,108]],C.dark);line(78,77,38,108,C.edge);line(106,77,149,108,C.edge);
@@ -151,6 +157,15 @@ function paintScene(scene) {
     for(let i=0;i<34;i++){const xx=h2(i,6,seed)*W;if(xx>48&&xx<150)continue;const hh=14+h2(i,7,seed)*30,lean=(h2(i,8,seed)-0.5)*8;line(xx,108,xx+lean,108-hh,C.reed);if(h2(i,9,seed)>0.6)rect(xx+lean*0.9,108-hh*0.92,2,4,[90,54,32]);}
     for(let i=0;i<3;i++){const yy=40+i*22;for(let xx=0;xx<W;xx++)for(let d=-3;d<=3;d++){const k=(1-Math.abs(d)/4)*(h2(xx>>3,i,seed)*0.5+0.3)*0.22;L.add(xx,yy+d+Math.round(Math.sin(xx*0.05+i)*3),[60,80,30],k);}glow(W*(0.25+i*0.25),yy,40,[70,100,30],0.25);}
     for(let i=0;i<24;i++)rect(h2(i,11,seed)*W,h2(i,13,seed)*100,1,1,[190,230,110],false);
+  }
+  // 第八章: 嵐の尖塔 (雷雲の空・稲妻・横殴りの雨・塔の石壁)
+  if(spire){
+    rect(0,0,W,H,[22,20,34]);
+    for(let i=0;i<4;i++){const yy=6+i*18;for(let xx=0;xx<W;xx++){const k=(h2(xx>>4,i,seed)*0.5+0.4)*0.5;for(let d=-4;d<=4;d++)if(h2(xx>>2,yy+d,seed+i)>0.35)L.add(xx,yy+d+Math.round(Math.sin(xx*0.04+i)*4),[60,54,90],k*(1-Math.abs(d)/5));}}
+    poly([[0,0],[44,0],[46,108],[0,108]],C.stone);for(let yy=4;yy<H;yy+=8){line(0,yy,45,yy,C.dark);for(let xx=(yy/8%2)*6;xx<44;xx+=12)line(xx,yy,xx,yy+8,C.dark);}line(44,0,46,108,C.black,2);
+    rect(46,84,W-46,24,C.wet);for(let i=0;i<30;i++){const xx=48+h2(i,3,seed)*140,yy=86+h2(i,4,seed)*20;line(xx,yy,xx+6+h2(i,5,seed)*8,yy,[120,124,170]);}
+    {let bx=170,by=0;for(let i=0;i<8;i++){const nx=bx+(h2(i,7,seed)-0.55)*10,ny=by+7;line(bx,by,nx,ny,C.bolt,1,false);bx=nx;by=ny;}glow(168,24,34,[120,130,230],0.35);}
+    for(let i=0;i<70;i++){const xx=h2(i,11,seed)*W,yy=h2(i,13,seed)*H;line(xx,yy,xx-2,yy+4,[120,124,170],1,false);}
   }
   if(scene.setting==="water"){rect(0,73,W,35,[20,49,61]);for(let i=0;i<40;i++){const x=h2(i,1,seed)*W,y=76+h2(i,3,seed)*30;line(x,y,x+9,y,C.blue);}for(let x=143;x<183;x+=9)rect(x,18,3,71,C.iron);}
 
@@ -247,6 +262,25 @@ function paintScene(scene) {
       for(const [q,yy] of [[94,20],[104,44],[92,66],[100,8]]){rect(q,yy,2,3,[230,190,110],false);glow(q+1,yy+1,6,[200,150,60],0.4);}
       rect(94,80,9,14,C.black);glow(98,86,10,[200,150,70],0.3);traveller(98,78,0.32);
       poly([[150,0],[140,18],[148,17],[134,44],[156,13],[147,14]],[200,210,240]);glow(146,20,30,[150,160,230],0.35);for(let i=0;i<40;i++)line(h2(i,2,seed)*W,h2(i,3,seed)*90,h2(i,2,seed)*W-2,h2(i,3,seed)*90+5,[110,120,150]);break;
+    // ---- 第八章「嵐の尖塔」 ----
+    case "stick": poly([[46,80],[150,84],[170,108],[46,108]],C.stone);for(let i=0;i<5;i++)rect(46,72-i*9,24-i*4,9,C.edge);for(let i=0;i<5;i++)line(66-i*4,72-i*9,62-i*4,63-i*9,C.iron);
+      for(let i=0;i<12;i++){const a=i/12*6.28,l=10+h2(i,2,seed)*12;line(108,95,108+Math.cos(a)*l,95+Math.sin(a)*l*0.4,C.black,1,false);}
+      line(76,99,104,92,C.char,4);line(112,93,140,100,C.char,3);ellipse(73,100,4,4,C.wood);rect(78,97,2,5,C.iron);line(78,96,104,90,[150,140,150],1,false);for(const [q,yy] of [[104,91],[106,93],[111,92]])glow(q,yy,4,[130,150,255],0.5);
+      paper(84,100,16,7);ellipse(86,101,3,2,C.edge);for(let i=0;i<14;i++)line(150+h2(i,3,seed)*36,60+h2(i,4,seed)*40,150+h2(i,3,seed)*36,56+h2(i,4,seed)*40,[170,180,170],1,false);break;
+    case "bell": rect(52,0,96,6,C.wood);rect(96,4,6,8,C.iron);poly([[86,12],[112,12],[118,24],[120,46],[130,64],[136,70],[62,70],[68,64],[78,46],[80,24]],[160,112,58]);line(70,58,128,58,[100,70,36]);line(80,30,118,30,[100,70,36]);
+      ellipse(99,70,37,8,[24,16,12]);line(62,70,136,70,[226,180,104]);rect(98,66,2,6,C.iron);
+      ellipse(99,48,5,2.4,C.gold,false);for(let k=0;k<4;k++)line(100+k*1.2,47,101+k*1.5,43-k%2,C.gold,1,false);line(95,48,94,45,C.gold,1,false);ellipse(98,44,1.4,2.6,[255,210,120],false);glow(99,46,12,[255,170,70],0.45);
+      line(118,98,150,92,C.iron,4);ellipse(154,91,6,5,C.iron);ring(116,99,3,C.iron);line(113,100,106,103,C.paper);paper(94,100,13,7);break;
+    case "rodNote": for(let i=0;i<6;i++){const q=70+i*18,hh=8+i*6;rect(q,92-hh,1+i*0.4,hh,C.iron);}line(70,84,160,58,C.iron,2);line(70,88,160,76,C.iron,1);
+      rect(158,6,3,100,C.iron);poly([[158,6],[161,6],[159.5,0]],C.iron);for(let yy=30;yy<80;yy+=3)line(156,yy+2,163,yy,C.copper,1,false);line(162,80,192,104,C.copper,1,false);line(120,70,158,58,C.char,3);
+      line(158,64,146,66,C.paper);poly([[146,62],[132,58],[128,70],[136,69],[144,74]],C.paper);for(let i=0;i<3;i++)line(134,62+i*3,142,64+i*3,C.wood);break;
+    case "beacon": ellipse(98,96,80,12,[40,40,54]);poly([[84,96],[88,52],[110,52],[114,96]],C.stone);rect(84,50,30,3,C.iron);ellipse(99,40,10,10,[30,60,64]);line(94,32,104,48,C.black,1,false);for(const rr of [4,7])for(let i=0;i<20;i++)rect(99+Math.cos(i/20*6.28)*rr,40+Math.sin(i/20*6.28)*rr,1,1,[70,120,120],false);poly([[86,30],[99,20],[112,30]],C.iron);
+      for(let i=0;i<7;i++){const a=i/7*6.28+0.3,q=99+Math.cos(a)*62,yy=92+Math.sin(a)*10,sz=0.8+Math.sin(a)*0.25;if(i===1){rect(q-4,yy-5,8,5,C.edge);for(let k=0;k<4;k++)rect(q-8+k*5,yy+1,2,2,C.edge);continue;}
+        poly([[q-4*sz,yy],[q+4*sz,yy],[q+3*sz,yy-16*sz],[q-3*sz,yy-16*sz]],C.edge);ellipse(q,yy-19*sz,2.6*sz,3*sz,C.edge);line(q-3*sz,yy-14*sz,q-7*sz,yy-24*sz,C.edge,2);line(q+3*sz,yy-14*sz,q+7*sz,yy-24*sz,C.edge,2);
+        for(let k=0;k<10;k++){const t=k/10;rect(q+(99-q)*t*0.6+Math.sin(t*4+i)*4,yy-24*sz+(14-yy+24*sz)*t*0.6,1,1,C.soul,false);}}
+      for(let i=0;i<60;i++){const t=h2(i,2,seed),a=h2(i,3,seed)*6.28+t*5,rr=6+t*60;rect(99+Math.cos(a)*rr,14+Math.sin(a)*rr*0.35,1,1,C.soul,false);}glow(99,14,40,[60,200,170],0.5);break;
+    case "bridge": poly([[124,42],[136,32],[156,28],[178,26],[196,30],[196,52],[176,56],[146,54],[130,50]],[120,98,112]);poly([[140,40],[160,33],[184,32],[196,36],[196,46],[170,48],[148,46]],[150,122,128]);glow(172,40,36,[150,120,120],0.3);ellipse(60,100,70,14,[44,42,58]);poly([[96,92],[180,46],[184,48],[104,96]],C.edge);for(let i=0;i<5;i++){const t=i/5,q=104+t*72,yy=94-t*42;rect(q,yy,2-t,10-t*6,C.edge);}
+      ellipse(178,40,16,5,[46,42,62]);poly([[162,40],[194,40],[190,50],[166,50]],[46,42,62]);poly([[154,54],[166,48],[192,48],[200,54]],[40,36,54]);for(let k=0;k<3;k++)line(166+k*2,39-k,190-k*2,39-k,[90,84,116]);for(let q=166;q<190;q+=3)rect(q,44,1,2,[24,22,34]);traveller(120,80,0.3);line(124,74,126,90,C.wood,1);break;
     default: throw new Error(`読み物の図版に未定義の主題: ${scene.focus}`);
   }
   if(scene.people==="irene")irene(scene.pose==="shelter"?80:62,scene.pose==="seated"?66:63,scene.pose);
@@ -257,7 +291,7 @@ function paintScene(scene) {
     for(let j=0;j<3;j++)L.c[i+j]*=1-d;
   }
   const swamp = scene.setting === "swamp" || SWAMP_FOCUS.includes(scene.focus);
-  return L.canvas(8, swamp ? SWAMP_PAL : scene.setting === "ice" || ICE_FOCUS.includes(scene.focus) ? ICE_PAL : undefined);
+  return L.canvas(8, spire || STORM_FOCUS.includes(scene.focus) ? STORM_PAL : swamp ? SWAMP_PAL : scene.setting === "ice" || ICE_FOCUS.includes(scene.focus) ? ICE_PAL : undefined);
 }
 
 export function archiveArt(scene) {

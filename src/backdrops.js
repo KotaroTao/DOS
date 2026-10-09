@@ -2645,16 +2645,21 @@ function vRodForest(R, A) {
   R.m = SURF; R.rect(0, gy, W, 1, "#6a6278");
   // 避雷針 (奥ほど細く短い。錆の赤茶。根もとに銅の線が這う)
   const r = rnd(95), tips = [];
-  for (let k = 0; k < 34; k++) {
-    const z = r(), x = r() * W, by = gy + 2 + z * (H - gy - 4), h = 26 + z * 70, w = z > 0.6 ? 2 : 1;
-    const col = mix(C("#3a2a24"), C("#8a4a2a"), 0.3 + z * 0.7);
-    R.m = SURF; R.rect(x, by - h, w, h, col); R.rect(x, by - h, 1, h, mul(col, 1.3));
-    if (z > 0.4) { R.rect(x - 1, by - h * 0.6, w + 2, 1, mul(col, 0.8)); R.rect(x - 1, by - h * 0.3, w + 2, 1, mul(col, 0.8)); }
-    R.line(x, by, x + (r() - 0.5) * 30, by + 2, "#a0603a", 0.6);
-    tips.push([x, by - h]);
+  const list = []; for (let k = 0; k < 30; k++) list.push(r()); list.sort((p, q) => p - q);   // 奥から手前へ
+  for (const z of list) {
+    const x = r() * W, by = gy + 2 + z * (H - gy - 4), h = (18 + z * 60) * (0.55 + r() * 0.7), w = z > 0.6 ? 2 : 1, lean = (r() - 0.5) * 0.25, broken = r() < 0.18;
+    const col = mix(C("#2a2224"), C("#9a5230"), 0.25 + z * 0.75), tx = x + lean * h, ty = by - h;
+    R.m = SURF; R.line(x, by, tx, ty, col, 1, w); R.line(x - 1, by, tx - 1, ty, mul(col, 1.35), 0.8, 1);
+    if (!broken) { R.line(tx, ty, tx + lean * 6, ty - 5 - z * 4, mul(col, 1.2), 1, 1); tips.push([tx + lean * 6, ty - 5 - z * 4]); }
+    else { R.px(tx + 1, ty - 1, col); R.px(tx - 1, ty + 1, col); }
+    if (z > 0.35) for (const f of [0.35, 0.6]) R.rect(x + lean * h * f - 2, by - h * f, w + 4, 1, mul(col, 0.75));
+    R.line(x, by, x + (r() - 0.5) * 34, by + 1 + z * 3, "#a0603a", 0.55);
   }
+  R.m = SURF; R.rect(0, gy - 1, W, 2, "#5a5266");
   R.light(W * 0.5, H * 0.1, 160, "#8a88d0", 0.8, 100);
-  const hit = tips.sort((p, q) => p[1] - q[1])[3];
+  const hit = tips.sort((p, q) => p[1] - q[1])[2];
+  R.m = SKY; R.glow(hit[0], hit[1], 6, 6, "#c8d0ff", 0.6, 3); R.px(hit[0], hit[1], "#ffffff");                // 打たれたばかりの針の先
+  for (const [x, y] of tips.slice(5, 9)) { R.px(x, y, "#ffb070", 0.8); R.glow(x, y, 3, 3, "#c06020", 0.4, 2); }   // 熱の残る針先
   A.pulse((P) => {
     P.m = ADD; P.rect(0, 0, W, gy, "#4a4890", 0.25);
     const rr = rnd(7); let x = hit[0] + 10, y = 0;
@@ -2683,6 +2688,12 @@ function vCloudGarden(R, A) {
   R.m = SURF; R.poly([[W * 0.82 - 30, gy - 64], [W * 0.82 + 9, gy - 64], [W * 0.82 + 9, gy - 58], [W * 0.82 - 22, gy - 58], [W * 0.82 - 26, gy - 54]], "#6a6874");   // 崩れた拱の残り
   for (const x of [W * 0.14 + 3, W * 0.82 + 3]) for (let y = gy - 50; y < gy + 6; y += 2) R.px(x + Math.sin(y * 0.3) * 3, y, "#4a6a3a");
   tree(R, W * 0.3, gy + 10, 30, 109, "#3a3428", { depth: 4 });
+  // 崩れた欄干 (段の縁。ところどころ抜け落ちる)
+  R.m = SURF; for (let x = 4; x < W; x += 6) { if (hash(x, 1, 113) < 0.3) continue; R.rect(x, gy - 2, 2, 7, "#6a6874"); R.rect(x, gy - 2, 1, 7, "#8a8894"); }
+  R.rect(0, gy - 4, W * 0.4, 2, "#7a7884"); R.rect(W * 0.62, gy - 4, W * 0.2, 2, "#7a7884");
+  // 荒れた花壇 (伸び放題の草と、白い小さな花)
+  const fr = rnd(115);
+  for (let i = 0; i < 90; i++) { const x = fr() * W, y = gy + 10 + fr() * (H - gy - 12); if (Math.abs(x - cx) < 40 && y < gy + 32) continue; R.m = SURF; R.line(x, y, x + (fr() - 0.5) * 3, y - 2 - fr() * 4, "#3a5a34"); if (fr() < 0.35) { R.m = SKY; R.px(x, y - 5, fr() < 0.5 ? "#e8e4f0" : "#c8b8e0", 0.85); } }
   // 澄んだ泉 (中央。円い石の縁と、湧き上がる水)
   R.m = SURF; R.ellipse(cx, gy + 22, 34, 9, "#6a6878"); R.ellipse(cx, gy + 21, 30, 7, (x, y) => mix(C("#9ad0e8"), C("#3a6a8a"), clamp01((y - gy - 14) / 14)));
   R.m = SKY; R.rect(cx - 1, gy + 4, 3, 16, "#d8f0fa", 0.7); R.ellipse(cx, gy + 18, 6, 2, "#e8f8ff", 0.7);
