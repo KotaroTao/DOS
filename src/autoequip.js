@@ -46,12 +46,16 @@ export function previewStats(doll, equip, recalcFn = recalcDefault) {
     elemAtk: fake.elemAtk || null, elemDef: fake.elemDef || null, breathRes: fake.breathRes || 0,
     ailRes: fake.ailRes || null, onHit: fake.onHit || null, // 状態異常耐性・追加効果 (itemview の gearScore が数える)
     power: attackPower(fake), weapon: equip.weapon || null, shield: equip.shield || null, // 攻撃力 (参照能力 × 武器の係数) と武器・盾
+    eff: fake.eff || null, // 戦闘効果 (連撃・吸血・守り…。itemview の gearScore が effScore で数える)
   };
 }
 
 // 2つの能力の差 (itemview の equipPreviewDelta と同じ形)
 export function statsDelta(from, to) {
   return {
+    // 戦闘効果の付け替え前後と、付け替え後の攻撃力・最大HP/MP (効果の値打ちはこの人業の強さで測る)
+    eff: { from: from.eff || null, to: to.eff || null },
+    abs: { power: to.power || 0, maxhp: to.maxhp || 0, maxmp: to.maxmp || 0 },
     atk: to.atk - from.atk, vit: to.vit - from.vit, agi: to.agi - from.agi,
     int: to.int - from.int, pie: to.pie - from.pie, luk: to.luk - from.luk,
     hp: to.maxhp - from.maxhp, mp: to.maxmp - from.maxmp,
