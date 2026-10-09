@@ -13273,7 +13273,8 @@ function grantTreasuryItem(onClose) {
   });
 }
 
-// 褒賞のLRを選ぶ: tier の職業専用武器 (隊の職の品) か全職共通の防具 (隊の誰かが装備できる品)。
+// 褒賞のLRを選ぶ: tier の職業専用武器か全職共通の防具。迷宮のLRドロップ (pickLR) と同じく、
+// 編成の職で重みを付けず全職の品から均等に (2026-10 ユーザーの指示)。
 // 層の逸品 (layer つき) は含めない。まだ手にしていない品 (G.lrOwned 外) を先に
 function pickTreasuryLR(m) {
   if (!G.lrOwned) G.lrOwned = {};
@@ -13282,11 +13283,8 @@ function pickTreasuryLR(m) {
     if (!it || it.rar !== "lr" || it.layer || it.lr !== m.tier) return false;
     return m.lr === "weapon" ? it.slot === "weapon" : LR_ARMOR_SLOTS.includes(it.slot);
   });
-  const jobs = new Set(G.party.filter((p) => !p.isEmpty).map((p) => p.clsKey));
-  const fits = all.filter((id) => (m.lr === "weapon" ? jobs.has(ITEMS[id].forJob) : usableByParty(ITEMS[id])));
-  const base = fits.length ? fits : all;
-  const fresh = base.filter((id) => !G.lrOwned[id]);
-  const pool = fresh.length ? fresh : base;
+  const fresh = all.filter((id) => !G.lrOwned[id]);
+  const pool = fresh.length ? fresh : all;
   return pool.length ? pool[rand(pool.length)] : null;
 }
 // 褒賞のLRを1点下賜する。LRは未鑑定で渡る (商会・鑑定の技で鑑定する)
@@ -13351,7 +13349,7 @@ function treasuryRewardLines(m, n) {
 // 褒賞の「受け取るもの」(物語のページの欄)
 function treasuryRewardRows(m) {
   if (m.cls) return [{ job: m.cls }];
-  if (m.lr) return m.lr === "weapon" ? `LR${m.tier} の専用武器 1点 (隊の職の品・未鑑定)` : `LR${m.tier} の防具 1点 (未鑑定)`;
+  if (m.lr) return m.lr === "weapon" ? `LR${m.tier} の専用武器 1点 (未鑑定)` : `LR${m.tier} の防具 1点 (未鑑定)`;
   const parts = [];
   if (m.soul) parts.push(`${m.soul === "legend" ? "レジェンドの魂" : "魂"} 1つ`);
   if (m.gear) parts.push("スーパーレアの装備 1点");
