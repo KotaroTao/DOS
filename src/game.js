@@ -9500,7 +9500,8 @@ function distributeBattleSoulExpMeasured(soulGot) {
     const ps = m.primary != null ? soulByUid(m.primary) : null;
     preLv.set(m, ps ? ps.level : 0);
   }
-  for (const w of worn) if (w.sub) { const e = soulByUid(w.uid); if (e) preSubLv.set(w.uid, e.level); }
+  const preSubSkills = new Map(); // サブ魂 uid → 加算前に覚えていた技 (サブ魂が覚えた技もレベルアップの画面に出す)
+  for (const w of worn) if (w.sub) { const e = soulByUid(w.uid); if (e) { preSubLv.set(w.uid, e.level); preSubSkills.set(w.uid, soulLearnedSkills(e)); } }
   // 宿している魂すべてに Soul を加算してレベルアップ (上限超過分は exp に蓄積)。
   // サブ魂はメイン魂の 1/3 (share × SUB_EXP_RATE) を得る。
   for (const w of worn) {
@@ -9544,7 +9545,15 @@ function distributeBattleSoulExpMeasured(soulGot) {
       shown = true;
     }
     const oldSp = preSpells.get(m) || new Set();
-    for (const sk of (m.spells || [])) if (!oldSp.has(sk)) queue.push({ kind: "skill", member: m, skill: sk });
+    const gained = (m.spells || []).filter((sk) => !oldSp.has(sk));
+    // サブ魂そのものが覚えた技 (宿主の技には入らないが、街での強化と同じく新たな技として見せる)
+    for (const sub of (m.subs || [])) {
+      const e = sub && sub.uid != null && preSubSkills.has(sub.uid) ? soulByUid(sub.uid) : null;
+      if (!e) continue;
+      const old = preSubSkills.get(sub.uid);
+      for (const sk of soulLearnedSkills(e)) if (!old.includes(sk) && !gained.includes(sk)) gained.push(sk);
+    }
+    for (const sk of gained) queue.push({ kind: "skill", member: m, skill: sk });
   }
   return queue;
 }
@@ -10481,10 +10490,20 @@ function claimExpedition(e) {
     const gain = Math.floor(out.soul * EXP_SOUL_EXP_RATE);
     if (gain > 0) {
       const cap = soulLevelCapOf(s);
+      // レベルアップの画面 (戦闘後・強化と同じ UI.celebrateLevelUp) 用に、上がる前の能力と技を控える
+      const KEYS = ["maxhp", "maxmp", "atk", "vit", "agi", "int", "pie", "luk"];
+      const sk = (k) => (k === "maxhp" ? "hp" : k === "maxmp" ? "mp" : k);
+      const statsFrom = Object.fromEntries(KEYS.map((k) => [sk(k), d[k] || 0]));
+      const spells0 = new Set(d.spells || []);
       s.exp = (s.exp || 0) + gain;
       while (s.level < cap && s.exp >= soulTrainCost(s.level)) { s.exp -= soulTrainCost(s.level); s.level++; }
       out.lvTo = s.level;
-      if (out.lvTo > out.lvFrom) { const vit = hpMpRatio(d); recalcAllDolls(); keepHpMpRatio(d, vit); }
+      if (out.lvTo > out.lvFrom) {
+        const vit = hpMpRatio(d); recalcAllDolls(); keepHpMpRatio(d, vit);
+        codexJobSee(s.clsKey, s.count, s.level, s.capBonus);
+        out.levelUp = { name: d.name, doll: d, uid: s.uid, main: { from: out.lvFrom, to: out.lvTo }, subs: [],
+          statsFrom, statsTo: Object.fromEntries(KEYS.map((k) => [sk(k), d[k] || 0])), skills: (d.spells || []).filter((k) => !spells0.has(k)) };
+      }
     }
   }
   // 収集品 (1時間ごとに見込み。引き返した時は半分)。袋に空きが無ければ売値の金貨にする
