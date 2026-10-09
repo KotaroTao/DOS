@@ -13,8 +13,8 @@
 //   party  … 隊全体を巻き込む
 //   pct    … 隊全体の最大HP割合ダメージ (生気を吸う)
 //   mp     … 隊全体のMPを吸い、軽いダメージ
-//   gold   … 所持金を失う
-//   soul   … Soul を失う
+//   gold   … 金貨を失う (量は進行度 = その階の推奨Lv の普通の1戦の金貨 × loss。所持金の割合ではない)
+//   soul   … ✦Soul を失う (同じく普通の1戦の ✦Soul × loss)
 //   teleport … 同じ階の別の場所へ飛ばされる (宝箱の中身は失われる)
 //   alarm  … 怪物を呼び寄せ戦闘になる (horde: 群れを呼ぶ)
 // ail/ailChance: 生き残った命中者への状態異常 (poison/paralyze/stone)
@@ -36,8 +36,8 @@ export const TRAPS = [
   { id: "frost",      name: "凍気の罠",     rank: 2, kind: "party",  mult: 0.5, ail: "paralyze", ailChance: 0.25, flavor: "凍てつく冷気が骨まで凍らせる！" },
   { id: "mageblast",  name: "メイジブラスター", rank: 2, kind: "mp", mult: 0.25,                                  flavor: "魔力を喰らう呪具がうなりを上げた！" },
   { id: "arrowstorm", name: "矢の嵐",       rank: 2, kind: "multi",  mult: 0.9, hits: 3,                          flavor: "無数の矢が四方から降り注ぐ！" },
-  { id: "goldeater",  name: "黄金喰い",     rank: 2, kind: "gold",                                                flavor: "金貨だけを溶かす粘液が溢れ出た…" },
-  { id: "soulleech",  name: "魂喰らい",     rank: 2, kind: "soul",                                                flavor: "蒼白い口が開き、集めた魂をすすった…" },
+  { id: "goldeater",  name: "黄金喰い",     rank: 2, kind: "gold",   loss: 9,                                     flavor: "金貨だけを溶かす粘液が溢れ出た…" },
+  { id: "soulleech",  name: "魂喰らい",     rank: 2, kind: "soul",   loss: 6,                                     flavor: "蒼白い口が開き、集めた魂をすすった…" },
   // ---- ランク3 (迷宮21〜): 命に関わる大物 ----
   { id: "teleporter", name: "テレポーター", rank: 3, kind: "teleport",                                            flavor: "床の魔法陣が妖しく輝いた——" },
   { id: "guillotine", name: "断頭刃",       rank: 3, kind: "opener", mult: 2.4, dieChance: 0.10,                  flavor: "巨大な刃が鎌のように振り下ろされた！" },
