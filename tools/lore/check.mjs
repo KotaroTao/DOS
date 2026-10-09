@@ -33,6 +33,7 @@ const SPOIL = {
   7: /奈落|最初の操霊師/,
 };
 const BOSS_FREE = new Set(["bs_infernolord"]); // 主の伝承は1体討てば読める — 業火の主だけは第五章の真相に触れてよい
+const SERA_OK = new Set(["w16", "w17", "w18", "w19", "w20", "w21"]);
 const WS5_SPOIL = /モルデン|神官王|苗木|セラ/; // 古井戸 (第二章から開く) に出る魔物
 
 const byLayer = {};
@@ -55,6 +56,13 @@ for (const [id, v] of Object.entries(MONSTER_LORE)) {
     const m = (v.text + v.by).match(WS5_SPOIL);
     if (m) errs.push(`古井戸 (第二章から) に出る魔物に「${m[0]}」: ${name}`);
   }
+  // 霧の迷い森 (第二章の大手門の報告から開く) に出る第5層の魔物: 第三章の手記・大樹・モルデンに触れない
+  if (where[id] && where[id].has("ws3") && L === 5) {
+    const m = (v.text + v.by).match(/ヴェルナー|モルデン|大樹/);
+    if (m) errs.push(`迷い森 (第二章から) に出る魔物に「${m[0]}」: ${name}`);
+  }
+  // セラが語れるのは、目覚めた後 (洗礼の大水槽 w16 で脚を見つけた後) にしか会えない魔物だけ
+  if (/セラ/.test(v.text + v.by) && [...(where[id] || [])].some((d) => !SERA_OK.has(d))) errs.push(`セラが目覚める前に会える魔物にセラの声: ${name}`);
   if (L) (byLayer[L] ||= []).push({ id, by: v.by });
 }
 
