@@ -349,23 +349,24 @@ function renderRumor(wrap) {
   const g = G();
   // 酒場の噂話 (game.js FEATURES.rumor の報告で情報屋が動く)
   wrap.appendChild(sectionHead("酒場の噂話"));
+  const left = (g.rumorCooldown || 0) - Date.now();
+  const price = game.rumorPrice ? game.rumorPrice() : (game.RUMOR_PRICE || 100);
   if (g.rumor) {
     const rb = el("div", "fc-rumor");
     rb.appendChild(setText(el("div", "fc-rumor-s"), `— ${g.rumor.speaker} —`));
     rb.appendChild(setText(el("div", "fc-rumor-t"), g.rumor.text));
-    rb.appendChild(setText(el("div", "wa-note"), g.rumor.info ? "盤面に現れる話ではない。だが、備えあれば憂いなし。" : "この噂は、次に潜る迷宮で現実になる。"));
+    const where = g.rumor.dungeonName ? `「${g.rumor.dungeonName}」` : "次に潜る迷宮";
+    rb.appendChild(setText(el("div", "wa-note"), g.rumor.info ? `${where}の話。盤面に現れる話ではない。だが、備えあれば憂いなし。` : `この噂は、${where}${g.rumor.dungeonName ? "に潜った時" : ""}に現実になる。`));
     wrap.appendChild(rb);
+  }
+  if (left > 0) {
+    wrap.appendChild(lockedRow("しばらく待て", `情報屋はまだ動いていない。あと約 ${Math.ceil(left / 60000)} 分。`));
   } else {
-    const left = (g.rumorCooldown || 0) - Date.now();
-    if (left > 0) {
-      wrap.appendChild(lockedRow("しばらく待て", `情報屋はまだ動いていない。あと約 ${Math.ceil(left / 60000)} 分。`));
-    } else {
-      const price = game.rumorPrice ? game.rumorPrice() : (game.RUMOR_PRICE || 100);
-      const dn = game.curDungeon ? game.curDungeon() : null;
-      const rb = button({ label: "噂を聞く", sub: price ? `情報屋は「${dn ? dn.name : "—"}」を読む` : `今回は情報屋のおごり ・「${dn ? dn.name : "—"}」を読む`, kind: "primary", cost: price ? { kind: "gold", n: price } : null, disabled: g.gold < price, onTap: () => game.listenRumor() });
-      rb.classList.add("fc-rumor-btn");
-      wrap.appendChild(rb);
-    }
+    // 手元に噂があっても、待ち時間が明ければ別の噂を聞き直せる (前の噂は忘れる)
+    const sub = g.rumor ? "いまの噂は忘れ、別の噂を聞く" : "隊の力に見合う迷宮を中心に、どこかの迷宮の話を聞く";
+    const rb = button({ label: g.rumor ? "別の噂を聞く" : "噂を聞く", sub: price ? sub : `今回は情報屋のおごり ・ ${sub}`, kind: g.rumor ? "secondary" : "primary", cost: price ? { kind: "gold", n: price } : null, disabled: g.gold < price, onTap: () => game.listenRumor() });
+    rb.classList.add("fc-rumor-btn");
+    wrap.appendChild(rb);
   }
 }
 // 居合わせる者たち

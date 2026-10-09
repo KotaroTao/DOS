@@ -507,7 +507,7 @@ const G = {
   autoCombat: false,  // オート戦闘中 (セッション内のみ)
   tavernCrowd: null,  // 酒場に居合わせる者たち (帰還ごとに3〜5名を選び直す) [{type,icon,name,line}]
   rumor: null,        // 酒場で表示中の噂 (次回潜入で現実化)
-  rumorCooldown: 0,   // 次の噂を聞けるUNIXタイムスタンプ(ms) — 30分クールダウン
+  rumorCooldown: 0,   // 次の噂を聞けるUNIXタイムスタンプ(ms) — 15分クールダウン
   activeRumor: null,  // 潜入時に確定した、この迷宮で適用する噂
   codex: { mon: {}, item: {}, job: {}, met: {}, fresh: { mon: {}, item: {}, job: {} } }, // 図鑑 (モンスター/アイテム/職業)。fresh = 新着 (まだ詳細を見ていない記録)。met = 遭遇した迷宮の主 (討つ前でも図鑑に名だけ出す)
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={収集品id:true}, claimed={"ランク:しきい値":true}
@@ -11571,8 +11571,9 @@ function rollTavernCrowd() {
   G.tavernCrowd = crowd;
 }
 
-// ---- 酒場の噂話: 「選択中の潜入先」を読んだ予兆を生成する ----
-// 盤面型 (harvest/treasure/special) は次の潜入の開始階 (B1F) で現実になり (applyRumorToBoard)、
+// ---- 酒場の噂話: 地図にある迷宮の一つを読んだ予兆を生成する ----
+// 読む迷宮は隊のLvに見合う (推奨Lvの帯に近い) 迷宮ほど選ばれやすい (rumorDungeon)。
+// 盤面型 (harvest/treasure/special) はその迷宮に次に潜った時の開始階 (B1F) で現実になり (applyRumorToBoard)、
 // その威力は実際に潜る迷宮の層 (layer) に合わせてスケールする。
 // 情報型 (element/boss, info:true) は備えを促すだけで盤面は変えない。
 const RUMOR_SPEAKERS = ["隻眼の傭兵", "酔った盗掘者", "巡礼の僧", "宿の女将", "傷だらけの斥候", "黒衣の占い師"];
@@ -11591,8 +11592,25 @@ function pickRumorSpecial(layer) {
   return pool[rand(pool.length)];
 }
 
+// 噂の迷宮を選ぶ: 地図にある迷宮 (奈落を除く) から、隊のLvと推奨Lvの帯 (1階〜最下階) の離れ具合で重みを付けて抽選。
+// 帯の中なら重み1、帯から RUMOR_LV_HALF Lv 離れるごとに半分
+const RUMOR_LV_HALF = 3;
+function rumorDungeon() {
+  const open = DUNGEONS.filter((d) => worldOpenId(d.id));
+  if (!open.length) return curDungeon();
+  const pl = partyLevel();
+  const ws = open.map((d) => {
+    const [lo, hi] = levelBand(d);
+    const gap = pl < lo ? lo - pl : pl > hi ? pl - hi : 0;
+    return Math.pow(0.5, gap / RUMOR_LV_HALF);
+  });
+  let r = Math.random() * ws.reduce((a, w) => a + w, 0);
+  for (let i = 0; i < open.length; i++) { if ((r -= ws[i]) < 0) return open[i]; }
+  return open[open.length - 1];
+}
+
 function rollRumor() {
-  const cfg = curDungeon();
+  const cfg = rumorDungeon();
   const layer = cfg.layer || 1;
   const speaker = RUMOR_SPEAKERS[rand(RUMOR_SPEAKERS.length)];
   const dn = cfg.name || "次の迷宮";
@@ -11639,9 +11657,12 @@ function rollRumor() {
 
   const total = cands.reduce((s, c) => s + c[0], 0);
   let r = Math.random() * total;
-  for (const c of cands) { if ((r -= c[0]) < 0) return c[1](); }
-  return cands[0][1]();
+  let pick = cands[0];
+  for (const c of cands) { if ((r -= c[0]) < 0) { pick = c; break; } }
+  return { ...pick[1](), dungeon: cfg.id, dungeonName: dn };
 }
+// 手元の噂がこの迷宮のものか (dungeon の無い旧セーブの噂は、どこに潜っても現実になる)
+function rumorFor(cfg) { return !!G.rumor && (!G.rumor.dungeon || G.rumor.dungeon === (cfg && cfg.id)); }
 
 // 盤面生成後に、予兆 (rumor) を反映する。威力は実際に潜る迷宮の層に合わせる
 function applyRumorToBoard(board) {
@@ -11754,13 +11775,14 @@ function deliverQuest(q, opts = {}) {
   finishFreeQuest(q, {}, grantRewardSouls([[rarity, count]]), `「${it.name}」を納品`);
 }
 
-// 噂話を一つ買う (💰100・30分に一度)。情報屋は今選んでいる迷宮を読む (rollRumor)
+// 噂話を一つ買う (💰100・15分に一度)。情報屋は隊のLvに見合う迷宮を中心に、地図の迷宮を一つ読む (rollRumor)。
+// 手元に噂があっても、待ち時間が明ければ聞き直せる (前の噂は捨てる)
 const RUMOR_PRICE = 100;
-const RUMOR_COOLDOWN_MS = 30 * 60 * 1000;
+const RUMOR_COOLDOWN_MS = 15 * 60 * 1000;
 // 噂の値段。手ほどき「酒場の噂話」の最中の一度は情報屋のおごり (無料)
 function rumorPrice() { return UI.tutorialFree && UI.tutorialFree("rumor") ? 0 : RUMOR_PRICE; }
 function listenRumor() {
-  if (!featureUnlocked("rumor") || G.rumor) return false;
+  if (!featureUnlocked("rumor")) return false;
   if ((G.rumorCooldown || 0) > Date.now()) return false;
   const price = rumorPrice();
   if (G.gold < price) { log("ゴールドが足りない。", "bad"); SFX.ng(); return false; }
@@ -13528,10 +13550,10 @@ function enterDungeon(mutatorId, startFloor = 1) {
   G.lastRun = null;
   G._townMutator = null; G._departPre = false;
   G._lastTargetUid = null;
-  // 表示中の噂を確定し、この迷宮で現実化させる。
+  // この迷宮の噂を持っていれば確定し、現実化させる (別の迷宮の噂は持ち越す)。
   // ただし「特別な階」を呼び込む噂は1階で潜る時のためのもの: 帰還魔法陣から潜り始める時は持ち越す
   // (潜り始めの階は特別な階にならない)
-  if (G.rumor && !(G.floor > 1 && G.rumor.type === "special")) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
+  if (rumorFor(curDungeon()) && !(G.floor > 1 && G.rumor.type === "special")) { G.activeRumor = { ...G.rumor, floor: G.floor }; G.rumor = null; }
   G.state = "board";
   playBgm(fieldBgm());
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
@@ -13571,7 +13593,7 @@ function enterAbyss(mods, weekly) {
   tlRunBegin(tlWhere(), G.party, { mode:"abyss" });
   G.lastRun = null;
   G._townMutator = null; G._departPre = false;
-  G.rumor = null; G.activeRumor = null; // 奈落では街の噂は持ち込まない
+  G.activeRumor = null; // 噂は地図の迷宮のもの。奈落では現実にならない (手元の噂は持ち越す)
   G.state = "board";
   playBgm(fieldBgm());
   if (descendBtn) { descendBtn.classList.add("hidden"); descendBtn.disabled = true; }
@@ -15850,7 +15872,7 @@ bindGame({
   achievementCards, medalRank, claimNextTreasury, TREASURY_MILESTONES, milestoneLabel, totalDonatedKinds,
   codexMonEntry, dungeonRoster, CODEX_OTHER,
   // 酒場・祠・宿
-  listenRumor, RUMOR_PRICE, rumorPrice, rollTavernCrowd,
+  listenRumor, RUMOR_PRICE, rumorPrice, rumorFor, rollTavernCrowd,
   questState, questLists, questByUid, questsHere, ensureQuestBoard, rollQuestBoard, acceptQuest, abandonQuest, claimQuest, questReadyCount, FREE_CAP, questHereNote, questHereCount, questsTargeting,
   adCooldownLeft, watchShrineAd, RED_PACKS, buyRedPack, GUARDIAN_COST, RESCUE_SHORTEN_MS,
   // 設定 (端末の好み)
