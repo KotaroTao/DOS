@@ -5,8 +5,8 @@ import { ITEMS, weaponRange, scaleBonus, useTarget, useHelps, useCureKinds, useW
 import { ELEMENTS, elemDmgMult, elemBeats, monStats, rankStats, resistRate, resistHpMul, METAL_TIERS } from "./dungeons/schema.js";
 
 import { SPELLS } from "./skilldefs.js";
-import { JOBKIT_PERKS, VICTORY_MP_PER, VICTORY_MP_CAP } from "./jobkit/index.js";
-export { VICTORY_MP_PER, VICTORY_MP_CAP };
+import { JOBKIT_PERKS, VICTORY_MP_PER, PASSIVE_JOB } from "./jobkit/index.js";
+export { VICTORY_MP_PER };
 import { STAGED, STAGE_MAX, STRONG_MIN, BATTLE_LONG, stageMul, stageOf, effectStage, stageLabel, ENEMY_STAT_LABEL } from "./buffstage.js";
 export { SPELLS };
 
@@ -261,7 +261,7 @@ function perksOf(a) {
   for (const k in pm) {
     const pk = JOBKIT_PERKS[k];
     if (!pk || !pm[k]) continue;
-    for (const c of pk.fx) list.push({ c, lv: pm[k], label: pk.label });
+    for (const c of pk.fx) list.push({ c, lv: pm[k], label: pk.label, key: k });
   }
   _perkCache.set(pm, list);
   return list;
@@ -275,16 +275,29 @@ function perkCostCut(actor, sp) {
   return Math.min(0.5, cut);
 }
 // 戦闘に勝った後の固有パッシブ (win): その人が受ける HP/MP 回復の割合 (自分の分 + 味方の party 付きの分)。
-// MP は1つのパッシブ VICTORY_MP_PER まで (合計の頭打ち VICTORY_MP_CAP は game.js applyVictoryPassives で共通パッシブと合わせて掛ける)
-export function perkVictory(p, party) {
-  let hp = 0, mp = 0;
+// MP は魂1つ (持ち主の人業 × パッシブを覚える職 PASSIVE_JOB) ごとに VICTORY_MP_PER まで、別の魂どうしは足す。
+// ownMp = 共通パッシブ (魔力回路・法力の灯) のその人自身の分 {パッシブのキー: 割合} — 同じ魂の固有パッシブと合わせて頭打ちにする
+export function perkVictory(p, party, ownMp = {}) {
+  let hp = 0;
+  const bySoul = new Map(); // 人業 → {職: 割合}
+  const addMp = (q, key, v) => {
+    if (!(v > 0)) return;
+    const job = PASSIVE_JOB[key] || key;
+    let m = bySoul.get(q);
+    if (!m) bySoul.set(q, (m = {}));
+    m[job] = (m[job] || 0) + v;
+  };
+  for (const k in ownMp) addMp(p, k, ownMp[k]);
   for (const q of party || [p]) {
     if (!q || !q.alive) continue;
-    for (const { c, lv } of perksOf(q)) {
+    for (const { c, lv, key } of perksOf(q)) {
       if (c.t !== "win" || (q !== p && !c.party)) continue;
-      hp += lvv(c.hp, lv) || 0; mp += Math.min(VICTORY_MP_PER, lvv(c.mp, lv) || 0);
+      hp += lvv(c.hp, lv) || 0;
+      addMp(q, key, lvv(c.mp, lv) || 0);
     }
   }
+  let mp = 0;
+  for (const m of bySoul.values()) for (const j in m) mp += Math.min(VICTORY_MP_PER, m[j]);
   return { hp, mp };
 }
 // テスト記録用の集計の器 (telemetry.js が読む)。pa/pe/pp = 味方の物理 試行/かわされた/見切られた、

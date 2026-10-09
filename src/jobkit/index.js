@@ -102,9 +102,9 @@ const FX_FIELDS = {
 const WHEN = new Set(("race tgtElem tgtAil tgtDebuffed tgtLow tgtHigh boss noBoss selfLow selfHigh selfAil buffed defending mpHigh " +
   "round1 roundGE preempt front back crowd lastFoe allyDown alone elem tgtWeak tgtWeakened").split(" "));
 const AILS = new Set(["poison", "para", "sleep", "confuse", "charm", "seal", "flinch", "strip", "atk", "vit", "agi", "vuln"]);
-// 戦闘に勝った後のMP回復 (win の mp と、共通パッシブの魔力回路・法力の灯): 1つのパッシブは最大MPの5%まで。
-// 別のパッシブどうしは重なる (メイン魂とサブ魂2つで5%ずつ = 15%) が、1人が受ける合計は15%まで (2026-10 ユーザーの指示)
-export const VICTORY_MP_PER = 0.05, VICTORY_MP_CAP = 0.15;
+// 戦闘に勝った後のMP回復 (win の mp と、共通パッシブの魔力回路・法力の灯): 魂1つあたり最大MPの5%まで。
+// 別の魂どうしは重なる (メイン魂とサブ魂2つで5%ずつ = 15%。サブ魂の枠が増えてもそのまま足す。2026-10 ユーザーの指示)
+export const VICTORY_MP_PER = 0.05;
 function fail(job, what, msg) { throw new Error(`jobkit/${job}: ${what}: ${msg}`); }
 function checkSkill(job, key, sp) {
   if (!/^[A-Z][A-Z0-9_]+$/.test(key)) fail(job, key, "技キーは英大文字");
@@ -151,11 +151,16 @@ export const JOBKIT_SKILLS = {};
 export const JOBKIT_PERKS = {};
 export const JOBKIT_TABLES = {};
 export const JOBKIT_AWAKEN = {};
+// パッシブのキー → それを覚える職 (習得表・ランクのパッシブ・固有パッシブから)。どの魂の分かを数えるのに使う
+// (1つの人業に同じ職の魂は2つ宿らないので、持ち主の人業 × 職 = 魂1つ)。複数の職が覚えるキーは最初の職
+export const PASSIVE_JOB = {};
 for (const job in JOBKIT) {
   const kit = JOBKIT[job];
   JOBKIT_TABLES[job] = kit.table;
   if (!/^[a-z][A-Za-z0-9]+$/.test(kit.awaken || "")) fail(job, "awaken", "ランクのパッシブのキーが必要");
   JOBKIT_AWAKEN[job] = kit.awaken;
+  for (const m of (kit.table || "").matchAll(/\b([a-z][A-Za-z0-9]+)\/\d+/g)) PASSIVE_JOB[m[1]] ||= job;
+  PASSIVE_JOB[kit.awaken] ||= job;
   for (const key in kit.skills || {}) {
     if (JOBKIT_SKILLS[key]) fail(job, key, "技キーが他の職と重複");
     checkSkill(job, key, kit.skills[key]);
@@ -166,6 +171,7 @@ for (const job in JOBKIT) {
     checkPerk(job, key, kit.perks[key]);
     const pk = kit.perks[key];
     // 表示の「パーティ全体に効く/自分にだけ効く」: 味方全体へ及ぶ成分 (aura / party) があれば party
+    PASSIVE_JOB[key] ||= job;
     JOBKIT_PERKS[key] = { ...pk, scope: pk.fx.some((c) => c.aura || c.party) ? "party" : "self" };
   }
 }
