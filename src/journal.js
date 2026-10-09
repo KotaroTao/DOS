@@ -83,6 +83,8 @@ const DUNGEON_LORE_IMAGES = Object.fromEntries(
     return [id, `art/story/dungeons/lore_${id}.png`];
   })
 );
+DUNGEON_LORE_IMAGES.w15 = "art/story/dungeons/lore_w15.png";
+DUNGEON_LORE_IMAGES.w17 = "art/story/dungeons/lore_w17.png";
 DUNGEON_LORE_IMAGES.ws1 = "art/story/dungeons/lore_ws1.png";
 DUNGEON_LORE_IMAGES.ws2 = "art/story/dungeons/lore_ws2.png";
 
@@ -94,9 +96,12 @@ export function storyEntries(g) {
   const lore = WORLD.filter(d => w.cleared?.[d.id]).map(d => {
     const chapter = CHAPTERS.find(ch => ch.dungeons.includes(d.id));
     const image = DUNGEON_LORE_IMAGES[d.id];
+    // 専用の原画が無い寄り道の迷宮は、ほかの迷宮の手がかりの絵を借りず、出撃画面と同じその迷宮の情景 (backdrops.js) を掲げる
+    const vista = !image && d.side ? { id:d.id, layer:d.layer } : null;
     return { id:`lore_${d.id}`, group:chapter ? `第${chapter.no}章「${chapter.title}」` : "寄り道の物語",
       title:d.name, subtitle:"迷宮の由来と秘密", ...DUNGEON_LORE[d.id],
-      ...(image ? { image, imageWidth:1536, imageHeight:1024, imageAlt:`${d.name}の情景` } : {}) };
+      ...(image ? { image, imageWidth:1536, imageHeight:1024, imageAlt:`${d.name}の情景` } : {}),
+      ...(vista ? { vista } : {}) };
   });
   return [...archiveStories(g), ...lore];
 }
