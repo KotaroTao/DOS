@@ -1,25 +1,44 @@
-# 狂戦士 R1〜R5 制作記録
+# 狂戦士 R1〜R5
 
-職業IDは `berserker`。基準の聖戦士は `crusader`。`codex/berserker-art` に最新mainと `origin/codex/job-art-preparation` を取り込み済み（下準備は最新mainに含まれている）。
+狂戦士は `berserker`。濃い茶色の逆立った髪の男性。聖戦士は赤髪の女性の `crusader` で、人体・顔・描かれたドット粒度の直接の基準として参照した。職業名・IDは変更していない。
 
-## 既存の特徴
+ユーザーが確認したR1を確定し、R2〜R5はそのR1と聖戦士の原画、対象ランクの既存絵を直接参照して各1枚ずつ独立生成した。集合絵の分割はしていない。採用原画は `berserker-r1-final.png`〜`berserker-r5-final.png`。R2・R4は脚と布の先を部分修正した案を採用し、質感が変わった修正案は採用していない。
 
-男性。濃い茶色の逆立った髪、鋭い目、頬の赤い傷、肌の出た腕と腹。暗い茶色の革鎧と銀灰色の肩鎧・腕当て、赤い腕布と腰布、重い革のブーツ。大斧を持ち、盾や兜は持たない。
+## 固有の特徴と装備の成長
 
-- R1 荒武者：簡素な肩鎧、革の胸帯、赤い腰布と腕布、鉄の大斧。
-- R2 狂戦士：肩鎧と腕当てを拡大し、斧の刃を大型化。
-- R3 血戦鬼：肩と斧に鋭い突起を追加し、脚の防具を強化。
-- R4 大戦鬼：大きな肩鎧、厚い腕と脚の防具、より重い斧。
-- R5 鬼神：最も重厚な肩鎧と全身の装備、大斧。濃い赤の布を維持。
+鋭い茶色の目、頬の赤い傷、肌の出た筋肉質の腕と腹、暗い革の交差胸帯、銀灰色の肩鎧・腕当て、赤い上腕布と腰布、白い毛皮、茶色の革ブーツ、大斧を維持。盾や兜は持たない。顔・髪・体格・立ちポーズはR1を直接の参照としている。
 
-`existing-r1.png`〜`existing-r5.png` は既存ドットデータの描画。`existing-review.png` は実際の `jobSprite` / `jobBust` による全身6枚・顔24枚の比較。ブラウザーエラーなし。
+- R1 荒武者：簡素な肩鎧、革の胸帯と腕当て、赤い布、鉄の大斧。
+- R2 狂戦士：肩鎧を多層にし、腕と脚に鉄板を追加。斧の刃を拡大。
+- R3 血戦鬼：肩と斧に短い鉄の突起を追加。膝とすねの防具を強化。
+- R4 大戦鬼：厚い多層の肩鎧、腕当て、脚の防具。斧の刃と補強金具を強化。
+- R5 鬼神：最も重厚な鎧と角状の突起。赤銅色の縁・彫刻・腰の金具を加え、肩鎧を最も豪華にした。
 
-新しいR1のユーザー確認後にR2〜R5を制作し、ゲームへ取り込む。承認前に出荷画像は上書きしない。mainへのマージは別途指示を待つ。
+既存の絵は `existing-r1.png`〜`existing-r5.png`、実描画比較は `existing-review.png`。R1承認時の比較は `r1-comparison.png`、原画は `berserker-r1-review-candidate.png`。途中の案も保存している。
 
-## R1確認用
+## ゲームへの取り込み
 
-確認候補は `berserker-r1-review-candidate.png`。初稿の背景の発光を除去し、長かった脚を短くした。聖戦士R1原画と狂戦士の既存R1を画像生成に直接渡し、以後は狂戦士の案と聖戦士を参照して部分修正した。各生成は1人・1ランクの独立画像。
+透明WebPは `art/jobs/berserker_1.webp`〜`berserker_5.webp`。既存の `tools/jobimg.py` で取り込み、`src/jobphotos.js` の顔・頭の設定と `sw.js` の画像一覧を更新。優先される旧 `src/jobart.js` の狂戦士だけを外した。CACHEは `dos-dev` のまま。
 
-比較は `r1-comparison.png`。左が聖戦士、右が狂戦士。全身は1ドット8表示画素の同倍率、顔は56/36/26pxと拡大。青が人体の頭頂、紫が基準の顎、灰が足元の目安。人体の頭頂は逆立った髪の先端ではなく先端と付け根の中間で測る。測定値は `r1-review-settings.json` に保存。頭頂から足元約82.9ドット、頭の高さ約22.03ドット、約3.76頭身。目・頬・肩・胴・脚の輪郭も比較で確認した。
+原画の測定値は `import-settings.json`。逆立った髪は先端と付け根の中間を主な頭頂として測り、角や髪の先端を頭頂として代用していない。各画像の頬・顎・頭頂・足裏から個別に測定し、聖戦士の原画座標を流用していない。共通枠90×92ドット、人体の頭頂9ドットを維持。頭頂から足裏は82.2ドットへ揃え、靴の下端に透明余白を確保した。原画のドット化・減色はしていない。
 
-再生成不要で比較を作り直すには `python3 docs/art/berserker/make-r1-review.py`。縮尺と配置だけを調整し、原画のドット化・減色や出荷画像の更新はしない。ユーザー確認前のためR2〜R5は未制作。
+再取り込み（リポジトリのルートで実行）:
+
+```python
+import json, subprocess
+s = json.load(open('docs/art/berserker/import-settings.json'))
+subprocess.run(['python3', 'tools/jobimg.py', 'berserker',
+ *[x['source'] for x in s['sources']],
+ '--head', *[','.join(map(str, x['head'])) for x in s['sources']],
+ '--per-dot', ','.join(str(x['perDot']) for x in s['sources']),
+ '--frame', '90,92', '--frame-top', '9', '--alpha-floor', str(s['alphaFloor']),
+ '--preview', 'docs/art/berserker/import-preview.png'], check=True)
+```
+
+## 確認
+
+`final-review.png` は実際の `jobSprite` / `jobBust` / `crispCanvas` による聖戦士とR1〜R5の同倍率全身、56/36/26pxの顔、顔の拡大。ブラウザーで30枚のCanvas描画とゲーム起動を確認し、結果を `final-review.json` に保存した。全ランクの顔の位置は基準と同じで、頭の位置・高さの差は0.3ドット未満。
+
+`asset-verification.json` に360×368pxの全5枚の透過と四辺の透明余白を記録。武器・赤い布・髪と装備の先の欠け、背景の残り、不要な残片、装備の成長と顔・人体・描かれたドット粒度は比較画像で目視確認した。編集したJSとサービスワーカーの構文も確認した。
+
+再確認はローカルサーバー起動後に `python3 tools/review-job-art.py berserker --label 狂戦士 --require-photos --output docs/art/berserker/final-review`。作業ブランチは `codex/berserker-art`。ユーザーからmainへのマージ指示を受領済み。

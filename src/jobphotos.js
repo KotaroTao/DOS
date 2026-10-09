@@ -20,11 +20,11 @@ export const JOB_PHOTOS = {
     5: { src: "art/jobs/fighter_5.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.496] },
   },
   exorcist: {
-    1: { src: "art/jobs/exorcist_1.webp", w: 55, h: 88, face: [29, 14], head: [28.93, 2.64, 24.79] },
-    2: { src: "art/jobs/exorcist_2.webp", w: 61, h: 88, face: [31, 14], head: [30.93, 2.79, 24.93] },
-    3: { src: "art/jobs/exorcist_3.webp", w: 76, h: 88, face: [40, 14], head: [40.0, 2.57, 24.71] },
-    4: { src: "art/jobs/exorcist_4.webp", w: 78, h: 88, face: [40, 14], head: [40.0, 2.64, 24.79] },
-    5: { src: "art/jobs/exorcist_5.webp", w: 86, h: 88, face: [41, 12], head: [40.89, 2.64, 22.14] },
+    1: { src: "art/jobs/exorcist_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.178] },
+    2: { src: "art/jobs/exorcist_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.13] },
+    3: { src: "art/jobs/exorcist_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.13] },
+    4: { src: "art/jobs/exorcist_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.081] },
+    5: { src: "art/jobs/exorcist_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 29.903] },
   },
   necromancer: {
     1: { src: "art/jobs/necromancer_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 31.135] },
@@ -70,11 +70,11 @@ export const JOB_PHOTOS = {
     5: { src: "art/jobs/ascetic_5.webp", w: 90, h: 92, face: [45, 18], head: [45.0, 9.0, 26.092] },
   },
   archbishop: {
-    1: { src: "art/jobs/archbishop_1.webp", w: 42, h: 74, face: [25, 20], head: [25.19, 12.72, 27.16] },
-    2: { src: "art/jobs/archbishop_2.webp", w: 43, h: 77, face: [25, 22], head: [25.37, 14.57, 29.38] },
-    3: { src: "art/jobs/archbishop_3.webp", w: 51, h: 78, face: [26, 23], head: [25.99, 16.05, 30.86] },
-    4: { src: "art/jobs/archbishop_4.webp", w: 56, h: 80, face: [26, 25], head: [26.42, 17.41, 32.72] },
-    5: { src: "art/jobs/archbishop_5.webp", w: 59, h: 83, face: [24, 28], head: [24.2, 20.37, 35.68] },
+    1: { src: "art/jobs/archbishop_1.webp", w: 90, h: 94, face: [45, 23], head: [46.0, 10.5, 30.4] },
+    2: { src: "art/jobs/archbishop_2.webp", w: 90, h: 94, face: [45, 23], head: [46.0, 10.5, 30.4] },
+    3: { src: "art/jobs/archbishop_3.webp", w: 90, h: 94, face: [45, 23], head: [46.0, 10.5, 30.4] },
+    4: { src: "art/jobs/archbishop_4.webp", w: 90, h: 94, face: [45, 23], head: [46.0, 10.5, 30.4] },
+    5: { src: "art/jobs/archbishop_5.webp", w: 90, h: 94, face: [45, 23], head: [46.0, 10.5, 30.4] },
   },
   hero: {
     1: { src: "art/jobs/hero_1.webp", w: 90, h: 92, face: [45, 20], head: [45, 9, 29.968] },
@@ -229,6 +229,13 @@ export const JOB_PHOTOS = {
     3: { src: "art/jobs/samurai_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.319] },
     4: { src: "art/jobs/samurai_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.198] },
     5: { src: "art/jobs/samurai_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.13] },
+  },
+  berserker: {
+    1: { src: "art/jobs/berserker_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.841] },
+    2: { src: "art/jobs/berserker_2.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.906] },
+    3: { src: "art/jobs/berserker_3.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.775] },
+    4: { src: "art/jobs/berserker_4.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.928] },
+    5: { src: "art/jobs/berserker_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.715] },
   },
   // <<JOB_PHOTOS>>
   hunter: {

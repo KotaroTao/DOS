@@ -1,5 +1,5 @@
 {
-  "status": "ユーザー確認前。ゲーム未取り込み。",
+  "status": "ユーザー確認済み。確定原画はberserker-r1-final.png。最終取り込み値はimport-settings.json。",
   "job": "berserker",
   "source": "docs/art/berserker/berserker-r1-review-candidate.png",
   "reference": "art/jobs/crusader_1.webp",

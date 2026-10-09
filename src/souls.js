@@ -278,16 +278,16 @@ export function rollGreatJobClass() {
 // ===== パッシブ カタログ =====
 export const PASSIVES = {
   afterHeal:     { label: "戦闘後回復",   scope: "self",  lv: ["戦闘勝利後、HP5%回復", "戦闘勝利後、HP10%回復", "戦闘勝利後、HP20%回復", "戦闘勝利後、HP30%回復"] },
-  afterMp:       { label: "魔力回路",     scope: "self",  lv: ["戦闘勝利後、MP5%回復", "戦闘勝利後、MP10%回復"] },
-  afterBoth:     { label: "法力の灯",     scope: "self",  lv: ["戦闘勝利後、HP3%とMP3%回復", "戦闘勝利後、HP8%とMP8%回復"] },
+  afterMp:       { label: "魔力回路",     scope: "self",  lv: ["戦闘勝利後、MP3%回復", "戦闘勝利後、MP5%回復"] },
+  afterBoth:     { label: "法力の灯",     scope: "party", lv: ["戦闘勝利後、パーティ全体の状態異常をすべて治す"] },
   purify:        { label: "浄化",         scope: "party", lv: ["戦闘勝利後、パーティ全体の毒・麻痺を治す"] },
   selfPurify:    { label: "自浄",         scope: "self",  lv: ["戦闘勝利後、自分の毒・麻痺を治す"] },
   mercy:         { label: "慈悲の祈り",   scope: "party", lv: ["戦闘勝利後、倒れた味方1人をHP10%で蘇生 (1探索1回)"] },
   popePrayer:    { label: "教皇の祈り",   scope: "party", lv: ["自分の戦闘後回復をパーティ全体に適用する"] },
   soulEater:     { label: "魂喰い",       scope: "self",  lv: ["敵を倒した時、MP5%回復"] },
   vigilance:     { label: "周囲警戒",     scope: "party", lv: ["奇襲される確率が半減", "奇襲を受けなくなる", "奇襲を受けず、自分から挑むと先制率+10%"] },
-  senseEnemy:    { label: "敵感知",       scope: "party", lv: ["まだめくっていない墓石の魔物を1体、ぼんやり示す", "まだめくっていない墓石の魔物を2体、ぼんやり示す", "まだめくっていない墓石の魔物を3体、ぼんやり示す"] },
-  senseTreasure: { label: "財宝感知",     scope: "party", lv: ["まだめくっていない墓石の宝箱を1つ、ぼんやり示す", "まだめくっていない墓石の宝箱を2つ、ぼんやり示す", "まだめくっていない墓石の宝箱を3つ、ぼんやり示す"] },
+  senseEnemy:    { label: "敵感知",       scope: "party", lv: ["まだめくっていない魔物のカードを1枚、ぼんやり示す", "まだめくっていない魔物のカードを2枚、ぼんやり示す", "まだめくっていない魔物のカードを3枚、ぼんやり示す"] },
+  senseTreasure: { label: "財宝感知",     scope: "party", lv: ["まだめくっていない宝箱のカードを1枚、ぼんやり示す", "まだめくっていない宝箱のカードを2枚、ぼんやり示す", "まだめくっていない宝箱のカードを3枚、ぼんやり示す"] },
   initiative:    { label: "先制の心得",   scope: "party", lv: ["先制攻撃の発生率+15%", "先制攻撃の発生率+25%", "先制攻撃の発生率+40%"] },
   poisonFloor:   { label: "毒床耐性",     scope: "party", lv: ["毒の床から受けるダメージ半減", "毒の床のダメージを無効化", "毒の床を無効化し、渡るたびHP2%回復"] },
   fleetFoot:     { label: "逃げ足",       scope: "party", lv: ["逃走の成功率+30%", "逃走の成功率+45%", "逃走の成功率+60%"] },
@@ -346,7 +346,7 @@ export const PASSIVES = {
   riseAgain:     { label: "復活の祈り",   scope: "party", lv: ["戦闘で倒れた味方が、1回だけHP1で起き上がる (1戦闘)", "戦闘で倒れた味方が、2回までHP1で起き上がる (1戦闘)", "戦闘で倒れた味方が、3回までHP1で起き上がる (1戦闘)"] },
   asceticShintou:{ label: "心頭滅却",     scope: "self",  lv: ["属性を帯びた攻撃・ブレス・呪文のダメージ-10%", "属性を帯びた攻撃・ブレス・呪文のダメージ-15%", "属性を帯びた攻撃・ブレス・呪文のダメージ-20%"] },
   heroIji:       { label: "勇者の意地",   scope: "self",  lv: ["戦闘中1回、致死ダメージをHP1で耐える (HP1の時は効かない)", "戦闘中2回まで、致死ダメージをHP1で耐える (HP1の時は効かない)", "戦闘中3回まで、致死ダメージをHP1で耐える (HP1の時は効かない)"] },
-  asuraChishio:  { label: "たぎる血潮",   scope: "self",  lv: ["同じ敵に続けてダメージを与えるたび、物理ダメージ+10% (最大+200%)", "同じ敵に続けてダメージを与えるたび、物理ダメージ+15% (最大+200%)", "同じ敵に続けてダメージを与えるたび、物理ダメージ+20% (最大+200%)"] },
+  asuraChishio:  { label: "たぎる血潮",   scope: "self",  lv: ["同じ敵に続けて攻撃した手ごとに1段、物理ダメージ+10% (最大+200%・多段の技も1手で1段)。別の敵に当たると0段に戻る", "同じ敵に続けて攻撃した手ごとに1段、物理ダメージ+15% (最大+200%・多段の技も1手で1段)。別の敵に当たると0段に戻る", "同じ敵に続けて攻撃した手ごとに1段、物理ダメージ+20% (最大+200%・多段の技も1手で1段)。別の敵に当たると0段に戻る"] },
   necroLegion:   { label: "死者の軍勢",   scope: "self",  lv: ["自分の手番の終わりに、ランダムな敵へ INT×0.5 の固定ダメージを1回 (金属の魔物には効かない)", "自分の手番の終わりに、ランダムな敵へ INT×0.5 の固定ダメージを2回 (金属の魔物には効かない)", "自分の手番の終わりに、ランダムな敵へ INT×0.5 の固定ダメージを3回 (金属の魔物には効かない)"] },
   archmageChoei: { label: "重詠",         scope: "self",  lv: ["攻撃呪文が20%でもう一度放たれる (2回目はMPを使わない)", "攻撃呪文が40%でもう一度放たれる (2回目はMPを使わない)", "攻撃呪文が60%でもう一度放たれる (2回目はMPを使わない)"] },
   extraHit:      { label: "連撃",         scope: "self",  lv: ["通常攻撃が10%で2撃目を放つ (威力60%)", "通常攻撃が20%で2撃目を放つ (威力60%)", "通常攻撃が30%で2撃目を放つ (威力60%)", "通常攻撃が40%で2撃目を放つ (威力60%)"] },
@@ -368,6 +368,7 @@ export const PASSIVES = {
   asceticism:    { label: "窮地の底力",   scope: "self",  lv: ["HP30%以下の間、与ダメージ・回復量+30%"] },
   taunt:         { label: "矢面の構え",   scope: "self",  lv: ["敵の単体攻撃が自分に向かいやすくなる"] },
   cover:         { label: "かばう",       scope: "party", lv: ["瀕死(HP25%以下)の味方への攻撃を肩代わり (1戦闘1回)", "肩代わりが1戦闘2回になり、その被ダメ-30%", "肩代わりが1戦闘3回になり、その被ダメ-40%"] },
+  dynamicVision: { label: "動体視力",     scope: "self",  lv: ["物理攻撃が敵の回避 (素早さの差・回避の体質) を30%打ち消す (重ねがけ不可・一番高いLvだけ。金属の魔物には効かない)", "物理攻撃が敵の回避 (素早さの差・回避の体質) を50%打ち消す (重ねがけ不可・一番高いLvだけ。金属の魔物には効かない)", "物理攻撃が敵の回避 (素早さの差・回避の体質) を70%打ち消す (重ねがけ不可・一番高いLvだけ。金属の魔物には効かない)"] },
   parry:         { label: "見切り",       scope: "self",  lv: ["敵の物理攻撃を10%で完全回避", "敵の物理攻撃を15%で完全回避"] },
   counter:       { label: "反撃",         scope: "self",  lv: ["物理被弾時15%でSTR×0.5の反撃", "物理被弾時25%でSTR×0.7の反撃", "物理被弾時35%でSTR×1.0の反撃 (会心あり)"] },
   endure:        { label: "不屈",         scope: "self",  lv: ["致死ダメージをHP1で耐える (1戦闘1回)", "致死ダメージをHP1で耐える (1戦闘2回)"] },
@@ -610,7 +611,7 @@ export function findHybrid() { return null; }
 // armor: 装備可能な防具重量の上限 ("heavy"|"light"|"cloth")
 // shields: 持てる盾のジャンル (items.js の SHIELD_KINDS: kite 大盾 / round 円盾 / buckler 小盾 / orb 宝珠 / tome 聖典)。
 //   重装の盾職は大盾・円盾・小盾、軽装の職は小盾、攻めの術者は宝珠、癒し手・祈りの職は聖典。
-//   侍・暗殺者・狂戦士・修羅は盾を持たない (両手武器で攻める職。左手の副え刃は今後)
+//   侍・暗殺者・狂戦士・修羅は盾を持たない (両手武器で攻める職。左手の副え刃は今後)。修羅は刀も持てる
 export const JOB_GEAR = {
   fighter:     { weapons: ["ls","ax","mc","sp","dg"],            armor: "heavy", shields: ["kite","round","buckler"] },
   knight:      { weapons: ["ls","mc","sp"],                      armor: "heavy", shields: ["kite","round","buckler"] },
@@ -641,7 +642,7 @@ export const JOB_GEAR = {
   archbishop:  { weapons: ["st","mc"],                           armor: "cloth", shields: ["tome"] },
   ascetic:     { weapons: ["mc","st","ax"],                      armor: "light", shields: ["buckler","tome"] },
   hero:        { weapons: ["ls","kt","mc","sp","ax","dg","st","bw"], armor: "heavy", shields: ["kite","round","buckler","orb","tome"] },
-  asura:       { weapons: ["ls","ax","mc","sp","dg"],            armor: "heavy", shields: [] },
+  asura:       { weapons: ["ls","kt","ax","mc","sp","dg"],       armor: "heavy", shields: [] },
   dragonknight:{ weapons: ["ls","sp","ax"],                      armor: "heavy", shields: ["kite","round","buckler"] },
   necromancer: { weapons: ["st","dg"],                           armor: "cloth", shields: ["orb"] },
   sage:        { weapons: ["st","dg","mc"],                      armor: "cloth", shields: ["orb","tome"] },
