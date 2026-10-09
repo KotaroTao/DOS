@@ -8,6 +8,7 @@ import { helpEntries, storyEntries, journalState, unreadStories, newStories, mar
 import { archiveArt } from "../archive-art.js";
 import { storyArt } from "../storyart.js";
 import { vignetteCanvas } from "../townart.js";
+import { drawDungeonVista } from "../backdrops.js";
 import { TIP_CATS } from "../tavern.js";
 
 const entries = kind => kind === "help"
@@ -25,6 +26,13 @@ function illustration(entry) {
   } else if (entry.illustration) {
     const art = archiveArt(entry.illustration);
     if (art) { art.setAttribute("aria-label", entry.title + "の場面"); box.appendChild(art); }
+  } else if (entry.vista) {
+    // 迷宮の情景 (出撃画面の上半分と同じ絵)。読み物なので動かさず一枚だけ描く
+    const cv = document.createElement("canvas");
+    cv.width = 480; cv.height = 320;
+    try { drawDungeonVista(cv.getContext("2d"), cv.width, cv.height, entry.vista, 0); } catch (e) { /* 演出のみ */ }
+    cv.setAttribute("aria-label", entry.title + "の情景");
+    box.appendChild(cv);
   } else {
     const art = entry.art ? storyArt(entry.art) : vignetteCanvas(entry.place || "palace");
     if (art) { art.setAttribute("aria-hidden", "true"); box.appendChild(art); }
