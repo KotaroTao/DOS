@@ -11680,6 +11680,7 @@ function tavernHintAllowed(req) {
   const w = worldState();
   if (req.startsWith("rep:")) return !!w.reported[req.slice(4)];       // その迷宮を王に報告した後
   if (req.startsWith("found:")) return !!w.found[req.slice(6)];         // その手がかりを見つけた後
+  if (req.startsWith("open:")) return worldOpenId(req.slice(5));        // その迷宮が地図に現れた後 (依頼の迷宮)
   if (req.startsWith("ch:")) return chaptersDone(w) >= Number(req.slice(3)); // 第n章を結んだ後
   if (req === "sub") return unlockedSubSlots() > 0;     // サブ魂
   if (req === "metal") return DUNGEONS.some((d) => d.layer >= 3 && worldOpenId(d.id)); // 金属の魔物 (第3層の景色の迷宮から出る)

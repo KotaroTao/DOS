@@ -1829,6 +1829,18 @@ const DUNGEON_GIFTS = [
   ["w23", "crit", 0.01, "凍れる剣士の最後の一太刀"],
   ["w24", "hp", 5, "極光の命の雫"],
   ["w25", "mp", 5, "凍王の溶けない魔力"],
+  // 各層の寄り道 (ws6〜ws16)。3件の効果から1件ずつ、残りは ATK・VIT・AGI・INT
+  ["ws6", "pie", 2, "名もなき骨の祈り"],
+  ["ws7", "luk", 2, "唄い手の銀の弦"],
+  ["ws8", "agi", 2, "鼠の抜け道"],
+  ["ws9", "atk", 2, "試掘坑の発破の火"],
+  ["ws10", "vit", 2, "最後の火の番の盾"],
+  ["ws11", "int", 2, "獄吏の錠前の仕組み"],
+  ["ws12", "int", 2, "沈んだ書庫の写本"],
+  ["ws13", "atk", 2, "黒曜の刃のかけら"],
+  ["ws14", "crit", 0.01, "炎の幻を見切る目"],
+  ["ws15", "agi", 2, "白狼の足あと"],
+  ["ws16", "vit", 2, "裂け目の芯の氷"],
 ];
 for (const [dungeonId, stat, amount, name, legacyId] of DUNGEON_GIFTS) {
   const dungeon = WORLD.find((d) => d.id === dungeonId);
