@@ -1,0 +1,104 @@
+{
+  "job": "sera",
+  "name": "灯守",
+  "approvedR1": "docs/art/sera/sera-r1-final.png",
+  "reference": "docs/art/crusader/crusader-r1-final.png",
+  "frame": [
+    90,
+    92
+  ],
+  "frameTop": 9,
+  "crownToSole": 82.5,
+  "notes": [
+    "頭身はユーザー承認済みのセラR1を維持する。聖戦士と顎座標を強制一致させない。",
+    "頭頂は主な髪の塊、あごは木の顔の先端。装飾を人体の頭頂に含めない。",
+    "足元に透過余白を残すため、頭頂から足裏の高さは82.5ドット。"
+  ],
+  "sources": [
+    {
+      "source": "docs/art/sera/sera-r1-final.png",
+      "perDot": 14.836363636363636,
+      "head": [
+        488,
+        608,
+        130,
+        435
+      ],
+      "sole": 1354,
+      "alphaBBox": [
+        44,
+        124,
+        1076,
+        1354
+      ]
+    },
+    {
+      "source": "docs/art/sera/sera-r2-final.png",
+      "perDot": 14.993939393939394,
+      "head": [
+        488,
+        614,
+        121,
+        431
+      ],
+      "sole": 1358,
+      "alphaBBox": [
+        29,
+        112,
+        1087,
+        1358
+      ]
+    },
+    {
+      "source": "docs/art/sera/sera-r3-final.png",
+      "perDot": 14.993939393939394,
+      "head": [
+        486,
+        608,
+        110,
+        415
+      ],
+      "sole": 1347,
+      "alphaBBox": [
+        13,
+        97,
+        1096,
+        1347
+      ]
+    },
+    {
+      "source": "docs/art/sera/sera-r4-final.png",
+      "perDot": 14.848484848484848,
+      "head": [
+        486,
+        608,
+        131,
+        435
+      ],
+      "sole": 1356,
+      "alphaBBox": [
+        26,
+        120,
+        1093,
+        1356
+      ]
+    },
+    {
+      "source": "docs/art/sera/sera-r5-final.png",
+      "perDot": 14.848484848484848,
+      "head": [
+        486,
+        608,
+        131,
+        434
+      ],
+      "sole": 1356,
+      "alphaBBox": [
+        32,
+        119,
+        1096,
+        1356
+      ]
+    }
+  ]
+}
