@@ -2000,12 +2000,154 @@ function vInferno(R, A) {
   A.pulse((P) => { P.glow(cx, py - 14, W * 0.42, 34, "#c03008", 0.4); }, (t) => 0.5 + 0.5 * Math.sin(t * 0.0017));
   A.part({ n: 40, col: "#ffb050", x0: 0.15, x1: 0.85, y0: 0.2, y1: 0.85, vy: -0.1, sway: 8, swf: 0.5, a: 0.8, tw: 2.4, big: 0.15, seed: 93 });
 }
+// ---- 第六章「氷結回廊」(第8層・氷) ----
+// 氷の柱 (透ける青白い氷。中に人影を閉じ込めることもある)。(x,by) = 足もとの中央、h = 高さ、w = 幅、fig = 人影の姿勢 (null = なし / -1 = 人の形に抜けた空洞)
+function icePillar(R, x, by, h, w, fig = null, seed = 1) {
+  R.m = SKY;
+  R.rect(x - w / 2, by - h, w, h, (px, py) => {
+    const u = clamp01((px + 0.5 - (x - w / 2)) / w), f = Math.min(3, Math.floor(u * 4));
+    return mul(mix(C("#1e4a62"), C("#7ab4d0"), [0.6, 0.9, 0.55, 0.3][f] * (0.6 + 0.5 * vnoise(px * 0.3, py * 0.05, seed))), u < 0.1 || u > 0.9 ? 0.6 : 0.85);
+  });
+  if (fig !== null) {
+    const s = h / 64, fy = by - 3 * s, P = (pts) => pts.map(([u, v]) => [x + u * s, fy - v * s]);
+    const body = P([[-5.4, 0], [-4.4, 14], [-4.6, 28], [-6, 37], [-4, 40], [4, 40], [6, 37], [4.6, 28], [4.4, 14], [5.4, 0]]);
+    const hx = x + (fig === 3 ? s : 0), hy = fy - (fig === 3 ? 44 : 46) * s;
+    if (fig === -1) { // 人の形に抜けた空洞 (縁が白く光る)
+      R.m = SKY; R.poly(body, "#0e2a3c", 0.7); R.ellipse(hx, hy, 3.2 * s, 3.9 * s, "#0e2a3c", 0.7);
+      R.m = ADD; for (let k = 1; k < body.length; k++) R.line(body[k - 1][0], body[k - 1][1], body[k][0], body[k][1], "#a8e0f8", 0.7);
+      for (let k = 0; k < 16; k++) { const a = k / 16 * TAU; R.px(hx + Math.cos(a) * 3.2 * s, hy + Math.sin(a) * 3.9 * s, "#a8e0f8", 0.7); }
+      R.line(x - 2 * s, fy - 20 * s, x - 7 * s, fy - 26 * s, "#a8e0f8", 0.5); R.line(x + 2 * s, fy - 12 * s, x + 7 * s, fy - 6 * s, "#a8e0f8", 0.5); // 空洞から走るひび
+    } else {
+      R.m = SKY; R.poly(body, "#0a1626", 0.78); R.rect(x - 1.2 * s, fy - 44 * s, 2.4 * s, 4 * s, "#0a1626", 0.78);
+      R.ellipse(hx, hy, 3.2 * s, 3.9 * s, "#0a1626", 0.78); R.ellipse(hx + 0.4 * s, hy + 0.5 * s, 2.1 * s, 2.7 * s, "#8aa8c0", 0.7);
+      if (fig === 0) R.rect(x - 5 * s, fy - 29 * s, 10 * s, 3 * s, "#14243a", 0.8);
+      if (fig === 2) { R.line(x + 6 * s, fy - 37 * s, x + 4 * s, fy - 43 * s, "#8aa8c0", 0.7, Math.max(1, Math.round(1.6 * s))); }
+    }
+  }
+  R.m = SKY; R.rect(x - w / 2 + Math.round(w * 0.28), by - h, 1, h, "#c8ecfc", 0.45);
+  R.m = SURF; R.ellipse(x, by, w * 0.8, 2.4, "#8ab4c8"); R.rect(x - w * 0.8, by - 1, w * 1.6, 1, "#c8e4f0", 0.6);
+  R.glow(x, by - h * 0.5, w * 1.4, h * 0.6, "#2a7090", 0.18);
+}
+// w22 奈落の氷棚: 大釜の底の穴の下に開く縦穴。向かいの壁を螺旋に下る氷の棚。手前の棚から、雪が吹き上げる闇をのぞく
+function vLedge(R, A) {
+  const { w: W, h: H } = R, cx = W / 2;
+  R.amb = [0.38, 0.48, 0.62];
+  // 向かいの縦穴の壁 (縦に流れる氷。下ほど闇に沈む)
+  R.m = SURF; R.rect(0, 0, W, H, (x, y) => mul(mix(C("#16263a"), C("#3c5874"), vnoise(x * 0.3, y * 0.03, 3) * 0.7), (0.65 + 0.35 * fbm(x * 0.05, y * 0.08, 5)) * (1 - 0.8 * clamp01(y / H))));
+  // 螺旋に下る氷の棚 (円筒の壁なので、中ほどが垂れる弧)
+  const r = rnd(41), hy = H * 0.66;   // 目の高さ: これより上の棚は中ほどが垂れ、下の棚は中ほどが持ち上がって見える
+  for (let k = 0; k < 7; k++) {
+    const yb = -4 + k * 19 + hash(k, 1, 41) * 5;
+    for (let x = 0; x < W; x++) {
+      const y = yb + x * 0.06 + Math.sin(x / W * Math.PI) * (hy - yb) * 0.32;
+      if (y < 0 || y >= H) continue;
+      const fade = clamp01(1 - y / (H * 0.85)) * (0.55 + 0.45 * vnoise(x * 0.12, k, 3));
+      R.m = SURF; R.px(x, y, mix(C("#14202c"), C("#c8e4f4"), fade)); R.px(x, y + 1, mix(C("#0c141c"), C("#5a84a0"), fade)); R.px(x, y + 2, "#0a1018", fade * 0.6);
+      if (r() < 0.16) spike(R, x, y + 2, 2 + r() * 6 * fade, 2, "#7ab0cc", 1, 1);
+    }
+  }
+  // 底の見えない闇と、その奥で青白く光る氷
+  R.m = SKY; for (let y = Math.floor(H * 0.55); y < H; y++) R.span(y, 0, W, "#02050a", clamp01((y - H * 0.55) / (H * 0.4)) * 0.85);
+  R.glow(cx + 20, H * 1.05, W * 0.45, 30, "#2a6a9a", 0.4, 5); R.light(cx + 20, H * 1.05, W * 0.7, "#5aa8d8", 1.1, H * 0.7);
+  // 上: 大釜の底の穴 (縁だけが火の名残で鈍く赤い)
+  R.m = SKY; R.ellipse(cx + 16, -4, 46, 14, (x, y) => { const d = Math.hypot((x - cx - 16) / 46, (y + 4) / 14); return d > 0.82 ? mix(C("#401008"), C("#c04818"), (d - 0.82) * 5) : C("#080305"); });
+  R.glow(cx + 16, 2, 50, 16, "#a03010", 0.25, 4); R.light(cx + 16, 0, 60, "#ff6020", 0.6, 30);
+  // 手前の氷の棚 (左下から張り出す。上面は雪、正面は切子の氷、下につらら)
+  const top = (x) => H * 0.74 + x * 0.06 + Math.sin(x * 0.2) * 0.8, tip = W * 0.62;
+  R.m = SURF; R.poly([[0, top(0) - 6], [tip * 0.5, top(tip * 0.5) - 4], [tip, top(tip)], [tip - 6, top(tip) + 5], [0, H]], tex("#d8e8f4", "#a0bcd0", 0.2, 7));
+  R.poly([[0, top(0) + 2], [tip - 6, top(tip) + 5], [tip - 14, top(tip) + 14], [W * 0.3, H], [0, H]], (x, y) => mix(C("#2a5a7a"), C("#8ac0dc"), clamp01(vnoise(x * 0.3, y * 0.2, 9) * 1.2 - 0.1)));
+  for (let x = 4; x < tip - 8; x += 3 + Math.floor(r() * 4)) spike(R, x, top(x) + 3 + (x > tip * 0.6 ? 6 : 0), 4 + r() * 10, 2 + r() * 2, "#9ad0e8", 1, 1.2);
+  R.m = SKY; R.line(0, top(0) - 6, tip, top(tip), "#f0f8ff", 0.6);
+  R.light(W * 0.15, H * 0.7, 50, "#ffc080", 0.5, 30);  // 手元のランタン
+  A.part({ n: 60, col: "#e8f6ff", x0: 0, x1: 1, y0: 0, y1: 1, vy: -0.08, vx: 0.01, sway: 10, swf: 0.5, a: 0.6, big: 0.12, seed: 95 });
+  A.part({ n: 14, col: "#ffffff", x0: 0, x1: 1, y0: 0.1, y1: 0.95, vy: -0.16, a: 0.4, sz: 2, len: 2, seed: 96 });
+}
+// w23 凍れる操霊師の間: 氷の回廊の広間に氷柱が並び、ひとつずつ操霊師の人影が閉じ込められている。一本だけ空
+function vFrozenHall(R, A) {
+  const { w: W, h: H } = R, cx = W / 2, gy = Math.round(H * 0.56);
+  const list = [];
+  for (const z of [3.2, 2.2, 1.5, 1]) for (const s of [-1, 1]) list.push([s, z]);
+  let i = 0;
+  for (const [s, z] of list) {
+    const x = cx + s * W * 0.36 / z, by = gy + 30 / z, h = 74 / z, w = 15 / z;
+    const empty = s === 1 && z === 1.5;
+    icePillar(R, x, by, h, w, empty ? -1 : (i++ * 3 + 1) % 4, 30 + i);
+  }
+  R.light(cx, gy - 10, W * 0.5, "#8ad0f0", 0.8, H * 0.5);
+  A.part({ n: 16, col: "#c8f0ff", x0: 0.15, x1: 0.85, y0: 0.2, y1: 0.9, a: 0.6, blink: 0.6, seed: 97 });
+}
+// w24 極光の氷窟: 氷窟の天井に揺らめく極光 (氷に閉じ込められた魂の光)。氷の床がそれを映す
+function vAurora(R, A) {
+  const { w: W, h: H } = R, cx = W / 2, gy = Math.round(H * 0.66);
+  R.amb = [0.3, 0.42, 0.55];
+  // 天井の氷 (闇に沈む切子)
+  R.m = SURF; R.rect(0, 0, W, gy, (x, y) => { const v = vnoise(x * 0.09 + y * 0.03, y * 0.08, 7); return mul(mix(C("#0a1424"), C("#24405a"), v), 0.7 + 0.3 * (Math.floor(v * 5) % 2)); });
+  // 極光の帳 (緑 → 青 → 紫。縦の光の筋)
+  const cur = (x, y) => {
+    let c = [0, 0, 0];
+    for (const [y0, amp, fr, ph, k] of [[H * 0.4, 8, 0.05, 0.4, 1], [H * 0.26, 6, 0.07, 2.3, 0.8], [H * 0.52, 4, 0.08, 4.1, 0.5]]) {
+      const base = y0 + Math.sin(x * fr + ph) * amp + Math.sin(x * fr * 2.7 + ph) * amp * 0.35, d = base - y;
+      if (d < -2) continue;
+      const ray = 0.4 + 0.6 * Math.pow(vnoise(x * 0.5 + ph * 3, ph, 7), 1.4), f = (d < 0 ? 1 + d / 2 : Math.exp(-d / 14)) * ray * k;
+      const col = d < 4 ? C("#60ffa0") : d < 11 ? mix(C("#40e0c8"), C("#4a8cff"), (d - 4) / 7) : mix(C("#4a8cff"), C("#9a5ae8"), clamp01((d - 11) / 10));
+      c = [c[0] + col[0] * f, c[1] + col[1] * f, c[2] + col[2] * f];
+    }
+    return c;
+  };
+  R.m = ADD; R.rect(0, 0, W, gy, (x, y) => mul(cur(x, y), Math.floor(0.9 * 6 + bayer(x, y)) / 6), 0.9);
+  R.light(cx, H * 0.35, W * 0.7, "#60e8b0", 1.0, H * 0.5); R.light(W * 0.2, H * 0.2, 60, "#9a6ae0", 0.6, 50);
+  // 天井の氷のひび (極光を透かして白く光る筋)
+  const r = rnd(43);
+  R.m = ADD;
+  for (let i = 0; i < 22; i++) { let x = r() * W, y = r() * gy * 0.8; for (let k = 0; k < 4; k++) { const nx = x + (r() - 0.5) * 18, ny = y + (r() - 0.3) * 8; R.line(x, y, nx, ny, "#5a8aa0", 0.35); x = nx; y = ny; } }
+  for (let i = 0; i < 40; i++) { const x = r() * W; spike(R, x, -1, 3 + r() * (Math.abs(x - cx) / cx) * 18, 2 + r() * 3, "#5a8aa8", 1, 1); }
+  // 両側の氷の壁 (極光を背に暗い)
+  for (const s of [-1, 1]) {
+    const pts = [];
+    for (let y = 0; y <= H; y += 4) pts.push([s < 0 ? 18 + (y / H) ** 2 * 16 + vnoise(1, y * 0.2, 3) * 6 : W - 20 - (y / H) ** 2 * 14 - vnoise(2, y * 0.2, 5) * 6, y]);
+    R.m = SURF; R.poly(s < 0 ? [[0, 0], ...pts, [0, H]] : [[W, 0], ...pts, [W, H]], (x, y) => mul(mix(C("#101c2c"), C("#2a4660"), vnoise(x * 0.2, y * 0.1, 9)), 0.8));
+  }
+  // 床: 極光を映す氷 (行ごとに揺れ、ところどころ途切れる)
+  R.m = SKY;
+  for (let y = gy; y < H; y++) {
+    const d = y - gy, sy = gy - 1 - d * 1.6, k = (Math.sin(y * 2.1) > 0.7 ? 0.12 : 0.45) * (1 - d / (H - gy) * 0.6);
+    R.span(y, 0, W, (x) => { const c = cur(x - Math.sin(y * 1.3) * 2, sy); return [12 + c[0] * k, 22 + c[1] * k, 34 + c[2] * k]; });
+  }
+  R.m = SKY; for (let i = 0; i < 18; i++) { const y = gy + 3 + r() * (H - gy - 4), x = r() * W; R.rect(x, y, 6 + r() * 20, 1, "#8ac8d8", 0.25); } // 氷の床の照り
+  R.m = SKY; R.rect(0, gy, W, 1, "#5a9aa8", 0.6);
+  A.part({ n: 30, col: "#e0fff0", x0: 0.1, x1: 0.9, y0: 0.05, y1: 0.55, vy: -0.01, sway: 6, swf: 0.3, a: 0.7, tw: 1.6, seed: 98 });
+  A.pulse((P) => { P.glow(cx, H * 0.36, W * 0.4, 20, "#40d0a0", 0.25); }, (t) => 0.5 + 0.5 * Math.sin(t * 0.0011));
+}
+// w25 凍てつく大回廊: 氷の回廊の果てに、氷の玉座。冠をかぶった老いた操霊師が坐り、凍った先人たちを見張る
+function vGlacialThrone(R, A) {
+  const { w: W, h: H } = R, cx = W / 2, gy = Math.round(H * 0.56);
+  // 玉座へ続く氷の段と、磨かれた床の道
+  R.m = SURF; R.poly([[cx - 10, gy], [cx + 10, gy], [cx + 46, H], [cx - 46, H]], (x, y) => mul(C("#4a7a94"), 0.75 + 0.35 * vnoise(x * 0.1, y * 0.4, 3)));
+  R.m = SKY; R.line(cx - 10, gy, cx - 46, H, "#a8d8ec", 0.5); R.line(cx + 10, gy, cx + 46, H, "#a8d8ec", 0.5);
+  for (let k = 0; k < 3; k++) { R.m = SURF; R.rect(cx - 16 - k * 3, gy - 4 - k * 3, 32 + k * 6, 3, "#7ab0c8"); R.rect(cx - 16 - k * 3, gy - 4 - k * 3, 32 + k * 6, 1, "#d0ecf8"); }
+  // 玉座 (尖った氷の背)
+  const ty = gy - 13;
+  R.m = SKY; R.poly([[cx - 12, ty], [cx - 13, ty - 22], [cx - 9, ty - 30], [cx - 6, ty - 25], [cx - 3, ty - 36], [cx, ty - 28], [cx + 3, ty - 38], [cx + 6, ty - 26], [cx + 9, ty - 32], [cx + 13, ty - 22], [cx + 12, ty]],
+    (x, y) => mix(C("#3a7a9a"), C("#c8ecfc"), clamp01(0.4 + (cx - x) / 30 + vnoise(x * 0.4, y * 0.2, 5) * 0.4)));
+  R.m = SURF; R.rect(cx - 15, ty - 4, 30, 6, "#8ac0d8"); R.rect(cx - 15, ty - 4, 30, 1, "#e0f4fc");
+  // 凍王 (青灰の衣・白いひげ・氷の冠)
+  R.m = SURF; R.poly([[cx - 5, ty - 18], [cx + 5, ty - 18], [cx + 7, ty - 8], [cx + 8, ty], [cx - 8, ty], [cx - 7, ty - 8]], "#3e3a52");
+  R.ellipse(cx, ty - 21, 3, 3.6, "#c8c0ba"); R.poly([[cx - 2.4, ty - 19], [cx + 2.4, ty - 19], [cx, ty - 13]], "#e8eef4");
+  R.m = SKY; for (let k = 0; k < 4; k++) R.rect(cx - 3 + k * 2, ty - 27 + (k % 3 ? 1 : 0), 1, 3, "#d8f4ff"); R.rect(cx - 3, ty - 24, 7, 1, "#a8e0f8");
+  R.glow(cx, ty - 22, 14, 10, "#9ae0ff", 0.35, 4); R.glow(cx, ty - 16, 40, 34, "#2a7aa8", 0.3, 5);
+  R.light(cx, ty - 20, 90, "#a8e8ff", 1.2, 70);
+  // 回廊の両側に立つ氷柱の人影 (凍った先人たち)
+  for (const [s, z] of [[-1, 2.4], [1, 2.4], [-1, 1.6], [1, 1.6]]) icePillar(R, cx + s * W * 0.3 / z, gy + 26 / z, 60 / z, 12 / z, (z * 10 | 0) % 4, 50 + z);
+  A.part({ n: 40, col: "#e8f6ff", x0: 0, x1: 1, y0: 0, y1: 1, vy: 0.03, vx: -0.01, sway: 10, swf: 0.4, a: 0.5, big: 0.12, seed: 99 });
+  A.flick(cx, ty - 23, 6, "#c8f0ff", 0.4, 0.5);
+}
 const VISTAS = {
   w01: [1, vCrypt], w02: [14, vWhispers], w03: [16, vAbbey], w04: [2, vIntake], w05: [3, vChains],
   w06: [4, vRanks], w07: [0, vPrison], w08: [4, vStorm], w09: [17, vCouncil],
   ws1: [6, vBell], ws2: [12, vQuarry], ws3: [5, vMistwood],
   w14: [6, vApproach], w15: [6, vChoir], w16: [0, vFont], w17: [6, vSunkenTemple], ws5: [0, vWell],
   w18: [7, vVent], w19: [7, vAsh], w20: [7, vKettles], w21: [7, vInferno],
+  w22: [0, vLedge], w23: [8, vFrozenHall], w24: [0, vAurora], w25: [8, vGlacialThrone],
 };
 function finishVista(out, w, h) { // 周辺減光だけ (名札帯・中央減光はしない)
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {

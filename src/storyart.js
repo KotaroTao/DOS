@@ -6,8 +6,9 @@
 //   abbot = 修道院長の記憶 / camp = 師の野営跡 (坑口) / candle = 館の燭台 (章の結び)
 //   第二章: roll = 守備隊の当直簿・軍議の卓 / cell = 牢壁の名 / head = 独房の人業の頭 / banner = 焼けた軍旗 (大手門) / hole = 本丸の大穴
 //   第三章: rope = 根に結ばれた綱 (縦穴) / hut = ヴェルナーの小屋 / torso = 根に抱かれたセラの胴 / tree = 魂喰らいの大樹
+//   第六章: coat = 師の外套 (奈落の氷棚) / frozen = 氷柱の中の十一人 / aurora = 極光の書きつけ / frostking = 凍王の記憶
 // 画像ファイルは使わない。描き直すときは ux の確かめ用ページ (scratchpad) で拡大して目で見ること。
-import { Mask, Layer, PAL, R_NIGHT, R_BONE, R_SOUL, R_EMBER, R_BLOOD, R_FOG, R_WOOD, R_STEEL, R_SOULSTONE, R_DUSK,
+import { Mask, Layer, PAL, Palette, ramp, R_NIGHT, R_BONE, R_SOUL, R_EMBER, R_BLOOD, R_FOG, R_WOOD, R_STEEL, R_SOULSTONE, R_DUSK,
   rc, mix, mulc, clamp, smooth, fbm, vnoise, h2, worley, rng } from "./pxpaint.js";
 
 export const ART_W = 192, ART_H = 108;
@@ -1874,11 +1875,385 @@ function sceneCauldron() {
   return L.canvas(12);
 }
 
+// ======================= 第六章「氷結回廊」 =======================
+// 奈落の壁に張り出した氷の棚と、氷に閉じ込められた魂。共通のパレットには青が乏しいので、
+// 氷の青 (R_ICE) と極光の紫 (R_AURORA) を足したパレット (ICE_PAL) で量子化する
+const R_ICE = ramp(["#050912", "#081020", "#0c182e", "#11223e", "#172e50", "#1f3c64", "#294c78", "#355e8c", "#4472a0",
+  "#5788b4", "#6ea0c6", "#88b8d6", "#a6cee4", "#c6e2f0", "#e6f4fa"]);
+const R_AURORA = ramp(["#120a24", "#1e1038", "#2c1650", "#3c1e68", "#502882", "#683698", "#8248b0", "#9e62c6", "#bc84da"]);
+export const ICE_PAL = new Palette([...PAL.cols, ...R_ICE, ...R_AURORA]);
+const C_ICE = [0.55, 0.8, 1.0];
+const ALB_COAT = [52, 46, 62], ALB_COAT_D = [30, 26, 38], ALB_EMBROID = [176, 136, 70];
+// 切子の氷: worley の面ごとに向き (擬似法線) を変え、面の境を明るい稜線に。ところどころ気泡
+function paintIce(L, m, lights, seed, { sx = 0.09, sy = 0.12, deep = [34, 64, 100], pale = [140, 190, 222], amb = [0.14, 0.18, 0.24], ridgeK = 0.6 } = {}) {
+  L.paint(m, (x, y) => {
+    const w = worley(x * sx, y * sy, seed), ridge = w[1] - w[0], id = w[2];
+    const nx = Math.cos(id * 6.283) * 0.8, ny = Math.sin(id * 6.283) * 0.6 - 0.2;
+    let alb = mix(deep, pale, clamp(id * 0.55 + fbm(x * 0.15, y * 0.15, seed) * 0.45));
+    if (ridge < 0.05) alb = mix(alb, [220, 240, 252], ridgeK);
+    if (vnoise(x * 0.8, y * 0.8, seed + 5) > 0.9) alb = mix(alb, [230, 246, 255], 0.5);
+    return lit(alb, lightAt(x + 0.5, y + 0.5, lights, nx, ny), amb);
+  });
+}
+// つらら (上端 (x,y) から下へ len 伸びる。左の面が明るい)
+function icicle(m, x, y, len, w) { m.poly([x - w / 2, y, x + w / 2, y, x + w * 0.1, y + len * 0.7, x, y + len, x - w * 0.15, y + len * 0.6]); }
+// 舞う雪: up = 下から吹き上げる (尾を下へ引く)
+function snow(L, n, seed, { x0 = 0, x1 = ART_W, y0 = 0, y1 = ART_H, up = false, tail = 0, col = [226, 240, 250], a = 0.9 } = {}) {
+  const R = rng(seed);
+  for (let i = 0; i < n; i++) {
+    const x = x0 + R() * (x1 - x0), y = y0 + R() * (y1 - y0), big = R() < 0.18;
+    L.px(x, y, col, a);
+    if (big) { L.px(x + 1, y, col, a * 0.7); L.px(x, y + 1, col, a * 0.5); }
+    for (let k = 1; k <= tail; k++) L.px(x - k * 0.25, y + (up ? k : -k), col, a * 0.45 * (1 - k / (tail + 1)));
+  }
+}
+
+// 25. 師の外套 (奈落の壁から張り出した氷の棚。半ば凍りついた旅の外套。下から雪が吹き上げ、上には大釜の底の穴)
+function sceneCoat() {
+  const W = ART_W, H = ART_H, L = new Layer(W, H);
+  const lights = [
+    { x: 20, y: 40, r: 120, c: C_CANDLE, k: 0.7, p: 1.5 },        // 手元のランタン (左の棚の上)
+    { x: 108, y: -6, r: 60, c: C_LAVA, k: 0.5, p: 1.4 },           // 上の穴から漏れる大釜の火の名残
+    { x: 120, y: 150, r: 190, c: C_ICE, k: 1.1, p: 1.1 },          // 下の闇で青白く光る氷
+    { x: 170, y: 50, r: 90, c: C_ICE, k: 0.4, p: 1.2 },
+  ];
+  // 奥: 向かいの縦穴の壁 (闇に沈み、下ほど暗い)
+  L.shade(0, 0, W - 1, H - 1, (x, y) => {
+    const t = y / H, f = fbm(x * 0.04, y * 0.06, 201), w = worley(x * 0.05, y * 0.07, 203);
+    const l = lightAt(x, y, lights);
+    const k = (1 - t * 0.8) * (0.75 + w[2] * 0.3);
+    return [5 + (8 + f * 8) * k + l[0] * 6, 9 + (14 + f * 10) * k + l[1] * 10, 18 + (26 + f * 12) * k + l[2] * 18];
+  });
+  // 向かいの壁を螺旋に下る氷の棚 (円筒の壁なので、中ほどが垂れる弧に見える)。棚の下に小さなつらら
+  for (let k = 0; k < 6; k++) {
+    for (let x = 0; x < W; x++) {
+      const y = -14 + k * 20 + x * 0.05 + Math.sin(x / W * Math.PI) * 15;
+      if (y < 0 || y >= H) continue;
+      const v = vnoise(x * 0.15, k, 5); if (v < 0.3) continue;              // ところどころ途切れる
+      const fade = clamp(1 - y / 100) * (0.3 + 0.5 * v);
+      L.add(x, y, [44, 74, 100], fade); L.add(x, y + 1, [16, 28, 40], fade);
+      if (h2(x, k, 7) > 0.78) for (let d = 2; d < 2 + h2(x, k, 9) * 4; d++) L.add(x, y + d, [30, 54, 74], fade * 0.6 * (1 - d / 6));
+    }
+  }
+  // 上: 大釜の底の暗い穴 (縁だけが火の名残で鈍く赤い)
+  const hole = new Mask(W, H); hole.ellipse(108, 1, 38, 9);
+  L.paint(hole, (x, y) => { const d = Math.hypot((x - 108) / 38, (y - 1) / 9); return d > 0.78 ? rc(R_EMBER, 0.16 + (d - 0.78) * 1.5) : [10, 4, 6]; });
+  glow(L, 108, 3, 30, C_LAVA, 0.12, 2);
+  // 左: 手前の縦穴の壁 (岩を氷がおおう)
+  const wall = new Mask(W, H);
+  for (let y = 0; y < H; y++) { const e = 18 + Math.sin(y * 0.09) * 4 + vnoise(1, y * 0.2, 3) * 7; wall.rect(0, y, e, 1); }
+  paintIce(L, wall, lights, 205, { deep: [22, 38, 70], pale: [90, 136, 184], sx: 0.12, sy: 0.08 });
+  rimLight(L, wall, lights, [90, 150, 190], 0.5);
+  // 氷の棚 (左の壁から右へ張り出す。上面は吹き寄せた雪、正面は切子の氷、下にはつらら)
+  const topY = (x) => 60 + x * 0.04 + vnoise(x * 0.12, 1, 11) * 2;     // 奥の縁
+  const frontY = (x) => 73 + Math.sin(x * 0.05) * 1.5;                  // 手前の縁
+  const tipX = 166;
+  const top = new Mask(W, H), face = new Mask(W, H), cic = new Mask(W, H);
+  for (let x = 0; x <= tipX; x++) {
+    const t = x > 134 ? (x - 134) / (tipX - 134) : 0;
+    const y0 = topY(x) + t * 9, y1 = frontY(x) - t * 4;
+    if (y1 <= y0) continue;
+    top.rect(x, y0, 1, y1 - y0);
+    const th = (10 - t * 7) + vnoise(x * 0.3, 2, 13) * 3;
+    face.rect(x, y1, 1, th);
+    if (h2(x, 3, 17) > 0.68) icicle(cic, x, y1 + th - 1, 4 + h2(x, 4, 19) * 16 * (1 - t), 2 + h2(x, 5, 21) * 2);
+  }
+  paintIce(L, face, lights, 207, { deep: [56, 96, 136], pale: [170, 212, 236], amb: [0.24, 0.3, 0.4] });
+  paintIce(L, cic, lights, 209, { deep: [70, 110, 150], pale: [190, 226, 244], sx: 0.3, sy: 0.08, amb: [0.24, 0.3, 0.4] });
+  paintLit(L, top, (x, y) => {
+    const n = fbm(x * 0.12, y * 0.4, 23);
+    const drift = Math.sin(x * 0.2 - y * 0.9 + n * 4) > 0.7;                // 風の吹き溜まりの筋
+    return drift ? [236, 244, 252] : mix([168, 192, 214], [214, 228, 242], n);
+  }, lights, { ny: () => -0.9, amb: [0.34, 0.4, 0.5] });
+  for (let x = 0; x <= tipX; x++) { const y = Math.round(frontY(x) - (x > 134 ? (x - 134) / (tipX - 134) * 4 : 0)); if (top.at(x, y - 1)) L.add(x, y, [70, 80, 90], 0.8); } // 棚の縁の照り
+  // 棚の上の、風に削られた氷の牙
+  const spikes = new Mask(W, H);
+  for (const [x, h, w] of [[26, 12, 5], [36, 7, 4], [48, 9, 4], [146, 10, 4], [156, 6, 3], [74, 8, 4]]) spikes.poly([x - w / 2, topY(x) + 7, x + w / 2, topY(x) + 7, x + 1, topY(x) + 7 - h]);
+  paintIce(L, spikes, lights, 211, { deep: [80, 120, 156], pale: [200, 230, 244], sx: 0.4, sy: 0.15, amb: [0.26, 0.32, 0.42] });
+  // 外套を掛けた太い氷の柱 (棚から突き立つ)
+  const CX = 112, post = new Mask(W, H);
+  post.poly([CX - 5, topY(CX) + 9, CX + 6, topY(CX) + 9, CX + 3, 30, CX + 1, 20, CX - 1, 26, CX - 3, 32]);
+  paintIce(L, post, lights, 219, { deep: [80, 120, 156], pale: [200, 230, 244], sx: 0.3, sy: 0.1, amb: [0.26, 0.32, 0.42] });
+  // 外套: 襟と肩を柱の先に掛け、両袖を垂らし、裾は吹き上げる風にあおられた形のまま凍る。裾の端は棚に凍りつく
+  const coat = new Mask(W, H), sleeve = new Mask(W, H);
+  coat.poly([CX - 6, 30, CX + 6, 30, CX + 14, 35, CX + 16, 46, CX + 19, 58, CX + 26, 62, CX + 22, 66, CX + 16, 67, CX + 8, 69, CX - 2, 69, CX - 10, 68, CX - 16, 66, CX - 15, 52, CX - 14, 37]);
+  coat.ellipse(CX, 31, 7, 3.4);                                         // 柱の先に引っかかった襟と、背に垂れた頭巾
+  sleeve.line(CX - 13, 36, CX - 19, 52, 5, 1, 4.4); sleeve.line(CX - 19, 52, CX - 18, 60, 4.4, 1, 3.6);   // 左袖 (垂れる)
+  sleeve.line(CX + 13, 36, CX + 22, 44, 5, 1, 4.2); sleeve.line(CX + 22, 44, CX + 28, 40, 4.2, 1, 3.4);   // 右袖 (風にあおられて凍る)
+  const fold = (x, y) => Math.sin((x - CX) * 0.9 + vnoise(x * 0.2, y * 0.15, 3) * 3) * 0.5 + 0.5;
+  for (const m of [coat, sleeve]) paintLit(L, m, (x, y) => {
+    const edgeTop = !m.at(x, y - 1) || (!m.at(x, y - 2) && h2(x, y, 25) > 0.4);
+    if (edgeTop) return mix([170, 192, 212], [222, 234, 246], vnoise(x, y, 3));       // 積もった霜
+    if (m === coat && (!m.at(x, y + 1) || !m.at(x, y + 2))) return h2(x, y, 29) > 0.3 ? ALB_EMBROID : ALB_COAT_D;   // 裾の控えめな金の刺しゅう
+    if (m === coat && Math.abs(x - CX - 1) < 0.8 && y > 34) return h2(x, y, 37) > 0.4 ? ALB_EMBROID : ALB_COAT_D;   // 前立ての刺しゅう
+    if (m === sleeve && (!m.at(x + 1, y) && !m.at(x, y + 1))) return ALB_EMBROID;      // 袖口
+    if (h2(x, y, 27) > 0.975) return [150, 170, 190];                                    // 霜の粒
+    return mix(ALB_COAT, ALB_COAT_D, fold(x, y) * 0.85);
+  }, lights, { ny: (x, y) => vNormal(m, x, y, 3) * 0.4, nxMax: 6, amb: [0.16, 0.17, 0.22] });
+  // 書きつけの紙の角 (ポケットから覗く)
+  const note = new Mask(W, H); note.poly([CX + 4, 52, CX + 10, 50, CX + 11, 55, CX + 5, 56]);
+  paintLit(L, note, (x, y) => (y === 53 && x > CX + 5 && x < CX + 10 ? [90, 70, 60] : ALB_PAPER), lights, { amb: [0.34, 0.34, 0.38] });
+  // 裾を棚に縫いとめる透けた氷
+  const encase = new Mask(W, H);
+  encase.poly([CX - 20, 70, CX - 17, 62, CX - 6, 64, CX + 8, 63, CX + 22, 62, CX + 28, 66, CX + 22, 72, CX - 4, 72]);
+  L.paint(encase, (x, y) => {
+    const hi = (!encase.at(x - 1, y) || !encase.at(x, y - 1)) && h2(x, y, 35) > 0.3;
+    return hi ? [210, 236, 250, 0.75] : [130, 180, 220, 0.35];
+  });
+  rimLight(L, coat, lights, [150, 190, 220], 0.4);
+  // 吹き上げる雪 (下から上へ。尾を下へ引く) と、棚の上を流れる粉雪
+  snow(L, 70, 213, { up: true, tail: 2, a: 0.6 });
+  snow(L, 30, 215, { x0: 20, x1: 170, y0: 52, y1: 74, col: [240, 248, 255], a: 0.5 });
+  motes(L, lights, 30, 217, [0.8, 0.9, 1.0]);
+  vignette(L, 0.84);
+  return L.canvas(12, ICE_PAL);
+}
+
+// 26. 氷柱の中の十一人 (青白い氷の回廊。両側に並ぶ氷柱に、操霊師の人影がひとりずつ閉じ込められている。一本だけ空)
+// 人影: (cx, by) = 足もと、s = 大きさ、pose = 0 腕組み / 1 腕を下ろす / 2 片手を顔へ / 3 うなだれる
+function frozenFigure(m, cx, by, s, pose, face = null) {
+  const P = (pts) => pts.map((v, i) => (i % 2 ? by - v * s : cx + v * s));
+  m.poly(P([-5.6, 0, -4.4, 14, -4.6, 28, -6, 37, -4, 40, -1.6, 41, 1.6, 41, 4, 40, 6, 37, 4.6, 28, 4.4, 14, 5.6, 0])); // 衣 (肩から裾へ)
+  m.rect(cx - 1.2 * s, by - 44 * s, 2.4 * s, 4 * s);                                  // 首
+  const hx = cx + (pose === 3 ? 1.2 * s : 0), hy = by - (pose === 3 ? 44 : 46.5) * s;
+  m.ellipse(hx, hy, 3.2 * s, 3.9 * s);                                                  // 頭
+  if (face) face.ellipse(hx + 0.5 * s, hy + 0.5 * s, 2.2 * s, 2.8 * s);
+  const arm = (x0, y0, x1, y1) => m.line(cx + x0 * s, by - y0 * s, cx + x1 * s, by - y1 * s, 2.2 * s, 1, 1.8 * s);
+  if (pose === 0) { arm(-6, 37, -5, 27); arm(6, 37, 5, 27); m.poly(P([-5.4, 29, 5.4, 26, 5.4, 23.6, -5.4, 26.6])); }   // 胸の前で腕を組む
+  if (pose === 1 || pose === 3) { arm(-6, 37, -7.4, 20); arm(6, 37, 7.4, 20); }                                  // 腕を下ろす
+  if (pose === 2) { arm(-6, 37, -7.4, 20); arm(6, 37, 7.6, 30); arm(7.6, 30, 4.4, 42); if (face) face.ellipse(cx + 4 * s, by - 43 * s, 1.4 * s, 1.6 * s); } // 片手を顔へ
+}
+function sceneFrozen() {
+  const W = ART_W, H = ART_H, L = new Layer(W, H);
+  const VX = 96, HZ = 46;
+  const lights = [
+    { x: VX, y: HZ - 6, r: 110, c: C_ICE, k: 1.0, p: 1.3 },       // 回廊の奥の青白い光
+    { x: VX, y: 124, r: 110, c: [0.9, 0.8, 0.66], k: 0.45, p: 1.4 }, // 手元のランタン (下から)
+    { x: 20, y: -10, r: 120, c: C_ICE, k: 0.5, p: 1.2 },
+  ];
+  // 奥の氷の壁と天井 (消失点ほど明るい)
+  L.shade(0, 0, W - 1, HZ + 3, (x, y) => {
+    const w = worley(x * 0.07, y * 0.1, 221), d = Math.hypot((x - VX) / 90, (y - HZ) / 50);
+    const alb = mix([30, 56, 90], [120, 170, 206], clamp(w[2] * 0.4 + (1 - d) * 0.6));
+    const c = lit(w[1] - w[0] < 0.04 ? mix(alb, [200, 230, 246], 0.5) : alb, lightAt(x, y, lights, Math.cos(w[2] * 6.28) * 0.6, 0), [0.12, 0.16, 0.24]);
+    return mulc(c, 0.55 + 0.45 * clamp(1 - d));
+  });
+  // 床: 鏡のような氷。奥へすぼまる継ぎ目
+  L.shade(0, HZ + 4, W - 1, H - 1, (x, y) => {
+    const t = (y - HZ) / (H - HZ), z = 50 / Math.max(1, y - HZ);
+    const seam = Math.abs(((x - VX) * z * 0.12) % 2) < 0.08 * (1 + t) || Math.abs((z * 1.4) % 2) < 0.06;
+    const l = lightAt(x, y, lights, 0, -0.9);
+    const a = seam ? [40, 70, 100] : mix([70, 110, 146], [36, 64, 96], t);
+    return lit(a, l, [0.1, 0.14, 0.2]);
+  });
+  glow(L, VX, HZ - 4, 40, C_ICE, 0.35, 2.2);
+  // 氷柱 (奥から手前へ)。右手前から二本目だけが空
+  const list = [];
+  const zs = [5.6, 4, 2.8, 2, 1.4, 1];
+  zs.forEach((z, i) => { list.push({ s: -1, z, i: i * 2 }); list.push({ s: 1, z: z * 1.04, i: i * 2 + 1 }); });
+  list.sort((a, b) => b.z - a.z);
+  for (const { s: side, z, i } of list) {
+    const cx = VX + side * 70 / z, by = HZ + 50 / z, h = 92 / z, hw = 10.5 / z;
+    const empty = side === 1 && zs.indexOf(z / 1.04) === 4;
+    const col = new Mask(W, H);
+    for (let y = Math.floor(by - h); y <= by; y++) { const j = vnoise(1, y * 0.3 * z, i) * 1.4 / z; col.rect(cx - hw - j, y, hw * 2 + j * 2, 1); }
+    col.ellipse(cx, by, hw * 1.5, 2.6 / z);
+    const fig = new Mask(W, H), face = new Mask(W, H);
+    frozenFigure(fig, cx, by - 2 / z, 1.02 / z, empty ? 1 : (i * 7 + 3) % 4, empty ? null : face);
+    const fade = 0.55 + 0.45 / Math.sqrt(z);
+    // 透ける氷の柱: 左の縁が明るく、縦の筋。中の人影は青く沈む
+    L.paint(col, (x, y) => {
+      const u = (x + 0.5 - (cx - hw)) / (hw * 2);
+      const l = lightAt(x, y, lights, (u - 0.5) * -1.4, 0);
+      let a = mix([90, 140, 182], [170, 212, 236], clamp(0.5 + (0.5 - u) * 0.7 + vnoise(x * 0.5 * z, y * 0.06 * z, i) * 0.3));
+      if (fig.at(x, y)) {
+        if (empty) a = fig.edge(x, y) ? [214, 238, 250] : mix(a, [40, 70, 104], 0.55);     // 人の形に抜けた空洞
+        else if (face.at(x, y)) a = mix(a, [214, 226, 238], 0.7);                             // 青ざめた顔と手
+        else a = mix(a, [16, 26, 50], 0.7);                                                    // 閉じ込められた人影
+      }
+      if (Math.abs(u - 0.28) < 0.06 || u < 0.06) a = mix(a, [230, 246, 255], 0.45);           // 縦のハイライト
+      return mulc(lit(a, l, [0.22, 0.28, 0.36]), fade);
+    });
+    if (empty) {                                                                               // 空洞から走るひび
+      const cr = new Mask(W, H), R = rng(229);
+      for (let k = 0; k < 5; k++) { const a0 = R() * 6.28, x0 = cx + Math.cos(a0) * 3 / z, y0 = by - 24 / z + Math.sin(a0) * 12 / z; cr.line(x0, y0, x0 + Math.cos(a0) * 7 / z, y0 + Math.sin(a0) * 7 / z, 0.8); }
+      L.paint(cr, () => [220, 240, 250]);
+    }
+    reflect(L, col, by + 2.6 / z, { k: 0.4, tint: [14, 26, 42], wob: 0.8 + 0.6 / z, y1: Math.min(H - 1, by + h * 0.5) });
+  }
+  // 天井のつらら (手前ほど長い)
+  const cic = new Mask(W, H), R = rng(231);
+  for (let i = 0; i < 70; i++) { const x = R() * W, near = Math.abs(x - VX) / VX; icicle(cic, x, -1, 3 + near * 14 + R() * 8 * near, 1.5 + near * 3); }
+  paintIce(L, cic, lights, 233, { deep: [70, 110, 150], pale: [190, 226, 244], sx: 0.4, sy: 0.1 });
+  snow(L, 50, 235, { col: [220, 238, 250], a: 0.55 });
+  motes(L, lights, 40, 237, [0.8, 0.92, 1.0]);
+  vignette(L, 0.84);
+  return L.canvas(12, ICE_PAL);
+}
+
+// 27. 極光の書きつけ (氷窟の天井に揺らめく極光。光の中に魂の粒。手前の氷の床に、師の書きつけ)
+function auroraAt(x, y) {
+  let r = 0, g = 0, b = 0;
+  for (const [y0, amp, fr, ph, k] of [[48, 9, 0.042, 0.4, 1.0], [30, 7, 0.058, 2.3, 0.8], [62, 5, 0.07, 4.1, 0.5]]) {
+    const base = y0 + Math.sin(x * fr + ph) * amp + Math.sin(x * fr * 2.7 + ph * 1.7) * amp * 0.35;
+    const d = base - y;
+    if (d < -3) continue;
+    const ray = 0.45 + 0.55 * Math.pow(vnoise(x * 0.42 + ph * 3, ph, 7), 1.5);
+    const f = (d < 0 ? 1 + d / 3 : Math.exp(-d / 18)) * ray * k;
+    const col = d < 4 ? mix([80, 255, 160], [60, 230, 200], d / 4) : d < 12 ? mix([60, 230, 200], [70, 140, 255], (d - 4) / 8) : mix([70, 140, 255], [150, 90, 230], clamp((d - 12) / 12));
+    r += col[0] * f; g += col[1] * f; b += col[2] * f;
+  }
+  return [r, g, b];
+}
+function sceneAurora() {
+  const W = ART_W, H = ART_H, L = new Layer(W, H);
+  const FY = 76;                                                     // 床の奥の縁
+  const lights = [
+    { x: 96, y: 40, r: 170, c: [0.35, 1.0, 0.72], k: 0.8, p: 1.2 },   // 極光の緑
+    { x: 34, y: 22, r: 120, c: [0.62, 0.42, 1.0], k: 0.55, p: 1.2 },  // 紫
+    { x: 160, y: 28, r: 120, c: [0.38, 0.6, 1.0], k: 0.6, p: 1.2 },   // 青
+  ];
+  // 氷窟の天井 (切子の氷。奥に極光が透ける)
+  const vault = new Mask(W, H); vault.rect(0, 0, W, FY);
+  paintIce(L, vault, lights, 241, { deep: [10, 18, 34], pale: [46, 70, 100], sx: 0.06, sy: 0.09, amb: [0.08, 0.1, 0.16], ridgeK: 0.25 });
+  L.shade(0, 0, W - 1, FY - 1, (x, y) => { const a = auroraAt(x, y); L.add(x, y, a, 0.85); return null; });
+  // 両側の氷の壁 (天井から床へ落ちる太い柱。極光を背に暗い)
+  const walls = new Mask(W, H);
+  for (let y = 0; y < H; y++) { const t = y / H; walls.rect(0, y, 20 + t * t * 18 + vnoise(1, y * 0.15, 3) * 5, 1); const e = 24 + t * t * 16 + vnoise(2, y * 0.15, 5) * 5; walls.rect(W - e, y, e, 1); }
+  paintIce(L, walls, lights, 243, { deep: [12, 20, 36], pale: [50, 76, 108], sx: 0.14, sy: 0.07 });
+  rimLight(L, walls, lights, [40, 90, 90], 0.35);
+  // 床: 極光を映す氷 (行ごとに揺らして、ところどころ途切れる)
+  L.shade(0, FY, W - 1, H - 1, (x, y) => {
+    if (walls.at(x, y)) return null;
+    const d = y - FY, sy = FY - 1 - Math.round(d * 1.5), sh = Math.round(Math.sin(y * 1.3) * 1.5);
+    const src = L.get(x - sh, Math.max(0, sy)) || [0, 0, 0];
+    const w = worley(x * 0.06, y * 0.2, 247), seam = w[1] - w[0] < 0.05;
+    const k = (Math.sin(y * 2.1) > 0.75 ? 0.15 : 0.5) * (1 - d / 50);
+    return seam ? [60, 86, 110] : [14 + src[0] * k, 22 + src[1] * k, 34 + src[2] * k];
+  });
+  for (let x = 0; x < W; x++) if (!walls.at(x, FY)) L.add(x, FY, [60, 110, 120], 0.6);
+  // 極光の中に浮かぶ魂の粒
+  const R = rng(249);
+  for (let i = 0; i < 70; i++) {
+    const x = R() * W, y = R() * (FY - 6), a = auroraAt(x, y), s = (a[0] + a[1] + a[2]) / 3;
+    if (s < 50 || walls.at(x | 0, y | 0)) continue;
+    L.px(x, y, [230, 255, 244]); if (R() < 0.4) { L.add(x + 1, y, [80, 160, 140], 0.8); L.add(x - 1, y, [80, 160, 140], 0.8); L.add(x, y - 1, [80, 160, 140], 0.6); }
+  }
+  // 師の書きつけ (床に置かれ、隅を氷のかけらで押さえてある)
+  const note = new Mask(W, H); note.poly([76, 87, 116, 84, 121, 100, 72, 103]);
+  L.paint(note, (x, y) => {
+    const l = lightAt(x, y, lights, 0, -0.9);
+    const u = (x - 74) / 46, v = (y - 86) / 16;
+    const ink = v > 0.14 && v < 0.86 && Math.round(y + u * 3) % 3 === 0 && u > 0.08 && u < 0.86 && h2(x >> 1, y, 251) > 0.25 && h2(x, y, 252) > 0.3;
+    const a = ink ? [60, 44, 46] : mix(ALB_PAPER, [236, 228, 200], v * 0.4);
+    return lit(a, l, [0.5, 0.5, 0.52]);
+  });
+  const shard = new Mask(W, H); shard.poly([112, 83, 118, 80, 122, 85, 117, 88]);
+  paintIce(L, shard, lights, 253, { deep: [90, 140, 170], pale: [200, 236, 248], sx: 0.5, sy: 0.5 });
+  const stub = new Mask(W, H); stub.line(124, 98, 134, 95, 1.6);
+  L.paint(stub, () => [36, 32, 34]);
+  glow(L, 96, 93, 26, [0.4, 1.0, 0.75], 0.1, 2);
+  motes(L, lights, 40, 255, [0.6, 1.0, 0.85]);
+  vignette(L, 0.82);
+  return L.canvas(12, ICE_PAL);
+}
+
+// 28. 凍王の記憶 (氷の玉座に座る、氷の冠の老いた操霊師。その前に、脚を氷で固めた師オルドが背を向けて立つ)
+function sceneFrostKing() {
+  const W = ART_W, H = ART_H, L = new Layer(W, H);
+  const KX = 130, KY = 32;                                            // 凍王の頭
+  const lights = [
+    { x: KX, y: -20, r: 150, c: C_ICE, k: 1.15, p: 1.2 },            // 上から射す冷たい光
+    { x: KX, y: 22, r: 40, c: [0.8, 0.95, 1.0], k: 0.25, p: 1.4 },   // 氷の冠の照り
+    { x: 0, y: 30, r: 120, c: C_ICE, k: 0.4, p: 1.2 },
+  ];
+  // 氷の広間の奥 (縦に流れる氷の壁。玉座の後ろほど明るい)
+  L.shade(0, 0, W - 1, 84, (x, y) => {
+    const s = vnoise(x * 0.35, y * 0.03, 261), w = worley(x * 0.12, y * 0.05, 263);
+    const alb = mix([28, 46, 72], [86, 124, 160], s * 0.6 + w[2] * 0.3);
+    const c = lit(w[1] - w[0] < 0.035 ? mix(alb, [170, 210, 236], 0.35) : alb, lightAt(x, y, lights, 0, 0.2), [0.12, 0.15, 0.2]);
+    return c;
+  });
+  for (let x = 0; x < W; x++) { const top = 84 - 3 * vnoise(x * 0.2, 1, 7); for (let y = Math.floor(top); y < 86; y++) L.px(x, y, lit([60, 86, 112], lightAt(x, y, lights), [0.1, 0.12, 0.16])); }
+  // 床 (磨かれた氷。玉座の光を映す)
+  L.shade(0, 86, W - 1, H - 1, (x, y) => {
+    const w = worley(x * 0.07, y * 0.24, 265);
+    const ref = Math.abs(x - KX) < 22 - (y - 86) * 0.3 && Math.sin(y * 1.7) > -0.3;
+    const a = w[1] - w[0] < 0.05 ? [40, 60, 84] : mix([90, 124, 156], [124, 160, 192], w[2] * 0.5);
+    return lit(ref ? mix(a, [200, 230, 246], 0.3) : a, lightAt(x, y, lights, 0, -0.9), [0.1, 0.12, 0.16]);
+  });
+  // 玉座 (三段の氷の段の上。背は尖った氷の板、左右に肘掛け)
+  const steps = new Mask(W, H);
+  for (let k = 0; k < 3; k++) steps.rect(KX - 30 - k * 8, 70 + k * 6, 60 + k * 16, 6);
+  paintIce(L, steps, lights, 267, { deep: [70, 104, 136], pale: [170, 206, 230], sx: 0.2, sy: 0.3, amb: [0.2, 0.24, 0.3] });
+  for (let k = 0; k < 3; k++) for (let x = KX - 30 - k * 8; x < KX + 30 + k * 8; x++) L.add(x, 70 + k * 6, [70, 80, 90], 0.9);
+  const back = new Mask(W, H);
+  back.poly([KX - 18, 62, KX - 20, 22, KX - 15, 10, KX - 11, 16, KX - 6, 2, KX - 2, 12, KX + 2, 0, KX + 6, 12, KX + 11, 4, KX + 15, 14, KX + 20, 22, KX + 18, 62]);
+  paintIce(L, back, lights, 269, { deep: [96, 136, 170], pale: [200, 232, 246], sx: 0.22, sy: 0.12, amb: [0.24, 0.28, 0.36] });
+  const seat = new Mask(W, H); seat.rect(KX - 24, 54, 48, 16); seat.rect(KX - 27, 50, 8, 6); seat.rect(KX + 19, 50, 8, 6);
+  paintIce(L, seat, lights, 271, { deep: [100, 146, 186], pale: [200, 232, 248], sx: 0.25, sy: 0.25, amb: [0.3, 0.36, 0.44] });
+  // 凍王 (白いひげ・青灰の衣。肘掛けに手を置いて坐る)
+  const robe = new Mask(W, H);
+  robe.poly([KX - 8, 38, KX + 8, 38, KX + 11, 50, KX + 13, 60, KX + 12, 70, KX - 12, 70, KX - 13, 60, KX - 11, 50]);
+  robe.line(KX - 8, 40, KX - 19, 50, 4.4, 1, 3.6); robe.line(KX + 8, 40, KX + 19, 50, 4.4, 1, 3.6);
+  paintLit(L, robe, (x, y) => (Math.abs(x - KX) < 1 && y > 52 ? [200, 206, 220] : mix([96, 86, 112], [62, 54, 76], vnoise(x * 0.5, y * 0.3, 5) * 0.6 + (Math.sin(x * 1.1) * 0.5 + 0.5) * 0.4)), lights, { nxMax: 8, amb: [0.3, 0.3, 0.36] });
+  rimLight(L, robe, lights, [200, 230, 250], 1.0);
+  const hands = new Mask(W, H); hands.ellipse(KX - 21, 51, 2.2, 1.7); hands.ellipse(KX + 21, 51, 2.2, 1.7);
+  paintLit(L, hands, () => [220, 212, 210], lights, { amb: [0.4, 0.4, 0.44] });
+  for (const s of [-1, 1]) for (let f = 0; f < 4; f++) L.px(KX + s * (20 + f) - (s < 0 ? 1 : 0), 52.6, [140, 140, 152]);   // 肘掛けを掴む指 (四本の指先。親指は内側に隠れる)
+  const head = new Mask(W, H); head.ellipse(KX, KY, 5, 6);
+  paintLit(L, head, (x, y) => {
+    if (y === KY - 1 && (x === KX - 2 || x === KX + 2)) return [26, 34, 50];          // 落ちくぼんだ目
+    if (y === KY - 3 && Math.abs(x - KX) >= 1 && Math.abs(x - KX) <= 3) return [236, 236, 240]; // 白い眉
+    return [220, 206, 198];
+  }, lights, { nxMax: 4, amb: [0.36, 0.36, 0.4] });
+  const beard = new Mask(W, H); beard.poly([KX - 5, KY + 2, KX + 5, KY + 2, KX + 4, KY + 12, KX, KY + 18, KX - 4, KY + 12]);
+  paintLit(L, beard, (x, y) => mix([240, 244, 248], [176, 186, 198], ((x * 2 + y) % 4) / 4), lights, { amb: [0.3, 0.32, 0.36] });
+  const crown = new Mask(W, H); crown.rect(KX - 6, KY - 6, 12, 2);
+  for (let k = 0; k < 5; k++) crown.poly([KX - 6 + k * 2.6, KY - 5, KX - 4.8 + k * 2.6, KY - 12 - (k === 2 ? 4 : k % 2 ? 0 : 2), KX - 3.6 + k * 2.6, KY - 5]);
+  L.paint(crown, (x, y) => (x < KX ? [226, 246, 255] : [150, 204, 232]));
+  glow(L, KX, KY - 10, 12, [0.7, 0.92, 1.0], 0.15, 2);
+  // 師オルド (手前左。背を向け、玉座へ横顔をのぞかせる。暗い外套に控えめな金の刺しゅう。両脚は氷で固めてある)
+  const OX = 60, OB = 106;
+  const cloak = new Mask(W, H);
+  cloak.poly([OX - 16, OB - 16, OX - 13, OB - 42, OX - 10, OB - 54, OX - 5, OB - 58, OX + 6, OB - 58, OX + 11, OB - 52, OX + 14, OB - 42, OX + 17, OB - 18, OX + 13, OB - 15, OX + 4, OB - 17, OX - 6, OB - 15]);
+  const legs = new Mask(W, H); legs.rect(OX - 7, OB - 18, 5, 15); legs.rect(OX + 3, OB - 18, 5, 15); legs.rect(OX - 9, OB - 3, 7, 3); legs.rect(OX + 3, OB - 3, 7, 3);
+  paintLit(L, legs, () => [40, 34, 38], lights, { amb: [0.08, 0.08, 0.1] });
+  paintLit(L, cloak, (x, y) => {
+    if (!cloak.at(x, y + 1) || !cloak.at(x, y + 2)) return h2(x, y, 273) > 0.3 ? ALB_EMBROID : ALB_COAT_D;   // 裾の金の刺しゅう
+    if (Math.abs(x - OX) < 0.8 && y > OB - 52) return ALB_COAT_D;                       // 背の縫い目
+    return mix(ALB_COAT, ALB_COAT_D, (Math.sin(x * 0.7 + y * 0.1) * 0.5 + 0.5) * 0.7);
+  }, lights, { nxMax: 8, ny: (x, y) => vNormal(cloak, x, y, 4) * 0.3, amb: [0.1, 0.1, 0.13] });
+  const hair = new Mask(W, H); hair.ellipse(OX, OB - 63, 6, 6.6);
+  paintLit(L, hair, () => [50, 42, 40], lights, { nxMax: 4, amb: [0.08, 0.08, 0.1] });
+  const cheek = new Mask(W, H); cheek.poly([OX + 3, OB - 66, OX + 6, OB - 65, OX + 7.6, OB - 62, OX + 7, OB - 59, OX + 3, OB - 57]);   // 玉座へ向けた横顔の頬
+  paintLit(L, cheek, (x, y) => (x >= OX + 7 && y === OB - 62 ? [180, 150, 136] : [214, 184, 164]), lights, { amb: [0.42, 0.4, 0.42] });
+  // 脚を固めた氷 (脛を包む不揃いな氷のかけら。中の脚が透ける)
+  const cast = new Mask(W, H);
+  cast.poly([OX - 9, OB - 14, OX - 5, OB - 16, OX - 1, OB - 13, OX - 1, OB - 6, OX - 4, OB - 3, OX - 9, OB - 5]);
+  cast.poly([OX + 2, OB - 13, OX + 6, OB - 16, OX + 10, OB - 14, OX + 10, OB - 5, OX + 6, OB - 3, OX + 2, OB - 6]);
+  L.paint(cast, (x, y) => {
+    const w = worley(x * 0.5, y * 0.4, 275), hi = !cast.at(x - 1, y) || !cast.at(x, y - 1);
+    return hi || w[1] - w[0] < 0.08 ? [214, 238, 252, 0.9] : [130, 184, 220, 0.45];
+  });
+  rimLight(L, cloak, lights, [150, 206, 240], 0.7);
+  // 師が杖にする折れた槍 (右手で突く)
+  const staff = new Mask(W, H); staff.line(OX + 16, OB - 54, OX + 22, OB + 2, 1.6);
+  paintLit(L, staff, () => [150, 124, 96], lights, { amb: [0.34, 0.3, 0.3] });
+  const hand = new Mask(W, H); hand.ellipse(OX + 17, OB - 42, 2.2, 2.4);
+  paintLit(L, hand, () => [206, 176, 156], lights, { amb: [0.42, 0.4, 0.42] });
+  snow(L, 50, 277, { col: [220, 236, 248], a: 0.45 });
+  memoryTint(L, [32, 44, 58], [27, 81]);
+  motes(L, lights, 40, 279, [0.8, 0.92, 1.0]);
+  return L.canvas(10, ICE_PAL);
+}
+
 const SCENES = { lantern: sceneLantern, sigil: sceneSigil, arm: sceneArm, abbot: sceneAbbot, camp: sceneCamp, candle: sceneCandle,
   roll: sceneRoll, cell: sceneCell, head: sceneHead, banner: sceneBanner, hole: sceneHole,
   rope: sceneRope, hut: sceneHut, torso: sceneTorso, tree: sceneTree,
   votive: sceneVotive, mural: sceneMural, legs: sceneLegs, priestking: scenePriestKing, sera: sceneSera,
-  blade: sceneBlade, husks: sceneHusks, cup: sceneCup, cauldron: sceneCauldron };
+  blade: sceneBlade, husks: sceneHusks, cup: sceneCup, cauldron: sceneCauldron,
+  coat: sceneCoat, frozen: sceneFrozen, aurora: sceneAurora, frostking: sceneFrostKing };
 const cache = {};
 // 物語の一枚絵 (192×108 の canvas)。無ければ null
 export function storyArt(key) {

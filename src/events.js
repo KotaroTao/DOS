@@ -1638,6 +1638,162 @@ export const EVENTS = [
     ],
     onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "溶岩に沈む器に囚われていた魂だ。", () => { A.ember(2, "器の胸の残火"); A.done(cell, next); }),
   },
+
+  // ================= 第8層「氷結回廊」 (10) ── 第六章。奈落の壁にらせん状に張り出した氷の棚と、落ちてくる魂を閉じこめる氷 =================
+  {
+    id: "l8_01", name: "氷棚の落とし物", layer: 8, tier: "common", icon: "gold",
+    intro: () => ["壁から張り出した氷の棚に、上から落ちてきた品がいくつも引っかかっている。", "棚の先は、底の見えない闇だ。下から凍える風が吹き上げてくる。"],
+    choices: (A, cell) => {
+      const c = A.check("agi");
+      return [
+        { label: `身を乗り出して拾う ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― 品 / 失敗で足を滑らせ、傷を負う`, primary: true, fn: () => {
+          if (c.ok) { A.sfx("step"); A.item({}, "氷棚の落とし物", () => A.done(cell)); return; }
+          if (c.who) { A.hurtOne(c.who, 0.2); A.sfx("trap"); A.toast(`${c.who.name}は氷に足を取られ、棚の縁に体を打ちつけた`, "bad", "trap"); }
+          A.done(cell);
+        } },
+        { label: "氷ごと割り取る ― 金貨 / 25%で割れる音に魔物が寄ってくる", danger: true, fn: () => {
+          if (chance(0.25)) { A.alarm("氷の割れる音が響いた！", ["音を聞きつけた魔物が、棚づたいに寄ってきた。"], "trap", () => A.fight(cell, [{ pool: true, min: 2 }], "ledge", { noChest: true })); return; }
+          A.gold(1.5, "氷の中の落とし物"); A.done(cell);
+        } },
+      ];
+    },
+    onWin: (A, cell, f, next) => { A.gold(2, "氷の中の落とし物"); A.done(cell, next); },
+  },
+  {
+    id: "l8_02", name: "落ちてくる魂", layer: 8, tier: "common", icon: "wisp",
+    intro: () => ["はるか上の闇から、青白い灯がひとつ、ゆっくりと落ちてくる。", "吹き上げる風にあおられて、灯は迷うように揺れている。"],
+    choices: (A, cell) => [
+      { label: "手のひらで受け止める ― ✦Soul", primary: true, fn: () => {
+        A.sfx("heal"); A.soul(1.5, "受け止めた魂の灯"); A.done(cell);
+      } },
+      { label: "風に乗せて送り出す ― ✦Soul を少しと、近くの骸に魂が宿る", fn: () => {
+        A.sfx("heal"); A.soul(0.5, "送り出した魂の灯");
+        if (A.warmCorpse()) A.toast("灯は風に乗り、近くの骸へ降りていった", "good", "corpseWarm");
+        A.done(cell);
+      } },
+    ],
+  },
+  {
+    id: "l8_03", name: "凍った泉", layer: 8, tier: "common", icon: "fountain",
+    intro: () => ["厚い氷に閉じた泉。氷の下で、水はまだ静かに動いている。", "氷の奥で、誰かが投げ入れた品がにぶく光っている。"],
+    choices: (A, cell) => [
+      (anyHurt(A) || anyDrained(A)) && { label: "氷を割って水を飲む ― 全員のHP・MP3割回復 / 20%で冷たさに一人の体がしびれる", primary: true, fn: () => {
+        A.healAll(0.3, 0.3, false); A.sfx("heal"); A.toast("身を切るように冷たい水が、体の芯を目覚めさせた", "good", "fountain");
+        if (chance(0.2)) { const m = A.randomAlive(); if (m) { A.ail(m, "paralyze"); A.toast(`${m.name}は冷たさに手足がしびれた`, "bad", "trap"); } }
+        A.done(cell);
+      } },
+      { label: "氷の下をさらう ― 収集品 / 指がかじかみ、全員のHPが少し減る", fn: () => {
+        A.hurtAll(0.05); A.collectible("凍った泉", () => A.done(cell));
+      } },
+    ],
+  },
+  {
+    id: "l8_04", name: "雪に埋もれた野営地", layer: 8, tier: "common", icon: "corpse",
+    intro: () => ["吹きだまった雪の下から、天幕の骨組みがのぞいている。", "誰かがここで夜を明かし、そのまま戻らなかったらしい。"],
+    choices: (A, cell) => [
+      { label: "雪を掘り返す ― 品 / 25%で雪の下に眠る魔物", danger: true, fn: () => {
+        if (chance(0.25)) { A.alarm("雪が盛り上がった！", ["雪の下で眠っていた魔物が、目を覚ました。"], "trap", () => A.fight(cell, [{ pool: true, min: 2 }], "snowcamp", { noChest: true })); return; }
+        A.item({}, "雪の下の荷", () => A.done(cell));
+      } },
+      { label: "天幕の柱に名を刻んで弔う ― ✦Soul を少し", primary: true, fn: () => {
+        A.sfx("heal"); A.soul(1, "雪の下の弔い"); A.done(cell);
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.item({}, "雪の下の荷", () => A.done(cell, next)),
+  },
+  {
+    id: "l8_05", name: "氷の鏡", layer: 8, tier: "uncommon", icon: "event", minFloor: 2,
+    intro: () => ["磨き上げたような氷の壁に、隊の姿が映っている。", "見つめていると、映った影のひとつが、ひとりでに武器を構えた。"],
+    choices: (A, cell) => {
+      const c = A.check("int");
+      return [
+        { label: `氷の奥をのぞきこむ ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― ✦Soul と、この階の宝箱の在処 / 失敗で氷に魔力を吸われる`, primary: true, fn: () => {
+          if (!c.ok) { A.mpAll(0.3); A.sfx("trap"); A.toast("氷の奥の光に見入るうち、魔力を吸われた ― 全員のMPが減った", "bad", "trap"); A.done(cell); return; }
+          A.soul(3, "氷の奥の光");
+          const n = A.revealWhere((x) => x.type === "chest" && !x.cleared);
+          A.toast(n ? `氷の奥に、この階の宝箱${n}つが映った` : "氷の奥には、もう何も映らなかった", n ? "good" : "info", "chest");
+          A.done(cell);
+        } },
+        { label: "影と斬り結ぶ ― 隊の影 (五割の力) と戦い、勝てば ✦Soul と上等な品", danger: true, fn: () => {
+          A.fight(cell, [{ shadows: 0.5 }], "icemirror", { noChest: true });
+        } },
+      ];
+    },
+    onWin: (A, cell, f, next) => { A.soul(2, "氷の鏡の影"); A.item({ rare: true }, "氷の鏡の奥", () => A.done(cell, next)); },
+  },
+  {
+    id: "l8_06", name: "氷に閉じこめられた宝箱", layer: 8, tier: "uncommon", icon: "chest",
+    intro: () => ["分厚い氷の中に、宝箱がまるごと閉じこめられている。", "氷はかたい。刃で叩けば、大きな音が回廊に響くだろう。"],
+    choices: (A, cell) => [
+      A.aliveList().some((m) => m.mp > 0) && { label: "魔力の火で溶かす ― 全員のMPを3割使い、宝箱 (ランク+1)", primary: true, fn: () => {
+        A.mpAll(0.3); A.sfx("spell"); A.toast("魔力の火が、氷をゆっくりと溶かした", "good", "chest");
+        A.chestHere(cell, { rankUp: 1 });
+      } },
+      { label: "氷を叩き割る ― 宝箱 (ランク+1) / 40%で音を聞きつけた魔物と戦う", danger: true, fn: () => {
+        if (chance(0.4)) { A.alarm("音が回廊に響きわたった！", ["氷を割る音を聞きつけて、魔物が集まってきた。"], "trap", () => A.fight(cell, [{ pool: true, min: 2 }], "icebox", { noChest: true })); return; }
+        A.sfx("hit"); A.chestHere(cell, { rankUp: 1 });
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.chestHere(cell, { rankUp: 1 }, next),
+  },
+  {
+    id: "l8_07", name: "吹き上げる風穴", layer: 8, tier: "uncommon", icon: "stairs", minFloor: 2, maxSkip: 2,
+    intro: () => ["床に開いた裂け目から、凍える風がうなりを上げて吹き上げている。", "身を任せれば、下の棚まで運ばれそうだ。ふさいでしまえば、この階は静かになるだろう。"],
+    choices: (A, cell) => [
+      { label: "風穴に飛びこむ ― ✦Soul と、この階を捨てて次の階へ / 風にもまれ、全員のHP1割を失う", danger: true, fn: () => {
+        A.hurtAll(0.1); A.soul(2, "風に舞う魂のかけら");
+        cell.cleared = true; A.sfx("stairs"); A.skipFloors(0);
+      } },
+      { label: "岩で風穴をふさぐ ― この階の間、奇襲を受けにくく (半分)、得る ✦Soul 1.2倍", primary: true, fn: () => {
+        A.floorEv().mods.push({ src: "l8_07", name: "ふさいだ風穴", desc: "奇襲を受ける確率が半分・得る ✦Soul 1.2倍 (この階)", ambushMul: 0.5, soulMul: 1.2 });
+        A.sfx("hit"); A.toast("風がやんだ ― この階の間、奇襲を受けにくく、得る ✦Soul が増える", "gold"); A.done(cell);
+      } },
+    ],
+  },
+  {
+    id: "l8_08", name: "凍れる騎士の番所", layer: 8, tier: "uncommon", icon: "mon:bs_frostknight", deep: true,
+    intro: () => ["通路の真ん中に、氷に覆われた騎士が槍を立てて立っている。", "兜の奥の目が、こちらを値踏みするように光った。", "「……通るなら、通り賃を置いてゆけ。それとも、腕で通るか」"],
+    choices: (A, cell) => {
+      const cost = A.goldCost(2);
+      return [
+        A.canPayGold(cost) && { label: `通り賃を置く (💰${cost}) ― 騎士が道を空け、階段の在処と ✦Soul`, primary: true, fn: () => {
+          A.payGold(cost); A.revealStairs(); A.sfx("heal");
+          A.soul(3, "番所の騎士の会釈"); A.toast("騎士は槍を引き、回廊の先を指した", "good", "stairs"); A.done(cell);
+        } },
+        { label: "腕で通る ― 番所の騎士と一騎打ち、勝てば上等な品 (レア以上)", danger: true, fn: () => {
+          A.fight(cell, [{ key: "bs_frostknight", strong: 1.5, name: "番所の騎士" }], "gatekeeper", { noChest: true });
+        } },
+      ];
+    },
+    onWin: (A, cell, f, next) => A.itemMinRar("r", "番所の騎士の武具", () => A.done(cell, next)),
+  },
+  {
+    id: "l8_09", name: "氷の冠を見た者", layer: 8, tier: "rare", icon: "mon:bs_frozenexplorer", deep: true, minLv: 75,
+    intro: () => ["半ば氷に埋もれた老人が、震える指で回廊の奥を指さしている。凍りきれずに残った、昔の誰かだ。", "「……奥の玉座に、氷の冠をかぶった王がおる。わしらを、ずっと見張っておるのだ」", "「冠のひびを教えてやろう。それとも、わしの持ち物を持ってゆくか」"],
+    choices: (A, cell) => [
+      { label: "冠のひびを聞く ― 第8層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
+        A.flags().bossWeak = { ...(A.flags().bossWeak || {}), 8: true };
+        A.sfx("spell");
+        A.story("氷の冠を見た者", ["「冠の左の、いちばん古い氷が溶けかけておる。あそこだけは、王にも凍らせ直せぬのだ」", "「……一年前にも、上から落ちてきた男がおった。玉座の前で、王と長いこと話しておったよ」", "第8層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
+      } },
+      { label: "持ち物を受け取る ― 上等な品 (レア以上)", fn: () => { A.sfx("itemget"); A.itemMinRar("r", "老人の持ち物", () => A.done(cell)); } },
+    ],
+  },
+  {
+    id: "l8_10", name: "魂をとじこめた氷柱", layer: 8, tier: "rare", icon: "wisp", deep: true,
+    intro: () => ["天井から垂れた大きな氷柱の中に、小さな灯がいくつも閉じこめられている。", "灯は外へ出たがるように、氷の内側をたたいている。氷柱の根元には、氷でできた巨体がうずくまっている。"],
+    choices: (A, cell) => [
+      { label: "氷柱を割って灯を解き放つ ― 氷柱の番人と戦い、勝てば希少な魂と魂の残火", danger: true, fn: () => {
+        A.fight(cell, [{ key: "bs_icegolem", strong: 1.8, name: "氷柱の番人" }], "icicle", { noChest: true });
+      } },
+      { label: "根元の黒い岩を砕いて分け合う ― この潜入の間、全員に土の護り (水の攻撃を和らげる) と ✦Soul / 冷気で全員のHP2割を失う", primary: true, fn: () => {
+        A.hurtAll(0.2); A.flash("#a0d0f0");
+        A.runEv().edef = { el: "earth", lv: 1 };
+        A.sfx("spell"); A.soul(4, "氷柱の根の岩"); A.toast("岩のかけらが、冷気から身を守る ― この潜入の間、土の護り", "gold"); A.done(cell);
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "氷柱に閉じこめられていた魂だ。", () => { A.ember(2, "氷柱の中の残火"); A.done(cell, next); }),
+  },
 ];
 
 // 各迷宮に固有の極を1件。既存IDは見聞録・取得済みセーブのため維持する。
@@ -1668,9 +1824,16 @@ const DUNGEON_GIFTS = [
   ["w19", "agi", 2, "灰の雨を渡る羽"],
   ["w20", "vit", 2, "焼きしめた器の欠片"],
   ["w21", "crit", 0.01, "大釜の底の火種"],
+  // 第六章 (第8層)。件数の少ない LUK・会心から、ほかは HP・MP
+  ["w22", "luk", 2, "氷棚に引っかかった古銭"],
+  ["w23", "crit", 0.01, "凍れる剣士の最後の一太刀"],
+  ["w24", "hp", 5, "極光の命の雫"],
+  ["w25", "mp", 5, "凍王の溶けない魔力"],
 ];
 for (const [dungeonId, stat, amount, name, legacyId] of DUNGEON_GIFTS) {
   const dungeon = WORLD.find((d) => d.id === dungeonId);
+  // 台帳にまだ無い迷宮 (並行して足している途中) は飛ばす。抜けは tools/balance/event-boons.mjs が件数で見つける
+  if (!dungeon) continue;
   const id = legacyId || `mythic_${dungeonId}`;
   let e = EVENTS.find((e) => e.id === id);
   if (!e) {
@@ -1723,6 +1886,7 @@ export const EVENT_GROUPS = [
   { key: "5", label: "霧の森", name: "第5層 霧の森", layer: 5 },
   { key: "6", label: "大神殿", name: "第6層 沈んだ大神殿", layer: 6 },
   { key: "7", label: "火の洞", name: "第7層 灼熱の洞", layer: 7 },
+  { key: "8", label: "氷回廊", name: "第8層 氷結回廊", layer: 8 },
 ];
 
 // 出現条件の説明 (見聞録用)

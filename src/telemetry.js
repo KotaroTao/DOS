@@ -402,7 +402,7 @@ const mins = (ms) => `${Math.round((ms || 0) / 60000)}分`;
 // 出どころの略称 (迷宮の中 / 町 / 上乗せ)
 const SRC_LABEL = {
   bn: "通常戦", be: "精鋭等", bb: "主", mt: "金属", ev: "出来事", cp: "死体", ch: "宝箱", hd: "殲滅", x: "他",
-  q: "依頼", qk: "依頼(討伐)", qs: "依頼(魂)", qc: "依頼(宝箱)", qf: "依頼(到達)", qd: "依頼(納品)", tip: "心付け", bond: "なじみ", fq: "頼み", r: "王の報告", a: "勲章", t: "宝物庫", sell: "売却",
+  q: "依頼", qk: "依頼(討伐)", qs: "依頼(魂)", qc: "依頼(宝箱)", qf: "依頼(到達)", qd: "依頼(納品)", tip: "心付け", bond: "なじみ", fq: "頼み", r: "王の報告", a: "勲章", t: "宝物庫", sell: "売却", exp: "遠征",
   psv: "パッシブ", sf: "特別階", mut: "異変", trait: "掟", oth: "出来事等", eq: "装備", lvd: "Lv差",
 };
 const srcText = (b) => (b ? Object.keys(b).sort((x, y) => b[y] - b[x]).map((k) => `${SRC_LABEL[k] || k}${b[k]}`).join(" ") : "");
