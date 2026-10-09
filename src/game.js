@@ -598,7 +598,7 @@ function takeStolenGold(b) {
   if (!g) return 0;
   b.bonusGold = 0;
   G.gold += g; if (G.run && inDungeon()) G.run.gold += g;
-  if (tlOn() && inDungeon()) tlGain(tlWhere(), "gold", g, "b" + ((b.tl && b.tl.kind) || "n"));
+  if (tlOn() && inDungeon()) tlGain(tlWhere(), "gold", g, (b.tl && b.tl.kind) === "m" ? "mt" : "b" + ((b.tl && b.tl.kind) || "n"));
   return g;
 }
 function runGainGold(g, src, pre, modifier = null) {
@@ -7497,7 +7497,7 @@ function startBattleMeasured(enemies, cell) {
   // 敵のLv = その迷宮・階の基準Lv (状態異常・即死の成功率はLv差で決まる — combat.js lvRate)
   const foeLv = foeLevelHere();
   for (const e of enemies) e.lv = foeLv;
-  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), foeLv });
+  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), baseAgi: partyAgi(levelHere().lv), foeLv });
   tlWatchBattle(G.battle, tlWhere());
   // 迷宮の掟: 凍てつく冷気に身がすくむ (trait.chill) — 隊の全員の AGI を段数ぶん下げる (3ターン)
   const trC = dungeonTrait();
@@ -7506,9 +7506,10 @@ function startBattleMeasured(enemies, cell) {
     log(`凍てつく冷気に身がすくむ (隊の AGI ▼${trC.chill})。`, "dmg");
   }
   if (foeLv - partyLevel() >= 4) log(`格上の敵だ (Lv${foeLv})。眠りや毒、即死の術はほとんど効かず、敵の術はよく効く。`, "sys");
-  // テスト記録: 戦闘の種類 (主 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子
+  // テスト記録: 戦闘の種類 (主 / 金属の魔物 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子。
+  // 金属の魔物は素早さに依らない回避を持つので、精鋭等の命中に混ぜない
   if (tlOn() && inDungeon()) {
-    const kind = isBoss ? "b" : (isElite || enemies.some((e) => e.isMimic || e.metal) || (cell && cell.evFight)) ? "e" : "n";
+    const kind = isBoss ? "b" : enemies.some((e) => e.metal) ? "m" : (isElite || enemies.some((e) => e.isMimic) || (cell && cell.evFight)) ? "e" : "n";
     G.battle.tl = tlBattleBegin({ where: tlWhere(), kind, opening, openSrc, ambRate, party: G.party, enemies });
   }
   _maskEnemies = null;
@@ -15252,6 +15253,7 @@ function loadGame() {
     tlWatchBattle(G.battle, tlWhere());
     G.battle.log = log;
     if (G.battle.fleeK == null) G.battle.fleeK = fleeScale(); // 逃走の物差しを持たない古い戦闘
+    if (G.battle.baseAgi == null) G.battle.baseAgi = partyAgi(levelHere().lv); // 強敵の回避の上限を持たない古い戦闘
     for (const e of (G.battle.enemies || [])) if (e.key && MONSTERS[e.key]) {
       e.mon = MONSTERS[e.key];
       // 旧セーブの戦闘中の耐性ランクを抵抗値へ移す。

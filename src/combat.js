@@ -318,6 +318,11 @@ const EVADE_EVEN = 0.20, EVADE_SLOPE = 0.20, EVADE_MAX = 0.40;
 // 敵の回避 (AGI差・回避持ち) をその割合だけ消す。素の外れ6%は消さないので、これだけでは命中94%を超えない。
 // 重ねがけはしない (メイン魂・サブ魂のうち一番高い Lv だけ — passiveMap が最大を取る)。金属の魔物の回避は消さない
 const DYNAMIC_VISION = [0, 0.30, 0.50, 0.70];
+// 強敵の回避の上限 (2026-10 ユーザーの指示): 主・強敵・ミミック・出来事の強敵は雑魚より1〜2ランク上の体で、
+// 素早さも雑魚の中央値の1.3〜2.0倍ある (第1層・俊敏・神速の強敵ほど速い)。手番の並び・逃走ではその速さのまま扱い、
+// 味方の物理をかわす計算でだけ「この階の基準の素早さ (baseAgi = 推奨Lvの隊のAGI) × STRONG_EVADE_CAP」までに抑える。
+// 雑魚の俊敏持ちとほぼ同じ速さで、層によって強敵への命中がばらつかない (隊の平均の者で約69%、雑魚には74%)
+const STRONG_EVADE_CAP = 1.2;
 // 手番の並び (_startRound): 敵の AGI も fleeK で味方の規模に直し、TURN_K を掛けて「基準の隊より遅め」に寄せる。
 // 揺らぎは AGI × (1 ± TURN_JITTER) の割合で、どの Lv でも同じくらい入れ替わる。Lv40 の6人 (AGI 25〜110) の試算で
 // 味方が先の組は約64% (0.85 だと39%): 速い者 (盗賊・暗殺者) はいつも敵より先、重装の騎士はいつも後、中ほどは入れ替わる。2026-10: 旧式は素の AGI + 0〜3 を
@@ -546,6 +551,7 @@ export class Battle {
     // 追跡の物差し: 敵の AGI をこの倍率で味方の AGI と同じ規模に直してから逃走率を出す
     // (game.js の fleeScale = その迷宮・階の基準AGI ÷ その迷宮の雑魚の標準AGI)
     this.fleeK = opts.fleeK || 1;
+    this.baseAgi = opts.baseAgi || 0; // この階の基準の素早さ (強敵の回避の上限。0 = 上限なし)
     this.foeLv = opts.foeLv || 1; // 敵のLv の既定 (個体の e.lv が無い時。戦闘中に呼ばれた手下など)
     this._roundNo = 0;
     this._bigBarrierUsed = 0;
@@ -814,6 +820,8 @@ export class Battle {
   }
   // 弱体に強い相手 (主・精鋭)
   _strongFoe(t) { return !!(t && t.side === "enemy" && (t.boss || (t.mon && t.mon.elite))); }
+  // 単体で隊を相手にする強い敵 (主・強敵・ミミック・出来事の強敵)。金属の魔物は含めない
+  _soloFoe(t) { return !!(t && t.side === "enemy" && !isMetal(t) && (this._strongFoe(t) || t.isMimic || t.evRank)); }
   // 能力の今の段
   stageOf(t, stat) {
     let n = 0;
@@ -1254,7 +1262,10 @@ export class Battle {
     if (!actor) return 0;
     // 敵のAGIは味方と規模が違うので、双方向とも逃走の物差しでそろえる。
     const scaledAgi = (a) => agiOf(a) * (a.side === "enemy" ? (this.fleeK || 1) : 1);
-    const p = EVADE_EVEN + EVADE_SLOPE * Math.log2(scaledAgi(tgt) / scaledAgi(actor));
+    let tAgi = scaledAgi(tgt);
+    // 主・強敵・ミミック・出来事の強敵は、味方の物理をかわす時だけ基準の素早さ × STRONG_EVADE_CAP まで
+    if (this.baseAgi > 0 && actor.side === "party" && this._soloFoe(tgt)) tAgi = Math.min(tAgi, this.baseAgi * STRONG_EVADE_CAP);
+    const p = EVADE_EVEN + EVADE_SLOPE * Math.log2(tAgi / scaledAgi(actor));
     return Math.min(EVADE_MAX, Math.max(0, p));
   }
 
@@ -2227,12 +2238,15 @@ export class Battle {
     // 魅了・混乱で同じ側を殴った分は数えない (捨てる器へ)
     const T = actor.side !== tgt.side ? this._tally() : newTally(), tk = actor.side === "party" ? "p" : "e";
     T[tk + "a"]++;
+    // 職ごとの味方の物理 [試行, かわされた, 見切られた] (テスト記録「職ごとの命中」)
+    const J = tk === "p" ? ((T.pj || (T.pj = {}))[actor.jobKey || "?"] || (T.pj[actor.jobKey || "?"] = [0, 0, 0])) : null;
+    if (J) J[0]++;
     // 麻痺・眠り中の敵への物理は、見切り・回避・目つぶしに関わらず必中
     const sureHit = tgt.side === "enemy" && (tgt.asleep || tgt.ailment === "paralyze");
     // 見切り (parry): 確率で完全回避
     const pLvP = pv(tgt, "parry");
     if (!sureHit && pLvP && Math.random() < (pLvP >= 2 ? 0.15 : 0.10)) {
-      T[tk + "p"]++;
+      T[tk + "p"]++; if (J) J[2]++;
       this.log(`${tgt.name}は見切った！`, "sys");
       return { target: tgt, miss: true, evaded: true };
     }
@@ -2244,7 +2258,7 @@ export class Battle {
     const blind = this._bm(actor, "hit");
     if (blind < 1) missP += Math.min(0.4, 1 - blind);
     if (!sureHit && Math.random() < missP) {
-      T[tk + "e"]++;
+      T[tk + "e"]++; if (J) J[1]++;
       this.log(`${tgt.name}は攻撃をかわした！`, "sys");
       return { target: tgt, miss: true, evaded: true };
     }
