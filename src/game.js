@@ -15510,7 +15510,7 @@ function loadGame() {
           const v = e[k] || 0;
           e[k] = v > 0 && v < 1 ? Math.round(v * 100) : [0, 50, 75, 100][v] ?? v;
         }
-        e.resists = monsterResists({ ...e.mon, physResist: e.physResist, magResist: e.magResist });
+        e.resists = monsterResists({ ...e.mon, physResist: e.physResist, magResist: e.magResist, resists: e.mon.resistOverrides || {} });
       }
     }
   }

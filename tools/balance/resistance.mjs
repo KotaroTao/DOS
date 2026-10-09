@@ -5,7 +5,7 @@ import { SOUL_KEYS, SOUL_CLASSES, makeSoulInstance, setSharedSouls, recalcDoll, 
 import { recalc } from '../../src/items.js';
 import { MONSTERS } from '../../src/sprites.js';
 import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
-import { RESIST_LABEL, zeroResists, monsterResists } from '../../src/resistance.js';
+import { RESIST_LABEL, zeroResists, monsterResists, resistTiers, resistLean, RACE_RESIST, MON_RESIST_WEAKABLE } from '../../src/resistance.js';
 import { revealSteps } from '../../src/ui/itemview.js';
 Object.assign(MONSTERS, DUNGEON_MONSTERS);
 const a = Object.assign(makeDoll('抵抗検証'), { jobLv: 40, level: 40 });
@@ -33,8 +33,38 @@ for (const m of Object.values(DUNGEON_MONSTERS)) {
 }
 assert.equal(DUNGEON_MONSTERS.bs_weepangel.resists.stone,100);
 assert.equal(DUNGEON_MONSTERS.bs_mossgolem.resists.stone,100);
-assert(monsterResists({rank:10}).poison > monsterResists({rank:1}).poison);
-assert(monsterResists({rank:4,boss:true}).poison > monsterResists({rank:4}).poison);
+assert(monsterResists({rank:10, id:'x', race:'beast'}).flinch >= monsterResists({rank:1, id:'x', race:'beast'}).flinch);
+assert(monsterResists({rank:10, id:'x', race:'beast'}).death > monsterResists({rank:1, id:'x', race:'beast'}).death);
+assert(monsterResists({rank:4,boss:true,id:'x',race:'beast'}).poison > monsterResists({rank:4,id:'x',race:'beast'}).poison);
+// 体質: 敵ごとに効きやすい異常と効きにくい異常がある (2026-10)
+{
+  const W = MON_RESIST_WEAKABLE, races = new Set(), seenWeak = new Set();
+  let sameProfile = 0; const sig = new Map();
+  for (const m of Object.values(DUNGEON_MONSTERS)) {
+    if (m.metal) { for (const k of W) assert.equal(m.resists[k], 100, m.id); continue; }
+    races.add(m.race);
+    assert(RACE_RESIST[m.race], `種族の体質が無い: ${m.race}`);
+    const t = resistTiers(m), lean = resistLean(m);
+    const weak = W.filter(k => t[k] === 'weak');
+    assert(weak.length >= 1, `効きやすい異常が無い: ${m.id}`);
+    weak.forEach(k => seenWeak.add(k));
+    assert(W.some(k => ['strong','imm'].includes(t[k])) || t.death === 'imm', `効きにくい異常が無い: ${m.id}`);
+    for (const k of weak) {
+      const v = m.resists[k];
+      assert(v <= (m.boss ? 24 : m.elite ? 15 : 0), `${m.id} ${k}=${v}`);
+      assert(v < 100);
+    }
+    if (m.ability && m.ability in t && m.ability !== 'stone') assert(['strong','imm'].includes(t[m.ability]), `自分の異常に強くない: ${m.id}`);
+    if ((m.rank || 1) > 1) assert(lean.weak.length >= 1, `図鑑に効きやすい異常が出ない: ${m.id}`);
+    const key = m.race + ':' + W.map(k => t[k]).join(',');
+    sig.set(key, (sig.get(key) || 0) + 1);
+  }
+  for (const k of ['poison','paralyze','sleep','charm','confuse','seal','flinch']) assert(seenWeak.has(k), `どの敵の弱点にもならない異常: ${k}`);
+  const th = DUNGEON_MONSTERS.bs_thornhound;
+  assert.equal(th.resists.sleep, 0); assert(th.resists.confuse >= 60);
+  assert(resistLean(th).weak.includes('sleep'));
+  console.log(`体質: ${races.size}種族・体質の組み合わせ${sig.size}通り・7種の異常すべてがどこかの敵の弱点`);
+}
 for (const k in RESIST_LABEL) assert.equal(a.resists[k],0);
 a.equip.acc1 = { aRes:{poison:.6}, resists:{magResist:80,stone:100,seal:50} };
 a.equip.acc2 = { aRes:{poison:.6}, resists:{magResist:30,seal:50} };

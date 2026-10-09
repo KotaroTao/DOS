@@ -613,6 +613,11 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
 .pt-fact-k { color: #8f8372; font-size: 11px; }
 .pt-fact-v { color: #e6dbc2; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .pt-fact.bad .pt-fact-v { color: #ff8a7a; }
+/* 図鑑の抵抗値: 体質で効きやすい (緑) / やや効きやすい / 効きにくい (橙) / 効かない (暗い) */
+.pt-fact.res-weak .pt-fact-v { color: #8fe08a; }
+.pt-fact.res-soft .pt-fact-v { color: #c4dca0; }
+.pt-fact.res-strong .pt-fact-v { color: #e8a660; }
+.pt-fact.res-imm .pt-fact-v { color: #8a7f74; }
 .pt-chiprow { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .pt-chiprow-l { flex: 0 0 26px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.1em; color: #8a6d2e; }
 .pt-chiprow-in { flex: 1 1 auto; min-width: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; touch-action: pan-x; padding: 1px 0; }

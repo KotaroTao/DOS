@@ -1,4 +1,4 @@
-import { RESIST_LABEL } from "../resistance.js";
+import { RESIST_LABEL, resistLean } from "../resistance.js";
 import { ENEMY_STAT_LABEL } from "../buffstage.js";
 // ===== 王宮 — 勅命 / 図鑑 / 勲章 / 宝物庫 (区分ごとに印) =====
 // 担当: WP-A。王宮タブ (UI.shell.registerTab("palace", …))。宰相のささやき → 区分 (記憶する) → 中身。
@@ -634,8 +634,8 @@ export function codexMonSheet(key, o = {}) {
   // 金属の魔物: 能力値は出た階で組み直すので、HP と「普通の戦闘の何倍の✦Soul か」だけを示す
   const mt = m.metal ? METAL_TIERS[m.metal] : null;
   const info = el("div", "pt-info");
-  const fact = (label, value) => {
-    const row = el("div", "pt-fact");
+  const fact = (label, value, cls = "") => {
+    const row = el("div", "pt-fact" + (cls ? ` ${cls}` : ""));
     row.appendChild(el("span", "pt-fact-k", label));
     row.appendChild(el("span", "pt-fact-v", String(value)));
     info.appendChild(row);
@@ -655,11 +655,21 @@ export function codexMonSheet(key, o = {}) {
     fact("属性攻", elemStatShort({ el: elKey || "none", lv: 1 }));
     fact("属性防", elemStatShort(m.elemDef));
   } else body.appendChild(revealLock(R.stats, "能力・属性・HP"));
+  // 抵抗値: 体質で効きやすい異常は緑、効きにくい異常は橙、効かない異常は暗く (戦闘中はその敵の実際の値)
+  const resV = (foe && foe.resists) || m.resists || {};
+  const lean = loreOpen && !mt ? resistLean({ ...m, rank: (foe && foe.evRank) || m.rank, boss: foe ? !!foe.boss || !!m.boss : m.boss, elite: m.elite || !!(foe && (foe.evRank || foe.isMimic)) }, resV) : null;
+  const leanCls = (k) => !lean ? "" : lean.weak.includes(k) ? "res-weak" : lean.soft.includes(k) ? "res-soft" : lean.immune.includes(k) ? "res-imm" : lean.strong.includes(k) ? "res-strong" : "";
   if (loreOpen) {
-    for (const [k, label] of Object.entries(RESIST_LABEL)) fact(`${label}抵抗値`, (m.resists && m.resists[k]) ?? m[k] ?? 0);
+    for (const [k, label] of Object.entries(RESIST_LABEL)) fact(`${label}抵抗値`, resV[k] ?? m[k] ?? 0, leanCls(k));
     if (m.breathRes) fact("ブレス耐性", `${Math.round(m.breathRes * 100)}%`);
   }
   if (info.childNodes.length) body.appendChild(info);
+  if (lean) {
+    const names = (ks) => ks.map((k) => RESIST_LABEL[k]).join("・");
+    const rows = [["効きやすい", lean.weak], ["やや効きやすい", lean.soft], ["効きにくい", lean.strong], ["効かない", lean.immune]]
+      .filter(([, ks]) => ks.length).map(([n, ks]) => pairRow(n, names(ks)));
+    if (rows.length) body.appendChild(infoBlock("状態異常の効き", rows));
+  }
   if (statsOpen) body.appendChild(infoBlock("戦利品", mt
     ? [pairRow("✦Soul", `その階の戦闘1回の約${mt.soulMul}倍`), pairRow("逃走", `${Math.round(mt.flee * 100)}%/手番`)]
     : [pairRow("✦Soul", String(m.soul)), pairRow("金貨", String(m.gold))]));
