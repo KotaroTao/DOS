@@ -1,6 +1,6 @@
 // 共通戦闘計算の回帰確認。乱数を固定して実ダメージとオートの期待値も比較する。
 import assert from 'node:assert/strict';
-import { Battle, SPELLS, luckCritBonus, attackSpellPower, healingPower, setElemKnown, spellCost, soulCostAdd, soulPowerMul, soulTierRate, spellMpLabel, SOUL_POWER_K, healsHp, BLADE_HEAL_CAP } from '../../src/combat.js';
+import { Battle, SPELLS, luckCritBonus, attackSpellPower, healingPower, setElemKnown, spellCost, soulCostAdd, soulPowerMul, soulTierRate, spellMpLabel, SOUL_POWER_K, healsHp, BLADE_HEAL_CAP, MP_DRAIN_CAP } from '../../src/combat.js';
 import { makeDoll } from '../../src/souls.js';
 import { MONSTERS } from '../../src/sprites.js';
 import { DUNGEON_MONSTERS } from '../../src/dungeons/index.js';
@@ -190,15 +190,13 @@ console.log(`全${count}技を実行。会心・耐性・命中・攻撃/回復�
    const a=actor();a.soulMp=800;const b=new Battle([a],[foe()],()=>{});let sum=0;const n=3000;
    for(let i=0;i<n;i++){a.hp=1;a.mp=a.maxmp;sum+=b._exec({actor:a,action:'spell',spellKey:key,target:a}).hits.reduce((x,h)=>x+(h.heal||0),0);}
    close(Math.round(sum/n),Math.round(b.estHeal(a,sp)),`魂の格 ${sp.name}`); }
- // MP吸収はその技の消費MPまで
- { const key=Object.keys(SPELLS).find(k=>SPELLS[k].mpDrain&&SPELLS[k].kind==='phys'&&SPELLS[k].target==='enemy'),sp=SPELLS[key];
-   const a=actor(),t=foe();a.atk=5000;a.soulMp=300;const b=new Battle([a],[t],()=>{});
-   for(let i=0;i<50;i++){a.mp=1000;t.hp=t.maxhp;t.alive=true;b._exec({actor:a,action:'spell',spellKey:key,target:t});assert(a.mp<=1000,`${sp.name}: 吸収が消費を超えた (${a.mp})`);} }
- // 魔力強奪は与ダメの30%を、消費MPの1.1倍まで吸う (mpDrainCap)
- { const sp=SPELLS.MARYOKUGOUDATSU;assert(sp.mpDrain===0.3&&sp.mpDrainCap===1.1,'魔力強奪: 吸収30%・上限1.1倍でない');
-   const a=actor(),t=foe();a.int=5000;a.soulMp=300;const b=new Battle([a],[t],()=>{});const cost=spellCost(a,sp),cap=Math.floor(cost*1.1);let top=0;
-   for(let i=0;i<50;i++){a.mp=1000;t.hp=t.maxhp;t.alive=true;b._exec({actor:a,action:'spell',spellKey:'MARYOKUGOUDATSU',target:t});const net=a.mp-1000;assert(net<=cap-cost,`魔力強奪: 吸収が1.1倍を超えた (${net + cost} > ${cap})`);top=Math.max(top,net);}
-   assert(top===cap-cost,`魔力強奪: 上限まで吸えていない (${top + cost} / ${cap})`); }
+ // MP吸収はどの技も、その技の消費MPの1.1倍まで (MP_DRAIN_CAP)
+ assert(MP_DRAIN_CAP===1.1,'MP吸収の上限が1.1倍でない');
+ for(const key of ['MARYOKUGOUDATSU',Object.keys(SPELLS).find(k=>SPELLS[k].mpDrain&&SPELLS[k].kind==='phys'&&SPELLS[k].target==='enemy')]){
+   const sp=SPELLS[key];assert(!sp.mpDrainCap,`${sp.name}: mpDrainCap を個別に持っている`);
+   const a=actor(),t=foe();a.int=5000;a.atk=5000;a.soulMp=300;const b=new Battle([a],[t],()=>{});const cost=spellCost(a,sp),cap=Math.floor(cost*MP_DRAIN_CAP);let top=0;
+   for(let i=0;i<50;i++){a.mp=1000;t.hp=t.maxhp;t.alive=true;b._exec({actor:a,action:'spell',spellKey:key,target:t});const net=a.mp-1000;assert(net<=cap-cost,`${sp.name}: 吸収が1.1倍を超えた (${net + cost} > ${cap})`);top=Math.max(top,net);}
+   assert(top===cap-cost,`${sp.name}: 上限まで吸えていない (${top + cost} / ${cap})`); }
  // 魔力循環は1回で最大MPの 2/3/4% まで
  for(const lv of [1,2,3]){ const a=actor(),t=foe();a.atk=5000;a.maxmp=1000;a.passiveMap={bmManaCycle:lv};const b=new Battle([a],[t],()=>{});
    for(let i=0;i<30;i++){a.mp=0;t.hp=t.maxhp;t.alive=true;b._exec({actor:a,action:'attack',target:t});assert(a.mp<=[0,20,30,40][lv],`魔力循環Lv${lv}: ${a.mp}`);} }

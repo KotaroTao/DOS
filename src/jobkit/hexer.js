@@ -29,13 +29,13 @@ export default {
   perks: {
     hexerShokuso: { label: "蝕みの爪", lv: ["物理を当てると15%で毒 (毎ターン5%)", "物理を当てると30%で毒 (毎ターン5%)"],
       fx: [{ t: "hit", chance: [0.15, 0.3], ail: "poison", pct: 0.05 }] },
-    hexerJusui: { label: "呪いの吸い口", lv: ["弱体・状態異常の技の後、最大MPの4%を吸う", "弱体・状態異常の技の後、最大MPの6%を吸う", "弱体・状態異常の技の後、最大MPの8%を吸う"],
-      fx: [{ t: "cast", on: "debuff", mp: [0.04, 0.06, 0.08] }] },
+    hexerJusui: { label: "呪いの吸い口", lv: ["弱体・状態異常の技の後、最大MPの2%を吸う", "弱体・状態異常の技の後、最大MPの3%を吸う", "弱体・状態異常の技の後、最大MPの4%を吸う"],
+      fx: [{ t: "cast", on: "debuff", mp: [0.02, 0.03, 0.04] }] },
     hexerMaganoKizashi: { label: "禍の前触れ", lv: ["戦闘開始時、敵全体の素早さ−10% (3ターン)", "戦闘開始時、敵全体の素早さ−15% (3ターン)"],
       fx: [{ t: "start", foe: { agi: [0.9, 0.85] }, dur: 3 }] },
     hexerTatari: { label: "弱り目のたたり", lv: ["弱体中の敵への攻撃呪文+12%", "弱体中の敵への攻撃呪文+20%", "弱体中の敵への攻撃呪文+28%"],
       fx: [{ t: "deal", on: "spell", v: [0.12, 0.2, 0.28], when: { tgtDebuffed: true } }] },
-    hexerJusoMamori: { label: "呪いの守り", lv: ["ブレスの被ダメ−15%、浴びると最大MPの4%を得る", "ブレスの被ダメ−25%、浴びると最大MPの6%を得る"],
-      fx: [{ t: "take", on: "breath", v: [0.15, 0.25] }, { t: "hurt", on: "breath", mp: [0.04, 0.06] }] },
+    hexerJusoMamori: { label: "呪いの守り", lv: ["ブレスの被ダメ−15%、浴びると最大MPの3%を得る", "ブレスの被ダメ−25%、浴びると最大MPの5%を得る"],
+      fx: [{ t: "take", on: "breath", v: [0.15, 0.25] }, { t: "hurt", on: "breath", mp: [0.03, 0.05] }] },
   },
 };

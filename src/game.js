@@ -7327,10 +7327,10 @@ function descendMeasured({ fall = false } = {}) {
     G.abyss._pendingMut = null;
   }
   // 隊のパッシブ (階を移動するたび。どれも隊で一番高いLvの1人分だけ):
-  //  束の間の休息 (fieldRegen) = 全員のHP 10/20/30% / 魔力の循環 (manaFlow) = 全員のMP 5/10/15%
+  //  束の間の休息 (fieldRegen) = 全員のHP 10/20/30% / 魔力の循環 (manaFlow) = 全員のMP 1/1.5/2%
   const frLv = partyPassiveLv("fieldRegen"), mfLv = partyPassiveLv("manaFlow");
   if (frLv || mfLv) {
-    const hpPct = [0, 0.10, 0.20, 0.30][Math.min(3, frLv)] || 0, mpPct = [0, 0.05, 0.10, 0.15][Math.min(3, mfLv)] || 0;
+    const hpPct = [0, 0.10, 0.20, 0.30][Math.min(3, frLv)] || 0, mpPct = [0, 0.01, 0.015, 0.02][Math.min(3, mfLv)] || 0;
     let healed = false, mana = false;
     for (const p of G.party) {
       if (!p.alive) continue;
@@ -9911,8 +9911,8 @@ function applyVictoryPassivesMeasured() {
     if (!p.alive) continue;
     const hpct = HEAL_PCT[Math.max(pLv(p, "afterHeal"), pope)];
     const ml = pLv(p, "afterMp");
-    // 職ごとの固有パッシブ (win) と、MP の共通パッシブ (魔力回路 3/5%)。MP は魂1つあたり5%まで (perkVictory)
-    const pw = perkVictory(p, G.party, { afterMp: ml >= 2 ? 0.05 : ml === 1 ? 0.03 : 0 });
+    // 職ごとの固有パッシブ (win) と、MP の共通パッシブ (魔力回路 1/2%)。MP は魂1つあたり4%まで (perkVictory)
+    const pw = perkVictory(p, G.party, { afterMp: ml >= 2 ? 0.02 : ml === 1 ? 0.01 : 0 });
     const hpct2 = hpct + pw.hp;
     const mpct = pw.mp;
     if (hpct2 > 0 && p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + Math.ceil(p.maxhp * hpct2)); healed = true; }

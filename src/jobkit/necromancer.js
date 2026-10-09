@@ -48,8 +48,8 @@ export default {
     NECROMANCER_SOUSOU: { name: "終焉の葬送", mp: 50, kind: "atk", power: 124, element: "dark", instakill: { chance: 0.15 }, target: "all-enemy", desc: "万物を葬る闇。即死させることがある" },
   },
   perks: {
-    necromancerShikuirai: { label: "屍喰らい", lv: ["敵を倒すとHP4%・MP4%回復", "敵を倒すとHP6%・MP6%回復", "敵を倒すとHP8%・MP8%回復"],
-      fx: [{ t: "kill", hp: [0.04, 0.06, 0.08], mp: [0.04, 0.06, 0.08] }] },
+    necromancerShikuirai: { label: "屍喰らい", lv: ["敵を倒すとHP4%・MP1%回復", "敵を倒すとHP6%・MP1.5%回復", "敵を倒すとHP8%・MP2%回復"],
+      fx: [{ t: "kill", hp: [0.04, 0.06, 0.08], mp: [0.01, 0.015, 0.02] }] },
     necromancerMeifuIzumi: { label: "冥府の泉", lv: ["2ラウンド目から毎ラウンド最大MPの2%回復", "毎ラウンド最大MPの3%回復", "毎ラウンド最大MPの4%回復"],
       fx: [{ t: "round", mp: [0.02, 0.03, 0.04] }] },
     necromancerShishaSasayaki: { label: "死者の囁き", lv: ["攻撃呪文の後15%で消費MPが戻る", "攻撃呪文の後22%で消費MPが戻る", "攻撃呪文の後30%で消費MPが戻る"],

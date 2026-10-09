@@ -20,7 +20,7 @@
 //   charm(確率) — 魅了 (敵がその仲間に襲いかかる。傷を受けると解けやすい・主には35%の確率)
 //   confuse(確率) — 混乱 (敵が敵味方を問わず殴る・ふらつく・主には半分の確率)
 //   instakill({chance, races?}) — 即死 (主には効かない) / steal(盗む: 敵の所持金の割合) / plunder(倒すと金2倍)
-//   drain / mpDrain (与ダメの割合を吸収。MPは消費MP × mpDrainCap (既定1) まで) / hpCost (最大HPの割合を代償)
+//   drain / mpDrain (与ダメの割合を吸収。MPは消費MP × mpDrainCap (既定1.1) まで) / hpCost (最大HPの割合を代償)
 // 攻撃呪文: power (+ 術者INT×0.5) / gravity (敵の今のHPの割合ダメージ) / partyHeal (撃った後に味方全体を回復・PIEで伸びる)
 // 回復 (kind "heal", 2026-10 作り直し): healMul (ヒールの何倍か・PIEで伸びる) / healPct (対象の最大HPの割合・全快 = 1) /
 //   bodyHeal (使い手の最大HPの割合 = 物理職の「体の手当て」) / 旧来の power / healCap (1回の回復を対象の最大HPの割合で頭打ち)
@@ -251,7 +251,7 @@ export const SPELLS = {
   SHINENNOHADOU:  { name: "深淵の波動", mp: 13, kind: "atk", power: 44, element: "dark", seal: { chance: 0.5, turns: 3 }, target: "enemy", desc: "闇の波動。特技を封じる" },
   MEIKONGURAI:    { name: "冥魂喰らい", mp: 10, kind: "atk", power: 28, element: "dark", drain: 0.5, target: "enemy", desc: "闇で魂を喰らい、己の命とする" },
   KINJUKAICHOU:   { name: "禁呪開帳", mp: 12, kind: "atk", power: 38, element: "dark", critBonus: 0.25, strip: true, target: "enemy", desc: "禁断の呪撃。強化を打ち消す" },
-  MARYOKUGOUDATSU:{ name: "魔力強奪", mp: 7, kind: "atk", power: 30, element: "dark", mpDrain: 0.3, mpDrainCap: 1.1, strip: true, target: "enemy", desc: "強化を剥ぎ、魔力を奪う" },
+  MARYOKUGOUDATSU:{ name: "魔力強奪", mp: 7, kind: "atk", power: 30, element: "dark", mpDrain: 0.3, strip: true, target: "enemy", desc: "強化を剥ぎ、魔力を奪う" },
   GOMA:           { name: "護摩焚き", mp: 10, kind: "atk", power: 18, element: "fire", partyHeal: 10, faith: true, target: "all-enemy", desc: "炎で敵全体を焼き、味方を癒す" },
   KUJI:           { name: "九字護身法", mp: 10, kind: "debuff", seal: { chance: 0.5, turns: 3 }, target: "all-enemy", desc: "敵全体の特技を封じる" },
 
