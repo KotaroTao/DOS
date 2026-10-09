@@ -11216,15 +11216,23 @@ function fixedQuestHome(def) {
     return g.keys.some((k) => roster.has(k) || metalInLayer(k, d.layer));
   }).map((d) => d.id));
 }
+// その迷宮専用の「極めて稀なる出来事」(events.js DUNGEON_GIFTS。w01・奈落には無い)。固有クエストに数える
+function dungeonMythic(cfg) {
+  if (!cfg || !cfg.id) return null;
+  return Object.values(EVENT_MAP).find((e) => e.tier === "mythic" && e.dungeonId === cfg.id) || null;
+}
 function dungeonFacts(cfg) {
   if (!cfg) return null;
   const roster = dungeonRoster(cfg);
   const mon = (G.codex && G.codex.mon) || {};
   const s = questState();
   const fq = FIXED_QUESTS.filter((d) => fixedQuestHome(d) === cfg.id);
+  const my = dungeonMythic(cfg);
+  const myGot = !!(my && G.events && G.events.once && G.events.once[my.id]);
   return {
     monSeen: roster.filter((k) => mon[k]).length, monTotal: roster.length,
-    fqDone: fq.filter((d) => s.fixed[d.id] && s.fixed[d.id].state === "claimed").length, fqTotal: fq.length,
+    fqDone: fq.filter((d) => s.fixed[d.id] && s.fixed[d.id].state === "claimed").length + (myGot ? 1 : 0),
+    fqTotal: fq.length + (my ? 1 : 0),
   };
 }
 // 出撃シートの「固有クエスト」の詳細: その迷宮を家とする固定クエストを、酒場に現れたものは依頼の形 (fixedQuestView) で、
@@ -11244,10 +11252,17 @@ function dungeonQuests(cfg) {
     if (a.claimed) { const f = s.fixed[a.claimed]; if (!f || f.state !== "claimed") out.push(`依頼${FIXED_BY_ID[a.claimed] && fixedQuestAppears(FIXED_BY_ID[a.claimed]) ? `「${FIXED_BY_ID[a.claimed].name}」` : "人の頼み"}を報告`); }
     return out.length ? out.join(" ・ ") : "やがて現れる";
   };
-  return FIXED_QUESTS.filter((d) => fixedQuestHome(d) === cfg.id).map((d) => {
+  const list = FIXED_QUESTS.filter((d) => fixedQuestHome(d) === cfg.id).map((d) => {
     const shown = !!s.fixed[d.id] || fixedQuestAppears(d);
     return shown ? { id: d.id, shown: true, q: fixedQuestView(d) } : { id: d.id, shown: false, hint: hint(d) };
   });
+  // その迷宮専用の「極めて稀なる出来事」も固有クエストの1件に数える。授かるまでは名も効き目も伏せる
+  const my = dungeonMythic(cfg);
+  if (my) {
+    const got = !!(G.events && G.events.once && G.events.once[my.id]);
+    list.push({ id: my.id, mythic: true, got, name: got ? my.name : null, boon: got ? my.boon : null });
+  }
+  return list;
 }
 // 報告できる依頼の数 (達成済み + 手持ちで納められる納品)。街の札・酒場の札の印
 function questReadyCount() {
