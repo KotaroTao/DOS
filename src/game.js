@@ -1976,7 +1976,9 @@ function revealAroundStairs() {
   }
 }
 function castField(...args) { return tlGameMeasure("camp", () => castFieldMeasured(...args)); }
-function castFieldMeasured(key) {
+// 押し間違えやすい探りの術 (道しるべ・宝探し) は唱える前に確かめる (MP 30% を使うため。ユーザーの指示 2026-10)
+const FIELD_CONFIRM = new Set(["stairs", "chest"]);
+function castFieldMeasured(key, confirmed = false) {
   if (G.state !== "board" || !inDungeon()) return;
   const sp = SPELLS[key];
   if (!sp) return;
@@ -1988,6 +1990,19 @@ function castFieldMeasured(key) {
   if (sp.sense === "stairs" && findRevealedStairs()) { SFX.ng(); showToast("この階の階段はもう見つけている", { tone: "info" }); return; }
   const c = fieldCaster(key);
   if (!c) { SFX.ng(); showToast(fieldCaster(key, true) ? `${sp.name}を唱える MP が足りない` : `${sp.name}を唱えられる者がいない`, { tone: "info" }); return; }
+  if (!confirmed && FIELD_CONFIRM.has(sp.sense)) {
+    SFX.select();
+    showConfirm({
+      title: `${sp.name}を唱える？`,
+      lines: [
+        sp.sense === "stairs" ? "この階の下り階段の在りかを示し、そのまわり8マスのカードをめくる。" : "この階の宝箱の在りかが、伏せたカードの青い光として浮かび上がる。",
+        `${c.p.name}の MP を ${c.cost} 使う (いま ${c.p.mp})。効くのはこの階だけ。`,
+      ],
+      okLabel: "唱える",
+      onOk: () => castField(key, true),
+    });
+    return;
+  }
   c.p.mp -= c.cost;
   SFX.spell();
   if (sp.float) {
