@@ -7101,7 +7101,7 @@ function applyTrapMeasured(trap, opener) {
     case "gold": {
       // 進行度に応じた量 (2026-10 ユーザーの指示: 所持金の割合だと貯めるほど痛かった)。
       // その階の推奨Lv の普通の1戦の金貨 (refGold) × trap.loss、±15% の揺らぎ。所持金より多くは失わない
-      const loss = Math.min(G.gold, trapLoss(refGold, trap.loss || 3));
+      const loss = Math.min(G.gold, trapLoss(refGold, trap.loss || 9));
       G.gold = Math.max(0, G.gold - loss);
       updateTopbar();
       lines.push(`${loss} ゴールドが溶かされた…`);
@@ -7111,7 +7111,7 @@ function applyTrapMeasured(trap, opener) {
     }
     case "soul": {
       // 金貨と同じく進行度に応じた量: 普通の1戦の ✦Soul (refSoul) × trap.loss
-      const loss = Math.min(G.soulPts, trapLoss(refSoul, trap.loss || 2));
+      const loss = Math.min(G.soulPts, trapLoss(refSoul, trap.loss || 6));
       G.soulPts = Math.max(0, G.soulPts - loss);
       updateTopbar();
       lines.push(`✦${loss} Soul を吸い取られた…`);

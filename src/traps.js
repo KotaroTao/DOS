@@ -36,8 +36,8 @@ export const TRAPS = [
   { id: "frost",      name: "凍気の罠",     rank: 2, kind: "party",  mult: 0.5, ail: "paralyze", ailChance: 0.25, flavor: "凍てつく冷気が骨まで凍らせる！" },
   { id: "mageblast",  name: "メイジブラスター", rank: 2, kind: "mp", mult: 0.25,                                  flavor: "魔力を喰らう呪具がうなりを上げた！" },
   { id: "arrowstorm", name: "矢の嵐",       rank: 2, kind: "multi",  mult: 0.9, hits: 3,                          flavor: "無数の矢が四方から降り注ぐ！" },
-  { id: "goldeater",  name: "黄金喰い",     rank: 2, kind: "gold",   loss: 3,                                     flavor: "金貨だけを溶かす粘液が溢れ出た…" },
-  { id: "soulleech",  name: "魂喰らい",     rank: 2, kind: "soul",   loss: 2,                                     flavor: "蒼白い口が開き、集めた魂をすすった…" },
+  { id: "goldeater",  name: "黄金喰い",     rank: 2, kind: "gold",   loss: 9,                                     flavor: "金貨だけを溶かす粘液が溢れ出た…" },
+  { id: "soulleech",  name: "魂喰らい",     rank: 2, kind: "soul",   loss: 6,                                     flavor: "蒼白い口が開き、集めた魂をすすった…" },
   // ---- ランク3 (迷宮21〜): 命に関わる大物 ----
   { id: "teleporter", name: "テレポーター", rank: 3, kind: "teleport",                                            flavor: "床の魔法陣が妖しく輝いた——" },
   { id: "guillotine", name: "断頭刃",       rank: 3, kind: "opener", mult: 2.4, dieChance: 0.10,                  flavor: "巨大な刃が鎌のように振り下ろされた！" },
