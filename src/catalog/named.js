@@ -46,4 +46,8 @@ export const NAMED_ITEMS = [
     desc: "千年分の供物を呑みこんだるつぼの底に、ただ一つ溶け残っていた金の環。呑むばかりだったるつぼの名残は、いまは持ち主の手へ金貨を吐き出し、腐った汁の毒も闇の気も寄せつけない。供物のるつぼの首級。" })),
   trophy(9, "el_bogfrogking", W("w_nm_bogfrogking", "蛙王の舌槍", "sp", 108, { pow: 1.45, onHit: ["paralyze", 0.2], eAtk: ["wind", 1], hp: 24, agi: 4, tint: "#8a9a58",
     desc: "沼呑みの蛙王の、骨のように固い舌の芯を柄にした槍。獲物を痺れさせて丸呑みにしてきた舌の粘りが穂先に残り、突かれた敵は手足をしばらく動かせない。沼呑みの蛙王の首級。" })),
+  trophy(10, "el_blizzardwitch", W("w_nm_blizzardwitch", "嵐乗りの魔女の杖", "st", 116, { magic: true, pow: 1.4, agi: 5, eAtk: ["fire", 1], aRes: { sleep: 0.35 }, eff: { spellCostMul: 0.88 }, tint: "#9a90c0",
+    desc: "塔を巡る嵐にまたがって飛び回った魔女が、雲の上で握りしめていた杖。杖の先には魔女が嵐からくすねた小さな火が灯り、風の身を焼く呪文を軽く唱えさせる。魔女の歌にまどろむこともない。吹雪の魔女の首級。" })),
+  trophy(10, "el_stareater", W("w_nm_stareater", "星喰らいの牙", "dg", 118, { pow: 1.45, agi: 5, luk: 5, eAtk: ["light", 1], eff: { lifesteal: 0.15 }, tint: "#7060a0",
+    desc: "夜空の星を喰らってきた大悪魔の口から抜いた、黒い牙の短剣。呑みこまれた星の光が牙の芯でまだかすかに光り、刺した相手の命を吸い上げて持ち主の傷を塞ぐ。星喰らいの首級。" })),
 ];

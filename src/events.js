@@ -1943,6 +1943,147 @@ export const EVENTS = [
     ],
     onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "泡の中に閉じこめられていた魂だ。", () => A.chestHere(cell, { rankUp: 2 }, next)),
   },
+
+  // ================= 第10層「嵐の尖塔」 (10) ── 第八章。沼の島の工房の奥から、奈落を上へ伸びる塔。嵐と雷が絶えず渦を巻く =================
+  {
+    id: "l10_01", name: "落雷の跡", layer: 10, tier: "common", icon: "chest",
+    intro: () => ["床の石が、黒く焦げて割れている。雷の落ちた跡だ。", "割れ目の中で、雷に溶かされて固まった、ガラスのようなものが光っている。"],
+    choices: (A, cell) => [
+      { label: "割れ目を掘る ― 品 / 25%で雷に呼ばれた魔物", danger: true, fn: () => {
+        if (chance(0.25)) { A.alarm("また雷が落ちた！", ["青白い光の中から、魔物が飛び出してきた。"], "trap", () => A.fight(cell, [{ pool: true, min: 2 }], "boltmark", { noChest: true })); return; }
+        A.item({}, "落雷の跡", () => A.done(cell));
+      } },
+      { label: "溶けたガラスを拾う ― 収集品", primary: true, fn: () => { A.collectible("落雷の跡", () => A.done(cell)); } },
+    ],
+    onWin: (A, cell, f, next) => A.item({}, "落雷の跡", () => A.done(cell, next)),
+  },
+  {
+    id: "l10_02", name: "回る風見", layer: 10, tier: "common", icon: "stairs",
+    intro: () => ["窓の外の張り出しで、錆びた鉄の風見がきしみながら回っている。", "風見はときどき止まって、同じ方角を指す。風の吹き上げてくる方角だ。"],
+    choices: (A, cell) => [
+      { label: "風見の指すほうを見る ― この階の階段の在処が見え、✦Soul を少し", primary: true, fn: () => {
+        A.revealStairs(); A.sfx("step"); A.soul(1, "風の行方"); A.toast("風の吹き上げる先に、階段が見えた", "good", "stairs"); A.done(cell);
+      } },
+      { label: "風見を外して持ち帰る ― 金貨 / 30%で突風にあおられ、全員のHP1割を失う", fn: () => {
+        if (chance(0.3)) { A.hurtAll(0.1); A.toast("突風にあおられ、手すりに叩きつけられた", "bad"); }
+        A.gold(2, "古い鉄の風見"); A.done(cell);
+      } },
+    ],
+  },
+  {
+    id: "l10_03", name: "雨受けの甕", layer: 10, tier: "common", icon: "fountain",
+    intro: () => ["窓の下に、雨水を受ける大きな甕が置かれている。", "水は澄んでいるが、ときどき水面に小さな火花が走る。"],
+    choices: (A, cell) => [
+      needsCare(A) && { label: "雨水を飲む ― 全員のHP・MP3割回復", primary: true, fn: () => {
+        A.healAll(0.3, 0.3); A.sfx("heal"); A.toast("冷たい雨水が、のどを潤した", "good", "fountain"); A.done(cell);
+      } },
+      { label: "甕の底をさらう ― ✦Soul / 20%で帯電した水に触れ、一人が麻痺", fn: () => {
+        A.sfx("heal"); A.soul(1.5, "甕の底の灯");
+        if (chance(0.2)) { const m = A.randomAlive(); if (m) { A.ail(m, "paralyze"); A.toast(`${m.name}は水の中の雷に痺れた`, "bad", "paralyze"); } }
+        A.done(cell);
+      } },
+    ],
+  },
+  {
+    id: "l10_04", name: "手すりに掛かった荷", layer: 10, tier: "common", icon: "corpse",
+    intro: () => ["吹きさらしの手すりに、旅人の背負い袋が引っかかって揺れている。", "袋のまわりを、黒い鴉が何羽も旋回している。"],
+    choices: (A, cell) => [
+      { label: "鴉を追い払って袋を取る ― 金貨 / 30%で鴉の群れが襲う", danger: true, fn: () => {
+        if (chance(0.3)) { A.alarm("鴉が一斉に舞い降りた！", ["空が黒く染まるほどの群れが、隊へ殺到してきた。"], "trap", () => A.fight(cell, [{ key: "bs_ravenswarm", min: 2 }], "ravenpack", { noChest: true })); return; }
+        A.gold(2, "旅人の背負い袋"); A.done(cell);
+      } },
+      { label: "袋の持ち主を弔う ― ✦Soul を少し", primary: true, fn: () => { A.sfx("heal"); A.soul(1, "風の中の弔い"); A.done(cell); } },
+    ],
+    onWin: (A, cell, f, next) => { A.gold(2, "旅人の背負い袋"); A.done(cell, next); },
+  },
+  {
+    id: "l10_05", name: "止まった風車", layer: 10, tier: "uncommon", icon: "event", minFloor: 2,
+    intro: () => ["塔の壁から、大きな木の風車が突き出している。羽根は止まり、軸には鎖が巻きついている。", "鎖を外せば回りそうだ。軸の奥には、古い歯車が見える。"],
+    choices: (A, cell) => [
+      A.aliveList().some((m) => m.mp > 0) && { label: "魔力で鎖を焼き切る ― 全員のMPを3割使い、風車が回ってこの階の魔物と宝箱の在処が見え、✦Soul", primary: true, fn: () => {
+        A.mpAll(0.3);
+        const n = A.revealWhere((x) => (x.type === "monster" || x.type === "chest") && !x.cleared);
+        A.sfx("spell"); A.soul(3, "風車の運んだ魂");
+        A.toast(n ? `回りだした風車が、風で${n}か所の在処を知らせた` : "回りだした風車が、塔に風を通した", "good", "stairs"); A.done(cell);
+      } },
+      { label: "軸の歯車を外す ― 上等な品 / 40%で風車の番の雷光の巨像が起き上がる", danger: true, fn: () => {
+        if (chance(0.4)) { A.alarm("歯車がうなりを上げた！", ["風車の陰から、雷をまとった巨像が立ち上がった。"], "trap", () => A.fight(cell, [{ key: "bs_lightninggolem", strong: 1.3, name: "風車の番" }], "windmill", { noChest: true })); return; }
+        A.item({ rare: true }, "風車の歯車", () => A.done(cell));
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.item({ rare: true }, "風車の歯車", () => A.done(cell, next)),
+  },
+  {
+    id: "l10_06", name: "雷を溜めた甕", layer: 10, tier: "uncommon", icon: "wisp", minFloor: 2,
+    intro: () => ["銅の線を巻いた黒い甕が、塔の壁にいくつも並んでいる。", "ふたの隙間から、青白い光がもれている。中に、雷が溜めてあるのだ。"],
+    choices: (A, cell) => [
+      A.aliveList().some((m) => m.mp > 0) && { label: "甕の雷を武器に移す ― 全員のMPを2割使い、この潜入の間、会心率 +5%", primary: true, fn: () => {
+        A.mpAll(0.2); A.runEv().crit = (A.runEv().crit || 0) + 0.05;
+        A.sfx("spell"); A.toast("刃に雷が宿った ― この潜入の間、会心率 +5%", "gold"); A.done(cell);
+      } },
+      { label: "甕を割る ― 宝箱 (ランク+1) / 雷が弾けて全員のHP2割を失う", danger: true, fn: () => {
+        A.hurtAll(0.2); A.flash("#d8e0ff"); A.sfx("trap"); A.chestHere(cell, { rankUp: 1 });
+      } },
+    ],
+  },
+  {
+    id: "l10_07", name: "嵐を読む老婆", layer: 10, tier: "uncommon", icon: "mon:bs_stormhag", deep: true,
+    intro: () => ["窓辺の揺り椅子に、雷雲をまとった老婆が座っている。", "「嵐の中で迷う者は、風の読み方を知らんのさ。……教えてやろうか。ただじゃないがね」"],
+    choices: (A, cell) => {
+      const cost = A.goldCost(3);
+      return [
+        A.canPayGold(cost) && { label: `風の読み方を教わる (💰${cost}) ― この潜入の間、奇襲を受けにくい (半分)`, primary: true, fn: () => {
+          A.payGold(cost);
+          A.runEv().mods = [...(A.runEv().mods || []), { src: "l10_07", name: "嵐の読み方", desc: "奇襲を受ける確率が半分 (この潜入)", ambushMul: 0.5 }];
+          A.sfx("spell"); A.toast("風の匂いで、魔物の気配がわかるようになった ― この潜入の間、奇襲を受けにくい", "gold"); A.done(cell);
+        } },
+        { label: "揺り椅子の杖を奪う ― 嵐を読む老婆と一騎打ち、勝てば上等な品 (レア以上)", danger: true, fn: () => {
+          A.fight(cell, [{ key: "bs_stormhag", strong: 1.5, name: "嵐を読む老婆" }], "stormhag", { noChest: true });
+        } },
+      ];
+    },
+    onWin: (A, cell, f, next) => A.itemMinRar("r", "老婆の杖に吊るされた品", () => A.done(cell, next)),
+  },
+  {
+    id: "l10_08", name: "雲海の見える窓", layer: 10, tier: "uncommon", icon: "fountain",
+    intro: () => ["塔の壁に、大きな窓が開いている。窓の外は、一面の雲の海だ。", "雲の下で、雷が音もなく光っている。窓の外の張り出しには、何かが引っかかっている。"],
+    choices: (A, cell) => [
+      needsCare(A) && { label: "窓辺で雲海を眺めて休む ― 全員のHP・MP4割回復・状態異常が治る", primary: true, fn: () => {
+        A.healAll(0.4, 0.4, true); A.sfx("heal"); A.toast("雲の海を眺めるうちに、息が整った", "good", "fountain"); A.done(cell);
+      } },
+      { label: "窓の外の張り出しへ出る ― 宝箱 (ランク+1) / 突風に吹かれ、一人が麻痺", fn: () => {
+        const m = A.randomAlive(); if (m) { A.ail(m, "paralyze"); A.toast(`${m.name}は突風に打たれて痺れた`, "bad", "paralyze"); }
+        A.sfx("trap"); A.chestHere(cell, { rankUp: 1 });
+      } },
+    ],
+  },
+  {
+    id: "l10_09", name: "頂を見上げる鐘番", layer: 10, tier: "rare", icon: "mon:bs_boltarcher", deep: true, minLv: 92,
+    intro: () => ["階段の途中に、鐘の綱を握ったままの亡霊が座りこんでいる。", "「……頂には、主がおる。雷雲が寄り集まって、ふくれあがった主だ」", "「主の渦の弱いところを教えてやろう。それとも、わしの鐘番小屋に残った品を持ってゆくか」"],
+    choices: (A, cell) => [
+      { label: "渦の弱いところを聞く ― 第10層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
+        A.flags().bossWeak = { ...(A.flags().bossWeak || {}), 10: true };
+        A.sfx("spell");
+        A.story("頂を見上げる鐘番", ["「主の渦は、鐘が鳴る一瞬だけ、芯がゆるむ。そこを突け」", "「……一年前にも、杖をなくした男が、鎖を伝って登っていった。わしの鐘の綱を、少しだけ貸してやった」", "第10層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
+      } },
+      { label: "鐘番小屋の品を受け取る ― 上等な品 (レア以上)", fn: () => { A.sfx("itemget"); A.itemMinRar("r", "鐘番小屋の品", () => A.done(cell)); } },
+    ],
+  },
+  {
+    id: "l10_10", name: "魂を抱えた像", layer: 10, tier: "rare", icon: "wisp", deep: true,
+    intro: () => ["鎖の腕をもつ石の像が、通路をふさいで立っている。", "像の胸の中で、いくつもの魂の光が、出口を探すように渦を巻いている。"],
+    choices: (A, cell) => [
+      { label: "像を砕いて魂を解き放つ ― 像の番人と戦い、勝てば希少な魂と魂の残火2", danger: true, fn: () => {
+        A.fight(cell, [{ key: "bs_soulanchor", strong: 1.8, name: "像の番人" }], "anchorstatue", { noChest: true });
+      } },
+      { label: "像の鎖を一本外して身に巻く ― この潜入の間、全員に火の護り (風の攻撃を和らげる) と ✦Soul / 鎖の雷で全員のHP2割を失う", primary: true, fn: () => {
+        A.hurtAll(0.2); A.flash("#d8e0ff");
+        A.runEv().edef = { el: "fire", lv: 1 };
+        A.sfx("spell"); A.soul(4, "鎖に残った魂の熱"); A.toast("焼けた鎖が、風の刃をはじく ― この潜入の間、火の護り", "gold"); A.done(cell);
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "像に縛られていた魂だ。", () => { A.ember(2, "像の胸の残火"); A.done(cell, next); }),
+  },
 ];
 
 // 各迷宮に固有の極を1件。既存IDは見聞録・取得済みセーブのため維持する。
@@ -1993,6 +2134,14 @@ const DUNGEON_GIFTS = [
   ["w29", "hp", 5, "腐らずに残った魂の灯"],
   ["ws13", "pie", 2, "塚の底の弔いの鐘"],
   ["ws14", "luk", 2, "渡し守の銅貨"],
+  // 第八章 (第10層)。4件の MP・INT・会心から、ほかは HP・AGI・VIT・PIE (どの効果も5件か6件)
+  ["w30", "mp", 5, "螺旋を昇る魔力の風"],
+  ["w31", "int", 2, "鐘の銘の古い知恵"],
+  ["w32", "crit", 0.01, "稲妻を見切る目"],
+  ["w33", "hp", 5, "頂の消えない種火"],
+  ["ws15", "agi", 2, "雷鳥の風切り羽"],
+  ["ws16", "vit", 2, "避雷針の鉄の芯"],
+  ["ws17", "pie", 2, "雲上の庭の祈りの花"],
 ];
 for (const [dungeonId, stat, amount, name, legacyId] of DUNGEON_GIFTS) {
   const dungeon = WORLD.find((d) => d.id === dungeonId);
@@ -2052,6 +2201,7 @@ export const EVENT_GROUPS = [
   { key: "7", label: "火の洞", name: "第7層 灼熱の洞", layer: 7 },
   { key: "8", label: "氷回廊", name: "第8層 氷結回廊", layer: 8 },
   { key: "9", label: "毒沼", name: "第9層 毒沼", layer: 9 },
+  { key: "10", label: "尖塔", name: "第10層 嵐の尖塔", layer: 10 },
 ];
 
 // 出現条件の説明 (見聞録用)
