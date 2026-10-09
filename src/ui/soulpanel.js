@@ -565,7 +565,11 @@ function pickerBody(root, d, slotId, h) {
   const si = isSub ? +slotId.slice(3) : -1;
   const curUid = isSub ? ((d.subs || [])[si] || {}).uid : d.primary;
   const fusion = game.featureUnlocked ? game.featureUnlocked("fusion") : false;
-  const souls = [...(isSub ? G.souls.filter((s) => !(SOUL_CLASSES[s.clsKey] || {}).unique) : game.soulRepresentatives())].sort(game.soulSortCmp || (() => 0)); // 灯守 (セラだけの魂) は貸さない
+  // この人業が宿している魂を上へ: いまの差し口 → 同じ人業の別の差し口 → ほかは並び順のまま (ユーザーの指示、2026-10)
+  const ownUids = [d.primary, ...(d.subs || []).map((x) => x && x.uid)].filter((u) => u != null);
+  const ownRank = (s) => (s.uid === curUid ? 0 : ownUids.includes(s.uid) ? 1 : 2);
+  const cmp = game.soulSortCmp || (() => 0);
+  const souls = [...(isSub ? G.souls.filter((s) => !(SOUL_CLASSES[s.clsKey] || {}).unique) : game.soulRepresentatives())].sort((a, b) => ownRank(a) - ownRank(b) || cmp(a, b)); // 灯守 (セラだけの魂) は貸さない
   const list = el("div", "pt-list sp-plist");
   for (const s of souls) {
     const cl = SOUL_CLASSES[s.clsKey]; if (!cl) continue;
