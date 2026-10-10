@@ -82,6 +82,17 @@ function appraiseTick(r, step) {
 }
 
 export const SFX_DEFS = {
+  // 遠雷: 低い雑音がうねり、ゆっくり消えていく。
+  thunder: { vol: 0.42, rev: 0.35, vars: 2, gen(r) {
+    const x = brown(len(4.2), r);
+    lp1(x, 650, SR); hp1(x, 35, SR);
+    for (let i = 0; i < x.length; i++) {
+      const t = i / SR;
+      x[i] *= Math.min(1, t / 0.09) * Math.exp(-t / 1.1)
+        * (0.65 + 0.22 * Math.sin(t * 8) + 0.13 * Math.sin(t * 19));
+    }
+    return haas(x, 23, 0.9);
+  } },
   select: { vars: 2, vol: 0.38, rev: 0.12, gen(r) {
     const x = modal(SR, 0.12, [[1180 + r() * 60, 1, 0.05], [2950, 0.4, 0.03], [4800, 0.12, 0.015], [330, 0.25, 0.04]]);
     mixInto(x, hp1(burst(r, 0.003, 0.002), 3000, SR), 0, 0.5);

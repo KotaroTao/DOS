@@ -5,6 +5,7 @@
 //   ゆっくり寄るカメラ / 門の魂火の呼吸 / 門から立ちのぼる魂の粒 / ランタンのゆらぎと火の粉 / 地を這う霧
 // 縦長の画面には縦の原画 (tall)、横長には横の原画 (wide) を選び、門 (gate) をロゴとメニューの間に置く。
 // 原画が無い時は title.js が従来のドット絵 (titleart.js) を使う。
+import { SFX } from "./audio.js";
 import { TITLE_KEYART } from "./titlekeyart.js";
 
 export const hasPaintedTitle = () => !!(TITLE_KEYART.wide || TITLE_KEYART.tall);
@@ -86,6 +87,12 @@ export class PaintedTitle {
     this.soulCore = glow(48, "225,255,240", 0.3);
     this.ember = glow(64, "255,180,90", 0.22);
     this.fogs = [fogBand(11), fogBand(23), fogBand(37)];
+    this.clouds = [fogBand(53, 384, 96), fogBand(71, 384, 96)];
+    this.weatherTime = 0;
+    this.nextCrow = 3500 + Math.random() * 4000;
+    this.nextStorm = 9000 + Math.random() * 7000;
+    this.crows = [];
+    this.storm = null;
     this.motes = Array.from({ length: 70 }, (_, i) => this.newMote(i, hash(i, 7) * 9000));
     this.sparks = Array.from({ length: 10 }, (_, i) => ({ seed: i, t0: -hash(i, 5) * 2600 }));
   }
@@ -134,6 +141,77 @@ export class PaintedTitle {
     this.flare = 1;
     for (let i = 0; i < 36; i++) this.motes.push(this.newMote(i, 0, true, Math.floor(now)));
   }
+  // 背景だけに重ねる空模様。非表示の間は時計も雷鳴も止める。
+  drawWeather(g, c, dt) {
+    if (document.hidden) { this.storm = null; return; }
+    this.weatherTime += dt;
+    const now = this.weatherTime, t = now / 1000;
+    g.save();
+    g.globalCompositeOperation = "screen";
+    for (let i = 0; i < this.clouds.length; i++) {
+      const w = c.iw * 1.1, h = c.ih * (0.23 + i * 0.08);
+      const offset = (t * (5 + i * 4)) % w;
+      g.globalAlpha = 0.22 + i * 0.06;
+      for (let x = c.ox - w + (i ? -offset : offset); x < this.vw; x += w)
+        g.drawImage(this.clouds[i], x, c.oy + c.ih * (0.02 + i * 0.12), w, h);
+    }
+    if (now >= this.nextCrow) {
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      const y = 0.12 + Math.random() * 0.22;
+      this.crows = Array.from({ length: 1 + Math.floor(Math.random() * 3) }, (_, i) => ({
+        born: now + i * 280, dir, y: y + i * 0.018, size: 5 + Math.random() * 5,
+        duration: 6500 + Math.random() * 2200, phase: Math.random() * 6.28,
+      }));
+      this.nextCrow = now + 16000 + Math.random() * 18000;
+    }
+    g.globalCompositeOperation = "source-over";
+    g.globalAlpha = 0.9;
+    g.fillStyle = "#070b14";
+    this.crows = this.crows.filter((bird) => {
+      const age = now - bird.born, p = age / bird.duration;
+      if (p > 1) return false;
+      if (p < 0) return true;
+      const size = bird.size * Math.max(0.65, this.vw / 950);
+      const x = (bird.dir > 0 ? p : 1 - p) * (this.vw + 80) - 40;
+      const y = c.oy + bird.y * c.ih + Math.sin(p * 8 + bird.phase) * 12;
+      const wing = Math.sin(age / 1000 * 15 + bird.phase) * size * 0.85;
+      g.save(); g.translate(x, y); g.scale(bird.dir, 1);
+      g.beginPath();
+      g.moveTo(-size * 1.8, -wing);
+      g.quadraticCurveTo(-size * 0.7, -size * 0.5, 0, 0);
+      g.quadraticCurveTo(size * 0.7, -size * 0.5, size * 1.8, -wing);
+      g.lineTo(size * 0.7, 2); g.lineTo(2, 1);
+      g.lineTo(0, 5); g.lineTo(-2, 1); g.lineTo(-size * 0.7, 2);
+      g.closePath(); g.fill();
+      g.beginPath(); g.ellipse(1, 0, 3, 1.8, 0, 0, Math.PI * 2); g.fill();
+      g.restore();
+      return true;
+    });
+    if (now >= this.nextStorm) {
+      this.storm = { born: now, delay: 700 + Math.random() * 900, sounded: false, x: 0.15 + Math.random() * 0.7 };
+      this.nextStorm = now + 22000 + Math.random() * 22000;
+    }
+    if (this.storm) {
+      const storm = this.storm, age = now - storm.born;
+      const light = Math.exp(-age / 170);
+      g.globalCompositeOperation = "screen";
+      g.globalAlpha = light * 0.24;
+      const sky = g.createLinearGradient(0, 0, 0, this.vh * 0.65);
+      sky.addColorStop(0, "#bacde9"); sky.addColorStop(1, "rgba(100,130,175,0)");
+      g.fillStyle = sky; g.fillRect(0, 0, this.vw, this.vh * 0.65);
+      g.globalAlpha = light * 0.6; g.strokeStyle = "#cbdcf5"; g.lineWidth = 1.2;
+      g.beginPath();
+      for (let i = 0; i < 7; i++) {
+        const x = storm.x * this.vw + (hash(i, storm.born) - 0.5) * 28;
+        const y = c.oy + c.ih * (0.04 + i * 0.028);
+        if (!i) g.moveTo(x, y); else g.lineTo(x, y);
+      }
+      g.stroke();
+      if (!storm.sounded && age >= storm.delay) { storm.sounded = true; SFX.thunder(); }
+      if (age > 2200) this.storm = null;
+    }
+    g.restore();
+  }
   draw(g, now, dt) {
     const a = this.art, d = this.dpr;
     const c = this.cam(now);
@@ -144,6 +222,7 @@ export class PaintedTitle {
     g.globalAlpha = 1;
     g.drawImage(this.img, c.ox, c.oy, c.iw, c.ih);
     if (this.reduced) return;
+    this.drawWeather(g, c, dt);
     const t = now / 1000;
     const P = (u, v) => [c.ox + u * c.iw, c.oy + v * c.ih];
     const [gx, gy] = P(a.gate[0], a.gate[1]);

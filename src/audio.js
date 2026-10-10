@@ -226,6 +226,7 @@ function jingle(name, fallback, duck, depth = 0.3) {
 
 export const SFX = {
   select() { sfx("select"); },
+  thunder() { if (!document.hidden) sfx("thunder", { jit: 0.12 }); },
   flip() { sfx("flip"); },
   step() { sfx("step", { jit: 0.1 }); },
   swing() { sfx("swing", { jit: 0.1 }); },
