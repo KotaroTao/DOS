@@ -104,7 +104,7 @@ export function renderSoulSeg(root, d, ctx = {}) {
   const pe = d.primary != null ? soulByUid(d.primary) : null;
   root.appendChild(mainCard(d, pe, town));
   if (!pe) return;
-  // メイン魂 (付け替え) とサブ魂を1列に並べる。控えの結社は隊列の右 (party.js) から開く (ユーザーの指示、2026-10)
+  // メイン魂 (付け替え) を1列ぶんに、サブ魂1・2をその下に2つ並べる (ui-party.css .sp-more)。控えの結社は隊列の右 (party.js) から開く (ユーザーの指示、2026-10)
   const more = el("div", "sp-more");
   more.appendChild(mainTile(d, pe, town));
   subTiles(more, d, town);
