@@ -1,4 +1,4 @@
-// 街の絵 — 写実寄りのダークファンタジー・ドット絵 (画像ファイルは使わず、すべてコードで描く)
+// 街の絵 — ダークファンタジーのドット絵と、施設の情景・人物の描き下ろし原画
 //
 // ・Relief: 画素ごとに「材質 / 法線 / 奥行き / 遮蔽」を持つ浮彫りラスタ。形 (楕円体・管・多角形) を
 //   塗り重ね、凹凸 (bump) を足してから光源で陰影を付け、材質ごとの色ランプ (影=冷たい紫 → 光=暖かい色)
@@ -12,12 +12,13 @@
 //   createTownScene()        広場の夜景パノラマ (canvas 240x170・動く)
 //   townSpots()              夜景の名所の位置 (割合) — 広場の札を重ねる
 //   vignetteCanvas(key)      施設の情景 (canvas 120x75・灯が揺らぐ。原画のある鍵は townpaint.js の高精細版)
-//   keeperCanvas(key)        施設の番人の胸像 (canvas 48x56)
+//   keeperCanvas(key)        施設の番人の胸像 (原画版480x560 / ドット絵48x56)
 //   iconCanvas(key)          迷宮の門・封じられた門・潜行の号令・錠前・奈落の紋章 (静止画)
 //   KING_PORTRAIT            王の胸像 ({ palette, art } 42x42 — spriteCanvas でそのまま描ける)
 //   prewarmTown(keys)        上の絵をアイドル時間に描き溜める
 
 import { hasPaintedVignette, paintedVignette } from "./townpaint.js";
+import { TOWN_KEEPERART } from "./townkeyart.js";
 
 const TAU = Math.PI * 2;
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -1534,7 +1535,7 @@ function keeperFrames(key) {
   });
 }
 // 番人の胸像 canvas (灯の揺らぎで陰影がわずかに揺れる)
-export function keeperCanvas(key) {
+function pixelKeeperCanvas(key) {
   const frames = keeperFrames(key);
   const c = makeCanvas(KW, KH);
   if (!c || !frames) return null;
@@ -1549,6 +1550,41 @@ export function keeperCanvas(key) {
     last = fr;
     g.drawImage(fr, 0, 0);
   }, 8);
+}
+
+// 描き下ろしの胸像は静止画。読めない時は従来の胸像へ戻す。
+const _keeperImages = new Map();
+export function keeperCanvas(key) {
+  const src = TOWN_KEEPERART[key];
+  if (!src) return pixelKeeperCanvas(key);
+  const c = makeCanvas(480, 560);
+  if (!c) return null;
+  c.className = "tw-bust tw-bust-hd";
+  c.style.imageRendering = "auto";
+  const g = c.getContext && c.getContext("2d");
+  if (!g) return c;
+  if (!_keeperImages.has(key)) {
+    _keeperImages.set(key, new Promise((resolve) => {
+      const im = new Image();
+      im.decoding = "async";
+      im.onload = () => resolve(im);
+      im.onerror = () => resolve(false);
+      im.src = src;
+    }));
+  }
+  _keeperImages.get(key).then((im) => {
+    if (!im) {
+      const fallback = pixelKeeperCanvas(key);
+      if (fallback && c.parentNode) c.parentNode.replaceChild(fallback, c);
+      return;
+    }
+    const s = Math.max(c.width / im.naturalWidth, c.height / im.naturalHeight);
+    const w = im.naturalWidth * s, h = im.naturalHeight * s;
+    g.imageSmoothingEnabled = true;
+    g.imageSmoothingQuality = "high";
+    g.drawImage(im, (c.width - w) / 2, (c.height - h) / 2, w, h);
+  });
+  return c;
 }
 
 // 街の絵の下ごしらえ: 夜景と施設の情景を、アイドル時間に少しずつ描いておく (初めて街を開く時の引っかかりを消す)

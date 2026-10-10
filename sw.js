@@ -227,6 +227,9 @@ const ASSETS = [
   "./art/town/tavern.webp",
   "./art/town/inn.webp",
   "./art/town/shrine.webp",
+  "./art/town/keepers/barkeep.webp",
+  "./art/town/keepers/innkeeper.webp",
+  "./art/town/keepers/maiden.webp",
   // <</TOWN_ART>>
   // <<TITLE_ART>> タイトルの原画 (tools/titleart/build.py が書く。手で直さない)
   "./art/title/keyart-wide.webp",

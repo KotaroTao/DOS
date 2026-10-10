@@ -9,6 +9,7 @@
   docs/art/town/points.json   = 切り取りの中心と、揺らぐ明かりの位置 (書式は docs/art/town/README.md)
 
 書くもの (手で直さない): src/townkeyart.js の <<TOWN_KEYART>> 欄、sw.js の ASSETS の <<TOWN_ART>> 欄。
+人物の胸像: docs/art/town/keepers/<鍵>.png → art/town/keepers/<鍵>.webp (最大幅640px)。
 原画の無い鍵は従来のドット絵のまま。
 """
 import json
@@ -25,6 +26,7 @@ SW = ROOT / "sw.js"
 QUALITY = 90
 MAX_W = 1600  # 情景は最大でも画面幅ほど (約800px × 2)
 KEYS = ("tavern", "inn", "shrine")
+KEEPER_KEYS = ("barkeep", "innkeeper", "maiden")
 TONES = ("fire", "lamp", "candle", "crystal", "moon")
 
 
@@ -68,17 +70,22 @@ def entries():
     return out
 
 
-def convert(src, dst):
+def keeper_entries():
+    return {k: (MASTER / "keepers" / f"{k}.png", SHIP / "keepers" / f"{k}.webp")
+            for k in KEEPER_KEYS if (MASTER / "keepers" / f"{k}.png").exists()}
+
+
+def convert(src, dst, max_w=MAX_W):
     im = Image.open(src).convert("RGB")
-    if im.width > MAX_W:
-        k = MAX_W / im.width
-        im = im.resize((MAX_W, round(im.height * k)), Image.LANCZOS)
+    if im.width > max_w:
+        k = max_w / im.width
+        im = im.resize((max_w, round(im.height * k)), Image.LANCZOS)
     dst.parent.mkdir(parents=True, exist_ok=True)
     im.save(dst, "WEBP", quality=QUALITY, method=6)
     print(f"{src.relative_to(ROOT)} {src.stat().st_size // 1024}KB -> {dst.relative_to(ROOT)} {dst.stat().st_size // 1024}KB")
 
 
-def js_block(es):
+def js_block(es, keepers):
     lines = ["export const TOWN_KEYART = {"]
     for key in KEYS:
         if key not in es:
@@ -91,11 +98,17 @@ def js_block(es):
         info["lights"] = [{k: L[k] for k in ("at", "r", "tone") if k in L} for L in pt["lights"]]
         lines.append(f"  {key}: {json.dumps(info, ensure_ascii=False)},")
     lines.append("};")
+    lines.append("export const TOWN_KEEPERART = {")
+    for key in KEEPER_KEYS:
+        src = "./" + keepers[key][1].relative_to(ROOT).as_posix() if key in keepers else None
+        lines.append(f"  {key}: {json.dumps(src)},")
+    lines.append("};")
     return "\n".join(lines)
 
 
-def sw_block(es):
-    return "".join(f'  "./{es[k][1].relative_to(ROOT).as_posix()}",\n' for k in KEYS if k in es)
+def sw_block(es, keepers):
+    paths = [es[k][1] for k in KEYS if k in es] + [keepers[k][1] for k in KEEPER_KEYS if k in keepers]
+    return "".join(f'  "./{p.relative_to(ROOT).as_posix()}",\n' for p in paths)
 
 
 def replace(text, head, tail, body, name):
@@ -108,23 +121,26 @@ def replace(text, head, tail, body, name):
 def main():
     check = "--check" in sys.argv
     es = entries()
+    keepers = keeper_entries()
     if not check:
         for src, dst, _ in es.values():
             convert(src, dst)
-    for _, dst, _ in es.values():
+        for src, dst in keepers.values():
+            convert(src, dst, max_w=640)
+    for dst in [v[1] for v in es.values()] + [v[1] for v in keepers.values()]:
         if not dst.exists():
             sys.exit(f"{dst.relative_to(ROOT)} がありません (build.py を回す)")
-    js_new = replace(JS.read_text(encoding="utf-8"), "// <<TOWN_KEYART>>", "// <</TOWN_KEYART>>", js_block(es) + "\n", "src/townkeyart.js")
-    sw_new = replace(SW.read_text(encoding="utf-8"), "// <<TOWN_ART>>", "// <</TOWN_ART>>", sw_block(es), "sw.js")
+    js_new = replace(JS.read_text(encoding="utf-8"), "// <<TOWN_KEYART>>", "// <</TOWN_KEYART>>", js_block(es, keepers) + "\n", "src/townkeyart.js")
+    sw_new = replace(SW.read_text(encoding="utf-8"), "// <<TOWN_ART>>", "// <</TOWN_ART>>", sw_block(es, keepers), "sw.js")
     if check:
         bad = [n for n, p, t in (("src/townkeyart.js", JS, js_new), ("sw.js", SW, sw_new)) if p.read_text(encoding="utf-8") != t]
         if bad:
             sys.exit("登録が原画と食い違っています: " + ", ".join(bad) + " (python3 tools/townart/build.py を回す)")
-        print("街の情景の原画の登録: 食い違いなし (" + (", ".join(es) or "原画なし — ドット絵") + ")")
+        print("街の原画の登録: 食い違いなし (" + (", ".join([*es, *keepers]) or "原画なし — ドット絵") + ")")
         return
     JS.write_text(js_new, encoding="utf-8")
     SW.write_text(sw_new, encoding="utf-8")
-    print("登録: " + (", ".join(es) or "原画なし — ドット絵のまま"))
+    print("登録: " + (", ".join([*es, *keepers]) or "原画なし — ドット絵のまま"))
 
 
 if __name__ == "__main__":

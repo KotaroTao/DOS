@@ -7,4 +7,9 @@ export const TOWN_KEYART = {
   inn: {"src": "./art/town/inn.webp", "focus": [0.5, 0.48], "lights": [{"at": [0.7200520833333334, 0.3212890625], "r": 0.026, "tone": "candle"}]},
   shrine: {"src": "./art/town/shrine.webp", "focus": [0.5, 0.48], "lights": [{"at": [0.5, 0.302734375], "r": 0.073, "tone": "crystal"}, {"at": [0.3151041666666667, 0.4013671875], "r": 0.028, "tone": "candle"}, {"at": [0.6790364583333334, 0.40234375], "r": 0.028, "tone": "candle"}]},
 };
+export const TOWN_KEEPERART = {
+  barkeep: "./art/town/keepers/barkeep.webp",
+  innkeeper: "./art/town/keepers/innkeeper.webp",
+  maiden: "./art/town/keepers/maiden.webp",
+};
 // <</TOWN_KEYART>>
