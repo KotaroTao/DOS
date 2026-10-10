@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 23 ・ 出荷済み (任意の修正あり) 14 ・ 出荷済み・修正待ち 21 ・ 未着手 (指示あり) 42
+場面: 出荷済み 26 ・ 出荷済み (任意の修正あり) 14 ・ 出荷済み・修正待ち 18 ・ 未着手 (指示あり) 42
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -16,10 +16,10 @@
 | 序章 | `first_descent` | 門をくぐる前に | 出荷済み (任意の修正あり) | [見る](chapter0.md#first_descent) |
 | 第1章「師の灯」 | `w01_lantern` | 墓石の上の青い火 | 出荷済み (任意の修正あり) | [見る](chapter1.md#w01_lantern) |
 | 第1章「師の灯」 | `report_w01` | 閉ざされた回廊への許し | 出荷済み (任意の修正あり) | [見る](chapter1.md#report_w01) |
-| 第1章「師の灯」 | `w02_sigil` | 水音の向こうへ | 出荷済み・修正待ち | [見る](chapter1.md#w02_sigil) |
+| 第1章「師の灯」 | `w02_sigil` | 水音の向こうへ | 出荷済み | [見る](chapter1.md#w02_sigil) |
 | 第1章「師の灯」 | `report_w02` | 祈りの終わらない場所 | 出荷済み (任意の修正あり) | [見る](chapter1.md#report_w02) |
 | 第1章「師の灯」 | `mem_w03` | 止められても進んだ人 | 出荷済み・修正待ち | [見る](chapter1.md#mem_w03) |
-| 第1章「師の灯」 | `report_w03` | 封じた者の沈黙 | 出荷済み・修正待ち | [見る](chapter1.md#report_w03) |
+| 第1章「師の灯」 | `report_w03` | 封じた者の沈黙 | 出荷済み | [見る](chapter1.md#report_w03) |
 | 第1章「師の灯」 | `w04_arm` | 黒い流れが返したもの | 出荷済み・修正待ち | [見る](chapter1.md#w04_arm) |
 | 第1章「師の灯」 | `irene_reveal` | レースの下の継ぎ目 | 出荷済み | [見る](chapter1.md#irene_reveal) |
 | 第1章「師の灯」 | `report_w04` | 答えを飲み込んだ王 | 出荷済み | [見る](chapter1.md#report_w04) |
@@ -103,7 +103,7 @@
 | 第8章「嵐の尖塔」 | `report_w33` | 百年目の青空 | 未着手 (指示あり) | [見る](chapter8.md#report_w33) |
 | 第8章「嵐の尖塔」 | `irene_rain` | 雨の音 | 未着手 (指示あり) | [見る](chapter8.md#irene_rain) |
 | 第8章「嵐の尖塔」 | `ch8_end` | 雲の向こうの橋 | 未着手 (指示あり) | [見る](chapter8.md#ch8_end) |
-| 序章 | `irene_repair` | 砕けても、名は消えない | 出荷済み・修正待ち | [見る](chapter0.md#irene_repair) |
+| 序章 | `irene_repair` | 砕けても、名は消えない | 出荷済み | [見る](chapter0.md#irene_repair) |
 | 第1章「師の灯」 | `irene_familiar` | 名で呼べる距離 | 出荷済み | [見る](chapter1.md#irene_familiar) |
 | 第3章「魂脈の根」 | `irene_trust` | 扉を開けた日のこと | 出荷済み | [見る](chapter3.md#irene_trust) |
 

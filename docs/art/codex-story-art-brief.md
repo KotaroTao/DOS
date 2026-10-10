@@ -204,21 +204,21 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 
 ### A. 必須 (物語の筋や正典と食い違う)
 
-**A-1. 序章 irene_repair「砕けても、名は消えない」** `art/story-review/prologue/irene-repair.png`
+**A-1. 序章 irene_repair「砕けても、名は消えない」** `art/story-review/prologue/irene-repair.png` (済)
 - 直す: 作業台の外れた人業の頭と、棚の人業に目鼻が彫られている → 人業の頭は何も彫られていない丸い木 (`src/story.js` の館の語り「人業の頭は、もとは何も彫られていない、丸い木なのです」)。
 - 保つもの: 砕けた魂の結晶、イレーヌ、弟子。
 ```text
 ...except: the detached doll head on the workbench and every doll on the shelves must have a blank, smooth, round wooden head with NO carved eyes, nose, mouth or face markings at all.
 ```
 
-**A-2. 第一章 report_w03「封じた者の沈黙」** `art/story-review/chapter1/report_w03.png`
+**A-2. 第一章 report_w03「封じた者の沈黙」** `art/story-review/chapter1/report_w03.png` (済)
 - 直す: 宰相が別人 (茶髪の壮年の顔・司教冠) → 正典のモルデン。基準画像 `art/story-review/prologue/morden-at-throne.png` と `chapter1/report_w01.png` を渡す。
 - 保つもの: 王が目をそらし、宰相が横目で王を盗み見る構図。
 ```text
 ...except: replace the chancellor with the exact chancellor Morden from the reference: long gaunt pale ageless face, sunken dark eyes, thin enigmatic smile, tall black-purple ceremonial hat with a gold band, red inner robe, heavy gold chain with a red jewel. He still glances sideways at the king.
 ```
 
-**A-3. 第一章 w02_sigil「水音の向こうへ」** `art/story-review/chapter1/w02_sigil.png`
+**A-3. 第一章 w02_sigil「水音の向こうへ」** `art/story-review/chapter1/w02_sigil.png` (済)
 - 直す: 本文は「格子の錠には鍵が挿したままになっていた。札に一言」。いまの絵は錠も札も無く、鍵が縁石に置いてある → 鉄格子に錆びた錠前を付け、鍵を挿したままにし、鍵に小さな紙の札を結ぶ。
 - 保つもの: 壁の一門の印、その下の鉄格子と水路。
 ```text
