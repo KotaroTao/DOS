@@ -212,8 +212,8 @@ export function makeBoard(floor, cfg = null) {
     }
   }
 
-  // 毒の床: 行き止まり以外の「通路」にも危険を敷く新地形 (ランク3帯以降の迷宮)。
-  // 踏むたびに隊全体を蝕む。盗賊系の毒床耐性で軽減/無効化できる
+  // 蝕む床 (cell.type "poison"): 行き止まり以外の「通路」にも危険を敷く。迷宮の台帳 floorHaz.harm で置く迷宮だけ (dn.poisonRate)。
+  // 見た目と名前はその土地のもの (毒の沼・灼けた床・凍てつく床… — floorhaz.js)。踏むたびに隊全体を蝕む。隠修士の悪路渡りで軽減/無効化できる
   const poisonRate = dn.poisonRate || 0;
   if (poisonRate > 0) {
     for (let y = 0; y < ROWS; y++) {
@@ -225,8 +225,8 @@ export function makeBoard(floor, cfg = null) {
     }
   }
 
-  // 落とし穴: 通路に口を開け、踏むと1階下へ落とされる (ダメージは無い)。最下階には置かない。
-  // 浮遊の術で越えられる。毒の床と同じく行き止まり以外の通路に敷く (第2層以降。dn.pitRate)
+  // 落ちる床 (cell.type "pit"): 通路に口を開け、踏むと1階下へ落とされる (ダメージは無い)。最下階には置かない。
+  // 浮遊の術で越えられる。蝕む床と同じく行き止まり以外の通路に敷く (台帳 floorHaz.fall で置く迷宮だけ。dn.pitRate)
   const pitRate = dn.pitRate || 0;
   if (pitRate > 0 && floor < (dn.floors || 1)) {
     for (let y = 0; y < ROWS; y++) {

@@ -165,8 +165,8 @@ export function unidentName(it) {
 }
 // 表示名: 未鑑定なら伏せ名、鑑定済みなら本来の名前
 export function itemName(it) { return it && it.unidentified ? unidentName(it) : (it ? it.name + (it.forge ? "＋" + it.forge : "") : ""); }
-// 鍛え直し (迷宮のイベント「地の底の鍛冶場」): 品の正の能力値を 1段につき1割 (最低+1) 底上げする。
-// 品の能力はロード時に目録から引き直される (reflattenItemStats) ので、その後にもう一度これを掛ける
+// ＋N の段 (it.forge。元は迷宮の出来事「地の底の鍛冶場」。第九章「宿敵の再戦」で首級を鍛える予定): 品の正の能力値を 1段につき1割 (最低+1) 底上げする。
+// 品の能力はロード時に目録から引き直される (reflattenItemStats) ので、その後にもう一度これを掛ける (品質 applyQuality の後)
 export const FORGE_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp"];
 export function applyForge(it) {
   if (!it || !it.forge) return it;
@@ -177,6 +177,68 @@ export function applyForge(it) {
   if (it.weaponRating) it.weaponRating *= 1 + 0.1 * it.forge;
   if (it.scale) it.scale = Object.fromEntries(Object.entries(it.scale).map(([k, v]) => [k, Math.round(v * (1 + 0.1 * it.forge) * 10000) / 10000]));
   return it;
+}
+
+// ===== 品質 (2026-10、ユーザーの指示) =====
+// 装備品 (コモン〜LR。道具・収集品は対象外) は手に入れるたびに品質 0〜100 を引き、性能が目録の値の ±QUALITY_SPREAD (20%) で変わる。
+// 品質50 = 目録どおり (並品)。拾う品の平均の強さは目録のまま。商会の棚の品は並品 (品質50) で、売った品も並品として棚に戻る。
+// 変わるもの: 能力値 (STR…MP・会心)・%補正 (mult)・武器の参照係数 (scale = 攻撃性能)・状態異常耐性 (aRes)・ブレス耐性 (bRes)・抵抗値 (resists)。
+//   戦闘効果 (eff)・属性 (eAtk/eDef)・追加効果 (onHit) は変えない。売値・鑑定料は品の種類で決まり、品質に依らない。
+// 「鍛え直し」(奈落と同時に開く、game.js reforge*) で金貨を払って品質を引き直す。結果を見て、新しい品質か元のままかを選べる。
+// 品の能力はロード時に目録から引き直される (reflattenItemStats) ので、その後にもう一度これを掛ける (＋N の段 applyForge はその後)
+export const QUALITY_SPREAD = 0.2;
+export const QUALITY_MID = 50;
+export const QUALITY_MAX = 100;
+const QUALITY_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
+const QUALITY_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp", "crit"];
+// 品質を持つ品か (装備品)
+export function hasQuality(it) { return !!it && QUALITY_SLOTS.has(it.slot); }
+// 品質を引く (0〜100 の整数、どれも同じ確率)
+export function rollQuality() { return Math.floor(Math.random() * (QUALITY_MAX + 1)); }
+// 品質 → 性能の倍率 (0 = ×0.8 / 50 = ×1 / 100 = ×1.2)
+export function qualityMul(q) {
+  const v = Math.max(0, Math.min(QUALITY_MAX, q == null ? QUALITY_MID : q));
+  return 1 + QUALITY_SPREAD * (v - QUALITY_MID) / QUALITY_MID;
+}
+// 品質の値 (品質を持たない品・未設定は null。旧セーブの品は読み込みで並品 50 にする)
+export function qualityOf(it) { return hasQuality(it) ? (it.q == null ? QUALITY_MID : it.q) : null; }
+// 品質で変わる性能を持つ品か (能力値・%補正・参照係数・耐性のどれか。戦闘効果だけの品は false)
+export function qualityMatters(it) {
+  if (!hasQuality(it)) return false;
+  const tmpl = ITEMS[it.id] || it;
+  if (QUALITY_KEYS.some((k) => typeof tmpl[k] === "number" && tmpl[k] > 0)) return true;
+  return !!(tmpl.scale || tmpl.mult || tmpl.aRes || tmpl.bRes || tmpl.resists);
+}
+const q3 = (v) => Math.round(v * 1000) / 1000;
+// 品 it の性能に品質 it.q を掛ける。目録の値 (引き直した直後) に1回だけ掛けること
+export function applyQuality(it) {
+  if (!hasQuality(it) || it.q == null || it.q === QUALITY_MID) return it;
+  const m = qualityMul(it.q);
+  for (const k of QUALITY_KEYS) {
+    const v = it[k];
+    if (typeof v !== "number" || v <= 0) continue;
+    it[k] = k === "crit" ? q3(v * m) : Math.max(1, Math.round(v * m));
+  }
+  if (it.mult) it.mult = Object.fromEntries(Object.entries(it.mult).map(([k, v]) => [k, typeof v === "number" && v > 0 ? q3(v * m) : v]));
+  if (it.scale) it.scale = Object.fromEntries(Object.entries(it.scale).map(([k, v]) => [k, Math.round(v * m * 10000) / 10000]));
+  if (it.weaponRating) it.weaponRating = Math.round(it.weaponRating * m * 100) / 100;
+  if (it.aRes) it.aRes = Object.fromEntries(Object.entries(it.aRes).map(([k, v]) => [k, typeof v === "number" && v > 0 ? Math.min(1, q3(v * m)) : v]));
+  if (typeof it.bRes === "number" && it.bRes > 0) it.bRes = q3(it.bRes * m);
+  if (it.resists) it.resists = Object.fromEntries(Object.entries(it.resists).map(([k, v]) => [k, typeof v === "number" && v > 0 ? Math.max(1, Math.min(100, Math.round(v * m))) : v]));
+  return it;
+}
+// 品 it を目録から写し直し、品質 q (省略時 it.q) と＋N の段を掛けた新しい品 (it は変えない)。鍛え直しの見比べに使う
+export function itemAtQuality(it, q = it && it.q) {
+  const tmpl = it && ITEMS[it.id];
+  if (!tmpl) return it ? { ...it } : null;
+  const out = { ...it };
+  for (const k of [...QUALITY_KEYS, "mult", "scale", "weaponRating", "aRes", "bRes", "resists"]) {
+    if (tmpl[k] !== undefined) out[k] = tmpl[k]; else delete out[k];
+  }
+  out.q = q;
+  applyQuality(out);
+  if (out.forge) applyForge(out);
+  return out;
 }
 
 // 隠しレベル → 表示ランク R1-R20 (図鑑の枠色・発見演出に使う)
@@ -1279,7 +1341,7 @@ export const BREATH_RES_MAX = 0.5;
 //   bomb: { power, el, all, prey }  戦闘中: 投げつける。威力は固定 (使い手の能力に依らない)。属性・魔法耐性・魔法弱点が効く
 //   hex: { kind, chance, all } 戦闘中: 敵を眠らせる (sleep) / 痺れさせる (paralyze) / 惑わす (confuse)。Lv差が効く
 //   escape: true              戦闘中: 必ず逃げる (退路を断たれていなければ)
-//   float: N                  迷宮で: N 階のあいだ浮遊する (この階を含む。落とし穴に落ちず、毒の床も踏まない)
+//   float: N                  迷宮で: N 階のあいだ浮遊する (この階を含む。足元の穴に落ちず、害のある床も踏まない)
 //   drop: 0.5                 戦利品に出る重み (既定 1。強すぎる品を出にくくする)
 export const USE_AIL = ["poison", "paralyze", "stone", "sleep", "charm", "confuse"];
 export const USE_KEYS = ["heal", "full", "mp", "mpFull", "all", "cure", "revive", "buff", "dur", "bomb", "hex", "escape", "float", "recall", "drop"];
@@ -1378,7 +1440,7 @@ export function useLines(it, short = false) {
   }
   if (u.hex) L.push(`${u.hex.all ? "敵全体" : "敵1体"}を${HEX_LABEL[u.hex.kind] || u.hex.kind}${short ? "" : ` (基本 ${Math.round(u.hex.chance * 100)}%・Lv差で増減)`}`);
   if (u.escape) L.push(short ? "必ず逃げる" : "戦いから必ず逃げ出せる (退路を断たれていなければ)");
-  if (u.float) L.push(short ? `浮遊 ${u.float}階` : `${u.float}階のあいだ宙に浮く (この階を含む。落とし穴・毒の床にかからない)`);
+  if (u.float) L.push(short ? `浮遊 ${u.float}階` : `${u.float}階のあいだ宙に浮く (この階を含む。足元の穴・害のある床にかからない)`);
   if (u.recall) L.push(short ? "街へ帰還" : "迷宮から街へ帰還する (戦利品は持ち帰る)");
   if (!short) {
     const w = useWhere(it);

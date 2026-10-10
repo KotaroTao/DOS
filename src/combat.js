@@ -1,7 +1,7 @@
 import { monsterResists } from "./resistance.js";
 // パーティ・呪文・ターン制戦闘ロジック
 import { MONSTERS } from "./sprites.js";
-import { ITEMS, weaponRange, scaleBonus, useTarget, useHelps, useCureKinds, useWhere, offhandOf, DUAL_SKILL_SHARE } from "./items.js";
+import { ITEMS, hasQuality, rollQuality, applyQuality, weaponRange, scaleBonus, useTarget, useHelps, useCureKinds, useWhere, offhandOf, DUAL_SKILL_SHARE } from "./items.js";
 import { ELEMENTS, elemDmgMult, elemBeats, monStats, rankStats, resistRate, resistHpMul, METAL_TIERS } from "./dungeons/schema.js";
 
 import { SPELLS } from "./skilldefs.js";
@@ -28,10 +28,13 @@ const SHAKE_AT = 3, SHAKE_RATE = 0.5;
 const DISPEL_AT = 2;
 
 // アイテムは個体ごとに複製して持たせる (装備状態を個別管理するため)
-export function cloneItem(id) {
+// 装備品は手に入れるたびに品質 0〜100 を引く (items.js applyQuality)。q を渡せばその品質 (商会の棚の品 = 並品 50)
+export function cloneItem(id, q) {
   const t = ITEMS[id];
   if (!t) return null;
-  return { ...t };
+  const it = { ...t };
+  if (hasQuality(it)) { it.q = q == null ? rollQuality() : q; applyQuality(it); }
+  return it;
 }
 
 let _uid = 0;

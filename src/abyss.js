@@ -57,7 +57,7 @@ export const ABYSS_MUTATIONS = [
   { id: "snare",    name: "退路の封印", sym: "⛓", kind: "curse", accent: "#9aa0ac", noFlee: true, once: true,
     desc: "以降、戦闘から逃走できなくなる" },
   { id: "venom",    name: "蝕む瘴気",   sym: "☣", kind: "curse", accent: "#8a2be2", enemyMul: 1.1, poisonUp: true,
-    desc: "毒の床が広がり、魔物の力が +10% される" },
+    desc: "足元を蝕む床 (その層の毒の沼・灼けた床など) が広がり、魔物の力が +10% される" },
   // --- 恵み (稀) ---
   { id: "soulfont", name: "魂の湧泉",   sym: "✧", kind: "boon", accent: "#7fd0ff", soulMul: 1.5,
     desc: "得られる Soul が 1.5倍 になる" },

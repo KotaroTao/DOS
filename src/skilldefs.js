@@ -32,7 +32,7 @@
 //   ward({breath?, spell?: 軽減率}) — 守りの陣: 敵のブレス / 全体呪文から受けるダメージをその割合だけ減らす (dur ターン。重ねると最大 1/3 まで)
 // 呪文の伸び: 攻撃呪文は INT で伸びる。光の呪文と faith: true の呪文は「祈りの呪文」で、INT と PIE の高い方で伸びる
 // 迷宮で唱える技: kind "field" (戦闘の技の一覧には出ない。迷宮の手元のボタン (覚えた術が2つ以上なら「術」) から唱える)
-//   float(階数) — 浮遊: 隊を宙に浮かせ、その階数のあいだ落とし穴に落ちず毒の床も踏まない
+//   float(階数) — 浮遊: 隊を宙に浮かせ、その階数のあいだ落ちる床に落ちず蝕む床も踏まない (どちらも迷宮の土地ごとの床 — floorhaz.js)
 //   sense("enemy"|"chest"|"stairs") — 探りの術: その階のあいだ、まだめくっていないカードの魔物 (種類・強さは分からない) / 宝箱 / 階段の位置を示す (stairs はさらに階段の周囲8マスのカードをめくる)
 //     (狩人の気配読み・盗賊の宝探し・司教の道しるべ。気配読みと宝探しはドックに専用のボタンを持つ)
 // 持続 dur (既定3ターン。ラウンド開始ごとに1減る)
@@ -243,7 +243,7 @@ export const SPELLS = {
   RYUURINJIN:     { name: "鱗壁の陣", mp: 10, kind: "buff", ward: { breath: 0.5 }, tech: true, target: "all-ally", desc: "竜鱗の構えで隊を固め、ブレスのダメージを半減する" },
   MAYOKE:         { name: "魔除けの帳", mp: 10, kind: "buff", ward: { spell: 0.5 }, target: "all-ally", desc: "魔除けの帳で隊を包み、敵の呪文のダメージを半減する" },
   // 迷宮で唱える (戦闘では使わない)
-  FUYUU:          { name: "浮遊", mp: 8, kind: "field", float: 3, target: "all-ally", desc: "隊を宙に浮かせる。3階のあいだ落とし穴に落ちず、毒の床も踏まない（迷宮で唱える）" },
+  FUYUU:          { name: "浮遊", mp: 8, kind: "field", float: 3, target: "all-ally", desc: "隊を宙に浮かせる。3階のあいだ足元の穴に落ちず、毒の沼や灼けた床など害のある床も踏まない（迷宮で唱える）" },
   HOUSHOUHEKI:    { name: "法障壁", mp: 13, kind: "buff", grantBarrier: 1, target: "all-ally", desc: "味方全体に魔障壁を張る" },
   DAIKEKKAI:      { name: "大結界陣", mp: 30, kind: "buff", buff: { vit: 1.5 }, grantBarrier: 2, purge: true, target: "all-ally", desc: "守りを上げ、魔障壁を重ね、弱体を解く" },
   KASUMINOTOBARI: { name: "霞の帳", mp: 13, kind: "heal", healMul: 1.1, debuffAll: { hit: 0.75 }, target: "all-ally", desc: "味方を癒し、敵全体の命中率を下げる" },

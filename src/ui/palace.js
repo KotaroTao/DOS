@@ -21,7 +21,7 @@ import { softFade } from "./motion.js";
 import { statLines, itemCatText, specialLines, weaponPerformanceEl, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock, elemStatShort, enemyReveal, enemyLabel, UNKNOWN_COLOR } from "./itemview.js";
 import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
 import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LORE_PAGES } from "../events.js";
-import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_KIND_LABEL, shieldKind, itemName } from "../items.js";
+import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_KIND_LABEL, shieldKind, itemName, hasQuality, qualityOf, QUALITY_SPREAD } from "../items.js";
 import { RANK_COLOR, RANK_NAME } from "../content.js";
 import { poolAt } from "../dungeons/world.js";
 import { MONSTER_LORE } from "../dungeons/monlore.js";
@@ -720,6 +720,12 @@ function codexItemView(it, o) {
     body.appendChild(setText(el("div", "pl-detail-cat"), itemCatText(it)));
     const st = statLines(it);
     if (st) body.appendChild(setText(el("div", "pl-detail-stats"), st));
+    // 品質: 所持品の実体ならその品質、図鑑 (目録の品) なら幅の説明 (図鑑の数値は並品 = 品質50)
+    if (hasQuality(it)) {
+      body.appendChild(setText(el("div", "pl-detail-q"), o.item
+        ? `品質 ${qualityOf(it)}（0〜100。50が並品）`
+        : `手に入れるたびに品質0〜100が決まり、性能が±${Math.round(QUALITY_SPREAD * 100)}%変わる。ここの数値は並品（品質50）。`));
+    }
     const dolls = game.allDolls ? game.allDolls() : [...(game.G?.party || []), ...(game.G?.reserve || [])];
     const wearer = dolls.find(d => d.equip?.weapon === it);
     const performance = weaponPerformanceEl(it, wearer);

@@ -155,6 +155,20 @@ function renderHero(b) {
     for (const ln of tr.lines || []) box.appendChild(setText(el("div", "dp-mut-l"), ln));
     hero.appendChild(box);
   }
+  // 足元 (その迷宮の土地の、落ちる床・蝕む床。src/dungeons/floorhaz.js)
+  const fh = game.dungeonFloorHaz ? game.dungeonFloorHaz(dn) : null;
+  if (fh) {
+    const box = el("div", "dp-mut dp-trait dp-ground");
+    box.style.setProperty("--mut", (fh.harm && fh.harm.accent) || "#8a8070");
+    const h = el("div", "dp-mut-h");
+    h.appendChild(el("span", "dp-mut-k", "足元"));
+    h.appendChild(el("span", "dp-mut-n", [fh.fall, fh.harm].filter(Boolean).map((s) => s.name).join("・") || "害のある床は無い"));
+    box.appendChild(h);
+    if (fh.fall) box.appendChild(setText(el("div", "dp-mut-l"), `${fh.fall.name} ― ${fh.fall.desc}。踏むと1つ下の階へ落ちる (傷は負わない)。`));
+    if (fh.harm) box.appendChild(setText(el("div", "dp-mut-l"), `${fh.harm.name} ― ${fh.harm.desc}。踏むと隊全体が傷む。`));
+    if (fh.fall || fh.harm) box.appendChild(setText(el("div", "dp-mut-l"), "浮遊の術・風切りの羽があれば、どちらにもかからない。"));
+    hero.appendChild(box);
+  }
   // 迷宮の異変 (掟の下。名のある強敵の札はここに置かない — ユーザーの指示、2026-10)
   const mut = mutatorStrip();
   if (mut) hero.appendChild(mut);

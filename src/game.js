@@ -10,7 +10,7 @@ import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteR
 import { makeItemSpriteResolver } from "./itemart/index.js";
 import {
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL,
-  UNIDENT_SLOTS, itemName, applyForge, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
+  UNIDENT_SLOTS, itemName, applyForge, hasQuality, applyQuality, rollQuality, qualityMatters, itemAtQuality, QUALITY_MID, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
 } from "./items.js";
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
@@ -20,6 +20,7 @@ import { CHAPTERS, CHAPTER_END, TUT_INTRO, TUT_THREE_REPORT, TUT_FINALE, STORY_C
 import { CATALOG_ITEMS } from "./catalog/index.js";
 import { poolAt } from "./dungeons/world.js";
 import { NAMED_FOES, NAMED_IDS, TROPHY_OF, HUNT_ELITE_RATE, bountyId } from "./dungeons/named.js";
+import { FLOOR_HAZ, hazSkin, hazPlaced, layerFloorHaz } from "./dungeons/floorhaz.js";
 import { DUNGEONS, WORLD_IDS, worldIndexOf, worldById, gateFloors, isGateFloor, dungeonLevel, dungeonLevelRaw, strengthAt, lootBand, abyssLayer, ABYSS_LAYER_FLOORS, hazardsAt, levelBand, DUNGEON_MONSTERS, ELEMENTS, elemDmgMult, ELITE_ORDER, LAYER_ELITES, LAYER_BOSS, LAYER_POOLS, monsterTraits, isFloating, METAL_TIERS, unknownLabel, unknownTag } from "./dungeons/index.js";
 import {
   ABYSS_MODS, ABYSS_MOD_MAP, ABYSS_MUT_MAP, ABYSS_BOSS_EVERY, ABYSS_MUT_EVERY, abyssScore, abyssScoreMul, rollAbyssMutation, weekSeedId, mulberry32,
@@ -72,6 +73,7 @@ import * as uiResults from "./ui/results.js";
 import * as uiAppraise from "./ui/appraise.js";
 import * as uiTutorial from "./ui/tutorial.js";
 import * as uiExpedition from "./ui/expedition.js";
+import * as uiReforge from "./ui/reforge.js";
 
 // キャンバスに描く文字の書体 (画面の明朝と揃える)
 const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", "Noto Serif CJK JP", serif';
@@ -988,6 +990,7 @@ function abyssCfg() {
   const info = abyssLayer(L);
   const lv = abyssLevel(d);
   const poisonUp = mutNum("poisonUp", false) ? 0.05 : 0;
+  const fh = { fall: null, harm: layerFloorHaz(L).harm };
   return {
     id: "abyss", name: `無限迷宮 奈落 B${d}F`, short: `奈落${d}`,
     layer: Math.min(20, L), rank: info.rank, element: info.element,
@@ -997,7 +1000,9 @@ function abyssCfg() {
     elites: info.elites,
     // 浅階/深階を区別せず、その層の顔ぶれをすべて混ぜる (floors が巨大なので board.js は常に pool を引く)
     pool: [...info.pool], deepPool: [...info.pool],
-    ...(() => { const h = hazardsAt(lv, L); return { trapRate: Math.min(0.28, h.trapRate + 0.02 + poisonUp), poisonRate: Math.min(0.14, Math.max(0.03, h.poisonRate) + poisonUp) }; })(),
+    // 足元の仕掛け: その層の土地の既定 (floorhaz.js LAYER_FLOOR_HAZ)。奈落に落ちる床は無い。誓約「毒の床」(poisonUp) は層を問わず敷く
+    floorHaz: fh,
+    ...(() => { const h = hazardsAt(lv); return { trapRate: Math.min(0.28, h.trapRate + 0.02 + poisonUp), poisonRate: (fh.harm || poisonUp) ? Math.min(0.14, Math.max(0.03, h.harmRate) + poisonUp) : 0 }; })(),
     warmChance: 0.45,
     lootLv: lootBand(lv),
     _abyss: true,
@@ -1122,7 +1127,7 @@ const SPECIAL_FLOORS = [
   { id: "soulTide", name: "魂の奔流", icon: "wisp", accent: "#7fd0ff", sym: "✧", minFloor: 2, rate: 0.03, soulMul: 1.5,
     lines: ["死者たちの声がざわめいている。", "この階で得る Soul が 1.5倍 になる。"] },
   { id: "silence", name: "静寂の階", icon: "trap", accent: "#9be88a", sym: "∅", minFloor: 2, rate: 0.02, noTrap: true,
-    lines: ["仕掛けという仕掛けが朽ち果てている。", "この階に罠・毒の床・落とし穴は存在しない。"],
+    lines: ["仕掛けという仕掛けが朽ち果てている。", "この階に罠も、足元の仕掛け (落ちる床・蝕む床) も無い。"],
     board: (b) => sfEachCell(b, (c) => { if (c.type === "trap" || c.type === "poison" || c.type === "pit") { c.type = "empty"; c.cleared = true; } }) },
   { id: "moonlight", name: "月明かりの階", icon: "corpseWarm", accent: "#aef0ff", sym: "☾", minFloor: 2, rate: 0.02,
     lines: ["蒼い光が差し込み、死者の温もりが消えない。", "この階の死体はすべて「あたたかい死体」だ。"],
@@ -1171,7 +1176,9 @@ const SPECIAL_FLOORS = [
   { id: "necropolis", name: "屍人の巣", icon: "corpse", accent: "#8c866f", sym: "✝", minFloor: 3, rate: 0.015,
     lines: ["おびただしい数の死体が横たわっている。", "魂を回収する好機だが、起き上がる者もいるだろう。"],
     board: (b) => sfPlace(b, 4, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = Math.random() < 0.5; }) },
+  // 毒の沼の階は、沼の土地 (蝕む床が沼の迷宮・奈落の層) にだけ出る (floorhaz.js の bog)
   { id: "marsh", name: "毒の沼", icon: "poison", accent: "#5a8a2a", sym: "≈", minFloor: 2, rate: 0.02, goldMul: 1.5,
+    cond: (cfg) => !!(hazPlaced(cfg, "harm") && hazPlaced(cfg, "harm").bog),
     lines: ["床のいたるところから毒がにじみ出している。", "足場は危険だが、沼には金品が沈んでいる。ゴールド 1.5倍。"],
     board: (b) => sfEachCell(b, (c) => { if (c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.30) { c.type = "poison"; c.cleared = false; } }) },
   { id: "tailwind", name: "追い風の階", icon: "stairs", accent: "#7fe0a8", sym: "≫", minFloor: 2, rate: 0.02, preempt100: true, noAmbush: true,
@@ -1268,7 +1275,7 @@ function dungeonTrait(cfg = null) {
 function physOnlyHere() { const tr = dungeonTrait(); return !!(tr && tr.physOnly); }
 setSkillGate((k) => !physOnlyHere() || !!(SPELLS[k] && SPELLS[k].kind === "phys"));
 const TRAIT_BOARD = {
-  // 根の縦穴: 通路に落とし穴を2つ (最下階には無い)。壁の根に絡まった遺品の宝箱をひとつ
+  // 根の縦穴 / 螺旋の吹き抜け: 通路に落ちる床 (その迷宮の floorHaz.fall) を2つ (最下階には無い)。遺品の宝箱をひとつ
   shaft: (b) => {
     const st = b.start ? b.cells[b.start.y][b.start.x] : null;
     if (G.floor < (curDungeon().floors || 1)) {
@@ -1284,12 +1291,12 @@ const TRAIT_BOARD = {
   offering: (b) => sfPlace(b, 2, (c) => { c.type = "chest"; c.cleared = false; }),
   // 洗礼の水: まだ澄んだ洗礼の水 (癒しの泉) を2つ
   font: (b) => sfPlace(b, 2, (c) => { c.type = "fountain"; c.cleared = false; c.fountainKind = "pure"; }),
-  // 噴き出す火: 通路の1割強が灼けた床 (毒の床と同じ。浮遊で避けられる)
+  // 噴き出す火: 通路の1割強が蝕む床 (この迷宮では灼けた床。浮遊で避けられる)
   vent: (b) => {
     const st = b.start ? b.cells[b.start.y][b.start.x] : null;
     sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.12) { c.type = "poison"; c.cleared = false; } });
   },
-  // 吹き上げる風 (奈落の氷棚): 通路に落とし穴を3つ (最下階には無い)
+  // 吹き上げる風 (奈落の氷棚): 通路に落ちる床 (氷の割れ目) を3つ (最下階には無い)
   ledge: (b) => {
     if (G.floor >= (curDungeon().floors || 1)) return;
     const st = b.start ? b.cells[b.start.y][b.start.x] : null;
@@ -1297,14 +1304,14 @@ const TRAIT_BOARD = {
     sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) >= 2) cand.push(c); });
     for (let i = 0; i < 3 && cand.length; i++) { const c = cand.splice(rand(cand.length), 1)[0]; c.type = "pit"; c.cleared = false; }
   },
-  // ぬかるむ岸 (腐れ水の岸): 通路の1割半が沼の床 (毒の床と同じ。浮遊で避けられる)
+  // ぬかるむ岸 (腐れ水の岸): 通路の1割半が蝕む床 (毒の沼。浮遊で避けられる)
   bog: (b) => {
     const st = b.start ? b.cells[b.start.y][b.start.x] : null;
     sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.15) { c.type = "poison"; c.cleared = false; } });
   },
   // 氷漬けの先人 (凍れる操霊師の間): 氷の柱の根元の骸を2つ (3割はまだあたたかい)
   icetomb: (b) => sfPlace(b, 2, (c) => { c.type = "corpse"; c.cleared = false; c.corpseClass = rollJobClass(); c.corpseWarm = Math.random() < 0.3; }),
-  // 迷い霧: 通路の2割強が胞子の床 (毒の床) に。霧の奥 (行き止まり優先) に癒しの泉をひとつ
+  // 迷い霧: 通路の1割強が蝕む床 (胞子の床) に。霧の奥 (行き止まり優先) に癒しの泉をひとつ
   mist: (b) => {
     const st = b.start ? b.cells[b.start.y][b.start.x] : null;
     sfEachCell(b, (c) => { if (c !== st && c.type === "empty" && sfOpenCount(c) >= 2 && Math.random() < 0.12) { c.type = "poison"; c.cleared = false; } });
@@ -1678,7 +1685,7 @@ function newFloor() {
   // 特別階: 盤面への効果 (宝箱の追加・罠の消滅など) を適用
   const spf = specialDef();
   if (spf && spf.board) spf.board(G.board);
-  // 迷宮の掟: 盤面の加工 (獄の骸・霧の胞子と泉・縦穴の落とし穴)。静寂の階 (罠・毒の床・落とし穴なし) では胞子も穴も撒かない
+  // 迷宮の掟: 盤面の加工 (獄の骸・霧の胞子と泉・縦穴の根の穴)。静寂の階 (罠・足元の仕掛けなし) では胞子も穴も撒かない
   const trf = dungeonTrait();
   if (trf && trf.board && TRAIT_BOARD[trf.board] && !(spf && spf.noTrap && (trf.board === "mist" || trf.board === "shaft" || trf.board === "vent" || trf.board === "ledge" || trf.board === "bog"))) TRAIT_BOARD[trf.board](G.board);
   if (G.floor > G.stats.deepest) G.stats.deepest = G.floor;
@@ -1971,7 +1978,17 @@ function dockDescend() {
   if (plain) descend(); else askDescend(cell);
 }
 // ===== 迷宮で唱える技 (kind "field") =====
-// float = 浮遊 (G.run.float: 浮いている残りの階数。この階を含む。落とし穴に落ちず、毒の床のダメージも受けない)
+// float = 浮遊 (G.run.float: 浮いている残りの階数。この階を含む。落ちる床に落ちず、蝕む床のダメージも受けない)
+// 浮遊で避けられるもの (迷宮の中ならその土地の名で「根の穴に落ちず、胞子の床も踏まない」)
+function floatGuardText() {
+  if (!inDungeon()) return "足元の穴に落ちず、害のある床も踏まない";
+  const cfg = activeCfg();
+  const f = hazPlaced(cfg, "fall"), h = cfg.poisonRate > 0 ? harmHaz() : null;
+  if (f && h) return `${f.name}に落ちず、${h.name}も踏まない`;
+  if (f) return `${f.name}に落ちない`;
+  if (h) return `${h.name}を踏まない`;
+  return "足元の穴に落ちず、害のある床も踏まない";
+}
 // sense = 探りの術 (G.board.fsense[enemy|chest|stairs]: この階だけ、まだめくっていない墓石の魔物 / 宝箱 / 階段の位置を示す。
 //         stairs = 道しるべ はさらに階段の周囲8マスの墓石をめくる。階段そのものは伏せたまま ― めくれば、どこからでも降りられてしまうため)
 function floatLeft() { return (inDungeon() && G.run && G.run.float) || 0; }
@@ -2030,7 +2047,7 @@ function castFieldMeasured(key, confirmed = false) {
   if (!sp) return;
   if (fieldActive(sp)) {
     SFX.select();
-    showToast(sp.float ? `浮遊中 ― 残り${floatLeft()}階 (落とし穴に落ちず、毒の床も踏まない)` : `${sp.name}の効果はこの階のあいだ続いている`, { tone: "info" });
+    showToast(sp.float ? `浮遊中 ― 残り${floatLeft()}階 (${floatGuardText()})` : `${sp.name}の効果はこの階のあいだ続いている`, { tone: "info" });
     return;
   }
   if (sp.sense === "stairs" && findRevealedStairs()) { SFX.ng(); showToast("この階の階段はもう見つけている", { tone: "info" }); return; }
@@ -2053,7 +2070,7 @@ function castFieldMeasured(key, confirmed = false) {
   SFX.spell();
   if (sp.float) {
     G.run.float = sp.float;
-    log(`${c.p.name}は${sp.name}を唱えた。隊の足が地を離れる ― ${sp.float}階のあいだ落とし穴にも毒の床にもかからない。`, "win");
+    log(`${c.p.name}は${sp.name}を唱えた。隊の足が地を離れる ― ${sp.float}階のあいだ${floatGuardText()}。`, "win");
     showToast(`${sp.name} ― ${sp.float}階のあいだ宙に浮く`, { noLog: true, tone: "good" });
   } else if (sp.sense) {
     G.board.fsense = Object.assign({}, G.board.fsense, { [sp.sense]: true });
@@ -2111,12 +2128,13 @@ function ensureBoardArt() {
   const sp = specialDef();
   const crypt = L === 1;
   const seed = boardSeed(b, dungeonSeed(activeCfg()) * 7919 + G.floor);
-  const key = `${VW}x${VH}|${CARD_W}x${CARD_H}|${seed}|${L}|${G.eliteFloor ? "e" : ""}|${sp ? sp.id : ""}`;
+  const hz = harmHaz();
+  const key = `${VW}x${VH}|${CARD_W}x${CARD_H}|${seed}|${L}|${G.eliteFloor ? "e" : ""}|${sp ? sp.id : ""}|${hz.name}`;
   if (BV.artKey === key && BV.art) return BV.art;
   let art = BV.artCache.get(key);
   if (!art) {
     const mat = crypt ? CATACOMB : genericMaterial(dungeonTheme());
-    const opt = { seed, cols: COLS, rows: ROWS, rect: cellRect, cells: b.cells, mat, elite: !!G.eliteFloor, accent: crypt && sp ? hexRgb(sp.accent) : null };
+    const opt = { seed, cols: COLS, rows: ROWS, rect: cellRect, cells: b.cells, mat, elite: !!G.eliteFloor, accent: crypt && sp ? hexRgb(sp.accent) : null, harmStain: hz.look.stain, harmFx: hz.look.fx };
     const fl = paintCryptFloor(VW, VH, opt);
     const slabs = crypt ? paintCryptSlabs(VW, VH, opt) : paintOldCardBacks();
     art = { key, seed, floor: fl.canvas, candles: fl.candles, slabs, mat, crypt };
@@ -2252,7 +2270,7 @@ function boardLightSources(now) {
     if (isPortalCell(c)) out.push({ x: cx, y: cy, r: 46, a: 0.7, col: "90,220,235", ga: 0.18 + 0.1 * pulse, gr: 40 });
     else if (c.type === "story" && !c.cleared) out.push({ x: cx, y: cy, r: 40, a: 0.62, col: "120,235,200", ga: 0.16 + 0.1 * pulse, gr: 34 });
     else if (c.type === "fountain" && !c.cleared) out.push({ x: cx, y: cy, r: 36, a: 0.5, col: "100,170,255", ga: 0.12, gr: 30 });
-    else if (c.type === "poison") out.push({ x: cx, y: cy + r.h * 0.05, r: 34, a: 0.4, col: "120,210,60", ga: 0.1 + 0.05 * pulse, gr: 30 });
+    else if (c.type === "poison") out.push({ x: cx, y: cy + r.h * 0.05, r: 34, a: 0.4, col: harmHaz().look.glow, ga: 0.1 + 0.05 * pulse, gr: 30 });
     else if (c.type === "stairs") out.push({ x: cx, y: cy, r: 30, a: 0.4, col: "160,190,255", ga: 0.06, gr: 24 });
     else if (c.type === "corpse" && c.corpseWarm && !c.cleared) out.push({ x: cx + 7, y: cy - 14, r: 26, a: 0.5, col: "127,208,255", ga: 0.16 + 0.06 * pulse, gr: 20 });
     else if (c.type === "chest" && !c.cleared) out.push({ x: cx, y: cy, r: c.evMark ? 34 : 22, a: c.evMark ? 0.55 : 0.3, col: "255,210,120", ga: (c.evMark ? 0.14 : 0.06) + 0.04 * pulse, gr: 18 });
@@ -2357,80 +2375,253 @@ function drawBoardFrame() {
   vctx.globalAlpha = 1;
 }
 
-// 落とし穴: 床石の割れ目に口を開けた暗い穴。縁の欠けた石と、底から吹き上がる冷たい塵
+// 迷宮の台帳で置いている足元の仕掛け (出撃画面の「足元」)。{ fall, harm } = 定義 or null
+function dungeonFloorHaz(cfg) { return { fall: hazPlaced(cfg, "fall"), harm: hazPlaced(cfg, "harm") }; }
+// 足元の仕掛けの定義 (floorhaz.js)。マスの種類 (pit = 落ちる床 / poison = 蝕む床) と、いまの迷宮の土地で決まる
+function cellHaz(c) { return hazSkin(activeCfg(), c && c.type === "pit" ? "fall" : "harm"); }
+function fallHaz() { return hazSkin(activeCfg(), "fall"); }
+function harmHaz() { return hazSkin(activeCfg(), "harm"); }
+
+// 落ちる床: 土地ごとの穴 (丸い穴・地割れ・外れた格子・落とし戸)。縁の欠けと、底から昇る粒 (塵・火の粉・雪・泡・魂の光)
 function drawPit(x, y, now) {
+  const lk = fallHaz().look;
   const r = cellRect(x, y), cx = r.x + r.w / 2, cy = r.y + r.h * 0.56;
   const rx = r.w * 0.34, ry = r.h * 0.2;
-  vctx.save();
-  // 縁の石 (少し明るい輪) → 穴の闇 (奥へ行くほど黒い) の順に重ねる
-  vctx.fillStyle = "#2a2622";
-  vctx.beginPath(); vctx.ellipse(cx, cy, rx + 3, ry + 2.5, 0, 0, Math.PI * 2); vctx.fill();
-  const g = vctx.createRadialGradient(cx, cy + ry * 0.2, 0, cx, cy, rx);
-  g.addColorStop(0, "#000000"); g.addColorStop(0.7, "#050406"); g.addColorStop(1, "#141012");
-  vctx.fillStyle = g;
-  vctx.beginPath(); vctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); vctx.fill();
-  // 手前の縁の欠け (穴の口のぎざぎざ)
-  vctx.fillStyle = "#3a342e";
-  for (let i = 0; i < 7; i++) {
-    const a = Math.PI * (0.1 + 0.8 * (i / 6)), px = cx + Math.cos(a) * (rx + 1), py = cy + Math.sin(a) * (ry + 1);
-    vctx.fillRect(Math.round(px - 1), Math.round(py - 1), 2 + (h01(i, x + y * 7) > 0.5 ? 1 : 0), 2);
-  }
-  // 底から吹き上がる塵 (ゆっくり昇って消える)
   const t = REDUCED_MOTION ? 0 : now * 0.001;
+  const seed = x * 31 + y * 7;
+  vctx.save();
+  const coreGrad = (x0, y0, x1, y1) => {
+    const g = vctx.createLinearGradient(x0, y0, x1, y1);
+    g.addColorStop(0, lk.core[2]); g.addColorStop(0.35, lk.core[1]); g.addColorStop(1, lk.core[0]);
+    return g;
+  };
+  if (lk.shape === "crack") {
+    // 地割れ: 斜めに走る細いぎざぎざの裂け目と、枝分かれする小さなひび
+    const n = 10, top = [], bot = [];
+    for (let i = 0; i <= n; i++) {
+      const u = i / n, px = cx - rx * 1.2 + rx * 2.4 * u;
+      const mid = cy + (u - 0.5) * ry * 0.9 + (h01(i, seed) - 0.5) * ry * 0.5 + Math.sin(u * 5 + h01(1, seed) * 6) * ry * 0.15;
+      const w = Math.sin(u * Math.PI) * ry * (0.22 + 0.22 * h01(i + 9, seed)) + 0.6;
+      top.push([px, mid - w]); bot.push([px, mid + w]);
+    }
+    const poly = (pad) => { vctx.beginPath(); top.forEach(([px, py], i) => (i ? vctx.lineTo(px, py - pad) : vctx.moveTo(px - pad, py))); for (let i = bot.length - 1; i >= 0; i--) vctx.lineTo(bot[i][0] + (i === bot.length - 1 ? pad : 0), bot[i][1] + pad); vctx.closePath(); };
+    vctx.fillStyle = lk.rim; poly(1.6); vctx.fill();
+    vctx.fillStyle = coreGrad(cx, cy - ry, cx, cy + ry); poly(0); vctx.fill();
+    // 枝のひび
+    vctx.strokeStyle = lk.rim; vctx.lineWidth = 1;
+    for (const i of [3, 7]) {
+      const [sx, sy] = (h01(i, seed) > 0.5 ? top : bot)[i], dir = sy < cy ? -1 : 1;
+      vctx.beginPath(); vctx.moveTo(sx, sy); vctx.lineTo(sx + (h01(i + 1, seed) - 0.5) * 8, sy + dir * (3 + h01(i + 2, seed) * 4)); vctx.stroke();
+    }
+    vctx.fillStyle = lk.chip;
+    for (let i = 1; i < n; i++) if (h01(i + 5, seed) > 0.55) vctx.fillRect(Math.round(top[i][0]), Math.round(top[i][1] - 1), 1, 1);
+  } else if (lk.shape === "grate" || lk.shape === "trapdoor" || lk.shape === "square") {
+    // 外れた格子蓋 / 落とし戸 / 石組みの口: 四角い口。格子は一本が外れて傾き、落とし戸は板が手前へ倒れる
+    const w = rx * 1.5, hh = ry * 1.7, x0 = cx - w / 2, y0 = cy - hh / 2;
+    vctx.fillStyle = lk.rim; vctx.fillRect(Math.round(x0 - 3), Math.round(y0 - 3), Math.round(w + 6), Math.round(hh + 6));
+    vctx.fillStyle = coreGrad(cx, y0, cx, y0 + hh); vctx.fillRect(Math.round(x0), Math.round(y0), Math.round(w), Math.round(hh));
+    vctx.fillStyle = lk.chip;
+    if (lk.shape === "grate") {
+      for (let i = 1; i <= 3; i++) {
+        const bx = Math.round(x0 + (w * i) / 4);
+        if (i === 2) { vctx.save(); vctx.translate(bx, y0 + hh); vctx.rotate(-0.5); vctx.fillRect(0, -hh * 0.9, 2, hh * 0.9); vctx.restore(); }
+        else vctx.fillRect(bx - 1, Math.round(y0), 2, Math.round(hh));
+      }
+    } else if (lk.shape === "trapdoor") {
+      vctx.fillRect(Math.round(x0), Math.round(y0 + hh), Math.round(w), 3);
+      vctx.fillStyle = lk.rim;
+      for (let i = 1; i < 4; i++) vctx.fillRect(Math.round(x0 + (w * i) / 4), Math.round(y0 + hh), 1, 3);
+    } else {
+      // 石組み: 縁の切り石の目地と、奥の壁に見える一段下の石段
+      for (let i = 0; i < 5; i++) vctx.fillRect(Math.round(x0 - 3 + ((w + 6) * i) / 5), Math.round(y0 - 3), 1, 3);
+      vctx.fillRect(Math.round(x0), Math.round(y0 + hh * 0.3), Math.round(w * 0.45), 1);
+      vctx.fillRect(Math.round(x0), Math.round(y0 + hh * 0.55), Math.round(w * 0.3), 1);
+    }
+  } else {
+    // 丸い穴: 縁の石 (少し明るい輪) → 穴の闇 (奥へ行くほど黒い)
+    vctx.fillStyle = lk.rim;
+    vctx.beginPath(); vctx.ellipse(cx, cy, rx + 3, ry + 2.5, 0, 0, Math.PI * 2); vctx.fill();
+    const g = vctx.createRadialGradient(cx, cy + ry * 0.2, 0, cx, cy, rx);
+    g.addColorStop(0, lk.core[0]); g.addColorStop(0.7, lk.core[1]); g.addColorStop(1, lk.core[2]);
+    vctx.fillStyle = g;
+    vctx.beginPath(); vctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2); vctx.fill();
+    vctx.fillStyle = lk.chip;
+    for (let i = 0; i < 7; i++) {
+      const a = Math.PI * (0.1 + 0.8 * (i / 6)), px = cx + Math.cos(a) * (rx + 1), py = cy + Math.sin(a) * (ry + 1);
+      vctx.fillRect(Math.round(px - 1), Math.round(py - 1), 2 + (h01(i, x + y * 7) > 0.5 ? 1 : 0), 2);
+    }
+    // 縁の飾り (その土地の穴らしさ)
+    if (lk.deco === "roots") {
+      // 穴を渡る根: 縁から縁へ、たわんだ根を2本
+      vctx.strokeStyle = lk.chip; vctx.lineWidth = 1.6;
+      for (let k = 0; k < 2; k++) {
+        const a0 = Math.PI * (0.85 + 0.3 * h01(k, seed)) + k * Math.PI, a1 = a0 + Math.PI * (0.7 + 0.2 * h01(k + 3, seed));
+        const p0 = [cx + Math.cos(a0) * (rx + 2), cy + Math.sin(a0) * (ry + 2)], p1 = [cx + Math.cos(a1) * (rx + 2), cy + Math.sin(a1) * (ry + 2)];
+        vctx.beginPath(); vctx.moveTo(p0[0], p0[1]); vctx.quadraticCurveTo(cx, cy + ry * 0.6, p1[0], p1[1]); vctx.stroke();
+      }
+    } else if (lk.deco === "timber") {
+      // 坑木の枠: 穴の上下に渡した2本の丸太と、立てた杭
+      vctx.fillStyle = lk.chip;
+      vctx.fillRect(Math.round(cx - rx - 4), Math.round(cy - ry - 3), Math.round(rx * 2 + 8), 2);
+      vctx.fillRect(Math.round(cx - rx - 4), Math.round(cy + ry + 1), Math.round(rx * 2 + 8), 2);
+      vctx.fillStyle = lk.rim;
+      vctx.fillRect(Math.round(cx - rx - 4), Math.round(cy - ry - 3), 2, Math.round(ry * 2 + 6));
+      vctx.fillRect(Math.round(cx + rx + 2), Math.round(cy - ry - 3), 2, Math.round(ry * 2 + 6));
+    } else if (lk.deco === "rubble") {
+      // 崩れた石塊: 縁に転がる大きめの石
+      for (let k = 0; k < 4; k++) {
+        const a = Math.PI * 2 * h01(k, seed + 3), sz = 2 + Math.round(h01(k + 6, seed) * 2);
+        const px = Math.round(cx + Math.cos(a) * (rx + 4)), py = Math.round(cy + Math.sin(a) * (ry + 3));
+        vctx.fillStyle = lk.rim; vctx.fillRect(px, py + 1, sz + 1, sz);
+        vctx.fillStyle = lk.chip; vctx.fillRect(px, py, sz, sz - 1);
+      }
+    } else if (lk.deco === "snow") {
+      // 縁の雪: 奥側の縁に積もった白い帯
+      vctx.strokeStyle = "#f4f8fc"; vctx.lineWidth = 2.5;
+      vctx.beginPath(); vctx.ellipse(cx, cy, rx + 2, ry + 1.5, 0, Math.PI * 1.05, Math.PI * 1.95); vctx.stroke();
+    }
+  }
+  // 底の照り (地割れの溶岩・氷の青)
+  if (lk.glow) {
+    vctx.save(); vctx.globalCompositeOperation = "lighter";
+    const sh = 0.5 + 0.5 * Math.sin(t * 1.4 + x + y);
+    const g = vctx.createRadialGradient(cx, cy, 0, cx, cy, rx * 1.2);
+    g.addColorStop(0, `rgba(${lk.glow},${0.22 + 0.12 * sh})`); g.addColorStop(1, `rgba(${lk.glow},0)`);
+    vctx.fillStyle = g; vctx.fillRect(cx - rx * 1.2, cy - rx * 1.2, rx * 2.4, rx * 2.4);
+    vctx.restore();
+  }
+  // 水の口: ゆっくり広がる波紋
+  if (lk.water) {
+    const ph = (t * 0.35 + h01(3, seed)) % 1;
+    vctx.globalAlpha = (1 - ph) * 0.45; vctx.strokeStyle = lk.mote; vctx.lineWidth = 0.8;
+    vctx.beginPath(); vctx.ellipse(cx, cy, rx * 0.25 + rx * 0.6 * ph, ry * 0.25 + ry * 0.6 * ph, 0, 0, Math.PI * 2); vctx.stroke();
+  }
+  // 底から昇る粒
   for (let i = 0; i < 4; i++) {
     const ph = (t * (0.25 + h01(i, x * 5 + y) * 0.3) + h01(i, 11)) % 1;
-    vctx.globalAlpha = (1 - ph) * 0.5;
-    vctx.fillStyle = "#8a8070";
+    vctx.globalAlpha = (1 - ph) * (lk.glow ? 0.8 : 0.5);
+    vctx.fillStyle = lk.mote;
     vctx.fillRect(Math.round(cx + (h01(i + 3, x + y) - 0.5) * rx * 1.2), Math.round(cy - ph * r.h * 0.3), 1, 1);
   }
   vctx.restore();
 }
-// 地形の動き (闇の上に描く = 闇の中でもぼうっと光る): 毒の汚泥の照り・泡・瘴気
+// 地形の動き (闇の上に描く = 闇の中でもぼうっと光る): 蝕む床の照りと、土地ごとの粒 (泡・火の粉・霜・火花・胞子・切っ先・魂の光)
 function drawBoardTerrainFx(now) {
   const cells = G.board.cells;
+  const lk = harmHaz().look;
   for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
     const c = cells[y][x];
     if (c.revealed && c.type === "pit") { drawPit(x, y, now); continue; }
     if (!c.revealed || c.type !== "poison") continue;
     const r = cellRect(x, y), cx = r.x + r.w / 2, cy = r.y + r.h * 0.55;
     const t = REDUCED_MOTION ? 0 : now * 0.001;
-    // 汚泥の照り (ゆっくり脈打つ)
+    // 床の照り (ゆっくり脈打つ)
     vctx.save();
     vctx.globalCompositeOperation = "lighter";
     const sh = 0.5 + 0.5 * Math.sin(t * 1.7 + x);
     const g = vctx.createRadialGradient(cx, cy, 0, cx, cy, r.w * 0.42);
-    g.addColorStop(0, `rgba(120,200,40,${0.12 + 0.08 * sh})`);
-    g.addColorStop(1, "rgba(120,200,40,0)");
+    g.addColorStop(0, `rgba(${lk.glow},${0.12 + 0.08 * sh})`);
+    g.addColorStop(1, `rgba(${lk.glow},0)`);
     vctx.fillStyle = g;
     vctx.save(); vctx.translate(cx, cy); vctx.scale(1, (r.h * 0.3) / (r.w * 0.42)); vctx.translate(-cx, -cy);
     vctx.fillRect(cx - r.w * 0.42, cy - r.w * 0.42, r.w * 0.84, r.w * 0.84);
     vctx.restore();
     vctx.restore();
-    // 弾ける泡
-    for (let i = 0; i < 8; i++) {
-      const ph = (t * (0.45 + h01(i, x * 9 + y) * 0.6) + h01(i, 3)) % 1;
-      const bx = cx + (h01(i, x + y * 8) - 0.5) * r.w * 0.6, by = cy + (h01(i + 7, x * 3 + y) - 0.5) * r.h * 0.4;
-      const rad = 0.8 + ph * 2.4;
-      vctx.globalAlpha = (1 - ph) * 0.95;
-      vctx.strokeStyle = "#c8f070";
-      vctx.lineWidth = 0.9;
-      vctx.beginPath(); vctx.arc(bx, by - ph * 2, rad, 0, Math.PI * 2); vctx.stroke();
-      vctx.fillStyle = "rgba(230,255,170,0.8)";
-      vctx.fillRect(bx - rad * 0.4, by - ph * 2 - rad * 0.5, 0.8, 0.8);
-    }
-    // 立ちのぼる瘴気
-    for (let i = 0; i < 3; i++) {
+    drawHarmMotes(lk, x, y, r, cx, cy, t);
+    // 立ちのぼる靄
+    if (lk.mist) for (let i = 0; i < 3; i++) {
       const ph = (t * 0.22 + i / 3) % 1;
       const mx = cx + Math.sin(t * 0.9 + i * 2.1) * r.w * 0.18, my = cy - ph * r.h * 0.5;
       const mg = vctx.createRadialGradient(mx, my, 0, mx, my, 9 + ph * 6);
-      mg.addColorStop(0, `rgba(110,170,50,${0.16 * Math.sin(ph * Math.PI)})`);
-      mg.addColorStop(1, "rgba(110,170,50,0)");
+      mg.addColorStop(0, `rgba(${lk.mist},${0.16 * Math.sin(ph * Math.PI)})`);
+      mg.addColorStop(1, `rgba(${lk.mist},0)`);
       vctx.globalAlpha = 1;
       vctx.fillStyle = mg;
       vctx.fillRect(mx - 16, my - 16, 32, 32);
     }
     vctx.globalAlpha = 1;
   }
+}
+// 蝕む床の粒。どれも数粒〜十数粒の fillRect / 線で、毎フレーム軽く描く
+function drawHarmMotes(lk, x, y, r, cx, cy, t) {
+  const col = lk.fxCol, seed = x * 9 + y;
+  const px = (i, k = 0.6) => cx + (h01(i, x + y * 8) - 0.5) * r.w * k;
+  const py = (i, k = 0.4) => cy + (h01(i + 7, x * 3 + y) - 0.5) * r.h * k;
+  switch (lk.fx) {
+    case "bubble": // 弾ける泡
+      for (let i = 0; i < 8; i++) {
+        const ph = (t * (0.45 + h01(i, seed) * 0.6) + h01(i, 3)) % 1;
+        const bx = px(i), by = py(i), rad = 0.8 + ph * 2.4;
+        vctx.globalAlpha = (1 - ph) * 0.95;
+        vctx.strokeStyle = col; vctx.lineWidth = 0.9;
+        vctx.beginPath(); vctx.arc(bx, by - ph * 2, rad, 0, Math.PI * 2); vctx.stroke();
+        vctx.fillStyle = "rgba(255,255,230,0.7)";
+        vctx.fillRect(bx - rad * 0.4, by - ph * 2 - rad * 0.5, 0.8, 0.8);
+      }
+      break;
+    case "ember": // 舞い上がる火の粉
+      for (let i = 0; i < 9; i++) {
+        const ph = (t * (0.5 + h01(i, seed) * 0.7) + h01(i, 5)) % 1;
+        vctx.globalAlpha = (1 - ph) * (0.6 + 0.4 * Math.sin(t * 9 + i));
+        vctx.fillStyle = col;
+        vctx.fillRect(Math.round(px(i) + Math.sin(t * 2 + i) * 2), Math.round(py(i) - ph * r.h * 0.45), 1, ph < 0.3 ? 2 : 1);
+      }
+      break;
+    case "frost": // 霜のきらめき (十字に光って消える)
+      for (let i = 0; i < 6; i++) {
+        const tw = Math.sin(t * (1.6 + h01(i, seed)) + i * 1.7);
+        if (tw < 0.3) continue;
+        const bx = Math.round(px(i, 0.7)), by = Math.round(py(i, 0.5)), k = tw > 0.85 ? 2 : 1;
+        vctx.globalAlpha = tw; vctx.fillStyle = col;
+        vctx.fillRect(bx - k, by, k * 2 + 1, 1); vctx.fillRect(bx, by - k, 1, k * 2 + 1);
+      }
+      break;
+    case "spark": { // 床を走る火花 (ときどき、ぎざぎざの線が光る)
+      const slot = Math.floor(t * 3 + h01(1, seed) * 7);
+      if (h01(slot, seed) < 0.55) {
+        vctx.save(); vctx.globalCompositeOperation = "lighter";
+        vctx.globalAlpha = 0.9; vctx.strokeStyle = col; vctx.lineWidth = 1;
+        vctx.beginPath();
+        let ax = cx - r.w * 0.3, ay = py(slot);
+        vctx.moveTo(ax, ay);
+        for (let k = 1; k <= 5; k++) { ax += r.w * 0.12; ay = cy + (h01(slot * 7 + k, seed) - 0.5) * r.h * 0.35; vctx.lineTo(ax, ay); }
+        vctx.stroke(); vctx.restore();
+      }
+      for (let i = 0; i < 4; i++) {
+        const tw = Math.sin(t * 7 + i * 2.3 + seed);
+        if (tw < 0.6) continue;
+        vctx.globalAlpha = tw; vctx.fillStyle = col; vctx.fillRect(Math.round(px(i)), Math.round(py(i)), 1, 1);
+      }
+      break;
+    }
+    case "spore": // 漂う胞子 (ゆっくり昇りながら左右に揺れる)
+      for (let i = 0; i < 10; i++) {
+        const ph = (t * (0.12 + h01(i, seed) * 0.12) + h01(i, 9)) % 1;
+        vctx.globalAlpha = Math.sin(ph * Math.PI) * 0.8;
+        vctx.fillStyle = col;
+        vctx.fillRect(Math.round(px(i, 0.8) + Math.sin(t * 1.3 + i) * 4), Math.round(py(i) - ph * r.h * 0.6), 1, 1);
+      }
+      break;
+    case "glint": // 散らばった切っ先が光る (動かない)
+      for (let i = 0; i < 9; i++) {
+        const bx = Math.round(px(i, 0.75)), by = Math.round(py(i, 0.55));
+        vctx.globalAlpha = 0.55; vctx.fillStyle = col; vctx.fillRect(bx, by, 1, 1);
+        vctx.fillRect(bx + (h01(i, seed) > 0.5 ? 1 : -1), by + 1, 1, 1);
+        const tw = Math.sin(t * (1.2 + h01(i + 2, seed)) + i * 2.2);
+        if (tw > 0.9) { vctx.globalAlpha = (tw - 0.9) * 10; vctx.fillRect(bx - 1, by, 3, 1); vctx.fillRect(bx, by - 1, 1, 3); }
+      }
+      break;
+    case "soul": // 根に吸われて昇る魂の光
+      for (let i = 0; i < 5; i++) {
+        const ph = (t * (0.18 + h01(i, seed) * 0.15) + h01(i, 4)) % 1;
+        const bx = px(i, 0.7) + Math.sin(t + i) * 2, by = py(i) - ph * r.h * 0.55;
+        vctx.globalAlpha = Math.sin(ph * Math.PI) * 0.7; vctx.fillStyle = col;
+        vctx.fillRect(Math.round(bx), Math.round(by), 2, 2);
+        vctx.globalAlpha *= 0.4; vctx.fillRect(Math.round(bx), Math.round(by + 2), 2, 3);
+      }
+      break;
+  }
+  vctx.globalAlpha = 1;
 }
 
 // 蝋燭の炎 (踏破したマスのみ)
@@ -5183,7 +5374,7 @@ function moveStep(nx, ny, onDone) {
 // 壁を考慮した最短経路 (現在地 → tx,ty)。歩く順の {x,y} 配列を返す。
 // 途中は「めくり済みのマス」だけを通り、未公開カードは勝手にめくらない。
 // ただし目的地が未公開でも、めくり済み領域に隣接していれば最後の1歩としてめくれる。
-// 自動で歩く道は、見えている落とし穴を通らない道を先に探す (浮いている時・他に道が無い時は通る)
+// 自動で歩く道は、見えている落ちる床 (落とし穴) を通らない道を先に探す (浮いている時・他に道が無い時は通る)
 function findPath(tx, ty) {
   if (floatLeft() <= 0) { const p = findPathInner(tx, ty, true); if (p.length) return p; }
   return findPathInner(tx, ty, false);
@@ -5253,7 +5444,7 @@ function autoWalk(path) {
 // ドックの「オート」で切り替える (セーブしない・街へ戻れば切れる)。ON の間は1歩ずつ行き先を決め直して歩き続ける:
 //  ・まだめくっていない墓石のうち、歩いて最も近いものへ向かう (同じ近さなら今向いている方向を優先 ―
 //    まっすぐ進み、壁に当たれば向きを変える)
-//  ・見えている罠 (めくれた罠・落とし穴・毒の床 ― 浮遊中・毒床を無効にできる時を除く) は踏まない
+//  ・見えている罠 (めくれた罠・落ちる床・蝕む床 ― 浮遊中・悪路渡りで無効にできる時を除く) は踏まない
 //  ・設定「オート移動で避けるもの」(prefs.js autoMoveAvoid) で、4つそれぞれ避ける/避けないを選べる:
 //      一般の敵 foe・強敵 elite = 見えている敵 (めくれた魔物の札・気配読み/敵感知の光)。避けるなら踏まない。
 //        光だけの敵は強敵か分からないので一般の敵として扱う。金属の魔物は一般の敵
@@ -5468,15 +5659,16 @@ function resolveCellMeasured(cell) {
       break;
     }
     case "pit": {
-      // 落とし穴: ダメージは無いが、1階下へ強制的に落とされる (最下階には無い)。浮遊していれば落ちない
+      // 落ちる床 (その土地の穴 — floorhaz.js): ダメージは無いが、1階下へ強制的に落とされる (最下階には無い)。浮遊していれば落ちない
+      const hz = fallHaz();
       if (floatLeft() > 0) {
-        log("落とし穴だ。だが隊は宙に浮いたまま、穴の上を渡った。", "sys");
-        showToast("落とし穴 ― 浮遊で越えた", { noLog: true, tone: "good", icon: ICONS.trap });
+        log(`${hz.name}だ。だが隊は宙に浮いたまま、その上を渡った。`, "sys");
+        showToast(`${hz.name} ― 浮遊で越えた`, { noLog: true, tone: "good", icon: ICONS.trap });
         break;
       }
       if (abyssActive() || G.floor >= (curDungeon().floors || 1)) break; // 念のため (最下階・奈落には置かない)
       SFX.trap(); buzz([0, 60, 40, 140]); shakeScreen(true); flashScreen("#050308");
-      log("足元が抜けた！ 落とし穴だ ― 隊は暗闇の底へ落ちていく…", "dmg");
+      log(hz.line, "dmg");
       runCount("pits");
       G._walkAbort = true;            // 歩いている途中なら、前の階の経路をここで捨てる
       G.anim = { busy: true };        // 落ちきるまで操作を受けない
@@ -5484,29 +5676,31 @@ function resolveCellMeasured(cell) {
       break;
     }
     case "poison": {
-      // 浮遊: 毒の床に足が触れない
-      if (floatLeft() > 0) { log("毒の床だ。宙に浮いたまま、汚泥に触れずに渡った。", "sys"); break; }
-      // 毒の床: 踏むたびに隊全体を蝕む。毒床耐性 (盗賊系) で半減/無効
+      // 蝕む床 (その土地の床 — 毒の沼・灼けた床・凍てつく床…。floorhaz.js)。仕組みはどれも同じ
+      const hz = harmHaz();
+      // 浮遊: 床に足が触れない
+      if (floatLeft() > 0) { log(`${hz.name}だ。宙に浮いたまま、触れずに渡った。`, "sys"); break; }
+      // 踏むたびに隊全体を蝕む。悪路渡り (隠修士のパッシブ poisonFloor) で半減/無効
       const resist = partyPassiveLv("poisonFloor");
       if (resist >= 2) {
         if (resist >= 3) { // Lv3: 無効化に加え、渡るたび隊全体をHP2%回復
           let healed = false;
           for (const p of G.party) { if (!p.alive) continue; const h = Math.max(1, Math.ceil(p.maxhp * 0.02)); if (p.hp < p.maxhp) { p.hp = Math.min(p.maxhp, p.hp + h); healed = true; } }
-          log(healed ? "毒の床を浄化して渡った。よどみが力に変わり、パーティの傷が癒えた。" : "毒の床を浄化して渡った。", "sys");
+          log(healed ? `${hz.name}を足さばきひとつで渡った。足の運びが冴え、パーティの傷が癒えた。` : `${hz.name}を足さばきひとつで渡った。`, "sys");
           if (healed) renderParty();
         } else {
-          log("毒の床だ。だが足音ひとつ立てず無傷で渡った。", "sys");
+          log(`${hz.name}だ。だが足の置き場を見切り、無傷で渡った。`, "sys");
         }
         break;
       }
       SFX.trap(); buzz([0, 40, 30, 40]);
-      flashScreen("#5a8a2a");
+      flashScreen(hz.flash);
       // 床ダメージ率: 基本5% + 層に応じて微増 (層1=5% → 層20≈10.7%, 上限12%)。
-      // 深層ほど毒沼が脅威であり続けるようにする。
+      // 深層ほど足元の害が脅威であり続けるようにする。
       const layer = activeCfg().layer || 1;
       const pct = Math.min(0.12, 0.05 + (layer - 1) * 0.003);
-      // 毒消しの書きつけ (手がかりの恵み miasma): 毒の床で受けるダメージが半分 (毒床耐性 Lv1 とは重ねて掛かる)
-      const ward = clueBoon("miasma");
+      // 毒消しの書きつけ (手がかりの恵み miasma): 毒を含む床 (toxic) で受けるダメージが半分 (悪路渡り Lv1 とは重ねて掛かる)
+      const ward = hz.toxic && clueBoon("miasma");
       let anyDeath = false;
       const fallen = [], hurt = [];
       for (const p of G.party) {
@@ -5516,19 +5710,20 @@ function resolveCellMeasured(cell) {
         if (ward) dmg = Math.max(1, Math.ceil(dmg * 0.5));
         p.hp = Math.max(0, p.hp - dmg);
         hurt.push(p);
-        if (p.hp === 0) { p.alive = false; anyDeath = true; fallen.push(p.name); log(`${p.name}は毒に沈んだ…`, "dmg"); }
+        if (p.hp === 0) { p.alive = false; anyDeath = true; fallen.push(p.name); log(`${p.name}は${hz.die}`, "dmg"); }
       }
-      log(`毒の床だ！ パーティ全体が蝕まれた${resist === 1 ? " (耐性で半減)" : ""}${ward ? " (毒消しの心得で半減)" : ""}`, "dmg");
+      const note = `${resist === 1 ? " (悪路渡りで半減)" : ""}${ward ? " (毒消しの心得で半減)" : ""}`;
+      log(`${hz.name}だ！ 隊全体が${hz.verb}${note}`, "dmg");
       flashPartyCards(hurt, "hit");
       if (!anyDeath) {
         // 軽い痛手はトーストと札の明滅だけ (歩みを止めない)
-        showToast(`毒の床 ― パーティ全体が蝕まれた${resist === 1 ? " (耐性で半減)" : ""}`, { tone: "bad", icon: ICONS.poison });
+        showToast(`${hz.name} ― 隊全体が${hz.verb}${note}`, { noLog: true, tone: "bad", icon: ICONS.poison });
         break;
       }
       // 倒れた者が出た時だけ札で知らせる
       showEvent({
-        sprite: ICONS.poison, title: "毒の床！", accent: "#5a8a2a", banner: "⚠ 危険 ⚠",
-        lines: [`パーティ全体が蝕まれた${resist === 1 ? " (耐性で半減)" : ""}…`, ...fallen.map((n) => `${n}は毒に沈んだ…`)],
+        sprite: ICONS.poison, title: `${hz.name}！`, accent: hz.accent, banner: "⚠ 危険 ⚠",
+        lines: [`隊全体が${hz.verb}${note}…`, ...fallen.map((n) => `${n}は${hz.die}`)],
         btnLabel: "進む",
         onClose: () => {
           SFX.die(); imprintFallen(); if (!G.party.some((p) => p.alive)) { gameOver(); return; }
@@ -5786,9 +5981,12 @@ function eventFacts() {
   const tr = dungeonTrait();
   if (tr) out.push({ tone: "gold", icon: ICONS.portal, title: `迷宮の掟「${tr.name}」`, accent: tr.accent || "#c9a26a", lines: tr.lines });
   // 浮遊の術 (出来事ではないが、いまの階の性質として並べる)
-  if (floatLeft() > 0) out.push({ tone: "gold", icon: ICONS.portal, title: "浮遊", accent: "#8fd0c8", lines: [`隊は宙に浮いている (この階を含めて残り${floatLeft()}階)。落とし穴に落ちず、毒の床も踏まない。`] });
+  if (floatLeft() > 0) out.push({ tone: "gold", icon: ICONS.portal, title: "浮遊", accent: "#8fd0c8", lines: [`隊は宙に浮いている (この階を含めて残り${floatLeft()}階)。${floatGuardText()}。`] });
+  // 足元の仕掛け (その土地の名で): 見えている落ちる床・蝕む床
   const pits = evCells((c) => c.type === "pit" && c.revealed).length;
-  if (pits) out.push({ tone: "bad", icon: ICONS.trap, title: "落とし穴", accent: "#8a8070", lines: [`見えている落とし穴 ${pits}つ。踏むと1階下へ落とされる (自動の歩みは避けて通る)。`] });
+  if (pits) { const hz = fallHaz(); out.push({ tone: "bad", icon: ICONS.trap, title: hz.name, accent: "#8a8070", lines: [`見えている${hz.name} ${pits}か所。踏むと1階下へ落ちる (傷は負わない。自動の歩みは避けて通る)。`] }); }
+  const harms = evCells((c) => c.type === "poison" && c.revealed).length;
+  if (harms) { const hz = harmHaz(); out.push({ tone: "bad", icon: ICONS.poison, title: hz.name, accent: hz.accent, lines: [`見えている${hz.name} ${harms}か所。踏むと隊全体が${hz.verb.replace(/た$/, "る")} (浮遊・悪路渡りで避けられる)。`] }); }
   const perm = Object.keys(EV_BOONS).filter((k) => fl[k] && (k !== "sewerMap" || battleLayer() === 2)).map((k) => EV_BOONS[k].text);
   for (const e of Object.values(EVENT_MAP)) if (e.statBonus && G.events.once[e.id]) perm.push(e.boon);
   if (perm.length) out.push({ tone: "gold", icon: ic, title: "極の恵み (恒久)", accent: "#ffcf4a", lines: perm });
@@ -7429,7 +7627,7 @@ function descendMeasured({ fall = false } = {}) {
   }
   if (newMut) log(`${newMut.kind === "boon" ? "奈落の恵み" : "奈落の変異"}「${newMut.name}」: ${newMut.desc}`, newMut.kind === "boon" ? "win" : "dmg");
   // 帳に添える行 (2〜3行)
-  let tone = "", sub = fall ? "— 落とし穴に落ちた —" : "— さらに深く潜る —", lines = [], color = null;
+  let tone = "", sub = fall ? `— ${fallHaz().name}から落ちた —` : "— さらに深く潜る —", lines = [], color = null;
   if (G.eliteFloor) {
     tone = "elite"; sub = "— 禍々しき気配 —";
     const ek = MONSTERS[eliteKey()];
@@ -12861,6 +13059,7 @@ const FEATURES = {
   order3: { chapter: 3, report: 2 },          // 結社の席3
   sub2: { chapter: 4, report: "finale" },     // サブ魂 2枠
   infinite: { chapter: 5, report: "finale" }, // 奈落 (無限迷宮)
+  forge: { chapter: 5, report: "finale" },    // 鍛え直し (商会で金貨を払い、装備の品質を引き直す。奈落と同時 — 2026-10 ユーザーの指示)
   // ── 第六章から (docs/unlocks.md の年表。ユーザーの了解済み)。章がまだ無いので開かない。仕組みはその章を作る時に足す ──
   expedition: { chapter: 6, report: "finale" }, // 遠征 (控えの人業が踏破済みの迷宮を回る)
   resonance: { chapter: 7, report: "finale" },  // 魂の共鳴 (職の組み合わせの効果)
@@ -12869,7 +13068,6 @@ const FEATURES = {
   subPick: { chapter: 10, report: "finale" },   // サブ魂で借りられる技 +1
   enchant: { chapter: 11, report: "finale" },   // 付呪
   order5: { chapter: 12, report: "finale" },    // 結社の席5
-  forge: { chapter: 13, report: "finale" },     // 鍛え直しの工房
   rebirth: { chapter: 14, report: "finale" },   // 魂の転生
   mutPick: { chapter: 15, report: "finale" },   // 異変を選ぶ
   vow: { chapter: 16, report: "finale" },       // 誓約
@@ -13107,7 +13305,7 @@ function sharePalaceRecord() {
 // ==== 王宮の宝物庫 (収集品の奉納) ====
 // 収集品 (slot:"misc") を奉納すると、ランク帯ごとではなく「奉納した総種類数」の節目で褒賞が下賜される。
 // 各節目の褒賞は一度だけ。褒賞の重さは、その種類数が集まる深さに合わせる (2026-10 見直し):
-//   収集品は隠しLv 1〜200 に約5種ずつ (計100種)、拾えるのは迷宮の出現上限 +2 ランクまでなので、
+//   収集品は隠しLv 1〜200 に約5種ずつ (計108種。最後の100種の節目に8種の余裕)、拾えるのは迷宮の出現上限 +2 ランクまでなので、
 //   N 種がそろうのはおよそ「隠しLv N×2 の品が落ちる深さ」(15種 ≈ 第一章 / 30種 ≈ 第二章 / 60種 ≈ 第五章 / 80種 ≈ 第八章)。
 // 褒賞の種類:
 //   reward:"minePass" = 坑口の通行証 (台帳の迷宮「鎖の垂れる坑口」が地図に現れる。world.js unlock treasury:3)
@@ -13847,7 +14045,7 @@ function buyItem(id, price, who) {
   if (!who) who = G.party.find((m) => m.alive && m.items.length < MAX_ITEMS) || null;
   if (!who || !who.alive) { log("取引する人業を選ぼう。", "sys"); SFX.ng(); return null; }
   if (who.items.length >= MAX_ITEMS) { log(`${who.name} の所持品がいっぱいだ。`, "sys"); SFX.ng(); return null; }
-  const it = cloneItem(id);
+  const it = cloneItem(id, QUALITY_MID); // 商会の棚の品は並品 (品質50)。売った品も並品として棚に戻る
   if (!it) return null;
   G.gold -= price;
   G.shopStock[id]--;
@@ -13858,6 +14056,50 @@ function buyItem(id, price, who) {
   log(`${it.name} を購入した (${who.name})。`, "win");
   renderTown();
   return it;
+}
+
+// ---- 鍛え直し (奈落と同時に開く。2026-10 ユーザーの指示) ----
+// 商会で金貨を払い、装備品 (コモン〜LR) の品質 0〜100 を引き直す (items.js の「品質」)。
+// 結果を見て「新しい品質にする / 元のまま」を選べる。金貨は引くたびにかかり、元のままを選んでも戻らない。
+// 費用 = その品の買値 (売値の2倍。レア度の倍率込み — 深い品・LR ほど高い)。品質に依らず品の種類で決まる
+const REFORGE_MIN_COST = 100;
+function reforgeCost(it) { return Math.max(REFORGE_MIN_COST, buyPrice(ITEMS[it && it.id] || it)); }
+// 鍛え直せない理由 (無ければ null)。{ gold: false } で所持金を見ない (ボタンを出すかどうかの判定)
+function reforgeBlock(owner, it, { gold = true } = {}) {
+  if (!featureUnlocked("forge")) return featureNote("forge");
+  if (!it || !hasQuality(it) || !ITEMS[it.id]) return "装備品だけを鍛え直せる";
+  if (it.unidentified) return "未鑑定の品は鍛え直せない";
+  if (!qualityMatters(it)) return "品質で変わる性能が無い品";
+  if (G.state !== "town") return "鍛え直しは街の商会でだけ";
+  if (!opsFacilityOpen("shop")) return "商会が開いていない";
+  if (owner && expeditionOf(owner)) return "遠征中の人業の品は鍛え直せない";
+  if (gold && G.gold < reforgeCost(it)) return "金貨が足りない";
+  return null;
+}
+// 金貨を払って品質を1回引く。品はまだ変えない (選ぶのは setItemQuality)。{ ok, q, cost } を返す
+function rollReforge(owner, it) {
+  const why = reforgeBlock(owner, it);
+  if (why) { SFX.ng(); showToast(why, { tone: "bad", noLog: true }); return { ok: false, reason: why }; }
+  const cost = reforgeCost(it);
+  G.gold -= cost;
+  if (!G.stats) G.stats = {};
+  G.stats.reforged = (G.stats.reforged || 0) + 1;
+  const q = rollQuality();
+  log(`${itemName(it)} を鍛え直した (−💰${cost}) ― 品質 ${it.q == null ? QUALITY_MID : it.q} → ${q}`, "sys");
+  updateTopbar();
+  autosave();
+  return { ok: true, q, cost };
+}
+// 品の品質を q にする (鍛え直しの結果を選んだ時)。性能を目録から写し直し、持ち主の能力を計算し直す
+function setItemQuality(owner, it, q) {
+  if (!it || !hasQuality(it)) return false;
+  it.q = Math.max(0, Math.min(100, Math.round(q)));
+  resyncItem(it);
+  const d = owner || allDolls().find((x) => (x.items || []).includes(it) || Object.values(x.equip || {}).includes(it));
+  if (d) { recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp); }
+  autosave();
+  renderStatus(); renderParty();
+  return true;
 }
 
 // ---- 街 ⇄ 迷宮 の出入り ----
@@ -14887,7 +15129,7 @@ function useItemMeasured(p, index, target) {
     p.items.splice(index, 1);
     G.run.float = u.float;
     SFX.spell();
-    log(`${p.name}は${it.name}を使った。隊の足が地を離れる ― ${u.float}階のあいだ落とし穴にも毒の床にもかからない。`, "win");
+    log(`${p.name}は${it.name}を使った。隊の足が地を離れる ― ${u.float}階のあいだ${floatGuardText()}。`, "win");
     showToast(`${it.name} ― ${u.float}階のあいだ宙に浮く`, { noLog: true, tone: "good" });
     renderStatus(); renderParty(); renderBoard(); autosave(true);
     return;
@@ -15543,18 +15785,23 @@ function clearSave() { if (testPlayActive) return; try { localStorage.removeItem
 // 個体ごとの状態 (未鑑定・鑑定失敗の印など) は残す。旧セーブの装備も新しいレア度と絵になる
 const ITEM_STAT_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp", "crit"];
 const ITEM_TMPL_KEYS = ["name", "desc", "slot", "lv", "rank", "r20", "rar", "lr", "forJob", "exclusive", "classes", "cat",
-  "twoHanded", "sk", "weight", "price", "art", "palette", "eAtk", "eDef", "aRes", "bRes", "onHit", "scale", "weaponProfile", "weaponRating", "magic", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
+  "twoHanded", "sk", "weight", "price", "art", "palette", "eAtk", "eDef", "aRes", "bRes", "resists", "onHit", "scale", "weaponProfile", "weaponRating", "magic", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
+// 品1つを目録の値に写し直し、品質と＋N の段を掛け直す (読み込み・鍛え直しで品質を変えた時)
+function resyncItem(it) {
+  const tmpl = it && ITEMS[it.id];
+  if (!tmpl) return;
+  delete it.pct;
+  for (const k of ITEM_STAT_KEYS) { if (tmpl[k] != null) it[k] = tmpl[k]; else delete it[k]; }
+  for (const k of ITEM_TMPL_KEYS) { if (tmpl[k] !== undefined) it[k] = tmpl[k]; else delete it[k]; }
+  if (hasQuality(it)) { if (it.q == null) it.q = QUALITY_MID; applyQuality(it); } else delete it.q; // 品質を入れる前の品は並品 (50)
+  if (it.forge) applyForge(it); // ＋N の段は品質の後に掛け直す
+}
 function reflattenItemStats() {
   const visited = new Set();
   function refresh(it) {
     if (!it || visited.has(it)) return;
     visited.add(it);
-    const tmpl = ITEMS[it.id];
-    if (!tmpl) return;
-    delete it.pct;
-    for (const k of ITEM_STAT_KEYS) { if (tmpl[k] != null) it[k] = tmpl[k]; else delete it[k]; }
-    for (const k of ITEM_TMPL_KEYS) { if (tmpl[k] !== undefined) it[k] = tmpl[k]; else delete it[k]; }
-    if (it.forge) applyForge(it); // 鍛え直し (地の底の鍛冶場) は目録の値に掛け直す
+    resyncItem(it);
   }
   for (const m of [...(G.party || []), ...(G.reserve || [])]) {
     for (const it of (m.items || [])) refresh(it);
@@ -16365,11 +16612,11 @@ function wireUI() {
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
     tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
-    worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait,
+    worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait, dungeonFloorHaz,
     trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairAllDolls, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,
-    doEquip, doUnequip, toggleItemLock, equipFromAnywhere, openEquipChooser, useItem, dropItem, transferItem,
+    doEquip, doUnequip, toggleItemLock, equipFromAnywhere, reforgeCost, reforgeBlock, rollReforge, setItemQuality, openEquipChooser, useItem, dropItem, transferItem,
     stopAutoCombat, sceneBgm, playBgm, SFX,
     ACH_SERIES, FACILITIES, FAC_SHELL, CONTENT_LIMIT, DUNGEONS, LAYER_VISUALS,
     isTitleActive: () => titleActive,
@@ -16389,7 +16636,7 @@ function wireUI() {
     }).observe(itemGetEl, { attributes: true, attributeFilter: ["class"] });
   }
   // 各パッケージの UI を登録 (スタブを差し替える)。A→B→C→D の順
-  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiJournal, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiAppraise, uiDeparture, uiDungeonHud, uiResults, uiTutorial, uiExpedition]) {
+  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiJournal, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiAppraise, uiDeparture, uiDungeonHud, uiResults, uiTutorial, uiExpedition, uiReforge]) {
     try { m.install(); } catch (e) { console.error(e); }
   }
 }
