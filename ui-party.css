@@ -829,7 +829,8 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
 .sp-ic { display: inline-flex; flex: 0 0 auto; width: 32px; height: 32px; align-items: center; justify-content: center; color: var(--accent); }
 .sp-ic svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 6px rgba(201,162,74,0.4)); }
 .sp-more { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-.sp-more > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+/* メイン魂は1列ぶん、サブ魂1・2はその下に2つ並べる (ユーザーの指示、2026-10)。サブ魂が1つだけなら横いっぱいに */
+.sp-more > :first-child, .sp-more > :nth-child(2):last-child { grid-column: 1 / -1; }
 .sp-tile {
   position: relative; display: flex; align-items: stretch; min-width: 0; min-height: 54px;
   background: var(--grain), radial-gradient(80% 80% at 0% 50%, color-mix(in srgb, var(--glow, #3a3140) 12%, transparent), rgba(0,0,0,0) 70%), var(--plate);
