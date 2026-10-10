@@ -21,7 +21,15 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      # 原画・制作記録・道具は公開しないため、最初から取得しない
       - uses: actions/checkout@v4
+        with:
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /*
+            !/docs/
+            !/tools/
+            !/art/story-review/
       # sw.js のキャッシュ版をデプロイのたびにコミットのハッシュで付け直す
       # (リポジトリでは "dos-dev" のまま。手で版を上げる運用は廃止)
       - name: Stamp Service Worker cache version
