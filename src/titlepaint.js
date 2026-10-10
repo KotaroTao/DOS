@@ -50,7 +50,7 @@ function glow(size, rgb, core = 0.25) {
 }
 
 // 横に継ぎ目なくつながる霧の帯 (小さく作って滑らかに引き伸ばす)
-function fogBand(seed, w = 256, h = 48) {
+function fogBand(seed, w = 256, h = 48, cloud = false) {
   const c = document.createElement("canvas");
   c.width = w; c.height = h;
   const g = c.getContext("2d"), img = g.createImageData(w, h);
@@ -65,9 +65,10 @@ function fogBand(seed, w = 256, h = 48) {
     let n = 0, amp = 0.55, f = 1;
     for (let o = 0; o < 4; o++) { n += vn((x / w) * 6 * f, (y / h) * 2.2 * f, 6 * f) * amp; amp *= 0.5; f *= 2; }
     const edge = Math.sin(Math.PI * (y / (h - 1))); // 上下の端は消える
-    const a = clamp((n - 0.42) * 2.2) * edge * edge;
+    const a = clamp((n - (cloud ? 0.25 : 0.42)) * (cloud ? 3.3 : 2.2)) * edge * edge;
     const i = (y * w + x) * 4;
-    img.data[i] = 150; img.data[i + 1] = 160; img.data[i + 2] = 185; img.data[i + 3] = Math.round(a * 255);
+    const light = cloud ? Math.round(110 + n * 130) : 150;
+    img.data[i] = light; img.data[i + 1] = cloud ? light + 8 : 160; img.data[i + 2] = cloud ? Math.min(255, light + 27) : 185; img.data[i + 3] = Math.round(a * 255);
   }
   g.putImageData(img, 0, 0);
   return c;
@@ -85,12 +86,13 @@ export class PaintedTitle {
     this.awakeAt = -1; this.flare = 0;
     this.soul = glow(128, "150,255,215", 0.18);
     this.soulCore = glow(48, "225,255,240", 0.3);
+    this.moonGlow = glow(256, "135,168,230", 0.08);
     this.ember = glow(64, "255,180,90", 0.22);
     this.fogs = [fogBand(11), fogBand(23), fogBand(37)];
-    this.clouds = [fogBand(53, 384, 96), fogBand(71, 384, 96)];
+    this.clouds = [fogBand(53, 384, 96, true), fogBand(71, 384, 96, true)];
     this.weatherTime = 0;
     this.nextCrow = 3500 + Math.random() * 4000;
-    this.nextStorm = 9000 + Math.random() * 7000;
+    this.nextStorm = 2800 + Math.random() * 1600;
     this.crows = [];
     this.storm = null;
     this.motes = Array.from({ length: 70 }, (_, i) => this.newMote(i, hash(i, 7) * 9000));
@@ -147,14 +149,23 @@ export class PaintedTitle {
     this.weatherTime += dt;
     const now = this.weatherTime, t = now / 1000;
     g.save();
+    // 月明かりと雲は画面内の空に置く。原画の上端が切れても消えない。
+    const skyH = Math.min(this.vh * 0.44, Math.max(this.vh * 0.3, c.oy + c.ih * 0.39));
     g.globalCompositeOperation = "screen";
+    g.globalAlpha = 0.16 + Math.sin(t * 0.32) * 0.045;
+    const moonX = c.ox + c.iw * (this.art.h > this.art.w ? 0.27 : 0.23);
+    const moonY = c.oy + c.ih * 0.13;
+    const radius = this.vw * 0.34;
+    g.drawImage(this.moonGlow, moonX - radius, moonY - radius, radius * 2, radius * 2);
+    g.beginPath(); g.rect(0, 0, this.vw, skyH); g.clip();
     for (let i = 0; i < this.clouds.length; i++) {
-      const w = c.iw * 1.1, h = c.ih * (0.23 + i * 0.08);
-      const offset = (t * (5 + i * 4)) % w;
-      g.globalAlpha = 0.22 + i * 0.06;
-      for (let x = c.ox - w + (i ? -offset : offset); x < this.vw; x += w)
-        g.drawImage(this.clouds[i], x, c.oy + c.ih * (0.02 + i * 0.12), w, h);
+      const w = this.vw * (1.25 + i * 0.3), h = skyH * (0.72 + i * 0.08);
+      const offset = (t * (15 + i * 11) * Math.max(0.7, this.vw / 950)) % w;
+      g.globalAlpha = 0.48 + i * 0.08;
+      for (let x = -w + (i ? -offset : offset); x < this.vw; x += w)
+        g.drawImage(this.clouds[i], x, skyH * (i * 0.25 - 0.14), w, h);
     }
+    g.restore(); g.save();
     if (now >= this.nextCrow) {
       const dir = Math.random() < 0.5 ? 1 : -1;
       const y = 0.12 + Math.random() * 0.22;
@@ -188,25 +199,38 @@ export class PaintedTitle {
       return true;
     });
     if (now >= this.nextStorm) {
-      this.storm = { born: now, delay: 700 + Math.random() * 900, sounded: false, x: 0.15 + Math.random() * 0.7 };
-      this.nextStorm = now + 22000 + Math.random() * 22000;
+      const side = Math.random() < 0.5 ? 0.12 : 0.82;
+      this.storm = { born: now, delay: 700 + Math.random() * 900, sounded: false,
+        points: Array.from({ length: 9 }, (_, i) => ({
+          x: (side + i * 0.004 + (Math.random() - 0.5) * 0.05) * this.vw,
+          y: this.vh * (0.035 + i * 0.042),
+        })),
+      };
+      this.nextStorm = now + 12000 + Math.random() * 14000;
     }
     if (this.storm) {
       const storm = this.storm, age = now - storm.born;
-      const light = Math.exp(-age / 170);
+      // 一度の長めの稲光。細い芯・青い光・枝分かれを重ねる。
+      const light = Math.min(1, age / 45 + 0.15) * Math.exp(-age / 380);
       g.globalCompositeOperation = "screen";
-      g.globalAlpha = light * 0.24;
-      const sky = g.createLinearGradient(0, 0, 0, this.vh * 0.65);
+      g.globalAlpha = light * 0.5;
+      const sky = g.createLinearGradient(0, 0, 0, this.vh * 0.75);
       sky.addColorStop(0, "#bacde9"); sky.addColorStop(1, "rgba(100,130,175,0)");
-      g.fillStyle = sky; g.fillRect(0, 0, this.vw, this.vh * 0.65);
-      g.globalAlpha = light * 0.6; g.strokeStyle = "#cbdcf5"; g.lineWidth = 1.2;
-      g.beginPath();
-      for (let i = 0; i < 7; i++) {
-        const x = storm.x * this.vw + (hash(i, storm.born) - 0.5) * 28;
-        const y = c.oy + c.ih * (0.04 + i * 0.028);
-        if (!i) g.moveTo(x, y); else g.lineTo(x, y);
+      g.fillStyle = sky; g.fillRect(0, 0, this.vw, this.vh * 0.75);
+      for (const [width, alpha, color] of [[9, 0.25, "#627fdf"], [3, 0.6, "#a4c6ff"], [1.2, 0.95, "#eff6ff"]]) {
+        g.globalAlpha = light * alpha; g.strokeStyle = color; g.lineWidth = width;
+        g.beginPath();
+        storm.points.forEach((p, i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y));
+        g.stroke();
+        for (const index of [3, 5]) {
+          const p = storm.points[index], dir = index === 3 ? -1 : 1;
+          g.beginPath(); g.moveTo(p.x, p.y);
+          g.lineTo(p.x + dir * this.vw * 0.035, p.y + this.vh * 0.025);
+          g.lineTo(p.x + dir * this.vw * 0.025, p.y + this.vh * 0.047);
+          g.lineTo(p.x + dir * this.vw * 0.07, p.y + this.vh * 0.08);
+          g.stroke();
+        }
       }
-      g.stroke();
       if (!storm.sounded && age >= storm.delay) { storm.sounded = true; SFX.thunder(); }
       if (age > 2200) this.storm = null;
     }
@@ -257,6 +281,18 @@ export class PaintedTitle {
       return true;
     });
 
+    // 墓標のそばを漂う小さな魂火。門の奥へゆっくり流れる。
+    for (let i = 0; i < 7; i++) {
+      const phase = t * (0.16 + hash(i, 41) * 0.09) + i * 2.4;
+      const [x, y] = P(0.16 + hash(i, 33) * 0.68 + Math.sin(phase) * 0.025,
+        (a.fogY || 0.67) - 0.04 + Math.cos(phase * 0.7) * 0.025);
+      const size = (9 + hash(i, 19) * 7) * mScale;
+      g.globalAlpha = 0.25 + Math.sin(phase * 1.8) * 0.14;
+      g.drawImage(this.soul, x - size, y - size, size * 2, size * 2);
+      g.globalAlpha *= 1.8;
+      g.drawImage(this.soulCore, x - size * 0.16, y - size * 0.16, size * 0.32, size * 0.32);
+    }
+
     // ランタンのゆらぎと火の粉
     if (a.lamp) {
       const [lx, ly] = P(a.lamp[0], a.lamp[1]);
@@ -283,8 +319,8 @@ export class PaintedTitle {
       const f = this.fogs[i];
       const w = c.iw * (1.3 + i * 0.25), h = c.ih * (0.16 + i * 0.05);
       const y = c.oy + c.ih * (fogTop + i * 0.09) - h / 2;
-      const off = ((t * (8 + i * 9)) * mScale) % w;
-      g.globalAlpha = 0.1 + i * 0.035;
+      const off = ((t * (17 + i * 14)) * mScale) % w;
+      g.globalAlpha = 0.22 + i * 0.06;
       for (let x = c.ox - off - (i % 2 ? w * 0.4 : 0); x < this.vw; x += w) g.drawImage(f, x, y, w, h);
     }
     g.globalCompositeOperation = "source-over";
