@@ -1,0 +1,59 @@
+{
+  "selected": "A",
+  "portrait_source": "docs/art/title/candidates/tall-a.png",
+  "portrait_unchanged": true,
+  "landscape": {
+    "source": "/workspace/generated_images/exec-2e71eb8d-fa07-4cd7-8d4e-c87b004adaad.png",
+    "reference_order": [
+      "art/story-review/chapter4/w14_lamp.png",
+      "art/story-review/prologue/first-descent-gatekeeper.png",
+      "docs/art/title/keyart-tall.png"
+    ],
+    "initial_prompt": "Create ONE standalone landscape illustration, aspect 3:2, edge-to-edge, no borders, no text, no letters, no logo, no watermark. Painterly, ultra-detailed high-resolution dark fantasy key art — NOT pixel art, no pixel or dithered texture; smooth painted light, atmospheric depth, cinematic. Same world and characters as the attached Dungeon of Souls illustrations. Scene: a vast moonlit necropolis at night. In the middle of the image, a towering gothic pointed-arch gate descends into the earth; from the stairway deep inside it, pale cyan-green soul-fire light crawls upward and glows out of the gate's mouth. On both sides of the gate stand colossal faceless hooded stone statues with swords planted point-down, only a faint cyan-green glint where eyes would be. Leaning gravestones, a dead gnarled tree with crows, an old gibbet. Behind, a huge pale moon among torn clouds. In the foreground lower-center, a lone young adult apprentice seen from behind looking up at the gate: tousled brown hair, charcoal-black traveling cloak with restrained geometric gold embroidery all over, brown leather crossbody satchel, holding a small hand lantern with a warm orange flame away from the body. Only three light sources: the gate's soul-fire (key light, from below, cyan-green), the moon behind (cold blue-violet rim light), the lantern (warm orange). Composition: the top 30% is a calm dark night sky with only the moon and clouds (a title logo goes there); the bottom 30% is dark quiet ground with mist and grave silhouettes (menus go there); the gate and the apprentice sit in the middle band, the gate horizontally centered, statues framing it left and right, graves spreading wide to both sides. No lit windows, no town lights, no other people.\nReference 1 defines the apprentice's appearance, reference 2 defines world/style, reference 3 is APPROVED portrait A and defines the exact scene and colors. Make a NEW ORIGINAL LANDSCAPE COMPOSITION, not a crop or stretch of reference 3. Preserve its symmetrical low broad pointed arch crypt gate, flanking hooded stone statues holding point-down swords, pale cyan-green fire in the underground mouth, grave rows, leafless trees with crows, old gibbet at right, moon upper-left, orange lantern. Spread cemetery sideways for the horizontal frame. STRICT: top one third calm dark navy sky with only subdued moon/clouds; bottom one third near-black smooth quiet stone ground/mist with no bright reflections or large foreground graves. Place gate and giant statues in middle band, all architectural tips below 35% height and bases near 55%. Small full-body apprentice slightly right of center, entirely back-facing, head near 48% height feet no lower than 65%, orange lantern to his right near 59%. REALISTIC YOUNG ADULT 7.5-8 heads tall, small head, grown shoulder width, long adult arms/legs, absolutely no child/chibi proportions. Gold restrained geometric embroidery all over charcoal cloak, brown diagonal satchel strap and brown leather bag on hip, messy brown hair. Exactly two arms, naturally curled fingers around handle, one thumb and four fingers, spare arm naturally cloaked. The gate opens into DESCENDING underground stairs, not ascending cathedral steps. Only three lights specified. No pixel texture, text, letters, inscriptions, watermark, signature, lit windows, torches or other people. Distant cinematic vista with vast quiet top/bottom margins, smooth fine painterly high resolution. Landscape 3:2 full bleed.",
+    "layout_correction_prompt": "Repaint reference 4 as a landscape 3:2 title screen with usable UI empty space. Reference 1 apprentice identity, reference 2 gothic world/style, reference 3 approved portrait scene. Preserve reference 4 scene/color/style but fix layout only. Make gateway and statues SMALLER and move them UP so architectural top is at 35% height and threshold ends near 52% height. Remove unnecessary spires above this band. SHRINK adult apprentice and move UP: full body head at 48% height feet at 65% height, slight right of center, orange lantern flame at 59%. Correct adult 7.5-8 heads tall, small head, broad adult shoulders, long mature limbs, NO child proportions. Keep gold geometric charcoal cloak, messy brown hair, brown leather satchel and diagonal strap. Entire bottom 30% is EMPTY smooth near-black ground/mist, no character, no graves, no bright rock detail or light reflections. Top 30% ONLY dark sky/moon/clouds, muted moon upper left. Graves, bare trees/crows, old right-side gibbet stay in middle band at side edges. Gate horizontally centered, two faceless hooded stone giant statues with planted swords frame it. Pale cyan-green soul fire crawls from below through gate mouth into underground descending stairway; no rising stairs into cathedral. Natural right hand holds orange lantern away from body, two arms only. No text, letters, logo or signature, no other people, no torches/town lights, no pixels/dithering. High definition smooth painting. This is a distant broad vista in a narrow central band, with vast quiet foreground below and quiet sky above. Recompose, do not crop.",
+    "generated_dimensions": [
+      1536,
+      1024
+    ],
+    "master_dimensions": [
+      2400,
+      1600
+    ]
+  },
+  "upscale": {
+    "method": "Pillow Image.Resampling.LANCZOS",
+    "factor": 1.5625,
+    "crop": false,
+    "sharpen": false
+  },
+  "measured_master_pixels": {
+    "tall": {
+      "size": [
+        1600,
+        2400
+      ],
+      "gate": [
+        785,
+        1385
+      ],
+      "lamp": [
+        1008,
+        1468
+      ]
+    },
+    "wide": {
+      "size": [
+        2400,
+        1600
+      ],
+      "gate": [
+        1180,
+        866
+      ],
+      "lamp": [
+        1510,
+        926
+      ]
+    }
+  }
+}
