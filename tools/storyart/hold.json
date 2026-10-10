@@ -1,9 +1,6 @@
 {
   "note": "hold = 直しを待つ原画 (art/story-review/ からの相対パス・拡張子なし。build.py は変換せず、出荷先にあれば register.mjs が止める。直したらここから外す)。skip = 物語の絵ではない原画 (一覧の見本・制作の参照。変換も検査もしない)。",
-  "hold": [
-    "dungeons/lore_w14",
-    "dungeons/lore_w16"
-  ],
+  "hold": [],
   "skip": [
     "chapter1/gallery",
     "chapter3/gallery",

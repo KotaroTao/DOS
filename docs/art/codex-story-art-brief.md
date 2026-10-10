@@ -306,13 +306,13 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ...except: replace the large glass vessel with blue fire by a single white candle on a tall brass candlestick; its warm flame burns unusually high and bright. Irene stands beside it.
 ```
 
-**A-15. 第四章 mem_w17「水の底の戴冠」** `art/story-review/chapter4/mem_w17.png`
+**A-15. 第四章 mem_w17「水の底の戴冠」** `art/story-review/chapter4/mem_w17.png` (済)
 - 直す: 本文は「幹を昇ってきた男が、王の前に膝をついた。手には、根を断った刃だけを握っていた」。いまの絵は立ったまま、師のランタンを提げ、刃が無く、弟子と同じ外套 → 正典のオルドが神官王の前に片膝をつき、右手にのこぎりのような刃だけを握る。ランタンを消す。
 ```text
 ...except: the man is master Ordo (about 55, lean, short grey hair, close-cropped grey beard, plain worn black long coat with one small gold crest on the hem, no satchel), kneeling on one knee before the priest-king, holding ONLY a long serrated saw-like blade in his right hand. Remove the lantern entirely.
 ```
 
-**A-16. 第四章 w15_mural「老いない横顔」** `art/story-review/chapter4/w15_mural.png`
+**A-16. 第四章 w15_mural「老いない横顔」** `art/story-review/chapter4/w15_mural.png` (済)
 - 直す (1): 壁画の若い神官が、いまのモルデンと「一つも変わらない」顔に見えない → 正典のモルデンと同じ顔 (やせて青白く、薄い笑み)。白い法衣の若い神官として描き、苗木を抱く。
 - 直す (2): 冠を授ける王が、いまの王そっくり → 三百年前の神官王 (白と金の法衣、`chapter4/mem_w17.png` の神官王と同じ)。泉の前で冠を掲げる。
 - 直す (3): 地下なのに満月の夜空 → 窓を消すか、水没した暗い神殿の壁に。
@@ -321,38 +321,38 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ...except: (1) the young priest in the mural has exactly Morden's face from the attached reference (gaunt, pale, thin smile) but younger clothing: plain white priestly robes, holding a sapling. (2) the crowning king in the mural is the ancient priest-king in white and gold vestments like the attached mem_w17 reference, raising a crown before a sacred spring — NOT the present white-bearded king in red and ermine. (3) remove the window with the moon and night sky; this temple is drowned underground. (4) add a small handwritten scribble in a corner of the mural.
 ```
 
-**A-17. 第四章 irene_sera_wake「灯が移った夜明け」** `art/story-review/chapter4/irene_sera_wake.png`
+**A-17. 第四章 irene_sera_wake「灯が移った夜明け」** `art/story-review/chapter4/irene_sera_wake.png` (済)
 - 直す: 本文は「彼女が手に取ったのは、地下墓地で見つけた、師のランタンだった」。いまの絵は大きな据え置きのガラス灯器 → イレーヌが師のランタン (`chapter1/w01_lantern.png` の小さな真鍮の手提げランタン、青白い魂火) を手に持ち、その火が筋になってセラの胸へ流れ込む。セラは正典 (本物の黒髪・額の印)。
 ```text
 ...except: remove the large standing glass lamp. Irene holds in her hand the small brass hand lantern from the attached w01_lantern reference; a pale blue soul-fire stream flows from it into Sera's chest. Sera matches the attached Sera reference (near-black real hair, carved wooden face, forehead crest) and opens her eyes.
 ```
 
-**A-18. 第四章 ch4_end「二つ並んだ影」** `art/story-review/chapter4/ch4_end.png`
+**A-18. 第四章 ch4_end「二つ並んだ影」** `art/story-review/chapter4/ch4_end.png` (済)
 - 直す (1): 中央の灯が真鍮の杯の青い炎 → 燭台の白い蝋燭 (本文「館の燭台の灯が、セラの木の頬を照らしている」)。
 - 直す (2): セラの頬杖の腕の節が一つ多い → 正しい腕 (肩・肘・手首)。
 ```text
 ...except: the central light is a single white candle on a brass candlestick with a warm flame lighting Sera's wooden cheek (no blue flame vessel). Fix Sera's arm so it has exactly one elbow joint between shoulder and wrist.
 ```
 
-**A-19. 第四章 w16_legs「根の中を歩いた脚」** `art/story-review/chapter4/w16_legs.png`
+**A-19. 第四章 w16_legs「根の中を歩いた脚」** `art/story-review/chapter4/w16_legs.png` (済)
 - 直す: すねの正面のランタンの線画 → 消す。**くるぶしの内側**に小さく、掌に炎を載せた手の印。
 ```text
 ...except: remove the lantern drawing from the shin; carve a small palm-up hand holding a flame on the INNER ANKLE of one leg.
 ```
 
-**A-20. 踏破後 lore_w07 (捨て砦の地下牢)** `art/story-review/dungeons/lore_w07.png`
+**A-20. 踏破後 lore_w07 (捨て砦の地下牢)** `art/story-review/dungeons/lore_w07.png` (済)
 - 直す: セラの頭のそばに木の手・前腕・手足の筒が並び、一体分あるように見える (腕は取水口・胴は苗床・脚は大水槽で見つかる) → 頭だけにする。髪は正典の色、額の印を正典の形に。
 ```text
 ...except: remove the wooden hand, forearm and limb pieces; only Sera's detached head remains on the stone ledge in its cloth. Her real wavy hair is near-black dark brown like the attached Sera reference, with a small gold palm-and-flame crest on the forehead.
 ```
 
-**A-21. 踏破後 lore_w14 (水底の参道)** `art/story-review/dungeons/lore_w14.png` (いまは使われていない)
+**A-21. 踏破後 lore_w14 (水底の参道)** `art/story-review/dungeons/lore_w14.png` (いまは使われていない) (済)
 - 直す: 鳥居・しめ縄・日本式の石灯籠で和風の神社になっている → 旧都はゴシックの都。`chapter4/w14_lamp.png` と同じ、祠の形のゴシックの石灯籠の列が水底の参道に並ぶ。根・沈んだ供物の宝箱は保つ。直したら `tools/storyart/hold.json` の `hold` から外し、`python3 tools/storyart/build.py` を回す (1-3)。
 ```text
 ...except: remove the torii gates, shimenawa ropes and Japanese stone lanterns. The drowned processional way is lined with gothic shrine-shaped stone lanterns like the attached w14_lamp reference, leading to a sunken gothic temple; keep the roots and the sunken offering chests.
 ```
 
-**A-22. 踏破後 lore_w16 (洗礼の大水槽)** `art/story-review/dungeons/lore_w16.png` (いまは使われていない)
+**A-22. 踏破後 lore_w16 (洗礼の大水槽)** `art/story-review/dungeons/lore_w16.png` (いまは使われていない) (済)
 - 直す: 本文は「水は少しずつ濁った。澄んだまま残る泉は、誓いの名残だけ」「底に絡まっていたのは、どこかへ帰ろうとしていた器」。いまの絵は全体が澄んだ明るい水 → 大水槽の水は暗く濁らせ、澄んだ泉が二つだけ光る。底の根に木の脚 (セラの脚) がかすかに絡む。直したら同じく `hold` から外して build.py を回す。
 ```text
 ...except: the great baptismal cistern water becomes dark and murky; only two small pure springs still glow clear. Faintly visible at the bottom, roots entangle a pair of wooden doll legs with black iron joints.
