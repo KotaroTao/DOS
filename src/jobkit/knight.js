@@ -7,13 +7,13 @@ export default {
   table: `
     1 SHIELDBASH 2 NERAIUCHI 3 taunt/1 5 CHOUHATSU 7 PROTECT 10 KOTE 12 IWAKUDAKI 15 KNIGHT_JINTOTSU
     15 nightWatch/1 20 NIOUDACHI 22 KOUJIN 25 knightTessoku/1 25 KNIGHT_JINCHUUTEATE 30 RYUURINJIN
-    35 cover/1 40 JOUMON 45 bastion/1 50 SHINGANGEKI 50 nightWatch/2 55 IRONWALL 57 GANOTOSHI
+    35 cover/1 40 JOUMON 45 bastion/1 45 knightHoujin/1 50 SHINGANGEKI 50 nightWatch/2 55 IRONWALL 57 GANOTOSHI
     60 knightTessoku/2 60 KNIGHT_JINEINOTEATE 65 SHIELDCHARGE 70 parry/1 75 knightFutai/1 80 BOUJIN
     82 KNIGHT_HAJINSOU 85 KNIGHT_YARIBUSUMA 90 resistAilment/1 95 SHUGOHOUKOU 100 JOUSAITSUKI
     100 nightWatch/3 105 knightTessoku/3 107 KNIGHT_JINARI 110 TEPPEKIJIN 115 cover/2 120 KNIGHT_ITTETSU
-    125 bastion/2 130 FURAKUNOTATE 135 parry/2 140 BANRAI 145 knightHoujin/1 150 SHUGOKEKKAI
+    125 bastion/2 125 knightHoujin/2 130 FURAKUNOTATE 135 parry/2 140 BANRAI 150 SHUGOKEKKAI
     155 knightFutai/2 160 JOUSAIKUZUSHI 162 DAICHIMEIDOU 165 resistAilment/2 170 TESSAINAGI
-    175 knightHoujin/2 180 KISHIOU 185 knightOath/1 190 FUDOUJIN 195 DAIGOUREI 200 FURAKUJOU`,
+    180 KISHIOU 185 knightOath/1 190 FUDOUJIN 195 DAIGOUREI 200 FURAKUJOU`,
   skills: {
     // 体の手当て (2026-10): 回復量は使い手の最大HPで決まる。少ないMPで癒せるが、最大HPの小さい魔法職が借りても弱い
     KNIGHT_JINCHUUTEATE: { name: "陣中の手当て", mp: 4, kind: "heal", bodyHeal: 0.2, healCap: 0.35, tech: true, target: "ally", desc: "戦の合間に手早く傷を縛る（騎士の最大HPで伸びる）" },
@@ -34,8 +34,13 @@ export default {
     },
     knightTessoku: {
       label: "騎士の鉄則",
-      lv: ["物理が当たると10%で敵の攻撃×0.85 (3ターン)", "物理が当たると14%で敵の攻撃×0.85 (3ターン)", "物理が当たると18%で敵の攻撃×0.85 (3ターン)"],
-      fx: [{ t: "hit", chance: [0.10, 0.14, 0.18], ail: "atk", mul: 0.85 }],
+      // 盾役の見直し (2026-10): 引き付けている間 (矢面の構え) は硬くなり、受けた物理の傷を返す
+      lv: ["物理が当たると10%で敵の攻撃×0.85 (3ターン)。敵を引き付けている間、受けるダメージ-25%・物理の傷の40%を相手に返す",
+        "物理が当たると14%で敵の攻撃×0.85 (3ターン)。敵を引き付けている間、受けるダメージ-32%・物理の傷の50%を相手に返す",
+        "物理が当たると18%で敵の攻撃×0.85 (3ターン)。敵を引き付けている間、受けるダメージ-40%・物理の傷の60%を相手に返す"],
+      fx: [{ t: "hit", chance: [0.10, 0.14, 0.18], ail: "atk", mul: 0.85 },
+        { t: "take", when: { taunting: true }, v: [0.25, 0.32, 0.40] },
+        { t: "hurt", when: { taunting: true }, thorns: [0.40, 0.50, 0.60] }],
     },
     knightFutai: {
       label: "不退の誓い",
@@ -44,8 +49,12 @@ export default {
     },
     knightHoujin: {
       label: "方陣の規律",
-      lv: ["前衛の味方全員の物理の被ダメージ-6%", "前衛の味方全員の物理の被ダメージ-10%"],
-      fx: [{ t: "take", aura: true, on: "phys", when: { front: true }, v: [0.06, 0.10] }],
+      // 全体攻撃を受け止める (2026-10): 盾役どうしでは重ならない (best)
+      lv: ["前衛の味方全員の物理の被ダメージ-6%。味方全員のブレス・全体呪文の被ダメージ-8% (盾役どうしでは一番強いものだけ)",
+        "前衛の味方全員の物理の被ダメージ-10%。味方全員のブレス・全体呪文の被ダメージ-12% (盾役どうしでは一番強いものだけ)"],
+      fx: [{ t: "take", aura: true, on: "phys", when: { front: true }, v: [0.06, 0.10] },
+        { t: "take", aura: true, best: true, on: "breath", v: [0.08, 0.12] },
+        { t: "take", aura: true, best: true, on: "spell", v: [0.08, 0.12] }],
     },
     knightOath: {
       label: "騎士王の誓約",

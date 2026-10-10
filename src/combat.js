@@ -272,6 +272,12 @@ function perksOf(a) {
 // Lv ごとの値 (配列なら Lv 番目。足りなければ最後) / 単なる数ならそのまま
 const lvv = (v, lv) => (Array.isArray(v) ? v[Math.min(Math.max(1, lv), v.length) - 1] : v);
 // 魂の共鳴 (src/resonance.js、第七章の結びで開く): 隊の編成 (メイン魂の職の組み合わせ) で決まる隊全体の効果。
+// 敵を引き付けている間に軽くなる被ダメの割合 (盾役の固有パッシブ take + when.taunting)。オートが挑発の値打ちを見込むのに使う
+export function tauntGuard(a) {
+  let g = 0;
+  for (const { c, lv } of perksOf(a)) if (c.t === "take" && c.when && c.when.taunting && !c.aura) g += lvv(c.v, lv) || 0;
+  return Math.min(0.8, g);
+}
 // game.js syncResonance が編成の変わるたびに setResonance で渡す。fx = perksOf と同じ形の成分の列、members = 隊の人業
 // (その人業にだけ効く — 控えの人業の技の消費MPなどは変えない)、cap = 種類ごとの合計の上限 (RESONANCE_CAP)
 let _reso = NO_PERKS, _resoMembers = null, _resoCap = {};
@@ -924,21 +930,26 @@ export class Battle {
     if (w.elem && ctx.el !== w.elem) return false;
     if (w.tgtWeak && !(t && ctx.el && ctx.el !== "none" && t.element && elemBeats(ctx.el, t.element))) return false;
     if (w.tgtWeakened && !(t && (t.ailment || t.asleep || t.mind || t._flinch || (t.effects || []).some((e) => e.mult < 1)))) return false;
+    // 自分が敵を引き付けている (矢面の構え・挑発の効果中) — 盾役の「引き付けると硬くなる」「引き付けた打撃を返す」
+    if (w.taunting && !(pv(a, "taunt") || this._bm(a, "taunt") > 1)) return false;
     return true;
   }
   // 与ダメ・被ダメ・会心・回避などの値の合計 (自分の分 + 生きている味方の aura 付きの分)。ctx.on = その攻撃の種類の札の配列
   _perkSum(a, type, ctx = {}) {
     if (!a || a.side !== "party") return 0;
-    let sum = 0;
+    let sum = 0, best = 0;
     for (const p of this.party) {
       if (p !== a && !p.alive) continue;
       for (const { c, lv } of perksOf(p)) {
         if (c.t !== type || (p !== a && !c.aura)) continue;
         if (c.on && !(ctx.on || []).includes(c.on)) continue;
         if (c.when && !this._perkWhen(a, c.when, ctx)) continue;
-        sum += lvv(c.v, lv) || 0;
+        // best = 隊で重ならない守り (盾役の「全体攻撃を受け止める」など): 持ち主が何人いても一番強いものだけ
+        if (c.best) best = Math.max(best, lvv(c.v, lv) || 0);
+        else sum += lvv(c.v, lv) || 0;
       }
     }
+    sum += best;
     // 魂の共鳴 (src/resonance.js): 隊の人業すべてに効く。共鳴どうしの合計は種類ごとに上限 (_resoCap)
     const rs = resoOf(a);
     if (rs.length) {
@@ -1031,7 +1042,7 @@ export class Battle {
   _perkHurt(t, attacker, dmg, kind) {
     if (!t || t.side !== "party" || !t.alive || !(dmg > 0)) return;
     for (const { c, lv, label } of perksOf(t)) {
-      if (c.t !== "hurt" || (c.on || "phys") !== kind || !this._perkRoll(c, lv)) continue;
+      if (c.t !== "hurt" || (c.on || "phys") !== kind || (c.when && !this._perkWhen(t, c.when, { tgt: attacker })) || !this._perkRoll(c, lv)) continue;
       if (c.buff) this._perkBuff(t, c.buff, lv, c.dur || 2, label);
       const h = this._perkHeal(t, lvv(c.hp, lv)), m = this._perkMp(t, lvv(c.mp, lv));
       if (c.buff || h || m) { this.log(`${t.name}の${label}${h ? ` HP+${h}` : ""}${m ? ` MP+${m}` : ""}`, "heal"); this._proc(t, label); }

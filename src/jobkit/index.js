@@ -9,7 +9,7 @@
 //
 // ===== 固有パッシブの効果 fx (成分の配列。値の配列はパッシブLv 1,2,3… の順) =====
 //  { t:"deal",  v:[…], on?, when?, aura? }   与ダメージ +v (0.15 = +15%)
-//  { t:"take",  v:[…], on?, when?, aura? }   被ダメージ −v (0.15 = −15%。下限は ×0.2)
+//  { t:"take",  v:[…], on?, when?, aura?, best? }   被ダメージ −v (0.15 = −15%。下限は ×0.2)。best = 隊で重ならない (持ち主が何人いても一番強いものだけ)
 //  { t:"crit",  v:[…], on?, when?, aura? }   物理の会心率 +v
 //  { t:"evade", v:[…], when?, aura? }        敵の物理をかわす確率 +v
 //  { t:"heal",  v:[…] }                      回復呪文・技の回復量 +v
@@ -21,7 +21,7 @@
 //               リジェネ (最大HPの割合) / MP を最大の割合だけ回復 / 不屈を1回 / 挑発 / 溜め
 //  { t:"round", chance?, when?, party?, hp?:[…], mp?:[…], buff?:{stat:[…]}, dur? }  2ラウンド目以降の毎ラウンド初め
 //  { t:"kill",  chance?, hp?:[…], mp?:[…], buff?:{stat:[…]}, dur? }   自分の手番で敵を倒した時
-//  { t:"hurt",  chance?, on?, buff?:{stat:[…]}, dur?, thorns?:[…], mp?:[…], hp?:[…] }  敵の物理 (on:"breath" ならブレス) を受けた時。
+//  { t:"hurt",  chance?, on?, when?, buff?:{stat:[…]}, dur?, thorns?:[…], mp?:[…], hp?:[…] }  敵の物理 (on:"breath" ならブレス) を受けた時。
 //               thorns = 受けたダメージのその割合を相手に返す
 //  { t:"hit",   chance:[…], on?, ail, pct?, turns?, mul?, el? }  自分の物理が敵に当たった時、確率で付与:
 //               ail = poison(pct=毎ターンの割合) / para / sleep / confuse / charm / seal(turns) / flinch / strip /
@@ -38,7 +38,7 @@
 //    boss / noBoss / selfLow:0.5 / selfHigh:0.8 / selfAil / buffed (自分が強化中) / defending / mpHigh:0.5 /
 //    round1 / roundGE:3 / preempt (先制した戦闘) / front / back (自分の隊列) / crowd:3 (敵の数以上) / lastFoe (敵が残り1体) /
 //    allyDown (倒れた味方がいる) / alone (生き残りが自分だけ) / elem:"fire" (攻撃の属性) /
-//    tgtWeak (攻撃の属性が相手の弱点) / tgtWeakened (相手が状態異常・怯み・弱体のどれか)
+//    tgtWeak (攻撃の属性が相手の弱点) / tgtWeakened (相手が状態異常・怯み・弱体のどれか) / taunting (自分が敵を引き付けている = 矢面の構え・挑発の効果中)
 import fighter from "./fighter.js";
 import knight from "./knight.js";
 import priest from "./priest.js";
@@ -95,13 +95,13 @@ const TARGETS = new Set(["enemy", "all-enemy", "ally", "all-ally", "self"]);
 const ELS = new Set(["fire", "water", "wind", "earth", "light", "dark"]);
 const STATS = new Set(["atk", "vit", "agi", "int", "pie", "hit"]);
 const FX_FIELDS = {
-  deal: "v on when aura", take: "v on when aura", crit: "v on when aura", evade: "v when aura", heal: "v", cost: "v on",
+  deal: "v on when aura", take: "v on when aura best", crit: "v on when aura", evade: "v when aura", heal: "v", cost: "v on",
   stat: "mul when", start: "chance when party dur buff foe barrier wall regen mp endure taunt charge",
-  round: "chance when party hp mp buff dur", kill: "chance hp mp buff dur", hurt: "chance on buff dur thorns mp hp",
+  round: "chance when party hp mp buff dur", kill: "chance hp mp buff dur", hurt: "chance on when buff dur thorns mp hp",
   hit: "chance on ail pct turns mul el", cast: "chance on refund hp mp party", fall: "chance buff dur hp", win: "hp mp party",
 };
 const WHEN = new Set(("race tgtElem tgtAil tgtDebuffed tgtLow tgtHigh boss noBoss selfLow selfHigh selfAil buffed defending mpHigh " +
-  "round1 roundGE preempt front back crowd lastFoe allyDown alone elem tgtWeak tgtWeakened").split(" "));
+  "round1 roundGE preempt front back crowd lastFoe allyDown alone elem tgtWeak tgtWeakened taunting").split(" "));
 const AILS = new Set(["poison", "para", "sleep", "confuse", "charm", "seal", "flinch", "strip", "atk", "vit", "agi", "vuln"]);
 // 戦闘に勝った後のMP回復 (win の mp と、共通パッシブの魔力回路): 魂1つあたり最大MPの4%まで。
 // 別の魂どうしは重なる (メイン魂とサブ魂2つで4%ずつ = 12%。サブ魂の枠が増えてもそのまま足す。2026-10 ユーザーの指示 — 5% から下げた)

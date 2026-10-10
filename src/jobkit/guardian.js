@@ -8,7 +8,7 @@ export default {
     1 SHIELDBASH 2 NERAIUCHI 3 CHOUHATSU 5 guardianNone/1 7 GUARDIAN_NEHARI 10 SUIGETSU 12 IWAKUDAKI
     15 GUARDIAN_OOTATEOTOSHI 15 guardianKenrou/1 20 HANGEKI 22 CHIRETSU 25 guardianTatenochikai/1
     25 GUARDIAN_TATEKAGENOTEATE 30 NIOUDACHI 35 guardianToride/1 40 KOUBOUITTAI 45 guardianNone/2
-    50 GUARDIAN_KORAEGAESHI 50 guardianKenrou/2 55 RYUURINJIN 57 GUARDIAN_GANBANGAESHI 60 guardianHoufuku/1
+    50 GUARDIAN_KORAEGAESHI 50 guardianKenrou/2 55 RYUURINJIN 57 GUARDIAN_GANBANGAESHI 30 guardianHoufuku/1
     60 GUARDIAN_JOUHEKINOTEATE 65 GUARDIAN_SUKIUGACHI 70 guardianUtaregatame/1 75 guardianToride/2
     80 GUARDIAN_SEKIHEKI 85 GUARDIAN_SOUJUN 90 guardianTatenochikai/2 95 GUARDIAN_GAJOU 100 GUARDIAN_OMOTATE
     100 guardianKenrou/3 105 guardianHoufuku/2 107 GUARDIAN_JIBANSHIZUME 110 OUJOU 115 guardianToride/3
@@ -53,18 +53,24 @@ export default {
     },
     guardianNone: {
       label: "不動の根",
-      lv: ["戦闘開始時、敵を自分に引き付ける (2ターン)", "さらに戦闘ごとに一度、致死をHP1で耐える", "さらに戦闘開始時、VIT×1.2 (3ターン)"],
-      fx: [{ t: "start", taunt: true }, { t: "start", chance: [0, 1, 1], endure: true, buff: { vit: [1, 1, 1.2] }, dur: 3 }],
+      lv: ["戦闘開始時、敵を自分に引き付ける (3ターン)。引き付けている間、受けるダメージ-20%",
+        "さらに戦闘ごとに一度、致死をHP1で耐える。引き付けている間、受けるダメージ-28%",
+        "さらに戦闘開始時、VIT×1.2 (3ターン)。引き付けている間、受けるダメージ-36%"],
+      fx: [{ t: "start", taunt: true, dur: 3 }, { t: "start", chance: [0, 1, 1], endure: true, buff: { vit: [1, 1, 1.2] }, dur: 3 },
+        { t: "take", when: { taunting: true }, v: [0.20, 0.28, 0.36] }],
     },
     guardianHoufuku: {
       label: "報復の楯",
-      lv: ["物理を受けると25%で、受けた傷の100%を相手に返す", "物理を受けると30%で、受けた傷の140%を相手に返す", "物理を受けると35%で、受けた傷の180%を相手に返す"],
-      fx: [{ t: "hurt", chance: [0.25, 0.30, 0.35], thorns: [1.0, 1.4, 1.8] }],
+      lv: ["物理を受けると35%で、受けた傷の100%を相手に返す", "物理を受けると40%で、受けた傷の140%を相手に返す", "物理を受けると45%で、受けた傷の180%を相手に返す"],
+      fx: [{ t: "hurt", chance: [0.35, 0.40, 0.45], thorns: [1.0, 1.4, 1.8] }],
     },
     guardianTatenochikai: {
       label: "楯の誓い",
-      lv: ["防御中の被ダメージ-15%", "防御中の被ダメージ-25%"],
-      fx: [{ t: "take", when: { defending: true }, v: [0.15, 0.25] }],
+      lv: ["防御中の被ダメージ-15%。味方全員のブレス・全体呪文の被ダメージ-8% (盾役どうしでは一番強いものだけ)",
+        "防御中の被ダメージ-25%。味方全員のブレス・全体呪文の被ダメージ-12% (盾役どうしでは一番強いものだけ)"],
+      fx: [{ t: "take", when: { defending: true }, v: [0.15, 0.25] },
+        { t: "take", aura: true, best: true, on: "breath", v: [0.08, 0.12] },
+        { t: "take", aura: true, best: true, on: "spell", v: [0.08, 0.12] }],
     },
     guardianToride: {
       label: "最後の砦",

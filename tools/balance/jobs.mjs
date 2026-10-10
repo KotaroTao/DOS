@@ -245,6 +245,7 @@ function fight(party, foes, level, stat, fleeK) {
     } else if (b.phase === "enemy") res = b.enemyAct();
     else if (b.phase === "stunned") res = b.stunnedAct();
     else throw new Error("phase " + b.phase);
+    if (process.env.TALLY && res && res.actor && res.actor.side === "enemy") for (const h of res.hits || []) if (h.target && h.target.side === "party" && h.dmg > 0) { const k = res.action + (res.espell ? ":spell" : ""); TALLY[k] = (TALLY[k] || 0) + h.dmg; }
     for (const h of res?.hits || []) {
       if (res.actor === subj && h.target?.side === "enemy") stat.dmg += h.dmg || 0;
       if (res.actor === subj && h.target?.side === "party") stat.heal += h.heal || 0;
@@ -256,11 +257,12 @@ function fight(party, foes, level, stat, fleeK) {
   const left = foes.reduce((s, e) => s + (e.alive ? Math.max(0, e.hp) : 0), 0);
   // 戦闘中の強化・状態を持ち越さない (HP・MP・死亡・状態異常の毒/麻痺/石化は持ち越す)
   for (const p of party) { p.asleep = false; p.mind = null; }
-  return { win: b.result === "win", part: 1 - left / hp0 };
+  return { win: b.result === "win", timeout: !b.result, part: 1 - left / hp0 };
 }
 
 // 難しさ: 基準の隊 (A + 戦士) が12戦のうち半ばまで進む強さに合わせる (Lvごとに一度だけ探す)
 const KCACHE = {};
+const TALLY = {}, ENDS = {}; // 敵から隊への傷の内訳 (TALLY=1 の時だけ集める。行動の種類ごと)
 // 試しの調整では、基準の測定で決めた難しさ (k) をそのまま使う (基準の職を調整しても難しさが動かないように)
 if (arg("--k-from", null)) Object.assign(KCACHE, JSON.parse(fs.readFileSync(arg("--k-from"), "utf8")).k || {});
 function gauntlet(base, job, level, runSeed, k) {
@@ -276,7 +278,7 @@ function gauntlet(base, job, level, runSeed, k) {
     const foes = SYNTH ? enemies(level, kind, ref, k) : realFoes(level, kind, site, k);
     const r = fight(party, foes, level, stat, SYNTH ? 1 / 0.3 : site.fleeK);
     if (wasAlive && !subject.alive) stat.deaths++;
-    if (!r.win) { score += r.part; break; }
+    if (!r.win) { score += r.part; if (process.env.TALLY) { const k = `${kind}:${r.timeout ? "時間切れ" : "全滅"}`; ENDS[k] = (ENDS[k] || 0) + 1; } break; }
     score += 1; stat.won++;
     victory(party);
     camp(new Battle(party, [], () => {}, {}), party, stat);
@@ -336,6 +338,7 @@ for (const L of LEVELS) for (const base of Object.keys(BASES)) {
   for (const r of rows.filter((r) => r.level === L && r[base])) { r[base].rel = r[base].score / med; r[base].con = (r[base].score - e0) / Math.max(0.05, med - e0); }
 }
 for (const r of rows) { const bs = Object.keys(BASES).filter((b) => r[b]); r.rel = bs.reduce((s, b) => s + r[b].rel, 0) / bs.length; r.con = bs.reduce((s, b) => s + r[b].con, 0) / bs.length; }
+if (process.env.TALLY) { const tot = Object.values(TALLY).reduce((a, b) => a + b, 0) || 1; console.log("敵から隊への傷の内訳:", Object.entries(TALLY).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${(v / tot * 100).toFixed(0)}%`).join(" ")); console.log("終わり方:", JSON.stringify(ENDS)); }
 console.log("難しさ合わせの倍率 k (1 = ゲームの強さのまま):", Object.entries(KCACHE).map(([key, k]) => `${key} ${k.toFixed(2)}`).join(" "));
 const out = arg("--out", null);
 if (out) fs.writeFileSync(out, JSON.stringify({ mode: MODE, soulRate: SOUL_RATE, levels: LEVELS, k: KCACHE, empty: EMPTY, rows }));

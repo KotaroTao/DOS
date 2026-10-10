@@ -10,7 +10,7 @@
 // 作戦はこの重みと MP の値段を変える。game.js はここを呼んで chooseAction / chooseTarget するだけ。
 // (このファイルは game.js を import しない)
 
-import { SPELLS, spellCost, soulPowerMul, healsHp, isMetal, spellCureKinds, breathHpK, manaGiftAmount } from "./combat.js";
+import { SPELLS, spellCost, soulPowerMul, healsHp, isMetal, spellCureKinds, breathHpK, manaGiftAmount, tauntGuard } from "./combat.js";
 import { autoSkills } from "./souls.js";
 import { STAGED, STAGE_MAX, STRONG_MIN, stageMul, stageOf } from "./buffstage.js";
 
@@ -361,7 +361,8 @@ function allyEffects(b, ctx, actor, sp, a, c, W) {
   }
   const wounded = ctx.allies.some((p) => p !== a && p.maxhp && p.hp < p.maxhp * 0.5);
   const sturdy = a.maxhp && a.hp > a.maxhp * 0.5;
-  if (sp.taunt && b._bm(a, "taunt") <= 1 && sturdy && ctx.allies.length > 1) c.guard += ctx.threatSum * (wounded ? 0.4 : 0.15) * n;
+  // 引き付けると硬くなる盾役 (tauntGuard) は、引き受けた分の傷そのものが減るので値打ちが上がる
+  if (sp.taunt && b._bm(a, "taunt") <= 1 && sturdy && ctx.allies.length > 1) c.guard += ctx.threatSum * (wounded ? 0.4 : 0.15) * n * (1 + 2 * tauntGuard(a));
   if (sp.shield && b._bm(a, "shield") <= 1 && sturdy && wounded) c.guard += ctx.maxThreat * n * 0.6;
   if (sp.stance === "counter" && b._bm(a, "ctr") <= 1) c.edge += ctx.hitsOn(a) * ctx.basic(a) * ctx.dmgK * 0.8 * n;
   if (sp.charge && !(a.effects || []).some((e) => e.stat === "charge") && ctx.rounds > 1) c.edge += (sp.charge - 1) * ctx.basic(a) * ctx.dmgK * 0.8;
