@@ -1424,27 +1424,21 @@ function reserveRow(d) {
       openSoulPicker(d, "primary");
     } }));
   } else {
-    sw.appendChild(el("span", "pt-res-swl", "⇄"));
-    G.party.forEach((m, j) => {
-      const t = portraitEl(m, { size: 44, cls: "pt-swap" });
-      t.setAttribute("aria-label", `${m.name} と入れ替える`);
-      t.title = `${m.name} と入れ替える`;
-      const conflict = !!game.partySoulConflict(G.party.map((x, i) => i === j ? d : x));
-      if (conflict) { t.setAttribute("aria-disabled", "true"); t.title = "同じ職業の魂が重複するため選択不可"; t.style.opacity = "0.4"; }
-      else t.addEventListener("click", () => swapWithReserve(d, j));
-      sw.appendChild(t);
-    });
+    sw.appendChild(el("span", "pt-res-swl", G.party.length ? "入れ替える相手" : "隊はまだ空"));
+    const tg = el("div", "pt-res-tg");
+    G.party.forEach((m, j) => tg.appendChild(swapTarget(m, j, swapBlock(d, j), () => swapWithReserve(d, j))));
     if (G.party.length < 6) {
       const a = el("button", "pt-res-join");
       a.type = "button";
       a.appendChild(el("span", null, "＋"));
-      a.appendChild(el("span", "pt-res-join-l", "加える"));
+      a.appendChild(el("span", "pt-res-join-l", `${slotName(G.party.length)}へ加える`));
       a.setAttribute("aria-label", `${d.name} をパーティに加える`);
       a.disabled = !!game.partySoulConflict([...G.party, d]);
       if (a.disabled) a.title = "同じ職業の魂が重複するため選択不可";
       a.addEventListener("click", () => joinParty(d));
-      sw.appendChild(a);
+      tg.appendChild(a);
     }
+    sw.appendChild(tg);
     const ex = expeditionButton(d, () => { if (reserveH) reserveH.close(); });
     if (ex) sw.appendChild(ex);
   }
@@ -1466,9 +1460,10 @@ function swapWithReserve(d, j) {
   if (game.blockSoulResonance(G.party.map((x, i) => i === j ? d : x))) return;
   G.party[j] = d; G.reserve[k] = m;
   sfx("select"); buzz(10);
-  game.log(`${d.name} をパーティに入れ、${m.name} を控えに下げた。`, "sys");
-  toast(`${d.name} ⇄ ${m.name}`, { tone: "info" });
+  game.log(`${d.name} をパーティ (${slotName(j)}) に入れ、${m.name} を控えに下げた。`, "sys");
+  toast(`${d.name} が${slotName(j)}に入り、${m.name} は控えへ`, { tone: "info", noLog: true });
   if (reserveH) reserveH.close();
+  if (swapH) swapH.close();
   select(d);
   if (game.autosave) game.autosave(true);
   rerender();
@@ -1483,11 +1478,122 @@ function joinParty(d) {
   if (game.blockSoulResonance([...G.party, d])) return;
   G.reserve.splice(k, 1); G.party.push(d);
   sfx("select");
-  toast(`${d.name} をパーティに加えた`, { tone: "good" });
+  toast(`${d.name} をパーティ (${slotName(G.party.length - 1)}) に加えた`, { tone: "good" });
   if (reserveH) reserveH.close();
+  if (swapH) swapH.close();
   select(d);
   if (game.autosave) game.autosave(true);
   rerender();
+}
+
+// ================= 入れ替えのシート (人業の見出しの「入れ替え」から) =================
+// 隊の者: 控えの誰と替えるか / 隊列の中で誰と場所を替えるか。控えの者: 隊の誰と替えるか。
+// どの札にも「替えたあと誰がどこへ行くか」を書き、替えられない札には理由を添える
+const slotName = (i) => (i < 3 ? `前衛${i + 1}` : `後衛${i - 2}`);
+// 控えの r を隊の j 番に入れられないわけ (入れられるなら null)
+function swapBlock(r, j) {
+  const G = G_();
+  if (game.expeditionOf && game.expeditionOf(r)) return "遠征中";
+  if (r.primary == null) return "魂が宿っていない";
+  const k = game.partySoulConflict(G.party.map((x, i) => (i === j ? r : x)));
+  return k ? `${(SOUL_CLASSES[k] || {}).label || "同じ職"}のメイン魂が隊に重なる` : null;
+}
+// 控えの札に並べる入れ替え先 (顔・名・位置)。block = 替えられないわけ
+function swapTarget(m, j, block, onTap) {
+  const t = el("button", "pt-swap-t" + (block ? " off" : ""));
+  t.type = "button";
+  const p = portraitEl(m, { size: 36, tag: "span", cls: "pt-swap" });
+  t.appendChild(p);
+  const tx = el("span", "pt-swap-tx");
+  tx.appendChild(el("span", "pt-swap-pos", slotName(j)));
+  tx.appendChild(el("span", "pt-swap-n", m.name));
+  t.appendChild(tx);
+  t.setAttribute("aria-label", block ? `${m.name} (${slotName(j)}) とは入れ替えられない ― ${block}` : `${m.name} (${slotName(j)}) と入れ替える`);
+  t.title = block || `${m.name} と入れ替える`;
+  if (block) t.setAttribute("aria-disabled", "true");
+  t.addEventListener("click", () => {
+    if (block) { sfx("ng"); toast(`${m.name}とは入れ替えられない ― ${block}`, { tone: "bad", noLog: true }); return; }
+    onTap();
+  });
+  return t;
+}
+// 候補の札: 顔 + 名・職 + 「替えたあと」の行
+function swapCard(m, { pos = "", after = "", block = null, onTap }) {
+  const c = el("button", "pt-sw-card" + (block ? " off" : ""));
+  c.type = "button";
+  c.appendChild(portraitEl(m, { size: 44, tag: "span" }));
+  const tx = el("span", "pt-sw-tx");
+  const l1 = el("span", "pt-sw-l1");
+  if (pos) l1.appendChild(el("span", "pt-sw-pos", pos));
+  l1.appendChild(el("span", "pt-sw-n", m.name));
+  tx.appendChild(l1);
+  const st = m.primary == null ? "空の人業" : `${m.cls} Lv${m.jobLv || 1}${m.alive ? `  HP ${m.hp}/${m.maxhp}` : " ・ ✝ 砕けている"}`;
+  tx.appendChild(el("span", "pt-sw-c", st));
+  tx.appendChild(el("span", "pt-sw-after" + (block ? " ng" : ""), block ? `入れ替えられない ― ${block}` : after));
+  c.appendChild(tx);
+  if (!block) c.appendChild(el("span", "pt-sw-go", "⇄"));
+  else c.setAttribute("aria-disabled", "true");
+  c.addEventListener("click", () => {
+    if (block) { sfx("ng"); toast(block, { tone: "bad", noLog: true }); return; }
+    onTap();
+  });
+  return c;
+}
+let swapH = null;
+export function openSwapSheet(d) {
+  const G = G_();
+  if (!inTown() || !d) return null;
+  if (swapH && !swapH.closed) swapH.close();
+  if (game.expeditionOf && game.expeditionOf(d)) { sfx("ng"); toast(`${d.name}は遠征に出ている。呼び戻すか、帰りを待とう`, { tone: "bad", noLog: true }); return null; }
+  sfx("select");
+  const pi = G.party.indexOf(d);
+  const body = (b) => {
+    const me = el("div", "pt-sw-me");
+    me.appendChild(portraitEl(d, { size: 44, tag: "span" }));
+    const mt = el("div", "pt-sw-tx");
+    mt.appendChild(el("span", "pt-sw-n", d.name));
+    mt.appendChild(el("span", "pt-sw-c", `${d.primary == null ? "空の人業" : `${d.cls} Lv${d.jobLv || 1}`} ・ いま ${pi >= 0 ? slotName(pi) : "控え"}`));
+    me.appendChild(mt);
+    b.appendChild(me);
+    if (pi >= 0) {
+      // 控えの人業と替える
+      const res = (G.reserve || []).filter((r) => r !== d);
+      b.appendChild(el("div", "pt-sw-h", `控えの人業と入れ替える ${res.length}`));
+      if (!res.length) b.appendChild(el("div", "pt-sw-none", "控えに人業がいない。「人業」の札から新しく仕立てられる。"));
+      for (const r of res) {
+        b.appendChild(swapCard(r, { pos: "控え", block: swapBlock(r, pi),
+          after: `${r.name} が${slotName(pi)}へ ・ ${d.name} は控えへ`, onTap: () => swapWithReserve(r, pi) }));
+      }
+      // 隊列の中で場所を替える
+      const mates = G.party.map((m, j) => [m, j]).filter(([m]) => m !== d);
+      if (mates.length) {
+        b.appendChild(el("div", "pt-sw-h", "隊列の中で場所を替える"));
+        for (const [m, j] of mates) {
+          b.appendChild(swapCard(m, { pos: slotName(j),
+            after: `${d.name} が${slotName(j)}へ ・ ${m.name} が${slotName(pi)}へ`, onTap: () => { if (swapH) swapH.close(); swapParty(d, m); } }));
+        }
+      }
+      b.appendChild(el("p", "pt-note c", "隊列の顔を長押しして別の顔へ動かしても、場所を替えられる。後衛は与える・受ける物理の傷が半分になり、敵に狙われにくい。"));
+    } else {
+      // 控えの者: 隊の誰と替えるか
+      if (G.party.length < 6) {
+        const add = button({ label: "空いている場所に加える", sub: `${d.name} が${slotName(G.party.length)}へ`, kind: "primary",
+          disabled: !!game.partySoulConflict([...G.party, d]), onTap: () => joinParty(d) });
+        b.appendChild(add);
+      }
+      b.appendChild(el("div", "pt-sw-h", "隊の誰と入れ替える？"));
+      if (!G.party.length) b.appendChild(el("div", "pt-sw-none", "隊はまだ空。"));
+      G.party.forEach((m, j) => {
+        b.appendChild(swapCard(m, { pos: slotName(j), block: swapBlock(d, j),
+          after: `${d.name} が${slotName(j)}へ ・ ${m.name} は控えへ`, onTap: () => swapWithReserve(d, j) }));
+      });
+    }
+  };
+  const footer = [];
+  if (pi >= 0 && G.party.length > 1) footer.push({ label: "控えに下げる", kind: "secondary", onTap: (h) => { h.close(); bench(d); } });
+  footer.push({ label: "閉じる", kind: "ghost", onTap: (h) => h.close() });
+  swapH = sheet.open({ kind: "info", banner: "人業の入れ替え", className: "pt-sw-sheet", body, footer, onClose: () => { swapH = null; } });
+  return swapH;
 }
 
 // 人業を仕立てる: 宿す魂を選ぶ → 名を与える
@@ -1674,9 +1780,13 @@ function dollHeader(d, mode) {
   stability.classList.add("pt-stability"); tx.appendChild(stability);
   head.appendChild(tx);
   if (town && pi < 0 && d.primary != null && !away) {
-    const join = button({ label: G.party.length < 6 ? "パーティへ" : "入替", kind: "secondary", size: "sm", onTap: () => (G.party.length < 6 ? joinParty(d) : openReserve()) });
+    const join = button({ label: G.party.length < 6 ? "パーティへ" : "入れ替え", kind: "secondary", size: "sm", onTap: () => (G.party.length < 6 ? joinParty(d) : openSwapSheet(d)) });
     join.classList.add("pt-head-join");
     head.appendChild(join);
+  } else if (town && pi >= 0) {
+    const sw = button({ label: "入れ替え", kind: "secondary", size: "sm", onTap: () => openSwapSheet(d) });
+    sw.classList.add("pt-head-join");
+    head.appendChild(sw);
   }
   return head;
 }
