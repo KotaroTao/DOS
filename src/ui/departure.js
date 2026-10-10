@@ -22,6 +22,7 @@ import { ELEMENTS } from "../dungeons/index.js";
 import { iconCanvas } from "../townart.js";
 import { drawDungeonVista } from "../backdrops.js";
 import { LORE_IMAGES } from "../storyimages.js";
+import { CHAPTERS } from "../story.js";
 import { dungeonQuestSheet, dungeonActiveQuestSheet, byLevelDesc } from "./questboard.js";
 
 const G = () => game.G;
@@ -94,6 +95,32 @@ function vistaPic(dn) {
   img.src = "./" + src;
   return img;
 }
+// 迷宮の章: 本筋は story.js CHAPTERS のとおり。寄り道 (CHAPTERS に無い) は同じ層の本筋の迷宮の章
+// (格上の寄り道も、魔物の層で決まる = 開く章。獄吏の詰所 → 第二章、疫病塚の底 → 第七章)
+function chapterOf(dn) {
+  const D = game.DUNGEONS || [];
+  const direct = CHAPTERS.find((c) => c.dungeons.includes(dn.id));
+  if (direct) return direct;
+  let best = null;
+  for (const c of CHAPTERS) for (const id of c.dungeons) {
+    const m = D.find((d) => d.id === id);
+    if (m && m.layer === dn.layer && (!best || c.no < best.no)) best = c;
+  }
+  if (best) return best;
+  // 同じ層に本筋の無い寄り道: 層の近い本筋の章
+  let near = null, gap = Infinity;
+  for (const c of CHAPTERS) for (const id of c.dungeons) {
+    const m = D.find((d) => d.id === id);
+    if (m && Math.abs(m.layer - dn.layer) < gap) { gap = Math.abs(m.layer - dn.layer); near = c; }
+  }
+  return near;
+}
+const KANJI_NUM = ["〇", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
+function chapterNo(n) {
+  if (n <= 10) return KANJI_NUM[n];
+  if (n < 20) return "十" + KANJI_NUM[n - 10];
+  return (KANJI_NUM[Math.floor(n / 10)] || String(Math.floor(n / 10))) + "十" + (n % 10 ? KANJI_NUM[n % 10] : "");
+}
 function gateStatus(dn, i) {
   const w = wst();
   const isDone = !!(w.cleared && w.cleared[dn.id]);
@@ -133,13 +160,12 @@ function renderHero(b) {
   ttl.appendChild(el("div", "dp-hero-s", sub.join(" ・ ")));
   cap.appendChild(ttl);
   const st = gateStatus(dn, g.dungeonIdx);
-  cap.appendChild(el("span", "dp-gate-st" + (st.cls ? " " + st.cls : ""), st.text));
-  pic.appendChild(cap);
-  hero.appendChild(pic);
-  if (dn.about) hero.appendChild(setText(el("div", "dp-hero-about"), dn.about));
-  if (dn.id === "w04" && !game.worldState?.().reported.w03) {
-    hero.appendChild(setText(el("div", "pt-note"), "取水口は推奨Lv18〜21。まずは回廊を抜け、修道院で師の足跡を追おう。支度が整えば、先に取水口へ向かうこともできる。"));
-  }
+  const top = el("div", "dp-vista-top");
+  top.appendChild(ttl);
+  top.appendChild(el("span", "dp-gate-st" + (st.cls ? " " + st.cls : ""), st.text));
+  cap.appendChild(top);
+  // 説明と記録の札はイラストに重ねる (ユーザーの指示、2026-10)
+  if (dn.about) cap.appendChild(setText(el("div", "dp-hero-about"), dn.about));
   // 記録: 発見した魔物 / その迷宮の魔物 (雑魚・強敵・主)、固有クエストの報告済み / 総数
   const facts = el("div", "dp-facts");
   let f = null;
@@ -157,8 +183,12 @@ function renderHero(b) {
     facts.appendChild(fact("固有クエスト", f.fqTotal ? `${f.fqDone}/${f.fqTotal}` : "なし", f.fqTotal && f.fqDone >= f.fqTotal ? "full" : !f.fqTotal ? "none" : "",
       f.fqTotal ? () => dungeonQuestSheet(dn, { onChange: () => refresh() }) : null));
   }
-  hero.appendChild(facts);
+  cap.appendChild(facts);
+  pic.appendChild(cap);
+  hero.appendChild(pic);
   // 迷宮の掟 (その迷宮だけの決まりごと。world.js の trait)
+  // イラストから掟までは本文を巻いても動かない (.dp-hero は sticky — ユーザーの指示、2026-10)。
+  // 足元 (落ちる床・蝕む床) と格上・格下の注意の枠は出さない (同じ指示。危険・無謀は門の一覧の札に残る)
   const tr = game.dungeonTrait ? game.dungeonTrait(dn) : null;
   if (tr) {
     const box = el("div", "dp-mut dp-trait");
@@ -170,31 +200,14 @@ function renderHero(b) {
     for (const ln of tr.lines || []) box.appendChild(setText(el("div", "dp-mut-l"), ln));
     hero.appendChild(box);
   }
-  // 足元 (その迷宮の土地の、落ちる床・蝕む床。src/dungeons/floorhaz.js)
-  const fh = game.dungeonFloorHaz ? game.dungeonFloorHaz(dn) : null;
-  if (fh) {
-    const box = el("div", "dp-mut dp-trait dp-ground");
-    box.style.setProperty("--mut", (fh.harm && fh.harm.accent) || "#8a8070");
-    const h = el("div", "dp-mut-h");
-    h.appendChild(el("span", "dp-mut-k", "足元"));
-    h.appendChild(el("span", "dp-mut-n", [fh.fall, fh.harm].filter(Boolean).map((s) => s.name).join("・") || "害のある床は無い"));
-    box.appendChild(h);
-    if (fh.fall) box.appendChild(setText(el("div", "dp-mut-l"), `${fh.fall.name} ― ${fh.fall.desc}。踏むと1つ下の階へ落ちる (傷は負わない)。`));
-    if (fh.harm) box.appendChild(setText(el("div", "dp-mut-l"), `${fh.harm.name} ― ${fh.harm.desc}。踏むと隊全体が傷む。`));
-    if (fh.fall || fh.harm) box.appendChild(setText(el("div", "dp-mut-l"), "浮遊の術・風切りの羽があれば、どちらにもかからない。"));
-    hero.appendChild(box);
+  b.appendChild(hero);
+  // ここから下は本文と一緒に巻く
+  if (dn.id === "w04" && !game.worldState?.().reported.w03) {
+    b.appendChild(setText(el("div", "pt-note dp-after"), "取水口は推奨Lv18〜21。まずは回廊を抜け、修道院で師の足跡を追おう。支度が整えば、先に取水口へ向かうこともできる。"));
   }
   // 迷宮の異変 (掟の下。名のある強敵の札はここに置かない — ユーザーの指示、2026-10)
   const mut = mutatorStrip();
-  if (mut) hero.appendChild(mut);
-  const dg = dangerOf(dn);
-  if (dg && dg.note) {
-    const r = el("div", "dp-issue t-" + (dg.cls === "reckless" ? "bad" : "warn"));
-    r.appendChild(el("i", "dp-issue-mark"));
-    r.appendChild(setText(el("span", "dp-issue-t"), `${dg.text} ― ${dg.note}`));
-    hero.appendChild(r);
-  }
-  b.appendChild(hero);
+  if (mut) { mut.classList.add("dp-after"); b.appendChild(mut); }
 }
 
 // ---- 門の一覧 (迷宮の地図: 推奨Lvの高い順。5 行ぶん見せ、6 つ目からは縦に巻く) ----
@@ -205,14 +218,25 @@ function renderGates(b) {
   const qi = questIdx();
   if (!isOpen(g.dungeonIdx)) g.dungeonIdx = Math.max(0, D.findIndex((d, i) => isOpen(i)));
   renderHero(b);
-  // 推奨Lvの高い迷宮から並べる (ユーザーの指示)
-  const opened = byLevelDesc(D.filter((d, i) => isOpen(i))).map((d) => D.indexOf(d));
+  // 章ごとに区切り (新しい章から)、章の中は推奨Lvの高い迷宮から並べる (ユーザーの指示、2026-10)
+  const opened = byLevelDesc(D.filter((d, i) => isOpen(i)))
+    .map((d) => ({ i: D.indexOf(d), c: chapterOf(d) }))
+    .sort((a, b) => ((b.c ? b.c.no : 0) - (a.c ? a.c.no : 0))); // 安定な並べ替え: 章の中は推奨Lvの順のまま
   const ch = game.currentChapter ? game.currentChapter() : null;
   const list = el("div", "dp-gates");
   list.setAttribute("role", "radiogroup");
   list.setAttribute("aria-label", "迷宮の地図");
-  for (const i of opened) {
+  let lastCh;
+  for (const { i, c } of opened) {
     const dn = D[i];
+    if (c !== lastCh) {
+      lastCh = c;
+      const hd = el("div", "dp-chap");
+      hd.setAttribute("role", "presentation");
+      hd.appendChild(el("span", "dp-chap-n", c ? `第${chapterNo(c.no)}章` : "そのほか"));
+      if (c) hd.appendChild(el("span", "dp-chap-t", `「${c.title}」`));
+      list.appendChild(hd);
+    }
     const isDone = !!(w.cleared && w.cleared[dn.id]);
     const sel = i === g.dungeonIdx;
     const r = el("button", "dp-gate" + (sel ? " sel" : "") + (isDone ? " done" : "") + (i === qi ? " quest" : ""));
