@@ -148,7 +148,7 @@ export const SPELLS = {
   SEISUISHO:      { name: "聖水撒", mp: 14, kind: "atk", power: 20, element: "light", vuln: { light: 0.7 }, prey: { races: UNHOLY, mul: 1.5 }, target: "all-enemy", desc: "敵全体の光耐性を下げ、不浄の者を焼く" },
   HAJA:           { name: "破邪の剣", mp: 4, kind: "phys", power: 1.3, element: "light", acc: 0.6, prey: { races: UNHOLY, mul: 1.8 }, target: "enemy", desc: "不死・幽鬼・悪魔に大ダメージ" },
   SEIKOUZAN:      { name: "聖光斬", mp: 12, kind: "phys", power: 2.2, pieScale: 0.8, element: "light", drain: 0.3, acc: 0.9, target: "enemy", desc: "PIEを乗せた聖剣で斬り、傷を癒す（命中UP）" },
-  JUUJIZAN:       { name: "十字斬", mp: 12, kind: "phys", power: 1.5, hits: 2, pieScale: 0.4, element: "light", acc: 0.9, prey: { races: UNHOLY, mul: 1.5 }, target: "enemy", desc: "十字に斬る二連撃。不浄の者に強い" },
+  JUUJIZAN:       { name: "十字斬", mp: 12, kind: "phys", power: 1.2, hits: 2, pieScale: 0.3, element: "light", acc: 0.9, prey: { races: UNHOLY, mul: 1.5 }, target: "enemy", desc: "十字に斬る二連撃。不浄の者に強い" },
   SEISEN:         { name: "進軍の聖歌", mp: 10, kind: "buff", buff: { atk: 1.25, agi: 1.1 }, target: "all-ally", desc: "味方全体のSTRと素早さを上げる" },
   JOUKA:          { name: "浄火", mp: 8, kind: "phys", power: 1.6, element: "fire", acc: 0.6, vuln: { fire: 0.75 }, target: "enemy", desc: "浄めの炎で斬り、火耐性を下げる" },
   SEIKEN:         { name: "聖剣奮迅", mp: 14, kind: "atk", power: 20, element: "light", partyHeal: 16, target: "all-enemy", desc: "聖剣の輝きで敵をなぎ、味方を癒す" },

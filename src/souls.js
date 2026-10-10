@@ -41,7 +41,7 @@ export const SOUL_CLASSES = {
   brigand:     { label: "義賊",     rarity: "rare",    color: "#e08030", glow: "#ffb050", stat: { hp: 5.5, mp: 1.0, atk: 2.2, vit: 1.2, agi: 2.2, int: 0.5, pie: 0.4, luk: 2.4 } },
   arcthief:    { label: "魔盗賊",   rarity: "rare",    color: "#8040c0", glow: "#b070f0", stat: { hp: 4.0, mp: 2.2, atk: 1.6, vit: 0.8, agi: 2.4, int: 2.2, pie: 0.4, luk: 1.8 } },
   // ===== エピック (10) =====
-  crusader:    { label: "聖戦士",   rarity: "epic",    color: "#e8d860", glow: "#fff090", stat: { hp: 7.0, mp: 1.4, atk: 2.6, vit: 1.6, agi: 1.2, int: 0.4, pie: 2.0, luk: 1.0 } },
+  crusader:    { label: "聖戦士",   rarity: "epic",    color: "#e8d860", glow: "#fff090", stat: { hp: 7.2, mp: 1.4, atk: 2.4, vit: 1.6, agi: 1.2, int: 0.4, pie: 2.0, luk: 1.0 } },
   battlemage:  { label: "魔闘士",   rarity: "epic",    color: "#9060a0", glow: "#c090d0", stat: { hp: 6.0, mp: 2.0, atk: 2.4, vit: 1.4, agi: 1.2, int: 1.8, pie: 0.4, luk: 1.0 } },
   darkknight:  { label: "魔騎士",   rarity: "epic",    color: "#406080", glow: "#70a0c0", stat: { hp: 7.6, mp: 2.0, atk: 2.4, vit: 2.2, agi: 0.9, int: 1.6, pie: 0.6, luk: 0.9 } },
   templar:     { label: "神殿騎士", rarity: "epic",    color: "#d0c880", glow: "#f8f0a0", stat: { hp: 7.5, mp: 2.2, atk: 1.8, vit: 2.4, agi: 0.8, int: 0.5, pie: 1.8, luk: 1.0 } },
