@@ -595,3 +595,6 @@ button.ui-whisper { cursor: pointer; touch-action: manipulation; }
 
 /* ロックした装備の印 (品の名前の右。game.js itemNameEl) */
 .item-lk { width: 0.95em; height: 0.95em; margin-left: 0.3em; vertical-align: -0.1em; fill: none; stroke: #d9b45a; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
+
+/* 描き下ろしの原画の情景 (townpaint.js) は、ドット絵用の pixelated を外して滑らかに */
+canvas.tw-vig-hd { image-rendering: auto !important; }
