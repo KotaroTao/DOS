@@ -31,7 +31,7 @@ import {
 import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, useWhere, compareUse, AIL_LABEL, hasQuality, qualityOf, qualityMatters } from "../items.js";
 import {
   SOUL_CLASSES, SOUL_KEYS, JOB_GEAR, dollSprite, dollBust, dollFace, jobBust, jobSprite, jobRankName, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulLabel, soulRankLeft, soulByUid,
-  orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs, isAutoOff, setAutoOff,
+  orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs, isAutoOff, setAutoOff, skillUsable,
 } from "../souls.js";
 import { TACTICS, tacticOf, setTactic } from "../autotactics.js";
 import { SPELLS, spellCost, spellMpLabel } from "../combat.js";
@@ -1902,8 +1902,9 @@ function rescueLine(d) {
 }
 
 // ---- 迷宮: 野営 (呪文・道具) をすぐ使える札 ----
+// 迷宮の掟で封じられた技 (魔封じ) は出さない — game.js campSpellsOf と同じ判定
 function campSpellsOf(d) {
-  return (d.spells || []).filter((k) => { const sp = SPELLS[k]; return sp && sp.target !== "self" && (sp.kind === "heal" || sp.kind === "cure" || sp.cure); });
+  return (d.spells || []).filter((k) => { const sp = SPELLS[k]; return sp && sp.target !== "self" && (sp.kind === "heal" || sp.kind === "cure" || sp.cure) && skillUsable(k); });
 }
 function consumablesOf(d) {
   const out = [];
