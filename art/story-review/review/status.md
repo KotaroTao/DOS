@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 39 ・ 出荷済み (任意の修正あり) 14 ・ 出荷済み・修正待ち 5 ・ 未着手 (指示あり) 42
+場面: 出荷済み 44 ・ 出荷済み (任意の修正あり) 14 ・ 未着手 (指示あり) 42
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -53,14 +53,14 @@
 | 第3章「魂脈の根」 | `ch3_end` | 帰る場所から、玉座の下へ | 出荷済み | [見る](chapter3.md#ch3_end) |
 | 第4章「王都の地下」 | `w14_lamp` | 水底に残された灯 | 出荷済み (任意の修正あり) | [見る](chapter4.md#w14_lamp) |
 | 第4章「王都の地下」 | `report_w14` | 足元に沈む都 | 出荷済み | [見る](chapter4.md#report_w14) |
-| 第4章「王都の地下」 | `w15_mural` | 老いない横顔 | 出荷済み・修正待ち | [見る](chapter4.md#w15_mural) |
+| 第4章「王都の地下」 | `w15_mural` | 老いない横顔 | 出荷済み | [見る](chapter4.md#w15_mural) |
 | 第4章「王都の地下」 | `report_w15` | 名の残らない神官 | 出荷済み | [見る](chapter4.md#report_w15) |
-| 第4章「王都の地下」 | `w16_legs` | 根の中を歩いた脚 | 出荷済み・修正待ち | [見る](chapter4.md#w16_legs) |
+| 第4章「王都の地下」 | `w16_legs` | 根の中を歩いた脚 | 出荷済み | [見る](chapter4.md#w16_legs) |
 | 第4章「王都の地下」 | `report_w16` | 破られた誓いの水 | 出荷済み | [見る](chapter4.md#report_w16) |
-| 第4章「王都の地下」 | `irene_sera_wake` | 灯が移った夜明け | 出荷済み・修正待ち | [見る](chapter4.md#irene_sera_wake) |
-| 第4章「王都の地下」 | `mem_w17` | 水の底の戴冠 | 出荷済み・修正待ち | [見る](chapter4.md#mem_w17) |
+| 第4章「王都の地下」 | `irene_sera_wake` | 灯が移った夜明け | 出荷済み | [見る](chapter4.md#irene_sera_wake) |
+| 第4章「王都の地下」 | `mem_w17` | 水の底の戴冠 | 出荷済み | [見る](chapter4.md#mem_w17) |
 | 第4章「王都の地下」 | `report_w17` | 杯を遠ざけた手 | 出荷済み | [見る](chapter4.md#report_w17) |
-| 第4章「王都の地下」 | `ch4_end` | 二つ並んだ影 | 出荷済み・修正待ち | [見る](chapter4.md#ch4_end) |
+| 第4章「王都の地下」 | `ch4_end` | 二つ並んだ影 | 出荷済み | [見る](chapter4.md#ch4_end) |
 | 第5章「灼熱の洞」 | `w18_blade` | 手放された刃 | 未着手 (指示あり) | [見る](chapter5.md#w18_blade) |
 | 第5章「灼熱の洞」 | `report_w18` | 床の下の熱 | 未着手 (指示あり) | [見る](chapter5.md#report_w18) |
 | 第5章「灼熱の洞」 | `w19_husks` | 同じ顔の器 | 未着手 (指示あり) | [見る](chapter5.md#w19_husks) |
@@ -115,16 +115,16 @@
 | 由来 | `w04` | 黒水の取水口 | 出荷済み | [見る](dungeons.md#lore_w04) |
 | 由来 | `w05` | 鎖の垂れる坑口 | 出荷済み | [見る](dungeons.md#lore_w05) |
 | 由来 | `w06` | 亡兵の守る外郭 | 出荷済み | [見る](dungeons.md#lore_w06) |
-| 由来 | `w07` | 捨て砦の地下牢 | 出荷済み・修正待ち | [見る](dungeons.md#lore_w07) |
+| 由来 | `w07` | 捨て砦の地下牢 | 出荷済み | [見る](dungeons.md#lore_w07) |
 | 由来 | `w08` | 雷雨の大手門 | 出荷済み | [見る](dungeons.md#lore_w08) |
 | 由来 | `w09` | 捨て砦の本丸 | 出荷済み | [見る](dungeons.md#lore_w09) |
 | 由来 | `w10` | 根の這う縦穴 | 出荷済み | [見る](dungeons.md#lore_w10) |
 | 由来 | `w11` | 地の底の霧森 | 出荷済み | [見る](dungeons.md#lore_w11) |
 | 由来 | `w12` | 樹液の苗床 | 出荷済み | [見る](dungeons.md#lore_w12) |
 | 由来 | `w13` | 魂喰らいの大樹 | 出荷済み | [見る](dungeons.md#lore_w13) |
-| 由来 | `w14` | 水底の参道 | 保留 (直し待ち) | [見る](dungeons.md#lore_w14) |
+| 由来 | `w14` | 水底の参道 | 出荷済み | [見る](dungeons.md#lore_w14) |
 | 由来 | `w15` | 溺れた聖歌の回廊 | 出荷済み | [見る](dungeons.md#lore_w15) |
-| 由来 | `w16` | 洗礼の大水槽 | 保留 (直し待ち) | [見る](dungeons.md#lore_w16) |
+| 由来 | `w16` | 洗礼の大水槽 | 出荷済み | [見る](dungeons.md#lore_w16) |
 | 由来 | `w17` | 沈める大神殿 | 出荷済み | [見る](dungeons.md#lore_w17) |
 | 由来 | `w18` | 火を噴く地割れ | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w18) |
 | 由来 | `w19` | 灰の降る祭場 | 未着手 (情景・手がかりの絵で代用) | [見る](dungeons.md#lore_w19) |
