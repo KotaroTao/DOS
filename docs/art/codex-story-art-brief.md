@@ -146,7 +146,7 @@ Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge
 
 | もの | 決まり |
 |---|---|
-| 一門の印「灯を掌に載せた手」 | an open hand, palm up, holding a single small teardrop flame。基準: `art/story-review/chapter1/w02_sigil.png`。四芒星・十字・花・ランタンの線画にしない |
+| 一門の印「灯を掌に載せた手」 | an open hand, palm up, holding a single small teardrop flame。**ユーザー承認: 幾何学案の最初のC**。基準: `docs/art/story-refs/sigil.png`。Use the approved geometric crest exactly: an angular cupped palm with one thumb on the left and three parallel finger projections on the right, a short wrist below, and one separate teardrop flame above. Keep four digit projections in this abstract symbol; do not add a fourth finger on the right. 人物の実際の手は親指と4本の指。旧 `art/story-review/chapter1/w02_sigil.png` は意味の参照。四芒星・十字・花・ランタンの線画にしない |
 | 印の場所 | セラ = 額の中央 (金)・手首の内側 (小)・肘の継ぎ目の内側 (小)・胴の**背**・くるぶしの内側。師の外套 = 裾の刺しゅう。器の捨て場の器 = 胸の扉の内側。塔の鐘 = 内側の縁にぐるりと浮き彫り |
 | 館の灯 (師の魂の灯) | **燭台に立てた一本の白い蝋燭** (brass candlestick, single white candle, warm flame)。ガラスの灯器・青い炎の器にしない。基準: `art/story-review/prologue/irene-soul-lamp.png`、`art/story-review/chapter2/irene_roots.png` |
 | 師のランタン | small brass hand lantern with a pale blue soul-fire inside。基準: `art/story-review/chapter1/w01_lantern.png`。**師は第一章の地下墓地の墓石の上にこれを残して先へ進んだ**。以後、記憶の中の師も、師に従う者も持っていない。弟子が拾い、館に置かれ、第四章でイレーヌがその火をセラの胸へ移す |
