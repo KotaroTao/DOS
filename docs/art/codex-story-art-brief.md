@@ -225,7 +225,7 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ...except: add a rusted iron padlock on the grate with an old key still inserted in it, and a small paper tag tied to the key with a string (illegible scribble). Remove the loose key lying on the ledge.
 ```
 
-**A-4. 第一章 w04_arm「黒い流れが返したもの」** `art/story-review/chapter1/w04_arm.png`
+**A-4. 第一章 w04_arm「黒い流れが返したもの」** `art/story-review/chapter1/w04_arm.png` (済)
 - 直す (1): 弟子を支える人業が、箱形の兜のような頭に弟子と同じ外套を着ている → 隊の4体の一人 (赤い外套の戦士) に。頭は何も彫られていない丸い木。
 - 直す (2): 腕の印が前腕の外側に大きく渦巻きの手 → **手首の内側に小さく**、掌に炎を載せた手 (`w02_sigil.png` の印)。
 - 保つもの: 黒い流れ・格子・腕を引き上げる弟子。
@@ -233,7 +233,7 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ...except: the wooden doll steadying the apprentice becomes the party's warrior doll: blank smooth round wooden head with no face, black iron joints, red cloak, round shield on its back. On the recovered wooden arm, remove the large carving on the outer forearm; instead carve a small crest on the INNER WRIST: an open palm-up hand holding a small flame, exactly like the wall sigil reference.
 ```
 
-**A-5. 第一章 mem_w03「止められても進んだ人」** `art/story-review/chapter1/mem_w03.png`
+**A-5. 第一章 mem_w03「止められても進んだ人」** `art/story-review/chapter1/mem_w03.png` (済)
 - 直す (1): 師に従う人業が、師のランタンと同じ形のランタンを提げている → 師はランタンを地下墓地に残した後なので、別の灯にする。本文は「灯を抱いて従っていた」 → 両腕で小さな真鍮の皿灯 (炎は温かい橙) を胸に抱える。
 - 直す (2): その人業はセラ (第二章で師と一緒だったと分かる)。正典のセラの姿にする (本物の長い黒髪・木の顔・額の印・黒鉄の継ぎ目。この時はまだ壊れていない。白い布の衣)。基準 `docs/art/sera/sera-r1-final.png`。
 - 直す (3): 師を正典のオルドに (弟子と同じ外套・鞄にしない。ランタンを持たない。腰に刃)。
@@ -243,7 +243,7 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ...except: (1) the doll following the man is Sera exactly as in the attached Sera reference (long wavy near-black real hair, carved wooden face, small gold palm-and-flame crest on the forehead, black iron joints, simple white draped cloth); she cradles a small brass dish lamp with a warm amber flame in BOTH arms against her chest — not a hanging lantern, no blue fire. (2) the man is master Ordo: about 55, lean, short grey hair, close-cropped grey beard, plain worn black long coat with only one small gold crest on the hem, leather tool belt, a long serrated saw-like blade at his hip; no satchel, no lantern. (3) remove the chained mine door and the cart rails beside the altar; replace with plain abbey wall.
 ```
 
-**A-6. 第二章 irene_sera「眠りを守る二つの手」** `art/story-review/chapter2/irene_sera.png`
+**A-6. 第二章 irene_sera「眠りを守る二つの手」** `art/story-review/chapter2/irene_sera.png` (済)
 - 直す (1): 本文は頭だけ (腕は寄り道で見つかるとは限らない) → 台の上の木の腕を消す。布の盛り上がりが全身に見えないよう、頭だけを柔らかい布で包んで枕に載せる形に。
 - 直す (2): セラの額の印が四芒星 → 掌に炎を載せた手 (小さく金)。髪は本物の髪のまま、色を正典 (ほぼ黒の焦げ茶) に寄せる。
 - 直す (3): 棚の人業の頭に顔が彫られている → 何も彫られていない丸い木。
@@ -252,21 +252,21 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ...except: (1) remove the wooden arm from the table; Sera is ONLY a detached head resting on a small pillow, wrapped loosely in soft cloth around the neck, with nothing under the sheet that suggests a body. (2) her forehead crest becomes a small gold open palm-up hand holding a flame; her real wavy hair is near-black dark brown like the attached Sera reference. (3) all heads on the background shelves are blank smooth round wooden heads with no faces.
 ```
 
-**A-7. 第二章 w07_sera「声の残る独房」** `art/story-review/chapter2/w07_sera.png`
+**A-7. 第二章 w07_sera「声の残る独房」** `art/story-review/chapter2/w07_sera.png` (済)
 - 直す: 頭を包む布が体ほどの大きさで画面下まで垂れている → 頭だけの大きさに。金の花の髪飾りを外し、額の印を正典の形に。髪の色を正典に寄せる。
 - 保つもの: 独房・壁の名・弟子が頭を抱き上げる構図。
 ```text
 ...except: the cloth bundle is only the size of a single head (no body shape under it); remove the gold flower hair ornament; the forehead crest is a small gold open palm-up hand holding a flame; her real wavy hair is near-black dark brown like the attached Sera reference.
 ```
 
-**A-8. 第二章 宰相の姿をそろえる** `art/story-review/chapter2/report_w06.png`・`report_w07.png`・`report_w08.png`
+**A-8. 第二章 宰相の姿をそろえる** `art/story-review/chapter2/report_w06.png`・`report_w07.png`・`report_w08.png` (済)
 - 直す: report_w06・w07 の宰相は屍のように老けて見え、本文の「歳月の跡が見えない」「白髪の一本も無い頭」と逆。report_w08 は帽子も顔も別人 → 3枚とも正典のモルデン (老いない、やせて青白いが、しわ・たるみ・筋張った首を描かない)。
 - 保つもの: 各場面の構図と宰相の仕草。
 ```text
 ...except: the chancellor must be exactly Morden from the attached reference (morden-at-throne.png): gaunt pale but AGELESS face with smooth unlined skin, no wrinkles, no sagging, no grey hair, sunken dark eyes, thin smile, tall black-purple hat with a gold band, red inner robe, gold chain with red jewel. Keep his pose.
 ```
 
-**A-9. 第二章 w09_map「百の井戸」** `art/story-review/chapter2/w09_map.png`
+**A-9. 第二章 w09_map「百の井戸」** `art/story-review/chapter2/w09_map.png` (済)
 - 直す: 本文は「迷宮のある場所に、ひとつずつ黒い印」「王都の真ん中の井戸がひとつだけ、赤い墨で囲まれていた」(寄り道の迷宮「王都の古井戸」につながる要)。いまの絵は光る城の立体模型で、赤い囲みが無い → 卓上の古い地図に黒い墨の点を打ち、王都の中央の井戸を赤い墨の丸で囲む。地図の線が中央へ集まる構図は保つ。
 ```text
 ...except: the dungeons on the war-table map are small black ink dots on parchment, not glowing 3D castle models; at the very center of the capital a single well is circled boldly in red ink. Keep the lines converging toward the center.
