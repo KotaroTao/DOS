@@ -1,0 +1,38 @@
+{
+  "sprites": [
+    {
+      "key": "crusader",
+      "rank": 1,
+      "face": [
+        47,
+        23
+      ],
+      "head": [
+        47,
+        12,
+        33.93
+      ],
+      "w": 94,
+      "h": 96,
+      "src": "http://127.0.0.1:8000/art/jobs/crusader_1.webp"
+    },
+    {
+      "key": "sera",
+      "rank": 1,
+      "face": [
+        47,
+        22
+      ],
+      "head": [
+        47,
+        12,
+        32.625
+      ],
+      "w": 94,
+      "h": 96,
+      "src": "http://127.0.0.1:8000/art/jobs/sera_1.webp"
+    }
+  ],
+  "canvasCount": 10,
+  "browserErrors": []
+}
