@@ -1,0 +1,107 @@
+{
+  "tavern": {
+    "canvas_class": "tw-vig tw-vig-hd",
+    "difference_bbox": [
+      494,
+      53,
+      1200,
+      568
+    ],
+    "lights": [
+      {
+        "tone": "lamp",
+        "canvas_center": [
+          603.91,
+          162.88
+        ],
+        "center_difference": 13.602
+      },
+      {
+        "tone": "fire",
+        "canvas_center": [
+          1122.66,
+          409.75
+        ],
+        "center_difference": 39.176
+      },
+      {
+        "tone": "candle",
+        "canvas_center": [
+          650.78,
+          469.91
+        ],
+        "center_difference": 8.578
+      },
+      {
+        "tone": "lamp",
+        "canvas_center": [
+          853.12,
+          209.75
+        ],
+        "center_difference": 17.309
+      },
+      {
+        "tone": "candle",
+        "canvas_center": [
+          1083.59,
+          177.72
+        ],
+        "center_difference": 29.41
+      }
+    ]
+  },
+  "inn": {
+    "canvas_class": "tw-vig tw-vig-hd",
+    "difference_bbox": [
+      817,
+      201,
+      911,
+      295
+    ],
+    "lights": [
+      {
+        "tone": "candle",
+        "canvas_center": [
+          864.06,
+          248.03
+        ],
+        "center_difference": 43.812
+      }
+    ]
+  },
+  "shrine": {
+    "canvas_class": "tw-vig tw-vig-hd",
+    "difference_bbox": [
+      328,
+      97,
+      865,
+      369
+    ],
+    "lights": [
+      {
+        "tone": "crystal",
+        "canvas_center": [
+          600.0,
+          233.19
+        ],
+        "center_difference": 28.402
+      },
+      {
+        "tone": "candle",
+        "canvas_center": [
+          378.12,
+          312.09
+        ],
+        "center_difference": 17.777
+      },
+      {
+        "tone": "candle",
+        "canvas_center": [
+          814.84,
+          312.88
+        ],
+        "center_difference": 24.898
+      }
+    ]
+  }
+}

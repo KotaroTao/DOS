@@ -1,0 +1,55 @@
+{
+  "390": {
+    "pageerrors": []
+  },
+  "744": {
+    "pageerrors": []
+  },
+  "fallback": {
+    "barkeep": {
+      "width": 48,
+      "height": 56,
+      "hd": false
+    },
+    "innkeeper": {
+      "width": 48,
+      "height": 56,
+      "hd": false
+    },
+    "maiden": {
+      "width": 48,
+      "height": 56,
+      "hd": false
+    },
+    "merchant": {
+      "width": 48,
+      "height": 56,
+      "hd": false
+    },
+    "minister": {
+      "width": 48,
+      "height": 56,
+      "hd": false
+    }
+  },
+  "compact_rows": [
+    {
+      "key": "barkeep",
+      "width": 480,
+      "height": 560,
+      "smoothing": "auto"
+    },
+    {
+      "key": "innkeeper",
+      "width": 480,
+      "height": 560,
+      "smoothing": "auto"
+    },
+    {
+      "key": "maiden",
+      "width": 480,
+      "height": 560,
+      "smoothing": "auto"
+    }
+  ]
+}
