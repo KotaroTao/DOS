@@ -21,7 +21,7 @@ import { nav } from "./nav.js";
 import { animate, reduced } from "./motion.js";
 import { spriteCanvas, crispCanvas } from "../sprites.js";
 import { SOUL_CLASSES, soulIcon } from "../souls.js";
-import { KING_PORTRAIT, vignetteCanvas } from "../townart.js";
+import { kingCanvas, vignetteCanvas } from "../townart.js";
 import { storyArt, ART_W, ART_H } from "../storyart.js";
 import { IRENE_ART } from "./irene.js";
 import { SFX } from "../audio.js";
@@ -183,7 +183,7 @@ export function playStoryChain(pages, done) {
       pf.appendChild(img);
       whoEl.textContent = "イレーヌ";
     } else {
-      try { pf.appendChild(spriteCanvas(KING_PORTRAIT, 10.5, 12)); } catch (e) { /* 演出のみ */ }
+      try { pf.appendChild(kingCanvas()); } catch (e) { /* 演出のみ */ }
       whoEl.textContent = "老王";
     }
   };

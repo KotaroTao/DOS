@@ -1,0 +1,273 @@
+{
+  "assets": [
+    {
+      "src": "./art/town/tavern.webp",
+      "status": 200,
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "src": "./art/town/inn.webp",
+      "status": 200,
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "src": "./art/town/shrine.webp",
+      "status": 200,
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "src": "./art/town/palace.webp",
+      "status": 200,
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "src": "./art/town/mansion.webp",
+      "status": 200,
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "src": "./art/town/shop.webp",
+      "status": 200,
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "src": "./art/town/altar.webp",
+      "status": 200,
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "src": "./art/town/party.webp",
+      "status": 200,
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "src": "./art/town/manage.webp",
+      "status": 200,
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "src": "./art/town/codexMon.webp",
+      "status": 200,
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "src": "./art/town/codexItem.webp",
+      "status": 200,
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "src": "./art/town/codexJob.webp",
+      "status": 200,
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "src": "./art/town/codexAch.webp",
+      "status": 200,
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "src": "./art/town/treasury.webp",
+      "status": 200,
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "src": "./art/town/abyss.webp",
+      "status": 200,
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "src": "./art/town/keepers/barkeep.webp",
+      "status": 200,
+      "width": 640,
+      "height": 640
+    },
+    {
+      "src": "./art/town/keepers/innkeeper.webp",
+      "status": 200,
+      "width": 640,
+      "height": 640
+    },
+    {
+      "src": "./art/town/keepers/maiden.webp",
+      "status": 200,
+      "width": 640,
+      "height": 640
+    },
+    {
+      "src": "./art/town/keepers/king.webp",
+      "status": 200,
+      "width": 640,
+      "height": 640
+    },
+    {
+      "src": "./art/town/keepers/minister.webp",
+      "status": 200,
+      "width": 640,
+      "height": 640
+    },
+    {
+      "src": "./art/town/keepers/binder.webp",
+      "status": 200,
+      "width": 640,
+      "height": 640
+    },
+    {
+      "src": "./art/town/keepers/merchant.webp",
+      "status": 200,
+      "width": 640,
+      "height": 640
+    },
+    {
+      "src": "./art/town/icons/gate.webp",
+      "status": 200,
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "./art/town/icons/gateOpen.webp",
+      "status": 200,
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "./art/town/icons/gateDone.webp",
+      "status": 200,
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "./art/town/icons/gateSealed.webp",
+      "status": 200,
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "./art/town/icons/dive.webp",
+      "status": 200,
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "./art/town/icons/lock.webp",
+      "status": 200,
+      "width": 384,
+      "height": 384
+    },
+    {
+      "src": "./art/town/icons/abyss.webp",
+      "status": 200,
+      "width": 384,
+      "height": 256
+    }
+  ],
+  "scenes": {
+    "altar": {
+      "size": [
+        1200,
+        750
+      ],
+      "animated": true
+    },
+    "party": {
+      "size": [
+        1200,
+        750
+      ],
+      "animated": true
+    },
+    "manage": {
+      "size": [
+        1200,
+        750
+      ],
+      "animated": true
+    },
+    "codexMon": {
+      "size": [
+        1200,
+        750
+      ],
+      "animated": true
+    },
+    "codexItem": {
+      "size": [
+        1200,
+        750
+      ],
+      "animated": true
+    },
+    "codexJob": {
+      "size": [
+        1200,
+        750
+      ],
+      "animated": true
+    },
+    "codexAch": {
+      "size": [
+        1200,
+        750
+      ],
+      "animated": true
+    },
+    "treasury": {
+      "size": [
+        1200,
+        750
+      ],
+      "animated": true
+    },
+    "abyss": {
+      "size": [
+        1200,
+        750
+      ],
+      "animated": true
+    }
+  },
+  "fallback": [
+    {
+      "size": [
+        42,
+        42
+      ],
+      "className": "tw-bust"
+    },
+    {
+      "size": [
+        48,
+        56
+      ],
+      "className": "tw-bust"
+    },
+    {
+      "size": [
+        20,
+        24
+      ],
+      "className": "tw-icon"
+    },
+    {
+      "size": [
+        120,
+        75
+      ],
+      "className": "tw-vig"
+    }
+  ]
+}

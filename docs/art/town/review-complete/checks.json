@@ -1,0 +1,43 @@
+[
+  {
+    "viewport": [
+      390,
+      844
+    ],
+    "errors": [],
+    "hdPortraits": 2
+  },
+  {
+    "viewport": [
+      744,
+      1000
+    ],
+    "errors": [],
+    "hdPortraits": 2
+  },
+  {
+    "scenes": {
+      "palace": {
+        "size": [
+          1200,
+          750
+        ],
+        "animated": true
+      },
+      "mansion": {
+        "size": [
+          1200,
+          750
+        ],
+        "animated": true
+      },
+      "shop": {
+        "size": [
+          1200,
+          750
+        ],
+        "animated": true
+      }
+    }
+  }
+]

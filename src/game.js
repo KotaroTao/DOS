@@ -37,7 +37,7 @@ import {
   battleSkills,
 } from "./souls.js";
 import { showOpening } from "./opening.js";
-import { KING_PORTRAIT, prewarmTown } from "./townart.js";
+import { kingCanvas, prewarmTown } from "./townart.js";
 import { prewarmStoryArt } from "./storyart.js";
 import { drawBattleBackdrop } from "./backdrops.js";
 import { paintCryptFloor, paintCryptSlabs, paintCryptWalls, CATACOMB, genericMaterial, boardSeed, hexRgb } from "./crypt.js";
@@ -12833,7 +12833,7 @@ function showStoryScene(title, lines, rewardText, onClose, btnLabel = "御意") 
   // 肖像 + 見出し
   const head = el("div", "story-head");
   const pf = el("div", "story-portrait");
-  pf.appendChild(spriteCanvas(KING_PORTRAIT, 7, 12)); // 28x28 → 84px (3px/ドット)
+  pf.appendChild(kingCanvas());
   pf.appendChild(el("div", "story-who", "老王"));
   head.appendChild(pf);
   const ht = el("div", "story-htxt");
