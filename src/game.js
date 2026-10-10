@@ -10,7 +10,7 @@ import { spriteCanvas, crispCanvas, drawPhoto, photoReady, whenPhoto, setSpriteR
 import { makeItemSpriteResolver } from "./itemart/index.js";
 import {
   ITEMS, SLOTS, SLOT_LABEL, MAX_ITEMS, equip as equipItem, unequip as unequipItem, canEquip, canOffhand, slotKeyFor, lvToRank, RANGE_LABEL,
-  UNIDENT_SLOTS, itemName, applyForge, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
+  UNIDENT_SLOTS, itemName, applyForge, hasQuality, applyQuality, rollQuality, qualityMatters, itemAtQuality, QUALITY_MID, useWhere, useTarget, useHelps, useLines, useCureKinds, compareUse,
 } from "./items.js";
 import { EVENT_MAP, EV_FLOOR_RATE, EV_FLOOR_RATE_D1, EV_BOONS, permanentEventStats, eligibleEvents, pickEvent, onceKey, runEvent, eventFightWon } from "./events.js";
 import { ITEM_RANK_NAME, ITEM_RANK_COLOR } from "./content.js";
@@ -73,6 +73,7 @@ import * as uiResults from "./ui/results.js";
 import * as uiAppraise from "./ui/appraise.js";
 import * as uiTutorial from "./ui/tutorial.js";
 import * as uiExpedition from "./ui/expedition.js";
+import * as uiReforge from "./ui/reforge.js";
 
 // キャンバスに描く文字の書体 (画面の明朝と揃える)
 const CANVAS_SERIF = '"Shippori Mincho B1", "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", "Noto Serif JP", "Noto Serif CJK JP", serif';
@@ -13058,6 +13059,7 @@ const FEATURES = {
   order3: { chapter: 3, report: 2 },          // 結社の席3
   sub2: { chapter: 4, report: "finale" },     // サブ魂 2枠
   infinite: { chapter: 5, report: "finale" }, // 奈落 (無限迷宮)
+  forge: { chapter: 5, report: "finale" },    // 鍛え直し (商会で金貨を払い、装備の品質を引き直す。奈落と同時 — 2026-10 ユーザーの指示)
   // ── 第六章から (docs/unlocks.md の年表。ユーザーの了解済み)。章がまだ無いので開かない。仕組みはその章を作る時に足す ──
   expedition: { chapter: 6, report: "finale" }, // 遠征 (控えの人業が踏破済みの迷宮を回る)
   resonance: { chapter: 7, report: "finale" },  // 魂の共鳴 (職の組み合わせの効果)
@@ -13066,7 +13068,6 @@ const FEATURES = {
   subPick: { chapter: 10, report: "finale" },   // サブ魂で借りられる技 +1
   enchant: { chapter: 11, report: "finale" },   // 付呪
   order5: { chapter: 12, report: "finale" },    // 結社の席5
-  forge: { chapter: 13, report: "finale" },     // 鍛え直しの工房
   rebirth: { chapter: 14, report: "finale" },   // 魂の転生
   mutPick: { chapter: 15, report: "finale" },   // 異変を選ぶ
   vow: { chapter: 16, report: "finale" },       // 誓約
@@ -14044,7 +14045,7 @@ function buyItem(id, price, who) {
   if (!who) who = G.party.find((m) => m.alive && m.items.length < MAX_ITEMS) || null;
   if (!who || !who.alive) { log("取引する人業を選ぼう。", "sys"); SFX.ng(); return null; }
   if (who.items.length >= MAX_ITEMS) { log(`${who.name} の所持品がいっぱいだ。`, "sys"); SFX.ng(); return null; }
-  const it = cloneItem(id);
+  const it = cloneItem(id, QUALITY_MID); // 商会の棚の品は並品 (品質50)。売った品も並品として棚に戻る
   if (!it) return null;
   G.gold -= price;
   G.shopStock[id]--;
@@ -14055,6 +14056,50 @@ function buyItem(id, price, who) {
   log(`${it.name} を購入した (${who.name})。`, "win");
   renderTown();
   return it;
+}
+
+// ---- 鍛え直し (奈落と同時に開く。2026-10 ユーザーの指示) ----
+// 商会で金貨を払い、装備品 (コモン〜LR) の品質 0〜100 を引き直す (items.js の「品質」)。
+// 結果を見て「新しい品質にする / 元のまま」を選べる。金貨は引くたびにかかり、元のままを選んでも戻らない。
+// 費用 = その品の買値 (売値の2倍。レア度の倍率込み — 深い品・LR ほど高い)。品質に依らず品の種類で決まる
+const REFORGE_MIN_COST = 100;
+function reforgeCost(it) { return Math.max(REFORGE_MIN_COST, buyPrice(ITEMS[it && it.id] || it)); }
+// 鍛え直せない理由 (無ければ null)。{ gold: false } で所持金を見ない (ボタンを出すかどうかの判定)
+function reforgeBlock(owner, it, { gold = true } = {}) {
+  if (!featureUnlocked("forge")) return featureNote("forge");
+  if (!it || !hasQuality(it) || !ITEMS[it.id]) return "装備品だけを鍛え直せる";
+  if (it.unidentified) return "未鑑定の品は鍛え直せない";
+  if (!qualityMatters(it)) return "品質で変わる性能が無い品";
+  if (G.state !== "town") return "鍛え直しは街の商会でだけ";
+  if (!opsFacilityOpen("shop")) return "商会が開いていない";
+  if (owner && expeditionOf(owner)) return "遠征中の人業の品は鍛え直せない";
+  if (gold && G.gold < reforgeCost(it)) return "金貨が足りない";
+  return null;
+}
+// 金貨を払って品質を1回引く。品はまだ変えない (選ぶのは setItemQuality)。{ ok, q, cost } を返す
+function rollReforge(owner, it) {
+  const why = reforgeBlock(owner, it);
+  if (why) { SFX.ng(); showToast(why, { tone: "bad", noLog: true }); return { ok: false, reason: why }; }
+  const cost = reforgeCost(it);
+  G.gold -= cost;
+  if (!G.stats) G.stats = {};
+  G.stats.reforged = (G.stats.reforged || 0) + 1;
+  const q = rollQuality();
+  log(`${itemName(it)} を鍛え直した (−💰${cost}) ― 品質 ${it.q == null ? QUALITY_MID : it.q} → ${q}`, "sys");
+  updateTopbar();
+  autosave();
+  return { ok: true, q, cost };
+}
+// 品の品質を q にする (鍛え直しの結果を選んだ時)。性能を目録から写し直し、持ち主の能力を計算し直す
+function setItemQuality(owner, it, q) {
+  if (!it || !hasQuality(it)) return false;
+  it.q = Math.max(0, Math.min(100, Math.round(q)));
+  resyncItem(it);
+  const d = owner || allDolls().find((x) => (x.items || []).includes(it) || Object.values(x.equip || {}).includes(it));
+  if (d) { recalcDoll(d); d.hp = Math.min(d.hp, d.maxhp); d.mp = Math.min(d.mp, d.maxmp); }
+  autosave();
+  renderStatus(); renderParty();
+  return true;
 }
 
 // ---- 街 ⇄ 迷宮 の出入り ----
@@ -15740,18 +15785,23 @@ function clearSave() { if (testPlayActive) return; try { localStorage.removeItem
 // 個体ごとの状態 (未鑑定・鑑定失敗の印など) は残す。旧セーブの装備も新しいレア度と絵になる
 const ITEM_STAT_KEYS = ["atk", "vit", "agi", "int", "pie", "luk", "hp", "mp", "crit"];
 const ITEM_TMPL_KEYS = ["name", "desc", "slot", "lv", "rank", "r20", "rar", "lr", "forJob", "exclusive", "classes", "cat",
-  "twoHanded", "sk", "weight", "price", "art", "palette", "eAtk", "eDef", "aRes", "bRes", "onHit", "scale", "weaponProfile", "weaponRating", "magic", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
+  "twoHanded", "sk", "weight", "price", "art", "palette", "eAtk", "eDef", "aRes", "bRes", "resists", "onHit", "scale", "weaponProfile", "weaponRating", "magic", "mult", "eff", "align", "cursed", "hit", "dice", "swings"];
+// 品1つを目録の値に写し直し、品質と＋N の段を掛け直す (読み込み・鍛え直しで品質を変えた時)
+function resyncItem(it) {
+  const tmpl = it && ITEMS[it.id];
+  if (!tmpl) return;
+  delete it.pct;
+  for (const k of ITEM_STAT_KEYS) { if (tmpl[k] != null) it[k] = tmpl[k]; else delete it[k]; }
+  for (const k of ITEM_TMPL_KEYS) { if (tmpl[k] !== undefined) it[k] = tmpl[k]; else delete it[k]; }
+  if (hasQuality(it)) { if (it.q == null) it.q = QUALITY_MID; applyQuality(it); } else delete it.q; // 品質を入れる前の品は並品 (50)
+  if (it.forge) applyForge(it); // ＋N の段は品質の後に掛け直す
+}
 function reflattenItemStats() {
   const visited = new Set();
   function refresh(it) {
     if (!it || visited.has(it)) return;
     visited.add(it);
-    const tmpl = ITEMS[it.id];
-    if (!tmpl) return;
-    delete it.pct;
-    for (const k of ITEM_STAT_KEYS) { if (tmpl[k] != null) it[k] = tmpl[k]; else delete it[k]; }
-    for (const k of ITEM_TMPL_KEYS) { if (tmpl[k] !== undefined) it[k] = tmpl[k]; else delete it[k]; }
-    if (it.forge) applyForge(it); // 鍛え直し (地の底の鍛冶場) は目録の値に掛け直す
+    resyncItem(it);
   }
   for (const m of [...(G.party || []), ...(G.reserve || [])]) {
     for (const it of (m.items || [])) refresh(it);
@@ -16566,7 +16616,7 @@ function wireUI() {
     trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
     repairDoll, repairAllDolls, repairCostOf, tryHastenRescue, reviveTimerEl, fmtRemain, awaitingRescue, hastenCostOf,
-    doEquip, doUnequip, toggleItemLock, equipFromAnywhere, openEquipChooser, useItem, dropItem, transferItem,
+    doEquip, doUnequip, toggleItemLock, equipFromAnywhere, reforgeCost, reforgeBlock, rollReforge, setItemQuality, openEquipChooser, useItem, dropItem, transferItem,
     stopAutoCombat, sceneBgm, playBgm, SFX,
     ACH_SERIES, FACILITIES, FAC_SHELL, CONTENT_LIMIT, DUNGEONS, LAYER_VISUALS,
     isTitleActive: () => titleActive,
@@ -16586,7 +16636,7 @@ function wireUI() {
     }).observe(itemGetEl, { attributes: true, attributeFilter: ["class"] });
   }
   // 各パッケージの UI を登録 (スタブを差し替える)。A→B→C→D の順
-  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiJournal, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiAppraise, uiDeparture, uiDungeonHud, uiResults, uiTutorial, uiExpedition]) {
+  for (const m of [uiHub, uiPalace, uiFacilities, uiSettings, uiJournal, uiStory, uiParty, uiSoulPanel, autoEquip, uiShop, uiLoot, uiAppraise, uiDeparture, uiDungeonHud, uiResults, uiTutorial, uiExpedition, uiReforge]) {
     try { m.install(); } catch (e) { console.error(e); }
   }
 }

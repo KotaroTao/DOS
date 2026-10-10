@@ -18,11 +18,11 @@ import { el, sheet, toast, button, confirm, setText, glyph, plainText } from "./
 import { deltaFloat } from "./motion.js";
 import {
   statLines, isEquippable, equipPreviewDelta, gearScore as baseGearScore, itemCatText,
-  elemDetailLines, equipClassText, elemStatEq, elemStatShort, ailDetailLines, handLine, specialLines, weaponPerformanceEl,
+  elemDetailLines, equipClassText, elemStatEq, elemStatShort, ailDetailLines, handLine, specialLines, weaponPerformanceEl, qualityTone,
 } from "./itemview.js";
 import { spriteCanvas } from "../sprites.js";
 import { dollSprite, SOUL_CLASSES, canIdentify, identifyChance, identifyLabel, JOB_GEAR } from "../souls.js";
-import { ITEMS, itemName, canEquip, slotKeyFor, MAX_ITEMS, SLOTS, SLOT_LABEL, weaponRange, RANGE_LABEL, WEAPON_CAT_LABEL, useLines } from "../items.js";
+import { ITEMS, itemName, canEquip, slotKeyFor, MAX_ITEMS, SLOTS, SLOT_LABEL, weaponRange, RANGE_LABEL, WEAPON_CAT_LABEL, useLines, hasQuality, qualityOf, qualityMatters, QUALITY_MID } from "../items.js";
 import { RARITIES, rarityKey } from "../rarity.js";
 
 // レア度ごとの入手演出: 見出し・振動・画面の閃光 (game.js の showItemGet から移設)
@@ -758,6 +758,11 @@ function defaultActions(st) {
       label: it.unidentified ? "鑑定せず売る" : "売る", cost: price,
       onTap: async (close) => { if (await sellOne(owner, it)) close(); } });
   }
+  // 鍛え直し (奈落と同時に開く。街の商会で、装備中・袋の中の装備品の品質を金貨で引き直す。商会の「売る」から開いた時は区分「鍛え直し」に任せる)
+  if ((inBag || eqKey) && town && shopOpen() && context !== "sell" && !it.unidentified && hasQuality(it) && UI.openReforge
+    && game.featureUnlocked && game.featureUnlocked("forge") && qualityMatters(it)) {
+    acts.push({ key: "reforge", label: "鍛え直し", sub: `品質 ${qualityOf(it)}`, onTap: () => UI.openReforge(it, owner, { onClose: () => st.rerender && st.rerender({}) }) });
+  }
   // 捨てるのは迷宮の中だけ (持ちきれない時の手段。街では売る・奉納で足りる)
   if (inBag && !town && !it.locked) acts.push({ key: "drop", label: "捨てる", kind: "ghost", onTap: async (close) => { if (await discard(owner, it)) close(); } });
   return acts;
@@ -846,6 +851,11 @@ export function itemSheet(item, o = {}) {
     if (cat) grade.appendChild(el("span", "wpc-is-cat", cat));
     if (it.unidentified) grade.appendChild(el("span", "wpc-is-unid", it.idHardFail ? "未鑑定 ・ 失敗済み" : "未鑑定"));
     if (it.cursed && !it.unidentified) grade.appendChild(el("span", "wpc-is-curse", "呪い"));
+    // 品質 (装備品。棚の品は並品 = 品質50 で届く)
+    if (!it.unidentified && hasQuality(it)) {
+      const q = st.context === "stock" ? QUALITY_MID : qualityOf(it);
+      grade.appendChild(el("span", "rf-q " + qualityTone(q), st.context === "stock" ? `並品 ・ 品質${q}` : `品質 ${q}`));
+    }
     hd.appendChild(grade);
     const sl = statLines(it);
     if (sl && !it.unidentified) hd.appendChild(setText(el("div", "wpc-is-stat"), sl));

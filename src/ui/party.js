@@ -28,7 +28,7 @@ import { IRENE_WHO, IRENE_ART, ireneState, isGreeted, nextLine, lineOpen, noteVi
 import {
   planBestEquip, applyPlan, restoreEquip, equipSignature, trialEquip, slotKeysFor, previewStats, statsDelta, snapshotEquip, isMeleeWeapon,
 } from "../autoequip.js";
-import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, useWhere, compareUse, AIL_LABEL } from "../items.js";
+import { SLOTS, SLOT_LABEL, SLOT_ICONS, MAX_ITEMS, canEquip, recalc, weaponRange, RANGE_LABEL, itemName, attackPower, useWhere, compareUse, AIL_LABEL, hasQuality, qualityOf, qualityMatters } from "../items.js";
 import {
   SOUL_CLASSES, SOUL_KEYS, JOB_GEAR, dollSprite, dollBust, dollFace, jobBust, jobSprite, jobRankName, ATTR_KEYS, ATTR_LABEL, ATTR_NAME, soulLabel, soulRankLeft, soulByUid,
   orderedSkills, isSkillOff, setSkillOff, moveSkill, resetSkillPrefs, isAutoOff, setAutoOff,
@@ -2140,7 +2140,7 @@ function curItemCard(d, k, cur, h) {
   tx.appendChild(el("span", "pt-cur-k", "装備中"));
   tx.appendChild(game.itemNameEl ? game.itemNameEl("span", "pt-cur-n", cur, cur.cursed ? " (呪)" : "") : el("span", "pt-cur-n", itemName(cur)));
   if (!cur.unidentified) {
-    tx.appendChild(el("span", "pt-cur-c", itemCatText(cur) + (cur.slot === "weapon" ? ` ・ 射程${(RANGE_LABEL[weaponRange(cur)] || "").replace("距離", "")}` : "")));
+    tx.appendChild(el("span", "pt-cur-c", itemCatText(cur) + (cur.slot === "weapon" ? ` ・ 射程${(RANGE_LABEL[weaponRange(cur)] || "").replace("距離", "")}` : "") + (hasQuality(cur) ? ` ・ 品質${qualityOf(cur)}` : "")));
     const s = statLines(cur);
     if (s) tx.appendChild(el("span", "pt-cur-s", s));
   }
@@ -2164,6 +2164,12 @@ function curItemCard(d, k, cur, h) {
     lk.classList.add("pt-lock", "sp-lock-btn");
     if (cur.locked) lk.classList.add("on");
     foot.appendChild(lk);
+  }
+  // 鍛え直し (奈落と同時に開く。街で商会が開いている時。品質を金貨で引き直す)
+  if (inTown() && !cur.unidentified && hasQuality(cur) && qualityMatters(cur) && UI.openReforge && game.featureUnlocked && game.featureUnlocked("forge")
+    && (!game.opsFacilityOpen || game.opsFacilityOpen("shop"))) {
+    foot.appendChild(button({ label: "鍛え直し", kind: "ghost", size: "sm", title: "商会で金貨を払い、品質を引き直す",
+      onTap: () => UI.openReforge(cur, d, { onClose: () => { memoClear(); if (h && !h.closed && h.update) h.update({}); } }) }));
   }
   foot.appendChild(button({ label: cur.cursed ? "呪いで外せない" : cur.locked ? "ロック中は外せない" : "外す", kind: "ghost", size: "sm", disabled: !!cur.cursed || !!cur.locked || d.items.length >= MAX_ITEMS,
     onTap: () => { h.close(); if (game.doUnequip) game.doUnequip(d, k); } }));
