@@ -224,6 +224,7 @@ const ASSETS = [
   "./src/townpaint.js",
   "./src/townkeyart.js",
   // <<TOWN_ART>> 街の施設の情景の原画 (tools/townart/build.py が書く。手で直さない)
+  "./art/town/tavern.webp",
   // <</TOWN_ART>>
   // <<TITLE_ART>> タイトルの原画 (tools/titleart/build.py が書く。手で直さない)
   "./art/title/keyart-wide.webp",
