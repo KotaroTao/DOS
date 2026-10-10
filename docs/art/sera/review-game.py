@@ -8,6 +8,10 @@ import shutil
 
 root = Path(__file__).resolve().parents[3]
 out = Path(__file__).parent
+settings = json.loads((out / 'import-settings.json').read_text())
+suffix = settings.get('assetSuffix', '')
+def asset_name(rank):
+    return f"sera_{rank}{('-' + suffix) if suffix else ''}.webp"
 subprocess.run([
     'python3', 'tools/review-job-art.py', 'sera', '--label', '灯守',
     '--output', 'docs/art/sera/final-review',
@@ -18,7 +22,8 @@ sera = [row for row in rows if row['key'] == 'sera']
 assert len(sera) == 5
 assert review['canvasCount'] == 30 and not review['browserErrors']
 for row in rows:
-    assert row['src'].endswith(f"/art/jobs/{row['key']}_{row['rank']}.webp"), row
+    name = asset_name(row['rank']) if row['key'] == 'sera' else f"{row['key']}_{row['rank']}.webp"
+    assert row['src'].endswith('/art/jobs/' + name), row
     assert (row['w'], row['h']) == (rows[0]['w'], rows[0]['h']), row
 for row in sera:
     assert row['face'] == sera[0]['face'], row
@@ -26,7 +31,7 @@ for row in sera:
 
 assets = []
 for rank in range(1, 6):
-    path = root / f'art/jobs/sera_{rank}.webp'
+    path = root / 'art/jobs' / asset_name(rank)
     im = Image.open(path).convert('RGBA')
     alpha = im.getchannel('A')
     bbox = alpha.point(lambda v: 255 if v > 8 else 0).getbbox()

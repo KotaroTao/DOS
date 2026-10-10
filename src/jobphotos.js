@@ -231,11 +231,11 @@ export const JOB_PHOTOS = {
     5: { src: "art/jobs/samurai_5.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.13] },
   },
   sera: {
-    1: { src: "art/jobs/sera_1.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.487] },
-    2: { src: "art/jobs/sera_2.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.629] },
-    3: { src: "art/jobs/sera_3.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.283] },
-    4: { src: "art/jobs/sera_4.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.613] },
-    5: { src: "art/jobs/sera_5.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.581] },
+    1: { src: "art/jobs/sera_1-hand-flame-v1.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.487] },
+    2: { src: "art/jobs/sera_2-hand-flame-v1.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.629] },
+    3: { src: "art/jobs/sera_3-hand-flame-v1.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.283] },
+    4: { src: "art/jobs/sera_4-hand-flame-v1.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.613] },
+    5: { src: "art/jobs/sera_5-hand-flame-v1.webp", w: 90, h: 92, face: [45, 19], head: [45.0, 9.0, 29.581] },
   },
   archmage: {
     1: { src: "art/jobs/archmage_1.webp", w: 90, h: 92, face: [45, 20], head: [45.0, 9.0, 30.495] },

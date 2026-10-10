@@ -1,0 +1,31 @@
+{
+  "oldCacheSeeded": true,
+  "allNewImagesMatched": true,
+  "ranks": [
+    {
+      "rank": 1,
+      "src": "/art/jobs/sera_1-hand-flame-v1.webp",
+      "sha256": "07421876703d17522db0c92ebc4ca2150dfa4d99ad56191f79d8fdc5b2afd400"
+    },
+    {
+      "rank": 2,
+      "src": "/art/jobs/sera_2-hand-flame-v1.webp",
+      "sha256": "b8cc5d2ee132338175f6127e209d8e7be825a57ba7760e5705f95fc7be1086ed"
+    },
+    {
+      "rank": 3,
+      "src": "/art/jobs/sera_3-hand-flame-v1.webp",
+      "sha256": "2bac0de52fee76a950c9651031add16e3f3c051c81fc8112823bc94637549cf5"
+    },
+    {
+      "rank": 4,
+      "src": "/art/jobs/sera_4-hand-flame-v1.webp",
+      "sha256": "2b5788ae9431aee274d7f166aa216bce318f73312eebdd7072f4576d781a93c6"
+    },
+    {
+      "rank": 5,
+      "src": "/art/jobs/sera_5-hand-flame-v1.webp",
+      "sha256": "93b30b5046c3536f2c82526d0be15cec6708cb166b3c229879edf8653ffb7c6f"
+    }
+  ]
+}
