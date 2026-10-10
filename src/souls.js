@@ -43,7 +43,7 @@ export const SOUL_CLASSES = {
   // ===== エピック (10) =====
   crusader:    { label: "聖戦士",   rarity: "epic",    color: "#e8d860", glow: "#fff090", stat: { hp: 7.0, mp: 1.4, atk: 2.6, vit: 1.6, agi: 1.2, int: 0.4, pie: 2.0, luk: 1.0 } },
   battlemage:  { label: "魔闘士",   rarity: "epic",    color: "#9060a0", glow: "#c090d0", stat: { hp: 6.0, mp: 2.0, atk: 2.4, vit: 1.4, agi: 1.2, int: 1.8, pie: 0.4, luk: 1.0 } },
-  darkknight:  { label: "魔騎士",   rarity: "epic",    color: "#406080", glow: "#70a0c0", stat: { hp: 8.0, mp: 2.0, atk: 2.0, vit: 2.2, agi: 0.9, int: 1.6, pie: 0.6, luk: 0.9 } },
+  darkknight:  { label: "魔騎士",   rarity: "epic",    color: "#406080", glow: "#70a0c0", stat: { hp: 7.6, mp: 2.0, atk: 2.4, vit: 2.2, agi: 0.9, int: 1.6, pie: 0.6, luk: 0.9 } },
   templar:     { label: "神殿騎士", rarity: "epic",    color: "#d0c880", glow: "#f8f0a0", stat: { hp: 7.5, mp: 2.2, atk: 1.8, vit: 2.4, agi: 0.8, int: 0.5, pie: 1.8, luk: 1.0 } },
   exorcist:    { label: "祓魔師",   rarity: "epic",    color: "#d080a0", glow: "#f0b0c0", stat: { hp: 5.0, mp: 1.6, atk: 2.2, vit: 1.0, agi: 2.4, int: 0.8, pie: 1.6, luk: 2.0 } },
   warden:      { label: "護法師",   rarity: "epic",    color: "#60a080", glow: "#90d0b0", stat: { hp: 5.5, mp: 2.8, atk: 1.2, vit: 1.4, agi: 1.2, int: 2.6, pie: 1.0, luk: 1.0 } },
@@ -565,7 +565,7 @@ export const JOB_LORE = {
   arcthief:    { desc: "呪文を盗むように操る魔盗賊の魂。先手の呪撃でパーティの負担を減らす。", tips: "開幕呪撃で無消費の先手を取り、魔力強奪でMPを補いながら戦う持久型の術士。" },
   crusader:    { desc: "聖なる使命のために剣を握った聖戦士の魂。魔を祓い、その輝きが仲間の命を繋ぐ。", tips: "破邪で不死・幽鬼・悪魔に特効。聖光斬が敵を傷つけながら自分を癒す。" },
   battlemage:  { desc: "拳と法力を組み合わせた変わり者の魂。金剛身が術師との戦いを有利にする。", tips: "魔障壁と異常耐性で術師相手に崩れにくい。破魔の拳で敵の能力を削ぐ。" },
-  darkknight:  { desc: "魔術理論を鎧に編み込んだ魔騎士の魂。障壁を盾に魔力をも喰らう。", tips: "魔障壁と魔力反射で呪文・ブレスを受けて返す。魔喰いの太刀でMPが自給する。" },
+  darkknight:  { desc: "魔術理論を鎧に編み込んだ魔騎士の魂。障壁を盾に魔力をも喰らう。", tips: "闇の剣技にはINTも乗る。魔障壁と魔力反射で呪文・ブレスを受けて返し、魔喰いの太刀でMPを自給する。" },
   templar:     { desc: "神殿を守護する誓いの騎士の魂。聖域の鐘がパーティ全体の穢れを払う。", tips: "聖域でパーティ全体に異常耐性を配れる。毒や麻痺をばらまく魔物の巣窟での守りの柱。" },
   exorcist:    { desc: "聖印を帯びた影の祓魔師の魂。神速で動き、光刃で不浄を斬る。", tips: "聖刃の会心で不死・幽鬼を狩る遊撃手。浄化でパーティの状態異常も拭える。" },
   warden:      { desc: "守りの法陣を理論の極みまで磨き上げた護法師の魂。大結界がパーティを包む。", tips: "大結界が全体攻撃を半減する。深層ボスの全体技を毎回削れるのは大きい。" },

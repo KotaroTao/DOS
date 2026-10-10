@@ -344,12 +344,12 @@ export const SPELLS = {
   MAJINKEN:    { name: "魔神拳", mp: 18, kind: "phys", power: 3.5, intScale: 1.0, acc: 0.9, target: "enemy", desc: "INTを込めた魔神の拳（命中UP）" },
   TOUSHINHAGEKI:{ name: "闘神覇撃", mp: 36, kind: "phys", power: 9.0, intScale: 1.2, acc: 1, target: "enemy", desc: "必中の闘神の一撃" },
   // 魔騎士
-  ANKOKU:       { name: "暗黒剣", mp: 6, kind: "phys", power: 2.2, element: "dark", hpCost: 0.08, acc: 0.7, target: "enemy", desc: "HPを代償に闇の剛剣を振るう（命中UP）" },
-  KYUUKETSU:    { name: "吸血剣", mp: 8, kind: "phys", power: 1.6, element: "dark", drain: 0.4, target: "enemy", desc: "斬った血でHPを癒す" },
+  ANKOKU:       { name: "暗黒剣", mp: 6, kind: "phys", power: 2.2, intScale: 0.4, element: "dark", hpCost: 0.08, acc: 0.7, target: "enemy", desc: "HPを代償に闇の剛剣を振るう（命中UP）" },
+  KYUUKETSU:    { name: "吸血剣", mp: 8, kind: "phys", power: 1.6, intScale: 0.3, element: "dark", drain: 0.4, target: "enemy", desc: "斬った血でHPを癒す" },
   YAMINOKOROMO: { name: "闇の衣", mp: 8, kind: "buff", buff: { vit: 1.3 }, grantBarrier: 2, target: "self", desc: "防御を上げ、魔障壁を2回分まとう" },
-  JUBAKU:       { name: "呪縛剣", mp: 10, kind: "phys", power: 1.6, element: "dark", acc: 0.6, debuff: { atk: 0.8, agi: 0.8 }, target: "enemy", desc: "STRと素早さを縛る呪剣" },
-  MAGUINOTACHI: { name: "魔喰いの太刀", mp: 8, kind: "phys", power: 2.2, mpDrain: 0.25, acc: 0.6, seal: { chance: 0.5, turns: 3 }, target: "enemy", desc: "魔力を喰らい、特技を封じる" },
-  ANKOKUSHUUEN: { name: "暗黒剣・終焉", mp: 30, kind: "phys", power: 8.0, element: "dark", hpCost: 0.15, acc: 1, target: "enemy", desc: "HPを代償にした必中の終焉" },
+  JUBAKU:       { name: "呪縛剣", mp: 10, kind: "phys", power: 1.6, intScale: 0.3, element: "dark", acc: 0.6, debuff: { atk: 0.8, agi: 0.8 }, target: "enemy", desc: "STRと素早さを縛る呪剣" },
+  MAGUINOTACHI: { name: "魔喰いの太刀", mp: 10, kind: "phys", power: 2.8, intScale: 0.5, mpDrain: 0.25, acc: 0.6, seal: { chance: 0.5, turns: 3 }, target: "enemy", desc: "魔力を喰らい、特技を封じる" },
+  ANKOKUSHUUEN: { name: "暗黒剣・終焉", mp: 30, kind: "phys", power: 8.0, intScale: 0.5, element: "dark", hpCost: 0.15, acc: 1, target: "enemy", desc: "HPを代償にした必中の終焉" },
   // 竜騎士
   TENSHOU:      { name: "天翔撃", mp: 5, kind: "phys", power: 1.3, acc: 0.9, target: "enemy", desc: "跳び上がって打ち下ろす（命中大UP）" },
   RYUURIN:      { name: "竜鱗", mp: 8, kind: "buff", buff: { vit: 1.4 }, grantBarrier: 1, target: "self", desc: "竜鱗をまとい、防御と魔障壁を得る" },
