@@ -845,6 +845,17 @@ button.sp-tile-main { cursor: pointer; }
 .sp-tile-r { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .sp-tile-tx { min-width: 0; display: flex; flex-direction: column; }
 .sp-tile-n { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* サブ魂の札: 借りる数が違っても見出しの高さをそろえる */
+.sp-sub .sp-tile-main { justify-content: flex-start; }
+.sp-sub .sp-tile-main > :last-child { margin-bottom: auto; }
+.sp-tile-hd { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; min-width: 0; }
+.sp-tile-cnt { font-size: 10.5px; color: #8f8370; white-space: nowrap; }
+/* 借りている技・パッシブ: 1つ1行。名前は途中で切らず、長ければ文節で折る。技 = 金・パッシブ = 紫 */
+.sp-borrow { display: flex; flex-direction: column; gap: 1px; margin-top: 2px; min-width: 0; }
+.sp-bw { position: relative; padding-left: 10px; font-size: 11.5px; line-height: 1.35; color: #e0cf9e; white-space: normal; }
+.sp-bw::before { content: ""; position: absolute; left: 1px; top: 0.5em; width: 5px; height: 5px; transform: rotate(45deg); background: var(--accent, #c9a24a); }
+.sp-bw.pas { color: #cdb8ec; }
+.sp-bw.pas::before { background: #a98bd8; border-radius: 50%; transform: none; }
 .sp-tile-sk { flex: 0 0 44px; min-height: 44px; color: var(--accent-hi); font-size: 12px; font-weight: 700; background: rgba(0,0,0,0.25); border: 0; border-left: 1px solid #3a3029; cursor: pointer; }
 .sp-lock-ic { width: 14px; height: 14px; flex: 0 0 auto; fill: none; stroke: #8a6d2e; stroke-width: 1.8; stroke-linecap: round; }
 .sp-order-info { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
