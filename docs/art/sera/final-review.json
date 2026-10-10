@@ -30,7 +30,7 @@
       ],
       "w": 94,
       "h": 96,
-      "src": "http://127.0.0.1:8000/art/jobs/sera_1.webp"
+      "src": "http://127.0.0.1:8000/art/jobs/sera_1-hand-flame-v1.webp"
     },
     {
       "key": "sera",
@@ -46,7 +46,7 @@
       ],
       "w": 94,
       "h": 96,
-      "src": "http://127.0.0.1:8000/art/jobs/sera_2.webp"
+      "src": "http://127.0.0.1:8000/art/jobs/sera_2-hand-flame-v1.webp"
     },
     {
       "key": "sera",
@@ -62,7 +62,7 @@
       ],
       "w": 94,
       "h": 96,
-      "src": "http://127.0.0.1:8000/art/jobs/sera_3.webp"
+      "src": "http://127.0.0.1:8000/art/jobs/sera_3-hand-flame-v1.webp"
     },
     {
       "key": "sera",
@@ -78,7 +78,7 @@
       ],
       "w": 94,
       "h": 96,
-      "src": "http://127.0.0.1:8000/art/jobs/sera_4.webp"
+      "src": "http://127.0.0.1:8000/art/jobs/sera_4-hand-flame-v1.webp"
     },
     {
       "key": "sera",
@@ -94,7 +94,7 @@
       ],
       "w": 94,
       "h": 96,
-      "src": "http://127.0.0.1:8000/art/jobs/sera_5.webp"
+      "src": "http://127.0.0.1:8000/art/jobs/sera_5-hand-flame-v1.webp"
     }
   ],
   "canvasCount": 30,

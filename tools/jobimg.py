@@ -155,7 +155,7 @@ def bust_crop(e):
 CLIP_HALF_W, CLIP_H, CLIP_FADE = 45, 88, 5
 
 
-def build(job, paths, per_dots, heads, preview, frame=None, frame_top=None, alpha_floor=1):
+def build(job, paths, per_dots, heads, preview, frame=None, frame_top=None, alpha_floor=1, asset_suffix=""):
     out_dir = os.path.join(ROOT, "art", "jobs")
     os.makedirs(out_dir, exist_ok=True)
     entries = {}
@@ -203,7 +203,7 @@ def build(job, paths, per_dots, heads, preview, frame=None, frame_top=None, alph
         small = im.convert("RGBa").resize((max(1, round(im.width * k)), max(1, round(im.height * k))), Image.LANCZOS).convert("RGBA")
         canvas = Image.new("RGBA", (wd * RES, hd * RES), (0, 0, 0, 0))
         canvas.paste(small, (0, 0))
-        name = f"{job}_{r}.webp"
+        name = f"{job}_{r}{('-' + asset_suffix) if asset_suffix else ''}.webp"
         head = [round(v / per_dot, 3 if frame else 2) for v in head_px]
         face = [round(head[0]), round((head[1] + head[2]) / 2)]
         if frame:
@@ -285,7 +285,10 @@ if __name__ == "__main__":
                     help="透明原画の外周に残る、この値以下のアルファを除去する (既定1)")
     ap.add_argument("--frame", help="共通の透明枠の幅,高さ (ドット単位)。人物は縮めず顔の列と足元を揃える")
     ap.add_argument("--frame-top", type=float, help="共通枠で人体の頭頂を置く高さ (ドット単位)。--frame と --head が必要")
+    ap.add_argument("--asset-suffix", default="", help="画像の更新時に古いキャッシュと区別するファイル名の接尾辞")
     o = ap.parse_args()
+    if o.asset_suffix and not re.fullmatch(r"[a-zA-Z0-9_-]+", o.asset_suffix):
+        ap.error("--asset-suffix は英数字・ハイフン・アンダースコアで指定してください")
     heads = [list(map(float, f.split(","))) for f in o.head] if o.head else None
     frame = tuple(map(int, o.frame.split(","))) if o.frame else None
     if frame and (len(frame) != 2 or min(frame) <= 0):
@@ -293,4 +296,4 @@ if __name__ == "__main__":
     if o.frame_top is not None and (not frame or not heads or not np.isfinite(o.frame_top)
                                     or not 0 <= o.frame_top < frame[1] or len(heads) != len(o.images)):
         ap.error("--frame-top は --frame と全画像の --head、枠内の有限な高さが必要です")
-    build(o.job, o.images, [float(v) for v in o.per_dot.split(",")], heads, o.preview, frame, o.frame_top, o.alpha_floor)
+    build(o.job, o.images, [float(v) for v in o.per_dot.split(",")], heads, o.preview, frame, o.frame_top, o.alpha_floor, o.asset_suffix)

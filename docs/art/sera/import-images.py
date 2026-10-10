@@ -13,5 +13,6 @@ subprocess.run([
     '--head', *[','.join(map(str, s['head'])) for s in sources],
     '--frame', ','.join(map(str, settings['frame'])),
     '--frame-top', str(settings['frameTop']),
+    '--asset-suffix', settings.get('assetSuffix', ''),
     '--preview', 'docs/art/sera/import-preview.png',
 ], cwd=root, check=True)
