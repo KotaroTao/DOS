@@ -459,3 +459,51 @@
 @media (prefers-reduced-motion: reduce) {
   .ap-art.busy, .ap-art.busy::after, .ap-art.ok, .ap-art.ng, .ap-msg.ok, .ap-msg.ng, .ap-pip.now, .ap-stage.ok .ap-name { animation: none !important; }
 }
+
+/* ===== 品質と鍛え直し (src/ui/reforge.js) ===== */
+.rf-q { display: inline-block; padding: 0 6px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; border: 1px solid currentColor; border-radius: 2px; background: rgba(0,0,0,0.35); white-space: nowrap; }
+.rf-q.q-top { color: #ffd76a; box-shadow: 0 0 6px rgba(255,200,80,0.45); }
+.rf-q.q-hi { color: #9fe08a; }
+.rf-q.q-mid { color: #c9c2b0; }
+.rf-q.q-lo { color: #d99a8f; }
+.rf-q.none { color: var(--ink-dim); border-style: dashed; }
+.rf-q.big { font-size: 15px; padding: 2px 10px; }
+.pl-detail-q { margin-top: 4px; font-size: 12px; color: var(--ink-dim); }
+.rf-sheet .rf-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 4px 10px; margin: 2px 0 8px; }
+.rf-name { font-size: 15px; font-weight: 800; }
+.rf-where { font-size: 11.5px; color: var(--ink-dim); }
+.rf-now, .rf-cmp { padding: 10px 12px; border: 1px solid rgba(201,162,92,0.35); border-radius: 4px; background: rgba(0,0,0,0.3); }
+.rf-k { font-size: 11px; letter-spacing: 0.2em; color: var(--ink-dim); margin-bottom: 4px; }
+.rf-meter { display: flex; align-items: center; gap: 10px; }
+.rf-meter-bar { position: relative; flex: 1; height: 10px; border: 1px solid rgba(201,162,92,0.5); border-radius: 2px; background: rgba(0,0,0,0.5); overflow: hidden; }
+.rf-meter-fill { position: absolute; left: 0; top: 0; bottom: 0; background: currentColor; opacity: 0.85; }
+.rf-meter-mid { position: absolute; left: 50%; top: -1px; bottom: -1px; width: 1px; background: rgba(255,255,255,0.45); }
+.rf-meter-n { min-width: 2.4em; text-align: right; font-size: 18px; font-weight: 800; }
+.rf-meter.q-top { color: #ffd76a; } .rf-meter.q-hi { color: #9fe08a; } .rf-meter.q-mid { color: #c9c2b0; } .rf-meter.q-lo { color: #d99a8f; }
+.rf-stat { margin-top: 6px; font-size: 12px; color: var(--ink, #e8dcc0); }
+.rf-note { margin-top: 8px; font-size: 12px; line-height: 1.7; color: var(--ink-dim); }
+.rf-block { margin-top: 8px; font-size: 12px; color: #e8a090; }
+.rf-last { margin-top: 8px; padding: 6px 10px; font-size: 12.5px; border-left: 3px solid; background: rgba(0,0,0,0.25); }
+.rf-last.took { color: #bfe9b0; border-color: #4f8a3c; }
+.rf-last.kept { color: #c9c2b0; border-color: #6b6250; }
+.rf-last.took.dn { color: #e8b0a4; border-color: #8a4a3c; }
+.rf-big { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.rf-big-arrow { font-size: 18px; color: var(--ink-dim); }
+.rf-verdict { margin: 6px 0 8px; text-align: center; font-size: 13px; font-weight: 800; letter-spacing: 0.1em; }
+.rf-verdict.up { color: #9fe08a; } .rf-verdict.dn { color: #e8a090; } .rf-verdict.eq { color: var(--ink-dim); }
+.rf-diff { display: grid; gap: 2px; }
+.rf-diff-row { display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: baseline; font-size: 12.5px; padding: 2px 0; border-bottom: 1px dotted rgba(201,162,92,0.18); }
+.rf-diff-l { color: var(--ink-dim); }
+.rf-diff-a { text-align: right; }
+.rf-diff-arrow { color: var(--ink-dim); }
+.rf-diff-b { text-align: right; font-weight: 800; }
+.rf-diff-b.up { color: #9fe08a; } .rf-diff-b.dn { color: #e8a090; }
+.rf-diff-eq { font-size: 12px; color: var(--ink-dim); }
+.rf-doll { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; }
+.rf-doll-n { color: var(--ink-dim); }
+.rf-intro { padding: 8px 10px; margin-bottom: 6px; border: 1px solid rgba(201,162,92,0.3); border-radius: 4px; background: rgba(0,0,0,0.25); }
+.rf-intro-t { font-size: 12.5px; }
+.rf-intro-s { margin-top: 3px; font-size: 11.5px; color: var(--ink-dim); }
+.rf-grp { margin-bottom: 8px; }
+.rf-grp .wpc-drow-h { margin-bottom: 4px; }
+.rf-row .wpc-srow-l3 { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }

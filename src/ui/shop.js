@@ -26,7 +26,9 @@ const isReserve = (d) => (G().reserve || []).includes(d);
 
 // 画面の状態 (区分・分類は prefs に覚える。鑑定の結果はこの街滞在のあいだだけ)
 const view = { sellPage: 0, buyPage: 0 };
-const segOf = () => (getPref("shopSeg") === "buy" ? "buy" : "sell");
+// 鍛え直し (奈落と同時に開く) の区分は、開くまで出さない
+const forgeOpen = () => !!(game.featureUnlocked && game.featureUnlocked("forge"));
+const segOf = () => { const s = getPref("shopSeg"); return s === "buy" ? "buy" : s === "forge" && forgeOpen() ? "forge" : "sell"; };
 const catOf = () => getPref("shopBuyCat", "rec") || "rec";
 const wcatOf = () => remember("seg", "shopWeapon") || "all";
 
@@ -213,6 +215,7 @@ function keeperLine(seg) {
   let line = ls.length ? ls[((G().stats && G().stats.runs) || 0) % ls.length] : "";
   if (seg === "sell" && unidCount() > 0) line = "未鑑定の品か。正体を知るのは、金を払ってからだ。";
   else if (seg === "buy") line = "黒鉄は嘘をつかん。値札もな。";
+  else if (seg === "forge") line = "同じ品でも、打ちの出来はまちまちだ。金を積めば、何度でも炉に入れてやる。";
   return whisper("merchant", line, { who: shell.who || "黒鉄商会 ヴォス" });
 }
 
@@ -729,7 +732,7 @@ function render(root) {
   const bar = el("div", "wpc-bar");
   const unid = unidCount();
   bar.appendChild(segmented(
-    [{ key: "sell", label: "売る・鑑定", badge: unid || null }, { key: "buy", label: "買う" }],
+    [{ key: "sell", label: "売る・鑑定", badge: unid || null }, { key: "buy", label: "買う" }, ...(forgeOpen() ? [{ key: "forge", label: "鍛え直し" }] : [])],
     seg, (k) => { setPref("shopSeg", k); sfx("select"); rerender({ top: true }); },
   ));
   if (seg === "buy") {
@@ -741,7 +744,7 @@ function render(root) {
     bar.appendChild(cc);
   }
   wrap.appendChild(bar);
-  const fill = seg === "buy" ? renderBuy(wrap) : renderSell(wrap);
+  const fill = seg === "buy" ? renderBuy(wrap) : seg === "forge" && UI.renderForgeList ? UI.renderForgeList(wrap) : renderSell(wrap);
   root.appendChild(wrap);
   // 置いてから高さを測ってページを切る
   try { fill(); } catch (e) { setTimeout(() => { throw e; }); }
@@ -749,7 +752,7 @@ function render(root) {
 
 // 商会を開く (seg: "sell" | "buy"、cat: 買うの分類)
 export function openShop(seg, { cat } = {}) {
-  if (seg === "sell" || seg === "buy") setPref("shopSeg", seg);
+  if (seg === "sell" || seg === "buy" || seg === "forge") setPref("shopSeg", seg);
   if (cat) { setPref("shopBuyCat", cat); view.buyPage = 0; }
   const g = G();
   if (!g || g.state !== "town") return false;
