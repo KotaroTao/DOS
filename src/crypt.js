@@ -310,6 +310,16 @@ export function paintCryptFloor(W, H, opt) {
     }
   }
 
+  // ---- 足元の仕掛け: 蝕む床の染み (小物を置かない層でも焼く。opt.harmStain / harmFx = floorhaz.js の look。泡・火の粉などの粒は毎フレーム描く) ----
+  for (let cy = 0; cy < opt.rows; cy++) for (let cx = 0; cx < opt.cols; cx++) {
+    const c = cells[cy][cx];
+    if (c.type !== "poison") continue;
+    const r = rect(cx, cy);
+    const cr = makeRng(opt.seed ^ Math.imul(cx + 1, 2654435761) ^ Math.imul(cy + 1, 40503));
+    poisonStain(R, r, cr, s1, opt.harmStain);
+    stainDeco(R, r, cr, opt.harmFx, opt.harmStain || SWAMP_STAIN);
+  }
+
   // ---- 小物 (骨・頭蓋・蝋燭・血痕・瓦礫・蜘蛛の巣・排水格子・床墓) ----
   if (mat.props !== false) {
     for (let cy = 0; cy < opt.rows; cy++) for (let cx = 0; cx < opt.cols; cx++) {
@@ -338,12 +348,8 @@ export function paintCryptFloor(W, H, opt) {
         for (let i = 0; i < 2; i++) { const [x, y] = [r.x + 7 + i * (r.w - 16), r.y + r.h - 9]; candleCluster(R, x, y, cr, candles, cx, cy); }
         continue;
       }
-      if (c.type === "poison") {
-        // 毒の床: 腐った汚泥の染み (泡と瘴気は毎フレーム描く)
-        poisonStain(R, r, cr, s1);
-        continue;
-      }
-      if (c.type === "pit") continue; // 落とし穴: 穴そのものは game.js が毎フレーム描く (床の飾りは置かない)
+      if (c.type === "poison") continue; // 蝕む床: 下の「足元の仕掛け」で焼く
+      if (c.type === "pit") continue; // 落ちる床: 穴そのものは game.js が毎フレーム描く (床の飾りは置かない)
       const roll = cr();
       if (roll < 0.13 && !busy) floorTomb(R, r, cr);
       else if (roll < 0.17 && !busy) drainGrate(R, r.x + Math.round(r.w / 2) - 5, r.y + Math.round(r.h / 2) - 5);
@@ -496,15 +502,57 @@ function floorTomb(R, r, rnd) {
   engrave(R, groove, 0.55);
 }
 // 毒の汚泥の染み
-function poisonStain(R, r, rnd, s) {
+// 蝕む床の染み。色は [縁の影, 縁の照り, 中ほど, 芯, 斑点] (省略時は毒の沼の緑)
+const SWAMP_STAIN = [[26, 34, 12], [96, 128, 30], [48, 78, 18], [66, 104, 22], [150, 200, 70]];
+function poisonStain(R, r, rnd, s, st = SWAMP_STAIN) {
+  st = st || SWAMP_STAIN;
   const cx = r.x + r.w / 2, cy = r.y + r.h * 0.55, rx = r.w * 0.38, ry = r.h * 0.3;
   for (let y = Math.floor(cy - ry - 3); y <= cy + ry + 3; y++) for (let x = Math.floor(cx - rx - 3); x <= cx + rx + 3; x++) {
     const d = Math.hypot((x - cx) / rx, (y - cy) / ry) + (fbm(x * 0.2, y * 0.2, s + 31) - 0.5) * 0.6;
     if (d > 1.1) continue;
-    if (d > 1.0) R.tint(x, y, [26, 34, 12], 0.55);           // 腐食した縁
-    else if (d > 0.88) R.tint(x, y, [96, 128, 30], 0.6);     // 汚泥の縁の照り
-    else R.tint(x, y, d < 0.45 ? [66, 104, 22] : [48, 78, 18], 0.85);
-    if (d < 0.85 && hash(x, y, s + 3) > 0.93) R.tint(x, y, [150, 200, 70], 0.6); // 泡の痕
+    if (d > 1.0) R.tint(x, y, st[0], 0.55);           // 縁の影
+    else if (d > 0.88) R.tint(x, y, st[1], 0.6);      // 縁の照り
+    else R.tint(x, y, d < 0.45 ? st[3] : st[2], 0.85);
+    if (d < 0.85 && hash(x, y, s + 3) > 0.93) R.tint(x, y, st[4], 0.6); // 斑点
+  }
+}
+
+// 蝕む床の土地ごとの焼き込み (動かない部分。粒の動きは game.js drawHarmMotes)
+//   ember 溶岩の筋 / frost 霜の粒 / spark 鉄板の継ぎ目と鋲 / glint 散らばった鉄菱・破片 / spore 小さなきのこ / soul 這う細い根 / bubble なし
+function stainDeco(R, r, rnd, fx, st) {
+  const cx = r.x + r.w / 2, cy = r.y + r.h * 0.55, rx = r.w * 0.34, ry = r.h * 0.26;
+  const inside = () => { const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()); return [Math.round(cx + Math.cos(a) * rx * d), Math.round(cy + Math.sin(a) * ry * d)]; };
+  if (fx === "ember") {
+    for (let k = 0; k < 3; k++) {
+      let x = cx + (rnd() - 0.5) * rx, y = cy + (rnd() - 0.5) * ry, a = rnd() * Math.PI * 2;
+      for (let i = 0; i < 9 + rnd() * 6; i++) {
+        R.over(Math.round(x), Math.round(y), st[4], 0.85); R.over(Math.round(x), Math.round(y) + 1, st[0], 0.5);
+        a += (rnd() - 0.5) * 1.2; x += Math.cos(a); y += Math.sin(a) * 0.6;
+      }
+    }
+  } else if (fx === "frost") {
+    for (let i = 0; i < 46; i++) { const [x, y] = inside(); R.over(x, y, st[4], 0.35 + rnd() * 0.4); }
+    for (let k = 0; k < 2; k++) { const [x, y] = inside(); for (let d = -2; d <= 2; d++) { R.over(x + d, y, st[4], 0.7); R.over(x, y + d, st[4], 0.7); } }
+  } else if (fx === "spark") {
+    for (const dy of [-0.4, 0.35]) { const y = Math.round(cy + ry * dy); for (let x = Math.round(cx - rx); x <= cx + rx; x++) { R.over(x, y, st[0], 0.8); R.over(x, y + 1, st[1], 0.45); } }
+    for (let i = 0; i < 6; i++) { const [x, y] = inside(); R.over(x, y, st[4], 0.75); R.over(x + 1, y + 1, st[0], 0.6); }
+  } else if (fx === "glint") {
+    for (let i = 0; i < 11; i++) {
+      const [x, y] = inside();
+      R.over(x, y, st[1], 0.9); R.over(x - 1, y + 1, st[1], 0.8); R.over(x + 1, y + 1, st[1], 0.8); R.over(x, y - 1, st[4], 0.85);
+      R.over(x, y + 2, st[0], 0.5);
+    }
+  } else if (fx === "spore") {
+    for (let i = 0; i < 6; i++) {
+      const [x, y] = inside();
+      R.over(x, y + 1, st[0], 0.6); R.over(x, y, st[2], 0.9);
+      R.over(x - 1, y - 1, st[1], 0.9); R.over(x, y - 1, st[4], 0.9); R.over(x + 1, y - 1, st[1], 0.9);
+    }
+  } else if (fx === "soul") {
+    for (let k = 0; k < 4; k++) {
+      let x = cx + (rnd() - 0.5) * rx * 1.6, y = cy + (rnd() - 0.5) * ry * 1.4, a = rnd() * Math.PI * 2;
+      for (let i = 0; i < 12; i++) { R.over(Math.round(x), Math.round(y), st[1], 0.8); R.over(Math.round(x), Math.round(y) + 1, st[0], 0.6); a += (rnd() - 0.5) * 0.9; x += Math.cos(a); y += Math.sin(a) * 0.7; }
+    }
   }
 }
 

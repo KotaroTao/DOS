@@ -1279,7 +1279,7 @@ export const BREATH_RES_MAX = 0.5;
 //   bomb: { power, el, all, prey }  戦闘中: 投げつける。威力は固定 (使い手の能力に依らない)。属性・魔法耐性・魔法弱点が効く
 //   hex: { kind, chance, all } 戦闘中: 敵を眠らせる (sleep) / 痺れさせる (paralyze) / 惑わす (confuse)。Lv差が効く
 //   escape: true              戦闘中: 必ず逃げる (退路を断たれていなければ)
-//   float: N                  迷宮で: N 階のあいだ浮遊する (この階を含む。落とし穴に落ちず、毒の床も踏まない)
+//   float: N                  迷宮で: N 階のあいだ浮遊する (この階を含む。足元の穴に落ちず、害のある床も踏まない)
 //   drop: 0.5                 戦利品に出る重み (既定 1。強すぎる品を出にくくする)
 export const USE_AIL = ["poison", "paralyze", "stone", "sleep", "charm", "confuse"];
 export const USE_KEYS = ["heal", "full", "mp", "mpFull", "all", "cure", "revive", "buff", "dur", "bomb", "hex", "escape", "float", "recall", "drop"];
@@ -1378,7 +1378,7 @@ export function useLines(it, short = false) {
   }
   if (u.hex) L.push(`${u.hex.all ? "敵全体" : "敵1体"}を${HEX_LABEL[u.hex.kind] || u.hex.kind}${short ? "" : ` (基本 ${Math.round(u.hex.chance * 100)}%・Lv差で増減)`}`);
   if (u.escape) L.push(short ? "必ず逃げる" : "戦いから必ず逃げ出せる (退路を断たれていなければ)");
-  if (u.float) L.push(short ? `浮遊 ${u.float}階` : `${u.float}階のあいだ宙に浮く (この階を含む。落とし穴・毒の床にかからない)`);
+  if (u.float) L.push(short ? `浮遊 ${u.float}階` : `${u.float}階のあいだ宙に浮く (この階を含む。足元の穴・害のある床にかからない)`);
   if (u.recall) L.push(short ? "街へ帰還" : "迷宮から街へ帰還する (戦利品は持ち帰る)");
   if (!short) {
     const w = useWhere(it);
