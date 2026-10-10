@@ -12,13 +12,14 @@
 //   createTownScene()        広場の夜景パノラマ (canvas 240x170・動く)
 //   townSpots()              夜景の名所の位置 (割合) — 広場の札を重ねる
 //   vignetteCanvas(key)      施設の情景 (canvas 120x75・灯が揺らぐ。原画のある鍵は townpaint.js の高精細版)
-//   keeperCanvas(key)        施設の番人の胸像 (原画版480x560 / ドット絵48x56)
+//   keeperCanvas(key)        施設の人物の胸像 (原画版480x560 / ドット絵48x56)
 //   iconCanvas(key)          迷宮の門・封じられた門・潜行の号令・錠前・奈落の紋章 (静止画)
-//   KING_PORTRAIT            王の胸像 ({ palette, art } 42x42 — spriteCanvas でそのまま描ける)
+//   kingCanvas()             物語の王の胸像 (原画版480x480 / ドット絵42x42)
+//   KING_PORTRAIT            従来の王の胸像 ({ palette, art } 42x42)
 //   prewarmTown(keys)        上の絵をアイドル時間に描き溜める
 
 import { hasPaintedVignette, paintedVignette } from "./townpaint.js";
-import { TOWN_KEEPERART } from "./townkeyart.js";
+import { TOWN_KEEPERART, TOWN_ICONART } from "./townkeyart.js";
 
 const TAU = Math.PI * 2;
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -1536,6 +1537,14 @@ function keeperFrames(key) {
 }
 // 番人の胸像 canvas (灯の揺らぎで陰影がわずかに揺れる)
 function pixelKeeperCanvas(key) {
+  if (key === "king") {
+    if (!hasDOM()) return null;
+    const R = new Relief(42, 42);
+    paintKing(R);
+    const c = pxCanvas(R.render({ outline: [0.4, 0.8] }), 42, 42);
+    if (c) c.className = "tw-bust";
+    return c;
+  }
   const frames = keeperFrames(key);
   const c = makeCanvas(KW, KH);
   if (!c || !frames) return null;
@@ -1553,18 +1562,16 @@ function pixelKeeperCanvas(key) {
 }
 
 // 描き下ろしの胸像は静止画。読めない時は従来の胸像へ戻す。
-const _keeperImages = new Map();
-export function keeperCanvas(key) {
-  const src = TOWN_KEEPERART[key];
-  if (!src) return pixelKeeperCanvas(key);
-  const c = makeCanvas(480, 560);
+const _paintedImages = new Map();
+function paintedStill(src, width, height, className, fallback, contain = false) {
+  const c = makeCanvas(width, height);
   if (!c) return null;
-  c.className = "tw-bust tw-bust-hd";
+  c.className = className;
   c.style.imageRendering = "auto";
   const g = c.getContext && c.getContext("2d");
   if (!g) return c;
-  if (!_keeperImages.has(key)) {
-    _keeperImages.set(key, new Promise((resolve) => {
+  if (!_paintedImages.has(src)) {
+    _paintedImages.set(src, new Promise((resolve) => {
       const im = new Image();
       im.decoding = "async";
       im.onload = () => resolve(im);
@@ -1572,19 +1579,29 @@ export function keeperCanvas(key) {
       im.src = src;
     }));
   }
-  _keeperImages.get(key).then((im) => {
+  _paintedImages.get(src).then((im) => {
     if (!im) {
-      const fallback = pixelKeeperCanvas(key);
-      if (fallback && c.parentNode) c.parentNode.replaceChild(fallback, c);
+      const fb = fallback();
+      if (fb && c.parentNode) c.parentNode.replaceChild(fb, c);
       return;
     }
-    const s = Math.max(c.width / im.naturalWidth, c.height / im.naturalHeight);
+    const fit = contain ? Math.min : Math.max;
+    const s = fit(c.width / im.naturalWidth, c.height / im.naturalHeight);
     const w = im.naturalWidth * s, h = im.naturalHeight * s;
     g.imageSmoothingEnabled = true;
     g.imageSmoothingQuality = "high";
     g.drawImage(im, (c.width - w) / 2, (c.height - h) / 2, w, h);
   });
   return c;
+}
+export function keeperCanvas(key) {
+  const src = TOWN_KEEPERART[key];
+  return src ? paintedStill(src, 480, 560, "tw-bust tw-bust-hd", () => pixelKeeperCanvas(key)) : pixelKeeperCanvas(key);
+}
+// 王の対話枠は正方形。王冠を含む原画全体を収める。
+export function kingCanvas() {
+  const src = TOWN_KEEPERART.king;
+  return src ? paintedStill(src, 480, 480, "tw-bust tw-bust-hd", () => pixelKeeperCanvas("king")) : pixelKeeperCanvas("king");
 }
 
 // 街の絵の下ごしらえ: 夜景と施設の情景を、アイドル時間に少しずつ描いておく (初めて街を開く時の引っかかりを消す)
@@ -1685,12 +1702,18 @@ function iconPx(key) {
   return px;
 }
 // 紋章 canvas (静止画)
-export function iconCanvas(key) {
+function pixelIconCanvas(key) {
   const I = iconPx(key);
   if (!I || !hasDOM()) return null;
   const c = pxCanvas(I.px, I.w, I.h);
   if (c) c.className = "tw-icon";
   return c;
+}
+
+export function iconCanvas(key) {
+  const d = ICONS_DEF[key], src = TOWN_ICONART[key];
+  if (!d) return null;
+  return src ? paintedStill(src, d[0] * 12, d[1] * 12, "tw-icon tw-icon-hd", () => pixelIconCanvas(key), true) : pixelIconCanvas(key);
 }
 
 // ───────────────────────────────────────────────────────────────────────────

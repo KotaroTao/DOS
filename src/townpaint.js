@@ -1,4 +1,4 @@
-// 街の施設の情景 (描き下ろしの原画版) — 酒場・宿屋・赤い魂の祠
+// 街の情景 (描き下ろしの原画版)
 //
 // 原画 (art/town/<鍵>.webp、townkeyart.js が台帳) を情景の比率 (16:10) に切り取って高精細に敷き、
 // その上に明かりのゆらめきだけを重ねる。絵そのものは描き換えない。
@@ -18,6 +18,7 @@ const TONES = {
   lamp: { rgb: "255,170,80", base: 0.38, amp: 0.18, speed: 0.8, step: 0.1 },
   candle: { rgb: "255,195,120", base: 0.36, amp: 0.2, speed: 1.6, step: 0.12 },
   crystal: { rgb: "255,55,50", base: 0.4, amp: 0.3, speed: 0.35, step: 0 },
+  soul: { rgb: "155,140,255", base: 0.28, amp: 0.15, speed: 0.35, step: 0 },
   moon: { rgb: "150,175,255", base: 0.12, amp: 0.03, speed: 0.15, step: 0 },
 };
 
