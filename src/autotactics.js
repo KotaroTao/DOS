@@ -10,7 +10,7 @@
 // 作戦はこの重みと MP の値段を変える。game.js はここを呼んで chooseAction / chooseTarget するだけ。
 // (このファイルは game.js を import しない)
 
-import { SPELLS, spellCost, soulPowerMul, healsHp, isMetal, spellCureKinds, breathHpK } from "./combat.js";
+import { SPELLS, spellCost, soulPowerMul, healsHp, isMetal, spellCureKinds, breathHpK, manaGiftAmount } from "./combat.js";
 import { autoSkills } from "./souls.js";
 import { STAGED, STAGE_MAX, STRONG_MIN, stageMul, stageOf } from "./buffstage.js";
 
@@ -340,7 +340,7 @@ function allyEffects(b, ctx, actor, sp, a, c, W) {
   const n = ctx.left(sp.dur);
   if (healsHp(sp)) c.heal += Math.min(b.estHeal(actor, sp, a), a.maxhp - a.hp) * healUrg(ctx, a, W);
   if (sp.kind === "mana") {
-    const gain = Math.min((sp.power + (actor.int || 0) * 0.25) * soulPowerMul(actor, sp), (a.maxmp || 0) - a.mp);
+    const gain = Math.min(manaGiftAmount(actor, sp, (sp.power + (actor.int || 0) * 0.25) * soulPowerMul(actor, sp)), (a.maxmp || 0) - a.mp);
     if (a !== actor && gain > 0) c.edge += gain * ctx.mpPrice(a, (W && W.mpK) || 0.06) * 0.8;
   }
   if (sp.kind === "cure" || sp.cure) c.guard += ailValue(ctx, a, sp);

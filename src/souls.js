@@ -21,45 +21,45 @@ export const PART_LABEL = { head: "頭", rhand: "右手", lhand: "左手", body:
 // stat: 1部位・Lv1・ランク1・レア度normalでの基本寄与量
 export const SOUL_CLASSES = {
   // ===== コモン (6) =====
-  fighter:     { label: "戦士",   rarity: "common",  color: "#d4504e", glow: "#ff7a72", stat: { hp: 7.0, mp: 0.7, atk: 2.4, vit: 1.6, agi: 1.2, int: 0.3, pie: 0.4, luk: 1.0 } },
-  knight:      { label: "騎士",   rarity: "common",  color: "#7c93c8", glow: "#a9c0ff", stat: { hp: 8.4, mp: 0.6, atk: 2.2, vit: 2.4, agi: 0.8, int: 0.4, pie: 0.8, luk: 0.9 } },
+  fighter:     { label: "戦士",   rarity: "common",  color: "#d4504e", glow: "#ff7a72", stat: { hp: 7.7, mp: 0.7, atk: 3.3, vit: 1.6, agi: 1.2, int: 0.3, pie: 0.4, luk: 1.0 } },
+  knight:      { label: "騎士",   rarity: "common",  color: "#7c93c8", glow: "#a9c0ff", stat: { hp: 10.0, mp: 0.6, atk: 3.0, vit: 2.6, agi: 0.8, int: 0.4, pie: 0.8, luk: 0.9 } },
   priest:      { label: "僧侶",   rarity: "common",  color: "#e8c47a", glow: "#ffe2a0", stat: { hp: 4.8, mp: 2.4, atk: 1.4, vit: 1.0, agi: 1.0, int: 0.9, pie: 2.8, luk: 1.1 } },
   mage:        { label: "魔導士", rarity: "common",  color: "#b06bff", glow: "#d3a8ff", stat: { hp: 3.6, mp: 2.8, atk: 1.0, vit: 0.6, agi: 1.4, int: 2.8, pie: 0.8, luk: 1.0 } },
-  thief:       { label: "盗賊",   rarity: "common",  color: "#6fae46", glow: "#9be88a", stat: { hp: 4.4, mp: 0.8, atk: 1.8, vit: 1.0, agi: 2.4, int: 0.8, pie: 0.4, luk: 2.0 } },
+  thief:       { label: "盗賊",   rarity: "common",  color: "#6fae46", glow: "#9be88a", stat: { hp: 4.4, mp: 0.8, atk: 2.1, vit: 1.0, agi: 2.8, int: 0.8, pie: 0.4, luk: 2.0 } },
   bishop:      { label: "司教",   rarity: "common",  color: "#5fb8d6", glow: "#aef0ff", stat: { hp: 4.4, mp: 3.2, atk: 1.2, vit: 0.8, agi: 1.2, int: 2.0, pie: 2.0, luk: 1.0 } },
   // ===== レア (12) =====
   samurai:     { label: "侍",       rarity: "rare",    color: "#c8a84a", glow: "#f0d070", stat: { hp: 6.0, mp: 0.9, atk: 2.8, vit: 1.4, agi: 2.0, int: 0.4, pie: 0.3, luk: 1.5 } },
-  berserker:   { label: "狂戦士",   rarity: "rare",    color: "#c84040", glow: "#ff6060", stat: { hp: 8.0, mp: 0.5, atk: 3.2, vit: 1.8, agi: 1.0, int: 0.2, pie: 0.2, luk: 1.0 } },
-  hunter:      { label: "狩人",     rarity: "rare",    color: "#5aaa38", glow: "#88ee60", stat: { hp: 5.2, mp: 1.0, atk: 2.4, vit: 1.0, agi: 2.6, int: 0.6, pie: 0.3, luk: 2.4 } },
+  berserker:   { label: "狂戦士",   rarity: "rare",    color: "#c84040", glow: "#ff6060", stat: { hp: 8.0, mp: 0.5, atk: 3.5, vit: 1.8, agi: 1.0, int: 0.2, pie: 0.2, luk: 1.0 } },
+  hunter:      { label: "狩人",     rarity: "rare",    color: "#5aaa38", glow: "#88ee60", stat: { hp: 5.2, mp: 1.0, atk: 2.6, vit: 1.0, agi: 3.0, int: 0.6, pie: 0.3, luk: 2.4 } },
   shadow:      { label: "暗殺者",   rarity: "rare",    color: "#6848a8", glow: "#a080e0", stat: { hp: 4.0, mp: 1.2, atk: 2.0, vit: 0.8, agi: 2.8, int: 1.0, pie: 0.3, luk: 2.6 } },
-  paladin:     { label: "聖騎士",   rarity: "rare",    color: "#d4c8a0", glow: "#fff0c0", stat: { hp: 7.5, mp: 1.8, atk: 1.8, vit: 2.2, agi: 0.9, int: 0.6, pie: 2.0, luk: 1.0 } },
-  guardian:    { label: "守護騎士", rarity: "rare",    color: "#708098", glow: "#a0b8d0", stat: { hp: 9.5, mp: 0.6, atk: 2.0, vit: 2.8, agi: 0.7, int: 0.3, pie: 0.6, luk: 0.8 } },
+  paladin:     { label: "聖騎士",   rarity: "rare",    color: "#d4c8a0", glow: "#fff0c0", stat: { hp: 7.5, mp: 1.8, atk: 2.1, vit: 2.2, agi: 0.9, int: 0.6, pie: 2.2, luk: 1.0 } },
+  guardian:    { label: "守護騎士", rarity: "rare",    color: "#708098", glow: "#a0b8d0", stat: { hp: 11.5, mp: 0.6, atk: 2.9, vit: 3.2, agi: 0.7, int: 0.3, pie: 0.6, luk: 0.8 } },
   spellblade:  { label: "魔法剣士", rarity: "rare",    color: "#9050d0", glow: "#c090ff", stat: { hp: 5.5, mp: 1.8, atk: 2.0, vit: 1.2, agi: 1.4, int: 2.0, pie: 0.5, luk: 1.0 } },
-  monk:        { label: "武僧",     rarity: "rare",    color: "#d08050", glow: "#f0b070", stat: { hp: 6.5, mp: 1.6, atk: 2.2, vit: 1.4, agi: 1.2, int: 0.5, pie: 1.8, luk: 1.0 } },
-  hexer:       { label: "呪術師",   rarity: "rare",    color: "#50a050", glow: "#80d080", stat: { hp: 4.0, mp: 2.4, atk: 1.4, vit: 0.8, agi: 1.6, int: 1.8, pie: 0.6, luk: 2.2 } },
-  hermit:      { label: "隠修士",   rarity: "rare",    color: "#a0b880", glow: "#c8e0a0", stat: { hp: 5.0, mp: 2.0, atk: 1.4, vit: 1.0, agi: 2.0, int: 0.8, pie: 2.0, luk: 1.4 } },
-  brigand:     { label: "義賊",     rarity: "rare",    color: "#e08030", glow: "#ffb050", stat: { hp: 5.5, mp: 1.0, atk: 2.2, vit: 1.2, agi: 2.2, int: 0.5, pie: 0.4, luk: 2.4 } },
-  arcthief:    { label: "魔盗賊",   rarity: "rare",    color: "#8040c0", glow: "#b070f0", stat: { hp: 4.0, mp: 2.2, atk: 1.6, vit: 0.8, agi: 2.4, int: 2.2, pie: 0.4, luk: 1.8 } },
+  monk:        { label: "武僧",     rarity: "rare",    color: "#d08050", glow: "#f0b070", stat: { hp: 6.5, mp: 1.6, atk: 2.6, vit: 1.4, agi: 1.2, int: 0.5, pie: 2.0, luk: 1.0 } },
+  hexer:       { label: "呪術師",   rarity: "rare",    color: "#50a050", glow: "#80d080", stat: { hp: 4.0, mp: 1.8, atk: 1.3, vit: 0.8, agi: 1.6, int: 1.4, pie: 0.6, luk: 2.2 } },
+  hermit:      { label: "隠修士",   rarity: "rare",    color: "#a0b880", glow: "#c8e0a0", stat: { hp: 5.0, mp: 2.0, atk: 1.4, vit: 1.0, agi: 2.0, int: 0.8, pie: 2.5, luk: 1.4 } },
+  brigand:     { label: "義賊",     rarity: "rare",    color: "#e08030", glow: "#ffb050", stat: { hp: 5.5, mp: 1.0, atk: 2.8, vit: 1.4, agi: 2.5, int: 0.5, pie: 0.4, luk: 2.4 } },
+  arcthief:    { label: "魔盗賊",   rarity: "rare",    color: "#8040c0", glow: "#b070f0", stat: { hp: 4.0, mp: 2.2, atk: 1.6, vit: 0.8, agi: 2.6, int: 2.7, pie: 0.4, luk: 1.8 } },
   // ===== エピック (10) =====
-  crusader:    { label: "聖戦士",   rarity: "epic",    color: "#e8d860", glow: "#fff090", stat: { hp: 7.2, mp: 1.4, atk: 2.4, vit: 1.6, agi: 1.2, int: 0.4, pie: 2.0, luk: 1.0 } },
+  crusader:    { label: "聖戦士",   rarity: "epic",    color: "#e8d860", glow: "#fff090", stat: { hp: 6.8, mp: 1.4, atk: 1.9, vit: 1.6, agi: 1.2, int: 0.4, pie: 1.6, luk: 1.0 } },
   battlemage:  { label: "魔闘士",   rarity: "epic",    color: "#9060a0", glow: "#c090d0", stat: { hp: 6.0, mp: 2.0, atk: 2.4, vit: 1.4, agi: 1.2, int: 1.8, pie: 0.4, luk: 1.0 } },
-  darkknight:  { label: "魔騎士",   rarity: "epic",    color: "#406080", glow: "#70a0c0", stat: { hp: 7.6, mp: 2.0, atk: 2.4, vit: 2.2, agi: 0.9, int: 1.6, pie: 0.6, luk: 0.9 } },
-  templar:     { label: "神殿騎士", rarity: "epic",    color: "#d0c880", glow: "#f8f0a0", stat: { hp: 7.5, mp: 2.2, atk: 1.8, vit: 2.4, agi: 0.8, int: 0.5, pie: 1.8, luk: 1.0 } },
-  exorcist:    { label: "祓魔師",   rarity: "epic",    color: "#d080a0", glow: "#f0b0c0", stat: { hp: 5.0, mp: 1.6, atk: 2.2, vit: 1.0, agi: 2.4, int: 0.8, pie: 1.6, luk: 2.0 } },
-  warden:      { label: "護法師",   rarity: "epic",    color: "#60a080", glow: "#90d0b0", stat: { hp: 5.5, mp: 2.8, atk: 1.2, vit: 1.4, agi: 1.2, int: 2.6, pie: 1.0, luk: 1.0 } },
+  darkknight:  { label: "魔騎士",   rarity: "epic",    color: "#406080", glow: "#70a0c0", stat: { hp: 7.6, mp: 2.0, atk: 2.7, vit: 2.2, agi: 0.9, int: 1.8, pie: 0.6, luk: 0.9 } },
+  templar:     { label: "神殿騎士", rarity: "epic",    color: "#d0c880", glow: "#f8f0a0", stat: { hp: 8.6, mp: 2.2, atk: 2.6, vit: 3.0, agi: 0.8, int: 0.5, pie: 2.4, luk: 1.0 } },
+  exorcist:    { label: "祓魔師",   rarity: "epic",    color: "#d080a0", glow: "#f0b0c0", stat: { hp: 5.0, mp: 1.6, atk: 2.7, vit: 1.0, agi: 3.0, int: 0.8, pie: 1.8, luk: 2.0 } },
+  warden:      { label: "護法師",   rarity: "epic",    color: "#60a080", glow: "#90d0b0", stat: { hp: 5.5, mp: 2.8, atk: 1.2, vit: 1.4, agi: 1.2, int: 2.8, pie: 1.0, luk: 1.0 } },
   arcanist:    { label: "秘術師",   rarity: "epic",    color: "#c080f0", glow: "#e0b0ff", stat: { hp: 4.0, mp: 3.0, atk: 1.0, vit: 0.6, agi: 1.4, int: 3.2, pie: 0.8, luk: 1.2 } },
   inquisitor:  { label: "審問官",   rarity: "epic",    color: "#e08060", glow: "#ffa080", stat: { hp: 6.0, mp: 2.0, atk: 2.0, vit: 1.6, agi: 1.0, int: 0.6, pie: 2.2, luk: 1.2 } },
   archbishop:  { label: "巡礼者",   rarity: "epic",    color: "#f0d0a0", glow: "#fff0c0", stat: { hp: 5.5, mp: 3.0, atk: 1.0, vit: 1.0, agi: 1.0, int: 1.6, pie: 3.0, luk: 1.0 } },
-  ascetic:     { label: "修験者",   rarity: "epic",    color: "#a09070", glow: "#c8b890", stat: { hp: 7.0, mp: 2.2, atk: 2.2, vit: 1.4, agi: 1.0, int: 1.0, pie: 2.0, luk: 0.8 } },
+  ascetic:     { label: "修験者",   rarity: "epic",    color: "#a09070", glow: "#c8b890", stat: { hp: 7.0, mp: 2.2, atk: 2.4, vit: 1.4, agi: 1.0, int: 1.0, pie: 2.2, luk: 0.8 } },
   // ===== レジェンド (8) =====
   hero:        { label: "勇者",     rarity: "legend",  color: "#f0e060", glow: "#fff080", stat: { hp: 8.0, mp: 2.0, atk: 2.5, vit: 2.0, agi: 1.5, int: 1.5, pie: 1.5, luk: 1.5 } },
   asura:       { label: "修羅",     rarity: "legend",  color: "#e04040", glow: "#ff6060", stat: { hp: 7.0, mp: 1.0, atk: 3.5, vit: 1.5, agi: 2.0, int: 0.3, pie: 0.2, luk: 2.5 } },
   dragonknight:{ label: "竜騎士",   rarity: "legend",  color: "#40d080", glow: "#80ffa0", stat: { hp: 9.0, mp: 1.8, atk: 2.8, vit: 2.5, agi: 1.2, int: 0.5, pie: 0.5, luk: 1.0 } },
   necromancer: { label: "死霊術師", rarity: "legend",  color: "#8050b0", glow: "#b080e0", stat: { hp: 5.0, mp: 3.5, atk: 1.5, vit: 0.8, agi: 1.5, int: 3.0, pie: 0.6, luk: 1.5 } },
   sage:        { label: "賢者",     rarity: "legend",  color: "#80c0e0", glow: "#b0e8ff", stat: { hp: 5.0, mp: 3.5, atk: 1.0, vit: 0.8, agi: 1.4, int: 3.0, pie: 2.5, luk: 1.0 } },
-  cardinal:    { label: "枢機卿",   rarity: "legend",  color: "#c04080", glow: "#f060a0", stat: { hp: 6.0, mp: 3.0, atk: 1.0, vit: 1.2, agi: 1.0, int: 1.5, pie: 3.5, luk: 1.0 } },
-  archmage:    { label: "大魔導",   rarity: "legend",  color: "#6040e0", glow: "#9070ff", stat: { hp: 4.5, mp: 4.0, atk: 0.8, vit: 0.6, agi: 1.4, int: 4.0, pie: 0.8, luk: 1.0 } },
-  chaplain:    { label: "護教官",   rarity: "legend",  color: "#d0c0f0", glow: "#f0e8ff", stat: { hp: 8.5, mp: 2.5, atk: 1.8, vit: 2.8, agi: 0.8, int: 0.8, pie: 2.0, luk: 0.8 } },
+  cardinal:    { label: "枢機卿",   rarity: "legend",  color: "#c04080", glow: "#f060a0", stat: { hp: 6.0, mp: 3.3, atk: 1.0, vit: 1.2, agi: 1.0, int: 1.5, pie: 4.4, luk: 1.0 } },
+  archmage:    { label: "大魔導",   rarity: "legend",  color: "#6040e0", glow: "#9070ff", stat: { hp: 4.5, mp: 3.4, atk: 0.8, vit: 0.6, agi: 1.4, int: 2.7, pie: 0.8, luk: 1.0 } },
+  chaplain:    { label: "護教官",   rarity: "legend",  color: "#d0c0f0", glow: "#f0e8ff", stat: { hp: 10.0, mp: 2.5, atk: 2.6, vit: 2.8, agi: 0.8, int: 0.8, pie: 2.8, luk: 0.8 } },
   // ===== 固有 (人業セラだけの専用職。迷宮では拾えず、ほかの人業には宿せず、サブ魂にも貸さない) =====
   // ランクは物語の節目で上がる (game.js seraRankTarget: count = ランク)。レア度 unique の数値は下の表
   sera:        { label: "灯守",     rarity: "unique",  unique: true, color: "#6fb8c8", glow: "#bfeaf4", stat: { hp: 8.0, mp: 1.8, atk: 2.0, vit: 2.6, agi: 1.4, int: 0.6, pie: 1.8, luk: 1.2 } },
@@ -232,7 +232,9 @@ export function nextRankThreshold(clsKey, count) {
 const SOUL_RANK_MUL = { 1: 1.0, 2: 1.3, 3: 1.9, 4: 3.0, 5: 5.0 };
 
 // レア度係数
-const RARITY_MUL = { common: 1.0, rare: 1.15, epic: 1.3, legend: 1.5, unique: 1.8 };
+// 2026-10 (全職の見直し): 同じだけ遊んだ時点の総合力 (tools/balance/jobs.mjs) で、レアがコモンを下回っていたので
+// レア 1.15→1.25・エピック 1.3→1.35・レジェンド 1.5→1.6 (手に入りにくく重ねにくい魂ほど、1つが少し強い)
+const RARITY_MUL = { common: 1.0, rare: 1.25, epic: 1.35, legend: 1.6, unique: 1.8 };
 
 // 融合強化 (ランク5魂を2体融合するたびに加算): レア度ごとのLv100ステ比率
 export const FUSION_STAT_BONUS = { common: 0.02, rare: 0.05, epic: 0.10, legend: 0.20 };

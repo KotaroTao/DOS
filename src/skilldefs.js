@@ -306,7 +306,7 @@ export const SPELLS = {
   // 侍
   GONOSEN:       { name: "後の先", mp: 4, kind: "buff", stance: "counter", dur: 2, target: "self", desc: "次の手番まで、物理攻撃に必ず反撃する" },
   MEIKYOU:       { name: "明鏡止水", mp: 8, kind: "buff", buff: { agi: 1.3, atk: 1.2 }, target: "self", desc: "自分の素早さとSTRを上げる" },
-  ISSEN:         { name: "一閃", mp: 8, kind: "phys", power: 1.6, critBonus: 1, target: "enemy", desc: "必ず会心となる一太刀" },
+  ISSEN:         { name: "一閃", mp: 8, kind: "phys", power: 1.7, critBonus: 1, target: "enemy", desc: "必ず会心となる一太刀" },
   TSUBAMEGAESHI: { name: "燕返し", mp: 16, kind: "phys", power: 1.3, hits: 2, critBonus: 0.15, acc: 0.8, target: "enemy", desc: "返す刀で二度斬る。命中が高く、会心しやすい" },
   // 狂戦士
   SUTEMI:       { name: "捨て身", mp: 4, kind: "buff", buff: { atk: 1.5, vit: 0.7 }, target: "self", desc: "STRを大きく上げ、防御を捨てる" },

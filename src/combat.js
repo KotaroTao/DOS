@@ -516,6 +516,10 @@ export const SOUL_TIER_ATK_MIN = 0.04;
 export const SOUL_TIER_ALL_MIN = 0.06;
 // MP吸収 (技の mpDrain) の上限 = その技の消費MPの何倍か (技ごとの mpDrainCap で上書きできる)
 export const MP_DRAIN_CAP = 1.1;
+// 魔力の譲渡 (kind "mana") で渡せる MP は、唱えた者が払った MP の8割まで (2026-10。INT・魂の格で払った以上に増え、
+// Lv120 で払った MP の4倍ほどを渡せたので、MP がいつまでも尽きなかった。1:1 でも司教が隊の MP の貯め池になったので2割を散らす)
+export const MANA_GIFT_RATE = 0.8;
+export function manaGiftAmount(actor, sp, raw) { return Math.min(raw, Math.round(spellCost(actor, sp) * MANA_GIFT_RATE)); }
 export function soulTierRate(sp) {
   if (!sp || sp.mpPct || sp.gravity || !(sp.mp > 0) || !SOUL_TIER_KINDS.has(sp.kind)) return 0;
   const r = SOUL_TIER_RATES.find(([m]) => sp.mp <= m)[1];
@@ -2920,7 +2924,7 @@ export class Battle {
     } else if (sp.kind === "mana") {
       // 魔力の譲渡: 味方の MP を回復する (術者の INT で少し伸びる)
       const t = (cmd.target && cmd.target.alive) ? cmd.target : actor;
-      const gain = Math.max(1, Math.round(variance((sp.power + (actor.int || 0) * 0.25) * soulPowerMul(actor, sp)))); // 魂の格
+      const gain = Math.max(1, manaGiftAmount(actor, sp, Math.round(variance((sp.power + (actor.int || 0) * 0.25) * soulPowerMul(actor, sp))))); // 魂の格 (払った MP まで)
       const before = t.mp;
       t.mp = Math.min(t.maxmp || 0, t.mp + gain);
       this.log(`${t.name}のMPが ${t.mp - before} 回復`, "heal");
