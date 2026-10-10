@@ -272,34 +272,35 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ...except: the dungeons on the war-table map are small black ink dots on parchment, not glowing 3D castle models; at the very center of the capital a single well is circled boldly in red ink. Keep the lines converging toward the center.
 ```
 
-**A-10. 第三章 irene_torso「お帰りを重ねる仕事」** `art/story-review/chapter3/irene_torso.png`
+**A-10. 第三章 irene_torso「お帰りを重ねる仕事」** `art/story-review/chapter3/irene_torso.png` (済)
 - 直す: セラの頭が髪の無い丸い頭 → 正典のセラの頭 (本物の長い黒髪・木の顔・額の印)。胴の印を胸から外す (印は背中)。
 - 保つもの: 台の上の頭・腕1本・胴 (脚は無い)、手紙を読むイレーヌ、弟子。
 ```text
 ...except: the wooden head on the velvet is Sera's head exactly as in the attached Sera reference: long wavy near-black real hair spread on the velvet, carved wooden face with closed eyes, small gold palm-and-flame crest on the forehead. Remove any emblem from the front of the torso.
 ```
 
-**A-11. 第三章 w12_torso「軽すぎる帰りの荷」** `art/story-review/chapter3/w12_torso.png`
+**A-11. 第三章 w12_torso「軽すぎる帰りの荷」** `art/story-review/chapter3/w12_torso.png` (済)
+- 追加のユーザー指示: セラの胴の乳首を消し、胸の面は滑らかな木目にする。胸の扉と中の紙は保つ。
 - 直す: 胴の胸に星形の紋 → 外す。本文は「背に彫られた、灯を掌に載せた手」なので、胴を少し回して背の印 (掌に炎) が見えるようにするか、胸は無地に。胸の扉と中の紙は保つ。
 ```text
 ...except: remove the star-shaped emblem from the torso's front; if the back is visible, carve the small palm-up hand holding a flame there. Keep the open chest hatch with the folded paper inside.
 ```
 
-**A-12. 第三章 mem_w13「魂の流れを登る師」** `art/story-review/chapter3/mem_w13.png`
+**A-12. 第三章 mem_w13「魂の流れを登る師」** `art/story-review/chapter3/mem_w13.png` (済)
 - 直す: 師がランタンを提げ、外套・鞄が弟子と同じ → 正典のオルド (ランタンなし。右手に根を断ったのこぎりのような刃)。
 - 判断: 上端の玉座の間は、本文では直後の報告で王が明かす。小さく遠くに見える程度なら残してよい。
 ```text
 ...except: the climbing man is master Ordo: about 55, lean, short grey hair, close-cropped grey beard, plain worn black long coat with only one small gold crest on the hem, leather tool belt; no satchel and NO lantern; he grips a long serrated saw-like blade in one hand while climbing. Light comes from the rising cyan soul streams around him.
 ```
 
-**A-13. 第三章 w11_hut「三代の師弟が残す頁」** `art/story-review/chapter3/w11_hut.png`
+**A-13. 第三章 w11_hut「三代の師弟が残す頁」** `art/story-review/chapter3/w11_hut.png` (済)
 - 直す: ゲーム内の本文は「苔むした石の小屋」「机に突っ伏した骸」。ヴェルナーはオルドが訪ねる前に亡くなっていた (1年以上前)。いまの絵は整った木の部屋で、生きて眠る老人に見え、蝋燭が灯っている → 苔むした石の小屋に。ヴェルナーは机に突っ伏した**骸** (乾いて骨ばった手、くぼんだ顔、ほこりと苔。むごくしない)。部屋の蝋燭は消え、光は弟子の灯と窓の外の魂の光だけ。窓の外に灯の集落を描かない。
 - 保つもの: 手記を読む弟子、三代の書き込みのある手記、大樹の根の素描。
 ```text
 ...except: the hut is a small moss-covered STONE hut, long abandoned, dust and moss everywhere, no lit candles. Werner is a long-dead body slumped face-down over the desk: dried skeletal hands, sunken features under grey hair and worn ochre robes, peaceful and not gory. Light comes only from the apprentice's warm hand lantern and faint cyan soul-light outside. Remove the lantern-lit walkways and dwellings outside the window; only dark giant roots and mist.
 ```
 
-**A-14. 第三章 ch3_end「帰る場所から、玉座の下へ」** `art/story-review/chapter3/ch3_end.png`
+**A-14. 第三章 ch3_end「帰る場所から、玉座の下へ」** `art/story-review/chapter3/ch3_end.png` (済)
 - 直す: 館の灯が大きなガラスの灯器に青い炎 → 燭台に立てた一本の白い蝋燭。本文は「ひときわ高く燃え上がった」ので、炎を高く明るく。
 ```text
 ...except: replace the large glass vessel with blue fire by a single white candle on a tall brass candlestick; its warm flame burns unusually high and bright. Irene stands beside it.
