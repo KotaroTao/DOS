@@ -17,6 +17,7 @@
   opacity: 0; transition: opacity 1.8s ease;
   transform-origin: var(--gate-x) var(--gate-y);
 }
+.ttl-scene.hd { image-rendering: auto; } /* 描き下ろしの原画 (titlepaint.js) は滑らかに */
 .ttl-ready .ttl-scene { opacity: 1; }
 /* 周辺減光 + 粒子感 + 上下の闇 (文字の読みやすさ) */
 .ttl-veil {
@@ -25,6 +26,13 @@
     var(--grain),
     radial-gradient(ellipse 95% 75% at 50% 48%, rgba(0,0,0,0) 52%, rgba(2,1,4,0.78) 100%),
     linear-gradient(180deg, rgba(3,2,6,0.6) 0%, rgba(3,2,6,0) 24%, rgba(3,2,6,0) 58%, rgba(3,2,6,0.82) 100%);
+}
+/* 描き下ろしの原画は細かく明るいので、ロゴとメニューの下をもう少し沈める */
+.ttl-hd .ttl-veil {
+  background:
+    var(--grain),
+    radial-gradient(ellipse 95% 75% at 50% 48%, rgba(0,0,0,0) 50%, rgba(2,1,4,0.8) 100%),
+    linear-gradient(180deg, rgba(3,2,6,0.72) 0%, rgba(3,2,6,0.3) 22%, rgba(3,2,6,0) 34%, rgba(3,2,6,0) 54%, rgba(3,2,6,0.55) 72%, rgba(3,2,6,0.88) 100%);
 }
 .ttl-flash {
   position: absolute; inset: 0; pointer-events: none; opacity: 0; mix-blend-mode: screen;

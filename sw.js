@@ -219,6 +219,10 @@ const ASSETS = [
   "./src/title.js",
   "./src/pxpaint.js",
   "./src/titleart.js",
+  "./src/titlepaint.js",
+  "./src/titlekeyart.js",
+  // <<TITLE_ART>> タイトルの原画 (tools/titleart/build.py が書く。手で直さない)
+  // <</TITLE_ART>>
   "./src/openingart.js",
   "./src/openingillustrations.js",
   "./art/opening/scenes.png",

@@ -1,6 +1,7 @@
 // タイトル画面 — 起動のたびに最初に出る「顔」
 //
-// 一枚絵「百の迷宮の門」(titleart.js) を低解像度で描き、整数倍で拡大して全面に敷く。
+// 一枚絵「百の迷宮の門」を全面に敷く。描き下ろしの原画 (titlekeyart.js の台帳) があれば titlepaint.js が
+// 画面の解像度のまま滑らかに動かし、無ければ titleart.js のドット絵を低解像度で描いて整数倍で拡大する。
 // その上に DOM で 鋳造された金と鉄のロゴ、目覚めの合図、メニューを重ねる。
 //
 // メニュー (はじめから / つづきから とセーブ概要) は最初から見えていて、1タップで本編へ入る
@@ -13,6 +14,7 @@ import { spriteCanvas } from "./sprites.js";
 import { SFX } from "./audio.js";
 import { pickRes } from "./pxpaint.js";
 import { TitleScene } from "./titleart.js";
+import { PaintedTitle, hasPaintedTitle } from "./titlepaint.js";
 import { glyphText } from "./ui/kit.js";
 import { showJobGallery } from "./ui/jobgallery.js";
 
@@ -207,9 +209,43 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   testBox.addEventListener("click", (e) => e.stopPropagation());
 
   // ---- 一枚絵 ----
+  // 描き下ろしの原画があれば画面の解像度のまま滑らかに (titlepaint.js)、無ければドット絵 (titleart.js)
   let scene = null, resKey = "", lastTs = 0, building = 0;
+  let painted = hasPaintedTitle();
+  const layoutPainted = async (vw, vh) => {
+    const dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+    const wr = wrap.getBoundingClientRect();
+    const band = { top: logo.getBoundingClientRect().bottom - wr.top, bot: menu.getBoundingClientRect().top - wr.top };
+    const pick = vw / vh < 1 ? "tall" : "wide";
+    const key = `hd:${vw}x${vh}:${dpr}:${Math.round(band.top / 8)}:${Math.round(band.bot / 8)}`;
+    if (key === resKey && scene) return;
+    resKey = key;
+    const token = ++building;
+    // 縦横の向きが変わった時だけ原画を選び直す (同じ原画なら配置だけ直す)
+    let next = scene && scene.pick === pick ? scene : null;
+    if (!next) { next = await PaintedTitle.create(vw, vh, REDUCED); next.pick = pick; }
+    if (token !== building || closed) return;
+    const wasAwake = scene && scene.awakeAt >= 0;
+    scene = next;
+    if (wasAwake) scene.awakeAt = 0;
+    scene.layout(vw, vh, dpr, band);
+    cv.classList.add("hd"); wrap.classList.add("ttl-hd");
+    cv.width = Math.round(vw * dpr); cv.height = Math.round(vh * dpr);
+    cv.style.width = vw + "px"; cv.style.height = vh + "px";
+    cv.style.left = "0px"; cv.style.top = "0px";
+    const gp = scene.gatePoint();
+    wrap.style.setProperty("--gate-x", (gp.x / vw * 100).toFixed(1) + "%");
+    wrap.style.setProperty("--gate-y", (gp.y / vh * 100).toFixed(1) + "%");
+    scene.draw(g, performance.now(), 16);
+  };
   const layoutScene = async () => {
     const vw = Math.max(1, wrap.clientWidth || innerWidth), vh = Math.max(1, wrap.clientHeight || innerHeight);
+    if (painted) {
+      try { return await layoutPainted(vw, vh); } catch (e) {
+        console.error(e); // 原画が読めなければドット絵へ
+        painted = false; resKey = ""; scene = null; cv.classList.remove("hd"); wrap.classList.remove("ttl-hd");
+      }
+    }
     const dpr = Math.min(3, Math.max(1, window.devicePixelRatio || 1));
     const r = pickRes(vw, vh, dpr, { maxArea: 150000, maxW: 480 });
     const cssW = r.w * r.cssScale, cssH = r.h * r.cssScale;
@@ -247,7 +283,7 @@ export function showTitle({ hasSave = false, summary = null, onStart, onNewGame 
   const loop = (ts) => {
     if (closed) return;
     raf = requestAnimationFrame(loop);
-    if (ts - lastTs < 32) return; // 約30fps (低解像度の絵には十分)
+    if (ts - lastTs < (painted ? 15 : 32)) return; // ドット絵は約30fps で十分。原画は粒を滑らかに
     const dt = lastTs ? Math.min(100, ts - lastTs) : 16;
     lastTs = ts;
     if (scene) scene.draw(g, ts, dt);
