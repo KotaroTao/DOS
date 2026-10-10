@@ -322,9 +322,10 @@ Character reference sheet on a plain dark slate-blue background with soft even l
 ```
 
 **A-17. 第四章 irene_sera_wake「灯が移った夜明け」** `art/story-review/chapter4/irene_sera_wake.png` (済)
+- 追加のユーザー指示: 修正前の元画像のセラの目 (青紫の虹彩・まぶた・視線) を採用。腰から骨盤、左右の脚を自然につなげ、腹の前に浮く大きな腿の筒を除去。白い布の下に脚一対が自然に伸びる形に直す。
 - 直す: 本文は「彼女が手に取ったのは、地下墓地で見つけた、師のランタンだった」。いまの絵は大きな据え置きのガラス灯器 → イレーヌが師のランタン (`chapter1/w01_lantern.png` の小さな真鍮の手提げランタン、青白い魂火) を手に持ち、その火が筋になってセラの胸へ流れ込む。セラは正典 (本物の黒髪・額の印)。
 ```text
-...except: remove the large standing glass lamp. Irene holds in her hand the small brass hand lantern from the attached w01_lantern reference; a pale blue soul-fire stream flows from it into Sera's chest. Sera matches the attached Sera reference (near-black real hair, carved wooden face, forehead crest) and opens her eyes.
+...except: remove the large standing glass lamp. Irene holds in her hand the small brass hand lantern from the attached w01_lantern reference; a pale blue soul-fire stream flows from it into Sera's chest. Sera matches the attached Sera reference (near-black real hair, carved wooden face, forehead crest) and opens her eyes. Follow-up user correction: restore Sera's eyes exactly from the original before image, including the pale blue-violet irises, eyelids, gaze and expression. Correct her lower-body anatomy: one pelvis connected naturally to the waist, exactly two adult-proportioned wooden legs extending toward the lower-left end of the workbench, each with one knee and ankle. Remove the oversized displaced thigh cylinders near her abdomen. Cover the pelvis and most legs with the existing white embroidered sheet; its folds follow the continuous body beneath. Preserve everything else in the current edited image.
 ```
 
 **A-18. 第四章 ch4_end「二つ並んだ影」** `art/story-review/chapter4/ch4_end.png` (済)
