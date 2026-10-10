@@ -14,6 +14,7 @@ import {
   SOUL_CLASSES, jobSprite, jobBust, soulByUid, soulRankOf, soulLevelCapOf, emberCostOf, nextRankThreshold, jobRankName, soulSeriesName,
   soulLearnedSkills, soulLearnedPassives, soulLabel, soulRankLeft, passiveName, passiveDesc, orderStatBonus, orderStatRateOfRank, ORDER_STAT_RATES,
   jobSkillTable, recalcDoll, subPicks, subPickCap, toggleSubPick, subPickIndex, jobStatsOf, subStatRateOfRank,
+  EMBER_STAT_UP, emberStatSteps,
 } from "../souls.js";
 import { SPELLS, spellMpLabel } from "../combat.js";
 import { RESIST_LABEL } from "../resistance.js";
@@ -220,7 +221,7 @@ function mainCard(d, pe, town) {
     } else {
       // 上限は魂融合 (1体ごと) か魂の残火で伸びる。上限の間に戦いで得た経験値は捨てずに蓄積し、伸びた時に Lv へ注ぐ
       const how = cl.unique
-        ? (nextRankThreshold(pe.clsKey, pe.count) ? "物語の節目でランクが上がるか、魂の残火を捧げると上限が伸びる。" : "魂の残火を捧げると上限が伸びる。")
+        ? (nextRankThreshold(pe.clsKey, pe.count) ? "物語の節目でランクが上がるか、魂の残火を捧げると上限が伸びる。" : "魂の残火を捧げると上限が伸び、そこまで Lv が届くと能力も伸びる。")
         : `同じ${cl.label}の魂を魂融合するか、魂の残火を捧げると上限が伸びる。`;
       card.appendChild(el("div", "sp-note", `Lv上限。${how}上限の間に戦いで得た経験値は蓄積され${pe.exp > 0 ? `（いま ✦${pe.exp}）` : ""}、上限が伸びるとすぐ Lv に注がれる。`));
     }
@@ -256,6 +257,14 @@ function mainCard(d, pe, town) {
   return card;
 }
 
+// 残火の段の説明。灯守 (セラだけの魂) は残火1つで上限 +1、その上限に Lv が届くたび能力が伸びる (souls.js EMBER_STAT_UP)
+function emberStatPct(pe) { return Math.round(emberStatSteps(pe.clsKey, pe) * (EMBER_STAT_UP.unique || 0) * 1000) / 10; }
+function emberCapLines(pe) {
+  if (!(SOUL_CLASSES[pe.clsKey] || {}).unique) return ["要る残火は職業のレア度で変わる (コモン1・レア2・エピック3・レジェンド5)。"];
+  const pct = Math.round((EMBER_STAT_UP.unique || 0) * 1000) / 10;
+  return [`灯守の魂は残火1つで上限 +1。伸ばした上限に Lv が届くたび、能力が +${pct}% 伸びる（いま +${emberStatPct(pe)}%）。`];
+}
+
 // 残火でLv上限を上げる前の確認 (残火は貴重なので、押し間違いで捧げないように)
 // onDone = 上げた後 (魂を強化のシートを描き直す)
 function confirmRaiseCap(pe, onDone = null) {
@@ -269,7 +278,7 @@ function confirmRaiseCap(pe, onDone = null) {
   confirm({
     banner: "魂の残火", danger: false,
     title: `残火を${need}つ捧げ、${soulLabel(pe)}のLv上限を上げますか？`,
-    lines: [`Lv上限 ${cap} → ${cap + 1}`, `残火 ${have} → ${have - need}`, "要る残火は職業のレア度で変わる (コモン1・レア2・エピック3・レジェンド5)。", "捧げた残火は戻らない。"],
+    lines: [`Lv上限 ${cap} → ${cap + 1}`, `残火 ${have} → ${have - need}`, ...emberCapLines(pe), "捧げた残火は戻らない。"],
     okLabel: "捧げる",
   }).then((y) => { if (y && game.raiseSoulCap(pe.uid) && onDone) onDone(); });
 }
@@ -945,6 +954,7 @@ export function openTrainSheet(uid, onChange = null) {
     if ((G.embers || 0) > 0 || e.level >= cap) {
       const need = emberCostOf(e.clsKey);
       scroll.appendChild(el("div", "sp-note", `魂の残火 ${G.embers || 0} ・ Lv上限 +1 に ${need}つ${e.capBonus ? `（残火で +${e.capBonus} 済）` : ""}`));
+      if ((SOUL_CLASSES[e.clsKey] || {}).unique) scroll.appendChild(el("div", "sp-note", emberCapLines(e)[0]));
     }
   };
   const footer = () => {

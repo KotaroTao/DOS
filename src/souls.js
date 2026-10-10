@@ -940,7 +940,8 @@ export function soulLevelCap(clsKey, count) {
   return base + per * Math.max(0, (count || 0) - 1);
 }
 // 魂の残火: Lv上限を1上げるのに要る残火の数 (職業のレア度ごと)
-export const EMBER_PER_CAP = { common: 1, rare: 2, epic: 3, legend: 5, unique: 3 };
+// 固有 (灯守) は1つ: 融合で上限も能力も伸ばせないので、残火で伸ばす (2026-10 ユーザーの指示。下の EMBER_STAT_UP)
+export const EMBER_PER_CAP = { common: 1, rare: 2, epic: 3, legend: 5, unique: 1 };
 export function emberCostOf(clsKey) {
   const cls = SOUL_CLASSES[clsKey];
   return EMBER_PER_CAP[cls ? cls.rarity : "common"] || 1;
@@ -950,7 +951,17 @@ export function soulLevelCapOf(s) {
   if (!s) return SOUL_RANKS[1].cap;
   return soulLevelCap(s.clsKey, s.count) + (s.capBonus || 0);
 }
-// 職業ステータス: 基礎値 × レベル係数 × レア度係数 × 集魂ボーナス (1個ごとに基礎値の+N%)
+// 残火で伸ばした上限1段ごとの全ステータス上昇 (基礎値に対する%)。固有 (灯守 = セラ) だけ。
+// 魂の数が物語の5段で止まる灯守は、ほかの職の融合の代わりに残火で能力も伸びる (2026-10 ユーザーの指示: 5段で +1%)。
+// 数えるのは実際に Lv が届いた段だけ (上限だけ先に上げても伸びない — 残火を注ぎ込む抜け道を作らない)
+export const EMBER_STAT_UP = { unique: 0.002 };
+export function emberStatSteps(clsKey, entry) {
+  const cls = SOUL_CLASSES[clsKey];
+  if (!entry || !cls || !EMBER_STAT_UP[cls.rarity]) return 0;
+  const over = (entry.level || 1) - soulLevelCap(clsKey, entry.count || 0);
+  return Math.max(0, Math.min(entry.capBonus || 0, over));
+}
+// 職業ステータス: 基礎値 × レベル係数 × レア度係数 × 集魂ボーナス (1個ごとに基礎値の+N%。灯守は残火の段も)
 const BASE_FACTOR = 5; // 旧5部位ぶんに相当する基礎係数
 export function jobStatsOf(clsKey, entry) {
   const cls = SOUL_CLASSES[clsKey] || SOUL_CLASSES.fighter;
@@ -959,7 +970,8 @@ export function jobStatsOf(clsKey, entry) {
   const level = entry ? entry.level || 1 : 1;
   const rarityMul = RARITY_MUL[cls.rarity] || 1.0;
   const up = SOUL_STAT_UP[cls.rarity] || 0.01;
-  const f = BASE_FACTOR * lvlFactor(level) * rarityMul * (1 + Math.max(0, count - 1) * up);
+  const ember = emberStatSteps(clsKey, entry) * (EMBER_STAT_UP[cls.rarity] || 0);
+  const f = BASE_FACTOR * lvlFactor(level) * rarityMul * (1 + Math.max(0, count - 1) * up + ember);
   const r1 = (v) => Math.round((v || 0) * f * 10) / 10;
   return {
     hp: Math.round(st.hp * f), mp: Math.round(st.mp * f),
