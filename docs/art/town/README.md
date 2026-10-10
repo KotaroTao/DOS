@@ -1,5 +1,23 @@
 # 街の施設の情景の原画 ― 制作の指示書 (Codex 向け)
 
+## 街の夜景パノラマ（B案採用）
+
+原画は `docs/art/town/panorama.png`（2400×1700、240:170）、出荷は `art/town/panorama.webp`。`python3 tools/townart/build.py` が変換し、`TOWN_KEYART.panorama` と `sw.js` の `<<TOWN_ART>>` を書く。台帳とSWは手で書かない。候補・原画・確認画像はデプロイで外れる `docs/` にだけ置く。`--check` で原画とWebP・台帳の食い違いも確認できる。
+
+`src/townpaint.js` の `paintedTownScene` は固定した原画を表示幅×端末の画素比（最大幅2400px）のcanvasへ滑らかに敷く。絵を寄せたり動かしたりせず、明かり・魂光・雲・霧・鴉・雷だけを重ねる。`prefers-reduced-motion` ではこれらを静止させ、表示中の設定変更にも追従する。未登録・読み込み失敗なら `src/townart.js` の従来のドット絵と名所座標に戻る（同じcanvasを使い、街の札も再配置する）。
+
+`points.json` の `panorama` に、原画全体を基準にした0〜1の割合を記録する。画面に切り取られた後の座標を書かない。上空が切れても舞台・札・光は同じ座標に保つ。hubの箱は王宮から祠まで札が入る高さを確保する。
+
+| 項目 | 書式・意味 |
+|---|---|
+| `spots` | 7施設 `palace / mansion / tavern / inn / shop / crypt / shrine` の札の根元 `[x,y]`。屋根のすぐ上を測る |
+| `lights` | 施設と同じ `{at:[x,y], r, tone}`。窓は `candle`、吊り灯は `lamp`、祠は `crystal`。半径 `r` は原画の高さに対する割合 |
+| `soulgreen` | 夜景用の青白い緑の光。既存の紫の `soul` とは別の種類 |
+| `soul` | `gate:[x,y]` 門の光る口、`vortex:[x,y]` 雲間の渦、`columnR` 柱の半径、`vortexR` 渦の半径。半径は高さに対する割合 |
+| `bands` | `{kind:"cloud" または "fog", y, h, alpha, speed}`。上端と高さは原画の高さに対する割合、`speed` は1秒に帯を横へ流す幅の割合 |
+
+制作と実画面の確認は [panorama-review/README.md](panorama-review/README.md)。原画の文字・署名は目視で確認し、光の中心は [points.json](points.json) に記録した位置と重ねて確認する。
+
 街の画面の札「酒場」「宿屋」「赤い魂の祠」の絵を、ドット絵から**描き下ろしの高精細な一枚絵**へ替える (2026-10 ユーザーの指示「高画質画像に差し替えて、明かりのゆらめきは残したい」)。
 
 ゲーム側の仕組みはもうある。原画をここへ置いて `python3 tools/townart/build.py` を回せば、そのまま出る:

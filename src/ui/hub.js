@@ -194,6 +194,7 @@ const SPOTS = [
   { k: "palace", label: "王宮" },
   { k: "mansion", label: "人業の館" },
   { k: "tavern", label: "酒場" },
+  { k: "inn", label: "宿屋" },
   { k: "shop", label: "商会" },
   { k: "shrine", label: "祠" },
   { k: "crypt", label: "迷宮の口" },
@@ -223,19 +224,44 @@ function hero(api, { collapsed = false, width = 390 } = {}) {
   // 見出し (⚙・通貨) の下から、いまの目標の札 (背の高い端末では 16px 重なる) の上までに収まるようにする
   let spots = {};
   try { spots = townSpots(); } catch (e) { spots = {}; }
-  const ys = SPOTS.map((s) => spots[s.k] && spots[s.k].y).filter((y) => typeof y === "number");
-  const yTop = ys.length ? Math.min(...ys) : 0.39, yBot = ys.length ? Math.max(...ys) : 0.72;
-  const vh = (typeof innerHeight === "number" && innerHeight) || 844;
-  const overlap = vh < 700 ? 0 : 16;
-  const stageH = width * 170 / 240;
-  const topBand = 84 - stageH * yTop;                      // いちばん上の札 (高さ約32px) を見出しの下へ
-  const minH = topBand + stageH * yBot + 6 + overlap;      // いちばん下の札の根元まで見せる
-  const want = vh * 0.31 - (vh < 700 ? 40 : 0);
-  const heroH = collapsed ? 56 : Math.round(Math.min(stageH, Math.max(140, want, minH), 270));
-  const top = collapsed ? -stageH * 0.5 : Math.max(heroH - stageH, topBand);
-  h.style.height = heroH + "px";
-  stage.style.top = Math.round(Math.min(0, top)) + "px";
-  try { const sc = api.keep("townScene", createTownScene); if (sc) stage.appendChild(sc); } catch (e) { /* 演出のみ: 失敗しても街は使える */ }
+  const layout = () => {
+    const ys = SPOTS.map((s) => spots[s.k]?.y).filter((y) => typeof y === "number");
+    const yTop = ys.length ? Math.min(...ys) : 0.39, yBot = ys.length ? Math.max(...ys) : 0.72;
+    const vh = (typeof innerHeight === "number" && innerHeight) || 844;
+    const overlap = vh < 700 ? 0 : 16;
+    const stageH = (h.clientWidth || width) * 170 / 240;
+    const topBand = 84 - stageH * yTop;
+    // 原画の祠は札の下に紅い魂がある。その本体まで目標の札に隠さず見せる。
+    const ground = stage.querySelector(".town-scene-hd") ? stageH * 0.10 : 0;
+    const minH = topBand + stageH * yBot + ground + 6 + overlap;
+    const want = vh * 0.31 - (vh < 700 ? 40 : 0);
+    // 原画でも、いちばん下の札を270pxの上限で切らない。
+    const heroH = collapsed ? 56 : Math.round(Math.min(stageH, Math.max(minH, Math.min(270, Math.max(140, want)))));
+    const top = collapsed ? -stageH * 0.5 : Math.max(heroH - stageH, topBand);
+    h.style.height = heroH + "px";
+    stage.style.top = Math.round(Math.min(0, top)) + "px";
+    for (const s of SPOTS) {
+      const b = stage.querySelector(".hb-spot-" + s.k), p = spots[s.k];
+      if (!b || !p) continue;
+      b.style.left = (p.x * 100).toFixed(2) + "%";
+      b.style.top = (p.y * 100).toFixed(2) + "%";
+    }
+  };
+  layout();
+  // 原画を読めなければ、同じ舞台の札と切り取りをドット絵の座標に戻す。
+  stage.addEventListener("townscenechange", () => { spots = townSpots(); layout(); });
+  try {
+    const sc = api.keep("townScene", createTownScene);
+    if (sc) {
+      // 夜景を使い回す時、前の箱を監視したままにしない。
+      sc.hubResizeObserver?.disconnect();
+      if (typeof ResizeObserver === "function") {
+        sc.hubResizeObserver = new ResizeObserver(layout);
+        sc.hubResizeObserver.observe(h);
+      }
+      stage.appendChild(sc);
+    }
+  } catch (e) { /* 演出のみ: 失敗しても街は使える */ }
   h.appendChild(stage);
   // 見出し (夜景に重ねる): ⚙ ・ 題 ・ 通貨
   const bar = el("div", "hb-bar");
