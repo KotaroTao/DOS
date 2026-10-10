@@ -704,7 +704,7 @@ button.pt-cur-ic { width: 44px; height: 44px; cursor: pointer; }
 .pt-res-tm { color: #ffb0a4; }
 .pt-res-look { width: auto; flex: 0 0 auto; }
 .pt-res-sw { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
-.pt-res-swl { flex: 0 0 auto; width: 18px; text-align: center; font-size: 14px; color: #8a6d2e; }
+.pt-res-swl { flex: 1 0 100%; width: auto; text-align: left; font-size: 11px; letter-spacing: 0.08em; color: #a08a5e; }
 .pt-swap::after { content: "⇄"; position: absolute; right: -2px; bottom: -3px; font-size: 10px; color: #f3d58b; text-shadow: 0 0 3px #000, 0 1px 0 #000; }
 .pt-res-join {
   display: inline-flex; flex-direction: column; align-items: center; justify-content: center; min-width: 52px; min-height: 44px; padding: 0 6px;
@@ -1218,3 +1218,33 @@ button.sp-lu-next { cursor: pointer; }
 .rs-row { text-align: left; }
 .pl-codex-seg.five .ui-seg-b { font-size: 12.5px; letter-spacing: 0; }
 @media (max-width: 380px) { .pl-codex-seg.five .ui-seg-b { font-size: 11.5px; } }
+
+/* ---------- 人業の入れ替え (控えの札の入れ替え先・入れ替えのシート) ---------- */
+.pt-res-tg { flex: 1 0 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.pt-swap-t {
+  display: flex; align-items: center; gap: 5px; min-width: 0; min-height: 44px; padding: 2px 6px 2px 3px;
+  color: var(--ink); background: rgba(8,6,9,0.6); border: 1px solid #4a3d36; border-radius: 3px; cursor: pointer; font-family: var(--font); text-align: left;
+}
+.pt-swap-t:active { transform: scale(0.97); }
+.pt-swap-t.off { opacity: 0.45; cursor: not-allowed; }
+.pt-swap-tx { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.pt-swap-pos { font-size: 10px; color: #a08a5e; letter-spacing: 0.06em; }
+.pt-swap-n { font-size: 12.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt-sw-sheet .ui-sheet-body { display: flex; flex-direction: column; gap: 6px; }
+.pt-sw-me { text-align: left; display: flex; align-items: center; gap: 10px; padding: 6px 8px; border: 1px solid #5a4a3a; border-radius: 3px; background: rgba(243,213,139,0.06); }
+.pt-sw-h { margin-top: 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; color: var(--accent-hi); }
+.pt-sw-none { font-size: 12.5px; color: var(--ink-dim); padding: 6px 2px; }
+.pt-sw-card {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 10px; width: 100%; min-height: 56px; padding: 6px 8px; text-align: left;
+  color: var(--ink); background: var(--grain), var(--plate); border: 1px solid #33292a; border-radius: 3px; box-shadow: var(--plate-edge); cursor: pointer; font-family: var(--font);
+}
+.pt-sw-card:active { transform: scale(0.99); border-color: #8a6d2e; }
+.pt-sw-card.off { opacity: 0.55; cursor: not-allowed; }
+.pt-sw-tx { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.pt-sw-l1 { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.pt-sw-pos { flex: 0 0 auto; font-size: 10.5px; padding: 0 5px; color: #f3d58b; border: 1px solid #6a5636; border-radius: 2px; }
+.pt-sw-n { font-size: 15px; font-weight: 800; letter-spacing: 0.06em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt-sw-c { font-size: 12px; color: var(--accent-hi); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt-sw-after { font-size: 12px; color: #cfe3b0; }
+.pt-sw-after.ng { color: #e8a59a; }
+.pt-sw-go { flex: 0 0 auto; font-size: 20px; color: #f3d58b; }
