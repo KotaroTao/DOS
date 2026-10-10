@@ -527,6 +527,8 @@ export const SOUL_TIER_ALL_MIN = 0.06;
 export const MP_DRAIN_CAP = 1.1;
 // 魔力の譲渡 (kind "mana") で渡せる MP は、唱えた者が払った MP の8割まで (2026-10。INT・魂の格で払った以上に増え、
 // Lv120 で払った MP の4倍ほどを渡せたので、MP がいつまでも尽きなかった。1:1 でも司教が隊の MP の貯め池になったので2割を散らす)
+// 命の肩代わり (護教官の固有パッシブ): 倒れかけた仲間へ分け与える、護教官の最大HPの割合
+export const KATAGAWARI_COST = 0.2;
 export const MANA_GIFT_RATE = 0.8;
 export function manaGiftAmount(actor, sp, raw) { return Math.min(raw, Math.round(spellCost(actor, sp) * MANA_GIFT_RATE)); }
 export function soulTierRate(sp) {
@@ -597,7 +599,7 @@ export class Battle {
     this._bigBarrierUsed = 0;
     this.bonusGold = 0; // 「盗む」で手に入れた金 (勝っても逃げても持ち帰る)
     this.tally = newTally(); // テスト記録用の集計 (命中・手番・逃走)。判定には使わない
-    for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._endureUsed = 0; a._grantEndure = false; a._fgUsed = 0; a._sgUsed = 0; a._ijiUsed = 0; a._hpPre = a.hp; a._nailed = false; a._bloodTgt = null; a._bloodStack = 0; a._kyouhon = 0; a._giDone = false; a._againRound = 0; }
+    for (const a of [...party, ...enemies]) { a.buffs = { atk: 1, vit: 1, agi: 1 }; a.effects = []; a._endureUsed = 0; a._grantEndure = false; a._fgUsed = 0; a._sgUsed = 0; a._ijiUsed = 0; a._kgUsed = 0; a._hpPre = a.hp; a._nailed = false; a._bloodTgt = null; a._bloodStack = 0; a._kyouhon = 0; a._giDone = false; a._againRound = 0; }
     for (const p of party) {
       p._coverLeft = pv(p, "cover");
       p._barrierLeft = pv(p, "barrier");
@@ -3269,6 +3271,18 @@ export class Battle {
         this.log(`${t.name}は不死鳥の加護で蘇った！ (HP${t.hp})`, "heal");
         this._proc(t, "不死鳥の加護");
         return false;
+      }
+      // 命の肩代わり (護教官): 倒れかけた仲間に、護教官が自分の最大HPの KATAGAWARI_COST を削って分け与える
+      // (1戦闘 1/2/3 回。護教官自身には効かない。削って倒れるほど HP が無い時は使えない)
+      if (t.side === "party") {
+        const c = this.party.find((p) => p !== t && p.alive && p.hp > Math.round(p.maxhp * KATAGAWARI_COST) && (p._kgUsed || 0) < pv(p, "chaplainKatagawari"));
+        if (c) {
+          const gift = Math.max(1, Math.round(c.maxhp * KATAGAWARI_COST));
+          c._kgUsed = (c._kgUsed || 0) + 1; c.hp -= gift; t.hp = Math.min(t.maxhp, gift);
+          this.log(`${c.name}が命を分け与えた！ ${t.name}は踏みとどまった (HP${t.hp})`, "heal");
+          this._proc(c, "命の肩代わり");
+          return false;
+        }
       }
       // 復活の祈り (巡礼者): 倒れた味方が 1戦闘 1/2/3 回まで HP1 で起き上がる (隊で一番高いLv)
       if (t.side === "party") {
