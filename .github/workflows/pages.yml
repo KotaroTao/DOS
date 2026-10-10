@@ -40,8 +40,9 @@ jobs:
           rm -rf docs tools art/story-review
           rm -f AGENTS.md CLAUDE.md README.md log-many.png seg360.png seg420.png segord.png tab.png
           # sw.js の ASSETS に載せた品が消えていれば SW の導入に失敗するので止める
+          # ASSETS の外には実ファイルではない内部キャッシュのキーもあるので含めない
           missing=0
-          for f in $(grep -oE '"\./[^"]+"' sw.js | tr -d '"'); do
+          for f in $(sed -n '/^const ASSETS = \[/,/^\];/p' sw.js | grep -oE '"\./[^"]+"' | tr -d '"'); do
             [ -e "$f" ] || { echo "ASSETS にあるのに公開物に無い: $f"; missing=1; }
           done
           [ "$missing" = 0 ] || exit 1
