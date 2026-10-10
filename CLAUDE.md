@@ -255,6 +255,7 @@ The UI was rebuilt into packages under `src/ui/` (plain ES modules; **they never
 神殿騎士（`templar`）R1〜R5も承認済みR1を直接参照した独立原画へ更新。白い頭布・金髪・槍・青い盾を維持し、共通枠90×92・人体の頭頂9ドットで取り込む。原画と測定値は `docs/art/templar/README.md`、実描画比較は `docs/art/templar/game-display-review.png`。旧 `jobart.js` の対象だけを外して新WebPを選択する。
 
 ## Conventions
+- ユーザーがPRのマージを指示した後は `python3 tools/release/merge.py <PR番号> --head <確認済みの40桁SHA> --merge` で検査から公開確認までまとめて実行する (`docs/merge-and-publish.md`)。公開の成否まで報告し、同じ許可を聞き直さない。指示前にはマージしない。
 - **Always reply to the user in Japanese (日本語).** All assistant chat responses, plans, questions, and PR descriptions for this repo must be written in Japanese — this is mandatory, regardless of the language the user writes in. (Code identifiers stay in English; comments and in-game strings stay Japanese as below.)
 - Comments and all in-game/user-facing strings are in **Japanese**; match the surrounding tone (dark-fantasy flavor for monster/event text).
 - **酒場の顔ぶれの話 (`src/tavern.js` `TAVERN_TALKS`) はヘルプも兼ねる — 新機能・仕様変更のたびに話も更新する (ユーザーの指示、2026-10)**: 機能を足した・式や数値・仕組みを変えた時は、同じ変更の中で (1) その仕組みに触れている心得 (`k: "tip"`) の数字・説明を新しい仕様に直し、(2) 新しい機能・仕組みには心得を少なくとも1つ足す (`cat` 区分・`req` で機能が開くまで伏せる・必要なら `who`)。物語や場所を足した時は、その章までに明かされたことだけで言い伝え (`k: "lore"`) も足す。id は保存されるので、内容が変わっても既存の id は改名・再利用・削除せず、古くなった話は文だけ直す。PR の説明に直した/足した話の id を書く。ヘルプ台帳 (`src/journal.js`) の更新とは別に、こちらも必ず行う。

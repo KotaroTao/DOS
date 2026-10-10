@@ -47,6 +47,7 @@ for f in $(git ls-files 'src/*.js'); do node --check "$f"; done   # 構文チェ
 ## Claude と並行して作業する時
 - ブランチは `codex/<内容>` を切り、PR で `main` に入れる (Claude は `claude/…`)。
 - 作業の前とPRの前に `main` を取り込む。衝突したら両方の意図を残して解く。履歴の書き換え (rebase・force-push) は自分のブランチだけ。
+- ユーザーがPRのマージを指示した後は `python3 tools/release/merge.py <PR番号> --head <確認済みの40桁SHA> --merge` で検査・マージ・公開確認を一度に行う (詳しくは `docs/merge-and-publish.md`)。同じ許可を聞き直さず、公開結果まで報告する。マージの指示が無いPRは取り込まない。
 - `src/game.js` (約1.5万行) はほぼ全機能が触る。同じ時期に Claude 側も game.js を大きく触っている時は、変更を小さく保つ。
 - `CLAUDE.md` は仕様の正本。仕様を変えた時は該当する節だけを短く直す (全体の書き直し・並べ替えはしない — 衝突の元)。このファイル (`AGENTS.md`) は、ここに書いた規則そのものが変わった時だけ直す。
 
