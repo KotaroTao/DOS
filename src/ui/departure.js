@@ -131,9 +131,13 @@ function gateStatus(dn, i) {
   return { text: "未踏破", cls: "" };
 }
 // onTap を渡すと押せる札になる (詳細のポップアップを開く。右に › の印)
-function fact(label, value, cls, onTap = null) {
+// short = 狭い画面で出す短い名 (札を1行に収める)
+function fact(label, value, cls, onTap = null, short = null) {
   const f = el(onTap ? "button" : "span", "dp-fact" + (cls ? " " + cls : "") + (onTap ? " tap" : ""));
-  f.appendChild(el("span", "dp-fact-l", label));
+  const l = el("span", "dp-fact-l");
+  l.appendChild(el("span", "dp-fact-lf", label));
+  if (short) { l.appendChild(el("span", "dp-fact-ls", short)); l.classList.add("has-short"); }
+  f.appendChild(l);
   f.appendChild(el("span", "dp-fact-v", value));
   if (onTap) {
     f.type = "button";
@@ -142,6 +146,26 @@ function fact(label, value, cls, onTap = null) {
     f.addEventListener("click", onTap);
   }
   return f;
+}
+// 狭い・低い画面では、固定した掟・異変の説明を1行に畳み、押すと全文を開く (ui-dungeon.css の .dp-fold)。
+// 開いた向きはシートを閉じるまで保つ (迷宮を選び直しても同じ)
+function foldable(box, tapEl, head, key) {
+  box.classList.add("dp-fold");
+  if (cur.open && cur.open[key]) box.classList.add("open");
+  head.appendChild(el("span", "dp-fold-c", "▾"));
+  // 畳んでも何も隠れない (1行に収まる) 時は ▾ を出さない
+  const check = () => {
+    if (!box.isConnected || box.classList.contains("open")) return;
+    const lines = [...box.querySelectorAll(".dp-mut-l")];
+    const hidden = lines.some((l) => l.offsetParent === null || l.scrollWidth > l.clientWidth + 1);
+    box.classList.toggle("nofold", !hidden);
+  };
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => requestAnimationFrame(check));
+  tapEl.addEventListener("click", () => {
+    cur.open = cur.open || {};
+    cur.open[key] = !cur.open[key];
+    box.classList.toggle("open", !!cur.open[key]);
+  });
 }
 function renderHero(b) {
   const g = G();
@@ -174,14 +198,14 @@ function renderHero(b) {
     // 押すと詳細: 発見した魔物 = その迷宮の魔物の札 (図鑑) / 固有クエスト = 依頼人の頼みの一覧 (状態・現れる条件)
     const di = g.dungeonIdx;
     facts.appendChild(fact("発見した魔物", `${f.monSeen}/${f.monTotal}`, f.monTotal && f.monSeen >= f.monTotal ? "full" : "",
-      f.monTotal && UI.dungeonMonSheet ? () => UI.dungeonMonSheet(di) : null));
+      f.monTotal && UI.dungeonMonSheet ? () => UI.dungeonMonSheet(di) : null, "魔物"));
     // 受注中の依頼 = この迷宮を対象にしている依頼 (名の横の「依頼」の印と同じ数え方)。押すと札の一覧
     let qs = [];
     try { qs = game.questsTargeting ? game.questsTargeting(dn) : []; } catch (e) { qs = []; }
     facts.appendChild(fact("受注中の依頼", qs.length ? `${qs.length}件` : "なし", qs.length ? "" : "none",
-      qs.length ? () => dungeonActiveQuestSheet(dn, { onChange: () => refresh() }) : null));
+      qs.length ? () => dungeonActiveQuestSheet(dn, { onChange: () => refresh() }) : null, "依頼"));
     facts.appendChild(fact("固有クエスト", f.fqTotal ? `${f.fqDone}/${f.fqTotal}` : "なし", f.fqTotal && f.fqDone >= f.fqTotal ? "full" : !f.fqTotal ? "none" : "",
-      f.fqTotal ? () => dungeonQuestSheet(dn, { onChange: () => refresh() }) : null));
+      f.fqTotal ? () => dungeonQuestSheet(dn, { onChange: () => refresh() }) : null, "固有"));
   }
   cap.appendChild(facts);
   pic.appendChild(cap);
@@ -197,17 +221,20 @@ function renderHero(b) {
     h.appendChild(el("span", "dp-mut-k", "迷宮の掟"));
     h.appendChild(el("span", "dp-mut-n", `${tr.sym ? tr.sym + " " : ""}「${tr.name}」`));
     box.appendChild(h);
-    for (const ln of tr.lines || []) box.appendChild(setText(el("div", "dp-mut-l"), ln));
+    const body = el("div", "dp-fold-b");
+    for (const ln of tr.lines || []) body.appendChild(setText(el("div", "dp-mut-l"), ln));
+    box.appendChild(body);
+    foldable(box, box, h, "trait");
     hero.appendChild(box);
   }
+  // 迷宮の異変も掟の下に固定する (ユーザーの指示、2026-10)。名のある強敵の札はここに置かない
+  const mut = mutatorStrip();
+  if (mut) hero.appendChild(mut);
   b.appendChild(hero);
   // ここから下は本文と一緒に巻く
   if (dn.id === "w04" && !game.worldState?.().reported.w03) {
     b.appendChild(setText(el("div", "pt-note dp-after"), "取水口は推奨Lv18〜21。まずは回廊を抜け、修道院で師の足跡を追おう。支度が整えば、先に取水口へ向かうこともできる。"));
   }
-  // 迷宮の異変 (掟の下。名のある強敵の札はここに置かない — ユーザーの指示、2026-10)
-  const mut = mutatorStrip();
-  if (mut) { mut.classList.add("dp-after"); b.appendChild(mut); }
 }
 
 // ---- 門の一覧 (迷宮の地図: 推奨Lvの高い順。5 行ぶん見せ、6 つ目からは縦に巻く) ----
@@ -427,9 +454,12 @@ function mutatorStrip() {
   h.appendChild(el("span", "dp-mut-k", "迷宮の異変"));
   h.appendChild(el("span", "dp-mut-n", `「${m.name}」`));
   tx.appendChild(h);
-  tx.appendChild(setText(el("div", "dp-mut-l bad"), `危険 ― ${m.risk}`));
-  tx.appendChild(setText(el("div", "dp-mut-l good"), `見返り ― ${m.gain}`));
+  const body = el("div", "dp-fold-b");
+  body.appendChild(setText(el("div", "dp-mut-l bad"), `危険 ― ${m.risk}`));
+  body.appendChild(setText(el("div", "dp-mut-l good"), `見返り ― ${m.gain}`));
+  tx.appendChild(body);
   box.appendChild(tx);
+  foldable(box, tx, h, "mut");
   // 既定は「異変ごと潜る」。選んだ向きは迷宮を切り替えてもシートを閉じるまで保つ
   const sw = el("button", "dp-mut-sw");
   sw.type = "button";

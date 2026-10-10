@@ -587,11 +587,43 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 .dp-mut-foot.on .dp-mut-sw { color: var(--mut, #d7b8ff); border-color: color-mix(in srgb, var(--mut, #8e6fd0) 60%, #000); }
 .dp-mut-sw[aria-checked="true"] .dg-switch { background: linear-gradient(180deg, #3a2c14, #1f170b); border-color: #8a6d2e; }
 .dp-mut-sw[aria-checked="true"] .dg-switch i { transform: translateX(20px); background: radial-gradient(circle at 40% 35%, #fff1c4, #c9a24a); box-shadow: 0 0 8px rgba(243,213,139,0.7), 0 1px 2px #000; }
-@media (max-height: 720px) {
-  .dp-vista { min-height: clamp(130px, 24vh, 250px); min-height: clamp(130px, 24dvh, 250px); }
-  .dp-vista-cap { padding-top: 28px; }
-  .dp-hero-about { margin: 3px 0 5px; font-size: 12px; line-height: 1.45; }
-  .dp-hero .dp-trait .dp-mut-l { font-size: 11px; line-height: 1.4; }
+/* 札の短い名 (狭い画面だけ) と、掟・異変の畳み (狭い・低い画面だけ) */
+.dp-fact-ls { display: none; }
+.dp-fold-c { display: none; }
+.dp-fold.open .dp-mut-l { white-space: normal; overflow: visible; }
+/* スマホ (幅560px以下) と低い画面: 固定した上部を詰めて、下の迷宮の一覧に高さを残す (ユーザーの指示、2026-10)
+   - イラストを低く、説明は2行まで、記録の札は短い名で1行に
+   - 掟は1行目だけ・異変は危険/見返りを1行ずつにし、押すと全文 (▾) */
+@media (max-width: 560px), (max-height: 760px) {
+  .dp-hero { padding-bottom: 6px; margin-bottom: 6px; }
+  .dp-vista { min-height: clamp(104px, 19vh, 190px); min-height: clamp(104px, 19dvh, 190px); }
+  .dp-vista-cap { padding: 22px var(--sp-4) 6px; }
+  .dp-hero-n { font-size: 18px; }
+  .dp-hero-about { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin: 2px 0 5px; font-size: 11.5px; line-height: 1.45; }
+  .dp-facts { flex-wrap: nowrap; gap: 5px; }
+  .dp-fact { flex: 0 1 auto; min-width: 0; padding: 3px 7px; white-space: nowrap; }
+  .dp-fact-l.has-short .dp-fact-lf { display: none; }
+  .dp-fact-l.has-short .dp-fact-ls { display: inline; }
+  .dp-hero .dp-mut { margin-top: 5px; padding: 4px 8px 5px; }
+  .dp-hero .dp-mut-k { font-size: 10.5px; letter-spacing: 0.12em; }
+  .dp-hero .dp-mut-n { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .dp-hero .dp-mut-l, .dp-hero .dp-trait .dp-mut-l { font-size: 11px; line-height: 1.4; margin: 0; }
+  .dp-fold { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .dp-fold .dp-mut-h { min-width: 0; }
+  .dp-fold-c { display: inline-block; flex: 0 0 auto; margin-left: auto; padding-left: 6px; font-size: 11px; color: #9a8e78; transition: transform 0.15s; }
+  .dp-fold.open .dp-fold-c { transform: rotate(180deg); }
+  .dp-fold.nofold { cursor: default; }
+  .dp-fold.nofold .dp-fold-c { display: none; }
+  .dp-fold:not(.open) .dp-mut-l { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dp-trait.dp-fold:not(.open) .dp-mut-l ~ .dp-mut-l { display: none; }
+  .dp-hero .dp-mut-foot { gap: 6px; padding: 4px 5px 5px 8px; }
+  .dp-hero .dp-mut-sw { min-width: 66px; min-height: 40px; padding: 3px 4px; font-size: 9.5px; gap: 3px; }
+}
+/* とても低い画面 (iPhone SE など): 説明の文は畳み、イラストをさらに低く */
+@media (max-height: 700px) {
+  .dp-hero-about { display: none; }
+  .dp-vista { min-height: 92px; }
+  .dp-vista-cap { padding-top: 18px; }
 }
 @media (max-width: 390px) {
   .dp-sheet .ui-sheet-foot .ui-btn.dp-cta { letter-spacing: 0.08em; font-size: 16px; }
