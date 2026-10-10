@@ -912,15 +912,15 @@
     "resizeAndReturn": true,
     "regions": {
       "before": {
-        "cloud": 1949822773,
-        "lamp": 1501392511,
-        "soul": 3733186995,
+        "cloud": 305121664,
+        "lamp": 2487299312,
+        "soul": 3718255195,
         "fixedRoof": 3914279917
       },
       "after": {
-        "cloud": 1017284769,
-        "lamp": 2551802808,
-        "soul": 765790676,
+        "cloud": 4130893215,
+        "lamp": 2285913397,
+        "soul": 22522829,
         "fixedRoof": 3914279917
       },
       "fixedBase": true,

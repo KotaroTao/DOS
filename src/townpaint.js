@@ -151,7 +151,7 @@ function mistBand(seed) {
     }
     const i = (y * c.width + x) * 4, edge = Math.sin(Math.PI * y / (c.height - 1));
     a.data[i] = 148; a.data[i + 1] = 158; a.data[i + 2] = 198;
-    a.data[i + 3] = Math.round(clamp((n - 0.30) * 2) * edge * edge * 255);
+    a.data[i + 3] = Math.round(clamp((n - 0.42) * 4) * edge * edge * 255);
   }
   g.putImageData(a, 0, 0);
   return c;
@@ -205,42 +205,52 @@ export function paintedTownScene(living, fallback) {
     g.globalCompositeOperation = "lighter";
     for (const L of lights) {
       const x = L.at[0] * w, y = L.at[1] * h, r = L.r * h;
-      const v = level(L.T, t, L.seed), img = glow(L.T.rgb);
-      g.globalAlpha = v * 0.22;
+      const raw = level(L.T, t, L.seed), img = glow(L.T.rgb);
+      const flame = L.tone === "lamp" || L.tone === "candle";
+      const v = flame ? clamp(L.T.base + (raw - L.T.base) * 3, 0.05, 1) : raw;
+      // 原画の灯りが常に明るいため、灯芯にだけ影も重ねて明暗の差を出す。
+      if (flame) {
+        g.globalCompositeOperation = "multiply"; g.globalAlpha = (1 - v) * 0.7;
+        g.drawImage(glow("0,0,0"), x - r, y - r, r * 2, r * 2);
+        g.globalCompositeOperation = "lighter";
+      }
+      g.globalAlpha = v * 0.8;
       g.drawImage(img, x - r * 2, y - r * 2, r * 4, r * 4);
-      g.globalAlpha = v * 0.45;
+      g.globalAlpha = Math.min(1, v * 1.5);
       g.drawImage(img, x - r * 0.6, y - r * 0.6, r * 1.2, r * 1.2);
     }
     // 門から渦へ: 細い光の筋がうねりながら上昇する。原画の魂の柱の位置から外さない。
     const S = a.soul, [gx, gy] = S.gate, [vx, vy] = S.vortex;
     const cr = S.columnR * h;
-    for (let strand = 0; strand < 4; strand++) {
+    for (let strand = 0; strand < 5; strand++) {
       g.beginPath();
       for (let j = 0; j <= 48; j++) {
         const u = j / 48, y = (gy + (vy - gy) * u) * h;
-        const sway = Math.sin(u * 14 - t * 1.4 + strand * 1.8) * cr * 0.42 * Math.sin(Math.PI * u);
-        const x = (gx + (vx - gx) * u) * w + sway + (strand - 1.5) * cr * 0.19;
+        const sway = Math.sin(u * 14 - t * 2.8 + strand * 1.8) * cr * 0.85 * Math.sin(Math.PI * u);
+        const x = (gx + (vx - gx) * u) * w + sway + (strand - 2) * cr * 0.23;
         if (!j) g.moveTo(x, y); else g.lineTo(x, y);
       }
-      g.strokeStyle = "rgb(175,255,222)"; g.lineWidth = Math.max(0.6, h * 0.0011);
-      g.globalAlpha = 0.07 + 0.035 * Math.sin(t * 0.8 + strand); g.stroke();
+      g.strokeStyle = "rgb(125,255,195)";
+      // 太い霞の中に細い魂火を重ね、携帯の幅でも上昇が見えるようにする。
+      g.lineWidth = cr * 0.5; g.globalAlpha = 0.08 + 0.04 * Math.sin(t * 1.3 + strand); g.stroke();
+      g.lineWidth = Math.max(1, h * 0.0016); g.globalAlpha = 0.24 + 0.12 * Math.sin(t * 1.3 + strand); g.stroke();
     }
-    // 上昇する魂の霞。点滅や粒の密集を避け、細く淡く保つ。
-    for (let i = 0; i < 18; i++) {
-      const u = fract(t * (0.035 + hash(i, 2) * 0.018) + hash(i, 9));
-      const x = (gx + (vx - gx) * u) * w + Math.sin(u * 13 - t + i) * cr * 0.45;
-      const y = (gy + (vy - gy) * u) * h, r = cr * (0.18 + hash(i, 4) * 0.3);
-      g.globalAlpha = Math.sin(u * Math.PI) * 0.17;
+    // 上昇する魂の霞。点滅や粒の密集を避け、門の柱に沿った細い霞にする。
+    for (let i = 0; i < 24; i++) {
+      const u = fract(t * (0.10 + hash(i, 2) * 0.055) + hash(i, 9));
+      const x = (gx + (vx - gx) * u) * w + Math.sin(u * 13 - t + i) * cr * 0.85;
+      const y = (gy + (vy - gy) * u) * h, r = cr * (0.35 + hash(i, 4) * 0.6);
+      g.globalAlpha = Math.sin(u * Math.PI) * 0.5;
       g.drawImage(soulGlow, x - r, y - r * 2.8, r * 2, r * 5.6);
     }
     // 雲間の魂の渦: 薄い光の弧だけを回し、背景の雲を回転させない。
     g.save(); g.translate(vx * w, vy * h); g.scale(1, 0.4);
     const vr = S.vortexR * h;
     for (let i = 0; i < 3; i++) {
-      const angle = t * 0.10 + i * 2.1;
+      const angle = t * 0.35 + i * 2.1;
       g.beginPath(); g.arc(0, 0, vr * (0.3 + i * 0.22), angle, angle + 1.9);
-      g.lineWidth = h * 0.001; g.strokeStyle = "rgb(170,255,220)";
-      g.globalAlpha = 0.08 + 0.025 * Math.sin(t * 0.7 + i); g.stroke();
+      g.lineWidth = h * 0.0025; g.strokeStyle = "rgb(170,255,220)";
+      g.globalAlpha = 0.24 + 0.1 * Math.sin(t * 1.1 + i); g.stroke();
     }
     g.restore(); g.globalCompositeOperation = "source-over";
     for (const b of bands.filter((b) => b.kind === "fog")) {

@@ -657,29 +657,29 @@
         "kind": "cloud",
         "y": 0.28,
         "h": 0.18,
-        "alpha": 0.12,
-        "speed": 0.011
+        "alpha": 0.48,
+        "speed": 0.032
       },
       {
         "kind": "cloud",
         "y": 0.42,
         "h": 0.13,
-        "alpha": 0.1,
-        "speed": 0.007
+        "alpha": 0.35,
+        "speed": 0.022
       },
       {
         "kind": "fog",
         "y": 0.76,
         "h": 0.065,
-        "alpha": 0.13,
-        "speed": 0.008
+        "alpha": 0.25,
+        "speed": 0.018
       },
       {
         "kind": "fog",
         "y": 0.89,
         "h": 0.065,
-        "alpha": 0.11,
-        "speed": 0.005
+        "alpha": 0.22,
+        "speed": 0.012
       }
     ]
   }
