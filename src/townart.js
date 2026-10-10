@@ -9,7 +9,7 @@
 //   下ごしらえはアイドル時間に片付ける (prewarmTown)。
 //
 // 公開するもの:
-//   createTownScene()        広場の夜景パノラマ (canvas 240x170・動く)
+//   createTownScene()        広場の夜景 (原画は表示解像度・重ねる演出 / 無い・読めない時は240x170のドット絵)
 //   townSpots()              夜景の名所の位置 (割合) — 広場の札を重ねる
 //   vignetteCanvas(key)      施設の情景 (canvas 120x75・灯が揺らぐ。原画のある鍵は townpaint.js の高精細版)
 //   keeperCanvas(key)        施設の人物の胸像 (原画版480x560 / ドット絵48x56)
@@ -18,7 +18,7 @@
 //   KING_PORTRAIT            従来の王の胸像 ({ palette, art } 42x42)
 //   prewarmTown(keys)        上の絵をアイドル時間に描き溜める
 
-import { hasPaintedVignette, paintedVignette } from "./townpaint.js";
+import { hasPaintedVignette, paintedVignette, hasPaintedTownScene, paintedTownScene, paintedTownSpots } from "./townpaint.js";
 import { TOWN_KEEPERART, TOWN_ICONART } from "./townkeyart.js";
 
 const TAU = Math.PI * 2;
@@ -420,9 +420,10 @@ const REDUCED = (() => { try { return typeof matchMedia === "function" && matchM
 const _live = new Set();
 let _loopOn = false;
 const nowMs = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
-function livingCanvas(c, draw, fps = 10) {
+function livingCanvas(c, draw, fps = 10, responsiveMotion = false) {
+  for (const e of _live) if (e.c === c) _live.delete(e);
   draw(REDUCED ? 3000 : nowMs());
-  if (REDUCED || typeof requestAnimationFrame !== "function") return c;
+  if ((REDUCED && !responsiveMotion) || typeof requestAnimationFrame !== "function") return c;
   _live.add({ c, draw, iv: 1000 / fps, last: 0, born: nowMs(), seen: false });
   if (!_loopOn) { _loopOn = true; requestAnimationFrame(_tick); }
   return c;
@@ -2262,14 +2263,21 @@ function buildScene() {
 
 // 名所の位置 (パノラマに対する割合)。game.js が札を重ねる
 export function townSpots() {
+  if (hasPaintedTownScene()) return paintedTownSpots();
   const s = buildScene().out.spots, r = {};
   for (const k in s) r[k] = { x: s[k].x / SW, y: s[k].y / SH };
   return r;
 }
 
 export function createTownScene() {
-  const c = makeCanvas(SW, SH);
+  if (hasPaintedTownScene() && hasDOM()) return paintedTownScene(livingCanvas, pixelTownScene);
+  return pixelTownScene();
+}
+
+function pixelTownScene(canvas) {
+  const c = canvas || makeCanvas(SW, SH);
   if (!c) return null;
+  c.width = SW; c.height = SH;
   c.className = "town-scene";
   if (typeof c.setAttribute === "function") { c.setAttribute("role", "img"); c.setAttribute("aria-label", "辺境の街ロアダルの夜景"); }
   const ctx = c.getContext && c.getContext("2d");

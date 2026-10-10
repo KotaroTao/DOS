@@ -239,6 +239,7 @@ const ASSETS = [
   "./art/town/codexAch.webp",
   "./art/town/treasury.webp",
   "./art/town/abyss.webp",
+  "./art/town/panorama.webp",
   "./art/town/keepers/barkeep.webp",
   "./art/town/keepers/innkeeper.webp",
   "./art/town/keepers/maiden.webp",
