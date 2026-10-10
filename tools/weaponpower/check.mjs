@@ -1,8 +1,8 @@
-// 全武器の参照能力、戦闘・比較・鍛え直し・旧セーブ更新を確認する。
+// 全武器の参照能力、戦闘・比較・品質・＋Nの段・旧セーブ更新を確認する。
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
-import { ITEMS, recalc, attackPower, applyForge } from "../../src/items.js";
+import { ITEMS, recalc, attackPower, applyForge, hasQuality, applyQuality, itemAtQuality, QUALITY_MID } from "../../src/items.js";
 import { CATALOG_ITEMS } from "../../src/catalog/index.js";
 import { WEAPON_PROFILES, prepareWeapon } from "../../src/weaponpower.js";
 import { Battle, spawnRanked, SPELLS } from "../../src/combat.js";
@@ -42,7 +42,11 @@ for (const w of weapons) {
   assert.equal(weaponPowerPreview(w, a).power, power, "攻撃性能欄の最終値: " + w.id);
   if (w.price !== 0) assert(equipPrice(w) > 0, w.id);
   const forged = applyForge({ ...w, forge: 2 });
-  assert(attackPower(actor(forged)) > power, "鍛え直し: " + w.id);
+  assert(attackPower(actor(forged)) > power, "＋N の段: " + w.id);
+  // 品質: 100 は並品より強く、0 は弱い (±20%)。目録の品は変えない
+  const hi = itemAtQuality(w, 100), lo = itemAtQuality(w, 0);
+  assert(attackPower(actor(hi)) >= power && attackPower(actor(lo)) <= power, "品質: " + w.id);
+  assert(Object.values(hi.scale).every((v, i) => Math.abs(v - Object.values(w.scale)[i] * 1.2) < 0.001), "品質100 = 係数×1.2: " + w.id);
   const unchanged = JSON.stringify(w); prepareWeapon(w); assert.equal(JSON.stringify(w), unchanged);
   profiles[w.weaponProfile] = (profiles[w.weaponProfile] || 0) + 1;
 }
@@ -85,13 +89,18 @@ const refreshSource = source.slice(source.indexOf("const ITEM_STAT_KEYS ="), sou
 const template = ITEMS.w_shepherd_staff;
 const legacy = { ...template, atk: 999, scale: { atk: .4 }, unidentified: true, forge: 2 };
 const cursed = { ...ITEMS.cursedBlade, scale: { atk: .1 } };
-const d = { items: [legacy, cursed], equip: { weapon: legacy } };
-const context = { ITEMS, G: { party: [d], reserve: [] }, applyForge };
-vm.runInNewContext(refreshSource + "\nreflattenItemStats();", context);
+const fine = { ...template, q: 100 }; applyQuality(fine);
+const d = { items: [legacy, cursed, fine], equip: { weapon: legacy } };
+const context = vm.createContext({ ITEMS, G: { party: [d], reserve: [] }, applyForge, hasQuality, applyQuality, QUALITY_MID });
+vm.runInContext(refreshSource + "\nreflattenItemStats();", context);
 assert(!legacy.atk); assert(legacy.scale.pie > template.scale.pie); assert(!legacy.scale.atk);
 assert(legacy.unidentified && legacy.forge === 2);
 assert(cursed.cursed && cursed.scale.agi, "呪いの武器も新参照へ更新");
 assert.equal(d.items[0], d.equip.weapon, "所持品の共有参照を保つ");
+assert.equal(legacy.q, QUALITY_MID, "品質を入れる前の品は並品 (50)");
+assert.equal(fine.q, 100); assert(Math.abs(fine.scale.pie - template.scale.pie * 1.2) < 0.001, "読み込みで品質を一度だけ掛け直す");
+vm.runInContext("reflattenItemStats();", context);
+assert(Math.abs(fine.scale.pie - template.scale.pie * 1.2) < 0.001, "二度読み込んでも品質は重ならない");
 // 全36職×5作戦で新武器を装備し、乱戦の判断と実行が成立することを確認。
 let simulations = 0;
 for (const job of Object.keys(SOUL_CLASSES)) for (const tactic of TACTICS) {
@@ -110,6 +119,6 @@ for (const job of Object.keys(SOUL_CLASSES)) for (const tactic of TACTICS) {
   }
   simulations++;
 }
-console.log(`全${weapons.length}武器: 参照・バフ・比較・鍛え直し・旧セーブ更新 OK`);
+console.log(`全${weapons.length}武器: 参照・バフ・比較・品質・＋Nの段・旧セーブ更新 OK`);
 console.log(profiles);
 console.log(`${simulations}条件の模擬戦 OK`);

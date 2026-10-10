@@ -21,7 +21,7 @@ import { softFade } from "./motion.js";
 import { statLines, itemCatText, specialLines, weaponPerformanceEl, showSkillPopup, showPassivePopup, tagRow, traitTagKinds, affinityRow, spellTagKinds, revealSteps, monKills, revealLock, elemStatShort, enemyReveal, enemyLabel, UNKNOWN_COLOR } from "./itemview.js";
 import { MONSTERS, ICONS, spriteCanvas } from "../sprites.js";
 import { EVENTS, EVENT_MAP, EVENT_GROUPS, EV_TIERS, eventWhereText, onceKey, LORE_PAGES } from "../events.js";
-import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_KIND_LABEL, shieldKind, itemName } from "../items.js";
+import { ITEMS, ITEM_CATS, WEAPON_CATS, WEAPON_CAT_LABEL, SHIELD_KINDS, SHIELD_KIND_LABEL, shieldKind, itemName, hasQuality, qualityOf, QUALITY_SPREAD } from "../items.js";
 import { RANK_COLOR, RANK_NAME } from "../content.js";
 import { poolAt } from "../dungeons/world.js";
 import { MONSTER_LORE } from "../dungeons/monlore.js";
@@ -720,6 +720,12 @@ function codexItemView(it, o) {
     body.appendChild(setText(el("div", "pl-detail-cat"), itemCatText(it)));
     const st = statLines(it);
     if (st) body.appendChild(setText(el("div", "pl-detail-stats"), st));
+    // 品質: 所持品の実体ならその品質、図鑑 (目録の品) なら幅の説明 (図鑑の数値は並品 = 品質50)
+    if (hasQuality(it)) {
+      body.appendChild(setText(el("div", "pl-detail-q"), o.item
+        ? `品質 ${qualityOf(it)}（0〜100。50が並品）`
+        : `手に入れるたびに品質0〜100が決まり、性能が±${Math.round(QUALITY_SPREAD * 100)}%変わる。ここの数値は並品（品質50）。`));
+    }
     const dolls = game.allDolls ? game.allDolls() : [...(game.G?.party || []), ...(game.G?.reserve || [])];
     const wearer = dolls.find(d => d.equip?.weapon === it);
     const performance = weaponPerformanceEl(it, wearer);
@@ -898,14 +904,24 @@ function renderAch(body) {
 // ================= 宝物庫 =================
 // 収集品にランクは無く、全部で何種あるかも見せない (台帳は図鑑と同じく、奉納した品の札だけを並べる)
 const LEDGER_H = 96; // 台帳の札 (図鑑の札を少し詰める: 小さな画面でも1段とめくりが収まるように)
-function nextMilestone(ts) { return (game.TREASURY_MILESTONES || []).find((m) => !ts.claimed["m" + m.n]) || null; }
+// 見せる段: 届いたのにまだ受け取っていない節目 (深さ待ちを含む) と、その先の次の節目ひとつ
+function shownMilestones(ts, total) {
+  const open = (game.TREASURY_MILESTONES || []).filter((m) => !ts.claimed["m" + m.n]);
+  const reached = open.filter((m) => total >= m.n);
+  const next = open.find((m) => total < m.n);
+  return next ? [...reached, next] : reached;
+}
 function rung(m, total) {
   const reached = total >= m.n;
-  const r = el("div", "pl-rung" + (reached ? " ready" : ""));
+  const wait = reached && game.milestoneWait ? game.milestoneWait(m) : null;
+  const r = el("div", "pl-rung" + (reached && !wait ? " ready" : "") + (wait ? " wait" : ""));
   r.appendChild(el("span", "pl-rung-n", `${m.n}種`));
-  r.appendChild(setText(el("span", "pl-rung-l"), game.milestoneLabel ? game.milestoneLabel(m) : ""));
-  if (reached) r.appendChild(button({ label: "受け取る", kind: "primary", size: "sm", onTap: () => game.claimTreasury(m.n) }));
-  else r.appendChild(el("span", "pl-rung-s", `あと ${m.n - total}`));
+  const lab = el("span", "pl-rung-l");
+  lab.appendChild(setText(el("span", "pl-rung-t"), game.milestoneLabel ? game.milestoneLabel(m) : ""));
+  if (wait) lab.appendChild(setText(el("span", "pl-rung-w"), wait));
+  r.appendChild(lab);
+  if (reached && !wait) r.appendChild(button({ label: "受け取る", kind: "primary", size: "sm", onTap: () => game.claimTreasury(m.n) }));
+  else if (!reached) r.appendChild(el("span", "pl-rung-s", `あと ${m.n - total}`));
   return r;
 }
 // 「収集品を奉納」: 奉納する品の詳細を並べたシート → 「奉納する」で奉納 (節目に届けばそのまま褒賞へ)
@@ -919,7 +935,7 @@ export function donateSheet() {
   const kinds = list.filter((h) => !h.dup).length;
   const gold = list.reduce((a, h) => a + (h.dup ? h.gold : 0), 0);
   const after = total + kinds;
-  const next = (game.TREASURY_MILESTONES || []).find((m) => !ts.claimed["m" + m.n] && after >= m.n);
+  const next = (game.TREASURY_MILESTONES || []).find((m) => !ts.claimed["m" + m.n] && total < m.n && after >= m.n);
   return sheet.open({
     kind: "info", banner: "宝物庫に奉納", title: `収集品 ${list.length} 点`, className: "pl-donate-card",
     body: (scroll) => {
@@ -961,7 +977,7 @@ function renderTreasury(body) {
   const ts = game.treasuryState();
   const total = game.totalDonatedKinds ? game.totalDonatedKinds() : 0;
   const list = ops.donatableList ? ops.donatableList() : [];
-  const next = nextMilestone(ts);
+  const rungs = shownMilestones(ts, total);
 
   // 手持ちの収集品 (初めての種類に「新」) + まとめて奉納。札をタップ = 品の詳細 (持ち主の荷から)
   const kinds = list.filter((h) => !h.dup).length;
@@ -984,8 +1000,8 @@ function renderTreasury(body) {
   // 次の褒賞 (ひとつだけ)
   body.appendChild(sectionHead("次の褒賞", { note: "奉納した種類の節目" }));
   const lad = el("div", "pl-ladder");
-  if (next) lad.appendChild(rung(next, total));
-  else lad.appendChild(el("div", "pl-tr-none", "すべての褒賞を受け取った。"));
+  for (const m of rungs) lad.appendChild(rung(m, total));
+  if (!rungs.length) lad.appendChild(el("div", "pl-tr-none", "すべての褒賞を受け取った。"));
   body.appendChild(lad);
 
   // 奉納台帳: 図鑑と同じく、奉納した品の札だけ (売却額の安い順)。総数は伏せる

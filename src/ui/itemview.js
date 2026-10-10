@@ -281,7 +281,7 @@ export function skillDetailLines(sp) {
   if (sp.regen) lines.push(`リジェネ: 毎ターン最大HPの${pct(sp.regen.pct)}を回復（${sp.regen.turns}ターン）`);
   if (sp.ward && sp.ward.breath) lines.push(`ブレス避け: 敵のブレスから受けるダメージ −${pct(sp.ward.breath)}（${sp.dur || 3}ターン）`);
   if (sp.ward && sp.ward.spell) lines.push(`呪文避け: 敵の全体呪文から受けるダメージ −${pct(sp.ward.spell)}（${sp.dur || 3}ターン）`);
-  if (sp.float) lines.push(`迷宮で唱える: ${sp.float}階のあいだ隊が宙に浮き、落とし穴に落ちず毒の床のダメージも受けない（戦闘では使わない）`);
+  if (sp.float) lines.push(`迷宮で唱える: ${sp.float}階のあいだ隊が宙に浮き、足元の穴に落ちず、害のある床のダメージも受けない（戦闘では使わない）`);
   if (sp.sense === "stairs") lines.push("迷宮で唱える: この階の下り階段の在りかを示し、その周囲8マスのカードをめくる（戦闘では使わない）");
   else if (sp.sense) lines.push(`迷宮で唱える: この階のあいだ、まだめくっていないカードのうち、${{ enemy: "魔物の居場所を赤い光で（種類は分からない）", chest: "宝箱の在りかを青い光で" }[sp.sense]}示す（戦闘では使わない）`);
   // ---- 固有の追加効果 ----
@@ -557,6 +557,9 @@ export function statLines(it) {
   if (it.use) for (const x of useLines(it, true)) parts.push(x);
   return parts.join("　");
 }
+
+// 品質の色分け (品質の札・目盛り): 90〜 = 極上 / 70〜 = 上 / 30〜 = 並 / それ未満 = 下
+export function qualityTone(q) { return q == null ? "q-mid" : q >= 90 ? "q-top" : q >= 70 ? "q-hi" : q >= 30 ? "q-mid" : "q-lo"; }
 
 // 装備品か (装備可能職業を表示する対象か)。use/misc/mat は対象外。
 export const EQUIPPABLE_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);

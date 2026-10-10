@@ -48,7 +48,7 @@ for (const s of ARCHIVE_STORIES.filter(s => s.image)) {
     assert.equal(w, 1536); assert.equal(h, 1024);
   }
 }
-assert.equal(ARCHIVE_STORIES.filter(s => s.image).length, 58);
+assert(ARCHIVE_STORIES.filter(s => s.image).length >= 58, "物語の絵は減らさない");
 assert(ARCHIVE_STORIES.filter(s => s.chapter === 1).every(s => s.image), "第一章の全場面に専用画像がある");
 assert(ARCHIVE_STORIES.filter(s => s.chapter === 2).every(s => s.image), "第二章の全場面に専用画像がある");
 assert(ARCHIVE_STORIES.filter(s => s.chapter === 3).every(s => s.image), "第三章の全場面に専用画像がある");

@@ -28,11 +28,21 @@ for f in $(git ls-files 'src/*.js'); do node --check "$f"; done   # 構文チェ
 - 依存の向き: `src/ui/*` と `src/events.js` は **game.js を import しない** (ui は `ctx.js` の `UI`/`game`/`ops`、出来事は `evApi` 経由)。`combat.js` は純粋なロジックで、演出・効果音は game.js 側。
 - 画面: ページ送り (‹ 1/2 ›) は作らない。入りきらない中身は内側の箱を縦にスクロールさせる。説明文の改行は `src/ui/phrase.js` が自動で行うので、手で `\n` を入れて折らない。
 - **迷宮の数は第4層から1層 = 本筋4 + 寄り道・依頼の迷宮2** (ユーザーの指示: 20層で百の迷宮以上。第1〜3層には寄り道を増やさず、その分は第10層以降へ)。新しい層を作る時は寄り道も同時に足し、ときどき「格上の迷宮」(`challenge`) と「極端な掟の迷宮」(魔封じ `physOnly`・必ず奇襲 `alwaysAmbush` など) を混ぜる。寄り道1つに要るもの (台帳・依頼・極・由来・景色・心得) は `CLAUDE.md` の迷宮の台帳の節「迷宮の数の目安」。
+- **新しい迷宮では足元の仕掛け `floorHaz: { fall, harm }` を必ず決める** (ユーザーの指示: どの迷宮も毒の沼と落とし穴では世界観が壊れる)。仕組みは落ちる床・蝕む床の2つだけで、名前・絵・言葉をその土地のものにする (`src/dungeons/floorhaz.js`、置かないなら null。墓所に沼は置かない)。詳細は `CLAUDE.md` の迷宮の台帳の節「足元の仕掛け」。
 - **新しい迷宮を追加する時は、その迷宮専用の「極めて稀なる出来事」を必ずちょうど1件実装する** (最初の迷宮 `w01` と奈落は除外。依頼の迷宮も対象)。`src/events.js` の `DUNGEON_GIFTS` に追加し、全職業の永続強化を9種の中から偏りなく割り当てる。詳細は `CLAUDE.md` の迷宮の台帳の節。完了前に `node tools/balance/event-boons.mjs` を必ず実行する。
 - **師の手がかり (`src/story.js` の `STORY_CELLS`) を足す時は、必ず見返り `boon` を付ける** (迷宮が開く・依頼が出る・館の働きが良くなる など。最初の師のランタンだけは例外。効き目は小さめにし、職業のパッシブと重ねない。ユーザーの指示)。詳細は `CLAUDE.md` の迷宮の台帳の節の「手がかりの恵み」。
 - **酒場の顔ぶれの話 (`src/tavern.js` `TAVERN_TALKS`) はヘルプも兼ねる。新機能・仕様変更を入れる時は、同じ変更の中で話も更新する** (ユーザーの指示): 関係する心得 (`k: "tip"`) の数字・説明を新しい仕様に直し、新しい機能・仕組みには心得を少なくとも1つ足す (`req` で機能が開くまで伏せる)。新しい章・場所には、その章までに明かされたことだけで言い伝え (`k: "lore"`) を足す。id は足すだけ (古い話は文を直す)。PR の説明に直した/足した話の id を書く。詳細は `CLAUDE.md` の `## Conventions`。
 - 魔物を足す時は固有の絵 (`ARTS` の色違いで済ませない) と 1〜2個の特徴を付ける。1匹ごとの固有ドロップは作らない (名のある強敵の首級だけは例外)。
-- 生成物は手で直さない: `schema.js` の `hd_*` ブロック (`node tools/hdart/run.mjs <layer> --apply`)、`src/itemart/salts.js` (`node tools/itemart/check.mjs --apply`)、`monart.js` の `<<MONSTER_ART>>` ブロック (`tools/monart.mjs`)。
+- 生成物は手で直さない: 物語の絵の登録 (`python3 tools/storyart/build.py`)、`schema.js` の `hd_*` ブロック (`node tools/hdart/run.mjs <layer> --apply`)、`src/itemart/salts.js` (`node tools/itemart/check.mjs --apply`)、`monart.js` の `<<MONSTER_ART>>` ブロック (`tools/monart.mjs`)。
+
+## 物語の絵 (ストーリーの挿絵・踏破した迷宮の由来) の作り方
+人の手が要るのは「描く」(Codex) と「承認する」(ユーザー) だけ。ほかは道具が行う。詳しくは `docs/art/codex-story-art-brief.md` の 1-3。
+1. **依頼を出す**: `node tools/storyart/prompt.mjs <場面ID>` (由来は `lore_<迷宮ID>`、人物・小道具の基準シートは `ref:<名前>`、章ごとの一覧は `--chapter N`)。保存先・参照画像 (この順に渡す)・本文 (一覧とゲーム内)・描くもの/描かないもの・英語の指示 (前置き込み) が出る。**指示を自分で組み立てず、この出力どおりに作る。**
+2. **描いて置く**: 原画 PNG (1536×1024) を出力の保存先 (`art/story-review/chapterN/<場面ID>.png` など) に置く。修正は同じ名前で上書きし、修正前を `art/story-review/fixes/<場面ID>-before.png` に残し、指示書の項目の末尾に「(済)」を付ける。
+3. **仕上げる**: `python3 tools/storyart/build.py` (要 Pillow・Node 22)。変わった原画だけを WebP にし、ゲームへ登録し (`src/storyimages.js`・`sw.js` の `<<STORY_ART>>`)、確認ページ `art/story-review/review/chapterN.md`・縮小の見本 `chapterN-small.jpg`・進み具合 `status.md` を書き、検査を回す。✗ が出たら直して回し直す。
+4. **PR を出して止まる**: 本文に確認ページと縮小の見本を載せる。CI「物語の絵の検査」(`.github/workflows/storyart-check.yml`) が登録の漏れ・作り直し忘れ・指示書との食い違いを調べる。main へ取り込まれれば遊ぶ人に届く。
+- 手で書かないもの: `src/storyimages.js`、`sw.js` の `<<STORY_ART>>` の欄、`tools/storyart/masters.json`、`art/story-review/review/`。原画・案・比較画像を `art/story/` に置かない (出荷物は WebP だけ)。本文 (`src/story.js`・`src/archive-stories.js`・`src/journal.js`) は変えない — 絵を本文に合わせる。
+- 指示書 (`docs/art/codex-story-art-brief.md`) は道具が読む。見出しの書式を崩さない。指示が無い場面は Claude に足してもらう。
 
 ## Claude と並行して作業する時
 - ブランチは `codex/<内容>` を切り、PR で `main` に入れる (Claude は `claude/…`)。
@@ -51,6 +61,7 @@ for f in $(git ls-files 'src/*.js'); do node --check "$f"; done   # 構文チェ
 | 職業・魂・技・パッシブ | `### Module layout` の **`souls.js`**、**`jobkit/`** |
 | 出来事・依頼・勲章 | `### Module layout` の **`events.js`**、**`quests.js`**、**勲章** |
 | 装備・道具・値段 | **`items.js`**、**`pricing.js`**、`### 装備のレア度`、`### Item catalog (src/catalog/)` |
+| 物語の挿絵・由来の絵 | このファイルの「物語の絵」、`docs/art/codex-story-art-brief.md`、`### UI 構造` の ヘルプ・ストーリー |
 | 装備・収集品の絵 | `### 装備の絵 (src/itemart/)`、`### Item catalog` の 収集品の絵 |
 | 魔物の追加・絵・特徴 | `### Dungeon registry`、`### Monster individuation`、`### 名のある強敵` |
 | 属性 | `### Element / affinity system` |
