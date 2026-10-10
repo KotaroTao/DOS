@@ -3,7 +3,7 @@
 // 提供する契約: UI.openDeparture({ page }) … 中央の門 (どのタブからでも)。page:"abyss" で奈落の支度を開く
 //
 //   ┌ ━━ 出 撃 ━━ ─────────────────────────┐
-//   │ ┌ 迷宮の顔 (情景・踏破後は由来の原画) ┐ │ 上半分 = 選んでいる迷宮: 情景・名・説明
+//   │ ┌ 迷宮の顔 (由来の原画・無ければ情景) ┐ │ 上半分 = 選んでいる迷宮: 情景・名・説明
 //   │ │ 朽ちた骸の修道院            目標  │ │ 推奨Lv・全階数・発見した魔物 n/m・受注中の依頼 n件・固有クエスト n/m (押すと詳細のポップアップ)
 //   │ └───────────────────────┘ │ 迷宮の掟・格上の注意
 //   │ (●) 忘れられた地下墓地 推奨Lv1・全5階 踏破 │ 門は 5 行ぶん見せ、6 つ目からは一覧を縦に巻く
@@ -80,11 +80,10 @@ function vistaCanvas(dn) {
   if (typeof requestAnimationFrame === "function") requestAnimationFrame(tick);
   return cv;
 }
-// 踏破した迷宮は、ストーリーの「踏破した迷宮」で読める由来の原画を掲げる (ドットの情景の代わり)。
-// 由来の絵は迷宮の秘密を描くことがあるので、踏破するまではドットの情景のまま。原画の無い迷宮・読めない時もドット。
+// 由来の原画 (ストーリーの「踏破した迷宮」と同じ絵) がある迷宮は、踏破の前からそれを掲げる (ドットの情景の代わり)。
+// 秘密を描いた絵も出す (ユーザーの判断: ネタばれでよい)。原画の無い迷宮・読めない時はドットの情景。
 function vistaPic(dn) {
-  const w = wst();
-  const src = w.cleared && w.cleared[dn.id] ? LORE_IMAGES[dn.id] : null;
+  const src = LORE_IMAGES[dn.id];
   if (!src) return vistaCanvas(dn);
   vistaLoop++; // ドットの情景のゆらぎを止める
   const img = document.createElement("img");
