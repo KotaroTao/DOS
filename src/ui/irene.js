@@ -102,6 +102,12 @@ function trainable(c) {
   }
   return null;
 }
+// Lv上限に届いたセラの魂 (灯守は融合で伸びないので、残火で上限を上げる — souls.js EMBER_STAT_UP)
+function seraCapped(c) {
+  const d = c.dolls.find((x) => x.vessel === "sera");
+  const s = d && d.primary != null ? soulByUid(d.primary) : null;
+  return s && s.level >= safe(() => soulLevelCapOf(s), Infinity) ? s : null;
+}
 function fusable(c) {
   if (!c.fusion) return null;
   for (const d of c.party) {
@@ -459,6 +465,9 @@ const LINES = [
   { id: "m_seraWake", kind: "chat", fresh: true, bond: 1, when: (c) => c.beat("irene_sera_wake"), say: {
     1: ["セラが、また歩いているのです。", "館の廊下を、何度も行ったり来たりして……オルド様の部屋の前で、いつも止まるのです。"],
     3: ["セラ、あなたの人業たちとすぐ仲良くなったのです。", "……わたしより人見知りしないのです。オルド様に似たのでしょうか。"] } },
+  { id: "h_seraEmber", kind: "hint", bond: 1, fresh: true, when: (c) => !!seraCapped(c), say: {
+    1: ["セラの魂が、育ちきる手前で止まっています。", "あの子の魂は、ほかの魂のように重ねて育つことはないのです。魂の残火をひとつ注げば、上限がひとつ伸びます。そこまで育てば、力も少しずつ増えます。"],
+    3: ["セラの魂、また上限に届いていますね。", "残火をひとつ注いであげてください。上限がひとつ伸びて、そこまで育てば、あの子の力も少しずつ増えるのです。……五つ注げば、一分ほどです。"] } },
   { id: "c_seraTalk", kind: "chat", bond: 3, when: (c) => c.beat("irene_sera_wake"),
     say: ["セラは、わたしの妹のようなものです。", "オルド様は、わたしを作った次の年に、あの子を作ったのです。……妹と呼んだら、怒られるでしょうか。"] },
   { id: "h_faithful", kind: "hint", bond: 1, when: (c) => c.open("w17") && !c.done("w17"), say: {
