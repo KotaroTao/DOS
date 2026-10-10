@@ -1,0 +1,17 @@
+{
+  "390": {
+    "cloud_motion_mean": 9.6,
+    "lightning_mean": 19.53,
+    "errors": []
+  },
+  "744": {
+    "cloud_motion_mean": 8.39,
+    "lightning_mean": 19.68,
+    "errors": []
+  },
+  "1180": {
+    "cloud_motion_mean": 12.33,
+    "lightning_mean": 20.29,
+    "errors": []
+  }
+}

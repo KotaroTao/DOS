@@ -32,7 +32,7 @@
   background:
     var(--grain),
     radial-gradient(ellipse 95% 75% at 50% 48%, rgba(0,0,0,0) 50%, rgba(2,1,4,0.8) 100%),
-    linear-gradient(180deg, rgba(3,2,6,0.72) 0%, rgba(3,2,6,0.3) 22%, rgba(3,2,6,0) 34%, rgba(3,2,6,0) 54%, rgba(3,2,6,0.55) 72%, rgba(3,2,6,0.88) 100%);
+    linear-gradient(180deg, rgba(3,2,6,0.42) 0%, rgba(3,2,6,0.16) 22%, rgba(3,2,6,0) 34%, rgba(3,2,6,0) 54%, rgba(3,2,6,0.55) 72%, rgba(3,2,6,0.88) 100%);
 }
 .ttl-flash {
   position: absolute; inset: 0; pointer-events: none; opacity: 0; mix-blend-mode: screen;
