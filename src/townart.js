@@ -11,11 +11,13 @@
 // 公開するもの:
 //   createTownScene()        広場の夜景パノラマ (canvas 240x170・動く)
 //   townSpots()              夜景の名所の位置 (割合) — 広場の札を重ねる
-//   vignetteCanvas(key)      施設の情景 (canvas 120x75・灯が揺らぐ)
+//   vignetteCanvas(key)      施設の情景 (canvas 120x75・灯が揺らぐ。原画のある鍵は townpaint.js の高精細版)
 //   keeperCanvas(key)        施設の番人の胸像 (canvas 48x56)
 //   iconCanvas(key)          迷宮の門・封じられた門・潜行の号令・錠前・奈落の紋章 (静止画)
 //   KING_PORTRAIT            王の胸像 ({ palette, art } 42x42 — spriteCanvas でそのまま描ける)
 //   prewarmTown(keys)        上の絵をアイドル時間に描き溜める
+
+import { hasPaintedVignette, paintedVignette } from "./townpaint.js";
 
 const TAU = Math.PI * 2;
 const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -1249,6 +1251,11 @@ function vignetteFrames(key) {
 }
 // 施設の情景 canvas (揺らぐ灯つき)
 export function vignetteCanvas(key) {
+  // 描き下ろしの原画がある情景 (酒場・宿屋・祠) は townpaint.js が高精細に描き、明かりだけを揺らす
+  if (hasPaintedVignette(key) && hasDOM()) return paintedVignette(key, livingCanvas, () => pixelVignette(key));
+  return pixelVignette(key);
+}
+function pixelVignette(key) {
   const frames = vignetteFrames(key);
   const c = makeCanvas(VW, VH);
   if (!c || !frames) return c;
