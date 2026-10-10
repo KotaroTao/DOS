@@ -10,7 +10,7 @@
 // 作戦はこの重みと MP の値段を変える。game.js はここを呼んで chooseAction / chooseTarget するだけ。
 // (このファイルは game.js を import しない)
 
-import { SPELLS, spellCost, soulPowerMul, healsHp, isMetal, spellCureKinds, breathHpK } from "./combat.js";
+import { SPELLS, spellCost, soulPowerMul, healsHp, isMetal, spellCureKinds, breathHpK, manaGiftAmount, tauntGuard } from "./combat.js";
 import { autoSkills } from "./souls.js";
 import { STAGED, STAGE_MAX, STRONG_MIN, stageMul, stageOf } from "./buffstage.js";
 
@@ -340,7 +340,7 @@ function allyEffects(b, ctx, actor, sp, a, c, W) {
   const n = ctx.left(sp.dur);
   if (healsHp(sp)) c.heal += Math.min(b.estHeal(actor, sp, a), a.maxhp - a.hp) * healUrg(ctx, a, W);
   if (sp.kind === "mana") {
-    const gain = Math.min((sp.power + (actor.int || 0) * 0.25) * soulPowerMul(actor, sp), (a.maxmp || 0) - a.mp);
+    const gain = Math.min(manaGiftAmount(actor, sp, (sp.power + (actor.int || 0) * 0.25) * soulPowerMul(actor, sp)), (a.maxmp || 0) - a.mp);
     if (a !== actor && gain > 0) c.edge += gain * ctx.mpPrice(a, (W && W.mpK) || 0.06) * 0.8;
   }
   if (sp.kind === "cure" || sp.cure) c.guard += ailValue(ctx, a, sp);
@@ -361,7 +361,13 @@ function allyEffects(b, ctx, actor, sp, a, c, W) {
   }
   const wounded = ctx.allies.some((p) => p !== a && p.maxhp && p.hp < p.maxhp * 0.5);
   const sturdy = a.maxhp && a.hp > a.maxhp * 0.5;
-  if (sp.taunt && b._bm(a, "taunt") <= 1 && sturdy && ctx.allies.length > 1) c.guard += ctx.threatSum * (wounded ? 0.4 : 0.15) * n;
+  // 引き付けると硬くなる盾役 (tauntGuard) は、引き受けた分の傷そのものが減るので値打ちが上がる
+  if (sp.taunt && b._bm(a, "taunt") <= 1 && sturdy && ctx.allies.length > 1) c.guard += ctx.threatSum * (wounded ? 0.4 : 0.15) * n * (1 + 2 * tauntGuard(a));
+  // 受け止め: 渾身の一撃を溜めている敵がいれば、引き付けた者が必ずそれを受ける (隊の誰かに落ちる大技を硬い者が引き取る)
+  if (sp.taunt && b._bm(a, "taunt") <= 1 && sturdy && ctx.allies.length > 1 && b._omenOf) for (const e of ctx.foes) {
+    const om = b._omenOf(e);
+    if (om && om.kind === "smash") c.guard += ctx.threat(e) * (0.5 + 2 * tauntGuard(a));
+  }
   if (sp.shield && b._bm(a, "shield") <= 1 && sturdy && wounded) c.guard += ctx.maxThreat * n * 0.6;
   if (sp.stance === "counter" && b._bm(a, "ctr") <= 1) c.edge += ctx.hitsOn(a) * ctx.basic(a) * ctx.dmgK * 0.8 * n;
   if (sp.charge && !(a.effects || []).some((e) => e.stat === "charge") && ctx.rounds > 1) c.edge += (sp.charge - 1) * ctx.basic(a) * ctx.dmgK * 0.8;

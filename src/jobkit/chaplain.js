@@ -11,7 +11,7 @@ export default {
     15 CHAPLAIN_INORINOTATE 15 firstGuard/1 17 HOLYLIGHT 20 NIOUDACHI 20 RECOVER 25 chaplainNamida/1
     30 GUARDALL 30 DIOSALL 30 AWAKE 35 chaplainZankyou/1 40 HOUSHOUHEKI 40 DIAL 45 chaplainJungo/2
     50 CHAPLAIN_INORINOTATEUCHI 50 firstGuard/2 50 STONECURE 55 REVIVE 57 CHAPLAIN_MABAYUKISEITSUI
-    60 resistAilment/1 60 DIALALL 65 CHAPLAIN_MIGAWARI 70 chaplainSeiku/1 75 chaplainKouei/1
+    60 resistAilment/1 60 DIALALL 65 CHAPLAIN_MIGAWARI 70 chaplainSeiku/1 35 chaplainKouei/1
     80 CHAPLAIN_MIZUKAGAMI 80 MADIOS 82 CHAPLAIN_NAGI 85 CHAPLAIN_INORINOKOUHA 90 chaplainJungo/3
     95 CHAPLAIN_SHUGONOSEIIN 100 CHAPLAIN_JUNREI 100 firstGuard/3 100 PURIFY 100 RESURRECT
     105 chaplainZankyou/2 107 CHAPLAIN_MAMORINOKOUKEN 110 CHAPLAIN_MIZUGAKI 115 chaplainSeiku/2
@@ -58,8 +58,14 @@ export default {
     },
     chaplainKouei: {
       label: "後衛の守護",
-      lv: ["後衛の味方全員の被ダメージ-6%", "後衛の味方全員の被ダメージ-10%", "後衛の味方全員の被ダメージ-14%"],
-      fx: [{ t: "take", aura: true, when: { back: true }, v: [0.06, 0.10, 0.14] }],
+      lv: ["後衛の味方全員の被ダメージ-10%。味方全員のブレス・全体呪文の被ダメージ-12% (主・強敵のものは-20%。盾役どうしでは一番強いものだけ)",
+        "後衛の味方全員の被ダメージ-15%。味方全員のブレス・全体呪文の被ダメージ-16% (主・強敵のものは-25%。盾役どうしでは一番強いものだけ)",
+        "後衛の味方全員の被ダメージ-20%。味方全員のブレス・全体呪文の被ダメージ-20% (主・強敵のものは-30%。盾役どうしでは一番強いものだけ)"],
+      fx: [{ t: "take", aura: true, when: { back: true }, v: [0.10, 0.15, 0.20] },
+        { t: "take", aura: true, best: true, on: "breath", v: [0.12, 0.16, 0.20] },
+        { t: "take", aura: true, best: true, on: "spell", v: [0.12, 0.16, 0.20] },
+        { t: "take", aura: true, best: true, when: { strong: true }, on: "breath", v: [0.20, 0.25, 0.30] },
+        { t: "take", aura: true, best: true, when: { strong: true }, on: "spell", v: [0.20, 0.25, 0.30] }],
     },
     chaplainNamida: {
       label: "涙の祈り",

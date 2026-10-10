@@ -275,6 +275,12 @@ function perksOf(a) {
 // Lv ごとの値 (配列なら Lv 番目。足りなければ最後) / 単なる数ならそのまま
 const lvv = (v, lv) => (Array.isArray(v) ? v[Math.min(Math.max(1, lv), v.length) - 1] : v);
 // 魂の共鳴 (src/resonance.js、第七章の結びで開く): 隊の編成 (メイン魂の職の組み合わせ) で決まる隊全体の効果。
+// 敵を引き付けている間に軽くなる被ダメの割合 (盾役の固有パッシブ take + when.taunting)。オートが挑発の値打ちを見込むのに使う
+export function tauntGuard(a) {
+  let g = 0;
+  for (const { c, lv } of perksOf(a)) if (c.t === "take" && c.when && c.when.taunting && !c.aura) g += lvv(c.v, lv) || 0;
+  return Math.min(0.8, g);
+}
 // game.js syncResonance が編成の変わるたびに setResonance で渡す。fx = perksOf と同じ形の成分の列、members = 隊の人業
 // (その人業にだけ効く — 控えの人業の技の消費MPなどは変えない)、cap = 種類ごとの合計の上限 (RESONANCE_CAP)
 let _reso = NO_PERKS, _resoMembers = null, _resoCap = {};
@@ -519,6 +525,10 @@ export const SOUL_TIER_ATK_MIN = 0.04;
 export const SOUL_TIER_ALL_MIN = 0.06;
 // MP吸収 (技の mpDrain) の上限 = その技の消費MPの何倍か (技ごとの mpDrainCap で上書きできる)
 export const MP_DRAIN_CAP = 1.1;
+// 魔力の譲渡 (kind "mana") で渡せる MP は、唱えた者が払った MP の8割まで (2026-10。INT・魂の格で払った以上に増え、
+// Lv120 で払った MP の4倍ほどを渡せたので、MP がいつまでも尽きなかった。1:1 でも司教が隊の MP の貯め池になったので2割を散らす)
+export const MANA_GIFT_RATE = 0.8;
+export function manaGiftAmount(actor, sp, raw) { return Math.min(raw, Math.round(spellCost(actor, sp) * MANA_GIFT_RATE)); }
 export function soulTierRate(sp) {
   if (!sp || sp.mpPct || sp.gravity || !(sp.mp > 0) || !SOUL_TIER_KINDS.has(sp.kind)) return 0;
   const r = SOUL_TIER_RATES.find(([m]) => sp.mp <= m)[1];
@@ -905,6 +915,7 @@ export class Battle {
     if (w.tgtHigh != null && !(t && frac(t) >= w.tgtHigh)) return false;
     if (w.boss && !(t && t.boss)) return false;
     if (w.noBoss && t && t.boss) return false;
+    if (w.strong && !this._strongFoe(t)) return false;
     if (w.selfLow != null && frac(a) > w.selfLow) return false;
     if (w.selfHigh != null && frac(a) < w.selfHigh) return false;
     if (w.selfAil && !ailing(a)) return false;
@@ -923,21 +934,27 @@ export class Battle {
     if (w.elem && ctx.el !== w.elem) return false;
     if (w.tgtWeak && !(t && ctx.el && ctx.el !== "none" && t.element && elemBeats(ctx.el, t.element))) return false;
     if (w.tgtWeakened && !(t && (t.ailment || t.asleep || t.mind || t._flinch || (t.effects || []).some((e) => e.mult < 1)))) return false;
+    // 自分が敵を引き付けている (矢面の構え・挑発の効果中) — 盾役の「引き付けると硬くなる」「引き付けた打撃を返す」
+    if (w.taunting && !(pv(a, "taunt") || this._bm(a, "taunt") > 1)) return false;
     return true;
   }
   // 与ダメ・被ダメ・会心・回避などの値の合計 (自分の分 + 生きている味方の aura 付きの分)。ctx.on = その攻撃の種類の札の配列
   _perkSum(a, type, ctx = {}) {
     if (!a || a.side !== "party") return 0;
-    let sum = 0;
+    let sum = 0, best = 0;
     for (const p of this.party) {
       if (p !== a && !p.alive) continue;
       for (const { c, lv } of perksOf(p)) {
         if (c.t !== type || (p !== a && !c.aura)) continue;
         if (c.on && !(ctx.on || []).includes(c.on)) continue;
         if (c.when && !this._perkWhen(a, c.when, ctx)) continue;
-        sum += lvv(c.v, lv) || 0;
+        if (c.holder && !this._perkWhen(p, c.holder, ctx)) continue; // 持ち主の側の条件 (盾役が引き付けている間だけ、など)
+        // best = 隊で重ならない守り (盾役の「全体攻撃を受け止める」など): 持ち主が何人いても一番強いものだけ
+        if (c.best) best = Math.max(best, lvv(c.v, lv) || 0);
+        else sum += lvv(c.v, lv) || 0;
       }
     }
+    sum += best;
     // 魂の共鳴 (src/resonance.js): 隊の人業すべてに効く。共鳴どうしの合計は種類ごとに上限 (_resoCap)
     const rs = resoOf(a);
     if (rs.length) {
@@ -1030,7 +1047,7 @@ export class Battle {
   _perkHurt(t, attacker, dmg, kind) {
     if (!t || t.side !== "party" || !t.alive || !(dmg > 0)) return;
     for (const { c, lv, label } of perksOf(t)) {
-      if (c.t !== "hurt" || (c.on || "phys") !== kind || !this._perkRoll(c, lv)) continue;
+      if (c.t !== "hurt" || (c.on || "phys") !== kind || (c.when && !this._perkWhen(t, c.when, { tgt: attacker })) || !this._perkRoll(c, lv)) continue;
       if (c.buff) this._perkBuff(t, c.buff, lv, c.dur || 2, label);
       const h = this._perkHeal(t, lvv(c.hp, lv)), m = this._perkMp(t, lvv(c.mp, lv));
       if (c.buff || h || m) { this.log(`${t.name}の${label}${h ? ` HP+${h}` : ""}${m ? ` MP+${m}` : ""}`, "heal"); this._proc(t, label); }
@@ -1788,6 +1805,15 @@ export class Battle {
 
   // 敵の単体行動の標的選び。前衛は狙われやすく (重み3)、後衛は狙われにくい (重み1)。
   // 挑発 (taunt) 持ちはさらに3倍狙われやすい
+  // 敵を引き付けている (挑発・矢面の構えの効果中) 生きた味方のうち、一番強く引き付けている者
+  _tauntHolder() {
+    let best = null, bw = 1;
+    for (const p of this.livingParty()) {
+      const w = (pv(p, "taunt") ? 3 : 1) * this._bm(p, "taunt");
+      if (w > bw) { best = p; bw = w; }
+    }
+    return best;
+  }
   _pickPartyTarget() {
     const list = this.livingParty();
     if (!list.length) return null;
@@ -1901,7 +1927,10 @@ export class Battle {
         this.log(`${actor.name}の猛威が隊を呑み込む！`, "dmg");
         for (const p of this.livingParty()) res.hits.push(this._physical(actor, p, { power: CHARGED.wide, name: "猛威", area: true }));
       } else {
-        const t = this._pickPartyTarget();
+        // 受け止め (2026-10): 敵を引き付けている味方がいれば、渾身の一撃はその者が必ず受ける (主・強敵との戦いでの盾役の役目)
+        const guard = this._tauntHolder();
+        const t = guard || this._pickPartyTarget();
+        if (guard) { this.log(`${guard.name}が渾身の一撃の前に立ちはだかる！`, "sys"); this._proc(guard, "受け止め"); }
         if (t) res.hits.push(this._physical(actor, t, { power: CHARGED.smash, acc: CHARGED.smashAcc, name: "渾身の一撃" }));
       }
       return res;
@@ -2923,7 +2952,7 @@ export class Battle {
     } else if (sp.kind === "mana") {
       // 魔力の譲渡: 味方の MP を回復する (術者の INT で少し伸びる)
       const t = (cmd.target && cmd.target.alive) ? cmd.target : actor;
-      const gain = Math.max(1, Math.round(variance((sp.power + (actor.int || 0) * 0.25) * soulPowerMul(actor, sp)))); // 魂の格
+      const gain = Math.max(1, manaGiftAmount(actor, sp, Math.round(variance((sp.power + (actor.int || 0) * 0.25) * soulPowerMul(actor, sp))))); // 魂の格 (払った MP まで)
       const before = t.mp;
       t.mp = Math.min(t.maxmp || 0, t.mp + gain);
       this.log(`${t.name}のMPが ${t.mp - before} 回復`, "heal");

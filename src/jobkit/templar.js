@@ -10,7 +10,7 @@ export default {
     1 SHIELDBASH 2 KOUJIN 3 DIOS 5 templarMonshu/1 7 CHOUHATSU 10 PROTECT 12 NERAIUCHI 15 TEMPLAR_MONKEKKAI
     15 templarShinsei/1 17 HOLYLIGHT 20 FUUMANOTATE 20 RECOVER 25 templarFuumakusabi/1 25 AWAKE 30 NIOUDACHI
     30 DIOSALL 35 templarKairitsu/1 40 SEIIKINOKANE 40 DIAL 45 templarMonkekkai/1 50 STONECURE
-    50 templarShinsei/2 55 TEMPLAR_KUSARIUCHI 57 TEMPLAR_SEIINUCHI 60 templarMayoke/1
+    50 templarShinsei/2 55 TEMPLAR_KUSARIUCHI 57 TEMPLAR_SEIINUCHI 30 templarMayoke/1
     65 TEMPLAR_MONZENNOHARAI 70 resistAilment/1 75 templarFuumakusabi/2 80 TEMPLAR_MISOGI
     82 TEMPLAR_HAKAINOISHIZUCHI 85 TEMPLAR_HAMANOKOUSA 90 templarMonkekkai/2 95 TEMPLAR_MONBANNOKAMAE
     100 TEMPLAR_HAMANOOOZUCHI 100 templarShinsei/3 105 templarFuumakusabi/3 110 TEMPLAR_SEIIKIKEKKAI
@@ -52,8 +52,12 @@ export default {
     },
     templarMonshu: {
       label: "門守の誓約",
-      lv: ["戦闘開始時、敵を自分に引き付ける (2ターン)", "さらに物理を受けると25%でMPを最大の4%回復", "さらに物理を受けると40%でMPを最大の6%回復"],
-      fx: [{ t: "start", taunt: true }, { t: "hurt", chance: [0, 0.25, 0.4], mp: [0, 0.04, 0.06] }],
+      lv: ["戦闘開始時、敵を自分に引き付ける (3ターン)。引き付けている間、受けるダメージ-20%・主・強敵への味方全員の与ダメージ+10% (盾役どうしでは一番強いものだけ)",
+        "さらに物理を受けると25%でMPを最大の4%回復。引き付けている間、受けるダメージ-28%・主・強敵への味方全員の与ダメージ+14% (盾役どうしでは一番強いものだけ)",
+        "さらに物理を受けると40%でMPを最大の6%回復。引き付けている間、受けるダメージ-36%・主・強敵への味方全員の与ダメージ+18% (盾役どうしでは一番強いものだけ)"],
+      fx: [{ t: "start", taunt: true, dur: 3 }, { t: "hurt", chance: [0, 0.25, 0.4], mp: [0, 0.04, 0.06] },
+        { t: "take", when: { taunting: true }, v: [0.20, 0.28, 0.36] },
+        { t: "deal", aura: true, best: true, holder: { taunting: true }, when: { strong: true }, v: [0.10, 0.14, 0.18] }],
     },
     templarKairitsu: {
       label: "戒律の灯",
@@ -72,8 +76,11 @@ export default {
     },
     templarMayoke: {
       label: "魔除けの門",
-      lv: ["味方全員のブレスの被ダメージ-6%", "味方全員のブレスの被ダメージ-12%"],
-      fx: [{ t: "take", aura: true, on: "breath", v: [0.06, 0.12] }],
+      lv: ["味方全員のブレス・全体呪文の被ダメージ-8% (主・強敵のものは-18%。盾役どうしでは一番強いものだけ)", "味方全員のブレス・全体呪文の被ダメージ-14% (主・強敵のものは-28%。盾役どうしでは一番強いものだけ)"],
+      fx: [{ t: "take", aura: true, best: true, on: "breath", v: [0.08, 0.14] },
+        { t: "take", aura: true, best: true, on: "spell", v: [0.08, 0.14] },
+        { t: "take", aura: true, best: true, when: { strong: true }, on: "breath", v: [0.18, 0.28] },
+        { t: "take", aura: true, best: true, when: { strong: true }, on: "spell", v: [0.18, 0.28] }],
     },
   },
 };

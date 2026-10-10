@@ -148,7 +148,7 @@ export const SPELLS = {
   SEISUISHO:      { name: "聖水撒", mp: 14, kind: "atk", power: 20, element: "light", vuln: { light: 0.7 }, prey: { races: UNHOLY, mul: 1.5 }, target: "all-enemy", desc: "敵全体の光耐性を下げ、不浄の者を焼く" },
   HAJA:           { name: "破邪の剣", mp: 4, kind: "phys", power: 1.3, element: "light", acc: 0.6, prey: { races: UNHOLY, mul: 1.8 }, target: "enemy", desc: "不死・幽鬼・悪魔に大ダメージ" },
   SEIKOUZAN:      { name: "聖光斬", mp: 12, kind: "phys", power: 2.2, pieScale: 0.8, element: "light", drain: 0.3, acc: 0.9, target: "enemy", desc: "PIEを乗せた聖剣で斬り、傷を癒す（命中UP）" },
-  JUUJIZAN:       { name: "十字斬", mp: 12, kind: "phys", power: 1.5, hits: 2, pieScale: 0.4, element: "light", acc: 0.9, prey: { races: UNHOLY, mul: 1.5 }, target: "enemy", desc: "十字に斬る二連撃。不浄の者に強い" },
+  JUUJIZAN:       { name: "十字斬", mp: 12, kind: "phys", power: 1.2, hits: 2, pieScale: 0.3, element: "light", acc: 0.9, prey: { races: UNHOLY, mul: 1.5 }, target: "enemy", desc: "十字に斬る二連撃。不浄の者に強い" },
   SEISEN:         { name: "進軍の聖歌", mp: 10, kind: "buff", buff: { atk: 1.25, agi: 1.1 }, target: "all-ally", desc: "味方全体のSTRと素早さを上げる" },
   JOUKA:          { name: "浄火", mp: 8, kind: "phys", power: 1.6, element: "fire", acc: 0.6, vuln: { fire: 0.75 }, target: "enemy", desc: "浄めの炎で斬り、火耐性を下げる" },
   SEIKEN:         { name: "聖剣奮迅", mp: 14, kind: "atk", power: 20, element: "light", partyHeal: 16, target: "all-enemy", desc: "聖剣の輝きで敵をなぎ、味方を癒す" },
@@ -306,7 +306,7 @@ export const SPELLS = {
   // 侍
   GONOSEN:       { name: "後の先", mp: 4, kind: "buff", stance: "counter", dur: 2, target: "self", desc: "次の手番まで、物理攻撃に必ず反撃する" },
   MEIKYOU:       { name: "明鏡止水", mp: 8, kind: "buff", buff: { agi: 1.3, atk: 1.2 }, target: "self", desc: "自分の素早さとSTRを上げる" },
-  ISSEN:         { name: "一閃", mp: 8, kind: "phys", power: 1.6, critBonus: 1, target: "enemy", desc: "必ず会心となる一太刀" },
+  ISSEN:         { name: "一閃", mp: 8, kind: "phys", power: 1.7, critBonus: 1, target: "enemy", desc: "必ず会心となる一太刀" },
   TSUBAMEGAESHI: { name: "燕返し", mp: 16, kind: "phys", power: 1.3, hits: 2, critBonus: 0.15, acc: 0.8, target: "enemy", desc: "返す刀で二度斬る。命中が高く、会心しやすい" },
   // 狂戦士
   SUTEMI:       { name: "捨て身", mp: 4, kind: "buff", buff: { atk: 1.5, vit: 0.7 }, target: "self", desc: "STRを大きく上げ、防御を捨てる" },
@@ -344,12 +344,12 @@ export const SPELLS = {
   MAJINKEN:    { name: "魔神拳", mp: 18, kind: "phys", power: 3.5, intScale: 1.0, acc: 0.9, target: "enemy", desc: "INTを込めた魔神の拳（命中UP）" },
   TOUSHINHAGEKI:{ name: "闘神覇撃", mp: 36, kind: "phys", power: 9.0, intScale: 1.2, acc: 1, target: "enemy", desc: "必中の闘神の一撃" },
   // 魔騎士
-  ANKOKU:       { name: "暗黒剣", mp: 6, kind: "phys", power: 2.2, element: "dark", hpCost: 0.08, acc: 0.7, target: "enemy", desc: "HPを代償に闇の剛剣を振るう（命中UP）" },
-  KYUUKETSU:    { name: "吸血剣", mp: 8, kind: "phys", power: 1.6, element: "dark", drain: 0.4, target: "enemy", desc: "斬った血でHPを癒す" },
+  ANKOKU:       { name: "暗黒剣", mp: 6, kind: "phys", power: 2.2, intScale: 0.4, element: "dark", hpCost: 0.08, acc: 0.7, target: "enemy", desc: "HPを代償に闇の剛剣を振るう（命中UP）" },
+  KYUUKETSU:    { name: "吸血剣", mp: 8, kind: "phys", power: 1.6, intScale: 0.3, element: "dark", drain: 0.4, target: "enemy", desc: "斬った血でHPを癒す" },
   YAMINOKOROMO: { name: "闇の衣", mp: 8, kind: "buff", buff: { vit: 1.3 }, grantBarrier: 2, target: "self", desc: "防御を上げ、魔障壁を2回分まとう" },
-  JUBAKU:       { name: "呪縛剣", mp: 10, kind: "phys", power: 1.6, element: "dark", acc: 0.6, debuff: { atk: 0.8, agi: 0.8 }, target: "enemy", desc: "STRと素早さを縛る呪剣" },
-  MAGUINOTACHI: { name: "魔喰いの太刀", mp: 8, kind: "phys", power: 2.2, mpDrain: 0.25, acc: 0.6, seal: { chance: 0.5, turns: 3 }, target: "enemy", desc: "魔力を喰らい、特技を封じる" },
-  ANKOKUSHUUEN: { name: "暗黒剣・終焉", mp: 30, kind: "phys", power: 8.0, element: "dark", hpCost: 0.15, acc: 1, target: "enemy", desc: "HPを代償にした必中の終焉" },
+  JUBAKU:       { name: "呪縛剣", mp: 10, kind: "phys", power: 1.6, intScale: 0.3, element: "dark", acc: 0.6, debuff: { atk: 0.8, agi: 0.8 }, target: "enemy", desc: "STRと素早さを縛る呪剣" },
+  MAGUINOTACHI: { name: "魔喰いの太刀", mp: 10, kind: "phys", power: 2.8, intScale: 0.5, mpDrain: 0.25, acc: 0.6, seal: { chance: 0.5, turns: 3 }, target: "enemy", desc: "魔力を喰らい、特技を封じる" },
+  ANKOKUSHUUEN: { name: "暗黒剣・終焉", mp: 30, kind: "phys", power: 8.0, intScale: 0.5, element: "dark", hpCost: 0.15, acc: 1, target: "enemy", desc: "HPを代償にした必中の終焉" },
   // 竜騎士
   TENSHOU:      { name: "天翔撃", mp: 5, kind: "phys", power: 1.3, acc: 0.9, target: "enemy", desc: "跳び上がって打ち下ろす（命中大UP）" },
   RYUURIN:      { name: "竜鱗", mp: 8, kind: "buff", buff: { vit: 1.4 }, grantBarrier: 1, target: "self", desc: "竜鱗をまとい、防御と魔障壁を得る" },

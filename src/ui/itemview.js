@@ -244,7 +244,7 @@ export function skillDetailLines(sp) {
     else if (sp.healMul) lines.push(`回復量 ${sp.healMul === 1 ? "ヒールと同じ" : `ヒールの${sp.healMul}倍`}（術者のPIEで伸びる）${cap}`);
     else if (sp.power) lines.push(`回復量 ${sp.power}（術者のPIEで伸びる）${cap}`);
   }
-  if (sp.kind === "mana") lines.push(`味方のMPを ${sp.power} 回復（術者のINTで少し伸びる）`);
+  if (sp.kind === "mana") lines.push(`味方のMPを ${sp.power} 回復（術者のINTで少し伸びる。渡せるのは自分が使ったMPの8割まで）`);
   if (sp.kind === "escape") lines.push("必ず戦闘から逃げられる（迷宮の異変で退路が閉ざされている時を除く）");
   if (sp.kind === "sleep") lines.push("敵全体を基本60%で眠らせる（抵抗値で成功率が下がる）");
   if (sp.revive) lines.push(sp.revivePct ? `戦闘不能をHP${pct(sp.revivePct)}で蘇生する` : "戦闘不能も蘇生できる");
@@ -679,7 +679,9 @@ export function gearWeights(doll) {
   const ks = ["atk", "vit", "agi", "int", "pie", "luk"];
   const mx = Math.max(...ks.map((k) => st[k] || 0)) || 1;
   W = {};
-  for (const k of ks) W[k] = Math.round((0.35 + 0.9 * ((st[k] || 0) / mx)) * 100) / 100;
+  // 最低の重みは 0.15 (2026-10: 0.35 だと使わない能力も重く数え、騎士・戦士が神理の法衣 (VIT19・PIE37) を
+  // 竜王の鎧 (VIT39) より良いとして法衣を着ていた)。一番伸びる能力の重みは 1.25 のまま
+  for (const k of ks) W[k] = Math.round((0.15 + 1.1 * ((st[k] || 0) / mx)) * 100) / 100;
   W.hp = 0.25;
   W.mp = (st.mp || 0) >= 1.5 ? 0.15 : 0.03;
   return (GEAR_W_CACHE[key] = W);
