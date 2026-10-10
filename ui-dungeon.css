@@ -535,6 +535,7 @@ button.rs-line { cursor: pointer; touch-action: manipulation; }
 .dp-hero { margin: 0 0 8px; }
 .dp-vista { position: relative; height: clamp(120px, 26vh, 250px); height: clamp(120px, 26dvh, 250px); margin: 0 calc(-1 * var(--sp-4)); overflow: hidden; background: #050407; border-top: 1px solid #241d22; border-bottom: 1px solid #2c2427; }
 .dp-vista-cv { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 62%; image-rendering: pixelated; }
+.dp-vista-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 50%; }
 .dp-vista-cap { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: flex-end; gap: 8px; padding: 30px var(--sp-4) 8px; background: linear-gradient(180deg, rgba(8,6,9,0), rgba(8,6,9,0.82) 62%); pointer-events: none; }
 .dp-hero-t { flex: 1 1 auto; min-width: 0; }
 .dp-hero-s { margin-top: 1px; font-size: 11.5px; letter-spacing: 0.04em; color: #c8bca4; text-shadow: 0 1px 0 #000, 0 0 6px #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
