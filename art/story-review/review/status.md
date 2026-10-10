@@ -2,7 +2,7 @@
 
 書き出し: `node tools/storyart/review.mjs` (build.py も書き直す。手で直さない)。
 
-場面: 出荷済み 26 ・ 出荷済み (任意の修正あり) 14 ・ 出荷済み・修正待ち 18 ・ 未着手 (指示あり) 42
+場面: 出荷済み 34 ・ 出荷済み (任意の修正あり) 14 ・ 出荷済み・修正待ち 10 ・ 未着手 (指示あり) 42
 
 | 章 | 場面 | 題 | 状態 | 確認ページ |
 |---|---|---|---|---|
@@ -18,9 +18,9 @@
 | 第1章「師の灯」 | `report_w01` | 閉ざされた回廊への許し | 出荷済み (任意の修正あり) | [見る](chapter1.md#report_w01) |
 | 第1章「師の灯」 | `w02_sigil` | 水音の向こうへ | 出荷済み | [見る](chapter1.md#w02_sigil) |
 | 第1章「師の灯」 | `report_w02` | 祈りの終わらない場所 | 出荷済み (任意の修正あり) | [見る](chapter1.md#report_w02) |
-| 第1章「師の灯」 | `mem_w03` | 止められても進んだ人 | 出荷済み・修正待ち | [見る](chapter1.md#mem_w03) |
+| 第1章「師の灯」 | `mem_w03` | 止められても進んだ人 | 出荷済み | [見る](chapter1.md#mem_w03) |
 | 第1章「師の灯」 | `report_w03` | 封じた者の沈黙 | 出荷済み | [見る](chapter1.md#report_w03) |
-| 第1章「師の灯」 | `w04_arm` | 黒い流れが返したもの | 出荷済み・修正待ち | [見る](chapter1.md#w04_arm) |
+| 第1章「師の灯」 | `w04_arm` | 黒い流れが返したもの | 出荷済み | [見る](chapter1.md#w04_arm) |
 | 第1章「師の灯」 | `irene_reveal` | レースの下の継ぎ目 | 出荷済み | [見る](chapter1.md#irene_reveal) |
 | 第1章「師の灯」 | `report_w04` | 答えを飲み込んだ王 | 出荷済み | [見る](chapter1.md#report_w04) |
 | 第1章「師の灯」 | `minePass` | 三つの宝と古い封 | 出荷済み | [見る](chapter1.md#minePass) |
@@ -29,14 +29,14 @@
 | 第1章「師の灯」 | `irene_fort` | 待つ者の願い | 出荷済み | [見る](chapter1.md#irene_fort) |
 | 第1章「師の灯」 | `ch1_end` | 灯を置いて、先へ | 出荷済み (任意の修正あり) | [見る](chapter1.md#ch1_end) |
 | 第2章「捨て砦」 | `w06_roll` | 交代のない当直 | 出荷済み (任意の修正あり) | [見る](chapter2.md#w06_roll) |
-| 第2章「捨て砦」 | `report_w06` | 守れと命じ、迎えなかった | 出荷済み・修正待ち | [見る](chapter2.md#report_w06) |
+| 第2章「捨て砦」 | `report_w06` | 守れと命じ、迎えなかった | 出荷済み | [見る](chapter2.md#report_w06) |
 | 第2章「捨て砦」 | `w07_names` | 消されなかった名 | 出荷済み | [見る](chapter2.md#w07_names) |
-| 第2章「捨て砦」 | `w07_sera` | 声の残る独房 | 出荷済み・修正待ち | [見る](chapter2.md#w07_sera) |
-| 第2章「捨て砦」 | `irene_sera` | 眠りを守る二つの手 | 出荷済み・修正待ち | [見る](chapter2.md#irene_sera) |
-| 第2章「捨て砦」 | `report_w07` | 問いを罪にした王国 | 出荷済み・修正待ち | [見る](chapter2.md#report_w07) |
+| 第2章「捨て砦」 | `w07_sera` | 声の残る独房 | 出荷済み | [見る](chapter2.md#w07_sera) |
+| 第2章「捨て砦」 | `irene_sera` | 眠りを守る二つの手 | 出荷済み | [見る](chapter2.md#irene_sera) |
+| 第2章「捨て砦」 | `report_w07` | 問いを罪にした王国 | 出荷済み | [見る](chapter2.md#report_w07) |
 | 第2章「捨て砦」 | `w08_banner` | 空からではなく、足元から | 出荷済み | [見る](chapter2.md#w08_banner) |
-| 第2章「捨て砦」 | `report_w08` | 雷鳴の答えを待つ玉座 | 出荷済み・修正待ち | [見る](chapter2.md#report_w08) |
-| 第2章「捨て砦」 | `w09_map` | 百の井戸 | 出荷済み・修正待ち | [見る](chapter2.md#w09_map) |
+| 第2章「捨て砦」 | `report_w08` | 雷鳴の答えを待つ玉座 | 出荷済み | [見る](chapter2.md#report_w08) |
+| 第2章「捨て砦」 | `w09_map` | 百の井戸 | 出荷済み | [見る](chapter2.md#w09_map) |
 | 第2章「捨て砦」 | `mem_w09` | 砦を捧げた書状 | 出荷済み (任意の修正あり) | [見る](chapter2.md#mem_w09) |
 | 第2章「捨て砦」 | `report_w09` | 先代という仮面 | 出荷済み | [見る](chapter2.md#report_w09) |
 | 第2章「捨て砦」 | `irene_roots` | 両手で囲った夜 | 出荷済み | [見る](chapter2.md#irene_roots) |
