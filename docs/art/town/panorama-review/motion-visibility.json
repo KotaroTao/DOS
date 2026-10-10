@@ -1,0 +1,30 @@
+{
+  "before": {
+    "cloud": {
+      "mean": 0.5892408245349424,
+      "visibleFraction": 0
+    },
+    "lamp": {
+      "mean": 0.6111111111111108,
+      "visibleFraction": 0
+    },
+    "soul": {
+      "mean": 2.1048005409060178,
+      "visibleFraction": 0.09533468559837728
+    }
+  },
+  "after": {
+    "cloud": {
+      "mean": 7.048265460030168,
+      "visibleFraction": 0.3288084464555053
+    },
+    "lamp": {
+      "mean": 6.600000000000002,
+      "visibleFraction": 0.25
+    },
+    "soul": {
+      "mean": 17.114266396213658,
+      "visibleFraction": 0.4117647058823529
+    }
+  }
+}

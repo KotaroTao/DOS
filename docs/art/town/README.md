@@ -4,7 +4,7 @@
 
 原画は `docs/art/town/panorama.png`（2400×1700、240:170）、出荷は `art/town/panorama.webp`。`python3 tools/townart/build.py` が変換し、`TOWN_KEYART.panorama` と `sw.js` の `<<TOWN_ART>>` を書く。台帳とSWは手で書かない。候補・原画・確認画像はデプロイで外れる `docs/` にだけ置く。`--check` で原画とWebP・台帳の食い違いも確認できる。
 
-`src/townpaint.js` の `paintedTownScene` は固定した原画を表示幅×端末の画素比（最大幅2400px）のcanvasへ滑らかに敷く。絵を寄せたり動かしたりせず、明かり・魂光・雲・霧・鴉・雷だけを重ねる。`prefers-reduced-motion` ではこれらを静止させ、表示中の設定変更にも追従する。未登録・読み込み失敗なら `src/townart.js` の従来のドット絵と名所座標に戻る（同じcanvasを使い、街の札も再配置する）。
+`src/townpaint.js` の `paintedTownScene` は固定した原画を表示幅×端末の画素比（最大幅2400px）のcanvasへ滑らかに敷く。雲は携帯幅で毎秒約8〜12px流れ、魂火の霞が門から渦へ約6〜10秒で昇る。窓と吊り灯は明暗を強め、細い魂火と太い霞を重ねる。絵を寄せたり動かしたりせず、明かり・魂光・雲・霧・鴉・雷だけを重ねる。`prefers-reduced-motion` ではこれらを静止させ、表示中の設定変更にも追従する。未登録・読み込み失敗なら `src/townart.js` の従来のドット絵と名所座標に戻る（同じcanvasを使い、街の札も再配置する）。
 
 `points.json` の `panorama` に、原画全体を基準にした0〜1の割合を記録する。画面に切り取られた後の座標を書かない。上空が切れても舞台・札・光は同じ座標に保つ。hubの箱は王宮から祠まで札が入る高さを確保する。
 
