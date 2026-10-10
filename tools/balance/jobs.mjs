@@ -4,7 +4,7 @@
 // 回復・蘇生・治療の術でMPを使って立て直し、勝利後のパッシブも入れる (攻めだけでなく守り・回復・MPのもちも点に出る)。
 //
 // node tools/balance/jobs.mjs [--levels 25,45,65,85,130,200] [--seeds 8] [--seed-base 12345] [--jobs a,b] [--soul-rate 16] [--mode effort|rank2]
-//                            [--enemies real|synth] [--naked] [--k-from 基準.json] [--out file.json]
+//                            [--enemies real|synth] [--scenario mixed|elite|boss|strong] [--naked] [--k-from 基準.json] [--out file.json]
 //   乱数のばらつきが大きいので、判断は --seed-base を変えた4回 (計32通り) の平均で行う (docs/combat-balance.md「全職の見直し」)
 //   --mode effort (既定): 魂の数 = 1 + そのLvまでの遊んだ時間 × 魂の入手/時 × レア度の割合 ÷ そのレア度の職の数
 //   --mode rank2: 全職を魂ランク2にそろえる (重ねやすさを無視した、魂1つの格の比較)
@@ -52,7 +52,11 @@ const SOUL_RATE = Number(arg("--soul-rate", "16")); // 職業の魂の入手/時
 const JOBS = arg("--jobs", null)?.split(",") || SOUL_KEYS.filter((k) => SOUL_CLASSES[k].rarity !== "unique");
 const NAKED = args.includes("--naked"); // 装備なしで比べる
 const GAUNTLET = 12;
-const SYNTH = arg("--enemies", "real") === "synth"; // synth = 能力から作る合成の敵 (旧来) // 休まずに戦う数 (主の戦いを4戦ごとに挟む)
+const SYNTH = arg("--enemies", "real") === "synth"; // synth = 能力から作る合成の敵 (旧来)
+// 戦いの組み立て: mixed (既定) = 雑魚の戦いの合間に4戦ごとの強敵と最後の主 / elite = 強敵だけ / boss = 主だけ /
+// strong = 強敵2戦ごとに主1戦。主・強敵の戦いでの値打ち (盾役の引き付け・単体の大技への備え) を雑魚と分けて測る
+const SCENARIO = arg("--scenario", "mixed");
+assert(["mixed", "elite", "boss", "strong"].includes(SCENARIO), "--scenario は mixed|elite|boss|strong");
 
 let rng = 1;
 const seed = (s) => { rng = s >>> 0; };
@@ -155,12 +159,16 @@ function siteAt(level) {
   const pool = poolAt(cfg, floor).filter((k) => MONSTERS[k]);
   const spds = [...new Set([...(cfg.pool || []), ...(cfg.deepPool || [])])].map((k) => MONSTERS[k] && MONSTERS[k].spd).filter((v) => v > 0).sort((a, b) => a - b);
   const fleeK = partyAgi(level) / Math.max(1, spds[spds.length >> 1] || 6);
-  return { cfg, floor, pool, fleeK, base, mob: base * (t.enemyMul || 1) * (deep ? (t.deepMul || 1) : 1), solo: base * (t.soloMul || 1), boss: base * (t.bossMul || 1), bossHpMul: t.bossHpMul || 1 };
+  // 主のいない迷宮の Lv では、推奨Lv の近い本筋の主を、この階の強さで呼ぶ (主だけの戦いを測るため)
+  const bossCfg = cfg.boss ? cfg : MAIN.filter((d) => d.boss).sort((a, b) => Math.abs((a.lv + a.lvTo) / 2 - level) - Math.abs((b.lv + b.lvTo) / 2 - level))[0];
+  const bt = bossCfg.tune || {};
+  return { cfg, bossCfg, floor, pool, fleeK, base, boss: base * (bt.bossMul || 1), bossHpMul: bt.bossHpMul || 1, mob: base * (t.enemyMul || 1) * (deep ? (t.deepMul || 1) : 1), solo: base * (t.soloMul || 1) };
 }
 function realFoes(level, kind, site, k) {
   let list;
-  if (kind === "boss" && site.cfg.boss) {
-    list = spawnBossEnemies(site.cfg.boss, site.boss * k, site.cfg.bossRank || 0);
+  // mixed では従来どおり、主のいない迷宮の最後の戦いは強敵 (基準の測定を変えない)
+  if (kind === "boss" && (site.cfg.boss || SCENARIO !== "mixed")) {
+    list = spawnBossEnemies(site.bossCfg.boss, site.boss * k, site.bossCfg.bossRank || 0);
     for (const e of list) { e.maxhp = e.hp = Math.round(e.hp * site.bossHpMul); }
   } else if (kind === "boss" || kind === "elite") {
     const el = site.cfg.elites || [];
@@ -245,7 +253,7 @@ function fight(party, foes, level, stat, fleeK) {
     } else if (b.phase === "enemy") res = b.enemyAct();
     else if (b.phase === "stunned") res = b.stunnedAct();
     else throw new Error("phase " + b.phase);
-    if (process.env.TALLY && res && res.actor && res.actor.side === "enemy") for (const h of res.hits || []) if (h.target && h.target.side === "party" && h.dmg > 0) { const k = res.action + (res.espell ? ":spell" : ""); TALLY[k] = (TALLY[k] || 0) + h.dmg; }
+    if (process.env.TALLY && res && res.actor && res.actor.side === "enemy") for (const h of res.hits || []) if (h.target && h.target.side === "party" && h.dmg > 0) { const k = (res.actor.boss ? "主:" : res.actor.mon && res.actor.mon.elite ? "強敵:" : "雑魚:") + res.action + (res.espell ? ":spell" : "") + (res.charged ? ":溜め" : ""); TALLY[k] = (TALLY[k] || 0) + h.dmg; }
     for (const h of res?.hits || []) {
       if (res.actor === subj && h.target?.side === "enemy") stat.dmg += h.dmg || 0;
       if (res.actor === subj && h.target?.side === "party") stat.heal += h.heal || 0;
@@ -273,7 +281,9 @@ function gauntlet(base, job, level, runSeed, k) {
   const stat = { who: subject || {}, choices: {}, dmg: 0, heal: 0, taken: 0, mp: 0, campMp: 0, rounds: 0, deaths: 0, won: 0 };
   let score = 0;
   for (let i = 0; i < GAUNTLET; i++) {
-    const kind = SYNTH ? ((i + 1) % 4 === 0 ? "boss" : KINDS[i % 3]) : (i === GAUNTLET - 1 ? "boss" : (i + 1) % 4 === 0 ? "elite" : "mob");
+    const kind = SYNTH ? ((i + 1) % 4 === 0 ? "boss" : KINDS[i % 3])
+      : SCENARIO === "elite" ? "elite" : SCENARIO === "boss" ? "boss" : SCENARIO === "strong" ? ((i + 1) % 3 === 0 ? "boss" : "elite")
+      : (i === GAUNTLET - 1 ? "boss" : (i + 1) % 4 === 0 ? "elite" : "mob");
     const wasAlive = subject ? subject.alive : false;
     const foes = SYNTH ? enemies(level, kind, ref, k) : realFoes(level, kind, site, k);
     const r = fight(party, foes, level, stat, SYNTH ? 1 / 0.3 : site.fleeK);
@@ -338,15 +348,15 @@ for (const L of LEVELS) for (const base of Object.keys(BASES)) {
   for (const r of rows.filter((r) => r.level === L && r[base])) { r[base].rel = r[base].score / med; r[base].con = (r[base].score - e0) / Math.max(0.05, med - e0); }
 }
 for (const r of rows) { const bs = Object.keys(BASES).filter((b) => r[b]); r.rel = bs.reduce((s, b) => s + r[b].rel, 0) / bs.length; r.con = bs.reduce((s, b) => s + r[b].con, 0) / bs.length; }
-if (process.env.TALLY) { const tot = Object.values(TALLY).reduce((a, b) => a + b, 0) || 1; console.log("敵から隊への傷の内訳:", Object.entries(TALLY).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${(v / tot * 100).toFixed(0)}%`).join(" ")); console.log("終わり方:", JSON.stringify(ENDS)); }
+if (process.env.TALLY) { const tot = Object.values(TALLY).reduce((a, b) => a + b, 0) || 1; console.log("敵から隊への傷の内訳 (計" + Math.round(tot) + "):", Object.entries(TALLY).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ${(v / tot * 100).toFixed(0)}%`).join(" ")); console.log("終わり方:", JSON.stringify(ENDS)); }
 console.log("難しさ合わせの倍率 k (1 = ゲームの強さのまま):", Object.entries(KCACHE).map(([key, k]) => `${key} ${k.toFixed(2)}`).join(" "));
 const out = arg("--out", null);
-if (out) fs.writeFileSync(out, JSON.stringify({ mode: MODE, soulRate: SOUL_RATE, levels: LEVELS, k: KCACHE, empty: EMPTY, rows }));
+if (out) fs.writeFileSync(out, JSON.stringify({ mode: MODE, scenario: SCENARIO, soulRate: SOUL_RATE, levels: LEVELS, k: KCACHE, empty: EMPTY, rows }));
 const pad = (s, n) => String(s).padEnd(n, "　");
 // 平均は Lv の重み付き (いまの物語は Lv100 手前まで。Lv130・200 は迷宮を延ばした仮の敵なので軽く)
 const LV_W = (L) => (L <= 25 ? 0.5 : L <= 100 ? 1 : L <= 150 ? 0.5 : 0.25);
 const TARGET = { common: 0.95, rare: 1.0, epic: 1.05, legend: 1.15 }; // 手に入りにくく重ねにくい魂ほど少し強い
-console.log(`mode=${MODE} 魂/時=${SOUL_RATE} 休まず${GAUNTLET}戦 (A=コモンの整った隊 B=レアの攻めの隊)。値 = もった戦数の、組ごとの中央値との比`);
+console.log(`mode=${MODE} scenario=${SCENARIO} 魂/時=${SOUL_RATE} 休まず${GAUNTLET}戦 (A=コモンの整った隊 B=レアの攻めの隊)。値 = もった戦数の、組ごとの中央値との比`);
 const avgOf = (job) => { let t = 0, w = 0; for (const L of LEVELS) { const r = rows.find((x) => x.job === job && x.level === L); t += r.rel * LV_W(L); w += LV_W(L); } return t / w; };
 for (const job of JOBS) {
   const rs = LEVELS.map((L) => rows.find((r) => r.job === job && r.level === L));

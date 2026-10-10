@@ -8,8 +8,9 @@
 // 技キー・パッシブキーはセーブ (宿し技の借用・技の並び) に残るので、改名・使い回しはしない。
 //
 // ===== 固有パッシブの効果 fx (成分の配列。値の配列はパッシブLv 1,2,3… の順) =====
-//  { t:"deal",  v:[…], on?, when?, aura? }   与ダメージ +v (0.15 = +15%)
-//  { t:"take",  v:[…], on?, when?, aura?, best? }   被ダメージ −v (0.15 = −15%。下限は ×0.2)。best = 隊で重ならない (持ち主が何人いても一番強いものだけ)
+//  { t:"deal",  v:[…], on?, when?, aura?, best?, holder? }   与ダメージ +v (0.15 = +15%)。holder = 持ち主の側の条件 (when と同じ語。aura の時だけ —
+//                                           例 holder:{taunting:true} = 持ち主が敵を引き付けている間だけ隊に効く)
+//  { t:"take",  v:[…], on?, when?, aura?, best?, holder? }   被ダメージ −v (0.15 = −15%。下限は ×0.2)。best = 隊で重ならない (持ち主が何人いても一番強いものだけ)
 //  { t:"crit",  v:[…], on?, when?, aura? }   物理の会心率 +v
 //  { t:"evade", v:[…], when?, aura? }        敵の物理をかわす確率 +v
 //  { t:"heal",  v:[…] }                      回復呪文・技の回復量 +v
@@ -35,7 +36,7 @@
 //  chance は 0〜1 (配列ならLvごと)。dur は既定3ターン (buff の持続は配列ならLvごと)。
 //  when (条件。すべて満たす時だけ効く。tgt = 与える時は攻撃先、受ける時は攻撃してきた敵):
 //    race:[種族…] / tgtElem:"fire" / tgtAil (状態異常・怯み中) / tgtDebuffed (弱体中) / tgtLow:0.5 (HP割合以下) / tgtHigh:0.8 (以上) /
-//    boss / noBoss / selfLow:0.5 / selfHigh:0.8 / selfAil / buffed (自分が強化中) / defending / mpHigh:0.5 /
+//    boss / noBoss / strong (相手が主か強敵) / selfLow:0.5 / selfHigh:0.8 / selfAil / buffed (自分が強化中) / defending / mpHigh:0.5 /
 //    round1 / roundGE:3 / preempt (先制した戦闘) / front / back (自分の隊列) / crowd:3 (敵の数以上) / lastFoe (敵が残り1体) /
 //    allyDown (倒れた味方がいる) / alone (生き残りが自分だけ) / elem:"fire" (攻撃の属性) /
 //    tgtWeak (攻撃の属性が相手の弱点) / tgtWeakened (相手が状態異常・怯み・弱体のどれか) / taunting (自分が敵を引き付けている = 矢面の構え・挑発の効果中)
@@ -95,13 +96,13 @@ const TARGETS = new Set(["enemy", "all-enemy", "ally", "all-ally", "self"]);
 const ELS = new Set(["fire", "water", "wind", "earth", "light", "dark"]);
 const STATS = new Set(["atk", "vit", "agi", "int", "pie", "hit"]);
 const FX_FIELDS = {
-  deal: "v on when aura", take: "v on when aura best", crit: "v on when aura", evade: "v when aura", heal: "v", cost: "v on",
+  deal: "v on when aura best holder", take: "v on when aura best holder", crit: "v on when aura", evade: "v when aura", heal: "v", cost: "v on",
   stat: "mul when", start: "chance when party dur buff foe barrier wall regen mp endure taunt charge",
   round: "chance when party hp mp buff dur", kill: "chance hp mp buff dur", hurt: "chance on when buff dur thorns mp hp",
   hit: "chance on ail pct turns mul el", cast: "chance on refund hp mp party", fall: "chance buff dur hp", win: "hp mp party",
 };
 const WHEN = new Set(("race tgtElem tgtAil tgtDebuffed tgtLow tgtHigh boss noBoss selfLow selfHigh selfAil buffed defending mpHigh " +
-  "round1 roundGE preempt front back crowd lastFoe allyDown alone elem tgtWeak tgtWeakened taunting").split(" "));
+  "round1 roundGE preempt front back crowd lastFoe allyDown alone elem tgtWeak tgtWeakened taunting strong").split(" "));
 const AILS = new Set(["poison", "para", "sleep", "confuse", "charm", "seal", "flinch", "strip", "atk", "vit", "agi", "vuln"]);
 // 戦闘に勝った後のMP回復 (win の mp と、共通パッシブの魔力回路): 魂1つあたり最大MPの4%まで。
 // 別の魂どうしは重なる (メイン魂とサブ魂2つで4%ずつ = 12%。サブ魂の枠が増えてもそのまま足す。2026-10 ユーザーの指示 — 5% から下げた)
@@ -138,6 +139,7 @@ function checkPerk(job, key, pk) {
     const ok = new Set(["t", ...allow.split(" ")]);
     for (const k in c) if (!ok.has(k)) fail(job, key, `fx ${c.t} に未知の項目 ${k}`);
     if (c.when) for (const w in c.when) if (!WHEN.has(w)) fail(job, key, `when.${w}`);
+    if (c.holder) { if (!c.aura) fail(job, key, "holder は aura の時だけ"); for (const w in c.holder) if (!WHEN.has(w)) fail(job, key, `holder.${w}`); }
     if (c.t === "hit" && !AILS.has(c.ail)) fail(job, key, `hit.ail ${c.ail}`);
     if (c.t === "win" && c.mp != null && [].concat(c.mp).some(v => !(v >= 0 && v <= VICTORY_MP_PER + 1e-9))) fail(job, key, `勝利後のMP回復は1つ${VICTORY_MP_PER * 100}%まで`);
     if (["deal", "take", "crit", "evade", "heal", "cost"].includes(c.t) && c.v == null) fail(job, key, `fx ${c.t} に v が必要`);

@@ -915,6 +915,7 @@ export class Battle {
     if (w.tgtHigh != null && !(t && frac(t) >= w.tgtHigh)) return false;
     if (w.boss && !(t && t.boss)) return false;
     if (w.noBoss && t && t.boss) return false;
+    if (w.strong && !this._strongFoe(t)) return false;
     if (w.selfLow != null && frac(a) > w.selfLow) return false;
     if (w.selfHigh != null && frac(a) < w.selfHigh) return false;
     if (w.selfAil && !ailing(a)) return false;
@@ -947,6 +948,7 @@ export class Battle {
         if (c.t !== type || (p !== a && !c.aura)) continue;
         if (c.on && !(ctx.on || []).includes(c.on)) continue;
         if (c.when && !this._perkWhen(a, c.when, ctx)) continue;
+        if (c.holder && !this._perkWhen(p, c.holder, ctx)) continue; // 持ち主の側の条件 (盾役が引き付けている間だけ、など)
         // best = 隊で重ならない守り (盾役の「全体攻撃を受け止める」など): 持ち主が何人いても一番強いものだけ
         if (c.best) best = Math.max(best, lvv(c.v, lv) || 0);
         else sum += lvv(c.v, lv) || 0;
@@ -1803,6 +1805,15 @@ export class Battle {
 
   // 敵の単体行動の標的選び。前衛は狙われやすく (重み3)、後衛は狙われにくい (重み1)。
   // 挑発 (taunt) 持ちはさらに3倍狙われやすい
+  // 敵を引き付けている (挑発・矢面の構えの効果中) 生きた味方のうち、一番強く引き付けている者
+  _tauntHolder() {
+    let best = null, bw = 1;
+    for (const p of this.livingParty()) {
+      const w = (pv(p, "taunt") ? 3 : 1) * this._bm(p, "taunt");
+      if (w > bw) { best = p; bw = w; }
+    }
+    return best;
+  }
   _pickPartyTarget() {
     const list = this.livingParty();
     if (!list.length) return null;
@@ -1916,7 +1927,10 @@ export class Battle {
         this.log(`${actor.name}の猛威が隊を呑み込む！`, "dmg");
         for (const p of this.livingParty()) res.hits.push(this._physical(actor, p, { power: CHARGED.wide, name: "猛威", area: true }));
       } else {
-        const t = this._pickPartyTarget();
+        // 受け止め (2026-10): 敵を引き付けている味方がいれば、渾身の一撃はその者が必ず受ける (主・強敵との戦いでの盾役の役目)
+        const guard = this._tauntHolder();
+        const t = guard || this._pickPartyTarget();
+        if (guard) { this.log(`${guard.name}が渾身の一撃の前に立ちはだかる！`, "sys"); this._proc(guard, "受け止め"); }
         if (t) res.hits.push(this._physical(actor, t, { power: CHARGED.smash, acc: CHARGED.smashAcc, name: "渾身の一撃" }));
       }
       return res;

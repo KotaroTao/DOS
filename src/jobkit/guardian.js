@@ -53,11 +53,12 @@ export default {
     },
     guardianNone: {
       label: "不動の根",
-      lv: ["戦闘開始時、敵を自分に引き付ける (3ターン)。引き付けている間、受けるダメージ-20%",
-        "さらに戦闘ごとに一度、致死をHP1で耐える。引き付けている間、受けるダメージ-28%",
-        "さらに戦闘開始時、VIT×1.2 (3ターン)。引き付けている間、受けるダメージ-36%"],
+      lv: ["戦闘開始時、敵を自分に引き付ける (3ターン)。引き付けている間、受けるダメージ-20%・主・強敵への味方全員の与ダメージ+13% (盾役どうしでは一番強いものだけ)",
+        "さらに戦闘ごとに一度、致死をHP1で耐える。引き付けている間、受けるダメージ-28%・主・強敵への味方全員の与ダメージ+18% (盾役どうしでは一番強いものだけ)",
+        "さらに戦闘開始時、VIT×1.2 (3ターン)。引き付けている間、受けるダメージ-36%・主・強敵への味方全員の与ダメージ+23% (盾役どうしでは一番強いものだけ)"],
       fx: [{ t: "start", taunt: true, dur: 3 }, { t: "start", chance: [0, 1, 1], endure: true, buff: { vit: [1, 1, 1.2] }, dur: 3 },
-        { t: "take", when: { taunting: true }, v: [0.20, 0.28, 0.36] }],
+        { t: "take", when: { taunting: true }, v: [0.20, 0.28, 0.36] },
+        { t: "deal", aura: true, best: true, holder: { taunting: true }, when: { strong: true }, v: [0.13, 0.18, 0.23] }],
     },
     guardianHoufuku: {
       label: "報復の楯",
@@ -66,11 +67,13 @@ export default {
     },
     guardianTatenochikai: {
       label: "楯の誓い",
-      lv: ["防御中の被ダメージ-15%。味方全員のブレス・全体呪文の被ダメージ-8% (盾役どうしでは一番強いものだけ)",
-        "防御中の被ダメージ-25%。味方全員のブレス・全体呪文の被ダメージ-12% (盾役どうしでは一番強いものだけ)"],
+      lv: ["防御中の被ダメージ-15%。味方全員のブレス・全体呪文の被ダメージ-8% (主・強敵のものは-18%。盾役どうしでは一番強いものだけ)",
+        "防御中の被ダメージ-25%。味方全員のブレス・全体呪文の被ダメージ-12% (主・強敵のものは-26%。盾役どうしでは一番強いものだけ)"],
       fx: [{ t: "take", when: { defending: true }, v: [0.15, 0.25] },
         { t: "take", aura: true, best: true, on: "breath", v: [0.08, 0.12] },
-        { t: "take", aura: true, best: true, on: "spell", v: [0.08, 0.12] }],
+        { t: "take", aura: true, best: true, on: "spell", v: [0.08, 0.12] },
+        { t: "take", aura: true, best: true, when: { strong: true }, on: "breath", v: [0.18, 0.26] },
+        { t: "take", aura: true, best: true, when: { strong: true }, on: "spell", v: [0.18, 0.26] }],
     },
     guardianToride: {
       label: "最後の砦",

@@ -363,6 +363,11 @@ function allyEffects(b, ctx, actor, sp, a, c, W) {
   const sturdy = a.maxhp && a.hp > a.maxhp * 0.5;
   // 引き付けると硬くなる盾役 (tauntGuard) は、引き受けた分の傷そのものが減るので値打ちが上がる
   if (sp.taunt && b._bm(a, "taunt") <= 1 && sturdy && ctx.allies.length > 1) c.guard += ctx.threatSum * (wounded ? 0.4 : 0.15) * n * (1 + 2 * tauntGuard(a));
+  // 受け止め: 渾身の一撃を溜めている敵がいれば、引き付けた者が必ずそれを受ける (隊の誰かに落ちる大技を硬い者が引き取る)
+  if (sp.taunt && b._bm(a, "taunt") <= 1 && sturdy && ctx.allies.length > 1 && b._omenOf) for (const e of ctx.foes) {
+    const om = b._omenOf(e);
+    if (om && om.kind === "smash") c.guard += ctx.threat(e) * (0.5 + 2 * tauntGuard(a));
+  }
   if (sp.shield && b._bm(a, "shield") <= 1 && sturdy && wounded) c.guard += ctx.maxThreat * n * 0.6;
   if (sp.stance === "counter" && b._bm(a, "ctr") <= 1) c.edge += ctx.hitsOn(a) * ctx.basic(a) * ctx.dmgK * 0.8 * n;
   if (sp.charge && !(a.effects || []).some((e) => e.stat === "charge") && ctx.rounds > 1) c.edge += (sp.charge - 1) * ctx.basic(a) * ctx.dmgK * 0.8;
