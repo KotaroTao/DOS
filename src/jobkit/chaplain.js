@@ -62,6 +62,7 @@ export default {
         "後衛の味方全員の被ダメージ-15%。味方全員のブレス・全体呪文の被ダメージ-16% (主・強敵のものは-25%。盾役どうしでは一番強いものだけ)",
         "後衛の味方全員の被ダメージ-20%。味方全員のブレス・全体呪文の被ダメージ-20% (主・強敵のものは-30%。盾役どうしでは一番強いものだけ)"],
       fx: [{ t: "take", aura: true, when: { back: true }, v: [0.10, 0.15, 0.20] },
+        { t: "deal", aura: true, best: true, holder: { taunting: true }, when: { strong: true }, v: [0.10, 0.14, 0.18] },
         { t: "take", aura: true, best: true, on: "breath", v: [0.12, 0.16, 0.20] },
         { t: "take", aura: true, best: true, on: "spell", v: [0.12, 0.16, 0.20] },
         { t: "take", aura: true, best: true, when: { strong: true }, on: "breath", v: [0.20, 0.25, 0.30] },

@@ -58,7 +58,8 @@ export default {
         "さらに戦闘開始時、VIT×1.2 (3ターン)。引き付けている間、受けるダメージ-36%・主・強敵への味方全員の与ダメージ+23% (盾役どうしでは一番強いものだけ)"],
       fx: [{ t: "start", taunt: true, dur: 3 }, { t: "start", chance: [0, 1, 1], endure: true, buff: { vit: [1, 1, 1.2] }, dur: 3 },
         { t: "take", when: { taunting: true }, v: [0.20, 0.28, 0.36] },
-        { t: "deal", aura: true, best: true, holder: { taunting: true }, when: { strong: true }, v: [0.13, 0.18, 0.23] }],
+        { t: "deal", aura: true, best: true, holder: { taunting: true }, when: { strong: true }, v: [0.13, 0.18, 0.23] },
+        { t: "deal", aura: true, best: true, holder: { taunting: true }, v: [0.08, 0.12, 0.16] }],
     },
     guardianHoufuku: {
       label: "報復の楯",
