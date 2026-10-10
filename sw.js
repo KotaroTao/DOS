@@ -440,6 +440,7 @@ const ASSETS = [
   "./src/dungeons/schema.js",
   "./src/dungeons/common.js",
   "./src/dungeons/index.js",
+  "./src/dungeons/floorhaz.js",
   "./src/dungeons/d01.js",
   "./src/dungeons/d02.js",
   "./src/dungeons/d03.js",

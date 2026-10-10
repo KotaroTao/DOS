@@ -192,7 +192,7 @@ export const USABLES = [
   // ---- 逃走 (戦闘中) ----
   U("u_smoke_ball", "煙玉", 4, { escape: true }, { shape: "orb", tint: "#8a8a90", tintAmt: 0.3, desc: "硝石と灰を固めた丸い玉。地に叩きつければ濃い煙が一瞬で辺りを覆い、魔物が咳き込むあいだに、隊は闇の中へ紛れて逃れる。" }),
   // ---- 迷宮 (歩いている時) ----
-  U("u_float_feather", "風切りの羽", 13, { float: 2 }, { shape: "feather", tint: "#c8e0ff", tintAmt: 0.3, desc: "嵐の中を飛び続けた渡り鳥の風切り羽。胸に挿せば体が羽毛のように軽くなり、隊の足はしばらく地を離れて、落とし穴の上さえ漂って越えてゆく。" }),
+  U("u_float_feather", "風切りの羽", 13, { float: 2 }, { shape: "feather", tint: "#c8e0ff", tintAmt: 0.3, desc: "嵐の中を飛び続けた渡り鳥の風切り羽。胸に挿せば体が羽毛のように軽くなり、隊の足はしばらく地を離れて、口を開けた穴や毒の沼の上さえ漂って越えてゆく。" }),
   // 帰還の鈴: 迷宮のどこからでも街へ帰れる。酒場の依頼の礼でだけ手に入る (迷宮では落ちない = noDrop)
   Object.assign(U("u_recall_bell", "帰還の鈴", 10, { recall: true }, { shape: "bell", tint: "#e8c070", tintAmt: 0.3, price: 120, desc: "酒場「沈まぬ灯」の釣り灯から鋳た、小さな真鍮の鈴。迷宮の底で振れば、灯の下で待つ者たちの耳にだけ届く音が鳴り、隊は灯の方へ引き戻される。" }), { noDrop: true }),
 ];

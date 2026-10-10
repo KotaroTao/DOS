@@ -15,7 +15,9 @@
 //   power   強さの素 { 階: 値 } (推奨Lv の伸び lvPow を除いた、敵の HP/ATK/VIT の倍率。間の階は直線で結ぶ。1階と最下階は必須)。
 //           2026-10 (B1) に、旧来の「素体 n の enemyScale × 1階ごとの上がり幅 ÷ lvPow(n の物差しの Lv)」を誤差2%以内で
 //           写した値 (それまでの挙動のまま)。後半の迷宮は 0.20〜0.25 あたり。新しい迷宮は前の本筋の最下階の値から続ける
-//           (罠・毒の床・落とし穴・まだあたたかい死体の頻度も推奨Lv から — 下の hazardsAt。旧来の素体の番号 n は 2026-10 の A1 で廃止)
+//           (罠・足元の仕掛け・まだあたたかい死体の頻度も推奨Lv から — 下の hazardsAt。旧来の素体の番号 n は 2026-10 の A1 で廃止)
+//   floorHaz 足元の仕掛け { fall: 落ちる床, harm: 蝕む床 } (src/dungeons/floorhaz.js の名。置かないなら null)。迷宮の土地に合わせて
+//           選ぶ (墓所に沼は置かない…)。出撃画面の「足元」・盤面の絵・踏んだ時の言葉がこれで決まる。新しい迷宮では必ず決める
 //   layer   景色・探索BGM・出来事の層 (1-20)。出現表 (pool/deepPool) と強敵 (elites) もこの層の顔ぶれから選ぶ
 //   floors  全階数。5の倍数の階 (最下階を除く) は下り階段の代わりに「帰還魔法陣」が立つ (game.js / board.js)
 //   bands   雑魚の顔ぶれ (5階ごとの帯。下の poolAt)。boss = 最下階の主 (無ければ最下階の階段で踏破)
@@ -75,10 +77,12 @@ import { LAYER_ELEMENT } from "./generator.js";
 import { LAYER_BOSS, LAYER_ELITES, LAYER_POOLS, BESTIARY } from "./bestiary.js";
 import { baselineLv } from "../baseline.js";
 import { lvPow } from "../levelcurve.js";
+import { FLOOR_HAZ } from "./floorhaz.js";
 
 const WORLD_DEF = [
   {
     id: "w01", lv: 1, lvTo: 3, layer: 1, floors: 5,
+    floorHaz: { fall: null, harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.7, 5: 0.868 },
     name: "忘れられた地下墓地", short: "地下墓地",
     about: "ロアダルの墓所の下。師オルドが最後に降りたと伝わる",
@@ -90,6 +94,7 @@ const WORLD_DEF = [
   },
   {
     id: "w02", lv: 5, lvTo: 10, layer: 1, floors: 10,
+    floorHaz: { fall: null, harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.598, 3: 0.5934, 5: 0.5292, 7: 0.5063, 8: 0.4751, 10: 0.4773 },
     name: "亡骸の囁く回廊", short: "囁く回廊",
     about: "墓地の奥へ続く長い回廊。壁の向こうから死者の囁きが漏れる",
@@ -104,6 +109,7 @@ const WORLD_DEF = [
   },
   {
     id: "w03", lv: 10, lvTo: 17, layer: 1, floors: 15,
+    floorHaz: { fall: null, harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.41, 4: 0.4165, 5: 0.4011, 6: 0.3663, 7: 0.356, 10: 0.3619, 12: 0.3522, 15: 0.3685 },
     name: "朽ちた骸の修道院", short: "骸の修道院",
     about: "死者を弔い続けた修道士たちの成れの果て。最下階に骸の修道院長が待つ",
@@ -120,6 +126,7 @@ const WORLD_DEF = [
   },
   {
     id: "w04", lv: 18, lvTo: 21, layer: 2, floors: 10,
+    floorHaz: { fall: "grate", harm: "sewage" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.3004, 5: 0.3235, 10: 0.3647 },
     name: "黒水の取水口", short: "取水口",
     about: "王都へ流れる黒い水の入口。水に触れた者は影が薄くなるという",
@@ -134,6 +141,7 @@ const WORLD_DEF = [
   },
   {
     id: "w05", lv: 22, lvTo: 27, layer: 3, floors: 15,
+    floorHaz: { fall: "mineshaft", harm: "minegas" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.2799, 5: 0.2868, 10: 0.3072, 15: 0.3208 },
     name: "鎖の垂れる坑口", short: "坑口",
     about: "王家が封じた古の坑道。罪人たちの鎖が、今も闇に垂れている",
@@ -152,6 +160,7 @@ const WORLD_DEF = [
   // ---- 第二章「捨て砦」(第4層) ── 国境の砦。百年前に王都が見捨て、守備隊はいまも持ち場を守っている ----
   {
     id: "w06", lv: 27, lvTo: 30, layer: 4, floors: 10,
+    floorHaz: { fall: "collapse", harm: "caltrop" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.2542, 5: 0.2604, 10: 0.2783 },
     name: "亡兵の守る外郭", short: "外郭",
     about: "国境の捨て砦の城壁と兵舎。百年前に死んだ守備隊が、いまも隊列を組んで持ち場を守る",
@@ -172,6 +181,7 @@ const WORLD_DEF = [
   },
   {
     id: "w07", lv: 31, lvTo: 33, layer: 4, floors: 10,
+    floorHaz: { fall: "oubliette", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.2393, 5: 0.2555, 10: 0.2738 },
     name: "捨て砦の地下牢", short: "地下牢",
     about: "砦の地下に掘られた牢。捕虜と罪人と、王に背いた者たちが、鍵を掛けられたまま忘れられた",
@@ -193,6 +203,7 @@ const WORLD_DEF = [
   },
   {
     id: "w08", lv: 34, lvTo: 36, layer: 4, floors: 10,
+    floorHaz: { fall: "collapse", harm: "caltrop" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.2321, 5: 0.2483, 10: 0.2667 },
     name: "雷雨の大手門", short: "大手門",
     about: "寄せ手が最後に破った砦の正門。あの日の雷雨はいまも止まず、討ち死にした両軍の亡者が門を奪い合う",
@@ -213,6 +224,7 @@ const WORLD_DEF = [
   },
   {
     id: "w09", lv: 37, lvTo: 41, layer: 4, floors: 15,
+    floorHaz: { fall: "collapse", harm: "caltrop" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.228, 5: 0.2367, 10: 0.2467, 15: 0.2559 },
     name: "捨て砦の本丸", short: "本丸",
     about: "砦の主が最後まで立てこもった本丸。軍議の間には、いまも将たちの亡霊が卓を囲む",
@@ -236,6 +248,7 @@ const WORLD_DEF = [
   // ---- 第三章「魂脈の根」(第5層の顔ぶれ) ── 本丸の大穴の下。魂を吸う「魂脈」は、地の底の大樹の根だった ----
   {
     id: "w10", lv: 41, lvTo: 43, layer: 5, floors: 10,
+    floorHaz: { fall: "roothole", harm: "spore" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.2129, 5: 0.2292, 10: 0.2478 },
     name: "根の這う縦穴", short: "縦穴",
     about: "本丸の床に開いた大穴。壁という壁を太い根が這い、底の見えない闇へ垂れ下がっている",
@@ -247,15 +260,16 @@ const WORLD_DEF = [
     elites: ["el_eldertreant"],
     trait: {
       id: "shaft", name: "根の縦穴", sym: "⇣", accent: "#b08a5a",
-      lines: ["縦穴の足場は脆い。落とし穴が多い (各階に2つ増える)。落ちても傷は負わないが、その階は探れない。", "壁の根に、落ちた者たちの遺品が絡まっている (各階に宝箱が1つ増える)。"],
+      lines: ["縦穴の足場は脆い。根の穴が多い (各階に2つ増える)。落ちても傷は負わないが、その階は探れない。", "壁の根に、落ちた者たちの遺品が絡まっている (各階に宝箱が1つ増える)。"],
       board: "shaft",
     },
-    tune: { enemyMul: 1.20, deepMul: 0.76, soloMul: 1.05 }, // 落とし穴で階を飛ばされる分、深階はやや重い。2026-10 実測で 0.72 → 1.20 (上の注記)
+    tune: { enemyMul: 1.20, deepMul: 0.76, soloMul: 1.05 }, // 根の穴で階を飛ばされる分、深階はやや重い。2026-10 実測で 0.72 → 1.20 (上の注記)
     unlock: { reported: "w09" },
     hint: "「捨て砦の本丸」の踏破を王に報告すると、大穴へ降りる許しが出る",
   },
   {
     id: "w11", lv: 44, lvTo: 46, layer: 5, floors: 10,
+    floorHaz: { fall: "roothole", harm: "spore" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.2078, 5: 0.224, 10: 0.2426 },
     name: "地の底の霧森", short: "霧森",
     about: "縦穴の底に広がる、陽の届かない森。木々は魂の灯で淡く光り、霧が階ごとに姿を変える",
@@ -276,6 +290,7 @@ const WORLD_DEF = [
   },
   {
     id: "w12", lv: 46, lvTo: 48, layer: 5, floors: 10,
+    floorHaz: { fall: "roothole", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.2051, 5: 0.2214, 10: 0.2401 },
     name: "樹液の苗床", short: "苗床",
     about: "大樹の根が魂を溶かし、樹液に変える苗床。甘い香りが傷を癒し、魔物までも癒す",
@@ -296,6 +311,7 @@ const WORLD_DEF = [
   },
   {
     id: "w13", lv: 49, lvTo: 52, layer: 5, floors: 15,
+    floorHaz: { fall: "roothole", harm: "rootsuck" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.2006, 5: 0.2098, 10: 0.2206, 15: 0.2306 },
     name: "魂喰らいの大樹", short: "大樹",
     about: "百の迷宮から魂を吸い上げる大樹の根元。幹は王都へ向かって、地の底を這い上がっている",
@@ -319,6 +335,7 @@ const WORLD_DEF = [
   // ---- 第四章「王都の地下」(第6層の顔ぶれ) ── 大樹の幹が昇る王都の足元。三百年前に沈んだ旧都と、その大神殿 ----
   {
     id: "w14", lv: 52, lvTo: 54, layer: 6, floors: 10,
+    floorHaz: { fall: "sunken", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.192, 5: 0.2067, 10: 0.2235 },
     name: "水底の参道", short: "参道",
     about: "王都の地下水路のさらに下。三百年前に沈んだ旧都の参道が、灯籠を連ねて水の底へ続いている",
@@ -340,6 +357,7 @@ const WORLD_DEF = [
   },
   {
     id: "w15", lv: 54, lvTo: 56, layer: 6, floors: 10,
+    floorHaz: { fall: "sunken", harm: "holywater" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1874, 5: 0.2021, 10: 0.2188 },
     name: "溺れた聖歌の回廊", short: "聖歌回廊",
     about: "旧都の大神殿へ続く回廊。水に沈んだ聖歌隊が、三百年、同じ歌を歌い続けている",
@@ -360,6 +378,7 @@ const WORLD_DEF = [
   },
   {
     id: "w16", lv: 56, lvTo: 58, layer: 6, floors: 10,
+    floorHaz: { fall: "sunken", harm: "holywater" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.185, 5: 0.1997, 10: 0.2166 },
     name: "洗礼の大水槽", short: "大水槽",
     about: "王が冠を受ける前に身を清めた、旧都の洗礼の水槽。いまは大樹の根が水を吸い、底は昏い",
@@ -381,6 +400,7 @@ const WORLD_DEF = [
   },
   {
     id: "w17", lv: 58, lvTo: 61, layer: 6, floors: 15,
+    floorHaz: { fall: "sunken", harm: "holywater" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.181, 5: 0.1892, 10: 0.199, 15: 0.208 },
     name: "沈める大神殿", short: "大神殿",
     about: "旧都の王が冠を受けた大神殿。三百年前、一夜にして水に沈んだ。大樹の幹が、祭壇を突き破って昇っている",
@@ -403,6 +423,7 @@ const WORLD_DEF = [
   // ---- 第五章「灼熱の洞」(第7層の顔ぶれ) ── 大神殿の底のさらに下。大樹の樹液を煮詰める、火の洞 ----
   {
     id: "w18", lv: 61, lvTo: 63, layer: 7, floors: 10,
+    floorHaz: { fall: "fissure", harm: "scorch" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.173, 5: 0.1862, 10: 0.2014 },
     name: "火を噴く地割れ", short: "地割れ",
     about: "大神殿の底の割れ目から、熱い風が吹き上げる。岩は赤く脈打ち、足元から火が噴き出す",
@@ -414,7 +435,7 @@ const WORLD_DEF = [
     elites: ["el_cinderking"],
     trait: {
       id: "vent", name: "噴き出す火", sym: "♨", accent: "#e07040",
-      lines: ["地割れから火が噴き出し、通路の一割ほどが灼けた床になる (毒の床と同じ。浮遊で避けられる)。", "火に追われた魂が多く、得る ✦Soul は 1.25倍。"],
+      lines: ["地割れから火が噴き出し、通路の一割ほどが灼けた床になる (浮遊で避けられる)。", "火に追われた魂が多く、得る ✦Soul は 1.25倍。"],
       mods: { soulMul: 1.25 },
       board: "vent",
     },
@@ -424,6 +445,7 @@ const WORLD_DEF = [
   },
   {
     id: "w19", lv: 63, lvTo: 65, layer: 7, floors: 10,
+    floorHaz: { fall: "fissure", harm: "hotash" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1689, 5: 0.182, 10: 0.1971 },
     name: "灰の降る祭場", short: "祭場",
     about: "火を拝む者たちが集った地下の祭場。天井から灰が降り続け、焼かれた人業の殻が積み上がっている",
@@ -444,6 +466,7 @@ const WORLD_DEF = [
   },
   {
     id: "w20", lv: 65, lvTo: 67, layer: 7, floors: 10,
+    floorHaz: { fall: "fissure", harm: "broth" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1667, 5: 0.1799, 10: 0.1951 },
     name: "魂を煮る釜場", short: "釜場",
     about: "大樹の樹液を煮詰めて霊薬に変える釜が、いくつも並ぶ。釜の火は、迷宮に呑まれた魂でできている",
@@ -465,6 +488,7 @@ const WORLD_DEF = [
   },
   {
     id: "w21", lv: 67, lvTo: 70, layer: 7, floors: 15,
+    floorHaz: { fall: "fissure", harm: "scorch" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.163, 5: 0.1705, 10: 0.1793, 15: 0.1874 },
     name: "業火の大釜", short: "大釜",
     about: "火の洞の底の大釜。三百年、魂の樹液を煮詰め続けてきた。釜の底には、底の無い穴が口を開けている",
@@ -488,6 +512,7 @@ const WORLD_DEF = [
   //   強さの素は第五章の各迷宮の 0.9倍 (層の入口の1割の段差。第四章 → 第五章と同じ比)。手直しは第五章に倣う
   {
     id: "w22", lv: 70, lvTo: 72, layer: 8, floors: 10,
+    floorHaz: { fall: "icecrack", harm: "frost" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1557, 5: 0.1676, 10: 0.1813 },
     name: "奈落の氷棚", short: "氷棚",
     about: "大釜の底の穴を降りると、壁から氷の棚が張り出している。吹き上げる風が、落ちてくる魂を凍らせて受け止める",
@@ -499,7 +524,7 @@ const WORLD_DEF = [
     elites: ["el_glacialmaw"],
     trait: {
       id: "ledge", name: "吹き上げる風", sym: "⇡", accent: "#9ad0f0",
-      lines: ["奈落から吹き上げる風が氷棚を削り、各階に落とし穴が3つ増える (最下階を除く。浮遊で避けられる)。", "落ちてきた魂が棚に吹き寄せられ、得る ✦Soul は 1.25倍。"],
+      lines: ["奈落から吹き上げる風が氷棚を削り、各階に氷の割れ目が3つ増える (最下階を除く。浮遊で避けられる)。", "落ちてきた魂が棚に吹き寄せられ、得る ✦Soul は 1.25倍。"],
       mods: { soulMul: 1.25 },
       board: "ledge",
     },
@@ -509,6 +534,7 @@ const WORLD_DEF = [
   },
   {
     id: "w23", lv: 72, lvTo: 74, layer: 8, floors: 10,
+    floorHaz: { fall: "icecrack", harm: "frost" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.152, 5: 0.1638, 10: 0.1774 },
     name: "凍れる操霊師の間", short: "凍れる間",
     about: "氷の柱がどこまでも並ぶ広間。柱の一本一本に、人の影が閉じこめられている",
@@ -530,6 +556,7 @@ const WORLD_DEF = [
   },
   {
     id: "w24", lv: 74, lvTo: 76, layer: 8, floors: 10,
+    floorHaz: { fall: "icecrack", harm: "frost" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.15, 5: 0.1619, 10: 0.1756 },
     name: "極光の氷窟", short: "氷窟",
     about: "天井に極光がゆらめく氷の洞窟。光の正体は、氷に閉じこめられた無数の魂だという",
@@ -550,6 +577,7 @@ const WORLD_DEF = [
   },
   {
     id: "w25", lv: 76, lvTo: 79, layer: 8, floors: 15,
+    floorHaz: { fall: "icecrack", harm: "frost" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1467, 5: 0.1535, 10: 0.1614, 15: 0.1687 },
     name: "凍てつく大回廊", short: "大回廊",
     about: "奈落の壁をめぐる、氷の大回廊。いちばん奥に、氷の玉座があるという",
@@ -574,6 +602,7 @@ const WORLD_DEF = [
   //   強さの素は第六章の各迷宮の 0.9倍 (層の入口の1割の段差)。手直しは第六章に倣う。顔ぶれはランク10 (上限) にそろえた
   {
     id: "w26", lv: 79, lvTo: 81, layer: 9, floors: 10,
+    floorHaz: { fall: "mudhole", harm: "swamp" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1401, 5: 0.1508, 10: 0.1632 },
     name: "腐れ水の岸", short: "岸",
     about: "解けた氷の水が滝になって落ちる、奈落の底の沼の岸。黒い泥は、底まで落ちた魂が腐ったものだという",
@@ -584,7 +613,7 @@ const WORLD_DEF = [
     elites: ["el_bogfrogking"],
     trait: {
       id: "bog", name: "ぬかるむ岸", sym: "≈", accent: "#7a9a50",
-      lines: ["岸の泥はところどころ毒の沼で、通路の一割半ほどが沼の床になる (毒の床と同じ。浮遊で避けられる)。", "流れ落ちてきた魂が岸に溜まり、得る ✦Soul は 1.25倍。"],
+      lines: ["岸の泥はところどころ毒の沼で、通路の一割半ほどが沼になる (浮遊で避けられる)。", "流れ落ちてきた魂が岸に溜まり、得る ✦Soul は 1.25倍。"],
       mods: { soulMul: 1.25 },
       board: "bog",
     },
@@ -594,6 +623,7 @@ const WORLD_DEF = [
   },
   {
     id: "w27", lv: 81, lvTo: 83, layer: 9, floors: 10,
+    floorHaz: { fall: "mudhole", harm: "swamp" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1368, 5: 0.1474, 10: 0.1597 },
     name: "器の捨て場", short: "捨て場",
     about: "沼のほとりの谷に、作りかけの人業が山と積まれている。動かないはずの器が、ときどき起き上がる",
@@ -614,6 +644,7 @@ const WORLD_DEF = [
   },
   {
     id: "w28", lv: 83, lvTo: 85, layer: 9, floors: 10,
+    floorHaz: { fall: "mudhole", harm: "swamp" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.135, 5: 0.1457, 10: 0.158 },
     name: "毒霧の葦原", short: "葦原",
     about: "背丈を越える葦の原。毒の霧が立ちこめ、葦のあいだを何かが這い回る",
@@ -633,6 +664,7 @@ const WORLD_DEF = [
   },
   {
     id: "w29", lv: 85, lvTo: 88, layer: 9, floors: 15,
+    floorHaz: { fall: "mudhole", harm: "swamp" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.132, 5: 0.1382, 10: 0.1453, 15: 0.1518 },
     name: "よどみの底", short: "よどみ",
     about: "沼のいちばん深いところ。腐った魂がよどみ、底には古い島が沈みかけている",
@@ -656,6 +688,7 @@ const WORLD_DEF = [
   //   強さの素は第七章の各迷宮の 0.9倍 (層の入口の1割の段差)。手直しは第七章に倣う。顔ぶれはランク10 (上限)
   {
     id: "w30", lv: 88, lvTo: 90, layer: 10, floors: 10,
+    floorHaz: { fall: "stairwell", harm: "charged" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1261, 5: 0.1357, 10: 0.1469 },
     name: "風鳴りの螺旋", short: "螺旋",
     about: "沼の島の工房の奥から、塔の螺旋階段が闇の上へ伸びている。吹き抜けを、下から風が鳴りながら昇っていく",
@@ -666,7 +699,7 @@ const WORLD_DEF = [
     elites: ["el_blizzardwitch"],
     trait: {
       id: "spiral", name: "螺旋の吹き抜け", sym: "↟", accent: "#9aa8d8",
-      lines: ["階段の真ん中は底まで吹き抜けで、各階に落とし穴が2つ増える (浮遊で避けられる)。踊り場には宝箱が1つ増える。", "吹き上げる風が魂を運び上げ、得る ✦Soul は 1.25倍。"],
+      lines: ["階段の真ん中は底まで吹き抜けで、各階に足を踏み外す吹き抜けが2つ増える (浮遊で避けられる)。踊り場には宝箱が1つ増える。", "吹き上げる風が魂を運び上げ、得る ✦Soul は 1.25倍。"],
       mods: { soulMul: 1.25 },
       board: "shaft",
     },
@@ -676,6 +709,7 @@ const WORLD_DEF = [
   },
   {
     id: "w31", lv: 90, lvTo: 92, layer: 10, floors: 10,
+    floorHaz: { fall: "stairwell", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1231, 5: 0.1327, 10: 0.1437 },
     name: "嵐を鳴らす鐘楼", short: "鐘楼",
     about: "塔の中ほどに吊られた、いくつもの大鐘。嵐が吹き抜けるたび、誰も撞かない鐘が鳴りわたる",
@@ -696,6 +730,7 @@ const WORLD_DEF = [
   },
   {
     id: "w32", lv: 92, lvTo: 94, layer: 10, floors: 10,
+    floorHaz: { fall: "stairwell", harm: "charged" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1215, 5: 0.1311, 10: 0.1422 },
     name: "雷の落ちる回廊", short: "雷廊",
     about: "塔の外壁をめぐる、吹きさらしの回廊。鉄の手すりに、絶え間なく雷が落ちる",
@@ -716,6 +751,7 @@ const WORLD_DEF = [
   },
   {
     id: "w33", lv: 94, lvTo: 97, layer: 10, floors: 15,
+    floorHaz: { fall: "stairwell", harm: "charged" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1188, 5: 0.1244, 10: 0.1308, 15: 0.1366 },
     name: "嵐の尖塔の頂", short: "頂",
     about: "塔のいちばん上。渦を巻く雷雲の中心に、火のともらない大きな灯台が立っている",
@@ -738,6 +774,7 @@ const WORLD_DEF = [
   // ---- 依頼の迷宮 (酒場の固定クエストを受けると地図に現れる) ----
   {
     id: "ws1", lv: 20, lvTo: 23, layer: 2, floors: 10, side: true,
+    floorHaz: { fall: "sunken", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.2926, 5: 0.3272, 7: 0.3429, 8: 0.336, 10: 0.3438 },
     name: "沈んだ礼拝堂", short: "沈んだ礼拝堂",
     about: "黒い水の底に沈んだ礼拝堂。夜ごと、水の下から鐘が鳴る",
@@ -753,6 +790,7 @@ const WORLD_DEF = [
   },
   {
     id: "ws2", lv: 24, lvTo: 28, layer: 3, floors: 10, side: true,
+    floorHaz: { fall: "quarry", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.2704, 5: 0.2908, 7: 0.3064, 8: 0.3003, 10: 0.3062 },
     name: "石眠りの石切り場", short: "石切り場",
     about: "王都の城壁を切り出した古い石切り場。鉱夫たちは、つるはしを握ったまま石になった",
@@ -767,6 +805,7 @@ const WORLD_DEF = [
   },
   {
     id: "ws3", lv: 37, lvTo: 42, layer: 5, floors: 10, side: true,
+    floorHaz: { fall: "roothole", harm: "spore" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.2218, 5: 0.2343, 10: 0.2481 },
     name: "霧の迷い森", short: "迷い森",
     about: "捨て砦の裏手に広がる森。霧が道を食い、胞子が足を取る。迷い込んだ者は二度と同じ道を歩けない",
@@ -778,7 +817,7 @@ const WORLD_DEF = [
     elites: ["el_mistmother"], // 名のある強敵の縄張り (named.js)
     trait: {
       id: "mist", name: "迷い霧", sym: "☁", accent: "#9ad0b8",
-      lines: ["胞子の床が多い (毒の床が増える)。霧の奥に、ひとつだけ癒しの泉が湧く。", "霧に紛れて奇襲を受けやすい (×1.5)。迷い込んだ魂は多く、得る ✦Soul は 1.3倍。"],
+      lines: ["胞子の床が多い (通路の一割ほど)。霧の奥に、ひとつだけ癒しの泉が湧く。", "霧に紛れて奇襲を受けやすい (×1.5)。迷い込んだ魂は多く、得る ✦Soul は 1.3倍。"],
       mods: { ambushMul: 1.5, soulMul: 1.3 },
       board: "mist",
     },
@@ -788,6 +827,7 @@ const WORLD_DEF = [
   },
   {
     id: "ws4", lv: 41, lvTo: 45, layer: 5, floors: 10, side: true,
+    floorHaz: { fall: null, harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.2129, 5: 0.2258, 10: 0.2402 },
     name: "銀業の隠れ里", short: "銀の里",
     about: "器になりそこねた魂が流れ着く、霧の奥の隠れ里。空の鎧と石の人形が、銀の小人を守っている",
@@ -807,6 +847,7 @@ const WORLD_DEF = [
   },
   {
     id: "ws5", lv: 55, lvTo: 58, layer: 6, floors: 10, side: true,
+    floorHaz: { fall: "well", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.185, 5: 0.1997, 10: 0.2166 },
     name: "王都の古井戸", short: "古井戸",
     about: "軍議の卓の地図に、王都の真ん中でひとつだけ赤く囲まれていた井戸。投げ込まれた願いの品が、底に積もっている",
@@ -830,6 +871,7 @@ const WORLD_DEF = [
   // ときどき「その時の適正Lv では歯が立たない迷宮」(challenge) と「極端な掟の迷宮」(魔封じ・必ず奇襲…) を混ぜる (ユーザーの指示)
   {
     id: "ws6", lv: 30, lvTo: 34, layer: 4, floors: 10, side: true,
+    floorHaz: { fall: null, harm: "cinder" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.243, 5: 0.257, 10: 0.275 },
     name: "見捨てられた狼煙台", short: "狼煙台",
     about: "捨て砦の外れに立つ狼煙台。援軍を呼ぶ火は百年燃え続け、いまも誰かが薪をくべている",
@@ -852,6 +894,7 @@ const WORLD_DEF = [
     // 格上の迷宮: 第二章 (隊は Lv35 前後) で開くが、推奨Lv は第五章の火の洞と同じ。第4層の魔物 (ランク5〜6) を
     // 火を噴く地割れ w18 と同じ強さ (sqrt(HP×ATK) 約800) まで引き上げるため、強さの素は第4層の約1.65倍
     id: "ws7", lv: 62, lvTo: 66, layer: 4, floors: 10, side: true, challenge: true,
+    floorHaz: { fall: "oubliette", harm: "caltrop" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.378, 5: 0.403, 10: 0.432 },
     name: "獄吏の詰所", short: "詰所",
     about: "地下牢の番人たちが寝起きした詰所。百年、牢の恨みを浴び続けた獄吏たちは、もう人の強さではない",
@@ -872,6 +915,7 @@ const WORLD_DEF = [
   },
   {
     id: "ws8", lv: 57, lvTo: 61, layer: 6, floors: 10, side: true,
+    floorHaz: { fall: "floorboard", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.183, 5: 0.196, 10: 0.21 },
     name: "沈んだ書庫", short: "書庫",
     about: "旧都の書庫の塔。水に沈んでも、棚の書物は一冊も流れ出していない。誰かが、まだ読み手を待っている",
@@ -892,6 +936,7 @@ const WORLD_DEF = [
   },
   {
     id: "ws9", lv: 62, lvTo: 66, layer: 7, floors: 10, side: true,
+    floorHaz: { fall: "fissure", harm: "obsidian" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.171, 5: 0.184, 10: 0.199 },
     name: "黒曜の切り場", short: "黒曜の切り場",
     about: "溶けた岩が冷えて固まった、黒いガラスの崖。割れ口は刃物より鋭く、近づく者を切り刻む",
@@ -912,6 +957,7 @@ const WORLD_DEF = [
   },
   {
     id: "ws10", lv: 66, lvTo: 70, layer: 7, floors: 10, side: true,
+    floorHaz: { fall: null, harm: "scorch" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.165, 5: 0.177, 10: 0.19 },
     name: "火守りの僧院", short: "僧院",
     about: "釜の火を絶やさぬよう祈り続けた火守りたちの僧院。祈りが煮つまり、炎の幻が回廊を歩く",
@@ -932,6 +978,7 @@ const WORLD_DEF = [
   },
   {
     id: "ws11", lv: 71, lvTo: 75, layer: 8, floors: 10, side: true,
+    floorHaz: { fall: "cornice", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.154, 5: 0.166, 10: 0.179 },
     name: "白狼の吹き溜まり", short: "吹き溜まり",
     about: "吹き上げる風が雪を寄せ集めた、奈落の壁のくぼみ。白霜の狼の群れが、雪煙にまぎれて住みついている",
@@ -953,6 +1000,7 @@ const WORLD_DEF = [
   },
   {
     id: "ws12", lv: 75, lvTo: 79, layer: 8, floors: 10, side: true,
+    floorHaz: { fall: "icecrack", harm: "meltwater" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.148, 5: 0.159, 10: 0.171 },
     name: "氷河の裂け目", short: "裂け目",
     about: "氷の壁に走る深い裂け目。解けかけた氷の水が細く流れ、氷の中から抜け落ちた者たちがさまよう",
@@ -977,6 +1025,7 @@ const WORLD_DEF = [
     // 格上の迷宮: 第七章 (隊は Lv80 前後) で開くが、推奨Lv は 100〜104 (状態異常・即死の Lv差も格上)。
     // 第9層の魔物 (ランク10) を、獄吏の詰所 ws7 と同じく層の約1.5倍の強さ (強さの素 × lvPow で 2.3〜2.7) に引き上げた。宝箱と ✦ で報いる
     id: "ws13", lv: 100, lvTo: 104, layer: 9, floors: 10, side: true, challenge: true,
+    floorHaz: { fall: "moundpit", harm: "plague" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.184, 5: 0.195, 10: 0.21 },
     name: "疫病塚の底", short: "疫病塚",
     about: "王都が大疫病の死者を投げこんだ塚の底。塚の穴は、奈落の沼までつながっている",
@@ -997,6 +1046,7 @@ const WORLD_DEF = [
   },
   {
     id: "ws14", lv: 84, lvTo: 88, layer: 9, floors: 10, side: true,
+    floorHaz: { fall: "mudhole", harm: "swamp" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.133, 5: 0.143, 10: 0.154 },
     name: "沈んだ渡し場", short: "渡し場",
     about: "沼の島へ器を運んだ、古い渡し場。舟はとうに沈み、渡し守の灯だけが霧の中で揺れている",
@@ -1017,6 +1067,7 @@ const WORLD_DEF = [
   {
     // 極端な掟の迷宮: 敵はみな神速 (ラウンドの頭に動き、後半にもう一度動く)。1体ずつは軽くしてある
     id: "ws15", lv: 89, lvTo: 93, layer: 10, floors: 10, side: true,
+    floorHaz: { fall: "stairwell", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.1, 5: 0.108, 10: 0.116 },
     name: "雷鳥の巣", short: "巣",
     about: "塔の外壁に張りついた、雷鳥たちの巨大な巣。巣に住むものは、目にも止まらぬ速さで飛び回る",
@@ -1038,6 +1089,7 @@ const WORLD_DEF = [
   },
   {
     id: "ws16", lv: 91, lvTo: 95, layer: 10, floors: 10, side: true,
+    floorHaz: { fall: null, harm: "charged" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.122, 5: 0.131, 10: 0.141 },
     name: "錆びた避雷針の林", short: "針の林",
     about: "塔の張り出しに、錆びた鉄の針が林のように立ち並ぶ。針から針へ、青白い火花が渡っていく",
@@ -1058,6 +1110,7 @@ const WORLD_DEF = [
   },
   {
     id: "ws17", lv: 93, lvTo: 97, layer: 10, floors: 10, side: true,
+    floorHaz: { fall: "cloudgap", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
     power: { 1: 0.12, 5: 0.129, 10: 0.139 },
     name: "雲上の庭", short: "雲庭",
     about: "雷雲の上に張り出した、崩れた庭園。誰も世話をしないはずの花が、枯れずに咲いている",
@@ -1138,22 +1191,28 @@ export function itemFitLv(itemLv) {
   return v;
 }
 
-// 罠・毒の床・落とし穴・まだあたたかい死体の頻度 (推奨Lv の1階から)。旧来の素体 (難度 n の生成器) の式を、本筋の迷宮の
+// 罠・足元の仕掛け・まだあたたかい死体の頻度 (推奨Lv の1階から)。旧来の素体 (難度 n の生成器) の式を、本筋の迷宮の
 // 「n ≒ 1 + (推奨Lv − 1) × 0.46」で推奨Lv に写したもの (A1 で n を廃止したときに置き換え。値はほぼ据え置き)。
-// 毒の床は推奨Lv 24 から、落とし穴は第2層から (最下階には無い — board.js)
-export function hazardsAt(lv, layer) {
+// harmRate = 蝕む床 (盤面の poison) / fallRate = 落ちる床 (pit。最下階には無い — board.js) の割合。
+// どの迷宮に置くかは台帳の floorHaz で決める (2026-10 — 以前は推奨Lv24 から毒の床・第2層から落とし穴を全迷宮に一律に敷いていた)
+export function hazardsAt(lv) {
   const k = Math.max(0, (lv || 1) - 1);
   return {
     trapRate: Math.min(0.25, 0.0412 + 0.00092 * k),
-    poisonRate: lv >= 24 ? Math.min(0.10, 0.0406 + 0.000276 * k) : 0,
-    pitRate: (layer || 1) >= 2 ? Math.min(0.05, 0.0203 + 0.000138 * k) : 0,
+    harmRate: Math.min(0.10, 0.0406 + 0.000276 * k),
+    fallRate: Math.min(0.05, 0.0203 + 0.000138 * k),
     warmChance: Math.min(0.7, 0.3832 + 0.00147 * k),
   };
 }
 
 // 台帳の欄から、迷宮の設定を組み立てる
 function build(def) {
-  const cfg = { ...hazardsAt(def.lv, def.layer), ...def };
+  const { harmRate, fallRate, ...h } = hazardsAt(def.lv);
+  const cfg = { ...h, ...def };
+  // 足元の仕掛け: 台帳で置くと決めた迷宮だけに敷く (見た目と言葉は floorhaz.js)
+  cfg.floorHaz = { ...def.floorHaz };
+  cfg.poisonRate = def.floorHaz.harm ? harmRate : 0;
+  cfg.pitRate = def.floorHaz.fall ? fallRate : 0;
   // 属性の気配 (省略時は層の属性。null = 気配なし)・宝箱と罠のランク (層から)・主のランク
   if (def.element === undefined) cfg.element = LAYER_ELEMENT[def.layer - 1] || "none";
   cfg.rank = Math.max(1, Math.ceil(def.layer / 2));
@@ -1283,5 +1342,11 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
       for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart", "boltStart", "allHaste"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
     }
     for (const k of d.elites || []) if (!BESTIARY[k]) throw new Error(`world: ${d.id} unknown elite ${k}`);
+    // 足元の仕掛け: 迷宮ごとに必ず決める (置かないなら null)。掟の盤面加工が敷く仕掛けは、その迷宮で置いている種類に限る
+    const fh = d.floorHaz;
+    if (!fh || !("fall" in fh) || !("harm" in fh) || Object.keys(fh).length !== 2) throw new Error(`world: ${d.id} needs floorHaz { fall, harm } (置かないなら null)`);
+    for (const kind of ["fall", "harm"]) if (fh[kind] != null && (!FLOOR_HAZ[fh[kind]] || FLOOR_HAZ[fh[kind]].kind !== kind)) throw new Error(`world: ${d.id} floorHaz.${kind} が不正 (${fh[kind]})`);
+    const needs = { shaft: "fall", ledge: "fall", vent: "harm", bog: "harm", mist: "harm" }[d.trait && d.trait.board];
+    if (needs && !fh[needs]) throw new Error(`world: ${d.id} の掟 (${d.trait.board}) は floorHaz.${needs} が要る`);
   }
 }

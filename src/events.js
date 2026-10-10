@@ -845,11 +845,11 @@ export const EVENTS = [
     id: "l2_05", name: "水門のレバー", layer: 2, tier: "uncommon", icon: "event",
     intro: () => ["錆びた水門のレバー。上げれば水が引き、下げれば階の半分が沈む。"],
     choices: (A, cell) => [
-      { label: "上げる ― 毒の床が消え、隠し宝箱が現れる / 30%で鉄砲水", primary: true, fn: () => {
+      { label: "上げる ― 汚水のよどみが消え、隠し宝箱が現れる / 30%で鉄砲水", primary: true, fn: () => {
         if (chance(0.3)) { A.sfx("trap"); A.flash("#3a6a9a"); A.hurtAll(0.20); A.toast("鉄砲水だ！ ― 全員が流されかけた", "bad", "fountain"); }
         const n = A.clearPoison();
         A.placeChest({ rankUp: 1, reveal: true });
-        A.toast(`水が引いた ― 毒の床 ${n}か所が消え、隠し宝箱が現れた`, "good", "chest"); A.done(cell);
+        A.toast(`水が引いた ― 汚水のよどみ ${n}か所が消え、隠し宝箱が現れた`, "good", "chest"); A.done(cell);
       } },
       { label: "下げる ― 遠い半分が水没し、魔物も宝も消える", fn: () => {
         const n = A.floodHalf();
@@ -1804,9 +1804,9 @@ export const EVENTS = [
         if (chance(0.25)) { A.alarm("泥が盛り上がった！", ["舟の下の泥に、魔物が潜んでいた。"], "trap", () => A.fight(cell, [{ pool: true, min: 2 }], "ferryboat", { noChest: true })); return; }
         A.item({}, "沈んだ渡し舟の荷", () => A.done(cell));
       } },
-      A.countCells((c) => c.type === "poison") > 0 && { label: "舟板をはがして渡し板にする ― この階の沼の床 (毒の床) をすべて埋める", primary: true, fn: () => {
+      A.countCells((c) => c.type === "poison") > 0 && { label: "舟板をはがして渡し板にする ― この階の毒の沼をすべて埋める", primary: true, fn: () => {
         const n = A.clearPoison(); A.sfx("step"); A.refresh();
-        A.toast(`舟板を渡して、沼の床${n}か所を埋めた ― この階では毒の床を踏まない`, "good", "poison"); A.done(cell);
+        A.toast(`舟板を渡して、毒の沼${n}か所を埋めた ― この階では沼を踏まない`, "good", "poison"); A.done(cell);
       } },
     ],
     onWin: (A, cell, f, next) => A.item({}, "沈んだ渡し舟の荷", () => A.done(cell, next)),
