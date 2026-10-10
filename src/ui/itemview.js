@@ -558,6 +558,9 @@ export function statLines(it) {
   return parts.join("　");
 }
 
+// 品質の色分け (品質の札・目盛り): 90〜 = 極上 / 70〜 = 上 / 30〜 = 並 / それ未満 = 下
+export function qualityTone(q) { return q == null ? "q-mid" : q >= 90 ? "q-top" : q >= 70 ? "q-hi" : q >= 30 ? "q-mid" : "q-lo"; }
+
 // 装備品か (装備可能職業を表示する対象か)。use/misc/mat は対象外。
 export const EQUIPPABLE_SLOTS = new Set(["weapon", "shield", "body", "head", "hands", "feet", "acc"]);
 export function isEquippable(it) { return EQUIPPABLE_SLOTS.has(it.slot); }
