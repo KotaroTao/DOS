@@ -1138,14 +1138,15 @@ function openInfRest(cell = null) {
 }
 
 // ---- 回収人 (商会の者): 品の買い取り (商会の棚へ回る)・回復の道具と風切りの羽 ----
-// 売る品は本編の商会と同じ sellItem (売値・ロック・棚に積む)。並べる道具は、その階の落とし物の帯の上限までの回復の道具 (深いほど強い) と、いつもの風切りの羽
+// 売る品は本編の商会と同じ sellItem (売値・ロック・棚に積む)。並べる道具は、その階の落とし物の帯の上限までの回復の道具 (深いほど強い) と、いつもの風切りの羽・反魂香 (蘇生の道具。浅い階でも必ず並べ、値段は式のまま — 浅い階では貯めて買う重い買い物)
 const INF_FEATHER = "u_float_feather";
+const INF_ALWAYS = [INF_FEATHER, "u_soul_incense"];
 const INF_RECOVERY = (u) => !!(u && !u.recall && (u.heal || u.full || u.mp || u.mpFull || u.cure || u.revive));
 function infTraderWares() {
   if (!abyssActive()) return [];
   const cap = Math.max(10, lootBand(infLevel(G.floor))[1]);
   const ids = Object.keys(ITEMS).filter((id) => { const it = ITEMS[id]; return it && it.slot === "use" && INF_RECOVERY(it.use) && (it.lv || 1) <= cap; });
-  if (ITEMS[INF_FEATHER] && !ids.includes(INF_FEATHER)) ids.push(INF_FEATHER);
+  for (const id of INF_ALWAYS) if (ITEMS[id] && !ids.includes(id)) ids.push(id);
   return ids.sort((a, b) => compareUse(ITEMS[a], ITEMS[b]));
 }
 function infBuy(id, who) {
