@@ -71,3 +71,4 @@ for f in $(git ls-files 'src/*.js'); do node --check "$f"; done   # 構文チェ
 | 画面・UI の部品 | `### UI 構造 (src/ui/)`、`### 画面テーマ — theme.css` |
 | 大きな分割・整理 | `## 整理の計画` → `docs/refactor-plan.md` (着手前にユーザーの了解を取る) |
 | 無限迷宮 (奈落の置き換え)・装備可能レベル・種つき乱数 | `## 無限迷宮の計画` → `docs/infinite-labyrinth.md` (未着手) |
+| 第一部・第二部と第十一章からの壁 (敵の強さの段) | `## 第一部・第二部と壁` → `docs/difficulty-walls.md` |

@@ -122,6 +122,8 @@ function fullyCleared(dn) {
   try { f = game.dungeonFacts ? game.dungeonFacts(dn) : null; } catch (e) { f = null; }
   return !!f && f.monSeen >= f.monTotal && f.fqDone >= f.fqTotal;
 }
+// 壁の倍率の表記 (×2 / ×2.8 / ×3.9)
+function wallText(k) { return String(Math.round(k * 10) / 10); }
 // onTap を渡すと押せる札になる (詳細のポップアップを開く。右に › の印)
 // short = 狭い画面で出す短い名 (札を1行に収める)
 function fact(label, value, cls, onTap = null, short = null) {
@@ -223,6 +225,8 @@ function renderHero(b) {
   const ttl = el("div", "dp-hero-t");
   ttl.appendChild(el("div", "dp-hero-n", dn.name));
   const sub = [`推奨Lv${band[0]}${band[1] > band[0] ? `〜${band[1]}` : ""}`, `全${dn.floors}階`];
+  const wall = game.wallOf ? game.wallOf(dn) : 1;
+  if (wall > 1) sub.push(`壁 敵の強さ×${wallText(wall)}`);
   if (dn.boss) sub.push("主が待つ");
   else if (dn.element && ELEMENTS[dn.element] && dn.element !== "none") sub.push(`${ELEMENTS[dn.element].label}の気配`);
   ttl.appendChild(el("div", "dp-hero-s", sub.join(" ・ ")));
@@ -281,6 +285,12 @@ function renderHero(b) {
   if (mut) hero.appendChild(mut);
   b.appendChild(hero);
   // ここから下は本文と一緒に巻く
+  // 第二部の壁 (world.js wallOf): 推奨Lv に届くだけでは勝てないことを、門をくぐる前に知らせる
+  if (wall > 1) {
+    const step = game.wallStepOf ? game.wallStepOf(dn) : 1;
+    b.appendChild(setText(el("div", "pt-note dp-after dp-wall"),
+      `第二部の壁 ― この土地の敵は、第十章までの物差しの${wallText(wall)}倍の強さ${step > 1 && step < wall ? ` (ひとつ前の土地の${wallText(step)}倍)` : ""}。推奨Lvに届くだけでは歯が立たない。魂融合・宝探し・鍛え直しで隊を鍛えてから挑もう。`));
+  }
   if (dn.id === "w04" && !game.worldState?.().reported.w03) {
     b.appendChild(setText(el("div", "pt-note dp-after"), "取水口は推奨Lv18〜21。まずは回廊を抜け、修道院で師の足跡を追おう。支度が整えば、先に取水口へ向かうこともできる。"));
   }
