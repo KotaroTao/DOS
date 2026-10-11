@@ -2,7 +2,7 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, partyBreathRes, setResonance, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageLabel, isBattleLong, turnsLeftLabel, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -82,7 +82,6 @@ const REDUCED_MOTION = (() => { try { return matchMedia("(prefers-reduced-motion
 import { pickTrap, CHEST_RANKS, rollChestRank } from "./traps.js";
 import { refSoul, refGold, trainCost, lvPow, emberMul, partyAgi, LOCK_K, TRAP_K, lockPow } from "./levelcurve.js";
 import { STABILITY_MAX, STABILITY_ENTRY_COST, STABILITY_RECOVERY_MS, recoverStability, stabilityWaitMs, stabilityRecoveryMs } from "./stability.js";
-import { RESONANCES, RESONANCE_MAP, RESONANCE_CAP, activeResonances, nearResonances, resonanceFx, resonanceSum } from "./resonance.js";
 import { EXP_MAX, EXP_HOURS, EXP_HOUR_MS, EXP_MISC_PER_HOUR, EXP_SOUL_PER_HOUR, EXP_SOUL_EXP_RATE, expPlan, expActualMs, expYield, expRolls, expLeftMin, battlesPerHour as expBattlesPerHour } from "./expedition.js";
 import { tlStability, tlStabilityTick, tlRedGain, tlOn, tlMeasure, tlWatchBattle, tlRunBegin, tlRunEnd, tlSnapshot, tlBattleBegin, tlHits, tlBattleEnd, tlLoot, tlLost, tlGain, tlTownGain, tlPlayTick, tlSoul } from "./telemetry.js";
 import { repriceEquipment } from "./pricing.js";
@@ -490,7 +489,6 @@ const G = {
   party: [],          // 迷宮に連れて行く人業 (最大6体)
   reserve: [],        // 酒場で待機中の人業
   expedition: [],     // 遠征に出ている控えの人業 (src/expedition.js)
-  resonance: { found: {}, fresh: [] }, // 魂の共鳴 (src/resonance.js): 見つけた組 found {id: 1} / まだ知らせていない組 fresh [id]
   // 魂は1体ごとに固有のインスタンス (本体は魂、人業は器)。同職でも個別に Lv/ランクを持つ。
   souls: [],          // 所持魂 一覧: [{ uid, clsKey, count(吸収数→ランク), level, exp }]
   shopStock: null,    // 商会の在庫 { itemId: 個数 } (初回 setupNewGame で初期化)
@@ -603,7 +601,7 @@ function takeStolenGold(b) {
   return g;
 }
 function runGainGold(g, src, pre, modifier = null) {
-  const base = g * 0.5, sf = sfNum("goldMul", 1), mu = modifier ?? mutNum("goldMul", 1), eq = 1 + partyEffMax("goldUp") + resonanceHere("gold"); // 魂の共鳴 (gold)
+  const base = g * 0.5, sf = sfNum("goldMul", 1), mu = modifier ?? mutNum("goldMul", 1), eq = 1 + partyEffMax("goldUp");
   g = Math.round(g * 0.5 * sf * mu * eq); G.gold += g; if (G.run && inDungeon()) G.run.gold += g;
   if (tlOn() && inDungeon()) tlGain(tlWhere(), "gold", g, src, tlUplift(pre != null ? pre * 0.5 : base, base, sf, "goldMul", mu, eq));
   return g;
@@ -615,7 +613,7 @@ setPermanentStatSource(() => permanentEventStats(G.events?.once));
 function evBoon(k, field, dflt) { return G.events && G.events.flags && G.events.flags[k] ? EV_BOONS[k][field] : dflt; }
 // out を渡すと out.raw に「Lv差で減らす前の額」を入れる (戦闘の魂の経験値は魂ごとの Lv差で減らすため)
 function runGainSoulPts(s, src, pre, modifier = null, out = null) {
-  const base = s, sf = sfNum("soulMul", 1), mu = modifier ?? mutNum("soulMul", 1), eq = 1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0) + resonanceHere("soul"); // 魂の共鳴 (soul)
+  const base = s, sf = sfNum("soulMul", 1), mu = modifier ?? mutNum("soulMul", 1), eq = 1 + partyEffMax("soulUp") + evBoon("will", "soulMul", 0);
   const lm = inDungeon() ? partySoulLvMul() : 1;
   const raw = s * sf * mu * eq;
   s = Math.round(raw * lm); G.soulPts += s; if (G.run && inDungeon()) G.run.soulPts += s;
@@ -7810,7 +7808,7 @@ function startBattleMeasured(enemies, cell) {
     // 極の恵み「霧渡りの目」は奇襲を半分に
     // 夜営の番 (nightWatch): 奇襲される確率 −50/75/100%
     const nw = 1 - ([0, 0.50, 0.75, 1][Math.min(3, partyPassiveLv("nightWatch"))] || 0);
-    const amb = (spFloor && spFloor.noAmbush) ? 0 : 0.08 * mutNum("ambushMul", 1) * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1) * evBoon("mistEye", "ambush", 1) * nw * (1 - resonanceHere("ambush")); // 魂の共鳴 (ambush)
+    const amb = (spFloor && spFloor.noAmbush) ? 0 : 0.08 * mutNum("ambushMul", 1) * (vig >= 2 ? 0 : vig === 1 ? 0.5 : 1) * evBoon("mistEye", "ambush", 1) * nw;
     // 追い風の階 (preempt100) では必ず先制できる。
     // 先制の心得 (initiative) で +15/25/40%、周囲警戒Lv3 で挑戦時さらに +10%
     const ini = partyPassiveLv("initiative");
@@ -7818,7 +7816,7 @@ function startBattleMeasured(enemies, cell) {
     const iniBonus = (ini >= 3 ? 0.40 : ini >= 2 ? 0.25 : ini >= 1 ? 0.15 : 0)
       + ([0, 0.10, 0.15, 0.20][Math.min(3, partyPassiveLv("stealthStep"))] || 0);
     // 極の恵み「守備隊の敬礼」は先手 +8%
-    const pre = (spFloor && spFloor.preempt100) ? 1 : 0.08 + iniBonus + (vig >= 3 ? 0.10 : 0) + evBoon("salute", "preempt", 0) + resonanceHere("preempt"); // 魂の共鳴 (preempt)
+    const pre = (spFloor && spFloor.preempt100) ? 1 : 0.08 + iniBonus + (vig >= 3 ? 0.10 : 0) + evBoon("salute", "preempt", 0);
     const r = Math.random();
     if (r < amb) opening = "ambush";
     else if (r < amb + pre) opening = "preempt";
@@ -7849,10 +7847,8 @@ function startBattleMeasured(enemies, cell) {
   // 敵のLv = その迷宮・階の基準Lv (状態異常・即死の成功率はLv差で決まる — combat.js lvRate)
   const foeLv = foeLevelHere();
   for (const e of enemies) e.lv = foeLv;
-  const resoNow = syncResonance(); // 魂の共鳴: 戦闘の中の効果を渡し直す
   G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), baseAgi: partyAgi(levelHere().lv), foeLv });
   tlWatchBattle(G.battle, tlWhere());
-  if (resoNow.length) log(`魂の共鳴 ― ${resoNow.map((x) => x.name).join("・")}`, "sys");
   // 掟 (土地の掟 → 迷宮の掟) の開幕の効果: 寒さに身がすくむ (chill) — 隊の全員の AGI を段数ぶん下げる (3ターン)。
   // 段は足し合う (酷寒 −1段 + 絶対零度 −1段 = −2段)
   for (const r of ruleOpens) if (r.chill) {
@@ -10935,7 +10931,6 @@ function renderTown() {
   renderRunbar(); // 街では隠す
   refreshOrderBonus(); // 編成・魂の付け替えで結社の席が変わっていれば、全員の能力を付け直す
   for (const d of fixHandsAndShields()) recalcDoll(d); // 二刀流を失った (サブ魂を外した・融合した) 人業の左手の武器は袋へ
-  syncResonance(); // 編成・魂の付け替えで魂の共鳴が変わっていれば渡し直す (初めてそろった組は知らせる)
   autosave(); // 街での操作のたびに保存 (描画はアクション後に呼ばれる)
   updateTopbar();
   playBgm(sceneBgm()); // 施設ごとのBGM (同じ曲なら継続)
@@ -11217,54 +11212,6 @@ function normalizeExpeditions() {
 }
 // 遠征の残り (分)。画面の札が読む
 function expeditionLeftMin(e) { return expLeftMin(e, G.stats.playMs || 0); }
-
-// ===== 魂の共鳴 (第七章「毒沼」の結びで開く。組の表と判定は src/resonance.js、画面は src/ui/party.js・palace.js) =====
-// 隊に出ている (生死を問わず編成中の) 人業のメイン魂の職だけで判定する (サブ魂・控えは数えない)。
-// 戦闘の中の効果は combat.js setResonance (固有パッシブの _perkSum・消費MP・逃走・状態異常耐性と同じ入口 — オートの見積もりにも効く)、
-// 戦闘の外の効果 (先制・奇襲・迷宮の ✦Soul / 金貨) は resonanceHere。
-// G.resonance = { found: {id: 1} (見つけた組。図鑑の「共鳴」), fresh: [id] (まだ知らせていない組。街で手が空いた時に1枚で知らせる) }
-function resonanceState() {
-  const r = G.resonance && typeof G.resonance === "object" ? G.resonance : (G.resonance = {});
-  if (!r.found || typeof r.found !== "object") r.found = {};
-  if (!Array.isArray(r.fresh)) r.fresh = [];
-  for (const id of Object.keys(r.found)) if (!RESONANCE_MAP[id]) delete r.found[id];
-  r.fresh = r.fresh.filter((id, i, a) => RESONANCE_MAP[id] && r.found[id] && a.indexOf(id) === i);
-  return r;
-}
-// 隊のメイン魂の職の鍵 (並びは隊の順。空の器は除く)
-function partyJobKeys(party = G.party) { return (party || []).filter((d) => d && d.primary != null && d.jobKey).map((d) => d.jobKey); }
-// いま効いている共鳴 (機能が開くまでは無し)
-function partyResonances(party = G.party) { return featureUnlocked("resonance") ? activeResonances(partyJobKeys(party)) : []; }
-// あと1職でそろう共鳴
-function partyNearResonances(party = G.party) { return featureUnlocked("resonance") ? nearResonances(partyJobKeys(party)) : []; }
-// 戦闘の外の効果 (preempt / ambush / soul / gold) の合計 (上限つき)
-function resonanceHere(type) { return resonanceSum(partyResonances(), type); }
-// いまの隊の効果を combat.js へ渡す (記録・知らせはしない。読み込みの時)
-function applyResonance() {
-  resonanceState();
-  const list = partyResonances();
-  setResonance(resonanceFx(list), (G.party || []).filter(Boolean), RESONANCE_CAP);
-  return list;
-}
-// 渡し直して、初めてそろった組を記録する。街なら手の空いた時に「魂の共鳴」の1枚で、迷宮ならトーストと記録で知らせる
-function syncResonance() {
-  const list = applyResonance();
-  const r = G.resonance;
-  const fresh = list.filter((x) => !r.found[x.id]);
-  if (!fresh.length) return list;
-  for (const x of fresh) { r.found[x.id] = 1; r.fresh.push(x.id); log(`魂の共鳴「${x.name}」が目覚めた。`, "win"); }
-  if (G.state === "town") { if (UI.queueResonanceNotice) UI.queueResonanceNotice(); }
-  else { showToast(`✧ 魂の共鳴「${fresh.map((x) => x.name).join("」「")}」が目覚めた`, { noLog: true, tone: "good" }); r.fresh = r.fresh.filter((id) => !fresh.some((x) => x.id === id)); }
-  return list;
-}
-// 知らせる組を fresh から取り出す (知らせのシートが呼ぶ)
-function takeFreshResonances() {
-  const r = resonanceState();
-  const ids = r.fresh.slice();
-  r.fresh = [];
-  autosave();
-  return ids.map((id) => RESONANCE_MAP[id]).filter(Boolean);
-}
 
 // 人業を仕立てる費用 (最初の3体は無料、4体目以降に段階上昇)
 function emptyDollCost() {
@@ -12424,7 +12371,7 @@ function markTavernHeard(crowd = G.tavernCrowd) {
 // 書き留めた話 (聞いた心得・言い伝え。台帳の並び順)
 function tavernNotes() {
   const h = G.tavernHeard || {};
-  return Object.keys(h).map((id) => TALK_MAP[id]).filter(Boolean);
+  return Object.keys(h).map((id) => TALK_MAP[id]).filter((t) => t && !t.retired); // 取りやめた仕組みの話 (retired) は出さない
 }
 
 // ---- 情報屋の噂: 地図にある迷宮の一つを読んだ予兆を生成する ----
@@ -13293,7 +13240,6 @@ const FEATURES = {
   forge: { chapter: 5, report: "finale" },    // 鍛え直し (商会で金貨を払い、装備の品質を引き直す。奈落と同時 — 2026-10 ユーザーの指示)
   // ── 第六章から (docs/unlocks.md の年表。ユーザーの了解済み)。章がまだ無いので開かない。仕組みはその章を作る時に足す ──
   expedition: { chapter: 6, report: "finale" }, // 遠征 (控えの人業が踏破済みの迷宮を回る)
-  resonance: { chapter: 7, report: "finale" },  // 魂の共鳴 (職の組み合わせの効果)
   order4: { chapter: 8, report: "finale" },     // 結社の席4
   rematch: { chapter: 9, report: "finale" },    // 宿敵の再戦 (名のある強敵・主の強化版)
   enchant: { chapter: 11, report: "finale" },   // 付呪
@@ -15963,7 +15909,7 @@ const SAVE_KEY = "dos-save-v7"; // v7 = 迷宮の台帳 (選んで潜る迷宮�
 const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "stabilityBriefed", "pendingDoll",
-  "party", "reserve", "expedition", "resonance", "souls", "shopStock", "run", "town",
+  "party", "reserve", "expedition", "souls", "shopStock", "run", "town",
   "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "tavernHeard", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "irene", "journal", "tut", "events", "story", "world", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab",
   "lastRun",
@@ -16247,7 +16193,7 @@ function loadGame() {
   }
   for (const d of fixHandsAndShields()) { try { recalcDoll(d); } catch {} } // 二刀流を失った人業の左手の武器 (魂の能力が出そろってから)
   normalizeExpeditions(); // 遠征 (後付け: 旧セーブは無し。人業の参照を控えにつなぎ直す)
-  applyResonance(); // 魂の共鳴 (後付け: 旧セーブは無し。見つけた組の記録を整え、いまの隊の効果を戦闘へ渡す)
+  delete G.resonance; // 魂の共鳴は 2026-10 に取りやめ (旧セーブの記録は捨てる)
   if (!G.stats) G.stats = {};
   // 後付けの戦績フィールドを既存セーブにも補完する (勲章 cond が参照する)
   const _statDefaults = { runs: 0, deepest: 0, kills: 0, deaths: 0, soulsFound: 0, bossKills: 0,
@@ -16383,7 +16329,6 @@ function setupNewGame() {
   G.party = [];
   G.reserve = [];
   G.expedition = [];
-  G.resonance = { found: {}, fresh: [] };
   G.souls = [];       // 所持魂 一覧 (魂インスタンスの配列)
   setSharedSouls(G.souls);
   G.stabilityBriefed = false;
@@ -16439,9 +16384,9 @@ function setupTestPlay() {
   // 開発用: まだ章の無い機能を試す (URL の testUnlock=expedition,… / 機能の解放の場面「unlock:キー」)
   G.testUnlock = (testParams.get("testUnlock") || "").split(",").filter((k) => FEATURES[k]);
   if (testScene && testScene.id.startsWith("unlock:") && FEATURES[testScene.id.slice(7)]) G.testUnlock.push(testScene.id.slice(7));
-  // 遠征を試せるよう、控えに3体 (隊と同じ Lv)。魂の共鳴の試遊では、隊と入れ替えて組がそろう3職 (侍・聖騎士・司教)
-  if (featureUnlocked("expedition") || featureUnlocked("resonance")) {
-    for (const [i, cls] of (featureUnlocked("resonance") ? ["samurai", "paladin", "bishop"] : ["samurai", "monk", "bishop"]).entries()) {
+  // 遠征を試せるよう、控えに3体 (隊と同じ Lv)
+  if (featureUnlocked("expedition")) {
+    for (const [i, cls] of ["samurai", "monk", "bishop"].entries()) {
       const soul = addSoulInstance(cls, 1, level);
       soul.capBonus = Math.max(0, level - soulLevelCap(cls, soul.count));
       const doll = makeDoll(`控え${i + 1}・${SOUL_CLASSES[cls].label}`);
@@ -16985,11 +16930,6 @@ bindGame({
   recallExpedition, claimExpeditions, expeditionLeftMin, EXP_MAX, EXP_HOURS, expBattlesPerHour, worldById,
 });
 // ==== /遠征 ====
-// ==== 魂の共鳴 (src/ui/party.js の隊列の札・palace.js の図鑑が使う) ====
-bindGame({
-  resonanceState, partyResonances, partyNearResonances, partyJobKeys, takeFreshResonances, RESONANCES,
-});
-// ==== /魂の共鳴 ====
 
 // ---- 起動 ----
 // タイトル画面のセーブ概要 (つづきから): 進行中の章・踏破数・編成の顔ぶれ

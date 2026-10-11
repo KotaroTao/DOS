@@ -118,7 +118,6 @@ const ASSETS = [
   "./src/telemetry.js",
   "./src/stability.js",
   "./src/expedition.js",
-  "./src/resonance.js",
   "./art/tutorial/gatekeeper.png",
   "./src/levelcurve.js",
   "./src/baseline.js",
