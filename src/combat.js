@@ -38,6 +38,9 @@ export function cloneItem(id, q) {
 }
 
 let _uid = 0;
+// 敵の表示Lv の札「（Lv29）」(enemylevel.js — combat.js の組み立てを借りるので、game.js が渡す)
+let _enemyLvTag = () => "";
+export function setEnemyLvTag(fn) { _enemyLvTag = typeof fn === "function" ? fn : () => ""; }
 // 敵の群れは最大6体 (前衛3+後衛3)
 export const MAX_ENEMIES = 6;
 
@@ -357,7 +360,17 @@ const STRONG_EVADE_CAP = 1.2;
 // 味方が先の組は約64% (0.85 だと39%): 速い者 (盗賊・暗殺者) はいつも敵より先、重装の騎士はいつも後、中ほどは入れ替わる。2026-10: 旧式は素の AGI + 0〜3 を
 // 比べていたため、Lv10 を越えると敵 (AGI 9 前後) が味方 (20〜70) より先に動くことがなくなっていた (テスト記録の味方先手100%)。
 // 金属の魔物はもともと味方の規模の AGI (基準 × agiMul) なので直さない
-const TURN_K = 0.65, TURN_JITTER = 0.20;
+export const TURN_K = 0.65;
+const TURN_JITTER = 0.20;
+// 敵の AGI は Battle を作る時に一度だけ「定義の素の値 × fleeK × TURN_K」へ直す (2026-10 ユーザーの指示: 図鑑・敵の姿の素早さを
+// 味方の AGI と見比べられるように)。直した値がそのまま手番の速さで、回避・逃走ではこれを ÷TURN_K して基準の隊の規模に戻す
+// (= 以前の「素の値 × fleeK」。戦闘の釣り合いは変えない)。金属の魔物はもともと味方の規模なので直さない (_agiScaled の印で二重に直さない)
+export function scaleFoeAgi(e, fleeK) {
+  if (!e || e._agiScaled || isMetal(e)) return e;
+  e.agi = Math.max(1, (e.agi || 1) * (fleeK || 1) * TURN_K); // 丸めない (回避・逃走が以前と同じ値になるように。表示で丸める)
+  e._agiScaled = true;
+  return e;
+}
 // 心の状態異常 (actor.mind = "charm" 魅了 | "confuse" 混乱)。戦闘の中だけの状態で、戦いが終われば解ける。
 //  魅了: 手番ごとに味方へ襲いかかる (仲間がいなければ立ち尽くす)。傷を受けると MIND_CHARM_BREAK で正気に戻る
 //  混乱: 手番ごとに敵味方を問わず誰かを殴る / ふらついて何もできない / たまに正気で動ける
@@ -593,6 +606,7 @@ export class Battle {
     // 追跡の物差し: 敵の AGI をこの倍率で味方の AGI と同じ規模に直してから逃走率を出す
     // (game.js の fleeScale = その迷宮・階の基準AGI ÷ その迷宮の雑魚の標準AGI)
     this.fleeK = opts.fleeK || 1;
+    for (const e of enemies) scaleFoeAgi(e, this.fleeK); // 敵の AGI を味方の規模 (手番の速さ) に直す
     this.baseAgi = opts.baseAgi || 0; // この階の基準の素早さ (強敵の回避の上限。0 = 上限なし)
     this.foeLv = opts.foeLv || 1; // 敵のLv の既定 (個体の e.lv が無い時。戦闘中に呼ばれた手下など)
     this._roundNo = 0;
@@ -1298,8 +1312,8 @@ export class Battle {
     if (this._roundNo === 1 && this.opening === "preempt") pool = [...this.party];
     else if (this._roundNo === 1 && this.opening === "ambush") pool = [...this.enemies];
     const eagi = (a) => (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1);
-    // 手番の速さ: 敵は味方の規模に直す (TURN_K)。揺らぎは割合で、並べる前に1回だけ振る
-    const turnAgi = (a) => eagi(a) * (a.side === "enemy" && !isMetal(a) ? (this.fleeK || 1) * TURN_K : 1);
+    // 手番の速さ: 敵の AGI は Battle を作った時に味方の規模 (TURN_K 込み) へ直してある (scaleFoeAgi)。揺らぎは割合で、並べる前に1回だけ振る
+    const turnAgi = (a) => eagi(a);
     const speed = new Map();
     for (const a of pool) if (a.alive) speed.set(a, turnAgi(a) * (1 - TURN_JITTER + Math.random() * 2 * TURN_JITTER));
     this.queue = pool
@@ -1322,16 +1336,22 @@ export class Battle {
     T.op += np * (this.queue.length - np);
   }
 
+  // 敵の実効AGI を、回避・逃走の物差し (基準の隊の規模) に戻す: 直した敵は ÷TURN_K、金属の魔物は従来どおり × fleeK
+  _foeAgiBase(e, agi) {
+    if (isMetal(e)) return agi * (this.fleeK || 1);
+    return e._agiScaled ? agi / TURN_K : agi * (this.fleeK || 1);
+  }
+
   // 逃走率 (5%〜95%)。逃走を選んだ者の実効AGI と、生存する敵の「追跡AGI」の平均の比で決まる:
   //   55% + 35% × log2(本人のAGI ÷ 追跡AGI) + 逃げ足 → 5%〜95% に収める
-  //   追跡AGI = 敵の実効AGI の平均 × fleeK (主がいれば ×FLEE_BOSS_MUL)。互角で55%、本人が2倍速ければ90%、半分なら20%
+  //   追跡AGI = 敵の実効AGI (基準の隊の規模 — _foeAgiBase) の平均 (主がいれば ×FLEE_BOSS_MUL)。互角で55%、本人が2倍速ければ90%、半分なら20%
   //   実効AGI はバフ/デバフ込み (水技の鈍足・影縫い・激昂・先駆けの号令が効く)
   fleeChance(actor) {
     if (this.noFlee) return 0;
     const foes = this.livingEnemies();
     if (!foes.length) return FLEE_MAX;
     const agiOf = (a) => Math.max(1, (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1));
-    let chase = (foes.reduce((s, e) => s + agiOf(e), 0) / foes.length) * (this.fleeK || 1);
+    let chase = foes.reduce((s, e) => s + this._foeAgiBase(e, agiOf(e)), 0) / foes.length;
     if (foes.some((e) => e.boss)) chase *= FLEE_BOSS_MUL;
     // 逃げ足 (fleetFoot): 個人の習得は+30%、隊の誰かの Lv に応じ +30/45/60%。高い方を採用
     const fleetSelf = this.party.some((p) => p.alive && pv(p, "fleetFoot")) ? 0.30 : 0;
@@ -1346,7 +1366,7 @@ export class Battle {
     const agiOf = (a) => Math.max(1, (a.agi || 1) * ((a.buffs && a.buffs.agi) || 1));
     if (!actor) return 0;
     // 敵のAGIは味方と規模が違うので、双方向とも逃走の物差しでそろえる。
-    const scaledAgi = (a) => agiOf(a) * (a.side === "enemy" ? (this.fleeK || 1) : 1);
+    const scaledAgi = (a) => (a.side === "enemy" ? this._foeAgiBase(a, agiOf(a)) : agiOf(a));
     let tAgi = scaledAgi(tgt);
     // 主・強敵・ミミック・出来事の強敵は、味方の物理をかわす時だけ基準の素早さ × STRONG_EVADE_CAP まで
     if (this.baseAgi > 0 && actor.side === "party" && this._soloFoe(tgt)) tAgi = Math.min(tAgi, this.baseAgi * STRONG_EVADE_CAP);
@@ -1976,6 +1996,7 @@ export class Battle {
         // 戦果の写し (game.js startBattle が推奨Lv の基準に合わせた比) を引き継ぐ
         if (actor._rk) { e._rk = actor._rk; e.soul = Math.max(1, Math.round(e.soul * actor._rk[0])); e.gold = Math.max(1, Math.round(e.gold * actor._rk[1])); }
         if (actor._agiMul) { e._agiMul = actor._agiMul; e.agi = Math.max(1, Math.round(e.agi * actor._agiMul)); }
+        scaleFoeAgi(e, this.fleeK); // 呼ばれた手下の AGI も味方の規模へ
         // 属性の暴走 (異変): 呼ばれた仲間の属性もでたらめに
         if (actor._elemRandom) { const els = Object.keys(ELEMENTS).filter((k) => k !== "none"); e._elemRandom = true; e.element = els[Math.floor(Math.random() * els.length)]; }
         // ロード復元後の uid 重複を防ぐ (uid カウンタはリロードでリセットされる)
@@ -1985,7 +2006,7 @@ export class Battle {
         const same = this.enemies.filter((x) => x.key === key).length;
         if (same) e.name += String.fromCharCode(65 + same);
         this.enemies.push(e);
-        this.log(`${actor.name}は ${e.mon.name} を呼び寄せた！`, "dmg");
+        this.log(`${actor.name}は ${e.mon.name}${_enemyLvTag(e)} を呼び寄せた！`, "dmg");
         res.summoned = e;
       } else {
         this.log(`${actor.name}は何かを呼ぼうとしたが、応えはなかった。`, "sys");
