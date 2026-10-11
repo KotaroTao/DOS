@@ -1032,7 +1032,7 @@ const WORLD_DEF = [
     },
     tune: { enemyMul: 1.33, deepMul: 0.76, soloMul: 1.00 }, // 第5層の顔ぶれ (ランク6-7) を本丸並みに
     unlock: { quest: "fq_wren" },
-    hint: "酒場の猟師の依頼「霧に呑まれた娘」を受けると、道が示される",
+    hint: "酒場の猟師の依頼「霧にのまれた娘」を受けると、道が示される",
   },
   {
     id: "ws4", lv: 41, lvTo: 45, layer: 5, floors: 10, side: true,
@@ -1319,7 +1319,7 @@ const WORLD_DEF = [
     },
     tune: { enemyMul: 0.97, deepMul: 0.82, soloMul: 1.05 },
     unlock: { quest: "fq_rodsmith" },
-    hint: "酒場の屋根職人の依頼「錆びた針」を受けると、道が示される",
+    hint: "酒場の屋根職人の依頼「さびた針」を受けると、道が示される",
   },
   {
     id: "ws17", lv: 93, lvTo: 97, layer: 10, floors: 10, side: true,
