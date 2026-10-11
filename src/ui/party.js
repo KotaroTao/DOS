@@ -621,9 +621,15 @@ function openDeltaSheet(item, infos, best, act) {
   });
 }
 // 品の画面 (シート): 品の要約 + 誰に装備させるか (主役) + その他の操作 (使う・渡す・売る・迷宮では捨てる…)
-export function openEquipChooser(item, { owner = null, actions = null } = {}) {
+// 品の画面は1つに揃える (2026-10 ユーザーの指示): 本物の品シート (loot.js の UI.itemSheet) があればそれを使い、
+// 下の自前の画面は品シートがまだ無い時だけの控え
+export function openEquipChooser(item, { owner = null, actions = null, onClose = null } = {}) {
   if (!item) return null;
   owner = owner || ownerOf(item);
+  if (realItemSheet()) {
+    const acts = actions || (owner ? itemActions(item, owner, "bag", { equip: false }) : []);
+    return UI.itemSheet(item, { owner, context: owner ? "bag" : null, actions: acts, chooser: true, onClose });
+  }
   const rk = rarityKey(item);
   const accent = rk ? RARITIES[rk].color : null;
   let h = null;
@@ -2597,11 +2603,12 @@ export function openItemDetail(item) {
 // 袋の装備品 (鑑定済み) = 「誰に装備させるか」が主役の品の画面 (equipChooser)。
 // それ以外 (未鑑定・道具・収集品・装備中) は品のシート: WP-C の UI.itemSheet があればそれ、無ければ自前。
 // actions = シートの足の操作 [{label, sub, kind, cost, disabled, onTap(h)}] (kit の footer と同じ形)
+function realItemSheet() { return !!(UI.itemSheet && phase0ItemSheet && UI.itemSheet !== phase0ItemSheet); }
 export function openItem(item, owner = null, sel = {}) {
   if (!item) return null;
   if (item.isNew) { delete item.isNew; bgcMemo.key = ""; }
   const ctx = sel.from || (owner ? "bag" : "info");
-  const realSheet = UI.itemSheet && phase0ItemSheet && UI.itemSheet !== phase0ItemSheet;
+  const realSheet = realItemSheet();
   if (owner && ctx === "bag" && isEquippable(item) && !item.unidentified) {
     const actions = itemActions(item, owner, ctx, { equip: false });
     if (realSheet) return UI.itemSheet(item, { owner, context: ctx, actions, chooser: true });
