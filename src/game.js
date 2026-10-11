@@ -14123,6 +14123,14 @@ function sellWarnings(it) {
   return out;
 }
 
+// まとめて売るから外す品: 未奉納の収集品とレジェンドレア (2026-10 ユーザーの指示: SR はまとめて売るに含める。
+// 一点ずつの「売る」では sellWarnings が SR にも警告を出す)
+function bulkSellBlocked(it) {
+  if (!it) return true;
+  if (it.slot === "misc" && it.id && !treasuryState().donated[it.id]) return true;
+  return rarityKey(it) === "lr";
+}
+
 function sellItem(owner, it, price) {
   const idx = owner.items.indexOf(it);
   if (idx < 0) return false;
@@ -16344,14 +16352,14 @@ function setupTestPlay() {
 // トーストは1回にまとめ、街を描き直す。施設が閉ざされている間 (第0章) は動かない。
 function opsFacilityOpen(key) { const a = tutorialAllowed(); return !a || a.includes(key); }
 function opsEquippedBy(d, it) { for (const k in (d.equip || {})) if (d.equip[k] === it) return true; return false; }
-// 売却候補: 呪い・未鑑定・装備中・SR/LR・未奉納の収集品 (sellWarnings) は除外 (商店の一括売却と同じ)。
+// 売却候補: 呪い・未鑑定・装備中・LR・未奉納の収集品 (bulkSellBlocked) は除外 (商店の一括売却と同じ。SR は含める)。
 // 消耗品 (薬草など) は設定「まとめて売るに道具を含める」(UI の好み sellUse) が入っている時だけ含める。
 // { includeUse } を渡せばその値が優先
 function opsJunkList({ includeUse = !!uiDungeonHud.getPref("sellUse") } = {}) {
   const out = [];
   for (const d of allDolls()) {
     for (const it of (d.items || [])) {
-      if (!it || it.cursed || it.locked || it.unidentified || opsEquippedBy(d, it) || sellWarnings(it).length) continue;
+      if (!it || it.cursed || it.locked || it.unidentified || opsEquippedBy(d, it) || bulkSellBlocked(it)) continue;
       if (!includeUse && it.slot === "use") continue;
       out.push({ doll: d, item: it, price: sellPrice(it) });
     }
@@ -16742,7 +16750,7 @@ function wireUI() {
     G, log, autosave, buzz, flashScreen, shakeScreen,
     renderTown, renderBoard, renderParty, renderRunbar, updateTopbar, renderStatus,
     allDolls, recalcAllDolls, inDungeon, curDungeon, activeCfg, clearedDungeonCount, reportedDungeonCount,
-    sellPrice, buyPrice, appraiseCost, innCost, sellWarnings, bargainMul, shopStockAdd, tlTown,
+    sellPrice, buyPrice, appraiseCost, innCost, sellWarnings, bulkSellBlocked, bargainMul, shopStockAdd, tlTown,
     itemRankName, itemRankColor, itemGradeText, itemNameEl, logClassForItem,
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,

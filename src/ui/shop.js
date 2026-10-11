@@ -59,7 +59,7 @@ function baseJunk(opts) {
   const base = typeof ops.junkList === "function" ? ops.junkList(opts) : [];
   return base.filter((j) => j && j.item && !j.item.cursed && !j.item.locked && !j.item.unidentified && !wornByAnyone(j.item));
 }
-// 売却候補: ops と同じ集合 (呪い・未鑑定・装備中・SR/LR・未奉納の収集品、設定で含めない限り道具も除く) から、
+// 売却候補: ops と同じ集合 (呪い・未鑑定・装備中・LR・未奉納の収集品、設定で含めない限り道具も除く) から、
 // さらに「誰かの今の装備に勝る品」(装備の候補) を既定で残す。{ keepUpgrades: false } で ops と同じ集合
 export function junkList(opts = {}) {
   const base = baseJunk(opts);
@@ -110,7 +110,7 @@ const sellUse = () => !!getPref("sellUse");
 // まとめて売るから外れる品と、その理由
 const EXCL = [
   { key: "upgrade", label: "装備の候補", note: "誰かの今の装備に勝る品 (▲)。装備するか、確認の画面で売ることもできる" },
-  { key: "rare", label: "スーパーレア・レジェンドレア", note: "逸品は一点ずつ確かめて売る" },
+  { key: "rare", label: "レジェンドレア", note: "至高の逸品は一点ずつ確かめて売る" },
   { key: "misc", label: "未奉納の収集品", note: "宝物庫へ奉納すると褒賞が得られる" },
   { key: "locked", label: "ロックした品", note: "ロックを外すまで売らない (品のシートの「ロックを外す」)" },
   { key: "cursed", label: "呪われた品", note: "" },
@@ -125,8 +125,7 @@ export function exclusions() {
       if (it.locked) { g.locked.push({ doll: d, item: it }); continue; }
       if (it.cursed) { g.cursed.push({ doll: d, item: it }); continue; }
       if (it.unidentified) { g.unid.push({ doll: d, item: it }); continue; }
-      const w = game.sellWarnings ? game.sellWarnings(it) : [];
-      if (w.length) { (it.slot === "misc" ? g.misc : g.rare).push({ doll: d, item: it }); continue; }
+      if (game.bulkSellBlocked && game.bulkSellBlocked(it)) { (it.slot === "misc" ? g.misc : g.rare).push({ doll: d, item: it }); continue; }
       if (it.slot === "use" && !sellUse()) { g.use.push({ doll: d, item: it }); continue; }
       if (isUp(it)) g.upgrade.push({ doll: d, item: it });
     }
@@ -139,7 +138,7 @@ function keepReason(it) {
   if (it.locked) return "locked";
   if (it.cursed) return "cursed";
   if (it.unidentified) return "unid";
-  if (game.sellWarnings && game.sellWarnings(it).length) return it.slot === "misc" ? "misc" : "rare";
+  if (game.bulkSellBlocked && game.bulkSellBlocked(it)) return it.slot === "misc" ? "misc" : "rare";
   if (it.slot === "use" && !sellUse()) return "use";
   return null;
 }
@@ -502,7 +501,7 @@ function openBuyChooser(id) {
 }
 
 // 鑑定の結果 (まとめて鑑定のあと): 正体が知れた品。押せば品シート / 「装備」で人業を選ぶ / 「売る」でその場で売る /
-// 下の「残りをまとめて売る」で残った品を一度に売る (技の鑑定の結果と同じ。SR/LR・未奉納の収集品は残す)。
+// 下の「残りをまとめて売る」で残った品を一度に売る (技の鑑定の結果と同じ。LR・未奉納の収集品は残す)。
 // 品シート・装備の選択を閉じたら一覧を描き直す (装備した品は一覧から消す)
 function openRevealSheet(items) {
   let h = null;
@@ -655,10 +654,10 @@ function renderSell(wrap) {
   exb.type = "button";
   const exl = el("span", "wpc-exbtn-t");
   exl.appendChild(el("span", "wpc-keep-dot"));
-  const short = { upgrade: "装備候補▲", rare: "SR・LR", misc: "未奉納", locked: "ロック", cursed: "呪い", unid: "未鑑定", use: "道具" };
+  const short = { upgrade: "装備候補▲", rare: "LR", misc: "未奉納", locked: "ロック", cursed: "呪い", unid: "未鑑定", use: "道具" };
   exl.appendChild(document.createTextNode(kept.length
     ? `残す: ${kept.map(([e, n]) => `${short[e.key]}${n}`).join("・")}`
-    : `SR・LR・未奉納・呪い・未鑑定・${sellUse() ? "" : "道具・"}装備中は売らない`));
+    : `LR・未奉納・呪い・未鑑定・${sellUse() ? "" : "道具・"}装備中は売らない`));
   exb.appendChild(exl);
   exb.appendChild(el("span", "wpc-exbtn-more", "内訳"));
   exb.addEventListener("click", () => { sfx("select"); openExclusions(); });

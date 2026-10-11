@@ -308,14 +308,14 @@ export function revealSellBtn(doll, it, onSold) {
   return b;
 }
 // 鑑定の結果の一覧に残った品のうち、まとめて売れるもの (袋の中・呪いなし)。
-// SR/LR・未奉納の収集品 (sellWarnings) は一点ずつ「売る」で確かめるので残す (keep に数える)
+// LR・未奉納の収集品 (bulkSellBlocked) は一点ずつ「売る」で確かめるので残す (keep に数える)。SR はまとめて売る
 export function revealSellables(items) {
   const list = [];
   let keep = 0;
   for (const it of items || []) {
     const o = ownerOf(it);
     if (!o || o.where !== "bag" || it.unidentified) continue;
-    if (it.cursed || it.locked || (game.sellWarnings && game.sellWarnings(it).length)) { keep++; continue; }
+    if (it.cursed || it.locked || (game.bulkSellBlocked && game.bulkSellBlocked(it))) { keep++; continue; }
     list.push({ doll: o.doll, item: it, price: game.sellPrice(it) });
   }
   return { list, keep };
