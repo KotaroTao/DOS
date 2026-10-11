@@ -1,15 +1,16 @@
 // 魔物の伝承 (src/dungeons/monlore.js) の検査: node tools/lore/check.mjs
-// ・第1〜11層の魔物 (層の出現表・強敵・主、本筋と寄り道の迷宮の出現表) に漏れなく伝承がある
+// ・第1〜12層の魔物 (層の出現表・強敵・主、本筋と寄り道の迷宮の出現表) に漏れなく伝承がある
 // ・出典と本文の長さ、難しい漢字、層ごとの出典の偏り (似た内容にしない)、章ごとのネタばれの語
 import { MONSTER_LORE } from "../../src/dungeons/monlore.js";
 import { BESTIARY, LAYER_POOLS, LAYER_ELITES, LAYER_BOSS } from "../../src/dungeons/bestiary.js";
 import { WORLD } from "../../src/dungeons/world.js";
 
-const LAYERS = 11;
+const LAYERS = 12;
 const errs = [];
 const layerOf = {}, where = {};
 for (let L = 1; L <= LAYERS; L++)
   for (const id of [...(LAYER_POOLS[L] || []), ...(LAYER_ELITES[L] || []), LAYER_BOSS[L - 1]]) if (id && !layerOf[id]) layerOf[id] = L;
+layerOf.bs_moldern ||= 12; // 第十章の結びの主 (w41)。LAYER_BOSS には載らないので台帳が無くても第12層として数える
 for (const d of WORLD) {
   if (d.layer > LAYERS) continue;
   for (const id of [...(d.bands || []).flat(), ...(d.elites || []), d.boss].filter(Boolean)) {
@@ -35,12 +36,14 @@ const SPOIL = {
   9: /腐らせるな|灯の工房|尖塔|塔/, // 主の命令・島の工房・その先の塔は主の記憶で明かす
   10: /雨になって|雨となり|闘技場|観客席|石の橋|灯台/, // 還した魂が雨になって腐ること・頂の灯台・その先の橋は主の記憶で明かす
   11: /灯番|休ませないと|休ませず|休めず|町を焼いた|穴の底|地底|大空洞|最初の操霊師|モルデン/, // 祖が灯番の子・魂は休ませないと腐る・町を焼いた火・興行主の灯籠は主の記憶で明かす。第十章 (穴の底・地底大空洞)・祖の名・モルデンの居場所には触れない
+  12: /魂の王|本当の目的|本当の理由|モルデン|名を書いた札|三百年ぶりに/, // 師が迷宮を潜る本当の理由 (魂の王) は主 (宰相モルデン) の記憶で明かす。灯籠の山に出る魔物 (灯籠の吹き溜まり w38) は札の手がかり (w39) より前に会えるので、モルデンの名も主の伝承だけ
 };
-const BOSS_FREE = new Set(["bs_infernolord", "bs_glaciallord", "bs_swamplord", "bs_stormlord", "bs_arenalord"]); // 主の伝承は1体討てば読める — 業火の主・凍王・よどみの主・嵐の主・闘技場の支配者は、その章の主の記憶の真相に触れてよい
+const BOSS_FREE = new Set(["bs_infernolord", "bs_glaciallord", "bs_swamplord", "bs_stormlord", "bs_arenalord", "bs_moldern"]); // 主の伝承は1体討てば読める — 業火の主・凍王・よどみの主・嵐の主・闘技場の支配者・宰相モルデンは、その章の主の記憶の真相に触れてよい
 const SERA_OK = new Set(["w16", "w17", "w18", "w19", "w20", "w21", "ws8", "ws9", "ws10",
   "w22", "w23", "w24", "w25", "ws11", "ws12", "w26", "w27", "w28", "w29", "ws13", "ws14",
   "w30", "w31", "w32", "w33", "ws15", "ws16", "ws17",
-  "w34", "w35", "w36", "w37", "ws18", "ws19"]); // ws8 は脚 (w16_legs) を見つけた後、ws9〜ws19 は第五章以降の依頼で開く
+  "w34", "w35", "w36", "w37", "ws18", "ws19",
+  "w38", "w39", "w40", "w41", "ws20", "ws21", "ws22"]); // ws8 は脚 (w16_legs) を見つけた後、ws9〜ws22 は第五章以降の依頼で開く
 const WS5_SPOIL = /モルデン|神官王|苗木|セラ/; // 古井戸 (第二章から開く) に出る魔物
 
 const byLayer = {};

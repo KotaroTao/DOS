@@ -79,6 +79,18 @@ export const FLOOR_HAZ = {
   arenatrap: { kind: "fall", name: "砂の下の落とし戸", desc: "闘技場の砂に隠された、獣を出し入れする落とし戸。留め金が錆びている",
     look: { shape: "trapdoor", rim: "#6a5a40", chip: "#9a8460", core: ["#000000", "#060403", "#18120c"], mote: "#d8c8a0", glow: null },
     line: "砂の下で落とし戸が開いた！ 隊は砂といっしょに、下の階へ落ちていく…" },
+  lampheap: { kind: "fall", name: "灯籠の山の崩れ目", desc: "降り積もった濁った灯籠の山。踏めば灯籠ごと崩れて、下の層へ雪崩れ落ちる",
+    look: { shape: "hole", deco: "rubble", rim: "#3a3430", chip: "#5e544a", core: ["#000000", "#060504", "#18140f"], mote: "#c8a868", glow: "120,90,50" },
+    line: "灯籠の山が崩れた！ 隊は割れたガラスの音といっしょに、下の階へ雪崩れ落ちていく…" },
+  nichegap: { kind: "fall", name: "崩れた壁龕", desc: "名を刻んだ壁龕が床ごと抜け落ちたところ。下の段の壁龕がのぞく",
+    look: { shape: "square", deco: "rubble", rim: "#4a4238", chip: "#6e6456", core: ["#000000", "#050404", "#14110d"], mote: "#b8a888", glow: null },
+    line: "壁龕の床が抜けた！ 隊は名の刻まれた石といっしょに、ひとつ下の階へ落ちていく…" },
+  abysscleft: { kind: "fall", name: "底なしの裂け目", desc: "大伽藍の床を走る、底の見えない裂け目。奥から生ぬるい風が吹き上げてくる",
+    look: { shape: "crack", rim: "#2a2420", chip: "#4a4036", core: ["#000000", "#030202", "#100c0a"], mote: "#a89878", glow: "90,70,40" },
+    line: "床の裂け目が口を開けた！ 隊は生ぬるい風の中を、下の階まで落ちていく…" },
+  fossilcrack: { kind: "fall", name: "化石の割れ目", desc: "竜の化石を抱いた岩盤の割れ目。骨と骨のすき間が、下の階まで続いている",
+    look: { shape: "crack", deco: "rubble", rim: "#6a5e4c", chip: "#8e826c", core: ["#000000", "#070605", "#1c1712"], mote: "#d8ccb0", glow: null },
+    line: "岩盤が割れた！ 隊は化石の骨のすき間を、下の階まで滑り落ちていく…" },
 
   // ===== 蝕む床 =====
   sewage: { kind: "harm", name: "汚水のよどみ", desc: "黒い水がよどんだ溜まり。触れた肌がただれる",
@@ -138,6 +150,21 @@ export const FLOOR_HAZ = {
   bladesand: { kind: "harm", name: "刃の埋もれた砂", desc: "闘技場の砂に埋もれた、折れた剣や槍の穂先。踏めば足を裂く",
     look: { stain: [[44, 30, 22], [150, 110, 80], [80, 56, 40], [110, 76, 54], [220, 210, 196]], glow: "220,200,170", fx: "glint", fxCol: "#e8e0d0", mist: null },
     verb: "砂の中の刃に足を裂かれた", die: "砂の上に倒れた…", flash: "#6a3a28", accent: "#b88c6c" },
+  blackwater: { kind: "harm", name: "黒い灯の水", desc: "濁った灯籠から漏れた魂が溶けこんだ、黒い湖の水。浸かれば心まで冷える",
+    look: { stain: [[10, 10, 14], [60, 64, 84], [22, 22, 30], [34, 34, 46], [200, 170, 110]], glow: "150,130,90", fx: "soul", fxCol: "#d8c890", mist: "60,60,76" },
+    verb: "黒い水に魂を冷やされた", die: "黒い水の底へ沈んだ…", flash: "#1a1a2a", accent: "#8a8aa8" },
+  soulsoot: { kind: "harm", name: "灯の煤", desc: "濁った灯籠から降り積もった煤。吸いこめば胸の奥まで黒く染まる",
+    look: { stain: [[16, 14, 12], [70, 62, 52], [30, 27, 24], [44, 40, 34], [150, 130, 100]], glow: "120,100,70", fx: "spore", fxCol: "#a89878", mist: "70,64,56" },
+    verb: "灯の煤に胸を焼かれた", die: "煤の中に倒れた…", flash: "#2a2420", accent: "#988a74", toxic: true },
+  rotglow: { kind: "harm", name: "腐れ灯の燐光", desc: "腐りかけた魂が床にしみ出し、青白く光っている。触れれば命を吸われる",
+    look: { stain: [[14, 18, 20], [70, 120, 120], [24, 36, 40], [40, 64, 68], [170, 240, 220]], glow: "120,220,200", fx: "soul", fxCol: "#b0f0e0", mist: "60,100,100" },
+    verb: "腐れ灯の燐光に命を吸われた", die: "燐光の中に倒れた…", flash: "#1a3a3a", accent: "#7ac8b8" },
+  bonegrit: { kind: "harm", name: "巨獣の骨くず", desc: "巨獣が喰い散らした骨のかけら。尖った骨が、床一面に突き立っている",
+    look: { stain: [[40, 34, 28], [150, 136, 112], [70, 60, 48], [100, 88, 70], [230, 220, 196]], glow: "220,210,180", fx: "glint", fxCol: "#ece4d0", mist: null },
+    verb: "骨くずに足を裂かれた", die: "骨の山に倒れた…", flash: "#5a4a38", accent: "#b8a888" },
+  crystalthorn: { kind: "harm", name: "水晶の棘", desc: "鉱脈から床へ生え出した、針のような水晶。踏めば足の裏を貫く",
+    look: { stain: [[20, 26, 34], [110, 150, 190], [40, 54, 70], [64, 88, 116], [220, 240, 255]], glow: "160,200,240", fx: "glint", fxCol: "#e0f0ff", mist: null },
+    verb: "水晶の棘に足を貫かれた", die: "水晶の上に倒れた…", flash: "#2a3a5a", accent: "#8ab0d8" },
 };
 
 // 置き場所の既定 (台帳に floorHaz が無い時・奈落の層)。null = その仕掛けを置かない
@@ -153,8 +180,9 @@ export const LAYER_FLOOR_HAZ = {
   9: { fall: "mudhole", harm: "swamp" },         // 毒沼
   10: { fall: "stairwell", harm: "charged" },    // 嵐の尖塔
   11: { fall: "arenatrap", harm: "bladesand" },  // 闘技場跡
+  12: { fall: "abysscleft", harm: "rotglow" },   // 地底大空洞
 };
-// まだ迷宮の無い層 (第12層から) の奈落は、どの層の既定にも当てはまらないので毒の沼のまま
+// まだ迷宮の無い層 (第13層から) の奈落は、どの層の既定にも当てはまらないので毒の沼のまま
 const FALLBACK = { fall: "collapse", harm: "swamp" };
 
 export function layerFloorHaz(L) {

@@ -2233,6 +2233,149 @@ export const EVENTS = [
     ],
     onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "灯籠に閉じこめられていた魂だ。", () => { A.ember(2, "灯籠の底の残火"); A.done(cell, next); }),
   },
+  // ================= 第12層「地底大空洞」 (10) ── 第十章。闘技場の真ん中の穴の底に広がる、果ての見えない大空洞 =================
+  //   使い潰されて濁った灯籠が穴から落ち続け、もれた魂が岩・獣・菌にしみこんでいる。
+  //   層の全迷宮で出るので、灯籠を拾う者の名 (w39 で明かされる)・底にあるものの正体には触れない。「底に何かが眠る」ほのめかしまで
+  {
+    id: "l12_01", name: "降り積もった灯籠の山", layer: 12, tier: "common", icon: "chest",
+    intro: () => ["見上げても天井の見えない暗がりから、ときおり何かが落ちてきて、乾いた音を立てて砕ける。", "足もとには、黒く濁った灯籠が小山のように積もっている。どれも、上の闘技場の穴から落ちてきたものらしい。"],
+    choices: (A, cell) => [
+      { label: "灯籠の山をかき分ける ― 品 / 25%で山にすむ蟲の群れが這い出る", danger: true, fn: () => {
+        if (chance(0.25)) { A.alarm("灯籠の山がざわりと動いた！", ["ガラスのすき間から、黒い蟲の群れが這い出してきた。"], "trap", () => A.fight(cell, [{ key: "bs_gloomstalker", min: 2 }], "lamppile", { noChest: true })); return; }
+        A.item({}, "灯籠の山の底", () => A.done(cell));
+      } },
+      { label: "割れた灯籠のガラスを拾う ― 収集品", primary: true, fn: () => { A.collectible("割れた灯籠のガラス", () => A.done(cell)); } },
+    ],
+    onWin: (A, cell, f, next) => A.item({}, "灯籠の山の底", () => A.done(cell, next)),
+  },
+  {
+    id: "l12_02", name: "岩壁に眠る大きな骨", layer: 12, tier: "common", icon: "stairs",
+    intro: () => ["岩壁の中に、とてつもなく大きな背骨が埋まっている。石になった骨は、壁に沿って奥へ奥へと続いている。", "骨のすき間には、落ちてきた灯籠がいくつも挟まっている。"],
+    choices: (A, cell) => {
+      const c = A.check("atk");
+      return [
+        { label: "背骨をたどって歩く ― この階の階段の在処が見え、✦Soul を少し", primary: true, fn: () => {
+          A.revealStairs(); A.sfx("step"); A.soul(1, "石の骨に残る古い気配"); A.toast("背骨の先が、階段のある方へ伸びていた", "good", "stairs"); A.done(cell);
+        } },
+        { label: `石の牙を掘り出す ― ${c.who ? c.who.name : "誰か"} (成功 ${pctTxt(c.p)}) ― 金貨 / 失敗で崩れた岩に打たれる`, fn: () => {
+          if (c.ok) { A.gold(2, "掘り出した石の牙"); A.done(cell); return; }
+          if (c.who) { A.hurtOne(c.who, 0.15); A.sfx("trap"); A.toast(`${c.who.name}は崩れた岩に打たれた`, "bad", "trap"); }
+          A.done(cell);
+        } },
+      ];
+    },
+  },
+  {
+    id: "l12_03", name: "黒い水の水際", layer: 12, tier: "common", icon: "fountain",
+    intro: () => ["岩のくぼみに、黒い水がたまっている。水面の下で、小さな灯がいくつもまたたいている。", "水は氷のように冷たい。耳をすますと、水の底からかすかなささやきが聞こえる。"],
+    choices: (A, cell) => [
+      (anyHurt(A) || anyDrained(A)) && { label: "水をすくって飲む ― 全員のHP・MP3割回復 / 20%で冷たさに一人の体がしびれる (麻痺)", primary: true, fn: () => {
+        A.healAll(0.3, 0.3, false); A.sfx("heal");
+        if (chance(0.2)) { const m = A.randomAlive(); if (m) { A.ail(m, "paralyze"); A.toast(`${m.name}は水の冷たさに体がしびれた`, "bad", "fountain"); } }
+        else A.toast("冷たい水が、のどの奥まで澄ませた", "good", "fountain");
+        A.done(cell);
+      } },
+      { label: "水面の灯をすくい上げる ― ✦Soul", fn: () => { A.sfx("heal"); A.soul(1.5, "水底の小さな灯"); A.done(cell); } },
+    ],
+  },
+  {
+    id: "l12_04", name: "石になりかけた探り手", layer: 12, tier: "common", icon: "corpse",
+    intro: () => ["岩の割れ目に、背負い袋を負ったままの骸がもたれている。体の半分が、まわりの岩と同じ色に変わっている。", "袋の口からは、ろうそくの燃えさしと、小さな革の財布がのぞいている。足もとの土が、かすかに盛り上がって動いた。"],
+    choices: (A, cell) => [
+      { label: "背負い袋をあさる ― 金貨 / 30%で土の下の大蟲が這い出る", danger: true, fn: () => {
+        if (chance(0.3)) { A.alarm("足もとの土が割れた！", ["骸を苗床にしていた大蟲が、土の下から頭をもたげた。"], "trap", () => A.fight(cell, [{ key: "bs_deepworm", min: 1 }], "delver", { noChest: true })); return; }
+        A.gold(2, "探り手の財布"); A.done(cell);
+      } },
+      { label: "骸に土をかけて弔う ― ✦Soul を少し", primary: true, fn: () => { A.sfx("heal"); A.soul(1, "暗がりの弔い"); A.done(cell); } },
+    ],
+    onWin: (A, cell, f, next) => { A.gold(2, "探り手の財布"); A.done(cell, next); },
+  },
+  {
+    id: "l12_05", name: "名を呼ぶ反響", layer: 12, tier: "uncommon", icon: "mon:bs_echowraith", minFloor: 2,
+    intro: () => ["洞の奥から、誰かの名を呼ぶ声が、何重にも重なって響いてくる。", "声は名を呼ぶたびに、少しずつ違う名になる。自分の名を、もう思い出せないのかもしれない。"],
+    choices: (A, cell) => [
+      { label: "声のする方へ歩く ― 反響の主たちと戦い、勝てば ✦Soul と金貨", danger: true, fn: () => {
+        A.fight(cell, [{ key: "bs_echowraith", min: 3 }], "echoname", { noChest: true });
+      } },
+      A.aliveList().some((m) => m.mp > 0) && { label: "灯をかかげて声を鎮める ― 全員のMPを2割使い、この階の霊の魔物への与ダメ+30%と ✦Soul", primary: true, fn: () => {
+        A.mpAll(0.2);
+        A.floorEv().mods.push({ src: "l12_05", name: "鎮めた声", desc: "霊の魔物への与ダメージ +30% (この階)", prey: { races: ["specter"], mul: 1.3 } });
+        A.sfx("spell"); A.soul(2, "静まった反響"); A.toast("声が静まった ― この階、霊の魔物への与ダメ+30%", "gold"); A.done(cell);
+      } },
+    ],
+    onWin: (A, cell, f, next) => { A.soul(3, "ほどけた反響"); A.gold(2, "霊の足もとの銭"); A.done(cell, next); },
+  },
+  {
+    id: "l12_06", name: "水晶の鉱脈の露頭", layer: 12, tier: "uncommon", icon: "chest", minFloor: 2,
+    intro: () => ["岩壁が裂けて、人の背丈ほどもある水晶の柱が何本も突き出している。", "水晶の奥には、濁った灯の光が閉じこめられたように揺れている。根もとには、白い糸がびっしりと張られている。"],
+    choices: (A, cell) => [
+      { label: "水晶の根もとを割る ― 宝箱 (ランク+1) / 40%で糸の主の大蜘蛛が下りてくる", danger: true, fn: () => {
+        if (chance(0.4)) { A.alarm("頭の上で、糸がぴんと張った！", ["鉱脈に巣を張っていた大蜘蛛が、水晶の上から下りてきた。"], "trap", () => A.fight(cell, [{ key: "bs_crystalspider", strong: 1.3, name: "鉱脈に巣食う大蜘蛛" }], "vein", { noChest: true })); return; }
+        A.sfx("hit"); A.chestHere(cell, { rankUp: 1 });
+      } },
+      A.aliveList().some((m) => m.mp > 0) && { label: "水晶に灯を映す ― 全員のMPを2割使い、この階の宝箱の在処が見え、✦Soul", primary: true, fn: () => {
+        A.mpAll(0.2);
+        const n = A.revealWhere((x) => x.type === "chest" && !x.cleared);
+        A.sfx("spell"); A.soul(2, "水晶に映った灯");
+        A.toast(n ? `水晶の光が、${n}か所の宝箱を照らし出した` : "水晶の光が、暗がりを照らした", "good", "chest"); A.done(cell);
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.chestHere(cell, { rankUp: 1 }, next),
+  },
+  {
+    id: "l12_07", name: "濁った獣の寝床", layer: 12, tier: "uncommon", icon: "mon:bs_blindhorror", deep: true,
+    intro: () => ["岩のくぼみに、骨とガラスのかけらを敷きつめた寝床がある。寝床の真ん中で、目のない獣が丸くなって眠っている。", "獣の毛には、灯籠のガラスがいくつも刺さったまま。寝床の奥に、獣の集めたらしい品がちらりと光る。"],
+    choices: (A, cell) => [
+      { label: "寝床の骨をすりつぶして刃に塗る ― この出撃の間、獣・巨人の魔物への与ダメ+15%", primary: true, fn: () => {
+        A.runEv().mods = [...(A.runEv().mods || []), { src: "l12_07", name: "獣の骨の粉", desc: "獣・巨人の魔物への与ダメージ +15% (この出撃)", prey: { races: ["beast", "giant"], mul: 1.15 } }];
+        A.sfx("spell"); A.toast("刃に獣の匂いがしみた ― この出撃の間、獣・巨人への与ダメ+15%", "gold"); A.done(cell);
+      } },
+      { label: "眠る獣を討つ ― 寝床の主と一騎打ち、勝てば上等な品 (レア以上)", danger: true, fn: () => {
+        A.fight(cell, [{ key: "bs_blindhorror", strong: 1.5, name: "寝床の主" }], "beastbed", { noChest: true });
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.itemMinRar("r", "獣の寝床の奥", () => A.done(cell, next)),
+  },
+  {
+    id: "l12_08", name: "光るきのこの洞", layer: 12, tier: "uncommon", icon: "fountain",
+    intro: () => ["横穴の中が、青白い光で満ちている。壁から天井まで、光るきのこがびっしりと生えている。", "床はやわらかいこけに覆われ、ここだけは灯籠の割れる音も届かない。"],
+    choices: (A, cell) => [
+      needsCare(A) && { label: "こけの上で体を休める ― 全員のHP・MP4割回復・状態異常が治る", primary: true, fn: () => {
+        A.healAll(0.4, 0.4, true); A.sfx("heal"); A.toast("光るきのこの下で、隊はしばし眠った", "good", "fountain"); A.done(cell);
+      } },
+      { label: "きのこの根もとを掘る ― 宝箱 (ランク+1) / 舞い上がった胞子で一人が毒", fn: () => {
+        const m = A.randomAlive(); if (m) { A.ail(m, "poison"); A.toast(`${m.name}は舞い上がった胞子を吸いこんだ`, "bad", "poison"); }
+        A.sfx("trap"); A.chestHere(cell, { rankUp: 1 });
+      } },
+    ],
+  },
+  {
+    id: "l12_09", name: "穴から落ちてきた灯番", layer: 12, tier: "rare", icon: "wisp", deep: true, minLv: 113,
+    intro: () => ["灯籠の山の陰に、年老いた男の亡霊がひざを抱えて座っている。手には、火の消えた灯籠を抱いたままだ。", "「わしは上の町の灯番だった。灯籠といっしょに、この穴へ落ちてきた。……それから、どれほど経ったのか」", "「この大空洞の奥には、ぬしがおる。ぬしの癖を教えてやろう。それとも、わしの灯籠に残った油を持ってゆくか」"],
+    choices: (A, cell) => [
+      { label: "ぬしの癖を聞く ― 第12層の主の力を削ぐ (最大HP-10%)", primary: true, fn: () => {
+        A.flags().bossWeak = { ...(A.flags().bossWeak || {}), 12: true };
+        A.sfx("spell");
+        A.story("穴から落ちてきた灯番", ["「ぬしは、灯の明かりの届かぬ側に、守りの薄いところをかかえておる。明かりの裏へ回れ」", "「……一年前にも、片手に手袋のない男が降りてきた。灯籠の山の前で長いこと立ち止まって、それから奥へ歩いていった」", "「底には、まだ何かが眠っておる。わしは、そこまでは行けなんだ」", "第12層の主の最大HPが1割削られる (討つまで有効)。"], () => A.done(cell));
+      } },
+      { label: "灯籠に残った油を受け取る ― 上等な品 (レア以上)", fn: () => { A.sfx("itemget"); A.itemMinRar("r", "灯番の灯籠の底", () => A.done(cell)); } },
+    ],
+  },
+  {
+    id: "l12_10", name: "灯を閉じこめた水晶", layer: 12, tier: "rare", icon: "wisp", deep: true,
+    intro: () => ["洞をふさぐように、大きな水晶の塊がそびえている。中には、いくつもの灯が、凍りついたように閉じこめられている。", "灯は濁っていない。水晶の前には、岩でできた守護の像が一体、じっと立っている。"],
+    choices: (A, cell) => [
+      { label: "水晶を割って灯を解き放つ ― 水晶の番人と戦い、勝てば希少な魂と魂の残火2", danger: true, fn: () => {
+        A.fight(cell, [{ key: "bs_caveguardian", strong: 1.8, name: "水晶の番人" }], "crystalward", { noChest: true });
+      } },
+      { label: "水晶のかけらを身につける ― この出撃の間、全員に風の護り (土の攻撃を和らげる) と ✦Soul / 鋭いかけらで全員のHP2割を失う", primary: true, fn: () => {
+        A.hurtAll(0.2); A.flash("#c8f0ff");
+        A.runEv().edef = { el: "wind", lv: 1 };
+        A.sfx("spell"); A.soul(4, "水晶の中の澄んだ灯"); A.toast("澄んだかけらが、岩の一撃をそらす ― この出撃の間、風の護り", "gold"); A.done(cell);
+      } },
+    ],
+    onWin: (A, cell, f, next) => A.soulDrop("rarePlus", "水晶に閉じこめられていた魂だ。", () => { A.ember(2, "水晶の芯の残火"); A.done(cell, next); }),
+  },
 ];
 
 // 各迷宮に固有の極を1件。既存IDは見聞録・取得済みセーブのため維持する。
@@ -2298,6 +2441,14 @@ const DUNGEON_GIFTS = [
   ["w37", "crit", 0.01, "血の砂に残る勝者の太刀筋"],
   ["ws18", "int", 2, "控えの間に刻まれた勝ち方の覚え書き"],
   ["ws19", "agi", 2, "決闘者の踏みこみ"],
+  // 第十章 (第12層)。AGI だけ7件で、ほかの8効果は6件。LUK を除く7つを7件に (LUK だけ6件)
+  ["w38", "hp", 5, "灯籠の山の底で消えずに残った灯"],
+  ["w39", "int", 2, "地底湖に沈んだ澄んだしずく"],
+  ["w40", "pie", 2, "石窟にこもる眠りの祈り"],
+  ["w41", "mp", 5, "大伽藍の柱にしみた古い魔力"],
+  ["ws20", "vit", 2, "巨獣の脱ぎ捨てた岩の皮"],
+  ["ws21", "atk", 2, "化石竜の石の牙"],
+  ["ws22", "crit", 0.01, "水晶に映る急所の光"],
 ];
 for (const [dungeonId, stat, amount, name, legacyId] of DUNGEON_GIFTS) {
   const dungeon = WORLD.find((d) => d.id === dungeonId);
@@ -2359,6 +2510,7 @@ export const EVENT_GROUPS = [
   { key: "9", label: "毒沼", name: "第9層 毒沼", layer: 9 },
   { key: "10", label: "尖塔", name: "第10層 嵐の尖塔", layer: 10 },
   { key: "11", label: "闘技場", name: "第11層 闘技場跡", layer: 11 },
+  { key: "12", label: "大空洞", name: "第12層 地底大空洞", layer: 12 },
 ];
 
 // 出現条件の説明 (見聞録用)

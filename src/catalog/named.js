@@ -54,4 +54,8 @@ export const NAMED_ITEMS = [
     desc: "兵ごと灰になった将が、灰の中から積もり直すたびに握り直した大太刀。刃をふるうたびに灰が舞い、持ち主の傷にも積もってふさぐ。鎧の継ぎ目を探す癖は、いまも刃に残っている。灰燼の将の首級。" })),
   trophy(11, "el_dragonslayer", A("a_nm_dragonslayer", "竜殺しの鱗鎧", 122, { weight: "heavy", pow: 1.45, hp: 36, bRes: 0.3, resists: { physResist: 15 }, tint: "#6a7a70",
     desc: "竜を討った見世物の英雄が、その竜の鱗を打ち直して仕立てた鎧。刃をほとんど通さなかった鱗は、いまは持ち主を守って打撃を鈍らせ、竜の息も受け止める。竜殺しの亡霊の首級。" })),
+  trophy(12, "el_oremaw", S("s_nm_oremaw", "鉱脈喰らいの岩殻盾", 132, { shape: "kite", pow: 1.45, hp: 34, eDef: ["wind", 2], resists: { physResist: 15 }, aRes: { stone: 0.3 }, tint: "#7a7468",
+    desc: "水晶の鉱脈ごと岩を喰らい、身に固めてきた獣の背の殻を一枚はがした大盾。原石の混じった岩の殻は刃をほとんど通さず、いまは持ち主の前に立って打撃を鈍らせる。鉱脈喰らいの首級。" })),
+  trophy(12, "el_tunnelking", H("h_nm_tunnelking", "穴蔵の王の灯籠冠", 134, { weight: "light", pow: 1.45, hp: 26, luk: 8, aRes: { confuse: 0.35 }, eff: { soulUp: 0.2 }, tint: "#b89860",
+    desc: "落ちてきた灯籠を拾い集めては溜めこんだ大空洞の王が、いちばん気に入った小さな灯籠をいくつも縁に吊るしてかぶっていた冠。いまは持ち主のまわりに、迷う魂を寄せ集める。穴蔵の王の首級。" })),
 ];

@@ -51,6 +51,13 @@
 //             foeRally 戦闘の開幕に、敵全体の攻撃をこの段数だけ上げる (3ターン。主・金属の魔物は除く。闘獣の檻)
 //             fervor   高まる戦意: 2ターン目から毎ターンの頭に、敵味方とも生きている者すべての攻撃が1段上がる (+3段まで。血の砂の闘技場)
 //             duel     一騎打ち: 魔物の札の戦闘は必ず1体だけ。その1体は強敵並みに強く、戦果も群れの分だけ持つ (決闘の小円形場)
+//             foeRise  起き上がる濁り魂: 倒れた敵 (主・金属の魔物を除く) は戦闘ごとに一度だけ、最大HPのこの割合で起き上がる (灯籠の吹き溜まり)
+//             whisper  ささやく湖面: 戦闘の開幕に隊の一人がささやきに惑わされ、この確率で混乱する (混乱の抵抗で防げる。黒い灯の地底湖)
+//             shell    封じの殻: 戦闘の開幕に、主・金属の魔物を除く敵の全員に障壁 (打撃を1回だけ防ぐ) をこの回数だけ張る (名を刻む石窟)
+//             soulFeast 魂喰らいの闇: 人業を倒した敵は攻撃がこの段数だけ上がる (3ターン。底なしの大伽藍)
+//             oneChest 巨獣の宝: 宝箱は1階に1つだけ (足りなければ置く)。中身のランクは mods.chestRankUp で上げる (大空洞の主の寝床)
+//             sealedGate ★閉ざされた門: 帰還魔法陣が無く、帰還の鈴も使えない。最下階に着くか全滅するまで出られない (化石竜の墓所)
+//             appraised 澄んだ水晶の光: この迷宮で拾う品は、はじめから鑑定済み (水晶の鉱脈)
 //             say      開幕の効果 (mpDrain / hpDrain / chill / poisonStart / boltStart) を戦闘の記録に書く時の一文
 //           掟の分け方 (ユーザーの指示、2026-10): 土地 (章) の気候・性質は下の「土地の掟」(realm) に1つにまとめ、迷宮の掟は
 //           その迷宮だけの違いにする (同じ効果を迷宮ごとに作らない)。「技が一切使えない」「物理が効かない」「魔法が効かない」の
@@ -83,6 +90,7 @@
 //           第9層 (第七章) も同じく第六章の 0.9倍。顔ぶれはランク10 (上限) にそろえた。テスト記録で測り直す
 //           第10層 (第八章) も第七章の 0.9倍。寄り道の雷鳥の巣 (敵はみな神速) は二度動く分だけ強さの素を約2割下げた。テスト記録で測り直す
 //           第11層 (第九章) も第八章の 0.9倍。第一部の最後から2つ目の層なので壁 (第二部) はまだ掛からない。テスト記録で測り直す
+//           第12層 (第十章) も第九章の 0.9倍。第一部の最後の層。主は宰相モルデン (層の主 bs_cavernlord は寄り道の寝床の主)。テスト記録で測り直す
 import { LAYER_ELEMENT } from "./generator.js";
 import { LAYER_BOSS, LAYER_ELITES, LAYER_POOLS, BESTIARY } from "./bestiary.js";
 import { baselineLv } from "../baseline.js";
@@ -111,9 +119,16 @@ export const REALM_RULES = {
     lines: ["亡き観客が見ている。戦闘が始まるたび観客の注文がひとつ出て (3ターン以内に勝て・誰も倒れずに勝て…)、応えて勝てばその戦闘の ✦Soul と金貨が 1.5倍。", "闘技場跡のどの迷宮でも同じ。迷宮の掟はこれに重なる。"],
     audience: true,
   },
+  // 第十章「地底大空洞」と第12層の寄り道 (大空洞の主の寝床・化石竜の墓所・水晶の鉱脈)
+  gloom: {
+    id: "gloom", name: "底なしの闇", sym: "◐", accent: "#a89878",
+    lines: ["光の届かない地の底では、目が闇に慣れるまで刃が泳ぐ。戦闘が始まるたび、隊の全員の命中が下がる (3ターン)。", "地底大空洞のどの迷宮でも同じ。迷宮の掟はこれに重なる。"],
+    gloom: 0.15, say: "底なしの闇に目がくらむ",
+  },
 };
 // audience = 観客の注文 (game.js AUDIENCE_ORDERS。開幕の効果ではないので、開幕の演出には出さない)
-const REALM_FIELDS = ["id", "name", "sym", "accent", "lines", "hpDrain", "mpDrain", "chill", "poisonStart", "boltStart", "say", "audience"];
+// gloom = 開幕に隊の全員の命中を下げる (物理が外れる率をこの分だけ足す。3ターン — game.js startBattle)
+const REALM_FIELDS = ["id", "name", "sym", "accent", "lines", "hpDrain", "mpDrain", "chill", "poisonStart", "boltStart", "say", "audience", "gloom"];
 
 const WORLD_DEF = [
   {
@@ -892,6 +907,95 @@ const WORLD_DEF = [
     unlock: { all: ["w35", "w36"] },
     hint: "「闘獣の檻」と「亡き観客の階段席」の両方を踏破して王に報告すると、闘技場の砂の上へ降りる道が開く",
   },
+  // ---- 第十章「地底大空洞」(第12層の顔ぶれ) ── 闘技場の穴の底に広がる大空洞。濁った灯籠が三百年よりも昔から降り積もっている ----
+  //   強さの素は第九章の各迷宮の 0.9倍 (層の入口の1割の段差)。手直しは第九章に倣う。顔ぶれはランク10 (上限)。土地の掟は「底なしの闇」
+  //   最後の迷宮の主は宰相モルデン (bs_moldern)。層の主 (大空洞の主 bs_cavernlord) は寄り道「大空洞の主の寝床」に眠る
+  {
+    id: "w38", realm: "gloom", lv: 110, lvTo: 113, layer: 12, floors: 10,
+    floorHaz: { fall: "lampheap", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.1022, 5: 0.1099, 10: 0.1190 },
+    name: "灯籠の吹き溜まり", short: "吹き溜まり",
+    about: "闘技場の穴の底。上から捨てられた濁った灯籠が、何百年もかけて降り積もり、黒い山をなしている",
+    bands: [
+      ["bs_glowspore", "bs_gloomstalker", "bs_echowraith", "bs_stalactiteghost", "bs_deepworm", "bs_blindhorror"],
+      ["bs_cavetroll", "bs_abysshorror", "bs_mawofthedeep"],
+    ],
+    elites: ["el_tunnelking"],
+    trait: {
+      id: "risingsoul", name: "起き上がる濁り魂", sym: "↺", accent: "#b8a070",
+      lines: ["休むことを忘れた濁った魂は、倒れても起き上がる。倒した敵は戦闘ごとに一度だけ、最大HPの3割で起き上がる (主は除く)。", "灯籠からこぼれた魂が濃く漂い、得る ✦Soul は 1.25倍。"],
+      mods: { soulMul: 1.25 },
+      foeRise: 0.3,
+    },
+    tune: { enemyMul: 0.96, deepMul: 0.80, soloMul: 1.00 }, // 起き上がる分だけ並みより控えめ
+    unlock: { reported: "w37" },
+    hint: "「血の砂の闘技場」の踏破を王に報告すると、闘技場の真ん中の穴へ降りる許しが出る",
+  },
+  {
+    id: "w39", realm: "gloom", lv: 113, lvTo: 116, layer: 12, floors: 10,
+    floorHaz: { fall: null, harm: "blackwater" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.0997, 5: 0.1075, 10: 0.1164 },
+    name: "黒い灯の地底湖", short: "地底湖",
+    about: "大空洞の底に広がる、黒く静まりかえった湖。湖面には、どこにもない灯の明かりが映っている",
+    bands: [
+      ["bs_cavefisher", "bs_echowraith", "bs_glowspore", "bs_blindhorror", "bs_primalserpent", "bs_stalactiteghost"],
+      ["bs_crystalspider", "bs_abysshorror", "bs_obsidianbeast"],
+    ],
+    elites: ["el_oremaw"],
+    trait: {
+      id: "whisper", name: "ささやく湖面", sym: "≋", accent: "#8a8ab0",
+      lines: ["湖面から、名を忘れた魂のささやきが聞こえる。戦闘が始まるたび、隊の一人が惑わされて混乱することがある (混乱の抵抗で防げる)。", "湖の底に沈んだ灯が魂を引き寄せ、得る ✦Soul は 1.3倍。"],
+      mods: { soulMul: 1.3 },
+      whisper: 0.6, say: "湖面のささやきが耳の奥に入りこむ",
+    },
+    tune: { enemyMul: 0.98, deepMul: 0.82, soloMul: 1.00 },
+    unlock: { story: "w38_lamp" },
+    hint: "「灯籠の吹き溜まり」のどこかに、師が通った跡が残されているという",
+  },
+  {
+    id: "w40", realm: "gloom", lv: 116, lvTo: 119, layer: 12, floors: 10,
+    floorHaz: { fall: "nichegap", harm: "soulsoot" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.0985, 5: 0.1062, 10: 0.1152 },
+    name: "名を刻む石窟", short: "石窟",
+    about: "岩壁一面に小さな壁龕が彫られた石窟。どの壁龕にも濁った灯籠が一つずつ納められ、名が刻まれている",
+    bands: [
+      ["bs_caveguardian", "bs_stalactiteghost", "bs_crystalspider", "bs_gloomstalker", "bs_obsidianbeast", "bs_echowraith"],
+      ["bs_rocktitan", "bs_fossildragon", "bs_earthshaker"],
+    ],
+    elites: ["el_tunnelking"],
+    trait: {
+      id: "shell", name: "封じの殻", sym: "◎", accent: "#a0b0a0",
+      lines: ["眠りを守る封じが、魔物の身にもかかっている。戦闘が始まるたび、敵の全員 (主は除く) が打撃を1回だけ防ぐ障壁をまとう。", "壁龕に供えられた古い銭が、得られる金貨を 1.35倍にする。"],
+      mods: { goldMul: 1.35 },
+      shell: 1,
+    },
+    tune: { enemyMul: 0.95, deepMul: 0.84, soloMul: 1.05 }, // 障壁の分だけ1体ずつを控えめに
+    unlock: { reported: "w38" },
+    hint: "「灯籠の吹き溜まり」の踏破を王に報告すると、大空洞の奥の石窟への道が示される",
+  },
+  {
+    id: "w41", realm: "gloom", lv: 119, lvTo: 123, layer: 12, floors: 15,
+    floorHaz: { fall: "abysscleft", harm: "rotglow" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.0962, 5: 0.1008, 10: 0.1059, 15: 0.1106 },
+    name: "底なしの大伽藍", short: "大伽藍",
+    about: "大空洞の最奥に、天井の見えない巨大な伽藍がそびえる。床の裂け目のさらに下から、生ぬるい風が吹き上げてくる",
+    bands: [
+      ["bs_obsidianbeast", "bs_mawofthedeep", "bs_cavetroll", "bs_caveguardian", "bs_abysshorror", "bs_primalbeast"],
+      ["bs_rocktitan", "bs_earthshaker", "bs_crystaldrake"],
+      ["bs_fossildragon", "bs_cavebehemoth", "bs_primalserpent"],
+    ],
+    elites: ["el_tunnelking", "el_oremaw"],
+    trait: {
+      id: "soulfeast", name: "魂喰らいの闇", sym: "☾", accent: "#9070a0",
+      lines: ["伽藍の闇は倒れた魂を喰らう。人業を倒した敵は、攻撃が2段上がる (3ターン)。", "伽藍に溜まった魂が渦を巻き、得る ✦Soul は 1.4倍。"],
+      mods: { soulMul: 1.4 },
+      soulFeast: 2,
+    },
+    boss: "bs_moldern", bossRank: 10,
+    tune: { enemyMul: 0.96, deepMul: 0.88, soloMul: 1.10, bossMul: 0.85 }, // 第一部の最後の壁
+    unlock: { all: ["w39", "w40"] },
+    hint: "「黒い灯の地底湖」と「名を刻む石窟」の両方を踏破して王に報告すると、大空洞の最奥への道が開く",
+  },
   // ---- 依頼の迷宮 (酒場の固定クエストを受けると地図に現れる) ----
   {
     id: "ws1", lv: 20, lvTo: 23, layer: 2, floors: 10, side: true,
@@ -1292,6 +1396,72 @@ const WORLD_DEF = [
     unlock: { quest: "fq_fencer" },
     hint: "酒場の剣術指南の依頼「一騎打ちの作法」を受けると、道が示される",
   },
+  {
+    // 層の主 (大空洞の主) の寝床。主のいる寄り道 (沈んだ礼拝堂 ws1 と同じ形)。宝箱は1階に1つ、その代わり上等
+    id: "ws20", realm: "gloom", lv: 111, lvTo: 115, layer: 12, floors: 10, side: true,
+    floorHaz: { fall: null, harm: "bonegrit" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.099, 5: 0.106, 10: 0.114 },
+    name: "大空洞の主の寝床", short: "主の寝床",
+    about: "大空洞の脇の、天井の高い岩屋。喰い散らかされた巨獣の骨が、床一面に積もっている",
+    bands: [
+      ["bs_cavebehemoth", "bs_primalbeast", "bs_deepworm", "bs_cavetroll", "bs_blindhorror", "bs_earthshaker"],
+      ["bs_rocktitan", "bs_mawofthedeep", "bs_fossildragon"],
+    ],
+    trait: {
+      id: "beasthoard", name: "巨獣の宝", sym: "◆", accent: "#c8a060",
+      lines: ["巨獣は光るものを一つだけ寝床に抱えこむ。宝箱は1階に1つしかないが、中身は2ランク上等。"],
+      mods: { chestRankUp: 2 },
+      oneChest: true,
+    },
+    boss: LAYER_BOSS[11], bossRank: 10,
+    tune: { enemyMul: 1.00, deepMul: 0.84, soloMul: 1.00, bossMul: 0.85 },
+    unlock: { quest: "fq_delver" },
+    hint: "酒場の老いた坑夫の依頼「地鳴りの主」を受けると、道が示される",
+  },
+  {
+    // 格上の迷宮: 第十章 (隊は Lv110〜120) で開くが、推奨Lv は 135〜139。第12層の魔物を、層の約1.5倍の強さに引き上げた。
+    // 強い掟「閉ざされた門」(帰還魔法陣も帰還の鈴も無い — 最下階に着くか全滅するまで出られない) は格上の迷宮だけの掟
+    id: "ws21", realm: "gloom", lv: 135, lvTo: 139, layer: 12, floors: 10, side: true, challenge: true,
+    floorHaz: { fall: "fossilcrack", harm: null }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.136, 5: 0.142, 10: 0.149 },
+    name: "化石竜の墓所", short: "化石竜の墓所",
+    about: "岩盤の中に、山のように大きな竜の骨が埋まっている。骨のすき間をたどる道は、入った者を二度と外へ返さない",
+    bands: [
+      ["bs_fossildragon", "bs_primalbeast", "bs_obsidianbeast", "bs_rocktitan", "bs_primalserpent", "bs_crystaldrake"],
+      ["bs_cavebehemoth", "bs_earthshaker", "bs_abysshorror"],
+    ],
+    elites: ["el_oremaw"],
+    trait: {
+      id: "sealedgate", name: "閉ざされた門", sym: "⊘", accent: "#c09060",
+      lines: ["骨の道に帰還魔法陣は無く、帰還の鈴も鳴らない。最下階に着くか全滅するまで、外へは出られない。", "太古の魂が骨に眠り、得る ✦Soul は 1.3倍・宝箱は1ランク上等。"],
+      mods: { soulMul: 1.3, chestRankUp: 1 },
+      sealedGate: true,
+    },
+    tune: { enemyMul: 1.00, deepMul: 0.84, soloMul: 1.05 },
+    unlock: { quest: "fq_fossil" },
+    hint: "酒場の骨を調べる学者の依頼「竜の骨の歌」を受けると、道が示される",
+  },
+  {
+    id: "ws22", realm: "gloom", lv: 114, lvTo: 118, layer: 12, floors: 10, side: true,
+    floorHaz: { fall: null, harm: "crystalthorn" }, // 足元の仕掛け (src/dungeons/floorhaz.js)
+    power: { 1: 0.097, 5: 0.104, 10: 0.1125 },
+    name: "水晶の鉱脈", short: "鉱脈",
+    about: "大空洞の壁を割って、青白い水晶の鉱脈が走っている。水晶の光の中では、どんな品も正体を隠せない",
+    bands: [
+      ["bs_crystalspider", "bs_crystaldrake", "bs_glowspore", "bs_deepworm", "bs_obsidianbeast", "bs_cavefisher"],
+      ["bs_rocktitan", "bs_caveguardian", "bs_mawofthedeep"],
+    ],
+    elites: ["el_oremaw"],
+    trait: {
+      id: "clearcrystal", name: "澄んだ水晶の光", sym: "◇", accent: "#a0c8f0",
+      lines: ["水晶の光が品の正体を照らし出す。この迷宮で拾う品は、はじめから鑑定済み。", "光に群がる魔物は、必ず3体以上の群れで現れる。"],
+      mods: { packMin: 3 },
+      appraised: true,
+    },
+    tune: { enemyMul: 0.96, deepMul: 0.84, soloMul: 1.00 }, // 群れの分だけ1体ずつを控えめに
+    unlock: { quest: "fq_gemcutter" },
+    hint: "酒場の宝石職人の依頼「くもらない石」を受けると、道が示される",
+  },
 ];
 
 // 敵の種類: 3種 + 5階ごとに3種 (全5階 = 6種 / 全10階 = 9種 / 全15階 = 12種)。ミミック・銀業などの共通の敵と
@@ -1391,7 +1561,7 @@ function build(def) {
   cfg.boss = def.boss || null;
   cfg.bossRank = def.boss ? (def.bossRank || def.layer + 2) : 0;
   cfg.bossScale = 1;
-  cfg.gates = true; // 5階ごとの帰還魔法陣 (奈落は持たない)
+  cfg.gates = !(def.trait && def.trait.sealedGate); // 5階ごとの帰還魔法陣 (奈落・掟「閉ざされた門」は持たない)
   return cfg;
 }
 
@@ -1403,6 +1573,7 @@ export function worldById(id) { return WORLD[worldIndexOf(id)] || null; }
 // 帰還魔法陣の階 (5の倍数・最下階を除く)
 export function gateFloors(cfg) {
   const out = [];
+  if (!cfg || !cfg.gates) return out;
   for (let f = 5; f < (cfg.floors || 1); f += 5) out.push(f);
   return out;
 }
@@ -1538,7 +1709,7 @@ export function strengthAt(cfg, floor = 1) { return powerAt(cfg, floor) * lvPow(
     if (d.trait) {
       const t = d.trait;
       if (!t.id || !t.name || !Array.isArray(t.lines)) throw new Error(`world: ${d.id} trait needs id/name/lines`);
-      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart", "boltStart", "allHaste", "say", "foeRally", "fervor", "duel"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
+      for (const k of Object.keys(t)) if (!["id", "name", "sym", "accent", "lines", "mods", "eliteRate", "board", "specialRate", "victoryHeal", "foeRegen", "mpDrain", "hpDrain", "metalRate", "metalMax", "chill", "physOnly", "alwaysAmbush", "poisonStart", "boltStart", "allHaste", "say", "foeRally", "fervor", "duel", "foeRise", "whisper", "shell", "soulFeast", "oneChest", "sealedGate", "appraised"].includes(k)) throw new Error(`world: ${d.id} trait has unknown field ${k}`);
     }
     if (d.realm != null && !REALM_RULES[d.realm]) throw new Error(`world: ${d.id} の土地の掟 (realm) が不明 (${d.realm})`);
     for (const k of d.elites || []) if (!BESTIARY[k]) throw new Error(`world: ${d.id} unknown elite ${k}`);

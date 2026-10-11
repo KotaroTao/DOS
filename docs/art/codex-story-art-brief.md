@@ -164,6 +164,8 @@ Create ONE standalone landscape illustration 1536x1024, aspect 3:2, edge-to-edge
 | 第七章 | 膝掛け。考えこむ | 重い雲 | 氷の添え木が溶け、捨てられた人業の腕の木2本を縄で束ねて脚を固め直す。片脚を引きずる |
 | 第八章 | 膝掛け。窓の外の雲を見る | 重い雷雲・稲妻 (この百年、王都の空はいつも重かった) | 添え木を削った杖をつく → 杖は雷に焼かれて踊り場に残す → 杖なしで手すりの鎖をつかんで頂へ這い上がる |
 | 第八章 report_w33 以降 | 窓辺で空を見上げる | **百年で初めての青空** (朝) | ― |
+| 第九章 | 膝掛け。自分の手を見る | 晴れた空 (昼は青空、夕方は茜) | 杖なし。指先の焼けた手 (手袋は石橋の輪に結んで残した)。片脚を引きずる |
+| 第十章 | 膝掛け。玉座の肘掛けを強く握る (report_w41) | 晴れた空 | 第九章と同じ (手袋なし・焼けた指・片脚を引きずる)。**記憶の中だけに出る** (mem_w41)。悪人にも聖人にも見せない — 静かで、決意の固い顔 |
 
 ---
 
@@ -749,6 +751,81 @@ The same mansion at night. A row of wooden dolls rests seated against the wall, 
 A vast ruined amphitheatre after the battle, silent under a cold twilight sky, its stone tiers buried in grey ash and empty of spectators. In the centre of the bloodstained sand, a huge round pit opens into absolute darkness; faint, distant murmurs of countless voices seem to rise from deep below (suggested by a few dim soul-motes far down). The apprentice and the party stand at the pit's edge, looking down. A frayed rope ladder hangs over the rim, left by someone who climbed down before.
 ```
 
+### 第十章「地底大空洞」 ― 便6
+
+第十章の景色: 闘技場の穴の底に広がる、果ての見えない地底大空洞。三百年よりもずっと昔から、闘技場で使い潰されて黒く濁った灯籠 (手のひらほどの古いガラスの灯籠) が穴から落ち続け、底で黒い山をなしている。灯籠から漏れた濁った魂が、青白い燐光や琥珀の微光になって岩や水ににじむ。巨大なつらら石と石筍、水晶の鉱脈、黒く静まりかえった地底湖、岩壁一面に壁龕を彫った石窟、天井の見えない大伽藍。光は弱く、灯籠の琥珀色と魂の青白さだけ。王都の空は晴れたままなので、報告の場面の窓の外は **晴れた空**。第一部の結びの章。**物語の主題は「正しさとは何か」** — 宰相モルデンも師オルドも、悪人にも聖人にも見せない。
+
+**w38_lamp「名を思い出さない灯」** (手がかり / 迷宮「灯籠の吹き溜まり」)
+- 要点: 大空洞の底に、黒く濁った灯籠が山と積もる。踏むとガラスが鳴る。その中に一つだけ、布で何度も拭いたあとが丸く残る澄んだ灯籠。下に石で押さえた師の書きつけ。灯籠の山のあいだに、毎日誰かが歩いた足跡 (古い足跡の上に新しい足跡) が、黒い水の匂いのする奥へ続く。
+- 描くもの: 黒い灯籠の山 / 一つだけ澄んだ灯籠と書きつけ / 奥へ続く足跡 / 灯籠を手に取る弟子。上の闘技場の穴から細く差す光。描かないもの: 師・モルデン本人。
+```text
+The bottom of a colossal underground cavern beneath a pit: a mountain of countless small antique glass lanterns, their glass clouded pitch-black, heaped like drifted snow and crunching underfoot. A thin shaft of dim light falls from a round opening far above. Among the black lanterns, one single lantern has been carefully wiped clean, its glass clear, faint circular cloth-marks on it, a tiny pale soul-light inside; beneath it a handwritten note held down by a stone. The apprentice kneels and lifts the clean lantern. Between the heaps, a trodden path of footprints — old prints overlaid with fresh ones — leads away into the dark toward a distant cold glint of water. Amber and pale-blue light only, deep shadows, vast scale.
+```
+
+**report_w38「底で灯を拾う者」** (報告)
+- 要点: 三百年よりも前から捨てられ続けた灯籠の山の話を、王は目を閉じて聞く。毎日誰かが底で灯籠を拾っている — 思い当たる顔が一つしかない。
+```text
+The same throne room in daylight, a clear sky outside the tall windows. The very old king, lap blanket over his knees, sits with his eyes closed, one hand resting on a small blackened antique lantern the apprentice has set on the armrest. The chancellor's chair beside the throne stands empty, and the king's face is turned slightly toward it. The apprentice stands below the dais.
+```
+
+**w39_tags「宰相の字」** (手がかり / 迷宮「黒い灯の地底湖」)
+- 要点: 黒く静まりかえった地底湖の岸に、濁った灯籠がずらりと湖を向いて並ぶ。灯籠の一つひとつに小さな木札が細い紐で結ばれ、きれいな字で名前が書かれている (名を忘れた魂に、誰かが名をつけた)。その筆跡は宰相モルデンの字。札の山のそばに師の書きつけ。湖面にはどこにもない灯が映る。
+- 描くもの: 湖を向いて並ぶ灯籠の列 / 結ばれた木札 (字は読めなくてよい) / 札を手に取って筆跡に気づく弟子 / 湖面の灯の映りこみ。描かないもの: モルデン本人。
+```text
+The shore of a pitch-black, perfectly still underground lake in a vast cavern. Hundreds of small clouded-black antique lanterns stand in neat rows along the shore, all facing the water, each with a small wooden tag tied on with thin cord, every tag inscribed in the same elegant, careful handwriting. On the mirror-like water, the reflections of lantern lights glow where there are no lanterns. The apprentice holds one tag up to a small lamp, recognising the handwriting with a start. A stone-weighted handwritten note lies beside a pile of tags. Hushed, reverent, cold blue and amber.
+```
+
+**report_w39「呼ばれなかった名」** (報告)
+- 要点: 札の字がモルデンのものだと聞いて、王は驚かない。百年、同じ字の布告に印を押してきた。捨てられた魂に名をつけてやっていた男の名を、王は百年一度も呼んだことがなかった。空いた宰相の席を長く見る。
+```text
+The same throne room in late-afternoon light. The very old king holds a small wooden tag with elegant handwriting next to an old royal decree bearing the same handwriting and a red seal, comparing them, then looks long at the chancellor's empty chair beside the throne. Clear sky outside. The apprentice stands quietly below.
+```
+
+**irene_names「名を呼ぶ人」** (館の語り)
+- 要点: イレーヌの名は師がつけた。目を開けて最初に聞いたのが自分の名。名を呼ばれると灯が落ち着く。三百年ひとりで札に名を書いてきた宰相を責めきれない。「あの人は悪い人なのでしょうか」。セラがいれば「モルデンさん、って呼んであげればいい」。
+```text
+The same mansion workshop at night. Irene sits before the single white candle on its brass candlestick, holding a small wooden name tag in both hands and gazing at it, troubled and gentle. Sera (as in the Sera reference) leans beside her, looking at the tag too. Warm candlelight, quiet.
+```
+
+**w40_eyes「それでも、底へ」** (手がかり / 迷宮「名を刻む石窟」)
+- 要点: 岩壁一面に小さな壁龕が彫られ、どの壁龕にも濁った灯籠が一つずつ眠り、下の石に名が刻まれている (墓)。いちばん奥の空の壁龕に、師の外套から裂いた布切れと書きつけ。最後の一行だけ紙が破れかけるほど強く書かれている。
+- 描くもの: 壁龕の並ぶ岩壁 (上へ何段も) / 刻まれた名 / 空の壁龕の布切れと書きつけ / 書きつけを読む弟子。描かないもの: 師・モルデン本人。
+```text
+A towering cavern wall carved with hundreds of small niches rising tier upon tier into darkness, each niche holding one small clouded-black antique lantern, a name carved into the stone beneath each. It feels like a vast, tender grave. At the very back, one niche is empty except for a strip of torn black coat-cloth (with a tiny gold lamp-on-palm embroidery) and a handwritten note whose last line is pressed so hard the paper is nearly torn. The apprentice reads it by the faint pale glow of the lanterns. Silence, dust, reverence.
+```
+
+**report_w40「三百年の墓守」** (報告)
+- 要点: 壁龕の灯籠と刻まれた名の話を聞いて、王はそれを墓と呼ぶ。オルドは何をしに底へ行くのかと、自分に問うように呟く。
+```text
+The same throne room at dusk, orange sky outside. The very old king leans back on the throne, eyes half-closed, one hand over his heart as if mourning, speaking quietly to himself. The chancellor's chair stands empty. The apprentice stands below.
+```
+
+**mem_w41「階段の前のふたり」** (主の記憶 / 宰相モルデン)
+- 要点: 一年前。大伽藍のいちばん奥、さらに下へ続く階段の前で、宰相モルデンと師オルドが向かい合う。モルデンは三百年この階段の前にいた。底に眠るものを手にした者は「魂の王」になる。祖は触れるなと言い残した。師は「それを取りに来た」と言い、命令では誰も救えなかったから巡りを書き換えると言う。モルデンは「命を思うままにする者は、いつか必ず命を使い潰す」と答える。師は階段を降り、モルデンは追えない。**どちらも悪人にも聖人にも見せない** — 二人とも正しく、二人とも迷っている。
+- 描くもの: 天井の見えない巨大な伽藍 / 下の闇へ続く石段 (底にかすかな光) / 胸の小さな扉を開けて古い灯を見せるモルデン (正典の顔・老いない) / 手袋なし・指先の焼けた手で片脚を引きずる師オルド (第十章の姿) / 二人のまわりに並ぶ名札つきの灯籠。描かないもの: 弟子。底のものの正体 (光だけ)。
+```text
+A memory scene with faint amber-hazed edges: the innermost depth of a gigantic cavern-cathedral whose ceiling is lost in darkness. At its heart, a broad ancient stone stairway descends into an abyss, a faint unearthly light glowing far below. Before the top step stand two men facing each other in tense, sorrowful silence. On the stair side, the chancellor Morden (exact canon face: gaunt, pale, ageless, thin sad smile, tall black-purple hat with gold band, red inner robe, gold chain with a red jewel) has a small door open in his chest revealing an ancient flickering soul-light; he stands between the stair and the other man, not attacking, pleading. Facing him, Ordo (as in the Ordo reference: tall lean man about 55, short grey hair, grey beard, worn black long coat with one small gold lamp-on-palm crest on the hem) — gloveless, fingertips burnt, leaning on one leg, calm and resolute. Around them, rows of small clouded lanterns with wooden name tags. Neither looks villainous: both look tired, certain, and grieving.
+```
+
+**report_w41「王の資格」** (報告)
+- 要点: オルドが魂の王になるために底へ降りたと聞き、王は玉座の肘掛けを強く握る。民の命を霊薬に変えて飲んできた自分に、それを咎める資格はない。「追って、確かめて、そなたの目で決めよ。余の命令ではない」。
+```text
+The same throne room in daylight, clear sky outside. The very old king grips the armrests of his throne hard, knuckles white, his gaze lowered to his own crown resting on his lap as if questioning what it means to be a king. The chancellor's chair stands empty. The apprentice stands below, with Sera (as in the Sera reference) and a doll beside them. Solemn.
+```
+
+**irene_candle「消せない灯」** (館の語り)
+- 要点: その夜、イレーヌは燭台の前に座ったまま朝まで動かない。「灯を絶やすな」と言われて守ってきた灯。もし師が間違ったことをしようとしているなら、この灯を守ることは正しいのか。それでも「灯は絶やしません。あの方に、もう一度会うために」。セラがいれば「オルド様に会って、どうしてって聞きたい」。
+```text
+The same mansion at dawn: grey-blue light creeping in through the window. Irene has sat all night before the single white candle on its brass candlestick, her hands folded in her lap, eyes red but resolute, still watching the flame. Sera (as in the Sera reference) sits beside her on the floor, leaning against her knee. The candle still burns, small and steady.
+```
+
+**ch10_end「第一部の終わり」** (章の結び)
+- 要点: 宰相モルデンは大伽藍の階段の前で、三百年ぶりの眠りにつく。胸の灯は消えず、小さく静かに揺れる。師は魂の王になるために、さらに下へ降りていった。正しいのは誰なのか、まだ誰にも分からない。
+- 描くもの: 階段の脇に座って眠るように目を閉じたモルデン (胸の扉の中に小さな灯、まわりに名札つきの灯籠) / 下の闇へ続く階段 / 階段の上に立って下をのぞく弟子と隊。
+```text
+The same gigantic cavern-cathedral after the battle, quiet. Beside the top of the descending stairway, the chancellor Morden (exact canon face, ageless) sits against a pillar with his eyes closed as if peacefully asleep, his chest door ajar with a small, steady soul-light inside, surrounded by rows of small lanterns with wooden name tags. The apprentice and the party (wooden dolls, Sera) stand at the top step, looking down the endless stairs into the abyss, where a faint unearthly light glows far below. Melancholy, resolve, the end of a long first journey.
+```
+
 ### 第五章の任意の1枚
 
 - **irene_abyss「落ち続ける灯」** (館の語り。ゲーム内だけで、ストーリー一覧に無い。絵を付けるなら、先に Claude に一覧の場面を足してもらう — 1-3): 燭台の前で両手を固く組むイレーヌ、胸の扉に手を当てて灯を強く燃やすセラ。
@@ -793,6 +870,9 @@ A vast ruined amphitheatre after the battle, silent under a cold twilight sky, i
 | 2 | ws16 錆びた避雷針の林 | 塔の張り出しに林のように打たれた錆びた鉄の針 (根元の一門の印)、焼けた旅人の荷 |
 | 2 | ws18 勝者の控え所 | 闘技場の外壁の内側の控えの間、壁一面の勝ち星の札 (最後に「休めず」)、勝ち残った闘士の霊 |
 | 2 | ws19 決闘の小円形場 | 闘技場の裏手の小さな円い決闘場、入口の石に彫られた一対一の礼の絵 |
+| 2 | ws20 大空洞の主の寝床 | 大空洞の脇の天井の高い岩屋、床一面の巨獣の骨、骨の山の上で光るものを一つ抱えて眠る山のような巨獣 |
+| 1 | ws21 化石竜の墓所 | 岩盤に丸ごと埋まった山のように大きな竜の骨、骨のすき間をたどる道、頭骨の目のくぼみの奥の小さな灯 |
+| 2 | ws22 水晶の鉱脈 | 大空洞の壁を割って走る青白い水晶の鉱脈、闇の中の灯を拾って昼のように明るい奥 |
 | 3 | w18〜w33 本筋の16迷宮 | 各迷宮の情景 (`about` と本文)。手がかりの場面と構図を変える |
 
 ---

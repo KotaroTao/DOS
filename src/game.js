@@ -2,7 +2,7 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setModSink, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, scaleFoeAgi, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setModSink, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, setPartyHitBonus, partyBreathRes, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageMul, stageLabel, isBattleLong, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -992,7 +992,8 @@ function abyssMaxDepth() {
   if (featureUnlocked("abyssDeep")) return Infinity;
   const slain = (G.stats && G.stats.bossIds) || {};
   let top = 1;
-  for (let L = 1; L <= 20; L++) if (slain[LAYER_BOSS[L - 1]]) top = L;
+  // その層の主 (層の主、または台帳でその層の迷宮に立つ主 — 第十章の宰相モルデンなど) を一体でも倒していれば、その層の底まで
+  for (let L = 1; L <= 20; L++) if (slain[LAYER_BOSS[L - 1]] || DUNGEONS.some((d) => d.layer === L && d.boss && slain[d.boss])) top = L;
   return top * ABYSS_LAYER_FLOORS;
 }
 function abyssCfg() {
@@ -1748,6 +1749,14 @@ function newFloor() {
     namedSighted(ek);
   }
   placeMetal(); // 金属の魔物: 第3層から稀に魔物の札1枚と入れ替わる
+  // 迷宮の掟「巨獣の宝」(trait.oneChest): 宝箱は1階に1つだけ (多ければ空き床に戻し、無ければ1つ置く)。特別な階の宝箱はこの後に足される
+  { const tr1 = dungeonTrait();
+    if (tr1 && tr1.oneChest) {
+      const chests = [];
+      sfEachCell(G.board, (c) => { if (c.type === "chest" && !c.cleared) chests.push(c); });
+      if (!chests.length) sfPlace(G.board, 1, (c) => { c.type = "chest"; c.cleared = false; });
+      else for (const c of chests.splice(1)) { c.type = "empty"; c.cleared = false; }
+    } }
   // 特別階: 盤面への効果 (宝箱の追加・罠の消滅など) を適用
   const spf = specialDef();
   if (spf && spf.board) spf.board(G.board);
@@ -6198,11 +6207,14 @@ function clueBoon(kind) {
 const CLUE_EVADE = 0.01;
 // 雷よけの書きつけ (breathWard): 隊の全員のブレス耐性 +5% (combat.js setPartyBreathBonus。装備のブレス耐性と合わせて上限 50%)
 const CLUE_BREATH = 0.05;
+// 暗がりの目 (eyes): 隊の全員の物理が外れる率 −2ポイント (combat.js setPartyHitBonus)
+const CLUE_HIT = 0.02;
 // セラの囁き (soulEcho): 迷宮で職業の魂を拾った時、この確率でもう一つ拾える (grantSoulQuiet)
 const SOUL_ECHO_RATE = 0.05;
 function syncClueBoons() {
   setPartyEvadeBonus(clueBoon("evade") ? CLUE_EVADE : 0);
   setPartyBreathBonus(clueBoon("breathWard") ? CLUE_BREATH : 0);
+  setPartyHitBonus(clueBoon("eyes") ? CLUE_HIT : 0);
   restockElixirs();
 }
 function stabilityMinutes() { return Math.round(stabilityRecoveryMs() / 60000); }
@@ -7907,7 +7919,7 @@ function startBattleMeasured(enemies, cell) {
   for (const e of enemies) e.lv = foeLv;
   // 開幕のパッシブ・迷宮の掟の冷気で掛かる強化・弱体は、開幕の演出の後に1拍ずつ見せる (演出の設定が出す時だけ)
   const modW = beginModWatch(true);
-  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), baseAgi: partyAgi(levelHere().lv), foeLv, fervor: !!(trB && trB.fervor) });
+  G.battle = new Battle(G.party, enemies, log, { opening, noFlee: mutNum("noFlee", false), orderFleet: partyPassiveLv("fleetFoot"), fleeK: fleeScale(), baseAgi: partyAgi(levelHere().lv), foeLv, fervor: !!(trB && trB.fervor), foeRise: (trB && trB.foeRise) || 0, soulFeast: (trB && trB.soulFeast) || 0 });
   tlWatchBattle(G.battle, tlWhere());
   // 掟 (土地の掟 → 迷宮の掟) の開幕の効果: 寒さに身がすくむ (chill) — 隊の全員の AGI を段数ぶん下げる (3ターン)。
   // 段は足し合う (酷寒 −1段 + 絶対零度 −1段 = −2段)
@@ -7916,6 +7928,13 @@ function startBattleMeasured(enemies, cell) {
     for (const p of G.battle.party) if (p.alive) { G.battle._applyMod(p, "agi", Math.pow(0.8, r.chill), 3, r.name); hits.push({ p, text: `AGI${"▼".repeat(r.chill)}`, color: "#ff8a8a", buff: true }); }
     log(`${r.say || `${r.head}が隊の足を鈍らせる`} (隊の AGI ▼${r.chill})。`, "dmg");
     if (trOpen && hits.length && !modW) trOpen.steps.push({ kind: "chill", head: r.head, accent: r.accent, label: r.name, hits });
+  }
+  // 底なしの闇 (gloom) — 戦闘の開幕に、隊の全員の命中が下がる (物理が外れる率をこの分だけ足す。3ターン)
+  for (const r of ruleOpens) if (r.gloom > 0) {
+    const hits = [];
+    for (const p of G.battle.party) if (p.alive) { G.battle._applyMod(p, "hit", 1 - r.gloom, 3, r.name); hits.push({ p, text: "命中▼", color: "#c8b898", buff: true }); }
+    log(`${r.say || `${r.head}が隊の目をくらませる`} (隊の命中 ▼)。`, "dmg");
+    if (trOpen && hits.length && !modW) trOpen.steps.push({ kind: "gloom", head: r.head, accent: r.accent, label: r.name, hits });
   }
   // 飢えた獣 (foeRally) — 戦闘の開幕に、敵全体の攻撃を段数だけ上げる (3ターン。主・金属の魔物は除く)
   for (const r of ruleOpens) if (r.foeRally > 0) {
@@ -7954,6 +7973,25 @@ function startBattleMeasured(enemies, cell) {
       else flashScreen("#d8e0ff");
     }
   }
+  // ささやく湖面 (whisper) — 戦闘の開幕に、隊の一人がささやきに惑わされ、この確率で混乱する (混乱の抵抗で防げる)
+  for (const r of ruleOpens) if (r.whisper > 0) {
+    const live = G.battle.party.filter((p) => p.alive && !p.mind && !p.asleep);
+    if (!live.length) continue;
+    const p = live[rand(live.length)];
+    if (Math.random() < r.whisper * (1 - G.battle._ailRes(p, "confuse"))) {
+      traitOpenHold(p);
+      p.mind = "confuse"; G.battle._holdAil(p, "mind");
+      log(`${r.say || r.head} ― ${p.name}は惑わされ、混乱した。`, "dmg");
+      if (trOpen) trOpen.steps.push({ kind: "whisper", head: r.head, accent: r.accent, label: r.name, hits: [{ p, text: "混乱", color: "#c8a0ff" }] });
+    } else log(`${r.say || r.head} ― ${p.name}は耳をふさいで、惑わされなかった。`, "sys");
+  }
+  // 封じの殻 (shell) — 戦闘の開幕に、主・金属の魔物を除く敵の全員に障壁 (打撃を1回だけ半ば防ぐ) を張る
+  for (const r of ruleOpens) if (r.shell > 0) {
+    let n = 0;
+    for (const e of G.battle.enemies) if (e.alive && !e.boss && !e.metal) { e._barrierLeft = (e._barrierLeft || 0) + r.shell; n++; }
+    if (n) log(`${r.head} ― 魔物たちが眠りの封じの殻をまとった (障壁)。`, "sys");
+  }
+  if (trB && trB.foeRise) log(`${trB.name} ― 倒れた魔物は、一度だけ起き上がってくる。`, "sys");
   if (trB && trB.fervor) log("観客の歓声が戦う者を煽る ― 2ターン目から、敵も味方も攻撃が上がっていく。", "sys");
   // 土地の掟「見世物の闘技場」: 観客の注文をひとつ出す (応えて勝てば、この戦闘の ✦Soul・金貨 1.5倍 — endBattle)
   G.battle.audience = audienceOrderFor(enemies);
@@ -8004,6 +8042,8 @@ const TRAIT_OPEN_FX = {
   mp:     { fx: "earth",  card: "el-earth", sfx: () => SFX.spell() },
   chill:  { fx: "water",  card: "debuff",   sfx: () => SFX.spell() },
   poison: { fx: "poison", card: "status",   sfx: () => SFX.spell() },
+  gloom:  { fx: "dark",   card: "debuff",   sfx: () => SFX.spell() },
+  whisper: { fx: "dark",  card: "status",   sfx: () => SFX.spell() },
 };
 function playTraitOpening(info, done) {
   const finish = () => { G.partyShow = null; renderParty(); done(); };
@@ -12628,6 +12668,7 @@ function tavernHintAllowed(req) {
   if (req === "swamp") return worldOpenId("w26");                                   // 毒沼 (腐れ水の岸が地図に現れた後)
   if (req === "storm") return worldOpenId("w30");                                   // 嵐の尖塔 (風鳴りの螺旋が地図に現れた後)
   if (req === "arena") return worldOpenId("w34");                                   // 闘技場跡 (雲を渡る石橋が地図に現れた後)
+  if (req === "cavern") return worldOpenId("w38");                                  // 地底大空洞 (灯籠の吹き溜まりが地図に現れた後)
   return featureUnlocked(req);                           // fusion / rumor / order / expedition
 }
 // 酒場の顔ぶれを選び直す (ダンジョン帰還時・初回入店時に呼ぶ)
@@ -15865,6 +15906,8 @@ function useItemMeasured(p, index, target) {
   if (u.recall) {
     // 帰還の鈴: 迷宮を歩いている時だけ。確かめてから鈴を鳴らし、戦利品を持って街へ戻る
     if (G.state !== "board" || !inDungeon() || G.anim || G.walking) { SFX.ng(); showToast(`${it.name}は迷宮を歩いている時にしか使えない`, { tone: "info" }); return; }
+    // 迷宮の掟「閉ざされた門」(化石竜の墓所): 帰還の鈴は鳴らない
+    { const tr = dungeonTrait(); if (tr && tr.sealedGate) { SFX.ng(); showToast(`${tr.name} ― ${it.name}は鳴らない。最下階まで進むしかない`, { tone: "info" }); return; } }
     showChoice(`${it.name}を鳴らし、街へ帰還する？`, [
       { label: "鳴らして帰還する ― 戦利品は持ち帰る", primary: true, fn: () => {
         const i = p.items.indexOf(it);
@@ -15980,8 +16023,10 @@ function showConfirm({ title, lines = [], okLabel = "実行する", onOk }) {
 
 // ダンジョンで拾った装備は未鑑定 (鑑定するまで装備不可) で手に入る。
 // 消耗品・戦利品・貴重品 (use/misc/mat) は鑑定済みでそのまま使える。
+// 迷宮の掟「澄んだ水晶の光」(水晶の鉱脈 — trait.appraised) の迷宮では、はじめから鑑定済み
 function markDungeonLoot(it) {
-  if (it && UNIDENT_SLOTS.has(it.slot)) it.unidentified = true;
+  const tr = dungeonTrait();
+  if (it && UNIDENT_SLOTS.has(it.slot) && !(tr && tr.appraised)) it.unidentified = true;
   return it;
 }
 

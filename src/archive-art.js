@@ -1,7 +1,7 @@
 // 読み物専用の一枚絵。場面ごとに背景・主題・人物の位置と手の動きを描き分ける。
 // 既存の storyArt や館の肖像は使わない。192×108の素材色を点光源で照らし、共通パレットへ量子化する。
 import { Layer, Mask, h2 } from "./pxpaint.js";
-import { ICE_PAL, SWAMP_PAL, STORM_PAL, ARENA_PAL } from "./storyart.js"; // 第六章の氷の青と極光の紫 / 第七章の沼の緑と枯れ葦 / 第八章の雷雲と稲妻 / 第九章の灰と雲海の夕映えを足したパレット
+import { ICE_PAL, SWAMP_PAL, STORM_PAL, ARENA_PAL, CAVERN_PAL } from "./storyart.js"; // 第六章の氷の青と極光の紫 / 第七章の沼の緑と枯れ葦 / 第八章の雷雲と稲妻 / 第九章の灰と雲海の夕映え / 第十章の土と琥珀と濁った灯を足したパレット
 
 export const ARCHIVE_ART_W = 192, ARCHIVE_ART_H = 108;
 export const ARCHIVE_FOCUS = ["city", "threeSouls", "door", "lamp", "vessel", "partyThree", "partyFour", "guard",
@@ -13,7 +13,8 @@ export const ARCHIVE_FOCUS = ["city", "threeSouls", "door", "lamp", "vessel", "p
   "coat", "frozenMasters", "auroraMap", "frostKing", "thaw",
   "splint", "dollPile", "miasmaNote", "workshopIsle", "tower",
   "stick", "bell", "rodNote", "beacon", "bridge",
-  "glove", "lampRack", "dollNook", "lampRing"];
+  "glove", "lampRack", "dollNook", "lampRing",
+  "polishedLamp", "nameTags", "wallNiches", "moldernLamp", "deepStairs"];
 // 氷の場面は氷の青を足したパレットで量子化する (共通のパレットだと青が灰色に沈む)
 const ICE_FOCUS = ["coat", "frozenMasters", "auroraMap", "frostKing", "thaw"];
 // 沼の場面は沼の緑と枯れ葦の黄土を足したパレットで量子化する
@@ -24,13 +25,17 @@ const STORM_FOCUS = ["stick", "bell", "rodNote", "beacon", "bridge"];
 // 闘技場跡の場面は灰の温かい灰色と雲海の夕映えを足したパレットで量子化する。背景 "arena" は主題で三つに描き分ける
 // (石橋 = 雲海の上の橋 / 床下 = 檻と観客席の裏 / すり鉢 = 灰の積もった観客席と血の砂)。"pit" は背景 "arena" と組むと闘技場の真ん中の穴
 const ARENA_FOCUS = ["glove", "lampRack", "dollNook", "lampRing"];
+// 地底大空洞の場面は土の茶・灯の琥珀・濁った灯の青灰を足したパレットで量子化する。背景 "cavern" は主題で描き分ける
+// (灯籠の山 = 天井の穴から光が差す吹き溜まり / 湖 = 黒い地底湖 / 壁龕 = 名を刻む石窟 / 大伽藍 = 巨柱の並ぶ闇の広間)
+const CAVERN_FOCUS = ["polishedLamp", "nameTags", "wallNiches", "moldernLamp", "deepStairs"];
 const cache = new Map();
 const C = { stone:[71,67,85], dark:[25,22,37], edge:[114,104,118], wood:[104,64,47], gold:[199,150,70], paper:[201,183,139],
   iron:[81,94,115], bone:[185,165,137], soul:[73,214,190], blue:[91,131,190], purple:[107,65,143], skin:[188,151,147], black:[31,25,38],
   ice:[150,198,228], iceD:[62,102,146], snow:[226,238,248], coat:[48,42,58],
   mud:[54,48,32], bog:[30,44,24], reed:[150,128,80], sick:[150,196,70],
   cloud:[70,62,98], bolt:[214,222,255], copper:[204,116,64], char:[34,28,30], wet:[86,86,106],
-  ash:[150,144,136], sand:[150,120,84], leather:[112,72,44], blood:[110,34,30], dusk:[220,140,124], ember:[255,140,60] };
+  ash:[150,144,136], sand:[150,120,84], leather:[112,72,44], blood:[110,34,30], dusk:[220,140,124], ember:[255,140,60],
+  earth:[78,64,52], earthD:[40,33,28], murk:[86,104,110], brass:[150,118,68], linen:[196,182,154] };
 
 function paintScene(scene) {
   const W = ARCHIVE_ART_W, H = ARCHIVE_ART_H, L = new Layer(W, H);
@@ -38,10 +43,12 @@ function paintScene(scene) {
   const spire = scene.setting === "spire" || (scene.setting === "storm" && STORM_FOCUS.includes(scene.focus));
   const arena = scene.setting === "arena" || ARENA_FOCUS.includes(scene.focus);
   const arenaMode = scene.focus === "glove" ? "bridge" : ["lampRack", "dollNook"].includes(scene.focus) ? "under" : "bowl";
+  const cavern = scene.setting === "cavern" || CAVERN_FOCUS.includes(scene.focus);
+  const caveMode = scene.focus === "nameTags" ? "lake" : scene.focus === "wallNiches" ? "niche" : ["moldernLamp", "deepStairs"].includes(scene.focus) ? "nave" : "heap";
   const indoor = ["mansion", "workshop", "throne", "treasury", "warroom", "prison", "crypt", "passage", "abbey", "mine"].includes(scene.setting);
   const roomLight = ["mansion", "workshop", "throne", "treasury"].includes(scene.setting);
   const focalX = scene.people === "king" ? 139 : scene.people === "irene" ? 121 : 105;
-  const light = { x:focalX, y:56, color:roomLight ? [1,0.69,0.38] : scene.setting==="ice" ? [0.55,0.8,1] : scene.setting==="swamp" ? [0.72,0.9,0.46] : spire ? [0.66,0.72,1] : arena ? [1,0.64,0.46] : [0.33,0.86,0.82] };
+  const light = { x:focalX, y:56, color:roomLight ? [1,0.69,0.38] : scene.setting==="ice" ? [0.55,0.8,1] : scene.setting==="swamp" ? [0.72,0.9,0.46] : spire ? [0.66,0.72,1] : arena ? [1,0.64,0.46] : cavern ? (caveMode==='niche'||caveMode==='nave' ? [0.5,0.72,0.7] : [1,0.76,0.46]) : [0.33,0.86,0.82] };
   function rgb(base, x, y, edge = false) {
     const d = Math.hypot((x - light.x) * 0.8, y - light.y) / 100;
     const k = Math.max(0, 1 - d) ** 2;
@@ -199,6 +206,29 @@ function paintScene(scene) {
       for(let i=0;i<10;i++){const xx=h2(i,15,seed)*W,yy=h2(i,17,seed)*90;rect(xx,yy,1,1,C.ember,false);glow(xx,yy,3,[255,110,40],0.35);}
     }
   }
+  // 第十章: 地底大空洞 (闇に沈む岩の地層・天井のつらら石・黒く濁った灯籠)
+  function caveLamp(x,by,sc,state="dead"){rect(x-1.4*sc,by-0.8*sc,2.8*sc,0.8*sc,state==="clear"?C.gold:C.brass);rect(x-1.5*sc,by-4.6*sc,3*sc,0.8*sc,state==="clear"?C.gold:C.brass);if(sc>=1.5)line(x,by-4.6*sc,x,by-5.6*sc,C.brass);
+    rect(x-sc,by-3.8*sc,2*sc,3*sc,state==="dead"?[6,5,8]:state==="murk"?[44,54,58]:[60,74,70],false);if(state==="clear"){ellipse(x,by-2.2*sc,0.6*sc,0.8*sc,[210,255,240],false);glow(x,by-2.2*sc,6*sc,[60,210,180],0.6);}else if(state==="murk")glow(x,by-2.4*sc,3*sc,[60,80,86],0.35);}
+  function caveHeap(cx,by,rw,rh,n,smin,smax){poly([[cx-rw,by],[cx-rw*0.5,by-rh*0.7],[cx,by-rh],[cx+rw*0.5,by-rh*0.7],[cx+rw,by]],[22,19,18]);const pts=[];for(let i=0;i<n;i++){const u=h2(i,31,seed)*2-1,yy=by-rh*(1-Math.abs(u)**1.4)*(0.15+h2(i,32,seed)*0.85);pts.push([cx+u*rw*0.92,yy+2,h2(i,33,seed)]);}pts.sort((a,b)=>a[1]-b[1]);for(const [q,yy,k] of pts)caveLamp(q,yy,smin+(smax-smin)*Math.max(0,(yy-(by-rh))/rh),k<0.4?"murk":"dead");}
+  if(cavern){
+    for(let yy=0;yy<H;yy++){const st=Math.sin(yy*0.55+h2(yy>>2,1,seed)*3);rect(0,yy,W,1,st>0.7?[46,38,32]:[34,28,24]);}
+    for(let i=0;i<14;i++){const q=h2(i,21,seed)*W,l=6+h2(i,22,seed)*20,w2=2+h2(i,23,seed)*5;poly([[q-w2,0],[q+w2,0],[q,l]],C.earthD);}
+    rect(0,88,W,20,[58,52,46]);for(let i=0;i<40;i++)rect(h2(i,24,seed)*W,90+h2(i,25,seed)*17,2,1,[90,84,76]);
+    if(caveMode==="heap"){                                     // 天井の穴から差す細い光と、灯籠の吹き溜まり
+      ellipse(70,1,6,2.4,[220,210,196],false);for(let yy=2;yy<70;yy++){const hw=4+yy*0.22;for(let d=-hw;d<=hw;d++)L.add(Math.round(70+d+yy*0.05),yy,[150,144,132],(1-Math.abs(d)/hw)*0.18*(1-yy/90));}
+      caveHeap(20,92,30,14,18,0.8,1.3);caveHeap(178,90,34,16,20,0.8,1.3);
+    } else if(caveMode==="lake"){                              // 黒い地底湖と、向こう岸の灯籠の列
+      rect(0,46,W,4,[48,42,38]);for(let q=2;q<W;q+=4+h2(q,26,seed)*3)caveLamp(q,48,0.55,h2(q,27,seed)<0.45?"murk":"dead");
+      rect(0,50,W,38,[6,8,10],false);for(let q=2;q<W;q+=6)if(h2(q,28,seed)<0.45){line(q,52,q+(h2(q,29,seed)-0.5)*2,52+3+h2(q,30,seed)*6,[40,52,58],1,false);}
+      for(let i=0;i<30;i++){const q=h2(i,34,seed)*W,yy=54+h2(i,35,seed)*30;line(q,yy,q+5+h2(i,36,seed)*6,yy,[26,30,36],1,false);}
+      rect(0,84,W,24,[40,36,34]);line(0,84,W,84,[90,98,102],1,false);
+    } else if(caveMode==="niche"){                             // 名を刻む石窟の壁 (壁龕の並び。一つずつに濁った灯籠と名を刻んだ石)
+      rect(0,0,W,88,[60,56,52]);for(let r=0;r<3;r++)for(let c=0;c<7;c++){const q=8+c*27,yy=6+r*27;rect(q-2,yy-2,22,22,[86,80,74]);poly([[q,yy+20],[q,yy+6],[q+9,yy],[q+18,yy+6],[q+18,yy+20]],[10,10,12]);if(h2(c,r,seed)>0.16){caveLamp(q+9,yy+19,1.6,"murk");glow(q+9,yy+14,12,[60,110,104],0.5);}rect(q+3,yy+21,12,3,[112,106,98]);for(let k=0;k<9;k++)if(h2(k,c*3+r,seed)>0.4)rect(q+4+k,yy+22,1,1,[30,30,30],false);}
+    } else {                                                   // 巨柱の並ぶ闇の広間
+      for(const [q,w2,k] of [[10,24,1],[182,24,1],[40,12,0.6],[152,12,0.6]]){poly([[q-w2/2,0],[q+w2/2,0],[q+w2*0.25,40],[q+w2/2,88],[q-w2/2,88],[q-w2*0.25,40]],[Math.round(70*k),Math.round(60*k),Math.round(52*k)]);}
+      for(let i=0;i<30;i++)rect(50+h2(i,37,seed)*92,24+h2(i,38,seed)*36,1,1,h2(i,39,seed)<0.5?[70,86,90]:[44,50,52],false);
+    }
+  }
   if(scene.setting==="water"){rect(0,73,W,35,[20,49,61]);for(let i=0;i<40;i++){const x=h2(i,1,seed)*W,y=76+h2(i,3,seed)*30;line(x,y,x+9,y,C.blue);}for(let x=143;x<183;x+=9)rect(x,18,3,71,C.iron);}
 
   // 一枚ごとの主題。小道具だけの色違いではなく、物語で向き合う相手と場所を変える。
@@ -338,6 +368,19 @@ function paintScene(scene) {
       for(let i=0;i<13;i++){const a=-Math.PI/2+i/13*Math.PI*2,q=98+Math.cos(a)*32,yy=44+Math.sin(a)*32,on=i<8;line(q,yy+1,q,yy+4,C.iron);rect(q-2,yy+4,4,1,C.gold);rect(q-2,yy+5,4,5,i===12?[6,4,8]:on?[140,240,210]:[60,56,58],!on);if(on)glow(q,yy+7,8,[60,210,180],0.45);}
       for(let i=0;i<24;i++){const t=h2(i,2,seed),a=h2(i,3,seed)*6.28;rect(98+Math.cos(a)*(16+t*44),44+Math.sin(a)*(16+t*44)-t*20,1,1,C.soul,false);}
       ellipse(96,82,14,3.6,C.black);for(let i=0;i<6;i++)rect(88+h2(i,5,seed)*16,81+h2(i,6,seed)*3,1,1,[80,90,110],false);break;
+    // ---- 第十章「地底大空洞」 ----
+    case "polishedLamp": caveHeap(70,96,64,50,70,1,2.4);poly([[106,84],[114,80],[130,81],[138,86],[134,92],[120,90],[108,92]],C.linen);caveLamp(122,86,3.2,"clear");
+      poly([[146,98],[150,94],[176,93],[182,98],[178,104],[150,104]],[110,102,94]);poly([[152,92],[172,91],[173,97],[153,98]],C.paper);for(let i=0;i<3;i++)line(155,93.6+i*1.4,169-i*2,93.4+i*1.4,C.wood);ellipse(168,93,2.6,1.8,[120,112,104]);
+      for(let k=0;k<10;k++){const q=186-k*8,yy=106-k*1.2+(k%2);ellipse(q,yy,1.6,0.7,[30,27,26]);}break;
+    case "nameTags": for(let k=0;k<6;k++){const q=96+k*16,yy=98-k*1.6,sc=2-k*0.12;caveLamp(q,yy,sc,k%2?"dead":"murk");line(q,yy-5.2*sc,q+4*sc,yy-4.4*sc,[170,150,110]);rect(q+3.2*sc,yy-4.4*sc,2.6*sc,4*sc,[176,146,98]);}
+      caveLamp(50,102,3.4,"murk");line(50,84,68,86,[180,160,120]);rect(64,86,10,22,[196,168,118]);for(let k=0;k<4;k++){const gy=89+k*4.6;rect(67,gy,3,1,[34,26,24],false);rect(68,gy,1,3,[34,26,24],false);if(h2(k,40,seed)>0.4)rect(66,gy+2,1,1,[34,26,24],false);if(h2(k,41,seed)>0.4)rect(70,gy+2,1,1,[34,26,24],false);}break;
+    case "wallNiches": poly([[0,108],[0,94],[60,90],[120,92],[192,96],[192,108]],[46,44,42]);poly([[40,96],[44,84],[48,78],[52,77],[56,80],[60,86],[62,96]],[50,46,56]);rect(44,96,16,2,C.brass);ellipse(52,75,2,1.6,C.brass);
+      poly([[74,92],[102,90],[103,99],[75,101]],C.paper);for(let i=0;i<3;i++)line(78,93+i*2.4,98-i*3,92.6+i*2.4,C.wood);for(const [dx,dy] of [[0,1],[1,0],[2,0],[3,0],[4,1],[1,2],[2,2],[3,2]])rect(86+dx,95.6+dy,1,1,[34,30,30],false);ellipse(99,93,2.4,1.6,[120,112,104]);break;
+    case "moldernLamp": poly([[60,100],[66,88],[134,86],[140,100]],[70,64,58]);for(let k=0;k<4;k++)line(62+k*2,90+k*3,138-k*2,90+k*3,[48,44,40]);
+      poly([[86,96],[88,70],[94,60],[104,60],[110,70],[114,96]],[30,26,34]);poly([[90,62],[92,54],[96,58],[102,58],[106,54],[108,62]],[30,26,34]);ellipse(99,52,5,6,[214,204,196]);poly([[94,48],[99,45],[104,48],[103,52],[95,52]],[22,20,24]);line(96,55,98,55,[60,52,56]);
+      line(88,70,82,84,[30,26,34],3);line(110,70,116,84,[30,26,34],3);rect(95,70,8,9,[16,20,22]);poly([[95,70],[90,71],[90,78],[95,79]],C.brass);ellipse(99,75,1.2,1.6,[160,240,220],false);glow(99,75,9,[60,200,170],0.35);break;
+    case "deepStairs": poly([[68,108],[124,108],[108,72],[84,72]],[24,22,22]);for(let k=0;k<9;k++){const t=k/9,yy=108-t*36,hw=28-t*16;rect(96-hw,yy-2,hw*2,1,[Math.round(110-t*80),Math.round(102-t*74),Math.round(92-t*66)]);}
+      rect(84,70,24,3,[214,216,186],false);glow(96,70,40,[190,196,150],0.6);for(let i=0;i<24;i++)rect(84+h2(i,42,seed)*24,20+h2(i,43,seed)*50,1,1,[220,224,196],false);break;
     default: throw new Error(`読み物の図版に未定義の主題: ${scene.focus}`);
   }
   if(scene.people==="irene")irene(scene.pose==="shelter"?80:62,scene.pose==="seated"?66:63,scene.pose);
@@ -348,7 +391,7 @@ function paintScene(scene) {
     for(let j=0;j<3;j++)L.c[i+j]*=1-d;
   }
   const swamp = scene.setting === "swamp" || SWAMP_FOCUS.includes(scene.focus);
-  return L.canvas(8, arena ? ARENA_PAL : spire || STORM_FOCUS.includes(scene.focus) ? STORM_PAL : swamp ? SWAMP_PAL : scene.setting === "ice" || ICE_FOCUS.includes(scene.focus) ? ICE_PAL : undefined);
+  return L.canvas(8, cavern ? CAVERN_PAL : arena ? ARENA_PAL : spire || STORM_FOCUS.includes(scene.focus) ? STORM_PAL : swamp ? SWAMP_PAL : scene.setting === "ice" || ICE_FOCUS.includes(scene.focus) ? ICE_PAL : undefined);
 }
 
 export function archiveArt(scene) {

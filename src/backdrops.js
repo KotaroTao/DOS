@@ -1051,7 +1051,7 @@ function sArena(R, A) {
   A.fog("#c0a070", 0.82, 3, 0.07, 9, 120, 8);
 }
 
-// 層 12 地底大空洞: 巨大なつらら石と石筍、深い裂け目、遠くで光る結晶群、細い地底滝
+// 層 12 地底大空洞: 巨大なつらら石と石筍、深い裂け目、遠くで光る結晶群、細い地底滝。裂け目の向こうの縁に、黒く濁った灯籠の山がにぶく光る
 function sCavern(R, A) {
   const { w: W, h: H } = R, gy = Math.round(H * 0.58), cx = W / 2;
   R.amb = [0.55, 0.55, 0.6];
@@ -1069,6 +1069,9 @@ function sCavern(R, A) {
   // 裂け目 (遠景の下は底なしの闇)
   R.m = SKY; R.vgrad(0, H * 0.46, W, gy - H * 0.46, [[0, "#0a0b10"], [1, "#010102"]]);
   fogBand(R, H * 0.5, 10, "#20242e", 0.4, 4);
+  // 裂け目の向こうの縁の、濁った灯籠の山 (左右の端に寄せる)
+  lampHeapV(R, W * 0.14, H * 0.47, 20, 7, 17, { n: 22, sMin: 0.5, sMax: 0.8, murk: 0.45 });
+  lampHeapV(R, W * 0.86, H * 0.47, 24, 8, 19, { n: 26, sMin: 0.5, sMax: 0.8, murk: 0.45 });
   // 足場 (手前の岩棚)
   R.m = SURF; const lip = []; for (let x = 0; x <= W; x += 4) lip.push([x, gy - 2 + hash(x, 1, 5) * 4]);
   R.poly([...lip, [W, H], [0, H]], (x, y) => mix(C("#2a261e"), C("#141210"), clamp01((y - gy) / (H - gy)) * 0.8 + fbm(x * 0.1, y * 0.2, 4) * 0.2));
@@ -1085,6 +1088,7 @@ function sCavern(R, A) {
   A.part({ n: 24, col: "#b0a890", x0: 0, x1: 1, y0: 0.05, y1: 0.95, vy: 0.006, vx: 0.003, sway: 8, swf: 0.15, a: 0.25, tw: 0.8 });
   A.part({ n: 14, col: "#a0f0ff", x0: 0.05, x1: 0.95, y0: 0.12, y1: 0.42, a: 0.8, blink: 0.6, seed: 6 });
   A.part({ n: 8, col: "#e0c8ff", x0: 0.02, x1: 0.98, y0: 0.82, y1: 0.98, a: 0.8, blink: 0.5, seed: 8 });
+  A.part({ n: 10, col: "#6a8088", x0: 0.04, x1: 0.96, y0: 0.42, y1: 0.47, a: 0.6, blink: 0.35, seed: 9 });   // 灯籠の山の濁った灯のまたたき
 }
 
 // 層 13 魔導書庫: そびえる書架、手摺の回廊、宙に浮く魔導書、燭台、床に灯る魔法陣と昇る符
@@ -2889,6 +2893,205 @@ function vDuelRing(R, A) {
   A.part({ n: 30, col: "#d8d0c8", x0: 0, x1: 1, y0: 0, y1: 1, vy: 0.035, vx: 0.015, sway: 6, swf: 0.5, a: 0.4, tw: 1, seed: 421 });
   A.part({ n: 10, col: "#ffa060", x0: 0.05, x1: 0.95, y0: 0.4, y1: 0.7, vy: -0.05, sway: 4, swf: 1.2, a: 0.6, blink: 2, seed: 422 });
 }
+// ---- 第十章「地底大空洞」の迷宮 (闘技場の真ん中の穴の底に広がる、果ての見えない大空洞。黒く濁った灯籠が山と積もる) ----
+// 洞の岩の天井と壁 (闇に沈む地層)。y0..y1 を塗る
+function caveWallV(R, y0, y1, seed, { c0 = "#2a221c", c1 = "#120e0c", sx = 0.05 } = {}) {
+  R.m = SURF;
+  R.rect(0, y0, R.w, y1 - y0, (x, y) => {
+    const f = fbm(x * sx, y * 0.12, seed), st = Math.sin(y * 0.6 + fbm(x * 0.03, y * 0.05, seed + 1) * 9);
+    return mul(mix(C(c1), C(c0), clamp01(f * 1.3 - 0.2 + st * 0.1)), 0.85 + 0.3 * vnoise(x * 0.4, y * 0.8, seed + 2));
+  });
+}
+// 魂の灯籠 (取っ手・笠・ガラス・台)。(x, by) = 台の下端、s = 大きさ。state: dead = 黒く濁る / murk = 中でにぶく濁った光 / clear = 澄んだ火
+function lampV(R, x, by, s, state = "dead", brass = "#6a5636") {
+  R.m = SURF;
+  R.rect(x - 1.3 * s, by - 0.7 * s, 2.6 * s, 0.7 * s, brass);
+  R.rect(x - 1.4 * s, by - 4.2 * s, 2.8 * s, 0.7 * s, brass);
+  if (s >= 1.4) R.rect(x - 0.5, by - 5 * s, 1, 0.8 * s, brass);
+  const gy = by - 3.5 * s, gh = 2.8 * s;
+  if (state === "dead") { R.rect(x - s, gy, 2 * s, gh, "#060508"); if (s >= 1.5) R.px(x - s + 0.5, gy + 1, "#3a3840"); }
+  else if (state === "murk") { R.m = SKY; R.rect(x - s, gy, 2 * s, gh, (px, py) => mix(C("#12171a"), C("#4a5a60"), clamp01(vnoise(px * 0.9, py * 0.8, x | 0) * 1.3 - 0.25))); }
+  else { R.m = SKY; R.rect(x - s, gy, 2 * s, gh, "#34403e"); R.ellipse(x, gy + gh * 0.55, s * 0.55, s * 0.7, "#c8fff0"); R.glow(x, gy + gh * 0.5, s * 6, s * 6, "#3ad0b0", 0.35, 4); }
+  R.m = SURF;
+}
+// 灯籠の山 (山なりの影に、黒い灯籠と濁った灯籠を奥から手前へ積む)
+function lampHeapV(R, cx, by, rw, rh, seed, { n = 60, sMin = 0.7, sMax = 1.6, murk = 0.4, col = "#1a1614" } = {}) {
+  R.m = SURF;
+  const top = (x) => by - rh * Math.pow(Math.max(0, 1 - Math.pow((x - cx) / rw, 2)), 0.8) * (0.9 + 0.2 * vnoise(x * 0.2, 1, seed));
+  for (let x = Math.floor(cx - rw); x <= cx + rw; x++) R.rect(x, top(x), 1, by - top(x) + 1, (px, py) => mul(C(col), 0.7 + 0.5 * vnoise(px * 0.5, py * 0.5, seed)));
+  const r = rnd(seed), pts = [];
+  for (let i = 0; i < n; i++) { const x = cx + (r() * 2 - 1) * rw * 0.95, t = top(x), y = t + 2 + r() * (by - t - 1); pts.push([x, y, r()]); }
+  pts.sort((a, b) => a[1] - b[1]);
+  for (const [x, y, q] of pts) { const s = sMin + (sMax - sMin) * clamp01((y - (by - rh)) / rh); lampV(R, x, y, s, q < murk ? "murk" : "dead", q > 0.8 ? "#8a7046" : "#5a4a32"); }
+}
+// 大空洞の天井のつらら石 (左右の縁に寄せる)
+function caveFangs(R, seed, n, col = "#3a3028") {
+  const r = rnd(seed);
+  for (let i = 0; i < n; i++) { const e = r() < 0.5 ? r() * 0.3 : 0.7 + r() * 0.3, len = R.h * (0.08 + r() * 0.3) * (Math.abs(e - 0.5) * 1.6 + 0.2); spike(R, e * R.w, -1, len, 3 + r() * 8, col, 1); }
+}
+// w38 灯籠の吹き溜まり: 天井の小さな穴 (闘技場の穴) から細い光が差し、その真下に黒く濁った灯籠が山と積もる。光の中を灯籠が落ちてくる
+function vLampDrift(R, A) {
+  const { w: W, h: H } = R, hx = W * 0.42, gy = Math.round(H * 0.7);
+  R.amb = [0.4, 0.36, 0.34];
+  caveWallV(R, 0, H, 501);
+  caveFangs(R, 503, 14);
+  // 天井の穴と、下へひろがる光の帯
+  R.m = SKY; R.ellipse(hx, 1, 6, 2.6, "#d8d0c4"); R.glow(hx, 2, 18, 10, "#c8c0b0", 0.5, 4);
+  R.m = ADD; R.poly([[hx - 3, 2], [hx + 3, 2], [hx + 22, gy], [hx - 18, gy]], (x, y) => mul(C("#8a8478"), 0.42 * (1 - y / (gy * 1.4)) * (1 - Math.abs(x - hx - (y / gy) * 2) / (4 + y * 0.3))));
+  // 床 (灰とガラスのかけら)
+  ground(R, gy, "#3a332c", "#1a1612", 505, 0.1, 0.35);
+  // 奥の小さな山 (左右) と、穴の真下の大きな山
+  lampHeapV(R, W * 0.1, gy + 2, 30, 16, 507, { n: 26, sMin: 0.6, sMax: 1 });
+  lampHeapV(R, W * 0.88, gy + 1, 36, 20, 509, { n: 30, sMin: 0.6, sMax: 1.1 });
+  lampHeapV(R, hx + 2, H * 0.98, 92, H * 0.5, 511, { n: 150, sMin: 0.8, sMax: 2.6, murk: 0.38 });
+  // 光の帯の中の山の頂に積もる灰
+  { const r = rnd(513); R.m = SURF; for (let i = 0; i < 60; i++) { const x = hx - 14 + r() * 30, y = H * 0.5 + r() * 26; if (Math.abs(x - hx) < 5 + (y / gy) * 14) R.px(x, y, "#b8b0a4", 0.8); } }
+  R.light(hx, H * 0.4, 90, "#b8b0a0", 0.7, 70); R.light(W * 0.5, H, 120, "#e0a060", 0.35, 50);
+  A.part({ n: 20, col: "#cfc8bc", x0: (hx - 8) / W, x1: (hx + 14) / W, y0: 0.02, y1: 0.62, vy: 0.03, sway: 3, swf: 0.6, a: 0.55, tw: 1, seed: 431 });   // 光の中を舞う灰
+  A.part({ n: 2, col: "#2a2626", x0: (hx - 3) / W, x1: (hx + 5) / W, y0: 0.02, y1: 0.5, vy: 0.09, sz: 4, a: 0.9, seed: 432 });   // 穴から落ちてくる灯籠
+  A.part({ n: 12, col: "#7a8c90", x0: 0.1, x1: 0.9, y0: 0.55, y1: 0.95, a: 0.6, blink: 0.4, seed: 433 });   // 山の中の濁った灯のまたたき
+}
+// w39 黒い灯の地底湖: 鏡のような黒い湖。向こう岸にも手前の岸にも、木札を結んだ濁った灯籠が何百と並び、湖面ににぶく映る
+function vBlackLake(R, A) {
+  const { w: W, h: H } = R, fs = Math.round(H * 0.44), ns = Math.round(H * 0.8);
+  R.amb = [0.4, 0.38, 0.4];
+  caveWallV(R, 0, fs, 521, { c0: "#221e1c", c1: "#0c0a0a" });
+  caveFangs(R, 523, 18, "#2e2824");
+  // 向こう岸 (灯籠の列が三段、奥ほど小さい)
+  R.m = SURF; R.rect(0, fs - 6, W, 7, (x, y) => mul(C("#2a2420"), 0.8 + 0.4 * vnoise(x * 0.2, y, 525)));
+  const r = rnd(527);
+  for (const [yo, s, st] of [[-4, 0.55, 3.4], [-2, 0.7, 4], [0.5, 0.85, 4.8]]) for (let x = r() * st; x < W; x += st * (0.8 + r() * 0.4)) {
+    const mk = r() < 0.45; lampV(R, x, fs + yo, s, mk && r() < 0.6 ? "murk" : "dead"); R.m = SURF; R.px(x + 1.5, fs + yo - 2, "#a89068", 0.6);
+  }
+  // 黒い湖 (向こう岸の灯の映り込みと、ゆるい波の筋)
+  R.m = SKY; R.rect(0, fs + 1, W, ns - fs, (x, y) => {
+    const d = y - fs, srcY = fs - d * 0.8 - Math.sin(y * 1.3) * 0.6, i = (Math.round(srcY) * W + Math.round(x + Math.sin(y * 0.9) * 1.4)) * 3;
+    let c = mix(C("#0c0e12"), C("#040506"), d / (ns - fs));
+    if (srcY > fs - 8 && srcY < fs + 1 && R.al[i] !== undefined) c = mix(c, [R.al[i] + R.em[i], R.al[i + 1] + R.em[i + 1], R.al[i + 2] + R.em[i + 2]], 0.4 * (1 - d / 14));
+    if (Math.sin(y * 1.4 + vnoise(x * 0.04, y * 0.2, 529) * 14) > 0.94) c = mix(c, C("#2a3036"), 0.6);
+    return c;
+  });
+  { const rr = rnd(531); R.m = SKY; for (let i = 0; i < 10; i++) { const x = rr() * W, y = fs + 10 + rr() * (ns - fs - 14); R.px(x, y, "#4a5a60", 0.8); R.glow(x, y, 5, 3, "#3a5058", 0.3, 3); } }   // 水の底に沈んだ灯
+  // 手前の岸 (濡れた黒い岩) と、木札を結んだ灯籠の列
+  R.m = SURF; for (let x = 0; x < W; x++) { const t = ns + Math.sin(x * 0.05) * 2 - x * 0.03; R.rect(x, t, 1, H - t, (px, py) => (py < t + 1 ? C("#5a6266") : mul(C("#2c2622"), 0.8 + 0.4 * vnoise(px * 0.2, py * 0.4, 533)))); }
+  for (let x = W * 0.3; x < W; x += 13 + hash(x | 0, 1, 535) * 5) {
+    const y = ns + 8 - x * 0.03 + hash(x | 0, 2, 535) * 6, s = 1.6 + hash(x | 0, 3, 535) * 0.6, mk = hash(x | 0, 4, 535) < 0.5;
+    lampV(R, x, y, s, mk ? "murk" : "dead");
+    R.m = SURF; R.line(x, y - 5 * s, x + 3 * s, y - 4 * s, "#a08a60", 0.8); R.rect(x + 2.4 * s, y - 4 * s, 2.2 * s, 3.6 * s, "#9a7c54"); R.rect(x + 2.4 * s, y - 4 * s, 2.2 * s, 0.6, "#c8a878");
+    for (let k = 0; k < 3; k++) R.px(x + 3.4 * s, y - 3 * s + k * 1.1 * s, "#2a1e18", 0.9);   // きれいな字
+  }
+  R.light(W * 0.1, H * 0.86, 90, "#ffc080", 0.6, 50); R.light(W * 0.5, fs, W * 0.6, "#6a8088", 0.4, 20);
+  A.part({ n: 16, col: "#7a8c90", x0: 0, x1: 1, y0: fs / H - 0.05, y1: fs / H, a: 0.6, blink: 0.35, seed: 441 });   // 向こう岸の濁った灯のまたたき
+  A.part({ n: 10, col: "#5a7078", x0: 0, x1: 1, y0: fs / H + 0.04, y1: ns / H - 0.04, vx: 0.004, a: 0.4, tw: 0.6, len: 1, seed: 442 });   // 湖面のゆらぎ
+}
+// w40 名を刻む石窟: 左右の岩壁にアーチ形の壁龕がびっしりと奥まで並ぶ。一つずつに濁った灯籠と名を刻んだ石。灯は無く、魂の光だけ
+function vNameGrotto(R, A) {
+  const { w: W, h: H } = R, vx = W * 0.5, vy = H * 0.42;
+  R.amb = [0.3, 0.34, 0.34];
+  R.m = SURF; R.rect(0, 0, W, H, (x, y) => mul(C("#2a2624"), 0.25 + 0.75 * clamp01(Math.hypot((x - vx) / W, (y - vy) / H) * 1.8)));
+  ground(R, Math.round(vy + 6), "#26221e", "#3a342e", 541, 0.1, 0.3);
+  for (const side of [-1, 1]) {
+    // 壁 (遠近で奥へ)
+    const X = (z) => vx + side * (W * 0.55) / z, T = (z) => vy - (H * 0.5) / z, B = (z) => vy + (H * 0.55) / z;
+    R.m = SURF; R.poly([[X(1), T(1)], [X(9), T(9)], [X(9), B(9)], [X(1), B(1)]], (x, y) => mul(C("#4a4440"), 0.6 + 0.4 * vnoise(x * 0.3, y * 0.3, 543 + side)));
+    for (let k = 0; k < 9; k++) {
+      const z0 = 1.05 + k * 0.85, z1 = z0 + 0.5;
+      for (let row = 0; row < 3; row++) {
+        const v0 = 0.12 + row * 0.29, v1 = v0 + 0.2, Y = (z, v) => T(z) + (B(z) - T(z)) * v, xa = X(z0), xb = X(z1);
+        R.m = SURF; R.poly([[xa, Y(z0, v1)], [xa, Y(z0, v0 + 0.04)], [(xa + xb) / 2, Y((z0 + z1) / 2, v0)], [xb, Y(z1, v0 + 0.04)], [xb, Y(z1, v1)]], "#0e0e10");
+        R.line(xa, Y(z0, v1), xb, Y(z1, v1), "#6a6460", 1, 1);
+        const cx = (xa + xb) / 2, by = Y((z0 + z1) / 2, v1), s = 1.8 / z0;
+        if (hash(k, row * 3 + side, 545) > 0.15) { lampV(R, cx, by, s, "murk"); R.glow(cx, by - 2.5 * s, 8 * s + 2, 6 * s + 2, "#3a6a64", 0.35, 4); if (z0 < 3) R.light(cx, by - 3 * s, 30 / z0, "#6aa8a0", 0.5, 24 / z0); }
+        R.m = SURF; R.rect(cx - (xb - xa) * 0.25 * side, by + 1, Math.abs(xb - xa) * 0.5, Math.max(1, 3 / z0), "#5a5650");
+      }
+    }
+  }
+  R.light(vx, vy, W * 0.4, "#4a7a74", 0.3, H * 0.4);
+  A.part({ n: 24, col: "#8ac8c0", x0: 0.05, x1: 0.95, y0: 0.1, y1: 0.8, a: 0.55, blink: 0.3, seed: 451 });   // 龕の灯のまたたき
+  A.part({ n: 12, col: "#7ab8b0", x0: 0.2, x1: 0.8, y0: 0.2, y1: 0.9, vy: -0.01, sway: 4, swf: 0.3, a: 0.35, tw: 1, seed: 452 });   // 漂う魂のかけら
+}
+// w41 底なしの大伽藍: 天井の見えない闇の広間に、自然の巨柱が二列に並ぶ。広間の奥の床に、さらに下へ降りる石段が口を開け、底からかすかな光
+function vGreatNave(R, A) {
+  const { w: W, h: H } = R, vx = W * 0.5, vy = H * 0.5, gy = Math.round(H * 0.6);
+  R.amb = [0.34, 0.34, 0.36];
+  R.m = SURF; R.rect(0, 0, W, gy, (x, y) => mul(C("#1e1c1c"), 0.2 + 0.5 * vnoise(x * 0.05, y * 0.08, 551) + 0.3 * clamp01(Math.abs(x - vx) / W)));
+  ground(R, gy, "#2a2622", "#3e3832", 553, 0.09, 0.3);
+  // 巨柱 (つらら石と石筍がつながった柱。手前ほど太い)
+  for (const side of [-1, 1]) for (let k = 4; k >= 0; k--) {
+    const z = 1 + k * 0.9, x = vx + side * (W * 0.42) / z, w = 22 / z, by = vy + (H * 0.5) / z;
+    R.m = SURF; R.poly([[x - w / 2, -1], [x + w / 2, -1], [x + w * 0.22, by * 0.45], [x + w * 0.5, by], [x - w * 0.5, by], [x - w * 0.24, by * 0.5]], (px, py) => mul(C("#5a5048"), (0.35 + 0.55 / z) * ((px - x) * side < 0 ? 1.1 : 0.7) * (0.8 + 0.4 * vnoise(px * 0.4, py * 0.08, 555 + k))));
+  }
+  // 床の石段の口 (奥へ下る段と、底から昇る光)
+  const top = gy + 8, bot = H - 4;
+  R.m = SURF; R.poly([[vx - 10, top], [vx + 10, top], [vx + 28, bot], [vx - 28, bot]], (x, y) => { const t = (y - top) / (bot - top), st = (Math.pow(t, 0.7) * 8) % 1; return mul(st < 0.45 ? C("#6a6258") : C("#2a2624"), 0.15 + t * 0.85); });
+  R.m = SKY; R.rect(vx - 10, top, 20, 2, "#d8dcc0"); R.glow(vx, top, 30, 14, "#a8b090", 0.5, 5);
+  R.m = ADD; R.poly([[vx - 10, top], [vx + 10, top], [vx + 16, H * 0.15], [vx - 16, H * 0.15]], (x, y) => mul(C("#4a5040"), 0.35 * (y - H * 0.15) / (top - H * 0.15) * (1 - Math.abs(x - vx) / 18)));
+  R.light(vx, top, 80, "#c8d0a8", 0.8, 50);
+  // 奥の壁の龕の灯 (点々と)
+  { const r = rnd(557); R.m = SKY; for (let i = 0; i < 40; i++) { const x = vx + (r() - 0.5) * W * 0.5, y = H * 0.18 + r() * H * 0.28; R.px(x, y, r() < 0.5 ? "#5a7078" : "#3a4448", 0.8); } }
+  A.part({ n: 18, col: "#d8dcc0", x0: (vx - 14) / W, x1: (vx + 14) / W, y0: 0.15, y1: top / H, vy: -0.02, sway: 3, swf: 0.4, a: 0.5, tw: 1, seed: 461 });   // 昇る光の粒
+  A.part({ n: 14, col: "#6a8288", x0: 0.25, x1: 0.75, y0: 0.15, y1: 0.45, a: 0.5, blink: 0.3, seed: 462 });
+  A.pulse((P) => { P.m = ADD; P.glow(vx, top, 40, 18, "#7a8460", 0.45, 5); }, (t) => 0.35 + 0.25 * Math.sin(t * 0.0009));   // 底の光の息づき
+}
+// ws20 大空洞の主の寝床: 岩のくぼみに、巨獣の骨とかじられた魔物の骨が敷きつめられた寝床。壁に爪の跡、奥に大きな肋骨
+function vBeastLair(R, A) {
+  const { w: W, h: H } = R, gy = Math.round(H * 0.62), cx = W * 0.5;
+  R.amb = [0.44, 0.4, 0.36];
+  caveWallV(R, 0, gy + 2, 561, { c0: "#3a2e24", c1: "#140f0c" });
+  caveFangs(R, 563, 12, "#3e3228");
+  // 壁の爪の跡 (四本ずつ)
+  for (const [x0, y0] of [[W * 0.16, H * 0.2], [W * 0.78, H * 0.16], [W * 0.66, H * 0.32]]) for (let i = 0; i < 4; i++) { R.m = SURF; R.line(x0 + i * 4, y0, x0 + i * 4 + 6, y0 + 22, "#0a0807", 1, 2); R.line(x0 + i * 4 + 1, y0, x0 + i * 4 + 7, y0 + 22, "#5a4a3a", 0.5); }
+  // 寝床のくぼみ (床。骨が敷きつめられる)
+  ground(R, gy, "#3a3026", "#1a1410", 565, 0.1, 0.3);
+  R.m = SURF; R.ellipse(cx, H * 0.8, W * 0.36, H * 0.13, (x, y) => mul(C("#2a2218"), 0.8 + 0.3 * vnoise(x * 0.2, y * 0.4, 567)));
+  const r = rnd(569);
+  for (let i = 0; i < 70; i++) { const a = r() * TAU, rr = Math.sqrt(r()), x = cx + Math.cos(a) * W * 0.34 * rr, y = H * 0.8 + Math.sin(a) * H * 0.11 * rr, l = 3 + r() * 9, ang = r() * Math.PI;
+    R.m = SURF; R.line(x, y, x + Math.cos(ang) * l, y + Math.sin(ang) * l * 0.4, r() < 0.3 ? "#9a8e78" : "#c8bca0", 1, 1); if (r() < 0.4) { R.px(x, y - 0.5, "#e0d8c4"); R.px(x + Math.cos(ang) * l, y + Math.sin(ang) * l * 0.4 - 0.5, "#e0d8c4"); } }
+  // 奥の巨獣の肋骨 (弧を描いて床から立つ)
+  for (let i = 0; i < 6; i++) { const x = W * 0.58 + i * 9, h = 40 - Math.abs(i - 2.5) * 6; R.m = SURF; for (let k = 0; k <= 40; k++) { const t = k / 40; R.rect(x - Math.sin(t * Math.PI) * 8 + t * 4, gy + 4 - t * h, 2.6 - t * 1.2, 1.4, t < 0.5 ? "#a89c84" : "#c4b89e"); } }
+  R.m = SURF; R.ellipse(W * 0.24, gy + 2, 16, 8, "#b0a48c"); R.ellipse(W * 0.24 - 6, gy, 3, 3, "#0c0a08"); R.ellipse(W * 0.24 + 4, gy - 1, 2.6, 2.6, "#0c0a08");   // 巨獣の頭骨
+  for (let i = 0; i < 5; i++) R.rect(W * 0.24 - 8 + i * 3.4, gy + 7, 1.4, 4, "#d8ccb0");
+  // 寝藁がわりの、獣の毛のかたまり
+  for (let i = 0; i < 40; i++) { const x = cx + (r() - 0.5) * W * 0.5, y = H * 0.82 + (r() - 0.5) * H * 0.12; R.m = SURF; R.line(x, y, x + 4 + r() * 4, y + (r() - 0.5) * 2, "#5a4630", 0.8); }
+  R.light(W * 0.12, H * 0.9, 90, "#ffb060", 0.6, 50); R.light(cx, gy, W * 0.5, "#8a7a68", 0.3, H * 0.3);
+  A.part({ n: 20, col: "#b0a088", x0: 0, x1: 1, y0: 0.1, y1: 0.95, vy: 0.008, sway: 6, swf: 0.2, a: 0.25, tw: 0.8, seed: 471 });
+  A.fog("#3a3028", 0.86, 3, 0.18, 4, 110, 8);
+}
+// ws21 化石竜の墓所: 岩壁に半ば埋まった巨大な竜の化石。頭骨・背骨・広げた翼の骨が岩に浮き、足もとに鉱夫の古いつるはしと灯籠
+function vFossilDragon(R, A) {
+  const { w: W, h: H } = R, gy = Math.round(H * 0.74);
+  R.amb = [0.46, 0.42, 0.4];
+  caveWallV(R, 0, gy + 2, 571, { c0: "#4a3e32", c1: "#1c1612", sx: 0.035 });
+  // 化石 (岩より明るい骨の色。浮き彫り)
+  const bone = "#b8ac92", bd = "#6a604e";
+  const sp = (t) => [W * 0.12 + t * W * 0.74, H * 0.42 - Math.sin(t * Math.PI) * H * 0.18 + t * H * 0.08];
+  for (let k = 0; k <= 40; k++) { const [x, y] = sp(k / 40); R.m = SURF; R.ellipse(x + 1, y + 1, 2.4, 2.2, bd); R.ellipse(x, y, 2.2, 2, bone); if (k % 2 === 0 && k > 4 && k < 30) { R.line(x, y + 2, x - 3 + k * 0.1, y + 18 - Math.abs(k - 17) * 0.6, bone, 1, 1.4); R.line(x + 1, y + 2, x - 2 + k * 0.1, y + 18 - Math.abs(k - 17) * 0.6, bd, 0.5); } }   // 背骨と肋骨
+  for (let k = 0; k < 7; k++) { const [x, y] = sp(0.36 + k * 0.02); R.m = SURF; R.line(x, y, x - 30 + k * 10, H * 0.04 + k * 2, bone, 1, 1.4); }   // 広げた翼の骨
+  { const [x, y] = sp(0); R.m = SURF; R.poly([[x + 4, y - 4], [x - 14, y - 10], [x - 30, y - 4], [x - 34, y + 4], [x - 22, y + 8], [x - 4, y + 8]], bone); R.ellipse(x - 12, y - 3, 3.4, 2.6, "#0e0b09"); R.line(x - 30, y + 4, x - 6, y + 6, bd, 1); for (let i = 0; i < 6; i++) R.rect(x - 30 + i * 4, y + 4, 1, 3, "#e0d6bc"); R.line(x - 12, y - 8, x - 2, y - 20, bone, 1, 2); R.line(x - 4, y - 8, x + 6, y - 18, bone, 1, 2); }   // 頭骨と角
+  { const [x, y] = sp(1); for (let k = 0; k < 12; k++) { R.m = SURF; R.ellipse(x + k * 2, y + k * 1.4, 1.6 - k * 0.1, 1.4, bone); } }   // 尾
+  ground(R, gy, "#3a3028", "#1a1612", 573, 0.1, 0.3);
+  rubble(R, 575, 18, 0, W, gy + 2, H, "#5a4a3a");
+  R.m = SURF; R.line(W * 0.7, gy + 14, W * 0.78, gy + 2, "#6a5a40", 1, 1.4); R.poly([[W * 0.77, gy], [W * 0.82, gy + 2], [W * 0.79, gy + 4]], "#8a8a92");   // 古いつるはし
+  lampV(R, W * 0.62, gy + 12, 1.8, "dead");
+  R.light(W * 0.5, H * 0.3, W * 0.6, "#c0b090", 0.45, H * 0.4); R.light(W * 0.9, H * 0.9, 70, "#ffb060", 0.5, 40);
+  A.part({ n: 22, col: "#c8b898", x0: 0, x1: 1, y0: 0.05, y1: 0.95, vy: 0.01, sway: 5, swf: 0.2, a: 0.3, tw: 0.8, seed: 481 });
+  A.fog("#4a3e32", 0.8, 3, 0.2, 3, 120, 8);
+}
+// ws22 水晶の鉱脈: 大空洞の壁を走る水晶の鉱脈。壁を割って大小の水晶が突き出し、手前の地面にも結晶が林立する
+function vCrystalVein(R, A) {
+  const { w: W, h: H } = R, gy = Math.round(H * 0.72);
+  // 壁を斜めに走る鉱脈 (淡く光る帯)
+  R.m = SURF; R.poly([[0, H * 0.27], [W, H * 0.09], [W, H * 0.14], [0, H * 0.33]], (x, y) => mul(C("#4a5a60"), 0.5 + 0.6 * vnoise(x * 0.12, y * 0.5, 591)));
+  R.m = ADD; R.poly([[0, H * 0.29], [W, H * 0.11], [W, H * 0.12], [0, H * 0.31]], "#1a4a52", 0.6);
+  const r = rnd(593);
+  for (let i = 0; i < 16; i++) { const t = r(), x = t * W, y = H * 0.3 - t * H * 0.18 + 4; crystal(R, x, y, 8 + r() * 16, 3 + r() * 4, (r() - 0.5) * 0.5, r() < 0.7 ? "#6ad8e8" : "#b090f0", 0.12); }
+  for (const [x, c, n] of [[W * 0.22, "#6ad8e8", 6], [W * 0.78, "#8ae0f0", 7], [W * 0.5, "#b090f0", 3]]) {
+    for (let i = 0; i < n; i++) crystal(R, x + (i - n / 2) * 5, gy + 10 + (i % 2) * 4, 14 + hash(i, n, 595) * 26, 4 + hash(i, 1, 595) * 3, (i - n / 2) * 0.1, c, 0.15);
+    R.light(x, gy, 70, c, 0.8, 40);
+  }
+  A.part({ n: 30, col: "#c0f8ff", x0: 0, x1: 1, y0: 0.04, y1: 0.95, a: 0.85, blink: 0.7, seed: 491 });   // 水晶のきらめき
+  A.part({ n: 14, col: "#e0c8ff", x0: 0, x1: 1, y0: 0.1, y1: 0.4, a: 0.7, blink: 0.5, seed: 492 });
+}
 const VISTAS = {
   w01: [1, vCrypt], w02: [14, vWhispers], w03: [16, vAbbey], w04: [2, vIntake], w05: [3, vChains],
   w06: [4, vRanks], w07: [0, vPrison], w08: [4, vStorm], w09: [17, vCouncil],
@@ -2901,6 +3104,7 @@ const VISTAS = {
   w26: [9, vBogShore], w27: [0, vDollDump], w28: [0, vMiasmaReeds], w29: [0, vStagnant], ws13: [0, vPlagueMound], ws14: [9, vFerry],
   w30: [0, vSpiral], w31: [0, vBelfry], w32: [0, vGallery], w33: [0, vSummit], ws15: [0, vNest], ws16: [0, vRodForest], ws17: [0, vCloudGarden],
   w34: [0, vCloudBridge], w35: [0, vBeastCages], w36: [0, vSpectreStands], w37: [11, vBloodSand], ws18: [0, vVictorsRoom], ws19: [0, vDuelRing],
+  w38: [0, vLampDrift], w39: [0, vBlackLake], w40: [0, vNameGrotto], w41: [0, vGreatNave], ws20: [0, vBeastLair], ws21: [0, vFossilDragon], ws22: [12, vCrystalVein],
 };
 function finishVista(out, w, h) { // 周辺減光だけ (名札帯・中央減光はしない)
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
