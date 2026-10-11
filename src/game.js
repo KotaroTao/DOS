@@ -2,7 +2,7 @@ import { monsterResists } from "./resistance.js";
 // メインゲーム: カードボード探索 ⇄ 戦闘 (モンスターメーカー風)
 import { makeBoard, COLS, ROWS } from "./board.js";
 import { MONSTERS, HERO, ICONS, drawSpriteFit } from "./sprites.js";
-import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, partyBreathRes, setResonance, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
+import { spawnCardEnemies, spawnBossEnemies, spawnEliteEnemies, spawnMimic, spawnRanked, spawnMetal, setEnemyLvTag, Battle, SPELLS, cloneItem, spellCost, soulPowerMul, healsHp, spellHealRaw, healOnTarget, setOnEnemyKilled, setElemKnown, setPartyEvadeBonus, setPartyBreathBonus, partyBreathRes, setResonance, perkVictory, cureAil, canSpellCure, cureBySpell, spellCureKinds, chishioState } from "./combat.js";
 import { decideAuto, tacticOf, setResistKnown } from "./autotactics.js";
 import { STAGED, effectStage, stageOf, stageLabel, isBattleLong, turnsLeftLabel, ENEMY_STAT_LABEL } from "./buffstage.js";
 import { initAudio, SFX, playBgm, toggleMute, isMuted, setVolumes } from "./audio.js";
@@ -88,6 +88,7 @@ import { tlStability, tlStabilityTick, tlRedGain, tlOn, tlMeasure, tlWatchBattle
 import { repriceEquipment } from "./pricing.js";
 import { spawnFx, drawBattleFx, weaponFxStyle, statusFxKind, skillProfile, ELEM_FX_COL, SIG_FX } from "./battlefx.js";
 import "./battlefx-sig.js"; // 各職の看板技の専用演出を SIG_FX に登録する
+import { enemyLvTag } from "./enemylevel.js";
 
 // ===== コンテンツの取り込み =====
 // アイテム: 一点物の手作りカタログ (src/catalog/)。二つ名つきの量産品は廃止。
@@ -109,6 +110,7 @@ setSpriteResolver(makeItemSpriteResolver(ITEMS));
 // 性能が同じ品は同じ値段、どこも同等以上の品は必ず高くなる
 repriceEquipment(ITEMS);
 Object.assign(MONSTERS, DUNGEON_MONSTERS);
+setEnemyLvTag(enemyLvTag); // 戦闘中に呼ばれた手下の名乗りにも表示Lv を添える (combat.js)
 // 名のある強敵 (dungeons/named.js): 名は噂で知れ渡っている → 最初から本当の名で呼ぶ (itemview.js revealSteps)
 for (const id of NAMED_IDS) if (MONSTERS[id]) MONSTERS[id].named = true;
 // 隠しレベル lv (1-50) と表示ランクの補完 (カタログ品は定義済み)
@@ -7757,7 +7759,8 @@ function startBattleMeasured(enemies, cell) {
   // 同種の群れは「ゴブリン ×4」とまとめて告げる (個体名は A/B/C… 付き)
   const sameKind = enemies.length > 1 && enemies.every((e) => e.key === enemies[0].key);
   // 名前は討伐数1で明かす (それまでは不確定名「小さく蠢くもの？」など。迷宮の主は最初から名乗る — 伏せるのは log の maskUnknownEnemies)
-  log(`${sameKind ? `${enemies[0].mon.name} ×${enemies.length}` : enemies.map((e) => e.name).join("・")} が現れた！`, "dmg");
+  // 名前の後に表示Lv (その魔物が一番弱く出る所と比べた実際の強さ — enemylevel.js。状態異常に使う e.lv とは別)
+  log(`${sameKind ? `${enemies[0].mon.name}${enemyLvTag(enemies[0])} ×${enemies.length}` : enemies.map((e) => e.name + enemyLvTag(e)).join("・")} が現れた！`, "dmg");
   // 先制・奇襲の判定 (ボス戦・強敵戦では発生しない)。
   // 周囲警戒 (vigilance) が奇襲を抑え、先制の心得 (initiative) が先制を伸ばす
   const isBoss = enemies.some((e) => e.boss);
@@ -7855,7 +7858,7 @@ function startBattleMeasured(enemies, cell) {
     }
   }
   if (physOnlyHere()) log("呪文を封じる霧が立ちこめている ― 物理技と道具のほかは使えない。", "sys");
-  if (foeLv - partyLevel() >= 4) log(`格上の敵だ (Lv${foeLv})。眠りや毒、即死の術はほとんど効かず、敵の術はよく効く。`, "sys");
+  if (foeLv - partyLevel() >= 4) log(`格上の迷宮だ (推奨Lv${foeLv})。眠りや毒、即死の術はほとんど効かず、敵の術はよく効く。`, "sys");
   // テスト記録: 戦闘の種類 (主 / 金属の魔物 / 精鋭・ミミック・出来事の戦い / 通常) と開始時の様子。
   // 金属の魔物は素早さに依らない回避を持つので、精鋭等の命中に混ぜない
   if (tlOn() && inDungeon()) {

@@ -38,6 +38,9 @@ export function cloneItem(id, q) {
 }
 
 let _uid = 0;
+// 敵の表示Lv の札「（Lv29）」(enemylevel.js — combat.js の組み立てを借りるので、game.js が渡す)
+let _enemyLvTag = () => "";
+export function setEnemyLvTag(fn) { _enemyLvTag = typeof fn === "function" ? fn : () => ""; }
 // 敵の群れは最大6体 (前衛3+後衛3)
 export const MAX_ENEMIES = 6;
 
@@ -1985,7 +1988,7 @@ export class Battle {
         const same = this.enemies.filter((x) => x.key === key).length;
         if (same) e.name += String.fromCharCode(65 + same);
         this.enemies.push(e);
-        this.log(`${actor.name}は ${e.mon.name} を呼び寄せた！`, "dmg");
+        this.log(`${actor.name}は ${e.mon.name}${_enemyLvTag(e)} を呼び寄せた！`, "dmg");
         res.summoned = e;
       } else {
         this.log(`${actor.name}は何かを呼ぼうとしたが、応えはなかった。`, "sys");

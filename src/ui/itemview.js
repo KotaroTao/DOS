@@ -297,7 +297,7 @@ export function skillDetailLines(sp) {
   if (sp.charm) lines.push(`${pct(sp.charm)}で魅了する（その敵が仲間に襲いかかる・傷を受けると解けやすい・主には効きにくい）`);
   if (sp.confuse) lines.push(`${pct(sp.confuse)}で混乱させる（敵味方を問わず殴る・ふらつく・抵抗値で成功率が下がる）`);
   if (sp.flinchChance) lines.push(`${pct(sp.flinchChance)}で怯ませる（主には効かない）`);
-  if (sp.poison || sp.para || sp.seal || sp.instakill || sp.sleepChance || sp.charm || sp.confuse || sp.kind === "sleep") lines.push("※ 表示は抵抗値0・同じLvでの基本確率。Lv差で5〜95%に調整した後、成功率×（1−抵抗値/100）で判定。抵抗値100は無効");
+  if (sp.poison || sp.para || sp.seal || sp.instakill || sp.sleepChance || sp.charm || sp.confuse || sp.kind === "sleep") lines.push("※ 表示は抵抗値0・同じLvでの基本確率。魂のLvと迷宮の推奨Lvの差で5〜95%に調整した後、成功率×（1−抵抗値/100）で判定。抵抗値100は無効");
   if (sp.plunder) lines.push("この技で倒した敵は、落とすゴールドが2倍になる");
   if (sp.partyHeal) lines.push(`攻撃の後、味方全体のHPを ${sp.partyHeal} 回復（術者のPIEで伸びる）`);
   if (sp.bladeHeal) lines.push(`与えたダメージの${pct(sp.bladeHeal)}だけ味方全員のHPを回復（1人あたり最大HPの${pct(sp.healCap || 0.25)}まで）`);
