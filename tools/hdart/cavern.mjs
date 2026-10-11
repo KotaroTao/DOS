@@ -17,9 +17,9 @@ export const BED = { ramp: ramp(["#030202", "#0a0706", "#130e0b", "#1d1611", "#2
 export const ROCK = { ramp: ramp(["#030302", "#0b0908", "#161210", "#221d19", "#2f2823", "#3e352e", "#50463d"], 7), spec: 0.3, pow: 20, dither: 0.6,
   shade: p => 0.1 * fbm(p.x * 0.5, p.y * 0.5, p.z * 0.5) };
 // 煤けた灯籠のガラス: ほぼ黒。角だけ鈍く光る
-export const GLASS = { ramp: ["#020203", "#08080a", "#121216", "#1e1e24", "#2c2c34"], spec: 1.4, pow: 40, specCol: "#7a7a84", dither: 0.4, amb: 0.2 };
+export const GLASS = { ramp: ["#030304", "#0b0b0e", "#16161b", "#232329", "#33333b", "#46464f"], spec: 1.6, pow: 34, specCol: "#9a9aa4", dither: 0.4, amb: 0.22 };
 // 灯籠のゆがんだ鉄枠と取っ手: 煤で黒い錆
-export const FRAME = { ramp: ["#030202", "#0c0907", "#18120d", "#251c14", "#352819"], spec: 0.7, pow: 30, specCol: "#6a5a48", dither: 0.45 };
+export const FRAME = { ramp: ["#020202", "#090808", "#131110", "#1e1b18", "#2b2621"], spec: 0.9, pow: 30, specCol: "#7a6a58", dither: 0.45 };
 // 灯籠から漏れる濁った魂の光 (暗→明): くすんだ琥珀〜濁った黄
 export const MURK = ["#1e1a0a", "#3a3214", "#5e5222", "#8a7a3a", "#b4a250", "#d6c472", "#f0e2a6"];
 // 濁った光の灯籠のガラス (自ら鈍く光る)

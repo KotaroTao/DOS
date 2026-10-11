@@ -4247,7 +4247,7 @@ function sceneEyes() {
 
 // 44. 宰相モルデンの記憶 (一年前、底なしの大伽藍の最奥。自然の巨柱が並ぶ闇の広間の床に、さらに下へ降りる石の階段が口を開け、
 //     その底からかすかな光が昇る。階段の口をはさんで、痩せた長身・黒い長衣の宰相モルデン (胸の扉が開き、中に古い灯) と、
-//     旅装で片脚を引きずり、杖にすがる師オルドが向かい合う)
+//     旅装で片脚を引きずり、杖も無く片脚に体重をかけて立つ師オルドが向かい合う)
 function sceneMoldern() {
   const W = ART_W, H = ART_H, L = new Layer(W, H);
   const MX = 138, MB = 95, OX = 56, OB = 97, SX = 97;                  // モルデン・オルドの足もと・階段の中心
@@ -4283,7 +4283,7 @@ function sceneMoldern() {
   glow(L, SX, 74, 30, [0.8, 0.82, 0.66], 0.45, 2);
   L.shade(SX - 30, 30, SX + 30, 74, (x, y) => { const d = Math.abs(x - SX) / (8 + (74 - y) * 0.3); if (d < 1) L.add(x, y, [140, 146, 120], (1 - d) * 0.12 * (1 - (74 - y) / 44)); return null; });   // 昇る光のもや
   for (const [x0, y0, x1, y1] of [[SX - 26, 100, SX - 11, 74], [SX + 26, 100, SX + 11, 74]]) { const e = new Mask(W, H); e.line(x0, y0, x1, y1, 1.6); paintLit(L, e, () => [130, 122, 110], lights, { amb: [0.05, 0.05, 0.05] }); }
-  // 師オルド (左。右を向き、杖にすがる。左脚を後ろへ引きずる。暗い外套のすそに金の刺しゅう、背に荷)
+  // 師オルド (左。右を向き、右脚に体重をかけて立つ。杖は第八章で焼けて無い。左脚を後ろへ引きずる。暗い外套のすそに金の刺しゅう、背に荷。手袋なし)
   { const sh = new Mask(W, H); sh.ellipse(OX, OB, 15, 2.2); L.paint(sh, () => [8, 8, 9, 0.6]);
     const legs = new Mask(W, H);
     legs.line(OX + 2, OB - 14, OX + 4, OB - 1, 3.4, 1, 3); legs.rect(OX + 3, OB - 2, 5, 2);                 // 踏ん張る右脚
@@ -4297,11 +4297,10 @@ function sceneMoldern() {
       if (!coat.at(x, y + 1) || !coat.at(x, y + 2)) return h2(x, y, 1521) > 0.3 ? ALB_EMBROID : ALB_COAT_D;   // すその金の刺しゅう
       return mix(ALB_COAT, ALB_COAT_D, (Math.sin(x * 0.8 + y * 0.15) * 0.5 + 0.5) * 0.6);
     }, lights, { nxMax: 6, ny: (x, y) => vNormal(coat, x, y, 3) * 0.3, amb: [0.16, 0.15, 0.17] });
-    const arm = new Mask(W, H); arm.line(OX + 6, OB - 40, OX + 12, OB - 32, 3.2, 1, 2.8);
-    paintLit(L, arm, () => ALB_COAT, lights, { nxMax: 2, amb: [0.07, 0.07, 0.08] });
-    const staff = new Mask(W, H); staff.line(OX + 13, OB - 42, OX + 16, OB, 1.4);
-    paintLit(L, staff, (x, y) => mix([150, 118, 84], [104, 78, 54], vnoise(x, y * 0.3, 1523)), lights, { nxMax: 1, amb: [0.08, 0.08, 0.08] });
-    const hand = new Mask(W, H); hand.ellipse(OX + 13.6, OB - 32, 1.8, 2);
+    const arm = new Mask(W, H); arm.line(OX + 6, OB - 40, OX + 9, OB - 30, 3.2, 1, 2.8); arm.line(OX + 9, OB - 30, OX + 7, OB - 23, 2.8, 1, 2.4);   // 右の太ももを押さえる腕
+    paintLit(L, arm, (x, y) => (arm.at(x + 1, y) ? ALB_COAT : mix(ALB_COAT, [110, 100, 120], 0.5)), lights, { nxMax: 2, amb: [0.2, 0.19, 0.21] });
+    for (let y = OB - 39; y < OB - 23; y++) if (arm.at(OX + 5, y) && !arm.at(OX + 4, y)) L.px(OX + 4, y, [14, 12, 16]);   // 腕と胴の境の影
+    const hand = new Mask(W, H); hand.ellipse(OX + 6.6, OB - 21.6, 1.9, 1.8);                                   // 素手
     paintLit(L, hand, () => [206, 176, 156], lights, { amb: [0.12, 0.11, 0.11] });
     const head = new Mask(W, H); head.ellipse(OX + 3, OB - 49, 3.8, 4.4);
     paintLit(L, head, (x, y) => {
