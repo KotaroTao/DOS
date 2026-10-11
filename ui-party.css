@@ -1139,6 +1139,10 @@ button.sp-lu-next { cursor: pointer; }
 
 /* ===== 留守居の修練 (第六章の結びで開く。控えの一覧の見出しの注) ===== */
 .pt-res-rusui { font-size: 12px; color: #c8b78f; padding: 2px 2px 4px; line-height: 1.6; }
+.pt-res-row.rusui { border-color: #7a6432; box-shadow: 0 0 0 1px rgba(243,213,139,0.25); }
+.pt-res-rtag { display: inline-block; margin-left: 6px; padding: 0 5px; font-size: 10.5px; font-weight: 700; line-height: 1.6; vertical-align: 2px;
+  color: #f3d58b; border: 1px solid #8a6d2e; border-radius: 3px; background: rgba(60, 44, 16, 0.7); letter-spacing: 0.08em; }
+.pt-res-rbtn { flex: 1 0 100%; margin-top: 4px; }
 /* 魂の詳細: 魂の名の行の右端に「職業図鑑を見る」 */
 .sp-sd-sheet .sp-sd-t { flex: 1 1 auto; align-self: stretch; }
 .sp-sd-nmrow { display: flex; align-items: center; gap: 8px; }

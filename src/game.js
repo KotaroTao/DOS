@@ -518,6 +518,7 @@ const G = {
   treasury: { donated: {}, claimed: {} }, // 王宮の宝物庫: donated={収集品id:true}, claimed={"ランク:しきい値":true}
   lrOwned: {},        // 一度でも手にしたLRのid (同じ品は何度でも出る。いまは「LRを手にしたことがあるか」にだけ使う)
   named: { seen: {}, trophy: {} }, // 名のある強敵: seen={id:{dungeon, floor}} 目撃 / trophy={id:true} 首級を手にした (全滅で失えば消す)
+  rusui: { picks: [] }, // 留守居の修練: 席に就けた控えの人業の uid の配列 (席数 = rusuiSeats()。控えにいる者だけ有効)
   order: { picks: [] }, // 控えの結社: 席に着けた魂のuid配列 (席数=orderSeats()。編成外の魂のみ有効。能力の一部を全員に足す)
   events: { seen: {}, picks: {}, once: {}, flags: {}, fresh: {} }, // 迷宮のイベント (src/events.js): 見聞録・一度きり・恒久の恵み
   irene: { greeted: false, visits: 0, seen: {}, last: null }, // 人業の館の主イレーヌ: 初訪問の挨拶済み・来館数・聞いた話 (src/ui/irene.js)
@@ -10745,7 +10746,8 @@ function applyImpact(res) {
 // 戦闘でサブ魂に入る経験値の割合 (メイン魂の分に対して)
 const SUB_EXP_RATE = 1 / 3;
 // 留守居の修練 (第六章の結び = FEATURES.rusui。遠征の差し替え、2026-10 ユーザーの指示):
-// 控えの人業のメイン魂にも、隊のメイン魂が得る分の 10% が入る。操作は要らない。
+// 留守居の席に就けた控えの人業のメイン魂にも、隊のメイン魂が得る分の 10% が入る。席は第六章で1つ、先の章で増える (rusuiSeats)。
+// 無限迷宮で得た分は入れない (rusuiSeated が無限迷宮の間は空)。
 // 控えの魂それぞれの Lv で減らす (soulLvMul)。砕けた人業・魂の宿らない器は除く。レベルアップの画面は出さず、帰還の報告に載せる
 const RUSUI_EXP_RATE = 0.10;
 function distributeBattleSoulExp(...args) { return tlGameMeasure("growth", () => distributeBattleSoulExpMeasured(...args)); }
@@ -10796,9 +10798,9 @@ function distributeBattleSoulExpMeasured(soulGot) {
   }
   // 留守居の修練: 控えの人業のメイン魂 (隊で宿している魂は上で数えたので除く)
   const rusui = [];
-  if (featureUnlocked("rusui") && !abyssActive()) {
-    for (const d of G.reserve) {
-      if (!d || d.alive === false || d.primary == null || seen.has(d.primary)) continue;
+  if (!abyssActive()) {
+    for (const d of rusuiSeated()) {
+      if (d.alive === false || seen.has(d.primary)) continue;
       const e = soulByUid(d.primary);
       if (!e) continue;
       seen.add(d.primary);
@@ -13870,7 +13872,9 @@ const FEATURES = {
   sub2: { chapter: 4, report: "finale" },     // サブ魂 2枠
   forge: { chapter: 5, report: "finale" },    // 鍛え直し (商会で金貨を払い、装備の品質を引き直す — 2026-10 ユーザーの指示)
   // ── 第六章から (docs/unlocks.md の年表。ユーザーの了解済み)。章がまだ無いので開かない。仕組みはその章を作る時に足す ──
-  rusui: { chapter: 6, report: "finale" },      // 留守居の修練 (控えのメイン魂にも、戦闘で魂に入る経験値の一部が入る — 遠征の差し替え)
+  rusui: { chapter: 6, report: "finale" },      // 留守居の修練 (席1。席の控えのメイン魂にも、戦闘で魂に入る経験値の一部が入る — 遠征の差し替え)
+  rusui2: { chapter: 7, report: "finale" },     // 留守居の修練の席2
+  rusui3: { chapter: 10, report: "finale" },    // 留守居の修練の席3
   order4: { chapter: 8, report: "finale" },     // 結社の席4
   // 無限迷宮 (入るたびに Lv1 の仮の器で潜るローグライク — docs/infinite-labyrinth.md)。第八章の結び (2026-10-11 ユーザーの指示:
   //   第八章のあたりで Lv100・ランク3〜4 に届き、本編の育ちが単調になってくるので、第十章から前倒し)
@@ -13966,6 +13970,45 @@ function toggleOrderSeat(uid) {
   G.order.picks = picks.filter((u) => soulByUid(u));
   refreshOrderBonus();
   autosave(); renderTown();
+}
+// 留守居の修練の席数 (0〜3)。第六章の結びで1席、先の章で増える (2026-10-11 ユーザーの指示)
+function rusuiSeats() {
+  return ["rusui3", "rusui2", "rusui"].reduce((n, k, i) => n || (featureUnlocked(k) ? 3 - i : 0), 0);
+}
+// 席に就いている控えの人業 (G.rusui.picks の順・控えにいて魂の宿る者だけ・席数まで)。無限迷宮の間は誰も就かない
+function rusuiSeated() {
+  if (abyssActive()) return [];
+  const seats = rusuiSeats();
+  if (seats <= 0) return [];
+  const picks = (G.rusui && Array.isArray(G.rusui.picks)) ? G.rusui.picks : [];
+  const out = [];
+  for (const uid of picks) {
+    if (out.length >= seats) break;
+    const d = G.reserve.find((x) => x && x.uid === uid);
+    if (d && d.primary != null && !out.includes(d)) out.push(d);
+  }
+  return out;
+}
+// 留守居の席に就ける/外す。席が1つで埋まっていれば入れ替え、2つ以上で埋まっていれば断る
+function toggleRusuiSeat(d) {
+  if (!featureUnlocked("rusui") || !d || !G.reserve.includes(d)) return false;
+  if (d.primary == null) { SFX.ng(); showToast("魂の宿らない器は、留守居に就けられない", { tone: "bad", noLog: true }); return false; }
+  if (!G.rusui || !Array.isArray(G.rusui.picks)) G.rusui = { picks: [] };
+  const seated = rusuiSeated();
+  if (seated.includes(d)) {
+    G.rusui.picks = seated.filter((x) => x !== d).map((x) => x.uid);
+    showToast(`${d.name} を留守居の席から外した`, { tone: "info", noLog: true });
+  } else if (seated.length >= rusuiSeats()) {
+    if (rusuiSeats() !== 1) { SFX.ng(); showToast(`留守居の席が空いていない (${seated.length}/${rusuiSeats()})。誰かを外してから就ける`, { tone: "bad", noLog: true }); return false; }
+    G.rusui.picks = [d.uid];
+    showToast(`留守居を ${seated[0].name} から ${d.name} に替えた`, { tone: "good", noLog: true });
+  } else {
+    G.rusui.picks = [...seated.map((x) => x.uid), d.uid];
+    showToast(`${d.name} を留守居の席に就けた`, { tone: "good", noLog: true });
+  }
+  SFX.select();
+  autosave(); renderTown();
+  return true;
 }
 // 踏破した迷宮の数 (台帳の迷宮のうち、一度でも踏破したもの)
 function clearedDungeonCount() {
@@ -16886,7 +16929,7 @@ const SAVE_FIELDS = [
   "state", "floor", "maxFloorReached", "dungeonIdx", "unlockedDungeons", "board", "px", "py", "eliteFloor", "specialFloor", "mutator", "bossDown", "portalFound", "abyss", "abyssRec",
   "gold", "soulPts", "redSoul", "embers", "dollsPurchased", "dungeonBriefed", "stabilityBriefed", "pendingDoll",
   "party", "reserve", "souls", "shopStock", "run", "town",
-  "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "tavernHeard", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "irene", "journal", "tut", "events", "story", "world", "dragonSlain", "stats",
+  "quest", "msq", "ach", "fastAnim", "animTempo", "tavernCrowd", "tavernHeard", "rumor", "rumorCooldown", "activeRumor", "codex", "treasury", "lrOwned", "named", "order", "rusui", "irene", "journal", "tut", "events", "story", "world", "dragonSlain", "stats",
   "battle", "battleCell", "prevPos", "statusIdx", "statusTab", "rematch",
   "lastRun",
 ];
@@ -17117,6 +17160,7 @@ function loadGame() {
   G.town = townshell.migrateTown(G.town);
   if (G.lastRun === undefined) G.lastRun = null; // 帰還の報告 (後付け)
   if (!G.order || !Array.isArray(G.order.picks)) G.order = { picks: [] }; // 控えの結社の着席指定
+  if (!G.rusui || !Array.isArray(G.rusui.picks)) G.rusui = { picks: [] }; // 留守居の修練の席 (後付け)
   if (!G.irene || typeof G.irene !== "object") G.irene = { greeted: false, visits: 0, seen: {}, last: null }; // 館の主イレーヌ (後付け: 既存の記録では次の来館で挨拶する)
   if (!G.irene.seen || typeof G.irene.seen !== "object") G.irene.seen = {};
   if (!G.tut || typeof G.tut !== "object") G.tut = { done: {}, cur: null, step: 0, ev: {}, base: {} }; // 手ほどき (後付け: 解放済みで未使用の要素は目標の札から手ほどきする)
@@ -17417,6 +17461,7 @@ function setupTestPlay() {
       G.reserve.push(doll);
     }
     G.dollsPurchased += 3;
+    G.rusui = { picks: G.reserve.slice(0, rusuiSeats()).map((d) => d.uid) }; // 席の数だけ就けておく
   }
   G.gold = Math.round(refGold(level) * 30); G.redSoul = 300;
   G.state = "town";
@@ -17852,7 +17897,7 @@ function wireUI() {
     itemRankName, itemRankColor, itemGradeText, itemNameEl, logClassForItem,
     showChoice, closePrompt, showEvent, showConfirm, showToast, showItemGet, closeItemGet, showItemDetailPopup, showStoryScene,
     openStatus, closeStatus, openSettings, closeSettings, tryEnterDungeon, enterDungeon, returnToTown, confirmReturnToTown,
-    tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, RUSUI_EXP_RATE, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
+    tutorialAllowed, palaceCallReady, currentObjective, featureUnlocked, RUSUI_EXP_RATE, rusuiSeats, rusuiSeated, toggleRusuiSeat, contentSealed, reportMainQuest, acceptMainQuest, reportPending, blockForReport, tutorialPending, blockForTutorial,
     worldState, worldOpenIdx, pendingIreneBeat, playIreneBeat, dungeonLevel, FEATURES, featureNote, chaptersDone, storyGoal, currentChapter, dungeonTrait, dungeonFloorHaz,
     trainSoul, raiseSoulCap, soulTrainCost, soulByUid, codexSeeItem, treasuryState, heldCollectibles, donateCollectible,
     claimAchievement, claimTreasury, treasuryRewardReady, deliveryHolder, deliveryStatus, deliverQuest,
@@ -17975,7 +18020,7 @@ function init() {
     // 出来事・記録の検証用
     evApi, runEvent, logHistory,
     // 留守居の修練の検証用
-    rusui: { distributeBattleSoulExp, RUSUI_EXP_RATE, soulByUid },
+    rusui: { distributeBattleSoulExp, RUSUI_EXP_RATE, soulByUid, rusuiSeats, rusuiSeated, toggleRusuiSeat },
     // オート移動の検証用
     autoMove: { setAutoMove, toggleAutoMove, autoMovePlan, cellRect, viewSize: () => ({ VW, VH }) },
     // 宿敵の再戦の検証用

@@ -89,6 +89,15 @@ function builtinSuggestions(c) {
   if (better > 0 && facilityOpen("mansion") && UI.autoEquip) {
     out.push({ key: "autoEquip", prio: 50, label: "最適装備", sub: `より良い品 ${better}`, icon: "party", run: () => UI.autoEquip("all") });
   }
+  // 留守居の修練の空き席 (就けられる控えがいる時だけ)。タップで控えの一覧
+  try {
+    const seats = game.rusuiSeats ? game.rusuiSeats() : 0;
+    const seated = seats && game.rusuiSeated ? game.rusuiSeated() : [];
+    const free = seats - seated.length;
+    if (free > 0 && facilityOpen("mansion") && UI.openReserve && (g.reserve || []).some((d) => d && d.primary != null && !seated.includes(d))) {
+      out.push({ key: "rusui", prio: 52, label: "留守居を就ける", short: "留守居", sub: `空き席 ${free}`, icon: "party", run: () => UI.openReserve() });
+    }
+  } catch (e) { /* 提案は出さなくてよい */ }
   // 魂融合できる魂 (同じ職の魂が余っている)。タップで融合させる魂を選ぶシート、長押しで隊の魂の区分
   let fl = [];
   try { fl = UI.fusableList ? (UI.fusableList() || []) : []; } catch (e) { fl = []; }
